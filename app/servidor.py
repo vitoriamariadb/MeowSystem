@@ -2583,11 +2583,17 @@ def _acentos_que_aplicam(esquema):
                 [sys.executable, os.path.join(RAIZ, "scripts", "derivar_acento.py"),
                  "--aplicam", ",".join(acentos)],
                 cwd=RAIZ, capture_output=True, text=True, timeout=60)
-            _APLICAM_CACHE.clear()
-            _APLICAM_CACHE[chave] = json.loads(r.stdout) if r.returncode == 0 else {}
+            resposta = json.loads(r.stdout) if r.returncode == 0 else {}
         except (OSError, ValueError, subprocess.SubprocessError):
             return {}
-    return _APLICAM_CACHE[chave]
+        # A RESPOSTA VOLTA PELA VARIÁVEL, E NÃO PELO DICIONÁRIO — P77: desde
+        # que o `_aquecer` (no `main`) faz esta conta numa thread ao subir, o
+        # primeiro `/api/esquema` pode fazê-la ao mesmo tempo; reler do
+        # dicionário depois do `clear()` da outra thread daria `KeyError`.
+        _APLICAM_CACHE.clear()
+        _APLICAM_CACHE[chave] = resposta
+        return resposta
+    return _APLICAM_CACHE.get(chave, {})
 
 
 # --- 3b. os acervos que moram no DISCO, e não no texto -----------------------
@@ -11982,7 +11988,25 @@ def _vigia(servidor, comeco):
     servidor.shutdown()
 
 
+def _aquecer():
+    """A conta mais cara do esquema frio, feita antes de a página pedir.
+
+    A PRIMEIRA CARGA ESPERAVA O ESQUEMA FRIO — 10/10/2026, P77 (achado 22).
+    Medido na casa de brinquedo: o primeiro `_dados_esquema` custa 1,0 s e os
+    seguintes 0,15 s; 0,72 s daquele segundo é o `_acentos_que_aplicam`, que
+    roda o `derivar_acento.py` num processo filho e guarda a resposta. Esta
+    thread a faz ao subir, enquanto o navegador ainda abre: quando o pedido
+    chega, a resposta já está guardada. Falhar aqui não muda nada — o pedido
+    faz a conta como sempre fez."""
+    try:
+        _acentos_que_aplicam(ler_esquema())
+    except Exception:
+        pass
+
+
 def main():
+    # O esquema frio começa a aquecer antes de a URL sair — ver `_aquecer`.
+    threading.Thread(target=_aquecer, daemon=True).start()
     # Os operários de prévia sobem ANTES do servidor: o primeiro `/api/previas`
     # pode chegar no mesmo segundo em que a página abre, e uma fila sem ninguém
     # do outro lado deixaria as miniaturas eternamente "gerando".

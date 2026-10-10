@@ -11661,20 +11661,27 @@ function montarGrupos() {
 }
 
 async function iniciar() {
-  ESQUEMA = await api("/api/esquema");
+  /* AS TRÊS PERGUNTAS SAEM JUNTAS — 10/10/2026, P77 (achado 22). Eram em fila:
+   * o esquema, depois as pendências, depois os packs, e a primeira pintura
+   * esperava a soma das três. Nenhuma depende da outra (as pendências e os
+   * packs não leem o `ESQUEMA`), então a espera passa a ser a da mais lenta.
+   * As pendências e os packs continuam entrando ANTES da primeira pintura,
+   * pelo mesmo motivo que a bandeja: lê-los depois faria a Home nascer sem o
+   * bloco e piscar com ele. Enquanto isso, o esqueleto do `index.html` está na
+   * tela desde o primeiro quadro. */
+  const [esquema] = await Promise.all([api("/api/esquema"), recarregarPendencias(), recarregarPacks()]);
+  ESQUEMA = esquema;
   publicarMedidas();
   if (ESQUEMA.erro) {
-    $("#conteudo").append(elemento("p", { class: "vazio-msg", texto: ESQUEMA.erro }));
+    /* O esqueleto sai também no erro: ele promete uma página que não vem. */
+    $("#trilho").replaceChildren();
+    $("#trilho").removeAttribute("aria-busy");
+    $("#conteudo").removeAttribute("aria-busy");
+    $("#conteudo").replaceChildren(elemento("p", { class: "vazio-msg", texto: ESQUEMA.erro }));
     return;
   }
 
   montarGrupos();
-  /* As pendências entram ANTES da primeira pintura, pelo mesmo motivo que a
-   * bandeja: lê-las depois faria a Home nascer sem o bloco e piscar com ele. */
-  await recarregarPendencias();
-  /* Os packs pelo mesmo motivo, e a espera é pequena: medido em 23/09/2026, o
-   * `packs_com_vitrine` do servidor responde os dois packs em 9 ms. [P15] */
-  await recarregarPacks();
   /* O ouvinte de gesto é UM só, e nasce aqui: o `main` sobrevive a toda
    * pintura, então registrá-lo dentro do `render()` vazaria um por clique. */
   ouvirGestoDeRolagem();
@@ -11792,6 +11799,8 @@ async function iniciar() {
 
   pintarResumo();
   render();
+  $("#trilho").removeAttribute("aria-busy");
+  $("#conteudo").removeAttribute("aria-busy");
 }
 
 /* --- O PULSO: ESTA PÁGINA É O INTERRUPTOR DO SERVIDOR ----------------------

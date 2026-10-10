@@ -561,6 +561,27 @@ main:focus-visible { outline: none; }
 #aviso-aplicar { margin-top: 1.4rem; }
 #conteudo { margin-top: 1.4rem; padding-bottom: 3rem; }
 
+/* O ESQUELETO DA PRIMEIRA CARGA — 10/10/2026, P77 (achado 22). Formas lisas na
+   cor das superfícies, sem palavra e sem animação (a direção cortou o
+   movimento): o menu, o título, o desenho do topo e seis cartões em grade.
+   Some na primeira pintura, que troca os filhos do trilho e do `#conteudo`. */
+.esqueleto { display: block; background: var(--surface0); border-radius: var(--r-2); opacity: .55; }
+.esqueleto-item { height: 1.9rem; margin: .25rem .2rem; }
+.esqueleto-bloco { height: .8rem; width: 45%; margin: 1.1rem .5rem .5rem; opacity: .35; }
+.esqueleto-titulo { height: 1.7rem; width: 14rem; }
+.esqueleto-desenho { height: 9rem; margin-top: 1.4rem; opacity: .35; }
+.esqueleto-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: 1rem; margin-top: 1.4rem; }
+.esqueleto-cartao { height: 7.5rem; }
+#resumo:empty::before {
+  content: ""; display: block; width: 9rem; height: .7rem; margin-top: .25rem;
+  background: var(--surface0); border-radius: var(--r-2); opacity: .55;
+}
+/* 860 px é onde o trilho vira faixa de cima (ver o `@media` dele, mais abaixo). */
+@media (max-width: 860px) {
+  .trilho .esqueleto-item { flex: 0 0 5.5rem; margin: 0; }
+  .trilho .esqueleto-bloco { display: none; }
+}
+
 /* --- cabeçalho de seção --------------------------------------------------- */
 /* O DEGRAU COMEÇA AQUI. A seção era 15,4 px com uma régua embaixo; agora é
  * 23 px sem régua nenhuma. O tamanho separa melhor que o fio, e vinte e quatro
