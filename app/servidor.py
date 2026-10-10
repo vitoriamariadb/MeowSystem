@@ -5026,9 +5026,13 @@ ACOES = {
     # O STARSHIP — 22/09/2026, sprint P2. A receita `curl | sh` que o
     # `scripts/prompt.sh` imprimia virou este botão. `rede` está ligado porque
     # ele BAIXA DA INTERNET, e é esse campo que põe o rótulo na confirmação.
+    # NA PÁGINA DO TERMINAL — 10/10/2026, P77 (achado 21). O starship desenha
+    # o prompt do zsh, que é um ajuste de «Terminal» («Prompt do zsh»); a
+    # ação de instalá-lo morava em «Manutenção», longe do cartão que ela
+    # destrava.
     "prompt_instalar_starship": {
         "rotulo": "Instalar o starship",
-        "grupo": "Manutenção",
+        "grupo": "Terminal",
         "natureza": "baixar",
         "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
         "escreve": True, "sudo": False, "confirma": True, "rede": True,

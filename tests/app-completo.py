@@ -3737,6 +3737,9 @@ INVENTARIO = {
         ajuste TERMINAL_CURSOR · opção
         ajuste TERMINAL_ESQUEMA · ?
         ajuste TERMINAL_ESQUEMA · opção
+        ação «Instalar o starship» · ?
+        ação «Instalar o starship» · Executar
+        ação «Instalar o starship» · ver comando
     """),
     "Lançadores e jogos": _linhas("""
         aba · ?
@@ -3812,9 +3815,6 @@ INVENTARIO = {
         ajuste SOM_PESO_HARMONICO · campo
         ajuste STEAM_VIGIA · ?
         ajuste STEAM_VIGIA · opção
-        ação «Instalar o starship» · ?
-        ação «Instalar o starship» · Executar
-        ação «Instalar o starship» · ver comando
         ação «Ouvir o som» · ?
         ação «Ouvir o som» · Executar
         ação «Ouvir o som» · ver comando
