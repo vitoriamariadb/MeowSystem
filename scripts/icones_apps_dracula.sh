@@ -541,17 +541,29 @@ _dracula_cache() {
   return 1
 }
 
-# --- o aviso que evita a pergunta "por que não mudou?" ------------------------
+# --- a tela relê o que mudou ------------------------------------------------
 # O `cosmic-app-library` e o `cosmic-panel` não ligam em GTK: varrem o tema AO
 # NASCER e guardam em memória. Um SVG que chega depois não existe para eles até
-# o processo reiniciar. Reiniciar o painel derruba a topbar e a dock por alguns
-# segundos, e o `meow-painel.service` existe porque o supervisor do COSMIC tem
-# um backoff SEM TETO que já deixou esta máquina 16h sem barra — caro demais
-# para ser efeito colateral de "instalei um ícone". Quem decide é ele.
+# o processo reiniciar.
+#
+# ERA UM AVISO COM RECEITA, E VIROU A AÇÃO — 10/10/2026, P79 (item 5). A saída
+#   terminava em «para ver agora… pkill -x cosmic-panel && pkill -f
+#   cosmic-app-library»: dentro do painel, a tela mandando digitar. O medo de
+#   então (um `pkill` cego derruba a barra, e o supervisor do COSMIC tem um
+#   backoff SEM TETO que já deixou esta máquina 16h sem barra) é o que a porta
+#   única da tela resolve desde 13/09: o `meow_tela_reler` (lib/comum.sh) só
+#   mexe na sessão desta conta, recicla o painel pelo `painel.sh reciclar`, que
+#   RECUSA quando ninguém repõe a barra, e chacoalha o lançador, que o
+#   `cosmic-session` repõe em segundos. É o que o `icones_apps_arcticons.sh` já
+#   faz. Só depois de algo ter mudado, e nunca no ensaio.
 _dracula_avisar() {
-  meow_info "  o painel e o lançador leem o tema ao nascer e guardam em memória —"
-  meow_info "  para ver agora, sem esperar o próximo login:"
-  meow_info "      pkill -x cosmic-panel && pkill -f cosmic-app-library"
+  meow_seco && return 0
+  meow_tela_reler
+  case $? in
+    0) meow_ok "os desenhos novos já estão na dock e no menu" ;;
+    3) meow_info "fora da sessão gráfica: os desenhos novos aparecem no próximo login" ;;
+  esac
+  return 0
 }
 
 # --- estado -------------------------------------------------------------------

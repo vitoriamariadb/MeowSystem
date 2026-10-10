@@ -6719,6 +6719,11 @@ ACAO_DA_PENDENCIA = {
     "starship-ausente": "prompt_instalar_starship",
     "spicetify-tema-ausente": "spotify_baixar_tema",
     "files-menu-build": "files_menu_build",
+    # P79 (item 5, «nada manda digitar»): o rodapé do instalador mandava
+    # digitar «sudo -v && ./install.sh», e o applet de leitura «LEITURA_COMPILAR=1
+    # …/leitura_build.sh». Viraram pendência, e o botão é o de quem faz.
+    "instalar-com-root": "instalar",
+    "leitura-applet": "doctor_consertar",
 }
 
 # AS PENDÊNCIAS QUE ACEITAM "NÃO, OBRIGADO"

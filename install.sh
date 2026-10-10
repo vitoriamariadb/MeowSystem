@@ -3758,7 +3758,7 @@ main() {
     # cada um tem um conserto diferente. Quem se pulou por opt-in já se anunciou em
     # PULADOS_OPTIN; o que sobrar é que de fato depende de sudo.
     if [ ${#PULADOS[@]} -gt 0 ]; then
-      local p por_root=0 sem_captura=""
+      local p por_root=0 sem_captura="" de_root=""
       for p in "${PULADOS[@]}"; do
         case " ${PULADOS_OPTIN[*]:-} " in *" $p "*) continue ;; esac
         # A TELA DE LOGIN SEM TEMA NÃO É FALTA DE ROOT — 25/09/2026, P59. Com
@@ -3769,16 +3769,25 @@ main() {
         if [ "$p" = "greeter" ] && [ -n "${TEMA_SEM_CAPTURA:-}" ]; then
           sem_captura="$TEMA_SEM_CAPTURA"; continue
         fi
-        case "$p" in greeter|ocultar|nomes|absolutos) por_root=1 ;; esac
+        case "$p" in greeter|ocultar|nomes|absolutos) por_root=1; de_root="${de_root:+$de_root }$p" ;; esac
       done
-      [ "$por_root" = "1" ] && \
-        meow_info "algumas dessas precisavam de root. Para completá-las:  sudo -v && ./install.sh"
+      # A RECEITA DO SUDO VIROU PENDÊNCIA — 10/10/2026, P79 (item 5). A frase
+      #   terminava em «Para completá-las:  sudo -v && ./install.sh», e dentro
+      #   do painel isso é a tela mandando digitar. Agora a pendência
+      #   `instalar-com-root` diz QUAIS etapas esperam, e o painel a liga ao
+      #   «Instalar tudo» (`ACAO_DA_PENDENCIA`); a passagem que não pula por
+      #   root a tira, logo abaixo.
+      [ "$por_root" = "1" ] && meow_pendencia_acionavel instalar-com-root \
+        "Etapas que precisavam de root e se pularam: $de_root" "./install.sh"
       case "$sem_captura" in
         deriva) meow_info "greeter: no ensaio a captura do tema ainda não foi escrita (a etapa tema a deriva antes da tela de login) — não é falta de root" ;;
         falta)  meow_info "greeter: a tela de login veste o tema do COSMIC, e ele não tem captura — não é falta de root" ;;
       esac
       [ ${#PULADOS_OPTIN[@]} -gt 0 ] && \
         meow_info "${PULADOS_OPTIN[*]}: é opt-in, não é falta de root — LANCADOR_SISTEMA=\"sim\" no meow.conf liga"
+      [ "$por_root" = "1" ] || meow_pendencia_resolvida instalar-com-root
+    else
+      meow_pendencia_resolvida instalar-com-root
     fi
 
     # O `passagem=` entrou na linha do log no mesmo dia do laço: sem ele, três

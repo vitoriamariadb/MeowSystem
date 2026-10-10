@@ -105,6 +105,7 @@ PORTATIL=(
   backoff-do-supervisor.sh # journalctl falso com as duas formas do log do cosmic-session (P76); só bash
   pack-malicioso.sh      # pack de terceiro com '..', absoluto, symlink e script; painel num HOME de brinquedo (P78); bash, python3 e curl
   casa-real.sh           # o migrar_conf, o doctor e a troca de pack num HOME e COSMIC de brinquedo, sudo falso (P79); bash e python3
+  nada-manda-digitar.sh  # grep nas mensagens versionadas e a tabela de pendências do painel (P79); bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
