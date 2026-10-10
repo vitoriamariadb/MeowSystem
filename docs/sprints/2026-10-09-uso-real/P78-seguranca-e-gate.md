@@ -37,11 +37,29 @@ confiável / execução de código). Um pack pode ser importado de terceiros: tu
 - `tests/todos.sh` inteiro verde, inclusive o gate.
 
 ## Achados para a próxima leva
-- **Conteúdo dos temas de app não é filtrado, só o caminho.** O `apps.<app>.arquivo` de um pack
-  passa pelo `_dentro`, mas o que o arquivo diz vai inteiro para a configuração do aplicativo: um
-  `kitty.modelo.conf` de terceiro pode trazer `shell`, `map … launch` ou `startup_session`, e um
-  `.dconf` do GNOME Terminal é carregado com `dconf load` (preso ao caminho do perfil). Cura na
-  origem: o modelo de cada app aceitar só as chaves de cor, e recusar o resto ao montar.
+- ~~Conteúdo dos temas de app não é filtrado, só o caminho.~~ **Curado na conferência** para os
+  dois que viravam comando: o modelo de kitty e o de GNOME Terminal de um pack só levam chave de
+  cor (e `visible-name`, e a seção `[/]`); `shell`, `map … launch`, `geninclude`, `include`,
+  `custom-command` e outra seção são pulados e contados (`_kitty_so_cor`, `_gt_so_cor`). Telegram,
+  Discord e OnlyOffice continuam passando inteiros: nenhum deles executa o que o tema diz, mas o
+  CSS do Discord pode buscar na rede (`@import`), como o próprio tema Dracula faz.
+- **O VS Code instala a extensão que o pack nomeia** (achado da conferência, gravidade alta). O
+  `apps.vscode.origem` traz `extensao`, `url` e `sha256`, e o módulo baixa o `.vsix` e roda
+  `--install-extension`; sem `url`, instala pelo id da Marketplace. O sha256 é do próprio pack:
+  prova integridade, não confiança. Uma extensão é código que roda com a conta de quem usa a cada
+  abertura do editor, então um pack de terceiro escolhe código para rodar. Cura a decidir por quem
+  usa: só pack do motor (`packs/` do repositório) instala extensão sozinho, ou uma lista fechada de
+  publicadores, ou a pergunta da P46 para esse caso.
+- **Mapa com CRLF perde as linhas em silêncio-contado.** Um `pastas.map`/`mimetypes.map` escrito
+  no Windows tem `\r` no glifo, e o `meow_nome_seguro` o recusa: a linha é pulada e contada, nada
+  sai da raiz, mas o pack inteiro fica sem pastas. O `pack.py` (`splitlines`) aceita o mesmo
+  arquivo; o shell não. Tirar o `\r` no leitor de mapa do shell.
+- **O `_proibido` do `.meowpack` olha só `.sh` e `#!` no primeiro byte**: um `leia.txt` que começa
+  com BOM e `#!` entra (medido). Nada do pack é executado nem fica executável (chmod 644), então
+  não é porta; anotado para a régua não prometer mais do que mede.
+- **Painel de pé que não é desta leva**: o PID 1985165, `app/servidor.py` do checkout principal,
+  de 09/10 18:52, com o HOME em `scratchpad/pp/casa`. Não é desta conferência, e por isso não foi
+  derrubado.
 - **`rsvg-convert` sobre SVG de pack** (semente de papel de parede, prévias): o librsvg resolve
   `<image href>` relativo ao arquivo; não medi se um symlink dentro do pack o leva para fora.
 - **Duas políticas para a linha ruim.** No `validar` (inclusive o silencioso, o do motor), um alvo
