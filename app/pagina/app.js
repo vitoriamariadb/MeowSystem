@@ -534,7 +534,9 @@ function semRaiz(caminho) {
  * caminho absoluto, com o nome de usuário, e o que se copiava dali só colava
  * nesta máquina. O `acao.argv` que chega aqui já não começa pela raiz, e as
  * duas trocas abaixo não acham mais o que trocar nele. Elas ficam, e a nota
- * fica junto: é a regra da casa mencionar o que deixou de agir, não apagar. */
+ * fica junto: é a regra da casa mencionar o que deixou de agir, não apagar.
+ *   09/10/2026, P77: perdeu o último chamador, a linha `code.cmd` do cartão de
+ * ação, que saiu (o comando mora só no «ver comando»). Fica pela mesma regra. */
 function comandoCurto(cmd) {
   const curto = semRaiz(cmd);
   return curto.startsWith("bin/meow") ? "meow" + curto.slice("bin/meow".length)
@@ -2743,21 +2745,19 @@ function mockDaBarra(item, opcoes) {
   ];
 
   if (opcoes && opcoes.semLegenda) return mock;
-  return elemento("div", { style: "width:100%" }, [
-    mock,
-    elemento("p", {
-      class: "sem-previa",
-      /* Maiúscula inicial, como as outras onze legendas de desenho da página —
-       * 22/09/2026. Esta é a única montada aqui (a FORMA não passa pelo
-       * `parDePrevias`), então a maiúscula que o `parDePrevias` aplica não a
-       * alcançava, e ela ficou sendo a única em minúscula das doze. */
-      texto: `Desenho, não é a sua tela: ${dock ? "a dock" : "o painel"} `
-           + notas.join("; ")
-           + (reserva
-             ? ". Onde a máquina não pôde ser lida, o desenho usa medidas de exemplo."
-             : ". Vazio no meow.conf deixa o que a máquina tem, e é isso que aparece aqui."),
-    }),
-  ]);
+  /* A LEGENDA DA FORMA FOI PARA O `?` DO DESENHO — 09/10/2026, P77. Eram duas
+   * legendas de quatro linhas, uma sob cada barra (print 11 do uso real), com
+   * os números que o próprio desenho já mostra. Elas continuam inteiras, a um
+   * clique, e o aviso «Desenho, não é a sua tela» sai em `dicaDoDesenho`. */
+  const legenda = `${dock ? "a dock" : "o painel"} `
+    + notas.join("; ")
+    + (reserva
+      ? ". Onde a máquina não pôde ser lida, o desenho usa medidas de exemplo."
+      : ". Vazio no meow.conf deixa o que a máquina tem, e é isso que aparece aqui.");
+  const caixa = elemento("div", { class: "com-dica", style: "width:100%" }, [mock]);
+  const dica = dicaDoDesenho(dock ? "forma-dock" : "forma-painel", legenda);
+  if (dica) caixa.append(...dica);
+  return caixa;
 }
 
 /* --- a simulação do modo de leitura --------------------------------------- */
@@ -2804,10 +2804,11 @@ function simulacaoLeitura(item) {
            + `backdrop-filter: saturate(${Math.round(100 - t * 30)}%) contrast(${Math.round(100 - t * 8)}%)`,
     }));
   }
-  caixa.append(elemento("div", {
-    class: "legenda",
-    texto: `desenho, não é a sua tela: ${temp} K e textura ${t} — quem pinta de verdade é o cosmic-comp recompilado.`,
-  }));
+  /* SÓ OS NÚMEROS NA FAIXA — 09/10/2026, P77. A frase «desenho, não é a sua
+   * tela… quem pinta de verdade é o cosmic-comp» sai: é a explicação do
+   * cartão, e o `?` dele já a carrega (o comentário do `meow.conf.exemplo`).
+   * O que a faixa mostra é o que a imagem acima está simulando. */
+  caixa.append(elemento("div", { class: "legenda", texto: `${temp} K · ${t}` }));
   return caixa;
 }
 
@@ -5352,7 +5353,20 @@ function montarCartao(item) {
    * chave se chama no arquivo e é por ele que ela procura lá. */
   const titulo = tituloDoCartao(item);
   if (titulo) cartao.append(elemento("h3", { class: "titulo-cartao", texto: titulo }));
-  cartao.append(...porqueEDica(item));
+  const [gatilho, dica] = porqueEDica(item);
+  cartao.append(gatilho, dica);
+  /* O ESTADO VIRA SELO, E A FRASE DELE VAI PARA A DICA — 09/10/2026, P77.
+   *   As quatro frases de estado abaixo (desligado, na máquina, vestígio,
+   * dominada) eram parágrafos visíveis com uma borda amarela, e no print 13 do
+   * uso real «Quem manda é…» aparecia em três cartões seguidos. Cada uma vira
+   * um SELO na linha do título (o ícone, o valor curto, o nome no balão) e a
+   * frase inteira entra NO TOPO da dica, antes do comentário do arquivo: quem
+   * abre o `?` de um cartão anulado quer primeiro saber por quê.
+   *   As frases continuam sendo `p.frase` — é por essa classe que o
+   * `tests/app-completo.py` as lê, e o `innerText` de quem está na dica
+   * fechada é o texto dela. */
+  const selos = elemento("div", { class: "selos" });
+  const estado = [];
 
   /* QUEM MANDA HOJE, DITO NO CARTÃO — 02/09/2026.
    *   Dois achados da validação, e o mesmo defeito nos dois: uma chave que a
@@ -5398,7 +5412,8 @@ function montarCartao(item) {
    * o ajuste vencer — e de dia não faz. A segunda frase diz o que cada uma das
    * duas deixa de fazer. */
   if (item.desligado_agora && escolhido !== "") {
-    cartao.append(elemento("p", { class: "frase" }, [
+    selos.append(selo("maquina", { texto: "desligado", balao: "Na máquina agora: desligado" }));
+    estado.push(elemento("p", { class: "frase" }, [
       elemento("b", { texto: "Na máquina agora: desligado. " }),
       elemento("span", { texto: item.chave === "LEITURA_TEXTURA"
         ? "O modo de leitura não está pondo a textura de papel na tela neste momento."
@@ -5406,7 +5421,9 @@ function montarCartao(item) {
     ]));
   }
   if (agora != null && escolhido !== "" && !mesmoValor(agora, escolhido)) {
-    cartao.append(elemento("p", { class: "frase dominada" }, [
+    selos.append(selo("maquina", { texto: encurtarValor(rotuloDeValor(agora)),
+                                   balao: `Na máquina agora: ${rotuloDeValor(agora)}` }));
+    estado.push(elemento("p", { class: "frase dominada" }, [
       elemento("b", { texto: `Na máquina agora: ${rotuloDeValor(agora)}. ` }),
       elemento("span", {
         texto: item.chave.startsWith("LEITURA_")
@@ -5425,14 +5442,20 @@ function montarCartao(item) {
    * metade Catppuccin, metade Dracula, sem nada na tela explicando. */
   if (item.vestigio_de_pack) {
     const v = item.vestigio_de_pack;
-    cartao.append(elemento("p", { class: "frase dominada" }, [
+    selos.append(selo("pack", { texto: `«${encurtarValor(v.pack)}»`, balao: `Vem do pack «${v.pack}»` }));
+    estado.push(elemento("p", { class: "frase dominada" }, [
       elemento("b", { texto: `Vestígio do pack «${v.pack}». ` }),
       elemento("span", { texto: v.porque || "" }),
     ]));
   }
   if (item.dominada_por) {
     const d = item.dominada_por;
-    cartao.append(elemento("p", { class: "frase dominada" }, [
+    /* ANULADO SE VÊ NO CONTROLE: ele fica apagado (`.anulado`, no CSS) e o
+     * selo ⊘ diz quem manda. Continua clicável — a escolha vale no arquivo e
+     * passa a valer na tela quando a outra chave deixar de mandar. */
+    cartao.classList.add("anulado");
+    selos.append(selo("anulado", { balao: `Quem manda: «${d.titulo || d.chave}»` }));
+    estado.push(elemento("p", { class: "frase dominada" }, [
       /* CITA O CARTÃO, NÃO A VARIÁVEL. "LOGO_MODO=\"hora\" está mandando" manda
        * procurar um nome que a tela não usa em lugar nenhum; o rótulo do cartão
        * dominante é o mesmo texto que ela acabou de ler no menu. */
@@ -5440,6 +5463,8 @@ function montarCartao(item) {
       elemento("span", { texto: d.porque || "" }),
     ]));
   }
+  if (selos.childElementCount) cartao.append(selos);
+  if (estado.length) dica.prepend(...estado);
   cartao.append(montarControle(item, cartao));
 
   /* O CARTÃO PENDENTE MOSTRA O QUE FAZER COM A PENDÊNCIA — 21/09/2026. A borda
@@ -5465,30 +5490,26 @@ function montarCartao(item) {
     else cartao.append(elemento("div", { class: "acao-cartao" }, [aplicar]));
   }
 
+  /* A FRASE DO CARTÃO VIROU A PRIMEIRA LINHA DA DICA — 09/10/2026, P77.
+   *   Quem usa: «sem texto na interface; no máximo vira dica» (achado 28). A
+   * frase curta sob o controle era a explicação do ajuste em uma a três
+   * linhas, repetida em cada cartão da grade; ela entra no `?`, logo depois das
+   * frases de estado e antes do comentário inteiro do arquivo. O título do
+   * cartão, que é derivado dela quando o arquivo não dá um (`tituloDoCartao`),
+   * continua nomeando o ajuste na tela.
+   *   QUANDO O COMENTÁRIO JÁ A CONTÉM, ELA NÃO ENTRA: a frase costuma ser o
+   * começo do próprio comentário, e a mesma oração duas vezes no mesmo balão é
+   * ruído. A procedência («De «X», que explica este ajuste e os vizinhos») já
+   * está na dica, e o traço de `herdada` vai junto com a frase. */
   if (item.frase) {
-    cartao.append(elemento("p", {
-      /* `herdada` = o comentário veio de um bloco que descreve várias chaves.
-       * Era itálico, e itálico em três linhas de texto corrido cansa a leitura
-       * — vira uma mancha cinza inclinada repetida pela grade inteira. Agora é
-       * um traço à esquerda, que informa a mesma coisa sem gritar. */
-      class: "frase" + (item.ajuda_herdada ? " herdada" : ""),
-      texto: item.frase,
-      /* "ESTA CHAVE E AS IRMÃS DELA" -> "este ajuste e os vizinhos" —
-       * 09/09/2026. Duas trocas numa frase: "chave" é o nome da variável (a
-       * página inteira chama isto de AJUSTE, do banner à busca), e "irmãs"
-       * era metáfora de quem desenhou o parser — quem lê a tela vê cartões
-       * um ao lado do outro, e o nome disso é vizinho. "Explicação do bloco"
-       * saiu inteiro: "bloco" é a unidade do arquivo, não da tela. */
-      /* O TÍTULO DO BLOCO DONO SAIU DO BALÃO — 21/09/2026. Ele entrava aqui
-       * inteiro, e com um dono de nome comprido («Devolver os ícones depois de
-       * atualizar flatpak») a frase chegava a 88 caracteres, acima do teto de
-       * 80. O nome do dono não se perdeu: ele está, por extenso, na linha «De
-       * «X», que explica este ajuste e os vizinhos de uma vez» que o `?` do
-       * cartão abre — ali há espaço para ele. */
-      title: item.ajuda_herdada
-        ? "A explicação vale para este ajuste e para os vizinhos dele."
-        : "",
-    }));
+    const achatar = (t) => String(t || "").replace(/^# ?/gm, "").replace(/\s+/g, " ").trim();
+    const motivo = dica.querySelector(".motivo");
+    if (!motivo || !achatar(motivo.textContent).includes(achatar(item.frase))) {
+      const resumo = elemento("p", { class: "resumo" + (item.ajuda_herdada ? " herdada" : ""),
+                                     texto: item.frase });
+      const antes = dica.querySelector(".de-quem, .motivo, .chave");
+      dica.insertBefore(resumo, antes);
+    }
   }
 
   /* O valor EFETIVO só aparece quando difere do cru — é o caso das chaves que
@@ -5497,10 +5518,12 @@ function montarCartao(item) {
   /* O MOLDE DAS PASTAS NÃO GANHA O «Vale como» — ele dizia `cat-dracula-mauve`,
    * um nome que o papirus-folders não tem. Os dois seletores e a nota deles
    * dizem o que as pastas vestem, em português (ver `controlePastas`). [P10] */
+  /* O «Vale como» TAMBÉM É DICA — 09/10/2026, P77: é a resposta a «o que
+   * `$HOME/…` quer dizer?», que só quem abre o `?` está perguntando. */
   if (item.efetivo && item.efetivo !== (item.valor ?? "")
       && !(item.molde_pastas && partirMoldeDasPastas(valorEmVigor(item)))) {
-    cartao.append(elemento("p", {
-      class: "frase",
+    dica.append(elemento("p", {
+      class: "vale-como",
       /* «Vale como», com maiúscula: é uma frase da tela, e não a continuação
        * de um rótulo — era um dos cinco parágrafos visíveis que abriam em
        * minúscula. — 22/09/2026
@@ -5512,11 +5535,8 @@ function montarCartao(item) {
        * mesmo `item.rotulos`. */
       texto: `Vale como: ${(item.rotulos && item.rotulos[item.efetivo])
                            || semCasa(item.valor, item.efetivo)}`,
-      /* "DEPOIS DE O SHELL EXPANDIR AS VARIÁVEIS" SAIU — 09/09/2026. Shell e
-       * expandir são as palavras de quem escreveu o `bin/meow`; o comentário
-       * logo acima já diz quais são os dois casos reais, e é o que a frase
-       * passa a dizer — sem obrigar ninguém a saber o que é uma variável. */
-      title: "O valor com $HOME e ${FLAVOR} já trocados.",
+      /* O balão «O valor com $HOME e ${FLAVOR} já trocados» saiu junto: dentro
+       * da dica ele seria um `?` dentro do `?`, que a direção da P77 proíbe. */
     }));
   }
 
@@ -5609,19 +5629,7 @@ function porqueEDica(item) {
    * A chave é única por construção (cada item aparece em um grupo só) e é
    * estável entre redesenhos, que é o que um id precisa ser. */
   const idDica = "dica-" + item.chave;
-  const gatilho = elemento("button", {
-    type: "button", class: "porque", texto: "?",
-    "aria-expanded": "false", "aria-controls": idDica,
-    "aria-label": `O que é ${tituloDoCartao(item) || item.chave}`,
-  });
-  /* `tabindex="-1"` tira o balão da fila do Tab. O Chrome dá parada de foco a
-   * todo contêiner rolável, e a `.dica` é um (`overflow: auto`, teto de 22rem):
-   * andando de Tab, o foco saía do `?`, o `blur` fechava o balão, e o foco caía
-   * num elemento que naquele instante já era `display: none` — uma parada morta
-   * sem anel nenhum, uma por cartão, trinta na aba "Painel e dock". Rolar o
-   * texto pelo teclado nunca funcionou mesmo: o `blur` do gatilho fecha. */
-  const dica = elemento("div", { class: "dica", id: idDica, role: "tooltip", tabindex: "-1", hidden: true });
-
+  const filhos = [];
   if (item.ajuda) {
     /* DE QUEM É ESTE TEXTO — 07/09/2026. Trinta chaves herdam o comentário da
      * irmã de cima (o `ajuda_herdada` do servidor), e até aqui só a FRASE do
@@ -5636,24 +5644,62 @@ function porqueEDica(item) {
      * tamanhos, então elas têm de usar as mesmas palavras. — 09/09/2026 */
     const dona = tituloDaDona(item);
     if (dona) {
-      dica.append(elemento("p", {
+      filhos.push(elemento("p", {
         class: "de-quem",
         texto: `De «${dona}», que explica este ajuste e os vizinhos de uma vez.`,
       }));
     }
     /* O `# ` que abre cada linha de comentário é sintaxe do arquivo, não texto.
      * O `.trim()` tira a linha em branco que quase todo bloco deixa no fim. */
-    dica.append(elemento("p", { class: "motivo", texto: item.ajuda.replace(/^# ?/gm, "").trim() }));
+    filhos.push(elemento("p", { class: "motivo", texto: item.ajuda.replace(/^# ?/gm, "").trim() }));
   }
-  dica.append(elemento("code", { class: "chave", texto: item.chave }));
+  filhos.push(elemento("code", { class: "chave", texto: item.chave }));
   if (item.essencial) {
-    dica.append(elemento("span", { class: "marca-essencial", title: "Ajuste essencial", texto: "•" }));
+    filhos.push(elemento("span", { class: "marca-essencial", title: "Ajuste essencial", texto: "•" }));
   }
-  dica.append(elemento("span", {
+  filhos.push(elemento("span", {
     class: "fabrica",
     texto: item.padrao === "" ? "De fábrica: nada" : `De fábrica: ${rotuloDeValor(item.padrao)}`,
     title: "O valor que o projeto traz de fábrica.",
   }));
+
+  return gatilhoDeDica(idDica, `O que é ${tituloDoCartao(item) || item.chave}`, filhos);
+}
+
+/* ===========================================================================
+ * A DICA DE QUALQUER DONO — 09/10/2026, P77
+ * ===========================================================================
+ * Quem usa: «sem texto na interface; no máximo vira dica». O `?` do cartão de
+ * ajuste já era essa dica, com o comportamento inteiro medido (espia no hover,
+ * fixa no clique, Esc fecha, abre no foco do teclado — ver o bloco de cima).
+ * Agora o cabeçalho da página, o cartão de ação e o desenho também têm um `?`,
+ * e copiar o comportamento quatro vezes seria quatro lugares para errar o
+ * `data-fechei` ou o `:focus-visible`. Então o gatilho e o balão nascem AQUI, e
+ * cada dono só diz o que vai dentro.
+ *
+ * O CONTRATO COM O CSS É O MESMO DO CARTÃO: a `.dica` é o irmão IMEDIATO do
+ * `button.porque` (o hover é `button.porque:hover + .dica`), e quem chama
+ * acrescenta os dois, nessa ordem, no mesmo pai. O pai é a âncora do balão:
+ * `.cartao` e `.com-dica` têm `position` para isso.
+ *
+ * O `id` tem de ser ESTÁVEL entre redesenhos — esta página se redesenha a cada
+ * clique, e um `aria-controls` apontando para um id que mudou é um botão mudo.
+ * Quem chama o deriva de um nome (a chave, a ação, o assunto), nunca de um
+ * contador. */
+function gatilhoDeDica(idDica, rotulo, filhos) {
+  const gatilho = elemento("button", {
+    type: "button", class: "porque", texto: "?",
+    "aria-expanded": "false", "aria-controls": idDica,
+    "aria-label": rotulo,
+  });
+  /* `tabindex="-1"` tira o balão da fila do Tab. O Chrome dá parada de foco a
+   * todo contêiner rolável, e a `.dica` é um (`overflow: auto`, teto de 22rem):
+   * andando de Tab, o foco saía do `?`, o `blur` fechava o balão, e o foco caía
+   * num elemento que naquele instante já era `display: none` — uma parada morta
+   * sem anel nenhum, uma por cartão, trinta na aba "Painel e dock". Rolar o
+   * texto pelo teclado nunca funcionou mesmo: o `blur` do gatilho fecha. */
+  const dica = elemento("div", { class: "dica", id: idDica, role: "tooltip", tabindex: "-1", hidden: true },
+                       filhos);
 
   const mostrar = (aberta) => {
     dica.hidden = !aberta;
@@ -5700,6 +5746,182 @@ function porqueEDica(item) {
   return [gatilho, dica];
 }
 
+/* ===========================================================================
+ * O SELO: ESTADO SEM FRASE — 09/10/2026, P77
+ * ===========================================================================
+ * Quem usa: «show, don't tell». O estado de um cartão era dito em frase —
+ * «PEDE SENHA», «Na máquina agora: 6300. Quem guarda esse valor é…», «Quem
+ * manda é «X», em Hora. Por horário…» —, e a frase de estado competia com o
+ * título pelo olho. O selo diz o mesmo com um ícone de traço na cor do estado
+ * e, no máximo, um valor curto ao lado (`6300 K`, `«Dracula»`). O NOME do
+ * estado vai no balão e no `aria-label`; a frase inteira vai para o `?` do
+ * dono, que é onde quem quer o porquê procura.
+ *
+ * AS CLASSES ANTIGAS FICAM PENDURADAS (`p-sudo`, `p-perigo`, `p-rede`, `p-ok`):
+ * o `estilo.css` desenha a moldura pêssego e vermelha do cartão de ação por
+ * `.acao:has(.p-sudo)` e `.acao:has(.p-perigo)`, e essa moldura é estado que se
+ * vê — trocar o nome da classe a apagaria sem ninguém perceber.
+ *
+ * NÃO É FOCÁVEL, de propósito: um selo não faz nada, e uma parada de Tab que
+ * não faz nada é ruído para quem anda de teclado. O leitor de tela o alcança
+ * pelo `role="img"` com `aria-label`, que leva o nome do estado e o valor. */
+const SELO_ICONES = {
+  sudo: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>',
+  ponte: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 4.9-.7"/>',
+  rede: '<path d="M8 2.5v7.5M4.8 7 8 10.2 11.2 7M3 13.5h10"/>',
+  desfaz: '<path d="M5.5 4 2.5 7l3 3"/><path d="M2.5 7h7a3.5 3.5 0 0 1 0 7H7"/>',
+  maquina: '<rect x="2" y="3" width="12" height="8" rx="1.2"/><path d="M6 13.5h4M8 11v2.5"/>',
+  anulado: '<circle cx="8" cy="8" r="5.5"/><path d="m4.1 11.9 7.8-7.8"/>',
+  pack: '<path d="M2.5 5 8 2.5 13.5 5v6L8 13.5 2.5 11z"/><path d="M2.5 5 8 7.5 13.5 5M8 7.5v6"/>',
+  mexeu: '<circle cx="8" cy="8" r="3.5" fill="currentColor" stroke="none"/>',
+  pendente: '<circle cx="8" cy="8" r="3.5"/>',
+};
+/* A classe antiga de cada tipo, para os ganchos do CSS — ver acima. */
+const SELO_LEGADO = { sudo: "p-sudo", ponte: "p-ok", rede: "p-rede", desfaz: "p-perigo" };
+
+/* Um texto montado com dado de fora (o título de outro cartão, o nome de um
+ * pack) cortado ANTES do balão, numa fronteira de palavra. A rede do
+ * `partirAjuda` também cortaria, mas ela deixa a marca `data-balao-aparado`
+ * para o teste reprovar frase FIXA longa; aqui o corte é de dado, e é dito. */
+function caberNoBalao(txt) {
+  const t = String(txt || "").trim();
+  if (t.length <= BALAO_LIMITE) return t;
+  const corte = t.lastIndexOf(" ", BALAO_LIMITE - 2);
+  return t.slice(0, corte > 40 ? corte : BALAO_LIMITE - 2).trimEnd() + "…";
+}
+
+/* O valor curto que vai ao lado do ícone do selo: o selo é um sinal, e um
+ * caminho inteiro ao lado dele o transformaria de volta em frase. O valor
+ * inteiro continua no balão. */
+function encurtarValor(txt) {
+  const t = String(txt == null ? "" : txt).trim();
+  return t.length > 18 ? t.slice(0, 17).trimEnd() + "…" : t;
+}
+
+function selo(tipo, { texto = "", balao = "" } = {}) {
+  const nome = caberNoBalao(balao);
+  const el = elemento("span", {
+    class: `selo selo-${tipo}` + (SELO_LEGADO[tipo] ? ` ${SELO_LEGADO[tipo]}` : ""),
+    role: "img",
+    "aria-label": nome || texto,
+    "data-selo": tipo,
+  });
+  el.insertAdjacentHTML("afterbegin", '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
+    + (SELO_ICONES[tipo] || SELO_ICONES.mexeu) + "</svg>");
+  if (texto) el.append(elemento("span", { class: "selo-valor", texto: String(texto) }));
+  /* O balão passa pela porta de sempre (`porBalao`), que sabe não repetir o que
+   * já está escrito e sabe tirar comando de dentro dele. */
+  if (nome) porBalao(el, nome);
+  return el;
+}
+
+/* ===========================================================================
+ * A LEGENDA DO DESENHO VIRA DICA — 09/10/2026, P77
+ * ===========================================================================
+ * Cada desenho da página abria com «Desenho, não é a sua tela: …» e duas a
+ * quatro linhas de números embaixo dele (achado 28; 231 a 545 caracteres cada,
+ * isentos até hoje no `tests/app-acessibilidade.py`). A frase existia para o
+ * desenho não ser lido como captura — e quem resolve isso é o próprio traço,
+ * que é de desenho, e o par «Como está / Como fica», que mostra o desenho
+ * seguindo o valor. Os números continuam disponíveis: vão para o `?` do
+ * desenho, que é onde quem quer conferir procura.
+ *
+ * O AVISO SAI NA ORIGEM DA DICA, e não nos `previas-*.js`: são dezesseis
+ * legendas em dois arquivos, e reescrevê-las agora seria mexer em todas as
+ * páginas de uma vez. Aqui o prefixo cai e o resto entra com maiúscula — a
+ * próxima leva encurta cada legenda sem pressa, porque nenhuma delas fica
+ * mais na tela. */
+function semAvisoDeDesenho(txt) {
+  const resto = String(txt || "").replace(/^\s*desenho,\s*não é a sua tela\s*[:—–-]\s*/i, "").trim();
+  return resto ? maiuscula(resto) : "";
+}
+
+/* O `?` de um desenho. `id` é o nome estável do desenho (o grupo, a barra);
+ * devolve `null` quando a legenda não tem nada além do aviso. Quem chama põe
+ * a classe `com-dica` no recipiente, que é a âncora do balão. */
+function dicaDoDesenho(id, texto) {
+  const legenda = semAvisoDeDesenho(texto);
+  if (!legenda) return null;
+  return gatilhoDeDica("dica-desenho-" + idDeAba(id), "O que o desenho mostra",
+                       [elemento("p", { class: "legenda-desenho", texto: legenda })]);
+}
+
+/* O `?` MORA NA CAIXA DO DESENHO DA DIREITA, e não na faixa — medido na
+ * primeira captura: preso ao canto da `.previa-bloco`, que tem a largura da
+ * página, o `?` ia parar a um palmo do desenho, do outro lado da tela, e não se
+ * lia como dele. A caixa da direita é sempre um `div` (o «Como fica», ou o
+ * desenho único); a da esquerda pode ser o `button.lado-previa`, e botão
+ * dentro de botão não existe. O CSS põe o `?` encostado do lado de fora dela. */
+function ancorarDicaDoDesenho(par, dica) {
+  const caixa = par.lastElementChild;
+  if (!caixa) return;
+  caixa.classList.add("com-dica");
+  caixa.append(...dica);
+}
+
+/* ===========================================================================
+ * O CABEÇALHO DA PÁGINA — 09/10/2026, P77
+ * ===========================================================================
+ * Cada página abria com o título, um subtítulo e, em duas delas, um parágrafo
+ * de nota (Logo do sistema) ou de acervo (Ícones, Terminal) antes do primeiro
+ * controle. A hierarquia da direção (P77-direcao.md, seção 4) pede o contrário:
+ * o título e, logo depois, o que importa. Então o cabeçalho vira UMA linha:
+ *
+ *   título  (?)                                  ● 3  ○ 1   [Adicionar …]
+ *
+ *   · o `?` leva a descrição da página, o fecho da nota e a nota do acervo —
+ *     tudo o que era texto corrido no alto;
+ *   · os selos de resumo contam, na página, os ajustes diferentes de fábrica
+ *     (ponto pêssego, a mesma cor da aresta do cartão) e as escolhas esperando
+ *     «Salvar e aplicar» (anel na cor de destaque, a mesma do cartão não salvo).
+ *     Contagem zero não ganha selo: estado que não existe não se mostra;
+ *   · o botão de acervo, quando a página tem um, fica à direita.
+ *
+ * Na BUSCA o cabeçalho é só o título, como era: o resultado da busca mistura
+ * páginas, e resumo de uma página no meio dele confundiria de quem é o número.
+ * O `h2.secao-titulo` continua sendo o mesmo elemento, com o mesmo `title`: é
+ * por essa classe que o `estilo.css` desenha o degrau do título. */
+function cabecalhoDePagina(assunto, busca) {
+  const linha = elemento("div", { class: "cabecalho-linha com-dica" }, [
+    elemento("h2", { class: "secao-titulo", title: assunto, texto: encurtar(assunto) }),
+  ]);
+  const cab = elemento("header", { class: "cabecalho-pagina" }, [linha]);
+  if (busca) return cab;
+
+  const explica = [];
+  const frase = descricaoDe(assunto);
+  if (frase) explica.push(elemento("p", { class: "resumo", texto: frase }));
+  const nota = NOTA_DO_ASSUNTO[assunto];
+  if (nota && nota.fecho) explica.push(elemento("p", { class: "motivo", texto: nota.fecho }));
+  const acervo = ACERVO_DO_ASSUNTO[assunto];
+  if (acervo && acervo.nota) explica.push(elemento("p", { class: "motivo", texto: acervo.nota }));
+  if (explica.length) linha.append(...gatilhoDeDica("dica-pagina-" + idDeAba(assunto),
+                                                    `Sobre ${assunto}`, explica));
+
+  /* O RESUMO SAI DO MESMO LUGAR QUE A ARESTA DO CARTÃO: `valorEmVigor` contra o
+   * `padrao` (o «mexeu») e a bandeja `MUDANCAS` (o «não salvo»). Dois números
+   * que dissessem outra coisa que os cartões logo abaixo seriam a tela mentindo
+   * para si mesma. */
+  let mexeu = 0, esperando = 0;
+  for (const g of GRUPOS) {
+    if (g.tipo !== "chaves" || assuntoDe(g) !== assunto) continue;
+    for (const item of g.itens || []) {
+      if (valorEmVigor(item) !== item.padrao) mexeu++;
+      if (MUDANCAS.has(item.chave)) esperando++;
+    }
+  }
+  const resumo = elemento("div", { class: "selos cabecalho-selos" });
+  if (mexeu) resumo.append(selo("mexeu", { texto: mexeu,
+    balao: mexeu === 1 ? "1 ajuste diferente de fábrica" : `${mexeu} ajustes diferentes de fábrica` }));
+  if (esperando) resumo.append(selo("pendente", { texto: esperando,
+    balao: esperando === 1 ? "1 escolha esperando «Salvar e aplicar»"
+                           : `${esperando} escolhas esperando «Salvar e aplicar»` }));
+  if (resumo.childElementCount) linha.append(resumo);
+  const botao = acervoDoAssunto(assunto);
+  if (botao) linha.append(elemento("div", { class: "cabecalho-acoes" }, [botao]));
+  return cab;
+}
+
 /* --- as ações ------------------------------------------------------------- */
 /* O PORQUÊ DE UM BOTÃO APAGADO, COM OS NOMES DA TELA — 24/09/2026, P50
  *   O servidor manda o motivo em DADO, e a frase nasce aqui por uma razão só
@@ -5721,8 +5943,17 @@ function fraseIndisponivel(motivo) {
 
 function montarAcao(acao) {
   const bloco = elemento("article", { class: "acao" });
-  bloco.append(elemento("h3", { texto: acao.rotulo }));
-  bloco.append(elemento("p", { texto: acao.ajuda }));
+  /* O CARTÃO DE AÇÃO TEM DUAS CAMADAS — 09/10/2026, P77 (direção, seção 5).
+   *   Eram quatro: título, ajuda, comando cru e rodapé. A ajuda é explicação,
+   * e vai para o `?` ao lado do título; o comando cru aparecia duas vezes (na
+   * linha sobre o botão e no «ver comando») e fica só no «ver comando»
+   * (achado 30). Sobra o que se lê para decidir: o título, os selos de risco e
+   * os dois botões. As frases de «por que o Executar está apagado» também vão
+   * para a dica — o botão apagado e o selo ⊘ já mostram que está. */
+  const explica = [];
+  if (acao.ajuda) explica.push(elemento("p", { class: "resumo", texto: acao.ajuda }));
+  const topo = elemento("div", { class: "acao-topo com-dica" }, [elemento("h3", { texto: acao.rotulo })]);
+  bloco.append(topo);
 
   let escolha = null;
   if (acao.opcoes && acao.opcoes.length) {
@@ -5757,7 +5988,7 @@ function montarAcao(acao) {
   }
 
   const rodape = elemento("div", { class: "rodape" });
-  if (acao.sudo) rodape.append(elemento("span", { class: "pastilha p-sudo", texto: "pede senha" }));
+  if (acao.sudo) rodape.append(selo("sudo", { balao: "Pede a senha do sudo" }));
   /* A OUTRA METADE DE "PEDE SENHA", DITA EM VOZ ALTA — 21/09/2026
    *   Desde 08/09 a pastilha de senha SOME quando a ponte root está no ar
    * (`servidor.py`, campo `sudo`), e sumir estava certo: avisar de um custo que
@@ -5773,16 +6004,16 @@ function montarAcao(acao) {
    * e — o que importa mais — ela não casa o `.acao:has(.p-sudo)` do CSS, que
    * põe caixa e fio pêssego de "atenção" em volta do cartão. Um cartão que não
    * pede mais senha não deve ganhar a moldura de quem pede. */
-  else if (acao.pela_ponte) rodape.append(elemento("span", {
-    class: "pastilha p-ok", texto: "sem senha (perfil registrado)" }));
-  if (acao.destrutivo) rodape.append(elemento("span", { class: "pastilha p-perigo", texto: "desfaz o que foi feito" }));
+  else if (acao.pela_ponte) rodape.append(selo("ponte", {
+    balao: "Sem senha: o perfil do sudo está registrado" }));
+  if (acao.destrutivo) rodape.append(selo("desfaz", { balao: "Desfaz o que foi feito" }));
   /* `rede` é DECLARADA pela ação, nunca adivinhada do texto dela. A primeira
    * versão fazia `/rede|baixa/i.test(acao.ajuda)` e o resultado apareceu na
    * tela em 01/09/2026: o cartão "Conferir (doctor)" — cuja ajuda diz, com
    * todas as letras, que ele "nunca usa sudo e nunca baixa nada" — ganhou uma
    * pastilha "usa rede". Um marcador que lê a prosa acaba dizendo o contrário
    * dela; quem sabe se a ação toca a rede é quem a escreveu. */
-  if (acao.rede) rodape.append(elemento("span", { class: "pastilha p-rede", texto: "baixa da internet" }));
+  if (acao.rede) rodape.append(selo("rede", { balao: "Baixa da internet" }));
   /* O SELO "PODE ENSAIAR" SAIU EM 06/09/2026, e a razão é dela: *"o botão Pode
    * ensaiar não faz sentido se temos o executar ali em todas as páginas — é pq
    * o user quer arrumar só aquilo"*. Em 13/09/2026 saiu também o interruptor
@@ -5811,7 +6042,8 @@ function montarAcao(acao) {
    * o cartão diz por quê. */
   if (acao.arg && !escolha) {
     executar.disabled = true;
-    bloco.append(elemento("p", { class: "frase",
+    rodape.insertBefore(selo("anulado", { balao: "Nada para escolher nesta máquina agora" }), executar);
+    explica.unshift(elemento("p", { class: "frase",
       texto: "Nada para escolher nesta máquina agora: a lista desta ação está vazia." }));
   }
   /* SEM EFEITO AGORA, O «EXECUTAR» TAMBÉM NÃO ACENDE — 24/09/2026, P50
@@ -5822,9 +6054,12 @@ function montarAcao(acao) {
    * `servidor.py`); a frase é daqui, com os nomes que a tela dá. */
   if (acao.indisponivel) {
     executar.disabled = true;
-    bloco.append(elemento("p", { class: "frase indisponivel",
+    rodape.insertBefore(selo("anulado", { balao: "Sem efeito agora" }), executar);
+    explica.unshift(elemento("p", { class: "frase indisponivel",
       texto: fraseIndisponivel(acao.indisponivel) }));
   }
+  if (explica.length) topo.append(...gatilhoDeDica("dica-acao-" + idDeAba(acao.id || acao.rotulo),
+                                                   `O que faz ${acao.rotulo}`, explica));
   bloco.append(rodape);
   /* O COMANDO NA TELA É O COMANDO QUE VAI RODAR — 07/09/2026
    * A conferência de uso: *"a ação «Pôr um gato no dock» mostra na tela o
@@ -5846,11 +6081,14 @@ function montarAcao(acao) {
    *   24/09/2026, P52: o «ver comando» também deixou de levar o caminho
    * absoluto. O que se copia dali é o que cola em qualquer máquina com o meow
    * instalado — o mesmo texto desta linha, vindo pronto do servidor. */
-  const linhaCmd = elemento("code", { class: "cmd" });
+  /* A LINHA `code.cmd` SOBRE O BOTÃO SAIU — 09/10/2026, P77 (achado 30). Ela
+   * mostrava o mesmo comando que o «ver comando» abre dois centímetros
+   * abaixo. O que ela garantia — O COMANDO NA TELA É O COMANDO QUE VAI RODAR —
+   * continua garantido pelo `dataset.comando`, que o «ver comando» lê e que o
+   * `change` do seletor reescreve (ver o bloco do `cmds.repintar`, abaixo). */
   const pintarCmd = () => {
     const texto = acao.argv.replace("@ARG@", escolha ? escolha.value : "");
     executar.dataset.comando = texto;
-    linhaCmd.textContent = comandoCurto(texto);
     /* O `title` QUE REPETIA ESTA MESMA LINHA SAIU — 21/09/2026. Eram 42 na
      * página: o balão imprimia, sob o cursor, o comando que a linha já mostra
      * por extenso dois centímetros acima. Balão que repete o texto visível não
@@ -5858,7 +6096,6 @@ function montarAcao(acao) {
   };
   pintarCmd();
   if (escolha) escolha.addEventListener("change", pintarCmd);
-  bloco.append(linhaCmd);
   /* O «ver comando» nasce DEPOIS do `pintarCmd`, porque é o `dataset.comando`
    * que ele procura na fileira. */
   const cmds = verComando(rodape);
@@ -5868,6 +6105,10 @@ function montarAcao(acao) {
      * antes de apertar seja o risco (ver o `estilo.css`). Um botão secundário
      * depois do «Executar» quebraria essa ordem de leitura. */
     rodape.insertBefore(cmds.botao, executar);
+    /* A linha do «ver comando» é agora A linha de comando do cartão, e leva a
+     * classe que a linha de cima levava: é por ela que quem confere a ação
+     * acha o comando que vai rodar. */
+    for (const linha of cmds.bloco.querySelectorAll("code")) linha.classList.add("cmd");
     bloco.append(cmds.bloco);
     /* E A LISTA ABERTA REPINTA NO `change` — 22/09/2026
      *   Esta linha nasceu de uma conferência com cliques de verdade em «Pôr um
@@ -7345,10 +7586,9 @@ function desenhoDaSecaoSemChaves(assunto) {
   const par = elemento("div", { class: "par-previa" });
   par.append(elemento("div", {}, [r.antes]));
   caixa.append(par);
-  /* A legenda começa com letra maiúscula — ver o bloco do `parDePrevias`. */
-  if (r.legenda) {
-    caixa.append(elemento("p", { class: "sem-previa", texto: maiuscula(r.legenda) }));
-  }
+  /* A legenda vai para o `?` do desenho — ver `dicaDoDesenho`. */
+  const dica = dicaDoDesenho(assunto, r.legenda);
+  if (dica) ancorarDicaDoDesenho(par, dica);
   return caixa;
 }
 
@@ -7470,37 +7710,18 @@ function parDePrevias(g) {
      * existe. */
     r.depois ? lado("Como fica", r.depois, null) : null,
   ]);
-  return elemento("div", { class: "previa-bloco" }, [
-    par,
-    /* A legenda é uma linha, no padrão que a FORMA já usa: começa por "desenho,
-     * não captura:" e diz os números desenhados.
-     *
-     * UMA FRASE PARA DOIS DESENHOS, E ELA DESCREVE O DA ESQUERDA. Enquanto há
-     * um desenho só isso é óbvio; com par, não é — e a conferência de uso pegou
-     * exatamente esse buraco em "Cor e tela": escolhido o latte, o desenho da
-     * direita já era latte e a frase embaixo dos dois continuava descrevendo o
-     * mocha, sem nada dizendo a qual dos dois ela se referia. O aviso existia,
-     * mas escrito dentro de UM dos dois arquivos de prévia; aqui ele vale para
-     * os dez desenhos. */
-    /* A LEGENDA COMEÇA COM MAIÚSCULA — 22/09/2026
-     *   As doze legendas de desenho da página abriam em minúscula («desenho,
-     * não é a sua tela: …»), porque os arquivos de prévia as escrevem como
-     * continuação de um rótulo que a tela não mostra mais. Um parágrafo que
-     * começa em minúscula lê-se como pedaço de outra frase, e é o único texto
-     * corrido da página que fazia isso.
-     *   A maiúscula é posta AQUI, no desenho, e não nos arquivos de prévia:
-     * quem decide como a legenda aparece na página é a página. Nenhum caractere
-     * além do primeiro é tocado — as legendas carregam `${FLAVOR}`, números e
-     * nomes de tema que não são para ser mexidos. */
-    r.legenda
-      ? elemento("p", {
-          class: "sem-previa",
-          texto: maiuscula(temEscolha
-            ? r.legenda.replace(/\.$/, "") + " — à direita, o mesmo desenho com a escolha que ainda não foi salva."
-            : r.legenda),
-        })
-      : null,
-  ]);
+  const bloco = elemento("div", { class: "previa-bloco" }, [par]);
+  /* A LEGENDA FOI PARA O `?` DO DESENHO — 09/10/2026, P77 (ver `dicaDoDesenho`).
+   * Ela continua descrevendo o desenho da ESQUERDA, e com par isso continua
+   * precisando ser dito — a conferência de uso de 22/09 pegou a frase
+   * descrevendo o mocha embaixo de um latte —, então o aviso do par segue
+   * junto, dentro da dica. A maiúscula e o «Desenho, não é a sua tela» são
+   * resolvidos lá, num lugar só para os dez desenhos. */
+  const dica = dicaDoDesenho(nome, temEscolha && r.legenda
+    ? r.legenda.replace(/\.$/, "") + " — à direita, o mesmo desenho com a escolha que ainda não foi salva."
+    : r.legenda);
+  if (dica) ancorarDicaDoDesenho(par, dica);
+  return bloco;
 }
 
 /* ===========================================================================
@@ -7558,11 +7779,10 @@ function notaDoAssunto(assunto) {
     lista.append(elemento("span", { class: "ficha" }, [elemento("b", { texto: nome })]));
   }
   caixa.append(lista);
-  /* `nota-secao` sozinha, e não `frase nota-secao`: a `.frase` corta em três
-   * linhas (é o que impede um comentário de seis linhas de empurrar o cartão),
-   * e aqui o texto é o assunto da tela — cortá-lo esconderia justamente a parte
-   * que diz o que vem de fábrica. */
-  caixa.append(elemento("p", { class: "nota-secao", texto: nota.fecho }));
+  /* O FECHO SAIU DAQUI E FOI PARA O `?` DO CABEÇALHO — 09/10/2026, P77. Eram
+   * cinco linhas de texto corrido antes do primeiro controle (print 13 do uso
+   * real). As três pastilhas ficam: são nomes de lugar, que se leem de relance;
+   * a frase que as explica é dica, e mora em `cabecalhoDePagina`. */
   return caixa;
 }
 
@@ -7609,11 +7829,10 @@ function acervoDoAssunto(assunto) {
     await recarregarEsquema();
     render();
   });
-  if (!botao) return null;
-  return elemento("div", { class: "com-acervo" }, [
-    elemento("p", { class: "frase", texto: conf.nota }),
-    botao,
-  ]);
+  /* SÓ O BOTÃO — 09/10/2026, P77. A nota que ia ao lado dele é explicação, e
+   * explicação é dica: ela entra no `?` do cabeçalho da página, que é onde o
+   * botão passou a morar (ver `cabecalhoDePagina`). */
+  return botao || null;
 }
 
 /* ===========================================================================
@@ -7922,18 +8141,16 @@ function render() {
     const assunto = assuntoDe(g);
     if (assunto !== ultimoAssunto) {
       ultimoAssunto = assunto;
-      alvo.append(elemento("h2", { class: "secao-titulo", title: assunto,
-                                   texto: encurtar(assunto) }));
+      /* O título, a descrição, a nota e o acervo da página viraram UMA linha
+       * de cabeçalho — 09/10/2026, P77. Ver `cabecalhoDePagina`. */
+      alvo.append(cabecalhoDePagina(assunto, busca));
       if (!busca) {
-        const frase = descricaoDe(assunto);
-        if (frase) alvo.append(elemento("p", { class: "descricao-secao", texto: frase }));
-        /* A nota da aba vem depois da frase da seção e antes de tudo o mais:
-         * ela é o que responde "onde isto aparece na minha tela?", e essa é a
-         * primeira pergunta de quem abre a aba. */
+        /* As pastilhas da nota (os nomes dos lugares) vêm logo depois do
+         * cabeçalho e antes de tudo o mais: elas respondem "onde isto aparece
+         * na minha tela?", que é a primeira pergunta de quem abre a aba. A
+         * frase que as acompanhava foi para o `?` do cabeçalho. */
         const nota = notaDoAssunto(assunto);
         if (nota) alvo.append(nota);
-        const acervo = acervoDoAssunto(assunto);
-        if (acervo) alvo.append(acervo);
         /* O DESENHO DE UMA SEÇÃO QUE NÃO TEM CHAVE NENHUMA — 07/09/2026
          *   `parDePrevias` só roda sobre um grupo de CHAVES, então "Instalação"
          *   e "Atualização" — que são só ações — nunca chegavam a ter desenho,

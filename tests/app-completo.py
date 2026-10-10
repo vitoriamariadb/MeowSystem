@@ -3314,6 +3314,9 @@ def _linhas(texto):
 
 # O QUE ESTÁ NA TELA AO ABRIR CADA ABA — medido em 24/09/2026 na casa de
 # brinquedo (`montar_casa`): 14 abas e o topo, 754 controles, 459 nomes.
+# P77, 09/10/2026: cada aba ganhou o `?` do cabeçalho e o do desenho («aba · ?»),
+# e cada cartão de ação o `?` da ajuda («ação «X» · ?»). Os nomes entraram aqui
+# com o mesmo acionador de todo `?` (`h_porque`).
 INVENTARIO = {
     "topo": _linhas("""
         menu · Atualização
@@ -3339,6 +3342,7 @@ INVENTARIO = {
         topo · abre «Exportar»
     """),
     "Início": _linhas("""
+        aba · ?
         aba · Abrir Dia e noite
         aba · Abrir Modo de leitura
         aba · Exportar o meu
@@ -3358,6 +3362,7 @@ INVENTARIO = {
         pendência · Trocar pelo tema do pack
     """),
     "Cor e tela": _linhas("""
+        aba · ?
         aba · Claro
         aba · Escuro
         aba · Vidro claro
@@ -3389,35 +3394,45 @@ INVENTARIO = {
         ajuste WALLPAPER_DRACULA_COMMIT · campo
         ajuste WALLPAPER_DRACULA_REPO · ?
         ajuste WALLPAPER_DRACULA_REPO · campo
+        ação «Passar para claro ou escuro» · ?
         ação «Passar para claro ou escuro» · Executar
         ação «Passar para claro ou escuro» · seletor
         ação «Passar para claro ou escuro» · ver comando
+        ação «Temas prontos nesta máquina» · ?
         ação «Temas prontos nesta máquina» · Executar
         ação «Temas prontos nesta máquina» · ver comando
+        ação «Trocar de tema» · ?
         ação «Trocar de tema» · Executar
         ação «Trocar de tema» · seletor
         ação «Trocar de tema» · ver comando
     """),
     "Áreas de trabalho": _linhas("""
+        aba · ?
         ajuste AREAS_ENCAIXE · ?
         ajuste AREAS_ENCAIXE · nova ficha
         ajuste AREAS_FOLGA · ?
         ajuste AREAS_FOLGA · campo
         ajuste AREAS_NOMES · ?
         ajuste AREAS_NOMES · campo
+        ação «As áreas de agora» · ?
         ação «As áreas de agora» · Executar
         ação «As áreas de agora» · ver comando
+        ação «Criar a primeira área» · ?
         ação «Criar a primeira área» · Executar
         ação «Criar a primeira área» · ver comando
+        ação «Gravar as áreas» · ?
         ação «Gravar as áreas» · Executar
         ação «Gravar as áreas» · ver comando
+        ação «Tirar uma área» · ?
         ação «Tirar uma área» · Executar
         ação «Tirar uma área» · seletor
         ação «Tirar uma área» · ver comando
+        ação «Voltar as áreas de antes» · ?
         ação «Voltar as áreas de antes» · Executar
         ação «Voltar as áreas de antes» · ver comando
     """),
     "Logo do sistema": _linhas("""
+        aba · ?
         aba · Claro
         aba · Escuro
         aba · Vidro claro
@@ -3469,11 +3484,14 @@ INVENTARIO = {
         ajuste LOGO_RECICLAR · opção
         ajuste LOGO_ROTACAO · ?
         ajuste LOGO_ROTACAO · opção
+        ação «Passar ao próximo gato» · ?
         ação «Passar ao próximo gato» · Executar
         ação «Passar ao próximo gato» · ver comando
+        ação «Pôr um gato no dock» · ?
         ação «Pôr um gato no dock» · Executar
         ação «Pôr um gato no dock» · seletor
         ação «Pôr um gato no dock» · ver comando
+        ação «Qual gato está no ar, e por quê» · ?
         ação «Qual gato está no ar, e por quê» · Executar
         ação «Qual gato está no ar, e por quê» · ver comando
     """),
@@ -3481,6 +3499,7 @@ INVENTARIO = {
     #   P75 aposentou a chave (a base vem do pack, pinada — `migrar_conf.py`,
     #   `APOSENTADAS`) e o cartão sumiu da aba junto com ela do exemplo.]
     "Ícones": _linhas("""
+        aba · ?
         aba · Adicionar tema de ícones
         aba · Claro
         aba · Escuro
@@ -3506,16 +3525,20 @@ INVENTARIO = {
         ajuste PASTAS_XDG · ?
         ajuste PASTAS_XDG · opção
         aplicativo · abrir
+        ação «Pôr os desenhos em traço na tela» · ?
         ação «Pôr os desenhos em traço na tela» · Executar
         ação «Pôr os desenhos em traço na tela» · ver comando
+        ação «Reconstruir o tema de ícones» · ?
         ação «Reconstruir o tema de ícones» · Executar
         ação «Reconstruir o tema de ícones» · ver comando
+        ação «Tema de ícones instalado» · ?
         ação «Tema de ícones instalado» · Executar
         ação «Tema de ícones instalado» · ver comando
         desenhos autorais · Salvar no pack
         desenhos autorais › desenho autoral · escolher
     """),
     "Painel e dock": _linhas("""
+        aba · ?
         ajuste FORMA_ALA_FINAL_DOCK · ?
         ajuste FORMA_ALA_FINAL_DOCK · deixar vazio
         ajuste FORMA_ALA_FINAL_DOCK · opção
@@ -3594,14 +3617,18 @@ INVENTARIO = {
         ajuste VIDRO_OPACIDADE_PAINEL · ?
         ajuste VIDRO_OPACIDADE_PAINEL · Restaurar ao padrão
         ajuste VIDRO_OPACIDADE_PAINEL · deslizante
+        ação «Até quanto o canto pode arredondar» · ?
         ação «Até quanto o canto pode arredondar» · Executar
         ação «Até quanto o canto pode arredondar» · ver comando
+        ação «Como estão o painel e a dock» · ?
         ação «Como estão o painel e a dock» · Executar
         ação «Como estão o painel e a dock» · ver comando
+        ação «Recarregar o painel» · ?
         ação «Recarregar o painel» · Executar
         ação «Recarregar o painel» · ver comando
     """),
     "Papel de parede": _linhas("""
+        aba · ?
         aba · Adicionar imagem
         aba · Claro
         aba · Dia
@@ -3631,20 +3658,28 @@ INVENTARIO = {
         ajuste WALLPAPER_NOTIFICAR · opção
         ajuste WALLPAPER_ORDEM · ?
         ajuste WALLPAPER_ORDEM · opção
+        ação «Baixar a coleção curada» · ?
         ação «Baixar a coleção curada» · Executar
         ação «Baixar a coleção curada» · ver comando
+        ação «Construir o menu da área de trabalho» · ?
         ação «Construir o menu da área de trabalho» · Executar
         ação «Construir o menu da área de trabalho» · ver comando
+        ação «Imagem anterior» · ?
         ação «Imagem anterior» · Executar
         ação «Imagem anterior» · ver comando
+        ação «Menu da área de trabalho» · ?
         ação «Menu da área de trabalho» · Executar
         ação «Menu da área de trabalho» · ver comando
+        ação «O carrossel agora» · ?
         ação «O carrossel agora» · Executar
         ação «O carrossel agora» · ver comando
+        ação «Próxima imagem» · ?
         ação «Próxima imagem» · Executar
         ação «Próxima imagem» · ver comando
+        ação «Reaplicar as regras do carrossel» · ?
         ação «Reaplicar as regras do carrossel» · Executar
         ação «Reaplicar as regras do carrossel» · ver comando
+        ação «Voltar a girar» · ?
         ação «Voltar a girar» · Executar
         ação «Voltar a girar» · ver comando
         papel de parede · Dia
@@ -3654,6 +3689,7 @@ INVENTARIO = {
         papel de parede · ver comando
     """),
     "Dia e noite": _linhas("""
+        aba · ?
         ajuste MODO_AUTO_CLARO_ATE · ?
         ajuste MODO_AUTO_CLARO_ATE · Restaurar ao padrão
         ajuste MODO_AUTO_CLARO_ATE · deslizante
@@ -3676,6 +3712,7 @@ INVENTARIO = {
         ajuste WALLPAPER_NOITE_INICIO · hora
     """),
     "Modo de leitura": _linhas("""
+        aba · ?
         ajuste LEITURA_AGENDA · ?
         ajuste LEITURA_AGENDA · deixar vazio
         ajuste LEITURA_AGENDA · opção
@@ -3691,14 +3728,18 @@ INVENTARIO = {
         ajuste LEITURA_TEMPERATURA · deslizante
         ajuste LEITURA_TEXTURA · ?
         ajuste LEITURA_TEXTURA · deslizante
+        ação «Aplicar o degrau desta hora» · ?
         ação «Aplicar o degrau desta hora» · Executar
         ação «Aplicar o degrau desta hora» · ver comando
+        ação «Desligar o modo de leitura» · ?
         ação «Desligar o modo de leitura» · Executar
         ação «Desligar o modo de leitura» · ver comando
+        ação «Modo de leitura agora» · ?
         ação «Modo de leitura agora» · Executar
         ação «Modo de leitura agora» · ver comando
     """),
     "Terminal": _linhas("""
+        aba · ?
         aba · Adicionar fonte
         ajuste PROMPT_STARSHIP · ?
         ajuste PROMPT_STARSHIP · opção
@@ -3708,6 +3749,7 @@ INVENTARIO = {
         ajuste TERMINAL_ESQUEMA · opção
     """),
     "Lançadores e jogos": _linhas("""
+        aba · ?
         aba · Arrumar os jogos no lançador
         aba · Conferir
         aba · filtro «Filtrar jogo»
@@ -3726,20 +3768,26 @@ INVENTARIO = {
         ajuste SPOTIFY_MARKETPLACE · ?
         ajuste SPOTIFY_MARKETPLACE · opção
         aplicativo · abrir
+        ação «Baixar o tema do Spotify» · ?
         ação «Baixar o tema do Spotify» · Executar
         ação «Baixar o tema do Spotify» · ver comando
+        ação «Pôr os jogos do Heroic no lançador» · ?
         ação «Pôr os jogos do Heroic no lançador» · Executar
         ação «Pôr os jogos do Heroic no lançador» · ver comando
+        ação «Quais programas estão vestidos» · ?
         ação «Quais programas estão vestidos» · Executar
         ação «Quais programas estão vestidos» · ver comando
+        ação «Ver o que mudaria nos jogos do Heroic» · ?
         ação «Ver o que mudaria nos jogos do Heroic» · Executar
         ação «Ver o que mudaria nos jogos do Heroic» · ver comando
+        ação «Vestir os programas agora» · ?
         ação «Vestir os programas agora» · Executar
         ação «Vestir os programas agora» · ver comando
         jogo da Steam · abrir
         jogo órfão · Tirar da lista
     """),
     "Manutenção": _linhas("""
+        aba · ?
         ajuste ASSETS_VIGIA · ?
         ajuste ASSETS_VIGIA · opção
         ajuste ASSETS_VIGIA_NOTIFICAR · ?
@@ -3777,34 +3825,49 @@ INVENTARIO = {
         ajuste SOM_PESO_HARMONICO · campo
         ajuste STEAM_VIGIA · ?
         ajuste STEAM_VIGIA · opção
+        ação «Instalar o starship» · ?
         ação «Instalar o starship» · Executar
         ação «Instalar o starship» · ver comando
+        ação «Ouvir o som» · ?
         ação «Ouvir o som» · Executar
         ação «Ouvir o som» · ver comando
+        ação «Regravar o som» · ?
         ação «Regravar o som» · Executar
         ação «Regravar o som» · ver comando
     """),
     "Instalação": _linhas("""
+        aba · ?
+        ação «As últimas 50 linhas do registro» · ?
         ação «As últimas 50 linhas do registro» · Executar
         ação «As últimas 50 linhas do registro» · ver comando
+        ação «Conferir a máquina» · ?
         ação «Conferir a máquina» · Executar
         ação «Conferir a máquina» · ver comando
+        ação «Consertar o que estiver fora» · ?
         ação «Consertar o que estiver fora» · Executar
         ação «Consertar o que estiver fora» · ver comando
+        ação «Desinstalar o MeowSystem» · ?
         ação «Desinstalar o MeowSystem» · Executar
         ação «Desinstalar o MeowSystem» · ver comando
+        ação «Instalar tudo» · ?
         ação «Instalar tudo» · Executar
         ação «Instalar tudo» · ver comando
+        ação «O que está no ar agora» · ?
         ação «O que está no ar agora» · Executar
         ação «O que está no ar agora» · ver comando
+        ação «Voltar ao tema de antes» · ?
         ação «Voltar ao tema de antes» · Executar
         ação «Voltar ao tema de antes» · ver comando
     """),
     "Atualização": _linhas("""
+        aba · ?
+        ação «Atualizar a máquina inteira» · ?
         ação «Atualizar a máquina inteira» · Executar
         ação «Atualizar a máquina inteira» · ver comando
+        ação «Limpar o que sobrou» · ?
         ação «Limpar o que sobrou» · Executar
         ação «Limpar o que sobrou» · ver comando
+        ação «O que a atualização mudaria» · ?
         ação «O que a atualização mudaria» · Executar
         ação «O que a atualização mudaria» · ver comando
     """),

@@ -66,7 +66,9 @@ legenda, e para isso cumpre quatro coisas:
 
 A faixa de prévia gruda no alto da SUA seção e encolhe para tira; ela nunca paira sobre outra
 seção nem cobre controle (achado 6). Os números que o desenho representa (raio 8, espaço 4…)
-vão para o `?` do desenho, que é onde quem quer conferir procura.
+vão para o `?` do desenho, que é onde quem quer conferir procura. O `?` do desenho fica do lado
+de fora da caixa do desenho da direita, no canto de cima (na barra da forma, no canto de baixo,
+sobre a «tela» vazia): dentro da caixa ele cobriria o traço, e longe dela não se leria como dele.
 
 ```
 ANTES                                       DEPOIS
@@ -121,7 +123,7 @@ pastilha: encolhe até o conteúdo…            e recheio 0; margem 0; …»)
 
 ```
 ANTES (Papel de parede)                     DEPOIS
-Título                                      Título (?)                     ● 3   1
+Título                                      Título (?)                     ● 3  ○ 1
 Subtítulo                                   [ coleção: No carrossel · Noite · Dia … ]
 [desenho] legenda de 2 linhas               [ grade de imagens ]
 9 ajustes com frase                         9 ajustes (título, ?, controle)
@@ -131,8 +133,9 @@ A coleção (no fim)
 
 ## 5. Densidade
 
-- Cartão de ajuste = **três camadas**: linha do título (título + selos + `?`), controle,
-  e nada mais. Sem a frase de baixo, a altura do cartão cai e as fileiras da grade alinham.
+- Cartão de ajuste = **três camadas**: linha do título (título + `?`), os selos logo abaixo
+  quando houver estado, e o controle. Sem a frase de baixo, a altura do cartão cai e as
+  fileiras da grade alinham.
 - Cartão de ação = **duas camadas**: título + `?`; rodapé com selos à esquerda e «ver
   comando» + «Executar» à direita.
 - A grade fica em três colunas acima de 1100 px (pedido dela de 06/09, preservado).

@@ -30,3 +30,11 @@ de usar.»
 - prints antes/depois de cada página em `.playwright-mcp/ux-p77/`.
 - contagem de caracteres de texto visível por página cai (medida antes e depois).
 - o gate novo falha no `dev` de hoje e passa na branch.
+
+## Achados para a próxima leva
+- `comandoCurto` (app.js) perdeu o último chamador quando a linha `code.cmd` do cartão de ação saiu; ficou com a nota, pela regra da casa.
+- `.descricao-secao` (estilo.css) não tem mais quem a gere: o subtítulo da página virou o `?` do cabeçalho.
+- A faixa da simulação do modo de leitura perdeu «quem pinta de verdade é o cosmic-comp»; a prévia real do item 4 decide o que fica.
+- `avisoDeCombinacao` e `avisoDeLado` (Cor e tela) ainda são frase visível: viram selo na reescrita da página.
+- Início continua com 2 306 caracteres: o bloco «Próprio / herdado / do motor» do cartão do pack (achado 8, U1) é da página.
+- `tests/app-acessibilidade.py` ainda isenta as «12 legendas de desenho»: elas saíram da tela, e a isenção pode cair.

@@ -1364,23 +1364,18 @@ select { flex: 1 1 auto; }
 .acao > * { order: 2; }
 .acao h3 { order: 0; margin: 0; font-size: var(--t-titulo); font-weight: 600; color: var(--text); letter-spacing: -.005em; }
 .acao p { order: 1; margin: 0; font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
-.acao code.cmd {
-  order: 3;
-  margin-top: auto;
-  padding-top: .35rem;
-  font: .7rem/1.4 var(--mono);
-  color: var(--overlay1);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* A LINHA `code.cmd` SOBRE O RODAPÉ SAIU DA TELA — 09/10/2026, P77 (achado
+ * 30): o comando mora só no «ver comando». A regra dela saiu junto, porque a
+ * linha do «ver comando» herdou a classe (é por ela que o teste acha o comando)
+ * e o `margin-top: auto` + reticências desta regra a desalinhavam dentro da
+ * fileira do Copiar. Quem empurra o rodapé para o fundo é o próprio rodapé. */
 .acao .rodape {
   order: 4;
   display: flex;
   gap: .55rem;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 0;
+  margin-top: auto;
   padding-top: .1rem;
 }
 /* As etiquetas à esquerda, o gatilho à direita: lê-se o risco entrando no botão. */
@@ -1391,10 +1386,8 @@ select { flex: 1 1 auto; }
    diferentes. O primeiro empurra o par inteiro para a direita; do espaço entre
    eles cuida o `gap`. */
 .acao .rodape .btn ~ .btn { margin-left: 0; }
-/* O `margin-top: auto` que empurra o rodapé para o fundo do cartão mora no
- * `code.cmd`. Quando a ação não tem comando para mostrar, não havia quem
- * empurrasse, e o botão parava logo abaixo da própria frase. */
-.acao:not(:has(code.cmd)) .rodape { margin-top: auto; }
+/* O `margin-top: auto` do rodapé morava aqui, para a ação sem `code.cmd`;
+ * desde a P77 ele é do próprio `.acao .rodape`, acima, para todas. */
 /* A LISTA DO «VER COMANDO» É A ÚLTIMA COISA DO CARTÃO — 22/09/2026
  * A regra genérica `.acao > * { order: 2 }`, acima, é quem decide o lugar de
  * qualquer filho sem ordem própria — e o bloco de comandos, que o cartão de
@@ -3688,6 +3681,194 @@ a.folha:hover b { color: var(--text); }
   main { padding: 1.1rem 1rem 4rem; }
   .lista-chaves { display: none; }
 }
+
+/* ===========================================================================
+ * P77 — A INTERFACE MOSTRA EM VEZ DE EXPLICAR (09/10/2026)
+ * ===========================================================================
+ * Hallmark · genre: modern-minimal · design-system: docs/sprints/2026-10-09-uso-real/P77-direcao.md
+ * · designed-as-app · tema: a paleta do pack no ar (paleta.css) · movimento: cortado
+ *
+ * Os componentes comuns da direção: a dica de qualquer dono (`.com-dica`), o
+ * cabeçalho de página, o selo de estado, o cartão de ação de duas camadas e o
+ * `?` do desenho. Ficam no fim da folha de propósito: eles reescrevem regras
+ * mais antigas (a `.dica` era só do cartão, a frase era visível) e a ordem da
+ * cascata é a forma mais legível de dizer "isto vence aquilo". */
+
+/* --- a dica de qualquer dono --------------------------------------------- */
+/* O balão é o MESMO do cartão (`.cartao > .dica`, lá em cima): a mesma caixa,
+ * a mesma sombra, o mesmo teto de 22 rem. O que muda é a âncora: fora do
+ * cartão não há linha de grade para apontar, então o dono ganha `position` e o
+ * balão cai logo abaixo dele. A largura tem teto de leitura (36 rem) e nunca
+ * passa do dono, que já é uma caixa que cabe na tela. */
+.com-dica { position: relative; }
+.com-dica > .dica {
+  position: absolute;
+  top: calc(100% + .35rem);
+  left: 0;
+  width: min(36rem, 100%);
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .35rem .7rem;
+  padding: .7rem .8rem .75rem;
+  border: 1px solid var(--surface1);
+  border-radius: var(--r-3);
+  background: var(--mantle);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
+  max-height: 22rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  text-align: left;
+}
+/* As linhas que a P77 trouxe para dentro da dica. Todas de largura inteira: o
+ * balão é uma coluna de leitura, e só a chave e o «de fábrica» dividem linha.
+ * A primeira linha (o estado, ou o resumo) é a mais clara: é a resposta curta,
+ * e o comentário inteiro do arquivo vem depois, em tom de nota. */
+.dica .resumo,
+.dica .frase,
+.dica .legenda-desenho,
+.dica .vale-como {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: var(--t-frase);
+  line-height: 1.55;
+  color: var(--subtext1);
+  text-wrap: pretty;
+}
+.dica .resumo, .dica .legenda-desenho { color: var(--text); }
+/* A `.frase` dentro da dica não corta em três linhas: lá fora o corte segurava
+ * o cartão; aqui o balão rola, e cortar esconderia justamente o porquê. */
+.dica .frase { display: block; -webkit-line-clamp: none; line-clamp: none; overflow: visible; }
+.dica .frase.dominada { border-left: 2px solid var(--yellow); padding-left: .55rem; }
+.dica .resumo.herdada { border-left: 2px solid var(--surface1); padding-left: .55rem; }
+.dica .vale-como { color: var(--overlay2); font-size: var(--t-legenda); }
+
+/* --- o cabeçalho de página ----------------------------------------------- */
+/* UMA linha: título, `?`, e à direita os selos de resumo e o botão de acervo.
+ * O espaço embaixo é o mesmo que o subtítulo deixava (1.4 rem), para a primeira
+ * coisa da página não colar no título. */
+.cabecalho-pagina { margin: 0 0 1.4rem; }
+.grade + .cabecalho-pagina { margin-top: 2.8rem; }
+.cabecalho-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem .6rem;
+}
+.cabecalho-linha > .secao-titulo { margin: 0; }
+.cabecalho-linha > button.porque { align-self: center; margin-top: 0; }
+.cabecalho-selos { margin-left: auto; }
+.cabecalho-acoes { margin-left: auto; }
+.cabecalho-selos + .cabecalho-acoes { margin-left: .4rem; }
+
+/* --- o selo de estado ---------------------------------------------------- */
+/* Ícone de traço de 14 px na cor do estado e, no máximo, um valor curto ao
+ * lado. Sem caixa alta e sem moldura: o selo é sinal, não botão — moldura
+ * convidaria ao clique que ele não tem. As cores são as que a folha já usa
+ * para o mesmo sentido: pêssego é "atenção/diferente de fábrica", vermelho é
+ * "desfaz", céu é rede, verde é "está como deveria", amarelo é "outro manda". */
+.selos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem .75rem;
+}
+.selo {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  color: var(--overlay2);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+.selo svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.selo-valor {
+  font-size: var(--t-legenda);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--subtext1);
+}
+.selo-sudo     { color: var(--peach); }
+.selo-ponte    { color: var(--green); }
+.selo-rede     { color: var(--sky); }
+.selo-desfaz   { color: var(--red); }
+.selo-maquina  { color: var(--blue); }
+.selo-anulado  { color: var(--yellow); }
+.selo-pack     { color: var(--mauve); }
+.selo-mexeu    { color: var(--peach); }
+.selo-pendente { color: var(--accent); }
+
+/* --- o cartão de ajuste -------------------------------------------------- */
+/* Os selos moram logo abaixo do título, antes do controle: é o estado do que
+ * se vai mexer, lido no caminho do olho até o controle. */
+.cartao > .selos { order: 2; }
+/* ANULADO SE VÊ: tudo o que não é título, `?`, dica e selos fica apagado. Não
+ * desligado — a escolha continua valendo no arquivo e pode ser feita —, só
+ * recuado, para dizer sem frase que outro ajuste manda neste agora. */
+.cartao.anulado > :not(.titulo-cartao, .titulo, button.porque, .dica, .selos) { opacity: .55; }
+.cartao.anulado > :not(.titulo-cartao, .titulo, button.porque, .dica, .selos):hover,
+.cartao.anulado > :not(.titulo-cartao, .titulo, button.porque, .dica, .selos):focus-within { opacity: 1; }
+
+/* --- o cartão de ação ---------------------------------------------------- */
+/* Duas camadas: o título com o `?` e o rodapé (selos à esquerda, «ver comando»
+ * e «Executar» à direita). O `?` encosta no título, como no cartão de ajuste. */
+.acao { position: relative; }
+.acao-topo {
+  order: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: .45rem;
+}
+.acao-topo > .dica { left: 0; right: 0; width: auto; }
+/* O `.acao p` antigo (margem zero, tom de nota) alcança os parágrafos da dica;
+ * a regra da dica, acima, decide o tom deles. */
+.acao .dica p { order: 0; }
+
+/* --- o `?` do desenho ---------------------------------------------------- */
+/* Do lado de fora da caixa do desenho da direita, encostado no canto de cima:
+ * dentro dela ele cairia por cima do traço, e longe dela não se leria como
+ * dele. A caixa da direita sempre tem folga à direita (a `.par-previa` encosta
+ * os desenhos à esquerda, `justify-content: start`). O balão abre a partir da
+ * caixa, para a direita, com largura de leitura e sem passar da janela. */
+/* A caixa que leva o `?` mede o desenho, e não a coluna: a coluna da prévia
+ * única vai até 480 px e o desenho tem a largura que a altura de 150 px lhe
+ * dá — medido em «Logo do sistema», 190 px de vazio entre o traço e o `?`. A
+ * borda desta caixa é transparente (só o «Como está» botão tem borda), então
+ * encolhê-la não muda nada que se veja além do lugar do `?`. */
+.par-previa > .com-dica { justify-self: start; width: fit-content; max-width: 100%; }
+.par-previa > .com-dica > button.porque {
+  position: absolute;
+  top: .4rem;
+  right: -2rem;
+  margin: 0;
+}
+.par-previa > .com-dica > .dica {
+  top: 2.4rem;
+  width: 34rem;
+  max-width: calc(100vw - 4rem);
+}
+/* Na barra da FORMA (painel e dock) o desenho ocupa a coluna inteira; o `?`
+ * vai para o canto de baixo, sobre a "tela" vazia sob a barra, onde não cobre
+ * nenhum segmento desenhado. */
+.grade-barras .com-dica > button.porque {
+  position: absolute;
+  bottom: .45rem;
+  right: .45rem;
+  margin: 0;
+  background: var(--mantle);
+}
+.grade-barras .com-dica > .dica { top: calc(100% + .35rem); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
