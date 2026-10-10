@@ -40,7 +40,8 @@ O QUE REPROVA (e de onde cada regra vem)
   7. ERRO NO CONSOLE, em qualquer página.
   8. O ACABAMENTO DA P80 (10/10/2026), um caso por defeito do uso real final
      (prints em `.playwright-mcp/ux-final/`), cada um com o gesto de quem usa:
-       · a ficha de ícone mostra o nome amigável, e o nome técnico só na dica.
+       · a ficha de ícone mostra o nome amigável, e o nome técnico só na dica;
+       · a paleta «Cor» da ficha só aparece com um traço marcado.
 
 A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
   A decisão 8 de 02-decisoes.md manda o painel de QA subir SÓ com HOME
@@ -311,9 +312,12 @@ def abrir_pagina(pag, grupo):
 
 
 def abrir_ficha(pag, busca):
-    """A ficha de ícone do primeiro aplicativo da grade, com `busca` no campo
-    dela; volta quando a resposta da busca está pintada."""
+    """A ficha de ícone do programa de brinquedo da casa (o `PROGRAMA` do
+    app-completo, que nenhuma trava alcança), com `busca` no campo dela; volta
+    quando a resposta da busca está pintada."""
     abrir_pagina(pag, "Ícones")
+    pag.locator(".busca-apps").fill(casa.PROGRAMA[1])
+    assentar(pag)
     pag.locator(".grade-apps button.app").first.click()
     pag.wait_for_selector(".escolha-icone input[type=search]", timeout=20000)
     pag.locator(".escolha-icone input[type=search]").fill(busca)
@@ -351,6 +355,32 @@ ROTULOS_JS = r"""
 """
 
 
+# 8.2 — A PALETA «COR» SÓ COM TRAÇO (print 05): a fileira de cores aparecia
+#   sempre, e só vale para o desenho de traço. Ela nasce quando um traço está
+#   marcado, e some quando o marcado é um desenho que entra com as cores dele.
+PALETA_JS = r"""
+(passo) => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const ficha = document.querySelector('.escolha-icone');
+  const cores = ficha && ficha.querySelector(':scope > .cores-grade');
+  const rotulo = cores && cores.previousElementSibling;
+  const botoes = [...ficha.querySelectorAll('.tira-glifos button[data-escolha]')].filter(vis);
+  const traco = botoes.find((b) => !b.classList.contains('do-pack'));
+  const desenho = botoes.find((b) => b.classList.contains('do-pack'));
+  if (passo === 'traco') { if (!traco) return 'nenhum traço livre na ficha para marcar'; traco.click(); }
+  if (passo === 'desenho') { if (!desenho) return 'nenhum desenho livre na ficha para marcar'; desenho.click(); }
+  const marcado = ficha.querySelector('.tira-glifos button[aria-pressed="true"]');
+  const deTraco = !!marcado && !marcado.classList.contains('do-pack');
+  const aparece = vis(cores) || (vis(rotulo) && /cor/i.test(rotulo.textContent));
+  if (deTraco && !aparece) return `com o traço «${marcado.dataset.glifo}» marcado, a paleta «Cor» não aparece`;
+  if (!deTraco && aparece)
+    return marcado ? `com o desenho «${marcado.dataset.glifo}» marcado, a paleta «Cor» aparece`
+                   : 'sem nada marcado, a paleta «Cor» aparece';
+  return '';
+}
+"""
+
+
 def acabamento(pag):
     """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -358,6 +388,13 @@ def acabamento(pag):
     reprovas += [("ficha de ícone", d) for d in pag.evaluate(ROTULOS_JS)]
     if FOTOS:
         pag.screenshot(path=os.path.join(FOTOS, "p80-ficha-firefox.png"))
+    for passo in ("abrir", "traco", "desenho"):
+        d = pag.evaluate(PALETA_JS, passo)
+        pag.wait_for_timeout(200)
+        if d:
+            reprovas.append(("ficha de ícone", d))
+        if FOTOS and passo != "abrir":
+            pag.screenshot(path=os.path.join(FOTOS, f"p80-paleta-{passo}.png"))
     return reprovas
 
 

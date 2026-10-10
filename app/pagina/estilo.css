@@ -2663,10 +2663,8 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   padding: 0;
 }
 .cores-grade button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--base), 0 0 0 4px var(--accent); }
-/* Com um desenho marcado na ficha, a cor não vale (ele entra com as cores
-   dele): a fileira se apaga em vez de uma frase dizer isso, e a dica dela diz
-   o porquê. Continua clicável — a cor volta a valer quando um traço é marcado. */
-.cores-grade.sem-efeito { opacity: .35; }
+/* [P80, item 2: a fileira apagada (`.sem-efeito`) saiu. Sem traço marcado na
+   ficha ela não nasce — o `hidden` do `pintarGlifos`, no app.js.] */
 
 /* --- a barra desenhada ao vivo -------------------------------------------- */
 /* Um print da barra envelheceria; este desenho acompanha o controle deslizante

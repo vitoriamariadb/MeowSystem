@@ -4001,7 +4001,6 @@ function montarEscolhaDeIcone(app, recarregar) {
     GLIFOS.escolhido = daMinha ? chaveDe(daMinha) : vestido ? chaveDe(vestido) : null;
   }
   const grupoDe = (id) => (GLIFOS.grupos || []).find((x) => x.id === id) || { id, acervo: "", nome: id };
-  const nomeDoPack = (g) => grupoDe(g.grupo).acervo;
   const itemEscolhido = () => itens.find((g) => chaveDe(g) === GLIFOS.escolhido) || null;
   /* A TIRA SOBREVIVE À REPINTURA — 09/10/2026, P73. A página se repinta a cada
    * clique (uma cor, a oficina), e o `/previa` responde `no-store`: uma tira
@@ -4025,12 +4024,15 @@ function montarEscolhaDeIcone(app, recarregar) {
      * desenho que não é traço o acendia (e a escolha dela, que agora abre
      * marcada, o acendia ao abrir a ficha). A fileira de cores se apaga, e a
      * frase fica na dica dela: sem texto na tela.] */
+    /* [A PALETA NASCE COM O TRAÇO — 10/10/2026, P80 (item 2). Apagada, ela
+     * continuava na tela para todo desenho, e só vale para o traço: «show,
+     * don't tell». A fileira e o rótulo «Cor» aparecem quando o marcado é um
+     * traço, e somem com um desenho que entra com as cores dele ou com nada
+     * marcado. A cor escolhida fica guardada (`corEscolhida`) e volta junto.] */
     const g = itemEscolhido();
-    const semCor = !!(g && g.tipo !== "traco");
-    cores.className = "cores-grade" + (semCor ? " sem-efeito" : "");
-    porBalao(cores, semCor
-      ? `O desenho de «${nomeDoPack(g)}» entra com as cores dele: a cor vale só para o traço.`
-      : "");
+    const comCor = !!(g && g.tipo === "traco");
+    cores.hidden = !comCor;
+    rotuloDaCor.hidden = !comCor;
   };
   /* O RÓTULO É O NOME AMIGÁVEL, E O NOME INTEIRO VAI PARA A DICA — 10/10/2026,
    * P80 (item 1). Embaixo de cada desenho vinha o nome do arquivo, cortado:
@@ -4146,7 +4148,8 @@ function montarEscolhaDeIcone(app, recarregar) {
       },
     }));
   }
-  painel.append(elemento("div", { class: "rotulo-mini", texto: "Cor" }));
+  const rotuloDaCor = elemento("div", { class: "rotulo-mini", texto: "Cor" });
+  painel.append(rotuloDaCor);
   painel.append(cores);
 
   const acoes = elemento("div", { class: "escolha-botoes" });
