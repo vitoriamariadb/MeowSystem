@@ -786,7 +786,14 @@ main:focus-visible { outline: none; }
   border-radius: 0;
   padding: .9rem .9rem 1.1rem;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  /* A COLUNA DO `?` TEM PISO — 10/10/2026, conferência da P77. Com
+   * `minmax(0, 1fr)` o título (`auto`) crescia até o fim do cartão sempre que
+   * quebrava em duas linhas, a segunda coluna ficava com 0 px e o `?` de 24 px
+   * saía 7 a 10 px para fora, em cima do fio da moldura vizinha (medido a 1280
+   * px: «Como o gato do dock é escolhido», «Devolver os ícones depois de
+   * atualizar flatpak»). O piso de 1.6rem reserva o lugar do botão antes de o
+   * título repartir a sobra. */
+  grid-template-columns: auto minmax(1.6rem, 1fr);
   /* UMA linha explícita, e ela não é enfeite: a `.dica` é posicionada dentro
    * desta linha (ver `.cartao > .dica`), e uma linha implícita não serve de
    * área para filho absoluto — o navegador cairia na caixa inteira do cartão e o
