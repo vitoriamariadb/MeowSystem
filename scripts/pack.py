@@ -5411,10 +5411,21 @@ def _mb(n):
     return f"{n / (1 << 20):.1f} MB".replace(".", ",")
 
 
+# Quantos bytes do começo o `_proibido` precisa: o BOM do UTF-8 (3) e o `#!`.
+CABECA_PROIBIDA = 5
+
+
 def _proibido(rel, cabeca):
-    """Por que este arquivo não pode viajar dentro de um pack — ou None."""
+    """Por que este arquivo não pode viajar dentro de um pack — ou None.
+
+    O BOM NÃO ESCONDE O `#!` — 10/10/2026, P79 (achado da P78). Um `leia.txt`
+    que começa com o BOM do UTF-8 e `#!` entrava: a régua olhava só os dois
+    primeiros bytes. Nada do pack é executado (chmod 644), então não era porta;
+    era a régua prometendo mais do que media."""
     if rel.lower().endswith(".sh"):
         return "é script de shell"
+    if cabeca.startswith(b"\xef\xbb\xbf"):
+        cabeca = cabeca[3:]
     if cabeca.startswith(b"#!"):
         return "começa com #!, e isso é script, seja qual for o nome"
     return None
@@ -5467,7 +5478,7 @@ def _arquivos_do_pack(dir_pack):
                 problemas.append(f"{rel!r}: nome com quebra de linha não cabe no MANIFESTO")
             else:
                 with open(cheio, "rb") as fh:
-                    motivo = _proibido(rel, fh.read(2))
+                    motivo = _proibido(rel, fh.read(CABECA_PROIBIDA))
                 if motivo:
                     problemas.append(f"{rel}: {motivo} — um pack é dado, nunca é código")
                 else:
@@ -5834,7 +5845,7 @@ def ler_meowpack(caminho):
             rel = "/".join(partes[1:])
             _exigir(rel not in membros, f"{m.name!r} aparece duas vezes")
             dado = tar.extractfile(m).read()
-            motivo = _proibido(rel, dado[:2])
+            motivo = _proibido(rel, dado[:CABECA_PROIBIDA])
             if motivo:
                 scripts.append(f"{m.name}: {motivo}")
             membros[rel] = dado

@@ -148,7 +148,13 @@ DESTINO="$HOME/.local/share/icons/$TEMA/scalable/places"
 declare -A MAPA_LIDO=()
 _ler_mapa() {
   local linha nome glifo pulados=()
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
+    # O MAPA ESCRITO NO WINDOWS — P79, 10/10/2026. Com CRLF, o `\r` ficava no
+    #   glifo, o `meow_nome_seguro` o recusava, e o pack inteiro saía sem
+    #   desenho, cada linha «pulada» (achado da P78). O `pack.py` lê o mesmo
+    #   arquivo por `splitlines`, que já tira o `\r`; aqui sai do mesmo jeito.
+    #   E a última linha sem quebra no fim também conta (`|| [ -n ]`).
+    linha="${linha%$'\r'}"
     case "$linha" in ''|'#'*) continue ;; esac
     nome="${linha%%:*}"; glifo="${linha#*:}"
     # OS DOIS LADOS VIRAM NOME DE ARQUIVO — P78, 09/10/2026. `<nome>.svg` no

@@ -106,6 +106,7 @@ PORTATIL=(
   pack-malicioso.sh      # pack de terceiro com '..', absoluto, symlink e script; painel num HOME de brinquedo (P78); bash, python3 e curl
   casa-real.sh           # o migrar_conf, o doctor e a troca de pack num HOME e COSMIC de brinquedo, sudo falso (P79); bash e python3
   nada-manda-digitar.sh  # grep nas mensagens versionadas e a tabela de pendências do painel (P79); bash e python3
+  achados-tecnicos.sh    # mapa CRLF, BOM, vidro, modo do gato e favoritas num HOME, COSMIC e packs de brinquedo (P79); bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
@@ -123,6 +124,7 @@ MAQUINA=(
   app-completo.py        # Playwright com Chromium: TODA aba, TODO controle — o gate de merge (P46)
   app-uso-real.py        # Playwright com Chromium: as 14 páginas como quem usa — parágrafo, coberto, prévia vazia, contradição (P77, U7)
   app-texto-visivel.py   # Playwright com Chromium: a régua do texto visível da P77; mede e sai 0, só reprova se o painel não sobe
+  gate-link-externo.py   # Playwright com Chromium: o «Créditos» do gate aguenta a repintura entre o censo e o clique (P79)
 )
 # [Integração da onda 2, 10/10/2026: o `app-texto-visivel.py` chegou da P77
 #  executável e sem linha aqui, e a guarda de cima fazia a suíte inteira sair 2
