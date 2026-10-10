@@ -3478,6 +3478,7 @@ INVENTARIO = {
         ajuste CURSOR · deixar vazio
         ajuste CURSOR · opção
         ajuste ESCALA_TELA · ?
+        ajuste ESCALA_TELA · deixar vazio
         ajuste ESCALA_TELA · opção
         ajuste FLAVOR · ?
         ajuste FLAVOR · opção
@@ -3611,16 +3612,22 @@ INVENTARIO = {
         aba · ?
         aba · abre «⋯ Ações técnicas»
         ajuste FORMA_ALA_FINAL_DOCK · ?
+        ajuste FORMA_ALA_FINAL_DOCK · deixar vazio
         ajuste FORMA_ALA_FINAL_DOCK · opção
         ajuste FORMA_ALA_FINAL_PAINEL · ?
+        ajuste FORMA_ALA_FINAL_PAINEL · deixar vazio
         ajuste FORMA_ALA_FINAL_PAINEL · opção
         ajuste FORMA_ALA_INICIAL_DOCK · ?
+        ajuste FORMA_ALA_INICIAL_DOCK · deixar vazio
         ajuste FORMA_ALA_INICIAL_DOCK · opção
         ajuste FORMA_ALA_INICIAL_PAINEL · ?
+        ajuste FORMA_ALA_INICIAL_PAINEL · deixar vazio
         ajuste FORMA_ALA_INICIAL_PAINEL · opção
         ajuste FORMA_CENTRO_DOCK · ?
+        ajuste FORMA_CENTRO_DOCK · deixar vazio
         ajuste FORMA_CENTRO_DOCK · opção
         ajuste FORMA_CENTRO_PAINEL · ?
+        ajuste FORMA_CENTRO_PAINEL · deixar vazio
         ajuste FORMA_CENTRO_PAINEL · opção
         ajuste FORMA_DOCK_ILHA · ?
         ajuste FORMA_DOCK_ILHA · opção
