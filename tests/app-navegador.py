@@ -1510,9 +1510,15 @@ def main():
                   f" ({travados}; antes de 21/09/2026 eram 17)")
             checa(usar_numero == 0,
                   f"nao ha botao «Usar numero» na pagina ({usar_numero}; antes 17)")
-            checa(deixar == 0 and restaurar > 0,
-                  f"«Deixar como esta» virou «Restaurar ao padrao»"
-                  f" ({deixar} contra {restaurar})")
+            # [Integracao da onda 2, 10/10/2026: desde o QA da P77 (achado 14,
+            #  `temOQueRestaurar`) o «Restaurar ao padrao» so' nasce sobre uma
+            #  escolha a desfazer. Esta casa e' o `meow.conf.exemplo`, toda chave
+            #  no valor de fabrica: aqui o certo e' NENHUM dos dois botoes. O
+            #  `restaurar > 0` de antes cobrava o botao sobre o padrao, que e' o
+            #  defeito que a P77 tirou; o `app-uso-real.py` cobra o mesmo caso.]
+            checa(deixar == 0 and restaurar == 0,
+                  f"nem «Deixar como esta» nem «Restaurar ao padrao» sobre o valor"
+                  f" de fabrica ({deixar} e {restaurar})")
             # O TERCEIRO ESTADO CONTINUA NA TELA, E OS TRES SINAIS ANDAM JUNTOS.
             #   Um deles faltando e' o defeito que a sprint chama de "o problema
             #   so' mudou de lugar": a trava saiu e nada ocupou o lugar dela.
