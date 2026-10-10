@@ -9134,7 +9134,7 @@ const TECNICOS_ABERTOS = new Set();
 const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
                                             "Logo do sistema", "Modo de leitura",
                                             "Áreas de trabalho", "Lançadores e jogos",
-                                            "Manutenção"]);
+                                            "Manutenção", "Instalação"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
 function acaoTecnica(assunto, acao) {
   return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);

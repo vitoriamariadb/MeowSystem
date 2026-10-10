@@ -3829,9 +3829,7 @@ INVENTARIO = {
     """),
     "Instalação": _linhas("""
         aba · ?
-        ação «As últimas 50 linhas do registro» · ?
-        ação «As últimas 50 linhas do registro» · Executar
-        ação «As últimas 50 linhas do registro» · ver comando
+        aba · abre «⋯ Ações técnicas»
         ação «Conferir a máquina» · ?
         ação «Conferir a máquina» · Executar
         ação «Conferir a máquina» · ver comando
@@ -3844,9 +3842,6 @@ INVENTARIO = {
         ação «Instalar tudo» · ?
         ação «Instalar tudo» · Executar
         ação «Instalar tudo» · ver comando
-        ação «O que está no ar agora» · ?
-        ação «O que está no ar agora» · Executar
-        ação «O que está no ar agora» · ver comando
         ação «Voltar ao tema de antes» · ?
         ação «Voltar ao tema de antes» · Executar
         ação «Voltar ao tema de antes» · ver comando
@@ -4025,6 +4020,16 @@ REVELADOS = {
         ação «Qual gato está no ar, e por quê» · ?
         ação «Qual gato está no ar, e por quê» · Executar
         ação «Qual gato está no ar, e por quê» · ver comando
+    """),
+    # [P77 grupo 4: as duas ações que só mostram (natureza `mostrar`) moram
+    # no «⋯» das ações técnicas da Instalação.]
+    "Instalação": _linhas("""
+        ação «As últimas 50 linhas do registro» · ?
+        ação «As últimas 50 linhas do registro» · Executar
+        ação «As últimas 50 linhas do registro» · ver comando
+        ação «O que está no ar agora» · ?
+        ação «O que está no ar agora» · Executar
+        ação «O que está no ar agora» · ver comando
     """),
     # [P77 grupo 4: o timbre do sino (`[avancado]`) e o «Regravar o som»
     # (natureza `aplicar`) moram nos dois «⋯» do fim da página.]
