@@ -4492,7 +4492,18 @@ ACOES = {
         "grupo": "Instalação",
         "natureza": "consertar",
         "argv": _meow("doctor", "--consertar"),
-        "escreve": True, "sudo": False, "confirma": False,
+        # BAIXA DA INTERNET, E DIZ — decisão 7 da leva G, 09/10/2026 (P78)
+        #   Desde a P75 e a P76 o `doctor --consertar` clona o papirus-folders
+        #   e o now-playing, baixa a fonte e o `Cargo.lock` do painel e roda o
+        #   `cargo build`: tudo pinado, mas é rede. A ação dizia `rede: False`,
+        #   e o gate reprovava 10 vezes («tentou baixar sem declarar rede»).
+        #   Declarar a verdade acende o selo «baixa da internet» no cartão e
+        #   no botão da Início. E SEM caixa de pergunta (`confirma: False`): o
+        #   reparo é pedido por quem usa ("o doctor não tem que avisar nada.
+        #   Tem que corrigir.", 09/10). A pergunta da P46 fica para a ação que
+        #   baixa E é opcional; o gate confere o selo aqui, e não a pergunta
+        #   (`reparo_que_baixa`, tests/app-completo.py).
+        "escreve": True, "sudo": False, "confirma": False, "rede": True,
         "ajuda": "Confere e aplica só o que falhou — o mesmo que o "
                  "agendamento faz sozinho.",
     },

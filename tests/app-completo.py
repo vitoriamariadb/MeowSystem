@@ -1151,6 +1151,19 @@ class Percurso:
       natureza: a.natureza || "" }))
     """
 
+    # O selo da rede à vista na porta da ação: o botão rápido da Início (selo
+    # logo depois dele) ou o cartão da ação (selo no rodapé). Decisão 7, P78.
+    SELO_DA_REDE_JS = r"""
+    (a) => {
+      const visivel = (e) => !!e && e.offsetParent !== null;
+      const rapido = document.querySelector(`[data-acao-rapida="${a.id}"]`);
+      if (visivel(rapido) && rapido.nextElementSibling
+          && rapido.nextElementSibling.matches(".p-rede")) return true;
+      return [...document.querySelectorAll("article.acao")]
+        .some((c) => visivel(c) && c.textContent.includes(a.rotulo) && visivel(c.querySelector(".p-rede")));
+    }
+    """
+
     def acoes(self):
         return {a["id"]: a for a in self.js(self.ACOES_JS)}
 
@@ -1195,9 +1208,16 @@ class Percurso:
         self.acoes_vistas.setdefault(ident, set()).add("sem caixa")
         # Pedir senha ou baixar da internet SEM PERGUNTAR é o que as exceções
         # existem para impedir: se isso roda direto, a exceção não protege nada.
-        self.checa(not (acao["sudo"] or acao["rede"]),
-                   f"«{acao['rotulo']}» rodou sem caixa de pergunta, e declara "
-                   f"{'pedir senha' if acao['sudo'] else 'baixar da internet'}")
+        # [Decisão 7 da leva G, P78: o REPARO que baixa roda sem pergunta, e o
+        #  que se cobra dele é o selo «baixa da internet» à vista na porta.]
+        if reparo_que_baixa(acao):
+            self.checa(self.js(self.SELO_DA_REDE_JS, acao),
+                       f"«{acao['rotulo']}» baixa da internet sem pergunta (é reparo), "
+                       f"e a porta dele mostra o selo «baixa da internet»")
+        else:
+            self.checa(not (acao["sudo"] or acao["rede"]),
+                       f"«{acao['rotulo']}» rodou sem caixa de pergunta, e declara "
+                       f"{'pedir senha' if acao['sudo'] else 'baixar da internet'}")
         self.conferir_trabalho(acao, bool(corpo.get("seco")), antes, reg0)
 
     def _com_caixa(self, clicar, antes, reg0, n0):
@@ -3265,6 +3285,16 @@ def casa_revelado(nome, grupo):
 # ações que o servidor declara pedir senha ou baixar da internet (`sudo`,
 # `rede`). Uma ação nova com essas marcas reprova até ganhar a linha dela, e
 # uma exceção que perdeu a marca reprova até sair daqui.
+# O REPARO QUE BAIXA — decisão 7 da leva G, 09/10/2026 (P78)
+#   «O doctor não tem que avisar nada. Tem que corrigir.» A regra da P46 (ação
+#   que baixa não roda sem caixa de pergunta) passa a valer só para a ação que
+#   baixa E é OPCIONAL — instalar o starship, baixar a coleção. O reparo que
+#   quem usa pede (natureza `consertar`, sem senha) é isento: roda direto, e o
+#   gate cobra dele o selo «baixa da internet» à vista, no lugar da pergunta.
+def reparo_que_baixa(acao):
+    return bool(acao["rede"]) and not acao["sudo"] and acao.get("natureza") == "consertar"
+
+
 EXCECOES = {
     "instalar": "roda o instalador inteiro: pede senha, baixa fontes e compila os "
                 "applets. Na casa de brinquedo leva um minuto e sai 2 por falta de "
@@ -3934,7 +3964,10 @@ def main():
             v.assentar(quieto=400)
 
             exc = set(EXCECOES)
-            declaradas = {i for i, a in v.acoes().items() if a["sudo"] or a["rede"]}
+            # O reparo que baixa não é exceção: roda de verdade na casa de
+            # brinquedo, sem pergunta e com o selo (decisão 7, P78).
+            declaradas = {i for i, a in v.acoes().items()
+                          if a["sudo"] or (a["rede"] and not reparo_que_baixa(a))}
             v.aba = "exceções"
             for i in sorted(declaradas - exc):
                 v.falha(f"a ação {i!r} pede senha ou baixa da internet e não está em "
