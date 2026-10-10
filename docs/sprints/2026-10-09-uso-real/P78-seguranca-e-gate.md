@@ -35,3 +35,21 @@ confiável / execução de código). Um pack pode ser importado de terceiros: tu
   nome com `/`, SVG com `<script>`/`onload` — nada lido nem escrito fora da raiz, nada executa,
   token não vaza (curl na URL do SVG mostra os cabeçalhos).
 - `tests/todos.sh` inteiro verde, inclusive o gate.
+
+## Achados para a próxima leva
+- **Conteúdo dos temas de app não é filtrado, só o caminho.** O `apps.<app>.arquivo` de um pack
+  passa pelo `_dentro`, mas o que o arquivo diz vai inteiro para a configuração do aplicativo: um
+  `kitty.modelo.conf` de terceiro pode trazer `shell`, `map … launch` ou `startup_session`, e um
+  `.dconf` do GNOME Terminal é carregado com `dconf load` (preso ao caminho do perfil). Cura na
+  origem: o modelo de cada app aceitar só as chaves de cor, e recusar o resto ao montar.
+- **`rsvg-convert` sobre SVG de pack** (semente de papel de parede, prévias): o librsvg resolve
+  `<image href>` relativo ao arquivo; não medi se um symlink dentro do pack o leva para fora.
+- **Duas políticas para a linha ruim.** No `validar` (inclusive o silencioso, o do motor), um alvo
+  de `apps.map` que sai da raiz recusa o pack INTEIRO (a máquina veste o padrão); nome de destino
+  torto e linha de `pastas.map` torta são pulados e contados pelo consumidor. Decidir se o alvo
+  também passa a ser pulado e contado.
+- **`pack.py sincronizar`** abre os caminhos da coluna `lido de` do `PROCEDENCIA.md` do pack (só
+  para comparar sha256, nada sai). Saiu do doctor na P75; continua no verbo manual.
+- **O filtro de nome do `_dracula_pares_do_mapa` fica no `awk`**, com o mesmo conjunto do
+  `meow_nome_seguro`, porque três testes extraem a função verbatim e a rodam sem o lib/comum.sh.
+  Se os testes passarem a carregar o lib, o `awk` pode chamar a regra única.
