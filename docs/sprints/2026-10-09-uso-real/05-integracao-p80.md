@@ -52,7 +52,7 @@ responder. O painel estava certo, e quem errava a medida era o gate.
 
 **Prova.**
 - Com um `sleep 4` temporário na rota `/api/pack-importar` (só no confirmado), o gate
-  `--aba Início` sai vermelho sempre, com as mesmas duas linhas.
+  `--aba Início` saiu vermelho com as mesmas duas linhas, de forma determinística: a instalação é que demora, e não a máquina.
 - Com a cura e o mesmo `sleep 4`, ele fica verde: o gesto leva 9,7 s, e o cartão é contado depois
   da resposta.
 - Sem o `sleep`, com a cura, também fica verde (5,8 s). O `sleep` foi tirado (`git checkout`) e não

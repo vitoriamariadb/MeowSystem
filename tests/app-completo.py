@@ -2375,7 +2375,7 @@ class Percurso:
             #   servidor responder. Na segunda rodada seguida da suíte, com a
             #   máquina carregada, a instalação passou da janela de 3 s do fim
             #   do `assentar` e o gate saiu vermelho com o pack instalado (um
-            #   `sleep 4` na rota reproduz sempre). O teto é o do servidor, que
+            #   `sleep 4` na rota reproduz sem depender da carga). O teto é o do servidor, que
             #   dá 120 s ao `importar`.
             with self.pag.expect_response(
                     lambda r: "/api/pack-importar" in r.url and r.request.method == "POST",
