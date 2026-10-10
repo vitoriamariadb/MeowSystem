@@ -22,7 +22,8 @@
 #   2. O doctor acusa os dois no `conf` e o `--consertar` corrige.
 #   3. O `meow pack usar` leva junto o `CURSOR` que é o ponteiro do pack de
 #      antes (vira o do pack novo) e as pastas; o `CURSOR` que quem usa fixou
-#      fica. O ensaio da troca já não lista os dois como vestígio.
+#      fica. O ensaio da troca já não lista os dois como vestígio. E o painel
+#      dá como de fábrica do ponteiro o que o pack no ar escolhe (conferência).
 #   4. O `CosmicBackground` numa pasta que não é o carrossel (fora do acervo,
 #      ou a pasta do grupo errado) é acusado pelo doctor e corrigido pelo
 #      `--consertar`.
@@ -149,6 +150,26 @@ if [ "$rc" = 0 ] && [ "$(linha_de "$C3" CURSOR)" = 'CURSOR="Bibata-Modern-Ice"' 
   ok "o ponteiro que quem usa fixou fica na troca"
 else
   falha "a troca levou o ponteiro que quem usa fixou (rc=$rc)" "$(linha_de "$C3" CURSOR)"
+fi
+# [Conferência da P79: o «Restaurar ao padrão» do ponteiro grava o de fábrica
+#  (decisão 10), e o de fábrica do ponteiro é o que o pack no ar escolhe — a
+#  mesma régua da troca, acima. O painel manda esse valor em `padrao_do_pack`.]
+padrao_do_ponteiro() {  # <conf>
+  env -i PATH="$FALSO:$PATH" HOME="$CASA3" MEOW_RAIZ="$RAIZ" MEOW_CONF="$1" python3 - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+item = next(i for i in servidor.ler_esquema() if i["chave"] == "CURSOR")
+print("pack=%s" % (item.get("padrao_do_pack") or ""))
+PY
+}
+conf_com "$TMP/p-dr" 'PACK="dracula"' 'FLAVOR="dracula"'
+conf_com "$TMP/p-cat" 'PACK="catppuccin"' 'FLAVOR="mocha"'
+s_dr="$(padrao_do_ponteiro "$TMP/p-dr")"; s_cat="$(padrao_do_ponteiro "$TMP/p-cat")"
+if grep -qx 'pack=Dracula-Cursor' <<< "$s_dr" && grep -qx 'pack=' <<< "$s_cat"; then
+  ok "o de fábrica do ponteiro no painel é o do pack no ar (Dracula-Cursor), e sem ponteiro no pack é o do exemplo"
+else
+  falha "o painel não manda o ponteiro do pack como o de fábrica" "$s_dr / $s_cat"
 fi
 
 printf '\n--- 4. o CosmicBackground numa pasta que não é o carrossel ---\n'

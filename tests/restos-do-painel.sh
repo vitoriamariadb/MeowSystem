@@ -388,7 +388,7 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
       gravados.length = 0; await r.clicar();
       checa(gravados[0] === "nao", "e grava o valor de fábrica, não o vazio", JSON.stringify(gravados));
     }
-    const n = naoTocar(c);
+    let n = naoTocar(c);
     if (checa(n, "o «não tocar» é outro botão, com outro nome", botoes(c).map((b) => b.textContent).join(" | "))) {
       gravados.length = 0; await n.clicar();
       checa(gravados[0] === "", "e ele grava o vazio", JSON.stringify(gravados));
@@ -412,6 +412,34 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
       gravados.length = 0; await r.clicar();
       checa(gravados[0] === "", "e grava o vazio, que é o de fábrica", JSON.stringify(gravados));
     }
+    // [Conferência da P79: o ponteiro. O de fábrica do exemplo é o
+    //  `catppuccin-mocha-light`; com o Dracula no ar, o servidor manda o do pack
+    //  (`padrao_do_pack`), e é ele que o restaurar grava. E a grade de imagens
+    //  ganha o «Não tocar», que era o gesto do restaurar antes da decisão 10.]
+    const previasDe = ctx.previasDe, botaoAcervo = ctx.botaoAcervo, silhueta = ctx.silhuetaDePonteiro;
+    ctx.previasDe = () => ({ itens: [] });
+    ctx.botaoAcervo = () => null;
+    ctx.silhuetaDePonteiro = () => new El("span");
+    const ponteiro = (valor) => item(valor, { chave: "CURSOR", padrao: "catppuccin-mocha-light",
+      padrao_do_pack: "Dracula-Cursor", opcoes: ["catppuccin-mocha-light", "Dracula-Cursor"],
+      previa: "agente", valendo_agora: null });
+    c = montar(ponteiro("Dracula-Cursor"));
+    checa(!restaurar(c), "com o ponteiro do pack no ar escolhido, nenhum «Restaurar ao padrão»",
+          botoes(c).map((b) => b.textContent).join(" | "));
+    n = naoTocar(c);
+    if (checa(n, "a grade do ponteiro tem o «Não tocar»", botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await n.clicar();
+      checa(gravados[0] === "", "e ele grava o vazio", JSON.stringify(gravados));
+    }
+    c = montar(ponteiro("catppuccin-mocha-light"));
+    r = restaurar(c);
+    if (checa(r && r.textContent === "Restaurar ao padrão (Dracula-Cursor)",
+              "com o ponteiro de outro pack, o restaurar diz o do pack no ar",
+              r ? r.textContent : botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "Dracula-Cursor", "e grava o do pack no ar, não o do exemplo", JSON.stringify(gravados));
+    }
+    ctx.previasDe = previasDe; ctx.botaoAcervo = botaoAcervo; ctx.silhuetaDePonteiro = silhueta;
     Object.assign(ctx, originais);
   }
 

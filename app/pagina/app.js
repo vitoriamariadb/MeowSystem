@@ -2206,7 +2206,11 @@ function minutosDaDuracao(v) {
  * outro nome: o «Não tocar» (`botaoNaoTocar`). Nas chaves de fábrica vazia
  * (forma, vidro, o ponteiro, cujo vazio é o do pack no ar) restaurar continua
  * sendo o vazio, e o parêntese continua sendo o que a máquina tem. */
+/* [Conferência da P79: onde o pack no ar escolhe o de fábrica — o ponteiro —,
+ * vale o dele (`padrao_do_pack`, do servidor), e não o do exemplo: com o
+ * Dracula no ar, restaurar o ponteiro é voltar ao `Dracula-Cursor`.] */
 function padraoDe(item) {
+  if (item.padrao_do_pack != null) return String(item.padrao_do_pack);
   return item.padrao == null ? "" : String(item.padrao);
 }
 
@@ -2497,7 +2501,8 @@ function controleImagem(item, tipo, aplica) {
   const emVigor = valorEmVigor(item);
   /* [QA da P77: nem sobre o valor de fábrica preenchido — `temOQueRestaurar`.] */
   if (temOQueRestaurar(item, emVigor)) {
-    /* [P79, decisão 10: grava o de fábrica, que nestas chaves é o vazio.] */
+    /* [P79, decisão 10: grava o de fábrica — o vazio nos gatos, o ponteiro
+     * do pack no `CURSOR`.] */
     const deFabrica = padraoDe(item);
     caixa.append(elemento("button", {
       type: "button", class: "vazio", "data-valor": deFabrica === "" ? "" : null, "aria-pressed": "false",
@@ -2506,6 +2511,11 @@ function controleImagem(item, tipo, aplica) {
       onclick: async () => { if (await aplica(deFabrica)) pintar(deFabrica); },
     }));
   }
+  /* [Conferência da P79: o `CURSOR` tem fábrica preenchida e aceita o vazio
+   * («não toca»); sem o «Não tocar» aqui, a decisão 10 lhe tirava esse gesto,
+   * que antes era o próprio «Restaurar ao padrão».] */
+  const naoToca = botaoNaoTocar(item, emVigor, aplica, "vazio", pintar);
+  if (naoToca) caixa.append(naoToca);
   const herda = emVigor === "" && /herda\s+([A-Z][A-Z0-9_]+)/.exec(item.inline || "");
   const mae = herda && ESQUEMA.chaves.find((k) => k.chave === herda[1]);
   const herdado = mae && caixa.querySelector(

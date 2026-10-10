@@ -2398,6 +2398,9 @@ def ler_esquema():
             "titulo": titulo_escrito,
             "frase": frase_escrita or _frase_curta(ajuda, inline),
             "padrao": _valor_da_linha(linha),
+            # O DE FÁBRICA QUE O PACK NO AR ESCOLHE, quando ele escolhe — ver
+            #   `_padrao_do_pack`. É o que o «Restaurar ao padrão» grava.
+            "padrao_do_pack": _padrao_do_pack(chave),
             # `vazio` NÃO É UM VALOR, É A AUSÊNCIA DELE — e escrevê-lo seria um bug
             #   Três chaves documentam `nao | sim | vazio (= não toca)`. Lido ao pé
             #   da letra, o `vazio` vira mais um token da lista, e um clique nele
@@ -2828,6 +2831,21 @@ def _ponteiro_do_pack():
         return mod.ponteiro(_pack_adotado() or mod.dir_padrao())
     except Exception:
         return None
+
+
+def _padrao_do_pack(chave):
+    """O valor de fábrica que o PACK no ar escolhe para `chave`, ou None.
+
+    O PONTEIRO DE FÁBRICA É O DO PACK — 10/10/2026, conferência da P79. A
+    decisão 10 pôs o «Restaurar ao padrão» a gravar o de fábrica, e o de fábrica
+    do `CURSOR` no exemplo é o `catppuccin-mocha-light`: com o Dracula no ar, o
+    botão nascia sobre o `Dracula-Cursor` e gravava o ponteiro do OUTRO pack —
+    o mesmo resto que a troca de pack (item 4) acabou de ensinar a levar junto.
+    A régua é a do `migrar_conf.py` (`vestigios`): o ponteiro que o pack traz,
+    ou, sem um, o do exemplo. Só o `CURSOR` tem essa forma hoje."""
+    if chave != "CURSOR":
+        return None
+    return (_ponteiro_do_pack() or {}).get("valor") or None
 
 
 def _ponteiro_vem_do_pack(valor):
