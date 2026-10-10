@@ -2429,13 +2429,18 @@ function avisoDeLado() {
   const modo = (modoItem && (valorEmVigor(modoItem) || modoItem.efetivo)) || "";
   if (!lados || modo !== "escuro" || !lados.escuro || lados.escuro === f) return null;
   const nome = (id) => ((pack.flavors || []).find((x) => x.id === id) || {}).nome || id;
-  return elemento("p", { class: "frase dominada" }, [
-    elemento("b", { texto: `${nome(f)} é o lado claro. ` }),
-    elemento("span", {
-      texto: `Com «Claro ou escuro» em escuro, a tela veste o ${nome(lados.escuro)}; `
-        + `o ${nome(f)} aparece no claro, e de dia no automático.`,
-    }),
-  ]);
+  /* O selo diz o que se vê na tela agora: no escuro, a outra variante. */
+  return {
+    selo: selo("lua", { texto: encurtarValor(nome(lados.escuro)),
+                        balao: `No escuro, a tela veste o ${nome(lados.escuro)}` }),
+    frase: elemento("p", { class: "frase dominada" }, [
+      elemento("b", { texto: `${nome(f)} é o lado claro. ` }),
+      elemento("span", {
+        texto: `Com «Claro ou escuro» em escuro, a tela veste o ${nome(lados.escuro)}; `
+          + `o ${nome(f)} aparece no claro, e de dia no automático.`,
+      }),
+    ]),
+  };
 }
 
 function avisoDeCombinacao() {
@@ -2446,10 +2451,15 @@ function avisoDeCombinacao() {
   const porque = c.motivo
     ? `O tema do COSMIC fica como está: ${c.motivo}.`
     : `A etapa do tema vai ser pulada — o tema do COSMIC fica como está. Existem: ${c.capturas.join(", ")}.`;
-  return elemento("p", { class: "frase dominada" }, [
-    elemento("b", { texto: `Não há tema para ${c.par}. ` }),
-    elemento("span", { texto: porque }),
-  ]);
+  /* O selo é o ⊘ de «sem efeito»: com esta combinação o tema do COSMIC não
+   * muda, e é isso que quem escolhe precisa ver antes de salvar. */
+  return {
+    selo: selo("anulado", { balao: `Não há tema para ${c.par}` }),
+    frase: elemento("p", { class: "frase dominada" }, [
+      elemento("b", { texto: `Não há tema para ${c.par}. ` }),
+      elemento("span", { texto: porque }),
+    ]),
+  };
 }
 
 /* UM SIM/NÃO POR ÁREA — 07/09/2026
@@ -5383,13 +5393,16 @@ function montarCartao(item) {
    *
    *   A regra é derivada e mora no servidor (`dominada_por`), não aqui: quem
    *   sabe qual chave vence qual é quem lê o conf. */
+  /* [P77: os dois avisos de «Cor e tela» deixaram de ser parágrafo no
+   * cartão. Cada um devolve o selo (na linha do título) e a frase (no topo da
+   * dica), como os outros estados logo abaixo.] */
   if (item.chave === "FLAVOR" || item.chave === "ACCENT") {
     const aviso = avisoDeCombinacao();
-    if (aviso) cartao.append(aviso);
+    if (aviso) { selos.append(aviso.selo); estado.push(aviso.frase); }
   }
   if (item.chave === "FLAVOR") {
     const lado = avisoDeLado();
-    if (lado) cartao.append(lado);
+    if (lado) { selos.append(lado.selo); estado.push(lado.frase); }
   }
   /* O QUE ESTÁ VALENDO, quando não é o arquivo que manda. O cartão mostrava
    * 3500 (o padrão de fábrica) com a máquina em 4700 — o número do applet.
@@ -5651,7 +5664,10 @@ function porqueEDica(item) {
     }
     /* O `# ` que abre cada linha de comentário é sintaxe do arquivo, não texto.
      * O `.trim()` tira a linha em branco que quase todo bloco deixa no fim. */
-    filhos.push(elemento("p", { class: "motivo", texto: item.ajuda.replace(/^# ?/gm, "").trim() }));
+    /* [P77: as marcas `[avancado]` e `[so-com-app …]` são instrução para a
+     * página, e não texto para quem lê; saem da dica como o `# ` sai.] */
+    filhos.push(elemento("p", { class: "motivo", texto: item.ajuda.replace(/^# ?/gm, "")
+      .replace(/\[(?:avancado|so-com-app [^\]]*)\] ?/g, "").trim() }));
   }
   filhos.push(elemento("code", { class: "chave", texto: item.chave }));
   if (item.essencial) {
@@ -8034,6 +8050,55 @@ function devolverRolagem(guardado) {
   ROLAGEM_PENDENTE = m.scrollTop < guardado.topo - 1 ? guardado.topo : 0;
 }
 
+/* ===========================================================================
+ * UMA DECISÃO, UMA MOLDURA — 09/10/2026, P77 (achado 11)
+ * ===========================================================================
+ * Em «Cor e tela», «Theme pack», «Variante do tema» e «Claro ou escuro» eram
+ * três cartões soltos na grade, separados por um hash de commit e um
+ * repositório, e os três respondem a mesma pergunta: com que tema a máquina se
+ * veste. A moldura os junta numa caixa só, na ordem em que a escolha se faz
+ * (o pack, a variante dele, o claro ou escuro). Cada um continua sendo o seu
+ * cartão, com a sua chave, o seu `?` e o seu controle — a moldura é arranjo,
+ * não um controle novo: nada do que se grava muda.
+ *
+ * A LISTA MORA AQUI, E NÃO NO `meow.conf.exemplo`: o que é uma decisão na tela é
+ * assunto de arranjo da página, e o arquivo descreve chaves. */
+const DECISOES = [
+  { id: "tema", nome: "Tema", chaves: ["PACK", "FLAVOR", "MODO"] },
+];
+
+/* ===========================================================================
+ * O «⋯» DOS AJUSTES TÉCNICOS — 09/10/2026, P77 (achado 10, S2)
+ * ===========================================================================
+ * O ajuste marcado `[avancado]` no arquivo (o repositório e o commit do acervo
+ * do Dracula, a logo própria de um programa) não é escolha de quem usa a
+ * máquina, e na tela de produto ele era um campo como os outros. Ele fica
+ * recolhido num «⋯» ao fim do bloco: a página mostra o que se escolhe, e o
+ * resto está a um clique, gravando a mesma chave.
+ *
+ * O ABERTO SOBREVIVE À PINTURA. A página se redesenha a cada escolha, e um «⋯»
+ * que fechasse a cada letra digitada no campo de dentro seria um controle
+ * impossível de usar. O estado mora em `TECNICOS_ABERTOS`, pelo nome do bloco. */
+const TECNICOS_ABERTOS = new Set();
+function ajustesTecnicos(assunto, g, itens) {
+  const id = assunto + "·" + g.nome;
+  const caixa = elemento("details", { class: "ajustes-tecnicos" }, [
+    elemento("summary", { title: "Ajustes técnicos" }, [
+      elemento("span", { class: "tecnicos-glifo", "aria-hidden": "true", texto: "⋯" }),
+      elemento("span", { class: "so-leitor", texto: " Ajustes técnicos" }),
+    ]),
+  ]);
+  if (TECNICOS_ABERTOS.has(id)) caixa.open = true;
+  caixa.addEventListener("toggle", () => {
+    if (caixa.open) TECNICOS_ABERTOS.add(id);
+    else TECNICOS_ABERTOS.delete(id);
+  });
+  const grade = elemento("div", { class: "grade" });
+  for (const item of itens) grade.append(montarCartao(item));
+  caixa.append(grade);
+  return caixa;
+}
+
 function render() {
   /* Os nós da passagem anterior morreram com ela. Um registro que sobrevive
    * ao `render` guarda referência para árvore descartada, e o repintar acha um
@@ -8293,15 +8358,44 @@ function render() {
       }
     }
     const grade = elemento("div", { class: "grade" });
+    /* Os ajustes técnicos (`[avancado]`) vão para o «⋯» do fim do bloco, e os
+     * que formam UMA decisão (`DECISOES`) para uma moldura só — P77. Na busca
+     * não: o resultado já é a lista do que casou, e esconder parte dele num
+     * «⋯» seria esconder a resposta. */
+    const tecnicos = [];
+    const molduras = new Map();
     for (const item of g.itens) {
       /* Ação `oculta` não é cartão: o argumento dela é uma imagem, e a galeria
        * já a oferece no lugar certo (o botão embaixo de cada foto). Um
        * `<select>` com 255 nomes de arquivo seria a pior forma de perguntar
        * "qual foto?" numa página que sabe desenhá-las. */
       if (g.tipo === "acoes" && item.oculta) continue;
-      grade.append(g.tipo === "acoes" ? montarAcao(item) : montarCartao(item));
+      if (g.tipo === "acoes") { grade.append(montarAcao(item)); continue; }
+      if (!busca && item.avancado) { tecnicos.push(item); continue; }
+      const decisao = !busca && DECISOES.find((d) => d.chaves.includes(item.chave));
+      if (decisao) {
+        if (!molduras.has(decisao.id)) {
+          const m = elemento("div", { class: "decisao", "data-decisao": decisao.id,
+                                      role: "group", "aria-label": decisao.nome });
+          molduras.set(decisao.id, m);
+          grade.append(m);
+        }
+        continue;
+      }
+      grade.append(montarCartao(item));
+    }
+    /* A moldura nasce no lugar do primeiro dos seus ajustes e se enche na
+     * ordem da decisão, não na do arquivo: o pack, depois a variante dele,
+     * depois o claro ou escuro. */
+    for (const [id, m] of molduras) {
+      const d = DECISOES.find((x) => x.id === id);
+      for (const chave of d.chaves) {
+        const item = g.itens.find((i) => i.chave === chave);
+        if (item) m.append(montarCartao(item));
+      }
     }
     alvo.append(grade);
+    if (tecnicos.length) alvo.append(ajustesTecnicos(assunto, g, tecnicos));
 
     /* A GRADE DO DISCO VEM DEPOIS DOS CONTROLES — 06/09/2026
      *   Ela abria a seção, e na tela isso punha DUAS prévias em sequência: os

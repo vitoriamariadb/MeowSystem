@@ -3376,6 +3376,7 @@ INVENTARIO = {
     """),
     "Cor e tela": _linhas("""
         aba · ?
+        aba · abre «⋯ Ajustes técnicos»
         aba · Claro
         aba · Escuro
         aba · Vidro claro
@@ -3386,8 +3387,6 @@ INVENTARIO = {
         ajuste CURSOR · Adicionar tema
         ajuste CURSOR · deixar vazio
         ajuste CURSOR · opção
-        ajuste CURSOR_VERSAO · ?
-        ajuste CURSOR_VERSAO · campo
         ajuste ESCALA_TELA · ?
         ajuste ESCALA_TELA · deixar vazio
         ajuste ESCALA_TELA · opção
@@ -3403,10 +3402,6 @@ INVENTARIO = {
         ajuste PACK · ?
         ajuste PACK · deixar vazio
         ajuste PACK · opção
-        ajuste WALLPAPER_DRACULA_COMMIT · ?
-        ajuste WALLPAPER_DRACULA_COMMIT · campo
-        ajuste WALLPAPER_DRACULA_REPO · ?
-        ajuste WALLPAPER_DRACULA_REPO · campo
         ação «Passar para claro ou escuro» · ?
         ação «Passar para claro ou escuro» · Executar
         ação «Passar para claro ou escuro» · seletor
@@ -3948,6 +3943,16 @@ REVELADOS = {
     "Início": _linhas("""
         cartão de pack · link externo
         cartão de pack · Remover
+    """),
+    # [P77: os ajustes `[avancado]` moram no «⋯ Ajustes técnicos» do fim do
+    # bloco; o `h_details` abre o «⋯» e aciona o que ele revela.]
+    "Cor e tela": _linhas("""
+        ajuste CURSOR_VERSAO · ?
+        ajuste CURSOR_VERSAO · campo
+        ajuste WALLPAPER_DRACULA_COMMIT · ?
+        ajuste WALLPAPER_DRACULA_COMMIT · campo
+        ajuste WALLPAPER_DRACULA_REPO · ?
+        ajuste WALLPAPER_DRACULA_REPO · campo
     """),
     "Áreas de trabalho": _linhas("""
         ajuste AREAS_FOLGA · opção

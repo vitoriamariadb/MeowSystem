@@ -2335,6 +2335,14 @@ def ler_esquema():
             # quem não tem `# @ ` escrito.
             "ajuda_de": ajuda_de,
             "essencial": "[essencial]" in ajuda,
+            # O AJUSTE TÉCNICO SAI DA FRENTE — 09/10/2026, P77 (achado 10, S2).
+            #   A marca `[avancado]` estava no arquivo desde a P10 e ninguém a
+            #   lia: o commit fixado e o repositório do acervo do Dracula (um
+            #   hash de 40 caracteres, uma conta do GitHub) apareciam em «Cor e
+            #   tela» como se fossem escolha de quem usa. A página os recolhe
+            #   num «⋯» no fim da página; o controle continua lá, gravando a
+            #   mesma chave.
+            "avancado": "[avancado]" in ajuda,
             # Lista separada por vírgula: a regra é o que o comentário DIZ, não uma
             # lista de nomes de chave. `APPS_ATIVOS` e `AUTOSTART_BLOQUEADOS` dizem
             # "vírgula-separado"/"separada por vírgula"; a

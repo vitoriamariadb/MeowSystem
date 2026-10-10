@@ -3999,3 +3999,60 @@ a.folha:hover b { color: var(--text); }
 .home-mexeu-linhas { display: flex; flex-direction: column; gap: .5rem; }
 .home-mexeu-linha { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: .5rem; align-items: start; }
 .home-mexeu-linha > .menu-icone { margin-top: .2rem; color: var(--overlay2); }
+
+/* ===========================================================================
+ * P77 · COR E TELA — uma decisão, uma moldura; o técnico no «⋯» (09/10/2026)
+ * =========================================================================== */
+/* A MOLDURA ATRAVESSA A GRADE: pack, variante e claro ou escuro lado a lado,
+ * na ordem da escolha, dentro de uma caixa só. Os cartões de dentro perdem a
+ * própria caixa (a moldura é a caixa) e ficam separados por um fio vertical. */
+.grade > .decisao {
+  grid-column: 1 / -1;
+  max-width: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
+  align-items: start;
+  background: var(--mantle);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+}
+.decisao > .cartao,
+.decisao > .cartao:has(.amostras, .opcoes-imagem, .cores-grade, .previa-grade, .simul, .mock) {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 1rem 1.05rem 1.1rem;
+  align-self: stretch;
+  /* Esticado para os fios verticais irem até o fim da moldura, mas com o
+   * conteúdo no alto: sem isto a fileira de botões crescia até a altura da
+   * lista de variantes. */
+  align-content: start;
+}
+.decisao > .cartao + .cartao { border-left: 1px solid var(--surface0); }
+.decisao > .cartao.nao-salvo { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+@media (max-width: 900px) {
+  .grade > .decisao { grid-template-columns: minmax(0, 1fr); }
+  .decisao > .cartao + .cartao { border-left: 0; border-top: 1px solid var(--surface0); }
+}
+
+/* O «⋯» DOS AJUSTES TÉCNICOS: um alvo de 32 px no fim do bloco, sem palavra
+ * (o nome vai no balão e no leitor de tela). Aberto, a grade de dentro é a
+ * mesma das outras. */
+.ajustes-tecnicos { margin: .6rem 0 0; }
+.ajustes-tecnicos > summary {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--surface1);
+  border-radius: var(--r-max);
+  color: var(--overlay2);
+  list-style: none;
+  cursor: pointer;
+}
+.ajustes-tecnicos > summary::-webkit-details-marker { display: none; }
+.ajustes-tecnicos > summary:hover { color: var(--text); border-color: var(--overlay0); }
+.ajustes-tecnicos > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ajustes-tecnicos[open] > summary { color: var(--accent); border-color: var(--accent); }
+.tecnicos-glifo { font-size: 1.1rem; line-height: 1; letter-spacing: .05em; }
+.ajustes-tecnicos > .grade { margin-top: .8rem; }

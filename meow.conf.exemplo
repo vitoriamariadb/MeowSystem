@@ -276,6 +276,9 @@ ESCALA_TELA=""
 CURSOR="catppuccin-mocha-light"
 # @ Versão do tema do ponteiro
 # > Vazio usa a última versão que o projeto testou.
+# [avancado] O release do tema do ponteiro que o instalador baixa, fixado para
+# o acervo não mudar sozinho. Não escolhe QUAL ponteiro (isso é a chave acima):
+# por isso o painel o guarda no «⋯» dos ajustes técnicos (P77, U6).
 CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 
 # --- Áreas de trabalho ------------------------------------------------------
@@ -1784,7 +1787,7 @@ LANCADOR_SISTEMA="nao"
 
 # @ Quais programas o lançador esconde
 # > Um por ficha. Só vale com a chave acima ligada, e só esconde o que estiver instalado.
-# [avancado] O ID do `.desktop` sem a extensão, vírgula-separado.
+# O ID do `.desktop` sem a extensão, vírgula-separado.
 #
 # ESTA LISTA ERA CÓDIGO ATÉ 21/09/2026, E ISSO ERA O DEFEITO
 #   Os 32 nomes abaixo viviam cravados em `scripts/ocultar_apps.sh`. A chave
