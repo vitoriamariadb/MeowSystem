@@ -639,7 +639,10 @@ def campo(ref, trilha, padrao=None):
     try:
         with open(os.path.join(dir_pack, "pack.json"), encoding="utf-8") as fh:
             no = json.load(fh)
-    except (OSError, json.JSONDecodeError):
+    # `ValueError`, e não só o JSONDecodeError (conferência da P78): um pack.json
+    # que não é UTF-8 levanta UnicodeDecodeError, e com ele instalado ao lado a
+    # ficha de ícone (`acervos_de_icone`) caía inteira — o par do NUL do `_dentro`.
+    except (OSError, ValueError):
         return padrao
     for parte in trilha.split("."):
         if not isinstance(no, dict) or parte not in no:
@@ -3621,6 +3624,8 @@ def validar(ref, silencioso=False):
             p = json.load(fh)
     except json.JSONDecodeError as e:
         raise Recusa(f"pack.json não é JSON válido: linha {e.lineno}, coluna {e.colno} — {e.msg}")
+    except UnicodeDecodeError as e:
+        raise Recusa(f"pack.json não é UTF-8 (byte {e.object[e.start]:#04x} na posição {e.start})")
 
     # --- identidade ---------------------------------------------------------
     for campo in ("formato", "id", "nome"):
@@ -3651,6 +3656,8 @@ def validar(ref, silencioso=False):
             dados = json.load(fh)
     except json.JSONDecodeError as e:
         raise Recusa(f"{arq}: não é JSON válido: linha {e.lineno} — {e.msg}")
+    except UnicodeDecodeError as e:
+        raise Recusa(f"{arq}: não é UTF-8 (byte {e.object[e.start]:#04x} na posição {e.start})")
 
     # TEXTO DE PACK NÃO LEVA CARACTERE DE CONTROLE — conferência da P78
     #   O `nome`, o `autor` e os nomes de flavor saem crus no terminal (`meow
@@ -5740,6 +5747,9 @@ def _conferir_manifesto(texto, ident, membros):
     for n, linha in enumerate(linhas, 1):
         if not linha.strip():
             continue
+        # O que o MANIFESTO promete também sai cru no "promete e não veio".
+        _exigir(not RE_CONTROLE.search(linha),
+                f"MANIFESTO, linha {n}: caractere de controle em {linha[:80]!r}")
         soma, sep, rel = linha.partition("  ")
         if sep and RE_SHA256.match(soma):
             _exigir(rel not in somas, f"MANIFESTO, linha {n}: {rel!r} aparece duas vezes")
@@ -5792,6 +5802,13 @@ def ler_meowpack(caminho):
         for i, m in enumerate(tar):
             _exigir(i < TETO_ARQUIVOS_MEOWPACK,
                     f"mais de {TETO_ARQUIVOS_MEOWPACK} entradas — maior que qualquer pack")
+            # O NOME DA ENTRADA NÃO LEVA CARACTERE DE CONTROLE — conferência da
+            #   P78. As recusas abaixo (o "traz script", o "veio sem estar no
+            #   MANIFESTO") listam o nome cru, e o terminal de quem importa o
+            #   leria como comando (`\e]52;…` escreve na área de transferência).
+            #   Vem primeiro, em `repr`, e recusa o arquivo inteiro.
+            _exigir(not RE_CONTROLE.search(m.name),
+                    f"{m.name!r}: nome com caractere de controle — recusado inteiro")
             nome = m.name.rstrip("/") if m.isdir() else m.name
             partes = nome.split("/")
             _exigir(nome and not nome.startswith("/") and "\\" not in nome
