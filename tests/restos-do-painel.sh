@@ -132,6 +132,7 @@ class El {
   append(...fs) { for (const f of fs) this.filhos.push(f); }
   get children() { return this.filhos.filter((f) => f instanceof El); }
   get childNodes() { return this.filhos; }
+  replaceChildren(...fs) { this.filhos = fs; }
   todos() { return this.children.flatMap((f) => [f, ...f.todos()]); }
   querySelectorAll(sel) { return this.todos().filter((e) => e.tagName === sel.toUpperCase()); }
   querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
@@ -363,6 +364,8 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
   //   igual: restaurar É o vazio.
   {
     const gravados = [];
+    const originais = { escolher: ctx.escolher, parDeBotoes: ctx.parDeBotoes, selo: ctx.selo,
+                        gatilhoDeDica: ctx.gatilhoDeDica, valorEmVigor: ctx.valorEmVigor };
     ctx.escolher = async (_chave, v) => { gravados.push(v); return true; };
     ctx.parDeBotoes = () => null;
     ctx.selo = () => new El("span");
@@ -409,6 +412,35 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
       gravados.length = 0; await r.clicar();
       checa(gravados[0] === "", "e grava o vazio, que é o de fábrica", JSON.stringify(gravados));
     }
+    Object.assign(ctx, originais);
+  }
+
+  // --- 3.y A CAIXA DO SUDO EM UMA LINHA — decisão 11 (P79) -------------------
+  //   A caixa de pergunta das ações com sudo tinha um parágrafo de 4 linhas
+  //   («Nada aqui pede, lê ou guarda senha…»). Agora: uma linha, e o porquê
+  //   na dica do `?`.
+  {
+    const els = {};
+    const no = (sel) => els[sel] || (els[sel] = Object.assign(new El(sel === "#confirmar" ? "dialog" : "div"), {
+      showModal() {}, addEventListener() {}, closest: () => new El("p"), after() {}, before() {},
+    }));
+    const dolar = documento.querySelector;
+    documento.querySelector = no;
+    const getEl = documento.getElementById;
+    documento.getElementById = () => null;
+    ctx.perguntar({ titulo: "Rodar", texto: "x", sudo: true });
+    const caixa = els["#confirmar-sudo"];
+    const linhas = caixa ? caixa.children.filter((e) => e.tagName !== "BUTTON" && !/dica/.test(e.className || "")) : [];
+    const dica = caixa ? caixa.todos().find((e) => /\bdica\b/.test(e.className || "")) : null;
+    const textoDe = (e) => [e.textContent, ...e.todos().map((f) => f.textContent)].join(" ");
+    checa(caixa && caixa.hidden === false && linhas.length === 1 && textoDe(linhas[0]).length <= 60,
+          "a caixa do sudo tem uma linha só", caixa ? linhas.map(textoDe).join(" / ") : "sem caixa");
+    checa(dica && /uma hora/.test(textoDe(dica)) && caixa.todos().some((e) => e.tagName === "BUTTON" && e.textContent === "?"),
+          "e o porquê (a senha lembrada por uma hora) mora na dica do «?»");
+    ctx.perguntar({ titulo: "Rodar", texto: "x", sudo: true });
+    checa(els["#confirmar-sudo"].todos().filter((e) => e.tagName === "BUTTON").length === 1,
+          "a segunda pergunta não duplica o «?»");
+    documento.querySelector = dolar; documento.getElementById = getEl;
   }
 
   if (falhas.length) {

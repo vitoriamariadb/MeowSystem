@@ -7188,6 +7188,26 @@ function lugarDoCorpo() {
  * propósito: trocar a resposta deles também seria mexer em três caminhos que
  * esta sprint não tem por que tocar. Quem traduz as palavras para o resto da
  * página é o `confirmar()`, logo abaixo. */
+/* A CAIXA DO SUDO EM UMA LINHA — 10/10/2026, P79 (decisão 11). «Sem texto na
+ * interface, máximo vira dica» (09/10): o que vai ser feito com root fica na
+ * linha, e o porquê (nada aqui pede senha; a máquina a lembra por uma hora; sem
+ * ela, as etapas se pulam) vai para o `?`. Montada uma vez só: a caixa é a
+ * mesma em toda pergunta. */
+function caixaDoSudo() {
+  const caixa = $("#confirmar-sudo");
+  if (!caixa || caixa.dataset.montada) return;
+  caixa.dataset.montada = "1";
+  caixa.classList && caixa.classList.add("com-dica");
+  caixa.replaceChildren(
+    elemento("strong", { texto: "Partes desta ação rodam como root (sudo)." }),
+    ...gatilhoDeDica("dica-confirmar-sudo", "Sobre o sudo", [
+      elemento("p", { class: "resumo", texto:
+        "Nada aqui pede, lê ou guarda senha. Esta máquina lembra da senha do sudo "
+        + "por uma hora, valendo em qualquer terminal: com ela digitada nesse "
+        + "período, as etapas que precisam dela rodam sem perguntar; sem ela, se "
+        + "pulam sozinhas e aparecem como «pulado:»." })]));
+}
+
 function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
                      perigo = false, neutro = false, ensaio = false, corpo = null }) {
   const dlg = $("#confirmar");
@@ -7196,6 +7216,7 @@ function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
   const lugar = lugarDoCorpo();
   lugar.replaceChildren(...(corpo ? [corpo] : []));
   lugar.hidden = !corpo;
+  if (sudo) caixaDoSudo();
   $("#confirmar-sudo").hidden = !sudo;
   $("#confirmar-comando").textContent = comando;
   /* Esconder o <code> deixaria o <p> que o embrulha ocupando espaço vazio — o
