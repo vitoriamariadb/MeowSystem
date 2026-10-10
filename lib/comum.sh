@@ -907,6 +907,22 @@ meow_nome_seguro() {
   return 0
 }
 
+# `meow_texto_seguro <texto…>` — conferência da P78, 10/10/2026
+#   Imprime o texto pronto para o terminal: todo caractere de controle vira `?`.
+#   É a porta de saída de texto que veio de pack, mapa, `.meowpack` ou nome de
+#   arquivo e vai para um aviso — nome de pack, linha pulada, pasta da raiz. Um
+#   `\e]52;c;…\a` cru escreve na área de transferência de quem lê; `\e[2J`
+#   apaga a tela; `\e]0;…` troca o título. Sai: C0 (a quebra de linha
+#   inclusive), DEL, C1 escrito em UTF-8 (`\xc2\x80`–`\xc2\x9f`) e o `\x9b`
+#   solto (o CSI de 8 bits) depois de ASCII. O `\x9b` que é continuação de uma
+#   letra de verdade (o `ě` é `\xc4\x9b`) fica, por isso a conta é em bytes.
+#   O pack.py tem a gêmea na entrada: o `validar` recusa texto com controle.
+meow_texto_seguro() {
+  printf '%s' "$*" | LC_ALL=C tr '\n\r\t' '???' \
+    | LC_ALL=C sed -e 's/[\x01-\x1f\x7f]/?/g' -e 's/\xc2[\x80-\x9f]/?/g' \
+                   -e 's/\(^\|[\x01-\x7f]\)\x9b/\1?/g'
+}
+
 # --- A CAPTURA DE TEMA: UMA PERGUNTA, UM LUGAR QUE RESPONDE -----------------
 #
 # POR QUE ELAS NASCERAM [22/09/2026]

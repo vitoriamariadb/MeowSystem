@@ -4459,15 +4459,14 @@ cmd_pack() {
           #   valida (a recusa do `validar` não chega aqui), e um `"nome"` com
           #   `\u001b]52;…` escrevia na área de transferência de quem listava.
           #   O nome do diretório também: ele vem do `git clone`.
-          nome="$(python3 -I -c 'import json,re,sys; print(re.sub(r"[\x00-\x1f\x7f-\x9f]", "?", str(json.load(open(sys.argv[1]))["nome"])))' "$d/pack.json" 2>/dev/null || echo "$id")"
-          id="${id//[[:cntrl:]]/?}"
+          nome="$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["nome"])' "$d/pack.json" 2>/dev/null || echo "$id")"
+          nome="$(meow_texto_seguro "$nome")"; id="$(meow_texto_seguro "$id")"
           if python3 "$RAIZ/scripts/pack.py" validar "${d%/}" >/dev/null 2>&1; then
             meow_ok "$id — $nome"
           else
             meow_aviso "$id — $nome (não valida: meow pack validar $id)"
           fi
-          d="${d%/}"
-          printf '       %s\n' "${d//[[:cntrl:]]/?}"
+          printf '       %s\n' "$(meow_texto_seguro "${d%/}")"
         done
       done < <(python3 "$RAIZ/scripts/pack.py" raizes)
       # A LINHA ESPECIAL SAIU EM 22/09/2026, E A LISTA FICOU MAIS HONESTA
