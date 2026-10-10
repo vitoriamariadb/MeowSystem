@@ -5952,6 +5952,25 @@ function botoesDeLado(imagem) {
   }));
 }
 
+/* A ESTRELA DE FAVORITAR — 10/10/2026, P79 (QA da P77). A galeria tinha a aba
+ * «Favoritos» e nenhuma imagem oferecia o gesto: o menu era Usar, Dia, Noite,
+ * Tirar. A estrela guarda uma cópia nas favoritas (pelo caminho canônico, o de
+ * `ativos/`, como o «Tirar») e, acesa, a tira (pelo nome, como o «Devolver»).
+ * Sem texto: o desenho e o `aria-pressed` dizem o estado, o balão diz o gesto.
+ * Imagem que não está no carrossel nem nas favoritas não tem estrela. */
+function estrelaDaImagem(i) {
+  if (!i.favorito && !i.banir) return null;
+  return elemento("button", {
+    type: "button", class: "btn btn-mini estrela",
+    "aria-pressed": String(!!i.favorito),
+    "aria-label": i.favorito ? "Tirar das favoritas" : "Guardar nas favoritas",
+    texto: i.favorito ? "★" : "☆",
+    title: i.favorito ? "Tirar das favoritas" : "Guardar nas favoritas",
+    onclick: () => i.favorito ? rodarNaGaleria("wallpaper_desfavoritar", i.rotulo)
+                              : rodarNaGaleria("wallpaper_favoritar", i.banir),
+  });
+}
+
 function montarGaleria() {
   const caixa = elemento("div");
   const abas = elemento("div", { class: "abas abas-galeria" });
@@ -6038,6 +6057,8 @@ function montarGaleria() {
      * nenhuma ficha tem ação… ela vê a foto clara demais na aba da noite e
      * precisa ir procurá-la pelo nome em No carrossel para poder recusar".
      * O servidor já manda o `banir` de cada item justamente para isto. */
+    const estrela = banidos ? null : estrelaDaImagem(i);
+    if (estrela) acoes.append(estrela);
     if (banidos) {
       acoes.append(elemento("button", {
         type: "button", class: "btn",
@@ -9381,7 +9402,11 @@ function mostraNoModo(decisao, chave) {
   const listas = Object.values(decisao.modo.por);
   if (!listas.some((l) => l.includes(chave))) return true;
   const modoItem = ESQUEMA.chaves.find((k) => k.chave === decisao.modo.chave);
-  const vale = modoItem ? valorEmVigor(modoItem) : "";
+  /* O VAZIO VALE O MODO QUE A MÁQUINA USA — 10/10/2026, P79 (conferência da
+   * P77). Com `LOGO_MODO=""` a moldura procurava o modo vazio e não mostrava
+   * gato nenhum; o servidor manda o modo efetivo (`_modo_do_gato`, pelo
+   * `logo.sh modo`) no `valendo_agora` da chave. */
+  const vale = modoItem ? (valorEmVigor(modoItem) || modoItem.valendo_agora || "") : "";
   return (decisao.modo.por[vale] || []).includes(chave);
 }
 

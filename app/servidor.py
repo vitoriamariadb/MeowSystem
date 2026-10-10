@@ -897,6 +897,13 @@ def _leitura_no_applet(chave):
 
 
 def _valendo_agora(chave):
+    if chave == "LOGO_MODO":
+        # O MODO QUE VALE COM A CHAVE VAZIA — 10/10/2026, P79 (conferência da
+        # P77). Com `LOGO_MODO=""` o `logo.sh` lê `rotacao` (com
+        # `LOGO_ROTACAO="sim"`) ou `hora`, e a moldura «Gato do dock» procurava
+        # o modo vazio e não mostrava gato nenhum. Quem sabe a regra é o
+        # `logo.sh modo`, pelo `_modo_do_gato`; a página recebe a resposta aqui.
+        return _modo_do_gato() or None
     if chave.startswith("LEITURA_"):
         # [P77: o lugar do applet, e não a tela deste minuto — ver acima.]
         return _leitura_no_applet(chave)
@@ -2953,6 +2960,18 @@ def _paredes_ativas():
             and os.path.isfile(os.path.join(base, n))]
 
 
+def _paredes_favoritas():
+    """Os NOMES das imagens em `favoritos/` — é o que `wallpaper desfavoritar`
+    recebe (P79, 10/10/2026). Nome, e não caminho, como as banidas."""
+    base = os.path.join(_wallpaper_base(), "favoritos")
+    try:
+        nomes = sorted(os.listdir(base))
+    except OSError:
+        return []
+    return [n for n in nomes if os.path.splitext(n)[1].lower() in EXT_RASTER
+            and os.path.isfile(os.path.join(base, n))]
+
+
 def _paredes_banidas():
     """Os NOMES das imagens em `banidos/` — é o que `wallpaper desbanir` recebe.
 
@@ -4079,6 +4098,7 @@ PROVEDORES = {
     "areas": _areas_alfinetadas,
     "paredes_ativas": _paredes_ativas,
     "paredes_banidas": _paredes_banidas,
+    "paredes_favoritas": lambda: _paredes_favoritas(),
     # Os theme packs do disco — o argumento do «Usar este» da Home. A varredura
     # é a mesma do `/api/packs`, então o cartão só oferece o que esta cerca
     # aceita. [P10]
@@ -4993,6 +5013,26 @@ ACOES = {
                  "dura é «Quanto tempo dura a imagem escolhida» — com 0, até "
                  "«Voltar a girar».",
     },
+    # FAVORITAR — 10/10/2026, P79 (QA da P77). A galeria tinha a aba
+    #   «Favoritos» e nenhuma imagem oferecia o gesto. `oculta` pelo motivo das
+    #   outras desta ficha: o argumento é uma imagem, e quem a escolhe é a
+    #   galeria. Sem pergunta: guardar uma cópia se desfaz com o outro botão.
+    "wallpaper_favoritar": {
+        "rotulo": "Guardar nas favoritas",
+        "grupo": "Papel de parede",
+        "natureza": "gravar",
+        "argv": _meow("wallpaper", "favoritar", "@ARG@"), "arg": "paredes_ativas",
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Guarda uma cópia nas favoritas; a imagem segue girando.",
+    },
+    "wallpaper_desfavoritar": {
+        "rotulo": "Tirar das favoritas",
+        "grupo": "Papel de parede",
+        "natureza": "tirar",
+        "argv": _meow("wallpaper", "desfavoritar", "@ARG@"), "arg": "paredes_favoritas",
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Tira a cópia das favoritas; a imagem do carrossel fica.",
+    },
     "wallpaper_dia": {
         "rotulo": "Guardar esta imagem para o dia",
         "grupo": "Papel de parede",
@@ -5633,6 +5673,8 @@ def _prev_paredes():
                          # `""` quando a medição é que decide — é o caso comum,
                          # e é o que faz o botão de desfazer não aparecer.
                          "lado": escolhas.get(nome, ""),
+                         # [P79: a ficha mostra a estrela acesa na favorita.]
+                         "favorito": os.path.isfile(os.path.join(base, "favoritos", nome)),
                          "banir": canonico if os.path.isfile(canonico) else ""})
     return fora
 

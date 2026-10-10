@@ -2822,6 +2822,49 @@ cmd_carrossel() {
   return "$MEOW_DIVERGENTE"
 }
 
+# FAVORITAR — 10/10/2026, P79 (QA de uso real da P77)
+#   A galeria tinha a aba «Favoritos» (a pasta `favoritos/` do topo deste
+#   arquivo: «guardadas por escolha dela») e nenhuma imagem oferecia o gesto: o
+#   menu da imagem era Usar, Dia, Noite, Tirar. Favoritar guarda uma CÓPIA da
+#   imagem de `ativos/` em `favoritos/` — a imagem segue girando, e a cópia
+#   sobrevive a um `banir` ou a uma semeadura nova. Desfavoritar tira só a
+#   cópia, pelo nome do arquivo, sem caminho (como o `desbanir`).
+cmd_favoritar() {
+  local img="${1:-}" nome
+  [ -f "$img" ] || { meow_erro "não achei ${img:-a imagem}"; return "$MEOW_ERRO"; }
+  nome="$(basename "$img")"
+  if [ -f "$BASE/favoritos/$nome" ] && cmp -s "$img" "$BASE/favoritos/$nome"; then
+    meow_ok "$nome já está nas favoritas"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "guardaria uma cópia de $nome nas favoritas"
+    return "$MEOW_DIVERGENTE"
+  fi
+  criar_pastas || return "$MEOW_ERRO"
+  cp -f -- "$img" "$BASE/favoritos/$nome" || return "$MEOW_ERRO"
+  meow_ok "favorita: $nome — a cópia está em favoritos/, e ela segue girando"
+  return "$MEOW_DIVERGENTE"
+}
+
+cmd_desfavoritar() {
+  local nome="${1:-}"
+  case "$nome" in
+    ''|*/*|.|..) meow_erro "o nome é o do arquivo, sem caminho"; return "$MEOW_ERRO" ;;
+  esac
+  if [ ! -f "$BASE/favoritos/$nome" ]; then
+    meow_ok "$nome não está nas favoritas — nada a fazer"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "tiraria $nome das favoritas (a imagem de ativos/ fica)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  rm -f -- "$BASE/favoritos/$nome" || return "$MEOW_ERRO"
+  meow_ok "$nome saiu das favoritas; a imagem de ativos/ fica"
+  return "$MEOW_DIVERGENTE"
+}
+
 case "${1:-aplicar}" in
   aplicar)   cmd_aplicar ;;
   proximo|próximo|avançar|avancar)  cmd_passo 1 ;;
@@ -2848,5 +2891,7 @@ case "${1:-aplicar}" in
   # é chamar este script direto.
   lado)      shift; cmd_lado "${1:-}" "${2:-}" ;;
   usar)      shift; cmd_usar "${1:-}" ;;
-  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|usar <img>|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
+  favoritar)    shift; cmd_favoritar "${1:-}" ;;
+  desfavoritar) shift; cmd_desfavoritar "${1:-}" ;;
+  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|usar <img>|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|favoritar <img>|desfavoritar <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
 esac

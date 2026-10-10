@@ -443,6 +443,39 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
     documento.querySelector = dolar; documento.getElementById = getEl;
   }
 
+  // --- 3.z P79, item 6: a moldura do gato com LOGO_MODO vazio, e a estrela ----
+  {
+    const vale = ctx.valorEmVigor;
+    ctx.valorEmVigor = (k) => k.valor;
+    js(`ESQUEMA = Object.assign(ESQUEMA, { chaves: [{ chave: "LOGO_MODO", valor: "", valendo_agora: "rotacao" }] })`);
+    const d = js(`DECISOES.find((x) => x.id === "gato-dock")`);
+    checa(ctx.mostraNoModo(d, "LOGO_INTERVALO") && !ctx.mostraNoModo(d, "LOGO_DIA"),
+          "com LOGO_MODO vazio, a moldura do gato mostra o que o modo que vale (rotacao) usa");
+    ctx.valorEmVigor = vale;
+
+    const rodados = [];
+    const rodar = ctx.rodarNaGaleria;
+    ctx.rodarNaGaleria = (id, alvo) => { rodados.push([id, alvo]); };
+    const fig = (i) => ctx.estrelaDaImagem(i);
+    let b = fig({ rotulo: "a.jpg", banir: "/x/ativos/a.jpg", favorito: false });
+    if (checa(b && b.tagName === "BUTTON" && b.getAttribute("aria-pressed") === "false",
+              "a imagem do carrossel tem a estrela de favoritar, apagada")) {
+      await b.clicar();
+      checa(rodados[0] && rodados[0][0] === "wallpaper_favoritar" && rodados[0][1] === "/x/ativos/a.jpg",
+            "e a estrela favorita pelo caminho canônico", JSON.stringify(rodados));
+    }
+    rodados.length = 0;
+    b = fig({ rotulo: "a.jpg", banir: "", favorito: true });
+    if (checa(b && b.getAttribute("aria-pressed") === "true", "a favorita tem a estrela acesa, mesmo fora do carrossel")) {
+      await b.clicar();
+      checa(rodados[0] && rodados[0][0] === "wallpaper_desfavoritar" && rodados[0][1] === "a.jpg",
+            "e a estrela acesa desfavorita pelo nome", JSON.stringify(rodados));
+    }
+    checa(!fig({ rotulo: "b.jpg", banir: "", favorito: false }),
+          "a imagem que não está no carrossel nem nas favoritas não tem estrela");
+    ctx.rodarNaGaleria = rodar;
+  }
+
   if (falhas.length) {
     console.error("FALHOU: a ficha de ícone e a gaveta:");
     for (const f of falhas) console.error("    " + f);
