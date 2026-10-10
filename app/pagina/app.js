@@ -1988,20 +1988,39 @@ function montarControle(item, cartao) {
        *   dizia «escolha isto» sobre o que já estava escolhido. Vazio agora se
        *   vê no degrau que a máquina tem (`valendo_agora`), contornado a traço
        *   como a trilha do deslizante — o mesmo sinal de «como está». */
-      if (item.aceita_vazio && valor !== "") {
+      /* O «THEME PACK» VAZIO TAMBÉM DIZ QUAL ESTÁ NO AR — 10/10/2026,
+       * conferência da P77. `PACK=""` é o de fábrica («vazio é o embutido»,
+       * meow.conf.exemplo), e o servidor não tem `valendo_agora` para ele:
+       * sem o ladrilho «Restaurar ao padrão» aceso, que saiu pelo achado 14,
+       * a primeira decisão de «Cor e tela» nascia sem nenhum dos dois packs
+       * marcado numa instalação nova. O pack no ar é o `ESQUEMA.pack.id`, a
+       * mesma adoção do `scripts/pack.py` que veste a máquina. */
+      const naMaquina = item.valendo_agora != null ? item.valendo_agora
+        : item.chave === "PACK" && ESQUEMA.pack ? ESQUEMA.pack.id : null;
+      /* SEM NADA PARA CONTORNAR, O VAZIO CONTINUA ACESO — conferência da P77.
+       * Com a chave vazia e nenhum degrau da máquina que a página saiba ler
+       * («Tamanho de tudo na tela», que o servidor não lê no COSMIC), tirar o
+       * ladrilho deixava a fileira sem nenhum botão marcado: um controle sem
+       * estado. Ali o ladrilho aceso é o único que diz «não toca», e com a
+       * palavra do deslizante vazio, «como está»: «Restaurar ao padrão» sobre
+       * o que já é o padrão é o achado 14. */
+      const semComoEsta = naMaquina == null
+        || !item.opcoes.some((o) => String(o) === String(naMaquina));
+      if (item.aceita_vazio && (valor !== "" || semComoEsta)) {
         caixa.append(elemento("button", {
-          type: "button", class: "vazio", "data-valor": "", texto: rotuloVazio(item),
+          type: "button", class: "vazio", "data-valor": "",
+          texto: valor === "" ? "como está" : rotuloVazio(item),
           "aria-pressed": "false",
           title: "Devolve a decisão ao COSMIC.",
           onclick: async () => { if (await aplica("")) pintar(""); },
         }));
       }
-      if (valor === "" && item.valendo_agora != null) {
+      if (valor === "" && naMaquina != null) {
         const comoEsta = caixa.querySelector(
-          `button[data-valor="${CSS.escape(String(item.valendo_agora))}"]`);
+          `button[data-valor="${CSS.escape(String(naMaquina))}"]`);
         if (comoEsta) {
           comoEsta.classList.add("como-esta");
-          porBalao(comoEsta, `Como está: ${rotuloDeValor(item.valendo_agora)}`);
+          porBalao(comoEsta, `Como está: ${rotuloDeValor(naMaquina)}`);
         }
       }
       pintar(valor);
