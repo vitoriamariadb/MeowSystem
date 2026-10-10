@@ -242,7 +242,13 @@ grep -q 'pulad' "$T/pastas.log" && ok "icones_pastas.sh contou as linhas puladas
   || falha "icones_pastas.sh pulou calado" "$(cat "$T/pastas.log")"
 
 # --- 4. o painel, com o HOME de brinquedo ---------------------------------------
-amb PACK=mal "$RAIZ/app/run.sh" --sem-abrir > "$T/painel.log" 2>&1 &
+# `( exec env … ) &`, e não `amb … &`: a função em segundo plano é um subshell,
+# e o `$!` seria o dele, e não o do `run.sh` — o `kill` do fim mataria o
+# subshell e deixaria o painel de pé (medido: sete servidores órfãos).
+( exec env -i PATH="$T/falso:$PATH" HOME="$CASA" USER="${USER:-t}" LANG="${LANG:-C.UTF-8}" \
+    XDG_DATA_HOME="$XDG" MEOW_PACKS="$T/vazio" MEOW_RAIZ="$RAIZ" \
+    MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE=/nao/existe PACK=mal \
+    "$RAIZ/app/run.sh" --sem-abrir ) > "$T/painel.log" 2>&1 &
 PAINEL=$!
 url=""
 for _ in $(seq 1 60); do
@@ -314,7 +320,24 @@ else
   printf 'pulado: sem zstd, a sonda do .meowpack com script\n'
 fi
 
-# --- 7. o desfecho, no disco inteiro do teste ---------------------------------------
+# --- 7. o painel não sobe para QA na casa de verdade (decisão 8 da leva G) ----
+#   O `getent` falso diz que a casa da conta É a casa de brinquedo: para o
+#   `run.sh`, este HOME passa a ser o real. Assim a recusa é provada sem que o
+#   teste chegue perto da casa de quem roda.
+mkdir -p "$T/falso-getent"
+printf '#!/bin/sh\nprintf "%%s:x:1000:1000::%%s:/bin/bash\\n" "$(id -un)" "%s"\n' "$CASA" \
+  > "$T/falso-getent/getent"
+chmod 755 "$T/falso-getent/getent"
+timeout 20 env -i PATH="$T/falso-getent:$T/falso:$PATH" HOME="$CASA" USER="${USER:-t}" \
+  LANG="${LANG:-C.UTF-8}" MEOW_RAIZ="$RAIZ" MEOW_CONF="$CASA/.config/meow/meow.conf" \
+  MEOW_PONTE=/nao/existe "$RAIZ/app/run.sh" --sem-abrir > "$T/casa-real.log" 2>&1; rc=$?
+if [ "$rc" = 2 ] && grep -q 'recusado' "$T/casa-real.log" && ! grep -q 'http://127' "$T/casa-real.log"; then
+  ok "o run.sh --sem-abrir recusa subir o painel com o HOME da conta (sem MEOW_QA_HOME_REAL=1)"
+else
+  falha "o painel subiu para QA com o HOME da conta (rc=$rc)" "$(tail -3 "$T/casa-real.log")"
+fi
+
+# --- 8. o desfecho, no disco inteiro do teste ---------------------------------------
 evil="$(find "$T" -name 'mal-evil*' 2>/dev/null)"
 [ -z "$evil" ] && ok "nenhum arquivo com nome de fora (mal-evil*) nasceu em lugar nenhum" \
   || falha "um nome do pack escreveu fora do lugar" "$evil"
