@@ -1722,7 +1722,11 @@ function montarControle(item, cartao) {
     });
     campo.addEventListener("change", () => aplica(campo.value));
     caixa.append(campo);
-    if (item.aceita_vazio) caixa.append(botaoVazio(item, () => { campo.value = ""; }, aplica));
+    /* [P77, achado 14: como no deslizante, o «Restaurar ao padrão» só nasce
+     * com um horário escolhido — com o campo vazio não há o que restaurar.] */
+    if (item.aceita_vazio && valor !== "") {
+      caixa.append(botaoVazio(item, () => { campo.value = ""; }, aplica));
+    }
     return caixa;
   }
 
@@ -1845,7 +1849,15 @@ function montarControle(item, cartao) {
     }
 
     const alternativas = elemento("div", { class: "faixa-estados" });
-    if (item.aceita_vazio) {
+    /* «RESTAURAR AO PADRÃO» SÓ QUANDO HÁ O QUE RESTAURAR — 10/10/2026, P77
+     *   (achado 14). O botão aparecia em todo deslizante que aceita vazio, e
+     *   com a chave já vazia ele dizia «Restaurar ao padrão (0)» sobre um valor
+     *   que já É o padrão: um botão que não muda nada, e que faz duvidar de
+     *   qual dos dois estados está valendo. O estado de fábrica já se vê no
+     *   próprio deslizante (a trilha a traço e o «como está»); o botão nasce
+     *   quando há uma escolha para desfazer. A palavra especial segue a mesma
+     *   regra: «Automático» com o valor já em `auto` sai da tela. */
+    if (item.aceita_vazio && !vazio) {
       /* «DEIXAR COMO ESTÁ» PROMETIA PRESERVAR E EXECUTAVA DESCARTAR — 21/09/2026
        *   Queixa dela: *"deixar como está induz ao erro. vc muda o slicer e
        *   quer que fique como está. clica e ele reseta."* O rótulo lia-se como
@@ -1861,7 +1873,7 @@ function montarControle(item, cartao) {
         onclick: () => aplica(""),
       }));
     }
-    if (especial) {
+    if (especial && !forcado) {
       alternativas.append(elemento("button", {
         type: "button", class: "btn btn-mini",
         "aria-pressed": String(forcado),
@@ -1906,7 +1918,13 @@ function montarControle(item, cartao) {
           onclick: async () => { if (await aplica(opcao)) pintar(opcao); },
         }));
       }
-      if (item.aceita_vazio) {
+      /* O VAZIO DOS SEGMENTOS SÓ APARECE COM ESCOLHA FEITA — 10/10/2026, P77
+       *   (achado 14), pela mesma regra do deslizante: com a chave vazia, o
+       *   botão «Restaurar ao padrão» aceso era a única coisa acesa da fileira e
+       *   dizia «escolha isto» sobre o que já estava escolhido. Vazio agora se
+       *   vê no degrau que a máquina tem (`valendo_agora`), contornado a traço
+       *   como a trilha do deslizante — o mesmo sinal de «como está». */
+      if (item.aceita_vazio && valor !== "") {
         caixa.append(elemento("button", {
           type: "button", class: "vazio", "data-valor": "", texto: rotuloVazio(item),
           "aria-pressed": "false",
@@ -1914,12 +1932,24 @@ function montarControle(item, cartao) {
           onclick: async () => { if (await aplica("")) pintar(""); },
         }));
       }
+      if (valor === "" && item.valendo_agora != null) {
+        const comoEsta = caixa.querySelector(
+          `button[data-valor="${CSS.escape(String(item.valendo_agora))}"]`);
+        if (comoEsta) {
+          comoEsta.classList.add("como-esta");
+          porBalao(comoEsta, `Como está: ${rotuloDeValor(item.valendo_agora)}`);
+        }
+      }
       pintar(valor);
       return caixa;
     }
     const caixa = elemento("div", { class: "controle" });
     const sel = elemento("select", { "aria-label": rotuloAcessivel(item) });
-    if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— deixar como está —" }));
+    /* «— DEIXAR COMO ESTÁ —» VIROU «— como está —» — 10/10/2026, P77 (U2):
+     * «deixar» lia-se como «mantenha o que eu escolhi», e o vazio quer dizer
+     * o contrário. «como está» é a palavra que o deslizante já usa para o
+     * mesmo estado. */
+    if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— como está —" }));
     for (const opcao of item.opcoes) {
       sel.append(elemento("option", {
         value: opcao, texto: (item.rotulos && item.rotulos[opcao]) || rotuloDeValor(opcao) }));
@@ -1936,7 +1966,12 @@ function montarControle(item, cartao) {
   const campo = elemento(longo ? "textarea" : "input", {
     type: longo ? false : "text",
     "aria-label": rotuloAcessivel(item),
-    placeholder: item.aceita_vazio ? "Deixar como está" : item.padrao,
+    /* [P77, U2: o mesmo «como está» do deslizante, com o número da máquina
+     * quando o servidor sabe lê-lo — e não «Deixar como está».] */
+    placeholder: item.aceita_vazio
+      ? (item.valendo_agora != null && item.valendo_agora !== ""
+        ? `como está: ${rotuloDeValor(item.valendo_agora)}` : "como está")
+      : item.padrao,
   });
   campo.value = valor;
   /* `change` e não `input`: gravar a cada tecla seriam dez escritas no meow.conf
@@ -2210,7 +2245,15 @@ function controleImagem(item, tipo, aplica) {
    * perdido o valor.
    *   É o mesmo terceiro estado do deslizante e dos segmentos, com a mesma
    * palavra — e ele fecha o conjunto: agora há sempre exatamente um aceso. */
-  if (item.aceita_vazio) {
+  /* E SÓ QUANDO HÁ ESCOLHA — 10/10/2026, P77 (achado 17 e 14). O botão vazio
+   * era um ladrilho «Restaurar ao padrão» do tamanho de um gato, no meio dos
+   * gatos (print 13 do uso real), aceso justamente quando já estava valendo.
+   * Agora, com a chave vazia, o gato que vale é o que ela herda: a chave que o
+   * próprio arquivo nomeia (`vazio = herda LOGO_DIA`) diz qual, e ele ganha o
+   * contorno a traço do «como está», com o nome de quem manda no balão. O
+   * ladrilho volta quando houver uma escolha própria a desfazer. */
+  const emVigor = valorEmVigor(item);
+  if (item.aceita_vazio && emVigor !== "") {
     caixa.append(elemento("button", {
       type: "button", class: "vazio", "data-valor": "", "aria-pressed": "false",
       title: "Quem decide passa a ser o ajuste vizinho.",
@@ -2218,7 +2261,15 @@ function controleImagem(item, tipo, aplica) {
       onclick: async () => { if (await aplica("")) pintar(""); },
     }));
   }
-  pintar(valorEmVigor(item));
+  const herda = emVigor === "" && /herda\s+([A-Z][A-Z0-9_]+)/.exec(item.inline || "");
+  const mae = herda && ESQUEMA.chaves.find((k) => k.chave === herda[1]);
+  const herdado = mae && caixa.querySelector(
+    `button[data-valor="${CSS.escape(String(valorEmVigor(mae)))}"]`);
+  if (herdado) {
+    herdado.classList.add("como-esta");
+    porBalao(herdado, `Herdado de «${tituloDoCartao(mae) || mae.chave}»`);
+  }
+  pintar(emVigor);
   /* UM BOTÃO POR PÁGINA, E NÃO UM POR CARTÃO — 06/09/2026.
    *   MEDIDO no navegador, com a aba "Logo do sistema" aberta: SEIS botões
    *   "Adicionar logo" na mesma tela, um sob cada chave que oferece a escolha
@@ -2669,9 +2720,12 @@ function mockDaBarra(item, opcoes) {
    * mudança de controle mexe nele". Lia `k.valor`, que é o que está gravado;
    * agora lê `valorEmVigor`, que é o que ela acabou de escolher. */
   let reserva = false;
+  /* `opcoes.disco` desenha o «Como está» do par da tela (P77): o que a
+   * máquina tem, sem a escolha pendente — a mesma leitura do `parDePrevias`. */
+  const disco = Boolean(opcoes && opcoes.disco);
   const val = (chave, padrao) => {
     const k = ESQUEMA.chaves.find((x) => x.chave === chave);
-    const v = k ? valorEmVigor(k) : "";
+    const v = k ? (disco ? valorNaTela(k) : valorEmVigor(k)) : "";
     if (v !== "" && v != null) return v;
     /* VAZIO É "NÃO TOCA", E O QUE FICA É O QUE A MÁQUINA TEM — 13/09/2026
      *   Os números de reserva de cada chamada (raio 16/8, margem 8/6…) eram o
@@ -2722,9 +2776,22 @@ function mockDaBarra(item, opcoes) {
     class: "barra" + (ilha ? " ilha" : ""),
     style: `--altura:${Math.round(altura)}px`,
   });
+  /* O GATO DA DOCK É O DE VERDADE — 10/10/2026, P77 (prévia real). O primeiro
+   * applet da ponta esquerda da dock é a logo que abre o lançador; na tela da
+   * forma ele passa de quadrado de acento ao desenho do gato que está no dock
+   * (`gato_no_dock`, o mesmo que o retrato da Início usa). Sem a miniatura
+   * pronta, fica o quadrado. */
+  const gatos = dock && opcoes && opcoes.paraTela ? previasDe("gato") : null;
+  const nomeDoGato = ESQUEMA.gato_no_dock
+    || valorEmVigor(ESQUEMA.chaves.find((x) => x.chave === "LOGO") || { valor: "" });
+  const gato = gatos && (gatos.itens || []).find((i) => i.id === nomeDoGato && i.pronta);
   for (const seg of segs) {
     const caixa = elemento("div", { class: "seg", style: `--sq:${seg.px}px` });
-    for (let i = 0; i < seg.quantos; i++) caixa.append(elemento("span"));
+    for (let i = 0; i < seg.quantos; i++) {
+      caixa.append(gato && seg.id === "inicial" && i === 0
+        ? elemento("img", { class: "gato-da-dock", src: gato.url, alt: "" })
+        : elemento("span"));
+    }
     barra.append(caixa);
   }
 
@@ -2736,7 +2803,7 @@ function mockDaBarra(item, opcoes) {
    * máquina não ia produzir. */
   const margemVale = solto ? margem : 0;
   const mock = elemento("div", {
-    class: "mock",
+    class: "mock" + (dock ? " dock" : " painel"),
     style: `--raio:${raio}px; --margem:${margemVale}px; --espaco:${espaco}px;`
          + `--recheio:${recheio}px; --op:${Math.max(0.15, Number(opac) || 0.8)}`,
   }, [barra, elemento("div", { class: "rodape" })]);
@@ -2759,6 +2826,8 @@ function mockDaBarra(item, opcoes) {
   ];
 
   if (opcoes && opcoes.semLegenda) return mock;
+  const descricao = `${dock ? "A dock" : "O painel"} ` + notas.join("; ") + ".";
+  if (opcoes && opcoes.paraTela) return { mock, legenda: descricao, reserva };
   /* A LEGENDA DA FORMA FOI PARA O `?` DO DESENHO — 09/10/2026, P77. Eram duas
    * legendas de quatro linhas, uma sob cada barra (print 11 do uso real), com
    * os números que o próprio desenho já mostra. Elas continuam inteiras, a um
@@ -2772,6 +2841,83 @@ function mockDaBarra(item, opcoes) {
   const dica = dicaDoDesenho(dock ? "forma-dock" : "forma-painel", legenda);
   if (dica) caixa.append(...dica);
   return caixa;
+}
+
+/* ===========================================================================
+ * A FORMA NUMA TELA SÓ — 10/10/2026, P77 (prévia real da forma)
+ * ===========================================================================
+ * Eram duas caixas cinzentas lado a lado, uma barra no alto de cada: o painel
+ * e a dock desenhados do mesmo jeito, os dois presos no topo, cada um com o
+ * seu `?`. Na máquina não é assim: o painel mora no alto da tela, a dock
+ * embaixo, e os dois sobre o papel de parede. A prévia passa a ser essa tela:
+ *   · o fundo é uma imagem do carrossel (o real, quando existe — direção da
+ *     P77, seção 2), e sem ela a lavada neutra de sempre;
+ *   · o painel no alto, a dock embaixo, cada um com a margem para a SUA borda;
+ *   · o primeiro applet da dock é o gato que está no dock;
+ *   · com escolha esperando, «Como está» (o que a máquina tem, e desfaz as
+ *     escolhas da forma) e «Como fica» lado a lado — o par das outras prévias.
+ * Os números do desenho (raio, espaço, recheio, altura…) continuam inteiros
+ * no `?` da tela, que é um só para as duas barras. */
+function telaDaForma(disco) {
+  const p = mockDaBarra({ chave: "FORMA_RAIO_PAINEL" }, { paraTela: true, disco });
+  const d = mockDaBarra({ chave: "FORMA_RAIO_DOCK" }, { paraTela: true, disco });
+  const paredes = previasDe("parede", "ativos");
+  const foto = paredes && (paredes.itens || []).find((i) => i.pronta && i.url);
+  const tela = elemento("div", { class: "tela-forma" + (foto ? " com-foto" : "") }, [p.mock, d.mock]);
+  if (foto) tela.style.backgroundImage = `url("${foto.url}")`;
+  const legenda = `${p.legenda} ${d.legenda}`
+    + (p.reserva || d.reserva
+      ? " Onde a máquina não pôde ser lida, o desenho usa medidas de exemplo."
+      : " Vazio no meow.conf deixa o que a máquina tem, e é isso que aparece aqui.")
+    + (foto ? " O fundo é uma imagem do seu carrossel." : "");
+  return { tela, legenda };
+}
+
+/* O CONTEÚDO DA FAIXA DA FORMA: um lado ou o par. É o que o `render` põe na
+ * `.grade-barras` e o que o `repintarPrevia` troca a cada pixel de arrasto. */
+function ladosDaForma() {
+  const pendentes = CHAVES_DO_MOCK.filter((c) => MUDANCAS.has(c)
+    || (PROVISORIO && PROVISORIO.chave === c));
+  const lado = (rotulo, tela, aoClicar) => {
+    const filhos = [rotulo ? elemento("p", { class: "rotulo-mini", texto: rotulo }) : null, tela];
+    if (!aoClicar) return elemento("div", {}, filhos);
+    return elemento("button", {
+      type: "button", class: "lado-previa", "aria-pressed": "false",
+      title: "Desfaz as escolhas da forma. O meow.conf não é tocado.",
+      onclick: aoClicar,
+    }, filhos);
+  };
+  if (!pendentes.length) {
+    const agora = telaDaForma(false);
+    return { lados: [lado(null, agora.tela, null)], legenda: agora.legenda };
+  }
+  /* O «COMO ESTÁ» DESFAZ AS DEZ CHAVES QUE O DESENHO LÊ, e não as 30 da
+   * página — é o desfazer DESTE desenho (era o botão «Desfazer N escolhas»,
+   * que o par tornou redundante). */
+  const antes = telaDaForma(true);
+  const depois = telaDaForma(false);
+  const desfazer = () => {
+    const quais = CHAVES_DO_MOCK.filter((c) => MUDANCAS.has(c));
+    for (const c of quais) MUDANCAS.delete(c);
+    atualizarBarraSalvar();
+    render();
+    torrada(quais.length === 1
+      ? "1 escolha da forma desfeita — o meow.conf não foi tocado"
+      : `${quais.length} escolhas da forma desfeitas — o meow.conf não foi tocado`, "igual");
+  };
+  return {
+    lados: [lado("Como está", antes.tela, desfazer), lado("Como fica", depois.tela, null)],
+    legenda: antes.legenda + " À direita, a mesma tela com a escolha que ainda não foi salva: "
+      + depois.legenda,
+  };
+}
+
+function pintarForma(par) {
+  const { lados, legenda } = ladosDaForma();
+  par.replaceChildren(...lados);
+  par.classList.toggle("com-par", lados.length > 1);
+  const dica = dicaDoDesenho("forma", legenda);
+  if (dica) ancorarDicaDoDesenho(par, dica);
 }
 
 /* --- a simulação do modo de leitura --------------------------------------- */
@@ -5475,6 +5621,25 @@ function montarCartao(item) {
       elemento("span", { texto: v.porque || "" }),
     ]));
   }
+  /* DESCOLADA COM 0 PX É COLADA — 10/10/2026, P77 (achado 13). O servidor já
+   * apaga a distância quando a barra está colada (`dominada_por`); o caso
+   * inverso não é anulação, é contradição: «descolada» marcado e a distância
+   * que vale (a escolhida, ou a da máquina quando a chave está vazia) em 0. O
+   * cartão da distância ganha o selo ⊘ e a frase no topo da dica. */
+  const barraSolta = /^FORMA_MARGEM_(PAINEL|DOCK)$/.exec(item.chave);
+  if (barraSolta && !item.dominada_por) {
+    const solto = ESQUEMA.chaves.find((k) => k.chave === `FORMA_${barraSolta[1]}_SOLTO`);
+    const vale = escolhido !== "" ? escolhido : agora;
+    if (solto && valorEmVigor(solto) === "sim" && vale != null && vale !== ""
+        && Number(vale) === 0) {
+      const [quem, o] = barraSolta[1] === "DOCK" ? ["A dock", "a"] : ["O painel", "o"];
+      selos.append(selo("anulado", { texto: "0 px", balao: `${quem} descolad${o} com 0 px fica encostad${o}` }));
+      estado.push(elemento("p", { class: "frase dominada" }, [
+        elemento("b", { texto: `${quem} está descolad${o}, mas a distância é 0 px. ` }),
+        elemento("span", { texto: "Com zero a barra continua encostada na borda: arraste a distância para ela se soltar." }),
+      ]));
+    }
+  }
   if (item.dominada_por) {
     const d = item.dominada_por;
     /* ANULADO SE VÊ NO CONTROLE: ele fica apagado (`.anulado`, no CSS) e o
@@ -5910,6 +6075,31 @@ function ancorarDicaDoDesenho(par, dica) {
   if (!caixa) return;
   caixa.classList.add("com-dica");
   caixa.append(...dica);
+}
+
+/* O `?` NÃO PODE CAIR SOBRE A SANGRIA DO DESENHO — 10/10/2026, P77. Dois
+ * desenhos sangram de propósito para fora do quadro (a barra da música, que
+ * continua além da tela — ver o comentário da sangria no `estilo.css`), e o
+ * `?` encostado do lado de fora da caixa caía em cima do traço: medido em
+ * «Painel e dock», a barra da música ia até 548 px e o `?` começava em 536.
+ * Só depois da pintura se sabe até onde o traço vai (`getBBox` em unidades do
+ * desenho, levadas à tela pela matriz dele), e então o `?` anda o que falta.
+ * Em tela estreita o CSS o põe dentro da caixa, e lá ele fica. */
+function afastarDicasDoTraco() {
+  if (matchMedia("(max-width: 620px)").matches) return;
+  for (const b of document.querySelectorAll("#conteudo .par-previa > .com-dica > button.porque")) {
+    const svg = b.parentElement.querySelector("svg");
+    if (!svg || !svg.getBBox || !svg.getScreenCTM) continue;
+    let fim;
+    try {
+      const caixa = svg.getBBox();
+      const m = svg.getScreenCTM();
+      if (!m) continue;
+      fim = m.a * (caixa.x + caixa.width) + m.e;
+    } catch (e) { continue; }
+    const sobra = fim + 6 - b.getBoundingClientRect().left;
+    if (sobra > 0) b.style.right = `calc(-2rem - ${Math.ceil(sobra)}px)`;
+  }
 }
 
 /* ===========================================================================
@@ -7241,9 +7431,7 @@ function repintarPrevia(chave, valor) {
     if (reg.forma) {
       /* O mock lê tudo por `valorEmVigor`, que já conhece o `PROVISORIO`:
        * reconstruir os dois basta, e não há contrato novo a inventar. */
-      const par = reg.alvo;
-      par.replaceChildren(mockDaBarra({ chave: "FORMA_RAIO_PAINEL" }),
-                          mockDaBarra({ chave: "FORMA_RAIO_DOCK" }));
+      pintarForma(reg.alvo);
       return;
     }
     const novo = parDePrevias(reg.g);
@@ -8080,6 +8268,15 @@ function devolverRolagem(guardado) {
  * assunto de arranjo da página, e o arquivo descreve chaves. */
 const DECISOES = [
   { id: "tema", nome: "Tema", chaves: ["PACK", "FLAVOR", "MODO"] },
+  /* COMO A BARRA SE SOLTA DA BORDA — 10/10/2026, P77 (achado 13). «Descolado:
+   * Sim» e «Distância: 0» moravam em cartões distantes e diziam o contrário um
+   * do outro sem que a tela mostrasse a ligação: a distância só existe com a
+   * barra descolada (o compositor a descarta com ela colada), e descolada com
+   * 0 px fica encostada. Juntos numa moldura por barra — descolar, quanto, e
+   * a pastilha, que é a outra forma de a barra largar as bordas —, o par se lê
+   * como uma decisão só, e o selo da distância diz quando os dois brigam. */
+  { id: "painel", nome: "Painel", chaves: ["FORMA_PAINEL_SOLTO", "FORMA_MARGEM_PAINEL", "FORMA_PAINEL_ILHA"] },
+  { id: "dock", nome: "Dock", chaves: ["FORMA_DOCK_SOLTO", "FORMA_MARGEM_DOCK", "FORMA_DOCK_ILHA"] },
 ];
 
 /* ===========================================================================
@@ -8095,12 +8292,26 @@ const DECISOES = [
  * que fechasse a cada letra digitada no campo de dentro seria um controle
  * impossível de usar. O estado mora em `TECNICOS_ABERTOS`, pelo nome do bloco. */
 const TECNICOS_ABERTOS = new Set();
+/* AS AÇÕES TÉCNICAS TAMBÉM VÃO PARA O «⋯» — 10/10/2026, P77 (direção, seção
+ * 4). Na página fica a ação que quem usa procura de propósito (a próxima
+ * imagem, pôr um gato no dock); a que mostra o estado por dentro, reaplica,
+ * recicla ou baixa e compila fica a um clique, no «⋯» do fim do bloco. A
+ * régua é a `natureza` que o servidor declara para cada ação, e não uma lista
+ * de rótulos: uma ação nova de «mostrar» nasce no lugar certo. A separação é
+ * por página, na reescrita de cada uma (as que já passaram estão no conjunto). */
+const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock"]);
+const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
+function acaoTecnica(assunto, acao) {
+  return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);
+}
 function ajustesTecnicos(assunto, g, itens) {
   const id = assunto + "·" + g.nome;
+  const acoes = g.tipo === "acoes";
+  const nome = acoes ? "Ações técnicas" : "Ajustes técnicos";
   const caixa = elemento("details", { class: "ajustes-tecnicos" }, [
-    elemento("summary", { title: "Ajustes técnicos" }, [
+    elemento("summary", { title: nome }, [
       elemento("span", { class: "tecnicos-glifo", "aria-hidden": "true", texto: "⋯" }),
-      elemento("span", { class: "so-leitor", texto: " Ajustes técnicos" }),
+      elemento("span", { class: "so-leitor", texto: " " + nome }),
     ]),
   ]);
   if (TECNICOS_ABERTOS.has(id)) caixa.open = true;
@@ -8109,7 +8320,7 @@ function ajustesTecnicos(assunto, g, itens) {
     else TECNICOS_ABERTOS.delete(id);
   });
   const grade = elemento("div", { class: "grade" });
-  for (const item of itens) grade.append(montarCartao(item));
+  for (const item of itens) grade.append(acoes ? montarAcao(item) : montarCartao(item));
   caixa.append(grade);
   return caixa;
 }
@@ -8305,48 +8516,12 @@ function render() {
        *   teria de ser mantida em dia com a primeira. "Painel e dock" é a seção
        *   de 30 chaves, a que ela mais rola: era a que mais precisava. */
       const caixa = elemento("div", { class: "previa-bloco" });
-      const par = elemento("div", { class: "grade-barras" });
-      par.append(mockDaBarra({ chave: "FORMA_RAIO_PAINEL" }));
-      par.append(mockDaBarra({ chave: "FORMA_RAIO_DOCK" }));
-      /* O PAR DA FORMA TAMBÉM DESFAZ — 06/09/2026
-       *   Medida a interação aba a aba: em nove das dez seções o "Como está"
-       *   virava botão e devolvia as escolhas do bloco; em "Painel e dock" não,
-       *   porque o desenho da FORMA não passa pelo `parDePrevias` — e "Barra e
-       *   dock" é justamente a seção que ela mais mexe, com 30 chaves.
-       *
-       *   O desfazer aqui cobre as DEZ chaves que o mock lê, e não as 30 da
-       *   seção: é o desfazer DESTE desenho, e prometer mais do que o desenho
-       *   mostra seria outra promessa vazia. */
-      const pendentes = CHAVES_DO_MOCK.filter((c) => MUDANCAS.has(c));
-      if (pendentes.length) {
-        par.classList.add("par-desfazivel");
-        par.prepend(elemento("button", {
-          type: "button",
-          class: "btn btn-mini desfazer-forma",
-          texto: pendentes.length === 1 ? "Desfazer 1 escolha" : `Desfazer ${pendentes.length} escolhas`,
-          /* 83 -> 63 CARACTERES — 21/09/2026, e esta foi a OITAVA, não a sétima.
-           * A primeira passagem desta sprint contou sete frases acima do teto
-           * de 80 e deixou esta de fora, porque o botão só existe quando há
-           * escolha pendente no bloco e a varredura das 14 abas nunca o pinta.
-           * O preço de passar batido estava medido: a rede do `partirAjuda`
-           * cortava em «O meow.conf não é…», e a garantia virava uma negação
-           * pendurada que diz o OPOSTO do que a frase existe para dizer.
-           *   O que saiu foi "do painel e da dock": este botão nasce dentro do
-           * bloco da forma, na aba que se chama "Painel e dock", e a palavra
-           * «forma» é a da casa aqui (ver a classe `desfazer-forma` e o irmão
-           * de um bloco só, acima). A garantia ficou inteira, que é a metade
-           * que não podia encolher. */
-          title: "Devolve a forma ao que está no disco. O meow.conf não é tocado.",
-          onclick: () => {
-            for (const c of pendentes) MUDANCAS.delete(c);
-            atualizarBarraSalvar();
-            render();
-            torrada(pendentes.length === 1
-              ? "1 escolha da forma desfeita — o meow.conf não foi tocado"
-              : `${pendentes.length} escolhas da forma desfeitas — o meow.conf não foi tocado`, "igual");
-          },
-        }));
-      }
+      const par = elemento("div", { class: "grade-barras par-forma" });
+      /* [P77: as duas barras viraram UMA tela — o painel no alto, a dock
+       * embaixo, sobre o papel de parede —, e o botão «Desfazer N escolhas»
+       * virou o «Como está» do par, como nas outras prévias. Ver
+       * `telaDaForma`.] */
+      pintarForma(par);
       caixa.append(par);
       alvo.append(caixa);
       /* A FORMA É O BLOCO QUE ELA MAIS MEXE, e era o único sem tempo real:
@@ -8396,7 +8571,11 @@ function render() {
        * `<select>` com 255 nomes de arquivo seria a pior forma de perguntar
        * "qual foto?" numa página que sabe desenhá-las. */
       if (g.tipo === "acoes" && item.oculta) continue;
-      if (g.tipo === "acoes") { grade.append(montarAcao(item)); continue; }
+      if (g.tipo === "acoes") {
+        if (!busca && acaoTecnica(assunto, item)) tecnicos.push(item);
+        else grade.append(montarAcao(item));
+        continue;
+      }
       if (!busca && item.avancado) { tecnicos.push(item); continue; }
       const decisao = !busca && DECISOES.find((d) => d.chaves.includes(item.chave));
       if (decisao) {
@@ -8420,7 +8599,7 @@ function render() {
         if (item) m.append(montarCartao(item));
       }
     }
-    destino.append(grade);
+    if (grade.childElementCount) destino.append(grade);
     if (tecnicos.length) destino.append(ajustesTecnicos(assunto, g, tecnicos));
 
     /* A GRADE DO DISCO VEM DEPOIS DOS CONTROLES — 06/09/2026
@@ -8458,6 +8637,7 @@ function render() {
     alvo.append(gradeDeIcones());
   }
   grudarPrevias();
+  afastarDicasDoTraco();
   devolverFoco(ancora);
   devolverRolagem(rolagem);
   /* A ABA ABERTA APARECE — em 375px o trilho vira uma tira horizontal com vinte

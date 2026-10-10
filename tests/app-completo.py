@@ -1444,6 +1444,11 @@ class Percurso:
 
     def h_opcoes(self, nome):
         chave = self.chave_de(nome)
+        # [P77, 10/10/2026: uma escolha pode REVELAR controles — o «Restaurar
+        # ao padrão» que só existe com escolha feita, o cartão que o modo do
+        # gato mostra. O que a escolha revelou é acionado logo, com a escolha
+        # ainda na bandeja.]
+        antes = set(self.censo())
         for i in range(self.quantos(nome)):
             el = self.achar(nome, i)
             if el is None:
@@ -1461,6 +1466,7 @@ class Percurso:
             self.checa(c["pendente"] == (valor != c["disco"]),
                        f"{chave}: {valor!r} {'entra' if valor != c['disco'] else 'não entra'}"
                        " na bandeja do Salvar")
+            self.acionar_revelados(antes)
         self.desfazer()
 
     def mexer_no_cartao(self, chave):
@@ -1508,6 +1514,7 @@ class Percurso:
 
     def h_deslizante(self, nome):
         chave = self.chave_de(nome)
+        antes = set(self.censo())
         el = self.achar(nome)
         if not self.checa(not el.is_disabled(), f"{chave}: o deslizante nasce livre"):
             return
@@ -1519,6 +1526,7 @@ class Percurso:
         el = self.achar(nome)
         self.checa(el is not None and el.input_value() != v0 and c["pendente"],
                    f"{chave}: a tecla move o deslizante e a escolha entra na bandeja")
+        self.acionar_revelados(antes)
         self.desfazer()
 
     def acionar_revelados(self, antes):
@@ -1557,6 +1565,7 @@ class Percurso:
 
     def h_hora(self, nome):
         chave = self.chave_de(nome)
+        antes = set(self.censo())
         el = self.achar(nome)
         v0 = el.input_value()
         # O `fill` de um campo de hora já dispara o `change`, e o `change`
@@ -1564,6 +1573,7 @@ class Percurso:
         el.fill("21:47" if v0 != "21:47" else "06:13")
         self.assentar(quieto=80, teto=3000)
         self.checa(self.cartao(chave)["pendente"], f"{chave}: a hora nova entra na bandeja")
+        self.acionar_revelados(antes)
         self.desfazer()
 
     def h_nova_ficha(self, nome):
@@ -3398,7 +3408,6 @@ INVENTARIO = {
         ajuste CURSOR · deixar vazio
         ajuste CURSOR · opção
         ajuste ESCALA_TELA · ?
-        ajuste ESCALA_TELA · deixar vazio
         ajuste ESCALA_TELA · opção
         ajuste FLAVOR · ?
         ajuste FLAVOR · opção
@@ -3410,7 +3419,6 @@ INVENTARIO = {
         ajuste MODO · ?
         ajuste MODO · opção
         ajuste PACK · ?
-        ajuste PACK · deixar vazio
         ajuste PACK · opção
         ação «Passar para claro ou escuro» · ?
         ação «Passar para claro ou escuro» · Executar
@@ -3468,20 +3476,16 @@ INVENTARIO = {
         ajuste FASTFETCH_LOGO_CONF · ?
         ajuste FASTFETCH_LOGO_CONF · opção
         ajuste FASTFETCH_LOGO_DIA · ?
-        ajuste FASTFETCH_LOGO_DIA · deixar vazio
         ajuste FASTFETCH_LOGO_DIA · opção
         ajuste FASTFETCH_LOGO_GATO · ?
         ajuste FASTFETCH_LOGO_GATO · opção
         ajuste FASTFETCH_LOGO_LINHAS · ?
-        ajuste FASTFETCH_LOGO_LINHAS · Restaurar ao padrão
         ajuste FASTFETCH_LOGO_LINHAS · deslizante
         ajuste FASTFETCH_LOGO_MODO · ?
         ajuste FASTFETCH_LOGO_MODO · opção
         ajuste FASTFETCH_LOGO_NOITE · ?
-        ajuste FASTFETCH_LOGO_NOITE · deixar vazio
         ajuste FASTFETCH_LOGO_NOITE · opção
         ajuste FASTFETCH_LOGO_QUEBRAS · ?
-        ajuste FASTFETCH_LOGO_QUEBRAS · Automático
         ajuste FASTFETCH_LOGO_QUEBRAS · deslizante
         ajuste FASTFETCH_LOGO_RECUO · ?
         ajuste FASTFETCH_LOGO_RECUO · deslizante
@@ -3557,55 +3561,42 @@ INVENTARIO = {
     """),
     "Painel e dock": _linhas("""
         aba · ?
+        aba · abre «⋯ Ações técnicas»
         ajuste FORMA_ALA_FINAL_DOCK · ?
-        ajuste FORMA_ALA_FINAL_DOCK · deixar vazio
         ajuste FORMA_ALA_FINAL_DOCK · opção
         ajuste FORMA_ALA_FINAL_PAINEL · ?
-        ajuste FORMA_ALA_FINAL_PAINEL · deixar vazio
         ajuste FORMA_ALA_FINAL_PAINEL · opção
         ajuste FORMA_ALA_INICIAL_DOCK · ?
-        ajuste FORMA_ALA_INICIAL_DOCK · deixar vazio
         ajuste FORMA_ALA_INICIAL_DOCK · opção
         ajuste FORMA_ALA_INICIAL_PAINEL · ?
-        ajuste FORMA_ALA_INICIAL_PAINEL · deixar vazio
         ajuste FORMA_ALA_INICIAL_PAINEL · opção
         ajuste FORMA_CENTRO_DOCK · ?
-        ajuste FORMA_CENTRO_DOCK · deixar vazio
         ajuste FORMA_CENTRO_DOCK · opção
         ajuste FORMA_CENTRO_PAINEL · ?
-        ajuste FORMA_CENTRO_PAINEL · deixar vazio
         ajuste FORMA_CENTRO_PAINEL · opção
         ajuste FORMA_DOCK_ILHA · ?
         ajuste FORMA_DOCK_ILHA · opção
         ajuste FORMA_DOCK_SOLTO · ?
         ajuste FORMA_DOCK_SOLTO · opção
         ajuste FORMA_ESPACO_DOCK · ?
-        ajuste FORMA_ESPACO_DOCK · Restaurar ao padrão
         ajuste FORMA_ESPACO_DOCK · deslizante
         ajuste FORMA_ESPACO_PAINEL · ?
-        ajuste FORMA_ESPACO_PAINEL · Restaurar ao padrão
         ajuste FORMA_ESPACO_PAINEL · deslizante
         ajuste FORMA_MARGEM_DOCK · ?
-        ajuste FORMA_MARGEM_DOCK · Restaurar ao padrão
         ajuste FORMA_MARGEM_DOCK · deslizante
         ajuste FORMA_MARGEM_PAINEL · ?
-        ajuste FORMA_MARGEM_PAINEL · Restaurar ao padrão
         ajuste FORMA_MARGEM_PAINEL · deslizante
         ajuste FORMA_PAINEL_ILHA · ?
         ajuste FORMA_PAINEL_ILHA · opção
         ajuste FORMA_PAINEL_SOLTO · ?
         ajuste FORMA_PAINEL_SOLTO · opção
         ajuste FORMA_RAIO_DOCK · ?
-        ajuste FORMA_RAIO_DOCK · Restaurar ao padrão
         ajuste FORMA_RAIO_DOCK · deslizante
         ajuste FORMA_RAIO_PAINEL · ?
-        ajuste FORMA_RAIO_PAINEL · Restaurar ao padrão
         ajuste FORMA_RAIO_PAINEL · deslizante
         ajuste FORMA_RECHEIO_DOCK · ?
-        ajuste FORMA_RECHEIO_DOCK · Restaurar ao padrão
         ajuste FORMA_RECHEIO_DOCK · deslizante
         ajuste FORMA_RECHEIO_PAINEL · ?
-        ajuste FORMA_RECHEIO_PAINEL · Restaurar ao padrão
         ajuste FORMA_RECHEIO_PAINEL · deslizante
         ajuste MIDIA · ?
         ajuste MIDIA · opção
@@ -3620,7 +3611,6 @@ INVENTARIO = {
         ajuste MIDIA_COR_TITULO · ?
         ajuste MIDIA_COR_TITULO · opção
         ajuste MIDIA_FONTE · ?
-        ajuste MIDIA_FONTE · Automático
         ajuste MIDIA_FONTE · deslizante
         ajuste MIDIA_LARGURA · ?
         ajuste MIDIA_LARGURA · campo
@@ -3630,20 +3620,9 @@ INVENTARIO = {
         ajuste VIDRO_AO_MAXIMIZAR · ?
         ajuste VIDRO_AO_MAXIMIZAR · opção
         ajuste VIDRO_OPACIDADE_DOCK · ?
-        ajuste VIDRO_OPACIDADE_DOCK · Restaurar ao padrão
         ajuste VIDRO_OPACIDADE_DOCK · deslizante
         ajuste VIDRO_OPACIDADE_PAINEL · ?
-        ajuste VIDRO_OPACIDADE_PAINEL · Restaurar ao padrão
         ajuste VIDRO_OPACIDADE_PAINEL · deslizante
-        ação «Até quanto o canto pode arredondar» · ?
-        ação «Até quanto o canto pode arredondar» · Executar
-        ação «Até quanto o canto pode arredondar» · ver comando
-        ação «Como estão o painel e a dock» · ?
-        ação «Como estão o painel e a dock» · Executar
-        ação «Como estão o painel e a dock» · ver comando
-        ação «Recarregar o painel» · ?
-        ação «Recarregar o painel» · Executar
-        ação «Recarregar o painel» · ver comando
     """),
     "Papel de parede": _linhas("""
         aba · ?
@@ -3709,16 +3688,12 @@ INVENTARIO = {
     "Dia e noite": _linhas("""
         aba · ?
         ajuste MODO_AUTO_CLARO_ATE · ?
-        ajuste MODO_AUTO_CLARO_ATE · Restaurar ao padrão
         ajuste MODO_AUTO_CLARO_ATE · deslizante
         ajuste MODO_AUTO_CLARO_DE · ?
-        ajuste MODO_AUTO_CLARO_DE · Restaurar ao padrão
         ajuste MODO_AUTO_CLARO_DE · deslizante
         ajuste NOITE_FIM · ?
-        ajuste NOITE_FIM · Restaurar ao padrão
         ajuste NOITE_FIM · hora
         ajuste NOITE_INICIO · ?
-        ajuste NOITE_INICIO · Restaurar ao padrão
         ajuste NOITE_INICIO · hora
         ajuste WALLPAPER_LIMIAR_LUZ · ?
         ajuste WALLPAPER_LIMIAR_LUZ · deslizante
@@ -3829,13 +3804,10 @@ INVENTARIO = {
         ajuste SOM · ?
         ajuste SOM · opção
         ajuste SOM_DECAIMENTO · ?
-        ajuste SOM_DECAIMENTO · Restaurar ao padrão
         ajuste SOM_DECAIMENTO · deslizante
         ajuste SOM_FUNDAMENTAL · ?
-        ajuste SOM_FUNDAMENTAL · Restaurar ao padrão
         ajuste SOM_FUNDAMENTAL · deslizante
         ajuste SOM_HARMONICO · ?
-        ajuste SOM_HARMONICO · Restaurar ao padrão
         ajuste SOM_HARMONICO · deslizante
         ajuste SOM_PESO_FUNDAMENTAL · ?
         ajuste SOM_PESO_FUNDAMENTAL · campo
@@ -3944,7 +3916,9 @@ REVELADOS = {
         ajuste * · Aplicar
         *linha de comando · Copiar
         aba · Como está (desfaz o bloco)
-        aba · Desfazer as escolhas da forma
+        ajuste * · Restaurar ao padrão
+        ajuste * · Automático
+        ajuste * · deixar vazio
     """),
     "topo": _linhas("""
         topo · #baixar-conf
@@ -3982,6 +3956,17 @@ REVELADOS = {
         decisão do jogo · Tirar do lançador
         decisão do jogo · Voltar ao normal
         decisão do jogo · campo «Por que este jogo sai do lançador»
+    """),
+    "Painel e dock": _linhas("""
+        ação «Até quanto o canto pode arredondar» · ?
+        ação «Até quanto o canto pode arredondar» · Executar
+        ação «Até quanto o canto pode arredondar» · ver comando
+        ação «Como estão o painel e a dock» · ?
+        ação «Como estão o painel e a dock» · Executar
+        ação «Como estão o painel e a dock» · ver comando
+        ação «Recarregar o painel» · ?
+        ação «Recarregar o painel» · Executar
+        ação «Recarregar o painel» · ver comando
     """),
 }
 

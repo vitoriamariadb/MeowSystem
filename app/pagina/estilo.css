@@ -4078,3 +4078,66 @@ a.folha:hover b { color: var(--text); }
 @media (max-width: 620px) {
   .par-previa > .com-dica > button.porque { right: .3rem; background: var(--mantle); }
 }
+
+/* ===========================================================================
+ * P77 · GRUPO 2 — Painel e dock, Papel de parede, Logo do sistema, Terminal
+ * (10/10/2026)
+ * =========================================================================== */
+/* «COMO ESTÁ» NUM SEGMENTO OU NUMA MINIATURA: com a chave vazia, o valor que a
+ * máquina tem (ou o gato herdado) ganha o mesmo traço da trilha do deslizante
+ * no terceiro estado. Não é «escolhido» (isso é o acento cheio); é «é o que
+ * está valendo sem você ter escolhido». */
+.segmentos button.como-esta,
+.opcoes-imagem button.como-esta {
+  border-style: dashed;
+  border-color: var(--overlay1);
+  color: var(--text);
+}
+
+/* A TELA DA FORMA: o painel no alto, a dock embaixo, sobre uma imagem do
+ * carrossel. A lavada neutra fica de reserva para quando não há foto. */
+.par-forma {
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 520px));
+  justify-content: start;
+}
+.par-forma > div,
+.par-forma > button.lado-previa { position: relative; min-width: 0; }
+.par-forma > div { border: 1px solid transparent; border-radius: var(--r-3); padding: .5rem .6rem .55rem; }
+.tela-forma {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 150px;
+  border-radius: var(--r-2);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface2) 55%, var(--crust)) center / cover no-repeat;
+}
+.tela-forma .mock { background: transparent; min-height: 0; padding: 0; border-radius: 0; }
+.tela-forma .mock .rodape { display: none; }
+.tela-forma .mock.dock .barra { margin-top: 0; margin-bottom: var(--margem, 8px); }
+.tela-forma .barra .gato-da-dock {
+  width: var(--sq, 14px);
+  height: var(--sq, 14px);
+  object-fit: contain;
+  display: block;
+}
+/* O `?` da tela fica no meio da borda direita, sobre a foto, onde não há
+ * barra nenhuma — no canto ele cobriria a ponta direita do painel ou da dock. */
+.grade-barras.par-forma .com-dica > button.porque {
+  top: 50%;
+  bottom: auto;
+  right: .9rem;
+  transform: translateY(-50%);
+}
+.previa-bloco.presa .tela-forma { height: 78px; }
+/* A DOCK MORA EMBAIXO, também nos desenhos do Sim/Não: a barra desce para o pé
+ * da caixa e a margem passa a ser o vão até a borda de baixo. */
+.mock.dock { flex-direction: column-reverse; }
+.mock.dock .barra { margin-top: 0; margin-bottom: var(--margem, 8px); }
+/* O PAR DE DESENHOS NÃO ESTOURA A MOLDURA EM TELA ESTREITA. `1fr` tem mínimo
+ * `auto`: a pastilha da dock (seis applets lado a lado) pedia 164 px num botão
+ * de 148, e a 375 px a moldura da dock passava 9 px da coluna. Com `minmax(0,
+ * 1fr)` o desenho encolhe dentro do botão em vez de empurrá-lo. */
+.par-botoes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.par-botoes button.lado-botao { min-width: 0; overflow: hidden; }
