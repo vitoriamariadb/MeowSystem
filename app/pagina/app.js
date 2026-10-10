@@ -1811,6 +1811,38 @@ function montarControle(item, cartao) {
     return caixa;
   }
 
+  /* 2b. hora cheia -> o mesmo <input type="time"> do horário, sem minutos —
+   * 10/10/2026, P80 (item 4). «O tema escuro começa às» é um número de 0 a 23
+   * (o `modo_desejado` do bin/meow compara horas inteiras), e era um deslizante
+   * pontilhado («como está: 18») entre duas linhas de seletor de hora. Agora o
+   * campo mostra `18:00`, e o que se grava continua sendo o número. Vazio
+   * mostra a hora que o arquivo diz que o vazio vale (`vazio_vale`), apagada
+   * como a hora herdada do gato. */
+  if (item.hora_cheia) {
+    const caixa = elemento("div", { class: "controle" });
+    const emHora = (v) => (/^\d{1,2}$/.test(String(v ?? "")) ? `${String(v).padStart(2, "0")}:00` : "");
+    const herdada = valor === "" ? emHora(item.vazio_vale) : "";
+    const campo = elemento("input", {
+      type: "time", step: "3600", value: emHora(valor) || herdada,
+      class: herdada ? "hora-herdada" : null,
+      "aria-label": rotuloAcessivel(item),
+      "aria-description": herdada ? `Padrão: ${herdada}` : null,
+    });
+    campo.addEventListener("change", () => {
+      const hora = /^(\d{1,2}):/.exec(campo.value);
+      if (!hora) return;
+      /* Os minutos não existem nesta chave: o campo volta à hora cheia. */
+      campo.value = `${hora[1].padStart(2, "0")}:00`;
+      aplica(String(Number(hora[1])));
+    });
+    caixa.append(campo);
+    if (temOQueRestaurar(item, valor)) {
+      caixa.append(elemento("div", { class: "faixa-estados" }, [
+        botaoVazio(item, (v) => { campo.value = emHora(v) || emHora(item.vazio_vale); }, aplica)]));
+    }
+    return caixa;
+  }
+
   /* 3. faixa numérica -> deslizante + número, os dois amarrados */
   if (item.faixa) {
     const [lo, hi, passo] = item.faixa;
@@ -1877,7 +1909,8 @@ function montarControle(item, cartao) {
      * o número que a máquina já tem (`valendo_agora`); a alça para nele, e não
      * no piso da régua, que desenhava 0 onde a dock dela tem 24. */
     /* Sem número da máquina, o que o vazio vale pelo arquivo (`vazio_vale`):
-     * «O tema claro começa às» vazio é 7, e a alça para no 7 (P77). */
+     * «O tema escuro termina às» vazio é 7, e a alça para no 7 (P77). [Desde a
+     * P80 essa chave tem o seletor de hora, e não este deslizante.] */
     const agora = item.valendo_agora ?? (vazio ? item.vazio_vale : null);
     const agoraNaRegua = agora != null && /^-?\d+(\.\d+)?$/.test(String(agora));
     /* O NÚMERO DE PARTIDA TEM DE CAIR NA RÉGUA — 07/09/2026

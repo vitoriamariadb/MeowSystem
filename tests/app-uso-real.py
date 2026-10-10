@@ -43,7 +43,9 @@ O QUE REPROVA (e de onde cada regra vem)
        · a ficha de ícone mostra o nome amigável, e o nome técnico só na dica;
        · a paleta «Cor» da ficha só aparece com um traço marcado;
        · a pasta travada (a dos PNG feitos à mão) leva o selo de trava da
-         página, com o porquê na dica.
+         página, com o porquê na dica;
+       · as três linhas de Dia e noite usam o seletor de hora, na ordem
+         começa | termina.
 
 A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
   A decisão 8 de 02-decisoes.md manda o painel de QA subir SÓ com HOME
@@ -411,6 +413,34 @@ TRAVA_JS = r"""
 """
 
 
+# 8.4 — DIA E NOITE (print 07): a linha do tema claro usava um deslizante
+#   pontilhado («como está: 18») ao lado de duas linhas com seletor de hora, e
+#   lia ao contrário (termina à esquerda). As três linhas: o mesmo seletor de
+#   hora, a mesma ordem — começa | termina.
+NOITE_JS = r"""
+() => {
+  const defeitos = [];
+  const m = document.querySelector('.decisao-relogio');
+  if (!m) return ['a página Dia e noite não desenhou a moldura do relógio'];
+  for (const r of m.querySelectorAll('input[type=range]'))
+    defeitos.push(`deslizante na moldura da noite, em ${(r.closest('[data-chave]') || {}).dataset?.chave}`);
+  for (const l of LINHAS_DA_NOITE) {
+    const cartoes = l.chaves.map((c) => m.querySelector(`[data-chave="${c}"]`));
+    if (cartoes.some((c) => !c)) { defeitos.push(`a linha «${l.nome}» não tem os dois cartões`); continue; }
+    const titulos = cartoes.map((c) => ((c.querySelector('.titulo-cartao') || {}).textContent || '').trim());
+    if (!/começa|a partir/i.test(titulos[0]) || !/termina|até/i.test(titulos[1]))
+      defeitos.push(`a linha «${l.nome}» não lê começa | termina: «${titulos.join(' | ')}»`);
+    for (const [i, c] of cartoes.entries()) {
+      const hora = c.querySelector('input[type=time]');
+      if (!hora) defeitos.push(`«${titulos[i]}» sem o seletor de hora`);
+      else if (!hora.value) defeitos.push(`«${titulos[i]}» com o seletor de hora vazio`);
+    }
+  }
+  return defeitos;
+}
+"""
+
+
 def acabamento(pag):
     """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -427,6 +457,10 @@ def acabamento(pag):
             reprovas.append(("ficha de ícone", d))
         if FOTOS and passo != "abrir":
             pag.screenshot(path=os.path.join(FOTOS, f"p80-paleta-{passo}.png"))
+    abrir_pagina(pag, "Dia e noite")
+    reprovas += [("Dia e noite", d) for d in pag.evaluate(NOITE_JS)]
+    if FOTOS:
+        pag.screenshot(path=os.path.join(FOTOS, "p80-dia-e-noite.png"))
     return reprovas
 
 

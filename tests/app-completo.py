@@ -3831,9 +3831,9 @@ INVENTARIO = {
     "Dia e noite": _linhas("""
         aba · ?
         ajuste MODO_AUTO_CLARO_ATE · ?
-        ajuste MODO_AUTO_CLARO_ATE · deslizante
+        ajuste MODO_AUTO_CLARO_ATE · hora
         ajuste MODO_AUTO_CLARO_DE · ?
-        ajuste MODO_AUTO_CLARO_DE · deslizante
+        ajuste MODO_AUTO_CLARO_DE · hora
         ajuste NOITE_FIM · ?
         ajuste NOITE_FIM · hora
         ajuste NOITE_INICIO · ?

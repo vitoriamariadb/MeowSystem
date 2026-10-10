@@ -1210,8 +1210,8 @@ NOITE_INICIO=""
 # > A hora em que o gato do dock e o do terminal trocam para o dia. O papel de parede e o modo de leitura têm hora própria.
 NOITE_FIM=""
 
-# @ O tema claro começa às
-# > Com «Claro ou escuro» em Automático: antes desta hora, o tema é o escuro.
+# @ O tema escuro termina às
+# > Com «Claro ou escuro» em Automático: desta hora em diante, o tema é o claro.
 # DUAS CHAVES QUE EXISTIAM SEM EXISTIR — 07/09/2026. O `bin/meow` lê
 # MODO_AUTO_CLARO_DE/ATE desde que o modo automático nasceu, com 7 e 18 de
 # fábrica — e nenhum arquivo as declarava: quem quisesse o claro começando às
@@ -1224,10 +1224,18 @@ NOITE_FIM=""
 # compara. (E esta frase evita soletrar o formato de relógio por extenso:
 # a sigla dele no comentário é o que faz o leitor classificar a chave como
 # horário — foi medido nesta mesma rodada, nesta mesma chave.)
-MODO_AUTO_CLARO_DE=""             # 0 a 23  (vazio = 7)
-# @ O tema claro termina às
-# > Com «Claro ou escuro» em Automático: desta hora em diante, o escuro volta.
-MODO_AUTO_CLARO_ATE=""            # 0 a 23  (vazio = 18)
+#
+# OS TÍTULOS FALAM DA NOITE, COMO OS DAS OUTRAS DUAS LINHAS — 10/10/2026, P80.
+# Na página "Dia e noite" as três linhas (o gato, o tema, a imagem) dizem cada
+# uma quando a noite DELA começa e termina, e esta lia ao contrário: «O tema
+# claro termina às» à esquerda, embaixo de «A noite começa às». O escuro começa
+# quando o claro termina, então as chaves não mudaram — só o título, que agora
+# diz o escuro. E «hora cheia» na linha é o que dá a esta chave o seletor de
+# hora das outras linhas (sem minutos), no lugar do deslizante de 0 a 23.
+MODO_AUTO_CLARO_DE=""             # 0 a 23, hora cheia  (vazio = 7)
+# @ O tema escuro começa às
+# > Com «Claro ou escuro» em Automático: desta hora em diante, o tema é o escuro.
+MODO_AUTO_CLARO_ATE=""            # 0 a 23, hora cheia  (vazio = 18)
 
 # @ Separar imagens de dia e de noite
 # > À noite o carrossel sorteia só entre as escuras.

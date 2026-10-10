@@ -2412,6 +2412,14 @@ def ler_esquema():
             "faixa": _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
             # O QUE O VAZIO VALE, quando o arquivo o diz — ver `_vazio_vale`.
             "vazio_vale": _vazio_vale(inline),
+            # A HORA CHEIA — 10/10/2026, P80 (item 4). As duas horas do tema
+            #   claro são um número de 0 a 23 (o `modo_desejado` do `bin/meow`
+            #   compara horas inteiras), e a página as desenhava num deslizante
+            #   pontilhado ao lado das outras duas linhas de «Dia e noite», que
+            #   são seletor de hora. O arquivo declara «hora cheia» na linha, e a
+            #   página dá o mesmo seletor, sem minutos; o valor gravado continua
+            #   sendo o número.
+            "hora_cheia": bool(re.search(r"\bhora cheia\b", inline or "")),
             # A forma do número, quando há uma. Sai do VALOR DE FÁBRICA, que é
             # onde o arquivo já a declara sem precisar de uma palavra a mais —
             # ver `FORMAS_NUMERO`. É o que permite à página desenhar um campo
