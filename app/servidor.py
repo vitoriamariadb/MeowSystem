@@ -4139,6 +4139,9 @@ PROVEDORES = {
     # que o pack IMPORTADO no ar pede (decisão 9, P79). Pack do repositório dá
     # lista vazia, e com ela nenhum botão e nenhum argumento aceito.
     "extensoes_de_terceiro": lambda: _extensoes_de_terceiro(),
+    # O argumento do «Era escolha minha»: o caminho que o `wallpaper.sh` devolveu
+    # e deixou na pendência (P80, item 8). Ver `PENDENCIA_PAREDE`.
+    "fontes_revertidas": lambda: _fontes_revertidas(),
 }
 
 
@@ -5043,6 +5046,17 @@ ACOES = {
     #   «Favoritos» e nenhuma imagem oferecia o gesto. `oculta` pelo motivo das
     #   outras desta ficha: o argumento é uma imagem, e quem a escolhe é a
     #   galeria. Sem pergunta: guardar uma cópia se desfaz com o outro botão.
+    # O «ERA ESCOLHA MINHA» DO PAPEL DE PAREDE DEVOLVIDO — P80 (item 8). Ver
+    #   `PENDENCIA_PAREDE`. `oculta` pelo motivo das de cima: o argumento é um
+    #   caminho, e quem o escolhe é a pendência.
+    "wallpaper_permitir": {
+        "rotulo": "Manter a imagem que eu pus",
+        "grupo": "Papel de parede",
+        "natureza": "gravar",
+        "argv": _meow("wallpaper", "permitir", "@ARG@"), "arg": "fontes_revertidas",
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Autoriza a imagem que você pôs: o carrossel para de devolvê-la.",
+    },
     "wallpaper_favoritar": {
         "rotulo": "Guardar nas favoritas",
         "grupo": "Papel de parede",
@@ -6834,6 +6848,22 @@ ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar pelo tema do pack"),
 #   saem do pack no ar, e só quando ele NÃO mora no `packs/` do repositório —
 #   a mesma régua do módulo, com os links resolvidos.
 PENDENCIA_EXTENSAO = "vscode-extensao-de-terceiro"
+
+# O PAPEL DE PAREDE DEVOLVIDO — 10/10/2026, P80 (item 8). O `wallpaper.sh`
+#   devolve ao carrossel a saída que aponta para fora dele, e terminava
+#   mandando digitar `meow wallpaper permitir "<caminho>"` se a imagem era
+#   escolha de quem usa. Virou esta pendência, com o comando na linha; o
+#   botão «Era escolha minha» roda o mesmo `permitir`, com o caminho que o
+#   servidor tira do comando — e só ele (`fontes_revertidas`).
+PENDENCIA_PAREDE = "wallpaper-fonte-revertida"
+PREFIXO_PERMITIR = "meow wallpaper permitir "
+
+
+def _fontes_revertidas():
+    """Os caminhos que as pendências do papel de parede devolvido pedem."""
+    return sorted({p["comando"][len(PREFIXO_PERMITIR):] for p in pendencias()
+                   if p["id"] == PENDENCIA_PAREDE and p["comando"].startswith(PREFIXO_PERMITIR)
+                   and len(p["comando"]) > len(PREFIXO_PERMITIR)})
 RE_EXTENSAO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*\.[A-Za-z0-9][A-Za-z0-9-]*$")
 
 
@@ -6929,6 +6959,8 @@ def onde_na_tela(ident):
                                   ABA_INICIO)
     if ident == PENDENCIA_EXTENSAO:
         return "«Instalar», na aba %s" % ABA_INICIO
+    if ident == PENDENCIA_PAREDE:
+        return "«Era escolha minha», na aba %s" % ABA_INICIO
     if ident == "inicio":
         return "na aba %s" % ABA_INICIO
     esquema = ler_esquema()
@@ -6980,6 +7012,10 @@ def pendencias():
                 # Um botão por extensão que o pack importado pede (decisão 9,
                 # P79), com o selo de rede da ação; a lista vazia (o pack já é
                 # do repositório) não desenha botão nenhum.
+                if ident == PENDENCIA_PAREDE and comando.startswith(PREFIXO_PERMITIR):
+                    escolha = [{"acao": "wallpaper_permitir", "rotulo": "Era escolha minha",
+                                "argumento": comando[len(PREFIXO_PERMITIR):]}]
+                    nome = "Papel de parede devolvido"
                 if ident == PENDENCIA_EXTENSAO and comando:
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]

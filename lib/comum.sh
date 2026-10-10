@@ -1797,10 +1797,15 @@ meow_pendencia_acionavel() {
   #   `ACAO_DA_PENDENCIA` do servidor não ganha «Resolver» em lugar nenhum.
   #   Agora quem nomeia é o `meow_onde_no_painel`, e sem botão a frase não
   #   promete botão.
+  # [O COMANDO SAI QUANDO HÁ BOTÃO — 10/10/2026, P80 (item 8). A linha era
+  #   «resolve: <comando>  (ou, no painel, «X»)»: dentro da gaveta do painel,
+  #   a tela mandando digitar o que um botão faz. Com botão, a linha diz só o
+  #   botão; o comando fica no TSV, que é de onde o botão sabe o que rodar, e
+  #   na linha só quando não há botão nenhum (um terminal sem o painel).]
   if [ -n "$comando" ]; then
     local onde; onde="$(meow_onde_no_painel "$id")"
     if [ -n "$onde" ]; then
-      meow_info "resolve: $comando  (ou, no painel, $onde)"
+      meow_info "resolve: no painel, $onde"
     else
       meow_info "resolve: $comando"
     fi
