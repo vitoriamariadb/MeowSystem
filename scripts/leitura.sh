@@ -266,7 +266,7 @@ LEITURA_TEMPERATURA="${LEITURA_TEMPERATURA:-3500}"
 LEITURA_TEXTURA="${LEITURA_TEXTURA:-0.35}"
 LEITURA_RAMPA_MIN="${LEITURA_RAMPA_MIN:-0}"
 
-LEITURA_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/v1"
+LEITURA_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/$(meow_cosmic_v com.system76.CosmicComp)"
 LEITURA_K_TEMP="$LEITURA_BASE/leitura_temperatura"
 LEITURA_K_TEXT="$LEITURA_BASE/leitura_textura"
 LEITURA_K_AGENDA="$LEITURA_BASE/leitura_agenda"
@@ -283,8 +283,8 @@ LEITURA_APPLET_SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$LEITUR
 # é o meio — e um applet arrastado para o meio em Ajustes só aparece no segundo.
 # Ver o bloco em `leitura_build.sh`: olhar só as asas dava aviso falso sobre um
 # applet que estava na tela.
-LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
-LEITURA_APPLET_MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center"
+LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_wings"
+LEITURA_APPLET_MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_center"
 
 # ONDE O APPLET GUARDA O PONTO QUE ELA ARRASTOU — 31/08/2026
 #   `Config::new_state(NS_ESTADO, 1)` do libcosmic escreve em
@@ -296,7 +296,7 @@ LEITURA_ESTADO_BASE="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/$LEITURA_APPLE
 LEITURA_K_ULT_T="$LEITURA_ESTADO_BASE/ultima_temperatura"
 LEITURA_K_ULT_X="$LEITURA_ESTADO_BASE/ultima_textura"
 
-LEITURA_COMP="/usr/bin/cosmic-comp"
+LEITURA_COMP="$(meow_cosmic_comp_disco)"   # P76: o do próximo login (build do shim ou /usr/bin)
 LEITURA_MARCADOR="AURORA-READING-MODE"
 # O `LEITURA_NIGHTLIGHT` (o `/var/lib/aurora/night-light-temp`) saiu em
 # 24/09/2026 (P39) — ver o bloco "O NIGHT LIGHT DA AURORA" no `cmd_estado`.
@@ -927,7 +927,7 @@ cmd_estado() {
   if [ -x "$LEITURA_APPLET_BIN" ]; then
     meow_ok "$(_leitura_col "applet: binário")$LEITURA_APPLET_BIN"
   else
-    meow_pula "$(_leitura_col "applet: binário")ausente — LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
+    meow_pula "$(_leitura_col "applet: binário")ausente — o conserto do doctor o compila"
   fi
   if [ -f "$LEITURA_APPLET_SOMBRA" ]; then
     meow_ok "$(_leitura_col "applet: .desktop")$LEITURA_APPLET_SOMBRA"
@@ -1038,10 +1038,89 @@ cmd_remover() {
   return "$rc"
 }
 
+# --- adotar -----------------------------------------------------------------
+# O PAINEL ESCOLHEU, E O CONTROLE DA BARRA PASSA A GUARDAR O MESMO — 10/10/2026,
+# P77 (achado 26 do uso real de 09/10)
+#   O uso real mediu duas fontes de verdade: o painel dizia 3500 K e «Sim», a
+#   máquina estava em 6300 K e «Não», e o cartão explicava «quem guarda esse
+#   valor é o controle do painel; Salvar e aplicar faz este ajuste vencer». A
+#   segunda metade não era verdade: o «Salvar e aplicar» grava o meow.conf, e
+#   este arquivo, por desenho (o bug de 31/08, no cabeçalho do
+#   `_leitura_resolver_alvo`), lê PRIMEIRO o que o applet guarda — o meow.conf
+#   é o padrão de fábrica. O 3500 escolhido no painel não chegava nunca.
+#
+#   A cura não é o relógio voltar a sobrescrever o slider (o defeito de 31/08):
+#   é o painel escrever onde a máquina lê, quando QUEM USA escolhe no painel.
+#   Escolher no painel e arrastar na barra viram o mesmo gesto, e a última mão
+#   vence. Este verbo é chamado pelo `servidor.py` depois de gravar o meow.conf,
+#   com as chaves que o «Salvar e aplicar» levou; ele lê o valor do conf (o que
+#   acabou de ser gravado) e o põe na peça do applet que guarda a mesma coisa:
+#     LEITURA_TEMPERATURA     estado do applet, `ultima_temperatura`
+#     LEITURA_TEXTURA         estado do applet, `ultima_textura`
+#     LEITURA_AGENDA          `leitura_agenda` do CosmicComp (sim/nao; vazio,
+#                             que é «não toca», não escreve nada)
+#     LEITURA_HORARIO_INICIO  `leitura_hora_inicio` do CosmicComp, "HH:MM"
+#     LEITURA_HORARIO_FIM     `leitura_hora_fim` do CosmicComp, "HH:MM"
+#   Valor que não passa nos mesmos portões do `_leitura_resolver_alvo` não é
+#   escrito: um lixo no conf não pode virar a memória do applet.
+#
+#   O APPLET DE PÉ RELÊ O HORÁRIO E A AGENDA NA HORA (`watch_config`); o ponto
+#   dos sliders ele lê do estado ao nascer, e o relógio deste arquivo já o lê
+#   do disco a cada tique — a tela segue o painel no minuto seguinte.
+cmd_adotar() {
+  local chave v m r rc="$MEOW_OK"
+  if [ "$#" -eq 0 ]; then
+    meow_erro "uso: leitura.sh adotar CHAVE..."; return "$MEOW_ERRO"
+  fi
+  for chave in "$@"; do
+    case "$chave" in
+      LEITURA_TEMPERATURA)
+        v="$LEITURA_TEMPERATURA"
+        case "$v" in ""|*[!0-9]*) meow_aviso "$chave='$v' não é kelvin inteiro"; continue ;; esac
+        if [ "$v" -lt "$LEITURA_PISO" ] || [ "$v" -gt "$LEITURA_NEUTRO" ]; then
+          meow_aviso "$chave=$v fora de $LEITURA_PISO..$LEITURA_NEUTRO"; continue
+        fi
+        meow_escrever "$LEITURA_K_ULT_T" "$v" 644 ;;
+      LEITURA_TEXTURA)
+        v="$LEITURA_TEXTURA"
+        case "$v" in ""|*[!0-9.]*) meow_aviso "$chave='$v' não é número com ponto"; continue ;; esac
+        LC_ALL=C awk -v x="$v" 'BEGIN{ exit !(x >= 0 && x <= 1) }' \
+          || { meow_aviso "$chave=$v fora de 0..1"; continue; }
+        meow_escrever "$LEITURA_K_ULT_X" "$v" 644 ;;
+      LEITURA_AGENDA)
+        case "$LEITURA_AGENDA" in
+          sim) v=true ;;
+          nao) v=false ;;
+          *) continue ;;
+        esac
+        meow_escrever "$LEITURA_K_AGENDA" "$v" 644 ;;
+      LEITURA_HORARIO_INICIO|LEITURA_HORARIO_FIM)
+        if [ "$chave" = LEITURA_HORARIO_INICIO ]; then v="$LEITURA_HORARIO_INICIO"; else v="$LEITURA_HORARIO_FIM"; fi
+        m="$(_leitura_minutos "$v")" || { meow_aviso "$chave='$v' não é HH:MM"; continue; }
+        if [ "$chave" = LEITURA_HORARIO_INICIO ]; then
+          meow_escrever "$LEITURA_K_INI" "\"$(_leitura_hhmm "$m")\"" 644
+        else
+          meow_escrever "$LEITURA_K_FIM" "\"$(_leitura_hhmm "$m")\"" 644
+        fi ;;
+      *) meow_aviso "$chave não é guardada pelo controle do painel"; continue ;;
+    esac
+    r=$?
+    case "$r" in
+      "$MEOW_OK") ;;
+      "$MEOW_DIVERGENTE") meow_muda "$chave: o controle do painel passa a guardar o mesmo valor"
+                          rc="$MEOW_DIVERGENTE" ;;
+      *) meow_erro "não consegui gravar o lugar de $chave"; return "$MEOW_ERRO" ;;
+    esac
+  done
+  meow_seco || meow_registrar "leitura.sh adotar $* rc=$rc"
+  return "$rc"
+}
+
 case "${1:-aplicar}" in
   aplicar|tique) cmd_aplicar ;;
   conferir)      cmd_conferir ;;
   estado)        cmd_estado ;;
   remover)       cmd_remover ;;
-  *) meow_erro "uso: leitura.sh {aplicar|conferir|estado|remover}"; exit "$MEOW_ERRO" ;;
+  adotar)        shift; cmd_adotar "$@" ;;
+  *) meow_erro "uso: leitura.sh {aplicar|conferir|estado|remover|adotar CHAVE...}"; exit "$MEOW_ERRO" ;;
 esac

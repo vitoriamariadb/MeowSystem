@@ -104,7 +104,7 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 JANELAS_TILING="${JANELAS_TILING:-}"
 JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}"
 
-JANELAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/v1"
+JANELAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/$(meow_cosmic_v com.system76.CosmicComp)"
 JANELAS_ALVO_LIGADO="$JANELAS_BASE/autotile"
 JANELAS_ALVO_ESCOPO="$JANELAS_BASE/autotile_behavior"
 JANELAS_ALVO_PIN="$JANELAS_BASE/pinned_workspaces"
@@ -302,7 +302,10 @@ cmd_conferir() {
     return "$MEOW_OK"
   fi
 
-  meow_muda "lado a lado divergente:"
+  # A primeira linha diz o que o conf pede, e não termina em dois-pontos: é ela
+  # que a tabela do doctor mostra, e "divergente:" sozinho saía cortado
+  # (achado 5 de 09/10, P75). O detalhe de cada chave segue embaixo.
+  meow_muda "lado a lado divergente do meow.conf (ele pede autotile=$ligado, $escopo)"
   [ "$atual_l" = "$ligado" ] || meow_muda "  autotile: disco='${atual_l:-<ausente>}', conf pede '$ligado'"
   [ "$atual_e" = "$escopo" ] || meow_muda "  autotile_behavior: disco='${atual_e:-<ausente>}', conf pede '$escopo'"
   if [ -n "$pin_div" ] && [ "$pin_div" != "0" ]; then

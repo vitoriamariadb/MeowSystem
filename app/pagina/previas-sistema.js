@@ -1948,6 +1948,38 @@
     return svg;
   }
 
+  /* O PAR DE CADA CARTÃO MOSTRA SÓ A PEÇA QUE A CHAVE MEXE — 10/10/2026, P77
+   *   (achado 21). Cada Sim/Não da página desenhava a máquina INTEIRA, com uma
+   *   peça de dez pixels trocando de traço: sete pares quase iguais, lado a
+   *   lado, e quem usa não achava a diferença sem procurar. O desenho do alto
+   *   da seção continua sendo a máquina inteira (é ele que mostra como as
+   *   peças se ligam); no botão, o enquadramento fecha na peça: o relógio do
+   *   conserto, a engrenagem do vigia, a notificação dele. A figura é a mesma
+   *   (o mesmo `desenharManutencao`), só o `viewBox` muda — então o par nunca
+   *   desenha algo que o desenho grande não desenharia.
+   *   A NOTIFICAÇÃO ANDA: a tarja de cada peça ligada entra na ordem conserto,
+   *   logo, bandeja, e a peça desligada não tem tarja. O enquadramento sai da
+   *   mesma conta do `desenharManutencao`, com a tela de agora (`val`); sem
+   *   tarja nos dois lados, o par nem chega aqui (o `parVisivel` do app.js
+   *   mede a figura inteira e devolve «Sim» e «Não»). */
+  function recorteManutencao(chave, val) {
+    const d = lerManutencao(val);
+    const peca = (cx) => (cx - 11) + " 11.4 22 23.2";
+    const tarja = (i) => "2 " + q(37 + i * 7.6 - 1) + " 30 8.6";
+    const ligados = [d.reparo, d.vigias[0].ligado, d.vigias[1].ligado];
+    const ordem = (i) => ligados.slice(0, i).filter(Boolean).length;
+    switch (chave) {
+      case "AUTO_REPARO": return peca(12);
+      case "ASSETS_VIGIA": return peca(39);
+      case "FLATPAK_VIGIA": return peca(62);
+      case "STEAM_VIGIA": return peca(85);
+      case "AUTO_REPARO_NOTIFICAR": return tarja(ordem(0));
+      case "ASSETS_VIGIA_NOTIFICAR": return tarja(ordem(1));
+      case "FLATPAK_VIGIA_NOTIFICAR": return tarja(ordem(2));
+      default: return null;
+    }
+  }
+
   function legendaManutencao(val) {
     const d = lerManutencao(val);
     const c = conferir(val, REGRAS_MANUTENCAO);
@@ -2653,7 +2685,9 @@
     "Dia e noite": seguro("o dia e a noite", desenharNoite, legendaNoite),
     "Modo de leitura": seguro("o modo de leitura", desenharLeitura, legendaLeitura),
     "Lançadores e jogos": seguro("os lançadores e os jogos", desenharLancador, legendaLancador),
-    "Manutenção": seguro("a manutenção", desenharManutencao, legendaManutencao),
+    /* O `recorte` é lido pelo `parDeBotoes` do app.js: ver `recorteManutencao`. */
+    "Manutenção": Object.assign(seguro("a manutenção", desenharManutencao, legendaManutencao),
+                                { recorte: recorteManutencao }),
     "Áreas de trabalho": seguro("as áreas de trabalho", desenharAreas, legendaAreas),
     /* A CHAVE É O NOME DA SEÇÃO, sem bloco: esta página não tem grupo de chaves
      * para batizar um, e é o `desenhoDaSecaoSemChaves` que a procura por aqui. */

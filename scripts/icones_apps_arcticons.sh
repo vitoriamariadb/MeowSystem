@@ -104,6 +104,14 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 ORIGEM="$RAIZ/assets/icones/arcticons-apps"
 MAPA="$RAIZ/assets/icones/apps-arcticons.map"
+# A ESCOLHA DE TRAÇO DO PAINEL MORA COM QUEM USA — 09/10/2026, P73 (I3). O
+# «Usar este ícone» com um glifo de traço gravava a linha no mapa acima, dentro
+# do clone, e copiava o glifo para `arcticons-apps/`: usar o programa sujava o
+# repositório (a regra da P21). A linha vai agora para este arquivo, ao lado do
+# meow.conf, no MESMO formato; lido depois do mapa do projeto, ele vence o app
+# que os dois nomeiam. O glifo é o nome em `arcticons-apps/` ou, para as outras
+# pastas de traço que a ficha oferece, o caminho a partir da raiz.
+MAPA_USUARIO="${MEOW_ICONES_TRACO:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-traco.map}"
 ORIGEM_CONV="$RAIZ/assets/icones/convertidos-apps"
 MAPA_CONV="$RAIZ/assets/icones/apps-convertidos.map"
 MAPA_MARCA="$RAIZ/assets/icones/apps-marca.map"
@@ -125,7 +133,9 @@ BASE="$HOME/.local/share/icons/$TEMA"
 #   `meow_flavor` que roda sob `set -e`, e o 1 de «sem resposta do pack.py»
 #   matava o script na própria atribuição. A tela ficava com o aviso do
 #   `meow_flavor` e mais nada: nem quem parou, nem o que ficou por fazer.
-FLAVOR="$(meow_flavor)" || {
+# O DO LADO QUE A TELA VESTE (P74 item 10): com `MODO="claro"` o traço sai da
+#   paleta do claro do pack, e não do escuro que o FLAVOR nomeia.
+FLAVOR="$(meow_flavor_vestido)" || {
   meow_erro "aplicativos em traço: sem o flavor não há cor para o traço — nada foi tocado"
   exit "$MEOW_ERRO"
 }
@@ -259,6 +269,8 @@ _ler_mapa() {
     esac
     IFS=':' read -r nome glifo cor marca <<<"$linha"
     [ -n "$nome" ] && [ -n "$glifo" ] && [ -n "$cor" ] || continue
+    # O caminho (só o do mapa de quem usa) fica dentro da raiz: `..` não sobe.
+    case "$glifo" in */*) case "/$glifo/" in */../*) continue ;; esac ;; esac
     intocavel "$nome" && continue
     if [ -n "${CURADO[$nome]:-}" ]; then
       meow_debug "$nome: arte escolhida na curadoria — o Arcticons sai de cima"
@@ -266,10 +278,13 @@ _ler_mapa() {
     fi
     GLIFO["$nome"]="$glifo"
     ARTE["$nome"]="$ORIGEM/$glifo.svg"
+    case "$glifo" in */*) ARTE["$nome"]="$RAIZ/$glifo" ;; esac
     ACERVO["$nome"]="Arcticons"
     COR["$nome"]="$cor"
     if [ "${marca:-}" = "alias" ]; then ALIAS_OK["$glifo"]=1; ALIAS_OK["cor:$cor"]=1; fi
-  done < "$MAPA"
+  # O `echo` entre os dois é a quebra que um arquivo sem `\n` no fim não tem:
+  # sem ela, a última linha de um colaria na primeira do outro.
+  done < <(cat "$MAPA"; echo; [ -f "$MAPA_USUARIO" ] && cat "$MAPA_USUARIO"; echo)
   # `return 0` NÃO É DECORAÇÃO: um `while` devolve o status do último comando do
   # corpo, e a última linha do mapa não é um alias — o teste devolveria 1 e, com
   # `set -e`, o script morreria aqui, calado e com código 1. Aconteceu no irmão.
@@ -393,7 +408,7 @@ _ler_paleta() {
   local nome saida
   for nome in "${COR[@]}"; do
     [ -n "${HEX[$nome]:-}" ] && continue
-    saida="$(python3 - "$PALETA" "$FLAVOR" "$nome" <<'PY'
+    saida="$(python3 -I - "$PALETA" "$FLAVOR" "$nome" <<'PY'
 import json, sys
 paleta, flavor, chave = sys.argv[1], sys.argv[2], sys.argv[3]
 d = json.load(open(paleta))["flavors"]
@@ -636,8 +651,13 @@ _aplicar() {
   #   relê o tema)", e descrevia a tela certa: o arquivo no disco e a dock com o
   #   desenho velho. Ela salvou ícones pela interface e não viu nenhum — "nada tá
   #   aplicando de verdade". O painel e o menu relêem cada um pela porta dele.
-  meow_tela_reler
-  case $? in
+  # O `|| rc=$?` é o que segura o `set -e` deste script (conferência da P80):
+  #   solto, um reler que não devolve 0 — 4 quando o install.sh o adia para o
+  #   fim da passada, 3 fora da sessão — derrubava o script com esse código, e
+  #   o `concluir` do install.sh contava como PULADO o passo que pôs os desenhos.
+  rc=0
+  meow_tela_reler || rc=$?
+  case $rc in
     0) meow_seco || meow_ok "os ícones novos já estão na dock e no menu" ;;
     3) meow_info "fora da sessão gráfica: os ícones novos aparecem no próximo login" ;;
   esac

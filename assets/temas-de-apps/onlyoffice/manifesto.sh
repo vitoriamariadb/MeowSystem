@@ -217,7 +217,7 @@ meow_app_conferir() {
   meow_app_detectar || return "$MEOW_SEM_DEPENDENCIA"
   _oo_no_ar
   if [ "$_OO_NO_AR" != "$_OO_TEMA_ID" ] && [ -n "$_OO_NO_AR" ]; then
-    meow_pula "OnlyOffice: está no tema '$_OO_NO_AR', que não veio daqui — trocar é decisão dela"
+    meow_pula "OnlyOffice: está no tema '$_OO_NO_AR', que não veio daqui — trocar é decisão sua"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   local rc="$MEOW_OK"

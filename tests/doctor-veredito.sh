@@ -1,0 +1,290 @@
+#!/usr/bin/env bash
+# doctor-veredito.sh — o doctor corrige, e o veredito final é o pior estado.
+#
+# POR QUE ESTE ARQUIVO NASCEU EM 09/10/2026 (P75)
+#   No uso real de 09/10, a mesma saída do «Conferir a máquina» trazia
+#     !!   completar   MeowSystem-Icons-Base não está instalado …
+#          sudo apt install papirus-icon-theme
+#     --   pastas      … pastas coloridas puladas
+#          instale com: sudo apt install papirus-icon-theme
+#   e terminava em `ok nada a consertar` — no painel, «TUDO CONFERE». Três
+#   defeitos de uma vez, e os três que ela já tinha pedido para nunca mais:
+#   «O doctor não tem que avisar nada. Tem que corrigir.» (09/10) e «nenhuma
+#   feature pode mandar o usuário consertar à mão» (21/09, ×3).
+#
+# O QUE ESTE TESTE COBRA
+#   1. O veredito: o pulado que AVISOU (`!!`) pesa como fora do lugar; o
+#      pulado de rotina (`--`) não. Nenhum dos dois termina em «nada a
+#      consertar» quando o primeiro existe.
+#   2. O `--consertar` termina pelo DEPOIS: o 3 cuja dependência chegou na
+#      mesma passada é consertado; o que continua fora (sem conserto
+#      automático, ou um conserto que diz que fez e não fez) é nomeado e a
+#      passada sai 2. Tudo no lugar depois do conserto: sai 1, «consertado».
+#   3. As duas faltas da base de ícones (completar e pastas) saem 3 com `!!`
+#      e sem receita.
+#   4. A passada inteira do doctor, numa casa de brinquedo, não imprime
+#      receita de `apt` nenhuma.
+#
+# O QUE É FALSO AQUI: `sudo`, `pkill`, `kill` e companhia registram e recusam,
+#   como no `tests/doctor-so-le.sh` — a máquina de quem usa tem `NOPASSWD: ALL`,
+#   e um teste que chama sudo ali ESCREVE no sistema. Os itens 1 e 2 trocam as
+#   conferências por funções de mentira: o que se prova é o runner, não os
+#   scripts.
+#
+#   0 = passou · 1 = falhou · 2 = erro deste teste
+set -uo pipefail
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+ok()    { printf '  ok   %s\n' "$*"; }
+falha() { printf '  NÃO  %s\n' "$*" >&2; ACHADOS=$((ACHADOS + 1)); }
+ACHADOS=0
+
+TMP="$(mktemp -d)" || { printf 'erro: mktemp\n' >&2; exit 2; }
+trap 'rm -rf "$TMP"' EXIT
+FALSO="$TMP/falso"; mkdir -p "$FALSO" || exit 2
+export DOCTOR_REGISTRO="$TMP/registro"; : > "$DOCTOR_REGISTRO"
+for c in sudo pkill killall notify-send systemd-run pkexec; do
+  printf '#!/bin/sh\necho "$(basename "$0") $*" >> "$DOCTOR_REGISTRO"\nexit 1\n' > "$FALSO/$c"
+  chmod 755 "$FALSO/$c"
+done
+
+# Roda o `cmd_doctor` do bin/meow com as conferências e os consertos que o
+# cenário define. O bin/meow é lido sem a última linha (o despacho), numa
+# casa de brinquedo com o meow.conf de fábrica.
+cenario() {   # $1 = arquivo com as definições · resto = argumentos do doctor
+  local defs="$1"; shift
+  local casa="${CASA_CENARIO:-$TMP/casa-$RANDOM}"
+  mkdir -p "$casa/.config/meow"
+  cp "$RAIZ/meow.conf.exemplo" "$casa/.config/meow/meow.conf"
+  env PATH="${PATH_CENARIO:-$FALSO}:$PATH" HOME="$casa" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+    XDG_CONFIG_HOME="$casa/.config" XDG_STATE_HOME="$casa/.local/state" \
+    bash -c '
+      source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow")
+      source "$1"; shift
+      "${CMD_CENARIO:-cmd_doctor}" "$@"' _ "$defs" "$@" 2>&1
+}
+
+printf '\n--- 1. o veredito sem conserto ---\n'
+cat > "$TMP/c1" <<'FIM'
+VERIFICAVEIS=(a b)
+chk_a() { echo "tudo certo"; return 0; }
+chk_b() { meow_aviso "a peça não está no disco — pulado"; return 3; }
+FIM
+saida="$(cenario "$TMP/c1")"; rc=$?
+if [ "$rc" = "1" ] && ! grep -q 'nada a consertar' <<< "$saida" \
+   && grep -qE '^ *!! +b ' <<< "$saida"; then
+  ok "o pulado que avisou sai em !!, e o doctor sai 1 sem «nada a consertar»"
+else
+  falha "o pulado que avisou não pesou (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
+cat > "$TMP/c2" <<'FIM'
+VERIFICAVEIS=(a b)
+chk_a() { echo "tudo certo"; return 0; }
+chk_b() { meow_pula "o Heroic não está instalado — nada a fazer"; return 3; }
+FIM
+saida="$(cenario "$TMP/c2")"; rc=$?
+if [ "$rc" = "0" ] && grep -q 'nada a consertar' <<< "$saida"; then
+  ok "o pulado de rotina (--) não é divergência"
+else
+  falha "o pulado de rotina virou divergência (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
+# A RECUSA DELA NÃO É DIVERGÊNCIA — conferência da P75 (09/10/2026). O
+# «não quero o starship» fica gravado no estado, e o `prompt.sh` o dizia com
+# `!!`: com o pulado que avisa pesando no veredito, a escolha dela virava
+# «há divergências» todo dia. Aqui é o `chk_prompt` de verdade, sem starship no
+# PATH e com a recusa gravada na casa de brinquedo.
+cat > "$TMP/c2c" <<'FIM'
+VERIFICAVEIS=(prompt)
+FIM
+mkdir -p "$TMP/casa-recusa/.local/state/meowsystem"
+: > "$TMP/casa-recusa/.local/state/meowsystem/starship-recusado"
+sem_starship="$(printf '%s' "$PATH" | tr ':' '\n' | while IFS= read -r d; do
+  [ -n "$d" ] && [ ! -x "$d/starship" ] && printf '%s:' "$d"; done)"
+saida="$(PATH="${sem_starship%:}" CASA_CENARIO="$TMP/casa-recusa" cenario "$TMP/c2c")"; rc=$?
+if [ "$rc" = "0" ] && grep -qE '^ *-- +prompt ' <<< "$saida" && grep -q 'nada a consertar' <<< "$saida"; then
+  ok "o starship recusado sai em --, e o doctor sai 0"
+else
+  falha "a recusa do starship pesou como divergência (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
+# O `meow status` lê a mesma tabela pela mesma régua: o pulado de rotina e a
+# escolha dela (4) não são divergência, e ele não manda rodar um conserto que
+# responderia "nada a consertar" (D2 de 01-regressoes.md).
+cat > "$TMP/c2b" <<'FIM'
+VERIFICAVEIS=(a b c)
+chk_a() { echo "tudo certo"; return 0; }
+chk_b() { meow_pula "o Heroic não está instalado — nada a fazer"; return 3; }
+chk_c() { meow_pula "o applet desligou o 'Agendar' — o degrau é o que você arrastou"; return 4; }
+FIM
+saida="$(CMD_CENARIO=cmd_status cenario "$TMP/c2b")"; rc=$?
+if [ "$rc" = "0" ] && grep -q 'nada divergente' <<< "$saida" \
+   && ! grep -q 'meow doctor --consertar' <<< "$saida"; then
+  ok "o status não chama de divergência o pulado nem a escolha dela"
+else
+  falha "o status chamou de divergência o que foi pulado (rc=$rc)"; sed -n '/Divergências/,$p' <<< "$saida" | sed 's/^/       /' >&2
+fi
+
+printf '\n--- 2. o --consertar termina pelo depois ---\n'
+# `dep` instala o que o `b` precisa; o `b` saiu 3 na tabela e só se conserta
+# se o laço perguntar de novo depois do `dep`.
+cat > "$TMP/c3" <<'FIM'
+VERIFICAVEIS=(dep b)
+M="$HOME/marca"
+chk_dep() { [ -f "$M.dep" ] && { echo "dep no lugar"; return 0; }; echo "falta dep"; return 1; }
+fix_dep() { : > "$M.dep"; echo "dep posta"; return 1; }
+chk_b() {
+  [ -f "$M.dep" ] || { meow_aviso "sem dep — b pulado"; return 3; }
+  [ -f "$M.b" ] && { echo "b no lugar"; return 0; }
+  echo "b fora"; return 1
+}
+fix_b() { : > "$M.b"; echo "b posto"; return 1; }
+FIM
+saida="$(cenario "$TMP/c3" --consertar)"; rc=$?
+if [ "$rc" = "1" ] && grep -q 'b posto' <<< "$saida" && grep -q 'consertado' <<< "$saida"; then
+  ok "o 3 cuja dependência chegou na mesma passada foi consertado (rc=1, «consertado»)"
+else
+  falha "o 3 com a dependência recém-posta não foi consertado (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
+cat > "$TMP/c4" <<'FIM'
+VERIFICAVEIS=(a patches)
+chk_a() { echo "tudo certo"; return 0; }
+chk_patches() { echo "falta recompilar"; return 1; }
+FIM
+saida="$(cenario "$TMP/c4" --consertar)"; rc=$?
+if [ "$rc" = "2" ] && grep -q 'patches — continua fora' <<< "$saida" \
+   && ! grep -q 'nada a consertar' <<< "$saida"; then
+  ok "o que não tem conserto automático termina vermelho e nomeado (rc=2)"
+else
+  falha "o sem-conserto terminou como se nada estivesse fora (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
+cat > "$TMP/c5" <<'FIM'
+VERIFICAVEIS=(a)
+chk_a() { echo "a fora"; return 1; }
+fix_a() { echo "a consertado (mentira)"; return 1; }
+FIM
+saida="$(cenario "$TMP/c5" --consertar)"; rc=$?
+if [ "$rc" = "2" ] && ! grep -q 'consertado —' <<< "$saida"; then
+  ok "o conserto que diz que fez e não fez não vira «consertado» (rc=2)"
+else
+  falha "o conserto que não fez virou «consertado» (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
+# Conferência da P75 (09/10/2026): o conserto de uma linha desarruma outra que
+# estava no lugar (o `completar` põe arquivos no tema e o `index.theme` do
+# `icones` fica para trás). A segunda tabela confere TUDO quando algo foi
+# escrito, e não só o que estava fora antes — senão a passada diz «tudo no
+# lugar» com a linha `a` fora.
+cat > "$TMP/c5b" <<'FIM'
+VERIFICAVEIS=(a b)
+M="$HOME/marca"
+chk_a() { [ -f "$M.b" ] && { echo "a desarrumada pelo b"; return 1; }; echo "a no lugar"; return 0; }
+chk_b() { [ -f "$M.b" ] && { echo "b no lugar"; return 0; }; echo "b fora"; return 1; }
+fix_b() { : > "$M.b"; echo "b posto"; return 1; }
+FIM
+saida="$(cenario "$TMP/c5b" --consertar)"; rc=$?
+if [ "$rc" = "2" ] && grep -q '^ *erro a — continua fora' <<< "$saida" \
+   && ! grep -q 'tudo no lugar' <<< "$saida"; then
+  ok "a linha que estava no lugar e o conserto de outra desarrumou é nomeada (rc=2)"
+else
+  falha "a passada não viu a linha que o conserto desarrumou (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
+# O pacote que falta vai pela ponte root, sem senha. A ponte aqui é de
+# brinquedo (registra o que recebe no stdin e marca o "instalado"), e o sudo de
+# brinquedo só a executa a ELA — qualquer outro sudo segue registrado e
+# recusado. O perfil diz que a casa é esta, que é o que o `meow_ponte_viva`
+# exige antes de usar ponte nenhuma.
+PONTE_DIR="$TMP/ponte"; mkdir -p "$PONTE_DIR"
+cat > "$PONTE_DIR/ponte_root.sh" <<'FIM'
+#!/bin/sh
+[ "$1" = "pacotes" ] || exit 0
+cat > "$PONTE_DIR_REG/recebido"
+: > "$PONTE_DIR_REG/instalado"
+FIM
+chmod 755 "$PONTE_DIR/ponte_root.sh"
+cat > "$TMP/c6" <<'FIM'
+VERIFICAVEIS=(pacotes)
+SEM_CONSERTO=" "
+_pacotes_faltando() { [ -f "$PONTE_DIR_REG/instalado" ] || echo papirus-icon-theme; }
+FIM
+mkdir -p "$TMP/sudo-ponte"
+cat > "$TMP/sudo-ponte/sudo" <<FIM
+#!/bin/sh
+[ "\$1" = "-n" ] && [ "\$2" = "$PONTE_DIR/ponte_root.sh" ] && { shift; exec "\$@"; }
+echo "sudo \$*" >> "\$DOCTOR_REGISTRO"; exit 1
+FIM
+chmod 755 "$TMP/sudo-ponte/sudo"
+printf 'lar=%s\n' "$TMP/casa-ponte" > "$PONTE_DIR/perfil"
+saida="$(PATH_CENARIO="$TMP/sudo-ponte:$FALSO" MEOW_PONTE="$PONTE_DIR/ponte_root.sh" PONTE_DIR_REG="$PONTE_DIR" \
+         CASA_CENARIO="$TMP/casa-ponte" cenario "$TMP/c6" --consertar)"; rc=$?
+if [ "$rc" = "1" ] && [ "$(cat "$PONTE_DIR/recebido" 2>/dev/null)" = "papirus-icon-theme" ] \
+   && grep -q 'consertado' <<< "$saida"; then
+  ok "o pacote que falta foi pela ponte root (stdin: papirus-icon-theme), sem senha, e terminou verde"
+else
+  falha "o pacote que falta não foi pela ponte (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
+printf '\n--- 3. a base de ícones que falta ---\n'
+CASA="$TMP/casa-base"; mkdir -p "$CASA/.local/share/icons/MeowSystem-Icons/scalable/apps"
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$CASA/.local/share/icons/MeowSystem-Icons/index.theme"
+for s in completar_icones construir_pastas; do
+  saida="$(env PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
+             ICONES_BASE="Base-Que-Nao-Existe" ICONES_PASTAS="cat-mocha-mauve" \
+             MEOW_CAT_FOLDERS="$TMP/sem-upstream" "$RAIZ/scripts/$s.sh" 2>&1)"; rc=$?
+  # 3 quando a base é a única coisa fora; o `completar` numa casa vazia
+  # ainda tem os autorais por pôr, e aí sai 1 — nunca 0 com o aviso por cima.
+  if { [ "$rc" = "3" ] || [ "$rc" = "1" ]; } && grep -qE '^ *!! .*Base-Que-Nao-Existe' <<< "$saida" \
+     && ! grep -qiE 'apt(-get)? install|instale com' <<< "$saida"; then
+    ok "$s: sem a base sai $rc (não 0), com !! e sem receita"
+  else
+    falha "$s: sem a base saiu $rc"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+  fi
+done
+
+printf '\n--- 4. a passada inteira, sem receita ---\n'
+CASA="$TMP/casa-inteira"; mkdir -p "$CASA"
+env PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  "$RAIZ/bin/meow" doctor > "$TMP/inteira" 2>&1
+if grep -qiE 'apt(-get)? install|instale com' "$TMP/inteira"; then
+  falha "o doctor ainda imprime receita:"; grep -iE 'apt(-get)? install|instale com' "$TMP/inteira" | sed 's/^/       /' >&2
+else
+  ok "nenhuma linha do doctor manda instalar à mão"
+fi
+# Nenhuma linha da tabela vazia ou cortada no dois-pontos (achado 5 de 09/10:
+# `files_menu` e `resgatados` sem texto, `escala: saídas ligadas agora:`,
+# `fontes: Fonte da interface`).
+vazias="$(grep -E '^  (ok|~~|--|!!|erro) +[a-z_]+( *| .*:)$' "$TMP/inteira")"
+if [ -n "$vazias" ]; then
+  falha "linha da tabela vazia ou cortada:"; printf '%s\n' "$vazias" | sed 's/^/       /' >&2
+else
+  ok "toda linha da tabela diz alguma coisa inteira"
+fi
+
+printf '\n--- 5. a lista da ponte é a do install.sh ---\n'
+# O verbo `pacotes` da ponte root guarda a lista LITERAL (ela mora no arquivo
+# de root, e não no clone gravável). A cópia só não envelhece calada se alguém
+# a cobra: são os valores do `NECESSARIOS` do `etapa_pacotes` mais os dois que
+# ele acrescenta fora do array.
+do_install="$(sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh" \
+  | grep -oE '\]=[a-zA-Z0-9_.+-]+|faltam\+=\([a-zA-Z0-9_.+-]+\)' \
+  | sed -E 's/^\]=//; s/^faltam\+=\((.*)\)$/\1/' | LC_ALL=C sort -u | paste -sd' ' -)"
+da_ponte="$(sed -n 's/^ *PERMITIDOS=" \(.*\) "$/\1/p' "$RAIZ/scripts/ponte_root.sh" \
+  | tr ' ' '\n' | LC_ALL=C sort -u | paste -sd' ' -)"
+if [ -n "$do_install" ] && [ "$do_install" = "$da_ponte" ]; then
+  ok "a ponte instala exatamente os pacotes do install.sh ($do_install)"
+else
+  falha "as listas divergem — install.sh: [$do_install] · ponte: [$da_ponte]"
+fi
+
+printf '\n'
+if [ "$ACHADOS" -gt 0 ]; then
+  printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2
+  exit 1
+fi
+printf 'passou: o doctor corrige, e o veredito é o pior estado\n'
+exit 0

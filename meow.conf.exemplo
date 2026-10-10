@@ -276,6 +276,9 @@ ESCALA_TELA=""
 CURSOR="catppuccin-mocha-light"
 # @ Versão do tema do ponteiro
 # > Vazio usa a última versão que o projeto testou.
+# [avancado] O release do tema do ponteiro que o instalador baixa, fixado para
+# o acervo não mudar sozinho. Não escolhe QUAL ponteiro (isso é a chave acima):
+# por isso o painel o guarda no «⋯» dos ajustes técnicos (P77, U6).
 CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 
 # --- Áreas de trabalho ------------------------------------------------------
@@ -283,7 +286,7 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 # AS DUAS ÁREAS DE TRABALHO, E POR QUE ELAS SÃO O ÚNICO ASSUNTO DESTE ARQUIVO
 #   QUE NÃO VALE NA HORA — 06/09/2026
 #
-#   Pedido dela, literal: "não temos a seção pra setar os dois ambientes de
+#   Pedido de quem usa, literal: "não temos a seção pra setar os dois ambientes de
 #   trabalho tipo o Meow e o OS". Havia duas áreas com nome nesta máquina e
 #   nenhuma porta no projeto para vê-las, renomeá-las ou reordená-las: a única
 #   forma era editar RON na mão.
@@ -388,7 +391,7 @@ AREAS_ENCAIXE=""
 #   outras dezessete não nomeiam gato nenhum: falam de horário, de tamanho, de
 #   alinhamento, de título e de quando recarregar o painel.
 #   A Coquinha e o Mimir continuam sendo o que vem de fábrica, e continuam
-#   sendo os gatos dela. O que muda é o título: quem chega a este arquivo sem
+#   sendo os gatos da casa. O que muda é o título: quem chega a este arquivo sem
 #   ter os dois gatos lê `Logo do sistema` e sabe do que se trata.
 
 # --- NO DOCK ----------------------------------------------------------------
@@ -405,7 +408,7 @@ LOGO="coquinha"
 
 # @ O gato troca sozinho
 # > Gira pela lista em vez de ficar num só.
-# O gato do painel troca sozinho, girando pelo acervo?
+# [avancado] O gato do painel troca sozinho, girando pelo acervo?
 # O ACERVO É A PASTA: tudo que estiver em assets/gatos/*.svg entra na rotação,
 # junto com o gato gerado do flavor. Soltou um SVG lá, ele entra; apagou, sai.
 # Nada de lista dentro de script — ela envelheceria no dia em que você
@@ -435,7 +438,7 @@ LOGO_NOITE="coquinha"  # o dock de noite
 
 # @ Recarregar o painel na virada
 # > Sem isto o gato novo só aparece no próximo login. Custa uns 2 s de pisca, duas vezes por dia.
-# Na virada, o gato do dock só aparece depois de o painel reciclar (~2 s de
+# [avancado] Na virada, o gato do dock só aparece depois de o painel reciclar (~2 s de
 # pisca, duas vezes por dia). MEDIDO em 01/09/2026: reescrever o SVG sem
 # reciclar não muda um pixel — o cosmic-panel-button resolve o ícone no arranque
 # e guarda. Com "nao" o arquivo troca do mesmo jeito e o gato novo aparece no
@@ -475,28 +478,12 @@ LOGO_INTERVALO="1d"
 # velha fica no disco até você removê-la à mão.
 NOME_TEMA_ICONES="MeowSystem-Icons"
 
-# @ Tema de onde herdar
-# > De qual tema instalado o nosso puxa o que ele mesmo não desenha.
-# De qual tema instalado o nosso HERDA o que ele não desenha. Vira o `Inherits=`
-# do index.theme, e todo ícone que falta no MeowSystem sai daí — apontar para um
-# tema claro clareia justamente o que ficou de fora, e nada mais.
-#
-# ESTA CHAVE E A DE BAIXO NÃO TINHAM COMENTÁRIO PRÓPRIO — corrigido em 02/09/2026
-#   Estavam coladas na `NOME_TEMA_ICONES`, sem linha em branco entre elas, e
-#   quem lê uma chave sem comentário lê o comentário da chave de cima: os TRÊS
-#   cartões apareciam em fila com o mesmo título ("O nome do tema de ícones que
-#   este projeto constrói e instala em ~/.local/share/icons/") e o mesmo "Por
-#   quê", que explicava uma chave que não era a delas. O `meow configurar` fazia
-#   igual. O conserto é o branco e o parágrafo: cada uma diz o que faz.
-#
-# O PACK PODE TRAZER A BASE — 24/09/2026
-#   Um pack que declara a base dele (o Dracula declara) a baixa, confere e
-#   herda dela, e aí este valor de fábrica — `Papirus-Dark`, ou vazio — cede ao
-#   pack. Qualquer OUTRO tema escrito aqui vence o pack, como toda chave deste
-#   arquivo. O preço: com um pack assim no ar, o `Papirus-Dark` não se escolhe
-#   por aqui, porque escrevê-lo é o mesmo que deixar a chave de fábrica. A regra
-#   inteira está em docs/PACKS.md, "A base de ícones".
-ICONES_BASE="Papirus-Dark"        # tema herdado como fallback
+# A BASE DE ÍCONES NÃO SE ESCOLHE AQUI — chave `ICONES_BASE` aposentada
+#   A decisão de 24/09/2026 foi «Tirar a linha do conf»: o tema de onde o nosso
+#   herda o que não desenha vem do pack no ar, pinado por sha256 (docs/PACKS.md,
+#   "A base de ícones"), e o Papirus-Dark fica para o pack que não traz base.
+#   Desde a P75 (09/10/2026) o `scripts/migrar_conf.py` a tem na lista das
+#   APOSENTADAS: não a devolve e tira a linha ativa de um meow.conf antigo.
 
 # @ Ícones resgatados do PNG
 # > Os desenhos que só existiam como PNG, agora em vetor. "nao" devolve o PNG.
@@ -530,24 +517,27 @@ ICONES_RESGATADOS="sim"           # sim | nao
 # já da paleta Dracula —, ao contrário do Arcticons, que é traço monocromático
 # pintado por nós. Aqui não se recolore nada: a cópia é byte a byte.
 #
-# LIGAR ISTO TROCA ARTE QUE JÁ ESTÁ NA TELA, e por isso nasce em "nao"
-#   Onze dos dezoito nomes já vestem Arcticons: Krita, Telegram, qBittorrent,
-#   Obsidian, ONLYOFFICE, Chrome, Calculator, Warehouse, Upscaler, Steam e
-#   input-keyboard. O `scalable/apps` VENCE o `48x48/apps` no resolvedor (strace
-#   de 08/08/2026, no cabeçalho do `completar_icones.sh`), então ligar troca os
-#   onze de uma vez. Os outros sete estavam de fábrica e só ganham.
-#
-#   "Dracula vence tudo" foi escolhido em 16/09/2026, com os dois lados na mesa.
-#   O padrão continua "nao" porque o padrão é o que vale numa máquina que não
-#   participou dessa decisão — a sua, ou uma recém-formatada.
+# ESCOLHER O PACK LIGA OS DESENHOS DELE, e por isso nasce em "sim" — P74, 09/10/2026
+#   Até aqui nascia em "nao", para não trocar de fábrica os onze nomes que já
+#   vestiam Arcticons. Medido em 09/10/2026: com `PACK="dracula"` e o resto de
+#   fábrica, o tema saía com 28 ícones de aplicativo contra 230 com a camada
+#   ligada — escolher o Dracula entregava metade dele. "Dracula vence tudo" foi
+#   escolhido em 16/09/2026. A camada põe no tema o mapa do PACK NO AR, e um
+#   pack sem mapa não põe nada: "sim" é "o pack decide", e a chave só serve
+#   para desligar. O `scalable/apps` VENCE o `48x48/apps` no resolvedor (strace
+#   de 08/08/2026), então desligar devolve o Arcticons a esses onze.
 #
 # DESLIGAR DESLIGA, E NÃO CUSTA NADA: "nao" apaga só o que este projeto pôs, por
 # nome e conferindo o conteúdo byte a byte (arquivo editado à mão fica). O
 # Arcticons nunca saiu do `48x48` — ele reaparece sozinho na passagem seguinte.
-ICONES_DRACULA="nao"              # sim | nao
+ICONES_DRACULA="sim"              # sim | nao
 
 # @ Logo própria do Hefesto
 # > Um SVG seu para o ícone do Hefesto. Vazio = o desenho gerado do pack.
+# [avancado] [so-com-app hefesto-dualsense4unix com.vitoriamaria.HefestoDualsense4Unix]
+# O painel só mostra este ajuste numa máquina com o Hefesto instalado, e o
+# guarda no «⋯» dos ajustes técnicos: é a logo de UM programa, e não escolha
+# de quem usa o MeowSystem (P77, 09/10/2026).
 # O Hefesto (o app do controle DualSense) tem logo desenhada pela autora dele —
 # a bigorna com o martelo —, e autoria vence tema: com um caminho aqui, é ela
 # que entra no tema para os dois nomes de ícone do app (`hefesto-dualsense4unix`
@@ -587,6 +577,13 @@ ICONES_LOGO_HEFESTO=""            # caminho de um .svg; vazio = o desenho gerado
 #   Escrever aqui uma cor fixa do Catppuccin "resolveria" o sintoma e quebraria
 #   a promessa da linha de cima — a de que trocar o flavor repinta as pastas
 #   sozinho. Por isso o valor continua escrito com as variáveis.
+#
+# E VOLTA A SER ESCRITO ASSIM — 10/10/2026, P79. Um nome com um flavor que o
+#   pack no ar não tem (`cat-dracula-${ACCENT}` com o Catppuccin no ar) é resto
+#   de pack: o `meow doctor --consertar`, o install.sh e a troca de pack
+#   (`scripts/migrar_conf.py`, `VESTIGIOS`) devolvem a linha à forma de cima.
+#   Uma variante do pack no ar (`cat-frappe-blue` com o Catppuccin,
+#   `cat-dracula-${ACCENT}` com o Dracula) é escolha, e fica.
 ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 
 # @ Variante dos ícones de arquivo
@@ -622,8 +619,15 @@ ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
 #   Era o `ICONES_FLAVOR="dracula"` expandido, que não existe, e os ícones de
 #   arquivo não se vestiam. A regra mora num lugar só (`scripts/pack.py`, verbo
 #   `flavor-icones`), e é ela que os três scripts de ícone e o painel perguntam.
-#   Um nome escrito aqui à mão continua vencendo, exista ou não o acervo dele;
-#   vazio vale o mesmo que o de fábrica.
+#   Um nome escrito aqui à mão continua vencendo, exista ou não o acervo dele,
+#   desde que seja um flavor do pack no ar (abaixo); vazio vale o mesmo que o
+#   de fábrica.
+#
+# O FLAVOR DE OUTRO PACK VOLTA AO DE FÁBRICA — 10/10/2026, P79
+#   Um nome que o pack no ar NÃO tem (o `macchiato` com o Dracula no ar, resto
+#   de antes da P74) é vestígio de outro pack, e não escolha: o `meow doctor
+#   --consertar` e o install.sh (`scripts/migrar_conf.py`, `VESTIGIOS`) devolvem
+#   a linha a `"$FLAVOR"`. A divergência de propósito vale dentro do mesmo pack.
 ICONES_FLAVOR="$FLAVOR"
 
 # @ Cor pela marca do programa
@@ -678,7 +682,7 @@ ICONES_COR_MARCA="nao"
 #   "as pastas do temas dos icons do vscode catpuccin, tipo as folders, essas
 #    nao tão legais tambem".
 # São pasta VAZADA de traço claro ao lado das CHEIAS na cor das outras pastas —
-# na tela dela, em 08/08, o `mauve` de fábrica, que nenhuma das 7 usa. O conjunto
+# na máquina onde isto nasceu, em 08/08, o `mauve` de fábrica, que nenhuma das 7 usa. O conjunto
 # não fecha. O risco estava previsto desde o desenho da Sprint C; quem decidiu
 # foi a tela.
 #
@@ -1078,7 +1082,7 @@ MIDIA_CONTROLES="nao"
 
 # @ Pasta do carrossel
 # > Dentro dela nascem as quatro que importam: ativos, favoritos, banidos e recusadas.
-# A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
+# [avancado] A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
 #   ativos/ (é a que gira) · favoritos/ · banidos/ (movidos, nunca apagados) ·
 #   originais/ (a foto antes de qualquer recolorização)
 # O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
@@ -1172,7 +1176,7 @@ FILES_MENU="sim"                  # sim | nao
 
 # @ Reconstruir sozinho quando atualizar
 # > A reconstrução baixa uns 161 MB e leva minutos. Sem isto os dois itens somem na próxima atualização.
-# Compilar sozinho quando o apt subir a versão do cosmic-files? O build baixa
+# [avancado] Compilar sozinho quando o apt subir a versão do cosmic-files? O build baixa
 # ~161 MB de fonte e leva minutos; roda em background (Nice=19, IO idle), no
 # máximo 3 tentativas por versão, e adia se houver jogo aberto.
 # Com "nao", o doctor avisa e você roda `meow files-menu build` quando quiser.
@@ -1206,8 +1210,8 @@ NOITE_INICIO=""
 # > A hora em que o gato do dock e o do terminal trocam para o dia. O papel de parede e o modo de leitura têm hora própria.
 NOITE_FIM=""
 
-# @ O tema claro começa às
-# > Com «Claro ou escuro» em Automático: antes desta hora, o tema é o escuro.
+# @ O tema escuro termina às
+# > Com «Claro ou escuro» em Automático: desta hora em diante, o tema é o claro.
 # DUAS CHAVES QUE EXISTIAM SEM EXISTIR — 07/09/2026. O `bin/meow` lê
 # MODO_AUTO_CLARO_DE/ATE desde que o modo automático nasceu, com 7 e 18 de
 # fábrica — e nenhum arquivo as declarava: quem quisesse o claro começando às
@@ -1220,10 +1224,18 @@ NOITE_FIM=""
 # compara. (E esta frase evita soletrar o formato de relógio por extenso:
 # a sigla dele no comentário é o que faz o leitor classificar a chave como
 # horário — foi medido nesta mesma rodada, nesta mesma chave.)
-MODO_AUTO_CLARO_DE=""             # 0 a 23  (vazio = 7)
-# @ O tema claro termina às
-# > Com «Claro ou escuro» em Automático: desta hora em diante, o escuro volta.
-MODO_AUTO_CLARO_ATE=""            # 0 a 23  (vazio = 18)
+#
+# OS TÍTULOS FALAM DA NOITE, COMO OS DAS OUTRAS DUAS LINHAS — 10/10/2026, P80.
+# Na página "Dia e noite" as três linhas (o gato, o tema, a imagem) dizem cada
+# uma quando a noite DELA começa e termina, e esta lia ao contrário: «O tema
+# claro termina às» à esquerda, embaixo de «A noite começa às». O escuro começa
+# quando o claro termina, então as chaves não mudaram — só o título, que agora
+# diz o escuro. E «hora cheia» na linha é o que dá a esta chave o seletor de
+# hora das outras linhas (sem minutos), no lugar do deslizante de 0 a 23.
+MODO_AUTO_CLARO_DE=""             # 0 a 23, hora cheia  (vazio = 7)
+# @ O tema escuro começa às
+# > Com «Claro ou escuro» em Automático: desta hora em diante, o tema é o escuro.
+MODO_AUTO_CLARO_ATE=""            # 0 a 23, hora cheia  (vazio = 18)
 
 # @ Separar imagens de dia e de noite
 # > À noite o carrossel sorteia só entre as escuras.
@@ -1499,7 +1511,7 @@ LEITURA_APPLET="sim"              # sim | nao
 TERMINAL_ESQUEMA="sim"      # sim | nao
 
 # @ Cor do cursor
-# > A cor de destaque, ou a que o Catppuccin escolheu.
+# > A cor de destaque, ou a do esquema de origem do terminal.
 # ONDE O ACCENT ENTRA, E É A ÚNICA DECISÃO DE GOSTO DESTE MÓDULO.
 # O port oficial pinta o cursor de `rosewater` e não usa `mauve` em lugar nenhum
 # (o magenta do ANSI no Catppuccin é o `pink`, #F5C2E7, não o mauve). "accent"
@@ -1508,9 +1520,11 @@ TERMINAL_ESQUEMA="sim"      # sim | nao
 TERMINAL_CURSOR="accent"    # accent | port
 
 # @ Prompt do zsh
-# > O prompt do starship que vem com o MeowSystem, o mesmo com qualquer pack.
-# O prompt do zsh, pelo starship, com o preset OFICIAL catppuccin-powerline no
-# flavor mocha e accent mauve.
+# > O prompt do starship que vem com o MeowSystem, nas cores do pack no ar.
+# O prompt do zsh, pelo starship. O DESENHO é o do preset oficial
+# catppuccin-powerline; as CORES são as da paleta do pack no ar, no flavor da
+# máquina (P74, 09/10/2026: até aqui o arquivo saía com a paleta do Mocha
+# fosse qual fosse o pack, e com o Dracula no ar o prompt era Catppuccin).
 #
 #   ESTA CHAVE MANDA EM METADE DA COISA, E É DE PROPÓSITO. O preset é nosso e vai
 #   para ~/.config/starship.toml. A linha que LIGA o starship mora no arquivo de
@@ -1682,7 +1696,7 @@ FASTFETCH_LOGO_RECUO="3"
 
 # @ Proporção da célula do terminal
 # > Altura dividida pela largura, na sua fonte. É o que impede o gato de achatar.
-# PROPORÇÃO ALTURA/LARGURA DA CÉLULA do terminal — 23,00 / 9,00 px, medido no
+# [avancado] PROPORÇÃO ALTURA/LARGURA DA CÉLULA do terminal — 23,00 / 9,00 px, medido no
 # cosmic-term com a JetBrainsMono Nerd Font Mono de 16 px. É o que converte
 # colunas em linhas quando `FASTFETCH_LOGO_LINHAS` está vazio. Quem trocar de
 # fonte muda este número uma vez, e o gato volta a sair redondo.
@@ -1701,7 +1715,7 @@ FASTFETCH_LOGO_CELULA=""
 
 # @ Detalhe do desenho
 # > Quanto detalhe cabe em cada célula. Depende do que a sua fonte desenha.
-# QUANTOS SUBPIXELS CABEM EM CADA CÉLULA — é o teto de detalhe de um desenho
+# [avancado] QUANTOS SUBPIXELS CABEM EM CADA CÉLULA — é o teto de detalhe de um desenho
 # feito de letras, e ele depende do que a FONTE do terminal tem:
 #
 #   auto        (padrão) usa sextantes se a fonte os tiver, senão quadrantes.
@@ -1717,7 +1731,7 @@ FASTFETCH_LOGO_BLOCOS="auto"
 
 # @ Corrigir a configuração do fastfetch
 # > Deixa o MeowSystem manter a linha do logo em dia sozinho.
-# Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
+# [avancado] Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
 # fastfetch — que é o seu arquivo do fastfetch, e não nosso.
 # A escrita é CIRÚRGICA (duas chaves, o resto do arquivo intacto), guarda backup
 # antes em ~/.local/state/meowsystem/backups/ e diz em voz alta o que tocou.
@@ -1799,7 +1813,7 @@ LANCADOR_SISTEMA="nao"
 
 # @ Quais programas o lançador esconde
 # > Um por ficha. Só vale com a chave acima ligada, e só esconde o que estiver instalado.
-# [avancado] O ID do `.desktop` sem a extensão, vírgula-separado.
+# O ID do `.desktop` sem a extensão, vírgula-separado.
 #
 # ESTA LISTA ERA CÓDIGO ATÉ 21/09/2026, E ISSO ERA O DEFEITO
 #   Os 32 nomes abaixo viviam cravados em `scripts/ocultar_apps.sh`. A chave
@@ -1814,6 +1828,10 @@ LANCADOR_SISTEMA="nao"
 #
 #   Programa que não está instalado é pulado em silêncio: sobra na lista sem
 #   custo nenhum, e o placar do doctor diz quantos foram.
+#
+#   O PACK NO AR SOMA A LISTA DELE (P74, 09/10/2026): o Dracula esconde o que o
+#   tema Dracula de antes escondia (`lancador.ocultar` no pack.json). Para
+#   manter um deles à vista, escreva o nome aqui com `-` na frente (`-mpv`).
 LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,info,im-config,ibus-setup,org.freedesktop.IBus.Setup,org.gnome.font-viewer,gnome-language-selector,system-config-printer,org.gnome.eog,org.gnome.Evince,org.gnome.baobab,org.gnome.PowerStats,org.gnome.seahorse.Application,org.gnome.DiskUtility,simple-scan,yelp,gucharmap,nm-connection-editor,repoman,com.system76.Popsicle,gparted,nvidia-settings,syncthing-start,syncthing-ui,google-chrome,steam,github-desktop"
 
 # @ Programas bloqueados no início
@@ -2026,7 +2044,7 @@ SOM="sim"
 
 # @ Nota do sino
 # > A frequência da nota base, em Hz. Vazio usa a do theme pack.
-# As CINCO chaves abaixo são o TIMBRE, e todas seguem a mesma regra: VAZIO
+# [avancado] As CINCO chaves abaixo são o TIMBRE, e todas seguem a mesma regra: VAZIO
 # significa "use o que o theme pack declarar", e o pack embutido usa lá (880 Hz)
 # com a quinta justa acima (1320). Preencher aqui VENCE o pack — é o contrato de
 # precedência de todas as chaves (ver docs/PACKS.md, "Quem vence").
@@ -2048,16 +2066,20 @@ SOM_FUNDAMENTAL=""                # 60 a 8000 Hz — vazio = o do pack
 
 # @ Segunda nota do sino
 # > O harmônico, em Hz. A distância até a nota base é o que dá o caráter.
+# [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
 SOM_HARMONICO=""                  # 60 a 12000 Hz — vazio = o do pack
 
 # @ Peso da nota base
 # > Quanto a primeira senoide pesa na mistura. Os dois pesos somados têm de caber em 1.
+# [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
 SOM_PESO_FUNDAMENTAL=""           # 0 a 1 — vazio = o do pack
 
 # @ Peso da segunda nota
 # > Quanto a segunda senoide pesa. Acima de 1 somado, a onda satura e vira estalo.
+# [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
 SOM_PESO_HARMONICO=""             # 0 a 1 — vazio = o do pack
 
 # @ Secura do sino
 # > O quanto o som cai rápido. Maior = mais seco; abaixo de 20 a cauda arrasta.
+# [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
 SOM_DECAIMENTO=""                 # 5 a 200 — vazio = o do pack

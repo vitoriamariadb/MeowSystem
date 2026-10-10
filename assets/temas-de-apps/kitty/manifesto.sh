@@ -224,6 +224,26 @@ _kitty_gravar_conf() {
 # ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
 meow_app_instalado() { _kitty_instalado; }
 
+# O MODELO DO PACK SÓ LEVA COR — conferência da P78, 09/10/2026
+#   O pack pode ser de terceiro, e o tema montado vira o `current-theme.conf`,
+#   que o kitty lê inteiro a cada janela. Ali, `shell`, `startup_session`,
+#   `map … launch`, `geninclude` (que roda Python) e `include` de outro arquivo
+#   são comando: um modelo com `shell sh -c '…'` faria o pack rodar o que
+#   quisesse, toda vez que ela abrisse o terminal — o "pack é dado, nunca é
+#   código" da P78. Fica só linha vazia, comentário e chave de cor; o resto é
+#   pulado e contado. A conta vale também para o `conferir`, que compara o
+#   disco com este mesmo texto já filtrado.
+_KITTY_CHAVES_DE_COR='^(foreground|background|selection_foreground|selection_background|cursor|cursor_text_color|url_color|color[0-9]|color[1-9][0-9]|color1[0-9][0-9]|color2[0-4][0-9]|color25[0-5]|active_border_color|inactive_border_color|bell_border_color|active_tab_foreground|active_tab_background|active_tab_font_style|inactive_tab_foreground|inactive_tab_background|inactive_tab_font_style|tab_bar_background|tab_bar_margin_color|mark[1-3]_foreground|mark[1-3]_background|wayland_titlebar_color|macos_titlebar_color)$'
+_kitty_so_cor() {
+  local fora
+  fora="$(printf '%s\n' "$_KITTY_DESEJADO" \
+    | awk -v re="$_KITTY_CHAVES_DE_COR" '!/^[ \t]*(#|$)/ && $1 !~ re' | wc -l)"
+  _KITTY_DESEJADO="$(printf '%s\n' "$_KITTY_DESEJADO" \
+    | awk -v re="$_KITTY_CHAVES_DE_COR" '/^[ \t]*(#|$)/ || $1 ~ re')"
+  [ "$fora" -gt 0 ] && meow_aviso "kitty: $fora linha(s) do modelo do pack $_KITTY_DE que não são cor ficaram de fora"
+  return 0
+}
+
 meow_app_detectar() {
   MEOW_APP_MOTIVO=""
   meow_app_instalado || { meow_app_sem "kitty: não está instalado"; return; }
@@ -238,6 +258,7 @@ meow_app_detectar() {
   # flavor inexistente: é o meow.conf ou o pack que precisam de olho.
   _KITTY_DESEJADO="$(python3 "$_KITTY_MODELO_PY" "$MEOW_APP_TEMA" "$(meow_paleta)" "${FLAVOR:-}" "$_KITTY_DE" 2>&1)" \
     || { meow_app_sem "kitty: o modelo do pack $_KITTY_DE não montou — $_KITTY_DESEJADO"; return; }
+  _kitty_so_cor
   _KITTY_NOME="$(python3 "$_KITTY_MODELO_PY" --nome "$(meow_paleta)" "${FLAVOR:-}" 2>/dev/null)"
   _KITTY_BLOCO="$(_kitty_bloco "$_KITTY_NOME")"
   return "$MEOW_OK"
@@ -251,7 +272,7 @@ meow_app_conferir() {
       meow_muda "kitty: está sem tema — o pack $_KITTY_DE traz '$_KITTY_NOME'"
       return "$MEOW_DIVERGENTE"
     fi
-    meow_pula "kitty: está em '$_KITTY_NO_AR', que não veio daqui — trocar é decisão dela"
+    meow_pula "kitty: está em '$_KITTY_NO_AR', que não veio daqui — trocar é decisão sua"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ "$(cat "$_KITTY_TEMA")" != "$_KITTY_DESEJADO" ]; then
@@ -285,8 +306,8 @@ meow_app_aplicar() {
     # vez só — a segunda troca guardaria o nosso por cima do dela.
     if [ -f "$_KITTY_TEMA" ] && [ ! -f "$_KITTY_ANTES" ] && ! meow_seco; then
       mkdir -p "$(dirname "$_KITTY_ANTES")" && cp -a -- "$_KITTY_TEMA" "$_KITTY_ANTES" \
-        || { meow_erro "kitty: não consegui guardar o tema dela antes de trocar"; return "$MEOW_ERRO"; }
-      meow_info "kitty: o tema dela ficou guardado em $_KITTY_ANTES"
+        || { meow_erro "kitty: não consegui guardar o seu tema antes de trocar"; return "$MEOW_ERRO"; }
+      meow_info "kitty: o seu tema ficou guardado em $_KITTY_ANTES"
     fi
   fi
 
@@ -323,16 +344,16 @@ meow_app_reverter() {
     return "$MEOW_OK"
   fi
   if meow_seco; then
-    meow_muda "kitty: tiraria o tema do pack ($marca)$([ -f "$_KITTY_ANTES" ] && printf ' e devolveria o dela')"
+    meow_muda "kitty: tiraria o tema do pack ($marca)$([ -f "$_KITTY_ANTES" ] && printf ' e devolveria o seu')"
     return "$MEOW_DIVERGENTE"
   fi
   if [ -f "$_KITTY_ANTES" ]; then
     cp -a -- "$_KITTY_ANTES" "$_KITTY_TEMA" && rm -f -- "$_KITTY_ANTES" \
-      || { meow_erro "kitty: não consegui devolver o tema dela"; return "$MEOW_ERRO"; }
+      || { meow_erro "kitty: não consegui devolver o seu tema"; return "$MEOW_ERRO"; }
     # O tema dela volta, e o `include` fica — sem ele o arquivo devolvido não
     # pintaria nada. Só o nome do nosso tema sai do bloco.
     bloco="$(printf '# BEGIN_KITTY_THEME\ninclude current-theme.conf\n# END_KITTY_THEME')"
-    meow_ok "kitty: o tema dela voltou para $_KITTY_TEMA"
+    meow_ok "kitty: o seu tema voltou para $_KITTY_TEMA"
   else
     rm -f -- "$_KITTY_TEMA" || { meow_erro "kitty: não consegui tirar $_KITTY_TEMA"; return "$MEOW_ERRO"; }
     meow_ok "kitty: o tema do pack saiu do kitty"

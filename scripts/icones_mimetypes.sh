@@ -96,6 +96,21 @@ ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
 # `ICONES_FLAVOR` nem `FLAVOR`, ou do pack.py recusando o pack; nos dois casos o
 # `_pronto` diz que não há o que vestir.
 [ -n "$FLAVOR_ICONES" ] || ORIGEM=""
+# DE QUEM É O ACERVO, DITO NA TELA — 09/10/2026, P74 item 7 (T1). A frase dizia
+#   «vestidos de Catppuccin <flavor>» com qualquer pack: o doctor desta máquina,
+#   com o Dracula no ar, dizia «123 tipos de arquivo já vestidos de Catppuccin
+#   macchiato». Desde a P74 o Dracula traz os dele, e a frase diz o NOME do
+#   pack dono do diretório que veste (o `_pack_de` do pack.py, o mesmo que a
+#   aba Ícones usa). Com o Catppuccin no ar, a frase é a de antes.
+DONO_ACERVO="$( [ -n "$ORIGEM" ] && python3 -I - "$RAIZ/scripts" "$ORIGEM" <<'PY' 2>/dev/null
+import sys
+sys.path.insert(0, sys.argv[1])
+import pack
+dono = pack._pack_de(sys.argv[2])
+print(pack.campo(dono, "nome", dono) or "")
+PY
+)"
+[ -n "$DONO_ACERVO" ] || DONO_ACERVO="Catppuccin"
 # O MAPA SEGUIU O ACERVO PARA DENTRO DO PACK — 22/09/2026
 #   A P13 desceu os 3.280 glifos para `packs/catppuccin/icones/mimetypes/` e
 #   deixou o mapa em `assets/icones/mimetypes.map`. Meio caminho: O MAPA É A
@@ -118,12 +133,32 @@ DESTINO="$HOME/.local/share/icons/$TEMA/scalable/mimetypes"
 # e com '.', mas nenhum com ':', então o separador é seguro.
 declare -A MAPA_LIDO=()
 _ler_mapa() {
-  local linha nome glifo
-  while IFS= read -r linha; do
+  local linha nome glifo pulados=()
+  while IFS= read -r linha || [ -n "$linha" ]; do
+    # O MAPA ESCRITO NO WINDOWS — P79, 10/10/2026. Com CRLF, o `\r` ficava no
+    #   glifo, o `meow_nome_seguro` o recusava, e o pack inteiro saía sem
+    #   desenho, cada linha «pulada» (achado da P78). O `pack.py` lê o mesmo
+    #   arquivo por `splitlines`, que já tira o `\r`; aqui sai do mesmo jeito.
+    #   E a última linha sem quebra no fim também conta (`|| [ -n ]`).
+    linha="${linha%$'\r'}"
     case "$linha" in ''|'#'*) continue ;; esac
     nome="${linha%%:*}"; glifo="${linha#*:}"
+    # Os dois lados viram nome de arquivo (`<nome>.svg` no tema, `<glifo>.svg`
+    # no acervo): só de um conjunto fechado, sem `/` nem `..` — um mapa de pack
+    # importado é dado não confiável (conferência da P74, alerta de segurança
+    # de 09/10/2026). A linha fora dele é pulada.
+    # [P78: o conjunto é o `meow_nome_seguro` do lib/comum.sh, a regra única
+    #   que o pack.py também segue, e a linha pulada agora é contada.]
+    if ! meow_nome_seguro "$nome" || ! meow_nome_seguro "$glifo"; then
+      # O nome vai para o aviso, no terminal: pela porta de saída de texto de
+      # pack, e uma sequência de controle plantada no mapa não chega lá crua.
+      pulados+=("$(meow_texto_seguro "$nome")"); continue
+    fi
     [ -n "$nome" ] && [ -n "$glifo" ] && MAPA_LIDO["$nome"]="$glifo"
   done < "$MAPA"
+  [ "${#pulados[@]}" -gt 0 ] && \
+    meow_aviso "$MAPA: ${#pulados[@]} linha(s) com nome fora de [A-Za-z0-9._+-] (ou com '..') puladas: ${pulados[*]:0:3}"
+  return 0
 }
 
 # --- dependências -------------------------------------------------------------
@@ -144,11 +179,19 @@ _pronto() {
 # de fato. Um glifo faltando é aviso, não erro: o mapa pode citar algo que o pack
 # renomeou, e nesse caso o Papirus continua atendendo aquele tipo.
 _desejado() {
-  local nome glifo
+  local nome glifo real
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
-    [ -f "$ORIGEM/$glifo.svg" ] && printf '%s\t%s\n' "$nome" "$ORIGEM/$glifo.svg"
+    # Link não entra: o `cat` o seguiria para fora do acervo (P74, idem).
+    # [P78: a conferência da P74 FICA (link não entra, nem para dentro), e a
+    #   regra única entra junto: o caminho que se copia é o realpath que o
+    #   `meow_dentro` conferiu dentro do acervo. A primeira versão da P78 trocou
+    #   uma pela outra e deixou entrar link para dentro — a conferência acusou.]
+    [ -f "$ORIGEM/$glifo.svg" ] && [ ! -L "$ORIGEM/$glifo.svg" ] \
+      && real="$(meow_dentro "$ORIGEM" "$glifo.svg")" \
+      && printf '%s\t%s\n' "$nome" "$real"
   done
+  return 0
 }
 
 # O CRITÉRIO DO CONFERIR TEM DE SER O DO ESCRITOR — senão o doctor grita eternamente
@@ -180,7 +223,7 @@ _conferir() {
   fi
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total tipos de arquivo já vestidos de Catppuccin $FLAVOR_ICONES"
+    meow_ok "$total tipos de arquivo já vestidos de $DONO_ACERVO $FLAVOR_ICONES"
     return "$MEOW_OK"
   fi
   meow_muda "tipos de arquivo: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
@@ -221,7 +264,7 @@ _aplicar() {
   fi
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "tipos de arquivo já vestidos de Catppuccin $FLAVOR_ICONES"
+    meow_ok "tipos de arquivo já vestidos de $DONO_ACERVO $FLAVOR_ICONES"
     return "$MEOW_OK"
   fi
   meow_info "tipos de arquivo: $postos posto(s), $removidos removido(s) — flavor $FLAVOR_ICONES"

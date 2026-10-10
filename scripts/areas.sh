@@ -184,7 +184,7 @@ AREAS_ENCAIXE="${AREAS_ENCAIXE:-}"
 # Nunca escrita daqui.
 JANELAS_TILING="${JANELAS_TILING:-}"
 
-AREAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/v1"
+AREAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/$(meow_cosmic_v com.system76.CosmicComp)"
 AREAS_ALVO="$AREAS_BASE/pinned_workspaces"
 AREAS_BINARIO="/usr/bin/cosmic-comp"
 
@@ -246,7 +246,7 @@ _areas_dependencia() {
 # o registro no manifesto. Duas rotinas de escrita para o mesmo arquivo é o
 # defeito que o cabeçalho do `lib/comum.sh` conta por extenso.
 _areas_motor() {
-  python3 - "$@" <<'PY'
+  python3 -I - "$@" <<'PY'
 import glob
 import random
 import re

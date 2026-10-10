@@ -227,11 +227,20 @@ else
   falha "pack: 'app dracula apps.spotify.spicetify_tema' não respondeu pelo dracula" "$saida"
 fi
 
+# O qBittorrent do Dracula deixou de ser herdado em 09/10/2026 (P74 item 9): o
+# pack traz o tema oficial dele. A herança segue provada pelo `vscode-icones`,
+# que o Dracula não declara de propósito (`_nota_vscode_icones`).
 saida="$(python3 "$RAIZ/scripts/pack.py" app dracula apps.qbittorrent.arquivo 2>&1)"
-if printf '%s' "$saida" | grep -qx 'pack=catppuccin'; then
-  ok "pack: o qBittorrent do Dracula é herdado, e o log diz de quem"
+if printf '%s' "$saida" | grep -qx 'pack=dracula'; then
+  ok "pack: o Dracula responde pelo próprio qBittorrent (P74)"
 else
-  falha "pack: a herança de apps.qbittorrent não apontou para o catppuccin" "$saida"
+  falha "pack: 'app dracula apps.qbittorrent.arquivo' não respondeu pelo dracula" "$saida"
+fi
+saida="$(python3 "$RAIZ/scripts/pack.py" app dracula apps.vscode-icones.esquema 2>&1)"
+if printf '%s' "$saida" | grep -qx 'pack=catppuccin'; then
+  ok "pack: o vscode-icones do Dracula é herdado, e o log diz de quem"
+else
+  falha "pack: a herança de apps.vscode-icones não apontou para o catppuccin" "$saida"
 fi
 
 # A HERANÇA É POR APLICATIVO, E NÃO POR CHAVE. Um pack que declara o bloco
@@ -490,7 +499,9 @@ saida="$(mod discord aplicar)"; rc=$?
 # usuário no disco: a coluna lia o código do `detectar`, e ele sai 3 pelo cliente
 # que falta, ou pelo tema que já está no ar. É esta casa, este Discord e um
 # qBittorrent sem o escritor do conf: instalados (0) e pendentes (3), na MESMA
-# linha do TSV que a CLI pinta.
+# linha do TSV que a CLI pinta. [P74, 09/10/2026: o qBittorrent ganhou escritor
+# próprio do conf, e sem tema no app ele é divergente (1), que é o «aplica»; a
+# coluna «instalado» é o que esta seção cobra, e continua 0.]
 tabela() {
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
       XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
@@ -502,7 +513,7 @@ implantar "$CASA/.local/share/flatpak" org.qbittorrent.qBittorrent
 # As quatro primeiras colunas: a quinta, o motivo do 3, entrou na P62 e é
 # cobrada na seção da P55, lá embaixo.
 saida="$(tabela discord,qbittorrent | cut -f1-4)"
-[ "$saida" = "$(printf 'discord\tdiscord\t0\t3\nqbittorrent\tqbittorrent\t0\t3')" ] \
+[ "$saida" = "$(printf 'discord\tdiscord\t0\t3\nqbittorrent\tqbittorrent\t0\t1')" ] \
   && ok "meow apps: Discord e qBittorrent instalados e pendentes saem «instalado» na tabela" \
   || falha "meow apps: a coluna «instalado» ainda não é a do programa no disco" "$saida"
 rm -rf "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
@@ -558,9 +569,36 @@ saida="$(mod discord aplicar)"; rc=$?
   || falha "discord: o tema não chegou à pasta do Vencord (rc=$rc)" "$saida"
 saida="$(mod discord conferir)"; rc=$?
 [ "$rc" = 0 ] && ok "discord: depois de aplicar, o conferir dá 0" || falha "discord: conferir devolveu $rc" "$saida"
+# LIGADO NO CLIENTE, E NÃO SÓ NA PASTA — 09/10/2026, P74 item 9 (T6). O tema
+#   vai para a lista `enabledThemes` do `settings/settings.json` do Vencord, e
+#   o que já estava lá fica; o desfazer o tira da lista junto com o arquivo.
+VS="$CASA/.config/Vencord/settings/settings.json"
+ligado() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(" ".join(d.get("enabledThemes",[])), d.get("outra","-"))' "$VS" 2>&1; }
+[ "$(ligado)" = "MeowSystem.theme.css -" ] \
+  && ok "discord: o tema do pack sai ligado no Vencord (enabledThemes)" \
+  || falha "discord: o tema não foi ligado no settings.json do Vencord" "$(ligado)"
+python3 -c 'import json,sys;json.dump({"enabledThemes":["dela.css"],"outra":"fica"},open(sys.argv[1],"w"))' "$VS"
+# COM O VESKTOP DO FLATPAK ABERTO, NADA SE ESCREVE (conferência da P74): o
+#   processo dele é `vesktop.bin`, e um `pgrep` que só conhece esse nome tem de
+#   segurar a escrita — senão ele desfaz a lista na próxima gravação dele.
+printf '#!/bin/sh\n[ "$1" = "-x" ] && [ "$2" = "vesktop.bin" ] && exit 0\nexit 1\n' > "$BIN/pgrep"; chmod +x "$BIN/pgrep"
+antes_vs="$(cat "$VS")"
+saida="$(mod discord aplicar)"; rc_v=$?
+falso pgrep 1
+[ "$rc_v" = 3 ] && [ "$(cat "$VS")" = "$antes_vs" ] \
+  && ok "discord: com o Vesktop do flatpak aberto (vesktop.bin), a lista do cliente não é escrita" \
+  || falha "discord: o Vesktop aberto não segurou a escrita do settings.json (rc=$rc_v)" "$saida"
+saida="$(mod discord conferir)"; rc_c=$?
+saida="$saida$(mod discord aplicar)"; rc_a=$?
+[ "$rc_c" = 1 ] && [ "$rc_a" = 1 ] && [ "$(ligado)" = "dela.css MeowSystem.theme.css fica" ] \
+  && ok "discord: desligado, o conferir acusa e o aplicar liga, sem tocar no tema e na chave dela" \
+  || falha "discord: o tema desligado não foi religado, ou o resto do settings.json mudou (rc $rc_c/$rc_a)" "$(ligado)
+$saida"
 saida="$(mod discord reverter)"; rc=$?
-[ "$rc" = 1 ] && [ ! -e "$DC/MeowSystem.theme.css" ] && ok "discord: desfazer tira o tema da pasta" \
-  || falha "discord: desfazer não tirou o tema (rc=$rc)" "$saida"
+[ "$rc" = 1 ] && [ ! -e "$DC/MeowSystem.theme.css" ] && [ "$(ligado)" = "dela.css fica" ] \
+  && ok "discord: desfazer tira o tema da pasta e da lista do cliente" \
+  || falha "discord: desfazer não tirou o tema (rc=$rc)" "$saida
+$(ligado)"
 
 # --- OnlyOffice ----------------------------------------------------------
 #   O conf é de mentira mas tem a forma do de verdade: `appdata` é um JSON em
@@ -681,6 +719,8 @@ mod onlyoffice reverter >/dev/null
 #   dois botões da decisão esperando na Início. O resumo do `aplicar_apps.sh`
 #   segue o tempo verbal do seco, e a frase da pendência cita o que o `--onde`
 #   do servidor diz dela — o nome dos botões não vem escrito aqui.
+#   [P80, item 8: com botão, a linha «resolve:» diz só o botão, e não mais o
+#   comando ao lado dele.]
 apps8() {  # <verbo> <apps> [VAR=valor ...] — o `aplicar_apps.sh` nesta casa
   local v="$1" a="$2"; shift 2
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
@@ -700,7 +740,8 @@ onde="$(env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" \
           python3 "$RAIZ/app/servidor.py" --onde onlyoffice-tema-de-terceiro 2>/dev/null)"
 saida="$(apps8 aplicar onlyoffice)"; rc=$?
 [ "$rc" = 0 ] && [ -n "$onde" ] \
-  && printf '%s' "$saida" | grep -qF "resolve: meow apps aplicar onlyoffice  (ou, no painel, $onde)" \
+  && printf '%s' "$saida" | grep -qF "resolve: no painel, $onde" \
+  && ! printf '%s' "$saida" | grep -qF "resolve: meow apps aplicar" \
   || faltam+=" a gaveta não aponta os botões da Início (rc=$rc, --onde «$onde»: $saida);"
 mod onlyoffice aplicar MEOW_TEMA_DE_TERCEIRO=trocar >/dev/null
 saida="$(apps8 reverter onlyoffice MEOW_DRY_RUN=1)"; rc=$?
@@ -712,28 +753,44 @@ mod onlyoffice reverter >/dev/null
   && ok "P62: o ensaio do OnlyOffice diz «aplicaria» e «desfaria», e a gaveta cita os botões que o --onde dá" \
   || falha "P62: o ensaio ou a gaveta do OnlyOffice:$faltam"
 
-# --- qBittorrent: VESTIDO POR ELA, NÃO HÁ O QUE ESPERAR — P53 (achado 3) ---
-#   Sem escritor do conf (o caso de toda máquina que não é a da Vitória, e o
-#   desta: o script do Aurora não existe), a Home mostrava «não há comando meu
-#   que resolva» com o qBittorrent vestido pelo tema que ela escolheu. Vestido,
-#   a linha sai; sem tema nenhum, ela continua, porque aí falta alguma coisa.
+# --- qBittorrent: SEM O AURORA, O CONF É ESCRITO AQUI — P74 item 9 (T4) -----
+#   Até a P74, sem o script do Aurora (o caso de toda máquina, e o desta) o
+#   módulo parava em 3 com a pendência «escrever o qBittorrent.conf não é
+#   escopo deste módulo». Agora ele é o escritor: sem tema no app, o tema do
+#   pack entra e as duas chaves do conf apontam para ele, e o resto do conf
+#   fica; com o app aberto, nada se escreve (ele reescreve o conf ao sair); e
+#   vestido por ela (P53, achado 3), o conf dela fica, e a linha diz o fato.
 falso flatpak
 implantar "$CASA/.local/share/flatpak" org.qbittorrent.qBittorrent
 QB="$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent"
 mkdir -p "$QB"
-printf '[Preferences]\nGeneral\\UseCustomUITheme=false\n' > "$QB/qBittorrent.conf"
-saida="$(mod qbittorrent aplicar)"; rc1=$?
+printf '[BitTorrent]\nSession\\Port=6881\n\n[Preferences]\nGeneral\\Locale=pt_BR\nGeneral\\UseCustomUITheme=false\n' > "$QB/qBittorrent.conf"
+falso pgrep 0
+saida="$(mod qbittorrent aplicar)"; rc0=$?
+aberto="$(cat "$QB/qBittorrent.conf")"
+falso pgrep 1
+saida="$saida$(mod qbittorrent aplicar)"; rc1=$?
 tinha="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/pendencias.tsv" 2>/dev/null)"
+alvo_qb="$QB/themes/dracula.qbtheme"
+escrito_ok=0
+grep -qxF 'General\UseCustomUITheme=true' "$QB/qBittorrent.conf" \
+  && grep -qxF "General\\CustomUIThemePath=$alvo_qb" "$QB/qBittorrent.conf" \
+  && grep -qxF 'General\Locale=pt_BR' "$QB/qBittorrent.conf" && grep -qxF 'Session\Port=6881' "$QB/qBittorrent.conf" \
+  && cmp -s "$alvo_qb" "$RAIZ/packs/dracula/apps/dracula.qbtheme" && escrito_ok=1
+saida="$saida$(mod qbittorrent aplicar)"; rc1b=$?
 printf '[Preferences]\nGeneral\\CustomUIThemePath=%s/.themes/dela.qbtheme\nGeneral\\UseCustomUITheme=true\n' \
   "$CASA" > "$QB/qBittorrent.conf"
 antes="$(cat "$QB/qBittorrent.conf")"
 saida="$saida$(mod qbittorrent aplicar)"; rc2=$?
 ficou="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/pendencias.tsv" 2>/dev/null)"
-[ "$rc1" = 3 ] && [ -n "$tinha" ] && [ "$rc2" = 3 ] && [ -z "$ficou" ] \
+[ "$rc0" = 3 ] && [[ "$aberto" == *"UseCustomUITheme=false"* ]] \
+  && [ "$rc1" = 1 ] && [ "$escrito_ok" = 1 ] && [ -z "$tinha" ] && [ "$rc1b" = 0 ] \
+  && [ "$rc2" = 3 ] && [ -z "$ficou" ] \
   && [ "$(cat "$QB/qBittorrent.conf")" = "$antes" ] && printf '%s' "$saida" | grep -q 'já está vestido' \
-  && ok "qbittorrent: vestido por ela e sem escritor, a pendência sai e o conf fica; sem tema, ela fica" \
-  || falha "qbittorrent: a pendência sem saída sobre um app vestido (sem tema: rc=$rc1, vestido: rc=$rc2)" \
+  && ok "qbittorrent: sem o Aurora o conf é escrito aqui (com o app fechado, só as duas chaves), a 2ª passada é 0, e o vestido por ela fica" \
+  || falha "qbittorrent: o escritor próprio do conf (aberto: rc=$rc0, sem tema: rc=$rc1 escrito=$escrito_ok, 2ª: rc=$rc1b, vestido: rc=$rc2)" \
            "$saida
+conf: $(cat "$QB/qBittorrent.conf")
 pendência antes: $tinha
 pendência depois: $ficou"
 # «NÃO VESTE» SÓ COM O MOTIVO EMBAIXO — 25/09/2026, revisão da P62
@@ -1193,6 +1250,11 @@ vsix10 "$MERCADO10/catppuccin.catppuccin-vsc.vsix" Catppuccin catppuccin-vsc 3.1
 vsix10 "$MERCADO10/catppuccin.catppuccin-vsc-icons.vsix" Catppuccin catppuccin-vsc-icons 1.26.0 \
   '{"iconThemes": [{"id": "catppuccin-mocha"}]}'
 vsix10 "$REDE10/tema-noite.vsix" noite tema-noite 1.0.0 '{"themes": [{"label": "Noite Escura"}]}'
+# A MESMA EXTENSÃO NA LOJA, noutra versão (P79, alerta de segurança do 8f668d0):
+#   o pack importado `noite` pina um .vsix pela URL dele, e o gesto consente
+#   pelo NOME; o que se instala tem de ser o da loja, pelo id — nunca a URL que
+#   o pack escolheu. A versão diferente é o que mostra de onde veio.
+vsix10 "$MERCADO10/noite.tema-noite.vsix" noite tema-noite 2.0.0 '{"themes": [{"label": "Noite Escura"}]}'
 mkdir -p "$T10/pacote/noite-obsidian-1a2b"
 printf '.theme-dark { --background-primary: var(--color-base-00); }\n' > "$T10/pacote/noite-obsidian-1a2b/theme.css"
 printf '{\n  "name": "Noite Pinada",\n  "version": "1.0.0"\n}\n' > "$T10/pacote/noite-obsidian-1a2b/manifest.json"
@@ -1390,13 +1452,64 @@ saida="$(mod10 obsidian conferir noite dracula)$(mod10 obsidian aplicar noite dr
 [ "$rc" = 0 ] && [ "$(chamadas10)" = 1 ] && printf '%s' "$saida" | grep -q 'obsidian: Noite já aplicado' \
   || faltam+=" obsidian na segunda passada (rc=$rc, chamadas=$(chamadas10): $saida);"
 rm -f "$REDE10/.chamadas"
-saida="$(mod10 vscode aplicar noite dracula)"; rc=$?
-[ "$rc" = 1 ] && [ "$(chamadas10)" = 1 ] && [ -d "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
+# DECISÃO 9 (10/10/2026, P79): o `noite` é pack IMPORTADO (mora no MEOW_PACKS,
+#   fora do `packs/` do repositório), e extensão é código que roda a cada
+#   abertura do editor. Sem o gesto, nada desce e nada é instalado: a extensão
+#   que ele pede fica dita numa pendência com botão, e o settings.json não muda.
+#   O gesto numa OUTRA extensão não vale por esta.
+antes_vsc="$(cat "$VSC10")"
+saida="$(mod10 vscode aplicar noite dracula)$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=outro.tema)"; rc=$?
+[ "$rc" = 3 ] && [ "$(chamadas10)" = 0 ] && [ ! -e "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
+  && [ "$(cat "$VSC10")" = "$antes_vsc" ] \
+  && grep -q '^vscode-extensao-de-terceiro	.*noite\.tema-noite' "$T10/estado/pendencias.tsv" 2>/dev/null \
+  || faltam+=" vscode instalou extensão de pack importado sem o gesto (rc=$rc, chamadas=$(chamadas10): $saida);"
+# [Conferência da P79: a extensão que espera o gesto é pendência, e não
+#   divergência — o doctor não promete um conserto que o `--consertar` não faz.]
+saida="$(mod10 vscode conferir noite dracula)"; rc=$?
+[ "$rc" = 3 ] && printf '%s' "$saida" | grep -q 'noite.tema-noite, do pack importado .* espera o seu gesto' \
+  || faltam+=" o conferir chama de divergência a extensão que espera o gesto (rc=$rc: $saida);"
+# O BOTÃO DO GESTO, NO PAINEL: a pendência traz um botão por extensão que o
+#   pack no ar pede, com o selo de rede; a ação só aceita uma extensão da lista
+#   e a entrega ao módulo pelo ambiente. Com o Dracula (do repositório) no ar a
+#   lista é vazia: pack do motor não precisa de gesto.
+gesto10() {  # <PACK> — imprime o que o painel diria; o trabalho não nasce
+  printf 'PACK="%s"\nFLAVOR="dracula"\n' "$1" > "$T10/gesto.conf"
+  env -i PATH="$PATH" HOME="$CASA10" XDG_DATA_HOME="$CASA10/.local/share" MEOW_PACKS="$PACKS10" \
+      MEOW_ESTADO="$T10/estado" MEOW_CONF="$T10/gesto.conf" \
+      python3 - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+nasceu = []
+servidor.Trabalho = lambda acao, argv, amb, rot, ao_terminar=None: nasceu.append((argv, amb)) or type("T", (), {"id": "x", "vivo": lambda s: False})()
+print("lista=" + ",".join(servidor.PROVEDORES["extensoes_de_terceiro"]()))
+for p in servidor.pendencias():
+    if p["id"] == "vscode-extensao-de-terceiro":
+        print("botoes=" + ",".join("%s:%s" % (e["acao"], e["argumento"]) for e in p["escolha"]))
+        print("rede=%s" % p["rede"])
+_t, erro = servidor.iniciar("vscode_instalar_extensao", "outro.tema", confirmado=True)
+print("fora=%s" % bool(erro))
+_t, erro = servidor.iniciar("vscode_instalar_extensao", "noite.tema-noite", confirmado=True)
+print("gesto=%s" % (nasceu[-1][1].get("MEOW_VSCODE_EXTENSAO") if nasceu else erro))
+PY
+}
+saida="$(gesto10 noite)"
+printf '%s\n' "$saida" | grep -qx 'lista=noite.tema-noite' \
+  && printf '%s\n' "$saida" | grep -qx 'botoes=vscode_instalar_extensao:noite.tema-noite' \
+  && printf '%s\n' "$saida" | grep -qx 'rede=True' && printf '%s\n' "$saida" | grep -qx 'fora=True' \
+  && printf '%s\n' "$saida" | grep -qx 'gesto=noite.tema-noite' \
+  || faltam+=" o painel não oferece o gesto da extensão ($saida);"
+saida="$(gesto10 dracula)"
+printf '%s\n' "$saida" | grep -qx 'lista=' || faltam+=" o pack do repositório pede gesto ($saida);"
+saida="$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=noite.tema-noite)"; rc=$?
+[ "$rc" = 1 ] && [ "$(chamadas10)" = 0 ] && [ -d "$CASA10/.vscode/extensions/noite.tema-noite-2.0.0" ] \
+  && [ ! -e "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
   && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" && grep -q '"workbench.iconTheme": "vs-seti"' "$VSC10" \
   && [ -z "$(ls -A "$T10/tmp")" ] \
-  || faltam+=" vscode aplicar (rc=$rc, chamadas=$(chamadas10): $saida);"
+  && ! grep -q '^vscode-extensao-de-terceiro	' "$T10/estado/pendencias.tsv" 2>/dev/null \
+  || faltam+=" vscode aplicar com o gesto: tem de vir da loja pelo id, e não da URL do pack (rc=$rc, chamadas=$(chamadas10): $saida);"
 saida="$(mod10 vscode conferir noite dracula)$(mod10 vscode aplicar noite dracula)"; rc=$?
-[ "$rc" = 0 ] && [ "$(chamadas10)" = 1 ] && printf '%s' "$saida" | grep -q 'VS Code: Noite Escura já no lugar' \
+[ "$rc" = 0 ] && [ "$(chamadas10)" = 0 ] && printf '%s' "$saida" | grep -q 'VS Code: Noite Escura já no lugar' \
   || faltam+=" vscode na segunda passada (rc=$rc: $saida);"
 saida="$(mod10 heroic aplicar noite dracula)"; rc=$?
 [ "$rc" = 3 ] && printf '%s' "$saida" | grep -q "sem tema neste pack (Noite)" \
@@ -1408,7 +1521,7 @@ saida="$(mod10 obsidian reverter noite dracula)"; rc=$?
   && printf '%s' "$saida" | grep -q 'obsidian: sem o Noite' \
   || faltam+=" obsidian reverter (rc=$rc, $(aparencia10): $saida);"
 saida="$(mod10 vscode reverter noite dracula)"; rc=$?
-[ "$rc" = 1 ] && [ ! -e "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
+[ "$rc" = 1 ] && [ ! -e "$CASA10/.vscode/extensions/noite.tema-noite-2.0.0" ] \
   && [ -d "$CASA10/.vscode/extensions/catppuccin.catppuccin-vsc-3.19.0" ] \
   && grep -q '"workbench.colorTheme": "Default Dark Modern"' "$VSC10" && grep -q '"workbench.iconTheme": "vs-seti"' "$VSC10" \
   && grep -q '// o editor dela' "$VSC10" \
@@ -1627,14 +1740,16 @@ faltam=""
 saida="$(mod10 vscode conferir noite dracula)"; rc=$?
 [ "$rc" = 1 ] && printf '%s' "$saida" | grep -q "tema-noite@0.9.0 não contribui o tema 'Noite Escura' (tem: Noite)" \
   || faltam+=" conferir com a versão velha (rc=$rc: $saida);"
-saida="$(mod10 vscode aplicar noite dracula)"; rc=$?
-[ "$rc" = 1 ] && [ "$(chamadas10)" = 1 ] && [ -d "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
-  && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" && [ -z "$(ls -A "$T10/tmp")" ] \
-  || faltam+=" aplicar (rc=$rc, chamadas=$(chamadas10): $saida);"
-saida="$(mod10 vscode conferir noite dracula)$(mod10 vscode aplicar noite dracula)"; rc=$?
-[ "$rc" = 0 ] && [ "$(chamadas10)" = 1 ] && printf '%s' "$saida" | grep -q 'VS Code: Noite Escura já no lugar' \
-  && ! printf '%s' "$saida" | grep -q 'não contribui' \
-  || faltam+=" segunda passada, com a pasta velha ao lado (rc=$rc, chamadas=$(chamadas10): $saida);"
+# [P79: o `noite` é importado, e o pino dele (a URL do .vsix) não vale — só o
+#   do pack do repositório vale (alerta de segurança do 8f668d0). Sem pino, a
+#   versão sem o tema é pendência dita, nem com o gesto nada desce, e nada é
+#   escrito. O pino que entra por cima uma vez só segue provado pelo Dracula,
+#   do repositório, na seção b («o pacote que não é o pinado é recusado»).]
+antes="$(impressao10)"
+saida="$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=noite.tema-noite)"; rc=$?
+[ "$rc" = 3 ] && [ "$(chamadas10)" = 0 ] && printf '%s' "$saida" | grep -q 'atualize a extensão pelo editor' \
+  && [ "$(impressao10)" = "$antes" ] \
+  || faltam+=" a versão sem o tema, de pack importado (rc=$rc, chamadas=$(chamadas10): $saida);"
 semear10
 vsix10 "$T10/catppuccin-velho.vsix" Catppuccin catppuccin-vsc 0.1.0 '{"themes": [{"label": "Catppuccin"}]}'
 env HOME="$CASA10" MERCADO="$MERCADO10" "$BIN10/code" --install-extension "$T10/catppuccin-velho.vsix"
@@ -1644,7 +1759,7 @@ saida="$(mod10 vscode aplicar catppuccin mocha)"; rc=$?
   && [ "$(impressao10)" = "$antes" ] \
   || faltam+=" sem pino (rc=$rc: $saida);"
 [ -z "$faltam" ] \
-  && ok "P55: a extensão que está no editor e não traz o tema do pack não conta como no lugar — com pino, o pinado entra uma vez; sem, pendência" \
+  && ok "P55: a extensão que está no editor e não traz o tema do pack não conta como no lugar — sem pino que valha, pendência e nada escrito" \
   || falha "P55: a extensão sem o tema:$faltam"
 
 # --- i) A ORIGEM PELA REGRA DA P41, E O DESFAZER LEVA TUDO O QUE DESCEU -----
@@ -1704,7 +1819,7 @@ printf '{\n    // o editor dela\n    "editor.fontSize": 14,\n    "workbench.icon
 faltam=""
 env -i PATH="$PATH" HOME="$CASA10" XDG_DATA_HOME="$CASA10/.local/share" MEOW_PACKS="$PACKS10" \
   python3 "$RAIZ/scripts/pack.py" validar torta >/dev/null 2>&1 && faltam+=" a torta de brinquedo passa no validar;"
-saida="$(mod10 vscode aplicar noite dracula)"; rc=$?
+saida="$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=noite.tema-noite)"; rc=$?
 [ "$rc" = 1 ] && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" \
   && grep -q '"workbench.iconTheme": "icones-dela"' "$VSC10" && grep -q '// o editor dela' "$VSC10" \
   || faltam+=" aplicar (rc=$rc, $(grep -o '"workbench.iconTheme": "[^"]*"' "$VSC10"): $saida);"

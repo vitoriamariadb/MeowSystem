@@ -26,7 +26,9 @@
 #   O `cosmic-app-list` não tem heurística própria: delega tudo a
 #   `fde::find_app_by_id` da crate `freedesktop-desktop-entry` 0.8.1 (a versão
 #   que o `Cargo.lock` do commit `40248fb` trava, e `40248fb` é o sufixo do
-#   `/usr/bin/cosmic-applets` instalado). `StartupWMClass` é a PRIMEIRA das seis
+#   `/usr/bin/cosmic-applets` instalado; P76: a revisão virou linha `revisao` do
+#   `contratos/cosmic.tsv`, e o `meow cosmic prever` acusa quando o pacote anda —
+#   em 09/10/2026 o instalado já era o 82e7cd8, com a 0.8.3). `StartupWMClass` é a PRIMEIRA das seis
 #   etapas, e cada etapa varre o parque INTEIRO antes de a seguinte começar.
 #
 #   Consequência que decide o desenho deste arquivo: **a etapa vence a

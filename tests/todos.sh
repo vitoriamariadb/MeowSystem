@@ -69,6 +69,7 @@ PORTATIL=(
   sem-dracula-os-theme.sh # tokenize no código versionado + a camada Dracula num HOME de brinquedo; bash e python3
   sem-receita-no-log.sh  # grep nos .sh versionados; nada além de bash
   temas-de-apps.sh       # grep nos manifestos + pack.py; estado de brinquedo
+  leitura-fonte-unica.sh # o meow leitura adotar e o servidor num HOME de brinquedo (P77); bash e python3
   flavor-padrao.sh       # o lib/comum.sh, quatro scripts que só leem, dois manifestos, o conf do painel e o meow icones num HOME de brinquedo (P61, P65); bash e python3
   git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash
   app.sh                 # compara o esquema do painel com o do wizard; python3
@@ -81,14 +82,33 @@ PORTATIL=(
   jogos-heroic.sh        # HOME de brinquedo com biblioteca falsa do Heroic
   um-cartao-por-jogo.sh  # HOME de brinquedo com manifesto falso da Steam
   doctor-so-le.sh        # o doctor inteiro num HOME de brinquedo, sudo/pkill/kill falsos (~15s)
+  chaves-aposentadas.sh  # o migrar_conf.py e o doctor num HOME de brinquedo, sudo falso: a chave aposentada não volta (P75)
+  doctor-veredito.sh     # o runner do doctor com conferências de mentira, ponte e sudo falsos; o doctor inteiro num HOME de brinquedo (P75, ~20s)
   fzf-da-paleta.sh       # paleta inventada e os dois packs daqui num HOME de brinquedo; bash e python3
   acento.sh              # COSMIC, pack e HOME de brinquedo; as etapas gerar e tema do install.sh; bash e python3
   vidro-do-cosmic.sh     # COSMIC, packs, HOME e TMPDIR de brinquedo; o alpha_map de 17/09 vai escrito no teste
   seletor-do-pack.sh     # cópia da árvore e HOME de brinquedo; as rotas da ficha e o passo do pack (P60); bash, git e python3
+  acervo-da-ficha.sh     # as rotas da ficha no processo, HOME de brinquedo; conta o disco e o git contra a ficha (P73); bash, git e python3
   variante.sh            # COSMIC, os dois packs e HOME de brinquedo; as etapas gerar, tema e modo (P59); bash e python3
   claro-do-pack.sh       # COSMIC, os dois packs e HOME de brinquedo; a foto só é lida (P63); bash e python3
   notas-de-funcao.sh     # COSMIC, packs, HOME e estado de brinquedo; as etapas do install.sh e os passos de ícone (P66); bash e python3
   frases-velhas.sh       # lê o que está versionado e pergunta ao git a idade da folha dos resgatados (P67); bash, git e python3
+  pack-dracula-completo.sh # o pack Dracula completo e exportável, packs e HOME de brinquedo (P74); bash e python3
+  compositor-shim.sh     # shim do compositor com dpkg-query e binários falsos, HOME de brinquedo (P76); só bash
+  cosmic-prever.sh       # .deb e fontes de brinquedo do cosmic-comp, sem apt nem rede (P76); bash e dpkg-deb
+  pos-apt.sh             # pós-apt do COSMIC com dpkg-query e passos falsos, HOME de brinquedo (P76); só bash
+  volta-do-cosmic.sh     # guarda do .deb e do fonte com dpkg-query, apt e sudo falsos, HOME de brinquedo (P76); só bash
+  contrato-cosmic.sh     # /usr/share/cosmic e COSMIC de brinquedo com v2; seis escritores e o pré-voo (P76); bash e python3
+  oraculo-tema.sh        # saídas do oráculo guardadas em tests/oraculo/ contra a cópia em Python (P76); só python3
+  applet-pino.sh         # dois Cargo.lock falsos e um cargo falso; o leitura_build.sh num HOME de brinquedo (P76); só bash
+  escala-kdl.sh          # cosmic-randr falso com KDL fixo; só o saidas() do escala.sh (P76); só bash
+  backoff-do-supervisor.sh # journalctl falso com as duas formas do log do cosmic-session (P76); só bash
+  pack-malicioso.sh      # pack de terceiro com '..', absoluto, symlink e script; painel num HOME de brinquedo (P78); bash, python3 e curl
+  casa-real.sh           # o migrar_conf, o doctor e a troca de pack num HOME e COSMIC de brinquedo, sudo falso (P79); bash e python3
+  nada-manda-digitar.sh  # grep nas mensagens versionadas e a tabela de pendências do painel (P79); bash e python3
+  achados-tecnicos.sh    # mapa CRLF, BOM, vidro, modo do gato e favoritas num HOME, COSMIC e packs de brinquedo (P79); bash e python3
+  trabalho-vivo.sh       # o Trabalho do painel com a janela entre a morte e o desfecho aberta à força, HOME de brinquedo (P80); bash e python3
+  reler-uma-vez.sh       # a lib com getent, pgrep e painel.sh falsos numa raiz e HOME de brinquedo; um reler por passada, e o passo de traço de verdade (P80); bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
@@ -104,7 +124,13 @@ MAQUINA=(
   restos-do-painel.sh    # a ficha de ícone e a gaveta no vm do node, sem navegador (P64); sem node, conta e pula
   folha-dos-resgatados.sh # acervo e raiz de brinquedo; pede rsvg-convert e o ImageMagick, sem eles pula (P68)
   app-completo.py        # Playwright com Chromium: TODA aba, TODO controle — o gate de merge (P46)
+  app-uso-real.py        # Playwright com Chromium: as 14 páginas como quem usa — parágrafo, coberto, prévia vazia, contradição (P77, U7)
+  app-texto-visivel.py   # Playwright com Chromium: a régua do texto visível da P77; mede e sai 0, só reprova se o painel não sobe
+  gate-link-externo.py   # Playwright com Chromium: o «Créditos» do gate aguenta a repintura entre o censo e o clique (P79)
 )
+# [Integração da onda 2, 10/10/2026: o `app-texto-visivel.py` chegou da P77
+#  executável e sem linha aqui, e a guarda de cima fazia a suíte inteira sair 2
+#  antes de rodar qualquer teste. Ele é régua, não gate: fora do SEM_PULO.]
 
 # O GATE NÃO SE PULA — 24/09/2026, sprint P46
 #   O `app-completo.py` é o percurso do painel inteiro, aba por aba e botão por
@@ -113,8 +139,12 @@ MAQUINA=(
 #   deixaria a suíte dizer "0 vermelhos" sem ele ter rodado — e "pulado não é
 #   verde" é a regra deste arquivo desde o primeiro dia. Para os testes desta
 #   lista, `pulado` é VERMELHO, com a receita de instalar na tela.
+#   O `app-uso-real.py` (P77, U7) entra pelo mesmo motivo: é o pedido «abrir
+#   cada aba como user… e colocar como gate», e o que ele olha (o que a pessoa
+#   VÊ) o `app-completo.py` não olha.
 SEM_PULO=(
   app-completo.py
+  app-uso-real.py
 )
 
 # ---------------------------------------------------------------------------
@@ -222,6 +252,42 @@ if [ "$TEM_PY" -eq 1 ]; then
          "${PY_NAVEGADOR:-nenhum python3 com Playwright nesta máquina}"
 fi
 printf '\n'
+
+# ---------------------------------------------------------------------------
+# O SUDO E A CASA DE BRINQUEDO DA SUÍTE INTEIRA — P75, 09/10/2026 (S6)
+# ---------------------------------------------------------------------------
+#   A máquina de quem usa tem `NOPASSWD: ALL` desde abril: um teste que chama
+#   `sudo` ali não falha, ESCREVE em /usr e em /etc. Cada teste se protegia por
+#   conta própria (o `doctor-so-le.sh`, o `previa-cerca.sh`), e um que
+#   esquecesse escrevia no sistema de verdade — já custou restauração à mão
+#   duas vezes. Por isso a suíte não era rodada inteira (01-regressoes.md, S6).
+#
+#   Agora a proteção é do runner, e vale para todo teste, inclusive o que for
+#   escrito amanhã: `sudo`, `pkexec` e `su` no começo do PATH registram a
+#   chamada e recusam, e o HOME de todos é uma casa de brinquedo. O que um
+#   teste precisa ler da casa de verdade para RODAR — os navegadores do
+#   Playwright, o pyenv, o site do pip do usuário — vai apontado por variável,
+#   e é só leitura. No fim, o placar diz quantas vezes alguém tentou o sudo.
+CASA_REAL="$HOME"
+# A casa de verdade fica dita, só para leitura, a quem precisa PERGUNTAR algo
+# dela (o `doctor-so-le.sh` confere que o reciclo acha o painel da sessão).
+export SUITE_CASA_REAL="$CASA_REAL"
+SUITE_TMP="$(mktemp -d)" || { printf 'erro: mktemp\n' >&2; exit 2; }
+trap 'rm -rf "$SUITE_TMP"' EXIT
+mkdir -p "$SUITE_TMP/falso" "$SUITE_TMP/casa" || exit 2
+export SUITE_SUDO_LOG="$SUITE_TMP/sudo.log"; : > "$SUITE_SUDO_LOG"
+for c in sudo pkexec su; do
+  printf '#!/bin/sh\nprintf "%%s %%s\\n" "$(basename "$0")" "$*" >> "$SUITE_SUDO_LOG"\nexit 1\n' \
+    > "$SUITE_TMP/falso/$c"
+  chmod 755 "$SUITE_TMP/falso/$c"
+done
+[ -d "$CASA_REAL/.cache/ms-playwright" ] && \
+  export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$CASA_REAL/.cache/ms-playwright}"
+[ -d "$CASA_REAL/.pyenv" ] && export PYENV_ROOT="${PYENV_ROOT:-$CASA_REAL/.pyenv}"
+export PYTHONUSERBASE="${PYTHONUSERBASE:-$CASA_REAL/.local}"
+export PATH="$SUITE_TMP/falso:$PATH" HOME="$SUITE_TMP/casa"
+unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME MEOW_CONF MEOW_ESTADO
+printf 'casa de brinquedo da suíte: %s (sudo, pkexec e su recusam e registram)\n\n' "$HOME"
 
 VERDES=0; PULADOS=0; VERMELHOS=()
 for nome in "${ALVOS[@]}"; do
@@ -334,6 +400,13 @@ done
 # ---------------------------------------------------------------------------
 printf '\n== %s · %s verde(s), %s pulado(s), %s vermelho(s) ==\n' \
        "$QUAL" "$VERDES" "$PULADOS" "${#VERMELHOS[@]}"
+# Quem tentou o sudo, e o que pediu: recusado e registrado, nunca executado.
+if [ -s "$SUITE_SUDO_LOG" ]; then
+  printf 'sudo/pkexec/su recusados durante a suíte: %s chamada(s)\n' "$(grep -c . "$SUITE_SUDO_LOG")"
+  LC_ALL=C sort "$SUITE_SUDO_LOG" | uniq -c | sort -rn | head -10 | sed 's/^/    /'
+else
+  printf 'nenhum teste chamou sudo, pkexec ou su\n'
+fi
 if [ "${#VERMELHOS[@]}" -gt 0 ]; then
   printf 'vermelhos: %s\n' "${VERMELHOS[*]}" >&2
   exit 1

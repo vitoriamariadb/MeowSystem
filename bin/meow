@@ -301,14 +301,25 @@ capturas() {
 # O `--conferir` do aplicar_tema.sh já normaliza o alpha que a Aurora reescreve,
 # então "confere" aqui quer dizer o que ela entende por confere — não uma
 # segunda regra que discordaria da primeira em silêncio.
+#
+# O ALVO É PERGUNTADO PRIMEIRO — P75, 09/10/2026 (D2 de 01-regressoes.md)
+#   Duas capturas podem conferir com o mesmo disco: o `alucard-mauve` e o
+#   `dracula-mauve` são o mesmo tema dos dois lados do interruptor claro/escuro
+#   (docs/COSMIC-THEMING.md §2b), e os 189 arquivos que o `--conferir` olha são
+#   os mesmos. Esta função devolvia a PRIMEIRA da lista, em ordem alfabética, e
+#   o `meow status` dizia `ativo alucard-mauve (o alvo é dracula-mauve)` na
+#   mesma máquina em que o doctor dizia `tema 'dracula-mauve' já aplicado`. O
+#   doctor confere o alvo; quando o alvo confere, é ele que está no ar, e as
+#   outras só são perguntadas quando ele não confere.
 tema_ativo() {
-  local n
+  local n alvo; alvo="$(alvo_tema)"
   while IFS= read -r n; do
     [ -n "$n" ] || continue
     if MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$n" --conferir >/dev/null 2>&1; then
       printf '%s' "$n"; return 0
     fi
-  done < <(capturas)
+  done < <(capturas | awk -v a="$alvo" '$0 == a { print; next } { resto[++n] = $0 }
+                                       END { for (i = 1; i <= n; i++) print resto[i] }')
   return 1
 }
 
@@ -349,12 +360,26 @@ logos_disponiveis() {
 # Cada uma devolve 0/1/2/3 e imprime detalhe em stdout (capturado pelo runner).
 # Todas rodam em seco: `doctor` sem `--consertar` não escreve configuração.
 
+# O MEOW.CONF TAMBÉM SE MIGRA AQUI — P75, 09/10/2026
+#   A chave aposentada (`ICONES_BASE`, desde 24/09) só saía do arquivo no
+#   próximo `./install.sh`, e enquanto isso o auto-reparo das 5h montava as
+#   pastas e os apelidos a partir dela — sete passadas puladas, de 28/09 a
+#   09/10. O `migrar_conf.py --conferir` é a mesma pergunta que o
+#   `etapa_conf` do install.sh faz (aposentada, nome antigo, chave nova
+#   faltando), e o `fix_conf` dá a mesma resposta. CRIAR o arquivo continua
+#   sendo só do install.sh: as duas criações em lugares diferentes são o que
+#   o comentário do `SEM_CONSERTO` lá embaixo recusa.
 chk_conf() {
   [ -f "$CONF" ] || { echo "meow.conf ainda não existe — o install.sh cria a partir do exemplo"; return "$MEOW_DIVERGENTE"; }
-  local v
+  local v migra
   for v in FLAVOR ACCENT MODO LOGO; do
     [ -n "${!v:-}" ] || { echo "$v não está definida em $CONF"; return "$MEOW_ERRO"; }
   done
+  if ! migra="$(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" --conferir 2>&1)"; then
+    printf '%s\n' "$migra" | head -n 1
+    printf '%s\n' "$migra" | sed 1d
+    return "$MEOW_DIVERGENTE"
+  fi
   echo "flavor=$FLAVOR accent=$ACCENT modo=$MODO logo=$LOGO"
   return 0
 }
@@ -957,8 +982,9 @@ chk_midia() {
     "$RAIZ/scripts/midia.sh" --conferir 2>&1
 }
 
-# Só confere — não existe `fix_midiabin`, e a ausência é a metade que faz o
-# comentário acima valer. Ver `SEM_CONSERTO`.
+# P76: o `fix_midiabin` existe desde 09/10/2026 — ver o bloco do `SEM_CONSERTO`.
+# Os dois nomes continuam separados pelo motivo acima: o conserto da sombra
+# órfã não pode esperar um build.
 chk_midiabin() {
   MIDIA="${MIDIA:-}" "$RAIZ/scripts/midia_build.sh" --conferir 2>&1
 }
@@ -1079,7 +1105,8 @@ chk_resgatados() {
     "$RAIZ/scripts/icones_resgatados.sh" --conferir 2>&1
 }
 
-# O PADRÃO AQUI É `nao`, IGUAL AO DO SCRIPT E AO DO `meow.conf.exemplo`.
+# O PADRÃO AQUI É `sim`, IGUAL AO DO SCRIPT E AO DO `meow.conf.exemplo` (era
+# `nao` até a P74, 09/10/2026: escolher o pack não ligava os desenhos dele).
 # Um padrão diferente em qualquer um dos três faria o doctor "consertar" para um
 # estado que o instalador desfaz na passagem seguinte — o pingue-pongue silencioso
 # que o `fix_resgatados` logo abaixo já documenta do outro lado.
@@ -1093,7 +1120,7 @@ chk_som() { SOM="${SOM:-sim}" "$RAIZ/scripts/som.sh" conferir 2>&1; }
 fix_som() { SOM="${SOM:-sim}" "$RAIZ/scripts/som.sh" aplicar 2>&1; }
 
 chk_dracula() {
-  ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+  ICONES_DRACULA="${ICONES_DRACULA:-sim}" \
     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$RAIZ/scripts/icones_apps_dracula.sh" --conferir 2>&1
 }
@@ -1547,7 +1574,9 @@ chk_leitura() {
 #
 #   Compilar continua não sendo trabalho do doctor: o caminho do `cargo` é
 #   inalcançável sem `LEITURA_COMPILAR=1`, e quem exporta essa chave é o
-#   `install.sh`. Por isso `leiturabin` está em SEM_CONSERTO.
+#   `install.sh`. Por isso `leiturabin` estava em SEM_CONSERTO — até 09/10/2026
+#   (P76), quando o conserto virou rebuild que segue o painel; ver o bloco do
+#   `SEM_CONSERTO`.
 #
 #   Sem lista de `export` aqui, pelo mesmo motivo do `chk_leitura`: o `set -a` do
 #   `carregar_conf` já exporta toda chave do meow.conf, e lista fixa é a
@@ -1650,7 +1679,7 @@ chk_cli() {
   esac
 
   if [ ! -f "$alvo" ]; then
-    echo "~/.local/bin/meow não existe — quem instala a CLI é o ./install.sh"
+    echo "~/.local/bin/meow não existe — o conserto copia o bin/meow deste clone"
     [ -n "$extra" ] && echo "$extra"
     return "$MEOW_DIVERGENTE"
   fi
@@ -1689,9 +1718,15 @@ chk_cli() {
 #   duas únicas linhas duplicadas desta conferência, e se uma terceira nascer no
 #   `etapa_pacotes` fora do array, ela NÃO vai aparecer aqui — está dito.
 #
-#   Não tem conserto automático: instalar pacote é `sudo apt-get`, e o doctor
-#   nunca usa sudo nem baixa nada (ver o cabeçalho deste arquivo).
-chk_pacotes() {
+#   O CONSERTO É A PONTE ROOT, DESDE A P75 (09/10/2026). Até aqui isto dizia
+#   "não tem conserto automático: instalar pacote é `sudo apt-get`" e imprimia
+#   a linha do `apt-get` para ela copiar — o diagnóstico certo devolvido como
+#   tarefa, que é o que ela pediu três vezes em 21/09 para nunca mais haver. A
+#   ponte ganhou o verbo `pacotes`, de lista literal (ver o bloco dele em
+#   scripts/ponte_root.sh), e o `fix_pacotes` a chama sem senha. A conta do que
+#   falta mora no `_pacotes_faltando`, uma vez, para a conferência e o conserto
+#   não discordarem sobre a lista.
+_pacotes_faltando() {
   local faltam=() par bin pac
   while IFS= read -r par; do
     [ -n "$par" ] || continue
@@ -1710,11 +1745,21 @@ chk_pacotes() {
     [ "${lidos:-0}" -gt 0 ] || { echo "não consegui ler a lista de pacotes do install.sh"; return "$MEOW_ERRO"; }
   }
   [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
-  python3 -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+  python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+  [ "${#faltam[@]}" -eq 0 ] || printf '%s\n' "${faltam[@]}"
+  return 0
+}
 
+chk_pacotes() {
+  local lista faltam=()
+  lista="$(_pacotes_faltando)" || { echo "$lista"; return "$MEOW_ERRO"; }
+  [ -n "$lista" ] && mapfile -t faltam <<< "$lista"
   [ "${#faltam[@]}" -eq 0 ] && { echo "todos os pacotes necessários já estão instalados"; return 0; }
-  echo "faltam: ${faltam[*]}"
-  echo "  sudo apt-get install -y --no-install-recommends ${faltam[*]}"
+  if meow_ponte_viva; then
+    echo "faltam: ${faltam[*]} — o conserto os instala pela ponte root, sem senha"
+  else
+    echo "faltam: ${faltam[*]} — sem a ponte root, instalar pacote pede a sua senha uma vez, no ./install.sh"
+  fi
   return "$MEOW_DIVERGENTE"
 }
 
@@ -1744,10 +1789,19 @@ chk_upstream() {
 #   medido em 21/09/2026, a linha do `fontes` saía com a célula em branco, que é
 #   o mesmo buraco descrito no cabeçalho do `rodar_checks`. O `rc` é guardado
 #   antes do cano, senão quem responderia seria o `sed`.
+#
+#   E O VEREDITO SOBE PARA A PRIMEIRA LINHA — P75, 09/10/2026 (achado 5). A
+#   primeira linha não-vazia é o título do primeiro bloco, "Fonte da
+#   interface", e a tabela mostrava isso como se fosse o estado. O veredito do
+#   script é a ÚLTIMA linha ("fontes já no lugar", ou a do seco divergente),
+#   e é ela que vai para cima; o resto segue como detalhe, sem as linhas
+#   em branco, que a tabela já pulava.
 chk_fontes() {
   local saida rc
   saida="$("$RAIZ/scripts/instalar_fontes.sh" --conferir 2>&1)"; rc=$?
-  printf '%s\n' "$saida" | sed '/./,$!d'
+  saida="$(printf '%s\n' "$saida" | sed '/^[[:space:]]*$/d')"
+  printf '%s\n' "$saida" | tail -n 1
+  printf '%s\n' "$saida" | sed '$d'
   return "$rc"
 }
 
@@ -1820,6 +1874,12 @@ fix_modo()      { local d; d="$(modo_desejado)" || return "$MEOW_ERRO"; meow_esc
 fix_completar() { FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/completar_icones.sh" 2>&1; }
+# O índice do tema, do disco, depois de tudo o que escreve nele (P74 item 5):
+# o par da `etapa_icones_indice` do install.sh, e o último da lista do doctor.
+chk_indice()    { MEOW_DRY_RUN=1 NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_icones.sh" indice 2>&1; }
+fix_indice()    { NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_icones.sh" indice 2>&1; }
 fix_icones()    { FLAVOR="$FLAVOR" LOGO="$LOGO" \
                     ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -1842,8 +1902,8 @@ fix_wallpaper() { WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WA
 fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
   SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" \
                     "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
-# Só a sombra, as chaves e o fail-safe. O par `midiabin` não tem `fix_` — ver o
-# comentário do `chk_midia`.
+# Só a sombra, as chaves e o fail-safe. O par `midiabin` tem o `fix_` dele, que
+# compila (P76) — ver o comentário do `chk_midia` para por que são dois.
 fix_midia()     { MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
                     MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
                     MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
@@ -1856,6 +1916,13 @@ fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
                     VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
                     "$RAIZ/scripts/vidro.sh" 2>&1; }
 fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
+# OS DOIS APPLETS SE RECOMPILAM — 09/10/2026, P76. Em escopo de usuário, sem
+# sudo, e só quando o `--conferir` deles diz divergente (o carimbo não bate:
+# a receita mudou, ou o libcosmic do painel andou). A chave `*_COMPILAR=1` é a
+# mesma que o `install.sh` exporta.
+fix_midiabin()   { MIDIA="${MIDIA:-}" MIDIA_COMPILAR=1 "$RAIZ/scripts/midia_build.sh" --aplicar 2>&1; }
+fix_leiturabin() { LEITURA_COMPILAR=1 "$RAIZ/scripts/leitura_build.sh" --aplicar 2>&1; }
+
 fix_painel()    {
   rodar_painel "$RAIZ" conferir 2>&1
   local rc=$?
@@ -1882,7 +1949,7 @@ fix_iconesapps(){ ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
 fix_resgatados(){ ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_resgatados.sh" --aplicar 2>&1; }
-fix_dracula()   { ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+fix_dracula()   { ICONES_DRACULA="${ICONES_DRACULA:-sim}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar 2>&1; }
 fix_sistema()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
@@ -1981,6 +2048,87 @@ fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
                     "$RAIZ/scripts/autostart.sh" aplicar 2>&1; }
 
 fix_escala()    { ESCALA_TELA="${ESCALA_TELA:-}" "$RAIZ/scripts/escala.sh" 2>&1; }
+
+# O par do `chk_conf` (P75): migra, nunca cria. Sem arquivo, o 3 diz quem cria.
+fix_conf() {
+  [ -f "$CONF" ] || { meow_pula "o meow.conf nasce no ./install.sh, a partir do exemplo"; return "$MEOW_SEM_DEPENDENCIA"; }
+  if meow_seco; then
+    meow_muda "migraria o meow.conf: $(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" --conferir 2>&1 | em_linha)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  local saida
+  saida="$(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" 2>&1)" ||
+    { meow_erro "não consegui migrar o meow.conf: $saida"; return "$MEOW_ERRO"; }
+  [ -n "$saida" ] || return 0
+  meow_ok "$saida"
+  return "$MEOW_DIVERGENTE"
+}
+
+# O CONF MIGRADO VALE PARA O RESTO DA MESMA PASSADA — conferência da P75, 09/10/2026
+#   O `fix_conf` roda no subshell da captura de saída, e o `carregar_conf` já
+#   tinha posto as chaves NESTE shell antes da tabela: a aposentada que ele
+#   tirou do arquivo continuava no ambiente. Medido numa casa de brinquedo com
+#   uma cópia do meow.conf dela (a `ICONES_BASE="MeowSystem-Icons-Base"` ativa
+#   na :1841): a 1ª passada migrava o conf, montava `completar` e `pastas` ainda
+#   pela chave velha, e terminava vermelha nomeando os dois — só a 2ª ficava
+#   verde. Quem chama isto é o laço do `--consertar`, depois do `fix_conf`: a
+#   aposentada sai do ambiente (a lista é a do `migrar_conf.py`, lida dele, e
+#   não copiada) e o conf é relido.
+recarregar_conf_migrado() {
+  local k
+  for k in $(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import migrar_conf; print(" ".join(migrar_conf.APOSENTADAS))' \
+               "$RAIZ/scripts" 2>/dev/null); do
+    unset "$k"
+  done
+  carregar_conf --ponte-opcional >/dev/null 2>&1
+}
+
+# OS CINCO QUE SAÍRAM DO `SEM_CONSERTO` NA P75 — 09/10/2026
+#   Ela: «O doctor não tem que avisar nada. Tem que corrigir.» Os cinco
+#   tinham conserto conhecido e o doctor devolvia a linha para ela rodar:
+#   `pacotes` (pela ponte root), `upstream`, `fontes` e `cursor` (baixam o que
+#   está PINADO, por SHA, versão e sha256 — o mesmo que o install.sh baixa; o
+#   `fix_cursor` já existia), e `cli` (a cópia que a `etapa_cli` faz). O argumento antigo, "o doctor não baixa",
+#   era uma regra nossa, não dela; a dela é a outra.
+#
+#   SEM PONTE, `pacotes` volta para o `SEM_CONSERTO`: instalar pacote sem ela
+#   pede senha, e o auto-reparo das 5h não tem a quem pedir.
+fix_pacotes() {
+  local lista
+  lista="$(_pacotes_faltando)" || { echo "$lista"; return "$MEOW_ERRO"; }
+  [ -n "$lista" ] || return 0
+  if meow_seco; then
+    meow_muda "instalaria pela ponte root: $(printf '%s' "$lista" | em_linha)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if ! printf '%s\n' "$lista" | meow_ponte pacotes 2>&1; then
+    meow_erro "a ponte root não instalou: $(printf '%s' "$lista" | em_linha)"
+    return "$MEOW_ERRO"
+  fi
+  meow_ok "instalados pela ponte root: $(printf '%s' "$lista" | em_linha)"
+  return "$MEOW_DIVERGENTE"
+}
+fix_upstream()  { "$RAIZ/scripts/baixar_upstream.sh" 2>&1; }
+fix_fontes()    { "$RAIZ/scripts/instalar_fontes.sh" 2>&1; }
+# O mesmo par de escritas da `etapa_cli` do install.sh, pela mesma rotina. O
+# medo antigo ("uma CLI que se reescreve no meio da própria execução") não se
+# sustenta com o `meow_escrever`: ele grava num temporário do mesmo diretório e
+# troca por `mv` — o bash que está lendo a cópia velha segue lendo o inode
+# velho até o fim, e a próxima chamada já acha a nova.
+fix_cli() {
+  local rc mudou=0
+  meow_escrever "$HOME/.local/bin/meow" "$(cat "$RAIZ/bin/meow")" 755; rc=$?
+  [ "$rc" -ge 2 ] && { meow_erro "não consegui instalar ~/.local/bin/meow"; return "$MEOW_ERRO"; }
+  [ "$rc" = "1" ] && mudou=1
+  if ! meow_seco && [ -f "$HOME/.local/bin/meow" ] && [ ! -x "$HOME/.local/bin/meow" ]; then
+    chmod 755 "$HOME/.local/bin/meow" && mudou=1
+  fi
+  meow_escrever "$MEOW_ESTADO/raiz" "$RAIZ" 644; rc=$?
+  [ "$rc" -ge 2 ] && { meow_erro "não consegui gravar $MEOW_ESTADO/raiz"; return "$MEOW_ERRO"; }
+  [ "$rc" = "1" ] && mudou=1
+  [ "$mudou" = "1" ] && { meow_seco || meow_ok "a CLI e o ponteiro da raiz no lugar"; return "$MEOW_DIVERGENTE"; }
+  return 0
+}
 fix_logo()      { FLAVOR="$FLAVOR" LOGO="$LOGO" "$RAIZ/scripts/logo.sh" 2>&1; }
 
 # O par do `chk_autoreparo`, e o único desta leva de 21/09 que mexe em systemd.
@@ -2015,10 +2163,17 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-# `conf` não tem conserto próprio de propósito: quem cria o meow.conf é o
+# `conf` não tem CRIAÇÃO própria de propósito: quem cria o meow.conf é o
 # `install.sh`, que sabe o que fazer quando ele não existe. Duas criações do
 # mesmo arquivo em lugares diferentes é como se ganha um arquivo pela metade.
-VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho autoreparo cli pacotes escala upstream fontes logo)
+# [P75, 09/10/2026: a MIGRAÇÃO, sim — ver o `chk_conf`.]
+# AS DEPENDÊNCIAS VÊM PRIMEIRO — P75, 09/10/2026. `pacotes` e `upstream`
+#   moravam no fim da lista, e o laço do `--consertar` anda na ordem dela: o
+#   Papirus e o papirus-folders chegavam DEPOIS do `completar` e do `pastas`
+#   que dependem deles, e a passada terminava com os dois pulados por "falta
+#   dependência" que ela mesma tinha acabado de instalar. Logo depois da
+#   ponte, que é por onde o `pacotes` passa.
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho autoreparo cli escala fontes logo indice)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
@@ -2030,9 +2185,22 @@ VERIFICAVEIS=(conf ponte gerar tema modo vidro forma painel janelas patches relo
 #   escreve em `/etc/sudoers.d`, e um auto-reparo por relógio não escreve em
 #   `/etc/sudoers.d` — essa continua sendo uma decisão que passa por ela, no
 #   `./install.sh`, com a senha na mão.
-SEM_CONSERTO=" conf ponte convertidos heroictema midiabin leiturabin cursor patches cli pacotes upstream fontes "
+#
+#   `cursor`, `cli`, `upstream`, `fontes` e `pacotes` saíram na P75 (ver o
+#   bloco do `fix_pacotes`); o `pacotes` volta quando a ponte não está no ar.
+#
+#   `conf` saiu na mesma leva: o conserto dele é a migração (`fix_conf`),
+#   e a criação continua só no install.sh — o `fix_conf` sai 3 sem arquivo.
+#
+#   `midiabin` e `leiturabin` SAÍRAM DAQUI EM 09/10/2026 (P76). Estavam porque
+#   o conserto compila, e compilar não era do doctor. O que mudou: o conserto
+#   é um rebuild em escopo de usuário, sem sudo, e o motivo de ele precisar
+#   acontecer passou a ser o apt (o libcosmic do painel que o applet segue;
+#   ver `scripts/applet_pino.sh`) — e o doctor que roda depois do apt é o do
+#   pós-apt. O doctor corrige; ele não manda rodar.
+SEM_CONSERTO=" ponte convertidos heroictema patches "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" conf ponte ocultar absolutos convertidos lancadorapt heroictema midiabin leiturabin cursor patches cli pacotes upstream fontes "
+  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema patches pacotes "
 fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -2047,23 +2215,21 @@ fi
 #   conserto BAIXA", e com o ponteiro do pack ela mandava a pessoa rodar o
 #   comando pelo motivo errado. O que continua verdade é mais estreito: o
 #   conserto PODE baixar — e o doctor, que não sabe de antemão qual dos casos
-#   é, não roda o que pode baixar.
+#   é, não roda o que pode baixar. [P75, 09/10/2026: roda. O que se baixa é
+#   pinado, e a regra dela é a do doctor que corrige; as razões do `cursor` e
+#   das `fontes` saíram com eles.]
 declare -A SEM_CONSERTO_RAZAO=(
-  [conf]="é o install.sh que cria"
   [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — rode: ./install.sh"
   [ocultar]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
   [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
-  [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
-  [leiturabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
-  [cursor]="o conserto pode BAIXAR o ponteiro que nem o disco nem o pack trazem, e o doctor não roda o que pode baixar — rode: ./scripts/cursor.sh aplicar"
-  [patches]="o conserto RECOMPILA o cosmic-comp (~4 min) e instala com sudo, e o doctor não compila nem usa sudo — rode: meow compositor"
-  [cli]="quem copia a CLI para ~/.local/bin é o instalador, e uma CLI que se reescreve no meio da própria execução é decisão sua — rode: ./install.sh"
-  [pacotes]="instalar pacote é sudo apt-get, e o doctor não usa sudo — rode a linha que ele imprime, ou ./install.sh"
-  [upstream]="o conserto CLONA da rede, e o doctor não baixa — rode: ./scripts/baixar_upstream.sh"
-  [fontes]="o conserto pode BAIXAR a Nerd Font pinada, ou uma fonte que o pack pina por URL, e o doctor não roda o que pode baixar — rode: ./scripts/instalar_fontes.sh"
+  # P76 (conferência): o build mora em ~/.local/libexec, sem sudo, e quem o refaz
+  # sozinho depois do apt é o pós-apt do COSMIC. A frase antiga ("instala com
+  # sudo") deixou de ser verdade com o shim.
+  [patches]="o conserto RECOMPILA o cosmic-comp (~4 a 30 min), e quem o refaz depois do apt é o pós-apt do COSMIC — rode: meow compositor"
+  [pacotes]="sem a ponte root, instalar pacote pede a sua senha, e o auto-reparo não tem a quem pedir — o ./install.sh pede uma vez e instala a ponte"
 )
 
 # O 3 QUE É NOSSO — 22/09/2026
@@ -2178,6 +2344,15 @@ em_linha() { paste -sd, - | sed 's/,/, /g'; }
 #   O `pior_rc` não o vê (é 0), o `--consertar` o pula, e o detalhe continua
 #   aparecendo embaixo, como o de uma divergência. O `chk_painel` já abria o
 #   "vale no PRÓXIMO LOGIN" dele com `!!`, e ganha o mesmo glifo pela mesma regra.
+# Alguma linha da tabela é um `ok` que avisa (a espera do próximo login)?
+tem_aviso_de_espera() {
+  local i
+  for i in "${!CHK_RC[@]}"; do
+    [ "${CHK_RC[$i]}" = "0" ] && aviso_na_cabeca "${CHK_SAIDA[$i]}" && return 0
+  done
+  return 1
+}
+
 aviso_na_cabeca() {
   local l="${1%%$'\n'*}"
   l="${l#"${l%%[![:space:]]*}"}"
@@ -2192,12 +2367,26 @@ imprimir_check() {
   if [ "${CHK_RC[$i]}" = "0" ] && aviso_na_cabeca "${CHK_SAIDA[$i]}"; then
     rotulo="$(printf '%s!!%s  ' "$C_AMARELO" "$C_ZERO")"; aviso=1
   fi
+  # O pulado que avisou sai com o glifo do aviso, e não com o `--` do pulado
+  # de rotina: é ele que pesa no veredito (`pulado_com_aviso`), e a tela tem
+  # de mostrar a mesma diferença que a conta faz (P75, 09/10/2026).
+  #
+  # E A LINHA DA TABELA É A DO AVISO, e não a primeira da saída: no `pastas`
+  # a primeira era a nota de que a cor foi derivada de outra, e o motivo de
+  # ter pulado ficava escondido no detalhe. O detalhe passa a ser o resto.
+  local saida="${CHK_SAIDA[$i]}"
+  if pulado_com_aviso "$i"; then
+    rotulo="$(printf '%s!!%s  ' "$C_AMARELO" "$C_ZERO")"
+    local l_aviso; l_aviso="$(printf '%s\n' "$saida" | grep -m1 -E '^[[:space:]]*!! ')"
+    linha="$(sem_glifo "$l_aviso")"
+    saida="$(printf 'x\n%s\n' "$saida" | grep -vxF -- "$l_aviso")"
+  fi
   # 11, e não 10, desde 11/08/2026: `convertidos` é o primeiro nome de
   # verificador com 11 caracteres, e com 10 a coluna da direita saía uma casa
   # fora do prumo só naquela linha.
   printf '  %s %s %s\n' "$rotulo" "$(pad "${CHK_NOME[$i]}" 11)" "$linha"
   if [ "$detalhar" = "1" ] && { [ "${CHK_RC[$i]}" != "0" ] || [ "$aviso" = "1" ]; }; then
-    printf '%s\n' "${CHK_SAIDA[$i]}" | tail -n +2 | while IFS= read -r l; do
+    printf '%s\n' "$saida" | tail -n +2 | while IFS= read -r l; do
       l="$(sem_glifo "$l")"
       [ -n "$l" ] || continue
       printf '       %s%s%s\n' "$C_DIM" "$l" "$C_ZERO"
@@ -2205,12 +2394,45 @@ imprimir_check() {
   fi
 }
 
+# O PULADO QUE AVISOU — P75, 09/10/2026 (achado 3 de 09/10)
+#   Até aqui o 3 nunca pesava no veredito ("pulado não é falha"), e a mesma
+#   passada que imprimia `pastas coloridas puladas` fechava com `ok nada a
+#   consertar` — e o painel com «TUDO CONFERE». Sete auto-reparos seguidos, de
+#   28/09 a 09/10, pularam as pastas e nada acusou (01-regressoes.md, «Por que
+#   voltou», item 3).
+#
+#   O que separa os dois 3 é o próprio verificador, e não uma lista aqui: o
+#   pulado de rotina sai em `--` (o Heroic que ela não usa, a Steam que não
+#   está instalada) e o pulado por falta de uma peça do produto sai em `!!`
+#   (`meow_aviso`). É essa diferença de glifo que a tela já mostrava; agora o
+#   veredito também a lê.
+pulado_com_aviso() {
+  [ "${CHK_RC[$1]}" = "3" ] || return 1
+  printf '%s\n' "${CHK_SAIDA[$1]}" | grep -qE '^[[:space:]]*!! '
+}
+
+# Fora do lugar: divergente (1), erro (qualquer código fora de 0/1/3/4) ou o
+# pulado que avisou. O 4 é escolha dela e o 0 com `!!` na cabeça é espera
+# (ver `aviso_na_cabeca`) — nenhum dos dois tem conserto a fazer.
+fora_do_lugar() {
+  case "${CHK_RC[$1]}" in
+    0|4) return 1 ;;
+    3)   pulado_com_aviso "$1" ;;
+    *)   return 0 ;;
+  esac
+}
+
+# O pior estado da tabela: 2 (erro) manda em tudo; depois 1 (fora do lugar). O
+# `doctor`, o `status` e o fim do `--consertar` leem o veredito daqui, e por
+# isso os três não discordam sobre o que está fora.
 pior_rc() {
-  local pior=0 rc
-  for rc in "${CHK_RC[@]}"; do
-    # 2 (erro) manda em tudo; depois 1 (divergente). 3 (pulado) não é falha.
-    [ "$rc" = "2" ] && { printf '2'; return; }
-    [ "$rc" = "1" ] && pior=1
+  local pior=0 i
+  for i in "${!CHK_RC[@]}"; do
+    fora_do_lugar "$i" || continue
+    case "${CHK_RC[$i]}" in
+      1|3) pior=1 ;;
+      *)   printf '2'; return ;;
+    esac
   done
   printf '%s' "$pior"
 }
@@ -2316,11 +2538,17 @@ cmd_status() {
              WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
              "$RAIZ/scripts/wallpaper.sh" estado 2>/dev/null)
 
+  # SÓ O QUE ESTÁ FORA É DIVERGÊNCIA — P75, 09/10/2026 (D2, P70 item 3)
+  #   Esta lista mostrava toda linha que não fosse 0: o pulado de rotina (o
+  #   Heroic que ela não usa), a escolha dela (4), e a espera do próximo login.
+  #   E fechava mandando rodar o `--consertar`, que respondia "nada a
+  #   consertar" — o status e o doctor discordando sobre a mesma tabela. A
+  #   régua agora é a do veredito, o `fora_do_lugar`, que é a mesma dos dois.
   meow_passo "Divergências"
   rodar_checks
   local i qtd=0
   for i in "${!CHK_NOME[@]}"; do
-    [ "${CHK_RC[$i]}" = "0" ] && continue
+    fora_do_lugar "$i" || continue
     imprimir_check "$i" 0
     qtd=$((qtd+1))
   done
@@ -2397,44 +2625,23 @@ cmd_doctor() {
     meow_info "  o MeowSystem não mexe nela: regra de sudo é sua, não nossa"
   fi
 
-  # A ARTE COPIADA QUE DIVERGIU DA ORIGEM — regra 8 da P28, 23/09/2026
-  #   O pack ativo pode trazer arte de terceiro copiada, com a origem no
-  #   `PROCEDENCIA.md`. Quando a cópia e a origem se separam, o doctor diz — e
-  #   pelo mesmo molde do aviso do sudo logo acima: NÃO É UM CHECK, não entra
-  #   em `VERIFICAVEIS` e não passa pelo `--consertar`. Não há conserto
-  #   automático possível: escolher entre o retoque daqui e o upstream de lá é
-  #   decisão de autor, e um auto-reparo das 5h que escolhesse sozinho
-  #   apagaria, um dia, o retoque de alguém.
+  # A COMPARAÇÃO COM A ORIGEM SAIU DA PASSADA — P75, 09/10/2026 (D3)
+  #   Aqui morava o `pack.py sincronizar` do pack no ar, a cada passada: a
+  #   regra 8 da P28 (23/09), "mostra a divergência entre a cópia e a origem e
+  #   espera o gesto". Em 24/09 ela decidiu outra coisa para a comparação com o
+  #   Dracula_OS-Theme: «Aposentar tudo». A P43 esvaziou a coluna `lido de`,
+  #   mas a chamada ficou, e o doctor seguia perguntando toda madrugada por
+  #   uma decisão que não é mais pergunta (01-regressoes.md, D3).
   #
-  #   Silêncio quando está em dia e quando a origem não está nesta máquina — a
-  #   dela não tem o `Dracula_OS-Theme`, e "não há com o que comparar" não é
-  #   notícia. Só o código 1 (algum lado andou) vira linha.
-  #
-  #   E ESTA LINHA NÃO LÊ MAIS A CASA DE NINGUÉM — 24/09/2026, P43. Até aqui,
-  #   com o Dracula no ar, ela relia a cada passada 364 arquivos do
-  #   `Dracula_OS-Theme`, na pasta pessoal de quem escreveu o tema (a coluna
-  #   `lido de` do PROCEDENCIA.md dele): a última leitura, em execução, de um
-  #   caminho da máquina de alguém. A decisão de 23/09 foi "aposentar tudo". A coluna ficou
-  #   vazia nessas linhas, e o `sincronizar` conta linha vazia como só registro,
-  #   sem abrir nada fora do pack. O chamado daqui não mudou: ele continua
-  #   servindo ao pack de terceiro que declare origem, e à linha do Dracula cuja
-  #   origem é o próprio motor. O `tests/sem-dracula-os-theme.sh` cobra isso
-  #   abrindo este mesmo `sincronizar` sob um gancho de auditoria.
-  local pack_proc; pack_proc="$(meow_pack_dir)"
-  if [ -n "$pack_proc" ] && [ -f "$pack_proc/PROCEDENCIA.md" ]; then
-    python3 "$RAIZ/scripts/pack.py" sincronizar "$pack_proc" >/dev/null 2>&1
-    if [ "$?" = "1" ]; then
-      meow_info "o pack $(basename "$pack_proc") tem arte copiada que se separou da origem"
-      meow_info "  é informação, não conserto — qual versão fica é decisão sua"
-      meow_info "  veja o par lado a lado:  meow pack sincronizar $(basename "$pack_proc")"
-    fi
-  fi
+  #   O verbo continua existindo para quem quiser comparar à mão um pack de
+  #   terceiro (`meow pack sincronizar <id>`); o doctor é que não o chama.
 
   local pior; pior="$(pior_rc)"
   if [ "$consertar" = "0" ]; then
     printf '\n'
     case "$pior" in
-      0) meow_ok "nada a consertar" ;;
+      0) if tem_aviso_de_espera; then meow_ok "nada a consertar — fica só o aviso acima"
+         else meow_ok "nada a consertar"; fi ;;
       1) meow_muda "há divergências — rode: meow doctor --consertar" ;;
       *) meow_erro "algo falhou ao conferir; veja os detalhes acima" ;;
     esac
@@ -2448,6 +2655,16 @@ cmd_doctor() {
   meow_travar || return "$MEOW_ERRO"
   meow_passo "Consertando o que falhou"
   local nome rc saida mexeu=0 falhou=0
+  # A TELA RELÊ UMA VEZ, NO FIM DO CONSERTO — conferência da P80 (item 7). O
+  #   `fix_arcticons`, o `fix_resgatados` e o `fix_dracula` pedem o reciclo do
+  #   painel cada um, como na instalação, e este laço é o do auto-reparo das 5h
+  #   e o do «Consertar» do painel. A mesma marca do install.sh (ver "UM RELER
+  #   POR PASSADA", no `meow_tela_reler` do lib/comum.sh): os pedidos se anotam,
+  #   e o `meow_tela_reler_no_fim` depois do laço relê uma vez.
+  if ! meow_seco; then
+    MEOW_RELER_NO_FIM="$(mktemp "${TMPDIR:-/tmp}/meow-reler.XXXXXX" 2>/dev/null)" \
+      && export MEOW_RELER_NO_FIM
+  fi
   for i in "${!CHK_NOME[@]}"; do
     nome="${CHK_NOME[$i]}"
     [ "${CHK_RC[$i]}" = "0" ] && continue
@@ -2458,11 +2675,25 @@ cmd_doctor() {
     # O `FALTA_NOSSA` abre a única porta: ver o bloco dele, ao lado do
     # SEM_CONSERTO. Sem essa linha o `gerar` era pulado por "o conserto não é
     # nosso" — e ali ele é.
+    #
+    # E O 3 SE CONFERE DE NOVO ANTES DE SER PULADO — P75, 09/10/2026. A
+    # dependência que faltava na tabela pode ter chegado nesta mesma passada:
+    # o `pacotes` instala o Papirus e o `upstream` baixa o papirus-folders
+    # antes do `pastas`, e o `icones` monta o tema antes do `completar`. Sem a
+    # segunda pergunta, o laço pulava os dois com "falta dependência" depois de
+    # ele mesmo ter posto a dependência no lugar.
     if [ "${CHK_RC[$i]}" = "3" ]; then
       case "$FALTA_NOSSA" in
         *" $nome "*) ;;
-        *) meow_pula "$nome: falta dependência — o conserto não é nosso"
-           continue ;;
+        *) local de_novo; de_novo="$("chk_$nome" 2>&1)"; rc=$?
+           if [ "$rc" = "3" ] || [ "$rc" = "0" ]; then
+             CHK_RC[$i]="$rc"; CHK_SAIDA[$i]="$de_novo"
+           fi
+           if [ "$rc" = "3" ]; then
+             meow_pula "$nome: falta dependência — o conserto não é nosso"
+             continue
+           fi
+           [ "$rc" = "0" ] && continue ;;
       esac
     fi
     # 4: divergente POR ESCOLHA DELA. Consertar aqui seria desfazer o ajuste que
@@ -2480,10 +2711,59 @@ cmd_doctor() {
       3)   ;;
       *)   falhou=1 ;;
     esac
+    # O conf migrado vale já para os consertos seguintes (ver o bloco do
+    # `recarregar_conf_migrado`).
+    if [ "$nome" = "conf" ] && [ "$rc" = "1" ]; then recarregar_conf_migrado; fi
   done
+  meow_tela_reler_no_fim
 
-  registrar "doctor --consertar mexeu=$mexeu falhou=$falhou"
+  # O VEREDITO É O DEPOIS, E NÃO O ANTES — P75, 09/10/2026
+  #   O fim desta função dizia "nada a consertar" sempre que nenhum conserto
+  #   tinha mexido — inclusive quando tudo o que estava fora fora PULADO (sem
+  #   conserto automático, falta dependência). Medido em 09/10, no painel: a
+  #   mesma saída com `!! completar` e `-- pastas ... puladas` terminava em
+  #   `ok nada a consertar`, e o painel escrevia «TUDO CONFERE».
+  #
+  #   Agora o que estava fora se confere de novo depois do laço, e o veredito
+  #   sai dessa segunda tabela: o que o conserto pôs no lugar fica verde, e o
+  #   que continuou fora — pulado, sem conserto, ou um conserto que disse que
+  #   fez e não fez — é nomeado e faz a passada terminar vermelha (2). No seco
+  #   nada foi escrito, e a segunda tabela seria a primeira repetida: ali vale o
+  #   "é isto que o conserto FARIA" de sempre.
+  #
+  #   E A SEGUNDA TABELA É INTEIRA QUANDO ALGO FOI ESCRITO — conferência da P75,
+  #   09/10/2026. Ela olhava só o que estava fora ANTES, e um conserto mexe no
+  #   que outra linha confere: numa casa de brinquedo, a 2ª passada começou com
+  #   `icones ok`, o `completar` e o `pastas` puseram arquivos no tema, o
+  #   `index.theme` ficou para trás, e a passada fechou em «conferido de novo,
+  #   tudo no lugar» — a 3ª achou `~~ icones`. Sem nada escrito (`mexeu=0`), o
+  #   que estava no lugar continua no lugar, e a segunda pergunta só vai ao resto.
+  local restou=()
+  if ! meow_seco; then
+    local LOG_NIVEL=info; export LOG_NIVEL
+    for i in "${!CHK_NOME[@]}"; do
+      [ "${CHK_RC[$i]}" = "0" ] && [ "$mexeu" = "0" ] && continue
+      saida="$("chk_${CHK_NOME[$i]}" 2>&1)"; rc=$?
+      CHK_RC[$i]="$rc"; CHK_SAIDA[$i]="$saida"
+      fora_do_lugar "$i" && restou+=("$i")
+    done
+  fi
+
+  registrar "doctor --consertar mexeu=$mexeu falhou=$falhou restou=${#restou[@]}"
   printf '\n'
+  if [ "${#restou[@]}" -gt 0 ]; then
+    meow_passo "Ficou fora do lugar"
+    for i in "${restou[@]}"; do
+      imprimir_check "$i" 1
+      nome="${CHK_NOME[$i]}"
+      case "$SEM_CONSERTO" in *" $nome "*)
+        printf '       %s%s%s\n' "$C_DIM" "${SEM_CONSERTO_RAZAO[$nome]:-é o install.sh que cria}" "$C_ZERO" ;;
+      esac
+    done
+    printf '\n'
+    meow_erro "$(printf '%s\n' "${restou[@]}" | while read -r i; do printf '%s\n' "${CHK_NOME[$i]}"; done | em_linha) — continua fora depois do conserto"
+    printf '\n'; return "$MEOW_ERRO"
+  fi
   if [ "$falhou" = "1" ]; then
     meow_erro "alguma etapa falhou — nada ficou pela metade, cada uma é independente"
     printf '\n'; return "$MEOW_ERRO"
@@ -2508,7 +2788,7 @@ cmd_doctor() {
     if meow_seco; then
       meow_muda "é isto que o conserto FARIA — com MEOW_DRY_RUN=1 nada foi escrito"
     else
-      meow_ok "consertado. Confira com: meow doctor"
+      meow_ok "consertado — conferido de novo, tudo no lugar"
     fi
     printf '\n'
     return "$MEOW_DIVERGENTE"
@@ -2854,7 +3134,7 @@ cmd_icones() {
         # "ligado" para o que o instalador deixa desligado.
         case "$camada_f" in
           resgatados) chave=ICONES_RESGATADOS; valor="${ICONES_RESGATADOS:-sim}" ;;
-          *)          chave=ICONES_DRACULA;    valor="${ICONES_DRACULA:-nao}" ;;
+          *)          chave=ICONES_DRACULA;    valor="${ICONES_DRACULA:-sim}" ;;
         esac
         printf '       %-9s %s  (%s="%s")\n' "camada" "$camada_f" "$chave" "$valor"
         while IFS=$'\t' read -r tipo destino; do
@@ -2988,7 +3268,7 @@ cmd_wallpaper() {
   carregar_conf || return "$MEOW_ERRO"
   local acao="${1:-estado}"
   case "$acao" in
-    estado|aplicar|usar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel|lado)
+    estado|aplicar|usar|adicionar|banir|desbanir|favoritar|desfavoritar|semear|permitir|proximo|anterior|carrossel|lado)
       # Só passa adiante o que o scripts/wallpaper.sh tem de verdade. O `usar`
       # faltava até 24/09/2026: o «Usar» da galeria do painel saía 2 com a
       # mensagem de uso, e o script o tinha desde a 28173e2 (achado da P46). Os
@@ -3042,9 +3322,10 @@ cmd_wallpaper() {
         WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
         "$RAIZ/scripts/wallpaper.sh" "$acao" "$@"
       return $? ;;
-    fixar|favoritar|recolorir|intervalo|ordem)
+    # [P79: o `favoritar` existe desde 10/10/2026, e saiu desta lista.]
+    fixar|recolorir|intervalo|ordem)
       meow_erro "'$acao' ainda não existe"
-      meow_info "o que existe hoje: estado, aplicar, proximo, anterior, carrossel, adicionar <img|pasta>, banir <img>, semear, permitir <caminho>"
+      meow_info "o que existe hoje: estado, aplicar, proximo, anterior, carrossel, adicionar <img|pasta>, banir <img>, favoritar <img>, semear, permitir <caminho>"
       meow_info "intervalo e ordem se mudam no $CONF (WALLPAPER_INTERVALO / WALLPAPER_ORDEM)"
       return "$MEOW_SEM_DEPENDENCIA" ;;
     *) meow_erro "uso: meow wallpaper [estado|aplicar|proximo|anterior|carrossel|adicionar <alvo>|banir <img>|semear|permitir <caminho>]"
@@ -4061,12 +4342,16 @@ cmd_leitura() {
 
   case "$verbo" in
     aplicar|conferir|estado|remover) "$RAIZ/scripts/leitura.sh" "$verbo" ;;
+    # [P77, 10/10/2026: o painel escolheu, e o applet passa a guardar o mesmo
+    # — ver `cmd_adotar` no leitura.sh.]
+    adotar) shift; "$RAIZ/scripts/leitura.sh" adotar "$@" ;;
     -h|--help)
       meow_titulo "meow leitura"
       printf '  meow leitura estado     que degrau o relógio pede AGORA e o que a tela mostra\n'
       printf '  meow leitura conferir   0 conforme · 1 divergente · 4 escolha sua\n'
       printf '  meow leitura aplicar    põe o degrau da hora (o timer faz isto sozinho)\n'
-      printf '  meow leitura remover    zera os dois números e desarma o timer\n\n'
+      printf '  meow leitura remover    zera os dois números e desarma o timer\n'
+      printf '  meow leitura adotar CHAVE...  o applet passa a guardar o valor do meow.conf\n\n'
       printf '  O horário mora no APPLET da topbar, não no meow.conf: as chaves\n'
       printf '  leitura_hora_inicio/fim de com.system76.CosmicComp. O applet só as\n'
       printf '  escreve quando você mexe nele; até lá vale o padrão do meow.conf —\n'
@@ -4109,17 +4394,25 @@ cmd_compositor() {
     compilar|validar)
       [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
       MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
-    conferir|reverter)
+    conferir|reverter|qual)
+      MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
+    # P76: o shim em `~/.local/bin` — sem sudo, vale no próximo login.
+    ativar|desativar)
+      [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
       MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
     -h|--help|ajuda)
       meow_titulo "meow compositor"
       printf '  meow compositor [--seco]   baixa o fonte da versão instalada, aplica a série de\n'
-      printf '                             patches/, compila (~4 min) e instala — sudo só no fim\n'
+      printf '                             patches/, compila (~4 min) e guarda o build em\n'
+      printf '                             ~/.local/libexec/meow/cosmic-comp/<versão> — sem sudo\n'
       printf '  meow compositor validar    baixa o fonte e só roda o dry-run da série nele\n'
       printf '  meow compositor conferir   os marcadores no disco e na sessão (é a linha do doctor)\n'
-      printf '  meow compositor reverter   diz como voltar ao binário do pacote\n\n'
+      printf '  meow compositor reverter   diz como voltar ao binário do pacote\n'
+      printf '  meow compositor ativar     liga o shim em ~/.local/bin: o próximo login usa o build\n'
+      printf '  meow compositor desativar  desliga o shim: o próximo login volta a /usr/bin\n'
+      printf '  meow compositor qual       o binário que o próximo login vai rodar\n\n'
       printf '  Ele só compila sobre uma versão que esteja em patches/versao, e diz por quê\n'
-      printf '  quando recusa. O binário é também a tela de login: vale no próximo login.\n'
+      printf '  quando recusa. A tela de login não vê o shim: ela fica sempre de fábrica.\n'
       ;;
     *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow compositor --help"; return "$MEOW_ERRO" ;;
   esac
@@ -4177,13 +4470,19 @@ cmd_pack() {
           achou=1
           local id nome
           id="$(basename "${d%/}")"
-          nome="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["nome"])' "$d/pack.json" 2>/dev/null || echo "$id")"
+          # O NOME SAI SEM CARACTERE DE CONTROLE — conferência da P78. Esta
+          #   linha lê o pack.json de TODO pack da raiz, inclusive o que não
+          #   valida (a recusa do `validar` não chega aqui), e um `"nome"` com
+          #   `\u001b]52;…` escrevia na área de transferência de quem listava.
+          #   O nome do diretório também: ele vem do `git clone`.
+          nome="$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["nome"])' "$d/pack.json" 2>/dev/null || echo "$id")"
+          nome="$(meow_texto_seguro "$nome")"; id="$(meow_texto_seguro "$id")"
           if python3 "$RAIZ/scripts/pack.py" validar "${d%/}" >/dev/null 2>&1; then
             meow_ok "$id — $nome"
           else
             meow_aviso "$id — $nome (não valida: meow pack validar $id)"
           fi
-          printf '       %s\n' "${d%/}"
+          printf '       %s\n' "$(meow_texto_seguro "${d%/}")"
         done
       done < <(python3 "$RAIZ/scripts/pack.py" raizes)
       # A LINHA ESPECIAL SAIU EM 22/09/2026, E A LISTA FICOU MAIS HONESTA
@@ -4297,6 +4596,21 @@ cmd_pack() {
       texto="$(meow_conf_texto_definir "$texto" FLAVOR "$novo_flavor")"
       printf '%s\n' "$texto" > "$copia/meow.conf"
 
+      # O PONTEIRO E AS PASTAS QUE O PACK DE ANTES ESCOLHIA VÃO JUNTO — P79
+      #   (10/10/2026, item 4). O QA da P77 achou o ensaio de trocar o Dracula
+      #   pelo Catppuccin avisando que `CURSOR` e `ICONES_PASTAS` continuavam
+      #   citando o Dracula: a troca saía pela metade numa casa que tinha o
+      #   ponteiro e as pastas que o pack escolhe. O pack decide; quem usa pode
+      #   fixar. A régua é a do `migrar_conf.py` (`vestigios`), a mesma do doctor:
+      #   o ponteiro igual ao que o pack de antes escolhe vira o do novo, e as
+      #   pastas com o flavor de outro pack voltam a acompanhar o pack. Roda na
+      #   CÓPIA primeiro — o ensaio e a lista de baixo leem a troca inteira — e
+      #   no conf de verdade depois de gravar PACK e FLAVOR.
+      local junto
+      junto="$(python3 "$RAIZ/scripts/migrar_conf.py" "$copia/meow.conf" "$CONF_PADRAO" \
+                 --so-vestigios --pack-de-antes "$agora_pack" "$agora_flavor" 2>/dev/null)" || junto=""
+      junto="${junto#*: }"
+
       # O QUE FICA DE OUTRO PACK, DITO ANTES DE APLICAR
       #   O verbo grava PACK e FLAVOR, e só: o meow.conf vence o pack
       #   (docs/PACKS.md, "Quem vence"), e um `ICONES_BASE="Dracula-Icones"`
@@ -4335,7 +4649,7 @@ cmd_pack() {
       #     e não uma dedução, porque "ninguém mais lê" não se mede do conf.
       local restos="" fora="" linha chave dono onde
       linha="$(MEOW_RAIZ="$RAIZ" MEOW_CONF="$copia/meow.conf" MEOW_CONF_PADRAO="$CONF_PADRAO" \
-        python3 - "$RAIZ" 2>/dev/null <<'PY'
+        python3 -I - "$RAIZ" 2>/dev/null <<'PY'
 import os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "app"))
 import servidor
@@ -4398,6 +4712,7 @@ PY
       if meow_seco; then
         local rc_ensaio
         meow_muda "gravaria PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\" em $CONF — ensaio: o arquivo não é tocado"
+        [ -z "$junto" ] || meow_muda "levaria junto, do pack de antes para o «$novo_pack»: $junto"
         if [ "$aplicar" = "1" ]; then
           meow_info "o tema '$par' e o ensaio do instalador olham a troca, e não o conf do disco"
           aplicar_tema_da_troca
@@ -4416,6 +4731,12 @@ PY
       if [ "$rc_pack" -ge 2 ] || [ "$rc_flavor" -ge 2 ]; then
         meow_erro "não consegui gravar em $CONF"
         return "$MEOW_ERRO"
+      fi
+      if [ -n "$junto" ]; then
+        junto="$(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" \
+                   --so-vestigios --pack-de-antes "$agora_pack" "$agora_flavor" 2>&1)" \
+          || { meow_erro "não consegui levar o ponteiro e as pastas junto: $junto"; return "$MEOW_ERRO"; }
+        [ -z "$junto" ] || meow_muda "levado junto, do pack de antes para o «$novo_pack»: ${junto#*: }"
       fi
       if [ "$rc_pack" = "0" ] && [ "$rc_flavor" = "0" ]; then
         meow_ok "o meow.conf já dizia PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\""
@@ -4496,6 +4817,18 @@ PY
       meow_seco && seco=(--seco)
       python3 "$RAIZ/scripts/pack.py" exportar "$alvo" "$@" ${seco[@]+"${seco[@]}"}
       ;;
+    # `exportar-tema` — o tema de ícones MONTADO, P74 item 4, 09/10/2026
+    #   O `exportar` leva a receita; este leva o tema pronto, com a base, para
+    #   instalar em qualquer máquina sem o MeowSystem. Quem monta é o
+    #   `scripts/exportar_tema.sh`, numa casa temporária: não lê o meow.conf
+    #   desta máquina (o exportado é o do pack, de fábrica) e não escreve nada
+    #   fora do arquivo que entrega.
+    exportar-tema|export-theme)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga qual pack: meow pack exportar-tema <id> [flavor] [arquivo.tar.gz]"; return "$MEOW_ERRO"; }
+      shift
+      "$RAIZ/scripts/exportar_tema.sh" "$alvo" "$@"
+      ;;
     importar|import)
       local arquivo="${1:-}"
       [ -n "$arquivo" ] || { meow_erro "diga qual arquivo: meow pack importar <arquivo.meowpack|arquivo.csv>"; return "$MEOW_ERRO"; }
@@ -4547,7 +4880,7 @@ PY
       python3 "$RAIZ/scripts/pack.py" de-csv "$arq"
       ;;
     -h|--help|ajuda)
-      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|importar <arquivo>|remover <id>|de-csv <arq>|raizes]\n\n'
+      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|exportar-tema <id>|importar <arquivo>|remover <id>|de-csv <arq>|raizes]\n\n'
       printf '  listar           os packs instalados, e se cada um valida\n'
       printf '  usar <id> [fl]   troca o pack da máquina: grava PACK e FLAVOR e aplica\n'
       printf '  validar <id>     confere o pack inteiro; 0 = ok\n'
@@ -4558,6 +4891,8 @@ PY
       printf '    --de-csv <arq> a paleta vem do CSV slot,flavor,hex; o resto, do pack padrão\n'
       printf '  exportar <id> [arquivo.meowpack] [--sem-imagens]\n'
       printf '                   o pack num arquivo só, para mandar a alguém\n'
+      printf '  exportar-tema <id> [flavor] [arquivo.tar.gz]\n'
+      printf '                   o tema de ícones montado, com a base, pronto para instalar\n'
       printf '  importar <arquivo.meowpack|arquivo.csv>\n'
       printf '                   confere, e instala como opção — não troca o seu tema\n'
       printf '  remover <id>     tira um pack que você importou; o que vem com o MeowSystem,\n'
@@ -4601,6 +4936,17 @@ despachar() {
     pack|packs)       shift; cmd_pack "$@" ;;
     leitura)          shift; cmd_leitura "$@" ;;
     compositor)       shift; cmd_compositor "$@" ;;
+    # P76: o pré-voo do COSMIC candidato. Só lê o que o apt vai instalar e
+    # grava o veredito; o porquê de cada item mora no próprio script.
+    cosmic)           shift
+      case "${1:-prever}" in
+        prever|ler|icones) "$RAIZ/scripts/cosmic_prever.sh" "$@"; exit $? ;;
+        -h|--help|ajuda)
+          printf '  meow cosmic prever [--sem-rede]  o veredito sobre o COSMIC da fila do apt, antes do upgrade\n'
+          printf '  meow cosmic ler                  o último veredito gravado\n'
+          printf '  meow cosmic icones               os apps do COSMIC instalados sem desenho em mapa nenhum\n' ;;
+        *) meow_erro "verbo desconhecido: $1"; meow_info "veja: meow cosmic --help"; exit "$MEOW_ERRO" ;;
+      esac ;;
     # `abrir` sobe o painel de configuração visual (a pasta `app/`). É `exec`, e
     # não uma chamada comum, porque o `run.sh` FICA DE PÉ: ele sobe o servidor,
     # abre o navegador e espera. Deixar este processo pendurado por baixo dele

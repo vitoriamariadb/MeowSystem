@@ -22,3 +22,14 @@
 - teste por item, vermelho antes e verde depois; `tests/todos.sh` inteiro verde com HOME temporário.
 - a casa real só em leitura: `meow doctor` da worktree (sem `--consertar`) aponta os três itens
   do 4 como o que ele vai corrigir, e nada mais.
+
+## Alerta de segurança (10/10, 07:20, revisão automática do 8f668d0): consentimento ≠ o que instala
+
+O gesto consente pelo NOME da extensão (`MEOW_VSCODE_EXTENSAO=<publisher.nome>`), mas o que se
+instala é o `.vsix` da URL e do sha256 que o PACK escolheu (`_VSC_URL`/`_VSC_SHA`). Um pack
+importado pode pôr o nome de uma extensão conhecida e a URL de um código qualquer: quem clica
+consente com uma coisa e recebe outra. Cura (obrigatória para o conferente): para pack importado,
+o pack NÃO fornece URL — o gesto instala pelo id, da loja oficial (`code --install-extension <id>`,
+Marketplace/Open VSX), e a pendência mostra o id exato que vai ser instalado; URL+sha256 de `.vsix`
+só valem para pack versionado no repositório. Teste: pack importado com `nome` conhecido e URL
+apontando para outro `.vsix` → com o gesto, o que roda é a instalação pelo id, nunca a URL do pack.

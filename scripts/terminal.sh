@@ -258,7 +258,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-DIR="${TERMINAL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicTerm/v1}"
+DIR="${TERMINAL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicTerm/$(meow_cosmic_v com.system76.CosmicTerm)}"
 # A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
 # 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
 # Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
@@ -309,7 +309,7 @@ meow_seco && [ "$ACAO" = "aplicar" ] && ACAO="conferir"
 #   Agora estes nomes também leem: a paleta do pack ativo tem `nomes` ao lado
 #   de `flavors`, e a próxima variante entra escrevendo um par lá, em um
 #   arquivo só.
-NOMES_ESQUEMA="$(python3 -c '
+NOMES_ESQUEMA="$(python3 -I -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
 nomes = d.get("nomes") or {}
@@ -349,7 +349,7 @@ _nome_esquema() {
 #   Os nomes saem de TODO pack do disco (as mesmas raízes do `pack.py`), e os
 #   da paleta de agora vão junto — uma `MEOW_PALETA` escolhida à mão não mora
 #   em pack nenhum. Um nome que pack nenhum gera continua sendo dela.
-NOSSOS_NOMES="$(python3 -c '
+NOSSOS_NOMES="$(python3 -I -c '
 import json, os, sys
 sys.path.insert(0, sys.argv[1])
 import pack
@@ -391,7 +391,7 @@ print(",".join(nomes))
 #
 #   A mesma lição que o bloco acima já contava sobre `NOMES_ESQUEMA`: uma lista
 #   de nomes chumbada custa exatamente o dia em que entra o quinto nome.
-_FLAVOR_CLARO_PALETA="$(python3 -c '
+_FLAVOR_CLARO_PALETA="$(python3 -I -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
 claros = [c for c in (d.get("claros") or []) if c in (d.get("flavors") or {})]
@@ -402,7 +402,7 @@ FLAVOR_CLARO="${_FLAVOR_CLARO_PALETA:-latte}"
 # E o escuro: se o FLAVOR escolhido for o claro, o par escuro é o primeiro
 # flavor que NÃO está em `claros`. Antes isto era `latte) FLAVOR_ESCURO="mocha"`,
 # com os dois nomes do Catppuccin escritos no código.
-_FLAVOR_ESCURO_PALETA="$(python3 -c '
+_FLAVOR_ESCURO_PALETA="$(python3 -I -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
 claros = set(d.get("claros") or [])
@@ -430,7 +430,7 @@ esac
 # tocar: ele precisa saber onde uma entrada começa e termina, não o que tem
 # dentro. Qualquer coisa que ele não entenda vira erro e ninguém escreve nada.
 _py() {
-  PALETA="$PALETA" python3 - "$@" <<'PY'
+  PALETA="$PALETA" python3 -I - "$@" <<'PY'
 import json, os, re, sys
 
 modo = sys.argv[1]
@@ -632,7 +632,7 @@ PY
 # A tradução nome-da-paleta -> hex mora aqui pelo mesmo motivo do `midia.sh`:
 # a paleta é do MeowSystem, e uma segunda cópia dos hex é uma segunda verdade.
 _hex_accent() {
-  python3 -c '
+  python3 -I -c '
 import json, sys
 try:
     p = json.load(open(sys.argv[1]))["flavors"][sys.argv[2]]
@@ -680,9 +680,16 @@ _pronto() {
 # vez por passagem (o `MEOW_CARIMBO` é exportado pelo comum.sh), e não faz nada
 # quando o arquivo ainda não existe. Sem o backup, NÃO escrevemos: um mapa de
 # esquemas importados por ela vale mais que esta sprint.
+#
+# O BACKUP SÓ QUANDO HÁ O QUE SOBRESCREVER [09/10/2026, QA da P74]
+#   O backup vinha antes da comparação do `meow_escrever`: a 2ª passada, com
+#   os dois mapas já iguais, deixava uma pasta `<carimbo>-sistema` nova a cada
+#   rodada (medido numa casa temporária: 18 entradas novas e rc 0), e o
+#   `meow-doctor.timer` a repetiria todo dia. A mesma régua do `meow_escrever`
+#   (conteúdo igual = nada a fazer) decide aqui se há o que guardar.
 _gravar() {
   local arq="$1" conteudo="$2"
-  if [ -f "$arq" ] && ! meow_seco; then
+  if [ -f "$arq" ] && ! meow_seco && [ "$conteudo" != "$(cat "$arq" 2>/dev/null)" ]; then
     if ! meow_backup_sistema "$arq"; then
       meow_erro "não consegui guardar cópia de $arq — nada foi escrito"
       return "$MEOW_ERRO"

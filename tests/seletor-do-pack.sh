@@ -26,6 +26,14 @@
 #   5. Trocar para o Catppuccin não carrega a escolha: a busca não oferece o
 #      Dracula, o passo do pack tira do tema o que o Dracula tinha posto, o
 #      Catppuccin não ganha arquivo nenhum — e a escolha volta com o Dracula.
+#   [09/10/2026, P73 — o que mudou, e as seções acima dizem a regra nova:
+#    · a ficha mostra TODOS os acervos, de todos os packs, em pastas (a decisão
+#      3 de 09/10 revoga a regra da P60 do item 2): o Catppuccin aparece com o
+#      Dracula no ar, depois dele; e a camada desligada não tira nada da ficha;
+#    · o «Usar este ícone» grava no estado de quem usa (`icones-escolhidos.map`,
+#      ao lado do meow.conf), e o mapa do pack só muda pelo gesto explícito
+#      «Levar para o pack» (a regressão I3). O item 3 confere as duas metades:
+#      escolher não toca o mapa; levar troca a linha, como a P60 trocava.]
 #   6. (P64, 25/09/2026) A escolha tem desfazer: a linha do painel leva a que
 #      ela trocou, e desfazer a devolve — o mapa volta byte a byte. A resposta
 #      diz o ícone que fica, e o «Desfazer a escolha no traço» de um app que
@@ -158,7 +166,18 @@ def glifos(busca):
 
 
 def escolher(app, desenho, pack="dracula"):
+    """O «Levar para o pack» (P73): o gesto explícito que grava no mapa dele.
+    Era o «Usar este ícone» até a P73 — o nome ficou, e as seções abaixo
+    cobram o que a P60 e a P64 cobravam do mapa do pack."""
     return chamar(m._api_app_icone, {"app": app, "pack": pack, "desenho": desenho})
+
+
+def usar(app, arquivo):
+    """O «Usar este ícone» depois da P73: a escolha no estado de quem usa."""
+    return chamar(m._api_app_icone, {"app": app, "arquivo": arquivo})
+
+
+escolhas = os.path.join(casa, ".config", "meow", "icones-escolhidos.map")
 
 
 def conf_com(**chaves):
@@ -234,8 +253,10 @@ do_pack = [g for g in r.get("glifos", []) if g.get("pack")]
 print("  «alien»: %d opção(ões) — %s" % (len(r.get("glifos", [])), ", ".join(
     "%s (%s)" % (g["glifo"], g["grupo"]) for g in r.get("glifos", [])) or "nenhuma"))
 achado = next((g for g in do_pack if g["glifo"] == "alien"), None)
-checa(achado and achado["grupo"] == "Dracula" and achado["desenho"] == "biblioteca/alien.svg",
-      "«alien» acha o desenho da biblioteca do Dracula, no grupo com o nome do pack",
+checa(achado and achado["grupo"] == "pack:dracula:biblioteca"
+      and achado["desenho"] == "biblioteca/alien.svg"
+      and achado["arquivo"] == "packs/dracula/icones/biblioteca/alien.svg",
+      "«alien» acha o desenho da biblioteca do Dracula, na pasta da biblioteca do pack",
       repr(do_pack))
 if achado:
     pedido = os.path.normpath(unquote(achado["url"].split("id=", 1)[1]))
@@ -247,30 +268,60 @@ r = glifos("chrome")
 print("  «chrome»: %d opção(ões) — %s" % (len(r.get("glifos", [])), ", ".join(
     "%s (%s)" % (g["glifo"], g["grupo"]) for g in r.get("glifos", []))))
 grupos = {g["grupo"] for g in r.get("glifos", []) if g["glifo"] == "google-chrome"}
-checa({"Dracula", "traço (Arcticons)"} <= grupos,
-      "«chrome» oferece o google-chrome do Dracula e o do Arcticons, cada um no seu grupo",
+checa({"pack:dracula:apps", "motor:arcticons-apps"} <= grupos,
+      "«chrome» oferece o google-chrome do Dracula e o do Arcticons, cada um na sua pasta",
       repr(sorted(grupos)))
 
+# SEM TETO (P73): a busca vazia traz tudo, e cada pasta diz o total dela.
 vazia = glifos("")
-checa(sum(1 for g in vazia.get("glifos", []) if g.get("pack")) == 60
-      and sum(1 for g in vazia.get("glifos", []) if not g.get("pack")) > 0,
-      "a busca vazia traz 60 do pack e o traço de sempre, cada um com o seu teto")
+por_grupo = {}
+for g in vazia.get("glifos", []):
+    por_grupo[g["grupo"]] = por_grupo.get(g["grupo"], 0) + 1
+checa(not vazia.get("limitado") and vazia.get("grupos")
+      and all(por_grupo.get(gr["id"], 0) == gr["total"] for gr in vazia["grupos"])
+      and por_grupo.get("pack:dracula:biblioteca", 0) > 60,
+      "a busca vazia traz o acervo inteiro, sem teto: cada pasta com o total que ela diz",
+      repr({gr["id"]: (por_grupo.get(gr["id"], 0), gr["total"]) for gr in vazia.get("grupos", [])}))
 
-# --- 2. nenhum acervo de pack fora do ar -------------------------------------
-todos = [g for busca in ("", "alien", "chrome", "cosmic") for g in glifos(busca).get("glifos", [])]
-checa(not [g for g in todos if g["grupo"] == "Catppuccin" or (g.get("pack") or "dracula") != "dracula"],
-      "com o Dracula no ar, nenhum grupo de outro pack — o «Catppuccin» cravado saiu")
-autorais = [g for g in todos if g.get("pack") and g["desenho"].startswith("autorais/")]
-checa(autorais and all(g["desenho"].endswith("-dracula.svg") for g in autorais),
-      "os autorais oferecidos são os do flavor em vigor (%d do dracula)" % len(
-          {g["desenho"] for g in autorais}))
+# --- 2. todos os acervos, o pack no ar primeiro (P73, decisão 3) ------------
+# [Até a P73 este bloco cobrava o contrário: nenhum grupo de pack fora do ar.]
+ordem = [gr["id"] for gr in vazia.get("grupos", [])]
+do_ar = [i for i, gid in enumerate(ordem) if gid.startswith("pack:dracula:")]
+de_fora = [i for i, gid in enumerate(ordem) if gid.startswith("pack:catppuccin:")]
+checa(do_ar and de_fora and max(do_ar) < min(de_fora),
+      "com o Dracula no ar, o Catppuccin aparece na pasta dele, depois das do Dracula", repr(ordem))
+checa({"pack:dracula:autorais:dracula", "pack:dracula:autorais:alucard"} <= set(ordem),
+      "os autorais do pack vêm nos dois flavors, cada um na sua pasta", repr(ordem))
+# Só o que é do mapa do pack no ar traz `pack`/`desenho` (o «Levar para o pack»).
+checa(all(g["grupo"].startswith("pack:dracula:") for g in vazia["glifos"] if g.get("pack")),
+      "só o desenho do pack no ar pode ser levado ao mapa dele")
 
 # --- 3. escolher o alien grava a linha, e o passo o põe no tema ---------------
 with open(mapa, encoding="utf-8") as fh:
     antes = fh.read().split("\n")
+# O «USAR ESTE ÍCONE» NÃO TOCA O MAPA (P73, I3): a escolha vai para o estado de
+# quem usa, e o passo do pack a põe no tema.
+codigo, dados = usar("google-chrome", "packs/dracula/icones/biblioteca/alien.svg")
+with open(mapa, encoding="utf-8") as fh:
+    checa(codigo == 200 and fh.read().split("\n") == antes,
+          "o «Usar este ícone» com o alien não muda um byte do apps.map do Dracula", repr(dados))
+with open(escolhas, encoding="utf-8") as fh:
+    linha_minha = fh.read()
+checa(linha_minha == "google-chrome : packs/dracula/icones/biblioteca/alien.svg   "
+                     "# Chrome de Brinquedo — escolhido no painel\n",
+      "a escolha mora no icones-escolhidos.map de quem usa, no formato dos mapas", repr(linha_minha))
+rc, saida = passo_do_pack()
+checa(rc in (0, 1) and texto(os.path.join(tema, "google-chrome.svg")) == texto(alien),
+      "a ação `icones_pack` põe no tema o alien escolhido no estado (rc=%s)" % rc, saida[-600:])
+r = chamar(m._api_glifos, {"busca": [""], "app": ["google-chrome"]})[1]
+checa((r.get("minha") or {}).get("desenho") == "biblioteca/alien.svg",
+      "a ficha diz a escolha de quem usa, e que ela pode ser levada ao pack", repr(r.get("minha")))
+# O «LEVAR PARA O PACK» é o gesto que grava no mapa: o mesmo POST da P60.
 codigo, dados = escolher("google-chrome", "biblioteca/alien.svg")
 checa(codigo == 200 and dados.get("ok") and dados.get("nome_pack") == "Dracula",
-      "o «Usar este ícone» com o alien grava a escolha no pack Dracula", repr(dados))
+      "o «Levar para o pack» com o alien grava a escolha no pack Dracula", repr(dados))
+with open(escolhas, encoding="utf-8") as fh:
+    checa(fh.read() == "", "e a escolha sai do estado de quem usa: a linha do pack é ela")
 with open(mapa, encoding="utf-8") as fh:
     depois = fh.read().split("\n")
 mudou = [i for i, (a, b) in enumerate(zip(antes, depois)) if a != b]
@@ -326,18 +377,18 @@ por_nome = jogos.get("jogo-por-nome") or {}
 checa("trava_pack" in por_nome and por_nome["trava_pack"] is None,
       "e manda o campo vazio no jogo de ícone por nome, onde o pack vale", repr(por_nome))
 
-conf_com(ICONES_DRACULA="")
+conf_com(ICONES_DRACULA="nao")
 r = glifos("alien")
 esquema = servidor.ler_esquema()
 servidor._com_o_vocabulario_do_pack(esquema, servidor.vocabulario_do_pack(), {})
 titulo = next((i.get("titulo") for i in esquema if i["chave"] == "ICONES_DRACULA"), None)
-checa(not [g for g in r.get("glifos", []) if g.get("pack")] and r.get("aviso")
+checa([g for g in r.get("glifos", []) if g["glifo"] == "alien"] and r.get("aviso")
       and titulo and ("«%s»" % titulo) in r["aviso"],
-      "com a camada desligada o pack sai da busca, e o aviso aponta o cartão pelo título da tela",
-      repr((r.get("aviso"), titulo)))
+      "com a camada desligada o alien continua na ficha (P73), e o aviso aponta o cartão "
+      "pelo título da tela", repr((r.get("aviso"), titulo)))
 codigo, dados = escolher("google-chrome", "biblioteca/alien.svg")
 checa(codigo == 409 and dados.get("erro") == r.get("aviso"),
-      "e gravar com ela desligada é recusado com a mesma frase (%s)" % codigo)
+      "e levar para o pack com ela desligada é recusado com a mesma frase (%s)" % codigo)
 conf_com(ICONES_DRACULA="sim")
 
 # --- 5. trocar para o Catppuccin não carrega a escolha ------------------------
@@ -345,12 +396,14 @@ catppuccin = os.path.join(raiz, "packs", "catppuccin")
 antes_c = arvore(catppuccin)
 conf_com(PACK="catppuccin", FLAVOR="mocha")
 r = glifos("alien")
-checa(not r.get("glifos") and not r.get("aviso"),
-      "com o Catppuccin no ar, «alien» não acha nada — o Dracula saiu da busca")
+checa([g for g in r.get("glifos", []) if g["glifo"] == "alien" and not g.get("pack")]
+      and not [g for g in r.get("glifos", []) if g.get("pack")],
+      "com o Catppuccin no ar, «alien» ainda acha o do Dracula (decisão 3), sem o "
+      "«Levar para o pack» — o pack no ar não tem mapa", repr(r.get("glifos")))
 r = glifos("chrome")
-checa([g["grupo"] for g in r.get("glifos", [])] == ["traço (Arcticons)"],
-      "e «chrome» volta a ser só o traço do Arcticons",
-      repr([(g["glifo"], g["grupo"]) for g in r.get("glifos", [])]))
+checa(r.get("grupos") and r["grupos"][0]["id"].startswith("pack:catppuccin:"),
+      "e o pack no ar passa a ser o primeiro da ficha",
+      repr([gr["id"] for gr in r.get("grupos", [])][:3]))
 codigo, dados = escolher("google-chrome", "biblioteca/alien.svg")
 checa(codigo == 409, "uma página de antes da troca não grava no mapa do Dracula (%s)" % codigo)
 rc, saida = passo_do_pack()
@@ -416,12 +469,19 @@ checa((glifos_de("programa-de-brinquedo").get("escolha") or {}).get("antes", "?"
 
 # O CHROME ESTÁ NOS DOIS MAPAS: tirar o traço deixa o desenho do pack na tela,
 # e a torrada dizia «voltou para o ícone de fábrica».
+# [P73: o «Desfazer a escolha no traço» só tira a linha de QUEM USA — a do
+# `apps-arcticons.map` do projeto é curadoria, e não sai por clique. O Chrome
+# de brinquedo não tem escolha de traço: nada sai, e a resposta continua
+# dizendo o que fica na tela, que é o ponto da P64.]
+traco_projeto = os.path.join(raiz, "assets", "icones", "apps-arcticons.map")
+antes_traco = texto(traco_projeto)
 codigo, dados = chamar(m._api_app_icone, {"app": "google-chrome", "remover": True})
 fica = dados.get("fica") or {}
-checa(codigo == 200 and dados.get("removido") and fica.get("tipo") == "pack"
-      and fica.get("frase") == "o desenho «alien» do pack «Dracula»",
-      "tirar o Chrome do mapa do traço diz que fica o desenho do pack, e não o de fábrica",
-      repr(dados))
+checa(codigo == 200 and dados.get("removido") is False and fica.get("tipo") == "pack"
+      and fica.get("frase") == "o desenho «alien» do pack «Dracula»"
+      and texto(traco_projeto) == antes_traco,
+      "tirar o traço do Chrome não mexe no mapa do projeto, e diz que fica o desenho do "
+      "pack, e não o de fábrica", repr(dados))
 
 codigo, dados = desfazer("google-chrome")
 checa(codigo == 200 and dados.get("removido")
@@ -497,10 +557,35 @@ for app, grade, caso in (("meow-steam-12345", jogos, "o jogo da Steam, intocáve
           "sem mexer no mapa (%s)" % (caso, codigo),
           repr((a.get("trava"), a.get("trava_pack"), codigo, dados)))
 
+# O TRAÇO ESCOLHIDO DEPOIS DE UM DESENHO É O QUE FICA — conferência da P73. A
+# escolha de desenho vai para o `scalable/apps`, que vence o `48x48/apps` do
+# traço: com as duas linhas no estado de quem usa, o «Usar este ícone» do traço
+# respondia ok e a tela continuava com o desenho. A última escolha vale.
+codigo, dados = usar("programa-de-brinquedo", "packs/dracula/icones/biblioteca/alien.svg")
+rc, saida = passo_do_pack()
+checa(codigo == 200 and texto(os.path.join(tema, "programa-de-brinquedo.svg")) == texto(alien),
+      "o programa veste o alien escolhido como desenho (rc=%s)" % rc, repr(dados) + saida[-400:])
+codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
+                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+with open(escolhas, encoding="utf-8") as fh:
+    sobrou = [l for l in fh if l.startswith("programa-de-brinquedo ")]
+checa(codigo == 200 and dados.get("tirou_escolha") is True and not sobrou
+      and m._o_que_fica("programa-de-brinquedo").get("tipo") != "escolha",
+      "o traço escolhido depois tira a escolha de desenho do estado, e a resposta diz que tirou",
+      repr((codigo, dados, sobrou)))
+rc, saida = passo_do_pack()
+checa(not os.path.exists(os.path.join(tema, "programa-de-brinquedo.svg")),
+      "e o passo do pack tira o desenho do `scalable/apps`, para o traço aparecer (rc=%s)" % rc,
+      saida[-400:])
+codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
+                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+checa(codigo == 200 and dados.get("tirou_escolha") is False,
+      "sem escolha de desenho, o traço não diz que tirou nada", repr(dados))
+
 if falhas:
     print("FALHOU: os desenhos do pack na ficha de ícone:", file=sys.stderr)
     for linha in falhas:
         print("    " + linha, file=sys.stderr)
     sys.exit(1)
-print("ok: os desenhos do pack no ar aparecem na ficha, a escolha mora no pack e não vaza")
+print("ok: o acervo inteiro aparece na ficha, a escolha mora com quem usa, e só o gesto a leva ao pack")
 PY

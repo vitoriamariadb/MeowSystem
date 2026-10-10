@@ -77,30 +77,21 @@ acusa() {
 # Cada entrada é um trecho LITERAL da linha isenta (comparação por substring,
 # sem regex). Tudo o que não estiver aqui é achado.
 #
-# AS OITO ISENÇÕES DE HOJE SÃO A MESMA, OITO VEZES: `sudo apt[-get] install`.
-#   Instalar pacote do sistema precisa de root, e a ponte root deste projeto não
-#   é um curinga — são OITO verbos fechados (docs/FRONTEIRA.md, "A ponte root, e
-#   por que ela não é NOPASSWD: ALL"), e instalar pacote arbitrário não é
-#   nenhum deles. Não há botão que este projeto possa oferecer sem abrir a ponte
-#   — e abrir a ponte para caber um botão é trocar um incômodo por um buraco.
+# AS OITO ISENÇÕES DE 22/09 ERAM A MESMA, OITO VEZES: `sudo apt[-get] install`.
+#   O argumento era que a ponte root não tinha verbo de pacote, e terminava
+#   assim: "O dia em que a ponte ganhar um verbo de pacote, estas oito viram
+#   botão e a isenção para de casar sozinha."
 #
-#   Então elas ficam como estão, e a regra da sprint continua respeitada: a
-#   mensagem diz A DECISÃO ("falta este pacote, instalá-lo é sua escolha"), e o
-#   comando é o endereço da decisão, não um tutorial disfarçado de cortesia.
-#   O dia em que a ponte ganhar um verbo de pacote, estas oito viram botão e a
-#   isenção para de casar sozinha.
+#   ESSE DIA FOI 09/10/2026 (P75), e a isenção NÃO parou de casar sozinha — foi
+#   o contrário que aconteceu antes dele: com a frase do Papirus isenta à mão,
+#   ela voltou ERRADA (`sudo apt install papirus-icon-theme` numa máquina que
+#   tinha o Papirus) e este teste seguiu verde (01-regressoes.md, D1 e «Por que
+#   voltou», item 4). A ponte ganhou o verbo `pacotes`, o doctor instala pela
+#   ponte, e as sete frases que o doctor alcançava saíram do código. Fica UMA:
+#   a do `lib/preflight.sh`, que fala ANTES de existir ponte — no primeiro
+#   `./install.sh`, que é justamente quem pede a senha e a instala.
 ISENTAS=(
-  'meow_info "  instale com: sudo apt install imagemagick"'
   'meow_info "      sudo apt install ${faltam_apt% }"'
-  'meow_info "instale com: sudo apt install papirus-icon-theme"'
-  'meow_info "  sudo apt install papirus-icon-theme"'
-  'meow_info "se quiser: sudo apt install qt5ct qt6ct"'
-  # As três do `apt-get`, achadas em 22/09/2026 quando o detector passou a
-  # casar as duas grafias. Estavam verdes por omissão do detector, não por
-  # decisão — e as três são a mesma frase das cinco acima, com outro binário.
-  'meow_info "  sudo apt-get install diffutils fontconfig unzip"'
-  'meow_info "  sudo apt-get install curl tar coreutils diffutils fontconfig xz-utils"'
-  'meow_info "  sudo apt-get install pop-fonts    # ou fonts-firacode/fonts-fira"'
 )
 
 isenta() {

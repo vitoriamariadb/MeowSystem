@@ -393,8 +393,8 @@ faixa_alpha() {
   fator="$(sed -nE "s/.*[^a-z_]${chave}: *([0-9.]+).*/\1/p" "$am" | head -1)"
   [ -n "$fator" ] || return 0
   local disco_p disco_d
-  disco_p="$(cat "$BASE/com.system76.CosmicPanel.Panel/v1/opacity" 2>/dev/null)"
-  disco_d="$(cat "$BASE/com.system76.CosmicPanel.Dock/v1/opacity" 2>/dev/null)"
+  disco_p="$(cat "$BASE/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/opacity" 2>/dev/null)"
+  disco_d="$(cat "$BASE/com.system76.CosmicPanel.Dock/$(meow_cosmic_v com.system76.CosmicPanel.Dock)/opacity" 2>/dev/null)"
   [ -n "$disco_p" ] && [ -n "$disco_d" ] || return 0
   awk -v f="$fator" -v p="$disco_p" -v d="$disco_d" -v n="$frosted" \
     'BEGIN{printf "    hoje, com frosted=%s (%.5f) e o que está no disco: painel %.1f%%, dock %.1f%%\n", n, f, p*f*100, d*f*100}'
@@ -426,7 +426,7 @@ faixa_alpha() {
 avisar_slider_morto() {
   local barra dir v algum=0
   for barra in "${BARRAS[@]}"; do
-    dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+    dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
     [ -d "$dir" ] || continue
     v="$(cat "$dir/keep_style_on_maximize" 2>/dev/null)"
     [ "$v" = "false" ] || continue
@@ -440,7 +440,7 @@ avisar_slider_morto() {
 if [ "$CONFERIR" = "1" ]; then
   meow_info "no disco agora:"
   for barra in "${BARRAS[@]}"; do
-    dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+    dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
     [ -d "$dir" ] || { meow_pula "com.system76.CosmicPanel.$barra não está configurado aqui"; continue; }
     printf '    %-6s opacity=%s  keep_style_on_maximize=%s\n' "$barra" \
       "$(cat "$dir/opacity" 2>/dev/null || echo '?')" \
@@ -470,7 +470,7 @@ fi
 mudou=0
 escritos=0
 for barra in "${BARRAS[@]}"; do
-  dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+  dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
   # O diretório tem de existir: criá-lo do nada faria o COSMIC ver uma
   # configuração de painel órfã, sem as outras chaves. Se ele não existe, o
   # painel correspondente não está configurado nesta máquina — não é erro.
@@ -550,10 +550,20 @@ done
 if [ "$janela_nativa" -eq 0 ] && [ -f "$RAIZ/scripts/vidro_janela.py" ]; then
   # Sem a chave nativa: o remendo. Ele descobre os pares (X, transparent_X) em
   # disco e sincroniza o alpha, respeitando "Janelas" de Aparência.
-  if [ "$desejado" = "true" ]; then
-    python3 "$RAIZ/scripts/vidro_janela.py" || true
+  # O ENSAIO NÃO ESCREVE O REMENDO — 10/10/2026, conferência da P77. O
+  #   `chk_vidro` do `bin/meow` roda este arquivo com `MEOW_DRY_RUN=1` dentro
+  #   do `meow status` e do doctor, e o `meow_escrever` de cima respeita o
+  #   ensaio; o remendo, não: ele reescrevia `background` e `primary` dos
+  #   dois temas a cada «O que está no ar agora». Medido no gate completo
+  #   (`tests/app-completo.py`): depois do «Voltar ao tema de antes» devolver um
+  #   tema sem a chave nativa, o status mudava 4 arquivos da casa. No ensaio o
+  #   remendo só confere (`--conferir`, que sai 1 quando há o que mudar).
+  args_janela=()
+  [ "$desejado" = "true" ] || args_janela=(--restaurar)
+  if meow_seco; then
+    python3 "$RAIZ/scripts/vidro_janela.py" --conferir "${args_janela[@]}" || mudou=1
   else
-    python3 "$RAIZ/scripts/vidro_janela.py" --restaurar || true
+    python3 "$RAIZ/scripts/vidro_janela.py" "${args_janela[@]}" || true
   fi
 fi
 
@@ -601,7 +611,7 @@ conferir_receita() {
   fator="$(sed -nE "s/.*[^a-z_]${chave}: *([0-9.]+).*/\1/p" "$b/alpha_map" | head -1)"
   [ -n "$fator" ] || return 0
 
-  esperado="$(python3 -c "print(f'{round($fator*255):02X}')" 2>/dev/null)" || return 0
+  esperado="$(python3 -I -c "print(f'{round($fator*255):02X}')" 2>/dev/null)" || return 0
   gravado="$(grep -oE '#[0-9A-Fa-f]{8}' "$d/transparent_background" | head -1)"
   gravado="${gravado: -2}"
   [ -n "$gravado" ] || return 0
@@ -617,7 +627,7 @@ conferir_receita() {
     #   Medido aqui em 16/09: D9 era `very_low_2`, com a receita em `VeryHigh2`.
     #   Seis níveis de distância. Com essa linha, o diagnóstico é imediato.
     local de_quem
-    de_quem="$(python3 - "$b/alpha_map" "$gravado" <<'FIM' 2>/dev/null
+    de_quem="$(python3 -I - "$b/alpha_map" "$gravado" <<'FIM' 2>/dev/null
 import re, sys
 alvo = int(sys.argv[2], 16)
 texto = open(sys.argv[1], encoding="utf-8", errors="replace").read()

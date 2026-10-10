@@ -41,6 +41,10 @@
 //   duplicata até o próximo apt, e isso é um incômodo — não uma máquina quebrada.
 //   O wrapper já registra a falha em ~/.local/state/meowsystem/apt-lancador.log.
 
+// O GATILHO DO PÓS-APT DO COSMIC (P76) é a segunda linha. Ela só toca um
+// arquivo: quem reconstrói é o `meow-pos-apt.path` do usuário, sem sudo. É o
+// mesmo princípio do bloco acima — a linha root faz o mínimo que só root faz.
 DPkg::Post-Invoke {
     "if [ -x /usr/local/sbin/meow-lancador-apt.sh ]; then /usr/local/sbin/meow-lancador-apt.sh >/dev/null 2>&1 || true; fi";
+    "mkdir -p /var/lib/meowsystem && touch /var/lib/meowsystem/apt-mudou || true";
 };

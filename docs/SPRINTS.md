@@ -262,9 +262,9 @@ porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio
 
 | | |
 |---|---|
-| `install.sh` | 60 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | **63** conferências; a única divergência é a arte convertida, e ela espera a folha |
-| painel | 123 chaves · 54 ações · 13 páginas de assunto |
+| `install.sh` | 62 etapas; rodar de novo não escreve um byte |
+| `meow doctor` | **64** conferências; a única divergência é a arte convertida, e ela espera a folha |
+| painel | 122 chaves · 54 ações · 13 páginas de assunto |
 | conferência do navegador | **123/123**, console limpo nas catorze páginas |
 | suítes de shell | 14 arquivos, e desde 21/09 a pergunta "a suíte passa?" se faz com `./tests/todos.sh`. O placar NÃO é copiado para cá de propósito: quadro de placar copiado à mão foi o que mentiu por três dias, e é o defeito que a P23 veio consertar. O `--portatil`, que é o que o CI roda, está verde; fora dele o `conversor` está vermelho por uma regressão medida em 21/09, não por ambiente — ver abaixo |
 
@@ -272,7 +272,7 @@ porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio
 **fechada**, e fica como está — é história medida, não plano. Duas coisas que a
 leitura de hoje contradiz, e por isso ficam ditas aqui em cima:
 
-- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **63 conferências**
+- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **64 conferências**
   (eram 55 até 21/09; a P23 acrescentou as sete que faltavam);
 - o *"falta um logout"* daquela mesma leva **já aconteceu**: o doctor diz
   *"4 marcadores de pé no disco e na sessão"* e o pipewire está em 1.6.8.

@@ -229,6 +229,12 @@ id "$DONO" >/dev/null 2>&1 || {
 pendentes=()
 for arvore in "${ARVORES[@]}"; do
   [ -d "$CAPTURA/$arvore" ] || continue
+  # A ÁRVORE TEM DE MORAR NA CAPTURA — P78, 09/10/2026. A captura pode ser de
+  #   um pack de terceiro, e o `cd` abaixo segue symlink: uma árvore que fosse
+  #   link para fora mandaria para o greeter (pela ponte, como root) o que
+  #   estivesse no destino. O `find` já não segue link de arquivo (`-type f`).
+  meow_dentro "$CAPTURA" "$arvore" >/dev/null || {
+    meow_aviso "greeter: $arvore da captura é link para fora dela — pulada"; continue; }
   # `-mindepth 1` para o caminho relativo nunca ser "."
   while IFS= read -r rel; do
     fonte="$CAPTURA/$arvore/$rel"
@@ -262,13 +268,20 @@ fi
 # PELA PONTE: um tar com só os pendentes, e ela extrai com o dono certo. Assim
 # a tela de login passa a ser consertável pelo painel e pelo auto-reparo, que é
 # o que ela pediu em 08/09/2026 — antes, sem terminal, esta etapa só avisava.
+#
+# E A RECUSA DIZ O MOTIVO — P75, 09/10/2026 (S4, P70 item 1). A saída de erro
+# da ponte ia para o `/dev/null`, e a única frase na tela era "a ponte recusou":
+# a ponte recusava TODA chamada (uma opção de tar que não existe, ver o bloco do
+# `greeter-aplicar` em scripts/ponte_root.sh) e ninguém tinha como ver. Agora o
+# que a ponte e o sudo disseram vem junto, na mesma linha.
 if meow_ponte_viva; then
-  if tar -c -C "$CAPTURA" -f - "${pendentes[@]}" 2>/dev/null | meow_ponte greeter-aplicar >/dev/null 2>&1; then
+  if motivo="$( { tar -c -C "$CAPTURA" -f - "${pendentes[@]}" | meow_ponte greeter-aplicar >/dev/null; } 2>&1 )"; then
     meow_muda "tela de login vestida com '$ALVO' (${#pendentes[@]} arquivo(s), pela ponte)"
     meow_registrar "greeter.sh $ALVO ${#pendentes[@]} arquivo(s)"
     exit "$MEOW_DIVERGENTE"
   fi
-  meow_aviso "a ponte recusou vestir a tela de login — tentando pelo caminho antigo"
+  motivo="$(printf '%s' "$motivo" | sed 's/^ponte_root: //' | paste -sd';' - | sed 's/;/; /g')"
+  meow_aviso "a ponte recusou vestir a tela de login (${motivo:-ela não disse por quê}) — tentando pelo caminho antigo"
 fi
 
 if ! sudo -n true 2>/dev/null; then

@@ -130,7 +130,12 @@ class El {
   removeAttribute(k) { delete this.attrs[k]; }
   addEventListener(ev, fn) { (this.ouvintes[ev] = this.ouvintes[ev] || []).push(fn); }
   append(...fs) { for (const f of fs) this.filhos.push(f); }
+  // O desenho dos selos entra como texto (P80: a pasta travada da ficha leva o
+  // selo de trava, e o `selo` desenha o SVG assim). Guardado, e não desenhado.
+  insertAdjacentHTML(_onde, html) { this.html = (this.html || "") + html; }
   get children() { return this.filhos.filter((f) => f instanceof El); }
+  get childNodes() { return this.filhos; }
+  replaceChildren(...fs) { this.filhos = fs; }
   todos() { return this.children.flatMap((f) => [f, ...f.todos()]); }
   querySelectorAll(sel) { return this.todos().filter((e) => e.tagName === sel.toUpperCase()); }
   querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
@@ -174,12 +179,19 @@ const zerar = () => {
   chamadas.releituras = 0; js("TRABALHO = null; APP_ABERTO = null");
 };
 
-const PACK = { glifo: "alien", grupo: "Dracula", pack: "dracula",
-               desenho: "biblioteca/alien.svg", url: "/previa?x" };
-const TRACO = { glifo: "google-chrome", grupo: "traço (Arcticons)", url: "/previa?y" };
+// [P73, 09/10/2026: a resposta da busca ganhou `grupos` (as pastas por acervo),
+// e cada item o `grupo` (o id da pasta), o `tipo` e o `arquivo`.]
+const PACK = { glifo: "alien", grupo: "pack:dracula:biblioteca", tipo: "desenho", pack: "dracula",
+               desenho: "biblioteca/alien.svg", arquivo: "packs/dracula/icones/biblioteca/alien.svg",
+               url: "/previa?x" };
+const TRACO = { glifo: "google-chrome", grupo: "motor:arcticons-apps", tipo: "traco",
+                arquivo: "assets/icones/arcticons-apps/google-chrome.svg", url: "/previa?y" };
+const GRUPOS = [
+  { id: "pack:dracula:biblioteca", acervo: "Dracula", nome: "biblioteca", no_ar: true, total: 1, achados: 1 },
+  { id: "motor:arcticons-apps", acervo: "MeowSystem", nome: "traço", no_ar: false, total: 1, achados: 1 }];
 const glifos = (extra) => js(`GLIFOS = ${JSON.stringify(Object.assign({
-  termo: "chrome", app: "google-chrome", itens: [PACK, TRACO], carregando: false,
-  aviso: "", pack: { id: "dracula", nome: "Dracula" }, escolha: null }, extra))}`);
+  termo: "chrome", app: "google-chrome", itens: [PACK, TRACO], grupos: GRUPOS, carregando: false,
+  aviso: "", pack: { id: "dracula", nome: "Dracula" }, escolha: null, minha: null }, extra))}`);
 const aplicativo = (extra) => Object.assign({ id: "google-chrome", nome: "Chrome de Brinquedo",
   trava: null, trava_pack: null, mapa: null, traco: null }, extra);
 const ficha = (app) => ctx.montarEscolhaDeIcone(app, async () => { chamadas.releituras += 1; });
@@ -210,7 +222,7 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
   // é isso que o TRABALHO de pé representa.
   ctx.rodarAcao = async (id) => { chamadas.acoes.push(id); js("TRABALHO = { id: 'passo' }"); };
   let painel = ficha(aplicativo());
-  const doPack = painel.todos().find((e) => e.tagName === "BUTTON" && e.dataset.escolha === "pack:dracula:biblioteca/alien.svg");
+  const doPack = painel.todos().find((e) => e.tagName === "BUTTON" && e.dataset.escolha === "pack:dracula:biblioteca|alien");
   const usar = botao(painel, "Usar este ícone");
   if (checa(doPack && usar, "a ficha do Chrome oferece o alien do pack e o «Usar este ícone»")) {
     await doPack.clicar();
@@ -244,24 +256,34 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
         "a resposta da busca velha, chegando depois, não pinta a lista da busca de agora",
         JSON.stringify(agora));
 
-  // --- 3.4 a trava do traço não leva o grupo do pack junto ----------------------
+  // --- 3.4 a trava é estado, e não sumiço (P73, T4) ------------------------------
+  // [Até a P73 este bloco cobrava que a trava TIRASSE o traço da tira, e que as
+  // duas travas tirassem a busca. A P73 inverteu: o acervo fica, apagado, sem
+  // «Usar», e o porquê vai para a dica de cada desenho.]
   zerar(); glifos();
   const trava = "Chrome de Brinquedo já tem desenho convertido do projeto.";
+  const travaPack = "O ícone é decidido por outro passo.";
+  const temBusca = (pn) => pn.todos().some((e) => e.tagName === "INPUT" && e.dataset.foco === "glifos");
+  const pastas = (pn) => pn.todos().filter((e) => e.tagName === "DETAILS" && e.dataset.grupo)
+                                   .map((e) => e.dataset.grupo);
+  const apagados = (pn) => pn.todos().filter((e) => e.tagName === "BUTTON"
+                                             && (e.className || "").includes("travado"));
   painel = ficha(aplicativo({ trava }));
-  const campo = painel.todos().find((e) => e.tagName === "INPUT" && e.dataset.foco === "glifos");
   const tira = painel.todos().filter((e) => e.tagName === "BUTTON" && e.dataset.escolha);
-  checa(campo && tira.length === 1 && tira[0].dataset.escolha.startsWith("pack:")
-        && botao(painel, "Usar este ícone"),
-        "com a trava do traço, a busca, o grupo do pack e o «Usar este ícone» ficam — e o traço sai da tira",
-        `busca ${!!campo}, tira [${tira.map((b) => b.dataset.escolha)}]`);
-  painel = ficha(aplicativo({ trava, trava_pack: "O ícone é decidido por outro passo." }));
-  checa(!painel.todos().some((e) => e.tagName === "INPUT" && e.dataset.foco === "glifos")
-        && !botao(painel, "Usar este ícone"),
-        "com a trava do traço e a do pack, a ficha continua sem busca e sem «Usar este ícone»");
+  checa(temBusca(painel) && tira.length === 1 && tira[0].dataset.escolha.startsWith("pack:")
+        && apagados(painel).length === 1 && botao(painel, "Usar este ícone"),
+        "com a trava do traço, a busca, o pack e o «Usar este ícone» ficam, e o traço fica APAGADO na pasta dele",
+        `busca ${temBusca(painel)}, tira [${tira.map((b) => b.dataset.escolha)}], apagados ${apagados(painel).length}`);
+  painel = ficha(aplicativo({ trava, trava_pack: travaPack }));
+  checa(temBusca(painel) && pastas(painel).join() === "pack:dracula:biblioteca,motor:arcticons-apps"
+        && apagados(painel).length === 2 && !botao(painel, "Usar este ícone"),
+        "com as duas travas (o CosmicEdit), a ficha mostra a busca e as pastas do acervo, tudo apagado, "
+        + "e sem «Usar este ícone»", `pastas [${pastas(painel)}], apagados ${apagados(painel).length}`);
+  checa(apagados(painel).every((b) => b.getAttribute("aria-disabled") === "true"),
+        "e cada desenho apagado diz que não vale (aria-disabled), com o porquê na dica");
   glifos({ pack: null });
   painel = ficha(aplicativo({ trava }));
-  checa(!painel.todos().some((e) => e.tagName === "INPUT" && e.dataset.foco === "glifos"),
-        "e sem pack que a ficha possa oferecer, também");
+  checa(temBusca(painel), "e sem pack no ar, a busca continua");
 
   // A BUSCA QUE NÃO ACHOU NADA DIZ O QUE VEM A SEGUIR (revisão da P64): na ficha
   // travada, o traço sai da tira, e o que a busca vazia traz são os desenhos
@@ -273,12 +295,11 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
     const frase = ficha(app).todos().find((e) => e.tagName === "P" && e.className === "sem-previa");
     return frase ? frase.textContent : "(sem frase)";
   };
-  let frase = semAchado(aplicativo({ trava }), [TRACO]);
-  checa(frase === "Nenhum desenho com esse nome — mostrando os desenhos do pack «Dracula».",
-        "na ficha travada, a busca sem achado diz que mostra os desenhos do pack", frase);
-  frase = semAchado(aplicativo(), []);
-  checa(frase === "Nenhum desenho com esse nome — mostrando o acervo que veio com o projeto.",
-        "e na ficha sem trava, o acervo do projeto, como antes", frase);
+  // [P73: a busca sem achado não troca mais a tira pelo acervo inteiro — o
+  // acervo inteiro é a ficha sem busca. Ela diz só que nada casou.]
+  let frase = semAchado(aplicativo({ trava }), []);
+  checa(frase === "Nenhum desenho casa com “xyz”.",
+        "a busca sem achado diz que nada casou com o termo", frase);
 
   // --- 3.5 o desfazer da escolha no pack, e a torrada que diz o que fica ---------
   zerar();
@@ -322,7 +343,9 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
 
   zerar(); glifos();
   respostas = (rota) => (rota === "/api/app-icone" ? { ok: true, removido: true, fica } : {});
-  painel = ficha(aplicativo({ mapa: { glifo: "google-chrome", cor: "yellow" } }));
+  // [P73: só a escolha de traço DE QUEM USA (`meu`) tem «Desfazer»; a linha do
+  // mapa do projeto é curadoria do repositório.]
+  painel = ficha(aplicativo({ mapa: { glifo: "google-chrome", cor: "yellow", meu: true } }));
   // O RÓTULO NÃO PROMETE O QUE FICA (revisão da P64): «Voltar ao ícone de
   // fábrica» dizia a fábrica logo acima da torrada que dizia o pack.
   const voltar = botao(painel, "Desfazer a escolha no traço");
@@ -334,6 +357,154 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
     const t = (chamadas.torradas[0] || {}).texto || "";
     checa(t.includes("o desenho «google-chrome» do pack «Dracula»") && !t.includes("fábrica"),
           "e, com o desenho do pack ficando, a torrada não diz «de fábrica»", t);
+  }
+
+  // --- 3.x «RESTAURAR AO PADRÃO» GRAVA O DE FÁBRICA — decisão 10 (P79) ---------
+  //   O botão gravava o vazio («não toca») e, nas chaves com o padrão de fábrica
+  //   preenchido (RELOGIO_SEGUNDOS="nao", JANELAS_TILING="sim"), o nome mentia.
+  //   Agora ele grava `item.padrao`, nasce só quando o valor difere dele, e o
+  //   «não tocar» é outro gesto, com outro nome. Chave de padrão vazio segue
+  //   igual: restaurar É o vazio.
+  {
+    const gravados = [];
+    const originais = { escolher: ctx.escolher, parDeBotoes: ctx.parDeBotoes, selo: ctx.selo,
+                        gatilhoDeDica: ctx.gatilhoDeDica, valorEmVigor: ctx.valorEmVigor };
+    ctx.escolher = async (_chave, v) => { gravados.push(v); return true; };
+    ctx.parDeBotoes = () => null;
+    ctx.selo = () => new El("span");
+    ctx.gatilhoDeDica = () => [];
+    ctx.CSS = { escape: (x) => x };
+    const item = (valor, extra) => Object.assign({ chave: "RELOGIO_SEGUNDOS", aceita_vazio: true,
+      padrao: "nao", opcoes: ["sim", "nao"], valor, valendo_agora: "sim" }, extra);
+    const montar = (it) => { ctx.valorEmVigor = () => it.valor; return ctx.montarControle(it, new El("div")); };
+    const botoes = (c) => c.todos().filter((e) => e.tagName === "BUTTON");
+    const restaurar = (c) => botoes(c).find((b) => /^Restaurar ao padrão/.test(b.textContent));
+    const naoTocar = (c) => botoes(c).find((b) => b.textContent === "Não tocar");
+
+    checa(!restaurar(montar(item("nao"))),
+          "no padrão de fábrica preenchido, nenhum «Restaurar ao padrão»");
+    let c = montar(item("sim"));
+    let r = restaurar(c);
+    if (checa(r && r.textContent === "Restaurar ao padrão (Não)",
+              "fora do padrão, o botão diz o valor de FÁBRICA no parêntese, e não o da máquina",
+              r ? r.textContent : botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "nao", "e grava o valor de fábrica, não o vazio", JSON.stringify(gravados));
+    }
+    let n = naoTocar(c);
+    if (checa(n, "o «não tocar» é outro botão, com outro nome", botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await n.clicar();
+      checa(gravados[0] === "", "e ele grava o vazio", JSON.stringify(gravados));
+    }
+    c = montar(item(""));
+    r = restaurar(c);
+    if (checa(r, "com a chave vazia («não toca») e fábrica preenchida, o restaurar aparece")) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "nao", "e grava o de fábrica", JSON.stringify(gravados));
+    }
+    c = montar(item("x", { opcoes: ["a", "b", "c", "d", "e", "x"], padrao: "a", chave: "LONGA" }));
+    r = restaurar(c);
+    if (checa(r, "o seletor longo também restaura ao de fábrica")) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "a", "e grava o de fábrica no seletor", JSON.stringify(gravados));
+    }
+    c = montar(item("8", { chave: "FORMA_RAIO_PAINEL", padrao: "", opcoes: [], faixa: ["0", "32", "1"], valendo_agora: "4" }));
+    r = restaurar(c);
+    if (checa(r && !naoTocar(c), "de padrão vazio, o restaurar continua e não ganha o «não tocar»",
+              botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "", "e grava o vazio, que é o de fábrica", JSON.stringify(gravados));
+    }
+    // [Conferência da P79: o ponteiro. O de fábrica do exemplo é o
+    //  `catppuccin-mocha-light`; com o Dracula no ar, o servidor manda o do pack
+    //  (`padrao_do_pack`), e é ele que o restaurar grava. E a grade de imagens
+    //  ganha o «Não tocar», que era o gesto do restaurar antes da decisão 10.]
+    const previasDe = ctx.previasDe, botaoAcervo = ctx.botaoAcervo, silhueta = ctx.silhuetaDePonteiro;
+    ctx.previasDe = () => ({ itens: [] });
+    ctx.botaoAcervo = () => null;
+    ctx.silhuetaDePonteiro = () => new El("span");
+    const ponteiro = (valor) => item(valor, { chave: "CURSOR", padrao: "catppuccin-mocha-light",
+      padrao_do_pack: "Dracula-Cursor", opcoes: ["catppuccin-mocha-light", "Dracula-Cursor"],
+      previa: "cursor", valendo_agora: null });  // ia-artifact:manter (o tipo de prévia do ponteiro)
+    c = montar(ponteiro("Dracula-Cursor"));
+    checa(!restaurar(c), "com o ponteiro do pack no ar escolhido, nenhum «Restaurar ao padrão»",
+          botoes(c).map((b) => b.textContent).join(" | "));
+    n = naoTocar(c);
+    if (checa(n, "a grade do ponteiro tem o «Não tocar»", botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await n.clicar();
+      checa(gravados[0] === "", "e ele grava o vazio", JSON.stringify(gravados));
+    }
+    c = montar(ponteiro("catppuccin-mocha-light"));
+    r = restaurar(c);
+    if (checa(r && r.textContent === "Restaurar ao padrão (Dracula-Cursor)",
+              "com o ponteiro de outro pack, o restaurar diz o do pack no ar",
+              r ? r.textContent : botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "Dracula-Cursor", "e grava o do pack no ar, não o do exemplo", JSON.stringify(gravados));
+    }
+    ctx.previasDe = previasDe; ctx.botaoAcervo = botaoAcervo; ctx.silhuetaDePonteiro = silhueta;
+    Object.assign(ctx, originais);
+  }
+
+  // --- 3.y A CAIXA DO SUDO EM UMA LINHA — decisão 11 (P79) -------------------
+  //   A caixa de pergunta das ações com sudo tinha um parágrafo de 4 linhas
+  //   («Nada aqui pede, lê ou guarda senha…»). Agora: uma linha, e o porquê
+  //   na dica do `?`.
+  {
+    const els = {};
+    const no = (sel) => els[sel] || (els[sel] = Object.assign(new El(sel === "#confirmar" ? "dialog" : "div"), {
+      showModal() {}, addEventListener() {}, closest: () => new El("p"), after() {}, before() {},
+    }));
+    const dolar = documento.querySelector;
+    documento.querySelector = no;
+    const getEl = documento.getElementById;
+    documento.getElementById = () => null;
+    ctx.perguntar({ titulo: "Rodar", texto: "x", sudo: true });
+    const caixa = els["#confirmar-sudo"];
+    const linhas = caixa ? caixa.children.filter((e) => e.tagName !== "BUTTON" && !/dica/.test(e.className || "")) : [];
+    const dica = caixa ? caixa.todos().find((e) => /\bdica\b/.test(e.className || "")) : null;
+    const textoDe = (e) => [e.textContent, ...e.todos().map((f) => f.textContent)].join(" ");
+    checa(caixa && caixa.hidden === false && linhas.length === 1 && textoDe(linhas[0]).length <= 60,
+          "a caixa do sudo tem uma linha só", caixa ? linhas.map(textoDe).join(" / ") : "sem caixa");
+    checa(dica && /uma hora/.test(textoDe(dica)) && caixa.todos().some((e) => e.tagName === "BUTTON" && e.textContent === "?"),
+          "e o porquê (a senha lembrada por uma hora) mora na dica do «?»");
+    ctx.perguntar({ titulo: "Rodar", texto: "x", sudo: true });
+    checa(els["#confirmar-sudo"].todos().filter((e) => e.tagName === "BUTTON").length === 1,
+          "a segunda pergunta não duplica o «?»");
+    documento.querySelector = dolar; documento.getElementById = getEl;
+  }
+
+  // --- 3.z P79, item 6: a moldura do gato com LOGO_MODO vazio, e a estrela ----
+  {
+    const vale = ctx.valorEmVigor;
+    ctx.valorEmVigor = (k) => k.valor;
+    js(`ESQUEMA = Object.assign(ESQUEMA, { chaves: [{ chave: "LOGO_MODO", valor: "", valendo_agora: "rotacao" }] })`);
+    const d = js(`DECISOES.find((x) => x.id === "gato-dock")`);
+    checa(ctx.mostraNoModo(d, "LOGO_INTERVALO") && !ctx.mostraNoModo(d, "LOGO_DIA"),
+          "com LOGO_MODO vazio, a moldura do gato mostra o que o modo que vale (rotacao) usa");
+    ctx.valorEmVigor = vale;
+
+    const rodados = [];
+    const rodar = ctx.rodarNaGaleria;
+    ctx.rodarNaGaleria = (id, alvo) => { rodados.push([id, alvo]); };
+    const fig = (i) => ctx.estrelaDaImagem(i);
+    let b = fig({ rotulo: "a.jpg", banir: "/x/ativos/a.jpg", favorito: false });
+    if (checa(b && b.tagName === "BUTTON" && b.getAttribute("aria-pressed") === "false",
+              "a imagem do carrossel tem a estrela de favoritar, apagada")) {
+      await b.clicar();
+      checa(rodados[0] && rodados[0][0] === "wallpaper_favoritar" && rodados[0][1] === "/x/ativos/a.jpg",
+            "e a estrela favorita pelo caminho canônico", JSON.stringify(rodados));
+    }
+    rodados.length = 0;
+    b = fig({ rotulo: "a.jpg", banir: "", favorito: true });
+    if (checa(b && b.getAttribute("aria-pressed") === "true", "a favorita tem a estrela acesa, mesmo fora do carrossel")) {
+      await b.clicar();
+      checa(rodados[0] && rodados[0][0] === "wallpaper_desfavoritar" && rodados[0][1] === "a.jpg",
+            "e a estrela acesa desfavorita pelo nome", JSON.stringify(rodados));
+    }
+    checa(!fig({ rotulo: "b.jpg", banir: "", favorito: false }),
+          "a imagem que não está no carrossel nem nas favoritas não tem estrela");
+    ctx.rodarNaGaleria = rodar;
   }
 
   if (falhas.length) {

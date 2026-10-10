@@ -125,7 +125,7 @@ ICONES_BASE_MAPA="$(dirname "$MAPA")"
 #   linha recusada volta VAZIA em vez de voltar fora — e vazia não casa com
 #   arquivo nenhum, caindo no aviso "no mapa mas sem desenho no disco" que o
 #   `_dracula_instalar` já tem.
-_dracula_pares() {
+_dracula_pares_do_mapa() {
   [ -f "$MAPA" ] || return 1
   local cru
   # O CAMINHO É TUDO DEPOIS DO PRIMEIRO `:`, E NÃO O CAMPO 2 — 22/09/2026
@@ -149,17 +149,74 @@ _dracula_pares() {
   #   mapa continuava partindo a linha. `substr` a partir do primeiro `:` não
   #   conta campos: ele diz "nome é o que vem antes, caminho é o resto", que é o
   #   formato escrito em docs/PACKS.md.
+  #
+  # O NOME É DADO NÃO CONFIÁVEL — conferência da P74 (alerta de segurança de
+  #   09/10/2026, path traversal). O nome da coluna 1 vira o arquivo
+  #   `scalable/apps/<nome>.svg` no tema, e um mapa de pack importado podia
+  #   dizer `../../../../.config/autostart/x : apps/y.svg` e escrever fora do
+  #   tema. Agora o nome só passa num conjunto fechado (`[A-Za-z0-9._+-]`, sem
+  #   `..`); a linha que falha sai marcada com `!` (que o conjunto não tem),
+  #   é contada no aviso e pulada, e as outras seguem. O desenho de origem já
+  #   era conferido do outro lado: o `pack.py alvo` o resolve com `realpath` e
+  #   recusa o que cai fora da raiz do pack ou do motor (o `_dentro`).
+  #   [P78: o conjunto do `awk` é o mesmo do `meow_nome_seguro` (lib/comum.sh)
+  #   e do `nome_de_destino` (pack.py), a regra única. Ele fica aqui, escrito no
+  #   `awk`, porque os testes extraem esta função VERBATIM e a rodam sem o
+  #   lib/comum.sh; e o desenho de origem volta do `pack.py alvo` já como o
+  #   realpath que ele conferiu.]
   cru="$(sed -e 's/#.*//' "$MAPA" | awk -F: '
     NF>=2 {
       nome=$1; caminho=substr($0, index($0, ":") + 1)
       gsub(/^[ \t]+|[ \t]+$/, "", nome)
       gsub(/^[ \t]+|[ \t]+$/, "", caminho)
-      if (nome != "" && caminho != "") print nome "\t" caminho
+      if (nome == "" || caminho == "") next
+      # O recusado vai para o aviso no terminal: fora do conjunto, sai `?`.
+      if (nome !~ /^[A-Za-z0-9._+-]+$/ || index(nome, "..")) { gsub(/[^A-Za-z0-9._+-]/, "?", nome); print "!\t" nome; next }
+      print nome "\t" caminho
     }')"
+  local recusados
+  recusados="$(printf '%s\n' "$cru" | grep -c $'^!\t')"
+  if [ "$recusados" -gt 0 ]; then
+    meow_aviso "$MAPA: $recusados linha(s) com nome fora de [A-Za-z0-9._+-] (ou com '..') puladas: $(printf '%s\n' "$cru" | sed -n $'s/^!\t//p' | head -3 | paste -sd' ')"
+    cru="$(printf '%s\n' "$cru" | grep -v $'^!\t')"
+  fi
   [ -n "$cru" ] || return 0
   paste <(printf '%s\n' "$cru" | cut -f1) \
         <(printf '%s\n' "$cru" | cut -f2 \
             | python3 "$RAIZ/scripts/pack.py" alvo "$ICONES_BASE_MAPA")
+}
+
+# --- as escolhas do painel ----------------------------------------------------
+# A ESCOLHA MORA COM QUEM USA, E ESTE PASSO A PÕE NO TEMA — 09/10/2026, P73 (I3)
+#   Até a P73 o «Usar este ícone» do painel gravava a linha no `apps.map` do
+#   pack, dentro do clone (a regressão I3: `git status` sujo de tanto usar o
+#   programa). A escolha passou para o `icones-escolhidos.map`, ao lado do
+#   meow.conf, e quem a lê é o `pack.py escolhas` — o mesmo que o `fontes` usa
+#   para dizer que ela vence (ver "A ESCOLHA DO PAINEL MORA COM QUEM USA", lá).
+#   Este passo é o dono do `scalable/apps` para os mapas, então é ele quem a
+#   põe lá: com a camada do pack ligada ou não, porque a escolha foi feita à
+#   mão, app a app. O nome escolhido sai dos pares do pack, para não haver dois
+#   desenhos disputando o mesmo arquivo dentro de uma passada.
+_escolhas_pares() {
+  python3 "$RAIZ/scripts/pack.py" escolhas
+}
+
+_dracula_pares() {
+  local fora
+  fora="$(_escolhas_pares | cut -f1)"
+  _dracula_pares_do_mapa | awk -F'\t' -v fora="$fora" '
+    BEGIN { n = split(fora, f, "\n"); for (i = 1; i <= n; i++) if (f[i] != "") x[f[i]] = 1 }
+    !($1 in x)'
+}
+
+# O que este passo põe no tema: o mapa do pack (com a camada ligada) e as
+# escolhas do painel (sempre). Ligada é tudo menos o "nao" escrito, a régua do
+# `_dracula_aplicar` desde a P74 item 3 [integração da leva G, 09/10/2026: a
+# P73 nasceu com o padrão antigo, `nao`, e com o conf de fábrica o passo
+# entrava pelo instalar e só punha as escolhas — 0 desenhos do pack no tema].
+_dracula_no_ar() {
+  [ "${ICONES_DRACULA:-sim}" != "nao" ] && _dracula_pares
+  _escolhas_pares
 }
 
 # --- instalar -----------------------------------------------------------------
@@ -197,7 +254,7 @@ _dracula_instalar() {
       *) rc=2 ;;
     esac
     [ -f "$ALVO/$nome.svg" ] && no_tema+=("$nome"$'\t'"$origem")
-  done < <(_dracula_pares)
+  done < <(_dracula_no_ar)
   _dracula_registrar "${no_tema[@]}"
 
   if [ "${#faltando[@]}" -gt 0 ]; then
@@ -212,6 +269,9 @@ _dracula_instalar() {
     meow_ok "$postos desenho(s) do pack Dracula no tema"
     _dracula_avisar
     rc=1
+  elif [ "$rc" = "0" ] && [ "${ICONES_DRACULA:-sim}" = "nao" ]; then
+    # Com a camada desligada, este ramo só pôs as escolhas do painel (P73).
+    meow_ok "$(_escolhas_pares | grep -c .) escolha(s) do painel no tema"
   elif [ "$rc" = "0" ]; then
     # UMA LINHA MESMO QUANDO NADA MUDA, e o motivo é a tela do doctor: um `chk_`
     # que devolve 0 e não escreve nada vira `ok dracula` seguido de vazio, ao
@@ -355,7 +415,7 @@ _dracula_registrar() {   # _dracula_registrar "nome<TAB>desenho"... — fora do 
 }
 
 _dracula_de_fora() {
-  python3 - "$RAIZ" "$MAPA" "$_pack_ref" "$REGISTRO" <<'PY'
+  python3 -I - "$RAIZ" "$MAPA" "$_pack_ref" "$REGISTRO" <<'PY'
 import contextlib
 import io
 import os
@@ -481,17 +541,29 @@ _dracula_cache() {
   return 1
 }
 
-# --- o aviso que evita a pergunta "por que não mudou?" ------------------------
+# --- a tela relê o que mudou ------------------------------------------------
 # O `cosmic-app-library` e o `cosmic-panel` não ligam em GTK: varrem o tema AO
 # NASCER e guardam em memória. Um SVG que chega depois não existe para eles até
-# o processo reiniciar. Reiniciar o painel derruba a topbar e a dock por alguns
-# segundos, e o `meow-painel.service` existe porque o supervisor do COSMIC tem
-# um backoff SEM TETO que já deixou esta máquina 16h sem barra — caro demais
-# para ser efeito colateral de "instalei um ícone". Quem decide é ele.
+# o processo reiniciar.
+#
+# ERA UM AVISO COM RECEITA, E VIROU A AÇÃO — 10/10/2026, P79 (item 5). A saída
+#   terminava em «para ver agora… pkill -x cosmic-panel && pkill -f
+#   cosmic-app-library»: dentro do painel, a tela mandando digitar. O medo de
+#   então (um `pkill` cego derruba a barra, e o supervisor do COSMIC tem um
+#   backoff SEM TETO que já deixou esta máquina 16h sem barra) é o que a porta
+#   única da tela resolve desde 13/09: o `meow_tela_reler` (lib/comum.sh) só
+#   mexe na sessão desta conta, recicla o painel pelo `painel.sh reciclar`, que
+#   RECUSA quando ninguém repõe a barra, e chacoalha o lançador, que o
+#   `cosmic-session` repõe em segundos. É o que o `icones_apps_arcticons.sh` já
+#   faz. Só depois de algo ter mudado, e nunca no ensaio.
 _dracula_avisar() {
-  meow_info "  o painel e o lançador leem o tema ao nascer e guardam em memória —"
-  meow_info "  para ver agora, sem esperar o próximo login:"
-  meow_info "      pkill -x cosmic-panel && pkill -f cosmic-app-library"
+  meow_seco && return 0
+  meow_tela_reler
+  case $? in
+    0) meow_ok "os desenhos novos já estão na dock e no menu" ;;
+    3) meow_info "fora da sessão gráfica: os desenhos novos aparecem no próximo login" ;;
+  esac
+  return 0
 }
 
 # --- estado -------------------------------------------------------------------
@@ -506,11 +578,16 @@ _dracula_estado() {
 }
 
 # --- ponto de entrada ---------------------------------------------------------
-# O PADRÃO É `nao`, E O PADRÃO É A CURADORIA
-#   Onze dos dezoito nomes já vestem arte aprovada no artifact de 12-15/09.
-#   Ligar isto de fábrica trocaria aquele trabalho pela arte do pack na primeira
-#   rodada do instalador em QUALQUER máquina — inclusive na dela, que não
-#   participou da decisão. Quem liga é o meow.conf, e a chave está no painel.
+# O PADRÃO É `sim`: ESCOLHER O PACK LIGA OS DESENHOS DELE — 09/10/2026, P74 item 3
+#   Até aqui o padrão era `nao`, para não trocar de fábrica os onze desenhos
+#   do Arcticons aprovados em 12-15/09. Medido em 09/10/2026 numa casa de
+#   brinquedo com `PACK="dracula"` e o resto de fábrica: 28 ícones em
+#   `scalable/apps`, contra 230 com a camada ligada — escolher o Dracula
+#   entregava um Dracula pela metade, e o `pack usar` precisava de um segundo
+#   passo que ninguém dizia (T6 da paridade de 09/10). "Dracula vence tudo" já
+#   era a decisão de 16/09. Agora o padrão vem do pack: a camada põe no tema o
+#   mapa do pack no ar, e um pack sem mapa não põe nada — então `sim` de
+#   fábrica é "o pack decide", e a chave só serve para DESLIGAR (`nao`).
 _dracula_aplicar() {
   # O que um pack fora do ar deixou sai ANTES, ligado ou desligado: é o que
   # a troca de pack deixa para trás, e a chave não muda isso (P60). E o nome
@@ -518,8 +595,18 @@ _dracula_aplicar() {
   # painel, ninguém mais o pede, com a camada ligada ou não.
   local rc_fora rc
   _dracula_sobras; rc_fora=$?
-  if [ "${ICONES_DRACULA:-nao}" = "sim" ]; then _dracula_instalar
-  else _dracula_remover; fi
+  if [ "${ICONES_DRACULA:-sim}" != "nao" ]; then _dracula_instalar
+  else
+    _dracula_remover; rc=$?
+    # AS ESCOLHAS DO PAINEL VALEM COM A CAMADA DESLIGADA (P73): o remover tira
+    # só o que o mapa do pack pôs, e o instalar, nesse caso, só as escolhas.
+    if [ -n "$(_escolhas_pares)" ]; then
+      local rc_e; _dracula_instalar; rc_e=$?
+      if [ "$rc_e" = "2" ] || [ "$rc" = "2" ]; then rc=2
+      elif [ "$rc_e" = "1" ]; then rc=1; fi
+    fi
+    ( exit "$rc" )
+  fi
   rc=$?
   if [ "$rc" = "2" ] || [ "$rc_fora" = "2" ]; then return 2; fi
   if [ "$rc" = "1" ] || [ "$rc_fora" = "1" ]; then return 1; fi

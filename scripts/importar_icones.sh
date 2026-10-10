@@ -73,7 +73,7 @@ TMP="$(mktemp -d)" || { meow_erro "não consegui criar diretório temporário"; 
 trap 'rm -rf "$TMP"' EXIT
 
 LISTA="$TMP/lista.tsv"
-if ! python3 - "$PACOTE" "$TMP" > "$LISTA" <<'PY'
+if ! python3 -I - "$PACOTE" "$TMP" > "$LISTA" <<'PY'
 import base64, json, os, struct, sys
 
 pacote, destino = sys.argv[1], sys.argv[2]

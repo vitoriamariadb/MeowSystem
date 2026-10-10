@@ -187,7 +187,17 @@ else
   falha "com HOME de brinquedo o reciclo miraria: $alvos"
 fi
 if [ -n "$ANTES" ]; then
-  meus="$(MEOW_RAIZ="$RAIZ" bash -c '
+  # A casa da SESSÃO: sob o `tests/todos.sh` o HOME é de brinquedo (P75), e
+  # ele deixa a de verdade em `SUITE_CASA_REAL` — aqui só para PERGUNTAR qual
+  # painel é dela, que é leitura.
+  # [P78, aberto 5 da integração da onda 1: a casa da sessão é o HOME do
+  #   próprio cosmic-panel de verdade, lido do ambiente dele. O
+  #   `SUITE_CASA_REAL` só vale quando o `todos.sh` foi chamado da casa real;
+  #   chamado de uma casa de brinquedo (como a integração rodou), ele também
+  #   era de brinquedo, e o teste ficava vermelho de ambiente. Ler o HOME do
+  #   processo é leitura, e é a pergunta certa: "de quem é este painel?".]
+  casa_sessao="$(tr '\0' '\n' < "/proc/${ANTES%% *}/environ" 2>/dev/null | sed -n 's/^HOME=//p' | head -1)"
+  meus="$(HOME="${casa_sessao:-${SUITE_CASA_REAL:-$HOME}}" MEOW_RAIZ="$RAIZ" bash -c '
     . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1
     . "$MEOW_RAIZ/lib/painel.sh" >/dev/null 2>&1
     meow_painel_desta_casa' 2>/dev/null | LC_ALL=C sort | paste -sd' ' -)"

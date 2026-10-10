@@ -449,8 +449,10 @@ meow_app_conferir() {
 
   # --- Qt: paleta é do COSMIC; ícone é nosso --------------------------------
   if ! _meow_tk_qt_presente; then
+    # Sem o "se quiser: sudo apt install qt5ct qt6ct" desde a P75 (09/10/2026):
+    # nada falta — sem qt5ct não há app Qt a vestir, e a receita era convite
+    # a uma tarefa à mão que o projeto não precisa.
     meow_pula "qt5ct/qt6ct ausentes — nenhum app Qt para tematizar"
-    meow_info "se quiser: sudo apt install qt5ct qt6ct"
     [ "$divergente" = "1" ] && return "$MEOW_DIVERGENTE"
     return "$MEOW_OK"
   fi
@@ -547,7 +549,7 @@ meow_app_aplicar() {
 
   # --- 3. Qt: o tema de ícones, a única escrita nossa deste lado -------------
   if ! _meow_tk_qt_presente; then
-    meow_pula "qt5ct/qt6ct ausentes — nada a aplicar no Qt (sudo apt install qt5ct qt6ct)"
+    meow_pula "qt5ct/qt6ct ausentes — nada a aplicar no Qt"
   else
     icone_cosmic="$(_meow_tk_ler_tk icon_theme || printf '')"
     if [ -z "$icone_cosmic" ]; then
@@ -635,7 +637,13 @@ meow_app_aplicar() {
 #                            EXISTE na máquina. Deixar `MeowSystem-Icons` seria
 #                            apontar para a árvore que o passo 5/6 do
 #                            desinstalador remove — apps Qt sem ícone nenhum.
-_MEOW_TK_ICONES_FABRICA="${ICONES_BASE:-Papirus-Dark}"
+#     O nome sai do `pack.py base-apelidos` (P74 item 1, 09/10/2026), e não
+#     da chave crua: `ICONES_BASE="MeowSystem-Icons-Base"` é a base do pack,
+#     que a regra lê como "de fábrica", e devolver o Qt para ela seria apontar
+#     para um tema que só existe enquanto o pack está no ar.
+_MEOW_TK_ICONES_FABRICA="$(ICONES_BASE="${ICONES_BASE:-}" \
+  python3 "$MEOW_RAIZ/scripts/pack.py" base-apelidos 2>/dev/null | sed -n 's/^tema=//p')"
+_MEOW_TK_ICONES_FABRICA="${_MEOW_TK_ICONES_FABRICA:-Papirus-Dark}"
 
 meow_app_reverter() {
   meow_app_detectar || {

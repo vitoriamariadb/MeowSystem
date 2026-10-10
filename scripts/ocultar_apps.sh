@@ -78,7 +78,9 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-SISTEMA="/usr/share/applications"
+# A pasta do sistema vem de fora só para o teste (P74): o `tests/` monta uma de
+# brinquedo, e nada aqui escreve no /usr/share de verdade num teste.
+SISTEMA="${MEOW_APLICATIVOS_SISTEMA:-/usr/share/applications}"
 
 # Um por linha, com o porquê ao lado. Só entra o que ela pediu.
 OCULTAR=(
@@ -172,6 +174,7 @@ OCULTAR+=("${OCULTAR_DUPLICATA[@]}")
 LANCADOR_OCULTAR="${LANCADOR_OCULTAR:-}"
 LANCADOR_OCULTAR_FONTE="fábrica"
 _da_conf=()
+_fora=()
 if [ -n "$LANCADOR_OCULTAR" ]; then
   while IFS= read -r _item; do
     # Apara espaço dos dois lados: o conf é escrito à mão e `a, b` é a forma
@@ -179,13 +182,41 @@ if [ -n "$LANCADOR_OCULTAR" ]; then
     # `.desktop` que não existe e um "não instalado" silencioso no placar.
     _item="${_item#"${_item%%[![:space:]]*}"}"
     _item="${_item%"${_item##*[![:space:]]}"}"
-    [ -n "$_item" ] && _da_conf+=("$_item")
+    # `-nome` é «este não», para os que o pack esconde (P74, logo abaixo).
+    case "$_item" in
+      -?*) _fora+=("${_item#-}") ;;
+      ?*)  _da_conf+=("$_item") ;;
+    esac
   done < <(printf '%s\n' "$LANCADOR_OCULTAR" | tr ',' '\n')
   if [ "${#_da_conf[@]}" -gt 0 ]; then
     OCULTAR=("${_da_conf[@]}")
     LANCADOR_OCULTAR_FONTE="meow.conf"
   fi
 fi
+
+# O QUE O PACK ESCONDE ENTRA SOMADO — 09/10/2026, P74 item 9 (T5)
+#   O pack no ar declara a lista dele (`lancador.ocultar`, os overrides de
+#   `.desktop` que o tema Dracula de antes trazia), e ela se SOMA à do conf: a
+#   chave do conf é escrita por quem instala e vem com os 32 de fábrica, então
+#   uma lista do pack que só valesse com a chave vazia não valeria em lugar
+#   nenhum. Tirar um nome do pack é escrevê-lo com `-` na frente, no conf — a
+#   mesma linha que a pessoa já lê inteira. Nome repetido entra uma vez.
+_do_pack="$(meow_pack_dir)"
+[ -n "$_do_pack" ] || _do_pack="$(meow_pack_padrao_dir 2>/dev/null || true)"
+declare -A _ja=()
+for _item in "${OCULTAR[@]}"; do _ja["$_item"]=1; done
+while IFS= read -r _item; do
+  [ -n "$_item" ] && [ -z "${_ja[$_item]:-}" ] || continue
+  OCULTAR+=("$_item"); _ja["$_item"]=1
+done < <(python3 "$RAIZ/scripts/pack.py" ocultar "$_do_pack" 2>/dev/null)
+if [ "${#_fora[@]}" -gt 0 ]; then
+  _resto=()
+  for _item in "${OCULTAR[@]}"; do
+    printf '%s\n' "${_fora[@]}" | grep -qxF -- "$_item" || _resto+=("$_item")
+  done
+  OCULTAR=(${_resto[@]+"${_resto[@]}"})
+fi
+unset _do_pack _ja _resto
 
 mudou=0
 ausentes=0
@@ -237,6 +268,46 @@ for app in "${OCULTAR[@]}"; do
   fi
   rm -f "$tmp"
 done
+
+# O «-nome» DEVOLVE O QUE JÁ ESTAVA ESCONDIDO — conferência da P74, 09/10/2026
+#   Sem isto o `-nome` só impedia de esconder: um app que uma passada anterior
+#   já tinha marcado (o pack Dracula esconde o `mpv`, por exemplo) continuava
+#   fora do lançador, e a frase do meow.conf.exemplo («para manter um deles à
+#   vista, escreva `-nome`») não era verdade. Desfaz-se só a marca na forma que
+#   este script escreve — a linha `NoDisplay=true` logo depois de
+#   `[Desktop Entry]` — e só nos nomes que a pessoa pediu com `-`. A cópia vem
+#   antes da escrita, como acima.
+devolvidos=0
+for app in ${_fora[@]+"${_fora[@]}"}; do
+  arq="$SISTEMA/$app.desktop"
+  [ -f "$arq" ] || continue
+  awk 'ant == "[Desktop Entry]" && $0 == "NoDisplay=true" { achou = 1 } { ant = $0 } END { exit !achou }' "$arq" \
+    || continue
+  if meow_seco; then
+    meow_muda "devolveria $app ao lançador"
+    mudou=1
+    continue
+  fi
+  if ! meow_desktop_pode "$arq"; then
+    sem_root=$((sem_root+1))
+    continue
+  fi
+  novo="$(awk 'ant == "[Desktop Entry]" && $0 == "NoDisplay=true" && !feito { feito = 1; ant = $0; next }
+               { print; ant = $0 }' "$arq")"
+  if ! meow_backup_sistema "$arq"; then
+    meow_aviso "não consegui guardar cópia de $arq — não vou devolvê-lo"
+    continue
+  fi
+  tmp="$(mktemp)"
+  printf '%s\n' "$novo" > "$tmp"
+  if meow_desktop_escrever "$arq" "$tmp"; then
+    mudou=1; devolvidos=$((devolvidos+1))
+  else
+    sem_root=$((sem_root+1))
+  fi
+  rm -f "$tmp"
+done
+[ "$devolvidos" -gt 0 ] && meow_muda "$devolvidos aplicativo(s) de volta ao lançador, pelo «-nome» do LANCADOR_OCULTAR"
 
 if [ "$sem_root" -gt 0 ]; then
   meow_aviso "$sem_root aplicativo(s) precisam de sudo para ocultar"

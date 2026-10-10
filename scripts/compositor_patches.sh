@@ -180,6 +180,10 @@
 #   compositor_patches.sh compilar            baixa o fonte, aplica, compila e instala (sudo no fim)
 #   compositor_patches.sh validar             baixa o fonte da versão instalada e só roda o dry-run
 #   compositor_patches.sh reverter            diz como voltar ao binário do pacote (não roda)
+#   compositor_patches.sh ativar              liga o shim em ~/.local/bin (P76; vale no próximo login)
+#   compositor_patches.sh desativar           desliga o shim: o próximo login volta a /usr/bin
+#   compositor_patches.sh qual                o binário que o próximo login vai rodar
+#   compositor_patches.sh guardar             leva o fonte baixado do cache para ~/.local/share
 #   (o rosto de todos é o `meow compositor`; MEOW_DRY_RUN=1 é o `--seco` dele)
 #
 #   O 0 cobre DOIS estados desde 21/09/2026: os patches de pé, e os patches
@@ -210,6 +214,13 @@ CP_VERSOES="${CP_VERSOES:-$MEOW_RAIZ/patches/versao}"
 # árvore compilada pesa ~3,2 GB (medido do outro lado, em 28/08/2026), e por
 # isso o `compilar` poda as de outra versão depois de um build que deu certo.
 CP_CACHE="${CP_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem/cosmic-comp}"
+# O FONTE BAIXADO SAIU DO CACHE — 09/10/2026, P76. "Apagar esta pasta custa um
+# download", dizia o bloco acima, e deixou de ser verdade: o índice do Pop
+# serve uma versão por pacote, e em 09/10 o `.tar.xz` do 0fbd457 instalado só
+# existia no `~/.cache`. Cache é o que se recria; isto não se recria mais. O
+# `.dsc` e o `.tar.xz` moram aqui (é a mesma guarda do `meow cosmic prever`),
+# e só a ÁRVORE extraída e compilada continua no cache.
+CP_GUARDA="${CP_GUARDA:-${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/fontes/cosmic-comp}"
 # A SÉRIE INVERTEU DE LADO EM 22/09/2026 (P29), E A ORDEM É A DECISÃO
 #   Até aqui `CP_SERIE` era a da Aurora e a nossa não existia: este arquivo lia
 #   `/usr/local/share/aurora/patches.d/series`, e caía em
@@ -231,6 +242,36 @@ CP_SERIE="${CP_SERIE:-$MEOW_RAIZ/patches/series}"
 # máquina, e inventar um faria o verbo falhar apontando para um caminho que
 # ninguém escolheu. Quem chama nomeia, por argumento ou por esta variável.
 CP_FONTE="${CP_FONTE:-}"
+# O COMPOSITOR EM ESCOPO DE USUÁRIO — 09/10/2026, P76
+#   O build patchado deixou de ir para `/usr/bin` (onde o apt sobrescreve e a
+#   tela de login lê o mesmo arquivo) e passou a morar aqui, um diretório por
+#   versão do pacote: `<versão>/cosmic-comp` e `<versão>/estado`. Quem o põe na
+#   sessão é o shim (`scripts/compositor_shim.sh`), instalado como
+#   `~/.local/bin/cosmic-comp` pelo `ativar` — o `cosmic-session` acha o
+#   compositor pelo PATH, e o PATH da sessão começa ali. O greeter não vê
+#   `~/.local/bin`, e o apt nunca toca em nenhum dos dois.
+CP_CASA="${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}"
+CP_SHIM="${CP_SHIM:-$HOME/.local/bin/cosmic-comp}"
+CP_SHIM_FONTE="$MEOW_RAIZ/scripts/compositor_shim.sh"
+CP_SHIM_MARCA="MEOW-COSMIC-COMP-SHIM"
+# A MATRIZ DE COMPATIBILIDADE GRAVADA PELA MÁQUINA — P76
+#   O `patches/versao` era porteiro: só compilava sobre versão que alguém tinha
+#   validado à mão e posto num commit. Agora quem decide é a escada, patch a
+#   patch, e o que ela decidiu fica aqui, uma linha por versão:
+#     <versão> <TAB> <data> <TAB> <patch>:<degrau> <patch>:<degrau> …
+#   Degraus (`docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.3):
+#     1  `-F0` limpo e os arquivos que o patch toca iguais aos da última versão boa
+#     2  entra (`-F0` com arquivo mudado upstream, ou só com `-F1`): vai para o
+#        build sob a guarda de queda do shim, "em observação"
+#     3  `opt` que não entra: o build sai sem ele, só a função dele degrada
+#     4  `req` que não entra: não há build, a sessão sobe de fábrica, e é o
+#        único degrau que pede gente — um rebase do patch, num commit
+#   Mora no estado e não em `patches/`: quem grava é a máquina, e o clone é do
+#   git. O `patches/versao` continua lido, como o histórico do que gente validou.
+CP_MATRIZ="${CP_MATRIZ:-$MEOW_ESTADO/cosmic-comp/matriz.tsv}"
+# Os arquivos que a série toca, como estavam no fonte PURO da última versão
+# que compilou. É contra eles que o degrau 1 pergunta "o upstream mexeu aqui?".
+CP_ALVOS="${CP_ALVOS:-$MEOW_ESTADO/cosmic-comp/alvos}"
 
 # --- o buffer de saída ------------------------------------------------------
 # A PRIMEIRA LINHA É A TABELA DO DOCTOR, E ELA SÓ EXISTE NO FIM
@@ -306,22 +347,23 @@ _cp_versao_valida() {
   while IFS= read -r x; do
     [ "$x" = "$v" ] && return 0
   done < <(_cp_versoes_validadas)
-  return 1
+  # P76: vale também a versão em que a escada pôs o `req` no build.
+  awk -F'\t' -v v="$v" '$1==v && $3 !~ /:4( |$)/ {ok=1} END {exit !ok}' "$CP_MATRIZ" 2>/dev/null
 }
 
-# A RECUSA DIZ POR QUÊ, e diz o caminho — a sprint pede as duas coisas com
-# essas palavras. `apt-get source` não é receita de instalação: é o download
-# do fonte que o `validar` faz sozinho, e a frase aponta para ele.
-_cp_recusar_versao() {
-  local ver="$1" validadas
-  validadas="$(_cp_versoes_validadas 2>/dev/null | paste -sd' ' -)"
-  meow_erro "recusado: a série não foi validada contra o cosmic-comp instalado"
-  meow_info "  instalado:  $ver"
-  meow_info "  validadas:  ${validadas:-<nenhuma — $CP_VERSOES não existe ou está vazio>}"
-  meow_info "  por quê: o -F0 pega o hunk cujo contexto mudou, mas não o que ainda casa em"
-  meow_info "  código que mudou de sentido — e este binário é também a tela de login"
-  meow_info "  para validar:  meow compositor validar   (baixa o fonte e só roda o dry-run)"
-  meow_info "  se a série entrar limpa, a versão entra em patches/versao num commit — decisão sua"
+# --- o shim (P76) -----------------------------------------------------------
+# 0 = o `cosmic-comp` que a sessão acha pelo PATH é o nosso shim.
+_cp_shim_ativo() { grep -qs -- "$CP_SHIM_MARCA" "$CP_SHIM"; }
+
+# O binário que o PRÓXIMO LOGIN vai rodar. Com o shim no ar, quem responde é o
+# próprio shim (`MEOW_SHIM_SO_DIZER=1`), para a regra das três condições morar
+# num lugar só; sem ele, é o de `/usr/bin`, como sempre foi.
+_cp_proximo_login() {
+  if _cp_shim_ativo; then
+    MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$CP_CASA" MEOW_SHIM_FABRICA="$CP_BIN" bash "$CP_SHIM"
+  else
+    printf '%s\n' "$CP_BIN"
+  fi
 }
 
 # "1 marcador" / "2 marcadores". Custa três linhas e evita o `marcador(es)` que
@@ -354,6 +396,44 @@ cmd_conferir() {
   # pergunta continua tendo resposta útil (é justamente ela que diz se o build
   # precisa ser refeito). Então segue-se sem a coluna "sessão", com uma linha
   # dizendo, e sem inventar divergência.
+  # --- 0. o shim (P76): com ele no ar, o binário que conta é o build da versão
+  # COM O SHIM, O DISCO QUE INTERESSA É O BUILD DA VERSÃO, NÃO `/usr/bin`
+  #   O `/usr/bin/cosmic-comp` volta a ser de fábrica e fica de fábrica; o
+  #   `.estado` de `/var/lib` fala de um arranjo que acabou. Então o `CP_BIN` e
+  #   o `CP_ESTADO` desta conferência passam a ser os do build da versão que o
+  #   dpkg diz instalada — e o resto do verbo, marcador a marcador, disco e
+  #   sessão, segue igual.
+  #
+  #   SEM BUILD É FÁBRICA, E FÁBRICA NÃO É VERMELHO: é o princípio D da
+  #   pesquisa (toda falha degrada para fábrica, nunca para quebrado). Quem
+  #   reconstrói é o pós-apt. Só o `ruim` — duas quedas seguidas — pede gente.
+  if _cp_shim_ativo; then
+    local v_shim="" casa_v=""
+    v_shim="$(_cp_versao_instalada 2>/dev/null)" || v_shim=""
+    casa_v="$CP_CASA/$v_shim"
+    if [ -e "$casa_v/ruim" ]; then
+      meow_muda "o build do cosmic-comp $v_shim caiu duas vezes seguidas e foi posto de lado — a sessão sobe de fábrica"
+      meow_info "volta com um build novo: meow compositor"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ ! -x "$casa_v/cosmic-comp" ] || [ ! -r "$casa_v/estado" ]; then
+      # O DEGRAU 4 ACENDE (conferência da P76): sem build porque o `req` não
+      # entra nesta versão não é "o pós-apt ainda vem" — é o único degrau que
+      # pede gente (§4.3 da pesquisa), e a matriz já o gravou. Verde aqui seria
+      # o "tudo confere" com algo fora.
+      if awk -F'\t' -v v="$v_shim" '$1==v && $3 ~ /:4( |$)/ {achou=1} END {exit !achou}' "$CP_MATRIZ" 2>/dev/null; then
+        meow_muda "o patch obrigatório não entra no cosmic-comp $v_shim (degrau 4) — a sessão sobe de fábrica até um rebase"
+        meow_info "o que recusou: meow compositor validar"
+        return "$MEOW_DIVERGENTE"
+      fi
+      meow_aviso "o cosmic-comp $v_shim ainda não tem build nosso — a sessão sobe de fábrica, sem os patches"
+      meow_info "o build vem sozinho depois do apt; na mão: meow compositor"
+      return "$MEOW_OK"
+    fi
+    CP_BIN="$casa_v/cosmic-comp"
+    CP_ESTADO="$casa_v/estado"
+  fi
+
   local pid sessao=""
   pid="$(pgrep -x cosmic-comp 2>/dev/null | head -1)"
   if [ -n "$pid" ] && [ -r "/proc/$pid/exe" ]; then
@@ -408,7 +488,7 @@ cmd_conferir() {
     local v_inst=""
     v_inst="$(_cp_versao_instalada 2>/dev/null)" || v_inst=""
     if [ -n "$v_inst" ] && ! _cp_versao_valida "$v_inst"; then
-      _cp_diz info "o cosmic-comp instalado ($v_inst) não está em patches/versao: a série ainda não foi validada nele"
+      _cp_diz info "o cosmic-comp instalado ($v_inst) ainda não passou pela série: a escada decide no primeiro build"
     fi
   elif [ ! -r "$CP_ESTADO" ]; then
     # O contrato pede 644. Se chegou aqui, o modo saiu do combinado — e o doctor
@@ -449,7 +529,7 @@ cmd_conferir() {
       # (24/09/2026). Dizer isto aqui poupa a pessoa de descobrir na recusa,
       # depois de já ter decidido parar para compilar.
       _cp_versao_valida "$versao_dpkg" || \
-        _cp_diz info "  antes, a série precisa ser validada nesta versão: meow compositor validar"
+        _cp_diz info "  a versão é nova para a série: o build decide patch a patch (meow compositor validar mostra antes)"
     fi
   fi
 
@@ -684,9 +764,18 @@ cmd_conferir() {
     #   E OS DOIS PASSOS DO MEIO VIRARAM UM VERBO SÓ EM 24/09/2026 (P39): o
     #   `meow compositor` baixa o fonte, aplica, compila e instala. O "é passo
     #   seu — cargo e um install" saiu, porque deixou de ser verdade.
-    meow_info "o conserto é recompilar o compositor com a série de patches/ (~4 min, sudo só no fim):"
+    #
+    #   E O CONSELHO ACOMPANHA O SHIM — conferência da P76. O `meow compositor`
+    #   deixou de instalar em `/usr/bin`: o build vai para `~/.local/libexec`, e
+    #   só vale com o shim ligado. Sem esta linha, depois do próximo apt o
+    #   doctor mandaria rodar `meow compositor`, o build sairia certo, e o doctor
+    #   seguinte acusaria o mesmo `/usr/bin` de fábrica — um conselho que não
+    #   converge nunca.
+    meow_info "o conserto é recompilar o compositor com a série de patches/ (~4 min, sem sudo):"
     meow_info "  meow compositor --seco   diz o que faria, sem baixar nem escrever"
-    meow_info "  meow compositor          baixa o fonte da versão instalada, compila e instala"
+    meow_info "  meow compositor          baixa o fonte da versão instalada, compila e guarda o build"
+    _cp_shim_ativo || \
+      meow_info "  meow compositor ativar   liga o shim: o build vale a partir do próximo login"
     meow_info "  meow compositor reverter diz como voltar ao binário do pacote"
     meow_info "o doctor não compila, não usa sudo e não escreve — ele só mede e conta"
   else
@@ -745,7 +834,29 @@ cmd_conferir() {
 #   deixou o `.orig` na árvore. Um arquivo `.rej`/`.orig` esquecido vira, dias
 #   depois, um `grep` que acha o marcador num arquivo que o compilador nem lê.
 _CP_PATCH_OPCOES=(-p1 --forward -F0 --no-backup-if-mismatch --silent)
+# O SEGUNDO DEGRAU DA ESCADA (P76): `-F1` aceita UMA linha de contexto que
+# mudou. Medido em 09/10/2026: o modo de leitura falha um hunk com `-F0` no
+# cosmic-comp 41497b4 porque o upstream acrescentou campos ao
+# `CosmicCompConfig` e mudou a terceira linha de contexto — e entra com `-F1`,
+# no lugar certo. O risco que o bloco acima descreve continua de pé, e por
+# isso o `-F1` só vale com o build entrando sob a guarda de queda do shim, e
+# nunca vai além de uma linha.
+_CP_PATCH_OPCOES_F1=(-p1 --forward -F1 --no-backup-if-mismatch --silent)
 
+# O degrau de cada patch na última passagem do `cmd_aplicar`, "arquivo:degrau".
+declare -a _CP_DEGRAUS=()
+
+# 0 = algum arquivo que o patch toca difere do da última versão boa (ou não há
+# cópia dela para comparar, que é o mesmo que não saber).
+_cp_alvos_mudaram() {
+  local fonte="$1" patch_arq="$2" alvo
+  while IFS= read -r alvo; do
+    [ -n "$alvo" ] || continue
+    [ -f "$CP_ALVOS/$alvo" ] || return 0
+    cmp -s "$fonte/$alvo" "$CP_ALVOS/$alvo" || return 0
+  done < <(_cp_alvos_do_patch "$patch_arq")
+  return 1
+}
 _cp_alvos_do_patch() {
   # Os arquivos que um `.patch` toca, lidos das linhas `+++`. O `b/` da frente
   # é o `-p1` do `patch`, e sai aqui pelo mesmo motivo.
@@ -811,6 +922,8 @@ cmd_aplicar() {
       estado+=("ja")
     elif (cd "$fonte" && patch "${_CP_PATCH_OPCOES[@]}" --dry-run < "$p") >/dev/null 2>&1; then
       estado+=("pode")
+    elif (cd "$fonte" && patch "${_CP_PATCH_OPCOES_F1[@]}" --dry-run < "$p") >/dev/null 2>&1; then
+      estado+=("pode-f1")
     else
       estado+=("recusa")
     fi
@@ -821,19 +934,33 @@ cmd_aplicar() {
 
   # --- a decisão: um `req` que não entra aborta tudo, antes de escrever -----
   local i abortar=0
+  _CP_DEGRAUS=()
   for i in "${!classe[@]}"; do
     case "${estado[$i]}" in
-      ja)         meow_ok   "${arquivo[$i]} já está na árvore (${base[$i]})" ;;
-      pode)       meow_info "${arquivo[$i]} aplica limpo (${classe[$i]})" ;;
+      ja)         meow_ok   "${arquivo[$i]} já está na árvore (${base[$i]})"
+                  _CP_DEGRAUS+=("${arquivo[$i]}:ja") ;;
+      pode)
+        if _cp_alvos_mudaram "$fonte" "$CP_REPO/${arquivo[$i]}"; then
+          meow_info "${arquivo[$i]} aplica limpo, mas o upstream mexeu no que ele toca: degrau 2, em observação (${classe[$i]})"
+          _CP_DEGRAUS+=("${arquivo[$i]}:2")
+        else
+          meow_info "${arquivo[$i]} aplica limpo: degrau 1 (${classe[$i]})"
+          _CP_DEGRAUS+=("${arquivo[$i]}:1")
+        fi ;;
+      pode-f1)
+        meow_info "${arquivo[$i]} só entra com -F1 — o contexto mudou: degrau 2, em observação (${classe[$i]})"
+        _CP_DEGRAUS+=("${arquivo[$i]}:2") ;;
       sem-arquivo)
         meow_muda "${arquivo[$i]} está na série e não existe em $CP_REPO"
         [ "${classe[$i]}" = "req" ] && abortar=1 ;;
       recusa)
         if [ "${classe[$i]}" = "req" ]; then
-          meow_muda "${arquivo[$i]} é OBRIGATÓRIO e o dry-run recusou"
+          meow_muda "${arquivo[$i]} é OBRIGATÓRIO e não entra nem com -F1: degrau 4, precisa de gente"
+          _CP_DEGRAUS+=("${arquivo[$i]}:4")
           abortar=1
         else
-          meow_muda "${arquivo[$i]} é opcional e o dry-run recusou — o efeito dele fica de fora"
+          meow_muda "${arquivo[$i]} é opcional e não entra nem com -F1: degrau 3, só o efeito dele fica de fora"
+          _CP_DEGRAUS+=("${arquivo[$i]}:3")
         fi ;;
     esac
   done
@@ -857,9 +984,14 @@ cmd_aplicar() {
   # último de propósito — quanto mais tarde ele encostar na árvore, menos coisa
   # há para desfazer se der errado.
   local aplicados=0 pulados=0
+  local -a opcoes=()
   for i in "${!classe[@]}"; do
-    [ "${estado[$i]}" = "pode" ] || { pulados=$((pulados+1)); continue; }
-    if (cd "$fonte" && patch "${_CP_PATCH_OPCOES[@]}" < "$CP_REPO/${arquivo[$i]}") >/dev/null 2>&1; then
+    case "${estado[$i]}" in
+      pode)    opcoes=("${_CP_PATCH_OPCOES[@]}") ;;
+      pode-f1) opcoes=("${_CP_PATCH_OPCOES_F1[@]}") ;;
+      *)       pulados=$((pulados+1)); continue ;;
+    esac
+    if (cd "$fonte" && patch "${opcoes[@]}" < "$CP_REPO/${arquivo[$i]}") >/dev/null 2>&1; then
       aplicados=$((aplicados+1))
       meow_ok "${arquivo[$i]} aplicado"
     else
@@ -935,8 +1067,22 @@ cmd_aplicar() {
 _cp_fonte_dir() { printf '%s/cosmic-comp-%s' "$CP_CACHE" "$1"; }
 
 # 0 = a árvore desta versão está no cache (agora ou de antes) · 2/3 = não deu
+# O que o cache antigo guardava (`.dsc` e `.tar.*`) vai para a guarda, sem
+# apagar a origem. Idempotente: o que já está lá não se copia de novo.
+_cp_guardar_do_cache() {
+  local f n=0
+  for f in "$CP_CACHE"/cosmic-comp_*.dsc "$CP_CACHE"/cosmic-comp_*.tar.*; do
+    [ -f "$f" ] || continue
+    [ -f "$CP_GUARDA/${f##*/}" ] && continue
+    if meow_seco; then meow_muda "guardaria ${f##*/} em $CP_GUARDA"; n=1; continue; fi
+    mkdir -p "$CP_GUARDA" && cp -f "$f" "$CP_GUARDA/" && n=1
+  done
+  [ "$n" = "1" ] && return "$MEOW_DIVERGENTE"
+  return "$MEOW_OK"
+}
+
 _cp_baixar_fonte() {
-  local ver="$1" dir log
+  local ver="$1" dir log dsc
   dir="$(_cp_fonte_dir "$ver")"
   if [ -f "$dir/Cargo.toml" ] && [ -d "$dir/src" ]; then
     meow_info "o fonte de $ver já está no cache: $dir"
@@ -946,25 +1092,38 @@ _cp_baixar_fonte() {
   # Sem o `dpkg-source` o `apt-get source` BAIXA e não extrai, e sai 0 — o
   # erro só apareceria duas linhas abaixo, como "a árvore não apareceu".
   meow_tem dpkg-source || { meow_erro "falta o dpkg-source (do dpkg-dev): sem ele o fonte baixa e não se extrai"; return "$MEOW_SEM_DEPENDENCIA"; }
-  mkdir -p "$CP_CACHE" || { meow_erro "não consegui criar $CP_CACHE"; return "$MEOW_ERRO"; }
+  mkdir -p "$CP_CACHE" "$CP_GUARDA" || { meow_erro "não consegui criar $CP_CACHE e $CP_GUARDA"; return "$MEOW_ERRO"; }
+  _cp_guardar_do_cache
   log="$CP_CACHE/baixar-$ver.log"
-  meow_info "BAIXA DA INTERNET: o fonte do cosmic-comp $ver (~98 MB), para $CP_CACHE"
-  if ! ( cd "$CP_CACHE" && apt-get source "cosmic-comp=$ver" ) >"$log" 2>&1; then
-    meow_erro "o apt-get source falhou para o cosmic-comp $ver"
-    # O 404 TEM FRASE PRÓPRIA porque foi medido, e não é raro: em 24/09/2026 o
-    # repositório do Pop já não servia o `.tar.xz` da versão instalada nesta
-    # máquina (a cd881a4, de 21/09). O fonte some do pool quando sai versão
-    # nova, e a única saída é andar junto com ele.
-    if grep -q ' 404 ' "$log" 2>/dev/null; then
-      meow_info "  o repositório já não serve o fonte desta versão (404)"
-      meow_info "  o caminho é atualizar o cosmic-comp — o apt traz binário e fonte da mesma versão — e validar a série nela"
-    else
-      meow_info "  o deb-src está habilitado nas fontes do apt? o registro está em $log"
+  # No nome do `.dsc` não vai o epoch.
+  dsc="$CP_GUARDA/cosmic-comp_${ver#*:}.dsc"
+  if [ -f "$dsc" ]; then
+    meow_info "o fonte do cosmic-comp $ver está guardado: $CP_GUARDA"
+  else
+    meow_info "BAIXA DA INTERNET: o fonte do cosmic-comp $ver (~98 MB), para $CP_GUARDA"
+    if ! ( cd "$CP_GUARDA" && apt-get source --download-only "cosmic-comp=$ver" ) >"$log" 2>&1; then
+      meow_erro "o apt-get source falhou para o cosmic-comp $ver"
+      # O 404 TEM FRASE PRÓPRIA porque foi medido, e não é raro: em 24/09/2026 o
+      # repositório do Pop já não servia o `.tar.xz` da versão instalada nesta
+      # máquina (a cd881a4, de 21/09). O fonte some do pool quando sai versão
+      # nova, e a única saída é andar junto com ele.
+      if grep -q ' 404 ' "$log" 2>/dev/null; then
+        meow_info "  o repositório já não serve o fonte desta versão (404)"
+        meow_info "  o caminho é atualizar o cosmic-comp — o apt traz binário e fonte da mesma versão — e validar a série nela"
+      else
+        meow_info "  o deb-src está habilitado nas fontes do apt? o registro está em $log"
+      fi
+      return "$MEOW_ERRO"
     fi
-    return "$MEOW_ERRO"
   fi
-  if [ ! -f "$dir/Cargo.toml" ]; then
-    meow_erro "o fonte baixou e a árvore não apareceu em $dir (registro: $log)"
+  # A ÁRVORE PELA METADE SAI ANTES — conferência da P76. Chegar aqui quer dizer
+  # que `$dir` não tem `Cargo.toml` (o teste do topo), e o `dpkg-source -x`
+  # recusa extrair num alvo que existe ("alvo do desempacotamento existe",
+  # medido em 09/10/2026): uma extração interrompida travaria todo build
+  # seguinte desta versão. A árvore é cache e se refaz da guarda.
+  rm -rf "$dir"
+  if ! dpkg-source -x "$dsc" "$dir" >>"$log" 2>&1 || [ ! -f "$dir/Cargo.toml" ]; then
+    meow_erro "o fonte não se extraiu em $dir (registro: $log)"
     return "$MEOW_ERRO"
   fi
   meow_ok "fonte do cosmic-comp $ver em $dir"
@@ -1012,6 +1171,20 @@ _cp_texto_estado() {
   done < <(_cp_serie_entradas "$serie")
 }
 
+# Uma linha por versão na matriz; a de uma versão já gravada é trocada, e uma
+# linha igual à que já está lá não reescreve o arquivo (idempotência).
+_cp_gravar_matriz() {
+  local ver="$1" linha tmp
+  [ "${#_CP_DEGRAUS[@]}" -gt 0 ] || return 0
+  linha="$ver"$'\t'"$(date +%F)"$'\t'"${_CP_DEGRAUS[*]}"
+  if awk -F'\t' -v v="$ver" -v d="${_CP_DEGRAUS[*]}" '$1==v && $3==d {achou=1} END {exit !achou}' "$CP_MATRIZ" 2>/dev/null; then
+    return 0
+  fi
+  mkdir -p "${CP_MATRIZ%/*}" || return 1
+  tmp="$(mktemp -p "${CP_MATRIZ%/*}" .matriz.XXXXXX)" || return 1
+  { awk -F'\t' -v v="$ver" '$1!=v' "$CP_MATRIZ" 2>/dev/null; printf '%s\n' "$linha"; } > "$tmp" && mv -f "$tmp" "$CP_MATRIZ"
+}
+
 cmd_compilar() {
   local ver serie fonte bin log i
   ver="$(_cp_versao_instalada)" || {
@@ -1020,11 +1193,16 @@ cmd_compilar() {
   serie="$(_cp_serie_arquivo)" || { meow_erro "não achei a série ($CP_SERIE)"; return "$MEOW_ERRO"; }
 
   meow_info "cosmic-comp instalado: $ver"
-  if ! _cp_versao_valida "$ver"; then
-    _cp_recusar_versao "$ver"
-    return "$MEOW_ERRO"
+  # A RECUSA DE VERSÃO SAIU — P76. Ela existia porque este binário ia para
+  # `/usr/bin`, que é também a tela de login: um hunk que "quase" casa subiria
+  # quebrado para a sessão E para o greeter. Com o build em escopo de usuário
+  # o greeter não o vê, e a sessão tem a guarda de queda do shim. Quem decide
+  # agora é a escada, patch a patch, e o que ela decidiu vai para a matriz.
+  if _cp_versao_valida "$ver"; then
+    meow_ok "esta versão já passou pela série (patches/versao ou a matriz)"
+  else
+    meow_info "versão nova para a série: a escada decide patch a patch e grava em $CP_MATRIZ"
   fi
-  meow_ok "a série foi validada contra esta versão (patches/versao)"
 
   local -a faltam=()
   for i in patch make cargo; do meow_tem "$i" || faltam+=("$i"); done
@@ -1045,21 +1223,39 @@ cmd_compilar() {
     if [ -f "$fonte/Cargo.toml" ]; then
       meow_info "o fonte já está no cache: $fonte"
     else
-      meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_CACHE"
+      meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_GUARDA e o abriria em $CP_CACHE"
     fi
-    meow_muda "aplicaria a série ($(_cp_plural "$n_req" obrigatório obrigatórios), $(_cp_plural "$n_opt" opcional opcionais)) com -F0, dry-run de todos antes"
+    meow_muda "aplicaria a série ($(_cp_plural "$n_req" obrigatório obrigatórios), $(_cp_plural "$n_opt" opcional opcionais)) pela escada (-F0, depois -F1), dry-run de todos antes"
     meow_muda "compilaria com make VENDOR=1 (~4 min com o vendor quente, ~30 min do zero)"
-    meow_muda "conferiria os marcadores no binário e instalaria em $CP_BIN — com sudo, só neste passo"
-    meow_muda "gravaria o .estado medido em $CP_ESTADO"
-    meow_info "vale no próximo login; o caminho de volta: meow compositor reverter"
+    meow_muda "conferiria os marcadores no binário e o guardaria em $CP_CASA/$ver — sem sudo"
+    meow_muda "gravaria o estado medido em $CP_CASA/$ver/estado"
+    meow_info "vale no próximo login com o shim ligado; o caminho de volta: meow compositor desativar"
     return "$MEOW_DIVERGENTE"
   fi
 
   _cp_baixar_fonte "$ver" || return $?
 
+  # OS ARQUIVOS PUROS QUE A SÉRIE TOCA, guardados ANTES de a série escrever
+  # neles: se este build der certo, eles viram a "última versão boa" contra a
+  # qual o degrau 1 da próxima versão pergunta. Arquivo que já carrega o
+  # marcador não é puro (uma passagem anterior o patchou) e não se guarda.
+  local novo_alvos="$CP_ALVOS.novo" _c a b alvo
+  rm -rf "$novo_alvos"
+  while IFS=$'\t' read -r _c a b; do
+    while IFS= read -r alvo; do
+      [ -f "$fonte/$alvo" ] || continue
+      grep -q -- "$b" "$fonte/$alvo" 2>/dev/null && continue
+      mkdir -p "$novo_alvos/${alvo%/*}" && cp -f "$fonte/$alvo" "$novo_alvos/$alvo"
+    done < <(_cp_alvos_do_patch "$CP_REPO/$a")
+  done < <(_cp_serie_entradas "$serie")
+
   # O `cmd_aplicar` é o passo 4 inteiro, com as recusas dele. O `_CP_COMPILANDO`
   # só cala o "o que falta é seu" do fim, que aqui seria falso.
-  _CP_COMPILANDO=1 cmd_aplicar "$fonte" || return $?
+  local rc_ap=0
+  _CP_COMPILANDO=1 cmd_aplicar "$fonte" || rc_ap=$?
+  # O DEGRAU 4 TAMBÉM VAI PARA A MATRIZ: é a linha que diz ao pós-apt e ao
+  # doctor que esta versão precisa de gente, e não de mais uma tentativa.
+  [ "$rc_ap" = "0" ] || { _cp_gravar_matriz "$ver"; return "$rc_ap"; }
 
   meow_info "compilando com Nice 19 (~4 min com o vendor quente, ~30 min do zero)"
   meow_info "  o registro vai para $log"
@@ -1087,50 +1283,44 @@ cmd_compilar() {
   done < <(_cp_serie_entradas "$serie")
   [ "$falta_req" = "0" ] || { meow_erro "nada foi instalado: um obrigatório ficou fora do binário"; return "$MEOW_ERRO"; }
 
-  # --- 7. a instalação, e o único sudo deste arquivo ------------------------
-  # O MESMO BINÁRIO NÃO PEDE SENHA DE NOVO: um segundo `meow compositor` sobre
-  # a mesma árvore produz o mesmo arquivo, e trocá-lo por ele mesmo seria pedir
-  # a senha para nada. Sem o `.estado` a instalação segue mesmo assim: é ele
-  # que o doctor lê, e um build sem ele é um build que ninguém confere.
-  if cmp -s "$bin" "$CP_BIN" && [ -f "$CP_ESTADO" ]; then
-    meow_ok "o binário compilado é o que já está em $CP_BIN — nada a instalar"
+  # --- 7. a instalação, EM ESCOPO DE USUÁRIO (P76) ---------------------------
+  # O BUILD NÃO VAI MAIS PARA `/usr/bin`, E O SUDO SAIU DESTE ARQUIVO
+  #   Até 09/10/2026 este passo trocava `/usr/bin/cosmic-comp` por rename com
+  #   sudo e guardava o binário do pacote em `/var/lib`. Lá o apt sobrescreve e
+  #   a tela de login lê o mesmo arquivo. Agora o build mora em
+  #   `$CP_CASA/<versão>/`, que é dela, e quem o põe na sessão é o shim. O
+  #   `/usr/bin` fica de fábrica, e a cópia do pacote deixa de ser necessária:
+  #   o de fábrica nunca sai do lugar.
+  #
+  #   O MESMO BINÁRIO NÃO SE REESCREVE: um segundo `compilar` sobre a mesma
+  #   árvore produz o mesmo arquivo, e a passagem tem de ser idempotente.
+  local destino="$CP_CASA/$ver" tmp_bin tmp_estado
+  if cmp -s "$bin" "$destino/cosmic-comp" && [ -f "$destino/estado" ] && [ ! -e "$destino/ruim" ]; then
+    meow_ok "o binário compilado é o que já está em $destino — nada a instalar"
     return "$MEOW_OK"
   fi
-  # O BINÁRIO DO PACOTE É GUARDADO ANTES, e só quando é de fábrica: um
-  # `/usr/bin/cosmic-comp` que já carrega marcador da série não é o do pacote,
-  # e guardá-lo como tal faria o caminho de volta devolver um binário patchado.
-  local pacote="$CP_LIB/$ver.pacote" tmp_estado
-  meow_info "instalando em $CP_BIN — pede a senha agora, e só agora"
-  sudo install -d -m 755 "$CP_LIB" || { meow_erro "não consegui criar $CP_LIB (sudo recusou?)"; return "$MEOW_ERRO"; }
-  if [ ! -f "$pacote" ]; then
-    if _cp_tem_marcador_da_serie "$CP_BIN" "$serie"; then
-      meow_info "o binário de agora já carrega marcador da série: não o guardo como o do pacote"
-    else
-      sudo install -m 755 "$CP_BIN" "$pacote" \
-        && meow_ok "o binário do pacote ficou guardado em $pacote" \
-        || meow_aviso "não consegui guardar o binário do pacote — sigo, e o reverter usa o apt"
-    fi
-  fi
-  # RENAME, NUNCA CÓPIA POR CIMA: um compositor pela metade é tela preta no
-  # próximo login, E a tela de login junto.
-  if ! { sudo install -m 755 "$bin" "$CP_BIN.meow-novo" && sudo mv -f "$CP_BIN.meow-novo" "$CP_BIN"; }; then
-    sudo rm -f "$CP_BIN.meow-novo" 2>/dev/null
-    meow_erro "não consegui instalar em $CP_BIN — o de antes continua lá"
+  mkdir -p "$destino" || { meow_erro "não consegui criar $destino"; return "$MEOW_ERRO"; }
+  # TEMPORÁRIO NO MESMO DIRETÓRIO E `mv`: o shim pode ler este caminho a
+  # qualquer login, e um compositor pela metade é sessão que não sobe.
+  tmp_bin="$(mktemp -p "$destino" .cosmic-comp.XXXXXX)" || return "$MEOW_ERRO"
+  if ! { cp -f "$bin" "$tmp_bin" && chmod 755 "$tmp_bin" && mv -f "$tmp_bin" "$destino/cosmic-comp"; }; then
+    rm -f "$tmp_bin"
+    meow_erro "não consegui guardar o build em $destino"
     return "$MEOW_ERRO"
   fi
-  meow_muda "cosmic-comp patchado instalado em $CP_BIN (versão $ver)"
-
-  # O temporário nasce no cache, que é nosso e já existe a esta altura — e não
-  # no /tmp de todo mundo, onde o `sudo install` leria um arquivo que qualquer
-  # processo da máquina pode ter trocado entre o `mktemp` e a cópia.
-  tmp_estado="$(mktemp -p "$CP_CACHE" .estado.XXXXXX)" || return "$MEOW_ERRO"
-  _cp_texto_estado "$CP_BIN" "$ver" "$serie" > "$tmp_estado"
-  if sudo install -m 644 "$tmp_estado" "$CP_ESTADO"; then
-    meow_ok ".estado gravado em $CP_ESTADO (medido no binário instalado)"
-  else
-    meow_aviso "não consegui gravar $CP_ESTADO — o doctor vai dizer que nada foi prometido"
+  tmp_estado="$(mktemp -p "$destino" .estado.XXXXXX)" || return "$MEOW_ERRO"
+  _cp_texto_estado "$destino/cosmic-comp" "$ver" "$serie" > "$tmp_estado" \
+    && mv -f "$tmp_estado" "$destino/estado" \
+    || { rm -f "$tmp_estado"; meow_erro "não consegui gravar $destino/estado"; return "$MEOW_ERRO"; }
+  # BUILD NOVO ZERA A GUARDA DE QUEDA: o `ruim` e o contador falam do binário
+  # que acabou de ser trocado.
+  rm -f "$destino/ruim" "$destino/quedas"
+  meow_muda "cosmic-comp patchado guardado em $destino (versão $ver), estado medido no binário"
+  _cp_gravar_matriz "$ver"
+  if [ -d "$novo_alvos" ]; then
+    rm -rf "$CP_ALVOS" && mv -f "$novo_alvos" "$CP_ALVOS" && printf '%s\n' "$ver" > "$CP_ALVOS/.versao"
   fi
-  rm -f "$tmp_estado"
+  _cp_shim_ativo || meow_info "o shim está desligado: este build só vale depois de 'meow compositor ativar'"
 
   # --- 8. poda: só árvore de fonte, e só de outra versão --------------------
   local d
@@ -1143,7 +1333,7 @@ cmd_compilar() {
 
   meow_registrar "compositor_patches.sh compilar $ver"
   meow_info "vale no PRÓXIMO LOGIN — a sessão de agora segura o binário antigo até lá"
-  meow_info "o caminho de volta: meow compositor reverter"
+  meow_info "o caminho de volta: meow compositor desativar"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -1162,18 +1352,18 @@ cmd_validar() {
   fi
   fonte="$(_cp_fonte_dir "$ver")"
   if meow_seco && [ ! -f "$fonte/Cargo.toml" ]; then
-    meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_CACHE e rodaria o dry-run da série"
+    meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_GUARDA, o abriria em $CP_CACHE e rodaria o dry-run da série"
     return "$MEOW_DIVERGENTE"
   fi
   _cp_baixar_fonte "$ver" || return $?
   # O dry-run é o do `cmd_aplicar`, em seco: a mesma leitura, sem um byte.
   if MEOW_SECO=1 cmd_aplicar "$fonte"; then
     _cp_versao_valida "$ver" && return "$MEOW_OK"
-    meow_ok "a série entra limpa no cosmic-comp $ver"
-    meow_info "para o meow compositor aceitá-la: acrescente $ver a patches/versao, num commit"
+    meow_ok "a série entra no cosmic-comp $ver (os degraus estão acima)"
+    meow_info "o meow compositor compila nela sem pedir commit: a escada decide e grava a matriz"
     return "$MEOW_OK"
   fi
-  meow_info "a versão $ver não entra em patches/versao enquanto um obrigatório recusar"
+  meow_info "o cosmic-comp $ver não tem build enquanto o obrigatório recusar: é o degrau 4, um rebase do patch"
   return "$MEOW_ERRO"
 }
 
@@ -1195,7 +1385,57 @@ cmd_validar() {
 #   (reinstalar o PACOTE `cosmic-comp`, pelo gerenciador de pacotes), que é o
 #   que a sprint P29 cobra do `--uninstall`: saber voltar ao binário do pacote.
 #   Quem vai digitar sabe digitar; o que faltava era saber O QUE fazer.
+# `ativar` e `desativar` — O SHIM ENTRA E SAI DO PATH DA SESSÃO (P76)
+#   NADA AQUI PRECISA DE SUDO: o shim mora em `~/.local/bin`, que é dela.
+#   Ligar não troca o compositor da sessão de agora — o `cosmic-session` só
+#   procura o nome no PATH ao subir —, então os dois valem no próximo login.
+#   Desligar é o caminho de volta inteiro: sem shim, o PATH acha o de
+#   `/usr/bin`, e os builds em `$CP_CASA` ficam guardados, sem efeito.
+cmd_ativar() {
+  [ -r "$CP_SHIM_FONTE" ] || { meow_erro "falta $CP_SHIM_FONTE — repositório incompleto"; return "$MEOW_ERRO"; }
+  if cmp -s "$CP_SHIM_FONTE" "$CP_SHIM"; then
+    meow_ok "o shim do compositor já está em $CP_SHIM"
+    return "$MEOW_OK"
+  fi
+  # UM `cosmic-comp` QUE NÃO É O NOSSO NÃO SE SOBRESCREVE: alguém o pôs ali, e
+  # trocar o compositor de outra pessoa calado é pior que não ligar o nosso.
+  if [ -e "$CP_SHIM" ] && ! _cp_shim_ativo; then
+    meow_erro "$CP_SHIM existe e não é o shim do meow — não o troco"
+    return "$MEOW_ERRO"
+  fi
+  if meow_seco; then
+    meow_muda "instalaria o shim em $CP_SHIM (vale no próximo login)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  mkdir -p "${CP_SHIM%/*}" || return "$MEOW_ERRO"
+  local tmp; tmp="$(mktemp -p "${CP_SHIM%/*}" .meow-shim.XXXXXX)" || return "$MEOW_ERRO"
+  cp -f "$CP_SHIM_FONTE" "$tmp" && chmod 755 "$tmp" && mv -f "$tmp" "$CP_SHIM" \
+    || { rm -f "$tmp"; meow_erro "não consegui instalar $CP_SHIM"; return "$MEOW_ERRO"; }
+  meow_manifesto_registrar "$CP_SHIM"
+  meow_muda "shim do compositor ligado em $CP_SHIM — vale no próximo login"
+  meow_info "no próximo login vale: $(_cp_proximo_login)"
+  return "$MEOW_DIVERGENTE"
+}
+
+cmd_desativar() {
+  if ! _cp_shim_ativo; then
+    meow_ok "o shim do compositor não está ligado — a sessão usa $CP_BIN"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "removeria $CP_SHIM (o próximo login volta a $CP_BIN)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  rm -f "$CP_SHIM" || { meow_erro "não consegui remover $CP_SHIM"; return "$MEOW_ERRO"; }
+  meow_muda "shim do compositor desligado — o próximo login volta a $CP_BIN"
+  return "$MEOW_DIVERGENTE"
+}
+
 cmd_reverter() {
+  if _cp_shim_ativo; then
+    meow_info "o compositor patchado entra pelo shim em $CP_SHIM; o caminho de volta é: meow compositor desativar"
+    meow_info "  sem o shim, o próximo login usa $CP_BIN, o do pacote"
+  fi
   meow_info "o caminho de volta é reinstalar o PACOTE cosmic-comp pelo gerenciador de pacotes"
   meow_info "  ele devolve $CP_BIN ao binário de fábrica, sem nenhum patch da série"
   # A CÓPIA GUARDADA PELO `compilar` (24/09/2026, P39) é a segunda rede, e vale
@@ -1217,5 +1457,9 @@ case "${1:-conferir}" in
   compilar) cmd_compilar ;;
   validar)  cmd_validar ;;
   reverter) cmd_reverter ;;
-  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|compilar|validar|reverter}"; exit "$MEOW_ERRO" ;;
+  ativar)    cmd_ativar ;;
+  desativar) cmd_desativar ;;
+  qual)      _cp_proximo_login ;;
+  guardar)   _cp_guardar_do_cache ;;
+  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|compilar|validar|reverter|ativar|desativar|qual|guardar}"; exit "$MEOW_ERRO" ;;
 esac

@@ -906,7 +906,7 @@ etapa_pacotes() {
   #   tinha nenhum. Quem roda os scripts é o segundo (timer, hook, subshell sem
   #   a função do pyenv), então é o segundo que tem de ser testado — e é o que
   #   um `python3 -c` dentro de um script faz naturalmente.
-  python3 -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+  python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
 
   if [ ${#faltam[@]} -eq 0 ]; then
     meow_ok "todos os pacotes necessários já estão instalados"
@@ -1272,7 +1272,7 @@ etapa_icones_resgatados() {
 #   último é quem deixa a cache descrevendo o disco inteiro.
 etapa_icones_apps_dracula() {
   passo "Pack Dracula nos aplicativos"
-  ICONES_DRACULA="${ICONES_DRACULA:-nao}" \
+  ICONES_DRACULA="${ICONES_DRACULA:-sim}" \
     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$MEOW_RAIZ/scripts/icones_apps_dracula.sh" --aplicar
   return $?
@@ -2016,6 +2016,10 @@ etapa_painel() {
   for u in "${unidades[@]}"; do
     [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
     conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    # P76: o vigia do raio olha o esquema que o pacote traz hoje, não um `v1`
+    # cravado (ver o cabeçalho de `systemd/meow-painel-raio.path`).
+    conteudo="${conteudo//@V_PANEL@/$(meow_cosmic_v com.system76.CosmicPanel.Panel)}"
+    conteudo="${conteudo//@V_DOCK@/$(meow_cosmic_v com.system76.CosmicPanel.Dock)}"
     meow_escrever "$destino/$u" "$conteudo" 644
     case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
@@ -2872,6 +2876,21 @@ _logo_relogio() {
   return 0
 }
 
+# O ÍNDICE DO TEMA, DEPOIS DE TODA ETAPA QUE ESCREVE NELE — 09/10/2026, P74 item 5
+#   O `etapa_icones` escreve o `index.theme` antes das etapas que criam
+#   `48x48/apps`, `scalable/mimetypes` e os `status`, e a primeira passagem
+#   terminava com eles fora do `Directories=` — só a segunda os declarava (T8
+#   da paridade de 09/10). Esta etapa vem DEPOIS da última que escreve no tema
+#   (a dos gatos, que põe os dois botões em `scalable/apps`), recalcula o índice
+#   do disco e reindexa a cache que estiver velha: o tema sai certo na primeira
+#   passagem, e o laço das passagens deixa de ser quem o acerta.
+etapa_icones_indice() {
+  passo "Índice do tema de ícones"
+  NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/construir_icones.sh" indice
+  return $?
+}
+
 etapa_logo() {
   passo "Gatos do painel"
   local destino="$HOME/.config/systemd/user" mudou=0 rc modo
@@ -3228,6 +3247,83 @@ etapa_vigia_qt() {
   return "$rc"
 }
 
+# O PÓS-APT DO COSMIC — 09/10/2026, P76
+#   O `meow-pos-apt.path` vigia `/var/lib/meowsystem/apt-mudou`, que a linha
+#   root do `99-meow-lancador` toca a cada apt, e o `.service` refaz em escopo
+#   de usuário o que o COSMIC novo desfez (`scripts/cosmic_pos_apt.sh`).
+#   Anda de carona no `AUTO_REPARO`, como os outros vigias: quem o desliga
+#   pediu que nada mexa sozinho. A forma é a do `etapa_vigia_qt`, sem a
+#   segunda cerca, que lá é do `APPS_ATIVOS` e aqui não tem par.
+#   O GATILHO DEPENDE DO HOOK DE APT, que hoje mora no `99-meow-lancador` e só
+#   é instalado com LANCADOR_SISTEMA="sim": sem ele o vigia fica armado e
+#   nunca dispara, e o doctor das 5h continua sendo a rede.
+etapa_vigia_apt() {
+  passo "Pós-apt do COSMIC (systemd --user)"
+  local destino="$HOME/.config/systemd/user" u conteudo mudou=0
+  local unidades=(meow-pos-apt.service meow-pos-apt.path)
+  local ligaveis=(meow-pos-apt.path)
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    local motivo="AUTO_REPARO=\"${AUTO_REPARO:-}\""
+    if meow_unidade_sobrou "${unidades[@]}"; then
+      meow_seco && { meow_muda "$motivo — removeria o pós-apt do COSMIC"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now "${ligaveis[@]}" >/dev/null 2>&1
+      rm -f "${unidades[@]/#/$destino/}"
+      rm -f "$destino"/*.wants/meow-pos-apt.path "$destino"/*.wants/meow-pos-apt.service \
+            "$destino"/*.requires/meow-pos-apt.path "$destino"/*.requires/meow-pos-apt.service
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "$motivo — pós-apt do COSMIC desligado e removido"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_pula "$motivo — sem pós-apt do COSMIC"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    meow_aviso "não há systemd --user nesta sessão — o COSMIC só se refaz no próximo doctor"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  for u in "${unidades[@]}"; do
+    [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    meow_escrever "$destino/$u" "$conteudo" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+
+  if meow_seco; then
+    local armaria=""
+    for u in "${ligaveis[@]}"; do
+      if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+         [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+        armaria="${armaria:+$armaria }$u"
+      fi
+    done
+    [ "$mudou" = "1" ] && meow_muda "instalaria/atualizaria as unidades do pós-apt do COSMIC"
+    [ -n "$armaria" ] && meow_muda "armaria o pós-apt do COSMIC ($armaria)"
+    { [ "$mudou" = "1" ] || [ -n "$armaria" ]; } && return "$MEOW_DIVERGENTE"
+    return "$MEOW_OK"
+  fi
+
+  local rc=0
+  if [ "$mudou" = "1" ]; then
+    systemctl --user daemon-reload
+    meow_muda "unidades do pós-apt do COSMIC instaladas/atualizadas"
+    rc=1
+  fi
+  systemctl --user reset-failed "${unidades[@]}" >/dev/null 2>&1
+  for u in "${ligaveis[@]}"; do
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      systemctl --user enable --now "$u" >/dev/null 2>&1 \
+        && { meow_muda "pós-apt do COSMIC armado ($u)"; rc=1; } \
+        || meow_aviso "não consegui armar $u"
+    fi
+  done
+  [ "$rc" = "0" ] && meow_ok "pós-apt do COSMIC no ar — depois de um apt, o que ele desfez se refaz sozinho"
+  return "$rc"
+}
+
 # A lista das fontes permitidas vai pelo nome novo com o antigo como sinônimo
 # (P52, 24/09/2026): `${NOVO-${ANTIGO:-}}` — o novo vence quando existe, mesmo
 # vazio. A regra inteira está no `scripts/wallpaper.sh`, no `FONTES_PERMITIDAS`.
@@ -3559,9 +3655,9 @@ main() {
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
-                etapa_logo etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
+                etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
-                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt
+                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
@@ -3599,6 +3695,16 @@ main() {
 
   local passagem=0 ainda=0 parar_conf=0 oscilou=0
   local assinatura="" assinatura_anterior=""
+
+  # A TELA RELÊ UMA VEZ, NO FIM — 10/10/2026, P80 (item 7). Três etapas de
+  #   ícone pediam o reciclo do painel cada uma (ver "UM RELER POR PASSADA", no
+  #   `meow_tela_reler` do lib/comum.sh). A marca nasce aqui, antes da primeira
+  #   passagem, e o `meow_tela_reler_no_fim` logo depois do laço relê uma vez.
+  #   Sem a marca (o `mktemp` falhou), cada pedido relê na hora, como antes.
+  if ! meow_seco; then
+    MEOW_RELER_NO_FIM="$(mktemp "${TMPDIR:-/tmp}/meow-reler.XXXXXX" 2>/dev/null)" \
+      && export MEOW_RELER_NO_FIM
+  fi
   while :; do
     passagem=$((passagem + 1))
 
@@ -3662,7 +3768,7 @@ main() {
     # cada um tem um conserto diferente. Quem se pulou por opt-in já se anunciou em
     # PULADOS_OPTIN; o que sobrar é que de fato depende de sudo.
     if [ ${#PULADOS[@]} -gt 0 ]; then
-      local p por_root=0 sem_captura=""
+      local p por_root=0 sem_captura="" de_root=""
       for p in "${PULADOS[@]}"; do
         case " ${PULADOS_OPTIN[*]:-} " in *" $p "*) continue ;; esac
         # A TELA DE LOGIN SEM TEMA NÃO É FALTA DE ROOT — 25/09/2026, P59. Com
@@ -3673,16 +3779,25 @@ main() {
         if [ "$p" = "greeter" ] && [ -n "${TEMA_SEM_CAPTURA:-}" ]; then
           sem_captura="$TEMA_SEM_CAPTURA"; continue
         fi
-        case "$p" in greeter|ocultar|nomes|absolutos) por_root=1 ;; esac
+        case "$p" in greeter|ocultar|nomes|absolutos) por_root=1; de_root="${de_root:+$de_root }$p" ;; esac
       done
-      [ "$por_root" = "1" ] && \
-        meow_info "algumas dessas precisavam de root. Para completá-las:  sudo -v && ./install.sh"
+      # A RECEITA DO SUDO VIROU PENDÊNCIA — 10/10/2026, P79 (item 5). A frase
+      #   terminava em «Para completá-las:  sudo -v && ./install.sh», e dentro
+      #   do painel isso é a tela mandando digitar. Agora a pendência
+      #   `instalar-com-root` diz QUAIS etapas esperam, e o painel a liga ao
+      #   «Instalar tudo» (`ACAO_DA_PENDENCIA`); a passagem que não pula por
+      #   root a tira, logo abaixo.
+      [ "$por_root" = "1" ] && meow_pendencia_acionavel instalar-com-root \
+        "Etapas que precisavam de root e se pularam: $de_root" "./install.sh"
       case "$sem_captura" in
         deriva) meow_info "greeter: no ensaio a captura do tema ainda não foi escrita (a etapa tema a deriva antes da tela de login) — não é falta de root" ;;
         falta)  meow_info "greeter: a tela de login veste o tema do COSMIC, e ele não tem captura — não é falta de root" ;;
       esac
       [ ${#PULADOS_OPTIN[@]} -gt 0 ] && \
         meow_info "${PULADOS_OPTIN[*]}: é opt-in, não é falta de root — LANCADOR_SISTEMA=\"sim\" no meow.conf liga"
+      [ "$por_root" = "1" ] || meow_pendencia_resolvida instalar-com-root
+    else
+      meow_pendencia_resolvida instalar-com-root
     fi
 
     # O `passagem=` entrou na linha do log no mesmo dia do laço: sem ele, três
@@ -3716,6 +3831,7 @@ main() {
     if [ "$assinatura" = "$assinatura_anterior" ]; then oscilou=1; break; fi
     assinatura_anterior="$assinatura"
   done
+  meow_tela_reler_no_fim
 
   # AS DUAS GUARDAS FALAM ANTES DO BLOCO DAS FALHAS, e a ordem custou uma
   # medição: na primeira versão o `falhou:` devolvia 2 primeiro, e num HOME de

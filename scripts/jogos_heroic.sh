@@ -146,7 +146,7 @@ CONF="$(heroic_conf)" || {
 # CONSEGUIU ler — a diferença importa, porque o segundo caso ADIA a limpeza (não
 # saber quais jogos existem não é o mesmo que saber que não existe nenhum).
 _heroic_motor() {
-  python3 - "$CONF" <<'PY'
+  python3 -I - "$CONF" <<'PY'
 import hashlib
 import json
 import os

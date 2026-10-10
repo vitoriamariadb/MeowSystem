@@ -24,6 +24,11 @@
 #      mocha) e usa um. Esta máquina é `FLAVOR="mocha"` no meow.conf, e três
 #      paletas que ninguém lê são exatamente o peso morto que este projeto já
 #      pagou uma vez — ver o `gato-pop.svg` em docs/FRONTEIRA.md.
+#      [09/10/2026, P74 item 7: o arquivo INSTALADO não fica no mocha. O
+#      `scripts/prompt.sh` troca a linha `palette` e o bloco `[palettes.*]` lá
+#      de baixo pelos 26 slots da paleta do pack no ar, no flavor da máquina
+#      (`dracula_dracula` com o Dracula); com o Catppuccin Mocha no ar, sai
+#      este arquivo como está.]
 #
 #   2. O ACCENT É `mauve`, NÃO `red`. O `ACCENT="mauve"` do meow.conf governa o
 #      tema inteiro do COSMIC; o prompt entrar em vermelho seria o único lugar da

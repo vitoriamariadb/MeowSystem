@@ -224,8 +224,9 @@ amb() {
 # que passaria no dia em que o original quebrasse.
 pares="$(MAPA="$RAIZ/packs/dracula/icones/apps.map" ICONES_BASE_MAPA="$RAIZ/packs/dracula/icones" RAIZ="$RAIZ" \
   amb bash -c 'set -uo pipefail
-  eval "$(sed -n "/^_dracula_pares() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
-  _dracula_pares' 2>/dev/null)"
+  # [P73: o parser do shell é o `_dracula_pares_do_mapa`; ver o tests/fonte-unica.sh.]
+  eval "$(sed -n "/^_dracula_pares_do_mapa() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
+  _dracula_pares_do_mapa' 2>/dev/null)"
 total="$(printf '%s\n' "$pares" | grep -c .)"
 [ "$total" -gt 0 ] || { falha "o mapa do pack Dracula não deu par nenhum"; exit 1; }
 
@@ -255,13 +256,35 @@ done <<< "$pares"
   || falha "a montagem do Dracula não reproduziu o pack ($postos de $total iguais, rc=$rc)" \
            "$(printf '%s' "$diferentes" | head -10; tail -5 "$T/instalar.log")"
 
+# --- 2b. sem a chave ICONES_DRACULA, o passo do pack monta o pack inteiro ----
+#   P78, aberto 4 da integração da onda 1. O passo do pack da P73 nasceu com o
+#   padrão antigo (`${ICONES_DRACULA:-nao}`), e com o conf de fábrica sem a
+#   chave ele só punha as escolhas do painel: 0 desenho do pack no tema. A
+#   integração (`10a139f`) o pôs no padrão ligado da P74, e provou com um
+#   script de rodada; esta é a prova que fica. Uma casa nova, o `aplicar` (o
+#   verbo do passo) e o ambiente sem a chave nenhuma.
+CASA2B="$T/casa-sem-chave"
+mkdir -p "$CASA2B"
+env -u ICONES_DRACULA HOME="$CASA2B" XDG_DATA_HOME="$T/xdg" MEOW_PACKS="$T/packs" MEOW_RAIZ="$RAIZ" \
+    PACK="dracula" FLAVOR="dracula" NOME_TEMA_ICONES="MeowSystem-Icons" \
+    MEOW_ICONES_ESCOLHAS="$T/sem-escolhas.map" \
+    "$RAIZ/scripts/icones_apps_dracula.sh" aplicar >"$T/sem-chave.log" 2>&1; rc=$?
+postos2b="$(find "$CASA2B/.local/share/icons/MeowSystem-Icons/scalable/apps" -name '*.svg' 2>/dev/null | wc -l)"
+[ "$postos2b" = "$total" ] && [ "$rc" != "2" ] \
+  && ok "sem a chave ICONES_DRACULA no conf, o passo do pack põe os $total desenhos do Dracula (o padrão é ligado)" \
+  || falha "sem a chave ICONES_DRACULA o passo do pack pôs $postos2b de $total (rc=$rc)" "$(tail -5 "$T/sem-chave.log")"
+
 # --- 3. nem o doctor lê: o sincronizar sob um gancho de auditoria (P43) -----
-#   A linha do doctor é esta, e é ELA que se roda abaixo. Se o doctor passar a
-#   chamar outra coisa, esta conferência deixa de medir o doctor — e diz.
-if grep -qF 'python3 "$RAIZ/scripts/pack.py" sincronizar "$pack_proc"' "$RAIZ/bin/meow"; then
-  ok "o doctor ainda compara a arte pelo 'pack.py sincronizar' do pack no ar"
+#   [P75, 09/10/2026 (D3): o doctor deixou de chamar o `sincronizar` — a
+#   decisão de 24/09 foi «Aposentar tudo». A primeira pergunta virou a
+#   contrária: a passada do doctor não compara mais nada. O gancho de
+#   auditoria abaixo segue medindo o verbo, que ficou para o `meow pack
+#   sincronizar <id>` à mão.]
+if sed -n '/^cmd_doctor()/,/^}/p' "$RAIZ/bin/meow" | grep -vE '^[[:space:]]*#' \
+   | grep -qE 'pack\.py"? sincronizar'; then
+  falha "o doctor voltou a chamar o 'pack.py sincronizar' — a decisão de 24/09 foi aposentar a comparação"
 else
-  falha "o doctor não chama mais o 'pack.py sincronizar' do pack no ar — a pergunta 3 precisa ser refeita"
+  ok "a passada do doctor não chama o 'pack.py sincronizar' (D3, decisão de 24/09)"
 fi
 # Uma casa própria: a pergunta 2 confere que a dela nunca ganha um
 # `Dracula_OS-Theme`, e esta não precisa de nenhum para medir — o gancho vê a
@@ -295,10 +318,10 @@ if [ "$rc" != "0" ]; then
 elif [ "$(printf '%s\n' "$lidos" | sed -n 1p)" != "rc=0" ]; then
   falha "o sincronizar do Dracula não saiu 0 — o doctor diria que a arte se separou da origem" "$lidos"
 elif [ "$(printf '%s\n' "$lidos" | grep -c .)" != "1" ]; then
-  falha "o sincronizar que o doctor chama abriu arquivo na casa de quem roda ou no Dracula_OS-Theme" \
+  falha "o sincronizar abriu arquivo na casa de quem roda ou no Dracula_OS-Theme" \
         "$(printf '%s\n' "$lidos" | sed 1d | head -5)"
 else
-  ok "o sincronizar que o doctor chama não abre nada na casa de quem roda nem no Dracula_OS-Theme"
+  ok "o sincronizar não abre nada na casa de quem roda nem no Dracula_OS-Theme"
 fi
 
 printf '\n'

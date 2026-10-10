@@ -68,6 +68,15 @@ BINARIO="$HOME/.local/bin/meow-applet-now-playing"
 MIDIA="${MIDIA:-sim}"
 COMPILAR="${MIDIA_COMPILAR:-0}"
 
+# O PINO ANDA COM O PAINEL — 09/10/2026, P76. A mesma regra do
+# `leitura_build.sh`, que mora no `scripts/applet_pino.sh`: o applet compila
+# contra o libcosmic do cosmic-panel instalado (`cargo update --precise` na
+# árvore, que é um clone nosso), e volta ao `Cargo.lock` do upstream — o pino
+# do PINO — se não compilar ali. O carimbo ganha a linha `libcosmic` só
+# quando o alvo não é o pino.
+. "$RAIZ/scripts/applet_pino.sh"
+_alvo_rev() { ap_alvo midia "${LIBCOSMIC:-}"; }
+
 CONFERIR=0
 case "${1:-}" in
   --conferir) CONFERIR=1 ;;
@@ -75,6 +84,8 @@ case "${1:-}" in
   *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && CONFERIR=1
+# P76: conferir é só leitura também para a regra do pino (`applet_pino.sh`).
+[ "$CONFERIR" = 1 ] && AP_SO_LER=1
 
 _sha() { sha256sum -- "$1" 2>/dev/null | cut -d' ' -f1; }
 
@@ -94,8 +105,10 @@ _pino_ler() {
 }
 
 _carimbo_vivo() {
+  local alvo; alvo="$(_alvo_rev)"
   printf 'patch %s\ncommit %s\nbinario %s\nrustc %s\n' \
     "$(_sha "$PATCH")" "${COMMIT:-}" "$(_sha "$BINARIO")" "$(_rustc_versao)"
+  [ -z "${LIBCOSMIC:-}" ] || [ "$alvo" = "$LIBCOSMIC" ] || printf 'libcosmic %s\n' "$alvo"
 }
 
 # Compara campo a campo. Campo VIVO vazio é pulado (é o caso do rustc no seco);
@@ -206,7 +219,21 @@ _aplicar() {
   fi
 
   meow_info "compilando o applet de mídia (a primeira vez leva ~2min)"
-  if ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
+  local alvo_rev compilou=0
+  alvo_rev="$(_alvo_rev)"
+  if [ -n "${LIBCOSMIC:-}" ] && [ "$alvo_rev" != "$LIBCOSMIC" ]; then
+    meow_info "  contra o libcosmic do painel instalado (${alvo_rev:0:7})"
+    if cargo update -q --manifest-path "$ARVORE/Cargo.toml" -p libcosmic --precise "$alvo_rev" >/dev/null 2>&1 \
+       && CARGO_TARGET_DIR="$ALVO" cargo build --release \
+            --manifest-path "$ARVORE/Cargo.toml" >/dev/null 2>&1; then
+      compilou=1
+    else
+      ap_falhou midia "$alvo_rev"
+      git -C "$ARVORE" checkout -q -- Cargo.lock 2>/dev/null
+      meow_aviso "o applet de mídia não compila no libcosmic ${alvo_rev:0:7} do painel — volta ao pino ${LIBCOSMIC:0:7}"
+    fi
+  fi
+  if [ "$compilou" = 0 ] && ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
         --manifest-path "$ARVORE/Cargo.toml" >/dev/null 2>&1; then
     meow_erro "o cargo falhou — provável deriva do libcosmic (o Cargo.toml o aponta sem rev)"
     meow_info "  veja o motivo: CARGO_TARGET_DIR=$ALVO cargo build --release --locked --manifest-path $ARVORE/Cargo.toml"
@@ -225,6 +252,8 @@ _aplicar() {
   # sobreviveria a uma desinstalação do MeowSystem.
   meow_manifesto_registrar "$BINARIO"
 
+  # A BASE ANTES DO CARIMBO: o carimbo pergunta o alvo, e o alvo lê a base.
+  if [ "$compilou" = 1 ]; then ap_compilou midia "$alvo_rev"; else ap_compilou midia "${LIBCOSMIC:-}"; fi
   _carimbo_vivo > "$CARIMBO" || { meow_erro "não consegui gravar o carimbo"; return "$MEOW_ERRO"; }
   meow_ok "applet de mídia compilado e instalado ($(_sha "$BINARIO" | cut -c1-8))"
   return "$MEOW_DIVERGENTE"

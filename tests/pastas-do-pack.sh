@@ -165,8 +165,10 @@ for svg in sorted(glob.glob(os.path.join(pack, "icones", "pastas", "*.svg"))) + 
     velhos = {h.upper() for h in re.findall(r"#[0-9A-Fa-f]{6}", texto)} & {"#433F4D", "#534B62"}
     if velhos:
         erros.append("%s: ainda tem %s" % (nome, sorted(velhos)))
-if vistos != 8:
-    erros.append("eram sete desenhos em icones/pastas/ e o resgate, e são %d" % vistos)
+# Dez desde a P74 (09/10/2026): as sete de 15/09 mais `folder`, `user-home` e
+# `user-desktop`, na mesma silhueta; e o resgate do Nautilus.
+if vistos != 11:
+    erros.append("eram dez desenhos em icones/pastas/ e o resgate, e são %d" % vistos)
 with open(os.path.join(pack, "PROCEDENCIA.md"), encoding="utf-8") as fh:
     proc = fh.read()
 linha = next((l for l in proc.splitlines() if l.startswith("| `icones/pastas/*.svg`")), "")
@@ -196,18 +198,20 @@ mkdir -p "$LUGAR"
 for n in documents download music pictures publicshare templates videos; do
   printf '<svg><path style="fill:#CAD3F5"/></svg>' > "$LUGAR/folder-$n.svg"
 done
+# Quantas o pack desenha: as sete de 15/09 e as três da P74 (09/10/2026).
+N_PASTAS="$(find "$RAIZ/packs/dracula/icones/pastas" -maxdepth 1 -name '*.svg' | wc -l)"
 aplicou="$(xdg "$T/casa-xdg" dracula dracula --aplicar)"
 conferiu="$(xdg "$T/casa-xdg" dracula dracula --conferir)"; rc=$?
 postos=0
 for d in "$RAIZ/packs/dracula/icones/pastas/"*.svg; do
   [ "$(cat "$d")" = "$(cat "$LUGAR/$(basename "$d")" 2>/dev/null)" ] && postos=$((postos + 1))
 done
-if [ "$postos" = 7 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
-   && [[ "$conferiu" == *"7 pasta(s) especiais já vestidas com os desenhos do pack Dracula"* ]] \
+if [ "$postos" = "$N_PASTAS" ] && [ "$N_PASTAS" = 10 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
+   && [[ "$conferiu" == *"$N_PASTAS pasta(s) especiais já vestidas com os desenhos do pack Dracula"* ]] \
    && [[ "$aplicou$conferiu" != *Catppuccin* ]]; then
-  ok "com PASTAS_XDG=\"sim\" as sete pastas especiais do Dracula chegam ao disco, e a frase diz o pack"
+  ok "com PASTAS_XDG=\"sim\" as $N_PASTAS pastas especiais do Dracula chegam ao disco, e a frase diz o pack"
 else
-  falha "as pastas especiais do Dracula não chegaram ao disco, ou a frase fala de outro pack ($postos de 7, rc=$rc)" \
+  falha "as pastas especiais do Dracula não chegaram ao disco, ou a frase fala de outro pack ($postos de $N_PASTAS, rc=$rc)" \
     "$aplicou
 $conferiu"
 fi
@@ -229,8 +233,8 @@ desligar() {   # $1 = a casa · [VAR=valor ...], que vencem
 #   no passado, com os sete ainda no disco; e abria com «devolvendo». O ensaio
 #   não tira nada, e cada frase dele diz o que faria.
 ensaio="$(desligar "$T/casa-xdg" MEOW_DRY_RUN=1)"; rc=$?
-if [ "$(find "$LUGAR" -name '*.svg' 2>/dev/null | wc -l)" = 7 ] && [ "$rc" = 1 ] \
-   && [[ "$ensaio" == *"removeria"* ]] && [[ "$ensaio" == *"pastas especiais: poria 0, removeria 7"* ]] \
+if [ "$(find "$LUGAR" -name '*.svg' 2>/dev/null | wc -l)" = "$N_PASTAS" ] && [ "$rc" = 1 ] \
+   && [[ "$ensaio" == *"removeria"* ]] && [[ "$ensaio" == *"pastas especiais: poria 0, removeria $N_PASTAS"* ]] \
    && [[ "$ensaio" == *"devolveria as pastas especiais"* ]] \
    && [[ "$ensaio" != *"posto(s)"* ]] && [[ "$ensaio" != *"removido(s)"* ]] && [[ "$ensaio" != *devolvendo* ]]; then
   ok "o ensaio de desligar as pastas especiais fala no condicional, do começo ao resumo, e não tira nada"
@@ -574,6 +578,35 @@ saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-molde" USER="${USER:-t}" NO_CO
   && [[ "$saida" != *"não deu para derivar"* ]] && [ ! -e "$T/casa-molde/.local" ] \
   && ok "o molde com o FLAVOR vazio (cat--mauve) veste a variante do tema, e não a do Mocha" \
   || falha "o molde com o FLAVOR vazio caiu no Mocha, ou escreveu na casa" "$saida"
+
+# --- 11. a base do pack escolhida pelo nome não pula as pastas (P74 item 1) ---
+#   O conf desta máquina diz `ICONES_BASE="MeowSystem-Icons-Base"`, a base do
+#   pack, que mora em `~/.local/share/icons`. O script montava
+#   `/usr/share/icons/$ICONES_BASE` e dizia «não está instalado — pastas
+#   coloridas puladas» (I1/I2). Pela regra do `_base_escolhida`, esse nome cede,
+#   e as pastas copiam do Papirus-Dark. O completar, o outro leitor da chave,
+#   vai junto.
+if [ -d /usr/share/icons/Papirus-Dark ] && [ -d "$UP/src" ]; then
+  saida="$(pastas "$T/casa-base-do-pack" dracula dracula mauve ICONES_BASE=MeowSystem-Icons-Base)"
+  [[ "$saida" != *"não está instalado"* ]] \
+    && [ -L "$T/casa-base-do-pack/.local/share/icons/MeowSystem-Icons/48x48/places/folder.svg" ] \
+    && ok "ICONES_BASE=MeowSystem-Icons-Base: as pastas coloridas entram (a base do pack cede ao Papirus-Dark)" \
+    || falha "com a base do pack escolhida pelo nome as pastas se pularam" "$saida"
+  # O completar só escreve num tema que já tem índice (quem o escreve é o
+  # `construir_icones.sh`, que aqui não roda): um índice mínimo basta.
+  printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n' \
+    > "$T/casa-base-do-pack/.local/share/icons/MeowSystem-Icons/index.theme"
+  saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-base-do-pack" USER="${USER:-t}" NO_COLOR=1 \
+    MEOW_RAIZ="$RAIZ" PACK=dracula FLAVOR=dracula ACCENT=mauve \
+    ICONES_BASE=MeowSystem-Icons-Base NOME_TEMA_ICONES=MeowSystem-Icons \
+    bash "$RAIZ/scripts/completar_icones.sh" 2>&1)"
+  [[ "$saida" != *"não está instalado"* ]] \
+    && [ -f "$T/casa-base-do-pack/.local/share/icons/MeowSystem-Icons/scalable/apps/repoman.svg" ] \
+    && ok "ICONES_BASE=MeowSystem-Icons-Base: o apelido do repoman entra" \
+    || falha "com a base do pack escolhida pelo nome o completar pulou os apelidos" "$saida"
+else
+  printf 'pulado: sem Papirus-Dark ou sem papirus-folders, a base do pack não tem de onde copiar\n'
+fi
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then

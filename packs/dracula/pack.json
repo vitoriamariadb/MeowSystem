@@ -22,7 +22,7 @@
     "_nota": "O que o cartão de escolher pack mostra (P15, 23/09/2026). A capa É o logo.svg que a P25 desenha — o mesmo arquivo que vira o ícone do lançador —, e não uma tira de cores: tira é paleta, não identidade. As tags foram medidas, não escolhidas: o pack tem um flavor escuro (dracula) e um claro (alucard), e o 'text' sobre o 'base' dá 13,36:1 no primeiro e 7,10:1 no segundo, os dois acima dos 7:1 do WCAG AAA. Sem 'capturas' de propósito: uma foto de tela desta máquina levaria para o git o que estava aberto nela."
   },
   "heranca": "catppuccin",
-  "_nota_heranca": "Dito na cara: este pack é uma paleta, os acervos de ícone (aplicativos, a biblioteca, autorais e pastas) e os temas de aplicativo. Do pack base vêm os mimetypes. As fontes a herança manda buscar nele, e ele não traz nenhuma: a fonte é a Nerd Font do motor — o 'meow pack info' diz 'a cadeia não traz' nessa linha. O ponteiro e a base de ícones deixaram de ser herdados em 24/09/2026 (P41): o pack declara de onde os dois descem, pinados, e quem instala os baixa (`origens.cursores.origem`, `icones.base.origem`). Prompt, fastfetch e gatos vêm do MOTOR (assets/), iguais para todo pack, porque o formato ainda não tem campo para eles. Esta nota errou duas vezes: até 23/09/2026 ela punha prompt, fastfetch, gatos e 'sons' entre os herdados (o pack tem sino próprio, o bloco `som`, lá embaixo), e a primeira correção, no mesmo dia, ainda dizia que ponteiro e fontes vinham do pack base. 'meow pack info dracula' imprime isso linha a linha, e é para imprimir.",
+  "_nota_heranca": "Dito na cara: este pack é uma paleta, os acervos de ícone (aplicativos, a biblioteca, autorais e pastas) e os temas de aplicativo. Do pack base vinham os mimetypes até 09/10/2026 (P74): agora eles são derivados, pela paleta deste pack, do `css-variables` de lá — ver `icones.mimetypes`. As fontes a herança manda buscar nele, e ele não traz nenhuma: a fonte é a Nerd Font do motor — o 'meow pack info' diz 'a cadeia não traz' nessa linha. O ponteiro e a base de ícones deixaram de ser herdados em 24/09/2026 (P41): o pack declara de onde os dois descem, pinados, e quem instala os baixa (`origens.cursores.origem`, `icones.base.origem`). Prompt, fastfetch e gatos vêm do MOTOR (assets/), iguais para todo pack, porque o formato ainda não tem campo para eles — do prompt, desde 09/10/2026 (P74), só o desenho: as cores são as da paleta deste pack. Esta nota errou duas vezes: até 23/09/2026 ela punha prompt, fastfetch, gatos e 'sons' entre os herdados (o pack tem sino próprio, o bloco `som`, lá embaixo), e a primeira correção, no mesmo dia, ainda dizia que ponteiro e fontes vinham do pack base. 'meow pack info dracula' imprime isso linha a linha, e é para imprimir.",
   "paleta": {
     "arquivo": "paleta.json",
     "flavor_padrao": "dracula",
@@ -52,12 +52,17 @@
     },
     "pastas": {
       "desenhos": "icones/pastas/",
-      "recolorir": false
+      "mapa": "icones/pastas.map",
+      "recolorir": false,
+      "_nota_mapa": "O mapa é do pack desde 09/10/2026 (P74 item 6, I7): as sete pastas especiais de 15/09 mais `folder`, `user-home` e `user-desktop`, desenhadas no mesmo dia na mesma silhueta. O porquê está no cabeçalho do `icones/pastas.map`."
     },
     "mimetypes": {
-      "herda": "catppuccin",
-      "flavor": "macchiato",
-      "_nota": "Não existe acervo de mimetype Dracula. O do Catppuccin tem quatro flavors (frappe, latte, macchiato, mocha), 656 arquivos cada; o macchiato é o vizinho mais próximo em luminosidade."
+      "desenhos": "icones/mimetypes/",
+      "derivar": {
+        "de": "catppuccin",
+        "pasta": "css-variables"
+      },
+      "_nota": "PRÓPRIO desde 09/10/2026 (P74 item 6). Até aqui o pack herdava os 656 ícones de arquivo do Catppuccin no flavor `macchiato` — com o Dracula no ar, os tipos de arquivo saíam no lilás e no azul do Catppuccin. O upstream do Catppuccin (catppuccin/vscode-icons, MIT) publica o `css-variables/`: os mesmos 656 desenhos com a cor escrita por papel. O `meow pack construir dracula` troca cada papel pelo hex dele na paleta deste pack e escreve `icones/mimetypes/<flavor>/`, um diretório por flavor (o `dracula` e o `alucard`). Medido no mesmo dia: a mesma conta com a paleta do Mocha reproduz o `mocha/` do Catppuccin byte a byte. O mapa (qual desenho veste qual tipo) continua o do Catppuccin, pela `heranca`: é o mesmo acervo de nomes, e a escolha é do upstream."
     },
     "autorais": {
       "gerar": true,
@@ -70,6 +75,16 @@
         "sha256": "563580916e426ccccb5da5b1a43f2cc0f7ab5d118c24b87776640da45b50acea",
         "pasta": "dracula-icons-00a230a277d5e6ad913b90182977738335afee89"
       },
+      "por_tras": [
+        {
+          "origem": {
+            "url": "https://github.com/m4thewz/dracula-icons/archive/de2a8edd94608ba0ac4dcf5a187af0ffaa511ebc.tar.gz",
+            "sha256": "51db7832983249a6d296154fdb7afab7c51c32ac8813bc5bf73ee89a3e1ebb36",
+            "pasta": "dracula-icons-de2a8edd94608ba0ac4dcf5a187af0ffaa511ebc"
+          }
+        }
+      ],
+      "_nota_por_tras": "O ramo `main` ATRÁS do `circle` (P74 item 2, decisão 1 de 09/10/2026: «as duas, circle por cima, main por trás, como o tema antigo»). Medido em 09/10/2026: dos 1.394 nomes `*-symbolic` do `Dracula-Icones` antigo (backup congelado de 24/09), 458 não existiam no tema + base só com o circle; com o main atrás, 0. É a mesma ordem do `Dracula-Icones` de antes, que herdava `dracula-icons-circle` e depois `dracula-icons-main`. Pinado como o circle: o commit na URL (`de2a8edd`, 02/08/2025, a ponta do `main`, sem tag) e o sha256 do pacote que o GitHub gera para ele, 3.463.683 bytes, baixado duas vezes no mesmo dia com o mesmo sha256. Ele desce para `<NOME_TEMA_ICONES>-Base-2`, ao lado da frente.",
       "_nota": "A BASE: o que veste os milhares de aplicativos fora dos 191 do `apps.map` (P41, 24/09/2026). Até aqui o `MeowSystem-Icons` herdava do `ICONES_BASE` de fábrica, o Papirus-Dark, e o Dracula só saía inteiro numa máquina que tivesse o `Dracula-Icones` montado pelo `rebuild_dracula_theme` do Spellbook — desligado pela P37. Agora o `construir_icones.sh` baixa este pacote, confere o sha256, e herda dele; um `ICONES_BASE` escolhido à mão no meow.conf continua vencendo.",
       "_nota_ramo": "O ramo `circle`, e não o `main`. Medido em 24/09/2026: o `Dracula-Icones` que vestia esta máquina herdava `dracula-icons-circle` ANTES do `main`, então o que ela via fora dos 191 era o circle — escolhê-lo não muda a tela de quem já usava o Dracula. A cobertura dos dois é quase a mesma, contada nos pacotes dos dois commits (24.958 SVG no circle, 25.635 no main; 701 nomes só no main, 540 deles simbólicos, que caem no breeze-dark, Cosmic e Adwaita da cadeia; 24 só no circle), e os desenhos que este pack já copiou do upstream vieram quase todos do circle.",
       "_nota_pino": "Pinado pelo COMMIT, na URL, e pelo sha256 do pacote. O ramo `circle` não tem tag nem release (medido em 24/09/2026: `00a230a2`, de 26/05/2024, é a ponta dele), e o pacote é o que o GitHub gera para aquele commit — 3.701.762 bytes, baixado duas vezes no mesmo dia com o mesmo sha256. Se um dia o GitHub mudar a compressão desse pacote, o sha256 deixa de bater e o `construir_icones.sh` para dizendo os dois números: é o pino fazendo o trabalho dele."
@@ -96,6 +111,8 @@
       "ignorar": [
         "svg"
       ],
+      "desenhos": "wallpapers/",
+      "_nota_desenhos": "Os treze SVG do tulip-orchid (MIT), dentro do pack desde 09/10/2026 (P74 item 9, T7): sem o repositório no meow.conf — o caso de toda instalação nova —, o Dracula caía no acervo do Catppuccin. O `wallpaper.sh` os rasteriza em PNG 3840x2160 ao semear; o PNG sai igual, pixel a pixel, ao do repositório. A procedência está no PROCEDENCIA.md.",
       "se_vazio": "herdar",
       "_nota": "As duas chaves nomeiam ENTRADAS DO MEOW.CONF, não valores: 'dono/repo' nomeia a conta de uma pessoa e este arquivo é versionado. Quem instala põe o repositório no próprio meow.conf."
     }
@@ -109,8 +126,12 @@
       "_nota_sem_origem": "Sem bloco `origem` DE PROPÓSITO: o Sleek não é arte deste projeto nem tem um tarball que este pack saiba pinar por commit. Se um dia ele não estiver em `~/.config/spicetify/Themes/`, o módulo diz que o pack pede um tema que não está instalado e NÃO inventa um download — é o contrário de baixar o tema do outro pack e chamar de sucesso.",
       "_nota_sem_acento": "Sem `acento_no_color_ini` porque a seção [Dracula] do color.ini do Sleek define vinte e duas chaves e nenhuma delas se chama `mauve`: escrever o acento da casa ali só daria erro. O acento do Dracula já está na arte do próprio esquema."
     },
-    "_nota_qbittorrent": "O `apps/dracula.qbtheme` NÃO entrou, e a ausência é declarada. O arquivo existe nesta máquina — `~/.themes/dracula.qbtheme`, 4.468 bytes, sha256 27948d8a…, `qres` de verdade, escrito em 21/09/2026 16:49 — e o `qBittorrent.conf` dela já aponta para ele. O que falta é PROCEDÊNCIA: não há aqui repositório, release, commit nem licença que digam de onde aquele .rcc veio, e a regra da casa para arte de terceiro é a que está na `apps/PROCEDENCIA.md` do pack padrão. Copiar o binário para dentro de um pack versionado com a procedência em branco seria publicar arte de alguém sem crédito. Enquanto ele não entrar, o qbittorrent deste pack HERDA do catppuccin (a `heranca` do topo) — e é justamente por isso que o módulo lê o que está no ar antes de escrever: ele vê o dracula.qbtheme, vê que não veio daqui, e PERGUNTA em vez de trocar.",
-    "_nota_modelos": "Os cinco blocos abaixo entraram em 24/09/2026 (sprint P42), e são o que a P37 mediu que o tema Dracula de antes aplicava e nunca tinha migrado. Cada `arquivo` é um MODELO, e não o tema pronto: o papel da cor no lugar dela (`{{base}}`, `{{mauve}}`), e quem põe o hex é o `assets/temas-de-apps/modelo.py`, com a paleta deste pack no flavor da máquina. É isso que faz o `alucard` sair claro nos cinco, em vez de cinco arquivos escuros cravados. A procedência de cada um — de onde veio o desenho, sob que licença e o que mudou — está na seção 'Os temas de aplicativo' do PROCEDENCIA.md. Os 30 overrides de `.desktop` que a mesma medição achou NÃO entraram aqui, e isso é desvio da decisão de 23/09 ('migrar para o pack'), devolvido a ela na revisão de 24/09/2026. O que se mediu naquele dia: 3 deles mostram (Boxy SVG, ZapZap e Ghostty), e o `appid.map`, o módulo do zapzap e o `icones_absolutos.sh` já fazem o que eles faziam; os outros 27 escondem do menu (`NoDisplay=true`) o que o dono de UMA máquina não abre (KeePassXC, um rastreador de jogo, um contêiner do distrobox). Desses 27, 12 já estão no `LANCADOR_OCULTAR` de fábrica do meow.conf.exemplo e 15 não estão em lugar nenhum — e o meow.conf daquela máquina não tem a chave, então vale a de fábrica. Esconder é gosto de uma casa, e por isso não foi escrito aqui como tema de um pack que viaja.",
+    "qbittorrent": {
+      "arquivo": "apps/dracula.qbtheme",
+      "sha256": "b4485f9f4ee6139b7c77bbfb72206b608bcfa748f34d49205c4c4b65e7976d37",
+      "_nota": "O tema OFICIAL do Dracula para o qBittorrent (dracula/qbittorrent, MIT), o `dracula.qbtheme` do commit `9020f6eb` (09/07/2026, «sync from v0.6.6», a ponta do `master`), 5.055 bytes, `qres` de verdade. Entrou em 09/10/2026 (P74 item 9, T4): até aqui o pack herdava o do Catppuccin, porque o `.qbtheme` desta máquina (`~/.themes/dracula.qbtheme`, sha256 27948d8a…) não tinha procedência; a procedência foi achada no repositório oficial, e é ele que vem, pinado. O de `~/.themes` continua sendo dela: o módulo lê o que está no ar antes de escrever e pergunta antes de trocar. A procedência completa está na seção dos temas de aplicativo do PROCEDENCIA.md."
+    },
+    "_nota_modelos": "Os cinco blocos abaixo entraram em 24/09/2026 (sprint P42), e são o que a P37 mediu que o tema Dracula de antes aplicava e nunca tinha migrado. Cada `arquivo` é um MODELO, e não o tema pronto: o papel da cor no lugar dela (`{{base}}`, `{{mauve}}`), e quem põe o hex é o `assets/temas-de-apps/modelo.py`, com a paleta deste pack no flavor da máquina. É isso que faz o `alucard` sair claro nos cinco, em vez de cinco arquivos escuros cravados. A procedência de cada um — de onde veio o desenho, sob que licença e o que mudou — está na seção 'Os temas de aplicativo' do PROCEDENCIA.md. Os 30 overrides de `.desktop` que a mesma medição achou NÃO entraram aqui, e isso é desvio da decisão de 23/09 ('migrar para o pack'), devolvido a ela na revisão de 24/09/2026. O que se mediu naquele dia: 3 deles mostram (Boxy SVG, ZapZap e Ghostty), e o `appid.map`, o módulo do zapzap e o `icones_absolutos.sh` já fazem o que eles faziam; os outros 27 escondem do menu (`NoDisplay=true`) o que o dono de UMA máquina não abre (KeePassXC, um rastreador de jogo, um contêiner do distrobox). Desses 27, 12 já estão no `LANCADOR_OCULTAR` de fábrica do meow.conf.exemplo e 15 não estão em lugar nenhum — e o meow.conf daquela máquina não tem a chave, então vale a de fábrica. Esconder é gosto de uma casa, e por isso não foi escrito aqui como tema de um pack que viaja. [09/10/2026, P74 item 9 (T5): a decisão de 24/09 foi cumprida — os 27 que escondem, menos os 3 que são só daquela máquina, moram no bloco `lancador`, lá embaixo, e a `_nota` dele conta a conta.]",
     "kitty": {
       "arquivo": "apps/kitty.modelo.conf",
       "_nota": "Vira o `current-theme.conf` do kitty, com o bloco `# BEGIN_KITTY_THEME` no fim do `kitty.conf` — as duas portas do `kitten themes`, de propósito: uma escolha dela por ele continua valendo. A ordem das dezesseis cores é a do dracula/kitty; com o flavor `dracula`, 30 das 36 cores saem iguais às de lá (medido), e as seis sem slot na paleta caem no vizinho."
@@ -157,12 +178,43 @@
     },
     "_nota_zapzap": "O ZapZap NÃO tem bloco, e não falta: o módulo dele troca o nome para «WhatsApp» e aponta o `Icon=` para `meow-whatsapp`, e esse ícone é desenhado pelo tema de ícones, com o `sky` da paleta do pack no ar. Medido em 24/09/2026 nesta máquina: `#8BE9FD`, o ciano do Dracula, no `48x48/apps/meow-whatsapp.svg`. O que dizia «ícone Catppuccin» era a frase do módulo, e ela passou a dizer o pack no ar."
   },
+  "lancador": {
+    "ocultar": [
+      "com.system76.CosmicMonitor",
+      "com.system76.CosmicScreenshot",
+      "gnome-online-accounts-gtk",
+      "gparted",
+      "LinuxToys",
+      "mpv",
+      "nm-connection-editor",
+      "nvidia-settings",
+      "onboard",
+      "onboard-settings",
+      "org.freedesktop.IBus.Setup",
+      "org.gnome.baobab",
+      "org.gnome.DiskUtility",
+      "org.gnome.FileRoller",
+      "org.gnome.font-viewer",
+      "org.gnome.gThumb",
+      "org.gnome.gThumb.Import",
+      "org.gnome.seahorse.Application",
+      "org.keepassxc.KeePassXC",
+      "qt5ct",
+      "qt6ct",
+      "setup-mozc",
+      "syncthing-start",
+      "system-config-printer"
+    ],
+    "_nota": "Os overrides de `.desktop` do tema Dracula de antes (a pasta `overrides/` do Dracula_OS-Theme, 30 arquivos medidos na P37), migrados para o pack em 09/10/2026 (P74 item 9, T5), pela decisão de 24/09 («migrar para o pack»), que a P42 tinha devolvido sem cumprir. Dos 30: 3 MOSTRAM e já são feitos por outros módulos (Boxy SVG, o ZapZap como WhatsApp e o Ghostty: o `appid.map`, o módulo do zapzap e o `icones_absolutos.sh`); 27 ESCONDEM do lançador, e 24 deles estão aqui. Ficaram fora 3 que são só daquela máquina, pela regra de 23/09 (o que é só do PC fica): o `mnemo` (projeto pessoal), o `elden-ring-tracker` (instalado à mão em /opt) e o `Ubuntu` (um contêiner do distrobox dela). O `ocultar_apps.sh` soma esta lista à do meow.conf (`LANCADOR_OCULTAR`), e um nome com `-` na frente, lá, tira um daqui."
+  },
   "som": {
     "_nota": "O sino do Dracula. O pack embutido usa 880 Hz + a quinta justa acima (1320), que soa resolvida e clara. Aqui a escolha é outra: sol (784) com a TERÇA MENOR acima (si bemol, 932.3). Terça menor é o intervalo que a música ocidental lê como sombrio — é o que faz o mesmo gesto de mexer no volume soar noturno em vez de alegre, sem virar alarme. O decaimento é mais lento (38 contra 46) porque a terça menor precisa de um instante a mais para ser reconhecida como intervalo; abaixo disso as duas notas viram um clique só. Duração e ganho ficam nos defaults: a primeira é presa ao debounce de 125 ms do cosmic-osd, e o segundo é calibrado contra o arquivo de fábrica — mexer neles muda o susto, não o timbre.",
     "fundamental": 784.0,
     "harmonico": 932.3,
     "peso_fundamental": 0.58,
     "peso_harmonico": 0.32,
-    "decaimento": 38.0
+    "decaimento": 38.0,
+    "tema": "sons/",
+    "_nota_tema": "O tema de som Dracula (P74 item 9, T3, 09/10/2026): os 25 efeitos que o tema de antes trazia, curados pelo Dracula_OS-Theme do pacote «Sci-fi Sounds» do Kenney (CC0), com o `index.theme` dele. Ficaram fora em 16/09 porque o COSMIC só toca UM som de evento, o de volume (o cabeçalho do `scripts/som.sh` conta a medição). O motivo virou cura: o `som.sh` instala o tema e liga o `meow-som.service`, que toca o som de notificação deste tema quando um aplicativo notifica — o COSMIC não toca nenhum. O som de volume continua o sino acima: os de 0,24 s do tema empilham na tecla segurada."
   }
 }

@@ -91,6 +91,14 @@ assets/fontes/locais/*.[tT][tT][cC]
 #   trabalho que o acervo ao lado dele representa.
 !assets/icones/resgatados/*.png
 
+# OS PNG FEITOS À MÃO DO PACK VÃO PARA O GIT — 09/10/2026, P73
+#   A decisão 2 daquele dia (docs/sprints/2026-10-09-uso-real/02-decisoes.md):
+#   os desenhos à mão em PNG entram no pack já, para nada sumir, e viram vetor
+#   num lote conferido por RMSE. São a arte, e não um papel de parede baixado:
+#   sem esta linha a regra `*.png` lá em cima os deixaria só no disco, que é
+#   exatamente onde eles estavam se perdendo desde 16/04.
+!packs/*/icones/feitos-a-mao/*.png
+
 # Estado local da máquina: backups e log ficam fora, em ~/.local/state/meowsystem.
 # As CAPTURAS continuam versionadas — sao as que fazem o "3 cliques uma vez na vida"
 # continuarem valendo mesmo se esta maquina for reformatada. Sao texto pequeno.

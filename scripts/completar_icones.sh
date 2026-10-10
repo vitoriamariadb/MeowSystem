@@ -146,8 +146,18 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 ALVO="$TEMA_DIR/scalable/apps"
-BASE="${ICONES_BASE:-Papirus-Dark}"
-BASE_DIR="/usr/share/icons/$BASE"
+# A ÁRVORE DE ONDE OS APELIDOS COPIAM DESENHO É PERGUNTA AO `pack.py` — P74 item 1
+#   Era `/usr/share/icons/$ICONES_BASE`, a chave crua: com o conf dizendo
+#   `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, em ~/.local/share)
+#   o apelido do repoman se pulava por sete passadas do doctor (I1/I2 do 01-regressoes.md). A
+#   regra de quem vence mora no `_base_escolhida`, e o `base-apelidos` diz o
+#   tema (o escolhido à mão, ou o Papirus-Dark) e onde ele está no disco.
+_base="$(ICONES_BASE="${ICONES_BASE:-}" NOME_TEMA_ICONES="$TEMA_NOME" \
+           python3 "$RAIZ/scripts/pack.py" base-apelidos 2>/dev/null)"
+BASE="$(printf '%s\n' "$_base" | sed -n 's/^tema=//p')"
+[ -n "$BASE" ] || BASE="Papirus-Dark"
+BASE_DIR="$(printf '%s\n' "$_base" | sed -n 's/^dir=//p')"
+unset _base
 # Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
 # Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
 FLAVOR="$(meow_flavor)"
@@ -201,7 +211,15 @@ declare -A AUTORAL=(
   # cabeçalho de `meowsystem_painel()`, em `gerar_icones_autorais.py`, conta por
   # que um ícone escrito hoje nasce no padrão que ela definiu em 11/08/2026 e
   # não no chapado dos vizinhos de tabela.
-  [com.meowsystem.Painel]="meowsystem-painel-$FLAVOR.svg"
+  #
+  # O LANÇADOR VESTE O LOGO DO PACK NO AR — 09/10/2026, P73 (I9). Pedido de
+  # 21/09: «precisa usar um svg pra cada logo do theme pack, o icon do menu de
+  # lançamento». A P25 desenhou um `logo.svg` por pack e o docs/PACKS.md
+  # admitia «o ícone do lançador ainda não é o logo». Agora é: quem resolve é o
+  # verbo `logo` do pack.py (o mesmo do cartão do pack), com as cores do flavor
+  # e do acento em vigor. O desenho autoral `meowsystem-painel-<flavor>.svg`
+  # continua como a rede, para o pack sem logo ou com o logo recusado.
+  [com.meowsystem.Painel]="__LOGO_DO_PACK__"
   [fogstripper]="fogstripper-$FLAVOR.svg"
   # EXCEÇÃO, a pedido dela: o Hefesto TEM logo própria, e foi ELA que desenhou
   # (~/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg — a bigorna
@@ -305,8 +323,10 @@ pendente=0   # a logo do Hefesto que ficou no tema esperando uma escolha (passo 
 # de ícones montado à mão, e o `Directories=` é a única chave de tamanho que a
 # crate do COSMIC lê (docs/COSMIC-THEMING.md §2).
 if [ ! -f "$TEMA_DIR/index.theme" ]; then
-  meow_aviso "o tema '$TEMA_NOME' ainda não existe"
-  meow_info "rode antes: scripts/construir_icones.sh"
+  # Sem a linha "rode antes: scripts/construir_icones.sh" desde a P75
+  # (09/10/2026): no doctor, quem monta o tema é o `icones`, que vem antes
+  # deste na lista, e o 3 daqui se confere de novo depois dele.
+  meow_aviso "o tema '$TEMA_NOME' ainda não existe — quem o monta é o construir_icones.sh"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 if ! grep -q '^Directories=.*scalable/apps' "$TEMA_DIR/index.theme"; then
@@ -373,6 +393,21 @@ fi
 instalados=0
 for nome in "${!AUTORAL[@]}"; do
   fonte="$AUTORAIS/${AUTORAL[$nome]}"
+  # O LOGO DO PACK SAI PELO STDOUT DO `pack.py logo` (ele não escreve nada); a
+  # recusa — pack sem logo, logo com `<script>` — cai no desenho autoral.
+  if [ "${AUTORAL[$nome]}" = "__LOGO_DO_PACK__" ]; then
+    fonte="$AUTORAIS/meowsystem-painel-$FLAVOR.svg"
+    if logo_do_pack="$(python3 "$RAIZ/scripts/pack.py" logo "$_pack_ref" "$FLAVOR" "$ACCENT" 2>/dev/null)" \
+        && [ -n "$logo_do_pack" ]; then
+      meow_escrever "$ALVO/$nome.svg" "$logo_do_pack" 644
+      case $? in
+        1) mudou=1; instalados=$((instalados+1)) ;;
+        2) meow_erro "não consegui instalar $nome.svg"; exit "$MEOW_ERRO" ;;
+      esac
+      continue
+    fi
+    meow_info "o pack no ar não deu um logo — o lançador fica com o desenho autoral"
+  fi
   # A EXCEÇÃO: onde o mapa diz `__LOGO_DELA__`, a fonte é a logo que a Vitória
   # desenhou, no repositório do próprio app. Se ele não estiver no lugar (clone
   # ausente, disco não montado), cai no desenho gerado — o instalador não pode
@@ -469,10 +504,19 @@ done
 # --- 3. apelidos vindos do Papirus -------------------------------------------
 # Papirus ausente NÃO é erro: os autorais já entraram e o resto do tema continua
 # de pé. Vira aviso, e o `repoman` segue com o ícone do Pop até o pacote existir.
+#
+# MAS TAMBÉM NÃO É «OK» — P75, 09/10/2026. A linha seguinte mandava rodar
+# `sudo apt install papirus-icon-theme` (o conserto conhecido devolvido como
+# tarefa, que ela proibiu em 21/09), e o script saía 0 com o aviso por cima: o
+# doctor mostrava `!! completar` e fechava em «nada a consertar». Agora ele diz
+# ONDE procurou — era a metade que faltava para ver a contradição do achado 4
+# de 09/10 («a base confere» três linhas acima de «não está instalada») — e sai
+# 3 lá embaixo, o pulado que avisou. Quem instala o pacote é o `pacotes` do
+# doctor, pela ponte root, antes desta etapa.
+sem_base=0
 if [ ! -d "$BASE_DIR" ]; then
-  meow_aviso "$BASE não está instalado — apelidos de utilitário pulados"
-  meow_info "  sudo apt install papirus-icon-theme"
-  avisos=1
+  meow_aviso "a base '$BASE' não está em $BASE_DIR — apelidos de utilitário pulados"
+  avisos=1; sem_base=1
 else
   for nome in "${!APELIDO[@]}"; do
     fonte="$BASE_DIR/${APELIDO[$nome]}"
@@ -681,6 +725,7 @@ if [ "$mudou" = "0" ]; then
   # 4 e não 0: o resto está no lugar, mas o aviso do passo 2 espera uma escolha
   # dela, e um "ok" por cima dele o esconderia na tabela do doctor.
   [ "$pendente" = "1" ] && exit 4
+  [ "$sem_base" = "1" ] && exit "$MEOW_SEM_DEPENDENCIA"
   meow_ok "ícones completos: ${#AUTORAL[@]} autorais e ${#APELIDO[@]} apelido(s) já no lugar"
   exit "$MEOW_OK"
 fi

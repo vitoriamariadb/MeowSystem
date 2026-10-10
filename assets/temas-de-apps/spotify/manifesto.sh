@@ -854,7 +854,7 @@ meow_app_aplicar() {
   meow_app_detectar || { meow_app_pendente spotify; return; }
   # O CARIMBO VEM ANTES DE TUDO, E PODE ACONTECER COM O SPOTIFY ABERTO.
   # Ele não toca num byte do app — corrige uma linha do config-xpui.ini. É a
-  # única parte deste módulo que a guarda "não mexo no app dela no meio do uso"
+  # única parte deste módulo que a guarda "não mexo no app no meio do uso"
   # não precisa proteger, e adiá-la manteria a tranca de pé por mais um ciclo
   # inteiro do doctor. Só acontece quando o backup PROVADAMENTE é do app atual.
   local mexi=0 vb0 vi0
@@ -927,7 +927,7 @@ meow_app_aplicar() {
   [ $? = "$MEOW_SEM_DEPENDENCIA" ] && return "$MEOW_SEM_DEPENDENCIA"
 
   if _spot_rodando; then
-    meow_pula "Spotify está ABERTO — não mexo no app dela no meio do uso; tento no próximo ciclo"
+    meow_pula "Spotify está ABERTO — não mexo no app no meio do uso; tento no próximo ciclo"
     meow_info "a mudança só valeria no próximo início do Spotify de qualquer forma"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
@@ -986,7 +986,7 @@ meow_app_reverter() {
   # Mesma mentira do `aplicar`, mesmo conserto: o motivo vem de quem mediu.
   meow_app_detectar || { meow_app_pendente spotify; return; }
   if _spot_rodando; then
-    meow_pula "Spotify está ABERTO — não mexo no app dela no meio do uso"
+    meow_pula "Spotify está ABERTO — não mexo no app no meio do uso"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if meow_seco; then

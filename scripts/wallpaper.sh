@@ -168,7 +168,7 @@ BASE="${WALLPAPER_BASE:-$HOME/.local/share/backgrounds/meowsystem}"
 ATIVOS="$BASE/ativos"
 NOITE_DIR="$BASE/ativos-noite"
 DIA_DIR="$BASE/ativos-dia"
-BG="$(meow_cosmic_dir)/com.system76.CosmicBackground/v1"
+BG="$(meow_cosmic_dir)/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)"
 ORDEM="${WALLPAPER_ORDEM:-aleatoria}"
 INTERVALO="${WALLPAPER_INTERVALO:-5m}"
 
@@ -608,8 +608,9 @@ medir_acervo() {
     if tem_imagemagick; then
       meow_aviso "$falhas imagem(ns) não puderam ser medidas — ficam fora da separação claro/escuro"
     else
+      # Sem a receita do `apt` desde a P75 (09/10/2026): o ImageMagick é do
+      # `etapa_pacotes`, e quem o instala é o `pacotes` do doctor, pela ponte.
       meow_aviso "sem ImageMagick não dá para separar claro de escuro ($falhas imagem(ns))"
-      meow_info "  instale com: sudo apt install imagemagick"
     fi
   fi
 
@@ -1261,7 +1262,7 @@ limpar_estado_morto() {
   # reescrevendo no meio, a contagem da segunda podia discordar do conteúdo que
   # a primeira produziu — e a frase do `meow_info` mentiria sobre o que foi
   # feito. A primeira linha da saída é a contagem, o resto é o conteúdo novo.
-  saida="$(python3 - "$ESTADO_BG" <<'FIM' 2>/dev/null
+  saida="$(python3 -I - "$ESTADO_BG" <<'FIM' 2>/dev/null
 import os, re, sys
 texto = open(sys.argv[1], encoding="utf-8").read()
 # ("DP-1", Path("/caminho")),  — uma entrada por linha, é o formato que ele grava.
@@ -1676,9 +1677,15 @@ cmd_aplicar() {
           # Reversão. Dizer QUAL caminho saiu é o que impede este conserto de
           # ser mágico: sem o caminho no log, um papel de parede que ela tinha
           # posto de propósito sumiria sem deixar como voltar.
-          meow_aviso "$alvo apontava para $fonte_atual — isso não é o carrossel; devolvendo"
-          meow_info "era escolha sua? autorize e eu paro de mexer:"
-          meow_info "  meow wallpaper permitir \"$fonte_atual\""
+          # [O «AUTORIZE» VIROU BOTÃO — 10/10/2026, P80 (item 8). Eram duas
+          #   linhas mandando digitar `meow wallpaper permitir "<caminho>"`.
+          #   Agora é a pendência `wallpaper-fonte-revertida`, e a Início a
+          #   desenha com o botão «Era escolha minha», que roda o mesmo
+          #   `permitir` com este caminho (o servidor o tira do comando da
+          #   linha). O aviso continua dizendo qual caminho saiu.]
+          meow_pendencia_acionavel wallpaper-fonte-revertida \
+            "$alvo apontava para $fonte_atual — isso não é o carrossel; devolvendo" \
+            "meow wallpaper permitir $fonte_atual"
           ;;
       esac
     fi
@@ -1898,6 +1905,7 @@ cmd_permitir() {
   bruto="$(fontes_no_conf)"
   expandido="${bruto//\$\{HOME\}/$HOME}"; expandido="${expandido//\$HOME/$HOME}"
   if fonte_autorizada "$caminho" "$expandido"; then
+    meow_seco || meow_pendencia_resolvida wallpaper-fonte-revertida
     meow_ok "$caminho já está autorizado em WALLPAPER_FONTES_PERMITIDAS"
     return "$MEOW_OK"
   fi
@@ -1918,6 +1926,8 @@ cmd_permitir() {
        meow_ok "autorizado: $caminho"
        meow_info "o carrossel não mexe mais em saída que aponte para lá"
        meow_registrar "wallpaper permitir: $caminho"
+       # A pendência do «Era escolha minha» (P80) acabou: a imagem é dela.
+       meow_pendencia_resolvida wallpaper-fonte-revertida
        return "$MEOW_DIVERGENTE" ;;
     *) meow_erro "não consegui gravar $MEOW_CONF_ARQUIVO"
        return "$MEOW_ERRO" ;;
@@ -2313,6 +2323,20 @@ _semente_do_flavor() {
       #   versionado. Sem ele configurado, o flavor cai no acervo comum em vez
       #   de quebrar: quem instala o tema sem ter um acervo próprio continua
       #   tendo papel de parede.
+      #   O PACK TRAZ OS VETORES — 09/10/2026, P74 item 9 (T7). Sem o repositório
+      #   no conf (o caso de toda instalação nova: o exemplo vem vazio, e o
+      #   `dono/repo` não pode morar no código), o Dracula caía no acervo do
+      #   CATPPUCCIN — «ao resetar o PC terei tudo conforme o tema dracula?»
+      #   (26/09), e não teria. Os treze SVG do tulip-orchid moram agora em
+      #   `packs/dracula/wallpapers/` (445 KB, MIT, a procedência no
+      #   PROCEDENCIA.md do pack), e o `_semear_de_pasta` os rasteriza em PNG
+      #   4K, o formato que o `cosmic-bg` lê. Medido no dia: o PNG que sai do
+      #   `rsvg-convert -w 3840 -h 2160` é o do repositório pixel a pixel (RMSE
+      #   0 contra o `tulip-catedral-agulhas.png` desta máquina), e com o mesmo
+      #   nome — a casa que já os tem não ganha cópia nenhuma. O repositório no
+      #   conf continua vencendo: é a escolha de quem o pôs lá.
+      local do_pack=""
+      do_pack="$(python3 "$RAIZ/scripts/pack.py" acervo "$dono" origens.wallpapers.desenhos 2>/dev/null)" || do_pack=""
       if [ -n "${WALLPAPER_DRACULA_REPO:-}" ]; then
         SEMENTE_REPO_PADRAO="$WALLPAPER_DRACULA_REPO"
         SEMENTE_COMMIT_PADRAO="${WALLPAPER_DRACULA_COMMIT:-}"
@@ -2321,6 +2345,11 @@ _semente_do_flavor() {
         if [ -z "$SEMENTE_COMMIT_PADRAO" ] && ! _semente_e_pasta "$SEMENTE_REPO_PADRAO"; then
           meow_aviso "WALLPAPER_DRACULA_REPO sem WALLPAPER_DRACULA_COMMIT — sem pino não há receita"
         fi
+      elif [ -n "$do_pack" ] && [ -d "$do_pack" ]; then
+        SEMENTE_REPO_PADRAO="${do_pack%/}"
+        SEMENTE_COMMIT_PADRAO=""
+        SEMENTE_IGNORAR_PADRAO=""
+        SEMENTE_PREFIXO_PADRAO="${WALLPAPER_DRACULA_PREFIXO:-tulip}"
       else
         SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"
         SEMENTE_COMMIT_PADRAO="1023077979591cdeca76aae94e0359da1707a60e"
@@ -2470,24 +2499,43 @@ _semear_de_pasta() {
     return "$MEOW_ERRO"
   fi
 
-  local n=0 ignorados=0 arq rel nome destino
+  local n=0 ignorados=0 svg_sem=0 arq rel nome destino vetor
   while IFS= read -r arq; do
     [ -n "$arq" ] || continue
     rel="${arq#"$origem"/}"
+    # O SVG ENTRA RASTERIZADO EM 4K — 09/10/2026, P74 item 9 (T7). O
+    # `cosmic-bg` não lê vetor; o `rsvg-convert` (pré-requisito do instalador,
+    # o `librsvg2-bin`) o desenha em 3840x2160, e o arquivo no acervo é o PNG,
+    # com o nome do SVG. Sem ele, o SVG continua sendo o ignorado de antes.
+    vetor=0
     case "${rel##*.}" in
       png|PNG|jpg|JPG|jpeg|JPEG|webp|WEBP|avif|AVIF|gif|GIF|tif|tiff|TIF|TIFF) ;;
+      svg|SVG) if meow_tem rsvg-convert; then vetor=1; else svg_sem=$((svg_sem + 1)); continue; fi ;;
+      # O LICENSE de um acervo (o do pack, ao lado dos SVG) não é imagem.
+      LICENSE|md|txt) continue ;;
       *) ignorados=$((ignorados + 1)); continue ;;
     esac
     nome="${SEMENTE_PREFIXO}-${rel//\//-}"
+    [ "$vetor" = 1 ] && nome="${nome%.*}.png"
     destino="$ATIVOS/$nome"
     [ -e "$destino" ] && continue
     esta_banida "$nome" && continue
     if meow_seco; then
-      meow_muda "copiaria $nome"; n=$((n + 1)); continue
+      if [ "$vetor" = 1 ]; then meow_muda "rasterizaria $nome em 4K"; else meow_muda "copiaria $nome"; fi
+      n=$((n + 1)); continue
     fi
     # Temporário no MESMO diretório e rename depois, pelo motivo do ramo que
     # baixa: uma imagem pela metade entra na rotação e aparece cortada.
     local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
+    if [ "$vetor" = 1 ]; then
+      if rsvg-convert -w 3840 -h 2160 -f png -o "$tmp" -- "$arq" 2>/dev/null && [ -s "$tmp" ]; then
+        mv -f "$tmp" "$destino"; n=$((n + 1))
+      else
+        rm -f "$tmp"
+        meow_aviso "não consegui rasterizar $rel"
+      fi
+      continue
+    fi
     if cp -- "$arq" "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
       mv -f "$tmp" "$destino"; n=$((n + 1))
     else
@@ -2497,7 +2545,12 @@ _semear_de_pasta() {
   done < <(find "$origem" -type f 2>/dev/null | LC_ALL=C sort)
 
   if [ "$ignorados" -gt 0 ]; then
-    meow_info "$ignorados arquivo(s) de formato que o cosmic-bg não lê foram ignorados (SVG entre eles — exporte PNG)"
+    meow_info "$ignorados arquivo(s) de formato que o cosmic-bg não lê foram ignorados"
+  fi
+  # Sem o rasterizador o SVG não vira PNG, e isso é falta de pacote, que o
+  # instalador põe (o `librsvg2-bin`, na etapa de pacotes).
+  if [ "$svg_sem" -gt 0 ]; then
+    meow_aviso "$svg_sem SVG ficaram de fora: sem o rsvg-convert não há como rasterizá-los"
   fi
 
   semear_da_curadoria
@@ -2555,7 +2608,7 @@ cmd_semear() {
   # Escolhe espalhando pelas categorias, em vez de pegar as N primeiras (que
   # seriam todas da mesma pasta e pareceriam a mesma imagem repetida).
   local escolhidas
-  escolhidas="$(printf '%s' "$lista" | python3 -c "
+  escolhidas="$(printf '%s' "$lista" | python3 -I -c "
 import json, sys
 from urllib.parse import quote
 try:
@@ -2778,6 +2831,49 @@ cmd_carrossel() {
   return "$MEOW_DIVERGENTE"
 }
 
+# FAVORITAR — 10/10/2026, P79 (QA de uso real da P77)
+#   A galeria tinha a aba «Favoritos» (a pasta `favoritos/` do topo deste
+#   arquivo: «guardadas por escolha dela») e nenhuma imagem oferecia o gesto: o
+#   menu da imagem era Usar, Dia, Noite, Tirar. Favoritar guarda uma CÓPIA da
+#   imagem de `ativos/` em `favoritos/` — a imagem segue girando, e a cópia
+#   sobrevive a um `banir` ou a uma semeadura nova. Desfavoritar tira só a
+#   cópia, pelo nome do arquivo, sem caminho (como o `desbanir`).
+cmd_favoritar() {
+  local img="${1:-}" nome
+  [ -f "$img" ] || { meow_erro "não achei ${img:-a imagem}"; return "$MEOW_ERRO"; }
+  nome="$(basename "$img")"
+  if [ -f "$BASE/favoritos/$nome" ] && cmp -s "$img" "$BASE/favoritos/$nome"; then
+    meow_ok "$nome já está nas favoritas"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "guardaria uma cópia de $nome nas favoritas"
+    return "$MEOW_DIVERGENTE"
+  fi
+  criar_pastas || return "$MEOW_ERRO"
+  cp -f -- "$img" "$BASE/favoritos/$nome" || return "$MEOW_ERRO"
+  meow_ok "favorita: $nome — a cópia está em favoritos/, e ela segue girando"
+  return "$MEOW_DIVERGENTE"
+}
+
+cmd_desfavoritar() {
+  local nome="${1:-}"
+  case "$nome" in
+    ''|*/*|.|..) meow_erro "o nome é o do arquivo, sem caminho"; return "$MEOW_ERRO" ;;
+  esac
+  if [ ! -f "$BASE/favoritos/$nome" ]; then
+    meow_ok "$nome não está nas favoritas — nada a fazer"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "tiraria $nome das favoritas (a imagem de ativos/ fica)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  rm -f -- "$BASE/favoritos/$nome" || return "$MEOW_ERRO"
+  meow_ok "$nome saiu das favoritas; a imagem de ativos/ fica"
+  return "$MEOW_DIVERGENTE"
+}
+
 case "${1:-aplicar}" in
   aplicar)   cmd_aplicar ;;
   proximo|próximo|avançar|avancar)  cmd_passo 1 ;;
@@ -2804,5 +2900,7 @@ case "${1:-aplicar}" in
   # é chamar este script direto.
   lado)      shift; cmd_lado "${1:-}" "${2:-}" ;;
   usar)      shift; cmd_usar "${1:-}" ;;
-  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|usar <img>|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
+  favoritar)    shift; cmd_favoritar "${1:-}" ;;
+  desfavoritar) shift; cmd_desfavoritar "${1:-}" ;;
+  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|usar <img>|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|favoritar <img>|desfavoritar <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
 esac

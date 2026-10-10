@@ -211,7 +211,12 @@ _NAO_E_AJUSTE = {
 # um programa de terceiro, com padrão embutido e override só para teste.
 # Nenhuma delas é escolha de tema, e pô-las na tela seria oferecer à pessoa uma
 # pergunta que ela não tem como responder.
-_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
+# CV_, PA_, AP_, AS_ e OT_ entraram em 09/10/2026, com a P76, e são da mesma
+# família do CP_: caminhos e comandos sobrescrevíveis para teste do pré-voo do
+# COSMIC (cosmic_prever.sh), do pós-apt (cosmic_pos_apt.sh), do pino dos
+# applets (applet_pino.sh), da guarda do `.deb` (atualizar_sistema.sh) e do
+# oráculo do tema (oraculo_tema.sh). Nenhuma é escolha de tema.
+_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
 
 _catalogo = {i["chave"] for i in servidor.ler_esquema()}
 _lidas = {}
@@ -228,7 +233,23 @@ for _f in _sp.run(["git", "ls-files"], cwd=raiz, capture_output=True,
         if not _INTERNAS.match(_k) and _k not in _NAO_E_AJUSTE:
             _lidas.setdefault(_k, set()).add(_f)
 
-_sem_cartao = sorted(k for k in _lidas if k not in _catalogo)
+# A CHAVE APOSENTADA NÃO TEM CARTÃO DE PROPÓSITO — P75, 09/10/2026. A
+#   `ICONES_BASE` saiu do exemplo por decisão (24/09, «Tirar a linha do conf»),
+#   e o `migrar_conf.py` tira a linha ativa de todo meow.conf (`APOSENTADAS`).
+#   Os leitores que ainda escrevem `${ICONES_BASE:-…}` só enxergam o padrão
+#   depois disso; trocá-los pela pergunta ao pack é a P74, item 1. A lista vem
+#   de lá, por caminho, como o servidor lê o `RENOMEADAS`: uma segunda lista
+#   aqui envelheceria. E vale o inverso: aposentada com cartão é falha.
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location("meow_migrar_conf", os.path.join(raiz, "scripts", "migrar_conf.py"))
+_migrar = _ilu.module_from_spec(_spec); _spec.loader.exec_module(_migrar)
+_aposentadas = set(getattr(_migrar, "APOSENTADAS", {}))
+_com_cartao = sorted(_aposentadas & _catalogo)
+if _com_cartao:
+    print("FALHOU: chave aposentada ainda tem cartão no painel: %s" % ", ".join(_com_cartao),
+          file=sys.stderr)
+    falhou = 1
+_sem_cartao = sorted(k for k in _lidas if k not in _catalogo and k not in _aposentadas)
 if _sem_cartao:
     print("FALHOU: script lê do meow.conf e o painel não oferece: %s"
           % ", ".join("%s (%s)" % (k, ", ".join(sorted(_lidas[k]))) for k in _sem_cartao),
@@ -386,6 +407,41 @@ if _erros9:
     falhou = 1
 else:
     print("ok: o ensaio lê as escolhas numa cópia e não toca no meow.conf dela")
+
+#   9e. E OS MAPAS DE ÍCONE DELA VÃO JUNTO COM A CÓPIA — QA da P77, 10/10/2026.
+#       O `pack.py` e o `icones_apps_arcticons.sh` acham o `icones-escolhidos.map`
+#       e o `icones-traco.map` pela pasta do `MEOW_CONF`; no ensaio ela é a da
+#       cópia, sem mapa, e o «Ver o que faria» anunciava apagar o ícone que o
+#       «Usar este ícone» acabara de pôr. O `iniciar` passa os dois endereços.
+import inspect as _inspect9
+_ini9 = _inspect9.getsource(servidor.iniciar)
+_falta9 = [v for v in ("MEOW_ICONES_ESCOLHAS", "MEOW_ICONES_TRACO") if v not in _ini9]
+if _falta9:
+    print("FALHOU: o ensaio do «Salvar e aplicar» não leva os mapas de ícone dela: "
+          + ", ".join(_falta9), file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: o ensaio lê os mapas de ícone de quem usa, e não os da pasta da cópia")
+
+#   9f. O «HÁ DIVERGÊNCIAS» TRAZ O BOTÃO DO CONSERTO — QA da P77, 10/10/2026.
+#       O doctor termina em «rode: meow doctor --consertar»; a gaveta oferece o
+#       botão da ação que conserta. Toda `conserta_com` aponta uma ação que
+#       existe e escreve, o trabalho a leva para a página, e a página a usa.
+_erros9f = []
+for _id9f, _a9f in servidor.ACOES.items():
+    _alvo9f = _a9f.get("conserta_com")
+    if _alvo9f and (_alvo9f not in servidor.ACOES or not servidor.escreve(servidor.ACOES[_alvo9f])):
+        _erros9f.append("%s conserta com %r, que não é ação que escreve" % (_id9f, _alvo9f))
+if servidor.ACOES.get("doctor", {}).get("conserta_com") != "doctor_consertar":
+    _erros9f.append("o «Conferir a máquina» não declara o «Consertar o que estiver fora»")
+_js9f = open(os.path.join(raiz, "app/pagina/app.js"), encoding="utf-8").read()
+if '"conserta_com"' not in _inspect9.getsource(servidor) or "oferecerConserto(TRABALHO.conserta)" not in _js9f:
+    _erros9f.append("o trabalho não leva a `conserta_com` à gaveta, ou a gaveta não a oferece")
+if _erros9f:
+    print("FALHOU: " + "; ".join(_erros9f), file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: o «há divergências» do conferir oferece o botão do conserto na gaveta")
 
 # --- 10. O TRABALHO LEVA A CONF, E O ÍCONE QUE NÃO VALE NÃO É OFERECIDO — 13/09 --
 #   Medido pela interface: «Usar este ícone» rodou o `icones_apps_arcticons.sh`
@@ -761,6 +817,24 @@ else:
 conf_com()
 if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinetar_primeira":
     erros.append("sem área fixada, «Gravar as áreas» não manda antes a «Criar a primeira área»")
+# O `.png` que é SVG (QA de uso real da P80) sai como SVG, e o leitor do
+# começo do arquivo não volta atrás: 4 KB hostis respondem em menos de 50 ms
+# (o alerta de ReDoS da revisão de segurança da P80).
+import time as _t
+svg_png = open(os.path.join(raiz, "packs", "dracula", "icones", "feitos-a-mao",
+                            "obsidian.png"), "rb").read()
+casos = ((svg_png, True), (b"\x89PNG\r\n\x1a\n", False),
+         (b'\xef\xbb\xbf<?xml version="1.0"?>\n<!-- a -->\n<!DOCTYPE svg>\n<svg xmlns="x"/>', True),
+         (b"<svgx/>", False), (b"<!--" * 1000, False), (b"<!--a-->" * 500 + b"<x", False))
+for dados, quer in casos:
+    t0 = _t.monotonic()
+    deu = servidor.comeca_como_svg(dados)
+    if deu != quer or _t.monotonic() - t0 > 0.05:
+        erros.append("comeca_como_svg(%r…) deu %s em %.0f ms" % (dados[:24], deu, (_t.monotonic() - t0) * 1000))
+# O espelho (QA de uso real da P80): sem área, «Criar a primeira área» acende;
+# com área fixada, ela se apaga e aponta «Gravar as áreas».
+if servidor.indisponivel("areas_alfinetar_primeira"):
+    erros.append("sem área fixada, «Criar a primeira área» nasceu apagada")
 pinos = os.path.join(cosmic, "com.system76.CosmicComp", "v1")
 os.makedirs(pinos)
 with open(os.path.join(pinos, "pinned_workspaces"), "w", encoding="utf-8") as fh:
@@ -769,6 +843,20 @@ with open(os.path.join(pinos, "pinned_workspaces"), "w", encoding="utf-8") as fh
              '        name: Some("Brinquedo"),\n    ),\n]\n')
 if servidor.indisponivel("areas_aplicar"):
     erros.append("com uma área fixada, «Gravar as áreas» continua apagado")
+if (servidor.indisponivel("areas_alfinetar_primeira") or {}).get("feito") != "areas_aplicar":
+    erros.append("com uma área fixada, «Criar a primeira área» segue acesa, e só podia não fazer nada")
+# E a pendência velha da falta de área some da lista (o «Resolver» dela só
+# ouviria a recusa); a outra pendência, de conserto que ainda vale, fica.
+os.makedirs(os.path.dirname(servidor.PENDENCIAS), exist_ok=True)
+with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
+    fh.write("areas-sem-alfinete\tareas\tSem área fixada\tmeow areas alfinetar-primeira\t2026-10-10T00:00:00-03:00\n"
+             "starship-ausente\tprompt\tSem starship\tmeow prompt starship\t2026-10-10T00:00:00-03:00\n")
+vistas = [p["id"] for p in servidor.pendencias()]
+if "areas-sem-alfinete" in vistas:
+    erros.append("com área fixada, a pendência «areas-sem-alfinete» continua na lista: %r" % vistas)
+if "starship-ausente" not in vistas:
+    erros.append("a pendência que ainda vale sumiu junto: %r" % vistas)
+os.remove(servidor.PENDENCIAS)
 
 # 12d. o teto do raio
 dock = os.path.join(cosmic, "com.system76.CosmicPanel.Dock", "v1")

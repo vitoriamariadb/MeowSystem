@@ -185,6 +185,14 @@ patches/ — o que este diretório é, e as CINCO armadilhas que custam caro.
         minutos — muito mais barato que um gerenciador de arquivos de uma semana
         atrás vencendo o que o apt acabou de instalar.
 
+    UM ARQUIVO POR GERAÇÃO (09/10/2026, P76). O `cosmic-files` 1.10 reescreveu
+    o menu da área de trabalho (`menu_item(...)` sem `.into()`, uma chamada por
+    bloco), e o patch do 1.9 não entra ali nem com fuzz 2. O rebase mora em
+    `cosmic-files-wallpaper-menu.patch`; o do 1.8/1.9 ficou como
+    `cosmic-files-wallpaper-menu-1.9.patch`. O `files_menu.sh build` tenta os
+    dois, do mais novo para o mais velho, com `--dry-run -F0`, e aplica o
+    primeiro que encosta limpo.
+
     O ALARME FALSO, para não se repetir: o `scripts/compositor_patches.sh`
     comparava TODO `.patch` deste diretório contra a série da Aurora — que é a
     série do cosmic-comp — e dizia do arquivo novo, com cara de certo, "está no

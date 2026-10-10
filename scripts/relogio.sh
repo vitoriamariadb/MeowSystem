@@ -115,7 +115,7 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # VAZIO = NÃO TOCA. É o contrato inteiro deste arquivo; ver o cabeçalho.
 RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}"
 
-RELOGIO_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicAppletTime/v1"
+RELOGIO_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicAppletTime/$(meow_cosmic_v com.system76.CosmicAppletTime)"
 RELOGIO_ALVO="$RELOGIO_BASE/show_seconds"
 RELOGIO_BINARIO="/usr/bin/cosmic-applet-time"
 

@@ -137,6 +137,17 @@ MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1
 LEITURA_APPLET="${LEITURA_APPLET:-sim}"
 COMPILAR="${LEITURA_COMPILAR:-0}"
 
+# O PINO ANDA COM O PAINEL — 09/10/2026, P76
+#   O `rev` do libcosmic no `Cargo.toml` daqui é o conhecido-bom (1f6dc99). O
+#   applet passa a compilar contra o libcosmic do cosmic-panel INSTALADO, numa
+#   cópia da receita com o `rev` trocado (`$ESTADO/receita-painel`); se não
+#   compilar ali, fica registrado e o build volta ao pino. A regra inteira está
+#   no `scripts/applet_pino.sh`. O carimbo ganha a linha `libcosmic` só quando
+#   o alvo não é o pino — assim um carimbo antigo, do pino, continua batendo.
+. "$RAIZ/scripts/applet_pino.sh"
+PINO_REV="$(ap_rev_do_lock "$TRAVA")"
+_alvo_rev() { ap_alvo leitura "$PINO_REV"; }
+
 CONFERIR=0; REVERTER=0
 case "${1:-}" in
   --conferir) CONFERIR=1 ;;
@@ -145,6 +156,8 @@ case "${1:-}" in
   *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar|--reverter]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && [ "$REVERTER" = 0 ] && CONFERIR=1
+# P76: conferir é só leitura também para a regra do pino (`applet_pino.sh`).
+[ "$CONFERIR" = 1 ] && AP_SO_LER=1
 
 _sha() { sha256sum -- "$1" 2>/dev/null | cut -d' ' -f1; }
 
@@ -209,9 +222,11 @@ _sha_arte() {
 }
 
 _carimbo_vivo() {
+  local alvo; alvo="$(_alvo_rev)"
   printf 'fonte %s\nreceita %s\ntrava %s\narte %s\nbinario %s\nrustc %s\n' \
     "$(_sha "$FONTE")" "$(_sha "$MANIFESTO")" "$(_sha "$TRAVA")" \
     "$(_sha_arte)" "$(_sha "$BINARIO")" "$(_rustc_versao)"
+  [ "$alvo" = "$PINO_REV" ] || printf 'libcosmic %s\n' "$alvo"
 }
 
 # Compara campo a campo. Campo VIVO vazio é pulado (é o caso do rustc no seco);
@@ -366,10 +381,35 @@ _sem_cargo() {
   return 0
 }
 
+# --- o rust, quando falta ---------------------------------------------------
+# O rustup na casa de quem usa (`~/.cargo`), sem sudo e sem mexer no PATH do
+# shell dela: é o caminho que o próprio projeto do rust recomenda, e o cargo
+# do apt costuma ser velho demais para o libcosmic. Baixa da internet — por
+# isso só no conserto e no instalador, que já declaram rede (decisão 7).
+_garantir_cargo() {
+  meow_tem cargo && return 0
+  if [ -x "$HOME/.cargo/bin/cargo" ]; then PATH="$HOME/.cargo/bin:$PATH"; return 0; fi
+  meow_seco && { meow_muda "instalaria o rust pelo rustup, em ~/.cargo (baixa da internet)"; return 1; }
+  meow_tem curl || return 1
+  local instalador
+  instalador="$(mktemp)" || return 1
+  meow_info "instalando o rust pelo rustup, em ~/.cargo (baixa da internet)"
+  if curl --proto '=https' --tlsv1.2 -sSf --max-time 120 https://sh.rustup.rs -o "$instalador" \
+     && sh "$instalador" -y --profile minimal --no-modify-path >/dev/null 2>&1; then
+    rm -f "$instalador"
+    PATH="$HOME/.cargo/bin:$PATH"
+    meow_tem cargo
+    return $?
+  fi
+  rm -f "$instalador"
+  return 1
+}
+
 # --- aplicação ---------------------------------------------------------------
 _aplicar() {
   # Conferir ANTES: é o que garante que a segunda passagem não chama o cargo.
-  _conferir >/dev/null 2>&1 && { _conferir; return $?; }
+  # [P79: com o applet no lugar, a pendência `leitura-applet` sai da Início.]
+  _conferir >/dev/null 2>&1 && { meow_pendencia_resolvida leitura-applet; _conferir; return $?; }
 
   # E, antes da trava, tentar fechar sem o cargo o que não precisa dele.
   if _sem_cargo; then
@@ -379,9 +419,11 @@ _aplicar() {
   fi
 
   if [ "$COMPILAR" != "1" ]; then
-    meow_pula "o applet do modo de leitura precisa ser compilado, e compilar não é do doctor"
-    meow_info "  rode: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
-    meow_info "  (o ./install.sh já exporta essa chave sozinho)"
+    # [P79, item 5: «rode: LEITURA_COMPILAR=1 …» era a tela mandando digitar.
+    #   Quem compila é o conserto do doctor (`fix_leiturabin`) e o instalador;
+    #   a pendência `leitura-applet` põe o botão do conserto no painel.]
+    meow_pendencia_acionavel leitura-applet \
+      "O applet do modo de leitura precisa ser compilado" "meow doctor --consertar"
     # 3, e NÃO 1. No contrato deste projeto 1 é "divergia e FOI CONSERTADO", e
     # aqui nada foi consertado — falta a permissão de compilar. Com 1, o resumo
     # do install.sh diria `mexeu: leitura_build` em toda execução sem um byte
@@ -389,9 +431,17 @@ _aplicar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  if ! meow_tem cargo; then
-    meow_pula "sem cargo nesta máquina — o applet do modo de leitura fica de fora"
-    meow_info "  instale com rustup e rode o install.sh de novo"
+  # [O CONSERTO INSTALA O RUST — 10/10/2026, P80 (item 8). Sem cargo, a saída
+  #   terminava em «instale com rustup e rode o install.sh de novo»: a tela
+  #   mandando fazer o que o conserto pode fazer. Quem chega aqui é o conserto
+  #   do doctor ou o instalador (`LEITURA_COMPILAR=1`), e os dois já baixam e
+  #   compilam (decisão 7: o reparo baixa, com o selo «baixa da internet»).
+  #   Sem rede, fica a pendência com o botão do conserto, para tentar de novo.]
+  if ! _garantir_cargo; then
+    meow_pula "sem cargo, e o rust não pôde ser instalado agora — o applet do modo de leitura fica de fora"
+    meow_pendencia_acionavel leitura-applet \
+      "O applet do modo de leitura precisa do rust, e a instalação dele não respondeu" \
+      "meow doctor --consertar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -399,7 +449,26 @@ _aplicar() {
   mkdir -p "$ESTADO" || { meow_erro "não consegui criar $ESTADO"; return "$MEOW_ERRO"; }
 
   meow_info "compilando o applet do modo de leitura (build frio de libcosmic: dezenas de minutos)"
-  if ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
+  # PRIMEIRO O LIBCOSMIC DO PAINEL, quando ele não é o pino: a receita é
+  # copiada, o `rev` trocado, e o `Cargo.lock` da cópia se refaz (sem
+  # `--locked`, de propósito: ele é que precisa andar). Se não compilar, a
+  # revisão fica registrada e segue o build de sempre, no pino.
+  local alvo_rev compilou=0
+  alvo_rev="$(_alvo_rev)"
+  if [ "$alvo_rev" != "$PINO_REV" ]; then
+    local copia="$ESTADO/receita-painel"
+    rm -rf "$copia" && mkdir -p "$copia" && cp -a "$RECEITA"/. "$copia"/ \
+      && sed -i "s/$PINO_REV/$alvo_rev/" "$copia/Cargo.toml"
+    meow_info "compilando contra o libcosmic do painel instalado (${alvo_rev:0:7})"
+    if CARGO_TARGET_DIR="$ALVO" cargo build --release \
+         --manifest-path "$copia/Cargo.toml" >/dev/null 2>&1; then
+      compilou=1
+    else
+      ap_falhou leitura "$alvo_rev"
+      meow_aviso "o applet não compila no libcosmic ${alvo_rev:0:7} do painel — volta ao pino ${PINO_REV:0:7}"
+    fi
+  fi
+  if [ "$compilou" = 0 ] && ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
         --manifest-path "$MANIFESTO" >/dev/null 2>&1; then
     meow_erro "o cargo falhou — veja o motivo com:"
     meow_info "  CARGO_TARGET_DIR=$ALVO cargo build --release --locked --manifest-path $MANIFESTO"
@@ -424,9 +493,12 @@ _aplicar() {
     2) meow_erro "não consegui escrever $SOMBRA"; return "$MEOW_ERRO" ;;
   esac
 
+  # A BASE ANTES DO CARIMBO: o carimbo pergunta o alvo, e o alvo lê a base.
+  if [ "$compilou" = 1 ]; then ap_compilou leitura "$alvo_rev"; else ap_compilou leitura "$PINO_REV"; fi
   _carimbo_vivo > "$CARIMBO" || { meow_erro "não consegui gravar o carimbo"; return "$MEOW_ERRO"; }
 
   meow_ok "applet do modo de leitura compilado e instalado ($(_sha "$BINARIO" | cut -c1-8))"
+  meow_pendencia_resolvida leitura-applet
   if ! _asa_cita; then
     meow_aviso "falta a última peça, e ela é à mão: acrescente \"$APP_ID\" a"
     meow_aviso "  $ASA"
@@ -488,8 +560,12 @@ main() {
     if [ -f "$SOMBRA" ] || [ -x "$BINARIO" ]; then
       meow_muda "LEITURA_APPLET=\"$LEITURA_APPLET\" no meow.conf, mas o applet continua instalado"
       [ "$CONFERIR" = 1 ] && return "$MEOW_DIVERGENTE"
+      meow_pendencia_resolvida leitura-applet
       _reverter; return $?
     fi
+    # [Conferência da P79: sem applet pedido, a pendência `leitura-applet` de
+    #  uma passagem anterior não tem mais o que pedir, e sai da Início.]
+    [ "$CONFERIR" = 1 ] || meow_pendencia_resolvida leitura-applet
     meow_pula "LEITURA_APPLET=\"$LEITURA_APPLET\" no meow.conf — sem applet do modo de leitura"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
@@ -502,12 +578,13 @@ main() {
     # mexer naquela linha.
     if [ "$CONFERIR" = 1 ] || meow_seco; then
       meow_muda "a sombra do applet de leitura existe e o binário não — a topbar fica com um slot vazio"
-      meow_info "  conserto: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
       return "$MEOW_DIVERGENTE"
     fi
     rm -f "$SOMBRA"
     meow_aviso "a sombra estava órfã e foi removida — a topbar volta sem o applet, em vez de com um buraco"
-    meow_info "  para tê-lo de volta: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
+    meow_pendencia_acionavel leitura-applet \
+      "O applet do modo de leitura saiu da topbar porque o binário faltava, e precisa ser compilado" \
+      "meow doctor --consertar"
     return "$MEOW_DIVERGENTE"
   fi
 

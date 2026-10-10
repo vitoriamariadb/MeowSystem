@@ -730,7 +730,7 @@ meow_flavor() {
     printf '%s' "$FLAVOR"
     return 0
   fi
-  padrao="$(python3 - "$MEOW_RAIZ/scripts" "${PACK:-}" <<'PYFIM' 2>/dev/null
+  padrao="$(python3 -I - "$MEOW_RAIZ/scripts" "${PACK:-}" <<'PYFIM' 2>/dev/null
 import sys
 sys.path.insert(0, sys.argv[1])
 import pack
@@ -742,6 +742,43 @@ PYFIM
     return 1
   fi
   printf '%s' "$padrao"
+}
+
+# O FLAVOR DO LADO QUE A TELA VESTE — 09/10/2026, P74 item 10 (I10)
+#   O `meow_flavor` diz QUAL escuro (ou claro) a pessoa escolheu; o MODO diz
+#   qual LADO a tela veste. Com `MODO="claro"` o COSMIC veste o claro do pack
+#   (o Alucard, com o Dracula), e o traço do dock e as pastas continuavam
+#   pintados com a paleta do escuro — traço quase branco sobre fundo claro
+#   (P69 de 26/09, nunca feito). Esta função devolve o flavor do lado vestido:
+#   o par do outro lado quando o MODO pede o lado que o FLAVOR não é, pela
+#   regra que monta a captura (o `par_do_outro_lado` do
+#   scripts/derivar_flavor.py, a mesma do `_flavor_no_modo` do painel). Com
+#   `MODO="auto"` o relógio alterna e um tema de ícones não acompanha sem ser
+#   refeito: vale o FLAVOR, como antes. Sem resposta do Python, o FLAVOR.
+meow_flavor_vestido() {
+  local fl
+  fl="$(meow_flavor)" || return 1
+  # Sem MODO no ambiente (um script chamado à mão, sem o meow.conf), não há
+  # lado a escolher: vale o FLAVOR, como antes desta função.
+  case "${MODO:-}" in
+    claro|escuro) ;;
+    *) printf '%s' "$fl"; return 0 ;;
+  esac
+  python3 -I - "$MEOW_RAIZ/scripts" "$fl" "$MODO" "$(meow_paleta)" <<'PYFIM' 2>/dev/null || printf '%s' "$fl"
+import json, sys
+sys.path.insert(0, sys.argv[1])
+import derivar_flavor
+fl, modo = sys.argv[2], sys.argv[3]
+with open(sys.argv[4], encoding="utf-8") as fh:
+    paleta = json.load(fh)
+claros = [c for c in (paleta.get("claros") or []) if c in (paleta.get("flavors") or {})]
+par = derivar_flavor.par_do_outro_lado(fl, paleta) if (modo == "claro") != (fl in claros) else fl
+# O par é uma chave da paleta do pack, e um pack importado é dado não
+# confiável: o nome vira caminho (as pastas, o traço), então só da forma que o
+# conf aceita (conferência da P74, alerta de segurança de 09/10/2026).
+import re
+print(par if isinstance(par, str) and re.fullmatch(r"[a-z0-9_]+", par) else fl)
+PYFIM
 }
 
 # O MOLDE DAS PASTAS, COMPLETADO PELO FLAVOR QUE VALE — 25/09/2026, sprint P66
@@ -785,7 +822,7 @@ meow_pastas_do_molde() {
 # Sem resposta do pack.py, a lista sai vazia — e vazia quer dizer "pack
 #   nenhum", que não desmarca nem troca nada em aplicativo nenhum.
 meow_packs_validos() {
-  python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+  python3 -I - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
 import os, sys
 sys.path.insert(0, sys.argv[1])
 import pack
@@ -815,15 +852,80 @@ PYFIM
 #   meow_pack_arquivo icones/apps.map  assets/icones/apps-dracula.map
 # devolve o primeiro que existir, nessa ordem. É o que permite migrar um acervo
 # para dentro de um pack sem quebrar quem ainda não migrou.
+#
+# [P78, 09/10/2026: o `$dir/$no_pack` era montado à mão e devolvido cru. Um
+#   `icones/pastas` que fosse symlink para fora do pack (um `git clone` traz
+#   link) punha a pasta de fora como acervo, e o `icones_pastas.sh` copiava de
+#   lá para o tema. Agora o caminho passa pelo `meow_dentro`, e o que volta é a
+#   forma que ele conferiu.]
 meow_pack_arquivo() {
-  local no_pack="$1" no_nucleo="${2:-}" dir
+  local no_pack="$1" no_nucleo="${2:-}" dir real
   dir="$(meow_pack_dir)"
-  if [ -n "$dir" ] && [ -e "$dir/$no_pack" ]; then
-    printf '%s' "$dir/$no_pack"
+  if [ -n "$dir" ] && [ -e "$dir/$no_pack" ] && real="$(meow_dentro "$dir" "$no_pack")"; then
+    printf '%s' "$real"
     return 0
   fi
   [ -n "$no_nucleo" ] && [ -e "$MEOW_RAIZ/$no_nucleo" ] && printf '%s' "$MEOW_RAIZ/$no_nucleo"
   return 0
+}
+
+# --- A REGRA ÚNICA DO DADO DE PACK, EM SHELL — P78, 09/10/2026 ---------------
+#
+# Um pack pode vir de terceiros (`meow pack importar`, ou um `git clone` na raiz
+# da pessoa, que traz symlink), e o que vem dele é dado não confiável: campo do
+# pack.json, linha de mapa, arquivo de pasta de desenho. A regra é a do
+# `_dentro`/`nome_de_destino` do scripts/pack.py ("A REGRA ÚNICA", lá), com a
+# mesma conta, para o lado do shell — que monta caminho com o que leu de um mapa
+# e não pode pagar uma partida de Python por linha.
+#
+# `meow_dentro <raiz> <caminho>`
+#   Imprime o `realpath` do caminho (relativo à raiz, ou absoluto) e sai 0 só se
+#   ele EXISTIR e cair dentro do `realpath` da raiz. O `realpath` segue todo
+#   symlink, do meio e do fim: um arquivo que é link para fora, uma pasta do
+#   meio que é link para fora e um `../` saem 1, sem imprimir nada.
+#   QUEM CHAMA USA O QUE ELE IMPRIME, e não o caminho que entrou. Conferir uma
+#   forma e abrir outra é o defeito que os alertas da onda 1 acharam.
+#
+# `meow_nome_seguro <nome>`
+#   0 quando o nome serve de nome de arquivo do lado de cá (`<nome>.svg` no
+#   tema): só `[A-Za-z0-9._+-]`, sem `..`. É o conjunto fechado do
+#   `nome_de_destino` do pack.py.
+#
+# A linha que falha é PULADA E CONTADA por quem chama, sem abortar o resto: um
+# pack com uma linha torta continua vestindo o que tem de bom.
+meow_dentro() {
+  local raiz cheio real
+  raiz="$(realpath -e -- "$1" 2>/dev/null)" || return 1
+  case "$2" in /*) cheio="$2" ;; *) cheio="$1/$2" ;; esac
+  real="$(realpath -e -- "$cheio" 2>/dev/null)" || return 1
+  case "$real" in "$raiz"/*) printf '%s' "$real"; return 0 ;; esac
+  return 1
+}
+
+meow_nome_seguro() {
+  case "$1" in ''|.|*..*|*[!A-Za-z0-9._+-]*) return 1 ;; esac
+  return 0
+}
+
+# `meow_texto_seguro <texto…>` — conferência da P78, 10/10/2026
+#   Imprime o texto pronto para o terminal: todo caractere de controle vira `?`.
+#   É a porta de saída de texto que veio de pack, mapa, `.meowpack` ou nome de
+#   arquivo e vai para um aviso — nome de pack, linha pulada, pasta da raiz. Um
+#   `\e]52;c;…\a` cru escreve na área de transferência de quem lê; `\e[2J`
+#   apaga a tela; `\e]0;…` troca o título.
+#   A CONTA É POR LETRA, E NÃO POR BYTE: o texto é lido como UTF-8, todo byte
+#   que não forma UTF-8 vira `?` (o `\x9b` solto, o CSI de 8 bits, e os outros
+#   C1 crus — `\x90` DCS, `\x9d` OSC), e só então saem C0 (a quebra de linha
+#   inclusive), DEL e C1 por ponto de código (U+0080–U+009F). Uma regex em bytes
+#   (a primeira versão, com `sed`) deixava passar `\x9b\x9b` e `\xff\x9b`, e
+#   não tinha como distinguir o `\x9b` solto do que é metade do `ě` (`\xc4\x9b`),
+#   que tem de sobreviver. O argv chega ao Python com `surrogateescape`; voltar
+#   aos bytes e decodificar com `replace` é o que separa um caso do outro.
+#   O pack.py tem a gêmea na entrada: o `validar` recusa texto com controle.
+meow_texto_seguro() {
+  python3 -I -c 'import re, sys
+t = sys.argv[1].encode("utf-8", "surrogateescape").decode("utf-8", "replace")
+sys.stdout.write(re.sub("[\x00-\x1f\x7f-\x9f\ufffd]", "?", t))' "$*"
 }
 
 # --- A CAPTURA DE TEMA: UMA PERGUNTA, UM LUGAR QUE RESPONDE -----------------
@@ -991,6 +1093,52 @@ meow_ponte_python() {
 # e reescrevê-la apagaria o porquê.
 meow_cosmic_dir() {
   printf '%s' "${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
+}
+
+# O ESQUEMA DE UM NAMESPACE DO COSMIC — 09/10/2026, P76
+#   O `v1` estava escrito à mão em cada escritor. O COSMIC migra esquema
+#   (medido em 09/10/2026 nesta máquina: `io.github.cosmic_utils.camera` tem
+#   `v20` e `v21`, o `clipboard-manager` tem `v2` e `v3`), e um escritor
+#   cravado em `v1` continua gravando, verde no doctor, numa pasta que ninguém
+#   lê mais. A verdade é o pacote: o maior `v<n>` em `/usr/share/cosmic/<ns>`.
+#   Namespace que o pacote não traz (o do terminal, o do relógio) fica em `v1`.
+#   O contrato inteiro está em `contratos/cosmic.tsv`.
+meow_cosmic_v() {
+  local n
+  n="$(ls -1 "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/$1" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1)"
+  printf 'v%s' "${n:-1}"
+}
+
+# A REVISÃO DO LIBCOSMIC QUE UM PACOTE DO COSMIC PINA — 09/10/2026, P76
+#   O sufixo do `Version` do pacote do Pop (`…~24.04~58aeb65`) é a revisão do
+#   upstream, e o `Cargo.lock` dela no GitHub diz o libcosmic que o pacote
+#   compilou. É por ela que o pré-voo, o oráculo do tema e os applets acompanham
+#   o COSMIC instalado (ou o candidato). Devolve o SHA completo; sem rede, ou
+#   sem `Cargo.lock`, sai 1 e não inventa. `MEOW_SEM_REDE=1` corta a pergunta.
+#   (Decisão aberta da pesquisa, §6.1: GitHub primeiro; o fonte do apt como
+#   reserva fica para quando o GitHub faltar de verdade.)
+meow_libcosmic_de() { # $1 repositório (cosmic-settings, cosmic-panel) $2 versão do pacote
+  local sha="${2##*~}" rev
+  [ "${MEOW_SEM_REDE:-0}" = "1" ] && return 1
+  rev="$(curl -sfL --max-time 20 "https://raw.githubusercontent.com/pop-os/$1/$sha/Cargo.lock" 2>/dev/null |
+    awk '/^name = "libcosmic"$/{f=1} f && /^source = /{sub(/.*#/,""); sub(/"$/,""); print; exit}')"
+  [ -n "$rev" ] || return 1
+  printf '%s' "$rev"
+}
+
+# O `cosmic-comp` QUE O PRÓXIMO LOGIN VAI RODAR — 09/10/2026, P76
+#   Com o shim do compositor ligado (`meow compositor ativar`), o binário
+#   patchado mora em `~/.local/libexec/meow/cosmic-comp/<versão>/`, e quem
+#   decide entre ele e o de fábrica é o próprio shim. Perguntar a ele
+#   (`MEOW_SHIM_SO_DIZER=1`) mantém a regra num lugar só. Sem shim, é o de
+#   `/usr/bin`, como sempre foi — e os verificadores que liam marcador lá
+#   continuam lendo o mesmo arquivo.
+meow_cosmic_comp_disco() {
+  local shim="$HOME/.local/bin/cosmic-comp"
+  if grep -qs -- MEOW-COSMIC-COMP-SHIM "$shim"; then
+    MEOW_SHIM_SO_DIZER=1 bash "$shim" 2>/dev/null && return 0
+  fi
+  printf '%s\n' /usr/bin/cosmic-comp
 }
 
 # --- TRAVA 1: territórios proibidos ----------------------------------------
@@ -1649,10 +1797,15 @@ meow_pendencia_acionavel() {
   #   `ACAO_DA_PENDENCIA` do servidor não ganha «Resolver» em lugar nenhum.
   #   Agora quem nomeia é o `meow_onde_no_painel`, e sem botão a frase não
   #   promete botão.
+  # [O COMANDO SAI QUANDO HÁ BOTÃO — 10/10/2026, P80 (item 8). A linha era
+  #   «resolve: <comando>  (ou, no painel, «X»)»: dentro da gaveta do painel,
+  #   a tela mandando digitar o que um botão faz. Com botão, a linha diz só o
+  #   botão; o comando fica no TSV, que é de onde o botão sabe o que rodar, e
+  #   na linha só quando não há botão nenhum (um terminal sem o painel).]
   if [ -n "$comando" ]; then
     local onde; onde="$(meow_onde_no_painel "$id")"
     if [ -n "$onde" ]; then
-      meow_info "resolve: $comando  (ou, no painel, $onde)"
+      meow_info "resolve: no painel, $onde"
     else
       meow_info "resolve: $comando"
     fi
@@ -1795,21 +1948,57 @@ meow_lancador_reler() {
 #   0  releu (ou é ensaio da CLI, que não relê nada de propósito)
 #   1  o painel recusou reciclar — o menu releu, a dock fica para o login
 #   3  este HOME não é o da sessão: nada foi tocado
+#   4  dentro de uma passada do instalador: fica para o fim dela (abaixo)
+#
+# UM RELER POR PASSADA — 10/10/2026, P80 (item 7). O `icones_apps_arcticons.sh`,
+#   o `icones_apps_dracula.sh` e o `icones_resgatados.sh` chamam esta função no
+#   fim do passo deles, e uma instalação que mudava os três reciclava o
+#   `cosmic-panel` três vezes seguidas — um reciclo do painel foi o gatilho da
+#   faixa verde de 09/10 (Migração-OS/levas/leva-08-gpu-regressao.md). Agora o
+#   `install.sh` arma `MEOW_RELER_NO_FIM` (um arquivo) antes do laço das
+#   passagens: com ele no ambiente, o pedido só anota quem pediu e sai 4, e o
+#   `meow_tela_reler_no_fim`, depois do laço, relê UMA vez. Fora do instalador
+#   (o «Usar este ícone» do painel roda o passo sozinho) nada muda: relê na
+#   hora. E quem pediu vai junto (`MEOW_QUEM_RECICLA`), para o `painel.sh
+#   reciclar` registrar no meow.log.
 meow_tela_reler() {
   meow_seco && return 0
-  local lar rc=0
+  local lar rc=0 quem="${MEOW_QUEM_RECICLA:-$(basename "$0")}"
+  if [ -n "${MEOW_RELER_NO_FIM:-}" ] && printf '%s\n' "$quem" >> "$MEOW_RELER_NO_FIM" 2>/dev/null; then
+    meow_debug "a tela relê uma vez, no fim da passada (pedido de $quem)"
+    return 4
+  fi
   lar="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
   if [ -z "$lar" ] || ! [ "$HOME" -ef "$lar" ]; then
     meow_debug "HOME ($HOME) não é o da conta — a tela não é desta sessão, nada a reler"
     return 3
   fi
   if [ -x "$MEOW_RAIZ/scripts/painel.sh" ] && pgrep -x cosmic-panel >/dev/null 2>&1; then
-    if ! "$MEOW_RAIZ/scripts/painel.sh" reciclar; then
+    if ! MEOW_QUEM_RECICLA="$quem" "$MEOW_RAIZ/scripts/painel.sh" reciclar; then
       meow_aviso "o painel recusou reciclar agora — na dock, o desenho novo aparece no próximo login"
       rc=1
     fi
   fi
   meow_lancador_reler
+  return "$rc"
+}
+
+# O fim da passada: relê uma vez, se algum passo pediu, e desarma a marca —
+# depois do laço, um pedido volta a reler na hora. Diz o que aconteceu, uma
+# linha, no lugar das três que os passos diziam.
+meow_tela_reler_no_fim() {
+  local marca="${MEOW_RELER_NO_FIM:-}" quem rc=0
+  [ -n "$marca" ] || return 0
+  unset MEOW_RELER_NO_FIM
+  if [ -s "$marca" ]; then
+    quem="$(sort -u "$marca" | paste -sd, -)"
+    MEOW_QUEM_RECICLA="fim da passada ($quem)" meow_tela_reler; rc=$?
+    case "$rc" in
+      0) meow_ok "a dock e o menu releram o que mudou ($quem)" ;;
+      3) meow_info "fora da sessão gráfica: o que mudou aparece na dock e no menu no próximo login" ;;
+    esac
+  fi
+  rm -f "$marca"
   return "$rc"
 }
 

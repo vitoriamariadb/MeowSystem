@@ -18,3 +18,15 @@ packs/*/temas/capturados/** byte-exact
 # tira o arquivo marcado de TODAS as varreduras, não só da de whitespace. Um
 # metadado escrito por nós passa pelas mesmas que o resto do nosso texto.
 **/temas/capturados/*/captura.txt -byte-exact
+
+# OS TEMAS BINÁRIOS DE APLICATIVO — 09/10/2026, P74. O `.qbtheme` é um `.rcc` do
+# Qt, pinado pelo sha256 no pack.json, e o auto-fix de whitespace do pre-commit
+# acrescentou um `\n` ao `dracula.qbtheme` no primeiro commit (5.055 bytes
+# viraram 5.056, e o sha256 deixou de bater com o pino). Byte a byte, como as
+# capturas.
+packs/*/apps/*.qbtheme byte-exact
+# Os papéis de parede do pack (P74): SVG copiados do repositório de origem e
+# conferidos pelo sha256 do PROCEDENCIA.md — byte a byte pelo mesmo motivo.
+packs/*/wallpapers/** byte-exact
+# Os sons do pack (P74): `.oga` binários, conferidos pelo sha256 do PROCEDENCIA.md.
+packs/*/sons/** byte-exact

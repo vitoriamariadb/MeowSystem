@@ -104,8 +104,18 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
-BASE="${ICONES_BASE:-Papirus-Dark}"
-BASE_DIR="/usr/share/icons/$BASE"
+# A ÁRVORE DE ONDE AS PASTAS COPIAM DESENHO É PERGUNTA AO `pack.py` — P74 item 1
+#   Era `/usr/share/icons/$ICONES_BASE`, a chave crua: com o conf dizendo
+#   `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, em ~/.local/share)
+#   a etapa de pastas se pulava por sete passadas do doctor (I1/I2 do 01-regressoes.md). A
+#   regra de quem vence mora no `_base_escolhida`, e o `base-apelidos` diz o
+#   tema (o escolhido à mão, ou o Papirus-Dark) e onde ele está no disco.
+_base="$(ICONES_BASE="${ICONES_BASE:-}" NOME_TEMA_ICONES="$TEMA_NOME" \
+           python3 "$RAIZ/scripts/pack.py" base-apelidos 2>/dev/null)"
+BASE="$(printf '%s\n' "$_base" | sed -n 's/^tema=//p')"
+[ -n "$BASE" ] || BASE="Papirus-Dark"
+BASE_DIR="$(printf '%s\n' "$_base" | sed -n 's/^dir=//p')"
+unset _base
 COR="${ICONES_PASTAS:-cat-mocha-mauve}"
 FONTE="${MEOW_CAT_FOLDERS:-$RAIZ/assets/icones/upstream/papirus-folders}"
 
@@ -210,7 +220,7 @@ ORIGEM_DERIVADA=""
 MOTIVO_DERIVACAO=""
 
 _derivar_py() {
-  python3 - "$@" <<'PY'
+  python3 -I - "$@" <<'PY'
 import json, os, re, sys
 (src, origem, pedida, destino, pal_origem, fl_origem,
  pal_pedida, fl_pedido, acento, papel) = sys.argv[1:11]
@@ -353,6 +363,19 @@ derivar_variante() {
 #   que a guarda daqui fazia.]
 COR="$(ICONES_PASTAS="$COR"; meow_pastas_do_molde; printf '%s' "$ICONES_PASTAS")"
 
+# A COR QUE ACOMPANHA O TEMA ACOMPANHA O LADO VESTIDO — 09/10/2026, P74 item 10
+#   Com `MODO="claro"` a tela veste o claro do pack, e as pastas que «acompanham
+#   o tema» (`cat-<FLAVOR>-<acento>`, o molde de fábrica) saíam na variante do
+#   escuro. Só a cor que é a do FLAVOR troca para o flavor do lado vestido (o
+#   `meow_flavor_vestido` do lib/comum.sh); uma escolhida à mão fica.
+_fl="$(meow_flavor 2>/dev/null)"
+_vestido="$(meow_flavor_vestido 2>/dev/null)"
+case "$COR" in
+  "cat-$_fl-"?*) [ -n "$_fl" ] && [ -n "$_vestido" ] && [ "$_vestido" != "$_fl" ] \
+                   && COR="cat-$_vestido-${COR#"cat-$_fl-"}" ;;
+esac
+unset _fl _vestido
+
 if [ -d "$FONTE/src/64x64/places" ] && ! _cor_de_pasta_existe "$COR"; then
   _cor_pedida="$COR"
   case "$COR" in
@@ -389,7 +412,7 @@ fi
 #   são os quatro hex de sempre, e a lixeira dele não muda um byte. Sem python3,
 #   ou com um flavor que a paleta não tem, fica o do Mocha, como era.
 if [ -z "$DERIVADA" ] && meow_tem python3; then
-  _papel="$(python3 - "$(meow_pack_padrao_dir)/paleta.json" "${COR#cat-}" "$SLOTS_DO_PAPEL" <<'PY' 2>/dev/null
+  _papel="$(python3 -I - "$(meow_pack_padrao_dir)/paleta.json" "${COR#cat-}" "$SLOTS_DO_PAPEL" <<'PY' 2>/dev/null
 import json, sys
 arq, variante, slots = sys.argv[1:4]
 with open(arq, encoding="utf-8") as fh:
@@ -403,7 +426,18 @@ fi
 TAMANHOS=(22x22 24x24 32x32 48x48 64x64)
 
 # --- os nomes que este script CEDE (ver o cabeçalho) -------------------------
-MAPA_PASTAS="$RAIZ/assets/icones/pastas.map"
+# O MAPA É O MESMO DO `icones_pastas.sh`, pela mesma porta — P74 item 6 (I7).
+#   Era o `assets/icones/pastas.map` cravado. Quando o Dracula passou a trazer o
+#   mapa dele (com `folder`, `user-home` e `user-desktop`), o `icones_pastas.sh`
+#   punha os três em `scalable/places` e este script, lendo o mapa do motor,
+#   continuava criando os três apelidos nos tamanhos fixos — que vencem o
+#   `scalable` no tamanho exato, e o desenho do pack nunca aparecia. Quem cede
+#   tem de ler o mapa de quem veste.
+_pack_ref="$(meow_pack_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+MAPA_PASTAS="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.pastas.mapa 2>/dev/null)" || MAPA_PASTAS=""
+[ -n "$MAPA_PASTAS" ] || MAPA_PASTAS="$RAIZ/assets/icones/pastas.map"
+unset _pack_ref
 PASTEL_DIR="$TEMA_DIR/scalable/places"
 
 declare -A CEDIDOS=()
@@ -426,14 +460,20 @@ cedido() { [ -n "${CEDIDOS[${1%.svg}]:-}" ]; }
 
 ler_cedidos
 
+# AS DUAS FALTAS DIZEM O QUE FALTA E ONDE, E NÃO O COMANDO — P75, 09/10/2026
+#   Eram `instale com: sudo apt install papirus-icon-theme` e `rode:
+#   scripts/baixar_upstream.sh`: o conserto conhecido devolvido como tarefa,
+#   e a primeira ainda ERRADA no dia — o Papirus estava instalado, e o que não
+#   existia era o `/usr/share/icons/MeowSystem-Icons-Base` que o valor do
+#   meow.conf montava. Quem põe as duas dependências no lugar é o doctor, na
+#   mesma passada e antes desta etapa (`pacotes` e `upstream` abrem a lista).
+#   O `!!` é o que faz o 3 pesar no veredito (`pulado_com_aviso`, bin/meow).
 if [ ! -d "$BASE_DIR" ]; then
-  meow_aviso "$BASE não está instalado — pastas coloridas puladas"
-  meow_info "instale com: sudo apt install papirus-icon-theme"
+  meow_aviso "a base '$BASE' não está em $BASE_DIR — pastas coloridas puladas"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 if [ ! -d "$FONTE/src" ]; then
-  meow_aviso "falta o upstream em $FONTE"
-  meow_info "rode: scripts/baixar_upstream.sh"
+  meow_aviso "falta o upstream papirus-folders em $FONTE — pastas coloridas puladas"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 

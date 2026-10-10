@@ -37,3 +37,14 @@ final, como usuário, na integração (prints em `.playwright-mcp/ux-final/`).
    `convergencia.sh` não mentir.
 10. **Decisão 12**: trocar de pack leva o ponteiro do pack mesmo que baixe (o pack decide); o
     download aparece com o selo «baixa da internet», sem pergunta.
+
+## Alerta de segurança (10/10, 15:15, revisão automática do 4e17f5c): ReDoS em `app/servidor.py`
+
+`comeco_svg = rb"\s*(<\?xml[^>]*>\s*)?((<!--.*?-->|<!DOCTYPE[^>]*>)\s*)*<svg[\s>]"` com `re.S`:
+o `.*?` dentro de um grupo repetido `(...)*` volta atrás de forma explosiva quando há muitos
+`<!--` sem `-->` (ou comentários que podem ser casados de vários jeitos) e o `<svg` final falha.
+Um arquivo de acervo (de um pack importado) com 4 KB disso trava a thread do servidor. Cura
+(obrigatória para o conferente): trocar a regex por um leitor linear — tirar BOM e espaço, pular
+`<?xml … ?>` com `find(b"?>")`, pular comentários com `find(b"-->")` e DOCTYPE com `find(b">")`,
+num laço com limite de passos, e então `startswith(b"<svg")`. Teste com `b"<!--" * 1000` e com
+`b"<!--a-->" * 500 + b"<x"`: resposta em menos de 50 ms.

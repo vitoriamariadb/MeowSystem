@@ -1,6 +1,6 @@
 --- a/src/app.rs
 +++ b/src/app.rs
-@@ -141,6 +141,11 @@
+@@ -139,6 +139,11 @@
      CosmicSettingsDesktop,
      CosmicSettingsDisplays,
      CosmicSettingsWallpaper,
@@ -12,7 +12,7 @@
      DesktopViewOptions,
      Delete,
      EditHistory,
-@@ -214,6 +219,9 @@
+@@ -212,6 +217,9 @@
              Self::CosmicSettingsDesktop => Message::CosmicSettings("desktop"),
              Self::CosmicSettingsDisplays => Message::CosmicSettings("displays"),
              Self::CosmicSettingsWallpaper => Message::CosmicSettings("wallpaper"),
@@ -22,7 +22,7 @@
              Self::Delete => Message::Delete(entity_opt),
              Self::DesktopViewOptions => Message::DesktopViewOptions,
              Self::EditHistory => Message::ToggleContextPage(ContextPage::EditHistory),
-@@ -345,6 +353,8 @@
+@@ -343,6 +351,8 @@
      CopyTo(Option<Entity>),
      CopyToResult(DialogResult),
      CosmicSettings(&'static str),
@@ -31,7 +31,7 @@
      Cut(Option<Entity>),
      Delete(Option<Entity>),
      DesktopConfig(DesktopConfig),
-@@ -3048,6 +3058,47 @@
+@@ -3010,6 +3020,47 @@
                      }
                  }
              }
@@ -81,22 +81,24 @@
                  if let Some(tab) = self.tab_model.data::<Tab>(entity) {
 --- a/src/menu.rs
 +++ b/src/menu.rs
-@@ -340,6 +340,15 @@
-                     children.push(
-                         menu_item(fl!("change-wallpaper"), Action::CosmicSettingsWallpaper).into(),
-                     );
+@@ -294,6 +294,17 @@
+                         fl!("change-wallpaper"),
+                         Action::CosmicSettingsWallpaper,
+                     ));
 +                    // MEOW-FILES-WALLPAPER-PATCH-1 — os dois itens vêm LOGO
 +                    // DEPOIS de "Alterar o plano de fundo", porque é o vizinho
 +                    // temático: quem procura papel de parede olha ali primeiro.
-+                    children.push(
-+                        menu_item(fl!("meow-wallpaper-next"), Action::MeowWallpaperNext).into(),
-+                    );
-+                    children.push(
-+                        menu_item(fl!("meow-wallpaper-prev"), Action::MeowWallpaperPrev).into(),
-+                    );
-                     children.push(
-                         menu_item(fl!("desktop-appearance"), Action::CosmicSettingsDesktop).into(),
-                     );
++                    children.push(menu_item(
++                        fl!("meow-wallpaper-next"),
++                        Action::MeowWallpaperNext,
++                    ));
++                    children.push(menu_item(
++                        fl!("meow-wallpaper-prev"),
++                        Action::MeowWallpaperPrev,
++                    ));
+                     children.push(menu_item(
+                         fl!("desktop-appearance"),
+                         Action::CosmicSettingsDesktop,
 --- a/i18n/en/cosmic_files.ftl
 +++ b/i18n/en/cosmic_files.ftl
 @@ -353,6 +353,8 @@

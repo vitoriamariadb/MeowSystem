@@ -676,8 +676,9 @@ printf '%s\n' \
   > "$mapa_t"
 pares="$(MAPA="$mapa_t" ICONES_BASE_MAPA="$base_mapa" RAIZ="$RAIZ" bash -c '
   set -uo pipefail
-  eval "$(sed -n "/^_dracula_pares() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
-  _dracula_pares' 2>/dev/null)"
+  # [P73: o parser do shell é o `_dracula_pares_do_mapa`; ver o tests/fonte-unica.sh.]
+  eval "$(sed -n "/^_dracula_pares_do_mapa() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
+  _dracula_pares_do_mapa' 2>/dev/null)"
 esperado_p="um.motor	$RAIZ/assets/icones/arcticons/telegram.svg
 dois.pack	$base_mapa/apps/Warehouse.svg
 tres.comentario	$base_mapa/apps/Warehouse.svg"
@@ -947,14 +948,18 @@ tema_do_conf() {
     "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$par" --conferir >/dev/null 2>&1; rc=$?
     printf "%s %s %s\n" "$(basename "$MEOW_PACK_DIR")" "$par" "$rc"'
 }
-sem_as_duas() { grep -vE '^(PACK|FLAVOR)=' "$1"; }
+# [P79, 10/10/2026, item 4: a troca leva junto o que o pack de antes escolhia
+#   — o ponteiro de fábrica, que é o do Catppuccin, vira o do Dracula (ver o
+#   `vestigios` do scripts/migrar_conf.py e o tests/casa-real.sh). Fora o
+#   CURSOR, nenhuma outra linha.]
+sem_as_duas() { grep -vE '^(PACK|FLAVOR|CURSOR)=' "$1"; }
 
 antes="$(sem_as_duas "$T/usar.conf")"
 saida="$(usar_amb "$RAIZ/bin/meow" pack usar dracula --sem-aplicar 2>&1)"; rc=$?
 if [ "$rc" = "0" ] && grep -qx 'PACK="dracula"' "$T/usar.conf" \
-   && grep -q '^FLAVOR="dracula"' "$T/usar.conf" \
+   && grep -q '^FLAVOR="dracula"' "$T/usar.conf" && grep -q '^CURSOR="Dracula-Cursor"' "$T/usar.conf" \
    && [ "$(sem_as_duas "$T/usar.conf")" = "$antes" ]; then
-  ok "meow pack usar grava PACK e FLAVOR, e nenhuma outra linha do conf"
+  ok "meow pack usar grava PACK e FLAVOR, leva o ponteiro do pack, e nenhuma outra linha do conf"
 else
   falha "meow pack usar dracula não gravou só as duas chaves (rc=$rc)" "$saida"
 fi
@@ -1020,7 +1025,7 @@ vest_caso() {   # $1 rótulo · $2 pack a usar · $3 a chave que o caso exige ("
   for k in $painel; do grep -qw -- "$k" <<< "$saida" || faltou="$faltou $k"; done
   if [ -n "$3" ] && ! grep -qw -- "$3" <<< "$painel"; then
     falha "$1: o caso deixou de montar o que mede (o painel marca '$painel', esperava $3)"
-  elif [ -z "$3" ] && { [ -n "$painel" ] || grep -q 'CURSOR' <<< "$saida"; }; then
+  elif [ -z "$3" ] && { [ -n "$painel" ] || grep -q 'continuam valendo.*CURSOR' <<< "$saida"; }; then
     falha "$1: o terminal ou o painel acusam um vestígio que não existe (painel: '$painel')" "$saida"
   elif [ -n "$faltou" ]; then
     falha "$1: o painel marca$faltou e o terminal não disse" "$saida"
@@ -1030,8 +1035,13 @@ vest_caso() {   # $1 rótulo · $2 pack a usar · $3 a chave que o caso exige ("
 }
 vest_caso "Catppuccin -> Dracula: o CURSOR que o Dracula receita não é vestígio" \
   dracula "" 's/^PACK=.*/PACK="catppuccin"/'
-vest_caso "Dracula -> Catppuccin: o ICONES_BASE do Dracula é vestígio, e o terminal diz" \
-  catppuccin ICONES_BASE 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/; s/^ICONES_BASE=.*/ICONES_BASE="Dracula-Icones"/'
+# [P75, 09/10/2026: o veículo deste caso era a `ICONES_BASE="Dracula-Icones"`,
+#   e a chave foi aposentada — saiu do exemplo e do painel. O que se mede é o
+#   mesmo com o ponteiro do Dracula, que o Catppuccin não receita.]
+# [P79: o `Dracula-Cursor` é o ponteiro que o Dracula escolhe, e a troca o
+#   leva junto. O vestígio que fica é o que quem usa fixou citando o Dracula.]
+vest_caso "Dracula -> Catppuccin: o CURSOR fixado do Dracula é vestígio, e o terminal diz" \
+  catppuccin CURSOR 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/; s/^CURSOR=.*/CURSOR="Dracula-Cursor-Branco"/'
 vest_caso "sabor sem PACK -> Dracula: o CURSOR do Latte é vestígio, e o terminal diz" \
   dracula CURSOR 's/^FLAVOR=.*/FLAVOR="latte"/; s/^CURSOR=.*/CURSOR="catppuccin-latte-dark"/'
 
@@ -1101,7 +1111,10 @@ servidor._com_o_vocabulario_do_pack(esquema, vocab, {"FLAVOR": "dracula"})
 item = {i["chave"]: i for i in esquema}
 erros = []
 fl = item["ICONES_FLAVOR"]
-if fl["opcoes"] != ["macchiato"] or fl["rotulos"].get("macchiato") != "Macchiato (herdado do Catppuccin)":
+# [P74, 09/10/2026: os ícones de arquivo do Dracula deixaram de ser herdados do
+# macchiato do Catppuccin — são dele, um por flavor —, e a opção é o flavor
+# dele, com o nome dele.]
+if fl["opcoes"] != ["dracula", "alucard"] or any("Catppuccin" in r for r in fl["rotulos"].values()):
     erros.append("variante dos ícones de arquivo: %r %r" % (fl["opcoes"], fl.get("rotulos")))
 if item["ICONES_DRACULA"]["titulo"] != "Ícones do pack nos aplicativos" \
         or "«Dracula»" not in item["ICONES_DRACULA"]["frase"]:
@@ -2735,7 +2748,7 @@ print(item.get("efetivo") or "")
 PY
 p31_flavor_do_script() {   # o flavor que a saída de um icones_*.sh diz ter usado
   sed -n -e "s/.* — flavor \([a-z0-9_]*\)$/\1/p" \
-         -e "s/.* vestid[oa]s de Catppuccin \([a-z0-9_]*\)$/\1/p" \
+         -e "s/.* vestid[oa]s de [A-Z][A-Za-z]* \([a-z0-9_]*\)$/\1/p" \
          -e "s/.*para o flavor '\([a-z0-9_]*\)'.*/\1/p" \
          -e "s|.*catppuccin-apps/\([a-z0-9_]*\)$|\1|p" \
          -e "s/.* — Catppuccin \([a-z0-9_]*\)$/\1/p" | tail -1
@@ -2777,8 +2790,10 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
     ok "$1: painel e os três icones_*.sh dizem '$painel'"
   fi
 }
-p31_caso "Dracula no ar, conf de fábrica: o macchiato que o pack escolheu" \
-  dracula dracula "" macchiato
+# [P74, 09/10/2026: o Dracula traz os ícones de arquivo dele, e o de fábrica
+# acompanha o tema — era o macchiato que o pack escolhia do Catppuccin.]
+p31_caso "Dracula no ar, conf de fábrica: o dracula do próprio pack" \
+  dracula dracula "" dracula
 p31_caso "Catppuccin no Latte, conf de fábrica: o latte do próprio tema" \
   catppuccin latte "" latte
 p31_caso "Dracula no ar, ICONES_FLAVOR=\"latte\" escrito à mão: o conf vence" \
@@ -2793,8 +2808,8 @@ saida="$(env -u MEOW_PACK_DIR MEOW_RAIZ="$RAIZ" PACK=dracula FLAVOR=dracula ICON
          python3 "$RAIZ/scripts/pack.py" flavor-icones dracula 2>&1)"; rc=$?
 env -u MEOW_PACK_DIR MEOW_RAIZ="$RAIZ" FLAVOR= ICONES_FLAVOR= \
   python3 "$RAIZ/scripts/pack.py" flavor-icones catppuccin >/dev/null 2>&1; rc_vazio=$?
-[ "$rc" = "0" ] && [ "$saida" = "macchiato" ] && [ "$rc_vazio" = "1" ] \
-  && ok "pack.py flavor-icones dracula responde macchiato, e sem conf nenhum sai 1" \
+[ "$rc" = "0" ] && [ "$saida" = "dracula" ] && [ "$rc_vazio" = "1" ] \
+  && ok "pack.py flavor-icones dracula responde dracula (o acervo é dele desde a P74), e sem conf nenhum sai 1" \
   || falha "o verbo flavor-icones não responde como a regra (rc=$rc/$rc_vazio)" "$saida"
 
 # A «VARIANTE DO TEMA» OFERECE O PACK NO AR, E A CERCA ACEITA O QUE ELA OFERECE.
@@ -2864,7 +2879,9 @@ queda="$(sed -n '/^def logo_do_painel(/,/^def /p' "$RAIZ/app/servidor.py" \
 #   está, a conferência se pula dizendo por quê, e o resto desta seção (que só
 #   olha o pack) roda igual.
 BIB="$RAIZ/packs/dracula/icones/biblioteca"
-ORIGEM_BIB="$HOME/Desenvolvimento/Dracula_OS-Theme/src/icons/new-sessao-atual"
+# Sob o `tests/todos.sh` o HOME é de brinquedo (P75); a origem é só LIDA da
+# casa de verdade, que ele deixa em `SUITE_CASA_REAL`.
+ORIGEM_BIB="${SUITE_CASA_REAL:-$HOME}/Desenvolvimento/Dracula_OS-Theme/src/icons/new-sessao-atual"
 if [ -d "$ORIGEM_BIB" ]; then
   conta="$(python3 - "$ORIGEM_BIB" "$BIB" <<'PY'
 import hashlib, os, sys
@@ -3018,14 +3035,19 @@ else
   falha "o pack com as origens pinadas não validou, ou o aviso chamou um campo novo de morto (rc=$rc)" "$saida"
 fi
 
-# O NOME DE FÁBRICA É O DO EXEMPLO. A regra "Papirus-Dark cede ao pack" vale
-#   para o valor que o `meow.conf.exemplo` traz; se ele mudar e a constante do
-#   `pack.py` não, todo meow.conf novo passaria a ser lido como escolha.
+# O NOME DE FÁBRICA ERA O DO EXEMPLO. A regra "Papirus-Dark cede ao pack" valia
+#   para o valor que o `meow.conf.exemplo` trazia. [P75, 09/10/2026: a chave foi
+#   aposentada — saiu do exemplo, e o `migrar_conf.py` a tira de todo meow.conf.
+#   O que se cobra agora é a aposentadoria inteira, e que o valor antigo de
+#   fábrica, se ainda chegar pelo ambiente de um conf não migrado, ceda.]
 exemplo_py="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import pack; print(pack.ICONES_BASE_DO_EXEMPLO)' "$RAIZ/scripts")"
-exemplo_conf="$(sed -n 's/^ICONES_BASE="\([^"]*\)".*/\1/p' "$RAIZ/meow.conf.exemplo")"
-[ -n "$exemplo_py" ] && [ "$exemplo_py" = "$exemplo_conf" ] \
-  && ok "o ICONES_BASE de fábrica do pack.py é o do meow.conf.exemplo ($exemplo_py)" \
-  || falha "o pack.py e o meow.conf.exemplo discordam do ICONES_BASE de fábrica" "pack.py='$exemplo_py' exemplo='$exemplo_conf'"
+aposentada="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import migrar_conf; print("ICONES_BASE" in migrar_conf.APOSENTADAS)' "$RAIZ/scripts")"
+if ! grep -qE '^[[:space:]]*ICONES_BASE=' "$RAIZ/meow.conf.exemplo" && [ "$aposentada" = "True" ] \
+   && [ "$exemplo_py" = "Papirus-Dark" ]; then
+  ok "a ICONES_BASE está aposentada (fora do exemplo, na lista do migrar_conf) e o Papirus-Dark antigo cede"
+else
+  falha "a aposentadoria da ICONES_BASE não está inteira" "exemplo tem a chave? $(grep -c '^ICONES_BASE=' "$RAIZ/meow.conf.exemplo") · aposentada=$aposentada · pack.py='$exemplo_py'"
+fi
 
 # QUEM VALE, PELO VERBO: o de fábrica cede, o escrito à mão vence, e o pack
 #   que responde é dito nos dois casos.
@@ -3439,7 +3461,12 @@ fi
 #   Numa pasta do COSMIC de brinquedo (`MEOW_COSMIC_DIR`): nada da máquina.
 C51="$T/cosmic-p51/com.system76.CosmicComp/v1"; mkdir -p "$C51"
 printf '0' > "$C51/leitura_temperatura"; printf '0.00' > "$C51/leitura_textura"
+# [P77, 10/10/2026: o `valendo_agora` do modo de leitura passou a ler o ESTADO
+# do applet (o ponto dos sliders, `ultima_*`), e não a tela deste minuto; o
+# estado de brinquedo vazio é o «applet nunca tocado», e o zero da tela
+# continua sendo «desligado».]
 saida="$(env MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_COSMIC_DIR="$T/cosmic-p51" \
+  XDG_STATE_HOME="$T/estado-p51" \
   MEOW_PACK_DIR="$RAIZ/packs/dracula" python3 - "$RAIZ" <<'PY' 2>&1
 import os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "app"))
@@ -3447,11 +3474,14 @@ import servidor
 erros = []
 mod = servidor.modulo_pack()
 mt = mod.vocabulario("dracula")["mimetypes"]
-if mt.get("claros") != ["latte"]:
-    erros.append("os claros do acervo herdado: %r" % mt.get("claros"))
+# [P74, 09/10/2026: o dono do acervo de ícones de arquivo do Dracula é o próprio
+# Dracula, e a régua é a dele: o claro é o alucard, e a luz vai do escuro ao
+# claro. A conta é a mesma que a revisão da P51 cobrava do dono herdado.]
+if mt.get("claros") != ["alucard"]:
+    erros.append("os claros do dono do acervo: %r" % mt.get("claros"))
 luz = mt.get("luz") or {}
-if sorted(luz, key=luz.get) != ["mocha", "macchiato", "frappe", "latte"]:
-    erros.append("a luz do acervo herdado fora de ordem: %r" % luz)
+if sorted(luz, key=luz.get) != ["dracula", "alucard"]:
+    erros.append("a luz do dono do acervo fora de ordem: %r" % luz)
 item = {i["chave"]: i for i in servidor.ler_esquema()}
 for chave in ("LEITURA_TEMPERATURA", "LEITURA_TEXTURA"):
     if item[chave]["valendo_agora"] is not None or item[chave]["desligado_agora"] is not True:
@@ -3517,22 +3547,24 @@ for pack, flavor in (("dracula", "dracula"), ("dracula", "alucard"), ("catppucci
             erros.append("%s/%s: %s se chama %r, e a cor que a pasta recebe é %r"
                          % (pack, flavor, c["valor"], c["rotulo"], nomes[c["valor"]]))
 # A base de ícones com um nome de tema próprio no conf, e nenhum no ambiente.
+# [P75, 09/10/2026: a ICONES_BASE foi aposentada e não tem mais cartão; o
+#  desenho da página continua perguntando ao servidor qual base vale, e é isso
+#  que se cobra — com o nome de tema do conf, a base do pack com esse nome.]
 esquema = servidor.ler_esquema()
-item = {i["chave"]: i for i in esquema}["ICONES_BASE"]
-item["opcoes"] = ["Papirus-Dark", "Tema-P56-Base", "MeowSystem-Icons-Base"]
+if any(i["chave"] == "ICONES_BASE" for i in esquema):
+    erros.append("a ICONES_BASE aposentada voltou a ter cartão no painel")
 vocab = mod.vocabulario("dracula")
 servidor._com_o_vocabulario_do_pack(esquema, vocab, {
-    "FLAVOR": "dracula", "ICONES_BASE": "Tema-P56-Base", "NOME_TEMA_ICONES": "Tema-P56"})
-cede = (vocab.get("base_de_icones") or {}).get("cede") or []
+    "FLAVOR": "dracula", "NOME_TEMA_ICONES": "Tema-P56"})
+vale = (vocab.get("base_de_icones") or {}).get("vale")
+amb_verbo = dict(os.environ, NOME_TEMA_ICONES="Tema-P56")
+amb_verbo.pop("ICONES_BASE", None)
 verbo = subprocess.run(
     [sys.executable, os.path.join(raiz, "scripts", "pack.py"), "base-icones", "dracula"],
-    capture_output=True, text=True,
-    env=dict(os.environ, NOME_TEMA_ICONES="Tema-P56", ICONES_BASE="Tema-P56-Base")).stdout
-if "Tema-P56-Base" not in cede or "MeowSystem-Icons-Base" in cede:
-    erros.append("a base de ícones cede %r, e o nome do tema no conf é Tema-P56" % cede)
-if item.get("efetivo") != "Tema-P56-Base" or "quem=pack" not in verbo:
-    erros.append("o painel e o verbo discordam da base: efetivo=%r, verbo=%r"
-                 % (item.get("efetivo"), verbo.splitlines()[:1]))
+    capture_output=True, text=True, env=amb_verbo).stdout
+if vale != "Tema-P56-Base" or "quem=pack" not in verbo:
+    erros.append("o painel e o verbo discordam da base: vale=%r, verbo=%r"
+                 % (vale, verbo.splitlines()[:1]))
 if "NOME_TEMA_ICONES" in os.environ:
     erros.append("o NOME_TEMA_ICONES ficou no ambiente do servidor: %r" % os.environ["NOME_TEMA_ICONES"])
 print("\n".join(erros))

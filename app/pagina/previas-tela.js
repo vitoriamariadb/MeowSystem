@@ -929,7 +929,18 @@
         g.appendChild(ret(15, y + 4, 78, 14, 7, { fill: vidro, stroke: borda, "stroke-width": FINO }));
         g.appendChild(ret(17.5, y + 5.5, 11, 11, 3, { stroke: borda, "stroke-width": 1 }));
         if (indefinida) g.appendChild(logoIndefinida(23, y + 11, 3.6, tinta));
-        else g.appendChild(gatoDeTraco(23, y + 11.2, 3.4, tinta, nomeLogo));
+        else {
+          /* O GATO DE VERDADE NA PONTA DA DOCK — 10/10/2026, QA da P77. O gato
+           * de traço dá um rosto por nome, e nomes diferentes caem no mesmo
+           * rosto: trocar «morcego-dia» por «Mimir» deixava o «como está» e o
+           * «como fica» iguais. Ele fica como reserva dentro de um grupo que
+           * diz QUAL gato e ONDE, e a página troca a reserva pela miniatura do
+           * acervo (`pintarGatosNoDock`, app.js) — a técnica do terminal. */
+          var noDock = grupo(null, { "class": "gato-no-dock", "data-gato": nomeLogo,
+                                     "data-x": 18, "data-y": n2(y + 6), "data-lado": 10 });
+          noDock.appendChild(gatoDeTraco(23, y + 11.2, 3.4, tinta, nomeLogo));
+          g.appendChild(noDock);
+        }
         g.appendChild(lin(32, y + 6.5, 32, y + 15.5, { stroke: borda, "stroke-width": 1 }));
         for (var i = 0; i < 4; i++) {
           g.appendChild(ret(36 + i * 11, y + 6.5, 9, 9, 2.4, { stroke: borda, "stroke-width": 1 }));
@@ -1080,6 +1091,11 @@
       ligado: ligado,
       modo: modo,
       gato: qual,
+      /* O que o MODO escolhe, cru, para a página resolver a herança e o
+       * espelho com os gatos do dock (que não são chaves deste bloco). */
+      gatoFixo: gato,
+      gatoDia: dia,
+      gatoNoite: noite,
       /* Com o logo desligado quem aparece é o de fábrica, e a largura dele é
        * fixa: 40 colunas, que é justamente o número que FASTFETCH_LOGO_COLUNAS
        * imita para o texto não escorregar de lugar. */
@@ -1134,11 +1150,33 @@
     }
 
     if (m.ligado) {
-      s.appendChild(silhuetaEmCelulas(blocoX, blocoY, blocoW, blocoH, m, acento, fundoDoQuadro));
+      /* O GATO DE VERDADE, EM CÉLULAS — 10/10/2026, P77 (achado 18). A
+       * silhueta e as orelhas abaixo eram o desenho inteiro: um contorno de
+       * gato genérico, o mesmo para qualquer gato escolhido. Elas continuam
+       * aqui como reserva (sem rede, sem miniatura), dentro de um grupo que
+       * diz à página QUAL gato e EM QUE grade: o `app.js` lê o SVG do gato do
+       * acervo, amostra nas mesmas células (2 por coluna, 2 ou 3 por linha) e
+       * troca a reserva pelo gato pintado com as cores dele — que é o que o
+       * fastfetch faz com caracteres. Esta função continua pura: quem busca a
+       * imagem é a página. */
+      var celulas = grupo(null, {
+        "class": "gato-em-celulas",
+        "data-modo": m.modo,
+        "data-gato": m.gatoFixo,
+        "data-dia": m.gatoDia,
+        "data-noite": m.gatoNoite,
+        "data-x": n2(blocoX), "data-y": n2(blocoY),
+        "data-w": n2(blocoW), "data-h": n2(blocoH),
+        "data-colunas": Math.max(4, Math.min(480, Math.round(m.colunas * 2))),
+        "data-linhas": Math.max(4, Math.min(240, Math.round(m.linhas * m.grade))),
+        "data-fundo": n2(fundoDoQuadro),
+      });
+      celulas.appendChild(silhuetaEmCelulas(blocoX, blocoY, blocoW, blocoH, m, acento, fundoDoQuadro));
       /* As orelhas saem por fora da escadinha de propósito: rasterizadas, elas
        * viram um trapézio no alto da cabeça (a silhueta tem UM vão por linha e
        * não sabe fazer dois picos), e o desenho deixa de parecer gato. */
-      s.appendChild(orelhasDoBloco(blocoX, blocoY, blocoW, blocoH, acento));
+      celulas.appendChild(orelhasDoBloco(blocoX, blocoY, blocoW, blocoH, acento));
+      s.appendChild(celulas);
     } else {
       /* Logo de fábrica: um lugar reservado, tracejado, do tamanho que ele
        * ocupa. Inventar um desenho aqui seria dizer qual é, e não é nosso. */
@@ -1745,10 +1783,10 @@
     },
 
     legenda: function (m) {
-      /* O PROMPT NÃO É DO PACK, E A FRASE NÃO FINGE — P51. O `starship.toml`
-       * é do motor (o preset catppuccin-powerline, o mesmo com qualquer pack;
-       * a `_nota_heranca` do pack Dracula diz isso), então ele não ganha o
-       * nome do pack no ar: ganha o de onde de fato vem. */
+      /* O PROMPT VESTE O PACK NO AR — P74, 09/10/2026. O desenho é o do
+       * preset do motor (catppuccin-powerline), e as cores, desde a P74, são
+       * as da paleta do pack no ar (`scripts/prompt.sh`). A frase da P51
+       * dizia «o mesmo com qualquer pack», e era verdade até ali. */
       return (m.esquema
         ? "as dezesseis cores do terminal vêm da paleta do pack " + nomeDoPack("no ar")
         : "o terminal fica com a paleta de fábrica do cosmic-term")
@@ -1756,7 +1794,7 @@
         + (m.cursor === "port" ? "na cor que o tema " + nomeDoPack("do pack") + " escolhe"
           : "na cor de destaque")
         + ", e o prompt do zsh "
-        + (m.starship ? "é o do starship que vem com o MeowSystem, o mesmo com qualquer pack"
+        + (m.starship ? "é o do starship que vem com o MeowSystem, nas cores do pack " + nomeDoPack("no ar")
           : "é o simples, sem starship")
         + "." + m.fecho;
     },
