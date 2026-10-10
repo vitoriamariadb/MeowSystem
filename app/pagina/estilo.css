@@ -4174,3 +4174,16 @@ a.folha:hover b { color: var(--text); }
  * ele continuava reservando 40 px entre as abas e as fotos. No foco ele volta
  * ao fluxo, onde está (`.pular-grade:focus`, lá em cima). */
 .pular-grade:not(:focus) { position: absolute; }
+
+/* LOGO DO SISTEMA: o seletor de gato numa moldura só. O modo é estreito (três
+ * segmentos), e os cartões que ele mostra dividem o resto da linha; em tela
+ * estreita eles descem um por linha, como a moldura do tema. */
+.grade > .decisao[data-decisao^="gato-"] { display: flex; flex-wrap: wrap; }
+.decisao[data-decisao^="gato-"] > .cartao { flex: 1 1 17rem; min-width: 0; }
+.decisao[data-decisao="gato-dock"] > .cartao[data-chave="LOGO_MODO"],
+.decisao[data-decisao="gato-terminal"] > .cartao[data-chave="FASTFETCH_LOGO_MODO"] { flex: 0 1 15rem; }
+@media (max-width: 900px) {
+  .decisao[data-decisao^="gato-"] > .cartao { flex-basis: 100%; }
+}
+/* O cartão do par de desenhos não cresce além do que o desenho preenche. */
+.decisao[data-decisao^="gato-"] > .cartao { max-width: 36rem; }

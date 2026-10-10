@@ -2961,6 +2961,118 @@ function pintarForma(par) {
   if (dica) ancorarDicaDoDesenho(par, dica);
 }
 
+/* ===========================================================================
+ * O GATO DO TERMINAL, DESENHADO DE VERDADE — 10/10/2026, P77 (achado 18)
+ * ===========================================================================
+ * A prévia «No terminal» desenhava um contorno de gato genérico, o mesmo para
+ * a Coquinha, o Mimir e o morcego: «só um contorno vazio», no uso real. O
+ * desenho (`previas-tela.js`) continua puro e marca o grupo do gato com o modo,
+ * os gatos que o modo escolhe e a grade de células; aqui a página resolve QUAL
+ * gato aparece e o pinta a partir do SVG dele no acervo, amostrado na mesma
+ * grade que o fastfetch usa (2 subcélulas por coluna, 2 ou 3 por linha), com as
+ * cores do próprio gato. Sem a miniatura, fica a silhueta de reserva. */
+const AMOSTRAS_DE_GATO = new Map();   // url|colunas|linhas|proporção -> Promise<ImageData|null>
+
+function amostraDoGato(url, colunas, linhas, proporcao) {
+  const chave = `${url}|${colunas}|${linhas}|${proporcao.toFixed(3)}`;
+  if (!AMOSTRAS_DE_GATO.has(chave)) {
+    AMOSTRAS_DE_GATO.set(chave, new Promise((ok) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = colunas;
+          c.height = linhas;
+          const ctx = c.getContext("2d", { willReadFrequently: true });
+          /* «Conter» medido na TELA, e não em subcélulas: a subcélula é mais
+           * alta que larga, e o gato tem de sair redondo no desenho como sai
+           * no terminal. `proporcao` é a largura do bloco sobre a altura. */
+          const ar = (img.naturalWidth || 1) / (img.naturalHeight || 1);
+          const [fw, fh] = ar > proporcao ? [1, proporcao / ar] : [ar / proporcao, 1];
+          const w = fw * colunas, h = fh * linhas;
+          ctx.drawImage(img, (colunas - w) / 2, (linhas - h) / 2, w, h);
+          ok(ctx.getImageData(0, 0, colunas, linhas));
+        } catch (e) { ok(null); }
+      };
+      img.onerror = () => ok(null);
+      img.src = url;
+    }));
+  }
+  return AMOSTRAS_DE_GATO.get(chave);
+}
+
+function gatoDoTerminal(d) {
+  const vale = (k) => {
+    const item = ESQUEMA.chaves.find((x) => x.chave === k);
+    return item ? valorEmVigor(item) : "";
+  };
+  const dia = vale("LOGO_DIA"), noite = vale("LOGO_NOITE");
+  /* O dock diz em que metade do dia estamos: o gato que ele mostra agora. */
+  const noDock = ESQUEMA.gato_no_dock || vale("LOGO");
+  if (d.modo === "fixo") return d.gato;
+  /* Por horário o terminal segue o relógio, com os gatos dele (vazio herda os
+   * do dock); em espelho ele mostra o que o dock NÃO está mostrando. */
+  if (d.modo === "hora") return noDock === dia ? (d.dia || dia) : (d.noite || noite);
+  return noDock === noite ? dia : noite;
+}
+
+function pintarGatosEmCelulas(raiz) {
+  const grupos = (raiz || document).querySelectorAll("g.gato-em-celulas:not([data-pintado])");
+  if (!grupos.length) return;
+  const gatos = previasDe("gato");
+  if (!gatos) return;
+  const NS_SVG = "http://www.w3.org/2000/svg";
+  for (const g of grupos) {
+    const d = g.dataset;
+    const nome = gatoDoTerminal(d);
+    const p = (gatos.itens || []).find((i) => i.id === nome && i.pronta && i.url);
+    if (!p) continue;
+    g.dataset.pintado = nome;
+    const x0 = Number(d.x), y0 = Number(d.y), w = Number(d.w), h = Number(d.h);
+    const colunas = Number(d.colunas), linhas = Number(d.linhas), fundo = Number(d.fundo);
+    if (!(w > 0 && h > 0 && colunas > 0 && linhas > 0)) continue;
+    amostraDoGato(p.url, colunas, linhas, w / h).then((dados) => {
+      if (!dados || !g.isConnected) return;
+      const largSub = w / colunas, altSub = h / linhas;
+      const nos = [];
+      /* Uma faixa por sequência da mesma cor na linha, e não um quadrado por
+       * subcélula: o gato de 80×32 vira algumas centenas de nós em vez de dois
+       * mil e quinhentos. A cor é arredondada a 16 tons por canal para as
+       * sequências existirem — o terminal também não tem cor contínua. */
+      for (let y = 0; y < linhas; y++) {
+        const topo = y0 + y * altSub;
+        if (topo + altSub > fundo + 0.4) break;   // o que passa do quadro é cortado, como lá
+        let inicio = -1, cor = "";
+        const fechar = (fim) => {
+          if (inicio < 0) return;
+          const r = document.createElementNS(NS_SVG, "rect");
+          r.setAttribute("x", (x0 + inicio * largSub).toFixed(2));
+          r.setAttribute("y", topo.toFixed(2));
+          r.setAttribute("width", ((fim - inicio) * largSub + 0.05).toFixed(2));
+          r.setAttribute("height", (altSub + 0.05).toFixed(2));
+          /* `style`, e não o atributo `fill`: a folha das prévias pinta traço
+           * e preenchimento por CSS, e o CSS vence o atributo de apresentação
+           * — o gato saía de uma cor só, a do traço. */
+          r.setAttribute("style", `fill:${cor};stroke:none`);
+          nos.push(r);
+          inicio = -1;
+        };
+        for (let x = 0; x < colunas; x++) {
+          const i = (y * colunas + x) * 4;
+          const a = dados.data[i + 3];
+          if (a < 128) { fechar(x); continue; }
+          const q = (v) => Math.min(255, Math.round(v / 17) * 17);
+          const c = `rgb(${q(dados.data[i])} ${q(dados.data[i + 1])} ${q(dados.data[i + 2])})`;
+          if (inicio >= 0 && c !== cor) fechar(x);
+          if (inicio < 0) { inicio = x; cor = c; }
+        }
+        fechar(colunas);
+      }
+      if (nos.length) g.replaceChildren(...nos);
+    });
+  }
+}
+
 /* --- a simulação do modo de leitura --------------------------------------- */
 /* Aproximação de corpo negro para a cor de uma temperatura em Kelvin (a forma
  * usual de Tanner Helland). É SIMULAÇÃO e a legenda diz isso: quem pinta de
@@ -5706,7 +5818,14 @@ function montarCartao(item) {
       ]));
     }
   }
-  if (item.dominada_por) {
+  /* NA MOLDURA DO MODO, O MODO NÃO ANULA — 10/10/2026, P77. O cartão que o
+   * modo mostra só existe com o modo que o usa; o `dominada_por` do servidor
+   * fala do modo GRAVADO, e com outro modo esperando «Salvar» ele apagava o
+   * cartão que o modo novo acabou de trazer à tela. */
+  const anulacaoVelha = item.dominada_por && DECISOES.some((dec) => dec.modo
+    && dec.modo.chave === item.dominada_por.chave
+    && Object.values(dec.modo.por).some((l) => l.includes(item.chave)));
+  if (item.dominada_por && !anulacaoVelha) {
     const d = item.dominada_por;
     /* ANULADO SE VÊ NO CONTROLE: ele fica apagado (`.anulado`, no CSS) e o
      * selo ⊘ diz quem manda. Continua clicável — a escolha vale no arquivo e
@@ -7504,6 +7623,7 @@ function repintarPrevia(chave, valor) {
     if (novo) {
       reg.alvo.replaceWith(novo);
       reg.alvo = novo;
+      pintarGatosEmCelulas(novo);
       /* Todas as chaves do bloco apontam para o MESMO nó, e ele acabou de ser
        * trocado: sem isto, a segunda chave do bloco repintaria um nó órfão. */
       for (const [k, r] of PREVIA_VIVA) if (r.g === reg.g) r.alvo = novo;
@@ -8113,6 +8233,16 @@ function notaDoAssunto(assunto) {
  * procurava «acima» subia para o título e não achava nada. Na busca a nota não
  * nasce, então «abaixo» vale em todo lugar onde ela aparece. */
 const ACERVO_DO_ASSUNTO = {
+  /* O «ADICIONAR LOGO» SOBE PARA O CABEÇALHO — 10/10/2026, P77 (achado 17).
+   * Ele pendurava no primeiro cartão de gato da página, que com o seletor
+   * único depende do modo: por horário seria o gato do dia, fixo seria o
+   * gato. O acervo é um só para os dois lugares (dock e terminal), e o lugar
+   * dele é o da página. */
+  "Logo do sistema": {
+    tipo: "gato",
+    nota: "Um .svg seu entra na lista de gatos, ao lado dos de fábrica, para o "
+        + "dock e para o terminal.",
+  },
   "Ícones": {
     tipo: "tema-icones",
     nota: "Um tema de ícones de base, em .zip. Ele entra na máquina, e o "
@@ -8132,8 +8262,9 @@ function acervoDoAssunto(assunto) {
     /* Reler o esquema porque a lista de temas de ícones e a de fontes são
      * lidas do disco pelo servidor: sem isto o que acabou de entrar só
      * apareceria depois de um F5, que é o mesmo defeito que o acervo de gatos
-     * teve até 02/09/2026. */
+     * teve até 02/09/2026. O gato relê também as miniaturas (P77). */
     await recarregarEsquema();
+    if (conf.tipo === "gato") await carregarPrevias("gato");
     render();
   });
   /* SÓ O BOTÃO — 09/10/2026, P77. A nota que ia ao lado dele é explicação, e
@@ -8343,7 +8474,42 @@ const DECISOES = [
    * como uma decisão só, e o selo da distância diz quando os dois brigam. */
   { id: "painel", nome: "Painel", chaves: ["FORMA_PAINEL_SOLTO", "FORMA_MARGEM_PAINEL", "FORMA_PAINEL_ILHA"] },
   { id: "dock", nome: "Dock", chaves: ["FORMA_DOCK_SOLTO", "FORMA_MARGEM_DOCK", "FORMA_DOCK_ILHA"] },
+  /* QUAL GATO APARECE É UMA DECISÃO SÓ — 10/10/2026, P77 (achado 17). Eram
+   * seis cartões entrelaçados para o dock (qual gato, troca sozinho, como é
+   * escolhido, de dia, de noite, de quanto em quanto), três deles com a caixa
+   * «Quem manda é…» explicando por que não valiam. Agora é UM seletor: o modo
+   * abre a moldura, e só o que o modo usa aparece ao lado dele — por horário,
+   * o gato do dia e o da noite; girando, o intervalo; fixo, o gato. Trocar o
+   * modo troca o que se vê; nenhum cartão diz por que está apagado, porque
+   * nenhum está. O `modo` diz qual chave escolhe e o que cada valor mostra; a
+   * chave que não aparece em `por` fica sempre. A antiga «O gato troca
+   * sozinho» (o modo de antes do modo) e o «Recarregar o painel na virada»
+   * foram para o «⋯» dos ajustes técnicos (`[avancado]` no arquivo). */
+  { id: "gato-dock", nome: "Gato do dock",
+    chaves: ["LOGO_MODO", "LOGO_DIA", "LOGO_NOITE", "LOGO_INTERVALO", "LOGO"],
+    modo: { chave: "LOGO_MODO",
+            por: { hora: ["LOGO_DIA", "LOGO_NOITE"], rotacao: ["LOGO_INTERVALO"], fixo: ["LOGO"] } } },
+  /* O mesmo no terminal: o gato no lugar do logo, o modo, e só o que o modo
+   * usa. Em «espelho» o terminal mostra o gato que o dock não está mostrando,
+   * e não há o que escolher além do modo. */
+  { id: "gato-terminal", nome: "Gato do terminal",
+    chaves: ["FASTFETCH_LOGO", "FASTFETCH_LOGO_MODO", "FASTFETCH_LOGO_DIA",
+             "FASTFETCH_LOGO_NOITE", "FASTFETCH_LOGO_GATO"],
+    modo: { chave: "FASTFETCH_LOGO_MODO",
+            por: { espelho: [], hora: ["FASTFETCH_LOGO_DIA", "FASTFETCH_LOGO_NOITE"],
+                   fixo: ["FASTFETCH_LOGO_GATO"] } } },
 ];
+
+/* A chave aparece na moldura com o modo em vigor? As que nenhum modo cita
+ * aparecem sempre; as citadas, só no modo que as usa. */
+function mostraNoModo(decisao, chave) {
+  if (!decisao.modo) return true;
+  const listas = Object.values(decisao.modo.por);
+  if (!listas.some((l) => l.includes(chave))) return true;
+  const modoItem = ESQUEMA.chaves.find((k) => k.chave === decisao.modo.chave);
+  const vale = modoItem ? valorEmVigor(modoItem) : "";
+  return (decisao.modo.por[vale] || []).includes(chave);
+}
 
 /* ===========================================================================
  * O «⋯» DOS AJUSTES TÉCNICOS — 09/10/2026, P77 (achado 10, S2)
@@ -8365,7 +8531,8 @@ const TECNICOS_ABERTOS = new Set();
  * régua é a `natureza` que o servidor declara para cada ação, e não uma lista
  * de rótulos: uma ação nova de «mostrar» nasce no lugar certo. A separação é
  * por página, na reescrita de cada uma (as que já passaram estão no conjunto). */
-const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede"]);
+const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
+                                            "Logo do sistema"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
 function acaoTecnica(assunto, acao) {
   return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);
@@ -8406,6 +8573,9 @@ function render() {
   alvo.replaceChildren();
   ACERVO_DESENHADO.clear();
   const busca = semAcento($("#busca").value.trim());
+  /* O acervo que a página põe no cabeçalho não se repete num cartão (P77). Na
+   * busca o cabeçalho é só o título, e o botão volta ao primeiro cartão. */
+  if (!busca && ACERVO_DO_ASSUNTO[ABA]) ACERVO_DESENHADO.add(ACERVO_DO_ASSUNTO[ABA].tipo);
 
   /* A busca atravessa TODOS os grupos, e é assim que uma página de cem chaves
    * deixa de exigir que ela lembre em qual aba a chave mora. Sem busca, mostra
@@ -8672,8 +8842,9 @@ function render() {
       const d = DECISOES.find((x) => x.id === id);
       for (const chave of d.chaves) {
         const item = g.itens.find((i) => i.chave === chave);
-        if (item) m.append(montarCartao(item));
+        if (item && mostraNoModo(d, chave)) m.append(montarCartao(item));
       }
+      m.style.setProperty("--cartoes", String(m.childElementCount));
     }
     if (grade.childElementCount) destino.append(grade);
     if (tecnicos.length) destino.append(ajustesTecnicos(assunto, g, tecnicos));
@@ -8714,6 +8885,7 @@ function render() {
   }
   grudarPrevias();
   afastarDicasDoTraco();
+  pintarGatosEmCelulas($("#conteudo"));
   devolverFoco(ancora);
   devolverRolagem(rolagem);
   /* A ABA ABERTA APARECE — em 375px o trilho vira uma tira horizontal com vinte

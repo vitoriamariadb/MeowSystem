@@ -408,7 +408,7 @@ LOGO="coquinha"
 
 # @ O gato troca sozinho
 # > Gira pela lista em vez de ficar num só.
-# O gato do painel troca sozinho, girando pelo acervo?
+# [avancado] O gato do painel troca sozinho, girando pelo acervo?
 # O ACERVO É A PASTA: tudo que estiver em assets/gatos/*.svg entra na rotação,
 # junto com o gato gerado do flavor. Soltou um SVG lá, ele entra; apagou, sai.
 # Nada de lista dentro de script — ela envelheceria no dia em que você
@@ -438,7 +438,7 @@ LOGO_NOITE="coquinha"  # o dock de noite
 
 # @ Recarregar o painel na virada
 # > Sem isto o gato novo só aparece no próximo login. Custa uns 2 s de pisca, duas vezes por dia.
-# Na virada, o gato do dock só aparece depois de o painel reciclar (~2 s de
+# [avancado] Na virada, o gato do dock só aparece depois de o painel reciclar (~2 s de
 # pisca, duas vezes por dia). MEDIDO em 01/09/2026: reescrever o SVG sem
 # reciclar não muda um pixel — o cosmic-panel-button resolve o ícone no arranque
 # e guarda. Com "nao" o arquivo troca do mesmo jeito e o gato novo aparece no
@@ -1674,7 +1674,7 @@ FASTFETCH_LOGO_RECUO="3"
 
 # @ Proporção da célula do terminal
 # > Altura dividida pela largura, na sua fonte. É o que impede o gato de achatar.
-# PROPORÇÃO ALTURA/LARGURA DA CÉLULA do terminal — 23,00 / 9,00 px, medido no
+# [avancado] PROPORÇÃO ALTURA/LARGURA DA CÉLULA do terminal — 23,00 / 9,00 px, medido no
 # cosmic-term com a JetBrainsMono Nerd Font Mono de 16 px. É o que converte
 # colunas em linhas quando `FASTFETCH_LOGO_LINHAS` está vazio. Quem trocar de
 # fonte muda este número uma vez, e o gato volta a sair redondo.
@@ -1693,7 +1693,7 @@ FASTFETCH_LOGO_CELULA=""
 
 # @ Detalhe do desenho
 # > Quanto detalhe cabe em cada célula. Depende do que a sua fonte desenha.
-# QUANTOS SUBPIXELS CABEM EM CADA CÉLULA — é o teto de detalhe de um desenho
+# [avancado] QUANTOS SUBPIXELS CABEM EM CADA CÉLULA — é o teto de detalhe de um desenho
 # feito de letras, e ele depende do que a FONTE do terminal tem:
 #
 #   auto        (padrão) usa sextantes se a fonte os tiver, senão quadrantes.
@@ -1709,7 +1709,7 @@ FASTFETCH_LOGO_BLOCOS="auto"
 
 # @ Corrigir a configuração do fastfetch
 # > Deixa o MeowSystem manter a linha do logo em dia sozinho.
-# Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
+# [avancado] Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
 # fastfetch — que é o seu arquivo do fastfetch, e não nosso.
 # A escrita é CIRÚRGICA (duas chaves, o resto do arquivo intacto), guarda backup
 # antes em ~/.local/state/meowsystem/backups/ e diz em voz alta o que tocou.

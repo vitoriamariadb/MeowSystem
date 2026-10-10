@@ -944,6 +944,10 @@ class Percurso:
         self.duracoes = {}           # nome -> segundos do gesto
         self.app_aberto = ""         # o aplicativo cujo painel o percurso abriu
         self.conhecidos_vistos = set()
+        # [P77] As escolhas que revelaram o controle sendo acionado: o
+        # `desfazer` de dentro de um revelado não as tira da bandeja, senão o
+        # controle some no meio do próprio gesto (ver `acionar_revelados`).
+        self.preservar = None
         pag.on("request", self._pedido)
         pag.on("requestfinished", self._fim_pedido)
         pag.on("requestfailed", self._pedido_falhou)
@@ -1417,6 +1421,13 @@ class Percurso:
                   ("#conteudo button.lado-previa", "aba · Como está (desfaz o bloco)"))
 
     def desfazer(self):
+        if self.preservar:
+            # Dentro de um revelado: desfaz só o que o gesto de dentro escolheu.
+            self.js("(manter) => { for (const k of [...MUDANCAS.keys()])"
+                    " if (!manter.includes(k)) MUDANCAS.delete(k);"
+                    " atualizarBarraSalvar(); render(); }", sorted(self.preservar))
+            self.assentar(quieto=80, teto=3000)
+            return
         for sel, nome in self.DESFAZERES:
             n = self.js("() => MUDANCAS.size")
             botao = self.pag.locator(sel)
@@ -1531,11 +1542,20 @@ class Percurso:
 
     def acionar_revelados(self, antes):
         """Aciona o que a escolha pendente revelou em OUTRO cartão — o nome de
-        uma área em «Nomes das áreas» acende o Sim/Não da «Folga invisível»."""
-        for n in sorted(set(self.censo()) - antes):
-            if (n.startswith("ajuste ") and not n.endswith(" · Aplicar")
-                    and n not in self.acionados and self.acionador(n)):
-                self.acionar(n, limpar=False, esperar=False)
+        uma área em «Nomes das áreas» acende o Sim/Não da «Folga invisível».
+
+        [P77, 10/10/2026: e o cartão que um MODO revela (Logo do sistema). A
+        escolha que revelou fica na bandeja enquanto os de dentro são
+        acionados: o `desfazer` deles só tira o que eles mesmos escolheram.]"""
+        anterior = self.preservar
+        self.preservar = set(self.js("() => [...MUDANCAS.keys()]") or []) | (anterior or set())
+        try:
+            for n in sorted(set(self.censo()) - antes):
+                if (n.startswith("ajuste ") and not n.endswith(" · Aplicar")
+                        and n not in self.acionados and self.acionador(n)):
+                    self.acionar(n, limpar=False, esperar=False)
+        finally:
+            self.preservar = anterior
 
     def h_campo(self, nome):
         chave = self.chave_de(nome)
@@ -2027,7 +2047,10 @@ class Percurso:
                        "e fecha no segundo clique")
             if estava and el is not None:
                 el.click()
-            if novos:
+            # [P77: o «⋯» dos ajustes técnicos é um por bloco, e uma página
+            # pode ter dois com o mesmo nome (Logo do sistema: o do dock e o do
+            # terminal). Cada um revela os SEUS controles, então todos abrem.]
+            if novos and "⋯" not in nome:
                 break
 
     # A HISTÓRIA DO PACK É MONTADA, E NADA DELA VIRA HTML — P53, achado 6. O
@@ -3471,53 +3494,35 @@ INVENTARIO = {
     """),
     "Logo do sistema": _linhas("""
         aba · ?
+        aba · Adicionar logo
         aba · Claro
         aba · Escuro
         aba · Vidro claro
         aba · Vidro escuro
+        aba · abre «⋯ Ajustes técnicos»
+        aba · abre «⋯ Ações técnicas»
         ajuste FASTFETCH_LOGO · ?
         ajuste FASTFETCH_LOGO · opção
         ajuste FASTFETCH_LOGO_ALINHAR · ?
         ajuste FASTFETCH_LOGO_ALINHAR · opção
-        ajuste FASTFETCH_LOGO_BLOCOS · ?
-        ajuste FASTFETCH_LOGO_BLOCOS · opção
-        ajuste FASTFETCH_LOGO_CELULA · ?
-        ajuste FASTFETCH_LOGO_CELULA · campo
         ajuste FASTFETCH_LOGO_COLUNAS · ?
         ajuste FASTFETCH_LOGO_COLUNAS · deslizante
-        ajuste FASTFETCH_LOGO_CONF · ?
-        ajuste FASTFETCH_LOGO_CONF · opção
-        ajuste FASTFETCH_LOGO_DIA · ?
-        ajuste FASTFETCH_LOGO_DIA · opção
-        ajuste FASTFETCH_LOGO_GATO · ?
-        ajuste FASTFETCH_LOGO_GATO · opção
         ajuste FASTFETCH_LOGO_LINHAS · ?
         ajuste FASTFETCH_LOGO_LINHAS · deslizante
         ajuste FASTFETCH_LOGO_MODO · ?
         ajuste FASTFETCH_LOGO_MODO · opção
-        ajuste FASTFETCH_LOGO_NOITE · ?
-        ajuste FASTFETCH_LOGO_NOITE · opção
         ajuste FASTFETCH_LOGO_QUEBRAS · ?
         ajuste FASTFETCH_LOGO_QUEBRAS · deslizante
         ajuste FASTFETCH_LOGO_RECUO · ?
         ajuste FASTFETCH_LOGO_RECUO · deslizante
         ajuste FASTFETCH_TITULO · ?
         ajuste FASTFETCH_TITULO · campo
-        ajuste LOGO · ?
-        ajuste LOGO · Adicionar logo
-        ajuste LOGO · opção
         ajuste LOGO_DIA · ?
         ajuste LOGO_DIA · opção
-        ajuste LOGO_INTERVALO · ?
-        ajuste LOGO_INTERVALO · opção
         ajuste LOGO_MODO · ?
         ajuste LOGO_MODO · opção
         ajuste LOGO_NOITE · ?
         ajuste LOGO_NOITE · opção
-        ajuste LOGO_RECICLAR · ?
-        ajuste LOGO_RECICLAR · opção
-        ajuste LOGO_ROTACAO · ?
-        ajuste LOGO_ROTACAO · opção
         ação «Passar ao próximo gato» · ?
         ação «Passar ao próximo gato» · Executar
         ação «Passar ao próximo gato» · ver comando
@@ -3525,9 +3530,6 @@ INVENTARIO = {
         ação «Pôr um gato no dock» · Executar
         ação «Pôr um gato no dock» · seletor
         ação «Pôr um gato no dock» · ver comando
-        ação «Qual gato está no ar, e por quê» · ?
-        ação «Qual gato está no ar, e por quê» · Executar
-        ação «Qual gato está no ar, e por quê» · ver comando
     """),
     # [Integração da leva G, 09/10/2026: o `ajuste ICONES_BASE` saiu daqui. A
     #   P75 aposentou a chave (a base vem do pack, pinada — `migrar_conf.py`,
@@ -3981,6 +3983,31 @@ REVELADOS = {
         ação «Recarregar o painel» · ?
         ação «Recarregar o painel» · Executar
         ação «Recarregar o painel» · ver comando
+    """),
+    "Logo do sistema": _linhas("""
+        ajuste FASTFETCH_LOGO_BLOCOS · ?
+        ajuste FASTFETCH_LOGO_BLOCOS · opção
+        ajuste FASTFETCH_LOGO_CELULA · ?
+        ajuste FASTFETCH_LOGO_CELULA · campo
+        ajuste FASTFETCH_LOGO_CONF · ?
+        ajuste FASTFETCH_LOGO_CONF · opção
+        ajuste FASTFETCH_LOGO_DIA · ?
+        ajuste FASTFETCH_LOGO_DIA · opção
+        ajuste FASTFETCH_LOGO_GATO · ?
+        ajuste FASTFETCH_LOGO_GATO · opção
+        ajuste FASTFETCH_LOGO_NOITE · ?
+        ajuste FASTFETCH_LOGO_NOITE · opção
+        ajuste LOGO · ?
+        ajuste LOGO · opção
+        ajuste LOGO_INTERVALO · ?
+        ajuste LOGO_INTERVALO · opção
+        ajuste LOGO_RECICLAR · ?
+        ajuste LOGO_RECICLAR · opção
+        ajuste LOGO_ROTACAO · ?
+        ajuste LOGO_ROTACAO · opção
+        ação «Qual gato está no ar, e por quê» · ?
+        ação «Qual gato está no ar, e por quê» · Executar
+        ação «Qual gato está no ar, e por quê» · ver comando
     """),
 }
 
