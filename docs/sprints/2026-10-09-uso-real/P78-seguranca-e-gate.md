@@ -104,3 +104,15 @@ testes o extraem sem o lib. Medido com `\e]52;c;…\a`, `\e]0;…\a`, `\e[2J` e 
 2. **`scripts/icones_pastas.sh` — controle que regrediu.** A revisão acusou que uma conferência
    que existia antes da P78 ficou mais fraca no `2e16c94`/`68c8ab3`. Comparar linha a linha com
    `af3159f` e devolver a conferência antiga junto com a regra nova (nada de trocar uma pela outra).
+
+**Resposta da conferência (10/10).**
+1. O `meow_texto_seguro` passou a contar por letra: lê o texto como UTF-8, byte que não forma
+   UTF-8 vira `?`, e só então saem C0, DEL e C1 por ponto de código. Medido: `\x9b\x9b[2J`,
+   `\xff\x9b[2J`, `\xe2\x9b[2J` e `\x90`/`\x9d`/`\x9e`/`\x9f` crus saem como `?`; o `ě`
+   (`\xc4\x9b`) e o travessão sobrevivem. A sonda está no `tests/pack-malicioso.sh` (vermelha
+   com a versão em `sed`, verde com esta).
+2. A conferência que enfraqueceu era a do `icones_mimetypes.sh` (o `[ ! -L ]` da P74, «link não
+   entra»), trocada pelo `meow_dentro` no `2e16c94`. Voltou, junto com a regra nova: o desenho
+   não pode ser link E o caminho copiado é o realpath conferido. No `icones_pastas.sh` (que no
+   `af3159f` não tinha conferência de link nenhuma, só a cópia crua) a mesma régua entrou agora,
+   para as duas pastas de desenho valerem igual; nenhum pack publicado tem link.
