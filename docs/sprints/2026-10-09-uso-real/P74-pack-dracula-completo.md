@@ -138,6 +138,33 @@ seções que pedem bat/btop, ferramentas de fonte e o `Dracula_OS-Theme` no HOME
 painel», que precisa do HOME de verdade, e rodado com ele (só leitura, `sudo`
 falso) sai verde. `pastas-do-pack.sh` (máquina) verde.
 
+## QA de casa limpa — 09/10/2026
+
+Numa casa temporária nova, com `sudo`, `apt`, `systemctl`, `pkill`,
+`gsettings`, `dconf`, `notify-send` e companhia falsos (registram e não
+executam; o registro só tem `notify-send`), as 20 etapas de ícone, prompt e
+terminal do `install.sh`, com as mesmas linhas de ambiente, duas vezes; depois
+`meow pack exportar-tema dracula` duas vezes e o tar instalado noutra casa limpa.
+
+| prova | resultado |
+|---|---|
+| índice do tema montado (validador próprio: Directories contra o disco, seções, Inherits) | 10 declarados = 10 com arte, 0 faltas, 0 Inherits sem destino |
+| exportar → instalar em casa limpa → `gtk-update-icon-cache -f` nos três | cache criado nos três; 0 links para fora, 0 quebrados (21.808 links); `Inherits` = as duas bases + `hicolor`; 0 «Catppuccin» nos três `index.theme` |
+| tema exportado contra o instalado na casa | os mesmos 1.466 arquivos, byte a byte, fora o `index.theme` (Name e Inherits) |
+| apps | 229 em `scalable/apps`; dos 577 nomes de app do `Dracula-Icones` congelado, 525 resolvem na cadeia nova (52 não; lista nos achados) |
+| ícones de arquivo | 123 postos pelo mapa, 123 com hex do Dracula, 0 com hex do mocha/macchiato |
+| pastas | 1.010 SVG em `places`, só `#bd93f9`, `#a97fe5`, `#383a4c`, `#f8f8f2` (e preto/branco); `folder`, `user-home` e `user-desktop` presentes |
+| simbólicos | `comm -23` do `Dracula-Icones` (1.484) e da cadeia antiga inteira (1.536) contra tema + duas bases → 0 e 0; sem a camada `main`, 497 |
+| Catppuccin com o Dracula no ar | `starship.toml` com `palette = 'dracula_dracula'` e 0 hex do Catppuccin (o nome só nos comentários); terminal, mimetypes e pastas sem hex do Catppuccin; sobram os dois gatos (achado abaixo) |
+| idempotência | 2ª passada: todas as etapas rc 0 (as de código 3 seguem 3) e só o `meow.log` cresce; 2º exportar: tar com conteúdo idêntico ao 1º e 0 escrita na casa de quem exporta |
+| folha de contato | `.playwright-mcp/ux-p74/folha-apps.png` (60 apps: 17 do pack, 43 da base circle, 0 sem desenho) |
+
+**Corrigido:** `9bd096c` — o `terminal.sh` guardava backup do mapa de esquemas
+antes de comparar: a 2ª passada, com nada a mudar, deixava uma pasta
+`<carimbo>-sistema` nova (18 entradas) com rc 0, e o `meow-doctor.timer` a
+repetiria todo dia. Agora só guarda quando o conteúdo difere (conferido: com o
+mapa trocado por `{}`, o backup sai com o `{}` e o mapa volta).
+
 ## Achados para a próxima leva
 
 - `icones_apps_arcticons.sh` sai 3 depois de escrever, fora da sessão gráfica: o `meow_tela_reler` devolve 3 sob `set -e`. O `exportar-tema` o lista entre os «sem dependência».
@@ -153,3 +180,10 @@ falso) sai verde. `pastas-do-pack.sh` (máquina) verde.
 - (conferência) O `icones_pastas.sh` lê o `pastas.map` novo do Dracula e não foi tocado pela P74: os nomes dele viram arquivo no tema sem a régua `[A-Za-z0-9._+-]`.
 - (conferência) O `icones_apps.sh` (camada de aplicativos do Catppuccin) aproxima o Dracula para o `macchiato` do Catppuccin; hoje não pesa porque o acervo `assets/icones/catppuccin-apps` não existe, mas com ele no disco o Dracula vestiria Catppuccin.
 - (conferência) As bases exportadas aparecem nos seletores de tema com o `Name=` do upstream («Dracula Circle» e «Dracula»), ao lado do tema exportado.
+- (QA) Os gatos `coquinha` e `mimir` (`assets/gatos/`, desenho dela) têm o arco em seis hex do macchiato (`#c6a0f6 #7dc4e4 #a6da95 #eed49f #f5a97f #ed8796`); com o Dracula no ar eles vão para `scalable/apps/com.system76.CosmicAppLibrary.svg`, `CosmicPanelAppButton.svg` e `~/.config/cosmic/logos/`. Repintar o arco pela paleta do pack mexe na arte dela: é decisão (liga com a I9, «um svg pra cada logo do theme pack»).
+- (QA) O tema exportado não herda `Cosmic`/`Adwaita` (o T7 pede só o que vai junto): numa casa limpa, os 24 `preferences-*` do COSMIC Ajustes que a instalação local tira do `Cosmic` ficam sem desenho na cadeia exportada. Herdar um tema que não viaja é inofensivo quando ele falta; a regra do T7 é decisão.
+- (QA) Dos 577 nomes de app do `Dracula-Icones` antigo, 52 não resolvem na cadeia nova: 25 `org.kde.krita.*` (tipos do Krita), 9 `Ubuntu-*` e `citrix` (Citrix Workspace, 9 deles pedidos por `.desktop` desta máquina), `edge`, `files`, `gnome-extensions`, `gradia`, `hplj1020`, 3 `ibus-setup-*`, `io.snapcraft.SessionAgent`, `universal-android-debloater`, `whatsapp-linux-app_whatsapp-linux-app`, `zapzap`, `com.visualstudio.code-url-handler`, e os pessoais (`mnemo`, `io.github.andrebfarias.Mnemo`, `neurosonancy`, `nyx`, `ouroboros`), que a decisão de 23/09 deixa de fora. Eram PNG do `current/`.
+- (QA) `dev.vencord.Vesktop` (o `Icon=` do Vesktop desta máquina) não tem desenho nem no pack nem nas bases (nem tinha no tema antigo); cai no ícone do próprio flatpak.
+- (QA) As bases do upstream declaram `32/actions`, que não existe, e não declaram `16/emblems` nem `24/emblems` (85 emblemas a 16 px fora do índice). É do upstream, copiado como veio.
+- (QA) A spec pede 230+ apps e saem 229: o 230 da pesquisa contava o `org.kde.ghostwriter.svg`, órfão de uma passada antiga (no HOME real ele é de 26/09); o `ghostwriter` hoje vem em traço pelo `48x48/apps`.
+- (QA) Na folha de contato, o `firefox` do tema é o traço do Arcticons em `blue` (o `apps-marca.map:151` já anota que devia ser `peach`), apagado ao lado dos círculos da base.
