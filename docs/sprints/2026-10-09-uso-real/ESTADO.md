@@ -13,21 +13,23 @@ Aguenta desligar o PC: o que está em voo e o próximo passo.
 
 Feito por mim, como usuário no navegador: `00-achados-como-usuario.md` (30 achados, prints em `.playwright-mcp/ux/`).
 
-## Onda 1 de correção — EM VOO (workflow leva-g-onda-1, run wf_d130cb4a-0b9)
+## Onda 1 — CONCLUÍDA e integrada (`integracao/leva-g`)
 
-Todas as auditorias voltaram ( acima, e paridade/COSMIC vivo também).
-Worktrees em `~/Desenvolvimento/.wt-meow/`: p73 (seletor e acervo), p74 (pack Dracula
-completo), p75 (doctor corrige), p76 (COSMIC vivo), integracao (branch `integracao/leva-g`).
-Por bloco: implementador → conferente que corrige → QA (P73 no navegador, P74 casa limpa).
-Depois: merge p75, p74, p73, p76 na integração e suíte inteira. 13 agentes agente.
+P73, P74, P75, P76 entraram; relatório `03-integracao-onda-1.md` (na integração). Suíte: 47 verdes,
+2 pulados, 3 vermelhos (gate pela decisão 7, dois de ambiente). O dev foi limpo (ghostwriter foi
+para `~/.config/meow/icones-escolhidos.map`, `apps.map` revertido, `.gitignore` em commit).
 
-Se a sessão cair: `Workflow({scriptPath: ".../leva-g-onda-1-wf_d130cb4a-0b9.js", resumeFromRunId: "wf_d130cb4a-0b9"})`
-reaproveita os agentes concluídos.
+## Onda 2 — EM VOO (workflow leva-g-onda-2, run wf_e7977159-726)
+
+P77 interface (hallmark → 4 grupos de páginas → conferente → QA de uso real) em `.wt-meow/p77`;
+P78 segurança + gate (decisões 7 e 8) em `.wt-meow/p78`; depois integração. 10 agentes.
+Retomar: `Workflow({scriptPath: ".../leva-g-onda-2-wf_e7977159-726.js", resumeFromRunId: "wf_e7977159-726"})`.
 
 ## Próximo passo
 
-1. Ler `03-integracao-onda-1.md` na worktree de integração.
-2. Varredura de segurança dedicada (pack como dado não confiável) sobre a integração: 4 alertas automáticos em P73/P74 (pack.py ×2, icones_apps_dracula.sh, som.sh, servidor.py servindo SVG) e um quinto em `bin/meow` (caminho de busca não confiável / execução de código; candidatos: P74 24e2b3b/71c95ea/c0b89b0, P75 0ea5fad/18c1d88/2733c4b, P76 — conferir todos os `source`, `python3` e `bash` sobre caminho de pack, cwd, PATH ou HOME). Pergunta de fundo: um pack importado pode trazer `manifesto.sh` executável? Se sim, importar pack = rodar código de terceiro; nada entra no dev antes.
-3. Lançar a onda 2: P77 interface (hallmark + QA de uso real) a partir da integração.
-4. Uso real final como usuário no navegador, sobre a integração; só então dev recebe tudo.
-5. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6), a frase cortada.
+1. Ler `04-integracao-onda-2.md` na integração.
+2. Uso real final como usuário, no navegador, sobre a integração (HOME temporário).
+3. Merge da integração no dev; `./install.sh` uma vez (ponte nova da P75, `meow-pos-apt` da P76);
+   `meow doctor` real.
+4. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6), ativar o shim do
+   compositor (P76, exige login), a frase cortada de 09/10.
