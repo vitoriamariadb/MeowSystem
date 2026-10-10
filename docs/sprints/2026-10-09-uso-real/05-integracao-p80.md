@@ -136,7 +136,7 @@ Ambiente de cada rodada:
 
 ## O que quem usa confere com a mão
 
-1. **Ficha de ícone** (Ícones, um app como o agente):
+1. **Ficha de ícone** (Ícones, um app como o Firefox):
    - os rótulos são nomes de programa, inteiros, sem palavra partida;
    - a paleta «Cor» só aparece quando um traço está marcado;
    - a pasta dos PNG mostra o selo de trava, e o porquê está na dica.
