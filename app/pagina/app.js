@@ -7245,11 +7245,20 @@ function faixaDeEnsaio(ligada) {
 function oferecerConserto(id) {
   const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
   if (!acao || document.getElementById("gaveta-consertar")) return;
-  $("#fechar-gaveta").before(elemento("button", {
+  /* [Integração da onda 2, 10/10/2026: esta é uma terceira porta do mesmo
+   *  «Consertar», e a decisão 7 (P78) põe o selo «baixa da internet» logo
+   *  depois do botão em toda porta da ação que declara `rede`. O selo sai junto
+   *  com o botão, no clique ou na gaveta seguinte.] */
+  const selo = acao.rede
+    ? elemento("span", { class: "pastilha p-rede", id: "gaveta-consertar-rede", texto: "baixa da internet" })
+    : null;
+  const botao = elemento("button", {
     type: "button", class: "btn btn-accent", id: "gaveta-consertar",
     texto: acao.rotulo,
-    onclick: (ev) => { ev.currentTarget.remove(); rodar(acao, ""); },
-  }));
+    onclick: (ev) => { ev.currentTarget.remove(); if (selo) selo.remove(); rodar(acao, ""); },
+  });
+  $("#fechar-gaveta").before(botao);
+  if (selo) botao.after(selo);
 }
 
 /* O BOTÃO QUE FECHA O FLUXO: vejo, aprovo, rodo. Ele só aparece quando o
@@ -7296,8 +7305,10 @@ function abrirGaveta(trabalho, aplicar = null) {
                rotulo: trabalho.rotulo, mudou: false,
                seco: !!trabalho.seco, fim: trabalho.fim || {}, aplicar,
                conserta: trabalho.conserta_com || null };
-  const velhoConserto = document.getElementById("gaveta-consertar");
-  if (velhoConserto) velhoConserto.remove();
+  for (const velho of ["gaveta-consertar", "gaveta-consertar-rede"]) {
+    const no = document.getElementById(velho);
+    if (no) no.remove();
+  }
   const gaveta = $("#gaveta");
   gaveta.hidden = false;
   faixaDeEnsaio(!!trabalho.seco);

@@ -1247,6 +1247,17 @@ class Percurso:
         if botao.count() and botao.is_visible():
             self.censo()             # o botão entra no que apareceu, antes de sumir no clique
             self.acionados.add("gaveta · #gaveta-consertar")
+            # [Integração da onda 2: a porta da gaveta também mostra o selo da
+            #  rede quando a ação que conserta baixa (decisão 7, P78). Conferido
+            #  ANTES do clique, porque o botão e o selo somem nele.]
+            conserto = self.acao_por_rotulo(botao.inner_text().strip())
+            if conserto and reparo_que_baixa(conserto):
+                self.checa(self.js("""() => {
+                    const b = document.querySelector('#gaveta-consertar');
+                    const s = b && b.nextElementSibling;
+                    return !!s && s.matches('.p-rede') && s.offsetParent !== null; }"""),
+                           f"«{conserto['rotulo']}» na gaveta mostra o selo «baixa da "
+                           f"internet» logo depois do botão")
             self.gesto_de_acao(lambda: botao.click(), botao.inner_text().strip())
 
     def _com_caixa(self, clicar, antes, reg0, n0):
