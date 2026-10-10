@@ -845,6 +845,18 @@ if servidor.indisponivel("areas_aplicar"):
     erros.append("com uma área fixada, «Gravar as áreas» continua apagado")
 if (servidor.indisponivel("areas_alfinetar_primeira") or {}).get("feito") != "areas_aplicar":
     erros.append("com uma área fixada, «Criar a primeira área» segue acesa, e só podia não fazer nada")
+# E a pendência velha da falta de área some da lista (o «Resolver» dela só
+# ouviria a recusa); a outra pendência, de conserto que ainda vale, fica.
+os.makedirs(os.path.dirname(servidor.PENDENCIAS), exist_ok=True)
+with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
+    fh.write("areas-sem-alfinete\tareas\tSem área fixada\tmeow areas alfinetar-primeira\t2026-10-10T00:00:00-03:00\n"
+             "starship-ausente\tprompt\tSem starship\tmeow prompt starship\t2026-10-10T00:00:00-03:00\n")
+vistas = [p["id"] for p in servidor.pendencias()]
+if "areas-sem-alfinete" in vistas:
+    erros.append("com área fixada, a pendência «areas-sem-alfinete» continua na lista: %r" % vistas)
+if "starship-ausente" not in vistas:
+    erros.append("a pendência que ainda vale sumiu junto: %r" % vistas)
+os.remove(servidor.PENDENCIAS)
 
 # 12d. o teto do raio
 dock = os.path.join(cosmic, "com.system76.CosmicPanel.Dock", "v1")
