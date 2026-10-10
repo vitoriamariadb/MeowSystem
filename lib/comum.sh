@@ -912,15 +912,20 @@ meow_nome_seguro() {
 #   É a porta de saída de texto que veio de pack, mapa, `.meowpack` ou nome de
 #   arquivo e vai para um aviso — nome de pack, linha pulada, pasta da raiz. Um
 #   `\e]52;c;…\a` cru escreve na área de transferência de quem lê; `\e[2J`
-#   apaga a tela; `\e]0;…` troca o título. Sai: C0 (a quebra de linha
-#   inclusive), DEL, C1 escrito em UTF-8 (`\xc2\x80`–`\xc2\x9f`) e o `\x9b`
-#   solto (o CSI de 8 bits) depois de ASCII. O `\x9b` que é continuação de uma
-#   letra de verdade (o `ě` é `\xc4\x9b`) fica, por isso a conta é em bytes.
+#   apaga a tela; `\e]0;…` troca o título.
+#   A CONTA É POR LETRA, E NÃO POR BYTE: o texto é lido como UTF-8, todo byte
+#   que não forma UTF-8 vira `?` (o `\x9b` solto, o CSI de 8 bits, e os outros
+#   C1 crus — `\x90` DCS, `\x9d` OSC), e só então saem C0 (a quebra de linha
+#   inclusive), DEL e C1 por ponto de código (U+0080–U+009F). Uma regex em bytes
+#   (a primeira versão, com `sed`) deixava passar `\x9b\x9b` e `\xff\x9b`, e
+#   não tinha como distinguir o `\x9b` solto do que é metade do `ě` (`\xc4\x9b`),
+#   que tem de sobreviver. O argv chega ao Python com `surrogateescape`; voltar
+#   aos bytes e decodificar com `replace` é o que separa um caso do outro.
 #   O pack.py tem a gêmea na entrada: o `validar` recusa texto com controle.
 meow_texto_seguro() {
-  printf '%s' "$*" | LC_ALL=C tr '\n\r\t' '???' \
-    | LC_ALL=C sed -e 's/[\x01-\x1f\x7f]/?/g' -e 's/\xc2[\x80-\x9f]/?/g' \
-                   -e 's/\(^\|[\x01-\x7f]\)\x9b/\1?/g'
+  python3 -I -c 'import re, sys
+t = sys.argv[1].encode("utf-8", "surrogateescape").decode("utf-8", "replace")
+sys.stdout.write(re.sub("[\x00-\x1f\x7f-\x9f\ufffd]", "?", t))' "$*"
 }
 
 # --- A CAPTURA DE TEMA: UMA PERGUNTA, UM LUGAR QUE RESPONDE -----------------
