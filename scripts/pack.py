@@ -2473,8 +2473,31 @@ RE_NOME_DESTINO = re.compile(r"^[A-Za-z0-9._+-]+$")
 
 def nome_de_destino(nome):
     """True quando `nome` serve de nome de arquivo do lado de cá: sem '/', sem '..'."""
-    return isinstance(nome, str) and bool(RE_NOME_DESTINO.match(nome)) \
+    # `fullmatch`, e não `match` com `$`: o `$` do Python também casa ANTES de
+    # um `\n` final, e `"x\n"` passava (medido na conferência da P78).
+    return isinstance(nome, str) and bool(RE_NOME_DESTINO.fullmatch(nome)) \
         and ".." not in nome and nome != "."
+
+
+RE_CONTROLE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def _caractere_de_controle(doc, trilha="raiz"):
+    """A trilha do primeiro texto (chave ou valor) com caractere de controle — ou None."""
+    if isinstance(doc, str):
+        return trilha if RE_CONTROLE.search(doc) else None
+    if isinstance(doc, dict):
+        for k, v in doc.items():
+            achado = _caractere_de_controle(k, f"{trilha}: a chave {k!r}") \
+                or _caractere_de_controle(v, f"{trilha}.{k}" if trilha != "raiz" else str(k))
+            if achado:
+                return achado
+    if isinstance(doc, list):
+        for i, v in enumerate(doc):
+            achado = _caractere_de_controle(v, f"{trilha}[{i}]")
+            if achado:
+                return achado
+    return None
 
 
 def _dentro(base, alvo, campo):
@@ -2482,7 +2505,16 @@ def _dentro(base, alvo, campo):
 
     Devolve o realpath, e é ele que se usa daqui em diante — ver "A REGRA ÚNICA".
     """
-    cheio = os.path.realpath(os.path.join(base, alvo))
+    # O NUL TAMBÉM É RECUSA, E NÃO TRACEBACK (conferência da P78). Um
+    #   `"mapa": "x\u0000y"` no pack.json é JSON válido, e o `realpath` levanta
+    #   ValueError, que nenhum chamador espera: um pack assim na raiz da pessoa
+    #   derrubava a `/api/glifos` inteira (a ficha de ícone de TODO pack), com
+    #   a conexão fechada sem resposta. Como Recusa, ele cai no "esta camada foi
+    #   ignorada" de cada chamador, igual a um `../`.
+    try:
+        cheio = os.path.realpath(os.path.join(base, alvo))
+    except (TypeError, ValueError):
+        raise Recusa(f"{campo}: {alvo!r} não é caminho (NUL ou tipo errado)") from None
     if not cheio.startswith(os.path.realpath(base) + os.sep):
         raise Recusa(f"{campo}: {alvo!r} sai de dentro do pack")
     return cheio
@@ -3619,6 +3651,21 @@ def validar(ref, silencioso=False):
             dados = json.load(fh)
     except json.JSONDecodeError as e:
         raise Recusa(f"{arq}: não é JSON válido: linha {e.lineno} — {e.msg}")
+
+    # TEXTO DE PACK NÃO LEVA CARACTERE DE CONTROLE — conferência da P78
+    #   O `nome`, o `autor` e os nomes de flavor saem crus no terminal (`meow
+    #   pack listar`, o resumo do `importar`, o doctor) e entram em arquivo de
+    #   configuração de aplicativo pelo `{{nome}}` dos modelos. Medido: um pack
+    #   com `"nome": "Esc\u001b]52;c;…\u0007"` escrevia na área de
+    #   transferência e trocava o título do terminal de quem rodava o `listar`;
+    #   e um `\n` no nome do flavor abre linha nova dentro do tema do kitty. Os
+    #   dois arquivos, chave e valor, a fundo: C0 (o `\n` e o `\t` inclusive),
+    #   DEL e C1. Nenhum pack publicado tem um (conferido nos três).
+    for nome_arq, doc in (("pack.json", p), (arq, dados)):
+        ruim = _caractere_de_controle(doc)
+        _exigir(ruim is None,
+                f"{nome_arq}: {ruim} tem caractere de controle — texto de pack é uma\n"
+                f"    linha de letras; o terminal e o tema dos aplicativos o leriam como comando")
 
     for campo in ("flavors", "nomes", "claros"):
         _exigir(campo in dados, f"{arq}: falta o campo {campo!r}")
