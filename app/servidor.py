@@ -847,15 +847,67 @@ def _leitura_desligada(chave, valor):
         return False
 
 
+# ONDE O APPLET DO MODO DE LEITURA GUARDA CADA CHAVE — 10/10/2026, P77 (achado 26)
+#   O `_valendo_agora` lia `com.system76.CosmicComp/v1/<chave em minúscula>`,
+#   e só acertava por acaso: `leitura_temperatura` é o que está NA TELA neste
+#   minuto (0 de dia), e não o ponto que ela arrastou; `leitura_horario_inicio`
+#   não existe — o applet grava `leitura_hora_inicio`. O lugar de cada uma é o
+#   que o `scripts/leitura.sh` lê (`LEITURA_K_*`): o ponto dos sliders no ESTADO
+#   do applet, a agenda e o horário no CosmicComp. As duas que não estão aqui
+#   (a rampa e o applet na barra) só existem no meow.conf.
+_LEITURA_NO_APPLET = {
+    "LEITURA_TEMPERATURA": ("estado", "ultima_temperatura"),
+    "LEITURA_TEXTURA": ("estado", "ultima_textura"),
+    "LEITURA_AGENDA": ("cosmic", "com.system76.CosmicComp/v1/leitura_agenda"),
+    "LEITURA_HORARIO_INICIO": ("cosmic", "com.system76.CosmicComp/v1/leitura_hora_inicio"),
+    "LEITURA_HORARIO_FIM": ("cosmic", "com.system76.CosmicComp/v1/leitura_hora_fim"),
+}
+
+
+def _leitura_no_applet(chave):
+    """O valor que o applet guarda para a chave, já no vocabulário do meow.conf,
+    ou None quando ele não guarda (ou guarda o que o `leitura.sh` recusaria)."""
+    onde = _LEITURA_NO_APPLET.get(chave)
+    if not onde:
+        return None
+    tipo, nome = onde
+    if tipo == "estado":
+        base = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
+        try:
+            with open(os.path.join(base, "cosmic", "com.meowsystem.AppletLeitura", "v1", nome),
+                      encoding="utf-8") as fh:
+                bruto = fh.read().strip()
+        except OSError:
+            return None
+    else:
+        bruto = (_cosmic_ler(nome) or "").strip().strip('"')
+    # Os mesmos portões do `_leitura_resolver_alvo` e do `_leitura_uma_ponta`:
+    # o que o relógio ignora, a página também ignora.
+    if chave == "LEITURA_TEMPERATURA":
+        return bruto if bruto.isdigit() and 1000 <= int(bruto) <= 6500 else None
+    if chave == "LEITURA_TEXTURA":
+        try:
+            return bruto if 0 <= float(bruto) <= 1 and re.fullmatch(r"[\d.]+", bruto) else None
+        except ValueError:
+            return None
+    if chave == "LEITURA_AGENDA":
+        return {"true": "sim", "false": "nao", "Some(true)": "sim", "Some(false)": "nao"}.get(bruto)
+    m = re.fullmatch(r"([01]?\d|2[0-3]):([0-5]\d)", bruto)
+    return "%02d:%s" % (int(m.group(1)), m.group(2)) if m else None
+
+
 def _valendo_agora(chave):
     if chave.startswith("LEITURA_"):
-        valor = (_cosmic_ler("com.system76.CosmicComp/v1/" + chave.lower()) or "").strip('"')
-        # O applet grava booleano em RON (`true`), e o conf diz `sim`. Sem esta
-        # tradução o cartão acusava "Na máquina agora: Sim" com o próprio cartão
-        # marcado em Sim — visto clicando no painel em 13/09/2026.
-        if _leitura_desligada(chave, valor):
-            return None
-        return _sim_nao(valor) or valor or None
+        # [P77: o lugar do applet, e não a tela deste minuto — ver acima.]
+        return _leitura_no_applet(chave)
+    if chave == "AREAS_NOMES":
+        # AS ÁREAS QUE O COSMIC TEM — 10/10/2026, P77 (achado 29). Vazio é «as
+        # áreas são suas», e mesmo assim elas existem e têm nome e ordem: a
+        # página as desenha como estão, a traço, e o primeiro gesto de
+        # arrastar ou renomear parte delas. Cheio e ainda não aplicado (o
+        # cosmic-comp lê o arquivo no início da sessão), o «Como está» é o do
+        # disco. `_areas_alfinetadas` já tira a folga invisível dos nomes.
+        return ", ".join(_areas_alfinetadas()) or None
     if chave == "VIDRO_AO_MAXIMIZAR":
         # Uma chave para as duas barras (o `vidro.sh` grava as duas): só há
         # resposta quando elas concordam.
@@ -868,6 +920,26 @@ def _valendo_agora(chave):
     arquivo, traduzir = regra
     bruto = _cosmic_ler(arquivo)
     return traduzir(bruto) if bruto else None
+
+
+def _noite_do_applet():
+    """{"ini": "HH:MM", "fim": "HH:MM"} quando o applet do modo de leitura
+    guarda as DUAS pontas da janela no CosmicComp; senão None.
+
+    O SEGUNDO DEGRAU DA NOITE DO GATO — 10/10/2026, P77 (achado 25). O
+    `meow_noite_janela` (lib/noite.sh) responde, nesta ordem: `NOITE_*`, a
+    janela do applet, `WALLPAPER_NOITE_*`, 18:00–07:00. A página sabe ler três
+    dos quatro degraus no meow.conf, e o do applet mora fora dele: é este campo.
+    As duas pontas, e não uma, porque é assim que o `meow_noite_janela` as
+    aceita — uma ponta só cai no degrau seguinte inteiro."""
+    pontas = []
+    for chave in ("leitura_hora_inicio", "leitura_hora_fim"):
+        bruto = (_cosmic_ler("com.system76.CosmicComp/v1/" + chave) or "").strip().strip('"')
+        if not re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", bruto):
+            return None
+        h, m = bruto.split(":")
+        pontas.append("%02d:%s" % (int(h), m))
+    return {"ini": pontas[0], "fim": pontas[1]}
 
 
 def _titulo_de(chave):
@@ -1287,7 +1359,14 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         if agora and "$" not in agora and agora not in oferta:
             oferta.append(agora)
         item["opcoes"] = oferta
-        item["rotulos"] = {f: (mt["nomes"].get(f) or f) + herdado for f in oferta}
+        # O VALOR QUE NÃO É DO PACK NO AR SAI COM NOME, E NÃO CRU — QA da P77,
+        #   10/10/2026. Com o Dracula completo (P74) o acervo dele tem nomes
+        #   próprios, e a casa que ainda guarda `ICONES_FLAVOR="macchiato"` (o
+        #   que o Dracula antigo herdava) via «Dracula · Alucard · macchiato»: o
+        #   único ladrilho em minúscula, com cara de identificador. O nome
+        #   próprio é o de qualquer flavor (`Macchiato`), sem inventar o dono.
+        item["rotulos"] = {f: (mt["nomes"].get(f) or f[:1].upper() + f[1:]) + herdado
+                           for f in oferta}
         # O «VALE COMO» É A RESPOSTA DA REGRA, E NÃO A EXPANSÃO DO SHELL — P31
         #   Com o conf de fábrica e o Dracula no ar o cartão dizia «Vale como:
         #   dracula» — o `"$FLAVOR"` expandido —, e o `icones_mimetypes.sh` não
@@ -1929,6 +2008,21 @@ def _forma_de_numero(padrao):
     return ""
 
 
+def _vazio_vale(inline):
+    """O número que a chave vazia vale, quando o comentário da linha o declara
+    no formato `(vazio = 7)`; senão None.
+
+    O «COMO ESTÁ» SEM NÚMERO — 10/10/2026, P77 (achado 25). «O tema claro
+    começa às» nasce vazio, e vazio ali não é «não toca»: o `modo_desejado`
+    do `bin/meow` lê `${MODO_AUTO_CLARO_DE:-7}`. O deslizante desenhava a alça
+    no 0 e dizia só «como está», e o relógio da página não tinha como saber
+    que o claro começa às 7. O arquivo já escreve o número ao lado da linha;
+    só se aceita número, porque `(vazio = não toca)` é o outro contrato, o do
+    terceiro estado, e não um valor."""
+    m = re.search(r"\(vazio\s*=\s*(-?\d+(?:\.\d+)?)\s*\)", inline or "")
+    return m.group(1) if m else None
+
+
 def _faixa(ajuda, inline):
     """(minimo, maximo, passo) quando o comentário declara uma faixa numérica.
 
@@ -2065,6 +2159,13 @@ def _paragrafos(ajuda):
     if atual:
         saida.append(" ".join(atual))
     return saida
+
+
+def _so_com_app(ajuda):
+    """Os ids da marca `[so-com-app id1 id2 …]` do comentário, ou lista vazia.
+    Ver o campo `so_com_app` do esquema."""
+    m = re.search(r"\[so-com-app ([^\]]+)\]", ajuda or "")
+    return m.group(1).split() if m else []
 
 
 def _frase_curta(ajuda, inline):
@@ -2299,6 +2400,8 @@ def ler_esquema():
             #   controle, que é o que a prosa do arquivo quer dizer.
             "opcoes": _opcoes_finais(chave, ajuda, inline, _valor_da_linha(linha), herdada),
             "faixa": _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
+            # O QUE O VAZIO VALE, quando o arquivo o diz — ver `_vazio_vale`.
+            "vazio_vale": _vazio_vale(inline),
             # A forma do número, quando há uma. Sai do VALOR DE FÁBRICA, que é
             # onde o arquivo já a declara sem precisar de uma palavra a mais —
             # ver `FORMAS_NUMERO`. É o que permite à página desenhar um campo
@@ -2339,6 +2442,21 @@ def ler_esquema():
             # quem não tem `# @ ` escrito.
             "ajuda_de": ajuda_de,
             "essencial": "[essencial]" in ajuda,
+            # O AJUSTE TÉCNICO SAI DA FRENTE — 09/10/2026, P77 (achado 10, S2).
+            #   A marca `[avancado]` estava no arquivo desde a P10 e ninguém a
+            #   lia: o commit fixado e o repositório do acervo do Dracula (um
+            #   hash de 40 caracteres, uma conta do GitHub) apareciam em «Cor e
+            #   tela» como se fossem escolha de quem usa. A página os recolhe
+            #   num «⋯» no fim da página; o controle continua lá, gravando a
+            #   mesma chave.
+            "avancado": "[avancado]" in ajuda,
+            # SÓ COM O PROGRAMA NA MÁQUINA — 09/10/2026, P77 (achado 12, S2).
+            #   `[so-com-app id1 id2]` diz que o ajuste só faz sentido onde um
+            #   destes `.desktop` existe — a logo própria do Hefesto era um
+            #   cartão de fábrica para todo mundo, e só quem tem o Hefesto tem
+            #   o que trocar. Quem decide se o programa está aqui é o
+            #   `_dados_esquema`, com os mesmos `_desktops` da aba de ícones.
+            "so_com_app": _so_com_app(ajuda),
             # Lista separada por vírgula: a regra é o que o comentário DIZ, não uma
             # lista de nomes de chave. `APPS_ATIVOS` e `AUTOSTART_BLOQUEADOS` dizem
             # "vírgula-separado"/"separada por vírgula"; a
@@ -2476,11 +2594,17 @@ def _acentos_que_aplicam(esquema):
                 [sys.executable, os.path.join(RAIZ, "scripts", "derivar_acento.py"),
                  "--aplicam", ",".join(acentos)],
                 cwd=RAIZ, capture_output=True, text=True, timeout=60)
-            _APLICAM_CACHE.clear()
-            _APLICAM_CACHE[chave] = json.loads(r.stdout) if r.returncode == 0 else {}
+            resposta = json.loads(r.stdout) if r.returncode == 0 else {}
         except (OSError, ValueError, subprocess.SubprocessError):
             return {}
-    return _APLICAM_CACHE[chave]
+        # A RESPOSTA VOLTA PELA VARIÁVEL, E NÃO PELO DICIONÁRIO — P77: desde
+        # que o `_aquecer` (no `main`) faz esta conta numa thread ao subir, o
+        # primeiro `/api/esquema` pode fazê-la ao mesmo tempo; reler do
+        # dicionário depois do `clear()` da outra thread daria `KeyError`.
+        _APLICAM_CACHE.clear()
+        _APLICAM_CACHE[chave] = resposta
+        return resposta
+    return _APLICAM_CACHE.get(chave, {})
 
 
 # --- 3b. os acervos que moram no DISCO, e não no texto -----------------------
@@ -3220,11 +3344,11 @@ def teto_da_chave(chave):
     acima = ("qualquer canto arredondado" if t == 0
              else "um canto acima de %d px" % t)
     if medida["compositor"] == "clampa":
-        return {"valor": None, "trava": False,
+        return {"valor": None, "trava": False, "estado": "clampa",
                 "motivo": "o compositor desta sessão corta o excesso sozinho, "
                           "e o raio é todo seu"}
     if medida.get("experimental"):
-        return {"valor": t, "trava": False,
+        return {"valor": t, "trava": False, "estado": "experimental",
                 "motivo": "modo experimental ligado (FORMA_RAIO_EXPERIMENTAL): "
                           "%s pode derrubar painel e dock juntos" % acima}
     if medida["compositor"] == "pendente":
@@ -3233,7 +3357,9 @@ def teto_da_chave(chave):
     else:
         porque = ("o compositor desta sessão não tem o patch do raio, e %s "
                   "derruba painel e dock juntos" % acima)
-    return {"valor": t, "trava": True, "motivo": porque}
+    # O `estado` é para a página escolher o selo sem ler a frase (QA da P77):
+    # a frase vira balão curto, e o porquê inteiro continua aqui e na recusa.
+    return {"valor": t, "trava": True, "motivo": porque, "estado": medida["compositor"]}
 
 
 def validar_valor(item, valor):
@@ -4484,6 +4610,11 @@ ACOES = {
         "natureza": "conferir",
         "argv": _meow("doctor"),
         "escreve": False, "sudo": False, "confirma": False,
+        # O CONSERTO NASCE NA PRÓPRIA GAVETA — QA da P77, 10/10/2026. Com
+        # divergência o doctor termina em «rode: meow doctor --consertar»: um
+        # comando para quem está diante de um botão. A gaveta oferece o botão
+        # desta ação quando o conferir sai 1 («há divergências»).
+        "conserta_com": "doctor_consertar",
         "ajuda": "Faz {as_conferencias} e lista o que está fora do lugar. "
                  "Não escreve nada.",
     },
@@ -5019,9 +5150,13 @@ ACOES = {
     # O STARSHIP — 22/09/2026, sprint P2. A receita `curl | sh` que o
     # `scripts/prompt.sh` imprimia virou este botão. `rede` está ligado porque
     # ele BAIXA DA INTERNET, e é esse campo que põe o rótulo na confirmação.
+    # NA PÁGINA DO TERMINAL — 10/10/2026, P77 (achado 21). O starship desenha
+    # o prompt do zsh, que é um ajuste de «Terminal» («Prompt do zsh»); a
+    # ação de instalá-lo morava em «Manutenção», longe do cartão que ela
+    # destrava.
     "prompt_instalar_starship": {
         "rotulo": "Instalar o starship",
-        "grupo": "Manutenção",
+        "grupo": "Terminal",
         "natureza": "baixar",
         "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
@@ -6746,6 +6881,7 @@ def _trabalho_json(trabalho, acao_id, seco=False):
             "comando": comando_na_tela(trabalho.argv),
             "escreve": escreve(ACOES[acao_id]),
             "seco": bool(seco),
+            "conserta_com": ACOES[acao_id].get("conserta_com"),
             "fim": fim_da_acao(acao_id, seco)}
 
 
@@ -6875,6 +7011,19 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
     # ensaio para outro arquivo sem querer.
     if conf_do_ensaio:
         ambiente["MEOW_CONF"] = conf_do_ensaio
+        # AS ESCOLHAS DE ÍCONE MORAM AO LADO DO CONF DELA, E NÃO DA CÓPIA — QA
+        #   da P77, 10/10/2026. O `pack.py` e o `icones_apps_arcticons.sh`
+        #   acham os dois mapas de quem usa pela PASTA do `MEOW_CONF`; com ele
+        #   apontando para a cópia, a pasta do ensaio não tem mapa nenhum, e o
+        #   «Ver o que faria» anunciava «apagaria .../<app>.svg (desenho
+        #   que saiu do mapa do pack no ar)» logo depois de um «Usar este ícone»
+        #   para aquele app — medido no navegador, com o «Salvar e aplicar» de
+        #   verdade lendo o mapa certo. O ensaio passa a ler os mesmos mapas.
+        pasta_dela = os.path.dirname(CONF)
+        ambiente.setdefault("MEOW_ICONES_ESCOLHAS",
+                            _mapa_de_escolhas_do_usuario())
+        ambiente.setdefault("MEOW_ICONES_TRACO",
+                            os.path.join(pasta_dela, "icones-traco.map"))
         # E O MAPA DOS JOGOS, quando o ensaio é de uma decisão de jogo ainda não
         # gravada (P54, `_ensaio_dos_jogos`): o `jogos_steam.sh` lê o mapa por
         # esta variável, e a cópia com a decisão dentro mora na mesma pasta.
@@ -7924,7 +8073,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 ident = arq[: -len(".desktop")]
                 caminho = os.path.join(pasta, arq)
                 dados = {"id": ident, "nome": ident, "icone": "", "origem": origem,
-                         "arquivo": caminho, "oculto": False, "categorias": ""}
+                         "arquivo": caminho, "oculto": False, "categorias": "", "mime": ""}
                 traduzidos = {}
                 try:
                     with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
@@ -7949,6 +8098,9 @@ class Manipulador(BaseHTTPRequestHandler):
                                 dados["icone"] = linha[5:].strip()
                             elif linha.startswith("Categories="):
                                 dados["categorias"] = linha[11:].strip()
+                            elif linha.startswith("MimeType="):
+                                # Para o `_e_jogo` saber quem é loja (P77).
+                                dados["mime"] = linha[9:].strip()
                             elif linha.startswith(("NoDisplay=", "Hidden=")):
                                 if linha.split("=", 1)[1].strip().lower() == "true":
                                     dados["oculto"] = True
@@ -8341,11 +8493,25 @@ class Manipulador(BaseHTTPRequestHandler):
     #   pega o resto (24 dos 64 `.desktop` visíveis, medido em 06/09/2026).
     _RE_STEAM = re.compile(r"^(meow-steam-|steam_app_)\d+$")
 
+    # A LOJA NÃO É JOGO — 10/10/2026, P77 (achado 19 do uso real, L1). A aba
+    #   dizia «Nenhum jogo instalado na Steam» e, logo abaixo, «2 jogos têm
+    #   atalho», com a própria Steam na grade como um dos dois. A Steam se
+    #   declara `Categories=Network;FileTransfer;Game;` — é programa da
+    #   categoria jogo, e não um jogo. O critério continua sendo o do PRÓPRIO
+    #   ARQUIVO, sem lista nossa (o parágrafo de cima): quem abre outros jogos
+    #   diz isso no `.desktop` de dois jeitos que jogo nenhum diz — registra um
+    #   esquema de endereço (`MimeType=x-scheme-handler/steam`, `heroic`,
+    #   `lutris`: é por ele que a loja recebe o «jogar» do navegador) ou se
+    #   declara `Emulator`. Esses voltam à aba Ícones como programa, que é o
+    #   que são — e a conta das duas abas passa a falar da mesma coisa.
     def _e_jogo(self, d):
         if self._RE_STEAM.match(d.get("id", "")):
             return True
-        cats = (d.get("categorias") or "").lower()
-        return "game" in [c.strip() for c in cats.split(";") if c.strip()]
+        cats = [c.strip() for c in (d.get("categorias") or "").lower().split(";") if c.strip()]
+        if "game" not in cats:
+            return False
+        loja = any(m.strip().startswith("x-scheme-handler/") for m in (d.get("mime") or "").split(";"))
+        return not loja and "emulator" not in cats
 
     def _dados_apps(self, consulta):
         busca = (consulta.get("busca", [""])[0] or "").strip().lower()
@@ -11361,6 +11527,17 @@ class Manipulador(BaseHTTPRequestHandler):
         for item in esquema:
             item["valor"] = brutos.get(item["chave"], "")
             item["efetivo"] = efetivos.get(item["chave"], "")
+            # UMA FONTE DE VERDADE NO MODO DE LEITURA — 10/10/2026, P77 (achado
+            #   26). Quando o applet guarda a chave, é o valor DELE que a máquina
+            #   usa (o meow.conf é o padrão de fábrica, `_leitura_resolver_alvo`),
+            #   e é ele que o cartão mostra como o valor da chave. O do arquivo
+            #   fica em `valor_no_arquivo`. Escolher no painel grava os dois
+            #   lugares (o `leitura.sh adotar`, chamado pelo «Salvar e
+            #   aplicar»), então o que a tela diz é o que vale, nos dois sentidos.
+            if item["chave"] in _LEITURA_NO_APPLET and item.get("valendo_agora") is not None:
+                item["valor_no_arquivo"] = item["valor"]
+                item["valor"] = item["valendo_agora"]
+                item["fonte"] = "applet"
         # O VOCABULÁRIO DO PACK NO AR — P10. Depois dos valores, porque a
         # «Variante dos ícones de arquivo» mostra o de agora quando ele está
         # fora do que o pack oferece.
@@ -11394,6 +11571,14 @@ class Manipulador(BaseHTTPRequestHandler):
         # é pulado.
         #   Só os ids citados, e não a máquina inteira: o esquema é lido a cada
         # carga da página, e o ícone de cada programa custa uma busca no disco.
+        # O AJUSTE DE UM PROGRAMA QUE ESTA MÁQUINA NÃO TEM NÃO SE MOSTRA (P77,
+        # achado 12). O valor continua no arquivo e na linha de comando; a
+        # página só não oferece um cartão sem objeto.
+        so_com = [i for i in esquema if i.get("so_com_app")]
+        if so_com:
+            desktops = {d["id"] for d in self._desktops()}
+            for item in so_com:
+                item["sem_programa"] = not any(ident in desktops for ident in item["so_com_app"])
         com_ids = [i for i in esquema if i.get("ids_de_desktop")]
         if com_ids:
             por_id = {d["id"]: d for d in self._desktops()}
@@ -11431,6 +11616,9 @@ class Manipulador(BaseHTTPRequestHandler):
             # O gato que está no dock agora, do `logo.sh no-dock` — o retrato
             # da Início o diz, e não a `LOGO`, que é só a do modo fixo.
             "gato_no_dock": _gato_no_dock(),
+            # A janela que o controle do modo de leitura guarda, quando guarda
+            # as duas pontas — ver `_noite_do_applet`.
+            "noite_do_applet": _noite_do_applet(),
             # Quais combinações de FLAVOR × ACCENT existem de verdade: a
             # página avisa ANTES de ela salvar uma que o instalador recusa.
             "capturas": _capturas_no_disco(),
@@ -11620,6 +11808,24 @@ class Manipulador(BaseHTTPRequestHandler):
                                    "erro": "nem tudo foi gravado, e nada foi aplicado"}, 500)
 
             resposta = {"gravadas": gravadas, "iguais": iguais}
+            # O APPLET PASSA A GUARDAR O QUE O PAINEL ESCOLHEU — P77 (achado 26).
+            #   Todas as escolhas de modo de leitura do pedido, e não só as que
+            #   mudaram o arquivo: com o applet em 6300 e o conf em 3500,
+            #   escolher 3500 aqui é «igual» para o meow.conf e é justamente a
+            #   escolha que tem de chegar ao applet. Falhar aqui não derruba o
+            #   salvar (o conf já está gravado): a frase vai junto da resposta.
+            leitura = [c for c, _v in pares if c in _LEITURA_NO_APPLET]
+            if leitura:
+                try:
+                    feito = subprocess.run(_meow("leitura", "adotar", *leitura),
+                                           capture_output=True, timeout=20,
+                                           env=_ambiente_do_painel())
+                    if feito.returncode not in (0, 1):
+                        resposta["aviso"] = texto_na_tela(
+                            feito.stdout.decode("utf-8", "replace")
+                            + feito.stderr.decode("utf-8", "replace")).strip()
+                except (OSError, subprocess.SubprocessError) as e:
+                    resposta["aviso"] = "o controle do modo de leitura não foi atualizado: %s" % e
             trabalho, erro = iniciar("instalar", "", confirmado=True)
             if erro:
                 resposta["erro"] = erro["erro"] if isinstance(erro, dict) else erro
@@ -11843,7 +12049,25 @@ def _vigia(servidor, comeco):
     servidor.shutdown()
 
 
+def _aquecer():
+    """A conta mais cara do esquema frio, feita antes de a página pedir.
+
+    A PRIMEIRA CARGA ESPERAVA O ESQUEMA FRIO — 10/10/2026, P77 (achado 22).
+    Medido na casa de brinquedo: o primeiro `_dados_esquema` custa 1,0 s e os
+    seguintes 0,15 s; 0,72 s daquele segundo é o `_acentos_que_aplicam`, que
+    roda o `derivar_acento.py` num processo filho e guarda a resposta. Esta
+    thread a faz ao subir, enquanto o navegador ainda abre: quando o pedido
+    chega, a resposta já está guardada. Falhar aqui não muda nada — o pedido
+    faz a conta como sempre fez."""
+    try:
+        _acentos_que_aplicam(ler_esquema())
+    except Exception:
+        pass
+
+
 def main():
+    # O esquema frio começa a aquecer antes de a URL sair — ver `_aquecer`.
+    threading.Thread(target=_aquecer, daemon=True).start()
     # Os operários de prévia sobem ANTES do servidor: o primeiro `/api/previas`
     # pode chegar no mesmo segundo em que a página abre, e uma fila sem ninguém
     # do outro lado deixaria as miniaturas eternamente "gerando".

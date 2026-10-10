@@ -272,7 +272,7 @@ meow_app_conferir() {
       meow_muda "kitty: está sem tema — o pack $_KITTY_DE traz '$_KITTY_NOME'"
       return "$MEOW_DIVERGENTE"
     fi
-    meow_pula "kitty: está em '$_KITTY_NO_AR', que não veio daqui — trocar é decisão dela"
+    meow_pula "kitty: está em '$_KITTY_NO_AR', que não veio daqui — trocar é decisão sua"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ "$(cat "$_KITTY_TEMA")" != "$_KITTY_DESEJADO" ]; then
@@ -306,8 +306,8 @@ meow_app_aplicar() {
     # vez só — a segunda troca guardaria o nosso por cima do dela.
     if [ -f "$_KITTY_TEMA" ] && [ ! -f "$_KITTY_ANTES" ] && ! meow_seco; then
       mkdir -p "$(dirname "$_KITTY_ANTES")" && cp -a -- "$_KITTY_TEMA" "$_KITTY_ANTES" \
-        || { meow_erro "kitty: não consegui guardar o tema dela antes de trocar"; return "$MEOW_ERRO"; }
-      meow_info "kitty: o tema dela ficou guardado em $_KITTY_ANTES"
+        || { meow_erro "kitty: não consegui guardar o seu tema antes de trocar"; return "$MEOW_ERRO"; }
+      meow_info "kitty: o seu tema ficou guardado em $_KITTY_ANTES"
     fi
   fi
 
@@ -344,16 +344,16 @@ meow_app_reverter() {
     return "$MEOW_OK"
   fi
   if meow_seco; then
-    meow_muda "kitty: tiraria o tema do pack ($marca)$([ -f "$_KITTY_ANTES" ] && printf ' e devolveria o dela')"
+    meow_muda "kitty: tiraria o tema do pack ($marca)$([ -f "$_KITTY_ANTES" ] && printf ' e devolveria o seu')"
     return "$MEOW_DIVERGENTE"
   fi
   if [ -f "$_KITTY_ANTES" ]; then
     cp -a -- "$_KITTY_ANTES" "$_KITTY_TEMA" && rm -f -- "$_KITTY_ANTES" \
-      || { meow_erro "kitty: não consegui devolver o tema dela"; return "$MEOW_ERRO"; }
+      || { meow_erro "kitty: não consegui devolver o seu tema"; return "$MEOW_ERRO"; }
     # O tema dela volta, e o `include` fica — sem ele o arquivo devolvido não
     # pintaria nada. Só o nome do nosso tema sai do bloco.
     bloco="$(printf '# BEGIN_KITTY_THEME\ninclude current-theme.conf\n# END_KITTY_THEME')"
-    meow_ok "kitty: o tema dela voltou para $_KITTY_TEMA"
+    meow_ok "kitty: o seu tema voltou para $_KITTY_TEMA"
   else
     rm -f -- "$_KITTY_TEMA" || { meow_erro "kitty: não consegui tirar $_KITTY_TEMA"; return "$MEOW_ERRO"; }
     meow_ok "kitty: o tema do pack saiu do kitty"

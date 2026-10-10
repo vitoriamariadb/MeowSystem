@@ -69,6 +69,7 @@ PORTATIL=(
   sem-dracula-os-theme.sh # tokenize no código versionado + a camada Dracula num HOME de brinquedo; bash e python3
   sem-receita-no-log.sh  # grep nos .sh versionados; nada além de bash
   temas-de-apps.sh       # grep nos manifestos + pack.py; estado de brinquedo
+  leitura-fonte-unica.sh # o meow leitura adotar e o servidor num HOME de brinquedo (P77); bash e python3
   flavor-padrao.sh       # o lib/comum.sh, quatro scripts que só leem, dois manifestos, o conf do painel e o meow icones num HOME de brinquedo (P61, P65); bash e python3
   git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash
   app.sh                 # compara o esquema do painel com o do wizard; python3
@@ -118,6 +119,7 @@ MAQUINA=(
   restos-do-painel.sh    # a ficha de ícone e a gaveta no vm do node, sem navegador (P64); sem node, conta e pula
   folha-dos-resgatados.sh # acervo e raiz de brinquedo; pede rsvg-convert e o ImageMagick, sem eles pula (P68)
   app-completo.py        # Playwright com Chromium: TODA aba, TODO controle — o gate de merge (P46)
+  app-uso-real.py        # Playwright com Chromium: as 14 páginas como quem usa — parágrafo, coberto, prévia vazia, contradição (P77, U7)
 )
 
 # O GATE NÃO SE PULA — 24/09/2026, sprint P46
@@ -127,8 +129,12 @@ MAQUINA=(
 #   deixaria a suíte dizer "0 vermelhos" sem ele ter rodado — e "pulado não é
 #   verde" é a regra deste arquivo desde o primeiro dia. Para os testes desta
 #   lista, `pulado` é VERMELHO, com a receita de instalar na tela.
+#   O `app-uso-real.py` (P77, U7) entra pelo mesmo motivo: é o pedido «abrir
+#   cada aba como user… e colocar como gate», e o que ele olha (o que a pessoa
+#   VÊ) o `app-completo.py` não olha.
 SEM_PULO=(
   app-completo.py
+  app-uso-real.py
 )
 
 # ---------------------------------------------------------------------------

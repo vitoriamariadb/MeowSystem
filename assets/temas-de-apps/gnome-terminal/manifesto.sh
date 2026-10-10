@@ -131,7 +131,7 @@ meow_app_conferir() {
       meow_muda "GNOME Terminal: o perfil padrão usa as cores do sistema — o pack $_GT_DE traz '$_GT_NOME'"
       return "$MEOW_DIVERGENTE"
     fi
-    meow_pula "GNOME Terminal: o padrão é $_GT_NO_AR, que não veio daqui — trocar é decisão dela"
+    meow_pula "GNOME Terminal: o padrão é $_GT_NO_AR, que não veio daqui — trocar é decisão sua"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! _gt_perfil_em_dia; then

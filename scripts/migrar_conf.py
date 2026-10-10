@@ -153,7 +153,7 @@ def blocos_faltando(exemplo: str, atuais: set[str]) -> list[tuple[str, str]]:
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("conf", type=Path, help="o meow.conf dela")
+    p.add_argument("conf", type=Path, help="o seu meow.conf")
     p.add_argument("exemplo", type=Path, help="o meow.conf.exemplo do repositório")
     p.add_argument("--conferir", action="store_true",
                    help="não escreve; sai 1 se houver chave faltando ou chave "

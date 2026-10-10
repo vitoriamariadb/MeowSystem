@@ -4330,12 +4330,16 @@ cmd_leitura() {
 
   case "$verbo" in
     aplicar|conferir|estado|remover) "$RAIZ/scripts/leitura.sh" "$verbo" ;;
+    # [P77, 10/10/2026: o painel escolheu, e o applet passa a guardar o mesmo
+    # — ver `cmd_adotar` no leitura.sh.]
+    adotar) shift; "$RAIZ/scripts/leitura.sh" adotar "$@" ;;
     -h|--help)
       meow_titulo "meow leitura"
       printf '  meow leitura estado     que degrau o relógio pede AGORA e o que a tela mostra\n'
       printf '  meow leitura conferir   0 conforme · 1 divergente · 4 escolha sua\n'
       printf '  meow leitura aplicar    põe o degrau da hora (o timer faz isto sozinho)\n'
-      printf '  meow leitura remover    zera os dois números e desarma o timer\n\n'
+      printf '  meow leitura remover    zera os dois números e desarma o timer\n'
+      printf '  meow leitura adotar CHAVE...  o applet passa a guardar o valor do meow.conf\n\n'
       printf '  O horário mora no APPLET da topbar, não no meow.conf: as chaves\n'
       printf '  leitura_hora_inicio/fim de com.system76.CosmicComp. O applet só as\n'
       printf '  escreve quando você mexe nele; até lá vale o padrão do meow.conf —\n'

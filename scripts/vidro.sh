@@ -550,10 +550,20 @@ done
 if [ "$janela_nativa" -eq 0 ] && [ -f "$RAIZ/scripts/vidro_janela.py" ]; then
   # Sem a chave nativa: o remendo. Ele descobre os pares (X, transparent_X) em
   # disco e sincroniza o alpha, respeitando "Janelas" de Aparência.
-  if [ "$desejado" = "true" ]; then
-    python3 "$RAIZ/scripts/vidro_janela.py" || true
+  # O ENSAIO NÃO ESCREVE O REMENDO — 10/10/2026, conferência da P77. O
+  #   `chk_vidro` do `bin/meow` roda este arquivo com `MEOW_DRY_RUN=1` dentro
+  #   do `meow status` e do doctor, e o `meow_escrever` de cima respeita o
+  #   ensaio; o remendo, não: ele reescrevia `background` e `primary` dos
+  #   dois temas a cada «O que está no ar agora». Medido no gate completo
+  #   (`tests/app-completo.py`): depois do «Voltar ao tema de antes» devolver um
+  #   tema sem a chave nativa, o status mudava 4 arquivos da casa. No ensaio o
+  #   remendo só confere (`--conferir`, que sai 1 quando há o que mudar).
+  args_janela=()
+  [ "$desejado" = "true" ] || args_janela=(--restaurar)
+  if meow_seco; then
+    python3 "$RAIZ/scripts/vidro_janela.py" --conferir "${args_janela[@]}" || mudou=1
   else
-    python3 "$RAIZ/scripts/vidro_janela.py" --restaurar || true
+    python3 "$RAIZ/scripts/vidro_janela.py" "${args_janela[@]}" || true
   fi
 fi
 

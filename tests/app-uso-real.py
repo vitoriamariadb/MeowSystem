@@ -1,0 +1,393 @@
+#!/usr/bin/env python3
+"""tests/app-uso-real.py — o gate de uso real: as 14 páginas, como quem usa.
+
+ESCRITO POR CAUSA DESTE PEDIDO (24/09/2026, repetido em 25/09 e 09/10)
+  «abrir cada aba como user… e colocar como gate»; «faça como user… tira prints
+  antes e depois». O `tests/app-completo.py` já aperta todo controle da tela e
+  confere que cada um FAZ alguma coisa. Mesmo assim, o uso real de 09/10/2026
+  (docs/sprints/2026-10-09-uso-real/00-achados-como-usuario.md) achou trinta
+  defeitos que ele não pega, porque não são de função: são do que a pessoa VÊ.
+  Um parágrafo de quatro linhas embaixo de cada desenho, um balão em cima do
+  item vizinho do menu, uma prévia que desenha só o contorno, a mesma tela
+  dizendo duas coisas contrárias. Este arquivo é esse olhar, escrito.
+
+O QUE REPROVA (e de onde cada regra vem)
+  1. TELA VAZIA NA PRIMEIRA CARGA (achado 22): no `DOMContentLoaded` o menu e
+     o conteúdo já têm forma — o esqueleto do `index.html` ou a página.
+  2. PARÁGRAFO NA TELA (achado 28, U1, P77-direcao.md §1): texto corrido com
+     mais de 140 caracteres fora de dica, balão ou `?`. É o dobro do teto de
+     60 da direção: a régua é a de «isto é um parágrafo», não a de estilo.
+  3. CONTROLE COBERTO (achado 6, U3): todo controle visível, centrado na
+     janela, tem de ser o que está por cima no próprio centro. Um desenho
+     grudado, um `?` ou um balão em cima dele é um botão que não se clica.
+  4. BALÃO DO MENU EM CIMA DO VIZINHO (U3): o balão de cada item do menu
+     lateral não pode encostar em outro item.
+  5. PRÉVIA VAZIA (achado 18, direção §2.4): todo desenho da página (SVG de
+     figura, `<canvas>`) tem traço de verdade — mais que uma moldura, e o
+     `<canvas>` com mais de uma cor.
+  6. CONTRADIÇÃO CONHECIDA, uma por achado da lista:
+       · «Desenho, não é a sua tela» na tela (28);
+       · comando cru visível fora do «ver comando» (30);
+       · «Restaurar ao padrão» com a chave já no padrão (14);
+       · «Deixar como está» (U2);
+       · descolado da borda com distância 0 e nenhum selo (13);
+       · a Steam contada como jogo, ou «nenhum jogo» ao lado de «N jogos têm
+         atalho» (19, L1);
+       · duração com unidade escrita num campo de texto (`30m`, achado 16);
+       · campo de hora vazio (`--:--`) quando a hora herdada é conhecida (25);
+       · hash de 40 caracteres ou caminho do PC de quem fez na tela (10, S2);
+       · «dela» falando de quem usa (U4).
+  7. ERRO NO CONSOLE, em qualquer página.
+
+A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
+  A decisão 8 de 02-decisoes.md manda o painel de QA subir SÓ com HOME
+  temporário. A casa de brinquedo (HOME, falsos no PATH, cópia da árvore) vem
+  de lá, importada. Com `--raiz <pasta>`, a cópia é feita de OUTRA árvore de
+  trabalho — é assim que se prova que o gate reprova o `dev` de hoje sem
+  tocar nele: ele só é LIDO, copiado para o brinquedo, e o painel sobe da
+  cópia. Nenhum clique escreve: só se trocam páginas e se passa o rato.
+
+USO
+  ~/.pyenv/versions/3.12.1/bin/python3 tests/app-uso-real.py [--raiz <árvore>] [--fotos <pasta>]
+
+  0 = passou · 1 = reprovou · 2 = erro deste teste
+"""
+import importlib.util
+import os
+import shutil
+import sys
+import time
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+_spec = importlib.util.spec_from_file_location(
+    "app_completo", os.path.join(AQUI, "app-completo.py"))
+casa = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(casa)
+
+from playwright.sync_api import sync_playwright  # noqa: E402  (o app-completo já conferiu)
+
+RAIZ_OUTRA = casa._arg("--raiz")
+FOTOS = casa._arg("--fotos")
+if RAIZ_OUTRA:
+    # A cópia da árvore (`copiar_raiz`) e as leituras do `montar_casa` usam o
+    # `RAIZ` do módulo: trocá-lo aqui faz o brinquedo nascer da outra árvore.
+    casa.RAIZ = os.path.abspath(RAIZ_OUTRA)
+
+# Mais que isto, na tela e fora de dica, é parágrafo.
+TETO_PARAGRAFO = 140
+
+# ---------------------------------------------------------------------------
+# O OLHAR, rodado dentro da página: devolve a lista de defeitos da página aberta
+# ---------------------------------------------------------------------------
+OLHAR_JS = r"""
+(teto) => {
+  const defeitos = [];
+  const raiz = document.querySelector('#conteudo');
+  const naDica = (el) => !!el.closest('.dica, [role="tooltip"], #balao');
+  const visivel = (el) => el.checkVisibility
+    && el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+  const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
+  const proprio = (el) => limpo([...el.childNodes].filter((c) => c.nodeType === 3)
+    .map((c) => c.textContent).join(' '));
+  const nome = (el) => {
+    const cartao = el.closest('[data-chave]');
+    if (cartao) return 'cartão ' + cartao.dataset.chave;
+    const t = el.closest('article, .acao, figure, section');
+    const h = t && t.querySelector('h2, h3, h4, strong');
+    return h ? '«' + limpo(h.textContent).slice(0, 40) + '»' : el.tagName.toLowerCase();
+  };
+
+  /* 2. PARÁGRAFO NA TELA */
+  for (const el of document.querySelectorAll('#conteudo *, #trilho *, header.topo *')) {
+    if (el.closest('script, style, svg, code, pre') || naDica(el) || !visivel(el)) continue;
+    const t = proprio(el);
+    if (t.length > teto) defeitos.push(`parágrafo de ${t.length} caracteres em ${nome(el)}: «${t.slice(0, 70)}…»`);
+  }
+
+  /* 3. CONTROLE COBERTO */
+  const SEL = 'button, a[href], input:not([type=hidden]), select, textarea, summary, [role=button]';
+  const recortado = (el, x, y) => {
+    for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+      const cs = getComputedStyle(a);
+      if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+      const r = a.getBoundingClientRect();
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) return true;
+    }
+    return false;
+  };
+  const principal = document.querySelector('#principal');
+  const rolagem = principal ? principal.scrollTop : 0;
+  for (const el of raiz.querySelectorAll(SEL)) {
+    if (!visivel(el) || el.closest('.so-leitor')) continue;
+    if (el.type === 'file') continue;
+    const r0 = el.getBoundingClientRect();
+    if (r0.width < 6 || r0.height < 6) continue;
+    el.scrollIntoView({ block: 'center', inline: 'nearest' });
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.top + r.height / 2;
+    if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue;
+    if (recortado(el, x, y)) continue;
+    const topo = document.elementFromPoint(x, y);
+    if (!topo || topo === el || el.contains(topo) || topo.contains(el)) continue;
+    /* O rótulo que embrulha o campo responde pelo campo. */
+    if (topo.closest('label') && topo.closest('label').contains(el)) continue;
+    const quem = topo.closest('[class]');
+    defeitos.push(`controle coberto em ${nome(el)}: «${limpo(el.textContent || el.getAttribute('aria-label') || el.value || el.tagName).slice(0, 30)}» está sob ${quem ? quem.tagName.toLowerCase() + '.' + [...quem.classList].join('.') : topo.tagName.toLowerCase()}`);
+  }
+  if (principal) principal.scrollTop = rolagem;
+
+  /* 5. PRÉVIA VAZIA */
+  const TRACO = 'path, rect, circle, ellipse, line, polyline, polygon, text, image, use';
+  for (const svg of raiz.querySelectorAll('svg')) {
+    if (!visivel(svg)) continue;
+    const r = svg.getBoundingClientRect();
+    if (r.width < 60 || r.height < 30) continue;     /* glifo, selo, ícone */
+    const tracos = [...svg.querySelectorAll(TRACO)].filter((t) => {
+      const b = t.getBoundingClientRect();
+      return b.width > 0 || b.height > 0;
+    });
+    if (tracos.length < 4) defeitos.push(`prévia vazia em ${nome(svg)}: o desenho tem ${tracos.length} traço(s)`);
+  }
+  for (const cv of raiz.querySelectorAll('canvas')) {
+    if (!visivel(cv) || cv.width < 20 || cv.height < 20) continue;
+    let cores = new Set();
+    try {
+      const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      const passo = Math.max(4, Math.floor(d.length / 4 / 4000) * 4);
+      for (let i = 0; i < d.length && cores.size < 3; i += passo) cores.add(d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ',' + d[i + 3]);
+    } catch (e) { cores = new Set(['?', '??']); }
+    if (cores.size < 2) defeitos.push(`prévia vazia em ${nome(cv)}: o canvas tem uma cor só`);
+  }
+
+  /* 6. CONTRADIÇÕES CONHECIDAS */
+  const textoVisivel = [];
+  const anda = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
+  for (let n = anda.nextNode(); n; n = anda.nextNode()) {
+    const p = n.parentElement;
+    if (!p || naDica(p) || !visivel(p) || p.closest('script, style')) continue;
+    const t = limpo(n.textContent);
+    if (t) textoVisivel.push([p, t]);
+  }
+  const tudo = textoVisivel.map(([, t]) => t).join(' \n ');
+  if (/Desenho, não é a sua tela/i.test(tudo)) defeitos.push('«Desenho, não é a sua tela» na tela (achado 28)');
+  if (/deixar como está/i.test(tudo)) defeitos.push('«Deixar como está» na tela (U2)');
+  if (/\b(decisão|tela|pedido|máquina|casa|gosto) dela\b/i.test(tudo)) defeitos.push('«dela» falando de quem usa (U4)');
+  for (const [p, t] of textoVisivel) {
+    if (p.closest('code') && !p.closest('.comandos') && /(^|\s)(\.\/|meow\s|scripts\/|sudo\s)/.test(t))
+      defeitos.push(`comando cru na tela em ${nome(p)}: «${t.slice(0, 50)}» (achado 30)`);
+    if (/\b[0-9a-f]{40}\b/.test(t)) defeitos.push(`hash de 40 caracteres na tela em ${nome(p)} (achado 10)`);
+    if (/\/mnt\/|\/home\/|Desenvolvimento\//.test(t)) defeitos.push(`caminho do PC de quem fez em ${nome(p)}: «${t.slice(0, 60)}» (S2)`);
+  }
+  for (const campo of raiz.querySelectorAll('input')) {
+    if (!visivel(campo)) continue;
+    const v = campo.value || '';
+    if (/\b[0-9a-f]{40}\b/.test(v)) defeitos.push(`hash de 40 caracteres num campo em ${nome(campo)} (achado 10)`);
+    if (/\/mnt\/|\/home\/|Desenvolvimento\//.test(v)) defeitos.push(`caminho do PC de quem fez num campo em ${nome(campo)} (S2)`);
+    if (campo.type === 'text' && /^\d+\s*[smh]$/.test(v.trim())) defeitos.push(`duração «${v}» num campo de texto em ${nome(campo)} (achado 16)`);
+    if (campo.type === 'time' && !v) defeitos.push(`campo de hora vazio (--:--) em ${nome(campo)} (achado 25)`);
+  }
+  /* «Restaurar ao padrão» com a chave já no padrão, e sem escolha esperando. */
+  if (typeof ESQUEMA !== 'undefined' && ESQUEMA && ESQUEMA.chaves) {
+    const pend = (typeof MUDANCAS !== 'undefined' && MUDANCAS) ? MUDANCAS : new Map();
+    for (const cartao of raiz.querySelectorAll('[data-chave]')) {
+      const item = ESQUEMA.chaves.find((i) => i.chave === cartao.dataset.chave);
+      /* Vazio é o padrão de quem aceita vazio; e o valor de fábrica escrito
+       * no meow.conf.exemplo (`JANELAS_TILING="sim"`) também é — QA da P77. */
+      if (!item) continue;
+      const v = item.valor ?? '';
+      if (pend.has(item.chave) || (v !== '' && v !== (item.padrao ?? ''))) continue;
+      const b = [...cartao.querySelectorAll('button')].find((x) => visivel(x) && /^Restaurar ao padrão/.test(limpo(x.textContent)));
+      if (b) defeitos.push(`«${limpo(b.textContent)}» com ${item.chave} já no padrão (achado 14)`);
+    }
+    /* Descolado da borda com distância 0, sem selo na distância. */
+    const val = (k) => {
+      const i = ESQUEMA.chaves.find((x) => x.chave === k);
+      if (!i) return null;
+      const v = pend.has(k) ? pend.get(k) : (i.valor ?? '');
+      /* Vazio é «não toca»: vale o que a máquina tem, quando se sabe; sem
+       * isso, não há número para conferir (e não é zero). */
+      if (v !== '') return String(v);
+      return i.valendo_agora != null && i.valendo_agora !== '' ? String(i.valendo_agora) : null;
+    };
+    for (const lado of ['PAINEL', 'DOCK']) {
+      const margem = raiz.querySelector(`[data-chave="FORMA_MARGEM_${lado}"]`);
+      if (!margem || !visivel(margem)) continue;
+      const distancia = val(`FORMA_MARGEM_${lado}`);
+      if (val(`FORMA_${lado}_SOLTO`) === 'sim' && distancia !== null && Number(distancia) === 0
+          && !margem.querySelector('.selo'))
+        defeitos.push(`${lado.toLowerCase()} descolado da borda com distância 0 e nada dizendo que brigam (achado 13)`);
+    }
+  }
+  /* A Steam não é jogo; «nenhum jogo» não convive com «N jogos têm atalho». */
+  const jogos = [...raiz.querySelectorAll('.grade-jogos *, [data-molde="jogo"] *, .jogo *')]
+    .filter((e) => visivel(e)).map((e) => proprio(e));
+  if (jogos.some((t) => /^Steam$/.test(t))) defeitos.push('a Steam aparece como jogo (achado 19)');
+  if (/nenhum jogo/i.test(tudo) && /\d+ jogos? têm atalho/i.test(tudo)) defeitos.push('«nenhum jogo» e «N jogos têm atalho» na mesma tela (achado 19)');
+  return defeitos;
+}
+"""
+
+
+def assentar(pag, teto=40):
+    """Duas leituras iguais do `#conteudo`, com meio segundo entre elas: o
+    painel tem um pulso que nunca deixa a rede quieta, e `networkidle` não
+    chegaria nunca (a mesma régua do `tests/app-texto-visivel.py`)."""
+    anterior = None
+    for _ in range(teto):
+        pag.wait_for_timeout(500)
+        agora = pag.evaluate("() => (document.querySelector('#conteudo') || {}).innerHTML || ''")
+        if agora and agora == anterior:
+            return
+        anterior = agora
+
+
+def balao_do_menu(pag):
+    """O balão de cada item do menu, conferido contra os outros itens."""
+    defeitos = []
+    itens = pag.locator("#trilho button[data-grupo], #trilho a.item-externo")
+    for i in range(itens.count()):
+        item = itens.nth(i)
+        item.hover()
+        pag.wait_for_timeout(1100)
+        r = pag.evaluate("""(i) => {
+          const itens = [...document.querySelectorAll('#trilho button[data-grupo], #trilho a.item-externo')];
+          const b = document.querySelector('#balao');
+          if (!b || b.hidden) return null;
+          const rb = b.getBoundingClientRect();
+          const toca = itens.filter((x, j) => j !== i).filter((x) => {
+            const r = x.getBoundingClientRect();
+            return r.left < rb.right && r.right > rb.left && r.top < rb.bottom && r.bottom > rb.top;
+          }).map((x) => (x.textContent || '').replace(/\\s+/g, ' ').replace(/\\d+$/, '').trim());
+          return { dono: (itens[i].textContent || '').replace(/\\s+/g, ' ').replace(/\\d+$/, '').trim(), toca };
+        }""", i)
+        if r and r["toca"]:
+            defeitos.append(f"o balão de «{r['dono']}» cobre {', '.join('«%s»' % t for t in r['toca'])} (U3)")
+        pag.mouse.move(900, 5)
+        pag.wait_for_timeout(150)
+    return defeitos
+
+
+def gesto_do_descolado(pag):
+    """O ACHADO 13 COMO QUEM USA: «descolado» em Sim e a distância arrastada
+    até 0. A casa nasce com a distância vazia (o COSMIC decide), e a
+    contradição só existe depois do gesto — então o gesto é feito, a página é
+    olhada, e a escolha é descartada (nada é salvo: o meow.conf não muda)."""
+    cartao = '[data-chave="FORMA_MARGEM_PAINEL"]'
+    deslizante = pag.locator(f"{cartao} input[type=range]")
+    sim = pag.locator('[data-chave="FORMA_PAINEL_SOLTO"] button[data-valor="sim"]')
+    if not deslizante.count() or not sim.count():
+        return ["o gesto do achado 13 não achou o descolar e a distância do painel"]
+    if sim.first.get_attribute("aria-pressed") != "true":
+        sim.first.click()
+        pag.wait_for_timeout(300)
+    pag.locator(f"{cartao} input[type=range]").first.fill("0")
+    assentar(pag)
+    defeitos = [d for d in pag.evaluate(OLHAR_JS, TETO_PARAGRAFO) if "achado 13" in d]
+    pag.locator("#botao-descartar").click()
+    if pag.locator("#confirmar[open]").count():
+        pag.locator("#confirmar-ok").click()
+    assentar(pag)
+    return defeitos
+
+
+def main():
+    ambiente = casa.montar_casa()
+    proc, url = casa.sobe_servidor(ambiente)
+    if not url:
+        print("ERRO: o app/run.sh não imprimiu a URL")
+        return 2
+    reprovas = []
+    console = []
+    try:
+        with sync_playwright() as p:
+            nav = p.chromium.launch()
+            pag = nav.new_page(viewport={"width": 1440, "height": 900})
+            pagina_atual = {"nome": "carga"}
+            pag.on("console", lambda m: console.append((pagina_atual["nome"], m.text))
+                   if m.type == "error" else None)
+            pag.on("pageerror", lambda e: console.append((pagina_atual["nome"], str(e))))
+
+            # 1. A PRIMEIRA CARGA
+            print("\n1. A PRIMEIRA CARGA")
+            pag.goto(url, wait_until="commit")
+            pag.wait_for_load_state("domcontentloaded")
+            forma = pag.evaluate("""() => {
+              const vis = (sel) => [...document.querySelectorAll(sel)].filter((e) => {
+                const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; }).length;
+              return { trilho: vis('#trilho > *'), conteudo: vis('#conteudo > *') };
+            }""")
+            if not forma["trilho"] or not forma["conteudo"]:
+                reprovas.append(("carga", f"tela vazia no primeiro quadro: {forma['trilho']} peça(s) no menu e "
+                                          f"{forma['conteudo']} no conteúdo (achado 22)"))
+            else:
+                print(f"  ok o primeiro quadro já tem forma ({forma['trilho']} no menu, {forma['conteudo']} no conteúdo)")
+            inicio = time.time()
+            pag.wait_for_selector("#trilho button", timeout=60000)
+            print(f"  -- a página ficou pronta em {time.time() - inicio:.1f} s depois do primeiro quadro")
+            assentar(pag)
+
+            # 2. O BALÃO DO MENU
+            print("\n2. O BALÃO DE CADA ITEM DO MENU")
+            for d in balao_do_menu(pag):
+                reprovas.append(("menu", d))
+            if not any(n == "menu" for n, _ in reprovas):
+                print("  ok nenhum balão do menu encosta em outro item")
+
+            # 3. AS PÁGINAS
+            print("\n3. AS PÁGINAS, UMA A UMA")
+            grupos = pag.evaluate("() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
+                                  ".map((b) => b.dataset.grupo)")
+            for grupo in grupos:
+                pagina_atual["nome"] = grupo
+                pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
+                pag.mouse.move(900, 5)
+                assentar(pag)
+                defeitos = pag.evaluate(OLHAR_JS, TETO_PARAGRAFO)
+                vistos = []
+                for d in defeitos:
+                    if d not in vistos:
+                        vistos.append(d)
+                vistos += gesto_do_descolado(pag) if grupo == "Painel e dock" else []
+                for d in vistos:
+                    reprovas.append((grupo, d))
+                print(f"  {'ok' if not vistos else 'XX'} {grupo}: {len(vistos)} defeito(s)")
+                if FOTOS:
+                    os.makedirs(FOTOS, exist_ok=True)
+                    nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
+                    pag.screenshot(path=os.path.join(FOTOS, f"uso-real-{nome}.png"))
+            nav.close()
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=10)
+        except Exception:
+            proc.kill()
+
+    for onde, texto in console:
+        reprovas.append((onde, f"erro no console: {texto[:160]}"))
+
+    arvore = casa.RAIZ
+    if reprovas:
+        print(f"\nREPROVOU ({arvore}): {len(reprovas)} defeito(s) de uso real")
+        for onde, texto in reprovas:
+            print(f"  - [{onde}] {texto}")
+        return 1
+    print(f"\nok ({arvore}): as {len(grupos)} páginas passam no olhar de quem usa — sem parágrafo,"
+          " sem controle coberto, sem prévia vazia, sem contradição conhecida, console limpo.")
+    return 0
+
+
+if __name__ == "__main__":
+    import signal
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    try:
+        sys.exit(main())
+    except SystemExit:
+        raise
+    except Exception as e:  # noqa: BLE001 — o gate diz que quebrou, e não que reprovou
+        print(f"ERRO deste teste: {e}")
+        sys.exit(2)
+    finally:
+        if os.path.isdir(casa.CASA):
+            casa.encerrar_a_casa()
+        shutil.rmtree(casa.BRINQUEDO, ignore_errors=True)

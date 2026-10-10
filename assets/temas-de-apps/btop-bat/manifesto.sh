@@ -497,7 +497,7 @@ _bb_bat_ambiente_manda() {
 # numa máquina qualquer não existe. O arquivo de inicialização do shell é de
 # quem usa, more onde morar, e é só isso que a tela precisa dizer.
 _bb_bat_avisar_ambiente() {
-  meow_aviso "bat: BAT_THEME='${BAT_THEME:-}' no ambiente VENCE o arquivo de config (medido) — o que ela vê NÃO é o '$1'. O conserto é tirar a variável do shell dela, e isso mora no arquivo de inicialização do shell, que não é território deste módulo."
+  meow_aviso "bat: BAT_THEME='${BAT_THEME:-}' no ambiente VENCE o arquivo de config (medido) — o que você vê NÃO é o '$1'. O conserto é tirar a variável do seu shell, e isso mora no arquivo de inicialização do shell, que não é território deste módulo."
 }
 
 # 0 tudo certo · 1 divergente · 2 erro · 3 não dá para garantir daqui.
@@ -579,7 +579,7 @@ _bb_bat_aplicar() {
   # um aviso fixo numa passagem que não fez nada vira ruído que ela aprende a
   # ignorar — e no dia em que o aviso importasse, ninguém leria.
   if [ "$mudou" = "1" ] && [ "$bin" = "batcat" ]; then
-    meow_aviso "bat: o binário aqui chama-se 'batcat' (colisão com bacula-console-qt no Debian) — o alias é decisão dela, e mora no arquivo de inicialização do shell, que não é território deste módulo"
+    meow_aviso "bat: o binário aqui chama-se 'batcat' (colisão com bacula-console-qt no Debian) — o alias é decisão sua, e mora no arquivo de inicialização do shell, que não é território deste módulo"
   fi
   if _bb_bat_ambiente_manda "$nome"; then
     _bb_bat_avisar_ambiente "$nome"

@@ -428,6 +428,35 @@ else
   falha "o NaN no alpha_map não chegou à tela como os outros valores inválidos (rc=$rc)" "$saida"
 fi
 
+# --- 4b. o ensaio não escreve o remendo da janela -----------------------------
+# 10/10/2026, conferência da P77. O `meow status` e o doctor rodam o vidro.sh
+# com `MEOW_DRY_RUN=1` (`chk_vidro`), e num tema SEM a chave nativa
+# `frosted_maximized_apps` o remendo (`vidro_janela.py`) reescrevia o alpha de
+# `background` e `primary` assim mesmo — o gate completo do painel viu o «O que
+# está no ar agora» mudar 4 arquivos da casa. No ensaio ele só confere.
+# O remendo acha o tema em `~/.config/cosmic` (não lê o MEOW_COSMIC_DIR), então
+# a cópia mora no `.config` de uma casa própria, e o HOME aponta para ela.
+C9="$T/casa9/.config/cosmic"
+mkdir -p "$C9/com.system76.CosmicPanel.Panel/v1"
+cp -a "$CAP"/com.system76.CosmicTheme.* "$C9/"
+find "$C9" -name frosted_maximized_apps -delete
+python3 - "$C9" <<'PY'
+import glob, re, sys
+for f in glob.glob(sys.argv[1] + "/com.system76.CosmicTheme.*/v2/background"):
+    t = open(f, encoding="utf-8").read()
+    open(f, "w", encoding="utf-8").write(re.sub(
+        r'base: "#([0-9A-Fa-f]{6})([0-9A-Fa-f]{2})?"', r'base: "#\g<1>33"', t, count=1))
+PY
+antes9="$(cd "$C9" && find . -type f -exec md5sum {} + | sort)"
+saida="$(amb "$C9" dracula env HOME="$T/casa9" MEOW_DRY_RUN=1 VIDRO_AO_MAXIMIZAR=sim bash "$RAIZ/scripts/vidro.sh" 2>&1)"
+depois9="$(cd "$C9" && find . -type f -exec md5sum {} + | sort)"
+if [ "$antes9" = "$depois9" ] && [[ "$saida" == *"deveria ser"* ]]; then
+  ok "no ensaio o remendo da janela só confere: aponta o alpha fora e não escreve"
+else
+  falha "o ensaio do vidro.sh escreveu no tema, ou calou a divergência da janela" \
+    "$(diff <(printf '%s\n' "$antes9") <(printf '%s\n' "$depois9")) $saida"
+fi
+
 # --- 5. nada fica para trás ----------------------------------------------------
 sobra="$(find "$TMPV" -mindepth 1 -maxdepth 1 2>/dev/null)"
 [ -z "$sobra" ] \

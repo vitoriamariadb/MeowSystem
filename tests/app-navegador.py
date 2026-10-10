@@ -248,6 +248,7 @@ ESQUEMA_JS = """
   lista: !!k.lista,
   pathsep: !!k.lista_pathsep,
   vazio: !!k.aceita_vazio,
+  sem_programa: !!k.sem_programa,
 }))
 """
 
@@ -561,7 +562,31 @@ def main():
             #   O resumo do topo conta as chaves do catálogo; isto confere que todas
             #   chegaram a ALGUMA aba. Uma chave que o servidor le e a pagina
             #   nao desenha e a definicao de "depender de ajuda sempre".
-            sem_cartao = sorted(k["chave"] for k in chaves if k["chave"] not in censo)
+            # [P77, achado 12: a chave de um programa que a casa nao tem
+            # (`sem_programa`, da marca `[so-com-app ...]`) fica sem cartao DE
+            # PROPOSITO — nao ha o que trocar. Ela sai da conta, e o contrario
+            # e cobrado: uma chave assim que ganhasse cartao seria o defeito.]
+            # [P77, achado 17: num seletor com modo (o gato do dock e o do
+            # terminal, `DECISOES[].modo` no app.js), a chave que o modo em
+            # vigor nao usa fica fora da tela ate o modo dela ser escolhido. Ela
+            # sai da conta, e o que se cobra e que a chave do MODO tenha cartao
+            # — e por ele que as outras aparecem.]
+            por_modo = pag.evaluate(
+                "() => DECISOES.filter((d) => d.modo).map((d) => ({modo: d.modo.chave,"
+                " chaves: Object.values(d.modo.por).flat()}))")
+            reveladas = {c for d in por_modo for c in d["chaves"]}
+            modos_sem_cartao = sorted(d["modo"] for d in por_modo if d["modo"] not in censo)
+            checa(not modos_sem_cartao,
+                  "o modo de cada seletor tem cartão"
+                  + (f" — {modos_sem_cartao}" if modos_sem_cartao else ""))
+            sem_cartao = sorted(k["chave"] for k in chaves
+                                if k["chave"] not in censo and not k["sem_programa"]
+                                and k["chave"] not in reveladas)
+            com_cartao_sem_programa = sorted(k["chave"] for k in chaves
+                                             if k["sem_programa"] and k["chave"] in censo)
+            checa(not com_cartao_sem_programa,
+                  "a chave de programa ausente nao ganha cartao"
+                  + (f" — {com_cartao_sem_programa}" if com_cartao_sem_programa else ""))
             checa(not sem_cartao,
                   f"as {len(chaves)} chaves do esquema têm cartão em alguma aba"
                   + (f" — SEM CARTÃO: {sem_cartao[:6]}" if sem_cartao else ""))
@@ -671,7 +696,18 @@ def main():
             secao("Papel de parede")
             pag.wait_for_timeout(1500)
             n_fotos = pag.locator("#conteudo figure").count()
-            checa(n_fotos > 20, f"a galeria mostra {n_fotos} papeis de parede")
+            # [P77, achado 15: a coleção abre a página com a primeira leva
+            # (`PRIMEIRA_LEVA_GALERIA`, três fileiras); o resto vem pelo
+            # «Mostrar mais», que também se cobra aqui.]
+            leva = pag.evaluate("() => PRIMEIRA_LEVA_GALERIA")
+            checa(n_fotos >= min(leva, 20), f"a galeria mostra {n_fotos} papeis de parede")
+            mais = pag.locator("#conteudo button", has_text="Mostrar mais")
+            if mais.count():
+                mais.first.click()
+                pag.wait_for_timeout(900)
+                depois = pag.locator("#conteudo figure").count()
+                checa(depois > n_fotos, f"«Mostrar mais» traz mais fotos ({n_fotos} -> {depois})")
+                n_fotos = depois
             if FOTOS:
                 pag.screenshot(path=f"{DESTINO_FOTOS}/galeria.png")
 
@@ -797,11 +833,16 @@ def main():
             #  Quais sao elas sai do esquema por exclusao — as previas que SAO o
             #  controle (a tira do flavor, a bolinha, o desenho do gato) nao
             #  entram aqui, porque nelas o clique ja foi medido no passo 6.
+            # [P77: a prévia do modo de leitura é feita de PIXEL — a conta do
+            # compositor sobre uma imagem, num <canvas> —, e pixel não é `style`.
+            # O retrato leva também o conteúdo de cada canvas da página.]
             ESTILOS_JS = """
               () => [...document.querySelectorAll('#conteudo [style]')]
                 .filter((e) => !['INPUT', 'BUTTON', 'OUTPUT', 'SELECT', 'TEXTAREA']
                                  .includes(e.tagName))
                 .map((e) => e.tagName + ':' + e.getAttribute('style')).join('|')
+                + '|' + [...document.querySelectorAll('#conteudo canvas')]
+                  .map((c) => { try { return c.toDataURL(); } catch (e) { return ''; } }).join('|')
             """
 
             def desenho_parado(pag):
@@ -990,9 +1031,13 @@ def main():
             #   comandos em vez de rodar a acao: a gaveta nunca abria, e este
             #   passo e o 10b mediam uma gaveta de 0 px. Medido na primeira
             #   corrida depois do `networkidle`, com captura da aba.
-            pag.locator("#conteudo .acao, #conteudo .cartao",
-                        has_text="O que está no ar agora").get_by_role(
-                            "button", name="Executar", exact=True).click()
+            # [P77 grupo 4: a acao so mostra (natureza `mostrar`) e mora no
+            # «⋯» das acoes tecnicas da Instalação; abre-se o «⋯» primeiro.]
+            # (o `has` e' procurado DENTRO do `<details>`: sem `#conteudo`)
+            acao_status = pag.locator(".acao, .cartao", has_text="O que está no ar agora")
+            pag.locator("#conteudo details.ajustes-tecnicos", has=acao_status) \
+               .locator("summary").click()
+            acao_status.get_by_role("button", name="Executar", exact=True).click()
             saida = ""
             # PACIÊNCIA DE 25 s, e não de 10: o `meow status` consulta systemd,
             # cosmic-randr e o tema inteiro. Numa máquina ocupada — foi o caso
@@ -1588,6 +1633,10 @@ def main():
                     "l => l.map(b => b.getAttribute('data-grupo'))")
                 for aba in abas:
                     secao(aba)
+                    # [P77: os ajustes técnicos moram num «⋯» fechado; abertos
+                    # aqui, os pares de dentro também são medidos.]
+                    pag.evaluate("() => document.querySelectorAll("
+                                 "'#conteudo details.ajustes-tecnicos').forEach((d) => { d.open = true; })")
                     cartoes = pag.locator(
                         '#conteudo article[data-chave]:has(.par-botoes)')
                     for i in range(cartoes.count()):
@@ -1741,7 +1790,13 @@ def main():
             for aba_ in ("Cor e tela", "Logo do sistema", "Papel de parede"):
                 pag.locator(f'#trilho button[data-grupo="{aba_}"]').first.click()
                 pag.wait_for_timeout(1100)
-                pag.evaluate("() => { document.getElementById('principal').scrollTop = 600; }")
+                # [P77: a rolagem é medida a partir da FAIXA, e não do topo da
+                # página — em «Papel de parede» a coleção passou a abrir a
+                # página, e 600 px ainda não chegavam ao desenho.]
+                pag.evaluate("""() => { const p = document.getElementById('principal');
+                  const b = document.querySelector('#conteudo .previa-bloco');
+                  p.scrollTop = b ? p.scrollTop + b.getBoundingClientRect().top
+                                    - p.getBoundingClientRect().top + 300 : 600; }""")
                 pag.wait_for_timeout(600)
                 d = pag.evaluate("""() => {
                   const b = document.querySelector('#conteudo .previa-bloco');
@@ -1888,6 +1943,51 @@ def main():
             checa(de_quem["dona"] == "WALLPAPER_NOITE"
                   and "Separar imagens de dia e de noite" in de_quem["texto"],
                   f"o balao herdado nomeia o bloco dono ({de_quem['dona']})")
+
+            # (i2) UM RELOGIO PARA A NOITE (P77, achado 25). A pagina abre com a
+            #     moldura do relogio, os tres aneis e as seis horas; os dois
+            #     campos da noite do gato, vazios na casa de brinquedo, mostram a
+            #     hora que vale (a da imagem escura), e nao `--:--`.
+            noite = pag.evaluate("""() => {
+              const m = document.querySelector('.decisao-relogio');
+              const hora = (k) => {
+                const i = document.querySelector(`article.cartao[data-chave="${k}"] input[type=time]`);
+                return i ? [i.value, i.classList.contains('hora-herdada')] : null;
+              };
+              return { moldura: !!m, aneis: m ? m.querySelectorAll('.anel').length : 0,
+                       cartoes: m ? m.querySelectorAll('article.cartao').length : 0,
+                       ini: hora('NOITE_INICIO'), fim: hora('NOITE_FIM'),
+                       parede: hora('WALLPAPER_NOITE_INICIO'),
+                       topo: !!document.querySelector('.previa-bloco') };
+            }""")
+            checa(noite["moldura"] and noite["aneis"] == 3 and noite["cartoes"] == 6
+                  and not noite["topo"],
+                  f"Dia e noite abre com um relogio de tres aneis e seis horas ({noite})")
+            checa(noite["ini"] and noite["parede"] and noite["ini"][1] and noite["fim"][1]
+                  and noite["ini"][0] == noite["parede"][0],
+                  f"a noite vazia mostra a hora herdada, a traco, e nao --:-- ({noite['ini']}, {noite['fim']})")
+
+            # (i3) A NOITE SE ESCOLHE PELAS DUAS PONTAS (QA da P77). Mudar so o
+            #     comeco, com as duas vazias, acendia o ⊘ «So vale com A noite
+            #     termina as preenchida» e o relogio nao andava. A irma vazia
+            #     entra na mesma escolha com a hora herdada que ela mostrava.
+            campo = pag.locator('article.cartao[data-chave="NOITE_INICIO"] input[type=time]')
+            campo.fill("20:00")
+            campo.dispatch_event("change")
+            pag.wait_for_timeout(350)
+            par = pag.evaluate("""() => ({
+              fim: MUDANCAS.get('NOITE_FIM') || '',
+              anulado: !!document.querySelector('article.cartao[data-chave="NOITE_INICIO"] [data-selo="anulado"]'),
+            })""")
+            checa(par["fim"] == noite["fim"][0] and not par["anulado"],
+                  f"mudar o comeco da noite leva o fim herdado junto, sem o ⊘ ({par}, herdado {noite['fim'][0]})")
+            descartar_tudo(pag)
+
+            # O DESENHO DO TOPO saiu de «Dia e noite» (o relogio e o desenho dela);
+            # as duas medidas abaixo, que sao de qualquer desenho de faixa, vao
+            # para «Lançadores e jogos», que continua com o dela.
+            pag.locator('#trilho button[data-grupo="Lançadores e jogos"]').first.click()
+            pag.wait_for_timeout(450)
 
             # (j) A CAIXA DO DESENHO MEDE O QUE O DESENHO MEDE. Com `max-height`
             #     e `width: 100%` a caixa ficava com a largura da coluna e o

@@ -437,6 +437,13 @@ def montar_casa():
         fh.write("[Desktop Entry]\nName=Jogo de Brinquedo\n"
                  f"Exec=steam steam://rungameid/{APPID}\nIcon=steam_icon_{APPID}\n"
                  "Terminal=false\nType=Application\nCategories=Game;\n")
+    # E A LOJA, QUE NÃO É JOGO (P77, achado 19): a Steam se declara `Game` e
+    # registra o esquema `steam://`. Ela vai para a aba Ícones como programa,
+    # e o `h_jogo` cobra que não apareça entre os jogos.
+    with open(os.path.join(aplicativos, "steam.desktop"), "w", encoding="utf-8") as fh:
+        fh.write("[Desktop Entry]\nName=Steam\nExec=steam %U\nIcon=steam\n"
+                 "Terminal=false\nType=Application\nCategories=Network;FileTransfer;Game;\n"
+                 "MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;\n")
     # A DECISÃO SEM MANIFESTO GANHA NOME NO CACHE DA STEAM (P54, achado 44). As
     # linhas do mapa da raiz de brinquedo cujo jogo não está aqui são as
     # «Decisões já executadas»; o nome da primeira mora só no `appinfo.vdf`.
@@ -455,6 +462,16 @@ def montar_casa():
               encoding="utf-8") as fh:
         fh.write(f"[Desktop Entry]\nName={PROGRAMA[1]}\nExec=true\n"
                  "Icon=leitor-de-brinquedo\nTerminal=false\nType=Application\n")
+    # O PROGRAMA DE QUE UM AJUSTE DEPENDE (P77, achado 12): a marca
+    # `[so-com-app …]` esconde o cartão numa máquina sem aquele programa. A
+    # casa planta o primeiro id de cada marca — lido do `meow.conf` dela, e
+    # não escrito aqui —, para o cartão continuar existindo e sendo testado.
+    with open(CONF, encoding="utf-8") as fh:
+        so_com = re.findall(r"\[so-com-app ([^\]\s]+)", fh.read())
+    for ident in so_com:
+        with open(os.path.join(aplicativos, ident + ".desktop"), "w", encoding="utf-8") as fh:
+            fh.write("[Desktop Entry]\nName=Programa de Brinquedo\nExec=true\n"
+                     "Terminal=false\nType=Application\n")
 
     # DUAS ÁREAS ALFINETADAS, no formato que o `areas.sh` escreve: sem área o
     # «Tirar uma área» não tem o que oferecer, e com uma só ele recusa — com
@@ -934,6 +951,10 @@ class Percurso:
         self.duracoes = {}           # nome -> segundos do gesto
         self.app_aberto = ""         # o aplicativo cujo painel o percurso abriu
         self.conhecidos_vistos = set()
+        # [P77] As escolhas que revelaram o controle sendo acionado: o
+        # `desfazer` de dentro de um revelado não as tira da bandeja, senão o
+        # controle some no meio do próprio gesto (ver `acionar_revelados`).
+        self.preservar = None
         pag.on("request", self._pedido)
         pag.on("requestfinished", self._fim_pedido)
         pag.on("requestfailed", self._pedido_falhou)
@@ -1219,6 +1240,14 @@ class Percurso:
                        f"«{acao['rotulo']}» rodou sem caixa de pergunta, e declara "
                        f"{'pedir senha' if acao['sudo'] else 'baixar da internet'}")
         self.conferir_trabalho(acao, bool(corpo.get("seco")), antes, reg0)
+        # O CONSERTO QUE NASCE NA GAVETA — QA da P77, 10/10/2026. O conferir
+        # que sai 1 deixa o botão da ação que conserta ao lado do «Fechar»
+        # (`conserta_com`, servidor); ele é um gesto de ação como outro qualquer.
+        botao = self.pag.locator("#gaveta-consertar")
+        if botao.count() and botao.is_visible():
+            self.censo()             # o botão entra no que apareceu, antes de sumir no clique
+            self.acionados.add("gaveta · #gaveta-consertar")
+            self.gesto_de_acao(lambda: botao.click(), botao.inner_text().strip())
 
     def _com_caixa(self, clicar, antes, reg0, n0):
         titulo = self.pag.locator("#confirmar-titulo").inner_text().strip()
@@ -1427,6 +1456,13 @@ class Percurso:
                   ("#conteudo button.lado-previa", "aba · Como está (desfaz o bloco)"))
 
     def desfazer(self):
+        if self.preservar:
+            # Dentro de um revelado: desfaz só o que o gesto de dentro escolheu.
+            self.js("(manter) => { for (const k of [...MUDANCAS.keys()])"
+                    " if (!manter.includes(k)) MUDANCAS.delete(k);"
+                    " atualizarBarraSalvar(); render(); }", sorted(self.preservar))
+            self.assentar(quieto=80, teto=3000)
+            return
         for sel, nome in self.DESFAZERES:
             n = self.js("() => MUDANCAS.size")
             botao = self.pag.locator(sel)
@@ -1454,6 +1490,11 @@ class Percurso:
 
     def h_opcoes(self, nome):
         chave = self.chave_de(nome)
+        # [P77, 10/10/2026: uma escolha pode REVELAR controles — o «Restaurar
+        # ao padrão» que só existe com escolha feita, o cartão que o modo do
+        # gato mostra. O que a escolha revelou é acionado logo, com a escolha
+        # ainda na bandeja.]
+        antes = set(self.censo())
         for i in range(self.quantos(nome)):
             el = self.achar(nome, i)
             if el is None:
@@ -1464,13 +1505,24 @@ class Percurso:
             valor = el.get_attribute("data-valor")
             self.clicar_nome(nome, i)
             self.assentar(quieto=80, teto=3000)
-            depois = self.achar(nome, i)
             c = self.cartao(chave)
-            self.checa(depois is not None and depois.get_attribute("aria-pressed") == "true",
-                       f"{chave}: clicar em {valor!r} marca {valor!r}")
+            # PELO VALOR, E NÃO PELA POSIÇÃO — 10/10/2026, P77. No controle por
+            # área (Sim/Não por área, `controlePorArea`) o botão «Não» de uma
+            # área grava vazio numa hora e uma lista na outra, e a fileira de
+            # «opções» muda de tamanho entre um clique e o seguinte: a opção de
+            # índice i depois do clique já não era a clicada. Com as áreas de
+            # verdade na tela (duas, lidas do COSMIC), isso reprovava um clique
+            # certo. O que se cobra é o que a frase diz: o valor clicado fica
+            # marcado.
+            seguro = (valor or "").replace("\\", "\\\\").replace('"', '\\"')
+            marcado = self.pag.locator(
+                f'#conteudo article.cartao[data-chave="{chave}"] '
+                f'button[data-valor="{seguro}"][aria-pressed="true"]').count() > 0
+            self.checa(marcado, f"{chave}: clicar em {valor!r} marca {valor!r}")
             self.checa(c["pendente"] == (valor != c["disco"]),
                        f"{chave}: {valor!r} {'entra' if valor != c['disco'] else 'não entra'}"
                        " na bandeja do Salvar")
+            self.acionar_revelados(antes)
         self.desfazer()
 
     def mexer_no_cartao(self, chave):
@@ -1518,6 +1570,7 @@ class Percurso:
 
     def h_deslizante(self, nome):
         chave = self.chave_de(nome)
+        antes = set(self.censo())
         el = self.achar(nome)
         if not self.checa(not el.is_disabled(), f"{chave}: o deslizante nasce livre"):
             return
@@ -1529,15 +1582,25 @@ class Percurso:
         el = self.achar(nome)
         self.checa(el is not None and el.input_value() != v0 and c["pendente"],
                    f"{chave}: a tecla move o deslizante e a escolha entra na bandeja")
+        self.acionar_revelados(antes)
         self.desfazer()
 
     def acionar_revelados(self, antes):
         """Aciona o que a escolha pendente revelou em OUTRO cartão — o nome de
-        uma área em «Nomes das áreas» acende o Sim/Não da «Folga invisível»."""
-        for n in sorted(set(self.censo()) - antes):
-            if (n.startswith("ajuste ") and not n.endswith(" · Aplicar")
-                    and n not in self.acionados and self.acionador(n)):
-                self.acionar(n, limpar=False, esperar=False)
+        uma área em «Nomes das áreas» acende o Sim/Não da «Folga invisível».
+
+        [P77, 10/10/2026: e o cartão que um MODO revela (Logo do sistema). A
+        escolha que revelou fica na bandeja enquanto os de dentro são
+        acionados: o `desfazer` deles só tira o que eles mesmos escolheram.]"""
+        anterior = self.preservar
+        self.preservar = set(self.js("() => [...MUDANCAS.keys()]") or []) | (anterior or set())
+        try:
+            for n in sorted(set(self.censo()) - antes):
+                if (n.startswith("ajuste ") and not n.endswith(" · Aplicar")
+                        and n not in self.acionados and self.acionador(n)):
+                    self.acionar(n, limpar=False, esperar=False)
+        finally:
+            self.preservar = anterior
 
     def h_campo(self, nome):
         chave = self.chave_de(nome)
@@ -1567,6 +1630,7 @@ class Percurso:
 
     def h_hora(self, nome):
         chave = self.chave_de(nome)
+        antes = set(self.censo())
         el = self.achar(nome)
         v0 = el.input_value()
         # O `fill` de um campo de hora já dispara o `change`, e o `change`
@@ -1574,6 +1638,7 @@ class Percurso:
         el.fill("21:47" if v0 != "21:47" else "06:13")
         self.assentar(quieto=80, teto=3000)
         self.checa(self.cartao(chave)["pendente"], f"{chave}: a hora nova entra na bandeja")
+        self.acionar_revelados(antes)
         self.desfazer()
 
     def h_nova_ficha(self, nome):
@@ -1980,6 +2045,18 @@ class Percurso:
             self.checa(self.historia_conferida,
                        "a história com Markdown hostil, plantada no pack padrão, foi "
                        "conferida no cartão dele")
+            # O CARTÃO INTEIRO ABRE (P77, achado 8): um clique na capa abre o
+            # detalhe e o cartão toma a linha da grade; o segundo fecha.
+            d = self.achar(nome, 0).locator("xpath=..")
+            capa = d.locator("xpath=..").locator(".pack-capa")
+            capa.click()
+            # O `toggle` do `<details>` chega numa tarefa depois do clique.
+            self.pag.wait_for_timeout(200)
+            aberto = d.evaluate("(d) => d.open && d.parentElement.classList.contains('aberto')")
+            capa.click()
+            self.pag.wait_for_timeout(200)
+            self.checa(aberto and not d.evaluate("(d) => d.open"),
+                       "um clique na capa do pack abre o detalhe na linha inteira, e outro fecha")
         for i in range(min(3, self.quantos(nome))):
             # [P73: as pastas da ficha de ícone podem nascer ABERTAS (a do pack
             # no ar, a dos sugeridos). Aberta, ela é fechada antes, para o
@@ -1991,6 +2068,13 @@ class Percurso:
                 estava = bool(el.locator("xpath=..").evaluate("(d) => d.open"))
                 if estava:
                     el.click()
+            # [P77: a página tem de estar PARADA antes do censo. Em «Lançadores
+            # e jogos» o «⋯» das ações é aberto logo depois do «Conferir» dos
+            # jogos, cujo fim relê a lista e repinta a aba — a repintura apaga
+            # as marcas do censo, e o primeiro controle revelado (o `?` do
+            # «Baixar o tema do Spotify») ficava sem quem o achasse: o clique
+            # esperava 8 s e quebrava, nas duas corridas.]
+            self.assentar(quieto=300)
             antes = set(self.censo())
             el = self.achar(nome, i)
             el.click()
@@ -2015,7 +2099,10 @@ class Percurso:
                        "e fecha no segundo clique")
             if estava and el is not None:
                 el.click()
-            if novos:
+            # [P77: o «⋯» dos ajustes técnicos é um por bloco, e uma página
+            # pode ter dois com o mesmo nome (Logo do sistema: o do dock e o do
+            # terminal). Cada um revela os SEUS controles, então todos abrem.]
+            if novos and "⋯" not in nome:
                 break
 
     # A HISTÓRIA DO PACK É MONTADA, E NADA DELA VIRA HTML — P53, achado 6. O
@@ -2528,8 +2615,12 @@ class Percurso:
         outra.goto(self.url, wait_until="domcontentloaded")
         outra.wait_for_selector("#trilho button")
         outra.locator('#trilho button[data-grupo="Instalação"]').click()
-        outra.locator("#conteudo article.acao", has_text="O que está no ar agora") \
-             .get_by_role("button", name="Executar", exact=True).click()
+        # [P77 grupo 4: o «O que está no ar agora» só mostra (natureza
+        # `mostrar`) e mora no «⋯» das ações técnicas da Instalação.]
+        # O `has` é procurado DENTRO do `<details>`: sem o `#conteudo` na frente.
+        acao = outra.locator("article.acao", has_text="O que está no ar agora")
+        outra.locator("#conteudo details.ajustes-tecnicos", has=acao).locator("summary").click()
+        acao.get_by_role("button", name="Executar", exact=True).click()
         outra.wait_for_function("() => TRABALHO !== null && TRABALHO.timer !== null",
                                 timeout=15000)
 
@@ -2769,9 +2860,16 @@ class Percurso:
         # da casa: medido nesta bancada, com a Steam instalada, a conferência
         # passava vazia contra o código de antes.
         self.js("() => { JOGOS.total_apps = 1; render(); }")
-        texto = self.pag.locator("#conteudo").inner_text()
+        # [P77: as contas viraram selos, e a frase de cada um mora no balão e
+        # no `aria-label` dele — o texto conferido é o da tela mais o desses
+        # nomes.]
+        texto = self.pag.locator("#conteudo").inner_text() + "\n" + self.js(
+            "() => [...document.querySelectorAll('#conteudo [aria-label]')]"
+            ".map((e) => e.getAttribute('aria-label')).join('\\n')")
         self.js("() => carregarJogos()")
         self.assentar(quieto=300)
+        loja = self.js("() => (JOGOS.apps || []).some((a) => a.id === 'steam')")
+        self.checa(not loja, "a loja (a Steam, que se declara Game) não conta como jogo")
         solto = re.findall(r"\b1 jogos\b[^.]*", texto)
         self.checa(not solto and "1 jogo tem atalho" in texto,
                    f"a aba não diz «1 jogos», e diz «1 jogo tem atalho» ({solto})")
@@ -3329,6 +3427,18 @@ DEFEITOS_CONHECIDOS = {
     # `cmd_wallpaper` não repassava e o `meow_lancador_reler` que mirava o
     # lançador da máquina inteira) foram consertados na origem, e o percurso
     # passou a cobrar que o «Usar» da galeria termine bem.
+    #
+    # P77, 10/10/2026: com as ações técnicas no «⋯», «O carrossel agora» passou
+    # a ser o PRIMEIRO script de papel de parede da aba (o «⋯» abre antes dos
+    # outros gestos, pela ordem dos nomes), e numa casa nova ele semeia o
+    # estado: o `meow_estado_com_padrao` (lib/comum.sh) copia o `BANIDOS.txt` e
+    # o `lado.tsv` da receita na primeira LEITURA, inclusive num verbo que só
+    # mostra. Antes, um gesto que escreve chegava primeiro e escondia isso.
+    # Aparece só quando nada semeou antes, por isso não em toda corrida.
+    r"«O carrossel agora» não muda a casa — mudou \d+: \['casa/\.local/state/meowsystem/"
+    r"papeis-de-parede/": (
+        "lib/comum.sh `meow_estado_com_padrao`: semear o estado só em verbo que "
+        "escreve (o `meow wallpaper` sem argumento só lê)", False),
 }
 
 
@@ -3344,6 +3454,9 @@ def _linhas(texto):
 
 # O QUE ESTÁ NA TELA AO ABRIR CADA ABA — medido em 24/09/2026 na casa de
 # brinquedo (`montar_casa`): 14 abas e o topo, 754 controles, 459 nomes.
+# P77, 09/10/2026: cada aba ganhou o `?` do cabeçalho e o do desenho («aba · ?»),
+# e cada cartão de ação o `?` da ajuda («ação «X» · ?»). Os nomes entraram aqui
+# com o mesmo acionador de todo `?` (`h_porque`).
 INVENTARIO = {
     "topo": _linhas("""
         menu · Atualização
@@ -3369,6 +3482,7 @@ INVENTARIO = {
         topo · abre «Exportar»
     """),
     "Início": _linhas("""
+        aba · ?
         aba · Abrir Dia e noite
         aba · Abrir Modo de leitura
         aba · Exportar o meu
@@ -3381,13 +3495,16 @@ INVENTARIO = {
         aba · ação rápida wallpaper_proximo
         ajuste mudado · ir ao cartão
         cartão de pack · Usar este
-        cartão de pack · abre «Mais sobre este pack»
+        cartão de pack · abre «Detalhes do pack»
+        pendência · ?
         pendência · Manter o meu
         pendência · Não, obrigado
         pendência · Resolver
         pendência · Trocar pelo tema do pack
     """),
     "Cor e tela": _linhas("""
+        aba · ?
+        aba · abre «⋯ Ajustes técnicos»
         aba · Claro
         aba · Escuro
         aba · Vidro claro
@@ -3396,121 +3513,101 @@ INVENTARIO = {
         ajuste ACCENT · opção
         ajuste CURSOR · ?
         ajuste CURSOR · Adicionar tema
-        ajuste CURSOR · deixar vazio
         ajuste CURSOR · opção
-        ajuste CURSOR_VERSAO · ?
-        ajuste CURSOR_VERSAO · campo
         ajuste ESCALA_TELA · ?
         ajuste ESCALA_TELA · deixar vazio
         ajuste ESCALA_TELA · opção
         ajuste FLAVOR · ?
         ajuste FLAVOR · opção
         ajuste JANELAS_TILING · ?
-        ajuste JANELAS_TILING · deixar vazio
         ajuste JANELAS_TILING · opção
         ajuste JANELAS_TILING_ESCOPO · ?
         ajuste JANELAS_TILING_ESCOPO · opção
         ajuste MODO · ?
         ajuste MODO · opção
         ajuste PACK · ?
-        ajuste PACK · deixar vazio
         ajuste PACK · opção
-        ajuste WALLPAPER_DRACULA_COMMIT · ?
-        ajuste WALLPAPER_DRACULA_COMMIT · campo
-        ajuste WALLPAPER_DRACULA_REPO · ?
-        ajuste WALLPAPER_DRACULA_REPO · campo
+        ação «Passar para claro ou escuro» · ?
         ação «Passar para claro ou escuro» · Executar
         ação «Passar para claro ou escuro» · seletor
         ação «Passar para claro ou escuro» · ver comando
+        ação «Temas prontos nesta máquina» · ?
         ação «Temas prontos nesta máquina» · Executar
         ação «Temas prontos nesta máquina» · ver comando
+        ação «Trocar de tema» · ?
         ação «Trocar de tema» · Executar
         ação «Trocar de tema» · seletor
         ação «Trocar de tema» · ver comando
     """),
     "Áreas de trabalho": _linhas("""
+        aba · ?
+        aba · abre «⋯ Ações técnicas»
         ajuste AREAS_ENCAIXE · ?
         ajuste AREAS_ENCAIXE · nova ficha
         ajuste AREAS_FOLGA · ?
         ajuste AREAS_FOLGA · campo
         ajuste AREAS_NOMES · ?
         ajuste AREAS_NOMES · campo
-        ação «As áreas de agora» · Executar
-        ação «As áreas de agora» · ver comando
+        ação «Criar a primeira área» · ?
         ação «Criar a primeira área» · Executar
         ação «Criar a primeira área» · ver comando
+        ação «Gravar as áreas» · ?
         ação «Gravar as áreas» · Executar
         ação «Gravar as áreas» · ver comando
+        ação «Tirar uma área» · ?
         ação «Tirar uma área» · Executar
         ação «Tirar uma área» · seletor
         ação «Tirar uma área» · ver comando
+        ação «Voltar as áreas de antes» · ?
         ação «Voltar as áreas de antes» · Executar
         ação «Voltar as áreas de antes» · ver comando
     """),
     "Logo do sistema": _linhas("""
+        aba · ?
+        aba · Adicionar logo
         aba · Claro
         aba · Escuro
         aba · Vidro claro
         aba · Vidro escuro
+        aba · abre «⋯ Ajustes técnicos»
+        aba · abre «⋯ Ações técnicas»
         ajuste FASTFETCH_LOGO · ?
         ajuste FASTFETCH_LOGO · opção
         ajuste FASTFETCH_LOGO_ALINHAR · ?
         ajuste FASTFETCH_LOGO_ALINHAR · opção
-        ajuste FASTFETCH_LOGO_BLOCOS · ?
-        ajuste FASTFETCH_LOGO_BLOCOS · opção
-        ajuste FASTFETCH_LOGO_CELULA · ?
-        ajuste FASTFETCH_LOGO_CELULA · campo
         ajuste FASTFETCH_LOGO_COLUNAS · ?
         ajuste FASTFETCH_LOGO_COLUNAS · deslizante
-        ajuste FASTFETCH_LOGO_CONF · ?
-        ajuste FASTFETCH_LOGO_CONF · opção
-        ajuste FASTFETCH_LOGO_DIA · ?
-        ajuste FASTFETCH_LOGO_DIA · deixar vazio
-        ajuste FASTFETCH_LOGO_DIA · opção
-        ajuste FASTFETCH_LOGO_GATO · ?
-        ajuste FASTFETCH_LOGO_GATO · opção
         ajuste FASTFETCH_LOGO_LINHAS · ?
-        ajuste FASTFETCH_LOGO_LINHAS · Restaurar ao padrão
         ajuste FASTFETCH_LOGO_LINHAS · deslizante
         ajuste FASTFETCH_LOGO_MODO · ?
         ajuste FASTFETCH_LOGO_MODO · opção
-        ajuste FASTFETCH_LOGO_NOITE · ?
-        ajuste FASTFETCH_LOGO_NOITE · deixar vazio
-        ajuste FASTFETCH_LOGO_NOITE · opção
         ajuste FASTFETCH_LOGO_QUEBRAS · ?
-        ajuste FASTFETCH_LOGO_QUEBRAS · Automático
         ajuste FASTFETCH_LOGO_QUEBRAS · deslizante
         ajuste FASTFETCH_LOGO_RECUO · ?
         ajuste FASTFETCH_LOGO_RECUO · deslizante
         ajuste FASTFETCH_TITULO · ?
         ajuste FASTFETCH_TITULO · campo
-        ajuste LOGO · ?
-        ajuste LOGO · Adicionar logo
-        ajuste LOGO · opção
+        ajuste FASTFETCH_TITULO · Restaurar ao padrão
         ajuste LOGO_DIA · ?
         ajuste LOGO_DIA · opção
-        ajuste LOGO_INTERVALO · ?
-        ajuste LOGO_INTERVALO · opção
         ajuste LOGO_MODO · ?
         ajuste LOGO_MODO · opção
         ajuste LOGO_NOITE · ?
         ajuste LOGO_NOITE · opção
-        ajuste LOGO_RECICLAR · ?
-        ajuste LOGO_RECICLAR · opção
-        ajuste LOGO_ROTACAO · ?
-        ajuste LOGO_ROTACAO · opção
+        ação «Passar ao próximo gato» · ?
         ação «Passar ao próximo gato» · Executar
         ação «Passar ao próximo gato» · ver comando
+        ação «Pôr um gato no dock» · ?
         ação «Pôr um gato no dock» · Executar
         ação «Pôr um gato no dock» · seletor
         ação «Pôr um gato no dock» · ver comando
-        ação «Qual gato está no ar, e por quê» · Executar
-        ação «Qual gato está no ar, e por quê» · ver comando
     """),
     # [Integração da leva G, 09/10/2026: o `ajuste ICONES_BASE` saiu daqui. A
     #   P75 aposentou a chave (a base vem do pack, pinada — `migrar_conf.py`,
     #   `APOSENTADAS`) e o cartão sumiu da aba junto com ela do exemplo.]
     "Ícones": _linhas("""
+        aba · ?
+        aba · abre «⋯ Ajustes técnicos»
         aba · Adicionar tema de ícones
         aba · Claro
         aba · Escuro
@@ -3524,8 +3621,6 @@ INVENTARIO = {
         ajuste ICONES_DRACULA · opção
         ajuste ICONES_FLAVOR · ?
         ajuste ICONES_FLAVOR · opção
-        ajuste ICONES_LOGO_HEFESTO · ?
-        ajuste ICONES_LOGO_HEFESTO · campo
         ajuste ICONES_PASTAS · ?
         ajuste ICONES_PASTAS · seletor
         ajuste ICONES_PASTAS · ver comando
@@ -3536,16 +3631,22 @@ INVENTARIO = {
         ajuste PASTAS_XDG · ?
         ajuste PASTAS_XDG · opção
         aplicativo · abrir
+        ação «Pôr os desenhos em traço na tela» · ?
         ação «Pôr os desenhos em traço na tela» · Executar
         ação «Pôr os desenhos em traço na tela» · ver comando
+        ação «Reconstruir o tema de ícones» · ?
         ação «Reconstruir o tema de ícones» · Executar
         ação «Reconstruir o tema de ícones» · ver comando
+        ação «Tema de ícones instalado» · ?
         ação «Tema de ícones instalado» · Executar
         ação «Tema de ícones instalado» · ver comando
+        desenhos autorais · ?
         desenhos autorais · Salvar no pack
         desenhos autorais › desenho autoral · escolher
     """),
     "Painel e dock": _linhas("""
+        aba · ?
+        aba · abre «⋯ Ações técnicas»
         ajuste FORMA_ALA_FINAL_DOCK · ?
         ajuste FORMA_ALA_FINAL_DOCK · deixar vazio
         ajuste FORMA_ALA_FINAL_DOCK · opção
@@ -3569,32 +3670,24 @@ INVENTARIO = {
         ajuste FORMA_DOCK_SOLTO · ?
         ajuste FORMA_DOCK_SOLTO · opção
         ajuste FORMA_ESPACO_DOCK · ?
-        ajuste FORMA_ESPACO_DOCK · Restaurar ao padrão
         ajuste FORMA_ESPACO_DOCK · deslizante
         ajuste FORMA_ESPACO_PAINEL · ?
-        ajuste FORMA_ESPACO_PAINEL · Restaurar ao padrão
         ajuste FORMA_ESPACO_PAINEL · deslizante
         ajuste FORMA_MARGEM_DOCK · ?
-        ajuste FORMA_MARGEM_DOCK · Restaurar ao padrão
         ajuste FORMA_MARGEM_DOCK · deslizante
         ajuste FORMA_MARGEM_PAINEL · ?
-        ajuste FORMA_MARGEM_PAINEL · Restaurar ao padrão
         ajuste FORMA_MARGEM_PAINEL · deslizante
         ajuste FORMA_PAINEL_ILHA · ?
         ajuste FORMA_PAINEL_ILHA · opção
         ajuste FORMA_PAINEL_SOLTO · ?
         ajuste FORMA_PAINEL_SOLTO · opção
         ajuste FORMA_RAIO_DOCK · ?
-        ajuste FORMA_RAIO_DOCK · Restaurar ao padrão
         ajuste FORMA_RAIO_DOCK · deslizante
         ajuste FORMA_RAIO_PAINEL · ?
-        ajuste FORMA_RAIO_PAINEL · Restaurar ao padrão
         ajuste FORMA_RAIO_PAINEL · deslizante
         ajuste FORMA_RECHEIO_DOCK · ?
-        ajuste FORMA_RECHEIO_DOCK · Restaurar ao padrão
         ajuste FORMA_RECHEIO_DOCK · deslizante
         ajuste FORMA_RECHEIO_PAINEL · ?
-        ajuste FORMA_RECHEIO_PAINEL · Restaurar ao padrão
         ajuste FORMA_RECHEIO_PAINEL · deslizante
         ajuste MIDIA · ?
         ajuste MIDIA · opção
@@ -3609,29 +3702,20 @@ INVENTARIO = {
         ajuste MIDIA_COR_TITULO · ?
         ajuste MIDIA_COR_TITULO · opção
         ajuste MIDIA_FONTE · ?
-        ajuste MIDIA_FONTE · Automático
         ajuste MIDIA_FONTE · deslizante
         ajuste MIDIA_LARGURA · ?
         ajuste MIDIA_LARGURA · campo
         ajuste RELOGIO_SEGUNDOS · ?
-        ajuste RELOGIO_SEGUNDOS · deixar vazio
         ajuste RELOGIO_SEGUNDOS · opção
         ajuste VIDRO_AO_MAXIMIZAR · ?
         ajuste VIDRO_AO_MAXIMIZAR · opção
         ajuste VIDRO_OPACIDADE_DOCK · ?
-        ajuste VIDRO_OPACIDADE_DOCK · Restaurar ao padrão
         ajuste VIDRO_OPACIDADE_DOCK · deslizante
         ajuste VIDRO_OPACIDADE_PAINEL · ?
-        ajuste VIDRO_OPACIDADE_PAINEL · Restaurar ao padrão
         ajuste VIDRO_OPACIDADE_PAINEL · deslizante
-        ação «Até quanto o canto pode arredondar» · Executar
-        ação «Até quanto o canto pode arredondar» · ver comando
-        ação «Como estão o painel e a dock» · Executar
-        ação «Como estão o painel e a dock» · ver comando
-        ação «Recarregar o painel» · Executar
-        ação «Recarregar o painel» · ver comando
     """),
     "Papel de parede": _linhas("""
+        aba · ?
         aba · Adicionar imagem
         aba · Claro
         aba · Dia
@@ -3642,15 +3726,13 @@ INVENTARIO = {
         aba · Recusadas
         aba · Vidro claro
         aba · Vidro escuro
+        aba · abre «⋯ Ajustes técnicos»
+        aba · abre «⋯ Ações técnicas»
         aba · âncora «Pular a galeria»
         ajuste FILES_MENU · ?
         ajuste FILES_MENU · opção
-        ajuste FILES_MENU_AUTOBUILD · ?
-        ajuste FILES_MENU_AUTOBUILD · opção
         ajuste WALLPAPER_AJUSTE · ?
         ajuste WALLPAPER_AJUSTE · opção
-        ajuste WALLPAPER_BASE · ?
-        ajuste WALLPAPER_BASE · campo
         ajuste WALLPAPER_FIXO_TTL · ?
         ajuste WALLPAPER_FIXO_TTL · campo
         ajuste WALLPAPER_FONTES_PERMITIDAS · ?
@@ -3661,20 +3743,13 @@ INVENTARIO = {
         ajuste WALLPAPER_NOTIFICAR · opção
         ajuste WALLPAPER_ORDEM · ?
         ajuste WALLPAPER_ORDEM · opção
-        ação «Baixar a coleção curada» · Executar
-        ação «Baixar a coleção curada» · ver comando
-        ação «Construir o menu da área de trabalho» · Executar
-        ação «Construir o menu da área de trabalho» · ver comando
+        ação «Imagem anterior» · ?
         ação «Imagem anterior» · Executar
         ação «Imagem anterior» · ver comando
-        ação «Menu da área de trabalho» · Executar
-        ação «Menu da área de trabalho» · ver comando
-        ação «O carrossel agora» · Executar
-        ação «O carrossel agora» · ver comando
+        ação «Próxima imagem» · ?
         ação «Próxima imagem» · Executar
         ação «Próxima imagem» · ver comando
-        ação «Reaplicar as regras do carrossel» · Executar
-        ação «Reaplicar as regras do carrossel» · ver comando
+        ação «Voltar a girar» · ?
         ação «Voltar a girar» · Executar
         ação «Voltar a girar» · ver comando
         papel de parede · Dia
@@ -3684,17 +3759,14 @@ INVENTARIO = {
         papel de parede · ver comando
     """),
     "Dia e noite": _linhas("""
+        aba · ?
         ajuste MODO_AUTO_CLARO_ATE · ?
-        ajuste MODO_AUTO_CLARO_ATE · Restaurar ao padrão
         ajuste MODO_AUTO_CLARO_ATE · deslizante
         ajuste MODO_AUTO_CLARO_DE · ?
-        ajuste MODO_AUTO_CLARO_DE · Restaurar ao padrão
         ajuste MODO_AUTO_CLARO_DE · deslizante
         ajuste NOITE_FIM · ?
-        ajuste NOITE_FIM · Restaurar ao padrão
         ajuste NOITE_FIM · hora
         ajuste NOITE_INICIO · ?
-        ajuste NOITE_INICIO · Restaurar ao padrão
         ajuste NOITE_INICIO · hora
         ajuste WALLPAPER_LIMIAR_LUZ · ?
         ajuste WALLPAPER_LIMIAR_LUZ · deslizante
@@ -3706,8 +3778,9 @@ INVENTARIO = {
         ajuste WALLPAPER_NOITE_INICIO · hora
     """),
     "Modo de leitura": _linhas("""
+        aba · ?
+        aba · abre «⋯ Ações técnicas»
         ajuste LEITURA_AGENDA · ?
-        ajuste LEITURA_AGENDA · deixar vazio
         ajuste LEITURA_AGENDA · opção
         ajuste LEITURA_APPLET · ?
         ajuste LEITURA_APPLET · opção
@@ -3721,14 +3794,12 @@ INVENTARIO = {
         ajuste LEITURA_TEMPERATURA · deslizante
         ajuste LEITURA_TEXTURA · ?
         ajuste LEITURA_TEXTURA · deslizante
-        ação «Aplicar o degrau desta hora» · Executar
-        ação «Aplicar o degrau desta hora» · ver comando
+        ação «Desligar o modo de leitura» · ?
         ação «Desligar o modo de leitura» · Executar
         ação «Desligar o modo de leitura» · ver comando
-        ação «Modo de leitura agora» · Executar
-        ação «Modo de leitura agora» · ver comando
     """),
     "Terminal": _linhas("""
+        aba · ?
         aba · Adicionar fonte
         ajuste PROMPT_STARSHIP · ?
         ajuste PROMPT_STARSHIP · opção
@@ -3736,10 +3807,15 @@ INVENTARIO = {
         ajuste TERMINAL_CURSOR · opção
         ajuste TERMINAL_ESQUEMA · ?
         ajuste TERMINAL_ESQUEMA · opção
+        ação «Instalar o starship» · ?
+        ação «Instalar o starship» · Executar
+        ação «Instalar o starship» · ver comando
     """),
     "Lançadores e jogos": _linhas("""
+        aba · ?
         aba · Arrumar os jogos no lançador
         aba · Conferir
+        aba · abre «⋯ Ações técnicas»
         aba · filtro «Filtrar jogo»
         aba · âncora «Pular a lista»
         aba · âncora «Pular os jogos»
@@ -3756,20 +3832,19 @@ INVENTARIO = {
         ajuste SPOTIFY_MARKETPLACE · ?
         ajuste SPOTIFY_MARKETPLACE · opção
         aplicativo · abrir
-        ação «Baixar o tema do Spotify» · Executar
-        ação «Baixar o tema do Spotify» · ver comando
-        ação «Pôr os jogos do Heroic no lançador» · Executar
-        ação «Pôr os jogos do Heroic no lançador» · ver comando
+        ação «Quais programas estão vestidos» · ?
         ação «Quais programas estão vestidos» · Executar
         ação «Quais programas estão vestidos» · ver comando
+        ação «Ver o que mudaria nos jogos do Heroic» · ?
         ação «Ver o que mudaria nos jogos do Heroic» · Executar
         ação «Ver o que mudaria nos jogos do Heroic» · ver comando
-        ação «Vestir os programas agora» · Executar
-        ação «Vestir os programas agora» · ver comando
         jogo da Steam · abrir
         jogo órfão · Tirar da lista
     """),
     "Manutenção": _linhas("""
+        aba · ?
+        aba · abre «⋯ Ajustes técnicos»
+        aba · abre «⋯ Ações técnicas»
         ajuste ASSETS_VIGIA · ?
         ajuste ASSETS_VIGIA · opção
         ajuste ASSETS_VIGIA_NOTIFICAR · ?
@@ -3792,49 +3867,40 @@ INVENTARIO = {
         ajuste PONTE_ROOT · opção
         ajuste SOM · ?
         ajuste SOM · opção
-        ajuste SOM_DECAIMENTO · ?
-        ajuste SOM_DECAIMENTO · Restaurar ao padrão
-        ajuste SOM_DECAIMENTO · deslizante
-        ajuste SOM_FUNDAMENTAL · ?
-        ajuste SOM_FUNDAMENTAL · Restaurar ao padrão
-        ajuste SOM_FUNDAMENTAL · deslizante
-        ajuste SOM_HARMONICO · ?
-        ajuste SOM_HARMONICO · Restaurar ao padrão
-        ajuste SOM_HARMONICO · deslizante
-        ajuste SOM_PESO_FUNDAMENTAL · ?
-        ajuste SOM_PESO_FUNDAMENTAL · campo
-        ajuste SOM_PESO_HARMONICO · ?
-        ajuste SOM_PESO_HARMONICO · campo
         ajuste STEAM_VIGIA · ?
         ajuste STEAM_VIGIA · opção
-        ação «Instalar o starship» · Executar
-        ação «Instalar o starship» · ver comando
+        ação «Ouvir o som» · ?
         ação «Ouvir o som» · Executar
         ação «Ouvir o som» · ver comando
-        ação «Regravar o som» · Executar
-        ação «Regravar o som» · ver comando
     """),
     "Instalação": _linhas("""
-        ação «As últimas 50 linhas do registro» · Executar
-        ação «As últimas 50 linhas do registro» · ver comando
+        aba · ?
+        aba · abre «⋯ Ações técnicas»
+        ação «Conferir a máquina» · ?
         ação «Conferir a máquina» · Executar
         ação «Conferir a máquina» · ver comando
+        ação «Consertar o que estiver fora» · ?
         ação «Consertar o que estiver fora» · Executar
         ação «Consertar o que estiver fora» · ver comando
+        ação «Desinstalar o MeowSystem» · ?
         ação «Desinstalar o MeowSystem» · Executar
         ação «Desinstalar o MeowSystem» · ver comando
+        ação «Instalar tudo» · ?
         ação «Instalar tudo» · Executar
         ação «Instalar tudo» · ver comando
-        ação «O que está no ar agora» · Executar
-        ação «O que está no ar agora» · ver comando
+        ação «Voltar ao tema de antes» · ?
         ação «Voltar ao tema de antes» · Executar
         ação «Voltar ao tema de antes» · ver comando
     """),
     "Atualização": _linhas("""
+        aba · ?
+        ação «Atualizar a máquina inteira» · ?
         ação «Atualizar a máquina inteira» · Executar
         ação «Atualizar a máquina inteira» · ver comando
+        ação «Limpar o que sobrou» · ?
         ação «Limpar o que sobrou» · Executar
         ação «Limpar o que sobrou» · ver comando
+        ação «O que a atualização mudaria» · ?
         ação «O que a atualização mudaria» · Executar
         ação «O que a atualização mudaria» · ver comando
     """),
@@ -3886,6 +3952,7 @@ REVELADOS = {
         gaveta · #saida
         gaveta · #mais-abaixo
         gaveta · #ensaio-rodar
+        gaveta · #gaveta-consertar
         topo · #botao-descartar
         topo · #salvar-conta
         topo › lista de escolhas › escolha pendente · ir ao cartão
@@ -3893,7 +3960,9 @@ REVELADOS = {
         ajuste * · Aplicar
         *linha de comando · Copiar
         aba · Como está (desfaz o bloco)
-        aba · Desfazer as escolhas da forma
+        ajuste * · Restaurar ao padrão
+        ajuste * · Automático
+        ajuste * · deixar vazio
     """),
     "topo": _linhas("""
         topo · #baixar-conf
@@ -3903,22 +3972,136 @@ REVELADOS = {
         cartão de pack · link externo
         cartão de pack · Remover
     """),
+    # [P77: os ajustes `[avancado]` moram no «⋯ Ajustes técnicos» do fim do
+    # bloco; o `h_details` abre o «⋯» e aciona o que ele revela.]
+    "Cor e tela": _linhas("""
+        ajuste CURSOR_VERSAO · ?
+        ajuste CURSOR_VERSAO · campo
+        ajuste WALLPAPER_DRACULA_COMMIT · ?
+        ajuste WALLPAPER_DRACULA_COMMIT · campo
+        ajuste WALLPAPER_DRACULA_REPO · ?
+        ajuste WALLPAPER_DRACULA_REPO · campo
+    """),
     "Áreas de trabalho": _linhas("""
-        ajuste AREAS_FOLGA · opção
         ajuste AREAS_FOLGA · deixar vazio
+        ajuste AREAS_FOLGA · opção
+        ação «As áreas de agora» · ?
+        ação «As áreas de agora» · Executar
+        ação «As áreas de agora» · ver comando
     """),
     "Ícones": PAINEL_DO_APLICATIVO | _linhas("""
         desenhos autorais › papel do desenho · seletor
+        ajuste ICONES_LOGO_HEFESTO · ?
+        ajuste ICONES_LOGO_HEFESTO · campo
     """),
     "Papel de parede": _linhas("""
+        ajuste FILES_MENU_AUTOBUILD · ?
+        ajuste FILES_MENU_AUTOBUILD · opção
+        ajuste WALLPAPER_BASE · ?
+        ajuste WALLPAPER_BASE · campo
+        ação «Baixar a coleção curada» · ?
+        ação «Baixar a coleção curada» · Executar
+        ação «Baixar a coleção curada» · ver comando
+        ação «Construir o menu da área de trabalho» · ?
+        ação «Construir o menu da área de trabalho» · Executar
+        ação «Construir o menu da área de trabalho» · ver comando
+        ação «Menu da área de trabalho» · ?
+        ação «Menu da área de trabalho» · Executar
+        ação «Menu da área de trabalho» · ver comando
+        ação «O carrossel agora» · ?
+        ação «O carrossel agora» · Executar
+        ação «O carrossel agora» · ver comando
+        ação «Reaplicar as regras do carrossel» · ?
+        ação «Reaplicar as regras do carrossel» · Executar
+        ação «Reaplicar as regras do carrossel» · ver comando
         papel de parede · Devolver
         papel de parede · Medir
     """),
     "Lançadores e jogos": PAINEL_DO_APLICATIVO | _linhas("""
+        ação «Baixar o tema do Spotify» · ?
+        ação «Baixar o tema do Spotify» · Executar
+        ação «Baixar o tema do Spotify» · ver comando
+        ação «Pôr os jogos do Heroic no lançador» · ?
+        ação «Pôr os jogos do Heroic no lançador» · Executar
+        ação «Pôr os jogos do Heroic no lançador» · ver comando
+        ação «Vestir os programas agora» · ?
+        ação «Vestir os programas agora» · Executar
+        ação «Vestir os programas agora» · ver comando
         decisão do jogo · Apagar os arquivos
         decisão do jogo · Tirar do lançador
         decisão do jogo · Voltar ao normal
         decisão do jogo · campo «Por que este jogo sai do lançador»
+    """),
+    "Painel e dock": _linhas("""
+        ação «Até quanto o canto pode arredondar» · ?
+        ação «Até quanto o canto pode arredondar» · Executar
+        ação «Até quanto o canto pode arredondar» · ver comando
+        ação «Como estão o painel e a dock» · ?
+        ação «Como estão o painel e a dock» · Executar
+        ação «Como estão o painel e a dock» · ver comando
+        ação «Recarregar o painel» · ?
+        ação «Recarregar o painel» · Executar
+        ação «Recarregar o painel» · ver comando
+    """),
+    "Logo do sistema": _linhas("""
+        ajuste FASTFETCH_LOGO_BLOCOS · ?
+        ajuste FASTFETCH_LOGO_BLOCOS · opção
+        ajuste FASTFETCH_LOGO_CELULA · ?
+        ajuste FASTFETCH_LOGO_CELULA · campo
+        ajuste FASTFETCH_LOGO_CONF · ?
+        ajuste FASTFETCH_LOGO_CONF · opção
+        ajuste FASTFETCH_LOGO_DIA · ?
+        ajuste FASTFETCH_LOGO_DIA · opção
+        ajuste FASTFETCH_LOGO_GATO · ?
+        ajuste FASTFETCH_LOGO_GATO · opção
+        ajuste FASTFETCH_LOGO_NOITE · ?
+        ajuste FASTFETCH_LOGO_NOITE · opção
+        ajuste LOGO · ?
+        ajuste LOGO · opção
+        ajuste LOGO_INTERVALO · ?
+        ajuste LOGO_INTERVALO · opção
+        ajuste LOGO_RECICLAR · ?
+        ajuste LOGO_RECICLAR · opção
+        ajuste LOGO_ROTACAO · ?
+        ajuste LOGO_ROTACAO · opção
+        ação «Qual gato está no ar, e por quê» · ?
+        ação «Qual gato está no ar, e por quê» · Executar
+        ação «Qual gato está no ar, e por quê» · ver comando
+    """),
+    # [P77 grupo 4: as duas ações que só mostram (natureza `mostrar`) moram
+    # no «⋯» das ações técnicas da Instalação.]
+    "Instalação": _linhas("""
+        ação «As últimas 50 linhas do registro» · ?
+        ação «As últimas 50 linhas do registro» · Executar
+        ação «As últimas 50 linhas do registro» · ver comando
+        ação «O que está no ar agora» · ?
+        ação «O que está no ar agora» · Executar
+        ação «O que está no ar agora» · ver comando
+    """),
+    # [P77 grupo 4: o timbre do sino (`[avancado]`) e o «Regravar o som»
+    # (natureza `aplicar`) moram nos dois «⋯» do fim da página.]
+    "Manutenção": _linhas("""
+        ajuste SOM_DECAIMENTO · ?
+        ajuste SOM_DECAIMENTO · deslizante
+        ajuste SOM_FUNDAMENTAL · ?
+        ajuste SOM_FUNDAMENTAL · deslizante
+        ajuste SOM_HARMONICO · ?
+        ajuste SOM_HARMONICO · deslizante
+        ajuste SOM_PESO_FUNDAMENTAL · ?
+        ajuste SOM_PESO_FUNDAMENTAL · campo
+        ajuste SOM_PESO_HARMONICO · ?
+        ajuste SOM_PESO_HARMONICO · campo
+        ação «Regravar o som» · ?
+        ação «Regravar o som» · Executar
+        ação «Regravar o som» · ver comando
+    """),
+    "Modo de leitura": _linhas("""
+        ação «Aplicar o degrau desta hora» · ?
+        ação «Aplicar o degrau desta hora» · Executar
+        ação «Aplicar o degrau desta hora» · ver comando
+        ação «Modo de leitura agora» · ?
+        ação «Modo de leitura agora» · Executar
+        ação «Modo de leitura agora» · ver comando
     """),
 }
 

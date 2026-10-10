@@ -82,7 +82,9 @@
     <img class="gato" src="/logo.svg" alt="" width="34" height="34">
     <div>
       <h1>MeowSystem</h1>
-      <p class="sub" id="resumo">carregando…</p>
+      <!-- Vazio até o esquema chegar: o `#resumo:empty` do estilo desenha a
+           tira do esqueleto no lugar do «carregando…» (P77, achado 22). -->
+      <p class="sub" id="resumo"></p>
     </div>
   </div>
 
@@ -117,14 +119,17 @@
   <details class="menu" id="menu-exportar">
     <summary class="btn" title="Levar as configurações, ou a página, para fora daqui">Exportar</summary>
     <div class="menu-corpo">
-      <a class="menu-item" id="baixar-conf" href="/api/exportar/conf" download>
+      <!-- A FRASE DE CADA SAÍDA VIROU BALÃO — 10/10/2026, P77. O menu aberto
+           tinha duas frases embaixo dos nomes, a segunda com cem caracteres:
+           «sem texto na interface; no máximo vira dica». O nome fica, o que
+           ele leva vai para o balão (o `ligarBalao` adota o `title`). -->
+      <a class="menu-item" id="baixar-conf" href="/api/exportar/conf" download
+         title="Um .conf para guardar, ou levar para outra máquina">
         <strong>Meus ajustes</strong>
-        <span>Um arquivo .conf para guardar, ou levar para outra máquina.</span>
       </a>
-      <a class="menu-item" id="baixar-pagina" href="/api/exportar/pagina" download>
+      <a class="menu-item" id="baixar-pagina" href="/api/exportar/pagina" download
+         title="Um .html desta tela, que abre sem servidor e não grava nada">
         <strong>Esta tela num arquivo</strong>
-        <span>Um .html com as abas, o menu e uma amostra das imagens. Abre
-        sem servidor, e não grava nada.</span>
       </a>
     </div>
   </details>
@@ -167,7 +172,29 @@
 </header>
 
 <div class="corpo">
-  <nav class="trilho" id="trilho" aria-label="Seções"></nav>
+  <!-- O ESQUELETO NASCE COM A PÁGINA — 10/10/2026, P77 (achado 22).
+       Medido no uso real de 09/10: com o servidor frio, 7,5 s de tela vazia
+       com «carregando…» antes da primeira pintura, porque tudo o que se vê sai
+       do `/api/esquema` e o esquema frio custa (a conta dos acentos que
+       aplicam roda um processo filho). O esqueleto é HTML puro, desenhado no
+       primeiro quadro, antes de qualquer JavaScript: a forma do menu e de uma
+       página de cartões, sem uma palavra. Quem o troca pelo conteúdo é o
+       próprio `render()` (o `replaceChildren` do trilho e do `#conteudo`), e
+       o `aria-busy` diz ao leitor de tela que a página ainda está chegando. -->
+  <nav class="trilho" id="trilho" aria-label="Seções" aria-busy="true">
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-bloco" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-bloco" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
+  </nav>
 
   <main id="principal" tabindex="-1">
     <!-- O botão deste aviso é o mesmo Salvar do banner: quando ajustes foram
@@ -179,7 +206,20 @@
         Aplicar
       </button>
     </div>
-    <div id="conteudo"></div>
+    <div id="conteudo" aria-busy="true">
+      <div class="esqueleto-pagina" aria-hidden="true">
+        <span class="esqueleto esqueleto-titulo"></span>
+        <span class="esqueleto esqueleto-desenho"></span>
+        <div class="esqueleto-grade">
+          <span class="esqueleto esqueleto-cartao"></span>
+          <span class="esqueleto esqueleto-cartao"></span>
+          <span class="esqueleto esqueleto-cartao"></span>
+          <span class="esqueleto esqueleto-cartao"></span>
+          <span class="esqueleto esqueleto-cartao"></span>
+          <span class="esqueleto esqueleto-cartao"></span>
+        </div>
+      </div>
+    </div>
 
     <!-- A gaveta de saída ao vivo. Nasce fechada e sobe quando um trabalho começa.
 
