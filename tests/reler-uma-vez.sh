@@ -109,6 +109,23 @@ else
   falha "o painel.sh reciclar não registrou quem o chamou" "$(cat "$LOG" 2>/dev/null)"
 fi
 
+printf '\n--- 6. o passo de ícone que adia o reler continua dizendo «mudou» ---\n'
+#   Conferência da P80: o `icones_apps_arcticons.sh` roda sob `set -e`, e o
+#   `meow_tela_reler` solto no fim do `_aplicar` derrubava o script com o código
+#   do reler — 4 dentro da passada, que o `concluir` do install.sh conta como
+#   PULADO, e não como feito (e 3 fora da sessão, desde a P79). O script de
+#   verdade, numa casa de brinquedo, com a marca da passada armada.
+CASA6="$T/casa6"; mkdir -p "$CASA6"; : > "$T/marca6"
+for c in sudo pkexec su; do printf '#!/bin/sh\nexit 1\n' > "$FALSO/$c"; chmod 755 "$FALSO/$c"; done
+env -i PATH="$FALSO:$PATH" HOME="$CASA6" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_RELER_NO_FIM="$T/marca6" \
+    ICONES_TEMA=MeowSystem-Icons FLAVOR=mocha "$RAIZ/scripts/icones_apps_arcticons.sh" --aplicar >/dev/null 2>&1
+rc=$?
+if [ "$rc" = 1 ] && grep -qx 'icones_apps_arcticons.sh' "$T/marca6"; then
+  ok "o icones_apps_arcticons.sh pôs os desenhos, anotou o reler e saiu 1 (mudou)"
+else
+  falha "o icones_apps_arcticons.sh saiu $rc (esperado 1) dentro da passada" "marca: $(cat "$T/marca6")"
+fi
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: a instalação relê a tela uma vez, e o reciclo diz quem o pediu\n'

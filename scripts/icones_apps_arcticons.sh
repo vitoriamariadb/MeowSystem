@@ -651,8 +651,13 @@ _aplicar() {
   #   relê o tema)", e descrevia a tela certa: o arquivo no disco e a dock com o
   #   desenho velho. Ela salvou ícones pela interface e não viu nenhum — "nada tá
   #   aplicando de verdade". O painel e o menu relêem cada um pela porta dele.
-  meow_tela_reler
-  case $? in
+  # O `|| rc=$?` é o que segura o `set -e` deste script (conferência da P80):
+  #   solto, um reler que não devolve 0 — 4 quando o install.sh o adia para o
+  #   fim da passada, 3 fora da sessão — derrubava o script com esse código, e
+  #   o `concluir` do install.sh contava como PULADO o passo que pôs os desenhos.
+  rc=0
+  meow_tela_reler || rc=$?
+  case $rc in
     0) meow_seco || meow_ok "os ícones novos já estão na dock e no menu" ;;
     3) meow_info "fora da sessão gráfica: os ícones novos aparecem no próximo login" ;;
   esac
