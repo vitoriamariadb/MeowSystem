@@ -120,7 +120,11 @@ MAQUINA=(
   folha-dos-resgatados.sh # acervo e raiz de brinquedo; pede rsvg-convert e o ImageMagick, sem eles pula (P68)
   app-completo.py        # Playwright com Chromium: TODA aba, TODO controle — o gate de merge (P46)
   app-uso-real.py        # Playwright com Chromium: as 14 páginas como quem usa — parágrafo, coberto, prévia vazia, contradição (P77, U7)
+  app-texto-visivel.py   # Playwright com Chromium: a régua do texto visível da P77; mede e sai 0, só reprova se o painel não sobe
 )
+# [Integração da onda 2, 10/10/2026: o `app-texto-visivel.py` chegou da P77
+#  executável e sem linha aqui, e a guarda de cima fazia a suíte inteira sair 2
+#  antes de rodar qualquer teste. Ele é régua, não gate: fora do SEM_PULO.]
 
 # O GATE NÃO SE PULA — 24/09/2026, sprint P46
 #   O `app-completo.py` é o percurso do painel inteiro, aba por aba e botão por
