@@ -159,6 +159,11 @@ _dracula_pares_do_mapa() {
   #   é contada no aviso e pulada, e as outras seguem. O desenho de origem já
   #   era conferido do outro lado: o `pack.py alvo` o resolve com `realpath` e
   #   recusa o que cai fora da raiz do pack ou do motor (o `_dentro`).
+  #   [P78: o conjunto do `awk` é o mesmo do `meow_nome_seguro` (lib/comum.sh)
+  #   e do `nome_de_destino` (pack.py), a regra única. Ele fica aqui, escrito no
+  #   `awk`, porque os testes extraem esta função VERBATIM e a rodam sem o
+  #   lib/comum.sh; e o desenho de origem volta do `pack.py alvo` já como o
+  #   realpath que ele conferiu.]
   cru="$(sed -e 's/#.*//' "$MAPA" | awk -F: '
     NF>=2 {
       nome=$1; caminho=substr($0, index($0, ":") + 1)
@@ -409,7 +414,7 @@ _dracula_registrar() {   # _dracula_registrar "nome<TAB>desenho"... — fora do 
 }
 
 _dracula_de_fora() {
-  python3 - "$RAIZ" "$MAPA" "$_pack_ref" "$REGISTRO" <<'PY'
+  python3 -I - "$RAIZ" "$MAPA" "$_pack_ref" "$REGISTRO" <<'PY'
 import contextlib
 import io
 import os

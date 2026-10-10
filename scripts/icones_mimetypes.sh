@@ -133,7 +133,7 @@ DESTINO="$HOME/.local/share/icons/$TEMA/scalable/mimetypes"
 # e com '.', mas nenhum com ':', então o separador é seguro.
 declare -A MAPA_LIDO=()
 _ler_mapa() {
-  local linha nome glifo
+  local linha nome glifo pulados=()
   while IFS= read -r linha; do
     case "$linha" in ''|'#'*) continue ;; esac
     nome="${linha%%:*}"; glifo="${linha#*:}"
@@ -141,9 +141,16 @@ _ler_mapa() {
     # no acervo): só de um conjunto fechado, sem `/` nem `..` — um mapa de pack
     # importado é dado não confiável (conferência da P74, alerta de segurança
     # de 09/10/2026). A linha fora dele é pulada.
-    case "$nome$glifo" in *..*|*[!A-Za-z0-9._+-]*) continue ;; esac
+    # [P78: o conjunto é o `meow_nome_seguro` do lib/comum.sh, a regra única
+    #   que o pack.py também segue, e a linha pulada agora é contada.]
+    if ! meow_nome_seguro "$nome" || ! meow_nome_seguro "$glifo"; then
+      pulados+=("$nome"); continue
+    fi
     [ -n "$nome" ] && [ -n "$glifo" ] && MAPA_LIDO["$nome"]="$glifo"
   done < "$MAPA"
+  [ "${#pulados[@]}" -gt 0 ] && \
+    meow_aviso "$MAPA: ${#pulados[@]} linha(s) com nome fora de [A-Za-z0-9._+-] (ou com '..') puladas: ${pulados[*]:0:3}"
+  return 0
 }
 
 # --- dependências -------------------------------------------------------------
@@ -164,13 +171,16 @@ _pronto() {
 # de fato. Um glifo faltando é aviso, não erro: o mapa pode citar algo que o pack
 # renomeou, e nesse caso o Papirus continua atendendo aquele tipo.
 _desejado() {
-  local nome glifo
+  local nome glifo real
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
     # Link não entra: o `cat` o seguiria para fora do acervo (P74, idem).
-    [ -f "$ORIGEM/$glifo.svg" ] && [ ! -L "$ORIGEM/$glifo.svg" ] \
-      && printf '%s\t%s\n' "$nome" "$ORIGEM/$glifo.svg"
+    # [P78: link para dentro do acervo entra, pela forma que o `meow_dentro`
+    #   conferiu; o que sai dele continua de fora.]
+    [ -f "$ORIGEM/$glifo.svg" ] && real="$(meow_dentro "$ORIGEM" "$glifo.svg")" \
+      && printf '%s\t%s\n' "$nome" "$real"
   done
+  return 0
 }
 
 # O CRITÉRIO DO CONFERIR TEM DE SER O DO ESCRITOR — senão o doctor grita eternamente

@@ -147,12 +147,22 @@ DESTINO="$HOME/.local/share/icons/$TEMA/scalable/places"
 # Formato "nome:glifo", com # de comentário. Nenhum nome de ícone tem ':'.
 declare -A MAPA_LIDO=()
 _ler_mapa() {
-  local linha nome glifo
+  local linha nome glifo pulados=()
   while IFS= read -r linha; do
     case "$linha" in ''|'#'*) continue ;; esac
     nome="${linha%%:*}"; glifo="${linha#*:}"
+    # OS DOIS LADOS VIRAM NOME DE ARQUIVO — P78, 09/10/2026. `<nome>.svg` no
+    #   tema e `<glifo>.svg` no acervo: um mapa de pack de terceiro com
+    #   `../../../../x:folder` escrevia `~/.local/share/x.svg`, fora do tema
+    #   (medido no tests/pack-malicioso.sh). Só do conjunto fechado do
+    #   `meow_nome_seguro`; a linha fora dele é pulada e contada.
+    if ! meow_nome_seguro "$nome" || ! meow_nome_seguro "$glifo"; then
+      pulados+=("$nome"); continue
+    fi
     [ -n "$nome" ] && [ -n "$glifo" ] && MAPA_LIDO["$nome"]="$glifo"
   done < "$MAPA"
+  [ "${#pulados[@]}" -gt 0 ] && \
+    meow_aviso "$MAPA: ${#pulados[@]} linha(s) com nome fora de [A-Za-z0-9._+-] (ou com '..') puladas: ${pulados[*]:0:3}"
   # `return 0` não é decoração: o `while` devolve o status do último teste, e com
   # `set -e` uma última linha que não case mataria o script calado. Já aconteceu
   # no `icones_sistema.sh`, na primeira execução dele.
@@ -190,15 +200,23 @@ _pronto() {
 #   o acervo do Catppuccin não tem arquivo com nome XDG, e os bytes de lá são os
 #   de sempre.
 _desejado() {
-  local nome glifo
+  local nome glifo real fora=()
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
+    # O DESENHO TEM DE MORAR NO ACERVO — P78. Um `folder-x.svg` que é symlink
+    #   para fora do pack era copiado para o tema com o conteúdo do destino do
+    #   link. O `meow_dentro` devolve a forma conferida, e é ela que se copia.
     if [ -f "$ORIGEM/$glifo.svg" ]; then
-      printf '%s\t%s\n' "$nome" "$ORIGEM/$glifo.svg"
+      real="$(meow_dentro "$ORIGEM" "$glifo.svg")" || { fora+=("$glifo.svg"); continue; }
+      printf '%s\t%s\n' "$nome" "$real"
     elif [ -f "$ORIGEM/$nome.svg" ]; then
-      printf '%s\t%s\n' "$nome" "$ORIGEM/$nome.svg"
+      real="$(meow_dentro "$ORIGEM" "$nome.svg")" || { fora+=("$nome.svg"); continue; }
+      printf '%s\t%s\n' "$nome" "$real"
     fi
   done
+  [ "${#fora[@]}" -gt 0 ] && \
+    meow_aviso "$ORIGEM: ${#fora[@]} desenho(s) que são link para fora do acervo, pulados: ${fora[*]:0:3}"
+  return 0
 }
 
 # O CRITÉRIO DO CONFERIR TEM DE SER O DO ESCRITOR
