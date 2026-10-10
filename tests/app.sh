@@ -817,6 +817,20 @@ else:
 conf_com()
 if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinetar_primeira":
     erros.append("sem área fixada, «Gravar as áreas» não manda antes a «Criar a primeira área»")
+# O `.png` que é SVG (QA de uso real da P80) sai como SVG, e o leitor do
+# começo do arquivo não volta atrás: 4 KB hostis respondem em menos de 50 ms
+# (o alerta de ReDoS da revisão de segurança da P80).
+import time as _t
+svg_png = open(os.path.join(raiz, "packs", "dracula", "icones", "feitos-a-mao",
+                            "obsidian.png"), "rb").read()
+casos = ((svg_png, True), (b"\x89PNG\r\n\x1a\n", False),
+         (b'\xef\xbb\xbf<?xml version="1.0"?>\n<!-- a -->\n<!DOCTYPE svg>\n<svg xmlns="x"/>', True),
+         (b"<svgx/>", False), (b"<!--" * 1000, False), (b"<!--a-->" * 500 + b"<x", False))
+for dados, quer in casos:
+    t0 = _t.monotonic()
+    deu = servidor.comeca_como_svg(dados)
+    if deu != quer or _t.monotonic() - t0 > 0.05:
+        erros.append("comeca_como_svg(%r…) deu %s em %.0f ms" % (dados[:24], deu, (_t.monotonic() - t0) * 1000))
 # O espelho (QA de uso real da P80): sem área, «Criar a primeira área» acende;
 # com área fixada, ela se apaga e aponta «Gravar as áreas».
 if servidor.indisponivel("areas_alfinetar_primeira"):
