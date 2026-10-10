@@ -408,6 +408,21 @@ if _erros9:
 else:
     print("ok: o ensaio lê as escolhas numa cópia e não toca no meow.conf dela")
 
+#   9e. E OS MAPAS DE ÍCONE DELA VÃO JUNTO COM A CÓPIA — QA da P77, 10/10/2026.
+#       O `pack.py` e o `icones_apps_arcticons.sh` acham o `icones-escolhidos.map`
+#       e o `icones-traco.map` pela pasta do `MEOW_CONF`; no ensaio ela é a da
+#       cópia, sem mapa, e o «Ver o que faria» anunciava apagar o ícone que o
+#       «Usar este ícone» acabara de pôr. O `iniciar` passa os dois endereços.
+import inspect as _inspect9
+_ini9 = _inspect9.getsource(servidor.iniciar)
+_falta9 = [v for v in ("MEOW_ICONES_ESCOLHAS", "MEOW_ICONES_TRACO") if v not in _ini9]
+if _falta9:
+    print("FALHOU: o ensaio do «Salvar e aplicar» não leva os mapas de ícone dela: "
+          + ", ".join(_falta9), file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: o ensaio lê os mapas de ícone de quem usa, e não os da pasta da cópia")
+
 # --- 10. O TRABALHO LEVA A CONF, E O ÍCONE QUE NÃO VALE NÃO É OFERECIDO — 13/09 --
 #   Medido pela interface: «Usar este ícone» rodou o `icones_apps_arcticons.sh`
 #   com o ambiente do servidor e nada mais. Sem `ICONES_COR_MARCA`, doze ícones

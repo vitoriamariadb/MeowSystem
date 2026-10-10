@@ -6990,6 +6990,19 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
     # ensaio para outro arquivo sem querer.
     if conf_do_ensaio:
         ambiente["MEOW_CONF"] = conf_do_ensaio
+        # AS ESCOLHAS DE ÍCONE MORAM AO LADO DO CONF DELA, E NÃO DA CÓPIA — QA
+        #   da P77, 10/10/2026. O `pack.py` e o `icones_apps_arcticons.sh`
+        #   acham os dois mapas de quem usa pela PASTA do `MEOW_CONF`; com ele
+        #   apontando para a cópia, a pasta do ensaio não tem mapa nenhum, e o
+        #   «Ver o que faria» anunciava «apagaria .../<app>.svg (desenho
+        #   que saiu do mapa do pack no ar)» logo depois de um «Usar este ícone»
+        #   para aquele app — medido no navegador, com o «Salvar e aplicar» de
+        #   verdade lendo o mapa certo. O ensaio passa a ler os mesmos mapas.
+        pasta_dela = os.path.dirname(CONF)
+        ambiente.setdefault("MEOW_ICONES_ESCOLHAS",
+                            _mapa_de_escolhas_do_usuario())
+        ambiente.setdefault("MEOW_ICONES_TRACO",
+                            os.path.join(pasta_dela, "icones-traco.map"))
         # E O MAPA DOS JOGOS, quando o ensaio é de uma decisão de jogo ainda não
         # gravada (P54, `_ensaio_dos_jogos`): o `jogos_steam.sh` lê o mapa por
         # esta variável, e a cópia com a decisão dentro mora na mesma pasta.
