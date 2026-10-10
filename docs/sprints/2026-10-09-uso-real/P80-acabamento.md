@@ -22,3 +22,18 @@ final, como usuário, na integração (prints em `.playwright-mcp/ux-final/`).
 ## Prova
 - prints antes/depois de cada item em `.playwright-mcp/ux-p80/`; `tests/app-uso-real.py` ganha um
   caso por item (vermelho antes, verde depois); suíte inteira verde.
+
+## Abertos da P79 que entram aqui (`04-integracao-onda-2.md`, seção P79)
+6. **Corrida do `Trabalho.vivo()`** (`app/servidor.py`): responde por `proc.poll()` antes de a thread
+   `_ler` gravar `rc`/`fim`; a página recebe `vivo: false, rc: null` («SAIU NULL · 0S») e o gate fica
+   intermitente. Cura na origem: `vivo()` responde por `self.fim is None`. Teste que força a janela.
+7. **A instalação recicla o painel até três vezes** (arcticons, dracula, resgatados chamam
+   `meow_tela_reler` cada um). Um reciclo do `cosmic-panel` foi o gatilho da faixa verde de 09/10
+   (`Migração-OS/levas/leva-08-gpu-regressao.md`). Cura: um reler só, no fim da passada (marcar
+   «precisa reler» e reler uma vez), e o `painel.sh reciclar` registra quem o chamou.
+8. **Ainda mandam digitar**: o «resolve: <comando>» das pendências (vira o botão que resolve), o
+   `meow wallpaper permitir`, o «instale com rustup…» do `leitura_build.sh` (o doctor instala).
+9. **Falsos de teste**: o falso de `systemctl` de escrita recusa (como o do sudo), para o
+   `convergencia.sh` não mentir.
+10. **Decisão 12**: trocar de pack leva o ponteiro do pack mesmo que baixe (o pack decide); o
+    download aparece com o selo «baixa da internet», sem pergunta.
