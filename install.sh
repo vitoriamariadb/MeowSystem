@@ -906,7 +906,7 @@ etapa_pacotes() {
   #   tinha nenhum. Quem roda os scripts é o segundo (timer, hook, subshell sem
   #   a função do pyenv), então é o segundo que tem de ser testado — e é o que
   #   um `python3 -c` dentro de um script faz naturalmente.
-  python3 -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+  python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
 
   if [ ${#faltam[@]} -eq 0 ]; then
     meow_ok "todos os pacotes necessários já estão instalados"

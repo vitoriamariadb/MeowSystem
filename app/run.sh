@@ -102,8 +102,53 @@ paineis_deste_clone() {
   done
 }
 
+# O QA NÃO SOBE O PAINEL NA CASA DE VERDADE — decisão 8 da leva G, 09/10/2026
+#   O `--sem-abrir` é a porta dos testes e de quem confere a página por um
+#   navegador automático: todo runner de QA (o gate `tests/app-completo.py`, o
+#   `app-navegador.py`, o `app-acessibilidade.py`, os testes de shell) sobe o
+#   painel por aqui. No QA da P73 o painel subiu com o HOME real, e um clique
+#   em «Usar este ícone» escreveu três ícones no tema da pessoa. O painel
+#   escreve na máquina de quem o roda (é para isso que ele existe), então a
+#   conferência só acontece numa casa de brinquedo: com o HOME igual ao da
+#   conta (o do passwd), o `--sem-abrir` recusa antes de escrever qualquer
+#   coisa. Quem precisa mesmo subir na casa real diz isso em voz alta, com
+#   `MEOW_QA_HOME_REAL=1`. O `meow abrir` (sem a bandeira) é o uso de verdade
+#   e não passa por aqui.
+#
+#   [Conferência da P78: o HOME não é a única porta para a casa de verdade.
+#   Sem HOME (ou com ele vazio), o Python do painel cai no `pwd` e acha a casa
+#   da conta sozinho — medido: a guarda antiga deixava passar. E com o HOME de
+#   brinquedo, um `XDG_DATA_HOME`, `MEOW_CONF` ou `MEOW_ESTADO` herdado que
+#   aponte para a casa real leva para lá o tema, o meow.conf ou o estado. Cada
+#   um desses conta como "a casa real" quando cai dentro dela e fora do HOME
+#   de brinquedo.]
+_qa_na_casa_real() {
+  local dono casa v
+  dono="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
+  [ -n "$dono" ] || return 1
+  dono="$(realpath -m -- "$dono")"
+  [ -n "${HOME:-}" ] || return 0
+  casa="$(realpath -m -- "$HOME")"
+  [ "$casa" = "$dono" ] && return 0
+  for v in XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME \
+           MEOW_CONF MEOW_ESTADO MEOW_ICONES_ESCOLHAS MEOW_COSMIC_DIR; do
+    [ -n "${!v:-}" ] || continue
+    case "$(realpath -m -- "${!v}")/" in
+      "$casa"/*) ;;
+      "$dono"/*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
 case "${1:-}" in
-  --sem-abrir) ABRIR=0; SEM_JANELA=1 ;;
+  --sem-abrir)
+    if _qa_na_casa_real && [ "${MEOW_QA_HOME_REAL:-0}" != "1" ]; then
+      meow_erro "recusado: --sem-abrir com o HOME real ($HOME) — o QA do painel é numa casa de brinquedo"
+      meow_info "  suba com HOME=<diretório temporário>; para a casa real de propósito: MEOW_QA_HOME_REAL=1"
+      exit 2
+    fi
+    ABRIR=0; SEM_JANELA=1 ;;
   --porta-so|--porta-só) ABRIR=0; SO_URL=1 ;;
   --parar)
     # O painel solto precisa de uma porta para ser fechado — senão a única saída

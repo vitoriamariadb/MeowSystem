@@ -730,7 +730,7 @@ meow_flavor() {
     printf '%s' "$FLAVOR"
     return 0
   fi
-  padrao="$(python3 - "$MEOW_RAIZ/scripts" "${PACK:-}" <<'PYFIM' 2>/dev/null
+  padrao="$(python3 -I - "$MEOW_RAIZ/scripts" "${PACK:-}" <<'PYFIM' 2>/dev/null
 import sys
 sys.path.insert(0, sys.argv[1])
 import pack
@@ -822,7 +822,7 @@ meow_pastas_do_molde() {
 # Sem resposta do pack.py, a lista sai vazia — e vazia quer dizer "pack
 #   nenhum", que não desmarca nem troca nada em aplicativo nenhum.
 meow_packs_validos() {
-  python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+  python3 -I - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
 import os, sys
 sys.path.insert(0, sys.argv[1])
 import pack
@@ -852,15 +852,80 @@ PYFIM
 #   meow_pack_arquivo icones/apps.map  assets/icones/apps-dracula.map
 # devolve o primeiro que existir, nessa ordem. É o que permite migrar um acervo
 # para dentro de um pack sem quebrar quem ainda não migrou.
+#
+# [P78, 09/10/2026: o `$dir/$no_pack` era montado à mão e devolvido cru. Um
+#   `icones/pastas` que fosse symlink para fora do pack (um `git clone` traz
+#   link) punha a pasta de fora como acervo, e o `icones_pastas.sh` copiava de
+#   lá para o tema. Agora o caminho passa pelo `meow_dentro`, e o que volta é a
+#   forma que ele conferiu.]
 meow_pack_arquivo() {
-  local no_pack="$1" no_nucleo="${2:-}" dir
+  local no_pack="$1" no_nucleo="${2:-}" dir real
   dir="$(meow_pack_dir)"
-  if [ -n "$dir" ] && [ -e "$dir/$no_pack" ]; then
-    printf '%s' "$dir/$no_pack"
+  if [ -n "$dir" ] && [ -e "$dir/$no_pack" ] && real="$(meow_dentro "$dir" "$no_pack")"; then
+    printf '%s' "$real"
     return 0
   fi
   [ -n "$no_nucleo" ] && [ -e "$MEOW_RAIZ/$no_nucleo" ] && printf '%s' "$MEOW_RAIZ/$no_nucleo"
   return 0
+}
+
+# --- A REGRA ÚNICA DO DADO DE PACK, EM SHELL — P78, 09/10/2026 ---------------
+#
+# Um pack pode vir de terceiros (`meow pack importar`, ou um `git clone` na raiz
+# da pessoa, que traz symlink), e o que vem dele é dado não confiável: campo do
+# pack.json, linha de mapa, arquivo de pasta de desenho. A regra é a do
+# `_dentro`/`nome_de_destino` do scripts/pack.py ("A REGRA ÚNICA", lá), com a
+# mesma conta, para o lado do shell — que monta caminho com o que leu de um mapa
+# e não pode pagar uma partida de Python por linha.
+#
+# `meow_dentro <raiz> <caminho>`
+#   Imprime o `realpath` do caminho (relativo à raiz, ou absoluto) e sai 0 só se
+#   ele EXISTIR e cair dentro do `realpath` da raiz. O `realpath` segue todo
+#   symlink, do meio e do fim: um arquivo que é link para fora, uma pasta do
+#   meio que é link para fora e um `../` saem 1, sem imprimir nada.
+#   QUEM CHAMA USA O QUE ELE IMPRIME, e não o caminho que entrou. Conferir uma
+#   forma e abrir outra é o defeito que os alertas da onda 1 acharam.
+#
+# `meow_nome_seguro <nome>`
+#   0 quando o nome serve de nome de arquivo do lado de cá (`<nome>.svg` no
+#   tema): só `[A-Za-z0-9._+-]`, sem `..`. É o conjunto fechado do
+#   `nome_de_destino` do pack.py.
+#
+# A linha que falha é PULADA E CONTADA por quem chama, sem abortar o resto: um
+# pack com uma linha torta continua vestindo o que tem de bom.
+meow_dentro() {
+  local raiz cheio real
+  raiz="$(realpath -e -- "$1" 2>/dev/null)" || return 1
+  case "$2" in /*) cheio="$2" ;; *) cheio="$1/$2" ;; esac
+  real="$(realpath -e -- "$cheio" 2>/dev/null)" || return 1
+  case "$real" in "$raiz"/*) printf '%s' "$real"; return 0 ;; esac
+  return 1
+}
+
+meow_nome_seguro() {
+  case "$1" in ''|.|*..*|*[!A-Za-z0-9._+-]*) return 1 ;; esac
+  return 0
+}
+
+# `meow_texto_seguro <texto…>` — conferência da P78, 10/10/2026
+#   Imprime o texto pronto para o terminal: todo caractere de controle vira `?`.
+#   É a porta de saída de texto que veio de pack, mapa, `.meowpack` ou nome de
+#   arquivo e vai para um aviso — nome de pack, linha pulada, pasta da raiz. Um
+#   `\e]52;c;…\a` cru escreve na área de transferência de quem lê; `\e[2J`
+#   apaga a tela; `\e]0;…` troca o título.
+#   A CONTA É POR LETRA, E NÃO POR BYTE: o texto é lido como UTF-8, todo byte
+#   que não forma UTF-8 vira `?` (o `\x9b` solto, o CSI de 8 bits, e os outros
+#   C1 crus — `\x90` DCS, `\x9d` OSC), e só então saem C0 (a quebra de linha
+#   inclusive), DEL e C1 por ponto de código (U+0080–U+009F). Uma regex em bytes
+#   (a primeira versão, com `sed`) deixava passar `\x9b\x9b` e `\xff\x9b`, e
+#   não tinha como distinguir o `\x9b` solto do que é metade do `ě` (`\xc4\x9b`),
+#   que tem de sobreviver. O argv chega ao Python com `surrogateescape`; voltar
+#   aos bytes e decodificar com `replace` é o que separa um caso do outro.
+#   O pack.py tem a gêmea na entrada: o `validar` recusa texto com controle.
+meow_texto_seguro() {
+  python3 -I -c 'import re, sys
+t = sys.argv[1].encode("utf-8", "surrogateescape").decode("utf-8", "replace")
+sys.stdout.write(re.sub("[\x00-\x1f\x7f-\x9f\ufffd]", "?", t))' "$*"
 }
 
 # --- A CAPTURA DE TEMA: UMA PERGUNTA, UM LUGAR QUE RESPONDE -----------------

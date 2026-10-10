@@ -211,7 +211,7 @@ _esperado() {
   if [ -f "$FABRICA" ]; then
     meow_debug "sem $INVENTARIO — tamanho e crc do backup de fábrica, mtime do arquivo vivo"
     MEOW_MTIME="$(stat -c '%Y' "$raiz/$RELATIVO" 2>/dev/null)" \
-      python3 - "$FABRICA" <<'PY' 2>/dev/null || return 1
+      python3 -I - "$FABRICA" <<'PY' 2>/dev/null || return 1
 import os, sys, zlib
 d = open(sys.argv[1], 'rb').read()
 print(len(d), os.environ.get('MEOW_MTIME') or int(os.stat(sys.argv[1]).st_mtime),
@@ -241,7 +241,7 @@ _desenhar() {
   rm -f "$svg"
   [ "$rc" = 0 ] || { rm -f "$destino.cru"; return 1; }
 
-  MEOW_TAM="$tam" MEOW_CRC="$crc" python3 - "$destino.cru" "$destino" <<'PY'
+  MEOW_TAM="$tam" MEOW_CRC="$crc" python3 -I - "$destino.cru" "$destino" <<'PY'
 import os, struct, sys, zlib
 
 alvo_tam = int(os.environ['MEOW_TAM'])

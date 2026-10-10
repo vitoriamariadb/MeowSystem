@@ -229,6 +229,12 @@ id "$DONO" >/dev/null 2>&1 || {
 pendentes=()
 for arvore in "${ARVORES[@]}"; do
   [ -d "$CAPTURA/$arvore" ] || continue
+  # A ÁRVORE TEM DE MORAR NA CAPTURA — P78, 09/10/2026. A captura pode ser de
+  #   um pack de terceiro, e o `cd` abaixo segue symlink: uma árvore que fosse
+  #   link para fora mandaria para o greeter (pela ponte, como root) o que
+  #   estivesse no destino. O `find` já não segue link de arquivo (`-type f`).
+  meow_dentro "$CAPTURA" "$arvore" >/dev/null || {
+    meow_aviso "greeter: $arvore da captura é link para fora dela — pulada"; continue; }
   # `-mindepth 1` para o caminho relativo nunca ser "."
   while IFS= read -r rel; do
     fonte="$CAPTURA/$arvore/$rel"

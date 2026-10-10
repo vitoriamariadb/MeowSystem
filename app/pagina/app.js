@@ -9678,6 +9678,10 @@ function montarHome() {
       type: "button", class: "btn" + (principal ? " btn-accent" : ""),
       "data-acao-rapida": id, texto: rotulo, title: acao.ajuda || "",
     }));
+    /* O SELO DA REDE TAMBÉM AQUI — decisão 7 da leva G, 09/10/2026 (P78). O
+     * «Consertar» roda sem pergunta e baixa da internet; o mesmo selo do cartão
+     * da aba Instalação, logo depois do botão, do mesmo campo `acao.rede`. */
+    if (acao.rede) linha.append(elemento("span", { class: "pastilha p-rede", texto: "baixa da internet" }));
   }
   semana.append(linha);
   /* A PONTE COM O TERMINAL, DITA UMA VEZ — 07/09/2026

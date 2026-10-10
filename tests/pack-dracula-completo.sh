@@ -427,11 +427,19 @@ q = json.load(open(b, encoding="utf-8")); q["id"] = "malsrc"
 json.dump(q, open(b, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 # Um slot a mais na paleta, que fecha a aspa e abre um módulo do starship que
 # roda comando (o `validar` só confere o hex dos 26 slots).
+#   [Conferência da P78: texto de pack com caractere de controle passou a ser
+#   recusa do `validar` — o `\n` que abria o `[custom.evil]` fecha a porta
+#   antes do prompt.sh. O «mal» leva a mesma injeção numa linha só (a aspa que
+#   fecha continua sendo sonda do prompt.sh), e a de várias linhas vai para a
+#   cópia `malnl`, que tem de ser recusada inteira.]
 f = a.replace("pack.json", "paleta.json")
 d = json.load(open(f, encoding="utf-8"))
-d["flavors"]["dracula"]["evil"] = '#000000"\n[custom.evil]\ncommand = "true"\nwhen = "true"\n#'
+evil = '#000000"\n[custom.evil]\ncommand = "true"\nwhen = "true"\n#'
+d["flavors"]["dracula"]["evil"] = evil.replace("\n", " ")
 d["ordem_canonica"] = list(d.get("ordem_canonica") or []) + ["evil"]
 json.dump(d, open(f, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+d["flavors"]["dracula"]["evil"] = evil
+json.dump(d, open(f + ".nl", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 PY
 printf '../../../../../../escapou : %s\n' "$D" >> "$PM/icones/apps.map"
 cp "$RAIZ/packs/catppuccin/icones/mimetypes.map" "$PM/icones/mimetypes.map"
@@ -476,6 +484,16 @@ $(cat "$TM"/log-base.txt "$TM"/log-apps.txt | tail -6)"
 else
   falha "segurança: o pack «mal» de brinquedo não validou — o teste não exercitou nada" \
     "$(amb env MEOW_PACKS="$TM/packs" python3 "$RAIZ/scripts/pack.py" validar mal 2>&1 | tail -3)"
+fi
+# A injeção de várias linhas pela paleta: recusada na porta, o pack inteiro.
+cp -r "$PM" "$TM/packs/malnl"; mv "$TM/packs/malnl/paleta.json.nl" "$TM/packs/malnl/paleta.json"
+rm -f "$PM/paleta.json.nl"
+sed -i 's/"id": "mal"/"id": "malnl"/' "$TM/packs/malnl/pack.json"
+saida="$(amb env MEOW_PACKS="$TM/packs" python3 "$RAIZ/scripts/pack.py" validar malnl 2>&1)"
+if printf '%s' "$saida" | grep -q 'caractere de controle'; then
+  ok "segurança: a paleta que abre linha nova (o [custom.evil] do starship) recusa o pack inteiro"
+else
+  falha "segurança: a paleta com quebra de linha num slot passou no validar" "$(printf '%s\n' "$saida" | tail -3)"
 fi
 
 printf '\n'

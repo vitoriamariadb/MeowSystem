@@ -102,6 +102,7 @@ PORTATIL=(
   applet-pino.sh         # dois Cargo.lock falsos e um cargo falso; o leitura_build.sh num HOME de brinquedo (P76); só bash
   escala-kdl.sh          # cosmic-randr falso com KDL fixo; só o saidas() do escala.sh (P76); só bash
   backoff-do-supervisor.sh # journalctl falso com as duas formas do log do cosmic-session (P76); só bash
+  pack-malicioso.sh      # pack de terceiro com '..', absoluto, symlink e script; painel num HOME de brinquedo (P78); bash, python3 e curl
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

@@ -601,7 +601,7 @@ conferir_receita() {
   fator="$(sed -nE "s/.*[^a-z_]${chave}: *([0-9.]+).*/\1/p" "$b/alpha_map" | head -1)"
   [ -n "$fator" ] || return 0
 
-  esperado="$(python3 -c "print(f'{round($fator*255):02X}')" 2>/dev/null)" || return 0
+  esperado="$(python3 -I -c "print(f'{round($fator*255):02X}')" 2>/dev/null)" || return 0
   gravado="$(grep -oE '#[0-9A-Fa-f]{8}' "$d/transparent_background" | head -1)"
   gravado="${gravado: -2}"
   [ -n "$gravado" ] || return 0
@@ -617,7 +617,7 @@ conferir_receita() {
     #   Medido aqui em 16/09: D9 era `very_low_2`, com a receita em `VeryHigh2`.
     #   Seis níveis de distância. Com essa linha, o diagnóstico é imediato.
     local de_quem
-    de_quem="$(python3 - "$b/alpha_map" "$gravado" <<'FIM' 2>/dev/null
+    de_quem="$(python3 -I - "$b/alpha_map" "$gravado" <<'FIM' 2>/dev/null
 import re, sys
 alvo = int(sys.argv[2], 16)
 texto = open(sys.argv[1], encoding="utf-8", errors="replace").read()

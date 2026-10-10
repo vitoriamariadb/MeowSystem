@@ -408,7 +408,7 @@ _ler_paleta() {
   local nome saida
   for nome in "${COR[@]}"; do
     [ -n "${HEX[$nome]:-}" ] && continue
-    saida="$(python3 - "$PALETA" "$FLAVOR" "$nome" <<'PY'
+    saida="$(python3 -I - "$PALETA" "$FLAVOR" "$nome" <<'PY'
 import json, sys
 paleta, flavor, chave = sys.argv[1], sys.argv[2], sys.argv[3]
 d = json.load(open(paleta))["flavors"]

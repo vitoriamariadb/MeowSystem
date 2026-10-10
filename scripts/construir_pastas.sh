@@ -220,7 +220,7 @@ ORIGEM_DERIVADA=""
 MOTIVO_DERIVACAO=""
 
 _derivar_py() {
-  python3 - "$@" <<'PY'
+  python3 -I - "$@" <<'PY'
 import json, os, re, sys
 (src, origem, pedida, destino, pal_origem, fl_origem,
  pal_pedida, fl_pedido, acento, papel) = sys.argv[1:11]
@@ -412,7 +412,7 @@ fi
 #   são os quatro hex de sempre, e a lixeira dele não muda um byte. Sem python3,
 #   ou com um flavor que a paleta não tem, fica o do Mocha, como era.
 if [ -z "$DERIVADA" ] && meow_tem python3; then
-  _papel="$(python3 - "$(meow_pack_padrao_dir)/paleta.json" "${COR#cat-}" "$SLOTS_DO_PAPEL" <<'PY' 2>/dev/null
+  _papel="$(python3 -I - "$(meow_pack_padrao_dir)/paleta.json" "${COR#cat-}" "$SLOTS_DO_PAPEL" <<'PY' 2>/dev/null
 import json, sys
 arq, variante, slots = sys.argv[1:4]
 with open(arq, encoding="utf-8") as fh:

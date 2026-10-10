@@ -139,14 +139,25 @@ SOM_GANHO="${SOM_GANHO:-0.18}"
 # por cima do meow.conf da pessoa — que é exatamente o que o formato promete
 # nunca fazer.
 _som_do_pack() {
-  local dir linha
+  local dir linha var val
   dir="$(meow_pack_dir)" || return 0
   [ -n "$dir" ] || return 0
   [ -f "$dir/pack.json" ] || return 0
   # O pack.py imprime só o que o pack DECLARA — chave ausente não vira linha.
+  # SEM `eval` — P78, 09/10/2026. A linha vem do pack.json, e o pack pode ser
+  #   de terceiro. O `validar` já exige número em toda chave do timbre, mas um
+  #   `eval` de dado é código, e a garantia não pode morar a um arquivo de
+  #   distância: o nome passa pelo conjunto das chaves (`SOM_` + maiúsculas), o
+  #   valor por cara de número, e o `printf -v` atribui sem interpretar nada.
+  #   O `[ -n "${!var:-}" ]` é o mesmo contrato do `: "${VAR:=valor}"` de antes:
+  #   o que veio do meow.conf vence.
   while IFS= read -r linha; do
     case "$linha" in
-      SOM_*=*) eval ": \"\${${linha%%=*}:=${linha#*=}}\"" ;;
+      SOM_*=*)
+        var="${linha%%=*}"; val="${linha#*=}"
+        case "$var" in *[!A-Z_]*) continue ;; esac
+        case "$val" in ''|*[!0-9.eE+-]*) continue ;; esac
+        [ -n "${!var:-}" ] || printf -v "$var" '%s' "$val" ;;
     esac
   done < <(python3 "$MEOW_RAIZ/scripts/pack.py" som "$(basename "$dir")" 2>/dev/null)
 }
@@ -219,7 +230,7 @@ SOM_DECAIMENTO="${SOM_DECAIMENTO:-46.0}"
 # divergência e o auto-reparo entraria em ping-pong.
 _som_gerar() {
   local destino="$1"
-  python3 - "$destino" "$SOM_DURACAO" "$SOM_GANHO" \
+  python3 -I - "$destino" "$SOM_DURACAO" "$SOM_GANHO" \
            "$SOM_FUNDAMENTAL" "$SOM_HARMONICO" \
            "$SOM_PESO_FUNDAMENTAL" "$SOM_PESO_HARMONICO" "$SOM_DECAIMENTO" <<'PY'
 import math, struct, sys, wave
