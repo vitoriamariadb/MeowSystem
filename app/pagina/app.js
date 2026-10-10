@@ -4032,12 +4032,20 @@ function montarEscolhaDeIcone(app, recarregar) {
       ? `O desenho de «${nomeDoPack(g)}» entra com as cores dele: a cor vale só para o traço.`
       : "");
   };
+  /* O RÓTULO É O NOME AMIGÁVEL, E O NOME INTEIRO VAI PARA A DICA — 10/10/2026,
+   * P80 (item 1). Embaixo de cada desenho vinha o nome do arquivo, cortado:
+   * `net.waterfo…`, `org.gnome.…`, `005-potion`. O servidor manda o `rotulo`
+   * (o nome do app, ou a descrição do catálogo; ver "O RÓTULO DA FICHA", no
+   * servidor.py), e o nome do arquivo com o acervo e a pasta fica na dica.
+   * No desenho que não vale neste app, a dica é o porquê: as duas frases
+   * juntas passariam do teto do balão, e a trava é o que se lê para decidir. */
+  const origemDe = (g) => `${g.glifo} — ${grupoDe(g.grupo).acervo} · ${grupoDe(g.grupo).nome}`;
   const botaoDe = (g) => elemento("button", {
     type: "button",
     class: (g.tipo === "traco" ? "" : "do-pack") + (travaDe(g) ? " travado" : ""),
     "data-glifo": g.glifo, "data-escolha": travaDe(g) ? null : chaveDe(g),
     "aria-disabled": travaDe(g) ? "true" : null,
-    title: travaDe(g) || `${g.glifo} — ${grupoDe(g.grupo).acervo} · ${grupoDe(g.grupo).nome}`,
+    title: travaDe(g) || origemDe(g),
     "aria-pressed": String(chaveDe(g) === GLIFOS.escolhido),
     onclick: () => {
       if (travaDe(g)) return;
@@ -4046,7 +4054,7 @@ function montarEscolhaDeIcone(app, recarregar) {
     },
   }, [
     elemento("img", { src: g.url, alt: "", loading: "lazy" }),
-    elemento("span", { texto: g.glifo }),
+    elemento("span", { texto: g.rotulo || g.glifo }),
   ]);
   /* UMA PASTA POR ACERVO — 09/10/2026, P73 (T1). «Era pra aparecerem todos os
    * Drácula feitos e todos os do MeowSystem feitos, numa pasta cada.» Cada

@@ -38,6 +38,9 @@ O QUE REPROVA (e de onde cada regra vem)
        · hash de 40 caracteres ou caminho do PC de quem fez na tela (10, S2);
        · «dela» falando de quem usa (U4).
   7. ERRO NO CONSOLE, em qualquer página.
+  8. O ACABAMENTO DA P80 (10/10/2026), um caso por defeito do uso real final
+     (prints em `.playwright-mcp/ux-final/`), cada um com o gesto de quem usa:
+       · a ficha de ícone mostra o nome amigável, e o nome técnico só na dica.
 
 A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
   A decisão 8 de 02-decisoes.md manda o painel de QA subir SÓ com HOME
@@ -49,6 +52,10 @@ A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
 
 USO
   ~/.pyenv/versions/3.12.1/bin/python3 tests/app-uso-real.py [--raiz <árvore>] [--fotos <pasta>]
+                                                             [--so-acabamento]
+
+  `--so-acabamento` roda só o 8 (e o console): é o laço curto de quem conserta
+  um caso dele, e o gate de verdade é a corrida inteira.
 
   0 = passou · 1 = reprovou · 2 = erro deste teste
 """
@@ -68,6 +75,7 @@ from playwright.sync_api import sync_playwright  # noqa: E402  (o app-completo j
 
 RAIZ_OUTRA = casa._arg("--raiz")
 FOTOS = casa._arg("--fotos")
+SO_ACABAMENTO = "--so-acabamento" in sys.argv
 if RAIZ_OUTRA:
     # A cópia da árvore (`copiar_raiz`) e as leituras do `montar_casa` usam o
     # `RAIZ` do módulo: trocá-lo aqui faz o brinquedo nascer da outra árvore.
@@ -290,6 +298,69 @@ def gesto_do_descolado(pag):
     return defeitos
 
 
+# ---------------------------------------------------------------------------
+# 8. O ACABAMENTO DA P80 — um caso por defeito do uso real final (10/10/2026)
+# ---------------------------------------------------------------------------
+VISIVEL_JS = "(el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true })"
+
+
+def abrir_pagina(pag, grupo):
+    pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
+    pag.mouse.move(900, 5)
+    assentar(pag)
+
+
+def abrir_ficha(pag, busca):
+    """A ficha de ícone do primeiro aplicativo da grade, com `busca` no campo
+    dela; volta quando a resposta da busca está pintada."""
+    abrir_pagina(pag, "Ícones")
+    pag.locator(".grade-apps button.app").first.click()
+    pag.wait_for_selector(".escolha-icone input[type=search]", timeout=20000)
+    pag.locator(".escolha-icone input[type=search]").fill(busca)
+    pag.wait_for_function(
+        "(t) => typeof GLIFOS !== 'undefined' && GLIFOS.termo === t && !GLIFOS.carregando",
+        arg=busca, timeout=20000)
+    assentar(pag)
+
+
+# 8.1 — O RÓTULO DA FICHA (prints 05 e 06): `net.waterfo…`, `org.gnome.…`,
+#   `005-potion` cortados embaixo de cada desenho. O rótulo é o nome amigável,
+#   e o nome inteiro (com a pasta) vai para a dica.
+ROTULOS_JS = r"""
+() => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const TECNICO = /^\d{2,}[-_]|^[A-Za-z0-9-]+\.[A-Za-z0-9-]+\.[A-Za-z0-9.-]+$/;
+  const defeitos = [];
+  const botoes = [...document.querySelectorAll('.escolha-icone .tira-glifos button[data-glifo]')].filter(vis);
+  if (!botoes.length) return ['a ficha não mostrou desenho nenhum para «firefox»'];
+  for (const b of botoes) {
+    const rotulo = ((b.querySelector('span') || {}).textContent || '').trim();
+    if (!rotulo || TECNICO.test(rotulo)) defeitos.push(`rótulo técnico na ficha: «${rotulo}»`);
+    /* O desenho travado diz na dica o porquê (P80, item 3); o que vale diz o
+     * nome inteiro e de onde vem. */
+    if (b.getAttribute('aria-disabled') === 'true') {
+      if (!(b.dataset.balao || b.title)) defeitos.push(`«${rotulo}» travado sem o porquê na dica`);
+    } else if (!(b.dataset.balao || b.title || '').includes(b.dataset.glifo))
+      defeitos.push(`a dica de «${rotulo}» não traz o nome inteiro (${b.dataset.glifo}): «${b.dataset.balao || b.title || ''}»`);
+  }
+  const wf = botoes.find((b) => b.dataset.glifo === 'net.waterfox.waterfox');
+  const dele = wf ? wf.querySelector('span').textContent.trim() : null;
+  if (dele !== 'Waterfox') defeitos.push(`o desenho do Waterfox diz «${dele}», e não «Waterfox»`);
+  return defeitos;
+}
+"""
+
+
+def acabamento(pag):
+    """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
+    reprovas = []
+    abrir_ficha(pag, "firefox")
+    reprovas += [("ficha de ícone", d) for d in pag.evaluate(ROTULOS_JS)]
+    if FOTOS:
+        pag.screenshot(path=os.path.join(FOTOS, "p80-ficha-firefox.png"))
+    return reprovas
+
+
 def main():
     ambiente = casa.montar_casa()
     proc, url = casa.sobe_servidor(ambiente)
@@ -326,35 +397,46 @@ def main():
             print(f"  -- a página ficou pronta em {time.time() - inicio:.1f} s depois do primeiro quadro")
             assentar(pag)
 
-            # 2. O BALÃO DO MENU
-            print("\n2. O BALÃO DE CADA ITEM DO MENU")
-            for d in balao_do_menu(pag):
-                reprovas.append(("menu", d))
-            if not any(n == "menu" for n, _ in reprovas):
-                print("  ok nenhum balão do menu encosta em outro item")
+            grupos = []
+            if not SO_ACABAMENTO:
+                # 2. O BALÃO DO MENU
+                print("\n2. O BALÃO DE CADA ITEM DO MENU")
+                for d in balao_do_menu(pag):
+                    reprovas.append(("menu", d))
+                if not any(n == "menu" for n, _ in reprovas):
+                    print("  ok nenhum balão do menu encosta em outro item")
 
-            # 3. AS PÁGINAS
-            print("\n3. AS PÁGINAS, UMA A UMA")
-            grupos = pag.evaluate("() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
-                                  ".map((b) => b.dataset.grupo)")
-            for grupo in grupos:
-                pagina_atual["nome"] = grupo
-                pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
-                pag.mouse.move(900, 5)
-                assentar(pag)
-                defeitos = pag.evaluate(OLHAR_JS, TETO_PARAGRAFO)
-                vistos = []
-                for d in defeitos:
-                    if d not in vistos:
-                        vistos.append(d)
-                vistos += gesto_do_descolado(pag) if grupo == "Painel e dock" else []
-                for d in vistos:
-                    reprovas.append((grupo, d))
-                print(f"  {'ok' if not vistos else 'XX'} {grupo}: {len(vistos)} defeito(s)")
-                if FOTOS:
-                    os.makedirs(FOTOS, exist_ok=True)
-                    nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
-                    pag.screenshot(path=os.path.join(FOTOS, f"uso-real-{nome}.png"))
+                # 3. AS PÁGINAS
+                print("\n3. AS PÁGINAS, UMA A UMA")
+                grupos = pag.evaluate("() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
+                                      ".map((b) => b.dataset.grupo)")
+                for grupo in grupos:
+                    pagina_atual["nome"] = grupo
+                    pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
+                    pag.mouse.move(900, 5)
+                    assentar(pag)
+                    defeitos = pag.evaluate(OLHAR_JS, TETO_PARAGRAFO)
+                    vistos = []
+                    for d in defeitos:
+                        if d not in vistos:
+                            vistos.append(d)
+                    vistos += gesto_do_descolado(pag) if grupo == "Painel e dock" else []
+                    for d in vistos:
+                        reprovas.append((grupo, d))
+                    print(f"  {'ok' if not vistos else 'XX'} {grupo}: {len(vistos)} defeito(s)")
+                    if FOTOS:
+                        os.makedirs(FOTOS, exist_ok=True)
+                        nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
+                        pag.screenshot(path=os.path.join(FOTOS, f"uso-real-{nome}.png"))
+
+            # 4. O ACABAMENTO DA P80
+            print("\n4. O ACABAMENTO DA P80, UM CASO POR DEFEITO")
+            pagina_atual["nome"] = "acabamento"
+            if FOTOS:
+                os.makedirs(FOTOS, exist_ok=True)
+            achados = acabamento(pag)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} acabamento: {len(achados)} defeito(s)")
             nav.close()
     finally:
         proc.terminate()
@@ -372,8 +454,12 @@ def main():
         for onde, texto in reprovas:
             print(f"  - [{onde}] {texto}")
         return 1
+    if SO_ACABAMENTO:
+        print(f"\nok ({arvore}): os casos do acabamento da P80 passam, console limpo.")
+        return 0
     print(f"\nok ({arvore}): as {len(grupos)} páginas passam no olhar de quem usa — sem parágrafo,"
-          " sem controle coberto, sem prévia vazia, sem contradição conhecida, console limpo.")
+          " sem controle coberto, sem prévia vazia, sem contradição conhecida, console limpo —"
+          " e os casos do acabamento da P80 passam.")
     return 0
 
 

@@ -2338,7 +2338,19 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   .tira-glifos button img { filter: invert(light-dark(0, 1)) opacity(.85); }
 }
 .tira-glifos button:hover { border-color: var(--surface2); color: var(--text); }
-.tira-glifos button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* O RÓTULO QUEBRA EM DUAS LINHAS — P80 (item 1). Era uma linha só, com
+ * reticências: o nome amigável («Mesa de air hockey») cabe em duas, e cortar
+ * em uma era o defeito. A terceira linha, se houver, vira reticências. */
+.tira-glifos button span {
+  max-width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-align: center;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
 .tira-glifos button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
 /* O DESENHO DO PACK SAI COMO ELE ENTRA NO TEMA — 25/09/2026, P60. A inversão
  * acima é para o traço preto do acervo. Um desenho do pack traz as cores dele

@@ -9652,18 +9652,24 @@ class Manipulador(BaseHTTPRequestHandler):
         # `_desenhos_do_pack_no_ar` diz (P60): é a lista do «Levar para o pack».
         pack, desenhos, _aviso = self._desenhos_do_pack_no_ar()
         do_mapa = {os.path.normpath(d["caminho"]): d for d in desenhos}
-        textos = self._textos_da_busca(mod)
+        textos, rotulos = self._textos_da_busca(mod)
+        nomes_de_app = self._nomes_de_app()
         for g in mod.acervos_de_icone(_pack_adotado()):
             arquivos = g.pop("arquivos")
             g["total"] = len(arquivos)
             grupos.append(g)
             for caminho in arquivos:
                 nome = os.path.basename(caminho)
-                item = {"glifo": os.path.splitext(nome)[0], "grupo": g["id"], "tipo": g["tipo"],
+                glifo = os.path.splitext(nome)[0]
+                # O RÓTULO É O QUE A PESSOA LÊ — P80, item 1. Ver "O RÓTULO DA
+                # FICHA", logo abaixo: o catálogo, o mapa, o `.desktop` e, sem
+                # nenhum, o próprio nome sem número nem domínio.
+                rotulo = (rotulos.get(os.path.normpath(caminho))
+                          or nomes_de_app.get(glifo.lower()) or self._rotulo_do_nome(glifo))
+                item = {"glifo": glifo, "rotulo": rotulo, "grupo": g["id"], "tipo": g["tipo"],
                         "caminho": caminho,
                         "_texto": self._sem_acento(" ".join(
-                            [os.path.splitext(nome)[0]]
-                            + textos.get(os.path.normpath(caminho), [])))}
+                            [glifo, rotulo] + textos.get(os.path.normpath(caminho), [])))}
                 # O PNG FEITO À MÃO APARECE, MAS AINDA NÃO SE ESCOLHE — P73. Raster
                 # não é fonte (o `meow_icones_derivados` do lib/icones.sh recusa:
                 # de um PNG não sai vetor, flavor nem tamanho maior), e a decisão
@@ -9692,9 +9698,54 @@ class Manipulador(BaseHTTPRequestHandler):
     #     descrição em português e as etiquetas — o do Dracula_OS-Theme veio
     #     para a biblioteca do Dracula nesta sprint, com a linha no
     #     PROCEDENCIA.md.
+    # O RÓTULO DA FICHA — 10/10/2026, P80 (item 1)
+    #   Medido no uso real de 10/10 (prints 05 e 06 de `.playwright-mcp/
+    #   ux-final/`): embaixo de cada desenho vinha o nome do arquivo, cortado —
+    #   `net.waterfo…`, `org.gnome.…`, `005-potion`. É o nome de ícone em
+    #   inglês, e ele só ajuda quem já sabe a resposta. O rótulo passa a sair
+    #   das mesmas fontes que a busca já lia, nesta ordem:
+    #   · a DESCRIÇÃO pt-BR do `catalog.json` («alienígena»), para a biblioteca;
+    #   · o NOME DO APP no comentário da linha do mapa («Waterfox — o Firefox
+    #     do dracula-icons» dá «Waterfox»), sem as marcas entre colchetes;
+    #   · o nome do `.desktop` cujo ícone é o desenho (o traço `firefox` dá o
+    #     «Firefox» do lançador), ou o de quem a linha do mapa veste;
+    #   · e, sem nenhum dos três, o próprio nome sem o número da frente e sem o
+    #     domínio invertido (`005-potion` dá «Potion»).
+    #   O nome do arquivo e a pasta continuam na dica de cada desenho.
+    @staticmethod
+    def _rotulo_do_nome(glifo):
+        """O nome do arquivo sem número na frente nem domínio invertido."""
+        nome = re.sub(r"^\d+[-_.]+", "", glifo) or glifo
+        partes = [p for p in nome.split(".") if p]
+        if len(partes) >= 3 and " " not in nome:
+            nome = partes[-1]
+        nome = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", nome)
+        nome = re.sub(r"[-_.]+", " ", nome).strip() or glifo
+        return nome[:1].upper() + nome[1:]
+
+    @staticmethod
+    def _rotulo_do_comentario(comentario):
+        """«Waterfox — o Firefox do dracula-icons (circle)» dá «Waterfox»."""
+        texto = re.sub(r"\[[^\]]*\]", "", comentario or "")
+        return re.split(r"\s[—–-]\s|\s\(", texto, maxsplit=1)[0].strip()
+
+    def _nomes_de_app(self):
+        """{nome de ícone ou id, em minúsculas: o nome do app no lançador}."""
+        nomes = {}
+        for d in self._desktops():
+            if not d.get("nome") or d["nome"] == d["id"]:
+                continue
+            for chave in (d.get("icone") or "", d["id"]):
+                if chave and "/" not in chave:
+                    nomes.setdefault(chave.lower(), d["nome"])
+        return nomes
+
     def _textos_da_busca(self, mod):
-        """{caminho normalizado: [textos]}: o que a busca casa além do nome do arquivo."""
+        """({caminho normalizado: [textos]}, {caminho normalizado: rótulo}): o que
+        a busca casa além do nome do arquivo, e o rótulo que a ficha mostra."""
         textos = {}
+        rotulos = {}
+        nomes_de_app = self._nomes_de_app()
 
         def junta(caminho, *partes):
             textos.setdefault(os.path.normpath(caminho), []).extend(p for p in partes if p)
@@ -9721,8 +9772,12 @@ class Manipulador(BaseHTTPRequestHandler):
                 for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
                     if isinstance(ficha, dict):
                         etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
-                        junta(os.path.join(bib, str(arq)), str(ficha.get("descricao") or ""),
+                        descricao = str(ficha.get("descricao") or "").strip()
+                        junta(os.path.join(bib, str(arq)), descricao,
                               *[str(t).replace("_", " ") for t in etiquetas])
+                        if descricao:
+                            rotulos[os.path.normpath(os.path.join(bib, str(arq)))] = (
+                                descricao[:1].upper() + descricao[1:])
         for mapa in sorted(mapas):
             try:
                 with open(mapa, encoding="utf-8") as fh:
@@ -9739,7 +9794,13 @@ class Manipulador(BaseHTTPRequestHandler):
                 except mod.Recusa:
                     continue
                 junta(caminho, nome.strip(), comentario.strip())
-        return textos
+                # O catálogo vence: a linha do mapa diz o app que o desenho
+                # veste, e o catálogo diz o que o desenho É (biblioteca).
+                rotulo = (self._rotulo_do_comentario(comentario)
+                          or nomes_de_app.get(nome.strip().lower(), ""))
+                if rotulo:
+                    rotulos.setdefault(os.path.normpath(caminho), rotulo)
+        return textos, rotulos
 
     def _palpites_do_app(self, app):
         """Os textos que fazem um desenho ser «sugerido» para `app`: o id, o
