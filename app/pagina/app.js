@@ -1806,7 +1806,7 @@ function montarControle(item, cartao) {
      * com um horário escolhido — com o campo vazio não há o que restaurar.] */
     if (temOQueRestaurar(item, valor)) {
       caixa.append(elemento("div", { class: "faixa-estados" }, [
-        botaoVazio(item, () => { campo.value = ""; }, aplica)]));
+        botaoVazio(item, (v) => { campo.value = v; }, aplica)]));
     }
     return caixa;
   }
@@ -1958,14 +1958,18 @@ function montarControle(item, cartao) {
        *   `aplica("")` devolve a decisão ao COSMIC e recoloca a alça no número
        *   da máquina. O gesto não mudou; o nome dele passou a ser o que ele
        *   faz, e o balão diz a consequência em uma linha só. */
+      /* [P79, decisão 10: grava o valor de fábrica (`item.padrao`); o vazio,
+       * onde ele não é o de fábrica, é o «Não tocar» logo ao lado.] */
       alternativas.append(elemento("button", {
         type: "button", class: "btn btn-mini",
         "aria-pressed": String(vazio),
         texto: rotuloVazio(item),
-        title: "Devolve a decisão ao COSMIC.",
-        onclick: () => aplica(""),
+        title: tituloDoRestaurar(item),
+        onclick: () => aplica(padraoDe(item)),
       }));
     }
+    const naoToca = botaoNaoTocar(item, valor, aplica, "btn btn-mini");
+    if (naoToca) alternativas.append(naoToca);
     if (especial && !forcado) {
       alternativas.append(elemento("button", {
         type: "button", class: "btn btn-mini",
@@ -2035,10 +2039,26 @@ function montarControle(item, cartao) {
        * o que já é o padrão é o achado 14. */
       const semComoEsta = naMaquina == null
         || !item.opcoes.some((o) => String(o) === String(naMaquina));
-      if (temOQueRestaurar(item, valor) || (item.aceita_vazio && valor === "" && semComoEsta)) {
+      /* [P79, decisão 10: o restaurar grava o de fábrica, e só leva o
+       * `data-valor` vazio quando o de fábrica É o vazio — senão ele acenderia
+       * junto com o «Não tocar». O «como está» aceso é o vazio sem degrau da
+       * máquina para contornar, como antes.] */
+      const deFabrica = padraoDe(item);
+      if (temOQueRestaurar(item, valor)) {
+        caixa.append(elemento("button", {
+          type: "button", class: "vazio", "data-valor": deFabrica === "" ? "" : null,
+          texto: rotuloVazio(item),
+          "aria-pressed": "false",
+          title: tituloDoRestaurar(item),
+          onclick: async () => { if (await aplica(deFabrica)) pintar(deFabrica); },
+        }));
+      }
+      const naoToca = botaoNaoTocar(item, valor, aplica, "vazio", pintar);
+      if (naoToca) caixa.append(naoToca);
+      if (item.aceita_vazio && valor === "" && semComoEsta) {
         caixa.append(elemento("button", {
           type: "button", class: "vazio", "data-valor": "",
-          texto: valor === "" ? "como está" : rotuloVazio(item),
+          texto: "como está",
           "aria-pressed": "false",
           title: "Devolve a decisão ao COSMIC.",
           onclick: async () => { if (await aplica("")) pintar(""); },
@@ -2077,7 +2097,7 @@ function montarControle(item, cartao) {
      * fileira que o «Aplicar» do cartão entra. */
     if (temOQueRestaurar(item, valor)) {
       caixa.append(elemento("div", { class: "faixa-estados" }, [
-        botaoVazio(item, () => { sel.value = ""; }, aplica)]));
+        botaoVazio(item, (v) => { sel.value = v; }, aplica)]));
     }
     return caixa;
   }
@@ -2138,7 +2158,7 @@ function montarControle(item, cartao) {
    * seletor logo acima — só com algo escrito, na fileira do «Aplicar».] */
   if (temOQueRestaurar(item, valor)) {
     caixa.append(elemento("div", { class: "faixa-estados" }, [
-      botaoVazio(item, () => { campo.value = ""; }, aplica)]));
+      botaoVazio(item, (v) => { campo.value = v; }, aplica)]));
   }
   return caixa;
 }
@@ -2175,22 +2195,55 @@ function minutosDaDuracao(v) {
  * pessoa já está no padrão e o botão a convida a voltar para ele. O botão
  * continua gravando o vazio («não toca») quando a chave sai do de fábrica —
  * gravar `item.padrao` erraria o ponteiro, cujo vazio é o do pack no ar. */
+/* E O BOTÃO GRAVA O DE FÁBRICA — 10/10/2026, P79 (decisão 10). «Restaurar ao
+ * padrão» é voltar ao valor de fábrica (pedido de 21/09: «Restaurar ao Padrão e
+ * Aplicar»), e ele gravava o vazio: nas chaves de fábrica preenchida
+ * (`RELOGIO_SEGUNDOS="nao"`, «Janelas lado a lado» = sim, `LEITURA_AGENDA`) o
+ * nome dizia uma coisa e o clique fazia outra, com o valor da MÁQUINA no
+ * parêntese. Agora ele grava `item.padrao`, nasce só quando o valor difere
+ * dele (inclusive quando a chave está vazia e a fábrica não é o vazio), e o
+ * parêntese diz o de fábrica. O «não toca» dessas chaves é outro gesto, com
+ * outro nome: o «Não tocar» (`botaoNaoTocar`). Nas chaves de fábrica vazia
+ * (forma, vidro, o ponteiro, cujo vazio é o do pack no ar) restaurar continua
+ * sendo o vazio, e o parêntese continua sendo o que a máquina tem. */
+function padraoDe(item) {
+  return item.padrao == null ? "" : String(item.padrao);
+}
+
 function temOQueRestaurar(item, valor) {
-  return !!item.aceita_vazio && valor !== "" && valor !== item.padrao;
+  return !!item.aceita_vazio && valor !== padraoDe(item);
 }
 
 function rotuloVazio(item) {
+  const deFabrica = padraoDe(item);
+  if (deFabrica !== "") return `Restaurar ao padrão (${rotuloDeValor(deFabrica)})`;
   const agora = item.valendo_agora;
   return agora != null && agora !== ""
     ? `Restaurar ao padrão (${rotuloDeValor(agora)})`
     : "Restaurar ao padrão";
 }
 
+function tituloDoRestaurar(item) {
+  return padraoDe(item) === "" ? "Devolve a decisão ao COSMIC." : "Volta ao valor de fábrica.";
+}
+
 function botaoVazio(item, limpar, aplica) {
+  const deFabrica = padraoDe(item);
   return elemento("button", {
     type: "button", class: "btn", texto: rotuloVazio(item),
-    title: "Devolve a decisão ao COSMIC.",
-    onclick: async () => { if (await aplica("")) limpar(); },
+    title: tituloDoRestaurar(item),
+    onclick: async () => { if (await aplica(deFabrica)) limpar(deFabrica); },
+  });
+}
+
+/* O «NÃO TOCAR» — o vazio da chave cuja fábrica não é o vazio (decisão 10). Só
+ * com uma escolha feita: com a chave já vazia não há o que devolver. */
+function botaoNaoTocar(item, valor, aplica, classe, depois) {
+  if (!item.aceita_vazio || padraoDe(item) === "" || valor === "") return null;
+  return elemento("button", {
+    type: "button", class: classe, "data-valor": "", "aria-pressed": "false",
+    texto: "Não tocar", title: "Devolve a decisão ao COSMIC.",
+    onclick: async () => { if (await aplica("") && depois) depois(""); },
   });
 }
 
@@ -2444,11 +2497,13 @@ function controleImagem(item, tipo, aplica) {
   const emVigor = valorEmVigor(item);
   /* [QA da P77: nem sobre o valor de fábrica preenchido — `temOQueRestaurar`.] */
   if (temOQueRestaurar(item, emVigor)) {
+    /* [P79, decisão 10: grava o de fábrica, que nestas chaves é o vazio.] */
+    const deFabrica = padraoDe(item);
     caixa.append(elemento("button", {
-      type: "button", class: "vazio", "data-valor": "", "aria-pressed": "false",
-      title: "Quem decide passa a ser o ajuste vizinho.",
+      type: "button", class: "vazio", "data-valor": deFabrica === "" ? "" : null, "aria-pressed": "false",
+      title: deFabrica === "" ? "Quem decide passa a ser o ajuste vizinho." : "Volta ao valor de fábrica.",
       texto: rotuloVazio(item),
-      onclick: async () => { if (await aplica("")) pintar(""); },
+      onclick: async () => { if (await aplica(deFabrica)) pintar(deFabrica); },
     }));
   }
   const herda = emVigor === "" && /herda\s+([A-Z][A-Z0-9_]+)/.exec(item.inline || "");
@@ -8523,13 +8578,17 @@ function parDeBotoes(item, aplica) {
   /* [P77, achado 14: como no deslizante e nos segmentos, só com escolha
    * feita — com o valor já vazio, o botão era a única coisa acesa da linha.] */
   if (temOQueRestaurar(item, valor)) {
+    /* [P79, decisão 10: grava o de fábrica; o vazio é o «Não tocar».] */
+    const deFabrica = padraoDe(item);
     caixa.append(elemento("button", {
-      type: "button", class: "vazio linha-inteira", "data-valor": "",
+      type: "button", class: "vazio linha-inteira", "data-valor": deFabrica === "" ? "" : null,
       texto: rotuloVazio(item), "aria-pressed": "false",
-      title: "Devolve a decisão ao COSMIC.",
-      onclick: async () => { if (await aplica("")) pintar(""); },
+      title: tituloDoRestaurar(item),
+      onclick: async () => { if (await aplica(deFabrica)) pintar(deFabrica); },
     }));
   }
+  const naoToca = botaoNaoTocar(item, valor, aplica, "vazio linha-inteira", pintar);
+  if (naoToca) caixa.append(naoToca);
   /* Com a chave vazia, o lado que a máquina tem fica a traço — o «como está»
    * dos segmentos, e pelo mesmo motivo: nenhum dos dois foi escolhido. */
   if (valor === "" && item.valendo_agora != null) {

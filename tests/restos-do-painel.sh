@@ -131,6 +131,7 @@ class El {
   addEventListener(ev, fn) { (this.ouvintes[ev] = this.ouvintes[ev] || []).push(fn); }
   append(...fs) { for (const f of fs) this.filhos.push(f); }
   get children() { return this.filhos.filter((f) => f instanceof El); }
+  get childNodes() { return this.filhos; }
   todos() { return this.children.flatMap((f) => [f, ...f.todos()]); }
   querySelectorAll(sel) { return this.todos().filter((e) => e.tagName === sel.toUpperCase()); }
   querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
@@ -352,6 +353,62 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
     const t = (chamadas.torradas[0] || {}).texto || "";
     checa(t.includes("o desenho «google-chrome» do pack «Dracula»") && !t.includes("fábrica"),
           "e, com o desenho do pack ficando, a torrada não diz «de fábrica»", t);
+  }
+
+  // --- 3.x «RESTAURAR AO PADRÃO» GRAVA O DE FÁBRICA — decisão 10 (P79) ---------
+  //   O botão gravava o vazio («não toca») e, nas chaves com o padrão de fábrica
+  //   preenchido (RELOGIO_SEGUNDOS="nao", JANELAS_TILING="sim"), o nome mentia.
+  //   Agora ele grava `item.padrao`, nasce só quando o valor difere dele, e o
+  //   «não tocar» é outro gesto, com outro nome. Chave de padrão vazio segue
+  //   igual: restaurar É o vazio.
+  {
+    const gravados = [];
+    ctx.escolher = async (_chave, v) => { gravados.push(v); return true; };
+    ctx.parDeBotoes = () => null;
+    ctx.selo = () => new El("span");
+    ctx.gatilhoDeDica = () => [];
+    ctx.CSS = { escape: (x) => x };
+    const item = (valor, extra) => Object.assign({ chave: "RELOGIO_SEGUNDOS", aceita_vazio: true,
+      padrao: "nao", opcoes: ["sim", "nao"], valor, valendo_agora: "sim" }, extra);
+    const montar = (it) => { ctx.valorEmVigor = () => it.valor; return ctx.montarControle(it, new El("div")); };
+    const botoes = (c) => c.todos().filter((e) => e.tagName === "BUTTON");
+    const restaurar = (c) => botoes(c).find((b) => /^Restaurar ao padrão/.test(b.textContent));
+    const naoTocar = (c) => botoes(c).find((b) => b.textContent === "Não tocar");
+
+    checa(!restaurar(montar(item("nao"))),
+          "no padrão de fábrica preenchido, nenhum «Restaurar ao padrão»");
+    let c = montar(item("sim"));
+    let r = restaurar(c);
+    if (checa(r && r.textContent === "Restaurar ao padrão (Não)",
+              "fora do padrão, o botão diz o valor de FÁBRICA no parêntese, e não o da máquina",
+              r ? r.textContent : botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "nao", "e grava o valor de fábrica, não o vazio", JSON.stringify(gravados));
+    }
+    const n = naoTocar(c);
+    if (checa(n, "o «não tocar» é outro botão, com outro nome", botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await n.clicar();
+      checa(gravados[0] === "", "e ele grava o vazio", JSON.stringify(gravados));
+    }
+    c = montar(item(""));
+    r = restaurar(c);
+    if (checa(r, "com a chave vazia («não toca») e fábrica preenchida, o restaurar aparece")) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "nao", "e grava o de fábrica", JSON.stringify(gravados));
+    }
+    c = montar(item("x", { opcoes: ["a", "b", "c", "d", "e", "x"], padrao: "a", chave: "LONGA" }));
+    r = restaurar(c);
+    if (checa(r, "o seletor longo também restaura ao de fábrica")) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "a", "e grava o de fábrica no seletor", JSON.stringify(gravados));
+    }
+    c = montar(item("8", { chave: "FORMA_RAIO_PAINEL", padrao: "", opcoes: [], faixa: ["0", "32", "1"], valendo_agora: "4" }));
+    r = restaurar(c);
+    if (checa(r && !naoTocar(c), "de padrão vazio, o restaurar continua e não ganha o «não tocar»",
+              botoes(c).map((b) => b.textContent).join(" | "))) {
+      gravados.length = 0; await r.clicar();
+      checa(gravados[0] === "", "e grava o vazio, que é o de fábrica", JSON.stringify(gravados));
+    }
   }
 
   if (falhas.length) {
