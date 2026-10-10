@@ -20,6 +20,8 @@ O QUE REPROVA (e de onde cada regra vem)
   3. CONTROLE COBERTO (achado 6, U3): todo controle visível, centrado na
      janela, tem de ser o que está por cima no próprio centro. Um desenho
      grudado, um `?` ou um balão em cima dele é um botão que não se clica.
+     E a página inteira não rola por fora do `#principal` (a barra dupla do
+     QA de uso real da P80).
   4. BALÃO DO MENU EM CIMA DO VIZINHO (U3): o balão de cada item do menu
      lateral não pode encostar em outro item.
   5. PRÉVIA VAZIA (achado 18, direção §2.4): todo desenho da página (SVG de
@@ -150,6 +152,13 @@ OLHAR_JS = r"""
     defeitos.push(`controle coberto em ${nome(el)}: «${limpo(el.textContent || el.getAttribute('aria-label') || el.value || el.tagName).slice(0, 30)}» está sob ${quem ? quem.tagName.toLowerCase() + '.' + [...quem.classList].join('.') : topo.tagName.toLowerCase()}`);
   }
   if (principal) principal.scrollTop = rolagem;
+
+  /* 3b. A PÁGINA ROLA POR FORA DO `#principal` (QA de uso real da P80): quem
+   * rola é o `#principal`; a página inteira rolando junto é a barra dupla na
+   * borda direita, e no celular são 15 px a menos de largura. */
+  const doc = document.documentElement;
+  if (doc.scrollHeight > doc.clientHeight + 1 || doc.scrollWidth > doc.clientWidth + 1)
+    defeitos.push(`a página inteira rola por fora do #principal (${doc.scrollWidth}×${doc.scrollHeight} numa janela de ${doc.clientWidth}×${doc.clientHeight}): barra dupla`);
 
   /* 5. PRÉVIA VAZIA */
   const TRACO = 'path, rect, circle, ellipse, line, polyline, polygon, text, image, use';
@@ -481,6 +490,52 @@ PACK_REDE_JS = r"""
 """
 
 
+# 8.6 — O QA DE USO REAL DA P80 (10/10/2026), com a casa copiada da pessoa:
+#   · o rótulo da ficha partia a palavra no meio («Configuraçõe» numa linha,
+#     «s» na outra): a palavra inteira cabe na largura do desenho;
+#   · o `obsidian.png` do pack é um SVG com nome de PNG (veio assim do
+#     Dracula_OS-Theme), e a ficha o mostrava como imagem quebrada;
+#   · o rótulo de reserva (o nome do arquivo limpo) mostrava o identificador de
+#     32 letras dos atalhos do Chrome: «Chrome ieicmdpib… Default».
+PALAVRA_PARTIDA_JS = r"""
+() => {
+  const defeitos = [];
+  const ficha = document.querySelector('.escolha-icone');
+  for (const d of ficha.querySelectorAll('.pasta-acervo')) d.open = true;
+  for (const span of ficha.querySelectorAll('.tira-glifos button[data-glifo] > span')) {
+    const t = span.firstChild;
+    if (!t || t.nodeType !== 3) continue;
+    for (const m of t.textContent.matchAll(/[^\s-]+/g)) {
+      const r = document.createRange();
+      r.setStart(t, m.index);
+      r.setEnd(t, m.index + m[0].length);
+      const linhas = new Set([...r.getClientRects()].filter((x) => x.width > 0).map((x) => Math.round(x.top)));
+      if (linhas.size > 1) { defeitos.push(`o rótulo «${t.textContent}» parte a palavra «${m[0]}» em duas linhas`); break; }
+    }
+  }
+  return defeitos;
+}
+"""
+IMAGEM_QUEBRADA_JS = r"""
+async () => {
+  const ficha = document.querySelector('.escolha-icone');
+  for (const d of ficha.querySelectorAll('.pasta-acervo')) d.open = true;
+  const imgs = [...ficha.querySelectorAll('.tira-glifos button[data-glifo] img')];
+  if (!imgs.length) return ['a busca «obsidian» não mostrou desenho nenhum'];
+  for (const i of imgs) i.loading = 'eager';
+  await Promise.all(imgs.map((i) => i.decode().catch(() => null)));
+  return imgs.filter((i) => !i.naturalWidth)
+    .map((i) => `imagem quebrada na ficha: «${i.closest('button').dataset.glifo}»`);
+}
+"""
+IDENTIFICADOR_JS = r"""
+() => [...document.querySelectorAll('.escolha-icone .tira-glifos button[data-glifo] > span')]
+  .map((s) => s.textContent.trim())
+  .filter((t) => /\b[a-z0-9]{20,}\b/i.test(t))
+  .map((t) => `rótulo com identificador na ficha: «${t}»`)
+"""
+
+
 def acabamento(pag):
     """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -497,6 +552,15 @@ def acabamento(pag):
             reprovas.append(("ficha de ícone", d))
         if FOTOS and passo != "abrir":
             pag.screenshot(path=os.path.join(FOTOS, f"p80-paleta-{passo}.png"))
+    # 8.6 — o QA de uso real da P80, na mesma ficha.
+    for busca, olhar in (("", PALAVRA_PARTIDA_JS), ("obsidian", IMAGEM_QUEBRADA_JS),
+                         ("chrome", IDENTIFICADOR_JS)):
+        pag.locator(".escolha-icone input[type=search]").fill(busca)
+        pag.wait_for_function(
+            "(t) => typeof GLIFOS !== 'undefined' && GLIFOS.termo === t && !GLIFOS.carregando",
+            arg=busca, timeout=20000)
+        assentar(pag)
+        reprovas += [("ficha de ícone", d) for d in pag.evaluate(olhar)]
     abrir_pagina(pag, "Dia e noite")
     reprovas += [("Dia e noite", d) for d in pag.evaluate(NOITE_JS)]
     if FOTOS:
