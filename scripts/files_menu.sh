@@ -75,7 +75,18 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 FILES_MENU="${FILES_MENU:-sim}"
 FILES_MENU_AUTOBUILD="${FILES_MENU_AUTOBUILD:-sim}"
 
-PATCH="$MEOW_RAIZ/patches/cosmic-files-wallpaper-menu.patch"
+# UM PATCH POR GERAÇÃO DO `cosmic-files`, DO MAIS NOVO PARA O MAIS VELHO — P76.
+#   O 1.10 (ac5cef7) reescreveu o menu da área de trabalho: `menu_item(...)`
+#   deixou de levar `.into()` e cada chamada virou bloco de várias linhas
+#   (`docs/pesquisas/2026-10-09-cosmic-vivo.md` §2.2). É mudança de API, não só
+#   de contexto: nenhum fuzz faz o patch do 1.9 entrar ali, e o do 1.10 não
+#   compila no 1.9. Então os dois ficam, e o build tenta um por um com
+#   `--dry-run -F0`: o primeiro que encosta limpo é o desta versão. Quem
+#   rebasear para uma geração nova põe o arquivo novo NO TOPO da lista.
+PATCHES=(
+  "$MEOW_RAIZ/patches/cosmic-files-wallpaper-menu.patch"       # 1.10 em diante
+  "$MEOW_RAIZ/patches/cosmic-files-wallpaper-menu-1.9.patch"   # 1.8 e 1.9
+)
 MARCA="MEOW-FILES-WALLPAPER-PATCH-1"
 BINS=(cosmic-files cosmic-files-applet)
 DESTINO="$HOME/.local/bin"
@@ -217,7 +228,7 @@ cmd_build() {
   ver="$(versao_do_pacote)"
   [ -n "$ver" ] || { meow_erro "o cosmic-files não está instalado por pacote"; return "$MEOW_SEM_DEPENDENCIA"; }
   dir="$(artefato_de "$ver")"
-  [ -f "$PATCH" ] || { meow_erro "falta $PATCH"; return "$MEOW_ERRO"; }
+  [ -f "${PATCHES[0]}" ] || { meow_erro "falta ${PATCHES[0]}"; return "$MEOW_ERRO"; }
   meow_tem cargo   || { meow_erro "falta o cargo (rustup ou o pacote cargo)"; return "$MEOW_SEM_DEPENDENCIA"; }
   meow_tem apt-get || { meow_erro "falta apt-get";                            return "$MEOW_SEM_DEPENDENCIA"; }
 
@@ -241,10 +252,18 @@ cmd_build() {
   # IDEMPOTÊNCIA POR MARCADOR, NUNCA PELO CÓDIGO DE SAÍDA DO `patch`:
   # `patch --forward` devolve 1 tanto para "já aplicado" quanto para erro. É a
   # mesma lição que o `patches/LEIA-ME.txt` registra ter custado caro.
+  # `-F0` NO DRY-RUN: com fuzz o patch de uma geração pode "entrar" na outra
+  # num lugar errado, e é exatamente a geração que o dry-run está escolhendo.
   if ! grep -rq -- "$MARCA" "$fonte/src/app.rs" 2>/dev/null; then
-    ( cd "$fonte" && patch -p1 --forward < "$PATCH" ) >/dev/null 2>&1
+    local p
+    for p in "${PATCHES[@]}"; do
+      [ -f "$p" ] || continue
+      ( cd "$fonte" && patch -p1 -F0 --forward --dry-run < "$p" ) >/dev/null 2>&1 || continue
+      ( cd "$fonte" && patch -p1 -F0 --forward --no-backup-if-mismatch < "$p" ) >/dev/null 2>&1
+      break
+    done
     grep -q -- "$MARCA" "$fonte/src/app.rs" \
-      || { meow_erro "o patch não aplicou nesta versão — o upstream mexeu no menu"; return "$MEOW_ERRO"; }
+      || { meow_erro "nenhum patch do menu entra nesta versão — o upstream mexeu no menu"; return "$MEOW_ERRO"; }
   fi
 
   meow_info "compilando (Nice=19, pode levar minutos)…"

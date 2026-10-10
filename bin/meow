@@ -982,8 +982,9 @@ chk_midia() {
     "$RAIZ/scripts/midia.sh" --conferir 2>&1
 }
 
-# Só confere — não existe `fix_midiabin`, e a ausência é a metade que faz o
-# comentário acima valer. Ver `SEM_CONSERTO`.
+# P76: o `fix_midiabin` existe desde 09/10/2026 — ver o bloco do `SEM_CONSERTO`.
+# Os dois nomes continuam separados pelo motivo acima: o conserto da sombra
+# órfã não pode esperar um build.
 chk_midiabin() {
   MIDIA="${MIDIA:-}" "$RAIZ/scripts/midia_build.sh" --conferir 2>&1
 }
@@ -1573,7 +1574,9 @@ chk_leitura() {
 #
 #   Compilar continua não sendo trabalho do doctor: o caminho do `cargo` é
 #   inalcançável sem `LEITURA_COMPILAR=1`, e quem exporta essa chave é o
-#   `install.sh`. Por isso `leiturabin` está em SEM_CONSERTO.
+#   `install.sh`. Por isso `leiturabin` estava em SEM_CONSERTO — até 09/10/2026
+#   (P76), quando o conserto virou rebuild que segue o painel; ver o bloco do
+#   `SEM_CONSERTO`.
 #
 #   Sem lista de `export` aqui, pelo mesmo motivo do `chk_leitura`: o `set -a` do
 #   `carregar_conf` já exporta toda chave do meow.conf, e lista fixa é a
@@ -1899,8 +1902,8 @@ fix_wallpaper() { WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WA
 fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
   SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" \
                     "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
-# Só a sombra, as chaves e o fail-safe. O par `midiabin` não tem `fix_` — ver o
-# comentário do `chk_midia`.
+# Só a sombra, as chaves e o fail-safe. O par `midiabin` tem o `fix_` dele, que
+# compila (P76) — ver o comentário do `chk_midia` para por que são dois.
 fix_midia()     { MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
                     MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
                     MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
@@ -1913,6 +1916,13 @@ fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
                     VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
                     "$RAIZ/scripts/vidro.sh" 2>&1; }
 fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
+# OS DOIS APPLETS SE RECOMPILAM — 09/10/2026, P76. Em escopo de usuário, sem
+# sudo, e só quando o `--conferir` deles diz divergente (o carimbo não bate:
+# a receita mudou, ou o libcosmic do painel andou). A chave `*_COMPILAR=1` é a
+# mesma que o `install.sh` exporta.
+fix_midiabin()   { MIDIA="${MIDIA:-}" MIDIA_COMPILAR=1 "$RAIZ/scripts/midia_build.sh" --aplicar 2>&1; }
+fix_leiturabin() { LEITURA_COMPILAR=1 "$RAIZ/scripts/leitura_build.sh" --aplicar 2>&1; }
+
 fix_painel()    {
   rodar_painel "$RAIZ" conferir 2>&1
   local rc=$?
@@ -2181,9 +2191,16 @@ VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel jan
 #
 #   `conf` saiu na mesma leva: o conserto dele é a migração (`fix_conf`),
 #   e a criação continua só no install.sh — o `fix_conf` sai 3 sem arquivo.
-SEM_CONSERTO=" ponte convertidos heroictema midiabin leiturabin patches "
+#
+#   `midiabin` e `leiturabin` SAÍRAM DAQUI EM 09/10/2026 (P76). Estavam porque
+#   o conserto compila, e compilar não era do doctor. O que mudou: o conserto
+#   é um rebuild em escopo de usuário, sem sudo, e o motivo de ele precisar
+#   acontecer passou a ser o apt (o libcosmic do painel que o applet segue;
+#   ver `scripts/applet_pino.sh`) — e o doctor que roda depois do apt é o do
+#   pós-apt. O doctor corrige; ele não manda rodar.
+SEM_CONSERTO=" ponte convertidos heroictema patches "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema midiabin leiturabin patches pacotes "
+  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema patches pacotes "
 fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -2208,9 +2225,10 @@ declare -A SEM_CONSERTO_RAZAO=(
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
   [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
-  [midiabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: MIDIA_COMPILAR=1 ./scripts/midia_build.sh"
-  [leiturabin]="o conserto compila com o cargo, e o doctor não compila nem baixa — rode: LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
-  [patches]="o conserto RECOMPILA o cosmic-comp (~4 min) e instala com sudo, e o doctor não compila nem usa sudo — rode: meow compositor"
+  # P76 (conferência): o build mora em ~/.local/libexec, sem sudo, e quem o refaz
+  # sozinho depois do apt é o pós-apt do COSMIC. A frase antiga ("instala com
+  # sudo") deixou de ser verdade com o shim.
+  [patches]="o conserto RECOMPILA o cosmic-comp (~4 a 30 min), e quem o refaz depois do apt é o pós-apt do COSMIC — rode: meow compositor"
   [pacotes]="sem a ponte root, instalar pacote pede a sua senha, e o auto-reparo não tem a quem pedir — o ./install.sh pede uma vez e instala a ponte"
 )
 
@@ -4360,17 +4378,25 @@ cmd_compositor() {
     compilar|validar)
       [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
       MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
-    conferir|reverter)
+    conferir|reverter|qual)
+      MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
+    # P76: o shim em `~/.local/bin` — sem sudo, vale no próximo login.
+    ativar|desativar)
+      [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
       MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
     -h|--help|ajuda)
       meow_titulo "meow compositor"
       printf '  meow compositor [--seco]   baixa o fonte da versão instalada, aplica a série de\n'
-      printf '                             patches/, compila (~4 min) e instala — sudo só no fim\n'
+      printf '                             patches/, compila (~4 min) e guarda o build em\n'
+      printf '                             ~/.local/libexec/meow/cosmic-comp/<versão> — sem sudo\n'
       printf '  meow compositor validar    baixa o fonte e só roda o dry-run da série nele\n'
       printf '  meow compositor conferir   os marcadores no disco e na sessão (é a linha do doctor)\n'
-      printf '  meow compositor reverter   diz como voltar ao binário do pacote\n\n'
+      printf '  meow compositor reverter   diz como voltar ao binário do pacote\n'
+      printf '  meow compositor ativar     liga o shim em ~/.local/bin: o próximo login usa o build\n'
+      printf '  meow compositor desativar  desliga o shim: o próximo login volta a /usr/bin\n'
+      printf '  meow compositor qual       o binário que o próximo login vai rodar\n\n'
       printf '  Ele só compila sobre uma versão que esteja em patches/versao, e diz por quê\n'
-      printf '  quando recusa. O binário é também a tela de login: vale no próximo login.\n'
+      printf '  quando recusa. A tela de login não vê o shim: ela fica sempre de fábrica.\n'
       ;;
     *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow compositor --help"; return "$MEOW_ERRO" ;;
   esac
@@ -4866,6 +4892,17 @@ despachar() {
     pack|packs)       shift; cmd_pack "$@" ;;
     leitura)          shift; cmd_leitura "$@" ;;
     compositor)       shift; cmd_compositor "$@" ;;
+    # P76: o pré-voo do COSMIC candidato. Só lê o que o apt vai instalar e
+    # grava o veredito; o porquê de cada item mora no próprio script.
+    cosmic)           shift
+      case "${1:-prever}" in
+        prever|ler|icones) "$RAIZ/scripts/cosmic_prever.sh" "$@"; exit $? ;;
+        -h|--help|ajuda)
+          printf '  meow cosmic prever [--sem-rede]  o veredito sobre o COSMIC da fila do apt, antes do upgrade\n'
+          printf '  meow cosmic ler                  o último veredito gravado\n'
+          printf '  meow cosmic icones               os apps do COSMIC instalados sem desenho em mapa nenhum\n' ;;
+        *) meow_erro "verbo desconhecido: $1"; meow_info "veja: meow cosmic --help"; exit "$MEOW_ERRO" ;;
+      esac ;;
     # `abrir` sobe o painel de configuração visual (a pasta `app/`). É `exec`, e
     # não uma chamada comum, porque o `run.sh` FICA DE PÉ: ele sobe o servidor,
     # abre o navegador e espera. Deixar este processo pendurado por baixo dele

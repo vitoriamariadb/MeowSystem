@@ -393,8 +393,8 @@ faixa_alpha() {
   fator="$(sed -nE "s/.*[^a-z_]${chave}: *([0-9.]+).*/\1/p" "$am" | head -1)"
   [ -n "$fator" ] || return 0
   local disco_p disco_d
-  disco_p="$(cat "$BASE/com.system76.CosmicPanel.Panel/v1/opacity" 2>/dev/null)"
-  disco_d="$(cat "$BASE/com.system76.CosmicPanel.Dock/v1/opacity" 2>/dev/null)"
+  disco_p="$(cat "$BASE/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/opacity" 2>/dev/null)"
+  disco_d="$(cat "$BASE/com.system76.CosmicPanel.Dock/$(meow_cosmic_v com.system76.CosmicPanel.Dock)/opacity" 2>/dev/null)"
   [ -n "$disco_p" ] && [ -n "$disco_d" ] || return 0
   awk -v f="$fator" -v p="$disco_p" -v d="$disco_d" -v n="$frosted" \
     'BEGIN{printf "    hoje, com frosted=%s (%.5f) e o que está no disco: painel %.1f%%, dock %.1f%%\n", n, f, p*f*100, d*f*100}'
@@ -426,7 +426,7 @@ faixa_alpha() {
 avisar_slider_morto() {
   local barra dir v algum=0
   for barra in "${BARRAS[@]}"; do
-    dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+    dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
     [ -d "$dir" ] || continue
     v="$(cat "$dir/keep_style_on_maximize" 2>/dev/null)"
     [ "$v" = "false" ] || continue
@@ -440,7 +440,7 @@ avisar_slider_morto() {
 if [ "$CONFERIR" = "1" ]; then
   meow_info "no disco agora:"
   for barra in "${BARRAS[@]}"; do
-    dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+    dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
     [ -d "$dir" ] || { meow_pula "com.system76.CosmicPanel.$barra não está configurado aqui"; continue; }
     printf '    %-6s opacity=%s  keep_style_on_maximize=%s\n' "$barra" \
       "$(cat "$dir/opacity" 2>/dev/null || echo '?')" \
@@ -470,7 +470,7 @@ fi
 mudou=0
 escritos=0
 for barra in "${BARRAS[@]}"; do
-  dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+  dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
   # O diretório tem de existir: criá-lo do nada faria o COSMIC ver uma
   # configuração de painel órfã, sem as outras chaves. Se ele não existe, o
   # painel correspondente não está configurado nesta máquina — não é erro.

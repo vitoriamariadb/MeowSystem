@@ -1,0 +1,74 @@
+# contratos/cosmic.tsv — o que o MeowSystem espera de cada versão do COSMIC.
+#
+# POR QUE ESTE ARQUIVO EXISTE (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.4)
+#   O contrato era lembrado, não medido: o `v1` estava escrito à mão em cada
+#   escritor, o nome de cada chave só existia no código que a grava, e a
+#   derivação do tema copiava uma revisão do libcosmic sem que nada a
+#   comparasse com a instalada. Aqui cada acoplamento vira uma linha, e o
+#   `scripts/cosmic_prever.sh` (o `meow cosmic prever`) mede cada linha contra
+#   o candidato do apt ANTES do upgrade. O contrato é medido, não lembrado.
+#
+# FORMATO: cinco colunas separadas por TAB; `#` comenta; linha vazia é ignorada.
+#   <tipo>  <alvo>  <valor>  <onde se mede>  <quem depende>
+#
+#   chave    namespace do cosmic-config   nome da chave   binário que a LÊ     escritor do meow
+#            Mede: o nome da chave aparece (`grep -a -c`) no binário. Ausente no
+#            candidato = o COSMIC novo não lê mais o que o meow grava. Quem
+#            depende começando por `patch:` diz que a chave vem de um patch
+#            nosso: no binário de fábrica ela FALTA, e isso é o esperado.
+#   esquema  namespace do cosmic-config   os `v*` cobertos  pacote que o traz   escritor do meow
+#            Mede: o maior `v*` em `/usr/share/cosmic/<ns>` do pacote. O meow
+#            escreve nele (`meow_cosmic_v`), nunca num `v1` cravado. A terceira
+#            coluna é a lista EXATA de esquemas que o meow cobre: o pré-voo da
+#            instalação (`lib/preflight.sh`) compara a do tema com ela inteira.
+#   tema     arquivo do libcosmic         sha256          revisão de referência  derivação do meow
+#            Mede: o hash do arquivo na revisão do libcosmic que o
+#            `cosmic-settings` candidato pina. Igual = a cópia em Python ainda
+#            é a derivação daquela versão; diferente = o oráculo tem de refazer.
+#   revisao  pacote                       revisão curta   assunto              quem depende
+#            Mede: a revisão (o sufixo do `Version` do pacote). Diferente = o
+#            comentário que dependia dela precisa ser conferido de novo.
+
+# --- chaves que o meow grava, e quem as lê --------------------------------------
+chave	com.system76.CosmicPanel.Panel	opacity	cosmic-panel	scripts/vidro.sh
+chave	com.system76.CosmicPanel.Panel	keep_style_on_maximize	cosmic-panel	scripts/forma.sh
+chave	com.system76.CosmicPanel.Panel	anchor_gap	cosmic-panel	scripts/forma.sh
+chave	com.system76.CosmicPanel.Panel	border_radius	cosmic-panel	scripts/forma.sh
+chave	com.system76.CosmicPanel.Panel	expand_to_edges	cosmic-panel	scripts/forma.sh
+chave	com.system76.CosmicPanel.Panel	margin	cosmic-panel	scripts/forma.sh
+chave	com.system76.CosmicPanel.Panel	plugins_wings	cosmic-panel	scripts/leitura_build.sh
+chave	com.system76.CosmicPanel.Panel	plugins_center	cosmic-panel	scripts/leitura_build.sh
+chave	com.system76.CosmicComp	autotile	cosmic-comp	scripts/janelas.sh
+chave	com.system76.CosmicComp	autotile_behavior	cosmic-comp	scripts/janelas.sh
+chave	com.system76.CosmicComp	pinned_workspaces	cosmic-comp	scripts/areas.sh
+chave	com.system76.CosmicComp	tiling_enabled	cosmic-comp	scripts/areas.sh
+chave	com.system76.CosmicComp	leitura_temperatura	cosmic-comp	patch:cosmic-comp-modo-leitura.patch
+chave	com.system76.CosmicTheme.Mode	is_dark	cosmic-settings	scripts/aplicar_tema.sh
+chave	com.system76.CosmicTheme.Mode	auto_switch	cosmic-settings	scripts/aplicar_tema.sh
+
+# --- esquemas: os namespaces que o meow escreve -------------------------------
+# Medido em 09/10/2026 nos `.deb` instalados e nos do 1.10: iguais.
+esquema	com.system76.CosmicTheme.Dark	v1 v2	cosmic-settings	scripts/aplicar_tema.sh
+esquema	com.system76.CosmicTheme.Light	v1 v2	cosmic-settings	scripts/aplicar_tema.sh
+esquema	com.system76.CosmicTheme.Mode	v1	cosmic-settings	scripts/aplicar_tema.sh
+esquema	com.system76.CosmicComp	v1	cosmic-comp	scripts/janelas.sh scripts/areas.sh scripts/leitura.sh
+esquema	com.system76.CosmicPanel.Panel	v1	cosmic-panel	scripts/forma.sh scripts/vidro.sh scripts/painel.sh
+esquema	com.system76.CosmicPanel.Dock	v1	cosmic-panel	scripts/forma.sh scripts/vidro.sh scripts/painel.sh
+esquema	com.system76.CosmicBackground	v1	cosmic-bg	scripts/wallpaper.sh
+esquema	com.system76.CosmicTerm	v1	cosmic-term	scripts/terminal.sh
+esquema	com.system76.CosmicAppletTime	v1	cosmic-applets	scripts/relogio.sh
+
+# --- a derivação do tema: os três arquivos que os `derivar_*.py` copiam --------
+# Hash medido em 09/10/2026 no checkout c003a58 do `~/.cargo` e conferido contra
+# o raw do GitHub na mesma revisão (iguais).
+tema	cosmic-theme/src/steps.rs	1006619eca4127ae818cd8c50c4261d1ce541ed80f92ae55b5a90e061351a8be	c003a58	scripts/derivar_acento.py
+tema	cosmic-theme/src/model/theme.rs	41e180abb8af41689b0266a7f684a4753d9f9b1cf2488016b90b4aab578a719d	c003a58	scripts/derivar_flavor.py
+tema	cosmic-theme/src/model/cosmic_palette.rs	093e526b16a1fb906737c44d99737065df95cf8416ccba036f34c6dba033de4b	c003a58	scripts/derivar_flavor.py
+
+# --- revisões que um comentário do meow mediu -----------------------------------
+# O `scripts/appid_dock.sh` descreve o casamento de app-id do `cosmic-app-list`
+# pela crate `freedesktop-desktop-entry` 0.8.1, que o `Cargo.lock` do
+# cosmic-applets 40248fb travava. Medido em 09/10/2026: o instalado é o
+# 82e7cd8, que trava a 0.8.3. A sonda acusa a diferença; o comentário é que
+# precisa ser conferido de novo, não o código.
+revisao	cosmic-applets	40248fb	freedesktop-desktop-entry 0.8.1	scripts/appid_dock.sh

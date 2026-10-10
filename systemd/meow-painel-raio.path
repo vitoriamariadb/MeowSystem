@@ -15,11 +15,21 @@ Description=MeowSystem — vigia a geometria das barras e clampa o raio que não
 #   ~/.local/state/meowsystem/painel/raio_desejado.* ANTES de cortar, e o
 #   devolve sozinho no dia em que couber. Sem esse registro, esta unidade não
 #   deveria existir.
+#
+# O NAMESPACE, E NÃO SÓ O `v1` — 09/10/2026, P76
+#   O `v1` estava cravado aqui como nos escritores. Agora são dois vigias por
+#   barra: o diretório do NAMESPACE, que dispara quando o COSMIC cria um
+#   esquema novo (`v2` aparecendo ao lado do `v1`), e o do esquema de agora,
+#   que o `etapa_painel` do install.sh preenche com o maior `v*` do pacote
+#   (`meow_cosmic_v`) no lugar de `@V_PANEL@` e `@V_DOCK@`. Quando o pacote
+#   sobe de esquema, a próxima passagem do instalador reescreve esta unidade.
 PartOf=cosmic-session.target
 
 [Path]
-PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Panel/v1
-PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Dock/v1
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Panel
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Panel/@V_PANEL@
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Dock
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Dock/@V_DOCK@
 Unit=meow-painel-raio.service
 
 [Install]

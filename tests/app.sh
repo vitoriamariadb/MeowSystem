@@ -211,7 +211,12 @@ _NAO_E_AJUSTE = {
 # um programa de terceiro, com padrão embutido e override só para teste.
 # Nenhuma delas é escolha de tema, e pô-las na tela seria oferecer à pessoa uma
 # pergunta que ela não tem como responder.
-_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
+# CV_, PA_, AP_, AS_ e OT_ entraram em 09/10/2026, com a P76, e são da mesma
+# família do CP_: caminhos e comandos sobrescrevíveis para teste do pré-voo do
+# COSMIC (cosmic_prever.sh), do pós-apt (cosmic_pos_apt.sh), do pino dos
+# applets (applet_pino.sh), da guarda do `.deb` (atualizar_sistema.sh) e do
+# oráculo do tema (oraculo_tema.sh). Nenhuma é escolha de tema.
+_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
 
 _catalogo = {i["chave"] for i in servidor.ler_esquema()}
 _lidas = {}

@@ -266,7 +266,7 @@ LEITURA_TEMPERATURA="${LEITURA_TEMPERATURA:-3500}"
 LEITURA_TEXTURA="${LEITURA_TEXTURA:-0.35}"
 LEITURA_RAMPA_MIN="${LEITURA_RAMPA_MIN:-0}"
 
-LEITURA_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/v1"
+LEITURA_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/$(meow_cosmic_v com.system76.CosmicComp)"
 LEITURA_K_TEMP="$LEITURA_BASE/leitura_temperatura"
 LEITURA_K_TEXT="$LEITURA_BASE/leitura_textura"
 LEITURA_K_AGENDA="$LEITURA_BASE/leitura_agenda"
@@ -283,8 +283,8 @@ LEITURA_APPLET_SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$LEITUR
 # é o meio — e um applet arrastado para o meio em Ajustes só aparece no segundo.
 # Ver o bloco em `leitura_build.sh`: olhar só as asas dava aviso falso sobre um
 # applet que estava na tela.
-LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
-LEITURA_APPLET_MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center"
+LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_wings"
+LEITURA_APPLET_MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_center"
 
 # ONDE O APPLET GUARDA O PONTO QUE ELA ARRASTOU — 31/08/2026
 #   `Config::new_state(NS_ESTADO, 1)` do libcosmic escreve em
@@ -296,7 +296,7 @@ LEITURA_ESTADO_BASE="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/$LEITURA_APPLE
 LEITURA_K_ULT_T="$LEITURA_ESTADO_BASE/ultima_temperatura"
 LEITURA_K_ULT_X="$LEITURA_ESTADO_BASE/ultima_textura"
 
-LEITURA_COMP="/usr/bin/cosmic-comp"
+LEITURA_COMP="$(meow_cosmic_comp_disco)"   # P76: o do próximo login (build do shim ou /usr/bin)
 LEITURA_MARCADOR="AURORA-READING-MODE"
 # O `LEITURA_NIGHTLIGHT` (o `/var/lib/aurora/night-light-temp`) saiu em
 # 24/09/2026 (P39) — ver o bloco "O NIGHT LIGHT DA AURORA" no `cmd_estado`.

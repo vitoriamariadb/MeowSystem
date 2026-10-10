@@ -2016,6 +2016,10 @@ etapa_painel() {
   for u in "${unidades[@]}"; do
     [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
     conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    # P76: o vigia do raio olha o esquema que o pacote traz hoje, não um `v1`
+    # cravado (ver o cabeçalho de `systemd/meow-painel-raio.path`).
+    conteudo="${conteudo//@V_PANEL@/$(meow_cosmic_v com.system76.CosmicPanel.Panel)}"
+    conteudo="${conteudo//@V_DOCK@/$(meow_cosmic_v com.system76.CosmicPanel.Dock)}"
     meow_escrever "$destino/$u" "$conteudo" 644
     case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
@@ -3243,6 +3247,83 @@ etapa_vigia_qt() {
   return "$rc"
 }
 
+# O PÓS-APT DO COSMIC — 09/10/2026, P76
+#   O `meow-pos-apt.path` vigia `/var/lib/meowsystem/apt-mudou`, que a linha
+#   root do `99-meow-lancador` toca a cada apt, e o `.service` refaz em escopo
+#   de usuário o que o COSMIC novo desfez (`scripts/cosmic_pos_apt.sh`).
+#   Anda de carona no `AUTO_REPARO`, como os outros vigias: quem o desliga
+#   pediu que nada mexa sozinho. A forma é a do `etapa_vigia_qt`, sem a
+#   segunda cerca, que lá é do `APPS_ATIVOS` e aqui não tem par.
+#   O GATILHO DEPENDE DO HOOK DE APT, que hoje mora no `99-meow-lancador` e só
+#   é instalado com LANCADOR_SISTEMA="sim": sem ele o vigia fica armado e
+#   nunca dispara, e o doctor das 5h continua sendo a rede.
+etapa_vigia_apt() {
+  passo "Pós-apt do COSMIC (systemd --user)"
+  local destino="$HOME/.config/systemd/user" u conteudo mudou=0
+  local unidades=(meow-pos-apt.service meow-pos-apt.path)
+  local ligaveis=(meow-pos-apt.path)
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    local motivo="AUTO_REPARO=\"${AUTO_REPARO:-}\""
+    if meow_unidade_sobrou "${unidades[@]}"; then
+      meow_seco && { meow_muda "$motivo — removeria o pós-apt do COSMIC"; return "$MEOW_DIVERGENTE"; }
+      systemctl --user disable --now "${ligaveis[@]}" >/dev/null 2>&1
+      rm -f "${unidades[@]/#/$destino/}"
+      rm -f "$destino"/*.wants/meow-pos-apt.path "$destino"/*.wants/meow-pos-apt.service \
+            "$destino"/*.requires/meow-pos-apt.path "$destino"/*.requires/meow-pos-apt.service
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_muda "$motivo — pós-apt do COSMIC desligado e removido"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_pula "$motivo — sem pós-apt do COSMIC"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    meow_aviso "não há systemd --user nesta sessão — o COSMIC só se refaz no próximo doctor"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  for u in "${unidades[@]}"; do
+    [ -f "$MEOW_RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u"; return "$MEOW_ERRO"; }
+    conteudo="$(cat "$MEOW_RAIZ/systemd/$u")"
+    meow_escrever "$destino/$u" "$conteudo" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+
+  if meow_seco; then
+    local armaria=""
+    for u in "${ligaveis[@]}"; do
+      if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+         [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+        armaria="${armaria:+$armaria }$u"
+      fi
+    done
+    [ "$mudou" = "1" ] && meow_muda "instalaria/atualizaria as unidades do pós-apt do COSMIC"
+    [ -n "$armaria" ] && meow_muda "armaria o pós-apt do COSMIC ($armaria)"
+    { [ "$mudou" = "1" ] || [ -n "$armaria" ]; } && return "$MEOW_DIVERGENTE"
+    return "$MEOW_OK"
+  fi
+
+  local rc=0
+  if [ "$mudou" = "1" ]; then
+    systemctl --user daemon-reload
+    meow_muda "unidades do pós-apt do COSMIC instaladas/atualizadas"
+    rc=1
+  fi
+  systemctl --user reset-failed "${unidades[@]}" >/dev/null 2>&1
+  for u in "${ligaveis[@]}"; do
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      systemctl --user enable --now "$u" >/dev/null 2>&1 \
+        && { meow_muda "pós-apt do COSMIC armado ($u)"; rc=1; } \
+        || meow_aviso "não consegui armar $u"
+    fi
+  done
+  [ "$rc" = "0" ] && meow_ok "pós-apt do COSMIC no ar — depois de um apt, o que ele desfez se refaz sozinho"
+  return "$rc"
+}
+
 # A lista das fontes permitidas vai pelo nome novo com o antigo como sinônimo
 # (P52, 24/09/2026): `${NOVO-${ANTIGO:-}}` — o novo vence quando existe, mesmo
 # vazio. A regra inteira está no `scripts/wallpaper.sh`, no `FONTES_PERMITIDAS`.
@@ -3576,7 +3657,7 @@ main() {
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
-                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt
+                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 

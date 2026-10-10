@@ -132,7 +132,7 @@ conferir() {
   if meow_painel_compositor_clampa; then
     meow_ok "o cosmic-comp em execução clampa o raio — o canto das barras é seu, sem teto"
     for barra in Panel Dock; do
-      dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+      dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
       [ -d "$dir" ] || continue
       atual="$(cat "$dir/border_radius" 2>/dev/null)"
       case "$atual" in ''|*[!0-9]*) continue ;; esac
@@ -151,7 +151,7 @@ conferir() {
   fi
 
   for barra in Panel Dock; do
-    dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+    dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
     [ -d "$dir" ] || { meow_pula "com.system76.CosmicPanel.$barra não está configurado aqui"; continue; }
 
     teto="$(meow_painel_teto "$dir")" || {
@@ -202,7 +202,7 @@ conferir() {
 teto() {
   local barra dir
   for barra in Panel Dock; do
-    dir="$BASE/com.system76.CosmicPanel.$barra/v1"
+    dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
     [ -d "$dir" ] || continue
     printf '%-6s size=%-3s padding=%-2s altura=%-3s teto=%-3s raio=%s\n' \
       "$barra" "$(cat "$dir/size" 2>/dev/null)" "$(cat "$dir/padding" 2>/dev/null)" \
@@ -250,6 +250,12 @@ reciclar() {
   if ! systemctl --user is-active --quiet meow-painel.service 2>/dev/null; then
     espera="$(meow_painel_espera_supervisor)"
     case "$espera" in
+      # P76: o formato do log mudou e a espera não foi medida — o conservador é
+      # não confiar num supervisor cuja espera ninguém sabe.
+      nao-medida)
+        meow_erro "não vou reciclar: o meow-painel.service está parado e a espera do cosmic-session não foi medida"
+        meow_info "  arme o supervisor do Meow primeiro: systemctl --user start meow-painel.service"
+        return "$MEOW_ERRO" ;;
       ''|*[!0-9]*) : ;;
       *) if [ "$espera" -gt 5000 ]; then
            meow_erro "não vou reciclar: o meow-painel.service está parado e o cosmic-session dormiria $(( espera / 60000 ))min"
@@ -285,7 +291,9 @@ estado() {
     printf 'desenhando  : sim\n'
   fi
   espera="$(meow_painel_espera_supervisor)"
-  if [ -n "$espera" ]; then
+  if [ "$espera" = "nao-medida" ]; then
+    printf 'supervisor  : reiniciou o painel, e a espera não foi medida (o formato do log mudou)\n'
+  elif [ -n "$espera" ]; then
     printf 'supervisor  : dormiria %s ms (%s min) antes de repor\n' "$espera" "$(( espera / 60000 ))"
   else
     printf 'supervisor  : nunca falhou neste boot\n'

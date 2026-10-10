@@ -104,7 +104,7 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 JANELAS_TILING="${JANELAS_TILING:-}"
 JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}"
 
-JANELAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/v1"
+JANELAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/$(meow_cosmic_v com.system76.CosmicComp)"
 JANELAS_ALVO_LIGADO="$JANELAS_BASE/autotile"
 JANELAS_ALVO_ESCOPO="$JANELAS_BASE/autotile_behavior"
 JANELAS_ALVO_PIN="$JANELAS_BASE/pinned_workspaces"

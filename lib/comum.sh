@@ -1030,6 +1030,52 @@ meow_cosmic_dir() {
   printf '%s' "${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 }
 
+# O ESQUEMA DE UM NAMESPACE DO COSMIC — 09/10/2026, P76
+#   O `v1` estava escrito à mão em cada escritor. O COSMIC migra esquema
+#   (medido em 09/10/2026 nesta máquina: `io.github.cosmic_utils.camera` tem
+#   `v20` e `v21`, o `clipboard-manager` tem `v2` e `v3`), e um escritor
+#   cravado em `v1` continua gravando, verde no doctor, numa pasta que ninguém
+#   lê mais. A verdade é o pacote: o maior `v<n>` em `/usr/share/cosmic/<ns>`.
+#   Namespace que o pacote não traz (o do terminal, o do relógio) fica em `v1`.
+#   O contrato inteiro está em `contratos/cosmic.tsv`.
+meow_cosmic_v() {
+  local n
+  n="$(ls -1 "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/$1" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1)"
+  printf 'v%s' "${n:-1}"
+}
+
+# A REVISÃO DO LIBCOSMIC QUE UM PACOTE DO COSMIC PINA — 09/10/2026, P76
+#   O sufixo do `Version` do pacote do Pop (`…~24.04~58aeb65`) é a revisão do
+#   upstream, e o `Cargo.lock` dela no GitHub diz o libcosmic que o pacote
+#   compilou. É por ela que o pré-voo, o oráculo do tema e os applets acompanham
+#   o COSMIC instalado (ou o candidato). Devolve o SHA completo; sem rede, ou
+#   sem `Cargo.lock`, sai 1 e não inventa. `MEOW_SEM_REDE=1` corta a pergunta.
+#   (Decisão aberta da pesquisa, §6.1: GitHub primeiro; o fonte do apt como
+#   reserva fica para quando o GitHub faltar de verdade.)
+meow_libcosmic_de() { # $1 repositório (cosmic-settings, cosmic-panel) $2 versão do pacote
+  local sha="${2##*~}" rev
+  [ "${MEOW_SEM_REDE:-0}" = "1" ] && return 1
+  rev="$(curl -sfL --max-time 20 "https://raw.githubusercontent.com/pop-os/$1/$sha/Cargo.lock" 2>/dev/null |
+    awk '/^name = "libcosmic"$/{f=1} f && /^source = /{sub(/.*#/,""); sub(/"$/,""); print; exit}')"
+  [ -n "$rev" ] || return 1
+  printf '%s' "$rev"
+}
+
+# O `cosmic-comp` QUE O PRÓXIMO LOGIN VAI RODAR — 09/10/2026, P76
+#   Com o shim do compositor ligado (`meow compositor ativar`), o binário
+#   patchado mora em `~/.local/libexec/meow/cosmic-comp/<versão>/`, e quem
+#   decide entre ele e o de fábrica é o próprio shim. Perguntar a ele
+#   (`MEOW_SHIM_SO_DIZER=1`) mantém a regra num lugar só. Sem shim, é o de
+#   `/usr/bin`, como sempre foi — e os verificadores que liam marcador lá
+#   continuam lendo o mesmo arquivo.
+meow_cosmic_comp_disco() {
+  local shim="$HOME/.local/bin/cosmic-comp"
+  if grep -qs -- MEOW-COSMIC-COMP-SHIM "$shim"; then
+    MEOW_SHIM_SO_DIZER=1 bash "$shim" 2>/dev/null && return 0
+  fi
+  printf '%s\n' /usr/bin/cosmic-comp
+}
+
 # --- TRAVA 1: territórios proibidos ----------------------------------------
 # Uma escrita fora de lugar aqui não dá erro: dá um sintoma bizarro dias depois.
 #

@@ -74,7 +74,8 @@
 MEOW_PAINEL_SH_CARREGADO=1
 
 MEOW_PAINEL_BASE="${MEOW_PAINEL_BASE:-$(meow_cosmic_dir)}"
-MEOW_PAINEL_COMP_BIN="${MEOW_PAINEL_COMP_BIN:-/usr/bin/cosmic-comp}"
+# P76: o disco que conta é o do próximo login (o build do shim, ou /usr/bin).
+MEOW_PAINEL_COMP_BIN="${MEOW_PAINEL_COMP_BIN:-$(meow_cosmic_comp_disco)}"
 MEOW_PAINEL_MARCA_RAIO="AURORA-COSMIC-RADIUS-PATCH"
 
 # --- a tabela de alturas ----------------------------------------------------
@@ -375,8 +376,25 @@ meow_painel_nossos() {          # imprime os PIDs dos painéis desta casa que N�
 # Isto é o gatilho adaptativo: se ele volta em segundos, deixamos com ele (e
 # ganhamos o applet de notificações, que só o socketpair dele fornece). Se vai
 # dormir horas, assumimos.
-meow_painel_espera_supervisor() {   # imprime ms, ou nada se ele nunca falhou
-  journalctl --user -b -t cosmic-session --no-pager 2>/dev/null \
+#
+# A FÓRMULA PODE DEIXAR DE SER MEDIDA — 09/10/2026, P76
+#   A regex lê uma frase de log do `cosmic-session`, e nada promete que ela
+#   fique igual (no 1.10 da fila ela é a mesma; a próxima versão pode não ser).
+#   Se a frase sumir, o silêncio da regex diria "o supervisor nunca falhou", e o
+#   `reciclar` derrubaria o painel confiando num supervisor que pode estar
+#   dormindo horas. Então o painel é procurado de um segundo jeito, por
+#   qualquer linha que fale em reiniciar o `cosmic-panel` (hoje:
+#   `restarted process '…cosmic-panel ', now at N restarts`). Houve reinício e a
+#   regex não casou: o formato mudou, e a saída é `nao-medida` — quem lê passa
+#   ao modo conservador, como se a espera fosse longa.
+meow_painel_espera_supervisor() {   # imprime ms; `nao-medida`; ou nada se ele nunca falhou
+  local log ms
+  log="$(journalctl --user -b -t cosmic-session --no-pager 2>/dev/null)"
+  ms="$(printf '%s\n' "$log" \
     | grep -oE 'sleeping for [0-9]+ms before restarting process cosmic-panel' \
-    | tail -1 | grep -oE '[0-9]+'
+    | tail -1 | grep -oE '[0-9]+')"
+  if [ -n "$ms" ]; then printf '%s\n' "$ms"; return 0; fi
+  if printf '%s\n' "$log" | grep -i 'cosmic-panel' | grep -qi 'restart'; then
+    printf 'nao-medida\n'
+  fi
 }

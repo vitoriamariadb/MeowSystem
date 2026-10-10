@@ -93,6 +93,15 @@ PORTATIL=(
   notas-de-funcao.sh     # COSMIC, packs, HOME e estado de brinquedo; as etapas do install.sh e os passos de ícone (P66); bash e python3
   frases-velhas.sh       # lê o que está versionado e pergunta ao git a idade da folha dos resgatados (P67); bash, git e python3
   pack-dracula-completo.sh # o pack Dracula completo e exportável, packs e HOME de brinquedo (P74); bash e python3
+  compositor-shim.sh     # shim do compositor com dpkg-query e binários falsos, HOME de brinquedo (P76); só bash
+  cosmic-prever.sh       # .deb e fontes de brinquedo do cosmic-comp, sem apt nem rede (P76); bash e dpkg-deb
+  pos-apt.sh             # pós-apt do COSMIC com dpkg-query e passos falsos, HOME de brinquedo (P76); só bash
+  volta-do-cosmic.sh     # guarda do .deb e do fonte com dpkg-query, apt e sudo falsos, HOME de brinquedo (P76); só bash
+  contrato-cosmic.sh     # /usr/share/cosmic e COSMIC de brinquedo com v2; seis escritores e o pré-voo (P76); bash e python3
+  oraculo-tema.sh        # saídas do oráculo guardadas em tests/oraculo/ contra a cópia em Python (P76); só python3
+  applet-pino.sh         # dois Cargo.lock falsos e um cargo falso; o leitura_build.sh num HOME de brinquedo (P76); só bash
+  escala-kdl.sh          # cosmic-randr falso com KDL fixo; só o saidas() do escala.sh (P76); só bash
+  backoff-do-supervisor.sh # journalctl falso com as duas formas do log do cosmic-session (P76); só bash
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
