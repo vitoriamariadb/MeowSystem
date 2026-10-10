@@ -6724,8 +6724,16 @@ class Trabalho:
         with self._lock:
             return list(self.linhas[n:]), len(self.linhas)
 
+    # VIVO É «AINDA SEM DESFECHO» — 10/10/2026, P80 (item 6). Era o
+    #   `proc.poll()`, e o `rc` e o `fim` só são gravados depois, pela thread
+    #   `_ler`. A página que perguntava nesse intervalo recebia `vivo: false`
+    #   com `rc: null`, e a gaveta de uma ação rápida terminava em «saiu null ·
+    #   0s» — o gate ficava intermitente (P79, integração da onda 2). Quem diz
+    #   que acabou é o desfecho gravado: o `fim` nasce depois do `rc`, então
+    #   `vivo()` falso traz sempre o código de saída. O `tests/trabalho-vivo.sh`
+    #   abre a janela de propósito.
     def vivo(self):
-        return self.proc.poll() is None
+        return self.fim is None
 
     def parar(self):
         if not self.vivo():
