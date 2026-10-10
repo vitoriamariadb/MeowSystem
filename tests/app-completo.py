@@ -3418,6 +3418,8 @@ EXCECOES = {
     "prompt_instalar_starship": "baixa e instala o starship da internet",
     "files_menu_build": "baixa e compila o cosmic-files (dezenas de minutos)",
     "spotify_baixar_tema": "baixa o tema do spicetify da internet",
+    # [P79, decisão 9: o gesto explícito na extensão que um pack importado pede.]
+    "vscode_instalar_extensao": "baixa e instala no VS Code a extensão que o pack importado pede",
 }
 
 
