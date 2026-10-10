@@ -7917,6 +7917,19 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._recusar(404, "não achei")
             tipo_mime = {".svg": "image/svg+xml", ".png": "image/png",
                          ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext_arq]
+            # O ARQUIVO DIZ O QUE ELE É, E NÃO SÓ O NOME — QA de uso real da
+            #   P80, 10/10/2026. O `feitos-a-mao/obsidian.png` do pack Dracula é
+            #   um SVG com nome de PNG (veio assim do Dracula_OS-Theme, ver o
+            #   PROCEDENCIA.md), e a ficha de ícone o mostrava quebrado: o
+            #   navegador recebia `image/png` e não achava PNG nenhum. O tema
+            #   de ícones não tropeça nisso (o carregador do GTK lê o começo do
+            #   arquivo), então a página passa a fazer o mesmo: um `.png` ou
+            #   `.jpg` que começa como XML de SVG sai como SVG. A cerca acima
+            #   não muda (extensão de imagem nas duas pontas, pasta de arte), e
+            #   o SVG sai com a CSP de imagem do `_responder`, que não roda nada.
+            comeco_svg = rb"\s*(<\?xml[^>]*>\s*)?((<!--.*?-->|<!DOCTYPE[^>]*>)\s*)*<svg[\s>]"
+            if ext_arq != ".svg" and re.match(comeco_svg, dados_arq[:4096].lstrip(b"\xef\xbb\xbf"), re.S):
+                tipo_mime = "image/svg+xml"
             # Pela porta única em vez de cinco send_header à mão. [2026-09-18]
             #   O `_responder` já põe Cache-Control: no-store, X-Content-Type-
             #   Options e X-Frame-Options; esta resposta artesanal punha só o
@@ -9779,6 +9792,15 @@ class Manipulador(BaseHTTPRequestHandler):
     @staticmethod
     def _rotulo_do_nome(glifo):
         """O nome do arquivo sem número na frente nem domínio invertido."""
+        # O ATALHO DE APP DO NAVEGADOR — QA de uso real da P80. O ícone de um
+        #   app instalado pelo Chrome se chama `chrome-<id>-<perfil>`, com o id
+        #   de 32 letras da extensão, e a biblioteca do Dracula traz dois deles
+        #   sem descrição no catálogo: o rótulo saía «Chrome ieicmdpib…
+        #   Default». O id não diz nada a quem lê; o navegador diz.
+        app_web = re.match(r"^(chrome|chromium|brave|msedge)-[a-p]{32}-\w+$", glifo, re.I)
+        if app_web:
+            return "App do " + {"msedge": "Edge"}.get(app_web.group(1).lower(),
+                                                      app_web.group(1).capitalize())
         nome = re.sub(r"^\d+[-_.]+", "", glifo) or glifo
         partes = [p for p in nome.split(".") if p]
         if len(partes) >= 3 and " " not in nome:
