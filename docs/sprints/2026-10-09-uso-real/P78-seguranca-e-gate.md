@@ -92,3 +92,15 @@ testes o extraem sem o lib. Medido com `\e]52;c;…\a`, `\e]0;…\a`, `\e[2J` e 
 `validar`, `info`, `listar`, `remover --seco`, `caminho`, `exportar` e `importar` (CLI e
 `/api/pack-importar`) — zero ESC cru. O nome de desenho que vai para aviso já passou pelo
 `meow_nome_seguro`; as recusas do pack.py citam o valor em `repr`.
+
+## Alertas de 10/10, 00:35 (revisão automática do 208bc89)
+
+1. **`lib/comum.sh` — `meow_texto_seguro` ainda deixa escapar.** O filtro por regex em bytes só
+   pega `\x9b` depois de ASCII: `\x9b\x9b`, `\xff\x9b`, `\xe2\x9b` truncado e os outros C1 crus de
+   8 bits (`\x90` DCS, `\x9d` OSC, `\x9e`, `\x9f`) passam quando não formam UTF-8 válido. Cura:
+   decodificar como UTF-8 com substituição (byte inválido vira `?`) e SÓ ENTÃO tirar C0, DEL e
+   C1 por ponto de código (U+0080–U+009F) — p.ex. `python3 -I -c` ou `iconv -c` + `sed`. Teste com
+   os quatro casos acima e com `ě` (`\xc4\x9b`), que tem que sobreviver.
+2. **`scripts/icones_pastas.sh` — controle que regrediu.** A revisão acusou que uma conferência
+   que existia antes da P78 ficou mais fraca no `2e16c94`/`68c8ab3`. Comparar linha a linha com
+   `af3159f` e devolver a conferência antiga junto com a regra nova (nada de trocar uma pela outra).
