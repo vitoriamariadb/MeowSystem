@@ -4089,6 +4089,10 @@ PROVEDORES = {
     # O argumento dos dois botões da pendência de tema de terceiro: os apps que
     # têm essa pendência na Home agora. [P53] Ver `SUFIXO_TEMA_DE_TERCEIRO`.
     "apps_de_terceiro": lambda: sorted({_app_da_pendencia(p["id"]) for p in pendencias()} - {""}),
+    # O argumento do «Instalar <extensão>» da pendência do VS Code: as extensões
+    # que o pack IMPORTADO no ar pede (decisão 9, P79). Pack do repositório dá
+    # lista vazia, e com ela nenhum botão e nenhum argumento aceito.
+    "extensoes_de_terceiro": lambda: _extensoes_de_terceiro(),
 }
 
 
@@ -5263,6 +5267,24 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "O tema de agora fica, e o MeowSystem para de perguntar "
                  "enquanto o programa estiver nele.",
+    },
+    # A EXTENSÃO DO VS CODE DE PACK IMPORTADO — decisão 9 (10/10/2026, P79)
+    #   Só o pack do `packs/` do repositório instala extensão sozinho; o
+    #   importado pede, e o módulo deixa a pendência
+    #   `vscode-extensao-de-terceiro`. Este é o gesto explícito NAQUELA
+    #   extensão: o argumento é uma das que o pack no ar pede
+    #   (`extensoes_de_terceiro`), e ele chega ao módulo pelo ambiente — o verbo
+    #   é o de sempre, `apps aplicar vscode`, como o do Spotify.
+    "vscode_instalar_extensao": {
+        "rotulo": "Instalar a extensão do VS Code",
+        "grupo": "Lançadores e jogos",
+        "natureza": "baixar",
+        "argv": _meow("apps", "aplicar", "vscode"), "arg": "extensoes_de_terceiro",
+        "ambiente": {"MEOW_VSCODE_EXTENSAO": "@ARG@"},
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Instala no VS Code a extensão que o pack importado pede. "
+                 "Extensão é código que roda a cada abertura do editor.",
     },
     # O TEMA DO SPOTIFY — 22/09/2026, sprint P2. É a ação para onde a pendência
     # `spicetify-tema-ausente` aponta. O argv é o verbo que já existia (`apps
@@ -6725,6 +6747,40 @@ ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar pelo tema do pack"),
                             ("apps_manter_o_meu", "Manter o meu"))
 
 
+# A EXTENSÃO DO VS CODE DE PACK IMPORTADO — decisão 9 (10/10/2026, P79). O id
+#   é o que o `assets/temas-de-apps/vscode/manifesto.sh` registra; as extensões
+#   saem do pack no ar, e só quando ele NÃO mora no `packs/` do repositório —
+#   a mesma régua do módulo, com os links resolvidos.
+PENDENCIA_EXTENSAO = "vscode-extensao-de-terceiro"
+RE_EXTENSAO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*\.[A-Za-z0-9][A-Za-z0-9-]*$")
+
+
+def _extensoes_de_terceiro():
+    """As extensões do VS Code que o pack importado no ar pede, ou []."""
+    mod = modulo_pack()
+    if not mod:
+        return []
+    vals = valores_efetivos(["PACK", "FLAVOR"])
+    try:
+        ident, dir_pack, _r = mod.adocao(vals.get("PACK") or "", vals.get("FLAVOR") or "")
+        dir_pack = dir_pack or mod.achar(ident) or ""
+    except Exception:
+        return []
+    do_repo = os.path.realpath(os.path.join(RAIZ, "packs"))
+    if not dir_pack or os.path.realpath(dir_pack).startswith(do_repo + os.sep):
+        return []
+    fora = []
+    for trilha in ("apps.vscode.origem.extensao", "apps.vscode-icones.origem.extensao"):
+        try:
+            quem, valor = mod.tema_de_app(trilha, ref=dir_pack)
+        except Exception:
+            continue
+        if quem == ident and isinstance(valor, str) and RE_EXTENSAO.match(valor) \
+                and valor not in fora:
+            fora.append(valor)
+    return fora
+
+
 def _app_da_pendencia(ident):
     """O app de uma pendência `<app>-tema-de-terceiro`, ou ''."""
     if not ident.endswith(SUFIXO_TEMA_DE_TERCEIRO):
@@ -6789,6 +6845,8 @@ def onde_na_tela(ident):
     if _app_da_pendencia(ident):
         return "%s, na aba %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_TEMA_DE_TERCEIRO),
                                   ABA_INICIO)
+    if ident == PENDENCIA_EXTENSAO:
+        return "«Instalar», na aba %s" % ABA_INICIO
     if ident == "inicio":
         return "na aba %s" % ABA_INICIO
     esquema = ler_esquema()
@@ -6834,18 +6892,29 @@ def pendencias():
                 #   dispararia um segundo build em cima do primeiro.
                 acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
                 app = _app_da_pendencia(ident) if comando else ""
+                escolha = [{"acao": a, "argumento": app, "rotulo": r}
+                           for a, r in ESCOLHA_TEMA_DE_TERCEIRO] if app else []
+                nome = ""
+                # Um botão por extensão que o pack importado pede (decisão 9,
+                # P79), com o selo de rede da ação; a lista vazia (o pack já é
+                # do repositório) não desenha botão nenhum.
+                if ident == PENDENCIA_EXTENSAO and comando:
+                    escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
+                                "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
+                    nome = "VS Code: extensão de pack importado"
+                rede = any(ACOES.get(a, {}).get("rede") for a in [acao] + [e["acao"] for e in escolha])
                 fora.append({
                     "id": ident, "etapa": etapa, "frase": frase,
                     "comando": comando, "quando": quando,
                     "acao": acao,
                     # Os dois lados da decisão, na ordem da frase. [P53]
-                    "escolha": [{"acao": a, "argumento": app, "rotulo": r}
-                                for a, r in ESCOLHA_TEMA_DE_TERCEIRO] if app else [],
+                    "escolha": escolha,
+                    "nome": nome,
                     "recusavel": ident in RECUSA_DA_PENDENCIA,
                     # O rótulo que os cartões de ação já usam. Sai da própria
                     # ação, e não de uma segunda lista aqui: duas verdades sobre
                     # o mesmo botão é como a pastilha "ACEITA SECO" mentiu antes.
-                    "rede": bool(ACOES.get(acao, {}).get("rede")),
+                    "rede": bool(rede),
                 })
     except OSError:
         return []
@@ -6979,11 +7048,16 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
         })
 
     argv = list(acao["argv"])
-    if "@ARG@" in argv:
+    # O ARGUMENTO PODE IR PELO AMBIENTE (P79): o gesto da extensão do VS Code
+    # roda o verbo de sempre e diz QUAL extensão numa variável. A cerca é a
+    # mesma — a lista do provedor —, e só o lugar do `@ARG@` muda.
+    amb_acao = dict(acao.get("ambiente", {}))
+    if "@ARG@" in argv or "@ARG@" in amb_acao.values():
         permitidos = PROVEDORES[acao["arg"]]()
         if argumento not in permitidos:
             return (None, "argumento fora da lista do disco: %r" % (argumento,))
         argv = [argumento if p == "@ARG@" else p for p in argv]
+        amb_acao = {k: (argumento if v == "@ARG@" else v) for k, v in amb_acao.items()}
     elif argumento:
         return (None, "esta ação não recebe argumento")
 
@@ -7002,7 +7076,7 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
                       "com cada chave no padrão, e por isso não roda")
     ambiente = _ambiente_do_painel(seco)
     ambiente.update(conf)
-    ambiente.update(acao.get("ambiente", {}))
+    ambiente.update(amb_acao)
     # DEPOIS do `ambiente` da ação, e de propósito: `MEOW_CONF` não é uma chave
     # do conf, é o ENDEREÇO dele. Quem o lê é o `CONF=` do `install.sh` (linha
     # 70), que o `etapa_conf_ler` sourceia com `set -a`, e o

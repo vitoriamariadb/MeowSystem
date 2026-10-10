@@ -1444,11 +1444,56 @@ saida="$(mod10 obsidian conferir noite dracula)$(mod10 obsidian aplicar noite dr
 [ "$rc" = 0 ] && [ "$(chamadas10)" = 1 ] && printf '%s' "$saida" | grep -q 'obsidian: Noite já aplicado' \
   || faltam+=" obsidian na segunda passada (rc=$rc, chamadas=$(chamadas10): $saida);"
 rm -f "$REDE10/.chamadas"
-saida="$(mod10 vscode aplicar noite dracula)"; rc=$?
+# DECISÃO 9 (10/10/2026, P79): o `noite` é pack IMPORTADO (mora no MEOW_PACKS,
+#   fora do `packs/` do repositório), e extensão é código que roda a cada
+#   abertura do editor. Sem o gesto, nada desce e nada é instalado: a extensão
+#   que ele pede fica dita numa pendência com botão, e o settings.json não muda.
+#   O gesto numa OUTRA extensão não vale por esta.
+antes_vsc="$(cat "$VSC10")"
+saida="$(mod10 vscode aplicar noite dracula)$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=outro.tema)"; rc=$?
+[ "$rc" = 3 ] && [ "$(chamadas10)" = 0 ] && [ ! -e "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
+  && [ "$(cat "$VSC10")" = "$antes_vsc" ] \
+  && grep -q '^vscode-extensao-de-terceiro	.*noite\.tema-noite' "$T10/estado/pendencias.tsv" 2>/dev/null \
+  || faltam+=" vscode instalou extensão de pack importado sem o gesto (rc=$rc, chamadas=$(chamadas10): $saida);"
+# O BOTÃO DO GESTO, NO PAINEL: a pendência traz um botão por extensão que o
+#   pack no ar pede, com o selo de rede; a ação só aceita uma extensão da lista
+#   e a entrega ao módulo pelo ambiente. Com o Dracula (do repositório) no ar a
+#   lista é vazia: pack do motor não precisa de gesto.
+gesto10() {  # <PACK> — imprime o que o painel diria; o trabalho não nasce
+  printf 'PACK="%s"\nFLAVOR="dracula"\n' "$1" > "$T10/gesto.conf"
+  env -i PATH="$PATH" HOME="$CASA10" XDG_DATA_HOME="$CASA10/.local/share" MEOW_PACKS="$PACKS10" \
+      MEOW_ESTADO="$T10/estado" MEOW_CONF="$T10/gesto.conf" \
+      python3 - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+nasceu = []
+servidor.Trabalho = lambda acao, argv, amb, rot, ao_terminar=None: nasceu.append((argv, amb)) or type("T", (), {"id": "x", "vivo": lambda s: False})()
+print("lista=" + ",".join(servidor.PROVEDORES["extensoes_de_terceiro"]()))
+for p in servidor.pendencias():
+    if p["id"] == "vscode-extensao-de-terceiro":
+        print("botoes=" + ",".join("%s:%s" % (e["acao"], e["argumento"]) for e in p["escolha"]))
+        print("rede=%s" % p["rede"])
+_t, erro = servidor.iniciar("vscode_instalar_extensao", "outro.tema", confirmado=True)
+print("fora=%s" % bool(erro))
+_t, erro = servidor.iniciar("vscode_instalar_extensao", "noite.tema-noite", confirmado=True)
+print("gesto=%s" % (nasceu[-1][1].get("MEOW_VSCODE_EXTENSAO") if nasceu else erro))
+PY
+}
+saida="$(gesto10 noite)"
+printf '%s\n' "$saida" | grep -qx 'lista=noite.tema-noite' \
+  && printf '%s\n' "$saida" | grep -qx 'botoes=vscode_instalar_extensao:noite.tema-noite' \
+  && printf '%s\n' "$saida" | grep -qx 'rede=True' && printf '%s\n' "$saida" | grep -qx 'fora=True' \
+  && printf '%s\n' "$saida" | grep -qx 'gesto=noite.tema-noite' \
+  || faltam+=" o painel não oferece o gesto da extensão ($saida);"
+saida="$(gesto10 dracula)"
+printf '%s\n' "$saida" | grep -qx 'lista=' || faltam+=" o pack do repositório pede gesto ($saida);"
+saida="$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=noite.tema-noite)"; rc=$?
 [ "$rc" = 1 ] && [ "$(chamadas10)" = 1 ] && [ -d "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
   && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" && grep -q '"workbench.iconTheme": "vs-seti"' "$VSC10" \
   && [ -z "$(ls -A "$T10/tmp")" ] \
-  || faltam+=" vscode aplicar (rc=$rc, chamadas=$(chamadas10): $saida);"
+  && ! grep -q '^vscode-extensao-de-terceiro	' "$T10/estado/pendencias.tsv" 2>/dev/null \
+  || faltam+=" vscode aplicar com o gesto (rc=$rc, chamadas=$(chamadas10): $saida);"
 saida="$(mod10 vscode conferir noite dracula)$(mod10 vscode aplicar noite dracula)"; rc=$?
 [ "$rc" = 0 ] && [ "$(chamadas10)" = 1 ] && printf '%s' "$saida" | grep -q 'VS Code: Noite Escura já no lugar' \
   || faltam+=" vscode na segunda passada (rc=$rc: $saida);"
@@ -1681,7 +1726,8 @@ faltam=""
 saida="$(mod10 vscode conferir noite dracula)"; rc=$?
 [ "$rc" = 1 ] && printf '%s' "$saida" | grep -q "tema-noite@0.9.0 não contribui o tema 'Noite Escura' (tem: Noite)" \
   || faltam+=" conferir com a versão velha (rc=$rc: $saida);"
-saida="$(mod10 vscode aplicar noite dracula)"; rc=$?
+# O `noite` é importado: o pacote pinado entra por cima só com o gesto (decisão 9).
+saida="$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=noite.tema-noite)"; rc=$?
 [ "$rc" = 1 ] && [ "$(chamadas10)" = 1 ] && [ -d "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
   && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" && [ -z "$(ls -A "$T10/tmp")" ] \
   || faltam+=" aplicar (rc=$rc, chamadas=$(chamadas10): $saida);"
@@ -1758,7 +1804,7 @@ printf '{\n    // o editor dela\n    "editor.fontSize": 14,\n    "workbench.icon
 faltam=""
 env -i PATH="$PATH" HOME="$CASA10" XDG_DATA_HOME="$CASA10/.local/share" MEOW_PACKS="$PACKS10" \
   python3 "$RAIZ/scripts/pack.py" validar torta >/dev/null 2>&1 && faltam+=" a torta de brinquedo passa no validar;"
-saida="$(mod10 vscode aplicar noite dracula)"; rc=$?
+saida="$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=noite.tema-noite)"; rc=$?
 [ "$rc" = 1 ] && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" \
   && grep -q '"workbench.iconTheme": "icones-dela"' "$VSC10" && grep -q '// o editor dela' "$VSC10" \
   || faltam+=" aplicar (rc=$rc, $(grep -o '"workbench.iconTheme": "[^"]*"' "$VSC10"): $saida);"

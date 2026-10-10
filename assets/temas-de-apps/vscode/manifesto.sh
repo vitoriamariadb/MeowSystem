@@ -635,7 +635,7 @@ _meow_vscode_backup() {
 #   como lá. A resposta é uma linha por campo, e por isso um valor com quebra
 #   de linha — que o pack de terceiro pode escrever — conta como ausente, e o
 #   nome de tela sai numa linha só: nenhum dos dois inventa um campo a mais.
-_VSC_EXT=""; _VSC_URL=""; _VSC_SHA=""; _VSC_ICONES=""; _VSC_ICONES_PACK=""; _VSC_EXT_ICONES=""
+_VSC_EXT=""; _VSC_URL=""; _VSC_SHA=""; _VSC_ICONES=""; _VSC_ICONES_PACK=""; _VSC_EXT_ICONES=""; _VSC_DO_REPO=""
 _meow_vscode_pack_no_ar() {
   local saida
   saida="$(PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
@@ -657,6 +657,13 @@ for chave, trilha in (("ext", "vscode.origem.extensao"), ("url", "vscode.origem.
     if chave == "icones":
         icones_pack = quem
 print("icones_pack=" + icones_pack)
+# DE ONDE O PACK VEIO — decisão 9 (10/10/2026, P79). Só o pack que mora no
+# `packs/` deste repositório instala extensão sozinho. A pasta é a que o
+# `adocao` escolheu (o padrão, quando nada escolheu), com os links resolvidos:
+# um pack importado com o MESMO id do Dracula, numa raiz de cima, é importado.
+dir_real = os.path.realpath(dir_pack or pack.achar(ident) or "")
+do_repo = os.path.realpath(os.path.join(pack.RAIZ, "packs"))
+print("repo=" + ("1" if dir_real.startswith(do_repo + os.sep) else "0"))
 PYFIM
 )" || return 1
   _MEOW_VSCODE_PACK="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
@@ -667,6 +674,7 @@ PYFIM
   _VSC_ICONES="$(printf '%s\n' "$saida" | sed -n 's/^icones=//p')"
   _VSC_ICONES_PACK="$(printf '%s\n' "$saida" | sed -n 's/^icones_pack=//p')"
   _VSC_EXT_ICONES="$(printf '%s\n' "$saida" | sed -n 's/^ext_icones=//p')"
+  _VSC_DO_REPO="$(printf '%s\n' "$saida" | sed -n 's/^repo=//p')"
   [ -n "$_MEOW_VSCODE_PACK" ]
 }
 
@@ -839,6 +847,20 @@ _meow_vscode_baixar_vsix() {
   return "$MEOW_OK"
 }
 
+# A PENDÊNCIA DA EXTENSÃO DE PACK IMPORTADO — decisão 9 (10/10/2026, P79). O id
+# é o que o `app/servidor.py` casa com os botões (um por extensão que o pack no
+# ar pede, «Instalar <id>»), e o comando é o que um terminal responde.
+_VSC_PENDENCIA_GESTO="vscode-extensao-de-terceiro"
+_meow_vscode_espera_gesto() {   # <extensão>...
+  local lista
+  lista="$(printf '%s, ' "$@")"; lista="${lista%, }"
+  meow_pendencia_acionavel "$_VSC_PENDENCIA_GESTO" \
+    "O pack importado $_MEOW_VSCODE_PACK_NOME pede a extensão $lista do VS Code: extensão é código, e de pack importado ela só entra pelo seu gesto" \
+    "MEOW_VSCODE_EXTENSAO=$1 meow apps aplicar vscode"
+  meow_app_sem "VS Code: a extensão $lista, do pack importado $_MEOW_VSCODE_PACK_NOME, espera o seu gesto"
+  meow_app_pendente vscode
+}
+
 # =============================================================================
 # CONTRATO — as três funções que o runner chama
 # =============================================================================
@@ -921,7 +943,7 @@ meow_app_aplicar() {
   # O if/else que MEDIA DE NOVO para adivinhar a causa saiu em 21/09/2026: com
   # duas dependências ele acertava, com a terceira teria virado o chute do
   # módulo do Spotify. Quem mediu foi o `detectar`, e é a palavra dele que sai.
-  meow_app_detectar || { meow_app_pendente vscode; return; }
+  meow_app_detectar || { meow_pendencia_resolvida "$_VSC_PENDENCIA_GESTO"; meow_app_pendente vscode; return; }
 
   # NOMES DE RETORNO SEPARADOS, E ISSO CUSTOU UM TESTE
   #   A primeira versão reaproveitava um único `rc` para a divergência do
@@ -946,10 +968,30 @@ meow_app_aplicar() {
     faltando+=("$MEOW_VSCODE_EXT_TEMA")
   fi
 
+  # A EXTENSÃO DE PACK IMPORTADO ESPERA O GESTO — decisão 9 (10/10/2026, P79)
+  #   Extensão é código que roda com a conta de quem usa a cada abertura do
+  #   editor, e o sha256 que o pack pina prova integridade, não confiança. Só o
+  #   pack do `packs/` deste repositório instala sozinho; o importado instala só
+  #   a extensão que o gesto nomeou (`MEOW_VSCODE_EXTENSAO`, que o botão da
+  #   pendência manda), e o resto fica dito na pendência, sem settings.json
+  #   novo: um tema apontado para uma extensão que não está lá é o editor no
+  #   padrão com o nome de outro na configuração.
+  local espera=() gesto="" e_min
+  if [ "${#faltando[@]}" -gt 0 ] && [ "$_VSC_DO_REPO" != "1" ]; then
+    gesto="$(printf '%s' "${MEOW_VSCODE_EXTENSAO:-}" | tr '[:upper:]' '[:lower:]')"
+    local vale=()
+    for ext in "${faltando[@]}"; do
+      e_min="$(printf '%s' "$ext" | tr '[:upper:]' '[:lower:]')"
+      if [ -n "$gesto" ] && [ "$e_min" = "$gesto" ]; then vale+=("$ext"); else espera+=("$ext"); fi
+    done
+    faltando=(${vale[@]+"${vale[@]}"})
+  fi
+  if [ "${#espera[@]}" = "0" ]; then meow_pendencia_resolvida "$_VSC_PENDENCIA_GESTO"; fi
+
   _meow_vscode_pares
   _meow_vscode_json conferir "$MEOW_VSCODE_SETTINGS" "${_VSC_PARES[@]}" >/dev/null 2>&1; rc_set=$?
 
-  if [ "${#faltando[@]}" = "0" ] && [ "$rc_set" = "0" ]; then
+  if [ "${#faltando[@]}" = "0" ] && [ "${#espera[@]}" = "0" ] && [ "$rc_set" = "0" ]; then
     meow_ok "VS Code: $(_meow_vscode_rotulo) já no lugar"
     return "$MEOW_OK"
   fi
@@ -962,7 +1004,10 @@ meow_app_aplicar() {
         meow_muda "instalaria a extensão $ext"
       fi
     done
-    if [ "$rc_set" != "0" ]; then
+    for ext in ${espera[@]+"${espera[@]}"}; do
+      meow_pula "a extensão $ext, do pack importado $_MEOW_VSCODE_PACK_NOME, espera o seu gesto"
+    done
+    if [ "$rc_set" != "0" ] && [ "${#espera[@]}" = "0" ]; then
       meow_muda "mudaria $MEOW_VSCODE_SETTINGS: $(_meow_vscode_pares_texto)"
     fi
     return "$MEOW_DIVERGENTE"
@@ -1010,6 +1055,12 @@ meow_app_aplicar() {
     meow_muda "extensão $ext instalada"
     mudou=1
   done
+
+  # A extensão que espera o gesto deixa o settings.json como está (ver acima).
+  if [ "${#espera[@]}" -gt 0 ]; then
+    _meow_vscode_espera_gesto "${espera[@]}"
+    return
+  fi
 
   # --- 2. settings.json (MERGE, nunca reescrita) ----------------------------
   if [ "$rc_set" != "0" ] || [ ! -f "$MEOW_VSCODE_SETTINGS" ]; then

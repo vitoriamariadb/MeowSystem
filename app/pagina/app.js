@@ -10098,7 +10098,10 @@ function montarPendencias() {
      * O id da dica sai do id da pendência, que é estável entre pinturas. */
     const acaoDela = p.acao ? (ESQUEMA.acoes || []).find((a) => a.id === p.acao) : null;
     const programa = ((p.escolha || [])[0] || {}).argumento || "";
-    const nome = acaoDela ? acaoDela.rotulo
+    /* [P79: a pendência da extensão de pack importado traz o nome pronto do
+     * servidor (`nome`), porque o argumento dos botões dela é a extensão, e
+     * não o programa.] */
+    const nome = p.nome ? p.nome : acaoDela ? acaoDela.rotulo
       : programa ? `${maiuscula(programa)}: tema de fora` : maiuscula(p.etapa || p.id);
     const linha = elemento("div", { class: "pendencia" });
     linha.append(elemento("div", { class: "pendencia-topo com-dica" }, [
@@ -10157,7 +10160,11 @@ function montarPendencias() {
      * manter em dia. */
     /* [P77: a pastilha «BAIXA DA INTERNET» em caixa alta virou o selo de rede,
      * o mesmo do cartão de ação; o nome vai no balão.] */
-    if (p.acao && p.rede) botoes.append(selo("rede", { balao: "Baixa da internet" }));
+    /* [P79, decisão 9: o botão da extensão de pack importado também baixa, e
+     * o `rede` vem da ação dele; o selo de pack diz de onde vem o pedido.] */
+    if ((p.acao || (p.escolha || []).length) && p.rede) botoes.append(selo("rede", { balao: "Baixa da internet" }));
+    if (p.id === "vscode-extensao-de-terceiro" && (p.escolha || []).length)
+      botoes.append(selo("pack", { balao: "Pedida por um pack importado: extensão é código de terceiro" }));
     /* SEM BOTÃO, A ORIGEM. Uma linha que não oferece nada precisa dizer de onde
      * veio, ou vira uma reclamação sem endereço. O nome da etapa é o endereço —
      * e desde a P77 ele já é o nome da linha, então o rodapé fica vazio. */
