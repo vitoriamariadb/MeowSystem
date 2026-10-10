@@ -53,3 +53,11 @@ confiável / execução de código). Um pack pode ser importado de terceiros: tu
 - **O filtro de nome do `_dracula_pares_do_mapa` fica no `awk`**, com o mesmo conjunto do
   `meow_nome_seguro`, porque três testes extraem a função verbatim e a rodam sem o lib/comum.sh.
   Se os testes passarem a carregar o lib, o `awk` pode chamar a regra única.
+
+## Alerta acrescentado em 10/10, 00:20 (revisão automática): injeção de escape de terminal em `bin/meow`
+
+Para o conferente: confirmar que o `68c8ab3` cobre TODO lugar do `bin/meow` (e de `lib/`,
+`scripts/`) que imprime texto vindo de pack, mapa, `.meowpack`, nome de arquivo ou conf — nome,
+autor, descrição, tags, nome de desenho, linha pulada. Regra: tirar `\x00-\x1f`, `\x7f` e
+`\x9b` (CSI de 8 bits) antes de imprimir, num helper só (`meow_texto_seguro`), e teste com um
+pack cujo `nome` tem `\e]52;c;…\a` (OSC 52 escreve no clipboard) e `\e[2J`.
