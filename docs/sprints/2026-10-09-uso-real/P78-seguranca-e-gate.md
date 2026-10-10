@@ -79,3 +79,16 @@ Para o conferente: confirmar que o `68c8ab3` cobre TODO lugar do `bin/meow` (e d
 autor, descrição, tags, nome de desenho, linha pulada. Regra: tirar `\x00-\x1f`, `\x7f` e
 `\x9b` (CSI de 8 bits) antes de imprimir, num helper só (`meow_texto_seguro`), e teste com um
 pack cujo `nome` tem `\e]52;c;…\a` (OSC 52 escreve no clipboard) e `\e[2J`.
+
+**Resposta da conferência (10/10).** Duas portas, e não uma lista de lugares: na ENTRADA, o
+`validar` recusa caractere de controle (C0, DEL, C1) em toda chave e valor do `pack.json` e da
+paleta, recusa o `pack.json` que não é UTF-8 (o `\x9b` solto), e o `ler_meowpack` recusa nome
+de entrada e linha de MANIFESTO com controle — então nome, autor, descrição, tags e flavor de
+pack que passa não carregam escape a lugar nenhum. Na SAÍDA, o que imprime texto de pack que
+NÃO passou pelo `validar` vai pelo `meow_texto_seguro` (lib/comum.sh): o `meow pack listar`
+(nome, id e pasta de todo pack da raiz) e o aviso de linha pulada do `icones_pastas.sh` e do
+`icones_mimetypes.sh`. O `_dracula_pares_do_mapa` troca por `?` no próprio `awk`, porque os
+testes o extraem sem o lib. Medido com `\e]52;c;…\a`, `\e]0;…\a`, `\e[2J` e `\x9b[2J`:
+`validar`, `info`, `listar`, `remover --seco`, `caminho`, `exportar` e `importar` (CLI e
+`/api/pack-importar`) — zero ESC cru. O nome de desenho que vai para aviso já passou pelo
+`meow_nome_seguro`; as recusas do pack.py citam o valor em `repr`.
