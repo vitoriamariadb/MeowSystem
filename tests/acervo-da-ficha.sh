@@ -214,6 +214,14 @@ tecnicos = sorted({it.get("rotulo") or "" for it in itens if TECNICO.search(it.g
                    or not it.get("rotulo")})
 checa(not tecnicos, "nenhum rótulo é nome técnico (número na frente, domínio invertido) nem vazio",
       repr(tecnicos[:8]))
+# O MESMO DESENHO, O MESMO NOME (conferência da P80): o `org.telegram.desktop`
+#   era «Telegram» na pasta do pack (comentário do apps.map) e «Desktop» nas do
+#   motor, onde só sobrava o nome do arquivo sem domínio; o `com.spotify.Client`,
+#   «Spotify» e «Client».
+for glifo, rotulo in (("org.telegram.desktop", "Telegram"), ("com.spotify.Client", "Spotify")):
+    deles = sorted({(it["grupo"], it.get("rotulo")) for it in itens if it["glifo"] == glifo})
+    checa(len(deles) > 1 and all(r == rotulo for _g, r in deles),
+          "«%s» se chama «%s» em toda pasta" % (glifo, rotulo), repr(deles))
 
 if falhas:
     print("FALHOU: o acervo da ficha de ícone:", file=sys.stderr)

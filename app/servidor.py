@@ -9704,8 +9704,17 @@ class Manipulador(BaseHTTPRequestHandler):
         # `_desenhos_do_pack_no_ar` diz (P60): é a lista do «Levar para o pack».
         pack, desenhos, _aviso = self._desenhos_do_pack_no_ar()
         do_mapa = {os.path.normpath(d["caminho"]): d for d in desenhos}
-        textos, rotulos = self._textos_da_busca(mod)
+        textos, rotulos, do_nome = self._textos_da_busca(mod)
         nomes_de_app = self._nomes_de_app()
+        # O MESMO DESENHO, O MESMO NOME — conferência da P80 (item 1). O
+        #   `org.telegram.desktop` era «Telegram» na pasta do pack, que tem a
+        #   linha do apps.map, e «Desktop» nas três do motor, onde só sobrava o
+        #   nome do arquivo sem o domínio (o último pedaço de um id invertido é
+        #   muitas vezes genérico: `Client`, `Desktop`, `Browser`). O nome de
+        #   app que a linha de um mapa dá vale para o arquivo de mesmo nome nas
+        #   outras pastas, antes do recurso ao nome do arquivo. Só o do mapa: a
+        #   descrição do catálogo diz o que AQUELE desenho é, e espalhada dava
+        #   «Rato» ao `mouse` de traço, que é o do computador.
         for g in mod.acervos_de_icone(_pack_adotado()):
             arquivos = g.pop("arquivos")
             g["total"] = len(arquivos)
@@ -9717,7 +9726,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 # FICHA", logo abaixo: o catálogo, o mapa, o `.desktop` e, sem
                 # nenhum, o próprio nome sem número nem domínio.
                 rotulo = (rotulos.get(os.path.normpath(caminho))
-                          or nomes_de_app.get(glifo.lower()) or self._rotulo_do_nome(glifo))
+                          or nomes_de_app.get(glifo.lower()) or do_nome.get(glifo.lower())
+                          or self._rotulo_do_nome(glifo))
                 item = {"glifo": glifo, "rotulo": rotulo, "grupo": g["id"], "tipo": g["tipo"],
                         "caminho": caminho,
                         "_texto": self._sem_acento(" ".join(
@@ -9795,10 +9805,13 @@ class Manipulador(BaseHTTPRequestHandler):
         return nomes
 
     def _textos_da_busca(self, mod):
-        """({caminho normalizado: [textos]}, {caminho normalizado: rótulo}): o que
-        a busca casa além do nome do arquivo, e o rótulo que a ficha mostra."""
+        """({caminho normalizado: [textos]}, {caminho normalizado: rótulo},
+        {nome do arquivo sem extensão, em minúsculas: nome do app}): o que a
+        busca casa além do nome do arquivo, o rótulo que a ficha mostra, e o
+        nome de app que as linhas dos mapas dão a cada nome de arquivo."""
         textos = {}
         rotulos = {}
+        do_nome = {}
         nomes_de_app = self._nomes_de_app()
 
         def junta(caminho, *partes):
@@ -9854,7 +9867,8 @@ class Manipulador(BaseHTTPRequestHandler):
                           or nomes_de_app.get(nome.strip().lower(), ""))
                 if rotulo:
                     rotulos.setdefault(os.path.normpath(caminho), rotulo)
-        return textos, rotulos
+                    do_nome.setdefault(os.path.splitext(os.path.basename(caminho))[0].lower(), rotulo)
+        return textos, rotulos, do_nome
 
     def _palpites_do_app(self, app):
         """Os textos que fazem um desenho ser «sugerido» para `app`: o id, o
