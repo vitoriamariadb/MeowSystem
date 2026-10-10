@@ -2366,7 +2366,21 @@ class Percurso:
             self.achar(nome).click()
         escolha.value.set_files(arquivo)
         if self.caixa_aberta(20):
-            self.pag.locator("#confirmar-ok").click()
+            # A RESPOSTA DO SERVIDOR É ESPERADA PELO NOME — 10/10/2026, P80
+            #   (integração). O pedido da instalação só nasce depois do `close`
+            #   da caixa, num salto assíncrono, e o evento dele chega ao Python
+            #   depois de o `assentar` olhar o `pedidos_vivos`: o contador
+            #   ainda dizia 0, o DOM ficava parado 400 ms com o `meow pack
+            #   importar` rodando, e o gate contava os cartões antes de o
+            #   servidor responder. Na segunda rodada seguida da suíte, com a
+            #   máquina carregada, a instalação passou da janela de 3 s do fim
+            #   do `assentar` e o gate saiu vermelho com o pack instalado (um
+            #   `sleep 4` na rota reproduz sempre). O teto é o do servidor, que
+            #   dá 120 s ao `importar`.
+            with self.pag.expect_response(
+                    lambda r: "/api/pack-importar" in r.url and r.request.method == "POST",
+                    timeout=130000):
+                self.pag.locator("#confirmar-ok").click()
             self.acionados.add("caixa · #confirmar-ok")
             self.assentar(quieto=400, teto=30000)
             if self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 + 1,
