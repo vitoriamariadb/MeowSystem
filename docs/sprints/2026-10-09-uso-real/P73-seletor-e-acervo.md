@@ -151,3 +151,18 @@ cita. A spec só nomeia `pastas/`, `gatos/` e `logo.svg`. O motivo é o mesmo da
   na P28, e com ela o nome que a busca casaria.
 - (QA de uso) O Discord resgatado (`apps/com.discordapp.Discord.svg`) é roxo-escuro sobre o
   fundo escuro da ficha e quase some na miniatura; é da arte, não do seletor.
+
+## Segurança (acrescentado às 18:40 de 09/10, revisão automática de segurança do commit d8e316a)
+
+Obrigatório para o conferente da P73, antes de dar o bloco por pronto:
+
+1. **Caminho e symlink** (`scripts/pack.py`, acervo da ficha): pastas e arquivos declarados no
+   `pack.json` de QUALQUER pack — inclusive um importado de terceiros — são resolvidos com
+   `realpath` e só valem se ficarem dentro da raiz do próprio pack (ou de `assets/icones/` para o
+   motor). Pasta que é symlink para fora, `../`, caminho absoluto: ignorados. Teste com um pack
+   malicioso (`desenhos: "../../../../etc"`, symlink para `~/.ssh`) que prova que nada sai.
+2. **SVG não confiável na mesma origem** (`app/servidor.py`): todo SVG/PNG de acervo é servido com
+   `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`,
+   `X-Content-Type-Options: nosniff`, e nunca embutido inline no DOM da página (só via `<img>`).
+   Teste com um SVG que tem `<script>` e `onload=` aberto direto pela URL: nada executa e o token
+   da sessão não vaza.

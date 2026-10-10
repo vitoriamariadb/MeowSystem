@@ -187,3 +187,30 @@ mapa trocado por `{}`, o backup sai com o `{}` e o mapa volta).
 - (QA) As bases do upstream declaram `32/actions`, que não existe, e não declaram `16/emblems` nem `24/emblems` (85 emblemas a 16 px fora do índice). É do upstream, copiado como veio.
 - (QA) A spec pede 230+ apps e saem 229: o 230 da pesquisa contava o `org.kde.ghostwriter.svg`, órfão de uma passada antiga (no HOME real ele é de 26/09); o `ghostwriter` hoje vem em traço pelo `48x48/apps`.
 - (QA) Na folha de contato, o `firefox` do tema é o traço do Arcticons em `blue` (o `apps-marca.map:151` já anota que devia ser `peach`), apagado ao lado dos círculos da base.
+
+## Segurança (acrescentado às 18:45 de 09/10, revisão automática de segurança, `scripts/pack.py`)
+
+Obrigatório para o conferente da P74: a revisão acusou *parser differential / path traversal*
+em `scripts/pack.py`, no código novo da base em camadas (commit 13929d4, `origem_pinada` e quem
+monta `<nossa>-Base-<n>`). Regra: um caminho vindo de `pack.json` (ou de uma origem pinada) é
+validado e USADO pela mesma forma normalizada — `os.path.realpath` contra a raiz permitida —,
+nunca validado como texto (regex, `startswith`, `split('/')`) e usado por outro parser (git,
+tar, shell). Nome de camada/pasta de destino só de um conjunto fechado (`[A-Za-z0-9._-]`, sem
+`..`). Teste com um pack malicioso (`"origem": {"caminho": "a/../../../../etc"}`, nome com `/`,
+symlink no checkout pinado) provando que nada é lido nem escrito fora da raiz.
+
+**Segundo alerta (18:50, commit c0b89b0, `scripts/icones_apps_dracula.sh`): path traversal.** As
+duas colunas de cada linha de `apps.map` (do pack, de pack importado e das escolhas do painel no
+estado do usuário) são dado não confiável: o nome do ícone de destino só de `[A-Za-z0-9._+-]`
+sem `/` nem `..`; o desenho de origem resolvido com `realpath` e aceito só dentro da raiz do pack
+(ou de `assets/icones/`). Linha que falha é pulada e contada no log, sem abortar o resto. Mesmo
+teste do pack malicioso, agora com `../../../../etc/passwd : x` e `x : ../../../.ssh/id_ed25519`.
+
+**Regra geral (18:55, quarto alerta, `scripts/som.sh`: symlink e caminho de pack de terceiro).**
+Vale para TODO script que lê de um pack (sons, ícones, mapas, temas de app, papéis de parede):
+tudo que vem de `packs/<id>/` é dado não confiável, porque um pack pode ser importado. Cada
+arquivo lido do pack: `realpath` dentro da raiz do pack, sem seguir symlink para fora
+(`find -P`, `cp -P`/`--no-dereference`, `[ -L ]` recusado ou resolvido e conferido); cada
+nome de destino de um conjunto fechado. O conferente faz um `grep` de todo `cp`, `ln`, `install`,
+`cat`, `tar` e `open()` sobre caminho vindo de pack nos arquivos que a P74 tocou e prova com o
+mesmo pack malicioso.
