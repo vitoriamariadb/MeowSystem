@@ -125,7 +125,7 @@ ICONES_BASE_MAPA="$(dirname "$MAPA")"
 #   linha recusada volta VAZIA em vez de voltar fora — e vazia não casa com
 #   arquivo nenhum, caindo no aviso "no mapa mas sem desenho no disco" que o
 #   `_dracula_instalar` já tem.
-_dracula_pares() {
+_dracula_pares_do_mapa() {
   [ -f "$MAPA" ] || return 1
   local cru
   # O CAMINHO É TUDO DEPOIS DO PRIMEIRO `:`, E NÃO O CAMPO 2 — 22/09/2026
@@ -180,6 +180,36 @@ _dracula_pares() {
             | python3 "$RAIZ/scripts/pack.py" alvo "$ICONES_BASE_MAPA")
 }
 
+# --- as escolhas do painel ----------------------------------------------------
+# A ESCOLHA MORA COM QUEM USA, E ESTE PASSO A PÕE NO TEMA — 09/10/2026, P73 (I3)
+#   Até a P73 o «Usar este ícone» do painel gravava a linha no `apps.map` do
+#   pack, dentro do clone (a regressão I3: `git status` sujo de tanto usar o
+#   programa). A escolha passou para o `icones-escolhidos.map`, ao lado do
+#   meow.conf, e quem a lê é o `pack.py escolhas` — o mesmo que o `fontes` usa
+#   para dizer que ela vence (ver "A ESCOLHA DO PAINEL MORA COM QUEM USA", lá).
+#   Este passo é o dono do `scalable/apps` para os mapas, então é ele quem a
+#   põe lá: com a camada do pack ligada ou não, porque a escolha foi feita à
+#   mão, app a app. O nome escolhido sai dos pares do pack, para não haver dois
+#   desenhos disputando o mesmo arquivo dentro de uma passada.
+_escolhas_pares() {
+  python3 "$RAIZ/scripts/pack.py" escolhas
+}
+
+_dracula_pares() {
+  local fora
+  fora="$(_escolhas_pares | cut -f1)"
+  _dracula_pares_do_mapa | awk -F'\t' -v fora="$fora" '
+    BEGIN { n = split(fora, f, "\n"); for (i = 1; i <= n; i++) if (f[i] != "") x[f[i]] = 1 }
+    !($1 in x)'
+}
+
+# O que este passo põe no tema: o mapa do pack (com a camada ligada) e as
+# escolhas do painel (sempre).
+_dracula_no_ar() {
+  [ "${ICONES_DRACULA:-nao}" = "sim" ] && _dracula_pares
+  _escolhas_pares
+}
+
 # --- instalar -----------------------------------------------------------------
 _dracula_instalar() {
   local rc=0 nome caminho origem
@@ -215,7 +245,7 @@ _dracula_instalar() {
       *) rc=2 ;;
     esac
     [ -f "$ALVO/$nome.svg" ] && no_tema+=("$nome"$'\t'"$origem")
-  done < <(_dracula_pares)
+  done < <(_dracula_no_ar)
   _dracula_registrar "${no_tema[@]}"
 
   if [ "${#faltando[@]}" -gt 0 ]; then
@@ -230,6 +260,9 @@ _dracula_instalar() {
     meow_ok "$postos desenho(s) do pack Dracula no tema"
     _dracula_avisar
     rc=1
+  elif [ "$rc" = "0" ] && [ "${ICONES_DRACULA:-nao}" != "sim" ]; then
+    # Com a camada desligada, este ramo só pôs as escolhas do painel (P73).
+    meow_ok "$(_escolhas_pares | grep -c .) escolha(s) do painel no tema"
   elif [ "$rc" = "0" ]; then
     # UMA LINHA MESMO QUANDO NADA MUDA, e o motivo é a tela do doctor: um `chk_`
     # que devolve 0 e não escreve nada vira `ok dracula` seguido de vazio, ao
@@ -542,7 +575,17 @@ _dracula_aplicar() {
   local rc_fora rc
   _dracula_sobras; rc_fora=$?
   if [ "${ICONES_DRACULA:-sim}" != "nao" ]; then _dracula_instalar
-  else _dracula_remover; fi
+  else
+    _dracula_remover; rc=$?
+    # AS ESCOLHAS DO PAINEL VALEM COM A CAMADA DESLIGADA (P73): o remover tira
+    # só o que o mapa do pack pôs, e o instalar, nesse caso, só as escolhas.
+    if [ -n "$(_escolhas_pares)" ]; then
+      local rc_e; _dracula_instalar; rc_e=$?
+      if [ "$rc_e" = "2" ] || [ "$rc" = "2" ]; then rc=2
+      elif [ "$rc_e" = "1" ]; then rc=1; fi
+    fi
+    ( exit "$rc" )
+  fi
   rc=$?
   if [ "$rc" = "2" ] || [ "$rc_fora" = "2" ]; then return 2; fi
   if [ "$rc" = "1" ] || [ "$rc_fora" = "1" ]; then return 1; fi

@@ -627,6 +627,9 @@ CENSO_JS = r"""
     ['.linha-orfa', 'jogo órfão', null],
     ['article.pack', 'cartão de pack', null],
     ['.pendencia', 'pendência', null],
+    /* [P73: o desenho que não vale no app fica na pasta, apagado, com o porquê
+       na dica — é outro papel, e o gesto dele é não fazer nada.] */
+    ['.tira-glifos button.travado', 'desenho travado', () => 'dica'],
     ['.tira-glifos button', 'desenho do acervo', () => 'escolher'],
     ['.cores-grade button[data-cor]', 'cor', () => 'escolher'],
     ['.oficina-folha button', 'variação', () => 'escolher'],
@@ -1958,6 +1961,16 @@ class Percurso:
                        "a história com Markdown hostil, plantada no pack padrão, foi "
                        "conferida no cartão dele")
         for i in range(min(3, self.quantos(nome))):
+            # [P73: as pastas da ficha de ícone podem nascer ABERTAS (a do pack
+            # no ar, a dos sugeridos). Aberta, ela é fechada antes, para o
+            # clique conferido ser o que abre; e volta aberta no fim, para os
+            # desenhos de dentro continuarem ao alcance do percurso.]
+            estava = False
+            if nome.startswith("ícone do aplicativo · abre"):
+                el = self.achar(nome, i)
+                estava = bool(el.locator("xpath=..").evaluate("(d) => d.open"))
+                if estava:
+                    el.click()
             antes = set(self.censo())
             el = self.achar(nome, i)
             el.click()
@@ -1980,6 +1993,8 @@ class Percurso:
             el = self.achar(nome, i)
             self.checa(el is not None and not el.locator("xpath=..").evaluate("(d) => d.open"),
                        "e fecha no segundo clique")
+            if estava and el is not None:
+                el.click()
             if novos:
                 break
 
@@ -2628,20 +2643,43 @@ class Percurso:
             if "edição do SVG" in n and "· abre «" not in n:
                 self.garantir_aberto("edição do SVG")
             self.acionar(n, limpar=False)
+        # [P73: o desenho que se escolhe mora numa PASTA, e a que abre sozinha
+        # (a primeira do pack no ar) pode ser toda de desenho travado neste
+        # aplicativo. Uma pasta com desenho que vale é aberta, e o «escolher»
+        # é acionado nela — o gesto de quem procura no acervo.]
+        escolher = "ícone do aplicativo › desenho do acervo · escolher"
+        if escolher not in self.acionados:
+            self.abrir_painel(nome)
+            pasta = self.pag.locator("#conteudo details.pasta-acervo:has(button:not(.travado))")
+            if pasta.count() and not pasta.first.evaluate("(d) => d.open"):
+                pasta.first.locator(":scope > summary").click()
+                self.assentar(quieto=300, teto=8000)
+            if self.achar(escolher) is not None:
+                self.acionar(escolher, limpar=False)
         for n in gravam[:3]:
             self.abrir_painel(nome)
+            if n == gravam[2]:
+                pasta = self.pag.locator("#conteudo details.pasta-acervo:has(button:not(.travado))")
+                if pasta.count() and not pasta.first.evaluate("(d) => d.open"):
+                    pasta.first.locator(":scope > summary").click()
+                    self.assentar(quieto=300, teto=8000)
             if self.achar(n) is not None:
                 self.acionar(n, limpar=False)
         # O «Desfazer» só existe quando o aplicativo tem desenho gravado — o que o
         # «Usar este ícone» acabou de fazer. Reaberto, ele tem de aparecer, e é
         # ele que devolve a raiz de brinquedo ao que era. (Aplicativo com trava
         # não oferece o «Usar»: aí não há o que conferir.)
+        # [P73: o «Desfazer» é o do traço ou o da escolha de desenho, conforme o
+        # desenho que o «Usar» conseguiu escolher; os dois tiram a linha do
+        # estado da casa.]
         if gravam[2] in novos:
             self.abrir_painel(nome)
-            if self.checa(self.achar(gravam[1]) is not None,
-                          "depois do «Usar este ícone», o painel oferece «Desfazer "
-                          "a escolha no traço»"):
-                self.acionar(gravam[1], limpar=False)
+            desfazer = next((n for n in ("ícone do aplicativo · Desfazer a escolha no traço",
+                                         "ícone do aplicativo · Desfazer a minha escolha")
+                             if self.achar(n) is not None), None)
+            if self.checa(desfazer is not None,
+                          "depois do «Usar este ícone», o painel oferece o «Desfazer» dela"):
+                self.acionar(desfazer, limpar=False)
         self.abrir_painel(nome)
         self.garantir_aberto("oficina")
         if self.achar(gravam[3]) is not None:
@@ -2793,27 +2831,52 @@ class Percurso:
         self.abrir_aba(self.aba)
 
     def h_usar_icone(self, nome):
-        """«Usar este ícone»: grava o mapa da raiz de brinquedo e repinta."""
+        """«Usar este ícone»: grava a escolha no estado da casa, e não na raiz.
+
+        [P73, 09/10/2026 (I3): até aqui a prova era «o mapa de ícones do
+        projeto muda» — e era a regressão. Usar o programa não pode sujar o
+        repositório: a escolha vai para `~/.config/meow/icones-*.map`.]"""
         # Sem desenho escolhido a página só diz "escolha um desenho primeiro":
-        # o gesto dela é escolher e depois usar.
+        # o gesto dela é escolher e depois usar — um que valha (sem trava), e
+        # visível (numa pasta aberta). O traço primeiro, como sempre foi.
         if not self.pag.locator("#conteudo .tira-glifos button[aria-pressed=true]").count():
-            self.pag.locator("#conteudo .tira-glifos button").first.click()
+            vale = self.pag.locator("#conteudo .tira-glifos button:not(.travado):not(.do-pack):visible")
+            if not vale.count():
+                vale = self.pag.locator("#conteudo .tira-glifos button:not(.travado):visible")
+            vale.first.click()
         antes, n0 = retrato(), len(self.posts)
         self.achar(nome).click()
         post = self.esperar_post(n0, teto=10)
-        self.checa(post and post[0] == "app-icone" and post[1].get("glifo"),
+        self.checa(post and post[0] == "app-icone" and (post[1].get("glifo") or post[1].get("arquivo")),
                    "«Usar este ícone» grava o desenho escolhido")
         self.assentar(quieto=300, teto=20000)
         self.esperar_trabalho()
-        self.checa(any(c.startswith("raiz/assets/icones/") for c in diferenca(antes, retrato())),
-                   "e o mapa de ícones do projeto (de brinquedo) muda")
+        mudou = diferenca(antes, retrato())
+        self.checa(any(c.startswith("casa/.config/meow/icones-") for c in mudou),
+                   "e a escolha vai para o estado da casa (~/.config/meow/icones-*.map)")
+        self.checa(not any(c.startswith(("raiz/assets/icones/", "raiz/packs/")) for c in mudou),
+                   "e a raiz (de brinquedo) não muda: " + ", ".join(
+                       c for c in mudou if c.startswith("raiz/"))[:200])
+
+    def h_travado(self, nome):
+        """O desenho travado não responde ao clique, e diz que não vale (P73)."""
+        el = self.achar(nome)
+        n0 = len(self.posts)
+        # O Playwright não clica no que tem `aria-disabled` (é o que o diz
+        # inativo); o clique vai pelo evento, como o de uma pessoa insistindo.
+        el.dispatch_event("click")
+        self.assentar(quieto=150, teto=4000)
+        el = self.achar(nome)
+        self.checa(el is not None and el.get_attribute("aria-disabled") == "true"
+                   and el.get_attribute("aria-pressed") != "true" and len(self.posts) == n0,
+                   "o desenho travado não fica marcado, nem grava nada, e diz que não vale")
 
     def h_voltar_icone(self, nome):
         antes, n0 = retrato(), len(self.posts)
         self.achar(nome).click()
         post = self.esperar_post(n0, teto=10)
         self.checa(post and post[1].get("remover") is True,
-                   "«Desfazer a escolha no traço» pede para tirar o desenho")
+                   f"«{nome.split(' · ')[-1]}» pede para tirar o desenho")
         self.assentar(quieto=300, teto=20000)
         self.esperar_trabalho()
         self.checa(diferenca(antes, retrato()), "e o mapa volta ao que era")
@@ -2962,7 +3025,9 @@ class Percurso:
             (r" › papel do desenho · seletor$", self.h_seletor_solto),
             (r"^ícone do aplicativo · filtro «", self.h_filtro_glifos),
             (r"^ícone do aplicativo · Usar este ícone$", self.h_usar_icone),
-            (r"^ícone do aplicativo · Desfazer a escolha no traço$", self.h_voltar_icone),
+            (r"^ícone do aplicativo · Desfazer a (escolha no traço|minha escolha)$",
+             self.h_voltar_icone),
+            (r"› desenho travado · dica$", self.h_travado),
             (r"oficina · deslizante «", self.h_oficina_regua),
             (r"edição do SVG · texto «", self.h_texto_svg),
             (r"edição do SVG · Abrir no editor$", self.h_editor_svg),
@@ -3020,16 +3085,22 @@ class Percurso:
         return caminho
 
     def h_filtro_glifos(self, nome):
+        # [P73: a busca casa também o nome do app no mapa e o significado no
+        # catálogo, então um achado pode não ter o termo no NOME do arquivo. O
+        # que se cobra é que ela filtra (menos que antes) e acha o desenho de
+        # cujo nome o termo saiu.]
         tira = self.pag.locator("#conteudo .tira-glifos button")
         n0 = tira.count()
-        termo = (tira.first.get_attribute("data-glifo") or "")[:4] if n0 else ""
+        primeiro = (tira.first.get_attribute("data-glifo") or "") if n0 else ""
+        termo = primeiro[:4]
         if not self.checa(termo, "a tira tem desenhos para buscar"):
             return
         self.achar(nome).fill(termo)
         self.assentar(quieto=400, teto=10000)
         achados = tira.evaluate_all("(bs) => bs.map((b) => b.dataset.glifo)")
-        self.checa(achados and all(termo in g for g in achados),
-                   f"buscar {termo!r} deixa só os desenhos que o têm no nome "
+        self.checa(achados and len(achados) < n0 and primeiro in achados
+                   and sum(termo in g.lower() for g in achados) * 2 >= len(achados),
+                   f"buscar {termo!r} filtra a tira e acha {primeiro!r} "
                    f"({len(achados)} de {n0})")
         el = self.achar(nome)
         if el is not None:
@@ -3745,10 +3816,17 @@ INVENTARIO = {
 # daqui tem de APARECER na corrida e ser ACIONADA; a que some reprova.
 # O painel que o clique num aplicativo abre é o mesmo nas duas grades (Ícones
 # e o ícone de cada jogo, em Lançadores).
+# [P73, 09/10/2026: a ficha ganhou as pastas por acervo (`abre «…»`, uma por
+# pasta), o desenho travado (apagado, com a dica) e os dois «Desfazer» — o do
+# traço e o da escolha de desenho, ambos no estado de quem usa. O molde
+# `Desfazer a *` cobre os dois: qual aparece depende do desenho que o percurso
+# conseguiu escolher no aplicativo da máquina.]
 PAINEL_DO_APLICATIVO = _linhas("""
     ícone do aplicativo · Adicionar ícone
     ícone do aplicativo · Usar este ícone
-    ícone do aplicativo · Desfazer a escolha no traço
+    ícone do aplicativo · Desfazer a *
+    ícone do aplicativo · abre «*»
+    ícone do aplicativo › desenho travado · dica
     ícone do aplicativo · filtro «Buscar desenho»
     ícone do aplicativo › cor · escolher
     ícone do aplicativo › desenho do acervo · escolher

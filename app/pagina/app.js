@@ -2846,11 +2846,22 @@ function gradeDeIcones(limite = 24) {
  * `assets/icones/apps-arcticons.map` DO REPOSITÓRIO — é o que faz ela
  * sobreviver a uma reinstalação, e é o que "atuar no repo local" quer dizer.
  * O desenho escolhido, se ainda não estava no repositório, vem junto do acervo
- * Arcticons (21 mil) para `assets/icones/arcticons-apps/`. */
+ * Arcticons (21 mil) para `assets/icones/arcticons-apps/`.
+ * [09/10/2026, P73: deixou de ser assim. Usar o programa não pode sujar o
+ * repositório (P21), e as escolhas vão para o estado de quem usa, ao lado do
+ * meow.conf — `icones-traco.map` e `icones-escolhidos.map`. Ver "AS ESCOLHAS
+ * DE ÍCONE DO PAINEL MORAM COM QUEM USA", no app/servidor.py.] */
 let APPS = null;
 let APPS_BUSCA = "";
 let APP_ABERTO = null;
 let GLIFOS = { termo: null, itens: [], carregando: false };
+/* AS PASTAS ABERTAS SOBREVIVEM AO `render()` — P73. A página se repinta a cada
+ * clique, e um `<details>` aberto à mão nasceria fechado de novo no clique
+ * seguinte (o mesmo defeito que a oficina já teve, ver `OFICINA`). Guarda-se o
+ * id do grupo; sem nada guardado, abre a primeira pasta do pack no ar. */
+const PASTAS_ABERTAS = new Map();
+/* A repintura da ficha que está na tela (ver "A TIRA SOBREVIVE À REPINTURA"). */
+let PINTAR_FICHA = null;
 
 async function carregarApps() {
   const r = await api("/api/apps");
@@ -2874,8 +2885,9 @@ async function carregarGlifos(termo, app) {
    * pack que a ficha pode oferecer, e a `escolha` é a do painel no mapa dele
    * para ESTE aplicativo (P64, `_api_glifos`): por isso a busca é por
    * aplicativo, e não só por termo. */
-  GLIFOS = { termo, app, itens: r.glifos || [], carregando: false, limitado: r.limitado,
-             aviso: r.aviso || "", pack: r.pack || null, escolha: r.escolha || null };
+  GLIFOS = { termo, app, itens: r.glifos || [], grupos: r.grupos || [], carregando: false,
+             aviso: r.aviso || "", pack: r.pack || null, escolha: r.escolha || null,
+             minha: r.minha || null };
   render();
 }
 
@@ -2967,10 +2979,11 @@ function gradeDeApps(apps, filtro, recarregar) {
       title: `${a.id}  ·  ${a.origem}`,
       onclick: () => {
         APP_ABERTO = APP_ABERTO === a.id ? null : a.id;
-        /* A busca começa pelo nome do aplicativo — é o palpite certo na maioria
-         * das vezes ("Telegram" acha `telegram`). Quando não acha nada, o
-         * `montarEscolhaDeIcone` cai para o acervo do repositório, para a
-         * fileira nunca abrir vazia.
+        /* [Até 09/10/2026 a busca começava pelo nome do aplicativo — "o palpite
+         * certo na maioria das vezes". Medido na P73: era filtro, e não
+         * palpite — 18 de 38 apps abriam com zero opções, e «google» nunca
+         * mostrava a biblioteca. A ficha abre SEM busca, com o acervo inteiro
+         * em pastas, e o palpite virou o `sugerido` que o servidor marca.]
          * ABRIR PERGUNTA DE NOVO — 25/09/2026, P64. A busca guardada respondia
          * ao mesmo termo e ao mesmo aplicativo sem ir ao servidor, e a
          * `escolha` no pack que vem nela muda com os botões da própria ficha,
@@ -2978,7 +2991,7 @@ function gradeDeApps(apps, filtro, recarregar) {
          * escolha no pack» da escolha que acabou de ser feita. */
         if (APP_ABERTO) {
           GLIFOS = { termo: null, itens: [], carregando: false };
-          carregarGlifos(a.nome.split(/\s+/)[0].toLowerCase(), a.id);
+          carregarGlifos("", a.id);
         }
         render();
       },
@@ -3009,18 +3022,44 @@ function gradeDeApps(apps, filtro, recarregar) {
        * hex desse slot na paleta do pack no ar (o `icones_apps_arcticons.sh`
        * lê o `meow_paleta` no FLAVOR), e o nome sai do mesmo hex (`nomeDaCor`),
        * como nos botões da «Cor de destaque». */
-      a.dracula
-        ? elemento("span", { class: "app-marca app-dracula", texto: "Dracula" })
-        : (a.mapa || a.traco)
-        ? elemento("span", { class: "app-marca",
-                             texto: nomeDaCor((a.mapa || a.traco).cor, flavorEmVigor()) })
-        : elemento("span", { class: "app-marca app-fabrica",
-                             texto: a.nosso ? "nosso" : "de fábrica" }),
+      /* A ORIGEM VIRA SELO, E A PALAVRA VAI PARA A DICA — 09/10/2026, P73
+       * (achado 24 de 09/10). A grade misturava quatro origens escritas em
+       * palavra («Dracula», «rosa», «nosso», «de fábrica»), e para quem usa
+       * uns «acionavam o tema» e outros não, sem razão visível. «Sem texto na
+       * interface; no máximo vira dica.» Agora cada origem tem uma FORMA:
+       *   · escolha de quem usa — o anel cheio no acento;
+       *   · desenho do pack     — o losango no acento do pack;
+       *   · traço               — o ponto pintado com a cor dele (a cor É o
+       *                           dado; o nome dela vai para a dica);
+       *   · desenho nosso       — o quadrado de canto vivo;
+       *   · de fábrica          — o anel vazio.
+       * A regra de quem vence continua a de antes (o que está NA TELA). */
+      seloDaOrigem(a),
     ]);
     grade.append(fig);
     if (APP_ABERTO === a.id) grade.append(montarEscolhaDeIcone(a, recarregar));
   }
   return grade;
+}
+
+/* O selo da origem do ícone na grade — ver "A ORIGEM VIRA SELO", acima. */
+function seloDaOrigem(a) {
+  const traco = a.mapa || a.traco;
+  const [tipo, dica] = a.escolhido
+    ? ["escolha", "Escolhido por você nesta conta"]
+    : a.dracula
+    ? ["pack", "Desenho do pack no ar"]
+    : traco
+    ? ["traco", `Traço do MeowSystem, em ${nomeDaCor(traco.cor, flavorEmVigor())}`]
+    : a.nosso
+    ? ["nosso", "Desenho do MeowSystem"]
+    : ["fabrica", "De fábrica: nenhum acervo veste este app"];
+  const hex = traco && !a.escolhido && !a.dracula
+    ? ((ESQUEMA.paleta.flavors || {})[flavorEmVigor()] || {})[traco.cor] : "";
+  return elemento("span", {
+    class: `app-marca selo selo-${tipo}`, role: "img", "aria-label": dica, title: dica,
+    style: hex ? `--cor-do-selo:${hex}` : null,
+  });
 }
 
 function montarEscolhaDeIcone(app, recarregar) {
@@ -3064,13 +3103,22 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   `scalable/apps` do pack vence. O intocável é pedido dela, e a curadoria
    *   mora no mesmo `scalable/apps` do pack: esses dois travam o pack também, e
    *   o servidor os manda na `trava_pack` — a página não decide, lê.] */
-  const packNaFicha = !app.trava_pack && GLIFOS.app === app.id && !!GLIFOS.pack;
-  const comBusca = !app.trava || packNaFicha;
-  if (comBusca) painel.append(busca);
+  /* A TRAVA É ESTADO, E NÃO SUMIÇO — 09/10/2026, P73 (T4). Até aqui a trava
+   * escondia a busca (as duas travas, como no CosmicEdit) ou o grupo do pack
+   * (a `trava_pack`, em onze apps): o acervo sumia justo onde ela queria ver o
+   * que existe. Agora a busca e as pastas ficam sempre; o desenho que não
+   * valeria neste app aparece apagado, sem «Usar», e o porquê — a frase da
+   * trava, com o dono do ícone — vai para a dica. */
+  const comBusca = true;
+  painel.append(busca);
 
   /* O glifo do mapa do traço não é escolha que a ficha travada ofereça: ele
    * nem está na tira, e o «Usar este ícone» o mandaria para a recusa. */
-  let escolhido = app.mapa && !app.trava ? app.mapa.glifo : null;
+  /* A ESCOLHA MORA NA BUSCA, E NÃO NESTA CHAMADA — P73. A tira é reaproveitada
+   * entre repinturas (ver "A TIRA SOBREVIVE À REPINTURA", abaixo), e um botão
+   * dela que gravasse numa variável daqui gravaria na ficha de três cliques
+   * atrás. `GLIFOS.escolhido` é a da busca de agora; a `pintarFicha` é a da
+   * ficha que está na tela. */
   /* A COR DE ABERTURA VEM DOS DOIS MAPAS, E ISSO SÓ APARECEU NA FOTO — 09/09/2026
    *
    * Estava `app.mapa ? app.mapa.cor : ordem[0]`: quem tem desenho no acervo de
@@ -3105,75 +3153,140 @@ function montarEscolhaDeIcone(app, recarregar) {
    *
    *   [P64: e onde o TRAÇO não pode valer (`trava`), é o traço que sai da tira
    *   — cada grupo obedece à trava dele.] */
-  const chaveDe = (g) => (g.pack ? `pack:${g.pack}:${g.desenho}` : g.glifo);
-  const doPackNaBusca = GLIFOS.itens.some((g) => g.pack);
-  const itens = GLIFOS.itens.filter((g) => (g.pack ? !app.trava_pack : !app.trava));
-  const comPack = itens.some((g) => g.pack);
-  const itemEscolhido = () => itens.find((g) => chaveDe(g) === escolhido) || null;
-  const tiraGlifos = elemento("div", { class: "tira-glifos" });
-  const notaDaCor = elemento("p", { class: "frase", hidden: true });
-  const fraseDoFim = elemento("p", { class: "frase" });
+  /* A ESCOLHA É PELA CHAVE GRUPO|NOME — P73. A mesma pasta não repete nome,
+   * e o `google-chrome` do Dracula e o do Arcticons continuam distintos. */
+  const chaveDe = (g) => `${g.grupo}|${g.glifo}`;
+  const itens = GLIFOS.itens;
+  /* QUAL TRAVA VALE PARA QUAL DESENHO: o traço é do `48x48/apps`, e obedece à
+   * `trava`; o desenho que entra como está vai para o `scalable/apps`, e
+   * obedece à `trava_pack` (P60, P64). O PNG feito à mão ainda não é fonte (a
+   * decisão 2 de 09/10: ele entra no pack agora e vira vetor num lote
+   * conferido por RMSE), e o servidor manda o motivo dele no próprio item. */
+  const travaDe = (g) => g.trava || (g.tipo === "traco" ? app.trava : app.trava_pack) || "";
+  /* O traço que o app já veste abre marcado, como antes da P73 (`app.mapa`). */
+  const vestido = app.mapa && !app.trava
+    ? itens.find((g) => g.tipo === "traco" && g.glifo === app.mapa.glifo) : null;
+  /* A ESCOLHA DELA ABRE MARCADA — 09/10/2026, P73 (QA de uso). Desde a I3 a
+   * escolha mora no `icones-escolhidos.map` dela, e o servidor a manda em
+   * `minha`; só o traço abria marcado, e quem reabria a ficha não via qual
+   * desenho tinha escolhido — só o «Desfazer». Ela vence o traço porque é ela
+   * que vence no tema (`pack.py fontes`). O arquivo é a identidade da escolha. */
+  const daMinha = GLIFOS.app === app.id && GLIFOS.minha
+    ? itens.find((g) => g.arquivo === GLIFOS.minha.arquivo && !travaDe(g)) : null;
+  if (GLIFOS.escolhido === undefined) {
+    GLIFOS.escolhido = daMinha ? chaveDe(daMinha) : vestido ? chaveDe(vestido) : null;
+  }
+  const grupoDe = (id) => (GLIFOS.grupos || []).find((x) => x.id === id) || { id, acervo: "", nome: id };
+  const nomeDoPack = (g) => grupoDe(g.grupo).acervo;
+  const itemEscolhido = () => itens.find((g) => chaveDe(g) === GLIFOS.escolhido) || null;
+  /* A TIRA SOBREVIVE À REPINTURA — 09/10/2026, P73. A página se repinta a cada
+   * clique (uma cor, a oficina), e o `/previa` responde `no-store`: uma tira
+   * nova a cada repintura pedia DE NOVO cada miniatura das pastas abertas —
+   * medido com a biblioteca aberta, 469 pedidos para abrir e 342 a cada
+   * `render()`. Ela é montada uma vez por resposta da busca (e por estado de
+   * trava do app) e guardada na própria `GLIFOS`; a repintura a recoloca. */
+  const chaveDaTira = `${app.id}|${app.trava || ""}|${app.trava_pack || ""}`;
+  const reaproveita = !GLIFOS.carregando && GLIFOS.tira && GLIFOS.chaveDaTira === chaveDaTira;
+  const tiraGlifos = reaproveita ? GLIFOS.tira : elemento("div", { class: "tira-glifos" });
   const pintarGlifos = () => {
-    for (const b of tiraGlifos.querySelectorAll("button")) {
-      b.setAttribute("aria-pressed", String(b.dataset.escolha === escolhido));
+    for (const b of tiraGlifos.querySelectorAll("button[data-escolha]")) {
+      b.setAttribute("aria-pressed", String(b.dataset.escolha === GLIFOS.escolhido));
     }
     /* A COR NÃO VAI COM O DESENHO DO PACK, E A TELA DIZ: ele entra no tema com
      * as cores que tem (o pack declara `recolorir: false`, e nenhum passo o
      * recolore). E a escolha mora no pack, não no mapa do traço — a frase do
      * fim diz onde ela vale. */
+    /* [A FRASE VIROU ESTADO — 09/10/2026, P73 (QA de uso). Era um parágrafo
+     * embaixo do rótulo «Cor» a cada desenho marcado, e desde a P73 todo
+     * desenho que não é traço o acendia (e a escolha dela, que agora abre
+     * marcada, o acendia ao abrir a ficha). A fileira de cores se apaga, e a
+     * frase fica na dica dela: sem texto na tela.] */
     const g = itemEscolhido();
-    notaDaCor.hidden = !(g && g.pack);
-    notaDaCor.textContent = g && g.pack
-      ? `O desenho do pack «${g.grupo}» entra com as cores dele: a cor abaixo vale só para o traço.`
-      : "";
-    fraseDoFim.textContent = g && g.pack
-      ? `A escolha fica no pack «${g.grupo}»: vale com ele no ar, em toda máquina que instalar daqui.`
-      : "A escolha fica guardada no projeto: vale em toda máquina que instalar daqui.";
+    const semCor = !!(g && g.tipo !== "traco");
+    cores.className = "cores-grade" + (semCor ? " sem-efeito" : "");
+    porBalao(cores, semCor
+      ? `O desenho de «${nomeDoPack(g)}» entra com as cores dele: a cor vale só para o traço.`
+      : "");
   };
-  if (GLIFOS.carregando) {
+  const botaoDe = (g) => elemento("button", {
+    type: "button",
+    class: (g.tipo === "traco" ? "" : "do-pack") + (travaDe(g) ? " travado" : ""),
+    "data-glifo": g.glifo, "data-escolha": travaDe(g) ? null : chaveDe(g),
+    "aria-disabled": travaDe(g) ? "true" : null,
+    title: travaDe(g) || `${g.glifo} — ${grupoDe(g.grupo).acervo} · ${grupoDe(g.grupo).nome}`,
+    "aria-pressed": String(chaveDe(g) === GLIFOS.escolhido),
+    onclick: () => {
+      if (travaDe(g)) return;
+      GLIFOS.escolhido = chaveDe(g);
+      if (PINTAR_FICHA) PINTAR_FICHA();
+    },
+  }, [
+    elemento("img", { src: g.url, alt: "", loading: "lazy" }),
+    elemento("span", { texto: g.glifo }),
+  ]);
+  /* UMA PASTA POR ACERVO — 09/10/2026, P73 (T1). «Era pra aparecerem todos os
+   * Drácula feitos e todos os do MeowSystem feitos, numa pasta cada.» Cada
+   * grupo do servidor vira um `<details>` com o dono, a pasta e a conta; a
+   * miniatura só desce quando a pasta abre (`loading=lazy` dentro de um
+   * `<details>` fechado não busca nada). Com busca, abre toda pasta que achou
+   * alguma coisa. O nome do app não filtra: ele acende a faixa «sugeridos». */
+  const pasta = (id, cabeca, conta, filhos, abertaPadrao) => {
+    const aberta = PASTAS_ABERTAS.has(id) ? PASTAS_ABERTAS.get(id) : abertaPadrao;
+    /* O ESTADO É GRAVADO NO CLIQUE, E NÃO SÓ NO `toggle`: o `toggle` chega
+     * numa tarefa depois, e uma repintura no meio (a busca que responde)
+     * nasceria com o estado velho — a pasta aberta fechava sozinha. */
+    const resumo = elemento("summary", {
+      onclick: () => PASTAS_ABERTAS.set(id, !det.open),
+    }, [...cabeca, elemento("span", { class: "conta", texto: conta })]);
+    const det = elemento("details", { class: "pasta-acervo", "data-grupo": id }, [
+      resumo, elemento("div", { class: "grade-glifos" }, filhos),
+    ]);
+    det.open = aberta;
+    det.addEventListener("toggle", () => PASTAS_ABERTAS.set(id, det.open));
+    return det;
+  };
+  PINTAR_FICHA = pintarGlifos;
+  if (reaproveita) {
+    /* nada a montar: a tira de antes, com as pastas e as miniaturas dela */
+  } else if (GLIFOS.carregando) {
     tiraGlifos.append(elemento("p", { class: "sem-previa", texto: "Procurando…" }));
   } else if (!itens.length) {
-    /* [Revisão da P64: na ficha com a trava do traço, a tira só tem o pack, e
-     * o que vem a seguir são os desenhos dele — a frase não promete o acervo
-     * do projeto, que o traço filtrado não deixa aparecer.] */
-    const mostrando = app.trava && GLIFOS.pack
-      ? `os desenhos do pack «${GLIFOS.pack.nome}»`
-      : "o acervo que veio com o projeto";
     tiraGlifos.append(elemento("p", { class: "sem-previa",
-      texto: `Nenhum desenho com esse nome — mostrando ${mostrando}.` }));
-    /* Só quem tem busca na tela busca de novo: a ficha travada sem pack tem a
-     * tira sempre vazia, e pediria a busca vazia a cada repintura. */
-    if (GLIFOS.termo && comBusca) carregarGlifos("", app.id);
+      texto: GLIFOS.termo ? `Nenhum desenho casa com “${GLIFOS.termo}”.` : "Nenhum desenho no acervo." }));
   }
-  let grupoAntes = null;
-  for (const g of itens) {
-    const grupo = g.pack ? g.grupo : "";
-    if (comPack && grupo !== grupoAntes) {
-      tiraGlifos.append(elemento("div", { class: "rotulo-mini rotulo-da-tira",
-        texto: g.pack ? g.grupo : "Traço, na cor abaixo" }));
-    }
-    grupoAntes = grupo;
-    tiraGlifos.append(elemento("button", {
-      type: "button", class: g.pack ? "do-pack" : "",
-      "data-glifo": g.glifo, "data-escolha": chaveDe(g), title: `${g.glifo} — ${g.grupo}`,
-      "aria-pressed": String(chaveDe(g) === escolhido),
-      onclick: () => { escolhido = chaveDe(g); pintarGlifos(); },
-    }, [
-      elemento("img", { src: g.url, alt: "", loading: "lazy" }),
-      elemento("span", { texto: g.glifo }),
-    ]));
+  const sugeridos = reaproveita ? [] : itens.filter((g) => g.sugerido);
+  if (sugeridos.length) {
+    tiraGlifos.append(pasta("sugeridos",
+      [elemento("span", { class: "dono", texto: "Sugeridos" })],
+      String(sugeridos.length), sugeridos.map(botaoDe), true));
   }
-  if (comBusca) {
-    /* A trava do pack só fala quando a busca trouxe desenho do pack (ou o
-     * teria trazido, com a camada ligada): nos outros casos ela não explica
-     * nada que esteja na tela. */
-    if (app.trava_pack && (doPackNaBusca || GLIFOS.aviso)) {
-      painel.append(elemento("p", { class: "frase", texto: app.trava_pack }));
-    } else if (GLIFOS.aviso) {
-      painel.append(elemento("p", { class: "frase", texto: GLIFOS.aviso }));
-    }
-    painel.append(tiraGlifos);
+  const primeiraNoAr = (GLIFOS.grupos || []).find((x) => x.no_ar && x.achados);
+  for (const gr of reaproveita ? [] : GLIFOS.grupos || []) {
+    const deles = itens.filter((g) => g.grupo === gr.id);
+    if (!deles.length) continue;
+    const travaDaPasta = deles.every((g) => travaDe(g)) ? travaDe(deles[0]) : "";
+    tiraGlifos.append(pasta(gr.id,
+      [elemento("span", { class: "dono", texto: gr.acervo }),
+       elemento("span", { class: "nome-pasta", texto: gr.nome }),
+       /* O cadeado é desenho (CSS), e não palavra: a pasta inteira apagada
+        * diz «não vale aqui», e a dica diz por quê. */
+       travaDaPasta ? elemento("span", { class: "cadeado", role: "img", "aria-label": "travado",
+                                         title: travaDaPasta }) : null],
+      /* Com busca, a conta é a do que casou; sem busca, o total da pasta. */
+      String(GLIFOS.termo ? gr.achados : gr.total),
+      deles.map(botaoDe),
+      /* A pasta da escolha dela também abre: marcada e fechada não se vê. */
+      !!GLIFOS.termo || (!sugeridos.length && primeiraNoAr && primeiraNoAr.id === gr.id)
+        || (!!daMinha && daMinha.grupo === gr.id)));
   }
+  /* [Até a P73 a trava do pack e o `aviso` da camada desligada eram frases
+   * aqui, acima da tira. A trava foi para a dica de cada desenho (acima), e o
+   * `aviso` para a do «Levar para o pack», que é o único gesto que ele barra.] */
+  if (!reaproveita && !GLIFOS.carregando) {
+    GLIFOS.tira = tiraGlifos;
+    GLIFOS.chaveDaTira = chaveDaTira;
+  }
+  painel.append(tiraGlifos);
 
   const cores = elemento("div", { class: "cores-grade" });
   /* `ordem` e não `ordem_canonica`: o nome errado deixava a fileira de cores
@@ -3202,7 +3315,6 @@ function montarEscolhaDeIcone(app, recarregar) {
     }));
   }
   painel.append(elemento("div", { class: "rotulo-mini", texto: "Cor" }));
-  painel.append(notaDaCor);
   painel.append(cores);
 
   const acoes = elemento("div", { class: "escolha-botoes" });
@@ -3214,23 +3326,31 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   servidor (`trava`); a página só não oferece o que ele recusaria.
    *   [P64: com a trava do traço, a tira só tem o pack, e o botão fica para
    *   ele — ver o `comBusca`, lá em cima.] */
-  if (app.trava) painel.append(elemento("p", { class: "frase", texto: app.trava }));
-  if (comBusca) acoes.append(elemento("button", {
+  /* [A frase da `trava` saiu daqui na P73: ela é a dica dos desenhos que ela
+   * apaga, e o botão abaixo continua lá para os que valem.] */
+  /* Sem nenhum desenho que valha (as duas travas, como no CosmicEdit), o
+   * «Usar» não nasce: só o acervo, apagado, com a dica do dono. */
+  const algumVale = itens.some((g) => !travaDe(g));
+  if (comBusca && algumVale) acoes.append(elemento("button", {
     type: "button", class: "btn btn-accent", texto: "Usar este ícone",
+    /* A ESCOLHA FICA COM QUEM USA — 09/10/2026, P73 (I3). Até aqui ela ia para
+     * o repositório (o mapa do traço, ou o `apps.map` do pack); agora vai para
+     * o estado dela, ao lado do meow.conf, e o pack só recebe pelo «Levar para
+     * o pack». O porquê fica na dica, e não numa frase embaixo da ficha. */
+    title: "A escolha fica nesta conta; «Levar para o pack» a põe no pack",
     onclick: async () => {
-      if (!escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
-      /* O DESENHO DO PACK GRAVA NO MAPA DO PACK, E O PASSO É OUTRO — P60. A
-       * linha vai para o `apps.map` do pack no ar (o servidor diz por quê, no
-       * `_desenhos_do_pack_no_ar`), e quem põe aquele mapa no tema é o
-       * `icones_pack`, e não o `icones_traco`. A cor não vai junto. */
+      if (!GLIFOS.escolhido) { torrada("Escolha um desenho primeiro", "erro"); return; }
+      /* O DESENHO QUE ENTRA COMO ESTÁ VAI PARA O `scalable/apps`, E O PASSO É
+       * OUTRO — P60, e desde a P73 vale para toda pasta que não é traço: quem
+       * põe a escolha no tema é o `icones_pack`. A cor não vai junto. */
       const g = itemEscolhido();
-      if (g && g.pack) {
+      if (g && g.tipo !== "traco") {
         const r = await api("/api/app-icone", {
           method: "POST",
-          body: JSON.stringify({ app: app.id, pack: g.pack, desenho: g.desenho }),
+          body: JSON.stringify({ app: app.id, arquivo: g.arquivo }),
         });
         if (r.erro) { torrada(r.erro, "erro"); return; }
-        torrada(`${app.nome}: ${g.glifo}, do pack «${r.nome_pack}»`, "ok");
+        torrada(`${app.nome}: ${g.glifo}`, "ok");
         await rodarAcao("icones_pack");
         APP_ABERTO = null;
         await fimDoTrabalho();
@@ -3239,11 +3359,12 @@ function montarEscolhaDeIcone(app, recarregar) {
       }
       const r = await api("/api/app-icone", {
         method: "POST",
-        body: JSON.stringify({ app: app.id, glifo: escolhido, cor: corEscolhida }),
+        body: JSON.stringify({ app: app.id, glifo: g ? g.glifo : "", arquivo: g ? g.arquivo : "",
+                               cor: corEscolhida }),
       });
       if (r.erro) { torrada(r.erro, "erro"); return; }
       torrada(
-        `${app.nome}: ${escolhido} em ${corEscolhida}`
+        `${app.nome}: ${r.glifo} em ${corEscolhida}`
         + (r.trouxe_do_acervo ? " — o desenho entrou no projeto" : "")
         /* "ALIAS" SAIU — 09/09/2026. É a palavra do arquivo de mapa para
          * "este programa reaproveita o desenho de outro"; na torrada ela
@@ -3260,12 +3381,17 @@ function montarEscolhaDeIcone(app, recarregar) {
        *   servidor). Agora o clique grava e roda o passo certo: a gaveta abre
        *   com a saída, e o script relê a dock e o menu no fim. */
       await rodarAcao("icones_traco");
+      /* O traço tirou a escolha de desenho deste app (conferência da P73): é o
+       * passo do pack que tira o desenho do `scalable/apps`, que vence o traço. */
+      if (r.tirou_escolha) { await fimDoTrabalho(); await rodarAcao("icones_pack"); }
       APP_ABERTO = null;
       await fimDoTrabalho();
       await relerLista();
     },
   }));
-  if (app.mapa) {
+  /* Só a escolha DE QUEM USA se desfaz daqui (P73): a linha do mapa do
+   * projeto é curadoria do repositório, e não sai por um clique. */
+  if (app.mapa && app.mapa.meu) {
     acoes.append(elemento("button", {
       /* "MAPA" ERA O NOME DO ARQUIVO (apps-arcticons.map), não do que o botão
        * faz — 09/09/2026. Ele desfaz a escolha e devolve o ícone de fábrica,
@@ -3307,6 +3433,47 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   antes —, ou tira a do painel, quando o pack não tinha nenhuma. A busca
    *   diz se há o que desfazer (`GLIFOS.escolha`, do `_api_glifos`), e o botão
    *   só nasce com ela, como o do traço só nasce com o `app.mapa`. */
+  /* A MINHA ESCOLHA DE DESENHO, E O GESTO QUE A LEVA AO PACK — P73 (I3). O
+   * «Desfazer» tira a linha do estado de quem usa; o «Levar para o pack» só
+   * nasce quando o desenho é do pack no ar, e grava no mapa dele — o gesto
+   * explícito que a P21 pedia («gravar no pack só por gesto, não por uso»).
+   * Com a camada do pack desligada ele fica apagado, e o porquê na dica. */
+  const minha = GLIFOS.app === app.id ? GLIFOS.minha : null;
+  if (minha) {
+    acoes.append(elemento("button", {
+      type: "button", class: "btn", texto: "Desfazer a minha escolha",
+      onclick: async () => {
+        const r = await api("/api/app-icone", {
+          method: "POST", body: JSON.stringify({ app: app.id, escolha: true, remover: true }),
+        });
+        if (r.erro) { torrada(r.erro, "erro"); return; }
+        torrada(`${app.nome} fica com ${r.fica.frase}`, "ok");
+        await rodarAcao("icones_pack");
+        APP_ABERTO = null;
+        await fimDoTrabalho();
+        await relerLista();
+      },
+    }));
+    if (minha.pack && minha.desenho) {
+      acoes.append(elemento("button", {
+        type: "button", class: "btn", texto: "Levar para o pack",
+        disabled: !!GLIFOS.aviso,
+        title: GLIFOS.aviso || "Grava no pack: vale em toda máquina que instalar daqui",
+        onclick: async () => {
+          const r = await api("/api/app-icone", {
+            method: "POST",
+            body: JSON.stringify({ app: app.id, pack: minha.pack, desenho: minha.desenho }),
+          });
+          if (r.erro) { torrada(r.erro, "erro"); return; }
+          torrada(`${app.nome}: ${minha.glifo}, no pack «${r.nome_pack}»`, "ok");
+          await rodarAcao("icones_pack");
+          APP_ABERTO = null;
+          await fimDoTrabalho();
+          await relerLista();
+        },
+      }));
+    }
+  }
   const escolhaNoPack = GLIFOS.app === app.id ? GLIFOS.escolha : null;
   if (escolhaNoPack) {
     acoes.append(elemento("button", {
@@ -3339,7 +3506,9 @@ function montarEscolhaDeIcone(app, recarregar) {
    * [P60: com um desenho do pack marcado, a frase diz que a escolha mora no
    * pack e vale com ele no ar — ver o `pintarGlifos`, que a escreve.] */
   pintarGlifos();
-  if (comBusca) painel.append(fraseDoFim);
+  /* [A frase do fim saiu na P73: ela dizia «a escolha fica guardada no
+   * projeto», e deixou de ser verdade; onde a escolha mora é a dica do «Usar
+   * este ícone».] */
   return painel;
 }
 

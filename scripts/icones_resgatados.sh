@@ -119,9 +119,12 @@ declare -A DESKTOP_ABSOLUTO=(
 #   ambiente, exportado com o meow.conf), e daqui só se lê o que ele deu ao
 #   pack. O preço é uma partida de `python3` também com a camada desligada
 #   (medido em 24/09: 50 ms com o Catppuccin, 60 ms com o Dracula).
+#   [09/10/2026, P73: a escolha do painel (camada `escolha` do `fontes`) é
+#   cedida como o pack — ela mora no estado de quem usa e vence os dois, e
+#   quem a põe no tema é o `icones_apps_dracula.sh`.]
 _resgatados_cedidos() {
   MEOW_PACK_DIR="$(meow_pack_dir)" python3 "$RAIZ/scripts/pack.py" fontes 2>/dev/null \
-    | awk -F'\t' '$3 ~ /^pack:/ { print $1 }'
+    | awk -F'\t' '$3 ~ /^pack:/ || $3 == "escolha" { print $1 }'
 }
 
 _resgatados_nomes() {

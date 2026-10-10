@@ -211,7 +211,15 @@ declare -A AUTORAL=(
   # cabeçalho de `meowsystem_painel()`, em `gerar_icones_autorais.py`, conta por
   # que um ícone escrito hoje nasce no padrão que ela definiu em 11/08/2026 e
   # não no chapado dos vizinhos de tabela.
-  [com.meowsystem.Painel]="meowsystem-painel-$FLAVOR.svg"
+  #
+  # O LANÇADOR VESTE O LOGO DO PACK NO AR — 09/10/2026, P73 (I9). Pedido de
+  # 21/09: «precisa usar um svg pra cada logo do theme pack, o icon do menu de
+  # lançamento». A P25 desenhou um `logo.svg` por pack e o docs/PACKS.md
+  # admitia «o ícone do lançador ainda não é o logo». Agora é: quem resolve é o
+  # verbo `logo` do pack.py (o mesmo do cartão do pack), com as cores do flavor
+  # e do acento em vigor. O desenho autoral `meowsystem-painel-<flavor>.svg`
+  # continua como a rede, para o pack sem logo ou com o logo recusado.
+  [com.meowsystem.Painel]="__LOGO_DO_PACK__"
   [fogstripper]="fogstripper-$FLAVOR.svg"
   # EXCEÇÃO, a pedido dela: o Hefesto TEM logo própria, e foi ELA que desenhou
   # (~/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg — a bigorna
@@ -385,6 +393,21 @@ fi
 instalados=0
 for nome in "${!AUTORAL[@]}"; do
   fonte="$AUTORAIS/${AUTORAL[$nome]}"
+  # O LOGO DO PACK SAI PELO STDOUT DO `pack.py logo` (ele não escreve nada); a
+  # recusa — pack sem logo, logo com `<script>` — cai no desenho autoral.
+  if [ "${AUTORAL[$nome]}" = "__LOGO_DO_PACK__" ]; then
+    fonte="$AUTORAIS/meowsystem-painel-$FLAVOR.svg"
+    if logo_do_pack="$(python3 "$RAIZ/scripts/pack.py" logo "$_pack_ref" "$FLAVOR" "$ACCENT" 2>/dev/null)" \
+        && [ -n "$logo_do_pack" ]; then
+      meow_escrever "$ALVO/$nome.svg" "$logo_do_pack" 644
+      case $? in
+        1) mudou=1; instalados=$((instalados+1)) ;;
+        2) meow_erro "não consegui instalar $nome.svg"; exit "$MEOW_ERRO" ;;
+      esac
+      continue
+    fi
+    meow_info "o pack no ar não deu um logo — o lançador fica com o desenho autoral"
+  fi
   # A EXCEÇÃO: onde o mapa diz `__LOGO_DELA__`, a fonte é a logo que a Vitória
   # desenhou, no repositório do próprio app. Se ele não estiver no lugar (clone
   # ausente, disco não montado), cai no desenho gerado — o instalador não pode

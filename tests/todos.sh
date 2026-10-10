@@ -87,6 +87,7 @@ PORTATIL=(
   acento.sh              # COSMIC, pack e HOME de brinquedo; as etapas gerar e tema do install.sh; bash e python3
   vidro-do-cosmic.sh     # COSMIC, packs, HOME e TMPDIR de brinquedo; o alpha_map de 17/09 vai escrito no teste
   seletor-do-pack.sh     # cópia da árvore e HOME de brinquedo; as rotas da ficha e o passo do pack (P60); bash, git e python3
+  acervo-da-ficha.sh     # as rotas da ficha no processo, HOME de brinquedo; conta o disco e o git contra a ficha (P73); bash, git e python3
   variante.sh            # COSMIC, os dois packs e HOME de brinquedo; as etapas gerar, tema e modo (P59); bash e python3
   claro-do-pack.sh       # COSMIC, os dois packs e HOME de brinquedo; a foto só é lida (P63); bash e python3
   notas-de-funcao.sh     # COSMIC, packs, HOME e estado de brinquedo; as etapas do install.sh e os passos de ícone (P66); bash e python3

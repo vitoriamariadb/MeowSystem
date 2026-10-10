@@ -1964,7 +1964,10 @@ de quem mostra.
 
 ### O que ainda não existe, e ninguém deve ler como pronto
 
-- **O ícone do lançador ainda não é o logo.** A P25 pediu que o `.desktop` do
+- [**Feito em 09/10/2026, P73 (I9):** o `completar_icones.sh` instala o
+  `com.meowsystem.Painel` a partir do verbo `logo` do pack no ar, com o autoral
+  como rede. O parágrafo abaixo é o registro de antes.]
+  **O ícone do lançador ainda não é o logo.** A P25 pediu que o `.desktop` do
   MeowSystem apontasse para o logo do pack ativo. Medido em 23/09/2026: quem
   escreve aquele `.desktop` é o `scripts/atalho.sh` (`Icon=com.meowsystem.Painel`,
   um nome de tema, pelos motivos escritos lá), e quem instala o ícone com esse

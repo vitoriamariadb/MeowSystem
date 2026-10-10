@@ -676,8 +676,9 @@ printf '%s\n' \
   > "$mapa_t"
 pares="$(MAPA="$mapa_t" ICONES_BASE_MAPA="$base_mapa" RAIZ="$RAIZ" bash -c '
   set -uo pipefail
-  eval "$(sed -n "/^_dracula_pares() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
-  _dracula_pares' 2>/dev/null)"
+  # [P73: o parser do shell é o `_dracula_pares_do_mapa`; ver o tests/fonte-unica.sh.]
+  eval "$(sed -n "/^_dracula_pares_do_mapa() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
+  _dracula_pares_do_mapa' 2>/dev/null)"
 esperado_p="um.motor	$RAIZ/assets/icones/arcticons/telegram.svg
 dois.pack	$base_mapa/apps/Warehouse.svg
 tres.comentario	$base_mapa/apps/Warehouse.svg"

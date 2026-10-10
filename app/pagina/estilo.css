@@ -2172,6 +2172,17 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
  * traz de 6 a 10 cores próprias. Então a etiqueta é o NOME do acervo, e o
  * mauve a separa das outras, que são todas nome de cor da paleta. */
 .app-dracula { color: var(--mauve); }
+/* O SELO DA ORIGEM — 09/10/2026, P73 (achado 24). A palavra saiu da grade e
+ * virou forma; o nome vai para a dica (`title`, pelo balão). Cinco formas, de
+ * propósito distintas também sem cor (o daltônico lê a forma): anel cheio,
+ * losango, ponto, quadrado e anel vazio. A cor do ponto do traço é a do próprio
+ * traço (`--cor-do-selo`, a cor da paleta que o pinta). */
+.selo { display: inline-block; width: .7rem; height: .7rem; margin-top: .15rem; }
+.selo-escolha { border-radius: 50%; border: 3px solid var(--accent); background: var(--base); }
+.selo-pack { background: var(--accent); transform: rotate(45deg) scale(.85); border-radius: 2px; }
+.selo-traco { border-radius: 50%; background: var(--cor-do-selo, var(--overlay2)); }
+.selo-nosso { background: var(--subtext0); border-radius: 1px; }
+.selo-fabrica { border-radius: 50%; border: 1.5px solid var(--overlay2); }
 
 /* O painel de escolha nasce embaixo do aplicativo clicado, ocupando a linha
  * inteira — assim o contexto não se perde. Borda em accent porque ele está
@@ -2212,13 +2223,62 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
  * <span> do nome ficava com ALTURA ZERO. `align-content: start` é o que impede
  * o grid de espremer as linhas para caber; a altura mínima garante o nome. */
 .tira-glifos {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  max-height: 28rem;
+  overflow-y: auto;
+  padding: .2rem;
+}
+/* UMA PASTA POR ACERVO — 09/10/2026, P73. A tira deixou de ser uma grade só
+ * (60 + 60, cortada sem aviso) e virou uma pilha de pastas recolhíveis, cada
+ * uma com o dono, o nome e a conta. A grade de cada pasta é a de antes; a
+ * rolagem é da pilha, para a pasta aberta não esconder as de baixo. */
+.pasta-acervo { border: 1px solid var(--surface0); border-radius: var(--r-2); background: var(--base); }
+.pasta-acervo > summary {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  padding: .4rem .6rem;
+  cursor: pointer;
+  font-size: var(--t-legenda);
+  color: var(--subtext0);
+}
+.pasta-acervo > summary .dono { font-weight: 700; color: var(--text); }
+.pasta-acervo > summary .conta { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--overlay2); }
+.pasta-acervo[open] > summary { border-bottom: 1px solid var(--surface0); }
+/* A TRAVA É ESTADO, E NÃO SUMIÇO — P73 (T4). O desenho que não valeria neste
+ * app fica na pasta, apagado e sem resposta ao clique; a dica diz o dono do
+ * ícone. A pasta inteira travada ganha um cadeado desenhado (sem palavra). */
+.tira-glifos button.travado { opacity: .38; cursor: not-allowed; }
+.tira-glifos button.travado:hover { border-color: var(--surface0); }
+.pasta-acervo .cadeado {
+  display: inline-block;
+  width: .7rem;
+  height: .8rem;
+  border: 2px solid var(--overlay2);
+  border-radius: 2px;
+  position: relative;
+  top: .1rem;
+}
+.pasta-acervo .cadeado::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: .45rem;
+  height: .4rem;
+  transform: translateX(-50%);
+  border: 2px solid var(--overlay2);
+  border-bottom: 0;
+  border-radius: .3rem .3rem 0 0;
+}
+.grade-glifos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
   align-content: start;
   gap: .4rem;
-  max-height: 18rem;
-  overflow-y: auto;
-  padding: .2rem;
+  padding: .4rem;
 }
 .tira-glifos button {
   display: flex;
@@ -2543,6 +2603,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   padding: 0;
 }
 .cores-grade button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--base), 0 0 0 4px var(--accent); }
+/* Com um desenho marcado na ficha, a cor não vale (ele entra com as cores
+   dele): a fileira se apaga em vez de uma frase dizer isso, e a dica dela diz
+   o porquê. Continua clicável — a cor volta a valer quando um traço é marcado. */
+.cores-grade.sem-efeito { opacity: .35; }
 
 /* --- a barra desenhada ao vivo -------------------------------------------- */
 /* Um print da barra envelheceria; este desenho acompanha o controle deslizante

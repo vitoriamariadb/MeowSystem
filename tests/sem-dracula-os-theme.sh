@@ -224,8 +224,9 @@ amb() {
 # que passaria no dia em que o original quebrasse.
 pares="$(MAPA="$RAIZ/packs/dracula/icones/apps.map" ICONES_BASE_MAPA="$RAIZ/packs/dracula/icones" RAIZ="$RAIZ" \
   amb bash -c 'set -uo pipefail
-  eval "$(sed -n "/^_dracula_pares() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
-  _dracula_pares' 2>/dev/null)"
+  # [P73: o parser do shell é o `_dracula_pares_do_mapa`; ver o tests/fonte-unica.sh.]
+  eval "$(sed -n "/^_dracula_pares_do_mapa() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
+  _dracula_pares_do_mapa' 2>/dev/null)"
 total="$(printf '%s\n' "$pares" | grep -c .)"
 [ "$total" -gt 0 ] || { falha "o mapa do pack Dracula não deu par nenhum"; exit 1; }
 
