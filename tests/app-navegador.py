@@ -566,8 +566,22 @@ def main():
             # (`sem_programa`, da marca `[so-com-app ...]`) fica sem cartao DE
             # PROPOSITO — nao ha o que trocar. Ela sai da conta, e o contrario
             # e cobrado: uma chave assim que ganhasse cartao seria o defeito.]
+            # [P77, achado 17: num seletor com modo (o gato do dock e o do
+            # terminal, `DECISOES[].modo` no app.js), a chave que o modo em
+            # vigor nao usa fica fora da tela ate o modo dela ser escolhido. Ela
+            # sai da conta, e o que se cobra e que a chave do MODO tenha cartao
+            # — e por ele que as outras aparecem.]
+            por_modo = pag.evaluate(
+                "() => DECISOES.filter((d) => d.modo).map((d) => ({modo: d.modo.chave,"
+                " chaves: Object.values(d.modo.por).flat()}))")
+            reveladas = {c for d in por_modo for c in d["chaves"]}
+            modos_sem_cartao = sorted(d["modo"] for d in por_modo if d["modo"] not in censo)
+            checa(not modos_sem_cartao,
+                  "o modo de cada seletor tem cartão"
+                  + (f" — {modos_sem_cartao}" if modos_sem_cartao else ""))
             sem_cartao = sorted(k["chave"] for k in chaves
-                                if k["chave"] not in censo and not k["sem_programa"])
+                                if k["chave"] not in censo and not k["sem_programa"]
+                                and k["chave"] not in reveladas)
             com_cartao_sem_programa = sorted(k["chave"] for k in chaves
                                              if k["sem_programa"] and k["chave"] in censo)
             checa(not com_cartao_sem_programa,
@@ -682,7 +696,18 @@ def main():
             secao("Papel de parede")
             pag.wait_for_timeout(1500)
             n_fotos = pag.locator("#conteudo figure").count()
-            checa(n_fotos > 20, f"a galeria mostra {n_fotos} papeis de parede")
+            # [P77, achado 15: a coleção abre a página com a primeira leva
+            # (`PRIMEIRA_LEVA_GALERIA`, três fileiras); o resto vem pelo
+            # «Mostrar mais», que também se cobra aqui.]
+            leva = pag.evaluate("() => PRIMEIRA_LEVA_GALERIA")
+            checa(n_fotos >= min(leva, 20), f"a galeria mostra {n_fotos} papeis de parede")
+            mais = pag.locator("#conteudo button", has_text="Mostrar mais")
+            if mais.count():
+                mais.first.click()
+                pag.wait_for_timeout(900)
+                depois = pag.locator("#conteudo figure").count()
+                checa(depois > n_fotos, f"«Mostrar mais» traz mais fotos ({n_fotos} -> {depois})")
+                n_fotos = depois
             if FOTOS:
                 pag.screenshot(path=f"{DESTINO_FOTOS}/galeria.png")
 
@@ -1599,6 +1624,10 @@ def main():
                     "l => l.map(b => b.getAttribute('data-grupo'))")
                 for aba in abas:
                     secao(aba)
+                    # [P77: os ajustes técnicos moram num «⋯» fechado; abertos
+                    # aqui, os pares de dentro também são medidos.]
+                    pag.evaluate("() => document.querySelectorAll("
+                                 "'#conteudo details.ajustes-tecnicos').forEach((d) => { d.open = true; })")
                     cartoes = pag.locator(
                         '#conteudo article[data-chave]:has(.par-botoes)')
                     for i in range(cartoes.count()):
@@ -1752,7 +1781,13 @@ def main():
             for aba_ in ("Cor e tela", "Logo do sistema", "Papel de parede"):
                 pag.locator(f'#trilho button[data-grupo="{aba_}"]').first.click()
                 pag.wait_for_timeout(1100)
-                pag.evaluate("() => { document.getElementById('principal').scrollTop = 600; }")
+                # [P77: a rolagem é medida a partir da FAIXA, e não do topo da
+                # página — em «Papel de parede» a coleção passou a abrir a
+                # página, e 600 px ainda não chegavam ao desenho.]
+                pag.evaluate("""() => { const p = document.getElementById('principal');
+                  const b = document.querySelector('#conteudo .previa-bloco');
+                  p.scrollTop = b ? p.scrollTop + b.getBoundingClientRect().top
+                                    - p.getBoundingClientRect().top + 300 : 600; }""")
                 pag.wait_for_timeout(600)
                 d = pag.evaluate("""() => {
                   const b = document.querySelector('#conteudo .previa-bloco');
