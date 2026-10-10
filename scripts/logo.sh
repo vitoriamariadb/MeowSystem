@@ -735,15 +735,18 @@ if [ "$dock_mudou" = "1" ] && ! meow_seco; then
     meow_info "gato do dock trocado; LOGO_RECICLAR=\"$LOGO_RECICLAR\" — vale no próximo login"
   elif [ -x "$RAIZ/scripts/painel.sh" ]; then
     meow_info "gato do dock trocado — reciclando o painel para ele aparecer"
-    "$RAIZ/scripts/painel.sh" reciclar || true
     # E O MENU DE LANÇAMENTO, QUE É O TERCEIRO CONSUMIDOR E TEM CACHE PRÓPRIO.
     # O `com.system76.CosmicAppLibrary` que acabamos de vestir é o ícone da
     # GRADE — reciclar o painel repõe o botão do dock e não toca no
-    # `cosmic-app-library`, que resolveu o ícone quando subiu. Sem esta linha o
-    # gato novo aparecia no dock e no terminal, e continuava velho no menu até
-    # o login seguinte: as três telas discordando sobre o mesmo arquivo, que é
-    # o sintoma que este projeto persegue. Ver `meow_lancador_reler`.
-    meow_lancador_reler
+    # `cosmic-app-library`, que resolveu o ícone quando subiu. Sem o lançador
+    # o gato novo aparecia no dock e no terminal, e continuava velho no menu
+    # até o login seguinte: as três telas discordando sobre o mesmo arquivo,
+    # que é o sintoma que este projeto persegue. Ver `meow_lancador_reler`.
+    # [PELA PORTA ÚNICA — conferência da P80 (item 7). Eram o `painel.sh
+    #   reciclar` e o `meow_lancador_reler`, um atrás do outro: é o que o
+    #   `meow_tela_reler` faz, e ele sabe que dentro do install.sh ou do conserto
+    #   do doctor o reler fica para o fim da passada, uma vez só.]
+    meow_tela_reler || true
   fi
 fi
 

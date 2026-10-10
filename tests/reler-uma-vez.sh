@@ -21,6 +21,9 @@
 #   4. O install.sh arma a marca antes do laço das passagens e relê depois dele.
 #   4b. O `meow doctor --consertar` faz o mesmo em volta dos consertos dele
 #      (conferência da P80).
+#   4c. Só o `meow_tela_reler` chama o `painel.sh reciclar`: o
+#      `construir_icones.sh` e o `logo.sh` reciclavam por fora (conferência da
+#      P80, medida com um contador numa instalação inteira).
 #   5. O `painel.sh reciclar` registra no meow.log quem o chamou, até quando
 #      não há painel a reciclar.
 #   6. O `icones_apps_arcticons.sh` de verdade, com a marca armada, sai 1
@@ -117,6 +120,17 @@ else
   falha "o doctor não arma a marca antes dos consertos ou não relê depois deles" \
         "consertando=$laco arma=$arma fix=$fixes relê=$rele"
 fi
+
+printf '\n--- 4c. nenhum passo recicla o painel por fora da porta única ---\n'
+#   Conferência da P80, medido com um contador numa instalação inteira numa
+#   casa de brinquedo (sessão de mentira): depois dos três passos de ícone, o
+#   painel ainda reciclava três vezes — o `construir_icones.sh` e o `logo.sh`
+#   chamavam o `painel.sh reciclar` direto, sem passar pelo `meow_tela_reler`,
+#   e a marca da passada não os alcançava. Só a porta (lib/comum.sh) o chama.
+achados="$(grep -rnE '^[^#]*painel\.sh"?[[:space:]]+reciclar' "$RAIZ/scripts" "$RAIZ/lib" "$RAIZ/install.sh" \
+           | grep -v '^[^:]*/lib/comum\.sh:')"
+[ -z "$achados" ] && ok "só o meow_tela_reler chama o painel.sh reciclar" \
+  || falha "há passo reciclando o painel por fora do meow_tela_reler" "$achados"
 
 printf '\n--- 5. o painel.sh reciclar registra quem o chamou ---\n'
 printf '#!/bin/sh\nexit 1\n' > "$FALSO/pgrep"
