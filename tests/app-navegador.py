@@ -1967,6 +1967,22 @@ def main():
                   and noite["ini"][0] == noite["parede"][0],
                   f"a noite vazia mostra a hora herdada, a traco, e nao --:-- ({noite['ini']}, {noite['fim']})")
 
+            # (i3) A NOITE SE ESCOLHE PELAS DUAS PONTAS (QA da P77). Mudar so o
+            #     comeco, com as duas vazias, acendia o ⊘ «So vale com A noite
+            #     termina as preenchida» e o relogio nao andava. A irma vazia
+            #     entra na mesma escolha com a hora herdada que ela mostrava.
+            campo = pag.locator('article.cartao[data-chave="NOITE_INICIO"] input[type=time]')
+            campo.fill("20:00")
+            campo.dispatch_event("change")
+            pag.wait_for_timeout(350)
+            par = pag.evaluate("""() => ({
+              fim: MUDANCAS.get('NOITE_FIM') || '',
+              anulado: !!document.querySelector('article.cartao[data-chave="NOITE_INICIO"] [data-selo="anulado"]'),
+            })""")
+            checa(par["fim"] == noite["fim"][0] and not par["anulado"],
+                  f"mudar o comeco da noite leva o fim herdado junto, sem o ⊘ ({par}, herdado {noite['fim'][0]})")
+            descartar_tudo(pag)
+
             # O DESENHO DO TOPO saiu de «Dia e noite» (o relogio e o desenho dela);
             # as duas medidas abaixo, que sao de qualquer desenho de faixa, vao
             # para «Lançadores e jogos», que continua com o dela.

@@ -976,9 +976,28 @@ function flavorEmVigor() {
     || Object.keys((ESQUEMA.paleta && ESQUEMA.paleta.flavors) || {})[0] || "";
 }
 
+/* A NOITE SE ESCOLHE PELAS DUAS PONTAS DE UMA VEZ — 10/10/2026, QA da P77.
+ *   O `meow_noite_janela` (lib/noite.sh) só usa as `NOITE_*` com as DUAS
+ *   preenchidas. Numa casa com as duas vazias (a noite vem do applet ou da
+ *   imagem escura), mudar «A noite começa às» para 20:00 acendia o ⊘ «Só vale
+ *   com A noite termina às preenchida» e o relógio não andava: a pessoa fez o
+ *   gesto certo e nada aconteceu. A ponta irmã vazia entra na mesma escolha
+ *   com a hora que ela já mostrava a traço (a herdada), e o par passa a valer
+ *   inteiro — nenhuma hora muda além da que foi tocada. */
+const PAR_DA_NOITE = { NOITE_INICIO: "NOITE_FIM", NOITE_FIM: "NOITE_INICIO" };
+function completarParDaNoite(chave, valor) {
+  const irma = PAR_DA_NOITE[chave];
+  if (!irma || !HORA_OK.test(String(valor)) || valeDaChave(irma) !== "") return;
+  const j = janelaDoGato();
+  const hora = irma === "NOITE_INICIO" ? j.ini : j.fim;
+  const item = ESQUEMA.chaves.find((i) => i.chave === irma);
+  if (item && HORA_OK.test(hora)) MUDANCAS.set(irma, hora);
+}
+
 function escolher(chave, valor, cartao) {
   const item = ESQUEMA.chaves.find((i) => i.chave === chave);
   if (!item) return;
+  completarParDaNoite(chave, valor);
   const noDisco = item.valor ?? "";
   if (valor === noDisco) MUDANCAS.delete(chave);
   else MUDANCAS.set(chave, valor);
