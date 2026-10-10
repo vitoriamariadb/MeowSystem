@@ -2136,7 +2136,9 @@ def _fontes_declaradas(dir_pack, lista, trilha="fontes.proprio"):
             _exigir(cabeca in ASSINATURAS_DE_FONTE,
                     f"{aqui}.arquivo: {arq!r} não é TrueType nem OpenType por dentro —\n"
                     f"    a extensão diz fonte, os primeiros bytes não.")
-            nome, origem, soma = os.path.basename(arq), os.path.join(dir_pack, arq), ""
+            # [P78: a origem é o `alvo` que o `_dentro` conferiu, e não o `join`
+            #   — ver "A REGRA ÚNICA", junto do `_dentro`.]
+            nome, origem, soma = os.path.basename(arq), alvo, ""
         else:
             _exigir(chaves == {"nome", "url", "sha256"},
                     f"{aqui}: a fonte de fora do pack declara as três — nome, url e sha256.\n"
