@@ -695,14 +695,57 @@ function mostrarBalao(alvo) {
   BALAO_EL.style.left = "0px";
   BALAO_EL.style.top = "0px";
   const cx = BALAO_EL.getBoundingClientRect();
-  const esq = Math.max(8, Math.min(r.left, innerWidth - cx.width - 8));
-  const acima = r.top - cx.height - 8;
-  const abaixo = acima < 8;
-  BALAO_EL.classList.toggle("abaixo", abaixo);
-  BALAO_EL.style.left = `${Math.round(esq)}px`;
-  BALAO_EL.style.top = `${Math.round(abaixo ? r.bottom + 8 : acima)}px`;
+  const lugar = lugarDoBalao(alvo, ancora, r, cx);
+  BALAO_EL.classList.toggle("abaixo", lugar.lado === "abaixo");
+  BALAO_EL.classList.toggle("ao-lado", lugar.lado === "direita" || lugar.lado === "esquerda");
+  BALAO_EL.classList.toggle("a-esquerda", lugar.lado === "esquerda");
+  BALAO_EL.style.left = `${Math.round(lugar.x)}px`;
+  BALAO_EL.style.top = `${Math.round(lugar.y)}px`;
   alvo.setAttribute("aria-describedby", "balao");
   BALAO_DONO = alvo;
+}
+
+/* O BALÃO NÃO COBRE O VIZINHO — 10/10/2026, P77 (U3)
+ *   Queixa de 21/09: «botão impossível de clicar devido à largura da
+ *   imagem». A regra «acima do cartão, ou abaixo se não couber» servia à
+ *   grade, onde a âncora é o cartão inteiro; no menu lateral a âncora é o
+ *   próprio item, e o balão de «Ícones — 8 ajustes e 4 ações» nascia em cima
+ *   de «Logo do sistema» (medido no uso real de 09/10, print 11). Agora cada
+ *   lugar candidato é conferido contra os controles da tela: o primeiro que
+ *   cabe na janela e não encosta em controle de fora da âncora vence. O menu
+ *   pede a direita primeiro — o conteúdo ao lado é onde o olho já está, e lá
+ *   o balão não tampa item nenhum do menu. Sem lugar livre (janela estreita),
+ *   fica o primeiro que cabe, como antes. */
+function lugarDoBalao(alvo, ancora, r, cx) {
+  const M = 8;
+  const meioY = r.top + (r.height - cx.height) / 2;
+  const deLado = Math.max(M, Math.min(r.left, innerWidth - cx.width - M));
+  const candidatos = {
+    acima: { x: deLado, y: r.top - cx.height - M },
+    abaixo: { x: deLado, y: r.bottom + M },
+    direita: { x: r.right + M, y: meioY },
+    esquerda: { x: r.left - cx.width - M, y: meioY },
+  };
+  /* No menu, o vizinho que importa é o item do lado — é para ele que o rato
+   * vai. O conteúdo da página à direita está fora do caminho do gesto. */
+  const noMenu = alvo.closest("#trilho");
+  const ordem = noMenu ? ["direita", "acima", "abaixo"] : ["acima", "abaixo", "direita", "esquerda"];
+  const cabe = (c) => c.x >= M && c.y >= M
+    && c.x + cx.width <= innerWidth - M && c.y + cx.height <= innerHeight - M;
+  const vizinhos = [...(noMenu || document).querySelectorAll(
+    "button, a[href], input, select, textarea, summary, [role=button], [role=tab]")]
+    .filter((el) => !ancora.contains(el) && !el.contains(ancora))
+    .map((el) => el.getBoundingClientRect())
+    .filter((v) => v.width && v.height);
+  const encosta = (c) => vizinhos.some((v) => v.left < c.x + cx.width && v.right > c.x
+    && v.top < c.y + cx.height && v.bottom > c.y);
+  for (const lado of ordem) {
+    const c = candidatos[lado];
+    if (cabe(c) && !encosta(c)) return { lado, ...c };
+  }
+  /* Sem lugar livre: o de antes — acima, ou abaixo quando não cabe acima. */
+  const acima = candidatos.acima.y >= M;
+  return acima ? { lado: "acima", ...candidatos.acima } : { lado: "abaixo", ...candidatos.abaixo };
 }
 
 /* Um ouvinte por botão seriam setecentos jogados fora a cada pintura da grade;
@@ -2139,7 +2182,14 @@ let RELOGIO_PREVIA = null;
  *   dizer «Deixar como está (Sim)» — e o topo seguia em 15, porque ninguém
  *   refazia a conta. Quem relê o catálogo redesenha o resumo junto. */
 function pintarResumo() {
-  const mexidas = ESQUEMA.chaves.filter((i) => (i.valor ?? "") !== i.padrao).length;
+  /* O «MUDADOS» É A MESMA CONTA DA INÍCIO — 10/10/2026, P77. O ajuste de um
+   * programa que a máquina não tem (`sem_programa`) não ganha cartão nem conta
+   * como mudado na Início; aqui ele ainda contava, e uma casa com a chave
+   * preenchida e sem o programa via o topo e a Início discordarem por um. O
+   * total continua sendo o do catálogo (o `tests/app-navegador.py` o confere
+   * contra o `meow.conf.exemplo`). */
+  const mexidas = ESQUEMA.chaves.filter((i) => !i.sem_programa
+    && (i.valor ?? "") !== i.padrao).length;
   $("#resumo").textContent =
     /* O caminho do meow.conf saiu da linha e foi para o `title`: ele tem 44
      * caracteres, aparece em toda tela e nunca muda. Fica o que muda. */

@@ -229,7 +229,6 @@ a:hover { color: var(--accent); text-decoration: underline; }
 }
 .menu-item:hover, .menu-item:focus-visible { background: var(--surface0); text-decoration: none; }
 .menu-item strong { display: block; font-size: .84rem; font-weight: 600; }
-.menu-item span { display: block; margin-top: 2px; font-size: var(--t-frase); line-height: 1.4; color: var(--subtext0); }
 
 /* O Importar é um `<label>` com o `<input type=file>` escondido dentro. Sem o
  * `align-items`, o rótulo fica um fio mais alto que os vizinhos. */
@@ -1875,6 +1874,22 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
   bottom: 100%;
   border-top-color: transparent;
   border-bottom-color: var(--surface1);
+}
+/* Ao lado (o menu lateral, P77 U3): a seta sai da borda que encosta no dono,
+   na altura do meio dele. */
+.balao.ao-lado::after {
+  top: 50%;
+  left: auto;
+  right: 100%;
+  margin-top: -5px;
+  border-top-color: transparent;
+  border-right-color: var(--surface1);
+}
+.balao.ao-lado.a-esquerda::after {
+  right: auto;
+  left: 100%;
+  border-right-color: transparent;
+  border-left-color: var(--surface1);
 }
 
 /* --- o comando, fora do balão --------------------------------------------- */

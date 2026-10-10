@@ -117,14 +117,17 @@
   <details class="menu" id="menu-exportar">
     <summary class="btn" title="Levar as configurações, ou a página, para fora daqui">Exportar</summary>
     <div class="menu-corpo">
-      <a class="menu-item" id="baixar-conf" href="/api/exportar/conf" download>
+      <!-- A FRASE DE CADA SAÍDA VIROU BALÃO — 10/10/2026, P77. O menu aberto
+           tinha duas frases embaixo dos nomes, a segunda com cem caracteres:
+           «sem texto na interface; no máximo vira dica». O nome fica, o que
+           ele leva vai para o balão (o `ligarBalao` adota o `title`). -->
+      <a class="menu-item" id="baixar-conf" href="/api/exportar/conf" download
+         title="Um .conf para guardar, ou levar para outra máquina">
         <strong>Meus ajustes</strong>
-        <span>Um arquivo .conf para guardar, ou levar para outra máquina.</span>
       </a>
-      <a class="menu-item" id="baixar-pagina" href="/api/exportar/pagina" download>
+      <a class="menu-item" id="baixar-pagina" href="/api/exportar/pagina" download
+         title="Um .html desta tela, que abre sem servidor e não grava nada">
         <strong>Esta tela num arquivo</strong>
-        <span>Um .html com as abas, o menu e uma amostra das imagens. Abre
-        sem servidor, e não grava nada.</span>
       </a>
     </div>
   </details>
