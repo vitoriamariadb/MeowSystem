@@ -41,7 +41,9 @@ O QUE REPROVA (e de onde cada regra vem)
   8. O ACABAMENTO DA P80 (10/10/2026), um caso por defeito do uso real final
      (prints em `.playwright-mcp/ux-final/`), cada um com o gesto de quem usa:
        · a ficha de ícone mostra o nome amigável, e o nome técnico só na dica;
-       · a paleta «Cor» da ficha só aparece com um traço marcado.
+       · a paleta «Cor» da ficha só aparece com um traço marcado;
+       · a pasta travada (a dos PNG feitos à mão) leva o selo de trava da
+         página, com o porquê na dica.
 
 A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
   A decisão 8 de 02-decisoes.md manda o painel de QA subir SÓ com HOME
@@ -381,13 +383,43 @@ PALETA_JS = r"""
 """
 
 
+# 8.3 — O PNG FEITO À MÃO E A TRAVA (print 06): o PNG aparecia apagado, com um
+#   selo que ninguém lia (um retângulo desenhado em CSS). A pasta travada leva
+#   o selo de trava de toda a página, com o porquê inteiro na dica — o mesmo
+#   em toda pasta —, e o desenho travado diz o porquê na dica dele.
+TRAVA_JS = r"""
+() => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const defeitos = [];
+  const ficha = document.querySelector('.escolha-icone');
+  for (const c of ficha.querySelectorAll('.pasta-acervo .cadeado'))
+    if (vis(c)) defeitos.push('a pasta travada usa o cadeado desenhado em CSS, e não o selo de trava');
+  const png = [...ficha.querySelectorAll('.pasta-acervo')].find((d) => /:feitos-a-mao$/.test(d.dataset.grupo || ''));
+  if (!png) return ['a busca «firefox» não abriu a pasta dos feitos à mão'];
+  const selo = png.querySelector('summary .selo[data-selo="trava"]');
+  if (!vis(selo)) defeitos.push('a pasta dos feitos à mão, travada, não leva o selo de trava');
+  else if (!selo.dataset.balao || selo.dataset.balaoAparado)
+    defeitos.push(`o selo de trava sem o porquê inteiro na dica: «${selo.dataset.balao || ''}»`);
+  for (const b of png.querySelectorAll('button[data-glifo]')) {
+    const travado = b.getAttribute('aria-disabled') === 'true';
+    if (travado && (!b.dataset.balao || b.dataset.balaoAparado))
+      defeitos.push(`o PNG «${b.dataset.glifo}» travado sem o porquê inteiro na dica`);
+    if (!travado && b.classList.contains('travado')) defeitos.push(`o PNG «${b.dataset.glifo}» vale e aparece apagado`);
+  }
+  return defeitos;
+}
+"""
+
+
 def acabamento(pag):
     """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
     reprovas = []
     abrir_ficha(pag, "firefox")
     reprovas += [("ficha de ícone", d) for d in pag.evaluate(ROTULOS_JS)]
     if FOTOS:
+        pag.locator(".escolha-icone .tira-glifos").evaluate("(e) => e.scrollIntoView({ block: 'start' })")
         pag.screenshot(path=os.path.join(FOTOS, "p80-ficha-firefox.png"))
+    reprovas += [("ficha de ícone", d) for d in pag.evaluate(TRAVA_JS)]
     for passo in ("abrir", "traco", "desenho"):
         d = pag.evaluate(PALETA_JS, passo)
         pag.wait_for_timeout(200)

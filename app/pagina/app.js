@@ -4102,10 +4102,13 @@ function montarEscolhaDeIcone(app, recarregar) {
     tiraGlifos.append(pasta(gr.id,
       [elemento("span", { class: "dono", texto: gr.acervo }),
        elemento("span", { class: "nome-pasta", texto: gr.nome }),
-       /* O cadeado é desenho (CSS), e não palavra: a pasta inteira apagada
-        * diz «não vale aqui», e a dica diz por quê. */
-       travaDaPasta ? elemento("span", { class: "cadeado", role: "img", "aria-label": "travado",
-                                         title: travaDaPasta }) : null],
+       /* O cadeado é desenho, e não palavra: a pasta inteira apagada diz
+        * «não vale aqui», e a dica diz por quê.
+        * [P80, item 3: era um retângulo desenhado em CSS, que no print 06 não
+        * se lia como cadeado. Virou o selo de trava da página (o cadeado do
+        * cartão de ação), o mesmo em toda pasta travada, com o porquê no
+        * balão.] */
+       travaDaPasta ? selo("trava", { balao: travaDaPasta }) : null],
       /* Com busca, a conta é a do que casou; sem busca, o total da pasta. */
       String(GLIFOS.termo ? gr.achados : gr.total),
       deles.map(botaoDe),
@@ -6698,6 +6701,9 @@ function gatilhoDeDica(idDica, rotulo, filhos) {
  * pelo `role="img"` com `aria-label`, que leva o nome do estado e o valor. */
 const SELO_ICONES = {
   sudo: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>',
+  /* O desenho que não vale aqui (a pasta travada da ficha de ícone, P80): o
+   * mesmo cadeado do sudo, com outro nome, porque o porquê é outro. */
+  trava: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>',
   ponte: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 4.9-.7"/>',
   rede: '<path d="M8 2.5v7.5M4.8 7 8 10.2 11.2 7M3 13.5h10"/>',
   desfaz: '<path d="M5.5 4 2.5 7l3 3"/><path d="M2.5 7h7a3.5 3.5 0 0 1 0 7H7"/>',

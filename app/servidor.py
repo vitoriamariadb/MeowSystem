@@ -9675,9 +9675,11 @@ class Manipulador(BaseHTTPRequestHandler):
                 # de um PNG não sai vetor, flavor nem tamanho maior), e a decisão
                 # 2 de 09/10 é que ele entre no pack agora e vire vetor num lote
                 # conferido por RMSE. Até lá ele é visto, com o porquê na dica.
+                # [P80, item 3: a frase passava do teto do balão e saía cortada,
+                #   com «decisão de 09/10» e «RMSE» no meio — conversa nossa, e
+                #   não o porquê de quem usa. O lote continua sendo o da decisão 2.]
                 if g["tipo"] == "png":
-                    item["trava"] = ("PNG feito à mão: entra no tema quando virar vetor "
-                                     "(o lote da decisão de 09/10, conferido por RMSE)")
+                    item["trava"] = "Feito à mão em PNG: vale no tema quando ganhar a versão em vetor"
                 no_mapa = do_mapa.get(os.path.normpath(caminho)) if pack else None
                 if no_mapa:
                     item.update(pack=pack["id"], desenho=no_mapa["desenho"])
