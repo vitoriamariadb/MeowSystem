@@ -911,13 +911,25 @@ meow_app_conferir() {
   # «sem tema neste pack» é o que o `meow apps conferir` tem de mostrar (P55).
   _meow_vscode_do_pack || { meow_app_pendente vscode; return; }
 
-  local divergente=0 ext saida rc linha
+  local divergente=0 ext saida rc linha espera=0
   for ext in "$MEOW_VSCODE_EXT_TEMA" ${MEOW_VSCODE_EXT_ICONES:+"$MEOW_VSCODE_EXT_ICONES"}; do
     if ! _meow_vscode_tem_ext "$ext"; then
-      meow_info "extensão ausente: $ext"
-      divergente=1
+      # A EXTENSÃO DE PACK IMPORTADO NÃO É DIVERGÊNCIA — conferência da P79
+      #   (decisão 9). Ela só entra pelo gesto de quem usa, e o `aplicar` não a
+      #   instala sozinho: chamá-la de divergência fazia o doctor prometer um
+      #   conserto que o `--consertar` não faz, todo dia. É pendência, como o
+      #   «Manter o meu» do tema de terceiro (`meow_app_tema_no_ar`), e o
+      #   settings.json fica como está até lá (ver o `aplicar`).
+      if [ "$_VSC_DO_REPO" != "1" ]; then
+        meow_pula "a extensão $ext, do pack importado $_MEOW_VSCODE_PACK_NOME, espera o seu gesto"
+        espera=1
+      else
+        meow_info "extensão ausente: $ext"
+        divergente=1
+      fi
     fi
   done
+  [ "$espera" = "1" ] && [ "$divergente" = "0" ] && return "$MEOW_SEM_DEPENDENCIA"
   # A extensão do tema no disco, numa versão que não traz o tema, não está no
   # lugar (25/09/2026; ver o `_meow_vscode_sem_o_tema`).
   if _meow_vscode_sem_o_tema; then

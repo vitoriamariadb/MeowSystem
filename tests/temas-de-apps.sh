@@ -1460,6 +1460,11 @@ saida="$(mod10 vscode aplicar noite dracula)$(mod10 vscode aplicar noite dracula
   && [ "$(cat "$VSC10")" = "$antes_vsc" ] \
   && grep -q '^vscode-extensao-de-terceiro	.*noite\.tema-noite' "$T10/estado/pendencias.tsv" 2>/dev/null \
   || faltam+=" vscode instalou extensão de pack importado sem o gesto (rc=$rc, chamadas=$(chamadas10): $saida);"
+# [Conferência da P79: a extensão que espera o gesto é pendência, e não
+#   divergência — o doctor não promete um conserto que o `--consertar` não faz.]
+saida="$(mod10 vscode conferir noite dracula)"; rc=$?
+[ "$rc" = 3 ] && printf '%s' "$saida" | grep -q 'noite.tema-noite, do pack importado .* espera o seu gesto' \
+  || faltam+=" o conferir chama de divergência a extensão que espera o gesto (rc=$rc: $saida);"
 # O BOTÃO DO GESTO, NO PAINEL: a pendência traz um botão por extensão que o
 #   pack no ar pede, com o selo de rede; a ação só aceita uma extensão da lista
 #   e a entrega ao módulo pelo ambiente. Com o Dracula (do repositório) no ar a
