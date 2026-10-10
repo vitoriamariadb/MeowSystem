@@ -4574,6 +4574,36 @@ def _areas_sem_alfinete():
                       "outras herdam o monitor"}
 
 
+def comeca_como_svg(dados):
+    """O arquivo começa como XML de SVG? Lê só os primeiros 4 KB.
+
+    É o `.png` que na verdade é SVG (ver "O ARQUIVO DIZ O QUE ELE É", na rota
+    `/previa?tipo=arquivo`). LEITOR LINEAR, E NÃO EXPRESSÃO REGULAR — revisão
+    de segurança da P80: a primeira versão era uma regex com `.*?` dentro de
+    um grupo repetido, e um arquivo de acervo (de um pack importado) com 4 KB
+    de `<!--` sem fecho a fazia voltar atrás de forma explosiva, travando a
+    thread do servidor. Aqui cada passo pula um pedaço com `find` e anda para
+    a frente, nunca para trás; o laço tem teto."""
+    cabeca = dados[:4096]
+    if cabeca.startswith(b"\xef\xbb\xbf"):
+        cabeca = cabeca[3:]
+    i = 0
+    for _ in range(64):
+        while i < len(cabeca) and cabeca[i:i + 1].isspace():
+            i += 1
+        for abre, fecha in ((b"<?xml", b"?>"), (b"<!--", b"-->"), (b"<!DOCTYPE", b">")):
+            if cabeca.startswith(abre, i):
+                fim = cabeca.find(fecha, i + len(abre))
+                if fim < 0:
+                    return False
+                i = fim + len(fecha)
+                break
+        else:
+            seguinte = cabeca[i + 4:i + 5]
+            return cabeca.startswith(b"<svg", i) and (seguinte == b">" or seguinte.isspace())
+    return False
+
+
 def _areas_ja_alfinetadas():
     """«Criar a primeira área» com área fixada: já está feito, e o passo
     seguinte é «Gravar as áreas».
@@ -7945,8 +7975,7 @@ class Manipulador(BaseHTTPRequestHandler):
             #   `.jpg` que começa como XML de SVG sai como SVG. A cerca acima
             #   não muda (extensão de imagem nas duas pontas, pasta de arte), e
             #   o SVG sai com a CSP de imagem do `_responder`, que não roda nada.
-            comeco_svg = rb"\s*(<\?xml[^>]*>\s*)?((<!--.*?-->|<!DOCTYPE[^>]*>)\s*)*<svg[\s>]"
-            if ext_arq != ".svg" and re.match(comeco_svg, dados_arq[:4096].lstrip(b"\xef\xbb\xbf"), re.S):
+            if ext_arq != ".svg" and comeca_como_svg(dados_arq):
                 tipo_mime = "image/svg+xml"
             # Pela porta única em vez de cinco send_header à mão. [2026-09-18]
             #   O `_responder` já põe Cache-Control: no-store, X-Content-Type-
