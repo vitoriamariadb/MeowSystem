@@ -2156,14 +2156,35 @@ class Percurso:
         """Não sai para a internet: o pedido de fora é recusado pela rota do
         contexto, e o que se confere é que o clique abre uma aba NOVA no
         endereço certo, sem levar esta página junto."""
-        el = self.achar(nome)
-        href = el.get_attribute("href") or ""
-        self.checa(href.startswith("https://"), f"o link externo vai para https ({href[:50]})")
-        self.checa("noopener" in (el.get_attribute("rel") or ""),
-                   "e abre sem dar a esta página à outra (rel=noopener)")
+        # A REPINTURA ENTRE O CENSO E O CLIQUE — 10/10/2026, P79 (achado da
+        #   conferência da P77: o «Créditos» estourava o tempo uma vez no gate
+        #   completo e passava na corrida seguinte). A marca `data-inventario`
+        #   mora no elemento, e uma repintura do menu no meio do gesto (a página
+        #   relê o que chega pela rede) a apaga: o `click` ficava esperando um
+        #   elemento que não existe mais até o teto. Reproduzido repintando o
+        #   menu no primeiro `pointerover` do link: «Locator.click: Timeout
+        #   30000ms exceeded». É o mesmo caso do `clicar_nome`, e a cura é a
+        #   dele: o censo de novo e outra tentativa, com um teto curto por clique.
+        nova = None
         n0 = len(PEDIDOS_DE_FORA)
-        with self.pag.context.expect_page(timeout=5000) as nova:
-            el.click()
+        for _tentativa in range(4):
+            el = self.esperar_nome(nome, teto=4.0)
+            if el is None:
+                break
+            try:
+                href = el.get_attribute("href", timeout=2500) or ""
+                rel = el.get_attribute("rel", timeout=2500) or ""
+                with self.pag.context.expect_page(timeout=5000) as aberta:
+                    el.click(timeout=2500)
+                nova = aberta
+                break
+            except Exception:
+                self.pag.wait_for_timeout(200)
+        if nova is None:
+            self.falha(f"não consegui clicar em «{nome}»")
+            return
+        self.checa(href.startswith("https://"), f"o link externo vai para https ({href[:50]})")
+        self.checa("noopener" in rel, "e abre sem dar a esta página à outra (rel=noopener)")
         nova.value.wait_for_timeout(300)
         pedidos = PEDIDOS_DE_FORA[n0:]
         self.checa(any(u.rstrip("/") == href.rstrip("/") for u in pedidos),
