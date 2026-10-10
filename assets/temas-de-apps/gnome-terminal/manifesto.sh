@@ -85,6 +85,28 @@ _gt_no_ar() {
 # ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
 meow_app_instalado() { meow_tem gnome-terminal; }
 
+# O MODELO DO PACK SÓ LEVA COR — conferência da P78, 09/10/2026
+#   O tema montado vai inteiro para o `dconf load` do perfil, e o perfil vira o
+#   padrão. Num pack de terceiro, `use-custom-command=true` com
+#   `custom-command='…'` faria o GNOME Terminal rodar o comando do pack em toda
+#   janela nova; e uma seção que não seja `[/]` escreveria fora do perfil. Fica
+#   só linha vazia, comentário, a seção `[/]` e as chaves de cor e de nome; o
+#   resto (e tudo o que vier sob outra seção) é pulado e contado — como no kitty.
+_GT_CHAVES_DE_COR='^(visible-name|background-color|foreground-color|bold-color|bold-color-same-as-fg|bold-is-bright|cursor-background-color|cursor-foreground-color|cursor-colors-set|highlight-background-color|highlight-foreground-color|highlight-colors-set|palette|use-theme-colors|use-theme-transparency|use-transparent-background|background-transparency-percent)$'
+_gt_so_cor() {
+  local filtro fora
+  filtro='
+    /^[ \t]*(#|$)/ { if (!ruim) print; next }
+    /^\[/ { ruim = ($0 != "[/]"); if (ruim) n++; else print; next }
+    { k = $0; sub(/=.*/, "", k); gsub(/[ \t]/, "", k)
+      if (ruim || k !~ re) { n++; next } print }
+    END { if (conta) print n + 0 }'
+  fora="$(printf '%s\n' "$_GT_DESEJADO" | awk -v re="$_GT_CHAVES_DE_COR" -v conta=1 "$filtro" | tail -1)"
+  _GT_DESEJADO="$(printf '%s\n' "$_GT_DESEJADO" | awk -v re="$_GT_CHAVES_DE_COR" -v conta=0 "$filtro")"
+  [ "${fora:-0}" -gt 0 ] && meow_aviso "GNOME Terminal: $fora linha(s) do modelo do pack $_GT_DE que não são cor ficaram de fora"
+  return 0
+}
+
 meow_app_detectar() {
   MEOW_APP_MOTIVO=""
   meow_app_instalado || { meow_app_sem "GNOME Terminal: não está instalado"; return; }
@@ -95,6 +117,7 @@ meow_app_detectar() {
   [ -n "$MEOW_APP_TEMA" ] || { meow_app_sem "GNOME Terminal: o pack no ar não declara tema para ele"; return; }
   _GT_DESEJADO="$(python3 "$_GT_MODELO_PY" "$MEOW_APP_TEMA" "$(meow_paleta)" "${FLAVOR:-}" "$_GT_DE" 2>&1)" \
     || { meow_app_sem "GNOME Terminal: o modelo do pack $_GT_DE não montou — $_GT_DESEJADO"; return; }
+  _gt_so_cor
   _GT_QUERO="$_GT_UUID"
   _GT_NOME="$(python3 "$_GT_MODELO_PY" --nome "$(meow_paleta)" "${FLAVOR:-}" 2>/dev/null) (MeowSystem)"
   return "$MEOW_OK"
