@@ -5323,8 +5323,9 @@ ACOES = {
         "ambiente": {"MEOW_VSCODE_EXTENSAO": "@ARG@"},
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "oculta": True,
-        "ajuda": "Instala no VS Code a extensão que o pack importado pede. "
-                 "Extensão é código que roda a cada abertura do editor.",
+        "ajuda": "Instala no VS Code, da loja oficial e pelo id do botão, a extensão "
+                 "que o pack importado pede. Extensão é código que roda a cada "
+                 "abertura do editor.",
     },
     # O TEMA DO SPOTIFY — 22/09/2026, sprint P2. É a ação para onde a pendência
     # `spicetify-tema-ausente` aponta. O argv é o verbo que já existia (`apps

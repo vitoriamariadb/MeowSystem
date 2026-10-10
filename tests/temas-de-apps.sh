@@ -1247,6 +1247,11 @@ vsix10 "$MERCADO10/catppuccin.catppuccin-vsc.vsix" Catppuccin catppuccin-vsc 3.1
 vsix10 "$MERCADO10/catppuccin.catppuccin-vsc-icons.vsix" Catppuccin catppuccin-vsc-icons 1.26.0 \
   '{"iconThemes": [{"id": "catppuccin-mocha"}]}'
 vsix10 "$REDE10/tema-noite.vsix" noite tema-noite 1.0.0 '{"themes": [{"label": "Noite Escura"}]}'
+# A MESMA EXTENSÃO NA LOJA, noutra versão (P79, alerta de segurança do 8f668d0):
+#   o pack importado `noite` pina um .vsix pela URL dele, e o gesto consente
+#   pelo NOME; o que se instala tem de ser o da loja, pelo id — nunca a URL que
+#   o pack escolheu. A versão diferente é o que mostra de onde veio.
+vsix10 "$MERCADO10/noite.tema-noite.vsix" noite tema-noite 2.0.0 '{"themes": [{"label": "Noite Escura"}]}'
 mkdir -p "$T10/pacote/noite-obsidian-1a2b"
 printf '.theme-dark { --background-primary: var(--color-base-00); }\n' > "$T10/pacote/noite-obsidian-1a2b/theme.css"
 printf '{\n  "name": "Noite Pinada",\n  "version": "1.0.0"\n}\n' > "$T10/pacote/noite-obsidian-1a2b/manifest.json"
@@ -1489,13 +1494,14 @@ printf '%s\n' "$saida" | grep -qx 'lista=noite.tema-noite' \
 saida="$(gesto10 dracula)"
 printf '%s\n' "$saida" | grep -qx 'lista=' || faltam+=" o pack do repositório pede gesto ($saida);"
 saida="$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=noite.tema-noite)"; rc=$?
-[ "$rc" = 1 ] && [ "$(chamadas10)" = 1 ] && [ -d "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
+[ "$rc" = 1 ] && [ "$(chamadas10)" = 0 ] && [ -d "$CASA10/.vscode/extensions/noite.tema-noite-2.0.0" ] \
+  && [ ! -e "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
   && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" && grep -q '"workbench.iconTheme": "vs-seti"' "$VSC10" \
   && [ -z "$(ls -A "$T10/tmp")" ] \
   && ! grep -q '^vscode-extensao-de-terceiro	' "$T10/estado/pendencias.tsv" 2>/dev/null \
-  || faltam+=" vscode aplicar com o gesto (rc=$rc, chamadas=$(chamadas10): $saida);"
+  || faltam+=" vscode aplicar com o gesto: tem de vir da loja pelo id, e não da URL do pack (rc=$rc, chamadas=$(chamadas10): $saida);"
 saida="$(mod10 vscode conferir noite dracula)$(mod10 vscode aplicar noite dracula)"; rc=$?
-[ "$rc" = 0 ] && [ "$(chamadas10)" = 1 ] && printf '%s' "$saida" | grep -q 'VS Code: Noite Escura já no lugar' \
+[ "$rc" = 0 ] && [ "$(chamadas10)" = 0 ] && printf '%s' "$saida" | grep -q 'VS Code: Noite Escura já no lugar' \
   || faltam+=" vscode na segunda passada (rc=$rc: $saida);"
 saida="$(mod10 heroic aplicar noite dracula)"; rc=$?
 [ "$rc" = 3 ] && printf '%s' "$saida" | grep -q "sem tema neste pack (Noite)" \
@@ -1507,7 +1513,7 @@ saida="$(mod10 obsidian reverter noite dracula)"; rc=$?
   && printf '%s' "$saida" | grep -q 'obsidian: sem o Noite' \
   || faltam+=" obsidian reverter (rc=$rc, $(aparencia10): $saida);"
 saida="$(mod10 vscode reverter noite dracula)"; rc=$?
-[ "$rc" = 1 ] && [ ! -e "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
+[ "$rc" = 1 ] && [ ! -e "$CASA10/.vscode/extensions/noite.tema-noite-2.0.0" ] \
   && [ -d "$CASA10/.vscode/extensions/catppuccin.catppuccin-vsc-3.19.0" ] \
   && grep -q '"workbench.colorTheme": "Default Dark Modern"' "$VSC10" && grep -q '"workbench.iconTheme": "vs-seti"' "$VSC10" \
   && grep -q '// o editor dela' "$VSC10" \
@@ -1726,15 +1732,16 @@ faltam=""
 saida="$(mod10 vscode conferir noite dracula)"; rc=$?
 [ "$rc" = 1 ] && printf '%s' "$saida" | grep -q "tema-noite@0.9.0 não contribui o tema 'Noite Escura' (tem: Noite)" \
   || faltam+=" conferir com a versão velha (rc=$rc: $saida);"
-# O `noite` é importado: o pacote pinado entra por cima só com o gesto (decisão 9).
+# [P79: o `noite` é importado, e o pino dele (a URL do .vsix) não vale — só o
+#   do pack do repositório vale (alerta de segurança do 8f668d0). Sem pino, a
+#   versão sem o tema é pendência dita, nem com o gesto nada desce, e nada é
+#   escrito. O pino que entra por cima uma vez só segue provado pelo Dracula,
+#   do repositório, na seção b («o pacote que não é o pinado é recusado»).]
+antes="$(impressao10)"
 saida="$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=noite.tema-noite)"; rc=$?
-[ "$rc" = 1 ] && [ "$(chamadas10)" = 1 ] && [ -d "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
-  && grep -q '"workbench.colorTheme": "Noite Escura"' "$VSC10" && [ -z "$(ls -A "$T10/tmp")" ] \
-  || faltam+=" aplicar (rc=$rc, chamadas=$(chamadas10): $saida);"
-saida="$(mod10 vscode conferir noite dracula)$(mod10 vscode aplicar noite dracula)"; rc=$?
-[ "$rc" = 0 ] && [ "$(chamadas10)" = 1 ] && printf '%s' "$saida" | grep -q 'VS Code: Noite Escura já no lugar' \
-  && ! printf '%s' "$saida" | grep -q 'não contribui' \
-  || faltam+=" segunda passada, com a pasta velha ao lado (rc=$rc, chamadas=$(chamadas10): $saida);"
+[ "$rc" = 3 ] && [ "$(chamadas10)" = 0 ] && printf '%s' "$saida" | grep -q 'atualize a extensão pelo editor' \
+  && [ "$(impressao10)" = "$antes" ] \
+  || faltam+=" a versão sem o tema, de pack importado (rc=$rc, chamadas=$(chamadas10): $saida);"
 semear10
 vsix10 "$T10/catppuccin-velho.vsix" Catppuccin catppuccin-vsc 0.1.0 '{"themes": [{"label": "Catppuccin"}]}'
 env HOME="$CASA10" MERCADO="$MERCADO10" "$BIN10/code" --install-extension "$T10/catppuccin-velho.vsix"
@@ -1744,7 +1751,7 @@ saida="$(mod10 vscode aplicar catppuccin mocha)"; rc=$?
   && [ "$(impressao10)" = "$antes" ] \
   || faltam+=" sem pino (rc=$rc: $saida);"
 [ -z "$faltam" ] \
-  && ok "P55: a extensão que está no editor e não traz o tema do pack não conta como no lugar — com pino, o pinado entra uma vez; sem, pendência" \
+  && ok "P55: a extensão que está no editor e não traz o tema do pack não conta como no lugar — sem pino que valha, pendência e nada escrito" \
   || falha "P55: a extensão sem o tema:$faltam"
 
 # --- i) A ORIGEM PELA REGRA DA P41, E O DESFAZER LEVA TUDO O QUE DESCEU -----

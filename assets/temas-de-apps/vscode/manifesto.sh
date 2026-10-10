@@ -717,7 +717,16 @@ _meow_vscode_do_pack() {
     MEOW_VSCODE_EXT_TEMA=""
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  _MEOW_VSCODE_VSIX="$_VSC_URL"; _MEOW_VSCODE_VSIX_SHA="$_VSC_SHA"
+  # O PINO SÓ VALE NO PACK DO REPOSITÓRIO — 10/10/2026, P79 (alerta de
+  #   segurança da revisão do 8f668d0). O gesto da decisão 9 consente pelo NOME
+  #   da extensão, e o que descia era o `.vsix` da URL e do sha256 que o PACK
+  #   escolheu: um pack importado podia pôr o nome de uma extensão conhecida e
+  #   a URL de um código qualquer. Para o importado, a URL e o sha256 dele são
+  #   ignorados, e a extensão entra pelo id, da loja oficial
+  #   (`code --install-extension <id>`), que é o id que a pendência mostra.
+  if [ "$_VSC_DO_REPO" = "1" ]; then
+    _MEOW_VSCODE_VSIX="$_VSC_URL"; _MEOW_VSCODE_VSIX_SHA="$_VSC_SHA"
+  fi
   if [ -n "$_MEOW_VSCODE_VSIX$_MEOW_VSCODE_VSIX_SHA" ]; then
     case "$_MEOW_VSCODE_VSIX" in
       https://*) ;;
