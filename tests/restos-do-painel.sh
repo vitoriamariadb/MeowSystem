@@ -422,7 +422,7 @@ const botao = (painel, texto) => painel.todos().find((e) => e.tagName === "BUTTO
     ctx.silhuetaDePonteiro = () => new El("span");
     const ponteiro = (valor) => item(valor, { chave: "CURSOR", padrao: "catppuccin-mocha-light",
       padrao_do_pack: "Dracula-Cursor", opcoes: ["catppuccin-mocha-light", "Dracula-Cursor"],
-      previa: "agente", valendo_agora: null });
+      previa: "cursor", valendo_agora: null });  // ia-artifact:manter (o tipo de prévia do ponteiro)
     c = montar(ponteiro("Dracula-Cursor"));
     checa(!restaurar(c), "com o ponteiro do pack no ar escolhido, nenhum «Restaurar ao padrão»",
           botoes(c).map((b) => b.textContent).join(" | "));
