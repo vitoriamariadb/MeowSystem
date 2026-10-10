@@ -929,7 +929,18 @@
         g.appendChild(ret(15, y + 4, 78, 14, 7, { fill: vidro, stroke: borda, "stroke-width": FINO }));
         g.appendChild(ret(17.5, y + 5.5, 11, 11, 3, { stroke: borda, "stroke-width": 1 }));
         if (indefinida) g.appendChild(logoIndefinida(23, y + 11, 3.6, tinta));
-        else g.appendChild(gatoDeTraco(23, y + 11.2, 3.4, tinta, nomeLogo));
+        else {
+          /* O GATO DE VERDADE NA PONTA DA DOCK — 10/10/2026, QA da P77. O gato
+           * de traço dá um rosto por nome, e nomes diferentes caem no mesmo
+           * rosto: trocar «morcego-dia» por «Mimir» deixava o «como está» e o
+           * «como fica» iguais. Ele fica como reserva dentro de um grupo que
+           * diz QUAL gato e ONDE, e a página troca a reserva pela miniatura do
+           * acervo (`pintarGatosNoDock`, app.js) — a técnica do terminal. */
+          var noDock = grupo(null, { "class": "gato-no-dock", "data-gato": nomeLogo,
+                                     "data-x": 18, "data-y": n2(y + 6), "data-lado": 10 });
+          noDock.appendChild(gatoDeTraco(23, y + 11.2, 3.4, tinta, nomeLogo));
+          g.appendChild(noDock);
+        }
         g.appendChild(lin(32, y + 6.5, 32, y + 15.5, { stroke: borda, "stroke-width": 1 }));
         for (var i = 0; i < 4; i++) {
           g.appendChild(ret(36 + i * 11, y + 6.5, 9, 9, 2.4, { stroke: borda, "stroke-width": 1 }));

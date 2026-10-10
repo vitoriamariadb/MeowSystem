@@ -3312,7 +3312,28 @@ function gatoDoTerminal(d) {
   return noDock === noite ? dia : noite;
 }
 
+/* A miniatura do gato escolhido na ponta da dock desenhada — QA da P77. O
+ * desenho (`previas-tela.js`) deixa o gato de traço como reserva dentro de
+ * `g.gato-no-dock`; aqui ele vira a imagem do acervo, a mesma da escolha. */
+function pintarGatosNoDock(raiz) {
+  const grupos = (raiz || document).querySelectorAll("g.gato-no-dock:not([data-pintado])");
+  if (!grupos.length) return;
+  const gatos = previasDe("gato");
+  if (!gatos) return;
+  for (const g of grupos) {
+    const p = (gatos.itens || []).find((i) => i.id === g.dataset.gato && i.pronta && i.url);
+    if (!p) continue;
+    g.dataset.pintado = g.dataset.gato;
+    const img = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    for (const [k, v] of [["x", g.dataset.x], ["y", g.dataset.y], ["width", g.dataset.lado],
+                          ["height", g.dataset.lado], ["href", p.url],
+                          ["preserveAspectRatio", "xMidYMid meet"]]) img.setAttribute(k, v);
+    g.replaceChildren(img);
+  }
+}
+
 function pintarGatosEmCelulas(raiz) {
+  pintarGatosNoDock(raiz);
   const grupos = (raiz || document).querySelectorAll("g.gato-em-celulas:not([data-pintado])");
   if (!grupos.length) return;
   const gatos = previasDe("gato");
