@@ -157,7 +157,9 @@ _ler_mapa() {
     #   (medido no tests/pack-malicioso.sh). Só do conjunto fechado do
     #   `meow_nome_seguro`; a linha fora dele é pulada e contada.
     if ! meow_nome_seguro "$nome" || ! meow_nome_seguro "$glifo"; then
-      pulados+=("$nome"); continue
+      # O nome vai para o aviso, no terminal: o que não é do conjunto sai como
+      # `?`, e uma sequência de controle plantada no mapa não chega lá crua.
+      pulados+=("${nome//[!A-Za-z0-9._+-]/?}"); continue
     fi
     [ -n "$nome" ] && [ -n "$glifo" ] && MAPA_LIDO["$nome"]="$glifo"
   done < "$MAPA"

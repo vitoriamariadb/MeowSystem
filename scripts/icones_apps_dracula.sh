@@ -170,7 +170,8 @@ _dracula_pares_do_mapa() {
       gsub(/^[ \t]+|[ \t]+$/, "", nome)
       gsub(/^[ \t]+|[ \t]+$/, "", caminho)
       if (nome == "" || caminho == "") next
-      if (nome !~ /^[A-Za-z0-9._+-]+$/ || index(nome, "..")) { print "!\t" nome; next }
+      # O recusado vai para o aviso no terminal: fora do conjunto, sai `?`.
+      if (nome !~ /^[A-Za-z0-9._+-]+$/ || index(nome, "..")) { gsub(/[^A-Za-z0-9._+-]/, "?", nome); print "!\t" nome; next }
       print nome "\t" caminho
     }')"
   local recusados
