@@ -253,6 +253,19 @@ recusado="$(amb python3 "$RAIZ/scripts/pack.py" adocao mal-esc "" 2>/dev/null | 
 [ "$recusado" = "mal-esc" ] && ok "o pack com caractere de controle no nome é recusado inteiro" \
   || falha "o pack com caractere de controle no nome foi adotado (recusado='$recusado')"
 
+# A porta de saída (`meow_texto_seguro`): C1 cru que não forma UTF-8 também sai
+# (`\x9b\x9b`, `\xff\x9b`, `\xe2\x9b` truncado, `\x90`/`\x9d`/`\x9e`/`\x9f`), e o
+# `ě` (`\xc4\x9b`), que tem um `\x9b` de continuação, sobrevive.
+saida="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"
+  for c in $'"'"'\x9b\x9b[2J'"'"' $'"'"'\xff\x9b[2J'"'"' $'"'"'\xe2\x9b[2J'"'"' $'"'"'a\x90b\x9dc\x9ed\x9fe'"'"' $'"'"'\e]52;c;eA==\a'"'"'; do
+    meow_texto_seguro "$c"; echo; done; meow_texto_seguro "ě" ' 2>/dev/null)"
+if [ "$(printf '%s\n' "$saida" | tail -1)" = "ě" ] \
+   && ! printf '%s\n' "$saida" | head -5 | LC_ALL=C grep -q $'[\x01-\x1f\x7f\x80-\x9f]'; then
+  ok "meow_texto_seguro tira C0, DEL e C1 (também o cru que não é UTF-8) e deixa o ě"
+else
+  falha "meow_texto_seguro deixou passar controle (ou comeu o ě)" "$(printf '%s' "$saida" | od -c | head -5)"
+fi
+
 # --- 2. as escolhas do painel ----------------------------------------------------
 BOM_DRACULA="packs/dracula/icones/apps/$(ls "$RAIZ/packs/dracula/icones/apps" | grep '\.svg$' | head -1)"
 cat > "$CASA/.config/meow/icones-escolhidos.map" <<M
