@@ -10755,6 +10755,13 @@ function cartaoDePack(p) {
       title: `Veste a máquina inteira com o ${p.nome}`,
       onclick: () => usarPack(p),
     }));
+    /* A TROCA BAIXA, E A PORTA DIZ — 10/10/2026, P80 (item 10, decisão 12).
+     * Trocar de pack leva o ponteiro do pack (o do Dracula desce da rede), e o
+     * instalador que a troca roda baixa e compila. O selo «baixa da internet»
+     * vem logo depois do botão, como em toda porta de ação que baixa; sai do
+     * `rede` da ação `pack_usar`, e não de uma segunda marca aqui. */
+    const troca = (ESQUEMA.acoes || []).find((a) => a.id === "pack_usar");
+    if (troca && troca.rede) botoes.push(selo("rede", { balao: "Baixa da internet" }));
   }
   if (botoes.length) corpo.append(elemento("div", { class: "pack-acoes" }, botoes));
   /* O corpo vem antes do detalhe no documento: é a ordem de leitura (o nome,

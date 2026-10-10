@@ -46,7 +46,8 @@ O QUE REPROVA (e de onde cada regra vem)
          página, com o porquê na dica;
        · as três linhas de Dia e noite usam o seletor de hora, na ordem
          começa | termina;
-       · a fileira «Fundo» mora só em Cor e tela.
+       · a fileira «Fundo» mora só em Cor e tela;
+       · o «Usar este» de um pack mostra o selo «baixa da internet» (decisão 12).
 
 A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
   A decisão 8 de 02-decisoes.md manda o painel de QA subir SÓ com HOME
@@ -463,6 +464,23 @@ def fundo_em_toda_pagina(pag):
     return defeitos
 
 
+# 8.10 — TROCAR DE PACK BAIXA, E DIZ (decisão 12): a troca leva o ponteiro do
+#   pack, e o do Dracula desce da rede. O «Usar este» de cada pack mostra o
+#   selo «baixa da internet» logo depois dele, como toda porta de ação que baixa.
+PACK_REDE_JS = r"""
+() => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const usar = [...document.querySelectorAll('#conteudo button')]
+    .filter((b) => vis(b) && b.textContent.trim() === 'Usar este');
+  if (!usar.length) return ['a Início não mostrou nenhum «Usar este» de pack'];
+  return usar.filter((b) => {
+    const s = b.nextElementSibling;
+    return !(s && s.matches('.selo[data-selo="rede"]') && vis(s) && /internet/i.test(s.dataset.balao || ''));
+  }).map((b) => `o «Usar este» de «${(b.closest('article, .pack') || {}).dataset?.pack || 'um pack'}» não mostra o selo «baixa da internet»`);
+}
+"""
+
+
 def acabamento(pag):
     """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -484,6 +502,12 @@ def acabamento(pag):
     if FOTOS:
         pag.screenshot(path=os.path.join(FOTOS, "p80-dia-e-noite.png"))
     reprovas += [("cabeçalho", d) for d in fundo_em_toda_pagina(pag)]
+    abrir_pagina(pag, "Início")
+    reprovas += [("Início", d) for d in pag.evaluate(PACK_REDE_JS)]
+    if FOTOS:
+        pag.locator("#conteudo button", has_text="Usar este").first.evaluate(
+            "(e) => e.scrollIntoView({ block: 'center' })")
+        pag.screenshot(path=os.path.join(FOTOS, "p80-usar-pack.png"))
     return reprovas
 
 
