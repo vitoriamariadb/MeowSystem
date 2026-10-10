@@ -19,8 +19,12 @@
 #   3. Fora de uma passada, o `meow_tela_reler` relê na hora, como sempre: um
 #      «Usar este ícone» do painel roda o passo sozinho, e a dock tem de mudar.
 #   4. O install.sh arma a marca antes do laço das passagens e relê depois dele.
+#   4b. O `meow doctor --consertar` faz o mesmo em volta dos consertos dele
+#      (conferência da P80).
 #   5. O `painel.sh reciclar` registra no meow.log quem o chamou, até quando
 #      não há painel a reciclar.
+#   6. O `icones_apps_arcticons.sh` de verdade, com a marca armada, sai 1
+#      (mudou), e não com o código do reler (conferência da P80).
 #
 # A TELA É DE BRINQUEDO: o `getent` falso diz que a casa de brinquedo é a da
 #   conta (a cerca do `meow_tela_reler`), o `pgrep` falso diz que há painel, e
@@ -96,6 +100,22 @@ if [ -n "$laco" ] && [ -n "$arma" ] && [ -n "$rele" ] && [ "$arma" -lt "$laco" ]
   ok "install.sh: a marca nasce na linha $arma, o laço na $laco, o reler na $rele"
 else
   falha "o install.sh não arma a marca antes do laço ou não relê depois dele" "laço=$laco arma=$arma relê=$rele"
+fi
+
+printf '\n--- 4b. o conserto do doctor também relê uma vez, depois do laço dele ---\n'
+#   Conferência da P80: o `meow doctor --consertar` (o auto-reparo das 5h e o
+#   «Consertar» do painel) chama o `fix_arcticons`, o `fix_resgatados` e o
+#   `fix_dracula` no mesmo laço — os mesmos três reciclos da instalação.
+laco="$(grep -n 'meow_passo "Consertando o que falhou"' "$RAIZ/bin/meow" | head -1 | cut -d: -f1)"
+fixes="$(grep -n '"fix_\$nome"' "$RAIZ/bin/meow" | head -1 | cut -d: -f1)"
+arma="$(grep -nE '^[^#]*export MEOW_RELER_NO_FIM' "$RAIZ/bin/meow" | head -1 | cut -d: -f1)"
+rele="$(grep -nE '^[^#]*meow_tela_reler_no_fim' "$RAIZ/bin/meow" | head -1 | cut -d: -f1)"
+if [ -n "$laco" ] && [ -n "$fixes" ] && [ -n "$arma" ] && [ -n "$rele" ] \
+   && [ "$arma" -gt "$laco" ] && [ "$arma" -lt "$fixes" ] && [ "$rele" -gt "$fixes" ]; then
+  ok "bin/meow: a marca nasce na linha $arma, os consertos na $fixes, o reler na $rele"
+else
+  falha "o doctor não arma a marca antes dos consertos ou não relê depois deles" \
+        "consertando=$laco arma=$arma fix=$fixes relê=$rele"
 fi
 
 printf '\n--- 5. o painel.sh reciclar registra quem o chamou ---\n'
