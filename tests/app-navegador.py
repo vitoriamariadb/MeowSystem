@@ -1935,6 +1935,35 @@ def main():
                   and "Separar imagens de dia e de noite" in de_quem["texto"],
                   f"o balao herdado nomeia o bloco dono ({de_quem['dona']})")
 
+            # (i2) UM RELOGIO PARA A NOITE (P77, achado 25). A pagina abre com a
+            #     moldura do relogio, os tres aneis e as seis horas; os dois
+            #     campos da noite do gato, vazios na casa de brinquedo, mostram a
+            #     hora que vale (a da imagem escura), e nao `--:--`.
+            noite = pag.evaluate("""() => {
+              const m = document.querySelector('.decisao-relogio');
+              const hora = (k) => {
+                const i = document.querySelector(`article.cartao[data-chave="${k}"] input[type=time]`);
+                return i ? [i.value, i.classList.contains('hora-herdada')] : null;
+              };
+              return { moldura: !!m, aneis: m ? m.querySelectorAll('.anel').length : 0,
+                       cartoes: m ? m.querySelectorAll('article.cartao').length : 0,
+                       ini: hora('NOITE_INICIO'), fim: hora('NOITE_FIM'),
+                       parede: hora('WALLPAPER_NOITE_INICIO'),
+                       topo: !!document.querySelector('.previa-bloco') };
+            }""")
+            checa(noite["moldura"] and noite["aneis"] == 3 and noite["cartoes"] == 6
+                  and not noite["topo"],
+                  f"Dia e noite abre com um relogio de tres aneis e seis horas ({noite})")
+            checa(noite["ini"] and noite["parede"] and noite["ini"][1] and noite["fim"][1]
+                  and noite["ini"][0] == noite["parede"][0],
+                  f"a noite vazia mostra a hora herdada, a traco, e nao --:-- ({noite['ini']}, {noite['fim']})")
+
+            # O DESENHO DO TOPO saiu de «Dia e noite» (o relogio e o desenho dela);
+            # as duas medidas abaixo, que sao de qualquer desenho de faixa, vao
+            # para «Lançadores e jogos», que continua com o dela.
+            pag.locator('#trilho button[data-grupo="Lançadores e jogos"]').first.click()
+            pag.wait_for_timeout(450)
+
             # (j) A CAIXA DO DESENHO MEDE O QUE O DESENHO MEDE. Com `max-height`
             #     e `width: 100%` a caixa ficava com a largura da coluna e o
             #     desenho se centralizava dentro dela: medido, 459px de caixa

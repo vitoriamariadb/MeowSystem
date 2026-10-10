@@ -866,6 +866,26 @@ def _valendo_agora(chave):
     return traduzir(bruto) if bruto else None
 
 
+def _noite_do_applet():
+    """{"ini": "HH:MM", "fim": "HH:MM"} quando o applet do modo de leitura
+    guarda as DUAS pontas da janela no CosmicComp; senão None.
+
+    O SEGUNDO DEGRAU DA NOITE DO GATO — 10/10/2026, P77 (achado 25). O
+    `meow_noite_janela` (lib/noite.sh) responde, nesta ordem: `NOITE_*`, a
+    janela do applet, `WALLPAPER_NOITE_*`, 18:00–07:00. A página sabe ler três
+    dos quatro degraus no meow.conf, e o do applet mora fora dele: é este campo.
+    As duas pontas, e não uma, porque é assim que o `meow_noite_janela` as
+    aceita — uma ponta só cai no degrau seguinte inteiro."""
+    pontas = []
+    for chave in ("leitura_hora_inicio", "leitura_hora_fim"):
+        bruto = (_cosmic_ler("com.system76.CosmicComp/v1/" + chave) or "").strip().strip('"')
+        if not re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", bruto):
+            return None
+        h, m = bruto.split(":")
+        pontas.append("%02d:%s" % (int(h), m))
+    return {"ini": pontas[0], "fim": pontas[1]}
+
+
 def _titulo_de(chave):
     """O título escrito da chave, ou o nome dela quando não houver.
 
@@ -1925,6 +1945,21 @@ def _forma_de_numero(padrao):
     return ""
 
 
+def _vazio_vale(inline):
+    """O número que a chave vazia vale, quando o comentário da linha o declara
+    no formato `(vazio = 7)`; senão None.
+
+    O «COMO ESTÁ» SEM NÚMERO — 10/10/2026, P77 (achado 25). «O tema claro
+    começa às» nasce vazio, e vazio ali não é «não toca»: o `modo_desejado`
+    do `bin/meow` lê `${MODO_AUTO_CLARO_DE:-7}`. O deslizante desenhava a alça
+    no 0 e dizia só «como está», e o relógio da página não tinha como saber
+    que o claro começa às 7. O arquivo já escreve o número ao lado da linha;
+    só se aceita número, porque `(vazio = não toca)` é o outro contrato, o do
+    terceiro estado, e não um valor."""
+    m = re.search(r"\(vazio\s*=\s*(-?\d+(?:\.\d+)?)\s*\)", inline or "")
+    return m.group(1) if m else None
+
+
 def _faixa(ajuda, inline):
     """(minimo, maximo, passo) quando o comentário declara uma faixa numérica.
 
@@ -2302,6 +2337,8 @@ def ler_esquema():
             #   controle, que é o que a prosa do arquivo quer dizer.
             "opcoes": _opcoes_finais(chave, ajuda, inline, _valor_da_linha(linha), herdada),
             "faixa": _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
+            # O QUE O VAZIO VALE, quando o arquivo o diz — ver `_vazio_vale`.
+            "vazio_vale": _vazio_vale(inline),
             # A forma do número, quando há uma. Sai do VALOR DE FÁBRICA, que é
             # onde o arquivo já a declara sem precisar de uma palavra a mais —
             # ver `FORMAS_NUMERO`. É o que permite à página desenhar um campo
@@ -11432,6 +11469,9 @@ class Manipulador(BaseHTTPRequestHandler):
             # O gato que está no dock agora, do `logo.sh no-dock` — o retrato
             # da Início o diz, e não a `LOGO`, que é só a do modo fixo.
             "gato_no_dock": _gato_no_dock(),
+            # A janela que o controle do modo de leitura guarda, quando guarda
+            # as duas pontas — ver `_noite_do_applet`.
+            "noite_do_applet": _noite_do_applet(),
             # Quais combinações de FLAVOR × ACCENT existem de verdade: a
             # página avisa ANTES de ela salvar uma que o instalador recusa.
             "capturas": _capturas_no_disco(),

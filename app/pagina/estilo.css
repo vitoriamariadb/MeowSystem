@@ -4187,3 +4187,76 @@ a.folha:hover b { color: var(--text); }
 }
 /* O cartão do par de desenhos não cresce além do que o desenho preenche. */
 .decisao[data-decisao^="gato-"] > .cartao { max-width: 36rem; }
+
+/* ===========================================================================
+ * P77 · DIA E NOITE — um relógio, três anéis, uma linha por anel (10/10/2026)
+ * =========================================================================== */
+/* O relógio à esquerda ocupa as três linhas; cada linha é o ícone na cor do
+ * anel, o começo da noite e o fim dela. A posição sai de `data-linha` e
+ * `data-ponta` (o JS não fixa lugar), porque em tela estreita as pontas descem
+ * uma sob a outra. */
+.grade > .decisao.decisao-relogio {
+  grid-template-columns: auto auto minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+.decisao-relogio > .relogio-noite {
+  grid-column: 1; grid-row: 1 / span 3;
+  align-self: center;
+  width: 14rem; padding: 1rem 1.8rem 1rem 1.1rem;
+  position: relative;
+}
+.decisao-relogio > .relogio-noite > button.porque { position: absolute; top: .6rem; right: 0; }
+.relogio-noite-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.relogio-noite-svg .anel { fill: none; stroke-width: 7; }
+.relogio-noite-svg .trilha { stroke: var(--surface0); }
+.relogio-noite-svg .arco { stroke: currentColor; stroke-linecap: round; }
+.relogio-noite-svg .herdado .arco { stroke-dasharray: 2.2 2.6; stroke-linecap: butt; }
+.relogio-noite-svg .parado .arco { opacity: .45; }
+.relogio-noite-svg .hora-marca { fill: var(--overlay1); font-size: 8px; text-anchor: middle; font-family: var(--mono); }
+.relogio-noite-svg .ponteiro { stroke: var(--text); stroke-width: 1.4; stroke-linecap: round; opacity: .75; }
+.relogio-noite-svg .eixo { fill: var(--text); }
+
+.decisao-relogio > .linha-noite-icone {
+  grid-column: 2;
+  display: grid; place-items: center;
+  padding: 0 .35rem 0 .9rem;
+  border-left: 1px solid var(--surface0);
+}
+.linha-noite-icone > svg {
+  width: 20px; height: 20px;
+  fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round;
+}
+.linha-noite-icone.parado { opacity: .4; }
+.decisao-relogio > [data-linha="1"] { grid-row: 1; }
+.decisao-relogio > [data-linha="2"] { grid-row: 2; }
+.decisao-relogio > [data-linha="3"] { grid-row: 3; }
+.decisao-relogio > .cartao[data-ponta="ini"] { grid-column: 3; }
+.decisao-relogio > .cartao[data-ponta="fim"] { grid-column: 4; }
+/* Os fios: entre as linhas, horizontais; a primeira coluna de cartões não
+ * herda o fio vertical da moldura comum (o ícone já separa). */
+.decisao-relogio > .cartao + .cartao { border-left: 0; }
+.decisao-relogio > .cartao[data-ponta="fim"] { border-left: 1px solid var(--surface0); }
+.decisao-relogio > :is(.cartao, .linha-noite-icone):not([data-linha="1"]) { border-top: 1px solid var(--surface0); }
+/* O campo de hora que herda: a traço e apagado, como o «como está» do
+ * deslizante. Escolher uma hora o devolve ao desenho de sempre. */
+input[type="time"].hora-herdada {
+  border-style: dashed; color: var(--overlay2); background: transparent;
+}
+.controle:has(> .selo) { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .grade > .decisao.decisao-relogio { grid-template-columns: auto minmax(0, 1fr); }
+  .decisao-relogio > .relogio-noite { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
+  .decisao-relogio > .linha-noite-icone { grid-column: 1; border-left: 0; padding: 0 .4rem 0 .8rem; }
+  .decisao-relogio > .cartao[data-ponta] { grid-column: 2; border-left: 0; }
+  .decisao-relogio > .linha-noite-icone[data-linha="1"] { grid-row: 2 / span 2; }
+  .decisao-relogio > .cartao[data-linha="1"][data-ponta="ini"] { grid-row: 2; }
+  .decisao-relogio > .cartao[data-linha="1"][data-ponta="fim"] { grid-row: 3; }
+  .decisao-relogio > .linha-noite-icone[data-linha="2"] { grid-row: 4 / span 2; }
+  .decisao-relogio > .cartao[data-linha="2"][data-ponta="ini"] { grid-row: 4; }
+  .decisao-relogio > .cartao[data-linha="2"][data-ponta="fim"] { grid-row: 5; }
+  .decisao-relogio > .linha-noite-icone[data-linha="3"] { grid-row: 6 / span 2; }
+  .decisao-relogio > .cartao[data-linha="3"][data-ponta="ini"] { grid-row: 6; }
+  .decisao-relogio > .cartao[data-linha="3"][data-ponta="fim"] { grid-row: 7; }
+  .decisao-relogio > :is(.cartao, .linha-noite-icone) { border-top: 1px solid var(--surface0); }
+}

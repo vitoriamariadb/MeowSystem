@@ -1717,11 +1717,26 @@ function montarControle(item, cartao) {
   /* 2. horário -> <input type="time">, que já traz o teclado e a validação */
   if (item.horario) {
     const caixa = elemento("div", { class: "controle" });
+    /* O VAZIO QUE HERDA MOSTRA A HORA QUE VALE — 10/10/2026, P77 (achado 25).
+     * «A noite começa às» vazia aparecia `--:--`, com a Início dizendo «das
+     * 18:00 às 07:00»: o campo vazio não é hora nenhuma, é «siga outra
+     * janela». Agora ele mostra a hora herdada, a traço e apagada (como o
+     * «como está» do deslizante), e o selo diz quem ela segue. Escolher uma
+     * hora tira o traço; o «Restaurar ao padrão» devolve o vazio. */
+    const herdada = horaHerdada(item);
     const campo = elemento("input", {
-      type: "time", value: valor, "aria-label": rotuloAcessivel(item),
+      type: "time", value: valor || (herdada && herdada.hora) || "",
+      class: valor === "" && herdada && herdada.hora ? "hora-herdada" : null,
+      "aria-label": rotuloAcessivel(item),
+      "aria-description": valor === "" && herdada && herdada.hora ? `${herdada.balao}: ${herdada.hora}` : null,
     });
     campo.addEventListener("change", () => aplica(campo.value));
     caixa.append(campo);
+    if (herdada) {
+      caixa.append(herdada.anulada
+        ? selo("anulado", { balao: herdada.balao })
+        : selo("herdado", { balao: herdada.balao }));
+    }
     /* [P77, achado 14: como no deslizante, o «Restaurar ao padrão» só nasce
      * com um horário escolhido — com o campo vazio não há o que restaurar.] */
     if (item.aceita_vazio && valor !== "") {
@@ -1795,7 +1810,9 @@ function montarControle(item, cartao) {
     /* O "COMO ESTÁ" DIZ QUANTO — 13/09/2026. Vazio é "não toca", e o que fica é
      * o número que a máquina já tem (`valendo_agora`); a alça para nele, e não
      * no piso da régua, que desenhava 0 onde a dock dela tem 24. */
-    const agora = item.valendo_agora;
+    /* Sem número da máquina, o que o vazio vale pelo arquivo (`vazio_vale`):
+     * «O tema claro começa às» vazio é 7, e a alça para no 7 (P77). */
+    const agora = item.valendo_agora ?? (vazio ? item.vazio_vale : null);
     const agoraNaRegua = agora != null && /^-?\d+(\.\d+)?$/.test(String(agora));
     /* O NÚMERO DE PARTIDA TEM DE CAIR NA RÉGUA — 07/09/2026
      * Era `String(item.padrao || lo)`, e empacava sempre que o padrão da chave
@@ -7619,6 +7636,14 @@ function repintarPrevia(chave, valor) {
       pintarForma(reg.alvo);
       return;
     }
+    /* O relógio da noite também lê por `valorEmVigor`: arrastar a hora do tema
+     * move o anel dele no mesmo gesto (P77). */
+    if (reg.relogio) {
+      const novo = relogioDaNoite();
+      reg.alvo.replaceWith(novo);
+      for (const r of PREVIA_VIVA.values()) if (r.relogio) r.alvo = novo;
+      return;
+    }
     const novo = parDePrevias(reg.g);
     if (novo) {
       reg.alvo.replaceWith(novo);
@@ -8451,6 +8476,230 @@ function devolverRolagem(guardado) {
 }
 
 /* ===========================================================================
+ * UM RELÓGIO PARA A NOITE — 10/10/2026, P77 (achado 25, U5)
+ * ===========================================================================
+ * «Dia e noite» tinha três agendas para o mesmo conceito, em seis cartões
+ * soltos: a noite do gato (dois campos vazios, `--:--`, enquanto a Início
+ * dizia «das 18:00 às 07:00»), a do tema claro (dois deslizantes que diziam só
+ * «como está») e a da imagem escura (18:00 e 07:00). Os pares não apontavam
+ * um para o outro, e nada na tela dizia que, de fábrica, os três são a mesma
+ * noite.
+ *
+ * Agora é UM relógio de 24 horas com três anéis, um por coisa que a noite
+ * troca — o gato, o tema, a imagem —, e ao lado dele as três linhas na mesma
+ * ordem e na mesma cor, cada uma com o começo e o fim da noite DELA. As
+ * chaves continuam três pares, cada controle gravando a sua (as donas são
+ * scripts diferentes: o `lib/noite.sh`, o `modo_desejado` do `bin/meow` e o
+ * `wallpaper.sh`); o que muda é que o olho vê os três arcos juntos. Quando eles
+ * se sobrepõem é uma noite só; quando não, a diferença está desenhada.
+ *
+ *   · o valor HERDADO aparece, a traço: o arco do gato que segue outra janela
+ *     é tracejado, e o campo vazio mostra a hora que vale (ver `horaHerdada`)
+ *     em vez de `--:--`;
+ *   · o que não está valendo aparece apagado: o anel do tema sem «Claro ou
+ *     escuro» em Automático, o da imagem com «Separar imagens» desligado;
+ *   · o ponteiro é a hora de agora, e é ele que diz quem já virou.
+ *
+ * As três janelas saem das mesmas regras que os scripts aplicam, e cada uma
+ * cita a sua dona. */
+const HORA_OK = /^([01]?\d|2[0-3]):[0-5]\d$/;
+const doisDigitos = (h) => String(h).padStart(5, "0");
+const minutosDe = (h) => { const [a, b] = String(h).split(":"); return Number(a) * 60 + Number(b); };
+
+function valeDaChave(chave) {
+  const item = ESQUEMA.chaves.find((x) => x.chave === chave);
+  return item ? String(valorEmVigor(item) ?? "") : "";
+}
+
+/* A noite do gato do dock e do terminal: o `meow_noite_janela` do
+ * `lib/noite.sh`, degrau por degrau — `NOITE_*` (as DUAS, ou nenhuma), a janela
+ * que o controle do modo de leitura guarda (o servidor a lê no CosmicComp,
+ * `noite_do_applet`), `WALLPAPER_NOITE_*`, e 18:00–07:00. Até aqui a página
+ * pulava o segundo degrau, e cada ponta era resolvida sozinha: a Início dizia
+ * uma noite que o gato não seguia. */
+function janelaDoGato() {
+  const ni = valeDaChave("NOITE_INICIO"), nf = valeDaChave("NOITE_FIM");
+  if (HORA_OK.test(ni) && HORA_OK.test(nf)) return { ini: doisDigitos(ni), fim: doisDigitos(nf), fonte: "conf" };
+  const ap = ESQUEMA.noite_do_applet;
+  if (ap && HORA_OK.test(ap.ini) && HORA_OK.test(ap.fim)) return { ini: ap.ini, fim: ap.fim, fonte: "applet" };
+  const pi = valeDaChave("WALLPAPER_NOITE_INICIO"), pf = valeDaChave("WALLPAPER_NOITE_FIM");
+  if (HORA_OK.test(pi) && HORA_OK.test(pf)) return { ini: doisDigitos(pi), fim: doisDigitos(pf), fonte: "parede" };
+  return { ini: "18:00", fim: "07:00", fonte: "padrao" };
+}
+
+/* A noite do tema: o escuro vai do fim do claro ao começo dele, em horas
+ * cheias (`modo_desejado`, bin/meow). Vazio vale o que o arquivo escreve ao
+ * lado da linha (`vazio_vale`: 7 e 18). Só vale com «Claro ou escuro» em
+ * Automático. */
+function janelaDoTema() {
+  const hora = (chave) => {
+    const item = ESQUEMA.chaves.find((x) => x.chave === chave);
+    const v = item ? String(valorEmVigor(item) ?? "") : "";
+    return { h: Number(v !== "" ? v : (item && item.vazio_vale) || 0), herdado: v === "" };
+  };
+  const de = hora("MODO_AUTO_CLARO_DE"), ate = hora("MODO_AUTO_CLARO_ATE");
+  return { ini: `${String(ate.h).padStart(2, "0")}:00`, fim: `${String(de.h).padStart(2, "0")}:00`,
+           herdado: de.herdado && ate.herdado, ativo: valeDaChave("MODO") === "auto" };
+}
+
+/* A noite do carrossel: o `e_noite` do `wallpaper.sh`, sobre as
+ * `WALLPAPER_NOITE_*` (vazias, 18:00 e 07:00). Só vale com «Separar imagens de
+ * dia e de noite» ligado. */
+function janelaDaImagem() {
+  const pi = valeDaChave("WALLPAPER_NOITE_INICIO"), pf = valeDaChave("WALLPAPER_NOITE_FIM");
+  return { ini: HORA_OK.test(pi) ? doisDigitos(pi) : "18:00", fim: HORA_OK.test(pf) ? doisDigitos(pf) : "07:00",
+           ativo: valeDaChave("WALLPAPER_NOITE") !== "nao" };
+}
+
+/* O que um campo de hora VAZIO vale agora, e de onde vem — ou, num campo
+ * preenchido que não vale, por quê. `null` quando o campo diz a verdade
+ * sozinho. Só as duas `NOITE_*` herdam: são as únicas horas vazias da página
+ * que alguém resolve. */
+function horaHerdada(item) {
+  if (item.chave !== "NOITE_INICIO" && item.chave !== "NOITE_FIM") return null;
+  const j = janelaDoGato();
+  if (j.fonte === "conf") return null;
+  const proprio = valorEmVigor(item);
+  const ponta = item.chave === "NOITE_INICIO" ? j.ini : j.fim;
+  const balao = { applet: "Segue a janela do controle do modo de leitura",
+                  parede: "Segue a imagem escura", padrao: "Padrão" }[j.fonte];
+  /* Preenchida com a irmã vazia ela não vale: o `meow_noite_janela` pede as
+   * duas pontas, e com uma só cai no degrau seguinte inteiro. */
+  if (proprio !== "") {
+    const irma = item.chave === "NOITE_INICIO" ? "A noite termina às" : "A noite começa às";
+    return { anulada: true, balao: `Só vale com «${irma}» preenchida` };
+  }
+  return { hora: ponta, balao };
+}
+
+const NS_RELOGIO = "http://www.w3.org/2000/svg";
+function noSvg(tag, attrs) {
+  const n = document.createElementNS(NS_RELOGIO, tag);
+  for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, String(v));
+  return n;
+}
+
+/* As três linhas, na ordem dos anéis de fora para dentro. A cor é o que liga
+ * o anel à linha; o ícone, o que diz o que ela troca. */
+const LINHAS_DA_NOITE = [
+  { id: "gato", nome: "O gato do dock e do terminal", cor: "var(--mauve, var(--accent))",
+    chaves: ["NOITE_INICIO", "NOITE_FIM"],
+    icone: '<path d="M3 13.5V4.5l3 2.5h4l3-2.5v9z"/><path d="M6.5 10h.01M9.5 10h.01"/>' },
+  { id: "tema", nome: "O tema claro ou escuro", cor: "var(--blue, var(--accent))",
+    chaves: ["MODO_AUTO_CLARO_ATE", "MODO_AUTO_CLARO_DE"],
+    icone: '<circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/>' },
+  { id: "imagem", nome: "A imagem do carrossel", cor: "var(--teal, var(--accent))",
+    chaves: ["WALLPAPER_NOITE_INICIO", "WALLPAPER_NOITE_FIM"],
+    icone: SELO_ICONES.foto },
+];
+
+function estadoDasLinhas() {
+  const gato = janelaDoGato(), tema = janelaDoTema(), imagem = janelaDaImagem();
+  return {
+    gato: { ...gato, herdado: gato.fonte !== "conf", ativo: true },
+    tema, imagem,
+  };
+}
+
+function relogioDaNoite() {
+  const est = estadoDasLinhas();
+  const C = 64;
+  const svg = noSvg("svg", { viewBox: "0 0 128 128", class: "relogio-noite-svg", role: "img",
+    "aria-label": `Noite do gato ${est.gato.ini}–${est.gato.fim}, do tema ${est.tema.ini}–${est.tema.fim}, `
+                + `da imagem ${est.imagem.ini}–${est.imagem.fim}` });
+  const ponto = (r, min) => {
+    const a = (min / 1440) * 2 * Math.PI - Math.PI / 2;
+    return [C + r * Math.cos(a), C + r * Math.sin(a)];
+  };
+  LINHAS_DA_NOITE.forEach((l, i) => {
+    const r = 48 - i * 11;
+    const e = est[l.id];
+    const g = noSvg("g", { class: "anel" + (e.ativo ? "" : " parado") + (e.herdado ? " herdado" : ""),
+                           style: `color:${l.cor}`, "data-linha": l.id });
+    g.append(noSvg("circle", { cx: C, cy: C, r, class: "trilha" }));
+    const a = minutosDe(e.ini), b = minutosDe(e.fim);
+    if (a === b) {
+      g.append(noSvg("circle", { cx: C, cy: C, r, class: "arco" }));
+    } else {
+      const dur = ((b - a) % 1440 + 1440) % 1440;
+      const [x0, y0] = ponto(r, a), [x1, y1] = ponto(r, b);
+      g.append(noSvg("path", { class: "arco",
+        d: `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${dur > 720 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}` }));
+    }
+    svg.append(g);
+  });
+  /* As quatro horas que se leem num mostrador: 0, 6, 12 e 18. */
+  for (const h of [0, 6, 12, 18]) {
+    const [x, y] = ponto(59, h * 60);
+    const t = noSvg("text", { x: x.toFixed(1), y: (y + 2.4).toFixed(1), class: "hora-marca" });
+    t.textContent = String(h);
+    svg.append(t);
+  }
+  /* O ponteiro é a hora de agora, lida do relógio de quem olha. */
+  const agora = new Date();
+  const [px, py] = ponto(54, agora.getHours() * 60 + agora.getMinutes());
+  const [qx, qy] = ponto(12, agora.getHours() * 60 + agora.getMinutes());
+  svg.append(noSvg("line", { x1: qx.toFixed(2), y1: qy.toFixed(2), x2: px.toFixed(2), y2: py.toFixed(2),
+                             class: "ponteiro" }));
+  svg.append(noSvg("circle", { cx: C, cy: C, r: 2, class: "eixo" }));
+
+  const caixa = elemento("div", { class: "relogio-noite" }, [svg]);
+  /* Os números, para quem quer conferir, atrás do `?` do desenho. */
+  const fonteGato = { conf: "as duas linhas do gato", applet: "a janela do controle do modo de leitura",
+                      parede: "a imagem escura", padrao: "o padrão" }[est.gato.fonte];
+  const dica = dicaDoDesenho("relogio-noite",
+    `Gato: das ${est.gato.ini} às ${est.gato.fim} (${fonteGato}). `
+    + `Tema escuro: das ${est.tema.ini} às ${est.tema.fim}`
+    + (est.tema.ativo ? "" : ", só com «Claro ou escuro» em Automático") + ". "
+    + `Imagem escura: das ${est.imagem.ini} às ${est.imagem.fim}`
+    + (est.imagem.ativo ? "" : ", só com «Separar imagens de dia e de noite» ligado") + ". "
+    + "O ponteiro é a hora de agora.");
+  if (dica) { caixa.classList.add("com-dica"); caixa.append(...dica); }
+  return caixa;
+}
+
+/* O ícone que abre cada linha, na cor do anel dela. Apagado quando a linha
+ * não está valendo, e o porquê no balão. */
+function iconeDaLinhaDaNoite(linha, numero) {
+  const e = estadoDasLinhas()[linha.id];
+  const porque = linha.id === "tema" ? " — só com «Claro ou escuro» em Automático"
+    : " — só com «Separar imagens de dia e de noite» ligado";
+  const el = elemento("span", {
+    class: "linha-noite-icone" + (e.ativo ? "" : " parado"),
+    style: `color:${linha.cor}`, "data-linha": String(numero), role: "img",
+    "aria-label": linha.nome + (e.ativo ? "" : porque),
+  });
+  el.insertAdjacentHTML("afterbegin", '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
+    + linha.icone + "</svg>");
+  porBalao(el, linha.nome + (e.ativo ? "" : porque));
+  return el;
+}
+
+/* A moldura da noite: o relógio à esquerda, e uma linha por anel — o ícone,
+ * o começo e o fim. Os cartões são os de sempre (`montarCartao`), cada um com a
+ * sua chave; `data-linha` e `data-ponta` só dizem ao CSS onde cada um senta, o
+ * que muda com a largura da tela. */
+function encherMolduraDaNoite(m, g) {
+  m.classList.add("decisao-relogio");
+  const relogio = relogioDaNoite();
+  m.append(relogio);
+  LINHAS_DA_NOITE.forEach((l, i) => {
+    const itens = l.chaves.map((c) => g.itens.find((x) => x.chave === c));
+    if (!itens.some(Boolean)) return;
+    m.append(iconeDaLinhaDaNoite(l, i + 1));
+    itens.forEach((item, j) => {
+      if (!item) return;
+      const cartao = montarCartao(item);
+      cartao.dataset.linha = String(i + 1);
+      cartao.dataset.ponta = j === 0 ? "ini" : "fim";
+      m.append(cartao);
+      /* O deslizante do tema repinta o relógio sob o dedo (`repintarPrevia`). */
+      PREVIA_VIVA.set(item.chave, { relogio: true, alvo: relogio });
+    });
+  });
+}
+
+/* ===========================================================================
  * UMA DECISÃO, UMA MOLDURA — 09/10/2026, P77 (achado 11)
  * ===========================================================================
  * Em «Cor e tela», «Theme pack», «Variante do tema» e «Claro ou escuro» eram
@@ -8465,6 +8714,13 @@ function devolverRolagem(guardado) {
  * assunto de arranjo da página, e o arquivo descreve chaves. */
 const DECISOES = [
   { id: "tema", nome: "Tema", chaves: ["PACK", "FLAVOR", "MODO"] },
+  /* A NOITE É UMA SÓ NA TELA — 10/10/2026, P77 (achado 25). Os três pares de
+   * horário de «Dia e noite» numa moldura com o relógio: uma linha por coisa
+   * que a noite troca, o começo da noite numa coluna e o fim na outra. O tema
+   * vem invertido de propósito — o fim do claro é o começo da noite dele. Ver
+   * `relogioDaNoite`. */
+  { id: "noite", nome: "Noite", relogio: true,
+    chaves: LINHAS_DA_NOITE.flatMap((l) => l.chaves) },
   /* COMO A BARRA SE SOLTA DA BORDA — 10/10/2026, P77 (achado 13). «Descolado:
    * Sim» e «Distância: 0» moravam em cartões distantes e diziam o contrário um
    * do outro sem que a tela mostrasse a ligação: a distância só existe com a
@@ -8792,7 +9048,11 @@ function render() {
      * grade do bloco moram numa `<section>`: o `sticky` fica preso a ela, e a
      * faixa vai embora quando o último cartão do bloco passa. */
     let destino = alvo;
-    if (!busca) {
+    /* O bloco cujo desenho É o relógio da moldura não ganha o desenho do topo:
+     * seriam dois relógios da mesma noite, um em cima do outro (P77). */
+    const comRelogio = DECISOES.some((d) => d.relogio
+      && g.itens.some((i) => d.chaves.includes(i.chave)));
+    if (!busca && !comRelogio) {
       const previa = parDePrevias(g);
       if (previa) {
         destino = elemento("section", { class: "secao-com-previa" });
@@ -8840,6 +9100,7 @@ function render() {
      * depois o claro ou escuro. */
     for (const [id, m] of molduras) {
       const d = DECISOES.find((x) => x.id === id);
+      if (d.relogio) { encherMolduraDaNoite(m, g); continue; }
       for (const chave of d.chaves) {
         const item = g.itens.find((i) => i.chave === chave);
         if (item && mostraNoModo(d, chave)) m.append(montarCartao(item));
@@ -10428,8 +10689,10 @@ function montarHome() {
    *   o carrossel aparecia debaixo dele — mas o papel de parede e o modo de
    *   leitura têm hora própria. Quando a deles não é a do título, a frase
    *   deles diz a sua. */
-  const comecaAs = vale("NOITE_INICIO") || vale("WALLPAPER_NOITE_INICIO") || "18:00";
-  const terminaAs = vale("NOITE_FIM") || vale("WALLPAPER_NOITE_FIM") || "07:00";
+  /* [P77: a conta é a do `janelaDoGato`, que segue o `lib/noite.sh` degrau
+   * por degrau — inclusive a janela do applet, que a página agora lê — e é a
+   * mesma do relógio de «Dia e noite». Duas contas diziam duas noites.] */
+  const { ini: comecaAs, fim: terminaAs } = janelaDoGato();
   const horaPropria = (ini, fim) => (ini && fim && (ini !== comecaAs || fim !== terminaAs))
     ? `, das ${ini} às ${fim}` : "";
   noite.append(elemento("h3", {}, [
