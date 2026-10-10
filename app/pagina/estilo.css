@@ -2170,12 +2170,17 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
  * propósito distintas também sem cor (o daltônico lê a forma): anel cheio,
  * losango, ponto, quadrado e anel vazio. A cor do ponto do traço é a do próprio
  * traço (`--cor-do-selo`, a cor da paleta que o pinta). */
-.selo { display: inline-block; width: .7rem; height: .7rem; margin-top: .15rem; }
-.selo-escolha { border-radius: 50%; border: 3px solid var(--accent); background: var(--base); }
-.selo-pack { background: var(--accent); transform: rotate(45deg) scale(.85); border-radius: 2px; }
-.selo-traco { border-radius: 50%; background: var(--cor-do-selo, var(--overlay2)); }
-.selo-nosso { background: var(--subtext0); border-radius: 1px; }
-.selo-fabrica { border-radius: 50%; border: 1.5px solid var(--overlay2); }
+/* [P77, 09/10/2026: as cinco formas ficaram presas à `.app-marca`. O selo de
+ * estado da P77 (`.selo`, `.selo-pack`, no fim da folha) nasceu com os mesmos
+ * nomes, e estas regras soltas o espremiam num quadrado de .7rem — o valor ao
+ * lado do ícone vazava por cima do selo vizinho, e o «Vem do pack» ganhava o
+ * losango cheio daqui.] */
+.app-marca.selo { display: inline-block; width: .7rem; height: .7rem; margin-top: .15rem; }
+.app-marca.selo-escolha { border-radius: 50%; border: 3px solid var(--accent); background: var(--base); }
+.app-marca.selo-pack { background: var(--accent); transform: rotate(45deg) scale(.85); border-radius: 2px; }
+.app-marca.selo-traco { border-radius: 50%; background: var(--cor-do-selo, var(--overlay2)); }
+.app-marca.selo-nosso { background: var(--subtext0); border-radius: 1px; }
+.app-marca.selo-fabrica { border-radius: 50%; border: 1.5px solid var(--overlay2); }
 
 /* O painel de escolha nasce embaixo do aplicativo clicado, ocupando a linha
  * inteira — assim o contexto não se perde. Borda em accent porque ele está
@@ -3873,3 +3878,124 @@ a.folha:hover b { color: var(--text); }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ===========================================================================
+ * P77 · INÍCIO — a página mostra em vez de explicar (09/10/2026)
+ * ===========================================================================
+ * O sistema é o do P77-direcao.md; aqui só o que a Início precisa a mais. */
+
+/* Texto que só o leitor de tela ouve: o nome do `<summary>` do cartão do pack,
+ * que na tela é uma seta. */
+.so-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* O selo com imagem real (o gato do dock): 18 px, do tamanho do traço com a
+ * folga que um desenho colorido pede para ser lido. */
+.selo-img { width: 18px; height: 18px; display: block; flex: none; object-fit: contain; }
+.selo-proprio  { color: var(--green); }
+.selo-herdado  { color: var(--peach); }
+.selo-motor    { color: var(--overlay2); }
+.selo-icones, .selo-ponteiro, .selo-relogio, .selo-gira,
+.selo-foto, .selo-lua, .selo-terminal { color: var(--subtext0); }
+.selo-calor    { color: var(--peach); }
+.selo-textura, .selo-rampa { color: var(--overlay2); }
+
+/* --- o cartão do pack: inteiro clicável, e o detalhe na largura da página --- */
+.pack { position: relative; }
+.pack.abre { cursor: pointer; }
+.pack.abre:hover { border-color: var(--overlay0); }
+.pack.no-ar.abre:hover { border-color: var(--accent); }
+.pack-origem { gap: .25rem .7rem; }
+/* A seta é o `<summary>`: alvo de 28 px no canto de cima, sobre a capa, onde
+ * não cobre nada (a capa é o logo centrado num campo liso). */
+.pack-mais > summary {
+  position: absolute;
+  top: .45rem;
+  right: .45rem;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-max);
+  color: var(--overlay2);
+  list-style: none;
+  cursor: pointer;
+}
+.pack-mais > summary::-webkit-details-marker { display: none; }
+.pack-mais > summary:hover { color: var(--text); background: var(--surface0); }
+.pack-mais > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pack-seta {
+  width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.pack-mais[open] .pack-seta { transform: rotate(180deg); }
+/* ABERTO, O CARTÃO TOMA A LINHA: capa, tira e corpo na coluna da esquerda, o
+ * detalhe numa coluna larga à direita — a história de um lado, a ficha
+ * (categorias e variantes) do outro, cada um na largura de leitura. */
+.pack.aberto {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  cursor: default;
+}
+.pack.aberto > .pack-capa, .pack.aberto > .pack-amostra, .pack.aberto > .pack-corpo { grid-column: 1; }
+.pack.aberto > .pack-mais {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  display: block;
+  padding: 1.1rem 3rem 1.2rem 1.4rem;
+  border-left: 1px solid var(--surface0);
+}
+.pack-detalhe {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem 1.6rem;
+}
+.pack-ler, .pack-ficha { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
+.pack.aberto .pack-historia { max-height: 26rem; border-bottom: 0; padding-bottom: 0; }
+.pack-ficha .pack-categorias dd { font-family: inherit; }
+.pack-ficha .pack-categorias dd[data-origem="próprio"] { color: var(--green); }
+.pack-ficha .pack-categorias dd[data-origem="herdado"] { color: var(--peach); }
+@media (max-width: 900px) {
+  .pack.aberto { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .pack-detalhe { grid-template-columns: minmax(0, 1fr); }
+  .pack.aberto > .pack-mais {
+    grid-column: 1; grid-row: auto;
+    padding: 1rem .95rem 1.1rem;
+    border-left: 0;
+    border-top: 1px solid var(--surface0);
+  }
+}
+
+/* --- o retrato, a noite e a caixa de estado: selos em fileira --- */
+.home-pecas { gap: .35rem 1rem; }
+.home-pecas .selo-valor, .home-estado .selo-valor { font-size: var(--t-frase); font-weight: 500; color: var(--subtext1); }
+.home-fotos-conta { margin-left: .5rem; gap: .25rem .8rem; }
+.home-atencao { flex-direction: row; align-items: center; justify-content: space-between; gap: .6rem; }
+.home-atencao > button.porque { align-self: center; margin-top: 0; flex: none; }
+.home-atencao > .dica { left: 0; right: 0; width: auto; }
+.home-estado { gap: .4rem 1rem; }
+
+/* --- as pendências: o nome e o `?` na mesma linha --- */
+.pendencia-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+.pendencia-topo > button.porque { flex: none; margin-top: 0; }
+.pendencia-topo > .dica { left: 0; right: 0; width: auto; }
+.pendencia-frase { color: var(--text); font-weight: 500; }
+
+/* --- a semana: o título com o `?` --- */
+.home-semana-topo { display: flex; align-items: center; gap: .5rem; }
+.home-semana-topo > .dica { left: 0; right: 0; width: auto; }
+
+/* --- onde você mexeu: uma linha por página, aberta pelo desenho do menu --- */
+.home-mexeu-linhas { display: flex; flex-direction: column; gap: .5rem; }
+.home-mexeu-linha { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: .5rem; align-items: start; }
+.home-mexeu-linha > .menu-icone { margin-top: .2rem; color: var(--overlay2); }

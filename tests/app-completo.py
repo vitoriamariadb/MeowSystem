@@ -1960,6 +1960,18 @@ class Percurso:
             self.checa(self.historia_conferida,
                        "a história com Markdown hostil, plantada no pack padrão, foi "
                        "conferida no cartão dele")
+            # O CARTÃO INTEIRO ABRE (P77, achado 8): um clique na capa abre o
+            # detalhe e o cartão toma a linha da grade; o segundo fecha.
+            d = self.achar(nome, 0).locator("xpath=..")
+            capa = d.locator("xpath=..").locator(".pack-capa")
+            capa.click()
+            # O `toggle` do `<details>` chega numa tarefa depois do clique.
+            self.pag.wait_for_timeout(200)
+            aberto = d.evaluate("(d) => d.open && d.parentElement.classList.contains('aberto')")
+            capa.click()
+            self.pag.wait_for_timeout(200)
+            self.checa(aberto and not d.evaluate("(d) => d.open"),
+                       "um clique na capa do pack abre o detalhe na linha inteira, e outro fecha")
         for i in range(min(3, self.quantos(nome))):
             # [P73: as pastas da ficha de ícone podem nascer ABERTAS (a do pack
             # no ar, a dos sugeridos). Aberta, ela é fechada antes, para o
@@ -3355,7 +3367,8 @@ INVENTARIO = {
         aba · ação rápida wallpaper_proximo
         ajuste mudado · ir ao cartão
         cartão de pack · Usar este
-        cartão de pack · abre «Mais sobre este pack»
+        cartão de pack · abre «Detalhes do pack»
+        pendência · ?
         pendência · Manter o meu
         pendência · Não, obrigado
         pendência · Resolver

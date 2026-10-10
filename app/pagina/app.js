@@ -5775,6 +5775,23 @@ const SELO_ICONES = {
   pack: '<path d="M2.5 5 8 2.5 13.5 5v6L8 13.5 2.5 11z"/><path d="M2.5 5 8 7.5 13.5 5M8 7.5v6"/>',
   mexeu: '<circle cx="8" cy="8" r="3.5" fill="currentColor" stroke="none"/>',
   pendente: '<circle cx="8" cy="8" r="3.5"/>',
+  /* [P77, Início: o que era a linha «Próprio: … · herdado do X: …» do cartão
+   * do pack, o «Logo X, escolhida pelo relógio · ícones … · ponteiro …» do
+   * retrato e o parágrafo «À noite…» viraram selos. Cada fato ganhou o
+   * desenho dele; a frase inteira ficou no balão.] */
+  proprio: '<path d="m3.5 8.5 3 3 6-7"/>',
+  herdado: '<path d="M4 2.5v5a3 3 0 0 0 3 3h6"/><path d="m10 7.5 3 3-3 3"/>',
+  motor: '<circle cx="8" cy="8" r="2.2"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2M3.8 3.8l1.4 1.4M10.8 10.8l1.4 1.4M3.8 12.2l1.4-1.4M10.8 5.2l1.4-1.4"/>',
+  icones: '<rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><rect x="9" y="9" width="4.5" height="4.5" rx="1"/>',
+  ponteiro: '<path d="M4.5 2.5v10l2.6-2.4 1.8 3.9 1.6-.8-1.8-3.8h3.6z"/>',
+  relogio: '<circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/>',
+  gira: '<path d="M13 8a5 5 0 1 1-1.5-3.5"/><path d="M13 2.5v3h-3"/>',
+  foto: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="m2.5 11 3.5-3.5 3 3 2-2 2.5 2.5"/>',
+  lua: '<path d="M12.5 10.5a5.5 5.5 0 0 1-7-7 5.5 5.5 0 1 0 7 7z"/>',
+  terminal: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="m4.5 6.5 2 1.5-2 1.5M8 10h3"/>',
+  calor: '<path d="M8 2.5v6.6"/><circle cx="8" cy="11.3" r="2.2"/><path d="M10 4h1.5M10 6.5h1.5"/>',
+  textura: '<path d="M3 4.5h1.5M7 4.5h1.5M11 4.5h2M3 8h2M7.5 8h1.5M11.5 8h1.5M3 11.5h1.5M6.5 11.5h2M11 11.5h2"/>',
+  rampa: '<path d="M2.5 12.5h3l5-9h3"/>',
 };
 /* A classe antiga de cada tipo, para os ganchos do CSS — ver acima. */
 const SELO_LEGADO = { sudo: "p-sudo", ponte: "p-ok", rede: "p-rede", desfaz: "p-perigo" };
@@ -5798,7 +5815,11 @@ function encurtarValor(txt) {
   return t.length > 18 ? t.slice(0, 17).trimEnd() + "…" : t;
 }
 
-function selo(tipo, { texto = "", balao = "" } = {}) {
+/* `img` troca o ícone de traço por uma imagem real (o gato do dock, na
+ * Início): quando há o que mostrar, o desenho genérico perde para o real — a
+ * regra 2 da direção. A imagem é decorativa (`alt` vazio): o nome está no
+ * `aria-label` do selo. */
+function selo(tipo, { texto = "", balao = "", img = "" } = {}) {
   const nome = caberNoBalao(balao);
   const el = elemento("span", {
     class: `selo selo-${tipo}` + (SELO_LEGADO[tipo] ? ` ${SELO_LEGADO[tipo]}` : ""),
@@ -5806,7 +5827,8 @@ function selo(tipo, { texto = "", balao = "" } = {}) {
     "aria-label": nome || texto,
     "data-selo": tipo,
   });
-  el.insertAdjacentHTML("afterbegin", '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
+  if (img) el.append(elemento("img", { class: "selo-img", src: img, alt: "" }));
+  else el.insertAdjacentHTML("afterbegin", '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
     + (SELO_ICONES[tipo] || SELO_ICONES.mexeu) + "</svg>");
   if (texto) el.append(elemento("span", { class: "selo-valor", texto: String(texto) }));
   /* O balão passa pela porta de sempre (`porBalao`), que sabe não repetir o que
@@ -8715,8 +8737,23 @@ function montarPendencias() {
   caixa.append(elemento("h3", {}, [frase]));
 
   for (const p of PENDENCIAS) {
+    /* O NOME NA TELA, A FRASE NA DICA — 09/10/2026, P77. A linha era a frase do
+     * log inteira («O onlyoffice está no tema 'theme-dracula-dark-ajustado-2',
+     * que não veio do MeowSystem — deixei como está…», quatro linhas na coluna
+     * estreita). Na tela fica o NOME do que espera: o rótulo da ação que o
+     * «Resolver» dispara (o mesmo do balão dele), o programa da escolha de tema,
+     * ou a etapa quando não há botão. A frase, inteira, vai para o `?` da linha.
+     * O id da dica sai do id da pendência, que é estável entre pinturas. */
+    const acaoDela = p.acao ? (ESQUEMA.acoes || []).find((a) => a.id === p.acao) : null;
+    const programa = ((p.escolha || [])[0] || {}).argumento || "";
+    const nome = acaoDela ? acaoDela.rotulo
+      : programa ? `${maiuscula(programa)}: tema de fora` : maiuscula(p.etapa || p.id);
     const linha = elemento("div", { class: "pendencia" });
-    linha.append(elemento("p", { class: "pendencia-frase", texto: p.frase }));
+    linha.append(elemento("div", { class: "pendencia-topo com-dica" }, [
+      elemento("p", { class: "pendencia-frase", texto: nome }),
+      ...gatilhoDeDica("dica-pendencia-" + idDeAba(p.id), `Sobre ${nome}`,
+                       [elemento("p", { class: "resumo", texto: p.frase })]),
+    ]));
     const botoes = elemento("div", { class: "pendencia-botoes" });
     if (p.acao) {
       /* O BALÃO DIZ O QUE O BOTÃO FAZ, E NÃO O COMANDO — 23/09/2026, sprint P33
@@ -8766,14 +8803,13 @@ function montarPendencias() {
      * pede que todo comando de pendência que baixe algo herde o rótulo que a
      * página já usa, e uma segunda marca para o mesmo fato seria a segunda a
      * manter em dia. */
-    if (p.acao && p.rede) botoes.append(elemento("span", {
-      class: "pastilha p-rede", texto: "baixa da internet" }));
+    /* [P77: a pastilha «BAIXA DA INTERNET» em caixa alta virou o selo de rede,
+     * o mesmo do cartão de ação; o nome vai no balão.] */
+    if (p.acao && p.rede) botoes.append(selo("rede", { balao: "Baixa da internet" }));
     /* SEM BOTÃO, A ORIGEM. Uma linha que não oferece nada precisa dizer de onde
-     * veio, ou vira uma reclamação sem endereço. O nome da etapa é o endereço. */
-    if (!p.acao && !p.recusavel && !(p.escolha || []).length) {
-      botoes.append(elemento("span", { class: "pendencia-origem", texto: p.etapa }));
-    }
-    linha.append(botoes);
+     * veio, ou vira uma reclamação sem endereço. O nome da etapa é o endereço —
+     * e desde a P77 ele já é o nome da linha, então o rodapé fica vazio. */
+    if (botoes.childElementCount) linha.append(botoes);
     caixa.append(linha);
   }
   return caixa;
@@ -8858,6 +8894,33 @@ function linhaDeOrigem(p) {
     grupos.set(de, [...(grupos.get(de) || []), c.categoria]);
   }
   return [...grupos].map(([de, cats]) => `${de}: ${cats.join(", ")}`).join(" · ") || p.origem || "";
+}
+
+/* Os selos de origem do cartão (P77): um por grupo do `linhaDeOrigem`, na
+ * mesma ordem e com as mesmas palavras (`deOndeVem`), cada um com a conta de
+ * categorias ao lado e a lista no balão. O pack de quem se herda aparece pelo
+ * nome, curto, ao lado da conta — é o único nome que distingue um cartão do
+ * outro. Sem `categorias`, um selo só, com a linha inteira no balão. */
+function selosDeOrigem(p, origem) {
+  const caixa = elemento("div", { class: "selos pack-origem", role: "group", "aria-label": origem });
+  const grupos = new Map();
+  for (const c of p.categorias || []) {
+    if (c.tipo === "fixo") continue;
+    const de = deOndeVem(c);
+    const g = grupos.get(de) || { tipo: c.tipo, nome: c.nome_de || c.de || "", cats: [] };
+    g.cats.push(c.categoria);
+    grupos.set(de, g);
+  }
+  const TIPO = { "próprio": "proprio", herdado: "herdado", motor: "motor" };
+  for (const [de, g] of grupos) {
+    const conta = String(g.cats.length);
+    caixa.append(selo(TIPO[g.tipo] || "pack", {
+      texto: g.tipo === "herdado" && g.nome ? `${conta} · ${encurtarValor(g.nome)}` : conta,
+      balao: `${maiuscula(de)}: ${g.cats.join(", ")}`,
+    }));
+  }
+  if (!caixa.childElementCount) caixa.append(selo("pack", { balao: origem }));
+  return caixa;
 }
 
 /* A HISTÓRIA EM MARKDOWN, MAS SÓ UM PEDAÇO DELE — 24/09/2026, P53 (achado 6)
@@ -9000,8 +9063,40 @@ function cartaoDePack(p) {
     for (const tag of p.tags) tags.append(elemento("li", { texto: tag }));
     corpo.append(tags);
   }
+  /* A ORIGEM VIRA SELO — 09/10/2026, P77 (achado 8, U1). A linha
+   * «Próprio: paleta, pastas, … · do motor, ou ausente: …» era um bloco
+   * monoespaçado de seis linhas no meio do cartão: dado técnico tratado como
+   * leitura. Agora são até três selos — próprio, herdado (um por pack de quem
+   * herda), do motor — com a CONTA ao lado e a lista no balão. A frase inteira
+   * (`linhaDeOrigem`) continua sendo o nome do grupo para o leitor de tela, e
+   * a tabela categoria por categoria mora no detalhe. */
   const origem = linhaDeOrigem(p);
-  if (origem) corpo.append(elemento("p", { class: "pack-herda", texto: maiuscula(origem) }));
+  if (origem) corpo.append(selosDeOrigem(p, origem));
+  /* O pack que não valida aparece assim mesmo, dizendo por quê — como no
+   * `meow pack info`. Esconder o cartão esconderia também o motivo. Fica na
+   * tela: é o único estado do cartão que impede o «Usar este». */
+  for (const problema of (p.problemas || [])) {
+    corpo.append(elemento("p", { class: "pack-problema", texto: "Não valida: " + problema }));
+  }
+
+  /* O CARTÃO INTEIRO ABRE O DETALHE — 09/10/2026, P77 (achado 8). Só o link
+   * pequeno «Mais sobre este pack» abria, e abria DENTRO do cartão, numa coluna
+   * de 15 rem: a tabela de categorias quebrava em três linhas por célula e o
+   * cartão esticava até 1 800 px (print 16). Agora:
+   *   · clicar em qualquer ponto do cartão (fora dos botões) abre e fecha;
+   *   · aberto, o cartão ocupa a LINHA INTEIRA da grade (`.pack.aberto`), com o
+   *     detalhe numa coluna larga ao lado da capa — a história à esquerda, a
+   *     tabela e as variantes à direita, cada uma na largura de leitura;
+   *   · o `<details>` continua sendo o mecanismo (teclado, `open`, leitor de
+   *     tela), e o `<summary>` vira uma seta no canto do cartão.
+   * O que era frase solta no corpo — o claro derivado, o «Não sai daqui» — foi
+   * para o detalhe: é explicação, e explicação mora atrás de um gesto. */
+  const site = (p.site || "").startsWith("https://") ? p.site : "";
+  const categorias = p.categorias || [];
+  const flavors = p.flavors || [];
+  const remover = p.remover || null;
+  const podeSair = !!(remover && remover.pode);
+  const notas = [];
   /* O CLARO DERIVADO SE DECLARA — 23/09/2026, P16. Um pack feito de CSV tem
    * paleta e nada mais, e o claro dele pode ter nascido do escuro pelo método
    * do Latte, sem ninguém desenhá-lo. A linha de cima diz o que veio por
@@ -9019,45 +9114,69 @@ function cartaoDePack(p) {
    * dos dois saía. Com o «Remover» no cartão, a frase manda tirar este antes
    * e o mesmo nome volta a servir; o «outro nome» fica só para quando este não
    * pode sair agora — o pack no ar, o que outro herda.] */
-  const podeSair = !!(p.remover && p.remover.pode);
   for (const d of (p.claros_derivados || [])) {
-    corpo.append(elemento("p", { class: "pack-herda",
+    notas.push(elemento("p", { class: "pack-herda",
       texto: `Claro «${d.flavor}»: derivado de «${d.de}» pelo método do Latte, não desenhado. `
            + "Para usar o seu, ponha as 26 linhas dele no CSV e importe-o de novo em "
            + (podeSair ? "«Importar um pack», depois de tirar este com o «Remover»."
                        : "«Importar um pack», com outro nome de arquivo.") }));
   }
-  /* O pack que não valida aparece assim mesmo, dizendo por quê — como no
-   * `meow pack info`. Esconder o cartão esconderia também o motivo. */
-  for (const problema of (p.problemas || [])) {
-    corpo.append(elemento("p", { class: "pack-problema", texto: "Não valida: " + problema }));
+  /* O «REMOVER» só existe no pack que mora na casa dela (P53). O que não pode
+   * sair diz por quê — no detalhe, em vez de um botão que a caixa recusaria
+   * depois (o pack no ar, o que outro herda). */
+  if (remover && !remover.pode && remover.motivo) {
+    notas.push(elemento("p", { class: "pack-fica", texto: `Não sai daqui: ${remover.motivo}.` }));
   }
-
-  /* O `meow pack info` VIRA TELA — P10, item 4. Dentro do «Mais sobre», que é
-   * onde a P15 já pôs a história: quem escolhe lê o cartão; quem quer saber o
-   * que vem de onde abre. As categorias saem da mesma conta da linha
-   * próprio/herdado (o `origens` do pack.py), e as 26 cores de cada flavor, das
-   * mesmas cores que o `validar` conferiu. */
-  const site = (p.site || "").startsWith("https://") ? p.site : "";
-  const categorias = p.categorias || [];
-  const flavors = p.flavors || [];
-  if (p.descricao || (p.capturas || []).length || site || categorias.length || flavors.length) {
+  if (p.descricao || (p.capturas || []).length || site || categorias.length || flavors.length
+      || notas.length) {
     const mais = elemento("details", { class: "pack-mais" }, [
-      elemento("summary", { texto: "Mais sobre este pack" }),
+      elemento("summary", { title: `Detalhes do ${p.nome}` }, [
+        elemento("span", { class: "so-leitor", texto: "Detalhes do pack" }),
+      ]),
     ]);
-    if (p.descricao) mais.append(historiaDoPack(p.descricao));
+    /* A seta nasce nó a nó, e não por `insertAdjacentHTML`: neste cartão nada
+     * entra como HTML (a regra de segurança da P15, cobrada no tests/pack.sh). */
+    const NS = "http://www.w3.org/2000/svg";
+    const seta = document.createElementNS(NS, "svg");
+    seta.setAttribute("class", "pack-seta");
+    seta.setAttribute("viewBox", "0 0 16 16");
+    seta.setAttribute("aria-hidden", "true");
+    const traco = document.createElementNS(NS, "path");
+    traco.setAttribute("d", "m4 6 4 4 4-4");
+    seta.append(traco);
+    mais.querySelector("summary").append(seta);
+    const ler = elemento("div", { class: "pack-ler" });
+    if (p.descricao) ler.append(historiaDoPack(p.descricao));
+    ler.append(...notas);
+    if ((p.capturas || []).length) {
+      const fotos = elemento("div", { class: "home-fotos" });
+      for (const url of p.capturas) fotos.append(elemento("img", { src: url, alt: "" }));
+      ler.append(fotos);
+    }
+    if (site) {
+      ler.append(elemento("p", { class: "pack-autor" }, [
+        "Site: ",
+        elemento("a", { href: site, target: "_blank", rel: "noopener noreferrer",
+                        texto: site.replace(/^https:\/\//, "") }),
+      ]));
+    }
+    /* O `meow pack info` VIRA TELA — P10, item 4. As categorias saem da mesma
+     * conta dos selos de origem (o `origens` do pack.py), e as 26 cores de cada
+     * flavor, das mesmas cores que o `validar` conferiu. */
+    const ficha = elemento("div", { class: "pack-ficha" });
     if (categorias.length) {
       const lista = elemento("dl", { class: "pack-categorias" });
       /* A NOTA DIZ O QUE A DECLARAÇÃO VESTE — 24/09/2026, P56 (item 2, na
        * revisão). «pastas: próprio» sozinho dizia que os desenhos do pack vestem
        * as pastas, e eles vestem só as especiais; as outras são o
        * papirus-folders na paleta do pack. A nota vem do `vocabulario`, a mesma
-       * do `meow pack info`, e fica aqui: a linha do cartão tem o teto da P7. */
+       * do `meow pack info`. */
       for (const c of categorias) {
         lista.append(elemento("dt", { texto: c.categoria }),
-                     elemento("dd", { texto: deOndeVem(c) + (c.nota ? ` — ${c.nota}` : "") }));
+                     elemento("dd", { "data-origem": c.tipo,
+                                      texto: deOndeVem(c) + (c.nota ? ` — ${c.nota}` : "") }));
       }
-      mais.append(lista);
+      ficha.append(lista);
     }
     for (const f of flavors) {
       const linha = elemento("div", { class: "pack-flavor" }, [
@@ -9070,27 +9189,26 @@ function cartaoDePack(p) {
         tira.append(s);
       }
       linha.append(tira);
-      mais.append(linha);
+      ficha.append(linha);
     }
-    if ((p.capturas || []).length) {
-      const fotos = elemento("div", { class: "home-fotos" });
-      for (const url of p.capturas) fotos.append(elemento("img", { src: url, alt: "" }));
-      mais.append(fotos);
-    }
-    if (site) {
-      mais.append(elemento("p", { class: "pack-autor" }, [
-        "Site: ",
-        elemento("a", { href: site, target: "_blank", rel: "noopener noreferrer",
-                        texto: site.replace(/^https:\/\//, "") }),
-      ]));
-    }
-    corpo.append(mais);
+    /* Um invólucro, e não a grade no próprio `<details>`: o Chromium põe o
+     * conteúdo do `<details>` num slot interno, e `display: grid` nele não faz
+     * dos filhos itens de grade — medido, a ficha caía embaixo da história. */
+    const detalhe = elemento("div", { class: "pack-detalhe" });
+    if (ler.childElementCount) detalhe.append(ler);
+    if (ficha.childElementCount) detalhe.append(ficha);
+    mais.append(detalhe);
+    /* O cartão aberto ocupa a linha inteira; a classe segue o `open`, que é a
+     * verdade (o teclado e o próprio `<summary>` o mudam sem passar por aqui). */
+    mais.addEventListener("toggle", () => cartao.classList.toggle("aberto", mais.open));
+    cartao.addEventListener("click", (ev) => {
+      if (ev.target.closest("button, a, summary, input, select, .pack-mais > :not(summary)")) return;
+      mais.open = !mais.open;
+    });
+    cartao.classList.add("abre");
+    cartao.append(mais);
   }
 
-  /* O «REMOVER» ENTRA AO LADO DO «USAR ESTE», e só no pack que mora na casa
-   * dela (P53). O que não pode sair diz por quê, na linha de baixo, em vez de
-   * um botão que a caixa recusaria depois — o pack no ar, o que outro herda. */
-  const remover = p.remover || null;
   const botoes = [];
   if (remover && remover.pode) {
     botoes.push(elemento("button", {
@@ -9108,12 +9226,12 @@ function cartaoDePack(p) {
       onclick: () => usarPack(p),
     }));
   }
-  if (remover && !remover.pode && remover.motivo) {
-    corpo.append(elemento("p", { class: "pack-fica",
-      texto: `Não sai daqui: ${remover.motivo}.` }));
-  }
   if (botoes.length) corpo.append(elemento("div", { class: "pack-acoes" }, botoes));
-  cartao.append(corpo);
+  /* O corpo vem antes do detalhe no documento: é a ordem de leitura (o nome,
+   * depois o que ele tem), e a grade do cartão aberto põe o detalhe ao lado. */
+  const detalhe = cartao.querySelector(":scope > .pack-mais");
+  if (detalhe) cartao.insertBefore(corpo, detalhe);
+  else cartao.append(corpo);
   return cartao;
 }
 
@@ -9548,9 +9666,25 @@ function montarHome() {
   }
   ident.append(tira);
 
+  /* A LINHA VIROU TRÊS SELOS — 09/10/2026, P77. Era «Logo Coquinha, escolhida
+   * pelo relógio · ícones MeowSystem-Icons · ponteiro catppuccin-mocha-light»,
+   * uma frase de 90 caracteres para três fatos. Cada fato ganhou o desenho
+   * dele: a logo é o próprio gato (o real vence o ícone, regra 2 da direção) e
+   * o modo dela é o relógio ou a seta que gira; os ícones e o ponteiro, o
+   * traço de cada um. O nome curto fica ao lado; a frase, no balão. */
   const comoEscolhido = { hora: "escolhida pelo relógio", rotacao: "girando pela lista", fixo: "fixa" };
-  ident.append(elemento("p", { class: "home-linha", texto:
-    `Logo ${gatoNome ? maiuscula(rotuloDeValor(gatoNome)) : "—"}, ${comoEscolhido[vale("LOGO_MODO")] || "fixa"} · ícones ${vale("NOME_TEMA_ICONES")} · ponteiro ${vale("CURSOR") || "de fábrica"}` }));
+  const modoLogo = vale("LOGO_MODO");
+  const nomeGato = gatoNome ? maiuscula(rotuloDeValor(gatoNome)) : "—";
+  const pecas = elemento("div", { class: "selos home-pecas" });
+  pecas.append(selo(modoLogo === "hora" ? "relogio" : modoLogo === "rotacao" ? "gira" : "mexeu", {
+    texto: encurtarValor(nomeGato),
+    balao: `Logo ${nomeGato}, ${comoEscolhido[modoLogo] || "fixa"}`,
+  }));
+  pecas.append(selo("icones", { texto: encurtarValor(vale("NOME_TEMA_ICONES")),
+                                balao: `Tema de ícones: ${vale("NOME_TEMA_ICONES")}` }));
+  pecas.append(selo("ponteiro", { texto: encurtarValor(vale("CURSOR") || "de fábrica"),
+                                  balao: `Ponteiro: ${vale("CURSOR") || "de fábrica"}` }));
+  ident.append(pecas);
   retrato.append(ident);
 
   /* As fotos são a COLEÇÃO, não "a que está na tela" — a página não sabe qual
@@ -9567,26 +9701,40 @@ function montarHome() {
       if (i.url && i.pronta) fotos.append(elemento("img", { src: i.url, alt: "", title: i.rotulo }));
     }
     const n = (paredes.contagens && paredes.contagens.ativos) || paredes.itens.length;
-    fotos.append(elemento("span", { class: "home-fotos-conta",
-      texto: `${n} no carrossel, trocando a cada ${rotuloDeValor(vale("WALLPAPER_INTERVALO"))}` }));
+    /* [P77: «6 no carrossel, trocando a cada 5 min» virou dois selos: a conta
+     * e o intervalo, cada um com o seu desenho e a frase no balão.] */
+    const intervalo = rotuloDeValor(vale("WALLPAPER_INTERVALO"));
+    fotos.append(elemento("div", { class: "selos home-fotos-conta" }, [
+      selo("foto", { texto: String(n), balao: `${n} no carrossel` }),
+      selo("relogio", { texto: intervalo, balao: `Troca a cada ${intervalo}` }),
+    ]));
     retrato.append(fotos);
   }
   caixa.append(retrato);
 
   /* --- 2. o que espera por você ------------------------------------------ */
-  const mexidas = ESQUEMA.chaves.filter((i) => (i.valor ?? "") !== i.padrao).length;
-  const atencao = elemento("section", { class: "home-atencao" });
+  /* O ESTADO EM SELO, A REGRA NA DICA — 09/10/2026, P77. A caixa tinha duas
+   * frases de três linhas: «Nada esperando. Escolher aqui não muda a
+   * máquina…» e «Consertos de sistema sem senha: desligado. O ajuste já está
+   * em «sim»…». O que se lê para decidir é o estado — esperando ou não, com ou
+   * sem senha —, e ele virou selo: o anel da cor de destaque (o mesmo do
+   * cartão não salvo) e o cadeado (o mesmo do cartão de ação). As frases, sem
+   * uma palavra a menos, foram para o `?` da caixa: o contrato do produto
+   * («clicar guarda, Salvar grava») continua dito antes do primeiro clique,
+   * a um gesto. O «Ligar» fica na tela: é o único caminho que a caixa abre. */
+  const atencao = elemento("section", { class: "home-atencao com-dica" });
+  const explica = [];
+  const estado = elemento("div", { class: "selos home-estado" });
   if (MUDANCAS.size) {
     atencao.dataset.esperando = "1";
-    atencao.append(elemento("p", {}, [
-      elemento("strong", { texto: `${MUDANCAS.size} ${MUDANCAS.size === 1 ? "escolha" : "escolhas"} esperando. ` }),
-      elemento("span", { texto: "Elas estão guardadas aqui, e não no disco. «Salvar e aplicar», no alto, grava tudo de uma vez e roda o instalador em seguida." }),
-    ]));
+    estado.append(selo("pendente", { texto: `${MUDANCAS.size} esperando`,
+      balao: `${MUDANCAS.size} ${MUDANCAS.size === 1 ? "escolha esperando" : "escolhas esperando"} «Salvar e aplicar»` }));
+    explica.push(elemento("p", { class: "resumo", texto:
+      "Elas estão guardadas aqui, e não no disco. «Salvar e aplicar», no alto, grava tudo de uma vez e roda o instalador em seguida." }));
   } else {
-    atencao.append(elemento("p", {}, [
-      elemento("strong", { texto: "Nada esperando. " }),
-      elemento("span", { texto: "Escolher aqui não muda a máquina: clicar guarda, e «Salvar e aplicar» é o que grava e aplica." }),
-    ]));
+    estado.append(selo("pendente", { texto: "Nada esperando", balao: "Nenhuma escolha esperando «Salvar e aplicar»" }));
+    explica.push(elemento("p", { class: "resumo", texto:
+      "Escolher aqui não muda a máquina: clicar guarda, e «Salvar e aplicar» é o que grava e aplica." }));
   }
 
   /* --- 2b. os consertos sem senha, aqui e não no 17º ajuste — 21/09/2026 ---
@@ -9603,24 +9751,22 @@ function montarHome() {
    * pedir a senha uma vez —, e é por isso que o caminho oferecido muda com a
    * chave: mandar alguém a um interruptor que já está em «sim» seria oferecer
    * um botão que não conserta o que a frase ao lado reclama. */
-  const ponteLinha = elemento("p", {}, [
-    elemento("strong", { texto: ESQUEMA.ponte
-      ? "Consertos de sistema sem senha: ligado. "
-      : "Consertos de sistema sem senha: desligado. " }),
-  ]);
+  estado.append(ESQUEMA.ponte
+    ? selo("ponte", { texto: "sem senha", balao: "Consertos de sistema sem senha: ligado" })
+    : selo("sudo", { texto: "pede senha", balao: "Consertos de sistema sem senha: desligado" }));
   if (ESQUEMA.ponte) {
-    ponteLinha.append(elemento("span", { texto:
+    explica.push(elemento("p", { class: "motivo", texto:
       "Um perfil registrado no sudo faz o que precisa de root — atualizar o sistema, "
       + "repor o hook do apt, vestir a tela de login — sem voltar a pedir senha." }));
   } else if ((vale("PONTE_ROOT") || "sim") === "sim") {
-    ponteLinha.append(elemento("span", { texto:
+    explica.push(elemento("p", { class: "motivo", texto:
       "O ajuste já está em «sim», e a ponte não está instalada: quem a instala é o "
       + "instalador, e ele precisa da senha uma vez. Rode no terminal: ./install.sh" }));
   } else {
-    ponteLinha.append(elemento("span", { texto:
+    explica.push(elemento("p", { class: "motivo", texto:
       "Cada conserto de sistema volta a pedir senha no terminal — e este painel, que "
-      + "não tem terminal, não tem como pedir. " }));
-    ponteLinha.append(elemento("button", {
+      + "não tem terminal, não tem como pedir." }));
+    estado.append(elemento("button", {
       type: "button", class: "btn btn-mini", texto: "Ligar",
       title: "Ir ao ajuste «Consertos de sistema sem pedir senha»",
       /* O MESMO GESTO DA LISTA DE PENDENTES: troca de aba, pinta, e só então
@@ -9641,7 +9787,7 @@ function montarHome() {
       },
     }));
   }
-  atencao.append(ponteLinha);
+  atencao.append(estado, ...gatilhoDeDica("dica-home-atencao", "O que espera e o que pede senha", explica));
 
   /* --- 3. as portas: uma por bloco do menu, sempre ------------------------
    * Elas saem do MESMO `blocoDoAssunto` que desenha o menu: bloco novo aparece
@@ -9702,19 +9848,17 @@ function montarHome() {
      * `aria-describedby` apontando para números que já não existem. */
     const base = "porta-" + semAcento(nome).replace(/[^a-z0-9]+/g, "-");
     const elConta = elemento("span", { class: "porta-conta", id: base + "-conta", texto: conta });
-    const elFrase = elemento("span", { class: "porta-frase", id: base + "-frase", texto: frase });
+    /* [P77: a frase do bloco saiu da porta e virou o balão dela — a porta é um
+     * nome e uma conta. A frase cabe nos 80 do balão (as duas têm até 71).] */
     grade.append(elemento("button", {
       type: "button", class: "porta",
       "aria-label": nome,
-      /* A frase é opcional (`FRASE_DO_BLOCO` não cobre todo bloco); apontar
-       * para um id vazio faria o leitor anunciar uma descrição em branco. */
-      "aria-describedby": frase ? `${base}-conta ${base}-frase` : `${base}-conta`,
-      title: `Ir para ${destino}`,
+      "aria-describedby": `${base}-conta`,
+      title: frase || `Ir para ${destino}`,
       onclick: () => { ABA = destino; gravarHash(); render(); },
     }, [
       elemento("b", { texto: nome }),
       elConta,
-      elFrase,
     ]));
   }
 
@@ -9741,31 +9885,55 @@ function montarHome() {
     iconeDeMenu("Dia e noite", "ajustar"),
     elemento("span", { texto: `À noite, das ${comecaAs} às ${terminaAs}` }),
   ]));
-  const frases = [];
+  /* O PARÁGRAFO VIROU SELOS — 09/10/2026, P77. «A logo da dock passa a ser
+   * Coquinha, e a do terminal, Mimir. O carrossel sorteia só entre as imagens
+   * escuras. A tela esquenta até 3500 K e ganha 35% de textura de papel» era
+   * um parágrafo de três linhas para seis fatos. Cada fato é um selo: o gato
+   * da noite aparece desenhado (a imagem real da logo), o carrossel com o
+   * desenho da foto, a tela com o termômetro e o número. A frase de cada um,
+   * com a hora própria quando difere da do título, vai no balão. As regras de
+   * quando cada um aparece são as mesmas de antes. */
+  const urlDoGato = (n) => {
+    const i = gatos && gatos.itens.find((x) => x.id === n);
+    return (i && i.url) || "";
+  };
+  const efeitos = elemento("div", { class: "selos home-pecas" });
   if (vale("LOGO_MODO") === "hora" && vale("LOGO_NOITE")) {
     /* "logo", e não "gato": a aba passou a se chamar `Logo do sistema` em
      * 06/09/2026, e o vocabulário da home tem de ser o mesmo — o VALOR continua
      * sendo o nome de um gato quando é o de fábrica, e é ele que aparece aqui. */
-    frases.push(`A logo da dock passa a ser ${maiuscula(vale("LOGO_NOITE"))}`
-      + (vale("FASTFETCH_LOGO_MODO") === "espelho" && vale("LOGO_DIA")
-         ? `, e a do terminal, ${maiuscula(vale("LOGO_DIA"))}.` : "."));
+    const noiteNome = maiuscula(vale("LOGO_NOITE"));
+    efeitos.append(selo("lua", { img: urlDoGato(vale("LOGO_NOITE")), texto: encurtarValor(noiteNome),
+                                 balao: `A logo da dock passa a ser ${noiteNome}` }));
+    if (vale("FASTFETCH_LOGO_MODO") === "espelho" && vale("LOGO_DIA")) {
+      const termNome = maiuscula(vale("LOGO_DIA"));
+      efeitos.append(selo("terminal", { img: urlDoGato(vale("LOGO_DIA")), texto: encurtarValor(termNome),
+                                        balao: `A logo do terminal passa a ser ${termNome}` }));
+    }
   }
   if (liga("WALLPAPER_NOITE")) {
-    frases.push("O carrossel sorteia só entre as imagens escuras"
-      + horaPropria(vale("WALLPAPER_NOITE_INICIO") || "18:00",
-                    vale("WALLPAPER_NOITE_FIM") || "07:00") + ".");
+    const hora = horaPropria(vale("WALLPAPER_NOITE_INICIO") || "18:00",
+                             vale("WALLPAPER_NOITE_FIM") || "07:00");
+    efeitos.append(selo("foto", { texto: "escuras",
+      balao: "O carrossel sorteia só entre as imagens escuras" + hora }));
   }
   if (liga("LEITURA_AGENDA")) {
     const textura = Number(vale("LEITURA_TEXTURA") || 0);
     const rampa = Number(vale("LEITURA_RAMPA_MIN") || 0);
-    frases.push(`A tela esquenta até ${vale("LEITURA_TEMPERATURA")} K`
-      + horaPropria(vale("LEITURA_HORARIO_INICIO"), vale("LEITURA_HORARIO_FIM"))
-      + (textura > 0 ? ` e ganha ${Math.round(textura * 100)}% de textura de papel` : "")
-      + (rampa > 0 ? `, em ${rampa} min de rampa.` : "."));
+    efeitos.append(selo("calor", { texto: `${vale("LEITURA_TEMPERATURA")} K`,
+      balao: `A tela esquenta até ${vale("LEITURA_TEMPERATURA")} K`
+        + horaPropria(vale("LEITURA_HORARIO_INICIO"), vale("LEITURA_HORARIO_FIM")) }));
+    if (textura > 0) {
+      efeitos.append(selo("textura", { texto: `${Math.round(textura * 100)}%`,
+        balao: `E ganha ${Math.round(textura * 100)}% de textura de papel` }));
+    }
+    if (rampa > 0) {
+      efeitos.append(selo("rampa", { texto: `${rampa} min`, balao: `Em ${rampa} min de rampa` }));
+    }
   } else {
-    frases.push("O modo de leitura fica desligado.");
+    efeitos.append(selo("calor", { texto: "desligado", balao: "O modo de leitura fica desligado" }));
   }
-  noite.append(elemento("p", { class: "home-linha", texto: frases.join(" ") }));
+  noite.append(efeitos);
 
   /* DUAS PORTAS, E NENHUM NÚMERO CRAVADO — 06/09/2026.
    *   Este botão era um só, dizia "As 13 chaves que respondem «soltar o que
@@ -9782,11 +9950,15 @@ function montarHome() {
    *   Agora a contagem é somada dos grupos, e há um botão por assunto que
    *   EXISTE — se um deles sumir do `meow.conf.exemplo`, o botão dele some
    *   junto, sem deixar um caminho morto na home. */
+  /* [P77: os dois botões lado a lado, numa fileira — empilhados, cada um
+   * ocupava uma linha inteira sob os selos.] */
+  const abrirNoite = elemento("div", { class: "linha-botoes" });
+  noite.append(abrirNoite);
   for (const assunto of ["Dia e noite", "Modo de leitura"]) {
     const meus = GRUPOS.filter((g) => g.tipo === "chaves" && assuntoDe(g) === assunto);
     if (!meus.length) continue;
     const quantas = meus.reduce((s, g) => s + g.itens.length, 0);
-    noite.append(elemento("button", {
+    abrirNoite.append(elemento("button", {
       type: "button", class: "btn btn-mini",
       texto: `Abrir ${assunto}`,
       title: `${quantas} ${quantas === 1 ? "ajuste" : "ajustes"} em «${assunto}»`,
@@ -9816,56 +9988,83 @@ function montarHome() {
   if (!diferentes.length) {
     bloco.append(elemento("p", { class: "home-nota", texto: "Tudo como vem de fábrica." }));
   } else {
-    const fichas = elemento("div", { class: "home-fichas" });
+    /* AGRUPADAS PELA PÁGINA, COM O DESENHO DELA — 09/10/2026, P77. Eram vinte e
+     * cinco fichas soltas, na ordem do arquivo: «Variante do tema», «Theme
+     * pack», «Nomes das áreas», «Gato de dia no dock»… — a pessoa lia todas
+     * para achar as da página que queria. Agora cada página é uma linha,
+     * aberta pelo mesmo desenho do menu (que diz a página sem uma palavra, com
+     * o nome no balão), na ordem do menu. A ficha é a mesma, e leva ao cartão. */
+    const porAssunto = new Map();
     for (const i of diferentes) {
       const grupo = GRUPOS.find((g) => (g.itens || []).some((x) => x.chave === i.chave));
-      fichas.append(elemento("button", {
-        type: "button", class: "home-ficha",
-        /* O NOME CRU DA CHAVE SAIU DO BALÃO — 21/09/2026. Com ele, um valor
-         * comprido (um commit de 40 caracteres, um repositório) levava a frase
-         * a 94 caracteres, acima do teto de 80. E o botão já diz de que ajuste
-         * se trata pelo rótulo que a página usa: repetir a variável ao lado era
-         * gastar o balão com a única parte que ela não precisa saber. */
-        title: `De fábrica: ${rotuloDeValor(i.padrao) || "nada"} · agora: ${rotuloDeValor(i.valor) || "nada"}`,
-        texto: tituloDoCartao(i) || i.chave,
-        /* A FICHA LEVA AO CARTÃO, E NÃO SÓ À ABA — 24/09/2026, sprint P54
-         * (achado 18). Medido no painel de verdade: a ficha do ponteiro abria
-         * «Cor e tela» no topo, e o cartão dela ficava a 1084 px, fora da
-         * tela — a pessoa clicava num nome e tinha de procurá-lo de novo. O
-         * gesto agora é o da lista de escolhas pendentes: troca de aba, pinta,
-         * e só então rola até o cartão, que fica aceso uns segundos
-         * (`CARTAO_CHEGADA`, lido pelo `montarCartao`: uma prévia que chegue
-         * nesse meio repinta a aba, e o aceso tem de sobreviver a ela).
-         * `data-leva` é a chave do cartão de destino, para quem confere. */
-        "data-leva": i.chave,
-        onclick: grupo ? () => {
-          ABA = chaveDeAba(grupo);
-          gravarHash();
-          const chegada = { chave: i.chave, ate: Date.now() + 2600 };
-          CARTAO_CHEGADA = chegada;
-          render();
-          requestAnimationFrame(() => {
-            const alvo = document.querySelector(`#conteudo .cartao[data-chave="${CSS.escape(i.chave)}"]`);
-            if (alvo && alvo.scrollIntoView) alvo.scrollIntoView({ block: "center" });
-          });
-          /* Só apaga o aceso que ELA acendeu: um segundo clique noutra ficha
-           * antes do prazo já trocou o `CARTAO_CHEGADA`, e é dele a vez. */
-          setTimeout(() => {
-            if (CARTAO_CHEGADA !== chegada) return;
-            CARTAO_CHEGADA = null;
-            document.querySelectorAll("#conteudo .cartao.chegou")
-              .forEach((c) => c.classList.remove("chegou"));
-          }, 2600);
-        } : null,
-      }));
+      const assunto = grupo ? assuntoDe(grupo) : "";
+      porAssunto.set(assunto, [...(porAssunto.get(assunto) || []), [i, grupo]]);
     }
-    bloco.append(fichas);
+    const ordem = [...assuntosEmOrdem(), ""];
+    const linhas = elemento("div", { class: "home-mexeu-linhas" });
+    for (const assunto of ordem) {
+      const desta = porAssunto.get(assunto);
+      if (!desta) continue;
+      const fichas = elemento("div", { class: "home-fichas" });
+      const marca = iconeDeMenu(assunto || "", null);
+      marca.removeAttribute("aria-hidden");
+      marca.setAttribute("role", "img");
+      marca.setAttribute("aria-label", assunto || "Outros");
+      porBalao(marca, assunto || "Outros");
+      linhas.append(elemento("div", { class: "home-mexeu-linha" }, [marca, fichas]));
+      for (const [i, grupo] of desta) {
+        fichas.append(elemento("button", {
+          type: "button", class: "home-ficha",
+          /* O NOME CRU DA CHAVE SAIU DO BALÃO — 21/09/2026. Com ele, um valor
+           * comprido (um commit de 40 caracteres, um repositório) levava a frase
+           * a 94 caracteres, acima do teto de 80. E o botão já diz de que ajuste
+           * se trata pelo rótulo que a página usa: repetir a variável ao lado era
+           * gastar o balão com a única parte que ela não precisa saber. */
+          title: `De fábrica: ${rotuloDeValor(i.padrao) || "nada"} · agora: ${rotuloDeValor(i.valor) || "nada"}`,
+          texto: tituloDoCartao(i) || i.chave,
+          /* A FICHA LEVA AO CARTÃO, E NÃO SÓ À ABA — 24/09/2026, sprint P54
+           * (achado 18). Medido no painel de verdade: a ficha do ponteiro abria
+           * «Cor e tela» no topo, e o cartão dela ficava a 1084 px, fora da
+           * tela — a pessoa clicava num nome e tinha de procurá-lo de novo. O
+           * gesto agora é o da lista de escolhas pendentes: troca de aba, pinta,
+           * e só então rola até o cartão, que fica aceso uns segundos
+           * (`CARTAO_CHEGADA`, lido pelo `montarCartao`: uma prévia que chegue
+           * nesse meio repinta a aba, e o aceso tem de sobreviver a ela).
+           * `data-leva` é a chave do cartão de destino, para quem confere. */
+          "data-leva": i.chave,
+          onclick: grupo ? () => {
+            ABA = chaveDeAba(grupo);
+            gravarHash();
+            const chegada = { chave: i.chave, ate: Date.now() + 2600 };
+            CARTAO_CHEGADA = chegada;
+            render();
+            requestAnimationFrame(() => {
+              const alvo = document.querySelector(`#conteudo .cartao[data-chave="${CSS.escape(i.chave)}"]`);
+              if (alvo && alvo.scrollIntoView) alvo.scrollIntoView({ block: "center" });
+            });
+            /* Só apaga o aceso que ELA acendeu: um segundo clique noutra ficha
+             * antes do prazo já trocou o `CARTAO_CHEGADA`, e é dele a vez. */
+            setTimeout(() => {
+              if (CARTAO_CHEGADA !== chegada) return;
+              CARTAO_CHEGADA = null;
+              document.querySelectorAll("#conteudo .cartao.chegou")
+                .forEach((c) => c.classList.remove("chegou"));
+            }, 2600);
+          } : null,
+        }));
+      }
+    }
+    bloco.append(linhas);
   }
   lado.append(bloco);
 
   /* --- 5. o que se roda toda semana -------------------------------------- */
+  /* [P77: as duas frases do bloco — «Estes rodam na hora — ação não espera o
+   * Salvar.» e «No terminal, isto aqui é o comando meow…» — foram para o `?`
+   * do título. Os comentários de 07/09 e 09/09 abaixo contam por que elas
+   * existem; continuam valendo, a um gesto em vez de na tela.] */
   const semana = elemento("section", { class: "home-semana" });
-  semana.append(elemento("h3", { texto: "Toda semana" }));
+  const explicaSemana = [];
   /* A EXCEÇÃO AO AVISO, DITA ONDE ELA MORA — 07/09/2026
    * A conferência de primeira-vez pegou a contradição: o alto da página promete
    * "escolher aqui não muda a máquina", e 455 px abaixo, na MESMA coluna,
@@ -9873,15 +10072,25 @@ function montarHome() {
    * primeiro clique, sem pergunta. Para quem está aprendendo o contrato, o
    * susto desmente o aviso e mina a confiança no resto. A frase abaixo fecha o
    * buraco sem encher os botões de selo: a regra ("escolher guarda") continua
-   * uma, e a exceção ("ação roda na hora") está escrita ao lado da exceção. */
-  semana.append(elemento("p", {
-    class: "frase nota-secao",
-    /* "BANDEJA" ERA METÁFORA SÓ NOSSA — 09/09/2026. Ela vive nos comentários
-     * deste arquivo para nomear o que fica esperando o Salvar, e vazou para a
-     * única linha da home onde a distinção importa. Na tela, o que espera se
-     * chama ESCOLHA ("Nada esperando", "1 escolha"), e é essa a palavra. */
-    texto: "Estes rodam na hora — ação não espera o Salvar.",
-  }));
+   * uma, e a exceção ("ação roda na hora") está escrita ao lado da exceção.
+   * "BANDEJA" ERA METÁFORA SÓ NOSSA — 09/09/2026. Ela vive nos comentários
+   * deste arquivo para nomear o que fica esperando o Salvar, e vazou para a
+   * única linha da home onde a distinção importa. Na tela, o que espera se
+   * chama ESCOLHA ("Nada esperando", "1 escolha"), e é essa a palavra. */
+  explicaSemana.push(elemento("p", { class: "resumo",
+    texto: "Estes rodam na hora — ação não espera o Salvar." }));
+  /* A PONTE COM O TERMINAL, DITA UMA VEZ — 07/09/2026
+   * A conferência de primeira-vez procurou "ajuda" e "socorro" na página:
+   * zero resultados, e nada dizia que este painel e o comando `meow` são a
+   * mesma coisa — os agendamentos que a própria página descreve rodam por ele.
+   * Uma linha resolve; um manual aqui não é o lugar (o trilho já teve um botão
+   * "Manual" e ela o tirou). */
+  explicaSemana.push(elemento("p", { class: "motivo",
+    texto: "No terminal, isto aqui é o comando meow — meow doctor confere, meow ativar aplica." }));
+  semana.append(elemento("div", { class: "home-semana-topo com-dica" }, [
+    elemento("h3", { texto: "Toda semana" }),
+    ...gatilhoDeDica("dica-home-semana", "Sobre as ações da semana", explicaSemana),
+  ]));
   const linha = elemento("div", { class: "linha-botoes" });
   for (const [id, rotulo, principal] of [
     ["doctor", "Conferir a máquina", true],
@@ -9897,16 +10106,6 @@ function montarHome() {
     }));
   }
   semana.append(linha);
-  /* A PONTE COM O TERMINAL, DITA UMA VEZ — 07/09/2026
-   * A conferência de primeira-vez procurou "ajuda" e "socorro" na página:
-   * zero resultados, e nada dizia que este painel e o comando `meow` são a
-   * mesma coisa — os agendamentos que a própria página descreve rodam por ele.
-   * Uma linha resolve; um manual aqui não é o lugar (o trilho já teve um botão
-   * "Manual" e ela o tirou). */
-  semana.append(elemento("p", {
-    class: "frase nota-secao",
-    texto: "No terminal, isto aqui é o comando meow — meow doctor confere, meow ativar aplica.",
-  }));
   lado.append(semana);
   caixa.append(lado);
   return caixa;
