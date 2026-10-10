@@ -305,8 +305,10 @@ pendente=0   # a logo do Hefesto que ficou no tema esperando uma escolha (passo 
 # de ícones montado à mão, e o `Directories=` é a única chave de tamanho que a
 # crate do COSMIC lê (docs/COSMIC-THEMING.md §2).
 if [ ! -f "$TEMA_DIR/index.theme" ]; then
-  meow_aviso "o tema '$TEMA_NOME' ainda não existe"
-  meow_info "rode antes: scripts/construir_icones.sh"
+  # Sem a linha "rode antes: scripts/construir_icones.sh" desde a P75
+  # (09/10/2026): no doctor, quem monta o tema é o `icones`, que vem antes
+  # deste na lista, e o 3 daqui se confere de novo depois dele.
+  meow_aviso "o tema '$TEMA_NOME' ainda não existe — quem o monta é o construir_icones.sh"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 if ! grep -q '^Directories=.*scalable/apps' "$TEMA_DIR/index.theme"; then
@@ -469,10 +471,19 @@ done
 # --- 3. apelidos vindos do Papirus -------------------------------------------
 # Papirus ausente NÃO é erro: os autorais já entraram e o resto do tema continua
 # de pé. Vira aviso, e o `repoman` segue com o ícone do Pop até o pacote existir.
+#
+# MAS TAMBÉM NÃO É «OK» — P75, 09/10/2026. A linha seguinte mandava rodar
+# `sudo apt install papirus-icon-theme` (o conserto conhecido devolvido como
+# tarefa, que ela proibiu em 21/09), e o script saía 0 com o aviso por cima: o
+# doctor mostrava `!! completar` e fechava em «nada a consertar». Agora ele diz
+# ONDE procurou — era a metade que faltava para ver a contradição do achado 4
+# de 09/10 («a base confere» três linhas acima de «não está instalada») — e sai
+# 3 lá embaixo, o pulado que avisou. Quem instala o pacote é o `pacotes` do
+# doctor, pela ponte root, antes desta etapa.
+sem_base=0
 if [ ! -d "$BASE_DIR" ]; then
-  meow_aviso "$BASE não está instalado — apelidos de utilitário pulados"
-  meow_info "  sudo apt install papirus-icon-theme"
-  avisos=1
+  meow_aviso "a base '$BASE' não está em $BASE_DIR — apelidos de utilitário pulados"
+  avisos=1; sem_base=1
 else
   for nome in "${!APELIDO[@]}"; do
     fonte="$BASE_DIR/${APELIDO[$nome]}"
@@ -681,6 +692,7 @@ if [ "$mudou" = "0" ]; then
   # 4 e não 0: o resto está no lugar, mas o aviso do passo 2 espera uma escolha
   # dela, e um "ok" por cima dele o esconderia na tabela do doctor.
   [ "$pendente" = "1" ] && exit 4
+  [ "$sem_base" = "1" ] && exit "$MEOW_SEM_DEPENDENCIA"
   meow_ok "ícones completos: ${#AUTORAL[@]} autorais e ${#APELIDO[@]} apelido(s) já no lugar"
   exit "$MEOW_OK"
 fi

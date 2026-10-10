@@ -256,12 +256,16 @@ done <<< "$pares"
            "$(printf '%s' "$diferentes" | head -10; tail -5 "$T/instalar.log")"
 
 # --- 3. nem o doctor lê: o sincronizar sob um gancho de auditoria (P43) -----
-#   A linha do doctor é esta, e é ELA que se roda abaixo. Se o doctor passar a
-#   chamar outra coisa, esta conferência deixa de medir o doctor — e diz.
-if grep -qF 'python3 "$RAIZ/scripts/pack.py" sincronizar "$pack_proc"' "$RAIZ/bin/meow"; then
-  ok "o doctor ainda compara a arte pelo 'pack.py sincronizar' do pack no ar"
+#   [P75, 09/10/2026 (D3): o doctor deixou de chamar o `sincronizar` — a
+#   decisão de 24/09 foi «Aposentar tudo». A primeira pergunta virou a
+#   contrária: a passada do doctor não compara mais nada. O gancho de
+#   auditoria abaixo segue medindo o verbo, que ficou para o `meow pack
+#   sincronizar <id>` à mão.]
+if sed -n '/^cmd_doctor()/,/^}/p' "$RAIZ/bin/meow" | grep -vE '^[[:space:]]*#' \
+   | grep -qE 'pack\.py"? sincronizar'; then
+  falha "o doctor voltou a chamar o 'pack.py sincronizar' — a decisão de 24/09 foi aposentar a comparação"
 else
-  falha "o doctor não chama mais o 'pack.py sincronizar' do pack no ar — a pergunta 3 precisa ser refeita"
+  ok "a passada do doctor não chama o 'pack.py sincronizar' (D3, decisão de 24/09)"
 fi
 # Uma casa própria: a pergunta 2 confere que a dela nunca ganha um
 # `Dracula_OS-Theme`, e esta não precisa de nenhum para medir — o gancho vê a
@@ -295,10 +299,10 @@ if [ "$rc" != "0" ]; then
 elif [ "$(printf '%s\n' "$lidos" | sed -n 1p)" != "rc=0" ]; then
   falha "o sincronizar do Dracula não saiu 0 — o doctor diria que a arte se separou da origem" "$lidos"
 elif [ "$(printf '%s\n' "$lidos" | grep -c .)" != "1" ]; then
-  falha "o sincronizar que o doctor chama abriu arquivo na casa de quem roda ou no Dracula_OS-Theme" \
+  falha "o sincronizar abriu arquivo na casa de quem roda ou no Dracula_OS-Theme" \
         "$(printf '%s\n' "$lidos" | sed 1d | head -5)"
 else
-  ok "o sincronizar que o doctor chama não abre nada na casa de quem roda nem no Dracula_OS-Theme"
+  ok "o sincronizar não abre nada na casa de quem roda nem no Dracula_OS-Theme"
 fi
 
 printf '\n'

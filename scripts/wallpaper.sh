@@ -608,8 +608,9 @@ medir_acervo() {
     if tem_imagemagick; then
       meow_aviso "$falhas imagem(ns) não puderam ser medidas — ficam fora da separação claro/escuro"
     else
+      # Sem a receita do `apt` desde a P75 (09/10/2026): o ImageMagick é do
+      # `etapa_pacotes`, e quem o instala é o `pacotes` do doctor, pela ponte.
       meow_aviso "sem ImageMagick não dá para separar claro de escuro ($falhas imagem(ns))"
-      meow_info "  instale com: sudo apt install imagemagick"
     fi
   fi
 

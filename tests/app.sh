@@ -228,7 +228,23 @@ for _f in _sp.run(["git", "ls-files"], cwd=raiz, capture_output=True,
         if not _INTERNAS.match(_k) and _k not in _NAO_E_AJUSTE:
             _lidas.setdefault(_k, set()).add(_f)
 
-_sem_cartao = sorted(k for k in _lidas if k not in _catalogo)
+# A CHAVE APOSENTADA NÃO TEM CARTÃO DE PROPÓSITO — P75, 09/10/2026. A
+#   `ICONES_BASE` saiu do exemplo por decisão (24/09, «Tirar a linha do conf»),
+#   e o `migrar_conf.py` tira a linha ativa de todo meow.conf (`APOSENTADAS`).
+#   Os leitores que ainda escrevem `${ICONES_BASE:-…}` só enxergam o padrão
+#   depois disso; trocá-los pela pergunta ao pack é a P74, item 1. A lista vem
+#   de lá, por caminho, como o servidor lê o `RENOMEADAS`: uma segunda lista
+#   aqui envelheceria. E vale o inverso: aposentada com cartão é falha.
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location("meow_migrar_conf", os.path.join(raiz, "scripts", "migrar_conf.py"))
+_migrar = _ilu.module_from_spec(_spec); _spec.loader.exec_module(_migrar)
+_aposentadas = set(getattr(_migrar, "APOSENTADAS", {}))
+_com_cartao = sorted(_aposentadas & _catalogo)
+if _com_cartao:
+    print("FALHOU: chave aposentada ainda tem cartão no painel: %s" % ", ".join(_com_cartao),
+          file=sys.stderr)
+    falhou = 1
+_sem_cartao = sorted(k for k in _lidas if k not in _catalogo and k not in _aposentadas)
 if _sem_cartao:
     print("FALHOU: script lê do meow.conf e o painel não oferece: %s"
           % ", ".join("%s (%s)" % (k, ", ".join(sorted(_lidas[k]))) for k in _sem_cartao),

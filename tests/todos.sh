@@ -81,6 +81,8 @@ PORTATIL=(
   jogos-heroic.sh        # HOME de brinquedo com biblioteca falsa do Heroic
   um-cartao-por-jogo.sh  # HOME de brinquedo com manifesto falso da Steam
   doctor-so-le.sh        # o doctor inteiro num HOME de brinquedo, sudo/pkill/kill falsos (~15s)
+  chaves-aposentadas.sh  # o migrar_conf.py e o doctor num HOME de brinquedo, sudo falso: a chave aposentada não volta (P75)
+  doctor-veredito.sh     # o runner do doctor com conferências de mentira, ponte e sudo falsos; o doctor inteiro num HOME de brinquedo (P75, ~20s)
   fzf-da-paleta.sh       # paleta inventada e os dois packs daqui num HOME de brinquedo; bash e python3
   acento.sh              # COSMIC, pack e HOME de brinquedo; as etapas gerar e tema do install.sh; bash e python3
   vidro-do-cosmic.sh     # COSMIC, packs, HOME e TMPDIR de brinquedo; o alpha_map de 17/09 vai escrito no teste
@@ -223,6 +225,42 @@ if [ "$TEM_PY" -eq 1 ]; then
 fi
 printf '\n'
 
+# ---------------------------------------------------------------------------
+# O SUDO E A CASA DE BRINQUEDO DA SUÍTE INTEIRA — P75, 09/10/2026 (S6)
+# ---------------------------------------------------------------------------
+#   A máquina de quem usa tem `NOPASSWD: ALL` desde abril: um teste que chama
+#   `sudo` ali não falha, ESCREVE em /usr e em /etc. Cada teste se protegia por
+#   conta própria (o `doctor-so-le.sh`, o `previa-cerca.sh`), e um que
+#   esquecesse escrevia no sistema de verdade — já custou restauração à mão
+#   duas vezes. Por isso a suíte não era rodada inteira (01-regressoes.md, S6).
+#
+#   Agora a proteção é do runner, e vale para todo teste, inclusive o que for
+#   escrito amanhã: `sudo`, `pkexec` e `su` no começo do PATH registram a
+#   chamada e recusam, e o HOME de todos é uma casa de brinquedo. O que um
+#   teste precisa ler da casa de verdade para RODAR — os navegadores do
+#   Playwright, o pyenv, o site do pip do usuário — vai apontado por variável,
+#   e é só leitura. No fim, o placar diz quantas vezes alguém tentou o sudo.
+CASA_REAL="$HOME"
+# A casa de verdade fica dita, só para leitura, a quem precisa PERGUNTAR algo
+# dela (o `doctor-so-le.sh` confere que o reciclo acha o painel da sessão).
+export SUITE_CASA_REAL="$CASA_REAL"
+SUITE_TMP="$(mktemp -d)" || { printf 'erro: mktemp\n' >&2; exit 2; }
+trap 'rm -rf "$SUITE_TMP"' EXIT
+mkdir -p "$SUITE_TMP/falso" "$SUITE_TMP/casa" || exit 2
+export SUITE_SUDO_LOG="$SUITE_TMP/sudo.log"; : > "$SUITE_SUDO_LOG"
+for c in sudo pkexec su; do
+  printf '#!/bin/sh\nprintf "%%s %%s\\n" "$(basename "$0")" "$*" >> "$SUITE_SUDO_LOG"\nexit 1\n' \
+    > "$SUITE_TMP/falso/$c"
+  chmod 755 "$SUITE_TMP/falso/$c"
+done
+[ -d "$CASA_REAL/.cache/ms-playwright" ] && \
+  export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$CASA_REAL/.cache/ms-playwright}"
+[ -d "$CASA_REAL/.pyenv" ] && export PYENV_ROOT="${PYENV_ROOT:-$CASA_REAL/.pyenv}"
+export PYTHONUSERBASE="${PYTHONUSERBASE:-$CASA_REAL/.local}"
+export PATH="$SUITE_TMP/falso:$PATH" HOME="$SUITE_TMP/casa"
+unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME MEOW_CONF MEOW_ESTADO
+printf 'casa de brinquedo da suíte: %s (sudo, pkexec e su recusam e registram)\n\n' "$HOME"
+
 VERDES=0; PULADOS=0; VERMELHOS=()
 for nome in "${ALVOS[@]}"; do
   arq="$TESTES/$nome"
@@ -334,6 +372,13 @@ done
 # ---------------------------------------------------------------------------
 printf '\n== %s · %s verde(s), %s pulado(s), %s vermelho(s) ==\n' \
        "$QUAL" "$VERDES" "$PULADOS" "${#VERMELHOS[@]}"
+# Quem tentou o sudo, e o que pediu: recusado e registrado, nunca executado.
+if [ -s "$SUITE_SUDO_LOG" ]; then
+  printf 'sudo/pkexec/su recusados durante a suíte: %s chamada(s)\n' "$(grep -c . "$SUITE_SUDO_LOG")"
+  LC_ALL=C sort "$SUITE_SUDO_LOG" | uniq -c | sort -rn | head -10 | sed 's/^/    /'
+else
+  printf 'nenhum teste chamou sudo, pkexec ou su\n'
+fi
 if [ "${#VERMELHOS[@]}" -gt 0 ]; then
   printf 'vermelhos: %s\n' "${VERMELHOS[*]}" >&2
   exit 1

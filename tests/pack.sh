@@ -1030,8 +1030,11 @@ vest_caso() {   # $1 rótulo · $2 pack a usar · $3 a chave que o caso exige ("
 }
 vest_caso "Catppuccin -> Dracula: o CURSOR que o Dracula receita não é vestígio" \
   dracula "" 's/^PACK=.*/PACK="catppuccin"/'
-vest_caso "Dracula -> Catppuccin: o ICONES_BASE do Dracula é vestígio, e o terminal diz" \
-  catppuccin ICONES_BASE 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/; s/^ICONES_BASE=.*/ICONES_BASE="Dracula-Icones"/'
+# [P75, 09/10/2026: o veículo deste caso era a `ICONES_BASE="Dracula-Icones"`,
+#   e a chave foi aposentada — saiu do exemplo e do painel. O que se mede é o
+#   mesmo com o ponteiro do Dracula, que o Catppuccin não receita.]
+vest_caso "Dracula -> Catppuccin: o CURSOR do Dracula é vestígio, e o terminal diz" \
+  catppuccin CURSOR 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/; s/^CURSOR=.*/CURSOR="Dracula-Cursor"/'
 vest_caso "sabor sem PACK -> Dracula: o CURSOR do Latte é vestígio, e o terminal diz" \
   dracula CURSOR 's/^FLAVOR=.*/FLAVOR="latte"/; s/^CURSOR=.*/CURSOR="catppuccin-latte-dark"/'
 
@@ -2864,7 +2867,9 @@ queda="$(sed -n '/^def logo_do_painel(/,/^def /p' "$RAIZ/app/servidor.py" \
 #   está, a conferência se pula dizendo por quê, e o resto desta seção (que só
 #   olha o pack) roda igual.
 BIB="$RAIZ/packs/dracula/icones/biblioteca"
-ORIGEM_BIB="$HOME/Desenvolvimento/Dracula_OS-Theme/src/icons/new-sessao-atual"
+# Sob o `tests/todos.sh` o HOME é de brinquedo (P75); a origem é só LIDA da
+# casa de verdade, que ele deixa em `SUITE_CASA_REAL`.
+ORIGEM_BIB="${SUITE_CASA_REAL:-$HOME}/Desenvolvimento/Dracula_OS-Theme/src/icons/new-sessao-atual"
 if [ -d "$ORIGEM_BIB" ]; then
   conta="$(python3 - "$ORIGEM_BIB" "$BIB" <<'PY'
 import hashlib, os, sys
@@ -3018,14 +3023,19 @@ else
   falha "o pack com as origens pinadas não validou, ou o aviso chamou um campo novo de morto (rc=$rc)" "$saida"
 fi
 
-# O NOME DE FÁBRICA É O DO EXEMPLO. A regra "Papirus-Dark cede ao pack" vale
-#   para o valor que o `meow.conf.exemplo` traz; se ele mudar e a constante do
-#   `pack.py` não, todo meow.conf novo passaria a ser lido como escolha.
+# O NOME DE FÁBRICA ERA O DO EXEMPLO. A regra "Papirus-Dark cede ao pack" valia
+#   para o valor que o `meow.conf.exemplo` trazia. [P75, 09/10/2026: a chave foi
+#   aposentada — saiu do exemplo, e o `migrar_conf.py` a tira de todo meow.conf.
+#   O que se cobra agora é a aposentadoria inteira, e que o valor antigo de
+#   fábrica, se ainda chegar pelo ambiente de um conf não migrado, ceda.]
 exemplo_py="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import pack; print(pack.ICONES_BASE_DO_EXEMPLO)' "$RAIZ/scripts")"
-exemplo_conf="$(sed -n 's/^ICONES_BASE="\([^"]*\)".*/\1/p' "$RAIZ/meow.conf.exemplo")"
-[ -n "$exemplo_py" ] && [ "$exemplo_py" = "$exemplo_conf" ] \
-  && ok "o ICONES_BASE de fábrica do pack.py é o do meow.conf.exemplo ($exemplo_py)" \
-  || falha "o pack.py e o meow.conf.exemplo discordam do ICONES_BASE de fábrica" "pack.py='$exemplo_py' exemplo='$exemplo_conf'"
+aposentada="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import migrar_conf; print("ICONES_BASE" in migrar_conf.APOSENTADAS)' "$RAIZ/scripts")"
+if ! grep -qE '^[[:space:]]*ICONES_BASE=' "$RAIZ/meow.conf.exemplo" && [ "$aposentada" = "True" ] \
+   && [ "$exemplo_py" = "Papirus-Dark" ]; then
+  ok "a ICONES_BASE está aposentada (fora do exemplo, na lista do migrar_conf) e o Papirus-Dark antigo cede"
+else
+  falha "a aposentadoria da ICONES_BASE não está inteira" "exemplo tem a chave? $(grep -c '^ICONES_BASE=' "$RAIZ/meow.conf.exemplo") · aposentada=$aposentada · pack.py='$exemplo_py'"
+fi
 
 # QUEM VALE, PELO VERBO: o de fábrica cede, o escrito à mão vence, e o pack
 #   que responde é dito nos dois casos.
@@ -3517,22 +3527,24 @@ for pack, flavor in (("dracula", "dracula"), ("dracula", "alucard"), ("catppucci
             erros.append("%s/%s: %s se chama %r, e a cor que a pasta recebe é %r"
                          % (pack, flavor, c["valor"], c["rotulo"], nomes[c["valor"]]))
 # A base de ícones com um nome de tema próprio no conf, e nenhum no ambiente.
+# [P75, 09/10/2026: a ICONES_BASE foi aposentada e não tem mais cartão; o
+#  desenho da página continua perguntando ao servidor qual base vale, e é isso
+#  que se cobra — com o nome de tema do conf, a base do pack com esse nome.]
 esquema = servidor.ler_esquema()
-item = {i["chave"]: i for i in esquema}["ICONES_BASE"]
-item["opcoes"] = ["Papirus-Dark", "Tema-P56-Base", "MeowSystem-Icons-Base"]
+if any(i["chave"] == "ICONES_BASE" for i in esquema):
+    erros.append("a ICONES_BASE aposentada voltou a ter cartão no painel")
 vocab = mod.vocabulario("dracula")
 servidor._com_o_vocabulario_do_pack(esquema, vocab, {
-    "FLAVOR": "dracula", "ICONES_BASE": "Tema-P56-Base", "NOME_TEMA_ICONES": "Tema-P56"})
-cede = (vocab.get("base_de_icones") or {}).get("cede") or []
+    "FLAVOR": "dracula", "NOME_TEMA_ICONES": "Tema-P56"})
+vale = (vocab.get("base_de_icones") or {}).get("vale")
+amb_verbo = dict(os.environ, NOME_TEMA_ICONES="Tema-P56")
+amb_verbo.pop("ICONES_BASE", None)
 verbo = subprocess.run(
     [sys.executable, os.path.join(raiz, "scripts", "pack.py"), "base-icones", "dracula"],
-    capture_output=True, text=True,
-    env=dict(os.environ, NOME_TEMA_ICONES="Tema-P56", ICONES_BASE="Tema-P56-Base")).stdout
-if "Tema-P56-Base" not in cede or "MeowSystem-Icons-Base" in cede:
-    erros.append("a base de ícones cede %r, e o nome do tema no conf é Tema-P56" % cede)
-if item.get("efetivo") != "Tema-P56-Base" or "quem=pack" not in verbo:
-    erros.append("o painel e o verbo discordam da base: efetivo=%r, verbo=%r"
-                 % (item.get("efetivo"), verbo.splitlines()[:1]))
+    capture_output=True, text=True, env=amb_verbo).stdout
+if vale != "Tema-P56-Base" or "quem=pack" not in verbo:
+    erros.append("o painel e o verbo discordam da base: vale=%r, verbo=%r"
+                 % (vale, verbo.splitlines()[:1]))
 if "NOME_TEMA_ICONES" in os.environ:
     erros.append("o NOME_TEMA_ICONES ficou no ambiente do servidor: %r" % os.environ["NOME_TEMA_ICONES"])
 print("\n".join(erros))

@@ -51,8 +51,10 @@
 #     ponte que pudesse regravar a si mesma seria uma ponte que qualquer coisa
 #     rodando como ela reescreve para fazer outra coisa;
 #   · não recebe caminho de origem. Todo destino é literal neste arquivo;
-#   · não instala pacote, não chama `apt install`, não roda `.deb`. O
-#     `atualizar` é `full-upgrade` dos repositórios já configurados;
+#   · não instala pacote por nome livre e não roda `.deb`. O `atualizar` é
+#     `full-upgrade` dos repositórios já configurados, e o `pacotes` (P75,
+#     09/10/2026) instala só nomes de uma lista LITERAL aqui dentro — ver o
+#     bloco dele;
 #   · não apaga nada fora dos dois caminhos do hook de apt e do da completion
 #     do zsh (este desde a P47, 24/09/2026).
 #
@@ -158,13 +160,26 @@ greeter-ver)
   ;;
 
 # stdin: um tar. Extrai dentro do `.config/cosmic` do greeter, com o dono certo.
-# `--no-absolute-names` e a recusa de `..` são o que impede o tar de escrever
-# fora do destino — é o buraco clássico deste formato.
+# O que impede o tar de escrever fora do destino — o buraco clássico deste
+# formato — é o padrão do GNU tar (tira a `/` do começo e recusa membro com
+# `..`), a extração num temporário, a recusa de `..` e de link simbólico no que
+# saiu dele, e só então a cópia.
+#
+# O `--no-absolute-names` QUE MORAVA AQUI NÃO EXISTE — P75, 09/10/2026 (S4)
+#   O GNU tar tem `-P/--absolute-names` e não tem a forma negativa: medido com o
+#   tar 1.35 desta máquina, `tar -x --no-absolute-names` sai 64 com "opção
+#   desconhecida". Este verbo recusou TODA chamada desde que nasceu, com a
+#   frase "tar recusado", e o `greeter.sh` mandava essa frase para o
+#   `/dev/null` — a tela de login "precisava de sudo" numa máquina com a ponte
+#   no ar, e ninguém sabia por quê (01-regressoes.md, S4; P70 item 1). O que a
+#   flag pretendia, o padrão do tar já faz; o link simbólico, que ela nem
+#   cobria, passa a ser recusado abaixo.
 greeter-aplicar)
   [ -d "$GREETER_HOME" ] || exit 3
   id "$GREETER_DONO" >/dev/null 2>&1 || morrer "o usuário $GREETER_DONO não existe" 3
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-  tar -x -C "$tmp" --no-absolute-names --no-same-owner -f - || morrer "tar recusado"
+  tar -x -C "$tmp" --no-same-owner -f - || morrer "tar recusado: o que chegou pelo stdin não se extrai"
+  [ -z "$(find "$tmp" -mindepth 1 -type l -print -quit)" ] || morrer "link simbólico no tar"
   ( cd "$tmp" && find . -mindepth 1 -printf '%P\n' ) | while IFS= read -r rel; do
     case "$rel" in ..*|*/../*|*/..) morrer "caminho com .. no tar" ;; esac
   done
@@ -272,6 +287,42 @@ atualizar)
   apt full-upgrade -y -o Dpkg::Options::=--force-confold || exit 2
   ;;
 
+# --- os pacotes de que o projeto depende — P75, 09/10/2026 -----------------
+# POR QUE ESTE VERBO NASCEU
+#   Ela, 21/09/2026, três vezes: «nenhuma feature pode mandar o usuário
+#   consertar à mão». O `meow doctor` sabia que faltava o Papirus, sabia o
+#   pacote, e imprimia `sudo apt install papirus-icon-theme` para ela copiar —
+#   o conserto conhecido devolvido como tarefa. O `tests/sem-receita-no-log.sh`
+#   isentava a frase com a promessa "o dia em que a ponte ganhar um verbo de
+#   pacote, estas viram botão". É hoje.
+#
+# POR QUE ISTO NÃO É `apt install` LIVRE
+#   O nome entra por STDIN, um por linha, e só passa o que estiver na lista
+#   LITERAL abaixo — que mora neste arquivo, instalado como root, e não no
+#   clone, que é gravável por quem chama. Um nome fora dela derruba o verbo
+#   inteiro antes de qualquer `apt`: nada se instala pela metade. Os nomes são
+#   os do `etapa_pacotes` do install.sh (o array `NECESSARIOS` mais os dois que
+#   moram fora dele), e o `tests/doctor-veredito.sh` cobra que as duas listas
+#   sejam a mesma: uma cópia que envelhece calada é a armadilha nº 3.
+#
+# O QUE ELE CUSTA: quem rodar como a dona da máquina instala, sem senha, um
+#   destes nove pacotes dos repositórios já configurados. Nada além deles.
+pacotes)
+  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy "
+  pedidos=()
+  while IFS= read -r nome || [ -n "${nome:-}" ]; do
+    [ -n "$nome" ] || continue
+    case "$PERMITIDOS" in
+      *" $nome "*) pedidos+=("$nome") ;;
+      *) morrer "pacote fora da lista desta ponte: $nome" ;;
+    esac
+  done
+  [ "${#pedidos[@]}" -gt 0 ] || morrer "stdin vazio"
+  export DEBIAN_FRONTEND=noninteractive
+  anotar "pacotes ${pedidos[*]}"
+  apt-get install -y --no-install-recommends "${pedidos[@]}" || exit 2
+  ;;
+
 limpar)
   export DEBIAN_FRONTEND=noninteractive
   anotar "limpar"
@@ -338,6 +389,7 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE completion-instalar, \\
     $PONTE completion-remover, \\
     $PONTE atualizar, \\
+    $PONTE pacotes, \\
     $PONTE limpar, \\
     $PONTE estado
 
@@ -349,7 +401,8 @@ REGRA_FIM
   sed -n '2,60p' "$0"
   printf '\nverbos: desktop · desktop-banco · greeter-ver · greeter-aplicar ·\n'
   printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
-  printf '        completion-remover · atualizar · limpar · estado · regra-sudo\n'
+  printf '        completion-remover · atualizar · pacotes · limpar · estado ·\n'
+  printf '        regra-sudo\n'
   ;;
 
 *) morrer "verbo desconhecido: $verbo" ;;

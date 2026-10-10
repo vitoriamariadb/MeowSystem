@@ -187,7 +187,10 @@ else
   falha "com HOME de brinquedo o reciclo miraria: $alvos"
 fi
 if [ -n "$ANTES" ]; then
-  meus="$(MEOW_RAIZ="$RAIZ" bash -c '
+  # A casa da SESSÃO: sob o `tests/todos.sh` o HOME é de brinquedo (P75), e
+  # ele deixa a de verdade em `SUITE_CASA_REAL` — aqui só para PERGUNTAR qual
+  # painel é dela, que é leitura.
+  meus="$(HOME="${SUITE_CASA_REAL:-$HOME}" MEOW_RAIZ="$RAIZ" bash -c '
     . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1
     . "$MEOW_RAIZ/lib/painel.sh" >/dev/null 2>&1
     meow_painel_desta_casa' 2>/dev/null | LC_ALL=C sort | paste -sd' ' -)"

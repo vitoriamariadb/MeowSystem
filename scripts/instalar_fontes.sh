@@ -289,8 +289,9 @@ cmd_adicionar() {
   meow_tem fc-cache || faltam_add+=("fc-cache")
   case "$origem" in *.zip|*.ZIP) meow_tem unzip || faltam_add+=("unzip") ;; esac
   if [ ${#faltam_add[@]} -gt 0 ]; then
+    # A receita do `apt-get` saiu na P75 (09/10/2026): «nenhuma feature pode
+    # mandar o usuário consertar à mão». O que falta fica nomeado.
     meow_erro "faltam ferramentas: ${faltam_add[*]}"
-    meow_info "  sudo apt-get install diffutils fontconfig unzip"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -377,8 +378,9 @@ done
 # O tarball é .xz: sem o descompressor, o `tar` falha no meio e deixa lixo.
 meow_tem xz || meow_tem unxz || faltam+=("xz-utils")
 if [ ${#faltam[@]} -gt 0 ]; then
+  # Sem a receita do `apt-get` desde a P75 (09/10/2026), pelo mesmo motivo do
+  # `faltam_add` lá em cima.
   meow_erro "faltam ferramentas: ${faltam[*]}"
-  meow_info "  sudo apt-get install curl tar coreutils diffutils fontconfig xz-utils"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
@@ -408,9 +410,9 @@ if [ -n "$ui_arquivo" ]; then
   meow_pula "nada a baixar (vem do pacote do sistema)"
 else
   # Não é erro nosso e não há o que consertar aqui: a fonte de interface é do
-  # sistema. Dizemos o comando e seguimos — a monoespaçada não depende dela.
-  meow_aviso "'$FAMILIA_UI' NÃO está instalada"
-  meow_info "  sudo apt-get install pop-fonts    # ou fonts-firacode/fonts-fira"
+  # sistema. Dizemos de onde ela vem e seguimos — a monoespaçada não depende
+  # dela. [Dizia o comando do `apt-get` até a P75, 09/10/2026.]
+  meow_aviso "'$FAMILIA_UI' NÃO está instalada — ela vem do pacote pop-fonts do sistema"
 fi
 
 # ---------------------------------------------------------------------------
@@ -905,6 +907,10 @@ fi
 
 if [ "$mudou" = "1" ]; then
   meow_seco || meow_info "terminais já abertos podem precisar de uma aba nova"
+  # O veredito do seco, que faltava: o caminho em dia fecha com "fontes já no
+  # lugar", e o divergente terminava no último detalhe. O doctor lê o veredito
+  # pela última linha (`chk_fontes`), P75, 09/10/2026.
+  meow_seco && meow_muda "fontes a instalar ou a apontar no COSMIC"
   exit "$MEOW_DIVERGENTE"
 fi
 meow_ok "fontes já no lugar"
