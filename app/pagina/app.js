@@ -1950,7 +1950,7 @@ function montarControle(item, cartao) {
      *   próprio deslizante (a trilha a traço e o «como está»); o botão nasce
      *   quando há uma escolha para desfazer. A palavra especial segue a mesma
      *   regra: «Automático» com o valor já em `auto` sai da tela. */
-    if (item.aceita_vazio && !vazio) {
+    if (temOQueRestaurar(item, valor)) {
       /* «DEIXAR COMO ESTÁ» PROMETIA PRESERVAR E EXECUTAVA DESCARTAR — 21/09/2026
        *   Queixa dela: *"deixar como está induz ao erro. vc muda o slicer e
        *   quer que fique como está. clica e ele reseta."* O rótulo lia-se como
@@ -2442,7 +2442,8 @@ function controleImagem(item, tipo, aplica) {
    * contorno a traço do «como está», com o nome de quem manda no balão. O
    * ladrilho volta quando houver uma escolha própria a desfazer. */
   const emVigor = valorEmVigor(item);
-  if (item.aceita_vazio && emVigor !== "") {
+  /* [QA da P77: nem sobre o valor de fábrica preenchido — `temOQueRestaurar`.] */
+  if (temOQueRestaurar(item, emVigor)) {
     caixa.append(elemento("button", {
       type: "button", class: "vazio", "data-valor": "", "aria-pressed": "false",
       title: "Quem decide passa a ser o ajuste vizinho.",
