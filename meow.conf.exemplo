@@ -286,7 +286,7 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 # AS DUAS ÁREAS DE TRABALHO, E POR QUE ELAS SÃO O ÚNICO ASSUNTO DESTE ARQUIVO
 #   QUE NÃO VALE NA HORA — 06/09/2026
 #
-#   Pedido dela, literal: "não temos a seção pra setar os dois ambientes de
+#   Pedido de quem usa, literal: "não temos a seção pra setar os dois ambientes de
 #   trabalho tipo o Meow e o OS". Havia duas áreas com nome nesta máquina e
 #   nenhuma porta no projeto para vê-las, renomeá-las ou reordená-las: a única
 #   forma era editar RON na mão.
@@ -391,7 +391,7 @@ AREAS_ENCAIXE=""
 #   outras dezessete não nomeiam gato nenhum: falam de horário, de tamanho, de
 #   alinhamento, de título e de quando recarregar o painel.
 #   A Coquinha e o Mimir continuam sendo o que vem de fábrica, e continuam
-#   sendo os gatos dela. O que muda é o título: quem chega a este arquivo sem
+#   sendo os gatos da casa. O que muda é o título: quem chega a este arquivo sem
 #   ter os dois gatos lê `Logo do sistema` e sabe do que se trata.
 
 # --- NO DOCK ----------------------------------------------------------------
@@ -668,7 +668,7 @@ ICONES_COR_MARCA="nao"
 #   "as pastas do temas dos icons do vscode catpuccin, tipo as folders, essas
 #    nao tão legais tambem".
 # São pasta VAZADA de traço claro ao lado das CHEIAS na cor das outras pastas —
-# na tela dela, em 08/08, o `mauve` de fábrica, que nenhuma das 7 usa. O conjunto
+# na máquina onde isto nasceu, em 08/08, o `mauve` de fábrica, que nenhuma das 7 usa. O conjunto
 # não fecha. O risco estava previsto desde o desenho da Sprint C; quem decidiu
 # foi a tela.
 #
