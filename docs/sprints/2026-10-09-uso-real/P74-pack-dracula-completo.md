@@ -129,9 +129,14 @@ O teste do pack malicioso está no `tests/pack-dracula-completo.sh` (seção
 arquivos escritos no alvo do link, 2 `escapou`, 4 cópias do segredo, segredo
 sobrescrito, 1 `[custom]` no starship. Com a de agora, tudo 0.
 
-**Testes depois dos acertos** (HOME temporário e `sudo` falso): ver o fim do
-relatório da conferência; `portabilidade.sh` continua vermelho pelo
-`docs/pesquisas/2026-10-09-cosmic-vivo.md:198`, que vem do `f24868c`.
+**Testes depois dos acertos** (HOME temporário e `sudo` falso, árvore limpa):
+`tests/todos.sh --portatil` → 27 verdes, 1 pulado (`pack.sh`, por ambiente: as
+seções que pedem bat/btop, ferramentas de fonte e o `Dracula_OS-Theme` no HOME),
+2 vermelhos. `portabilidade.sh` continua vermelho pelo
+`docs/pesquisas/2026-10-09-cosmic-vivo.md:198`, que vem do `f24868c`;
+`doctor-so-le.sh` só falha a conferência «com o HOME da sessão o reciclo acha o
+painel», que precisa do HOME de verdade, e rodado com ele (só leitura, `sudo`
+falso) sai verde. `pastas-do-pack.sh` (máquina) verde.
 
 ## Achados para a próxima leva
 
