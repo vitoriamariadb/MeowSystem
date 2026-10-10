@@ -19,17 +19,23 @@ P73, P74, P75, P76 entraram; relatório `03-integracao-onda-1.md` (na integraç�
 2 pulados, 3 vermelhos (gate pela decisão 7, dois de ambiente). O dev foi limpo (ghostwriter foi
 para `~/.config/meow/icones-escolhidos.map`, `apps.map` revertido, `.gitignore` em commit).
 
-## Onda 2 — EM VOO (workflow leva-g-onda-2, run wf_e7977159-726)
+## Onda 2 — CONCLUÍDA e integrada
 
-P77 interface (hallmark → 4 grupos de páginas → conferente → QA de uso real) em `.wt-meow/p77`;
-P78 segurança + gate (decisões 7 e 8) em `.wt-meow/p78`; depois integração. 10 agentes.
-Retomar: `Workflow({scriptPath: ".../leva-g-onda-2-wf_e7977159-726.js", resumeFromRunId: "wf_e7977159-726"})`.
+P77 (interface sem texto: 33.383 → 8.928 caracteres visíveis, 0 comando cru), P78 (pack é dado,
+nunca código; CSP; decisões 7 e 8) e P79 (casa real, decisões 9 a 11) entraram em
+`integracao/leva-g`. Uso real final meu: `.playwright-mcp/ux-final/`.
+
+## P80 — EM VOO (workflow leva-g-p80, run wf_582491cd-ad0)
+
+Acabamento do meu uso real (nomes amigáveis na ficha, paleta só para traço, Dia e noite uniforme,
+cabeçalho de página) + abertos da P79 (corrida do `vivo()`, reciclo triplo do painel — gatilho da
+faixa verde —, nada manda digitar, falsos que recusam). Implementa → confere → QA → integra (suíte 2x).
+Retomar: `Workflow({scriptPath: ".../leva-g-p80-wf_582491cd-ad0.js", resumeFromRunId: "wf_582491cd-ad0"})`.
 
 ## Próximo passo
 
-1. Ler `04-integracao-onda-2.md` na integração.
-2. Uso real final como usuário, no navegador, sobre a integração (HOME temporário).
-3. Merge da integração no dev; `./install.sh` uma vez (ponte nova da P75, `meow-pos-apt` da P76);
-   `meow doctor` real.
-4. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6), ativar o shim do
-   compositor (P76, exige login), a frase cortada de 09/10.
+1. Ler `05-integracao-p80.md` na integração.
+2. Merge da integração no dev (as specs P73/P74 conflitam só em documento: ficam os dois lados).
+3. `./install.sh` uma vez (ponte nova, `meow-pos-apt`); `meow doctor` real; conferir a tela.
+4. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6, reboot), ativar o
+   shim do compositor (P76, exige login), a frase cortada de 09/10.
