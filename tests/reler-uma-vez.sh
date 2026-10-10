@@ -34,7 +34,7 @@
 #   o `painel.sh` é um falso que só anota — na raiz de brinquedo. O item 5 roda
 #   o `painel.sh` de verdade numa casa onde o `pgrep` falso não acha painel.
 #
-# PORTÁTIL: só bash.
+# PORTÁTIL: bash, e python3 no caso 6 (o passo de traço de verdade lê o pack).
 #   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
