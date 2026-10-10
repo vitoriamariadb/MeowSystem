@@ -83,7 +83,14 @@ dock (1112), que já eram os do fim (`qa-pg-*-1920.png`). As páginas rolando in
 - `tests/app-navegador.py`: 156/156.
 - `tests/app.sh`, `tests/estilo.sh`, `tests/frases-velhas.sh`, `tests/previa-cerca.sh`: verdes
   (o `previa-cerca.sh` com o `curl` de verdade: ele fala com o próprio servidor de brinquedo).
-- `tests/app-completo.py`: ver o fim deste arquivo.
+- `tests/app-completo.py`: reprova só com «Consertar o que estiver fora tentou baixar sem
+  declarar rede» (git clone do papirus-folders, Cargo.lock, `cargo build`, now-playing, fonte),
+  pelo cartão da Instalação, pela ação rápida da Início e, desde o item 6, pelo botão da gaveta
+  depois do «Conferir». A causa é anterior a este QA: o `doctor_consertar` não declara `rede`
+  desde o `af3159f` (`git show af3159f:app/servidor.py`), e declarar com o selo, sem caixa, é a
+  decisão 7, item 5 da P78 (que também ajusta a régua do gate). O resto do inventário passa,
+  com o botão novo em `REVELADOS` e as quatro linhas «deixar vazio» das chaves no padrão de
+  fábrica fora (o botão não nasce mais ali).
 
 ## O que se confere com a mão
 

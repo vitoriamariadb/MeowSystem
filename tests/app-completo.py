@@ -1220,6 +1220,14 @@ class Percurso:
                    f"«{acao['rotulo']}» rodou sem caixa de pergunta, e declara "
                    f"{'pedir senha' if acao['sudo'] else 'baixar da internet'}")
         self.conferir_trabalho(acao, bool(corpo.get("seco")), antes, reg0)
+        # O CONSERTO QUE NASCE NA GAVETA — QA da P77, 10/10/2026. O conferir
+        # que sai 1 deixa o botão da ação que conserta ao lado do «Fechar»
+        # (`conserta_com`, servidor); ele é um gesto de ação como outro qualquer.
+        botao = self.pag.locator("#gaveta-consertar")
+        if botao.count() and botao.is_visible():
+            self.censo()             # o botão entra no que apareceu, antes de sumir no clique
+            self.acionados.add("gaveta · #gaveta-consertar")
+            self.gesto_de_acao(lambda: botao.click(), botao.inner_text().strip())
 
     def _com_caixa(self, clicar, antes, reg0, n0):
         titulo = self.pag.locator("#confirmar-titulo").inner_text().strip()
@@ -3475,7 +3483,6 @@ INVENTARIO = {
         ajuste ACCENT · opção
         ajuste CURSOR · ?
         ajuste CURSOR · Adicionar tema
-        ajuste CURSOR · deixar vazio
         ajuste CURSOR · opção
         ajuste ESCALA_TELA · ?
         ajuste ESCALA_TELA · deixar vazio
@@ -3483,7 +3490,6 @@ INVENTARIO = {
         ajuste FLAVOR · ?
         ajuste FLAVOR · opção
         ajuste JANELAS_TILING · ?
-        ajuste JANELAS_TILING · deixar vazio
         ajuste JANELAS_TILING · opção
         ajuste JANELAS_TILING_ESCOPO · ?
         ajuste JANELAS_TILING_ESCOPO · opção
@@ -3670,7 +3676,6 @@ INVENTARIO = {
         ajuste MIDIA_LARGURA · ?
         ajuste MIDIA_LARGURA · campo
         ajuste RELOGIO_SEGUNDOS · ?
-        ajuste RELOGIO_SEGUNDOS · deixar vazio
         ajuste RELOGIO_SEGUNDOS · opção
         ajuste VIDRO_AO_MAXIMIZAR · ?
         ajuste VIDRO_AO_MAXIMIZAR · opção
@@ -3746,7 +3751,6 @@ INVENTARIO = {
         aba · ?
         aba · abre «⋯ Ações técnicas»
         ajuste LEITURA_AGENDA · ?
-        ajuste LEITURA_AGENDA · deixar vazio
         ajuste LEITURA_AGENDA · opção
         ajuste LEITURA_APPLET · ?
         ajuste LEITURA_APPLET · opção
@@ -3918,6 +3922,7 @@ REVELADOS = {
         gaveta · #saida
         gaveta · #mais-abaixo
         gaveta · #ensaio-rodar
+        gaveta · #gaveta-consertar
         topo · #botao-descartar
         topo · #salvar-conta
         topo › lista de escolhas › escolha pendente · ir ao cartão
