@@ -423,6 +423,26 @@ if _falta9:
 else:
     print("ok: o ensaio lê os mapas de ícone de quem usa, e não os da pasta da cópia")
 
+#   9f. O «HÁ DIVERGÊNCIAS» TRAZ O BOTÃO DO CONSERTO — QA da P77, 10/10/2026.
+#       O doctor termina em «rode: meow doctor --consertar»; a gaveta oferece o
+#       botão da ação que conserta. Toda `conserta_com` aponta uma ação que
+#       existe e escreve, o trabalho a leva para a página, e a página a usa.
+_erros9f = []
+for _id9f, _a9f in servidor.ACOES.items():
+    _alvo9f = _a9f.get("conserta_com")
+    if _alvo9f and (_alvo9f not in servidor.ACOES or not servidor.escreve(servidor.ACOES[_alvo9f])):
+        _erros9f.append("%s conserta com %r, que não é ação que escreve" % (_id9f, _alvo9f))
+if servidor.ACOES.get("doctor", {}).get("conserta_com") != "doctor_consertar":
+    _erros9f.append("o «Conferir a máquina» não declara o «Consertar o que estiver fora»")
+_js9f = open(os.path.join(raiz, "app/pagina/app.js"), encoding="utf-8").read()
+if '"conserta_com"' not in _inspect9.getsource(servidor) or "oferecerConserto(TRABALHO.conserta)" not in _js9f:
+    _erros9f.append("o trabalho não leva a `conserta_com` à gaveta, ou a gaveta não a oferece")
+if _erros9f:
+    print("FALHOU: " + "; ".join(_erros9f), file=sys.stderr)
+    falhou = 1
+else:
+    print("ok: o «há divergências» do conferir oferece o botão do conserto na gaveta")
+
 # --- 10. O TRABALHO LEVA A CONF, E O ÍCONE QUE NÃO VALE NÃO É OFERECIDO — 13/09 --
 #   Medido pela interface: «Usar este ícone» rodou o `icones_apps_arcticons.sh`
 #   com o ambiente do servidor e nada mais. Sem `ICONES_COR_MARCA`, doze ícones

@@ -7213,6 +7213,23 @@ function faixaDeEnsaio(ligada) {
   ]));
 }
 
+/* O CONSERTO AO LADO DO «HÁ DIVERGÊNCIAS» — 10/10/2026, QA da P77.
+ *   O «Conferir a máquina» terminava com a última linha do doctor, «rode: meow
+ *   doctor --consertar»: a página mandando digitar o que ela mesma tem como
+ *   botão, dois cartões ao lado. Quando a ação declara quem a conserta
+ *   (`conserta_com`, no servidor) e sai 1, o botão daquela ação entra na fila
+ *   do «Fechar», com o rótulo do cartão dela, e roda pelo mesmo `rodar()` —
+ *   com a caixa de pergunta que a ação tiver. */
+function oferecerConserto(id) {
+  const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
+  if (!acao || document.getElementById("gaveta-consertar")) return;
+  $("#fechar-gaveta").before(elemento("button", {
+    type: "button", class: "btn btn-accent", id: "gaveta-consertar",
+    texto: acao.rotulo,
+    onclick: (ev) => { ev.currentTarget.remove(); rodar(acao, ""); },
+  }));
+}
+
 /* O BOTÃO QUE FECHA O FLUXO: vejo, aprovo, rodo. Ele só aparece quando o
  * ensaio TERMINA — oferecer "rodar" no meio de uma saída que ainda corre é
  * convidar a pessoa a decidir com meia página lida. E ele some ao ser apertado,
@@ -7255,7 +7272,10 @@ function abrirGaveta(trabalho, aplicar = null) {
   if (TRABALHO?.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve,
                rotulo: trabalho.rotulo, mudou: false,
-               seco: !!trabalho.seco, fim: trabalho.fim || {}, aplicar };
+               seco: !!trabalho.seco, fim: trabalho.fim || {}, aplicar,
+               conserta: trabalho.conserta_com || null };
+  const velhoConserto = document.getElementById("gaveta-consertar");
+  if (velhoConserto) velhoConserto.remove();
   const gaveta = $("#gaveta");
   gaveta.hidden = false;
   faixaDeEnsaio(!!trabalho.seco);
@@ -7570,6 +7590,7 @@ async function puxar() {
      *   dos cliques desta aba, o `rc` sabe de todos. */
     const interrompido = typeof rc !== "number" || rc < 0;
     if (TRABALHO.seco && !interrompido) oferecerRodarDeVerdade(TRABALHO.aplicar);
+    if (!TRABALHO.seco && rc === 1 && TRABALHO.conserta) oferecerConserto(TRABALHO.conserta);
     pastilhaDeTrabalho(false);
     TRABALHO = null;
   }

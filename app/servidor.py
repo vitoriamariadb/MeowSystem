@@ -4606,6 +4606,11 @@ ACOES = {
         "natureza": "conferir",
         "argv": _meow("doctor"),
         "escreve": False, "sudo": False, "confirma": False,
+        # O CONSERTO NASCE NA PRÓPRIA GAVETA — QA da P77, 10/10/2026. Com
+        # divergência o doctor termina em «rode: meow doctor --consertar»: um
+        # comando para quem está diante de um botão. A gaveta oferece o botão
+        # desta ação quando o conferir sai 1 («há divergências»).
+        "conserta_com": "doctor_consertar",
         "ajuda": "Faz {as_conferencias} e lista o que está fora do lugar. "
                  "Não escreve nada.",
     },
@@ -6861,6 +6866,7 @@ def _trabalho_json(trabalho, acao_id, seco=False):
             "comando": comando_na_tela(trabalho.argv),
             "escreve": escreve(ACOES[acao_id]),
             "seco": bool(seco),
+            "conserta_com": ACOES[acao_id].get("conserta_com"),
             "fim": fim_da_acao(acao_id, seco)}
 
 
