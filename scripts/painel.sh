@@ -236,6 +236,12 @@ teto() {
 # resposta é dizer isso e sair 0 — não há o que reciclar NESTA.
 reciclar() {
   local espera alvos
+  # QUEM PEDIU FICA NO LOG — 10/10/2026, P80 (item 7). Um reciclo do painel
+  #   foi o gatilho da faixa verde de 09/10, e o meow.log não dizia quem o
+  #   tinha pedido. O `meow_tela_reler` manda o nome (`MEOW_QUEM_RECICLA`); sem
+  #   ele, a linha de comando de quem chamou. Antes de qualquer resposta: o
+  #   pedido conta mesmo quando não há painel a reciclar.
+  meow_registrar "painel reciclar — pedido por ${MEOW_QUEM_RECICLA:-$(ps -o args= -p "$PPID" 2>/dev/null | cut -c1-120)}"
   alvos="$(meow_painel_desta_casa)"
   if [ -z "$alvos" ]; then
     if pgrep -x cosmic-panel >/dev/null 2>&1; then

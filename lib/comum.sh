@@ -1943,21 +1943,57 @@ meow_lancador_reler() {
 #   0  releu (ou é ensaio da CLI, que não relê nada de propósito)
 #   1  o painel recusou reciclar — o menu releu, a dock fica para o login
 #   3  este HOME não é o da sessão: nada foi tocado
+#   4  dentro de uma passada do instalador: fica para o fim dela (abaixo)
+#
+# UM RELER POR PASSADA — 10/10/2026, P80 (item 7). O `icones_apps_arcticons.sh`,
+#   o `icones_apps_dracula.sh` e o `icones_resgatados.sh` chamam esta função no
+#   fim do passo deles, e uma instalação que mudava os três reciclava o
+#   `cosmic-panel` três vezes seguidas — um reciclo do painel foi o gatilho da
+#   faixa verde de 09/10 (Migração-OS/levas/leva-08-gpu-regressao.md). Agora o
+#   `install.sh` arma `MEOW_RELER_NO_FIM` (um arquivo) antes do laço das
+#   passagens: com ele no ambiente, o pedido só anota quem pediu e sai 4, e o
+#   `meow_tela_reler_no_fim`, depois do laço, relê UMA vez. Fora do instalador
+#   (o «Usar este ícone» do painel roda o passo sozinho) nada muda: relê na
+#   hora. E quem pediu vai junto (`MEOW_QUEM_RECICLA`), para o `painel.sh
+#   reciclar` registrar no meow.log.
 meow_tela_reler() {
   meow_seco && return 0
-  local lar rc=0
+  local lar rc=0 quem="${MEOW_QUEM_RECICLA:-$(basename "$0")}"
+  if [ -n "${MEOW_RELER_NO_FIM:-}" ] && printf '%s\n' "$quem" >> "$MEOW_RELER_NO_FIM" 2>/dev/null; then
+    meow_debug "a tela relê uma vez, no fim da passada (pedido de $quem)"
+    return 4
+  fi
   lar="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
   if [ -z "$lar" ] || ! [ "$HOME" -ef "$lar" ]; then
     meow_debug "HOME ($HOME) não é o da conta — a tela não é desta sessão, nada a reler"
     return 3
   fi
   if [ -x "$MEOW_RAIZ/scripts/painel.sh" ] && pgrep -x cosmic-panel >/dev/null 2>&1; then
-    if ! "$MEOW_RAIZ/scripts/painel.sh" reciclar; then
+    if ! MEOW_QUEM_RECICLA="$quem" "$MEOW_RAIZ/scripts/painel.sh" reciclar; then
       meow_aviso "o painel recusou reciclar agora — na dock, o desenho novo aparece no próximo login"
       rc=1
     fi
   fi
   meow_lancador_reler
+  return "$rc"
+}
+
+# O fim da passada: relê uma vez, se algum passo pediu, e desarma a marca —
+# depois do laço, um pedido volta a reler na hora. Diz o que aconteceu, uma
+# linha, no lugar das três que os passos diziam.
+meow_tela_reler_no_fim() {
+  local marca="${MEOW_RELER_NO_FIM:-}" quem rc=0
+  [ -n "$marca" ] || return 0
+  unset MEOW_RELER_NO_FIM
+  if [ -s "$marca" ]; then
+    quem="$(sort -u "$marca" | paste -sd, -)"
+    MEOW_QUEM_RECICLA="fim da passada ($quem)" meow_tela_reler; rc=$?
+    case "$rc" in
+      0) meow_ok "a dock e o menu releram o que mudou ($quem)" ;;
+      3) meow_info "fora da sessão gráfica: o que mudou aparece na dock e no menu no próximo login" ;;
+    esac
+  fi
+  rm -f "$marca"
   return "$rc"
 }
 
