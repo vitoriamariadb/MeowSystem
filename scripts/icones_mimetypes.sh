@@ -177,9 +177,12 @@ _desejado() {
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
     # Link não entra: o `cat` o seguiria para fora do acervo (P74, idem).
-    # [P78: link para dentro do acervo entra, pela forma que o `meow_dentro`
-    #   conferiu; o que sai dele continua de fora.]
-    [ -f "$ORIGEM/$glifo.svg" ] && real="$(meow_dentro "$ORIGEM" "$glifo.svg")" \
+    # [P78: a conferência da P74 FICA (link não entra, nem para dentro), e a
+    #   regra única entra junto: o caminho que se copia é o realpath que o
+    #   `meow_dentro` conferiu dentro do acervo. A primeira versão da P78 trocou
+    #   uma pela outra e deixou entrar link para dentro — a conferência acusou.]
+    [ -f "$ORIGEM/$glifo.svg" ] && [ ! -L "$ORIGEM/$glifo.svg" ] \
+      && real="$(meow_dentro "$ORIGEM" "$glifo.svg")" \
       && printf '%s\t%s\n' "$nome" "$real"
   done
   return 0

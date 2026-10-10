@@ -208,16 +208,21 @@ _desejado() {
     # O DESENHO TEM DE MORAR NO ACERVO — P78. Um `folder-x.svg` que é symlink
     #   para fora do pack era copiado para o tema com o conteúdo do destino do
     #   link. O `meow_dentro` devolve a forma conferida, e é ela que se copia.
+    #   [Conferência da P78: e link não entra, nem para dentro — a régua do
+    #   `icones_mimetypes.sh` desde a P74, a mesma para as duas pastas de
+    #   desenho; nenhum pack publicado tem link (conferido).]
     if [ -f "$ORIGEM/$glifo.svg" ]; then
-      real="$(meow_dentro "$ORIGEM" "$glifo.svg")" || { fora+=("$glifo.svg"); continue; }
+      { [ ! -L "$ORIGEM/$glifo.svg" ] && real="$(meow_dentro "$ORIGEM" "$glifo.svg")"; } \
+        || { fora+=("$glifo.svg"); continue; }
       printf '%s\t%s\n' "$nome" "$real"
     elif [ -f "$ORIGEM/$nome.svg" ]; then
-      real="$(meow_dentro "$ORIGEM" "$nome.svg")" || { fora+=("$nome.svg"); continue; }
+      { [ ! -L "$ORIGEM/$nome.svg" ] && real="$(meow_dentro "$ORIGEM" "$nome.svg")"; } \
+        || { fora+=("$nome.svg"); continue; }
       printf '%s\t%s\n' "$nome" "$real"
     fi
   done
   [ "${#fora[@]}" -gt 0 ] && \
-    meow_aviso "$ORIGEM: ${#fora[@]} desenho(s) que são link para fora do acervo, pulados: ${fora[*]:0:3}"
+    meow_aviso "$ORIGEM: ${#fora[@]} desenho(s) que são link (link não entra), pulados: ${fora[*]:0:3}"
   return 0
 }
 
