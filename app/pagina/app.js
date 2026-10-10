@@ -1785,7 +1785,7 @@ function montarControle(item, cartao) {
     }
     /* [P77, achado 14: como no deslizante, o «Restaurar ao padrão» só nasce
      * com um horário escolhido — com o campo vazio não há o que restaurar.] */
-    if (item.aceita_vazio && valor !== "") {
+    if (temOQueRestaurar(item, valor)) {
       caixa.append(elemento("div", { class: "faixa-estados" }, [
         botaoVazio(item, () => { campo.value = ""; }, aplica)]));
     }
@@ -2006,7 +2006,7 @@ function montarControle(item, cartao) {
        * o que já é o padrão é o achado 14. */
       const semComoEsta = naMaquina == null
         || !item.opcoes.some((o) => String(o) === String(naMaquina));
-      if (item.aceita_vazio && (valor !== "" || semComoEsta)) {
+      if (temOQueRestaurar(item, valor) || (item.aceita_vazio && valor === "" && semComoEsta)) {
         caixa.append(elemento("button", {
           type: "button", class: "vazio", "data-valor": "",
           texto: valor === "" ? "como está" : rotuloVazio(item),
@@ -2046,7 +2046,7 @@ function montarControle(item, cartao) {
      * —»). A opção continua (é o jeito de o `<select>` mostrar o vazio), e o
      * botão aparece ao lado quando há escolha para desfazer — é na mesma
      * fileira que o «Aplicar» do cartão entra. */
-    if (item.aceita_vazio && valor !== "") {
+    if (temOQueRestaurar(item, valor)) {
       caixa.append(elemento("div", { class: "faixa-estados" }, [
         botaoVazio(item, () => { sel.value = ""; }, aplica)]));
     }
@@ -2107,7 +2107,7 @@ function montarControle(item, cartao) {
   caixa.append(campo);
   /* [P77, U2: o «Restaurar ao padrão» do campo de texto, pela regra do
    * seletor logo acima — só com algo escrito, na fileira do «Aplicar».] */
-  if (item.aceita_vazio && valor !== "") {
+  if (temOQueRestaurar(item, valor)) {
     caixa.append(elemento("div", { class: "faixa-estados" }, [
       botaoVazio(item, () => { campo.value = ""; }, aplica)]));
   }
@@ -2135,6 +2135,19 @@ function minutosDaDuracao(v) {
   const n = Number(m[1]);
   const seg = m[2] === "h" ? n * 3600 : m[2] === "m" ? n * 60 : n;
   return seg % 60 === 0 ? seg / 60 : null;
+}
+
+/* O «RESTAURAR AO PADRÃO» NÃO NASCE SOBRE O PADRÃO DE FÁBRICA — 10/10/2026,
+ * QA da P77 (achado 14, o resto dele). A regra «só com escolha feita» olhava
+ * só o vazio, e três chaves que aceitam vazio têm o valor de fábrica
+ * PREENCHIDO no meow.conf.exemplo (`JANELAS_TILING="sim"`,
+ * `RELOGIO_SEGUNDOS="nao"`, o título do fastfetch). Numa casa de fábrica a
+ * fileira mostrava «Sim» aceso e, embaixo, «Restaurar ao padrão (Sim)»: a
+ * pessoa já está no padrão e o botão a convida a voltar para ele. O botão
+ * continua gravando o vazio («não toca») quando a chave sai do de fábrica —
+ * gravar `item.padrao` erraria o ponteiro, cujo vazio é o do pack no ar. */
+function temOQueRestaurar(item, valor) {
+  return !!item.aceita_vazio && valor !== "" && valor !== item.padrao;
 }
 
 function rotuloVazio(item) {
@@ -8426,7 +8439,7 @@ function parDeBotoes(item, aplica) {
    * existe para evitar. */
   /* [P77, achado 14: como no deslizante e nos segmentos, só com escolha
    * feita — com o valor já vazio, o botão era a única coisa acesa da linha.] */
-  if (item.aceita_vazio && valor !== "") {
+  if (temOQueRestaurar(item, valor)) {
     caixa.append(elemento("button", {
       type: "button", class: "vazio linha-inteira", "data-valor": "",
       texto: rotuloVazio(item), "aria-pressed": "false",

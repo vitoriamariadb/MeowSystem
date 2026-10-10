@@ -191,7 +191,11 @@ OLHAR_JS = r"""
     const pend = (typeof MUDANCAS !== 'undefined' && MUDANCAS) ? MUDANCAS : new Map();
     for (const cartao of raiz.querySelectorAll('[data-chave]')) {
       const item = ESQUEMA.chaves.find((i) => i.chave === cartao.dataset.chave);
-      if (!item || pend.has(item.chave) || (item.valor ?? '') !== '') continue;
+      /* Vazio é o padrão de quem aceita vazio; e o valor de fábrica escrito
+       * no meow.conf.exemplo (`JANELAS_TILING="sim"`) também é — QA da P77. */
+      if (!item) continue;
+      const v = item.valor ?? '';
+      if (pend.has(item.chave) || (v !== '' && v !== (item.padrao ?? ''))) continue;
       const b = [...cartao.querySelectorAll('button')].find((x) => visivel(x) && /^Restaurar ao padrão/.test(limpo(x.textContent)));
       if (b) defeitos.push(`«${limpo(b.textContent)}» com ${item.chave} já no padrão (achado 14)`);
     }
