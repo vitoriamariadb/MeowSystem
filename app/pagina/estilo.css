@@ -4069,3 +4069,12 @@ a.folha:hover b { color: var(--text); }
 .oficina-topo { display: flex; align-items: center; gap: .5rem; }
 .oficina-topo > .dica { left: 0; right: 0; width: auto; }
 .oficina-topo > button.porque { margin-top: 0; }
+
+/* O `?` DO DESENHO NÃO EMPURRA A PÁGINA EM TELA ESTREITA — 09/10/2026, P77.
+ * Encostado do lado de fora da caixa (`right: -2rem`), ele passava 15 px da
+ * coluna a 375 px quando o desenho ocupa a largura toda — medido em «Cor e
+ * tela» e «Ícones»: `#principal` rolava de lado. Aqui ele entra no canto de
+ * cima da caixa, com fundo, sobre a margem do desenho. */
+@media (max-width: 620px) {
+  .par-previa > .com-dica > button.porque { right: .3rem; background: var(--mantle); }
+}
