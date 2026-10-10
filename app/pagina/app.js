@@ -1786,7 +1786,8 @@ function montarControle(item, cartao) {
     /* [P77, achado 14: como no deslizante, o «Restaurar ao padrão» só nasce
      * com um horário escolhido — com o campo vazio não há o que restaurar.] */
     if (item.aceita_vazio && valor !== "") {
-      caixa.append(botaoVazio(item, () => { campo.value = ""; }, aplica));
+      caixa.append(elemento("div", { class: "faixa-estados" }, [
+        botaoVazio(item, () => { campo.value = ""; }, aplica)]));
     }
     return caixa;
   }
@@ -2020,6 +2021,16 @@ function montarControle(item, cartao) {
     sel.value = valor;
     sel.addEventListener("change", () => aplica(sel.value));
     caixa.append(sel);
+    /* OS DOIS BOTÕES TAMBÉM AQUI — 10/10/2026, P77 (U2). O pedido de 21/09 é
+     * «deixa dois botões: Restaurar ao padrão e Aplicar», e o seletor longo era
+     * o único controle que escondia o primeiro dentro da lista («— como está
+     * —»). A opção continua (é o jeito de o `<select>` mostrar o vazio), e o
+     * botão aparece ao lado quando há escolha para desfazer — é na mesma
+     * fileira que o «Aplicar» do cartão entra. */
+    if (item.aceita_vazio && valor !== "") {
+      caixa.append(elemento("div", { class: "faixa-estados" }, [
+        botaoVazio(item, () => { sel.value = ""; }, aplica)]));
+    }
     return caixa;
   }
 
@@ -2075,6 +2086,12 @@ function montarControle(item, cartao) {
     if (ev.key === "Enter" && !longo) { ev.preventDefault(); campo.blur(); }
   });
   caixa.append(campo);
+  /* [P77, U2: o «Restaurar ao padrão» do campo de texto, pela regra do
+   * seletor logo acima — só com algo escrito, na fileira do «Aplicar».] */
+  if (item.aceita_vazio && valor !== "") {
+    caixa.append(elemento("div", { class: "faixa-estados" }, [
+      botaoVazio(item, () => { campo.value = ""; }, aplica)]));
+  }
   return caixa;
 }
 
@@ -8388,13 +8405,25 @@ function parDeBotoes(item, aplica) {
    * própria embaixo, e sem desenho: o desenho dele seria igual ao de uma das
    * duas opções, e dois botões iguais é o defeito que este bloco inteiro
    * existe para evitar. */
-  if (item.aceita_vazio) {
+  /* [P77, achado 14: como no deslizante e nos segmentos, só com escolha
+   * feita — com o valor já vazio, o botão era a única coisa acesa da linha.] */
+  if (item.aceita_vazio && valor !== "") {
     caixa.append(elemento("button", {
       type: "button", class: "vazio linha-inteira", "data-valor": "",
       texto: rotuloVazio(item), "aria-pressed": "false",
       title: "Devolve a decisão ao COSMIC.",
       onclick: async () => { if (await aplica("")) pintar(""); },
     }));
+  }
+  /* Com a chave vazia, o lado que a máquina tem fica a traço — o «como está»
+   * dos segmentos, e pelo mesmo motivo: nenhum dos dois foi escolhido. */
+  if (valor === "" && item.valendo_agora != null) {
+    const comoEsta = caixa.querySelector(
+      `button[data-valor="${CSS.escape(String(item.valendo_agora))}"]`);
+    if (comoEsta) {
+      comoEsta.classList.add("como-esta");
+      porBalao(comoEsta, `Como está: ${rotuloDeValor(item.valendo_agora)}`);
+    }
   }
   pintar(valor);
   return caixa;

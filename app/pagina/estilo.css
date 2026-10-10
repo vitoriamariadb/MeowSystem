@@ -4124,7 +4124,8 @@ a.folha:hover b { color: var(--text); }
  * no terceiro estado. Não é «escolhido» (isso é o acento cheio); é «é o que
  * está valendo sem você ter escolhido». */
 .segmentos button.como-esta,
-.opcoes-imagem button.como-esta {
+.opcoes-imagem button.como-esta,
+.par-botoes button.como-esta {
   border-style: dashed;
   border-color: var(--overlay1);
   color: var(--text);
