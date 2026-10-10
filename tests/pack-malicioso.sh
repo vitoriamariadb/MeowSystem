@@ -180,6 +180,14 @@ cat > "$MAL_ESC/pack.json" <<'J'
  "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}}
 J
 ESC=$'\033'
+# `mal-utf`: o pack.json não é UTF-8 (um `\x9b`, o CSI de 8 bits, solto no
+# nome). O `json.load` levanta UnicodeDecodeError, e não JSONDecodeError: era o
+# outro jeito de derrubar a ficha de ícone com um pack só instalado.
+MAL_UTF="$RAIZ_DELA/mal-utf"
+mkdir -p "$MAL_UTF"
+cp "$RAIZ/packs/dracula/paleta.json" "$MAL_UTF/"
+printf '{"formato": 1, "id": "mal-utf", "nome": "a\x9b[2Jb", "heranca": "dracula", "paleta": {"arquivo": "paleta.json"}, "icones": {"apps": {"desenhos": "icones/"}}}\n' \
+  > "$MAL_UTF/pack.json"
 
 PERMITIDAS=("$RAIZ" "$RAIZ_DELA")
 fora_da_raiz() {   # as linhas de caminho da entrada que caem fora das raízes
@@ -231,6 +239,10 @@ if printf '%s' "$saida" | grep -q 'Traceback\|ValueError'; then
 else
   ok "um NUL no pack.json é recusa, e não traceback"
 fi
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar mal-utf 2>&1)"
+printf '%s' "$saida" | grep -q 'Traceback\|UnicodeDecodeError' \
+  && falha "um pack.json que não é UTF-8 derruba o validar com traceback" "$(printf '%s\n' "$saida" | tail -2)" \
+  || ok "um pack.json que não é UTF-8 é recusa, e não traceback"
 saida="$(amb python3 "$RAIZ/scripts/pack.py" validar mal-esc 2>&1; amb "$RAIZ/bin/meow" pack listar 2>&1)"
 if printf '%s' "$saida" | grep -q "$ESC"; then
   falha "sequência de terminal do pack.json saiu crua no validar/listar"
@@ -308,7 +320,7 @@ else
   # A ficha tem de RESPONDER, e com o pack 'mal' dentro: com a rota caída (o NUL
   # do `mal-nulo` fazia isso), o "não lista" logo abaixo passaria calado.
   printf '%s' "$glifos" | grep -q 'apps/bom.svg' \
-    && ok "a ficha do painel responde com um pack de NUL instalado ao lado" \
+    && ok "a ficha do painel responde com um pack de NUL e um que não é UTF-8 instalados ao lado" \
     || falha "a /api/glifos não respondeu (ou não trouxe o pack 'mal')" "$(tail -5 "$T/painel.log")"
   if printf '%s' "$glifos" | grep -q "biblioteca/folder.svg\|feitos-a-mao/folder.svg\|$FORA"; then
     falha "a ficha do painel lista desenho de pasta que é symlink para fora do pack"
@@ -382,6 +394,17 @@ if command -v zstd >/dev/null 2>&1; then
     ok "um .meowpack com manifesto.sh é recusado inteiro, e nada é instalado"
   else
     falha "o .meowpack com script entrou (rc=$rc)" "$(cat "$T/importar.log")"
+  fi
+  # O nome da entrada com sequência de terminal: as recusas listavam o nome cru.
+  ( cd "$MP" && mkdir -p esc && cp trazido/pack.json esc/ && sed -i 's/"id": "trazido"/"id": "esc"/' esc/pack.json \
+      && cp trazido/paleta.json "esc/x"$'\033'"]52;c;eA=="$'\007'".sh" \
+      && printf 'meowpack 1\nformato 1\npack esc\n' > MANIFESTO \
+      && tar -cf - MANIFESTO esc | zstd -q -o "$T/esc.meowpack" )
+  amb python3 "$RAIZ/scripts/pack.py" importar "$T/esc.meowpack" > "$T/importar-esc.log" 2>&1; rc=$?
+  if [ "$rc" != 0 ] && [ ! -e "$RAIZ_DELA/esc" ] && ! grep -q "$ESC" "$T/importar-esc.log"; then
+    ok "um .meowpack com sequência de terminal no nome de uma entrada é recusado, sem repeti-la crua"
+  else
+    falha "o .meowpack com nome de escape entrou ou repetiu o escape cru (rc=$rc)" "$(cat -v "$T/importar-esc.log")"
   fi
 else
   printf 'pulado: sem zstd, a sonda do .meowpack com script\n'
