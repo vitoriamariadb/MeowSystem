@@ -1758,7 +1758,9 @@ class Percurso:
       const a = (ESQUEMA.acoes || []).find((x) => x.id === id);
       if (!a || !a.indisponivel) return null;
       const m = a.indisponivel;
-      const antes = m.antes ? (ESQUEMA.acoes.find((x) => x.id === m.antes) || {}).rotulo : null;
+      /* `feito` (QA da P80): a ação já feita aponta a seguinte pelo rótulo dela. */
+      const ref = m.antes || m.feito;
+      const antes = ref ? (ESQUEMA.acoes.find((x) => x.id === ref) || {}).rotulo : null;
       return { antes, chave: m.chave ? nomeVisivel(m.chave) : null,
                vale: m.vale ? rotuloDeValor(m.vale) : null,
                pede: m.pede ? rotuloDeValor(m.pede) : null };

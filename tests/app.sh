@@ -817,6 +817,10 @@ else:
 conf_com()
 if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinetar_primeira":
     erros.append("sem área fixada, «Gravar as áreas» não manda antes a «Criar a primeira área»")
+# O espelho (QA de uso real da P80): sem área, «Criar a primeira área» acende;
+# com área fixada, ela se apaga e aponta «Gravar as áreas».
+if servidor.indisponivel("areas_alfinetar_primeira"):
+    erros.append("sem área fixada, «Criar a primeira área» nasceu apagada")
 pinos = os.path.join(cosmic, "com.system76.CosmicComp", "v1")
 os.makedirs(pinos)
 with open(os.path.join(pinos, "pinned_workspaces"), "w", encoding="utf-8") as fh:
@@ -825,6 +829,8 @@ with open(os.path.join(pinos, "pinned_workspaces"), "w", encoding="utf-8") as fh
              '        name: Some("Brinquedo"),\n    ),\n]\n')
 if servidor.indisponivel("areas_aplicar"):
     erros.append("com uma área fixada, «Gravar as áreas» continua apagado")
+if (servidor.indisponivel("areas_alfinetar_primeira") or {}).get("feito") != "areas_aplicar":
+    erros.append("com uma área fixada, «Criar a primeira área» segue acesa, e só podia não fazer nada")
 
 # 12d. o teto do raio
 dock = os.path.join(cosmic, "com.system76.CosmicPanel.Dock", "v1")
