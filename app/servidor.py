@@ -254,6 +254,10 @@ ESTADO = os.environ.get("MEOW_ESTADO") or os.path.join(
 
 TOKEN = secrets.token_urlsafe(32)
 
+# A CSP de toda resposta `image/*` — ver "TODA IMAGEM SAI COMO DOCUMENTO QUE NÃO
+# RODA NADA", no `_responder` (P78).
+CSP_DE_IMAGEM = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+
 
 # UMA LEITURA DO ESQUEMA PERGUNTA CADA COISA À MÁQUINA UMA VEZ
 # — 24/09/2026, sprint P57 (item 6)
@@ -7244,7 +7248,24 @@ class Manipulador(BaseHTTPRequestHandler):
         # acima têm de valer para toda resposta deste servidor: a segunda
         # rotina de resposta seria a segunda lista de cabeçalhos, e a primeira
         # coisa que ela esqueceria é justamente uma dessas quatro.
-        for nome, valor in (extras or {}).items():
+        #
+        # TODA IMAGEM SAI COMO DOCUMENTO QUE NÃO RODA NADA — P78, 09/10/2026
+        #   Um SVG é um documento: aberto DIRETO pela URL (e não por `<img>`),
+        #   o `<script>` e o `onload=` dele rodam na origem do painel, com o
+        #   cookie do token, e chamam qualquer `/api/` como se fossem a página.
+        #   E os SVG daqui vêm de pack, que pode ser de terceiro (a ficha de
+        #   ícone serve o acervo de todo pack instalado pela `/previa`). A CSP
+        #   com `sandbox` põe a resposta numa origem opaca e sem script, e o
+        #   `default-src 'none'` corta toda busca de dentro dela; o
+        #   `style-src 'unsafe-inline'` é o `<style>` que desenho de verdade tem.
+        #   Num `<img>` nada disso muda o que se vê: imagem nunca rodou script.
+        #   Vale para TODA resposta `image/*` deste servidor, por estar aqui —
+        #   a mesma razão das quatro guardas acima: uma rota nova de imagem não
+        #   tem como esquecer.
+        extras = dict(extras or {})
+        if tipo.startswith("image/"):
+            extras["Content-Security-Policy"] = CSP_DE_IMAGEM
+        for nome, valor in extras.items():
             self.send_header(nome, valor)
         self.end_headers()
         self.wfile.write(corpo)
@@ -7440,8 +7461,9 @@ class Manipulador(BaseHTTPRequestHandler):
             if achado is None:
                 return self._recusar(404, "não achei")
             corpo, tipo_mime = achado
-            return self._responder(corpo, tipo=tipo_mime, extras={
-                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"})
+            # [P78: a CSP desta rota passou a ser a de toda imagem, posta pelo
+            #   `_responder` — com o `sandbox` que faltava aqui.]
+            return self._responder(corpo, tipo=tipo_mime)
 
         if caminho == "/previa" and consulta.get("tipo", [""])[0] == "arquivo":
             # O TOKEN FALTAVA AQUI, e só aqui. [2026-09-18]
