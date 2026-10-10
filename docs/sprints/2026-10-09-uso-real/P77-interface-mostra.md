@@ -35,6 +35,12 @@ de usar.»
 - `comandoCurto` (app.js) perdeu o último chamador quando a linha `code.cmd` do cartão de ação saiu; ficou com a nota, pela regra da casa.
 - `.descricao-secao` (estilo.css) não tem mais quem a gere: o subtítulo da página virou o `?` do cabeçalho.
 - A faixa da simulação do modo de leitura perdeu «quem pinta de verdade é o cosmic-comp»; a prévia real do item 4 decide o que fica.
-- `avisoDeCombinacao` e `avisoDeLado` (Cor e tela) ainda são frase visível: viram selo na reescrita da página.
-- Início continua com 2 306 caracteres: o bloco «Próprio / herdado / do motor» do cartão do pack (achado 8, U1) é da página.
+- ~~`avisoDeCombinacao` e `avisoDeLado` (Cor e tela) ainda são frase visível: viram selo na reescrita da página.~~ Resolvido no grupo 1: os selos ⊘ e lua na linha do título, frase no topo da dica.
+- ~~Início continua com 2 306 caracteres: o bloco «Próprio / herdado / do motor» do cartão do pack (achado 8, U1) é da página.~~ Resolvido no grupo 1: 966 caracteres, origem em selos e detalhe na linha inteira.
 - `tests/app-acessibilidade.py` ainda isenta as «12 legendas de desenho»: elas saíram da tela, e a isenção pode cair.
+- Grupo 1: os «Desenhos autorais do pack «Catppuccin»» oferecem `fogstripper` e `hefesto`, que são projetos pessoais (decisão 4, S2). É conteúdo do pack, não do painel.
+- Grupo 1: em «Cor e tela», as ações «Trocar de tema» e «Passar para claro ou escuro» repetem a decisão da moldura e rodam na hora. São candidatas ao «⋯» de ações técnicas da direção (seção 4), que ainda não existe como componente.
+- Grupo 1: o pack se escolhe em dois lugares com dois comportamentos: «Theme pack» em Cor e tela grava `PACK` e espera o «Salvar e aplicar», e o «Usar este» da Início roda o `pack_usar` na hora. O achado 11 fica pela metade até as duas portas dizerem a mesma coisa.
+- Grupo 1: a marca `[avancado]` saiu de `LANCADOR_OCULTAR`. Ela nunca tinha efeito, e com o «⋯» de agora esconderia a lista que o achado 20 precisa ver. Quem reescrever Lançadores decide se ela volta.
+- Grupo 1: o resumo do topo («N mudados por você», `app.js` perto de `mexidas`) ainda conta a chave `sem_programa`, e a Início já não conta. Os dois números podem diferir por um numa casa que tenha a chave preenchida sem o Hefesto.
+- Grupo 1: a faixa da FORMA (Painel e dock) continua grudada na página inteira, de propósito, porque é o desenho do assunto. As outras faixas agora ficam na própria seção. Se Painel e dock também mudar, o `render` é o lugar.
