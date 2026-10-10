@@ -1247,18 +1247,9 @@ select { flex: 1 1 auto; }
    isso não entra na fileira de `.faixa-estados`, que é onde moram os estados
    que disputam o mesmo valor. */
 .acao-cartao { display: flex; gap: .35rem; align-items: center; margin-top: .15rem; }
-/* O TETO DO RAIO QUE VALE NESTA SESSÃO — 24/09/2026, P50 (achado 36). Linha
-   própria, embaixo da régua, com o fio amarelo do `.frase.dominada`: é o mesmo
-   tipo de frase — não é erro, é o motivo de a régua acabar antes do que o
-   exemplo promete —, e ela tem de caber inteira, sem o corte de três linhas. */
-.faixa > .frase.teto-raio {
-  flex: 0 0 100%;
-  border-left: 2px solid var(--yellow);
-  padding-left: .55rem;
-  display: block;
-  -webkit-line-clamp: none;
-  line-clamp: none;
-}
+/* O TETO DO RAIO QUE VALE NESTA SESSÃO — 24/09/2026, P50 (achado 36). Era
+   uma frase de linha inteira; desde o QA da P77 (10/10/2026) é um selo ao lado
+   do número, com o porquê no balão. */
 /* Os estados que não moram na régua do deslizante. */
 .faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; flex: 0 0 100%; }
 /* O PISO DE 24 PX — 21/09/2026, WCAG 2.2 critério 2.5.8
@@ -2402,6 +2393,22 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 /* O marcador do `details` some quando o summary é flex em alguns motores; o
    `list-item` devolve o triângulo, que é o que diz "isto abre". */
 .oficina > summary::marker { color: var(--overlay1); }
+/* O TRIÂNGULO DESENHADO, PORQUE O DO MOTOR NÃO VEIO — 10/10/2026, QA da P77.
+   Medido no Chromium: com o summary em flex, o `::marker` não nasce, e a linha
+   «Gerar ícone — MeowSystem» ficava igual a um cartão parado com um botão —
+   nada nela dizia que abre a oficina. O triângulo é o mesmo do «Editar o SVG»
+   logo abaixo, e gira quando a oficina abre. */
+.oficina > summary { list-style: none; }
+.oficina > summary::-webkit-details-marker { display: none; }
+.oficina > summary::before {
+  content: "";
+  flex: none;
+  border-left: .4rem solid var(--overlay1);
+  border-block: .3rem solid transparent;
+  transition: transform .15s ease;
+}
+.oficina[open] > summary::before { transform: rotate(90deg); }
+.oficina > summary > span { flex: 1; }
 
 /* --- a folha de variações -------------------------------------------------- */
 .oficina-folha { display: flex; flex-wrap: wrap; gap: .6rem; margin: .4rem 0 .8rem; }

@@ -1355,7 +1355,14 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         if agora and "$" not in agora and agora not in oferta:
             oferta.append(agora)
         item["opcoes"] = oferta
-        item["rotulos"] = {f: (mt["nomes"].get(f) or f) + herdado for f in oferta}
+        # O VALOR QUE NÃO É DO PACK NO AR SAI COM NOME, E NÃO CRU — QA da P77,
+        #   10/10/2026. Com o Dracula completo (P74) o acervo dele tem nomes
+        #   próprios, e a casa que ainda guarda `ICONES_FLAVOR="macchiato"` (o
+        #   que o Dracula antigo herdava) via «Dracula · Alucard · macchiato»: o
+        #   único ladrilho em minúscula, com cara de identificador. O nome
+        #   próprio é o de qualquer flavor (`Macchiato`), sem inventar o dono.
+        item["rotulos"] = {f: (mt["nomes"].get(f) or f[:1].upper() + f[1:]) + herdado
+                           for f in oferta}
         # O «VALE COMO» É A RESPOSTA DA REGRA, E NÃO A EXPANSÃO DO SHELL — P31
         #   Com o conf de fábrica e o Dracula no ar o cartão dizia «Vale como:
         #   dracula» — o `"$FLAVOR"` expandido —, e o `icones_mimetypes.sh` não
@@ -3333,11 +3340,11 @@ def teto_da_chave(chave):
     acima = ("qualquer canto arredondado" if t == 0
              else "um canto acima de %d px" % t)
     if medida["compositor"] == "clampa":
-        return {"valor": None, "trava": False,
+        return {"valor": None, "trava": False, "estado": "clampa",
                 "motivo": "o compositor desta sessão corta o excesso sozinho, "
                           "e o raio é todo seu"}
     if medida.get("experimental"):
-        return {"valor": t, "trava": False,
+        return {"valor": t, "trava": False, "estado": "experimental",
                 "motivo": "modo experimental ligado (FORMA_RAIO_EXPERIMENTAL): "
                           "%s pode derrubar painel e dock juntos" % acima}
     if medida["compositor"] == "pendente":
@@ -3346,7 +3353,9 @@ def teto_da_chave(chave):
     else:
         porque = ("o compositor desta sessão não tem o patch do raio, e %s "
                   "derruba painel e dock juntos" % acima)
-    return {"valor": t, "trava": True, "motivo": porque}
+    # O `estado` é para a página escolher o selo sem ler a frase (QA da P77):
+    # a frase vira balão curto, e o porquê inteiro continua aqui e na recusa.
+    return {"valor": t, "trava": True, "motivo": porque, "estado": medida["compositor"]}
 
 
 def validar_valor(item, valor):

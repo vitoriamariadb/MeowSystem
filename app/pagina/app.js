@@ -1903,13 +1903,23 @@ function montarControle(item, cartao) {
     });
     slider.addEventListener("change", () => aplica(slider.value));
     caixa.append(slider, saida);
+    /* O TETO DO RAIO VIRA SELO — 10/10/2026, QA da P77. Era uma frase de
+     * duas linhas embaixo de cada deslizante de canto («O compositor desta
+     * sessão corta o excesso sozinho, e o raio é todo seu.»), as duas únicas
+     * frases que sobravam em «Painel e dock». O selo diz o teto com o número
+     * e o porquê vai no balão; a frase inteira do servidor continua na recusa
+     * do `validar_valor`, que é onde ela decide alguma coisa. */
     if (item.teto) {
-      caixa.append(elemento("p", {
-        class: "frase teto-raio",
-        texto: item.teto.trava
-          ? `Até ${item.teto.valor} px nesta sessão: ${item.teto.motivo}.`
-          : `${maiuscula(item.teto.motivo)}.`,
-      }));
+      const t = item.teto;
+      caixa.append(t.estado === "clampa"
+        ? selo("maquina", { balao: "Sem teto: o compositor desta sessão corta o excesso" })
+        : t.estado === "experimental"
+        ? selo("anulado", { texto: `${t.valor} px`,
+            balao: `Modo experimental: acima de ${t.valor} px pode derrubar painel e dock` })
+        : selo("anulado", { texto: `≤ ${t.valor} px`,
+            balao: t.estado === "pendente"
+              ? `Acima de ${t.valor} px, painel e dock caem até o próximo login`
+              : `Acima de ${t.valor} px, painel e dock caem juntos nesta sessão` }));
     }
 
     const alternativas = elemento("div", { class: "faixa-estados" });
