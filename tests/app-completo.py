@@ -2587,8 +2587,12 @@ class Percurso:
         outra.goto(self.url, wait_until="domcontentloaded")
         outra.wait_for_selector("#trilho button")
         outra.locator('#trilho button[data-grupo="Instalação"]').click()
-        outra.locator("#conteudo article.acao", has_text="O que está no ar agora") \
-             .get_by_role("button", name="Executar", exact=True).click()
+        # [P77 grupo 4: o «O que está no ar agora» só mostra (natureza
+        # `mostrar`) e mora no «⋯» das ações técnicas da Instalação.]
+        # O `has` é procurado DENTRO do `<details>`: sem o `#conteudo` na frente.
+        acao = outra.locator("article.acao", has_text="O que está no ar agora")
+        outra.locator("#conteudo details.ajustes-tecnicos", has=acao).locator("summary").click()
+        acao.get_by_role("button", name="Executar", exact=True).click()
         outra.wait_for_function("() => TRABALHO !== null && TRABALHO.timer !== null",
                                 timeout=15000)
 
@@ -3546,6 +3550,7 @@ INVENTARIO = {
         ajuste FASTFETCH_LOGO_RECUO · deslizante
         ajuste FASTFETCH_TITULO · ?
         ajuste FASTFETCH_TITULO · campo
+        ajuste FASTFETCH_TITULO · Restaurar ao padrão
         ajuste LOGO_DIA · ?
         ajuste LOGO_DIA · opção
         ajuste LOGO_MODO · ?

@@ -1031,9 +1031,13 @@ def main():
             #   comandos em vez de rodar a acao: a gaveta nunca abria, e este
             #   passo e o 10b mediam uma gaveta de 0 px. Medido na primeira
             #   corrida depois do `networkidle`, com captura da aba.
-            pag.locator("#conteudo .acao, #conteudo .cartao",
-                        has_text="O que está no ar agora").get_by_role(
-                            "button", name="Executar", exact=True).click()
+            # [P77 grupo 4: a acao so mostra (natureza `mostrar`) e mora no
+            # «⋯» das acoes tecnicas da Instalação; abre-se o «⋯» primeiro.]
+            # (o `has` e' procurado DENTRO do `<details>`: sem `#conteudo`)
+            acao_status = pag.locator(".acao, .cartao", has_text="O que está no ar agora")
+            pag.locator("#conteudo details.ajustes-tecnicos", has=acao_status) \
+               .locator("summary").click()
+            acao_status.get_by_role("button", name="Executar", exact=True).click()
             saida = ""
             # PACIÊNCIA DE 25 s, e não de 10: o `meow status` consulta systemd,
             # cosmic-randr e o tema inteiro. Numa máquina ocupada — foi o caso
