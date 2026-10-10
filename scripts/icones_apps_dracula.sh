@@ -204,9 +204,12 @@ _dracula_pares() {
 }
 
 # O que este passo põe no tema: o mapa do pack (com a camada ligada) e as
-# escolhas do painel (sempre).
+# escolhas do painel (sempre). Ligada é tudo menos o "nao" escrito, a régua do
+# `_dracula_aplicar` desde a P74 item 3 [integração da leva G, 09/10/2026: a
+# P73 nasceu com o padrão antigo, `nao`, e com o conf de fábrica o passo
+# entrava pelo instalar e só punha as escolhas — 0 desenhos do pack no tema].
 _dracula_no_ar() {
-  [ "${ICONES_DRACULA:-nao}" = "sim" ] && _dracula_pares
+  [ "${ICONES_DRACULA:-sim}" != "nao" ] && _dracula_pares
   _escolhas_pares
 }
 
@@ -260,7 +263,7 @@ _dracula_instalar() {
     meow_ok "$postos desenho(s) do pack Dracula no tema"
     _dracula_avisar
     rc=1
-  elif [ "$rc" = "0" ] && [ "${ICONES_DRACULA:-nao}" != "sim" ]; then
+  elif [ "$rc" = "0" ] && [ "${ICONES_DRACULA:-sim}" = "nao" ]; then
     # Com a camada desligada, este ramo só pôs as escolhas do painel (P73).
     meow_ok "$(_escolhas_pares | grep -c .) escolha(s) do painel no tema"
   elif [ "$rc" = "0" ]; then
