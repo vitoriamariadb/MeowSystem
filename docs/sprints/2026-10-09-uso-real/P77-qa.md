@@ -48,7 +48,7 @@ dock (1112), que já eram os do fim (`qa-pg-*-1920.png`). As páginas rolando in
 | tarefa | conseguiu sem ler texto? | dúvida ou defeito | estado | prints |
 |---|---|---|---|---|
 | Trocar o pack | sim: o cartão do pack é o gesto, «Usar este» pergunta com «Ver o que faria» | a caixa de pergunta tem um parágrafo de 4 linhas sobre o sudo; o ensaio mostra que CURSOR e ICONES_PASTAS ficam no Dracula ao ir para o Catppuccin | anotado (próxima leva) | `qa-90-pack-usar-clique.png`, `qa-91-pack-ensaio.png`, `qa-92-pack-card-aberto.png` |
-| Trocar o ícone do agente | sim, pela grade e pela busca | a linha «Gerar ícone — MeowSystem» não dizia que abre (o triângulo do `details` não nasce com o summary em flex) | **corrigido** (item 3) | `qa-10` a `qa-17` |
+| Trocar o ícone do `claude-desktop` | sim, pela grade e pela busca | a linha «Gerar ícone — MeowSystem» não dizia que abre (o triângulo do `details` não nasce com o summary em flex) | **corrigido** (item 3) | `qa-10` a `qa-17` |
 | Trocar o ícone do Discord | sim: a busca devolve 6 sugestões, as apagadas têm balão | — | ok | `qa-18-discord-busca.png` |
 | «Ver o que faria» depois de trocar o ícone | não: o ensaio dizia «apagaria …/claude-desktop.svg (desenho que saiu do mapa do pack no ar)» logo depois do «Usar este ícone» | o ensaio lia os mapas de ícone da pasta da cópia do conf | **corrigido** (item 4) | `qa-21-ver-o-que-faria.png` (antes), `qa-22-ver-o-que-faria-depois.png` |
 | Mudar o horário da noite | não: com as duas pontas vazias, mudar «A noite começa às» acendia o ⊘ e o relógio não andava | a meia escolha não vale no `lib/noite.sh` | **corrigido** (item 5): a irmã vazia entra com a hora herdada | `qa-40`, `qa-41-noite-20h.png` (antes), `qa-42-noite-20h-par.png` |
