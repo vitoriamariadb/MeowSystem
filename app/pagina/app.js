@@ -8157,6 +8157,24 @@ function desenhoNoValor(item, valor) {
   return (String(v[item.chave] ?? "") === String(valor)) ? r.antes : (r.depois || r.antes);
 }
 
+/* O `viewBox` da peça que esta chave mexe, quando o desenho do bloco declara
+ * um `recorte` (hoje, só a Manutenção); `null` no resto. A base é a mesma tela
+ * que o `desenhoNoValor` usa, para o enquadramento seguir a figura. */
+function recorteDoPar(item) {
+  const g = grupoDaChave(item.chave);
+  if (!g) return null;
+  const mapa = (typeof window !== "undefined" && window.MEOW_PREVIAS) || {};
+  const fn = mapa[g.nome === g.secaoPai ? g.nome : `${g.secaoPai} :: ${g.nome}`];
+  if (!fn || typeof fn.recorte !== "function") return null;
+  const v = {};
+  for (const it of g.itens) v[it.chave] = valorNaTela(it);
+  try {
+    return fn.recorte(item.chave, v) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 /* Quem já foi medido, e o que deu. A resposta é cara (dois desenhos e dois
  * `layout`) e não muda enquanto o DISCO não mudar — então mede-se uma vez por
  * chave e guarda-se. `MUDANCAS.clear()` e o recarregamento do esquema esvaziam
@@ -8256,6 +8274,34 @@ function parDeBotoes(item, aplica) {
     const desenho = desenhoNoValor(item, opcao);
     if (!desenho) return null;
     desenhos.set(opcao, desenho);
+  }
+  /* O ENQUADRAMENTO NA PEÇA — 10/10/2026, P77 (achado 21). Quando o desenho
+   * do bloco sabe onde mora a peça que a chave mexe (o `recorte` dele), o par
+   * mostra só ela, grande, em vez da figura inteira com uma diferença de dez
+   * pixels. O desenho é o mesmo; muda o `viewBox`. */
+  const recorte = recorteDoPar(item);
+  if (recorte) {
+    for (const desenho of desenhos.values()) {
+      const svg = desenho.matches && desenho.matches("svg") ? desenho : desenho.querySelector && desenho.querySelector("svg");
+      if (!svg) continue;
+      /* O QUE FICA FORA DO RECORTE NÃO APARECE: o SVG mostra o que cabe na
+       * caixa dele, e não só o `viewBox` — com o botão mais largo que a peça,
+       * a engrenagem vizinha entrava cortada pelas laterais. Um `clipPath` do
+       * tamanho do recorte fecha isso sem depender da largura do botão. */
+      const [x, y, w, h] = recorte.split(/\s+/).map(Number);
+      const NS = "http://www.w3.org/2000/svg";
+      const id = `recorte-${item.chave}-${desenho === desenhos.get(item.opcoes[0]) ? 0 : 1}`;
+      const clip = document.createElementNS(NS, "clipPath");
+      clip.setAttribute("id", id);
+      const caixaDoRecorte = document.createElementNS(NS, "rect");
+      for (const [k, val] of Object.entries({ x, y, width: w, height: h })) caixaDoRecorte.setAttribute(k, val);
+      clip.append(caixaDoRecorte);
+      const dentro = document.createElementNS(NS, "g");
+      dentro.setAttribute("clip-path", `url(#${id})`);
+      dentro.append(...[...svg.childNodes].filter((n) => n.nodeName !== "title"));
+      svg.append(clip, dentro);
+      svg.setAttribute("viewBox", recorte);
+    }
   }
   const pintar = (v) => {
     for (const b of caixa.querySelectorAll("button[data-valor]")) {
@@ -9087,7 +9133,8 @@ const TECNICOS_ABERTOS = new Set();
  * por página, na reescrita de cada uma (as que já passaram estão no conjunto). */
 const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
                                             "Logo do sistema", "Modo de leitura",
-                                            "Áreas de trabalho", "Lançadores e jogos"]);
+                                            "Áreas de trabalho", "Lançadores e jogos",
+                                            "Manutenção"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
 function acaoTecnica(assunto, acao) {
   return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);

@@ -3797,6 +3797,8 @@ INVENTARIO = {
     """),
     "Manutenção": _linhas("""
         aba · ?
+        aba · abre «⋯ Ajustes técnicos»
+        aba · abre «⋯ Ações técnicas»
         ajuste ASSETS_VIGIA · ?
         ajuste ASSETS_VIGIA · opção
         ajuste ASSETS_VIGIA_NOTIFICAR · ?
@@ -3819,24 +3821,11 @@ INVENTARIO = {
         ajuste PONTE_ROOT · opção
         ajuste SOM · ?
         ajuste SOM · opção
-        ajuste SOM_DECAIMENTO · ?
-        ajuste SOM_DECAIMENTO · deslizante
-        ajuste SOM_FUNDAMENTAL · ?
-        ajuste SOM_FUNDAMENTAL · deslizante
-        ajuste SOM_HARMONICO · ?
-        ajuste SOM_HARMONICO · deslizante
-        ajuste SOM_PESO_FUNDAMENTAL · ?
-        ajuste SOM_PESO_FUNDAMENTAL · campo
-        ajuste SOM_PESO_HARMONICO · ?
-        ajuste SOM_PESO_HARMONICO · campo
         ajuste STEAM_VIGIA · ?
         ajuste STEAM_VIGIA · opção
         ação «Ouvir o som» · ?
         ação «Ouvir o som» · Executar
         ação «Ouvir o som» · ver comando
-        ação «Regravar o som» · ?
-        ação «Regravar o som» · Executar
-        ação «Regravar o som» · ver comando
     """),
     "Instalação": _linhas("""
         aba · ?
@@ -4036,6 +4025,23 @@ REVELADOS = {
         ação «Qual gato está no ar, e por quê» · ?
         ação «Qual gato está no ar, e por quê» · Executar
         ação «Qual gato está no ar, e por quê» · ver comando
+    """),
+    # [P77 grupo 4: o timbre do sino (`[avancado]`) e o «Regravar o som»
+    # (natureza `aplicar`) moram nos dois «⋯» do fim da página.]
+    "Manutenção": _linhas("""
+        ajuste SOM_DECAIMENTO · ?
+        ajuste SOM_DECAIMENTO · deslizante
+        ajuste SOM_FUNDAMENTAL · ?
+        ajuste SOM_FUNDAMENTAL · deslizante
+        ajuste SOM_HARMONICO · ?
+        ajuste SOM_HARMONICO · deslizante
+        ajuste SOM_PESO_FUNDAMENTAL · ?
+        ajuste SOM_PESO_FUNDAMENTAL · campo
+        ajuste SOM_PESO_HARMONICO · ?
+        ajuste SOM_PESO_HARMONICO · campo
+        ação «Regravar o som» · ?
+        ação «Regravar o som» · Executar
+        ação «Regravar o som» · ver comando
     """),
     "Modo de leitura": _linhas("""
         ação «Aplicar o degrau desta hora» · ?
