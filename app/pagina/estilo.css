@@ -4056,3 +4056,16 @@ a.folha:hover b { color: var(--text); }
 .ajustes-tecnicos[open] > summary { color: var(--accent); border-color: var(--accent); }
 .tecnicos-glifo { font-size: 1.1rem; line-height: 1; letter-spacing: .05em; }
 .ajustes-tecnicos > .grade { margin-top: .8rem; }
+
+/* ===========================================================================
+ * P77 · ÍCONES — a faixa fica na sua seção; frases viram selo e dica (09/10/2026)
+ * =========================================================================== */
+/* A seção que leva a faixa grudada e a grade do bloco: o `sticky` da faixa
+ * fica preso a ela (ver `render`). Sem caixa própria: é só o limite. */
+.secao-com-previa { display: block; }
+.selo-jogo { color: var(--subtext0); }
+.linha-filtro > .selos { gap: .25rem 1rem; }
+.linha-filtro > .selos .selo-valor { font-size: var(--t-frase); font-weight: 500; }
+.oficina-topo { display: flex; align-items: center; gap: .5rem; }
+.oficina-topo > .dica { left: 0; right: 0; width: auto; }
+.oficina-topo > button.porque { margin-top: 0; }

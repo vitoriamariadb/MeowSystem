@@ -248,6 +248,7 @@ ESQUEMA_JS = """
   lista: !!k.lista,
   pathsep: !!k.lista_pathsep,
   vazio: !!k.aceita_vazio,
+  sem_programa: !!k.sem_programa,
 }))
 """
 
@@ -561,7 +562,17 @@ def main():
             #   O resumo do topo conta as chaves do catálogo; isto confere que todas
             #   chegaram a ALGUMA aba. Uma chave que o servidor le e a pagina
             #   nao desenha e a definicao de "depender de ajuda sempre".
-            sem_cartao = sorted(k["chave"] for k in chaves if k["chave"] not in censo)
+            # [P77, achado 12: a chave de um programa que a casa nao tem
+            # (`sem_programa`, da marca `[so-com-app ...]`) fica sem cartao DE
+            # PROPOSITO — nao ha o que trocar. Ela sai da conta, e o contrario
+            # e cobrado: uma chave assim que ganhasse cartao seria o defeito.]
+            sem_cartao = sorted(k["chave"] for k in chaves
+                                if k["chave"] not in censo and not k["sem_programa"])
+            com_cartao_sem_programa = sorted(k["chave"] for k in chaves
+                                             if k["sem_programa"] and k["chave"] in censo)
+            checa(not com_cartao_sem_programa,
+                  "a chave de programa ausente nao ganha cartao"
+                  + (f" — {com_cartao_sem_programa}" if com_cartao_sem_programa else ""))
             checa(not sem_cartao,
                   f"as {len(chaves)} chaves do esquema têm cartão em alguma aba"
                   + (f" — SEM CARTÃO: {sem_cartao[:6]}" if sem_cartao else ""))

@@ -534,6 +534,10 @@ ICONES_DRACULA="sim"              # sim | nao
 
 # @ Logo própria do Hefesto
 # > Um SVG seu para o ícone do Hefesto. Vazio = o desenho gerado do pack.
+# [avancado] [so-com-app hefesto-dualsense4unix com.vitoriamaria.HefestoDualsense4Unix]
+# O painel só mostra este ajuste numa máquina com o Hefesto instalado, e o
+# guarda no «⋯» dos ajustes técnicos: é a logo de UM programa, e não escolha
+# de quem usa o MeowSystem (P77, 09/10/2026).
 # O Hefesto (o app do controle DualSense) tem logo desenhada pela autora dele —
 # a bigorna com o martelo —, e autoria vence tema: com um caminho aqui, é ela
 # que entra no tema para os dois nomes de ícone do app (`hefesto-dualsense4unix`

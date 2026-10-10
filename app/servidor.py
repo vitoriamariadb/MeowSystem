@@ -2063,6 +2063,13 @@ def _paragrafos(ajuda):
     return saida
 
 
+def _so_com_app(ajuda):
+    """Os ids da marca `[so-com-app id1 id2 …]` do comentário, ou lista vazia.
+    Ver o campo `so_com_app` do esquema."""
+    m = re.search(r"\[so-com-app ([^\]]+)\]", ajuda or "")
+    return m.group(1).split() if m else []
+
+
 def _frase_curta(ajuda, inline):
     """A frase que aparece embaixo do controle, sem a pessoa abrir nada.
 
@@ -2343,6 +2350,13 @@ def ler_esquema():
             #   num «⋯» no fim da página; o controle continua lá, gravando a
             #   mesma chave.
             "avancado": "[avancado]" in ajuda,
+            # SÓ COM O PROGRAMA NA MÁQUINA — 09/10/2026, P77 (achado 12, S2).
+            #   `[so-com-app id1 id2]` diz que o ajuste só faz sentido onde um
+            #   destes `.desktop` existe — a logo própria do Hefesto era um
+            #   cartão de fábrica para todo mundo, e só quem tem o Hefesto tem
+            #   o que trocar. Quem decide se o programa está aqui é o
+            #   `_dados_esquema`, com os mesmos `_desktops` da aba de ícones.
+            "so_com_app": _so_com_app(ajuda),
             # Lista separada por vírgula: a regra é o que o comentário DIZ, não uma
             # lista de nomes de chave. `APPS_ATIVOS` e `AUTOSTART_BLOQUEADOS` dizem
             # "vírgula-separado"/"separada por vírgula"; a
@@ -11369,6 +11383,14 @@ class Manipulador(BaseHTTPRequestHandler):
         # é pulado.
         #   Só os ids citados, e não a máquina inteira: o esquema é lido a cada
         # carga da página, e o ícone de cada programa custa uma busca no disco.
+        # O AJUSTE DE UM PROGRAMA QUE ESTA MÁQUINA NÃO TEM NÃO SE MOSTRA (P77,
+        # achado 12). O valor continua no arquivo e na linha de comando; a
+        # página só não oferece um cartão sem objeto.
+        so_com = [i for i in esquema if i.get("so_com_app")]
+        if so_com:
+            desktops = {d["id"] for d in self._desktops()}
+            for item in so_com:
+                item["sem_programa"] = not any(ident in desktops for ident in item["so_com_app"])
         com_ids = [i for i in esquema if i.get("ids_de_desktop")]
         if com_ids:
             por_id = {d["id"]: d for d in self._desktops()}

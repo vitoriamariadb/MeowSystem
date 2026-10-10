@@ -455,6 +455,16 @@ def montar_casa():
               encoding="utf-8") as fh:
         fh.write(f"[Desktop Entry]\nName={PROGRAMA[1]}\nExec=true\n"
                  "Icon=leitor-de-brinquedo\nTerminal=false\nType=Application\n")
+    # O PROGRAMA DE QUE UM AJUSTE DEPENDE (P77, achado 12): a marca
+    # `[so-com-app …]` esconde o cartão numa máquina sem aquele programa. A
+    # casa planta o primeiro id de cada marca — lido do `meow.conf` dela, e
+    # não escrito aqui —, para o cartão continuar existindo e sendo testado.
+    with open(CONF, encoding="utf-8") as fh:
+        so_com = re.findall(r"\[so-com-app ([^\]\s]+)", fh.read())
+    for ident in so_com:
+        with open(os.path.join(aplicativos, ident + ".desktop"), "w", encoding="utf-8") as fh:
+            fh.write("[Desktop Entry]\nName=Programa de Brinquedo\nExec=true\n"
+                     "Terminal=false\nType=Application\n")
 
     # DUAS ÁREAS ALFINETADAS, no formato que o `areas.sh` escreve: sem área o
     # «Tirar uma área» não tem o que oferecer, e com uma só ele recusa — com
@@ -3508,6 +3518,7 @@ INVENTARIO = {
     #   `APOSENTADAS`) e o cartão sumiu da aba junto com ela do exemplo.]
     "Ícones": _linhas("""
         aba · ?
+        aba · abre «⋯ Ajustes técnicos»
         aba · Adicionar tema de ícones
         aba · Claro
         aba · Escuro
@@ -3521,8 +3532,6 @@ INVENTARIO = {
         ajuste ICONES_DRACULA · opção
         ajuste ICONES_FLAVOR · ?
         ajuste ICONES_FLAVOR · opção
-        ajuste ICONES_LOGO_HEFESTO · ?
-        ajuste ICONES_LOGO_HEFESTO · campo
         ajuste ICONES_PASTAS · ?
         ajuste ICONES_PASTAS · seletor
         ajuste ICONES_PASTAS · ver comando
@@ -3542,6 +3551,7 @@ INVENTARIO = {
         ação «Tema de ícones instalado» · ?
         ação «Tema de ícones instalado» · Executar
         ação «Tema de ícones instalado» · ver comando
+        desenhos autorais · ?
         desenhos autorais · Salvar no pack
         desenhos autorais › desenho autoral · escolher
     """),
@@ -3960,6 +3970,8 @@ REVELADOS = {
     """),
     "Ícones": PAINEL_DO_APLICATIVO | _linhas("""
         desenhos autorais › papel do desenho · seletor
+        ajuste ICONES_LOGO_HEFESTO · ?
+        ajuste ICONES_LOGO_HEFESTO · campo
     """),
     "Papel de parede": _linhas("""
         papel de parede · Devolver

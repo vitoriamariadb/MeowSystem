@@ -1560,7 +1560,10 @@ function controlePastas(item, aplica) {
    * seção: o papirus-folders pinta com a paleta dele, e a diferença entre as
    * duas é de tom, não de cor. O desenho em cima diz o resto. */
   const amostra = elemento("span", { class: "pastas-amostra", "aria-hidden": "true" });
-  const nota = elemento("p", { class: "frase" });
+  /* [P77: o aviso virou selo — a frase de 100 caracteres sob os seletores
+   * («O papirus-folders ainda não está nesta máquina: …») era o estado do
+   * cartão dito em parágrafo. O selo diz o estado; o balão, o essencial.] */
+  const nota = elemento("div", { class: "selos" });
   /* O «ver comando» mostra a LINHA do meow.conf, que é o texto cru que saiu da
    * tela. A fonte dela é um elemento só, e o `dataset.comando` é reescrito a
    * cada troca — o mesmo contrato do cartão de ação (ver `verComando`). */
@@ -1573,14 +1576,15 @@ function controlePastas(item, aplica) {
     amostra.style.background = cor === "${ACCENT}" ? "var(--accent)" : `var(--${cor})`;
     fonte.firstChild.dataset.comando = `ICONES_PASTAS="cat-${selVariante.value}-${cor}"`;
     if (cmd) cmd.repintar();
-    const avisos = [];
+    nota.replaceChildren();
     if (molde.sem_upstream) {
-      avisos.push("O papirus-folders ainda não está nesta máquina: as pastas ganham esta cor quando o instalador baixá-lo.");
+      nota.append(selo("rede", { texto: "papirus-folders",
+        balao: "As pastas ganham esta cor quando o instalador baixar o papirus-folders" }));
     } else if (selVariante.value === "${FLAVOR}" && molde.fora_do_papirus) {
-      avisos.push(`O papirus-folders não tem pastas «${molde.fora_do_papirus}»: elas saem na variante escura dele, na mesma cor.`);
+      nota.append(selo("lua", { texto: "escura",
+        balao: `Sem pastas «${molde.fora_do_papirus}»: saem na variante escura, na mesma cor` }));
     }
-    nota.textContent = avisos.join(" ");
-    nota.hidden = !avisos.length;
+    nota.hidden = !nota.childElementCount;
   };
   const mudar = () => { atualizar(); aplica(`cat-${selVariante.value}-${selCor.value}`); };
   selVariante.addEventListener("change", mudar);
@@ -2922,9 +2926,16 @@ function montarApps() {
      * para entender o número: o que ele conta é quanta coisa desta máquina
      * aparece no menu de lançamento. A extensão continua nos comentários e no
      * `title`, para quem for procurar o arquivo. */
-    elemento("span", { class: "frase nota-secao",
-      title: "Um por arquivo .desktop em ~/.local/share/applications e /usr/share/applications",
-      texto: `${APPS.total} aplicativos aparecem no lançador desta máquina.` }),
+    /* [P77: as duas frases do topo da grade — a conta dos aplicativos e
+     * «N jogos têm o ícone escolhido em «Lançadores e jogos»…» — viraram dois
+     * selos ao lado do filtro: o número, o desenho, e a frase no balão.] */
+    elemento("div", { class: "selos" }, [
+      selo("icones", { texto: String(APPS.total),
+                       balao: `${APPS.total} aplicativos no lançador desta máquina` }),
+      APPS.jogos ? selo("jogo", { texto: String(APPS.jogos),
+        balao: `${APPS.jogos} ${APPS.jogos === 1 ? "jogo: o ícone dele mora" : "jogos: o ícone deles mora"} em «Lançadores e jogos»` })
+        : null,
+    ]),
   ]));
 
   /* PARA ONDE OS JOGOS FORAM — 06/09/2026.
@@ -2937,11 +2948,7 @@ function montarApps() {
    *   uma palavra é a página mentindo por omissão: quem estava procurando o
    *   ícone de um jogo concluiria que ele não tem `.desktop`. Uma linha, e ela
    *   diz para onde ir. */
-  if (APPS.jogos) {
-    caixa.append(elemento("p", { class: "nota-secao",
-      texto: `${APPS.jogos} ${APPS.jogos === 1 ? "jogo tem" : "jogos têm"} `
-           + "o ícone escolhido em «Lançadores e jogos», ao lado das capas." }));
-  }
+  /* [P77: a linha dos jogos é o segundo selo do topo, ao lado da conta.] */
 
   caixa.append(pulaGrade("apos-apps", "Pular a lista de aplicativos"));
   caixa.append(gradeDeApps(APPS.apps || [], APPS_BUSCA, carregarApps));
@@ -4470,17 +4477,24 @@ function oficinaAutoral() {
     style: "display:flex;flex-direction:column;gap:.7rem;margin:1.2rem 0;padding:1.1rem;"
          + "border:1px solid var(--surface1);border-radius:var(--r-3);background:var(--mantle)",
   });
-  caixa.append(elemento("h3", { class: "titulo-cartao",
-    texto: AUTORAL.nomePack ? `Desenhos autorais do pack «${AUTORAL.nomePack}»`
-                            : "Desenhos autorais do pack" }));
+  /* [P77: a frase de baixo do título — «Desenhos que nascem da paleta, por
+   * papel. Trocar uma cor repinta a prévia; só «Salvar no pack» grava.» — foi
+   * para o `?` do título.] */
+  const topo = elemento("div", { class: "oficina-topo com-dica" }, [
+    elemento("h3", { class: "titulo-cartao",
+      texto: AUTORAL.nomePack ? `Desenhos autorais do pack «${AUTORAL.nomePack}»`
+                              : "Desenhos autorais do pack" }),
+  ]);
+  caixa.append(topo);
   if (!AUTORAL.carregou) {
     if (!AUTORAL.ocupada) carregarAutoral();
     caixa.append(elemento("p", { class: "sem-previa", texto: "Lendo os desenhos do pack…" }));
     return caixa;
   }
-  caixa.append(elemento("p", { class: "frase",
-    texto: "Desenhos que nascem da paleta, por papel. Trocar uma cor repinta a prévia; "
-         + "só «Salvar no pack» grava." }));
+  topo.append(...gatilhoDeDica("dica-oficina-autoral", "Sobre os desenhos autorais", [
+    elemento("p", { class: "resumo", texto: "Desenhos que nascem da paleta, por papel. "
+      + "Trocar uma cor repinta a prévia; só «Salvar no pack» grava." }),
+  ]));
 
   const escolha = elemento("div", { class: "escolha-botoes", role: "group", "aria-label": "Desenho" });
   for (const d of AUTORAL.desenhos) {
@@ -5808,6 +5822,7 @@ const SELO_ICONES = {
   calor: '<path d="M8 2.5v6.6"/><circle cx="8" cy="11.3" r="2.2"/><path d="M10 4h1.5M10 6.5h1.5"/>',
   textura: '<path d="M3 4.5h1.5M7 4.5h1.5M11 4.5h2M3 8h2M7.5 8h1.5M11.5 8h1.5M3 11.5h1.5M6.5 11.5h2M11 11.5h2"/>',
   rampa: '<path d="M2.5 12.5h3l5-9h3"/>',
+  jogo: '<rect x="1.5" y="5" width="13" height="7" rx="3.5"/><path d="M4.5 8.5h2.5M5.75 7.25v2.5M10.5 7.8h.01M12 9.3h.01"/>',
 };
 /* A classe antiga de cada tipo, para os ganchos do CSS — ver acima. */
 const SELO_LEGADO = { sudo: "p-sudo", ponte: "p-ok", rede: "p-rede", desfaz: "p-perigo" };
@@ -8347,10 +8362,21 @@ function render() {
      * o relógio e a música. A exceção é a FORMA, logo acima, cujo par
      * painel+dock é do ASSUNTO — porque as chaves dele vêm em pares que moram em
      * blocos vizinhos, e comparar os dois é metade da escolha. */
+    /* A FAIXA GRUDADA FICA NA SUA SEÇÃO — 09/10/2026, P77 (achado 6). A
+     * `.previa-bloco` era filha direta do `#conteudo`, e o `sticky` dela valia
+     * para a página inteira: em «Ícones», rolando até a grade de aplicativos,
+     * a tira do desenho das pastas continuava presa no alto, por cima dos
+     * nomes dos programas e das ações — o comentário do CSS sempre prometeu
+     * que ela «sai junto com a seção», e ela não saía. Agora o desenho e a
+     * grade do bloco moram numa `<section>`: o `sticky` fica preso a ela, e a
+     * faixa vai embora quando o último cartão do bloco passa. */
+    let destino = alvo;
     if (!busca) {
       const previa = parDePrevias(g);
       if (previa) {
-        alvo.append(previa);
+        destino = elemento("section", { class: "secao-com-previa" });
+        alvo.append(destino);
+        destino.append(previa);
         /* Uma entrada por chave do bloco, todas apontando para o mesmo nó: o
          * deslizante conhece a própria chave e nada mais, e é por ela que ele
          * acha o desenho que precisa repintar. */
@@ -8394,8 +8420,8 @@ function render() {
         if (item) m.append(montarCartao(item));
       }
     }
-    alvo.append(grade);
-    if (tecnicos.length) alvo.append(ajustesTecnicos(assunto, g, tecnicos));
+    destino.append(grade);
+    if (tecnicos.length) destino.append(ajustesTecnicos(assunto, g, tecnicos));
 
     /* A GRADE DO DISCO VEM DEPOIS DOS CONTROLES — 06/09/2026
      *   Ela abria a seção, e na tela isso punha DUAS prévias em sequência: os
@@ -8419,12 +8445,15 @@ function render() {
    *     Fora do laço ela é uma só, e cai onde o parágrafo acima diz que ela tem
    *   de cair: depois de tudo. */
   if (!busca && GRUPOS.some((g) => g.nome === GRUPO_ICONES && assuntoDe(g) === ABA)) {
-    alvo.append(elemento("p", {
-      class: "frase",
+    /* [P77: a frase «O tema como está no disco agora.» virou o subtítulo da
+     * grade, que só nomeia — como o «Ações» dos outros blocos.] */
+    alvo.append(elemento("h3", {
+      class: "subsecao-titulo",
       /* "SÓ MUDA DEPOIS DE «RECONSTRUIR»" SAIU — 13/09/2026: o «Salvar e
        * aplicar» roda o instalador inteiro, que reconstrói o tema, e a grade
        * é relida quando ele termina. */
-      texto: "O tema como está no disco agora.",
+      texto: "No disco agora",
+      title: "O tema de ícones como está instalado",
     }));
     alvo.append(gradeDeIcones());
   }
@@ -10073,7 +10102,9 @@ function montarHome() {
   /* ONDE VOCÊ MEXEU — o único número da tela que não poderia existir em outro
    * painel, e que era um `<p>` cinza calculado uma vez. Aqui ele é a lista, e
    * cada nome leva ao cartão: doze fatos, não um adjetivo. */
-  const diferentes = ESQUEMA.chaves.filter((i) => (i.valor ?? "") !== i.padrao);
+  /* [P77: sem o ajuste de programa ausente — ele não tem cartão para onde a
+   * ficha levar (achado 12).] */
+  const diferentes = ESQUEMA.chaves.filter((i) => !i.sem_programa && (i.valor ?? "") !== i.padrao);
   const bloco = elemento("section", { class: "home-mexeu" });
   bloco.append(elemento("h3", {}, [
     elemento("strong", { texto: String(diferentes.length) }),
@@ -10382,6 +10413,10 @@ function montarGrupos() {
      * ali não há subtítulo nenhum. */
     const porGrupo = new Map();
     for (const item of ESQUEMA.chaves) {
+      /* O ajuste de um programa que esta máquina não tem (`sem_programa`, do
+       * servidor — P77, achado 12) não vira cartão, nem conta no menu, nem
+       * aparece na busca: não há o que trocar. O valor continua no arquivo. */
+      if (item.sem_programa) continue;
       const nome = item.subsecao || item.secao || "Outras";
       if (!porGrupo.has(nome)) porGrupo.set(nome, []);
       porGrupo.get(nome).push(item);
