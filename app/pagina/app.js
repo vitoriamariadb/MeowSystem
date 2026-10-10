@@ -1640,6 +1640,9 @@ function montarControle(item, cartao) {
     const c = controlePorArea(item, aplica);
     if (c) return c;
   }
+  /* [P77: os nomes das áreas viraram pastilhas que se arrastam — ver
+   * `controleAreas`.] */
+  if (item.chave === "AREAS_NOMES") return controleAreas(item, aplica);
 
   /* 1. lista separada por vírgula -> fichas */
   if (item.lista || item.lista_pathsep) {
@@ -2592,6 +2595,154 @@ function avisoDeCombinacao() {
  *   O QUE ELE GRAVA continua sendo o formato do arquivo: os nomes marcados,
  *   separados por vírgula, na ordem em que aparecem em `AREAS_NOMES`. Nenhuma
  *   chave nova, nenhum formato novo — só a forma de dizer a mesma coisa. */
+/* ===========================================================================
+ * AS ÁREAS DE TRABALHO SE ARRUMAM COM A MÃO — 10/10/2026, P77 (achado 29)
+ * ===========================================================================
+ * «Nomes das áreas de trabalho» era um campo de texto separado por vírgula
+ * («Pop, OS»), e a chave inteira é sobre ORDEM: o cosmic-comp cria as áreas
+ * alfinetadas na ordem desta lista (o comentário do `meow.conf.exemplo` conta
+ * por que «Meow» vem antes de «OS»). Trocar a ordem era apagar e redigitar.
+ *
+ * Agora cada área é uma pastilha, como o applet de áreas do painel as desenha:
+ * arrastar troca a ordem, escrever na pastilha troca o nome, a pastilha vazia
+ * do fim acrescenta uma. Pelo teclado, Alt+← e Alt+→ levam a área do campo em
+ * foco para o lado. O valor gravado continua sendo a mesma linha, os nomes
+ * separados por vírgula, na ordem da tela.
+ *
+ * O VAZIO NÃO É UMA LISTA VAZIA: é «as áreas são suas», e elas existem — o
+ * servidor lê as do COSMIC (`valendo_agora`). Elas aparecem a traço, como o
+ * «como está» dos outros controles, e o primeiro gesto parte delas. TIRAR uma
+ * área não é gesto daqui: um nome a menos apagaria a área, e o `areas.sh` o
+ * recusa; quem tira é a ação «Tirar uma área», que pergunta antes. */
+function controleAreas(item, aplica) {
+  const proprio = String(valorEmVigor(item) || "");
+  const comoEsta = proprio === "";
+  const nomes = (comoEsta ? String(item.valendo_agora || "") : proprio)
+    .split(",").map((x) => x.trim()).filter(Boolean);
+  const gravar = (lista) => aplica(lista.join(", "));
+  const caixa = elemento("div", { class: "areas-pilulas" + (comoEsta ? " como-esta" : ""),
+                                  role: "list", "aria-label": rotuloAcessivel(item) });
+  let arrastada = -1;
+  nomes.forEach((nome, i) => {
+    const campo = elemento("input", {
+      type: "text", value: nome, size: String(Math.max(3, nome.length)),
+      /* O foco segue a ÁREA, e não a posição: Alt+← repinta a página, e o
+       * campo de antes some — sem isto o segundo Alt+← não teria onde cair. */
+      "data-foco": `area:${nome}`,
+      "aria-label": `Área ${i + 1}: ${nome}`,
+      title: "Alt+← e Alt+→ mudam a área de lugar",
+    });
+    const renomear = () => {
+      const novo = campo.value.trim();
+      if (!novo || novo === nome) { campo.value = nome; return; }
+      const lista = nomes.slice(); lista[i] = novo; gravar(lista);
+    };
+    campo.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); renomear(); return; }
+      if (ev.altKey && (ev.key === "ArrowLeft" || ev.key === "ArrowRight")) {
+        ev.preventDefault();
+        const j = i + (ev.key === "ArrowLeft" ? -1 : 1);
+        if (j < 0 || j >= nomes.length) return;
+        const lista = nomes.slice(); [lista[i], lista[j]] = [lista[j], lista[i]];
+        gravar(lista);
+      }
+    });
+    campo.addEventListener("blur", renomear);
+    const pilula = elemento("div", { class: "area-pilula", draggable: "true", role: "listitem",
+                                     "data-indice": String(i) }, [
+      elemento("span", { class: "area-alca", "aria-hidden": "true",
+                         html: '<svg viewBox="0 0 8 14"><circle cx="2" cy="3" r="1"/><circle cx="6" cy="3" r="1"/>'
+                             + '<circle cx="2" cy="7" r="1"/><circle cx="6" cy="7" r="1"/>'
+                             + '<circle cx="2" cy="11" r="1"/><circle cx="6" cy="11" r="1"/></svg>' }),
+      campo,
+    ]);
+    pilula.addEventListener("dragstart", (ev) => {
+      arrastada = i;
+      pilula.classList.add("arrastando");
+      try { ev.dataTransfer.setData("text/plain", nome); ev.dataTransfer.effectAllowed = "move"; } catch (e) { /* sem dataTransfer */ }
+    });
+    pilula.addEventListener("dragend", () => {
+      pilula.classList.remove("arrastando");
+      caixa.querySelectorAll(".soltar-antes, .soltar-depois")
+        .forEach((p) => p.classList.remove("soltar-antes", "soltar-depois"));
+    });
+    /* A metade da pastilha onde o ponteiro está diz de que lado ela cai. */
+    const lado = (ev) => {
+      const r = pilula.getBoundingClientRect();
+      return ev.clientX < r.left + r.width / 2 ? "antes" : "depois";
+    };
+    pilula.addEventListener("dragover", (ev) => {
+      if (arrastada < 0 || arrastada === i) return;
+      ev.preventDefault();
+      const l = lado(ev);
+      pilula.classList.toggle("soltar-antes", l === "antes");
+      pilula.classList.toggle("soltar-depois", l === "depois");
+    });
+    pilula.addEventListener("dragleave", () => pilula.classList.remove("soltar-antes", "soltar-depois"));
+    pilula.addEventListener("drop", (ev) => {
+      if (arrastada < 0 || arrastada === i) return;
+      ev.preventDefault();
+      const lista = nomes.slice();
+      const [movida] = lista.splice(arrastada, 1);
+      let alvo = lista.indexOf(nome) + (lado(ev) === "depois" ? 1 : 0);
+      lista.splice(alvo, 0, movida);
+      arrastada = -1;
+      gravar(lista);
+    });
+    caixa.append(pilula);
+  });
+  /* A pastilha do fim acrescenta: um nome a mais é uma área nova, herdando o
+   * monitor de uma que já existe (o comentário da chave). */
+  const nova = elemento("input", { type: "text", class: "area-nova", placeholder: "+",
+                                   "aria-label": "Acrescentar uma área", size: "3" });
+  const acrescentar = () => {
+    const novo = nova.value.trim();
+    if (!novo) return;
+    if (nomes.includes(novo)) { torrada(`${novo} já é uma área`, "igual"); return; }
+    gravar([...nomes, novo]);
+  };
+  nova.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); acrescentar(); } });
+  nova.addEventListener("blur", acrescentar);
+  caixa.append(nova);
+  return caixa;
+}
+
+/* A PRÉVIA REAL DAS ÁREAS: o applet de áreas do painel como ele desenha, uma
+ * pastilha por área na ordem da lista, a primeira acesa, a folga invisível
+ * alargando as que a levam e o traço do encaixe sob as que encaixam. «Como
+ * está» é o que o COSMIC tem (`valorNaTela`); «Como fica», a escolha. Era um
+ * retângulo vazio e duas caixas tracejadas que não diziam nome nenhum. */
+function barraDasAreas(val) {
+  const nomes = String(val.AREAS_NOMES || "").split(",").map((x) => x.trim()).filter(Boolean);
+  const folga = new Set(String(val.AREAS_FOLGA || "").split(",").map((x) => x.trim()).filter(Boolean));
+  const enc = String(val.AREAS_ENCAIXE || "").split(",").map((x) => x.trim());
+  const encaixa = (i) => (enc.length === 1 ? enc[0] : enc[i]) === "sim";
+  const barra = elemento("div", { class: "areas-barra", role: "img",
+    "aria-label": nomes.length ? `Áreas, na ordem: ${nomes.join(", ")}` : "Nenhuma área com nome" });
+  nomes.forEach((n, i) => {
+    barra.append(elemento("span", {
+      class: "areas-barra-area" + (i === 0 ? " acesa" : "") + (folga.has(n) ? " com-folga" : "")
+             + (encaixa(i) ? " encaixa" : ""),
+      texto: n,
+    }));
+  });
+  if (!nomes.length) barra.append(elemento("span", { class: "areas-barra-area vazia", texto: "·" }));
+  return elemento("div", { class: "areas-tela" }, [barra]);
+}
+
+function previaRealDasAreas(val, escolhido) {
+  const junto = escolhido ? { ...val, ...escolhido } : null;
+  const frase = (v) => {
+    const n = String(v.AREAS_NOMES || "").split(",").map((x) => x.trim()).filter(Boolean);
+    return n.length
+      ? `o applet de áreas do painel: ${n.join(", ")}, nesta ordem — a primeira é a da esquerda`
+        + (v.AREAS_FOLGA ? `; com folga: ${v.AREAS_FOLGA}` : "")
+        + (v.AREAS_ENCAIXE ? `; encaixe: ${v.AREAS_ENCAIXE}` : "")
+      : "nenhuma área com nome";
+  };
+  return { antes: barraDasAreas(val), depois: junto ? barraDasAreas(junto) : null, legenda: frase(val) };
+}
+
 function controlePorArea(item, aplica) {
   const nomesItem = ESQUEMA.chaves.find((k) => k.chave === "AREAS_NOMES");
   const nomes = String(nomesItem ? valorEmVigor(nomesItem) : "")
@@ -3263,7 +3414,8 @@ function previaRealDaLeitura(val, escolhido) {
   return { antes: telaDaLeitura(val), depois: junto ? telaDaLeitura(junto) : null, legenda: frase(val) };
 }
 /* As prévias feitas de pixel, e não de traço, pelo nome do bloco. */
-const PREVIAS_REAIS = { "Modo de leitura": previaRealDaLeitura };
+const PREVIAS_REAIS = { "Modo de leitura": previaRealDaLeitura,
+                        "Áreas de trabalho": previaRealDasAreas };
 
 /* --- a grade de ícones do tema INSTALADO ---------------------------------- */
 function gradeDeIcones(limite = 24) {
@@ -8923,7 +9075,8 @@ const TECNICOS_ABERTOS = new Set();
  * de rótulos: uma ação nova de «mostrar» nasce no lugar certo. A separação é
  * por página, na reescrita de cada uma (as que já passaram estão no conjunto). */
 const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
-                                            "Logo do sistema", "Modo de leitura"]);
+                                            "Logo do sistema", "Modo de leitura",
+                                            "Áreas de trabalho"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
 function acaoTecnica(assunto, acao) {
   return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);

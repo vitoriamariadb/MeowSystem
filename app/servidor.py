@@ -896,6 +896,14 @@ def _valendo_agora(chave):
     if chave.startswith("LEITURA_"):
         # [P77: o lugar do applet, e não a tela deste minuto — ver acima.]
         return _leitura_no_applet(chave)
+    if chave == "AREAS_NOMES":
+        # AS ÁREAS QUE O COSMIC TEM — 10/10/2026, P77 (achado 29). Vazio é «as
+        # áreas são suas», e mesmo assim elas existem e têm nome e ordem: a
+        # página as desenha como estão, a traço, e o primeiro gesto de
+        # arrastar ou renomear parte delas. Cheio e ainda não aplicado (o
+        # cosmic-comp lê o arquivo no início da sessão), o «Como está» é o do
+        # disco. `_areas_alfinetadas` já tira a folga invisível dos nomes.
+        return ", ".join(_areas_alfinetadas()) or None
     if chave == "VIDRO_AO_MAXIMIZAR":
         # Uma chave para as duas barras (o `vidro.sh` grava as duas): só há
         # resposta quando elas concordam.

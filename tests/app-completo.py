@@ -1470,10 +1470,20 @@ class Percurso:
             valor = el.get_attribute("data-valor")
             self.clicar_nome(nome, i)
             self.assentar(quieto=80, teto=3000)
-            depois = self.achar(nome, i)
             c = self.cartao(chave)
-            self.checa(depois is not None and depois.get_attribute("aria-pressed") == "true",
-                       f"{chave}: clicar em {valor!r} marca {valor!r}")
+            # PELO VALOR, E NÃO PELA POSIÇÃO — 10/10/2026, P77. No controle por
+            # área (Sim/Não por área, `controlePorArea`) o botão «Não» de uma
+            # área grava vazio numa hora e uma lista na outra, e a fileira de
+            # «opções» muda de tamanho entre um clique e o seguinte: a opção de
+            # índice i depois do clique já não era a clicada. Com as áreas de
+            # verdade na tela (duas, lidas do COSMIC), isso reprovava um clique
+            # certo. O que se cobra é o que a frase diz: o valor clicado fica
+            # marcado.
+            seguro = (valor or "").replace("\\", "\\\\").replace('"', '\\"')
+            marcado = self.pag.locator(
+                f'#conteudo article.cartao[data-chave="{chave}"] '
+                f'button[data-valor="{seguro}"][aria-pressed="true"]').count() > 0
+            self.checa(marcado, f"{chave}: clicar em {valor!r} marca {valor!r}")
             self.checa(c["pendente"] == (valor != c["disco"]),
                        f"{chave}: {valor!r} {'entra' if valor != c['disco'] else 'não entra'}"
                        " na bandeja do Salvar")
@@ -3469,15 +3479,13 @@ INVENTARIO = {
     """),
     "Áreas de trabalho": _linhas("""
         aba · ?
+        aba · abre «⋯ Ações técnicas»
         ajuste AREAS_ENCAIXE · ?
         ajuste AREAS_ENCAIXE · nova ficha
         ajuste AREAS_FOLGA · ?
         ajuste AREAS_FOLGA · campo
         ajuste AREAS_NOMES · ?
         ajuste AREAS_NOMES · campo
-        ação «As áreas de agora» · ?
-        ação «As áreas de agora» · Executar
-        ação «As áreas de agora» · ver comando
         ação «Criar a primeira área» · ?
         ação «Criar a primeira área» · Executar
         ação «Criar a primeira área» · ver comando
@@ -3931,8 +3939,11 @@ REVELADOS = {
         ajuste WALLPAPER_DRACULA_REPO · campo
     """),
     "Áreas de trabalho": _linhas("""
-        ajuste AREAS_FOLGA · opção
         ajuste AREAS_FOLGA · deixar vazio
+        ajuste AREAS_FOLGA · opção
+        ação «As áreas de agora» · ?
+        ação «As áreas de agora» · Executar
+        ação «As áreas de agora» · ver comando
     """),
     "Ícones": PAINEL_DO_APLICATIVO | _linhas("""
         desenhos autorais › papel do desenho · seletor
