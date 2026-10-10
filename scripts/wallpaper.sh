@@ -1262,7 +1262,7 @@ limpar_estado_morto() {
   # reescrevendo no meio, a contagem da segunda podia discordar do conteúdo que
   # a primeira produziu — e a frase do `meow_info` mentiria sobre o que foi
   # feito. A primeira linha da saída é a contagem, o resto é o conteúdo novo.
-  saida="$(python3 - "$ESTADO_BG" <<'FIM' 2>/dev/null
+  saida="$(python3 -I - "$ESTADO_BG" <<'FIM' 2>/dev/null
 import os, re, sys
 texto = open(sys.argv[1], encoding="utf-8").read()
 # ("DP-1", Path("/caminho")),  — uma entrada por linha, é o formato que ele grava.
@@ -2599,7 +2599,7 @@ cmd_semear() {
   # Escolhe espalhando pelas categorias, em vez de pegar as N primeiras (que
   # seriam todas da mesma pasta e pareceriam a mesma imagem repetida).
   local escolhidas
-  escolhidas="$(printf '%s' "$lista" | python3 -c "
+  escolhidas="$(printf '%s' "$lista" | python3 -I -c "
 import json, sys
 from urllib.parse import quote
 try:

@@ -172,7 +172,7 @@ _pronto() {
     meow_pula "sem python3 / rsvg-convert / ImageMagick — o conversor rasteriza para traçar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  if ! python3 -c 'import numpy' 2>/dev/null; then
+  if ! python3 -I -c 'import numpy' 2>/dev/null; then
     meow_pula "sem numpy — é ele que faz o traçado de contorno e o Douglas-Peucker"
     return "$MEOW_SEM_DEPENDENCIA"
   fi

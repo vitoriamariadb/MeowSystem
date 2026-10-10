@@ -286,7 +286,7 @@ _cirurgia() {
   local alvo="$1" escrever="${2:-0}"
   MEOW_ZZ_TRACO="$TRACO" MEOW_ZZ_ESCREVER="$escrever" MEOW_ZZ_GUARDA="$GUARDA" \
   MEOW_ZZ_COMMIT="$(_commit_de || echo desconhecido)" \
-  python3 - "$alvo" "$(_com_traco)" <<'PY'
+  python3 -I - "$alvo" "$(_com_traco)" <<'PY'
 import os, re, sys, tempfile, shutil
 
 alvo   = sys.argv[1]

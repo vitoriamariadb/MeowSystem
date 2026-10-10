@@ -665,7 +665,7 @@ _ffl_blocos() {
 # divergência e o auto-reparo entraria em ping-pong (a lição do `custom_logo_path`).
 _ffl_gerar() {
   local destino="$1" svg="$2" colunas="$3" linhas="$4"
-  python3 - "$svg" "$colunas" "$linhas" "$destino" "$FFL_RASTER" "$(_ffl_blocos)" <<'PY'
+  python3 -I - "$svg" "$colunas" "$linhas" "$destino" "$FFL_RASTER" "$(_ffl_blocos)" <<'PY'
 import subprocess, sys
 
 svg, colunas, linhas, destino, raster, blocos = (
@@ -943,7 +943,7 @@ _ffl_varrer_orfaos() {
 # dia, colar o patch por cima do arquivo inteiro em vez de trocar duas chaves.
 _ffl_ler_conf() {
   [ -f "$FFL_CONF_DELA" ] || return 1
-  python3 - "$FFL_CONF_DELA" <<'PY'
+  python3 -I - "$FFL_CONF_DELA" <<'PY'
 import json, os, sys
 
 bruto = open(sys.argv[1], encoding="utf-8").read()

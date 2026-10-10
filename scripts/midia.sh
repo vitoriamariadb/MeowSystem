@@ -134,7 +134,7 @@ _capa_valor() { [ "$CAPA" = "sim" ] && printf 'true' || printf 'false'; }
 _cor_hex() {
   local nome="$1"
   [ "$nome" = "auto" ] && { printf 'auto'; return 0; }
-  python3 -c '
+  python3 -I -c '
 import json, sys
 try:
     p = json.load(open(sys.argv[1]))["flavors"][sys.argv[2]]

@@ -246,7 +246,7 @@ _areas_dependencia() {
 # o registro no manifesto. Duas rotinas de escrita para o mesmo arquivo é o
 # defeito que o cabeçalho do `lib/comum.sh` conta por extenso.
 _areas_motor() {
-  python3 - "$@" <<'PY'
+  python3 -I - "$@" <<'PY'
 import glob
 import random
 import re

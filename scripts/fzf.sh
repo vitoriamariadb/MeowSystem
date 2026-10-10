@@ -130,7 +130,7 @@ cmd_mostrar() {
 PALETA="$(meow_paleta)"
 
 _fzf_cores() {
-  python3 - "$PALETA" "$_FLAVOR" "$_ACCENT" <<'PY'
+  python3 -I - "$PALETA" "$_FLAVOR" "$_ACCENT" <<'PY'
 import json, sys
 paleta, flavor, acento = sys.argv[1:4]
 try:
@@ -160,7 +160,7 @@ PY
 # O laranja (slot `peach`) como o terminal o pede: `38;2;R;G;B`. Vazio quando a
 # paleta não tem o slot — ver "E O LARANJA DOS RÓTULOS", no cabeçalho.
 _fzf_laranja() {
-  python3 - "$PALETA" "$_FLAVOR" <<'PY'
+  python3 -I - "$PALETA" "$_FLAVOR" <<'PY'
 import json, re, sys
 try:
     v = json.load(open(sys.argv[1], encoding="utf-8"))["flavors"][sys.argv[2]].get("peach")

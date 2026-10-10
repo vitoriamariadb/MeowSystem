@@ -1745,7 +1745,7 @@ _pacotes_faltando() {
     [ "${lidos:-0}" -gt 0 ] || { echo "não consegui ler a lista de pacotes do install.sh"; return "$MEOW_ERRO"; }
   }
   [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
-  python3 -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+  python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
   [ "${#faltam[@]}" -eq 0 ] || printf '%s\n' "${faltam[@]}"
   return 0
 }
@@ -2076,7 +2076,7 @@ fix_conf() {
 #   não copiada) e o conf é relido.
 recarregar_conf_migrado() {
   local k
-  for k in $(python3 -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import migrar_conf; print(" ".join(migrar_conf.APOSENTADAS))' \
+  for k in $(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import migrar_conf; print(" ".join(migrar_conf.APOSENTADAS))' \
                "$RAIZ/scripts" 2>/dev/null); do
     unset "$k"
   done
@@ -4454,7 +4454,7 @@ cmd_pack() {
           achou=1
           local id nome
           id="$(basename "${d%/}")"
-          nome="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["nome"])' "$d/pack.json" 2>/dev/null || echo "$id")"
+          nome="$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["nome"])' "$d/pack.json" 2>/dev/null || echo "$id")"
           if python3 "$RAIZ/scripts/pack.py" validar "${d%/}" >/dev/null 2>&1; then
             meow_ok "$id — $nome"
           else
@@ -4612,7 +4612,7 @@ cmd_pack() {
       #     e não uma dedução, porque "ninguém mais lê" não se mede do conf.
       local restos="" fora="" linha chave dono onde
       linha="$(MEOW_RAIZ="$RAIZ" MEOW_CONF="$copia/meow.conf" MEOW_CONF_PADRAO="$CONF_PADRAO" \
-        python3 - "$RAIZ" 2>/dev/null <<'PY'
+        python3 -I - "$RAIZ" 2>/dev/null <<'PY'
 import os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "app"))
 import servidor

@@ -557,7 +557,7 @@ RECEITA_VELHA=0
 #   copiar sem saber o que é ficha é o `rm` e o `cp` às cegas que este script
 #   existe para não fazer. (O python3 já é condição daqui: é ele que acha a
 #   captura, lá em cima.)
-fichas="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import derivar_acento
+fichas="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import derivar_acento
 print("\n".join(derivar_acento.FICHAS))' "$RAIZ/scripts" 2>/dev/null)" && [ -n "$fichas" ] || {
   echo "ERRO: não consegui ler do scripts/derivar_acento.py quais arquivos da captura são fichas" >&2
   exit 2
