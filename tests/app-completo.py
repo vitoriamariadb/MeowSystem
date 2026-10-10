@@ -3331,6 +3331,18 @@ DEFEITOS_CONHECIDOS = {
     # `cmd_wallpaper` não repassava e o `meow_lancador_reler` que mirava o
     # lançador da máquina inteira) foram consertados na origem, e o percurso
     # passou a cobrar que o «Usar» da galeria termine bem.
+    #
+    # P77, 10/10/2026: com as ações técnicas no «⋯», «O carrossel agora» passou
+    # a ser o PRIMEIRO script de papel de parede da aba (o «⋯» abre antes dos
+    # outros gestos, pela ordem dos nomes), e numa casa nova ele semeia o
+    # estado: o `meow_estado_com_padrao` (lib/comum.sh) copia o `BANIDOS.txt` e
+    # o `lado.tsv` da receita na primeira LEITURA, inclusive num verbo que só
+    # mostra. Antes, um gesto que escreve chegava primeiro e escondia isso.
+    # Aparece só quando nada semeou antes, por isso não em toda corrida.
+    r"«O carrossel agora» não muda a casa — mudou \d+: \['casa/\.local/state/meowsystem/"
+    r"papeis-de-parede/": (
+        "lib/comum.sh `meow_estado_com_padrao`: semear o estado só em verbo que "
+        "escreve (o `meow wallpaper` sem argumento só lê)", False),
 }
 
 
@@ -3636,15 +3648,13 @@ INVENTARIO = {
         aba · Recusadas
         aba · Vidro claro
         aba · Vidro escuro
+        aba · abre «⋯ Ajustes técnicos»
+        aba · abre «⋯ Ações técnicas»
         aba · âncora «Pular a galeria»
         ajuste FILES_MENU · ?
         ajuste FILES_MENU · opção
-        ajuste FILES_MENU_AUTOBUILD · ?
-        ajuste FILES_MENU_AUTOBUILD · opção
         ajuste WALLPAPER_AJUSTE · ?
         ajuste WALLPAPER_AJUSTE · opção
-        ajuste WALLPAPER_BASE · ?
-        ajuste WALLPAPER_BASE · campo
         ajuste WALLPAPER_FIXO_TTL · ?
         ajuste WALLPAPER_FIXO_TTL · campo
         ajuste WALLPAPER_FONTES_PERMITIDAS · ?
@@ -3655,27 +3665,12 @@ INVENTARIO = {
         ajuste WALLPAPER_NOTIFICAR · opção
         ajuste WALLPAPER_ORDEM · ?
         ajuste WALLPAPER_ORDEM · opção
-        ação «Baixar a coleção curada» · ?
-        ação «Baixar a coleção curada» · Executar
-        ação «Baixar a coleção curada» · ver comando
-        ação «Construir o menu da área de trabalho» · ?
-        ação «Construir o menu da área de trabalho» · Executar
-        ação «Construir o menu da área de trabalho» · ver comando
         ação «Imagem anterior» · ?
         ação «Imagem anterior» · Executar
         ação «Imagem anterior» · ver comando
-        ação «Menu da área de trabalho» · ?
-        ação «Menu da área de trabalho» · Executar
-        ação «Menu da área de trabalho» · ver comando
-        ação «O carrossel agora» · ?
-        ação «O carrossel agora» · Executar
-        ação «O carrossel agora» · ver comando
         ação «Próxima imagem» · ?
         ação «Próxima imagem» · Executar
         ação «Próxima imagem» · ver comando
-        ação «Reaplicar as regras do carrossel» · ?
-        ação «Reaplicar as regras do carrossel» · Executar
-        ação «Reaplicar as regras do carrossel» · ver comando
         ação «Voltar a girar» · ?
         ação «Voltar a girar» · Executar
         ação «Voltar a girar» · ver comando
@@ -3948,6 +3943,25 @@ REVELADOS = {
         ajuste ICONES_LOGO_HEFESTO · campo
     """),
     "Papel de parede": _linhas("""
+        ajuste FILES_MENU_AUTOBUILD · ?
+        ajuste FILES_MENU_AUTOBUILD · opção
+        ajuste WALLPAPER_BASE · ?
+        ajuste WALLPAPER_BASE · campo
+        ação «Baixar a coleção curada» · ?
+        ação «Baixar a coleção curada» · Executar
+        ação «Baixar a coleção curada» · ver comando
+        ação «Construir o menu da área de trabalho» · ?
+        ação «Construir o menu da área de trabalho» · Executar
+        ação «Construir o menu da área de trabalho» · ver comando
+        ação «Menu da área de trabalho» · ?
+        ação «Menu da área de trabalho» · Executar
+        ação «Menu da área de trabalho» · ver comando
+        ação «O carrossel agora» · ?
+        ação «O carrossel agora» · Executar
+        ação «O carrossel agora» · ver comando
+        ação «Reaplicar as regras do carrossel» · ?
+        ação «Reaplicar as regras do carrossel» · Executar
+        ação «Reaplicar as regras do carrossel» · ver comando
         papel de parede · Devolver
         papel de parede · Medir
     """),

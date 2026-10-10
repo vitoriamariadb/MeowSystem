@@ -1960,6 +1960,36 @@ function montarControle(item, cartao) {
     return caixa;
   }
 
+  /* 4b. DURAÇÃO SEM LISTA -> número em minutos — 10/10/2026, P77 (achado 16).
+   *   «Quanto tempo dura a imagem escolhida» diz «em minutos» e mostrava `30m`
+   *   num campo de texto: a unidade escrita duas vezes, de dois jeitos, e nada
+   *   impedindo `meia hora`. O campo passa a ser o número, com «min» ao lado;
+   *   o que vai para o meow.conf continua sendo a duração que o
+   *   `segundos_de` do `wallpaper.sh` lê (`45m`; `0m` é «até você soltar»).
+   *   Só quando o valor cabe em minutos inteiros: um `90s` escrito à mão cai
+   *   no campo de texto de sempre, em vez de ser arredondado calado. */
+  if (item.tipo_numero === "duracao" && !item.opcoes.length && !item.faixa) {
+    const minutos = minutosDaDuracao(valor === "" ? item.padrao : valor);
+    if (minutos !== null) {
+      const caixa = elemento("div", { class: "controle controle-minutos" });
+      const campo = elemento("input", {
+        type: "number", min: "0", step: "1", inputmode: "numeric",
+        value: String(minutos), "aria-label": `${rotuloAcessivel(item)}, em minutos`,
+      });
+      campo.addEventListener("change", () => {
+        const n = Math.max(0, Math.round(Number(campo.value)));
+        if (!Number.isFinite(n)) return;
+        campo.value = String(n);
+        aplica(`${n}m`);
+      });
+      campo.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") { ev.preventDefault(); campo.blur(); }
+      });
+      caixa.append(campo, elemento("span", { class: "unidade", "aria-hidden": "true", texto: "min" }));
+      return caixa;
+    }
+  }
+
   /* 5. o resto -> texto. Caminho longo ganha uma <textarea> para caber. */
   const caixa = elemento("div", { class: "controle" });
   const longo = valor.length > 46;
@@ -1997,6 +2027,17 @@ function montarControle(item, cartao) {
  *   ao padrão» não é eufemismo: é a descrição do que o clique faz.
  *   O número entre parênteses continua sendo o `valendo_agora` de 13/09 — o que
  *   fica na tela depois do clique. */
+/* `30m` -> 30, `2h` -> 120, `0` -> 0; `null` quando não dá minutos inteiros
+ * (ou não é duração). As unidades são as do `segundos_de` do `wallpaper.sh`:
+ * s, m e h, e o número sem unidade é segundos. */
+function minutosDaDuracao(v) {
+  const m = /^(\d+)([smh]?)$/.exec(String(v || "").trim());
+  if (!m) return null;
+  const n = Number(m[1]);
+  const seg = m[2] === "h" ? n * 3600 : m[2] === "m" ? n * 60 : n;
+  return seg % 60 === 0 ? seg / 60 : null;
+}
+
 function rotuloVazio(item) {
   const agora = item.valendo_agora;
   return agora != null && agora !== ""
@@ -5192,14 +5233,30 @@ function montarEscolhaDeJogo(j) {
  * São 255 imagens em `banidos/` nesta máquina, e nenhuma foi apagada: o `banir`
  * move, nunca remove. É isso que faz desbanir ser possível de verdade. */
 let ABA_GALERIA = "ativos";
-let LIMITE_GALERIA = 60;
+/* Três fileiras de seis na largura da tela dela: o bastante para a coleção se
+ * mostrar no alto da página sem empurrar os ajustes para longe (P77). */
+const PRIMEIRA_LEVA_GALERIA = 18;
+let LIMITE_GALERIA = PRIMEIRA_LEVA_GALERIA;
 
+/* O ARRANJO DIZ O QUE CADA ABA É — 10/10/2026, P77 (achado 15). «Recusadas
+ * 62» ao lado de «No carrossel 29», no mesmo trilho de pílulas, parecia dizer
+ * que o carrossel perdeu para alguma coisa. Não perdeu: as recusadas são o que
+ * ficou de FORA, e noite e dia são PEDAÇOS do carrossel (as mesmas imagens,
+ * separadas pela luz). O `bloco` arranja isso na tela, sem frase: o carrossel e
+ * os dois lados dele grudados numa peça só, os favoritos à parte, e as
+ * recusadas no fim da linha, apagadas e com o ⊘ — o balão de cada uma diz o
+ * resto. */
 const GRUPOS_PAREDE = [
-  { id: "ativos", rotulo: "No carrossel" },
-  { id: "noite", rotulo: "Noite" },
-  { id: "dia", rotulo: "Dia" },
-  { id: "favoritos", rotulo: "Favoritos" },
-  { id: "banidos", rotulo: "Recusadas" },
+  { id: "ativos", rotulo: "No carrossel", bloco: "carrossel",
+    balao: "As imagens que o carrossel gira" },
+  { id: "noite", rotulo: "Noite", bloco: "carrossel",
+    balao: "Do carrossel, as que entram à noite" },
+  { id: "dia", rotulo: "Dia", bloco: "carrossel",
+    balao: "Do carrossel, as que entram de dia" },
+  { id: "favoritos", rotulo: "Favoritos", bloco: "favoritos",
+    balao: "A pasta favoritos" },
+  { id: "banidos", rotulo: "Recusadas", bloco: "fora",
+    balao: "Fora do carrossel. Nunca são apagadas" },
 ];
 
 /* ===========================================================================
@@ -5277,7 +5334,8 @@ function botoesDeLado(imagem) {
 
 function montarGaleria() {
   const caixa = elemento("div");
-  const abas = elemento("div", { class: "abas" });
+  const abas = elemento("div", { class: "abas abas-galeria" });
+  const blocos = new Map();
   for (const g of GRUPOS_PAREDE) {
     /* A CONTAGEM VEM NA PRIMEIRA RESPOSTA, para todas as abas de uma vez — o
      * servidor passou a mandar `contagens`. Antes o número só aparecia depois
@@ -5286,9 +5344,15 @@ function montarGaleria() {
     const cheia = PREVIAS.get("parede/" + ABA_GALERIA);
     const quantos = cheia && cheia.contagens ? cheia.contagens[g.id] : undefined;
     const lista = PREVIAS.get("parede/" + g.id);
-    abas.append(elemento("button", {
+    if (!blocos.has(g.bloco)) {
+      const b = elemento("div", { class: "abas-bloco", "data-bloco": g.bloco });
+      blocos.set(g.bloco, b);
+      abas.append(b);
+    }
+    blocos.get(g.bloco).append(elemento("button", {
       type: "button", "aria-pressed": String(g.id === ABA_GALERIA),
-      onclick: () => { ABA_GALERIA = g.id; LIMITE_GALERIA = 60; render(); },
+      "data-grupo-parede": g.id, title: g.balao,
+      onclick: () => { ABA_GALERIA = g.id; LIMITE_GALERIA = PRIMEIRA_LEVA_GALERIA; render(); },
     }, [
       elemento("span", { texto: g.rotulo }),
       elemento("span", { class: "conta",
@@ -5298,6 +5362,8 @@ function montarGaleria() {
   }
   caixa.append(abas);
 
+  /* [P77: o «Adicionar imagem» mora no fim da linha das abas, e não numa
+   * linha só dele entre as abas e as fotos.] */
   /* O BOTÃO DE ACRESCENTAR FALTAVA NA GALERIA — 06/09/2026.
    *   Pergunta dela: *"como adicionamos os wallpapers pelo html e eles vão pra
    *   pasta correta"*. A resposta era "não adiciona": a aba mais visual da
@@ -5308,7 +5374,7 @@ function montarGaleria() {
    *   Quem decide o lado (dia ou noite) é a luminância, e o servidor mede na
    *   hora e diz na torrada. Discordar da medição é o par de botões de cada
    *   ficha, abaixo. */
-  caixa.append(botaoAcervo("parede", async () => {
+  abas.append(botaoAcervo("parede", async () => {
     for (const g of GRUPOS_PAREDE) PREVIAS.delete("parede/" + g.id);
     render();
   }));
@@ -8299,13 +8365,16 @@ const TECNICOS_ABERTOS = new Set();
  * régua é a `natureza` que o servidor declara para cada ação, e não uma lista
  * de rótulos: uma ação nova de «mostrar» nasce no lugar certo. A separação é
  * por página, na reescrita de cada uma (as que já passaram estão no conjunto). */
-const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock"]);
+const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
 function acaoTecnica(assunto, acao) {
   return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);
 }
 function ajustesTecnicos(assunto, g, itens) {
-  const id = assunto + "·" + g.nome;
+  /* O TIPO ENTRA NO NOME DO «⋯»: o bloco de ajustes e o de ações de uma
+   * página costumam ter o mesmo `g.nome`, e com o mesmo id abrir um abria os
+   * dois na pintura seguinte. */
+  const id = assunto + "·" + g.nome + "·" + g.tipo;
   const acoes = g.tipo === "acoes";
   const nome = acoes ? "Ações técnicas" : "Ajustes técnicos";
   const caixa = elemento("details", { class: "ajustes-tecnicos" }, [
@@ -8409,7 +8478,14 @@ function render() {
    *   O acervo não some nem encolhe: ele deixa de ser a porta. Quem chega numa
    *   seção chega para ajustar; olhar a coleção é a segunda coisa que se faz
    *   ali, e agora ela está uma rolagem abaixo em vez de na frente. */
-  const PESO = { chaves: 0, acoes: 1, galeria: 2, apps: 2, jogos: 2, folhas: 3 };
+  /* A COLEÇÃO VOLTA PARA O ALTO — 10/10/2026, P77 (achado 15, direção seção
+   *   4). O 06/09 acima tinha razão sobre o sintoma (255 imagens antes dos
+   *   ajustes) e errou o remédio: a coleção é o que a página de papel de parede
+   *   É, e no fim ela vinha depois de onze ações técnicas. Ela abre a página de
+   *   novo, e o que resolve o sintoma é o tamanho: a primeira leva da galeria
+   *   são três fileiras (`PRIMEIRA_LEVA_GALERIA`), e o resto vem pelo «Mostrar
+   *   mais». Os ajustes ficam a uma rolagem curta, e as ações técnicas no «⋯». */
+  const PESO = { galeria: -1, chaves: 0, acoes: 1, apps: 2, jogos: 2, folhas: 3 };
   /* `sort` ESTÁVEL E POR SEÇÃO: devolver 0 entre grupos de seções diferentes
    * preserva a ordem que o servidor mandou (o `sort` do JavaScript é estável
    * desde 2019), então a sequência das seções na página não muda — só a ordem

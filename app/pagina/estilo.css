@@ -4141,3 +4141,36 @@ a.folha:hover b { color: var(--text); }
  * 1fr)` o desenho encolhe dentro do botão em vez de empurrá-lo. */
 .par-botoes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .par-botoes button.lado-botao { min-width: 0; overflow: hidden; }
+
+/* PAPEL DE PAREDE: o número em minutos com a unidade ao lado, e as abas da
+ * coleção arranjadas pelo que são (ver `GRUPOS_PAREDE`). */
+.controle-minutos { display: flex; align-items: center; gap: .45rem; }
+.controle-minutos input { width: 7rem; font-variant-numeric: tabular-nums; }
+.controle-minutos .unidade { color: var(--subtext0); font-size: var(--t-frase); }
+
+.abas-galeria { align-items: center; gap: .5rem .9rem; }
+.abas-bloco { display: flex; flex-wrap: wrap; gap: .3rem; }
+/* O carrossel e os dois lados dele numa peça só: as pílulas grudam, e só as
+ * pontas da peça são redondas. */
+.abas-bloco[data-bloco="carrossel"] { gap: 0; }
+.abas-bloco[data-bloco="carrossel"] > button { border-radius: 0; }
+.abas-bloco[data-bloco="carrossel"] > button + button { border-left-width: 0; }
+.abas-bloco[data-bloco="carrossel"] > button:first-child { border-radius: var(--r-max) 0 0 var(--r-max); }
+.abas-bloco[data-bloco="carrossel"] > button:last-child { border-radius: 0 var(--r-max) var(--r-max) 0; }
+/* Os glifos vão por escape: o sanitizador do commit tira o sol e a lua crus
+ * do arquivo (são contados como emoji). */
+.abas-galeria button[data-grupo-parede="noite"]::before { content: "\263E  "; }
+.abas-galeria button[data-grupo-parede="dia"]::before { content: "\2600  "; }
+.abas-galeria button[data-grupo-parede="favoritos"]::before { content: "★ "; }
+/* As recusadas no fim da linha, tracejadas e apagadas: é o que ficou de fora. */
+.abas-bloco[data-bloco="fora"] { margin-left: auto; }
+.abas-galeria button[data-grupo-parede="banidos"] { border-style: dashed; background: transparent; color: var(--overlay1); }
+.abas-galeria button[data-grupo-parede="banidos"]::before { content: "⊘ "; }
+.abas-galeria button[data-grupo-parede="banidos"][aria-pressed="true"] {
+  background: var(--surface2); border-color: var(--overlay0); color: var(--text);
+}
+.abas-galeria > .acervo-add { margin: 0; }
+/* O «Pular a galeria» fora de foco não ocupa lugar: deslocado para a esquerda
+ * ele continuava reservando 40 px entre as abas e as fotos. No foco ele volta
+ * ao fluxo, onde está (`.pular-grade:focus`, lá em cima). */
+.pular-grade:not(:focus) { position: absolute; }

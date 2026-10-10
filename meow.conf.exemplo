@@ -1068,7 +1068,7 @@ MIDIA_CONTROLES="nao"
 
 # @ Pasta do carrossel
 # > Dentro dela nascem as quatro que importam: ativos, favoritos, banidos e recusadas.
-# A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
+# [avancado] A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
 #   ativos/ (é a que gira) · favoritos/ · banidos/ (movidos, nunca apagados) ·
 #   originais/ (a foto antes de qualquer recolorização)
 # O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
@@ -1162,7 +1162,7 @@ FILES_MENU="sim"                  # sim | nao
 
 # @ Reconstruir sozinho quando atualizar
 # > A reconstrução baixa uns 161 MB e leva minutos. Sem isto os dois itens somem na próxima atualização.
-# Compilar sozinho quando o apt subir a versão do cosmic-files? O build baixa
+# [avancado] Compilar sozinho quando o apt subir a versão do cosmic-files? O build baixa
 # ~161 MB de fonte e leva minutos; roda em background (Nice=19, IO idle), no
 # máximo 3 tentativas por versão, e adia se houver jogo aberto.
 # Com "nao", o doctor avisa e você roda `meow files-menu build` quando quiser.
