@@ -2315,6 +2315,9 @@ const FUNDOS = [
   { id: "claro", rotulo: "Claro", varr: "--fundo-claro" },
 ];
 let FUNDO = FUNDOS[0];
+/* A página que mostra a fileira (P80, item 5): a do nome da seção do
+ * meow.conf.exemplo, «Cor e tela». */
+const PAGINA_DO_FUNDO = "Cor e tela";
 
 function aplicarFundo() {
   document.documentElement.style.setProperty("--fundo-teste", `var(${FUNDO.varr})`);
@@ -9593,9 +9596,12 @@ function render() {
 
   /* As quatro pílulas de fundo só aparecem onde há imagem para pôr sobre elas —
    * numa aba de texto puro seriam quatro botões que não fazem nada visível. */
-  const temImagem = grupos.some((g) => g.tipo === "galeria" || g.nome === GRUPO_ICONES
-    || (g.itens || []).some((i) => i.previa === "gato" || i.previa === "cursor"));
-  if (temImagem) alvo.append(barraDeFundos());
+  /* [UMA PÁGINA SÓ — 10/10/2026, P80 (item 5). A regra de cima punha a fileira
+   * em Ícones, Cor e tela, Logo e Papel de parede, e a tirava das outras: o
+   * cabeçalho mudava de página para página sem razão que se visse. O fundo é
+   * uma escolha de como a tela se vê, lembrada para a página inteira (`FUNDO`),
+   * então ele mora na página de Cor e tela e vale em todas.] */
+  if (grupos.some((g) => g.nome === PAGINA_DO_FUNDO)) alvo.append(barraDeFundos());
   let ultimoAssunto = null;
   let barraDesenhada = false;   // o par painel+dock sai uma vez por página
 

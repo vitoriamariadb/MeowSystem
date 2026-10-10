@@ -45,7 +45,8 @@ O QUE REPROVA (e de onde cada regra vem)
        · a pasta travada (a dos PNG feitos à mão) leva o selo de trava da
          página, com o porquê na dica;
        · as três linhas de Dia e noite usam o seletor de hora, na ordem
-         começa | termina.
+         começa | termina;
+       · a fileira «Fundo» mora só em Cor e tela.
 
 A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
   A decisão 8 de 02-decisoes.md manda o painel de QA subir SÓ com HOME
@@ -441,6 +442,27 @@ NOITE_JS = r"""
 """
 
 
+# 8.5 — A FILEIRA «FUNDO», UMA REGRA SÓ: ela aparecia em Ícones, Cor e tela,
+#   Logo e Papel de parede, e sumia nas outras. Mora numa página só, a de Cor
+#   e tela; o fundo escolhido lá vale para a página inteira.
+PAGINA_DO_FUNDO = "Cor e tela"
+
+
+def fundo_em_toda_pagina(pag):
+    defeitos = []
+    grupos = pag.evaluate("() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
+                          ".map((b) => b.dataset.grupo)")
+    for grupo in grupos:
+        abrir_pagina(pag, grupo)
+        tem = pag.evaluate("() => [...document.querySelectorAll('#conteudo .fundos')]"
+                           ".some((e) => e.checkVisibility && e.checkVisibility())")
+        if tem and grupo != PAGINA_DO_FUNDO:
+            defeitos.append(f"a fileira «Fundo» aparece em {grupo}, fora de {PAGINA_DO_FUNDO}")
+        if not tem and grupo == PAGINA_DO_FUNDO:
+            defeitos.append(f"a fileira «Fundo» não aparece em {PAGINA_DO_FUNDO}")
+    return defeitos
+
+
 def acabamento(pag):
     """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -461,6 +483,7 @@ def acabamento(pag):
     reprovas += [("Dia e noite", d) for d in pag.evaluate(NOITE_JS)]
     if FOTOS:
         pag.screenshot(path=os.path.join(FOTOS, "p80-dia-e-noite.png"))
+    reprovas += [("cabeçalho", d) for d in fundo_em_toda_pagina(pag)]
     return reprovas
 
 
