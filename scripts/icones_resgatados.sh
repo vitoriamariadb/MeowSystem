@@ -200,18 +200,22 @@ _resgatados_instalar() {
 #   "22 de 22" e a tela continuava com os antigos. A pergunta foi "mas pq elas
 #   não tao funcionando agora?" — e não havia nada errado com os arquivos.
 #
-#   POR QUE ISTO AVISA EM VEZ DE REINICIAR SOZINHO
-#     Reiniciar o painel é derrubar a topbar e a dock da tela dela por alguns
-#     segundos, e o `meow-painel.service` existe justamente porque o supervisor
-#     do COSMIC tem um backoff SEM TETO que já deixou esta máquina 16h sem barra
-#     (ver o cabeçalho daquela unidade). Um `pkill` escondido dentro de "instalei
-#     um ícone" é caro demais para ser efeito colateral de outra coisa — e o
-#     `install.sh` roda este script no meio de trinta etapas.
-#     Quem decide derrubar a barra é ela, com a linha impressa aqui na mão.
+#   E AGORA ELES RELÊEM — 10/10/2026, P79 (item 5). Isto avisava em vez de
+#     reiniciar, porque um `pkill` escondido em «instalei um ícone» derrubaria
+#     a barra no meio de trinta etapas, e terminava com a receita do `pkill`
+#     — a tela do painel mandando digitar. A porta única da tela
+#     (`meow_tela_reler`, lib/comum.sh) faz o reciclo do jeito seguro: só a
+#     sessão desta conta, o painel pelo `painel.sh reciclar` (que recusa
+#     quando ninguém repõe a barra) e o lançador, que o `cosmic-session` repõe
+#     em segundos. Só depois de algo ter mudado, e nunca no ensaio.
 _resgatados_avisar() {
-  meow_info "  o painel e o lançador leem o tema ao nascer e guardam em memória —"
-  meow_info "  para ver agora, sem esperar o próximo login:"
-  meow_info "      pkill -x cosmic-panel && pkill -f cosmic-app-library"
+  meow_seco && return 0
+  meow_tela_reler
+  case $? in
+    0) meow_ok "os ícones resgatados já estão na dock e no menu" ;;
+    3) meow_info "fora da sessão gráfica: os ícones resgatados aparecem no próximo login" ;;
+  esac
+  return 0
 }
 
 # A CACHE DO TEMA, QUE ENGOLE ÍCONE NOVO EM SILÊNCIO

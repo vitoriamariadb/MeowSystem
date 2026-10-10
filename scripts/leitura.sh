@@ -927,7 +927,7 @@ cmd_estado() {
   if [ -x "$LEITURA_APPLET_BIN" ]; then
     meow_ok "$(_leitura_col "applet: binário")$LEITURA_APPLET_BIN"
   else
-    meow_pula "$(_leitura_col "applet: binário")ausente — LEITURA_COMPILAR=1 ./scripts/leitura_build.sh"
+    meow_pula "$(_leitura_col "applet: binário")ausente — o conserto do doctor o compila"
   fi
   if [ -f "$LEITURA_APPLET_SOMBRA" ]; then
     meow_ok "$(_leitura_col "applet: .desktop")$LEITURA_APPLET_SOMBRA"

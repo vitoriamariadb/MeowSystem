@@ -1281,6 +1281,14 @@ class Percurso:
                    f"a caixa de «{titulo}» oferece o «Ver o que faria» "
                    "exatamente quando a ação pede senha ou desfaz algo")
         vistas = self.acoes_vistas.setdefault(ident, set())
+        # A CAIXA DO SUDO É UMA LINHA, E O PORQUÊ É O «?» — P79, decisão 11.
+        if acao["sudo"]:
+            sudo = self.pag.locator("#confirmar-sudo")
+            self.checa(sudo.is_visible() and "\n" not in sudo.locator("strong").inner_text().strip(),
+                       f"a caixa de «{titulo}» diz o sudo em uma linha")
+            if self.achar("caixa · ?") is not None:
+                self.h_porque("caixa · ?")
+                self.acionados.add("caixa · ?")
 
         # 1. Cancelar
         self.pag.locator("#confirmar button[value=nao]").click()
@@ -1991,6 +1999,27 @@ class Percurso:
         self.pag.locator("#conteudo .abas button").first.click()
         self.assentar(quieto=200)
 
+    def h_favoritar(self, nome):
+        """A estrela da primeira imagem (P79): guarda nas favoritas, a aba
+        «Favoritos» conta uma a mais, e a estrela acesa a tira de volta."""
+        c0 = self.contagem_galeria()
+        self.gesto_de_acao(lambda: self.clicar_na_ficha(nome), "Guardar nas favoritas")
+        self.assentar(quieto=300)
+        c1 = self.contagem_galeria()
+        self.checa(c1.get("Favoritos", 0) == c0.get("Favoritos", 0) + 1
+                   and c1.get("No carrossel") == c0.get("No carrossel"),
+                   f"a estrela guarda a imagem nas favoritas e ela segue girando ({c0} → {c1})")
+        tirar = "papel de parede · Tirar das favoritas"
+        if self.checa(self.esperar_nome(tirar) is not None, "a favorita tem a estrela acesa"):
+            self.gesto_de_acao(lambda: self.clicar_na_ficha(tirar), "Tirar das favoritas")
+            self.assentar(quieto=300)
+            c2 = self.contagem_galeria()
+            self.checa(c2.get("Favoritos", 0) == c0.get("Favoritos", 0),
+                       f"a estrela acesa tira a imagem das favoritas ({c2})")
+            self.acionados.add(tirar)
+        self.pag.locator("#conteudo .abas button").first.click()
+        self.assentar(quieto=200)
+
     def h_filtro(self, nome):
         """O filtro de uma grade: pelo nome do primeiro item, e depois limpo.
 
@@ -2156,14 +2185,35 @@ class Percurso:
         """Não sai para a internet: o pedido de fora é recusado pela rota do
         contexto, e o que se confere é que o clique abre uma aba NOVA no
         endereço certo, sem levar esta página junto."""
-        el = self.achar(nome)
-        href = el.get_attribute("href") or ""
-        self.checa(href.startswith("https://"), f"o link externo vai para https ({href[:50]})")
-        self.checa("noopener" in (el.get_attribute("rel") or ""),
-                   "e abre sem dar a esta página à outra (rel=noopener)")
+        # A REPINTURA ENTRE O CENSO E O CLIQUE — 10/10/2026, P79 (achado da
+        #   conferência da P77: o «Créditos» estourava o tempo uma vez no gate
+        #   completo e passava na corrida seguinte). A marca `data-inventario`
+        #   mora no elemento, e uma repintura do menu no meio do gesto (a página
+        #   relê o que chega pela rede) a apaga: o `click` ficava esperando um
+        #   elemento que não existe mais até o teto. Reproduzido repintando o
+        #   menu no primeiro `pointerover` do link: «Locator.click: Timeout
+        #   30000ms exceeded». É o mesmo caso do `clicar_nome`, e a cura é a
+        #   dele: o censo de novo e outra tentativa, com um teto curto por clique.
+        nova = None
         n0 = len(PEDIDOS_DE_FORA)
-        with self.pag.context.expect_page(timeout=5000) as nova:
-            el.click()
+        for _tentativa in range(4):
+            el = self.esperar_nome(nome, teto=4.0)
+            if el is None:
+                break
+            try:
+                href = el.get_attribute("href", timeout=2500) or ""
+                rel = el.get_attribute("rel", timeout=2500) or ""
+                with self.pag.context.expect_page(timeout=5000) as aberta:
+                    el.click(timeout=2500)
+                nova = aberta
+                break
+            except Exception:
+                self.pag.wait_for_timeout(200)
+        if nova is None:
+            self.falha(f"não consegui clicar em «{nome}»")
+            return
+        self.checa(href.startswith("https://"), f"o link externo vai para https ({href[:50]})")
+        self.checa("noopener" in rel, "e abre sem dar a esta página à outra (rel=noopener)")
         nova.value.wait_for_timeout(300)
         pedidos = PEDIDOS_DE_FORA[n0:]
         self.checa(any(u.rstrip("/") == href.rstrip("/") for u in pedidos),
@@ -3117,7 +3167,9 @@ class Percurso:
         tabela = [
             (r" · \?$", self.h_porque),
             (r"^ajuste \S+ · opção$", self.h_opcoes),
-            (r"^ajuste \S+ · (deixar vazio|Restaurar ao padrão|Automático)$",
+            # [P79, decisão 10: o restaurar das chaves de fábrica preenchida diz
+            #   o de fábrica no parêntese; o «Não tocar» é o vazio delas.]
+            (r"^ajuste \S+ · (deixar vazio|Restaurar ao padrão( \(.*\))?|Automático)$",
              self.h_botao_do_cartao),
             (r"^ajuste \S+ · deslizante$", self.h_deslizante),
             (r"^ajuste \S+ · campo$", self.h_campo),
@@ -3132,6 +3184,7 @@ class Percurso:
             (r"^aba · (Escuro|Vidro escuro|Vidro claro|Claro)$", self.h_fundo),
             (r"^aba · (No carrossel|Noite|Dia|Favoritos|Recusadas)$", self.h_aba_galeria),
             (r"^papel de parede · (Usar|Dia|Noite|Tirar)$", self.h_galeria),
+            (r"^papel de parede · Guardar nas favoritas$", self.h_favoritar),
             (r"^aba · filtro «", self.h_filtro),
             (r"âncora «Pular", self.h_pular),
             (r"^aplicativo · abrir$", self.h_aplicativo),
@@ -3418,6 +3471,8 @@ EXCECOES = {
     "prompt_instalar_starship": "baixa e instala o starship da internet",
     "files_menu_build": "baixa e compila o cosmic-files (dezenas de minutos)",
     "spotify_baixar_tema": "baixa o tema do spicetify da internet",
+    # [P79, decisão 9: o gesto explícito na extensão que um pack importado pede.]
+    "vscode_instalar_extensao": "baixa e instala no VS Code a extensão que o pack importado pede",
 }
 
 
@@ -3524,6 +3579,7 @@ INVENTARIO = {
         ajuste ACCENT · opção
         ajuste CURSOR · ?
         ajuste CURSOR · Adicionar tema
+        ajuste CURSOR · deixar vazio
         ajuste CURSOR · opção
         ajuste ESCALA_TELA · ?
         ajuste ESCALA_TELA · deixar vazio
@@ -3531,6 +3587,7 @@ INVENTARIO = {
         ajuste FLAVOR · ?
         ajuste FLAVOR · opção
         ajuste JANELAS_TILING · ?
+        ajuste JANELAS_TILING · deixar vazio
         ajuste JANELAS_TILING · opção
         ajuste JANELAS_TILING_ESCOPO · ?
         ajuste JANELAS_TILING_ESCOPO · opção
@@ -3598,7 +3655,7 @@ INVENTARIO = {
         ajuste FASTFETCH_LOGO_RECUO · deslizante
         ajuste FASTFETCH_TITULO · ?
         ajuste FASTFETCH_TITULO · campo
-        ajuste FASTFETCH_TITULO · Restaurar ao padrão
+        ajuste FASTFETCH_TITULO · Restaurar ao padrão ({full-user-name} @ {host-name-colored})
         ajuste LOGO_DIA · ?
         ajuste LOGO_DIA · opção
         ajuste LOGO_MODO · ?
@@ -3717,6 +3774,7 @@ INVENTARIO = {
         ajuste MIDIA_LARGURA · ?
         ajuste MIDIA_LARGURA · campo
         ajuste RELOGIO_SEGUNDOS · ?
+        ajuste RELOGIO_SEGUNDOS · deixar vazio
         ajuste RELOGIO_SEGUNDOS · opção
         ajuste VIDRO_AO_MAXIMIZAR · ?
         ajuste VIDRO_AO_MAXIMIZAR · opção
@@ -3764,6 +3822,7 @@ INVENTARIO = {
         ação «Voltar a girar» · Executar
         ação «Voltar a girar» · ver comando
         papel de parede · Dia
+        papel de parede · Guardar nas favoritas
         papel de parede · Noite
         papel de parede · Tirar
         papel de parede · Usar
@@ -3792,6 +3851,7 @@ INVENTARIO = {
         aba · ?
         aba · abre «⋯ Ações técnicas»
         ajuste LEITURA_AGENDA · ?
+        ajuste LEITURA_AGENDA · deixar vazio
         ajuste LEITURA_AGENDA · opção
         ajuste LEITURA_APPLET · ?
         ajuste LEITURA_APPLET · opção
@@ -3958,6 +4018,7 @@ REVELADOS = {
         caixa · Cancelar
         caixa · #confirmar-ok
         caixa · #confirmar-ensaio
+        caixa · ?
         gaveta · #parar
         gaveta · #fechar-gaveta
         gaveta · #saida
@@ -3972,6 +4033,7 @@ REVELADOS = {
         *linha de comando · Copiar
         aba · Como está (desfaz o bloco)
         ajuste * · Restaurar ao padrão
+        ajuste * · Restaurar ao padrão (*)
         ajuste * · Automático
         ajuste * · deixar vazio
     """),
@@ -4027,6 +4089,7 @@ REVELADOS = {
         ação «Reaplicar as regras do carrossel» · ver comando
         papel de parede · Devolver
         papel de parede · Medir
+        papel de parede · Tirar das favoritas
     """),
     "Lançadores e jogos": PAINEL_DO_APLICATIVO | _linhas("""
         ação «Baixar o tema do Spotify» · ?
@@ -4187,6 +4250,21 @@ def main():
                                 "corrida: se foi consertado, ele sai de DEFEITOS_CONHECIDOS")
 
             v.aba = "exceções"
+            # O GESTO DA EXTENSÃO DO VS CODE SÓ NASCE COM PACK IMPORTADO NO AR
+            #   (P79, decisão 9): os botões são um por extensão que o pack
+            #   importado pede, e a casa de brinquedo veste o pack do
+            #   repositório. O que se prova aqui é a cerca: sem pack importado,
+            #   o servidor recusa rodar a ação com qualquer extensão, mesmo
+            #   confirmada. O botão é provado pelo tests/temas-de-apps.sh e pelo
+            #   tests/restos-do-painel.sh (o mesmo caminho da escolha da P53).
+            if not SO_ABA and "vscode_instalar_extensao" in exc:
+                v.esperar_status(409, "/api/rodar")
+                r = v.js("(c) => api('/api/rodar', {method: 'POST', body: JSON.stringify(c)})",
+                         {"acao": "vscode_instalar_extensao",
+                          "argumento": "Catppuccin.catppuccin-vsc", "confirmado": True})
+                if v.checa(r and "fora da lista" in str(r.get("erro", "")),
+                           f"sem pack importado, o servidor recusa o gesto da extensão ({r!r})"):
+                    v.acoes_vistas.setdefault("vscode_instalar_extensao", set()).add("recusada")
             if not SO_ABA:
                 for i in sorted(exc):
                     vistas = v.acoes_vistas.get(i, set())

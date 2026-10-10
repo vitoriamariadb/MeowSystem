@@ -170,7 +170,19 @@ cmd_aplicar() {
     if [ "$mudou" = "1" ]; then
       meow_info "  (removi o nosso, que era de outra versão)"
     fi
-    disparar_autobuild "$ver" || meow_info "  para construir agora: meow files-menu build"
+    # [P79, item 5: «para construir agora: meow files-menu build» era a tela
+    #   mandando digitar. No ensaio, diz o que o conserto faria; sem o
+    #   auto-build, a pendência `files-menu-build`, que o painel liga ao
+    #   «Construir o menu da área de trabalho».]
+    disparar_autobuild "$ver" || {
+      if meow_seco; then
+        meow_muda "construiria o menu de contexto do cosmic-files $ver, em segundo plano"
+      else
+        meow_pendencia_acionavel files-menu-build \
+          "Não há build patchado para o cosmic-files $ver, e a construção sozinha não rodou" \
+          "meow files-menu build"
+      fi
+    }
     # 1 SÓ QUANDO ESTA PASSAGEM ESCREVEU. Sem artefato para a versão instalada,
     # não há nada que ESTE script possa fazer agora: quem constrói é uma unit em
     # background, que leva minutos e baixa 161 MB. Devolver 1 aqui fazia o

@@ -315,12 +315,19 @@ etapa_tema() { passo "tema falso que aplicou"; TEMA_SEM_CAPTURA=""; return 0; }
 etapa_greeter() { passo "tela de login falsa sem sudo"; return 3; }
 etapa_ocultar() { passo "ocultar falso sem sudo"; return 3; }
 '
-if ! contem 'algumas dessas precisavam de root. Para completá-las:  sudo -v && ./install.sh'; then
-  falhou "login por root: o pulo de root de verdade perdeu a frase do sudo"
+# [P79, item 5: «nada manda digitar». O rodapé dizia «Para completá-las: sudo
+#   -v && ./install.sh»; agora o pulo de root vira a pendência
+#   `instalar-com-root`, que o painel liga ao «Instalar tudo», e a frase diz
+#   QUAIS etapas esperam, sem receita de terminal.]
+pend_root="$(cut -f1,4 "$TMP/login_por_root/lar/.local/state/meowsystem/pendencias.tsv" 2>/dev/null | grep '^instalar-com-root')"
+if contem 'sudo -v'; then
+  falhou "login por root: o rodapé ainda manda digitar o sudo"
+elif ! contem 'precisavam de root e se pularam: greeter ocultar' || [ -z "$pend_root" ]; then
+  falhou "login por root: o pulo de root não virou pendência com as etapas — pendência «$pend_root», saiu: $(printf '%s' "$SAIDA" | tail -4 | tr '\n' ' ')"
 elif contem 'não tem captura'; then
   falhou "login por root: o rodapé culpou a captura com o tema aplicado"
 else
-  passou "tela de login sem sudo, com o tema aplicado: o rodapé manda ao sudo, como antes"
+  passou "tela de login sem sudo, com o tema aplicado: o pulo de root vira pendência com botão, sem receita"
 fi
 cenario login_ensaio 'etapa_tema etapa_greeter' '
 LOG_NIVEL=info

@@ -897,6 +897,13 @@ def _leitura_no_applet(chave):
 
 
 def _valendo_agora(chave):
+    if chave == "LOGO_MODO":
+        # O MODO QUE VALE COM A CHAVE VAZIA — 10/10/2026, P79 (conferência da
+        # P77). Com `LOGO_MODO=""` o `logo.sh` lê `rotacao` (com
+        # `LOGO_ROTACAO="sim"`) ou `hora`, e a moldura «Gato do dock» procurava
+        # o modo vazio e não mostrava gato nenhum. Quem sabe a regra é o
+        # `logo.sh modo`, pelo `_modo_do_gato`; a página recebe a resposta aqui.
+        return _modo_do_gato() or None
     if chave.startswith("LEITURA_"):
         # [P77: o lugar do applet, e não a tela deste minuto — ver acima.]
         return _leitura_no_applet(chave)
@@ -2391,6 +2398,9 @@ def ler_esquema():
             "titulo": titulo_escrito,
             "frase": frase_escrita or _frase_curta(ajuda, inline),
             "padrao": _valor_da_linha(linha),
+            # O DE FÁBRICA QUE O PACK NO AR ESCOLHE, quando ele escolhe — ver
+            #   `_padrao_do_pack`. É o que o «Restaurar ao padrão» grava.
+            "padrao_do_pack": _padrao_do_pack(chave),
             # `vazio` NÃO É UM VALOR, É A AUSÊNCIA DELE — e escrevê-lo seria um bug
             #   Três chaves documentam `nao | sim | vazio (= não toca)`. Lido ao pé
             #   da letra, o `vazio` vira mais um token da lista, e um clique nele
@@ -2823,6 +2833,21 @@ def _ponteiro_do_pack():
         return None
 
 
+def _padrao_do_pack(chave):
+    """O valor de fábrica que o PACK no ar escolhe para `chave`, ou None.
+
+    O PONTEIRO DE FÁBRICA É O DO PACK — 10/10/2026, conferência da P79. A
+    decisão 10 pôs o «Restaurar ao padrão» a gravar o de fábrica, e o de fábrica
+    do `CURSOR` no exemplo é o `catppuccin-mocha-light`: com o Dracula no ar, o
+    botão nascia sobre o `Dracula-Cursor` e gravava o ponteiro do OUTRO pack —
+    o mesmo resto que a troca de pack (item 4) acabou de ensinar a levar junto.
+    A régua é a do `migrar_conf.py` (`vestigios`): o ponteiro que o pack traz,
+    ou, sem um, o do exemplo. Só o `CURSOR` tem essa forma hoje."""
+    if chave != "CURSOR":
+        return None
+    return (_ponteiro_do_pack() or {}).get("valor") or None
+
+
 def _ponteiro_vem_do_pack(valor):
     """True quando o CURSOR escolhido é o ponteiro que o pack no ar traz. [P51]"""
     do_pack = _ponteiro_do_pack() if valor else None
@@ -2950,6 +2975,18 @@ def _paredes_ativas():
         return []
     return [os.path.join(base, n) for n in nomes
             if os.path.splitext(n)[1].lower() in EXT_RASTER
+            and os.path.isfile(os.path.join(base, n))]
+
+
+def _paredes_favoritas():
+    """Os NOMES das imagens em `favoritos/` — é o que `wallpaper desfavoritar`
+    recebe (P79, 10/10/2026). Nome, e não caminho, como as banidas."""
+    base = os.path.join(_wallpaper_base(), "favoritos")
+    try:
+        nomes = sorted(os.listdir(base))
+    except OSError:
+        return []
+    return [n for n in nomes if os.path.splitext(n)[1].lower() in EXT_RASTER
             and os.path.isfile(os.path.join(base, n))]
 
 
@@ -4079,6 +4116,7 @@ PROVEDORES = {
     "areas": _areas_alfinetadas,
     "paredes_ativas": _paredes_ativas,
     "paredes_banidas": _paredes_banidas,
+    "paredes_favoritas": lambda: _paredes_favoritas(),
     # Os theme packs do disco — o argumento do «Usar este» da Home. A varredura
     # é a mesma do `/api/packs`, então o cartão só oferece o que esta cerca
     # aceita. [P10]
@@ -4089,6 +4127,10 @@ PROVEDORES = {
     # O argumento dos dois botões da pendência de tema de terceiro: os apps que
     # têm essa pendência na Home agora. [P53] Ver `SUFIXO_TEMA_DE_TERCEIRO`.
     "apps_de_terceiro": lambda: sorted({_app_da_pendencia(p["id"]) for p in pendencias()} - {""}),
+    # O argumento do «Instalar <extensão>» da pendência do VS Code: as extensões
+    # que o pack IMPORTADO no ar pede (decisão 9, P79). Pack do repositório dá
+    # lista vazia, e com ela nenhum botão e nenhum argumento aceito.
+    "extensoes_de_terceiro": lambda: _extensoes_de_terceiro(),
 }
 
 
@@ -4989,6 +5031,26 @@ ACOES = {
                  "dura é «Quanto tempo dura a imagem escolhida» — com 0, até "
                  "«Voltar a girar».",
     },
+    # FAVORITAR — 10/10/2026, P79 (QA da P77). A galeria tinha a aba
+    #   «Favoritos» e nenhuma imagem oferecia o gesto. `oculta` pelo motivo das
+    #   outras desta ficha: o argumento é uma imagem, e quem a escolhe é a
+    #   galeria. Sem pergunta: guardar uma cópia se desfaz com o outro botão.
+    "wallpaper_favoritar": {
+        "rotulo": "Guardar nas favoritas",
+        "grupo": "Papel de parede",
+        "natureza": "gravar",
+        "argv": _meow("wallpaper", "favoritar", "@ARG@"), "arg": "paredes_ativas",
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Guarda uma cópia nas favoritas; a imagem segue girando.",
+    },
+    "wallpaper_desfavoritar": {
+        "rotulo": "Tirar das favoritas",
+        "grupo": "Papel de parede",
+        "natureza": "tirar",
+        "argv": _meow("wallpaper", "desfavoritar", "@ARG@"), "arg": "paredes_favoritas",
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Tira a cópia das favoritas; a imagem do carrossel fica.",
+    },
     "wallpaper_dia": {
         "rotulo": "Guardar esta imagem para o dia",
         "grupo": "Papel de parede",
@@ -5263,6 +5325,25 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "O tema de agora fica, e o MeowSystem para de perguntar "
                  "enquanto o programa estiver nele.",
+    },
+    # A EXTENSÃO DO VS CODE DE PACK IMPORTADO — decisão 9 (10/10/2026, P79)
+    #   Só o pack do `packs/` do repositório instala extensão sozinho; o
+    #   importado pede, e o módulo deixa a pendência
+    #   `vscode-extensao-de-terceiro`. Este é o gesto explícito NAQUELA
+    #   extensão: o argumento é uma das que o pack no ar pede
+    #   (`extensoes_de_terceiro`), e ele chega ao módulo pelo ambiente — o verbo
+    #   é o de sempre, `apps aplicar vscode`, como o do Spotify.
+    "vscode_instalar_extensao": {
+        "rotulo": "Instalar a extensão do VS Code",
+        "grupo": "Lançadores e jogos",
+        "natureza": "baixar",
+        "argv": _meow("apps", "aplicar", "vscode"), "arg": "extensoes_de_terceiro",
+        "ambiente": {"MEOW_VSCODE_EXTENSAO": "@ARG@"},
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Instala no VS Code, da loja oficial e pelo id do botão, a extensão "
+                 "que o pack importado pede. Extensão é código que roda a cada "
+                 "abertura do editor.",
     },
     # O TEMA DO SPOTIFY — 22/09/2026, sprint P2. É a ação para onde a pendência
     # `spicetify-tema-ausente` aponta. O argv é o verbo que já existia (`apps
@@ -5611,6 +5692,8 @@ def _prev_paredes():
                          # `""` quando a medição é que decide — é o caso comum,
                          # e é o que faz o botão de desfazer não aparecer.
                          "lado": escolhas.get(nome, ""),
+                         # [P79: a ficha mostra a estrela acesa na favorita.]
+                         "favorito": os.path.isfile(os.path.join(base, "favoritos", nome)),
                          "banir": canonico if os.path.isfile(canonico) else ""})
     return fora
 
@@ -6697,6 +6780,11 @@ ACAO_DA_PENDENCIA = {
     "starship-ausente": "prompt_instalar_starship",
     "spicetify-tema-ausente": "spotify_baixar_tema",
     "files-menu-build": "files_menu_build",
+    # P79 (item 5, «nada manda digitar»): o rodapé do instalador mandava
+    # digitar «sudo -v && ./install.sh», e o applet de leitura «LEITURA_COMPILAR=1
+    # …/leitura_build.sh». Viraram pendência, e o botão é o de quem faz.
+    "instalar-com-root": "instalar",
+    "leitura-applet": "doctor_consertar",
 }
 
 # AS PENDÊNCIAS QUE ACEITAM "NÃO, OBRIGADO"
@@ -6723,6 +6811,40 @@ RECUSA_DA_PENDENCIA = {
 SUFIXO_TEMA_DE_TERCEIRO = "-tema-de-terceiro"
 ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar pelo tema do pack"),
                             ("apps_manter_o_meu", "Manter o meu"))
+
+
+# A EXTENSÃO DO VS CODE DE PACK IMPORTADO — decisão 9 (10/10/2026, P79). O id
+#   é o que o `assets/temas-de-apps/vscode/manifesto.sh` registra; as extensões
+#   saem do pack no ar, e só quando ele NÃO mora no `packs/` do repositório —
+#   a mesma régua do módulo, com os links resolvidos.
+PENDENCIA_EXTENSAO = "vscode-extensao-de-terceiro"
+RE_EXTENSAO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*\.[A-Za-z0-9][A-Za-z0-9-]*$")
+
+
+def _extensoes_de_terceiro():
+    """As extensões do VS Code que o pack importado no ar pede, ou []."""
+    mod = modulo_pack()
+    if not mod:
+        return []
+    vals = valores_efetivos(["PACK", "FLAVOR"])
+    try:
+        ident, dir_pack, _r = mod.adocao(vals.get("PACK") or "", vals.get("FLAVOR") or "")
+        dir_pack = dir_pack or mod.achar(ident) or ""
+    except Exception:
+        return []
+    do_repo = os.path.realpath(os.path.join(RAIZ, "packs"))
+    if not dir_pack or os.path.realpath(dir_pack).startswith(do_repo + os.sep):
+        return []
+    fora = []
+    for trilha in ("apps.vscode.origem.extensao", "apps.vscode-icones.origem.extensao"):
+        try:
+            quem, valor = mod.tema_de_app(trilha, ref=dir_pack)
+        except Exception:
+            continue
+        if quem == ident and isinstance(valor, str) and RE_EXTENSAO.match(valor) \
+                and valor not in fora:
+            fora.append(valor)
+    return fora
 
 
 def _app_da_pendencia(ident):
@@ -6789,6 +6911,8 @@ def onde_na_tela(ident):
     if _app_da_pendencia(ident):
         return "%s, na aba %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_TEMA_DE_TERCEIRO),
                                   ABA_INICIO)
+    if ident == PENDENCIA_EXTENSAO:
+        return "«Instalar», na aba %s" % ABA_INICIO
     if ident == "inicio":
         return "na aba %s" % ABA_INICIO
     esquema = ler_esquema()
@@ -6834,18 +6958,29 @@ def pendencias():
                 #   dispararia um segundo build em cima do primeiro.
                 acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
                 app = _app_da_pendencia(ident) if comando else ""
+                escolha = [{"acao": a, "argumento": app, "rotulo": r}
+                           for a, r in ESCOLHA_TEMA_DE_TERCEIRO] if app else []
+                nome = ""
+                # Um botão por extensão que o pack importado pede (decisão 9,
+                # P79), com o selo de rede da ação; a lista vazia (o pack já é
+                # do repositório) não desenha botão nenhum.
+                if ident == PENDENCIA_EXTENSAO and comando:
+                    escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
+                                "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
+                    nome = "VS Code: extensão de pack importado"
+                rede = any(ACOES.get(a, {}).get("rede") for a in [acao] + [e["acao"] for e in escolha])
                 fora.append({
                     "id": ident, "etapa": etapa, "frase": frase,
                     "comando": comando, "quando": quando,
                     "acao": acao,
                     # Os dois lados da decisão, na ordem da frase. [P53]
-                    "escolha": [{"acao": a, "argumento": app, "rotulo": r}
-                                for a, r in ESCOLHA_TEMA_DE_TERCEIRO] if app else [],
+                    "escolha": escolha,
+                    "nome": nome,
                     "recusavel": ident in RECUSA_DA_PENDENCIA,
                     # O rótulo que os cartões de ação já usam. Sai da própria
                     # ação, e não de uma segunda lista aqui: duas verdades sobre
                     # o mesmo botão é como a pastilha "ACEITA SECO" mentiu antes.
-                    "rede": bool(ACOES.get(acao, {}).get("rede")),
+                    "rede": bool(rede),
                 })
     except OSError:
         return []
@@ -6979,11 +7114,16 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
         })
 
     argv = list(acao["argv"])
-    if "@ARG@" in argv:
+    # O ARGUMENTO PODE IR PELO AMBIENTE (P79): o gesto da extensão do VS Code
+    # roda o verbo de sempre e diz QUAL extensão numa variável. A cerca é a
+    # mesma — a lista do provedor —, e só o lugar do `@ARG@` muda.
+    amb_acao = dict(acao.get("ambiente", {}))
+    if "@ARG@" in argv or "@ARG@" in amb_acao.values():
         permitidos = PROVEDORES[acao["arg"]]()
         if argumento not in permitidos:
             return (None, "argumento fora da lista do disco: %r" % (argumento,))
         argv = [argumento if p == "@ARG@" else p for p in argv]
+        amb_acao = {k: (argumento if v == "@ARG@" else v) for k, v in amb_acao.items()}
     elif argumento:
         return (None, "esta ação não recebe argumento")
 
@@ -7002,7 +7142,7 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
                       "com cada chave no padrão, e por isso não roda")
     ambiente = _ambiente_do_painel(seco)
     ambiente.update(conf)
-    ambiente.update(acao.get("ambiente", {}))
+    ambiente.update(amb_acao)
     # DEPOIS do `ambiente` da ação, e de propósito: `MEOW_CONF` não é uma chave
     # do conf, é o ENDEREÇO dele. Quem o lê é o `CONF=` do `install.sh` (linha
     # 70), que o `etapa_conf_ler` sourceia com `set -a`, e o

@@ -384,7 +384,8 @@ _sem_cargo() {
 # --- aplicação ---------------------------------------------------------------
 _aplicar() {
   # Conferir ANTES: é o que garante que a segunda passagem não chama o cargo.
-  _conferir >/dev/null 2>&1 && { _conferir; return $?; }
+  # [P79: com o applet no lugar, a pendência `leitura-applet` sai da Início.]
+  _conferir >/dev/null 2>&1 && { meow_pendencia_resolvida leitura-applet; _conferir; return $?; }
 
   # E, antes da trava, tentar fechar sem o cargo o que não precisa dele.
   if _sem_cargo; then
@@ -394,9 +395,11 @@ _aplicar() {
   fi
 
   if [ "$COMPILAR" != "1" ]; then
-    meow_pula "o applet do modo de leitura precisa ser compilado, e compilar não é do doctor"
-    meow_info "  rode: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
-    meow_info "  (o ./install.sh já exporta essa chave sozinho)"
+    # [P79, item 5: «rode: LEITURA_COMPILAR=1 …» era a tela mandando digitar.
+    #   Quem compila é o conserto do doctor (`fix_leiturabin`) e o instalador;
+    #   a pendência `leitura-applet` põe o botão do conserto no painel.]
+    meow_pendencia_acionavel leitura-applet \
+      "O applet do modo de leitura precisa ser compilado" "meow doctor --consertar"
     # 3, e NÃO 1. No contrato deste projeto 1 é "divergia e FOI CONSERTADO", e
     # aqui nada foi consertado — falta a permissão de compilar. Com 1, o resumo
     # do install.sh diria `mexeu: leitura_build` em toda execução sem um byte
@@ -463,6 +466,7 @@ _aplicar() {
   _carimbo_vivo > "$CARIMBO" || { meow_erro "não consegui gravar o carimbo"; return "$MEOW_ERRO"; }
 
   meow_ok "applet do modo de leitura compilado e instalado ($(_sha "$BINARIO" | cut -c1-8))"
+  meow_pendencia_resolvida leitura-applet
   if ! _asa_cita; then
     meow_aviso "falta a última peça, e ela é à mão: acrescente \"$APP_ID\" a"
     meow_aviso "  $ASA"
@@ -524,8 +528,12 @@ main() {
     if [ -f "$SOMBRA" ] || [ -x "$BINARIO" ]; then
       meow_muda "LEITURA_APPLET=\"$LEITURA_APPLET\" no meow.conf, mas o applet continua instalado"
       [ "$CONFERIR" = 1 ] && return "$MEOW_DIVERGENTE"
+      meow_pendencia_resolvida leitura-applet
       _reverter; return $?
     fi
+    # [Conferência da P79: sem applet pedido, a pendência `leitura-applet` de
+    #  uma passagem anterior não tem mais o que pedir, e sai da Início.]
+    [ "$CONFERIR" = 1 ] || meow_pendencia_resolvida leitura-applet
     meow_pula "LEITURA_APPLET=\"$LEITURA_APPLET\" no meow.conf — sem applet do modo de leitura"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
@@ -538,12 +546,13 @@ main() {
     # mexer naquela linha.
     if [ "$CONFERIR" = 1 ] || meow_seco; then
       meow_muda "a sombra do applet de leitura existe e o binário não — a topbar fica com um slot vazio"
-      meow_info "  conserto: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
       return "$MEOW_DIVERGENTE"
     fi
     rm -f "$SOMBRA"
     meow_aviso "a sombra estava órfã e foi removida — a topbar volta sem o applet, em vez de com um buraco"
-    meow_info "  para tê-lo de volta: LEITURA_COMPILAR=1 $RAIZ/scripts/leitura_build.sh"
+    meow_pendencia_acionavel leitura-applet \
+      "O applet do modo de leitura saiu da topbar porque o binário faltava, e precisa ser compilado" \
+      "meow doctor --consertar"
     return "$MEOW_DIVERGENTE"
   fi
 

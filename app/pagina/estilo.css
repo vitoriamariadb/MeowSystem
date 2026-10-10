@@ -1571,9 +1571,9 @@ select { flex: 1 1 auto; }
   color: var(--peach);
   margin: .7rem 0;
 }
-.aviso-sudo strong { display: block; margin-bottom: .25rem; }
-.aviso-sudo span { color: var(--subtext0); }
-.aviso-sudo code { font-family: var(--mono); font-size: .95em; color: var(--subtext1); }
+/* [P79, decisão 11: a caixa é uma linha e o `?` da dica ao lado dela.] */
+.aviso-sudo:not([hidden]) { display: flex; align-items: center; gap: .5rem; }
+.aviso-sudo strong { font-weight: 600; }
 
 /* --- gaveta de saída ------------------------------------------------------ */
 /* ELA MUDOU DE PAI EM 21/09/2026, e é isso que explica cada linha daqui.
