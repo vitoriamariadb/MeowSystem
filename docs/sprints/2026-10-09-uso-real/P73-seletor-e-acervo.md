@@ -63,7 +63,7 @@ escrito), arquivo que veio no `f24868c`, antes desta branch.
 **O que não deu para fazer como escrito, e por quê:**
 
 - **«Reverter o ` M packs/dracula/icones/apps.map` do dev».** As regras desta leva
-  proíbem tocar o checkout principal (`/home/andrefarias/Desenvolvimento/MeowSystem`,
+  proíbem tocar o checkout principal (`~/Desenvolvimento/MeowSystem`,
   branch `dev`). A linha suja é a escolha dela (`org.kde.ghostwriter : apps/org.gnome.gitlab.somas.Apostrophe.svg`),
   e reverter sem guardar seria desfazer o que ela decidiu. Fica para a integração, nesta
   ordem: (1) acrescentar ao `~/.config/meow/icones-escolhidos.map` dela a linha
