@@ -3477,6 +3477,9 @@ INVENTARIO = {
         ação «Qual gato está no ar, e por quê» · Executar
         ação «Qual gato está no ar, e por quê» · ver comando
     """),
+    # [Integração da leva G, 09/10/2026: o `ajuste ICONES_BASE` saiu daqui. A
+    #   P75 aposentou a chave (a base vem do pack, pinada — `migrar_conf.py`,
+    #   `APOSENTADAS`) e o cartão sumiu da aba junto com ela do exemplo.]
     "Ícones": _linhas("""
         aba · Adicionar tema de ícones
         aba · Claro
@@ -3485,8 +3488,6 @@ INVENTARIO = {
         aba · Vidro escuro
         aba · filtro «Filtrar aplicativo»
         aba · âncora «Pular a lista de aplicativos»
-        ajuste ICONES_BASE · ?
-        ajuste ICONES_BASE · seletor
         ajuste ICONES_COR_MARCA · ?
         ajuste ICONES_COR_MARCA · opção
         ajuste ICONES_DRACULA · ?
