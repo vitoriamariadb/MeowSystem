@@ -5342,10 +5342,14 @@ function montarJogos() {
       placeholder: "Filtrar jogo…", "aria-label": "Filtrar jogo",
       oninput: (e) => { JOGOS_BUSCA = e.target.value; render(); },
     }),
-    elemento("span", { class: "frase nota-secao",
-      texto: instalados === 0 ? "Nenhum jogo instalado na Steam."
-        : instalados === 1 ? "1 jogo instalado na Steam."
-        : `${instalados} jogos instalados na Steam.` }),
+    /* [P77: a frase «N jogos instalados na Steam.» virou o selo do jogo com
+     * o número, e a frase foi para o balão. Com zero, o balão diz também por
+     * que o Proton e os runtimes não contam — era a frase da grade vazia.] */
+    elemento("div", { class: "selos" }, [
+      selo("jogo", { texto: String(instalados),
+        balao: instalados === 0 ? "Nenhum jogo da Steam. O Proton e os runtimes são ferramentas"
+          : instalados === 1 ? "1 jogo instalado na Steam" : `${instalados} jogos instalados na Steam` }),
+    ]),
   ]));
 
   /* OS DOIS BOTÕES MORAM AQUI, e não numa aba "Fazer" separada.
@@ -5408,13 +5412,9 @@ function montarJogos() {
    * para ele; agora é uma frase. As ferramentas da Steam são citadas porque são
    * o que a pessoa vê na biblioteca e não vê aqui — é a regra do
    * `jogos_steam.sh`, e não um palpite sobre esta máquina. */
-  if (!termo && !comJogo.length) {
-    caixa.append(elemento("p", {
-      class: "sem-previa",
-      texto: "Nenhum jogo da Steam para mostrar. O Proton e os runtimes são "
-           + "ferramentas, e não vão para o lançador.",
-    }));
-  }
+  /* [P77: a frase da grade vazia («Nenhum jogo da Steam para mostrar. O
+   * Proton e os runtimes são ferramentas…») foi para o balão do selo do topo,
+   * que diz 0. A grade vazia não desenha nada.] */
 
   const grade = elemento("div", { class: "grade-jogos" });
   for (const j of comJogo) {
@@ -5447,14 +5447,19 @@ function montarJogos() {
   }
 
   if (orfas.length) {
-    caixa.append(elemento("h3", { class: "subsecao-titulo", texto: "Decisões já executadas" }));
-    caixa.append(elemento("p", { class: "nota-secao",
-      texto: orfas.length === 1
-        ? "Este jogo não está mais na máquina. A linha fica aqui só para você "
-          + "poder tirá-la: ela não traz o jogo de volta, e não apaga mais nada."
-        : `Estes ${orfas.length} jogos não estão mais na máquina. As linhas ficam `
-          + "aqui só para você poder tirá-las: elas não trazem os jogos de volta, "
-          + "e não apagam mais nada." }));
+    /* [P77: o parágrafo de baixo do título virou o `?` dele. O arranjo já diz
+     * o que é — uma linha por jogo que saiu, com o «Tirar da lista» ao lado.] */
+    caixa.append(elemento("h3", { class: "subsecao-titulo com-dica" }, [
+      elemento("span", { texto: "Decisões já executadas" }),
+      ...gatilhoDeDica("dica-jogos-orfas", "Sobre as decisões já executadas", [
+        elemento("p", { texto: orfas.length === 1
+          ? "Este jogo não está mais na máquina. A linha fica aqui só para você "
+            + "poder tirá-la: ela não traz o jogo de volta, e não apaga mais nada."
+          : `Estes ${orfas.length} jogos não estão mais na máquina. As linhas ficam `
+            + "aqui só para você poder tirá-las: elas não trazem os jogos de volta, "
+            + "e não apagam mais nada." }),
+      ]),
+    ]));
     const cxOrfas = elemento("div", { class: "lista-orfas" });
     for (const j of orfas) {
       cxOrfas.append(elemento("div", { class: "linha-orfa" }, [
@@ -5508,14 +5513,20 @@ function montarJogos() {
    * `total_apps` e não `apps.length`: o servidor filtra pela busca do lado de
    * lá quando ela é enviada, e o total é o número da máquina. */
   if ((JOGOS.apps || []).length) {
-    caixa.append(elemento("h3", { class: "subsecao-titulo", texto: "O ícone de cada jogo" }));
     /* «1 jogos têm atalho» — revisão da P54, a mesma concordância do achado 43
-     * e a mesma forma da nota de jogos da aba Ícones. */
+     * e a mesma forma da nota de jogos da aba Ícones. [P77: o número virou o
+     * selo do título, como o do topo, e a frase sobre capa × desenho, o `?`.
+     * A loja (a Steam, o Heroic) não conta mais como jogo — `_e_jogo`.] */
     const comAtalho = JOGOS.total_apps ?? JOGOS.apps.length;
-    caixa.append(elemento("p", { class: "nota-secao",
-      texto: `${comAtalho} ${comAtalho === 1 ? "jogo tem" : "jogos têm"} atalho nesta `
-           + "máquina. A capa acima decide se ele aparece no lançador; aqui se "
-           + "escolhe o desenho com que ele aparece." }));
+    caixa.append(elemento("h3", { class: "subsecao-titulo com-dica" }, [
+      elemento("span", { texto: "O ícone de cada jogo" }),
+      selo("jogo", { texto: String(comAtalho),
+        balao: `${comAtalho} ${comAtalho === 1 ? "jogo tem" : "jogos têm"} atalho nesta máquina` }),
+      ...gatilhoDeDica("dica-icone-dos-jogos", "Sobre o ícone de cada jogo", [
+        elemento("p", { texto: "A capa acima decide se o jogo aparece no lançador; aqui se "
+                             + "escolhe o desenho com que ele aparece." }),
+      ]),
+    ]));
     caixa.append(pulaGrade("apos-apps-jogos", "Pular a lista"));
   caixa.append(gradeDeApps(JOGOS.apps, JOGOS_BUSCA, carregarJogos));
   caixa.append(alvoDoPulo("apos-apps-jogos"));
@@ -9076,7 +9087,7 @@ const TECNICOS_ABERTOS = new Set();
  * por página, na reescrita de cada uma (as que já passaram estão no conjunto). */
 const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
                                             "Logo do sistema", "Modo de leitura",
-                                            "Áreas de trabalho"]);
+                                            "Áreas de trabalho", "Lançadores e jogos"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
 function acaoTecnica(assunto, acao) {
   return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);

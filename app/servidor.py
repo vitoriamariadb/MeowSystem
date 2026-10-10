@@ -8006,7 +8006,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 ident = arq[: -len(".desktop")]
                 caminho = os.path.join(pasta, arq)
                 dados = {"id": ident, "nome": ident, "icone": "", "origem": origem,
-                         "arquivo": caminho, "oculto": False, "categorias": ""}
+                         "arquivo": caminho, "oculto": False, "categorias": "", "mime": ""}
                 traduzidos = {}
                 try:
                     with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
@@ -8031,6 +8031,9 @@ class Manipulador(BaseHTTPRequestHandler):
                                 dados["icone"] = linha[5:].strip()
                             elif linha.startswith("Categories="):
                                 dados["categorias"] = linha[11:].strip()
+                            elif linha.startswith("MimeType="):
+                                # Para o `_e_jogo` saber quem é loja (P77).
+                                dados["mime"] = linha[9:].strip()
                             elif linha.startswith(("NoDisplay=", "Hidden=")):
                                 if linha.split("=", 1)[1].strip().lower() == "true":
                                     dados["oculto"] = True
@@ -8423,11 +8426,25 @@ class Manipulador(BaseHTTPRequestHandler):
     #   pega o resto (24 dos 64 `.desktop` visíveis, medido em 06/09/2026).
     _RE_STEAM = re.compile(r"^(meow-steam-|steam_app_)\d+$")
 
+    # A LOJA NÃO É JOGO — 10/10/2026, P77 (achado 19 do uso real, L1). A aba
+    #   dizia «Nenhum jogo instalado na Steam» e, logo abaixo, «2 jogos têm
+    #   atalho», com a própria Steam na grade como um dos dois. A Steam se
+    #   declara `Categories=Network;FileTransfer;Game;` — é programa da
+    #   categoria jogo, e não um jogo. O critério continua sendo o do PRÓPRIO
+    #   ARQUIVO, sem lista nossa (o parágrafo de cima): quem abre outros jogos
+    #   diz isso no `.desktop` de dois jeitos que jogo nenhum diz — registra um
+    #   esquema de endereço (`MimeType=x-scheme-handler/steam`, `heroic`,
+    #   `lutris`: é por ele que a loja recebe o «jogar» do navegador) ou se
+    #   declara `Emulator`. Esses voltam à aba Ícones como programa, que é o
+    #   que são — e a conta das duas abas passa a falar da mesma coisa.
     def _e_jogo(self, d):
         if self._RE_STEAM.match(d.get("id", "")):
             return True
-        cats = (d.get("categorias") or "").lower()
-        return "game" in [c.strip() for c in cats.split(";") if c.strip()]
+        cats = [c.strip() for c in (d.get("categorias") or "").lower().split(";") if c.strip()]
+        if "game" not in cats:
+            return False
+        loja = any(m.strip().startswith("x-scheme-handler/") for m in (d.get("mime") or "").split(";"))
+        return not loja and "emulator" not in cats
 
     def _dados_apps(self, consulta):
         busca = (consulta.get("busca", [""])[0] or "").strip().lower()

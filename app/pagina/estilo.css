@@ -4353,3 +4353,9 @@ input[type="time"].hora-herdada {
   border-radius: 1px;
 }
 .areas-barra-area.vazia { background: transparent; color: var(--overlay1); }
+
+/* ===========================================================================
+ * P77 · LANÇADORES E JOGOS — contas em selo, frases no `?` do título
+ * =========================================================================== */
+.subsecao-titulo.com-dica { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.subsecao-titulo.com-dica > .selo { font-weight: 500; }

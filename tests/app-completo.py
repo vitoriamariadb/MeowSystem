@@ -437,6 +437,13 @@ def montar_casa():
         fh.write("[Desktop Entry]\nName=Jogo de Brinquedo\n"
                  f"Exec=steam steam://rungameid/{APPID}\nIcon=steam_icon_{APPID}\n"
                  "Terminal=false\nType=Application\nCategories=Game;\n")
+    # E A LOJA, QUE NÃO É JOGO (P77, achado 19): a Steam se declara `Game` e
+    # registra o esquema `steam://`. Ela vai para a aba Ícones como programa,
+    # e o `h_jogo` cobra que não apareça entre os jogos.
+    with open(os.path.join(aplicativos, "steam.desktop"), "w", encoding="utf-8") as fh:
+        fh.write("[Desktop Entry]\nName=Steam\nExec=steam %U\nIcon=steam\n"
+                 "Terminal=false\nType=Application\nCategories=Network;FileTransfer;Game;\n"
+                 "MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;\n")
     # A DECISÃO SEM MANIFESTO GANHA NOME NO CACHE DA STEAM (P54, achado 44). As
     # linhas do mapa da raiz de brinquedo cujo jogo não está aqui são as
     # «Decisões já executadas»; o nome da primeira mora só no `appinfo.vdf`.
@@ -2033,6 +2040,13 @@ class Percurso:
                 estava = bool(el.locator("xpath=..").evaluate("(d) => d.open"))
                 if estava:
                     el.click()
+            # [P77: a página tem de estar PARADA antes do censo. Em «Lançadores
+            # e jogos» o «⋯» das ações é aberto logo depois do «Conferir» dos
+            # jogos, cujo fim relê a lista e repinta a aba — a repintura apaga
+            # as marcas do censo, e o primeiro controle revelado (o `?` do
+            # «Baixar o tema do Spotify») ficava sem quem o achasse: o clique
+            # esperava 8 s e quebrava, nas duas corridas.]
+            self.assentar(quieto=300)
             antes = set(self.censo())
             el = self.achar(nome, i)
             el.click()
@@ -2814,9 +2828,16 @@ class Percurso:
         # da casa: medido nesta bancada, com a Steam instalada, a conferência
         # passava vazia contra o código de antes.
         self.js("() => { JOGOS.total_apps = 1; render(); }")
-        texto = self.pag.locator("#conteudo").inner_text()
+        # [P77: as contas viraram selos, e a frase de cada um mora no balão e
+        # no `aria-label` dele — o texto conferido é o da tela mais o desses
+        # nomes.]
+        texto = self.pag.locator("#conteudo").inner_text() + "\n" + self.js(
+            "() => [...document.querySelectorAll('#conteudo [aria-label]')]"
+            ".map((e) => e.getAttribute('aria-label')).join('\\n')")
         self.js("() => carregarJogos()")
         self.assentar(quieto=300)
+        loja = self.js("() => (JOGOS.apps || []).some((a) => a.id === 'steam')")
+        self.checa(not loja, "a loja (a Steam, que se declara Game) não conta como jogo")
         solto = re.findall(r"\b1 jogos\b[^.]*", texto)
         self.checa(not solto and "1 jogo tem atalho" in texto,
                    f"a aba não diz «1 jogos», e diz «1 jogo tem atalho» ({solto})")
@@ -3748,6 +3769,7 @@ INVENTARIO = {
         aba · ?
         aba · Arrumar os jogos no lançador
         aba · Conferir
+        aba · abre «⋯ Ações técnicas»
         aba · filtro «Filtrar jogo»
         aba · âncora «Pular a lista»
         aba · âncora «Pular os jogos»
@@ -3764,21 +3786,12 @@ INVENTARIO = {
         ajuste SPOTIFY_MARKETPLACE · ?
         ajuste SPOTIFY_MARKETPLACE · opção
         aplicativo · abrir
-        ação «Baixar o tema do Spotify» · ?
-        ação «Baixar o tema do Spotify» · Executar
-        ação «Baixar o tema do Spotify» · ver comando
-        ação «Pôr os jogos do Heroic no lançador» · ?
-        ação «Pôr os jogos do Heroic no lançador» · Executar
-        ação «Pôr os jogos do Heroic no lançador» · ver comando
         ação «Quais programas estão vestidos» · ?
         ação «Quais programas estão vestidos» · Executar
         ação «Quais programas estão vestidos» · ver comando
         ação «Ver o que mudaria nos jogos do Heroic» · ?
         ação «Ver o que mudaria nos jogos do Heroic» · Executar
         ação «Ver o que mudaria nos jogos do Heroic» · ver comando
-        ação «Vestir os programas agora» · ?
-        ação «Vestir os programas agora» · Executar
-        ação «Vestir os programas agora» · ver comando
         jogo da Steam · abrir
         jogo órfão · Tirar da lista
     """),
@@ -3974,6 +3987,15 @@ REVELADOS = {
         papel de parede · Medir
     """),
     "Lançadores e jogos": PAINEL_DO_APLICATIVO | _linhas("""
+        ação «Baixar o tema do Spotify» · ?
+        ação «Baixar o tema do Spotify» · Executar
+        ação «Baixar o tema do Spotify» · ver comando
+        ação «Pôr os jogos do Heroic no lançador» · ?
+        ação «Pôr os jogos do Heroic no lançador» · Executar
+        ação «Pôr os jogos do Heroic no lançador» · ver comando
+        ação «Vestir os programas agora» · ?
+        ação «Vestir os programas agora» · Executar
+        ação «Vestir os programas agora» · ver comando
         decisão do jogo · Apagar os arquivos
         decisão do jogo · Tirar do lançador
         decisão do jogo · Voltar ao normal
