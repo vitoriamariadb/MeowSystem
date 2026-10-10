@@ -1281,6 +1281,14 @@ class Percurso:
                    f"a caixa de «{titulo}» oferece o «Ver o que faria» "
                    "exatamente quando a ação pede senha ou desfaz algo")
         vistas = self.acoes_vistas.setdefault(ident, set())
+        # A CAIXA DO SUDO É UMA LINHA, E O PORQUÊ É O «?» — P79, decisão 11.
+        if acao["sudo"]:
+            sudo = self.pag.locator("#confirmar-sudo")
+            self.checa(sudo.is_visible() and "\n" not in sudo.locator("strong").inner_text().strip(),
+                       f"a caixa de «{titulo}» diz o sudo em uma linha")
+            if self.achar("caixa · ?") is not None:
+                self.h_porque("caixa · ?")
+                self.acionados.add("caixa · ?")
 
         # 1. Cancelar
         self.pag.locator("#confirmar button[value=nao]").click()
