@@ -266,7 +266,8 @@ for arq in icones-escolhidos.map icones-traco.map; do
 done
 
 # --- 4/4 o painel em uso, e o repositório INTEIRO — P75, 09/10/2026 --------
-#   As três seções acima exercitam UM caminho de escrita: o `wallpaper.sh`. A
+#   As seções 1 a 3 exercitam UM caminho de escrita: o `wallpaper.sh` (a 3b,
+#   da P73, chama as rotas do painel direto, sem ele de pé). A
 #   regra da P21 é sobre o produto inteiro, e o painel achou outra porta sem
 #   que nada acusasse: o «Usar este ícone» com um desenho do pack gravava a
 #   escolha no `packs/<id>/icones/apps.map` versionado (`171dedb`, 25/09), e o
@@ -337,7 +338,13 @@ else
                 -H 'Content-Type: application/json' --data "$2" "$P_BASE$1"; }
     desenho="$(cd "$RAIZ/packs/dracula/icones" && ls apps/*.svg 2>/dev/null | head -1)"
     c1="$(poste /api/definir '{"chave":"LOGO_INTERVALO","valor":"7d"}')"
-    c2="$(poste /api/app-icone "{\"app\":\"org.meow.GitLimpo\",\"pack\":\"dracula\",\"desenho\":\"$desenho\"}")"
+    # O CORPO É O QUE O «USAR ESTE ÍCONE» MANDA DESDE A P73 — integração da leva
+    #   G, 09/10/2026. Esta seção nasceu na P75 com `pack` + `desenho`, que era o
+    #   corpo do botão antes da P73. Depois dela, esse corpo é o do «Levar para o
+    #   pack», o gesto explícito que grava no `apps.map` versionado DE PROPÓSITO
+    #   (P73 item 6), e a seção passava a cobrar do painel o contrário do que ele
+    #   promete. O gesto de uso é `arquivo`, com o caminho que a ficha oferece.
+    c2="$(poste /api/app-icone "{\"app\":\"org.meow.GitLimpo\",\"arquivo\":\"packs/dracula/icones/$desenho\"}")"
     # A prova positiva, como na seção 1: os gestos chegaram ao servidor e
     # foram aceitos. Um painel que recusasse tudo deixaria o git limpo também.
     if [ "$c1" = "200" ] && grep -q '^LOGO_INTERVALO="7d"' "$P_CASA/.config/meow/meow.conf"; then
