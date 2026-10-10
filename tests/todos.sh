@@ -69,6 +69,7 @@ PORTATIL=(
   sem-dracula-os-theme.sh # tokenize no código versionado + a camada Dracula num HOME de brinquedo; bash e python3
   sem-receita-no-log.sh  # grep nos .sh versionados; nada além de bash
   temas-de-apps.sh       # grep nos manifestos + pack.py; estado de brinquedo
+  leitura-fonte-unica.sh # o meow leitura adotar e o servidor num HOME de brinquedo (P77); bash e python3
   flavor-padrao.sh       # o lib/comum.sh, quatro scripts que só leem, dois manifestos, o conf do painel e o meow icones num HOME de brinquedo (P61, P65); bash e python3
   git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash
   app.sh                 # compara o esquema do painel com o do wizard; python3

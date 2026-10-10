@@ -833,11 +833,16 @@ def main():
             #  Quais sao elas sai do esquema por exclusao — as previas que SAO o
             #  controle (a tira do flavor, a bolinha, o desenho do gato) nao
             #  entram aqui, porque nelas o clique ja foi medido no passo 6.
+            # [P77: a prévia do modo de leitura é feita de PIXEL — a conta do
+            # compositor sobre uma imagem, num <canvas> —, e pixel não é `style`.
+            # O retrato leva também o conteúdo de cada canvas da página.]
             ESTILOS_JS = """
               () => [...document.querySelectorAll('#conteudo [style]')]
                 .filter((e) => !['INPUT', 'BUTTON', 'OUTPUT', 'SELECT', 'TEXTAREA']
                                  .includes(e.tagName))
                 .map((e) => e.tagName + ':' + e.getAttribute('style')).join('|')
+                + '|' + [...document.querySelectorAll('#conteudo canvas')]
+                  .map((c) => { try { return c.toDataURL(); } catch (e) { return ''; } }).join('|')
             """
 
             def desenho_parado(pag):

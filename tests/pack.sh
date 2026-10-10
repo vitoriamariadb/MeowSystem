@@ -3455,7 +3455,12 @@ fi
 #   Numa pasta do COSMIC de brinquedo (`MEOW_COSMIC_DIR`): nada da máquina.
 C51="$T/cosmic-p51/com.system76.CosmicComp/v1"; mkdir -p "$C51"
 printf '0' > "$C51/leitura_temperatura"; printf '0.00' > "$C51/leitura_textura"
+# [P77, 10/10/2026: o `valendo_agora` do modo de leitura passou a ler o ESTADO
+# do applet (o ponto dos sliders, `ultima_*`), e não a tela deste minuto; o
+# estado de brinquedo vazio é o «applet nunca tocado», e o zero da tela
+# continua sendo «desligado».]
 saida="$(env MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" MEOW_COSMIC_DIR="$T/cosmic-p51" \
+  XDG_STATE_HOME="$T/estado-p51" \
   MEOW_PACK_DIR="$RAIZ/packs/dracula" python3 - "$RAIZ" <<'PY' 2>&1
 import os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "app"))

@@ -3703,6 +3703,7 @@ INVENTARIO = {
     """),
     "Modo de leitura": _linhas("""
         aba · ?
+        aba · abre «⋯ Ações técnicas»
         ajuste LEITURA_AGENDA · ?
         ajuste LEITURA_AGENDA · deixar vazio
         ajuste LEITURA_AGENDA · opção
@@ -3718,15 +3719,9 @@ INVENTARIO = {
         ajuste LEITURA_TEMPERATURA · deslizante
         ajuste LEITURA_TEXTURA · ?
         ajuste LEITURA_TEXTURA · deslizante
-        ação «Aplicar o degrau desta hora» · ?
-        ação «Aplicar o degrau desta hora» · Executar
-        ação «Aplicar o degrau desta hora» · ver comando
         ação «Desligar o modo de leitura» · ?
         ação «Desligar o modo de leitura» · Executar
         ação «Desligar o modo de leitura» · ver comando
-        ação «Modo de leitura agora» · ?
-        ação «Modo de leitura agora» · Executar
-        ação «Modo de leitura agora» · ver comando
     """),
     "Terminal": _linhas("""
         aba · ?
@@ -4008,6 +4003,14 @@ REVELADOS = {
         ação «Qual gato está no ar, e por quê» · ?
         ação «Qual gato está no ar, e por quê» · Executar
         ação «Qual gato está no ar, e por quê» · ver comando
+    """),
+    "Modo de leitura": _linhas("""
+        ação «Aplicar o degrau desta hora» · ?
+        ação «Aplicar o degrau desta hora» · Executar
+        ação «Aplicar o degrau desta hora» · ver comando
+        ação «Modo de leitura agora» · ?
+        ação «Modo de leitura agora» · Executar
+        ação «Modo de leitura agora» · ver comando
     """),
 }
 

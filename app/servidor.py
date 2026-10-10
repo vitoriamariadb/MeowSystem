@@ -843,15 +843,59 @@ def _leitura_desligada(chave, valor):
         return False
 
 
+# ONDE O APPLET DO MODO DE LEITURA GUARDA CADA CHAVE — 10/10/2026, P77 (achado 26)
+#   O `_valendo_agora` lia `com.system76.CosmicComp/v1/<chave em minúscula>`,
+#   e só acertava por acaso: `leitura_temperatura` é o que está NA TELA neste
+#   minuto (0 de dia), e não o ponto que ela arrastou; `leitura_horario_inicio`
+#   não existe — o applet grava `leitura_hora_inicio`. O lugar de cada uma é o
+#   que o `scripts/leitura.sh` lê (`LEITURA_K_*`): o ponto dos sliders no ESTADO
+#   do applet, a agenda e o horário no CosmicComp. As duas que não estão aqui
+#   (a rampa e o applet na barra) só existem no meow.conf.
+_LEITURA_NO_APPLET = {
+    "LEITURA_TEMPERATURA": ("estado", "ultima_temperatura"),
+    "LEITURA_TEXTURA": ("estado", "ultima_textura"),
+    "LEITURA_AGENDA": ("cosmic", "com.system76.CosmicComp/v1/leitura_agenda"),
+    "LEITURA_HORARIO_INICIO": ("cosmic", "com.system76.CosmicComp/v1/leitura_hora_inicio"),
+    "LEITURA_HORARIO_FIM": ("cosmic", "com.system76.CosmicComp/v1/leitura_hora_fim"),
+}
+
+
+def _leitura_no_applet(chave):
+    """O valor que o applet guarda para a chave, já no vocabulário do meow.conf,
+    ou None quando ele não guarda (ou guarda o que o `leitura.sh` recusaria)."""
+    onde = _LEITURA_NO_APPLET.get(chave)
+    if not onde:
+        return None
+    tipo, nome = onde
+    if tipo == "estado":
+        base = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
+        try:
+            with open(os.path.join(base, "cosmic", "com.meowsystem.AppletLeitura", "v1", nome),
+                      encoding="utf-8") as fh:
+                bruto = fh.read().strip()
+        except OSError:
+            return None
+    else:
+        bruto = (_cosmic_ler(nome) or "").strip().strip('"')
+    # Os mesmos portões do `_leitura_resolver_alvo` e do `_leitura_uma_ponta`:
+    # o que o relógio ignora, a página também ignora.
+    if chave == "LEITURA_TEMPERATURA":
+        return bruto if bruto.isdigit() and 1000 <= int(bruto) <= 6500 else None
+    if chave == "LEITURA_TEXTURA":
+        try:
+            return bruto if 0 <= float(bruto) <= 1 and re.fullmatch(r"[\d.]+", bruto) else None
+        except ValueError:
+            return None
+    if chave == "LEITURA_AGENDA":
+        return {"true": "sim", "false": "nao", "Some(true)": "sim", "Some(false)": "nao"}.get(bruto)
+    m = re.fullmatch(r"([01]?\d|2[0-3]):([0-5]\d)", bruto)
+    return "%02d:%s" % (int(m.group(1)), m.group(2)) if m else None
+
+
 def _valendo_agora(chave):
     if chave.startswith("LEITURA_"):
-        valor = (_cosmic_ler("com.system76.CosmicComp/v1/" + chave.lower()) or "").strip('"')
-        # O applet grava booleano em RON (`true`), e o conf diz `sim`. Sem esta
-        # tradução o cartão acusava "Na máquina agora: Sim" com o próprio cartão
-        # marcado em Sim — visto clicando no painel em 13/09/2026.
-        if _leitura_desligada(chave, valor):
-            return None
-        return _sim_nao(valor) or valor or None
+        # [P77: o lugar do applet, e não a tela deste minuto — ver acima.]
+        return _leitura_no_applet(chave)
     if chave == "VIDRO_AO_MAXIMIZAR":
         # Uma chave para as duas barras (o `vidro.sh` grava as duas): só há
         # resposta quando elas concordam.
@@ -11391,6 +11435,17 @@ class Manipulador(BaseHTTPRequestHandler):
         for item in esquema:
             item["valor"] = brutos.get(item["chave"], "")
             item["efetivo"] = efetivos.get(item["chave"], "")
+            # UMA FONTE DE VERDADE NO MODO DE LEITURA — 10/10/2026, P77 (achado
+            #   26). Quando o applet guarda a chave, é o valor DELE que a máquina
+            #   usa (o meow.conf é o padrão de fábrica, `_leitura_resolver_alvo`),
+            #   e é ele que o cartão mostra como o valor da chave. O do arquivo
+            #   fica em `valor_no_arquivo`. Escolher no painel grava os dois
+            #   lugares (o `leitura.sh adotar`, chamado pelo «Salvar e
+            #   aplicar»), então o que a tela diz é o que vale, nos dois sentidos.
+            if item["chave"] in _LEITURA_NO_APPLET and item.get("valendo_agora") is not None:
+                item["valor_no_arquivo"] = item["valor"]
+                item["valor"] = item["valendo_agora"]
+                item["fonte"] = "applet"
         # O VOCABULÁRIO DO PACK NO AR — P10. Depois dos valores, porque a
         # «Variante dos ícones de arquivo» mostra o de agora quando ele está
         # fora do que o pack oferece.
@@ -11661,6 +11716,24 @@ class Manipulador(BaseHTTPRequestHandler):
                                    "erro": "nem tudo foi gravado, e nada foi aplicado"}, 500)
 
             resposta = {"gravadas": gravadas, "iguais": iguais}
+            # O APPLET PASSA A GUARDAR O QUE O PAINEL ESCOLHEU — P77 (achado 26).
+            #   Todas as escolhas de modo de leitura do pedido, e não só as que
+            #   mudaram o arquivo: com o applet em 6300 e o conf em 3500,
+            #   escolher 3500 aqui é «igual» para o meow.conf e é justamente a
+            #   escolha que tem de chegar ao applet. Falhar aqui não derruba o
+            #   salvar (o conf já está gravado): a frase vai junto da resposta.
+            leitura = [c for c, _v in pares if c in _LEITURA_NO_APPLET]
+            if leitura:
+                try:
+                    feito = subprocess.run(_meow("leitura", "adotar", *leitura),
+                                           capture_output=True, timeout=20,
+                                           env=_ambiente_do_painel())
+                    if feito.returncode not in (0, 1):
+                        resposta["aviso"] = texto_na_tela(
+                            feito.stdout.decode("utf-8", "replace")
+                            + feito.stderr.decode("utf-8", "replace")).strip()
+                except (OSError, subprocess.SubprocessError) as e:
+                    resposta["aviso"] = "o controle do modo de leitura não foi atualizado: %s" % e
             trabalho, erro = iniciar("instalar", "", confirmado=True)
             if erro:
                 resposta["erro"] = erro["erro"] if isinstance(erro, dict) else erro

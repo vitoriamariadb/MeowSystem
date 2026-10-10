@@ -3090,57 +3090,180 @@ function pintarGatosEmCelulas(raiz) {
   }
 }
 
-/* --- a simulação do modo de leitura --------------------------------------- */
-/* Aproximação de corpo negro para a cor de uma temperatura em Kelvin (a forma
- * usual de Tanner Helland). É SIMULAÇÃO e a legenda diz isso: quem pinta de
- * verdade é o cosmic-comp recompilado, e o que ele faz com os mesmos dois
- * números não é exatamente um multiply em cima de uma imagem. Mas a direção e a
- * intensidade batem, e é isso que responde "3500 é demais?". */
-function corDeKelvin(k) {
-  const t = Math.max(1000, Math.min(6500, Number(k) || 6500)) / 100;
-  const lim = (x) => Math.max(0, Math.min(255, x));
-  const r = t <= 66 ? 255 : lim(329.7 * Math.pow(t - 60, -0.1332));
-  const g = t <= 66 ? lim(99.47 * Math.log(t) - 161.1) : lim(288.1 * Math.pow(t - 60, -0.0755));
-  const b = t >= 66 ? 255 : (t <= 19 ? 0 : lim(138.5 * Math.log(t - 10) - 305.0));
-  return `rgb(${Math.round(r)} ${Math.round(g)} ${Math.round(b)})`;
+/* --- o modo de leitura, aplicado de verdade a uma imagem ------------------ */
+/* A PRÉVIA FAZ A CONTA DO COMPOSITOR — 10/10/2026, P77 (achado 27)
+ *   Eram duas simulações, uma em cada cartão (temperatura e textura), com a
+ *   mesma foto e um véu por cima: o uso real disse «a prévia é a mesma foto
+ *   estática nos dois cartões; não simula a temperatura nem a textura». O véu
+ *   era uma cor de corpo negro (Tanner Helland) em `multiply`, e o papel, um
+ *   tom rosado com `backdrop-filter` — nenhum dos dois é o que o cosmic-comp
+ *   faz com os dois números.
+ *
+ *   Agora a prévia é UMA, a da página, e cada pixel passa pela MESMA conta do
+ *   shader do patch (`patches/cosmic-comp-modo-leitura.patch`, o `main()` do
+ *   postprocess), na mesma ordem: primeiro o papel (o preto sobe para a tinta,
+ *   o branco desce para o papel, 30% da cor sai, e o grão estático modula),
+ *   depois a temperatura, multiplicando pelo branco da tabela do redshift que o
+ *   compositor interpola (`LEITURA_WHITEPOINTS`, `leitura_tint`). As constantes
+ *   são copiadas de lá, com o nome de lá: se um dia mudarem no patch, é aqui
+ *   que a prévia deixa de bater, e o nome diz onde procurar.
+ *
+ *   A imagem é um papel de parede da coleção — o efeito sobre a foto que se
+ *   usa diz mais do que sobre um degradê —, cortada ao meio: à esquerda como o
+ *   dia a mostra, à direita como a noite a pinta. Sem foto na casa, um degradê
+ *   do preto ao branco com as cores da paleta, que é onde o papel e o calor
+ *   mais se veem. Nunca vazia. */
+const MEOW_PAPEL_TINTA = [0.118, 0.113, 0.104];
+const MEOW_PAPEL_GANHO = [0.815, 0.800, 0.760];
+const MEOW_PAPEL_DESSATURA = 0.30;
+const MEOW_PAPEL_GRAO = 0.085;
+const LEITURA_WHITEPOINTS = [
+  [1000, [1.00000, 0.18172, 0.00000]], [1500, [1.00000, 0.42101, 0.00000]],
+  [2000, [1.00000, 0.54862, 0.08754]], [2500, [1.00000, 0.64546, 0.28802]],
+  [3000, [1.00000, 0.71760, 0.42107]], [3500, [1.00000, 0.77987, 0.54468]],
+  [4000, [1.00000, 0.82854, 0.64606]], [4500, [1.00000, 0.87325, 0.74112]],
+  [5000, [1.00000, 0.90993, 0.82219]], [5500, [1.00000, 0.94380, 0.89904]],
+  [6000, [1.00000, 0.97481, 0.96759]], [6500, [1.00000, 1.00000, 1.00000]],
+];
+
+function brancoDeKelvin(k) {
+  const t = Number(k) || 0;
+  if (t <= 0) return [1, 1, 1];
+  const W = LEITURA_WHITEPOINTS;
+  if (t <= W[0][0]) return W[0][1];
+  if (t >= W[W.length - 1][0]) return W[W.length - 1][1];
+  for (let i = 0; i < W.length - 1; i++) {
+    const [lk, lo] = W[i], [hk, hi] = W[i + 1];
+    if (t >= lk && t <= hk) {
+      const f = (t - lk) / (hk - lk);
+      return lo.map((v, j) => v + (hi[j] - v) * f);
+    }
+  }
+  return [1, 1, 1];
 }
 
-function simulacaoLeitura(item) {
-  /* AS DUAS METADES LEEM A ESCOLHA — 13/09/2026
-   *   O cartão da temperatura lia a textura do DISCO (`.valor`) e o da textura
-   *   lia a temperatura do disco: mexer num e olhar o desenho do outro mostrava
-   *   metade escolha, metade arquivo. As duas passam por `valorEmVigor`, que é
-   *   o dedo, a bandeja e só então o disco. */
-  const emVigor = (chave) => {
-    const k = chave === item.chave ? item : ESQUEMA.chaves.find((x) => x.chave === chave);
-    return k ? valorEmVigor(k) : "";
-  };
-  const temp = emVigor("LEITURA_TEMPERATURA") || 6500;
-  const textura = emVigor("LEITURA_TEXTURA") || 0;
+const corDoBranco = (k) => `rgb(${brancoDeKelvin(k).map((v) => Math.round(v * 255)).join(" ")})`;
 
-  /* A imagem de exemplo é um papel de parede DELA — o efeito sobre a foto que
-   * ela de fato usa diz mais do que sobre um degradê inventado. */
-  const paredes = previasDe("parede", "ativos");
-  const amostra = paredes && paredes.itens.find((i) => i.pronta);
-  const caixa = elemento("div", { class: "simul" });
-  if (amostra) caixa.append(elemento("img", { src: amostra.url, alt: "", loading: "lazy" }));
-  else caixa.append(elemento("div", { class: "lugar", style: "height:108px" }));
-  caixa.append(elemento("div", { class: "veu", style: `background:${corDeKelvin(temp)}` }));
-  const t = Math.max(0, Math.min(1, Number(String(textura).replace(",", ".")) || 0));
-  if (t > 0) {
-    caixa.append(elemento("div", {
-      class: "papel",
-      style: `background: color-mix(in srgb, var(--rosewater) ${Math.round(t * 22)}%, transparent);`
-           + `backdrop-filter: saturate(${Math.round(100 - t * 30)}%) contrast(${Math.round(100 - t * 8)}%)`,
+/* O passe do compositor sobre os pixels de `dados`, da coluna `x0` em diante. */
+function pintarComoONoite(dados, x0, kelvin, textura) {
+  const t = Math.max(0, Math.min(1, Number(textura) || 0));
+  const w = brancoDeKelvin(kelvin);
+  const grao = (x, y) => { const v = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453; return v - Math.floor(v); };
+  const px = dados.data, larg = dados.width;
+  for (let y = 0; y < dados.height; y++) {
+    for (let x = x0; x < larg; x++) {
+      const i = (y * larg + x) * 4;
+      let r = px[i] / 255, g = px[i + 1] / 255, b = px[i + 2] / 255;
+      if (t > 0) {
+        let pr = MEOW_PAPEL_TINTA[0] + MEOW_PAPEL_GANHO[0] * r;
+        let pg = MEOW_PAPEL_TINTA[1] + MEOW_PAPEL_GANHO[1] * g;
+        let pb = MEOW_PAPEL_TINTA[2] + MEOW_PAPEL_GANHO[2] * b;
+        const tinta = 0.2126 * pr + 0.7152 * pg + 0.0722 * pb;
+        pr += (tinta - pr) * MEOW_PAPEL_DESSATURA;
+        pg += (tinta - pg) * MEOW_PAPEL_DESSATURA;
+        pb += (tinta - pb) * MEOW_PAPEL_DESSATURA;
+        r += (pr - r) * t; g += (pg - g) * t; b += (pb - b) * t;
+        const gr = (grao(x, y) + grao(Math.floor(x * 0.34) + 11, Math.floor(y * 0.34) + 11)) * 0.5 - 0.5;
+        const m = 1 + gr * (MEOW_PAPEL_GRAO * t);
+        r = Math.min(1, Math.max(0, r * m)); g = Math.min(1, Math.max(0, g * m)); b = Math.min(1, Math.max(0, b * m));
+      }
+      px[i] = r * w[0] * 255; px[i + 1] = g * w[1] * 255; px[i + 2] = b * w[2] * 255;
+    }
+  }
+}
+
+/* A imagem da prévia, uma vez por URL: decodificar a foto a cada arrasto do
+ * deslizante seria o arrasto inteiro esperando o disco. */
+const IMAGEM_DA_LEITURA = new Map();
+function imagemDaLeitura(url) {
+  if (!IMAGEM_DA_LEITURA.has(url)) {
+    IMAGEM_DA_LEITURA.set(url, new Promise((ok) => {
+      const img = new Image();
+      img.onload = () => ok(img);
+      img.onerror = () => ok(null);
+      img.src = url;
     }));
   }
-  /* SÓ OS NÚMEROS NA FAIXA — 09/10/2026, P77. A frase «desenho, não é a sua
-   * tela… quem pinta de verdade é o cosmic-comp» sai: é a explicação do
-   * cartão, e o `?` dele já a carrega (o comentário do `meow.conf.exemplo`).
-   * O que a faixa mostra é o que a imagem acima está simulando. */
-  caixa.append(elemento("div", { class: "legenda", texto: `${temp} K · ${t}` }));
-  return caixa;
+  return IMAGEM_DA_LEITURA.get(url);
 }
+
+/* Uma tela da prévia: a imagem cortada (dia | noite) e, embaixo, a régua das
+ * 24 horas com a noite do modo de leitura pintada na cor que ela põe na tela.
+ * `val` são os valores que a tela mostra (os da máquina, ou os escolhidos). */
+function telaDaLeitura(val) {
+  const L = 320, A = 150;
+  const temp = val.LEITURA_TEMPERATURA || "6500";
+  const textura = val.LEITURA_TEXTURA || "0";
+  const agenda = val.LEITURA_AGENDA;
+  const canvas = elemento("canvas", { width: String(L), height: String(A), class: "leitura-real-imagem",
+    role: "img", "aria-label": `À esquerda o dia; à direita a noite, a ${temp} K com textura ${textura}` });
+  const pintar = (img) => {
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+    if (img) {
+      const ar = img.naturalWidth / img.naturalHeight;
+      const [w, h] = ar > L / A ? [A * ar, A] : [L, L / ar];
+      ctx.drawImage(img, (L - w) / 2, (A - h) / 2, w, h);
+    } else {
+      const css = getComputedStyle(document.documentElement);
+      const g = ctx.createLinearGradient(0, 0, 0, A);
+      g.addColorStop(0, css.getPropertyValue("--crust").trim() || "#111");
+      g.addColorStop(0.5, css.getPropertyValue("--mauve").trim() || "#c6a0f6");
+      g.addColorStop(1, "#ffffff");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, L, A);
+    }
+    let dados;
+    try { dados = ctx.getImageData(0, 0, L, A); } catch (e) { return; }
+    pintarComoONoite(dados, L / 2, temp, textura);
+    ctx.putImageData(dados, 0, 0);
+    /* O fio do corte: o dia de um lado, a noite do outro. */
+    ctx.fillStyle = "rgba(255,255,255,.75)";
+    ctx.fillRect(L / 2, 0, 1, A);
+  };
+  const paredes = previasDe("parede", "ativos");
+  const amostra = paredes && paredes.itens.find((i) => i.pronta && i.url);
+  if (amostra) imagemDaLeitura(amostra.url).then(pintar);
+  else pintar(null);
+
+  /* A régua: o dia liso, a noite na cor do branco que a tela vai ter. Sem
+   * agenda («Não», ou o vazio que não toca), a régua fica a traço e sem noite
+   * — o relógio não liga nada sozinho. */
+  const ini = val.LEITURA_HORARIO_INICIO || "18:00", fim = val.LEITURA_HORARIO_FIM || "07:00";
+  const regua = elemento("div", { class: "leitura-real-regua" + (agenda === "sim" ? "" : " sem-agenda") });
+  if (agenda === "sim" && HORA_OK.test(ini) && HORA_OK.test(fim)) {
+    const a = minutosDe(ini) / 1440 * 100, b = minutosDe(fim) / 1440 * 100;
+    const faixas = a === b ? [[0, 100]] : a < b ? [[a, b]] : [[a, 100], [0, b]];
+    for (const [de, ate] of faixas) {
+      regua.append(elemento("span", { class: "leitura-real-noite",
+        style: `left:${de}%;width:${ate - de}%;background:${corDoBranco(temp)}` }));
+    }
+  }
+  /* Cada hora sob a sua ponta, presa entre 8% e 92% para não sair da régua. */
+  const naRegua = (h) => `left:${Math.min(92, Math.max(8, minutosDe(h) / 1440 * 100))}%`;
+  const horas = agenda === "sim" && HORA_OK.test(ini) && HORA_OK.test(fim)
+    ? elemento("div", { class: "leitura-real-horas" }, [
+        elemento("span", { texto: ini, style: naRegua(ini) }),
+        elemento("span", { texto: fim, style: naRegua(fim) }),
+      ])
+    : null;
+  return elemento("div", { class: "leitura-real" }, [canvas, regua, horas]);
+}
+
+/* O contrato dos desenhos de `MEOW_PREVIAS` (`{antes, depois, legenda}`), para
+ * o `parDePrevias` não saber que esta prévia é feita de pixels. */
+function previaRealDaLeitura(val, escolhido) {
+  const junto = escolhido ? { ...val, ...escolhido } : null;
+  const frase = (v) => `à esquerda o dia, à direita a noite: a mesma imagem a ${v.LEITURA_TEMPERATURA || 6500} K `
+    + `com textura ${v.LEITURA_TEXTURA || 0}`
+    + (v.LEITURA_AGENDA === "sim"
+      ? `, das ${v.LEITURA_HORARIO_INICIO || "18:00"} às ${v.LEITURA_HORARIO_FIM || "07:00"}`
+      : ", sem horário: o relógio não liga nada sozinho")
+    + ". A conta é a do compositor, pixel a pixel";
+  return { antes: telaDaLeitura(val), depois: junto ? telaDaLeitura(junto) : null, legenda: frase(val) };
+}
+/* As prévias feitas de pixel, e não de traço, pelo nome do bloco. */
+const PREVIAS_REAIS = { "Modo de leitura": previaRealDaLeitura };
 
 /* --- a grade de ícones do tema INSTALADO ---------------------------------- */
 function gradeDeIcones(limite = 24) {
@@ -5795,7 +5918,7 @@ function montarCartao(item) {
       elemento("b", { texto: `Na máquina agora: ${rotuloDeValor(agora)}. ` }),
       elemento("span", {
         texto: item.chave.startsWith("LEITURA_")
-          ? "Quem guarda esse valor é o controle do painel. Salvar e aplicar faz este ajuste vencer."
+          ? "O controle do painel guarda o valor de agora. Salvar e aplicar grava a escolha nele também."
           : "Salvar e aplicar faz este ajuste valer.",
       }),
     ]));
@@ -5937,9 +6060,10 @@ function montarCartao(item) {
   /* A prévia que acompanha o controle em vez de substituí-lo: o degrau do modo
    * de leitura e a geometria das barras continuam sendo número, e o que a
    * imagem faz é dizer o que aquele número PARECE. */
-  if (item.previa === "kelvin" || item.previa === "textura") {
-    cartao.append(simulacaoLeitura(item));
-  } else if (item.previa === "barra") {
+  /* [P77: a simulação que ia em cada cartão do modo de leitura (`kelvin`,
+   * `textura`) virou UMA prévia, a da página, que faz a conta do compositor —
+   * `previaRealDaLeitura`. O cartão fica só com o deslizante.] */
+  if (item.previa === "barra") {
     /* A BARRA NÃO SE REPETE POR CARTÃO — visto na primeira captura da seção:
      * seis desenhos idênticos da mesma barra, um por chave, empurrando o
      * controle para baixo e dizendo a mesma frase seis vezes. Uma prévia que
@@ -8050,7 +8174,7 @@ function parDePrevias(g) {
   /* A chave é montada com a MESMA regra que batiza o grupo: quando o bloco em
    * caixa alta existe, ele é o `g.nome` e a seção é o `g.secaoPai`. */
   const nome = g.nome === g.secaoPai ? g.nome : `${g.secaoPai} :: ${g.nome}`;
-  const desenhar = mapa[nome];
+  const desenhar = PREVIAS_REAIS[nome] || mapa[nome];
   if (typeof desenhar !== "function") return null;
 
   const v = {};
@@ -8721,6 +8845,17 @@ const DECISOES = [
    * `relogioDaNoite`. */
   { id: "noite", nome: "Noite", relogio: true,
     chaves: LINHAS_DA_NOITE.flatMap((l) => l.chaves) },
+  /* O MODO DE LEITURA EM DUAS DECISÕES — 10/10/2026, P77 (achados 26 e 27).
+   * QUANDO: ligar no horário abre a moldura, e o começo, o fim e a virada só
+   * aparecem com ele em «Sim» — com «Não» ou vazio o relógio não liga nada, e
+   * três horas de um agendamento desligado eram três controles sem efeito.
+   * QUANTO: a temperatura e a textura lado a lado, sob a prévia que as aplica. */
+  { id: "leitura-quando", nome: "Quando a tela esquenta",
+    chaves: ["LEITURA_AGENDA", "LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "LEITURA_RAMPA_MIN"],
+    modo: { chave: "LEITURA_AGENDA",
+            por: { sim: ["LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "LEITURA_RAMPA_MIN"] } } },
+  { id: "leitura-quanto", nome: "Quanto a tela esquenta",
+    chaves: ["LEITURA_TEMPERATURA", "LEITURA_TEXTURA"] },
   /* COMO A BARRA SE SOLTA DA BORDA — 10/10/2026, P77 (achado 13). «Descolado:
    * Sim» e «Distância: 0» moravam em cartões distantes e diziam o contrário um
    * do outro sem que a tela mostrasse a ligação: a distância só existe com a
@@ -8788,7 +8923,7 @@ const TECNICOS_ABERTOS = new Set();
  * de rótulos: uma ação nova de «mostrar» nasce no lugar certo. A separação é
  * por página, na reescrita de cada uma (as que já passaram estão no conjunto). */
 const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
-                                            "Logo do sistema"]);
+                                            "Logo do sistema", "Modo de leitura"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
 function acaoTecnica(assunto, acao) {
   return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);

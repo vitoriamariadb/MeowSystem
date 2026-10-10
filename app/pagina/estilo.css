@@ -4260,3 +4260,42 @@ input[type="time"].hora-herdada {
   .decisao-relogio > .cartao[data-linha="3"][data-ponta="fim"] { grid-row: 7; }
   .decisao-relogio > :is(.cartao, .linha-noite-icone) { border-top: 1px solid var(--surface0); }
 }
+
+/* ===========================================================================
+ * P77 · MODO DE LEITURA — a prévia faz a conta do compositor (10/10/2026)
+ * =========================================================================== */
+/* As duas molduras (quando, quanto) em fileira flexível, como o seletor de
+ * gato: o «quando» tem um cartão ou quatro, conforme a agenda. */
+.grade > .decisao[data-decisao^="leitura-"] { display: flex; flex-wrap: wrap; }
+.decisao[data-decisao^="leitura-"] > .cartao { flex: 1 1 15rem; min-width: 0; }
+.decisao[data-decisao="leitura-quando"] > .cartao[data-chave="LEITURA_AGENDA"] { flex: 0 1 19rem; }
+@media (max-width: 900px) {
+  .decisao[data-decisao^="leitura-"] > .cartao { flex-basis: 100%; }
+  .decisao[data-decisao^="leitura-"] > .cartao + .cartao { border-left: 0; border-top: 1px solid var(--surface0); }
+}
+/* A tela da prévia: a imagem cortada ao meio, o fio do corte, e a régua das
+ * 24 horas embaixo com a noite na cor que ela põe na tela. */
+.leitura-real { display: grid; gap: .35rem; width: min(100%, 20rem); }
+.leitura-real-imagem {
+  display: block; width: 100%; height: auto; aspect-ratio: 320 / 150;
+  border-radius: var(--r-2); border: 1px solid var(--surface1); background: var(--surface0);
+}
+.leitura-real-regua {
+  position: relative; height: .55rem; border-radius: var(--r-max);
+  background: var(--surface0); overflow: hidden;
+}
+.leitura-real-regua.sem-agenda { background: transparent; border: 1px dashed var(--surface2); }
+.leitura-real-noite { position: absolute; top: 0; bottom: 0; }
+/* As duas horas sob as pontas da noite, cada uma no seu lugar da régua. */
+.leitura-real-horas {
+  position: relative; height: 1rem;
+  font: 500 var(--t-legenda) / 1 var(--mono); color: var(--overlay2);
+}
+.leitura-real-horas > span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+/* O «quando» com a agenda desligada é um cartão só: a moldura encolhe até
+ * ele, em vez de atravessar a página vazia. */
+.grade > .decisao[data-decisao="leitura-quando"]:has(> .cartao:only-child) { justify-self: start; }
+/* Presa no alto, a prévia de pixel encolhe como os desenhos (78 px de altura)
+ * e a régua das horas sai: a tira é referência, não leitura. */
+.previa-bloco.presa .leitura-real { width: calc(78px * 320 / 150); }
+.previa-bloco.presa .leitura-real-horas { display: none; }
