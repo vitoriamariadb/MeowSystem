@@ -3579,6 +3579,7 @@ INVENTARIO = {
         ajuste ACCENT · opção
         ajuste CURSOR · ?
         ajuste CURSOR · Adicionar tema
+        ajuste CURSOR · deixar vazio
         ajuste CURSOR · opção
         ajuste ESCALA_TELA · ?
         ajuste ESCALA_TELA · deixar vazio
