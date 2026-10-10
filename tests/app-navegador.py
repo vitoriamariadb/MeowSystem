@@ -244,6 +244,7 @@ ESQUEMA_JS = """
   chave: k.chave,
   opcoes: k.opcoes || [],
   faixa: !!k.faixa,
+  hora_cheia: !!k.hora_cheia,
   previa: k.previa || '',
   lista: !!k.lista,
   pathsep: !!k.lista_pathsep,
@@ -1332,7 +1333,11 @@ def main():
                   f"nenhuma das {len(fechadas)} chaves de opções fechadas virou campo de texto"
                   + (f" — TEXTO LIVRE: {texto_livre}" if texto_livre else ""))
 
-            com_faixa = [c for c in censo.values() if por_chave.get(c["chave"], {}).get("faixa")]
+            # [P80, item 4: a faixa de HORA CHEIA (`hora_cheia`, as duas horas do
+            #  tema claro) é o seletor de hora das outras linhas de «Dia e noite»,
+            #  e não deslizante — ela é cobrada no tests/app-uso-real.py.]
+            com_faixa = [c for c in censo.values() if por_chave.get(c["chave"], {}).get("faixa")
+                         and not por_chave.get(c["chave"], {}).get("hora_cheia")]
             sem_deslizante = sorted(c["chave"] for c in com_faixa if not c["faixa"])
             checa(not sem_deslizante,
                   f"as {len(com_faixa)} chaves de faixa numérica viraram deslizante"

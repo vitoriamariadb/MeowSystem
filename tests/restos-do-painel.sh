@@ -130,6 +130,9 @@ class El {
   removeAttribute(k) { delete this.attrs[k]; }
   addEventListener(ev, fn) { (this.ouvintes[ev] = this.ouvintes[ev] || []).push(fn); }
   append(...fs) { for (const f of fs) this.filhos.push(f); }
+  // O desenho dos selos entra como texto (P80: a pasta travada da ficha leva o
+  // selo de trava, e o `selo` desenha o SVG assim). Guardado, e não desenhado.
+  insertAdjacentHTML(_onde, html) { this.html = (this.html || "") + html; }
   get children() { return this.filhos.filter((f) => f instanceof El); }
   get childNodes() { return this.filhos; }
   replaceChildren(...fs) { this.filhos = fs; }
