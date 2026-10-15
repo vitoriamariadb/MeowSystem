@@ -36,8 +36,21 @@ na máquina real em 10/10 (rc=0; o log em /tmp sumiu no reboot).
 20:15 o `meow-pos-apt.path` disparou sozinho o `cosmic_pos_apt.sh`, que recompila o menu do
 cosmic-files e a série do compositor em escopo de usuário. Log: `~/.local/state/meowsystem/pos-apt.log`.
 
+## Leva H — fechamento — EM VOO (workflow leva-h-fechamento, run wf_dfe39a62-0dd)
+
+Specs em `docs/sprints/2026-10-15-fechamento/`: P81 (build sempre: pós-apt, login e doctor das 5h
+chamando a mesma função idempotente; doctor sem receita; teste da cadeia de atualização), P82 (todos
+os abertos da leva G, triados), P84 (os 39 PNG feitos à mão viram vetor, RMSE), P83 (documentação).
+Worktrees `.wt-meow/p81`, `p82`, `p84`, `integracao-h` (branch `integracao/leva-h`). 13 agentes.
+Retomar: `Workflow({scriptPath: ".../leva-h-fechamento-wf_dfe39a62-0dd.js", resumeFromRunId: "wf_dfe39a62-0dd"})`.
+
+Feito em 15/10 por mim: askpass ativo (decisão 5 resolvida), shim do compositor LIGADO (vale no
+próximo login; sem build válido cai no de fábrica), build real do compositor 4d14528 encadeado
+depois do pós-apt (log `~/.local/state/meowsystem/compositor-15-10.log`).
+
 ## Próximo passo
 
+0. Ler `99-fechamento.md` na integracao-h; merge no dev; `./install.sh`; `meow doctor`.
 1. Ver o fim do pos-apt (o menu do cosmic-files 1.10 e a série do cosmic-comp 4d14528 aplicam?).
 2. `meow doctor` real depois dele; o que sobrar, `meow doctor --consertar`.
 3. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6, reboot), ativar o

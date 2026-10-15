@@ -147,11 +147,36 @@
 #   SEM fuzz. Medido depois: compila, e o `AURORA-READING-MODE-1` esta dentro do
 #   binario — pela primeira vez, nas duas maquinas.
 #
+# ============================================================================
+# REBASE PARA O 4d14528 — 15/10/2026 (sprint P85)
+# ============================================================================
+#   No `4d14528` o primeiro hunk (os dois campos no `CosmicCompConfig`) só
+#   entrava com -F1. O vizinho de baixo mudou: o upstream trocou o
+#   `cursor_hide_timeout: Option<u32>` por um grupo, `cursor_hide:
+#   CursorHideConfig` (ocultar parado, parado em tela cheia, digitando, ao
+#   tocar), com uma migração única da chave velha no `Config::load`.
+#
+#   O QUE FOI CONFERIDO ANTES DE REFAZER (diff do upstream 0fbd457 -> 4d14528)
+#     - Os dois campos continuam DENTRO do struct, logo depois de
+#       `edge_snap_threshold`, e os dois defaults dentro do `impl Default`.
+#     - No `Config::load` o upstream passou a ter `let mut cosmic_comp_config`
+#       e a migração do `cursor_hide` ANTES do ponto onde este patch copia
+#       `leitura_*` para o `ScreenFilter`: a cópia continua lendo o valor
+#       final. O braço do `config_changed`, o `ScreenFilter`, o shader, o
+#       `kms/surface/mod.rs` e o `render/mod.rs` não mudaram no upstream
+#       (os três últimos são byte a byte iguais), e nenhuma linha do diff do
+#       upstream toca screen filter, postprocess ou offscreen.
+#
+#   Os hunks abaixo saem de um `git diff` sobre o fonte puro do `4d14528`,
+#   com o hunk dos campos refeito à mão e os outros aplicados com -F0 (só
+#   deslocamento). Entram com -F0 e sem deslocamento no `4d14528`. NÃO entram
+#   mais no `0fbd457`: o contexto do `cursor_hide` não existe lá.
+#
 diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
-index 510927f..7755499 100644
+index 193fd0d..1183cdb 100644
 --- a/cosmic-comp-config/src/lib.rs
 +++ b/cosmic-comp-config/src/lib.rs
-@@ -104,6 +104,27 @@ pub struct CosmicCompConfig {
+@@ -105,6 +105,27 @@ pub struct CosmicCompConfig {
      pub xwayland_eavesdropping: XwaylandEavesdropping,
      /// The threshold before windows snap themselves to output edges
      pub edge_snap_threshold: u32,
@@ -178,8 +203,8 @@ index 510927f..7755499 100644
 +    pub leitura_textura: f32,
      pub accessibility_zoom: ZoomConfig,
      pub appearance_settings: AppearanceConfig,
-     /// Hide the cursor after this many seconds of pointer inactivity (None disables)
-@@ -143,6 +164,15 @@ impl Default for CosmicCompConfig {
+     /// When the cursor hides itself: idle, fullscreen idle, typing, touch
+@@ -144,6 +165,15 @@ impl Default for CosmicCompConfig {
              focus_follows_cursor: false,
              cursor_follows_focus: false,
              focus_follows_cursor_delay: 250,
@@ -218,7 +243,7 @@ index cbc8938..8af7b99 100644
 +        // nao acende a tela apagada as 18h so porque o agendador escreveu.
 +        self.schedule_render();
      }
-
+ 
      pub fn adaptive_sync_support(&self) -> Result<VrrSupport> {
 @@ -1902,6 +1916,17 @@ fn postprocess_elements<'a>(
                          .map(|val| val as u8 as f32)
@@ -250,7 +275,7 @@ index cbc8938..8af7b99 100644
 +            Uniform::new("leitura_textura", screen_filter.leitura_textura_clamp()),
          ],
      ));
-
+ 
 diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
 index 9ad6158..0f44c40 100644
 --- a/src/backend/render/mod.rs
@@ -308,7 +333,7 @@ index d95859c..bd281e2 100644
 @@ -23,6 +23,72 @@ uniform float tint;
  uniform float invert;
  uniform float color_mode;
-
+ 
 +// ======================= HUNK A ==========================================
 +// MODO DE LEITURA (Aurora/MeowSystem, 30/08/2026) -- os DOIS uniforms novos.
 +//
@@ -377,11 +402,11 @@ index d95859c..bd281e2 100644
 +
  void main() {
      vec4 color = texture2D(tex, v_coords);
-
+ 
 @@ -83,6 +149,78 @@ void main() {
          color.rgb += correction;
      }
-
+ 
 +    // ======================= HUNK B ======================================
 +    // MODO DE LEITURA. Mora AQUI por dois motivos, os dois deliberados:
 +    //
@@ -456,15 +481,15 @@ index d95859c..bd281e2 100644
 +
      // re-multiply
      color.rgb *= color.a;
-
+ 
 diff --git a/src/config/mod.rs b/src/config/mod.rs
-index 4d2fad9..65d68b7 100644
+index be509e7..ded2e66 100644
 --- a/src/config/mod.rs
 +++ b/src/config/mod.rs
 @@ -148,16 +148,122 @@ impl From<CompTransformDef> for Transform {
      }
  }
-
+ 
 +/// MARCADOR DO MODO DE LEITURA (Aurora/MeowSystem, 30/08/2026) — nao remover.
 +///
 +/// O `aurora-cosmic-comp-ws.sh` decide se o /usr/bin/cosmic-comp instalado e
@@ -520,7 +545,7 @@ index 4d2fad9..65d68b7 100644
 +    #[serde(skip)]
 +    pub leitura_textura: f32,
  }
-
+ 
  impl ScreenFilter {
      pub fn is_noop(&self) -> bool {
 -        !self.inverted && self.color_filter.is_none()
@@ -584,11 +609,11 @@ index 4d2fad9..65d68b7 100644
 +        }
      }
  }
-
-@@ -327,8 +433,21 @@ impl Config {
+ 
+@@ -347,8 +453,21 @@ impl Config {
                  .set_screen_filter(filter_conf.color_filter);
          });
-
+ 
 +        // MODO DE LEITURA — a ponte do disco para o filtro vivo, no LOGIN.
 +        //
 +        // Os dois numeros nascem no cosmic-config (`leitura_temperatura`,
@@ -608,10 +633,10 @@ index 4d2fad9..65d68b7 100644
              cosmic_conf: cosmic_comp_config,
              cosmic_helper: config,
              settings_context,
-@@ -391,9 +510,14 @@ impl Config {
+@@ -411,9 +530,14 @@ impl Config {
              };
          }
-
+ 
 +        // `..Default::default()` e nao os campos a mao: com dois campos novos no
 +        // struct, o literal exaustivo aqui deixaria o CRATE INTEIRO sem compilar
 +        // — e o erro apareceria a 4 minutos de build de distancia do lugar que o
@@ -623,8 +648,8 @@ index 4d2fad9..65d68b7 100644
 +            ..Default::default()
          }
      }
-
-@@ -740,6 +864,18 @@ impl DynamicConfig {
+ 
+@@ -760,6 +884,18 @@ impl DynamicConfig {
              &mut self.accessibility_filter.1,
          )
      }
@@ -641,9 +666,9 @@ index 4d2fad9..65d68b7 100644
 +        &mut self.accessibility_filter.1
 +    }
  }
-
+ 
  pub fn xkb_config_to_wl(config: &XkbConfig) -> WlXkbConfig<'_> {
-@@ -1015,6 +1151,46 @@ fn config_changed(config: cosmic_config::Config, keys: Vec<String>, state: &mut
+@@ -1042,6 +1178,46 @@ fn config_changed(config: cosmic_config::Config, keys: Vec<String>, state: &mut
                      state.update_decorations();
                  }
              }

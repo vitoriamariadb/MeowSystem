@@ -82,6 +82,17 @@
 #   três edições feitas à mão, e aplicam SEM fuzz. Medido depois: compila, e o
 #   `AURORA-COSMIC-MENU-PATCH-1` está dentro do binário.
 #
+# ============================================================================
+# CONFERIDO NO 4d14528 — 15/10/2026 (sprint P85)
+# ============================================================================
+#   Os hunks não mudaram: entram com -F0 (deslocamento de 2 e 3 linhas, sem
+#   fuzz). O upstream mexeu neste arquivo, e foi lido: no `motion` (e no
+#   gêmeo do tablet), quando o ponteiro sai de todos os menus, o `.skip(1)`
+#   virou `.skip(keep_root)` — o menu raiz só fica "entrado" enquanto há um
+#   submenu aberto. Isso não encosta no `button`, onde este patch age, e não
+#   desfaz o defeito: o menu continua nascendo EMBAIXO do cursor, com um item
+#   já `pointer_entered` quando o release do clique que o abriu chega.
+#
 diff --git a/src/shell/grabs/menu/mod.rs b/src/shell/grabs/menu/mod.rs
 index dafbd6c..6a053a7 100644
 --- a/src/shell/grabs/menu/mod.rs

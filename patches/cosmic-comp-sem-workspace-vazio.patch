@@ -40,10 +40,44 @@
 # Um `apt upgrade` do cosmic-comp troca o binário e derruba os DOIS de uma vez.
 # O conserto é humano: aurora-cosmic-comp-ws.sh --build (e depois logout).
 #
-diff --color -u -r limpo/archive/src/backend/render/mod.rs patched/archive/src/backend/render/mod.rs
---- a/src/backend/render/mod.rs	2026-08-18 08:26:18.000000000 -0300
-+++ b/src/backend/render/mod.rs	2026-08-25 18:40:39.188638304 -0300
-@@ -953,15 +953,15 @@
+# REBASE PARA O 4d14528 — 15/10/2026 (sprint P85)
+#
+#   No `4d14528` este patch parou de entrar até com -F1: o hunk do
+#   `layout/floating/mod.rs` recusava. O upstream ganhou uma animação nova, o
+#   "tremor" do diálogo modal (a janela-mãe recusa um pedido e o diálogo filho
+#   balança), e as duas constantes dela nasceram coladas às que este patch
+#   troca:
+#       const SHAKE_ANIMATION_DURATION: Duration = Duration::from_millis(320);
+#       const SHAKE_AMPLITUDE: f32 = 10.0;
+#   O contexto de baixo do hunk mudou, e só por isso ele não casava.
+#
+#   O QUE FOI CONFERIDO ANTES DE REFAZER (diff do upstream 0fbd457 -> 4d14528)
+#     - `ensure_last_empty` é linha a linha a mesma (só desceu 23 linhas);
+#       `add_empty_workspace`, `Workspace::is_empty` e `can_auto_remove`
+#       também. Nenhum caminho novo chama `add_empty_workspace`. O
+#       comportamento do item 1 é o mesmo: nenhum workspace vazio sobrando.
+#     - As oito durações continuam as mesmas oito, com os mesmos valores de
+#       fábrica, e nenhum uso novo de ANIMATION_DURATION apareceu fora do
+#       floating. Os oito lugares do fade continuam sendo oito, e nenhum outro
+#       divide `as_millis()` inteiro.
+#
+#   O TREMOR FICA COM O TEMPO DE FÁBRICA (320 ms), DE PROPÓSITO
+#     Ele não é transição entre estados: é um "não" curto, três oscilações
+#     num envelope que morre. Alongá-lo 1,75x seria inventar uma nona
+#     duração que ela nunca escolheu. Se um dia ela quiser junto, é uma linha
+#     neste hunk.
+#
+#   Os hunks abaixo saem de um `git diff` sobre o fonte puro do `4d14528`, com
+#   o hunk do floating refeito à mão e os outros cinco arquivos aplicados com
+#   -F0 (só deslocamento). Entram com -F0 e sem deslocamento no `4d14528`. NÃO
+#   entram mais no `0fbd457` nem antes: o contexto novo do floating não existe
+#   lá. A série vale do `4d14528` em diante (ver `patches/versao`).
+#
+diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
+index 9ad6158..a79f347 100644
+--- a/src/backend/render/mod.rs
++++ b/src/backend/render/mod.rs
+@@ -965,15 +965,15 @@ where
              Stage::StickyPopups(layout) => {
                  let alpha = match &overview.0 {
                      OverviewMode::Started(_, started) => {
@@ -63,7 +97,7 @@ diff --color -u -r limpo/archive/src/backend/render/mod.rs patched/archive/src/b
                              * 0.4
                              + 0.6
                      }
-@@ -978,15 +978,15 @@
+@@ -990,15 +990,15 @@ where
              Stage::Sticky(layout) => {
                  let alpha = match &overview.0 {
                      OverviewMode::Started(_, started) => {
@@ -83,55 +117,59 @@ diff --color -u -r limpo/archive/src/backend/render/mod.rs patched/archive/src/b
                              * 0.4
                              + 0.6
                      }
-diff --color -u -r limpo/archive/src/shell/element/stack/tabs.rs patched/archive/src/shell/element/stack/tabs.rs
---- a/src/shell/element/stack/tabs.rs	2026-08-18 08:26:18.000000000 -0300
-+++ b/src/shell/element/stack/tabs.rs	2026-08-25 18:40:39.188297870 -0300
-@@ -127,8 +127,8 @@
+diff --git a/src/shell/element/stack/tabs.rs b/src/shell/element/stack/tabs.rs
+index 9dd5ef8..98d77e6 100644
+--- a/src/shell/element/stack/tabs.rs
++++ b/src/shell/element/stack/tabs.rs
+@@ -127,8 +127,8 @@ impl Offset {
      }
  }
-
+ 
 -const SCROLL_ANIMATION_DURATION: Duration = Duration::from_millis(200);
 -const TAB_ANIMATION_DURATION: Duration = Duration::from_millis(150);
 +const SCROLL_ANIMATION_DURATION: Duration = Duration::from_millis(350);
 +const TAB_ANIMATION_DURATION: Duration = Duration::from_millis(260);
-
+ 
  impl<Message> Tabs<'_, Message>
  where
-diff --color -u -r limpo/archive/src/shell/layout/floating/mod.rs patched/archive/src/shell/layout/floating/mod.rs
---- a/src/shell/layout/floating/mod.rs	2026-08-18 08:26:18.000000000 -0300
-+++ b/src/shell/layout/floating/mod.rs	2026-08-25 18:40:39.187759083 -0300
-@@ -49,8 +49,8 @@
+diff --git a/src/shell/layout/floating/mod.rs b/src/shell/layout/floating/mod.rs
+index da54445..b8b980e 100644
+--- a/src/shell/layout/floating/mod.rs
++++ b/src/shell/layout/floating/mod.rs
+@@ -52,8 +52,8 @@ use crate::{
  mod grabs;
  pub use self::grabs::*;
-
+ 
 -pub const ANIMATION_DURATION: Duration = Duration::from_millis(200);
 -pub const MINIMIZE_ANIMATION_DURATION: Duration = Duration::from_millis(320);
 +pub const ANIMATION_DURATION: Duration = Duration::from_millis(350);
 +pub const MINIMIZE_ANIMATION_DURATION: Duration = Duration::from_millis(560);
-
- #[derive(Debug, Default)]
- pub struct FloatingLayout {
-diff --color -u -r limpo/archive/src/shell/layout/tiling/mod.rs patched/archive/src/shell/layout/tiling/mod.rs
---- a/src/shell/layout/tiling/mod.rs	2026-08-18 08:26:18.000000000 -0300
-+++ b/src/shell/layout/tiling/mod.rs	2026-08-25 18:40:39.187045894 -0300
-@@ -79,8 +79,8 @@
+ const SHAKE_ANIMATION_DURATION: Duration = Duration::from_millis(320);
+ const SHAKE_AMPLITUDE: f32 = 10.0;
+ 
+diff --git a/src/shell/layout/tiling/mod.rs b/src/shell/layout/tiling/mod.rs
+index 20e11b7..893131f 100644
+--- a/src/shell/layout/tiling/mod.rs
++++ b/src/shell/layout/tiling/mod.rs
+@@ -79,8 +79,8 @@ mod grabs;
  pub use self::blocker::*;
  pub use self::grabs::*;
-
+ 
 -pub const ANIMATION_DURATION: Duration = Duration::from_millis(200);
 -pub const MINIMIZE_ANIMATION_DURATION: Duration = Duration::from_millis(320);
 +pub const ANIMATION_DURATION: Duration = Duration::from_millis(350);
 +pub const MINIMIZE_ANIMATION_DURATION: Duration = Duration::from_millis(560);
  pub const MOUSE_ANIMATION_DELAY: Duration = Duration::from_millis(150);
  pub const INITIAL_MOUSE_ANIMATION_DELAY: Duration = Duration::from_millis(500);
-
-diff --color -u -r limpo/archive/src/shell/mod.rs patched/archive/src/shell/mod.rs
---- a/src/shell/mod.rs	2026-08-18 08:26:18.000000000 -0300
-+++ b/src/shell/mod.rs	2026-08-25 18:40:39.185926280 -0300
-@@ -11,6 +11,17 @@
+ 
+diff --git a/src/shell/mod.rs b/src/shell/mod.rs
+index 108307b..7ea7b9d 100644
+--- a/src/shell/mod.rs
++++ b/src/shell/mod.rs
+@@ -11,6 +11,17 @@ use std::{
  };
  use wayland_backend::server::ClientId;
-
+ 
 +/// MARCADOR DO RITUAL DA AURORA — nao remover.
 +///
 +/// O self-heal precisa saber se o /usr/bin/cosmic-comp instalado e este build
@@ -146,16 +184,16 @@ diff --color -u -r limpo/archive/src/shell/mod.rs patched/archive/src/shell/mod.
  use crate::{
      shell::{
          element::CosmicStack, focus::FocusTarget, grabs::fullscreen_items,
-@@ -117,7 +128,7 @@
+@@ -125,7 +136,7 @@ use self::{
      },
  };
-
+ 
 -const ANIMATION_DURATION: Duration = Duration::from_millis(200);
 +const ANIMATION_DURATION: Duration = Duration::from_millis(350);
  const GESTURE_MAX_LENGTH: f64 = 150.0;
  const GESTURE_POSITION_THRESHOLD: f64 = 0.5;
  const GESTURE_VELOCITY_THRESHOLD: f64 = 0.02;
-@@ -638,12 +649,24 @@
+@@ -670,12 +681,24 @@ impl WorkspaceSet {
          state: &mut WorkspaceUpdateGuard<State>,
          xdg_activation_state: &XdgActivationState,
      ) {
@@ -185,20 +223,21 @@ diff --color -u -r limpo/archive/src/shell/mod.rs patched/archive/src/shell/mod.
 +        if self.workspaces.is_empty() {
              self.add_empty_workspace(state);
          }
-
-diff --color -u -r limpo/archive/src/shell/workspace.rs patched/archive/src/shell/workspace.rs
---- a/src/shell/workspace.rs	2026-08-18 08:26:18.000000000 -0300
-+++ b/src/shell/workspace.rs	2026-08-25 18:40:39.188534483 -0300
-@@ -72,7 +72,7 @@
+ 
+diff --git a/src/shell/workspace.rs b/src/shell/workspace.rs
+index fd63dcb..e41f72d 100644
+--- a/src/shell/workspace.rs
++++ b/src/shell/workspace.rs
+@@ -72,7 +72,7 @@ use super::{
      layout::tiling::{Data, NodeDesc},
  };
-
+ 
 -const FULLSCREEN_ANIMATION_DURATION: Duration = Duration::from_millis(200);
 +const FULLSCREEN_ANIMATION_DURATION: Duration = Duration::from_millis(350);
-
+ 
  // For stable workspace id, generate random 24-bit integer, as a hex string
  // Must be compared with existing workspaces work uniqueness.
-@@ -1749,15 +1749,15 @@
+@@ -1755,15 +1755,15 @@ impl Workspace {
              // floating surfaces
              let alpha = match &overview.0 {
                  OverviewMode::Started(_, started) => {
@@ -218,7 +257,7 @@ diff --color -u -r limpo/archive/src/shell/workspace.rs patched/archive/src/shel
                          * 0.4
                          + 0.6
                  }
-@@ -1936,15 +1936,15 @@
+@@ -1946,15 +1946,15 @@ impl Workspace {
              // floating surfaces
              let alpha = match &overview.0 {
                  OverviewMode::Started(_, started) => {
