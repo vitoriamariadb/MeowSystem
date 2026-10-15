@@ -33,3 +33,10 @@ de um daemon?»; «um sistema idempotente que resista a `sudo apt update -y && s
 - teste novo vermelho antes e verde depois; `tests/todos.sh` inteiro verde.
 - na máquina real, SÓ LEITURA: `MEOW_SHIM_SO_DIZER=1 ~/.local/bin/cosmic-comp` aponta o build da
   versão instalada depois que o build de 15/10 terminar.
+
+## Medido às 20:29 de 15/10 (o pós-apt real terminou)
+- O `meow-pos-apt.service` terminou com `ExecMainStatus=1` mesmo com o `cosmic-files` 1.10 compilado
+  e vestido (o único `--` foi o compositor pulado por shim desligado). Sucesso tem que sair 0; pular
+  por regra não é falha. Corrigir junto com a tarefa 2.
+- A última linha do log ainda manda digitar: «ou agora, com: meow painel reciclar». Vira estado
+  («vale nas janelas novas; a área de trabalho no próximo login») ou o pós-apt faz o reler único da P80.
