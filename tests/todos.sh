@@ -281,13 +281,59 @@ for c in sudo pkexec su; do
     > "$SUITE_TMP/falso/$c"
   chmod 755 "$SUITE_TMP/falso/$c"
 done
+
+# O RESTO DO ENVOLTÓRIO, QUE MORAVA FORA DAQUI — P82, 15/10/2026 (item 35)
+#   As rodadas verdes de 09 e 10/10 (03-, 04- e 05-integracao) só foram seguras
+#   porque quem rodava montou à mão, por fora, mais falsos do que os três de
+#   cima: um `todos.sh` chamado sozinho mandava `notify-send` para a sessão,
+#   `systemd-run` para o gerente do usuário e `gsettings set` para a casa de
+#   verdade, pelo barramento que o HOME de brinquedo não troca. Agora o
+#   envoltório é do runner.
+#   - Estes RECUSAM sempre (rc=1) e registram: matam processo, mexem na sessão,
+#     instalam pacote ou abrem janela. O `kill` é builtin do shell, e um falso
+#     no PATH não pega nada dele; por isso ele não está na lista.
+#   - Estes deixam passar a LEITURA para o binário de verdade e recusam o resto:
+#     `systemctl`, `gsettings`, `dconf` e `busctl`.
+#   - E o barramento da sessão sai do ambiente: sem ele, nem o binário de
+#     verdade acha a sessão para escrever.
+export SUITE_FALSOS_LOG="$SUITE_TMP/falsos.log"; : > "$SUITE_FALSOS_LOG"
+for c in pkill killall notify-send systemd-run loginctl apt apt-get xdg-open; do
+  printf '#!/bin/sh\nprintf "%%s %%s\\n" "$(basename "$0")" "$*" >> "$SUITE_FALSOS_LOG"\nexit 1\n' \
+    > "$SUITE_TMP/falso/$c"
+  chmod 755 "$SUITE_TMP/falso/$c"
+done
+# O verbo que só lê, de cada um. O primeiro argumento que não começa com `-` é
+# o verbo; sem verbo nenhum (`systemctl --version`) também é leitura.
+_so_leitura() {
+  local c="$1" verbos="$2" real
+  real="$(command -v "$c" 2>/dev/null)" || real=""
+  cat > "$SUITE_TMP/falso/$c" <<FIM
+#!/bin/sh
+verbo=""
+for a in "\$@"; do case "\$a" in -*) ;; *) verbo="\$a"; break ;; esac; done
+case " \$verbo " in
+  "  "|$verbos)
+    [ -n "$real" ] && exec "$real" "\$@"
+    exit 1 ;;
+esac
+printf "%s %s\\n" "$c" "\$*" >> "\$SUITE_FALSOS_LOG"
+exit 1
+FIM
+  chmod 755 "$SUITE_TMP/falso/$c"
+}
+_so_leitura systemctl '" is-active "|" is-enabled "|" is-failed "|" is-system-running "|" status "|" show "|" cat "|" list-units "|" list-unit-files "|" list-timers "|" list-jobs "|" list-dependencies "|" get-default "|" show-environment "'
+_so_leitura gsettings '" get "|" list-schemas "|" list-relocatable-schemas "|" list-keys "|" list-children "|" list-recursively "|" range "|" describe "|" writable "|" help "'
+_so_leitura dconf '" read "|" list "|" dump "|" help "'
+_so_leitura busctl '" list "|" status "|" tree "|" introspect "|" get-property "|" help "'
+unset DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR WAYLAND_DISPLAY DISPLAY
 [ -d "$CASA_REAL/.cache/ms-playwright" ] && \
   export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$CASA_REAL/.cache/ms-playwright}"
 [ -d "$CASA_REAL/.pyenv" ] && export PYENV_ROOT="${PYENV_ROOT:-$CASA_REAL/.pyenv}"
 export PYTHONUSERBASE="${PYTHONUSERBASE:-$CASA_REAL/.local}"
 export PATH="$SUITE_TMP/falso:$PATH" HOME="$SUITE_TMP/casa"
 unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME MEOW_CONF MEOW_ESTADO
-printf 'casa de brinquedo da suíte: %s (sudo, pkexec e su recusam e registram)\n\n' "$HOME"
+printf 'casa de brinquedo da suíte: %s (sudo, pkexec e su recusam e registram)\n' "$HOME"
+printf 'sem barramento da sessão; pkill, killall, notify-send, systemd-run, loginctl, apt, apt-get e xdg-open recusam; systemctl, gsettings, dconf e busctl só leem\n\n'
 
 VERDES=0; PULADOS=0; VERMELHOS=()
 for nome in "${ALVOS[@]}"; do
@@ -406,6 +452,13 @@ if [ -s "$SUITE_SUDO_LOG" ]; then
   LC_ALL=C sort "$SUITE_SUDO_LOG" | uniq -c | sort -rn | head -10 | sed 's/^/    /'
 else
   printf 'nenhum teste chamou sudo, pkexec ou su\n'
+fi
+# E os outros falsos, um por um: quantas vezes cada escrita foi parada.
+if [ -s "$SUITE_FALSOS_LOG" ]; then
+  printf 'escritas paradas nos falsos: %s chamada(s)\n' "$(grep -c . "$SUITE_FALSOS_LOG")"
+  awk '{print $1}' "$SUITE_FALSOS_LOG" | LC_ALL=C sort | uniq -c | sort -rn | sed 's/^/    /'
+else
+  printf 'nenhuma escrita parada nos outros falsos\n'
 fi
 if [ "${#VERMELHOS[@]}" -gt 0 ]; then
   printf 'vermelhos: %s\n' "${VERMELHOS[*]}" >&2
