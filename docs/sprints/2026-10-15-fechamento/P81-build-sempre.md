@@ -52,3 +52,5 @@ VENDOR=1`; nenhum dos dois → `tar pxf vendor.tar && cargo build --release --fr
 checagem de dependências (`for i in patch make cargo`) pede o que o caminho escolhido usa. Teste com
 os três tipos de fonte falso. A P85 provou o caminho `just build-vendored` no 4d14528 (6m53s, 5
 marcadores).
+
+- O `just` (e o `cargo`/`rustc`) desta máquina estão em `~/.cargo/bin`; as unidades `meow-pos-apt`, `meow-doctor` e a nova de login precisam ter esse caminho no PATH (achado da P76: `meow-doctor.service` sem `~/.cargo/bin`). Teste: a unidade, com o ambiente que o systemd dá, acha `just` e `cargo`.
