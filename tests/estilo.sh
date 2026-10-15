@@ -165,6 +165,28 @@ if [ -n "$raiz_cravada" ]; then
 fi
 ok "nenhum código crava a raiz do COSMIC — todos passam pelo meow_cosmic_dir"
 
+# ----------------------------------------------- o Python isolado — P82, 15/10/2026 (item 14)
+# Um `python3 -` lê o programa do stdin e põe o diretório CORRENTE no começo do
+# `sys.path`: quem roda um módulo de tema de app de dentro de uma pasta com um
+# `json.py` plantado (um download, um pack de terceiro extraído) executa esse
+# arquivo no `import json`. O `-I` tira o diretório corrente e as variáveis
+# `PYTHON*` do caminho; quem importa algo do projeto o faz por `sys.path`
+# explícito, como o `lib/comum.sh` já faz no `meow_flavor_do_modo`. A P74
+# curou 21 das 37 linhas; as 16 que sobravam eram todas dos
+# `assets/temas-de-apps/*/manifesto.sh`. O recorte é o código de produto
+# (`scripts`, `lib`, `bin`, `install.sh`, `assets`, `app` e `packs`), sem
+# `.md` (o `CREDITOS.md` ensina a rodar à mão) e sem linha de comentário.
+sem_isolar="$(cd "$RAIZ" && grep -rnE --exclude='*.md' 'python3( +-[A-Za-z]+)* +-( |$)' \
+                scripts lib bin install.sh assets app packs \
+              | grep -vE ':[0-9]+:[[:space:]]*#' \
+              | grep -vE 'python3( +-[A-Za-z]+)* +-I')"
+if [ -n "$sem_isolar" ]; then
+  falha "python3 - sem -I em código de produto (o diretório corrente entra no sys.path):"
+  printf '%s\n' "$sem_isolar" | sed 's/^/  /' >&2
+  exit 1
+fi
+ok "todo python3 - do código de produto roda isolado (-I)"
+
 command -v python3 >/dev/null || { printf 'pulado: falta python3\n'; exit 0; }
 python3 -c 'import numpy' 2>/dev/null || { printf 'pulado: falta numpy\n'; exit 0; }
 [ -d "$ACERVO" ] || { printf 'pulado: o acervo Arcticons não está aqui\n'; exit 0; }

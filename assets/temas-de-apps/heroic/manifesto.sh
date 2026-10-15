@@ -341,7 +341,7 @@ _heroic_paleta_carregar() {
   local nome hex
   while IFS='=' read -r nome hex; do
     [ -n "$nome" ] && _HEROIC_PAL["$nome"]="$hex"
-  done < <(python3 - "$_HEROIC_PALETA" <<'PY'
+  done < <(python3 -I - "$_HEROIC_PALETA" <<'PY'
 import json, sys, io
 with io.open(sys.argv[1], encoding="utf-8") as f:
     d = json.load(f)
@@ -429,7 +429,7 @@ _heroic_rodando() {
 # é a `meow_escrever`, que compara por conteúdo e não toca no arquivo à toa.
 _heroic_json_com() {
   local arquivo="$1" caminho="$2" valor="$3" recuo="$4"
-  python3 - "$arquivo" "$caminho" "$valor" "$recuo" <<'PY'
+  python3 -I - "$arquivo" "$caminho" "$valor" "$recuo" <<'PY'
 import json, sys, io
 arquivo, caminho, valor, recuo = sys.argv[1:5]
 try:
@@ -478,7 +478,7 @@ _heroic_backup() {
 
 _heroic_json_le() {
   local arquivo="$1" caminho="$2"
-  python3 - "$arquivo" "$caminho" <<'PY'
+  python3 -I - "$arquivo" "$caminho" <<'PY'
 import json, sys, io
 arquivo, caminho = sys.argv[1:3]
 try:

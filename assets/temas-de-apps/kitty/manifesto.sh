@@ -90,7 +90,7 @@ _kitty_marca() {
 #   é "sem tema" (a mesma regra do `appdata` no módulo do OnlyOffice).
 _kitty_conf_tem_cor() {
   [ -f "$_KITTY_CONF" ] || return 1
-  python3 - "$_KITTY_CONF" <<'PY'
+  python3 -I - "$_KITTY_CONF" <<'PY'
 import glob, os, re, sys
 
 COR = re.compile(r"^\s*(foreground|background|color[0-9]+)\s")
