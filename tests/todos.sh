@@ -97,6 +97,7 @@ PORTATIL=(
   compositor-shim.sh     # shim do compositor com dpkg-query e binários falsos, HOME de brinquedo (P76); só bash
   cosmic-prever.sh       # .deb e fontes de brinquedo do cosmic-comp, sem apt nem rede (P76); bash e dpkg-deb
   pos-apt.sh             # pós-apt do COSMIC com dpkg-query e passos falsos, HOME de brinquedo (P76); só bash
+  garantir-builds.sh     # a função dos builds com dpkg-query e builds falsos, HOME de brinquedo, falsos que recusam (P81); só bash
   volta-do-cosmic.sh     # guarda do .deb e do fonte com dpkg-query, apt e sudo falsos, HOME de brinquedo (P76); só bash
   contrato-cosmic.sh     # /usr/share/cosmic e COSMIC de brinquedo com v2; seis escritores e o pré-voo (P76); bash e python3
   oraculo-tema.sh        # saídas do oráculo guardadas em tests/oraculo/ contra a cópia em Python (P76); só python3

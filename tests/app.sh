@@ -216,7 +216,9 @@ _NAO_E_AJUSTE = {
 # COSMIC (cosmic_prever.sh), do pós-apt (cosmic_pos_apt.sh), do pino dos
 # applets (applet_pino.sh), da guarda do `.deb` (atualizar_sistema.sh) e do
 # oráculo do tema (oraculo_tema.sh). Nenhuma é escolha de tema.
-_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
+# GB_ entrou em 15/10/2026, com a P81: os caminhos e comandos do
+# garantir_builds.sh, sobrescrevíveis para teste, da mesma família.
+_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|GB_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
 
 _catalogo = {i["chave"] for i in servidor.ler_esquema()}
 _lidas = {}

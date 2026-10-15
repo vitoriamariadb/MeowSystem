@@ -256,7 +256,11 @@ cmd_build() {
   trap 'rm -rf "$tmpdir"' RETURN
 
   meow_info "baixando o fonte do cosmic-files $ver…"
-  ( cd "$tmpdir" && apt-get source cosmic-files ) >/dev/null 2>&1 \
+  # COM O `=<versão>` — P81, 15/10/2026. Sem ele o apt baixa o CANDIDATO, e o
+  # build do login roda justamente entre um `apt update` e o upgrade: o fonte
+  # de outra versão iria para o diretório desta. É a regra do
+  # `compositor_patches.sh` (passo 3 do `compilar`).
+  ( cd "$tmpdir" && apt-get source "cosmic-files=$ver" ) >/dev/null 2>&1 \
     || { meow_erro "apt-get source falhou — o deb-src está habilitado?"; return "$MEOW_ERRO"; }
   fonte="$(find "$tmpdir" -maxdepth 1 -type d -name 'cosmic-files-*' | head -1)"
   [ -n "$fonte" ] || { meow_erro "não achei a árvore de fonte baixada"; return "$MEOW_ERRO"; }
