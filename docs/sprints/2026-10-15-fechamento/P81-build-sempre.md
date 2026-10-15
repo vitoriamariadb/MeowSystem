@@ -40,3 +40,15 @@ de um daemon?»; «um sistema idempotente que resista a `sudo apt update -y && s
   por regra não é falha. Corrigir junto com a tarefa 2.
 - A última linha do log ainda manda digitar: «ou agora, com: meow painel reciclar». Vira estado
   («vale nas janelas novas; a área de trabalho no próximo login») ou o pós-apt faz o reler único da P80.
+
+## Medido pela P85 (15/10, 21:00): o build do cosmic-comp mudou de ferramenta
+
+O 4d14528 não tem mais `Makefile`: virou `justfile`/`cargo.just` (o `debian/rules` do pacote usa
+`just build-vendored`), e o `.cargo/` só existe dentro do `vendor.tar`. Em
+`scripts/compositor_patches.sh` (`cmd_compilar`) o `nice -n 19 make VENDOR=1` sai rc=2 («No targets
+specified and no makefile found»). Cura VIVA, não troca de uma ferramenta pela outra: detectar o que o
+fonte traz — `justfile` com receita `build-vendored` → `just build-vendored`; `Makefile` → `make
+VENDOR=1`; nenhum dos dois → `tar pxf vendor.tar && cargo build --release --frozen --offline` — e a
+checagem de dependências (`for i in patch make cargo`) pede o que o caminho escolhido usa. Teste com
+os três tipos de fonte falso. A P85 provou o caminho `just build-vendored` no 4d14528 (6m53s, 5
+marcadores).
