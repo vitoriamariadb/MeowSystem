@@ -940,6 +940,7 @@ class Percurso:
         self.acionados = set()
         self.esperadas = []          # [(status, trecho de url)] que o gesto pediu
         self.pedidos_vivos = 0
+        self.nascidos = 0            # todo pedido que nasceu (o `assentar` compara)
         self.posts = []              # (url, corpo) de todo POST de ação
         self.acoes_vistas = {}       # id de ação -> como o percurso a exerceu
         self.tempos = {}             # aba -> segundos
@@ -988,6 +989,7 @@ class Percurso:
         if not self._conta(req):
             return
         self.pedidos_vivos += 1
+        self.nascidos += 1
         if req.method == "POST" and re.search(r"/api/(rodar|salvar|acervo|pack-importar|"
                                               r"importar|pendencia-recusar|jogo-fora|"
                                               r"app-icone|app-desenho|autorais|definir)",
@@ -1035,14 +1037,30 @@ class Percurso:
 
     # --- a página ----------------------------------------------------------
     def assentar(self, quieto=250, teto=8000):
-        """Espera a rede (menos o pulso) e o DOM pararem."""
+        """Espera a rede (menos o pulso) e o DOM pararem.
+
+        O PEDIDO QUE NASCE DEPOIS DO GESTO — 15/10/2026, P82 (item 37). A cura
+        da integração da P80 (`e34845c`) valeu só para o `/api/pack-importar`:
+        todo gesto cujo pedido nasce num salto assíncrono (o `close` de uma
+        caixa) tinha a mesma janela. O pedido nascia enquanto o DOM assentava,
+        e a espera de depois era de 3 s cravados; um servidor mais lento que
+        isso deixava o gate conferir a tela antes da resposta. Agora o
+        `assentar` conta os pedidos que NASCEM enquanto o DOM assenta (a
+        janela é o próprio `quieto`), espera cada um deles pelo mesmo `teto`
+        do gesto, e assenta o DOM de novo, porque a resposta repinta a tela.
+        A volta tem limite: uma página que pergunta em laço não prende o gate.
+        """
         fim = time.time() + teto / 1000
         while self.pedidos_vivos and time.time() < fim:
             self.pag.wait_for_timeout(40)
-        self.pag.evaluate(ASSENTAR_JS, [quieto, max(300, int((fim - time.time()) * 1000))])
-        fim2 = time.time() + 3
-        while self.pedidos_vivos and time.time() < fim2:
-            self.pag.wait_for_timeout(40)
+        for _volta in range(4):
+            antes = self.nascidos
+            self.pag.evaluate(ASSENTAR_JS, [quieto, max(300, int((fim - time.time()) * 1000))])
+            if self.nascidos == antes and not self.pedidos_vivos:
+                break
+            fim = max(fim, time.time() + teto / 1000)
+            while self.pedidos_vivos and time.time() < fim:
+                self.pag.wait_for_timeout(40)
 
     def censo(self):
         """O censo de agora. Tudo o que ele vê fica anotado: o que aparece no
