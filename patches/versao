@@ -35,7 +35,7 @@
 #   repositório do Pop já não serve o fonte dela (`apt-get source` devolve 404
 #   no `.tar.xz`). O caminho é atualizar o cosmic-comp — o apt traz binário e
 #   fonte da mesma versão — e validar a série nessa.
-0.1~1788962084~24.04~a557859
+# 0.1~1788962084~24.04~a557859   (série anterior à P85; ver o fim do arquivo)
 
 # O QUE VALIDOU A LINHA ABAIXO (medido em 24/09/2026, depois da instalação)
 #   - `apt-get install --only-upgrade cosmic-comp` levou a máquina da cd881a4
@@ -43,4 +43,27 @@
 #   - `meow compositor validar` baixou o fonte desta versão e rodou o dry-run
 #     da série com `-F0`: os cinco entram limpos, o `req`
 #     (cosmic-comp-sem-workspace-vazio) e os quatro `opt`.
-0.1~1790118748~24.04~0fbd457
+# 0.1~1790118748~24.04~0fbd457   (série anterior à P85; ver o fim do arquivo)
+
+# A SÉRIE MUDOU EM 15/10/2026 (sprint P85): AS DUAS LINHAS ACIMA SÃO DA ANTERIOR
+#   O `patches/` não guarda variante por versão: há UM arquivo por patch. No
+#   `4d14528` o `cosmic-comp-sem-workspace-vazio` (req) e o
+#   `cosmic-comp-modo-leitura` (opt) foram refeitos sobre o contexto novo do
+#   upstream (o tremor do diálogo modal no floating; o `cursor_hide` no
+#   `CosmicCompConfig`), e esse contexto não existe no `0fbd457` nem no
+#   `a557859`. A série deste diretório vale do `4d14528` em diante. As linhas
+#   do `a557859` e do `0fbd457` ficam como histórico do que foi validado com a
+#   série de então (a do commit anterior à P85, no git), e por isso saíram
+#   comentadas: a série deste diretório não entra mais nelas.
+#
+# O QUE VALIDOU A LINHA ABAIXO (medido em 15/10/2026, numa cópia, sem instalar)
+#   - o `.tar.xz` desta versão extraído limpo: os cinco `.patch` entram com
+#     `-F0`, cada um sozinho e em sequência pelo `compositor_patches.sh
+#     aplicar` (rc=0, nenhum fuzz);
+#   - o diff do upstream `0fbd457 -> 4d14528` foi lido nas funções que cada
+#     patch toca (o registro está no cabeçalho de cada `.patch`);
+#   - `cargo build --release --frozen --offline` sobre a árvore patchada,
+#     com Nice 19: compila, e o binário carrega os cinco marcadores
+#     (WS-PATCH-3.67, RADIUS-PATCH-2, MENU-PATCH-1, READING-MODE-1,
+#     BLUR-CACHE-1).
+0.1~1791491785~24.04~4d14528
