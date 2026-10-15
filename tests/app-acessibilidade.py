@@ -255,7 +255,7 @@ def montar_casa():
 #   enquanto a aba esta' na tela custa um `evaluate` por aba, e nao uma segunda
 #   volta pela pagina inteira.
 CENSO_JS = """
-(raiz) => {
+([raiz, tetoParagrafo]) => {
   const SELETOR_ALVO = 'button, a[href], input:not([type=hidden]), select,'
                      + ' textarea, summary, [role=button],'
                      + ' [tabindex]:not([tabindex="-1"])';
@@ -375,8 +375,27 @@ CENSO_JS = """
                         texto: t.slice(0, 80) });
   }
 
+  /* 4. O TETO DE 220 NO PARÁGRAFO PINTADO — 15/10/2026, P82 (item 39). Ele
+     ficava só na fonte do `servidor.py`, porque na tela as 12 legendas de
+     desenho dos `previas-*.js` passavam dele e eram isentas. A P77 levou a
+     legenda para o balão do `?` (o `dicaDoDesenho`), e a isenção ficou sem
+     objeto: agora o teto vale para todo parágrafo pintado. Fora só o que
+     já estava fora pela mesma razão do passo 3: o balão (`.dica`), o estado
+     de carregamento e a história do pack, que é texto do autor dele. Uma
+     legenda que volte à tela reprova aqui. */
+  const longos = [];
+  for (const p of pr.querySelectorAll('p')) {
+    if (p.offsetParent === null || p.closest('.dica')) continue;
+    if (p.classList.contains('sem-previa')) continue;
+    if (p.closest('.pack-historia')) continue;
+    const t = (p.textContent || '').trim().replace(/\s+/g, ' ');
+    if (t.length > tetoParagrafo)
+      longos.push({ classe: (p.className || '').toString().slice(0, 30),
+                    tam: t.length, texto: t.slice(0, 80) });
+  }
+
   return { alvos, medidos, baloes,
-           daRaiz, daCasa, amostraCaminho, nomeComCaminho, minusculas };
+           daRaiz, daCasa, amostraCaminho, nomeComCaminho, minusculas, longos };
 }
 """
 
@@ -478,10 +497,10 @@ def frases_fixas():
 #       comentário do `meow.conf.exemplo` copiado cru, e é ele a REDE que
 #       justifica encurtar o resto. Aplicar o teto nele seria cortar justamente
 #       o texto para onde o que não cabe deve ir;
-#     · a legenda de desenho (12) vem dos `previas-*.js` e é a enumeração dos
-#       números que o desenho mostra — `raio 0, espaço 2, recheio 0, margem 0…`.
-#       Ela não tem gordura: cortá-la deixa metade dos números do desenho sem
-#       explicação, que é o risco que a P7 declara.
+#     · a legenda de desenho (12) vinha dos `previas-*.js`. [P82, 15/10/2026:
+#       a P77 a levou para o balão do `?`, e a isenção saiu. O teto de 220
+#       vale agora para todo parágrafo PINTADO, medido na tela pelo passo 4
+#       do `CENSO_JS`, e uma legenda que volte à tela reprova lá.]
 #   O que esta leitura cobra é o que esta sprint pode manter honestamente.
 TETO_AJUDA = 220
 CHAVES_DE_AJUDA = ("ajuda", "frase", "nota", "texto")
@@ -567,7 +586,7 @@ def percorrer(pag):
     pequenos, medidos, baloes = [], 0, []
     # A RAIZ VAI DAQUI PARA DENTRO DA PAGINA, e nao e' lida la': quem sabe de
     # onde o painel subiu e' este processo, que o subiu. Ver o censo.
-    p7 = {"caminhos": 0, "onde": [], "nomes": [], "minusculas": []}
+    p7 = {"caminhos": 0, "onde": [], "nomes": [], "minusculas": [], "longos": []}
     nomes = pag.locator("#trilho button").all_text_contents()
     for i in range(len(nomes)):
         pag.locator("#trilho button").nth(i).click()
@@ -575,9 +594,9 @@ def percorrer(pag):
         # O nome do botao do trilho traz a contagem colada no fim ("Painel e
         # dock12"); no relatorio isso vira um numero sem dono, entao ele sai.
         aba = re.sub(r"\s*\d+$", "", nomes[i].strip())
-        d = pag.evaluate(CENSO_JS, RAIZ)
+        d = pag.evaluate(CENSO_JS, [RAIZ, TETO_AJUDA])
         for chave in ("alvos", "baloes", "amostraCaminho",
-                      "nomeComCaminho", "minusculas"):
+                      "nomeComCaminho", "minusculas", "longos"):
             for x in d[chave]:
                 x["aba"] = aba
         pequenos += d["alvos"]
@@ -587,6 +606,7 @@ def percorrer(pag):
         p7["onde"] += d["amostraCaminho"]
         p7["nomes"] += d["nomeComCaminho"]
         p7["minusculas"] += d["minusculas"]
+        p7["longos"] += d["longos"]
         print(f"  {aba[:34]:36s} alvos={d['medidos']:4d}"
               f"  abaixo de {PISO_PX} px={len(d['alvos']):4d}"
               f"  baloes={len(d['baloes']):4d}"
@@ -767,6 +787,10 @@ def main():
     if p7["minusculas"]:
         falhas.append(f"{len(p7['minusculas'])} paragrafos de ajuda comecando "
                       f"em minuscula")
+    print(f"paragrafos pintados acima de {TETO_AJUDA} ......... "
+          f"{len(p7['longos'])}   (antes da P82: as 12 legendas eram isentas)")
+    if p7["longos"]:
+        falhas.append(f"{len(p7['longos'])} paragrafos pintados acima de {TETO_AJUDA} caracteres")
 
     if DETALHE:
         print("\n--- quem reprovou -------------------------------------------")
@@ -788,6 +812,9 @@ def main():
             print(f"  nome       [{x['aba'][:16]:16s}] {x['tag']} {x['nome']!r}")
         for x in p7["minusculas"]:
             print(f"  minuscula  [{x['aba'][:16]:16s}] {x['classe'][:20]:22s}"
+                  f" {x['texto']!r}")
+        for x in p7["longos"]:
+            print(f"  longo {x['tam']:4d} [{x['aba'][:16]:16s}] {x['classe'][:20]:22s}"
                   f" {x['texto']!r}")
 
     if pequenos:
