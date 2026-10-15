@@ -6763,7 +6763,16 @@ class Trabalho:
         )
         threading.Thread(target=self._ler, daemon=True).start()
 
-    def _ler(self):
+    # O DESFECHO NÃO ESPERA O CANO FECHAR — 15/10/2026, P82 (item 36). O `fim`
+    #   nascia quando o stdout fechava, e um neto que herde o stdout (o `&` de
+    #   um script) segura o cano aberto: o pai morria e o trabalho ficava vivo
+    #   para sempre. Agora quem lê o cano é uma thread à parte, e esta espera o
+    #   PROCESSO. Morto o processo, o cano ganha `PRAZO_DO_CANO` segundos para
+    #   entregar o resto; depois disso o desfecho é gravado mesmo assim, e o
+    #   que o neto escrever depois continua entrando nas linhas.
+    PRAZO_DO_CANO = 2.0
+
+    def _bombear(self):
         try:
             for bruta in self.proc.stdout:
                 linha = bruta.decode("utf-8", "replace").rstrip("\n")
@@ -6771,7 +6780,13 @@ class Trabalho:
                     self.linhas.append(linha)
         except (OSError, ValueError):
             pass
-        self.rc = self.proc.wait()
+
+    def _ler(self):
+        leitor = threading.Thread(target=self._bombear, daemon=True)
+        leitor.start()
+        rc = self.proc.wait()
+        leitor.join(self.PRAZO_DO_CANO)
+        self.rc = rc
         self.fim = time.time()
         # DEPOIS do `rc` e do `fim`: a página pergunta "acabou?" pelo `vivo()`, e
         # a limpeza não pode atrasar a resposta nem falhar a ponto de o trabalho
