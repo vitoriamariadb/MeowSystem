@@ -58,58 +58,27 @@ def chaves_de(texto: str) -> set[str]:
     return {m.group(1) for l in texto.splitlines() if (m := CHAVE.match(l))}
 
 
-# AS CHAVES QUE MUDARAM DE NOME — 24/09/2026, P52 (achado 13)
-#   `WALLPAPER_FONTES_DELA` era o nome de uma chave que a tela mostra («casa
-#   pelo nome no arquivo»), herança de quando o projeto era de uma pessoa só.
-#   O produto vai para qualquer pessoa, e o nome passou a dizer o que a lista
-#   É: as fontes que o carrossel está PERMITIDO a deixar em paz — a mesma
-#   palavra do verbo que a preenche, `meow wallpaper permitir`.
+# `WALLPAPER_FONTES_DELA` era o nome de uma chave que a tela mostra («casa pelo
+# nome no arquivo»), herança de quando o projeto era de uma pessoa só.
 #
-#   A REGRA DO NOME ANTIGO, e ela é uma só em todo o projeto: o nome novo vence
-#   quando está no arquivo, mesmo vazio; o antigo só vale quando o novo não
-#   está. Quem já tem o `meow.conf` com o nome antigo continua funcionando sem
-#   passar por aqui — o `scripts/wallpaper.sh`, o painel e o importar leem o
-#   antigo como sinônimo —, e este script só arruma o arquivo: troca o NOME na
-#   própria linha, com o valor e o comentário dela intactos, antes de conferir
-#   as chaves faltando. A ordem importa: acrescentar primeiro poria a chave
-#   nova VAZIA no fim do arquivo, e pela regra acima ela venceria o valor que a
-#   linha antiga carregava.
-#
-#   O painel (`app/servidor.py`) lê esta tabela daqui, por caminho — uma
-#   segunda tabela lá seria a armadilha nº 3 deste repositório.
+# O painel (`app/servidor.py`) lê esta tabela daqui, por caminho — uma segunda
+# tabela lá seria a armadilha nº 3 deste repositório.
 RENOMEADAS = {"WALLPAPER_FONTES_DELA": "WALLPAPER_FONTES_PERMITIDAS"}
 
 
-# AS CHAVES APOSENTADAS — P75, 09/10/2026
-#   Em 24/09 ela decidiu «Tirar a linha do conf» para a `ICONES_BASE`: a base
-#   vem do pack, pinada. A decisão virou um COMENTÁRIO no meow.conf dela, e a
-#   chave continuou no exemplo. Este script devolve toda chave do exemplo que
-#   o arquivo não tem, e linha comentada conta como ausente: no install.sh
-#   seguinte a chave voltou, o painel regravou o valor por cima (o
-#   `MeowSystem-Icons-Base` que ele oferecia como "a base do pack"), e as
-#   pastas e os apelidos foram procurar a base em `/usr/share/icons`, onde ela
-#   nunca existiu. Sete auto-reparos seguidos pularam as pastas
-#   (01-regressoes.md, I1, I2 e «Por que voltou», item 2).
+# A decisão virou um COMENTÁRIO no meow.conf dela, e a chave continuou no
+# exemplo. Sete auto-reparos seguidos pularam as pastas.
 #
-#   A cura é ter onde dizer "esta chave saiu": uma aposentada nunca é
-#   devolvida, mesmo que um exemplo velho ainda a traga, e a linha ATIVA dela
-#   sai do arquivo dela — é a única remoção deste script. O comentário que ela
-#   escreveu em volta fica. Uma decisão do tipo "a chave sai" passa a ser uma
-#   linha aqui, e não uma esperança de que ninguém a traga de volta.
-#
-#   O valor é a frase do porquê, para quem ler o `--conferir`.
+# A cura é ter onde dizer "esta chave saiu": uma aposentada nunca é devolvida,
+# mesmo que um exemplo velho ainda a traga, e a linha ATIVA dela sai do
+# arquivo dela — é a única remoção deste script.
 APOSENTADAS = {
     "ICONES_BASE": "a base de ícones vem do pack, pinada, por decisão de 24/09/2026",
 }
 
-# O BLOCO QUE O EXEMPLO TRAZIA ACIMA DA APOSENTADA — 15/10/2026, P82 (item 33)
-#   A linha ativa saía (acima), e o comentário que o exemplo pôs em cima dela
-#   ficava no arquivo dela sem chave embaixo: no desta casa, dois blocos
-#   «# @ Tema de onde herdar», um com a nota escrita à mão colada no fim. O
-#   bloco é texto do PROJETO, então sai também; e para nunca levar junto uma
-#   linha que ela escreveu, só sai o que é IGUAL, linha a linha, ao bloco que o
-#   exemplo trazia (aqui, como ele era antes de 18c1d88): a primeira linha que
-#   difere encerra o corte, e a nota dela fica.
+# A linha ativa saía (acima), e o comentário que o exemplo pôs em cima dela
+# ficava no arquivo dela sem chave embaixo: no desta casa, dois blocos «# @
+# Tema de onde herdar», um com a nota escrita à mão colada no fim.
 BLOCOS_APOSENTADOS = {
     "ICONES_BASE": """# @ Tema de onde herdar
 # > De qual tema instalado o nosso puxa o que ele mesmo não desenha.
@@ -135,36 +104,12 @@ BLOCOS_APOSENTADOS = {
 }
 
 
-# OS VESTÍGIOS DE PACK — P79, 10/10/2026 (item 4)
-#   O QA de uso real da P77 achou na casa de quem usa `ICONES_FLAVOR="macchiato"`
-#   com o Dracula no ar — herança do Dracula de antes da P74, quando ele vestia
-#   os ícones de arquivo do Catppuccin no macchiato — e `ICONES_PASTAS`
-#   escrito por extenso com o flavor do Dracula. O primeiro vestia a máquina
-#   com o acervo do outro pack («123 tipos de arquivo já vestidos de
-#   Catppuccin macchiato»); o segundo ficava para trás na troca de pack.
+# O primeiro vestia a máquina com o acervo do outro pack («123 tipos de arquivo
+# já vestidos de Catppuccin macchiato»); o segundo ficava para trás na troca de
+# pack.
 #
-#   A REGRA, E ELA É A MESMA NAS DUAS CHAVES: o nome de um flavor que o pack no
-#   ar NÃO tem é resto de outro pack, e a chave volta à forma de fábrica, que
-#   acompanha o pack (`"$FLAVOR"`, `"cat-${FLAVOR}-${ACCENT}"`, as duas lidas do
-#   exemplo, e não escritas aqui). O que quem usa fixou com um flavor DO
-#   PRÓPRIO pack (ícones em macchiato com a interface em mocha, o pedido de
-#   21/09; a variante «Drácula» das pastas escolhida no painel) fica.
-#   [Conferência da P79: a forma de fábrica escrita por extenso — o
-#   `cat-dracula-${ACCENT}` com o Dracula no ar — também voltava ao molde, «com
-#   o mesmo resultado de hoje». Não era o mesmo: é o que o painel grava quando
-#   quem usa escolhe a variante do pack em vez de «Acompanha o tema», e o molde
-#   a faria mudar na próxima troca de flavor DENTRO do pack. A troca de pack já
-#   a leva pela regra de cima: com o Catppuccin no ar, `dracula` não é flavor.] «O doctor não avisa,
-#   corrige» (09/10): é a única linha que já existia e muda de VALOR aqui.
-#
-#   O PONTEIRO SÓ NA TROCA (`--pack-de-antes`): um `CURSOR` igual ao ponteiro
-#   que o pack de antes escolhe vira o que o pack novo escolhe; um que quem usa
-#   fixou fica. Fora da troca não há como saber se o ponteiro de outro pack é
-#   resto ou escolha — os dois são o mesmo texto no arquivo —, e por isso o
-#   doctor não mexe nele.
-#
-#   Sem `scripts/pack.py`, com o PACK ou o FLAVOR escritos com `$`, ou com um
-#   pack que não passa no `validar`, nada muda: a regra não adivinha.
+# Fora da troca não há como saber se o ponteiro de outro pack é resto ou escolha
+# — os dois são o mesmo texto no arquivo —, e por isso o doctor não mexe nele.
 VESTIGIOS = ("ICONES_FLAVOR", "ICONES_PASTAS")
 _VALOR = r'("(?:[^"\\]|\\.)*"|\'[^\']*\'|[^\s#]*)'
 
@@ -380,15 +325,14 @@ def main() -> int:
             print("comentário do exemplo sem a chave aposentada embaixo: " + ", ".join(orfaos))
         return 1
 
-    # Vão para o FIM, numa seção que se identifica. Tentar encaixar cada chave na
-    # seção "certa" exigiria casar os cabeçalhos do exemplo com os dela — e o
-    # arquivo dela pode ter sido reorganizado à mão. Acrescentar no fim é o único
-    # jeito que não depende de adivinhar a estrutura do arquivo de outra pessoa.
+    # Vão para o FIM, numa seção que se identifica. Tentar encaixar cada chave
+    # na seção "certa" exigiria casar os cabeçalhos do exemplo com os dela — e o
+    # arquivo dela pode ter sido reorganizado à mão.
     novo = atual
     if faltando:
         corpo = "\n\n".join(bloco for _, bloco in faltando)
         # A frase do cabeçalho não pode mentir quando algo mudou acima: um nome
-        # trocado (`RENOMEADAS`) ou a linha de uma aposentada que saiu (P75).
+        # trocado (`RENOMEADAS`) ou a linha de uma aposentada que saiu.
         acima = []
         if renomeadas:
             acima.append(f"só o NOME de {', '.join(renomeadas)} mudou, com o valor de antes")

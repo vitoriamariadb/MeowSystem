@@ -1,34 +1,16 @@
 #!/usr/bin/env bash
 # aplicar_tema.sh — devolve ao COSMIC uma captura feita por capturar_tema.sh.
 #
-# É ISTO QUE SUBSTITUI A GUI
-#   Depois que a Vitória importou o tema uma vez e o capturamos, aplicar deixa de
-#   precisar do app gráfico: é copiar a foto de volta. Vale em máquina nova, vale
-#   no `install.sh` sem flag, vale no auto-reparo.
+# Depois que a Vitória importou o tema uma vez e o capturamos, aplicar deixa de
+# precisar do app gráfico: é copiar a foto de volta. Vale em máquina nova, vale
+# no `install.sh` sem flag, vale no auto-reparo.
 #
-# NÃO ESCREVE SE JÁ ESTIVER APLICADO
-#   `--conferir` compara arquivo a arquivo e sai 1 se algo divergir, sem tocar em
-#   nada. É a regra 5 do contrato — comparação por conteúdo, não por existência —
-#   e é o que impede o auto-reparo de "consertar" o que já está certo, de hora em
-#   hora, para sempre.
+# `--conferir` compara arquivo a arquivo e sai 1 se algo divergir, sem tocar em
+# nada.
 #
-# A GUERRA DE ALPHA COM O RITUAL DA AURORA
-#   O `aurora-vidro-maximizado.py` copia o alpha de `transparent_X.base` para
-#   `X.base` cerca de 1s depois de qualquer gravação, e de novo a cada ciclo do
-#   self-heal. Ele mexe SÓ nos dois dígitos de alpha do `base:` raiz de
-#   background, primary e secondary — o RGB Catppuccin sobrevive intacto.
-#   Por isso o `--conferir` NORMALIZA esses dois dígitos nesses três arquivos:
-#   sem isso o doctor acusaria divergência eterna e entraria em ping-pong com a
-#   unit .path da Aurora, revertendo o vidro fosco dela a cada rodada.
-#
-# ESCRITA ATÔMICA, SEMPRE NO MESMO SISTEMA DE ARQUIVOS
-#   O repo vive em /mnt/Apate e o destino em /home: `mv` entre eles não é atômico.
-#   O temporário nasce dentro do diretório de destino final.
-#
-# PRECISA RELOGAR? NÃO.
-#   O cosmic-config observa os arquivos por inotify; a interface acompanha em
-#   segundos. O que NÃO acompanha é o cosmic-comp para night light e workspaces —
-#   mas isso é outro assunto, e este script não toca neles.
+# O `aurora-vidro-maximizado.py` copia o alpha de `transparent_X.base` para
+# `X.base` cerca de 1s depois de qualquer gravação, e de novo a cada ciclo do
+# self-heal.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -42,67 +24,18 @@ declare -a CHAVES_ALPHA_AURORA=(background primary secondary)
 # Em Aparência → Vidro fosco a GUI do COSMIC tem dois controles: "Espessura do
 # efeito fosco" (grava `frosted`) e "Opacidade do vidro" (grava `alpha_map`).
 #
-# ELES ESTAVAM DENTRO DA CAPTURA — e por isso não colavam. Ela movia o slider,
-# via mudar, e o `meow doctor` das 5h restaurava o valor fotografado. A queixa
-# "os sliders não funcionam" era literal, e a causa era esta: o projeto
-# fotografou uma preferência CONTÍNUA e passou a impor a foto todo dia.
+# ELES ESTAVAM DENTRO DA CAPTURA — e por isso não colavam.
 #
 # A regra que sai daqui vale para além destas duas chaves: o que a GUI expõe com
-# um controle contínuo é decisão de quem está na frente da tela. Medido em
-# 05/08/2026 — `alpha_map`/`frosted` aparecem 268 vezes no `cosmic-settings`,
-# enquanto `keep_style_on_maximize` não tem controle nenhum lá. Por isso essa
-# outra continua nossa: sem GUI, se ninguém a escrever ela simplesmente se perde.
-#
-# CONSEQUÊNCIA PARA QUEM CAPTURA: os arquivos continuam sendo fotografados (uma
-# captura tem de ser completa para servir de backup), mas deixam de ser
-# IMPOSTOS. Aplicar uma captura nova respeita o vidro que ela escolheu.
-#
-# A ÁRVORE `Mode/v1` ENTRA AQUI PELO MESMO MOTIVO — MAS POR CAMINHO INTEIRO
-#   `Mode/v1/is_dark` e `Mode/v1/auto_switch` também são controles que a GUI
-#   expõe (Aparência → modo claro/escuro e "alternar automaticamente"), e o
-#   `auto_switch` ainda tem dono NATIVO: o `cosmic-settings-daemon` calcula
-#   nascer/pôr do sol pela geolocalização e passa a escrever o `is_dark` sozinho
-#   enquanto ele for `true`. Impor os dois pela captura punha TRÊS escritores na
-#   mesma linha: a captura, a `etapa_modo` do install.sh (que deriva do MODO no
-#   meow.conf) e o daemon. Medido em 10/08/2026: com o `is_dark` do destino em
-#   `false`, o `--conferir` acusa 1 de 187 arquivos divergente, e o auto-reparo
-#   das 5h consertaria e notificaria TODO dia — o anti-padrão que o
-#   `meow-doctor.service` gasta quarenta linhas explicando por que não pode
-#   acontecer. E ceder o `is_dark` do Mode não perde tema nenhum: `mocha-mauve` e
-#   `latte-mauve` são byte a byte iguais fora dele (`diff -rq`, reconferido em
-#   10/08/2026) — o claro nunca foi um tema, é um interruptor. O caminho para ele
-#   é `meow tema claro`, que grava MODO no meow.conf, e é lá que a decisão mora.
-#
-#   POR QUE ESTES DOIS NÃO PODEM ENTRAR EM `CHAVES_DELA`, QUE CASA POR BASENAME
-#   Porque `is_dark` NÃO existe só no Mode. Conferido nas quatro capturas:
-#   `Dark/v1/is_dark`, `Dark/v2/is_dark` e `Light/v2/is_dark` também existem, e
-#   ali o nome é campo ESTRUTURAL da árvore — a Light diz `false`, a Dark diz
-#   `true`, e nenhum dos dois é decisão de ninguém. Cedidos por basename, esses
-#   três saíam do envelope de reparo: uma árvore Light que passasse a dizer
-#   `is_dark=true` não seria consertada por `meow tema`, nem por `meow desfazer`,
-#   nem por `meow doctor --consertar`, e o script ainda anunciaria "já aplicado".
-#   Por isso o Mode é casado pelo CAMINHO RELATIVO INTEIRO, no `case` abaixo.
-#   (`auto_switch` só existe no Mode, mas fica junto: a regra é a árvore.)
-#
-#   `frosted_maximized_apps` ENTROU EM 19/09/2026, E POR UM LAÇO MEDIDO
-#     Quem manda nessa chave é o `vidro.sh`, pela chave `VIDRO_AO_MAXIMIZAR` do
-#     meow.conf — ela decide se o vidro fosco continua com a janela maximizada.
-#     A captura tinha `false` gravado; o `vidro.sh` escrevia `true`; o
-#     `aplicar_tema` restaurava o `false` da captura; e na passagem seguinte o
-#     vidro escrevia `true` de novo.
-#     O sintoma era o `install.sh` nunca dizer "nenhuma etapa precisou escrever
-#     nada": `tema` e `vidro` apareciam em "mexeu" em TODA passagem, com "1
-#     escritos, 170 já estavam certos". Dois donos no mesmo arquivo, brigando de
-#     hora em hora, é a armadilha que este projeto persegue desde a lib de
-#     idempotência — e desta vez os dois escritores eram nossos.
+# um controle contínuo é decisão de quem está na frente da tela.
 declare -a CHAVES_DELA=(frosted alpha_map frosted_maximized_apps)
 
 e_chave_dela() {
   local chave; chave="$(basename "$1")"
   case "$1" in
-    # `v*` E NÃO `v1` (P76): a escolha dela é a mesma chave em qualquer
-    # esquema, e o `v1` cravado deixaria de protegê-la no dia em que o COSMIC
-    # subir o `Mode` de esquema.
+    # `v*` E NÃO `v1`: a escolha dela é a mesma chave em qualquer esquema, e
+    # o `v1` cravado deixaria de protegê-la no dia em que o COSMIC subir o
+    # `Mode` de esquema.
     com.system76.CosmicTheme.Mode/v*/is_dark|com.system76.CosmicTheme.Mode/v*/auto_switch) return 0 ;;
   esac
   case "$1" in com.system76.CosmicTheme.*) ;; *) return 1 ;; esac
@@ -111,53 +44,15 @@ e_chave_dela() {
 }
 
 # --- A FRONTEIRA É POR ÁRVORE, NÃO POR CHAVE ---------------------------------
-# PROTEGER O INSUMO E IMPOR O PRODUTO GARANTE UM TEMA HÍBRIDO
-#   Libertar `frosted` e `alpha_map` (acima) resolveu metade do problema e criou a
-#   outra. Medido nesta máquina, e é o defeito que motivou este bloco:
+#
+# Libertar `frosted` e `alpha_map` (acima) resolveu metade do problema e criou a
+# outra.
 #
 #     17:59:12–17:59:46  ela mexe os dois slideres; a GUI DERIVA o tema
 #     18:00:36           o install.sh reescreve NOVE arquivos de Dark/v2 de volta
-#                        para a captura de 04/08
+#                        para a captura
 #
-#   Resultado no disco em 05/08, quatro horas depois e ainda hoje: `frosted=Low2`,
-#   que implica alpha `7C`, ao lado de `transparent_background = #313244D9`. A
-#   receita dela apontando para um vidro que a cor gravada não tem. Ela mexeu o
-#   slider, viu mudar, e o instalador desfez sem dizer nada.
-#
-# ENTÃO A DIVISÃO CERTA É ESTA
-#   *.Builder/v*   = A RECEITA. Continua imposta pela captura: é ela que faz o
-#                    tema valer numa máquina onde ninguém nunca abriu a GUI.
-#   {Dark,Light}/  = O PRODUTO da GUI. Imposto só quando o arquivo não existe
-#                    (bootstrap) ou quando a receita do destino confere com a da
-#                    captura. Se a receita divergiu, quem manda é a derivação
-#                    dela — e a captura é que está velha.
-#
-# POR QUE NÃO "O RGB É NOSSO E O ALPHA É DELA"
-#   Foi a outra proposta em cima da mesa, e ela parte cada arquivo ao meio. Os
-#   `transparent_*` carregam o ACCENT junto: congelados como chave dela, um
-#   `meow tema mocha-pink` deixaria a janela flutuante com foco mauve e a
-#   maximizada com foco rosa, para sempre. Fronteira por árvore não parte arquivo
-#   nenhum.
-#
-# A `v1` NÃO É PRODUTO DA GUI — E CEDÊ-LA NÃO PROTEGE NINGUÉM
-#   Ceder existe para não desfazer o que a GUI dela derivou. A GUI não deriva a
-#   `v1`. MEDIDO em 08/08/2026, três provas independentes:
-#     1. `Dark/v1/accent` tem mtime 2026-04-12 e atravessou intacto os TRÊS
-#        imports de tema de 04/08 e toda mexida em Aparência desde então;
-#        `Dark/v2/accent` tem mtime 2026-08-05.
-#     2. Nenhum dos 41 binários `/usr/bin/cosmic-*` contém a chave `is_frosted`,
-#        que só existe no esquema v1 — e o blob de chaves do `theme_manager` do
-#        `cosmic-settings` traz `alpha_map` e `transparent_*`, que só existem no
-#        v2. O stack nativo não conhece mais o esquema da v1.
-#     3. A v1 das QUATRO capturas e a viva são byte a byte idênticas (md5 igual),
-#        inclusive a `original`: trocar de flavor nunca mexeu naquela árvore.
-#   Quem ainda LÊ a v1 são três applets flatpak compilados contra uma libcosmic
-#   antiga. Provado sem reiniciar nada, pelas watches de inotify dos processos
-#   vivos: `cosmic-ext-applet-drives` e `-clipboard-manager` vigiam o inode de
-#   `Dark/v1` (3932173) e o de `Mode/v1`; o `cosmic-panel` vigia `Dark/v2` e
-#   `Light/v2`. As duas árvores estão VIVAS, cada uma com o seu leitor.
-#   Por isso a `v1` fica de fora da cessão: o conteúdo dela vem de
-#   `scripts/gerar_tema_v1.py`, que a deriva da paleta para dentro da captura.
+# Foi a outra proposta em cima da mesa, e ela parte cada arquivo ao meio.
 e_produto() {
   case "$1" in
     com.system76.CosmicTheme.Dark/v1/*|com.system76.CosmicTheme.Light/v1/*) return 1 ;;  # a v1 legada, de propósito
@@ -167,49 +62,7 @@ e_produto() {
 }
 
 # A receita do destino confere com a da captura? Comparação por conteúdo, nas
-# chaves que a GUI escreve. Ausente dos dois lados = confere (não há o que
-# divergir); presente só na captura = confere (máquina nova, ainda vai receber).
-#
-# "DIVERGIU" QUER DIZER "O VIDRO DELA MUDOU, E SÓ ELE" — 24/09/2026, sprint P48
-#   Até aqui bastava UMA das `CHAVES_DELA` diferir para ceder a árvore de
-#   produto inteira, e isso tinha dois furos, medidos na revisão da P48 numa
-#   cópia do ~/.config/cosmic desta máquina, trocando o acento pelo «Salvar e
-#   aplicar» (install.sh, etapa tema, com `--respeitar-gui`):
-#     "tema 'dracula-pink' aplicado: 20 escritos, 150 já estavam certos,
-#      0 removidos, 19 preservados da sua GUI"
-#   A receita foi para o pink e a `Dark/v2` ficou no mauve — accent e os 19
-#   `focus` —, com a notificação dizendo que aplicou. O tema híbrido que o
-#   bloco da fronteira, lá em cima, existe para impedir.
-#
-#   1. A RECEITA DO RESTO TEM DE SER A MESMA. Ceder o produto só faz sentido
-#      quando ele é a derivação que a GUI dela fez DESTE tema. Se o `accent`,
-#      a `palette`, o `bg_color`... da receita do destino diferem dos da
-#      captura, o produto do destino foi derivado de OUTRO tema: é o de antes
-#      da troca, e ceder é congelá-lo por baixo da receita nova. Essas chaves
-#      não são dela (a captura as impõe sempre, com ou sem esta flag), então
-#      a diferença nelas só pode ser a troca que o meow.conf pediu. O `meow
-#      pack` já tinha medido o mesmo furo pelo lado da troca de pack ("103
-#      escritos, 18 já estavam certos, 68 preservados da sua GUI": os 68 eram o
-#      Catppuccin de antes) e desviou dele aplicando sem a flag; aqui ele
-#      fecha para todo mundo que chama com ela.
-#      Custo, o mesmo do `meow tema <nome>`: numa troca de tema com o vidro
-#      dela mexido, o produto é o da captura, e as cores do vidro saem do
-#      `alpha_map` da captura, não do dela (o dela continua gravado; o
-#      `vidro.sh` avisa a diferença). Derivar o produto da receita dela
-#      precisaria da GUI.
-#      (25/09/2026, P58: esse custo acabou no vidro. As cores que carregam o
-#      vidro saem do `alpha_map` dela — ver «O VIDRO SEGUE O COSMIC
-#      INSTALADO», antes do laço.)
-#   2. `frosted_maximized_apps` NÃO FAZ A GUI DERIVAR NADA. Ele está em
-#      `CHAVES_DELA` desde 19/09 para o `aplicar_tema` não brigar com o
-#      `vidro.sh` pela chave (ver acima) — e isso continua, pela
-#      `e_chave_dela`. Mas o `ThemeBuilder::build()` do libcosmic (theme.rs do
-#      commit c003a58, no ~/.cargo desta máquina) só o copia para o produto;
-#      nenhuma cor sai dele. Contado aqui, ele fazia TODA máquina com
-#      VIDRO_AO_MAXIMIZAR="sim" (o padrão do meow.conf.exemplo) parecer "vidro
-#      mexido" diante do `dracula-mauve`, que o traz `false`.
-#   Sai: diverge quando `frosted` ou `alpha_map` diferem e nada mais da receita
-#   difere. É o caso de 05/08, o que motivou a cessão, e ele continua cedido.
+# chaves que a GUI escreve.
 receita_diverge() {
   local arv v a b chave k slider=0
   for arv in Dark Light; do
@@ -247,10 +100,7 @@ FIM
 
 [ $# -ge 1 ] || { uso >&2; exit 2; }
 NOME="$1"; shift
-# Varre TODOS os argumentos, não só o primeiro. Antes olhava apenas `$1`, e com
-# duas flags na linha (`--respeitar-gui --conferir`) a segunda ia para o lixo em
-# silêncio — a mesma armadilha que já custou um `--yes` inventado na unidade do
-# systemd. Opção desconhecida agora é erro, não é ignorada.
+# Varre TODOS os argumentos, não só o primeiro.
 CONFERIR=0
 for a in "$@"; do
   case "$a" in
@@ -262,16 +112,10 @@ done
 [ "$SECO" = "1" ] && CONFERIR=1
 
 case "$NOME" in ''|*/*|.*) echo "ERRO: nome inválido: '$NOME'" >&2; exit 2 ;; esac
-# ONDE A CAPTURA MORA É PERGUNTA DO `pack.py` — 22/09/2026
-#   Ela desceu para dentro do pack dono (`packs/<id>/temas/capturados/`), e a
-#   `original` ficou no motor porque não é tema de pack nenhum. São duas casas;
-#   cravar uma delas aqui faria este script achar metade das capturas.
-#   Este arquivo NÃO carrega o lib/comum.sh (é proposital: ele roda no caminho
-#   de restauração, onde quanto menos se carrega, melhor), então a pergunta vai
-#   direto ao Python. `MEOW_PACK_DIR` chega pelo ambiente quando quem chamou
-#   passou pela ponte; sem ela, cai no pack padrão, como todo consumidor Python.
+# Ela desceu para dentro do pack dono (`packs/<id>/temas/capturados/`), e a
+# `original` ficou no motor porque não é tema de pack nenhum.
 #
-# O `|| ORIGEM=""` NÃO É ENFEITE — 24/09/2026, sprint P48
+# O `|| ORIGEM=""` NÃO É ENFEITE
 #   Captura ausente faz o `pack.py captura` sair 1, e com o `set -e` lá de cima
 #   a atribuição morria ALI: o script saía 1, calado, sem a frase de erro nem o
 #   3 logo abaixo, que nunca eram alcançados. Medido com `dracula-pink` antes
@@ -284,23 +128,17 @@ ORIGEM="$(python3 "$RAIZ/scripts/pack.py" captura "$NOME" 2>/dev/null)" || ORIGE
 }
 
 # Zera os dois dígitos de alpha do `base:` de primeiro nível, para comparar só o
-# que é nosso. O `base:` raiz é o que vem com 4 espaços de indentação — os
-# aninhados (dentro de `component:`) têm mais, e esses NÃO são tocados pela Aurora.
+# que é nosso.
 #
-# O casamento é com `base: "#RRGGBBAA"`, o formato de STRING HEX. Não é detalhe:
-# nesta máquina o `v1` guarda cor como floats (`red: 0.19223961`) e o `v2` como
-# hex — e a Aurora só mexe no hex. Num arquivo de floats este sed simplesmente
-# não casa, que é o comportamento certo.
+# O casamento é com `base: "#RRGGBBAA"`, o formato de STRING HEX.
 normalizar() {
   sed -E 's/^(    base: "#[0-9A-Fa-f]{6})[0-9A-Fa-f]{2}"/\1XX"/'
 }
 
 # Espelha a regra da própria Aurora em vez de fixar "v2": lá
 # (aurora-vidro-maximizado.py, temas() e pares()) um diretório só entra se NÃO
-# for .Builder e tiver arquivos `transparent_*`; e o par de `X` é `transparent_X`.
-# Hoje isso dá exatamente Dark/v2 e Light/v2 — mas o COSMIC já migrou de v1 para
-# v2 uma vez e vai migrar de novo. Deduzir a regra sobrevive à migração;
-# escrever "v2" no script quebraria calado no dia seguinte.
+# for .Builder e tiver arquivos `transparent_*`; e o par de `X` é
+# `transparent_X`.
 e_chave_da_aurora() {
   local rel="$1" chave dir
   chave="$(basename "$rel")"
@@ -318,50 +156,19 @@ e_chave_da_aurora() {
 # --- BACKUP: ESTE SCRIPT É O ÚNICO DO PROJETO QUE APAGA ARQUIVO ALHEIO -------
 # Ele sobrescreve arquivos de tema e REMOVE os que sobram em relação à captura
 # (ver o bloco "os arquivos que SOBRAM", mais abaixo, para saber por que remover
-# é necessário). Até 05/08/2026 ele fazia as duas coisas sem guardar nada.
+# é necessário).
 #
-# O BACKUP NUNCA FOI SOBRE PUBLICAR — ELE PROTEGE O TEMA DELA
-#   Já se escreveu aqui que o risco "real" era o de outra máquina, e que nesta
-#   ele seria pequeno porque as capturas nasceram aqui. É falso, e a prova está
-#   no próprio script: o bloco "os arquivos que SOBRAM" documenta que um import
-#   pela GUI CRIOU 33 arquivos que a captura não conhecia. Cada arquivo que a
-#   GUI dela derive e a captura não tenha é, sem este backup, um `rm -f` sem
-#   volta no tema que ELA ajustou — nesta máquina, hoje, no `install.sh` e no
-#   auto-reparo das 5h.
-#
-#   Por isso o backup não é negociável e não sai com a poda do que existia para
-#   publicação: ele é a rede embaixo do único `rm` do projeto.
-#
-# PREGUIÇOSO DE PROPÓSITO: o backup só nasce quando algo vai mesmo ser escrito
-# ou removido. Um `--conferir` não cria nada, e a rodada que já está conforme —
-# que é a esmagadora maioria — também não. Sem isso o auto-reparo diário criaria
-# um diretório novo por dia sem nunca ter mudado um byte.
+# Já se escreveu aqui que o risco "real" era o de outra máquina, e que nesta ele
+# seria pequeno porque as capturas nasceram aqui.
 MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 BACKUPS_MANTIDOS="${BACKUPS_MANTIDOS:-10}"
 BACKUP_DIR=""
 
 garantir_backup() {
   [ -n "$BACKUP_DIR" ] && return 0            # já feito nesta execução
-  # `%Y-%m-%dT%H-%M-%S`, COM HÍFENS, E ISSO NÃO É ESTÉTICA
-  #   A pasta `backups/` é COMPARTILHADA por todos os módulos e todos os outros
-  #   usam esse formato (`MEOW_CARIMBO`, em lib/comum.sh; a razão está escrita
-  #   por extenso em assets/temas-de-apps/vscode/manifesto.sh §helper 3). Este script era
-  #   o único com `date -Iseconds`, e dois-pontos em nome de arquivo só rendem
-  #   aspas para o resto da vida de quem for restaurar na mão.
-  # O PRIMEIRO BACKUP É DE OUTRA NATUREZA, E POR ISSO LEVA OUTRO NOME
-  #   Ele é o COSMIC de ANTES do MeowSystem nesta máquina — o alvo do `meow
-  #   desfazer` e da fase 2 do `install.sh --uninstall`. Os seguintes são só
-  #   "o estado da véspera". Com o nome `-tema-PRIMEIRO-`, a retenção não o
-  #   alcança: a poda começa pelo mais antigo, que era exatamente o único que
-  #   importava, e BACKUPS_MANTIDOS=10 fazia o botão de volta evaporar na 11ª
-  #   aplicação de tema.
-  #
-  #   "PRIMEIRO" é medido, não presumido: se já existe QUALQUER backup de tema
-  #   aqui, este script já rodou antes e o que estiver no disco agora já é obra
-  #   nossa — chamar isso de "antes do MeowSystem" seria uma mentira gravada no
-  #   nome do arquivo. Numa máquina assim (a desta casa, que rodou desde
-  #   04/08/2026) nenhum PRIMEIRO nasce, e quem responde pelo desfazer continua
-  #   sendo a captura `original`, que foi tirada daqui antes de tudo.
+  # A pasta `backups/` é COMPARTILHADA por todos os módulos e todos os outros
+  # usam esse formato (`MEOW_CARIMBO`, em lib/comum.sh; a razão está escrita por
+  # extenso em assets/temas-de-apps/vscode/manifesto.sh §helper 3).
   local marca="" velho
   for velho in "$MEOW_ESTADO"/backups/*-tema-*; do
     [ -d "$velho" ] && { marca="ja-rodou"; break; }
@@ -405,46 +212,17 @@ FIM
 
   # Retenção: as N mais recentes DESTE script, DESTA captura.
   #
-  # O GLOB TEM O NOME DA CAPTURA PORQUE O `*` LARGO ERA UM `rm -rf` NO VIZINHO
-  #   `*-tema-*` casava também `<carimbo>-tema-v1`, que é do `gerar_tema_v1.py`
-  #   e é o único registro do que havia nas capturas antes de o gerador escrever
-  #   nelas. Conferido no disco em 10/08/2026: das cinco pastas que o glob
-  #   antigo pegava, uma era `2026-08-08T16-01-18-tema-v1`. O comentário que
-  #   morava aqui jurava não tocar em backup de outro módulo, e tocava.
+  # `*-tema-*` casava também `<carimbo>-tema-v1`, que é do `gerar_tema_v1.py` e
+  # é o único registro do que havia nas capturas antes de o gerador escrever
+  # nelas.
   #
-  # A ORDENAÇÃO FICA COMO ESTÁ, DE PROPÓSITO: o `sort` do glibc em pt_BR ignora
-  # pontuação no primeiro nível, então as pastas antigas com dois-pontos e as
-  # novas com hífen se intercalam pela data, que é o que se quer. Um `LC_ALL=C`
-  # aqui só mudaria alguma coisa DENTRO da mesma hora da transição, e mudaria
-  # para pior: em ASCII o `-` vem antes do `:`, e a mais nova sairia primeiro.
-  # A LISTA VEM DE GLOB, E NÃO DE `ls`, POR CAUSA DO `set -e` LÁ EM CIMA
-  #   Com `pipefail` ligado, um `ls` que não casa nada devolve 2 e derruba o
-  #   pipeline inteiro — e a partir do momento em que o primeiro backup passou a
-  #   se chamar `-tema-PRIMEIRO-<nome>`, o glob `*-tema-<nome>` deixa de casar
-  #   qualquer coisa na PRIMEIRA aplicação. Medido: o script morria aqui, logo
-  #   depois de imprimir "backup em ...", sem ter aplicado o tema.
-  #
-  #   O `-tema-PRIMEIRO-` também é excluído explicitamente. O glob já não o pega;
-  #   isto é a rede para o dia em que alguém alargar o glob de novo, porque é a
-  #   única pasta daqui cuja perda não tem conserto.
+  # O `-tema-PRIMEIRO-` também é excluído explicitamente.
   local -a antigas=()
   for velho in "$MEOW_ESTADO"/backups/*-tema-"$NOME"; do
     [ -d "$velho" ] || continue
     case "$velho" in *-tema-PRIMEIRO-*) continue ;; esac
     antigas+=("$velho")
   done
-  # A ORDENAÇÃO CONTINUA SENDO A DO `sort`, e o `printf` preserva isso: é o
-  # mesmo texto que o `ls` produzia, só que sem depender de o glob casar.
-  # "0" DESLIGA A PODA — e sem esta linha ele fazia o OPOSTO. [2026-09-18]
-  #   meow.conf.exemplo:1763 promete, na ajuda que a pessoa lê na tela:
-  #       "0" desliga a poda e guarda todos.
-  #   Mas o corte abaixo é `head -n "-$BACKUPS_MANTIDOS"`, e `head -n "-0"` NÃO
-  #   imprime nada a menos — ele imprime o arquivo INTEIRO. Medido:
-  #       $ printf 'a\nb\nc\n' | head -n "-0"
-  #       a b c        (head, GNU coreutils 9.4)
-  #   Ou seja: quem escreveu 0 para guardar TODOS os backups perdia TODOS eles na
-  #   primeira poda. As três pontas discordavam — a ajuda, o painel (que aceita 0)
-  #   e o código. Quem manda é a ajuda: é a promessa que a pessoa leu.
   [ "${BACKUPS_MANTIDOS:-10}" -eq 0 ] 2>/dev/null && return 0
   if [ "${#antigas[@]}" -gt "$BACKUPS_MANTIDOS" ]; then
     printf '%s\n' "${antigas[@]}" | sort | head -n "-$BACKUPS_MANTIDOS" \
@@ -453,31 +231,12 @@ FIM
   return 0
 }
 
-# --- O VIDRO SEGUE O COSMIC INSTALADO — 25/09/2026, sprint P58 ----------------
+# --- O VIDRO SEGUE O COSMIC INSTALADO ----------------
 # O `alpha_map` e o `frosted` são dela (`CHAVES_DELA`, lá em cima) e ficam; as
-# CORES que carregam o vidro iam como a captura as fotografou, com o
-# `alpha_map` do dia da foto. Medido nesta máquina em 25/09: o `alpha_map` ao
-# vivo, que o slider «Opacidade do vidro» gravou em 17/09, dá
-# `very_high_2: 0.52615` (alpha 86); o `dracula-mauve` traz 0.66615 e grava
-# `#383A4CAA` no `transparent_background`. Com o `frosted` em `VeryHigh2` nos
-# dois, a tela ficava em 67 % com o nível pedindo 52 % — e o `--conferir`
-# dizia "já aplicado (189 arquivos conferem)".
-# (Revisão da P58, 25/09/2026: a primeira redação dizia "gravado pelo COSMIC
-# atualizado", e não houve atualização — nenhum pacote do COSMIC mudou entre
-# 11 e 21/09. A conta que mostra que o mapa é o do slider está no cabeçalho do
-# `derivar_vidro.py`.)
+# CORES que carregam o vidro iam como a captura as fotografou, com o `alpha_map`
+# do dia da foto.
 #
-# A CAPTURA PASSA A SER LIDA COMO ESTE COSMIC A DERIVA. O `derivar_vidro.py`
-# refaz, numa cópia fora do COSMIC, só os campos que o `ThemeBuilder::build()`
-# tira do `alpha_map[frosted]` (a lista, medida no oráculo, está no cabeçalho
-# dele), com o mapa e o nível que estão no destino. Tudo daqui para baixo — a
-# conferência, a cessão à GUI, o backup, o que sobra — lê essa cópia: o
-# `--conferir` seguinte diz "já aplicado", e o doctor não entra em ping-pong.
-#
-# BYTE A BYTE O DE ANTES quando nada muda: destino sem `alpha_map` (máquina
-# nova: a captura grava o dela), o mesmo valor para o nível, ou a guarda
-# recusando — um campo que ia mudar não é, na captura, o que o `build()` dá;
-# a frase diz qual, e a captura vai como está.
+# A CAPTURA PASSA A SER LIDA COMO ESTE COSMIC A DERIVA.
 #
 # `CAPTURA` guarda a foto: a cessão, no laço, precisa das duas (ver lá).
 CAPTURA="$ORIGEM"
@@ -491,11 +250,6 @@ if VISTA="$(mktemp -d "${TMPDIR:-/tmp}/meow-vidro.XXXXXX")"; then
   [ "$rc_vidro" = "1" ] && [ -d "$VISTA/captura" ] && ORIGEM="$VISTA/captura"
   # A frase vai para a tela quando há o que dizer, e nunca no `--conferir`: a
   # primeira linha dele é o veredito que a tabela do doctor mostra.
-  # O SECO É `--conferir` POR DENTRO, MAS QUEM O LÊ É GENTE — 25/09/2026,
-  #   revisão da P58. Ninguém lê a saída dele por máquina (o doctor, o
-  #   `tema_ativo` e o install.sh conferem com MEOW_DRY_RUN=0), e a lista de
-  #   «mudaria» já vem antes do veredito. Sem a frase, o seco mostrava
-  #   «mudaria …/transparent_background» sem dizer por quê.
   case "$rc_vidro" in
     1|3) if [ "$CONFERIR" != "1" ] || [ "$SECO" = "1" ]; then
            printf '  %s\n' "$frase_vidro"
@@ -503,12 +257,8 @@ if VISTA="$(mktemp -d "${TMPDIR:-/tmp}/meow-vidro.XXXXXX")"; then
   esac
 fi
 
-# A RÉGUA DE "ESTE ARQUIVO É AQUELE", UMA SÓ — 25/09/2026, revisão da P58
-#   O alpha do `base:` que a Aurora reescreve não conta. O laço mede com ela se
-#   o destino já está certo, e o `e_a_foto` mede se o destino ainda é a FOTO
-#   da captura. A P58 tinha copiado a régua do laço para o `e_a_foto`; duas
-#   cópias discordam em silêncio no dia em que só uma muda, e a cessão à GUI
-#   passaria a chamar de "obra dela" o que o laço chama de igual.
+# O laço mede com ela se o destino já está certo, e o `e_a_foto` mede se o
+# destino ainda é a FOTO da captura.
 confere() {   # confere <rel> <um> <outro>
   if e_chave_da_aurora "$1"; then
     diff -q <(normalizar < "$2") <(normalizar < "$3") >/dev/null 2>&1
@@ -526,18 +276,9 @@ escritos=0
 iguais=0
 cedidos=0
 
-# --- A FRONTEIRA É OPT-IN, E ISSO NÃO É TIMIDEZ ------------------------------
-# Ceder o produto derivado é o comportamento certo na MANUTENÇÃO — o install.sh
-# rodando de novo, o doctor das 5h — em que ninguém pediu para mudar o tema e
-# reimpor a captura só desfaria o que ela ajustou.
+# Numa DECISÃO dela é o oposto.
 #
-# Numa DECISÃO dela é o oposto. `meow tema mocha-pink` e `meow desfazer` são
-# ordens explícitas: ali a captura tem de vencer, ou o comando não faria nada e
-# ela ficaria com o accent antigo sem entender por quê. E o caso é real, não
-# hipotético: `frosted` costuma ser igual entre capturas de flavors diferentes,
-# então uma receita "velha" travaria a troca de flavor para sempre.
-#
-# Daí a flag. Quem chama para manter, passa; quem chama porque ela mandou, não.
+# Quem chama para manter, passa; quem chama porque ela mandou, não.
 RESPEITAR_GUI=0
 [ "${MEOW_RESPEITAR_GUI:-0}" = "1" ] && RESPEITAR_GUI=1
 for a in "$@"; do [ "$a" = "--respeitar-gui" ] && RESPEITAR_GUI=1; done
@@ -547,16 +288,7 @@ for a in "$@"; do [ "$a" = "--respeitar-gui" ] && RESPEITAR_GUI=1; done
 RECEITA_VELHA=0
 [ "$RESPEITAR_GUI" = "1" ] && receita_diverge && RECEITA_VELHA=1
 
-# AS FICHAS DA CAPTURA SÃO UMA LISTA SÓ — 25/09/2026, sprint P68 (item 5)
-#   O que é da captura e não do COSMIC (o manifesto, o `captura.txt`, o
-#   `.gitignore` da derivada) estava escrito aqui num `case` e no `FICHAS` do
-#   derivar_acento.py, que a P66 extraiu para o `montar`. Duas listas discordam
-#   em silêncio no dia em que só uma ganha um nome: a derivada deixaria de levar
-#   o arquivo novo, e este laço o copiaria para a raiz do ~/.config/cosmic. A
-#   lista é a de lá, pedida uma vez, antes do laço; sem ela o laço não roda —
-#   copiar sem saber o que é ficha é o `rm` e o `cp` às cegas que este script
-#   existe para não fazer. (O python3 já é condição daqui: é ele que acha a
-#   captura, lá em cima.)
+# AS FICHAS DA CAPTURA SÃO UMA LISTA SÓ
 fichas="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import derivar_acento
 print("\n".join(derivar_acento.FICHAS))' "$RAIZ/scripts" 2>/dev/null)" && [ -n "$fichas" ] || {
   echo "ERRO: não consegui ler do scripts/derivar_acento.py quais arquivos da captura são fichas" >&2

@@ -1,17 +1,9 @@
 #!/usr/bin/env bash
 # trabalho-vivo.sh — a gaveta nunca lê «saiu» sem o código de saída.
-# Sprint P80, item 6, 10/10/2026.
 #
-# A CORRIDA QUE ABRIU ISTO (docs/sprints/2026-10-09-uso-real/04-integracao-onda-2.md, P79)
-#   O gate inteiro reprovou uma vez com «O que a atualização mudaria»
-#   terminando em «SAIU NULL · 0S». O `Trabalho.vivo()` do app/servidor.py
-#   respondia pelo `proc.poll()`, e o `rc` e o `fim` só são gravados depois,
-#   pela thread `_ler`. Uma pergunta da página nesse intervalo recebia
-#   `vivo: false` com `rc: null`, e a ação rápida que terminou certo aparecia
-#   como desfecho sem número. Intermitente: depende de a pergunta cair na
-#   janela, e é por isso que o gate passava e falhava na mesma árvore.
+# O gate inteiro reprovou uma vez com «O que a atualização mudaria» terminando
+# em «SAIU NULL · 0S».
 #
-# O QUE ESTE TESTE FAZ: ABRE A JANELA DE PROPÓSITO
 #   O `_ler` é trocado, no processo, por um que espera um sinal depois de o
 #   processo morrer e antes de gravar o desfecho. Com a janela aberta:
 #     1. o processo já morreu (`poll()` diz que sim);
@@ -19,11 +11,6 @@
 #        não foi gravado, e «morto sem rc» é a resposta que a página não lê;
 #   e, solto o sinal:
 #     3. o `vivo()` diz que acabou, com o `rc` e o `fim` gravados.
-#
-# NÃO ESCREVE NADA: o comando do trabalho é o `true`, e a casa é de brinquedo.
-#
-# PORTÁTIL: só bash e python3.
-#   0 = passou · 1 = falhou · 2 = erro deste teste · 3 = pulado
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 3; }

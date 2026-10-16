@@ -106,47 +106,8 @@ except ImportError:
     sys.exit(1)
 
 
-# ===========================================================================
-# A CASA DE BRINQUEDO
-# ===========================================================================
 # O PAINEL REAL APLICA NA MÁQUINA — é a regra do projeto, e é por ela que quem
-# vai para a sandbox é o TESTE, e nunca o painel. Este arquivo aperta cada
-# botão, inclusive os que escrevem, então a casa de brinquedo dos dois testes
-# de navegador de hoje (P33) não basta: aqui ela ganha três peças a mais, cada
-# uma por uma porta que um clique abriria.
-#
-#   1. O REPOSITÓRIO TAMBÉM É DE BRINQUEDO. O painel escreve dentro da RAIZ
-#      dele, e não só na casa: o «Usar este ícone» grava o
-#      `packs/meowsystem/icones/apps-arcticons.map`, o «Adicionar logo» grava em
-#      `assets/gatos/`, o «Importar um pack» monta `packs/<id>/`, o «Salvar no
-#      pack» dos desenhos autorais reescreve o pack, e o «Tirar da lista» de um
-#      jogo mexe no `assets/icones/jogos-fora.map`. O
-#      `tests/app-navegador.py` guarda e devolve os dois mapas que ELE toca;
-#      aqui a lista de quem escreve não se sabe de antemão (é o teste que a
-#      descobre), então o painel sobe de uma CÓPIA da árvore de trabalho — os
-#      arquivos versionados e os novos ainda não versionados, que é o que está
-#      sendo testado — e o repositório de verdade não é tocado por construção.
-#   2. OS SINAIS NÃO SAEM DA CASA. `pkill` e `killall` escolhem processo por
-#      NOME na máquina inteira, e foi assim que um `doctor` de brinquedo
-#      derrubou o painel da sessão de verdade (P44, `tests/doctor-so-le.sh`).
-#      Aqui eles registram e recusam. O `kill` — o binário e o builtin do
-#      bash — só entrega sinal a processo cujo ambiente diz `HOME=<casa>`: o
-#      script que mata o próprio filho continua funcionando, e o que miraria o
-#      painel dela não chega lá.
-#   3. A REDE E O BARRAMENTO RECUSAM. `curl`, `wget`, `cargo`,
-#      `notify-send`, `xdg-open`, `systemd-run` e `pkexec` registram e saem 1;
-#      o `git` recusa só os verbos que vão à rede; `systemctl`, `gsettings`,
-#      `dconf` e `busctl` respondem às perguntas e recusam o resto (o molde é o
-#      do `tests/doctor-so-le.sh`). Um ensaio que tentar escrever, ou uma ação
-#      que baixe sem declarar `rede`, aparece no registro — e isso reprova.
-#
-# E A CASA NÃO FICA VAZIA, porque vazia ela desenharia menos controles e o
-# inventário mediria menos — o jeito errado de ficar verde. O que se planta é o
-# dado de que cada MOLDE precisa para ter um exemplar, e cada lugar sai do
-# `meow.conf` do brinquedo, nunca de um nome escrito aqui: o ponteiro de
-# fábrica, o tema de ícones, a galeria, uma pendência por conserto que o
-# servidor conhece, um jogo da Steam, duas áreas alfinetadas e um ajuste
-# mudado de fábrica.
+# vai para a sandbox é o TESTE, e nunca o painel.
 BRINQUEDO = tempfile.mkdtemp(prefix="meow-completo-")
 CASA = os.path.join(BRINQUEDO, "casa")
 RAIZ_B = os.path.join(BRINQUEDO, "raiz")
@@ -156,14 +117,14 @@ CONF = os.path.join(CASA, ".config", "meow", "meow.conf")
 ESTADO = os.path.join(CASA, ".local", "state", "meowsystem")
 PAREDES = 6
 APPID = "1715980"
-# O PROGRAMA DE BRINQUEDO QUE O LANÇADOR ESCONDE (P54, achado 41): um id da
-# lista de fábrica do `LANCADOR_OCULTAR`, com um `.desktop` da casa que lhe dá
-# outro nome — a ficha tem de dizer o nome, e não o id.
+# O PROGRAMA DE BRINQUEDO QUE O LANÇADOR ESCONDE: um id da lista de fábrica do
+# `LANCADOR_OCULTAR`, com um `.desktop` da casa que lhe dá outro nome — a
+# ficha tem de dizer o nome, e não o id.
 PROGRAMA = ("org.gnome.Evince", "Leitor de Brinquedo")
-# O NOME QUE SÓ O CACHE DA STEAM SABE (P54, achado 44): o da decisão sem
-# manifesto, que a linha das «Decisões já executadas» tem de mostrar.
+# O NOME QUE SÓ O CACHE DA STEAM SABE: o da decisão sem manifesto, que a
+# linha das «Decisões já executadas» tem de mostrar.
 NOME_NA_STEAM = "Demo de Brinquedo"
-# A tag que a história de um pack traz e que tem de sair como TEXTO (P53).
+# A tag que a história de um pack traz e que tem de sair como TEXTO.
 HOSTIL = '<img src=x onerror="window.__meow_xss=1">'
 
 
@@ -251,9 +212,7 @@ echo "$(basename "$0") $*" >> "$MEOW_COMPLETO_REGISTRO"
 exit 1
 """
 
-# O que responde pergunta e recusa o resto. O de verdade se acha PULANDO este
-# diretório no PATH, e não cortando o começo dele — o laço infinito que o
-# `tests/doctor-so-le.sh` mediu em 24/09/2026 foi o corte.
+# O que responde pergunta e recusa o resto.
 RESPONDE_SH = """#!/bin/bash
 real=""
 IFS=: read -ra _dirs <<< "$PATH"
@@ -290,20 +249,8 @@ LEITURAS = {
     "busctl": '*" get-property "*|*" introspect "*|*" FindUserByName "*',
 }
 
-# O SINAL SÓ ENTRA NA CASA. O alvo é conferido pelo `HOME` do ambiente dele,
-# que todo processo que o painel sobe herda do brinquedo. `-0` e `-l` são
-# pergunta, e seguem. Job do próprio shell (`%1`) é filho de quem chama.
-#   SEM CANO, E ISSO É MEDIDO: a primeira versão lia o ambiente com
-# `tr | grep -q`, e o `app/run.sh` roda com `set -o pipefail`. O `grep -q` fecha
-# o cano no primeiro acerto, o `tr` morre de SIGPIPE, e o `pipefail` transforma
-# o acerto em erro — o `kill` do `limpar()` do run.sh recusava o próprio
-# servidor como "fora da casa", e cada corrida deixava um painel órfão de pé
-# (dezesseis, contados em 24/09/2026). É a armadilha que o `tests/todos.sh`
-# descreve; o `grep -z` lê o arquivo sozinho.
-#   As funções vão para o bash de duas formas, e as duas são necessárias: o
-# `kill` BINÁRIO é um script que as carrega (é o que um `subprocess` acha no
-# PATH), e o BUILTIN do bash só é vencido por uma função exportada no ambiente
-# (`BASH_FUNC_<nome>%%`) — é o mesmo gesto do `tests/doctor-so-le.sh`.
+# O alvo é conferido pelo `HOME` do ambiente dele, que todo processo que o
+# painel sobe herda do brinquedo. `-0` e `-l` são pergunta, e seguem.
 FUNCOES_BASH = {
     "_meow_na_casa": r"""() {
   case "$1" in %*) return 0 ;; esac
@@ -350,12 +297,9 @@ def montar_casa():
     for nome in sorted(os.listdir(glifos)):
         if nome.endswith(".svg"):
             shutil.copyfile(os.path.join(glifos, nome), os.path.join(tema, nome))
-    # METADE ESCURA, METADE CLARA. O carrossel separa dia e noite pela luz de
-    # cada imagem, e só monta o grupo da HORA (`e_noite`) se ele tiver duas ou
-    # mais — senão tudo fica em `ativos/` e as abas Dia e Noite da galeria
-    # nascem vazias. Com as seis escuras da primeira versão, o percurso passava
-    # de noite e reprovava de dia: medido às 07:21 de 24/09/2026, "o grupo de
-    # dia ficou com 1 imagem(ns)". Três de cada lado valem a qualquer hora.
+    # O carrossel separa dia e noite pela luz de cada imagem, e só monta o
+    # grupo da HORA (`e_noite`) se ele tiver duas ou mais — senão tudo fica em
+    # `ativos/` e as abas Dia e Noite da galeria nascem vazias.
     ativos = os.path.join(valor_de("WALLPAPER_BASE").replace("$HOME", CASA), "ativos")
     os.makedirs(ativos)
     for i in range(PAREDES):
@@ -372,11 +316,9 @@ def montar_casa():
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "ACAO_DA_PENDENCIA" for a in no.targets)):
             pendencias = sorted(ast.literal_eval(no.value))
-    # E UMA DE TEMA DE TERCEIRO, a que ganha dois botões e não um (P53, achados
-    # 3 e 4): o servidor as reconhece pelo SUFIXO do id, e não por linha no
-    # `ACAO_DA_PENDENCIA`. O sufixo sai da fonte, e o app é o primeiro módulo
-    # que chama a leitura no caminho que escreve (`pergunte`) — é esse o
-    # módulo que registra a linha, e ele muda sem ninguém vir aqui.
+    # O sufixo sai da fonte, e o app é o primeiro módulo que chama a leitura no
+    # caminho que escreve (`pergunte`) — é esse o módulo que registra a linha,
+    # e ele muda sem ninguém vir aqui.
     for no in arvore.body:
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "SUFIXO_TEMA_DE_TERCEIRO" for a in no.targets)):
@@ -394,13 +336,9 @@ def montar_casa():
             fh.write(f"{ident}\tteste\tPendência plantada pelo teste ({ident})"
                      f"\t./scripts/teste.sh {ident}\t2026-09-24T00:00:00-03:00\n")
 
-    # UMA HISTÓRIA DE PACK COM MARKDOWN HOSTIL — P53, achado 6. A página passou
-    # a montar títulos, listas, negrito, código e link a partir do `LEIA-ME.md`
-    # de quem publicou o pack, numa página com token de sessão. O `tests/pack.sh`
-    # confere o CÓDIGO (nada de `innerHTML`); aqui se confere o EFEITO, no
-    # navegador: a tag sai como texto, o `javascript:` não vira link, e o
-    # negrito vira negrito (ver `conferir_historia`). O arquivo é o que o
-    # pack padrão declara em `vitrine.descricao`, na CÓPIA da raiz.
+    # O `tests/pack.sh` confere o CÓDIGO (nada de `innerHTML`); aqui se confere
+    # o EFEITO, no navegador: a tag sai como texto, o `javascript:` não vira
+    # link, e o negrito vira negrito (ver `conferir_historia`).
     padrao = subprocess.run([sys.executable, os.path.join(RAIZ_B, "scripts", "pack.py"), "padrao"],
                             capture_output=True, text=True).stdout.strip()
     with open(os.path.join(padrao, "pack.json"), encoding="utf-8") as fh:
@@ -412,10 +350,7 @@ def montar_casa():
                      " e **negrito de brinquedo**.\n")
 
     # UM JOGO DA STEAM, no molde do `tests/um-cartao-por-jogo.sh`: o manifesto
-    # diz que está instalado, e o `.desktop` da própria Steam o anuncia. A capa
-    # vertical é o que põe o jogo na grade (`_capa_do_jogo`), e a pasta em
-    # `common/` é o que acende o «Apagar os arquivos» — que o teste aperta, e
-    # que apaga ESTA pasta, de brinquedo.
+    # diz que está instalado, e o `.desktop` da própria Steam o anuncia.
     steamapps = os.path.join(CASA, ".steam", "steam", "steamapps")
     os.makedirs(os.path.join(steamapps, "common", "JogoDeBrinquedo"))
     with open(os.path.join(steamapps, "common", "JogoDeBrinquedo", "jogo.bin"), "w") as fh:
@@ -437,16 +372,16 @@ def montar_casa():
         fh.write("[Desktop Entry]\nName=Jogo de Brinquedo\n"
                  f"Exec=steam steam://rungameid/{APPID}\nIcon=steam_icon_{APPID}\n"
                  "Terminal=false\nType=Application\nCategories=Game;\n")
-    # E A LOJA, QUE NÃO É JOGO (P77, achado 19): a Steam se declara `Game` e
-    # registra o esquema `steam://`. Ela vai para a aba Ícones como programa,
-    # e o `h_jogo` cobra que não apareça entre os jogos.
+    # E A LOJA, QUE NÃO É JOGO: a Steam se declara `Game` e registra o
+    # esquema `steam://`. Ela vai para a aba Ícones como programa, e o
+    # `h_jogo` cobra que não apareça entre os jogos.
     with open(os.path.join(aplicativos, "steam.desktop"), "w", encoding="utf-8") as fh:
         fh.write("[Desktop Entry]\nName=Steam\nExec=steam %U\nIcon=steam\n"
                  "Terminal=false\nType=Application\nCategories=Network;FileTransfer;Game;\n"
                  "MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;\n")
-    # A DECISÃO SEM MANIFESTO GANHA NOME NO CACHE DA STEAM (P54, achado 44). As
-    # linhas do mapa da raiz de brinquedo cujo jogo não está aqui são as
-    # «Decisões já executadas»; o nome da primeira mora só no `appinfo.vdf`.
+    # A DECISÃO SEM MANIFESTO GANHA NOME NO CACHE DA STEAM. As linhas do mapa
+    # da raiz de brinquedo cujo jogo não está aqui são as «Decisões já
+    # executadas»; o nome da primeira mora só no `appinfo.vdf`.
     with open(os.path.join(RAIZ_B, "assets", "icones", "jogos-fora.map"),
               encoding="utf-8") as fh:
         orfas = [l.split(":")[0].strip() for l in fh
@@ -455,17 +390,15 @@ def montar_casa():
     if orfas:
         appinfo_vdf(os.path.join(CASA, ".steam", "steam", "appcache", "appinfo.vdf"),
                     {orfas[0]: NOME_NA_STEAM})
-    # E O PROGRAMA QUE O LANÇADOR ESCONDE (P54, achado 41), com nome e ícone
-    # próprios: o `.desktop` da casa vence o do sistema, como no lançador.
+    # E O PROGRAMA QUE O LANÇADOR ESCONDE, com nome e ícone próprios: o
+    # `.desktop` da casa vence o do sistema, como no lançador.
     png_liso(os.path.join(hicolor, "leitor-de-brinquedo.png"), (0xCC, 0x88, 0x44))
     with open(os.path.join(aplicativos, PROGRAMA[0] + ".desktop"), "w",
               encoding="utf-8") as fh:
         fh.write(f"[Desktop Entry]\nName={PROGRAMA[1]}\nExec=true\n"
                  "Icon=leitor-de-brinquedo\nTerminal=false\nType=Application\n")
-    # O PROGRAMA DE QUE UM AJUSTE DEPENDE (P77, achado 12): a marca
-    # `[so-com-app …]` esconde o cartão numa máquina sem aquele programa. A
-    # casa planta o primeiro id de cada marca — lido do `meow.conf` dela, e
-    # não escrito aqui —, para o cartão continuar existindo e sendo testado.
+    # O PROGRAMA DE QUE UM AJUSTE DEPENDE: a marca `[so-com-app …]` esconde
+    # o cartão numa máquina sem aquele programa.
     with open(CONF, encoding="utf-8") as fh:
         so_com = re.findall(r"\[so-com-app ([^\]\s]+)", fh.read())
     for ident in so_com:
@@ -473,9 +406,6 @@ def montar_casa():
             fh.write("[Desktop Entry]\nName=Programa de Brinquedo\nExec=true\n"
                      "Terminal=false\nType=Application\n")
 
-    # DUAS ÁREAS ALFINETADAS, no formato que o `areas.sh` escreve: sem área o
-    # «Tirar uma área» não tem o que oferecer, e com uma só ele recusa — com
-    # razão, medido na segunda corrida: "é a última área alfinetada".
     areas = os.path.join(CASA, ".config", "cosmic", "com.system76.CosmicComp", "v1")
     os.makedirs(areas)
     with open(os.path.join(areas, "pinned_workspaces"), "w", encoding="utf-8") as fh:
@@ -496,9 +426,6 @@ def montar_casa():
 
     os.makedirs(FALSO)
     open(REGISTRO, "w").close()
-    # O `cargo` entra com a rede: um applet compilado de verdade custa dezenas
-    # de minutos e baixa crates — medido na primeira corrida, o instalador
-    # chamou o `cargo build` dos dois applets.
     for nome in ("sudo", "pkexec", "pkill", "killall", "notify-send",
                  "systemd-run", "xdg-open", "curl", "wget", "cargo"):
         escrever_exec(os.path.join(FALSO, nome), RECUSA_SH)
@@ -573,30 +500,13 @@ def sobe_servidor(ambiente):
     return proc, url
 
 
-# ===========================================================================
 # O CENSO: todo controle da tela, com um nome estável
-# ===========================================================================
+#
 # O nome é `contexto · papel`.
-#   CONTEXTO é onde o controle mora: o cartão de um ajuste (pelo `data-chave`),
-#   o cartão de uma ação (pelo título — a ação não tem outro identificador no
-#   DOM), um MOLDE (o recipiente de um controle que nasce de dado), ou a aba
-#   solta. Menu, topo, gaveta e caixa de pergunta são contextos da página, e
-#   não de uma aba.
-#   PAPEL é o que o controle faz ali: pelo `id`, pelo `data-*` que o declara
-#   (`data-valor`, `data-acao-rapida`), pelo tipo (deslizante, seletor, campo),
-#   e só no fim pelo nome acessível ou pelo texto — sem a contagem que alguns
-#   rótulos trazem colada ("No carrossel 24").
 #
 # O censo MARCA cada elemento com `data-inventario="<nome>"`: é por essa marca
 # que o acionador o acha logo depois, sem uma segunda regra de localização que
-# pudesse discordar desta. Toda repintura da página apaga as marcas, e o
-# acionador refaz o censo antes de cada gesto.
-#
-# O QUE CONTA COMO CONTROLE: todo elemento que recebe clique, foco ou texto e
-# tem caixa na tela. O `<input type=file>` escondido não conta — ele não é
-# alcançável, e quem o abre é o botão dele, que conta. O que está dentro de um
-# `<details>` fechado ou de um balão escondido também não: aparece quando é
-# aberto, e aí o censo o pega como controle REVELADO.
+# pudesse discordar desta.
 CENSO_JS = r"""
 () => {
   const SEL = 'button, a[href], input, select, textarea, summary, [role=button],'
@@ -738,26 +648,8 @@ CENSO_JS = r"""
 """
 
 
-# ===========================================================================
-# O QUE SE OBSERVA
-# ===========================================================================
-# A casa ANTES e DEPOIS de um gesto: caminho, tamanho e data de cada arquivo
-# da casa e da raiz de brinquedo. Não é hash de conteúdo — são milhares de
-# arquivos e o retrato é tirado dezenas de vezes; tamanho e data em
-# nanossegundos pegam toda escrita que um script faça.
-#
-# O QUE NÃO ENTRA NO RETRATO, e cada linha é uma medição:
-#   · o `.git` da raiz, que o `git init` criou e é do teste;
-#   · o `meow.log` e o `ultimo-status`/`ultimo-*` do estado: o registro de
-#     que um verbo rodou é a trilha de auditoria do projeto, e não escrita
-#     na máquina;
-#   · o `~/.cache`, onde o fontconfig e o próprio Chromium do sistema guardam
-#     o que acharam — cache é, por definição, o que se pode apagar sem perda;
-#   · o `lock` do estado, que é a trava de um instalador por vez: o ensaio a
-#     toma como a execução de verdade (dois ensaios juntos também se atrapalham),
-#     e ela não guarda dado nenhum. Medido na primeira corrida, 24/09/2026: era a
-#     única "escrita" de cinco ensaios;
-#   · o `__pycache__`, o bytecode que o Python grava ao importar o servidor.
+# A casa ANTES e DEPOIS de um gesto: caminho, tamanho e data de cada arquivo da
+# casa e da raiz de brinquedo.
 FORA_DO_RETRATO = re.compile(
     r"^(raiz/\.git/|casa/\.cache/|casa/\.local/state/meowsystem/(meow\.log|ultimo-|lock$))"
     r"|.*/__pycache__/")
@@ -787,15 +679,9 @@ def diferenca(antes, depois):
     return sorted(mudou + sumiu)
 
 
-# O FIM DA GAVETA SAI DA NATUREZA DA AÇÃO — 24/09/2026, sprint P50 (achado 17)
-#   A pastilha do fim era escolhida só pelo código de saída, e o percurso a
-#   anotava na tabela sem cobrar nada: «Recarregar o painel» dizia «já estava
-#   certo» depois de reciclar, e passava. Agora cada ação declara a natureza
-#   dela no servidor, e a frase do fim tem de ser uma das que a tabela
-#   `NATUREZAS` dá para ESSA natureza (a do `ensaio`, no «Ver o que faria») —
-#   ou o «pulado» e o «saiu N» que valem para todas. A tabela é lida do
-#   servidor da raiz de brinquedo, e não copiada aqui: uma cópia seria a
-#   segunda lista que o teste passaria a conferir contra si mesma.
+# A pastilha do fim era escolhida só pelo código de saída, e o percurso a
+# anotava na tabela sem cobrar nada: «Recarregar o painel» dizia «já estava
+# certo» depois de reciclar, e passava.
 _NATUREZAS = {}
 
 
@@ -811,15 +697,8 @@ def frases_do_fim(natureza):
     return set(_NATUREZAS.get(natureza, [])) | {"pulado"}
 
 
-# O REGISTRO DOS FALSOS, LIDO COMO VEREDITO
-#   Um sinal fora da casa é defeito em QUALQUER gesto: é o painel da sessão
-#   de verdade. Numa execução de verdade o resto é informação (o `systemctl
-#   --user enable` do instalador bate no falso e é recusado — é o que ele
-#   faria numa casa sem sessão); num ENSAIO, qualquer linha que não seja
-#   pergunta (`sudo -n`, que só confere se há senha guardada) é o ensaio
-#   tentando escrever — e o ensaio promete não escrever nada.
-#   E baixar da internet sem a ação declarar `rede` é o servidor mentindo na
-#   pastilha do cartão, que é a única coisa que ela lê antes de apertar.
+# Um sinal fora da casa é defeito em QUALQUER gesto: é o painel da sessão de
+# verdade.
 SINAL_FORA = re.compile(r"^(pkill|killall|kill\(fora da casa\))")
 PERGUNTA = re.compile(r"^sudo -n ")
 REDE = re.compile(r"^(curl|wget) |^git (clone|fetch|pull|ls-remote|submodule)"
@@ -853,14 +732,8 @@ TEXTO_RUIM_JS = r"""
 }
 """
 
-# A CASA E O CLONE NÃO APARECEM NA TELA — 24/09/2026, P52 (achados 10 e 13).
-#   A varredura das 14 abas achou o caminho absoluto na caixa de confirmar, no
-#   «ver comando», no topo da gaveta e em três balões de ícone. Aqui a régua é
-#   a página inteira, e não só o que está visível agora: o balão `?` e o «ver
-#   comando» estão no DOM fechados, e abrem com um clique. Os atributos que
-#   viram texto (o balão, o nome acessível, o que o «Copiar» copia) contam
-#   junto. Na saída da gaveta vale só a casa: um clone fora dela (`/opt`) não
-#   diz o nome de ninguém, e é assim que o `servidor.py` a trata.
+# A varredura das 14 abas achou o caminho absoluto na caixa de confirmar, no
+# «ver comando», no topo da gaveta e em três balões de ícone.
 CAMINHO_JS = r"""
 ([casa, raiz]) => {
   const achados = [];
@@ -956,9 +829,9 @@ class Percurso:
         self.duracoes = {}           # nome -> segundos do gesto
         self.app_aberto = ""         # o aplicativo cujo painel o percurso abriu
         self.conhecidos_vistos = set()
-        # [P77] As escolhas que revelaram o controle sendo acionado: o
-        # `desfazer` de dentro de um revelado não as tira da bandeja, senão o
-        # controle some no meio do próprio gesto (ver `acionar_revelados`).
+        # As escolhas que revelaram o controle sendo acionado: o `desfazer`
+        # de dentro de um revelado não as tira da bandeja, senão o controle
+        # some no meio do próprio gesto (ver `acionar_revelados`).
         self.preservar = None
         pag.on("request", self._pedido)
         pag.on("requestfinished", self._fim_pedido)
@@ -1061,15 +934,8 @@ class Percurso:
         for _volta in range(4):
             antes = self.nascidos
             self.pag.evaluate(ASSENTAR_JS, [quieto, max(300, int((fim - time.time()) * 1000))])
-            # A RECARGA AGENDADA DAS MINIATURAS — 16/10/2026, P82 (conferência
-            #   do item 37). Com miniatura por fazer, a página relê as prévias
-            #   900 ms depois (`agendarRecarga`, um `setTimeout`) e repinta: o
-            #   pedido nasce DEPOIS do `quieto`, e o gesto seguinte do gate caía
-            #   no meio da repintura — o botão marcado pelo censo era trocado
-            #   («element was detached»), e o clique estourava o teto. Medido na
-            #   aba Papel de parede: 4 reprovações em 8 corridas. Um relógio
-            #   armado é uma volta a mais: espera ele disparar (uma vez só, para
-            #   uma miniatura que nunca fica pronta não prender o gate).
+            # Um relógio armado é uma volta a mais: espera ele disparar (uma vez
+            # só, para uma miniatura que nunca fica pronta não prender o gate).
             if not esperou_recarga and self.pag.evaluate(RECARGA_ARMADA_JS):
                 esperou_recarga = True
                 limite = time.time() + 1.5
@@ -1187,21 +1053,12 @@ class Percurso:
         for achado in self.js(CAMINHO_JS, [CASA, RAIZ_B]):
             self.falha(f"a casa ou o caminho do clone na tela: {achado!r}")
 
-    # ======================================================================
     # AS AÇÕES: o protocolo das três respostas
-    # ======================================================================
+    #
     # Todo controle que roda uma ação do servidor passa por aqui, e o controle
     # não precisa dizer QUAL ação roda: o protocolo descobre pelo que o clique
     # faz — a caixa que abre (o título dela é o rótulo da ação) ou o POST que
-    # sai. É o mesmo gesto para o «Executar» de um cartão, a ação rápida da
-    # Início, o «Resolver» de uma pendência e o «Usar» de um papel de parede.
-    #
-    # Com caixa, as TRÊS respostas são dadas, uma por clique:
-    #   1. Cancelar — e nada pode ter ido ao servidor, nem a casa mudado;
-    #   2. Ver o que faria, quando a caixa o oferece — o ensaio roda, a faixa
-    #      amarela aparece, e a casa NÃO muda: nem arquivo, nem falso chamado;
-    #   3. Rodar — de verdade, na casa de brinquedo; menos nas EXCEÇÕES, que
-    #      ficam provadas protegidas pelas duas primeiras.
+    # sai.
     ACOES_JS = r"""
     () => (ESQUEMA.acoes || []).map((a) => ({
       id: a.id, rotulo: a.rotulo, escreve: !!a.escreve, sudo: !!a.sudo,
@@ -1210,7 +1067,7 @@ class Percurso:
     """
 
     # O selo da rede à vista na porta da ação: o botão rápido da Início (selo
-    # logo depois dele) ou o cartão da ação (selo no rodapé). Decisão 7, P78.
+    # logo depois dele) ou o cartão da ação (selo no rodapé).
     SELO_DA_REDE_JS = r"""
     (a) => {
       const visivel = (e) => !!e && e.offsetParent !== null;
@@ -1266,8 +1123,6 @@ class Percurso:
         self.acoes_vistas.setdefault(ident, set()).add("sem caixa")
         # Pedir senha ou baixar da internet SEM PERGUNTAR é o que as exceções
         # existem para impedir: se isso roda direto, a exceção não protege nada.
-        # [Decisão 7 da leva G, P78: o REPARO que baixa roda sem pergunta, e o
-        #  que se cobra dele é o selo «baixa da internet» à vista na porta.]
         if reparo_que_baixa(acao):
             self.checa(self.js(self.SELO_DA_REDE_JS, acao),
                        f"«{acao['rotulo']}» baixa da internet sem pergunta (é reparo), "
@@ -1277,16 +1132,16 @@ class Percurso:
                        f"«{acao['rotulo']}» rodou sem caixa de pergunta, e declara "
                        f"{'pedir senha' if acao['sudo'] else 'baixar da internet'}")
         self.conferir_trabalho(acao, bool(corpo.get("seco")), antes, reg0)
-        # O CONSERTO QUE NASCE NA GAVETA — QA da P77, 10/10/2026. O conferir
-        # que sai 1 deixa o botão da ação que conserta ao lado do «Fechar»
-        # (`conserta_com`, servidor); ele é um gesto de ação como outro qualquer.
+        # O conferir que sai 1 deixa o botão da ação que conserta ao lado do
+        # «Fechar» (`conserta_com`, servidor); ele é um gesto de ação como outro
+        # qualquer.
         botao = self.pag.locator("#gaveta-consertar")
         if botao.count() and botao.is_visible():
             self.censo()             # o botão entra no que apareceu, antes de sumir no clique
             self.acionados.add("gaveta · #gaveta-consertar")
             # [Integração da onda 2: a porta da gaveta também mostra o selo da
-            #  rede quando a ação que conserta baixa (decisão 7, P78). Conferido
-            #  ANTES do clique, porque o botão e o selo somem nele.]
+            # rede quando a ação que conserta baixa. Conferido ANTES do clique,
+            # porque o botão e o selo somem nele.]
             conserto = self.acao_por_rotulo(botao.inner_text().strip())
             if conserto and reparo_que_baixa(conserto):
                 self.checa(self.js("""() => {
@@ -1308,8 +1163,8 @@ class Percurso:
         oferece = self.pag.locator("#confirmar-ensaio").is_visible()
         self.checa(self.pag.locator("#confirmar-comando").inner_text().strip(),
                    f"a caixa de «{titulo}» mostra o comando que vai rodar")
-        # O COMANDO DA CAIXA COLA EM QUALQUER MÁQUINA — P52, achado 10. Sem a
-        # casa e sem o caminho do clone: `meow …`, `./script.sh …` ou `~/…`.
+        # O COMANDO DA CAIXA COLA EM QUALQUER MÁQUINA. Sem a casa e sem o
+        # caminho do clone: `meow …`, `./script.sh …` ou `~/…`.
         cmd = self.pag.locator("#confirmar-comando").inner_text()
         self.checa(CASA not in cmd and RAIZ_B not in cmd,
                    f"a caixa de «{titulo}» mostra o comando sem a casa nem o "
@@ -1318,7 +1173,6 @@ class Percurso:
                    f"a caixa de «{titulo}» oferece o «Ver o que faria» "
                    "exatamente quando a ação pede senha ou desfaz algo")
         vistas = self.acoes_vistas.setdefault(ident, set())
-        # A CAIXA DO SUDO É UMA LINHA, E O PORQUÊ É O «?» — P79, decisão 11.
         if acao["sudo"]:
             sudo = self.pag.locator("#confirmar-sudo")
             self.checa(sudo.is_visible() and "\n" not in sudo.locator("strong").inner_text().strip(),
@@ -1382,11 +1236,9 @@ class Percurso:
             vistas.add("rodar")
         return titulo
 
-    # O QUE NA SAÍDA É QUEBRA, E NÃO RESPOSTA. A casa de brinquedo não tem
-    # sessão, rede nem senha, e muita ação honesta responde "não achei" ou sai
-    # 2 lá dentro — isso é a ação dizendo a verdade sobre a casa. Traceback,
-    # variável sem valor e comando inexistente não são resposta de ninguém:
-    # são o programa quebrado.
+    # A casa de brinquedo não tem sessão, rede nem senha, e muita ação honesta
+    # responde "não achei" ou sai 2 lá dentro — isso é a ação dizendo a
+    # verdade sobre a casa.
     QUEBRA = re.compile(r"Traceback \(most recent call last\)|unbound variable|"
                         r"command not found|comando não encontrado|syntax error|"
                         r"erro de sintaxe|: line \d+: |: linha \d+: ")
@@ -1399,15 +1251,8 @@ class Percurso:
                           f"«{rot}» abriu a gaveta"):
             return
         # A MESMA AÇÃO POR OUTRA PORTA — o «Conferir a máquina» da Início e o
-        # da aba Instalação são dois botões para o mesmo `doctor`. A porta já
-        # provou o que tinha de provar (pediu a ação certa, abriu a gaveta);
-        # esperar o trabalho inteiro de novo mediria a ação duas vezes. Aqui o
+        # da aba Instalação são dois botões para o mesmo `doctor`. Aqui o
         # «Parar» ganha a vez, que é também onde ele é conferido.
-        #   SÓ PARA QUEM NÃO ESCREVE, OU PARA O ENSAIO: uma ação que escreve,
-        # repetida, costuma vir com outro argumento (outra imagem, outro lado),
-        # e o gesto que a chamou confere o efeito dela depois — interrompida,
-        # ela não o teria. Medido numa corrida da suíte: o «Medir» da aba Noite
-        # parado antes de gravar o `lado.tsv`.
         chave = (acao["id"], seco)
         if (chave in self.rodadas and (seco or not acao["escreve"])
                 and self.js("() => TRABALHO !== null")):
@@ -1434,8 +1279,8 @@ class Percurso:
         estado, saida = fim
         self.acionados.add("gaveta · #gaveta-estado")
         self.checa(saida.strip(), f"«{rot}» mostrou a saída na gaveta")
-        # A GAVETA NÃO TRAZ A CASA DE NINGUÉM — P52. O comando do topo sai como
-        # a pessoa o digitaria, e as linhas trocam a casa por `~`.
+        # A GAVETA NÃO TRAZ A CASA DE NINGUÉM. O comando do topo sai como a
+        # pessoa o digitaria, e as linhas trocam a casa por `~`.
         topo = self.pag.locator("#gaveta-comando").inner_text()
         self.checa(CASA not in topo and RAIZ_B not in topo,
                    f"a gaveta de «{rot}» mostra o comando sem a casa nem o caminho "
@@ -1461,10 +1306,9 @@ class Percurso:
             mudou = diferenca(antes, retrato())
             self.checa(not mudou, f"«{rot}» {'em ensaio ' if seco else ''}não muda a casa"
                                   f" — mudou {len(mudou)}: {mudou[:4]}")
-        # O ESTADO DA GAVETA É INFORMAÇÃO, E NÃO VEREDITO: na casa de
-        # brinquedo não há sessão, rede nem senha, e uma ação honesta sai 2
-        # dizendo isso ("não consegui armar o timer"). Ele vai para a tabela do
-        # fim, e quem reprova é a QUEBRA, logo acima.
+        # O ESTADO DA GAVETA É INFORMAÇÃO, E NÃO VEREDITO: na casa de brinquedo
+        # não há sessão, rede nem senha, e uma ação honesta sai 2 dizendo isso
+        # ("não consegui armar o timer").
         frase = estado.split(" · ")[0].strip().lower()
         natureza = "ensaio" if seco else acao.get("natureza", "")
         self.checa(frase in frases_do_fim(natureza) or re.match(r"saiu -?\d+$", frase),
@@ -1475,13 +1319,11 @@ class Percurso:
             cauda = " / ".join(l.strip() for l in saida.splitlines() if l.strip())[-160:]
         self.resultados.append((self.aba, rot, "ensaio" if seco else "de verdade", estado, cauda))
 
-    # ======================================================================
     # OS AJUSTES: cada forma de controle de um cartão
-    # ======================================================================
+    #
     # O efeito cobrado é o que a pessoa vê e o que o Salvar leva: a marca no
     # botão e a escolha na bandeja (`MUDANCAS`, que é o que o «1 escolha» do
-    # banner conta). E cada gesto termina desfeito — pelo Descartar, que é o
-    # gesto dela — para o cartão seguinte começar do disco.
+    # banner conta).
     CARTAO_JS = r"""
     (k) => {
       const c = document.querySelector(`#conteudo article.cartao[data-chave="${k}"]`);
@@ -1504,10 +1346,7 @@ class Percurso:
         return re.match(r"ajuste (\S+)", nome).group(1)
 
     # OS DESFAZERES DO BLOCO — «Como está» (o lado de antes da prévia, quando
-    # há escolha pendente no bloco) e «Desfazer N escolhas» (a forma do painel
-    # e da dock) — são revelados pela escolha pendente, e é o `desfazer` que os
-    # aperta, antes do Descartar do banner: assim cada cartão com prévia os
-    # exercita, e a prova é a bandeja esvaziar.
+    # há escolha pendente no bloco) e «Desfazer N escolhas»
     DESFAZERES = (("#conteudo button.desfazer-forma", "aba · Desfazer as escolhas da forma"),
                   ("#conteudo button.lado-previa", "aba · Como está (desfaz o bloco)"))
 
@@ -1546,10 +1385,6 @@ class Percurso:
 
     def h_opcoes(self, nome):
         chave = self.chave_de(nome)
-        # [P77, 10/10/2026: uma escolha pode REVELAR controles — o «Restaurar
-        # ao padrão» que só existe com escolha feita, o cartão que o modo do
-        # gato mostra. O que a escolha revelou é acionado logo, com a escolha
-        # ainda na bandeja.]
         antes = set(self.censo())
         for i in range(self.quantos(nome)):
             el = self.achar(nome, i)
@@ -1562,14 +1397,11 @@ class Percurso:
             self.clicar_nome(nome, i)
             self.assentar(quieto=80, teto=3000)
             c = self.cartao(chave)
-            # PELO VALOR, E NÃO PELA POSIÇÃO — 10/10/2026, P77. No controle por
-            # área (Sim/Não por área, `controlePorArea`) o botão «Não» de uma
-            # área grava vazio numa hora e uma lista na outra, e a fileira de
-            # «opções» muda de tamanho entre um clique e o seguinte: a opção de
-            # índice i depois do clique já não era a clicada. Com as áreas de
-            # verdade na tela (duas, lidas do COSMIC), isso reprovava um clique
-            # certo. O que se cobra é o que a frase diz: o valor clicado fica
-            # marcado.
+            # No controle por área (Sim/Não por área, `controlePorArea`) o
+            # botão «Não» de uma área grava vazio numa hora e uma lista na
+            # outra, e a fileira de «opções» muda de tamanho entre um clique e
+            # o seguinte: a opção de índice i depois do clique já não era a
+            # clicada.
             seguro = (valor or "").replace("\\", "\\\\").replace('"', '\\"')
             marcado = self.pag.locator(
                 f'#conteudo article.cartao[data-chave="{chave}"] '
@@ -1675,8 +1507,6 @@ class Percurso:
         anterior = self.preservar
         self.preservar = set(self.js("() => [...MUDANCAS.keys()]") or []) | (anterior or set())
         try:
-            # [P82, item 23: e a AÇÃO que o modo revela — as do gato moram na
-            #   moldura do modo que as usa.]
             for n in sorted(set(self.censo()) - antes):
                 if (((n.startswith("ajuste ") and not n.endswith(" · Aplicar"))
                      or n.startswith("ação "))
@@ -1746,8 +1576,8 @@ class Percurso:
             self.acionados.add(f"ajuste {chave} › ficha da lista · tirar")
         self.desfazer()
 
-    # A FICHA DE PROGRAMA DIZ O PROGRAMA (P54, achado 41): o nome e o ícone do
-    # `.desktop`, e o id no balão. Lido da tela, contra o que a casa plantou.
+    # A FICHA DE PROGRAMA DIZ O PROGRAMA: o nome e o ícone do `.desktop`, e o
+    # id no balão. Lido da tela, contra o que a casa plantou.
     FICHA_PROGRAMA_JS = r"""
     ([k, id]) => {
       const c = document.querySelector(`#conteudo article.cartao[data-chave="${k}"]`);
@@ -1814,15 +1644,8 @@ class Percurso:
         rotulo = nome.split(" · ", 1)[1]
         self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
 
-    # O «EXECUTAR» APAGADO DIZ POR QUÊ, COM OS NOMES DA TELA — 24/09/2026, P50
-    #   Achados 32 e 33: «Pôr um gato no dock» com o gato por horário e «Gravar
-    #   as áreas» sem área fixada rodavam e não faziam nada. Agora o botão se
-    #   apaga — na casa de brinquedo, o `LOGO_MODO` de fábrica é `hora`, e os
-    #   dois botões do gato nascem apagados. O que se cobra: o cartão diz o
-    #   motivo, o motivo cita o ajuste pelo título do cartão dele e o valor
-    #   pelo rótulo do botão (achado 47 — o nome sai de onde a tela o define),
-    #   ou a ação que vem antes pelo rótulo dela; e o servidor recusa rodar a
-    #   ação apagada mesmo com um POST direto.
+    # «Pôr um gato no dock» com o gato por horário e «Gravar as áreas» sem área
+    # fixada rodavam e não faziam nada.
     MOTIVO_JS = r"""
     (id) => {
       const a = (ESQUEMA.acoes || []).find((x) => x.id === id);
@@ -1845,14 +1668,12 @@ class Percurso:
         frase = cartao.locator("p.frase").all_inner_texts()
         motivo = self.js(self.MOTIVO_JS, acao["id"])
         if motivo is None:
-            # O apagado de antes (P46): lista vazia. Continua dizendo por quê.
+            # O apagado de antes: lista vazia. Continua dizendo por quê.
             self.checa(any(f.strip() for f in frase),
                        f"«{rotulo}» apagado diz por quê no cartão")
             return
         texto = " ".join(frase)
         nomes = [n for n in (motivo["antes"], motivo["chave"], motivo["vale"], motivo["pede"]) if n]
-        # [P82, item 2: o motivo que não aponta outro cartão (o starship já
-        #   instalado) vem como `porque`, e é ele que o cartão tem de dizer.]
         if not nomes and motivo.get("porque"):
             self.checa(motivo["porque"].lower() in texto.lower(),
                        f"«{rotulo}» apagado diz por quê: {texto[:160]!r}")
@@ -1895,8 +1716,7 @@ class Percurso:
         outros = [o for o in opcoes if o != atual]
         if not outros:
             # Uma opção só: não há o que trocar, e o que se confere é o
-            # comando dizer essa opção. (Era o caso de «Trocar de tema», com
-            # a `original` sozinha, até a P48 — ver `conferir_temas_prontos`.)
+            # comando dizer essa opção.
             self.checa(atual in c0, f"o comando na tela leva a única opção ({c0!r})")
             return
         el.select_option(outros[0])
@@ -1905,18 +1725,8 @@ class Percurso:
                    f"{linha.inner_text()!r})")
         el.select_option(atual)
 
-    # OS TEMAS PRONTOS SÃO OS DOS PACKS, E A `original` NÃO É UM DELES
-    # — 24/09/2026, sprint P48 (achado 30)
-    #   A validação no painel de verdade achou «Trocar de tema» com UMA opção,
-    #   `original`, pré-selecionada: o servidor listava `assets/temas/capturados/`
-    #   e as capturas tinham descido para dentro dos packs (P27). E um clique em
-    #   «Executar» aplicaria o tema de fábrica de OUTRA máquina. Este percurso
-    #   não via nada disso: o seletor de uma opção só caía no ramo "não há o que
-    #   trocar" do `h_seletor_acao`, e passava.
-    #   A régua é a do `meow tema` — o `pack.py capturas` da raiz de brinquedo,
-    #   com o pack padrão, que é o que o `PACK=""` do conf de brinquedo pede —
-    #   menos a `original`. E a régua não pode estar vazia nem ser só a
-    #   `original`: aí as duas listas concordariam no defeito.
+    # Este percurso não via nada disso: o seletor de uma opção só caía no ramo
+    # "não há o que trocar" do `h_seletor_acao`, e passava.
     def conferir_temas_prontos(self, opcoes, atual):
         ambiente = {k: v for k, v in os.environ.items() if not k.startswith("MEOW_")}
         ambiente["HOME"] = CASA
@@ -2013,16 +1823,9 @@ class Percurso:
         imagem = self.achar(nome).locator("xpath=ancestor::figure[1]").locator(".nome") \
                      .inner_text().strip()
         antes = retrato()
-        # A GALERIA NÃO SOME NA RELEITURA — 25/09/2026, sprint P68 (item 3)
-        #   O gate inteiro reprovou 9 vezes nesta aba com «a lista que o traz
-        #   não voltou em 8 s», e a aba sozinha passou 2 de 2: o fim de um
-        #   trabalho esquecia as listas da galeria (P46) e toda pintura seguinte
-        #   mostrava «lendo o acervo…» até a releitura chegar — com a máquina
-        #   carregada, mais que os 8 s do `esperar_nome` do gesto seguinte. A
-        #   demora só aparece sob carga; a galeria vazia no meio aparece em toda
-        #   corrida, e é ela que o vigia cobra: do clique até a releitura
-        #   assentar, nenhuma pintura do #conteudo sem ficha ou com o «lendo».
-        #   O molde é o passo 24 do tests/app-navegador.py (a grade da P57).
+        # A demora só aparece sob carga; a galeria vazia no meio aparece em toda
+        # corrida, e é ela que o vigia cobra: do clique até a releitura
+        # assentar, nenhuma pintura do #conteudo sem ficha ou com o «lendo».
         self.js("""() => {
           window.__galeriaSumiu = [];
           window.__vigiaGaleria = new MutationObserver(() => {
@@ -2163,8 +1966,8 @@ class Percurso:
             self.checa(self.historia_conferida,
                        "a história com Markdown hostil, plantada no pack padrão, foi "
                        "conferida no cartão dele")
-            # O CARTÃO INTEIRO ABRE (P77, achado 8): um clique na capa abre o
-            # detalhe e o cartão toma a linha da grade; o segundo fecha.
+            # O CARTÃO INTEIRO ABRE: um clique na capa abre o detalhe e o
+            # cartão toma a linha da grade; o segundo fecha.
             d = self.achar(nome, 0).locator("xpath=..")
             capa = d.locator("xpath=..").locator(".pack-capa")
             capa.click()
@@ -2176,22 +1979,12 @@ class Percurso:
             self.checa(aberto and not d.evaluate("(d) => d.open"),
                        "um clique na capa do pack abre o detalhe na linha inteira, e outro fecha")
         for i in range(min(3, self.quantos(nome))):
-            # [P73: as pastas da ficha de ícone podem nascer ABERTAS (a do pack
-            # no ar, a dos sugeridos). Aberta, ela é fechada antes, para o
-            # clique conferido ser o que abre; e volta aberta no fim, para os
-            # desenhos de dentro continuarem ao alcance do percurso.]
             estava = False
             if nome.startswith("ícone do aplicativo · abre"):
                 el = self.achar(nome, i)
                 estava = bool(el.locator("xpath=..").evaluate("(d) => d.open"))
                 if estava:
                     el.click()
-            # [P77: a página tem de estar PARADA antes do censo. Em «Lançadores
-            # e jogos» o «⋯» das ações é aberto logo depois do «Conferir» dos
-            # jogos, cujo fim relê a lista e repinta a aba — a repintura apaga
-            # as marcas do censo, e o primeiro controle revelado (o `?` do
-            # «Baixar o tema do Spotify») ficava sem quem o achasse: o clique
-            # esperava 8 s e quebrava, nas duas corridas.]
             self.assentar(quieto=300)
             antes = set(self.censo())
             el = self.achar(nome, i)
@@ -2217,18 +2010,11 @@ class Percurso:
                        "e fecha no segundo clique")
             if estava and el is not None:
                 el.click()
-            # [P77: o «⋯» dos ajustes técnicos é um por bloco, e uma página
-            # pode ter dois com o mesmo nome (Logo do sistema: o do dock e o do
-            # terminal). Cada um revela os SEUS controles, então todos abrem.]
             if novos and "⋯" not in nome:
                 break
 
-    # A HISTÓRIA DO PACK É MONTADA, E NADA DELA VIRA HTML — P53, achado 6. O
-    # `montar_casa` pôs no LEIA-ME do pack padrão uma tag, um `javascript:` e
-    # um negrito. Em QUALQUER exemplar: nenhum elemento fora do subconjunto,
-    # nenhum `href` que não seja https, e a página não rodou nada. No
-    # exemplar que tem o trecho plantado: a tag está lá, como texto, e o
-    # negrito virou `<strong>`.
+    # O `montar_casa` pôs no LEIA-ME do pack padrão uma tag, um `javascript:`
+    # e um negrito.
     HISTORIA_JS = r"""
     (d) => {
       const h = d.querySelector('.pack-historia');
@@ -2263,15 +2049,9 @@ class Percurso:
         """Não sai para a internet: o pedido de fora é recusado pela rota do
         contexto, e o que se confere é que o clique abre uma aba NOVA no
         endereço certo, sem levar esta página junto."""
-        # A REPINTURA ENTRE O CENSO E O CLIQUE — 10/10/2026, P79 (achado da
-        #   conferência da P77: o «Créditos» estourava o tempo uma vez no gate
-        #   completo e passava na corrida seguinte). A marca `data-inventario`
-        #   mora no elemento, e uma repintura do menu no meio do gesto (a página
-        #   relê o que chega pela rede) a apaga: o `click` ficava esperando um
-        #   elemento que não existe mais até o teto. Reproduzido repintando o
-        #   menu no primeiro `pointerover` do link: «Locator.click: Timeout
-        #   30000ms exceeded». É o mesmo caso do `clicar_nome`, e a cura é a
-        #   dele: o censo de novo e outra tentativa, com um teto curto por clique.
+        # A marca `data-inventario` mora no elemento, e uma repintura do menu no
+        # meio do gesto (a página relê o que chega pela rede) a apaga: o `click`
+        # ficava esperando um elemento que não existe mais até o teto.
         nova = None
         n0 = len(PEDIDOS_DE_FORA)
         for _tentativa in range(4):
@@ -2364,17 +2144,8 @@ class Percurso:
         if not self.checa(arquivo, f"há um arquivo de teste para «{rotulo}»"):
             return
         antes, n0 = retrato(), len(self.posts)
-        # A TORRADA É CONTADA QUANDO NASCE, E NÃO SÓ NO FIM — 24/09/2026, P52
-        #   Ela vive 2,6 s (`torrada()`, no app.js), e depois de um «Adicionar» a
-        #   página repinta por uns 2,5 s. O `assentar` espera 300 ms de silêncio,
-        #   e a própria torrada saindo é uma mutação que empurra a espera para
-        #   depois dela. Medido na árvore de `dev` (92e7c09), só a aba «Logo do
-        #   sistema»: a torrada `ok` nasceu em 101 ms, a conta foi feita em 3,0 s,
-        #   e a reprovação saiu sem defeito nenhum na página. Na corrida inteira
-        #   as quatro «Adicionar» reprovaram assim, e em outra da mesma árvore só
-        #   uma: a conta dependia de quanto a máquina estava ocupada. A conta do
-        #   fim continua valendo: uma frase repetida não nasce de novo (a que
-        #   existe só ganha sobrevida), e aí quem a vê é a conta do fim.
+        # Ela vive 2,6 s (`torrada()`, no app.js), e depois de um «Adicionar» a
+        # página repinta por uns 2,5 s.
         self.js(TORRADAS_VISTAS_JS)
         with self.pag.expect_file_chooser(timeout=5000) as escolha:
             self.achar(nome).click()
@@ -2415,9 +2186,6 @@ class Percurso:
         pasta = os.path.join(BRINQUEDO, "envios")
         os.makedirs(pasta, exist_ok=True)
         arquivo = os.path.join(pasta, "brinquedo.csv")
-        # A paleta do flavor escuro que está no ar, com outro nome: cores
-        # inventadas reprovam no contraste que o pack exige (medido: "text sobre
-        # base tem contraste 2.00:1"), e a recusa não é o que se quer provar.
         paleta = self.js("() => { const f = ESQUEMA.paleta.flavors || {};"
                          " const n = Object.keys(f).find((k) => k !== 'latte') ||"
                          " Object.keys(f)[0]; return f[n] || {}; }")
@@ -2442,17 +2210,10 @@ class Percurso:
             self.achar(nome).click()
         escolha.value.set_files(arquivo)
         if self.caixa_aberta(20):
-            # A RESPOSTA DO SERVIDOR É ESPERADA PELO NOME — 10/10/2026, P80
-            #   (integração). O pedido da instalação só nasce depois do `close`
-            #   da caixa, num salto assíncrono, e o evento dele chega ao Python
-            #   depois de o `assentar` olhar o `pedidos_vivos`: o contador
-            #   ainda dizia 0, o DOM ficava parado 400 ms com o `meow pack
-            #   importar` rodando, e o gate contava os cartões antes de o
-            #   servidor responder. Na segunda rodada seguida da suíte, com a
-            #   máquina carregada, a instalação passou da janela de 3 s do fim
-            #   do `assentar` e o gate saiu vermelho com o pack instalado (um
-            #   `sleep 4` na rota reproduz sem depender da carga). O teto é o do servidor, que
-            #   dá 120 s ao `importar`.
+            # Na segunda rodada seguida da suíte, com a máquina carregada, a
+            # instalação passou da janela de 3 s do fim do `assentar` e o gate
+            # saiu vermelho com o pack instalado (um `sleep 4` na rota reproduz
+            # sem depender da carga).
             with self.pag.expect_response(
                     lambda r: "/api/pack-importar" in r.url and r.request.method == "POST",
                     timeout=130000):
@@ -2461,9 +2222,9 @@ class Percurso:
             self.assentar(quieto=400, teto=30000)
             if self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 + 1,
                           "confirmar instala o pack, e ele ganha cartão na Início"):
-                # O AVESSO, NO MESMO GESTO — P53, achado 8. O pack que acabou
-                # de entrar é o único da casa de brinquedo que mora na casa da
-                # pessoa, e é o único cartão que ganha o «Remover».
+                # O AVESSO, NO MESMO GESTO. O pack que acabou de entrar é o
+                # único da casa de brinquedo que mora na casa da pessoa, e é o
+                # único cartão que ganha o «Remover».
                 self.acionar("cartão de pack · Remover", limpar=False)
 
     def h_remover_pack(self, nome):
@@ -2527,8 +2288,8 @@ class Percurso:
         clicar()
         if not self.checa(self.caixa_aberta(), f"{frase} pergunta antes de arrumar o lançador"):
             return
-        # A caixa fala a língua do botão clicado (revisão da P54): o «Voltar ao
-        # normal» numa caixa «Tirar da lista» leria como tirar o jogo do lançador.
+        # A caixa fala a língua do botão clicado: o «Voltar ao normal» numa
+        # caixa «Tirar da lista» leria como tirar o jogo do lançador.
         ok = (self.pag.locator("#confirmar-ok").text_content() or "").strip()
         self.checa(ok == frase.strip("«»"), f"a caixa de {frase} confirma com o mesmo nome ({ok!r})")
         efeito = self.pag.locator("#confirmar .efeito-jogos [data-efeito]")
@@ -2580,8 +2341,8 @@ class Percurso:
 
     def h_orfa(self, nome):
         n0 = self.quantos(nome)
-        # A DECISÃO SEM MANIFESTO DIZ O NOME DO JOGO (P54, achado 44): o da
-        # casa só existe no `appinfo.vdf` de brinquedo, e não o número.
+        # A DECISÃO SEM MANIFESTO DIZ O NOME DO JOGO: o da casa só existe
+        # no `appinfo.vdf` de brinquedo, e não o número.
         linhas = self.pag.locator("#conteudo .linha-orfa .orfa-nome").all_inner_texts()
         self.checa(NOME_NA_STEAM in linhas,
                    f"a decisão sem manifesto mostra o nome do cache da Steam ({linhas})")
@@ -2652,11 +2413,8 @@ class Percurso:
         self.checa(marca in corpo,
                    f"«{nome.split(' · ')[-1]}» baixa {baixa.value.suggested_filename} com "
                    f"{marca!r} dentro ({len(corpo)} caracteres)")
-        # O QUE SE EXPORTA NÃO LEVA A CASA NEM O CLONE — P52, achados 21 e 22.
-        #   Do `.conf` só o CABEÇALHO: o corpo é o arquivo da pessoa, byte a
-        #   byte, e um caminho que ela mesma escreveu nele é dela para levar. A
-        #   página vai inteira, e também na forma de URL (`%2F…`), que é como a
-        #   casa aparecia nas prévias embutidas.
+        # Do `.conf` só o CABEÇALHO: o corpo é o arquivo da pessoa, byte a
+        # byte, e um caminho que ela mesma escreveu nele é dela para levar.
         rotulo = nome.split(" · ")[-1]
         olhado = corpo.split("\n\n", 1)[0] if rotulo == "#baixar-conf" else corpo
         vazou = [c for c in (CASA, RAIZ_B, quote(CASA, safe=""), quote(RAIZ_B, safe=""))
@@ -2761,16 +2519,13 @@ class Percurso:
             return
 
         # O TRABALHO DA OUTRA ABA É O MAIS LONGO QUE SÓ LÊ: o «O que está no ar
-        # agora» (o `meow status`), uns dez segundos na casa de brinquedo. O
-        # ensaio do instalador, que foi a primeira escolha, acabava em 7 s e o
-        # «Parar» chegava tarde — medido na segunda corrida.
+        # agora» (o `meow status`), uns dez segundos na casa de brinquedo.
         outra = self.pag.context.new_page()
         outra.goto(self.url, wait_until="domcontentloaded")
         outra.wait_for_selector("#trilho button")
         outra.locator('#trilho button[data-grupo="Instalação"]').click()
-        # [P77 grupo 4: o «O que está no ar agora» só mostra (natureza
-        # `mostrar`) e mora no «⋯» das ações técnicas da Instalação.]
-        # O `has` é procurado DENTRO do `<details>`: sem o `#conteudo` na frente.
+        # O `has` é procurado DENTRO do `<details>`: sem o `#conteudo` na
+        # frente.
         acao = outra.locator("article.acao", has_text="O que está no ar agora")
         outra.locator("#conteudo details.ajustes-tecnicos", has=acao).locator("summary").click()
         acao.get_by_role("button", name="Executar", exact=True).click()
@@ -2867,9 +2622,6 @@ class Percurso:
         ícone» e «Desfazer a escolha no traço» fecham o painel quando terminam,
         e por isso vêm por último, cada um com o painel reaberto."""
         antes = set(self.censo())
-        # O PAINEL É DO MESMO APLICATIVO, pelo nome: gravar um ícone reordena a
-        # grade, e "o primeiro da grade" deixa de ser o mesmo — medido na
-        # segunda corrida, o «Voltar» procurado no aplicativo errado.
         self.app_aberto = self.achar(nome).locator(".app-nome").inner_text().strip()
         self.abrir_painel(nome)
         novos = sorted(n for n in self.censo() if n not in antes)
@@ -2890,10 +2642,6 @@ class Percurso:
                 self.achar(edicao).click()
                 self.assentar(quieto=200)
             novos = sorted(n for n in self.censo() if n not in antes)
-        # A oficina por ÚLTIMO: um desenho gravado por ela põe trava no
-        # aplicativo (o glifo do Arcticons não vale onde há desenho convertido),
-        # e o painel deixa de oferecer o «Usar este ícone» — medido na terceira
-        # corrida.
         gravam = ("ícone do aplicativo · Adicionar ícone",
                   "ícone do aplicativo · Desfazer a escolha no traço",
                   "ícone do aplicativo · Usar este ícone",
@@ -2907,10 +2655,6 @@ class Percurso:
             if "edição do SVG" in n and "· abre «" not in n:
                 self.garantir_aberto("edição do SVG")
             self.acionar(n, limpar=False)
-        # [P73: o desenho que se escolhe mora numa PASTA, e a que abre sozinha
-        # (a primeira do pack no ar) pode ser toda de desenho travado neste
-        # aplicativo. Uma pasta com desenho que vale é aberta, e o «escolher»
-        # é acionado nela — o gesto de quem procura no acervo.]
         escolher = "ícone do aplicativo › desenho do acervo · escolher"
         if escolher not in self.acionados:
             self.abrir_painel(nome)
@@ -2929,13 +2673,8 @@ class Percurso:
                     self.assentar(quieto=300, teto=8000)
             if self.achar(n) is not None:
                 self.acionar(n, limpar=False)
-        # O «Desfazer» só existe quando o aplicativo tem desenho gravado — o que o
-        # «Usar este ícone» acabou de fazer. Reaberto, ele tem de aparecer, e é
-        # ele que devolve a raiz de brinquedo ao que era. (Aplicativo com trava
-        # não oferece o «Usar»: aí não há o que conferir.)
-        # [P73: o «Desfazer» é o do traço ou o da escolha de desenho, conforme o
-        # desenho que o «Usar» conseguiu escolher; os dois tiram a linha do
-        # estado da casa.]
+        # O «Desfazer» só existe quando o aplicativo tem desenho gravado — o que
+        # o «Usar este ícone» acabou de fazer.
         if gravam[2] in novos:
             self.abrir_painel(nome)
             desfazer = next((n for n in ("ícone do aplicativo · Desfazer a escolha no traço",
@@ -3006,16 +2745,8 @@ class Percurso:
         if not self.checa(self.pag.locator("#conteudo .escolha-jogo").count(),
                           "clicar no jogo abre a decisão dele"):
             return
-        # TODA CONTAGEM DA ABA CONCORDA COM O NÚMERO (P54, achado 43, e a
-        # revisão, que achou a segunda: «1 jogos têm atalho», na grade de
-        # ícones). A contagem de atalhos é da MÁQUINA — o `.desktop` da Steam
-        # do sistema entra nela —, então o 1 é posto na página, e não esperado
-        # da casa: medido nesta bancada, com a Steam instalada, a conferência
-        # passava vazia contra o código de antes.
+        # TODA CONTAGEM DA ABA CONCORDA COM O NÚMERO.
         self.js("() => { JOGOS.total_apps = 1; render(); }")
-        # [P77: as contas viraram selos, e a frase de cada um mora no balão e
-        # no `aria-label` dele — o texto conferido é o da tela mais o desses
-        # nomes.]
         texto = self.pag.locator("#conteudo").inner_text() + "\n" + self.js(
             "() => [...document.querySelectorAll('#conteudo [aria-label]')]"
             ".map((e) => e.getAttribute('aria-label')).join('\\n')")
@@ -3034,11 +2765,6 @@ class Percurso:
             abrir()
             botao = f"decisão do jogo · {rotulo}"
             if self.checa(self.achar(botao) is not None, f"a decisão oferece «{rotulo}»"):
-                # Os dois perguntam antes desde a P54: a decisão de 24/09 nomeia
-                # a CLASSE («as ações de jogos que aplicam todas as marcas
-                # pendentes»), e o «Voltar ao normal» também grava a linha e
-                # roda a passagem inteira — ele ficou de fora na primeira
-                # versão, e a revisão o pegou.
                 self.decisao_com_caixa(lambda b=botao: self.achar(b).click(),
                                        f"«{rotulo}»", abrir)
                 self.acionados.add(botao)
@@ -3216,9 +2942,6 @@ class Percurso:
         self.assentar(quieto=300, teto=20000)
         self.esperar_trabalho()
         self.checa(post and post[0] == "app-desenho", "«Usar» grava o desenho da oficina")
-        # [P82, item 5 (decisão 15): o desenho da oficina mora no estado de quem
-        #   usa — o `icones-convertidos.map` ao lado do meow.conf —, e o
-        #   repositório não muda.]
         mudou = diferenca(antes, retrato())
         self.checa(any(c.endswith(".config/meow/icones-convertidos.map") for c in mudou),
                    "e o mapa de convertidos de quem usa (de brinquedo) muda")
@@ -3255,19 +2978,13 @@ class Percurso:
         self.checa(area.count() and area.input_value() != v0,
                    "Desfazer devolve o desenho anterior")
 
-    # ======================================================================
-    # QUEM ACIONA O QUÊ
-    # ======================================================================
     # Pelo PAPEL do controle, e não pelo nome dele: um cartão novo com um
-    # deslizante já nasce com acionador. Um papel sem linha aqui reprova como
-    # "sem acionador", que é o "não tem teste" dito pelo lado do código.
+    # deslizante já nasce com acionador.
     def acionador(self, nome):
         tabela = [
             (r" · \?$", self.h_porque),
             (r"^ajuste PACK · opção$", self.h_pack_opcao),
             (r"^ajuste \S+ · opção$", self.h_opcoes),
-            # [P79, decisão 10: o restaurar das chaves de fábrica preenchida diz
-            #   o de fábrica no parêntese; o «Não tocar» é o vazio delas.]
             (r"^ajuste \S+ · (deixar vazio|Restaurar ao padrão( \(.*\))?|Automático)$",
              self.h_botao_do_cartao),
             (r"^ajuste \S+ · deslizante$", self.h_deslizante),
@@ -3278,8 +2995,6 @@ class Percurso:
             (r"^ajuste \S+ · seletor$", self.h_seletor_ajuste),
             (r" · ver comando$", self.h_ver_comando),
             (r"^ação «.*» · Executar$", self.h_executar),
-            # [P82, item 22: o par «ver / aplicar» — o «Conferir» é o Executar
-            #   do ver, e o segundo botão é o aplicar, pelo rótulo dele.]
             (r"^ação «.*» · Conferir$", self.h_executar),
             (r"^ação «(Ver o que mudaria nos jogos do Heroic|O que a atualização mudaria)» · ", self.h_par),
             (r"^ação «.*» · seletor$", self.h_seletor_acao),
@@ -3370,10 +3085,6 @@ class Percurso:
         return caminho
 
     def h_filtro_glifos(self, nome):
-        # [P73: a busca casa também o nome do app no mapa e o significado no
-        # catálogo, então um achado pode não ter o termo no NOME do arquivo. O
-        # que se cobra é que ela filtra (menos que antes) e acha o desenho de
-        # cujo nome o termo saiu.]
         tira = self.pag.locator("#conteudo .tira-glifos button")
         n0 = tira.count()
         primeiro = (tira.first.get_attribute("data-glifo") or "") if n0 else ""
@@ -3537,25 +3248,11 @@ def casa_revelado(nome, grupo):
     return any(casa(p, nome) for p in REVELADOS.get(grupo, set()) | REVELADOS["(toda aba)"])
 
 
-# ===========================================================================
 # AS EXCEÇÕES: o que nem a casa de brinquedo roda de verdade
-# ===========================================================================
+#
 # Pela AÇÃO do servidor, e não pelo botão: a mesma ação tem mais de uma porta
 # na página (o «Instalar tudo», o «Salvar e aplicar», o «Aplicar» do aviso), e
-# a razão de não rodar é dela, não da porta. Cada uma é provada PROTEGIDA pelo
-# protocolo das três respostas: a caixa abre, mostra o comando, o Cancelar não
-# pede nada, e o «Ver o que faria» roda o ensaio sem mudar a casa.
-#
-# A LISTA NÃO FICA VELHA SOZINHA: ela tem de ser exatamente o conjunto das
-# ações que o servidor declara pedir senha ou baixar da internet (`sudo`,
-# `rede`). Uma ação nova com essas marcas reprova até ganhar a linha dela, e
-# uma exceção que perdeu a marca reprova até sair daqui.
-# O REPARO QUE BAIXA — decisão 7 da leva G, 09/10/2026 (P78)
-#   «O doctor não tem que avisar nada. Tem que corrigir.» A regra da P46 (ação
-#   que baixa não roda sem caixa de pergunta) passa a valer só para a ação que
-#   baixa E é OPCIONAL — instalar o starship, baixar a coleção. O reparo que
-#   quem usa pede (natureza `consertar`, sem senha) é isento: roda direto, e o
-#   gate cobra dele o selo «baixa da internet» à vista, no lugar da pergunta.
+# a razão de não rodar é dela, não da porta.
 def reparo_que_baixa(acao):
     return bool(acao["rede"]) and not acao["sudo"] and acao.get("natureza") == "consertar"
 
@@ -3574,51 +3271,24 @@ EXCECOES = {
     "prompt_instalar_starship": "baixa e instala o starship da internet",
     "files_menu_build": "baixa e compila o cosmic-files (dezenas de minutos)",
     "spotify_baixar_tema": "baixa o tema do spicetify da internet",
-    # [P79, decisão 9: o gesto explícito na extensão que um pack importado pede.]
     "vscode_instalar_extensao": "baixa e instala no VS Code a extensão que o pack importado pede",
 }
 
 
-# ===========================================================================
-# OS DEFEITOS CONHECIDOS: achados pelo percurso, e fora do território dele
-# ===========================================================================
-# O percurso conserta o que acha dentro de `app/`. O que ele acha FORA — num
-# script, na CLI — fica aqui, pela frase exata da reprovação e com o endereço
-# do conserto: a linha aparece em toda corrida como `~~ conhecido`, e o gate
-# não fica vermelho por uma coisa que esta sprint não pode tocar. E a lista não
-# esconde nada por muito tempo: um defeito daqui que parou de aparecer reprova
-# ("saia da lista"), para ela nunca guardar um conserto que já aconteceu —
-# menos o que depende do estado da sessão, que é dito na linha dele.
-#   Cada entrada: padrão da reprovação -> (endereço do conserto, se ele aparece
-# em TODA corrida).
+# O percurso conserta o que acha dentro de `app/`. Cada entrada: padrão da
+# reprovação -> (endereço do conserto, se ele aparece em TODA corrida).
 DEFEITOS_CONHECIDOS = {
-    # Vazio desde 24/09/2026: os dois que a P46 achou (o `usar` que o
-    # `cmd_wallpaper` não repassava e o `meow_lancador_reler` que mirava o
-    # lançador da máquina inteira) foram consertados na origem, e o percurso
-    # passou a cobrar que o «Usar» da galeria termine bem.
-    #
-    # [P77, 10/10/2026: «O carrossel agora» semeava o estado do papel de
-    #   parede na primeira LEITURA, e estava aqui. Saiu em 15/10/2026 (P82, item
-    #   34): o `meow_estado_com_padrao` só semeia em verbo que escreve, e o
-    #   `estado` lê a semente do clone.]
 }
 
 
-# ===========================================================================
-# O INVENTÁRIO
-# ===========================================================================
-# Um nome por linha, no formato que o censo escreve (`contexto · papel`). A
-# medição que o gerou está no cabeçalho deste arquivo; para acrescentar um
-# controle, a reprovação já traz a linha pronta.
+# Um nome por linha, no formato que o censo escreve (`contexto · papel`).
 def _linhas(texto):
     return {l.strip() for l in texto.strip().splitlines() if l.strip()}
 
 
-# O QUE ESTÁ NA TELA AO ABRIR CADA ABA — medido em 24/09/2026 na casa de
-# brinquedo (`montar_casa`): 14 abas e o topo, 754 controles, 459 nomes.
-# P77, 09/10/2026: cada aba ganhou o `?` do cabeçalho e o do desenho («aba · ?»),
-# e cada cartão de ação o `?` da ajuda («ação «X» · ?»). Os nomes entraram aqui
-# com o mesmo acionador de todo `?` (`h_porque`).
+# cada aba ganhou o `?` do cabeçalho e o do desenho («aba ·?»), e cada cartão de
+# ação o `?` da ajuda («ação «X» ·?»). Os nomes entraram aqui com o mesmo
+# acionador de todo `?` (`h_porque`).
 INVENTARIO = {
     "topo": _linhas("""
         menu · Atualização
@@ -3747,9 +3417,6 @@ INVENTARIO = {
         ajuste LOGO_NOITE · ?
         ajuste LOGO_NOITE · opção
     """),
-    # [Integração da leva G, 09/10/2026: o `ajuste ICONES_BASE` saiu daqui. A
-    #   P75 aposentou a chave (a base vem do pack, pinada — `migrar_conf.py`,
-    #   `APOSENTADAS`) e o cartão sumiu da aba junto com ela do exemplo.]
     "Ícones": _linhas("""
         aba · ?
         aba · abre «⋯ Ajustes técnicos»
@@ -3782,10 +3449,6 @@ INVENTARIO = {
         ação «Tema de ícones instalado» · Executar
         ação «Tema de ícones instalado» · ver comando
     """),
-    # [P82, 15/10/2026: os «desenhos autorais» saíram do inventário — os dois
-    #   packs deixaram de declarar desenho (o Hefesto e o FogStripper,
-    #   decisão 16), e sem desenho a oficina não aparece. O gesto continua
-    #   coberto pelo `tests/oficina.sh`, num pack de brinquedo que declara.]
     "Painel e dock": _linhas("""
         aba · ?
         aba · abre «⋯ Ações técnicas»
@@ -4048,16 +3711,7 @@ INVENTARIO = {
 
 # O QUE SÓ APARECE DEPOIS DE UM GESTO: a caixa de pergunta, a gaveta, o
 # «Copiar» do «ver comando», o «Aplicar» do cartão com escolha pendente, o
-# conteúdo de um `<details>`, o painel de um aplicativo. O `*` é "qualquer
-# coisa" — um «Aplicar» por cartão é um molde, e não 123 linhas. Cada linha
-# daqui tem de APARECER na corrida e ser ACIONADA; a que some reprova.
-# O painel que o clique num aplicativo abre é o mesmo nas duas grades (Ícones
-# e o ícone de cada jogo, em Lançadores).
-# [P73, 09/10/2026: a ficha ganhou as pastas por acervo (`abre «…»`, uma por
-# pasta), o desenho travado (apagado, com a dica) e os dois «Desfazer» — o do
-# traço e o da escolha de desenho, ambos no estado de quem usa. O molde
-# `Desfazer a *` cobre os dois: qual aparece depende do desenho que o percurso
-# conseguiu escolher no aplicativo da máquina.]
+# conteúdo de um `<details>`, o painel de um aplicativo.
 PAINEL_DO_APLICATIVO = _linhas("""
     ícone do aplicativo · Adicionar ícone
     ícone do aplicativo · Usar este ícone
@@ -4114,11 +3768,6 @@ REVELADOS = {
         cartão de pack · link externo
         cartão de pack · Remover
     """),
-    # [P77: os ajustes `[avancado]` moram no «⋯ Ajustes técnicos» do fim do
-    # bloco; o `h_details` abre o «⋯» e aciona o que ele revela.]
-    # [P82, item 23 (decisão 25): as duas ações de tema estão no «⋯» de ações
-    #   técnicas de «Cor e tela», e as do gato aparecem dentro da moldura do
-    #   modo que as usa (o fixo e o girando).]
     "Cor e tela": _linhas("""
         ação «Passar para claro ou escuro» · ?
         ação «Passar para claro ou escuro» · Executar
@@ -4225,8 +3874,6 @@ REVELADOS = {
         ação «Qual gato está no ar, e por quê» · Executar
         ação «Qual gato está no ar, e por quê» · ver comando
     """),
-    # [P77 grupo 4: as duas ações que só mostram (natureza `mostrar`) moram
-    # no «⋯» das ações técnicas da Instalação.]
     "Instalação": _linhas("""
         ação «As últimas 50 linhas do registro» · ?
         ação «As últimas 50 linhas do registro» · Executar
@@ -4235,7 +3882,6 @@ REVELADOS = {
         ação «O que está no ar agora» · Executar
         ação «O que está no ar agora» · ver comando
     """),
-    # [P77 grupo 4: o timbre do sino (`[avancado]`) e o «Regravar o som»
     # (natureza `aplicar`) moram nos dois «⋯» do fim da página.]
     "Manutenção": _linhas("""
         ajuste SOM_DECAIMENTO · ?
@@ -4305,7 +3951,7 @@ def main():
 
             exc = set(EXCECOES)
             # O reparo que baixa não é exceção: roda de verdade na casa de
-            # brinquedo, sem pergunta e com o selo (decisão 7, P78).
+            # brinquedo, sem pergunta e com o selo.
             declaradas = {i for i, a in v.acoes().items()
                           if a["sudo"] or (a["rede"] and not reparo_que_baixa(a))}
             v.aba = "exceções"
@@ -4333,13 +3979,8 @@ def main():
                                 "corrida: se foi consertado, ele sai de DEFEITOS_CONHECIDOS")
 
             v.aba = "exceções"
-            # O GESTO DA EXTENSÃO DO VS CODE SÓ NASCE COM PACK IMPORTADO NO AR
-            #   (P79, decisão 9): os botões são um por extensão que o pack
-            #   importado pede, e a casa de brinquedo veste o pack do
-            #   repositório. O que se prova aqui é a cerca: sem pack importado,
-            #   o servidor recusa rodar a ação com qualquer extensão, mesmo
-            #   confirmada. O botão é provado pelo tests/temas-de-apps.sh e pelo
-            #   tests/restos-do-painel.sh (o mesmo caminho da escolha da P53).
+            # : os botões são um por extensão que o pack importado pede, e a
+            # casa de brinquedo veste o pack do repositório.
             if not SO_ABA and "vscode_instalar_extensao" in exc:
                 v.esperar_status(409, "/api/rodar")
                 r = v.js("(c) => api('/api/rodar', {method: 'POST', body: JSON.stringify(c)})",
@@ -4399,16 +4040,7 @@ def main():
 
 if __name__ == "__main__":
     # O brinquedo sai sempre, inclusive quando o teste morre no meio: ele é uma
-    # casa inteira e uma cópia do repositório em /tmp, com falsos dentro. O
-    # TERM (o `timeout`, o Ctrl+C de quem roda a suíte) vira saída normal, para
-    # o `finally` rodar e levar o painel junto.
-    #
-    # E O HUP TAMBÉM, E A PASTA É CONFERIDA DEPOIS — 15/10/2026, P82 (item 38).
-    #   O terminal que fecha manda HUP, e o HUP sem tratador mata o processo sem
-    #   o `finally`: a casa inteira ficava em /tmp. E um processo da casa que
-    #   ainda escrevia (um trabalho da gaveta no meio de um `mkdir -p`) podia
-    #   recriar a pasta depois do `rmtree`; por isso, se ela voltou, a casa é
-    #   encerrada de novo e a pasta sai de novo.
+    # casa inteira e uma cópia do repositório em /tmp, com falsos dentro.
     import signal
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     signal.signal(signal.SIGHUP, lambda *_: sys.exit(129))

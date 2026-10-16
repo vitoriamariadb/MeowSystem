@@ -1,35 +1,18 @@
 #!/usr/bin/env python3
 # folha_icones.py — a folha que ela olha ANTES de qualquer troca de ícone.
 #
-# POR QUE ESTE ARQUIVO EXISTE
-#   Em 10/08/2026 ela pediu para UNIFICAR os ícones do lançador. Unificar exige
-#   antes responder uma pergunta que é de GOSTO, não de técnica: unificar em
-#   QUAL linguagem? Hoje os 41 aplicativos visíveis dela saem de cinco
-#   procedências que desenham de jeitos incompatíveis — marca colorida em placa
-#   (Catppuccin), traço de 1 px (Arcticons), os SVG do próprio COSMIC, os
-#   desenhos dela, e o que sobrou herdado do Papirus. Escolher por ela seria
-#   apagar decisão dela (o btop em `osmonitor/maroon`, a logo do Hefesto), e o
-#   MEMORY.md do projeto é explícito: a folha visual vem antes do código.
+# Unificar exige antes responder uma pergunta que é de GOSTO, não de técnica:
+# unificar em QUAL linguagem?
 #
-#   Esta folha NÃO TOCA EM ÍCONE NENHUM. Ela só mostra o que já está na tela,
-#   agrupado por procedência, para a pergunta ficar respondível de olho.
+# Esta folha NÃO TOCA EM ÍCONE NENHUM.
 #
-# POR QUE 48 E 128 PX, E POR QUE QUATRO FUNDOS
-#   48 px é a caixa medida da dock (`icones_apps_arcticons.sh`, item 2 do
-#   cabeçalho). 128 px é a grade do lançador, que é ONDE A QUEIXA NASCEU: é lá
-#   que o traço de 1 px do Arcticons some e que o PNG de 24 px chega borrado.
-#   Uma folha num tamanho só esconde metade do problema.
+# 48 px é a caixa medida da dock.
 #
-#   Os quatro fundos são os já medidos no cabeçalho de `packs/meowsystem/icones/apps.map`: mocha
-#   `#1e1e2e`, latte `#eff1f5`, e os dois tons do vidro da dock, `#3C3B50` e
-#   `#826E92`. Um ícone que sobrevive no mocha e desaparece no vidro claro não
-#   está resolvido — e isso só aparece trocando o fundo debaixo dele.
+# Um ícone que sobrevive no mocha e desaparece no vidro claro não está resolvido
+# — e isso só aparece trocando o fundo debaixo dele.
 #
-# POR QUE HTML STANDALONE, E NÃO PÁGINA PUBLICADA
-#   Regra dela, dita em 10/08/2026: a folha é um arquivo no disco, que abre com
-#   duplo clique, sem rede e sem conta. Por isso cada ícone entra embutido em
-#   base64 — o arquivo continua valendo depois que o tema for reconstruído por
-#   cima, que é justamente quando ela vai querer comparar o antes e o depois.
+# Regra dela, dita: a folha é um arquivo no disco, que abre com duplo clique,
+# sem rede e sem conta.
 #
 #   uso: scripts/folha_icones.py [saida.html]     (padrão: ~/Documentos/meow-icones-folha.html)
 
@@ -42,14 +25,10 @@ import os
 import sys
 
 # PyGObject/Gtk3 não é stdlib, e o badge do README promete "python 3 só stdlib".
-# A promessa vale para o INSTALADOR: nenhuma das folhas é chamada por install.sh,
-# bin/meow ou lib/ — elas são ferramentas de bancada, rodadas à mão por quem está
-# curando ícone. Ainda assim, quem clonasse o repositório e as rodasse recebia um
-# ModuleNotFoundError cru, sem dizer o que instalar. [2026-09-17]
 #
-# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única das
-# quatro que o instalador chama e que já tratava isso: mensagem que diz o que falta
-# e código de saída próprio, em vez de traceback.
+# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única
+# das quatro que o instalador chama e que já tratava isso: mensagem que diz o
+# que falta e código de saída próprio, em vez de traceback.
 MEOW_SEM_DEPENDENCIA = 3
 try:
     import gi
@@ -72,14 +51,10 @@ FUNDOS = [
     ('vidro claro', '#826E92', 'a dock sobre papel claro'),
 ]
 
-# ─────────────────────────────────────────────────────────────────────────────
 # QUEM DESENHOU CADA UM: a procedência sai dos MAPAS do repo, não de palpite
-#   Cada mapa é o contrato de um script: quem está no `apps.map` foi vestido
-#   pelo `icones_apps.sh` com o acervo Catppuccin; quem está no
-#   `apps-arcticons.map` foi vestido pelo `icones_apps_arcticons.sh`. Ler os
-#   mapas em vez de adivinhar pelo arquivo é o que faz esta folha continuar
-#   verdadeira quando um deles mudar.
-# ─────────────────────────────────────────────────────────────────────────────
+# Cada mapa é o contrato de um script: quem está no `apps.map` foi vestido pelo
+# `icones_apps.sh` com o acervo Catppuccin; quem está no `apps-arcticons.map`
+# foi vestido pelo `icones_apps_arcticons.sh`.
 GRAMATICAS = [
     ('catppuccin', 'Catppuccin — a marca do app na paleta pastel',
      'Acervo de terceiro, PNG. É a marca de cada aplicativo redesenhada nas cores '
@@ -133,22 +108,14 @@ def carrega_curadoria():
 INTOCAVEIS = {'fogstripper', 'hefesto-dualsense4unix',
               'com.vitoriamaria.HefestoDualsense4Unix'}
 
-# ─────────────────────────────────────────────────────────────────────────────
 # A PRÉVIA: como ficaria unificado — e por que só UM dos dois caminhos existe
 #
-#   Medido em 10/08/2026, e é este número que decide:
-#     acervo Catppuccin local ........... 146 nomes · cobre 2 dos 16 herdados
-#     índice Arcticons (api.iconify) .. 14.996 nomes · cobre 13 dos 16 herdados
+# Medido, e é este número que decide: acervo Catppuccin local...........
 #
-#   Unificar em Catppuccin não é uma opção pior: é uma opção que NÃO EXISTE. O
-#   acervo não tem os aplicativos dela — nem Flatseal, nem Foliate, nem Warehouse,
-#   nem os oito do COSMIC. Uma unificação que deixa 25 de fora não unificou nada.
+# Unificar em Catppuccin não é uma opção pior: é uma opção que NÃO EXISTE.
 #
-#   Então a prévia mostra o caminho que existe, com a amostra baixada em
-#   `assets/icones/previa-arcticons/`: os mesmos aplicativos, hoje e em Arcticons, lado a
-#   lado, nos dois tamanhos. O que ela decide olhando isto não é "qual é mais
-#   bonito no papel" — é se aceita trocar a marca colorida pelo traço.
-# ─────────────────────────────────────────────────────────────────────────────
+# O que ela decide olhando isto não é "qual é mais bonito no papel" — é se
+# aceita trocar a marca colorida pelo traço.
 PREVIA_DIR = os.path.join(RAIZ, 'icons', 'previa-arcticons')
 PREVIA = [
     # chave do .desktop            glifo no Arcticons   de onde ele vem hoje
@@ -163,9 +130,7 @@ PREVIA = [
     ('org.gnome.Calculator',       'calculator',        'herdado'),
     ('thunderbird',                'thunderbird',       'herdado'),
     # `utorrent` estava aqui e saiu: é a MARCA do µTorrent, que é outro
-    # aplicativo, de outra empresa. Pôr a marca de um concorrente no lugar do
-    # qBittorrent é o caso que o `apps-arcticons.map` já recusou uma vez (o
-    # `playstation-family` no Hefesto). `libretorrent` é o glifo genérico.
+    # aplicativo, de outra empresa.
     ('org.qbittorrent.qBittorrent', 'libretorrent',     'herdado'),
     ('com.github.johnfactotum.Foliate', 'books',        'herdado'),
 ]
@@ -219,13 +184,10 @@ def embute(caminho):
         return f'data:{tipo};base64,' + base64.b64encode(fh.read()).decode('ascii')
 
 
-# O BALÃO DO CARTÃO DIZ `~`, E NÃO A CASA DE QUEM GEROU A FOLHA — 23/09/2026
-#   O `title` de cada cartão levava o caminho absoluto do ícone, e a folha que
-#   entrou no repositório (docs/folhas/meow-icones-folha.html) carregava 29
-#   vezes o home de quem a gerou: um nome de usuário gravado num arquivo que
-#   qualquer pessoa abre. O `~` informa o mesmo — o ícone mora na casa de quem
-#   olha — sem dizer de quem é a casa. Só o TEXTO do balão muda: o caminho em
-#   si continua absoluto, porque é ele que o `embute` abre.
+# O `title` de cada cartão levava o caminho absoluto do ícone, e a folha que
+# entrou no repositório (docs/folhas/meow-icones-folha.html) carregava 29
+# vezes o home de quem a gerou: um nome de usuário gravado num arquivo que
+# qualquer pessoa abre.
 def com_til(caminho):
     if caminho and (caminho == HOME or caminho.startswith(HOME + os.sep)):
         return '~' + caminho[len(HOME):]
@@ -297,10 +259,9 @@ def main():
     por_chave = {i['chave']: i for i in itens}
     por_icone = {i['icone']: i for i in itens}
 
-    # A prévia. O SVG do Arcticons vem em `currentColor`: aqui ele é pintado de
-    # lavender (`#b4befe`), que é a cor neutra do Catppuccin — não é a escolha
-    # final de cor, é só o que deixa o DESENHO visível para ela julgar. A cor de
-    # cada ícone continua sendo decisão dela, um a um, como no `apps-arcticons.map`.
+    # O SVG do Arcticons vem em `currentColor`: aqui ele é pintado de lavender
+    # (`#b4befe`), que é a cor neutra do Catppuccin — não é a escolha final de
+    # cor, é só o que deixa o DESENHO visível para ela julgar.
     linhas_previa = []
     for chave, glifo, origem in PREVIA:
         atual = por_chave.get(chave) or por_icone.get(chave)

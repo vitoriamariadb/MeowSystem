@@ -1,50 +1,12 @@
 #!/usr/bin/env bash
 # cosmic_pos_apt.sh — depois de um apt, refaz em escopo de usuário o que o
-# COSMIC novo desfez. Quem chama é o `meow-pos-apt.service`, disparado pelo
-# `meow-pos-apt.path` quando o hook de apt (`scripts/99-meow-lancador`) toca
-# `/var/lib/meowsystem/apt-mudou`.
+# COSMIC novo desfez.
 #
 #   ./cosmic_pos_apt.sh           reconstrói o que mudou de versão, e conserta
 #   ./cosmic_pos_apt.sh --seco    diz o que faria, sem escrever
 #
-# O DESENHO (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.3)
-#   O apt é dono de `/usr`; o meow é dono do escopo do usuário. A linha root do
-#   hook só toca um arquivo — todo o trabalho é daqui, sem sudo:
-#     1. compara a versão de cada `cosmic-*` com a última vista
-#        (`~/.local/state/meowsystem/cosmic-versoes`). Nada mudou: sai sem
-#        escrever um byte — é a idempotência que o teste cobra;
-#     2. para cada pacote que mudou, roda o passo dele. Cada passo é
-#        idempotente pelo critério do `files_menu`: artefato por versão, que só
-#        se reconstrói se faltar;
-#     3. termina com o `meow doctor --consertar`.
-#   Um passo que FALHA não grava a versão nova do pacote dele: o próximo apt
-#   (ou a próxima passagem) tenta de novo. Um passo que deu certo, ou que não
-#   tem o que fazer nesta máquina, grava.
-#
-# OS PASSOS
-#   cosmic-settings  o oráculo do tema (`oraculo_tema.sh construir`): só
-#                    compila se a derivação do libcosmic novo mudou.
-#   cosmic-comp e cosmic-files  NÃO SÃO PASSO POR VERSÃO DESDE A P81
-#                    (15/10/2026). Toda passagem chama a função única,
-#                    `garantir_builds.sh`, que compila o que não tem build
-#                    válido da versão instalada e não faz nada no resto. O
-#                    passo antigo do compositor pulava com o shim desligado e
-#                    gravava a versão como vista: no apt das 20:14 de 15/10 o
-#                    shim foi ligado minutos depois, e nenhum gatilho voltaria
-#                    àquela versão. Quem lembra o que falta é o artefato.
-#
-# O CÓDIGO DE SAÍDA, PARA O SYSTEMD: 0 = sucesso (escrevendo ou não), 2 =
-# algum passo falhou. O 1 do projeto ("divergia e consertei") virava
-# `ExecMainStatus=1` no `meow-pos-apt.service` de 15/10, num pós-apt que deu
-# certo — e pular por regra (o `--` de um build que não cabe) não é falha.
-#
-# E DUAS GUARDAS QUE VALEM ANTES DE QUALQUER PASSO (P76, tarefa 5)
-#   - o rustc: se o pré-voo acusou toolchain vermelho (o fonte novo pede um
-#     rust mais novo que o instalado), `rustup update` antes do build. O
-#     `~/.cargo` é dela, sem sudo; sem isso o build só falharia e contaria a
-#     tentativa;
-#   - o fonte: o que o cache antigo do compositor guardava vai para
-#     `~/.local/share/meowsystem/fontes/` (`compositor_patches.sh guardar`).
+# O CÓDIGO DE SAÍDA, PARA O SYSTEMD: 0 = sucesso (escrevendo ou não), 2 = algum
+# passo falhou.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -62,15 +24,8 @@ PA_ORACULO="${PA_ORACULO:-$MEOW_RAIZ/scripts/oraculo_tema.sh}"
 # O veredito do pré-voo (`meow cosmic prever`), gravado antes do apt.
 PA_CANDIDATO="${PA_CANDIDATO:-$MEOW_ESTADO/cosmic-candidato.tsv}"
 
-# O CARGO DO RUSTUP ENTRA NO PATH AQUI — conferência da P76
-#   Quem chama este script é o `meow-pos-apt.service`, e o PATH do systemd do
-#   usuário não tem o `~/.cargo/bin` (medido em 09/10/2026 com
-#   `systemctl --user show-environment`: começa em `~/.local/bin` e segue pelo
-#   do sistema). O rustup põe o `cargo` e o `rustup` só ali, e quem os acha na
-#   sessão é o `~/.profile`, que o systemd não lê. Sem esta linha, todo passo
-#   de build daqui (o compositor, o menu, o oráculo, e os applets que o doctor
-#   do fim recompila) cairia em "falta o cargo" e o pós-apt seria um vigia que
-#   não refaz nada. Os filhos herdam o PATH; nada muda fora deste processo.
+# O rustup põe o `cargo` e o `rustup` só ali, e quem os acha na sessão é o
+# `~/.profile`, que o systemd não lê.
 PA_CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
 case ":$PATH:" in
   *":$PA_CARGO_BIN:"*) ;;

@@ -152,8 +152,8 @@ def main():
         with open(SAIDA_JSON, "w", encoding="utf-8") as fh:
             json.dump({"rotulo": ROTULO, "paginas": resultado, "total": total},
                       fh, ensure_ascii=False, indent=2)
-    # A ÚNICA REPROVA DA RÉGUA (P82, item 29): o vazio de um `<select>` com
-    # outro nome que o do «Não tocar» ao lado. Dois nomes para um valor.
+    # A ÚNICA REPROVA DA RÉGUA: o vazio de um `<select>` com outro nome que
+    # o do «Não tocar» ao lado. Dois nomes para um valor.
     com_dois_nomes = [m["pagina"] for m in resultado if m.get("como_esta")]
     if com_dois_nomes:
         print("FALHOU: «como está» num <select>, ao lado do «Não tocar»: "

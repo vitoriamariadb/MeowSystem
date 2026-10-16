@@ -1,57 +1,14 @@
 #!/usr/bin/env bash
-# A CERCA DA ROTA QUE SERVE IMAGEM, E O LINK QUE TROCA DE TIPO NO MEIO.
+# A oficina de desenho precisava mostrar a arte de fábrica ao lado das
+# variações, e o «Original» aparecia como ícone quebrado: a arte de metade dos
+# aplicativos desta máquina é um link do flatpak que aponta para
+# `~/.local/share/flatpak/app/<id>/.../<hash>/...`, fora de toda raiz permitida.
 #
-# O QUE ESTE TESTE PEGA JÁ ACONTECEU, EM 09/09/2026
-#   A oficina de desenho precisava mostrar a arte de fábrica ao lado das
-#   variações, e o «Original» aparecia como ícone quebrado: a arte de metade
-#   dos aplicativos desta máquina é um link do flatpak que aponta para
-#   `~/.local/share/flatpak/app/<id>/.../<hash>/...`, fora de toda raiz
-#   permitida. A cura foi aceitar TAMBÉM o caminho como foi pedido.
+# Um link chamado `.svg`, plantado dentro de uma raiz permitida, servia qualquer
+# coisa que a usuária consegue ler.
 #
-#   Só que a peneira de extensão passou junto para o caminho pedido — e aí ela
-#   olhava o NOME, não o arquivo. Um link chamado `.svg`, plantado dentro de
-#   uma raiz permitida, servia qualquer coisa que a usuária consegue ler.
-#   Medido: um link em `~/.local/share/icons` apontando para um `.txt` fora de
-#   toda raiz devolveu 200, com o conteúdo na resposta.
-#
-#   Não é escalada de privilégio: plantar o link exige escrita numa das raízes,
-#   e quem a tem já lê os arquivos dela. Mas uma das raízes é `assets/icones`,
-#   do repositório, que é PÚBLICO — um link simbólico numa contribuição viraria
-#   leitura de arquivo na máquina de quem rodasse o painel.
-#
-# AS DUAS METADES, E ELAS ANDAM JUNTAS
-#   O conserto não pode desfazer a cura. O link do flatpak preserva a extensão
-#   do outro lado (`.svg` -> `.svg`), então exigir que as duas batam deixa
-#   passar o caso real e barra o link que troca de tipo. Por isso este arquivo
-#   afirma as duas coisas: o que TEM de passar e o que TEM de ser recusado.
-#
-#   Recusa é sempre 404, nunca 403: uma resposta diferente por caminho
-#   transformaria a rota em sonda de existência de arquivo.
-#
-# O PAINEL SOBE NUMA CASA DE BRINQUEDO, E NUNCA CONTRA O HOME DELA —
-# 24/09/2026, sprint P40
-#   Até aqui este arquivo subia o `app/run.sh` com o ambiente de quem o chamava
-#   e plantava a isca no `~/.local/share/icons` DE VERDADE — e o próprio
-#   `run.sh` gravava o `app.pid` no estado dela. O `trap` tirava a isca, mas a
-#   regra do projeto é que nada da interface é aplicado em sandbox; quem vai
-#   para a sandbox é o TESTE, e os dois testes de navegador já tinham ido na
-#   P33. Este ficou para trás, e a revisão da P33 o achou.
-#
-#   O ambiente é o `env -i` do `tests/convergencia.sh`: HOME e `MEOW_CONF` no
-#   temporário, `MEOW_PONTE` para o vazio e um `sudo` falso na frente do PATH —
-#   numa máquina com `NOPASSWD: ALL` o `sudo -n` de verdade PASSA. A cerca da
-#   rota monta as raízes da casa pelo `expanduser` a cada pedido, então com o
-#   HOME trocado ela cerca a casa de brinquedo, e é essa que se mede.
-#
-#   E A CASA NÃO FICA VAZIA, pelo motivo que o `tests/app-navegador.py` conta:
-#   vazia ela mediria menos e seguiria verde. As duas vias que a casa dela tinha
-#   e o brinquedo não teria são plantadas com a forma da máquina (medida no
-#   `readlink` de um link real do flatpak): o link de `exports/` que resolve
-#   para `app/<id>/.../<hash>/export/...`, FORA de toda raiz, e a capa `.jpg` da
-#   Steam. Antes elas eram achadas no HOME dela, e uma máquina sem flatpak ou
-#   sem Steam as pulava. E as duas recusas de arquivo dela — a chave privada e o
-#   `meow.conf` — ganham arquivo de verdade na casa: sem ele o 404 viria do
-#   "não existe", e não da cerca que este teste existe para medir.
+# Não é escalada de privilégio: plantar o link exige escrita numa das raízes, e
+# quem a tem já lê os arquivos dela.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"

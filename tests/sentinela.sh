@@ -52,7 +52,7 @@ montar() { # $1 nome $2 versão $3 corpo-do-main
   local f="$T/fonte-$1/cosmic-comp-$2"
   mkdir -p "$f/src"
   printf '[package]\nname = "cosmic-comp"\nrust-version = "1.0"\n' > "$f/Cargo.toml"
-  # O fonte novo pede `just`: a receita `build-vendored` num justfile (P81).
+  # O fonte novo pede `just`: a receita `build-vendored` num justfile.
   [ "$1" = quebrado ] && printf 'build-vendored:\n\ttrue\n' > "$f/justfile"
   printf 'fn main() {\n    %s\n}\n' "$3" > "$f/src/main.rs"
   tar -cJf "$T/fonte-$1/cosmic-comp_$2.tar.xz" -C "$T/fonte-$1" "cosmic-comp-$2"

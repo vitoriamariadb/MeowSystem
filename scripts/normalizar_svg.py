@@ -5,73 +5,17 @@
 #   normalizar_svg.py --conferir assets/gatos não escreve; 1 se algo divergir
 #   normalizar_svg.py --silencioso ...        só o código de saída
 #
-# ============================================================================
-# O DEFEITO QUE ISTO EXISTE PARA CURAR — MEDIDO EM 01/09/2026
-# ============================================================================
-# Ela desenhou dentes na Coquinha e no Mimir no Boxy SVG, salvou por cima dos
-# arquivos de `assets/gatos/`, e o vigia fez tudo certo: o `meow-assets.path`
-# disparou, o `logo.sh` reinstalou o acervo, reciclou o painel. E os dentes não
-# apareceram em lugar nenhum — nem no dock, nem no terminal, nem no lançador.
+# Uma transformação em torno de uma origem `o` é a mesma coisa que compor três:
+# ir até a origem, transformar, voltar.
 #
-# A CAUSA NÃO ESTAVA NA PIPELINE, ESTAVA NO ARQUIVO. O Boxy posiciona a forma
-# nova com DUAS propriedades CSS do SVG 2:
+# `E` é uma matriz comum, que os dois renderizadores entendem desde sempre.
 #
-#     style="… transform-box: fill-box; transform-origin: 50% 50%;"
-#     transform="matrix(-0.990268, -0.139173, 0.139173, -0.990268, 134.7, -11.8)"
-#
-# O `transform-origin` diz "gire em torno do centro da peça". O **librsvg** (o
-# `rsvg-convert`, o GTK, o thumbnailer) e o **resvg/usvg** (o que o COSMIC usa
-# para desenhar ícone de tema) NÃO implementam nenhuma das duas: eles leem a
-# matriz e a aplicam a partir da origem (0,0) do SVG. Medido no dente do Mimir:
-# o centro da peça, que devia cair em (553.9, 634.5), foi parar em (-191, -705)
-# — fora do `viewBox`, invisível, sem uma linha de erro em lugar nenhum.
-#
-# É o pior tipo de defeito deste projeto: tudo devolve sucesso e nada aparece.
-#
-# O CONSERTO É ARITMÉTICA, E NÃO PERDE A EDIÇÃO DELA
-#   Uma transformação em torno de uma origem `o` é a mesma coisa que compor
-#   três: ir até a origem, transformar, voltar.
-#
-#       E = T(o) · M · T(-o)
-#
-#   `E` é uma matriz comum, que os dois renderizadores entendem desde sempre.
-#   Escrevemos `E` no atributo `transform` e apagamos as duas propriedades do
-#   `style`. O `d=` do path não é tocado, e o `bx:shape=` do Boxy tampouco —
-#   então ela reabre o arquivo no editor e continua arrastando o triângulo como
-#   antes, com a peça no mesmo lugar. Conferido nos dois gatos: o dente cai onde
-#   o Boxy mostrava, com diferença abaixo de 0,001 px.
-#
-# POR QUE NÃO É UM `sed`, E POR QUE NÃO É UM PARSER DE XML
-#   Não é `sed` porque `transform-origin: 50% 50%` com `transform-box: fill-box`
-#   depende da CAIXA DA PEÇA: 50% de quê? Para responder é preciso a bbox real
-#   do `d=`, curvas incluídas — é o que o `_BBox` daqui calcula, analiticamente
-#   para as quadráticas e cúbicas do Boxy.
-#
-#   E não é `xml.etree` porque ele reescreve o arquivo INTEIRO: reordena
-#   atributo, troca aspas, mexe em namespace. O diff de um conserto de duas
-#   linhas viraria "arquivo todo mudou", e o `git diff` dela deixaria de servir
-#   para ver o que o desenho dela ganhou. Aqui a edição é cirúrgica: só as tags
-#   que têm o defeito, e só os dois atributos.
-#
-# O AVISO GENÉRICO, QUE VALE PARA O QUE AINDA NÃO ACONTECEU
-#   Consertar `transform-origin` cura o caso de hoje. Amanhã o Boxy inventa
-#   outra coisa e o sintoma é o mesmo — "salvei e sumiu". Por isso, depois de
-#   normalizar, cada peça com geometria é MEDIDA contra o `viewBox`: se a bbox
-#   dela, já com todas as matrizes dos ancestrais aplicadas, cai inteiramente
-#   fora da tela, isso vira aviso em voz alta. Não conserta — não há como
-#   adivinhar a intenção —, mas nomeia o arquivo e a peça, que é a diferença
-#   entre um bug de dez minutos e um de duas semanas.
-#
-# CÓDIGOS DE SAÍDA (o contrato do resto do projeto: 0 ok, 1 divergente)
-#   0  nada a fazer  ·  1  havia divergência (consertada, ou apontada no
-#   --conferir)  ·  2  erro de verdade (arquivo ilegível)
+# Não é `sed` porque `transform-origin: 50% 50%` com `transform-box: fill-box`
+# depende da CAIXA DA PEÇA: 50% de quê?
 import math
 import re
 import sys
 
-# ---------------------------------------------------------------------------
-# 1. AS TAGS, SEM PARSER DE XML
-# ---------------------------------------------------------------------------
 # Uma tag de abertura: `<`, nome, atributos (aspas simples ou duplas, que podem
 # conter `>` dentro — daí a alternância explícita em vez de `[^>]*`), e o fecho.
 _TAG = re.compile(
@@ -318,11 +262,7 @@ def bbox_de_path(d):
                 i += 4
             elif c == "A":
                 # O arco entra pelos EXTREMOS, e a caixa fica subestimada quando
-                # ele passa de um quadrante. É deliberado: nenhum arco existe nos
-                # SVG deste projeto (medido: zero `A` em assets/), e uma
-                # implementação de centro-parametrização a mais seria código sem
-                # chamador. Se um dia aparecer, o aviso de "fora do viewBox" é
-                # que vai denunciar, e aí ele se escreve.
+                # ele passa de um quadrante.
                 nx, ny = n[i + 5], n[i + 6]
                 if rel:
                     nx, ny = x + nx, y + ny
@@ -426,10 +366,7 @@ def normalizar_texto(texto, nome="<svg>"):
 
     # A PILHA DE MATRIZES DOS ANCESTRAIS, para o aviso de "caiu fora da tela".
     # Ela precisa DESEMPILHAR nos `</g>`, e isso não é detalhe: os gatos abrem
-    # com `<g transform="translate(-1124)">` (o arco-íris do fundo). Sem o
-    # desempilhe, todo path depois daquele fecho herdava os -1124 px e o
-    # conferidor acusava o desenho INTEIRO como fora da tela — 8 avisos falsos
-    # por gato, na primeira rodada deste script.
+    # com `<g transform="translate(-1124)">` (o arco-íris do fundo).
     saida = []
     pos = 0
     pilha = [IDENTIDADE]

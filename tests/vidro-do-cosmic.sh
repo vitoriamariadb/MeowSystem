@@ -1,40 +1,14 @@
 #!/usr/bin/env bash
 # vidro-do-cosmic.sh — o vidro que o tema grava é o do alpha_map que o COSMIC tem.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 25/09/2026 (sprint P58)
-#   Medido na máquina dela: o `alpha_map` ao vivo, que o slider «Opacidade do
-#   vidro» gravou em 17/09, dá `very_high_2: 0.52615` (alpha 86). A captura
-#   `dracula-mauve` traz o mapa do dia da foto, 0.66615 (alpha AA), e o
-#   `transparent_background` dela é `#383A4CAA`. Com o `frosted` em `VeryHigh2`
-#   nos dois, o tema aplicado deixava o vidro em AA (67 %) com o nível pedindo
-#   86 (52 %); o `aplicar_tema.sh --conferir` dizia "já aplicado (189 arquivos
-#   conferem)"; e o `vidro.sh` mandava reaplicar a captura que já estava
-#   aplicada.
-#   (Revisão da P58, 25/09/2026: a primeira redação dizia "gravado pelo COSMIC
-#   atualizado"; nenhum pacote do COSMIC mudou entre 11 e 21/09. A medição
-#   está no cabeçalho do scripts/derivar_vidro.py.)
+# Os catorze campos do vidro da seção 1 são os que a GUI desta máquina
+# (cosmic-settings 1.7.0) gravou 22:35:41, quando o slider gravou este mapa, com
+# esta mesma receita — estão no backup do `aplicar_tema.sh` 16:51, que preserva
+# o mtime —, e são também o que o `ThemeBuilder:build()` do libcosmic escreve no
+# oráculo de bancada.
 #
-#   A prova que a sprint pediu: numa casa de brinquedo com o `alpha_map` novo,
-#   aplicar `dracula-mauve` grava o `transparent_background` com alpha 86, e o
-#   `vidro.sh` confere sem aviso; com o mapa da captura, os bytes são os de hoje.
-#
-# OS VALORES ESPERADOS NÃO SÃO CONTA DESTE TESTE
-#   Os catorze campos do vidro da seção 1 são os que a GUI desta máquina
-#   (cosmic-settings 1.7.0) gravou em 17/09 22:35:41, quando o slider gravou
-#   este mapa, com esta mesma receita — estão no backup do `aplicar_tema.sh` de
-#   21/09 16:51, que preserva o mtime —, e são também o que o
-#   `ThemeBuilder::build()` do libcosmic escreve no oráculo de bancada. O `on`
-#   da seção 3 é o do oráculo (commit c003a58).
-#   (Revisão da P58: a primeira redação dizia que era o cosmic-settings 1.9.0,
-#   entre 19 e 21/09. O 1.9.0 entrou às 16:49 de 21/09, e nenhuma derivação
-#   dele com este mapa está em disco.)
-#
-# O MAPA ENTRA ESCRITO AQUI, E NÃO LIDO DO ~/.config/cosmic
-#   Este teste é portátil: o mapa de 17/09 vai literal, como o COSMIC o grava.
-#   Nada fora do temporário: COSMIC, casa, estado, packs e TMPDIR de brinquedo,
-#   `env -i` em toda chamada.
-#
-#   0 = passou · 1 = achados · 2 = erro deste teste
+# O MAPA ENTRA ESCRITO AQUI, E NÃO LIDO DO ~/.config/cosmic Este teste é
+# portátil: o mapa vai literal, como o COSMIC o grava.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -51,7 +25,7 @@ cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
 CAP="$PACKS/dracula/temas/capturados/dracula-mauve"
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null)"
 
-# O `alpha_map` que o slider gravou em 17/09, byte a byte.
+# O `alpha_map` que o slider gravou, byte a byte.
 MAPA_NOVO='(
     extremely_low: 0.78,
     extremely_low_2: 0.75692,
@@ -76,9 +50,6 @@ amb() {   # amb <cosmic> <pack> <comando...>
     LANG=C.UTF-8 NO_COLOR=1 "$@"
 }
 aplicar() { local c="$1"; shift; amb "$c" dracula bash "$RAIZ/scripts/aplicar_tema.sh" "$@" 2>&1; }
-# O vidro.sh escreve o `frosted_maximized_apps` na primeira passagem (a
-# captura traz `false`, o padrão é "sim") e só confere a receita quando não
-# escreveu nada; a conferência que interessa é a da segunda.
 vidro() {
   amb "$1" dracula env FLAVOR=dracula ACCENT=mauve bash "$RAIZ/scripts/vidro.sh" >/dev/null 2>&1
   amb "$1" dracula env FLAVOR=dracula ACCENT=mauve bash "$RAIZ/scripts/vidro.sh" 2>&1
@@ -91,7 +62,7 @@ import gerar_tema_v1 as v1
 print(v1.achatar(v1.parse(open(sys.argv[2], encoding="utf-8").read())).get(sys.argv[3], ("", ""))[1])
 FIM
 }
-mapa_novo_em() {   # os quatro alpha_map de um COSMIC de brinquedo viram o de 17/09
+mapa_novo_em() {   # os quatro alpha_map de um COSMIC de brinquedo viram o
   local c="$1" arv
   for arv in Dark.Builder Dark Light.Builder Light; do
     mkdir -p "$c/com.system76.CosmicTheme.$arv/v2"
@@ -99,7 +70,7 @@ mapa_novo_em() {   # os quatro alpha_map de um COSMIC de brinquedo viram o de 17
   done
 }
 
-# --- 1. o estado desta máquina: a foto aplicada, o mapa de 17/09 ------------
+# --- 1. o estado desta máquina: a foto aplicada, o mapa ------------
 C1="$T/cosmic1"; mkdir -p "$C1"
 cp -a "$CAP"/com.system76.CosmicTheme.* "$C1/"
 mapa_novo_em "$C1"

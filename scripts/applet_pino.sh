@@ -1,38 +1,13 @@
 #!/usr/bin/env bash
 # applet_pino.sh — os applets do meow seguem o libcosmic do PAINEL instalado.
 #
-#   ./applet_pino.sh painel                     a revisão do libcosmic do cosmic-panel instalado
-#   ./applet_pino.sh alvo <nome> <rev-do-pino>  a revisão contra a qual o applet deve compilar
-#   ./applet_pino.sh falhou <nome> <rev>        registra que o applet não compilou nela
-#   ./applet_pino.sh conferir                   os dois applets: pino, painel e alvo
+# Os dois applets compilam contra o libcosmic 1f6dc99, pinado em agosto. O
+# painel que os carrega é compilado pelo Pop contra outro. O applet fala com o
+# painel pelo protocolo do libcosmic, e um pino que não anda é um applet que um
+# dia não sobe — e ninguém sabe por quê.
 #
-# Também é lido com `.` pelo `leitura_build.sh` e pelo `midia_build.sh`, que
-# usam as funções `ap_*` sem rodar o `case` do fim.
-#
-# POR QUE ISTO EXISTE (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.6)
-#   Os dois applets compilam contra o libcosmic 1f6dc99, pinado em agosto. O
-#   painel que os carrega é compilado pelo Pop contra outro (em 09/10/2026: o
-#   cosmic-panel 1.9 instalado pina o 23f5d63). O applet fala com o painel pelo
-#   protocolo do libcosmic, e um pino que não anda é um applet que um dia não
-#   sobe — e ninguém sabe por quê.
-#
-# A REGRA DO ALVO — o applet anda QUANDO O PAINEL ANDA
-#   Cada applet guarda a base do último build (`applet-pino-base.tsv`): o
-#   libcosmic do painel naquela hora e o libcosmic contra o qual compilou.
-#   1. painel igual ao da base: o alvo é o da base — nada a recompilar;
-#   2. painel diferente do da base (o apt trouxe outro): o alvo é o do painel,
-#      se o applet ainda não falhou nele;
-#   3. sem base (o primeiro contato, numa máquina que já tinha o applet): a
-#      base nasce com o painel de agora e o pino. O applet que funcionava não
-#      se recompila só porque esta regra chegou; ele anda no próximo apt.
-#   Um build que falha na revisão do painel não tenta de novo a cada doctor:
-#   fica registrado (`falhou`), e o applet volta ao pino até o painel mudar.
-#
-# A REDE SÓ É TOCADA QUANDO O PAINEL MUDA DE VERSÃO
-#   A revisão do painel vem do `Cargo.lock` no GitHub (o `meow_libcosmic_de`),
-#   e fica guardada por versão do pacote em `painel-libcosmic.tsv`. O doctor
-#   das 5h, que roda sem rede às vezes, lê a guarda; sem guarda e sem rede, o
-#   alvo é o pino.
+# O doctor das 5h, que roda sem rede às vezes, lê a guarda; sem guarda e sem
+# rede, o alvo é o pino.
 set -uo pipefail
 
 if [ -z "${MEOW_RAIZ:-}" ]; then
@@ -46,15 +21,11 @@ AP_FALHAS="${AP_FALHAS:-$MEOW_ESTADO/applet-pino-falhas.tsv}"
 AP_BASE="${AP_BASE:-$MEOW_ESTADO/applet-pino-base.tsv}"
 # O `Cargo.lock` do painel, para o teste trocar a rede por um arquivo.
 AP_LOCK_PAINEL="${AP_LOCK_PAINEL:-}"
-# CONFERIR NÃO ESCREVE: o `--conferir` dos dois builds (a linha do doctor)
-# põe 1 aqui, e a guarda da revisão e a base só se gravam numa passagem que
-# aplica. Medido em 09/10/2026: sem isto, o `--conferir` gravava as duas no
-# estado de verdade — leitura que escreve é o defeito que o `tests/doctor-so-le.sh`
-# existe para pegar.
+# CONFERIR NÃO ESCREVE: o `--conferir` dos dois builds (a linha do doctor) põe 1
+# aqui, e a guarda da revisão e a base só se gravam numa passagem que aplica.
 AP_SO_LER="${AP_SO_LER:-0}"
 _ap_pode_gravar() { ! meow_seco && [ "$AP_SO_LER" != "1" ]; }
 
-# A revisão do libcosmic num `Cargo.lock` (o SHA do `source` do pacote libcosmic).
 ap_rev_do_lock() {
   awk '/^name = "libcosmic"$/{f=1} f && /^source = /{sub(/.*#/,""); sub(/"$/,""); print; exit}' "$1" 2>/dev/null
 }

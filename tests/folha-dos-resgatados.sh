@@ -1,31 +1,5 @@
 #!/usr/bin/env bash
 # folha-dos-resgatados.sh — `meow icones resgatados folha` não perde o que a folha tem.
-#
-# POR QUE ESTE ARQUIVO NASCEU EM 25/09/2026 (sprint P68, item 4)
-#   A folha `assets/icones/resgatados-antes-e-depois.png` sai do
-#   `scripts/resgatados_folha.sh`, que pede o PNG de origem de cada par no
-#   caminho do mapa. Em 25/09 doze dos 21 não estavam mais no disco, e a P67
-#   costurou a folha à mão: a esquerda desses doze veio da folha de 12/09. O
-#   comando, rodado de novo, trocava essa folha por uma com doze molduras
-#   «sem o PNG» (181952 pixels diferentes, medido), e a trava da P67 diria
-#   «refeita nesta árvore». A costura passou a ser do script, e é ela que este
-#   teste prende, num acervo de brinquedo com três pares:
-#     1. com os três PNG, a folha nasce;
-#     2. sem dois deles, a folha refeita é a mesma, pixel a pixel, e o arquivo
-#        não é regravado;
-#     3. com o desenho de um par sem PNG trocado, a direita dele muda e a
-#        esquerda fica a da folha de antes: a folha é a que o script monta com
-#        os PNG no disco;
-#     4. com a folha mudando de forma (o mapa em outra ordem) e PNG faltando,
-#        o script sai 3 sem escrever, e diz quais pares;
-#     5. sem folha nenhuma no caminho, a moldura vazia continua valendo — não
-#        há o que perder.
-#
-# NADA FORA DO TEMPORÁRIO: o script e o lib/ são copiados para uma raiz de
-#   brinquedo, e o acervo, o mapa e os PNG são dela. O repositório é conferido
-#   no fim.
-#
-#   0 = passou · 1 = achados · 2 = erro deste teste · pulado sem as ferramentas
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0

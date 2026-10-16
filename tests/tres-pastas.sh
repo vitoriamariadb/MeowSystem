@@ -1,22 +1,8 @@
 #!/usr/bin/env bash
 # tres-pastas.sh — o formato de pack com três pastas de ícone (P88, decisão 14).
 #
-# O QUE ELE VIGIA
-#   · os três packs do repositório (o pack-base `meowsystem`, o Dracula e o
-#     Catppuccin) validam, e o `icones/` de cada um só tem apps/, sistema/ e
-#     biblioteca/;
-#   · o pack-base não se veste: a porta do motor o recusa e o painel não o
-#     mostra como cartão;
-#   · um pack de formato 2 com uma quarta pasta é recusado na publicação;
-#   · um `.meowpack` de formato 1 é importado e convertido, sem mudar um byte
-#     de desenho;
-#   · o caminho gravado antes das três pastas (estado de quem usa) vale pelo
-#     de hoje.
-#
 # NADA SAI DA CASA DE BRINQUEDO: HOME, XDG e MEOW_PACKS temporários, sem
-#   barramento da sessão, e falsos que recusam escrita na frente do PATH.
-#
-#   0 = o formato cumpre a decisão 14 · 1 = achados · 2 = erro deste teste
+# barramento da sessão, e falsos que recusam escrita na frente do PATH.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0

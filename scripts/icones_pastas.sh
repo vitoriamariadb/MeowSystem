@@ -1,55 +1,19 @@
 #!/usr/bin/env bash
 # icones_pastas.sh — o desenho do pack no ar vestindo as PASTAS ESPECIAIS do cosmic-files.
 #
-# POR QUE ESTE SCRIPT EXISTE, E POR QUE ELE NÃO É A SPRINT C QUE ESTAVA ESCRITA
-#   A tela que ela mandou dizendo "esses são os ícones que eu quero" era a página
-#   do `catppuccin/vscode-icons` mostrando `folder-images`, `folder-docker`,
-#   `folder-github`. A Sprint C nasceu para instalar aqueles 14 nomes.
+# A tela que ela mandou dizendo "esses são os ícones que eu quero" era a página
+# do `catppuccin/vscode-icons` mostrando `folder-images`, `folder-docker`,
+# `folder-github`.
 #
-#   Medido em 08/08/2026, e a premissa caiu: das 14, o `cosmic-files` pede DUAS.
-#   `folder-github` e companhia são apelidos que o Papirus mantém para o
-#   Dolphin/KDE, que lê um `.directory` dentro da pasta — lógica que o
-#   `cosmic-files` não tem (`.directory` aparece zero vezes no binário dele).
-#   Instalar aqueles 12 seria instalar ícone que ela nunca veria.
+# Medido, e a premissa caiu: das 14, o `cosmic-files` pede DUAS.
 #
-#   O que ele pede de verdade são os nomes XDG, e disso o pack cobre 7 — com
-#   OUTRO NOME. A tradução mora em `packs/meowsystem/icones/pastas.map`, com a medição completa.
+# O que ele pede de verdade são os nomes XDG, e disso o pack cobre 7 — com OUTRO
+# NOME.
 #
-# ONDE ISTO ENTRA, E POR QUE NÃO NOS `<tam>/places`
-#   Em `scalable/places`, um diretório que nasce aqui: nenhum outro script do
-#   projeto escreve nele. Dono único é o que autoriza remover órfão sem repetir o
-#   defeito do `custom_logo_path` (dois donos = laço eterno).
-#
-#   O `SPRINTS.md` dizia que isto NÃO funcionaria, porque "quem escolhe o
-#   diretório é o TAMANHO, não a ordem de `Directories=`". Medido com strace num
-#   Xvfb :99 (nunca na tela dela), plantando `folder-pictures` nos DOIS lugares —
-#   mauve em `32x32/places` e pastel em `scalable/places`:
+# Em `scalable/places`, um diretório que nasce aqui: nenhum outro script do
+# projeto escreve nele.
 #
 #       openat(".../MeowSystem-Icons/scalable/places/folder-pictures.svg") = 99
-#
-#   O `cosmic-files` abriu o `scalable`, mesmo com o `32x32` sendo o tamanho
-#   EXATO que ele pediu e mesmo estando declarado antes na lista. Ou seja: para a
-#   crate do COSMIC, o caminho (a) funciona.
-#
-#   MAS O GTK DISCORDA, E É POR ISSO QUE A CESSÃO CONTINUA OBRIGATÓRIA. Com o
-#   mesmo disco, `Gtk.IconTheme.lookup_icon` devolveu:
-#       16px scalable · 24px scalable · 32px 32x32 · 48px 48x48 · 64px 64x64 · 128px scalable
-#   Isto é: num aplicativo GTK a mesma pasta apareceria PASTEL a 16px e MAUVE a
-#   48px, conforme o tamanho do widget. Dois arquivos para o mesmo nome é o
-#   defeito dos dois donos vestido de outra roupa. Quem resolve é o
-#   `construir_pastas.sh`, que lê o `pastas.map` e para de criar estes apelidos.
-#
-# QUEM DECLARA O DIRETÓRIO NÃO É ESTE SCRIPT
-#   É o `construir_icones.sh`, que monta o `index.theme` a partir do que EXISTE
-#   no disco. Ter dois donos daquela linha já custou a este projeto um laço
-#   eterno de seis rodadas. Aqui só se põe arquivo.
-#
-# O QUE NÃO ESTIVER NO MAPA CONTINUA NA COR DAS OUTRAS PASTAS
-#   `folder` (a pasta comum), `user-desktop` e o lixo não estão no mapa — de
-#   propósito, e o porquê de cada um está em `packs/meowsystem/icones/pastas.map`.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta o pack
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -59,37 +23,17 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # O flavor dos ÍCONES é independente do flavor do TEMA — mesma chave que as
 # etapas irmãs usam, para que os tipos de arquivo e as pastas nunca discordem.
 #
-# E A MESMA REGRA, PERGUNTADA E NÃO COPIADA — 23/09/2026, P31. Era
-# `${ICONES_FLAVOR:-macchiato}`; agora é o `flavor-icones` do pack.py, logo
-# abaixo do `_pack_ref`. O porquê inteiro está no bloco gêmeo do
-# `icones_mimetypes.sh`: as irmãs só não discordam se perguntarem ao mesmo lugar.
+# Era `${ICONES_FLAVOR:-macchiato}`; agora é o `flavor-icones` do pack.py, logo
+# abaixo do `_pack_ref`.
 
-# AS PASTAS AUTORAIS DO DRACULA VÊM DE OUTRA FONTE — 16/09/2026
-#   O pack `catppuccin/vscode-icons` cobre os quatro sabores do Catppuccin e
-#   nada além: não existe um `catppuccin/dracula`. Quando o flavor é Dracula, as
-#   pastas especiais vêm de desenho próprio, em assets/icones/pastas-dracula/ —
-#   sete arquivos, um por pasta XDG, feitos sobre a silhueta da pasta base.
+# O pack `catppuccin/vscode-icons` cobre os quatro sabores do Catppuccin e nada
+# além: não existe um `catppuccin/dracula`.
 #
-#   A condição é o DIRETÓRIO EXISTIR, não o nome do flavor: assim quem copiar o
-#   projeto sem esses desenhos continua caindo no Catppuccin, sem erro, e quem
-#   desenhar os seus não precisa editar este script.
-# O ACERVO MUDOU DE CASA EM 22/09/2026 — ver o bloco gêmeo em icones_mimetypes.sh.
-#   Os glifos de pasta vêm do MESMO diretório dos de tipo de arquivo: o
-#   `catppuccin/vscode-icons` publica os 230 `folder-*.svg` junto com os de tipo
-#   de arquivo, e é por isso que o `packs/catppuccin/pack.json` aponta
-#   `icones.pastas` e `icones.mimetypes` para o mesmo lugar. A categoria
-#   perguntada aqui é a `mimetypes` de propósito: é a que é por FLAVOR, e o
-#   acervo próprio de pastas do pack entra logo abaixo, por cima desta base.
+# A condição é o DIRETÓRIO EXISTIR, não o nome do flavor: assim quem copiar o
+# projeto sem esses desenhos continua caindo no Catppuccin, sem erro, e quem
+# desenhar os seus não precisa editar este script.
 #
-#   A QUEDA PARA VAZIO É O QUE MANTÉM AS LINHAS ABAIXO VIVAS — 22/09/2026
-#     Ver o bloco gêmeo em icones_mimetypes.sh, que conta o caso inteiro. Aqui o
-#     estrago era maior: sob `set -e` a morte acontecia ANTES do override de
-#     `_pastas_do_pack`, três linhas abaixo, e as sete pastas próprias do Dracula
-#     — que existem, em packs/dracula/icones/pastas/ — sumiam da tela. Medido:
-#     o `pastasxdg` do doctor regredia de `ok N pasta(s) especiais já vestidas`
-#     para uma divergência SEM mensagem nenhuma, e com o `--consertar` morrendo
-#     no mesmo ponto. É o mesmo tombo que o `_ler_mapa` daqui já documenta ("com
-#     `set -e` uma última linha que não case mataria o script calado").
+# Ver o bloco gêmeo em icones_mimetypes.sh, que conta o caso inteiro.
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 FLAVOR_ICONES="$(python3 "$RAIZ/scripts/pack.py" flavor-icones "$_pack_ref")" || FLAVOR_ICONES=""
@@ -99,23 +43,15 @@ ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
 # bloco gêmeo em icones_mimetypes.sh.
 [ -n "$FLAVOR_ICONES" ] || ORIGEM=""
 # [2026-09-17] Era `if [ "${FLAVOR:-}" = "dracula" ]` — um NOME de tema cravado
-# no código, que um terceiro pack nunca satisfaria. Agora a pergunta é sobre o
-# que EXISTE, não sobre como o tema se chama: o pack ativo tem um acervo de
-# pastas? Então é ele. É o mesmo idioma que o comentário acima desta linha já
-# prometia — "quem desenhar os seus não precisa editar este script".
-# [P88: no formato de três pastas elas moram em `icones/sistema/pastas/`; a
-#   segunda linha é a de um pack de formato 1.]
+# no código, que um terceiro pack nunca satisfaria.
 _pastas_do_pack="$(meow_pack_arquivo icones/sistema/pastas)"
 [ -n "$_pastas_do_pack" ] || _pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)"
 if [ -n "$_pastas_do_pack" ] && [ -d "$_pastas_do_pack" ]; then
   ORIGEM="$_pastas_do_pack"
 fi
-# QUEM VESTE, DITO NA TELA — 24/09/2026, na revisão da P56. As frases diziam
-#   «vestidas de Catppuccin <flavor>» fosse qual fosse a origem, e com o Dracula
-#   no ar a tela dizia «Catppuccin macchiato» sobre as pastas DELE. O desenho do
-#   pack não tem flavor: a frase diz de quem ele é, pelo nome que a `adocao` do
-#   pack.py dá (a mesma pergunta do cabeçalho do `meow ajuda`). Com o acervo do
-#   Catppuccin, as frases são as de antes, palavra por palavra.
+# As frases diziam «vestidas de Catppuccin <flavor>» fosse qual fosse a origem,
+# e com o Dracula no ar a tela dizia «Catppuccin macchiato» sobre as pastas
+# DELE.
 VESTIDAS="de Catppuccin $FLAVOR_ICONES"; DE_QUEM="flavor $FLAVOR_ICONES"
 if [ -n "$ORIGEM" ] && [ "$ORIGEM" = "$_pastas_do_pack" ]; then
   _nome_pack="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null \
@@ -123,24 +59,13 @@ if [ -n "$ORIGEM" ] && [ "$ORIGEM" = "$_pastas_do_pack" ]; then
   VESTIDAS="com os desenhos do pack ${_nome_pack:-no ar}"
   DE_QUEM="desenhos do pack ${_nome_pack:-no ar}"
 fi
-# O MAPA VEM DA DECLARAÇÃO DO PACK, COM QUEDA PARA O NÚCLEO — 22/09/2026
-#   Era `$RAIZ/assets/icones/pastas.map`, cravado. A docs/PACKS.md desta mesma
-#   sprint documenta `pastas.map` como parte da forma do pack e diz que "cada
-#   categoria declara os dois no pack.json" — e o `validar` passou a cobrar a
-#   existência do que se declara. Com o caminho cravado aqui, um pack que
-#   declarasse `icones.pastas.mapa` passava no validador e a declaração não
-#   vestia um único ícone: é a DECLARAÇÃO MORTA que o bloco `CAMPOS_COM_LEITOR`
-#   do pack.py existe para caçar, entrando pela porta da documentação. O
-#   wildcard `icones.*.mapa` a isenta do aviso, então ninguém a acusaria.
+# Com o caminho cravado aqui, um pack que declarasse `icones.pastas.mapa`
+# passava no validador e a declaração não vestia um único ícone: é a DECLARAÇÃO
+# MORTA que o bloco `CAMPOS_COM_LEITOR` do pack.py existe para caçar, entrando
+# pela porta da documentação.
 #
 #   Mesma porta do `ORIGEM` acima (`acervo`, que SOBE A HERANÇA), e o mesmo
 #   `|| MAPA=""` pelo mesmo motivo.
-#
-#   A QUEDA NÃO É DECORAÇÃO: nenhum pack declara `icones.pastas.mapa` hoje, e
-#   sem ela este script pararia de vestir as sete pastas na primeira execução
-#   depois deste commit. A ordem que a P27 manda é "estrutura -> resolvedor ->
-#   mover -> apagar"; aqui está o resolvedor, e o arquivo do núcleo só sai
-#   quando algum pack trouxer o dele.
 MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.pastas.mapa)" || MAPA=""
 [ -n "$MAPA" ] || MAPA="$RAIZ/packs/meowsystem/icones/pastas.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
@@ -152,19 +77,16 @@ declare -A MAPA_LIDO=()
 _ler_mapa() {
   local linha nome glifo pulados=()
   while IFS= read -r linha || [ -n "$linha" ]; do
-    # O MAPA ESCRITO NO WINDOWS — P79, 10/10/2026. Com CRLF, o `\r` ficava no
+    # O MAPA ESCRITO NO WINDOWS. Com CRLF, o `\r` ficava no
     #   glifo, o `meow_nome_seguro` o recusava, e o pack inteiro saía sem
-    #   desenho, cada linha «pulada» (achado da P78). O `pack.py` lê o mesmo
+    #   desenho, cada linha «pulada». O `pack.py` lê o mesmo
     #   arquivo por `splitlines`, que já tira o `\r`; aqui sai do mesmo jeito.
     #   E a última linha sem quebra no fim também conta (`|| [ -n ]`).
     linha="${linha%$'\r'}"
     case "$linha" in ''|'#'*) continue ;; esac
     nome="${linha%%:*}"; glifo="${linha#*:}"
-    # OS DOIS LADOS VIRAM NOME DE ARQUIVO — P78, 09/10/2026. `<nome>.svg` no
-    #   tema e `<glifo>.svg` no acervo: um mapa de pack de terceiro com
-    #   `../../../../x:folder` escrevia `~/.local/share/x.svg`, fora do tema
-    #   (medido no tests/pack-malicioso.sh). Só do conjunto fechado do
-    #   `meow_nome_seguro`; a linha fora dele é pulada e contada.
+    # Só do conjunto fechado do `meow_nome_seguro`; a linha fora dele é
+    # pulada e contada.
     if ! meow_nome_seguro "$nome" || ! meow_nome_seguro "$glifo"; then
       # O nome vai para o aviso, no terminal: pela porta de saída de texto de
       # pack, e uma sequência de controle plantada no mapa não chega lá crua.
@@ -194,32 +116,20 @@ _pronto() {
 }
 
 # --- o que deveria estar no disco ---------------------------------------------
-# "nome<TAB>caminho-de-origem", só dos glifos que existem de fato. Um glifo
-# faltando é aviso, não erro: aquele nome continua vindo do `construir_pastas.sh`
-# na cor das outras pastas, que é exatamente o que ele era antes desta sprint.
-# [Dizia «em mauve» até a P65 (25/09/2026): o acento de uma casa, e não a regra.]
+# "nome<TAB>caminho-de-origem", só dos glifos que existem de fato.
 #
-# O DESENHO DO PACK SE CHAMA PELO NOME XDG — 24/09/2026, na revisão da P56
-#   O glifo do mapa (`folder_docs`, `folder_audio`…) é o nome do acervo
-#   `catppuccin/vscode-icons`, e só ele se chama assim. As sete pastas do
-#   Dracula nasceram em 15/09 com o nome que o cosmic-files pede
-#   (`folder-documents.svg`…), e o `[ -f ]` daqui procurava `folder_docs.svg` em
-#   `packs/dracula/icones/pastas/`: numa casa com o Dracula no ar e
-#   PASTAS_XDG="sim", o `--conferir` dizia «0 pasta(s) especiais já vestidas»,
-#   o `--aplicar` não escrevia nada, e as do Catppuccin que já estavam lá
-#   ficavam. Sem o glifo, vale o arquivo com o nome XDG. O glifo vem primeiro:
-#   o acervo do Catppuccin não tem arquivo com nome XDG, e os bytes de lá são os
-#   de sempre.
+# As sete pastas do Dracula nasceram com o nome que o cosmic-files pede
+# (`folder-documents.svg`…), e o `[ -f ]` daqui procurava `folder_docs.svg` em
+# `packs/dracula/icones/pastas/`: numa casa com o Dracula no ar e
+# PASTAS_XDG="sim", o `--conferir` dizia «0 pasta(s) especiais já vestidas», o
+# `--aplicar` não escrevia nada, e as do Catppuccin que já estavam lá ficavam.
 _desejado() {
   local nome glifo real fora=()
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
-    # O DESENHO TEM DE MORAR NO ACERVO — P78. Um `folder-x.svg` que é symlink
-    #   para fora do pack era copiado para o tema com o conteúdo do destino do
-    #   link. O `meow_dentro` devolve a forma conferida, e é ela que se copia.
-    #   [Conferência da P78: e link não entra, nem para dentro — a régua do
-    #   `icones_mimetypes.sh` desde a P74, a mesma para as duas pastas de
-    #   desenho; nenhum pack publicado tem link (conferido).]
+    # Um `folder-x.svg` que é symlink para fora do pack era copiado para o
+    # tema com o conteúdo do destino do link. O `meow_dentro` devolve a forma
+    # conferida, e é ela que se copia.
     if [ -f "$ORIGEM/$glifo.svg" ]; then
       { [ ! -L "$ORIGEM/$glifo.svg" ] && real="$(meow_dentro "$ORIGEM" "$glifo.svg")"; } \
         || { fora+=("$glifo.svg"); continue; }
@@ -235,11 +145,6 @@ _desejado() {
   return 0
 }
 
-# O CRITÉRIO DO CONFERIR TEM DE SER O DO ESCRITOR
-#   `meow_escrever` grava com `printf '%s'`, que come o `\n` final. Um `cmp` byte
-#   a byte acusaria divergência eterna num arquivo perfeito — já custou um
-#   `--conferir` gritando 123 divergências num tema correto, e num projeto cujo
-#   auto-reparo roda por timer isso é uma notificação mentirosa por dia.
 _conferir() {
   local nome origem divergentes=0 ausentes=0 orfaos=0 total=0 arq
   while IFS=$'\t' read -r nome origem; do
@@ -283,10 +188,7 @@ _aplicar() {
   done < <(_desejado)
 
   # Órfão: estava no mapa ontem, não está hoje. Podemos remover porque este
-  # diretório tem um dono só (ver o cabeçalho). E remover aqui é o que devolve o
-  # nome ao `construir_pastas.sh`: sem o desenho no disco ele para de ceder e a
-  # pasta volta à cor das outras na mesma rodada, em vez de ficar azul. [Dizia
-  # «o pastel» e «mauve» até a P65 (25/09/2026), como as frases que a P62 trocou.]
+  # diretório tem um dono só (ver o cabeçalho).
   if [ -d "$DESTINO" ]; then
     for arq in "$DESTINO"/*.svg; do
       [ -e "$arq" ] || continue
@@ -307,10 +209,6 @@ _aplicar() {
     meow_ok "pastas especiais já vestidas $VESTIDAS"
     return "$MEOW_OK"
   fi
-  # NO SECO, O CONDICIONAL — 25/09/2026, P65. O ensaio dizia «removeria» arquivo
-  # por arquivo e fechava com «0 posto(s), 1 removido(s)», no passado, sem nada
-  # ter saído do disco: a mentira de tempo verbal que o `aplicar_apps.sh` (P62)
-  # e o rodapé do `install.sh` (P50) já tinham consertado nos deles.
   if meow_seco; then
     meow_info "pastas especiais: poria $postos, removeria $removidos — $DE_QUEM"
   else
@@ -320,45 +218,13 @@ _aplicar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# DESLIGAR TEM DE DESLIGAR — e ela desligou isto no dia em que viu na tela
-#   Em 08/08/2026, olhando o Gestor de Arquivos depois da primeira aplicação, ela
-#   disse: *"as pastas do temas dos icons do vscode catpuccin, tipo as folders,
-#   essas nao tão legais tambem"*. O risco estava previsto no desenho da Sprint C
-#   — "pode ficar ótimo (destaque para pastas especiais) ou pode ficar
-#   inconsistente" — e a medição que decide é a dela olhando a tela: as 7 do pack
-#   são pasta VAZADA de traço claro, ao lado das mauve CHEIAS do papirus-folders.
-#   Nenhuma delas usa `mauve`, que é o accent dela; o conjunto não fechou.
+# Nenhuma delas usa `mauve`, que é o accent dela; o conjunto não fechou.
 #
-#   Por isso o padrão passou a ser `PASTAS_XDG="nao"`, e o recurso fica de pé
-#   atrás de uma chave em vez de ser apagado: o trabalho está medido e pronto
-#   para o dia em que ela quiser experimentar de novo (ou em `ICONES_FLAVOR=latte`,
-#   que a folha mostra com contraste melhor).
+# As duas decisões dela apontam para o mesmo lado.
 #
-# E EM 10/08/2026 ELA FECHOU A QUESTÃO PELO OUTRO LADO
-#   *"Cada pasta ganha o símbolo interno do que ela guarda, tudo recolorido no
-#   mauve dela. Mesma silhueta, mesmo mauve, símbolo por tipo."* Conferido no
-#   resolvedor real no mesmo dia, é exatamente o que os SETE nomes deste mapa já
-#   entregam vindos do `construir_pastas.sh`: `folder-documents` resolve para
-#   `folder-cat-mocha-mauve-documents.svg`, que é pasta mauve `#CBA6F7` com a
-#   folha em `#313244` dentro — e assim os sete.
-#
-#   Ou seja: ligar `PASTAS_XDG="sim"` hoje não ACRESCENTA símbolo, SUBSTITUI o
-#   que já tem por traço vazado sem mauve. As duas decisões dela apontam para o
-#   mesmo lado. Quem for reabrir isto, releia `packs/meowsystem/icones/pastas.map` inteiro antes —
-#   a medição está lá, com a tabela nome -> arquivo final.
-#
-# COMO O DESLIGAMENTO FUNCIONA, E POR QUE NÃO TEM CÓDIGO NOVO
-#   Esvaziar o mapa faz todo arquivo que está em `scalable/places` virar ÓRFÃO, e
-#   a remoção de órfão já existe logo acima — é o mesmo caminho que roda quando
-#   ela tira uma linha do `pastas.map`. Um segundo caminho de remoção seria uma
-#   segunda regra para o mesmo ato, e a que ninguém relê é sempre a que quebra.
-#
-#   O `construir_pastas.sh` faz o resto sozinho: ele só cede o nome cujo desenho
-#   ESTÁ no disco, então com o diretório limpo os 7 voltam à cor das outras
-#   pastas na mesma passagem do instalador. Nenhuma pasta fica sem ícone no meio
-#   do caminho. [Até a revisão da P62 (25/09/2026) dizia "cujo pastel" e "voltam
-#   a mauve": o desenho do Catppuccin e o acento de uma casa, a afirmação que a
-#   P62 corrigiu na tela, lá embaixo, e no comentário gêmeo do install.sh.]
+# Esvaziar o mapa faz todo arquivo que está em `scalable/places` virar ÓRFÃO, e
+# a remoção de órfão já existe logo acima — é o mesmo caminho que roda quando
+# ela tira uma linha do `pastas.map`.
 _desligado() { [ "${PASTAS_XDG:-nao}" != "sim" ]; }
 
 main() {
@@ -367,15 +233,8 @@ main() {
   if _desligado; then
     # Sem nada no disco não há o que desfazer: dizer "removi" aqui seria a mesma
     # mentira de tempo verbal que o projeto já corrigiu no modo seco.
-    # «MAUVE» ERA O ACENTO DE UMA CASA — 25/09/2026, sprint P62. Sem os desenhos
-    # especiais, os sete nomes voltam ao `construir_pastas.sh`, que os veste
-    # como as outras pastas (`ICONES_PASTAS`, o acento por padrão, na paleta do
-    # pack no ar). A frase diz essa regra, que vale com qualquer pack e acento.
     if [ -d "$DESTINO" ] && [ -n "$(find "$DESTINO" -maxdepth 1 -name '*.svg' -print -quit 2>/dev/null)" ]; then
-      # No seco, «devolveria», pelo motivo do resumo do `_aplicar` (P65).
-      # E no `--conferir` também (P66, 25/09/2026): o verbo que só lê não é o
-      # seco — o `MEOW_SECO` fica vazio nele —, e com os desenhos no disco ele
-      # dizia «devolvendo», saía 1 e não mudava nada.
+      # No seco, «devolveria», pelo motivo do resumo do `_aplicar`.
       if meow_seco || [ "${1:-}" = "--conferir" ]; then
         meow_info "PASTAS_XDG=\"${PASTAS_XDG:-nao}\" — devolveria as pastas especiais à cor das outras pastas"
       else

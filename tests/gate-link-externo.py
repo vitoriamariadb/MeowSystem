@@ -34,8 +34,7 @@ _argv, sys.argv = sys.argv, [os.path.join(AQUI, "app-completo.py")]
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 sys.argv = _argv
-# A PASTA DO GATE SAI NO FIM — 16/10/2026, P82 (conferência do item 38). Só de
-# carregar o `app-completo.py` nasce o `meow-completo-*` dele em /tmp (o
+# Só de carregar o `app-completo.py` nasce o `meow-completo-*` dele em /tmp (o
 # `mkdtemp` mora no topo do módulo), e quem apaga é o `finally` do `__main__`
 # de lá, que aqui não roda: cada rodada da suíte deixava uma pasta vazia.
 import atexit  # noqa: E402

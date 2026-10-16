@@ -46,71 +46,29 @@ RAIZ = Path(__file__).resolve().parent.parent
 # este script. Ver o bloco `NOME_DA_PALETA`, mais abaixo, sobre o import direto.
 import pack  # noqa: E402  — depois do RAIZ de propósito, para ler junto
 
-# O ARQUIVO DE PALETA NÃO É MAIS FIXO — 2026-09-11
-#     Ele era `catppuccin.json` cravado aqui, e a docstring acima já prometia que
-#     "trocar de flavor é trocar uma linha do meow.conf". Só que uma paleta que
-#     não seja a do Catppuccin não tinha por onde entrar: era preciso editar o
-#     script. Agora o nome do arquivo vem de `PALETA_ARQUIVO` no meow.conf, e o
-#     default continua sendo o de sempre — quem não mexer em nada não vê
-#     diferença. `MEOW_PALETA` (caminho completo) continua valendo por cima,
-#     para teste.
-#
-#     E A RESOLUÇÃO INTEIRA SAIU DAQUI EM 22/09/2026
-#         As três linhas que moravam aqui eram uma das SETE cópias da mesma
-#         escada, e as sete terminavam no literal `catppuccin.json`. A P13 mudou
-#         esse arquivo de casa e a escada virou uma função só,
-#         `pack.paleta_do_pack_ativo()` — que é a mesma ordem, na mesma ordem,
-#         num lugar só. O `PALETA_ARQUIVO` continua valendo; ele é um degrau
-#         daquela função agora.
+# Ele era `catppuccin.json` cravado aqui, e a docstring acima já prometia que
+# "trocar de flavor é trocar uma linha do meow.conf".
 PALETA = Path(pack.paleta_do_pack_ativo())
 MAPA = RAIZ / "assets" / "paleta" / "cosmic-map.json"
 
-# O .ron É PRODUTO, E PRODUTO NÃO MORA NO GIT — 22/09/2026
-#     Os sete `assets/temas/meowsystem-*.ron` eram VERSIONADOS, e eles são saída
-#     deste script: paleta do pack + `cosmic-map.json` entram, `.ron` sai. O
-#     `docs/SPRINTS.md` já tinha nome para o defeito que isso cria — *"o doctor
-#     enxerga receita diferente de produto"*: bastava alguém mexer na paleta e
-#     não regerar para o disco e a receita divergirem, com o arquivo errado
-#     commitado por cima.
+# Os sete `assets/temas/meowsystem-*.ron` eram VERSIONADOS, e eles são saída
+# deste script: paleta do pack + `cosmic-map.json` entram, `.ron` sai.
 #
-#     Agora o destino é `$MEOW_ESTADO/temas/`, que é a mesma casa dos backups,
-#     do log e do estado que a P21 tirou do repositório. O `--conferir` do
-#     `meow doctor` passa a comparar a receita com o produto NA MÁQUINA, que é
-#     a pergunta que ele sempre quis fazer.
+# O `--conferir` do `meow doctor` passa a comparar a receita com o produto NA
+# MÁQUINA, que é a pergunta que ele sempre quis fazer.
 #
-#     `MEOW_ESTADO` vem do ambiente com o MESMO padrão do `lib/comum.sh:808`,
-#     porque este script roda sozinho na linha de comando e não carrega o shell.
-#     `--saida` continua vencendo — é o que o `tests/pack.sh` usa para gerar num
-#     diretório descartável.
+# `MEOW_ESTADO` vem do ambiente com o MESMO padrão do `lib/comum.sh:808`, porque
+# este script roda sozinho na linha de comando e não carrega o shell.
 ESTADO = Path(os.environ.get("MEOW_ESTADO")
               or Path.home() / ".local" / "state" / "meowsystem")
 DESTINO = ESTADO / "temas"
 
-# O NOME DO TEMA NA GUI DO COSMIC PODE VIR DO PACK — 2026-09-21
-#     O `packs/dracula/pack.json` declara `cosmic.nome_da_paleta` desde que
-#     nasceu, e o comentário ao lado diz por quê: sem ele o molde do
-#     `cosmic-map.json` crava `catppuccin-<flavor>`, e o tema Dracula aparece na
-#     GUI chamado `catppuccin-dracula`. Era o que estava gravado no disco, em
-#     `meowsystem-dracula-mauve.ron:8` — o pack previu o defeito, declarou o
-#     conserto, e o conserto não tinha leitor. Este é o leitor.
+# Era o que estava gravado no disco, em `meowsystem-dracula-mauve.ron:8` — o
+# pack previu o defeito, declarou o conserto, e o conserto não tinha leitor.
+# Este é o leitor.
 #
-#     QUAL PACK: o que a ponte shell->Python exportou em `MEOW_PACK_DIR` (ver
-#     `meow_ponte_python`, em lib/comum.sh). Vazio quer dizer pack embutido, e aí
-#     manda o molde do mapa, como sempre mandou.
-#
-#     O `import pack` É DIRETO, E DESDE 22/09/2026 ELE É DO MÓDULO INTEIRO
-#     O cabeçalho do `meow_paleta` isentava os consumidores em Python de chamar a
-#     porta única "porque um import entre `scripts/` e `app/` traria um problema
-#     de sys.path". Este import não atravessa nada: `pack.py` é vizinho de
-#     arquivo deste script, e `scripts/` já é o `sys.path[0]` de quem o roda.
-#
-#     O `try: import pack / except ImportError: return None` que ficava aqui
-#     dentro saiu junto com a P13. Ele cobria quem importasse este módulo de
-#     outro lugar, e a queda era "o molde do mapa continua valendo" — uma queda
-#     que fazia sentido enquanto só o NOME do tema dependia do pack. Agora a
-#     PALETA também depende, e cair calado significaria gerar um tema inteiro com
-#     as cores do pack errado. Sem `pack.py` este script não tem o que fazer, e
-#     dizê-lo alto, no import, é melhor que descobrir na cor.
+# QUAL PACK: o que a ponte shell->Python exportou em `MEOW_PACK_DIR` (ver
+# `meow_ponte_python`, em lib/comum.sh).
 PACK_DIR = os.environ.get("MEOW_PACK_DIR") or ""
 
 
@@ -192,15 +150,8 @@ def gerar(flavor: str, accent: str, paleta: dict, mapa: dict) -> str:
     for slot in ORDEM_PALETTE:
         nome = mapa["palette"][slot]
         if slot == "name":
-            # O NOME VEM DO MAPA, NÃO DAQUI — 2026-09-11
-            #     O `cosmic-map.json` já declarava `"name": "catppuccin-<flavor>"`
-            #     desde sempre, e este script montava a string na mão, ignorando-o.
-            #     Duas verdades sobre a mesma coisa: mudar o mapa não mudava nada,
-            #     e só se descobria isso lendo o .ron gerado. Agora o mapa manda.
-            # O PACK VEM ANTES DO MAPA — 2026-09-21. Ver `NOME_DA_PALETA`, lá em
-            # cima: o molde do mapa é do núcleo e crava `catppuccin-<flavor>`;
-            # quem declarou `cosmic.nome_da_paleta` no pack.json fez isso
-            # justamente para não herdar o nome do outro tema.
+            # O `cosmic-map.json` já declarava `"name": "catppuccin-<flavor>"`
+            # desde sempre, e este script montava a string na mão, ignorando-o.
             modelo = NOME_DA_PALETA or mapa["palette"].get("name", "catppuccin-<flavor>")
             linhas.append(f'        name: "{modelo.replace("<flavor>", flavor)}",')
         else:
@@ -299,24 +250,10 @@ def main() -> int:
     #     continua vencendo, como antes.
     combos = args.combos or _combos_do_conf(paleta)
 
-    # CONFERIR É LEITURA, E CRIAR A PASTA É ESCRITA — 24/09/2026 (P47)
-    #     O `mkdir` rodava antes de saber se era conferência, e o `chk_gerar`
-    #     do doctor deixava `$MEOW_ESTADO/temas/` (e os pais) criados numa
-    #     casa onde nada mais seria gravado — medido com
-    #     `MEOW_ESTADO=<casa de brinquedo> gerar_temas.py --conferir`. A
-    #     conferência não precisa da pasta: um destino que não existe já cai
-    #     em "ausente" pelo `is_file()` lá embaixo.
     if not args.conferir:
         args.saida.mkdir(parents=True, exist_ok=True)
-    # AUSENTE E DIVERGENTE NÃO SÃO A MESMA NOTÍCIA — 22/09/2026
-    #     Enquanto os `.ron` eram versionados, "ausente" só acontecia se alguém
-    #     os apagasse: os dois casos podiam sair pelo mesmo rc=1. Desde que eles
-    #     saíram do git, AUSENTE é o estado normal de uma máquina que ainda não
-    #     rodou o instalador — e chamá-lo de divergência faria o `meow doctor`
-    #     abrir amarelo, na primeira execução de todo mundo, por algo que
-    #     ninguém fez de errado. Divergente continua sendo divergente: ali o
-    #     arquivo EXISTE e não é o que a paleta diz, que é o defeito que esta
-    #     conferência veio pegar.
+    # Enquanto os `.ron` eram versionados, "ausente" só acontecia se alguém os
+    # apagasse: os dois casos podiam sair pelo mesmo rc=1.
     divergentes = []
     ausentes = []
     for combo in combos:

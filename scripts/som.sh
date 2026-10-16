@@ -1,40 +1,6 @@
 #!/usr/bin/env bash
 # som.sh — o ÚNICO som de evento que o COSMIC realmente toca nesta máquina.
 #
-# LEIA ISTO ANTES DE SONHAR COM UM "TEMA DE SOM CATPPUCCIN"
-#   Ele não existe, e não é por falta de arquivo: é porque o COSMIC quase não
-#   toca som nenhum. O alcance inteiro desta feature é UM arquivo.
-#
-#   Quem toca é o `cosmic-osd`, e só ele. Medido em 2026-08-04 varrendo os 41
-#   binários `/usr/bin/cosmic-*`: `pw-play` aparece em exatamente dois deles
-#   (`cosmic-osd` e `cosmic-settings-daemon`) e `canberra` em nenhum — os 3
-#   acertos de "canberra" no `cosmic-initial-setup` são a CIDADE Canberra, da
-#   lista de fusos horários. O COSMIC não usa libcanberra: ele faz fork de
-#   `pw-play --media-role Notification`.
-#
-#   CUIDADO COM UMA CONCLUSÃO FÁCIL E ERRADA (já foi tirada aqui): o
-#   `cosmic-settings-daemon` NÃO toca o som de volume. O binário dele tem ZERO
-#   ocorrências de `audio-volume-change`, de `stereo` e de `.oga`. O `pw-play`
-#   dele serve só aos sons de ENERGIA (`power-plug`, `power-unplug`,
-#   `power-unplug-battery-low`), que ele procura em `/usr/share/sounds/Pop/` —
-#   caminho de sistema cravado, sem XDG, ou seja, nem dava para sobrescrever.
-#   E eles nunca vão tocar aqui: esta é máquina de mesa, o único
-#   `/sys/class/power_supply/*` é a bateria do controle DualSense.
-#
-#   O daemon importa por outro motivo: ele é o GATILHO da tecla. O
-#   `system_actions` do COSMIC mapeia XF86AudioLowerVolume para
-#   `busctl --user call com.system76.CosmicSettingsDaemon ... VolumeDown`. Com o
-#   daemon morto a tecla não muda volume, logo o osd não tem o que anunciar e
-#   nenhum som nasce — o que já foi lido como "o daemon é o tocador". Não é: ele
-#   é o gatilho, e o osd é o tocador.
-#
-#   O `cosmic-notifications` NÃO TEM reprodutor de áudio: zero ocorrências de
-#   canberra, pw-play, paplay, libpulse, gstreamer ou snd_pcm. Ele ANUNCIA a
-#   capacidade "sound" no `GetCapabilities`, e mesmo assim
-#   `notify-send -h string:sound-name:message` produz ZERO sink-inputs.
-#   Notificação com som é impossível sem um daemon nosso.
-#
-# O QUE FOI PROVADO, E COMO (2026-08-04)
 #   1. QUEM TOCA E QUAL ARQUIVO — sem inferência. Disparando o MESMO comando da
 #      tecla e varrendo `/proc/*/cmdline` durante a janela, o argv capturado foi
 #      literalmente:
@@ -48,63 +14,6 @@
 #      O código do osd é `xdg::BaseDirectories::with_prefix("sounds")
 #      .find_data_file("freedesktop/stereo/audio-volume-change.oga")`, e o
 #      `find_data_file` consulta o XDG_DATA_HOME antes do XDG_DATA_DIRS.
-#
-#   3. O SOM É DEBOUNCED EM 125 ms, e sons longos SE SOBREPÕEM. No fonte do osd:
-#      `if now.duration_since(self.sink_last_playback) > Duration::from_millis(125)`.
-#      Provado: plantando um arquivo de 2 s e disparando duas mudanças com 300 ms
-#      de intervalo, `pactl list short sink-inputs` mostrou DOIS sink-inputs
-#      coexistindo. É por isso que a duração aqui é de 85 ms e não pode crescer:
-#      segurar a tecla de volume empilharia cópias de um som longo.
-#
-# AS DUAS ARMADILHAS QUE CUSTARIAM HORAS
-#   A. O NOME DO TEMA É CRAVADO NO BINÁRIO. O osd procura literalmente
-#      `sounds/freedesktop/stereo/audio-volume-change.oga`. Um tema chamado
-#      `MeowSystem-Sounds` NUNCA seria lido, por mais correto que fosse o
-#      `index.theme`, e o `gsettings org.gnome.desktop.sound theme-name` é
-#      decorativo nesta máquina — ninguém o lê. Por isso instalamos DENTRO de um
-#      `freedesktop` do usuário, que sombreia o do sistema sem apagá-lo.
-#      Repare que isto é o INVERSO da regra dos ÍCONES (docs/COSMIC-THEMING.md
-#      seção 2): lá, mesmo nome nos dois lugares faz `/usr/share` ofuscar o
-#      usuário. Em SOM o usuário vence.
-#
-#      E é por isso que NÃO escrevemos `index.theme` nesse diretório. Sem ele,
-#      quem um dia resolver o tema `freedesktop` pela especificação lê o
-#      `index.theme` do sistema e só encontra no nosso diretório o único arquivo
-#      que plantamos. Escrever um `index.theme` incompleto ali seria sequestrar
-#      o tema inteiro em vez de um arquivo.
-#
-#   B. A EXTENSÃO `.oga` É MENTIRA, E ISSO NOS SALVA. Quem lê o arquivo é a
-#      libsndfile, que detecta o formato pelo CONTEÚDO. Um WAV PCM salvo com nome
-#      `.oga` toca normalmente (`file` diz "RIFF (little-endian) data, WAVE
-#      audio, Microsoft PCM, 16 bit, stereo 48000 Hz"; `pw-play` sai com 0 e o
-#      COSMIC o tocou pelo caminho real). Logo NÃO precisamos de ffmpeg, oggenc
-#      nem sox: o som nasce da biblioteca padrão do Python.
-#
-# LICENÇA DOS SONS (regra do projeto: cada som tem a sua registrada)
-#   O som que este script instala é GERADO AQUI, por síntese, pelo código logo
-#   abaixo. É obra do próprio MeowSystem e o registramos como CC0-1.0. Nada é
-#   baixado, então não há licença de terceiro para auditar. Registro auditável:
-#   `assets/sons/CREDITOS.md` no repositório, e um `LICENCAS.txt` que o script
-#   escreve ao lado do som instalado.
-#
-#   NÃO copie os `.oga` do sistema para dentro do nosso tema:
-#     - freedesktop `audio-volume-change.oga` é CC-BY-SA-3.0 (Lucas McCallister,
-#       /usr/share/doc/sound-theme-freedesktop/copyright). A 3.0 NÃO ganhou
-#       compatibilidade com a GPL-3.0; só a CC-BY-SA 4.0 ganhou, e de mão única.
-#     - Pop `action/audio-volume-change.oga` é CC-BY-SA-4.0 (Mads Rosendahl),
-#       essa sim redistribuível sob GPL-3.0. Mesmo assim não serve: mede 0,35 s
-#       (5x o de fábrica, empilha na tecla segurada, ver prova 3 acima) e é 10 dB
-#       mais alto na média (`ffmpeg -af volumedetect`: mean -20,2 dB / max -4,0 dB
-#       contra mean -30,4 dB / max -17,2 dB do de fábrica). Trocaria um blip por
-#       um susto.
-#
-# USO
-#   som.sh aplicar    instala o blip autoral (idempotente)
-#   som.sh conferir   0 = igual · 1 = divergente · 3 = falta dependência
-#   som.sh estado     diz qual arquivo o COSMIC vai tocar, e se o gatilho vive
-#   som.sh ouvir      toca o que ESTÁ instalado, baixinho, sem mexer no volume
-#   som.sh remover    volta ao som de fábrica do sistema (e tira o tema do pack)
-#   som.sh vigiar     o tocador das notificações (quem o roda é o meow-som.service)
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -129,28 +38,19 @@ SOM_GANHO="${SOM_GANHO:-0.18}"
 
 # --- o timbre do PACK ativo, antes dos defaults ------------------------------
 #
-# A ORDEM AQUI É O CONTRATO DE PRECEDÊNCIA (docs/PACKS.md, "Quem vence"):
 #   1. o que já está no ambiente  -> veio do meow.conf, e SEMPRE vence
 #   2. o que o pack declara       -> entra só no que sobrou
 #   3. o default do projeto       -> nas linhas `${VAR:-...}` logo abaixo
 #
 # O `: "${VAR:=valor}"` é o que faz a camada 2 respeitar a 1: ele só atribui se
-# a variável estiver vazia ou ausente. Um `export VAR=valor` cru aqui passaria
-# por cima do meow.conf da pessoa — que é exatamente o que o formato promete
-# nunca fazer.
+# a variável estiver vazia ou ausente.
 _som_do_pack() {
   local dir linha var val
   dir="$(meow_pack_dir)" || return 0
   [ -n "$dir" ] || return 0
   [ -f "$dir/pack.json" ] || return 0
-  # O pack.py imprime só o que o pack DECLARA — chave ausente não vira linha.
-  # SEM `eval` — P78, 09/10/2026. A linha vem do pack.json, e o pack pode ser
-  #   de terceiro. O `validar` já exige número em toda chave do timbre, mas um
-  #   `eval` de dado é código, e a garantia não pode morar a um arquivo de
-  #   distância: o nome passa pelo conjunto das chaves (`SOM_` + maiúsculas), o
-  #   valor por cara de número, e o `printf -v` atribui sem interpretar nada.
-  #   O `[ -n "${!var:-}" ]` é o mesmo contrato do `: "${VAR:=valor}"` de antes:
-  #   o que veio do meow.conf vence.
+  # O pack.py imprime só o que o pack DECLARA — chave ausente não vira linha. A
+  # linha vem do pack.json, e o pack pode ser de terceiro.
   while IFS= read -r linha; do
     case "$linha" in
       SOM_*=*)
@@ -165,45 +65,14 @@ _som_do_pack
 
 # --- O TIMBRE, E POR QUE ELE SAIU DE DENTRO DO PYTHON [2026-09-17] -----------
 #
-#   Até aqui as quatro decisões de timbre viviam cravadas no gerador: 880 Hz,
-#   1320 Hz, os pesos 0.62/0.28 e o decaimento 46.0. Isso fazia sentido enquanto
-#   o MeowSystem era um tema só. Deixou de fazer quando ele virou produto com
-#   THEME PACKS (docs/PACKS.md): um pack pode trazer a própria paleta, os
-#   próprios ícones e o próprio papel de parede — e ficaria com o sino do
-#   vizinho.
+# Até aqui as quatro decisões de timbre viviam cravadas no gerador: 880 Hz, 1320
+# Hz, os pesos 0.62/0.28 e o decaimento 46.0. Isso fazia sentido enquanto o
+# MeowSystem era um tema só.
 #
-#   O QUE NÃO MUDOU, e não pode mudar:
-#     - a DURAÇÃO continua presa ao debounce de 125 ms do osd (ver prova 3 no
-#       cabeçalho). Um pack pode encurtar; alongar além disso empilha o som;
-#     - o GANHO continua calibrado contra o arquivo de fábrica. Um pack que
-#       suba o ganho muda o SUSTO, não o timbre — e isso não é estética, é a
-#       pessoa levando um susto ao mexer no volume;
-#     - a síntese continua DETERMINÍSTICA, que é o que faz o `conferir`
-#       funcionar: gera de novo e compara byte a byte. Parâmetro entra pelo
-#       ambiente, nunca aleatoriedade.
-#
-#   O DEFAULT É O DE SEMPRE. Sem nenhuma destas chaves, o som gerado é
-#   byte-idêntico ao de antes desta mudança — conferido por sha256 na mesma data.
+# Sem nenhuma destas chaves, o som gerado é byte-idêntico ao de antes desta
+# mudança — conferido por sha256 na mesma data.
 #
 # FUNDAMENTAL e HARMÔNICO: as duas senoides que formam o sino.
-#   880 Hz é o lá da quinta oitava; 1320 é a quinta justa acima dele. A quinta
-#   soa "resolvida" e não alarmante — foi escolhida por isso.
-# --- O TEMA DE SOM DO PACK, E QUEM O TOCA — 09/10/2026, P74 item 9 (T3) -------
-#   O pack Dracula trouxe de volta os 25 efeitos do tema de som de antes
-#   (`som.tema` no pack.json, CC0). Eles ficaram fora em 16/09 pelo motivo do
-#   cabeçalho deste arquivo: o COSMIC toca UM som de evento, o de volume. O
-#   motivo vira cura em duas partes:
-#     1. o tema é instalado como tema de som freedesktop, em
-#        `~/.local/share/sounds/MeowSystem-Sons` (um nome nosso: a pasta é de
-#        dono único, e a troca de pack a leva junto);
-#     2. o `meow-som.service` (systemd/) roda o `som.sh vigiar`, que escuta as
-#        chamadas `Notify` do barramento da sessão e toca o som de notificação
-#        do tema, com o `pw-play` — o mesmo tocador do `cosmic-osd`. Uma
-#        notificação que pede silêncio (`suppress-sound`) fica em silêncio, e
-#        duas seguidas dentro de 0,8 s tocam uma vez (a armadilha 3 lá de cima:
-#        sons que se sobrepõem empilham).
-#   O som de VOLUME não muda: continua o sino do pack, porque os efeitos do
-#   tema têm de 0,24 s a 0,95 s e empilhariam na tecla segurada.
 _som_ref="$(meow_pack_dir)"
 [ -n "$_som_ref" ] || _som_ref="$(meow_pack_padrao_dir 2>/dev/null || true)"
 SOM_TEMA_PACK="$(python3 "$MEOW_RAIZ/scripts/pack.py" acervo "$_som_ref" som.tema 2>/dev/null)" || SOM_TEMA_PACK=""
@@ -226,8 +95,7 @@ SOM_DECAIMENTO="${SOM_DECAIMENTO:-46.0}"
 
 # --- o gerador: só biblioteca padrão, e DETERMINÍSTICO ----------------------
 # Determinístico é o que torna `conferir` possível: geramos de novo e comparamos
-# byte a byte com o que está instalado. Sem isso, toda checagem acusaria
-# divergência e o auto-reparo entraria em ping-pong.
+# byte a byte com o que está instalado.
 _som_gerar() {
   local destino="$1"
   python3 -I - "$destino" "$SOM_DURACAO" "$SOM_GANHO" \
@@ -289,14 +157,9 @@ TXT
 
 # --- escrita atômica de BINÁRIO ---------------------------------------------
 # O `meow_escrever` do comum.sh usa `printf '%s'` e serve a texto; áudio passa
-# por ele corrompido. Aqui o temporário nasce dentro do diretório de DESTINO,
-# pelo mesmo motivo da trava 2 do comum.sh: o repo está em /mnt/Apate e o
-# destino em /home, e `mv` entre sistemas de arquivos não é atômico.
+# por ele corrompido.
 #
-# NO SECO O TEMPORÁRIO VAI PARA O TMPDIR, e nenhum diretório é criado. Uma
-# versão anterior fazia `mkdir -p` antes de checar o seco e deixava
-# ~/.local/share/sounds/freedesktop/stereo/ para trás num "dry-run" — ou seja,
-# plantava a casca do sequestro do nome `freedesktop` sem ter escrito som nenhum.
+# NO SECO O TEMPORÁRIO VAI PARA O TMPDIR, e nenhum diretório é criado.
 _som_instalar() {
   local tmp
   meow_destino_permitido "$SOM_ALVO" || return "$MEOW_ERRO"
@@ -327,10 +190,9 @@ _som_instalar() {
 }
 
 # --- diagnóstico: sem o GATILHO, nada dispara -------------------------------
-# Vale mais que um aviso de tema: em 04/08/2026 o cosmic-settings-daemon estava
-# MORTO nesta máquina no meio da sessão, e com ele morrem as teclas de volume e
-# de brilho inteiras — não só o som. O `pgrep -x` não serve aqui: o kernel trunca
-# /proc/PID/comm em 15 caracteres e "cosmic-settings-daemon" tem 22.
+# Vale mais que um aviso de tema: o cosmic-settings-daemon estava MORTO nesta
+# máquina no meio da sessão, e com ele morrem as teclas de volume e de brilho
+# inteiras — não só o som.
 _som_daemon_vivo() {
   pgrep -f '^(/[^ ]*/)?cosmic-settings-daemon( |$)' >/dev/null 2>&1
 }
@@ -466,12 +328,7 @@ _som_tema_e_unidade() {   # $1 = conferir | aplicar
 }
 
 cmd_aplicar() {
-  # A CHAVE `SOM` decide, e "não" REMOVE em vez de só não instalar. [2026-09-17]
-  #   Não instalar e remover são coisas diferentes para quem já tinha o som: sem
-  #   isto, desligar a chave deixaria o arquivo instalado tocando para sempre, e
-  #   a pessoa concluiria que o controle não funciona. É o mesmo desenho do
-  #   `icones_apps_dracula.sh`, que chama `_dracula_remover` quando a chave dele
-  #   está em "não".
+  # A CHAVE `SOM` decide, e "não" REMOVE em vez de só não instalar.
   if [ "${SOM:-sim}" != "sim" ]; then
     cmd_remover
     return $?
@@ -485,10 +342,7 @@ cmd_aplicar() {
   [ "$rcl" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
   [ "$rcl" = "$MEOW_DIVERGENTE" ] && rc="$MEOW_DIVERGENTE"
 
-  # O tema de som do pack e quem o toca (P74 item 9).
-  #   [Conferência da P74: o `rc` do volume fica separado do `rc` final. Com
-  #   só o tema mudando, a frase abaixo dizia «som de volume do MeowSystem
-  #   instalado» sobre um arquivo que não foi tocado — a tela que mente.]
+  # O tema de som do pack e quem o toca.
   local rct rcv="$rc"; _som_tema_e_unidade aplicar; rct=$?
   [ "$rct" = "$MEOW_ERRO" ] && { meow_erro "não consegui pôr o tema de som do pack"; return "$MEOW_ERRO"; }
   if [ "$rct" = "$MEOW_DIVERGENTE" ]; then
@@ -515,15 +369,6 @@ cmd_aplicar() {
 
 cmd_conferir() {
   meow_tem python3 || { meow_erro "falta python3"; return "$MEOW_SEM_DEPENDENCIA"; }
-  # A CHAVE MANDA AQUI TAMBÉM, e ignorá-la dava as duas respostas erradas.
-  #   [2026-09-18] `cmd_aplicar` respeita SOM desde 17/09, mas esta função não —
-  #   e conferir tem de responder sobre o MESMO estado que aplicar produziria.
-  #   Medido antes da correção:
-  #     SOM=nao + arquivo instalado  -> dizia "conforme"   (o aplicar REMOVERIA)
-  #     SOM=nao + arquivo ausente    -> diria "divergente" (está como deveria)
-  #   O segundo caso é o que doía: quem desligasse o som ganharia um doctor
-  #   acusando divergência todo dia às 05:00, para sempre, sobre uma escolha
-  #   deliberada. É a armadilha do laço não convergente, de novo.
   if [ "${SOM:-sim}" != "sim" ]; then
     if [ -f "$SOM_ALVO" ] || [ -d "$SOM_TEMA_DIR" ] || [ -f "$SOM_UNIDADE" ]; then
       meow_muda "SOM=\"nao\" e o nosso som ainda está instalado"
@@ -532,7 +377,7 @@ cmd_conferir() {
     meow_ok "som de volume de fábrica, como pedido (SOM=\"nao\")"
     return "$MEOW_OK"
   fi
-  # O tema de som do pack e a unidade que o toca (P74 item 9).
+  # O tema de som do pack e a unidade que o toca.
   if ! _som_tema_e_unidade conferir; then
     meow_muda "o tema de som do pack, ou quem o toca nas notificações, não está como o pack pede"
     return "$MEOW_DIVERGENTE"
@@ -601,8 +446,8 @@ cmd_ouvir() {
 }
 
 cmd_remover() {
-  # O tema do pack e a unidade saem primeiro (P74 item 9), e sozinhos se o
-  # som de volume já não estava.
+  # O tema do pack e a unidade saem primeiro, e sozinhos se o som de
+  # volume já não estava.
   local rct=0
   _som_unidade tirar >/dev/null; [ $? = "$MEOW_DIVERGENTE" ] && rct=1
   _som_tema tirar >/dev/null; [ $? = "$MEOW_DIVERGENTE" ] && rct=1
@@ -613,20 +458,14 @@ cmd_remover() {
   meow_seco && { meow_muda "removeria $SOM_ALVO"; return "$MEOW_DIVERGENTE"; }
   rm -f "$SOM_ALVO" "$SOM_LICENCAS"
   # rmdir só apaga diretório vazio: se ela puser outros sons ali, ficam.
-  # O `$SOM_RAIZ` (~/.local/share/sounds) NÃO entra: é diretório XDG padrão que
-  # não foi criado por nós, e apagar o que não criamos não é reverter, é limpar
-  # a casa dos outros.
   rmdir "$SOM_BASE" "$SOM_RAIZ/$SOM_TEMA" 2>/dev/null
   meow_muda "som de volume devolvido ao de fábrica"
   meow_registrar "som.sh remover"
   return "$MEOW_DIVERGENTE"
 }
 
-# `vigiar` — O TOCADOR DAS NOTIFICAÇÕES (P74 item 9; quem o roda é o
-#   `meow-som.service`). O `dbus-monitor` imprime cada chamada `Notify` em um
-#   bloco: a linha do cabeçalho e os argumentos, indentados. O bloco termina
-#   no próximo cabeçalho, ou quando 0,3 s passam sem linha nova — sem esse
-#   prazo, uma notificação só tocaria quando chegasse a seguinte.
+# O `dbus-monitor` imprime cada chamada `Notify` em um bloco: a linha do
+# cabeçalho e os argumentos, indentados.
 SOM_VIGIA_ULTIMO=0
 _som_vigiar_tocar() {   # $1 = o bloco de um Notify · $2 = o arquivo a tocar
   local agora

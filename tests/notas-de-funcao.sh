@@ -1,67 +1,5 @@
 #!/usr/bin/env bash
 # notas-de-funcao.sh — as notas de função que as revisões da leva D2 deixaram.
-#
-# POR QUE ESTE ARQUIVO NASCEU EM 25/09/2026 (sprint P66)
-#   As reconferências da P63, P64 e P65 aprovaram as sprints e deixaram seis
-#   notas; cinco são de função. Cada seção abaixo é uma delas, com a prova que
-#   falhava antes da P66 e passa depois:
-#     1. O acento do outro lado. Com FLAVOR=latte, ACCENT=blue e MODO=escuro, o
-#        COSMIC vestia a Dark `catppuccin-mocha` com #CBA6F7FF (o mauve do
-#        latte-mauve), e mocha-green no claro a Light `catppuccin-latte` com
-#        #8839EFFF — a página e a prévia prometiam o blue e o green do par. Pelas
-#        MESMAS etapas do install.sh que o «Salvar e aplicar» roda, num COSMIC de
-#        brinquedo: o lado do par veste agora o acento pedido. Nos 84 pares dos
-#        dois packs o lado do par é conferido campo a campo — o das derivadas e
-#        o das FOTOS —, e o que já estava certo não muda um byte (a soma
-#        abaixo). O lado do par que não se deriva fica o da base, sem derrubar
-#        a variante (revisão da P66).
-#        [Até a P68 (25/09/2026) um defeito conhecido ficava de fora, dito em
-#        toda corrida: a foto `mocha-pink` vestia no claro o mauve do latte
-#        (#8839EF), e o par pede o pink dele (#EA76CB). A P68 escreveu na foto a
-#        Light que o `derivar_arvore` do derivar_acento.py dá no pink — 34
-#        arquivos, com o manifesto refeito e a linha `claro:` no captura.txt;
-#        a conta está no CREDITOS.md do pack —, e o `CONHECIDOS` saiu: a foto
-#        passa pela mesma régua dos outros 83 pares.]
-#     2. O desfazer da escolha do pack. Desfeita a escolha de um desenho do pack
-#        no ar para um nome que o mapa não tinha, o desenho ficava no tema. O
-#        passo do pack o tira agora pelo registro do que ele pôs lá — e só isso:
-#        o autoral que o `completar_icones.sh` põe no mesmo `scalable/apps`, com
-#        os bytes de um desenho do pack, fica. (O caminho pelo painel está no
-#        tests/seletor-do-pack.sh, seção 6.)
-#     3. O `_mapa_dracula` do painel com `PACK=""` e `FLAVOR="alucard"`: a adoção
-#        dava o Dracula e ele dava 0 nomes.
-#     4. O molde `cat--<acento>` do ICONES_PASTAS escrito duas vezes (o
-#        `carregar_conf` do bin/meow e o `conf_exportada` do painel): uma só.
-#     5. O `--conferir` das pastas especiais, com elas desligadas e os desenhos
-#        no disco, dizia «devolvendo», no gerúndio de quem faz — e não fazia.
-#     6. A montagem «a base menos um lado + o lado do par», escrita nos dois
-#        derivadores: uma função só (o `montar` do derivar_acento.py), e a soma
-#        da seção 1 é a prova de que as capturas saem iguais byte a byte.
-#
-# A SOMA DO QUE NÃO MUDA É UM NÚMERO MEDIDO, E NÃO UMA CÓPIA GUARDADA
-#   `SOMA_MEDIDA` é o sha256 das 84 capturas que o `derivar_acento.py` dá para os
-#   seis flavors dos dois packs nos 14 acentos (a foto, quando há; a derivada,
-#   sem escrever nada), com duas exceções, em que o outro lado e o
-#   `captura.txt` ficam fora: as derivadas da P48 cujo outro lado é o da base
-#   (o latte e o mocha, que têm foto do par) — são elas que a P66 muda —, e as
-#   FOTOS, cujo outro lado é o que a decisão sobre a `mocha-pink` pode mudar.
-#   [Até a revisão da P66 a foto entrava inteira na soma, e a soma dizia «não
-#   muda» do claro errado da `mocha-pink`.] O outro lado de todas é conferido
-#   pelo acento, campo a campo. Medido em 25/09/2026 com o código de antes da
-#   P66 (9aa3b01) e com o de depois: o mesmo número. Mexer em qualquer outro
-#   byte de captura é outra decisão, e quem a tomar troca este número junto.
-#   [P68, 25/09/2026: a decisão foi tomada — a Light da `mocha-pink` passou ao
-#   pink —, e a soma é a mesma: o que mudou é o outro lado de uma foto, fora
-#   dela. Das derivadas, só o `mocha-red` e o `mocha-blue` mudam um byte, na
-#   Light/v1/accent_button (o `on` branco escrito 1.0, e não 0.99999994: o
-#   mesmo #FFFFFF em 8 bits), e o outro lado delas também fica fora.]
-#
-# NADA FORA DO TEMPORÁRIO: COSMIC, casa, estado e packs de brinquedo (as
-#   derivadas nascem dentro do pack copiado), `env -i` em toda chamada, a ponte
-#   apontando para o vazio, um `sudo` falso na frente do PATH, e o teste
-#   confere no fim que o repositório não mudou.
-#
-#   0 = passou · 1 = achados · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -70,10 +8,6 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 
 command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; }
 
-# [P82, 15/10/2026 (item 19): a soma andou com o aperto do fundo da Light, que
-#   passou a seguir o libcosmic do COSMIC 1.10. Medido: com o `build()` na
-#   regra do 1.9 (o `regra_do_19`), a soma volta byte a byte à de antes,
-#   6dd88a29…c67626 — nada mais mudou.]
 SOMA_MEDIDA="4b85677d1504677476684d696bd0268f12c9718ca3a8b32738db516398504c5a"
 
 T="$(mktemp -d)" || exit 2
@@ -171,13 +105,7 @@ etapa modo >/dev/null
 $saida_g
 $saida_t"
 
-#   A FOTO mocha-pink NO CLARO — 25/09/2026, sprint P68. Ela não passa pelo
-#   derivador (o `plano` a devolve como `fotografia`), e vestia a Light
-#   `catppuccin-latte` com #8839EFFF, o mauve, com o par pedindo o pink do
-#   latte. A P68 escreveu o pink NA FOTO, pelo `derivar_arvore`; aqui ela é
-#   aplicada pelas mesmas etapas, e a Light da foto do repositório é conferida
-#   contra a conta: com o pink que ela declara, o derivador não muda um byte —
-#   uma Light copiada à mão, ou uma porta do `build()` que mudou, derruba isto.
+# A FOTO mocha-pink NO CLARO
 rosa="$(cor catppuccin latte pink)"
 conf mocha pink catppuccin claro
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
@@ -271,18 +199,13 @@ PY
   && ok "nos 84 pares, o lado do par — da derivada e da foto — veste o acento do par, e o resto é o de antes, byte a byte ($(printf '%s\n' "$saida" | head -1))" \
   || falha "o acento do lado do par, ou a soma do que não muda" "$saida"
 
-#   O lado do par que não se deriva fica o da base, e a variante continua
-#   aplicando (revisão da P66). Num Catppuccin de brinquedo: a Light da
-#   `mocha-pink` com um `hover` que a conta não dá (o defeito que a GUI deixou
-#   na Light da `mocha-mauve` de verdade), e depois sem Light nenhuma. Nos
-#   dois, o mocha-green deriva do mocha-pink, com o claro dela byte a byte.
+# O lado do par que não se deriva fica o da base, e a variante continua
+# aplicando.
 P1="$T/packs1"; mkdir -p "$P1"; cp -a "$RAIZ/packs/catppuccin" "$P1/" || exit 2
 for cap in "$P1"/*/temas/capturados/*/; do
   grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
 done
 ROSA="$P1/catppuccin/temas/capturados/mocha-pink"
-#   O `hover` é o do pink do latte desde a P68 (25/09/2026), que escreveu na
-#   foto a Light no pink; antes era o #8041D6 do mauve.
 sed -i 's/hover: "#CE72B9FF"/hover: "#CE72B8FF"/' "$ROSA/com.system76.CosmicTheme.Light/v2/accent"
 grep -q 'hover: "#CE72B8FF"' "$ROSA/com.system76.CosmicTheme.Light/v2/accent" \
   || { printf 'erro: não consegui mexer na Light da mocha-pink de brinquedo\n' >&2; exit 2; }
@@ -396,8 +319,6 @@ PY
 
 # --- 4. o molde das pastas numa regra só -----------------------------------
 printf -- '--- 4. o molde do ICONES_PASTAS numa regra só ---\n'
-#   [P68, 25/09/2026: e o scripts/construir_pastas.sh, a terceira cópia que a
-#   revisão da P66 achou — ele passou a chamar a mesma função.]
 copias="$(grep -c 'cat--?\*)' "$RAIZ/bin/meow" "$RAIZ/app/servidor.py" "$RAIZ/lib/comum.sh" \
             "$RAIZ/scripts/construir_pastas.sh" | tr '\n' ' ')"
 [ "$copias" = "$RAIZ/bin/meow:0 $RAIZ/app/servidor.py:0 $RAIZ/lib/comum.sh:1 $RAIZ/scripts/construir_pastas.sh:0 " ] \
@@ -444,12 +365,8 @@ grep -q 'conteudo = da.montar(cand, ' "$RAIZ/scripts/derivar_flavor.py" \
   && grep -q 'conteudo=montar(cand, lado\["arvore"\], lado\["conteudo"\])' "$RAIZ/scripts/derivar_acento.py" \
   && ok "os dois planos montam a captura pelo montar do derivar_acento.py (a soma da seção 1 é a prova de que ela é a mesma)" \
   || falha "a montagem do lado do par não é a função única nos dois derivadores"
-#   AS FICHAS DA CAPTURA NUMA LISTA SÓ — 25/09/2026, sprint P68 (item 5). O
-#   filtro do `montar` (o `FICHAS` do derivar_acento.py) tinha uma versão em
-#   shell no laço do aplicar_tema.sh. A prova é pelo que acontece, e não pelo
-#   texto: numa cópia dos scripts em que o `FICHAS` ganha um nome (um
-#   `LEIA-ME.md` na raiz da captura), aplicar o tema não o põe no COSMIC — e
-#   com o `case` de antes, punha.
+# O filtro do `montar` (o `FICHAS` do derivar_acento.py) tinha uma versão em
+# shell no laço do aplicar_tema.sh.
 R6="$T/raiz6"; P6="$T/packs6"; C6="$T/cosmic6"; E6="$T/estado6"
 mkdir -p "$R6" "$P6" "$C6" "$E6" "$T/tmp6"
 cp -a "$RAIZ/scripts" "$RAIZ/lib" "$R6/"; ln -s "$RAIZ/assets" "$R6/assets"

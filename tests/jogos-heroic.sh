@@ -1,33 +1,7 @@
 #!/usr/bin/env bash
 # UM JOGO INSTALADO NO HEROIC = UM CARTÃO NO LANÇADOR — e nada além disso.
 #
-# O DEFEITO QUE ESTE TESTE PEGA JÁ ACONTECEU, E ELA VIU
-#   10/09/2026: "os jogos instalados pelo heroic launcher não aparecem nos
-#   .desktop da interface". O Heroic só escreve atalho quando as chaves
-#   `addDesktopShortcuts`/`addStartMenuShortcuts` estão ligadas — e elas nascem
-#   desligadas —, então a biblioteca inteira ficava fora do lançador.
-#
-# AS AFIRMAÇÕES
-#   1. o jogo instalado ganha cartão, com a marca `X-MeowSystem=jogo-heroic` e o
-#      `Exec` do protocolo do próprio Heroic;
-#   2. o DLC NÃO ganha cartão (`install.is_dlc`) — nesta máquina são dois
-#      registros instalados para um jogo só, e o segundo é uma roupa de 327 KiB;
-#   3. o jogo que está na biblioteca mas NÃO está instalado também não ganha;
-#   4. rodar de novo dá o mesmo (rc=0) — idempotência;
-#   5. o cartão que o PRÓPRIO Heroic escreve (nome do jogo no arquivo, sem molde
-#      nenhum) sai, com cópia guardada antes — é o `Future Knight.desktop` de
-#      09/09/2026 com outro sobrenome;
-#   6. desinstalou o jogo, o cartão sai junto — e o ícone também;
-#   7. o que aponta para OUTRO jogo do Heroic, sem substituto nosso, FICA:
-#      remover deixaria esse jogo sem cartão nenhum;
-#   8. o seco não escreve nem apaga;
-#   9. biblioteca ilegível não é biblioteca vazia: não escreve, não apaga, e
-#      devolve 3 — o contrário disto esvaziaria o lançador dela por causa de um
-#      arquivo corrompido.
-#
-# POR QUE UM HOME DE BRINQUEDO
-#   O território real é o lançador dela. Um teste que apaga `.desktop` de
-#   verdade para ver se sabe apagar é o próprio defeito com outro nome.
+# O território real é o lançador dela.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 H="$(mktemp -d)"; trap 'rm -rf "$H"' EXIT
@@ -41,7 +15,7 @@ DLC=9596620d263b40c083ddf1f0c662c8ff        # instalado, e é DLC
 FORA=aaaa1111bbbb2222cccc3333dddd4444       # na biblioteca, não instalado
 ID="meow-heroic-legendary-$JOGO"
 
-# A biblioteca, no formato que o Heroic 2.22.1 grava (medido em 10/09/2026).
+# A biblioteca, no formato que o Heroic 2.22.1 grava.
 biblioteca() {
   local instalado="${1:-true}"
   cat > "$CONF/store_cache/legendary_library.json" <<JSON

@@ -1,16 +1,8 @@
 #!/usr/bin/env python3
 # appid_sonda.py — o instrumento de leitura do `appid_dock.sh`. NÃO ESCREVE NADA.
 #
-# POR QUE ELE É PYTHON PURO, SEM UMA ÚNICA DEPENDÊNCIA
-#   Ele precisa de duas coisas que o bash não alcança e que nenhuma ferramenta
-#   instalada nesta máquina entrega:
-#
-#   1. O `app_id` das janelas ABERTAS. Medido em 27/08/2026: o `wlrctl` NÃO
-#      serve — o `cosmic-comp` não expõe `wlr_foreign_toplevel_management`. O
-#      protocolo que ele expõe é `ext_foreign_toplevel_list_v1`, e falar com ele
-#      é abrir o socket do compositor e trocar mensagens. Um cliente Wayland de
-#      verdade em 90 linhas de `socket` + `struct` custa menos que uma
-#      dependência nova num projeto que veste a máquina inteira dela.
+# Ele precisa de duas coisas que o bash não alcança e que nenhuma ferramenta
+# instalada nesta máquina entrega:
 #
 #   2. O casamento `app_id -> .desktop` COMO O DOCK FAZ. Reimplementa
 #      `find_app_by_id` + `default_paths` da crate `freedesktop-desktop-entry`
@@ -20,45 +12,6 @@
 #      sha256 com o fonte lido). É essa reimplementação que permite ao script
 #      responder, ANTES de escrever, "este app_id já casa hoje?" — a pergunta que
 #      impede o sequestro descrito no cabeçalho do `appid_dock.sh`.
-#
-# AS SEIS ETAPAS, NA ORDEM (fde 0.8.1, lib.rs:1018) — e a precedência
-#   1. StartupWMClass== app_id            (ASCII case-insensitive)
-#   2. id do .desktop, ou file_stem, ou o ÚLTIMO segmento pontuado do app_id
-#      contra o file_stem. As duas primeiras cláusulas são case-insensitive; a
-#      TERCEIRA é case-SENSITIVE — medido: `org.teste.MinhaApp` casa com
-#      `MinhaApp.desktop`, `org.teste.minhaapp` NÃO.
-#   3. Name= (o NÃO localizado)   4. Exec= inteiro   5. 1ª palavra do Exec=
-#   6. X-SnapAppName=  (morta nesta máquina: zero snaps)
-#
-#   A ETAPA VENCE A PRECEDÊNCIA XDG. Cada etapa varre o parque INTEIRO antes de a
-#   seguinte começar — medido num parque sintético: um `.desktop` em
-#   `$XDG_DATA_HOME` que casava só por NOME DE ARQUIVO perdeu para um de
-#   `/usr/share` que casava por `StartupWMClass`. O `$XDG_DATA_HOME` só desempata
-#   DENTRO de uma etapa, e dentro de um diretório vence o alfabeticamente
-#   primeiro (o `Iter` do upstream ordena de propósito: "order of parsing affects
-#   appid matches").
-#
-#   `NoDisplay=true` e `Hidden=true` NÃO participam do casamento (medido: casam
-#   igual). É o que deixa a ponte invisível no lançador sem perder o efeito no
-#   dock. `Icon=` também não participa: é só o que o dock desenha DEPOIS de casar.
-#
-# O QUE ESTE ARQUIVO NÃO FAZ
-#   Não escreve, não abre janela, não fica residente, não grava estado. Ele é
-#   chamado, responde e morre. Quem decide é o `appid_dock.sh`; quem cura o mapa
-#   é ela.
-#
-# MODOS
-#   --janelas   TSV `app_id \t título` de tudo que está aberto AGORA.
-#               Sai 3 quando não há sessão Wayland ou o protocolo não existe.
-#   --parque    TSV `desktop-id \t caminho \t Name \t Icon \t Exec \t X-Flatpak`
-#               do parque inteiro, NA ORDEM DE PRECEDÊNCIA (o primeiro de cada
-#               desktop-id é o que vence).
-#   --casar     lê app_id do stdin, um por linha; escreve `app_id \t etapa \t caminho`
-#               (`-` e `-` quando não casa). `--sem-ponte` ignora os `.desktop`
-#               que carregam a marca de autoria da ponte — é o que torna a
-#               pergunta "já casava ANTES de nós?" respondível.
-#   --sugerir   lê app_id do stdin; escreve `app_id \t candidato1,candidato2,...`
-#               Só SUGERE, para o aviso do script montar a linha de colar.
 import os
 import sys
 import glob

@@ -1,25 +1,12 @@
 #!/usr/bin/env bash
 # garantir-builds.sh — o compositor e o menu do cosmic-files têm build para a
-# versão instalada, sempre, e a segunda passagem não escreve nada? (P81)
+# versão instalada, sempre, e a segunda passagem não escreve nada?
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 15/10/2026
-#   O apt das 20:14 trouxe o COSMIC 1.10. O pós-apt das 20:15 recompilou o
-#   menu do cosmic-files e PULOU o compositor («o shim do compositor está
-#   desligado — sem build»), e gravou a versão como vista: nenhum gatilho
-#   voltaria a ela. A P81 tirou a decisão de cada gatilho e a pôs numa função
-#   só, que olha o artefato: `scripts/garantir_builds.sh`.
-#
-# O QUE ESTE TESTE COBRA
 #   1. a função: compila o que falta, e só isso; o shim desligado não impede;
 #      o `ruim` não se refaz; FILES_MENU="nao" não compila o menu; o `req` que
 #      não entra (degrau 4) é regra e sai 0, a falha de verdade sai 2; o seco
 #      não compila; duas passagens juntas compilam uma vez (flock); e a
 #      segunda passagem não escreve um byte.
-#
-# HOME, estado e casa de brinquedo; os dois builds são registros de uma linha
-# que deixam o artefato que o de verdade deixaria. Nada de apt, cargo, sudo,
-# systemd nem rede: os falsos do PATH recusam.
-#   0 = passou · 1 = falhou
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -144,9 +131,8 @@ versoes cosmic-comp=0.1~d cosmic-files=1.10~b
 touch "$T/comp-req-falha"
 : > "$T/log"; rodar; igual "rc 0" "$?" 0
 [ -e "$CASA/0.1~d/cosmic-comp" ] && falha "apareceu build do compositor" || ok "nada foi trocado: o shim segue no de fábrica"
-# A SEGUNDA PASSAGEM NO DEGRAU 4 NÃO TENTA DE NOVO — conferência da P81. O
-# mesmo fonte com a mesma série recusa o mesmo `req`; sem esta regra, cada
-# login, cada apt e cada doctor das 5h refazia a tentativa e escrevia
+# O mesmo fonte com a mesma série recusa o mesmo `req`; sem esta regra,
+# cada login, cada apt e cada doctor das 5h refazia a tentativa e escrevia
 # (o `alvos.novo` e o meow.log, medidos com os scripts de verdade).
 antes="$(foto)"
 : > "$T/log"; rodar; igual "2ª passagem no degrau 4: rc 0" "$?" 0

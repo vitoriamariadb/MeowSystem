@@ -1,72 +1,17 @@
 #!/usr/bin/env python3
 # folha_conversor.py — o mesmo ícone traçado de vários jeitos, lado a lado.
 #
-# POR QUE ESTE ARQUIVO EXISTE
-#   Em 09/09/2026 ela olhou a lupa da oficina e chamou o traço de "pixelado". A
-#   causa estava medida: o conversor emitia SÓ polilinha, e a escada da grade de
-#   256 chegava inteira na tela. A Sprint Q trocou a gramática de saída por
-#   curvas de Bézier.
+# A causa estava medida: o conversor emitia SÓ polilinha, e a escada da grade de
+# 256 chegava inteira na tela.
 #
-#   Trocar a gramática muda o desenho de 24 ícones do lançador dela. A regra da
-#   casa, dita em 08/08/2026 e paga caro quando foi ignorada, é que A FOLHA
-#   VISUAL VEM ANTES DO CÓDIGO QUE MUDA A TELA. Então nada é instalado: esta
-#   folha põe as versões na mesma linha, nos quatro fundos medidos e na lupa de
-#   200 px, e ELA decide.
+# Trocar a gramática muda o desenho de 24 ícones do lançador dela.
 #
-#   Este script NÃO INSTALA NADA, não escreve no repositório e não regenera o
-#   acervo. Ele só lê e desenha.
+# Este script NÃO INSTALA NADA, não escreve no repositório e não regenera o
+# acervo.
 #
-# SÃO DUAS FOLHAS, E A SEGUNDA NÃO APAGA A PRIMEIRA — 09/09/2026, Sprint T
-#   A folha original (`--escada`) responde "polilinha ou curva?", e a resposta
-#   já entrou: curva é o padrão desde a Sprint Q. Ela continua aqui porque
-#   `~/Documentos/meow-conversor-folha.html` ainda espera o olhar dela, e uma
-#   folha que não se regenera é uma folha que envelhece sem poder ser conferida.
-#
-#   A folha PADRÃO agora é a da FIDELIDADE, e a pergunta dela é outra: *"sinto
-#   que não tá fidedigno e a ideia é termos linhas das bordas nas nossas cores e
-#   o fundo transparente"*. A segunda metade da frase já é verdade hoje (o
-#   acervo sai `fill="none"`, `stroke="currentColor"`, sem fundo nenhum), então
-#   o que sobra é a primeira: o desenho que sai não é o desenho que entrou.
-#   Quatro colunas: o original · o traço de hoje · o traço com o peso de
-#   fronteira ligado · e o glifo Arcticons DESENHADO À MÃO quando ele existe,
-#   que é a terceira saída e a mais barata.
-#
-# POR QUE HTML STANDALONE, COM TUDO EM BASE64
-#   Regra dela, de 10/08/2026: a folha é um arquivo no disco, que abre com duplo
-#   clique, sem rede e sem conta. Cada figura vai embutida, então a folha
-#   continua valendo depois que o acervo for reconstruído por cima — que é
-#   justamente quando ela vai querer comparar o antes com o depois.
-#
-# POR QUE 48 E 200 PX, E POR QUE QUATRO FUNDOS
-#   48 px é a caixa medida da dock (cabeçalho do `icones_apps_arcticons.sh`).
-#   200 px é a lupa da oficina, que é ONDE A QUEIXA NASCEU — a 48 px a escada lê
-#   como tremida, e só na lupa ela lê como serra. Os quatro fundos são os do
-#   `folha_icones.py`: mocha, latte e os dois tons do vidro da dock. Um traço
-#   que sobrevive no mocha e some no vidro claro não está resolvido.
-#
-# A COLUNA DO POTRACE FICOU DE FORA, E ISSO É MEDIÇÃO, NÃO ESQUECIMENTO
-#   A Sprint Q previa uma quarta coluna com o `potrace` para responder com
-#   número se valeria a pena uma dependência nova. Ele não está instalado nesta
-#   máquina e o `apt` pede senha interativa (o `sudo -n -l` só libera os verbos
-#   fixos da ponte do MeowSystem e do Hefesto — nenhum instala pacote). A folha
-#   sai com três colunas em vez de travar a passagem por causa de 100 KB; se um
-#   dia o potrace entrar, esta coluna volta.
-#
-# E AGORA SÃO TRÊS — 09/09/2026, a varredura da válvula
-#   A terceira folha (`--valvula`) responde a uma pergunta que as duas
-#   primeiras não faziam: *e se cada ícone tivesse o SEU jogo de botões?* O
-#   `apps-convertidos.map` sempre teve um quarto campo para isso e ele nunca
-#   foi usado — 0 de 33 linhas. A tabela `VALVULA` abaixo é o resultado de
-#   girar a válvula pela primeira vez, e o cabeçalho dela conta a varredura.
-#
-#   As duas primeiras folhas continuam aqui porque respondem a outras
-#   perguntas, e uma folha que não se regenera é uma folha que envelhece sem
-#   poder ser conferida.
-#
-#   uso: scripts/folha_conversor.py [saida.html] [--escada|--valvula]
-#        padrão:    ~/Documentos/meow-conversor-fidelidade.html  (quatro colunas)
-#        --escada:  ~/Documentos/meow-conversor-folha.html       (a de 09/09)
-#        --valvula: ~/Documentos/meow-valvula-33.html            (a da válvula)
+# Ela continua aqui porque `~/Documentos/meow-conversor-folha.html` ainda espera
+# o olhar dela, e uma folha que não se regenera é uma folha que envelhece sem
+# poder ser conferida.
 
 import base64
 import html
@@ -82,21 +27,11 @@ CONV = os.path.join(RAIZ, "scripts", "converter_icone.py")
 MAPA = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps-convertidos.map")
 RETOQUES = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "convertidos", "retoques")
 ARCTICONS = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
-# O ACERVO É O QUE ESTÁ NA TELA DELA, E NÃO É A MESMA COISA QUE A CONVERSÃO.
-#   Medido em 09/09/2026: NOVE das 24 linhas com origem chapada têm
-#   `retoques/<nome>.svg`, e o `_desejado_de()` do `construir_convertidos.sh`
-#   copia o retoque e NEM CHAMA o conversor. Para essas nove, a coluna "o traço
-#   de hoje" desenhada a partir da origem mostra arte que ela nunca viu — o
-#   Chrome do acervo tem UM subcaminho desenhado à mão, e a conversão tem oito.
-#   Por isso a coluna lê o acervo primeiro e só converte quando não há arquivo.
+# Para essas nove, a coluna "o traço de hoje" desenhada a partir da origem
+# mostra arte que ela nunca viu — o Chrome do acervo tem UM subcaminho
+# desenhado à mão, e a conversão tem oito.
 ACERVO = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "convertidos")
 
-# A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
-# Eram três linhas repetidas em seis arquivos, e as seis terminavam no mesmo
-# literal: `assets/paleta/catppuccin.json`. A P13 mudou esse arquivo de casa (é
-# `packs/catppuccin/paleta.json`) e derrubou a isenção que o cabeçalho do
-# `meow_paleta` dava a quem é Python: `pack.py` é VIZINHO deste arquivo, e
-# `scripts/` já é o `sys.path[0]` de quem o roda — não há sys.path a atravessar.
 # A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
 import pack  # noqa: E402  — vizinho de arquivo, e o RAIZ acima precede
 
@@ -108,22 +43,21 @@ with open(_PALETA, encoding="utf-8") as fh:
 FUNDOS = [("mocha", "#1e1e2e"), ("latte", "#eff1f5"),
           ("vidro médio", "#3C3B50"), ("vidro claro", "#826E92")]
 
-# A espessura da dock desde 27/08/2026. Aqui ela é GRAVADA no arquivo (`--lw`)
-# porque a folha precisa dos pesos na tela; no acervo ela nunca é gravada, e
-# quem manda é o `TRACO` do `icones_apps_arcticons.sh`.
+# A espessura da dock. Aqui ela é GRAVADA no arquivo (`--lw`) porque a folha
+# precisa dos pesos na tela; no acervo ela nunca é gravada, e quem manda é o
+# `TRACO` do `icones_apps_arcticons.sh`.
 TRACO = "2.25"
 
-# Os cinco que foram à folha de 11/08/2026 e PERDERAM. Entram aqui de novo
-# porque a gramática mudou, e a pergunta "a curva salva algum deles?" só se
-# responde olhando. A cor é `mauve` só para eles aparecerem; nenhum está no mapa.
+# Os cinco que foram à folha e PERDERAM. Entram aqui de novo porque a gramática
+# mudou, e a pergunta "a curva salva algum deles?" só se responde olhando. A cor
+# é `mauve` só para eles aparecerem; nenhum está no mapa.
 RECUSADOS = [("firefox", "raposa orgânica — a informação está no preenchimento"),
              ("org.kde.krita", "camaleão orgânico"),
              ("thunderbird", "passarinho orgânico"),
              ("com.boxy_svg.BoxySVG", "a flor do meio virava bolha a 48 px"),
              ("btop", "fiel, e o original é o B na placa opaca de que ela reclamou")]
 
-# Os TRÊS que a medição da Sprint T marcou, e que a folha existe para decidir.
-# O texto é o veredito medido a 150 px ao lado do original, em 09/09/2026.
+# O texto é o veredito medido a 150 px ao lado do original,.
 DESTAQUE = {
     "com.brave.Browser": "FALHA hoje: o leão vira um emaranhado. É o caso que o "
                          "peso de fronteira foi escrito para resolver — a fronteira "
@@ -139,25 +73,9 @@ DESTAQUE = {
                               "traços para 4, fundindo uma fronteira de 61,6.",
 }
 
-# O GLIFO ARCTICONS DE CADA UM — E ISTO NÃO É UM MAPA, É UMA LEGENDA DE FOLHA
-#   O `apps-convertidos.map` de propósito NÃO tem campo `glifo`: lá a arte se
-#   chama pelo nome do aplicativo, 1 para 1, e inventar o campo obrigaria os dois
-#   leitores de verdade a ignorá-lo. Esta tabela vive AQUI porque é só da folha —
-#   ela responde "existe um desenhado à mão para comparar?" e some quando a folha
-#   some.
-#
-#   QUEM ESTÁ DE FORA ESTÁ DE FORA POR DECISÃO REGISTRADA, não por esquecimento;
-#   o `packs/meowsystem/PROCEDENCIA.md` (10/08/2026) mediu o índice de 15.300 nomes
-#   do Arcticons e a regra dela é a de 10/08: genérico honesto pode, MARCA ALHEIA
-#   não. Então:
-#     · BleachBit  — `ccleaner` é outro programa; o `cleaner` do acervo não foi
-#       escolhido para ele, e escolher aqui seria decidir por ela;
-#     · ProtonUp-Qt — `proton` é a Proton AG (e-mail e VPN), mentiria;
-#     · qBittorrent — `libretorrent` é um app específico, não um genérico;
-#     · Warehouse, Apostrophe, Gradia — zero no índice;
-#     · GIMP — medido em 09/09/2026: o acervo remoto não tem `gimp` (404). Para
-#       ele NÃO EXISTE saída pelo desenho à mão, e é por isso que a boca do
-#       Wilber é a única pergunta do conversor que não tem plano B.
+# O `apps-convertidos.map` de propósito NÃO tem campo `glifo`: lá a arte se
+# chama pelo nome do aplicativo, 1 para 1, e inventar o campo obrigaria os dois
+# leitores de verdade a ignorá-lo.
 GLIFO = {
     "com.brave.Browser": "brave",
     "google-chrome": "google-chrome",
@@ -186,49 +104,14 @@ GLIFO = {
     "com.system76.CosmicPlayer": "player",
 }
 
-# ============================================================================
-# A VÁLVULA — o quarto campo do mapa, varrido pela primeira vez em 09/09/2026
-# ============================================================================
+# A VÁLVULA — o quarto campo do mapa, varrido pela primeira vez
 #
 # O `apps-convertidos.map` sempre teve quatro campos, e o quarto — `parametros`
-# — nunca foi usado: 0 de 33 linhas. O cabeçalho do `construir_convertidos.sh`
-# o descreve como "a válvula para o caso raro em que um ícone pede `--k 8`".
-# Esta tabela é o resultado de girar a válvula.
+# — nunca foi usado: 0 de 33 linhas.
 #
-# A VARREDURA, E O QUE ELA CUSTOU
-#   Grade: `--k` ∈ {4, 6, 8, 10, 12} × `--funde` ∈ {12, 25, 35, 46, 60} ×
-#   `--peso-fronteira` ∈ {desligado, 70} = 50 jogos por ícone, sobre as 24
-#   origens do mapa mais os 5 recusados de 11/08. 1.450 conversões, 2 min 54 s
-#   de relógio em quatro processos. Uma conversão custa 0,28 s — a grade larga
-#   saiu mais barata do que decidir qual estreitar.
-#
-# COMO OS CANDIDATOS FORAM ESCOLHIDOS, E A ARMADILHA QUE ISSO EVITA
-#   As réguas (subcaminhos, tinta, sobreposição) NÃO separam "fiel" de "falha"
-#   entre ícones diferentes, e isso já está medido no cabeçalho do conversor: a
-#   Calculadora é fiel com 10 traços e o Brave falha com 10. Aqui elas fazem
-#   OUTRA pergunta, que é legítima: *entre os 50 jogos da MESMA arte de origem,
-#   qual preserva mais fronteira interna com menos traço em cima de traço?*
-#   Nenhum número desta tabela compara um ícone com outro.
-#
-#   Peneira, na ordem: (1) não inventar linha — a precisão do traço contra as
-#   fronteiras da própria origem não pode cair; (2) não perder estrutura — a
-#   fração de fronteira interna coberta não pode cair; (3) ganhar alguma coisa
-#   — mais estrutura, ou menos sobreposição. Quem não passa de (3) não entra, e
-#   "o padrão ganha" é o resultado de 15 dos 29.
-#
-# E O ÚLTIMO PASSO NÃO É NÚMERO: É OLHAR A 48 PX
-#   O Thunderbird provou por que. Em pixel, `--k 8` PIORA a revocação global
-#   (76,8% → 89,1% só depois de contar por fronteira; contando por área ele
-#   parecia pior). Olhadas as duas a 48 px, é o `--k 8` que traz de volta a aba
-#   do envelope, e o padrão devolve um círculo liso. Feição pequena que carrega
-#   identidade não aparece numa conta de área — o mesmo motivo pelo qual o
-#   `quantizar()` do conversor prefere histograma a k-means.
-#     No Foliate o olho INVERTEU a ordem da medição: `--k 8 --funde 12` cobre
-#   99,8% das fronteiras internas contra 85,8% do outro, e mesmo assim a 48 px
-#   ele empasta — as nervuras da folha viram hachura. O primeiro candidato é o
-#   que lê na caixa da dock, não o que ganha na planilha.
-#
-# `hoje` é a medição do PADRÃO (nenhum parâmetro), sempre.
+# Grade: `--k` ∈ {4, 6, 8, 10, 12} × `--funde` ∈ {12, 25, 35, 46, 60} ×
+# `--peso-fronteira` ∈ {desligado, 70} = 50 jogos por ícone, sobre as 24
+# origens do mapa mais os 5 recusados.
 VALVULA = {
     # ---- os que a medição e o olho concordam em propor -------------------
     "com.github.johnfactotum.Foliate": {
@@ -250,17 +133,8 @@ VALVULA = {
                     "das fronteiras internas do desenho e inventa linha (precisão "
                     "60%). É o pior número de fidelidade dos 29 medidos.",
     },
-    # A CHAVE JÁ EXISTIA, E A VÁLVULA É O QUE A TORNA USÁVEL — 09/09/2026
-    #   Medido: `--peso-fronteira` SOZINHO muda exatamente QUATRO das 15 linhas
-    #   que a válvula alcança (OnlyOffice, Brave, Discord, BleachBit) e deixa as
-    #   outras onze byte a byte iguais. Nessas quatro ele chega a menos de 1
-    #   ponto do melhor jogo de dois parâmetros que a grade de 50 achou.
-    #   Então o candidato 1 delas é a chave que a Sprint T já escreveu e que o
-    #   `tests/conversor.sh` já guarda — não um jogo novo. O que a válvula
-    #   acrescenta não é o botão: é poder LIGÁ-LO EM QUATRO ÍCONES sem ligá-lo
-    #   nos outros, que é justamente por que ele nasceu desligado.
-    #   `--peso-fronteira` sem número usa o vale medido (LIMIAR_FRACA = 70) —
-    #   conferido: a saída é byte a byte a de `--peso-fronteira 70`.
+    # Nessas quatro ele chega a menos de 1 ponto do melhor jogo de dois
+    # parâmetros que a grade de 50 achou.
     "com.brave.Browser": {
         "hoje": "10 traços · 366 de comprimento · 29,5% de tinta · 17,5% sobreposto "
                 "· 99,0% das fronteiras internas · precisão 100,0%",
@@ -530,7 +404,7 @@ VALVULA = {
                 "· 85,4% das fronteiras internas · precisão 100,0%",
         "cands": [], "veredito": "o padrão ganha.",
     },
-    # ---- os cinco recusados de 11/08, fora do mapa -----------------------
+    # ---- os cinco recusados, fora do mapa -----------------------
     "thunderbird": {
         "hoje": "7 traços · 332 de comprimento · 27,9% de tinta · 11,4% sobreposto "
                 "· 76,8% das fronteiras internas · precisão 100,0%",
@@ -787,11 +661,9 @@ def linha_de(nome, origem, cor, extra, colunas, motivo=""):
             except OSError as e:
                 celulas.append('<td class="vazia">%s</td>' % html.escape(str(e)[:80]))
             continue
-        # O QUE ESTÁ NA TELA DELA, E NÃO O QUE O CONVERSOR DEVOLVERIA HOJE.
-        #   Para nove dos 24, `convertidos-apps/<nome>.svg` é a CÓPIA de um
-        #   retoque à mão, não a conversão — o `_desejado_de()` copia o retoque
-        #   e nem chama o conversor. Desenhar a conversão nesta coluna e chamar
-        #   de "hoje" mostraria a ela arte que ela nunca viu.
+        # Para nove dos 24, `convertidos-apps/<nome>.svg` é a CÓPIA de um
+        # retoque à mão, não a conversão — o `_desejado_de()` copia o retoque e
+        # nem chama o conversor.
         if receita == "acervo":
             arq = os.path.join(ACERVO, nome + ".svg")
             hoje = dados.get("hoje", "")
@@ -806,24 +678,16 @@ def linha_de(nome, origem, cor, extra, colunas, motivo=""):
                 texto = fh.read()
             if os.path.exists(os.path.join(RETOQUES, nome + ".svg")):
                 # A FIGURA É O RETOQUE E OS NÚMEROS SÃO DA CONVERSÃO — dizer
-                # isso é obrigatório. Pôr a medição da conversão embaixo de um
-                # desenho feito à mão faria a folha mentir sobre a única coisa
-                # que ela existe para mostrar.
+                # isso é obrigatório.
                 params = "(desenho à mão — o conversor nem chega a ser chamado)"
                 medida = "%d subcaminho(s), desenhados à mão" % texto.count("<path")
                 marca = ("convertidos-apps/%s.svg é um RETOQUE À MÃO. As duas "
                          "colunas ao lado mostram o que a CONVERSÃO faria se "
                          "ele não existisse; hoje ela daria %s" % (nome, hoje))
             else:
-                # O ACERVO É PRÉ-SPRINT-Q, E ISSO PRECISA ESTAR ESCRITO.
-                #   Medido em 09/09/2026 nos 15: a 48 px o arquivo do acervo e
-                #   a conversão de hoje são IDÊNTICOS pixel a pixel (0 de
-                #   2.304); a 200 px diferem de 141 a 508 de 40.000. A
-                #   diferença é a escada que a Sprint Q tirou e que o acervo
-                #   ainda não recebeu — `chk_convertidos` acusa os 15 como
-                #   "desatualizados" de propósito, esperando o sim dela. Sem
-                #   esta frase, ela olharia a lupa e daria à VÁLVULA um ganho
-                #   que é da troca de gramática.
+                # Medido nos 15: a 48 px o arquivo do acervo e a conversão de
+                # hoje são IDÊNTICOS pixel a pixel (0 de 2.304); a 200 px
+                # diferem de 141 a 508 de 40.000.
                 params = "(padrão — nenhum parâmetro)"
                 medida = hoje
                 marca = ("convertidos-apps/%s.svg — a 48 px é idêntico, pixel "
@@ -879,10 +743,6 @@ def cabecalho(colunas, extra_th=0):
             + "<th></th>" * extra_th + "</tr>")
 
 
-# ============================================================================
-# A FOLHA DA VÁLVULA
-# ============================================================================
-#
 # A ORDEM DAS SEÇÕES É A ORDEM DA DECISÃO DELA, e não a do mapa: primeiro os
 # seis em que a válvula MUDA o que se vê, porque são os únicos que pedem
 # escolha; depois os que mudam só a quantidade de tinta empilhada; depois os

@@ -4,83 +4,11 @@
 #   ./jogos_heroic.sh              escreve, limpa e converge
 #   ./jogos_heroic.sh --conferir   não escreve nem apaga; 1 se algo divergir
 #
-# POR QUE ISTO EXISTE
-#   Queixa dela, 10/09/2026: "os jogos instalados pelo heroic launcher não
-#   aparecem nos .desktop da interface". Medido no mesmo dia, e a causa é a
-#   mesma da Steam com outro nome: o Heroic SÓ escreve `.desktop` de jogo quando
-#   alguém liga a chave, e ela está desligada —
-#       addDesktopShortcuts=false · addStartMenuShortcuts=false
-#   em `config.json` (a lista de `heroic/config.json` desta máquina). Nenhum
-#   `.desktop` do Heroic existia em `~/.local/share/applications` nem no
-#   `~/.var/app/.../data/applications`: `grep -ril heroic` nos dois devolveu
-#   vazio. Ou seja: não é atalho que se perdeu, é atalho que nunca foi escrito.
-#
-#   Ligar as duas chaves DELE seria o contorno óbvio e é o errado: o Heroic só
-#   escreve o atalho no momento da instalação (`addShortcuts` é chamado no fim do
-#   download), então os jogos JÁ instalados continuariam de fora, e o arquivo
-#   ficaria sem dono conhecido — sem a nossa marca, sem escada de ícone e sem
-#   limpeza quando o jogo sair. Aqui a fonte é a biblioteca do próprio Heroic,
-#   relida a cada passagem, como o `jogos_steam.sh` faz com o `appmanifest`.
-#
-# A FONTE DE VERDADE SÃO DOIS ARQUIVOS, E ELES SE CONFIRMAM
-#   1. `store_cache/<runner>_library.json` — a biblioteca que o Heroic guarda
-#      para desenhar a própria tela. É um formato SÓ para os quatro runners
-#      (`app_name`, `title`, `runner`, `is_installed`, `install.is_dlc`,
-#      `art_square`), e é o mesmo objeto que o Heroic passa para a rotina que
-#      escreve os atalhos dele (`addShortcuts(gameInfo)`, lido no `app.asar`
-#      2.22.1). Daqui saem título e arte.
-#   2. `<runner>Config/.../installed.json` — o que o backend (legendary, gogdl,
-#      nile) escreve ao instalar e apaga ao desinstalar. Daqui sai o "está no
-#      disco".
-#   Um jogo entra no lançador quando os DOIS concordam. O cache sozinho não
-#   basta: ele é reescrito pelo frontend e pode dizer `is_installed` de um jogo
-#   que saiu. O `installed.json` sozinho também não: ele não tem a arte, e no
-#   gog/nile nem o título. Quando o `installed.json` do runner não existe ou não
-#   é legível, vale o cache — é o caso dos jogos `sideload`, que não têm backend.
-#
-# O DLC NÃO É JOGO — E O HEROIC PENSA IGUAL
-#   `install.is_dlc` sai do próprio `app.asar`: `addShortcuts` começa com
-#   `if (gameInfo.install.is_dlc) return`. Nesta máquina são dois registros
-#   `is_installed` para um jogo só — Marvel's Guardians of the Galaxy e a roupa
-#   Social-Lord, 327 KiB, que não abre nada. Sem esta linha o lançador ganharia
-#   um cartão que não é um jogo.
-#
-# O `Exec` É O DO PRÓPRIO HEROIC, COM AS ASPAS QUE FALTAM NELE
-#   O modelo do upstream (mesma função do `app.asar`) é
-#       Exec=xdg-open heroic://launch?appName=<app>&runner=<runner>
-#   e o handler `x-scheme-handler/heroic` está registrado nesta máquina —
-#   `xdg-mime query default x-scheme-handler/heroic` devolve
-#   `com.heroicgameslauncher.hgl.desktop`, medido em 10/09/2026. As aspas são
-#   nossas: `&`, `?` e `$` são caracteres RESERVADOS no campo `Exec` da
-#   especificação, e sem aspas o `desktop-file-validate` reclama.
-#
-#   Nada de `flatpak run …` cravado: o Heroic também existe como deb e AppImage,
-#   e o URI resolve nos três. É a mesma escolha do `jogos_steam.sh` ao recusar o
-#   wrapper do Ritual da Aurora — só que aqui o caminho estável é o protocolo, e
-#   não o binário.
-#
-# UM CARTÃO POR JOGO, E O RIVAL AQUI É O PRÓPRIO HEROIC
-#   Se ela ligar "criar atalho" na interface dele, o arquivo nasce com o NOME DO
-#   JOGO (`shortcutFiles()` no `app.asar`: `${sanitize(title)}.desktop`) — nome
-#   livre, com espaço e acento, que nenhum glob descreve. É o `Future Knight` de
-#   09/09/2026 outra vez. Por isso a limpeza pergunta pelo CONTEÚDO: para qual
-#   `appName` este cartão aponta, e ele tem a nossa assinatura?
-#
-# O ÍCONE É A CAPA, E ELA JÁ ESTÁ NO DISCO
-#   Nada de tematizar (a mesma decisão dos jogos da Steam: capa repintada vira
-#   um monte de ícone igual). E nada de baixar: um script que o `meow doctor`
-#   chama às 5h não vai à rede. As três fontes locais, medidas em 10/09/2026:
-#     1. `icons/<app_name>.jpg|.png` — a arte alta que o próprio Heroic baixa
-#        (1200x1600 no jogo desta máquina);
-#     2. o `.ico`/`support/icon.png` de dentro da pasta do jogo, no GOG — é o
-#        que o `getIcon` do Heroic prefere para esse runner;
-#     3. `images-cache/<sha256 da URL da arte>` — o cache do frontend. A conta é
-#        `sha256(art_square + "?h=400&resize=1&w=300")`, lida no `app.asar`
-#        (`getImageFromCache`) e conferida contra o disco: 31 dos 33 arquivos do
-#        cache desta máquina foram identificados por ela. São 300x400, de sobra
-#        para a escada, que aqui termina em 96.
-#   Sem nenhuma das três, o cartão usa o ícone do Heroic — que é honesto ("é um
-#   jogo do Heroic") e nunca um borrão.
+# Ligar as duas chaves DELE seria o contorno óbvio e é o errado: o Heroic só
+# escreve o atalho no momento da instalação (`addShortcuts` é chamado no fim do
+# download), então os jogos JÁ instalados continuariam de fora, e o arquivo
+# ficaria sem dono conhecido — sem a nossa marca, sem escada de ícone e sem
+# limpeza quando o jogo sair.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -90,9 +18,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/icones.sh"
 # O encurtamento do rótulo: as chaves do `assets/icones/apps-nomes.map` para os
 # jogos daqui são `heroic-<runner>-<app_name>`, o mesmo id do arquivo sem o
-# prefixo `meow-`. (Na Steam a chave é `steam-<appid>` e o arquivo é
-# `meow-steam-<appid>` — divergência histórica que lá é documentada e que não se
-# repete aqui.)
+# prefixo `meow-`.
 . "$RAIZ/scripts/nomes_apps.sh"
 
 APPS="$HOME/.local/share/applications"
@@ -100,10 +26,6 @@ HICOLOR="$HOME/.local/share/icons/hicolor"
 ICONE_PADRAO="com.heroicgameslauncher.hgl"
 
 # --- o mesmo verbo dos outros módulos, e a mesma armadilha do seco ------------
-# `MEOW_SECO` é congelado no `source` do `lib/comum.sh` (comum.sh:25), então
-# definir `MEOW_DRY_RUN` aqui embaixo chegaria tarde e o `--conferir` APAGARIA
-# arquivo dizendo que era conferência. Foi medido no irmão da Steam, em
-# 02/09/2026, apagando o cartão do Stray de verdade.
 case "${1:-}" in
   --conferir) MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
   ''|--aplicar) ;;
@@ -117,9 +39,7 @@ meow_tem python3 || {
 
 # --- ONDE O HEROIC GUARDA A CONFIGURAÇÃO -------------------------------------
 # Flatpak primeiro porque é o desta máquina (`flatpak list` -> Heroic v2.22.1,
-# instalação `user`). O caminho nativo cobre o deb e o AppImage, que usam o
-# `~/.config/heroic` de sempre. `HEROIC_CONF` no ambiente vence os dois — é o
-# que o teste usa.
+# instalação `user`).
 heroic_conf() {
   local c
   for c in "${HEROIC_CONF:-}" \
@@ -142,9 +62,7 @@ CONF="$(heroic_conf)" || {
 #
 # É Python porque a entrada é JSON aninhado — e a mesma razão do `_areas_motor`
 # do `areas.sh`: montar isto com `grep` e `sed` é escrever um leitor de JSON
-# errado. Sai 0 com zero linha quando não há jogo instalado, e 2 quando não
-# CONSEGUIU ler — a diferença importa, porque o segundo caso ADIA a limpeza (não
-# saber quais jogos existem não é o mesmo que saber que não existe nenhum).
+# errado.
 _heroic_motor() {
   python3 -I - "$CONF" <<'PY'
 import hashlib
@@ -297,11 +215,9 @@ PY
 }
 
 # --- o id do arquivo ---------------------------------------------------------
-# `meow-heroic-<runner>-<app_name>`. O `app_name` do Epic é um hash, o do GOG um
-# número e o do sideload um uuid — mas o do sideload é escolhido pelo Heroic a
-# partir do nome que ELA digitou, então pode trazer qualquer coisa. Tudo que não
-# for `[A-Za-z0-9._-]` vira `_`, e o runner entra no nome porque dois runners
-# podem repetir um mesmo `app_name` sem se conhecerem.
+# O `app_name` do Epic é um hash, o do GOG um número e o do sideload um uuid —
+# mas o do sideload é escolhido pelo Heroic a partir do nome que ELA digitou,
+# então pode trazer qualquer coisa.
 id_do_jogo() {
   local runner="$1" app="$2"
   printf 'meow-heroic-%s-%s' "$(printf '%s' "$runner" | tr -c 'A-Za-z0-9._-' '_')" \
@@ -319,10 +235,6 @@ loja_do_runner() {
 }
 
 # 0 = já está certo · 1 = não deu (sem convert, sem arte) · 2 = mudou / mudaria.
-# É o `plantar_icone` do `jogos_steam.sh`, com o mesmo `-strip` +
-# `exclude-chunk=tIME` que torna a saída byte-idêntica entre duas rodadas (sem
-# ele o carimbo de tempo dentro do PNG faz o doctor acusar divergência eterna) e
-# a mesma proporção de 96% da caixa em TODO degrau da escada.
 plantar_icone() {
   local id="$1" fonte="$2" destino dir tmp px lado mudou_algum=0
   meow_tem convert || return 1
@@ -366,10 +278,7 @@ EOF_ESCADA
 
 biblioteca="$(_heroic_motor)"; rc_motor=$?
 if [ "$rc_motor" = "2" ]; then
-  # Não conseguimos LER a biblioteca. Escrever nada e apagar nada é o único
-  # comportamento honesto: a ausência de um jogo aqui seria falsa, e a limpeza
-  # tiraria da tela dela cartões de jogos que continuam instalados. É o mesmo
-  # adiamento que o irmão da Steam faz com a biblioteca desmontada.
+  # Não conseguimos LER a biblioteca.
   meow_aviso "não consegui ler a biblioteca do Heroic em $CONF — nada escrito, limpeza adiada"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
@@ -423,8 +332,7 @@ EOF_BIBLIOTECA
 # --- 2. limpeza: o que existe no destino e não deveria mais existir -----------
 # Só apaga com PROVA DE AUTORIA: a marca `X-MeowSystem=jogo-heroic` no corpo, ou
 # — para o cartão que não é nosso — o `appName` do `Exec` casando com um jogo
-# para o qual ACABAMOS de escrever o substituto. Nunca por prefixo de nome
-# sozinho: um `.desktop` que ela escreveu à mão não é órfão de ninguém.
+# para o qual ACABAMOS de escrever o substituto.
 
 removidos=0; duplicatas=0; degraus_removidos=0
 
@@ -464,21 +372,7 @@ done
 
 # --- O CARTÃO QUE O PRÓPRIO HEROIC ESCREVE -----------------------------------
 # Ele nasce com o NOME DO JOGO no arquivo (`sanitize(title) + ".desktop"`), sem
-# prefixo nem sufixo: `Marvel's Guardians of the Galaxy.desktop`. Nome livre,
-# como o `Future Knight.desktop` da Steam em 09/09/2026 — nenhum glob o
-# descreve, então a pergunta é sobre o conteúdo.
-#
-# AS TRÊS CONDIÇÕES, TODAS JUNTAS
-#   a) o `Exec=` carrega `heroic://launch` com um `appName` — e o app sai DALI,
-#      nunca do nome do arquivo. As duas formas do URI são aceitas: a de hoje
-#      (`?appName=<app>&runner=<runner>`) e a antiga (`/launch/<app>`), porque um
-#      atalho escrito por uma versão velha do Heroic continua no disco;
-#   b) o arquivo NÃO traz a nossa assinatura;
-#   c) esse mesmo jogo está em `vivos`, isto é, acabamos de escrever o cartão
-#      dele. É a promessa que não se toca: nunca tirar um cartão sem deixar
-#      substituto, senão o jogo SOME da tela dela.
-#
-# BACKUP ANTES, PORQUE O ARQUIVO NÃO É NOSSO, e a remoção é ANUNCIADA.
+# prefixo nem sufixo: `Marvel's Guardians of the Galaxy.desktop`.
 bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-duplicatas"
 for f in "$APPS"/*.desktop; do
   [ -e "$f" ] || continue
@@ -542,10 +436,9 @@ meow_tem update-desktop-database && update-desktop-database "$APPS" 2>/dev/null 
 # COSMIC enxerga sem isto; o painel DELA, que resolve ícone por PyGObject, não.
 meow_hicolor_reindexar
 
-# O `cosmic-app-library` e o `cosmic-launcher` resolvem os `.desktop` no arranque
-# e guardam: sem chacoalhá-los, o arquivo está no disco e o cartão não está na
-# tela. Só aqui, depois do `meow_seco` — a função fecha a grade se ela estiver
-# aberta, e este é o único ponto onde já se sabe que algo mudou de verdade.
+# O `cosmic-app-library` e o `cosmic-launcher` resolvem os `.desktop` no
+# arranque e guardam: sem chacoalhá-los, o arquivo está no disco e o cartão não
+# está na tela.
 meow_lancador_reler
 
 [ "$escritos" -gt 0 ] && meow_ok "$escritos jogo(s) do Heroic no lançador (capa do jogo, como os da Steam)"

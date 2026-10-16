@@ -1,21 +1,15 @@
 #!/usr/bin/env bash
 # aplicar_apps.sh — roda os módulos de tema por aplicativo, um a um.
 #
-# CADA APP É UMA UNIDADE QUE PODE FALHAR SOZINHA (regra 8 do contrato)
-#   Um módulo devolve 0 (nada a fazer), 1 (aplicou), 2 (erro) ou 3 (app ausente).
-#   Nenhum deles pode derrubar os outros nem o `install.sh`: por isso são
-#   carregados com `source` num SUBSHELL, e por isso o contrato proíbe `exit`
-#   dentro deles — um `exit` num módulo mataria o instalador inteiro.
+# Um módulo devolve 0 (nada a fazer), 1 (aplicou), 2 (erro) ou 3 (app ausente).
+# Nenhum deles pode derrubar os outros nem o `install.sh`: por isso são
+# carregados com `source` num SUBSHELL, e por isso o contrato proíbe `exit`
+# dentro deles — um `exit` num módulo mataria o instalador inteiro.
 #
-# POR QUE SUBSHELL, E NÃO `source` DIRETO
-#   Os módulos definem as mesmas três funções com os mesmos nomes. Carregados no
-#   mesmo shell, o segundo sobrescreveria o primeiro e o terceiro rodaria com
-#   pedaços do segundo. O subshell também garante que uma variável esquecida por
-#   um módulo não vaze para o seguinte.
+# Os módulos definem as mesmas três funções com os mesmos nomes.
 #
-# APP AUSENTE NÃO É ERRO
-#   É "pendente". No dia em que ela instalar o app, o próximo ciclo o tematiza
-#   sozinho — e é isso que faz o `doctor --consertar` valer a pena.
+# No dia em que ela instalar o app, o próximo ciclo o tematiza sozinho — e é
+# isso que faz o `doctor --consertar` valer a pena.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -29,12 +23,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # `rodar_modulo`, onde ele é opcional por módulo.
 #
 # `tabela` existe para o `meow apps` não precisar de uma SEGUNDA cópia do
-# `pasta_de` e do `rodar_modulo`. Ele imprime TSV cru — uma linha por módulo,
-# `pasta<TAB>slugs<TAB>rc_instalado<TAB>rc_conferir<TAB>motivo` (a terceira era
-# o `rc_detectar` até 24/09/2026, P49; o motivo do 3 entrou em 25/09, P62) — e
-# quem pinta a tabela é a CLI. Duas
-# listas de slug-para-pasta em arquivos diferentes é como se ganha uma tabela
-# que mente sobre um app três meses depois.
+# `pasta_de` e do `rodar_modulo`.
 ACAO="${1:-aplicar}"
 APPS="${APPS_ATIVOS:-}"
 
@@ -58,31 +47,12 @@ rodar_modulo() {
   (
     # shellcheck disable=SC1090
     . "$mod" || exit 2
-    # AÇÃO DESCONHECIDA NÃO PODE CAIR EM `aplicar` — E CAÍA, ATÉ 08/08/2026.
-    #   O `*)` daqui mandava qualquer coisa para `meow_app_aplicar`: um erro de
-    #   digitação (`conferrir`) ESCREVIA, em vez de dizer que não existe. Num
-    #   projeto cujo modo de auditar é `--conferir`, essa é a pior letra a
-    #   errar. Agora `aplicar` é explícito e o resto é erro de execução.
+    # O `*)` daqui mandava qualquer coisa para `meow_app_aplicar`: um erro de
+    # digitação (`conferrir`) ESCREVIA, em vez de dizer que não existe.
     case "$acao" in
       detectar)        meow_app_detectar ;;
       conferir)        meow_app_conferir ;;
       aplicar)         meow_app_aplicar ;;
-      # QUARTO VERBO. Desde 11/08/2026 os SETE módulos sabem desfazer — antes
-      # era só o `spotify` (que chama `spicetify restore` e devolve o `xpui.spa`
-      # de fábrica byte a byte: sha256 5ec1901f…, o mesmo do backup guardado).
-      #
-      # O QUE MUDOU, E POR QUE O VERBO CONTINUA OPCIONAL
-      #   O `install.sh --uninstall` passou a chamar `reverter` (passo 2/6 de
-      #   lib/desinstalar.sh). Enquanto seis módulos não sabiam desfazer, o
-      #   desinstalador só levava embora o que passava pela `meow_escrever`, e o
-      #   Spotify, o ZapZap e os toolkits ficavam tematizados para sempre.
-      #   O `declare -F` fica: um módulo NOVO nasce sem o verbo, e é melhor que
-      #   ele diga "não sei desfazer" em voz alta a que alguém precise
-      #   implementar a reversão antes de poder escrever o `aplicar`.
-      #
-      # NENHUM DELES FINGE. Onde a volta exata não existe — o tema que ela usava
-      # no VS Code antes, o `.desktop` de um flatpak sem original guardado — o
-      # módulo repõe o padrão de FÁBRICA e diz na tela que foi isso que fez.
       reverter)
         if declare -F meow_app_reverter >/dev/null; then
           meow_app_reverter
@@ -90,20 +60,8 @@ rodar_modulo() {
           meow_pula "o módulo '$pasta' não sabe desfazer"
           exit "$MEOW_SEM_DEPENDENCIA"
         fi ;;
-      # QUINTO VERBO: O PROGRAMA ESTÁ NESTA MÁQUINA? — 24/09/2026, P49
-      #   0 = está, 1 = não está. Só isso: não é "dá para vestir" (quem responde
-      #   isso é o `detectar`, e com o motivo). Medido na validação do painel de
-      #   verdade (achado 45): a tabela do `meow apps` disse qBittorrent e
-      #   Discord «não instalado», e os dois estavam (flatpak do usuário, com o
-      #   diretório em ~/.local/share/flatpak/app). A tabela lia o código do
-      #   `detectar` como se fosse "instalado", e o `detectar` sai 3 por
-      #   qualquer coisa que impeça de vestir: o Discord sem cliente modificado,
-      #   o qBittorrent já vestido por um tema que não veio daqui. Duas regras
-      #   de "instalado", e a da tabela mentia.
-      #   Agora é UMA: cada módulo diz a dele em `meow_app_instalado`, o
-      #   `detectar` dele abre com ela, e a tabela pergunta a mesma função. O
-      #   `tests/reversao.sh` cobra que todo módulo a tenha, como cobra o
-      #   `reverter` — sem ela a coluna não teria como não mentir.
+      # 0 = está, 1 = não está. Só isso: não é "dá para vestir" (quem responde
+      # isso é o `detectar`, e com o motivo).
       instalado)
         if declare -F meow_app_instalado >/dev/null; then
           meow_app_instalado
@@ -111,16 +69,6 @@ rodar_modulo() {
           meow_erro "o módulo '$pasta' não diz se o programa está instalado"
           exit 2
         fi ;;
-      # SEXTO VERBO, SÓ DA TABELA: O MOTIVO DO `detectar` — 25/09/2026, revisão da P62
-      #   Quase todo `conferir` sai 3 CALADO quando o `detectar` barra — o
-      #   `meow_app_detectar || return 3` do Discord, do kitty, do OnlyOffice, do
-      #   Spotify… —, e o motivo que o `meow_app_sem` guardou morre com o
-      #   subshell. A tabela pergunta aqui, e só quando o `conferir` não deu linha
-      #   `--` nenhuma: o que o `detectar` diz nessa linha (os módulos de antes do
-      #   contrato, como o Heroic que nunca abriu) ou o MEOW_APP_MOTIVO dos do
-      #   contrato, dito pela porta dele (`meow_app_pendente`, lib/comum.sh). Sem
-      #   nenhum dos dois não sai linha: o qBittorrent vestido por fora diz o dele
-      #   por `!!` e `>>`, e a tabela não traduz aviso em motivo.
       motivo)
         meow_app_detectar 2>/dev/null && exit "$MEOW_OK"
         [ -n "$MEOW_APP_MOTIVO" ] && meow_app_pendente "$pasta"
@@ -134,19 +82,11 @@ rodar_modulo() {
 # Sai antes do laço normal porque a saída é para ser lida por outro programa:
 # uma linha de log misturada no TSV viraria uma coluna fantasma na tela dela.
 if [ "$ACAO" = "tabela" ]; then
-  # A TABELA É LEITURA, E LEITURA NÃO PODE ESCREVER — 22/09/2026
-  #   O painel oferece esta saída como "Quais programas estão vestidos", com
-  #   `escreve: False` na tabela `ACOES` (app/servidor.py). Desde a sprint P2 o
-  #   `meow_app_detectar` de alguns módulos REGISTRA pendência, e pendência é
-  #   arquivo em `$MEOW_ESTADO`: medido nesta máquina, um `aplicar_apps.sh
-  #   tabela` criava `~/.local/state/meowsystem/pendencias.tsv` do nada. O
-  #   botão mentia, e a mentira era do tipo que a P3 persegue.
+  # O painel oferece esta saída como "Quais programas estão vestidos", com
+  # `escreve: False` na tabela `ACOES` (app/servidor.py).
   #
-  #   O conserto NÃO é tirar o registro do `detectar` — ele está certo onde
-  #   está, e é o que faz a Home saber do problema numa passagem de verdade. É
-  #   mandar o estado desta passagem para um descartável: aqui ninguém está
-  #   consertando nada, está lendo uma coluna. Mesma classe do `flatpak info` e
-  #   do `gsettings get` que já sujaram HOME virgem neste projeto.
+  # O conserto NÃO é tirar o registro do `detectar` — ele está certo onde está,
+  # e é o que faz a Home saber do problema numa passagem de verdade.
   MEOW_ESTADO="$(mktemp -d -p "${TMPDIR:-/tmp}" .meow-tabela.XXXXXX)" || exit "$MEOW_ERRO"
   export MEOW_ESTADO
   trap 'rm -rf "$MEOW_ESTADO"' EXIT

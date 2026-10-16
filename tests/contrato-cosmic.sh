@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
 # contrato-cosmic.sh — os escritores seguem o esquema do pacote? (P76)
-#
-# `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.4: "um `/usr/share/cosmic` falso
-# com `v2` e verificar que todo escritor grava em `v2`". O `/usr/share/cosmic`
-# de brinquedo (`MEOW_COSMIC_SISTEMA`) traz `v1` e `v2`; o COSMIC de brinquedo
-# do usuário só conhece o `v2`. Depois de cada escritor:
-#   - a chave dele está no `v2`;
-#   - nenhum `v1` nasceu em namespace nenhum (a pasta morta que o `v1` cravado
-#     criava).
-# E o pré-voo da instalação: `v1 v2 v3` no tema deixou de passar verde.
-# HOME e COSMIC de brinquedo; nada de sudo nem de sessão.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -49,9 +39,9 @@ grep -q '0.8' "$C/com.system76.CosmicPanel.Panel/v2/opacity" && ok "vidro.sh: op
 FORMA_RAIO_PAINEL=8 FORMA_MARGEM_PAINEL=4 "$RAIZ/scripts/forma.sh" aplicar >/dev/null 2>&1
 [ -f "$C/com.system76.CosmicPanel.Panel/v2/expand_to_edges" ] && ok "forma.sh: expand_to_edges no v2" || falha "forma.sh não gravou no v2"
 
-# OS OUTROS TRÊS — 15/10/2026, P82 (item 17). O contrato cobria 5 dos 8
-# escritores: faltavam o `areas.sh`, o `wallpaper.sh` e a fronteira do
-# `aplicar_tema.sh`. E o `janelas.sh estado` lia o `gaps` do `v1` cravado.
+# OS OUTROS TRÊS. O contrato cobria 5 dos 8 escritores: faltavam o
+# `areas.sh`, o `wallpaper.sh` e a fronteira do `aplicar_tema.sh`. E o
+# `janelas.sh estado` lia o `gaps` do `v1` cravado.
 mkdir -p "$T/bin"
 printf '#!/bin/sh\nprintf "eDP-1 (enabled)\\n  Xwayland primary: true\\n"\n' > "$T/bin/cosmic-randr"
 chmod 755 "$T/bin/cosmic-randr"

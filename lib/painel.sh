@@ -1,20 +1,7 @@
 #!/usr/bin/env bash
 # lib/painel.sh — o teto do raio, as sondas do compositor e o ambiente do painel.
 #
-# ============================================================================
-# POR QUE ESTE ARQUIVO EXISTE
-# ============================================================================
-#   Havia TRÊS tetos de raio contraditórios no projeto, e nenhum derivado:
-#     - `scripts/forma.sh` cravava 8 (Panel) e 16 (Dock);
-#     - o `meow.conf` comentava "20 é o teto do painel" e "28 é o do dock";
-#     - e a medição de 26/08/2026 diz 22 e 32.
-#   Três números para a mesma pergunta é o mesmo que nenhum. Aqui existe UM,
-#   e ele é calculado, com a citação da fonte dentro da função.
-#
-# ============================================================================
-# A CONTA, E DE ONDE SAI CADA PARCELA
-# ============================================================================
-#   A altura da barra NÃO é o tamanho do ícone. A cadeia é:
+# A altura da barra NÃO é o tamanho do ícone.
 #
 #   1. cada applet dimensiona a própria janela:
 #        altura_applet = get_applet_icon_size + 2 * get_applet_padding
@@ -22,51 +9,12 @@
 #       libcosmic/src/applet/mod.rs:141-158, `suggested_window_size`).
 #      Simbólico e não-simbólico dão o mesmo total nos cinco tamanhos:
 #
-#        XS = 32   S = 40   M = 56   L = 64   XL = 80     (unidades lógicas)
-#
-#   2. a barra é o padding dela mais o MAIOR applet que ela hospeda:
-#        altura_barra = 2 * padding + max{ altura_applet }
-#      (cosmic-panel-bin/src/space/layout.rs:405-410, `new_list_thickness`).
-#      O "maior applet" precisa considerar `size_center` e `size_wings`, que
-#      sobrescrevem o `size` da barra por segmento
-#      (panel_config.rs:541-564, `get_effective_applet_size`; o lado vem de
-#       wrapper_space.rs:559-561, virando COSMIC_PANEL_SIZE do processo).
-#
 #   3. o compositor recusa raio maior que metade da menor dimensão da caixa
 #      JÁ DESCONTADA do padding:
 #        half_min_dim = padded_box.size.w.min(padded_box.size.h) / 2
 #      (cosmic-comp/src/wayland/protocols/corner_radius.rs:685; a recusa em
 #       :696-698; `pad_rect` em :644-655; o hook em :216).
 #      A comparação é ESTRITA (`>`), então igual ao teto passa.
-#
-#   Logo:  teto = floor( altura_barra / 2 )
-#
-#   `margin` e `anchor_gap` NÃO entram na conta: o padding que o painel declara
-#   ao compositor já desconta o gap (panel_space.rs:2088-2106, `set_padding`
-#   com [gap, loc.x, 0, loc.x] no Top), então `padded_box.h` é a altura da
-#   BARRA, não a da layer surface.
-#
-#   CONFERIDO CONTRA O JOURNAL desta máquina, sem usar a fonte:
-#     Panel size=S padding=2  -> 2*2+40 = 44 lógicos; teto 22
-#     Dock  size=M padding=4  -> 2*4+56 = 64 lógicos; teto 32
-#   e o compositor desenhou `{ w: 1880, h: 64 }` para o painel (44 + 20 de gap)
-#   e `{ w: 1880, h: 84 }` para o dock (64 + 20), em escala 1.0. Em escala 114%
-#   (o `cosmic-randr list` desta TV) saem 72 e 95, que é o que o journal mostra.
-#
-#   E BATE COM O HISTÓRICO: 16 <= 22 e 24 <= 32 desenharam em 26/08 21:39;
-#   67 > 32 (e 41 > 22) apagaram topbar e dock a tarde inteira.
-#
-# ============================================================================
-# O TETO NÃO É CURA — É REDE
-# ============================================================================
-#   O `layer_radius_hook` compara o raio NOVO contra o bbox do frame ANTERIOR.
-#   Nos instantes em que os dois não batem (boot, applet entrando ou saindo,
-#   mudança de escala) até um raio dentro do teto perde a corrida — 14
-#   ocorrências de `corner radius too large` no journal entre 11 e 24/08 com
-#   8/16, quase todas no primeiro minuto da sessão.
-#   A cura de raiz é `patches/cosmic-comp-raio-clampado.patch`, que troca o
-#   `post_error` por clamp. Enquanto ELE estiver em execução, este teto não se
-#   aplica: o raio é dela, sem limite. Ver `meow_painel_compositor_clampa`.
 
 # Guarda de source duplo: este arquivo é sourced pelo forma.sh e pelo painel.sh,
 # e o painel.sh pode chamar o forma.sh.
@@ -74,7 +22,7 @@
 MEOW_PAINEL_SH_CARREGADO=1
 
 MEOW_PAINEL_BASE="${MEOW_PAINEL_BASE:-$(meow_cosmic_dir)}"
-# P76: o disco que conta é o do próximo login (o build do shim, ou /usr/bin).
+# o disco que conta é o do próximo login (o build do shim, ou /usr/bin).
 MEOW_PAINEL_COMP_BIN="${MEOW_PAINEL_COMP_BIN:-$(meow_cosmic_comp_disco)}"
 MEOW_PAINEL_MARCA_RAIO="AURORA-COSMIC-RADIUS-PATCH"
 
@@ -149,32 +97,6 @@ meow_painel_altura() { # $1 = dir v1 ; imprime a altura em lógicos
   printf '%s' $(( 2 * padding + maior ))
 }
 
-# O TETO SEM O PATCH É ZERO, E NÃO `altura/2` — MEDIDO EM 11/09/2026
-#   `altura/2` era a conta do compositor ANTIGO, que media o raio contra a caixa
-#   do frame ANTERIOR (`bbox_from_surface_tree`) — uma caixa com o tamanho real
-#   da barra, onde metade da altura de fato cabia. O `apt` das 17:02 de hoje
-#   trouxe o cosmic-comp que mede pelo tamanho do último `configure` que o
-#   cliente RECONHECEU, e no primeiro commit da layer surface esse tamanho ainda
-#   é 0. Então `half_min_dim` é 0, e QUALQUER raio maior que 0 vira
-#   `post_error(RadiusTooLarge)`.
-#   O comentário de patches/cosmic-comp-raio-clampado.patch já registrava a
-#   mudança de medida; o que ninguém tinha notado é que ela leva o teto a zero.
-#
-#   MEDIDO NA MARRA, cada valor com o painel reiniciado e 10s de observação:
-#       raio 8 -> 99% de CPU, RSS 3,4 GB -> 4,9 GB, ~64.000 `Protocol error 1
-#                 on object cosmic_corner_radius_layer_v1@70` por segundo
-#       raio 4 -> igual: RSS 314 MB -> 591 MB em 15s, 10.000 erros
-#       raio 1 -> igual: RSS 242 MB -> 387 MB em 9s, 10.000 erros
-#       raio 0 -> 1,3% de CPU, RSS travado em 130 MB, ZERO erros
-#   Não é uma barra que some: o `post_error` é fatal, o cosmic-panel reenvia sem
-#   tratar, e a topbar e a dock nunca chegam a desenhar. Foi o que deixou a tela
-#   dela sem barra nenhuma hoje.
-#
-#   POR QUE A TRAVA MORA AQUI, E NÃO NO `conferir`
-#   "O maior raio que não derruba a barra" é uma pergunta só, e o projeto já
-#   decidiu (26/08/2026) que ela tem UMA conta, neste arquivo. São quatro os
-#   chamadores; espalhar a ressalva por eles é recriar os três tetos
-#   contraditórios que aquela data existiu para acabar.
 meow_painel_teto() { # $1 = dir v1 ; imprime o maior raio que a barra aguenta
   local h
   h="$(meow_painel_altura "$1")" || return 1
@@ -185,15 +107,9 @@ meow_painel_teto() { # $1 = dir v1 ; imprime o maior raio que a barra aguenta
 }
 
 # --- as sondas do compositor ------------------------------------------------
-# A PERGUNTA É SOBRE O PROCESSO, NUNCA SOBRE O ARQUIVO — 26/08/2026
-#   O patch foi instalado às 22:13 e o compositor em execução era o das 01:55,
-#   do binário antigo. Trocar o arquivo NÃO troca o processo: o cosmic-comp É o
-#   servidor Wayland, e substituí-lo a quente fecharia todas as janelas dela.
-#   Uma primeira versão desta sonda leu o binário do disco e, por 20 minutos,
-#   respondeu "clampa" para uma sessão que ainda matava o cliente — desarmando a
-#   rede exatamente na janela em que ela ainda podia perder a barra.
-#   `grep -a` funciona em /proc/PID/exe mesmo com o inode marcado `(deleted)`,
-#   que é o caso depois de o binário ser substituído.
+#
+# Trocar o arquivo NÃO troca o processo: o cosmic-comp É o servidor Wayland, e
+# substituí-lo a quente fecharia todas as janelas dela.
 meow_painel_compositor_clampa() {
   local p
   p="$(pgrep -x cosmic-comp | head -1)"   # há UM compositor: é o único head -1 legítimo aqui
@@ -208,22 +124,14 @@ meow_painel_patch_pendente() {
 }
 
 # --- o ambiente para spawnar o painel --------------------------------------
-# `env -i` E NÃO `env` — UM CARACTERE, E FOI ELE QUE MATOU A BANDEJA (25/08/2026)
-#   Sem o `-i` o `env` ACRESCENTA ao ambiente de quem chamou. Rodado de um
-#   terminal aberto pela dock, o painel nascia herdando `PANEL_NOTIFICATIONS_FD`
-#   e `X_PRIVILEGED_WAYLAND_SOCKET` — descritores que não existem no processo
-#   novo. Resultado medido: `Io error: Bad file descriptor (os error 9)` e panic
-#   em libcosmic/src/applet/token/wayland_handler.rs:110 para StatusArea, Power,
-#   Audio e Network. A barra sobe SEM bandeja e SEM botão de desligar, e nada na
-#   tela diz por quê.
 #
-#   AQUI A FONTE É OUTRA, E MELHOR: dentro de uma unidade `systemd --user` o
-#   ambiente já vem de `systemctl --user show-environment`, que tem
-#   WAYLAND_DISPLAY, DISPLAY, XDG_RUNTIME_DIR, DBUS_SESSION_BUS_ADDRESS,
-#   XDG_CURRENT_DESKTOP, XDG_SESSION_TYPE e XDG_DATA_DIRS — e NÃO tem as duas
-#   variáveis venenosas. Então não reconstruímos ambiente nenhum: partimos do
-#   que a unidade tem e tiramos a lista negra. Menos risco de esquecer uma
-#   variável do que montar a lista branca à mão.
+# Sem o `-i` o `env` ACRESCENTA ao ambiente de quem chamou.
+#
+# AQUI A FONTE É OUTRA, E MELHOR: dentro de uma unidade `systemd --user` o
+# ambiente já vem de `systemctl --user show-environment`, que tem
+# WAYLAND_DISPLAY, DISPLAY, XDG_RUNTIME_DIR, DBUS_SESSION_BUS_ADDRESS,
+# XDG_CURRENT_DESKTOP, XDG_SESSION_TYPE e XDG_DATA_DIRS — e NÃO tem as duas
+# variáveis venenosas.
 MEOW_PAINEL_LISTA_NEGRA='PANEL_NOTIFICATIONS_FD DAEMON_NOTIFICATIONS_FD X_PRIVILEGED_WAYLAND_SOCKET'
 
 meow_painel_ambiente_ok() {
@@ -244,39 +152,12 @@ meow_painel_achar_display() {
 
 # --- o painel VIVO que parou de desenhar -------------------------------------
 #
-# O SEGUNDO MODO DE FALHA DA MESMA QUEIXA [18/09/2026]
-#   "A barra sumiu" tem duas causas, e o resto deste arquivo só cobre uma. A
-#   coberta: o painel MORRE e o `cosmic-session` desiste de repor (backoff
-#   2^restarts sem teto). A que faltava: o painel fica VIVO, com todos os
-#   applets rodando, e NUNCA MAIS DESENHA — o painel fantasma.
+# Os dois sinais abaixo são filtrados por `_PID` do painel EM EXECUÇÃO. Isso é o
+# que os torna confiáveis: uma mensagem do painel anterior, ou de outro cliente
+# Wayland qualquer, não conta.
 #
-#   O `laco()` passava direto por ele. Nos passos 1 e 2 ele pergunta "existe
-#   painel?", vê que sim e vai dormir. Um fantasma responde "sim" para sempre.
-#
-# COMO SE RECONHECE, SEM CHUTAR
-#   Os dois sinais abaixo são filtrados por `_PID` do painel EM EXECUÇÃO. Isso
-#   é o que os torna confiáveis: uma mensagem do painel anterior, ou de outro
-#   cliente Wayland qualquer, não conta. Foi assim que a versão original disto
-#   (na outra máquina da casa) errou o alvo pelo motivo certo uma vez e acertou
-#   por coincidência outra — o diagnóstico que autorizou a cura tinha vindo de
-#   outro cliente, 16m55s antes, e o painel desenhou normalmente os 17 minutos
-#   seguintes.
-#
-#     sinal A — o painel reclamou de RENDER no próprio PID:
-#               "Failed to render" ou "Erroneous EGL call". Sozinho não serve
-#               como prova em boot saudável, mas dentro do _PID e depois da
-#               carência, serve.
-#     sinal B — ERRO DE PROTOCOLO na conexão Wayland dele. Um erro de protocolo
-#               é fatal POR DEFINIÇÃO: o compositor derruba a conexão inteira do
-#               cliente. O cosmic-panel não morre — fica vivo e para de
-#               desenhar, que é exatamente a definição de fantasma. E como
-#               painel e dock são o MESMO processo, somem juntos.
-#
-# A CARÊNCIA É PARTE DA DETECÇÃO, NÃO UM ENFEITE
-#   Um painel recém-nascido ainda está montando as layer surfaces e pode
-#   perfeitamente ter emitido um erro no caminho. Sem os 20 s, a primeira
-#   passagem depois de cada reciclagem acharia fantasma e reciclaria de novo —
-#   o laço que o `COTA` existe para impedir, criado dentro do detector.
+# Um painel recém-nascido ainda está montando as layer surfaces e pode
+# perfeitamente ter emitido um erro no caminho.
 meow_painel_fantasma() {        # 0 = há um painel vivo que não desenha
   local pid vida
   pid="$(pgrep -x cosmic-panel 2>/dev/null | head -1)"
@@ -296,9 +177,6 @@ meow_painel_fantasma() {        # 0 = há um painel vivo que não desenha
 # PELO PARENTESCO, NUNCA PELO environ: `PANEL_NOTIFICATIONS_FD` é herança e
 # desce por toda a árvore — sete linhas do log da Aurora diziam "é o do
 # supervisor" numa janela em que ele comprovadamente dormia.
-# E NUNCA com `| head -1`: o menor PID é o NOSSO sempre que o supervisor chega
-# atrasado, e o crédito se inverteria. Classificamos TODOS.
-# TODOS OS DESTA CASA, e não os da máquina — ver "OS TRÊS DO `laco`", abaixo.
 meow_painel_do_supervisor() {   # imprime o PID do painel do cosmic-session, se houver
   local ses p pai
   ses="$(pgrep -x cosmic-session | head -1)"
@@ -311,41 +189,14 @@ meow_painel_do_supervisor() {   # imprime o PID do painel do cosmic-session, se 
 }
 
 # --- de QUEM é a casa do painel -----------------------------------------------
-# UM SINAL NUNCA SAI DA CASA DE QUEM PEDIU — 24/09/2026 (P44)
-#   O `reciclar` achava o painel com `pgrep -x cosmic-panel` e o derrubava com
-#   `pkill -x cosmic-panel`: a máquina inteira, de qualquer usuário, de qualquer
-#   `$HOME`. Medido pela revisão da P39 e de novo nesta: `HOME=$(mktemp -d) meow
-#   doctor` mandava SIGTERM no painel da sessão de verdade, porque o `logo.sh`
-#   da casa de brinquedo via "gato trocado" e pedia o reciclo. Um teste, um
-#   `meow` de outro clone ou de outro usuário — qualquer um piscava a barra de
-#   quem está na frente da tela.
 #
-#   O PAINEL É DESTA CASA quando as duas coisas batem: é do MESMO usuário
-#   (`pgrep -u`, que também poupa o painel de outra pessoa logada) e o `HOME`
-#   com que ele nasceu — `/proc/<pid>/environ`, que só o dono lê — é o `$HOME`
-#   de quem chama. O `cosmic-session`, o laço do `meow-painel.service` e o
-#   Alt+F2 sobem o painel com o `HOME` da sessão (medido em 24/09: HOME igual,
-#   mesmo `sessionid`), e o timer que pede o reciclo roda com esse mesmo
-#   `HOME`. Uma casa de brinquedo não casa com nada, e o sinal não sai.
+# O `reciclar` achava o painel com `pgrep -x cosmic-panel` e o derrubava com
+# `pkill -x cosmic-panel`: a máquina inteira, de qualquer usuário, de qualquer
+# `$HOME`.
 #
-#   POR QUE NÃO O `sessionid`: o processo que pede o reciclo vem, na maior parte
-#   das vezes, de uma unidade do `systemd --user`, e o gerente do usuário não
-#   está em sessão nenhuma — o `sessionid` dele é o "não definido" do kernel.
-#   Cobrar esse número recusaria justamente o caminho de todo dia.
-#
-# OS TRÊS DO `laco` TAMBÉM — 24/09/2026 (P47)
-#   A P44 pôs a regra no `reciclar` e deixou anotados, no cabeçalho do
-#   `scripts/painel.sh`, os três SIGTERM do `laco` que ainda achavam o painel
-#   pela máquina: o `kill` no painel do supervisor (ramo 1, o fantasma) e os
-#   dois laços sobre `meow_painel_nossos` (ramo 1, ao ceder a vez; ramo 2, o
-#   fantasma). Os três tiram o PID de uma destas duas funções — a de cima e a
-#   de baixo —, e as duas passaram a escolher entre os painéis DESTA casa, em
-#   vez de entre os do `pgrep -x cosmic-panel`. Filtrar nas duas, e não em cada
-#   `kill`, é para o sinal seguinte: um `kill` novo que tire o PID delas já
-#   nasce com o filtro, sem ninguém lembrar dele. Na sessão de verdade nada
-#   muda (o painel do supervisor tem o `HOME` dela — medido em 24/09, pid
-#   580721, filho do `cosmic-session`); um `meow painel laco` com outro `HOME`
-#   não acha painel de ninguém, e o `estado` passa a contar só os desta casa.
+# O `cosmic-session`, o laço do `meow-painel.service` e o Alt+F2 sobem o painel
+# com o `HOME` da sessão, e o timer que pede o reciclo roda com esse mesmo
+# `HOME`.
 meow_painel_desta_casa() {      # imprime os PIDs dos cosmic-panel deste usuário e deste HOME
   local p casa eu="${HOME%/}"
   for p in $(pgrep -u "$(id -u)" -x cosmic-panel 2>/dev/null); do
@@ -368,25 +219,11 @@ meow_painel_nossos() {          # imprime os PIDs dos painéis desta casa que N�
 
 # --- quanto o supervisor do COSMIC vai dormir -------------------------------
 # O backoff do `cosmic-session` é `2^restarts` ms vezes um inteiro sorteado de 0
-# a 9 — medido em 26/08/2026 contra as 28 linhas de backoff de um boot inteiro,
-# 28 quocientes exatos, zero exceção. Não há teto, e o contador NUNCA zera por
-# sucesso: o painel viveu 2h26 e a espera seguinte ainda saiu com base 2^20.
-# No restart 23 desta máquina a espera saiu 58720256 ms — 16h18min.
+# a 9 — medido contra as 28 linhas de backoff de um boot inteiro, 28 quocientes
+# exatos, zero exceção.
 #
 # Isto é o gatilho adaptativo: se ele volta em segundos, deixamos com ele (e
-# ganhamos o applet de notificações, que só o socketpair dele fornece). Se vai
-# dormir horas, assumimos.
-#
-# A FÓRMULA PODE DEIXAR DE SER MEDIDA — 09/10/2026, P76
-#   A regex lê uma frase de log do `cosmic-session`, e nada promete que ela
-#   fique igual (no 1.10 da fila ela é a mesma; a próxima versão pode não ser).
-#   Se a frase sumir, o silêncio da regex diria "o supervisor nunca falhou", e o
-#   `reciclar` derrubaria o painel confiando num supervisor que pode estar
-#   dormindo horas. Então o painel é procurado de um segundo jeito, por
-#   qualquer linha que fale em reiniciar o `cosmic-panel` (hoje:
-#   `restarted process '…cosmic-panel ', now at N restarts`). Houve reinício e a
-#   regex não casou: o formato mudou, e a saída é `nao-medida` — quem lê passa
-#   ao modo conservador, como se a espera fosse longa.
+# ganhamos o applet de notificações, que só o socketpair dele fornece).
 meow_painel_espera_supervisor() {   # imprime ms; `nao-medida`; ou nada se ele nunca falhou
   local log ms
   log="$(journalctl --user -b -t cosmic-session --no-pager 2>/dev/null)"

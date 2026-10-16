@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# nomes_apps.sh — encurta o `Name=` dos aplicativos que estouram a célula do
-#                 lançador do COSMIC, e devolve 644 aos `.desktop` do home
-#                 (desde 24/09/2026, sprint P42 — ver "A PERMISSÃO" abaixo).
-#
 #   ./nomes_apps.sh              aplica (o mesmo que --aplicar)
 #   ./nomes_apps.sh --conferir   não escreve; devolve 1 se algo divergir
 #   ./nomes_apps.sh --sem-sudo   aplica só o que não precisa de root
@@ -10,71 +6,6 @@
 #                                644 em ~/.local/share/applications
 #   ./nomes_apps.sh --so-sistema aplica só em /usr/share e /var/lib (é o gatilho do apt;
 #                                não toca a permissão do home)
-#
-# O QUE ELA VÊ HOJE, E POR QUE
-#   "os .desktop super feios" — e, perguntada, o que incomoda são "os nomes
-#   compridos que quebram em duas linhas". Não é gosto: no lançador o rótulo mora
-#   numa caixa de tamanho fixo, e o que não cabe quebra ou some atrás de "...".
-#
-# OS DOIS LIMITES, MEDIDOS EM 08/08/2026 (o `assets/icones/apps-nomes.map` traz a conta)
-#   reticências : passou de 27 BYTES, o lançador corta nos 24 primeiros
-#                 CARACTERES e acrescenta "...". É `max_name_len = 27` em
-#                 `cosmic-app-library/src/widgets/application.rs`, e o `str::len()`
-#                 do Rust conta byte enquanto o `{:.24}` conta caractere.
-#   quebra      : a célula tem 114 px de texto ((1200 - 2*64 - 6*8)/7 - 2*16), e
-#                 o rótulo é `text(name).size(14.0)` numa caixa de 40 px — cabem
-#                 duas linhas, a terceira é cortada. Em Fira Sans 14 px isso dá
-#                 uns 16 caracteres em caixa mista.
-#
-# A LISTA NÃO MORA AQUI, DE PROPÓSITO
-#   Ela está em `assets/icones/apps-nomes.map`, com o motivo de cada corte ao lado. Lista
-#   cravada dentro de script envelhece e ninguém acha — é a mesma razão que põe os
-#   ícones em `packs/meowsystem/icones/apps.map` e os mimetypes no `icones/mimetypes.map` do pack.
-#
-# POR QUE ESCREVER NO ARQUIVO EXISTENTE, E NÃO NUMA CÓPIA NO HOME
-#   Porque o `cosmic-app-library` NÃO DEDUPLICA POR ID — medido em 04/08/2026 e
-#   documentado no `ocultar_apps.sh`. Uma cópia de `org.gimp.GIMP.desktop` em
-#   `~/.local/share/applications` com o nome curto NÃO substituiria a do flatpak:
-#   o lançador varreria os dois diretórios e mostraria o GIMP DUAS vezes, uma com
-#   cada nome. Foi assim que nasceram as duplicatas "(Local)"/"(Sistema)". Então
-#   o nome curto tem de entrar no arquivo que já existe, onde quer que ele esteja.
-#
-# TRÊS LUGARES, TRÊS MANEIRAS DE ESCREVER — e o script decide pelo caminho
-#   ~/.local/share/applications        arquivo nosso: `meow_escrever` e pronto.
-#   ~/.local/share/flatpak/exports/…   é um SYMLINK para dentro da árvore do
-#                                      flatpak, que é somente-leitura. Mas o LINK
-#                                      mora no home dela e pode virar arquivo
-#                                      real. É a mesma manobra do
-#                                      `assets/temas-de-apps/zapzap/manifesto.sh`, com o
-#                                      alvo original guardado em `.meow-original`
-#                                      para o `flatpak repair` não achar link
-#                                      quebrado. Um `flatpak update` do app
-#                                      recria o symlink e desfaz — o `--conferir`
-#                                      detecta e o `--aplicar` refaz.
-#   /usr/share/applications            é do apt: `sudo install -m 644`, como o
-#                                      `ocultar_apps.sh`. Um `apt upgrade` do
-#                                      pacote devolve o arquivo original e o nome
-#                                      comprido volta. Reaparecer é esperado;
-#                                      ficar assim, não.
-#
-# O QUE ELE NÃO FAZ, E ISSO IMPORTA
-#   Não cria `.desktop`, não apaga, não mexe em `Exec=`, `Icon=`, `MimeType=` nem
-#   em `Categories=`. Uma linha muda, e é a linha do nome.
-#
-#   E só na seção `[Desktop Entry]`. O `code.desktop` tem um
-#   `[Desktop Action new-empty-window]` com o próprio `Name=New Empty Window`;
-#   um `sed 's/^Name=.*/.../'` renomearia também o item do menu de contexto do
-#   ícone. É a mesma armadilha que o `ocultar_apps.sh` descreve para o
-#   `NoDisplay`: chave certa, seção errada, e o efeito é outro.
-#
-# ARQUIVO OCULTO É PULADO
-#   Quem tem `NoDisplay=true` não aparece no lançador, então não há rótulo a
-#   encurtar. Pular economiza um `sudo` inútil sobre os arquivos que o
-#   `ocultar_apps.sh` já escondeu.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia (e foi consertado, fora do seco) · 2 erro ·
-#   3 falta dependência (aqui: o mapa sumiu)
 set -uo pipefail
 
 MEOW_NOMES_RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -96,8 +27,7 @@ MEOW_NOMES_DIRS=(
 # --- o mapa ------------------------------------------------------------------
 # Lido a cada consulta em vez de num array global porque este arquivo também é
 # `source` pelo `jogos_steam.sh`, e um estado global carregado no source é
-# exatamente o tipo de coisa que fica velha sem avisar. São dez linhas; o custo
-# de reler é zero perto do de depurar cache.
+# exatamente o tipo de coisa que fica velha sem avisar.
 meow_nome_do_mapa() {
   local id="$1"
   [ -f "$MEOW_NOMES_MAPA" ] || return 1
@@ -150,23 +80,6 @@ CONFERIR=0
 SEM_SUDO=0
 # Restringe o trabalho a UMA classe de caminho (ver `_classe`, logo abaixo).
 # Vazio = todas, que é o modo do `install.sh` e do doctor.
-#
-# OS DOIS FILTROS NASCERAM DE DOIS GATILHOS QUE NÃO PODEM RODAR O SCRIPT INTEIRO
-# — 02/09/2026
-#   --so-flatpak  é o `scripts/apos_flatpak.sh`. Um deploy de flatpak recria o
-#                 symlink de export e devolve o nome comprido (medido: `org.gimp.GIMP`
-#                 voltou a "GNU Image Manipulation Program" no update de
-#                 `set 2 15:23`). O gatilho tem de reescrever SÓ o que o evento
-#                 desfez. Sem o filtro sobraria `--sem-sudo`, que conta os nomes
-#                 de /usr/share como "pendentes" e sai 1 — e 1 é "consertei" no
-#                 contrato do projeto, então TODO flatpak update dispararia a
-#                 notificação dela sem ter consertado nada.
-#   --so-sistema  é o `scripts/meow-lancador-apt.sh`, que roda como ROOT. Sem o
-#                 filtro, o `meow_escrever` gravaria os `.desktop` do home dela
-#                 com dono root:root (ele escreve num temporário e renomeia, e o
-#                 temporário nasce do processo — não herda o dono do arquivo
-#                 antigo). É a armadilha 3 do cabeçalho daquele wrapper, e a
-#                 correção é não deixar o root chegar perto do home.
 SO_CLASSE=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -200,9 +113,7 @@ _classe() {
 
 # O original de um export de flatpak, guardado antes da PRIMEIRA escrita.
 # Enquanto o link estiver intacto (nunca aplicamos, ou o flatpak o recriou), a
-# fonte é ele; a partir da primeira aplicação, é a cópia guardada. Sem isso, ler
-# "a origem" devolveria o nosso próprio conteúdo e o `--conferir` passaria a
-# comparar o arquivo com ele mesmo — um verificador que não verifica nada.
+# fonte é ele; a partir da primeira aplicação, é a cópia guardada.
 _guardado_de() {
   local arq="$1"
   printf '%s/.%s.meow-original' "$(dirname "$arq")" "$(basename "$arq")"
@@ -220,45 +131,15 @@ ausentes=0
 falhou=0
 declare -A DIRS_TOCADOS=()
 
-# --- A PERMISSÃO DOS `.desktop` DO HOME — 24/09/2026, sprint P42 -------------
+# --- A PERMISSÃO DOS `.desktop` DO HOME -------------
 #
-# O DEFEITO, E QUEM O CONSERTAVA ATÉ ONTEM
-#   O tema Dracula de antes deixou o caso escrito em dois lugares, e é o que se
-#   sabe dele: `.desktop` que o Flatpak põe em `~/.local/share/applications` com
-#   permissão 600 (o "bug do GIMP", no `reaplicar_tema.sh` de lá) e, no
-#   `normalizar_desktops.sh`, que o Pop!_OS/GNOME Shell recusa abrir aplicativo
-#   com permissão restrita. O conserto era um `find ... ! -perm 644 -exec chmod
-#   644`, que o hook do apt dele rodava depois de toda operação. O hook saiu em
-#   24/09/2026, e a P37 mediu que o MeowSystem não cobria o caso. A regra ficou a
-#   mesma de lá, decidida na sprint: diferente de 644 volta a 644 — o 664 do
-#   umask 002 e o 755 de quem marcou o atalho como executável também.
+# Em todos, menos `--so-sistema`: aquele é o gatilho do apt, que roda como ROOT,
+# e root não tem nada a fazer no home dela (é a armadilha 3 do wrapper, contada
+# no bloco dos filtros acima).
 #
-#   Nesta máquina, hoje, são ZERO: os 73 `.desktop` de lá estão em 644 (medido
-#   em 24/09/2026). O conserto de antes passou por eles; este é o que fica.
-#
-# POR QUE AQUI, E NÃO NOS DOIS SCRIPTS QUE A SPRINT SUGERIU MEDIR
-#   A conta foi feita pelo que cada um tem de caminho até a tela dela:
-#     apos_flatpak.sh      roda no evento certo, mas o doctor não o confere
-#     icones_absolutos.sh  o doctor confere, mas NÃO conserta (está no
-#                          `SEM_CONSERTO` do bin/meow: o resto dele usa sudo), e
-#                          o doctor diria "rode: meow ativar" para um chmod no
-#                          home — uma receita que não resolve
-#     nomes_apps.sh        o doctor confere (`chk_nomes`, --conferir) E conserta
-#                          sem sudo (`fix_nomes`, --sem-sudo), e o gatilho do
-#                          flatpak já o chama (`apos_flatpak.sh`, --so-flatpak)
-#   Os três caminhos que o conserto precisa já passavam por este arquivo.
-#
-# EM QUE MODO ELE RODA
-#   Em todos, menos `--so-sistema`: aquele é o gatilho do apt, que roda como
-#   ROOT, e root não tem nada a fazer no home dela (é a armadilha 3 do wrapper,
-#   contada no bloco dos filtros acima). No `--so-flatpak` roda de propósito —
-#   o evento que deixa o 600 é justamente o do flatpak.
-#
-# E ELE NÃO CHACOALHA O LANÇADOR
-#   O contador é separado do `mudou` dos nomes, e é por isso: o `mudou` chama o
-#   `meow_lancador_reler`, que derruba o `cosmic-app-library` para ele reler —
-#   e um chmod não muda nada que o lançador desenhe. Só links simbólicos ficam
-#   de fora (`-type f`): o modo de um link é o do alvo.
+# O contador é separado do `mudou` dos nomes, e é por isso: o `mudou` chama o
+# `meow_lancador_reler`, que derruba o `cosmic-app-library` para ele reler — e
+# um chmod não muda nada que o lançador desenhe.
 PERM_DIR="$HOME/.local/share/applications"
 perm_n=0
 perm_falhou=0
@@ -280,10 +161,7 @@ if [ "$SO_CLASSE" != "sistema" ] && [ -d "$PERM_DIR" ]; then
   done < <(find "$PERM_DIR" -maxdepth 1 -type f -name '*.desktop' ! -perm 644 -print0 2>/dev/null)
 fi
 
-# O mapa vai para um array ANTES do laço, e não para o `stdin` dele. Com
-# `done < "$mapa"`, um `sudo` que resolvesse pedir senha leria a próxima linha do
-# mapa como se fosse a senha — engolindo a linha e falhando o sudo, as duas
-# coisas em silêncio.
+# O mapa vai para um array ANTES do laço, e não para o `stdin` dele.
 LINHAS=()
 while IFS= read -r linha; do LINHAS+=("$linha"); done < "$MEOW_NOMES_MAPA"
 
@@ -369,7 +247,7 @@ for linha in "${LINHAS[@]}"; do
   [ "$achou" = 0 ] && ausentes=$((ausentes + 1))
 done
 
-# O `grep -c` JÁ IMPRIME O ZERO — 24/09/2026, sprint P45
+# O `grep -c` JÁ IMPRIME O ZERO
 #   Ele conta, imprime `0` e SAI 1 quando nada casa; o `|| printf 0` que estava
 #   aqui somava um segundo zero, e com o mapa vazio (ou só de comentário) a tela
 #   dizia "(0\n0 no mapa", quebrando a linha no meio. O padrão só vale para o
@@ -415,22 +293,12 @@ if [ "$mudou" = 1 ]; then
     done
   fi
   meow_ok "nomes do lançador encurtados"
-  # ATÉ 02/09/2026 AQUI DIZIA "vale no próximo início do lançador", E ERA VERDADE
-  # — E ERA O DEFEITO.
-  #   O `update-desktop-database` acima reconstrói um índice de MIME; ele não faz
-  #   o `cosmic-app-library` reler nada. Aqueles dois processos resolvem nome e
-  #   ícone NO ARRANQUE e guardam (medido em 11/08/2026, ver o cabeçalho de
-  #   `meow_lancador_reler`). Sem esta linha, o arquivo fica certo no disco e a
-  #   tela dela continua com o nome comprido até ela reiniciar a sessão — que é
-  #   exatamente a distância entre "consertei" e "ela viu consertado".
-  #   A chamada é guardada pelo `mudou = 1`: sem escrita, ninguém chacoalha o
-  #   lançador, porque isso fecharia a grade se ela estivesse com ela aberta.
+  # O `update-desktop-database` acima reconstrói um índice de MIME; ele não faz
+  # o `cosmic-app-library` reler nada. Aqueles dois processos resolvem nome e
+  # ícone NO ARRANQUE e guardam.
   meow_lancador_reler
 fi
 
-# O chmod que falhou é erro, mas só DEPOIS de o lançador reler: ele não tem nada
-# a ver com os nomes, e sair antes deixava um nome já encurtado no disco com o
-# comprido na tela até a próxima sessão (revisão da P42, 24/09/2026).
 if [ "$perm_falhou" = 1 ]; then
   meow_erro "algum .desktop do home não pôde voltar a 644"
   exit "$MEOW_ERRO"

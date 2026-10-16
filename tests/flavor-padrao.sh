@@ -1,53 +1,5 @@
 #!/usr/bin/env bash
 # flavor-padrao.sh — o flavor padrão é uma regra só (P61, 25/09/2026).
-#
-# O DEFEITO QUE ESTE ARQUIVO VIGIA
-#   Com o FLAVOR vazio no meow.conf, a página cai no flavor padrão do pack no ar
-#   (P56, o `flavorEmVigor` do app/pagina/app.js), e oito scripts caíam no
-#   `${FLAVOR:-mocha}` de cada um — o padrão de UM pack: `fzf`,
-#   `completar_icones`, `greeter`, `midia`, `construir_icones`, `logo`,
-#   `icones_apps_arcticons` e `terminal`. O `bin/meow` perguntava ao pack e, sem
-#   resposta, também caía no `mocha`; e o `meow icones` mostrava `pastas
-#   cat--mauve`, o molde do meow.conf expandido com o FLAVOR ainda vazio.
-#   Medido com o Dracula no ar e `FLAVOR=""`, numa casa de brinquedo:
-#     fzf.sh conferir       a paleta packs/dracula/paleta.json não tem FLAVOR="mocha"
-#     terminal.sh conferir  FLAVOR="mocha" não é um flavor da paleta do pack no ar
-#     midia.sh --conferir   a cor "mauve" não existe na paleta mocha
-#   (A sprint contava nove scripts, com o `wallpaper.sh`; nele o
-#   `${FLAVOR:-mocha}` só sobrevive num comentário — a P40 o trocou pelo
-#   `meow_pack_dir`.)
-#
-# O QUE ELE CONFERE
-#   1. Nenhum script de `scripts/` nem o `bin/meow` tem um `${FLAVOR:-<nome>}`
-#      próprio fora de comentário: a regra é o `meow_flavor` do lib/comum.sh.
-#   2. O `meow_flavor` devolve o FLAVOR quando há um e, vazio, o
-#      `paleta.flavor_padrao` do pack no ar — lido do pack.json de cada pack, e
-#      não escrito aqui. Sem resposta do pack.py, avisa e devolve vazio: nenhum
-#      nome de reserva.
-#   3. De ponta a ponta: com o FLAVOR vazio, o `fzf.sh`, o `terminal.sh` e o
-#      `midia.sh` conferem EXATAMENTE como com o flavor padrão do pack escrito, e
-#      o `meow icones` diz a variante das pastas com ele.
-#
-# E O QUE A REVISÃO DA P61 DEIXOU (P65, 25/09/2026)
-#   - Um pack que não declara `paleta.flavor_padrao` (o campo é opcional no
-#     `validar`) fazia o `meow_flavor` avisar «scripts/pack.py não disse o flavor
-#     padrão» e devolver vazio — com o pack.py tendo respondido, e com o
-#     `vocabulario` dele e o `flavorEmVigor` da página caindo no primeiro flavor
-#     da paleta. A 2 confere essa queda num pack de brinquedo sem o campo.
-#   - O `icones_apps_arcticons.sh` roda sob `set -e` e morria na linha do
-#     `meow_flavor`, sem frase dele: a 2 confere que ele diz por quê.
-#   - Restavam três cópias da regra: o `conf_exportada` do painel (com o `mocha`
-#     de reserva e o molde `cat--<acento>` sem completar) e os `${FLAVOR:-mocha}`
-#     dos manifestos do `btop-bat` e do `spotify`; e o cabeçalho de uso do
-#     `terminal.sh` dava `FLAVOR="mocha"`. A 1 passa a olhar os manifestos, o
-#     servidor e os cabeçalhos de uso; a 4 confere o painel.
-#
-# NADA SAI DA CASA DE BRINQUEDO: `env -i`, HOME temporário, os três scripts no
-#   modo que só lê, e um `sudo` falso na frente do PATH — nenhum deles chama
-#   sudo, e o falso existe para que nenhum passe a chamar calado numa máquina
-#   com `NOPASSWD`.
-#
-#   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -59,11 +11,10 @@ command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3, que é quem
 # O python3 de verdade, por caminho: a 4 põe um que sai 1 na frente do PATH do
 # shell que o painel abre, e o próprio teste continua precisando do de verdade.
 #
-# O INTERPRETADOR, E NÃO O SHIM — 15/10/2026, P82. Numa bancada com pyenv o
-# primeiro `python3` do PATH é o shim, e o shim põe a pasta da versão na FRENTE
-# do PATH do processo que ele abre: o shell do painel achava o python3 de
-# verdade antes do falso da 4, e o caso «sem resposta» saía vermelho sem
-# defeito nenhum no painel. O `sys.executable` é o binário, que não mexe no PATH.
+# Numa bancada com pyenv o primeiro `python3` do PATH é o shim, e o shim põe a
+# pasta da versão na FRENTE do PATH do processo que ele abre: o shell do painel
+# achava o python3 de verdade antes do falso da 4, e o caso «sem resposta» saía
+# vermelho sem defeito nenhum no painel.
 PY="$(python3 -c 'import sys; print(sys.executable)')"
 
 T="$(mktemp -d)" || exit 2
@@ -87,11 +38,7 @@ DRACULA="$(padrao_de "$RAIZ/packs/dracula")"
 # --- 1. nenhum script tem o padrão dele ---------------------------------------
 printf '\n--- 1. nenhum script tem o flavor padrão dele ---\n'
 # O `${FLAVOR:-}` vazio (repassar) e o `${FLAVOR:-$(…)}` (ler o conf) não são
-# padrão de flavor; o que se caça é um NOME depois do `:-`. Comentário não conta:
-# o do wallpaper.sh cita o `${FLAVOR:-mocha}` que a P40 tirou.
-#   [P65: e os manifestos dos aplicativos e o servidor do painel, onde moravam
-#   as três cópias que a P61 não alcançou — o `btop-bat`, o `spotify` e o
-#   `conf_exportada`, este dentro de uma string de Python que vira bash.]
+# padrão de flavor; o que se caça é um NOME depois do `:-`.
 cravados() {
   grep -nE '\$\{FLAVOR:-[^}$]' "$RAIZ"/scripts/*.sh "$RAIZ/bin/meow" \
        "$RAIZ"/assets/temas-de-apps/*/manifesto.sh "$RAIZ/app/servidor.py" \
@@ -118,10 +65,9 @@ cp "$RAIZ/packs/dracula/logo.svg" "$RAIZ/packs/dracula/paleta.json" "$PACKS/brin
 printf '{"formato": 1, "id": "brinquedo", "nome": "Brinquedo", "heranca": "catppuccin",
  "paleta": {"arquivo": "paleta.json", "flavor_padrao": "alucard"}, "vitrine": {"capa": "logo.svg"}}\n' \
   > "$PACKS/brinquedo/pack.json"
-# E um que NÃO declara `paleta.flavor_padrao` (P65) — o `validar` aceita, e o
-# `vocabulario` do pack.py cai no primeiro flavor da paleta. A paleta é a do
-# Dracula com o `alucard` na frente: o primeiro não é o padrão de pack nenhum
-# daqui, então a resposta certa só sai da queda, e não de um padrão emprestado.
+# A paleta é a do Dracula com o `alucard` na frente: o primeiro não é o padrão
+# de pack nenhum daqui, então a resposta certa só sai da queda, e não de um
+# padrão emprestado.
 mkdir -p "$PACKS/sem-padrao"
 cp "$RAIZ/packs/dracula/logo.svg" "$PACKS/sem-padrao/"
 "$PY" - "$RAIZ/packs/dracula/paleta.json" "$PACKS/sem-padrao/paleta.json" <<'PYFIM' || exit 2

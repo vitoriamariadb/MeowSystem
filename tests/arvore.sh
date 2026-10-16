@@ -1,30 +1,10 @@
 #!/usr/bin/env bash
 # arvore.sh — a fronteira entre o que o MeowSystem É e o que ele VESTE.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 22/09/2026
-#   A queixa era uma frase: *"aqui deveria ter tudo do theme dracula"*. O que
-#   ela apontava não era peso nem desorganização — era DONO. `assets/` guardava
-#   três coisas de naturezas diferentes no mesmo nível: o traço do projeto (os
-#   ícones autorais, os gatos, o molde do tema), o acervo de um tema de terceiro
-#   (3.281 SVG do Catppuccin) e a saída gerada (sete `.ron`). Sem uma linha
-#   escrita entre elas, cada sprint punha a coisa nova onde desse.
+# A pergunta é "isto está VERSIONADO?", e só o `git ls-files` responde. Aqui a
+# ferramenta é a que sabe a resposta.
 #
-#   A LINHA É UMA FRASE, e é a que este teste cobra:
-#       `assets/`  é o que o MeowSystem É — o motor.
-#       `packs/`   é o que ele VESTE — o tema.
-#       `$MEOW_ESTADO/` é o que a máquina gerou, e não volta para o git.
-#
-# O QUE ELE PERGUNTA AO GIT, E NÃO AO DISCO
-#   A pergunta é "isto está VERSIONADO?", e só o `git ls-files` responde. Medir
-#   o disco foi exatamente o erro que custou a primeira versão da sprint P14: o
-#   `du` disse que `assets/icones/catppuccin/` tinha 13 MB (são 413 KB — o bloco
-#   de 4 KB mentindo sobre milhares de SVG minúsculos) e que
-#   `assets/icones/upstream/` tinha 96 MB versionados, quando ele tem ZERO
-#   arquivos no git desde sempre. Um passo inteiro da sprint foi apagado por
-#   causa disso. Aqui a ferramenta é a que sabe a resposta.
-#
-# CÓDIGOS DE SAÍDA (os do projeto)
-#   0 = passou · 1 = falhou · 2 = erro deste teste.
+# 0 = passou · 1 = falhou · 2 = erro deste teste.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -55,16 +35,11 @@ printf 'a fronteira: assets/ é o motor, packs/ é o tema\n\n'
 
 # --- 1. NADA DE TEMA EM assets/temas/, MENOS A `original` -------------------
 #
-# A `original` FICA, E O MOTIVO NÃO É SAUDOSISMO
-#   Ela não é tema de pack nenhum: é o MOLDE do esquema v1 que o COSMIC de
-#   04/2026 escrevia — o `scripts/gerar_tema_v1.py` deriva dela chave por chave
-#   — e é o reset de fábrica DESTA máquina. O `capturar_tema.sh` recusa
-#   recapturá-la, então fora do git ela é irrecuperável. Quem vai mexer no
-#   destino dela é a P24, que já a chama de `referencia/`.
+# Ela não é tema de pack nenhum: é o MOLDE do esquema v1 que o COSMIC de
+# 04/2026 escrevia — o `scripts/gerar_tema_v1.py` deriva dela chave por chave —
+# e é o reset de fábrica DESTA máquina.
 #
-#   ENTÃO ESTE TESTE NÃO COBRA "assets/temas VAZIO". Ele cobra que tudo o que
-#   sobrou ali seja a `original` — que é a diferença entre uma fronteira e uma
-#   faxina.
+# ENTÃO ESTE TESTE NÃO COBRA "assets/temas VAZIO".
 fora=$(versionados assets/temas | grep -v '^assets/temas/capturados/original/' || true)
 if [ -z "$fora" ]; then
   ok "assets/temas/ só tem a captura 'original' ($(versionados assets/temas | wc -l) arquivos, o molde do v1)"
@@ -76,14 +51,11 @@ fi
 # --- 2. NENHUM .ron VERSIONADO EM assets/ OU packs/ -------------------------
 #
 # O `.ron` é PRODUTO: entra a paleta do pack mais o `cosmic-map.json`, sai o
-# arquivo. Versionar produto é o que permite que o disco e a receita divirjam, e
-# o `docs/SPRINTS.md` já tinha nome para o defeito — *"o doctor enxerga receita
-# diferente de produto"*. Desde 22/09/2026 eles nascem em `$MEOW_ESTADO/temas/`.
+# arquivo.
 #
 # `docs/` FICA DE FORA DA REGRA, E DE PROPÓSITO: o
 # `docs/historico/estilo-escuro-original.ron` é o `cosmic-dark` de fábrica,
-# guardado como REGISTRO do que havia antes deste projeto. Ele não é saída de
-# script nenhum, e ninguém o regenera — apagá-lo seria perder a única cópia.
+# guardado como REGISTRO do que havia antes deste projeto.
 rons=$(versionados 'assets/*.ron' 'packs/*.ron' || true)
 if [ -z "$rons" ]; then
   ok "nenhum .ron versionado em assets/ nem em packs/ — produto gerado mora em \$MEOW_ESTADO/temas/"
@@ -94,10 +66,7 @@ fi
 
 # --- 3. assets/icones/upstream/ SEM NADA NO GIT -----------------------------
 #
-# Ele já estava ignorado (`.gitignore:3`) desde muito antes desta sprint, e a
-# primeira versão da P14 mandava tirá-lo do repositório com base numa medição de
-# DISCO. Não havia o que tirar. Esta conferência existe para que a próxima
-# pessoa não pague de novo pela mesma dúvida: a resposta fica escrita e medida.
+# Não havia o que tirar.
 n_up=$(versionados assets/icones/upstream | wc -l)
 if [ "$n_up" = "0" ]; then
   ok "assets/icones/upstream/ tem 0 arquivos versionados — é acervo baixado, e o que se versiona é o script que baixa"
@@ -108,12 +77,9 @@ fi
 
 # --- 4. TODA CAPTURA DE PACK ESTÁ ONDE O RESOLVEDOR A PROCURA ---------------
 #
-# NÃO BASTA ELA ESTAR "DENTRO DO PACK". O `docs/PACKS.md` publica o caminho
+# O `docs/PACKS.md` publica o caminho
 # `packs/<id>/temas/capturados/<flavor>-<accent>/`, e é ele que o
-# `scripts/pack.py captura` procura. Uma captura um nível acima ou com o
-# diretório no plural errado ficaria no disco, no git, dentro do pack — e
-# invisível para todo mundo que a fosse usar. É o defeito de `state/tema/`, que
-# fez o `meow tema` listar o vazio por semanas sem errar uma linha.
+# `scripts/pack.py captura` procura.
 achadas=0
 while IFS= read -r par; do
   [ -n "$par" ] || continue
@@ -136,9 +102,7 @@ done < <(versionados 'packs/*/temas/capturados/*' \
 
 # --- 5. NENHUM ARQUIVO DE TEMA SOLTO EM assets/, POR NOME DE FLAVOR ---------
 #
-# A LISTA DE FLAVORS VEM DO DISCO, e não escrita aqui. Um pack novo traz nomes
-# novos, e uma lista cravada neste arquivo seria a armadilha nº 3 do projeto —
-# toda lista fixa é uma lista que alguém vai esquecer de atualizar.
+# A LISTA DE FLAVORS VEM DO DISCO, e não escrita aqui.
 flavors=$(python3 - "$RAIZ" <<'PY'
 import glob, json, os, sys
 raiz = sys.argv[1]
@@ -158,26 +122,6 @@ PY
 if [ -z "$flavors" ]; then
   falha "não consegui ler nenhum flavor de packs/*/paleta.json — sem isso esta conferência não mede nada"
 else
-  # AS DUAS ISENÇÕES, COM O MOTIVO E O NÚMERO MEDIDO
-  #
-  #   assets/temas-de-apps/  — NÃO É DÍVIDA, É CONTRATO PRÓPRIO. São os temas que
-  #     os OUTROS aplicativos publicam (o `dracula.css` do Heroic, o
-  #     `catppuccin-mocha.theme` do btop), baixados do upstream deles e
-  #     conferidos por SHA256. O nome do flavor está no arquivo do terceiro, não
-  #     no nosso. A árvore-alvo da P14 diz, com todas as letras, "contrato
-  #     próprio, fica".
-  #
-  #   assets/icones/autorais/ — MORREU EM 22/09/2026, e do jeito que este
-  #     comentário prometia. Era dívida com dono e data: os ícones desenhados
-  #     aqui em cinco sabores (`cosmic-edit-mocha.svg`, `cosmic-edit-dracula.svg`
-  #     …), que vestem alguém e por isso pertencem ao pack. A P27 os moveu — 44
-  #     para packs/catppuccin/icones/autorais/ e 11 para o Dracula, mais os 11
-  #     do alucard que ela gerou — e no mesmo dia esta isenção parou de casar
-  #     e foi apagada, que é a regra escrita logo abaixo.
-  #
-  # A ISENÇÃO MORRE SOZINHA quando o diretório esvaziar: este laço exige que
-  # cada uma ainda CASE alguma coisa. Uma isenção que não protege mais nada é um
-  # comentário que mente, e o dia de apagá-la é o dia em que ela para de casar.
   ISENTOS=(
     "assets/temas-de-apps/"
   )

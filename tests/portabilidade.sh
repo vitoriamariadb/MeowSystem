@@ -1,92 +1,16 @@
 #!/usr/bin/env bash
 # portabilidade.sh — o repositório ainda roda na máquina de um estranho?
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 21/09/2026
-#   Uma varredura perguntou o que impede alguém de fora de instalar o projeto, e
-#   a resposta estava na LINHA 39 DO README: o `git clone` trazia `[REDACTED]`
-#   no lugar da conta do GitHub. O sanitizador de identidade do Spellbook apagou
-#   o nome — e faz bem, este é repositório de duas pessoas —, só que ninguém
-#   repôs. O passo 1 do projeto ficou sem rodar, calado, por semanas.
+# Até aqui ela se chamava "ZDOTDIR sem escape" e aceitava a linha que trouxesse
+# `:-` — `${ZDOTDIR:-$HOME/.config/zsh}`, `${MEOW_ZSH_ENV:-…}` —, com seis
+# linhas isentas para o resto.
 #
-#   Nenhum teste da suíte fazia essa pergunta. O `numeros.sh` confere contagem,
-#   o `estilo.sh` confere desenho, o `reversao.sh` confere o desfazer; a
-#   PORTABILIDADE não tinha dono. Este arquivo passa a ser o dono dela.
+# Ficavam de fora o comentário, a prosa, as pesquisas, as folhas e os arquivos
+# de registro — e foi por essa porta que os homes das duas máquinas onde o
+# projeto cresceu se espalharam: 171 linhas em 31 arquivos, medido.
 #
-# AS QUATRO REGRAS, E O DEFEITO QUE CADA UMA PEGA
-#   1. HOME DE PESSOA EM TEXTO        `/home/fulano/` em qualquer arquivo versionado
-#                                     (e `/home/fulano` sem a barra, desde a P43)
-#   2. DISCO QUE NÃO É PADRÃO         `/mnt/Apate` numa receita copiável
-#   3. IDENTIDADE REDIGIDA            `[REDACTED]` numa instrução de instalação
-#   4. O VIZINHO EM EXECUÇÃO          `.config/zsh` ou `aurora-` em código que roda
-#
-#   As três primeiras são a mesma família: uma receita que só roda na bancada de
-#   quem a escreveu. A quarta é a vizinha: `~/.config/zsh` é o Spellbook, o
-#   repositório pessoal desta casa, e `aurora-*` são os scripts do Ritual da
-#   Aurora que moram nele. Na máquina de um estranho nenhum dos dois existe.
-#
-# A REGRA 4 FICOU SEM ESCAPE E SEM ISENÇÃO — 24/09/2026, sprint P39
-#   Até aqui ela se chamava "ZDOTDIR sem escape" e aceitava a linha que trouxesse
-#   `:-` — `${ZDOTDIR:-$HOME/.config/zsh}`, `${MEOW_ZSH_ENV:-…}` —, com seis
-#   linhas isentas para o resto. Era a "integração opcional" que a regra do dono de
-#   23/09 recusa com essas palavras: o que o MeowSystem usa do Spellbook ou do
-#   Ritual migra para cá e é desativado lá; o que é só da máquina sai daqui. Um
-#   padrão que continua lendo o `~/.config/zsh` quando ele existe é as duas
-#   coisas ao mesmo tempo, e nenhuma delas.
-#
-#   O ALCANCE É O DA CONFERÊNCIA DA SPRINT, e não o repositório inteiro: `bin/`,
-#   `scripts/`, `lib/`, `app/` e o `install.sh` — o que RODA. Prosa, pesquisa e
-#   os `.patch` do compositor (que citam o script antigo em comentário Rust, e
-#   que mexer invalidaria) ficam de fora; comentário também, pelo
-#   `_so_comentario`. Docstring de Python NÃO é comentário para este laço, do
-#   mesmo jeito que não é para o `git grep` da conferência — e é por isso que o
-#   `gerar_tema_v1.py` trocou um nome por uma descrição no mesmo dia.
-#
-# A REGRA 1 PASSOU A LER TUDO — 23/09/2026, sprint P38
-#   Até aqui ela olhava só o que RODA: linha de código que não é comentário, e
-#   o miolo das cercas de um .md. Ficavam de fora o comentário, a prosa, as
-#   pesquisas, as folhas e os arquivos de registro — e foi por essa porta que
-#   os homes das duas máquinas onde o projeto cresceu se espalharam: 171 linhas
-#   em 31 arquivos, medido em 23/09. Tirando a guarda da captura `original`
-#   (isenção própria, lá embaixo), nenhuma estava em código que roda, e todas
-#   estavam no que a pessoa LÊ. Um produto que qualquer um instala não carrega
-#   o nome de ninguém, nem na documentação.
-#
-#   Agora a regra 1 lê TODO arquivo de texto versionado, linha a linha, sem
-#   perguntar se é comentário ou registro. As outras três continuam onde
-#   estavam: `/mnt/Apate` numa história e `[REDACTED]` num relato são o assunto
-#   do texto, e não uma receita que alguém vai copiar.
-#
-# A REGRA 1 PASSOU A PEGAR O HOME SEM A BARRA FINAL — 24/09/2026, sprint P43
-#   O padrão era `/home/<nome>/`, e a barra era a porta: `/home/fulano` no fim
-#   de uma linha, antes de uma aspa ou de um espaço, passava. O `tests/pack.sh`
-#   escreveu um dado assim de propósito, e o comentário dele conta por quê — o
-#   nome entrava "SEM a barra final" para a regra não o ver. Agora a regra casa
-#   o nome seguido de qualquer coisa que não seja letra, dígito, `_` ou `-`, ou
-#   do fim da linha; `/home/<usuário>` continua passando, porque o `<` não é
-#   nome de ninguém.
-#   RODADA CONTRA O REPOSITÓRIO INTEIRO ANTES DE FIXAR (24/09): dois achados
-#   novos, os dois em teste, e nenhum é a casa de alguém — cada um virou uma
-#   isenção nomeada, lá embaixo, com o motivo ao lado.
-#
-#   UM HOME CABE NO TEXTO DE DUAS FORMAS, e nenhuma das duas casa a regra:
-#     - `~/…` (ou `$HOME/…` num comando) quando é RECEITA ou exemplo — diz "a
-#       casa de quem estiver lendo", que é o que a receita quer dizer;
-#     - `/home/<usuário>/…` quando é MEDIDA citada — o valor que um arquivo
-#       tinha naquela máquina era absoluto, e o `<` diz que o nome saiu dali.
-#
-# AS ISENÇÕES CASAM PELO CONTEÚDO DA LINHA, NUNCA PELO NÚMERO
-#   Isenção presa a número de linha apodrece no primeiro rebase: o arquivo anda
-#   três linhas, a isenção passa a cobrir a linha errada e o teste fica verde
-#   sobre o defeito que veio pegar. Aqui cada isenção é um TRECHO da linha, e o
-#   dia em que a linha mudar a isenção para de casar — que é exatamente a hora
-#   de alguém reler o motivo.
-#
-# ESTE ARQUIVO NÃO SE VARRE, E ISSO NÃO É BRECHA
-#   Um caçador carrega, por definição, todos os padrões que caça: as isenções
-#   abaixo são linhas literais de outros arquivos. Varrer a si mesmo faria o
-#   teste acusar cada isenção como se fosse o defeito.
-#
-#   0 = o repositório está portátil · 1 = achados · 2 = erro deste teste
+# Agora a regra 1 lê TODO arquivo de texto versionado, linha a linha, sem
+# perguntar se é comentário ou registro.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$RAIZ" || exit 2
@@ -98,53 +22,31 @@ isentos=0
 ok()    { printf 'ok: %s\n' "$1"; }
 falha() { printf 'FALHOU: %s\n' "$1" >&2; achados=$((achados+1)); }
 
-# ---------------------------------------------------------------------------
 # AS ISENÇÕES, uma a uma, com o motivo ao lado
-# ---------------------------------------------------------------------------
+#
 # Cada entrada é um trecho LITERAL da linha isenta (comparação por substring,
-# sem regex). Tudo o que não estiver aqui é achado.
+# sem regex).
 ISENTAS=(
-  # --- regra 4: AS SEIS ISENÇÕES SAÍRAM EM 24/09/2026 (P39) ------------------
-  # Eram seis linhas lendo ou citando o `~/.config/zsh`, casadas por cinco
-  # trechos (o placar conta LINHA: caiu de 13 para 7; o "quatro" que esteve
-  # aqui até a P44 contou errado — o `git show 665b643` tira cinco) — o
-  # `vizinhos.conf` semeado pelo instalador a partir do `.git` de lá (duas), o
-  # `case` que decidia o aviso das completions (uma), o aviso do doctor sobre o
-  # `.git` (duas) e o `AREAS_VIZINHO_FONTE` do `areas.sh`, a "isenção com
-  # dívida" da P29. As linhas saíram do código na mesma sprint, e as isenções
-  # com elas: uma isenção que sobrevive ao seu motivo é pior que nenhuma, como o
-  # próprio texto da P29 dizia aqui.
+  # --- regra 4: AS SEIS ISENÇÕES SAÍRAM ------------------
 
   # --- regra 1: home DE NINGUÉM, dentro de teste de unidade -----------------
   # As quatro linhas do `0001-meow-capa-cor-controles.patch` que casam a regra 1
   # são fixtures de `#[test]` em Rust: `/home/user/` é o home-placeholder
-  # canônico, e o que está sendo testado é o PARSER de `file://`, não um
-  # caminho que alguém vai abrir. Trocar para `~/` faria o teste deixar de
-  # exercitar a forma absoluta, que é a única que aquele parser aceita.
+  # canônico, e o que está sendo testado é o PARSER de `file://`, não um caminho
+  # que alguém vai abrir.
   'file:///home/user/'
   'PathBuf::from("/home/user/Album Art.png")'
 
   # --- regra 1: home DE NINGUÉM, em exemplo que precisa ser absoluto --------
-  # Estas duas só apareceram quando a regra 1 passou a ler comentário e
-  # pesquisa, em 23/09/2026 (P38), e nenhuma é casa de alguém: `voce` é quem
-  # lê, `x` é valor de teste. As duas pedem a forma ABSOLUTA, então `~` não
-  # serve de troca.
-  #   O `meow.conf.exemplo` mostra o comando que o `scripts/wallpaper.sh`
-  # imprime ao consertar uma saída: o caminho vai entre aspas, onde `~` não
-  # expande, e a chave `WALLPAPER_FONTES_PERMITIDAS` guarda caminho absoluto. A
-  # forma da casa desde a P38 seria `/home/<usuário>/`; o arquivo não era desta
-  # sprint, e a isenção para de casar sozinha no dia em que a linha mudar.
+  # As duas pedem a forma ABSOLUTA, então `~` não serve de troca.
   'meow wallpaper permitir "/home/voce/Imagens/aquela-pasta"'
-  #   A pesquisa de 01/09 conferiu que o validador do painel NÃO recusa um
-  # `LOGO` legítimo: o que se media era justamente um caminho absoluto aceito.
+  # A pesquisa conferiu que o validador do painel NÃO recusa um `LOGO`
+  # legítimo: o que se media era justamente um caminho absoluto aceito.
   '`LOGO=/home/x/meu-gato.svg`'
 
-  # --- regra 1 SEM A BARRA: as duas que a P43 achou ao fechar a porta -------
   # A casa de mentira do `tests/pack.sh`: é o DADO que a régua do `validar`
-  # (a da P30, `RE_CASA_DE_ALGUEM`) tem de recusar, e a prova só vale com a
-  # forma absoluta — `~` é justamente o que a régua deixa passar. `fulano` é o
-  # nome de ninguém. O `tests/pack.sh` não é desta sprint; se a linha mudar, a
-  # isenção para de casar sozinha.
+  # tem de recusar, e a prova só vale com a forma absoluta — `~` é justamente
+  # o que a régua deixa passar.
   'CASA_ALHEIA="/home/fulano"'
   # O HOME de brinquedo do `tests/fonte-unica.sh` é `$T/home`, e `tema` é uma
   # pasta DENTRO dele — o `/home/tema` que a regra lê é o fim de `$T/home/` e o
@@ -154,32 +56,13 @@ ISENTAS=(
 
 # --- regra 1: A ÚNICA ISENÇÃO POR ARQUIVO, e ela é guarda, não descuido -----
 # A linha `origem:` da captura `original` guarda o caminho ABSOLUTO de onde o
-# tema de fábrica foi tirado, e de propósito (P30, 23/09/2026). O único leitor
-# dela é o `cmd_desfazer` do `bin/meow`, que a compara com o `$COSMIC` desta
-# máquina para RECUSAR o reset de fábrica de outra pessoa. Com `~` a guarda
-# quebra dos dois jeitos: comparado cru, `~/.config/cosmic` não é igual a
-# nenhum `$COSMIC` e a própria máquina que capturou passa a ser recusada;
-# expandido antes, ele é igual em toda máquina e a de fora passa a ser aceita.
-# O motivo inteiro está no `scripts/capturar_tema.sh`, em "a `original` É A
-# EXCEÇÃO". E ela não viaja: mora no motor, fora de pack nenhum.
-#   É por ARQUIVO + forma da linha, e não por trecho como as de cima, porque o
-# trecho seria o próprio nome de usuário — escrevê-lo aqui plantaria no teste
-# exatamente o que o teste existe para tirar do repositório.
+# tema de fábrica foi tirado, e de propósito.
 ORIGEM_DE_FABRICA="assets/temas/capturados/original/captura.txt"
 
 # O ARQUIVO DE REGISTRO, que não é receita de ninguém
-# ---------------------------------------------------------------------------
-# Estes três guardam MEDIÇÃO: uma sprint cita a linha exata que mediu, com o
-# `[REDACTED]` e o `/mnt/Apate` preservados — é o que faz o registro valer
-# alguma coisa. Cobrar portabilidade de um arquivo cujo trabalho é transcrever
-# o defeito seria pedir que ele mentisse sobre o que viu.
-#   O HOME DA PESSOA SAIU DESTA LISTA EM 23/09/2026 (P38): as regras 2, 3 e 4
-# continuam poupando o registro, a regra 1 não. Um home medido se transcreve
-# como `/home/<usuário>/…`, que diz a mesma verdade — o valor era absoluto —
-# sem dizer de quem era a casa.
 #
-# A exclusão é por CAMINHO, e não por linha, porque aqui o arquivo inteiro tem
-# essa natureza — um `docs/sprints/` novo nasce coberto, sem ninguém lembrar.
+# Cobrar portabilidade de um arquivo cujo trabalho é transcrever o defeito
+# seria pedir que ele mentisse sobre o que viu.
 _arquivo_de_registro() {
   case "$1" in
     docs/sprints/*|docs/historico/*|docs/SPRINTS.md) return 0 ;;
@@ -209,55 +92,30 @@ acusa() {
   falha "$arquivo:$num $frase"
 }
 
-# ---------------------------------------------------------------------------
 # Os arquivos: os VERSIONADOS, e só eles
-# ---------------------------------------------------------------------------
+#
 # `git ls-files` em vez de `find`: o que não está no git não chega na máquina de
 # ninguém, e varrer o disco traria `venv/`, artefato de build e a captura de
 # tema de outra pessoa — ruído que não é o assunto deste teste.
 mapfile -t ARQUIVOS < <(git ls-files 2>/dev/null) || exit 2
 [ "${#ARQUIVOS[@]}" -gt 0 ] || { printf 'pulado: não há arquivos versionados aqui\n'; exit 0; }
 
-# ---------------------------------------------------------------------------
-# REGRA 1 — home de pessoa, em TODO arquivo de texto versionado (P38, 23/09)
-# ---------------------------------------------------------------------------
+# REGRA 1 — home de pessoa, em TODO arquivo de texto versionado
+#
 # Um `git grep` só, e não o laço lá de baixo: aquele lê linha a linha em bash,
 # um arquivo por vez, e a regra 1 agora lê também os milhares de `.svg` e as
-# folhas de imagem em base64. O git faz a mesma pergunta sobre os mesmos
-# arquivos versionados, e o `-I` pula o binário pela regra dele (byte nulo nos
-# primeiros 8000 bytes) — que é o que "arquivo de texto" quer dizer aqui.
-#   A SAÍDA TEM DE TER SEMPRE A MESMA FORMA, venha a configuração de quem for:
-# o `-z` separa arquivo, número e linha por byte nulo, e o `--no-column` e o
-# `--no-color` desligam o que um `grep.column` ou um `color.grep` no gitconfig
-# de alguém enfiariam no meio — com `grep.column=true` a coluna entra como um
-# terceiro campo, e a linha lida aqui passaria a começar por ela.
-#   O resultado vai para um arquivo, e não direto para o laço, para que o
-# código de saída do git possa ser lido: 1 é "nada casou", e qualquer coisa
-# acima disso é o teste sem enxergar — aí a resposta é 2, e não um verde que
-# não mediu nada.
+# folhas de imagem em base64.
 R1="$(mktemp)" || exit 2
 trap 'rm -f "$R1"' EXIT
 # O NOME VAI ATÉ O PRIMEIRO CARÁTER QUE NÃO PODE SER NOME, OU ATÉ O FIM DA
-# LINHA — com ou sem a barra (P43). A classe do nome continua a de antes.
+# LINHA — com ou sem a barra. A classe do nome continua a de antes.
 git grep --no-color --no-column -zInE '/home/[a-zA-Z0-9_-]+([^a-zA-Z0-9_-]|$)' -- . ":(exclude)$EU" > "$R1" 2>/dev/null
 case $? in 0|1) ;; *) printf 'FALHOU: o git grep da regra 1 não rodou\n' >&2; exit 2 ;; esac
 while IFS= read -r -d '' arq && IFS= read -r -d '' num && IFS= read -r linha; do
   acusa "$arq" "$num" "$linha" "home de pessoa escrito: é o nome de alguém dentro do produto"
 done < "$R1"
 
-# Uma linha de COMENTÁRIO não é uma receita. O projeto inteiro é comentado em
-# prosa densa, e as 369 menções a `/mnt/Apate` medidas em 21/09/2026 são todas
-# história — dizer de onde veio um arquivo é documentação, não instrução.
-#
-# O `//`, O `/*` E O `*` SÓ SÃO COMENTÁRIO ONDE A LÍNGUA DIZ QUE SÃO — 24/09/2026
-#   Até aqui os quatro marcadores valiam para todo arquivo. Em shell, uma linha
-#   que começa com `*` é padrão de `case`, e padrão de `case` é código: medido
-#   na revisão da P39, `    *"$HOME/.config/zsh"/*) : ;;` acrescentado ao
-#   `scripts/forma.sh` passava VERDE na regra 4, e o `git grep` da conferência
-#   da sprint o pegava. O `//` e o bloco `/* */` são do `.js` e do código Rust
-#   dentro dos `.patch`; no `.sh`, no `.py` e no `bin/meow` o comentário é `#`.
-#   Medido antes de fechar a porta: nenhuma linha de `.sh` ou `.py` que começa
-#   com um dos três casava as regras 2, 3 ou 4 — o placar não mudou.
+# Uma linha de COMENTÁRIO não é uma receita.
 _so_comentario() {
   local l="${1#"${1%%[![:space:]]*}"}"
   case "$l" in '#'*) return 0 ;; esac
@@ -282,31 +140,12 @@ for arq in "${ARQUIVOS[@]}"; do
   _arquivo_de_registro "$arq" && continue
   [ -f "$arq" ] || continue
 
-  # O QUE ENTRA, O QUE FICA DE FORA, E POR QUÊ — a lista foi revista em 21/09
-  #   `.patch` entra como código porque o preâmbulo de um patch é receita para
-  #   copiar e colar, e sem cerca de crases não há como um `.md` separar prosa de
-  #   comando ali dentro. Foi exatamente onde o defeito sobreviveu à primeira
-  #   passada desta sprint: o `assets/prompt/LEIAME.md` foi consertado e o
-  #   `assets/prompt/aurora.patch` ao lado, que manda o MESMO comando, não — e
-  #   este teste não o viu.
+  # O QUE ENTRA, O QUE FICA DE FORA, E POR QUÊ — a lista foi revista `.patch`
+  # entra como código porque o preâmbulo de um patch é receita para copiar e
+  # colar, e sem cerca de crases não há como um `.md` separar prosa de comando
+  # ali dentro.
   #
-  #   O SHEBANG É A TERCEIRA PORTA, e existe por um arquivo só: `bin/meow`, o
-  #   executável principal e o maior arquivo de código do projeto, é o único
-  #   script versionado sem extensão. Classificar por nome o deixava fora da
-  #   regra 1 justamente por ser o arquivo que mais gente vai ler. Medido em
-  #   21/09/2026: é o único versionado sem extensão que começa com `#!`.
-  #
-  #   FICAM DE FORA, e isto é escolha com número, não esquecimento. Varrendo os
-  #   quatro padrões em 21/09/2026: `.json` de `docs/pesquisas/` dá 348 linhas,
-  #   `.html` das folhas dá 32, `.txt` dá 6 (cinco são a `captura.txt`, que a
-  #   própria sprint registra como guarda de propósito) e `.service` dá 4. São
-  #   quase todos artefato gerado ou transcrição de medição — a mesma natureza
-  #   do `docs/sprints/` logo acima —, e abri-los pediria uma política de
-  #   isenção inteira, que é sprint própria e não linha de rodapé desta.
-  #   `.css`, `.rs`, `.ron` e `.toml` deram ZERO: entrariam de graça hoje, e
-  #   ficam de fora só porque nenhum deles é receita que alguém copia.
-  #   DESDE 23/09/2026 (P38) ESTA LISTA É SÓ DAS REGRAS 2, 3 E 4. A regra 1 lê
-  #   todos eles, e o registro também, no `git grep` antes deste laço.
+  # FICAM DE FORA, e isto é escolha com número, não esquecimento.
   case "$arq" in
     *.sh|*.py|*.js|*.patch) tipo="codigo" ;;
     *.md)                   tipo="prosa" ;;
@@ -330,9 +169,7 @@ for arq in "${ARQUIVOS[@]}"; do
     fi
 
     # --- 1. home de pessoa: não mora mais aqui --------------------------------
-    # Desde a P38 ela lê o repositório inteiro, e por isso roda antes deste
-    # laço, num `git grep` só. Deixá-la também aqui contaria duas vezes cada
-    # linha de código.
+    # Deixá-la também aqui contaria duas vezes cada linha de código.
 
     # --- 2. disco que não é padrão -------------------------------------------
     case "$linha" in
@@ -349,9 +186,9 @@ for arq in "${ARQUIVOS[@]}"; do
     esac
 
     # --- 4. o vizinho em execução -------------------------------------------
-    # Sem `:-` que valha e sem isenção (24/09/2026, P39 — ver o cabeçalho). Só no
-    # código que roda; a `acusa` continua sendo a porta, e a lista de isenções
-    # não tem nenhuma linha desta regra.
+    # Sem `:-` que valha e sem isenção. Só no código que roda; a `acusa`
+    # continua sendo a porta, e a lista de isenções não tem nenhuma linha desta
+    # regra.
     if [ "$tipo" = "codigo" ]; then
       case "$arq" in
         bin/*|scripts/*|lib/*|app/*|install.sh)

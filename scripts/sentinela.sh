@@ -6,20 +6,12 @@
 #   ./sentinela.sh ler       imprime o último estado gravado
 #   MEOW_DRY_RUN=1 ./sentinela.sh   diz o que faria, sem escrever
 #
-# 0 = nada a fazer por gente · 1 = há vermelho (o cartão foi posto) · 2 = erro · 3 = sem apt
+# 0 = nada a fazer por gente · 1 = há vermelho (o cartão foi posto) · 2 = erro ·
+# 3 = sem apt
 #
-# O QUE ELE FAZ
-#   `apt list --upgradable` (só leitura) separa os `cosmic-*` da fila. Havendo
-#   candidato novo, roda o `cosmic_prever.sh` (esquema, chaves, série de patches
-#   com a escada, ferramenta de build, rust-version) e guarda o resultado em
-#   `$MEOW_ESTADO/sentinela.tsv`. Vermelho vira o cartão `sentinela-cosmic`,
-#   com o porquê; fila vazia ou sem vermelho tira o cartão.
+# `apt list --upgradable` (só leitura) separa os `cosmic-*` da fila.
 #
-# IDEMPOTENTE POR CANDIDATO
-#   A assinatura da fila (pacote=versão, ordenada) fica no estado. A mesma fila
-#   no dia seguinte não baixa nem mede nada, e não toca em arquivo algum. A medida
-#   que não conseguiu baixar o .deb ou o fonte grava assinatura `-`, e o próximo
-#   dia mede de novo: falha de rede não pode esconder um candidato para sempre.
+# A assinatura da fila (pacote=versão, ordenada) fica no estado.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

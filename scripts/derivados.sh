@@ -1,32 +1,17 @@
 #!/usr/bin/env bash
 # derivados.sh — alterou o desenho, o resto se atualiza sozinho (P88, decisão 15).
 #
-# O PEDIDO, 15/10/2026: «SVG alterado numa das três, qualquer outro arquivo,
-#   seja PNG ou afins, se auto atualiza». As fontes são as três pastas e os
-#   mapas de `icones/` (e o `logo.svg`, o ícone do lançador) do pack no ar, dos
-#   que ele herda e do pack-base — quem as lista é o `pack.py derivados`.
+# As fontes são as três pastas e os mapas de `icones/` (e o `logo.svg`, o ícone
+# do lançador) do pack no ar, dos que ele herda e do pack-base — quem as lista é
+# o `pack.py derivados`.
 #
-# UMA FUNÇÃO, IDEMPOTENTE
-#   A tabela `~/.local/state/meowsystem/derivados.tsv` guarda o sha256 de cada
-#   fonte na passada anterior. Esta passada compara, e para cada fonte que mudou,
-#   entrou ou saiu refaz SÓ os passos de quem deriva dela (o mesmo passo que o
-#   `install.sh` roda, que reescreve apenas o que difere), reindexa a cache do
-#   tema e relê a tela uma vez. Nada mudou: não escreve nada, nem a tabela.
-#   Fonte apagada: a cópia dela no tema (o arquivo com o sha256 que ela tinha)
-#   sai, e o passo dela roda para pôr o que valer no lugar.
+# A tabela `~/.local/state/meowsystem/derivados.tsv` guarda o sha256 de cada
+# fonte na passada anterior.
 #
-# QUEM CHAMA
-#   o `meow-derivados.service`, disparado pela `.path` sobre as pastas;
-#   o doctor das 5h (`--conferir`, e o conserto `--aplicar`), que refaz o que o
-#   vigia perdeu com o PC desligado; e o `install.sh`, que só registra a tabela
-#   (`--registrar`) depois de ter rodado os passos ele mesmo.
+# A ESPERA (debounce): uma rajada de salvamentos vira uma passada só.
 #
-# A ESPERA (debounce): uma rajada de salvamentos vira uma passada só. Antes de
-#   comparar, a passada espera as pastas ficarem quietas por
-#   `MEOW_DERIVADOS_ESPERA` segundos (2 de fábrica).
-#
-# CÓDIGOS: 0 em dia · 1 refez algo (ou, no --conferir, haveria o que refazer)
-#   · 2 erro · 3 sem o que vigiar.
+# CÓDIGOS: 0 em dia · 1 refez algo (ou, no --conferir, haveria o que refazer) ·
+# 2 erro · 3 sem o que vigiar.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -68,12 +53,7 @@ _quieto() {
   done
 }
 
-# O passo de quem deriva de cada fonte, pelo caminho dela dentro do pack. A
-# fonte que nada instala (a biblioteca que nenhum mapa liga, o modo de leitura,
-# que entra no applet ao compilar) só atualiza a tabela; a ficha relê sozinha.
-# O desenho de pack que um mapa liga também decide o traço de 48 px, que cede a
-# ele (decisão 16, 7): quem mexe no `apps.map`, nos resgatados ou em `apps/` e
-# `biblioteca/` refaz o `arcticons` junto.
+# O passo de quem deriva de cada fonte, pelo caminho dela dentro do pack.
 _passos_de() {
   case "$1" in
     */logo.svg)                                printf 'completar\n' ;;

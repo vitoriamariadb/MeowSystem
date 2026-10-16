@@ -69,23 +69,12 @@ sys.path.insert(0, str(RAIZ / "scripts"))
 import pack  # noqa: E402
 import gerar_tema_v1 as v1  # noqa: E402  — o parser RON e a geração da v1 são dele
 
-# O que marca uma captura como DERIVADA, na linha `origem:` do captura.txt. É a
-# linha que a `capturar_tema.sh` escreve com a casa de onde fotografou; aqui ela
-# diz de qual captura veio, e é por ela que se sabe o que é seguro reescrever:
-# uma captura de verdade (tirada da GUI) nunca é tocada por este arquivo.
+# O que marca uma captura como DERIVADA, na linha `origem:` do captura.txt.
 MARCA = "derivada de "
 
-# `.gitignore` DENTRO DA CAPTURA DERIVADA, E NÃO NA RAIZ DO REPOSITÓRIO
-#   A captura derivada mora onde a `capturar_tema.sh` gravaria a mesma captura
-#   (o `captura-destino` do pack.py), porque é lá que o `meow tema`, o
-#   instalador e o painel a procuram. Só que ela é PRODUTO, como os `.ron` em
-#   `$MEOW_ESTADO/temas/`, e o tests/git-limpo.sh cobra que usar o programa não
-#   suje o clone. Um `*` na pasta dela esconde a pasta inteira do `git status`
-#   — ela e o próprio `.gitignore` — sem regra nenhuma na raiz que precisasse
-#   adivinhar quais `<flavor>-<acento>` são derivados e quais são fotografia.
-#   Uma captura de verdade tirada por cima (`meow tema capturar`) apaga a pasta
-#   inteira antes de gravar, e com ela o `.gitignore`: ela volta a aparecer no
-#   git, que é onde uma fotografia deve ir.
+# A captura derivada mora onde a `capturar_tema.sh` gravaria a mesma captura (o
+# `captura-destino` do pack.py), porque é lá que o `meow tema`, o instalador e
+# o painel a procuram.
 IGNORAR = "*\n"
 
 ARVORES = ("Dark", "Light")
@@ -336,9 +325,6 @@ def para_hex(c) -> str:
     return "#" + "".join("%02X" % u8(x) for x in c)
 
 
-# ===========================================================================
-# 2. O QUE O ACENTO PINTA — A LISTA É A DO theme.rs DO LIBCOSMIC
-# ===========================================================================
 # Todo componente leva o acento em `focus` e `selected_text`. Os arquivos que
 # são `Container` o levam dentro de `component.`.
 COMPONENTES = (
@@ -400,14 +386,9 @@ def pintar(produto: dict, receita: dict, acento_hex: str) -> tuple[dict, dict]:
         for cam in ("component.focus", "component.selected_text"):
             novo[(nome, cam)] = A
 
-    # A ESCADA DA NEUTRA, EM f32, E NÃO O QUE A CAPTURA MOSTRA DELA
-    #   O `hovered`/`pressed` dos botões e a neutra do `accent.on` são degraus da
-    #   `neutral_tint` (control_steps_array no theme.rs). A captura mostra cada
-    #   um arredondado a 8 bits — e 8 bits não bastam: medido no dracula-mauve, o
-    #   `accent.on` sai `#000000` mas vale ~1e-5 em f32, e é essa sobra que leva
-    #   o `on_disabled` (metade do acento) de 124,5 para 125. Com o valor da
-    #   captura a conta dava #5E4A7C; o COSMIC grava #5E4A7D. Por isso a escada
-    #   é refeita da receita, como o COSMIC a faz.
+    # O `hovered`/`pressed` dos botões e a neutra do `accent.on` são degraus da
+    # `neutral_tint` (control_steps_array no theme.rs). Com o valor da captura a
+    # conta dava #5E4A7C; o COSMIC grava #5E4A7D.
     cinza = receita.get("neutral_tint", "None").strip()
     if not cinza.startswith("Some"):
         raise ValueError("a receita não tem neutral_tint: os degraus da neutra saem da "
@@ -592,16 +573,8 @@ def _separar(par: str):
     return flavor, acento
 
 
-# A MONTAGEM «A BASE MENOS UM LADO + O LADO DO PAR» — 25/09/2026, sprint P66
-#   Estava escrita duas vezes: no `plano` daqui (o lado do par na derivada de
-#   acento, P63) e no `plano` do derivar_flavor.py (o outro lado do flavor sem
-#   foto, P59). As duas liam a base inteira sem a ficha, o manifesto e o
-#   `.gitignore` (quem monta os refaz), tiravam as duas pastas de uma árvore e
-#   punham as do par — com o filtro em lugares diferentes: na leitura, aqui;
-#   depois dela, lá. O resultado é o mesmo, e o tests/notas-de-funcao.sh o
-#   confere nos 84 pares dos dois packs, contra a soma medida antes da troca.
-#   [Revisão da P66, 25/09/2026: eram TRÊS — o `_conteudo`, abaixo, lia a base
-#   inteira pelo mesmo laço, com a mesma tupla; ele chama o `montar` também.]
+# Estava escrita duas vezes: no `plano` daqui e no `plano` do
+# derivar_flavor.py.
 FICHAS = ("manifesto.sha256", "captura.txt", ".gitignore")
 
 
@@ -642,11 +615,7 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
         saida["motivo"] = f"{nome_acento!r} não é uma cor do flavor {flavor}"
         return saida
     arvore = "Light" if flavor in (paleta.get("claros") or []) else "Dark"
-    # A BASE É A PRIMEIRA FOTOGRAFIA DO FLAVOR QUE SE REPRODUZ, EM ORDEM
-    #   A ordem alfabética é só para ser a mesma em toda máquina. O que decide é
-    #   a guarda: o `mocha-mauve` desta árvore (25/08) NÃO se reproduz — o
-    #   `accent_button.on` dele é #020202, e o COSMIC de hoje dá #01010F com a
-    #   receita que ele traz —, então o mocha deriva do `mocha-pink`, que fecha.
+    # A ordem alfabética é só para ser a mesma em toda máquina.
     recusas = []
     for nome in pack.capturas():
         if nome == par or not nome.startswith(flavor + "-") or nome == "original":
@@ -664,57 +633,14 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
             # absoluto, e esta frase vai para a tela e para a Início.
             recusas.append(f"{nome}: {e.strerror or type(e).__name__}")
             continue
-        # O OUTRO LADO É O DO PAR DO PACK, NO MESMO ACENTO — 25/09/2026, P63
-        #   A árvore que não é a do flavor vinha da base, copiada, e a Light
-        #   do dracula-mauve era o Latte do Catppuccin: o dracula-pink no claro
-        #   era o Latte, com o acento mauve. Quando o par do pack nesse lado
-        #   nunca foi fotografado (o alucard), o lado sai da derivação dele no
-        #   acento pedido — o `lado_do_par` do derivar_flavor.py, o mesmo que
-        #   pôs o alucard-mauve na foto do mauve. Par com foto (o latte), ou
-        #   par que não se deriva: fica o da base, como até aqui.
-        #   [P66, 25/09/2026: o da base, e com o acento pedido — o bloco abaixo.]
+        # A árvore que não é a do flavor vinha da base, copiada, e a Light do
+        # dracula-mauve era o Latte do Catppuccin: o dracula-pink no claro era o
+        # Latte, com o acento mauve.
         import derivar_flavor
         try:
             lado = derivar_flavor.lado_do_par(par, paleta)
         except ValueError:
             lado = None
-        # O ACENTO DO LADO DO PAR É O PEDIDO — 25/09/2026, sprint P66
-        #   Quando o lado do par fica o da base (o par tem foto, como o latte e o
-        #   mocha no Catppuccin), ele ficava também com o ACENTO da base. Medido
-        #   num COSMIC de brinquedo pelas etapas do install.sh: FLAVOR=latte,
-        #   ACCENT=blue e MODO=escuro vestiam a Dark `catppuccin-mocha` com
-        #   #CBA6F7FF, o mauve do latte-mauve; e mocha-green no claro, a Light
-        #   `catppuccin-latte` com #8839EFFF, o mauve da Light do mocha-pink. A
-        #   página e a prévia vestiam o blue e o green do par — o acento
-        #   prometido e não aplicado.
-        #   O lado do par passa pela MESMA derivação do lado escolhido
-        #   (`derivar_arvore`, com a guarda), na cor do par para o acento pedido
-        #   — o blue do mocha, o green do latte. Tudo o que não é acento continua
-        #   o da base, como no lado escolhido.
-        #   Com o lado vindo do `lado_do_par` (o Dracula, P63) nada muda: aquele
-        #   lado já nasce no acento pedido. Sem par no pack, ou sem essa cor no
-        #   par, também não: não há acento prometido para aquele lado.
-        #   O LADO DO PAR QUE NÃO SE DERIVA FICA O DA BASE, E NÃO DERRUBA A BASE
-        #   — revisão da P66, 25/09/2026. A primeira versão recusava a base cujo
-        #   lado do par não passa na guarda, e com ela a variante inteira: um
-        #   pack de terceiro com a Light da foto mexida na GUI perdia todos os
-        #   acentos derivados, que antes aplicavam, por um lado que só aparece
-        #   no outro modo. A regra é a da P63 logo acima («par que não se
-        #   deriva: fica o da base»): esse lado fica o da base, byte a byte, no
-        #   acento dela, e o `captura.txt` diz qual campo não fechou. É uma
-        #   árvore que o COSMIC escreveu, e não o híbrido que a guarda impede;
-        #   o lado escolhido continua exigindo a guarda. Nos dois packs de hoje
-        #   isso não acontece (os 25 lados do par se derivam).
-        #   O QUE NÃO PASSA POR AQUI: a FOTO de um par. O `plano` devolve
-        #   `fotografia` lá em cima sem olhar o lado do par dela, e o da
-        #   `mocha-pink` é a Light do latte no mauve (#8839EF), e não no pink
-        #   (#EA76CB) que a página promete. Consertar isso é escrever na foto
-        #   (o `refazer_foto` do derivar_flavor.py, como a P63 fez na
-        #   `dracula-mauve`) ou derivar na hora de aplicar — as duas fora do
-        #   território da P66; o tests/notas-de-funcao.sh o diz em toda corrida.
-        #   [P68, 25/09/2026: escrito na foto — a Light da `mocha-pink` é a do
-        #   `derivar_arvore` no pink do latte (o CREDITOS.md do Catppuccin tem
-        #   o comando), e o teste passou a cobrá-la em vez de dizê-la.]
         parceiro = None if lado else derivar_flavor.par_do_outro_lado(flavor, paleta)
         cor_do_par = ((paleta.get("flavors") or {}).get(parceiro) or {}).get(nome_acento)
         outro = "Dark" if arvore == "Light" else "Light"
@@ -751,14 +677,8 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
         saida["motivo"] = ("nenhuma captura do " + flavor + " se reproduz para servir de base — "
                            + " | ".join(recusas))
     elif _flavor:
-        # O FLAVOR SEM FOTOGRAFIA NENHUMA SE DERIVA DE OUTRO DO MESMO LADO —
-        # 25/09/2026, sprint P59. Era aqui que o alucard, o frappe e o
-        # macchiato paravam: «não há tema capturado». Quem sabe fazer é o
-        # irmão `derivar_flavor.py` (o cabeçalho dele diz o que se mediu); a
-        # fotografia do próprio flavor, quando existe, continua sendo a base e
-        # nunca chega a este ramo. O `_flavor=False` é dele: o par do outro
-        # lado é pedido a este `plano` sem voltar para lá, e um pack cujos dois
-        # lados não têm foto não vira laço.
+        # Era aqui que o alucard, o frappe e o macchiato paravam: «não há tema
+        # capturado».
         import derivar_flavor
         return derivar_flavor.plano(par, paleta)
     else:
@@ -771,8 +691,8 @@ def _conteudo(p: dict) -> dict:
     """{caminho relativo: bytes} da captura derivada inteira, sem o manifesto."""
     base = Path(p["dir_base"])
     arquivos = {}
-    # A derivada de FLAVOR (P59) já chega inteira: ela junta duas capturas — a
-    # base do mesmo lado e o par do pack no outro —, e copiar a base por baixo
+    # A derivada de FLAVOR já chega inteira: ela junta duas capturas — a base
+    # do mesmo lado e o par do pack no outro —, e copiar a base por baixo
     # deixaria sobrar arquivo do lado que foi trocado.
     if "conteudo" in p:
         arquivos.update(p["conteudo"])
@@ -780,9 +700,6 @@ def _conteudo(p: dict) -> dict:
         arquivos.update(montar(base))
     for rel, txt in p["arquivos"].items():
         arquivos[rel] = txt.encode("utf-8")
-    # captura.txt SEM hora de agora: a derivação é função da base, e o arquivo
-    # tem de sair igual byte a byte a cada passagem — senão toda conferência
-    # acusaria diferença e o instalador reescreveria a pasta de hora em hora.
     quando = ""
     for linha in (base / "captura.txt").read_text(encoding="utf-8").splitlines():
         if linha.startswith("quando: "):

@@ -10,11 +10,6 @@
 #   · o desenho apagado leva junto a cópia dele no tema;
 #   · o doctor (`--conferir`) vê o que o vigia perdeu, e só lê;
 #   · a unidade `.path` vigia cada pasta das três, e não outra coisa.
-#
-# A cópia da árvore é para editar desenho sem tocar no repositório. HOME
-#   temporário, sem barramento da sessão, falsos que recusam escrita no PATH.
-#
-#   0 = cumpre a decisão 15 · 1 = achados · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0

@@ -317,7 +317,6 @@ def gesto_do_descolado(pag):
 
 
 # ---------------------------------------------------------------------------
-# 8. O ACABAMENTO DA P80 — um caso por defeito do uso real final (10/10/2026)
 # ---------------------------------------------------------------------------
 VISIVEL_JS = "(el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true })"
 
@@ -399,9 +398,7 @@ PALETA_JS = r"""
 
 
 # 8.3 — O PNG FEITO À MÃO E A TRAVA (print 06): o PNG aparecia apagado, com um
-#   selo que ninguém lia (um retângulo desenhado em CSS). A pasta travada leva
-#   o selo de trava de toda a página, com o porquê inteiro na dica — o mesmo
-#   em toda pasta —, e o desenho travado diz o porquê na dica dele.
+# selo que ninguém lia (um retângulo desenhado em CSS).
 TRAVA_JS = r"""
 () => {
   const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
@@ -436,9 +433,8 @@ TRAVA_JS = r"""
 
 
 # 8.4 — DIA E NOITE (print 07): a linha do tema claro usava um deslizante
-#   pontilhado («como está: 18») ao lado de duas linhas com seletor de hora, e
-#   lia ao contrário (termina à esquerda). As três linhas: o mesmo seletor de
-#   hora, a mesma ordem — começa | termina.
+# pontilhado («como está: 18») ao lado de duas linhas com seletor de hora, e
+# lia ao contrário (termina à esquerda).
 NOITE_JS = r"""
 () => {
   const defeitos = [];
@@ -501,13 +497,6 @@ PACK_REDE_JS = r"""
 """
 
 
-# 8.6 — O QA DE USO REAL DA P80 (10/10/2026), com a casa copiada da pessoa:
-#   · o rótulo da ficha partia a palavra no meio («Configuraçõe» numa linha,
-#     «s» na outra): a palavra inteira cabe na largura do desenho;
-#   · o `obsidian.png` do pack é um SVG com nome de PNG (veio assim do
-#     Dracula_OS-Theme), e a ficha o mostrava como imagem quebrada;
-#   · o rótulo de reserva (o nome do arquivo limpo) mostrava o identificador de
-#     32 letras dos atalhos do Chrome: «Chrome ieicmdpib… Default».
 PALAVRA_PARTIDA_JS = r"""
 () => {
   const defeitos = [];
@@ -547,9 +536,9 @@ IDENTIFICADOR_JS = r"""
 """
 
 
-# 8.7 — UM NOME POR APP, E NÃO O ÚLTIMO PEDAÇO DO ID (P82, item 8): o
-#   `com.obsproject.Studio` e o `io.github.shiftey.Desktop` viravam «Studio» e
-#   «Desktop» embaixo do desenho. O nome vem da linha `# app:` do mapa.
+# 8.7 — UM NOME POR APP, E NÃO O ÚLTIMO PEDAÇO DO ID: o
+# `com.obsproject.Studio` e o `io.github.shiftey.Desktop` viravam «Studio» e
+# «Desktop» embaixo do desenho. O nome vem da linha `# app:` do mapa.
 NOME_DO_APP_JS = r"""
 ([glifo, nome]) => {
   const deles = [...document.querySelectorAll('.escolha-icone .tira-glifos button[data-glifo]')]
@@ -562,10 +551,6 @@ NOME_DO_APP_JS = r"""
 """
 
 
-# 5 — A 375 PX (P82, item 21): o que a integração da P80 viu numa tela de
-#   celular. Cada caso é o efeito, medido na página: a aba aberta por endereço
-#   aparece no menu horizontal; a prévia grudada não cobre o conteúdo que rola;
-#   e o «?» de uma prévia não fica por cima do desenho dela.
 ABA_NO_MENU_JS = r"""
 () => {
   const t = document.getElementById('trilho').getBoundingClientRect();
@@ -606,9 +591,8 @@ DICA_SOBRE_DESENHO_JS = r"""
 """
 
 
-# 8.8 — O GATO DE VERDADE NA PONTA DA DOCK DESENHADA (P82, item 25; o desenho é
-#   da QA da P77, `pintarGatosNoDock`): a ponta da dock da prévia é a miniatura
-#   do gato escolhido, e não o gato de traço de reserva.
+# 8.8 — O GATO DE VERDADE NA PONTA DA DOCK DESENHADA: a ponta da dock da prévia
+# é a miniatura do gato escolhido, e não o gato de traço de reserva.
 GATO_NA_DOCK_JS = r"""
 () => {
   const grupos = [...document.querySelectorAll('#conteudo g.gato-no-dock')];
@@ -619,11 +603,9 @@ GATO_NA_DOCK_JS = r"""
 """
 
 
-# 6 — A GRADE SEM BURACO (P82, item 26): um cartão alto numa linha deixava o
-#   vão embaixo dos baixos; a régua é o fim do CONTEÚDO de cada cartão (o
-#   cartão estica até a linha) contra o começo do de baixo, na mesma coluna. E
-#   a figura de uma página só de ações não toma a linha sozinha: ela mora na
-#   grade, ao lado dos cartões.
+# 6 — A GRADE SEM BURACO: um cartão alto numa linha deixava o vão embaixo dos
+# baixos; a régua é o fim do CONTEÚDO de cada cartão (o cartão estica até a
+# linha) contra o começo do de baixo, na mesma coluna.
 BURACO_JS = r"""
 (teto) => {
   const vis = (el) => el && el.checkVisibility && el.checkVisibility();
@@ -712,10 +694,7 @@ def casos_da_p82(pag):
     pag.locator('#trilho button[data-grupo="Áreas de trabalho"]').click()
     assentar(pag)
     reprovas += [("áreas sem nome", d) for d in pag.evaluate(AREAS_SEM_NOME_JS)]
-    # Item 30: o «Usar este ícone» deixa o cartão do aplicativo à vista. A
-    # grade da casa é curta (cabe numa tela), então ela ganha 120 lançadores
-    # que vêm depois do programa de brinquedo na ordem, como numa máquina de
-    # verdade; a página é rolada até a ficha, como quem desceu para escolher.
+    # Item 30: o «Usar este ícone» deixa o cartão do aplicativo à vista.
     aplicativos = os.path.join(casa.CASA, ".local", "share", "applications")
     extras = []
     for i in range(120):
@@ -798,7 +777,6 @@ def acabamento(pag):
             reprovas.append(("ficha de ícone", d))
         if FOTOS and passo != "abrir":
             pag.screenshot(path=os.path.join(FOTOS, f"p80-paleta-{passo}.png"))
-    # 8.6 — o QA de uso real da P80, na mesma ficha.
     for busca, olhar in (("", PALAVRA_PARTIDA_JS), ("obsidian", IMAGEM_QUEBRADA_JS),
                          ("chrome", IDENTIFICADOR_JS)):
         pag.locator(".escolha-icone input[type=search]").fill(busca)
@@ -956,7 +934,6 @@ def main():
                         nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
                         pag.screenshot(path=os.path.join(FOTOS, f"uso-real-{nome}.png"))
 
-            # 4. O ACABAMENTO DA P80
             print("\n4. O ACABAMENTO DA P80, UM CASO POR DEFEITO")
             pagina_atual["nome"] = "acabamento"
             if FOTOS:
@@ -965,28 +942,27 @@ def main():
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} acabamento: {len(achados)} defeito(s)")
 
-            # 6. A GRADE SEM BURACO (P82, item 26) — antes dos 375 px, a 1440
+            # 6. A GRADE SEM BURACO — antes dos 375 px, a 1440
             print("\n6. A GRADE SEM BURACO")
             pagina_atual["nome"] = "grade"
             achados = grade_sem_buraco(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} grade: {len(achados)} defeito(s)")
 
-            # 7. OS CASOS DA P82 (itens 28 em diante)
             print("\n7. OS CASOS DA P82")
             pagina_atual["nome"] = "casos da P82"
             achados = casos_da_p82(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} casos da P82: {len(achados)} defeito(s)")
 
-            # 8. O CARTÃO DE «PRECISA DE GENTE» (P86, item 4)
+            # 8. O CARTÃO DE «PRECISA DE GENTE»
             print("\n8. O CARTÃO DE PRECISA DE GENTE")
             pagina_atual["nome"] = "precisa de gente"
             achados = cartao_de_gente(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} precisa de gente: {len(achados)} defeito(s)")
 
-            # 5. A 375 PX (P82, item 21)
+            # 5. A 375 PX
             print("\n5. A 375 PX")
             pagina_atual["nome"] = "375 px"
             achados = a_375(pag, url)

@@ -2,67 +2,14 @@
 # sem-dracula-os-theme.sh — o MeowSystem monta o Dracula sem o repositório de
 # onde a arte veio?
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 23/09/2026 (sprint P37)
-#   A regra do dono, de 23/09: "tudo do spellbook que entrar em conflito com o
-#   meowsystem, migramos pra cá e desativamos no spellbook". O caso principal
-#   era o `rebuild_dracula_theme()` do Spellbook, que rodava o build e o
-#   `install.sh --user` do `~/Desenvolvimento/Dracula_OS-Theme` e reescrevia o
-#   tema `Dracula-Icones` inteiro. Ele foi desativado lá, e o aviso dele manda
-#   para cá: quem monta o Dracula agora é o `scripts/icones_apps_dracula.sh`,
-#   lendo de `packs/dracula` (295 desenhos na biblioteca, 191 apps ligados, P36).
+# O projeto é comentado em prosa densa, e a história da migração cita o
+# `Dracula_OS-Theme` em comentário e em docstring — é documentação, não leitura.
 #
-#   Isso só é verdade enquanto nada daqui voltar a ler de lá. O
-#   `Dracula_OS-Theme` só existe na máquina de quem o escreveu; um script que o
-#   lesse funcionaria aqui e quebraria em qualquer outra, calado. A pergunta
-#   não tinha dono na suíte — o `tests/pack.sh` conta a biblioteca CONTRA ele,
-#   de propósito, e ninguém conferia o avesso.
-#
-# AS TRÊS PERGUNTAS
-#   1. NENHUM CÓDIGO QUE RODA NOMEIA O `Dracula_OS-Theme`. Fora de comentário e
-#      de docstring, em tudo o que é versionado e roda: bin/, scripts/, lib/,
-#      app/, assets/, systemd/, src/, packs/ e o install.sh. E, desde a P43, a
-#      coluna `lido de` de todo PROCEDENCIA.md, que é DADO que o código abre.
-#   2. A MONTAGEM LÊ DO PACK, NUMA CASA ONDE O `Dracula_OS-Theme` NÃO EXISTE. O
-#      instalador da camada Dracula roda num HOME de brinquedo e tem de pôr no
-#      tema os desenhos do mapa, cada um igual ao arquivo do pack de onde saiu,
-#      e nenhum de fora do repositório. É a máquina de outra pessoa, simulada.
-#      (Eram 191 em 23/09; a P43 os levou a 203.)
-#   3. NEM O DOCTOR LÊ (P43, 24/09/2026). O `meow doctor` chama o
-#      `pack.py sincronizar` do pack no ar a cada passada. Ele roda aqui sob um
-#      gancho de auditoria do Python (`sys.addaudithook`, evento `open`), que vê
-#      TODA abertura de arquivo — inclusive a que falha porque o arquivo não
-#      existe. Nenhuma pode cair na casa de quem roda nem num `Dracula_OS-Theme`.
-#      Medido antes da P43, com o PROCEDENCIA.md de então: 364 aberturas lá.
-#
-# COMO A PERGUNTA 1 SEPARA CÓDIGO DE PROSA, E POR QUE NÃO POR ISENÇÃO
-#   O projeto é comentado em prosa densa, e a história da migração cita o
-#   `Dracula_OS-Theme` em comentário e em docstring — é documentação, não
-#   leitura. Uma lista de linhas isentas apodreceria na primeira vez que alguém
-#   reescrevesse um comentário (e a P38, em paralelo com esta sprint, reescreve
-#   comentário em todo o repositório). Então a separação é pela GRAMÁTICA:
-#   Python passa pelo `tokenize` (comentário e docstring ficam de fora; string
-#   de código entra), shell e unidades do systemd perdem o que vem depois do
-#   `#`, os mapas perdem o comentário do mesmo jeito que o `_dracula_pares` o
-#   corta, e JSON entra pelos valores — menos os das chaves `_nota*`, que são a
-#   prosa do formato de pack.
-#
-# O QUE ELE NÃO COBRA, E POR QUÊ
 #   - `tests/`: o `tests/pack.sh` lê o `Dracula_OS-Theme` de propósito, para
 #     contar por sha256 que a biblioteca inteira chegou ao pack, e pula dizendo
 #     por quê quando ele não existe. Teste não é execução.
 #   - A PROSA do `PROCEDENCIA.md` e a coluna "de onde": são registro, e dizer
 #     de onde cada cópia veio é o trabalho daquele arquivo.
-#
-#   ATÉ 24/09/2026 ELE POUPAVA O PROCEDENCIA.md INTEIRO, e isso ficou velho. A
-#   coluna "lido de" não é prosa: o `meow pack sincronizar` a abre, e o
-#   `meow doctor` o chama a cada passada — com o Dracula no ar, eram 364
-#   arquivos do `Dracula_OS-Theme` relidos na pasta pessoal de quem o escreveu.
-#   A decisão de 23/09 foi aposentar essa comparação (P43): a coluna ficou
-#   vazia, a origem continua em "de onde", e as perguntas 1 e 3 cobram as duas
-#   metades — nenhum `lido de` nomeia o repositório, e nada é aberto lá.
-#
-# CÓDIGOS DE SAÍDA (os do projeto)
-#   0 = tudo cobrado passou · 1 = achados · 2 = erro deste teste.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -203,15 +150,14 @@ else
 fi
 
 # --- 2. a montagem lê do pack, numa casa sem o Dracula_OS-Theme ---------------
-#   O ambiente é de brinquedo pela mesma razão do tests/fonte-unica.sh: sem o
-#   XDG e o MEOW_PACKS de brinquedo, um pack instalado em
-#   ~/.local/share/meowsystem/packs/ entraria na conta. E o HOME de brinquedo é
-#   o que tira o ~/Desenvolvimento/Dracula_OS-Theme do alcance.
+# O ambiente é de brinquedo pela mesma razão do tests/fonte-unica.sh: sem o XDG
+# e o MEOW_PACKS de brinquedo, um pack instalado em
+# ~/.local/share/meowsystem/packs/ entraria na conta.
 T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
 # A casa numa variável, e não como `$T/home/...` escrito em cada uso: a regra 1
 # do tests/portabilidade.sh lê `/home/<nome>/` como home de pessoa cravado, e
-# acusou esta linha na primeira passada (23/09/2026).
+# acusou esta linha na primeira passada.
 CASA="$T/casa"
 mkdir -p "$CASA" "$T/xdg" "$T/packs"
 amb() {

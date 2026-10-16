@@ -1,32 +1,16 @@
 #!/usr/bin/env bash
 # instalacao.sh — O LAÇO DAS PASSAGENS: ele fecha sozinho, e sabe parar.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 21/09/2026
-#   Até esta data o `install.sh` rodava as 59 etapas UMA vez e terminava
-#   pedindo: "N etapa(s) mudaram nesta passagem. Rode mais uma vez." O laço
-#   passou para dentro do instalador, e com ele vieram duas guardas que não são
-#   enfeite: um teto de 5 passagens e um detector de oscilação. Guarda que só
-#   dispara em máquina defeituosa nunca dispara em lugar nenhum — e o dia em que
-#   ela for precisa é o dia em que ninguém está olhando a tela.
+# Com uma RAIZ DE BRINQUEDO: um diretório de links simbólicos para este
+# repositório mais uma CÓPIA do `install.sh` com a lista de etapas do `main`
+# trocada por etapas falsas — uma que escreve toda passagem, duas que se
+# revezam, uma que escreve só na primeira.
 #
-# COMO SE TESTA UM TETO SEM UMA MÁQUINA DEFEITUOSA
-#   Com uma RAIZ DE BRINQUEDO: um diretório de links simbólicos para este
-#   repositório mais uma CÓPIA do `install.sh` com a lista de etapas do `main`
-#   trocada por etapas falsas — uma que escreve toda passagem, duas que se
-#   revezam, uma que escreve só na primeira. O laço, o teto, o detector e as
-#   frases da tela são os do arquivo de verdade; de mentira é só a fila.
+# Os links existem por causa do `MEOW_RAIZ`, que o `install.sh` deriva de onde
+# ELE está (`pwd -P` do próprio diretório): uma cópia solta em /tmp não acharia
+# o `lib/comum.sh`.
 #
-#   Os links existem por causa do `MEOW_RAIZ`, que o `install.sh` deriva de onde
-#   ELE está (`pwd -P` do próprio diretório): uma cópia solta em /tmp não
-#   acharia o `lib/comum.sh`. Um diretório de links tem caminho físico próprio e
-#   resolve os dois lados.
-#
-#   A convergência da fila DE VERDADE, com as 59 etapas numa máquina zerada, é o
-#   `tests/convergencia.sh`, e são cinquenta segundos: este aqui não a repete.
-#
-# ONDE ELE RODA
-#   HOME de brinquedo, `env -i`, sem COSMIC e sem sessão gráfica. As etapas
-#   falsas não escrevem nada, nem dentro dele.
+# HOME de brinquedo, `env -i`, sem COSMIC e sem sessão gráfica.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
@@ -51,10 +35,7 @@ cenario() {
   done
   printf '%s\n' "$corpo" > "$TMP/$nome/falsas.sh"
 
-  # A troca é cirúrgica: a lista do `main` e nada mais. O formato do
-  # `local etapas=(...)` já é contrato — o `tests/numeros.sh` e o `bin/meow`
-  # leem essa mesma lista com `sed` para contar as etapas —, então depender dele
-  # aqui não cria dívida nova: cria um leitor a mais do mesmo contrato.
+  # A troca é cirúrgica: a lista do `main` e nada mais.
   awk -v lista="$lista" -v falsas="$TMP/$nome/falsas.sh" '
     /local etapas=\(/ && !trocou { print "  local etapas=(" lista ")"; trocou=1; pulando=1 }
     pulando { if ($0 ~ /\)[ \t]*$/) pulando=0; next }
@@ -77,7 +58,6 @@ contem()     { case "$SAIDA" in *"$1"*) return 0 ;; esac; return 1; }
 passagens()  { printf '%s\n' "$SAIDA" | grep -c 'de até' ; }
 
 confere() {
-  # A frase que esta sprint aposentou não pode voltar por nenhuma porta.
   if contem 'Rode mais uma vez'; then
     falhou "$1: a tela ainda pede que a pessoa rode de novo"
   fi
@@ -101,12 +81,9 @@ else
   passou "máquina pronta: uma passagem, e a tela diz 'Pronto. 1 passagem'"
 fi
 
-# ---------------------------------------------------------------------------
 # 2. A cadeia: a etapa que só escreve na primeira passagem
-# ---------------------------------------------------------------------------
-# É o caso que esta sprint existe para atender — o `index.theme` descreve os
-# diretórios que EXISTEM, e as pastas coloridas nascem na etapa seguinte. Aqui o
-# instalador tem de fechar o laço sozinho, sem pedir nada a ninguém.
+#
+# Aqui o instalador tem de fechar o laço sozinho, sem pedir nada a ninguém.
 cenario cadeia 'etapa_falsa_primeira etapa_falsa_quieta' '
 FALSA_PASSAGEM=0
 etapa_falsa_primeira() {
@@ -154,9 +131,8 @@ else
   passou "oscilação: para na segunda passagem, nomeia a etapa e manda ao doctor"
 fi
 
-# ---------------------------------------------------------------------------
 # 4. O teto: duas etapas que se revezam, e nunca repetem o conjunto
-# ---------------------------------------------------------------------------
+#
 # O detector de oscilação não pega este caso de propósito (o conjunto muda a
 # cada passagem), e é exatamente para isto que o teto existe.
 cenario teto 'etapa_falsa_a etapa_falsa_b' '
@@ -185,13 +161,9 @@ else
   passou "teto: cinco passagens, para, e diz quais etapas ainda escrevem"
 fi
 
-# ---------------------------------------------------------------------------
 # 5. Oscilação E falha na mesma execução: a tela mostra as duas
-# ---------------------------------------------------------------------------
-# Medido em 21/09/2026: na primeira versão do laço o bloco do `falhou:` devolvia
-# 2 antes de qualquer outra coisa, e num HOME de brinquedo — onde sete etapas
-# falham por não haver barramento de sessão — o relatório da oscilação nunca
-# chegava à tela. São dois defeitos diferentes, e quem tem os dois lê os dois.
+#
+# São dois defeitos diferentes, e quem tem os dois lê os dois.
 cenario teimosa_com_falha 'etapa_falsa_teimosa etapa_falsa_quebrada' '
 etapa_falsa_teimosa() {
   passo "etapa falsa que escreve toda passagem"
@@ -211,9 +183,8 @@ else
   passou "oscilação e falha juntas: a tela conta as duas histórias"
 fi
 
-# ---------------------------------------------------------------------------
 # 6. --uma-passagem: o comportamento de antes, preservado
-# ---------------------------------------------------------------------------
+#
 # É a flag do timer e da depuração. Ela não conserta nada: ela mostra a primeira
 # passagem sozinha, com o rodapé de sempre.
 cenario uma_passagem 'etapa_falsa_teimosa etapa_falsa_quieta' '
@@ -236,11 +207,7 @@ else
   passou "--uma-passagem: uma passagem só, com o rodapé de antes"
 fi
 
-# ---------------------------------------------------------------------------
-# 6b. O ensaio: o mesmo rodapé, com o verbo do que mudaria — revisão da P50
-# ---------------------------------------------------------------------------
-# Achado 11: num ensaio nada é aplicado, e nada mudou. O rodapé das falhas já
-# dizia isso desde a P50; o do ensaio sem falha terminava em «mudaram».
+# num ensaio nada é aplicado, e nada mudou.
 cenario ensaio 'etapa_falsa_mudaria etapa_falsa_quieta' '
 etapa_falsa_mudaria() { passo "etapa falsa que mudaria"; meow_muda "mudaria"; return 1; }
 etapa_falsa_quieta() { passo "etapa falsa que nunca escreve"; return 0; }
@@ -253,18 +220,13 @@ else
   passou "ensaio: o rodapé diz o que mudaria, e não o que mudou"
 fi
 
-# ---------------------------------------------------------------------------
 # 7. A conf que quebra depois de alguém já ter escrito: o teto NÃO fala
-# ---------------------------------------------------------------------------
-# Medido em 21/09/2026, e é regressão do laço: a guarda do teto cobrava apenas
-# "ainda escreve" e "teto > 1", e a saída pelo `parar_conf` satisfaz as duas.
+#
 # Como o `etapa_backup_tema` ABRE a fila — ele guarda o COSMIC de antes antes de
 # qualquer etapa escrever —, quando a conf quebra já existe alguém em `mexeu:`,
 # e a tela dizia "5 passagens, e estas etapas ainda escrevem: backup_tema"
 # depois de UMA passagem: acusava de defeito de idempotência a etapa mais
 # inocente da lista e mandava ao `meow doctor` por um problema que não existe.
-# O caminho na máquina de verdade é um `~/.config/meow` de dono root, herdado de
-# um `sudo ./install.sh`. Quem conta esse caso é o `falhou:`, e só ele.
 cenario conf_quebrada 'etapa_falsa_escreve etapa_conf etapa_falsa_depois' '
 etapa_falsa_escreve() { passo "etapa falsa que abre a fila e escreve"; meow_muda "escrevi"; return 1; }
 etapa_conf() { passo "a conf de brinquedo, que não consegue escrever"; meow_erro "não consegui criar o meow.conf"; return 2; }
@@ -287,16 +249,11 @@ else
   passou "conf quebrada: para na conf, sai 2, e o teto não acusa ninguém"
 fi
 
-# ---------------------------------------------------------------------------
-# 8. A tela de login sem tema não manda ao sudo — 25/09/2026, sprint P59
-# ---------------------------------------------------------------------------
+# 8. A tela de login sem tema não manda ao sudo
+#
 # Com FLAVOR=alucard a gaveta terminou em «algumas dessas precisavam de root:
 # sudo -v && ./install.sh», e o `greeter` tinha se pulado porque o tema não
-# tinha captura, antes de olhar o sudo. As duas etapas aqui têm os nomes de
-# verdade (o rodapé as reconhece pelo nome) e o recado que a `etapa_tema` de
-# verdade deixa: `TEMA_SEM_CAPTURA`. Os mesmos pulos, com e sem ele.
-#   O `LOG_NIVEL=info` é o do meow.conf.exemplo: sem tty e sem ele o
-# instalador fica `silencioso`, e as duas frases do rodapé são `meow_info`.
+# tinha captura, antes de olhar o sudo.
 cenario login_sem_tema 'etapa_tema etapa_greeter' '
 LOG_NIVEL=info
 etapa_tema() { passo "tema falso sem captura"; TEMA_SEM_CAPTURA="falta"; return 3; }
@@ -315,10 +272,6 @@ etapa_tema() { passo "tema falso que aplicou"; TEMA_SEM_CAPTURA=""; return 0; }
 etapa_greeter() { passo "tela de login falsa sem sudo"; return 3; }
 etapa_ocultar() { passo "ocultar falso sem sudo"; return 3; }
 '
-# [P79, item 5: «nada manda digitar». O rodapé dizia «Para completá-las: sudo
-#   -v && ./install.sh»; agora o pulo de root vira a pendência
-#   `instalar-com-root`, que o painel liga ao «Instalar tudo», e a frase diz
-#   QUAIS etapas esperam, sem receita de terminal.]
 pend_root="$(cut -f1,4 "$TMP/login_por_root/lar/.local/state/meowsystem/pendencias.tsv" 2>/dev/null | grep '^instalar-com-root')"
 if contem 'sudo -v'; then
   falhou "login por root: o rodapé ainda manda digitar o sudo"

@@ -2,155 +2,14 @@
 # appid_dock.sh — as janelas que a DOCK não desenha, porque o app_id não casa
 # com nenhum `.desktop`.
 #
-# ============================================================================
-# A DOR, MEDIDA NA TELA DELA (27/08/2026)
-# ============================================================================
 #   Ela abriu o Boxy SVG e a janela não apareceu na dock, embora o ícone exista
 #   e o cartão apareça no lançador. "são vários programas assim, flatpak tmb."
 #
-#   Com CINCO janelas abertas (`com.system76.CosmicTerm`, `__main__.py`,
-#   `google-chrome`, `com.system76.CosmicFiles`, `boxy-svg-boxy-svg-linux`) a
-#   dock desenhou TRÊS itens. Comparando duas capturas, as posições x dos ícones
-#   não se moveram um pixel ao abrir o Boxy: o item ausente ocupa ZERO espaço.
-#   Os dois que faltam são exatamente os dois que reprovam no `find_app_by_id`.
+# Com CINCO janelas abertas (`com.system76.CosmicTerm`, `__main__.py`,
+# `google-chrome`, `com.system76.CosmicFiles`, `boxy-svg-boxy-svg-linux`) a dock
+# desenhou TRÊS itens.
 #
-#   `filter_top_levels = None` nos dois arquivos de configuração do applist, ou
-#   seja não é filtro de workspace — a explicação rival foi derrubada por
-#   experimento, não por argumento: com uma ponte de teste plantada à mão, o
-#   Boxy APARECEU na dock, com ponto de "rodando" e já com o ícone traçado do
-#   `MeowSystem-Icons`, sem reiniciar o painel. O arquivo de teste foi removido.
-#
-# ============================================================================
-# POR QUE UMA PONTE `StartupWMClass` RESOLVE, E É A ÚNICA ALAVANCA HONESTA
-# ============================================================================
-#   O `cosmic-app-list` não tem heurística própria: delega tudo a
-#   `fde::find_app_by_id` da crate `freedesktop-desktop-entry` 0.8.1 (a versão
-#   que o `Cargo.lock` do commit `40248fb` trava, e `40248fb` é o sufixo do
-#   `/usr/bin/cosmic-applets` instalado; P76: a revisão virou linha `revisao` do
-#   `contratos/cosmic.tsv`, e o `meow cosmic prever` acusa quando o pacote anda —
-#   em 09/10/2026 o instalado já era o 82e7cd8, com a 0.8.3). `StartupWMClass` é a PRIMEIRA das seis
-#   etapas, e cada etapa varre o parque INTEIRO antes de a seguinte começar.
-#
-#   Consequência que decide o desenho deste arquivo: **a etapa vence a
-#   precedência XDG**. Medido num parque sintético — um `.desktop` em
-#   `$XDG_DATA_HOME` que casava só por NOME DE ARQUIVO PERDEU para um de
-#   `/usr/share` que casava por `StartupWMClass`. Ou seja, o truque de "sombra de
-#   mesmo basename em `~/.local/share/applications`", que é o coração do
-#   `midia.sh` e funciona para o painel achar applet, NÃO VALE AQUI — e não
-#   precisa valer. Um arquivo com nome NOSSO ganha a etapa 1 sem encostar no
-#   arquivo do flatpak.
-#
-#   `NoDisplay=true` NÃO atrapalha o casamento (medido: casa igual), então a
-#   ponte existe sem virar cartão a mais no lançador.
-#
-# POR QUE NOME NOSSO, E NÃO UM OVERRIDE DE MESMO BASENAME
-#   As duas contas que o arquivo separado não paga:
-#   1. SEQUESTRO DE MIME. Medido: com um `com.boxy_svg.BoxySVG.desktop` no home,
-#      o `Gio.DesktopAppInfo.new()` devolve O NOSSO — e com ele todo consumidor
-#      GIO da máquina. Sem `MimeType=` e sem `--file-forwarding @@ %f @@`, abrir
-#      um `.svg` passaria a abrir o Boxy VAZIO, calado.
-#   2. DUPLICATA NO LANÇADOR. O `cosmic-app-library` não deduplica por
-#      desktop-id: mostra as duas cópias, com "(Local)" e "(Flatpak)" — foi o que
-#      ela viu em 04/08 e em 13/08.
-#
-# ============================================================================
-# O NOME DESTE ARQUIVO NÃO É `janelas.sh`, E ISSO É A REGRA 1
-# ============================================================================
-#   `scripts/janelas.sh` JÁ EXISTE e é o lado a lado (tiling) do cosmic-comp,
-#   escrito em 25/08/2026. Dois scripts com o mesmo nome de etapa, ou um só
-#   script com duas responsabilidades, é exatamente o dono duplo que já custou a
-#   este projeto um laço eterno de seis rodadas. O nome desta etapa é o que ela
-#   conserta: o `app_id` na dock.
-#
-# ============================================================================
 # A GUARDA QUE IMPEDE O SEQUESTRO — o pior risco desta etapa
-# ============================================================================
-#   Uma ponte com `StartupWMClass=google-chrome` venceria
-#   `/usr/local/share/applications/google-chrome.desktop`, que é o wrapper
-#   ACELERADO do Ritual da Aurora (FRONTEIRA.md, 13/08/2026), e o clique no dock
-#   voltaria a subir o Chrome sem `LIBVA_DRIVER_NAME` — o sintoma exato que
-#   aquela travessia consertou.
-#
-#   A guarda NÃO é uma lista de nomes proibidos cravada aqui: seria um segundo
-#   dono da decisão, e envelheceria. É dinâmica — antes de escrever, o script
-#   pergunta ao casador se aquele app_id JÁ CASA hoje, IGNORANDO as próprias
-#   pontes (`--sem-ponte`). Se casa, ele PULA e diz com quem. Medido agora:
-#   `google-chrome` casa por `StartupWMClass` em `/usr/local/share` e
-#   `com.system76.CosmicTerm` casa por id — nenhum dos dois pode entrar no mapa.
-#
-#   E ela FALHA FECHADA: se o casador não puder rodar (sem `python3`, parque
-#   ilegível), a etapa inteira sai com 3 sem escrever nada. Uma guarda que falha
-#   aberta é pior que guarda nenhuma, porque dá confiança.
-#
-# ============================================================================
-# DONO ÚNICO — os três vizinhos, e todos são de dentro de casa
-# ============================================================================
-#   `jogos_steam.sh` escreve NO MESMO DIRETÓRIO e com a MESMA CHAVE
-#   (`meow-steam-<appid>.desktop`, `StartupWMClass=steam_app_<appid>`). A
-#   convivência é por três regras: prefixos disjuntos (`meow-steam-` /
-#   `meow-janela-`), marcas de autoria disjuntas (`X-MeowSystem=jogo-steam` /
-#   `X-MeowSystem=janela-dock`) e o mapa RECUSANDO todo app_id `steam_app_*`.
-#   A limpeza daqui nunca apaga por prefixo de nome — só com a marca dentro do
-#   arquivo, que é a regra literal do cabeçalho dele: um `.desktop` que ela
-#   escreveu à mão não é órfão de ninguém.
-#
-#   `nomes_apps.sh` EDITA `.desktop` alheio para encurtar o `Name=` — e PULA
-#   arquivo oculto (`nomes_apps.sh:212`: `grep -qE '^NoDisplay=true' && continue`).
-#   Nossa ponte escapa dele por causa do `NoDisplay=true`. ISSO É DEPENDÊNCIA
-#   ACIDENTAL: quem um dia tirar essa linha cria dois donos do mesmo arquivo em
-#   silêncio. Por isso `_conferir` ESTOURA se achar uma ponte sem `NoDisplay`.
-#   No sentido inverso, se ele encurtar o `Name=` do alvo, a ponte fica velha —
-#   e é por isso que `Name=`/`Icon=`/`Exec=` são DERIVADOS a cada passagem.
-#   Ordem no `install.sh`: esta etapa vem DEPOIS de `nomes_apps` e de
-#   `jogos_steam`, para ler o parque já estabilizado.
-#
-#   `midia.sh` usa o mesmo mecanismo por um caminho diferente (sombra de mesmo
-#   basename, porque o `cosmic-panel` casa applet por basename). Basename fixo,
-#   sem interseção com `meow-janela-*`.
-#
-# ============================================================================
-# `Exec=` DERIVADO, NUNCA COPIADO INTEIRO
-# ============================================================================
-#   A spec §2.1 usa o arquivo vencedor INTEIRO — não há herança nem drop-in. O
-#   `Exec` exportado do Boxy congela CINCO coisas que um update pode mudar:
-#     Exec=/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=boxy-svg \
-#          --file-forwarding com.boxy_svg.BoxySVG @@ %f @@
-#   Quando o alvo declara `X-Flatpak=<id>` (todo export declara), a ponte escreve
-#   a forma canônica `flatpak run <id>`: o `metadata` do app instalado diz
-#   `command=boxy-svg`, que é o mesmo default, e o flatpak resolve ramo,
-#   arquitetura e comando lendo o metadata NOVO a cada execução. A ponte fica
-#   MAIS à prova de update que o arquivo exportado, não menos.
-#   Fora do flatpak, o `Exec` do alvo é copiado SEM os códigos de campo
-#   (`%f %F %u %U %i %c %k`): a ponte não recebe arquivo, ela só abre o app.
-#
-# ============================================================================
-# O QUE ESTA ETAPA NÃO FAZ — e cada recusa tem motivo
-# ============================================================================
-#   · NÃO descobre sozinha. app_id fora do mapa é AVISO com a linha pronta para
-#     colar. Escrever por dedução já falharia no primeiro caso desta casa: o
-#     briefing previa `boxy-svg` e o medido é `boxy-svg-boxy-svg-linux`.
-#   · NÃO edita nem o `.desktop` do flatpak, nem o dela, nem nada em `/usr`.
-#     A ponte é ADITIVA: desfazer é `rm`, sem `sudo`, sem restaurar nada.
-#   · NÃO escreve `MimeType=` nem `Categories=`. Quem abre `.svg` continua sendo
-#     o arquivo do flatpak, intacto.
-#   · NÃO reinicia o `cosmic-panel`. O aplicar já vale a quente sozinho: o
-#     applist RE-VARRE o disco quando o casamento FALHA (`app.rs:804`), e é
-#     justamente a falha que estamos consertando. O desfazer é assimétrico — só
-#     aparece no próximo login, e tudo bem: derrubar o painel esgota o supervisor
-#     (backoff 2^N × sorteio(0..9), sem teto e que nunca zera).
-#   · NÃO grava estado em `$MEOW_ESTADO` além do manifesto que a `meow_escrever`
-#     já preenche. Um coletor residente seria um segundo dono do mapa.
-#   · NÃO fixa nada na dock. Quem escolhe favorito é ela.
-#
-# POR QUE app_id NÃO MAPEADO NÃO DEVOLVE 1
-#   Porque 1 significa "divergia e EU CONSERTEI", e aqui nada foi consertado —
-#   falta uma decisão dela. Devolver 1 faria o `tests/convergencia.sh` nunca
-#   convergir: o instalador diria "mudou" para sempre, sem nada a mudar. O aviso
-#   vai para a tela (`meow_aviso` escreve mesmo em `LOG_NIVEL=silencioso`) e o
-#   código continua honesto.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -173,9 +32,7 @@ declare -A JA_CASA=()       # app_id -> "etapa<TAB>caminho", ignorando nossas po
 MAPA_ORDEM=()               # a ordem do arquivo, para a saída sair legível
 
 # --- o arquivo da ponte, sanitizado ------------------------------------------
-# Tudo fora de [A-Za-z0-9._-] vira `-`. O prefixo `meow-janela-` é a convenção
-# que o `jogos_steam.sh` estabeleceu, e mantém a ponte fora da 2ª etapa do
-# casamento (que compara o último componente pontuado do app_id com o file_stem).
+# Tudo fora de [A-Za-z0-9._-] vira `-`.
 _arquivo_de() {
   local id="$1"
   printf '%s%s.desktop' "$PREFIXO" "$(printf '%s' "$id" | tr -c 'A-Za-z0-9._-' '-')"

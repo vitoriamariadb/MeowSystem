@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 # icones_sistema.sh — o Arcticons vestindo os ícones do PRÓPRIO COSMIC.
 #
-# POR QUE ESTE SCRIPT EXISTE
-#   Ela pediu duas vezes: "até os applet e icons do próprio sistema operacional
-#   quero mudar. Tipo tudo tudo mesmo", e logo depois "inclusive os icons do
-#   sistema". Repetir um pedido é o sinal mais forte que existe neste projeto.
-#
-# O QUE FOI MEDIDO ANTES DE ESCREVER UMA LINHA (docs/COSMIC-THEMING.md §4g)
+# Tipo tudo tudo mesmo", e logo depois "inclusive os icons do sistema".
 #
 #   1. A COR DO ARQUIVO É JOGADA FORA. O toolkit não ajusta a cor do symbolic:
 #      ele descarta o arquivo inteiro e repinta com UMA cor, preservando só o
@@ -15,35 +10,9 @@
 #      Consequência: NÃO pintamos nada aqui. Seria trabalho apagado. O único eixo
 #      que sobrevive é o DESENHO.
 #
-#   2. A ESCOLHA É POR TAMANHO, NÃO PELA ORDEM DE `Directories=`. Medido com
-#      strace, plantando o MESMO nome em dois diretórios: com `22x22/status`
-#      PRIMEIRO na lista e `48x48/status` depois, o `cosmic-settings` abriu o
-#      `48x48`. Repetido contra `scalable/status`, mesmo resultado.
-#      É isto que torna possível o que ela escolheu ao ver a folha: traço fino no
-#      tamanho grande, traço dobrado a 22px — cada consumidor pega o seu.
-#
 #   3. O TRAÇO DO PACK SOME A 22 px. O Arcticons desenha num viewBox 48x48 e não
 #      declara `stroke-width`; o padrão SVG é 1, que a 22px vira 0,46px de tela.
 #      Dobrar resolve, e é um atributo só.
-#
-# O DIRETÓRIO É NOSSO, E POR ISSO PODEMOS REMOVER ÓRFÃO
-#   `22x22/status` e `scalable/status` dentro de `MeowSystem-Icons` nascem aqui:
-#   nenhum outro script do projeto escreve neles. Dono único, então tirar uma
-#   linha do mapa pode remover o arquivo — sem repetir o defeito dos dois donos.
-#
-# QUEM DECLARA OS DIRETÓRIOS NÃO É ESTE SCRIPT
-#   É o `construir_icones.sh`, e de propósito: ele monta o `index.theme` a partir
-#   do que EXISTE no disco. Ter dois donos daquela linha já custou a este projeto
-#   um laço eterno de seis rodadas (o comentário está lá). Aqui só se põe arquivo;
-#   o índice se ajusta sozinho na passagem seguinte.
-#
-# NÃO REINICIAMOS O PAINEL
-#   Ícone novo aparece no próximo login. Derrubar o `cosmic-panel` para economizar
-#   essa espera já deixou ela sem painel e sem dock duas vezes, numa máquina de
-#   uma tela só.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta o pack
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -57,37 +26,14 @@ BASE="$HOME/.local/share/icons/$TEMA"
 
 # Os dois tamanhos, e a espessura de traço de cada um. Foi a escolha dela ao ver
 # a folha: "depende do tamanho" — fino onde o ícone respira, dobrado onde ele
-# tem 22px para existir. A chave do array é o diretório; o valor, o stroke-width.
-# 4 no pequeno foi escolha dela, olhando a folha: 2 ainda ficava fino demais ao
-# lado dos ícones cheios do Papirus que dividem a mesma barra.
+# tem 22px para existir.
 #
-# ============================================================================
-# O TRAÇO 4 QUE ELA ESCOLHEU NUNCA CHEGOU À TELA — MEDIDO EM 27/08/2026
-# ============================================================================
-#   O `22x22/status` é `Type=Fixed Size=22`, e um diretório Fixed só é escolhido
-#   no pedido EXATO. Varrido o resolvedor real (`Gtk.IconTheme.lookup_icon`)
-#   sobre o tema dela, com `preferences-appearance-symbolic`:
+# Varrido o resolvedor real (`Gtk.IconTheme.lookup_icon`) sobre o tema dela, com
+# `preferences-appearance-symbolic`:
 #
 #     20 -> scalable/status     23 -> scalable/status     40 -> scalable/status
 #     21 -> scalable/status     24 -> scalable/status     48 -> scalable/status
 #     22 -> 22x22/status   <- o ÚNICO
-#
-#   E ninguém pede 22. A tela dela está a 114%, então a barra pede 20 lógicos =
-#   23 de dispositivo, e as Configurações pedem 32 ou 48. Ou seja: os 28 ícones
-#   saem TODOS do `scalable/status`, onde o traço era 1 — que num viewBox de 48
-#   desenhado a 23px vale 0,48 px de tela. É o "fio fantasma" que o cabeçalho
-#   deste arquivo sempre avisou que some, e era ele que estava no ar.
-#
-#   O `22x22/status` fica como está, com o 4 dela: é a escolha registrada para
-#   aquele tamanho, e ela volta a valer sozinha se a tela for para 100% (quando
-#   a barra passa a pedir 20... que também cai no scalable — ou seja, ele é
-#   praticamente inalcançável, e isso é o achado, não um detalhe).
-#
-#   2,5 no `scalable/status` é escolha dela, olhando a folha de 27/08 com o
-#   mesmo ícone em 1 / 2 / 2,5 / 3 / 4, rasterizado nos DOIS tamanhos que de
-#   fato existem: 23px (a barra) e 40px (as Configurações). O 4 empasta a 23px —
-#   o detalhe de baixo vira duas bolhas —, e o 1 desaparece. Um arquivo só serve
-#   os dois consumidores, então o número é o compromisso entre eles.
 declare -A TRACO=( ["22x22/status"]=4 ["scalable/status"]=2.5 )
 
 declare -A MAPA_LIDO=()   # nome COSMIC -> glifo Arcticons

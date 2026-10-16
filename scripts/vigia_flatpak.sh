@@ -5,43 +5,10 @@
 #   ./vigia_flatpak.sh              instala as unidades e liga o vigia
 #   ./vigia_flatpak.sh --conferir   não escreve; 1 se algo divergir
 #
-# POR QUE ISTO EXISTE
-#   Queixa dela, 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon
-#   que fica no applet, voltaram aos originais". O `packs/meowsystem/icones/bandeja.map` previa a
-#   regressão desde 10/08 e não havia nada que agisse sobre ela. O par
-#   `meow-flatpak.path` + `meow-flatpak.service` fecha essa distância — e o
-#   cabeçalho do `.path` traz a medição que escolheu o `.changed` como evento,
-#   além do porquê de o mecanismo nativo de triggers do flatpak não servir.
-#
-# POR QUE UM SCRIPT, E NÃO A LÓGICA DENTRO DO install.sh
-#   Porque o `meow doctor` precisa da MESMA verificação e o `--consertar` do
-#   MESMO conserto. É o desenho que o `vigia_assets.sh` já segue: o `install.sh`
-#   chama, o `bin/meow` chama com `--conferir` e com `--aplicar`, e a regra mora
-#   num lugar só. Duplicá-la no `bin/meow` seria a segunda verdade que ninguém
-#   atualiza.
-#
-# ESTE É MAIS SIMPLES QUE O `vigia_assets.sh`, E A DIFERENÇA É UMA SÓ
-#   Lá existe o marcador `@ACERVO@`, porque a unidade vigia um diretório do
-#   REPOSITÓRIO (em /mnt/Apate) e o systemd não tem especificador para "onde está
-#   o clone". Aqui os dois caminhos vigiados são fixos ou resolvem com `%h`
-#   (`%h/.local/share/flatpak/.changed` e `/var/lib/flatpak/.changed`), então as
-#   unidades vão por CÓPIA BYTE A BYTE e não há troca de texto — nem na escrita,
-#   nem na conferência.
-#
-# DESLIGAR TEM DE DESLIGAR
-#   Deixar de instalar não é desligar. Sem a metade `_desligar`, a unidade que uma
-#   execução anterior ligou continuaria vigiando depois de ela escrever
-#   FLATPAK_VIGIA="nao" no meow.conf — e o sintoma seria "desliguei e continua
-#   acontecendo", que é o pior de todos porque não há onde olhar.
-#
-# COMPARAR DO MESMO JEITO QUE SE ESCREVE
-#   `meow_escrever` grava com `printf '%s'`, que come o `\n` final. Comparar com
-#   `cmp` byte a byte acusaria divergência para sempre num arquivo perfeito — já
-#   custou a este projeto um `--conferir` gritando 123 divergências num tema
-#   correto. Aqui a comparação é `"$texto" = "$(cat ...)"`, o critério do escritor.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
+# POR QUE UM SCRIPT, E NÃO A LÓGICA DENTRO DO install.sh Porque o `meow doctor`
+# precisa da MESMA verificação e o `--consertar` do MESMO conserto. É o desenho
+# que o `vigia_assets.sh` já segue: o `install.sh` chama, o `bin/meow` chama com
+# `--conferir` e com `--aplicar`, e a regra mora num lugar só.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -149,11 +116,6 @@ _conferir() {
 _aplicar() {
   local u texto mudou=0 estado="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 
-  # O DIRETÓRIO DO LOG TEM DE EXISTIR ANTES DA UNIDADE SUBIR
-  #   `StandardOutput=append:` é montado antes de qualquer comando do serviço e
-  #   antes até do `StateDirectory=`. Reproduzido em 05/08/2026 com o diretório
-  #   ausente: `Failed to set up standard output: No such file or directory`,
-  #   `status=209/STDOUT`, e nada mais roda.
   if ! mkdir -p "$estado"; then
     meow_erro "não consegui criar $estado (é lá que fica o log do vigia)"
     return "$MEOW_ERRO"

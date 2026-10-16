@@ -1,39 +1,15 @@
 #!/usr/bin/env bash
-# A CANETA TEM UMA FAIXA, E ELA É MEDIDA — NÃO CRAVADA.
+# Dá — e a primeira coisa que o acervo deles serve é de RÉGUA. Os 39 glifos em
+# `packs/meowsystem/icones/apps/arcticons/` foram desenhados à mão por gente, no
+# MESMO dialeto (grade de 48, `fill:none`, traço, pontas redondas), e estão
+# versionados aqui.
 #
-# Em 09/09/2026 ela apontou o Arcticons-Linux e perguntou se dava para construir
-# um conversor usando o que eles já fizeram. Dá — e a primeira coisa que o
-# acervo deles serve é de RÉGUA. Os 39 glifos em `packs/meowsystem/icones/apps/arcticons/`
-# foram desenhados à mão por gente, no MESMO dialeto (grade de 48, `fill:none`,
-# traço, pontas redondas), e estão versionados aqui. Então a pergunta "a nossa
-# arte gerada parece do mesmo pack?" deixa de ser gosto e vira distribuição.
+# Nenhum número desta régua está escrito no arquivo: se um glifo entrar ou sair
+# de `arcticons-apps/`, a faixa anda sozinha.
 #
-# A FAIXA É DERIVADA DO ACERVO A CADA RODADA. Nenhum número desta régua está
-# escrito no arquivo: se um glifo entrar ou sair de `arcticons-apps/`, a faixa
-# anda sozinha. É a armadilha nº 3 do projeto — toda lista fixa é uma lista que
-# alguém vai esquecer.
+# Percentil responde "onde a mão costuma ficar".
 #
-# POR QUE `min`/`max` E NÃO PERCENTIL
-#   Percentil responde "onde a mão costuma ficar". Sair do p05 não é defeito: é
-#   estar na cauda. O que é defeito é sair de onde a mão JÁ FOI. Medido em
-#   09/09/2026: três conversões (Foliate, ProtonUp, Apostrophe) têm margem 2,42
-#   — abaixo do p05 (2,50) e acima do mínimo real do acervo (o firefox, 1,72).
-#   Uma régua no p05 estaria vermelha por oito centésimos, sem nada ter
-#   acontecido.
-#
-# O QUE ESTA RÉGUA NÃO PEGA, E É DE PROPÓSITO
-#   Se o desenho está CERTO. O compressor do Arcticons são duas setas apertando
-#   linhas; o nosso é o zíper que estava no Papirus. Os dois passam aqui, e o
-#   deles é melhor — porque decidiu o que a coisa significa, e isso um conversor
-#   não faz. Esta régua pega o tremido, o denso e o desenquadrado.
-#
-# AS DUAS MEDIDAS QUE AINDA ESTÃO FORA, E ESTÃO AQUI COMO PISO, NÃO COMO VERDE
-#   `tracos` e `pontos`. Medido em 09/09/2026 nas 15 conversões alcançáveis:
-#   5 de 15 dentro em traços, 8 de 15 em pontos. O acervo faz 20 pontos e 2
-#   traços na mediana; nós fazemos 66 e 5. Os pisos abaixo têm folga proposital
-#   sobre o medido: eles não celebram o número de hoje, eles impedem que ele
-#   AFUNDE enquanto o conserto não vem. Quando o conserto vier, esta linha cai
-#   e o piso sobe junto.
+# Se o desenho está CERTO.
 #
 #   0 = a caneta está na faixa · 1 = saiu · 2 = erro · 3 = falta dependência
 set -uo pipefail
@@ -49,46 +25,14 @@ ok()   { printf 'ok: %s\n' "$1"; }
 falha(){ printf 'FALHOU: %s\n' "$1" >&2; falhas=$((falhas+1)); }
 
 # ------------------------------------------------- a porta única da paleta
-# O `lib/comum.sh` promete, no cabeçalho do `meow_paleta`, que "quem esquecer
-# de usá-la aparece no grep de tests/estilo.sh". Até 21/09/2026 esse grep NÃO
-# EXISTIA: o comentário descrevia uma cobrança imaginária, e um arquivo novo
-# podia cravar o caminho da paleta sem nada acusar. A promessa passa a ser
-# verdade aqui.
+# O `lib/comum.sh` promete, no cabeçalho do `meow_paleta`, que "quem esquecer de
+# usá-la aparece no grep de tests/estilo.sh". A promessa passa a ser verdade
+# aqui.
 #
 # ELE VEM ANTES DAS GUARDAS DE DEPENDÊNCIA, E ISSO É DE PROPÓSITO: as três
 # linhas abaixo saem com `pulado` em máquina sem numpy ou sem o acervo, e uma
 # cobrança que some justamente onde a máquina é mais pobre — o CI — não é
-# cobrança. Esta não depende de nada além do grep.
-#
-# O RECORTE É `*.sh`, e também é medido: o cabeçalho do `meow_paleta` nomeia os
-# cinco consumidores em Python que NÃO podem chamá-lo (o `sys.path` entre
-# `scripts/` e `app/` não existe neste projeto) e manda que eles repitam as três
-# linhas equivalentes. Cobrar Python aqui seria cobrar o que o contrato isenta.
-# O `lib/comum.sh` sai porque é a própria porta.
-#
-# O PADRÃO TINHA UM DESVIO DE UM PASSO, E O DESVIO ERA O CAMINHO NATURAL
-#   A primeira versão exigia o `/` colado num nome — `assets/paleta/[A-Za-z$_{]`
-#   —, e por isso pegava quem COPIASSE o modelo do `lib/comum.sh:149` e deixava
-#   passar quem o ADAPTASSE. Medido em 21/09/2026 com uma isca de quatro linhas:
-#       PAL="$MEOW_RAIZ/assets/paleta"      -> o padrão antigo NÃO via
-#       cor=$(... < "$PAL/catppuccin.json") -> e a paleta estava cravada assim mesmo
-#   Cravar o diretório e juntar o nome na linha seguinte é a forma mais natural
-#   de fazê-lo, e era justamente a que escapava. Agora o padrão tem duas bocas:
-#   o caminho completo de sempre, e `$VAR/assets/paleta` — que é como o diretório
-#   aparece quando alguém o crava sozinho.
-#
-# E O FILTRO DE COMENTÁRIO SÓ TIRAVA A LINHA QUE COMEÇA COM `#`
-#   Na mesma isca, `eco=1  # ... assets/paleta/catppuccin.json` virava FALSO
-#   POSITIVO: prosa no fim da linha pintava o CI de vermelho. O filtro passa a
-#   tirar a citação que tem um `#` ANTES dela, onde quer que ele esteja — é a
-#   mesma regra do `tests/orfaos.sh`: conta chamada, nunca menção. O preço está
-#   dito: um `${#lista[@]}` na mesma linha de uma citação de paleta esconderia a
-#   citação. Nenhum dos 83 scripts faz isso hoje, e a troca vale — o risco que
-#   sobra é de um caso rebuscado, e o que saiu era o caso comum.
-#
-#   Ela também dispensa uma isenção que não existia: a linha 'assets/paleta/…'
-#   deste próprio arquivo, e a frase "regenerados a partir de assets/paleta/" do
-#   install.sh:537, não casam com nenhuma das duas bocas — medido.
+# cobrança.
 fora_da_porta="$(grep -rnE --include='*.sh' \
                    '(\$\{?[A-Za-z_][A-Za-z_0-9]*\}?/assets/paleta|assets/paleta/[A-Za-z$_{])' "$RAIZ" \
                  | grep -v 'lib/comum\.sh:' \
@@ -101,59 +45,13 @@ fi
 ok "nenhum .sh crava o caminho da paleta — todos passam pelo meow_paleta"
 
 # ----------------------------------------------- a raiz única do COSMIC
-# A MESMA PROMESSA, PARA A OUTRA PORTA ÚNICA [21/09/2026]
-#   Até este dia havia DOIS jeitos de dizer onde mora a configuração do COSMIC,
-#   e os dois estavam vivos: 11 linhas de shell liam
-#   `${MEOW_COSMIC_DIR:-$HOME/...}` e 24 cravavam o caminho. O `lib/preflight.sh`
-#   — o guardião, o que roda antes da primeira escrita — estava do lado que
-#   cravava. A P19 pôs as 24 para chamar o `meow_cosmic_dir` do `lib/comum.sh`;
-#   esta régua é o que impede a 25ª. Sem ela o conserto dura até o próximo
-#   arquivo novo, que é o prazo de validade de todo conserto sem cobrança.
 #
-# A ISENÇÃO É CITAR `MEOW_COSMIC_DIR` NA PRÓPRIA LINHA, e ela tem exatamente
-# dois moradores legítimos: o corpo do verbo, no `lib/comum.sh`, e o
-# `scripts/coleta-meowsystem.sh`, que é feito para viajar sozinho e não carrega
-# o comum.sh de propósito. Dizer o nome da variável é dizer que a raiz é
-# configurável — que é a única coisa cobrada aqui.
+# Até este dia havia DOIS jeitos de dizer onde mora a configuração do COSMIC, e
+# os dois estavam vivos: 11 linhas de shell liam `${MEOW_COSMIC_DIR:-$HOME/...}`
+# e 24 cravavam o caminho.
 #
-# COMENTÁRIO CONTINUA LIVRE, E O FILTRO É "A LINHA COMEÇA COM #"
-#   Reescrever a prosa para agradar um grep apagaria o porquê e não consertaria
-#   uma linha de código — isso continua valendo. Mas o filtro que a isenta é o
-#   ESTRITO, e os números que a primeira versão desta régua usou para afrouxar
-#   não existem.
-#
-#   MEDIDO EM 21/09/2026, nestes quatro caminhos e para o padrão DESTA régua
-#   (`$HOME/.config/cosmic`): ZERO citações em comentário — nem de linha
-#   inteira, nem no fim de linha de código. Quem cita a raiz em prosa escreve
-#   `~/.config/cosmic`, e o `~` não casa com `$HOME`: são 30 linhas, todas de
-#   comentário inteiro, e nenhuma chega a este grep. As 35 que o padrão casava
-#   antes do commit eram TODAS código — 24 cravadas e 11 honrando a variável.
-#
-#   E O AFROUXAMENTO TINHA PREÇO. O filtro largo era
-#   `:[0-9]+:[^#]*#.*\$HOME/\.config/cosmic` — "ignore a citação que tenha um
-#   `#` em qualquer lugar antes dela" — e num projeto Catppuccin um `#` antes do
-#   caminho é uma cor hexadecimal de distância: `printf %s "#1e1e2e" >
-#   "$HOME/.config/cosmic/.../bg"` passava VERDE pela régua que existe
-#   justamente para impedir a 25ª. Reproduzido em 21/09/2026, numa cópia da
-#   árvore. Com o filtro estrito a árvore limpa devolve zero: o rigor não custa
-#   um falso positivo sequer. É também o filtro do `tests/orfaos.sh:186`
-#   (`:[0-9]+:[[:space:]]*(#|//|\*)`), que conta chamada e nunca menção. A
-#   régua da paleta, logo acima, ficou com a forma larga; é de fora desta
-#   sprint e fica anotado, não consertado aqui.
-#
-# O RECORTE É O DA CONFERÊNCIA DA P19: `scripts/`, `lib/`, `bin/meow` e
-# `install.sh`. O `tests/` fica fora porque é ele quem desvia a raiz, e o
-# `app/servidor.py` porque Python não alcança o `lib/comum.sh` neste projeto —
-# a mesma isenção que o cabeçalho do `meow_paleta` já concede.
-#
-# `assets/` TAMBÉM FICA FORA, E É LACUNA CONHECIDA — NÃO COBERTURA
-#   `assets/temas-de-apps/toolkits-gtk-qt/manifesto.sh:215` crava a raiz no
-#   `MEOW_TK_TK_DIR` e ALCANÇA o verbo: o `scripts/aplicar_apps.sh` carrega o
-#   `lib/comum.sh` (linha 23) e depois faz `. "$mod"` do manifesto num subshell
-#   (linha 55). É a ÚNICA linha de shell do repositório que o recorte deixa
-#   passar — medido em 21/09/2026. Fica para a P18, que é a sprint dona daquela
-#   árvore; alargar o recorte aqui deixaria esta régua vermelha antes de a P18
-#   passar, e régua que nasce vermelha ninguém acredita.
+# Reescrever a prosa para agradar um grep apagaria o porquê e não consertaria
+# uma linha de código — isso continua valendo.
 raiz_cravada="$(grep -rn '\$HOME/\.config/cosmic' \
                   "$RAIZ/scripts" "$RAIZ/lib" "$RAIZ/bin/meow" "$RAIZ/install.sh" \
                 | grep -vE ':[0-9]+:[[:space:]]*#' \
@@ -165,17 +63,11 @@ if [ -n "$raiz_cravada" ]; then
 fi
 ok "nenhum código crava a raiz do COSMIC — todos passam pelo meow_cosmic_dir"
 
-# ----------------------------------------------- o Python isolado — P82, 15/10/2026 (item 14)
+# ----------------------------------------------- o Python isolado
 # Um `python3 -` lê o programa do stdin e põe o diretório CORRENTE no começo do
 # `sys.path`: quem roda um módulo de tema de app de dentro de uma pasta com um
 # `json.py` plantado (um download, um pack de terceiro extraído) executa esse
-# arquivo no `import json`. O `-I` tira o diretório corrente e as variáveis
-# `PYTHON*` do caminho; quem importa algo do projeto o faz por `sys.path`
-# explícito, como o `lib/comum.sh` já faz no `meow_flavor_do_modo`. A P74
-# curou 21 das 37 linhas; as 16 que sobravam eram todas dos
-# `assets/temas-de-apps/*/manifesto.sh`. O recorte é o código de produto
-# (`scripts`, `lib`, `bin`, `install.sh`, `assets`, `app` e `packs`), sem
-# `.md` (o `CREDITOS.md` ensina a rodar à mão) e sem linha de comentário.
+# arquivo no `import json`.
 sem_isolar="$(cd "$RAIZ" && grep -rnE --exclude='*.md' 'python3( +-[A-Za-z]+)* +-( |$)' \
                 scripts lib bin install.sh assets app packs \
               | grep -vE ':[0-9]+:[[:space:]]*#' \
@@ -187,13 +79,10 @@ if [ -n "$sem_isolar" ]; then
 fi
 ok "todo python3 - do código de produto roda isolado (-I)"
 
-# ----------------------------------------------- o esquema do COSMIC — P82, 15/10/2026 (item 17)
+# ----------------------------------------------- o esquema do COSMIC
 # O `v1` escrito à mão num caminho de namespace do COSMIC grava (ou lê) numa
 # pasta que o COSMIC instalado pode não usar mais: o 1.10 traz `v1 v2` no tema,
-# e o `janelas.sh` mostrava o `gaps` velho do `v1`. Todo caminho passa pelo
-# `meow_cosmic_v` (lib/comum.sh), que pergunta ao pacote. A exceção é a `v1`
-# LEGADA, que três applets flatpak ainda leem e que o `aplicar_tema.sh` trata
-# à parte de propósito: a linha diz isso nela mesma («a v1 legada»).
+# e o `janelas.sh` mostrava o `gaps` velho do `v1`.
 v1_cravado="$(cd "$RAIZ" && grep -rnE '\.[A-Za-z][A-Za-z0-9_]*/v1(/|"|$)' \
                 scripts lib bin/meow install.sh --include='*.sh' --include='meow' \
               | grep -vE ':[0-9]+:[[:space:]]*#' | grep -v 'a v1 legada')"

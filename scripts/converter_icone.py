@@ -268,23 +268,12 @@ def quantizar(rgba: np.ndarray, k: int, funde: float) -> tuple[np.ndarray, np.nd
              | amostra[:, 1].astype(np.int32) << 8
              | amostra[:, 2].astype(np.int32))
     vals, cont = np.unique(chave, return_counts=True)
-    # `kind="stable"` NÃO É PREFERÊNCIA — É O QUE TORNA ISTO REPRODUZÍVEL.
-    #   O padrão do argsort é quicksort, que não é estável: com contagens
-    #   EMPATADAS a ordem entre elas depende da implementação, e implementação
-    #   muda entre versões do numpy. Medido no `org.gnome.FileRoller` em
-    #   16/09/2026: quatro cores empatadas em 9 pixels disputando as últimas
-    #   vagas do top-10, e o quicksort escolhia duas delas enquanto o estável
-    #   escolhia outras duas. Cores diferentes -> traçado diferente -> SVG
-    #   diferente, a partir do MESMO arquivo de origem.
+    # O padrão do argsort é quicksort, que não é estável: com contagens
+    # EMPATADAS a ordem entre elas depende da implementação, e implementação
+    # muda entre versões do numpy.
     #
-    #   O sintoma chegou pelo caminho mais longo possível: o `/usr/bin/python3`
-    #   desta máquina não tinha numpy, então o `construir_convertidos.sh` se
-    #   pulava inteiro com "sem numpy". Instalado o `python3-numpy` (1.26.4) ao
-    #   lado do pyenv (2.4.4) que gerou a arte no disco, o `--conferir` passou a
-    #   acusar 1 desatualizado num acervo que ninguém tinha tocado.
-    #
-    #   O estável desempata pela ordem do `np.unique`, que é a ordem crescente
-    #   da chave de cor — determinística, e a mesma em qualquer numpy.
+    # O estável desempata pela ordem do `np.unique`, que é a ordem crescente da
+    # chave de cor — determinística, e a mesma em qualquer numpy.
     ordem = np.argsort(-cont, kind="stable")
     topo = vals[ordem[:k]]
     cobertura = cont[ordem[:k]].sum() / len(chave)
@@ -312,18 +301,12 @@ def quantizar(rgba: np.ndarray, k: int, funde: float) -> tuple[np.ndarray, np.nd
     # traço fantasma correndo paralelo ao contorno.
     centros = _funde(centros, funde)
 
-    # A COR DE ANTIALIAS É UMA COR FREQUENTE, E ISSO ENGANA O HISTOGRAMA
-    #   Num círculo grande com contorno, a borda serrilhada tem MILHARES de
-    #   pixels da mistura entre o miolo e o traço — frequente o bastante para
-    #   ganhar uma classe própria. Medido no `cosmic-player`: (169,135,163),
-    #   exatamente o meio do caminho entre o rosa (245,194,231) e a tinta
-    #   (16,16,27). Ela virava uma faixa fininha ao longo de todo o contorno,
-    #   e o traçador desenhava essa faixa — que é o que fazia o círculo sair
-    #   lascado e com traço duplo depois do colapso.
+    # Num círculo grande com contorno, a borda serrilhada tem MILHARES de
+    # pixels da mistura entre o miolo e o traço — frequente o bastante para
+    # ganhar uma classe própria.
     #
-    #   Cor de mistura se reconhece pela geometria: ela cai quase EM CIMA do
-    #   segmento que liga duas outras cores, e entre elas. Cor de desenho não
-    #   cai. Some, e seus pixels vão para a ponta mais próxima.
+    # Cor de mistura se reconhece pela geometria: ela cai quase EM CIMA do
+    # segmento que liga duas outras cores, e entre elas.
     if len(centros) > 2:
         manter = []
         for i, c in enumerate(centros):
@@ -443,10 +426,7 @@ def fundir_fracas(rot: np.ndarray, cores: np.ndarray, n: int, limiar: float):
     if limiar <= 0:
         return rot, []
 
-    # Só par que REALMENTE se toca. Duas classes distantes na imagem podem ter
-    # cor vizinha sem nunca fazer fronteira; fundi-las não apagaria traço nenhum
-    # e ainda mudaria a ORDEM do laço de traçado, que é o que garante que a
-    # silhueta saia primeira e inteira.
+    # Só par que REALMENTE se toca.
     vizinhos = set()
     for a, b in ((rot[:-1, :], rot[1:, :]), (rot[:, :-1], rot[:, 1:])):
         d = a != b
@@ -468,8 +448,7 @@ def fundir_fracas(rot: np.ndarray, cores: np.ndarray, n: int, limiar: float):
 
     # A ordem é a dos pares ordenados e a fusão anda SEMPRE para o índice menor:
     # sem isso a mesma entrada poderia sair com rótulos trocados e a saída
-    # mudaria de byte sem mudar de desenho. E o rótulo 0 nunca é alvo porque
-    # nenhum par com o fundo entra na lista.
+    # mudaria de byte sem mudar de desenho.
     fundidas = []
     for u, v in sorted(vizinhos):
         d = float(np.linalg.norm(cores[u - 1] - cores[v - 1]))
@@ -596,13 +575,9 @@ def colapsar_fitas(rot: np.ndarray, n: int, limiar48: float, res: int,
     comp = componentes(rot)
     ids = [c for c in np.unique(comp) if c >= 0]
 
-    # A REGRA É POR COMPONENTE CONEXO, NÃO POR CLASSE — e isso não é purismo.
-    #   O `cosmic-player` prova a diferença: o contorno do círculo e o
-    #   triângulo de play são a MESMA cor (`#11111B`), logo a mesma classe. Se
-    #   a espessura for medida na classe inteira, o triângulo gordo entra na
-    #   média do anel fino e os DOIS somem — foi exatamente o que aconteceu, e
-    #   o ícone saiu um círculo vazio. Separando em componentes, o anel colapsa
-    #   e o triângulo fica.
+    # A REGRA É POR COMPONENTE CONEXO, NÃO POR CLASSE — e isso não é purismo. O
+    # `cosmic-player` prova a diferença: o contorno do círculo e o triângulo de
+    # play são a MESMA cor (`#11111B`), logo a mesma classe.
     finos = []
     for cid in ids:
         m = comp == cid
@@ -614,11 +589,8 @@ def colapsar_fitas(rot: np.ndarray, n: int, limiar48: float, res: int,
     if not finos:
         return rot, []
 
-    # A SEGUNDA METADE DA REGRA, E ELA VEIO DE UMA FOLHA QUE DEU ERRADO
-    #   Colapsar TODO componente fino apagou o desenho: o Terminal virou um
-    #   quadrado, o Editor uma folha em branco, o Reprodutor um círculo vazio.
-    #   Foi o modo de falha "só silhueta" acontecendo na prática, na primeira
-    #   folha em que olhei a 48px.
+    # Colapsar TODO componente fino apagou o desenho: o Terminal virou um
+    # quadrado, o Editor uma folha em branco, o Reprodutor um círculo vazio.
     #
     #   A distinção que faltava: uma fita fina pode ser DUAS coisas.
     #     · CONTORNO — SEPARA duas regiões diferentes (o `stroke` escuro dos
@@ -628,20 +600,6 @@ def colapsar_fitas(rot: np.ndarray, n: int, limiar48: float, res: int,
     #     · TRAÇO SOLTO — tem a MESMA região dos dois lados (o `>_` do
     #       Terminal, as linhas de texto do Editor, as barras do
     #       Configurações). Aqui a fita É o desenho. Fica.
-    #
-    #   PRIMEIRA TENTATIVA, E POR QUE ELA CAIU: "fina e vizinha de ≥2
-    #   componentes = contorno". Quebra na hora. No `cosmic-settings` os
-    #   círculos dos botões passam POR CIMA das barras, então cada barra
-    #   encosta em dois componentes e era apagada — a folha saiu com três
-    #   bolhas soltas e nenhuma barra. Contar vizinho é frágil porque forma
-    #   sobreposta é a regra, não a exceção, em ícone chapado.
-    #
-    #   O QUE FUNCIONA É PERGUNTAR SE A FITA **EMBRULHA** ALGUÉM. Um contorno
-    #   não é um traço perto de uma forma: é o traço que responde por quase
-    #   todo o perímetro dela. Então, para cada componente B, mede-se a fração
-    #   do perímetro de B que encosta na fita A. Passando de `envolve`, A é o
-    #   contorno de B e some. O `>_` não embrulha nada e fica; o anel do
-    #   Reprodutor embrulha 100% do disco e sai.
     borda = {}
     for eixo in (0, 1):
         a = comp[:-1, :] if eixo == 0 else comp[:, :-1]
@@ -662,12 +620,8 @@ def colapsar_fitas(rot: np.ndarray, n: int, limiar48: float, res: int,
         m = comp == cid
         classe[cid] = int(rot[m][0])
 
-    # O FUNDO NÃO CONTA COMO "EMBRULHADO", e essa linha custou uma folha inteira.
-    #   Um contorno que dá a volta no ícido responde por 100% do perímetro do
-    #   FUNDO também — o fundo só toca ele. Sem esta exclusão, "o lado de fora"
-    #   fica vazio, o corte de pixel abaixo não acha nada para liberar, e o
-    #   colapso simplesmente não acontece: a pasta do `cosmic-files` voltou a
-    #   sair com linha dupla sem nenhum erro aparente.
+    # O FUNDO NÃO CONTA COMO "EMBRULHADO", e essa linha custou uma folha
+    # inteira.
     envolvidos = {}
     for c in finos:
         for b in ids:
@@ -679,18 +633,12 @@ def colapsar_fitas(rot: np.ndarray, n: int, limiar48: float, res: int,
     alvo = list(envolvidos)
     fitas = sorted({int(rot[comp == c][0]) for c in alvo})
 
-    # E AINDA FALTAVA UM CORTE, QUE O HEFESTO ENSINOU
-    #   No `hefesto` os botões pretos do controle ENCOSTAM no contorno preto do
-    #   corpo. Cor igual e encostado = MESMO componente conexo: o anel e os
-    #   botões viram uma peça só. A peça é fina, embrulha o corpo, e colapsava
-    #   inteira — o controle saía uma bolha sem d-pad e sem botões. Não é caso
-    #   raro: em ícone chapado com contorno, detalhe que toca a borda é comum.
+    # No `hefesto` os botões pretos do controle ENCOSTAM no contorno preto do
+    # corpo.
     #
-    #   O que separa o anel dos botões não é forma, é VIZINHANÇA:
-    #     · o anel tem o miolo de um lado e o FUNDO do outro — ele SEPARA;
-    #     · o botão tem o miolo dos dois lados — ele está POUSADO.
-    #   Então some só o pedaço da peça que alcança as duas coisas ao mesmo
-    #   tempo. Botão no meio do corpo não alcança o fundo e sobrevive.
+    # O que separa o anel dos botões não é forma, é VIZINHANÇA: · o anel tem o
+    # miolo de um lado e o FUNDO do outro — ele SEPARA; · o botão tem o miolo
+    # dos dois lados — ele está POUSADO.
     r = max(1, int(round(limiar)))
     dentro = np.isin(comp, sum(envolvidos.values(), []))
     fora = ~(dentro | np.isin(comp, alvo))
@@ -845,45 +793,12 @@ def comprimento(pts):
 
 # -------------------------------------------------------------------- curvas
 #
-# O QUE ESTA SEÇÃO CONSERTA, E POR QUE NENHUM PARÂMETRO CONSERTAVA
-#     Em 09/09/2026, olhando a lupa da oficina, ela chamou o traço de
-#     "pixelado". A palavra é exata, e o defeito não é de número: é de
-#     GRAMÁTICA. O traçador acima anda em LADOS DE PIXEL numa grade de 256, e
-#     por isso toda fronteira NASCE escada de degraus de 1 px. O
-#     Douglas-Peucker só escolhe QUAIS degraus ficam — apara a escada, não a
-#     desfaz. Medido no Wilber do Papirus: 1 733 arestas de pixel viram 94
-#     vértices com `--tol 1.6`, e os 94 continuam sendo cantos da grade.
-#     Subir o `--tol` tira degraus e torce a forma; baixar devolve a serra.
-#     Polilinha não tem como descrever uma curva, e era só isso que o arquivo
-#     sabia emitir.
+# A palavra é exata, e o defeito não é de número: é de GRAMÁTICA. O traçador
+# acima anda em LADOS DE PIXEL numa grade de 256, e por isso toda fronteira
+# NASCE escada de degraus de 1 px.
 #
-#     O caminho novo, NESTA ORDEM, que não é a que a mão pede:
-#         1. acha os CANTOS na cadeia crua               `cantos()`
-#         2. parte a cadeia neles                        `partir()`
-#         3. alisa cada peça com as pontas pregadas      `alisar()`
-#         4. separa o que é RETO do que é curvo          `fatiar()`
-#         5. ajusta cúbicas no que sobrou                `ajustar()`
-#     Os passos 1 e 3 trocados — alisar primeiro, procurar canto depois — é o
-#     desenho intuitivo, e ele apaga os cantos antes de procurá-los; o porquê,
-#     com o número, está no comentário longo dentro de `converter()`. Tudo em
-#     numpy, porque esta máquina não tem scipy, potrace nem shapely — ver a
-#     lista medida no cabeçalho, que é o que decide a arquitetura inteira.
-#
-#     O QUE ESTA TROCA CUSTA, PARA NÃO SE DESCOBRIR DEPOIS: curva é MAIS bytes.
-#     Cada cúbica escreve três pares de coordenadas onde um vértice de
-#     polilinha escreve um. Medido nas 29 origens do mapa e dos recusados, o
-#     arquivo fica entre 1,46x (Calculadora) e 3,07x (btop) o tamanho da
-#     polilinha. A Sprint Q supunha o contrário — "≤ 40 % dos pontos" — e a
-#     medição derrubou. O que se compra com esses bytes é a escada; num ícone
-#     de 1 a 3 KB, é barato.
-#
-# O QUE **NÃO** MUDA, E É DE PROPÓSITO
-#     Tudo antes de `encadear()`: a quantização, o filtro de moda, o colapso de
-#     fitas e a deduplicação global de aresta ficam letra por letra. São eles
-#     que decidem QUAL forma é desenhada — e a forma foi aprovada na folha de
-#     11/08/2026. Esta seção só troca a LINHA que desenha a mesma forma, e o
-#     teste `tests/conversor.sh` afirma isso em pixel: as duas saídas,
-#     rasterizadas a 48 px, têm de diferir em menos de 6 % da caixa.
+# Cada cúbica escreve três pares de coordenadas onde um vértice de polilinha
+# escreve um.
 
 TOL_CURVAS = 1.0        # erro máximo do ajuste de Bézier, em px da grade de 256
 TOL_POLILINHA = 1.6     # tolerância do Douglas-Peucker, em px da grade de 256
@@ -998,10 +913,7 @@ def cantos(p: np.ndarray, fechada: bool, limiar: float = 60.0,
                 achados[-1] = k
         else:
             achados.append(k)
-    # A SUPRESSÃO TAMBÉM DÁ A VOLTA. Num laço fechado o primeiro e o último
-    # achado podem ser o MESMO canto visto pelos dois lados da emenda; sem esta
-    # linha, `partir()` abriria um trecho de dois ou três pontos ali, e o ajuste
-    # devolveria um segmento reto no meio de uma curva.
+    # A SUPRESSÃO TAMBÉM DÁ A VOLTA.
     if fechada and len(achados) > 1 and achados[0] + n - achados[-1] <= passo:
         if ang[achados[0]] >= ang[achados[-1]]:
             achados.pop()
@@ -1100,10 +1012,7 @@ def fatiar(p: np.ndarray, tol_reta: float = None, min_reta: float = None):
 
 # ---- o ajuste de Bézier: Schneider (Graphics Gems, 1990), em numpy ---------
 #
-# Os nomes seguem o artigo para quem for conferir contra a fonte. São seis
-# funções pequenas porque cada uma é um passo nomeado de lá: gerar os pontos de
-# controle por mínimos quadrados, reparametrizar por Newton-Raphson, medir o
-# erro, e dividir no pior ponto quando não convergiu.
+# Os nomes seguem o artigo para quem for conferir contra a fonte.
 
 def _bezier(ctrl: np.ndarray, t) -> np.ndarray:
     t = np.asarray(t, np.float64)[:, None]
@@ -1149,9 +1058,7 @@ def _reparametrizar(p: np.ndarray, u: np.ndarray, ctrl: np.ndarray) -> np.ndarra
     # O DIVISOR ENTRA NA CONTA JÁ SANEADO, e isto não é preciosismo de estilo:
     # `np.where(cond, u - num/den, u)` avalia os DOIS lados, então a divisão por
     # zero acontece de qualquer jeito e sai `inf` no array antes do descarte —
-    # com aviso do numpy no stderr, que o construtor engole e ninguém vê. Onde a
-    # derivada morre (ponto de controle em cima do nó) o parâmetro fica onde
-    # está, que é a resposta certa do artigo.
+    # com aviso do numpy no stderr, que o construtor engole e ninguém vê.
     seguro = np.where(np.abs(den) > 1e-12, den, 1.0)
     novo = np.where(np.abs(den) > 1e-12, u - num / seguro, u)
     return np.clip(novo, 0.0, 1.0)
@@ -1325,14 +1232,8 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
     rot, fundidas = fundir_fracas(rot, cores, n, peso)
 
     esc = 48.0 / (res + 2)   # +2 por causa da moldura de padding do traçador
-    # O DESCARTE DE TRAÇO CURTO CONTINUA MEDINDO A POLILINHA APARADA, e o
-    # `1,6` está aqui fixo de propósito. Quem foi à folha de 11/08/2026 e
-    # ganhou o "tão todos muito bons" foi este critério: `comprimento(dp(linha,
-    # 1.6))`. Medir a cadeia CRUA daria outro conjunto de traços — a escada é
-    # ~35 % mais longa que a diagonal que ela desenha, então cisco que hoje é
-    # descartado passaria a sobreviver. Em `--polilinha` o número volta a ser o
-    # `--tol` do usuário, porque ali ele é a mesma medida e a saída tem de ficar
-    # byte a byte igual à de antes.
+    # O DESCARTE DE TRAÇO CURTO CONTINUA MEDINDO A POLILINHA APARADA, e o `1,6`
+    # está aqui fixo de propósito.
     tol_dp = TOL_POLILINHA if curvas else tol
 
     linhas, caidos, ncantos, ncurvas, nretas = [], 0, 0, 0, 0
@@ -1356,22 +1257,12 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
             # `fechar=False`: a linha fechada repete o primeiro ponto, como
             # sempre fez. Um `Z` aqui mudaria o byte de saída.
             return (False, [("L", np.asarray(s, np.float64))], com_cheia)
-        # A ORDEM É `cantos → partir → alisar`, E A ÓBVIA ESTÁ ERRADA.
-        #   Alisar primeiro e procurar canto depois é o que a mão pede — e apaga
-        #   exatamente o que se ia procurar. Medido em 09/09/2026 no `>_` do
-        #   `cosmic-term-mocha.svg`: na cadeia CRUA o glifo tem quatro vértices
-        #   de 90,0°; depois de `alisar(w=5)` o maior vira 53,7° e NENHUM passa
-        #   dos 60° do limiar. O terminal saía com o `>` sem bico, os lados da
-        #   moldura ondulados, e o `_` virava uma azeitona — a média móvel tinha
-        #   comido o canto antes de alguém perguntar se ele existia.
+        # Alisar primeiro e procurar canto depois é o que a mão pede — e apaga
+        # exatamente o que se ia procurar.
         #
-        #   Invertida, cada peça entre dois cantos é alisada SOZINHA e com as
-        #   pontas pregadas, então o canto sobrevive intacto e o lado reto volta
-        #   a ser uma peça reta — que uma cúbica só descreve com erro zero.
-        #
-        #   O laço fechado SEM canto é o único que ainda alisa antes de partir:
-        #   ali não há ponta para pregar, e alisar em círculo é o que mantém a
-        #   tangente contínua na emenda.
+        # Invertida, cada peça entre dois cantos é alisada SOZINHA e com as
+        # pontas pregadas, então o canto sobrevive intacto e o lado reto volta a
+        # ser uma peça reta — que uma cúbica só descreve com erro zero.
         cru = np.asarray(pontos, np.float64)
         idx = cantos(cru, fechada, limiar_canto, passo_canto)
         ncantos += len(idx)
@@ -1394,14 +1285,9 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
                     continue
                 sub = tr[a:b + 1]
                 if fechada and not idx and len(fatias) == 1:
-                    # A EMENDA DO LAÇO LISO PEDE UMA TANGENTE SÓ, PARTILHADA.
                     # Com as automáticas, `t1` olha para `p[1]` e `t2` para
                     # `p[-2]`, independentes — e o círculo do Reprodutor sai com
-                    # um bico no ponto em que fecha. A tangente da emenda é a que
-                    # passa pelos dois vizinhos do nó, e vale para os dois lados.
-                    # Só se aplica quando a peça é o laço INTEIRO: se `fatiar()`
-                    # tirou uma reta de dentro dele, o nó deixou de ser emenda e
-                    # virou junção comum, com tangente própria de cada lado.
+                    # um bico no ponto em que fecha.
                     t = sub[1] - sub[-2]
                     t = t / (np.linalg.norm(t) or 1.0)
                     c = ajustar(sub, tol, t1=t, t2=-t)
@@ -1522,22 +1408,16 @@ def main():
     p.add_argument("--funde", type=float, default=46.0, help="distância RGB p/ fundir cores")
     p.add_argument("--envolve", type=float, default=0.55, help="fração do perímetro que faz a fita ser contorno")
     p.add_argument("--fita", type=float, default=2.2, help="meia-espessura (px de 48) abaixo da qual a classe vira traço único")
-    # O PADRÃO DE `--tol` NÃO PODE MORAR AQUI, e é a única chave assim.
-    #   Em curvas ele é o erro máximo do ajuste de Bézier (1,0); em polilinha, a
-    #   tolerância do Douglas-Peucker (1,6). São medidas diferentes da mesma
-    #   grade de 256, e um `default=` fixo daria a uma delas o número da outra.
-    #   `None` aqui, escolha em `converter()` depois de saber o modo.
+    # O PADRÃO DE `--tol` NÃO PODE MORAR AQUI, e é a única chave assim. Em
+    # curvas ele é o erro máximo do ajuste de Bézier (1,0); em polilinha, a
+    # tolerância do Douglas-Peucker (1,6).
     p.add_argument("--tol", type=float, default=None,
                    help="curvas: erro máximo do ajuste (px de 256, padrão 1,0); "
                         "polilinha: tolerância Douglas-Peucker (padrão 1,6)")
     p.add_argument("--min-traco", type=float, default=3.2, help="descarta traço menor (px de 48)")
-    # O PADRÃO É 0 = DESLIGADO, E ISSO NÃO É TIMIDEZ.
-    #   A arte convertida que está na tela dela foi aprovada numa folha
-    #   (11/08/2026, "tão todos muito bons"). Uma chave nova que mudasse a saída
-    #   padrão trocaria arte aprovada em silêncio, que é o defeito que este
-    #   projeto persegue. Desligado, `fundir_fracas()` devolve `rot` intocado e
-    #   o `tests/conversor.sh` afirma a saída de hoje byte a byte.
-    #   `--peso-fronteira` sem número usa o vale medido, 70 — ver LIMIAR_FRACA.
+    # A arte convertida que está na tela dela foi aprovada numa folha. Uma chave
+    # nova que mudasse a saída padrão trocaria arte aprovada em silêncio, que é
+    # o defeito que este projeto persegue.
     p.add_argument("--peso-fronteira", dest="peso", type=float, nargs="?",
                    const=LIMIAR_FRACA, default=0.0, metavar="CONTRASTE",
                    help="não desenha fronteira com contraste RGB abaixo deste "
@@ -1562,11 +1442,8 @@ def main():
                          peso=a.peso)
     with open(a.saida, "w") as f:
         f.write(svg(corpo, a.lw))
-    # O JSON VAI PARA O STDOUT E A FRASE PARA O STDERR, SEMPRE NESSA ORDEM.
-    #   O `construir_convertidos.sh` chama com `2>/dev/null` e a oficina do
-    #   painel devolve o stdout como "nota" ao navegador. Trocar os dois canais
-    #   faria a nota da oficina virar uma linha de diagnóstico e o `--json`
-    #   sumir dentro do construtor.
+    # O `construir_convertidos.sh` chama com `2>/dev/null` e a oficina do
+    # painel devolve o stdout como "nota" ao navegador.
     if a.json:
         print(json.dumps(m, ensure_ascii=False))
     if a.curvas:

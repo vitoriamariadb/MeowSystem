@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # garantir_builds.sh — o compositor e o menu do cosmic-files têm build para a
-# versão que o apt instalou? Se não têm, compila; se têm, não faz nada (P81).
+# versão que o apt instalou? Se não têm, compila; se têm, não faz nada.
 #
 #   ./garantir_builds.sh          compila o que falta, e só isso
 #   ./garantir_builds.sh --seco   diz o que compilaria, sem baixar nem escrever
@@ -9,49 +9,6 @@
 #   0 = tudo pronto (já estava, acabou de ficar, ou pulado por regra)
 #   1 = (só no --seco e no --fundo) havia o que compilar
 #   2 = um build falhou — o próximo gatilho tenta de novo · 3 = sem dpkg
-#
-# POR QUE UMA FUNÇÃO SÓ (medido em 15/10/2026)
-#   O apt das 20:14 trouxe o COSMIC 1.10, e o pós-apt das 20:15 recompilou o
-#   menu do cosmic-files e PULOU o compositor: «o shim do compositor está
-#   desligado — sem build». E gravou a versão como vista: ligado o shim, nenhum
-#   gatilho voltaria a ela. Cada gatilho decidia por conta própria se
-#   compilava. Agora quem decide é o artefato — existe build válido daquela
-#   versão, nada; não existe, compila —, e os gatilhos só chamam:
-#     meow-pos-apt.service        depois de todo apt (o hook toca o carimbo);
-#     meow-builds-login.service   uma vez por login: o apt feito com ela
-#                                 deslogada, ou por TTY, não acorda unidade
-#                                 de usuário nenhuma;
-#     o doctor (`fix_patches`)    o das 5h e o «Consertar», pelo `--fundo`.
-#
-# O QUE É BUILD VÁLIDO, por pacote
-#   cosmic-comp   `<casa>/<versão>/cosmic-comp` executável e o `estado` com o
-#                 `req` presente: a mesma regra do shim, que é quem o usa. Com
-#                 o shim desligado compila igual — ligar o shim é gesto dela, e
-#                 o build pronto é o que faz o gesto valer no próximo login.
-#   cosmic-files  os dois binários de `<guarda>/<versão>/` com o marcador do
-#                 patch, se FILES_MENU for "sim".
-#   O build marcado `ruim` (duas quedas, pela guarda do shim) NÃO se refaz: o
-#   mesmo fonte daria o mesmo binário, e refazê-lo apagaria a guarda que tirou
-#   a sessão dela do laço de quedas. Ele espera a próxima versão.
-#
-# O QUE CADA FALHA DEIXA
-#   O `req` que não entra (degrau 4) aborta antes do make: nada é trocado e o
-#   shim segue no de fábrica. Isso é regra, não falha: sai 0, e a matriz diz
-#   que é rebase. E a versão no degrau 4 SAI DOS PENDENTES enquanto a série
-#   não mudar depois da matriz (conferência da P81): o mesmo fonte com a mesma
-#   série recusa o mesmo `req`, e cada login, apt e doctor das 5h refazia a
-#   tentativa, escrevendo. O rebase chega por `git pull` em `patches/`, que
-#   fica mais novo que a matriz, e a versão volta a ser tentada. O `opt` que
-#   não entra sai do build sozinho (degrau 3, no `compositor_patches.sh`).
-#   Erro de verdade (rede, cargo) sai 2, e o próximo gatilho tenta de novo — o
-#   artefato que falta é a memória, não um carimbo.
-#
-# UMA PASSAGEM POR VEZ
-#   `flock` em `$MEOW_ESTADO/builds.lock`, ESPERANDO: um apt no meio do build
-#   do login espera ele acabar e confere de novo, já com a versão nova. O lock
-#   abre em acréscimo (`>>`), e só quando há o que compilar: a segunda passagem
-#   não toca em arquivo nenhum. É ele que o `compositor_patches.sh conferir` lê
-#   para dizer «construindo».
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -72,9 +29,6 @@ GB_TRAVA="${GB_TRAVA:-$MEOW_ESTADO/builds.lock}"
 GB_UNIDADE="meow-builds-login.service"
 GB_FILES_MARCA="MEOW-FILES-WALLPAPER-PATCH-1"
 
-# O CARGO DO RUSTUP ENTRA NO PATH AQUI, pelo mesmo motivo medido no
-# `cosmic_pos_apt.sh` (P76): o PATH do systemd do usuário não tem o
-# `~/.cargo/bin`, e o login e o doctor chamam este arquivo sem passar por lá.
 GB_CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
 case ":$PATH:" in
   *":$GB_CARGO_BIN:"*) ;;
@@ -211,10 +165,8 @@ cmd_rodar() {
 }
 
 # O CONSERTO DO DOCTOR NÃO ESPERA O BUILD: o `meow-doctor.service` tem 5 min
-# de prazo e segura o lock do meow, e o compositor leva até meia hora. Com a
-# unidade do login instalada, é ela que roda a passagem (Nice 19, IO ocioso,
-# 2 h de prazo); e espera-se o lock aparecer, para a conferência seguinte do
-# doctor já dizer «construindo». Sem a unidade, a passagem roda aqui mesmo.
+# de prazo e segura o lock do meow, e o compositor leva até meia hora. Sem a
+# unidade, a passagem roda aqui mesmo.
 cmd_fundo() {
   local -a pend=()
   mapfile -t pend < <(_gb_pendentes)

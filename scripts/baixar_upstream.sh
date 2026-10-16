@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 # baixar_upstream.sh — traz o que vem de terceiros, sempre em commit PINADO.
 #
-# POR QUE PINAR, E NÃO SEGUIR `main`
-#   Um upstream que muda sozinho transforma "rodei o instalador" em "rodei o
-#   instalador num dia em que o repositório estava de um jeito". O
-#   `catppuccin/papirus-folders` está parado há dois anos e não tem UMA tag —
-#   só dá para prender pelo SHA. O dia em que alguém mexer nele, a gente decide
-#   se acompanha; não descobre por acidente.
+# Um upstream que muda sozinho transforma "rodei o instalador" em "rodei o
+# instalador num dia em que o repositório estava de um jeito". O
+# `catppuccin/papirus-folders` está parado há dois anos e não tem UMA tag — só
+# dá para prender pelo SHA.
 #
-# O QUE NÃO ENTRA NO GIT
-#   Nada disto é versionado (ver .gitignore): são megabytes reproduzíveis. O
-#   repositório guarda a RECEITA — este arquivo — e não o conteúdo.
+# Nada disto é versionado (ver .gitignore): são megabytes reproduzíveis.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

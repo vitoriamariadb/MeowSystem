@@ -1,16 +1,6 @@
 #!/usr/bin/env bash
-# oraculo-tema.sh — a cópia em Python da derivação do tema contra o `build()`
-# de verdade do libcosmic (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.5).
-#
-# Sem cargo e sem rede: as saídas do oráculo moram em `tests/oraculo/` (ver o
-# LEIA.md de lá). A prova, sobre o dracula-mauve:
-#   - na revisão do cosmic-settings 1.10 (5a8bd94), que é o INSTALADO desde
-#     15/10/2026, as duas árvores saem iguais à cópia em Python, campo a campo;
-#   - na do 1.9 (d77e99f), a Dark sai igual e a Light difere num campo só,
-#     `background.component.pressed` — o campo em que o 1.10 mudou a regra;
-#   - e o comparador não é cego: uma cor trocada no JSON aparece.
-#   [P82, 15/10/2026 (item 19; decisão 49): até aqui a cópia seguia o 1.9 e o
-#   1.10 era quem diferia. O 1.10 está instalado, e a cópia passou a segui-lo.]
+# oraculo-tema.sh — a cópia em Python da derivação do tema contra o `build()` de
+# verdade do libcosmic.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CAP="$RAIZ/packs/dracula/temas/capturados/dracula-mauve"

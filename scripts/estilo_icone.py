@@ -111,10 +111,7 @@ def _vertices(d):
                 verts.append((x, y))
         elif c == "Z":
             # SÓ acrescenta o fechamento se a caneta ainda NÃO estiver no
-            # ponto inicial. Um `Z` depois do vértice que já coincide com o
-            # `M` cria um segmento de comprimento ~0 e derruba o `seg_min` do
-            # acervo inteiro para perto de zero — medido em 09/09/2026: o p25
-            # do Arcticons caiu de 1,12 para 0,35 por causa disso.
+            # ponto inicial.
             if math.dist((x, y), (sx, sy)) > 1e-9:
                 verts.append((sx, sy))
             x, y = sx, sy
@@ -197,12 +194,7 @@ def faixa(raiz):
         fora[k] = {p: round(_pct(v, int(p[1:])), 2)
                    for p in ("p05", "p25", "p50", "p75", "p95")}
         # O `min`/`max` NÃO é enfeite do percentil: é a asserção que o teste
-        # usa. Percentil responde "onde a mão costuma ficar"; min/max responde
-        # "até onde a mão JÁ foi" — e sair disso é sair do dialeto, não ficar
-        # na cauda dele. Medido em 09/09/2026, três conversões (Foliate,
-        # ProtonUp, Apostrophe) têm margem 2,42: abaixo do p05 (2,50) e acima
-        # do mínimo real do acervo (o firefox, 1,72). Uma régua no p05 estaria
-        # vermelha por 8 centésimos, sem nada errado ter acontecido.
+        # usa.
         fora[k]["min"] = round(min(v), 2)
         fora[k]["max"] = round(max(v), 2)
     return fora

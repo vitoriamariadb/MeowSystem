@@ -5,49 +5,12 @@
 #   ./midia.sh              instala a sombra e as chaves
 #   ./midia.sh --reverter   tira tudo e devolve o applet do flatpak
 #
-# O QUE É A "SOMBRA", E POR QUE ELA É O CORAÇÃO DESTA SOLUÇÃO
-#   O cosmic-panel acha os applets pelo BASENAME do `.desktop`, varrendo os
-#   diretórios do XDG na ordem padrão — e `$XDG_DATA_HOME` (aqui
-#   `~/.local/share`) vem ANTES de todo `XDG_DATA_DIRS`, inclusive do
-#   `~/.local/share/flatpak/exports/share` de onde sai o applet dela hoje.
-#   Escrever um `.desktop` de MESMO NOME em `~/.local/share/applications` faz o
-#   painel usar o NOSSO `Exec=` sem que ninguém encoste em `plugins_wings`.
+# O cosmic-panel acha os applets pelo BASENAME do `.desktop`, varrendo os
+# diretórios do XDG na ordem padrão — e `$XDG_DATA_HOME` (aqui `~/.local/share`)
+# vem ANTES de todo `XDG_DATA_DIRS`, inclusive do
+# `~/.local/share/flatpak/exports/share` de onde sai o applet dela hoje.
 #
-#   Isso importa porque `plugins_wings` é território da Aurora (docs/FRONTEIRA.md)
-#   e a asa direita da dock tem DOIS applets — o Now Playing e a Status Area.
-#   Um script que assumisse "a asa é uma lista de um" apagaria a Status Area dela.
-#   Aqui não se escreve nesse arquivo. Nem uma vez.
-#
-# O FAIL-SAFE, QUE É O PIOR MODO DE FALHA DESTA FAMÍLIA
-#   Sombra presente + binário ausente = NENHUM applet na dock. O painel casa
-#   pelo basename e CONSOME o slot no primeiro acerto: ele nunca chega a tentar
-#   o export do flatpak, e ela fica com um BURACO — não com o applet de fábrica.
-#   Acontece de graça: um `rm` errado, um BleachBit, um disco cheio no meio de
-#   um build. Por isso a regra: quando o binário some, o `--aplicar` REMOVE a
-#   sombra. É um `rm` de arquivo nosso, sem sudo e sem rede — o doctor pode
-#   fazer, e o efeito é ela voltar sozinha ao flatpak que funciona.
-#
-# O PROCESSO EM EXECUÇÃO É AVISO, NUNCA DIVERGÊNCIA
-#   Trocar o `.desktop` não troca o processo: o applet novo sobe no PRÓXIMO
-#   LOGIN. Entre a instalação e o login, `pgrep` acha o do flatpak. Tratar isso
-#   como divergência criaria uma linha amarela que o `--consertar` não consegue
-#   apagar — exatamente a tranca que o módulo do Spotify acabou de perder
-#   (assets/temas-de-apps/spotify/manifesto.sh, o carimbo de versão). Aviso diz a verdade
-#   e não mente sobre poder consertar.
-#
-# NÃO REINICIAMOS O cosmic-panel PARA ANTECIPAR
-#   A issue #13 do upstream (`xdg_popup: tried to grab after being mapped`)
-#   derruba topbar e dock juntas e exige `killall -9`. É o painel fantasma que
-#   este projeto já perseguiu uma vez. Cinco minutos de antecipação não pagam.
-#
-# `album-color-enabled` NÃO É NOSSO
-#   É a chave que ela liga e desliga pelo popup do próprio applet. Este script
-#   MIGRA o valor de dentro do sandbox do flatpak para `~/.config` uma única vez
-#   (senão a escolha dela sumiria na troca) e nunca mais encosta. Enforçá-la
-#   seria o doctor desfazendo às 05:00 o que ela clicou às 22:00.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
+# Sombra presente + binário ausente = NENHUM applet na dock.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -71,11 +34,12 @@ COR_TITULO="${MIDIA_COR_TITULO:-mauve}"
 COR_ARTISTA="${MIDIA_COR_ARTISTA:-green}"
 CONTROLES="${MIDIA_CONTROLES:-nao}"
 # Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só.
 _FLAVOR="$(meow_flavor)"
-# A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
-# 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
-# Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
+# A paleta vem da porta única (lib/comum.sh). Era
+# `assets/paleta/catppuccin.json` cravado — e um nome cravado aqui faz este
+# script continuar lendo o Catppuccin enquanto o resto do projeto já mudou de
+# paleta, sem dar erro.
 PALETA="$(meow_paleta)"
 
 CONFERIR=0; REVERTER=0
@@ -90,8 +54,7 @@ meow_seco && [ "$REVERTER" = 0 ] && CONFERIR=1
 # --- o que queremos no disco -------------------------------------------------
 # O `.desktop` mantém o BASENAME e o `Icon=` do flatpak: o painel casa pelo
 # nome do arquivo, e o ícone continua resolvendo pelo export do flatpak, que
-# segue instalado. Só o `Exec=` muda, e vai em caminho ABSOLUTO — o painel não
-# herda o PATH do shell dela.
+# segue instalado.
 _texto_sombra() {
   cat <<EOF
 [Desktop Entry]
@@ -109,9 +72,6 @@ X-CosmicHoverPopup=Auto
 EOF
 }
 
-# Recusa valor inválido em vez de gravá-lo: uma largura de 5000 sairia do
-# clamp do applet e voltaria ao padrão sem nada avisar, e a conferência
-# gritaria divergência para sempre.
 _largura_valida() {
   case "$LARGURA" in
     ''|*[!0-9]*) return 1 ;;
@@ -126,11 +86,9 @@ _controles_valido() { [ "$CONTROLES" = "sim" ] || [ "$CONTROLES" = "nao" ]; }
 
 _capa_valor() { [ "$CAPA" = "sim" ] && printf 'true' || printf 'false'; }
 
-# NOME DA PALETA -> HEX. Quem traduz é AQUI, não o applet: a paleta é a do PACK
-# ATIVO (`meow_paleta`), e embutir uma cópia dela no Rust criaria a segunda
-# verdade que discorda no dia em que ela trocar de flavor — ou de pack.
-# `auto` viaja como a palavra `auto`, e o applet a rejeita no teste de hex —
-# então "auto" quer dizer "não pinte", sem precisar apagar arquivo nenhum.
+# Quem traduz é AQUI, não o applet: a paleta é a do PACK ATIVO (`meow_paleta`),
+# e embutir uma cópia dela no Rust criaria a segunda verdade que discorda no
+# dia em que ela trocar de flavor — ou de pack.
 _cor_hex() {
   local nome="$1"
   [ "$nome" = "auto" ] && { printf 'auto'; return 0; }
@@ -204,7 +162,6 @@ _pronto() {
   return "$MEOW_OK"
 }
 
-# --- conferência (leitura pura) ---------------------------------------------
 _conferir() {
   # (1) O FAIL-SAFE vem primeiro, porque é o estado que deixa a dock vazia.
   if [ -f "$SOMBRA" ] && [ ! -x "$BINARIO" ]; then
@@ -219,8 +176,7 @@ _conferir() {
 
   # (2) A sombra, comparada por CONTEÚDO e não com `cmp`. O `meow_escrever`
   # grava com `printf '%s'` e come o `\n` final: um `cmp` acusaria divergência
-  # para sempre num arquivo perfeito. Esse erro já custou a este projeto um
-  # `--conferir` gritando 123 divergências num tema correto.
+  # para sempre num arquivo perfeito.
   if [ ! -f "$SOMBRA" ] || [ "$(_texto_sombra)" != "$(cat "$SOMBRA" 2>/dev/null)" ]; then
     meow_muda "a sombra do applet de mídia não está no lugar ($SOMBRA)"
     return "$MEOW_DIVERGENTE"

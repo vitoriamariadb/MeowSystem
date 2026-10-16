@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
 # chaves-aposentadas.sh — a chave que saiu do meow.conf não volta.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 09/10/2026 (P75)
-#   Em 24/09 a decisão foi «Tirar a linha do conf» para a `ICONES_BASE`. Virou
-#   um comentário no meow.conf, e a chave continuou no exemplo. O
-#   `migrar_conf.py` devolve toda chave do exemplo que o arquivo não tem — e
-#   linha comentada conta como ausente —, então a linha voltou no install.sh
-#   seguinte, o painel regravou o valor, e as pastas coloridas sumiram por
-#   sete auto-reparos (docs/sprints/2026-10-09-uso-real/01-regressoes.md, I1).
-#
-# O QUE ESTE TESTE COBRA
 #   1. Com a chave COMENTADA no conf e um exemplo VELHO que ainda a traz, o
 #      `migrar_conf.py` não a devolve.
 #   2. Com a linha ATIVA no conf, ele a tira, e só ela: o comentário em volta
@@ -32,7 +23,6 @@ TMP="$(mktemp -d)" || exit 2
 trap 'rm -rf "$TMP"' EXIT
 MIGRAR="$RAIZ/scripts/migrar_conf.py"
 
-# O exemplo velho: o de hoje com a chave de volta, como ele era até a P75.
 cp "$RAIZ/meow.conf.exemplo" "$TMP/exemplo-velho"
 printf '\n# @ Tema de onde herdar\nICONES_BASE="Papirus-Dark"        # tema herdado como fallback\n' >> "$TMP/exemplo-velho"
 

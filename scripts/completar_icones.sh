@@ -1,142 +1,20 @@
 #!/usr/bin/env bash
 # completar_icones.sh — os ícones que faltavam de verdade, e os dois que são dela.
 #
-# A LISTA DE "12 SEM ÍCONE" ERA FALSO POSITIVO — E O PORQUÊ IMPORTA MAIS
-#   O levantamento que originou esta tarefa dizia que 12 dos `.desktop` da
-#   máquina não tinham ícone em tema nenhum. Refeita a conta com o método que a
-#   biblioteca de ícones usa de fato, o número é ZERO. Duas armadilhas fabricaram
-#   os 12, e quem for reauditar cai nas duas de novo:
+# O levantamento que originou esta tarefa dizia que 12 dos `.desktop` da máquina
+# não tinham ícone em tema nenhum. Refeita a conta com o método que a biblioteca
+# de ícones usa de fato, o número é ZERO.
 #
-#     1. PROCURAR SÓ EM `**/apps/`. A busca de ícone do freedesktop não filtra
-#        por contexto: varre TODOS os diretórios listados em `Directories=` do
-#        `index.theme`. Conferido nome a nome no resolvedor real (as sete
-#        resoluções abaixo saíram do `Gtk.IconTheme.lookup_icon` a 48px):
-#            printer, input-keyboard, drive-removable-media  ->  48x48/devices/
-#            dialog-information                              ->  48x48/status/
-#            document-print-preview                          ->  24x24@2x/actions/
-#            applications-system-symbolic                    ->  symbolic/categories/
-#            mark-location-symbolic                          ->  symbolic/actions/
-#        Restringir a `apps/` inventa essas SETE ausências — não oito. O oitavo
-#        nome, `ibus-setup-chewing`, mora em `48x48/apps/` mesmo (é um link de
-#        ARQUIVO para `ibus.svg`) e caiu pela armadilha 2, não por esta.
+# O jeito certo é não andar no disco: LER o `index.theme` e testar o caminho
+# exato, que é o que a biblioteca faz.
 #
-#     2. `find` E `os.walk` NÃO DESCEM EM DIRETÓRIO SIMBÓLICO — e no Papirus-Dark
-#        o link está no NÍVEL DO TAMANHO, não dentro dele:
-#            /usr/share/icons/Papirus-Dark/48x48 -> ../Papirus/48x48
-#        Ou seja: sem `-L` a varredura não vê NENHUM ícone de 48px do tema, e não
-#        só os de um contexto. Medido nesta máquina:
-#            find    .../Papirus-Dark -name drive-removable-media.svg  ->  1 (só o 16x16, que é dir real)
-#            find -L .../Papirus-Dark -name drive-removable-media.svg  -> 14
-#            find    .../Papirus-Dark -name 'ibus-setup*'              ->  0 (some por completo)
-#        Foi isso que fez `drive-removable-media` parecer existir só em 16x16.
-#
-#   O jeito certo é não andar no disco: LER o `index.theme` e testar o caminho
-#   exato, que é o que a biblioteca faz. Conferido contra o resolvedor do GTK
-#   (`Gtk.IconTheme.lookup_icon`, tema `MeowSystem-Icons`, 48px), ícone a ícone.
-#
-#   A auditoria geral e permanente é do `scripts/auditar_icones.sh`, de outra
-#   frente. Este script não a repete: ele só confere as PRÓPRIAS pós-condições.
-#
-# ENTÃO O QUE ESTE SCRIPT CONSERTA, SE NADA FALTA?
-#   As duas coisas que a auditoria correta aponta como problema DE VERDADE:
-#
-#   1. Os DOIS aplicativos dela (FogStripper e Hefesto) resolviam num PNG
-#      RASTERIZADO no `hicolor` do usuário — o último elo da cadeia. Medido:
-#          fogstripper            -> ~/.local/share/icons/hicolor/128x128/apps/fogstripper.png
-#          hefesto-dualsense4unix -> ~/.local/share/icons/hicolor/48x48/apps/hefesto-dualsense4unix.png
-#          com.vitoriamaria.HefestoDualsense4Unix -> /usr/share/icons/hicolor/256x256/apps/...png
-#      Reduzidos a 48px e olhados: o do FogStripper (uma mão dissolvendo em
-#      partículas sobre disco preto) vira um borrão escuro sem assunto; o do
-#      Hefesto (martelo e bigorna num círculo roxo com anel rosa/azul) continua
-#      LEGÍVEL — o problema dele não é sumir, é ser raster e estar fora da
-#      paleta. Ganham SVG autoral, na paleta, por `gerar_icones_autorais.py`.
-#
-#   2. O `repoman` resolvia em `/usr/share/icons/Pop/48x48/apps/repoman.svg` —
-#      ciano brilhante da marca do Pop!_OS no meio de uma grade Papirus. Nosso
-#      `Inherits=` NÃO cita o Pop: ele entra por dentro do `Cosmic`
-#      (`/usr/share/icons/Cosmic/index.theme` traz `Inherits=Pop,hicolor`), e é
-#      por isso que ninguém acha o culpado olhando só o nosso índice. O Papirus
-#      não tem `repoman` nenhum (conferido), então sem este script o ícone ou é
-#      o do Pop ou é nada. É o único dos utilitários que destoa.
-#
-# E O QUE ELE DELIBERADAMENTE NÃO FAZ (a parte que é decisão, não preguiça)
-#   Os outros 8 nomes da lista original resolvem no PRÓPRIO Papirus, na mesma
-#   linguagem visual do resto do tema, e em tamanho grande (`printer`,
-#   `input-keyboard`, `drive-removable-media` e `dialog-information` existem até
-#   128x128). Não há o que consertar. Mais do que isso: sobrescrevê-los seria
-#   ATIVAMENTE RUIM, por dois motivos distintos —
-#
-#     - São nomes GENÉRICOS, não nomes de aplicativo. `printer` é pedido pelo
-#       painel de impressoras das Configurações, por diálogo de impressão, por
-#       gerenciador de arquivos. Plantar `printer.svg` no nosso tema troca o
-#       ícone de TODOS eles de uma vez, para consertar um `.desktop` que já
-#       estava certo. O `repoman` é a exceção justamente por ser nome de
-#       aplicativo: só o Repoman e o instalador de flatpak o pedem.
+# Este script não a repete: ele só confere as PRÓPRIAS pós-condições.
 #
 #     - `applications-system-symbolic` e `mark-location-symbolic` terminam em
 #       `-symbolic`, e ícone simbólico é contrato: o toolkit o recolore para
 #       casar com o tema. Substituí-lo por desenho colorido não deixa o ícone
 #       colorido — deixa o desenho achatado numa cor só. É a mesma armadilha que
 #       o applet LogoMenu cria com `custom_logo_path` (docs/COSMIC-THEMING.md §3).
-#
-# E O QUE ELE DEIXOU DE FAZER EM 11/08/2026: OS OITO `com.system76.Cosmic*`
-#   Até esta data ele instalava aqui oito desenhos autorais — Arquivos, Terminal,
-#   Loja, Ajustes, Editor, Monitor, Reprodutor e Captura de Tela. Eles nunca
-#   estiveram "sem ícone"; o motivo de existirem era a cor de fábrica do Pop!_OS
-#   (teal e azul-marinho, #00717C/#102A4C/#49BAC8), que não existe em Catppuccin
-#   nenhum. O motivo era bom e a solução envelheceu mal.
-#
-#   O QUE ELA DECIDIU, DUAS VEZES
-#     10/08/2026 — aprovou na folha (`scripts/folha_proposta.py:79-91`) os oito
-#     glifos de LINHA do Arcticons para estes mesmos nomes, um a um.
-#     11/08/2026 — mandou a captura do lançador: "no sentido de criarmos icons
-#     igual o nosso tema atual", e reclamou nominalmente da PASTA MAUVE CHAPADA
-#     dos Arquivos, que é justamente um destes oito autorais. O "nosso tema" é o
-#     TRAÇO; o chapado é que destoa (docs/SPRINTS.md, Sprint J).
-#
-#   POR QUE TIRAR DO MAPA ARCTICONS NÃO BASTAVA, E É ESTE O PONTO
-#     Os dois acervos escreviam o mesmo nome em diretórios diferentes — o autoral
-#     aqui em `scalable/apps`, o Arcticons em `48x48/apps`. Duas verdades por
-#     nome, e quem vence depende do tamanho pedido. O `strace` do resolvedor
-#     (08/08/2026, registrado no docs/SPRINTS.md) mostra que a pilha COSMIC
-#     costuma pedir direto em `scalable/apps` — ou seja, com o autoral instalado
-#     AQUI, o chapado ganha na tela dela por mais que o mapa Arcticons diga outra
-#     coisa. Uma verdade só por nome exige que este script pare de escrever os
-#     oito E remova os que já pôs; a lista `RETIRADOS`, abaixo, é isso.
-#
-#   O QUE NÃO SAIU, E POR QUÊ
-#     FogStripper, Hefesto (os dois nomes) e o apelido `repoman` continuam. Não
-#     são a mesma pergunta: o Hefesto é a logo que ELA desenhou — autoria dela
-#     vence tema, sempre —, o FogStripper resolvia num PNG rasterizado que vira
-#     borrão a 48 px, e nenhum dos dois está no `apps-arcticons.map` disputando
-#     nome com ninguém. A decisão sobre esses dois é dela e está numa folha.
-#
-#   COMO SE DESFAZ
-#     Os oito SVGs continuam VERSIONADOS no `icones/autorais/` do pack e o gerador
-#     continua produzindo-os: desfazer é mover os oito nomes de `RETIRADOS` de
-#     volta para `AUTORAL` e tirar as oito linhas do `packs/meowsystem/icones/apps-arcticons.map`.
-#     Nada foi apagado do repositório.
-#
-# ONDE ESCREVE, E POR QUE ISSO BASTA
-#   `~/.local/share/icons/MeowSystem-Icons/scalable/apps/`. O tema selecionado é
-#   o laço EXTERNO da busca (§2 do doc), então o nosso ganha do `hicolor` e do
-#   `Pop` sem precisar de sudo e sem tocar em /usr/share. E `scalable/apps` já é
-#   declarado no `Directories=` pelo `construir_icones.sh` — o que não estiver
-#   declarado ali é invisível, por mais certo que esteja o arquivo.
-#
-# CÓPIA, NÃO SYMLINK PARA /usr/share
-#   Mesmo raciocínio do `construir_pastas.sh`: um link para dentro do Papirus
-#   amarra o tema à versão do pacote, e um `apt upgrade` que renomeie o arquivo
-#   deixa link quebrado — que aparece como ícone sumido, sem dizer por quê.
-#
-# ELE NÃO REINICIA O PAINEL, DE PROPÓSITO
-#   O `cosmic-panel` lê o tema no início da sessão. Reiniciá-lo faria os ícones
-#   novos aparecerem na hora, mas o `construir_icones.sh` documenta (e sofreu) o
-#   modo de falha: com o painel morto e revivido muitas vezes na mesma sessão, o
-#   `cosmic-session` desiste, e ela fica sem painel e sem dock numa máquina de
-#   UMA tela. Um segundo `pkill` no mesmo `install.sh`, só para adiantar um
-#   refresh cosmético, não paga esse risco. Os arquivos ficam no disco e entram
-#   na próxima leitura; o script diz a linha para quem quiser adiantar.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -146,12 +24,10 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 ALVO="$TEMA_DIR/scalable/apps"
-# A ÁRVORE DE ONDE OS APELIDOS COPIAM DESENHO É PERGUNTA AO `pack.py` — P74 item 1
-#   Era `/usr/share/icons/$ICONES_BASE`, a chave crua: com o conf dizendo
-#   `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, em ~/.local/share)
-#   o apelido do repoman se pulava por sete passadas do doctor (I1/I2 do 01-regressoes.md). A
-#   regra de quem vence mora no `_base_escolhida`, e o `base-apelidos` diz o
-#   tema (o escolhido à mão, ou o Papirus-Dark) e onde ele está no disco.
+# Era `/usr/share/icons/$ICONES_BASE`, a chave crua: com o conf dizendo
+# `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, em ~/.local/share) o
+# apelido do repoman se pulava por sete passadas do doctor (I1/I2 do
+# 01-regressoes.md).
 _base="$(ICONES_BASE="${ICONES_BASE:-}" NOME_TEMA_ICONES="$TEMA_NOME" \
            python3 "$RAIZ/scripts/pack.py" base-apelidos 2>/dev/null)"
 BASE="$(printf '%s\n' "$_base" | sed -n 's/^tema=//p')"
@@ -159,25 +35,16 @@ BASE="$(printf '%s\n' "$_base" | sed -n 's/^tema=//p')"
 BASE_DIR="$(printf '%s\n' "$_base" | sed -n 's/^dir=//p')"
 unset _base
 # Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só.
 FLAVOR="$(meow_flavor)"
 ACCENT="${ACCENT:-mauve}"
-# OS DESENHOS AUTORAIS SÃO DO PACK, E NÃO DO MOTOR — 22/09/2026
-#   Era `$RAIZ/assets/icones/autorais`. Aquele diretório guardava 55 arquivos de
-#   DOIS packs no mesmo monte — 44 do Catppuccin e 11 do Dracula — e o nome não
-#   dizia de quem era nenhum deles. Quem trocava de pack levava os dois.
+# Aquele diretório guardava 55 arquivos de DOIS packs no mesmo monte — 44 do
+# Catppuccin e 11 do Dracula — e o nome não dizia de quem era nenhum deles. Quem
+# trocava de pack levava os dois.
 #
-#   QUEM RESOLVE É O `pack.py onde`, E É DE PROPÓSITO QUE NÃO É O `acervo`.
-#   O passo 1 lá embaixo GERA os desenhos antes de o passo 2 os instalar, e o
-#   `acervo` só responde o que já está no disco: num pack cujo `icones/autorais/`
-#   ainda não nasceu ele devolveria vazio, e o passo 2 procuraria a fonte num
-#   caminho em branco depois de o passo 1 a ter escrito no lugar certo. O `onde`
-#   responde o endereço exista ele ou não — é a MESMA porta que o
-#   `gerar_icones_autorais.py` usa para o `DESTINO` dele, e é essa igualdade que
-#   garante que os dois passos falem do mesmo diretório.
-#
-#   O `padrao` fecha o caso do pack que não declara a categoria: ele escreve em
-#   casa, nunca dentro do pack de quem herda.
+# O `onde` responde o endereço exista ele ou não — é a MESMA porta que o
+# `gerar_icones_autorais.py` usa para o `DESTINO` dele, e é essa igualdade que
+# garante que os dois passos falem do mesmo diretório.
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
@@ -187,75 +54,30 @@ AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
 # O Hefesto aparece com DOIS nomes de ícone na máquina, e os dois precisam do
 # desenho: `hefesto-dualsense4unix` é o lançador (dela, em ~/.local) e
 # `com.vitoriamaria.HefestoDualsense4Unix` é o applet empacotado (em
-# /usr/share/applications). Instalar só o primeiro deixaria a janela/bandeja com
-# o PNG antigo — a divergência só apareceria com o programa aberto.
+# /usr/share/applications).
 #
 # O terceiro nome, `com.vitoriamaria.HefestoDualsense4Unix-symbolic`, fica FORA:
 # simbólico é monocromático por contrato e seria achatado numa cor só.
-# O caminho da logo que a Vitória desenhou. Fora do repo de propósito: é obra
-# dela, mora no projeto dela, e copiar para cá seria congelar uma versão.
-#
-# O CAMINHO VIROU CHAVE EM 24/09/2026 (P39). Até aqui ele era cravado: o clone
-# do Hefesto dentro da pasta de projetos DESTA casa. Numa máquina qualquer esse
-# caminho não existe, e o produto não pode saber onde alguém guarda os projetos
-# dele — a regra de 23/09 diz que o que é só da máquina sai do projeto. A
-# decisão de 18/08 (a logo dela, e não uma cópia) continua de pé: é a chave
-# `ICONES_LOGO_HEFESTO` que aponta para o arquivo, e quem tem o clone a
-# preenche uma vez no meow.conf. Vazia, vale o desenho gerado do pack, que era
-# o que já acontecia em toda máquina sem o clone — menos onde a logo dela já
-# está no tema: ali ela fica, e o passo 2 diz por quê.
 LOGO_HEFESTO_DELA="${ICONES_LOGO_HEFESTO:-}"
 
 declare -A AUTORAL=(
-  # O painel do próprio MeowSystem. É o único desenho autoral de TRAÇO — o
-  # cabeçalho de `meowsystem_painel()`, em `gerar_icones_autorais.py`, conta por
-  # que um ícone escrito hoje nasce no padrão que ela definiu em 11/08/2026 e
-  # não no chapado dos vizinhos de tabela.
+  # O painel do próprio MeowSystem.
   #
-  # O LANÇADOR VESTE O LOGO DO PACK NO AR — 09/10/2026, P73 (I9). Pedido de
-  # 21/09: «precisa usar um svg pra cada logo do theme pack, o icon do menu de
-  # lançamento». A P25 desenhou um `logo.svg` por pack e o docs/PACKS.md
-  # admitia «o ícone do lançador ainda não é o logo». Agora é: quem resolve é o
-  # verbo `logo` do pack.py (o mesmo do cartão do pack), com as cores do flavor
-  # e do acento em vigor. O desenho autoral `meowsystem-painel-<flavor>.svg`
-  # continua como a rede, para o pack sem logo ou com o logo recusado.
+  # Agora é: quem resolve é o verbo `logo` do pack.py (o mesmo do cartão do
+  # pack), com as cores do flavor e do acento em vigor.
   [com.meowsystem.Painel]="__LOGO_DO_PACK__"
-  # [O FOGSTRIPPER SAIU DAQUI EM 15/10/2026, P82 (decisão 16): é projeto
-  #   pessoal, e o desenho dele saiu dos autorais dos dois packs pela regra de
-  #   23/09. O ícone dele volta a ser o do próprio aplicativo.]
-  # EXCEÇÃO, a pedido dela: o Hefesto TEM logo própria, e foi ELA que desenhou
-  # (~/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg — a bigorna
-  # com o martelo). O desenho autoral que eu tinha feito era um controle genérico,
-  # sem identidade nenhuma perto do dela. Autoria dela vence tema, sempre.
-  # [P82: sem a `ICONES_LOGO_HEFESTO` apontando para ela, nada entra — o
-  #   desenho gerado saiu dos packs junto com o do FogStripper.]
+  # O desenho autoral que eu tinha feito era um controle genérico, sem
+  # identidade nenhuma perto do dela. Autoria dela vence tema, sempre.
   [hefesto-dualsense4unix]="__LOGO_DELA__"
   [com.vitoriamaria.HefestoDualsense4Unix]="__LOGO_DELA__"
 )
 
 # --- o que este script PLANTOU E AGORA TEM DE ARRANCAR ------------------------
-# Os oito `com.system76.Cosmic*` moravam na tabela acima até 11/08/2026. Tirá-los
-# de lá faz o script parar de escrever — e SÓ ISSO. O arquivo já instalado
-# continuaria no disco para sempre, vencendo o Arcticons de `48x48/apps` toda vez
-# que o resolvedor pedisse `scalable` (que é o caso comum, medido no `strace` de
-# 08/08/2026). Uma lista de "parou de ser nosso" é o que fecha o buraco.
+# Os oito `com.system76.Cosmic*` moravam na tabela acima. Tirá-los de lá faz o
+# script parar de escrever — e SÓ ISSO.
 #
-# POR QUE UMA LISTA NOMEADA, E NÃO UMA VARREDURA DE ÓRFÃOS
-#   `scalable/apps` tem TRÊS donos — este script, o `logo.sh` (os botões do dock,
-#   `com.system76.CosmicPanelAppButton` e `com.system76.CosmicAppLibrary`, que
-#   casam com o mesmo prefixo `com.system76.Cosmic*`) e o bootstrap do
-#   `construir_icones.sh`; o `assets/temas-de-apps/zapzap` também escrevia ali até hoje.
-#   Varrer o que "não está na minha tabela" apagaria arquivo dos outros — é
-#   exatamente o que o cabeçalho do `icones_apps_arcticons.sh` explica ao dizer
-#   por que ele escolheu `48x48/apps` para ser dono. Então a remoção é por NOME,
-#   e cada nome aqui é uma linha que alguém escreveu de propósito.
-#
-# ELA NÃO É SÓ PARA A LIMPEZA DE HOJE
-#   Numa instalação nova ela não faz nada (o `[ -f ]` abaixo é falso) e não custa
-#   nada. Mas ela continua valendo depois: quem rodar um `install.sh` de um
-#   checkout ANTERIOR a 11/08/2026 replanta os oito, e a passagem seguinte com
-#   este código os arranca de novo. Tirá-la faria isso virar um arquivo mudo no
-#   disco outra vez.
+# Numa instalação nova ela não faz nada (o `[ -f ]` abaixo é falso) e não custa
+# nada.
 RETIRADOS=(
   com.system76.CosmicFiles
   com.system76.CosmicTerm
@@ -270,41 +92,17 @@ RETIRADOS=(
 # --- apelidos de utilitário: nome pedido -> arquivo equivalente no Papirus -----
 # Tabela curta de propósito. Cada linha aqui é um nome de ícone que passa a ser
 # resolvido pelo NOSSO tema para sempre; o cabeçalho explica por que só o
-# `repoman` entrou. `cs-sources` é o "fontes de software" do Cinnamon: o Repoman
-# gerencia repositórios APT, então é o equivalente semântico, não só um ícone
-# bonito. Escolhido entre 11 candidatos renderizados a 48px e olhados.
+# `repoman` entrou.
 declare -A APELIDO=(
   [repoman]="64x64/apps/cs-sources.svg"
 )
 
 # --- do hicolor do SISTEMA: a marca de fábrica, quando ela é o que se quer ----
-# A frase que estava aqui — "só entram os que o Papirus de fato não cobre" — era
-# FALSA, e o único morador desta tabela é o contraexemplo. Medido em 10/08/2026:
-#     ls -L /usr/share/icons/Papirus-Dark/*/apps/thunderbird.svg
-#   devolve 16x16, 22x22, 24x24, 32x32, 48x48, 64x64, 128x128 (e os `@2x`), todos
-#   VETOR. Sem esta tabela o Thunderbird não cairia no vazio: cairia num SVG
-#   nítido em qualquer tamanho.
 #
-# Então o que esta tabela faz de verdade é OUTRA coisa: prefere a marca DE FÁBRICA
-# ao desenho do Papirus. Isso é gosto, não técnica — e está aberto na página de
-# curadoria junto com os outros. Tirar a linha é o desfazer completo: o `--aplicar`
-# seguinte remove o arquivo do tema e o vetor do Papirus volta a valer.
+# Isso é gosto, não técnica — e está aberto na página de curadoria junto com os
+# outros.
 #
-# A FONTE É O RASTER GRANDE, E O DESTINO É O TAMANHO REAL DELE
-#   Até 10/08/2026 aqui estava o PNG de **48**, despejado em `scalable/apps`.
-#   Os dois erros somavam um só sintoma, que ela viu na grade do lançador: borrão.
-#   `scalable/apps` declara `Size=128`, e quem escolhe o arquivo é o TAMANHO, não
-#   a ordem (`docs/COSMIC-THEMING.md` §4d) — logo quem pedia 128 recebia 48
-#   ampliado 2,7×. É o mesmo defeito do acervo em `512x512/apps`, de cabeça para
-#   baixo. O sistema já traz o de 128 (`/usr/share/icons/hicolor/128x128/apps/`,
-#   link para o `default128.png` do pacote), e o destino passa a sair do PRÓPRIO
-#   CAMINHO da fonte, que no `hicolor` sempre carrega o `WxH`.
-#
-# A TABELA SAIU DO SCRIPT PORQUE ELA TEM DOIS LEITORES
-#   O `icones_apps.sh` é dono de `<tam>/apps` e varre órfão lá dentro. Enquanto
-#   esta lista morava aqui, ele não tinha como saber que `thunderbird.png` é de
-#   outro dono — e o `install.sh` roda os dois na mesma passagem, nesta ordem.
-#   O porquê inteiro, com a medição, está no cabeçalho do próprio mapa.
+# Os dois erros somavam um só sintoma, que ela viu na grade do lançador: borrão.
 MAPA_HICOLOR="$RAIZ/packs/meowsystem/icones/apps-hicolor.map"
 declare -A DO_HICOLOR=()
 if [ -f "$MAPA_HICOLOR" ]; then
@@ -324,9 +122,6 @@ avisos=0
 # de ícones montado à mão, e o `Directories=` é a única chave de tamanho que a
 # crate do COSMIC lê (docs/COSMIC-THEMING.md §2).
 if [ ! -f "$TEMA_DIR/index.theme" ]; then
-  # Sem a linha "rode antes: scripts/construir_icones.sh" desde a P75
-  # (09/10/2026): no doctor, quem monta o tema é o `icones`, que vem antes
-  # deste na lista, e o 3 daqui se confere de novo depois dele.
   meow_aviso "o tema '$TEMA_NOME' ainda não existe — quem o monta é o construir_icones.sh"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
@@ -335,34 +130,18 @@ if ! grep -q '^Directories=.*scalable/apps' "$TEMA_DIR/index.theme"; then
   meow_info "sem essa declaração o ícone é ignorado mesmo estando no lugar certo"
   exit "$MEOW_ERRO"
 fi
-# O PYTHON3 DEIXOU DE SER SÓ O DESENHISTA — 22/09/2026
-#   O parágrafo que estava aqui dizia que sem python3 "os ícones já existem no
-#   clone e só faltava copiá-los", e isso foi verdade enquanto o acervo autoral
-#   tinha endereço fixo (`assets/icones/autorais/`). Deixou de ser nesta mesma
-#   sprint: o `AUTORAIS` lá em cima passou a SAIR de `pack.py onde`, e sem
-#   python3 ele sai vazio.
-#
-#   MEDIDO com um PATH sem python3, antes do conserto: `_pack_ref=[]`,
-#   `AUTORAIS=[]`, e a fonte do primeiro ícone virava `/cosmic-edit-mocha.svg`
-#   — um caminho na RAIZ DO SISTEMA, que é exatamente o defeito que o
-#   `meow_pack_padrao_dir` descreve em lib/comum.sh ("o que sai do meow_paleta
-#   vira /paleta.json: um caminho que não existe e que mandaria a pessoa
-#   procurar a paleta na raiz do sistema").
-#
-#   Então o aviso continua sendo aviso — o que se perde por falta de python3 é
-#   a CONFERÊNCIA contra a paleta, e isso não justifica sair 3. Quem manda parar
-#   é o endereço vazio, na guarda logo abaixo, e ela é melhor que a antiga
-#   porque cobre também o pack cujo `onde` recusa por outro motivo.
+# O parágrafo que estava aqui dizia que sem python3 "os ícones já existem no
+# clone e só faltava copiá-los", e isso foi verdade enquanto o acervo autoral
+# tinha endereço fixo (`assets/icones/autorais/`).
 SEM_PYTHON=0
 if ! meow_tem python3; then
   meow_aviso "python3 ausente — não dá para conferir os SVGs contra a paleta"
   SEM_PYTHON=1
   avisos=1
 fi
-# SEM ENDEREÇO NÃO SE INSTALA NADA, E O ERRO TEM DE NOMEAR A CAUSA
-#   Vale no seco também: um `--conferir` que não sabe de que diretório sairiam
-#   os ícones não tem nada de verdadeiro para relatar — ele imprimiria
-#   "instalaria X.svg" dezoito vezes sobre um caminho que começa em `/`.
+# Vale no seco também: um `--conferir` que não sabe de que diretório sairiam
+# os ícones não tem nada de verdadeiro para relatar — ele imprimiria
+# "instalaria X.svg" dezoito vezes sobre um caminho que começa em `/`.
 if [ -z "$AUTORAIS" ]; then
   meow_erro "não sei onde mora o acervo autoral do pack ativo"
   meow_info "  quem responde esse endereço é 'scripts/pack.py onde', e ele precisa de python3"
@@ -410,11 +189,8 @@ for nome in "${!AUTORAL[@]}"; do
     meow_info "o pack no ar não deu um logo — o lançador fica com o desenho autoral"
   fi
   # A EXCEÇÃO: onde o mapa diz `__LOGO_DELA__`, a fonte é a logo que a Vitória
-  # desenhou, no repositório do próprio app, apontada pela `ICONES_LOGO_HEFESTO`.
-  # [P82, 15/10/2026 (decisão 16): sem a chave, ou com ela apontando para um
-  #   arquivo que não está lá, o Hefesto fica com o ícone do próprio
-  #   aplicativo. Era o «desenho gerado» do pack, e ele saiu dos autorais dos
-  #   dois packs — projeto pessoal, regra de 23/09.]
+  # desenhou, no repositório do próprio app, apontada pela
+  # `ICONES_LOGO_HEFESTO`.
   if [ "${AUTORAL[$nome]}" = "__LOGO_DELA__" ]; then
     if [ -n "$LOGO_HEFESTO_DELA" ] && [ -f "$LOGO_HEFESTO_DELA" ]; then
       fonte="$LOGO_HEFESTO_DELA"
@@ -431,16 +207,13 @@ for nome in "${!AUTORAL[@]}"; do
       continue
     fi
     if [ "$SEM_PYTHON" = "1" ]; then
-      # Aqui, e SÓ aqui, a falta de python3 vira dependência ausente: o SVG deste
-      # flavor não está no repositório e não há com que desenhá-lo.
+      # Aqui, e SÓ aqui, a falta de python3 vira dependência ausente: o SVG
+      # deste flavor não está no repositório e não há com que desenhá-lo.
       #
-      # NÃO SE CHEGA MAIS AQUI POR FALTA DE PYTHON3 — 22/09/2026, e fica escrito
-      # em vez de apagado. Desde que o `AUTORAIS` passou a sair de `pack.py
-      # onde`, `SEM_PYTHON=1` implica `AUTORAIS` vazio, e a guarda lá em cima já
-      # saiu com o mesmo código, nomeando a causa certa. O ramo continua de pé
-      # porque a condição dele ainda é a verdadeira (falta o SVG e não há com
-      # que desenhá-lo) e porque apagá-lo esconderia a pergunta de quem um dia
-      # der ao resolvedor uma porta que não precise de python3.
+      # O ramo continua de pé porque a condição dele ainda é a verdadeira (falta
+      # o SVG e não há com que desenhá-lo) e porque apagá-lo esconderia a
+      # pergunta de quem um dia der ao resolvedor uma porta que não precise de
+      # python3.
       meow_erro "falta $fonte e não há python3 para desenhá-lo"
       meow_info "  instale python3 ou rode com um FLAVOR já versionado no acervo do pack"
       exit "$MEOW_SEM_DEPENDENCIA"
@@ -458,7 +231,7 @@ done
 # --- 2b. arrancar o que este script deixou de ser dono ------------------------
 # Ver o comentário do `RETIRADOS`, acima. Enquanto o arquivo estiver aqui, o
 # glifo de linha que ela aprovou em `48x48/apps` não chega à tela: o resolvedor
-# pede `scalable` primeiro. Remover é o que torna a decisão dela visível.
+# pede `scalable` primeiro.
 retirados=0
 for nome in "${RETIRADOS[@]}"; do
   [ -f "$ALVO/$nome.svg" ] || continue
@@ -478,12 +251,8 @@ done
 [ "$retirados" -gt 0 ] && ! meow_seco &&
   meow_ok "$retirados desenho(s) autorais retirados — quem veste os oito agora é o Arcticons"
 
-# --- 2c. os desenhos gerados dos projetos pessoais — P82 (decisão 16) ----------
 # O FogStripper e o Hefesto tinham desenho gerado nos autorais do pack, e ele
-# saiu. O que uma passagem antiga plantou no tema sai também — só o que é
-# nosso, provado pelo conteúdo: todo desenho que o `gerar_icones_autorais.py`
-# escrevia para eles carrega `<title>hefesto — ` ou `<title>fogstripper — `. A
-# logo dela (a `ICONES_LOGO_HEFESTO`) não carrega, e fica.
+# saiu. A logo dela (a `ICONES_LOGO_HEFESTO`) não carrega, e fica.
 for nome in fogstripper hefesto-dualsense4unix com.vitoriamaria.HefestoDualsense4Unix; do
   [ -f "$ALVO/$nome.svg" ] || continue
   grep -qE '<title>(hefesto|fogstripper) — ' "$ALVO/$nome.svg" || continue
@@ -496,13 +265,9 @@ for nome in fogstripper hefesto-dualsense4unix com.vitoriamaria.HefestoDualsense
   rm -f "$ALVO/$nome.svg" && mudou=1
 done
 
-# --- 2d. os apps do COSMIC sem desenho em mapa nenhum — P82 (item 18) ---------
+# --- 2d. os apps do COSMIC sem desenho em mapa nenhum ---------
 # O `meow cosmic icones` dizia «sem desenho: com.system76.CosmicViewer», e
-# ninguém completava. A lista sai da MESMA função do verbo (o `icones-lista` do
-# `cosmic_prever.sh`), e cada nome ganha o ícone de fábrica dele, pela regra do
-# `DO_HICOLOR` lá de baixo: a marca do próprio app, do `hicolor` do sistema —
-# o vetor em `scalable/apps`. O nome que um mapa passar a vestir sai da lista
-# sozinho, e o dono dele passa a ser o passo daquele mapa.
+# ninguém completava.
 while IFS= read -r nome; do
   case "$nome" in ''|*[!A-Za-z0-9._+-]*) continue ;; esac
   fonte="${CV_RAIZ_APPS:-}/usr/share/icons/hicolor/scalable/apps/$nome.svg"
@@ -516,16 +281,12 @@ done < <(CV_RAIZ_APPS="${CV_RAIZ_APPS:-}" "$RAIZ/scripts/cosmic_prever.sh" icone
 
 # --- 3. apelidos vindos do Papirus -------------------------------------------
 # Papirus ausente NÃO é erro: os autorais já entraram e o resto do tema continua
-# de pé. Vira aviso, e o `repoman` segue com o ícone do Pop até o pacote existir.
+# de pé. Vira aviso, e o `repoman` segue com o ícone do Pop até o pacote
+# existir.
 #
-# MAS TAMBÉM NÃO É «OK» — P75, 09/10/2026. A linha seguinte mandava rodar
-# `sudo apt install papirus-icon-theme` (o conserto conhecido devolvido como
-# tarefa, que ela proibiu em 21/09), e o script saía 0 com o aviso por cima: o
-# doctor mostrava `!! completar` e fechava em «nada a consertar». Agora ele diz
-# ONDE procurou — era a metade que faltava para ver a contradição do achado 4
-# de 09/10 («a base confere» três linhas acima de «não está instalada») — e sai
-# 3 lá embaixo, o pulado que avisou. Quem instala o pacote é o `pacotes` do
-# doctor, pela ponte root, antes desta etapa.
+# A linha seguinte mandava rodar `sudo apt install papirus-icon-theme`, e o
+# script saía 0 com o aviso por cima: o doctor mostrava `!! completar` e fechava
+# em «nada a consertar».
 sem_base=0
 if [ ! -d "$BASE_DIR" ]; then
   meow_aviso "a base '$BASE' não está em $BASE_DIR — apelidos de utilitário pulados"
@@ -549,17 +310,6 @@ else
 fi
 
 # --- 3b. a cache do tema, que engole ícone novo em silêncio -------------------
-# MEDIDO nesta máquina, com um tema descartável: com um `icon-theme.cache` dentro
-# do diretório do tema, o GTK lê a CACHE e ignora o disco — um SVG copiado depois
-# dela simplesmente não existe para o resolvedor.
-#     sem cache: teste-depois -> .../scalable/apps/teste-depois.svg
-#     com cache: teste-depois -> (NAO ENCONTRADO)   (mesmo arquivo, mesmo tema)
-# Nós nunca criamos essa cache — mas `gtk-update-icon-cache` rodado à mão, ou um
-# instalador de terceiros, cria. Como o diretório do tema é inteiramente nosso, a
-# presença dela só pode ser isso, e o conserto é reindexar (não apagar: quem a
-# criou queria a cache). Só age se houver ícone MAIS NOVO que ela — sem essa
-# condição o `-f` reescreveria o arquivo a cada rodada e o script escreveria duas
-# vezes ao ser rodado duas vezes.
 CACHE="$TEMA_DIR/icon-theme.cache"
 if [ -f "$CACHE" ] && [ -n "$(find "$ALVO" -name '*.svg' -newer "$CACHE" -print -quit 2>/dev/null)" ]; then
   if meow_seco; then
@@ -582,12 +332,7 @@ fi
 
 # --- 4. conferir as PRÓPRIAS pós-condições -----------------------------------
 # Três coisas têm de valer para um arquivo aqui virar ícone na tela, e as três
-# falham CALADAS. As duas primeiras já foram conferidas lá em cima (o arquivo
-# existe; `scalable/apps` está no `Directories=`). Falta a terceira, e é a que
-# mais engana: o tema pode estar montado e perfeito e mesmo assim não ser o
-# SELECIONADO — e aí nada disto aparece, porque o nome do tema é o laço externo
-# da busca (docs/COSMIC-THEMING.md §2). Quem seleciona é o `construir_icones.sh`.
-# [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
+# falham CALADAS.
 TK="$(meow_cosmic_dir)/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme"
 if [ -f "$TK" ] && ! grep -q "\"$TEMA_NOME\"" "$TK"; then
   meow_aviso "'$TEMA_NOME' NÃO é o tema de ícones selecionado — nada disto vai aparecer"
@@ -604,29 +349,24 @@ for nome in "${!DO_HICOLOR[@]}"; do
   fi
   # PNG mesmo: renomear para `.svg` seria mentira e o renderizador reclamaria.
   #
-  # O DIRETÓRIO É O TAMANHO REAL DO ARQUIVO, E NUNCA `scalable/`. Não há
-  # `identify` aqui de propósito: o caminho do `hicolor` já CARREGA o tamanho
-  # (`.../128x128/apps/`), e lê-lo dali não acrescenta dependência ao script.
+  # Não há `identify` aqui de propósito: o caminho do `hicolor` já CARREGA o
+  # tamanho (`.../128x128/apps/`), e lê-lo dali não acrescenta dependência ao
+  # script.
   lado="$(basename "$(dirname "$(dirname "$fonte")")")"
   case "$lado" in
     [0-9]*x[0-9]*) : ;;
     *) meow_aviso "$nome: não consigo deduzir o tamanho de $fonte — pulado"
        avisos=1; continue ;;
   esac
-  # Diretório no disco que ninguém DECLARA é diretório que ninguém acha (§2). Na
-  # primeira instalação de uma máquina virgem o `128x128/apps` ainda não existe
-  # quando este script roda (quem o cria é o `icones_apps.sh`, que vem depois, e
-  # quem o declara é o `construir_icones.sh`, que vem antes) — então aqui se pula
-  # com aviso, e a linha entra na rodada seguinte. Pular é seguro justamente por
-  # causa da medição acima: enquanto isso o Thunderbird vem do vetor do Papirus.
+  # Diretório no disco que ninguém DECLARA é diretório que ninguém acha (§2).
   if ! grep -q "^Directories=.*${lado}/apps" "$TEMA_DIR/index.theme"; then
     meow_aviso "$nome: '${lado}/apps' ainda não está no Directories= — pulado"
     meow_info "  entra na próxima rodada, depois de scripts/construir_icones.sh"
     avisos=1; continue
   fi
-  # O arquivo no lugar ERRADO tem de sair, senão ficam DOIS donos do mesmo nome e
-  # a regra da extensão (§2) faz um deles vencer sem ninguém ter decidido. É o
-  # que sobra do `scalable/apps/thunderbird.png` de antes de 10/08/2026.
+  # O arquivo no lugar ERRADO tem de sair, senão ficam DOIS donos do mesmo nome
+  # e a regra da extensão (§2) faz um deles vencer sem ninguém ter decidido. É o
+  # que sobra do `scalable/apps/thunderbird.png` de antes.
   if [ -f "$ALVO/$nome.png" ]; then
     if meow_seco; then
       meow_muda "removeria $nome.png de scalable/apps (raster em diretório escalável)"
@@ -647,37 +387,11 @@ for nome in "${!DO_HICOLOR[@]}"; do
   fi
 done
 
-# ---------------------------------------------------------------------------
-# O QUE SAIU DO MAPA TEM DE SAIR DO DISCO — 09/09/2026
-# ---------------------------------------------------------------------------
-# O cabeçalho do `apps-hicolor.map` prometia, palavra por palavra, que apagar
-# uma linha bastava: *"sem a linha, o nome volta a ser órfão para ele
-# [o icones_apps.sh] e sai no próximo --aplicar"*. A PROMESSA ERA FALSA, e
-# custou um ícone invisível por um mês.
+# Um `.png` num `<tam>/apps` do nosso tema só é meu quando é BYTE A BYTE igual
+# a um arquivo do `hicolor` do sistema, no mesmo tamanho — que é exatamente o
+# que este laço acima escreve, com `cp -f`.
 #
-#   A varredura de órfão do `icones_apps.sh` percorre o `512x512/apps` mais os
-#   tamanhos da ESCADA (`meow_icones_escada`), que nesta tela é 16..80. O
-#   `thunderbird.png` morava em `128x128/apps` — declarado no `index.theme`,
-#   servido pelo resolvedor, e fora da escada. Ninguém varria aquele diretório.
-#
-#   Consequência medida: o traço do Arcticons estava instalado em `48x48/apps`,
-#   correto e com a cor da marca, e a tela dela mostrava o raster de fábrica —
-#   porque o resolvedor escolhe por TAMANHO e lançador e painel pedem mais que
-#   48. O pior desfecho possível: parece que o trabalho não foi feito.
-#
-# É a lição de 11/08/2026 outra vez — *"tirar do mapa não basta; as duas
-# metades, sair do mapa e sair do disco, andam juntas"*. Quem escreve é este
-# script; então é ele que apaga, e não o vizinho.
-#
-# A REGRA É POR CONTEÚDO, E É ISSO QUE A TORNA SEGURA
-#   Um `.png` num `<tam>/apps` do nosso tema só é meu quando é BYTE A BYTE
-#   igual a um arquivo do `hicolor` do sistema, no mesmo tamanho — que é
-#   exatamente o que este laço acima escreve, com `cp -f`. Nada mais no tema
-#   passa nesse teste: os derivados do `icones_apps.sh` saem de um `convert
-#   -filter Lanczos` sobre o acervo Catppuccin e diferem; os do Arcticons são
-#   `.svg`; e o que ela puser ali à mão não é cópia do hicolor.
-#
-#   Comparar por NOME seria o defeito de sempre — o nome não diz quem escreveu.
+# Comparar por NOME seria o defeito de sempre — o nome não diz quem escreveu.
 _hicolor_orfaos() {
   local dir lado arq nome fonte n=0
   for dir in "$TEMA_DIR"/*x*/apps; do
@@ -716,8 +430,8 @@ while IFS= read -r arq; do
 done < <(_hicolor_orfaos)
 
 for nome in "${!AUTORAL[@]}" "${!APELIDO[@]}"; do
-  # O Hefesto sem a logo apontada não entra de propósito (P82, decisão 16):
-  # não é falta, é o ícone do próprio aplicativo.
+  # O Hefesto sem a logo apontada não entra de propósito: não é falta, é o
+  # ícone do próprio aplicativo.
   if [ "${AUTORAL[$nome]:-}" = "__LOGO_DELA__" ] && { [ -z "$LOGO_HEFESTO_DELA" ] || [ ! -f "$LOGO_HEFESTO_DELA" ]; }; then
     continue
   fi
@@ -728,14 +442,8 @@ if [ ${#faltando[@]} -gt 0 ] && ! meow_seco; then
   avisos=1
 fi
 
-# A auditoria geral (todos os .desktop da máquina) é de outra frente. Só aponta.
-#
-# NÃO NO SECO, E O MOTIVO É O `meow doctor` — 09/09/2026. O doctor roda este
-# script com `MEOW_DRY_RUN=1` e mostra a PRIMEIRA linha da saída como veredito.
-# Com o convite aqui, a linha da conferência dizia *"ok completar — auditoria
-# completa da máquina: ./scripts/auditar_icones.sh"*: um anúncio de outra
-# ferramenta no lugar de um veredito. Conferir responde "está no lugar?"; sugerir
-# o passo seguinte é conversa de quem acabou de APLICAR.
+# O doctor roda este script com `MEOW_DRY_RUN=1` e mostra a PRIMEIRA linha da
+# saída como veredito.
 if ! meow_seco && [ -x "$RAIZ/scripts/auditar_icones.sh" ]; then
   meow_info "auditoria completa da máquina: ./scripts/auditar_icones.sh"
 fi

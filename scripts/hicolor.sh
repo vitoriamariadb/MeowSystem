@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # hicolor.sh — o `index.theme` do hicolor DELA esconde metade dos próprios ícones.
 #
-# O SINTOMA: "as logos dos jogos da Steam sumiram"
-#   Medido em 2026-08-04. O `~/.local/share/icons/hicolor/index.theme` declarava
-#   QUATRO seções — `48x48/apps`, `128x128/apps`, `256x256/apps`, `512x512/apps` —
-#   enquanto a pasta tinha TREZE tamanhos no disco (16, 20, 22, 24, 32, 40, 48,
-#   64, 96, 128, 192, 256, 512) mais `scalable`.
+# O `~/.local/share/icons/hicolor/index.theme` declarava QUATRO seções —
+# `48x48/apps`, `128x128/apps`, `256x256/apps`, `512x512/apps` — enquanto a
+# pasta tinha TREZE tamanhos no disco (16, 20, 22, 24, 32, 40, 48, 64, 96, 128,
+# 192, 256, 512) mais `scalable`.
 #
 #   Um ícone que só existe num tamanho não declarado é INVISÍVEL: o resolvedor
 #   não varre o disco, ele varre as seções do index.theme. E dois ícones de jogo
@@ -14,26 +13,6 @@
 #       steam_icon_1657740   só em 32x32
 #   Junto com eles sumiam `shadps4-cosmic` (só em `scalable`) e os tamanhos
 #   pequenos de `fogstripper` e `hefesto-dualsense4unix`.
-#
-# POR QUE NÃO É CULPA DO NOSSO TEMA
-#   O `MeowSystem-Icons` termina a cadeia no hicolor, como todo tema termina. O
-#   arquivo quebrado é de 2026-05-12, muito antes deste projeto existir — foi
-#   escrito por algum instalador de terceiro (a Steam grava ícone aqui a cada
-#   jogo). Nós não causamos, mas somos quem cuida de ícone nesta máquina, então
-#   somos quem conserta.
-#
-# A REGRA QUE FAZ ISSO DOER (e que o auditar_icones.sh já documenta)
-#   `parse.rs::get_all_directories` percorre as SEÇÕES `[...]` e aceita cada uma
-#   que declare `Size=`, PARANDO na primeira que não declare — a chave
-#   `Directories=` nunca é lida pelo COSMIC. Já o GTK lê o `Directories=`. Como
-#   os dois resolvedores rodam nesta máquina (COSMIC para o painel e a área de
-#   trabalho, GTK para os apps GTK), este script escreve os DOIS de forma
-#   consistente: `Directories=` completo E uma seção com `Size=` para cada.
-#
-# GERADO DO DISCO, NUNCA DE UMA LISTA FIXA
-#   A Steam cria tamanho novo quando ela instala um jogo. Uma lista cravada aqui
-#   ficaria velha na próxima compra dela — e o sintoma voltaria idêntico, meses
-#   depois, sem ninguém ligar uma coisa à outra. O script varre o que EXISTE.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -85,8 +64,6 @@ pares_com_icone() {
 
 # Ordena por tamanho crescente, com `scalable` por último. Não é cosmético: o
 # resolvedor do COSMIC percorre as seções NA ORDEM e a primeira que sirva ganha.
-# Com `512x512` na frente, um ícone de 16px pediria o arquivo de 512 e o
-# downscale ficaria borrado na barra de tarefas.
 ordenar() {
   while IFS= read -r p; do
     local dir="${p%%/*}"

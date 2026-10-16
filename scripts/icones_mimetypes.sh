@@ -1,90 +1,36 @@
 #!/usr/bin/env bash
 # icones_mimetypes.sh — o pack Catppuccin vestindo os ARQUIVOS, não os programas.
 #
-# POR QUE ESTE SCRIPT EXISTE, E POR QUE ELE NÃO MEXE EM ÍCONE DE APLICATIVO
-#   Ela mandou usar `catppuccin/vscode-icons` em vez dos ícones autorais que o
-#   projeto desenhava. O pack é ótimo e tem os quatro flavors — mas ele é de
-#   LINGUAGEM E FORMATO DE ARQUIVO, não de aplicativo. Medido duas vezes, em
-#   passagens separadas, com o mesmo resultado:
+# Ela mandou usar `catppuccin/vscode-icons` em vez dos ícones autorais que o
+# projeto desenhava. O pack é ótimo e tem os quatro flavors — mas ele é de
+# LINGUAGEM E FORMATO DE ARQUIVO, não de aplicativo.
 #
 #       nomes de ícone que os .desktop desta máquina pedem ......... 50
 #       cobertos pelo pack .......................................... 1  (vscode)
 #
-#   Trocar os ícones de programa por ele deixaria 49 dos 50 sem ícone. Então os
-#   programas continuam vindo do Papirus (que os cobre bem) e o pack vai para
-#   onde ele foi desenhado para brilhar: `mimetypes/`, que é o que o cosmic-files
-#   desenha quando você abre uma pasta.
-#
-# ELE SÓ ESCALA PORQUE É VETOR DE VERDADE
-#   O pack é grid de 16px e isso assusta — mas o SVG é stroke puro, sem raster
-#   embutido. Renderizado a 64px lado a lado com o original de 16px, não há
-#   diferença de nitidez. Por isso ele entra em `scalable/`, e não num tamanho
-#   fixo: quem decide o tamanho é quem desenha.
-#
-# O DIRETÓRIO É NOSSO, E POR ISSO PODEMOS REMOVER ÓRFÃO
-#   `scalable/mimetypes/` dentro de `MeowSystem-Icons` não existe no Papirus nem
-#   em tema nenhum de terceiro: ele nasce aqui. Como o dono é único, tirar uma
-#   linha do mapa pode remover o arquivo com segurança — a regra que o projeto
-#   aprendeu a duras penas com o `custom_logo_path` (dois donos = laço eterno)
-#   não é violada, porque aqui o dono é um só.
-#
-# O QUE NÃO ESTIVER NO MAPA CONTINUA VINDO DO PAPIRUS
-#   `MeowSystem-Icons` herda `Papirus-Dark`. Um tipo de arquivo ausente do mapa
-#   (xlsx e docx, por exemplo, que o pack não cobre) resolve no Papirus como
-#   sempre resolveu. Não há buraco: há herança.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta o pack
+# Trocar os ícones de programa por ele deixaria 49 dos 50 sem ícone.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-# O flavor dos ÍCONES é independente do flavor do TEMA — ela pediu explicitamente
-# "frappe ou macchiato" para os ícones, com a interface em mocha. A chave separada
-# é o que torna isso possível sem partir o significado de FLAVOR no resto do repo.
+# A chave separada é o que torna isso possível sem partir o significado de
+# FLAVOR no resto do repo.
 #
-# QUEM DECIDE O FLAVOR É O `pack.py`, E NÃO MAIS UM `:-macchiato` — 23/09/2026, P31
-#   Era `FLAVOR_ICONES="${ICONES_FLAVOR:-macchiato}"`. Com o conf de fábrica
-#   (`ICONES_FLAVOR="$FLAVOR"`) e o Dracula no ar o valor chegava `dracula`, não
-#   existe acervo de mimetype Dracula, e este script saía com "nada a vestir" —
-#   enquanto o pack declara `icones.mimetypes.flavor: "macchiato"` exatamente
-#   para isso, e o painel já o lia desde a P10. A regra (o conf escrito à mão
-#   vence; o de fábrica que não existe cai no flavor que o pack escolheu) mora
-#   no `flavor_de_icones` do pack.py, e é a MESMA que a aba Ícones pergunta.
-#   Ela é perguntada logo abaixo do `_pack_ref`, porque precisa do mesmo pack
-#   que o `acervo` vai subir.
+# A regra (o conf escrito à mão vence; o de fábrica que não existe cai no flavor
+# que o pack escolheu) mora no `flavor_de_icones` do pack.py, e é a MESMA que a
+# aba Ícones pergunta.
 
-# O ACERVO MUDOU DE CASA EM 22/09/2026 — ele é do PACK, e não do motor
-#   Era `$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES`: 3.281 arquivos do
-#   `catppuccin/vscode-icons` morando em `assets/`, ao lado dos acervos que são
-#   de fato do motor. A P13 os desceu para `packs/catppuccin/icones/mimetypes/`.
+# O ACERVO MUDOU DE CASA — ele é do PACK, e não do motor Era
+# `$RAIZ/assets/icones/catppuccin/$FLAVOR_ICONES`: 3.281 arquivos do
+# `catppuccin/vscode-icons` morando em `assets/`, ao lado dos acervos que são de
+# fato do motor.
 #
-#   QUEM DIZ ONDE ELES ESTÃO É O `pack.json`, E NÃO ESTE SCRIPT. O verbo `acervo`
-#   lê a declaração `icones.mimetypes.desenhos` do pack ativo e sobe a cadeia de
-#   herança quando ele não a declara — que é o caso do Dracula, cujo `pack.json`
-#   diz `icones.mimetypes.herda: "catppuccin"` justamente porque não existe
-#   acervo de mimetype Dracula. Escrever `packs/catppuccin/...` aqui seria a
-#   segunda verdade sobre onde mora o acervo do pack padrão, e a P13 existe para
-#   não ter nenhuma.
+# SEM PACK NO CONF, O ALVO É O PADRÃO — perguntado, nunca digitado.
 #
-#   SEM PACK NO CONF, O ALVO É O PADRÃO — perguntado, nunca digitado.
-#
-#   O `|| VAZIO` NÃO É ENFEITE: ELE É O QUE DEIXA O `_pronto` FALAR — 22/09/2026
-#     Este arquivo roda sob `set -euo pipefail`, e uma atribuição HERDA o status
-#     do comando substituído. O `pack.py acervo` sai com 1 quando nada resolve
-#     (RECUSADO), que é exatamente o caso do flavor sem acervo — `dracula`, com
-#     o `ICONES_FLAVOR="$FLAVOR"` que o meow.conf.exemplo traz de fábrica. Sem a
-#     queda explícita o script MORRIA nesta linha, calado: `--conferir` saía com
-#     rc=1 e zero linha na tela, o doctor acusava divergência sem motivo (1 é
-#     MEOW_DIVERGENTE, lib/comum.sh) e o `--consertar` morria no mesmo ponto, em
-#     laço. Medido em 22/09/2026, com `bash -x` parando em `+ ORIGEM=`.
-#     Vazio é RESPOSTA, e o `_pronto` logo abaixo é quem a conta em português.
-#
-#   E O `2>/dev/null` SAIU JUNTO: quando o `acervo` recusa por pack.json
-#   quebrado ele DIZ por quê em stderr, e engolir essa linha deixaria o
-#   `_pronto` culpar o flavor por um defeito que é do pack.
+# Este arquivo roda sob `set -euo pipefail`, e uma atribuição HERDA o status do
+# comando substituído.
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 FLAVOR_ICONES="$(python3 "$RAIZ/scripts/pack.py" flavor-icones "$_pack_ref")" || FLAVOR_ICONES=""
@@ -92,16 +38,11 @@ ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
             icones.mimetypes.desenhos "$FLAVOR_ICONES")" || ORIGEM=""
 # SEM FLAVOR, SEM ORIGEM: `acervo ... ""` devolve a pasta-mãe do acervo (a que
 # guarda um diretório por flavor), e o `_pronto` a aceitaria — o `--conferir`
-# diria "0 já vestidos" com nada vestido. Vazio aqui nasce de conf sem
-# `ICONES_FLAVOR` nem `FLAVOR`, ou do pack.py recusando o pack; nos dois casos o
-# `_pronto` diz que não há o que vestir.
+# diria "0 já vestidos" com nada vestido.
 [ -n "$FLAVOR_ICONES" ] || ORIGEM=""
-# DE QUEM É O ACERVO, DITO NA TELA — 09/10/2026, P74 item 7 (T1). A frase dizia
-#   «vestidos de Catppuccin <flavor>» com qualquer pack: o doctor desta máquina,
-#   com o Dracula no ar, dizia «123 tipos de arquivo já vestidos de Catppuccin
-#   macchiato». Desde a P74 o Dracula traz os dele, e a frase diz o NOME do
-#   pack dono do diretório que veste (o `_pack_de` do pack.py, o mesmo que a
-#   aba Ícones usa). Com o Catppuccin no ar, a frase é a de antes.
+# A frase dizia «vestidos de Catppuccin <flavor>» com qualquer pack: o doctor
+# desta máquina, com o Dracula no ar, dizia «123 tipos de arquivo já vestidos de
+# Catppuccin macchiato».
 DONO_ACERVO="$( [ -n "$ORIGEM" ] && python3 -I - "$RAIZ/scripts" "$ORIGEM" <<'PY' 2>/dev/null
 import sys
 sys.path.insert(0, sys.argv[1])
@@ -111,14 +52,7 @@ print(pack.campo(dono, "nome", dono) or "")
 PY
 )"
 [ -n "$DONO_ACERVO" ] || DONO_ACERVO="Catppuccin"
-# O MAPA SEGUIU O ACERVO PARA DENTRO DO PACK — 22/09/2026
-#   A P13 desceu os 3.280 glifos para `packs/catppuccin/icones/mimetypes/` e
-#   deixou o mapa em `assets/icones/mimetypes.map`. Meio caminho: O MAPA É A
-#   DECISÃO. Ele diz QUAL glifo veste cada tipo de arquivo, e isso é escolha de
-#   tema, não fato desta máquina — um pack que traga outro acervo traz outro
-#   pareamento junto. Acervo num endereço e decisão noutro é o defeito que esta
-#   família de sprints existe para acabar: quem troca de pack levava os desenhos
-#   e não levava a escolha.
+# Meio caminho: O MAPA É A DECISÃO.
 #
 #   Mesma porta do `ORIGEM` logo acima, e o mesmo `|| MAPA=""` pelo mesmo motivo
 #   que o bloco anterior explica em detalhe: `acervo` sai 1 quando nada resolve,
@@ -135,9 +69,9 @@ declare -A MAPA_LIDO=()
 _ler_mapa() {
   local linha nome glifo pulados=()
   while IFS= read -r linha || [ -n "$linha" ]; do
-    # O MAPA ESCRITO NO WINDOWS — P79, 10/10/2026. Com CRLF, o `\r` ficava no
+    # O MAPA ESCRITO NO WINDOWS. Com CRLF, o `\r` ficava no
     #   glifo, o `meow_nome_seguro` o recusava, e o pack inteiro saía sem
-    #   desenho, cada linha «pulada» (achado da P78). O `pack.py` lê o mesmo
+    #   desenho, cada linha «pulada». O `pack.py` lê o mesmo
     #   arquivo por `splitlines`, que já tira o `\r`; aqui sai do mesmo jeito.
     #   E a última linha sem quebra no fim também conta (`|| [ -n ]`).
     linha="${linha%$'\r'}"
@@ -145,10 +79,7 @@ _ler_mapa() {
     nome="${linha%%:*}"; glifo="${linha#*:}"
     # Os dois lados viram nome de arquivo (`<nome>.svg` no tema, `<glifo>.svg`
     # no acervo): só de um conjunto fechado, sem `/` nem `..` — um mapa de pack
-    # importado é dado não confiável (conferência da P74, alerta de segurança
-    # de 09/10/2026). A linha fora dele é pulada.
-    # [P78: o conjunto é o `meow_nome_seguro` do lib/comum.sh, a regra única
-    #   que o pack.py também segue, e a linha pulada agora é contada.]
+    # importado é dado não confiável.
     if ! meow_nome_seguro "$nome" || ! meow_nome_seguro "$glifo"; then
       # O nome vai para o aviso, no terminal: pela porta de saída de texto de
       # pack, e uma sequência de controle plantada no mapa não chega lá crua.
@@ -175,18 +106,13 @@ _pronto() {
 }
 
 # --- o que deveria estar no disco ---------------------------------------------
-# Devolve, uma por linha, "nome<TAB>caminho-de-origem" — só dos glifos que existem
-# de fato. Um glifo faltando é aviso, não erro: o mapa pode citar algo que o pack
-# renomeou, e nesse caso o Papirus continua atendendo aquele tipo.
+# Devolve, uma por linha, "nome<TAB>caminho-de-origem" — só dos glifos que
+# existem de fato.
 _desejado() {
   local nome glifo real
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
-    # Link não entra: o `cat` o seguiria para fora do acervo (P74, idem).
-    # [P78: a conferência da P74 FICA (link não entra, nem para dentro), e a
-    #   regra única entra junto: o caminho que se copia é o realpath que o
-    #   `meow_dentro` conferiu dentro do acervo. A primeira versão da P78 trocou
-    #   uma pela outra e deixou entrar link para dentro — a conferência acusou.]
+    # Link não entra: o `cat` o seguiria para fora do acervo.
     [ -f "$ORIGEM/$glifo.svg" ] && [ ! -L "$ORIGEM/$glifo.svg" ] \
       && real="$(meow_dentro "$ORIGEM" "$glifo.svg")" \
       && printf '%s\t%s\n' "$nome" "$real"
@@ -194,15 +120,9 @@ _desejado() {
   return 0
 }
 
-# O CRITÉRIO DO CONFERIR TEM DE SER O DO ESCRITOR — senão o doctor grita eternamente
-#   Primeira versão disto usava `cmp -s`, byte a byte, e o resultado foi um script
-#   que aplicava com sucesso e em seguida dizia "123 a atualizar", para sempre. O
-#   motivo: `meow_escrever` grava com `printf '%s' "$conteudo"`, e `$(cat ...)`
-#   come o `\n` final — o arquivo instalado tem exatamente 1 byte a menos que o
-#   original, com conteúdo idêntico. `cmp` vê diferença; o escritor não vê.
-#   Num projeto cujo auto-reparo roda todo dia por timer, um conferir mais severo
-#   que o escritor é uma notificação mentirosa diária. Compare do mesmo jeito que
-#   se escreve, sempre.
+# O motivo: `meow_escrever` grava com `printf '%s' "$conteudo"`, e `$(cat ...)`
+# come o `\n` final — o arquivo instalado tem exatamente 1 byte a menos que o
+# original, com conteúdo idêntico.
 _conferir() {
   local nome origem divergentes=0 ausentes=0 orfaos=0 total=0 arq
   while IFS=$'\t' read -r nome origem; do

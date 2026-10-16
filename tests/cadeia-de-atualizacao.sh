@@ -1,38 +1,12 @@
 #!/usr/bin/env bash
 # cadeia-de-atualizacao.sh — os builds sobrevivem à cadeia inteira de
-# manutenção dela? (P81)
+# manutenção dela?
 #
-# O PEDIDO (15/10/2026): «um sistema idempotente que resista a
-#   sudo apt update -y && sudo apt full-upgrade -y && topgrade -y &&
-#   sudo apt autoremove -y && cargo update && sudo apt autoclean -y &&
-#   limpar_cache -y».
-#
-# O QUE ESTE TESTE SIMULA, PASSO A PASSO, num HOME de brinquedo
-#   Cada passo de apt toca o carimbo do hook, e o `.path` acorda o pós-apt:
-#   aqui isso é chamar o `scripts/cosmic_pos_apt.sh` depois do passo. O
-#   compositor e o menu se constroem pelos scripts DE VERDADE
-#   (`garantir_builds.sh`, `compositor_patches.sh compilar`, `files_menu.sh
-#   build`); falsos só os programas de fora: o dpkg (as versões vêm de um
-#   arquivo), o apt-get (o «download» é um arquivo vazio, contado), o
-#   dpkg-source, o make, o just e o cargo (copiam o fonte patchado para o
-#   lugar do binário). A série é de brinquedo: um `req` que põe um marcador.
-#   E o fonte de cada versão traz uma receita de build diferente — Makefile,
-#   justfile com `build-vendored` (o 4d14528 de 15/10, medido pela P85) e
-#   nenhum dos dois —, para o `compilar` seguir a que vier.
-#
-# O QUE ELE PROVA
-#   - a versão nova do full-upgrade ganha build, e o shim a escolhe;
-#   - os fontes guardados (`~/.local/share/meowsystem/fontes`) não somem com
-#     apt clean, autoremove nem a limpeza do `~/.cache`;
-#   - com o `~/.cache` limpo, a versão seguinte compila do fonte guardado ou
-#     da rede, sem resto da anterior;
-#   - o apt feito com ela deslogada (nenhum pós-apt) é pego no login;
-#   - a segunda passada de tudo (pós-apt, login, doctor) não escreve um byte.
-#   O `cargo update` fora de um projeto sai 101 e corta a cadeia com `&&`: não
-#   é do MeowSystem (o docs/MANUTENCAO.md registra); aqui ele só é anotado.
+# O QUE ESTE TESTE SIMULA, PASSO A PASSO, num HOME de brinquedo Cada passo de
+# apt toca o carimbo do hook, e o `.path` acorda o pós-apt: aqui isso é chamar
+# o `scripts/cosmic_pos_apt.sh` depois do passo.
 #
 # Nada de sudo, systemd, rede nem cargo de verdade: os falsos recusam.
-#   0 = passou · 1 = falhou
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -215,8 +189,6 @@ igual "nenhum build" "$(grep -c . "$T/build.log")" 0
 igual "nenhum download" "$(grep -c . "$T/rede.log")" 0
 
 echo "== COSMIC E, em que o obrigatório não entra (degrau 4): a 2ª passada não tenta de novo"
-# Conferência da P81: sem a regra, cada login, apt e doctor refazia a escada
-# do mesmo fonte com a mesma série e escrevia (o `alvos.novo`, o meow.log).
 cp "$T/patches/cosmic-comp-t.patch" "$T/t.bom"
 sed -i 's|^ // MEOW-ALVO$| // OUTRA-COISA|' "$T/patches/cosmic-comp-t.patch"
 versoes cosmic-comp=0.1~e cosmic-files=1.10~d cosmic-panel=1.10~d

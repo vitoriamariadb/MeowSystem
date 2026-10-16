@@ -1,17 +1,15 @@
 /* app/pagina/standalone.css — o pouco que a página exportada acrescenta.
  *
- * SÓ EXISTE DENTRO DO HTML EXPORTADO, como o `standalone.js`. São três coisas:
- * a barra que diz o que aquele arquivo é, o modo "todas as abas empilhadas", e
- * o ajuste do cabeçalho fixo para caber a barra em cima dele.
+ * São três coisas: a barra que diz o que aquele arquivo é, o modo "todas as
+ * abas empilhadas", e o ajuste do cabeçalho fixo para caber a barra em cima
+ * dele.
  *
  * NENHUM HEX AQUI TAMBÉM — a regra do projeto não muda por o arquivo ser
- * temporário. As cores saem da mesma paleta que veste o painel, embutida logo
- * acima no `<style id="paleta-do-painel">`.
+ * temporário.
  *
  * ELE FICA NUMA FOLHA SEPARADA DE PROPÓSITO: quem for redesenhar mexe no
  * `<style id="folha-do-painel">`, que é o `estilo.css` de verdade e o único que
- * volta para o repositório. O que estiver aqui não vale para o painel e não
- * precisa ser lido nem preservado. */
+ * volta para o repositório. */
 
 .aviso-standalone {
   position: sticky;
@@ -64,9 +62,7 @@ body.empilhado #pilha {
 }
 
 /* O título de cada aba na pilha. Ele não existe no painel — lá o nome da seção
- * está no menu, e o menu está sempre visível. Empilhado, o menu deixa de
- * apontar para uma aba só, e sem este rótulo não dá para saber onde uma acaba
- * e a outra começa. */
+ * está no menu, e o menu está sempre visível. */
 .pilha-aba > h2 {
   position: sticky;
   top: 0;

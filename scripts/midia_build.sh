@@ -4,45 +4,14 @@
 #   ./midia_build.sh --conferir            não escreve; 1 se o binário divergir da receita
 #   MIDIA_COMPILAR=1 ./midia_build.sh      compila e instala
 #
-# POR QUE ESTE SCRIPT EXISTE SEPARADO DO `midia.sh`
-#   Porque ele é a ÚNICA porta do projeto que compila, e compilar é a única
-#   coisa que o `meow doctor` das 05:00 não pode fazer. Deixar as duas metades
-#   no mesmo arquivo obrigaria o doctor a atravessar o caminho do `cargo` para
-#   chegar às partes que ele PODE consertar (a sombra, as chaves, o fail-safe).
-#   Separados, o `bin/meow` registra `midiabin` em SEM_CONSERTO e `midia` fora —
-#   e o laço de conserto (bin/meow) dá `continue` pelo NOME antes de olhar o
-#   código de saída, então um nome só não pode ser "consertável pela metade".
+# POR QUE ESTE SCRIPT EXISTE SEPARADO DO `midia.sh` Porque ele é a ÚNICA porta
+# do projeto que compila, e compilar é a única coisa que o `meow doctor` das
+# 05:00 não pode fazer.
 #
-# A TRAVA É ESTRUTURAL, NÃO EDUCADA
-#   `MIDIA_COMPILAR=1` é obrigatório para compilar. Não é uma convenção que se
-#   pede que todo mundo respeite: o caminho do `cargo` é literalmente
-#   INALCANÇÁVEL sem essa variável, e quem a exporta é o `install.sh`. O doctor
-#   não a exporta e não tem como; no pior dos casos ele acusa a divergência e
-#   escreve o comando na tela.
+# `MIDIA_COMPILAR=1` é obrigatório para compilar.
 #
-# O CARIMBO É O QUE FAZ A SEGUNDA PASSAGEM CUSTAR ZERO
-#   Quatro campos: sha256 do patch, COMMIT do PINO, sha256 do binário instalado
-#   e a versão do rustc. Batendo os quatro, este script devolve 0 SEM invocar o
-#   cargo uma única vez. MEDIDO: até um rebuild que não muda nada custa ~20s, e
-#   o `meow-doctor.service` tem `TimeoutStartSec=5min` — vinte segundos por dia
-#   de nada é o tipo de gasto que ninguém vê e ninguém remove depois.
-#
-# O `meow_seco` VEM ANTES DE QUALQUER TOQUE NO RUSTUP, E ISSO É MEDIÇÃO
-#   `rustc` nesta máquina é um shim do rustup. Sob `env -i HOME=<falso>` — que é
-#   como `tests/seco.sh` roda — o shim FALHA e ainda assim escreve
-#   `.rustup/settings.toml` no HOME falso. Um `rustc -V` inocente no caminho do
-#   `--conferir` faria o teste do seco acusar escrita num script que promete não
-#   escrever nada. Por isso `_rustc_versao` devolve vazio no seco, e o campo
-#   simplesmente não entra na comparação.
-#
-# `--locked` SEMPRE, E NÃO É ZELO
-#   O `Cargo.toml` do upstream aponta o libcosmic para o git SEM `rev`. Sem
-#   `--locked`, uma compilação de amanhã pegaria outro commit do libcosmic sem
-#   ninguém ter pedido — e a falha apareceria como erro de compilação num dia em
-#   que ninguém mexeu em nada. Quem segura a versão é o `Cargo.lock` do upstream.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
+# Quatro campos: sha256 do patch, COMMIT do PINO, sha256 do binário instalado e
+# a versão do rustc.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -58,22 +27,16 @@ ARVORE="$ESTADO/src"
 ALVO="$ESTADO/target"
 CARIMBO="$ESTADO/carimbo"
 
-# O binário tem NOME PRÓPRIO, e não é enfeite. MEDIDO em 24/08/2026: o applet do
-# flatpak roda com a cmdline `cosmic-ext-applet-now-playing` PELADA, debaixo de
-# um `bwrap` — a string `flatpak run` vive só no `Exec=` do `.desktop` e nunca
-# no processo. Com o mesmo nome, nenhum `pgrep` distinguiria o nosso do dele, e
-# a conferência daria garantia falsa.
+# O binário tem NOME PRÓPRIO, e não é enfeite.
 BINARIO="$HOME/.local/bin/meow-applet-now-playing"
 
 MIDIA="${MIDIA:-sim}"
 COMPILAR="${MIDIA_COMPILAR:-0}"
 
-# O PINO ANDA COM O PAINEL — 09/10/2026, P76. A mesma regra do
-# `leitura_build.sh`, que mora no `scripts/applet_pino.sh`: o applet compila
-# contra o libcosmic do cosmic-panel instalado (`cargo update --precise` na
-# árvore, que é um clone nosso), e volta ao `Cargo.lock` do upstream — o pino
-# do PINO — se não compilar ali. O carimbo ganha a linha `libcosmic` só
-# quando o alvo não é o pino.
+# A mesma regra do `leitura_build.sh`, que mora no `scripts/applet_pino.sh`:
+# o applet compila contra o libcosmic do cosmic-panel instalado (`cargo
+# update --precise` na árvore, que é um clone nosso), e volta ao `Cargo.lock`
+# do upstream — o pino do PINO — se não compilar ali.
 . "$RAIZ/scripts/applet_pino.sh"
 _alvo_rev() { ap_alvo midia "${LIBCOSMIC:-}"; }
 
@@ -84,7 +47,7 @@ case "${1:-}" in
   *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && CONFERIR=1
-# P76: conferir é só leitura também para a regra do pino (`applet_pino.sh`).
+# conferir é só leitura também para a regra do pino (`applet_pino.sh`).
 [ "$CONFERIR" = 1 ] && AP_SO_LER=1
 
 _sha() { sha256sum -- "$1" 2>/dev/null | cut -d' ' -f1; }

@@ -1,36 +1,6 @@
 #!/usr/bin/env bash
 # doctor-veredito.sh — o doctor corrige, e o veredito final é o pior estado.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 09/10/2026 (P75)
-#   No uso real de 09/10, a mesma saída do «Conferir a máquina» trazia
-#     !!   completar   MeowSystem-Icons-Base não está instalado …
-#          sudo apt install papirus-icon-theme
-#     --   pastas      … pastas coloridas puladas
-#          instale com: sudo apt install papirus-icon-theme
-#   e terminava em `ok nada a consertar` — no painel, «TUDO CONFERE». Três
-#   defeitos de uma vez, e os três que ela já tinha pedido para nunca mais:
-#   «O doctor não tem que avisar nada. Tem que corrigir.» (09/10) e «nenhuma
-#   feature pode mandar o usuário consertar à mão» (21/09, ×3).
-#
-# O QUE ESTE TESTE COBRA
-#   1. O veredito: o pulado que AVISOU (`!!`) pesa como fora do lugar; o
-#      pulado de rotina (`--`) não. Nenhum dos dois termina em «nada a
-#      consertar» quando o primeiro existe.
-#   2. O `--consertar` termina pelo DEPOIS: o 3 cuja dependência chegou na
-#      mesma passada é consertado; o que continua fora (sem conserto
-#      automático, ou um conserto que diz que fez e não fez) é nomeado e a
-#      passada sai 2. Tudo no lugar depois do conserto: sai 1, «consertado».
-#   3. As duas faltas da base de ícones (completar e pastas) saem 3 com `!!`
-#      e sem receita.
-#   4. A passada inteira do doctor, numa casa de brinquedo, não imprime
-#      receita de `apt` nenhuma.
-#
-# O QUE É FALSO AQUI: `sudo`, `pkill`, `kill` e companhia registram e recusam,
-#   como no `tests/doctor-so-le.sh` — a máquina de quem usa tem `NOPASSWD: ALL`,
-#   e um teste que chama sudo ali ESCREVE no sistema. Os itens 1 e 2 trocam as
-#   conferências por funções de mentira: o que se prova é o runner, não os
-#   scripts.
-#
 #   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -48,9 +18,8 @@ for c in sudo pkill killall notify-send systemd-run pkexec; do
   chmod 755 "$FALSO/$c"
 done
 
-# Roda o `cmd_doctor` do bin/meow com as conferências e os consertos que o
-# cenário define. O bin/meow é lido sem a última linha (o despacho), numa
-# casa de brinquedo com o meow.conf de fábrica.
+# O bin/meow é lido sem a última linha (o despacho), numa casa de
+# brinquedo com o meow.conf de fábrica.
 cenario() {   # $1 = arquivo com as definições · resto = argumentos do doctor
   local defs="$1"; shift
   local casa="${CASA_CENARIO:-$TMP/casa-$RANDOM}"

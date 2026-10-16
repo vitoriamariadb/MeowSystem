@@ -3,74 +3,17 @@
 # e o bloco `logo` (fonte, tipo e padding).
 #
 # POR QUE ELE É UM ARQUIVO, E NÃO UM HEREDOC DENTRO DO `fastfetch_logo.sh`
-#   Porque o heredoc me custou o arquivo dela. A primeira versão deste código
-#   morava num `python3 - <<'PY'` no meio do shell, e para passar por lá cada
-#   barra invertida do Python virava duas, cada aspas virava três. Ao trocar o
-#   heredoc de aspas simples para sem aspas — para poder interpolar uma variável
-#   — as CRASES dos comentários em português viraram substituição de comando, e
-#   um `\{` mal escapado desalinhou a varredura de chaves. O resultado foi
-#   gravado no `~/.config/fastfetch/config.jsonc`:
+# Porque o heredoc me custou o arquivo dela.
 #
-#       { "type": { "type": "title", "format": "…" }, "format": "…" },
+# { "type": { "type": "title", "format": "…" }, "format": "…" },
 #
-#   O backup que a GUARDA 2 do `fastfetch_logo.sh` tira antes de toda escrita
-#   devolveu o arquivo intacto — é exatamente para isso que ela existe. Mas o
-#   defeito não foi de lógica: foi de CAMADA. Código que precisa contar aspas
-#   não deve morar dentro de outra linguagem, e a correção certa não é escapar
-#   melhor, é sair de lá.
+# O backup que a GUARDA 2 do `fastfetch_logo.sh` tira antes de toda escrita
+# devolveu o arquivo intacto — é exatamente para isso que ela existe.
 #
-#   Em 06/09/2026 o `logo` veio junto, pelo mesmo motivo e não por simetria: o
-#   escritor do padding ainda morava num heredoc e tinha o MESMO defeito de
-#   camada — trocava números de dentro de um comentário. Duas rotinas de
-#   varredura de JSONC em duas linguagens divergiriam de novo.
+# Duas rotinas de varredura de JSONC em duas linguagens divergiriam de novo.
 #
-# O QUE É A MÁSCARA, E POR QUE TUDO PASSA POR ELA
-#   `mascarar()` devolve uma cópia do texto do MESMO tamanho, byte a byte, com
-#   todo comentário virado espaço. Procura-se nela; recorta-se no original. Sem
-#   isso, uma menção a `"type": "title"` dentro de um comentário — e o estilo
-#   desta casa é comentário longo — vira âncora: a subida de chaves não acha
-#   abertura de objeto no caminho, para no `{` da RAIZ, a descida acha o `}` do
-#   fim do arquivo, e a escrita troca o ARQUIVO INTEIRO por uma linha. Medido:
-#   2513 bytes viravam 50, o fastfetch aceitava sem reclamar, e o `~/.config/zsh`
-#   commitava isso sozinho dez minutos depois.
-#
-#   E o contrário também acontecia: comentário COM `{` próprio fazia a escrita
-#   cair dentro dele, deixando o módulo de verdade intacto — a leitura seguinte
-#   confirmava o comentário e dizia "já está certo" para sempre.
-#
-# ELE NÃO REserializa O JSON
-#   Um `json.dump` mataria os comentários (o arquivo é JSONC), a ordem das
-#   chaves e a indentação dela — e o arquivo vive num repositório com commit
-#   automático a cada dez minutos, então o diff seria o arquivo inteiro
-#   reescrito por causa de um enfeite. O que se faz aqui é trocar INTERVALOS DE
-#   BYTES, e conferir que o resultado ainda é JSONC válido antes de gravar.
-#
-# AS DUAS FORMAS DO MÓDULO `title`, E POR QUE AS DUAS IMPORTAM
 #   "title"                                   a forma curta, que era a dela
 #   { "type": "title", "format": "…" }        a forma longa, com o formato
-#
-#   Ir da curta para a longa é pôr um título próprio; voltar é apagar a chave
-#   `FASTFETCH_TITULO` do meow.conf. Nada aqui é de mão única.
-#
-# USO
-#   fastfetch_conf.py ler-titulo    <config.jsonc>
-#       imprime o formato em vigor. Sai 0 com formato, 0 com linha vazia quando
-#       o módulo está na forma curta, e 2 quando não há módulo `title` nenhum.
-#
-#   fastfetch_conf.py escrever-titulo <config.jsonc> <formato>
-#       põe o formato (ou volta à forma curta, com formato vazio).
-#       Sai 0 quando não havia nada a mudar, 1 quando mudou, 2 quando não deu.
-#
-#   fastfetch_conf.py ler-logo <config.jsonc>
-#       imprime `<type>\t<source>\t<padding.top>\t<padding.right>`, com `-` no
-#       que não existir. Sai 0 quando achou o bloco, 2 quando não.
-#
-#   fastfetch_conf.py escrever-logo <config.jsonc> <fonte> <topo> <recuo>
-#       aponta `logo.source` para a fonte, força `logo.type="file-raw"` e ajusta
-#       `padding.top`/`padding.right` — só se as chaves JÁ existirem: esta
-#       função não cria chave no arquivo de ninguém. Topo e recuo não numéricos
-#       são ignorados (o `auto` do meow.conf chega assim).
-#       Sai 0 quando não havia nada a mudar, 1 quando mudou, 2 quando não deu.
 
 import json
 import os
@@ -429,7 +372,7 @@ def main(argv):
     # TODA EXCEÇÃO VIRA 2, e é a diferença entre um aviso certo e uma mentira: o
     # Python que morre por conta própria sai com 1, e 1 é o código de "mudei" —
     # o shell anunciava "escrevi no config.jsonc da Aurora" com o arquivo
-    # intacto. Basta o diretório estar sem permissão de escrita.
+    # intacto.
     try:
         if len(argv) >= 3 and argv[1] == "ler-titulo":
             return ler(argv[2])

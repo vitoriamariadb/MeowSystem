@@ -2,15 +2,7 @@
 # compositor-shim.sh — o shim do compositor escolhe o binário certo? (P76)
 #
 # O shim (`scripts/compositor_shim.sh`) é o `cosmic-comp` que a sessão acha
-# pelo PATH. Este teste o roda com um `dpkg-query` falso e dois binários falsos
-# que só imprimem o próprio nome, e cobre os casos da pesquisa
-# (`docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.1):
-#   versão igual -> build · versão diferente -> fábrica · `ruim` -> fábrica ·
-#   sem build -> fábrica · estado sem o `req` presente -> fábrica ·
-#   duas quedas seguidas antes da janela -> `ruim` e fábrica ·
-#   sessão que passa da janela -> o contador zera.
-# E os verbos `ativar`, `desativar` e `qual` do `compositor_patches.sh`, num
-# HOME de brinquedo. Nada aqui toca `/usr/bin`, nem chama sudo.
+# pelo PATH.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -102,9 +94,7 @@ CP desativar >/dev/null; igual "desativar escreve (1)" "$?" 1
 CP desativar >/dev/null; igual "desativar de novo não escreve (0)" "$?" 0
 echo "== a conferência com o shim e sem build (conferência da P76)"
 # Sem build porque a escada gravou o degrau 4 (o `req` não entra): vermelho,
-# pede gente. [P81, 15/10/2026: sem build e sem degrau 4 também diverge (1),
-# e o conserto do doctor compila; com a função dos builds segurando a trava,
-# é espera (0, com aviso).]
+# pede gente.
 CP ativar >/dev/null
 printf '0.1~sem-build' > "$T/versao"
 CP conferir >/dev/null; igual "sem build e sem degrau 4: 1 (o conserto compila)" "$?" 1

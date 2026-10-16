@@ -1,18 +1,6 @@
 #!/usr/bin/env bash
 # applet-pino.sh — o applet só recompila quando o libcosmic do painel diverge
-# do pino dele? (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.6)
-#
-# Dois `Cargo.lock` falsos — o do painel (`AP_LOCK_PAINEL`) e o do applet (o
-# `src/applets/leitura/Cargo.lock` daqui) — e um `cargo` falso que só registra
-# a chamada e deixa um binário de brinquedo onde o de verdade deixaria.
-#   1. a regra do alvo (`applet_pino.sh alvo`): sem base, o pino (a adoção);
-#      o painel quando ele anda depois da base; o pino de novo quando o build
-#      no painel falhou;
-#   2. o `leitura_build.sh` de ponta a ponta, num HOME de brinquedo: compila
-#      uma vez, não compila na segunda passagem, compila de novo quando o
-#      painel anda, e volta ao pino (com o `Cargo.lock` daqui) quando a
-#      revisão do painel não compila.
-# Nada de rede, de cargo de verdade, de sudo nem do HOME de verdade.
+# do pino dele?
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

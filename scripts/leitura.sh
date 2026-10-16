@@ -1,254 +1,20 @@
 #!/usr/bin/env bash
 # leitura.sh — o horário liga o modo de leitura sozinho, e o desliga sozinho.
 #
-# O QUE ELE FAZ, EM UMA FRASE
 #   A cada tique ele pergunta "que horas são?" e "que degrau o relógio pede?", e
 #   põe DOIS números no disco:
 #       ~/.config/cosmic/com.system76.CosmicComp/v1/leitura_temperatura   (Kelvin)
 #       ~/.config/cosmic/com.system76.CosmicComp/v1/leitura_textura       (0.0..1.0)
-#   Quem PINTA é o `cosmic-comp` recompilado (etapa 1 do plano de 29/08). Este
+#   Quem PINTA é o `cosmic-comp` recompilado. Este
 #   arquivo não pinta um pixel, não fala Wayland, não reinicia nada e não toca em
 #   binário nenhum.
 #
-# ============================================================================
-# O QUE ESTAVA MEDIDO NESTA MÁQUINA EM 30/08/2026, ANTES DE ESCREVER UMA LINHA
-# ============================================================================
-#
-# 1. AS DUAS CHAVES AINDA NÃO EXISTEM, E ISSO É DE PROPÓSITO
-#      ls ~/.config/cosmic/com.system76.CosmicComp/v1/
-#        accessibility_zoom  activation_policy  active_hint  appearance_settings
-#        autotile  autotile_behavior  edge_snap_threshold  input_default
-#        keyboard_config  pinned_workspaces  xkb_config  xwayland_eavesdropping
-#    Nenhuma `leitura_*`. O `cosmic-comp` do disco também não as conhece: ele é
-#    o binário rebuildado às 01:46 de hoje, que traz só o patch de workspace.
-#
-#    ESCREVER NELAS HOJE É INOFENSIVO. O `cosmic-comp` ignora chave que não está
-#    no struct dele (serde com `#[serde(default)]` por campo — chave a mais em
-#    diretório de cosmic-config não é erro de parse, é arquivo que ninguém abre).
-#    O valor passa a valer no login DEPOIS do build da etapa 1. Ou seja: este
-#    script funciona hoje, e o efeito na tela chega quando o compositor souber
-#    ler — sem que ninguém precise voltar aqui.
-#
-# 2. O `mv` DO `meow_escrever` **ACORDA** O WATCHER. O PLANO DE 29/08 ERRA AQUI.
-#    O plano manda "escrever a chave com redirecionamento `>`, NUNCA com `mv` —
-#    o watcher do cosmic-config descarta o evento de rename". Está errado, e é
-#    grave o bastante para o desenho: seguir esse passo obrigaria este arquivo a
-#    escrever por fora do `meow_escrever`, ou seja, por fora da TRAVA 1, da TRAVA
-#    2, do manifesto e do `MEOW_DRY_RUN`.
-#
-#    O que o watcher descarta, LIDO NA FONTE desta máquina
-#    (`~/.cargo/git/checkouts/libcosmic-*/cosmic-config/src/lib.rs:393-395`):
-#        EventKind::Access(_)
-#        | EventKind::Modify(ModifyKind::Metadata(_))
-#        | EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => return;
-#    Só o `Both`. E o backend inotify do `notify` 8.2.0 (`src/inotify.rs:244-266`)
-#    emite TRÊS eventos num rename: `Name(To)` com o caminho de DESTINO, depois
-#    `Name(Both)` com os dois caminhos — e o `Name(From)` do temporário veio
-#    antes. Ou seja, o `Name(To)` passa pelo filtro, carrega o nome da chave
-#    (`leitura_temperatura`), e a callback é chamada.
-#
-#    Isto não é dedução nova: é EXATAMENTE o que o `lib/comum.sh:160-179` já
-#    tinha medido do outro lado do problema — "o painel recebia QUATRO eventos
-#    por chave gravada — o Create do temporário, o Modify(Data), o Name(From) e
-#    só então o Name(To) legítimo". Aquele comentário existe porque o rename
-#    acorda demais, não de menos. O `.atomicwrite` no nome do temporário é o que
-#    cala os outros três (`lib.rs:407-408`), e é do próprio `meow_escrever`.
-#
-#    Então aqui se escreve pelo `meow_escrever`, como todo o resto do projeto.
-#
-# 3. A LUZ QUENTE ERA DA AURORA — E DEIXOU DE SER. ATUALIZADO EM 31/08/2026
-#    O QUE ESTAVA MEDIDO EM 30/08: `/var/lib/aurora/night-light-temp` = 3500, e
-#    quem esquentava a tela dela era um patch BINÁRIO da Aurora dentro do shader
-#    do `cosmic-comp`. Aposentá-lo era a etapa 4 do plano, de outro dono.
-#
-#    A ETAPA 4 FOI FEITA, e esta linha ficou prometendo trabalho já pronto até
-#    31/08/2026 — no cabeçalho e no `estado`. MEDIDO hoje:
-#      - `grep -ac 'NIGHT LIGHT (Aurora)'` devolve 0 tanto no `/usr/bin/cosmic-comp`
-#        (o do build de 30/08 04:59) quanto no `/proc/<pid do cosmic-comp>/exe`;
-#      - `aurora-night-light.py --status` responde "estado: original (greyscale de
-#        fábrica)" e "este patcher está APOSENTADO";
-#      - o `night-light-temp` é de 14/07/2026 e não pinta pixel nenhum: o próprio
-#        `--status` já o chama de "preferência salva".
-#    Quem esquenta a tela dela hoje é o `leitura_temperatura` — este arquivo.
-#
-#    POR QUE O `estado` AINDA CITA O NIGHT LIGHT, EM VEZ DE CALAR. Porque a
-#    aposentadoria é CONDICIONAL e a condição pode cair sem ninguém pedir. O
-#    `reaplicar_night_light` do `aurora-cosmic-comp-ws.sh` continua chamando o
-#    patcher a cada self-heal; quem o cala é a trava do `main()` DELE, que só
-#    pergunta se `AURORA-READING-MODE` está no binário. Um `apt upgrade` de
-#    `cosmic-*` troca o binário, o marcador some, a trava abre e o shader quente
-#    volta — e aí os dois caminhos SE SOMAM, porque o bloco dele mora dentro do
-#    `color_mode == 1.0` e o nosso vem depois da cadeia inteira: a temperatura é
-#    multiplicada duas vezes (medição no cabeçalho do patch do modo de leitura).
-#
-#    Então a linha do `estado` trocou de pergunta: não é mais "o arquivo existe?",
-#    é "o shader quente está no binário?". Sem o shader ela só informa que aquilo
-#    é um resto de julho; COM o shader ela vira aviso — e é só nesse dia que
-#    "a tela está quente" volta a não ser prova de que este script funcionou.
+# Aposentá-lo era a etapa 4 do plano, de outro dono.
 #
 # 4. RON ACEITA `0` ONDE ESPERA f32 — conferido em `ron-0.11.0/src/parse.rs:852`
 #    (`T::parse(&f)` = `f32::from_str`), que é a versão que o `Cargo.lock` do
 #    `cosmic-comp` pina. Mesmo assim este script escreve SEMPRE com casa decimal
 #    (`0.00`, `0.35`): custa nada e tira uma ambiguidade do caminho.
-#
-# ============================================================================
-# O CONTRATO DAS CHAVES: DOIS NÍVEIS, E ELES NÃO SIGNIFICAM A MESMA COISA
-# ============================================================================
-#
-#   LEITURA_AGENDA (meow.conf)          responde "o MeowSystem PODE agendar?"
-#     vazio  o modo de leitura é dela e mais ninguém. Nada é lido, nada é
-#            escrito, o `conferir` devolve 0 sem olhar. É o mesmo contrato do
-#            RELOGIO_SEGUNDOS e do JANELAS_TILING.
-#     nao    DESLIGAR TEM DE DESLIGAR: os dois números voltam a 0 e o
-#            `install.sh` desarma o timer. Não é "deixar de escrever" — é apagar
-#            o efeito, do jeito que o `WALLPAPER_NOITE="nao"` apaga as pastas
-#            derivadas em vez de deixá-las paradas parecendo ligadas.
-#     sim    o agendamento vale. O HORÁRIO, daqui para baixo, é do applet.
-#
-#   leitura_agenda (cosmic-config, o applet do painel)   "agende AGORA?"
-#     false  ela desligou o "Agendar" pela interface: os sliders mandam, e este
-#            script não escreve NADA — nem 0. Devolve 4, que o doctor pinta como
-#            `--` ("escolha dela"). Zerar aqui seria desfazer, às 07:00, a
-#            temperatura que ela acabou de arrastar às 06:58.
-#     true   (ou ausente) o relógio manda.
-#
-# O HORÁRIO MORA NO APPLET — DECISÃO DELA, 29/08/2026
-#   Ela pediu para escolher a faixa pela interface. Então a fonte da verdade é
-#   `leitura_hora_inicio` / `leitura_hora_fim` em `com.system76.CosmicComp/v1`,
-#   as MESMAS chaves que o applet grava. Uma fonte só, em vez de duas que podem
-#   divergir em silêncio.
-#
-#   O APPLET EXISTE DESDE 30/08/2026 (src/applets/leitura), MAS AS CHAVES SÓ
-#   NASCEM QUANDO ELA MEXE NO HORÁRIO. O applet lê o disco no arranque e só
-#   ESCREVE o que ela muda — instalá-lo não cria `leitura_hora_inicio` nem
-#   `leitura_hora_fim`. Então "sem applet" e "applet instalado e nunca tocado"
-#   são o MESMO estado para este arquivo, e nos dois ele cai no padrão declarado
-#   no `meow.conf.exemplo` (LEITURA_HORARIO_INICIO/FIM) — e DIZ que está caindo
-#   nele, em vez de fingir que leu. A frase aparece no `conferir` e no `estado`;
-#   no `aplicar` ela é `meow_info`, que o `LOG_NIVEL=silencioso` da unidade
-#   systemd cala, senão seriam 1440 linhas por dia dizendo a mesma coisa.
-#
-#   E EXISTE UM TERCEIRO ESTADO, QUE ESTE ARQUIVO LIA ERRADO ATÉ 31/08/2026:
-#   UMA PONTA SÓ. `Message::HoraInicio` e `Message::HoraFim` são dois braços
-#   separados do `update()` do applet (`src/applets/leitura/src/main.rs`), cada um
-#   chamando o seu `set_`. Arrastar só o slider de início grava
-#   `leitura_hora_inicio` e mais nada — e o applet continua MOSTRANDO 07:00 no
-#   fim, porque esse é o Default dele, o mesmo número do meow.conf.
-#
-#   (O main.rs e o install.sh são citados NESTE ARQUIVO INTEIRO por NOME DE
-#   SÍMBOLO, nunca por número de linha. As três citações que ele tinha — `main.rs:393`,
-#   `:403` e `:122-123` — já apontavam para o lugar errado em 31/08/2026: foram
-#   medidas antes de o applet crescer, e ninguém volta a um comentário para
-#   recontar as linhas do vizinho. Número de linha podre manda procurar no lugar
-#   errado, que é pior do que não citar; nome de símbolo sobrevive à edição.)
-#
-#   O `if a=… && b=…` que estava aqui exigia AS DUAS chaves e, faltando uma,
-#   jogava fora a outra. MEDIDO em 31/08/2026, com `leitura_hora_inicio="20:00"`
-#   no disco e `leitura_hora_fim` ausente: às 19:00 o applet dizia "das 20:00 às
-#   07:00" (tela normal) e este script escrevia 3500K/0.35 — a tela ficava âmbar
-#   uma hora antes do que a interface prometia, calada. O `estado` até imprimia
-#   `leitura_hora_inicio = 20:00` duas linhas abaixo de "usando o PADRÃO", sem
-#   ligar uma coisa à outra.
-#
-#   Agora cada ponta é resolvida SOZINHA: chave do applet quando ela existe e é
-#   legível, padrão do meow.conf quando não. Como os padrões dos dois lados são
-#   os mesmos números (as constantes `PADRAO_INICIO`/`PADRAO_FIM` do main.rs
-#   contra o LEITURA_HORARIO_INICIO/FIM do meow.conf.exemplo), a janela resolvida
-#   passa a ser exatamente a que o applet desenha na tela dela. A fonte vira
-#   `misto` e o `estado` diz qual ponta veio de onde.
-#
-#   Formato aceito nas duas chaves do applet: `"18:00"` (string RON, com ou sem
-#   aspas) e o inteiro de minutos desde a meia-noite (`1080`). MEDIDO em
-#   30/08/2026: o applet grava a PRIMEIRA forma — o campo é `String` e o
-#   `cosmic_config` serializa com aspas, que o `_leitura_cru` apara. Os dois
-#   formatos continuam aceitos de propósito: é ela quem pode abrir o arquivo e
-#   escrever `1080` à mão, e recusar isso seria recusar por nada.
-#
-# A JANELA DA NOITE É A MESMA DO CARROSSEL, PALAVRA POR PALAVRA
-#   Copiada do `e_noite()` do `wallpaper.sh:637`: com `início > fim` a noite é
-#   "depois do início OU antes do fim" (é o caso normal, 18:00–07:00, que
-#   atravessa a meia-noite); com `início == fim` é noite o dia inteiro. A máquina
-#   não pode ter duas definições de noite — se um dia esta regra mudar lá, tem de
-#   mudar aqui junto, e é por isso que a frase está repetida em vez de resumida.
-#
-# SECA OU RAMPA: A DECISÃO É DELA, E AS DUAS ESTÃO AQUI (LEITURA_RAMPA_MIN)
-#   0 (padrão)  virada SECA: às 18:00 o degrau salta de uma vez.
-#   N > 0       rampa de N minutos, um passo por minuto, DEPOIS da hora — às
-#               18:00 começa a esquentar e chega ao valor cheio às 18:00+N.
-#
-#   A rampa vai DEPOIS da hora, nunca antes, e isso é decisão de desenho: "ligar
-#   às 18:00" não pode significar "às 17:30 a tela já mexeu". Quem pede um
-#   horário está pedindo que nada aconteça antes dele.
-#
-#   E A RAMPA PODE SER MAIOR QUE A JANELA — O SLIDER DO APPLET ANDA DE 15 EM 15
-#   A conta original supunha que a subida sempre chegava ao topo antes de a
-#   janela acabar. MEDIDO em 31/08/2026 com janela 18:00–18:30 e
-#   LEITURA_RAMPA_MIN=60: às 18:29 a fração era 0,48 (5050K) e às 18:30 — o
-#   minuto em que a janela FECHA — ela SALTAVA para 1,00 (3500K), porque o ramo
-#   da descida partia de 1 sem perguntar até onde a subida tinha ido. A tela
-#   pulava para o âmbar cheio na hora de desligar, e só esfriava às 19:30. Com
-#   `LEITURA_RAMPA_MIN=600` o salto medido foi de 0,952 EM UM MINUTO — a rampa
-#   entregando exatamente a virada seca que ela existe para evitar.
-#
-#   O conserto é o estado estacionário do vaivém: com a noite durando `dur_noite`
-#   e o dia `dur_dia`, o mais alto que a subida alcança é `pico` e o mais baixo
-#   que a descida alcança é `vale`, e os dois se resolvem sem laço (ver o awk).
-#   Quando a rampa cabe nos dois lados — que é todo caso normal — dá `pico=1` e
-#   `vale=0`, e a conta é IDÊNTICA à de antes. Provado duas vezes: varrendo os
-#   1440 minutos das duas fórmulas em seis janelas (18:00–07:00 com n=30/60/120,
-#   08:00–17:00 com n=60, 00:00–12:00 com n=60 e a janela de 1 minuto com n=1) e
-#   depois rodando o SCRIPT INTEIRO, minuto a minuto, contra a versão anterior —
-#   zero diferenças nos dois. Nos casos patológicos o maior salto por minuto caiu
-#   de 0,517 para 0,017 e de 0,952 para 0,002.
-#
-#   O QUE ELE **NÃO** CONSERTA, E É DE PROPÓSITO: com a rampa maior que a janela
-#   o degrau simplesmente não chega ao valor cheio — o `pico` fica onde deu. Não
-#   há conserto sem guardar estado entre tiques, e este arquivo é sem estado de
-#   propósito (o tique perdido, o boot no meio da noite e o `Persistent=false` do
-#   timer dependem disso). Quem avisa é o `conferir`, uma vez por dia.
-#
-#   Na rampa a temperatura interpola a partir de 6500K — o neutro, que é o topo
-#   da faixa que ela escolheu em 29/08 — até o alvo. E quando a fração chega a
-#   zero escreve-se `0`, NÃO `6500`: com 6500 o passe do shader continuaria
-#   ligado fazendo uma multiplicação neutra por quadro, porque o `is_noop()` da
-#   etapa 1 exige `== 0` para pular o passe.
-#
-# POR QUE O TIMER BATE DE MINUTO EM MINUTO, E NÃO UM `OnCalendar` POR HORÁRIO
-#   Porque o horário mudou de dono. Um `OnCalendar=18:00` cravado na unidade era
-#   a resposta certa enquanto o horário morava no `meow.conf` — mas ele mora no
-#   applet desde 29/08, e ela pode arrastá-lo a qualquer segundo. Uma unidade com
-#   a hora antiga não dá erro: ela liga a tela na hora errada, calada, que é o
-#   modo de falha que este projeto mais documenta ter cometido.
-#
-#   O preço foi medido, e é pequeno: um tique lê CINCO arquivos de poucos bytes e
-#   quase sempre não escreve nada. Ver o `AccuracySec` da unidade — o systemd
-#   ainda funde esses despertares com os dos outros timers.
-#
-#   E é este desenho que faz a promessa do plano ser verdade: trocar entre seca e
-#   rampa é UMA palavra no `meow.conf`, sem `daemon-reload`, sem rearmar unidade,
-#   sem tocar em arquivo de systemd. Com dois timers seria uma palavra e um
-#   `./install.sh`.
-#
-# USO
-#   leitura.sh aplicar    põe o degrau que o relógio pede (idempotente)
-#   leitura.sh conferir   0 conforme · 1 divergente · 2 erro
-#                         · 4 escolha dela (o applet desligou o "Agendar")
-#                         O `3` estava listado aqui e NUNCA foi devolvido: em
-#                         31/08/2026 `MEOW_SEM_DEPENDENCIA` não aparecia uma vez
-#                         no arquivo. Com LEITURA_AGENDA vazio a saída é 0, que é
-#                         a convenção dos irmãos (relogio.sh:165,
-#                         autostart.sh:245) e o que o `concluir` do install.sh
-#                         conta como "confere" em vez de "pulado". Um código
-#                         documentado que o código nunca produz é a mesma chave
-#                         inerte que este projeto passa o dia varrendo.
-#   leitura.sh estado     diagnóstico: que degrau o relógio pede AGORA, o que
-#                         está no disco, quem manda no horário, e se o
-#                         compositor já sabe ler os dois números. É o padrão do
-#                         `meow leitura` sem verbo, e por isso é aqui — e não só
-#                         no `conferir` do doctor — que os avisos das chaves do
-#                         meow.conf têm de sair (ver `_leitura_avisar_chaves`).
-#   leitura.sh remover    zera os dois números e desarma o timer
-#   leitura.sh tique      sinônimo de `aplicar`, o nome que o plano usou
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -273,38 +39,31 @@ LEITURA_K_AGENDA="$LEITURA_BASE/leitura_agenda"
 LEITURA_K_INI="$LEITURA_BASE/leitura_hora_inicio"
 LEITURA_K_FIM="$LEITURA_BASE/leitura_hora_fim"
 
-# As três peças do applet (etapa 3, 30/08/2026). Só LIDAS aqui: quem as instala
-# e confere é o `scripts/leitura_build.sh`, e o `plugins_wings` não é escrito por
-# script nenhum deste projeto (docs/FRONTEIRA.md).
+# As três peças do applet. Só LIDAS aqui: quem as instala e confere é o
+# `scripts/leitura_build.sh`, e o `plugins_wings` não é escrito por script
+# nenhum deste projeto (docs/FRONTEIRA.md).
 LEITURA_APPLET_ID="com.meowsystem.AppletLeitura"
 LEITURA_APPLET_BIN="$HOME/.local/bin/meow-applet-leitura"
 LEITURA_APPLET_SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$LEITURA_APPLET_ID.desktop"
 # Os DOIS arquivos da topbar: `plugins_wings` é o par de asas, `plugins_center`
 # é o meio — e um applet arrastado para o meio em Ajustes só aparece no segundo.
-# Ver o bloco em `leitura_build.sh`: olhar só as asas dava aviso falso sobre um
-# applet que estava na tela.
 LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_wings"
 LEITURA_APPLET_MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_center"
 
-# ONDE O APPLET GUARDA O PONTO QUE ELA ARRASTOU — 31/08/2026
-#   `Config::new_state(NS_ESTADO, 1)` do libcosmic escreve em
-#   ~/.local/state/cosmic/<id>/v1/. O applet grava ali, no `lembra_ponto()`, o
-#   ÚLTIMO par não-nulo dos dois sliders — é a memória de que o interruptor
-#   precisa para religar no ponto certo. Este script passou a ler as mesmas duas
-#   chaves; ver o cabeçalho do `_leitura_resolver_alvo`.
+# `Config::new_state(NS_ESTADO, 1)` do libcosmic escreve em
+# ~/.local/state/cosmic/<id>/v1/.
 LEITURA_ESTADO_BASE="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/$LEITURA_APPLET_ID/v1"
 LEITURA_K_ULT_T="$LEITURA_ESTADO_BASE/ultima_temperatura"
 LEITURA_K_ULT_X="$LEITURA_ESTADO_BASE/ultima_textura"
 
-LEITURA_COMP="$(meow_cosmic_comp_disco)"   # P76: o do próximo login (build do shim ou /usr/bin)
+LEITURA_COMP="$(meow_cosmic_comp_disco)"   # o do próximo login (build do shim ou /usr/bin)
 LEITURA_MARCADOR="AURORA-READING-MODE"
-# O `LEITURA_NIGHTLIGHT` (o `/var/lib/aurora/night-light-temp`) saiu em
-# 24/09/2026 (P39) — ver o bloco "O NIGHT LIGHT DA AURORA" no `cmd_estado`.
+# O `LEITURA_NIGHTLIGHT` (o `/var/lib/aurora/night-light-temp`) saiu — ver
+# o bloco "O NIGHT LIGHT DA AURORA" no `cmd_estado`.
 LEITURA_TIMER="meow-leitura.timer"
 
-# 6500K é o NEUTRO e o topo da faixa (decisão dela, 29/08/2026: o slider vai de
-# 1000K a 6500K, e o topo é o modo desligado). 1000K é o fundo da tabela
-# WHITEPOINTS do redshift que o aurora-night-light.py já carrega.
+# 6500K é o NEUTRO e o topo da faixa. 1000K é o fundo da tabela WHITEPOINTS do
+# redshift que o aurora-night-light.py já carrega.
 LEITURA_NEUTRO=6500
 LEITURA_PISO=1000
 # 4 = "divergente por escolha dela". O `rotulo_rc` do bin/meow o pinta `--`,
@@ -327,9 +86,9 @@ _leitura_cru() {
   [ -n "$v" ]
 }
 
-# "18:00" -> 1080. Também aceita o inteiro de minutos: o applet grava `"18:00"`
-# (conferido em 30/08/2026), mas quem edita o arquivo à mão pode escrever 1080, e
-# recusar isso seria recusar por nada. Falha (1) em qualquer outra coisa.
+# "18:00" -> 1080. Também aceita o inteiro de minutos: o applet grava `"18:00"`,
+# mas quem edita o arquivo à mão pode escrever 1080, e recusar isso seria
+# recusar por nada. Falha (1) em qualquer outra coisa.
 _leitura_minutos() {
   local v="$1" h m
   case "$v" in
@@ -354,13 +113,12 @@ LEITURA_INI=0
 LEITURA_FIM=0
 LEITURA_APPLET_DIZ=""   # "" (ausente) | sim | nao
 
-# UMA ponta do horário: a chave do applet quando ela existe e é legível, o padrão
-# do meow.conf quando não. As duas pontas são independentes — ver o cabeçalho, e
-# o defeito de 31/08/2026 que essa independência conserta.
+# UMA ponta do horário: a chave do applet quando ela existe e é legível, o
+# padrão do meow.conf quando não.
 #
-# ASSINA EM GLOBAIS EM VEZ DE ECOAR, e isso não é gosto: `X="$(_ponta …)"` roda a
-# função num SUBSHELL, e a origem ("veio do applet ou do conf?") morreria junto
-# com ele — que é metade do que esta função tem para dizer.
+# ASSINA EM GLOBAIS EM VEZ DE ECOAR, e isso não é gosto: `X="$(_ponta …)"` roda
+# a função num SUBSHELL, e a origem ("veio do applet ou do conf?") morreria
+# junto com ele — que é metade do que esta função tem para dizer.
 LEITURA_PONTA=0
 LEITURA_PONTA_FONTE=""
 _leitura_uma_ponta() {
@@ -394,11 +152,7 @@ _leitura_resolver_agenda() {
   if a="$(_leitura_cru "$LEITURA_K_AGENDA")"; then
     case "$a" in
       # O applet declara o campo como `bool` e grava `true`/`false` pelados —
-      # conferido em 30/08/2026, em src/applets/leitura/src/main.rs. As formas
-      # `Some(...)` ficam porque custam duas linhas e cobrem o dia em que o
-      # campo virar `Option<bool>` (aí o RON no disco vem embrulhado). Os
-      # parênteses são ESCAPADOS: sem aspas, o bash lê `(` como início de
-      # subshell dentro do `case` e o arquivo nem parseia.
+      # conferido, em src/applets/leitura/src/main.rs.
       true|"Some(true)")   LEITURA_APPLET_DIZ="sim" ;;
       false|"Some(false)") LEITURA_APPLET_DIZ="nao" ;;
     esac
@@ -408,37 +162,14 @@ _leitura_resolver_agenda() {
 
 # --- de onde vem o ALVO dos dois números ------------------------------------
 #
-# O BUG QUE ESTA FUNÇÃO EXISTE PARA MATAR — RELATADO POR ELA EM 31/08/2026
 #   "o negócio fica mudando de temperatura sozinho sem respeitar a temperatura
 #   que eu defini."
 #
-#   Estava certíssima, e a conta é de um minuto: o `meow-leitura.timer` bate
-#   `*-*-* *:*:00`, e cada tique gravava `LEITURA_TEMPERATURA` do meow.conf. Ela
-#   arrastava o slider para 6400 K, o applet gravava 6400 na chave do
-#   compositor, e menos de 60 segundos depois este script escrevia 3500 por
-#   cima. Medido no disco no dia: o estado do applet dizia 6400 / 1.0 e o
-#   meow.conf dizia 3500 / 0.35.
+# Estava certíssima, e a conta é de um minuto: o `meow-leitura.timer` bate
+# `*-*-* *:*:00`, e cada tique gravava `LEITURA_TEMPERATURA` do meow.conf.
 #
-# O QUE ELA PEDIU, NA FRASE DELA
 #   "com agendamento ligado ele sempre vai reproduzir essa funcionalidade tal
 #   horário apenas. Mas respeitando os sliders."
-#
-#   Ou seja: o relógio decide QUANDO, e só isso. QUANTO é dos sliders.
-#
-# POR QUE O `ultima_*` DO ESTADO, E NÃO A CHAVE DO COMPOSITOR
-#   A chave `leitura_temperatura` é o que está NA TELA agora, e de dia ela vale
-#   0 — ler dali daria "o alvo da noite é zero", e a noite nunca mais acenderia.
-#   O `ultima_temperatura` do estado é outra coisa: é o último ponto ÚTIL que ela
-#   arrastou, gravado pelo `lembra_ponto()` do applet quando ela SOLTA o slider,
-#   e ele sobrevive ao dia inteiro em que a tela está apagada. É exatamente a
-#   memória que o interruptor do popup usa para religar no ponto certo — este
-#   script passa a religar no mesmo ponto, que é o que faz o applet e o relógio
-#   contarem a mesma história.
-#
-# O meow.conf CONTINUA VALENDO, E É O QUE SEGURA A MÁQUINA NOVA
-#   Sem applet instalado, sem sessão em que ela tenha tocado num slider, ou com
-#   lixo no estado, o alvo é o do conf — os mesmos 3500 K / 0.35 de sempre. O
-#   `estado` mostra qual das duas fontes venceu, campo a campo.
 LEITURA_FONTE_ALVO_T=""   # applet | meow.conf
 LEITURA_FONTE_ALVO_X=""   # applet | meow.conf
 
@@ -449,8 +180,7 @@ _leitura_resolver_alvo() {
 
   # O portão é o mesmo do `_leitura_alvo_agora`: inteiro que não é inteiro, ou
   # fora de 1000..6500, não vira alvo — cai no conf em silêncio, e quem AVISA é
-  # o `conferir`. Um `ultima_temperatura` corrompido não pode ser mais forte que
-  # o conf; ele só pode ser IGNORADO.
+  # o `conferir`.
   if v="$(_leitura_cru "$LEITURA_K_ULT_T")"; then
     case "$v" in
       ""|*[!0-9]*) ;;
@@ -474,9 +204,7 @@ _leitura_resolver_alvo() {
 }
 
 # --- os alvos, e a conta da rampa -------------------------------------------
-# Ecoa "<temperatura> <textura> <fração> <fase>". A conta inteira mora num único
-# `awk` porque bash não faz ponto flutuante, e porque partir a interpolação em
-# dois lugares é como se ganha duas contas que discordam.
+# Ecoa "<temperatura> <textura> <fração> <fase>".
 LEITURA_ALVO_T=0
 LEITURA_ALVO_X="0.00"
 LEITURA_ALVO_F="0.00"
@@ -487,40 +215,18 @@ _leitura_alvo_agora() {
   local t="$LEITURA_TEMPERATURA" x="$LEITURA_TEXTURA" n="$LEITURA_RAMPA_MIN" saida
   LEITURA_AGORA="$(_leitura_minutos "$(date +%H:%M)")" || return "$MEOW_ERRO"
 
-  # OS TRÊS `case` ABAIXO SÃO O PORTÃO, E O DO MEIO EVITOU UM `inf` NO DISCO
-  #   O awk não recusa lixo, ele o CONVERTE — e o que ele converte depende de o
-  #   texto "parecer número", o que muda a conta inteira sem dar erro.
+  # O awk não recusa lixo, ele o CONVERTE — e o que ele converte depende de o
+  # texto "parecer número", o que muda a conta inteira sem dar erro.
   #
-  #   MEDIDO em 31/08/2026, com `LEITURA_RAMPA_MIN="abc"`: o mawk compara string
-  #   com número por STRING, então `n <= 0` deu falso ("a" > "0") e o ramo da
-  #   rampa rodou com n valendo 0. `f = dini / 0` = inf, e o script GRAVOU
-  #   `-9223372036854775807` em `leitura_temperatura` e `inf` em
-  #   `leitura_textura`. O `f32::from_str` do Rust aceita `inf` — ou seja, uma
-  #   palavra errada no meow.conf mandava infinito para dentro do shader.
+  # MEDIDO, com `LEITURA_RAMPA_MIN="abc"`: o mawk compara string com número por
+  # STRING, então `n <= 0` deu falso ("a" > "0") e o ramo da rampa rodou com n
+  # valendo 0.
   #
-  #   MEDIDO no mesmo dia, com `LEITURA_TEMPERATURA="-500"`: "-500" PARECE
-  #   número, virou -500, e o `alvo_t < piso` o aparou em 1000K — o âmbar mais
-  #   fundo da tabela. E o `conferir` prometia, na mesma máquina, "tratada como
-  #   6500K (desligado)". A promessa era o comportamento certo; quem estava
-  #   errado era o caminho. Agora inteiro que não é inteiro cai no NEUTRO, que é
-  #   o desligado, e a frase do `conferir` passa a ser verdade.
-  #
-  #   E `LEITURA_TEXTURA="0,35"` — a vírgula do pt_BR dela, o erro de digitação
-  #   mais provável deste arquivo inteiro — não é strnum para o awk sob `LC_ALL=C`
-  #   e virava 0 em silêncio: textura desligada para sempre, sem uma linha em
-  #   lugar nenhum. Continua virando 0, mas agora é o `conferir` que diz por quê.
+  # Continua virando 0, mas agora é o `conferir` que diz por quê.
   case "$t" in ""|*[!0-9]*)  t="$LEITURA_NEUTRO" ;; esac
   case "$x" in ""|*[!0-9.]*) x=0 ;; esac
   case "$n" in ""|*[!0-9]*)  n=0 ;; esac
 
-  # `LC_ALL=C` NÃO É ZELO, É O PRIMEIRO DEFEITO QUE ESTE ARQUIVO TEVE (30/08/2026)
-  #   A locale desta máquina é pt_BR, e o `printf "%.2f"` do awk obedece ao
-  #   LC_NUMERIC: a primeira execução gravou `0,35` em `leitura_textura`. Um f32
-  #   de RON com vírgula não é "quase certo" — é erro de parse, e o cosmic-config
-  #   devolve o Default (0.0) sem uma linha de aviso em lugar nenhum. Ou seja: a
-  #   textura ficaria eternamente desligada, e a tela não teria como acusar.
-  #   O `C` vale também para a LEITURA dos números: o awk converte string em
-  #   número pela mesma locale, então um `0,35` vindo do disco viraria 0.
   saida="$(LC_ALL=C awk -v ini="$LEITURA_INI" -v fim="$LEITURA_FIM" -v n="$n" \
                -v agora="$LEITURA_AGORA" -v alvo_t="$t" -v alvo_x="$x" \
                -v neutro="$LEITURA_NEUTRO" -v piso="$LEITURA_PISO" 'BEGIN{

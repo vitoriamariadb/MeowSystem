@@ -1,26 +1,19 @@
 #!/usr/bin/env bash
-# ---------------------------------------------------------------------------
 # coleta-meowsystem.sh — inventário READ-ONLY do seu COSMIC pro ricing
 #
 #   Uso:  bash coleta-meowsystem.sh
 #         bash coleta-meowsystem.sh ~/meu-inventario.md
 #
-# Não escreve, não instala, não altera NADA do sistema. Só lê e gera um .md.
-# Depois: anexe o arquivo gerado na conversa.
-# ---------------------------------------------------------------------------
+# Não escreve, não instala, não altera NADA do sistema.
 set -uo pipefail
 
 OUT="${1:-$HOME/meowsystem-inventario-$(date +%Y%m%d-%H%M).md}"
 : > "$OUT"
 
-# A RAIZ DO COSMIC, REPETIDA AQUI EM VEZ DE VIR DO `meow_cosmic_dir` [21/09/2026]
-#   Este script é o único do repositório feito para viajar SOZINHO: o cabeçalho
-#   manda rodá-lo com `bash coleta-meowsystem.sh` e anexar o .md na conversa, e
-#   ele não carrega o `lib/comum.sh` de propósito — quem o recebe pode não ter
-#   clone nenhum. Puxar a porta única aqui trocaria um inventário que qualquer
-#   estranho roda por um que só roda dentro do repo. A expressão é a MESMA do
-#   verbo, palavra por palavra, e é a isenção que o `tests/estilo.sh` concede a
-#   quem cita `MEOW_COSMIC_DIR`.
+# Este script é o único do repositório feito para viajar SOZINHO: o cabeçalho
+# manda rodá-lo com `bash coleta-meowsystem.sh` e anexar o .md na conversa, e
+# ele não carrega o `lib/comum.sh` de propósito — quem o recebe pode não ter
+# clone nenhum.
 COSMIC_DIR="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 
 sec()  { printf '\n\n## %s\n' "$*" >> "$OUT"; }
@@ -127,7 +120,7 @@ run 'snap' snap list
 # O título sai da MESMA variável que o `find` logo abaixo, e abrevia o HOME do
 # mesmo jeito que o `dump_tree` faz (`${f/#$HOME/~}`): com a raiz de sempre o
 # relatório continua dizendo `~/.config/cosmic`, e com `MEOW_COSMIC_DIR` setada
-# ele deixa de mentir sobre o que foi inventariado. [21/09/2026]
+# ele deixa de mentir sobre o que foi inventariado.
 sec "3. ${COSMIC_DIR/#$HOME/~} — configuração completa"
 note 'Cada arquivo é um valor RON isolado. Isto é a fonte da verdade do seu rice.'
 open_fence
@@ -242,12 +235,7 @@ for f in ~/.config/kitty/kitty.conf ~/.config/kitty/current-theme.conf \
   [ -f "$f" ] && { echo "== ${f/#$HOME/~}"; grep -vE '^\s*(#|$)' "$f" | head -25; echo; }
 done >> "$OUT" 2>&1
 close_fence
-# A SUBSEÇÃO "paleta usada no zsh do Andromeda-OS" SAIU EM 24/09/2026 (P39).
-# Ela lia as cores de um arquivo de funções do Spellbook, o repositório pessoal
-# de uma casa — num inventário feito para viajar sozinho e rodar na máquina de
-# qualquer um, era a única linha que perguntava por outro projeto pelo nome. A
-# regra de 23/09 tira isso sem terceira via: nem o padrão com `ZDOTDIR` servia,
-# porque o arquivo lido era o daquela casa, não uma convenção do zsh.
+# A SUBSEÇÃO "paleta usada no zsh do Andromeda-OS" SAIU.
 
 # --- 12. Automação existente ----------------------------------------------
 sec '12. Automação já instalada'

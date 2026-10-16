@@ -1,31 +1,12 @@
 #!/usr/bin/env bash
 # importar_icones.sh — recebe as escolhas feitas na página de curadoria.
 #
-# A PÁGINA MANDA A ARTE JUNTO, E É POR ISSO QUE ELA FUNCIONA
-#   O navegador não entrega o caminho do arquivo que ela arrastou — por projeto,
-#   não por descuido: uma página web não pode ler `~/...`. O que
-#   ela entrega é o CONTEÚDO. Então o `.json` exportado carrega cada ícone
-#   embutido em base64, e este script é o único lugar que precisa saber onde no
-#   disco aquilo mora. Consequência prática: o arquivo exportado continua válido
-#   depois que ela mover, renomear ou apagar o original.
+# O navegador não entrega o caminho do arquivo que ela arrastou — por projeto,
+# não por descuido: uma página web não pode ler `~/...`. O que ela entrega é o
+# CONTEÚDO.
 #
-# POR QUE A ARTE É COPIADA PARA O REPO, E NÃO SÓ PARA ~/.local
-#   Instalar direto no tema resolveria HOJE e quebraria na próxima rodada do
-#   `install.sh`, que reconstrói o tema a partir de `assets/icones/`. A escolha dela tem
-#   que virar fonte, senão vira lixo: a arte vai para `assets/icones/curadoria/` e o
-#   apontamento para `assets/icones/curadoria.map`. O `icones_apps.sh` roda ANTES e
-#   pinta o lançador inteiro; este script roda DEPOIS e sobrepõe o que ela
-#   escolheu à mão. Última palavra é dela, e a ordem é o que garante isso.
-#
-# SVG VAI PARA scalable/, RASTER NUNCA
-#   `docs/COSMIC-THEMING.md` e o cabeçalho do `icones_apps.sh` já registram o
-#   defeito que o `thunderbird.png` cometeu neste tema: raster dentro de um
-#   diretório declarado como escalável fica borrado, porque o resolvedor confia
-#   na declaração e escala o que não é escalável. Aqui o PNG vai para o
-#   diretório do tamanho REAL dele, lido do cabeçalho do próprio arquivo.
-#
-# CÓDIGOS DE SAÍDA
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência.
+# Instalar direto no tema resolveria HOJE e quebraria na próxima rodada do
+# `install.sh`, que reconstrói o tema a partir de `assets/icones/`.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -58,17 +39,12 @@ PACOTE="$1"
 [ -f "$PACOTE" ] || { meow_erro "não achei '$PACOTE'"; exit "$MEOW_ERRO"; }
 meow_tem python3 || { meow_erro "falta python3 — é ele que decodifica o base64"; exit "$MEOW_SEM_DEPENDENCIA"; }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# A EXTRAÇÃO ACONTECE EM PYTHON, E EM UM DIRETÓRIO TEMPORÁRIO
-# ─────────────────────────────────────────────────────────────────────────────
 # Decodificar base64 em shell é possível e é uma péssima ideia: o `base64 -d` de
 # uma linha de 300 KB vinda de JSON exige recortar o campo com `sed`, e qualquer
-# aspa dentro de um SVG derruba o recorte. O python já tem o parser de JSON e o
-# decodificador, e devolve aqui um TSV que o shell lê sem ambiguidade.
+# aspa dentro de um SVG derruba o recorte.
 #
-# O tamanho do PNG sai do cabeçalho IHDR (bytes 16..24), não do ImageMagick:
-# é uma dependência a menos para uma leitura de oito bytes. SVG não tem tamanho
-# intrínseco que importe aqui — vai para `scalable/` e pronto.
+# O tamanho do PNG sai do cabeçalho IHDR (bytes 16..24), não do ImageMagick: é
+# uma dependência a menos para uma leitura de oito bytes.
 TMP="$(mktemp -d)" || { meow_erro "não consegui criar diretório temporário"; exit "$MEOW_ERRO"; }
 trap 'rm -rf "$TMP"' EXIT
 
@@ -203,9 +179,7 @@ while IFS=$'\t' read -r chave ext subdir origem nome; do
   fi
 
   # Um ícone escolhido pode estar substituindo outro que o `icones_apps.sh`
-  # instalou com OUTRA extensão. Se o antigo ficar, o resolvedor pode continuar
-  # achando ele primeiro e a troca dela não apareceria — o pior desfecho
-  # possível aqui, porque parece que o script funcionou.
+  # instalou com OUTRA extensão.
   outra="png"; [ "$ext" = "png" ] && outra="svg"
   while IFS= read -r velho; do
     [ -f "$velho" ] || continue
@@ -217,13 +191,9 @@ while IFS=$'\t' read -r chave ext subdir origem nome; do
   REGISTRO+=("$chave	$ext	$subdir")
 done < "$LISTA"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# O MAPA É O QUE SOBREVIVE À PRÓXIMA RODADA DO INSTALADOR
-# ─────────────────────────────────────────────────────────────────────────────
-# Sem ele, `assets/icones/curadoria/` seria um monte de arquivo solto sem dono, e o
-# `install.sh` não teria como saber que aquilo tem precedência sobre o acervo
-# automático. O formato é o mesmo dos outros mapas do projeto: uma linha por
-# entrada, `#` comenta, campos separados por TAB, ordenado para o diff ser legível.
+# Sem ele, `assets/icones/curadoria/` seria um monte de arquivo solto sem dono,
+# e o `install.sh` não teria como saber que aquilo tem precedência sobre o
+# acervo automático.
 if [ "${#REGISTRO[@]}" -gt 0 ] && ! meow_seco; then
   conteudo="# curadoria.map — ícones que ela escolheu à mão na página de curadoria.
 # Têm precedência sobre o que o icones_apps.sh instala: rodam depois.
