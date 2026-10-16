@@ -11509,12 +11509,16 @@ function montarHome() {
   const estado = elemento("div", { class: "selos home-estado" });
   if (MUDANCAS.size) {
     atencao.dataset.esperando = "1";
-    estado.append(selo("pendente", { texto: `${MUDANCAS.size} esperando`,
+    /* [16/10/2026, QA final da leva H: o selo dizia «Nada esperando» logo
+     *  abaixo de «2 coisas esperam um clique», e quem nunca viu o painel lia as
+     *  duas como contrárias. O que o selo conta é o que falta SALVAR, e a
+     *  palavra passa a ser essa.] */
+    estado.append(selo("pendente", { texto: `${MUDANCAS.size} por salvar`,
       balao: `${MUDANCAS.size} ${MUDANCAS.size === 1 ? "escolha esperando" : "escolhas esperando"} «Salvar e aplicar»` }));
     explica.push(elemento("p", { class: "resumo", texto:
       "Elas estão guardadas aqui, e não no disco. «Salvar e aplicar», no alto, grava tudo de uma vez e roda o instalador em seguida." }));
   } else {
-    estado.append(selo("pendente", { texto: "Nada esperando", balao: "Nenhuma escolha esperando «Salvar e aplicar»" }));
+    estado.append(selo("pendente", { texto: "Nada por salvar", balao: "Nenhuma escolha esperando «Salvar e aplicar»" }));
     explica.push(elemento("p", { class: "resumo", texto:
       "Escolher aqui não muda a máquina: clicar guarda, e «Salvar e aplicar» é o que grava e aplica." }));
   }
