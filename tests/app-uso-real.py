@@ -595,6 +595,19 @@ DICA_SOBRE_DESENHO_JS = r"""
 """
 
 
+# 8.8 — O GATO DE VERDADE NA PONTA DA DOCK DESENHADA (P82, item 25; o desenho é
+#   da QA da P77, `pintarGatosNoDock`): a ponta da dock da prévia é a miniatura
+#   do gato escolhido, e não o gato de traço de reserva.
+GATO_NA_DOCK_JS = r"""
+() => {
+  const grupos = [...document.querySelectorAll('#conteudo g.gato-no-dock')];
+  if (!grupos.length) return ['a prévia de «Logo do sistema» não desenhou a dock com o gato'];
+  return grupos.filter((g) => g.dataset.pintado !== g.dataset.gato || !g.querySelector('image'))
+    .map((g) => `a ponta da dock desenhada mostra o gato de traço, e não o «${g.dataset.gato}» do acervo`);
+}
+"""
+
+
 def a_375(pag, url):
     """Os casos da P82 (item 21) numa janela de celular. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -652,6 +665,9 @@ def acabamento(pag):
             arg=busca, timeout=20000)
         assentar(pag)
         reprovas += [("ficha de ícone", d) for d in pag.evaluate(NOME_DO_APP_JS, [glifo, nome])]
+    abrir_pagina(pag, "Logo do sistema")
+    pag.wait_for_timeout(800)
+    reprovas += [("Logo do sistema", d) for d in pag.evaluate(GATO_NA_DOCK_JS)]
     abrir_pagina(pag, "Dia e noite")
     reprovas += [("Dia e noite", d) for d in pag.evaluate(NOITE_JS)]
     if FOTOS:
