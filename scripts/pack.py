@@ -4254,7 +4254,8 @@ PASTA_BIBLIOTECA = "icones/biblioteca/"
 # O QUE ENTRA, E O QUE FICA DE FORA DE PROPÓSITO
 #   · de cada pack em qualquer raiz: os `icones.apps.desenhos` declarados, a
 #     biblioteca (`PASTA_BIBLIOTECA`), os autorais de TODOS os flavors (o
-#     flavor é subgrupo) e os PNG feitos à mão (`PASTA_FEITOS_A_MAO`);
+#     flavor é subgrupo) e os feitos à mão (`PASTA_FEITOS_A_MAO`): o vetor
+#     de cada um, e o PNG que ainda não ganhou o seu;
 #   · do motor: as pastas de `ACERVOS_DO_MOTOR`, com as subpastas.
 #   Fora: `pastas/` e os mimetypes (pasta e tipo de arquivo não são ícone de
 #   aplicativo — oferecer um faria o lançador mostrar uma pasta no lugar do
@@ -4348,7 +4349,13 @@ def acervos_de_icone(no_ar=""):
             #   lá. Pasta que sai do pack fica de fora, calada como a declarada.
             for chave, nome, rel, tipo, ext in (
                     ("biblioteca", "biblioteca", PASTA_BIBLIOTECA, "desenho", ".svg"),
-                    ("feitos-a-mao", "feitos à mão (PNG)", PASTA_FEITOS_A_MAO, "png", ".png")):
+                    # OS FEITOS À MÃO VIRAM VETOR — 15/10/2026, P84. A decisão 2 de
+                    #   09/10: cada PNG ganha um `.svg` ao lado, conferido por RMSE, e
+                    #   o PNG sai quando o vetor passa. O vetor é desenho como os da
+                    #   biblioteca e se escolhe; o PNG que sobrar segue visto e
+                    #   travado (raster não é fonte), num grupo à parte da mesma pasta.
+                    ("feitos-a-mao", "feitos à mão", PASTA_FEITOS_A_MAO, "desenho", ".svg"),
+                    ("feitos-a-mao-png", "feitos à mão (PNG)", PASTA_FEITOS_A_MAO, "png", ".png")):
                 try:
                     pastas.append((chave, nome, _dentro(dir_pack, rel, chave), tipo, ext))
                 except Recusa:
