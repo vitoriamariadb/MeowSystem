@@ -134,7 +134,8 @@ CLASSES = [
      "cita": False, "onde": None, "gatilho": ("voltar ao",),
      "padroes": [re.compile(r"\bVoltar\s+ao\s+[íi]cone\s+de\s+f[áa]brica\b", I)]},
     {"num": 5, "nome": "a faixa de RMSE dos resgatados sem a data dela",
-     "cita": True, "onde": ("assets/icones/",), "gatilho": ("ficaram entre",),
+     "cita": True, "onde": ("assets/icones/", "packs/meowsystem/", "packs/dracula/icones/"),
+     "gatilho": ("ficaram entre",),
      "padroes": [re.compile(r"\bficaram\s+entre\s+\**\d+,\d+\**\s+e\s+\**\d+,\d+", I)]},
 ]
 

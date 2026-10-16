@@ -346,7 +346,7 @@ def montar_casa():
     xcursor_liso(os.path.join(ponteiro, "left_ptr"))
     tema = os.path.join(icones, valor_de("NOME_TEMA_ICONES"), "scalable", "apps")
     os.makedirs(tema)
-    glifos = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
+    glifos = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
     for nome in sorted(os.listdir(glifos)):
         if nome.endswith(".svg"):
             shutil.copyfile(os.path.join(glifos, nome), os.path.join(tema, nome))

@@ -180,18 +180,18 @@ def paleta(flavor='mocha'):
 def mapas():
     """nome -> caminho da arte, lido dos mesmos dois mapas que o instalador lê."""
     arte = {}
-    for linha in open(os.path.join(RAIZ, 'assets', 'icones', 'apps-arcticons.map'), encoding='utf-8'):
+    for linha in open(os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps-arcticons.map'), encoding='utf-8'):
         linha = linha.strip()
         if not linha or linha.startswith('#'):
             continue
         c = linha.split(':')
-        arte[c[0]] = os.path.join(RAIZ, 'assets', 'icones', 'arcticons-apps', c[1] + '.svg')
-    for linha in open(os.path.join(RAIZ, 'assets', 'icones', 'apps-convertidos.map'), encoding='utf-8'):
+        arte[c[0]] = os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps', 'arcticons', c[1] + '.svg')
+    for linha in open(os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps-convertidos.map'), encoding='utf-8'):
         linha = linha.strip()
         if not linha or linha.startswith('#'):
             continue
         c = linha.split(':')
-        arte[c[0]] = os.path.join(RAIZ, 'assets', 'icones', 'convertidos-apps', c[0] + '.svg')
+        arte[c[0]] = os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps', 'convertidos', c[0] + '.svg')
     return arte
 
 

@@ -473,7 +473,7 @@ checa((glifos_de("programa-de-brinquedo").get("escolha") or {}).get("antes", "?"
 # `apps-arcticons.map` do projeto é curadoria, e não sai por clique. O Chrome
 # de brinquedo não tem escolha de traço: nada sai, e a resposta continua
 # dizendo o que fica na tela, que é o ponto da P64.]
-traco_projeto = os.path.join(raiz, "assets", "icones", "apps-arcticons.map")
+traco_projeto = os.path.join(raiz, "packs", "meowsystem", "icones", "apps-arcticons.map")
 antes_traco = texto(traco_projeto)
 codigo, dados = chamar(m._api_app_icone, {"app": "google-chrome", "remover": True})
 fica = dados.get("fica") or {}
