@@ -7985,6 +7985,8 @@ class Manipulador(BaseHTTPRequestHandler):
             #   `.jpg` que começa como XML de SVG sai como SVG. A cerca acima
             #   não muda (extensão de imagem nas duas pontas, pasta de arte), e
             #   o SVG sai com a CSP de imagem do `_responder`, que não roda nada.
+            #   [P84, 15/10/2026: aquele `obsidian.png` saiu do pack, trocado
+            #   pelo vetor dele; a regra fica para o PNG que vier assim.]
             if ext_arq != ".svg" and comeca_como_svg(dados_arq):
                 tipo_mime = "image/svg+xml"
             # Pela porta única em vez de cinco send_header à mão. [2026-09-18]

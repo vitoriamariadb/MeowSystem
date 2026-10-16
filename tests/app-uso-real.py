@@ -407,8 +407,17 @@ TRAVA_JS = r"""
   const ficha = document.querySelector('.escolha-icone');
   for (const c of ficha.querySelectorAll('.pasta-acervo .cadeado'))
     if (vis(c)) defeitos.push('a pasta travada usa o cadeado desenhado em CSS, e não o selo de trava');
-  const png = [...ficha.querySelectorAll('.pasta-acervo')].find((d) => /:feitos-a-mao$/.test(d.dataset.grupo || ''));
-  if (!png) return ['a busca «firefox» não abriu a pasta dos feitos à mão'];
+  /* [P84, 15/10/2026: os feitos à mão viraram vetor. A pasta deles se escolhe
+   *   como a biblioteca, e a trava de raster não pode aparecer nela; a dos PNG
+   *   (`:feitos-a-mao-png`) só existe enquanto sobrar PNG sem vetor, e é nela
+   *   que a trava continua sendo cobrada.] */
+  const pastas = [...ficha.querySelectorAll('.pasta-acervo')];
+  const vetores = pastas.find((d) => /:feitos-a-mao$/.test(d.dataset.grupo || ''));
+  if (!vetores) return ['a busca «firefox» não abriu a pasta dos feitos à mão'];
+  for (const el of vetores.querySelectorAll('[data-balao]'))
+    if (/em PNG/.test(el.dataset.balao)) defeitos.push(`o vetor feito à mão leva a trava de raster: «${el.dataset.balao}»`);
+  const png = pastas.find((d) => /:feitos-a-mao-png$/.test(d.dataset.grupo || ''));
+  if (!png) return defeitos;
   const selo = png.querySelector('summary .selo[data-selo="trava"]');
   if (!vis(selo)) defeitos.push('a pasta dos feitos à mão, travada, não leva o selo de trava');
   else if (!selo.dataset.balao || selo.dataset.balaoAparado)
