@@ -45,7 +45,8 @@ O QUE REPROVA (e de onde cada regra vem)
        · a ficha de ícone mostra o nome amigável, e o nome técnico só na dica;
        · a paleta «Cor» da ficha só aparece com um traço marcado;
        · a pasta travada (a dos PNG feitos à mão) leva o selo de trava da
-         página, com o porquê na dica;
+         página, com o porquê na dica; [P84: os feitos à mão viraram vetor,
+         e a pasta deles se escolhe sem a trava de raster]
        · as três linhas de Dia e noite usam o seletor de hora, na ordem
          começa | termina;
        · a fileira «Fundo» mora só em Cor e tela;
