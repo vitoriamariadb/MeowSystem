@@ -40,3 +40,19 @@ se estiver ligado). O que diferencia origem é o `PROCEDENCIA.md`, não a pasta.
 - tema montado numa casa temporária igual ao de antes (mesmos nomes, mesmos bytes) — diff vazio.
 - seletor no navegador (HOME temporário): pastas por pack, contagens batem com o disco.
 - `tests/todos.sh` inteiro verde 2x.
+
+## 6. Alterou o desenho, o resto se atualiza sozinho (decisão 15)
+**Pedido (15/10):** «SVG alterado numa das três, qualquer outro arquivo, seja PNG ou afins, se auto atualiza».
+- **Vigia**: unidade `.path` de usuário sobre `packs/*/icones/{apps,sistema,biblioteca}` e `apps.map` do
+  pack no ar e dos packs herdados (o padrão do vigia de `assets/gatos/` que já existe), com espera curta
+  (debounce) para uma rajada de salvamentos virar uma passada só.
+- **Uma função, idempotente**: para cada arquivo cujo sha256 mudou desde a última passada (estado em
+  `~/.local/state/meowsystem/derivados.tsv`), refaz SÓ os derivados dele: cópia/ligação no tema instalado,
+  PNG por tamanho (rsvg-convert, se o tema usa raster), simbólico gerado, ícone do lançador (logo do pack),
+  `gtk-update-icon-cache`; o seletor relê na próxima abertura (cache invalidado pelo sha256). Arquivo
+  apagado → derivado sai. Um `meow_tela_reler` só no fim (P80).
+- **Sem comando, sem frase**: nada de «rode meow icones reconstruir»; o doctor das 5h confere a mesma
+  tabela e refaz o que o vigia perdeu (PC desligado na hora da edição).
+- **Prova**: teste que edita um SVG numa casa temporária e confere, em até N segundos, o novo sha256 no
+  tema instalado, o PNG re-renderizado e o cache novo; editar 2x o mesmo conteúdo → nada escreve; apagar
+  → derivado some; rajada de 20 edições → uma passada.
