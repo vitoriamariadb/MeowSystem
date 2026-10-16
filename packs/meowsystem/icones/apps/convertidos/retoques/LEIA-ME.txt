@@ -15,7 +15,7 @@ A REGRA, EM UMA LINHA
     `scripts/icones_apps_arcticons.sh` (2,25 desde 27/08/2026 — o 1,75 escrito
     aqui até 08/09 era o número de 11/08, e envelheceu quando a caixa da dock
     passou a ser medida em ~41 px) e a cor vem da paleta, pelo
-    campo 3 da linha em `assets/icones/apps-convertidos.map`. Quem editar à mão tem de
+    campo 3 da linha em `packs/meowsystem/icones/apps-convertidos.map`. Quem editar à mão tem de
     manter as duas ausências — gravar cor ou espessura aqui cria um segundo dono
     da mesma decisão.
 
@@ -196,7 +196,7 @@ O QUE ENTROU
                perde a 48 px — sem a inclinação, as listras lêem como cerca.
 
 A ORIGEM DO PLAYER É `mao`, E ISSO É NOVO PARA UM `com.system76.*`
-    Ele estava em `assets/icones/apps-arcticons.map` e mudou de mapa, porque um nome nos
+    Ele estava em `packs/meowsystem/icones/apps-arcticons.map` e mudou de mapa, porque um nome nos
     dois faz o `_conferir_gemeos` estourar. O porquê da mudança está escrito lá,
     junto com a razão de isto NÃO ser o erro de 11/08 repetido.
 
