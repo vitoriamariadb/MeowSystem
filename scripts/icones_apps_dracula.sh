@@ -303,11 +303,23 @@ _dracula_instalar() {
 #   sete ícones na tela sem nada avisando.
 #   Comparar do mesmo jeito que se escreve é a única forma de as duas metades
 #   deste script concordarem sobre o que é "o nosso arquivo".
+# O NOME QUE O RESGATE VESTE FICA, MESMO COM OS MESMOS BYTES — P87
+#   Desligada a camada, o `fontes` entrega o nome ao resgate. Quando o mapa do
+#   pack e o do resgate apontam para o MESMO arquivo (uad-ng, Photogimp...), o
+#   conteúdo bate com o do pack, e este ramo apagava o que o resgate acabara de
+#   pôr: o `--conferir` dele saía 1 e o doctor repunha e retirava todo dia.
+_dracula_do_resgate() {
+  MEOW_PACK_DIR="$_pack_ref" python3 "$RAIZ/scripts/pack.py" fontes 2>/dev/null \
+    | awk -F'\t' '$3 == "resgatados" { print $1 }'
+}
+
 _dracula_remover() {
-  local rc=0 tirados=0 nome caminho origem
+  local rc=0 tirados=0 nome caminho origem do_resgate
+  do_resgate="$(_dracula_do_resgate)"
   while IFS=$'\t' read -r nome caminho; do
     [ -n "$nome" ] || continue
     [ -f "$ALVO/$nome.svg" ] || continue
+    grep -qxF -- "$nome" <<<"$do_resgate" && continue
     # JÁ VEM RESOLVIDO do `_dracula_pares` — ver o comentário gêmeo no
     # `_dracula_instalar`. As duas metades deste script PRECISAM resolver o alvo
     # do mesmo jeito: é comparando o conteúdo da origem com o que está no tema

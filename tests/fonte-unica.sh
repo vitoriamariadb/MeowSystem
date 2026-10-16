@@ -445,6 +445,11 @@ icones_em "$casa_c" icones_resgatados.sh --conferir "${DESLIGADO[@]}"; r1=$?
 veste "$casa_c" guvcview "$RESG_G" && veste "$casa_c" setup-mozc "$RESG_M" && [ "$r1" = "0" ] \
   && ok "Dracula com ICONES_DRACULA=nao: o resgate veste os dois, e o --conferir sai 0" \
   || falha "Dracula desligado: o resgate não é a escolha (conferir=$r1)"
+# [P87: o uad-ng está nos dois mapas, apontando para o MESMO arquivo. Com a camada
+#   desligada o remover do pack achava os bytes dele e o apagava do tema.]
+veste "$casa_c" uad-ng "packs/dracula/icones/apps/resgatados/uad-ng.svg" \
+  && ok "Dracula desligado: o uad-ng, que os dois mapas dão com os mesmos bytes, fica no tema" \
+  || falha "Dracula desligado: o remover tirou o uad-ng, que é do resgate"
 
 # E a camada desligada DEPOIS de ligada, que é o caminho de quem mexe no
 # interruptor: o Dracula tira a lente (é dele, pelo conteúdo) e o resgate volta.
