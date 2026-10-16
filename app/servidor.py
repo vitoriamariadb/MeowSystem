@@ -10086,62 +10086,34 @@ class Manipulador(BaseHTTPRequestHandler):
                 mapa = mod.acervo("icones.apps.mapa", ref=dir_pack) or ""
                 if mapa and os.path.isfile(mapa):
                     mapas.add(os.path.realpath(mapa))
-                # O CATÁLOGO DOS FEITOS À MÃO — 16/10/2026, fechamento da leva H.
-                #   Os 39 vetores da P84 herdaram o nome do PNG de origem, e o
-                #   rótulo saía dele: «Calendario», «Gerenciador de extensoes»,
-                #   «File Zilla». A busca por «visualizador» não achava o
-                #   visualizador de imagens. O `catalog.json` da pasta, no
-                #   formato do da biblioteca, dá o nome em português e o texto
-                #   da busca; o arquivo continua com o nome que o mapa aceita.
-                for pasta_cat in (mod.PASTA_BIBLIOTECA,
-                                  getattr(mod, "PASTA_FEITOS_A_MAO", "")):
-                    if not pasta_cat:
-                        continue
-                    bib = os.path.join(dir_pack, pasta_cat)
-                    try:
-                        with open(os.path.join(bib, "catalog.json"), encoding="utf-8") as fh:
-                            catalogo = json.load(fh)
-                    except (OSError, ValueError):
-                        catalogo = {}
-                    for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
-                        if isinstance(ficha, dict):
-                            etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
-                            descricao = str(ficha.get("descricao") or "").strip()
-                            junta(os.path.join(bib, str(arq)), descricao,
-                                  *[str(t).replace("_", " ") for t in etiquetas])
-                            if descricao:
-                                rotulos[os.path.normpath(os.path.join(bib, str(arq)))] = (
-                                    descricao[:1].upper() + descricao[1:])
-        # O CATÁLOGO DAS PASTAS DO MOTOR — 15/10/2026, P82 (item 7). Um desenho
-        #   do motor sem linha de mapa (a raposa resgatada, que saiu do
-        #   `apps-resgatados.map` na P28) não tinha texto para a busca casar.
-        #   O `catalog.json` da pasta, no formato do da biblioteca, dá esse
-        #   texto. Só a busca: o nome que a ficha mostra continua o do mapa, para
-        #   o mesmo desenho não ter dois nomes.
-        # [P88: os resgatados desceram do motor para o pack Dracula
-        #   (`icones.resgatados`), e o catálogo deles foi junto.]
-        pastas_so_busca = [os.path.join(ICONES_DO_MOTOR, pasta)
-                           for pasta, _nome, _tipo in getattr(mod, "ACERVOS_DO_MOTOR", ())]
-        for base in mod.raizes():
-            try:
-                ids = sorted(os.listdir(base))
-            except OSError:
+        # O CATÁLOGO DE CADA PASTA DA FICHA — P73, P82 (item 7) e o fechamento
+        #   da leva H; nas três pastas desde a P88. O `catalog.json` ao lado dos
+        #   desenhos dá o texto da busca (descrição em português e etiquetas).
+        #   Na `biblioteca/` ele dá também o rótulo, porque lá o arquivo tem o
+        #   nome do PNG de origem («Calendario», «File Zilla»); em `apps/` o nome
+        #   na tela continua o do mapa, para o mesmo desenho não ter dois nomes
+        #   (a raposa resgatada, que saiu do `apps-resgatados.map` na P28).
+        vistas = set()
+        for g in mod.acervos_de_icone() if hasattr(mod, "acervos_de_icone") else ():
+            pasta_cat = os.path.normpath(g.get("pasta") or "")
+            if not pasta_cat or pasta_cat in vistas:
                 continue
-            for pid in ids:
-                resg = mod.campo(os.path.join(base, pid), "icones.resgatados.desenhos")
-                if isinstance(resg, str) and resg:
-                    pastas_so_busca.append(os.path.join(base, pid, resg))
-        for dir_motor in pastas_so_busca:
+            vistas.add(pasta_cat)
+            com_rotulo = ":biblioteca" in g.get("id", "") or g.get("id", "").endswith(":feitos-a-mao")
             try:
-                with open(os.path.join(dir_motor, "catalog.json"), encoding="utf-8") as fh:
+                with open(os.path.join(pasta_cat, "catalog.json"), encoding="utf-8") as fh:
                     catalogo = json.load(fh)
             except (OSError, ValueError):
                 continue
             for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
                 if isinstance(ficha, dict):
                     etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
-                    junta(os.path.join(dir_motor, str(arq)), str(ficha.get("descricao") or "").strip(),
+                    descricao = str(ficha.get("descricao") or "").strip()
+                    junta(os.path.join(pasta_cat, str(arq)), descricao,
                           *[str(t).replace("_", " ") for t in etiquetas])
+                    if com_rotulo and descricao:
+                        rotulos[os.path.normpath(os.path.join(pasta_cat, str(arq)))] = (
+                            descricao[:1].upper() + descricao[1:])
         # O NOME DO APP DOS CONVERTIDOS — 15/10/2026, P82 (item 8). O
         #   `apps-convertidos.map` não tem comentário no fim da linha (os
         #   leitores dele cortam nos `:`), e o nome vem na linha de cima,

@@ -192,9 +192,22 @@ checa("net.waterfox.waterfox" in sugeridos and len(sugeridos) < len(itens),
 ordem = [g["id"] for g in grupos]
 checa(ordem and ordem[0].startswith("pack:dracula:")
       and any(g.startswith("pack:catppuccin:") for g in ordem)
-      and any(g.startswith("motor:") for g in ordem),
+      and any(g.startswith("pack:meowsystem:") for g in ordem),
       "o pack no ar vem primeiro, e os outros packs e o motor vêm depois, cada um na sua pasta",
       repr(ordem))
+
+# --- 4b. as três pastas — P88, decisão 14 ----------------------------------------
+import re  # noqa: E402
+#   Os grupos são pack × apps/biblioteca (cada subpasta, um grupo); `sistema/`
+#   não é ícone de programa; o traço do pack-base é traço.
+de_sistema = sorted({it["grupo"] for it in itens if "/icones/sistema/" in caminho_de(it)})
+checa(not de_sistema, "nenhuma pasta de sistema/ na ficha", repr(de_sistema))
+fora_das_duas = [g["id"] for g in grupos if g["pack"] and ":autorais:" not in g["id"]
+                 and not re.match(r"^pack:[a-z0-9-]+:(apps|biblioteca)(/[^:]+)?(:png)?$", g["id"])]
+checa(not fora_das_duas, "todo grupo de pack é apps/ ou biblioteca/, ou os autorais", repr(fora_das_duas))
+base = {g["id"]: g["tipo"] for g in grupos if g["pack"] == "meowsystem"}
+checa(base and set(base.values()) == {"traco"} and "pack:meowsystem:apps/arcticons" in base,
+      "o acervo do pack-base aparece como traço", repr(base))
 
 # --- 5. o rótulo é amigável, e o nome técnico vai para a dica — P80, item 1 ------
 #   Medido no uso real de 10/10 (prints 05 e 06): `net.waterfo…`, `org.gnome.…`,

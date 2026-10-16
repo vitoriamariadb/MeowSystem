@@ -233,6 +233,7 @@ OK, RECUSADO, ERRO_USO = 0, 1, 2
 CAMPOS_COM_LEITOR = {
     "formato", "id", "nome",            # identidade — validar
     "papel",                            # validar, `eh_base` (o pack-base, P88)
+    "icones.apps.recolorir",            # `acervos_de_icone`: traço na ficha (P88)
     "heranca",                          # validar, cmd_info, acervo
     "creditos",                         # validar cobra a existência do arquivo
     "paleta", "paleta.arquivo",         # validar, verbo `paleta`, cmd_info
@@ -4400,7 +4401,8 @@ EXT_DA_BIBLIOTECA = (".svg", ".png")
 #     biblioteca (`PASTA_BIBLIOTECA`), os autorais de TODOS os flavors (o
 #     flavor é subgrupo) e os feitos à mão (`PASTA_FEITOS_A_MAO`): o vetor
 #     de cada um, e o PNG que ainda não ganhou o seu;
-#   · do motor: as pastas de `ACERVOS_DO_MOTOR`, com as subpastas.
+#   · [P88: num pack de formato 2, as árvores `apps/` e `biblioteca/`, cada
+#     subpasta um grupo — e o motor é o pack-base, com o traço dele.]
 #   Fora: `pastas/` e os mimetypes (pasta e tipo de arquivo não são ícone de
 #   aplicativo — oferecer um faria o lançador mostrar uma pasta no lugar do
 #   programa); `previa-arcticons/` (os 35 têm os mesmos bytes de desenhos que já
@@ -4412,14 +4414,14 @@ EXT_DA_BIBLIOTECA = (".svg", ".png")
 #   do git e de PNG. O que volta com a decisão 3 é o acervo versionado do pack
 #   Catppuccin — os autorais dele —, pela mesma porta dos outros packs.]
 PASTA_FEITOS_A_MAO = "icones/biblioteca/feitos-a-mao/"
-ACERVOS_DO_MOTOR = (
-    # (pasta no acervo do pack-base, nome na tela, tipo). O tipo diz o que a ficha
-    # faz com a escolha: `desenho` entra no tema como está; `traco` é glifo de
-    # contorno, que o `icones_apps_arcticons.sh` pinta na cor escolhida.
-    ("apps/arcticons", "traço", "traco"),
-    ("sistema/arcticons", "traço (Arcticons)", "traco"),
-    ("apps/convertidos", "convertidos", "traco"),
-)
+# AS TRÊS PASTAS NA FICHA — P88, decisão 14. Num pack de formato 2 os grupos
+#   são as árvores `apps/` e `biblioteca/`, cada subpasta um grupo (a subpasta é
+#   etiqueta), e o PNG da mesma pasta num grupo à parte. `sistema/` não é ícone
+#   de programa e não entra. O motor deixou de ter grupos próprios: o acervo dele
+#   é o pack-base, e o traço dele é dito pelo `icones.apps.recolorir`.
+PASTAS_DA_FICHA = ("icones/apps/", PASTA_BIBLIOTECA)
+ROTULO_DA_PASTA = {"icones/apps": "feitos para apps", "icones/biblioteca": "biblioteca",
+                   "arcticons": "traço", "feitos-a-mao": "feitos à mão"}
 FORA_DA_FICHA = ("ANTES-E-DEPOIS.png",)
 # O nome vira texto de mapa no estado de quem usa (`escolhas_do_painel`): `#`
 # cortaria a linha, `:` a partiria, e uma quebra a dividiria em duas.
@@ -4463,7 +4465,8 @@ def acervos_de_icone(no_ar=""):
     Um dicionário por grupo: `id`, `acervo` (o nome do pack, ou «MeowSystem»),
     `nome` (a pasta, como a tela a chama), `pack` (o id, ou ''), `no_ar`,
     `tipo` (`desenho`, `traco` ou `png`), `pasta` e `arquivos` (os caminhos).
-    O pack `no_ar` vem primeiro, depois os outros packs, depois o motor.
+    O pack `no_ar` vem primeiro, depois os outros packs, e o pack-base (o
+    acervo do motor) por último entre eles.
     """
     grupos = []
 
@@ -4487,44 +4490,16 @@ def acervos_de_icone(no_ar=""):
             nome_pack = str(campo(dir_pack, "nome", pid) or pid)
             # SÓ O QUE O PRÓPRIO PACK TRAZ: a herança não sobe aqui, porque o
             # acervo herdado já aparece na pasta do pack de onde ele vem.
-            pastas = []
-            for cat, chave, nome in (("icones.apps.desenhos", "apps", "feitos para apps"),
-                                     (CATEGORIA_RESGATADOS + ".desenhos", "resgatados", "resgatados")):
-                declarada = campo(dir_pack, cat)
-                if isinstance(declarada, str) and declarada:
-                    try:
-                        pastas.append((chave, nome, _dentro(dir_pack, declarada, cat),
-                                       "desenho", ".svg"))
-                    except Recusa:
-                        pass
-            # A BIBLIOTECA E OS FEITOS À MÃO TAMBÉM PASSAM PELO `_dentro` — P78
-            #   As duas pastas são convenção, sem campo no pack.json, e por
-            #   isso entravam pelo `join` cru: uma `icones/biblioteca` que fosse
-            #   symlink para fora punha na ficha (e na `/previa`) o que estivesse
-            #   lá. Pasta que sai do pack fica de fora, calada como a declarada.
-            for chave, nome, rel, tipo, ext in (
-                    ("biblioteca", "biblioteca", PASTA_BIBLIOTECA, "desenho", ".svg"),
-                    # OS FEITOS À MÃO VIRAM VETOR — 15/10/2026, P84. A decisão 2 de
-                    #   09/10: cada PNG ganha um `.svg` ao lado, conferido por RMSE, e
-                    #   o PNG sai quando o vetor passa. O vetor é desenho como os da
-                    #   biblioteca e se escolhe; o PNG que sobrar segue visto e
-                    #   travado (raster não é fonte), num grupo à parte da mesma pasta.
-                    ("feitos-a-mao", "feitos à mão",
-                     padrao_do_formato(dir_pack, PASTA_FEITOS_A_MAO), "desenho", ".svg"),
-                    ("feitos-a-mao-png", "feitos à mão (PNG)",
-                     padrao_do_formato(dir_pack, PASTA_FEITOS_A_MAO), "png", ".png")):
-                try:
-                    pastas.append((chave, nome, _dentro(dir_pack, rel, chave), tipo, ext))
-                except Recusa:
-                    pass
-            for chave, nome, pasta, tipo, ext in pastas:
-                grupo("pack:%s:%s" % (pid, chave), nome_pack, nome, pid, tipo, pasta,
-                      _arquivos_da_pasta(pasta, ext))
+            aut = campo(dir_pack, "icones.autorais.desenhos") \
+                or padrao_do_formato(dir_pack, PASTA_AUTORAIS)
+            formato = campo(dir_pack, "formato", 1)
+            if isinstance(formato, int) and formato >= 2:
+                _grupos_das_tres_pastas(grupo, pid, nome_pack, dir_pack, aut)
+            else:
+                _grupos_de_antes(grupo, pid, nome_pack, dir_pack)
             # OS AUTORAIS DE TODOS OS FLAVORS, COM O FLAVOR COMO SUBGRUPO. Até a
             # P73 só o do flavor em vigor entrava: no Dracula escuro, os onze do
             # `alucard` não existiam para a ficha.
-            aut = campo(dir_pack, "icones.autorais.desenhos") \
-                or padrao_do_formato(dir_pack, PASTA_AUTORAIS)
             try:
                 pasta_aut = _dentro(dir_pack, aut, "icones.autorais.desenhos")
             except Recusa:
@@ -4540,20 +4515,79 @@ def acervos_de_icone(no_ar=""):
                 grupo("pack:%s:autorais:%s" % (pid, flavor or "-"), nome_pack,
                       "autorais · %s" % flavor if flavor else "autorais", pid, "desenho",
                       pasta_aut, por_flavor[flavor])
-    for pasta, nome, tipo in ACERVOS_DO_MOTOR:
-        raiz = os.path.join(RAIZ, ACERVO_DO_MOTOR, pasta)
-        for dirpath, dirs, _nomes in os.walk(raiz):
-            dirs.sort()
-            sub = os.path.relpath(dirpath, raiz)
-            grupo("motor:" + (pasta if sub == "." else "%s/%s" % (pasta, sub)), "MeowSystem",
-                  nome if sub == "." else "%s · %s" % (nome, sub), "", tipo, dirpath,
-                  _arquivos_da_pasta(dirpath, ".svg"))
-    # Os enviados pelo painel (P82, item 4), depois do motor.
+    # Os enviados pelo painel (P82, item 4), depois dos packs.
     enviados = pasta_de_enviados()
     grupo("casa:enviados", "Seus", "enviados", "", "desenho", enviados,
           _arquivos_da_pasta(enviados, ".svg"))
-    # O PACK NO AR PRIMEIRO, e a ordem de dentro de cada lado fica a de cima.
-    return sorted(grupos, key=lambda g: (not g["no_ar"], not g["pack"]))
+    # O PACK NO AR PRIMEIRO, o pack-base (o acervo do motor) por último entre os
+    # packs, e a ordem de dentro de cada lado fica a de cima.
+    return sorted(grupos, key=lambda g: (not g["no_ar"], not g["pack"], g["pack"] == PACK_BASE))
+
+
+def _grupos_de_antes(grupo, pid, nome_pack, dir_pack):
+    """Os grupos de um pack de formato 1: as pastas declaradas e as de convenção."""
+    pastas = []
+    for cat, chave, nome in (("icones.apps.desenhos", "apps", "feitos para apps"),
+                             (CATEGORIA_RESGATADOS + ".desenhos", "resgatados", "resgatados")):
+        declarada = campo(dir_pack, cat)
+        if isinstance(declarada, str) and declarada:
+            try:
+                pastas.append((chave, nome, _dentro(dir_pack, declarada, cat), "desenho", ".svg"))
+            except Recusa:
+                pass
+    # A BIBLIOTECA E OS FEITOS À MÃO TAMBÉM PASSAM PELO `_dentro` — P78
+    #   As duas pastas são convenção, sem campo no pack.json, e por isso
+    #   entravam pelo `join` cru: uma `icones/biblioteca` que fosse symlink para
+    #   fora punha na ficha (e na `/previa`) o que estivesse lá. Pasta que sai do
+    #   pack fica de fora, calada como a declarada.
+    feitos = padrao_do_formato(dir_pack, PASTA_FEITOS_A_MAO)
+    for chave, nome, rel, tipo, ext in (
+            ("biblioteca", "biblioteca", PASTA_BIBLIOTECA, "desenho", ".svg"),
+            # OS FEITOS À MÃO VIRAM VETOR — 15/10/2026, P84. A decisão 2 de
+            #   09/10: cada PNG ganha um `.svg` ao lado, conferido por RMSE, e o
+            #   PNG sai quando o vetor passa. O vetor é desenho como os da
+            #   biblioteca e se escolhe; o PNG que sobrar segue visto e travado
+            #   (raster não é fonte), num grupo à parte da mesma pasta.
+            ("feitos-a-mao", "feitos à mão", feitos, "desenho", ".svg"),
+            ("feitos-a-mao-png", "feitos à mão (PNG)", feitos, "png", ".png")):
+        try:
+            pastas.append((chave, nome, _dentro(dir_pack, rel, chave), tipo, ext))
+        except Recusa:
+            pass
+    for chave, nome, pasta, tipo, ext in pastas:
+        grupo("pack:%s:%s" % (pid, chave), nome_pack, nome, pid, tipo, pasta,
+              _arquivos_da_pasta(pasta, ext))
+
+
+def _grupos_das_tres_pastas(grupo, pid, nome_pack, dir_pack, aut):
+    """Os grupos de `apps/` e `biblioteca/` de um pack de formato 2 (P88)."""
+    traco = campo(dir_pack, "icones.apps.recolorir") is True
+    try:
+        real_aut = _dentro(dir_pack, aut, "icones.autorais.desenhos")
+    except Recusa:
+        real_aut = ""
+    for rel_raiz in PASTAS_DA_FICHA:
+        # A pasta passa pelo `_dentro`, como a declarada (P78): uma que seja
+        # link para fora do pack fica de fora, calada.
+        try:
+            raiz = _dentro(dir_pack, rel_raiz, rel_raiz)
+        except Recusa:
+            continue
+        for dirpath, dirs, _nomes in os.walk(raiz):
+            dirs[:] = sorted(d for d in dirs if not d.startswith(".")
+                             and not os.path.islink(os.path.join(dirpath, d))
+                             and os.path.join(dirpath, d) != real_aut)
+            rel = os.path.relpath(dirpath, dir_pack)
+            partes = rel.split(os.sep)[2:]
+            nome = " · ".join([ROTULO_DA_PASTA.get(p, p) for p in partes]) \
+                or ROTULO_DA_PASTA.get(os.path.dirname(rel_raiz), rel_raiz)
+            gid = "pack:%s:%s" % (pid, "/".join(rel.split(os.sep)[1:]))
+            tipo = "traco" if traco and rel_raiz == "icones/apps/" else "desenho"
+            grupo(gid, nome_pack, nome, pid, tipo, dirpath, _arquivos_da_pasta(dirpath, ".svg"))
+            # O PNG que ainda não virou vetor é visto e travado, num grupo à
+            # parte da mesma pasta (raster não é fonte; ver o `feitos-a-mao-png`).
+            grupo(gid + ":png", nome_pack, nome + " (PNG)", pid, "png", dirpath,
+                  _arquivos_da_pasta(dirpath, ".png"))
 
 
 def _contar_biblioteca(ref, dir_pack):

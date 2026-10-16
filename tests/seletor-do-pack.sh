@@ -268,7 +268,7 @@ r = glifos("chrome")
 print("  «chrome»: %d opção(ões) — %s" % (len(r.get("glifos", [])), ", ".join(
     "%s (%s)" % (g["glifo"], g["grupo"]) for g in r.get("glifos", []))))
 grupos = {g["grupo"] for g in r.get("glifos", []) if g["glifo"] == "google-chrome"}
-checa({"pack:dracula:apps", "motor:arcticons-apps"} <= grupos,
+checa({"pack:dracula:apps", "pack:meowsystem:apps/arcticons"} <= grupos,
       "«chrome» oferece o google-chrome do Dracula e o do Arcticons, cada um na sua pasta",
       repr(sorted(grupos)))
 
