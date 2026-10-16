@@ -5120,6 +5120,17 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Autoriza a imagem que você pôs: o carrossel para de devolvê-la.",
     },
+    # O «DEIXAR ASSIM» — P82 (item 3; decisão 13). A outra resposta da mesma
+    #   pendência: tira o cartão sem autorizar a imagem. `oculta` pelo mesmo
+    #   motivo do «Era escolha minha»: quem o oferece é a pendência.
+    "wallpaper_dispensar": {
+        "rotulo": "Deixar assim",
+        "grupo": "Papel de parede",
+        "natureza": "gravar",
+        "argv": _meow("wallpaper", "dispensar"),
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "A imagem devolvida fica como está, e o aviso sai da Início.",
+    },
     "wallpaper_favoritar": {
         "rotulo": "Guardar nas favoritas",
         "grupo": "Papel de parede",
@@ -7104,7 +7115,9 @@ def pendencias():
                 # do repositório) não desenha botão nenhum.
                 if ident == PENDENCIA_PAREDE and comando.startswith(PREFIXO_PERMITIR):
                     escolha = [{"acao": "wallpaper_permitir", "rotulo": "Era escolha minha",
-                                "argumento": comando[len(PREFIXO_PERMITIR):]}]
+                                "argumento": comando[len(PREFIXO_PERMITIR):]},
+                               {"acao": "wallpaper_dispensar", "rotulo": "Deixar assim",
+                                "argumento": ""}]
                     nome = "Papel de parede devolvido"
                 if ident == PENDENCIA_EXTENSAO and comando:
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,

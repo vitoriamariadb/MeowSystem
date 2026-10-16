@@ -1875,6 +1875,22 @@ fontes_no_conf() {
   fi
 }
 
+# O «DEIXAR ASSIM» DO PAPEL DE PAREDE DEVOLVIDO — 15/10/2026, P82 (item 3;
+#   decisão 13). A pendência `wallpaper-fonte-revertida` só saía pelo
+#   `permitir`, que AUTORIZA a imagem. Quando a devolução estava certa, o cartão
+#   ficava na Início até alguém autorizar a imagem errada para tirá-lo. Este
+#   verbo é a outra resposta: a devolução fica, o cartão sai, e o meow.conf não
+#   é tocado.
+cmd_dispensar() {
+  if meow_seco; then
+    meow_muda "tiraria da Início o aviso do papel de parede devolvido (o meow.conf fica como está)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_pendencia_resolvida wallpaper-fonte-revertida
+  meow_ok "a imagem devolvida fica como está — o aviso saiu da Início"
+  return "$MEOW_OK"
+}
+
 cmd_permitir() {
   local caminho="${1:-}"
   [ -n "$caminho" ] || {
@@ -2895,6 +2911,7 @@ case "${1:-aplicar}" in
   desbanir)  shift; cmd_desbanir "${1:-}" ;;
   adicionar) shift; cmd_adicionar "${1:-}" ;;
   permitir)  shift; cmd_permitir "${1:-}" ;;
+  dispensar) cmd_dispensar ;;
   # O ÚNICO SUBCOMANDO DESTE ARQUIVO COM DOIS ARGUMENTOS, e isso importa para
   # quem for ligá-lo à CLI: o `cmd_wallpaper` do `bin/meow` encaminha UM só
   # (`"$acao" ${1:+"$1"}`), então `meow wallpaper lado <img> noite` chegaria aqui

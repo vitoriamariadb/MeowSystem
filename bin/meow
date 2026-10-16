@@ -3272,7 +3272,7 @@ cmd_wallpaper() {
   carregar_conf || return "$MEOW_ERRO"
   local acao="${1:-estado}"
   case "$acao" in
-    estado|aplicar|usar|adicionar|banir|desbanir|favoritar|desfavoritar|semear|permitir|proximo|anterior|carrossel|lado)
+    estado|aplicar|usar|adicionar|banir|desbanir|favoritar|desfavoritar|semear|permitir|dispensar|proximo|anterior|carrossel|lado)
       # Só passa adiante o que o scripts/wallpaper.sh tem de verdade. O `usar`
       # faltava até 24/09/2026: o «Usar» da galeria do painel saía 2 com a
       # mensagem de uso, e o script o tinha desde a 28173e2 (achado da P46). Os

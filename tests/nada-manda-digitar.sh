@@ -175,6 +175,37 @@ else
   falha "a pendência do papel de parede devolvido não tem o botão que autoriza" "$saida"
 fi
 
+printf '\n--- 6b. «Deixar assim» tira o cartão sem autorizar a imagem (P82, item 3; decisão 13) ---\n'
+#   [15/10/2026: a pendência só saía pelo «Era escolha minha», que autoriza a
+#    imagem. Se a devolução estava certa, o cartão ficava na Início até alguém
+#    autorizar a imagem errada para tirá-lo.]
+mkdir -p "$CASA/.config/meow"; cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
+antes_conf="$(sha256sum < "$CASA/.config/meow/meow.conf")"
+pendencia_e_botao() {
+  env -i PATH="$PATH" HOME="$CASA" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+p = next((x for x in servidor.pendencias() if x["id"] == "wallpaper-fonte-revertida"), None)
+print("cartao=%s" % bool(p))
+for e in (p or {}).get("escolha") or []:
+    print("escolha=%s|%s" % (e["acao"], e["rotulo"]))
+print("argv=%s" % " ".join((servidor.ACOES.get("wallpaper_dispensar") or {}).get("argv") or [])[-19:])
+PY
+}
+antes_p="$(pendencia_e_botao)"
+env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  "$RAIZ/bin/meow" wallpaper dispensar >/dev/null 2>&1
+depois_p="$(pendencia_e_botao)"
+if grep -qx 'escolha=wallpaper_dispensar|Deixar assim' <<< "$antes_p" \
+   && grep -qx 'argv=wallpaper dispensar' <<< "$antes_p" \
+   && grep -qx 'cartao=False' <<< "$depois_p" \
+   && [ "$(sha256sum < "$CASA/.config/meow/meow.conf")" = "$antes_conf" ]; then
+  ok "«Deixar assim» tira o cartão do papel de parede devolvido, e o meow.conf não muda (sha256 igual)"
+else
+  falha "«Deixar assim» não tirou o cartão, ou mexeu no conf" "antes: $antes_p / depois: $depois_p"
+fi
+
 printf '\n--- 7. sem cargo, o conserto instala o rust (e não manda instalar) ---\n'
 achados="$(grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*instale com rustup' "$RAIZ/scripts/leitura_build.sh")"
 [ -z "$achados" ] && ok "o leitura_build.sh não manda «instale com rustup»" \
