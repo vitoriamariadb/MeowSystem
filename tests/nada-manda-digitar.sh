@@ -52,15 +52,16 @@ printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
 #    «sudo apt install …», «rustup toolchain install», «meow tema capturar»,
 #    «adicione com: meow wallpaper adicionar», «sudo -l». Cada linha virou a
 #    ação feita ou o estado.]
-#   Isentas, cada uma pelo nome: a linha de uso de um verbo (`uso: meow …`,
-#   que responde a quem já está digitando), e os três scripts de build que a
-#   P81 cura (o `files_menu.sh`, o `midia_build.sh` e o `leitura_build.sh`; a
-#   seção 8 dela os cobra). A recusa de rodar como root não casa com nenhuma
-#   forma: ela fala antes de existir qualquer coisa a fazer.
+#   Isenta, pelo nome: a linha de uso de um verbo (`uso: meow …`, que
+#   responde a quem já está digitando). A recusa de rodar como root não casa
+#   com nenhuma forma: ela fala antes de existir qualquer coisa a fazer.
+#   [Integração da leva H, 16/10/2026: os três scripts de build (`files_menu`,
+#    `midia_build`, `leitura_build`) ficavam isentos enquanto a P81 os curava
+#    em paralelo. Com as duas juntas eles passam nas formas daqui, e a isenção
+#    saiu: um «rode» que voltar a eles fica vermelho também nesta seção.]
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
 FORMAS='(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z])'
 achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
-             | grep -vE '^scripts/(files_menu|midia_build|leitura_build)\.sh:' \
              | grep -vE '"uso: meow ')"
 if [ -z "$achados" ]; then
   ok "nenhuma mensagem manda armar o supervisor, rodar o install.sh, instalar com apt ou rustup, capturar o tema, adicionar papel de parede ou rodar sudo -l"
