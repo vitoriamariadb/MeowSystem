@@ -2123,8 +2123,11 @@ function montarControle(item, cartao) {
     /* «— DEIXAR COMO ESTÁ —» VIROU «— como está —» — 10/10/2026, P77 (U2):
      * «deixar» lia-se como «mantenha o que eu escolhi», e o vazio quer dizer
      * o contrário. «como está» é a palavra que o deslizante já usa para o
-     * mesmo estado. */
-    if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— como está —" }));
+     * mesmo estado.
+     * [P82, 15/10/2026 (item 29; decisão 27): «— não tocar —». O botão ao
+     *   lado grava o mesmo vazio com o nome «Não tocar», e um valor tem um
+     *   nome só.] */
+    if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— não tocar —" }));
     for (const opcao of item.opcoes) {
       sel.append(elemento("option", {
         value: opcao, texto: (item.rotulos && item.rotulos[opcao]) || rotuloDeValor(opcao) }));

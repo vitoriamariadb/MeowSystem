@@ -678,6 +678,22 @@ AREAS_SEM_NOME_JS = r"""
 """
 
 
+# Item 29: o `<select>` das listas longas que aceitam o vazio. Nenhuma chave da
+# casa de brinquedo cai nele (a lista longa que ela tem é a de cores), então o
+# controle é montado aqui, com uma chave de verdade e seis opções.
+SELETOR_VAZIO_JS = r"""
+() => {
+  const base = ESQUEMA.chaves.find((k) => k.chave === 'LOG_NIVEL');
+  const item = { ...base, opcoes: ['a', 'b', 'c', 'd', 'e', 'f'], rotulos: null,
+                 aceita_vazio: true, previa: null, lista: false };
+  const cartao = document.createElement('article');
+  const c = montarControle(item, cartao);
+  const vazio = c && c.querySelector('select option[value=""]');
+  return vazio ? vazio.textContent : '(sem opção vazia)';
+}
+"""
+
+
 def casos_da_p82(pag):
     """Os casos de interface da P82 (itens 28 em diante). Devolve [(onde, defeito)]."""
     reprovas = []
@@ -685,6 +701,10 @@ def casos_da_p82(pag):
     pag.locator('#trilho button[data-grupo="Áreas de trabalho"]').click()
     assentar(pag)
     reprovas += [("áreas sem nome", d) for d in pag.evaluate(AREAS_SEM_NOME_JS)]
+    # Item 29: um nome por valor — o vazio do `<select>` é o «Não tocar».
+    vazio = pag.evaluate(SELETOR_VAZIO_JS)
+    if vazio != "— não tocar —":
+        reprovas.append(("seletor", f"o vazio do <select> se chama «{vazio}», e o botão ao lado, «Não tocar»"))
     return reprovas
 
 
