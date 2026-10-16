@@ -36,7 +36,9 @@ _texto_de() {
   local u="$1" texto linhas
   texto="$(cat "$ORIGEM/$u" 2>/dev/null)" || return 1
   if [ "$u" = "$GATILHO" ]; then
-    linhas="$("$RAIZ/scripts/derivados.sh" --pastas | sed 's/^/PathModified=/')"
+    # `%` numa unidade é especificador do systemd: a pasta de um pack que o
+    # tenha no nome entra como `%%`, senão a linha vigia outro caminho, ou some.
+    linhas="$("$RAIZ/scripts/derivados.sh" --pastas | sed -e 's/%/%%/g' -e 's/^/PathModified=/')"
     [ -n "$linhas" ] || return 1
     # Só a linha que é o marcador inteiro: o comentário que o cita fica comentário.
     texto="$(awk -v linhas="$linhas" '$0 == "@VIGIADOS@" { print linhas; next } { print }' <<<"$texto")"
