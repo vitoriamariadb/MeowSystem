@@ -496,6 +496,40 @@ else
   falha "segurança: a paleta com quebra de linha num slot passou no validar" "$(printf '%s\n' "$saida" | tail -3)"
 fi
 
+# --- P82, item 9 (decisões 16, 18 e 19): Firefox, Vesktop e os projetos pessoais
+#   O traço do Firefox estava em `blue`, que é do Chrome (o próprio
+#   `apps-marca.map` mede); o Vesktop não tinha linha no mapa do pack; e os
+#   autorais `hefesto-*` e `fogstripper-*` (projetos pessoais) moravam nos dois
+#   packs, contra a regra de 23/09.
+grep -qx 'firefox:firefox:peach' "$RAIZ/assets/icones/apps-arcticons.map" \
+  && ok "o traço do Firefox é peach" \
+  || falha "o traço do Firefox não é peach" "$(grep '^firefox:' "$RAIZ/assets/icones/apps-arcticons.map")"
+v="$(amb python3 "$RAIZ/scripts/pack.py" fonte dev.vencord.Vesktop 2>&1 | head -3)"
+grep -qE '^dev\.vencord\.Vesktop[[:space:]]*:[[:space:]]*apps/com\.discordapp\.Discord\.svg' "$RAIZ/packs/dracula/icones/apps.map" \
+  && ok "o Vesktop veste o Discord do pack Dracula" \
+  || falha "o Vesktop não tem linha no mapa do pack Dracula" "$v"
+pessoais="$(find "$RAIZ/packs" -iname '*hefesto*' -o -iname '*fogstripper*')"
+[ -z "$pessoais" ] && ok "nenhum desenho de projeto pessoal (hefesto, fogstripper) nos packs" \
+  || falha "os packs ainda trazem desenhos de projeto pessoal" "$pessoais"
+# Sem a logo apontada (ICONES_LOGO_HEFESTO vazia, a de fábrica), o completar
+# não põe desenho nenhum para o Hefesto, e arranca o desenho gerado que uma
+# passagem antiga deixou no tema (o `<title>hefesto — ` é a marca de dono).
+CI="$T/casa-ci"; TEMA_CI="$CI/.local/share/icons/MeowSystem-Icons"
+mkdir -p "$TEMA_CI/scalable/apps"
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$TEMA_CI/index.theme"
+printf '<svg xmlns="http://www.w3.org/2000/svg"><title>hefesto — Dracula</title></svg>\n' \
+  > "$TEMA_CI/scalable/apps/hefesto-dualsense4unix.svg"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CI" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
+           PACK=dracula FLAVOR=dracula ACCENT=purple ICONES_LOGO_HEFESTO="" \
+           "$RAIZ/scripts/completar_icones.sh" 2>&1)"
+if grep -q 'removeria hefesto-dualsense4unix.svg' <<< "$saida" \
+   && ! grep -qE '(instalaria|mudaria) .*(hefesto|vitoriamaria|fogstripper)' <<< "$saida"; then
+  ok "sem a logo apontada, o completar não desenha o Hefesto e arranca o desenho gerado antigo"
+else
+  falha "o completar ainda depende do desenho gerado do Hefesto" "$(grep -iE 'hefesto|fogstripper|vitoriamaria' <<< "$saida" | head -4)"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"

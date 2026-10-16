@@ -220,13 +220,15 @@ declare -A AUTORAL=(
   # e do acento em vigor. O desenho autoral `meowsystem-painel-<flavor>.svg`
   # continua como a rede, para o pack sem logo ou com o logo recusado.
   [com.meowsystem.Painel]="__LOGO_DO_PACK__"
-  [fogstripper]="fogstripper-$FLAVOR.svg"
+  # [O FOGSTRIPPER SAIU DAQUI EM 15/10/2026, P82 (decisão 16): é projeto
+  #   pessoal, e o desenho dele saiu dos autorais dos dois packs pela regra de
+  #   23/09. O ícone dele volta a ser o do próprio aplicativo.]
   # EXCEÇÃO, a pedido dela: o Hefesto TEM logo própria, e foi ELA que desenhou
   # (~/Desenvolvimento/hefesto-dualsense4unix/assets/hefesto-logo.svg — a bigorna
   # com o martelo). O desenho autoral que eu tinha feito era um controle genérico,
   # sem identidade nenhuma perto do dela. Autoria dela vence tema, sempre.
-  # Se o repositório não estiver no lugar, cai no desenho gerado — o instalador
-  # não pode depender de um caminho fora dele.
+  # [P82: sem a `ICONES_LOGO_HEFESTO` apontando para ela, nada entra — o
+  #   desenho gerado saiu dos packs junto com o do FogStripper.]
   [hefesto-dualsense4unix]="__LOGO_DELA__"
   [com.vitoriamaria.HefestoDualsense4Unix]="__LOGO_DELA__"
 )
@@ -316,7 +318,6 @@ fi
 
 mudou=0
 avisos=0
-pendente=0   # a logo do Hefesto que ficou no tema esperando uma escolha (passo 2)
 
 # --- 0. o tema precisa existir e declarar scalable/apps ----------------------
 # Sem isto o script "funciona" e não aparece nada: é a armadilha clássica de tema
@@ -409,42 +410,18 @@ for nome in "${!AUTORAL[@]}"; do
     meow_info "o pack no ar não deu um logo — o lançador fica com o desenho autoral"
   fi
   # A EXCEÇÃO: onde o mapa diz `__LOGO_DELA__`, a fonte é a logo que a Vitória
-  # desenhou, no repositório do próprio app. Se ele não estiver no lugar (clone
-  # ausente, disco não montado), cai no desenho gerado — o instalador não pode
-  # ficar de pé ou não por causa de um caminho fora dele.
+  # desenhou, no repositório do próprio app, apontada pela `ICONES_LOGO_HEFESTO`.
+  # [P82, 15/10/2026 (decisão 16): sem a chave, ou com ela apontando para um
+  #   arquivo que não está lá, o Hefesto fica com o ícone do próprio
+  #   aplicativo. Era o «desenho gerado» do pack, e ele saiu dos autorais dos
+  #   dois packs — projeto pessoal, regra de 23/09.]
   if [ "${AUTORAL[$nome]}" = "__LOGO_DELA__" ]; then
     if [ -n "$LOGO_HEFESTO_DELA" ] && [ -f "$LOGO_HEFESTO_DELA" ]; then
       fonte="$LOGO_HEFESTO_DELA"
     else
-      fonte="$AUTORAIS/hefesto-$FLAVOR.svg"
-      # A chave apontando para um arquivo que não está lá se diz na hora. Vazia
-      # é a escolha de fábrica, e só vira linha no log no caso logo abaixo.
-      if [ -n "$LOGO_HEFESTO_DELA" ]; then
-        meow_info "a logo do Hefesto não está em $LOGO_HEFESTO_DELA (ICONES_LOGO_HEFESTO) — usando o desenho gerado"
-      elif [ -f "$ALVO/$nome.svg" ] && ! grep -q '<title>hefesto — ' "$ALVO/$nome.svg"; then
-        # A ARTE QUE JÁ ESTÁ NO TEMA NÃO SE TROCA EM SILÊNCIO — 24/09/2026 (P39)
-        #   Com a chave vazia a fonte é o desenho gerado. Numa máquina onde a
-        #   logo dela já entrou no tema (pelo caminho cravado de antes da P39, ou
-        #   por uma chave que depois foi apagada), escrever aqui seria o `meow
-        #   doctor --consertar` das 5h pondo o desenho gerado no lugar da arte
-        #   aprovada sem ninguém decidir. Medido na revisão da P39, na casa onde
-        #   o projeto nasceu: sem esta guarda o seco passou a dizer `mudaria`
-        #   para os dois nomes do Hefesto.
-        #
-        #   O QUE É NOSSO SE PROVA PELO CONTEÚDO, como no `_hicolor_orfaos` lá
-        #   embaixo: todo desenho que o `gerar_icones_autorais.py` escreve para o
-        #   Hefesto carrega `<title>hefesto — <pack>`, em qualquer pack e flavor
-        #   (o título é do gerador, não da declaração). O que não carrega não
-        #   saiu daqui, e fica: o script sai 4, que o doctor e o instalador leem
-        #   como "escolha sua" e o auto-reparo não toca, e a linha diz as duas
-        #   saídas. Um pack que tire o `{titulo}` do desenho cai no mesmo lado
-        #   seguro — o arquivo fica, com o aviso.
-        meow_aviso "$nome.svg no tema não é o desenho gerado e ICONES_LOGO_HEFESTO está vazia — fica como está"
-        meow_info "  para mantê-lo em dia: ICONES_LOGO_HEFESTO=\"<caminho do .svg>\" no meow.conf"
-        meow_info "  para usar o desenho gerado: apague $ALVO/$nome.svg"
-        pendente=1
-        continue
-      fi
+      [ -n "$LOGO_HEFESTO_DELA" ] && \
+        meow_info "a logo do Hefesto não está em $LOGO_HEFESTO_DELA — o Hefesto fica com o ícone dele"
+      continue
     fi
   fi
   if [ ! -f "$fonte" ]; then
@@ -500,6 +477,24 @@ for nome in "${RETIRADOS[@]}"; do
 done
 [ "$retirados" -gt 0 ] && ! meow_seco &&
   meow_ok "$retirados desenho(s) autorais retirados — quem veste os oito agora é o Arcticons"
+
+# --- 2c. os desenhos gerados dos projetos pessoais — P82 (decisão 16) ----------
+# O FogStripper e o Hefesto tinham desenho gerado nos autorais do pack, e ele
+# saiu. O que uma passagem antiga plantou no tema sai também — só o que é
+# nosso, provado pelo conteúdo: todo desenho que o `gerar_icones_autorais.py`
+# escrevia para eles carrega `<title>hefesto — ` ou `<title>fogstripper — `. A
+# logo dela (a `ICONES_LOGO_HEFESTO`) não carrega, e fica.
+for nome in fogstripper hefesto-dualsense4unix com.vitoriamaria.HefestoDualsense4Unix; do
+  [ -f "$ALVO/$nome.svg" ] || continue
+  grep -qE '<title>(hefesto|fogstripper) — ' "$ALVO/$nome.svg" || continue
+  if meow_seco; then
+    meow_muda "removeria $nome.svg de scalable/apps (o desenho gerado saiu do pack)"
+    mudou=1
+    continue
+  fi
+  meow_destino_permitido "$ALVO/$nome.svg" || exit "$MEOW_ERRO"
+  rm -f "$ALVO/$nome.svg" && mudou=1
+done
 
 # --- 3. apelidos vindos do Papirus -------------------------------------------
 # Papirus ausente NÃO é erro: os autorais já entraram e o resto do tema continua
@@ -722,9 +717,6 @@ if ! meow_seco && [ -x "$RAIZ/scripts/auditar_icones.sh" ]; then
 fi
 
 if [ "$mudou" = "0" ]; then
-  # 4 e não 0: o resto está no lugar, mas o aviso do passo 2 espera uma escolha
-  # dela, e um "ok" por cima dele o esconderia na tabela do doctor.
-  [ "$pendente" = "1" ] && exit 4
   [ "$sem_base" = "1" ] && exit "$MEOW_SEM_DEPENDENCIA"
   meow_ok "ícones completos: ${#AUTORAL[@]} autorais e ${#APELIDO[@]} apelido(s) já no lugar"
   exit "$MEOW_OK"

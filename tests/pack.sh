@@ -1868,9 +1868,11 @@ saida="$(amb "$RAIZ/bin/meow" pack info "$CSV_ID" 2>&1)"
 # OS AUTORAIS NAS CORES DO CSV, E NÃO NOS FLAVORS DO PAI. Herdados, eles eram
 # os 44 do Catppuccin — mocha, macchiato, frappe, latte —, e nenhum vestia o
 # `tinta`. O `novo` os entrega construídos: 11 desenhos x 2 flavors, próprios.
+# [P82, 15/10/2026 (decisão 16): o Hefesto e o FogStripper saíram dos autorais
+#   dos packs, e são 9 desenhos x 2 flavors.]
 linha_autorais="$(grep '^  icones.autorais ' <<< "$saida")"
-[[ "$linha_autorais" == *"PRÓPRIO"*"22 desenho(s), 2 flavor(s)"* ]] \
-  && ok "os ícones autorais nascem próprios, nas cores do CSV: 22 desenhos, 2 flavors" \
+[[ "$linha_autorais" == *"PRÓPRIO"*"18 desenho(s), 2 flavor(s)"* ]] \
+  && ok "os ícones autorais nascem próprios, nas cores do CSV: 18 desenhos, 2 flavors" \
   || falha "os ícones autorais do pack de CSV não são dele" "$linha_autorais"
 # O id tem hífen e o flavor não pode ter: um CSV com o flavor escrito como o id
 # é recusado com a linha, e nada é escrito.
@@ -1981,7 +1983,7 @@ else
 a, b = (json.load(open(x, encoding="utf-8")) for x in sys.argv[1:])
 for d in (a, b): d.pop("_comentario", None)
 print("sim" if a == b else "nao")' "$T/csv-paleta.json" "$DA_PESSOA/minha-tinta/paleta.json")"
-  [ "$rc" = "0" ] && [ "$mesma" = "sim" ] && [ "$n_autorais" = "22" ] \
+  [ "$rc" = "0" ] && [ "$mesma" = "sim" ] && [ "$n_autorais" = "18" ] \
     && ok "o pack importado do .csv valida, com a paleta e os autorais do novo --de-csv" \
     || falha "o .csv importado não é o pack que o novo --de-csv monta (rc=$rc, $n_autorais autorais)" "$saida"
 fi
@@ -2098,7 +2100,7 @@ if not (st == 200 and r.get("precisa_confirmar") is True and "minha-tinta" in r.
     erros.append(f"o ensaio do .csv não pediu confirmação com o pack desenhado: {st} {r}")
 if pack.get("derivados") != {"tintaclaro": "tinta"} or not any("blue/base" in l for l in pack.get("regua", [])):
     erros.append(f"o pack do ensaio não traz o claro derivado e a régua: {pack.get('derivados')} {pack.get('regua')}")
-if pack.get("icones") != 22 or "herdado de" not in pack.get("ponteiro", ""):
+if pack.get("icones") != 18 or "herdado de" not in pack.get("ponteiro", ""):
     erros.append(f"o pack do ensaio não diz os autorais próprios e o que é herdado: {pack}")
 if os.path.exists(destino):
     erros.append("o ensaio do .csv escreveu o pack")

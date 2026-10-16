@@ -130,6 +130,9 @@ net.waterfox.waterfox : apps/net.waterfox.waterfox.svg   # Waterfox — o Firefo
 com.discordapp.Discord : apps/com.discordapp.Discord.svg   # Discord — o resgatado aprovado em 16/09
 com.spotify.Client : apps/com.spotify.Client.svg   # Spotify — o resgatado aprovado em 16/09
 syncthing : apps/syncthing.svg   # Syncthing Web UI — o resgatado aprovado em 16/09
+# O VESKTOP — 15/10/2026, P82 (decisão 18). É um cliente do Discord, e sem linha
+#   ele caía no ícone do flatpak, que destoa do pack. Veste o mesmo desenho.
+dev.vencord.Vesktop : apps/com.discordapp.Discord.svg   # Vesktop — o desenho do Discord
 
 # A BIBLIOTECA INTEIRA DO DRACULA_OS-THEME — 23/09/2026, P36
 #   A queixa: "vc tinha achado mais de 300 [SVGs] do tema dracula mas eles não
@@ -409,7 +412,6 @@ setup-mozc : biblioteca/tarot.svg   # Mozc Setup [override-novo]
 # --- já têm arte autoral no MeowSystem (não entram) -----------------------
 # com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
 # com.system76.CosmicEdit                    -> autorais/cosmic-edit-dracula.svg   # Editor de Texto
-# fogstripper                                -> autorais/fogstripper-dracula.svg   # FogStripper
 # com.system76.CosmicFiles                   -> autorais/cosmic-files-dracula.svg   # Gestor de Arquivos
 # com.system76.CosmicStore                   -> autorais/cosmic-store-dracula.svg   # Loja de Aplicativos
 # com.system76.CosmicTerm                    -> autorais/cosmic-term-dracula.svg   # Terminal
@@ -419,7 +421,6 @@ setup-mozc : biblioteca/tarot.svg   # Mozc Setup [override-novo]
 # Ubuntu-selfservice : ?   # Citrix Workspace (on Ubuntu)
 # com.github.rafostar.Clapper : ?   # Clapper
 # be.alexandervanhee.gradia : ?   # Gradia
-# hefesto-dualsense4unix : ?   # Hefesto - Dualsense4Unix
 # com.meowsystem.Painel : ?   # MeowSystem
 # com.microsoft.Edge : ?   # Microsoft Edge
 # com.obsproject.Studio : ?   # OBS Studio

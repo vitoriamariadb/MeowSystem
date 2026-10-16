@@ -392,7 +392,7 @@ input-remapper:keymapper:sky
 #   ELA tinha escolhido na folha. Aqui foi ela quem reprovou o glifo, por nome.
 
 # — o que restou da unificação dos 35, agrupado pela categoria que define a cor
-firefox:firefox:blue
+firefox:firefox:peach
 google-chrome:google-chrome:yellow
 thunderbird:thunderbird:sky
 com.boxy_svg.BoxySVG:vector:pink
