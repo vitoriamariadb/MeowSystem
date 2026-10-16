@@ -148,8 +148,9 @@ volta atrás. Veio da P86.
 | todo dia por volta do meio-dia (até 30 min de folga) | a sentinela lê `apt list --upgradable` (só leitura) e, havendo `cosmic-*` novo, mede o candidato com o `meow cosmic prever`: esquema, chaves, série de patches com a escada, ferramenta de build (`just`, `make` ou `cargo`) e `rust-version`. O resultado fica em `~/.local/state/meowsystem/sentinela.tsv`. A mesma fila não é medida duas vezes | `meow-sentinela.timer` |
 | todo dia às 5h | o doctor conserta o que estiver fora | `meow-doctor.timer` |
 | depois de todo apt | o pós-apt refaz o que o COSMIC novo desfez | `meow-pos-apt.path` |
+| depois de todo apt | a sentinela relê a fila: o cartão dela sai assim que o candidato foi instalado | `meow-sentinela.path` |
 | uma vez por login | o build que falta para a versão instalada | `meow-builds-login.service` |
-| a cada tique do doctor, do pós-apt e do login | o cartão «Precisa de gente» se confere: a linha sai sozinha quando o problema some | os três de cima |
+| a cada tique da sentinela, do doctor, do pós-apt e do login | o cartão «Precisa de gente» se confere: a linha sai sozinha quando o problema some | os de cima |
 
 `AUTO_REPARO="nao"` no `meow.conf` desliga a sentinela junto com o resto.
 
@@ -174,7 +175,7 @@ extensão de pack importado) continua pendência com botão. A regra de quem dec
 
 | para voltar | faça |
 |---|---|
-| sem a sentinela | `AUTO_REPARO="nao"` no `meow.conf`, e `./install.sh` remove o timer; ou `systemctl --user disable --now meow-sentinela.timer` |
+| sem a sentinela | `AUTO_REPARO="nao"` no `meow.conf`, e `./install.sh` remove o timer e o path; ou `systemctl --user disable --now meow-sentinela.timer meow-sentinela.path` |
 | ver o último resultado dela | `meow cosmic sentinela ler`, ou o `sentinela.tsv` |
 | medir de novo o mesmo candidato | apague `~/.local/state/meowsystem/sentinela.tsv` |
 | tirar uma linha do cartão | resolva a causa: ele se confere sozinho. O arquivo é `~/.local/state/meowsystem/precisa-de-gente.tsv` |
