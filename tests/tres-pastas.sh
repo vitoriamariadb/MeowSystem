@@ -202,7 +202,7 @@ C7="$T/casa7"; TEMA7="$C7/.local/share/icons/MeowSystem-Icons"
 mkdir -p "$TEMA7/scalable/apps" "$C7/.config/meow"
 icones7() {   # icones7 <pack> <flavor> [traço de quem usa]
   env -i PATH="$FALSO:$PATH" HOME="$C7" USER="${USER:-t}" LANG=C.UTF-8 NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
-    XDG_DATA_HOME="$T/xdg7" MEOW_ESTADO="$C7/estado" PACK="$1" FLAVOR="$2" ICONES_DRACULA=sim \
+    XDG_DATA_HOME="$T/xdg7" MEOW_ESTADO="$C7/estado" PACK="$1" FLAVOR="$2" ICONES_DRACULA="${DRAC7:-sim}" \
     NOME_TEMA_ICONES=MeowSystem-Icons ICONES_TEMA=MeowSystem-Icons \
     MEOW_ICONES_TRACO="${3:-$C7/sem-traco.map}" MEOW_ICONES_CONVERTIDOS="$C7/sem-conv.map" \
     bash -c '"$MEOW_RAIZ/scripts/icones_apps_dracula.sh" --aplicar; "$MEOW_RAIZ/scripts/icones_apps_arcticons.sh"' >/dev/null 2>&1
@@ -223,6 +223,12 @@ icones7 dracula dracula "$C7/traco.map"
 [ -f "$TEMA7/48x48/apps/org.kde.krita.svg" ] && [ ! -e "$TEMA7/48x48/apps/com.spotify.Client.svg" ] \
   && ok "o traço que quem usa escolheu fica, e só ele" \
   || falha "a escolha de traço de quem usa não ficou, ou levou outros junto"
+# A camada do Dracula desligada tira o desenho do scalable: o traço tem de voltar.
+DRAC7=nao icones7 dracula dracula
+[ -f "$TEMA7/48x48/apps/steam.svg" ] && [ -f "$TEMA7/48x48/apps/org.kde.krita.svg" ] \
+  && [ ! -e "$TEMA7/scalable/apps/steam.svg" ] \
+  && ok "com ICONES_DRACULA=nao o desenho do pack sai, e o traço volta a 48 px" \
+  || falha "com ICONES_DRACULA=nao o nome ficou sem o desenho do pack e sem o traço"
 icones7 catppuccin mocha
 [ -f "$TEMA7/48x48/apps/steam.svg" ] && [ -f "$TEMA7/48x48/apps/com.spotify.Client.svg" ] \
   && ok "com o Catppuccin no ar (sem desenho de pack para eles), o traço volta" \

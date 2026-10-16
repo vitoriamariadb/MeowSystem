@@ -385,8 +385,17 @@ _ceder_ao_pack() {
       do_usuario["$nome"]=1
     done < "$m"
   done
-  while IFS=$'\t' read -r nome _; do
+  while IFS=$'\t' read -r nome fonte camada; do
     [ -n "$nome" ] && [ -n "${ARTE[$nome]:-}" ] && [ -z "${do_usuario[$nome]:-}" ] || continue
+    # Só cede a quem de fato veste: o desenho existe, e a camada dele está
+    # ligada (`ICONES_DRACULA`, `ICONES_RESGATADOS`). Senão o nome ficaria
+    # sem o desenho e sem o traço.
+    case "$fonte" in /*) ;; *) fonte="$RAIZ/$fonte" ;; esac
+    [ -f "$fonte" ] || continue
+    case "$camada" in
+      pack:*)     [ "${ICONES_DRACULA:-sim}" != "nao" ] || continue ;;
+      resgatados) [ "${ICONES_RESGATADOS:-sim}" = "sim" ] || continue ;;
+    esac
     meow_debug "$nome: o desenho do pack vence o traço, também a 48 px"
     unset 'ARTE[$nome]' 'GLIFO[$nome]' 'ACERVO[$nome]' 'COR[$nome]' 'DUPLO[$nome]'
     CEDIDO["$nome"]=1
