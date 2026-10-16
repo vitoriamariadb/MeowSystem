@@ -33,6 +33,7 @@ erradas; mandamos a PR pro repo original da Vitória».
    - roda as checagens de informação errada que já existem (`tests/numeros.sh`, `tests/portabilidade.sh`,
      `tests/frases-velhas.sh`, `tests/acento.sh`) e CORRIGE o que for mecânico (número que o próprio
      teste sabe o certo), barrando o resto;
+   - **`AGENTS.md` é exceção do sanitizador anti-IA** (quem usa, 15/10: «AGENTS.md são exceção, pode subir eles»): o gancho global deixa o `AGENTS.md` (e só ele) entrar sem reescrita; o resto do repositório continua sob a regra anti-evidência.
    - ligado à cadeia global: o `pre-commit` global já existente chama o gancho do repositório se houver
      (encadear sem quebrar o sanitizador anti-IA; o gancho global fica com backup datado).
    - Teste: commit com comentário «P99 — 15/10/2026: …» sai com o comentário reduzido; número errado
