@@ -214,6 +214,22 @@ igual "nenhum byte no HOME" "$(foto)" "$antes"
 igual "nenhum build" "$(grep -c . "$T/build.log")" 0
 igual "nenhum download" "$(grep -c . "$T/rede.log")" 0
 
+echo "== COSMIC E, em que o obrigatório não entra (degrau 4): a 2ª passada não tenta de novo"
+# Conferência da P81: sem a regra, cada login, apt e doctor refazia a escada
+# do mesmo fonte com a mesma série e escrevia (o `alvos.novo`, o meow.log).
+cp "$T/patches/cosmic-comp-t.patch" "$T/t.bom"
+sed -i 's|^ // MEOW-ALVO$| // OUTRA-COISA|' "$T/patches/cosmic-comp-t.patch"
+versoes cosmic-comp=0.1~e cosmic-files=1.10~d cosmic-panel=1.10~d
+pos_apt
+igual "o shim fica no de fábrica" "$(qual)" "/usr/bin/cosmic-comp"
+antes="$(foto)"; : > "$T/build.log"
+sleep 1.1; pos_apt; login; doctor5h
+igual "nenhum byte no HOME" "$(foto)" "$antes"
+echo "== o rebase chega (a série muda): a mesma versão compila"
+cp "$T/t.bom" "$T/patches/cosmic-comp-t.patch"
+login
+igual "o shim escolhe o build da E" "$(qual)" "$CASA/0.1~e/cosmic-comp"
+
 grep -v '^apt-get source sem versão' "$T/recusados" 2>/dev/null | grep -q . \
   && { falha "algo chamou um comando recusado:"; sed 's/^/        /' "$T/recusados"; }
 

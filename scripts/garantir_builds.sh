@@ -37,9 +37,14 @@
 # O QUE CADA FALHA DEIXA
 #   O `req` que não entra (degrau 4) aborta antes do make: nada é trocado e o
 #   shim segue no de fábrica. Isso é regra, não falha: sai 0, e a matriz diz
-#   que é rebase. O `opt` que não entra sai do build sozinho (degrau 3, no
-#   `compositor_patches.sh`). Erro de verdade (rede, cargo) sai 2, e o próximo
-#   gatilho tenta de novo — o artefato que falta é a memória, não um carimbo.
+#   que é rebase. E a versão no degrau 4 SAI DOS PENDENTES enquanto a série
+#   não mudar depois da matriz (conferência da P81): o mesmo fonte com a mesma
+#   série recusa o mesmo `req`, e cada login, apt e doctor das 5h refazia a
+#   tentativa, escrevendo. O rebase chega por `git pull` em `patches/`, que
+#   fica mais novo que a matriz, e a versão volta a ser tentada. O `opt` que
+#   não entra sai do build sozinho (degrau 3, no `compositor_patches.sh`).
+#   Erro de verdade (rede, cargo) sai 2, e o próximo gatilho tenta de novo — o
+#   artefato que falta é a memória, não um carimbo.
 #
 # UMA PASSAGEM POR VEZ
 #   `flock` em `$MEOW_ESTADO/builds.lock`, ESPERANDO: um apt no meio do build
@@ -60,6 +65,9 @@ GB_FILES="${GB_FILES:-$MEOW_RAIZ/scripts/files_menu.sh}"
 GB_CASA="${GB_CASA:-${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}}"
 GB_FILES_GUARDA="${GB_FILES_GUARDA:-$MEOW_ESTADO/cosmic-files}"
 GB_MATRIZ="${GB_MATRIZ:-${CP_MATRIZ:-$MEOW_ESTADO/cosmic-comp/matriz.tsv}}"
+# A série e os patches, os mesmos do `compositor_patches.sh`.
+GB_REPO="${CP_REPO:-$MEOW_RAIZ/patches}"
+GB_SERIE="${CP_SERIE:-$GB_REPO/series}"
 GB_TRAVA="${GB_TRAVA:-$MEOW_ESTADO/builds.lock}"
 GB_UNIDADE="meow-builds-login.service"
 GB_FILES_MARCA="MEOW-FILES-WALLPAPER-PATCH-1"
@@ -88,6 +96,11 @@ _gb_files_valido() { # $1 versão
     grep -a -q -- "$GB_FILES_MARCA" "$GB_FILES_GUARDA/$1/$b" 2>/dev/null || return 1
   done
 }
+# 0 = a matriz diz degrau 4 para a versão, e a série não mudou depois dela.
+_gb_comp_degrau4() { # $1 versão
+  awk -F'\t' -v v="$1" '$1==v && $3 ~ /:4( |$)/ {a=1} END {exit !a}' "$GB_MATRIZ" 2>/dev/null || return 1
+  [ -z "$(find "$GB_REPO" "$GB_SERIE" -newer "$GB_MATRIZ" -print -quit 2>/dev/null)" ]
+}
 # A chave do ambiente vence (o doctor exporta o conf inteiro); sem ela, o conf.
 _gb_files_quer() {
   local q="${FILES_MENU:-}"
@@ -101,7 +114,8 @@ _gb_pendentes() {
   while IFS=$'\t' read -r p v; do
     case "$p" in
       cosmic-files) _gb_files_quer && ! _gb_files_valido "$v" && printf '%s\t%s\n' "$p" "$v" ;;
-      cosmic-comp)  [ ! -e "$GB_CASA/$v/ruim" ] && ! _gb_comp_valido "$v" && printf '%s\t%s\n' "$p" "$v" ;;
+      cosmic-comp)  [ ! -e "$GB_CASA/$v/ruim" ] && ! _gb_comp_valido "$v" && ! _gb_comp_degrau4 "$v" \
+                      && printf '%s\t%s\n' "$p" "$v" ;;
     esac
   done < <(_gb_instalados)
   return 0
@@ -122,10 +136,14 @@ _gb_compilar_files() { # $1 versão
 
 _gb_compilar_comp() { # $1 versão
   meow_info "cosmic-comp $1: sem build desta versão — compilando"
+  # O degrau 4 é DESTA tentativa só se ela regravou a matriz (o `compilar`
+  # a toca a cada série pesada): uma linha velha com uma falha de rede antes
+  # da escada não pode virar «espera rebase».
+  local t0; t0="$(date +%s)"
   "$GB_COMPOSITOR" compilar; local rc=$?
   _gb_comp_valido "$1" && return 0
   [ "$rc" = "3" ] && { meow_pula "cosmic-comp $1: falta ferramenta de compilação nesta máquina — a sessão segue no de fábrica"; return 0; }
-  if awk -F'\t' -v v="$1" '$1==v && $3 ~ /:4( |$)/ {a=1} END {exit !a}' "$GB_MATRIZ" 2>/dev/null; then
+  if [ "$(stat -c %Y "$GB_MATRIZ" 2>/dev/null || echo 0)" -ge "$t0" ] && _gb_comp_degrau4 "$1"; then
     meow_pula "cosmic-comp $1: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica"
     return 0
   fi
@@ -139,6 +157,11 @@ cmd_rodar() {
   meow_tem dpkg-query || { meow_pula "sem dpkg nesta máquina"; return "$MEOW_SEM_DEPENDENCIA"; }
   mapfile -t pend < <(_gb_pendentes)
   if [ "${#pend[@]}" = "0" ]; then
+    local vc; vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
+    if [ -n "$vc" ] && _gb_comp_degrau4 "$vc" && ! _gb_comp_valido "$vc"; then
+      meow_pula "cosmic-comp $vc: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica até a série mudar"
+      return "$MEOW_OK"
+    fi
     meow_ok "o compositor e o menu do cosmic-files têm build para a versão instalada"
     return "$MEOW_OK"
   fi

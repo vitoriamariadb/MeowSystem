@@ -28,7 +28,9 @@ ok()    { printf '  ok    %s\n' "$*"; }
 falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 igual() { if [ "$2" = "$3" ]; then ok "$1"; else falha "$1 (esperado '$3', veio '$2')"; fi; }
 
-mkdir -p "$T/bin" "$T/home/.local/bin" "$T/home/.config/meow"
+mkdir -p "$T/bin" "$T/home/.local/bin" "$T/home/.config/meow" "$T/patches"
+# A série de brinquedo: o degrau 4 pergunta se ela mudou depois da matriz.
+echo 'req t.patch MEOW-T' > "$T/patches/series"
 for c in sudo pkexec apt apt-get systemctl systemd-run pkill killall notify-send cargo make; do
   printf '#!/bin/sh\necho "recusado: %s $*" >> "%s/recusados"\nexit 1\n' "$c" "$T" > "$T/bin/$c"
   chmod 755 "$T/bin/$c"
@@ -96,6 +98,7 @@ rodar() {
     HOME="$T/home" PATH="$T/bin:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
     MEOW_ESTADO="$ESTADO" MEOW_CONF="$T/home/.config/meow/meow.conf" \
     GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" \
+    CP_REPO="$T/patches" CP_SERIE="$T/patches/series" \
     "$RAIZ/scripts/garantir_builds.sh" "$@" > "$T/saida" 2>&1
 }
 linhas() { grep -c "$1" "$T/log" 2>/dev/null || true; }
@@ -141,7 +144,21 @@ versoes cosmic-comp=0.1~d cosmic-files=1.10~b
 touch "$T/comp-req-falha"
 : > "$T/log"; rodar; igual "rc 0" "$?" 0
 [ -e "$CASA/0.1~d/cosmic-comp" ] && falha "apareceu build do compositor" || ok "nada foi trocado: o shim segue no de fábrica"
+# A SEGUNDA PASSAGEM NO DEGRAU 4 NÃO TENTA DE NOVO — conferência da P81. O
+# mesmo fonte com a mesma série recusa o mesmo `req`; sem esta regra, cada
+# login, cada apt e cada doctor das 5h refazia a tentativa e escrevia
+# (o `alvos.novo` e o meow.log, medidos com os scripts de verdade).
+antes="$(foto)"
+: > "$T/log"; rodar; igual "2ª passagem no degrau 4: rc 0" "$?" 0
+igual "2ª passagem no degrau 4: nenhuma tentativa" "$(linhas '^compositor compilar')" 0
+igual "2ª passagem no degrau 4: nenhum byte" "$(foto)" "$antes"
+grep -q 'degrau 4' "$T/saida" && ok "e diz o estado (degrau 4)" || falha "a 2ª passagem no degrau 4 não disse o estado"
+# A série muda (o rebase chega com um git pull): a mesma versão tenta de novo.
 rm -f "$T/comp-req-falha"
+sleep 0.05; touch "$T/patches/series"
+: > "$T/log"; rodar; igual "a série mudou: rc 0" "$?" 0
+igual "a série mudou: a mesma versão tenta de novo" "$(linhas '^compositor compilar')" 1
+[ -x "$CASA/0.1~d/cosmic-comp" ] && ok "e o build do rebase fica na casa" || falha "o rebase não deixou build"
 
 echo "-- a falha de verdade sai 2, e o próximo gatilho tenta de novo"
 versoes cosmic-comp=0.1~d2 cosmic-files=1.10~b

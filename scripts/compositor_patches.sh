@@ -1223,7 +1223,12 @@ _cp_gravar_matriz() {
   local ver="$1" linha tmp
   [ "${#_CP_DEGRAUS[@]}" -gt 0 ] || return 0
   linha="$ver"$'\t'"$(date +%F)"$'\t'"${_CP_DEGRAUS[*]}"
+  # A MESMA LINHA SÓ TOCA A MATRIZ — conferência da P81. A data de
+  # modificação dela diz «a série foi pesada agora»: o `garantir_builds.sh`
+  # a compara com `patches/` para não refazer um degrau 4 que a mesma série
+  # recusaria de novo, e para saber que o degrau 4 é desta tentativa.
   if awk -F'\t' -v v="$ver" -v d="${_CP_DEGRAUS[*]}" '$1==v && $3==d {achou=1} END {exit !achou}' "$CP_MATRIZ" 2>/dev/null; then
+    touch "$CP_MATRIZ"
     return 0
   fi
   mkdir -p "${CP_MATRIZ%/*}" || return 1

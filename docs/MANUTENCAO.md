@@ -41,7 +41,8 @@ Uma passada por vez: se o apt chega no meio do build do login, ele espera e conf
 ## Quando um build não sai
 
 - **Patch obrigatório que não entra na versão nova.** Nada é trocado, e a sessão sobe com o
-  compositor de fábrica. A versão espera um rebase do patch, num commit.
+  compositor de fábrica. A versão espera um rebase do patch, num commit. Até lá nenhum gatilho
+  tenta de novo; quando o commit chega em `patches/`, o próximo gatilho compila a mesma versão.
 - **Patch opcional que não entra.** Ele sai do build, e só o efeito dele fica de fora.
 - **Erro de rede ou de compilação.** O próximo gatilho tenta de novo. O registro do compositor fica em
   `~/.cache/meowsystem/cosmic-comp/compilar-<versão>.log`.
