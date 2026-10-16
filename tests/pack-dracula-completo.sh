@@ -546,6 +546,34 @@ saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
 [ -n "$saida" ] && ok "com o Catppuccin, a camada segue o caminho de sempre" \
   || falha "com o Catppuccin, a camada de apps não respondeu"
 
+# --- P82, item 11 (decisões 17 e 21): trocar de pack devolve o que o pack escondia
+#   O `ocultar_apps.sh` só desfazia uma marca pelo `-nome`: trocar do Dracula
+#   para o Catppuccin deixava os 24 do `lancador.ocultar` do pack fora do
+#   lançador. Um /usr/share/applications falso, com os 24 e o `vim`; o conf
+#   esconde só o `vim`, para a lista de fábrica não se misturar à do pack.
+APPS="$T/apps-sistema"; CO="$T/casa-ocultar"; mkdir -p "$APPS" "$CO"
+nomes="$(python3 -c 'import json, sys; print("\n".join(json.load(open(sys.argv[1]))["lancador"]["ocultar"]))' \
+           "$RAIZ/packs/dracula/pack.json")"
+for n in $nomes vim; do
+  printf '[Desktop Entry]\nName=%s\nExec=true\nType=Application\n' "$n" > "$APPS/$n.desktop"
+done
+ocultar() {   # $1 = pack · $2 = flavor
+  env -i PATH="$FALSO:$PATH" HOME="$CO" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_APLICATIVOS_SISTEMA="$APPS" \
+    PACK="$1" FLAVOR="$2" LANCADOR_OCULTAR="vim" "$RAIZ/scripts/ocultar_apps.sh" 2>&1
+}
+marcados() { grep -l '^NoDisplay=true' "$APPS"/*.desktop 2>/dev/null | wc -l; }
+ocultar dracula dracula > /dev/null; com_dracula="$(marcados)"
+ocultar catppuccin mocha > /dev/null; com_catppuccin="$(marcados)"
+antes="$(cat "$APPS"/*.desktop | sha256sum)"
+saida="$(ocultar catppuccin mocha)"; rc=$?
+depois="$(cat "$APPS"/*.desktop | sha256sum)"
+if [ "$com_dracula" = 25 ] && [ "$com_catppuccin" = 1 ] && grep -q '^NoDisplay=true' "$APPS/vim.desktop" \
+   && [ "$rc" = 0 ] && [ "$antes" = "$depois" ]; then
+  ok "trocar do Dracula para o Catppuccin devolve os 24 que o pack escondia, e a 2ª passada não escreve"
+else
+  falha "a troca de pack não devolveu o que o pack escondia (Dracula: $com_dracula, Catppuccin: $com_catppuccin, 2ª rc=$rc)" "$saida"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"

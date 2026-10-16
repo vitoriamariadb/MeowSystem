@@ -1314,4 +1314,17 @@ print("ok: a ficha diz o nome do lançador, o --onde cobre cartão e aba, o logo
 PY
 rm -rf "$_tmp13"
 
+# --- 14. O LANÇADOR DE FÁBRICA NÃO ESCONDE APP DE QUEM USA — P82, item 11 ------
+#   O `LANCADOR_OCULTAR` do exemplo escondia o `google-chrome`, o `steam` e o
+#   `github-desktop`: duplicatas desta máquina, e não programas de sistema
+#   (decisão 17). O conf dela já os tem e não muda.
+_lo="$(sed -n 's/^LANCADOR_OCULTAR="\(.*\)"$/\1/p' "$RAIZ/meow.conf.exemplo" | tr ',' '\n')"
+_errados="$(grep -xE 'google-chrome|steam|github-desktop' <<< "$_lo")"
+if [ -z "$_errados" ] && [ -n "$_lo" ]; then
+  echo "ok: o LANCADOR_OCULTAR de fábrica não esconde o Chrome, a Steam nem o GitHub Desktop"
+else
+  echo "FALHOU: o LANCADOR_OCULTAR de fábrica esconde app de quem usa: $(echo $_errados)" >&2
+  falhas=$((falhas+1))
+fi
+
 exit "$falhas"
