@@ -1837,9 +1837,9 @@ class Percurso:
         if not nomes and motivo.get("porque"):
             self.checa(motivo["porque"].lower() in texto.lower(),
                        f"«{rotulo}» apagado diz por quê: {texto[:160]!r}")
-            return
-        self.checa(nomes and all(f"«{n}»" in texto for n in nomes),
-                   f"«{rotulo}» apagado diz por quê com os nomes da tela {nomes}: {texto[:160]!r}")
+        else:
+            self.checa(nomes and all(f"«{n}»" in texto for n in nomes),
+                       f"«{rotulo}» apagado diz por quê com os nomes da tela {nomes}: {texto[:160]!r}")
         self.esperar_status(409, "/api/rodar")
         sel = cartao.locator("select")
         arg = sel.input_value() if sel.count() else ""
