@@ -187,6 +187,23 @@ if [ -n "$sem_isolar" ]; then
 fi
 ok "todo python3 - do código de produto roda isolado (-I)"
 
+# ----------------------------------------------- o esquema do COSMIC — P82, 15/10/2026 (item 17)
+# O `v1` escrito à mão num caminho de namespace do COSMIC grava (ou lê) numa
+# pasta que o COSMIC instalado pode não usar mais: o 1.10 traz `v1 v2` no tema,
+# e o `janelas.sh` mostrava o `gaps` velho do `v1`. Todo caminho passa pelo
+# `meow_cosmic_v` (lib/comum.sh), que pergunta ao pacote. A exceção é a `v1`
+# LEGADA, que três applets flatpak ainda leem e que o `aplicar_tema.sh` trata
+# à parte de propósito: a linha diz isso nela mesma («a v1 legada»).
+v1_cravado="$(cd "$RAIZ" && grep -rnE '\.[A-Za-z][A-Za-z0-9_]*/v1(/|"|$)' \
+                scripts lib bin/meow install.sh --include='*.sh' --include='meow' \
+              | grep -vE ':[0-9]+:[[:space:]]*#' | grep -v 'a v1 legada')"
+if [ -n "$v1_cravado" ]; then
+  falha "caminho de namespace do COSMIC com v1 cravado (use meow_cosmic_v):"
+  printf '%s\n' "$v1_cravado" | sed 's/^/  /' >&2
+  exit 1
+fi
+ok "nenhum caminho de namespace do COSMIC crava o v1 — todos passam pelo meow_cosmic_v"
+
 command -v python3 >/dev/null || { printf 'pulado: falta python3\n'; exit 0; }
 python3 -c 'import numpy' 2>/dev/null || { printf 'pulado: falta numpy\n'; exit 0; }
 [ -d "$ACERVO" ] || { printf 'pulado: o acervo Arcticons não está aqui\n'; exit 0; }

@@ -1112,7 +1112,8 @@ etapa_tema() {
 # ---------------------------------------------------------------------------
 etapa_modo() {
   passo "Modo claro/escuro"
-  local arq; arq="$(meow_cosmic_dir)/com.system76.CosmicTheme.Mode/v1/is_dark"
+  # [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
+  local arq; arq="$(meow_cosmic_dir)/com.system76.CosmicTheme.Mode/$(meow_cosmic_v com.system76.CosmicTheme.Mode)/is_dark"
   local desejado
   case "$MODO" in
     escuro) desejado=true ;;

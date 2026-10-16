@@ -131,8 +131,9 @@ SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$APP_ID.desktop"
 #   Os dois arquivos continuam sendo território da Aurora — nenhum script daqui
 #   escreve neles (ver `docs/FRONTEIRA.md` e o bloco de cima). O que muda é só
 #   onde se PROCURA.
-ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
-MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center"
+# [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
+ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_wings"
+MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_center"
 
 LEITURA_APPLET="${LEITURA_APPLET:-sim}"
 COMPILAR="${LEITURA_COMPILAR:-0}"

@@ -1187,7 +1187,9 @@ fixo_valido() {
 # imagens diferentes, "próximo" passa a ser relativo ao primeiro — e não há
 # resposta melhor: o `source` é um só por saída, mas o comando é um só.
 imagem_atual() {
-  local estado="$HOME/.local/state/cosmic/com.system76.CosmicBackground/v1/wallpapers"
+  # [P82: o estado do cosmic-bg usa o mesmo número de esquema do pacote.]
+  local estado
+  estado="$HOME/.local/state/cosmic/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)/wallpapers"
   local p
   [ -f "$estado" ] || return 1
   while IFS= read -r p; do
@@ -1237,7 +1239,8 @@ lista_do_grupo() {
 #   `meow doctor` acusaria diferença a cada rodada para sempre, e o auto-reparo
 #   "consertaria" de hora em hora algo que o COSMIC desfaz em cinco minutos —
 #   o mesmo ping-pong que o projeto já teve com a Aurora e resolveu cedendo.
-ESTADO_BG="$HOME/.local/state/cosmic/com.system76.CosmicBackground/v1/wallpapers"
+# [P82: o mesmo número de esquema do pacote, e não um v1 cravado.]
+ESTADO_BG="$HOME/.local/state/cosmic/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)/wallpapers"
 
 limpar_estado_morto() {
   [ -f "$ESTADO_BG" ] || return 1

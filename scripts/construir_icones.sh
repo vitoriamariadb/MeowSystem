@@ -42,7 +42,8 @@ TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 COSMIC="$(meow_cosmic_dir)"
 LOGOS_DIR="$COSMIC/logos"
-TK="$COSMIC/com.system76.CosmicTk/v1"
+# [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
+TK="$COSMIC/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)"
 # (o diretório do applet LogoMenu não é mais tocado aqui — ver o bloco 3)
 
 # Os dois nomes que o COSMIC pede para o botão de aplicativos. São dois porque o

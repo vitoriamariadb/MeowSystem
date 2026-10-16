@@ -182,8 +182,9 @@ ACERVO_LOCAL="$RAIZ/assets/fontes/locais"
 DESTINO_LOCAL="$DESTINO/locais"
 
 COSMIC="$(meow_cosmic_dir)"
-TK="$COSMIC/com.system76.CosmicTk/v1"
-TERM_DIR="$COSMIC/com.system76.CosmicTerm/v1"
+# [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
+TK="$COSMIC/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)"
+TERM_DIR="$COSMIC/com.system76.CosmicTerm/$(meow_cosmic_v com.system76.CosmicTerm)"
 
 # ---------------------------------------------------------------------------
 # `adicionar <arquivo>` — a fonte que ela escolheu, sem abrir terminal

@@ -630,7 +630,8 @@ _ffl_quebras() {
 # `FASTFETCH_LOGO_BLOCOS` no meow.conf: auto (padrão) · quadrante · sextante.
 _ffl_fonte_arquivo() {
   local nome
-  nome="$(sed -n 's/^"\(.*\)"$/\1/p' "$(meow_cosmic_dir)/com.system76.CosmicTerm/v1/font_name" 2>/dev/null)"
+  # [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
+  nome="$(sed -n 's/^"\(.*\)"$/\1/p' "$(meow_cosmic_dir)/com.system76.CosmicTerm/$(meow_cosmic_v com.system76.CosmicTerm)/font_name" 2>/dev/null)"
   [ -n "$nome" ] || nome="${FASTFETCH_LOGO_FONTE:-monospace}"
   fc-match -f '%{file}' "$nome:spacing=100" 2>/dev/null
 }

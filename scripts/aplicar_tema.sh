@@ -160,7 +160,7 @@ e_chave_dela() {
 #   `scripts/gerar_tema_v1.py`, que a deriva da paleta para dentro da captura.
 e_produto() {
   case "$1" in
-    com.system76.CosmicTheme.Dark/v1/*|com.system76.CosmicTheme.Light/v1/*) return 1 ;;
+    com.system76.CosmicTheme.Dark/v1/*|com.system76.CosmicTheme.Light/v1/*) return 1 ;;  # a v1 legada, de propósito
     com.system76.CosmicTheme.Dark/*|com.system76.CosmicTheme.Light/*) return 0 ;;
   esac
   return 1
