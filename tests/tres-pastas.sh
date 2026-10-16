@@ -50,9 +50,11 @@ for id in meowsystem dracula catppuccin; do
     falha "o pack $id não está no formato de três pastas (rc=$rc, pastas: $dirs)" "$saida"
   fi
 done
-[ -z "$(find "$RAIZ/assets/icones" -name '*.svg' 2>/dev/null | grep -v '/previa-arcticons/')" ] \
+# Pelo git, e não pelo disco: o `upstream/` baixado mora ali, fora do índice.
+sobra="$(git -C "$RAIZ" ls-files assets/icones 2>/dev/null | grep '\.svg$' | grep -v '/previa-arcticons/')"
+[ -z "$sobra" ] \
   && ok "assets/icones/ não guarda mais desenho do motor (só a prévia das folhas e os originais de fábrica)" \
-  || falha "sobrou desenho do motor em assets/icones/" "$(find "$RAIZ/assets/icones" -name '*.svg' | grep -v previa-arcticons | head)"
+  || falha "sobrou desenho do motor em assets/icones/" "$(head <<<"$sobra")"
 
 # --- 2. o pack-base não se veste ----------------------------------------------
 saida="$(pack_py caminho meowsystem id 2>&1)"; rc=$?
@@ -191,6 +193,40 @@ dirs="$(find "$T/packs/pack-minimo/icones" -mindepth 1 -maxdepth 1 -type d -prin
 [ "$rc" = "0" ] && [ "$dirs" = "apps,biblioteca,sistema" ] \
   && ok "o pack mínimo do docs/ valida, com um desenho em cada uma das três pastas" \
   || falha "o pack mínimo do docs/ não valida (rc=$rc)" "$saida"
+
+# --- 7. o desenho do pack vence o traço em todo tamanho (decisão 16, 7) ------
+#   Dezessete nomes estão no mapa do Dracula e num mapa de traço do pack-base.
+#   Com o Dracula no ar, o tema tem o desenho do pack em `scalable/apps` e
+#   nenhum traço em `48x48/apps` para eles; o traço que quem usa escolheu fica.
+C7="$T/casa7"; TEMA7="$C7/.local/share/icons/MeowSystem-Icons"
+mkdir -p "$TEMA7/scalable/apps" "$C7/.config/meow"
+icones7() {   # icones7 <pack> <flavor> [traço de quem usa]
+  env -i PATH="$FALSO:$PATH" HOME="$C7" USER="${USER:-t}" LANG=C.UTF-8 NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+    XDG_DATA_HOME="$T/xdg7" MEOW_ESTADO="$C7/estado" PACK="$1" FLAVOR="$2" ICONES_DRACULA=sim \
+    NOME_TEMA_ICONES=MeowSystem-Icons ICONES_TEMA=MeowSystem-Icons \
+    MEOW_ICONES_TRACO="${3:-$C7/sem-traco.map}" MEOW_ICONES_CONVERTIDOS="$C7/sem-conv.map" \
+    bash -c '"$MEOW_RAIZ/scripts/icones_apps_dracula.sh" --aplicar; "$MEOW_RAIZ/scripts/icones_apps_arcticons.sh"' >/dev/null 2>&1
+}
+DEZESSETE="com.discordapp.Discord com.spotify.Client md.obsidian.Obsidian org.telegram.desktop steam org.kde.krita"
+icones7 dracula dracula
+encobertos=""; sem_pack=""
+for n in $DEZESSETE; do
+  [ -e "$TEMA7/48x48/apps/$n.svg" ] && encobertos="$encobertos $n"
+  [ -f "$TEMA7/scalable/apps/$n.svg" ] || sem_pack="$sem_pack $n"
+done
+traco="$(find "$TEMA7/48x48/apps" -name '*.svg' 2>/dev/null | wc -l)"
+[ -z "$encobertos" ] && [ -z "$sem_pack" ] && [ "$traco" -gt 0 ] \
+  && ok "com o Dracula no ar, o desenho do pack veste a 48 px e no scalable ($traco nomes seguem em traço)" \
+  || falha "o traço ainda encobre o desenho do pack a 48 px" "encobertos:$encobertos · sem desenho:$sem_pack · traço: $traco"
+printf 'org.kde.krita:krita:pink\n' > "$C7/traco.map"
+icones7 dracula dracula "$C7/traco.map"
+[ -f "$TEMA7/48x48/apps/org.kde.krita.svg" ] && [ ! -e "$TEMA7/48x48/apps/com.spotify.Client.svg" ] \
+  && ok "o traço que quem usa escolheu fica, e só ele" \
+  || falha "a escolha de traço de quem usa não ficou, ou levou outros junto"
+icones7 catppuccin mocha
+[ -f "$TEMA7/48x48/apps/steam.svg" ] && [ -f "$TEMA7/48x48/apps/com.spotify.Client.svg" ] \
+  && ok "com o Catppuccin no ar (sem desenho de pack para eles), o traço volta" \
+  || falha "sem desenho de pack, o traço não voltou"
 
 if [ "$falhas" -gt 0 ]; then
   printf '\nFALHOU: %s achado(s)\n' "$falhas" >&2

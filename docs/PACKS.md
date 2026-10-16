@@ -751,6 +751,12 @@ formato que o leitor dele lê: `apps-arcticons.map` (`nome:glifo:cor`),
 decidir um formato de mapa que caiba em todos, e reescrever os leitores que
 recolorem por categoria — fica para quando houver um quinto leitor que o peça.
 
+**O desenho de um pack vence o traço do pack-base em todo tamanho** (decisão 16,
+item 7). Um nome que o pack no ar põe em `scalable/apps` (pelo `apps.map`, pelos
+resgatados ou pela escolha do painel) não ganha o traço de 48 px, que antes o
+encobria naquele tamanho — eram 17 no Dracula. Fica o traço que quem usa
+escolheu (a linha dele no `icones-traco.map`).
+
 Os **resgatados** (os desenhos dela que só existiam em PNG, de cor Dracula fixa)
 **não** estão no pack-base: no `meowsystem` o Catppuccin os herdaria (decisão
 16). Moram em `packs/dracula/icones/apps/resgatados/`, com o mapa

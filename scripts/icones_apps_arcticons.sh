@@ -366,6 +366,34 @@ _ler_mapa_convertidos() {
   return 0
 }
 
+# --- o desenho do pack vence o traço em todo tamanho ---------------------------
+# P88, decisão 16 (7). Medido em 15/10: 17 desenhos do pack Dracula (Discord,
+#   Spotify, Obsidian, Telegram, Steam…) ficavam encobertos a 48 px pelo traço
+#   deste diretório, porque um tema acha o `48x48/apps` antes do `scalable`
+#   naquele tamanho. O nome que o `pack.py fontes` põe em `scalable/apps` (o
+#   desenho do pack, o resgate, a escolha do painel) sai daqui, e o `.svg` de
+#   48 px dele vira órfão e é varrido. Fica o traço que quem usa escolheu: a
+#   linha dele no `icones-traco.map` ou no `icones-convertidos.map`.
+declare -A CEDIDO=()     # nome que o desenho do pack veste — o traço cede
+_ceder_ao_pack() {
+  local nome m
+  declare -A do_usuario=()
+  for m in "$MAPA_USUARIO" "$MAPA_CONV_USUARIO"; do
+    [ -f "$m" ] || continue
+    while IFS=':' read -r nome _; do
+      case "$nome" in ''|'#'*) continue ;; esac
+      do_usuario["$nome"]=1
+    done < "$m"
+  done
+  while IFS=$'\t' read -r nome _; do
+    [ -n "$nome" ] && [ -n "${ARTE[$nome]:-}" ] && [ -z "${do_usuario[$nome]:-}" ] || continue
+    meow_debug "$nome: o desenho do pack vence o traço, também a 48 px"
+    unset 'ARTE[$nome]' 'GLIFO[$nome]' 'ACERVO[$nome]' 'COR[$nome]' 'DUPLO[$nome]'
+    CEDIDO["$nome"]=1
+  done < <(MEOW_PACK_DIR="$(meow_pack_dir)" python3 "$RAIZ/scripts/pack.py" fontes 2>/dev/null || true)
+  return 0
+}
+
 # --- o TERCEIRO mapa: a cor puxada da MARCA, e ele nasce DESLIGADO ------------
 #
 # `ICONES_COR_MARCA="sim"` no `meow.conf` liga; qualquer outra coisa (inclusive
@@ -416,6 +444,7 @@ _ler_mapa_marca() {
     [ -n "$nome" ] && [ -n "$cor" ] || continue
     intocavel "$nome" && continue
     # Sem arte é sem efeito: este mapa só REPINTA o que já vem de um acervo.
+    [ -n "${CEDIDO[$nome]:-}" ] && continue
     if [ -z "${COR[$nome]:-}" ]; then
       meow_aviso "apps-marca.map: '$nome' não está em nenhum acervo de traço — linha ignorada"
       continue
@@ -698,6 +727,7 @@ main() {
   # detecta o nome repetido nos dois mapas. Trocar a ordem trocaria só a
   # mensagem, mas a mensagem é a metade útil de uma asserção.
   _ler_mapa_convertidos
+  _ceder_ao_pack
   # A marca entra por ÚLTIMO entre os leitores, e tem de ser assim: ela repinta
   # o que os dois acervos já trouxeram, então precisa deles lidos. Vem ANTES do
   # `_conferir_gemeos` para que a asserção veja a cor FINAL, e não a que seria.
