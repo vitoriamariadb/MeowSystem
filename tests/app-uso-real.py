@@ -701,6 +701,45 @@ def casos_da_p82(pag):
     pag.locator('#trilho button[data-grupo="Áreas de trabalho"]').click()
     assentar(pag)
     reprovas += [("áreas sem nome", d) for d in pag.evaluate(AREAS_SEM_NOME_JS)]
+    # Item 30: o «Usar este ícone» deixa o cartão do aplicativo à vista. A
+    # grade da casa é curta (cabe numa tela), então ela ganha 120 lançadores
+    # que vêm depois do programa de brinquedo na ordem, como numa máquina de
+    # verdade; a página é rolada até a ficha, como quem desceu para escolher.
+    aplicativos = os.path.join(casa.CASA, ".local", "share", "applications")
+    extras = []
+    for i in range(120):
+        extras.append(os.path.join(aplicativos, f"zz.brinquedo.App{i:03d}.desktop"))
+        with open(extras[-1], "w", encoding="utf-8") as fh:
+            fh.write(f"[Desktop Entry]\nName=Zz Brinquedo {i:03d}\nExec=true\nType=Application\n")
+    try:
+        pag.evaluate("() => { APP_ABERTO = null; return carregarApps(); }")
+        abrir_ficha(pag, "firefox")
+        pag.locator(".busca-apps").fill("")
+        assentar(pag)
+        pag.locator(".escolha-icone .tira-glifos button[data-glifo]:not([aria-disabled=true])").first.click()
+        pag.evaluate("() => { const m = document.querySelector('#principal');"
+                     " const f = document.querySelector('.escolha-icone');"
+                     " m.scrollTop += f.getBoundingClientRect().top - m.getBoundingClientRect().top; }")
+        pag.get_by_role("button", name="Usar este ícone", exact=True).click()
+        pag.wait_for_function("() => typeof TRABALHO !== 'undefined' && TRABALHO !== null", timeout=20000)
+        pag.wait_for_function("() => TRABALHO === null", timeout=120000)
+        assentar(pag)
+        vista = pag.evaluate("""(nome) => {
+          const m = document.querySelector('#principal').getBoundingClientRect();
+          const t = [...document.querySelectorAll('.grade-apps button.app')]
+            .find((b) => b.textContent.includes(nome));
+          if (!t) return 'o cartão do aplicativo sumiu da grade';
+          const r = t.getBoundingClientRect();
+          const dentro = r.top >= m.top && r.bottom <= m.bottom;
+          return dentro ? '' : `o cartão do aplicativo ficou fora da vista (topo ${Math.round(r.top)}, `
+            + `janela ${Math.round(m.top)}..${Math.round(m.bottom)})`;
+        }""", casa.PROGRAMA[1])
+        if vista:
+            reprovas.append(("usar este ícone", vista))
+    finally:
+        for f in extras:
+            os.remove(f)
+        pag.evaluate("() => { APP_ABERTO = null; return carregarApps(); }")
     # Item 29: um nome por valor — o vazio do `<select>` é o «Não tocar».
     vazio = pag.evaluate(SELETOR_VAZIO_JS)
     if vazio != "— não tocar —":

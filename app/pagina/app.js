@@ -3734,6 +3734,19 @@ const PASTAS_ABERTAS = new Map();
 /* A repintura da ficha que está na tela (ver "A TIRA SOBREVIVE À REPINTURA"). */
 let PINTAR_FICHA = null;
 
+/* O CARTÃO DO APLICATIVO VOLTA À VISTA — 15/10/2026, P82 (item 30). Depois
+ * do «Usar este ícone» a ficha fecha e a grade se relê: a página encurta e a
+ * rolagem, que estava na ficha, caía no fim dela, longe do cartão que acabou
+ * de mudar. Ele volta ao meio da tela, com o foco, para se ver o ícone novo. */
+function appAVista(id) {
+  const cartao = [...document.querySelectorAll("#conteudo .grade-apps button.app")]
+    .find((b) => b.dataset.app === id);
+  if (!cartao) return;
+  cartao.scrollIntoView({ block: "center" });
+  cartao.focus({ preventScroll: true });
+  ROLAGEM_PENDENTE = 0;
+}
+
 async function carregarApps() {
   const r = await api("/api/apps");
   APPS = r.erro ? { apps: [], total: 0 } : r;
@@ -3854,6 +3867,7 @@ function gradeDeApps(apps, filtro, recarregar) {
       type: "button",
       class: "app" + (APP_ABERTO === a.id ? " aberto" : ""),
       title: `${a.id}  ·  ${a.origem}`,
+      "data-app": a.id,
       onclick: () => {
         APP_ABERTO = APP_ABERTO === a.id ? null : a.id;
         /* [Até 09/10/2026 a busca começava pelo nome do aplicativo — "o palpite
@@ -4253,6 +4267,7 @@ function montarEscolhaDeIcone(app, recarregar) {
         APP_ABERTO = null;
         await fimDoTrabalho();
         await relerLista();
+        appAVista(app.id);
         return;
       }
       const r = await api("/api/app-icone", {
@@ -4285,6 +4300,7 @@ function montarEscolhaDeIcone(app, recarregar) {
       APP_ABERTO = null;
       await fimDoTrabalho();
       await relerLista();
+      appAVista(app.id);
     },
   }));
   /* Só a escolha DE QUEM USA se desfaz daqui (P73): a linha do mapa do
