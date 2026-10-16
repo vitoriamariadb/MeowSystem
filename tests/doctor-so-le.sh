@@ -141,8 +141,10 @@ RC=$?
 DEPOIS="$(painel_real)"
 
 # 1. a prova positiva
+# [QA final da leva H, 16/10/2026: a última linha do doctor era «rode: meow
+#  doctor --consertar» e passou a dizer o estado; o fim do doctor é ela.]
 if [ "$RC" = "1" ] && grep -qE '^ *~~ +logo ' "$TMP/saida" \
-   && grep -q 'rode: meow doctor --consertar' "$TMP/saida"; then
+   && grep -q 'há divergências — o conserto do doctor as acerta' "$TMP/saida"; then
   ok "o doctor rodou até o fim e acusou a casa vazia (rc=1, com a linha do logo)"
 else
   falha "o doctor não chegou ao fim como devia (rc=$RC) — as outras linhas não provam nada"
