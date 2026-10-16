@@ -53,5 +53,4 @@ Retomar: `Workflow({scriptPath: ".../leva-i-final-wf_a4815e79-31a.js", resumeFro
 2. PR para `vitoriamariadb/MeowSystem` a partir de uma branch com HISTÓRICO NOVO (squash): o commit
    63ed2ca do dev local tem a senha do askpass num documento (já removida do tip; o fork não tem o dev).
 3. `~/LEIA-AO-LIGAR.md`: o que foi feito, o que conferir, como voltar (shim e GPU).
-4. `sudo systemctl poweroff` (DESLIGAR, não reiniciar). Se algo falhar, não faz merge do quebrado,
-   escreve onde parou no LEIA-AO-LIGAR e desliga do mesmo jeito.
+4. NÃO desligar nem reiniciar (quem usa mudou em 16/10: «não desliga o PC ao final»). Se algo falhar, não faz merge do quebrado e escreve onde parou no LEIA-AO-LIGAR.
