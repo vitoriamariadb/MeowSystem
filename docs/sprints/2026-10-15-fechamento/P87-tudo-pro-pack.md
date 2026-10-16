@@ -54,7 +54,10 @@ tema já vestia (Ubuntu, Thunderbird ESR, scrcpy, PhotoGIMP, Nautilus); as 33 pe
 Gradia ×2, Citrix ×11, Extensões ×3, shell ×6, markdown ×5, `.desktop` ×2); e as duas trocas desfeitas
 (`io.elementary.appcenter`, `org.gnome.gThumb`). Dos «7» que o relatório contou, só estes dois mudavam de desenho de fato:
 os outros cinco (`menu-editor`, `menulibre`, `onlyoffice` ×2, `stacer`) apontam para o mesmo desenho (bytes iguais ou a
-mesma `fonte` do `mapping.json`).
+mesma `fonte` do `mapping.json`). Na conferência, o `net.waterfox.waterfox` passou do Firefox-Dracula da P28 à raposa do
+motor (`apps/resgatados/`), que a decisão 16 (3) liga por vencer a régua; o Firefox-Dracula fica em `apps/`, achado na busca
+pelo `apps/catalog.json`. No tema montado numa casa temporária, os 45 nomes desta lista vestem o desenho que o mapa diz, e
+os sete «trocados» vestem o mesmo desenho do tema congelado de 24/09.
 
 **Ficou fora, com o motivo:**
 1. 2 PNG do logo do Discord (photorec): marca registrada, sem licença conferida.
@@ -74,7 +77,8 @@ mesma `fonte` do `mapping.json`).
 1. **Beholder, Elden Ring Tracker e Ouroboros já estão em `apps/resgatados/`** (desde antes da P88) e saem no `meow pack
    exportar`. A decisão 13 os manda para fora do pack; tirá-los muda o tema desta casa (o `.desktop` cairia no ícone do
    próprio app), então a P87 não os tocou.
-2. **Hefesto e FogStripper** (22 arquivos): as duas decisões 16 se contradizem, e valeu a da P82, que o teste guarda. Se a
+2. **Hefesto e FogStripper** (22 arquivos): as duas decisões 16 se contradizem, e valeu a da P82, que o teste guarda. A do
+   `02-decisoes.md` é a mais nova (commit `4ab536b`, 15/10 às 22h45, contra `daa954a`, às 20h38) e nomeia o Hefesto. Se a
    da leva for a que vale, é trocar o teste e rodar o `tests/` do plano de novo: os arquivos estão no `scratchpad` da sessão.
 3. **Citrix**: segui a decisão 16 (item 3, «Citrix de 12/09») e o `Ubuntu-selfservice` passou do monitor de 15/09 para o
    vetor de 12/09 (0,030 contra o PNG, 0,227 do monitor). O monitor continua em `apps/resgatados/` e é uma linha do mapa.
