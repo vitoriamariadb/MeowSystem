@@ -469,6 +469,8 @@ def unidades(textos):
     lista, exemplo), diretiva, decoração e linha vazia, na ordem do original."""
     saida = []
     paragrafo = []
+    cheias = [t for t in textos if t.strip()]
+    base = min((len(t) - len(t.lstrip()) for t in cheias), default=0)
     if textos and NOME_E_PROPOSITO.match(textos[0]) and (len(textos) == 1 or not textos[1].strip()):
         saida.append(("fixa", textos[0]))
         textos = textos[1:]
@@ -477,7 +479,8 @@ def unidades(textos):
         if not paragrafo:
             return
         cabeca = len(paragrafo[0]) - len(paragrafo[0].lstrip())
-        if any(linha_estruturada(l) or len(l) - len(l.lstrip()) > cabeca + 2 for l in paragrafo):
+        exemplo = cabeca > base and not any(l.rstrip().endswith((".", ":", ";", ",")) for l in paragrafo)
+        if exemplo or any(linha_estruturada(l) or len(l) - len(l.lstrip()) > cabeca + 2 for l in paragrafo):
             saida.append(("bloco", list(paragrafo)))
         else:
             texto = " ".join(l.strip() for l in paragrafo)
