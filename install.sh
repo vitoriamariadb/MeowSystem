@@ -3114,6 +3114,20 @@ etapa_vigia_flatpak() {
 # LOGO DEPOIS DO IRMÃO, E PELO MESMO MOTIVO
 #   São as unidades `.path` do projeto, e elas andam juntas; o auto-reparo
 #   continua sendo o último de todos.
+# O VIGIA DOS DESENHOS — P88, decisão 15: alterou um desenho de pack, o tema se
+#   atualiza sozinho. Depois de todas as etapas que escrevem no tema: registra a
+#   tabela das fontes (o que os passos acabaram de derivar) e liga o vigia que
+#   refaz o resto. Sem systemd --user, a tabela basta: o doctor das 5h a confere.
+etapa_vigia_derivados() {
+  passo "Vigia dos desenhos dos packs (systemd --user)"
+  local rc rc_vigia
+  NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" "$MEOW_RAIZ/scripts/derivados.sh" --registrar; rc=$?
+  "$MEOW_RAIZ/scripts/vigia_derivados.sh"; rc_vigia=$?
+  { [ "$rc" = 2 ] || [ "$rc_vigia" = 2 ]; } && return 2
+  { [ "$rc" = 1 ] || [ "$rc_vigia" = 1 ]; } && return 1
+  return "$rc"
+}
+
 etapa_vigia_steam() {
   passo "Vigia da Steam (systemd --user)"
   STEAM_VIGIA="${STEAM_VIGIA:-sim}" "$MEOW_RAIZ/scripts/vigia_steam.sh"
@@ -3689,7 +3703,7 @@ main() {
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
-                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt
+                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 

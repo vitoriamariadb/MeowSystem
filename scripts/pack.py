@@ -6812,6 +6812,103 @@ def _autorais_construidos(ident, arquivos):
         return saida
 
 
+# O QUE O VIGIA DOS DERIVADOS OLHA — P88, decisão 15
+#   «SVG alterado numa das três, qualquer outro arquivo se auto atualiza.» As
+#   fontes são as três pastas e os mapas de `icones/`, e o `logo.svg` (o ícone do
+#   lançador), de cada pack de onde o tema deriva: o no ar, os que ele herda e o
+#   pack-base. O `scripts/derivados.sh` compara o sha256 de cada uma com a
+#   tabela da passada anterior e refaz só os passos dos que mudaram.
+#   O sha256 é o do conteúdo sem as quebras de linha do fim: é a forma em que o
+#   `meow_escrever` grava a cópia no tema, e é por ela que um derivado de um
+#   desenho apagado se reconhece.
+def packs_dos_derivados(ref=None):
+    """[(id, diretório)] dos packs de onde o tema deriva, sem repetir."""
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
+    saida, vistos = [], set()
+
+    def junta(r):
+        d = achar(r) if r else None
+        if d and os.path.realpath(d) not in vistos:
+            vistos.add(os.path.realpath(d))
+            saida.append((os.path.basename(d), d))
+            return d
+        return None
+
+    pendentes = [ref]
+    while pendentes:
+        d = junta(pendentes.pop(0))
+        if not d:
+            continue
+        pendentes.append(campo(d, "heranca"))
+        ic = campo(d, "icones") or {}
+        for bloco in (ic.values() if isinstance(ic, dict) else ()):
+            if isinstance(bloco, dict) and isinstance(bloco.get("herda"), str):
+                pendentes.append(bloco["herda"])
+    junta(PACK_BASE)
+    return saida
+
+
+def _sha_sem_fim(caminho):
+    with open(caminho, "rb") as fh:
+        return hashlib.sha256(fh.read().rstrip(b"\n")).hexdigest()
+
+
+def fontes_dos_derivados(ref=None):
+    """{caminho real: sha256} de cada fonte do tema (ver o bloco acima)."""
+    fontes = {}
+    for _id, d in packs_dos_derivados(ref):
+        icones = os.path.join(d, "icones")
+        cands = [os.path.join(d, LOGO)]
+        try:
+            cands += [os.path.join(icones, a) for a in os.listdir(icones) if a.endswith(".map")]
+        except OSError:
+            pass
+        for pasta in PASTAS_DO_FORMATO:
+            for raiz, dirs, arqs in os.walk(os.path.join(icones, pasta)):
+                dirs[:] = [x for x in dirs if not os.path.islink(os.path.join(raiz, x))]
+                cands += [os.path.join(raiz, a) for a in arqs]
+        for c in cands:
+            if os.path.isfile(c) and not os.path.islink(c):
+                fontes[os.path.realpath(c)] = _sha_sem_fim(c)
+    return fontes
+
+
+def pastas_dos_derivados(ref=None):
+    """Os diretórios que a unidade `.path` vigia: a raiz de cada pack (o
+    logo), o `icones/` (os mapas) e cada pasta dentro das três."""
+    pastas = []
+    for _id, d in packs_dos_derivados(ref):
+        pastas += [os.path.realpath(d), os.path.realpath(os.path.join(d, "icones"))]
+        for pasta in PASTAS_DO_FORMATO:
+            for raiz, dirs, _arqs in os.walk(os.path.join(d, "icones", pasta)):
+                dirs[:] = sorted(x for x in dirs if not os.path.islink(os.path.join(raiz, x)))
+                pastas.append(os.path.realpath(raiz))
+    return [p for i, p in enumerate(pastas) if os.path.isdir(p) and p not in pastas[:i]]
+
+
+def cmd_derivados(ref, o_que, resto):
+    if o_que == "fontes":
+        for caminho, sha in sorted(fontes_dos_derivados(ref).items()):
+            print(f"{caminho}\t{sha}")
+        return OK
+    if o_que == "pastas":
+        for pasta in pastas_dos_derivados(ref):
+            print(pasta)
+        return OK
+    # `derivados <id> copias <tema> <sha>...`: os arquivos do tema cujo
+    # conteúdo é o de uma fonte que saiu — a prova de que são cópia dela.
+    if o_que == "copias" and resto:
+        tema, procura = resto[0], set(resto[1:])
+        for raiz, _dirs, arqs in os.walk(tema):
+            for a in sorted(arqs):
+                c = os.path.join(raiz, a)
+                if not os.path.islink(c) and os.path.isfile(c) and _sha_sem_fim(c) in procura:
+                    print(c)
+        return OK
+    print("  erro uso: derivados <id> fontes|pastas|copias <tema> <sha>...", file=sys.stderr)
+    return ERRO_USO
+
+
 def cmd_caminho(ref, categoria):
     p, _, dir_pack = validar(ref, silencioso=True)
     trilha = categoria.split(".")
@@ -6839,6 +6936,8 @@ def main(argv):
         if verbo == "padrao":
             print(dir_padrao())
             return OK
+        if verbo == "derivados" and len(argv) >= 4:
+            return cmd_derivados(argv[2] or None, argv[3], argv[4:])
         if verbo == "hoje" and len(argv) == 3:
             print(caminho_de_hoje(argv[2]))
             return OK

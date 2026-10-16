@@ -1329,6 +1329,22 @@ chk_assets() {
   ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" "$RAIZ/scripts/vigia_assets.sh" --conferir 2>&1
 }
 
+# OS DESENHOS DOS PACKS E O QUE DERIVA DELES — P88, decisão 15. A tabela das
+#   fontes contra o disco (o que o vigia perdeu com o PC desligado) e o próprio
+#   vigia. Sem systemd --user, vale a tabela.
+_derivados_pior() {
+  { [ "$1" = 2 ] || [ "$2" = 2 ]; } && return 2
+  { [ "$1" = 1 ] || [ "$2" = 1 ]; } && return 1
+  return "$1"
+}
+chk_derivados() {
+  local s1 s2 r1 r2
+  s1="$("$RAIZ/scripts/derivados.sh" --conferir 2>&1)"; r1=$?
+  s2="$("$RAIZ/scripts/vigia_derivados.sh" --conferir 2>&1)"; r2=$?
+  printf '%s\n%s\n' "$s1" "$s2"
+  _derivados_pior "$r1" "$r2"
+}
+
 # O atalho do painel de configuração — o `.desktop` "MeowSystem" do lançador e o
 # `~/.local/bin/meow-painel` que ele executa. Confere o TEXTO dos dois e o bit de
 # execução do segundo, que é a única divergência que não aparece no conteúdo: um
@@ -2016,6 +2032,10 @@ fix_lancadorapt() {
 }
 fix_assets()    { ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" \
                     "$RAIZ/scripts/vigia_assets.sh" --aplicar 2>&1; }
+fix_derivados() { local r1 r2
+                  MEOW_DERIVADOS_ESPERA=0 "$RAIZ/scripts/derivados.sh" --aplicar 2>&1; r1=$?
+                  "$RAIZ/scripts/vigia_derivados.sh" --aplicar 2>&1; r2=$?
+                  _derivados_pior "$r1" "$r2"; }
 fix_atalho()    { "$RAIZ/scripts/atalho.sh" --aplicar 2>&1; }
 # Conserta o que é aritmética (o `transform-origin` achatado) e continua
 # devolvendo 1 pelo que não é — uma peça fora da tela por outra razão fica
@@ -2186,7 +2206,7 @@ fix_autoreparo() {
 #   que dependem deles, e a passada terminava com os dois pulados por "falta
 #   dependência" que ela mesma tinha acabado de instalar. Logo depois da
 #   ponte, que é por onde o `pacotes` passa.
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia autostart atalho autoreparo cli escala fontes logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho autoreparo cli escala fontes logo indice)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso

@@ -1073,6 +1073,28 @@ exista lá e aqui não é empate, é a precedência *"Dracula vence tudo"* que f
 escolhida em 16/09/2026, com um interruptor (`ICONES_DRACULA`) que devolve o
 Arcticons sem apagar nada.
 
+### Alterou o desenho, o tema se atualiza sozinho
+
+Decisão 15 (15/10/2026): um SVG salvo numa das três pastas de qualquer pack de
+onde o tema deriva (o no ar, os herdados, o pack-base), uma linha de mapa ou o
+`logo.svg` chegam ao tema instalado em segundos, sem comando.
+
+- **O vigia** é o `meow-derivados.path`, uma linha `PathModified=` por pasta
+  (o `install.sh` a escreve, e reescreve ao trocar de pack), e o
+  `meow-derivados.service` irmão roda o `scripts/derivados.sh`.
+- **Uma função, idempotente.** A tabela `~/.local/state/meowsystem/derivados.tsv`
+  guarda o sha256 de cada fonte na passada anterior; a passada refaz só os
+  passos de quem mudou (os mesmos do instalador, que só reescrevem o que
+  difere), reindexa a cache do tema e relê a tela uma vez no fim. Salvar de
+  novo o mesmo conteúdo não escreve nada. O desenho apagado leva junto a cópia
+  dele no tema (o arquivo com o sha256 que ele tinha).
+- **A espera** de 2 s antes de comparar faz uma rajada de salvamentos virar uma
+  passada só.
+- **O doctor das 5h** confere a mesma tabela e refaz o que o vigia perdeu com o
+  PC desligado.
+- O tema não tem derivado raster: uma fonte SVG deriva `scalable`, e só ele (ver
+  abaixo). O seletor do painel lê o disco a cada abertura.
+
 ### `meow icones fonte`
 
 ```

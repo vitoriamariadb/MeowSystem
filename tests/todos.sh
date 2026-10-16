@@ -111,6 +111,7 @@ PORTATIL=(
   achados-tecnicos.sh    # mapa CRLF, BOM, vidro, modo do gato e favoritas num HOME, COSMIC e packs de brinquedo (P79); bash e python3
   trabalho-vivo.sh       # o Trabalho do painel com a janela entre a morte e o desfecho aberta à força, HOME de brinquedo (P80); bash e python3
   reler-uma-vez.sh       # a lib com getent, pgrep e painel.sh falsos numa raiz e HOME de brinquedo; um reler por passada, e o passo de traço de verdade (P80); bash e python3
+  derivados.sh           # alterou o desenho, o tema se atualiza: cópia da árvore e HOME de brinquedo, sem systemd (P88); bash, git e python3
   tres-pastas.sh         # o formato de três pastas: os três packs, a quarta pasta, o .meowpack de antes convertido, packs e HOME de brinquedo (P88); bash, python3 e zstd
 )
 

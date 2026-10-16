@@ -32,8 +32,8 @@ depois de cada merge, e o `dev` recebe a leva inteira de uma vez.
 
 | | |
 |---|---|
-| `install.sh` | 62 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | **64** conferências; o `--consertar` repara o que estiver fora, sem mandar ninguém digitar |
+| `install.sh` | 63 etapas; rodar de novo não escreve um byte |
+| `meow doctor` | **65** conferências; o `--consertar` repara o que estiver fora, sem mandar ninguém digitar |
 | painel | 122 chaves · 64 ações · 14 páginas (a Início e treze de assunto) |
 | packs | dois, versionados: Catppuccin (o padrão; latte, frappé, macchiato e mocha) e Dracula (dracula e o claro alucard) |
 | suíte | `./tests/todos.sh`. O placar não é copiado para cá de propósito: quadro de placar copiado à mão foi o que mentiu por três dias (P23). Cada integração registra o dela, na pasta da leva |
@@ -430,7 +430,7 @@ no topo deste arquivo, e é ele que o `tests/numeros.sh` cobra.
 **fechada**, e fica como está — é história medida, não plano. Duas coisas que a
 leitura de hoje contradiz, e por isso ficam ditas aqui em cima:
 
-- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **64 conferências**
+- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **65 conferências**
   (eram 55 até 21/09; a P23 acrescentou as sete que faltavam);
 - o *"falta um logout"* daquela mesma leva **já aconteceu**: o doctor diz
   *"4 marcadores de pé no disco e na sessão"* e o pipewire está em 1.6.8.
