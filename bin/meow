@@ -418,7 +418,9 @@ chk_gerar() {
     fi
   }
   if [ "$rc" = "0" ] && [ "$rc_ron" = "$MEOW_SEM_DEPENDENCIA" ]; then
-    echo "os .ron ainda não foram gerados nesta máquina — 'meow doctor --consertar' os escreve em $MEOW_ESTADO/temas/"
+    # [16/10/2026, QA final da leva H: a linha dizia «'meow doctor --consertar'
+    #  os escreve em…», o comando para quem está diante do botão. Diz o estado.]
+    echo "os .ron ainda não foram gerados nesta máquina — o conserto os escreve em $MEOW_ESTADO/temas/"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   # QUEM NOMEIA O ARQUIVO É O `meow_paleta_nome` — 22/09/2026
@@ -2654,7 +2656,10 @@ cmd_doctor() {
     case "$pior" in
       0) if tem_aviso_de_espera; then meow_ok "nada a consertar — fica só o aviso acima"
          else meow_ok "nada a consertar"; fi ;;
-      1) meow_muda "há divergências — rode: meow doctor --consertar" ;;
+      # [16/10/2026, QA final da leva H: era «rode: meow doctor --consertar»,
+      #  ao lado do botão «Consertar o que estiver fora» que a gaveta já oferece
+      #  (`conserta_com`). A linha diz o estado; o reparo diário também o faz.]
+      1) meow_muda "há divergências — o conserto do doctor as acerta" ;;
       *) meow_erro "algo falhou ao conferir; veja os detalhes acima" ;;
     esac
     printf '\n'
