@@ -1,14 +1,15 @@
 # P87 — Tudo o que foi achado e recuperado entra no pack Dracula
 
-**Branch:** `sprint/p87` · **Pedido (15/10):** «tô sentindo falta de vários SVGs que fizemos no PC ou
+**Branch:** `sprint/p87` (DEPOIS da P88: já no formato de três pastas) · **Pedido (15/10):** «tô sentindo falta de vários SVGs que fizemos no PC ou
 editamos»; «pode estar na lixeira, pode ter sido excluído, tente recuperar»; «Joga tudo pro pack».
 **Fontes:** `docs/pesquisas/2026-10-15-svgs-faltando.md`, `docs/pesquisas/2026-10-15-svgs-recuperados.md`,
 os `.tsv` da varredura e da recuperação (`/var/tmp/meow-recup/`, scratchpad `svgs/`), decisão 13.
 
 ## Tarefas
 1. Classes a (nossos) e b (versões editadas — TODAS as versões) e c (terceiros com licença conhecida)
-   entram em `packs/dracula/icones/` na pasta certa (`apps/` se veste um app hoje; `biblioteca/` se não;
-   `recuperados/` para versões antigas e recuperados do disco, se a triagem pedir pasta própria),
+   entram em `packs/dracula/icones/` numa das três pastas da decisão 14: `apps/` se vestem um programa
+   (com a linha no `apps.map`), `sistema/` se são pasta/mimetype/status, `biblioteca/` para todo o resto
+   (versões antigas e recuperados inclusive — a origem fica no PROCEDENCIA, não numa pasta nova),
    nomes sem colisão, SVG limpo (sem metadado de editor, sem `<script>`, sem referência externa —
    regra de pack da P78), sha256 e origem (caminho, data, fonte: lixeira/Apate/VS Code/transcrição/
    ext4magic/photorec) no `PROCEDENCIA.md`.
