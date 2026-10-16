@@ -255,20 +255,27 @@ reciclar() {
   # — e aí precisamos saber se ele ainda socorre.
   if ! systemctl --user is-active --quiet meow-painel.service 2>/dev/null; then
     espera="$(meow_painel_espera_supervisor)"
+    recusa=""
     case "$espera" in
       # P76: o formato do log mudou e a espera não foi medida — o conservador é
       # não confiar num supervisor cuja espera ninguém sabe.
-      nao-medida)
-        meow_erro "não vou reciclar: o meow-painel.service está parado e a espera do cosmic-session não foi medida"
-        meow_info "  arme o supervisor do Meow primeiro: systemctl --user start meow-painel.service"
-        return "$MEOW_ERRO" ;;
+      nao-medida) recusa="a espera do cosmic-session não foi medida" ;;
       ''|*[!0-9]*) : ;;
-      *) if [ "$espera" -gt 5000 ]; then
-           meow_erro "não vou reciclar: o meow-painel.service está parado e o cosmic-session dormiria $(( espera / 60000 ))min"
-           meow_info "  arme o supervisor do Meow primeiro: systemctl --user start meow-painel.service"
-           return "$MEOW_ERRO"
-         fi ;;
+      *) [ "$espera" -gt 5000 ] && recusa="o cosmic-session dormiria $(( espera / 60000 ))min" ;;
     esac
+    # O SUPERVISOR SE ARMA AQUI — 15/10/2026, P82 (item 1). A linha mandava
+    #   digitar o `systemctl --user start` e parava. Quem sabe que ele falta é
+    #   este verbo, então ele o arma; só sem o supervisor de pé, de jeito
+    #   nenhum, o reciclo é recusado, e a linha diz o estado.
+    if [ -n "$recusa" ]; then
+      if systemctl --user start meow-painel.service 2>/dev/null \
+         && systemctl --user is-active --quiet meow-painel.service 2>/dev/null; then
+        meow_muda "o meow-painel.service estava parado ($recusa) — armado antes de reciclar"
+      else
+        meow_erro "não vou reciclar: o meow-painel.service está parado, não armou, e $recusa"
+        return "$MEOW_ERRO"
+      fi
+    fi
   fi
   # `~~`, e não `>>` — 24/09/2026, sprint P50 (achado 17). O código de saída
   # é 0 nos dois caminhos (reciclou, ou não havia painel desta casa para

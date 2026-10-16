@@ -1837,6 +1837,31 @@ meow_pendencia_resolvida() {
 
 meow_tem() { command -v "$1" >/dev/null 2>&1; }
 
+# O RUST, QUANDO FALTA — a regra do applet de leitura (P80), que o de mídia
+# passou a usar também (P82, 15/10/2026). Devolve 0 com o `cargo` no PATH.
+# O rustup na casa de quem usa (`~/.cargo`), sem sudo e sem mexer no PATH do
+# shell dela: é o caminho que o próprio projeto do rust recomenda, e o cargo
+# do apt costuma ser velho demais para o libcosmic. Baixa da internet — por
+# isso só no conserto e no instalador, que já declaram rede (decisão 7).
+meow_garantir_cargo() {
+  meow_tem cargo && return 0
+  if [ -x "$HOME/.cargo/bin/cargo" ]; then PATH="$HOME/.cargo/bin:$PATH"; return 0; fi
+  meow_seco && { meow_muda "instalaria o rust pelo rustup, em ~/.cargo (baixa da internet)"; return 1; }
+  meow_tem curl || return 1
+  local instalador
+  instalador="$(mktemp)" || return 1
+  meow_info "instalando o rust pelo rustup, em ~/.cargo (baixa da internet)"
+  if curl --proto '=https' --tlsv1.2 -sSf --max-time 120 https://sh.rustup.rs -o "$instalador" \
+     && sh "$instalador" -y --profile minimal --no-modify-path >/dev/null 2>&1; then
+    rm -f "$instalador"
+    PATH="$HOME/.cargo/bin:$PATH"
+    meow_tem cargo
+    return $?
+  fi
+  rm -f "$instalador"
+  return 1
+}
+
 # Um flatpak instalado deixa DIRETÓRIO no disco; `flatpak info` deixa um repo
 # ostree INTEIRO em ~/.local/share/flatpak/repo só por ter sido perguntado
 # (medido em HOME virgem, 10/08/2026). Detecção com efeito colateral é o mesmo

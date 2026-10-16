@@ -45,6 +45,50 @@ else
   falha "mensagens que mandam digitar o conserto" "$achados"
 fi
 
+printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
+#   [15/10/2026: a P79 e a P80 curaram as linhas que o QA viu no painel; estas
+#    saem do terminal, do log e do doctor: «arme o supervisor… systemctl --user
+#    start», «diagnóstico: meow painel estado», «rode o install.sh de novo»,
+#    «sudo apt install …», «rustup toolchain install», «meow tema capturar»,
+#    «adicione com: meow wallpaper adicionar», «sudo -l». Cada linha virou a
+#    ação feita ou o estado.]
+#   Isentas, cada uma pelo nome: a linha de uso de um verbo (`uso: meow …`,
+#   que responde a quem já está digitando), e os três scripts de build que a
+#   P81 cura (o `files_menu.sh`, o `midia_build.sh` e o `leitura_build.sh`; a
+#   seção 8 dela os cobra). A recusa de rodar como root não casa com nenhuma
+#   forma: ela fala antes de existir qualquer coisa a fazer.
+MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
+FORMAS='(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z])'
+achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
+             | grep -vE '^scripts/(files_menu|midia_build|leitura_build)\.sh:' \
+             | grep -vE '"uso: meow ')"
+if [ -z "$achados" ]; then
+  ok "nenhuma mensagem manda armar o supervisor, rodar o install.sh, instalar com apt ou rustup, capturar o tema, adicionar papel de parede ou rodar sudo -l"
+else
+  falha "mensagens que ainda mandam digitar" "$achados"
+fi
+
+# E o applet de mídia, sem cargo, vai buscar o rust pela mesma regra do de
+# leitura (`meow_garantir_cargo`), em vez de pular dizendo «instale com
+# rustup». Um `curl` falso anota e recusa: a rede não sai do teste.
+CASA1B="$(mktemp -d)" || exit 2
+mkdir -p "$CASA1B/falso"
+for c in sudo pkexec su pkill killall notify-send systemd-run loginctl apt apt-get; do
+  printf '#!/bin/sh\nexit 1\n' > "$CASA1B/falso/$c"; chmod 755 "$CASA1B/falso/$c"
+done
+printf '#!/bin/sh\necho "curl $*" >> "%s/rede.log"\nexit 1\n' "$CASA1B" > "$CASA1B/falso/curl"
+chmod 755 "$CASA1B/falso/curl"
+env -i PATH="$CASA1B/falso:/usr/bin:/bin" HOME="$CASA1B" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  MIDIA_COMPILAR=1 "$RAIZ/scripts/midia_build.sh" --aplicar >/dev/null 2>&1
+if PATH=/usr/bin:/bin command -v cargo >/dev/null 2>&1; then
+  printf '  --   o /usr/bin desta máquina tem cargo: o caso «sem cargo» não se monta aqui\n'
+elif grep -q 'rustup' "$CASA1B/rede.log" 2>/dev/null; then
+  ok "sem cargo, o applet de mídia vai buscar o rust pelo rustup, como o de leitura"
+else
+  falha "sem cargo, o applet de mídia não tentou instalar o rust" "rede: $(cat "$CASA1B/rede.log" 2>/dev/null)"
+fi
+rm -rf "$CASA1B"
+
 printf '\n--- 2. as pendências novas têm botão ---\n'
 saida="$(env -i PATH="$PATH" HOME="$(mktemp -d)" python3 - "$RAIZ/app" <<'PY' 2>&1
 import sys

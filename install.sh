@@ -1067,8 +1067,6 @@ etapa_tema() {
     deriva="${deriva#*não se deriva — }"
     TEMA_NAO_APLICADO="O tema do COSMIC não foi aplicado: não há captura para '$alvo' (${deriva#  })."
     meow_pendencia_acionavel tema-sem-captura "$TEMA_NAO_APLICADO"
-    meow_info "importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez em"
-    meow_info "  Configurações > Área de trabalho > Aparência > Importar"
     # O COMANDO OFERECIDO TEM DE CARREGAR A PONTE — 22/09/2026
     #   Esta linha dizia `./scripts/capturar_tema.sh $alvo`, cru. Aquele script
     #   não carrega o `lib/comum.sh` (de propósito) e pergunta direto ao
@@ -1080,7 +1078,9 @@ etapa_tema() {
     #   ponte sozinho na entrada, e a `etapa_cli` é a terceira da lista contra a
     #   oitava desta — ele já está no PATH quando esta mensagem aparece. É o
     #   mesmo comando que o `chk_tema` e a linha do rc=4, logo abaixo, ofereciam.
-    meow_info "e depois rode: meow tema capturar $alvo"
+    #   [P82, 15/10/2026: as três linhas da receita (importar pela GUI e rodar
+    #   o `meow tema capturar`) saíram — a pendência «tema-sem-captura» de
+    #   cima é o estado, na Início.]
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -1096,7 +1096,6 @@ etapa_tema() {
   case "$rc" in
     0) meow_ok "tema '$alvo' já aplicado"; return 0 ;;
     4) meow_pula "tema '$alvo': a captura está velha — você mexeu em Aparência"
-       meow_info "para fixar o que está na tela: meow tema capturar $alvo"
        return 0 ;;
   esac
   if meow_seco; then
@@ -1643,7 +1642,6 @@ etapa_ponte_root() {
     return "$MEOW_DIVERGENTE"
   fi
   meow_aviso "a ponte foi instalada, mas o sudo ainda pede senha para ela"
-  meow_info "  confira:  sudo -l | grep meowsystem"
   return "$MEOW_DIVERGENTE"
 }
 

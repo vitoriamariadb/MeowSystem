@@ -672,7 +672,8 @@ MEOW_CAPTURA_VELHA=4
 
 aviso_receita() {
   echo "a captura '$NOME' está velha: você mexeu em Aparência e a GUI derivou um tema novo."
-  echo "  $cedidos arquivo(s) preservados. Para fixar o que está na tela: meow tema capturar $NOME"
+  # [P82: dizia «Para fixar o que está na tela: meow tema capturar»; fica o estado.]
+  echo "  $cedidos arquivo(s) preservados."
 }
 
 if [ "$CONFERIR" = "1" ]; then

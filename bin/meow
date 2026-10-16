@@ -449,8 +449,9 @@ chk_tema() {
       echo "${deriva#  } — 'meow doctor --consertar' deriva e aplica"
       return "$MEOW_DIVERGENTE"
     fi
+    # [P82: a segunda linha mandava importar pela GUI e rodar «meow tema
+    #   capturar». A pendência «tema-sem-captura» é quem diz isso na Início.]
     echo "não há captura para '$alvo' (${deriva#*não se deriva — })"
-    echo "importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez pela GUI e rode: meow tema capturar $alvo"
     return "$MEOW_SEM_DEPENDENCIA"
   }
   # O doctor é MANUTENÇÃO: ele confere com `--respeitar-gui` e pode devolver 4,
@@ -2624,7 +2625,7 @@ cmd_doctor() {
     meow_aviso "o sudo desta máquina libera TUDO sem senha para você (NOPASSWD: ALL)"
     meow_info "  enquanto essa regra existir, a ponte root não restringe nada —"
     meow_info "  ela é que permitirá tirá-la, e não o contrário"
-    meow_info "  veja de onde vem:  sudo -l   e   ls /etc/sudoers.d"
+    # [P82, decisão 48: a linha diz o estado, sem mandar rodar `sudo -l`.]
     meow_info "  o MeowSystem não mexe nela: regra de sudo é sua, não nossa"
   fi
 
@@ -3825,10 +3826,6 @@ cmd_configurar() {
       meow_info "  o que muda: a etapa \"tema\" do install.sh se pula e o COSMIC fica"
       meow_info "  com as cores que já estava usando. O backup de \"voltar ao tema de"
       meow_info "  antes\" é feito de qualquer jeito, na primeira passagem."
-      meow_info "  para fixar este par na tela, uma vez:"
-      meow_info "      importe $MEOW_ESTADO/temas/meowsystem-$_par.ron em"
-      meow_info "      Configurações > Aparência > Importar, e depois:"
-      meow_info "      meow tema capturar $_par"
     fi
   fi
 

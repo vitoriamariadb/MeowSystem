@@ -382,28 +382,8 @@ _sem_cargo() {
 }
 
 # --- o rust, quando falta ---------------------------------------------------
-# O rustup na casa de quem usa (`~/.cargo`), sem sudo e sem mexer no PATH do
-# shell dela: é o caminho que o próprio projeto do rust recomenda, e o cargo
-# do apt costuma ser velho demais para o libcosmic. Baixa da internet — por
-# isso só no conserto e no instalador, que já declaram rede (decisão 7).
-_garantir_cargo() {
-  meow_tem cargo && return 0
-  if [ -x "$HOME/.cargo/bin/cargo" ]; then PATH="$HOME/.cargo/bin:$PATH"; return 0; fi
-  meow_seco && { meow_muda "instalaria o rust pelo rustup, em ~/.cargo (baixa da internet)"; return 1; }
-  meow_tem curl || return 1
-  local instalador
-  instalador="$(mktemp)" || return 1
-  meow_info "instalando o rust pelo rustup, em ~/.cargo (baixa da internet)"
-  if curl --proto '=https' --tlsv1.2 -sSf --max-time 120 https://sh.rustup.rs -o "$instalador" \
-     && sh "$instalador" -y --profile minimal --no-modify-path >/dev/null 2>&1; then
-    rm -f "$instalador"
-    PATH="$HOME/.cargo/bin:$PATH"
-    meow_tem cargo
-    return $?
-  fi
-  rm -f "$instalador"
-  return 1
-}
+# [P82, 15/10/2026: a função mora no lib/comum.sh (`meow_garantir_cargo`),
+#   porque o applet de mídia passou a instalar o rust pela mesma regra.]
 
 # --- aplicação ---------------------------------------------------------------
 _aplicar() {
@@ -437,7 +417,7 @@ _aplicar() {
   #   do doctor ou o instalador (`LEITURA_COMPILAR=1`), e os dois já baixam e
   #   compilam (decisão 7: o reparo baixa, com o selo «baixa da internet»).
   #   Sem rede, fica a pendência com o botão do conserto, para tentar de novo.]
-  if ! _garantir_cargo; then
+  if ! meow_garantir_cargo; then
     meow_pula "sem cargo, e o rust não pôde ser instalado agora — o applet do modo de leitura fica de fora"
     meow_pendencia_acionavel leitura-applet \
       "O applet do modo de leitura precisa do rust, e a instalação dele não respondeu" \

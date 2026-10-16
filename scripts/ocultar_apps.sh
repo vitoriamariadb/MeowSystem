@@ -311,7 +311,6 @@ done
 
 if [ "$sem_root" -gt 0 ]; then
   meow_aviso "$sem_root aplicativo(s) precisam de sudo para ocultar"
-  meow_info "rode o install.sh de novo com sudo disponível"
 fi
 
 if [ "$mudou" = "0" ]; then

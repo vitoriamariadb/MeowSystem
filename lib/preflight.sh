@@ -207,9 +207,11 @@ meow_preflight() {
       *) case " $faltam_apt " in *" $pacote "*) ;; *) faltam_apt="$faltam_apt$pacote " ;; esac ;;
     esac
   done
+  # [P82, 15/10/2026: dava a linha do `sudo apt install` para copiar. Os da
+  #   etapa de pacotes o instalador põe sozinho, pela ponte ou pelo sudo; aqui
+  #   fica o estado.]
   if [ -n "$faltam_apt" ]; then
-    meow_info "  isto resolve os que vêm do apt:"
-    meow_info "      sudo apt install ${faltam_apt% }"
+    meow_info "  pacotes do apt que faltam: ${faltam_apt% }"
   fi
   [ "$n_faltam" = "0" ] && meow_ok "os ${#COMANDOS[@]} comandos do caminho de instalação estão aqui"
 
@@ -223,8 +225,9 @@ meow_preflight() {
   #     devolve 3, cai em "pulados", e a máquina segue com o applet de mídia que
   #     o flatpak já entrega. Degradação limpa, não falha.
   if ! meow_tem cargo; then
-    meow_pula "sem cargo — o applet de mídia não é compilado (fica o do flatpak)"
-    meow_info "  se quiser: rustup toolchain install stable, e rode o install.sh de novo"
+    # [P82: dizia «rustup toolchain install stable, e rode o install.sh de
+    #   novo». Quem compila os applets instala o rust pelo rustup sozinho.]
+    meow_pula "sem cargo — quem compila os applets instala o rust pelo rustup"
     avisos=$((avisos+1))
   fi
 

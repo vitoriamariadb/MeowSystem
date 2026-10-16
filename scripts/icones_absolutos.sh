@@ -267,7 +267,6 @@ if [ "$pendente_sudo" -gt 0 ]; then
     meow_pula "$pendente_sudo Icon= em /usr/share espera root — rode: meow ativar"
   else
     meow_aviso "$pendente_sudo Icon= precisa(m) de sudo para trocar"
-    meow_info "rode o install.sh de novo com sudo disponível"
   fi
 fi
 

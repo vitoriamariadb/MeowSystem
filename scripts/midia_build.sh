@@ -193,6 +193,9 @@ _aplicar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
+  # O rust se instala pela mesma regra do applet de leitura (P82, item 1); se
+  # não instalar (sem rede, ensaio), o `pula` de baixo diz o estado.
+  meow_garantir_cargo || true
   if ! meow_tem cargo; then
     meow_pula "sem cargo nesta máquina — o applet de mídia fica de fora"
     meow_info "  instale com rustup e rode o install.sh de novo"

@@ -1154,7 +1154,6 @@ _ci_reler=0
 meow_tela_reler || _ci_reler=$?
 if [ "$_ci_reler" = 1 ]; then
   meow_erro "não consegui reciclar o painel — os ícones novos aparecem no próximo login"
-  meow_info "  diagnóstico: meow painel estado"
   exit "$MEOW_ERRO"
 fi
 

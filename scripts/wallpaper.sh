@@ -1526,8 +1526,10 @@ cmd_aplicar() {
 
   local n; n="$(quantas)"
   if [ "$n" -lt 2 ]; then
-    meow_aviso "só $n imagem(ns) em $ATIVOS — o carrossel precisa de 2 ou mais"
-    meow_info "adicione com: meow wallpaper adicionar <arquivo|pasta>"
+    # [P82, 15/10/2026: era aviso com «adicione com: meow wallpaper adicionar»;
+    #   a galeria do painel já tem o «Adicionar», e menos de duas imagens é
+    #   uma rotina pulada, não um defeito.]
+    meow_pula "só $n imagem(ns) em $ATIVOS — o carrossel precisa de 2 ou mais"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
