@@ -148,12 +148,30 @@ import tempfile  # noqa: E402
 tmp = tempfile.mkdtemp(prefix="oficina-autoral-")
 falhas = []
 try:
+    # O DESENHO HERDADO É DE UM PACK PAI DE BRINQUEDO — 15/10/2026, P82. Era o
+    #   `fogstripper` do Catppuccin, e ele saiu dos packs (projeto pessoal,
+    #   decisão 16). O caso continua o mesmo: o `terceiro` herda um desenho
+    #   declarado, e salvar o copia para ele.
+    dir_pai = os.path.join(tmp, "pai")
+    os.makedirs(os.path.join(dir_pai, "icones", "autorais"))
+    shutil.copy(os.path.join(raiz, "packs", "dracula", "paleta.json"), dir_pai)
+    with open(os.path.join(dir_pai, "pack.json"), "w", encoding="utf-8") as fh:
+        json.dump({"formato": 1, "id": "pai", "nome": "Pai", "heranca": "catppuccin",
+                   "paleta": {"arquivo": "paleta.json"},
+                   "icones": {"autorais": {"gerar": True}}}, fh)
+    with open(os.path.join(dir_pai, "icones", "autorais", "emprestado.json"), "w", encoding="utf-8") as fh:
+        json.dump({"papeis": {"foto": {"escuro": "overlay0", "claro": "overlay0"}},
+                   "svg": ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">',
+                           '  <title>{titulo}</title>',
+                           '  <rect x="6" y="6" width="36" height="36" fill="{foto}"/>',
+                           '</svg>']}, fh)
+    os.environ["MEOW_PACKS"] = tmp
     dir_t = os.path.join(tmp, "terceiro")
     dir_aut = os.path.join(dir_t, "icones", "autorais")
     os.makedirs(dir_aut)
     shutil.copy(os.path.join(raiz, "packs", "dracula", "paleta.json"), dir_t)
     with open(os.path.join(dir_t, "pack.json"), "w", encoding="utf-8") as fh:
-        json.dump({"formato": 1, "id": "terceiro", "nome": "Terceiro", "heranca": "catppuccin",
+        json.dump({"formato": 1, "id": "terceiro", "nome": "Terceiro", "heranca": "pai",
                    "paleta": {"arquivo": "paleta.json"},
                    "icones": {"autorais": {"gerar": True}}}, fh)
     # Um triângulo: forma que nenhum tema instala, para o `na_tela` ter de ser vazio.
@@ -182,9 +200,9 @@ try:
     if (antes.get("meu-app") or {}).get("pack") != "terceiro":
         falhas.append("meu-app.json está em icones/autorais/ e a lista não o mostra como do pack")
 
-    # meu-app é do próprio pack; o fogstripper é herdado do Catppuccin, e salvar
-    # o copia — é o caso exato que a revisão reproduziu.
-    for nome, papel in (("meu-app", "fundo"), ("fogstripper", "foto")):
+    # meu-app é do próprio pack; o emprestado é herdado do pai, e salvar o
+    # copia — é o caso exato que a revisão reproduziu.
+    for nome, papel in (("meu-app", "fundo"), ("emprestado", "foto")):
         papeis = dict((antes.get(nome) or {}).get("papeis") or {})
         if papel not in papeis:
             falhas.append("%s: a lista não trouxe o papel %s" % (nome, papel))
@@ -222,5 +240,5 @@ if falhas:
         print("    " + linha, file=sys.stderr)
     sys.exit(1)
 print("ok: a oficina de autoral, num pack sem `desenhos`, lê o que salva "
-      "(meu-app e a cópia do fogstripper)")
+      "(meu-app e a cópia do desenho herdado)")
 PY
