@@ -270,7 +270,10 @@ _aplicar() {
     fi
     rm -f "$SOMBRA"
     meow_aviso "a sombra estava órfã e foi removida — o applet do flatpak volta no próximo login"
-    meow_info "  para ter o nosso de volta: MIDIA_COMPILAR=1 $RAIZ/scripts/midia_build.sh"
+    # [16/10/2026, QA final da leva H: era a receita «MIDIA_COMPILAR=1 …/
+    #  midia_build.sh», com o caminho do clone, vista no painel. O conserto do
+    #  doctor compila o applet (a P76 tirou o `midiabin` do SEM_CONSERTO).]
+    meow_info "  o nosso volta quando o conserto compilar o applet"
     return "$MEOW_DIVERGENTE"
   fi
 
