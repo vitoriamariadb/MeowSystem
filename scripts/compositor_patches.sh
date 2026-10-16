@@ -272,6 +272,9 @@ CP_MATRIZ="${CP_MATRIZ:-$MEOW_ESTADO/cosmic-comp/matriz.tsv}"
 # Os arquivos que a série toca, como estavam no fonte PURO da última versão
 # que compilou. É contra eles que o degrau 1 pergunta "o upstream mexeu aqui?".
 CP_ALVOS="${CP_ALVOS:-$MEOW_ESTADO/cosmic-comp/alvos}"
+# A TRAVA DA FUNÇÃO ÚNICA DOS BUILDS (P81, `scripts/garantir_builds.sh`):
+# segurada, há uma passagem compilando agora. O `conferir` só a lê.
+CP_TRAVA_BUILDS="${CP_TRAVA_BUILDS:-$MEOW_ESTADO/builds.lock}"
 
 # --- o buffer de saída ------------------------------------------------------
 # A PRIMEIRA LINHA É A TABELA DO DOCTOR, E ELA SÓ EXISTE NO FIM
@@ -426,9 +429,16 @@ cmd_conferir() {
         meow_info "o que recusou: meow compositor validar"
         return "$MEOW_DIVERGENTE"
       fi
-      meow_aviso "o cosmic-comp $v_shim ainda não tem build nosso — a sessão sobe de fábrica, sem os patches"
-      meow_info "o build vem sozinho depois do apt; na mão: meow compositor"
-      return "$MEOW_OK"
+      # SEM BUILD É DIVERGENTE DESDE A P81 (15/10/2026), e o conserto é do
+      # doctor: o `fix_patches` dispara a função única dos builds. Era aviso
+      # com 0 — o doctor nunca chamava conserto nenhum, e a linha mandava
+      # digitar. Enquanto a passagem compila, é espera, e espera é aviso.
+      if [ -e "$CP_TRAVA_BUILDS" ] && ! flock -n "$CP_TRAVA_BUILDS" true 2>/dev/null; then
+        meow_aviso "construindo o build do cosmic-comp $v_shim — vale no próximo login"
+        return "$MEOW_OK"
+      fi
+      meow_muda "o cosmic-comp $v_shim ainda não tem build nosso — a sessão sobe de fábrica, sem os patches"
+      return "$MEOW_DIVERGENTE"
     fi
     CP_BIN="$casa_v/cosmic-comp"
     CP_ESTADO="$casa_v/estado"

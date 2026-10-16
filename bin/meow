@@ -1922,6 +1922,12 @@ fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
 # mesma que o `install.sh` exporta.
 fix_midiabin()   { MIDIA="${MIDIA:-}" MIDIA_COMPILAR=1 "$RAIZ/scripts/midia_build.sh" --aplicar 2>&1; }
 fix_leiturabin() { LEITURA_COMPILAR=1 "$RAIZ/scripts/leitura_build.sh" --aplicar 2>&1; }
+# O COMPOSITOR SE RECOMPILA PELO DOCTOR — 15/10/2026, P81. É a função única
+# dos builds, o terceiro gatilho dela (os outros são o pós-apt e o login). Em
+# segundo plano (`--fundo`): o build leva até meia hora, e este laço tem 5 min
+# de prazo no `meow-doctor.service`. Ela também refaz o menu do cosmic-files
+# que faltar, que é o mesmo trabalho.
+fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; }
 
 fix_painel()    {
   rodar_painel "$RAIZ" conferir 2>&1
@@ -2198,9 +2204,14 @@ VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel jan
 #   acontecer passou a ser o apt (o libcosmic do painel que o applet segue;
 #   ver `scripts/applet_pino.sh`) — e o doctor que roda depois do apt é o do
 #   pós-apt. O doctor corrige; ele não manda rodar.
-SEM_CONSERTO=" ponte convertidos heroictema patches "
+#
+#   `patches` SAIU DAQUI EM 15/10/2026 (P81), pelo mesmo motivo: o build do
+#   compositor é em escopo de usuário, sem sudo, e o `fix_patches` o dispara
+#   em segundo plano pela função única dos builds. A razão antiga terminava
+#   em «rode: meow compositor».
+SEM_CONSERTO=" ponte convertidos heroictema "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema patches pacotes "
+  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema pacotes "
 fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -2225,10 +2236,6 @@ declare -A SEM_CONSERTO_RAZAO=(
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
   [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
-  # P76 (conferência): o build mora em ~/.local/libexec, sem sudo, e quem o refaz
-  # sozinho depois do apt é o pós-apt do COSMIC. A frase antiga ("instala com
-  # sudo") deixou de ser verdade com o shim.
-  [patches]="o conserto RECOMPILA o cosmic-comp (~4 a 30 min), e quem o refaz depois do apt é o pós-apt do COSMIC — rode: meow compositor"
   [pacotes]="sem a ponte root, instalar pacote pede a sua senha, e o auto-reparo não tem a quem pedir — o ./install.sh pede uma vez e instala a ponte"
 )
 

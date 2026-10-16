@@ -21,14 +21,22 @@
 #   (ou a próxima passagem) tenta de novo. Um passo que deu certo, ou que não
 #   tem o que fazer nesta máquina, grava.
 #
-# OS PASSOS, um por pacote
-#   cosmic-comp      o compositor em escopo de usuário (`meow compositor`), só
-#                    com o shim ligado: sem ele o build não vale em sessão
-#                    nenhuma, e meia hora de cargo para nada não é conserto;
-#   cosmic-files     o menu de papel de parede (`files_menu.sh build`), se
-#                    FILES_MENU não for "nao";
+# OS PASSOS
 #   cosmic-settings  o oráculo do tema (`oraculo_tema.sh construir`): só
 #                    compila se a derivação do libcosmic novo mudou.
+#   cosmic-comp e cosmic-files  NÃO SÃO PASSO POR VERSÃO DESDE A P81
+#                    (15/10/2026). Toda passagem chama a função única,
+#                    `garantir_builds.sh`, que compila o que não tem build
+#                    válido da versão instalada e não faz nada no resto. O
+#                    passo antigo do compositor pulava com o shim desligado e
+#                    gravava a versão como vista: no apt das 20:14 de 15/10 o
+#                    shim foi ligado minutos depois, e nenhum gatilho voltaria
+#                    àquela versão. Quem lembra o que falta é o artefato.
+#
+# O CÓDIGO DE SAÍDA, PARA O SYSTEMD: 0 = sucesso (escrevendo ou não), 2 =
+# algum passo falhou. O 1 do projeto ("divergia e consertei") virava
+# `ExecMainStatus=1` no `meow-pos-apt.service` de 15/10, num pós-apt que deu
+# certo — e pular por regra (o `--` de um build que não cabe) não é falha.
 #
 # E DUAS GUARDAS QUE VALEM ANTES DE QUALQUER PASSO (P76, tarefa 5)
 #   - o rustc: se o pré-voo acusou toolchain vermelho (o fonte novo pede um
@@ -44,11 +52,10 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 . "$MEOW_RAIZ/lib/comum.sh"
 
 PA_VERSOES="${PA_VERSOES:-$MEOW_ESTADO/cosmic-versoes}"
-PA_CASA="${PA_CASA:-$HOME/.local/libexec/meow/cosmic-comp}"
 # Os comandos de cada passo. Sobrescrevíveis para o teste trocar um build de
 # meia hora por um registro de uma linha; nenhum vira chave do meow.conf.
 PA_COMPOSITOR="${PA_COMPOSITOR:-$MEOW_RAIZ/scripts/compositor_patches.sh}"
-PA_FILES="${PA_FILES:-$MEOW_RAIZ/scripts/files_menu.sh}"
+PA_BUILDS="${PA_BUILDS:-$MEOW_RAIZ/scripts/garantir_builds.sh}"
 PA_DOCTOR="${PA_DOCTOR:-$MEOW_RAIZ/bin/meow}"
 PA_RUSTUP="${PA_RUSTUP:-rustup}"
 PA_ORACULO="${PA_ORACULO:-$MEOW_RAIZ/scripts/oraculo_tema.sh}"
@@ -77,28 +84,6 @@ _pa_instalados() {
 }
 
 # --- os passos: 0 = feito ou nada a fazer · outro = falhou, tenta de novo ---
-passo_cosmic_comp() { # $1 versão
-  if ! grep -qs MEOW-COSMIC-COMP-SHIM "$HOME/.local/bin/cosmic-comp"; then
-    meow_pula "cosmic-comp $1: o shim do compositor está desligado — sem build (meow compositor ativar liga)"
-    return 0
-  fi
-  if [ -f "$PA_CASA/$1/estado" ]; then
-    meow_ok "cosmic-comp $1: o build desta versão já existe"
-    return 0
-  fi
-  meow_seco && { meow_muda "compilaria o cosmic-comp $1 em escopo de usuário"; return 0; }
-  "$PA_COMPOSITOR" compilar
-  case $? in 0|1) return 0 ;; *) return 1 ;; esac
-}
-
-passo_cosmic_files() { # $1 versão
-  local quer; quer="$(meow_conf_valor FILES_MENU 2>/dev/null)" || quer="sim"
-  [ "$quer" = "sim" ] || { meow_pula "cosmic-files $1: FILES_MENU=\"$quer\" — menu de fábrica"; return 0; }
-  meow_seco && { meow_muda "construiria o menu de papel de parede do cosmic-files $1"; return 0; }
-  FILES_MENU=sim "$PA_FILES" build
-  case $? in 0|1) return 0 ;; *) return 1 ;; esac
-}
-
 # As duas guardas, só quando algum pacote mudou de versão (senão a passagem
 # tem de sair sem escrever nada).
 _pa_guardas() {
@@ -143,8 +128,6 @@ cmd_rodar() {
     meow_info "$p: ${antigo:-<nunca visto>} -> $v"
     local rc=0
     case "$p" in
-      cosmic-comp)  passo_cosmic_comp "$v";  rc=$? ;;
-      cosmic-files) passo_cosmic_files "$v"; rc=$? ;;
       cosmic-settings) passo_cosmic_settings "$v"; rc=$? ;;
     esac
     if [ "$rc" = "0" ]; then
@@ -156,8 +139,17 @@ cmd_rodar() {
     fi
   done
 
+  # OS BUILDS, SEMPRE — e depois dos passos por versão, com o rustc já
+  # atualizado pela guarda e o fonte já guardado. Nada faltando, a função não
+  # escreve um byte.
+  local rc_b=0
+  if meow_seco; then "$PA_BUILDS" --seco; rc_b=$?; else "$PA_BUILDS"; rc_b=$?; fi
+  [ "$rc_b" = "1" ] && mudou=1
+  [ "$rc_b" = "2" ] && falhou=1
+
   if [ "$mudou" = "0" ]; then
     meow_ok "nenhum pacote do COSMIC mudou de versão desde a última passagem"
+    [ "$falhou" = "1" ] && return "$MEOW_ERRO"
     return "$MEOW_OK"
   fi
   meow_seco && return "$MEOW_DIVERGENTE"
@@ -172,7 +164,7 @@ cmd_rodar() {
   "$PA_DOCTOR" doctor --consertar >/dev/null 2>&1
   meow_registrar "cosmic_pos_apt.sh falhou=$falhou"
   [ "$falhou" = "1" ] && return "$MEOW_ERRO"
-  return "$MEOW_DIVERGENTE"
+  return "$MEOW_OK"
 }
 
 case "${1:-}" in

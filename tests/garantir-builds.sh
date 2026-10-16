@@ -165,7 +165,71 @@ DEVAGAR=1 rodar & p2=$!
 wait "$p1" "$p2"
 igual "um build do compositor" "$(linhas '^compositor compilar')" 1
 
-[ -s "$T/recusados" ] && { falha "algo chamou um comando recusado:"; sed 's/^/        /' "$T/recusados"; }
+echo
+echo "== 2. os três gatilhos chamam a mesma função"
+U="$RAIZ/systemd/meow-builds-login.service"
+if [ -f "$U" ] && grep -q '^WantedBy=graphical-session.target$' "$U" && grep -q '^Nice=19$' "$U" \
+   && grep -q '^IOSchedulingClass=idle$' "$U" && grep -q 'scripts/garantir_builds.sh' "$U"; then
+  ok "o login: meow-builds-login.service, no alvo gráfico, Nice 19 e IO ocioso, roda a função"
+else
+  falha "falta o meow-builds-login.service (no alvo gráfico, Nice 19, IO ocioso, rodando a função)"
+fi
+grep -q 'PA_BUILDS:-$MEOW_RAIZ/scripts/garantir_builds.sh' "$RAIZ/scripts/cosmic_pos_apt.sh" \
+  && ok "o pós-apt: chama a função" || falha "o pós-apt não chama a função"
+grep -qE '^fix_patches\(\) *\{ *"\$RAIZ/scripts/garantir_builds.sh" --fundo' "$RAIZ/bin/meow" \
+  && ok "o doctor: o fix_patches dispara a função" || falha "o doctor não tem o fix_patches da função"
+# A etapa do instalador habilita o login sem `--now` (um oneshot de meia hora).
+etapa="$(sed -n '/^etapa_vigia_apt()/,/^}/p' "$RAIZ/install.sh")"
+if grep -q 'meow-builds-login.service' <<< "$etapa" && grep -q 'systemctl --user enable "$u"' <<< "$etapa"; then
+  ok "o instalador põe e habilita o login, sem --now"
+else
+  falha "o instalador não habilita o meow-builds-login.service"
+fi
+grep -q 'meow-builds-login.service' "$RAIZ/lib/desinstalar.sh" \
+  && ok "o desinstalador o desliga" || falha "o desinstalador não desliga o meow-builds-login.service"
+
+echo "-- o doctor --consertar compila o compositor que falta (shim ligado, HOME de brinquedo)"
+# O cmd_doctor do bin/meow com só a linha `patches`, como no
+# tests/doctor-veredito.sh: o bin/meow é lido sem a última linha (o despacho).
+D="$T/doc"; mkdir -p "$D/.config/meow" "$D/.local/bin"
+cp "$RAIZ/meow.conf.exemplo" "$D/.config/meow/meow.conf"
+cp "$RAIZ/scripts/compositor_shim.sh" "$D/.local/bin/cosmic-comp"
+DCASA="$D/.local/libexec/meow/cosmic-comp"
+cat > "$T/compositor-doc" <<FIM
+#!/bin/sh
+[ "\$1" = compilar ] || exit 0
+echo "compositor \$*" >> "$T/log"
+v=\$(awk -F'\t' '\$1=="cosmic-comp"{print \$2}' "$T/dpkg.tsv")
+mkdir -p "$DCASA/\$v"
+printf '#!/bin/sh\n# MEOW-T-PATCH-1\n' > "$DCASA/\$v/cosmic-comp"; chmod 755 "$DCASA/\$v/cosmic-comp"
+printf 'versao=%s\nreq MEOW-T-PATCH-1 t.patch presente\n' "\$v" > "$DCASA/\$v/estado"
+exit 1
+FIM
+chmod 755 "$T/compositor-doc"
+printf 'VERIFICAVEIS=(patches)\n' > "$T/so-patches"
+doctor() {
+  env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY \
+    PATH="$T/bin:$PATH" HOME="$D" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+    XDG_CONFIG_HOME="$D/.config" XDG_STATE_HOME="$D/.local/state" \
+    GB_COMPOSITOR="$T/compositor-doc" GB_FILES="$T/files" GB_FILES_GUARDA="$ESTADO/cosmic-files" \
+    bash -c '
+      source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow")
+      source "$1"; shift
+      cmd_doctor "$@"' _ "$T/so-patches" "$@" > "$T/doc.saida" 2>&1
+}
+versoes cosmic-comp=0.1~g cosmic-files=1.10~b
+: > "$T/log"; doctor; rc=$?
+igual "sem build, a linha patches diverge (rc 1)" "$rc" 1
+grep -q 'ainda não tem build' "$T/doc.saida" && ok "e diz o estado" || { falha "a linha patches não disse o estado"; sed 's/^/        /' "$T/doc.saida"; }
+: > "$T/log"; doctor --consertar; rc=$?
+igual "o --consertar sai 1 (consertado)" "$rc" 1
+igual "um build do compositor, pelo conserto" "$(linhas '^compositor compilar')" 1
+grep -q 'continua fora' "$T/doc.saida" && { falha "a linha patches ficou fora depois do conserto"; sed 's/^/        /' "$T/doc.saida"; }
+: > "$T/log"; doctor; rc=$?
+igual "o doctor seguinte não diverge (rc 0)" "$rc" 0
+igual "e não compila de novo" "$(grep -c . "$T/log")" 0
+
+grep -v "^recusado: sudo -n -l$" "$T/recusados" 2>/dev/null | grep -q . && { falha "algo chamou um comando recusado:"; sed "s/^/        /" "$T/recusados"; }
 
 echo
 if [ "$falhas" = 0 ]; then echo "garantir-builds: tudo certo"; exit 0; fi
