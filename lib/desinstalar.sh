@@ -93,7 +93,7 @@ meow_desinstalar() {
       meow-gato.timer meow-gato.service meow-ativos.path \
       meow-heroic.path meow-heroic.service \
       meow-pos-apt.path meow-pos-apt.service meow-builds-login.service \
-      meow-sentinela.timer meow-sentinela.service \
+      meow-sentinela.timer meow-sentinela.service meow-sentinela.path \
       meow-painel.service meow-painel-raio.path meow-painel-raio.service \
       meow-som.service 2>/dev/null || true
     # A LISTA NOMEADA ACIMA NÃO É REDUNDANTE COM ESTE `find`, e quem acrescentar

@@ -170,10 +170,20 @@ if [ -f "$S1" ] && grep -q '^Nice=19$' "$S1" && grep -q '^IOSchedulingClass=idle
 else
   falha "falta o meow-sentinela.service (Nice 19, IO ocioso, AUTO_REPARO, scripts/sentinela.sh)"
 fi
+# Depois do apt a fila muda: sem isto o cartão do candidato já instalado fica até o meio-dia.
+P1="$RAIZ/systemd/meow-sentinela.path"
+if [ -f "$P1" ] && grep -q '^PathChanged=/var/lib/meowsystem/apt-mudou$' "$P1" \
+   && grep -q '^Unit=meow-sentinela.service$' "$P1" && grep -q '^WantedBy=default.target$' "$P1"; then
+  ok "meow-sentinela.path: relê a fila depois de todo apt"
+else
+  falha "falta o meow-sentinela.path (PathChanged=/var/lib/meowsystem/apt-mudou, Unit=meow-sentinela.service)"
+fi
 etapa="$(sed -n '/^etapa_vigia_apt()/,/^}/p' "$RAIZ/install.sh")"
 grep -q 'meow-sentinela.service' <<< "$etapa" && grep -q 'meow-sentinela.timer' <<< "$etapa" \
-  && ok "o instalador põe a unidade e arma o timer" || falha "a etapa_vigia_apt não instala o sentinela"
-for u in meow-sentinela.timer meow-sentinela.service; do
+  && grep -qE 'ligaveis=\(.*meow-sentinela\.path' <<< "$etapa" \
+  && grep -q 'wants/meow-sentinela.path' <<< "$etapa" \
+  && ok "o instalador põe as unidades e arma o timer e o path" || falha "a etapa_vigia_apt não instala ou não arma o sentinela"
+for u in meow-sentinela.timer meow-sentinela.service meow-sentinela.path; do
   n="$(grep -c "$u" "$RAIZ/lib/desinstalar.sh")"
   [ "$n" -ge 1 ] && ok "o desinstalador cita $u" || falha "o desinstalador não cita $u"
 done

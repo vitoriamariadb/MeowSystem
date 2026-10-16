@@ -3280,13 +3280,14 @@ etapa_vigia_qt() {
 #
 #   A SENTINELA (P86) vai pela mesma etapa: o `meow-sentinela.timer` mede o COSMIC
 #   da fila do apt uma vez por dia, antes de quem usa atualizar. É um timer, então
-#   `enable --now` só o arma; a passagem em si espera o relógio.
+#   `enable --now` só o arma; a passagem em si espera o relógio. O
+#   `meow-sentinela.path` a chama depois de todo apt, para o cartão sair na hora.
 etapa_vigia_apt() {
   passo "Pós-apt do COSMIC (systemd --user)"
   local destino="$HOME/.config/systemd/user" u conteudo mudou=0
   local unidades=(meow-pos-apt.service meow-pos-apt.path meow-builds-login.service
-                  meow-sentinela.service meow-sentinela.timer)
-  local ligaveis=(meow-pos-apt.path meow-sentinela.timer)
+                  meow-sentinela.service meow-sentinela.timer meow-sentinela.path)
+  local ligaveis=(meow-pos-apt.path meow-sentinela.timer meow-sentinela.path)
   local no_login=(meow-builds-login.service)
 
   if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
@@ -3298,7 +3299,8 @@ etapa_vigia_apt() {
       systemctl --user disable "${no_login[@]}" >/dev/null 2>&1
       rm -f "$destino"/*.wants/meow-pos-apt.path "$destino"/*.wants/meow-pos-apt.service \
             "$destino"/*.requires/meow-pos-apt.path "$destino"/*.requires/meow-pos-apt.service \
-            "$destino"/*.wants/meow-builds-login.service "$destino"/*.wants/meow-sentinela.timer
+            "$destino"/*.wants/meow-builds-login.service "$destino"/*.wants/meow-sentinela.timer \
+            "$destino"/*.wants/meow-sentinela.path
       systemctl --user daemon-reload >/dev/null 2>&1
       meow_muda "$motivo — pós-apt do COSMIC desligado e removido"
       return "$MEOW_DIVERGENTE"
