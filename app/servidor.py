@@ -4621,6 +4621,22 @@ def _areas_ja_alfinetadas():
             "porque": "há área fixada nesta máquina"}
 
 
+def _starship_ja_instalado():
+    """«Instalar o starship» com ele já instalado: o botão não tem o que fazer.
+
+    15/10/2026, P82 (item 2; decisão 14). O botão ficava aceso com o starship
+    em `~/.cargo/bin`, que é onde o `cargo install starship` o põe. Os lugares
+    são os do `_prompt_onde_starship` (scripts/prompt.sh): o PATH, o
+    `~/.local/bin` (onde o nosso botão o põe) e o `~/.cargo/bin`."""
+    casa = os.path.expanduser("~")
+    for lugar in (shutil.which("starship"),
+                  os.path.join(casa, ".local", "bin", "starship"),
+                  os.path.join(casa, ".cargo", "bin", "starship")):
+        if lugar and os.path.isfile(lugar) and os.access(lugar, os.X_OK):
+            return {"porque": "o starship já está instalado"}
+    return None
+
+
 def indisponivel(acao_id):
     """O motivo de a ação não ter efeito agora (um dicionário), ou None."""
     medir = ACOES[acao_id].get("indisponivel")
@@ -5292,6 +5308,7 @@ ACOES = {
         "natureza": "baixar",
         "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "indisponivel": _starship_ja_instalado,
         "ajuda": "Baixa o starship de starship.rs para ~/.local/bin, sem sudo. "
                  "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
     },

@@ -1790,7 +1790,11 @@ meow_pendencia_acionavel() {
   local id="$1" frase="$2" comando="${3:-}"
   local etapa; etapa="$(basename "${BASH_SOURCE[1]:-desconhecida}")"
 
-  meow_aviso "$frase"
+  # A PENDÊNCIA DE UM OPCIONAL NÃO AVISA — 15/10/2026, P82 (item 2). O `!!`
+  #   pesa no veredito do doctor (`pulado_com_aviso`). Quem oferece um botão
+  #   para o que é opcional (o starship) chama com `MEOW_PENDENCIA_ROTINA=1`,
+  #   e a linha sai como o pulado de rotina; o botão continua na Início.
+  if [ "${MEOW_PENDENCIA_ROTINA:-}" = "1" ]; then meow_pula "$frase"; else meow_aviso "$frase"; fi
   # O BOTÃO CITADO É O QUE EXISTE, NA ABA EM QUE ELE ESTÁ — P50 (achado 32).
   #   Dizia "(ou o botão «Resolver» no painel)": na gaveta de «Gravar as
   #   áreas» não há «Resolver» nenhum, e a pendência sem ação na tabela

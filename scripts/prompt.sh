@@ -220,12 +220,16 @@ _prompt_dizer_falta_starship() {
     meow_info "  apague $PROMPT_RECUSA para reabrir a pergunta"
     return 0
   fi
-  meow_aviso "o starship NÃO está instalado, e ele não está no apt do Pop!_OS"
-  meow_aviso "  (\`apt-cache policy starship\` devolve vazio nesta máquina)"
+  # O STARSHIP É OPCIONAL — 15/10/2026, P82 (item 2; decisão 14). Eram dois
+  #   `meow_aviso`, e o `!!` pesa no veredito do doctor (`pulado_com_aviso`):
+  #   com o PROMPT_STARSHIP de fábrica, a falta de um opcional deixava o
+  #   auto-reparo vermelho todo dia. O doctor não o instala (baixar o que é
+  #   opcional pede gesto, decisão 7); a pendência de baixo é o botão.
+  meow_pula "o starship não está instalado — ele é opcional, e não vem no apt do Pop!_OS"
   # A RECEITA SAIU DA TELA E VIROU O VERBO ABAIXO. Ela continua existindo, em
   # `$PROMPT_INSTALAR`, mas agora como algo que este script EXECUTA — e não
   # como um parágrafo que manda a pessoa executar.
-  meow_pendencia_acionavel starship-ausente \
+  MEOW_PENDENCIA_ROTINA=1 meow_pendencia_acionavel starship-ausente \
     "O prompt do terminal precisa do starship, e ele não vem no apt do Pop!_OS" \
     "./scripts/prompt.sh instalar-starship"
 }

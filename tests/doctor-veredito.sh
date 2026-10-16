@@ -347,6 +347,42 @@ else
   printf '%s\n' "$saida" | grep -i 'falta\|ponte' | head -5 | sed 's/^/       /' >&2
 fi
 
+printf '\n--- 8. o starship é opcional (P82, item 2; decisão 14) ---\n'
+# Sem starship, a linha `prompt` do doctor é um pulado de ROTINA (`--`), que
+# não pesa no veredito; e o «Instalar o starship» aparece. Com um starship
+# falso em ~/.cargo/bin (onde o `cargo install` o põe), o botão vem
+# indisponível: o painel não oferece baixar o que já está lá.
+CASA_S="$TMP/casa-starship"; mkdir -p "$CASA_S/.config/meow"
+cp "$RAIZ/meow.conf.exemplo" "$CASA_S/.config/meow/meow.conf"
+SEM_STARSHIP="$TMP/sem-starship"; mkdir -p "$SEM_STARSHIP"
+for b in /usr/bin/*; do
+  [ "${b##*/}" = starship ] || ln -s "$b" "$SEM_STARSHIP/${b##*/}" 2>/dev/null
+done
+saida="$(env -i PATH="$FALSO:$SEM_STARSHIP" HOME="$CASA_S" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           MEOW_DRY_RUN=1 PROMPT_STARSHIP=sim "$RAIZ/scripts/prompt.sh" conferir 2>&1)"; rc=$?
+if [ "$rc" = 3 ] && ! grep -qE '^[[:space:]]*!! ' <<< "$saida"; then
+  ok "sem starship, a linha prompt é pulado de rotina (rc=3, sem !!): o doctor não fica vermelho por ela"
+else
+  falha "sem starship, a linha prompt pesa no veredito (rc=$rc): $(grep -E '!!' <<< "$saida" | head -2 | tr '\n' ' ')"
+fi
+indisp() {
+  env -i PATH="$SEM_STARSHIP" HOME="$CASA_S" MEOW_RAIZ="$RAIZ" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+print("indisponivel=%s" % bool(servidor.indisponivel("prompt_instalar_starship")))
+PY
+}
+sem="$(indisp)"
+mkdir -p "$CASA_S/.cargo/bin"; printf '#!/bin/sh\nexit 0\n' > "$CASA_S/.cargo/bin/starship"
+chmod 755 "$CASA_S/.cargo/bin/starship"
+com="$(indisp)"
+if [ "$sem" = "indisponivel=False" ] && [ "$com" = "indisponivel=True" ]; then
+  ok "sem starship o «Instalar o starship» aparece; com ele em ~/.cargo/bin, vem indisponível"
+else
+  falha "o «Instalar o starship» não segue o starship instalado (sem: $sem · com: $com)"
+fi
+
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2

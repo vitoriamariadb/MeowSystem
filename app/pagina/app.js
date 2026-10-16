@@ -6964,6 +6964,9 @@ function fraseIndisponivel(motivo) {
     const depois = (ESQUEMA.acoes || []).find((a) => a.id === motivo.feito);
     return `Já feito: ${motivo.porque}. O passo seguinte é «${depois ? depois.rotulo : motivo.feito}».`;
   }
+  /* SÓ O PORQUÊ, SEM PASSO SEGUINTE — 15/10/2026, P82 (item 2): «Instalar o
+   * starship» com ele já instalado. */
+  if (motivo.porque && !motivo.chave) return `Já feito: ${motivo.porque}.`;
   return `Sem efeito com «${nomeVisivel(motivo.chave)}» em `
     + `«${rotuloDeValor(motivo.vale)}». Mude para «${rotuloDeValor(motivo.pede)}» `
     + "para usar este botão.";
