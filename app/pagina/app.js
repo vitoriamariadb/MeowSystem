@@ -528,20 +528,10 @@ function semRaiz(caminho) {
   return raiz && txt.startsWith(raiz + "/") ? txt.slice(raiz.length + 1) : txt;
 }
 
-/* DESDE 24/09/2026 (P52) O SERVIDOR JÁ MANDA O COMANDO PRONTO para a tela —
- * `meow …`, `./script.sh …` e `~/…`, ver `comando_na_tela` no servidor.py —,
- * porque a caixa de confirmar, o «ver comando» e a gaveta ainda levavam o
- * caminho absoluto, com o nome de usuário, e o que se copiava dali só colava
- * nesta máquina. O `acao.argv` que chega aqui já não começa pela raiz, e as
- * duas trocas abaixo não acham mais o que trocar nele. Elas ficam, e a nota
- * fica junto: é a regra da casa mencionar o que deixou de agir, não apagar.
- *   09/10/2026, P77: perdeu o último chamador, a linha `code.cmd` do cartão de
- * ação, que saiu (o comando mora só no «ver comando»). Fica pela mesma regra. */
-function comandoCurto(cmd) {
-  const curto = semRaiz(cmd);
-  return curto.startsWith("bin/meow") ? "meow" + curto.slice("bin/meow".length)
-                                      : curto;
-}
+/* [O `comandoCurto` saiu em 15/10/2026 (P82, item 32; decisão 29). Desde a
+ * P52 o servidor manda o comando pronto para a tela (`comando_na_tela`), e
+ * desde a P77 a função não tinha chamador: ficou anotada pela regra da casa
+ * até o fechamento do projeto.] */
 
 /* O 43º CAMINHO DA TELA, que não é comando — 22/09/2026
  * A linha «vale como:» do cartão existe para mostrar o valor com `$HOME` já
@@ -3999,8 +3989,10 @@ function montarEscolhaDeIcone(app, recarregar) {
    * (a `trava_pack`, em onze apps): o acervo sumia justo onde ela queria ver o
    * que existe. Agora a busca e as pastas ficam sempre; o desenho que não
    * valeria neste app aparece apagado, sem «Usar», e o porquê — a frase da
-   * trava, com o dono do ícone — vai para a dica. */
-  const comBusca = true;
+   * trava, com o dono do ícone — vai para a dica.
+   * [A `const comBusca = true` que sobrou daquela troca saiu em 15/10/2026
+   *   (P82, item 32): a busca é sempre, e o «Usar» abaixo só pergunta se
+   *   algum desenho vale.] */
   painel.append(busca);
 
   /* O glifo do mapa do traço não é escolha que a ficha travada ofereça: ele
@@ -4237,13 +4229,13 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   intocáveis sem uma palavra. Quem sabe se a escolha pode valer é o
    *   servidor (`trava`); a página só não oferece o que ele recusaria.
    *   [P64: com a trava do traço, a tira só tem o pack, e o botão fica para
-   *   ele — ver o `comBusca`, lá em cima.] */
+   *   ele — ver a trava, lá em cima.] */
   /* [A frase da `trava` saiu daqui na P73: ela é a dica dos desenhos que ela
    * apaga, e o botão abaixo continua lá para os que valem.] */
   /* Sem nenhum desenho que valha (as duas travas, como no CosmicEdit), o
    * «Usar» não nasce: só o acervo, apagado, com a dica do dono. */
   const algumVale = itens.some((g) => !travaDe(g));
-  if (comBusca && algumVale) acoes.append(elemento("button", {
+  if (algumVale) acoes.append(elemento("button", {
     type: "button", class: "btn btn-accent", texto: "Usar este ícone",
     /* A ESCOLHA FICA COM QUEM USA — 09/10/2026, P73 (I3). Até aqui ela ia para
      * o repositório (o mapa do traço, ou o `apps.map` do pack); agora vai para

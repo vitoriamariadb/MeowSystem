@@ -617,20 +617,9 @@ main:focus-visible { outline: none; }
 }
 .subsecao-titulo:first-of-type { margin-top: .7rem; }
 
-/* ENQUANTO AS 14 ABAS DE CHAVES NÃO DESENHAREM `h2` (app.js:2262), a frase da
- * seção é a primeira coisa da tela — uma legenda de 14px abrindo a página
- * sozinha. Nesse caso, e só nele, ela ganha um pouco de corpo; no dia em que o
- * título existir ela volta a ser legenda sem eu tocar em nada. */
-.descricao-secao:first-child { font-size: 1rem; color: var(--subtext1); margin-bottom: 1.8rem; }
-
-.descricao-secao {
-  margin: 0 0 1.5rem;
-  font-size: .875rem;
-  line-height: 1.5;
-  color: var(--subtext0);
-  max-width: 58ch;
-  text-wrap: pretty;
-}
+/* [A `.descricao-secao` saiu em 15/10/2026 (P82, item 32; decisão 29):
+ * nenhum `app.js` nem `index.html` gerava mais a classe, e a regra ficou
+ * anotada pela regra da casa até o fechamento do projeto.] */
 
 /* A nota que substituiu as repetições dentro dos cartões. */
 .nota-secao {
