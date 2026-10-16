@@ -148,9 +148,11 @@ for nome in guvcview setup-mozc; do
 done
 
 # --- 2. o Waterfox: uma fonte, no pack, com procedência ----------------------
+#   [P87, decisão 16 (3): a linha passou à raposa do motor, que vence a régua;
+#   o Firefox-Dracula copiado na P28 fica em `apps/`, com a procedência dele.]
 saida="$(pack_py fonte net.waterfox.waterfox dracula 2>&1)"; rc=$?
-[ "$rc" = "0" ] && [ "$saida" = "net.waterfox.waterfox	packs/dracula/icones/apps/net.waterfox.waterfox.svg	pack:dracula" ] \
-  && ok "o Waterfox tem uma fonte só, e ela é packs/dracula/icones/apps/net.waterfox.waterfox.svg" \
+[ "$rc" = "0" ] && [ "$saida" = "net.waterfox.waterfox	packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg	pack:dracula" ] \
+  && ok "o Waterfox tem uma fonte só, e ela é packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg" \
   || falha "a fonte do Waterfox não é a do pack (rc=$rc)" "$saida"
 
 # A linha que saiu do motor não pode voltar calada: com ela, o resgate e o pack
@@ -297,7 +299,7 @@ r2="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
 printf 'FLAVOR="dracula"\nACCENT="mauve"\nICONES_DRACULA="sim"\n' > "$T/meow.conf"
 saida="$(amb env MEOW_CONF="$T/meow.conf" "$RAIZ/bin/meow" icones fonte net.waterfox.waterfox 2>&1)"; rc=$?
 [ "$rc" = "0" ] \
-  && [ "$(printf '%s\n' "$saida" | sed -n 1p)" = "fonte: packs/dracula/icones/apps/net.waterfox.waterfox.svg" ] \
+  && [ "$(printf '%s\n' "$saida" | sed -n 1p)" = "fonte: packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg" ] \
   && [ "$(printf '%s\n' "$saida" | sed -n 2p)" = "deriva: scalable" ] \
   && ok "meow icones fonte diz a fonte do Waterfox e o que deriva dela" \
   || falha "meow icones fonte não respondeu como a P28 pede (rc=$rc)" "$saida"
