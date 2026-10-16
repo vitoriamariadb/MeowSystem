@@ -215,7 +215,7 @@ checa(base and set(base.values()) == {"traco"} and "pack:meowsystem:apps/arctico
 #   exclusão. Cada uma é um grupo da ficha, com o rótulo de gente e a contagem
 #   que o disco tem; o rótulo de cada desenho vem do `catalog.json` da pasta.
 por_caminho = {os.path.normpath(caminho_de(i)): i for i in itens}
-for sub, rotulo, minimo in (("versoes", "versões", 100), ("projetos", "projetos dela", 15)):
+for sub, rotulo, minimo in (("versoes", "versões", 100), ("projetos", "projetos dela", 5)):
     pasta_p87 = os.path.join(raiz, "packs", "dracula", "icones", "biblioteca", sub)
     esperado = len([a for a in os.listdir(pasta_p87) if a.endswith(".svg")])
     gp = next((g for g in grupos if g["id"] == "pack:dracula:biblioteca/" + sub), None)

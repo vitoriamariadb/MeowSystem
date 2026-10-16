@@ -35,16 +35,16 @@ Fonte: `docs/pesquisas/2026-10-15-svgs-faltando.md` e `consolidado-ab.tsv`.
    ativos do Grok: fora, com o motivo).
 
 ## Resultado (16/10/2026)
-**Entraram 185 arquivos em `packs/dracula/icones/`**, todos com linha no `packs/dracula/PROCEDENCIA.md` (origem, fonte,
-licença, sha256) e passados pela regra de pack da P78 (15 mudaram: 13 PNG sem `tEXt`/`tIME`, 2 SVG sem comentário de
-gerador e sem atributos `bx:`; nenhum recusado):
+**Entraram 163 arquivos em `packs/dracula/icones/`**, todos com linha no `packs/dracula/PROCEDENCIA.md` (origem, fonte,
+licença, sha256) e passados pela regra de pack da P78 (11 mudaram: 10 PNG sem `tEXt`/`tIME` e 1 SVG sem comentário de
+gerador; nenhum recusado):
 
 | pasta | arquivos | classe |
 |---|---|---|
 | `apps/` | 1 | b: o vetor de 12/09 do Citrix (veste os 11 nomes) |
 | `biblioteca/` | 5 | a ×3 (morcego-noite, morcego-dia, aurora-iniciar), b ×1 (morcego), c ×1 (Obsidian do Papirus, GPL-3.0) |
 | `biblioteca/versoes/` | 144 (132 SVG, 12 PNG) | a ×44, b ×100: `<desenho>-<sha8>`, e o rótulo mora no `catalog.json` |
-| `biblioteca/projetos/` | 35 (18 SVG, 17 PNG) | d: Hefesto, FogStripper, PDForge, Sigilo, Detector de Doppelgänger, ArcaneTab, Mnemo, Neurosonancy, Luna, Crononauta, Êxtase |
+| `biblioteca/projetos/` | 13 (5 SVG, 8 PNG) | d: PDForge, Sigilo, Detector de Doppelgänger, ArcaneTab, Mnemo, Neurosonancy, Luna, Crononauta, Êxtase |
 
 Os 19 desenhos do motor: 16 já estavam em `apps/resgatados/` (P88), e os 3 morcegos entram agora em `biblioteca/`
 (o motor continua com os dele em `assets/gatos/`, que é o logo do COSMIC).
@@ -67,13 +67,15 @@ mesma `fonte` do `mapping.json`).
 7. Dos projetos dela: as telas (SVG de 0,3 a 1,4 MB), as dezenas de glifos de interface e os desenhos de controle do Hefesto, os
    favicons de site e os tamanhos de 16 a 96 px do mesmo ícone. Entrou o desenho de cada projeto, não o material dele.
 8. `calcdeirao`: Caldeirão, lista de exclusão (decisão 4).
+9. 22 desenhos do Hefesto e do FogStripper: a decisão 16 da P82 os tirou dos packs e o `tests/pack-dracula-completo.sh` barra
+   qualquer arquivo com esses nomes (a 16 desta leva os pedia em `biblioteca/projetos/`: valeu a que o teste guarda).
 
 **Para quem usa decidir (não mexi):**
 1. **Beholder, Elden Ring Tracker e Ouroboros já estão em `apps/resgatados/`** (desde antes da P88) e saem no `meow pack
    exportar`. A decisão 13 os manda para fora do pack; tirá-los muda o tema desta casa (o `.desktop` cairia no ícone do
    próprio app), então a P87 não os tocou.
-2. **Hefesto e FogStripper**: a decisão 16 (P82) os tirou dos *autorais* dos packs; a 16 (item 2) desta leva põe o desenho
-   achado em `biblioteca/projetos/`. Valeu a mais nova, e é um `git rm` se for o contrário.
+2. **Hefesto e FogStripper** (22 arquivos): as duas decisões 16 se contradizem, e valeu a da P82, que o teste guarda. Se a
+   da leva for a que vale, é trocar o teste e rodar o `tests/` do plano de novo: os arquivos estão no `scratchpad` da sessão.
 3. **Citrix**: segui a decisão 16 (item 3, «Citrix de 12/09») e o `Ubuntu-selfservice` passou do monitor de 15/09 para o
    vetor de 12/09 (0,030 contra o PNG, 0,227 do monitor). O monitor continua em `apps/resgatados/` e é uma linha do mapa.
 4. **Os tipos de arquivo (13) entraram no `apps.map`** e caem em `scalable/apps/`, antes de `scalable/mimetypes/` na
