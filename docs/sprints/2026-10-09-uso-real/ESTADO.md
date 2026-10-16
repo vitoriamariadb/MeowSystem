@@ -36,22 +36,22 @@ na máquina real em 10/10 (rc=0; o log em /tmp sumiu no reboot).
 20:15 o `meow-pos-apt.path` disparou sozinho o `cosmic_pos_apt.sh`, que recompila o menu do
 cosmic-files e a série do compositor em escopo de usuário. Log: `~/.local/state/meowsystem/pos-apt.log`.
 
-## Leva H — fechamento — EM VOO (workflow leva-h-fechamento, run wf_dfe39a62-0dd)
+## Leva H — CONCLUÍDA (integracao/leva-h, suíte 2x: 63 verdes, 1 pulado, 0 vermelhos)
 
-Specs em `docs/sprints/2026-10-15-fechamento/`: P81 (build sempre: pós-apt, login e doctor das 5h
-chamando a mesma função idempotente; doctor sem receita; teste da cadeia de atualização), P82 (todos
-os abertos da leva G, triados), P84 (os 39 PNG feitos à mão viram vetor, RMSE), P83 (documentação).
-Worktrees `.wt-meow/p81`, `p82`, `p84`, `integracao-h` (branch `integracao/leva-h`). 13 agentes.
-Retomar: `Workflow({scriptPath: ".../leva-h-fechamento-wf_dfe39a62-0dd.js", resumeFromRunId: "wf_dfe39a62-0dd"})`.
+P81 build sempre, P82 abertos (decisões 13–49), P83 documentação, P84 vetores, P85 série no 4d14528.
 
-Feito em 15/10 por mim: askpass ativo (decisão 5 resolvida), shim do compositor LIGADO (vale no
-próximo login; sem build válido cai no de fábrica), build real do compositor 4d14528 encadeado
-depois do pós-apt (log `~/.local/state/meowsystem/compositor-15-10.log`).
+## Leva I — EM VOO (workflow leva-i-final, run wf_a4815e79-31a)
 
-## Próximo passo
+P88 três pastas ∥ P86 regra da vida → P87 tudo pro pack → P89 repo enxuto + AGENTS.md + gancho →
+integração final, suíte 2x, QA. 7 agente + 2 agente.
+Retomar: `Workflow({scriptPath: ".../leva-i-final-wf_a4815e79-31a.js", resumeFromRunId: "wf_a4815e79-31a"})`.
 
-0. Ler `99-fechamento.md` na integracao-h; merge no dev; `./install.sh`; `meow doctor`.
-1. Ver o fim do pos-apt (o menu do cosmic-files 1.10 e a série do cosmic-comp 4d14528 aplicam?).
-2. `meow doctor` real depois dele; o que sobrar, `meow doctor --consertar`.
-3. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6, reboot), ativar o
-   shim do compositor (`meow compositor ativar`, vale no próximo login), a frase cortada de 09/10.
+## Fim combinado com quem usa (15/10, antes de dormir)
+
+1. merge da integracao/leva-h no dev; `./install.sh`; `meow compositor` (4d14528, com `just`);
+   applet de leitura depois do compositor (decisão 20 da P82); `meow doctor`.
+2. PR para `vitoriamariadb/MeowSystem` a partir de uma branch com HISTÓRICO NOVO (squash): o commit
+   63ed2ca do dev local tem a senha do askpass num documento (já removida do tip; o fork não tem o dev).
+3. `~/LEIA-AO-LIGAR.md`: o que foi feito, o que conferir, como voltar (shim e GPU).
+4. `sudo systemctl poweroff` (DESLIGAR, não reiniciar). Se algo falhar, não faz merge do quebrado,
+   escreve onde parou no LEIA-AO-LIGAR e desliga do mesmo jeito.
