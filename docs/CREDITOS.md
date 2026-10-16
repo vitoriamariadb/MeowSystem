@@ -75,7 +75,7 @@ luminância de cada flavor: [`assets/cursores/CREDITOS.md`](../assets/cursores/C
 | fonte | de onde | licença |
 |---|---|---|
 | **JetBrains Mono Nerd Font** | release [ryanoasis/nerd-fonts](https://github.com/ryanoasis/nerd-fonts) `v3.5.0` | OFL-1.1 (a fonte) · MIT (o patcher) |
-| `zrnic rg.otf` | arquivo que ela mesma trouxe, instalado como qualquer fonte local | da distribuidora original |
+| `zrnic rg.otf` | arquivo que quem usa trouxe, instalado como qualquer fonte local | da distribuidora original |
 
 ## Os temas dentro dos programas
 
