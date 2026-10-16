@@ -6,8 +6,10 @@ pacote. Quando o apt troca a versão, o build é refeito sozinho, sem sudo e sem
 
 ## A cadeia de atualização
 
-Os passos abaixo são os da cadeia de manutenção completa:
+Os passos abaixo são os da cadeia de manutenção completa, a que roda na máquina de origem:
 `sudo apt update && sudo apt full-upgrade && topgrade && sudo apt autoremove && cargo update && sudo apt autoclean && limpar_cache`.
+O `limpar_cache` é uma função do shell daquela máquina, e não do MeowSystem; a linha dele vale
+para qualquer limpeza do `~/.cache`.
 
 | Passo | O que o MeowSystem faz |
 |---|---|
@@ -30,6 +32,13 @@ instalada. Uma segunda passada não escreve nada.
    `patches` do doctor mostra «construindo».
 
 Uma passada por vez: se o apt chega no meio do build do login, ele espera e confere de novo.
+
+## Antes do apt
+
+`meow cosmic prever` lê o COSMIC que está na fila do apt, sem instalar nada, e diz se a série de
+patches e o esquema de chaves vão entrar na versão nova. O build pergunta ao fonte do
+`cosmic-comp` qual receita ele traz: `just build-vendored` (do 4d14528 em diante), `make VENDOR=1`
+(os fontes de antes) ou, sem nenhuma das duas, o `cargo build --frozen --offline` direto.
 
 ## O que só vale no próximo login
 
@@ -60,3 +69,6 @@ sem efeito. Para religar o shim: `meow compositor ativar`.
 
 Para o menu da área de trabalho, ponha `FILES_MENU="nao"` no `meow.conf`. O doctor seguinte devolve o
 menu de fábrica.
+
+O que o projeto entrega, o que roda sozinho e quando, e o caminho de volta de cada coisa estão
+em [`ESTADO-FINAL.md`](ESTADO-FINAL.md).
