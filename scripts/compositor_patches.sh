@@ -771,6 +771,20 @@ cmd_conferir() {
     meow_info "o próximo login resolve sozinho — não há comando a rodar"
     return "$MEOW_OK"
   fi
+  # SEM O SHIM, O QUE PEDE BUILD É ESCOLHA DELA (4) — conferência da P81,
+  #   15/10/2026. Desde a P76 o build vai para a casa do shim, e nada deste
+  #   projeto escreve mais em `/usr/bin`: o `.estado` de `/var/lib` é do arranjo
+  #   antigo, e o que ele cobra só um build com o shim ligado entrega. Ligar e
+  #   desligar o shim é gesto dela (o `meow compositor desativar` é o caminho
+  #   de volta do docs/MANUTENCAO.md). Com o 1, o doctor dizia «o conserto
+  #   recompila», compilava para a casa do shim, e a linha seguia fora: um
+  #   conserto que não converge, todo dia às 5h.
+  if [ "$precisa_build" = "1" ] && [ "$com_shim" = "0" ]; then
+    meow_pula "o shim do compositor está desligado — a sessão usa o de fábrica, sem os patches"
+    _cp_despejar
+    meow_info "o .estado de $CP_ESTADO é de antes do shim; com o shim ligado, o build da versão entra no próximo login"
+    return 4
+  fi
   meow_muda "$cabeca"
   _cp_despejar
   if [ "$precisa_build" = "1" ]; then

@@ -270,6 +270,23 @@ else
 fi
 igual "e não compila de novo" "$(grep -c . "$T/log")" 0
 
+echo "-- o shim desligado (meow compositor desativar) com o .estado antigo de /var/lib"
+# Conferência da P81. Esta máquina tem o `patches.estado` da era do /usr/bin
+# (24/09, versão velha). Com o shim desligado o doctor o lia, dizia «o
+# conserto recompila» e o conserto não convergia nunca: o build vai para a
+# casa do shim, e a sessão sem shim usa o /usr/bin. Desligar o shim é gesto
+# dela — o caminho de volta do docs/MANUTENCAO.md —, e a linha é escolha (4).
+rm -f "$D/.local/bin/cosmic-comp"
+printf '#!/bin/sh\n' > "$T/fabrica"; chmod 755 "$T/fabrica"
+printf 'versao=0.1~velha\ngravado=2026-09-24T04:07:05-03:00\nreq AURORA-X t.patch presente\n' > "$T/estado-velho"
+versoes cosmic-comp=0.1~h cosmic-files=1.10~b
+: > "$T/log"; CP_ESTADO="$T/estado-velho" CP_BIN="$T/fabrica" doctor; rc=$?
+igual "sem shim e com o .estado velho: a linha patches é escolha, o doctor não diverge (rc 0)" "$rc" 0
+grep -q 'o conserto recompila' "$T/doc.saida" && falha "a linha patches promete um conserto que não converge"
+: > "$T/log"; CP_ESTADO="$T/estado-velho" CP_BIN="$T/fabrica" doctor --consertar; rc=$?
+igual "e o --consertar não compila nada" "$(grep -c . "$T/log")" 0
+grep -q 'continua fora' "$T/doc.saida" && { falha "a linha patches ficou fora depois do conserto"; sed 's/^/        /' "$T/doc.saida"; }
+
 echo
 echo "== 3. o caminho de volta do docs/MANUTENCAO.md"
 # FILES_MENU="nao" com o nosso binário no ~/.local/bin: a conferência diverge
