@@ -96,7 +96,8 @@ COMENTARIO_TEMA="$(python3 "$RAIZ/scripts/pack.py" tema-icones "$(meow_pack_dir)
 #   `index.theme`) entraria na lista de temas de ícone, e escolhê-lo deixaria a
 #   máquina com uma árvore sem um único ícone de aplicativo. Uma pasta de SVG
 #   solta também não passa — e isso é resposta, não recusa: ícone avulso tem
-#   outra porta, que é `assets/icones/overrides/`.
+#   outra porta, que é o «Adicionar ícone» da ficha (desde a P82 ele grava em
+#   `~/.local/share/meowsystem/icones-enviados/`, e não mais no clone).
 #
 # TRÊS NOMES SÃO RECUSADOS, E CADA UM POR UM MOTIVO DIFERENTE
 #   `$TEMA_NOME`  é o tema que ESTE script constrói. Deixar um pacote de fora
@@ -212,7 +213,7 @@ _ci_adicionar() {
     done < <(_ci_colher_temas "$alvo")
     [ "$achou" = "1" ] || {
       meow_erro "'$alvo' não tem um index.theme com 'Directories=' — não é tema de ícones"
-      meow_info "  para um ícone avulso o caminho é assets/icones/overrides/"
+      meow_info "  um ícone avulso entra pelo «Adicionar ícone» da ficha de ícone"
       return "$MEOW_ERRO"; }
     meow_registrar "construir_icones.sh adicionar '$alvo'"
     return "$rc"
@@ -257,7 +258,7 @@ _ci_adicionar() {
 
   if [ "$achou" = "0" ]; then
     meow_erro "o pacote não tem um index.theme com 'Directories=' — não é tema de ícones"
-    meow_info "  para um ícone avulso o caminho é assets/icones/overrides/"
+    meow_info "  um ícone avulso entra pelo «Adicionar ícone» da ficha de ícone"
     return "$MEOW_ERRO"
   fi
   meow_registrar "construir_icones.sh adicionar '$alvo'"

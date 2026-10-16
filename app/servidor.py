@@ -8113,11 +8113,15 @@ class Manipulador(BaseHTTPRequestHandler):
             "normaliza": False,
             "depois": "o carrossel passa a sortear a imagem nova",
         },
+        # [P82, 15/10/2026 (item 4; decisão 15): o ícone enviado deixou de
+        #   morar no clone (`assets/icones/overrides/`, que nem a ficha lia).
+        #   Ele vai para a casa de quem usa, na pasta que a ficha lista —
+        #   `pasta_de_enviados` do scripts/pack.py, a resposta única.]
         "icone": {
-            "pasta": ("assets", "icones", "overrides"),
+            "casa": "pasta_de_enviados",
             "extensoes": (".svg",),
             "normaliza": True,
-            "depois": "vale depois de \"Reconstruir o tema de ícones\"",
+            "depois": "o desenho aparece na ficha de ícone, na pasta «enviados»",
         },
         # OS TRÊS QUE NÃO MORAM NO REPOSITÓRIO — 06/09/2026
         #   Os três acima são ACERVO: o arquivo fica em `assets/`, versionado,
@@ -8246,7 +8250,13 @@ class Manipulador(BaseHTTPRequestHandler):
         if ext == ".svg" and b"<svg" not in dados[:4096].lower():
             return self._json({"erro": "isso não parece um SVG"}, 400)
 
-        destino_dir = os.path.join(RAIZ, *conf["pasta"])
+        if "casa" in conf:
+            mod = modulo_pack()
+            if not mod:
+                return self._json({"erro": "não achei o scripts/pack.py"}, 500)
+            destino_dir = getattr(mod, conf["casa"])()
+        else:
+            destino_dir = os.path.join(RAIZ, *conf["pasta"])
         try:
             os.makedirs(destino_dir, exist_ok=True)
         except OSError as e:

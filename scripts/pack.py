@@ -1099,7 +1099,8 @@ def _alvo_de_escolha(alvo):
     #   O "não é link" continua no caminho como foi escrito, porque é o arquivo
     #   da linha que não pode ser link.]
     escrito = alvo if os.path.isabs(alvo) else os.path.join(RAIZ, alvo)
-    reais = [os.path.realpath(r) for r in [RAIZ] + raizes()]
+    # [P82: e a pasta dos desenhos que quem usa enviou pelo painel.]
+    reais = [os.path.realpath(r) for r in [RAIZ] + raizes() + [pasta_de_enviados()]]
     real = os.path.realpath(escrito)
     _exigir(any(real.startswith(r + os.sep) for r in reais),
             f"{alvo!r} está fora do MeowSystem e das pastas de packs")
@@ -4298,6 +4299,18 @@ FORA_DA_FICHA = ("ANTES-E-DEPOIS.png",)
 RE_NOME_NA_FICHA = re.compile(r"^[^#:\x00-\x1f]{1,200}$")
 
 
+# O DESENHO QUE QUEM USA ENVIOU MORA NA CASA DELA — 15/10/2026, P82 (item 4;
+#   decisão 15). O «Adicionar ícone» do painel gravava em
+#   `assets/icones/overrides/`, dentro do clone: usar o produto virava arquivo
+#   por commitar, e a pasta nem estava aqui, então o desenho não aparecia para
+#   ser escolhido. Agora ele mora ao lado da raiz 2 dos packs, no estado de quem
+#   usa, e a ficha o lista como uma pasta dela. O repositório só o recebe pelo
+#   «Levar para o pack», que é o gesto explícito.
+def pasta_de_enviados():
+    """`~/.local/share/meowsystem/icones-enviados/` (exista ou não)."""
+    return os.path.join(os.path.dirname(raiz_da_pessoa()), "icones-enviados")
+
+
 def _arquivos_da_pasta(pasta, ext):
     """Os arquivos comuns de `pasta` (sem descer), com a extensão `ext`."""
     try:
@@ -4398,6 +4411,10 @@ def acervos_de_icone(no_ar=""):
             grupo("motor:" + (pasta if sub == "." else "%s/%s" % (pasta, sub)), "MeowSystem",
                   nome if sub == "." else "%s · %s" % (nome, sub), "", tipo, dirpath,
                   _arquivos_da_pasta(dirpath, ".svg"))
+    # Os enviados pelo painel (P82, item 4), depois do motor.
+    enviados = pasta_de_enviados()
+    grupo("casa:enviados", "Seus", "enviados", "", "desenho", enviados,
+          _arquivos_da_pasta(enviados, ".svg"))
     # O PACK NO AR PRIMEIRO, e a ordem de dentro de cada lado fica a de cima.
     return sorted(grupos, key=lambda g: (not g["no_ar"], not g["pack"]))
 

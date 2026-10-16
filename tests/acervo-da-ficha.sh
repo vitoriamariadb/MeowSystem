@@ -223,6 +223,28 @@ for glifo, rotulo in (("org.telegram.desktop", "Telegram"), ("com.spotify.Client
     checa(len(deles) > 1 and all(r == rotulo for _g, r in deles),
           "«%s» se chama «%s» em toda pasta" % (glifo, rotulo), repr(deles))
 
+# --- 6. o «Adicionar ícone» grava na casa, e o desenho aparece na ficha — P82, item 4
+#   O `ACERVOS["icone"]` gravava em `assets/icones/overrides/`, dentro do clone:
+#   usar o produto virava arquivo por commitar, e a pasta nem era da ficha.
+import base64  # noqa: E402
+antes_git = subprocess.run(["git", "-C", raiz, "status", "--porcelain", "--untracked-files=all"],
+                           capture_output=True, text=True).stdout
+svg = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg>'
+resposta.clear()
+m._api_acervo({"tipo": "icone", "nome": "meu-desenho-p82.svg",
+               "conteudo": base64.b64encode(svg).decode()})
+enviado = resposta.get("dados") or {}
+depois_git = subprocess.run(["git", "-C", raiz, "status", "--porcelain", "--untracked-files=all"],
+                            capture_output=True, text=True).stdout
+checa(enviado.get("ok") and depois_git == antes_git,
+      "enviar um SVG pelo «Adicionar ícone» deixa o git status do clone como estava",
+      "resposta %r; novo no git: %r" % (enviado, sorted(set(depois_git.splitlines()) - set(antes_git.splitlines()))))
+casa_real = os.path.realpath(casa)
+dele = [it for it in glifos("").get("glifos", []) if it["glifo"] == "meu-desenho-p82"]
+checa(dele and caminho_de(dele[0]).startswith(casa_real + os.sep) and dele[0]["tipo"] == "desenho",
+      "e o desenho enviado aparece na ficha, numa pasta da casa de quem usa",
+      repr([(caminho_de(i), i["grupo"]) for i in dele]))
+
 if falhas:
     print("FALHOU: o acervo da ficha de ícone:", file=sys.stderr)
     for linha in falhas:
