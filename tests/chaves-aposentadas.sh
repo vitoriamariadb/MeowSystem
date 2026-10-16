@@ -118,6 +118,43 @@ else
   falha "a aposentada seguiu no ambiente depois da migração (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
 fi
 
+printf '\n--- 6. o bloco órfão da aposentada sai (P82, item 33) ---\n'
+# O conf desta casa guarda dois blocos «# @ Tema de onde herdar» sem chave
+# embaixo: o comentário que o exemplo trazia acima da `ICONES_BASE`, que ficou
+# quando a linha saiu. Aqui, os dois como estão lá: um cortado, com a nota que
+# quem usa escreveu colada no fim, e um inteiro, colado no cabeçalho do que o
+# install.sh acrescentou. O bloco sai; a nota escrita à mão fica; e a segunda
+# passada não escreve.
+cp "$RAIZ/meow.conf.exemplo" "$TMP/conf6"
+bloco="$(git -C "$RAIZ" show 18c1d88^:meow.conf.exemplo 2>/dev/null | sed -n '478,498p')"
+if [ "$(head -1 <<< "$bloco")" != "# @ Tema de onde herdar" ]; then
+  falha "não achei o bloco antigo no histórico (18c1d88^:meow.conf.exemplo)"
+else
+  {
+    printf '\n'; head -13 <<< "$bloco"
+    printf '# ICONES_BASE saiu em 24/09 (P41): a base agora vem do pack Dracula, pinada.\n'
+    printf '# A linha antiga era: ICONES_BASE="Dracula-Icones"\n\n'
+    printf '# --- Acrescentado pelo install.sh -----------------------------------------\n'
+    printf '%s\n\n' "$bloco"
+  } >> "$TMP/conf6"
+  python3 "$MIGRAR" "$TMP/conf6" "$RAIZ/meow.conf.exemplo" --conferir > "$TMP/saida6" 2>&1; rc_c=$?
+  python3 "$MIGRAR" "$TMP/conf6" "$RAIZ/meow.conf.exemplo" > "$TMP/saida6b" 2>&1; rc=$?
+  soma="$(sha256sum < "$TMP/conf6")"
+  python3 "$MIGRAR" "$TMP/conf6" "$RAIZ/meow.conf.exemplo" > /dev/null 2>&1; rc2=$?
+  python3 "$MIGRAR" "$TMP/conf6" "$RAIZ/meow.conf.exemplo" --conferir > /dev/null 2>&1; rc_d=$?
+  if [ "$rc_c" = "1" ] && [ "$rc" = "0" ] && [ "$rc2" = "0" ] && [ "$rc_d" = "0" ] \
+     && ! grep -q 'Tema de onde herdar' "$TMP/conf6" \
+     && ! grep -q 'O PACK PODE TRAZER A BASE' "$TMP/conf6" \
+     && grep -qx '# ICONES_BASE saiu em 24/09 (P41): a base agora vem do pack Dracula, pinada.' "$TMP/conf6" \
+     && grep -qx '# A linha antiga era: ICONES_BASE="Dracula-Icones"' "$TMP/conf6" \
+     && [ "$(sha256sum < "$TMP/conf6")" = "$soma" ]; then
+    ok "os dois blocos órfãos saem, a nota escrita à mão fica, e a segunda passada não escreve"
+  else
+    falha "o bloco órfão não saiu direito (conferir=$rc_c, migrar=$rc, 2ª=$rc2, depois=$rc_d)"
+    cat "$TMP/saida6" "$TMP/saida6b" >&2; grep -n 'Tema de onde herdar\|ICONES_BASE' "$TMP/conf6" >&2
+  fi
+fi
+
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2
