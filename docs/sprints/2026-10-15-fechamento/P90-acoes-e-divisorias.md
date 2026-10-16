@@ -15,6 +15,10 @@
 - «Ver o que faria muda para Ver sem mudar.»
 - «Temos que arrumar o install nosso.» (a página Instalação e o fluxo do `./install.sh` pelo painel)
 
+## Alcance
+Quem usa (16/10): «fiz essas análises rápidas de umas poucas páginas, mas deve se aplicar às demais». Cada
+tarefa vale para as 14 páginas e para a Início: o implementador varre todas, e o QA prova página por página.
+
 ## Tarefas
 1. **Janela de resultado (modal)**: toda ação abre uma janela sobre o fundo escurecido, com o progresso
    ao vivo e três botões: **OK** (fecha), **Guardar** (salva o log em `~/.local/state/meowsystem/logs/`
