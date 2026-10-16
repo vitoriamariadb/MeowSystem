@@ -59,8 +59,13 @@ printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
 #    `midia_build`, `leitura_build`) ficavam isentos enquanto a P81 os curava
 #    em paralelo. Com as duas juntas eles passam nas formas daqui, e a isenção
 #    saiu: um «rode» que voltar a eles fica vermelho também nesta seção.]
+#   [QA final da leva H, 16/10/2026: as seis linhas que o painel mostrou ao
+#    conferir a máquina, trocar de pack e usar um papel de parede («rode: meow
+#    doctor --consertar», «'meow doctor --consertar' os escreve», «rode uma vez
+#    no terminal», «com sudo disponível», «para ter o nosso de volta: …» e «ou
+#    agora, com 'meow wallpaper carrossel'») viraram estado, e entram aqui.]
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
-FORMAS='(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z])'
+FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com ')"
 achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
              | grep -vE '"uso: meow ')"
 if [ -z "$achados" ]; then
@@ -91,7 +96,10 @@ fi
 rm -rf "$CASA1B"
 
 printf '\n--- 2. as pendências novas têm botão ---\n'
-saida="$(env -i PATH="$PATH" HOME="$(mktemp -d)" python3 - "$RAIZ/app" <<'PY' 2>&1
+#   [QA final da leva H, 16/10/2026: o HOME desta pergunta era um `mktemp -d`
+#    que ninguém apagava, e cada rodada da suíte deixava uma `/tmp/tmp.*`.]
+CASA2="$(mktemp -d)" || exit 2
+saida="$(env -i PATH="$PATH" HOME="$CASA2" python3 - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
 import servidor
@@ -99,6 +107,7 @@ for p in ("instalar-com-root", "leitura-applet"):
     print("%s=%s" % (p, servidor.ACAO_DA_PENDENCIA.get(p, "")))
 PY
 )"
+rm -rf "$CASA2"
 if grep -qx 'instalar-com-root=instalar' <<< "$saida" && grep -qx 'leitura-applet=doctor_consertar' <<< "$saida"; then
   ok "instalar-com-root -> «Instalar tudo», leitura-applet -> «Consertar o que estiver fora»"
 else
