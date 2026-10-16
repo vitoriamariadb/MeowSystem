@@ -181,6 +181,31 @@ else
   falha "o painel não manda o ponteiro do pack como o de fábrica" "$s_dr / $s_cat"
 fi
 
+printf '\n--- 3b. a troca parada no meio não deixa pasta para trás ---\n'
+#   [QA final da leva H, 16/10/2026: a suíte deixava uma `/tmp/tmp.*` vazia por
+#    rodada. Era o `meow pack usar` que o gate para pelo «Parar» (SIGTERM no
+#    grupo): a cópia do conf nasce num `mktemp -d`, e o `rm -rf` dela só roda
+#    no fim. Aqui a troca de ensaio é parada em três momentos, com o TMPDIR
+#    numa pasta só dela, e nada pode sobrar lá.]
+SOBRA="$TMP/tmpdir"; mkdir -p "$SOBRA"
+CASA3B="$TMP/casa3b"; mkdir -p "$CASA3B/.config/meow"
+conf_com "$CASA3B/.config/meow/meow.conf" 'PACK="dracula"' 'FLAVOR="dracula"'
+for espera in 0.3 1 2; do
+  setsid env -i PATH="$FALSO:$PATH" HOME="$CASA3B" MEOW_RAIZ="$RAIZ" NO_COLOR=1 TMPDIR="$SOBRA" \
+    MEOW_DRY_RUN=1 "$RAIZ/bin/meow" pack usar catppuccin > /dev/null 2>&1 &
+  pid=$!
+  sleep "$espera"
+  kill -TERM -- "-$pid" 2>/dev/null
+  wait "$pid" 2>/dev/null
+done
+sleep 1
+restos="$(find "$SOBRA" -mindepth 1 -maxdepth 1 -name 'tmp.*' 2>/dev/null)"
+if [ -z "$restos" ]; then
+  ok "a troca parada aos 0,3, 1 e 2 s não deixa a cópia do conf no TMPDIR"
+else
+  falha "a troca parada deixou pasta no TMPDIR" "$restos"
+fi
+
 printf '\n--- 4. o CosmicBackground numa pasta que não é o carrossel ---\n'
 CASA4="$TMP/casa4"; B="$CASA4/.local/share/backgrounds/meowsystem"
 BG="$CASA4/.config/cosmic/com.system76.CosmicBackground/v1"

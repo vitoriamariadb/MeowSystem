@@ -4604,6 +4604,13 @@ cmd_pack() {
       # que fica de outro pack (logo abaixo) e, no ensaio, o instalador seco.
       local copia texto
       copia="$(mktemp -d)" || return "$MEOW_ERRO"
+      # A CÓPIA SAI MESMO QUANDO A TROCA É PARADA — 16/10/2026, QA final da
+      #   leva H. O «Parar» do painel manda SIGTERM ao grupo, e sem trap o
+      #   shell morria antes do `rm -rf` lá embaixo: cada parada deixava uma
+      #   `/tmp/tmp.*` (vazia, ou com a cópia do conf). As armadilhas valem só
+      #   enquanto a cópia existe, e saem junto com ela.
+      trap 'rm -rf "$copia"' EXIT
+      trap 'exit 143' TERM; trap 'exit 130' INT; trap 'exit 129' HUP
       if [ -f "$CONF" ]; then texto="$(cat "$CONF")"; else texto="$(cat "$CONF_PADRAO")"; fi
       texto="$(meow_conf_texto_definir "$texto" PACK "$novo_pack")"
       texto="$(meow_conf_texto_definir "$texto" FLAVOR "$novo_flavor")"
@@ -4733,10 +4740,10 @@ PY
         else
           rc_ensaio="$MEOW_DIVERGENTE"
         fi
-        rm -rf "$copia"
+        rm -rf "$copia"; trap - EXIT TERM INT HUP
         return "$rc_ensaio"
       fi
-      rm -rf "$copia"
+      rm -rf "$copia"; trap - EXIT TERM INT HUP
 
       local rc_pack rc_flavor
       conf_definir PACK "$novo_pack"; rc_pack=$?
