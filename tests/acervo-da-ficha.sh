@@ -175,7 +175,7 @@ checa(not fora_da_regra,
 # --- 3. a busca pelo nome do app e pelo significado ------------------------------
 achados = {os.path.relpath(caminho_de(it), raiz) for it in glifos("firefox").get("glifos", [])}
 checa("packs/dracula/icones/apps/net.waterfox.waterfox.svg" in achados,
-      "«firefox» acha o net.waterfox.waterfox.svg (o Firefox-Dracula, pelo comentário do apps.map)",
+      "«firefox» acha o net.waterfox.waterfox.svg (o Firefox-Dracula, pelo catalog.json de apps/)",
       repr(sorted(achados)[:8]))
 achados = {os.path.relpath(caminho_de(it), raiz) for it in glifos("alienígena").get("glifos", [])}
 checa("packs/dracula/icones/biblioteca/alien.svg" in achados,
@@ -237,7 +237,7 @@ for sub, rotulo, minimo in (("versoes", "versões", 100), ("projetos", "projetos
 #   `catalog.json`; sem nenhum dos dois, do próprio nome, sem número nem domínio.
 por_arquivo = {os.path.relpath(caminho_de(it), raiz): it for it in itens}
 esperados = {
-    "packs/dracula/icones/apps/net.waterfox.waterfox.svg": "Waterfox",   # o comentário do apps.map
+    "packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg": "Waterfox",   # o comentário do apps.map
     "packs/dracula/icones/biblioteca/alien.svg": "Alienígena",           # a descrição do catalog.json
     # [P82, item 8: o 005-potion ganhou descrição no catálogo; era «Potion», o
     #   nome sem o número, que é a queda de quando não há descrição.]
@@ -302,8 +302,10 @@ checa({"packs/dracula/icones/apps/net.waterfox.waterfox.svg",
 #   O `_escolha_no_pack` só respondia quando a linha do mapa era uma escolha do
 #   painel: o Waterfox abria com o desenho do pack sem marca nenhuma. A ordem é
 #   a do tema: a escolha de quem usa, a linha do mapa do pack no ar, o traço.
+#   [P87, decisão 16 (3): a linha do Waterfox passou à raposa do motor, que
+#   vence a régua do BRIEFING.]
 veste = glifos("", "net.waterfox.waterfox").get("veste")
-checa(veste == "packs/dracula/icones/apps/net.waterfox.waterfox.svg",
+checa(veste == "packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg",
       "o net.waterfox.waterfox vem com «veste» no desenho do pack no ar", "veio %r" % veste)
 
 # --- 8. nomes na ficha — P82, item 8 -------------------------------------------

@@ -116,7 +116,11 @@ io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do g
 #   rodar vencendo calado — o que a regra 1 ("um nome, uma fonte") proíbe.
 #   A raposa continua em `apps/resgatados/`, como alternativa (P88: era
 #   `assets/icones/resgatados/`).
-net.waterfox.waterfox : apps/net.waterfox.waterfox.svg   # Waterfox — o Firefox do dracula-icons (circle)
+#   [16/10/2026, P87, decisão 16 (3): a ligada é a que vence a régua do BRIEFING,
+#   e no Waterfox vence a raposa do motor (0,048 contra o `firefox.png`, 0,069
+#   da P84). O Firefox-Dracula fica em `apps/` como alternativa, achado na
+#   busca pelo `catalog.json` da pasta.]
+net.waterfox.waterfox : apps/resgatados/net.waterfox.waterfox.svg   # Waterfox — a raposa roxa do motor, vence a régua
 
 # OS TRÊS RESGATADOS APROVADOS — 09/10/2026, P73 (I8)
 #   Pedido dela, 16/09: «Syncthing eu ia pedir pra refazer…» e, sobre a leva
