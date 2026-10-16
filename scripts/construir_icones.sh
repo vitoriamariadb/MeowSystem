@@ -34,6 +34,9 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# O `meow_tema_base_escondida` (P82, item 12) mora lá.
+# shellcheck source=../lib/icones.sh
+. "$RAIZ/lib/icones.sh"
 
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
@@ -339,6 +342,29 @@ _ci_links_fora() {
     | grep -v -e "^$dir/" -e "^$dir\$" || true
 }
 
+# A BASE NÃO APARECE NOS SELETORES — 15/10/2026, P82 (item 12; decisão 20).
+#   A que já conferia, instalada antes desta data, não tem o `Hidden=true`: ele
+#   entra aqui, e o manifesto dela é refeito na mesma linha (ver o
+#   `meow_tema_base_escondida`, no lib/icones.sh). No seco, só se diz.
+#   0 = já escondida · 1 = escondeu (ou esconderia) · 2 = erro
+_ci_base_esconder() {
+  if awk '/^\[/{sec=$0} sec=="[Icon Theme]" && $0=="Hidden=true"{achou=1} END{exit !achou}' \
+       "$BASE_DIR/index.theme" 2>/dev/null; then
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "esconderia dos seletores a base em $BASE_DIR (Hidden=true)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_tema_base_escondida "$BASE_DIR"
+  case $? in
+    0) return "$MEOW_OK" ;;
+    1) meow_muda "a base em $BASE_DIR saiu dos seletores de tema (Hidden=true)"
+       return "$MEOW_DIVERGENTE" ;;
+    *) meow_erro "não consegui esconder a base em $BASE_DIR"; return "$MEOW_ERRO" ;;
+  esac
+}
+
 # 0 = a base instalada é a do pino e está inteira.
 _ci_base_confere() {
   local links
@@ -444,6 +470,10 @@ _ci_base_baixar() {
     meow_info "  $(printf '%s\n' "$fora" | head -1)"
     return "$MEOW_ERRO"
   fi
+  # Escondida dos seletores ANTES do manifesto (P82, item 12): o `index.theme`
+  # com o `Hidden=true` é o que ele mede.
+  meow_tema_base_escondida "$src" >/dev/null
+  [ "$?" -le 1 ] || { rm -rf "$palco"; meow_erro "não consegui esconder a base de ícones"; return "$MEOW_ERRO"; }
   # O manifesto nasce do que acabou de ser conferido, e fora do tema: um
   # arquivo escrito lá dentro durante o `find` entraria na própria lista.
   if ! ( cd "$src" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 -r sha256sum ) > "$palco/somas"; then
@@ -520,6 +550,9 @@ _ci_base_camadas() {
     BASE_DIR="$HOME/.local/share/icons/$TEMA_BASE-$n"
     if _ci_base_confere "$sha"; then
       HERDA_ATRAS="$HERDA_ATRAS,$TEMA_BASE-$n"
+      _ci_base_esconder; rc=$?
+      [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+      [ "$rc" -gt "$pior" ] && pior="$rc"
       continue
     fi
     if meow_seco; then
@@ -591,6 +624,9 @@ _ci_base() {
   if _ci_base_confere "$sha"; then
     meow_ok "a base de ícones do pack $pack está em $BASE_DIR e confere"
     HERDA="$TEMA_BASE"
+    _ci_base_esconder; rc=$?
+    [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+    [ "$rc" -gt "$rc_atras" ] && rc_atras="$rc"
     return "$rc_atras"
   fi
   # No seco não se baixa: baixar é gastar a rede dela para ensaiar, e abrir o

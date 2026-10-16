@@ -290,3 +290,71 @@ meow_icones_derivar() {
   done <<< "$plano"
   return "$rc"
 }
+
+# ============================================================================
+# AS BASES DE ÍCONE NÃO APARECEM NOS SELETORES — 15/10/2026, P82 (item 12;
+# decisão 20)
+# ============================================================================
+#   A base que o pack traz (`<tema>-Base`) e as camadas de trás
+#   (`<tema>-Base-<n>`) são temas inteiros, com `index.theme`, e por isso
+#   apareciam no seletor de tema de ícones do COSMIC como «Dracula Circle» e
+#   «Dracula», ao lado do nosso. Elas só existem para o nosso herdar. A chave
+#   `Hidden=true` do `[Icon Theme]` é da especificação de tema de ícones do
+#   freedesktop, e é exatamente isso: o tema existe, e não se oferece.
+#
+# meow_tema_base_escondida <pasta-do-tema>
+#   Põe `Hidden=true` no `[Icon Theme]` do `index.theme`. Se a pasta tem o
+#   manifesto da base (`.meow-somas.sha256`, o do `construir_icones.sh`), a
+#   linha do `./index.theme` nele é refeita, para a base continuar conferindo.
+#   0 = já estava · 1 = escreveu · 2 = erro
+meow_tema_base_escondida() {
+  local dir="$1" idx="$1/index.theme" tmp soma
+  [ -f "$idx" ] || return "$MEOW_ERRO"
+  if awk '/^\[/{sec=$0} sec=="[Icon Theme]" && $0=="Hidden=true"{achou=1} END{exit !achou}' "$idx"; then
+    return "$MEOW_OK"
+  fi
+  tmp="$(mktemp -p "$dir" .meow.XXXXXX)" || return "$MEOW_ERRO"
+  awk '/^\[/{sec=$0} sec=="[Icon Theme]" && /^Hidden=/{next}
+       {print} $0=="[Icon Theme]" && !feito {print "Hidden=true"; feito=1}' "$idx" > "$tmp" \
+    || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  chmod --reference="$idx" "$tmp" 2>/dev/null
+  mv -f "$tmp" "$idx" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  if [ -f "$dir/.meow-somas.sha256" ]; then
+    soma="$(cd "$dir" && sha256sum ./index.theme)" || return "$MEOW_ERRO"
+    tmp="$(mktemp -p "$dir" .meow.XXXXXX)" || return "$MEOW_ERRO"
+    awk -v nova="$soma" '$2=="./index.theme"{print nova; next} {print}' "$dir/.meow-somas.sha256" > "$tmp" \
+      && mv -f "$tmp" "$dir/.meow-somas.sha256" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  fi
+  return "$MEOW_DIVERGENTE"
+}
+
+# meow_tema_exportado_heranca <pasta-dos-temas> <nome>
+#   A herança do tema que o `exportar_tema.sh` monta para viajar: o nosso herda
+#   as camadas da base que estão ao lado dele (na ordem do índice), e depois o
+#   `Cosmic` e o `Adwaita`, antes do `hicolor` — são os temas que toda máquina
+#   com COSMIC tem, e é deles que vêm os `preferences-*` do COSMIC Ajustes que
+#   nenhuma base traz (tema herdado que falta é ignorado, e não quebra nada).
+#   Cada base herda só o `hicolor` (o `Inherits=` do upstream aponta para temas
+#   que não viajam), vai escondida, e perde as marcas de dono desta casa.
+#   Imprime as camadas, uma por linha.
+meow_tema_exportado_heranca() {
+  local icones="$1" nome="$2" tema="$1/$2" h camadas=() herda c
+  for h in $(sed -n 's/^Inherits=//p' "$tema/index.theme" | head -1 | tr ',' ' '); do
+    case "$h" in "$nome"-Base|"$nome"-Base-[0-9]*) [ -d "$icones/$h" ] && camadas+=("$h") ;; esac
+  done
+  herda="$(printf '%s,' ${camadas[@]+"${camadas[@]}"})Cosmic,Adwaita,hicolor"
+  _meow_herdar "$tema/index.theme" "$herda" || return "$MEOW_ERRO"
+  for c in ${camadas[@]+"${camadas[@]}"}; do
+    _meow_herdar "$icones/$c/index.theme" "hicolor" || return "$MEOW_ERRO"
+    rm -f "$icones/$c/.meow-origem" "$icones/$c/.meow-somas.sha256"
+    meow_tema_base_escondida "$icones/$c"; [ "$?" -le 1 ] || return "$MEOW_ERRO"
+  done
+  printf '%s\n' ${camadas[@]+"${camadas[@]}"}
+}
+
+# _meow_herdar <index.theme> <lista> — troca a primeira linha `Inherits=`.
+_meow_herdar() {
+  local tmp; tmp="$(mktemp -p "$(dirname "$1")" .meow.XXXXXX)" || return 1
+  awk -v h="$2" 'BEGIN{feito=0} /^Inherits=/ && !feito {print "Inherits=" h; feito=1; next} {print}' "$1" > "$tmp" \
+    && mv -f "$tmp" "$1"
+}

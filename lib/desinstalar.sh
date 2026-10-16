@@ -407,12 +407,9 @@ meow_desinstalar() {
   #   `.meow-origem` que o `construir_icones.sh` grava. Sem ela o `_ci_base_tirar`
   #   de lá também não toca ("não foi este script que o pôs lá"), e o
   #   desinstalador não pode ter a mão mais pesada que quem instalou.
-  dir="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}-Base"
-  if [ -d "$dir" ] && [ ! -f "$dir/.meow-origem" ]; then
-    meow_pula "não foi o MeowSystem que pôs, fica: $dir/"
-  elif [ -d "$dir" ]; then
-    if meow_seco; then meow_muda "removeria $dir/"; else rm -rf "$dir"; meow_ok "removido $dir/"; fi
-  fi
+  #   [P82, 15/10/2026: e as camadas de trás (`-Base-<n>`, P74), que ficavam.
+  #   O laço mora no `meow_desinstalar_bases_de_icones`, abaixo.]
+  meow_desinstalar_bases_de_icones
 
   # --- O ACERVO DE PAPEL DE PAREDE NÃO ENTRA NO LAÇO ACIMA (25/08/2026) -------
   #
@@ -570,4 +567,22 @@ meow_desinstalar() {
   fi
   meow_info "se LANCADOR_SISTEMA era \"sim\": rode antes  meow desfazer --lancador"
   return 0
+}
+
+# AS BASES DE ÍCONE DO PACK — a `-Base` e as camadas de trás, `-Base-<n>` (P82,
+# item 12). A marca de dono é a mesma do construtor (`.meow-origem`): o que não
+# tem a marca não foi o MeowSystem que pôs, e fica.
+meow_desinstalar_bases_de_icones() {
+  local dir raiz="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}-Base"
+  for dir in "$raiz" "$raiz"-[0-9]*; do
+    [ -d "$dir" ] || continue
+    case "${dir#"$raiz"}" in ''|-[0-9]*) ;; *) continue ;; esac
+    if [ ! -f "$dir/.meow-origem" ]; then
+      meow_pula "não foi o MeowSystem que pôs, fica: $dir/"
+    elif meow_seco; then
+      meow_muda "removeria $dir/"
+    else
+      rm -rf "$dir"; meow_ok "removido $dir/"
+    fi
+  done
 }

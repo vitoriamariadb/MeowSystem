@@ -574,6 +574,47 @@ else
   falha "a troca de pack não devolveu o que o pack escondia (Dracula: $com_dracula, Catppuccin: $com_catppuccin, 2ª rc=$rc)" "$saida"
 fi
 
+# --- P82, item 12 (decisão 20): as bases escondidas, a herança do exportado e o desinstalar
+#   Nenhum `Hidden=` nas bases, que apareciam nos seletores como «Dracula
+#   Circle» e «Dracula»; o exportado herdava só as bases e o `hicolor` (os
+#   `preferences-*` do COSMIC ficavam sem desenho); e o desinstalador tirava a
+#   `-Base` e esquecia a `-Base-2`.
+B="$T/icones12"; mkdir -p "$B/Tema" "$B/Tema-Base" "$B/Tema-Base-2"
+printf '[Icon Theme]\nName=Tema\nInherits=Tema-Base,Tema-Base-2,hicolor\nDirectories=a\n' > "$B/Tema/index.theme"
+printf '[Icon Theme]\nName=Dracula Circle\nInherits=Papirus-Dark,breeze-dark\nDirectories=a\n' > "$B/Tema-Base/index.theme"
+printf '[Icon Theme]\nName=Dracula\nInherits=hicolor\nDirectories=a\n' > "$B/Tema-Base-2/index.theme"
+lib12() { env -i PATH="$FALSO:$PATH" HOME="$T/casa12" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+            bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"; . "$MEOW_RAIZ/lib/desinstalar.sh"; "$@"' _ "$@" 2>&1; }
+lib12 meow_tema_exportado_heranca "$B" Tema > /dev/null
+herda="$(sed -n 's/^Inherits=//p' "$B/Tema/index.theme")"
+if [ "$herda" = "Tema-Base,Tema-Base-2,Cosmic,Adwaita,hicolor" ] \
+   && grep -qx 'Hidden=true' "$B/Tema-Base/index.theme" && grep -qx 'Hidden=true' "$B/Tema-Base-2/index.theme" \
+   && [ "$(sed -n 's/^Inherits=//p' "$B/Tema-Base/index.theme")" = "hicolor" ]; then
+  ok "o tema exportado herda as bases, Cosmic, Adwaita e hicolor, e as bases vão escondidas"
+else
+  falha "a herança do tema exportado ou o Hidden das bases não saiu" "Inherits=$herda; $(grep -h Hidden "$B"/Tema-Base*/index.theme)"
+fi
+L="$T/base-local"; mkdir -p "$L"
+printf '[Icon Theme]\nName=Dracula Circle\nDirectories=a\n' > "$L/index.theme"
+( cd "$L" && sha256sum ./index.theme > .meow-somas.sha256 )
+lib12 meow_tema_base_escondida "$L" > /dev/null; rc1=$?
+antes="$(sha256sum < "$L/index.theme")"
+lib12 meow_tema_base_escondida "$L" > /dev/null; rc2=$?
+if grep -qx 'Hidden=true' "$L/index.theme" && ( cd "$L" && sha256sum --status -c .meow-somas.sha256 ) \
+   && [ "$antes" = "$(sha256sum < "$L/index.theme")" ] && [ "$rc2" = 0 ]; then
+  ok "a base local ganha o Hidden=true e o manifesto dela continua conferindo; a 2ª passada não escreve"
+else
+  falha "a base local não ficou escondida, ou o manifesto dela parou de conferir (rc=$rc1/$rc2)"
+fi
+IC="$T/casa12/.local/share/icons"; mkdir -p "$IC/MeowSystem-Icons-Base" "$IC/MeowSystem-Icons-Base-2" "$IC/MeowSystem-Icons-Base-3"
+: > "$IC/MeowSystem-Icons-Base/.meow-origem"; : > "$IC/MeowSystem-Icons-Base-2/.meow-origem"
+lib12 meow_desinstalar_bases_de_icones > /dev/null
+if [ ! -e "$IC/MeowSystem-Icons-Base" ] && [ ! -e "$IC/MeowSystem-Icons-Base-2" ] && [ -d "$IC/MeowSystem-Icons-Base-3" ]; then
+  ok "o desinstalador tira a -Base e a -Base-2 com a marca de dono, e deixa a que não é nossa"
+else
+  falha "o desinstalador não tirou as duas bases (ou tirou a que não é nossa)" "$(ls "$IC")"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"
