@@ -1,7 +1,7 @@
 # Theme packs
 
 Um **theme pack** é um diretório que diz ao MeowSystem que cores usar — e, se
-quiser, que ícones, que papéis de parede e que agente. O MeowSystem lê o pack e
+quiser, que ícones, que papéis de parede e que ponteiro. O MeowSystem lê o pack e
 escreve no seu desktop; **ele nunca escreve dentro do pack.**
 
 O pack mais simples que se publica tem três arquivos e nenhuma linha de código.
@@ -356,6 +356,7 @@ packs/<id>/
     apps.map                "nome-do-ícone : caminho/relativo.svg"
     apps/                   os desenhos referidos pelo mapa
     biblioteca/             desenhos que nenhum aplicativo veste ainda — o mapa pode apontar para cá
+    feitos-a-mao/           desenhos feitos à mão, em vetor — ver "Os feitos à mão"
     pastas.map              pastas/
     pastas/                 folder-documents.svg, folder-download.svg…
     mimetypes.map           "nome-freedesktop : glifo"
@@ -366,6 +367,8 @@ packs/<id>/
     <tema>.qbtheme                   os temas de DENTRO dos aplicativos — ver a seção própria
     PROCEDENCIA.md                   obrigatória quando a arte é de terceiro
   cursores/<nome>/cursors/  o ponteiro do pack (origens.cursores.proprio) — ver "O ponteiro"
+  wallpapers/               papéis de parede em SVG (origens.wallpapers.desenhos), rasterizados ao semear
+  sons/                     um tema de som freedesktop (som.tema)
   fontes/                   .ttf/.otf que o pack traz (fontes.proprio) — ver "As fontes"
   temas/
     capturados/<flavor>-<accent>/    o tema do COSMIC já fotografado — ver a seção própria
@@ -442,15 +445,21 @@ suportado é recusado com o número na mensagem.
     "mimetypes": { "herda": "catppuccin", "flavor": "macchiato" },
     "autorais":  { "gerar": true },
     "base":      { "origem": { "url": "https://exemplo.org/tema-v1.tar.gz",
-                               "sha256": "…", "pasta": "tema-v1" } }
+                               "sha256": "…", "pasta": "tema-v1" },
+                   "por_tras": [ { "origem": { "url": "…", "sha256": "…", "pasta": "…" } } ] }
   },
+
+  "lancador": { "ocultar": ["org.gnome.baobab", "qt5ct"] },
+
+  "som": { "tema": "sons/" },
 
   "origens": {
     "cursores":   { "proprio": "cursores/meu-tema-roxo" },
     "wallpapers": { "tipo": "github-arvore",
                     "repo_do_conf": "WALLPAPER_SEMENTE_REPO",
                     "commit_do_conf": "WALLPAPER_SEMENTE_COMMIT",
-                    "se_vazio": "herdar" }
+                    "se_vazio": "herdar",
+                    "desenhos": "wallpapers/" }
   },
 
   "apps": {
@@ -470,6 +479,23 @@ ou `{"herda": "<id>"}` para o que pega o de outro — ver [O
 ponteiro](#o-ponteiro). **`fontes`** tem a mesma forma, com uma lista — ver [As
 fontes](#as-fontes). **`icones.base`** é o tema que o seu herda para tudo o que
 ele não desenha — ver [A base de ícones](#a-base-de-ícones).
+
+**`icones.mimetypes.derivar`** é a outra forma do bloco de ícones de arquivo:
+`{"de": "catppuccin", "pasta": "css-variables"}` manda o `meow pack construir`
+pegar o acervo daquele pack em que a cor vem escrita por papel, trocar cada papel
+pelo hex da sua paleta e escrever `icones/mimetypes/<flavor>/`, um diretório por
+flavor. É como o Dracula tem os 656 ícones de arquivo nas cores dele desde
+09/10/2026 (P74), sem copiar desenho nenhum.
+
+**`lancador.ocultar`** é a lista de `.desktop` que o pack esconde do lançador:
+ids com letras, dígitos, `.`, `_` e `-`, sem `/` e sem a extensão. Ela soma à
+chave `LANCADOR_OCULTAR` do `meow.conf`, e trocar de pack devolve ao lançador o
+que só o pack de antes escondia (P82, 15/10/2026).
+
+**`som.tema`** aponta para um tema de som freedesktop dentro do pack, que o
+`scripts/som.sh` instala. **`origens.wallpapers.desenhos`** aponta para uma
+pasta de SVG: o `scripts/wallpaper.sh` os rasteriza em PNG 4K ao semear a
+coleção (P74).
 
 **`autor`, `versao` e `licenca`** aparecem no alto do `meow pack info`, e o
 `autor` também no cartão do painel. Até 23/09/2026 nenhum código lia os três, e
@@ -732,6 +758,23 @@ com o Dracula no ar, o desenho do Dracula vence. Dois dos nomes, `guvcview` e
 precedência é declarada no `fontes` do `scripts/pack.py` — o pack vence com
 `ICONES_DRACULA="sim"`, o resgate sem ele.)
 
+### Os feitos à mão
+
+`icones/feitos-a-mao/` guarda desenhos feitos à mão para aplicativos, como a
+biblioteca: sem campo no `pack.json`, e nada os instala sozinho — quem veste um
+programa com eles é uma linha de mapa, ou a escolha de quem usa no seletor.
+
+A pasta nasceu em 09/10/2026 (P74) com 39 PNG do tema Dracula de antes, porque
+nada podia sumir. Em 15/10/2026 (P84) os 39 viraram vetor: cada SVG foi desenhado
+em formas, na cor medida no PNG, e conferido por RMSE contra ele, sobre o fundo
+do Dracula e sobre branco, valendo o pior dos dois. Os 39 passaram (o pior, 0,177)
+e os PNG saíram do pack; a tabela, ícone por ícone, está na spec da P84, e cada
+SVG tem a linha dele no `PROCEDENCIA.md`, com o sha256 do PNG de que nasceu.
+
+**Raster não é fonte.** Um PNG que ainda não tenha vetor continua visível no
+seletor, numa pasta à parte («feitos à mão (PNG)»), e travado: ele não se
+escolhe. No Dracula essa pasta está vazia, e não aparece.
+
 ### `motor:` — apontar para o acervo do motor sem copiá-lo
 
 Um alvo de mapa pode sair do pack, **com prefixo declarado**:
@@ -809,14 +852,16 @@ MEOW_PACK_DIR=packs/dracula python3 scripts/gerar_icones_autorais.py
 
 ### Desenhos autorais
 
-Até 23/09/2026 o gerador abria dizendo *"Desenha os ícones dos DOIS aplicativos
-da Vitória: FogStripper, Hefesto"*. Um gerador bom — nasce da paleta, por papel,
-e sobrevive ao flavor claro — que servia dois aplicativos **nomeados no Python**.
-Um terceiro não entrava sem editar código, e um pack de terceiro não tinha como
-trazer desenho nenhum.
+Até 23/09/2026 o gerador desenhava dois aplicativos **nomeados no Python**. Um
+gerador bom — nasce da paleta, por papel, e sobrevive ao flavor claro —, mas um
+terceiro aplicativo não entrava sem editar código, e um pack de terceiro não
+tinha como trazer desenho nenhum.
 
 Agora **o desenho é um arquivo do pack.** Cada `icones/autorais/<nome>.json` é
-um desenho, no vocabulário que o gerador já usava por dentro:
+um desenho, no vocabulário que o gerador já usava por dentro. Os dois packs do
+projeto não trazem declaração nenhuma desde 15/10/2026: as duas que existiam
+desenhavam projetos pessoais, e projeto pessoal não entra num pack público
+(decisão 16 da P82). O formato fica, para o seu pack:
 
 ```json
 {
@@ -836,7 +881,7 @@ um desenho, no vocabulário que o gerador já usava por dentro:
 }
 ```
 
-- **O nome vem do arquivo.** `hefesto.json` gera `hefesto-<flavor>.svg`, um por
+- **O nome vem do arquivo.** `meu-app.json` gera `meu-app-<flavor>.svg`, um por
   flavor da paleta, **na mesma pasta**. Não há campo `nome`: seria a segunda
   verdade sobre a mesma coisa.
 - **Cada papel diz a cor no flavor escuro e no claro, por nome da paleta** — um
@@ -848,9 +893,9 @@ um desenho, no vocabulário que o gerador já usava por dentro:
 - **Nenhum hex no SVG**, nada de `script`, `foreignObject`, `on*=` ou `href`
   para fora. O `validar` recusa, e diz o arquivo e o que consertar.
 
-**A herança vale para ler.** O Dracula não tem `fogstripper.json`: as duas
-declarações moram no Catppuccin, e o Dracula as alcança pela `heranca`. Quem
-escreve é sempre o pack em casa — o `fogstripper-alucard.svg` nasce em
+**A herança vale para ler.** Um pack alcança as declarações do pack de quem
+herda. Quem escreve é sempre o pack em casa: um `meu-app.json` declarado no
+Catppuccin e lido pelo Dracula gera o `meu-app-alucard.svg` em
 `packs/dracula/icones/autorais/`, da paleta do Dracula. Uma declaração no pack
 vence a herdada de mesmo nome.
 
@@ -882,10 +927,35 @@ quatro fundos da paleta dele (`crust`, `base`, `overlay0`, `text`). Escolher
 uma cor repinta a prévia; só **Salvar no pack** grava, no pack que está no ar, e
 roda o gerador para ele. A torrada diz se o desenho chega à tela, **medindo** o
 tema: se algum ícone instalado tem a forma dele, a próxima passagem dos ícones o
-troca; se nenhum tem (o Hefesto que veste a logo dela, ou o desenho sem linha no
-`AUTORAL`), ela diz que o pack mudou e a tela não.
+troca; se nenhum tem (o desenho sem linha no `AUTORAL`), ela diz que o pack
+mudou e a tela não.
 
-### O acervo do pack é uma origem na oficina
+### O seletor de ícone: o acervo inteiro, em pastas
+
+Na aba «Ícones», cada programa abre a ficha dele, e a ficha oferece **todos** os
+desenhos que existem, de todos os packs no disco, em pastas (09/10/2026, P73;
+decisão 3, que revogou a regra da P60 de mostrar só o pack no ar):
+
+| pasta | de onde |
+|---|---|
+| feitos para apps, biblioteca, feitos à mão, autorais por flavor | cada pack, o que está no ar primeiro |
+| resgatados, autorais, traço, traço (Arcticons), convertidos | o motor, `assets/icones/` |
+| enviados | o «Adicionar ícone» de quem usa, em `~/.local/share/meowsystem/icones-enviados/` |
+
+Quem decide as pastas é uma função só, a `acervos_de_icone` do
+`scripts/pack.py`; o servidor pergunta a ela, e o `tests/acervo-da-ficha.sh`
+conta o disco contra ela. Ficam de fora, de propósito, as pastas e os tipos de
+arquivo (um ícone de pasta no lugar de um programa no lançador seria engano).
+A busca casa pelo nome do arquivo e, onde houver, pela descrição em português
+do `catalog.json` da pasta (a biblioteca do Dracula e os resgatados têm um).
+
+**A ficha marca o que veste o programa agora**, nesta ordem: a escolha de quem
+usa, a linha do mapa do pack no ar, o traço. **Usar este ícone** grava a
+escolha em `~/.config/meow/icones-escolhidos.map`, ao lado do `meow.conf`, e
+nunca no pack nem no repositório: usar o produto não vira commit. O gesto que
+leva uma escolha para dentro do pack é outro, **Levar para o pack**, explícito.
+
+### A oficina
 
 A oficina «Gerar ícone» de cada aplicativo mostra **todas** as origens que
 existem para ele, lado a lado: *Original, Do pack, Salvo* e as variações em
@@ -896,8 +966,10 @@ de **qualquer** pack no disco, com o nome do pack e se ele está no ar.
 **Do pack vence por padrão:** é o cartão marcado quando a oficina abre, porque é
 o desenho que alguém fez à mão para aquele aplicativo. Marcar não grava nada, e
 quando o cartão do pack **não** é o que está na tela, a oficina diz quem está.
-O «Usar» não grava arte de pack — ele escreve no acervo de traço; quem põe o
-desenho do pack na tela é o próprio pack.
+O «Usar» não grava arte de pack: o retoque, o construído e a linha dele vão
+para o estado de quem usa (`~/.local/share/meowsystem/retoques/`,
+`convertidos-apps/` e o `icones-convertidos.map` ao lado do `meow.conf`, desde
+15/10/2026, P82); quem põe o desenho do pack na tela é o próprio pack.
 
 `tests/oficina.sh` trava a regra: todo SVG de `packs/<id>/icones/apps/` que veste
 um `Icon=` da máquina tem cartão na oficina daquele aplicativo. O teto é zero.
@@ -1246,8 +1318,12 @@ cartões da Home do painel chama.
 2. **Escolhe o flavor.** O que você pediu; senão o que já está no ar, se ele
    for do pack (voltar ao Catppuccin estando no Latte não te joga no Mocha);
    senão o `paleta.flavor_padrao` do pack.
-3. **Grava `PACK` e `FLAVOR`, e só as duas.** O resto do `meow.conf` fica
-   intacto, comentários inclusive.
+3. **Grava `PACK` e `FLAVOR`, e leva junto o que o pack de antes escolhia.**
+   Desde 10/10/2026 (P79) o `CURSOR` igual ao ponteiro do pack de antes vira o
+   do pack novo, e o `ICONES_PASTAS` com o flavor de outro pack volta a
+   acompanhar o pack: o pack decide, e quem usa pode fixar outro valor, que
+   fica. A régua é a do `scripts/migrar_conf.py` (`vestigios`), a mesma do
+   doctor. O resto do `meow.conf` fica intacto, comentários inclusive.
 4. **Diz o que ficou de outro pack.** O `meow.conf` vence o pack (ver a seção
    seguinte), então um `ICONES_BASE="Dracula-Icones"` escrito por você continua
    valendo depois de `usar catppuccin`. O verbo não decide por você o que é
@@ -1259,7 +1335,10 @@ cartões da Home do painel chama.
    `meow.conf.exemplo` não tem, e que por isso não tem cartão no painel, entra
    na lista com esse aviso.
 5. **Aplica** — o instalador inteiro, porque trocar de pack mexe em quase todas
-   as etapas. `--sem-aplicar` grava e para.
+   as etapas. `--sem-aplicar` grava e para. Na passagem, o lançador devolve o
+   que o pack de antes escondia (`lancador.ocultar`) e esconde o que o novo
+   pede, e o ponteiro do pack novo desce da rede se precisar, com o selo de quem
+   baixa no painel (decisão 12 de 09/10/2026).
 
 **O ensaio ensaia a troca.** Com `MEOW_DRY_RUN=1` (ou o «Ver o que faria» do
 painel), o `meow.conf` não é tocado: as duas chaves vão para uma cópia
@@ -1283,13 +1362,13 @@ sabores do Catppuccin soltos numa máquina vestida de Dracula.
 
 **O `meow.conf` da máquina sempre vence.** Sem exceção.
 
-O pack diz *"para este tema, o agente bom é este"*. O `meow.conf` diz *"nesta
-máquina, o agente é este"*. Quem mora na máquina decide.
+O pack diz *"para este tema, o ponteiro bom é este"*. O `meow.conf` diz *"nesta
+máquina, o ponteiro é este"*. Quem mora na máquina decide.
 
 | Chave do `meow.conf` | Campo do pack | Quem ganha |
 |---|---|---|
-| `CURSOR` | `origens.cursores.tema` | o conf |
-| `ICONES_BASE` | `icones.base` | o conf — mas o `Papirus-Dark` de fábrica cede ao pack |
+| `CURSOR` | `origens.cursores.tema` | o conf — mas o valor que só repetia o ponteiro do pack de antes acompanha a troca (P79) |
+| `ICONES_BASE` | `icones.base` | **o pack** — a chave saiu do `meow.conf.exemplo` em 24/09/2026, e o `migrar_conf.py` a tira de todo conf; ver abaixo |
 | `ICONES_FLAVOR` | `icones.mimetypes.flavor` | o conf |
 | `ICONES_PASTAS` | — | o conf |
 | `ACCENT` | `paleta.acentos[0]` | o conf |
@@ -1308,12 +1387,12 @@ próprio pack receita. O que o pack faz
 pelo ponteiro é **trazê-lo** (`origens.cursores.proprio`); quem o escolhe é
 sempre a chave. Ver [O ponteiro](#o-ponteiro).
 
-**`ICONES_BASE` tem a mesma exceção do `ICONES_FLAVOR`, pelo mesmo motivo.**
-Depois do `.` do `meow.conf` só se vê o valor, e todo `meow.conf` copiado do
-exemplo traz `ICONES_BASE="Papirus-Dark"`. Tratar esse valor como escolha faria
-um pack que traz base continuar caindo no Papirus justamente em quem já
-instalou. Então o de fábrica (ou o vazio) cede ao pack; qualquer outro tema
-escrito ali vence. Ver [A base de ícones](#a-base-de-ícones).
+**`ICONES_BASE` não é mais escolha da máquina.** Até 24/09/2026 ela tinha a
+mesma exceção do `ICONES_FLAVOR` (o `Papirus-Dark` de fábrica cedia ao pack, e
+qualquer outro tema escrito ali vencia). Naquele dia a decisão foi tirar a linha
+do conf: a base de ícones vem do pack, pinada, e o `scripts/migrar_conf.py` tira
+a chave aposentada de todo `meow.conf` que ainda a tenha, com a nota de por quê.
+Ver [A base de ícones](#a-base-de-ícones).
 
 ---
 
@@ -1523,15 +1602,36 @@ próximo ciclo e o tema herda do que havia (a base de antes, ou o de fábrica).
 Com o sha256 errado, a construção para e diz os dois números — é o arquivo
 mudando debaixo do pino.
 
-**Quem vence.** Um `ICONES_BASE` escrito à mão vence a base do pack, e a
-construção diz os dois na mesma linha ("o pack dracula traz uma base de ícones;
-vale o ICONES_BASE="Dracula-Icones" do meow.conf"). O de fábrica
-(`Papirus-Dark`, ou vazio) cede — ver [Quem vence](#quem-vence-o-pack-ou-o-meowconf).
-O nome da própria base (`MeowSystem-Icons-Base`, que a «Base de ícones» do
-painel lista como qualquer tema instalado) também cede: escolhê-lo é pedir a
-base do pack. A regra mora no `_base_escolhida` do `scripts/pack.py`, e o
-`construir_icones.sh`, o verbo `base-icones` e o `info` leem dela.
-Quando a base do pack não é a que vale, o diretório dela sai do disco.
+**Quem vence é o pack.** A chave `ICONES_BASE` saiu do `meow.conf.exemplo` em
+24/09/2026 (ver [Quem vence](#quem-vence-o-pack-ou-o-meowconf)); um pack sem
+base herda a do pack de quem herda, e na ponta da cadeia o motor usa o
+`Papirus-Dark`. A regra mora no `_base_escolhida` do `scripts/pack.py`, e o
+`construir_icones.sh`, o verbo `base-icones` e o `info` leem dela. Quando a
+base do pack não é a que vale, o diretório dela sai do disco.
+
+**Camadas de trás: `por_tras`.** Uma base pode precisar de outra atrás dela,
+para os nomes que a da frente não desenha. É o caso do Dracula (09/10/2026,
+P74): o ramo `circle` dos `dracula-icons` vai na frente e o ramo `main` atrás,
+como o tema Dracula de antes; só com o `circle`, 458 dos nomes `-symbolic`
+caíam fora do tema. Cada camada é uma `origem` com a mesma forma, numa lista:
+
+```json fragmento
+"icones": {
+  "base": {
+    "origem":   { "url": "…/circle.tar.gz", "sha256": "…", "pasta": "…" },
+    "por_tras": [ { "origem": { "url": "…/main.tar.gz", "sha256": "…", "pasta": "…" } } ]
+  }
+}
+```
+
+A primeira desce para `MeowSystem-Icons-Base`, a segunda para
+`MeowSystem-Icons-Base-2`, e assim por diante, e o `Inherits=` do tema as lista
+nessa ordem. `por_tras` só vale ao lado de uma `origem`, e não vazio.
+
+**As bases não aparecem nos seletores.** O `index.theme` de toda base, a
+instalada e a do tema exportado, leva `Hidden=true` (é da especificação de tema
+de ícones do freedesktop): elas são camada do `MeowSystem-Icons`, e não um tema
+para escolher. O desinstalador tira a `-Base` e todas as `-Base-<n>`.
 
 **Herdar é pelo bloco**, como nas fontes: responde o primeiro pack da cadeia que
 declara `icones.base.origem`, e `icones.base.herda` vence a `heranca`.
@@ -1548,13 +1648,14 @@ O `validar` não toca a rede: ele confere a forma, e o conteúdo é conferido by
 a byte na instalação.
 
 ```bash
-ICONES_BASE="Papirus-Dark" python3 scripts/pack.py base-icones dracula
+python3 scripts/pack.py base-icones dracula
 #   quem=pack
 #   tema=
 #   pack=dracula
 #   url=https://github.com/m4thewz/dracula-icons/archive/00a230a2….tar.gz
 #   sha256=563580916e42…
 #   pasta=dracula-icons-00a230a2…
+#   atras=https://github.com/m4thewz/dracula-icons/archive/de2a8edd….tar.gz  51db7832…  dracula-icons-de2a8edd…
 scripts/construir_icones.sh base     # põe ou confere só a base, e diz de quem o tema herda
 ```
 
@@ -1578,7 +1679,8 @@ packs/meu-tema/
 ```
 
 **Quem escolhe continua sendo a chave `CURSOR`.** O pack oferece; o
-`meow.conf` decide. Com `CURSOR="meu-tema-roxo"`, o `scripts/cursor.sh` instala
+`meow.conf` decide. Trocar de pack troca também o `CURSOR` que só repetia o
+ponteiro do pack de antes (ver [Trocar de pack](#trocar-de-pack-meow-pack-usar)). Com `CURSOR="meu-tema-roxo"`, o `scripts/cursor.sh` instala
 o tema do pack em `~/.local/share/icons/meu-tema-roxo-cursors/` **sem tocar a
 rede**, e a cada passagem compara o instalado com o do pack (`diff -rq
 --no-dereference`: o link é comparado como link, que é o que a cópia leva): se
@@ -1780,20 +1882,29 @@ dizem quantas e de quem, e as não declaráveis dizem de onde saem. `HERDADO` co
 "a cadeia não traz" ao lado é a herança vazia, dita em voz alta.
 
 ```
-  cursores          HERDADO de catppuccin        a cadeia não traz ponteiro
-  wallpapers        DO MOTOR, ou inexistente     scripts/wallpaper.sh — segue o pack do flavor, sem ler este bloco
-  apps              PRÓPRIO
+  icones.base       PRÓPRIO                      github.com/m4thewz/dracula-icons, sha256 563580916e42…, do pack dracula, +1 por trás
+  cursores          PRÓPRIO                      CURSOR="Dracula-Cursor", do pack dracula, baixado de github.com/dracula/gtk
+  wallpapers        PRÓPRIO                      13 desenho(s) SVG, rasterizados em PNG 4K ao semear (scripts/wallpaper.sh)
   som               PRÓPRIO
-  fontes            HERDADO de catppuccin        a cadeia não traz fonte
+  fontes            DO MOTOR, ou inexistente
   gerador           DO MOTOR — não declarável    scripts/converter_icone.py
 ```
+
+(Seis linhas da tabela de categorias do `meow pack info dracula`, em
+16/10/2026.)
 
 **O som não sobe a herança.** O `scripts/som.sh` lê só o `som` do pack ativo e
 põe os padrões dele no que faltar; um pack que herda do Dracula e não declara
 `som` toca o sino do motor. A tabela diz `DO MOTOR` para ele, e não `HERDADO`.
 
-**Os papéis de parede são do motor, declare o pack o que declarar.** O
-`scripts/wallpaper.sh` não lê o bloco `origens.wallpapers`: desde a P40 ele
+**Os papéis de parede do pack entram desde 09/10/2026 (P74).** O bloco
+`origens.wallpapers.desenhos` tem leitor: o `wallpaper.sh` semeia a coleção com
+os SVG da pasta, rasterizados, e o `meow pack info` diz `PRÓPRIO` e quantos são.
+O parágrafo abaixo é o registro de antes, e continua valendo para os outros
+campos do bloco, que seguem sem leitor.
+
+**Até a P74, os papéis de parede eram do motor, declarasse o pack o que
+declarasse.** O `scripts/wallpaper.sh` não lia o bloco `origens.wallpapers`: desde a P40 ele
 segue o **pack dono do flavor** (o `alucard` é do Dracula) e lê as chaves do
 `meow.conf` — o Dracula lê `WALLPAPER_DRACULA_REPO`, todo o resto cai no acervo
 do Catppuccin — e `WALLPAPER_SEMENTE_REPO` vence por cima. Então a
@@ -2004,6 +2115,34 @@ Um pack é **dado**. Nunca é código.
 - **O MeowSystem nunca escreve dentro de um pack.** O que sai do pack e chega ao
   seu sistema passa por `meow_escrever` (`lib/comum.sh`), que registra caminho e
   `sha256` no manifesto — é isso que faz o `--uninstall` saber desfazer.
+
+**Desde 10/10/2026 (P78) tudo o que vem de um pack é dado não confiável**, e a
+regra tem um lugar só em cada linguagem, que todo leitor usa:
+
+- **caminho**: o `realpath` cai dentro da raiz permitida, link simbólico que
+  aponta para fora é recusado, e nome de destino é de um conjunto fechado. A
+  forma conferida é a mesma que se usa. Um alvo de `apps.map` que sai da raiz
+  recusa o **pack inteiro** (a máquina veste o padrão); uma linha de mapa com
+  nome torto é pulada e contada (decisão 40 da P82);
+- **nome de flavor**: só `[a-z0-9_]`, em `flavors` e em `claros` — o nome vira
+  pasta e chave do `meow.conf`, e `..` ou `a/b` recusam o pack inteiro (P82);
+- **texto**: nome, autor, descrição, tags e nome de desenho saem sem caractere
+  de controle antes de chegar ao terminal (`meow_texto_seguro`);
+- **desenho**: SVG e PNG de acervo chegam ao painel com `Content-Security-Policy`
+  `default-src 'none'; style-src 'unsafe-inline'; sandbox` e `nosniff`, e nunca
+  entram no DOM da página: um `<script>` dentro de um SVG não roda;
+- **temas de aplicativo**: o modelo de kitty e o de GNOME Terminal de um pack só
+  levam chave de cor; o que manda executar alguma coisa é pulado e contado;
+- **extensão do VS Code**: só os packs que vêm com o MeowSystem (`packs/` do
+  repositório) instalam a extensão que pedem. Um pack importado mostra a
+  extensão, com o selo, e ela só se instala por um gesto naquela extensão, pelo
+  id, da loja oficial (decisão 9 de 09/10/2026). Uma extensão é código que roda
+  a cada abertura do editor, e o sha256 de um pack prova integridade, não
+  confiança.
+
+O `tests/pack-malicioso.sh` monta um pack de terceiro com `..`, caminho absoluto,
+link para fora, script e SVG com `<script>`, e confere que nada é lido nem
+escrito fora da raiz e que nada executa.
 
 ---
 
@@ -2241,6 +2380,26 @@ que não traz é recusado do outro lado. O pack de origem não muda um byte.
 Se o pack herda de outro que **não** vem com o MeowSystem, o exportar avisa:
 quem importar precisa ter aquele também.
 
+### O tema montado: `meow pack exportar-tema`
+
+```bash
+meow pack exportar-tema dracula              # o flavor padrão do pack
+meow pack exportar-tema dracula alucard tema.tar.gz
+```
+
+O `exportar` leva a **receita** (o pack); quem a recebe precisa do MeowSystem
+para ver um ícone. O `exportar-tema` (09/10/2026, P74) leva o **tema de ícones
+montado**, num `.tar.gz` pronto para `~/.local/share/icons/` de qualquer
+máquina: o tema com o nome do pack e do flavor (`MeowSystem-Dracula-Icons`), a
+base que o pack traz (`-Base`) e as camadas de trás dela (`-Base-<n>`). As bases
+vão com `Hidden=true`, para não aparecerem como tema nos seletores, e o tema
+herda as bases, depois `Cosmic` e `Adwaita`, e por fim o `hicolor` — o que falta
+numa máquina sem COSMIC é ignorado, e não quebra a herança.
+
+Ele é montado do zero numa casa temporária, com o pack e o flavor pedidos e o
+resto de fábrica: nenhuma escolha do `meow.conf` de quem exporta viaja junto, e
+nada é escrito fora do arquivo que ele entrega.
+
 ### O que o `importar` recusa
 
 Um `.meowpack` vem de fora, e fora é onde mora quem não leu este documento.
@@ -2256,7 +2415,7 @@ prometido. Tudo acontece na memória; o disco só é tocado depois:
 | o `MANIFESTO` que não bate — arquivo a mais, a menos, ou `sha256` diferente | o arquivo mudou depois de exportado |
 | `meowpack` ou `formato` maiores que os deste MeowSystem | um pack novo num MeowSystem velho falha dizendo o número |
 | mais de 256 MB **aberto**, ou mais de 20.000 arquivos | o zstd reduz zeros a quase nada: o teto é do que abre, não do que chega |
-| o pack que não passa no `validar` inteiro | as 26 cores, `https://` em toda URL, todo caminho dentro do pack, a herança existindo nesta máquina |
+| o pack que não passa no `validar` inteiro | as 26 cores, `https://` em toda URL, todo caminho dentro do pack, nome de flavor só com `[a-z0-9_]`, a herança existindo nesta máquina |
 | um id que já existe em **qualquer** raiz | por cima trocaria o que está lá sem perguntar; noutra raiz, um dos dois sumiria da vista |
 
 E o que passa **nasce 0644**, seja qual for o modo que o tar peça: nada do que
