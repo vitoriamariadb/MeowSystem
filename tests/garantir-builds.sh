@@ -188,6 +188,23 @@ fi
 grep -q 'meow-builds-login.service' "$RAIZ/lib/desinstalar.sh" \
   && ok "o desinstalador o desliga" || falha "o desinstalador não desliga o meow-builds-login.service"
 
+echo "-- as três unidades, com o PATH que o systemd dá, acham o just e o cargo do ~/.cargo/bin"
+# Medido na P76: o PATH do systemd do usuário começa em ~/.local/bin e segue
+# pelo do sistema, sem o ~/.cargo/bin, onde o rustup põe o cargo e o just. A
+# linha ExecStart de cada unidade roda aqui como o systemd a rodaria (o %h
+# trocado pelo HOME de brinquedo), com sondas no lugar dos scripts.
+U2="$T/unid"; mkdir -p "$U2/.cargo/bin" "$U2/.local/bin" "$U2/.local/state/meowsystem" "$U2/raiz/scripts"
+for c in just cargo; do printf '#!/bin/sh\n' > "$U2/.cargo/bin/$c"; chmod 755 "$U2/.cargo/bin/$c"; done
+for sonda in "$U2/raiz/scripts/cosmic_pos_apt.sh" "$U2/raiz/scripts/garantir_builds.sh" "$U2/.local/bin/meow"; do
+  printf '#!/bin/sh\ncommand -v just; command -v cargo\n' > "$sonda"; chmod 755 "$sonda"
+done
+printf '%s\n' "$U2/raiz" > "$U2/.local/state/meowsystem/raiz"
+for u in meow-pos-apt.service meow-builds-login.service meow-doctor.service; do
+  linha="$(sed -n 's/^ExecStart=//p' "$RAIZ/systemd/$u" | sed "s|%h|$U2|g")"
+  achou="$(env -i HOME="$U2" PATH="$U2/.local/bin:/usr/local/bin:/usr/bin:/bin" bash -c "$linha" 2>&1 | tr '\n' ' ')"
+  igual "$u acha o just e o cargo" "$achou" "$U2/.cargo/bin/just $U2/.cargo/bin/cargo "
+done
+
 echo "-- o doctor --consertar compila o compositor que falta (shim ligado, HOME de brinquedo)"
 # O cmd_doctor do bin/meow com só a linha `patches`, como no
 # tests/doctor-veredito.sh: o bin/meow é lido sem a última linha (o despacho).

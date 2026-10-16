@@ -87,7 +87,13 @@ ExecStartPre=-/bin/sh -c 'L=%h/.local/state/meowsystem/doctor.log; [ -f "$L" ] |
 #   de efeito retardado: no dia em que o parser passar a ler todos os argumentos —
 #   e ele passou, junto com esta correção —, `--yes` viraria "opção desconhecida",
 #   saída 2, e o auto-reparo falharia todo dia.
-ExecStart=%h/.local/bin/meow doctor --consertar
+#
+# O `~/.cargo/bin` ENTRA NO PATH AQUI — P81, 15/10/2026 (o achado da P76: esta
+# unidade sem ele). O conserto compila — os dois applets, o compositor e o
+# menu do cosmic-files —, e o PATH do systemd do usuário não tem o lugar onde
+# o rustup põe o `cargo` e o `just`. O `$PATH` sem chaves passa pelo systemd
+# intacto e é o `sh` que o expande; o `exec` deixa o meow com o PID da unidade.
+ExecStart=/bin/sh -c 'PATH="%h/.cargo/bin:$PATH" exec %h/.local/bin/meow doctor --consertar'
 
 # 1 (consertou), 3 (faltou dependência) e 4 (divergente por escolha dela) são
 # informação, não falha. O 4 nasceu em 05/08/2026: quando ela mexe em Aparência, a
