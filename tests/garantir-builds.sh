@@ -253,6 +253,19 @@ else
 fi
 igual "e não compila de novo" "$(grep -c . "$T/log")" 0
 
+echo
+echo "== 3. o caminho de volta do docs/MANUTENCAO.md"
+# FILES_MENU="nao" com o nosso binário no ~/.local/bin: a conferência diverge
+# (1), para o doctor seguinte devolver o menu de fábrica. Saía 0 dizendo
+# «removeria», e o doctor nunca chamava o conserto.
+V="$T/volta"; mkdir -p "$V/.local/bin"; echo nosso > "$V/.local/bin/cosmic-files"
+volta() { env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY \
+  HOME="$V" PATH="$T/bin:$PATH" NO_COLOR=1 FILES_MENU=nao "$RAIZ/scripts/files_menu.sh" "$@" >/dev/null 2>&1; }
+volta --conferir; igual "FILES_MENU=nao com o nosso no lugar: a conferência diverge" "$?" 1
+volta aplicar
+[ -e "$V/.local/bin/cosmic-files" ] && falha "o conserto não tirou o nosso" || ok "o conserto tira o nosso"
+volta --conferir; igual "e a conferência seguinte fica em 0" "$?" 0
+
 grep -v "^recusado: sudo -n -l$" "$T/recusados" 2>/dev/null | grep -q . && { falha "algo chamou um comando recusado:"; sed "s/^/        /" "$T/recusados"; }
 
 echo

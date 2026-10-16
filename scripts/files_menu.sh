@@ -151,9 +151,12 @@ cmd_aplicar() {
     remover_nossos
     if [ "$?" = "1" ]; then
       meow_muda "FILES_MENU=\"$FILES_MENU\" — itens de papel de parede removidos do menu"
-    else
-      meow_pula "FILES_MENU=\"$FILES_MENU\" — o menu de contexto fica de fábrica"
+      # 1 QUANDO TIROU (ou tiraria) — P81, 15/10/2026. Saía 0 também aqui, e a
+      # conferência dizia «removeria» com 0: o doctor nunca chamava o conserto,
+      # e o caminho de volta do docs/MANUTENCAO.md não voltava.
+      return "$MEOW_DIVERGENTE"
     fi
+    meow_pula "FILES_MENU=\"$FILES_MENU\" — o menu de contexto fica de fábrica"
     return "$MEOW_OK"; }
 
   ver="$(versao_do_pacote)"
