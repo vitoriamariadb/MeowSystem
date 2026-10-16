@@ -191,6 +191,9 @@ def md5_conf():
 
 
 def md5_de(caminho):
+    # [P82: o mapa de quem usa nasce no primeiro «Usar» — ausente é um estado.]
+    if not os.path.isfile(caminho):
+        return None
     with open(caminho, "rb") as fh:
         return hashlib.md5(fh.read()).hexdigest()
 
@@ -2349,8 +2352,11 @@ def main():
                 amostras = pag.locator(".oficina-lado .cores-grade button")
                 checa(amostras.count() >= 14,
                       f"a oficina tem a fileira de cores da paleta ({amostras.count()} amostras)")
-                mapa_c = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-                mapa_a = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
+                # [P82, item 5: o «Usar» da oficina grava no estado de quem usa
+                #   — o `icones-convertidos.map` ao lado do meow.conf da casa de
+                #   brinquedo —, e o que sai é a escolha de traço dela.]
+                mapa_c = os.path.join(CASA, ".config", "meow", "icones-convertidos.map")
+                mapa_a = os.path.join(CASA, ".config", "meow", "icones-traco.map")
                 antes_mapas = (md5_de(mapa_c), md5_de(mapa_a))
                 cor_antes = pag.evaluate("() => OFICINA.cor")
                 outra = None
@@ -2473,11 +2479,12 @@ def main():
                 #   outro, porque um nome nos dois mapas faz o `_conferir_gemeos`
                 #   estourar), e por isso ele e' o mapa "dono" depois do Usar.
                 nome_icone = pag.evaluate("() => OFICINA.nome") or OFICINA_APP
-                conv_dir = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+                conv_dir = os.path.join(CASA, ".local", "share", "meowsystem", "convertidos-apps")
                 guardados = {}
                 for c in (mapa_c, mapa_a,
                           os.path.join(conv_dir, nome_icone + ".svg"),
-                          os.path.join(conv_dir, "retoques", nome_icone + ".svg")):
+                          os.path.join(CASA, ".local", "share", "meowsystem", "retoques",
+                                       nome_icone + ".svg")):
                     guardados[c] = open(c, "rb").read() if os.path.isfile(c) else None
                 try:
                     cor_alvo = pag.evaluate("() => OFICINA.cor")
@@ -2493,7 +2500,7 @@ def main():
                     checa(not r.get("erro") and r.get("cor") == cor_alvo,
                           f"o salvar aceita a cor escolhida na oficina ({r.get('erro') or r.get('cor')})")
                     campos = []
-                    with open(mapa_c, encoding="utf-8") as fh:
+                    with open(mapa_c, encoding="utf-8") if os.path.isfile(mapa_c) else open(os.devnull) as fh:
                         for linha in fh:
                             corte = linha.strip()
                             if corte and not corte.startswith("#") \
@@ -2501,9 +2508,9 @@ def main():
                                 campos = [c.strip() for c in corte.split(":")]
                     checa(len(campos) >= 3 and campos[2] == cor_alvo,
                           f"e ela esta no CAMPO 3 da linha de {nome_icone} no "
-                          f"apps-convertidos.map ({':'.join(campos) or 'linha nao achada'})")
+                          f"icones-convertidos.map de quem usa ({':'.join(campos) or 'linha nao achada'})")
                     fora = []
-                    with open(mapa_a, encoding="utf-8") as fh:
+                    with open(mapa_a, encoding="utf-8") if os.path.isfile(mapa_a) else open(os.devnull) as fh:
                         for linha in fh:
                             corte = linha.strip()
                             if corte and not corte.startswith("#") \

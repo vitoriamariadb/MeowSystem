@@ -1872,6 +1872,25 @@ def _mapa_de_traco_do_usuario():
             or os.path.join(os.path.dirname(CONF), "icones-traco.map"))
 
 
+# O DESENHO DA OFICINA TAMBÉM MORA COM QUEM USA — 15/10/2026, P82 (item 5;
+#   decisão 15). O «Usar» da oficina gravava o retoque, o construído e a linha
+#   `<app>:mao:<cor>` dentro do clone (`assets/icones/`). Os três vão para a
+#   casa, no mesmo molde do `icones-escolhidos.map` (P73, I3):
+#     · `icones-convertidos.map`, ao lado do meow.conf, no formato do
+#       `apps-convertidos.map` — lido depois dele pelo `construir_convertidos.sh`
+#       e pelo `icones_apps_arcticons.sh`, e vence o app que os dois nomeiam;
+#     · `~/.local/share/meowsystem/retoques/` e `convertidos-apps/`, o retoque e
+#       o construído. O repositório só os recebe por gesto explícito.
+def _mapa_de_convertidos_do_usuario():
+    return (os.environ.get("MEOW_ICONES_CONVERTIDOS")
+            or os.path.join(os.path.dirname(CONF), "icones-convertidos.map"))
+
+
+def _oficina_do_usuario(*partes):
+    xdg = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    return os.path.join(xdg, "meowsystem", *partes)
+
+
 def _gravar_escolha(caminho, chave, linha, separador):
     """Troca (ou tira, com `linha` None) a linha de `chave` em `caminho`.
 
@@ -8450,18 +8469,20 @@ class Manipulador(BaseHTTPRequestHandler):
         um desenho em `retoques/`, e é essa que "Abrir o que já está salvo"
         encontra. As outras 25 têm origem chapada e podem ser revetorizadas."""
         fora = {}
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                for linha in fh:
-                    corte = linha.strip()
-                    if not corte or corte.startswith("#"):
-                        continue
-                    campos = [c.strip() for c in corte.split(":")]
-                    if len(campos) >= 3:
-                        fora[campos[0]] = {"cor": campos[2], "mao": campos[1] == "mao"}
-        except OSError:
-            pass
+        # [P82: e o de quem usa, lido depois, que vence — o `meu` diz de onde.]
+        for caminho, meu in ((os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map"), False),
+                             (_mapa_de_convertidos_do_usuario(), True)):
+            try:
+                with open(caminho, "r", encoding="utf-8") as fh:
+                    for linha in fh:
+                        corte = linha.strip()
+                        if not corte or corte.startswith("#"):
+                            continue
+                        campos = [c.strip() for c in corte.split(":")]
+                        if len(campos) >= 3:
+                            fora[campos[0]] = {"cor": campos[2], "mao": campos[1] == "mao", "meu": meu}
+            except OSError:
+                pass
         return fora
 
     def _mapa_dracula(self):
@@ -10465,8 +10486,12 @@ class Manipulador(BaseHTTPRequestHandler):
         return nome
 
     def _caminho_retoque(self, app):
-        return os.path.join(RAIZ, "assets", "icones", "convertidos-apps",
-                            "retoques", app + ".svg")
+        """O retoque de quem usa (P82, item 5): é onde a oficina grava."""
+        return _oficina_do_usuario("retoques", app + ".svg")
+
+    def _retoque_do_projeto(self, app):
+        """O retoque que veio com o clone (o do Gradia, por exemplo)."""
+        return os.path.join(RAIZ, "assets", "icones", "convertidos-apps", "retoques", app + ".svg")
 
     def _vizinhos_do_dock(self):
         """Os dois vizinhos da tira: a PRIMEIRA e a ÚLTIMA linha de dados do
@@ -10508,19 +10533,21 @@ class Manipulador(BaseHTTPRequestHandler):
         `retoques/`", e qualquer outra coisa é um caminho de arte chapada, isto
         é, uma linha que o `construir_convertidos.sh` sabe refazer sozinho.
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                for linha in fh:
-                    corte = linha.strip()
-                    if not corte or corte.startswith("#"):
-                        continue
-                    campos = [c.strip() for c in corte.split(":", 2)]
-                    if campos[0] != nome or len(campos) < 2:
-                        continue
-                    return "mao" if campos[1] == "mao" else "conversao"
-        except OSError:
-            return ""
+        # [P82: o de quem usa primeiro, porque é ele que vence.]
+        for caminho in (_mapa_de_convertidos_do_usuario(),
+                        os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")):
+            try:
+                with open(caminho, "r", encoding="utf-8") as fh:
+                    for linha in fh:
+                        corte = linha.strip()
+                        if not corte or corte.startswith("#"):
+                            continue
+                        campos = [c.strip() for c in corte.split(":", 2)]
+                        if campos[0] != nome or len(campos) < 2:
+                            continue
+                        return "mao" if campos[1] == "mao" else "conversao"
+            except OSError:
+                continue
         return ""
 
     def _salvo_do_app(self, nome):
@@ -10532,7 +10559,10 @@ class Manipulador(BaseHTTPRequestHandler):
         que perde.
         """
         conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        # [P82: o de quem usa vem antes do que veio com o clone.]
         for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
+                                 (_oficina_do_usuario("convertidos-apps", nome + ".svg"), "conversao"),
+                                 (self._retoque_do_projeto(nome), "mao"),
                                  (os.path.join(conv, nome + ".svg"), "conversao")):
             try:
                 with open(caminho, "r", encoding="utf-8") as fh:
@@ -10558,8 +10588,7 @@ class Manipulador(BaseHTTPRequestHandler):
         recebido do cliente), e o alvo real tem de cair dentro da pasta
         `retoques/` depois do `realpath`.
         """
-        pasta = os.path.realpath(os.path.join(RAIZ, "assets", "icones",
-                                              "convertidos-apps", "retoques"))
+        pasta = os.path.realpath(_oficina_do_usuario("retoques"))
         alvo = os.path.realpath(self._caminho_retoque(nome))
         if not alvo.startswith(pasta + os.sep) or not os.path.isfile(alvo):
             return False
@@ -10650,7 +10679,10 @@ class Manipulador(BaseHTTPRequestHandler):
 
         # ------------------------------------------------------------------ ler
         if acao == "ler":
+            # O de quem usa; sem ele, o que veio com o clone (P82, item 5).
             alvo = self._caminho_retoque(nome)
+            if not os.path.isfile(alvo):
+                alvo = self._retoque_do_projeto(nome)
             if not os.path.isfile(alvo):
                 return self._json({"ok": True, "svg": "", "tem": False})
             try:
@@ -10968,10 +11000,12 @@ class Manipulador(BaseHTTPRequestHandler):
             if not erro_conv and feito.rstrip() == svg.rstrip():
                 modo = "conversao"
 
-        conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        # [P82, item 5: na casa de quem usa, e não no clone.]
+        conv = _oficina_do_usuario("convertidos-apps")
         tirou_retoque = False
         try:
-            os.makedirs(os.path.join(conv, "retoques"), exist_ok=True)
+            os.makedirs(conv, exist_ok=True)
+            os.makedirs(_oficina_do_usuario("retoques"), exist_ok=True)
             if modo == "mao":
                 with open(self._caminho_retoque(nome), "w", encoding="utf-8") as fh:
                     fh.write(svg if svg.endswith("\n") else svg + "\n")
@@ -11035,12 +11069,16 @@ class Manipulador(BaseHTTPRequestHandler):
         diferença entre um ícone que acompanha uma atualização do Papirus e um
         que congela no dia em que foi salvo.
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+        # [P82, item 5: o mapa de quem usa, ao lado do meow.conf; nasce no
+        #   primeiro «Usar».]
+        caminho = _mapa_de_convertidos_do_usuario()
         try:
             with open(caminho, "r", encoding="utf-8") as fh:
                 linhas = fh.read().split("\n")
+        except FileNotFoundError:
+            linhas = ["# os desenhos da oficina do painel — o mesmo formato do apps-convertidos.map", ""]
         except OSError as e:
-            return "não achei o mapa dos convertidos: %s" % e
+            return "não consegui ler o mapa dos convertidos: %s" % e
         linha = "%s:%s:%s" % (app, origem or "mao", cor)
         if extra:
             linha += ":" + extra
@@ -11062,6 +11100,7 @@ class Manipulador(BaseHTTPRequestHandler):
             ultima = max((i for i, l in enumerate(linhas) if id_da_linha(l)), default=None)
             linhas.insert(ultima + 1 if ultima is not None else len(linhas), linha)
         try:
+            os.makedirs(os.path.dirname(caminho), exist_ok=True)
             with open(caminho, "w", encoding="utf-8") as fh:
                 fh.write("\n".join(linhas))
         except OSError as e:
@@ -11353,24 +11392,20 @@ class Manipulador(BaseHTTPRequestHandler):
         morre em vez de escolher um vencedor calado. Quem desenhou à mão decidiu
         — o Arcticons sai, e o `48x48/apps` órfão some na varredura da mesma
         passagem, porque aquele script é dono único do diretório.
+
+        [P82, 15/10/2026 (item 5): era o `apps-arcticons.map` do clone que
+        perdia a linha. Agora o desenho da oficina mora no
+        `icones-convertidos.map` de quem usa, que o script lê por último e que
+        vence a linha do projeto; o que sai é a escolha de traço de quem usa
+        (`icones-traco.map`), que é a outra escolha dela para o mesmo app.]
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                linhas = fh.read().split("\n")
-        except OSError:
-            return False
-        fora = [l for l in linhas
-                if not (l.strip() and not l.strip().startswith("#")
-                        and l.strip().split(":")[0].strip() == app)]
-        if len(fora) == len(linhas):
+        caminho = _mapa_de_traco_do_usuario()
+        if not os.path.isfile(caminho):
             return False
         try:
-            with open(caminho, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(fora))
+            return bool(_gravar_escolha(caminho, app, None, ":"))
         except OSError:
             return False
-        return True
 
     def do_POST(self):
         alvo = urlparse(self.path)
