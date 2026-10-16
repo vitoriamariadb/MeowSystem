@@ -1854,6 +1854,42 @@ meow_pendencia_resolvida() {
   _meow_pendencia_tirar "$1"
 }
 
+# --- PRECISA DE GENTE: o que a máquina não conserta sozinha, num lugar só (P86) ---
+#   `precisa-de-gente.tsv`, uma linha por id: id, nome curto, desde quando, porquê.
+#   A Início desenha UM cartão com essas linhas; o porquê vai para a dica.
+#   O `desde` é do PRIMEIRO registro do id e sobrevive a medidas novas do mesmo
+#   problema. Repetir o registro idêntico não escreve nada. O dono do problema
+#   chama a irmã `_resolvida` quando ele some, e a linha sai.
+_meow_gente_arquivo() { printf '%s/precisa-de-gente.tsv' "$MEOW_ESTADO"; }
+
+meow_precisa_de_gente() { # $1 id · $2 nome curto · $3 porquê
+  local id="$1" nome="$2" porque="$3" arq desde igual
+  meow_seco && return 0
+  nome="${nome//$'\t'/ }"; nome="${nome//$'\n'/ }"
+  porque="${porque//$'\t'/ }"; porque="${porque//$'\n'/ }"
+  arq="$(_meow_gente_arquivo)"
+  mkdir -p "$MEOW_ESTADO" || return 0
+  desde="$(awk -F'\t' -v a="$id" '$1 == a {print $3; exit}' "$arq" 2>/dev/null)"
+  igual="$(awk -F'\t' -v a="$id" -v n="$nome" -v p="$porque" '$1 == a && $2 == n && $4 == p {print "s"; exit}' "$arq" 2>/dev/null)"
+  [ "$igual" = "s" ] && return 0
+  [ -n "$desde" ] || desde="$(date -Iseconds)"
+  { awk -F'\t' -v a="$id" '$1 != a' "$arq" 2>/dev/null
+    printf '%s\t%s\t%s\t%s\n' "$id" "$nome" "$desde" "$porque"; } > "$arq.tmp" \
+    && mv -f "$arq.tmp" "$arq"
+  rm -f "$arq.tmp" 2>/dev/null
+  return 0
+}
+
+meow_precisa_de_gente_resolvida() { # $1 id
+  local arq; arq="$(_meow_gente_arquivo)"
+  meow_seco && return 0
+  [ -f "$arq" ] || return 0
+  awk -F'\t' -v a="$1" '$1 == a {achou = 1} END {exit !achou}' "$arq" || return 0
+  awk -F'\t' -v a="$1" '$1 != a' "$arq" > "$arq.tmp" && mv -f "$arq.tmp" "$arq"
+  rm -f "$arq.tmp" 2>/dev/null
+  return 0
+}
+
 meow_tem() { command -v "$1" >/dev/null 2>&1; }
 
 # O RUST, QUANDO FALTA — a regra do applet de leitura (P80), que o de mídia

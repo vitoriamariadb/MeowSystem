@@ -26,6 +26,11 @@ if [ ! -d "$RH/toolchains" ]; then
   [ -d "$_lar/.rustup/toolchains" ] && { RH="$_lar/.rustup"; CH="$_lar/.cargo"; }
 fi
 falhas=0
+# A sonda de ferramenta (P86) só pergunta se `just`, `make` e `cargo` existem:
+# três falsos no PATH deixam o veredito do bom igual em qualquer máquina.
+mkdir -p "$T/ferramentas"
+for _c in just make cargo; do printf '#!/bin/sh\nexit 1\n' > "$T/ferramentas/$_c"; chmod 755 "$T/ferramentas/$_c"; done
+PATH="$T/ferramentas:$PATH"
 ok()    { printf '  ok    %s\n' "$*"; }
 falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 command -v dpkg-deb >/dev/null || { echo "cosmic-prever: pulado — sem dpkg-deb"; exit 0; }
@@ -85,6 +90,7 @@ prever bom; rc=$?
 [ "$(veredito bom esquema verde)" -ge 1 ] && ok "esquema igual: verde" || falha "esquema não saiu verde"
 [ "$(veredito bom chave verde)" = 3 ] && ok "as 3 chaves verdes (a do patch, ausente, é a esperada)" || falha "chaves: $(cut -f1,2 "$T/saida-bom.tsv" | tr '\n' ' ')"
 [ "$(veredito bom série verde)" = 1 ] && ok "o patch entra com -F0" || falha "a série não saiu verde"
+[ "$(veredito bom ferramenta verde)" = 1 ] && ok "a ferramenta de build existe: verde" || falha "a ferramenta não saiu verde"
 grep -q vermelho "$T/saida-bom.tsv" && falha "há vermelho no bom: $(grep vermelho "$T/saida-bom.tsv")" || ok "nenhum vermelho"
 
 echo "== candidato quebrado"
