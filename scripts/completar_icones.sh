@@ -496,6 +496,24 @@ for nome in fogstripper hefesto-dualsense4unix com.vitoriamaria.HefestoDualsense
   rm -f "$ALVO/$nome.svg" && mudou=1
 done
 
+# --- 2d. os apps do COSMIC sem desenho em mapa nenhum — P82 (item 18) ---------
+# O `meow cosmic icones` dizia «sem desenho: com.system76.CosmicViewer», e
+# ninguém completava. A lista sai da MESMA função do verbo (o `icones-lista` do
+# `cosmic_prever.sh`), e cada nome ganha o ícone de fábrica dele, pela regra do
+# `DO_HICOLOR` lá de baixo: a marca do próprio app, do `hicolor` do sistema —
+# o vetor em `scalable/apps`. O nome que um mapa passar a vestir sai da lista
+# sozinho, e o dono dele passa a ser o passo daquele mapa.
+while IFS= read -r nome; do
+  case "$nome" in ''|*[!A-Za-z0-9._+-]*) continue ;; esac
+  fonte="${CV_RAIZ_APPS:-}/usr/share/icons/hicolor/scalable/apps/$nome.svg"
+  [ -f "$fonte" ] || continue
+  meow_escrever "$ALVO/$nome.svg" "$(cat "$fonte")" 644
+  case $? in
+    1) mudou=1; instalados=$((instalados+1)) ;;
+    2) meow_erro "não consegui instalar $nome.svg"; exit "$MEOW_ERRO" ;;
+  esac
+done < <(CV_RAIZ_APPS="${CV_RAIZ_APPS:-}" "$RAIZ/scripts/cosmic_prever.sh" icones-lista 2>/dev/null)
+
 # --- 3. apelidos vindos do Papirus -------------------------------------------
 # Papirus ausente NÃO é erro: os autorais já entraram e o resto do tema continua
 # de pé. Vira aviso, e o `repoman` segue com o ícone do Pop até o pacote existir.
@@ -698,6 +716,11 @@ while IFS= read -r arq; do
 done < <(_hicolor_orfaos)
 
 for nome in "${!AUTORAL[@]}" "${!APELIDO[@]}"; do
+  # O Hefesto sem a logo apontada não entra de propósito (P82, decisão 16):
+  # não é falta, é o ícone do próprio aplicativo.
+  if [ "${AUTORAL[$nome]:-}" = "__LOGO_DELA__" ] && { [ -z "$LOGO_HEFESTO_DELA" ] || [ ! -f "$LOGO_HEFESTO_DELA" ]; }; then
+    continue
+  fi
   [ -f "$ALVO/$nome.svg" ] || faltando+=("$nome")
 done
 if [ ${#faltando[@]} -gt 0 ] && ! meow_seco; then

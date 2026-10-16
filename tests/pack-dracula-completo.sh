@@ -521,13 +521,22 @@ printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scala
 printf '<svg xmlns="http://www.w3.org/2000/svg"><title>hefesto — Dracula</title></svg>\n' \
   > "$TEMA_CI/scalable/apps/hefesto-dualsense4unix.svg"
 saida="$(env -i PATH="$FALSO:$PATH" HOME="$CI" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
-           PACK=dracula FLAVOR=dracula ACCENT=purple ICONES_LOGO_HEFESTO="" \
+           PACK=dracula FLAVOR=dracula ACCENT=mauve ICONES_LOGO_HEFESTO="" \
            "$RAIZ/scripts/completar_icones.sh" 2>&1)"
 if grep -q 'removeria hefesto-dualsense4unix.svg' <<< "$saida" \
    && ! grep -qE '(instalaria|mudaria) .*(hefesto|vitoriamaria|fogstripper)' <<< "$saida"; then
   ok "sem a logo apontada, o completar não desenha o Hefesto e arranca o desenho gerado antigo"
 else
   falha "o completar ainda depende do desenho gerado do Hefesto" "$(grep -iE 'hefesto|fogstripper|vitoriamaria' <<< "$saida" | head -4)"
+fi
+# E na passada de verdade (casa de brinquedo), a falta do Hefesto não vira aviso.
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CI" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PACK=dracula FLAVOR=dracula ACCENT=mauve ICONES_LOGO_HEFESTO="" \
+           "$RAIZ/scripts/completar_icones.sh" 2>&1)"
+if ! grep -qiE 'não chegaram ao tema:.*(hefesto|vitoriamaria)' <<< "$saida" && [ ! -e "$TEMA_CI/scalable/apps/hefesto-dualsense4unix.svg" ]; then
+  ok "sem a logo apontada, o Hefesto fora do tema não é aviso, e o desenho gerado antigo saiu"
+else
+  falha "o completar avisa a falta do Hefesto, ou deixou o desenho gerado" "$(grep -iE 'chegaram|hefesto' <<< "$saida" | head -3)"
 fi
 
 # --- P82, item 10 (decisão 22): a camada de apps do Catppuccin só roda com ele
