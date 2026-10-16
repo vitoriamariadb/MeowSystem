@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Caixa isométrica de linhas finas sobre disco; coordenadas em grade 512, reduzidas por 0,25 -->
+  <g transform="scale(0.25)" fill="none" stroke-linejoin="miter">
+    <circle cx="256" cy="256" r="225" fill="#536D56" stroke="#020202" stroke-width="9"/>
+    <g stroke="#F8F8F2" stroke-width="2.6">
+      <!-- contorno externo e interno do cubo -->
+      <path d="M254 128 L365 188 L365 318 L254 386 L145 322 L145 190 Z"/>
+      <path d="M254 140 L355 195 L355 312 L254 372 L156 316 L156 196 Z"/>
+      <!-- aresta central e travessas da tampa -->
+      <path d="M254 246 L254 386 M262 250 L262 380 M145 190 L254 246 L365 188 M156 196 L254 252 L355 195"/>
+      <path d="M254 128 L254 140 M365 188 L355 195 M145 190 L156 196 M145 322 L156 316 M365 318 L355 312 M254 386 L254 372"/>
+      <!-- painel da tampa com triângulos -->
+      <path d="M194 188 L254 152 L316 188 L254 222 Z"/>
+      <path d="M194 188 L262 192 L254 214 M254 152 L270 172 L262 192"/>
+      <!-- painel esquerdo -->
+      <path d="M164 232 L238 262 L238 328 L164 300 Z"/>
+      <path d="M170 292 L206 252 L226 304 Z M188 262 L204 300 M216 276 L238 262"/>
+      <!-- painel direito -->
+      <path d="M272 262 L346 234 L346 300 L272 330 Z"/>
+      <path d="M284 296 L282 262 L292 282 L304 256 L310 286 L326 250 L334 262 L330 288 M300 290 L318 300"/>
+    </g>
+  </g>
+</svg>

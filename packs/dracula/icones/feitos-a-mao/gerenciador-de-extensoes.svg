@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Gerenciador de extensões: quatro peças de quebra-cabeça em moinho sobre o disco periwinkle. -->
+  <g transform="scale(.125)" fill="#7680BE" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="512" cy="512" r="512" fill="#392E6D" stroke="none"/>
+    <circle cx="512" cy="512" r="425" fill="#7680BE" stroke="none"/>
+    <!-- peça da esquerda e peça da direita, giradas -->
+    <path d="M346 387L482 505L440 553C447 537 414 522 393 547C371 572 391 602 406 593L364 641L316 599C325 614 289 640 264 618C240 596 260 557 276 565L228 523L270 475C255 484 229 448 251 423C273 399 312 419 304 435L346 387Z"/>
+    <path d="M647 398L698 436C688 422 722 394 748 414C774 434 757 474 740 468L791 506L683 650L632 612C642 626 608 654 582 634C556 614 573 574 590 580L539 542L577 491C571 507 605 520 625 494C645 468 623 439 609 449L647 398Z"/>
+    <!-- peça de cima -->
+    <path d="M410 280H487C470 275 480 232 513 232C546 232 556 275 539 280H610V445H540C548 410 540 392 512 392C485 392 475 410 484 445H410V395C470 400 470 325 410 325Z"/>
+    <!-- peça de baixo -->
+    <path d="M410 585H487C478 620 490 640 512 640C535 640 548 620 537 585H610V645C555 640 555 700 610 697V745H540C556 760 548 795 512 795C476 795 468 760 485 745H410Z"/>
+  </g>
+</svg>
