@@ -536,6 +536,21 @@ IDENTIFICADOR_JS = r"""
 """
 
 
+# 8.7 — UM NOME POR APP, E NÃO O ÚLTIMO PEDAÇO DO ID (P82, item 8): o
+#   `com.obsproject.Studio` e o `io.github.shiftey.Desktop` viravam «Studio» e
+#   «Desktop» embaixo do desenho. O nome vem da linha `# app:` do mapa.
+NOME_DO_APP_JS = r"""
+([glifo, nome]) => {
+  const deles = [...document.querySelectorAll('.escolha-icone .tira-glifos button[data-glifo]')]
+    .filter((b) => b.dataset.glifo === glifo);
+  if (!deles.length) return [`a busca não mostrou o desenho ${glifo}`];
+  return deles.map((b) => ((b.querySelector('span') || {}).textContent || '').trim())
+    .filter((t) => t !== nome)
+    .map((t) => `o desenho ${glifo} diz «${t}», e não «${nome}»`);
+}
+"""
+
+
 def acabamento(pag):
     """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -561,6 +576,14 @@ def acabamento(pag):
             arg=busca, timeout=20000)
         assentar(pag)
         reprovas += [("ficha de ícone", d) for d in pag.evaluate(olhar)]
+    for busca, glifo, nome in (("obs", "com.obsproject.Studio", "OBS Studio"),
+                               ("github", "io.github.shiftey.Desktop", "GitHub Desktop")):
+        pag.locator(".escolha-icone input[type=search]").fill(busca)
+        pag.wait_for_function(
+            "(t) => typeof GLIFOS !== 'undefined' && GLIFOS.termo === t && !GLIFOS.carregando",
+            arg=busca, timeout=20000)
+        assentar(pag)
+        reprovas += [("ficha de ícone", d) for d in pag.evaluate(NOME_DO_APP_JS, [glifo, nome])]
     abrir_pagina(pag, "Dia e noite")
     reprovas += [("Dia e noite", d) for d in pag.evaluate(NOITE_JS)]
     if FOTOS:

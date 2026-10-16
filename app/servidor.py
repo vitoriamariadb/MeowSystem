@@ -8363,7 +8363,7 @@ class Manipulador(BaseHTTPRequestHandler):
     DIRS_DESKTOP = (
         ("/usr/share/applications", "sistema"),
         ("/usr/local/share/applications", "local"),
-        ("~/.local/share/applications", "usuária"),
+        ("~/.local/share/applications", "pessoal"),
         ("/var/lib/flatpak/exports/share/applications", "flatpak"),
         ("~/.local/share/flatpak/exports/share/applications", "flatpak"),
         ("/var/lib/snapd/desktop/applications", "snap"),
@@ -10039,6 +10039,24 @@ class Manipulador(BaseHTTPRequestHandler):
                     etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
                     junta(os.path.join(dir_motor, str(arq)), str(ficha.get("descricao") or "").strip(),
                           *[str(t).replace("_", " ") for t in etiquetas])
+        # O NOME DO APP DOS CONVERTIDOS — 15/10/2026, P82 (item 8). O
+        #   `apps-convertidos.map` não tem comentário no fim da linha (os
+        #   leitores dele cortam nos `:`), e o nome vem na linha de cima,
+        #   `# app: OBS Studio`. Sem ele, o id invertido virava «Studio».
+        conv = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+        try:
+            with open(conv, encoding="utf-8") as fh:
+                linhas_conv = fh.read().split("\n")
+        except OSError:
+            linhas_conv = []
+        for anterior, linha in zip([""] + linhas_conv, linhas_conv):
+            nome_app = anterior[len("# app:"):].strip() if anterior.startswith("# app:") else ""
+            nome = linha.split(":", 1)[0].strip()
+            if nome_app and nome and not linha.startswith("#"):
+                caminho = os.path.join(RAIZ, "assets", "icones", "convertidos-apps", nome + ".svg")
+                junta(caminho, nome_app)
+                rotulos.setdefault(os.path.normpath(caminho), nome_app)
+                do_nome.setdefault(nome.lower(), nome_app)
         for mapa in sorted(mapas):
             try:
                 with open(mapa, encoding="utf-8") as fh:

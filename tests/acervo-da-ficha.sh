@@ -62,7 +62,8 @@ sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor  # noqa: E402
 
 M = servidor.Manipulador
-M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "usuária"),)
+DIRS_DE_FABRICA = M.DIRS_DESKTOP
+M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "pessoal"),)
 m = M.__new__(M)
 resposta = {}
 m._json = lambda dados, codigo=200: resposta.update(dados=dados, codigo=codigo)
@@ -197,7 +198,9 @@ por_arquivo = {os.path.relpath(caminho_de(it), raiz): it for it in itens}
 esperados = {
     "packs/dracula/icones/apps/net.waterfox.waterfox.svg": "Waterfox",   # o comentário do apps.map
     "packs/dracula/icones/biblioteca/alien.svg": "Alienígena",           # a descrição do catalog.json
-    "packs/dracula/icones/biblioteca/005-potion.svg": "Potion",          # o nome, sem o número
+    # [P82, item 8: o 005-potion ganhou descrição no catálogo; era «Potion», o
+    #   nome sem o número, que é a queda de quando não há descrição.]
+    "packs/dracula/icones/biblioteca/005-potion.svg": "Poção",           # a descrição do catalog.json
 }
 for rel, rotulo in esperados.items():
     it = por_arquivo.get(rel) or {}
@@ -261,6 +264,34 @@ checa({"packs/dracula/icones/apps/net.waterfox.waterfox.svg",
 veste = glifos("", "net.waterfox.waterfox").get("veste")
 checa(veste == "packs/dracula/icones/apps/net.waterfox.waterfox.svg",
       "o net.waterfox.waterfox vem com «veste» no desenho do pack no ar", "veio %r" % veste)
+
+# --- 8. nomes na ficha — P82, item 8 -------------------------------------------
+#   174 dos 469 desenhos da biblioteca do Dracula mostravam o nome do arquivo em
+#   inglês; o OBS e o GitHub Desktop viravam «Studio» e «Desktop»; e a origem
+#   do `.desktop` da casa se chamava «usuária».
+import json  # noqa: E402
+bib = os.path.join(raiz, "packs", "dracula", "icones", "biblioteca")
+with open(os.path.join(bib, "catalog.json"), encoding="utf-8") as fh:
+    catalogo = json.load(fh)
+sem_descricao = sorted(a for a in os.listdir(bib) if a.endswith(".svg")
+                       and not str((catalogo.get(a) or {}).get("descricao") or "").strip())
+checa(not sem_descricao, "todo desenho da biblioteca do Dracula tem descrição no catálogo",
+      "%d sem: %s" % (len(sem_descricao), sem_descricao[:6]))
+with open(os.path.join(raiz, "assets", "icones", "apps-convertidos.map"), encoding="utf-8") as fh:
+    linhas_conv = fh.read().split("\n")
+sem_nome = [l.split(":", 1)[0] for i, l in enumerate(linhas_conv)
+            if re.match(r"^[a-z]+\.[A-Za-z0-9_.-]+\.[A-Za-z0-9_.-]+:", l)
+            and not (i and re.match(r"^# app: \S", linhas_conv[i - 1]))]
+checa(not sem_nome, "toda linha de id invertido do apps-convertidos.map tem o «# app:» com o nome",
+      "%d sem: %s" % (len(sem_nome), sem_nome[:6]))
+for rel, rotulo in (("assets/icones/convertidos-apps/com.obsproject.Studio.svg", "OBS Studio"),
+                    ("assets/icones/convertidos-apps/io.github.shiftey.Desktop.svg", "GitHub Desktop")):
+    it = por_arquivo.get(rel) or {}
+    checa(it.get("rotulo") == rotulo, "%s ganha o rótulo «%s»" % (os.path.basename(rel), rotulo),
+          "veio %r" % it.get("rotulo"))
+origens = [o for _d, o in DIRS_DE_FABRICA]
+checa("pessoal" in origens and "usuária" not in origens,
+      "a origem do .desktop da casa se chama «pessoal»", repr(origens))
 
 if falhas:
     print("FALHOU: o acervo da ficha de ícone:", file=sys.stderr)

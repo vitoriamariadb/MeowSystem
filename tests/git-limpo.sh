@@ -232,7 +232,7 @@ raiz, casa = sys.argv[1], sys.argv[2]
 sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor  # noqa: E402
 M = servidor.Manipulador
-M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "usuária"),)
+M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "pessoal"),)
 m = M.__new__(M)
 r = {}
 m._json = lambda d, c=200: r.update(d=d, c=c)

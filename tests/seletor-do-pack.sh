@@ -131,7 +131,7 @@ sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor  # noqa: E402
 
 M = servidor.Manipulador
-M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "usuária"),)
+M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "pessoal"),)
 m = M.__new__(M)
 resposta = {}
 m._json = lambda dados, codigo=200: resposta.update(dados=dados, codigo=codigo)
