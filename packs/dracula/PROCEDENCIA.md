@@ -979,12 +979,14 @@ entrasse: a lixeira só tinha Ouroboros e um workspace do Grok, a partição tro
 dois desenhos de um tema de terceiro, o VS Code voltou vazio e o ext4magic caiu
 por falta de memória neste ext4.
 
-**Limpeza (regra de pack da P78).** Todo arquivo passou por ela: nenhum SVG
-tinha script, referência externa nem metadado de editor, e nenhum foi
-recusado. Os 15 PNG perderam os trechos de texto e de data (`tEXt`, `tIME`): os
-seis do COSMIC Files, achados no photorec, levavam o caminho da casa de quem
-usa em `Thumb::URI`. Para esses, o sha256 da origem está na linha, ao lado do
-da cópia.
+**Limpeza (regra de pack da P78).** Todo arquivo passou por ela, e nenhum foi
+recusado: nenhum SVG tinha script, `foreignObject`, `on*=` nem referência para
+fora do arquivo. Quinze mudaram: dois SVG (o comentário de gerador do
+Detector de Doppelgänger e os atributos `bx:` do Boxy SVG no `hefesto-dev-logo`;
+o render dos dois ficou byte a byte o mesmo) e 13 PNG, que perderam os trechos
+de texto e de data (`tEXt`, `tIME`). Os seis do COSMIC Files, achados no
+photorec, levavam o caminho da casa de quem usa em `Thumb::URI`. Nesses quinze
+o sha256 da origem está na linha, ao lado do da cópia.
 
 **Os desenhos de projetos dela.** A regra de 23/09 («projeto pessoal fica fora
 do pack») ficou só com Beholder, Elden Ring Tracker, Nyx, Protocolo Ouroboros e
