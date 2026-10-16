@@ -71,11 +71,14 @@ _quieto() {
 # O passo de quem deriva de cada fonte, pelo caminho dela dentro do pack. A
 # fonte que nada instala (a biblioteca que nenhum mapa liga, o modo de leitura,
 # que entra no applet ao compilar) só atualiza a tabela; a ficha relê sozinha.
+# O desenho de pack que um mapa liga também decide o traço de 48 px, que cede a
+# ele (decisão 16, 7): quem mexe no `apps.map`, nos resgatados ou em `apps/` e
+# `biblioteca/` refaz o `arcticons` junto.
 _passos_de() {
   case "$1" in
     */logo.svg)                                printf 'completar\n' ;;
-    */icones/apps.map)                         printf 'dracula\napps\n' ;;
-    */icones/apps-resgatados.map|*/icones/apps/resgatados/*) printf 'resgatados\n' ;;
+    */icones/apps.map)                         printf 'dracula\napps\narcticons\n' ;;
+    */icones/apps-resgatados.map|*/icones/apps/resgatados/*) printf 'resgatados\narcticons\n' ;;
     */icones/apps-arcticons.map|*/icones/apps-convertidos.map|*/icones/apps-marca.map \
       |*/icones/apps/arcticons/*|*/icones/apps/convertidos/*) printf 'arcticons\n' ;;
     */icones/apps-hicolor.map)                 printf 'completar\napps\n' ;;
@@ -88,7 +91,7 @@ _passos_de() {
     */icones/sistema/leitura/*)                : ;;
     # Uma linha do `apps.map` pode apontar para a biblioteca, e a escolha do
     # painel para qualquer desenho de `apps/` ou dela.
-    */icones/apps/*|*/icones/biblioteca/*)     printf 'dracula\n' ;;
+    */icones/apps/*|*/icones/biblioteca/*)     printf 'dracula\narcticons\n' ;;
   esac
 }
 

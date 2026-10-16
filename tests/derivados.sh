@@ -130,6 +130,12 @@ saida="$(amb bash "$R/scripts/derivados.sh" --aplicar 2>&1)"; rc=$?
 amb bash "$R/scripts/derivados.sh" --conferir >/dev/null 2>&1 \
   && ok "e a tabela esqueceu a fonte que saiu" \
   || falha "a tabela ainda conta a fonte que saiu"
+# O traço de 48 px cede ao desenho do pack (decisão 16, 7): sem o desenho, volta.
+rm -f "$R/packs/dracula/icones/apps/google-chrome.svg"
+saida="$(amb bash "$R/scripts/derivados.sh" --aplicar 2>&1)"; rc=$?
+[ "$rc" = "1" ] && [ -f "$TEMA/48x48/apps/google-chrome.svg" ] \
+  && ok "o desenho do pack apagado devolve o traço a 48 px" \
+  || falha "o desenho do pack saiu e o traço não voltou a 48 px (rc=$rc)" "$saida"
 
 # --- 6. o que a unidade .path vigia -------------------------------------------
 pastas="$(amb bash "$R/scripts/derivados.sh" --pastas 2>/dev/null)"
