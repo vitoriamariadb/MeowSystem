@@ -10021,6 +10021,24 @@ class Manipulador(BaseHTTPRequestHandler):
                         if descricao:
                             rotulos[os.path.normpath(os.path.join(bib, str(arq)))] = (
                                 descricao[:1].upper() + descricao[1:])
+        # O CATÁLOGO DAS PASTAS DO MOTOR — 15/10/2026, P82 (item 7). Um desenho
+        #   do motor sem linha de mapa (a raposa resgatada, que saiu do
+        #   `apps-resgatados.map` na P28) não tinha texto para a busca casar.
+        #   O `catalog.json` da pasta, no formato do da biblioteca, dá esse
+        #   texto. Só a busca: o nome que a ficha mostra continua o do mapa, para
+        #   o mesmo desenho não ter dois nomes.
+        for pasta, _nome, _tipo in getattr(mod, "ACERVOS_DO_MOTOR", ()):
+            dir_motor = os.path.join(RAIZ, "assets", "icones", pasta)
+            try:
+                with open(os.path.join(dir_motor, "catalog.json"), encoding="utf-8") as fh:
+                    catalogo = json.load(fh)
+            except (OSError, ValueError):
+                continue
+            for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
+                if isinstance(ficha, dict):
+                    etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
+                    junta(os.path.join(dir_motor, str(arq)), str(ficha.get("descricao") or "").strip(),
+                          *[str(t).replace("_", " ") for t in etiquetas])
         for mapa in sorted(mapas):
             try:
                 with open(mapa, encoding="utf-8") as fh:

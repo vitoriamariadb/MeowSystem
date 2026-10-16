@@ -245,6 +245,15 @@ checa(dele and caminho_de(dele[0]).startswith(casa_real + os.sep) and dele[0]["t
       "e o desenho enviado aparece na ficha, numa pasta da casa de quem usa",
       repr([(caminho_de(i), i["grupo"]) for i in dele]))
 
+# --- 6b. «firefox» acha também a raposa resgatada — P82, item 7 -----------------
+#   O `resgatados/net.waterfox.waterfox.svg` perdeu a linha de mapa na P28, e
+#   sem linha nem catálogo a busca não tinha texto para casar.
+achados = {os.path.relpath(caminho_de(it), raiz) for it in glifos("firefox").get("glifos", [])}
+checa({"packs/dracula/icones/apps/net.waterfox.waterfox.svg",
+       "assets/icones/resgatados/net.waterfox.waterfox.svg"} <= achados,
+      "«firefox» acha os dois desenhos da raposa: o do pack e o resgatado",
+      repr(sorted(a for a in achados if "waterfox" in a)))
+
 # --- 7. a ficha diz o desenho que veste o app agora — P82, item 6 -----------------
 #   O `_escolha_no_pack` só respondia quando a linha do mapa era uma escolha do
 #   painel: o Waterfox abria com o desenho do pack sem marca nenhuma. A ordem é
