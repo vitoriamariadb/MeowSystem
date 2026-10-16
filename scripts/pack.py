@@ -3905,6 +3905,13 @@ def validar(ref, silencioso=False):
             except Recusa as e:
                 raise Recusa(f"{mapa_apps}:{num}: {e}") from None
 
+    # NO MÁXIMO TRÊS PASTAS — P88, decisão 14. Um pack de formato 2 guarda o
+    #   ícone em `icones/apps/`, `icones/sistema/` e `icones/biblioteca/`, e só
+    #   nelas; o flavor e a etiqueta são subpasta de uma das três. Só na porta
+    #   de quem publica, como a forma da biblioteca logo abaixo.
+    if not silencioso:
+        _tres_pastas(p, dir_pack)
+
     # A BIBLIOTECA SÓ GUARDA DESENHO — 23/09/2026, P36
     #   `icones/biblioteca/` é a coleção de onde se escolhe o próximo desenho de
     #   aplicativo (ver `PASTA_BIBLIOTECA`, lá embaixo). Ela é o maior acervo
@@ -4286,6 +4293,21 @@ def eh_base(ref):
     return campo(ref, "papel") == PAPEL_BASE
 
 
+def _tres_pastas(p, dir_pack):
+    """Recusa a quarta pasta em `icones/` de um pack de formato 2."""
+    if not isinstance(p.get("formato"), int) or p["formato"] < 2:
+        return
+    pasta = os.path.join(dir_pack, "icones")
+    if not os.path.isdir(pasta):
+        return
+    a_mais = sorted(d for d in os.listdir(pasta) if d not in PASTAS_DO_FORMATO
+                    and (os.path.isdir(os.path.join(pasta, d)) or os.path.islink(os.path.join(pasta, d))))
+    _exigir(not a_mais,
+            f"icones/: {', '.join(a_mais)} — no formato {p['formato']} o ícone mora em\n"
+            f"    apps/ (ligado a um programa), sistema/ (pasta, tipo de arquivo, status)\n"
+            f"    ou biblioteca/ (o resto, para escolher). Mova a pasta para dentro de uma delas.")
+
+
 def _validar_base(p, dir_pack, silencioso):
     _exigir(p["papel"] == PAPEL_BASE,
             f"pack.json: papel {p['papel']!r} — o único que existe é {PAPEL_BASE!r}")
@@ -4306,6 +4328,7 @@ def _validar_base(p, dir_pack, silencioso):
     if p.get("creditos"):
         _exigir(os.path.isfile(_dentro(dir_pack, p["creditos"], "creditos")),
                 f"creditos: {p['creditos']!r} está declarado e NÃO existe no pack")
+    _tres_pastas(p, dir_pack)
     casas = nomes_de_usuario(dir_pack)
     _exigir(not casas,
             f"{len(casas)} linha(s) com a casa de alguém escrita por extenso:\n      "
@@ -6060,7 +6083,84 @@ def ler_meowpack(caminho):
     _exigir(manifesto is not None, f"{caminho}: sem o MANIFESTO, não há como conferir "
                                    f"o que chegou")
     _conferir_manifesto(manifesto, ident, membros)
-    return ident, membros
+    return ident, para_tres_pastas(ident, membros)
+
+
+# O PACK DE ANTES CHEGA NO FORMATO NOVO — P88, decisão 14 (item 4)
+#   Um `.meowpack` de formato 1 traz as pastas que cada pack inventava
+#   (`autorais/`, `pastas/`, `feitos-a-mao/`…). O `importar` o converte na
+#   memória, depois de todas as recusas da P78 e antes do `validar`: a pasta vai
+#   para uma das três, e o pack.json, o `apps.map` e a primeira coluna do
+#   PROCEDENCIA.md passam a dizer o caminho novo. A arte não muda um byte.
+PASTAS_DO_FORMATO = ("apps", "sistema", "biblioteca")
+PASTA_DE_ANTES_POR_NOME = {"autorais": "apps/autorais", "resgatados": "apps/resgatados",
+                           "feitos-a-mao": "biblioteca/feitos-a-mao",
+                           "pastas": "sistema/pastas", "mimetypes": "sistema/mimetypes"}
+PASTA_DA_CATEGORIA = {"apps": "apps", "autorais": "apps", "resgatados": "apps",
+                      "pastas": "sistema", "mimetypes": "sistema"}
+
+
+def para_tres_pastas(ident, membros):
+    """`membros` (caminho → bytes) de um pack de formato 1, no formato 2."""
+    try:
+        p = json.loads(membros.get("pack.json", b"{}").decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        return membros          # o `validar` diz o porquê, com a linha
+    if not isinstance(p, dict) or not isinstance(p.get("formato"), int) or p["formato"] >= 2:
+        return membros
+    ic = p.get("icones") if isinstance(p.get("icones"), dict) else {}
+    declarada = {}
+    for cat, bloco in ic.items():
+        if isinstance(bloco, dict) and isinstance(bloco.get("desenhos"), str):
+            topo = bloco["desenhos"].split("/")
+            if len(topo) >= 2 and topo[0] == "icones":
+                declarada.setdefault(topo[1], cat)
+    troca = {}
+    for rel in membros:
+        partes = rel.split("/")
+        if len(partes) > 2 and partes[0] == "icones" and partes[1] not in PASTAS_DO_FORMATO:
+            d = partes[1]
+            troca[d] = PASTA_DE_ANTES_POR_NOME.get(d) or (
+                "%s/%s" % (PASTA_DA_CATEGORIA[declarada[d]], d)
+                if declarada.get(d) in PASTA_DA_CATEGORIA else "biblioteca/%s" % d)
+
+    def novo(caminho, prefixo="icones/"):
+        for d, para in troca.items():
+            if caminho == prefixo + d or caminho.startswith(prefixo + d + "/"):
+                return prefixo + para + caminho[len(prefixo + d):]
+        return caminho
+
+    saida = {novo(rel): dado for rel, dado in membros.items()}
+    for cat, bloco in ic.items():
+        if isinstance(bloco, dict):
+            for chave in ("desenhos", "mapa"):
+                if isinstance(bloco.get(chave), str):
+                    bloco[chave] = novo(bloco[chave])
+    p["formato"] = 2
+    saida["pack.json"] = (json.dumps(p, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    mapa = ((ic.get("apps") or {}).get("mapa") if isinstance(ic.get("apps"), dict) else None)
+    if isinstance(mapa, str) and mapa in saida:
+        linhas = []
+        for linha in saida[mapa].decode("utf-8", "replace").split("\n"):
+            util, sep, resto = linha.partition("#")
+            nome, dois, alvo = util.partition(":")
+            alvo_limpo = alvo.strip()
+            if dois and alvo_limpo and not alvo_limpo.startswith((MOTOR, OUTRO_PACK)):
+                trocado = novo(alvo_limpo, "")
+                util = util.replace(alvo_limpo, trocado, 1) if trocado != alvo_limpo else util
+            elif dois and alvo_limpo.startswith("%s%s:" % (OUTRO_PACK, ident)):
+                cab = "%s%s:" % (OUTRO_PACK, ident)
+                util = util.replace(alvo_limpo, cab + novo(alvo_limpo[len(cab):], ""), 1)
+            linhas.append(util + sep + resto)
+        saida[mapa] = "\n".join(linhas).encode("utf-8")
+    if "PROCEDENCIA.md" in saida:
+        linhas = saida["PROCEDENCIA.md"].decode("utf-8", "replace").split("\n")
+        for i, linha in enumerate(linhas):
+            m = re.match(r"^\|\s*`?(icones/[^`|]+)`?\s*\|", linha)
+            if m and novo(m.group(1)) != m.group(1):
+                linhas[i] = linha.replace(m.group(1), novo(m.group(1)), 1)
+        saida["PROCEDENCIA.md"] = "\n".join(linhas).encode("utf-8")
+    return saida
 
 
 def _instalar_pack(arquivos, base, ident, seco=False):
