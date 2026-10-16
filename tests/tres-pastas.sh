@@ -228,6 +228,35 @@ icones7 catppuccin mocha
   && ok "com o Catppuccin no ar (sem desenho de pack para eles), o traço volta" \
   || falha "sem desenho de pack, o traço não voltou"
 
+# --- 8. o mapa dos resgatados é dado de pack (a regra da P78) ---------------
+#   Desde a P88 o mapa e a pasta dos resgatados vêm do pack, que pode ser de
+#   terceiro: um nome com `../` não escreve fora do tema, e um desenho que é
+#   link para fora não é lido.
+cp -r "$RAIZ/packs/dracula" "$T/packs/malresg"
+python3 - "$T/packs/malresg/pack.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1], encoding="utf-8")); p["id"] = "malresg"
+json.dump(p, open(sys.argv[1], "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+PY
+printf '<svg xmlns="http://www.w3.org/2000/svg"><!-- SEGREDO-P88 --></svg>\n' > "$T/segredo.svg"
+mkdir -p "$T/casa8/.local/share/icons/MeowSystem-Icons/scalable/apps"
+cp "$T/segredo.svg" "$T/casa8/vitima.svg"
+ln -s "$T/segredo.svg" "$T/packs/malresg/icones/apps/resgatados/elo.svg"
+printf '../../../../../../vitima : a : b\nelo : a : b\n' >> "$T/packs/malresg/icones/apps-resgatados.map"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa8" USER="${USER:-t}" LANG=C.UTF-8 NO_COLOR=1 \
+  MEOW_RAIZ="$RAIZ" MEOW_PACKS="$T/packs" XDG_DATA_HOME="$T/xdg8" MEOW_ESTADO="$T/casa8/estado" \
+  PACK=malresg FLAVOR=dracula ICONES_DRACULA=sim ICONES_RESGATADOS=sim NOME_TEMA_ICONES=MeowSystem-Icons \
+  bash "$RAIZ/scripts/icones_resgatados.sh" --aplicar 2>&1)"
+vazou="$(grep -rlF 'SEGREDO-P88' "$T/casa8/.local" 2>/dev/null | wc -l)"
+fontes="$(pack_py fontes malresg 2>/dev/null | cut -f1 | grep -c '\.\.')"
+if [ "$vazou" = 0 ] && [ -f "$T/casa8/vitima.svg" ] && [ "$fontes" = 0 ] \
+   && [[ "$saida" == *"1 linha(s) com nome fora da forma"* ]] && [[ "$saida" == *"sem desenho"*"elo"* ]] \
+   && [ -f "$T/casa8/.local/share/icons/MeowSystem-Icons/scalable/apps/luna.svg" ]; then
+  ok "o mapa dos resgatados de um pack de terceiro não escreve fora do tema nem lê link para fora, e veste o resto"
+else
+  falha "o mapa dos resgatados alcançou fora do pack (vazou=$vazou, fontes=$fontes)" "$saida"
+fi
+
 if [ "$falhas" -gt 0 ]; then
   printf '\nFALHOU: %s achado(s)\n' "$falhas" >&2
   exit 1

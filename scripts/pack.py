@@ -1257,7 +1257,8 @@ def fontes_e_atras(ref=None):
             for linha in fh:
                 campos = linha.split("#", 1)[0].split(":")
                 nome = campos[0].strip()
-                if len(campos) >= 3 and nome:
+                # O nome é dado de pack (P78): só o de conjunto fechado vira arquivo.
+                if len(campos) >= 3 and nome and nome_de_destino(nome):
                     do_motor.append(
                         (nome, _relativo(os.path.join(pasta_resg, nome + ".svg")), "resgatados"))
     # O padrão é ligada (P74 item 3, 09/10/2026): só o "nao" escrito desliga,
@@ -6853,18 +6854,29 @@ def _sha_sem_fim(caminho):
         return hashlib.sha256(fh.read().rstrip(b"\n")).hexdigest()
 
 
+def _arvores_dos_derivados(d):
+    """O `icones/` e as três pastas de um pack, cada uma só se cair dentro dele
+    (a regra da P78: uma pasta que é link para fora não entra)."""
+    saida = []
+    for rel in ["icones"] + ["icones/" + p for p in PASTAS_DO_FORMATO]:
+        try:
+            saida.append(_dentro(d, rel, rel))
+        except Recusa:
+            continue
+    return [p for p in saida if os.path.isdir(p)]
+
+
 def fontes_dos_derivados(ref=None):
     """{caminho real: sha256} de cada fonte do tema (ver o bloco acima)."""
     fontes = {}
     for _id, d in packs_dos_derivados(ref):
-        icones = os.path.join(d, "icones")
+        arvores = _arvores_dos_derivados(d)
         cands = [os.path.join(d, LOGO)]
-        try:
-            cands += [os.path.join(icones, a) for a in os.listdir(icones) if a.endswith(".map")]
-        except OSError:
-            pass
-        for pasta in PASTAS_DO_FORMATO:
-            for raiz, dirs, arqs in os.walk(os.path.join(icones, pasta)):
+        if arvores and os.path.basename(arvores[0]) == "icones":
+            cands += [os.path.join(arvores[0], a) for a in sorted(os.listdir(arvores[0]))
+                      if a.endswith(".map")]
+        for arvore in arvores[1:] if arvores and os.path.basename(arvores[0]) == "icones" else arvores:
+            for raiz, dirs, arqs in os.walk(arvore):
                 dirs[:] = [x for x in dirs if not os.path.islink(os.path.join(raiz, x))]
                 cands += [os.path.join(raiz, a) for a in arqs]
         for c in cands:
@@ -6878,9 +6890,9 @@ def pastas_dos_derivados(ref=None):
     logo), o `icones/` (os mapas) e cada pasta dentro das três."""
     pastas = []
     for _id, d in packs_dos_derivados(ref):
-        pastas += [os.path.realpath(d), os.path.realpath(os.path.join(d, "icones"))]
-        for pasta in PASTAS_DO_FORMATO:
-            for raiz, dirs, _arqs in os.walk(os.path.join(d, "icones", pasta)):
+        pastas.append(os.path.realpath(d))
+        for arvore in _arvores_dos_derivados(d):
+            for raiz, dirs, _arqs in os.walk(arvore):
                 dirs[:] = sorted(x for x in dirs if not os.path.islink(os.path.join(raiz, x)))
                 pastas.append(os.path.realpath(raiz))
     return [p for i, p in enumerate(pastas) if os.path.isdir(p) and p not in pastas[:i]]

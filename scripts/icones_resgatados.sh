@@ -163,13 +163,29 @@ _resgatados_cedidos() {
     | awk -F'\t' '$3 ~ /^pack:/ || $3 == "escolha" { print $1 }'
 }
 
+_resgatados_todos() {
+  sed -e 's/#.*//' "$MAPA" | awk -F: 'NF>=3 { gsub(/^[ \t]+|[ \t]+$/, "", $1); if ($1 != "") print $1 }'
+}
+
+# O MAPA É DADO DE PACK DESDE A P88, E PACK PODE SER DE TERCEIRO — a regra da
+#   P78. O nome vira `<nome>.svg` dentro do tema: só passa o de conjunto fechado
+#   (`meow_nome_seguro`), e a linha torta é pulada e contada (`_resgatados_tortos`).
 _resgatados_nomes() {
   [ -f "$MAPA" ] || return 1
-  local cedidos
+  local cedidos nome
   cedidos="$(_resgatados_cedidos)"
-  sed -e 's/#.*//' "$MAPA" | awk -F: 'NF>=3 { gsub(/^[ \t]+|[ \t]+$/, "", $1); if ($1 != "") print $1 }' \
+  _resgatados_todos \
     | awk -v cedidos="$cedidos" 'BEGIN { n = split(cedidos, c, "\n"); for (i = 1; i <= n; i++) fora[c[i]] = 1 }
-                                 !($0 in fora)'
+                                 !($0 in fora)' \
+    | while IFS= read -r nome; do meow_nome_seguro "$nome" && printf '%s\n' "$nome"; done
+  return 0
+}
+
+_resgatados_tortos() {
+  local nome n=0
+  [ -f "$MAPA" ] || { printf 0; return 0; }
+  while IFS= read -r nome; do meow_nome_seguro "$nome" || n=$((n + 1)); done < <(_resgatados_todos)
+  printf '%s' "$n"
 }
 
 # --- instalar -----------------------------------------------------------------
@@ -180,8 +196,10 @@ _resgatados_instalar() {
 
   while read -r nome; do
     [ -n "$nome" ] || continue
-    origem="$ACERVO/$nome.svg"
-    if [ ! -f "$origem" ]; then
+    # O desenho é lido pelo `meow_dentro`: um link que sai da pasta do pack não
+    # é desenho, e conta como ausente.
+    origem="$(meow_dentro "$ACERVO" "$nome.svg")" || origem=""
+    if [ -z "$origem" ] || [ ! -f "$origem" ]; then
       # Nome no mapa sem desenho no acervo: é falha de quem editou o mapa, e
       # dizer qual é vale mais que um total. Não aborta — os outros 19 não têm
       # culpa de um nome digitado errado.
@@ -330,11 +348,12 @@ _resgatados_desktops_instalar() {
 # volta a ser o que o resolvedor acha. Por NOME, nunca por varredura — o
 # `scalable/apps` tem outros dois donos.
 _resgatados_remover() {
-  local rc=0 nome tirados=0 arquivo
+  local rc=0 nome tirados=0 arquivo de_quem
   while read -r nome; do
     [ -n "$nome" ] || continue
     [ -f "$ALVO/$nome.svg" ] || continue
-    if [ "$SO_TIRAR" = "1" ] && [ "$(cat "$ALVO/$nome.svg")" != "$(cat "$ACERVO/$nome.svg" 2>/dev/null)" ]; then
+    if [ "$SO_TIRAR" = "1" ] && { ! de_quem="$(meow_dentro "$ACERVO" "$nome.svg")" \
+         || [ "$(cat "$ALVO/$nome.svg")" != "$(cat "$de_quem" 2>/dev/null)" ]; }; then
       continue
     fi
     if meow_seco; then
@@ -390,6 +409,9 @@ _resgatados_estado() {
 
 # --- ponto de entrada ---------------------------------------------------------
 _resgatados_aplicar() {
+  local tortos
+  tortos="$(_resgatados_tortos)"
+  [ "${tortos:-0}" -gt 0 ] && meow_aviso "$tortos linha(s) com nome fora da forma no mapa dos resgatados — pulada(s)"
   if [ "${ICONES_RESGATADOS:-sim}" = "sim" ] && [ "$SO_TIRAR" = "0" ]; then _resgatados_instalar
   else _resgatados_remover; fi
 }
