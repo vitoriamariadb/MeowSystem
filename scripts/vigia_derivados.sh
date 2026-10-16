@@ -38,7 +38,8 @@ _texto_de() {
   if [ "$u" = "$GATILHO" ]; then
     linhas="$("$RAIZ/scripts/derivados.sh" --pastas | sed 's/^/PathModified=/')"
     [ -n "$linhas" ] || return 1
-    texto="${texto//@VIGIADOS@/$linhas}"
+    # Só a linha que é o marcador inteiro: o comentário que o cita fica comentário.
+    texto="$(awk -v linhas="$linhas" '$0 == "@VIGIADOS@" { print linhas; next } { print }' <<<"$texto")"
   fi
   printf '%s' "$texto"
 }

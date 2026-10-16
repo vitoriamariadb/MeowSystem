@@ -147,7 +147,8 @@ fora="$(grep -v -e "^$R/packs/[a-z0-9-]*\$" -e "^$R/packs/[a-z0-9-]*/icones\(/\(
 fora: $fora"
 unidade="$T/meow-derivados.path"
 linhas="$(sed 's/^/PathModified=/' <<<"$pastas")"
-texto="$(cat "$RAIZ/systemd/meow-derivados.path")"; printf '%s\n' "${texto//@VIGIADOS@/$linhas}" > "$unidade"
+awk -v linhas="$linhas" '$0 == "@VIGIADOS@" { print linhas; next } { print }' \
+  "$RAIZ/systemd/meow-derivados.path" > "$unidade"
 cp "$RAIZ/systemd/meow-derivados.service" "$T/"
 if command -v systemd-analyze >/dev/null 2>&1; then
   saida="$(systemd-analyze verify --user "$unidade" 2>&1 | grep -v -i 'dbus\|bus\b\|XDG_RUNTIME_DIR\|Failed to connect')"
