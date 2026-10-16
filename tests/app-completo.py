@@ -918,6 +918,10 @@ ASSENTAR_JS = r"""
 })
 """
 
+# O relógio da recarga das miniaturas está armado? (`agendarRecarga` do app.js;
+# ver o `assentar`.) A página sem o relógio responde que não.
+RECARGA_ARMADA_JS = "() => typeof RELOGIO_PREVIA !== 'undefined' && !!RELOGIO_PREVIA"
+
 
 # O que a página tentou buscar fora de 127.0.0.1 — a rota do contexto recusa
 # e anota. É por aqui que o link externo prova para onde iria.
@@ -1053,10 +1057,25 @@ class Percurso:
         fim = time.time() + teto / 1000
         while self.pedidos_vivos and time.time() < fim:
             self.pag.wait_for_timeout(40)
+        esperou_recarga = False
         for _volta in range(4):
             antes = self.nascidos
             self.pag.evaluate(ASSENTAR_JS, [quieto, max(300, int((fim - time.time()) * 1000))])
-            if self.nascidos == antes and not self.pedidos_vivos:
+            # A RECARGA AGENDADA DAS MINIATURAS — 16/10/2026, P82 (conferência
+            #   do item 37). Com miniatura por fazer, a página relê as prévias
+            #   900 ms depois (`agendarRecarga`, um `setTimeout`) e repinta: o
+            #   pedido nasce DEPOIS do `quieto`, e o gesto seguinte do gate caía
+            #   no meio da repintura — o botão marcado pelo censo era trocado
+            #   («element was detached»), e o clique estourava o teto. Medido na
+            #   aba Papel de parede: 4 reprovações em 8 corridas. Um relógio
+            #   armado é uma volta a mais: espera ele disparar (uma vez só, para
+            #   uma miniatura que nunca fica pronta não prender o gate).
+            if not esperou_recarga and self.pag.evaluate(RECARGA_ARMADA_JS):
+                esperou_recarga = True
+                limite = time.time() + 1.5
+                while self.pag.evaluate(RECARGA_ARMADA_JS) and time.time() < limite:
+                    self.pag.wait_for_timeout(40)
+            elif self.nascidos == antes and not self.pedidos_vivos:
                 break
             fim = max(fim, time.time() + teto / 1000)
             while self.pedidos_vivos and time.time() < fim:
