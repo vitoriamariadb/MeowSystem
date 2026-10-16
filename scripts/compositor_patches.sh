@@ -1068,7 +1068,8 @@ cmd_aplicar() {
 #      instalado — e o fonte de outra versão é a sessão que não sobe;
 #   4. a série: o `cmd_aplicar` inteiro, dry-run de todos com `-F0` antes de
 #      escrever, e um `req` que falha aborta com a árvore intocada;
-#   5. `make VENDOR=1`, com Nice 19, e o registro num arquivo do cache;
+#   5. a receita de build que o fonte traz (`_cp_receita`, P81), com Nice 19,
+#      e o registro num arquivo do cache;
 #   6. os marcadores: todo patch que está na árvore tem de estar no binário;
 #      sem um `req`, nada é instalado (o `#[used]` que o linker comeu);
 #   7. a instalação, e SÓ AQUI entra o sudo: guarda o binário do pacote quando
@@ -1083,6 +1084,33 @@ cmd_aplicar() {
 #   usa o do rustup. Ele recusaria a máquina que compila. Falta de biblioteca
 #   aparece no registro do `make`, cujo fim o `compilar` mostra.
 _cp_fonte_dir() { printf '%s/cosmic-comp-%s' "$CP_CACHE" "$1"; }
+
+# A RECEITA DE BUILD É A QUE O FONTE TRAZ — P81, achado da P85 (15/10/2026)
+#   O 4d14528 não tem mais `Makefile`: virou `justfile` + `cargo.just`, e o
+#   `debian/rules` do pacote usa `just build-vendored` (o `.cargo/` só existe
+#   dentro do `vendor.tar`). O `make VENDOR=1` fixo saía 2, «No targets
+#   specified and no makefile found». Em vez de trocar uma ferramenta pela
+#   outra, pergunta-se ao fonte, na ordem:
+#     receita `build-vendored` num `justfile` ou `*.just`  -> just build-vendored
+#     `Makefile`                                           -> make VENDOR=1
+#     nenhum dos dois                                      -> tar pxf vendor.tar
+#                                                             e cargo --frozen --offline
+#   Os três deixam o binário em `target/release/cosmic-comp` (o `cargo.just`
+#   lê o `CARGO_TARGET_DIR`, padrão `target`). `_CP_RECEITA` é o comando,
+#   `_CP_RECEITA_NOME` o que a tela diz, e `_CP_PEDE` as ferramentas.
+declare -a _CP_RECEITA=() _CP_PEDE=()
+_CP_RECEITA_NOME=""
+_cp_receita() { # $1 = árvore do fonte
+  if grep -qsE '^build-vendored([ :]|$)' "$1/justfile" "$1"/*.just; then
+    _CP_RECEITA=(just build-vendored); _CP_PEDE=(just cargo)
+  elif [ -f "$1/Makefile" ]; then
+    _CP_RECEITA=(make VENDOR=1); _CP_PEDE=(make cargo)
+  else
+    _CP_RECEITA=(sh -c 'tar pxf vendor.tar && cargo build --release --frozen --offline'); _CP_PEDE=(tar cargo)
+    _CP_RECEITA_NOME="cargo build --frozen --offline"; return 0
+  fi
+  _CP_RECEITA_NOME="${_CP_RECEITA[*]}"
+}
 
 # 0 = a árvore desta versão está no cache (agora ou de antes) · 2/3 = não deu
 # O que o cache antigo guardava (`.dsc` e `.tar.*`) vai para a guarda, sem
@@ -1222,8 +1250,10 @@ cmd_compilar() {
     meow_info "versão nova para a série: a escada decide patch a patch e grava em $CP_MATRIZ"
   fi
 
+  # Antes do download, só o que todo caminho usa; a ferramenta da receita é
+  # conferida quando o fonte disser qual é (`_cp_receita`, depois do passo 3).
   local -a faltam=()
-  for i in patch make cargo; do meow_tem "$i" || faltam+=("$i"); done
+  for i in patch cargo; do meow_tem "$i" || faltam+=("$i"); done
   if [ "${#faltam[@]}" -gt 0 ]; then
     meow_erro "falta para compilar: ${faltam[*]}"
     meow_info "  o cargo é o do rustup de quem compila; o do apt costuma ser velho demais para o cosmic-comp"
@@ -1244,7 +1274,12 @@ cmd_compilar() {
       meow_muda "baixaria o fonte do cosmic-comp $ver (~98 MB) para $CP_GUARDA e o abriria em $CP_CACHE"
     fi
     meow_muda "aplicaria a série ($(_cp_plural "$n_req" obrigatório obrigatórios), $(_cp_plural "$n_opt" opcional opcionais)) pela escada (-F0, depois -F1), dry-run de todos antes"
-    meow_muda "compilaria com make VENDOR=1 (~4 min com o vendor quente, ~30 min do zero)"
+    if [ -f "$fonte/Cargo.toml" ]; then
+      _cp_receita "$fonte"
+      meow_muda "compilaria com $_CP_RECEITA_NOME (~4 min com o vendor quente, ~30 min do zero)"
+    else
+      meow_muda "compilaria com a receita que o fonte trouxer (~4 min com o vendor quente, ~30 min do zero)"
+    fi
     meow_muda "conferiria os marcadores no binário e o guardaria em $CP_CASA/$ver — sem sudo"
     meow_muda "gravaria o estado medido em $CP_CASA/$ver/estado"
     meow_info "vale no próximo login com o shim ligado"
@@ -1252,6 +1287,13 @@ cmd_compilar() {
   fi
 
   _cp_baixar_fonte "$ver" || return $?
+  _cp_receita "$fonte"
+  faltam=()
+  for i in "${_CP_PEDE[@]}"; do meow_tem "$i" || faltam+=("$i"); done
+  if [ "${#faltam[@]}" -gt 0 ]; then
+    meow_erro "falta para compilar este fonte ($_CP_RECEITA_NOME): ${faltam[*]}"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
 
   # OS ARQUIVOS PUROS QUE A SÉRIE TOCA, guardados ANTES de a série escrever
   # neles: se este build der certo, eles viram a "última versão boa" contra a
@@ -1275,9 +1317,9 @@ cmd_compilar() {
   # doctor que esta versão precisa de gente, e não de mais uma tentativa.
   [ "$rc_ap" = "0" ] || { _cp_gravar_matriz "$ver"; return "$rc_ap"; }
 
-  meow_info "compilando com Nice 19 (~4 min com o vendor quente, ~30 min do zero)"
+  meow_info "compilando com $_CP_RECEITA_NOME, Nice 19 (~4 min com o vendor quente, ~30 min do zero)"
   meow_info "  o registro vai para $log"
-  if ! ( cd "$fonte" && nice -n 19 make VENDOR=1 ) >"$log" 2>&1; then
+  if ! ( cd "$fonte" && nice -n 19 "${_CP_RECEITA[@]}" ) >"$log" 2>&1; then
     meow_erro "a compilação falhou — nada foi instalado, o compositor de agora continua"
     tail -n 15 "$log" 2>/dev/null | sed 's/^/        /' >&2
     return "$MEOW_ERRO"
@@ -1375,6 +1417,13 @@ cmd_validar() {
     return "$MEOW_DIVERGENTE"
   fi
   _cp_baixar_fonte "$ver" || return $?
+  _cp_receita "$fonte"
+  faltam=()
+  for i in "${_CP_PEDE[@]}"; do meow_tem "$i" || faltam+=("$i"); done
+  if [ "${#faltam[@]}" -gt 0 ]; then
+    meow_erro "falta para compilar este fonte ($_CP_RECEITA_NOME): ${faltam[*]}"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   # O dry-run é o do `cmd_aplicar`, em seco: a mesma leitura, sem um byte.
   if MEOW_SECO=1 cmd_aplicar "$fonte"; then
     _cp_versao_valida "$ver" && return "$MEOW_OK"
