@@ -6163,6 +6163,15 @@ def para_tres_pastas(ident, membros):
     return saida
 
 
+def _formato_dos_arquivos(arquivos):
+    """O `formato` do pack.json de `arquivos`, ou 0 quando não se lê."""
+    try:
+        formato = json.loads(arquivos.get("pack.json", b"{}").decode("utf-8")).get("formato")
+    except (UnicodeDecodeError, ValueError, AttributeError):
+        return 0
+    return formato if isinstance(formato, int) else 0
+
+
 def _instalar_pack(arquivos, base, ident, seco=False):
     """Grava `arquivos` como o pack `ident` em `base` — e ele só aparece VALIDADO.
 
@@ -6192,6 +6201,11 @@ def _instalar_pack(arquivos, base, ident, seco=False):
             with open(alvo, "wb") as fh:
                 fh.write(conteudo)
             os.chmod(alvo, 0o644)
+        # AS TRÊS PASTAS NASCEM COM O PACK — P88, decisão 14: quem abre um pack
+        #   novo vê onde cada desenho mora, mesmo antes do primeiro.
+        if _formato_dos_arquivos(arquivos) >= 2:
+            for pasta in PASTAS_DO_FORMATO:
+                os.makedirs(os.path.join(dir_novo, "icones", pasta), exist_ok=True)
         p, dados, _ = validar(dir_novo)
         if seco:
             return p, dados, None
@@ -6721,6 +6735,12 @@ def montar_novo(ident, csv=None):
         f"paleta. É seu para redesenhar — mantenha as `class`, que são o papel de "
         f"cada forma.\n\n"
         + autorais
+        + f"## Os ícones\n\n"
+        f"Moram em três pastas, e só nelas: `icones/apps/` (o desenho ligado a um "
+        f"programa, pelo `icones/apps.map`), `icones/sistema/` (pastas, tipos de "
+        f"arquivo, status) e `icones/biblioteca/` (o resto, para escolher no painel; "
+        f"subpasta é só etiqueta). O que o pack não traz vem do pack-base do "
+        f"MeowSystem.\n\n"
         + f"## O resto\n\n"
         f"Tudo o que o `pack.json` não declara vem do `{pf['id']}`, pela herança, e "
         f"é dele a procedência. `meow pack info {ident}` diz o que é próprio e o que "

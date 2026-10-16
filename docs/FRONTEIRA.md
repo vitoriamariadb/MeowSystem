@@ -67,10 +67,19 @@ tempo de quem procura a regra:
 > **`assets/` é o que o MeowSystem É; `packs/` é o que ele VESTE; e
 > `~/.local/state/meowsystem/` é o que a máquina GEROU.**
 
+**Desde 15/10/2026 (decisão 14, P88) todo desenho de ícone é `packs/`.** O
+acervo que era do motor em `assets/icones/` é o pack-base `packs/meowsystem/`,
+nas três pastas (`apps/`, `sistema/`, `biblioteca/`), e todo pack o herda; os
+resgatados, de cor Dracula fixa, foram para `packs/dracula/`. A frase de
+21/09/2026, «o mapa é do pack, o acervo pode ser do motor», está **revogada**.
+Em `assets/icones/` sobrou só ferramenta: os mapas técnicos de aplicativo, a
+prévia das folhas, os originais de fábrica da bandeja e a folha dos resgatados.
+
 Ela responde "de quem é este arquivo" e não "quem escreve nesta chave". Mora em
-**`docs/PACKS.md`, seção «A fronteira: `assets/` contra `packs/`»**, que é o
-documento do formato de pack — é lá que quem escreve um pack vai procurar. Quem
-a cobra é `tests/arvore.sh`.
+**`docs/PACKS.md`, seções «A fronteira: `assets/` contra `packs/`» e «O acervo
+de ícones do pack»**, que são o documento do formato de pack — é lá que quem
+escreve um pack vai procurar. Quem a cobra é `tests/arvore.sh`, e o
+`tests/tres-pastas.sh` cobra as três pastas.
 
 As duas não se sobrepõem: nenhuma linha da tabela abaixo fala de arquivo
 versionado, e nenhuma linha daquela seção fala de território de vizinho.

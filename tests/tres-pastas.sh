@@ -178,6 +178,20 @@ saida="$(amb env MEOW_ICONES_ESCOLHAS="$T/escolhas.map" python3 "$RAIZ/scripts/p
   && ok "a escolha do painel gravada com o caminho de antes continua valendo" \
   || falha "a escolha do painel com o caminho de antes foi perdida" "$saida"
 
+# --- 6. os futuros: o `novo` e o exemplo do docs/ ---------------------------
+saida="$(pack_py novo futuro 2>&1)"; rc=$?
+dirs="$(find "$T/packs/futuro/icones" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort | paste -sd,)"
+[ "$rc" = "0" ] && [ "$dirs" = "apps,biblioteca,sistema" ] && grep -q '"formato": 2' "$T/packs/futuro/pack.json" \
+  && grep -q 'icones/biblioteca/' "$T/packs/futuro/CREDITOS.md" \
+  && ok "meow pack novo cria o pack no formato 2, com as três pastas, e os créditos dizem o que vai em cada uma" \
+  || falha "o pack novo não nasceu com as três pastas (rc=$rc, pastas: $dirs)" "$saida"
+cp -r "$RAIZ/docs/pack-minimo" "$T/packs/pack-minimo"
+saida="$(pack_py validar pack-minimo 2>&1)"; rc=$?
+dirs="$(find "$T/packs/pack-minimo/icones" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | paste -sd,)"
+[ "$rc" = "0" ] && [ "$dirs" = "apps,biblioteca,sistema" ] \
+  && ok "o pack mínimo do docs/ valida, com um desenho em cada uma das três pastas" \
+  || falha "o pack mínimo do docs/ não valida (rc=$rc)" "$saida"
+
 if [ "$falhas" -gt 0 ]; then
   printf '\nFALHOU: %s achado(s)\n' "$falhas" >&2
   exit 1
