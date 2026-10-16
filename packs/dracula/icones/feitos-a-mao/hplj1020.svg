@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<!-- Impressora a laser em perspectiva: corpo claro, bandeja de papel e fendas escuras (paleta Dracula). Desenhado em 45x45 e ampliado por escala. -->
+<g transform="scale(2.84444)">
+<path d="M3 12L9 11L12 18L12 32L9 30L3 26Z" fill="#565A72"/><path d="M3 12L9 11L12 18L12 32L9 30L3 26Z" fill="#A4A6B8" fill-opacity="0.1"/><path d="M3 12L9 11L12 18L12 32L9 30L3 26Z" fill="#E0E0DA" fill-opacity="0.7"/>
+<path d="M9 11H34L43 14V33L40 35H13L9 30Z" fill="#F8F8F2"/><path d="M9 11H34L43 14V33L40 35H13L9 30Z" fill="#BD93F9" fill-opacity="0.1"/>
+<path d="M11 19H37V25H11Z" fill="#565A72"/><path d="M11 19H37V25H11Z" fill="#A4A6B8" fill-opacity="0.1"/><path d="M11 19H37V25H11Z" fill="#E0E0DA" fill-opacity="0.7"/>
+<path d="M11 12.5H33L35 14H13Z" fill="#191A21"/>
+<path d="M13 14H34L30 17H14Z" fill="#44475A"/><path d="M13 14H34L30 17H14Z" fill="#282A36" fill-opacity="0.6"/><path d="M13 14H34L30 17H14Z" fill="#E0E0DA" fill-opacity="0.4"/>
+<path d="M12 24.5H36V28H12Z" fill="#191A21"/>
+<path d="M13 28.5H40V32H14Z" fill="#F8F8F2"/><path d="M13 28.5H40V32H14Z" fill="#BD93F9" fill-opacity="0.1"/>
+<path d="M15 33H36V35H15Z" fill="#565A72"/><path d="M15 33H36V35H15Z" fill="#A4A6B8" fill-opacity="0.1"/><path d="M15 33H36V35H15Z" fill="#E0E0DA" fill-opacity="0.7"/>
+</g></svg>

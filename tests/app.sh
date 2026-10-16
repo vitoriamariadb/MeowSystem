@@ -822,9 +822,11 @@ if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinet
 # O `.png` que é SVG (QA de uso real da P80) sai como SVG, e o leitor do
 # começo do arquivo não volta atrás: 4 KB hostis respondem em menos de 50 ms
 # (o alerta de ReDoS da revisão de segurança da P80).
+# [P84, 15/10/2026: o `obsidian.png` saiu do pack, trocado pelo vetor dele. Os
+#   bytes de um SVG de verdade continuam sendo o caso, agora os do `obsidian.svg`.]
 import time as _t
 svg_png = open(os.path.join(raiz, "packs", "dracula", "icones", "feitos-a-mao",
-                            "obsidian.png"), "rb").read()
+                            "obsidian.svg"), "rb").read()
 casos = ((svg_png, True), (b"\x89PNG\r\n\x1a\n", False),
          (b'\xef\xbb\xbf<?xml version="1.0"?>\n<!-- a -->\n<!DOCTYPE svg>\n<svg xmlns="x"/>', True),
          (b"<svgx/>", False), (b"<!--" * 1000, False), (b"<!--a-->" * 500 + b"<x", False))

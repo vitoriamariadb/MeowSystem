@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Íris de diafragma: oito lâminas dentro do aro, sobre disco ocre; grade 512 reduzida por 0,25 -->
+  <g transform="scale(0.25)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="216" fill="#D7B38B" stroke="#454545" stroke-width="12"/>
+    <g stroke="#F8F8F2" stroke-width="4.5">
+      <circle cx="256" cy="255" r="128"/>
+      <path d="M246 127 L320 238"/>
+      <path d="M325 150 L320 278"/>
+      <path d="M376 210 L297 305"/>
+      <path d="M378 288 L255 322"/>
+      <path d="M333 354 L218 312"/>
+      <path d="M260 382 L192 270"/>
+      <path d="M183 360 L192 270"/>
+      <path d="M137 303 L213 205"/>
+      <path d="M130 232 L247 192"/>
+      <path d="M168 163 L247 190"/>
+    </g>
+  </g>
+</svg>

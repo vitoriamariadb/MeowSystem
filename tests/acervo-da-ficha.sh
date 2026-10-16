@@ -99,11 +99,14 @@ itens = vazia.get("glifos") or []
 # --- 1. cada pasta: o que a ficha oferece é o que o disco tem --------------------
 # A conta do disco é feita aqui, com `os.listdir`, sobre a pasta de cada item
 # oferecido: o teste não pergunta ao `acervos_de_icone` quanto ele mesmo achou.
+# [P84, 15/10/2026: a pasta dos feitos à mão tem dois grupos, o dos vetores e
+#   o dos PNG que ainda não ganharam o seu, e cada um se conta pela extensão
+#   dele. A chave é (pasta, extensão), e não só a pasta.]
 por_pasta = {}
 for it in itens:
-    por_pasta.setdefault(os.path.dirname(caminho_de(it)), []).append(it)
-for pasta, deles in sorted(por_pasta.items()):
-    ext = ".png" if deles[0]["tipo"] == "png" else ".svg"
+    ext = ".png" if it["tipo"] == "png" else ".svg"
+    por_pasta.setdefault((os.path.dirname(caminho_de(it)), ext), []).append(it)
+for (pasta, ext), deles in sorted(por_pasta.items()):
     no_disco = sorted(a for a in os.listdir(pasta)
                       if a.lower().endswith(ext) and not a.startswith(".")
                       and os.path.isfile(os.path.join(pasta, a)) and a != "ANTES-E-DEPOIS.png")
@@ -139,7 +142,7 @@ for rel in versionados:
     partes = rel.split("/")
     if FORA & set(partes) or os.path.basename(rel) == "ANTES-E-DEPOIS.png" or "temas" in partes:
         continue
-    if os.path.normpath(os.path.dirname(os.path.join(raiz, rel))) not in por_pasta:
+    if os.path.normpath(os.path.dirname(os.path.join(raiz, rel))) not in {p for p, _e in por_pasta}:
         sem_grupo.add(os.path.dirname(rel))
 checa(not sem_grupo, "toda pasta de desenho versionada tem a sua pasta na ficha", repr(sorted(sem_grupo)))
 

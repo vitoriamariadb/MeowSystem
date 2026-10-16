@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Configurações do COSMIC: disco azul-aço com aro duplo, engrenagem e um olho no centro. -->
+  <g transform="scale(.125)" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="512" cy="512" r="426" fill="#FEFEFD" stroke="none"/>
+    <circle cx="512" cy="512" r="424" fill="#000000" stroke="none"/>
+    <circle cx="512" cy="512" r="414" fill="#ECECEC" stroke="none"/>
+    <circle cx="512" cy="512" r="386" fill="#000000" stroke="none"/>
+    <circle cx="512" cy="512" r="374" fill="#476A87" stroke="none"/>
+    <!-- engrenagem de oito dentes -->
+    <path d="M460 322L466 264 L558 264 L564 322A190 190 0 0 1 610 341L655 304 L720 369 L683 414A190 190 0 0 1 702 460L760 466 L760 558 L702 564A190 190 0 0 1 683 610L720 655 L655 720 L610 683A190 190 0 0 1 564 702L558 760 L466 760 L460 702A190 190 0 0 1 414 683L369 720 L304 655 L341 610A190 190 0 0 1 322 564L264 558 L264 466 L322 460A190 190 0 0 1 341 414L304 369 L369 304 L414 341A190 190 0 0 1 460 322 Z"/>
+    <!-- o miolo, o olho, a íris e o brilho -->
+    <circle cx="512" cy="512" r="137"/>
+    <path d="M385 511C440 460 480 445 512 445C545 445 590 462 639 511C590 562 545 578 512 578C480 578 440 562 385 511Z"/>
+    <ellipse cx="512" cy="512" rx="61" ry="57"/>
+    <circle cx="538" cy="481" r="18"/>
+    <path d="M479 509V512C479 535 495 548 512 548C530 548 545 535 545 512V509"/>
+  </g>
+</svg>
