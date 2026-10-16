@@ -608,6 +608,55 @@ GATO_NA_DOCK_JS = r"""
 """
 
 
+# 6 — A GRADE SEM BURACO (P82, item 26): um cartão alto numa linha deixava o
+#   vão embaixo dos baixos; a régua é o fim do CONTEÚDO de cada cartão (o
+#   cartão estica até a linha) contra o começo do de baixo, na mesma coluna. E
+#   a figura de uma página só de ações não toma a linha sozinha: ela mora na
+#   grade, ao lado dos cartões.
+BURACO_JS = r"""
+(teto) => {
+  const vis = (el) => el && el.checkVisibility && el.checkVisibility();
+  const defeitos = [];
+  for (const g of document.querySelectorAll('#conteudo .grade')) {
+    if (!vis(g) || getComputedStyle(g).gridTemplateColumns.split(' ').length < 2) continue;
+    const filhos = [...g.children].filter(vis).map((c) => {
+      const r = c.getBoundingClientRect();
+      const fim = Math.max(r.top, ...[...c.children].filter(vis).map((x) => x.getBoundingClientRect().bottom));
+      return { c, r, fim };
+    });
+    for (const a of filhos) {
+      const abaixo = filhos.filter((b) => b !== a && b.r.top >= a.r.bottom - 1
+                                   && b.r.left < a.r.right - 5 && b.r.right > a.r.left + 5);
+      if (!abaixo.length) continue;
+      const vao = Math.min(...abaixo.map((b) => b.r.top)) - a.fim;
+      if (vao > teto) {
+        const nome = (a.c.querySelector('h3, .titulo-cartao, .titulo') || a.c).textContent.trim().slice(0, 40);
+        defeitos.push(`vão de ${Math.round(vao)} px embaixo de «${nome}»`);
+      }
+    }
+  }
+  for (const f of document.querySelectorAll('#conteudo > .previa-bloco'))
+    if (vis(f) && !document.querySelector('#conteudo article.cartao'))
+      defeitos.push('a figura da página só de ações toma a linha sozinha, fora da grade');
+  return defeitos;
+}
+"""
+
+
+def grade_sem_buraco(pag):
+    """Os casos da P82 (item 26), a 1440 px. Devolve [(onde, defeito)]."""
+    reprovas = []
+    for grupo in ("Papel de parede", "Instalação", "Atualização", "Manutenção"):
+        pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
+        pag.mouse.move(5, 890)
+        assentar(pag)
+        reprovas += [(f"grade · {grupo}", d) for d in pag.evaluate(BURACO_JS, 64)]
+        if FOTOS:
+            nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
+            pag.screenshot(path=os.path.join(FOTOS, f"p82-grade-{nome}.png"), full_page=True)
+    return reprovas
+
+
 def a_375(pag, url):
     """Os casos da P82 (item 21) numa janela de celular. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -758,6 +807,13 @@ def main():
             achados = acabamento(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} acabamento: {len(achados)} defeito(s)")
+
+            # 6. A GRADE SEM BURACO (P82, item 26) — antes dos 375 px, a 1440
+            print("\n6. A GRADE SEM BURACO")
+            pagina_atual["nome"] = "grade"
+            achados = grade_sem_buraco(pag)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} grade: {len(achados)} defeito(s)")
 
             # 5. A 375 PX (P82, item 21)
             print("\n5. A 375 PX")

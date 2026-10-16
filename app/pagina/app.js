@@ -9600,6 +9600,8 @@ function ajustesTecnicos(assunto, g, itens) {
 }
 
 function render() {
+  /* A figura da seção sem chaves espera a primeira grade (P82, item 26). */
+  let figuraNaGrade = null;
   /* Os nós da passagem anterior morreram com ela. Um registro que sobrevive
    * ao `render` guarda referência para árvore descartada, e o repintar acha um
    * nó sem pai — silencioso, e cada vez mais caro. */
@@ -9762,8 +9764,10 @@ function render() {
          *   ler, então não há par antes/depois nem tempo real. É uma figura que
          *   responde "o que esta página faz com a minha máquina", e as funções
          *   já aceitam valores vazios — o contrato delas cai no padrão. */
-        const soloDaSecao = desenhoDaSecaoSemChaves(assunto);
-        if (soloDaSecao) alvo.append(soloDaSecao);
+        /* [P82, 15/10/2026 (item 26): a figura entra na GRADE, como o
+         *   primeiro item dela, e os cartões correm ao lado. Fora da grade ela
+         *   tomava a linha com 260 px e deixava o resto vazio.] */
+        figuraNaGrade = desenhoDaSecaoSemChaves(assunto);
       }
     }
     if (grupos.length > 1) {
@@ -9850,6 +9854,7 @@ function render() {
       }
     }
     const grade = elemento("div", { class: "grade" });
+    if (figuraNaGrade) { grade.append(figuraNaGrade); figuraNaGrade = null; }
     /* Os ajustes técnicos (`[avancado]`) vão para o «⋯» do fim do bloco, e os
      * que formam UMA decisão (`DECISOES`) para uma moldura só — P77. Na busca
      * não: o resultado já é a lista do que casou, e esconder parte dele num
@@ -9943,6 +9948,7 @@ function render() {
   afastarDicasDoTraco();
   pintarGatosEmCelulas($("#conteudo"));
   devolverFoco(ancora);
+  assentarGrades();
   devolverRolagem(rolagem);
   /* A ABA ABERTA APARECE — em 375px o trilho vira uma tira horizontal com vinte
    * botões, e a validação mediu que "a marcação existe fora da tela": a aba
@@ -9964,6 +9970,63 @@ function render() {
     const b = ativa.getBoundingClientRect();
     if (b.top < t.top || b.bottom > t.bottom || b.left < t.left || b.right > t.right) {
       ativa.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }
+}
+
+/* ===========================================================================
+ * A GRADE SEM BURACO — 15/10/2026, P82 (item 26)
+ * ===========================================================================
+ * A grade de três colunas põe os cartões em linhas, e a linha tem a altura do
+ * mais alto: um cartão de par de desenhos (Sim e Não, cada um com a figura)
+ * deixava um vão do tamanho dele embaixo dos cartões baixos da mesma linha —
+ * medido em «Manutenção», 136 px embaixo de «Consertos de sistema sem pedir
+ * senha». A cura é na grade de todas as páginas, e não numa página: com mais
+ * de uma coluna, a grade vira ALVENARIA. Cada item vai para a coluna que está
+ * mais curta (o empate fica com a da esquerda, então a leitura segue da
+ * esquerda para a direita e de cima para baixo), e ocupa as linhas finas que a
+ * altura dele pede. O que atravessa a grade (a moldura de uma decisão, o painel
+ * de um aplicativo aberto) começa embaixo da coluna mais funda e iguala todas.
+ * Numa coluna só, nada muda. Quem refaz é o fim do `render()`, a janela que
+ * muda de largura e o cartão que muda de altura (um desenho que chega depois). */
+const ALVENARIA_PASSO = 4;
+let OBSERVADOR_GRADES = null;
+function assentarGrades() {
+  if (typeof ResizeObserver === "function" && !OBSERVADOR_GRADES) {
+    let pedido = 0;
+    OBSERVADOR_GRADES = new ResizeObserver(() => {
+      cancelAnimationFrame(pedido);
+      pedido = requestAnimationFrame(() => assentarGrades());
+    });
+    addEventListener("resize", () => assentarGrades());
+  }
+  for (const g of document.querySelectorAll("#conteudo .grade")) {
+    const filhos = [...g.children];
+    for (const c of filhos) { c.style.gridColumn = ""; c.style.gridRow = ""; }
+    const colunas = getComputedStyle(g).gridTemplateColumns.split(" ").filter(Boolean).length;
+    g.classList.toggle("alvenaria", colunas > 1);
+    if (colunas < 2) continue;
+    const vao = parseFloat(getComputedStyle(g).columnGap) * .6 || 18;
+    const fundo = new Array(colunas).fill(1);
+    for (const c of filhos) {
+      if (OBSERVADOR_GRADES) OBSERVADOR_GRADES.observe(c);
+      const alto = c.getBoundingClientRect().height;
+      if (!alto) continue;
+      const linhas = Math.max(1, Math.ceil((alto + vao) / ALVENARIA_PASSO));
+      const largo = getComputedStyle(c).gridColumnEnd === "-1"
+        || c.matches(".decisao, .escolha-icone, .escolha-jogo, .pack.aberto");
+      if (largo) {
+        const de = Math.max(...fundo);
+        c.style.gridColumn = "1 / -1";
+        c.style.gridRow = `${de} / span ${linhas}`;
+        fundo.fill(de + linhas);
+        continue;
+      }
+      let k = 0;
+      for (let i = 1; i < colunas; i++) if (fundo[i] < fundo[k]) k = i;
+      c.style.gridColumn = String(k + 1);
+      c.style.gridRow = `${fundo[k]} / span ${linhas}`;
+      fundo[k] += linhas;
     }
   }
 }

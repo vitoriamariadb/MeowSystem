@@ -716,6 +716,14 @@ main:focus-visible { outline: none; }
   .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .grade > * { min-width: 0; max-width: 640px; }
+/* A ALVENARIA (P82, item 26; o `assentarGrades` do app.js): linhas finas, sem
+ * vão entre elas (o vão entra na conta de cada item), e cada item na própria
+ * altura — esticado, ele voltaria a mostrar o vão por dentro. */
+.grade.alvenaria { grid-auto-rows: 4px; row-gap: 0; }
+.grade.alvenaria > * { align-self: start !important; }
+/* A figura de uma página só de ações, dentro da grade (P82, item 26): ela é
+ * um item como os cartões, e não a faixa grudada do alto. */
+.grade > .previa-bloco { position: static; box-shadow: none; border-bottom: 0; margin: 0; }
 .grade + .secao-titulo { margin-top: 2.8rem; }
 
 /* ===========================================================================
