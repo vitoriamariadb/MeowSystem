@@ -468,10 +468,10 @@ _aplicar() {
       meow_aviso "o applet não compila no libcosmic ${alvo_rev:0:7} do painel — volta ao pino ${PINO_REV:0:7}"
     fi
   fi
+  # [P81: a tela dava a linha do cargo para colar; o motivo fica num registro.]
   if [ "$compilou" = 0 ] && ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
-        --manifest-path "$MANIFESTO" >/dev/null 2>&1; then
-    meow_erro "o cargo falhou — veja o motivo com:"
-    meow_info "  CARGO_TARGET_DIR=$ALVO cargo build --release --locked --manifest-path $MANIFESTO"
+        --manifest-path "$MANIFESTO" >"$ESTADO/compilar.log" 2>&1; then
+    meow_erro "o cargo falhou — o registro está em $ESTADO/compilar.log"
     meow_info "  o binário anterior, se houver, segue instalado e funcionando; nada foi trocado"
     return "$MEOW_ERRO"
   fi

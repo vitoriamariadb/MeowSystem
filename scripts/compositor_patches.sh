@@ -410,13 +410,17 @@ cmd_conferir() {
   #   SEM BUILD É FÁBRICA, E FÁBRICA NÃO É VERMELHO: é o princípio D da
   #   pesquisa (toda falha degrada para fábrica, nunca para quebrado). Quem
   #   reconstrói é o pós-apt. Só o `ruim` — duas quedas seguidas — pede gente.
+  local com_shim=0
   if _cp_shim_ativo; then
+    com_shim=1
     local v_shim="" casa_v=""
     v_shim="$(_cp_versao_instalada 2>/dev/null)" || v_shim=""
     casa_v="$CP_CASA/$v_shim"
     if [ -e "$casa_v/ruim" ]; then
-      meow_muda "o build do cosmic-comp $v_shim caiu duas vezes seguidas e foi posto de lado — a sessão sobe de fábrica"
-      meow_info "volta com um build novo: meow compositor"
+      # [P81: a linha de baixo era «volta com um build novo: meow compositor».
+      #   O mesmo fonte daria o mesmo binário; a função dos builds não o refaz,
+      #   e quem traz build novo é a próxima versão.]
+      meow_muda "o build do cosmic-comp $v_shim caiu duas vezes seguidas e foi posto de lado — a sessão sobe de fábrica até a próxima versão"
       return "$MEOW_DIVERGENTE"
     fi
     if [ ! -x "$casa_v/cosmic-comp" ] || [ ! -r "$casa_v/estado" ]; then
@@ -426,7 +430,6 @@ cmd_conferir() {
       # o "tudo confere" com algo fora.
       if awk -F'\t' -v v="$v_shim" '$1==v && $3 ~ /:4( |$)/ {achou=1} END {exit !achou}' "$CP_MATRIZ" 2>/dev/null; then
         meow_muda "o patch obrigatório não entra no cosmic-comp $v_shim (degrau 4) — a sessão sobe de fábrica até um rebase"
-        meow_info "o que recusou: meow compositor validar"
         return "$MEOW_DIVERGENTE"
       fi
       # SEM BUILD É DIVERGENTE DESDE A P81 (15/10/2026), e o conserto é do
@@ -486,7 +489,9 @@ cmd_conferir() {
   # passou a nomear o verbo daqui.
   if [ ! -e "$CP_ESTADO" ]; then
     ritual_ausente=1
-    _cp_diz info "quem aplica os patches do compositor é o meow compositor (compila ~4 min, pede sudo no fim), e ele ainda não instalou nada aqui"
+    # [P81: «quem aplica … é o meow compositor (compila ~4 min, pede sudo no
+    #   fim)» — o nome de um comando e um sudo que saiu na P76.]
+    _cp_diz info "os patches do compositor entram pelo shim, e ele está desligado nesta máquina"
     _cp_diz info "sem $CP_ESTADO não há o que conferir: nada foi prometido, nada está faltando"
     # Sem crase: dentro de aspas duplas ela vira substituição de comando, e
     # esta frase nomeia um comando de verdade.
@@ -534,12 +539,12 @@ cmd_conferir() {
     elif [ "$versao_estado" != "$versao_dpkg" ]; then
       problemas+=("o .estado é de outra versão do pacote"); precisa_build=1
       _cp_diz muda "versão divergente: .estado diz '$versao_estado', dpkg diz '$versao_dpkg'"
-      _cp_diz info "um apt trocou o binário depois do último build — a série volta com: meow compositor"
+      _cp_diz info "um apt trocou o binário depois do último build — a série volta no próximo build"
       # E o `meow compositor` recusa versão que não esteja em `patches/versao`
       # (24/09/2026). Dizer isto aqui poupa a pessoa de descobrir na recusa,
       # depois de já ter decidido parar para compilar.
       _cp_versao_valida "$versao_dpkg" || \
-        _cp_diz info "  a versão é nova para a série: o build decide patch a patch (meow compositor validar mostra antes)"
+        _cp_diz info "  a versão é nova para a série: o build decide patch a patch"
     fi
   fi
 
@@ -598,7 +603,12 @@ cmd_conferir() {
   [ "$faltando" -gt 0 ] && { problemas+=("$(_cp_plural "$faltando" marcador marcadores) fora do binário"); precisa_build=1; }
   # Esta é a ÚNICA divergência que não pede build: o binário do disco está
   # certo, quem está velho é o processo. Por isso não liga o `precisa_build`.
-  [ "$fora_da_sessao" -gt 0 ] && problemas+=("$(_cp_plural "$fora_da_sessao" 'marcador só vale' 'marcadores só valem') no próximo login")
+  # Com o shim, a frase é a do estado (P81): o build da versão está pronto, e
+  # quem ainda roda o de fábrica é a sessão de agora.
+  if [ "$fora_da_sessao" -gt 0 ]; then
+    if [ "$com_shim" = "1" ]; then problemas+=("build pronto, vale no próximo login")
+    else problemas+=("$(_cp_plural "$fora_da_sessao" 'marcador só vale' 'marcadores só valem') no próximo login"); fi
+  fi
 
   # Quando não há `.estado`, a única coisa honesta a dizer sobre o binário é o
   # que ele TEM — e isso é informação, não veredito. Serve de linha de base para
@@ -781,13 +791,11 @@ cmd_conferir() {
     #   doctor mandaria rodar `meow compositor`, o build sairia certo, e o doctor
     #   seguinte acusaria o mesmo `/usr/bin` de fábrica — um conselho que não
     #   converge nunca.
-    meow_info "o conserto é recompilar o compositor com a série de patches/ (~4 min, sem sudo):"
-    meow_info "  meow compositor --seco   diz o que faria, sem baixar nem escrever"
-    meow_info "  meow compositor          baixa o fonte da versão instalada, compila e guarda o build"
-    _cp_shim_ativo || \
-      meow_info "  meow compositor ativar   liga o shim: o build vale a partir do próximo login"
-    meow_info "  meow compositor reverter diz como voltar ao binário do pacote"
-    meow_info "o doctor não compila, não usa sudo e não escreve — ele só mede e conta"
+    #
+    #   E A RECEITA SAIU — 15/10/2026, P81. Eram cinco linhas de `meow
+    #   compositor …` para ela digitar e a frase «o doctor não compila», que a
+    #   P81 desmentiu: o `fix_patches` dispara a função única dos builds.
+    meow_info "o conserto recompila o compositor com a série de patches/, em segundo plano, sem sudo"
   else
     meow_info "nada a recompilar: o binário do disco está em dia, quem está velho é a sessão"
     meow_info "o próximo login resolve sozinho — não há comando a rodar"
@@ -1239,7 +1247,7 @@ cmd_compilar() {
     meow_muda "compilaria com make VENDOR=1 (~4 min com o vendor quente, ~30 min do zero)"
     meow_muda "conferiria os marcadores no binário e o guardaria em $CP_CASA/$ver — sem sudo"
     meow_muda "gravaria o estado medido em $CP_CASA/$ver/estado"
-    meow_info "vale no próximo login com o shim ligado; o caminho de volta: meow compositor desativar"
+    meow_info "vale no próximo login com o shim ligado"
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -1330,7 +1338,9 @@ cmd_compilar() {
   if [ -d "$novo_alvos" ]; then
     rm -rf "$CP_ALVOS" && mv -f "$novo_alvos" "$CP_ALVOS" && printf '%s\n' "$ver" > "$CP_ALVOS/.versao"
   fi
-  _cp_shim_ativo || meow_info "o shim está desligado: este build só vale depois de 'meow compositor ativar'"
+  # [P81: o caminho de volta («meow compositor desativar») e o de ida («meow
+  #   compositor ativar») moram no docs/MANUTENCAO.md; o log diz o estado.]
+  _cp_shim_ativo || meow_info "o shim está desligado: o build fica guardado, sem efeito na sessão"
 
   # --- 8. poda: só árvore de fonte, e só de outra versão --------------------
   local d
@@ -1343,7 +1353,6 @@ cmd_compilar() {
 
   meow_registrar "compositor_patches.sh compilar $ver"
   meow_info "vale no PRÓXIMO LOGIN — a sessão de agora segura o binário antigo até lá"
-  meow_info "o caminho de volta: meow compositor desativar"
   return "$MEOW_DIVERGENTE"
 }
 

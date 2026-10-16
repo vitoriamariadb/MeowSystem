@@ -227,6 +227,13 @@ igual "um build do compositor, pelo conserto" "$(linhas '^compositor compilar')"
 grep -q 'continua fora' "$T/doc.saida" && { falha "a linha patches ficou fora depois do conserto"; sed 's/^/        /' "$T/doc.saida"; }
 : > "$T/log"; doctor; rc=$?
 igual "o doctor seguinte não diverge (rc 0)" "$rc" 0
+# Com uma sessão no ar (esta máquina), ela roda o de fábrica: o estado é
+# «build pronto, vale no próximo login». Sem sessão, o marcador no disco.
+if grep -qE 'patches +(build pronto, vale no próximo login|1 marcador de pé)' "$T/doc.saida"; then
+  ok "a linha patches diz o estado: $(grep -oE 'build pronto, vale no próximo login|1 marcador de pé[^;]*' "$T/doc.saida" | head -1)"
+else
+  falha "a linha patches não diz o estado do build"; sed 's/^/        /' "$T/doc.saida"
+fi
 igual "e não compila de novo" "$(grep -c . "$T/log")" 0
 
 grep -v "^recusado: sudo -n -l$" "$T/recusados" 2>/dev/null | grep -q . && { falha "algo chamou um comando recusado:"; sed "s/^/        /" "$T/recusados"; }
