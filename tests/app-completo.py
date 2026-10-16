@@ -1762,6 +1762,12 @@ class Percurso:
             return
         self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
 
+    def h_par(self, nome):
+        """O segundo botão do par «ver / aplicar» (P82, item 22): é o aplicar,
+        e o gesto é o de qualquer ação — a caixa, se houver, e o trabalho."""
+        rotulo = nome.split(" · ", 1)[1]
+        self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
+
     # O «EXECUTAR» APAGADO DIZ POR QUÊ, COM OS NOMES DA TELA — 24/09/2026, P50
     #   Achados 32 e 33: «Pôr um gato no dock» com o gato por horário e «Gravar
     #   as áreas» sem área fixada rodavam e não faziam nada. Agora o botão se
@@ -3219,6 +3225,10 @@ class Percurso:
             (r"^ajuste \S+ · seletor$", self.h_seletor_ajuste),
             (r" · ver comando$", self.h_ver_comando),
             (r"^ação «.*» · Executar$", self.h_executar),
+            # [P82, item 22: o par «ver / aplicar» — o «Conferir» é o Executar
+            #   do ver, e o segundo botão é o aplicar, pelo rótulo dele.]
+            (r"^ação «.*» · Conferir$", self.h_executar),
+            (r"^ação «(Ver o que mudaria nos jogos do Heroic|O que a atualização mudaria)» · ", self.h_par),
             (r"^ação «.*» · seletor$", self.h_seletor_acao),
             (r" · Adicionar (tema|logo|imagem|fonte|tema de ícones|ícone)$", self.h_acervo),
             (r"^aba · (Escuro|Vidro escuro|Vidro claro|Claro)$", self.h_fundo),
@@ -3936,7 +3946,8 @@ INVENTARIO = {
         ação «Quais programas estão vestidos» · Executar
         ação «Quais programas estão vestidos» · ver comando
         ação «Ver o que mudaria nos jogos do Heroic» · ?
-        ação «Ver o que mudaria nos jogos do Heroic» · Executar
+        ação «Ver o que mudaria nos jogos do Heroic» · Conferir
+        ação «Ver o que mudaria nos jogos do Heroic» · Pôr os jogos do Heroic no lançador
         ação «Ver o que mudaria nos jogos do Heroic» · ver comando
         jogo da Steam · abrir
         jogo órfão · Tirar da lista
@@ -3994,14 +4005,12 @@ INVENTARIO = {
     """),
     "Atualização": _linhas("""
         aba · ?
-        ação «Atualizar a máquina inteira» · ?
-        ação «Atualizar a máquina inteira» · Executar
-        ação «Atualizar a máquina inteira» · ver comando
         ação «Limpar o que sobrou» · ?
         ação «Limpar o que sobrou» · Executar
         ação «Limpar o que sobrou» · ver comando
         ação «O que a atualização mudaria» · ?
-        ação «O que a atualização mudaria» · Executar
+        ação «O que a atualização mudaria» · Conferir
+        ação «O que a atualização mudaria» · Atualizar a máquina inteira
         ação «O que a atualização mudaria» · ver comando
     """),
 }
@@ -4123,9 +4132,6 @@ REVELADOS = {
         ação «Baixar o tema do Spotify» · ?
         ação «Baixar o tema do Spotify» · Executar
         ação «Baixar o tema do Spotify» · ver comando
-        ação «Pôr os jogos do Heroic no lançador» · ?
-        ação «Pôr os jogos do Heroic no lançador» · Executar
-        ação «Pôr os jogos do Heroic no lançador» · ver comando
         ação «Vestir os programas agora» · ?
         ação «Vestir os programas agora» · Executar
         ação «Vestir os programas agora» · ver comando

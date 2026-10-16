@@ -4822,6 +4822,8 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
         "escreve": False, "sudo": False, "confirma": False,
+        # O par «ver / aplicar» (P82, item 22): ver o `par` do `jogos_heroic`.
+        "par": "sistema_atualizar",
         # "CAIXAS DE RUST" SAIU — 09/09/2026. Era `crates` traduzido ao pé da
         # letra, e a tradução é pior que o original: quem não programa lê
         # "caixas" e procura uma caixa. O que o `cargo` lista são PROGRAMAS
@@ -5521,6 +5523,12 @@ ACOES = {
         "natureza": "conferir",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--conferir"],
         "escreve": False, "sudo": False, "confirma": False,
+        # O PAR «VER / APLICAR» — 15/10/2026, P82 (item 22; decisão 24). O
+        #   ver ficava aberto e o aplicar ia para o «⋯» de ações técnicas: dois
+        #   lugares para uma decisão só. O `par` é a ação que aplica o que este
+        #   mostra; a página desenha os dois num cartão, no molde do «Conferir»
+        #   e do «Arrumar» da Steam, e não desenha o aplicar sozinho.
+        "par": "jogos_heroic_aplicar",
         "ajuda": "Lista atalho a criar e atalho a remover. Não escreve nada.",
     },
     "jogos_heroic_aplicar": {

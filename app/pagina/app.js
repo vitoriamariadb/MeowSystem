@@ -7075,6 +7075,27 @@ function montarAcao(acao) {
     onclick: () => rodar(acao, escolha ? escolha.value : ""),
   });
   rodape.append(executar);
+  /* O PAR «VER / APLICAR» — 15/10/2026, P82 (item 22; decisão 24). A ação que
+   * mostra o que mudaria (`par`, declarado pelo servidor) leva no mesmo cartão
+   * a que aplica, no molde do «Conferir» e do «Arrumar» da Steam: o primeiro
+   * botão passa a ser «Conferir», o segundo é o rótulo do aplicar, com os
+   * selos de risco dele. O aplicar não ganha cartão próprio (ver o `render`). */
+  const par = acao.par && (ESQUEMA.acoes || []).find((a) => a.id === acao.par);
+  if (par) {
+    executar.textContent = "Conferir";
+    executar.className = "btn";
+    if (par.sudo) rodape.append(selo("sudo", { balao: "Pede a senha do sudo" }));
+    else if (par.pela_ponte) rodape.append(selo("ponte", {
+      balao: "Sem senha: o perfil do sudo está registrado" }));
+    if (par.destrutivo) rodape.append(selo("desfaz", { balao: "Desfaz o que foi feito" }));
+    if (par.rede) rodape.append(selo("rede", { balao: "Baixa da internet" }));
+    rodape.append(elemento("button", {
+      type: "button",
+      class: "btn " + (par.destrutivo ? "btn-perigo" : "btn-accent"),
+      texto: par.rotulo,
+      onclick: () => rodar(par, ""),
+    }));
+  }
   /* SEM O QUE ESCOLHER, O «EXECUTAR» NÃO ACENDE — 24/09/2026, sprint P46
    *   Uma ação que recebe argumento (`arg`, o `@ARG@` do comando) e cuja lista
    * veio vazia não tinha seletor, e o «Executar» mandava o argumento vazio: o
@@ -9810,6 +9831,9 @@ function render() {
        * `<select>` com 255 nomes de arquivo seria a pior forma de perguntar
        * "qual foto?" numa página que sabe desenhá-las. */
       if (g.tipo === "acoes" && item.oculta) continue;
+      /* O aplicar de um par mora no cartão do ver dele (P82, item 22). Na
+       * busca ele aparece sozinho: o resultado é o que casou. */
+      if (g.tipo === "acoes" && !busca && (ESQUEMA.acoes || []).some((a) => a.par === item.id)) continue;
       if (g.tipo === "acoes") {
         if (!busca && acaoTecnica(assunto, item)) tecnicos.push(item);
         else grade.append(montarAcao(item));
