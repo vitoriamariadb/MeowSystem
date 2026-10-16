@@ -1632,8 +1632,11 @@ class Percurso:
         anterior = self.preservar
         self.preservar = set(self.js("() => [...MUDANCAS.keys()]") or []) | (anterior or set())
         try:
+            # [P82, item 23: e a AÇÃO que o modo revela — as do gato moram na
+            #   moldura do modo que as usa.]
             for n in sorted(set(self.censo()) - antes):
-                if (n.startswith("ajuste ") and not n.endswith(" · Aplicar")
+                if (((n.startswith("ajuste ") and not n.endswith(" · Aplicar"))
+                     or n.startswith("ação "))
                         and n not in self.acionados and self.acionador(n)):
                     self.acionar(n, limpar=False, esperar=False)
         finally:
@@ -3621,6 +3624,7 @@ INVENTARIO = {
     "Cor e tela": _linhas("""
         aba · ?
         aba · abre «⋯ Ajustes técnicos»
+        aba · abre «⋯ Ações técnicas»
         aba · Claro
         aba · Escuro
         aba · Vidro claro
@@ -3645,17 +3649,9 @@ INVENTARIO = {
         ajuste MODO · opção
         ajuste PACK · ?
         ajuste PACK · opção
-        ação «Passar para claro ou escuro» · ?
-        ação «Passar para claro ou escuro» · Executar
-        ação «Passar para claro ou escuro» · seletor
-        ação «Passar para claro ou escuro» · ver comando
         ação «Temas prontos nesta máquina» · ?
         ação «Temas prontos nesta máquina» · Executar
         ação «Temas prontos nesta máquina» · ver comando
-        ação «Trocar de tema» · ?
-        ação «Trocar de tema» · Executar
-        ação «Trocar de tema» · seletor
-        ação «Trocar de tema» · ver comando
     """),
     "Áreas de trabalho": _linhas("""
         aba · ?
@@ -3708,13 +3704,6 @@ INVENTARIO = {
         ajuste LOGO_MODO · opção
         ajuste LOGO_NOITE · ?
         ajuste LOGO_NOITE · opção
-        ação «Passar ao próximo gato» · ?
-        ação «Passar ao próximo gato» · Executar
-        ação «Passar ao próximo gato» · ver comando
-        ação «Pôr um gato no dock» · ?
-        ação «Pôr um gato no dock» · Executar
-        ação «Pôr um gato no dock» · seletor
-        ação «Pôr um gato no dock» · ver comando
     """),
     # [Integração da leva G, 09/10/2026: o `ajuste ICONES_BASE` saiu daqui. A
     #   P75 aposentou a chave (a base vem do pack, pinada — `migrar_conf.py`,
@@ -4085,7 +4074,18 @@ REVELADOS = {
     """),
     # [P77: os ajustes `[avancado]` moram no «⋯ Ajustes técnicos» do fim do
     # bloco; o `h_details` abre o «⋯» e aciona o que ele revela.]
+    # [P82, item 23 (decisão 25): as duas ações de tema estão no «⋯» de ações
+    #   técnicas de «Cor e tela», e as do gato aparecem dentro da moldura do
+    #   modo que as usa (o fixo e o girando).]
     "Cor e tela": _linhas("""
+        ação «Passar para claro ou escuro» · ?
+        ação «Passar para claro ou escuro» · Executar
+        ação «Passar para claro ou escuro» · seletor
+        ação «Passar para claro ou escuro» · ver comando
+        ação «Trocar de tema» · ?
+        ação «Trocar de tema» · Executar
+        ação «Trocar de tema» · seletor
+        ação «Trocar de tema» · ver comando
         ajuste CURSOR_VERSAO · ?
         ajuste CURSOR_VERSAO · campo
         ajuste WALLPAPER_DRACULA_COMMIT · ?
@@ -4152,6 +4152,13 @@ REVELADOS = {
         ação «Recarregar o painel» · ver comando
     """),
     "Logo do sistema": _linhas("""
+        ação «Passar ao próximo gato» · ?
+        ação «Passar ao próximo gato» · Executar
+        ação «Passar ao próximo gato» · ver comando
+        ação «Pôr um gato no dock» · ?
+        ação «Pôr um gato no dock» · Executar
+        ação «Pôr um gato no dock» · seletor
+        ação «Pôr um gato no dock» · ver comando
         ajuste FASTFETCH_LOGO_BLOCOS · ?
         ajuste FASTFETCH_LOGO_BLOCOS · opção
         ajuste FASTFETCH_LOGO_CELULA · ?

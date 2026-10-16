@@ -9486,10 +9486,16 @@ const DECISOES = [
    * chave que não aparece em `por` fica sempre. A antiga «O gato troca
    * sozinho» (o modo de antes do modo) e o «Recarregar o painel na virada»
    * foram para o «⋯» dos ajustes técnicos (`[avancado]` no arquivo). */
+  /* [AS AÇÕES DO GATO MORAM NA MOLDURA DO MODO QUE AS USA — 15/10/2026, P82
+   *   (item 23; decisão 25). «Pôr um gato no dock» e «Passar ao próximo gato»
+   *   eram cartões soltos, apagados em dois dos três modos. Agora cada uma
+   *   aparece dentro da moldura, no modo em que ela faz alguma coisa: o
+   *   `acoes` diz qual, como o `por` diz as chaves.] */
   { id: "gato-dock", nome: "Gato do dock",
     chaves: ["LOGO_MODO", "LOGO_DIA", "LOGO_NOITE", "LOGO_INTERVALO", "LOGO"],
     modo: { chave: "LOGO_MODO",
-            por: { hora: ["LOGO_DIA", "LOGO_NOITE"], rotacao: ["LOGO_INTERVALO"], fixo: ["LOGO"] } } },
+            por: { hora: ["LOGO_DIA", "LOGO_NOITE"], rotacao: ["LOGO_INTERVALO"], fixo: ["LOGO"] } },
+    acoes: { fixo: ["logo_trocar"], rotacao: ["logo_girar"] } },
   /* O mesmo no terminal: o gato no lugar do logo, o modo, e só o que o modo
    * usa. Em «espelho» o terminal mostra o gato que o dock não está mostrando,
    * e não há o que escolher além do modo. */
@@ -9500,6 +9506,17 @@ const DECISOES = [
             por: { espelho: [], hora: ["FASTFETCH_LOGO_DIA", "FASTFETCH_LOGO_NOITE"],
                    fixo: ["FASTFETCH_LOGO_GATO"] } } },
 ];
+
+/* O modo em vigor de uma decisão com `modo` (P82: o `mostraNoModo` e as ações
+ * da moldura perguntam o mesmo). */
+function modoEmVigor(decisao) {
+  if (!decisao.modo) return "";
+  const modoItem = ESQUEMA.chaves.find((k) => k.chave === decisao.modo.chave);
+  return modoItem ? (valorEmVigor(modoItem) || modoItem.valendo_agora || "") : "";
+}
+/* As ações que moram dentro de uma moldura (o `acoes` das `DECISOES`): fora
+ * da busca, elas não ganham cartão no bloco de ações. */
+const ACOES_EM_MOLDURA = new Set(DECISOES.flatMap((d) => Object.values(d.acoes || {}).flat()));
 
 /* A chave aparece na moldura com o modo em vigor? As que nenhum modo cita
  * aparecem sempre; as citadas, só no modo que as usa. */
@@ -9541,8 +9558,12 @@ const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
                                             "Áreas de trabalho", "Lançadores e jogos",
                                             "Manutenção", "Instalação"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
+/* [P82, 15/10/2026 (item 23; decisão 25): e a ação que o servidor declara
+ *   `tecnica` em qualquer página — as duas de tema de «Cor e tela», que
+ *   repetiam a moldura do tema logo acima delas.] */
 function acaoTecnica(assunto, acao) {
-  return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);
+  return (PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza))
+    || !!acao.tecnica;
 }
 function ajustesTecnicos(assunto, g, itens) {
   /* O TIPO ENTRA NO NOME DO «⋯»: o bloco de ajustes e o de ações de uma
@@ -9834,6 +9855,8 @@ function render() {
       /* O aplicar de um par mora no cartão do ver dele (P82, item 22). Na
        * busca ele aparece sozinho: o resultado é o que casou. */
       if (g.tipo === "acoes" && !busca && (ESQUEMA.acoes || []).some((a) => a.par === item.id)) continue;
+      /* E a que mora na moldura de um modo (P82, item 23). */
+      if (g.tipo === "acoes" && !busca && ACOES_EM_MOLDURA.has(item.id)) continue;
       if (g.tipo === "acoes") {
         if (!busca && acaoTecnica(assunto, item)) tecnicos.push(item);
         else grade.append(montarAcao(item));
@@ -9861,6 +9884,11 @@ function render() {
       for (const chave of d.chaves) {
         const item = g.itens.find((i) => i.chave === chave);
         if (item && mostraNoModo(d, chave)) m.append(montarCartao(item));
+      }
+      /* As ações do modo em vigor, dentro da moldura (P82, item 23). */
+      for (const id of ((d.acoes || {})[modoEmVigor(d)] || [])) {
+        const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
+        if (acao) m.append(montarAcao(acao));
       }
       m.style.setProperty("--cartoes", String(m.childElementCount));
     }

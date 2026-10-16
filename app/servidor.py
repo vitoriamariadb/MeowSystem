@@ -4890,6 +4890,9 @@ ACOES = {
         "grupo": "Cor e tela",
         "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "capturas",
+        # «⋯» de ações técnicas (P82, item 23; decisão 25): a moldura do
+        # tema, logo acima, já é o gesto de trocar.
+        "tecnica": True,
         "escreve": True, "sudo": False, "confirma": False,
         # "POR CÓPIA DE ARQUIVO" era o COMO, e o como não muda nenhuma decisão
         # dela; "captura" saiu pelo motivo da linha de cima. — 09/09/2026
@@ -4900,6 +4903,9 @@ ACOES = {
         "grupo": "Cor e tela",
         "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "modos",
+        # «⋯» de ações técnicas (P82, item 23; decisão 25): a moldura do
+        # tema, logo acima, já é o gesto de trocar.
+        "tecnica": True,
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
                  "pisca a interface.",
