@@ -130,7 +130,7 @@ sha256 `5ec1901f0b1988a7d1188127b5aa76ae25e15acec887dc664f286fb774006dfe`
 | `~/.local/state/spicetify/Backup/xpui.spa` | o spicetify (é o que o `restore` usa) |
 | `~/.local/state/meowsystem/backups/spotify-xpui-fabrica/xpui.spa` | o MeowSystem |
 | `~/Backups/spotify-fabrica-abf9251b/` | ninguém — é justamente o ponto |
-| `/mnt/Apate/backup-spotify-fabrica-abf9251b/` | ninguém, e em **outro disco** |
+| `<outro disco>/backup-spotify-fabrica-abf9251b/` | ninguém, e em **outro disco** |
 
 Os dois últimos levam também o `login.spa`
 (`3aecd287c9fe8bda026e68f861bf3bff98385f6fe1fe2f43963a84c05b3b40e5`), que o

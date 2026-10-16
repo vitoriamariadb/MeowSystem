@@ -15,10 +15,17 @@ sendo o dono (porque só ele tem root, ou porque a chave é do sistema e não da
 Meow **não escreve** — ele confere e diz.
 
 A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
-`/usr/share/*`, `/usr/local/share/*`, `~/.config/zsh` (repo dela, com auto-commit a cada
-10 min) e os atalhos de teclado. O caminho de volta é o `vizinhos.conf`.
+`/usr/share`, `/usr/local/share`, `/usr/bin` e `/usr/lib`, sempre, e os caminhos que o
+`~/.config/meow/vizinhos.conf` declara de outro projeto — nesta máquina, o
+`~/.config/zsh` (repositório de quem usa, com auto-commit a cada 10 min) e os atalhos de
+teclado. Numa máquina sem vizinhos o arquivo não existe, e a lista é só a do sistema.
 
-## O DESEMPATE, DECIDIDO POR ELA EM 09/09/2026
+**Este documento é sobre a máquina de origem.** O Ritual da Aurora é um projeto vizinho
+que só existe nela; o MeowSystem não depende dele e não o lê em execução (P37, P39 e
+P44 tiraram dele tudo o que era tema). Numa máquina sem ele, as linhas da tabela marcadas
+«Aurora» simplesmente não têm dono além do COSMIC, e o resto vale igual.
+
+## O DESEMPATE, DECIDIDO POR QUEM USA EM 09/09/2026
 
 > *"se for algum problema envolvendo algum hook ou o andromeda o meowsystem se
 > sobrepõem."*
@@ -31,7 +38,7 @@ e o que o repositório do Andromeda repõe por conta própria.
 **Por que isto muda alguma coisa.** A frase de cima — *"onde os dois querem mandar
 no mesmo arquivo, o visual é do MeowSystem"* — já dizia quem ganha, mas só sobre
 **aparência**; a tabela abaixo tem quinze linhas em que o dono continua sendo o
-Aurora justamente porque ali a chave é do sistema. A decisão dela **não** apaga
+Aurora justamente porque ali a chave é do sistema. A decisão de quem usa **não** apaga
 essas quinze: elas seguem como estão, porque ninguém as está disputando. O que ela
 resolve é o **empate**, que até hoje se resolvia caso a caso e por conversa — e uma
 regra que mora em conversa é uma regra que se perde na sessão seguinte.
@@ -79,9 +86,9 @@ versionado, e nenhuma linha daquela seção fala de território de vizinho.
 | alpha do `base:` de `background`/`primary`/`secondary` | Meow (`vidro_janela.py`), **só onde não há a chave nativa** | **Meow** — desde 19/09/2026; era da Aurora |
 | detectar painel VIVO que não desenha | Meow (`lib/painel.sh`) | **Meow** — desde 19/09/2026; era da Aurora (`aurora-painel-fantasma.sh`) |
 | `CosmicPanel.{Panel,Dock}/v1/keep_style_on_maximize` | Meow (`vidro.sh`) | **Meow** — a GUI não tem controle para ela |
-| `CosmicPanel.{Panel,Dock}/v1/opacity` | COSMIC (GUI) | **ELA** — desde 17/08/2026, ver abaixo |
-| escala das saídas (`cosmic-randr`, o `outputs.ron`) | COSMIC (GUI) | **ELA** — o `install.sh` aplica `ESCALA_TELA` quando ela pede; o doctor nunca |
-| `CosmicPanel.*/v1/plugins_{wings,center}` | Aurora, À MÃO | **Aurora** — a ordem dos applets é dela; nem o `midia.sh` nem o `leitura_build.sh` encostam, e os dois só AVISAM quando falta a linha |
+| `CosmicPanel.{Panel,Dock}/v1/opacity` | COSMIC (GUI) | **quem usa** — desde 17/08/2026, ver abaixo |
+| escala das saídas (`cosmic-randr`, o `outputs.ron`) | COSMIC (GUI) | **quem usa** — o `install.sh` aplica `ESCALA_TELA` quando pedido; o doctor nunca |
+| `CosmicPanel.*/v1/plugins_{wings,center}` | Aurora, À MÃO | **Aurora** — a ordem dos applets é de quem usa; nem o `midia.sh` nem o `leitura_build.sh` encostam, e os dois só AVISAM quando falta a linha |
 | `CosmicTk/v1/icon_theme` e `~/.local/share/icons/MeowSystem-Icons` | Meow | **Meow** |
 | `/usr/share/icons/hicolor/.../CosmicAppLibrary.svg` | ambos | **Meow** — o Aurora restaura o `.aurora-original` |
 | `~/.config/cosmic/logos/` | ambos | **Meow** — o `gato-pop.svg` do Aurora foi aposentado |
@@ -90,24 +97,24 @@ versionado, e nenhuma linha daquela seção fala de território de vizinho.
 | `~/.local/share/applications/com.github.DiegoMMR.CosmicExtAppletNowPlaying.desktop` | Meow (`midia.sh`) | **Meow** — a "sombra" do applet de mídia, ver abaixo |
 | `~/.local/bin/meow-applet-now-playing` e `~/.local/state/meowsystem/midia/` | Meow (`midia_build.sh`) | **Meow** |
 | `~/.config/cosmic-ext-applet-now-playing/{panel-text-width,panel-color-style,album-art-remote}` | Meow (`midia.sh`) | **Meow** |
-| `~/.config/cosmic-ext-applet-now-playing/album-color-enabled` | ela, pelo popup do applet | **ELA** — o Meow só migrou o valor do sandbox uma vez |
+| `~/.config/cosmic-ext-applet-now-playing/album-color-enabled` | quem usa, pelo popup do applet | **quem usa** — o Meow só migrou o valor do sandbox uma vez |
 | `~/.local/share/applications/com.meowsystem.AppletLeitura.desktop` | Meow (`leitura_build.sh`) | **Meow** — a sombra do applet do modo de leitura; sem applet de fábrica por trás |
 | `~/.local/bin/meow-applet-leitura` e `~/.local/state/meowsystem/leitura/` | Meow (`leitura_build.sh`) | **Meow** |
-| `~/.local/state/cosmic/com.meowsystem.AppletLeitura/v1/ultima_{temperatura,textura}` | o applet | **ELA** — é o ponto ao qual o interruptor volta; nenhum script do Meow o lê |
+| `~/.local/state/cosmic/com.meowsystem.AppletLeitura/v1/ultima_{temperatura,textura}` | o applet | **quem usa** — é o ponto ao qual o interruptor volta; nenhum script do Meow o lê |
 | `/usr/local/share/applications/{google-chrome,steam}.desktop` (wrappers de `Exec=`) | Aurora | **Aurora** — mudou de `~/.local/share` em 13/08/2026, ver abaixo |
 | `~/.local/share/applications/{vim,qt5ct,qt6ct,debian-*xterm}.desktop` | ambos | **Meow** — `NoDisplay` preserva o handler de MIME; o `Hidden=true` do Aurora mata |
 | `/usr/share/applications/*` (`NoDisplay`, nome curto) | Meow (com sudo) | **Meow** — o Aurora não escreve ali |
-| `/usr/local/lib/meowsystem/ponte_root.sh` e `perfil` | Meow (`install.sh`, `etapa_ponte_root`) | **Meow** — root:root; nem ela nem o Meow sem senha conseguem trocá-los, e é isso que os torna confiáveis |
+| `/usr/local/lib/meowsystem/ponte_root.sh` e `perfil` | Meow (`install.sh`, `etapa_ponte_root`) | **Meow** — root:root; nem quem usa nem o Meow sem senha conseguem trocá-los, e é isso que os torna confiáveis |
 | `/etc/sudoers.d/49-meowsystem-ponte` | Meow (`install.sh`) | **Meow** — o diretório é COMPARTILHADO (o Hefesto tem o `49-hefesto-bt-ponte`, a Aurora o `aurora-selfheal`); cada um escreve o SEU arquivo e nunca o do outro, ver abaixo |
 | `/etc/apt/apt.conf.d/99-meow-lancador` | Meow | **Meow** — o segundo hook de apt da máquina, ver abaixo |
 | `/usr/local/sbin/meow-lancador-apt.sh` | Meow | **Meow** — o `sbin` distingue do `/usr/local/bin` do Aurora |
 | `/etc/apt/apt.conf.d/99-ritual-aurora-self-heal` | Aurora | **Aurora** |
 | `~/.config/cosmic/com.system76.CosmicBackground` | Meow (`wallpaper.sh`) | **Meow** |
 | `/var/lib/cosmic-greeter/.config/cosmic` | Meow (`greeter.sh`) | **Meow** |
-| `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts` | Aurora | **Aurora** — é o colar dela |
-| `pinned_workspaces` | Aurora | **Meow desde 07/09/2026** — decisão dela: *"então corrige no zsh e traz a feature pra cá"*. O reparador do Ritual da Aurora fica desarmado pela sentinela `~/.config/cosmic/.aurora-workspaces-off`, que é o opt-out que ele mesmo oferece — o script vizinho não foi editado. Quem escreve é `scripts/areas.sh`; apagar a sentinela devolve o arquivo a ele. Ver abaixo |
-| `CosmicComp/v1/leitura_{temperatura,textura}` | Meow (`leitura.sh`, pelo relógio) **e** o applet da topbar | **Meow escreve o horário, ELA escreve a mão** — desde 30/08/2026, ver abaixo |
-| `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | o applet da topbar (`com.meowsystem.AppletLeitura`) | **ELA** — o Meow LÊ e obedece, e nunca escreve |
+| `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts` | Aurora | **Aurora** — é o colar de quem usa |
+| `pinned_workspaces` | Aurora | **Meow desde 07/09/2026** — decisão de quem usa: *"então corrige no zsh e traz a feature pra cá"*. O reparador do Ritual da Aurora fica desarmado pela sentinela `~/.config/cosmic/.aurora-workspaces-off`, que é o opt-out que ele mesmo oferece — o script vizinho não foi editado. Quem escreve é `scripts/areas.sh`; apagar a sentinela devolve o arquivo a ele. Ver abaixo |
+| `CosmicComp/v1/leitura_{temperatura,textura}` | Meow (`leitura.sh`, pelo relógio) **e** o applet da topbar | **Meow escreve o horário, quem usa escreve a mão** — desde 30/08/2026, ver abaixo |
+| `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | o applet da topbar (`com.meowsystem.AppletLeitura`) | **quem usa** — o Meow LÊ e obedece, e nunca escreve |
 | ~~a luz quente da tela (patch binário de night light)~~ | Aurora (`aurora-night-light.py`) | **APOSENTADA** — a etapa 4 foi feita; o binário de 30/08 não tem o patch binário (medido em 31/08, ver abaixo). Quem esquenta a tela agora é o `leitura_temperatura`, e o dono é o Meow |
 | `~/.config/autostart/` | Aurora | **Aurora** |
 | `gsettings` / `dconf` — `org.gnome.desktop.wm.preferences` (`button-layout`) | Aurora | **Aurora** |
@@ -116,22 +123,22 @@ versionado, e nenhuma linha daquela seção fala de território de vizinho.
 | `/usr/local/bin/*` (wrappers de execução) | Aurora | **Aurora** |
 | ~~`/usr/local/share/zsh/site-functions/_meow`~~ | ~~Aurora~~ | **MUDOU DE LADO** em 24/09/2026 (P44) — era o self-heal do Ritual que a copiava, e fora de uma casa ninguém a instalava. Ver a linha de baixo |
 | `~/.local/share/zsh/site-functions/_meow` | Meow (`install.sh`, `instalar_completion`) | **Meow** — sem root e sem ponte. A linha do `fpath` que faz o zsh procurar ali é do shell de quem usa: o instalador a DIZ, não a escreve |
-| binário `cosmic-comp` (a série de `patches/`) | Meow (`meow compositor`) | **Meow compila e instala desde 24/09/2026 (P39)** — `sudo` só no fim; o que o `apt` põe continua sendo do `apt`. Até a P39 era a Aurora, pelo `aurora-cosmic-comp-ws.sh --build` |
+| binário `cosmic-comp` (a série de `patches/`) | Meow (`garantir_builds.sh`, `compositor_patches.sh`) | **Meow, por PATH, desde 09/10/2026 (P76)** — o build da casa mora em `~/.local/libexec/meow/cosmic-comp/<versão>/`, sem sudo, e o shim `~/.local/bin/cosmic-comp` escolhe a cada sessão entre ele e o de fábrica. O `/usr/bin/cosmic-comp` é do `apt`, e a tela de login usa só ele. Refeito sozinho depois do apt, no login e no doctor (P81). Até a P39 era a Aurora; da P39 à P76, o Meow instalava em `/usr/bin` com `sudo` |
 | ~~`/usr/local/share/aurora/patches.d/` (a `series` e os `.patch`; cópia canônica em `~/.config/zsh/patches/patches.d/`)~~ | ~~Aurora~~ | **MUDOU DE LADO** — desde 22/09/2026 a série é `patches/series`, deste repositório, e os cinco `.patch` moram todos aqui. Ver «O que é tema volta para casa», no fim |
 | `patches/series` (a série: classe, ordem, marcador-base) | Meow | **Meow** — desde 22/09/2026; era da Aurora. É quem sabe APLICAR os patches, e isso é tema |
-| ~~`/var/lib/aurora/cosmic-comp-patches.estado`~~ | ~~Aurora~~ | **MUDOU DE LADO** em 24/09/2026 (P39) — o `.estado` é `/var/lib/meowsystem/cosmic-comp/patches.estado`, gravado pelo `meow compositor` e lido pela linha `patches` do doctor |
+| ~~`/var/lib/aurora/cosmic-comp-patches.estado`~~ | ~~Aurora~~ | **MUDOU DE LADO** em 24/09/2026 (P39) — o `.estado` foi para `/var/lib/meowsystem/cosmic-comp/patches.estado`, e com o shim (P76) cada build guarda o seu, em `~/.local/libexec/meow/cosmic-comp/<versão>/estado`, lido pela linha `patches` do doctor |
 | `patches/*.patch` deste repositório | Meow | **Meow** — é onde o patch nasce e é revisado. Desde 22/09/2026 é também onde ele é APLICADO (`compositor_patches.sh aplicar`), e desde 24/09/2026 (P39) compilar e instalar também: `meow compositor` |
 | ciclo de vida do processo `cosmic-panel` | Aurora | **Meow desde 26/08/2026** — o `systemd/meow-painel.service` é o supervisor; o lado da Aurora segue desarmado. A tabela dizia "Aurora" até 29/08 |
 | tema do qBittorrent | Aurora | **Aurora** — o `meow` chama o script de lá |
 | `~/.config/fastfetch/` (o diretório inteiro) | Meow (`fastfetch_logo.sh`) | **Meow desde 24/09/2026 (P44)** — era symlink para o Spellbook, e cada chave escrita virava commit lá. Virou diretório de verdade, com o mesmo conteúdo e backup; o Spellbook parou de versioná-lo. Até a P44 a linha dizia "Aurora; Meow escreve cirurgicamente o `logo.source`" — ver abaixo |
 | `~/.config/meowsystem/fzf.sh` (as cores do fzf) | Meow (`scripts/fzf.sh`) | **Meow desde 24/09/2026 (P44)** — sai da paleta do pack no ar. A linha que o carrega é do shell de quem usa |
-| binário `cosmic-files` / `cosmic-files-applet` | apt | **Meow, por PATH** — `~/.local/bin/` vence `/usr/bin/`, e o nosso SAI DA FRENTE quando o pacote sobe de versão sem build correspondente |
+| binário `cosmic-files` / `cosmic-files-applet` | apt | **Meow, por PATH** — `~/.local/bin/` vence `/usr/bin/`, e o nosso SAI DA FRENTE quando o pacote sobe de versão sem build correspondente; o build da versão nova é refeito sozinho (P81) |
 
 ---
 
 ## O applet de mídia entra por sombra, e `plugins_wings` continua da Aurora (24/08/2026)
 
-Ela pediu nome da música, controles, capa e cores do álbum na dock. A causa de faltarem
+O pedido foi nome da música, controles, capa e cores do álbum na dock. A causa de faltarem
 capa e cor era **uma linha** do applet Now Playing: `src/media.rs` fazia
 `metadata.art_url().and_then(file_url_to_path)`, que descarta toda URL que não seja
 `file://` — e o Spotify publica `mpris:artUrl` como `https://i.scdn.co/image/…`, nunca um
@@ -155,7 +162,7 @@ applet novo plantando um token na asa. Dois motivos medidos dizem que não:
 2. **É perigoso.** A asa direita da dock tem **DOIS** applets —
    `com.github.DiegoMMR.CosmicExtAppletNowPlaying` **e**
    `com.system76.CosmicAppletStatusArea`. Um script que assumisse "a asa é uma lista de
-   um" apagaria a Status Area dela.
+   um" apagaria a Status Area de quem usa.
 
 ### O buraco que o fail-safe existe para tapar
 
@@ -169,7 +176,7 @@ fazer, e o efeito é ela voltar sozinha ao flatpak que funciona.
 
 ### Onde ele mora, e quem o pôs lá
 
-Em 24/08/2026, **a pedido dela e pela mão dela na decisão**, o applet saiu da asa
+Em 24/08/2026, **a pedido de quem usa, e pela mão de quem usa na decisão**, o applet saiu da asa
 direita da dock e foi para a asa direita da topbar, **imediatamente antes do
 `com.system76.CosmicAppletAudio`** — o applet de Som, que é quem já desenha os
 botões de faixa anterior, pausa e próxima faixa ali. O `plugins_wings` das duas
@@ -213,8 +220,8 @@ como regra geral: **onde a GUI do COSMIC tem um controle, o valor é dela.**
 **A opacidade.** O `vidro.sh` escrevia `CosmicPanel.{Panel,Dock}/v1/opacity` em toda
 passagem, com 0.19 e 0.26. Aquele arquivo é exatamente o que o slider *Ajustes → Área de
 trabalho → Painel → "Opacidade do fundo"* escreve. Com o `meow-doctor.timer` rodando
-`fix_vidro` todo dia, o número que ela escolhia voltava para o nosso sem que nada dissesse
-por quê — e a GUI ainda exibia 19 e 26 como se fossem a escolha dela. Era a terceira
+`fix_vidro` todo dia, o número escolhido na GUI voltava para o nosso sem que nada dissesse
+por quê — e a GUI ainda exibia 19 e 26 como se fossem a escolha de quem usa. Era a terceira
 travessia da mesma fronteira no mesmo arquivo (05/08: unificar em 0.05; 10/08: rederivar
 para 0.19/0.26); as duas primeiras corrigiram o **número**, esta mudou o **dono**.
 
@@ -224,7 +231,7 @@ fechada no mesmo dia, então preencher agora tem efeito de verdade (antes as cha
 lidas por `bin/meow` e morriam lá). O que continua nosso é `keep_style_on_maximize`, que a
 GUI não tem: se ninguém a escrever, ela se perde em silêncio.
 
-**A escala.** Ela pediu "aumentar o tamanho universal das fontes". Não existe chave de
+**A escala.** O pedido foi "aumentar o tamanho universal das fontes". Não existe chave de
 tamanho de fonte no COSMIC — `interface_font` não tem campo de tamanho, `interface_density`
 mexe só em espaçamento, o `default_text_size` da libcosmic é 14.0 constante no código e
 `COSMIC_SCALE` não alcança o painel. Sobra a escala da saída, que é *Ajustes → Telas →
@@ -236,10 +243,10 @@ doctor repetiria, com outro nome, o defeito que a opacidade acabou de custar.
 
 ## O alpha que o Aurora escreve NÃO chega no painel (23/08/2026)
 
-Ela reclamou que "a opacidade da barra não é respeitada". A suspeita óbvia, e a que
+A queixa foi "a opacidade da barra não é respeitada". A suspeita óbvia, e a que
 esta tabela alimentava, era travessia de fronteira: o `aurora-vidro-maximizado.py`
 escreve o alpha do `base:` de `background` (hoje `0x8A`), esse número é quase igual ao
-`alpha_map[extremely_high_2]` do tema dela (0,54), e daí para "o Aurora está atropelando
+`alpha_map[extremely_high_2]` do tema em uso (0,54), e daí para "o Aurora está atropelando
 o slider" é um pulo. **A medição derrubou isso**, e vale registrar para ninguém refazer
 o caminho.
 
@@ -261,24 +268,24 @@ pub fn bg_color(&self, mut alpha: f32, opaque: bool) -> [f32; 4] {
 
 O `0x8A` que o Aurora grava governa **janela**, não barra. O 0,54 que aparece na conta do
 painel vem do `alpha_map[frosted]`, que é outro caminho — a coincidência dos dois números
-existe porque os dois descendem do mesmo `frosted` que ela escolheu, não porque um alimente
+existe porque os dois descendem do mesmo `frosted` que quem usa escolheu, não porque um alimente
 o outro.
 
 **E o Aurora não impõe número nenhum.** Ele copia o alpha de `transparent_X.base` para
-`X.base` — propaga a escolha dela em "Espessura do efeito fosco"/"Opacidade do vidro" em
+`X.base` — propaga a escolha de quem usa em "Espessura do efeito fosco"/"Opacidade do vidro" em
 vez de fixar um valor. O `aurora-vidro-maximizado.path` está `active`/`enabled` e reaplica
-assim que o tema muda, mas o que ele reaplica é o que ela mesma escolheu. **Nada a mudar
+assim que o tema muda, mas o que ele reaplica é o que quem usa escolheu. **Nada a mudar
 do lado do Aurora**, e a linha da tabela continua dele.
 
-**O que realmente apaga o controle dela é nosso.** Medido no pixel: com
+**O que realmente apaga o controle de quem usa é nosso.** Medido no pixel: com
 `keep_style_on_maximize = false` e uma janela maximizada, `opacity` é ignorada —
 `0.19` e `0.95` desenharam capturas pixel-idênticas, a barra chapada em `#313244`.
 O upstream faz `let effective_maximized = maximized && !config.keep_style_on_maximize;`
 e, quando ele vale, `config.maximize()` força `self.opacity = 1.0`. Ou seja: a chave que
 esta tabela já dava ao Meow ("a GUI não tem controle para ela") é a **pré-condição** para
-o slider dela funcionar. Perder essa chave em silêncio não estraga só o vidro ao
+o slider da GUI funcionar. Perder essa chave em silêncio não estraga só o vidro ao
 maximizar — mata a "Opacidade do fundo" inteira. O `vidro.sh` passou a avisar; ele
-continua sem escrever `opacity`, que segue sendo dela.
+continua sem escrever `opacity`, que segue sendo de quem usa.
 
 Detalhe das três medições, com os números: cabeçalho do `scripts/vidro.sh`, bloco de
 23/08/2026.
@@ -295,19 +302,22 @@ há sobreposição de alvo.
 **Por que o segundo precisou existir.** O `ocultar_apps.sh` marca `NoDisplay=true` em
 `.desktop` que vieram do apt, e um `apt upgrade` do pacote devolve o original. Está
 medido: o `google-chrome-stable` atualizou em **10/08/2026 19:27**, devolveu o
-`google-chrome.desktop` sem a chave, e ela achou dois Chrome no lançador em **14/08**.
+`google-chrome.desktop` sem a chave, e apareceram dois Chrome no lançador em **14/08**.
 Quatro dias com a duplicata de volta e nada na máquina para reaplicar.
 
 **Por que não pelo `meow doctor`.** `ocultar` está em `SEM_CONSERTO` porque o conserto
 usa sudo e o doctor nunca usa — um prompt de senha às 5h penduraria o
 `meow-doctor.service` num terminal que ninguém está olhando. Essa decisão não mudou.
+[Desde 08/09/2026, com a ponte root (ver «A ponte root», abaixo), o doctor conserta o
+`ocultar` pela ponte, sem senha: ele só volta ao `SEM_CONSERTO` numa máquina em que a
+ponte não está de pé.]
 O que faltava era um gatilho que **já fosse root**, e o apt é exatamente isso: ele é ao
 mesmo tempo a causa do estrago e um contexto privilegiado.
 
 **Por que isso não contraria o "nenhum hook de apt" do `meow-doctor.service`.** Aquele
 cabeçalho recusa pendurar um segundo **reparador completo** no evento do Aurora — dois
 programas mexendo em tema e ícone ao mesmo tempo, com dois avisos que podem se
-contradizer na tela dela. O `99-meow-lancador` não é reparador: chama um script, cobre um
+contradizer na tela de quem usa. O `99-meow-lancador` não é reparador: chama um script, cobre um
 diretório (`/usr/share/applications`, que esta tabela já dá ao Meow), não toca em tema,
 não toca em ícone, não reinicia o `cosmic-panel` e não notifica nada. O cabeçalho da
 unidade foi emendado para dizer isso em vez de ficar contradizendo o repositório.
@@ -348,7 +358,7 @@ arquivo de `/usr/share`.
 
 Um arquivo só, em `/usr/local/share/applications`: vence o do apt, sobrevive ao update do
 Chrome e não encosta em `/usr/share` — que continua sendo do Meow. O Aurora recolhe a
-cópia antiga do home, com guarda por `cmp` para não apagar edição dela.
+cópia antiga do home, com guarda por `cmp` para não apagar edição feita à mão.
 
 **O que isso muda para o `ocultar_apps.sh`:** nada no mecanismo. Ele segue marcando
 `NoDisplay=true` no arquivo de `/usr/share`, que segue sendo a única coisa que esconde
@@ -387,7 +397,7 @@ com carência de 600 s e aviso uma vez por boot, e serve para diagnosticar sem m
 AURORA_DRY_RUN=1 aurora-painel-fantasma.sh
 ```
 
-Ligar de volta é decisão dela: `systemctl --user enable --now aurora-painel-fantasma.timer`.
+Ligar de volta é decisão de quem usa: `systemctl --user enable --now aurora-painel-fantasma.timer`.
 
 ---
 
@@ -395,8 +405,8 @@ Ligar de volta é decisão dela: `systemctl --user enable --now aurora-painel-fa
 
 O Aurora **confere** o visual uma vez por ciclo e nunca conserta: ele roda `meow doctor`
 (que é read-only) e imprime **uma linha** de resumo. O `--consertar` fica de fora de
-propósito — ele pede sudo em algumas etapas e decide sobre o gosto dela, o que não cabe a
-um self-heal que roda de hora em hora. Uma divergência que ela mesma escolheu (trocar o
+propósito — ele pede sudo em algumas etapas e decide sobre o gosto de quem usa, o que não cabe a
+um self-heal que roda de hora em hora. Uma divergência que quem usa escolheu (trocar o
 papel de parede pela GUI) não pode virar 24 parágrafos por dia no log.
 
 Do lado do Meow, a fronteira está em `lib/comum.sh` (TRAVA 1) e no
@@ -416,7 +426,7 @@ chave inteira. Antes de escrever, foi medido — e a resposta é limpa nos dois
 sentidos.
 
 **A Aurora não escreve `cursor-theme`.** Todo `gsettings set` vivo do
-repositório dela mira `org.gnome.desktop.wm.preferences`:
+repositório do Ritual mira `org.gnome.desktop.wm.preferences`:
 
 ```
 grep -rn 'gsettings set' ~/.config/zsh/scripts/
@@ -424,7 +434,7 @@ grep -rn 'gsettings set' ~/.config/zsh/scripts/
   ritual-aurora-self-heal.sh:1833   ...wm.preferences button-layout
 ```
 
-A única menção a `cursor-theme` no repositório dela está em
+A única menção a `cursor-theme` no repositório do Ritual está em
 `functions/restaurar.zsh:587`, dentro do comando **manual**
 `sistema_restaurar <manifesto.json>` — sem timer, sem self-heal, e sem
 manifesto no disco (`~/.config/andromeda/manifesto/` não existe). Mesmo rodado
@@ -449,7 +459,7 @@ grep -rl cursor-theme /usr/bin/                       ->  nenhum arquivo
 O compositor **não lê o gsettings para cursor**. Ele usa a crate `xcursor` com
 `XCURSOR_THEME`, que está **vazia** no `/proc/<pid>/environ` do processo vivo —
 e então cai no tema `default`, que em `/usr/share/icons/default/index.theme`
-declara `Inherits=Adwaita`. **O cursor do desktop dela era Adwaita, corpo
+declara `Inherits=Adwaita`. **O ponteiro do desktop era Adwaita, corpo
 `#000000`**, enquanto o `Pop` que o `gsettings get` devolvia governava só as
 janelas GTK.
 
@@ -481,7 +491,7 @@ uma fronteira sem contrato. Um patch que existe de um lado e não está declarad
 do outro é um patch que **não acontece**, e falha calado.
 
 **O contrato, e é o mínimo que serve.** A Aurora grava
-`/var/lib/aurora/cosmic-comp-patches.estado` (644, dono root, **legível por ela
+`/var/lib/aurora/cosmic-comp-patches.estado` (644, dono root, **legível pela conta de quem usa
 sem sudo**) toda vez que alguém escreve `/usr/bin/cosmic-comp`, com uma linha por
 patch: `<req|opt> <marcador> <arquivo.patch> <presente|ausente>`. A série vive em
 `/usr/local/share/aurora/patches.d/series`, com `<classe> <arquivo.patch>
@@ -499,11 +509,21 @@ causa dele seria cobrar 4 minutos de `cargo` por um logout.
 
 **E ele não conserta nada, de propósito.** `patches` está em `SEM_CONSERTO`: o
 conserto é recompilar o `cosmic-comp` (~4 min, `sudo install` em `/usr/bin`), e o
-doctor nunca usa sudo, nunca baixa e nunca compila. O comando era dela:
+doctor nunca usa sudo, nunca baixa e nunca compila. O comando era de quem usa:
 `aurora-cosmic-comp-ws.sh --build`. Desde 24/09/2026 (P39) o build é daqui, e o
 comando que a linha `patches` manda rodar é `meow compositor`. Um build de 4 minutos disparado pelo timer
 das 05:00 seria pior que o defeito que ele corrige — é a mesma decisão que já
 tinha posto `cursor` (baixa da rede), `midiabin` e `leiturabin` (compilam) nessa lista.
+
+[**Isto mudou de lado entre 09 e 16/10/2026.** «O doctor não tem que avisar nada. Tem
+que corrigir» (pedido de 09/10). Com o build no escopo de quem usa (P76: sem `sudo`, num
+diretório por versão, com o shim escolhendo a cada sessão), compilar deixou de ser
+perigoso para a tela de login, e `patches`, `midiabin` e `leiturabin` saíram do
+`SEM_CONSERTO` (P75, P76). O `--consertar` chama a mesma função que roda depois do apt
+e no login, o `scripts/garantir_builds.sh`, em segundo plano e com prioridade mínima, e a
+linha diz «construindo» até o build ficar pronto (P81). Ver o `docs/MANUTENCAO.md`.
+Hoje ficam sem conserto só `ponte`, `convertidos` e `heroictema`, e, numa máquina sem a
+ponte, os que precisam dela.]
 
 **A lacuna que fica escrita para não ser esquecida.** O patch de night light do
 `aurora-night-light.py` é patch **binário**: ele reescreve o bloco
@@ -518,7 +538,7 @@ com outro critério; fingir que este o cobre seria pior que a lacuna.
 ## As chaves `leitura_*` têm dois escritores, e isso é o desenho (30/08/2026)
 
 Três linhas novas na tabela, e elas descrevem a primeira fronteira deste projeto que
-**não é entre o Meow e a Aurora** — é entre o Meow e **ela**, dentro do mesmo diretório
+**não é entre o Meow e a Aurora** — é entre o Meow e **quem usa**, dentro do mesmo diretório
 de configuração.
 
 **As cinco chaves, e quem toca em cada uma.** Em
@@ -534,21 +554,21 @@ de configuração.
 
 **Por que os dois primeiros podem ter dois escritores sem virar briga.** Porque as três
 últimas existem. O applet da topbar tem um interruptor `Agendar`; enquanto ele estiver
-ligado, o relógio manda e os sliders seguem o disco. Quando ela o desliga, o
+ligado, o relógio manda e os sliders seguem o disco. Quando quem usa o desliga, o
 `leitura.sh` **para de escrever inteiramente** — não escreve nem `0` — e devolve 4, que o
-`meow doctor` pinta `--` ("escolha dela"). É a mesma forma da `WALLPAPER_FONTES_DELA`:
-uma lista DITA pela qual a escolha dela é respeitada para sempre, em vez de um
+`meow doctor` pinta `--` ("escolha de quem usa"). É a mesma forma da `WALLPAPER_FONTES_PERMITIDAS`:
+uma lista DITA pela qual a escolha de quem usa é respeitada para sempre, em vez de um
 auto-reparo que a desfaz de minuto em minuto.
 
 **O horário mudou de dono na noite de 29/08, e a etapa 2 foi escrita depois disso.** O
-plano original punha `LEITURA_HORARIO_INICIO`/`_FIM` no `meow.conf`; a decisão dela
+plano original punha `LEITURA_HORARIO_INICIO`/`_FIM` no `meow.conf`; a decisão de quem usa
 ("determinar a faixa horária eu mesma, pela interface") moveu a hora para o
 `cosmic-config`. As duas chaves do `meow.conf` continuam existindo como **padrão
 declarado** para enquanto o applet não tiver gravado hora nenhuma — e o `meow leitura
 estado` diz qual das duas fontes está mandando, sempre, em vez de deixar isso implícito.
 
 **O applet existe desde 30/08/2026, e ele NÃO cria as chaves ao ser instalado.** Ele lê o
-disco no arranque e só escreve o que ela mexe. Então "applet ausente" e "applet instalado
+disco no arranque e só escreve o que quem usa mexe. Então "applet ausente" e "applet instalado
 e nunca tocado" são o mesmo estado para o `leitura.sh`, e nos dois vale o padrão do
 `meow.conf` — o que também quer dizer que instalar o applet **não muda nada** por si só.
 
@@ -563,7 +583,7 @@ esquentava a tela às 19:00, calado. Agora **cada ponta é resolvida sozinha** �
 applet quando existe e é legível, padrão do `meow.conf` quando não —, o `LEITURA_FONTE`
 tem três valores (`applet`, `padrao`, `misto`) em vez de dois, e o `meow leitura estado`
 diz **qual ponta veio de onde**. A janela resolvida passa a ser exatamente a que o applet
-desenha na tela dela.
+desenha na tela de quem usa.
 
 **Dois controles saíram do popup em 31/08/2026, e os dois por motivo medido.** O botão
 **"Restaurar padrões"** foi removido: o braço dele era, linha por linha, o `else` do
@@ -599,7 +619,7 @@ um `install.sh` ou de um timer, seria a fábrica do painel fantasma. Continua fo
 script, agora por um motivo medido em vez de um motivo suposto.
 
 **A luz quente da Aurora foi aposentada, e a medição é de 31/08/2026.** Este parágrafo
-dizia que quem esquentava a tela dela era um patch **binário** no shader do `cosmic-comp`,
+dizia que quem esquentava a tela era um patch **binário** no shader do `cosmic-comp`,
 e que aposentá-lo era a etapa 4 do plano. A etapa foi feita. Medido:
 
 ```
@@ -623,7 +643,7 @@ com esta seção.
 do **disco** (`grep AURORA-READING-MODE /usr/bin/cosmic-comp`) do binário da **sessão
 viva** (`/proc/<pid>/exe`). São coisas diferentes, e a diferença é a explicação inteira de
 "escrevi a chave e não aconteceu nada": um `--build` já feito e um logout ainda não dado.
-**Desde 30/08/2026 as duas respostas são "sim"** — medido em 31/08, com a sessão dela de
+**Desde 30/08/2026 as duas respostas são "sim"** — medido em 31/08, com a sessão de quem usa de
 pé, `1` nos dois `grep -c`. Escrever a chave deixou de ser inofensivo-e-inerte e passou a
 valer na tela na hora. O dia em que um `apt upgrade` trocar o compositor as respostas
 voltam a divergir, e é para esse dia que as duas linhas existem.
@@ -647,11 +667,11 @@ recusa acontece **depois** do `readlink -m`, então o symlink não a contorna.
 
 **Até 31/08/2026** o `scripts/fastfetch_logo.sh` só LIA aquele arquivo: gerava o
 `.ansi` em território nosso, conferia se o `logo.source` apontava para ele, e
-saía **4** imprimindo o patch para ela colar à mão.
+saía **4** imprimindo o patch para quem usa colar à mão.
 
 **Mudou em 01/09/2026**, e por três razões, nesta ordem:
 
-1. Ela pediu que tudo fosse *"idempotente e autoajustável de forma que sobreviva
+1. O pedido foi que tudo fosse *"idempotente e autoajustável de forma que sobreviva
    sempre"* — e depois, explicitamente: *"pode alterar tudo a nível de sistema,
    incluindo no aurora"*.
 2. O gato do fastfetch passou a seguir o relógio. Sem a troca da linha, o
@@ -666,7 +686,7 @@ saía **4** imprimindo o patch para ela colar à mão.
 1. **Uma linha, nunca o arquivo.** A escrita é cirúrgica — troca `logo.source`
    (e `logo.type`, se estiver errado) e mais nada. Não reserializa o JSON: um
    `json.dump` mataria os comentários (é JSONC), a ordem das chaves e a
-   indentação dela, e o arquivo vive num repositório com auto-commit a cada
+   indentação de quem usa, e o arquivo vive num repositório com auto-commit a cada
    10 min — o diff seria o arquivo inteiro reescrito por causa de um enfeite.
    O `_ffl_ler_conf` conta os módulos com `key` própria (os 19 em português)
    justamente para acusar o dia em que alguém colar por cima do arquivo todo.
@@ -692,7 +712,7 @@ A tabela dava o `pinned_workspaces` ao Ritual da Aurora, e por uma razão boa: o
 uma renomeação feita daqui voltava atrás sozinha em até uma hora — **depois** de
 ter funcionado por um login, que é o pior sintoma que um ajuste pode ter.
 
-Ela pediu a seção no painel ("não temos a seção pra setar os dois ambientes de
+O pedido foi a seção no painel ("não temos a seção pra setar os dois ambientes de
 trabalho tipo o Meow e o OS"), eu mostrei o custo de respeitar a fronteira — a
 seção existiria só para olhar — e a decisão foi mover a fronteira.
 
@@ -723,7 +743,7 @@ mesmo defeito, com o vizinho de dentro de casa.
 
 ## A ponte root, e por que ela não é `NOPASSWD: ALL` (08/09/2026)
 
-Pedido dela: *"não conseguimos de alguma forma usar sudo só na instalar e criar um
+Pedido de quem usa: *"não conseguimos de alguma forma usar sudo só na instalar e criar um
 perfil naquele conf.d ... aquele que só preciso uma vez e fica lá registrado pra
 sempre?"* O incômodo era medível: `meow doctor --consertar` recusava **três** itens com
 a mesma frase — "o conserto usa sudo, e o doctor não usa" — e os botões de senha do
@@ -755,20 +775,32 @@ sudo -n .../ponte_root.sh rm          -> "uma senha é necessária"   (verbo for
 sudo -n .../ponte_root.sh desktop x   -> "uma senha é necessária"   (a regra não tem curinga)
 ```
 
-### Os oito verbos, e o que cada um alcança
+### Os onze verbos, e o que cada um alcança
 
 `desktop` e `desktop-banco` (marcar `.desktop` em `/usr/share/applications`, e só os que
 **já existem** — ela edita, não cria) · `greeter-ver` e `greeter-aplicar` (a tela de
-login) · `apt-hook-instalar` e `apt-hook-remover` · `atualizar` e `limpar` (`full-upgrade`
-dos repositórios **já configurados**; a ponte não acrescenta fonte, não instala pacote por
-nome e não roda `.deb`).
+login) · `apt-hook-instalar` e `apt-hook-remover` · `completion-instalar` e
+`completion-remover` (a completion do `meow` para o zsh, lida uma vez para um temporário
+e conferida antes de instalar) · `atualizar` e `limpar` (`full-upgrade` dos repositórios
+**já configurados**; a ponte não acrescenta fonte e não roda `.deb`) · `pacotes` (desde
+09/10/2026, P75: instala os pacotes de que o projeto depende, pelo nome que entra por
+stdin, e só os da lista **literal** que mora dentro da ponte instalada — `librsvg2-bin`,
+`imagemagick`, `libgtk-3-bin`, `python3`, `git`, `btop`, `bat`, `papirus-icon-theme`,
+`python3-numpy`, `curl`, `xz-utils`, `unzip` e `pop-fonts`; um nome fora dela derruba o
+verbo inteiro antes de qualquer `apt`). A regra do sudo libera ainda o `estado`, que só lê.
+
+Até 09/10/2026 eram oito; a P75 e a P82 trouxeram o `pacotes` e os quatro pacotes que o
+`instalar_fontes.sh` pedia sem ter a quem pedir. O `tests/doctor-veredito.sh` cobra que a
+lista da ponte e a do `etapa_pacotes` do `install.sh` sejam a mesma.
 
 Cada uso privilegiado vai para o journal (`journalctl -t meowsystem-ponte`).
 
 ### O que ela custa, dito sem enfeite
 
-Quem puder rodar comando como a dona da máquina passa a poder, **sem senha**, fazer essas
-quatro coisas. É muito menos que root, por uma margem larga, e não é nada. `PONTE_ROOT="nao"`
+Quem puder rodar comando com a conta de quem usa a máquina passa a poder, **sem senha**,
+fazer essas coisas: marcar `.desktop` que já existem, vestir a tela de login, pôr ou tirar
+o hook do apt e a completion, atualizar pelos repositórios já configurados e instalar um
+dos treze pacotes da lista. É muito menos que root, por uma margem larga, e não é nada. `PONTE_ROOT="nao"`
 no `meow.conf` faz a etapa **remover** a ponte e a regra na passagem seguinte — testado
 nos dois sentidos em 08/09/2026, e o sudo volta a ser pedido no terminal.
 
@@ -867,12 +899,12 @@ Esta seção não separa o Meow da Aurora. Separa **o que este projeto conserta*
 do **que ele apenas relata** — e existe porque a linha entre os dois estava
 sendo cruzada para o lado errado, calada, em seis lugares.
 
-Ele, em 21/09/2026: *"nenhuma feature do MeowSystem pode ter esse tipo de
+Quem usa, em 21/09/2026: *"nenhuma feature do MeowSystem pode ter esse tipo de
 problema, temos que corrigir essa falha de produto na origem."*
 
 ### O que foi medido
 
-Seis mensagens, colhidas no log da própria máquina dele. Todas com a mesma
+Seis mensagens, colhidas no log da máquina de origem. Todas com a mesma
 forma: **diagnóstico certo, conserto conhecido, nenhum botão.**
 
 | onde | o que dizia |
@@ -906,15 +938,15 @@ As três saídas, e o projeto usa as três hoje:
 | saída | quando | onde ela está |
 |---|---|---|
 | **faz** | o conserto é inteiramente nosso e não tem escolha dentro | `fastfetch_logo.sh` apara a altura à proporção da célula e diz o que aparou |
-| **botão** | o conserto é nosso, mas a hora é dela | `areas.sh alfinetar-primeira`, `prompt.sh instalar-starship`, o tema do Spotify (`_spot_tema_baixar`) e a reconstrução do menu de contexto — pendência com comando, e um «Resolver» na Home |
-| **a decisão** | não há conserto que este projeto alcance | o BINÁRIO do `spicetify` (o instalador oficial mexe na configuração do terminal dela) e o `qBittorrent.conf` (o app é configurado por outro projeto, com lista de temas fechada) — pendência **sem** comando, e a Home desenha a linha sem botão |
+| **botão** | o conserto é nosso, mas a hora é de quem usa | `areas.sh alfinetar-primeira`, `prompt.sh instalar-starship`, o tema do Spotify (`_spot_tema_baixar`) e a reconstrução do menu de contexto — pendência com comando, e um «Resolver» na Home |
+| **a decisão** | não há conserto que este projeto alcance | o BINÁRIO do `spicetify` (o instalador oficial mexe na configuração do terminal de quem usa) e o `qBittorrent.conf` (o app é configurado por outro projeto, com lista de temas fechada) — pendência **sem** comando, e a Home desenha a linha sem botão |
 
 **BAIXAR DE REPOSITÓRIO PÚBLICO É "FAZER", NÃO "DEPENDER" — 22/09/2026.** A
 diferença entre o tema do Spotify (botão) e o binário do spicetify (decisão) não
 é o tamanho: é de quem é o arquivo. O tema é um repositório público que qualquer
 clone deste projeto alcança, pinado por commit, baixado por uma função daqui —
 a mesma disciplina do `scripts/cursor.sh`. O binário só se instala rodando o
-instalador de terceiro, que escreve no `~/.config/zsh` dela.
+instalador de terceiro, que escreve no `~/.config/zsh` de quem usa.
 
 **O ESTADO PODE MUDAR O BOTÃO DA MESMA PENDÊNCIA.** O `files-menu-build` nasce
 `construindo` (sem comando: não há o que clicar enquanto a unit compila), vira
@@ -973,7 +1005,7 @@ número apodrece no primeiro rebase.
 ## O que é tema volta para casa — 22/09/2026
 
 > *"O Spellbook é do meu PC, exclusivo para ele. Tudo que for relacionado a tema
-> é para ser do MeowSystem, tá bom? Temos que trazer tudo para cá."* — ela,
+> é para ser do MeowSystem, tá bom? Temos que trazer tudo para cá."* — quem usa,
 > 21/09/2026
 
 Esta é a frase que encerra a pergunta que a P28 deixou aberta. **Não há upstream
@@ -1008,7 +1040,7 @@ Quatro dos cinco `.patch` viviam nas duas árvores. Conferido por `md5sum` em
 22/09/2026: **byte a byte iguais, os quatro**. Não havia duas verdades — havia
 uma verdade em dois lugares, que é pior, porque ninguém sabe qual editar.
 
-O quinto, `cosmic-comp-sem-workspace-vazio.patch`, vivia só do lado dela. Era
+O quinto, `cosmic-comp-sem-workspace-vazio.patch`, vivia só do lado do Ritual. Era
 o `req` da série. **O MeowSystem tinha quatro dos cinco desenhos e não tinha a
 planta** — e é exatamente por isso que o `compositor_patches.sh` só conferia e
 nunca consertava.
@@ -1030,7 +1062,7 @@ nesta máquina nem neste repositório**. O doctor mandava, todo dia, rodar um
 comando inexistente.
 
 **O bloco sai inteiro em vez de virar "compara se existir"**, e isso é decisão:
-enquanto o código souber olhar para a árvore dela, alguém volta a sincronizar as
+enquanto o código souber olhar para a árvore do Ritual, alguém volta a sincronizar as
 duas cópias, e as duas verdades renascem.
 
 ### O que ele passou a fazer, e onde a linha cai
@@ -1098,7 +1130,7 @@ já aplicado, congela o tema do Meow como se fosse o "vanilla" de fábrica, e a�
 E o nosso instalador **não é o `curl | sh` oficial**: baixa o tarball do release
 pinado por versão e não escreve em arquivo de shell nenhum. Os dois motivos que
 a P2 usou para recusar o botão caíram junto — o oficial honra `ZDOTDIR` e
-escreveria no `~/.config/zsh/.zshrc` dela, e pergunta pelo Marketplace lendo de
+escreveria no `~/.config/zsh/.zshrc` de quem usa, e pergunta pelo Marketplace lendo de
 `/dev/tty`, instalando-o sem ninguém ter pedido quando não há terminal.
 
 ### A regra fica escrita, e o teste a cobra
@@ -1120,12 +1152,12 @@ consertada, passa.
 Três itens do plano ficaram de fora, e nenhum por esquecimento:
 
 1. **As quatro cópias não saíram do Spellbook.** Apagá-las é escrever em
-   `~/.config/zsh`, que é o repositório dela — com auto-commit a cada 10 minutos
+   `~/.config/zsh`, que é o repositório de quem usa — com auto-commit a cada 10 minutos
    e a TRAVA 1 do `lib/comum.sh` recusando escrita ali. O mesmo vale para a
-   linha no `README` de lá e para o `fastfetch/config.jsonc` dela virar um
+   linha no `README` de lá e para o `fastfetch/config.jsonc` de quem usa virar um
    `include`. **Este repositório não escreve no do vizinho**, que é a própria
    regra que a sprint veio reforçar. Fazê-lo agora contradiria o item 7 no
-   mesmo commit que o cria. Quem tiver a árvore dela aberta: sobra apagar
+   mesmo commit que o cria. Quem tiver a árvore do Ritual aberta: sobra apagar
    `~/.config/zsh/patches/patches.d/` inteiro, que agora é cópia morta.
 2. **`rebuild_dracula_theme()` não virou `meow pack construir dracula`.** O
    verbo existe e escreve só dentro do pack — mas aquela função não constrói o
