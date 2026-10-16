@@ -1602,7 +1602,10 @@ etapa_ponte_root() {
       sudo -v || { meow_aviso "sem sudo — a ponte fica de fora, e o resto vai"; return "$MEOW_SEM_DEPENDENCIA"; }
     else
       meow_aviso "sem terminal para pedir a senha — a ponte fica de fora"
-      meow_info "  rode uma vez no terminal:  ./install.sh   (ou  meow ativar)"
+      # [16/10/2026, QA final da leva H: era «rode uma vez no terminal:
+      #  ./install.sh», visto no painel ao trocar de pack. Diz o estado; a
+      #  pendência `instalar-com-root` do rodapé leva ao «Instalar tudo».]
+      meow_info "  ela entra na próxima instalação que puder pedir a senha"
       return "$MEOW_SEM_DEPENDENCIA"
     fi
   fi
@@ -1690,7 +1693,7 @@ etapa_lancador_apt() {
       #   etapa. Medido em 24/08/2026; nasceu com o hook, em 14/08.
       if [ -f "$hook" ] || [ -f "$wrapper" ]; then
         meow_aviso "sem sudo para remover $hook — ele continua ativo"
-        meow_info "  rode com sudo disponível, ou ponha LANCADOR_SISTEMA=\"sim\""
+        meow_info "  ele sai na próxima passada que tiver sudo ou a ponte root"
         return "$MEOW_SEM_DEPENDENCIA"
       fi
       meow_muda "LANCADOR_SISTEMA=\"${LANCADOR_SISTEMA:-}\" — hook de apt removido"
@@ -1744,7 +1747,9 @@ etapa_lancador_apt() {
 
   if [ ! -w /etc/apt/apt.conf.d ] && ! sudo -n true 2>/dev/null; then
     meow_aviso "sem sudo para instalar o hook de apt do lançador"
-    meow_info "  rode 'meow ativar' com sudo disponível — ou ligue PONTE_ROOT=\"sim\""
+    # [16/10/2026, QA final da leva H: era «rode 'meow ativar' com sudo
+    #  disponível», visto no painel ao trocar de pack. Diz o estado.]
+    meow_info "  ele entra na próxima passada que tiver sudo ou a ponte root"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
