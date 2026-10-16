@@ -1814,7 +1814,7 @@ class Percurso:
       const antes = ref ? (ESQUEMA.acoes.find((x) => x.id === ref) || {}).rotulo : null;
       return { antes, chave: m.chave ? nomeVisivel(m.chave) : null,
                vale: m.vale ? rotuloDeValor(m.vale) : null,
-               pede: m.pede ? rotuloDeValor(m.pede) : null };
+               pede: m.pede ? rotuloDeValor(m.pede) : null, porque: m.porque || null };
     }
     """
 
@@ -1832,6 +1832,12 @@ class Percurso:
             return
         texto = " ".join(frase)
         nomes = [n for n in (motivo["antes"], motivo["chave"], motivo["vale"], motivo["pede"]) if n]
+        # [P82, item 2: o motivo que não aponta outro cartão (o starship já
+        #   instalado) vem como `porque`, e é ele que o cartão tem de dizer.]
+        if not nomes and motivo.get("porque"):
+            self.checa(motivo["porque"].lower() in texto.lower(),
+                       f"«{rotulo}» apagado diz por quê: {texto[:160]!r}")
+            return
         self.checa(nomes and all(f"«{n}»" in texto for n in nomes),
                    f"«{rotulo}» apagado diz por quê com os nomes da tela {nomes}: {texto[:160]!r}")
         self.esperar_status(409, "/api/rodar")
