@@ -950,6 +950,57 @@ estão em `docs/sprints/2026-10-15-fechamento/P84-png-para-vetor.md`.
 | `icones/apps/citrix.svg` | vetor de 12/09/2026 do Citrix, commit `8b37812`, `assets/icones/resgatados/Ubuntu-selfservice.svg`, trocado em 15/09 (`5aee691`); vence a régua do BRIEFING (RMSE 0,030 contra o PNG feito à mão, contra 0,041 da P84): é o desenho que os 11 nomes do Citrix vestem (decisão 16, itens 3 e 6); fonte: git |  | GPL-3.0 | 2026-10-16 | `010b2cf823d454f2d0fea3c3e874550abe1f9f105e363ad0d07fb9555debe862` |
 | `icones/biblioteca/obsidian-papirus.svg` | tema Papirus do sistema, `/usr/share/icons/Papirus/32x32/apps/md.obsidian.Obsidian.svg`, lido por uma sessão em 16/09/2026; fonte: transcrição; classe c (terceiro com licença conhecida) |  | GPL-3.0 (Papirus Development Team); a marca é do Obsidian | 2026-10-16 | `288714119b92fddabc2de3f33f1b5a41eb30bba1c2a82241e2b475bd6c9dff1d` |
 
+### O que a P87 trouxe — 16/10/2026
+
+**«Joga tudo pro pack» (15/10; decisões 13 e 16).** A varredura de 15/10
+(56.998 arquivos únicos, quatro frentes) e a recuperação de apagados (432
+achados) apontaram o que existia fora do pack: 185 arquivos entram agora, e a
+linha de cada um está no fim da tabela acima, com a origem em texto, o sha256 e
+a licença. A pasta não diz de onde veio; a linha diz.
+
+| pasta | arquivos | classe |
+|---|---|---|
+| `icones/apps/` | 1 | b: o vetor de 12/09 do Citrix, que veste os 11 nomes dele |
+| `icones/biblioteca/` | 5 | a: os morcegos da noite e do dia e o `aurora-iniciar`; b: o morcego; c: o Obsidian do Papirus |
+| `icones/biblioteca/versoes/` | 144 (132 SVG, 12 PNG) | a: 44 rascunhos e versões de desenhos nossos; b: 100 versões editadas de desenhos do pack |
+| `icones/biblioteca/projetos/` | 35 (18 SVG, 17 PNG) | d: o desenho de cada projeto dela fora da lista de exclusão |
+
+**O nome distingue as versões.** Em `versoes/` o arquivo é
+`<desenho>-<sha8>.<ext>` (`morcego-dia-b47353cb.svg`): o desenho de origem e os
+oito primeiros dígitos do sha256 da origem, que nunca colidem. O que cada um é
+(gravação 3 de 16/09, fragmento do disco, miniatura de 15/09) está no
+`catalog.json` da pasta, que é o rótulo do seletor e o texto da busca.
+
+**De onde vieram.** 88 da transcrição do agente (14 deles também no photorec),
+37 só do photorec, 5 do histórico do git, 14 do disco, 3 do backup do tema
+antigo, 3 dos gatos do motor e 35 dos projetos dela (disco, git e backup). A
+lixeira, a partição do Windows, o VS Code e o ext4magic não deram nada que
+entrasse: a lixeira só tinha Ouroboros e um workspace do Grok, a partição trouxe
+dois desenhos de um tema de terceiro, o VS Code voltou vazio e o ext4magic caiu
+por falta de memória neste ext4.
+
+**Limpeza (regra de pack da P78).** Todo arquivo passou por ela: nenhum SVG
+tinha script, referência externa nem metadado de editor, e nenhum foi
+recusado. Os 15 PNG perderam os trechos de texto e de data (`tEXt`, `tIME`): os
+seis do COSMIC Files, achados no photorec, levavam o caminho da casa de quem
+usa em `Thumb::URI`. Para esses, o sha256 da origem está na linha, ao lado do
+da cópia.
+
+**Os desenhos de projetos dela.** A regra de 23/09 («projeto pessoal fica fora
+do pack») ficou só com Beholder, Elden Ring Tracker, Nyx, Protocolo Ouroboros e
+Caldeirão. O Hefesto, o FogStripper, o Sigilo, o PDForge, o Detector de
+Doppelgänger, o ArcaneTab, o Mnemo, o Neurosonancy, a Luna, o Crononauta e o
+Êxtase entram em `projetos/`, um por vez, o desenho e não a tela.
+
+**As ligações.** O `icones/apps.map` ganhou 42 linhas: os cinco nomes sem
+desenho (uad-ng, Citrix, Clapper, Edge e WhatsApp), os cinco resgatados que o
+tema já vestia (Ubuntu, Thunderbird ESR, scrcpy, PhotoGIMP e Nautilus), as 33
+que a P37 deixou cair (Discord, Spotify, Opera, Gradia, os 11 nomes do Citrix,
+os 3 das Extensões e 13 tipos de arquivo), e duas trocas desfeitas (o
+`io.elementary.appcenter` e o `org.gnome.gThumb` voltam ao que o tema antigo
+vestia). A ligada é a que vence a régua do BRIEFING, o RMSE contra o PNG feito
+à mão; as outras ficam em `versoes/`.
+
 ### Onde cada origem foi reencontrada — e a diferença com o `CREDITOS.md`
 
 Cada linha acima foi achada **pelo conteúdo**, e não pelo nome: o `sha256` de

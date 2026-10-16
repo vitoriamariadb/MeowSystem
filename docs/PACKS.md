@@ -688,6 +688,18 @@ no máximo** (decisão 14, 15/10/2026). Vale para o Dracula, o Catppuccin, o
 pack-base `meowsystem` e todo pack futuro, e revoga a fronteira de 21/09
 («o acervo pode ser do motor»).
 
+### Versões e projetos dela
+
+Duas outras subpastas da biblioteca do Dracula, etiqueta e nada mais, nasceram
+em 16/10/2026 (P87, «joga tudo pro pack»): `icones/biblioteca/versoes/` guarda
+cada versão e cada rascunho de um desenho, com o nome `<desenho>-<sha8>`, e
+`icones/biblioteca/projetos/` o desenho de cada projeto dela fora da lista de
+exclusão da regra de 23/09 (Beholder, Elden Ring Tracker, Nyx, Protocolo
+Ouroboros e Caldeirão não ganham desenho novo no pack). Nenhuma das duas veste um programa sozinha: quem veste é
+uma linha do `apps.map`, e o desenho ligado é o que vence a régua do BRIEFING
+(o RMSE contra o PNG feito à mão), não o mais novo. De onde veio cada arquivo
+está no `PROCEDENCIA.md`, e o `catalog.json` da pasta dá o rótulo do seletor.
+
 ### As três pastas
 
 ```
