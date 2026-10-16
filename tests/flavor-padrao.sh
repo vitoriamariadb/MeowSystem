@@ -58,7 +58,13 @@ ACHADOS=0
 command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3, que é quem responde o pack no ar\n'; exit 0; }
 # O python3 de verdade, por caminho: a 4 põe um que sai 1 na frente do PATH do
 # shell que o painel abre, e o próprio teste continua precisando do de verdade.
-PY="$(command -v python3)"
+#
+# O INTERPRETADOR, E NÃO O SHIM — 15/10/2026, P82. Numa bancada com pyenv o
+# primeiro `python3` do PATH é o shim, e o shim põe a pasta da versão na FRENTE
+# do PATH do processo que ele abre: o shell do painel achava o python3 de
+# verdade antes do falso da 4, e o caso «sem resposta» saía vermelho sem
+# defeito nenhum no painel. O `sys.executable` é o binário, que não mexe no PATH.
+PY="$(python3 -c 'import sys; print(sys.executable)')"
 
 T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
