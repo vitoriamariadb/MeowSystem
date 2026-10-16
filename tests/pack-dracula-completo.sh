@@ -615,6 +615,22 @@ else
   falha "o desinstalador não tirou as duas bases (ou tirou a que não é nossa)" "$(ls "$IC")"
 fi
 
+# --- P82, item 13: o ICONES_DRACULA ausente vale como ligado ----------------------
+#   O `10a139f` (o `_dracula_no_ar` do icones_apps_dracula.sh) foi provado só por
+#   rodada: todo teste escrevia `ICONES_DRACULA="sim"`. Aqui o conf não tem a
+#   linha, o Dracula está no ar, e os desenhos do pack entram (no ensaio). O
+#   script de antes do `10a139f` punha 0 desenhos do pack.
+CD="$T/casa-dracula"; mkdir -p "$CD/.local/share/icons/MeowSystem-Icons/scalable/apps"
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$CD/.local/share/icons/MeowSystem-Icons/index.theme"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CD" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
+           PACK=dracula FLAVOR=dracula "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar 2>&1)"
+if grep -q 'mudaria .*/scalable/apps/net\.waterfox\.waterfox\.svg' <<< "$saida"; then
+  ok "sem a linha ICONES_DRACULA no conf, com o Dracula no ar, os desenhos do pack entram"
+else
+  falha "sem a linha ICONES_DRACULA, os desenhos do pack não entram" "$(tail -3 <<< "$saida")"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"
