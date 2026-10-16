@@ -181,7 +181,7 @@ ACCENT="${ACCENT:-mauve}"
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
-              icones.autorais.desenhos icones/autorais/)" || AUTORAIS=""
+              icones.autorais.desenhos icones/apps/autorais/)" || AUTORAIS=""
 
 # --- os dois aplicativos dela: nome pedido pelo .desktop -> desenho autoral ----
 # O Hefesto aparece com DOIS nomes de ícone na máquina, e os dois precisam do

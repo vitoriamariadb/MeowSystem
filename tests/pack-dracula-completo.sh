@@ -137,8 +137,8 @@ linha="$(amb python3 "$RAIZ/scripts/pack.py" info dracula 2>&1 | grep -E '^  ico
   && ok "icones.mimetypes do Dracula é PRÓPRIO: 656 por flavor, nos dois flavors" \
   || falha "o info não diz os ícones de arquivo do Dracula como próprios" "$linha"
 macc="$(python3 -c 'import json,sys;print("|".join(v.lower() for v in json.load(open(sys.argv[1]))["flavors"]["macchiato"].values()))' "$RAIZ/packs/catppuccin/paleta.json")"
-com_macc="$(grep -liE "$macc" "$RAIZ"/packs/dracula/icones/mimetypes/*/*.svg | wc -l)"
-total="$(find "$RAIZ/packs/dracula/icones/mimetypes" -name '*.svg' | wc -l)"
+com_macc="$(grep -liE "$macc" "$RAIZ"/packs/dracula/icones/sistema/mimetypes/*/*.svg | wc -l)"
+total="$(find "$RAIZ/packs/dracula/icones/sistema/mimetypes" -name '*.svg' | wc -l)"
 [ "$total" = 1312 ] && [ "$com_macc" = 0 ] \
   && ok "nenhum dos $total ícones de arquivo do Dracula tem cor do macchiato" \
   || falha "ícones de arquivo do Dracula com cor do Catppuccin, ou contagem errada" "total=$total com_macchiato=$com_macc"
@@ -151,7 +151,7 @@ nomes="$(grep -v '^#' "$mapa" 2>/dev/null | grep -c ':')"
 faltam=""
 while IFS=: read -r n g; do
   case "$n" in ''|'#'*) continue ;; esac
-  [ -f "$RAIZ/packs/dracula/icones/pastas/$g.svg" ] || faltam="$faltam $g"
+  [ -f "$RAIZ/packs/dracula/icones/sistema/pastas/$g.svg" ] || faltam="$faltam $g"
 done < "$mapa"
 [ "$nomes" = 10 ] && [ -z "$faltam" ] && grep -q 'acervo "$_pack_ref" icones.pastas.mapa' "$RAIZ/scripts/construir_pastas.sh" \
   && ok "o mapa de pastas do Dracula veste dez nomes (folder, user-home e user-desktop inclusive), e quem cede lê o mesmo mapa" \
@@ -446,8 +446,8 @@ cp "$RAIZ/packs/catppuccin/icones/mimetypes.map" "$PM/icones/mimetypes.map"
 printf '../../../../../../escapou2:%s\n' "$G" >> "$PM/icones/mimetypes.map"
 ln -s "$TM/segredo.oga" "$PM/sons/stereo/notification/vazou.oga"
 ln -s "$TM/segredo.svg" "$PM/wallpapers/catedral/vazou.svg"
-rm -f "$PM/icones/mimetypes/dracula/$G.svg"; ln -s "$TM/segredo.svg" "$PM/icones/mimetypes/dracula/$G.svg"
-ln -s "$TM/segredo.svg" "$TM/packs/malsrc/icones/mimetypes/css-variables/zz_vazou.svg"
+rm -f "$PM/icones/sistema/mimetypes/dracula/$G.svg"; ln -s "$TM/segredo.svg" "$PM/icones/sistema/mimetypes/dracula/$G.svg"
+ln -s "$TM/segredo.svg" "$TM/packs/malsrc/icones/sistema/mimetypes/css-variables/zz_vazou.svg"
 printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n' > "$HM/.local/share/icons/MeowSystem-Icons/index.theme"
 sed -e 's/^PACK=.*/PACK="mal"/' -e 's/^FLAVOR=.*/FLAVOR="dracula"/' "$RAIZ/meow.conf.exemplo" > "$HM/.config/meow/meow.conf"
 : > "$TM/fontes-vazio.tsv"
@@ -467,12 +467,12 @@ if [ "$(amb env MEOW_PACKS="$TM/packs" python3 "$RAIZ/scripts/pack.py" validar m
   injetado="$(grep -c '^\[custom' "$TM/starship.toml" 2>/dev/null)"
   escapou="$(find "$TM" -name 'escapou*' | wc -l)"
   no_alvo="$(find "$TM/alvo-fora" -name '.meow-*' | wc -l)"
-  vazou="$(grep -rlF 'SEGREDO' "$HM" "$PM/icones/mimetypes" 2>/dev/null | wc -l)"
+  vazou="$(grep -rlF 'SEGREDO' "$HM" "$PM/icones/sistema/mimetypes" 2>/dev/null | wc -l)"
   intacto=0; [ "$(cat "$TM/segredo.svg")" = "$SEGREDO" ] && [ "$(cat "$TM/segredo.oga")" = "$SEGREDO" ] && intacto=1
   if [ "$rc_base" = 2 ] && [ "$no_alvo" = 0 ] && [ ! -L "$HM/.local/share/icons/MeowSystem-Icons-Base" ] \
      && [ "$escapou" = 0 ] && [ "$vazou" = 0 ] && [ "$intacto" = 1 ] \
      && [ -f "$TM/starship.toml" ] && [ "$injetado" = 0 ] \
-     && [ ! -L "$PM/icones/mimetypes/dracula/$G.svg" ] \
+     && [ ! -L "$PM/icones/sistema/mimetypes/dracula/$G.svg" ] \
      && grep -q 'linha(s) com nome fora' "$TM/log-apps.txt" && grep -q 'link ou saem' "$TM/log-som.txt" \
      && [ "$(find "$HM/.local/share/icons/MeowSystem-Icons/scalable/apps" -name '*.svg' | wc -l)" -gt 100 ]; then
     ok "segurança: o pack «mal» não lê nem escreve fora da raiz (base com pasta-link, ../ nos mapas, links no som, no papel, nos ícones de arquivo e no destino da derivação), nem injeta módulo no starship pela paleta"

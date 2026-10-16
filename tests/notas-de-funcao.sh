@@ -338,7 +338,7 @@ dracula_sh() {   # dracula_sh <verbo> — o passo do pack, com o Dracula no ar e
     bash "$RAIZ/scripts/icones_apps_dracula.sh" "$1" 2>&1
 }
 arcade="$P2/dracula/icones/biblioteca/arcade.svg"
-painel="$P2/dracula/icones/autorais/meowsystem-painel-dracula.svg"
+painel="$P2/dracula/icones/apps/autorais/meowsystem-painel-dracula.svg"
 mesmo() { [ -f "$1" ] && [ -f "$2" ] && [ "$(cat "$1")" = "$(cat "$2")" ]; }
 # O outro dono: o `completar_icones.sh` põe o autoral do painel com os bytes do
 # desenho do pack, sem linha em mapa nenhum.
@@ -422,7 +422,7 @@ PY
 # --- 5. o --conferir das pastas especiais não fala como quem faz -----------
 printf -- '--- 5. o --conferir das pastas especiais ---\n'
 LUGARES="$CASA/.local/share/icons/MeowSystem-Icons/scalable/places"; mkdir -p "$LUGARES"
-cp "$RAIZ/packs/dracula/icones/pastas/folder-documents.svg" "$LUGARES/"
+cp "$RAIZ/packs/dracula/icones/sistema/pastas/folder-documents.svg" "$LUGARES/"
 pastas() {   # pastas <verbo> — sem PASTAS_XDG, que é o desligado de fábrica
   env -i PATH="$CAMINHO" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$ESTADO" \
     LANG=C.UTF-8 NO_COLOR=1 PACK=dracula FLAVOR=dracula \

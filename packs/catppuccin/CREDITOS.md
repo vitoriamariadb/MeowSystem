@@ -28,12 +28,12 @@ causa dela que o Dracula "funcionava". A cópia saiu na P20. O arquivo ficou com
 os quatro sabores que são de fato do Catppuccin — `latte`, `frappe`,
 `macchiato` e `mocha`.
 
-## Os glifos — `icones/mimetypes/`
+## Os glifos — `icones/sistema/mimetypes/`
 
 | | |
 |---|---|
 | upstream | [`catppuccin/vscode-icons`](https://github.com/catppuccin/vscode-icons) |
-| licença | MIT — o texto está em `icones/mimetypes/LICENSE` |
+| licença | MIT — o texto está em `icones/sistema/mimetypes/LICENSE` |
 | pode modificar | sim |
 | pode redistribuir | sim, com o aviso de copyright |
 | quantos | 656 por sabor, em quatro sabores, mais o `css-variables` que o upstream publica junto |

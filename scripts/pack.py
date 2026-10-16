@@ -179,7 +179,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 FORMATO_MIN = 1
-FORMATO_MAX = 1
+FORMATO_MAX = 2
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -791,7 +791,7 @@ def dir_acervo(categoria, ref=None, padrao=None):
     if not isinstance(declarado, str) or not declarado:
         if not padrao:
             return None
-        declarado = padrao
+        declarado = padrao_do_formato(ref, padrao)
     # A MESMA GUARDA DO `acervo`, E PELO MESMO MOTIVO: um pack de terceiro com
     # `"desenhos": "../../../algum/lugar"` faria o gerador ESCREVER fora do
     # pack. Do lado da leitura o estrago é ler um mapa; do lado da escrita é
@@ -865,6 +865,21 @@ CAMINHOS_DE_ANTES = (
     ("packs/*/icones/pastas/", "packs/*/icones/sistema/pastas/"),
     ("packs/*/icones/mimetypes/", "packs/*/icones/sistema/mimetypes/"),
 )
+
+
+# O PADRÃO DE UM PACK DE ANTES — P88. Um pack `formato` 1 que não declara a
+#   pasta dos autorais a tem em `icones/autorais/`; o de formato 2, dentro de
+#   `apps/`. Quem chama passa o padrão de hoje, e o pack velho recebe o dele.
+PADROES_DE_ANTES = {"icones/apps/autorais/": "icones/autorais/",
+                    "icones/biblioteca/feitos-a-mao/": "icones/feitos-a-mao/"}
+
+
+def padrao_do_formato(ref, padrao):
+    """O `padrao` de hoje, ou o de antes num pack de formato 1."""
+    formato = campo(ref, "formato", FORMATO_MAX)
+    if isinstance(formato, int) and formato < 2:
+        return PADROES_DE_ANTES.get(padrao, padrao)
+    return padrao
 
 
 def caminho_de_hoje(caminho):
@@ -1517,7 +1532,7 @@ MARCA_ACCENT = "<accent>"
 #   gravada. Leitura e escrita perguntam agora ao mesmo `dir_acervo`, com este
 #   padrão; o `DESTINO` do gerador e o `onde` do `completar_icones.sh` passam o
 #   mesmo texto, e os três têm de continuar iguais.
-PASTA_AUTORAIS = "icones/autorais/"
+PASTA_AUTORAIS = "icones/apps/autorais/"
 LACUNAS_DO_GERADOR = ("titulo",)
 RE_PAPEL = re.compile(r"^[a-z][a-z0-9_]*$")
 RE_LACUNA = re.compile(r"\{([^{}]*)\}")
@@ -3906,22 +3921,32 @@ def validar(ref, silencioso=False):
     if not silencioso and os.path.lexists(pasta_bib.rstrip("/")):
         _exigir(os.path.isdir(pasta_bib) and not os.path.islink(pasta_bib.rstrip("/")),
                 f"{PASTA_BIBLIOTECA}: precisa ser uma pasta do pack, e não um arquivo ou link")
+        # [P88, decisão 14: a biblioteca guarda também o PNG feito à mão e aceita
+        #   subpasta, que é só etiqueta (`biblioteca/feitos-a-mao/`). A forma
+        #   vale em toda a árvore: desenho comum, sem link, e o catálogo.]
         fora_da_forma = []
-        for a in sorted(os.listdir(pasta_bib)):
-            cheio = os.path.join(pasta_bib, a)
-            if a.startswith("."):
-                continue
-            # O CATÁLOGO É O ÚNICO QUE NÃO É DESENHO — 09/10/2026, P73. É dado
-            # sobre os desenhos (descrição em português e etiquetas, um por
-            # arquivo), e a busca da ficha de ícone o lê ao lado deles. Arquivo
-            # comum de texto, com nome fixo: o resto da forma continua valendo.
-            if a == "catalog.json" and os.path.isfile(cheio) and not os.path.islink(cheio):
-                continue
-            if not a.endswith(".svg") or os.path.islink(cheio) or not os.path.isfile(cheio):
-                fora_da_forma.append(a)
+        for raiz_b, dirs, arqs in os.walk(pasta_bib):
+            rel_b = os.path.relpath(raiz_b, pasta_bib)
+            for dname in sorted(dirs):
+                if os.path.islink(os.path.join(raiz_b, dname)):
+                    fora_da_forma.append(os.path.normpath(os.path.join(rel_b, dname)))
+            dirs[:] = sorted(d for d in dirs if not d.startswith(".")
+                             and not os.path.islink(os.path.join(raiz_b, d)))
+            for a in sorted(arqs):
+                cheio = os.path.join(raiz_b, a)
+                if a.startswith("."):
+                    continue
+                # O CATÁLOGO É O ÚNICO QUE NÃO É DESENHO — 09/10/2026, P73. É dado
+                # sobre os desenhos (descrição em português e etiquetas, um por
+                # arquivo), e a busca da ficha de ícone o lê ao lado deles.
+                if a == "catalog.json" and os.path.isfile(cheio) and not os.path.islink(cheio):
+                    continue
+                if not a.endswith(EXT_DA_BIBLIOTECA) or os.path.islink(cheio) \
+                        or not os.path.isfile(cheio):
+                    fora_da_forma.append(os.path.normpath(os.path.join(rel_b, a)))
         _exigir(not fora_da_forma,
                 f"{PASTA_BIBLIOTECA}: {len(fora_da_forma)} entrada(s) que não são desenho "
-                f"(.svg comum, sem subpasta):\n      " + "\n      ".join(fora_da_forma))
+                f"(.svg ou .png comum, sem link):\n      " + "\n      ".join(fora_da_forma))
 
     # AS DECLARAÇÕES DE DESENHO AUTORAL — 23/09/2026, sprint P26
     #   Os `.json` da pasta `icones.autorais.desenhos` viraram a entrada do
@@ -4348,6 +4373,7 @@ def _contar_acervo(ref, categoria, flavors):
 #   deixá-los lá. Contar por caminho diria que o dado não veste ninguém,
 #   quando o Foundry o veste todo dia. O sha256 de ~300 SVG custa milissegundos.
 PASTA_BIBLIOTECA = "icones/biblioteca/"
+EXT_DA_BIBLIOTECA = (".svg", ".png")
 
 
 # ============================================================================
@@ -4385,7 +4411,7 @@ PASTA_BIBLIOTECA = "icones/biblioteca/"
 #   [O grupo «Catppuccin» que saiu na P60 era a pasta `catppuccin-apps/`, fora
 #   do git e de PNG. O que volta com a decisão 3 é o acervo versionado do pack
 #   Catppuccin — os autorais dele —, pela mesma porta dos outros packs.]
-PASTA_FEITOS_A_MAO = "icones/feitos-a-mao/"
+PASTA_FEITOS_A_MAO = "icones/biblioteca/feitos-a-mao/"
 ACERVOS_DO_MOTOR = (
     # (pasta no acervo do pack-base, nome na tela, tipo). O tipo diz o que a ficha
     # faz com a escolha: `desenho` entra no tema como está; `traco` é glifo de
@@ -4483,8 +4509,10 @@ def acervos_de_icone(no_ar=""):
                     #   o PNG sai quando o vetor passa. O vetor é desenho como os da
                     #   biblioteca e se escolhe; o PNG que sobrar segue visto e
                     #   travado (raster não é fonte), num grupo à parte da mesma pasta.
-                    ("feitos-a-mao", "feitos à mão", PASTA_FEITOS_A_MAO, "desenho", ".svg"),
-                    ("feitos-a-mao-png", "feitos à mão (PNG)", PASTA_FEITOS_A_MAO, "png", ".png")):
+                    ("feitos-a-mao", "feitos à mão",
+                     padrao_do_formato(dir_pack, PASTA_FEITOS_A_MAO), "desenho", ".svg"),
+                    ("feitos-a-mao-png", "feitos à mão (PNG)",
+                     padrao_do_formato(dir_pack, PASTA_FEITOS_A_MAO), "png", ".png")):
                 try:
                     pastas.append((chave, nome, _dentro(dir_pack, rel, chave), tipo, ext))
                 except Recusa:
@@ -4495,7 +4523,8 @@ def acervos_de_icone(no_ar=""):
             # OS AUTORAIS DE TODOS OS FLAVORS, COM O FLAVOR COMO SUBGRUPO. Até a
             # P73 só o do flavor em vigor entrava: no Dracula escuro, os onze do
             # `alucard` não existiam para a ficha.
-            aut = campo(dir_pack, "icones.autorais.desenhos") or PASTA_AUTORAIS
+            aut = campo(dir_pack, "icones.autorais.desenhos") \
+                or padrao_do_formato(dir_pack, PASTA_AUTORAIS)
             try:
                 pasta_aut = _dentro(dir_pack, aut, "icones.autorais.desenhos")
             except Recusa:
@@ -5328,9 +5357,11 @@ def cmd_construir(ref, seco=False):
         print(f"  ok   {ident}: construído")
         return OK
 
-    # `_dentro` com o caminho que VAMOS ESCREVER: se um dia a saída vier do
-    # pack.json em vez de ser fixa, esta linha já barra o `../..`.
-    saida = _dentro(dir_pack, os.path.join("icones", "autorais"), "icones.autorais")
+    # `_dentro` com o caminho que VAMOS ESCREVER: o `dir_acervo` o aplica.
+    # [P88: a saída é a pasta declarada (ou a padrão do formato), e não mais
+    #   `icones/autorais` fixo — no formato de três pastas ela fica em `apps/`.]
+    saida = dir_acervo("icones.autorais.desenhos", ref=dir_pack,
+                       padrao=PASTA_AUTORAIS).rstrip(os.sep)
 
     gerador = os.path.join(RAIZ, "scripts", "gerar_icones_autorais.py")
     if not os.path.isfile(gerador):
@@ -6533,7 +6564,7 @@ def montar_novo(ident, csv=None):
                              f"não tem um claro\").")
         sobre_paleta += "\n\n"
         autorais = (f"## Os ícones autorais\n\n"
-                    f"`icones/autorais/` foi desenhado pelo `meow pack construir`, nas cores "
+                    f"`icones/apps/autorais/` foi desenhado pelo `meow pack construir`, nas cores "
                     f"desta paleta: os desenhos são os do MeowSystem. Mudou a paleta? Rode-o "
                     f"de novo.\n\n")
     else:
@@ -6576,7 +6607,7 @@ def montar_novo(ident, csv=None):
 
 
 def _autorais_construidos(ident, arquivos):
-    """{icones/autorais/<nome>-<flavor>.svg: bytes} do pack que `arquivos` descreve.
+    """{icones/apps/autorais/<nome>-<flavor>.svg: bytes} do pack que `arquivos` descreve.
 
     POR QUE O PACK DE CSV PRECISA, E O DO AR NÃO [23/09/2026, P16]
         O `novo` sem CSV copia a paleta no ar e herda do pack no ar: os flavors

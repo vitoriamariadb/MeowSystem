@@ -1193,7 +1193,7 @@ etapa_svg() {
   #   `icones/apps/` do Dracula é arte de upstream — os dois caem na mesma regra
   #   que o parágrafo acima já dá ao `arcticons/`: ninguém os edita aqui, e
   #   varrê-los seria segundos por rodada para conferir o que não muda.
-  for p in "$MEOW_RAIZ"/packs/*/icones/autorais; do
+  for p in "$MEOW_RAIZ"/packs/*/icones/apps/autorais; do
     [ -d "$p" ] && pastas+=("$p")
   done
   [ "${#pastas[@]}" -gt 0 ] || return 0

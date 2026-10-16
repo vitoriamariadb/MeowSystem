@@ -1372,7 +1372,7 @@ chk_svg() {
   #   existe para caçar passaria despercebido justamente nos desenhos dela.
   #   O porquê de ser SÓ `autorais/`, e por glob em vez de lista de nomes, está
   #   no gêmeo desta linha em `install.sh`, na `etapa_svg`.
-  for p in "$RAIZ"/packs/*/icones/autorais; do
+  for p in "$RAIZ"/packs/*/icones/apps/autorais; do
     [ -d "$p" ] && pastas+=("$p")
   done
   [ "${#pastas[@]}" -gt 0 ] || return 0
@@ -2029,7 +2029,7 @@ fix_svg()       { local pastas=() p
                   # Os autorais de cada pack, como no `chk_svg` — o conserto
                   # tem de alcançar tudo o que a conferência alcança, ou o
                   # doctor aponta um defeito que o `--consertar` não conserta.
-                  for p in "$RAIZ"/packs/*/icones/autorais; do
+                  for p in "$RAIZ"/packs/*/icones/apps/autorais; do
                     [ -d "$p" ] && pastas+=("$p")
                   done
                   [ "${#pastas[@]}" -gt 0 ] || return 0

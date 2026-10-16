@@ -1,6 +1,6 @@
 {
   "_nota": "packs/dracula/pack.json — o segundo pack do MeowSystem, e a prova de que o formato funciona. Ele não traz código nenhum: tudo o que o Dracula faz cabe em declaração. Ver docs/PACKS.md.",
-  "formato": 1,
+  "formato": 2,
   "id": "dracula",
   "nome": "Dracula",
   "versao": "1.0.0",
@@ -56,22 +56,22 @@
       "_nota": "Os desenhos dela que só existiam em PNG e voltaram a ser vetor (11 e 15/09/2026). Moravam no motor, em assets/icones/resgatados/; têm cor Dracula fixa, e no pack-base o Catppuccin os herdaria (decisão 16, P88). O `icones_resgatados.sh` os põe em `scalable/apps` pelo mapa ao lado; um nome que o `apps.map` também nomeia fica atrás dele."
     },
     "pastas": {
-      "desenhos": "icones/pastas/",
+      "desenhos": "icones/sistema/pastas/",
       "mapa": "icones/pastas.map",
       "recolorir": false,
       "_nota_mapa": "O mapa é do pack desde 09/10/2026 (P74 item 6, I7): as sete pastas especiais de 15/09 mais `folder`, `user-home` e `user-desktop`, desenhadas no mesmo dia na mesma silhueta. O porquê está no cabeçalho do `icones/pastas.map`."
     },
     "mimetypes": {
-      "desenhos": "icones/mimetypes/",
+      "desenhos": "icones/sistema/mimetypes/",
       "derivar": {
         "de": "catppuccin",
         "pasta": "css-variables"
       },
-      "_nota": "PRÓPRIO desde 09/10/2026 (P74 item 6). Até aqui o pack herdava os 656 ícones de arquivo do Catppuccin no flavor `macchiato` — com o Dracula no ar, os tipos de arquivo saíam no lilás e no azul do Catppuccin. O upstream do Catppuccin (catppuccin/vscode-icons, MIT) publica o `css-variables/`: os mesmos 656 desenhos com a cor escrita por papel. O `meow pack construir dracula` troca cada papel pelo hex dele na paleta deste pack e escreve `icones/mimetypes/<flavor>/`, um diretório por flavor (o `dracula` e o `alucard`). Medido no mesmo dia: a mesma conta com a paleta do Mocha reproduz o `mocha/` do Catppuccin byte a byte. O mapa (qual desenho veste qual tipo) continua o do Catppuccin, pela `heranca`: é o mesmo acervo de nomes, e a escolha é do upstream."
+      "_nota": "PRÓPRIO desde 09/10/2026 (P74 item 6). Até aqui o pack herdava os 656 ícones de arquivo do Catppuccin no flavor `macchiato` — com o Dracula no ar, os tipos de arquivo saíam no lilás e no azul do Catppuccin. O upstream do Catppuccin (catppuccin/vscode-icons, MIT) publica o `css-variables/`: os mesmos 656 desenhos com a cor escrita por papel. O `meow pack construir dracula` troca cada papel pelo hex dele na paleta deste pack e escreve `icones/sistema/mimetypes/<flavor>/`, um diretório por flavor (o `dracula` e o `alucard`). Medido no mesmo dia: a mesma conta com a paleta do Mocha reproduz o `mocha/` do Catppuccin byte a byte. O mapa (qual desenho veste qual tipo) continua o do Catppuccin, pela `heranca`: é o mesmo acervo de nomes, e a escolha é do upstream."
     },
     "autorais": {
       "gerar": true,
-      "desenhos": "icones/autorais/",
+      "desenhos": "icones/apps/autorais/",
       "_nota": "Os onze desenhos do projeto, nos DOIS flavors do pack — 22 arquivos. Até 22/09/2026 os onze do `dracula` moravam em assets/icones/autorais/, ao lado dos 44 do Catppuccin, e o `alucard` tinha ZERO: no modo claro do Dracula estes onze ícones caíam no `latte`, que é o flavor claro do OUTRO pack. É o mesmo defeito que o campo `paleta._nota_claro` aqui em cima conta ter consertado para a PALETA em 19/09 — ele continuou vivo para os ÍCONES mais três dias, porque a paleta morava no pack e os desenhos não. Os onze do alucard foram GERADOS, nunca copiados do latte: o gerador deriva por PAPEL, então o `contorno` do alucard sai do `text` do alucard e não do `text` de um pack vizinho."
     },
     "base": {

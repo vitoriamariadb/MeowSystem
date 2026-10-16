@@ -354,7 +354,8 @@ def nomes_da_tabela(nota, cabeca):
 
 
 try:
-    r = git("log", "-1", "--format=%H %ad", "--date=short", "--", FOLHA)
+    # `--follow` e só A/M: a mudança de pasta da P88 (um `git mv`) não refaz a folha.
+    r = git("log", "-1", "--follow", "--diff-filter=AM", "--format=%H %ad", "--date=short", "--", FOLHA)
 except OSError:
     r = None
 if r is None or r.returncode != 0 or not r.stdout.strip():
@@ -391,6 +392,9 @@ else:
 
     velho = git("show", "%s:%s" % (commit, MAPA))
     if velho.returncode != 0:
+        # o endereço do mapa antes da P88, que o desceu do motor para o pack Dracula
+        velho = git("show", "%s:%s" % (commit, "assets/icones/apps-resgatados.map"))
+    if velho.returncode != 0:
         print("  --   classe 5 — o mapa dos resgatados não existia no commit da folha (pulado)")
     else:
         antes = nomes_do_mapa(velho.stdout)
@@ -399,7 +403,9 @@ else:
         mudaram = sorted(antes ^ hoje)
         for nome in sorted(antes & hoje):
             svg = "packs/dracula/icones/apps/resgatados/%s.svg" % nome
-            era = git("rev-parse", "%s:%s" % (commit, svg)).stdout.strip()
+            era = (git("rev-parse", "--verify", "-q", "%s:%s" % (commit, svg)).stdout.strip()
+                   or git("rev-parse", "--verify", "-q",
+                          "%s:assets/icones/resgatados/%s.svg" % (commit, nome)).stdout.strip())
             e = git("hash-object", "--", svg).stdout.strip()
             if era and e and era != e:
                 mudaram.append(nome)

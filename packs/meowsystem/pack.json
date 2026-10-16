@@ -1,6 +1,6 @@
 {
   "_nota": "packs/meowsystem/pack.json — o PACK-BASE (decisão 14, 15/10/2026). É o acervo de ícone do próprio MeowSystem, que até a P88 morava em assets/icones/: o traço Arcticons, os convertidos, os retoques e os glifos do sistema. Todo pack herda dele sem precisar declarar, porque é aqui que o motor procura o que um pack não traz. Ele não se veste sozinho: não tem paleta nem logo, e o `meow pack usar` o recusa.",
-  "formato": 1,
+  "formato": 2,
   "id": "meowsystem",
   "nome": "MeowSystem",
   "papel": "base",

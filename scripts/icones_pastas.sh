@@ -103,7 +103,10 @@ ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
 # que EXISTE, não sobre como o tema se chama: o pack ativo tem um acervo de
 # pastas? Então é ele. É o mesmo idioma que o comentário acima desta linha já
 # prometia — "quem desenhar os seus não precisa editar este script".
-_pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)"
+# [P88: no formato de três pastas elas moram em `icones/sistema/pastas/`; a
+#   segunda linha é a de um pack de formato 1.]
+_pastas_do_pack="$(meow_pack_arquivo icones/sistema/pastas)"
+[ -n "$_pastas_do_pack" ] || _pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)"
 if [ -n "$_pastas_do_pack" ] && [ -d "$_pastas_do_pack" ]; then
   ORIGEM="$_pastas_do_pack"
 fi

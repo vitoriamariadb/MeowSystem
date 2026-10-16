@@ -97,7 +97,10 @@ assets/fontes/locais/*.[tT][tT][cC]
 #   num lote conferido por RMSE. São a arte, e não um papel de parede baixado:
 #   sem esta linha a regra `*.png` lá em cima os deixaria só no disco, que é
 #   exatamente onde eles estavam se perdendo desde 16/04.
-!packs/*/icones/feitos-a-mao/*.png
+# [P88, decisão 14: o PNG feito à mão mora na `biblioteca/` das três pastas,
+#   em qualquer subpasta dela.]
+!packs/*/icones/biblioteca/*.png
+!packs/*/icones/biblioteca/**/*.png
 
 # Estado local da máquina: backups e log ficam fora, em ~/.local/state/meowsystem.
 # As CAPTURAS continuam versionadas — sao as que fazem o "3 cliques uma vez na vida"

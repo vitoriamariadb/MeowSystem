@@ -1,5 +1,9 @@
 # De onde vem cada ícone deste repositório
 
+[P88, 15/10/2026: este arquivo era `assets/icones/PROCEDENCIA.md`. O acervo de
+ícone do motor virou o pack-base `packs/meowsystem/`, nas três pastas da
+decisão 14; os resgatados, de cor Dracula fixa, foram para `packs/dracula/`.]
+
 Feito para uma máquina só, e **público desde 06/09/2026** — a decisão de
 05/08 de não publicar caiu. Isso muda o peso desta tabela: enquanto o uso era
 local, a procedência era só uma nota de cuidado; agora ela é a resposta à
@@ -15,16 +19,16 @@ lado da regra.
 
 | acervo | onde | licença | pode modificar? | pode redistribuir? |
 |---|---|---|---|---|
-| `catppuccin/vscode-icons` | `packs/catppuccin/icones/mimetypes/<flavor>/` | MIT | sim | sim, com o aviso de copyright |
+| `catppuccin/vscode-icons` | `packs/catppuccin/icones/sistema/mimetypes/<flavor>/` | MIT | sim | sim, com o aviso de copyright |
 | `Daveedmee/catppuccin-icons` | `assets/icones/catppuccin-apps/<flavor>/` | **não declarada** | indefinido | **não** — uso local apenas |
-| Arcticons (sistema) | `assets/icones/arcticons/` — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
-| Arcticons (aplicativo) | `assets/icones/arcticons-apps/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
-| **convertido do Papirus** | `assets/icones/convertidos-apps/` — **22** SVGs **gerados** | **GPL-3.0** (obra derivada) | sim | sim, **sob GPL** |
-| **desenho à mão do traço** | `assets/icones/convertidos-apps/retoques/` — **3** desenhos + **2** variantes do GIMP | deste projeto (a do GIMP é derivada, GPL-3.0) | — | — |
-| marca de fábrica | `assets/icones/apps-hicolor.map` — **1** nome, copiado do `hicolor` do sistema | a do próprio programa | **não** — cópia literal | não |
+| Arcticons (sistema) | `packs/meowsystem/icones/sistema/arcticons/` — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| Arcticons (aplicativo) | `packs/meowsystem/icones/apps/arcticons/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| **convertido do Papirus** | `packs/meowsystem/icones/apps/convertidos/` — **22** SVGs **gerados** | **GPL-3.0** (obra derivada) | sim | sim, **sob GPL** |
+| **desenho à mão do traço** | `packs/meowsystem/icones/apps/convertidos/retoques/` — **3** desenhos + **2** variantes do GIMP | deste projeto (a do GIMP é derivada, GPL-3.0) | — | — |
+| marca de fábrica | `packs/meowsystem/icones/apps-hicolor.map` — **1** nome, copiado do `hicolor` do sistema | a do próprio programa | **não** — cópia literal | não |
 | Papirus / Papirus-Dark | pacote `papirus-icon-theme` do sistema | GPL-3.0 | sim | sim, sob GPL |
 | `catppuccin/papirus-folders` | `assets/icones/upstream/papirus-folders/` | GPL-3.0 | sim | sim, sob GPL |
-| desenho autoral | `assets/icones/autorais/` | deste projeto | — | — |
+| desenho autoral | `packs/<id>/icones/apps/autorais/` e `packs/meowsystem/icones/sistema/leitura/` | deste projeto | — | — |
 
 ## Dois acervos com nome parecido, e cada um veste uma coisa
 
@@ -33,7 +37,7 @@ Já confundiram uma análise inteira. A diferença não é de organização, é 
 *script* (`scripts/construir_pastas.sh`) em vez de apontar para o acervo, o que
 ajudava a confusão. Corrigido em 10/08/2026.
 
-| | `packs/catppuccin/icones/mimetypes/<flavor>/` | `assets/icones/upstream/papirus-folders/` |
+| | `packs/catppuccin/icones/sistema/mimetypes/<flavor>/` | `assets/icones/upstream/papirus-folders/` |
 |---|---|---|
 | upstream | `catppuccin/vscode-icons` | `catppuccin/papirus-folders` |
 | forma | `fill="none"` + `stroke`, `viewBox="0 0 16 16"` — **traço** de árvore de arquivos do VS Code | pasta **cheia**, com dobra, sombra e símbolo interno, 22..64 px |
@@ -56,7 +60,7 @@ símbolo interno do que ela guarda, tudo recolorido no mauve dela"*. Ligar as se
 linhas do `vscode-icons` hoje **substituiria exatamente essas sete pastas** —
 desfazendo as duas decisões de uma vez. **Não proponha o `vscode-icons` como
 fonte de arte de pasta em nenhuma sprint.** A medição completa está em
-`assets/icones/pastas.map`.
+`packs/meowsystem/icones/pastas.map`.
 
 Na mesma data foi recusada também a troca de acervo para o pack **`cosmic-icons`**
 (`/usr/share/icons/Cosmic/`, CC BY-SA 4.0, do pacote `cosmic-icons` do sistema).

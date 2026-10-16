@@ -55,7 +55,7 @@ O upstream é `dracula-icons-circle` / `dracula-icons-main`, do Dracula theme.
 da paleta Dracula — é arte acabada, não glifo de traço. Por isso
 `icones.apps.recolorir` é `false` no `pack.json`.
 
-## Os 7 desenhos de pasta — `icones/pastas/`
+## Os 7 desenhos de pasta — `icones/sistema/pastas/`
 
 Desenho próprio deste projeto, um por pasta XDG, feitos sobre a silhueta da
 pasta base em 16/09/2026. Existem porque o `catppuccin/vscode-icons` cobre os

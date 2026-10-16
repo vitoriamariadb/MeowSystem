@@ -10401,7 +10401,8 @@ class Manipulador(BaseHTTPRequestHandler):
             else:
                 glifo = self._arquivo_na_ficha(item["caminho"])
         if not re.match(r"^[a-z0-9._-]{1,60}$", glifo) and not (
-                item and re.match(r"^assets/icones/[A-Za-z0-9._+/-]{1,200}\.svg$", glifo)
+                item and re.match(r"^(assets/icones|packs/[a-z0-9][a-z0-9-]*/icones)/"
+                                  r"[A-Za-z0-9._+/-]{1,200}\.svg$", glifo)
                 and "/../" not in "/" + glifo + "/"):
             return self._json({"erro": "glifo inválido"}, 400)
         cores = set((_paleta_dados().get("ordem") or []))

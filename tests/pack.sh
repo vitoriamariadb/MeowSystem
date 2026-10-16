@@ -1979,7 +1979,7 @@ if [ "$rc" != "0" ] || [ ! -d "$DA_PESSOA/minha-tinta" ]; then
 else
   ok "meow pack importar aceita um .csv solto, e o id sai do nome do arquivo"
   saida="$(viaja "$RAIZ/bin/meow" pack validar minha-tinta 2>&1)"; rc=$?
-  n_autorais="$(find "$DA_PESSOA/minha-tinta/icones/autorais" -name '*.svg' | wc -l)"
+  n_autorais="$(find "$DA_PESSOA/minha-tinta/icones/apps/autorais" -name '*.svg' | wc -l)"
   # Igual MENOS o `_comentario`, que diz o nome do CSV de onde a paleta saiu —
   # e aqui o CSV se chama outra coisa, de propósito, porque é ele que faz o id.
   mesma="$(python3 -c 'import json, sys
@@ -2776,7 +2776,7 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
     case "$apps" in latte) ;; frappe|macchiato|mocha) apps="macchiato" ;; *) apps="" ;; esac
     if [ "$script" = "icones_apps" ]; then
       [ "$visto" = "$apps" ] || divergiu+=" $script='$visto' (esperava $apps)"
-    elif [ "$script" = "icones_pastas" ] && [ -d "$RAIZ/packs/$2/icones/pastas" ]; then
+    elif [ "$script" = "icones_pastas" ] && [ -d "$RAIZ/packs/$2/icones/sistema/pastas" ]; then
       # AS PASTAS PRÓPRIAS DO PACK NÃO TÊM FLAVOR — 24/09/2026, na revisão da
       # P56. As sete do Dracula são desenho dele, e a frase diz o pack; até ali
       # o script não as achava, não escrevia nada e dizia «Catppuccin
@@ -2961,12 +2961,19 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
 [ "$rc" = "0" ] \
   && ok "um pack de terceiro com biblioteca de SVG valida" \
   || falha "a biblioteca de SVG foi recusada (rc=$rc)" "$saida"
+# [P88, decisão 14: o PNG feito à mão mora na biblioteca, e subpasta é
+#   etiqueta. O que continua fora da forma é o link e o que não é imagem.]
 printf 'rascunho' > "$PACK_DIR/icones/biblioteca/rascunho.png"
+mkdir -p "$PACK_DIR/icones/biblioteca/etiqueta"
+cp "$RAIZ/packs/dracula/icones/apps/steam.svg" "$PACK_DIR/icones/biblioteca/etiqueta/vapor2.svg"
 ln -s /etc/hostname "$PACK_DIR/icones/biblioteca/link.svg"
+printf 'nota' > "$PACK_DIR/icones/biblioteca/etiqueta/nota.txt"
 saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
-[ "$rc" = "1" ] && [[ "$saida" == *"rascunho.png"* ]] && [[ "$saida" == *"link.svg"* ]] \
-  && ok "o validar recusa o que não é desenho na biblioteca, e nomeia os dois de uma vez" \
-  || falha "o validar aceitou um .png e um link na biblioteca (rc=$rc)" "$saida"
+[ "$rc" = "1" ] && [[ "$saida" == *"link.svg"* ]] && [[ "$saida" == *"etiqueta/nota.txt"* ]] \
+  && [[ "$saida" != *"rascunho.png"* ]] && [[ "$saida" != *"vapor2.svg"* ]] \
+  && ok "o validar aceita PNG e subpasta na biblioteca, recusa link e o que não é imagem, e nomeia todos de uma vez" \
+  || falha "a forma da biblioteca não é a da decisão 14 (rc=$rc)" "$saida"
+rm -rf "$PACK_DIR/icones/biblioteca/etiqueta" "$PACK_DIR/icones/biblioteca/rascunho.png"
 # A PORTA DO MOTOR NÃO RECUSA: a biblioteca não é instalada por ninguém, e um
 #   arquivo solto nela não pode fazer o pack inteiro ser ignorado.
 saida="$(amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id 2>&1)"; rc=$?
