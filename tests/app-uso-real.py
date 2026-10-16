@@ -71,6 +71,7 @@ USO
 """
 import importlib.util
 import os
+import re
 import shutil
 import sys
 import time
@@ -831,8 +832,64 @@ def acabamento(pag):
     return reprovas
 
 
+GENTE_TSV = os.path.join(casa.ESTADO, "precisa-de-gente.tsv")
+GENTE = (
+    ("sentinela-cosmic", "O COSMIC da fila não entra", "2026-10-14T12:03:00-03:00",
+     "série: cosmic-comp-sem-workspace-vazio.patch é OBRIGATÓRIO e não entra nem com -F1"),
+    ("patch-obrigatorio", "Patch obrigatório precisa de rebase", "2026-10-15T20:15:00-03:00",
+     "cosmic-comp 4d14528: a série não entra, e a sessão segue no compositor de fábrica até um rebase em patches/"),
+)
+
+GENTE_JS = """() => {
+  const cartoes = [...document.querySelectorAll('.home-gente')];
+  const linhas = cartoes.flatMap((c) => [...c.querySelectorAll('.pendencia')]);
+  return {
+    cartoes: cartoes.length,
+    linhas: linhas.length,
+    nomes: linhas.map((l) => l.querySelector('.pendencia-frase').textContent),
+    selos: linhas.map((l) => (l.querySelector('.selo-gente .selo-valor') || {}).textContent || ''),
+    dicas: linhas.map((l) => !!l.querySelector('.pendencia-topo button.porque, .pendencia-topo [aria-label]')),
+    texto: cartoes.map((c) => c.innerText.length),
+  };
+}"""
+
+
+def cartao_de_gente(pag):
+    """O cartão «precisa de gente» da Início: UM, uma linha por item, e some sem o arquivo."""
+    reprovas = []
+    abrir_pagina(pag, "Início")
+    assentar(pag)
+    v = pag.evaluate(GENTE_JS)
+    if v["cartoes"] != 1:
+        reprovas.append(("Início", f"o cartão «precisa de gente» devia ser UM, são {v['cartoes']}"))
+    elif v["linhas"] != len(GENTE):
+        reprovas.append(("Início", f"o cartão devia ter {len(GENTE)} linhas, tem {v['linhas']}"))
+    else:
+        if v["nomes"] != [g[1] for g in GENTE]:
+            reprovas.append(("Início", f"nomes do cartão fora da ordem do arquivo: {v['nomes']}"))
+        if not all(re.fullmatch(r"desde \d\d/\d\d", t) for t in v["selos"]):
+            reprovas.append(("Início", f"o selo de desde-quando saiu torto: {v['selos']}"))
+        if not all(v["dicas"]):
+            reprovas.append(("Início", "uma linha do cartão ficou sem o porquê na dica"))
+        if v["texto"][0] > 200:
+            reprovas.append(("Início", f"o cartão tem {v['texto'][0]} caracteres visíveis: o porquê é da dica"))
+    if FOTOS:
+        os.makedirs(FOTOS, exist_ok=True)
+        pag.screenshot(path=os.path.join(FOTOS, "p86-precisa-de-gente.png"))
+    os.remove(GENTE_TSV)
+    pag.evaluate("() => recarregarPendencias().then(() => render())")
+    assentar(pag)
+    if pag.evaluate(GENTE_JS)["cartoes"] != 0:
+        reprovas.append(("Início", "o cartão «precisa de gente» não sumiu quando o arquivo saiu"))
+    return reprovas
+
+
 def main():
     ambiente = casa.montar_casa()
+    os.makedirs(casa.ESTADO, exist_ok=True)
+    with open(GENTE_TSV, "w", encoding="utf-8") as fh:
+        for linha in GENTE:
+            fh.write("\t".join(linha) + "\n")
     proc, url = casa.sobe_servidor(ambiente)
     if not url:
         print("ERRO: o app/run.sh não imprimiu a URL")
@@ -921,6 +978,13 @@ def main():
             achados = casos_da_p82(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} casos da P82: {len(achados)} defeito(s)")
+
+            # 8. O CARTÃO DE «PRECISA DE GENTE» (P86, item 4)
+            print("\n8. O CARTÃO DE PRECISA DE GENTE")
+            pagina_atual["nome"] = "precisa de gente"
+            achados = cartao_de_gente(pag)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} precisa de gente: {len(achados)} defeito(s)")
 
             # 5. A 375 PX (P82, item 21)
             print("\n5. A 375 PX")

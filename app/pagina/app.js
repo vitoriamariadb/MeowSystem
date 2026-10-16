@@ -6799,6 +6799,7 @@ const SELO_ICONES = {
   pack: '<path d="M2.5 5 8 2.5 13.5 5v6L8 13.5 2.5 11z"/><path d="M2.5 5 8 7.5 13.5 5M8 7.5v6"/>',
   mexeu: '<circle cx="8" cy="8" r="3.5" fill="currentColor" stroke="none"/>',
   pendente: '<circle cx="8" cy="8" r="3.5"/>',
+  gente: '<circle cx="8" cy="5.2" r="2.4"/><path d="M3.2 13.5a4.8 4.8 0 0 1 9.6 0"/>',
   /* [P77, Início: o que era a linha «Próprio: … · herdado do X: …» do cartão
    * do pack, o «Logo X, escolhida pelo relógio · ícones … · ponteiro …» do
    * retrato e o parágrafo «À noite…» viraram selos. Cada fato ganhou o
@@ -10404,8 +10405,40 @@ function casa(item, busca) {
 let PENDENCIAS = [];
 
 async function recarregarPendencias() {
-  const r = await api("/api/pendencias");
+  const [r, g] = await Promise.all([api("/api/pendencias"), api("/api/precisa-de-gente")]);
   PENDENCIAS = (r && !r.erro && Array.isArray(r.pendencias)) ? r.pendencias : [];
+  PRECISA_DE_GENTE = (g && !g.erro && Array.isArray(g.itens)) ? g.itens : [];
+}
+
+/* O QUE PRECISA DE GENTE (P86): o que a máquina não conserta sozinha, num cartão só.
+ * Cada linha traz o nome curto e, ao lado, o selo «desde quando»; o porquê vai para o
+ * `?`. Sem linha, o cartão não nasce. Na página exportada a lista nasce vazia. */
+let PRECISA_DE_GENTE = [];
+
+function desdeCurto(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+}
+
+function montarPrecisaDeGente() {
+  if (!PRECISA_DE_GENTE.length) return null;
+  const caixa = elemento("section", { class: "home-pendencias home-gente" });
+  caixa.append(elemento("h3", {}, [elemento("span", { texto: "Precisa de gente" })]));
+  for (const g of PRECISA_DE_GENTE) {
+    const desde = desdeCurto(g.desde);
+    const linha = elemento("div", { class: "pendencia" });
+    linha.append(elemento("div", { class: "pendencia-topo com-dica" }, [
+      elemento("p", { class: "pendencia-frase", texto: g.nome }),
+      ...gatilhoDeDica("dica-gente-" + idDeAba(g.id), `Sobre ${g.nome}`,
+                       [elemento("p", { class: "resumo", texto: g.porque })]),
+    ]));
+    if (desde) linha.append(elemento("div", { class: "pendencia-botoes" }, [
+      selo("gente", { texto: "desde " + desde, balao: "Espera uma pessoa desde " + desde }),
+    ]));
+    caixa.append(linha);
+  }
+  return caixa;
 }
 
 /* O «Resolver» NÃO executa a string do arquivo — ele roda a AÇÃO que o servidor
@@ -11760,6 +11793,8 @@ function montarHome() {
   /* ACIMA DO "Nada esperando", e a ordem é o argumento: o que o programa sabe
    * consertar vem antes do que ele está esperando que ela decida. Sem pendência
    * o bloco não nasce, e a coluna fica exatamente como era. */
+  const gente = montarPrecisaDeGente();
+  if (gente) lado.append(gente);
   const pendencias = montarPendencias();
   if (pendencias) lado.append(pendencias);
   lado.append(atencao);

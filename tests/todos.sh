@@ -96,6 +96,7 @@ PORTATIL=(
   pack-dracula-completo.sh # o pack Dracula completo e exportável, packs e HOME de brinquedo (P74); bash e python3
   compositor-shim.sh     # shim do compositor com dpkg-query e binários falsos, HOME de brinquedo (P76); só bash
   decisoes.sh            # uma decisão, um teste: o resolvedor de ícones, o servidor, o app.js no node, o run.sh com getent falso e a troca de pack, HOME de brinquedo (P86); bash, python3 e node
+  precisa-de-gente.sh    # os verbos, o degrau 4 do garantir_builds, o servidor e o app.js no node, HOME de brinquedo (P86); bash, python3 e node
   sentinela.sh           # apt falso, .deb e fontes de brinquedo, HOME de brinquedo: a fila medida uma vez, o cartão de «precisa de gente» (P86); bash e dpkg-deb
   cosmic-prever.sh       # .deb e fontes de brinquedo do cosmic-comp, sem apt nem rede (P76); bash e dpkg-deb
   pos-apt.sh             # pós-apt do COSMIC com dpkg-query e passos falsos, HOME de brinquedo (P76); só bash
