@@ -137,6 +137,13 @@ sentinela quebrado CV_SEM=just; rc=$?
 igual "o cartão continua um só" "$(cartoes)" 1
 igual "o desde quando é o de antes" "$(cut -f3 "$E/precisa-de-gente.tsv")" "$d1"
 
+echo "== 6b. um candidato bom toma o lugar do quebrado: o cartão some, sem gente"
+printf 'cosmic-comp/jammy 1.0~bom amd64 [upgradable from: 0.9]\n' > "$T/fila.txt"
+sentinela bom; rc=$?
+igual "rc 0" "$rc" 0
+igual "resultado sem vermelho" "$(estado resultado | grep -c vermelho)" 0
+igual "nenhum cartão" "$(cartoes)" 0
+
 echo "== 7. a fila esvazia (quem usa atualizou): o cartão some sozinho"
 : > "$T/fila.txt"
 sentinela bom; rc=$?
