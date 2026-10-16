@@ -997,6 +997,16 @@ function completarParDaNoite(chave, valor) {
 function escolher(chave, valor, cartao) {
   const item = ESQUEMA.chaves.find((i) => i.chave === chave);
   if (!item) return;
+  /* O PACK SE ESCOLHE POR UM GESTO SÓ — 15/10/2026, P82 (item 24; decisão 23).
+   *   Em «Cor e tela» a escolha do pack ia para a bandeja e esperava o «Salvar e
+   *   aplicar»; na Início, o «Usar este» trocava na hora. Duas portas, dois
+   *   comportamentos para a mesma escolha. Agora as duas são o `usarPack`: a
+   *   mesma ação (`pack_usar`), a mesma caixa e o mesmo selo. O pack só muda
+   *   na tela quando a troca termina, por isso a marcação não anda aqui. */
+  if (chave === "PACK" && valor && valor !== (item.valor ?? "")) {
+    usarPack(PACKS.find((p) => p.id === valor) || { id: valor, nome: rotuloDeValor(valor) });
+    return false;
+  }
   completarParDaNoite(chave, valor);
   const noDisco = item.valor ?? "";
   if (valor === noDisco) MUDANCAS.delete(chave);

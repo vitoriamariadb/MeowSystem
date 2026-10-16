@@ -1562,6 +1562,30 @@ class Percurso:
             self.acionar_revelados(antes)
         self.desfazer()
 
+    def h_pack_opcao(self, nome):
+        """O PACK SE ESCOLHE POR UM GESTO SÓ — P82, item 24 (decisão 23). Em «Cor
+        e tela» a opção de outro pack é o mesmo pedido do «Usar este» da Início:
+        a ação `pack_usar`, com o id do pack, pela mesma caixa — e nada entra na
+        bandeja do Salvar. A opção do pack no ar não faz nada."""
+        for i in range(self.quantos(nome)):
+            el = self.achar(nome, i)
+            if el is None or el.is_disabled() or el.get_attribute("aria-pressed") == "true":
+                continue
+            valor = el.get_attribute("data-valor") or ""
+            if not valor:
+                continue
+            n0 = len(self.posts)
+            self.gesto_de_acao(lambda i=i: self.clicar_nome(nome, i), f"pack {valor}")
+            pedidos = [c for d, c in self.posts[n0:] if d == "rodar"]
+            self.checa(pedidos and all(c.get("acao") == "pack_usar" and c.get("argumento") == valor
+                                       for c in pedidos),
+                       f"PACK: escolher {valor!r} em «Cor e tela» manda o mesmo pedido do «Usar "
+                       f"este» ({[(c.get('acao'), c.get('argumento')) for c in pedidos]})")
+            self.checa(not self.cartao("PACK")["pendente"],
+                       f"PACK: escolher {valor!r} não deixa nada na bandeja do Salvar")
+            return
+        self.falha("PACK: nenhuma opção de outro pack para escolher")
+
     def mexer_no_cartao(self, chave):
         """Um gesto qualquer que mude o cartão — para provar que um botão de
         voltar (Restaurar, Automático, vazio) desfaz alguma coisa."""
@@ -3215,6 +3239,7 @@ class Percurso:
     def acionador(self, nome):
         tabela = [
             (r" · \?$", self.h_porque),
+            (r"^ajuste PACK · opção$", self.h_pack_opcao),
             (r"^ajuste \S+ · opção$", self.h_opcoes),
             # [P79, decisão 10: o restaurar das chaves de fábrica preenchida diz
             #   o de fábrica no parêntese; o «Não tocar» é o vazio delas.]
