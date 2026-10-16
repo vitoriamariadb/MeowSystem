@@ -7,7 +7,7 @@ entregava. Os dois consertos são da P20, em 21/09/2026: o arquivo passa a
 existir, e o validador passa a cobrar.
 
 A procedência completa dos ícones deste repositório está em
-[`assets/icones/PROCEDENCIA.md`](../../assets/icones/PROCEDENCIA.md), e ela
+[`packs/meowsystem/PROCEDENCIA.md`](../meowsystem/PROCEDENCIA.md), e ela
 manda. O que está aqui é o recorte do que é **deste pack**.
 
 ## A paleta
@@ -55,7 +55,7 @@ O upstream é `dracula-icons-circle` / `dracula-icons-main`, do Dracula theme.
 da paleta Dracula — é arte acabada, não glifo de traço. Por isso
 `icones.apps.recolorir` é `false` no `pack.json`.
 
-## Os 7 desenhos de pasta — `icones/pastas/`
+## Os 7 desenhos de pasta — `icones/sistema/pastas/`
 
 Desenho próprio deste projeto, um por pasta XDG, feitos sobre a silhueta da
 pasta base em 16/09/2026. Existem porque o `catppuccin/vscode-icons` cobre os
@@ -86,5 +86,5 @@ que imprime a herança linha a linha, o que o pack não traz é isto:
 
 O `pack.json` declara `GPL-3.0-or-later` para o pack. Os desenhos de aplicativo
 são obra de terceiros ou cópia literal, e a licença de cada acervo de origem é a
-que vale sobre eles — a tabela de `assets/icones/PROCEDENCIA.md` é a fonte dessa
+que vale sobre eles — a tabela de `packs/meowsystem/PROCEDENCIA.md` é a fonte dessa
 resposta, coluna por coluna.

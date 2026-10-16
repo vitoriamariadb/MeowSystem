@@ -74,9 +74,45 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 ALVO="$TEMA_DIR/scalable/apps"
-ACERVO="$RAIZ/assets/icones/resgatados"
-MAPA="$RAIZ/assets/icones/apps-resgatados.map"
 APPS_USUARIO="$HOME/.local/share/applications"
+
+# OS RESGATADOS SÃO DO PACK DRACULA — P88, decisão 16. Têm cor Dracula fixa e
+#   moravam no motor (assets/icones/), onde o Catppuccin os herdava. O mapa e os
+#   desenhos vêm agora do pack no ar, pela herança (`icones.resgatados`). Com um
+#   pack que não os traz, o que um dia foi posto sai do tema pelo nome, lido do
+#   mapa de quem os traz (`SO_TIRAR`).
+_pack_ref="$(meow_pack_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.resgatados.mapa 2>/dev/null)" || MAPA=""
+ACERVO="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.resgatados.desenhos 2>/dev/null)" || ACERVO=""
+ACERVO="${ACERVO%/}"
+SO_TIRAR=0
+if [ -z "$MAPA" ] || [ -z "$ACERVO" ]; then
+  # Só sai o que é byte a byte o desenho de quem os traz: o nome sozinho não
+  #   diz de quem é o arquivo em `scalable/apps`, que tem outros donos.
+  SO_TIRAR=1
+  { IFS= read -r MAPA; IFS= read -r ACERVO; } < <(python3 -I - "$RAIZ/scripts" <<'PYFIM' 2>/dev/null
+import os, sys
+sys.path.insert(0, sys.argv[1])
+import pack
+for base in pack.raizes():
+    try:
+        ids = sorted(os.listdir(base))
+    except OSError:
+        continue
+    for pid in ids:
+        dir_pack = os.path.join(base, pid)
+        if not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+            continue
+        mapa = pack.acervo("icones.resgatados.mapa", ref=dir_pack)
+        pasta = pack.acervo("icones.resgatados.desenhos", ref=dir_pack)
+        if mapa and pasta:
+            print(mapa)
+            print(pasta.rstrip("/"))
+            raise SystemExit(0)
+PYFIM
+)
+fi
 
 # Os `.desktop` cujo `Icon=` é caminho absoluto, e o nome de ícone que cada um
 # passa a usar. A chave é o ARQUIVO, porque é ele que a cópia local sombreia.
@@ -127,24 +163,43 @@ _resgatados_cedidos() {
     | awk -F'\t' '$3 ~ /^pack:/ || $3 == "escolha" { print $1 }'
 }
 
+_resgatados_todos() {
+  sed -e 's/#.*//' "$MAPA" | awk -F: 'NF>=3 { gsub(/^[ \t]+|[ \t]+$/, "", $1); if ($1 != "") print $1 }'
+}
+
+# O MAPA É DADO DE PACK DESDE A P88, E PACK PODE SER DE TERCEIRO — a regra da
+#   P78. O nome vira `<nome>.svg` dentro do tema: só passa o de conjunto fechado
+#   (`meow_nome_seguro`), e a linha torta é pulada e contada (`_resgatados_tortos`).
 _resgatados_nomes() {
   [ -f "$MAPA" ] || return 1
-  local cedidos
+  local cedidos nome
   cedidos="$(_resgatados_cedidos)"
-  sed -e 's/#.*//' "$MAPA" | awk -F: 'NF>=3 { gsub(/^[ \t]+|[ \t]+$/, "", $1); if ($1 != "") print $1 }' \
+  _resgatados_todos \
     | awk -v cedidos="$cedidos" 'BEGIN { n = split(cedidos, c, "\n"); for (i = 1; i <= n; i++) fora[c[i]] = 1 }
-                                 !($0 in fora)'
+                                 !($0 in fora)' \
+    | while IFS= read -r nome; do meow_nome_seguro "$nome" && printf '%s\n' "$nome"; done
+  return 0
+}
+
+_resgatados_tortos() {
+  local nome n=0
+  [ -f "$MAPA" ] || { printf 0; return 0; }
+  while IFS= read -r nome; do meow_nome_seguro "$nome" || n=$((n + 1)); done < <(_resgatados_todos)
+  printf '%s' "$n"
 }
 
 # --- instalar -----------------------------------------------------------------
 _resgatados_instalar() {
+  [ "$SO_TIRAR" = "0" ] || { meow_pula "o pack no ar não traz resgatados"; return "$MEOW_SEM_DEPENDENCIA"; }
   local rc=0 nome origem
   local postos=0 faltando=()
 
   while read -r nome; do
     [ -n "$nome" ] || continue
-    origem="$ACERVO/$nome.svg"
-    if [ ! -f "$origem" ]; then
+    # O desenho é lido pelo `meow_dentro`: um link que sai da pasta do pack não
+    # é desenho, e conta como ausente.
+    origem="$(meow_dentro "$ACERVO" "$nome.svg")" || origem=""
+    if [ -z "$origem" ] || [ ! -f "$origem" ]; then
       # Nome no mapa sem desenho no acervo: é falha de quem editou o mapa, e
       # dizer qual é vale mais que um total. Não aborta — os outros 19 não têm
       # culpa de um nome digitado errado.
@@ -163,7 +218,7 @@ _resgatados_instalar() {
   done < <(_resgatados_nomes)
 
   if [ "${#faltando[@]}" -gt 0 ]; then
-    meow_aviso "no mapa mas sem desenho em assets/icones/resgatados/: ${faltando[*]}"
+    meow_aviso "no mapa mas sem desenho em $ACERVO/: ${faltando[*]}"
     [ "$rc" = "0" ] && rc=1
   fi
 
@@ -293,10 +348,14 @@ _resgatados_desktops_instalar() {
 # volta a ser o que o resolvedor acha. Por NOME, nunca por varredura — o
 # `scalable/apps` tem outros dois donos.
 _resgatados_remover() {
-  local rc=0 nome tirados=0 arquivo
+  local rc=0 nome tirados=0 arquivo de_quem
   while read -r nome; do
     [ -n "$nome" ] || continue
     [ -f "$ALVO/$nome.svg" ] || continue
+    if [ "$SO_TIRAR" = "1" ] && { ! de_quem="$(meow_dentro "$ACERVO" "$nome.svg")" \
+         || [ "$(cat "$ALVO/$nome.svg")" != "$(cat "$de_quem" 2>/dev/null)" ]; }; then
+      continue
+    fi
     if meow_seco; then
       meow_muda "removeria $ALVO/$nome.svg"; rc=1; continue
     fi
@@ -330,7 +389,10 @@ _resgatados_remover() {
   [ "$tirados" -gt 0 ] && { meow_ok "$tirados ícone(s) resgatado(s) retirado(s) do tema"; rc=1; }
   # Desligado e já sem nenhum no tema: a linha do doctor também precisa dizer
   # alguma coisa (o mesmo achado 5 de 09/10, do lado do `ICONES_RESGATADOS=nao`).
-  [ "$rc" = "0" ] && meow_ok "resgatados desligados — nenhum no tema"
+  if [ "$rc" = "0" ]; then
+    if [ "$SO_TIRAR" = "1" ]; then meow_ok "o pack no ar não traz resgatados — nenhum no tema"
+    else meow_ok "resgatados desligados — nenhum no tema"; fi
+  fi
   return "$rc"
 }
 
@@ -347,7 +409,10 @@ _resgatados_estado() {
 
 # --- ponto de entrada ---------------------------------------------------------
 _resgatados_aplicar() {
-  if [ "${ICONES_RESGATADOS:-sim}" = "sim" ]; then _resgatados_instalar
+  local tortos
+  tortos="$(_resgatados_tortos)"
+  [ "${tortos:-0}" -gt 0 ] && meow_aviso "$tortos linha(s) com nome fora da forma no mapa dos resgatados — pulada(s)"
+  if [ "${ICONES_RESGATADOS:-sim}" = "sim" ] && [ "$SO_TIRAR" = "0" ]; then _resgatados_instalar
   else _resgatados_remover; fi
 }
 

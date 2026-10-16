@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Três lajes com runas sobre disco claro; grade 512 reduzida por 0,25 -->
+  <g transform="scale(0.25)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="258" cy="256" r="246" fill="#383A4C"/>
+    <circle cx="258" cy="256" r="216" fill="#C8C8C2"/>
+    <g stroke="#F8F8F2" stroke-width="3.5">
+      <rect x="150" y="143" width="40" height="222"/>
+      <path d="M232 142 H270 V232 L262 242 L270 252 V344 H232 Z"/>
+      <rect x="314" y="143" width="40" height="222"/>
+    </g>
+    <g stroke="#F8F8F2" stroke-width="3.5">
+      <path d="M160 160 L172 160 L172 182 M162 330 L162 205 M176 270 V292 L164 280 M170 322 L178 340 M170 248 H178 L180 262 L170 262"/>
+      <path d="M244 160 V198 M244 160 Q262 156 262 172 Q262 186 244 184 M240 258 V290 M240 258 L256 266 L240 276 M244 322 L258 350 M244 350 L258 322"/>
+      <path d="M326 160 V198 M326 160 Q344 156 344 172 Q344 186 326 184 M326 184 L344 198 M326 244 V282 M326 244 Q344 240 344 256 Q344 270 326 268 M326 268 L344 282 M326 322 V350 M326 322 Q344 318 344 332 Q344 346 326 344 M326 344 L344 352"/>
+    </g>
+  </g>
+</svg>

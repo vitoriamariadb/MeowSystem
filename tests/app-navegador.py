@@ -122,7 +122,7 @@ except ImportError:
 #   `meow.conf` do brinquedo e nunca de um nome escrito aqui (`montar_casa`):
 #     · a grade de icones do tema, zero: o `NOME_TEMA_ICONES` nao existia em
 #       ~/.local/share/icons. Recebe os glifos versionados em
-#       `assets/icones/arcticons-apps/`, que sao o que o construtor veste;
+#       `packs/meowsystem/icones/apps/arcticons/`, que sao o que o construtor veste;
 #     · a galeria, zero: `ativos/` vazio. Recebe PAREDES imagens lisas;
 #     · o ponteiro, "3 de 0": o `CURSOR` de fabrica nao estava instalado, a
 #       lista do disco nao virava cerca e a chave ficava sem opcoes, enquanto
@@ -411,7 +411,7 @@ def montar_casa():
     # `_prev_icones` le.
     tema = os.path.join(icones, valor_de("NOME_TEMA_ICONES"), "scalable", "apps")
     os.makedirs(tema)
-    glifos = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
+    glifos = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
     for nome in sorted(os.listdir(glifos)):
         if nome.endswith(".svg"):
             shutil.copyfile(os.path.join(glifos, nome), os.path.join(tema, nome))

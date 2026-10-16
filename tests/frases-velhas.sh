@@ -134,7 +134,8 @@ CLASSES = [
      "cita": False, "onde": None, "gatilho": ("voltar ao",),
      "padroes": [re.compile(r"\bVoltar\s+ao\s+[íi]cone\s+de\s+f[áa]brica\b", I)]},
     {"num": 5, "nome": "a faixa de RMSE dos resgatados sem a data dela",
-     "cita": True, "onde": ("assets/icones/",), "gatilho": ("ficaram entre",),
+     "cita": True, "onde": ("assets/icones/", "packs/meowsystem/", "packs/dracula/icones/"),
+     "gatilho": ("ficaram entre",),
      "padroes": [re.compile(r"\bficaram\s+entre\s+\**\d+,\d+\**\s+e\s+\**\d+,\d+", I)]},
 ]
 
@@ -295,12 +296,12 @@ for classe in CLASSES:
 
 # ---------------------------------------------------------------------------
 # 5b. A FOLHA DE ANTES E DEPOIS NÃO FICA VELHA CALADA
-#   A folha (`assets/icones/resgatados/ANTES-E-DEPOIS.png`) sai do
+#   A folha (`assets/icones/resgatados-antes-e-depois.png`) sai do
 #   `scripts/resgatados_folha.sh`, que pede os PNG de origem nos caminhos do
 #   mapa — e em 25/09/2026 doze dos 21 não estavam mais no disco, então a
 #   folha daquele dia foi remontada a partir da velha, e não pelo script (o
 #   PROCEDENCIA.md conta a costura). Uma folha pode ficar mais velha que os
-#   desenhos, mas não calada, e a nota dela, no `assets/icones/PROCEDENCIA.md`
+#   desenhos, mas não calada, e a nota dela, no `packs/meowsystem/PROCEDENCIA.md`
 #   (do parágrafo que fala da folha até o fim daquela seção, o próximo `## `),
 #   responde por duas coisas:
 #     · a data da frase «A folha de hoje é de dd/mm/aaaa» é a do commit da
@@ -320,9 +321,9 @@ for classe in CLASSES:
 #   ponto da nota, a data dela não era cobrada, e uma folha apagada passava por
 #   «refeita nesta árvore».]
 # ---------------------------------------------------------------------------
-FOLHA = "assets/icones/resgatados/ANTES-E-DEPOIS.png"
-MAPA = "assets/icones/apps-resgatados.map"
-PROC = "assets/icones/PROCEDENCIA.md"
+FOLHA = "assets/icones/resgatados-antes-e-depois.png"
+MAPA = "packs/dracula/icones/apps-resgatados.map"
+PROC = "packs/meowsystem/PROCEDENCIA.md"
 DATA_DA_NOTA = re.compile(r"\bA\s+folha\s+de\s+hoje\s+é\s+de\s+\**(\d{1,2})/(\d{1,2})/(\d{4})\b", I)
 
 
@@ -354,7 +355,8 @@ def nomes_da_tabela(nota, cabeca):
 
 
 try:
-    r = git("log", "-1", "--format=%H %ad", "--date=short", "--", FOLHA)
+    # `--follow` e só A/M: a mudança de pasta da P88 (um `git mv`) não refaz a folha.
+    r = git("log", "-1", "--follow", "--diff-filter=AM", "--format=%H %ad", "--date=short", "--", FOLHA)
 except OSError:
     r = None
 if r is None or r.returncode != 0 or not r.stdout.strip():
@@ -391,6 +393,9 @@ else:
 
     velho = git("show", "%s:%s" % (commit, MAPA))
     if velho.returncode != 0:
+        # o endereço do mapa antes da P88, que o desceu do motor para o pack Dracula
+        velho = git("show", "%s:%s" % (commit, "assets/icones/apps-resgatados.map"))
+    if velho.returncode != 0:
         print("  --   classe 5 — o mapa dos resgatados não existia no commit da folha (pulado)")
     else:
         antes = nomes_do_mapa(velho.stdout)
@@ -398,8 +403,10 @@ else:
             hoje = nomes_do_mapa(fh.read())
         mudaram = sorted(antes ^ hoje)
         for nome in sorted(antes & hoje):
-            svg = "assets/icones/resgatados/%s.svg" % nome
-            era = git("rev-parse", "%s:%s" % (commit, svg)).stdout.strip()
+            svg = "packs/dracula/icones/apps/resgatados/%s.svg" % nome
+            era = (git("rev-parse", "--verify", "-q", "%s:%s" % (commit, svg)).stdout.strip()
+                   or git("rev-parse", "--verify", "-q",
+                          "%s:assets/icones/resgatados/%s.svg" % (commit, nome)).stdout.strip())
             e = git("hash-object", "--", svg).stdout.strip()
             if era and e and era != e:
                 mudaram.append(nome)

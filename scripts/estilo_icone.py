@@ -2,7 +2,7 @@
 """estilo_icone.py — mede a CANETA de um SVG do acervo, não o desenho.
 
     ./scripts/estilo_icone.py arquivo.svg [...]        uma linha por arquivo
-    ./scripts/estilo_icone.py --faixa assets/icones/arcticons-apps
+    ./scripts/estilo_icone.py --faixa packs/meowsystem/icones/apps/arcticons
     ./scripts/estilo_icone.py --json arquivo.svg
 
     0 = mediu · 2 = erro · 3 = falta dependência

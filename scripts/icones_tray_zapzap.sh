@@ -10,7 +10,7 @@
 #    voltaram aos originais. ao invés de respeitar o mesmo icon do wpp e afins"
 #
 # Está certa, e o repositório já tinha PREVISTO isto por escrito em 10/08 —
-# `assets/icones/bandeja.map`, seção "O ZAPZAP FOI VESTIDO NA FONTE":
+# `packs/meowsystem/icones/bandeja.map`, seção "O ZAPZAP FOI VESTIDO NA FONTE":
 #
 #   "Um `flatpak update com.rtosta.zapzap` devolve o arquivo de fábrica e o
 #    ícone volta a destoar, SEM NADA ACUSANDO."
@@ -97,7 +97,7 @@
 # medição acima. E é também a porta: a constante é editável.
 #
 # POR QUE A EDIÇÃO É ESTRUTURAL, E NÃO UM ARQUIVO INTEIRO POR CIMA
-#   O `assets/icones/bandeja.map` avisa, com razão, que "se um dia o ZapZap mudar o
+#   O `packs/meowsystem/icones/bandeja.map` avisa, com razão, que "se um dia o ZapZap mudar o
 #   formato daquela constante, reaplicar às cegas pode QUEBRAR O APP — é código
 #   Python sendo editado, não um PNG".
 #
@@ -152,7 +152,7 @@
 #   Ao lado do arquivo há `__pycache__/tray_icon.cpython-313.pyc`. O Python
 #   invalida `.pyc` por tamanho+mtime da fonte, e os dois mudam aqui — então na
 #   prática ele já seria ignorado. O `.pyc` é removido mesmo assim porque a
-#   instrução de DESFAZER do `assets/icones/bandeja.map` manda removê-lo, e deixar para
+#   instrução de DESFAZER do `packs/meowsystem/icones/bandeja.map` manda removê-lo, e deixar para
 #   trás um arquivo compilado de um código que não existe mais é a espécie de
 #   detalhe que custa uma tarde daqui a um ano. O `/app` é somente-leitura dentro
 #   do sandbox: o ZapZap recompila em memória a cada abertura, o que para UM
@@ -189,7 +189,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 . "$RAIZ/lib/comum.sh"
 
 APP_ID="${MEOW_TRAY_ZAPZAP_APP:-com.rtosta.zapzap}"
-GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-$RAIZ/assets/icones/arcticons/whatsapp.svg}"
+GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-$RAIZ/packs/meowsystem/icones/sistema/arcticons/whatsapp.svg}"
 TRACO="${MEOW_TRAY_ZAPZAP_TRACO:-4}"
 GUARDA="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/zapzap"
 

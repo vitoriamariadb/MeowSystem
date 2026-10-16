@@ -114,8 +114,13 @@ io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do g
 #   A linha saiu do `apps-resgatados.map` no mesmo commit: os dois escrevem em
 #   `scalable/apps`, e um nome com duas fontes ali é o último instalador que
 #   rodar vencendo calado — o que a regra 1 ("um nome, uma fonte") proíbe.
-#   A raposa continua em `assets/icones/resgatados/`, como alternativa.
-net.waterfox.waterfox : apps/net.waterfox.waterfox.svg   # Waterfox — o Firefox do dracula-icons (circle)
+#   A raposa continua em `apps/resgatados/`, como alternativa (P88: era
+#   `assets/icones/resgatados/`).
+#   [16/10/2026, P87, decisão 16 (3): a ligada é a que vence a régua do BRIEFING,
+#   e no Waterfox vence a raposa do motor (0,048 contra o `firefox.png`, 0,069
+#   da P84). O Firefox-Dracula fica em `apps/` como alternativa, achado na
+#   busca pelo `catalog.json` da pasta.]
+net.waterfox.waterfox : apps/resgatados/net.waterfox.waterfox.svg   # Waterfox — a raposa roxa do motor, vence a régua
 
 # OS TRÊS RESGATADOS APROVADOS — 09/10/2026, P73 (I8)
 #   Pedido dela, 16/09: «Syncthing eu ia pedir pra refazer…» e, sobre a leva
@@ -291,7 +296,7 @@ gucharmap : apps/accessories-character-map.svg   # Mapa de caracteres [upstream]
 accessories-character-map : apps/accessories-character-map.svg   # Mapa de caracteres [upstream]
 ibus-setup-chewing : apps/ibus-setup-chewing.svg   # IBus Chewing Preferences [upstream]
 im-config : apps/input-keyboard.svg   # Input Method [upstream]
-io.elementary.appcenter : biblioteca/bag.svg   # Pop!_Shop [override-novo]
+io.elementary.appcenter : biblioteca/haunted-house.svg   # Pop!_Shop — o desenho que o tema antigo vestia
 pop-shop : biblioteca/bag.svg   # Pop!_Shop [override-novo]
 appcenter : biblioteca/bag.svg   # Pop!_Shop [override-novo]
 io.elementary.appcenter-daemon : biblioteca/haunted-house.svg   # Pop!_Shop Daemon [alias-heuristico]
@@ -333,7 +338,7 @@ org.gnome.font-viewer : biblioteca/scroll.svg   # Fonts [override-novo]
 org.gnome.gedit : apps/org.gnome.gedit.svg   # Editor de texto [alias-heuristico]
 gedit : apps/org.gnome.gedit.svg   # Editor de texto [alias-heuristico]
 text-editor : apps/org.gnome.gedit.svg   # Editor de texto [alias-heuristico]
-org.gnome.gThumb : biblioteca/eye-ball.svg   # gThumb [override-novo]
+org.gnome.gThumb : apps/org.gnome.gThumb.Import.svg   # gThumb — o desenho que o tema antigo vestia
 gthumb : biblioteca/eye-ball.svg   # gThumb [override-novo]
 org.gnome.gThumb.Import : apps/org.gnome.gThumb.Import.svg   # Import with gThumb [upstream]
 org.gnome.PowerStats : apps/gnome-power-manager.svg   # Estatísticas de energia [upstream]
@@ -409,6 +414,65 @@ thunderbird : apps/org.mozilla.Thunderbird.svg   # Thunderbird [alias-heuristico
 guvcview : apps/guvcview-lente.svg   # Visualizador de vídeo GTK UVC [current-nome]
 setup-mozc : biblioteca/tarot.svg   # Mozc Setup [override-novo]
 
+# OS DESENHOS QUE FALTAVAM VOLTAM A VESTIR — 16/10/2026, P87 (decisões 13 e 16)
+#   A varredura de 15/10 achou o que ficou sem linha quando a P37 aposentou o
+#   `rebuild_dracula_theme()`: o desenho existia (no pack, ou nos resgatados),
+#   e nenhum nome o pedia. A ligada ao programa é a que vence a régua do
+#   BRIEFING (RMSE contra o PNG feito à mão); as outras versões moram em
+#   `biblioteca/versoes/`, e quem usa troca pelo seletor.
+#   · os resgatados que o tema já vestia pelo `apps-resgatados.map` ganham a linha
+#     aqui (o pack no ar vence o motor, e o arquivo é o mesmo);
+#   · o uad-ng e o Ubuntu ficam com o desenho pedido em 15/09, e o de 12/09
+#     (o dela) mora em `biblioteca/versoes/`;
+#   · o Citrix é o vetor de 12/09 (0,030, contra 0,041 da P84): 11 nomes;
+#   · Discord, Opera, Gradia e Extensões vestem o vetor da P84; o Spotify
+#     continua o aprovado de 16/09 (0,020, contra 0,084 da P84);
+#   · 13 tipos de arquivo (shell, markdown e `.desktop`) vestiam três desenhos da
+#     biblioteca (`mimetypes` do `build.sh` do Dracula_OS-Theme). Aqui o `apps/`
+#     vem antes do `mimetypes/` na ordem de busca do tema (`construir_icones.sh`).
+uad-ng : apps/resgatados/uad-ng.svg   # Universal Android Debloater — o pedido de 15/09
+Ubuntu : apps/resgatados/Ubuntu.svg   # Ubuntu (contêiner) — a maleta de terminal, pedido de 15/09
+org.mozilla.thunderbird_esr : apps/resgatados/org.mozilla.thunderbird_esr.svg   # Thunderbird ESR
+scrcpy : apps/resgatados/scrcpy.svg   # scrcpy
+photogimp : apps/resgatados/photogimp.svg   # PhotoGIMP — vence a régua (0,042, contra 0,079 da P84)
+org.gnome.Nautilus : apps/resgatados/org.gnome.Nautilus.svg   # Arquivos — empate com a P84 (0,031, contra 0,028)
+com.github.rafostar.Clapper : apps/resgatados/com.github.rafostar.Clapper.svg   # Clapper — vence a régua (0,019, contra 0,052 da P84)
+com.microsoft.Edge : biblioteca/feitos-a-mao/edge.svg   # Microsoft Edge — vence a régua o vetor da P84 (0,073, contra 0,092)
+whatsapp-linux-app : biblioteca/feitos-a-mao/whatsapp.svg   # WhatsApp — vence a régua o vetor da P84 (0,049, contra 0,083)
+Ubuntu-selfservice : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+citrix : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+Ubuntu-configmgr : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+Ubuntu-conncenter : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+Ubuntu-fido2_llt : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+Ubuntu-logmgr : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+Ubuntu-nfcui : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+Ubuntu-receiver : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+Ubuntu-receiver_fido2 : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+Ubuntu-sendfeedback : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+Ubuntu-wfica : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
+discord : biblioteca/feitos-a-mao/discord.svg   # Discord — o vetor da P84 (0,013, contra 0,015)
+spotify : apps/com.spotify.Client.svg   # Spotify — o aprovado de 16/09
+opera : biblioteca/feitos-a-mao/opera.svg   # Opera — o vetor da P84
+com.opera.Opera : biblioteca/feitos-a-mao/opera.svg   # Opera — o vetor da P84
+gradia : biblioteca/feitos-a-mao/gradia.svg   # Gradia — o vetor da P84
+be.alexandervanhee.gradia : biblioteca/feitos-a-mao/gradia.svg   # Gradia — o vetor da P84
+extensions : biblioteca/feitos-a-mao/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
+org.gnome.Extensions : biblioteca/feitos-a-mao/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
+gnome-extensions : biblioteca/feitos-a-mao/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
+application-x-sh : biblioteca/spell.svg   # Script de shell
+application-x-shellscript : biblioteca/spell.svg   # Script de shell
+gnome-mime-application-x-shellscript : biblioteca/spell.svg   # Script de shell
+shellscript : biblioteca/spell.svg   # Script de shell
+text-x-script : biblioteca/spell.svg   # Script de shell
+text-x-sh : biblioteca/spell.svg   # Script de shell
+application-x-markdown : biblioteca/spellbook.svg   # Markdown
+text-markdown : biblioteca/spellbook.svg   # Markdown
+text-md : biblioteca/spellbook.svg   # Markdown
+text-plain+markdown : biblioteca/spellbook.svg   # Markdown
+text-x-markdown : biblioteca/spellbook.svg   # Markdown
+application-x-desktop : biblioteca/gate.svg   # Atalho de aplicativo (.desktop)
+gnome-mime-application-x-desktop : biblioteca/gate.svg   # Atalho de aplicativo (.desktop)
+
 # --- já têm arte autoral no MeowSystem (não entram) -----------------------
 # com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
 # com.system76.CosmicEdit                    -> autorais/cosmic-edit-dracula.svg   # Editor de Texto
@@ -418,11 +482,5 @@ setup-mozc : biblioteca/tarot.svg   # Mozc Setup [override-novo]
 
 # --- sem desenho ainda ----------------------------------------------------
 # com.boxy_svg.BoxySVG : ?   # Boxy SVG
-# Ubuntu-selfservice : ?   # Citrix Workspace (on Ubuntu)
-# com.github.rafostar.Clapper : ?   # Clapper
-# be.alexandervanhee.gradia : ?   # Gradia
 # com.meowsystem.Painel : ?   # MeowSystem
-# com.microsoft.Edge : ?   # Microsoft Edge
 # com.obsproject.Studio : ?   # OBS Studio
-# uad-ng : ?   # Universal Android Debloater
-# whatsapp-linux-app : ?   # WhatsApp

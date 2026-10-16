@@ -1,0 +1,28 @@
+{
+  "_nota": "O pack mínimo no formato de três pastas (P88, decisão 14): o que o validar pede, e um desenho em cada pasta para mostrar onde cada coisa mora. Copie a pasta para ~/.local/share/meowsystem/packs/<seu-id>/, troque o id e o nome, e valide com `meow pack validar <seu-id>`.",
+  "formato": 2,
+  "id": "pack-minimo",
+  "nome": "Pack mínimo",
+  "autor": "vitoriamariadb",
+  "licenca": "GPL-3.0-or-later",
+  "creditos": "CREDITOS.md",
+  "vitrine": {
+    "capa": "logo.svg",
+    "descricao_curta": "O exemplo do formato: três pastas de ícone.",
+    "descricao": "LEIA-ME.md"
+  },
+  "paleta": {
+    "arquivo": "paleta.json",
+    "flavor_padrao": "noite"
+  },
+  "icones": {
+    "apps": {
+      "mapa": "icones/apps.map",
+      "desenhos": "icones/apps/"
+    },
+    "pastas": {
+      "mapa": "icones/pastas.map",
+      "desenhos": "icones/sistema/pastas/"
+    }
+  }
+}

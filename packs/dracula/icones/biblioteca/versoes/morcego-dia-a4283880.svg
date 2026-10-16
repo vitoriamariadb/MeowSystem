@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Morcego dormindo (dia)">
+  <title>morcego-dia — o morcego pendurado de cabeça para baixo, dormindo, símbolo de dia</title>
+  <defs>
+    <clipPath id="morcego-dia-disco">
+      <circle cx="24" cy="24" r="23"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#morcego-dia-disco)">
+    <!-- disco: lado claro da paleta -->
+    <circle cx="24" cy="24" r="23" fill="#D6ACFF"/>
+
+    <!-- manchas do disco, como no original: base clara com remendos um tom abaixo -->
+    <g fill="#BD93F9">
+      <path d="M-2 17.4c.6-6.6 4.4-12.4 9.8-16.2 4.2.6 7.4 3 7.6 6.2.2 3.8-3.4 6.8-8.2 8.4-3.6 1.2-6.8 1.8-9.2 1.6Z"/>
+      <path d="M-2 29c4.6-1.6 9 .4 10.8 4.2 1.8 3.8.4 8.6-3.4 10.2C1.4 39.8-1.4 34.8-2 29Z"/>
+      <path d="M13.6 50c.4-5 5-8.6 10.8-8.4 4.6.2 8.2 2.8 9.6 6.6.2.6.3 1.2.4 1.8Z"/>
+      <path d="M38.4 45.6c1-4.6 5.2-8 10.6-8.4L50 49c-4.6.4-9-1-11.6-3.4Z"/>
+      <path d="M28.4-2c5.4-.4 10.6 1.4 14 4.8-2.6 3.2-7.6 4.2-11.6 2.4-3-1.4-4-4.4-2.4-7.2Z"/>
+    </g>
+
+    <!-- galho de onde ele se pendura, na borda de cima do disco -->
+    <path d="M-1 7.2c10-1.4 22-2 37.6-1.6 4.4.2 8.4.6 12.4 1.2v2.6c-4-.6-8-1-12.4-1.2-15.6-.4-27.6.2-37.6 1.6Z" fill="#191A21"/>
+
+    <!-- pés agarrados no galho -->
+    <g fill="none" stroke="#191A21" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.8 13.4V7.4l-2 1.8"/>
+      <path d="M27.2 13.2V7l2 1.8"/>
+    </g>
+
+    <!-- cabeça de cabeça para baixo: orelhas grandes apontando para baixo -->
+    <g fill="#282A36">
+      <path d="M18 35.8c-2 2.6-2.9 5.8-3.1 8.6 3-1.6 5.6-4.2 6.9-7Z"/>
+      <path d="M30 35.8c2 2.6 2.9 5.8 3.1 8.6-3-1.6-5.6-4.2-6.9-7Z"/>
+      <path d="M24 26.8c4.7 0 8.4 3.1 8.9 7.5.5 4.1-2.5 8.1-8.9 8.1s-9.4-4-8.9-8.1c.5-4.4 4.2-7.5 8.9-7.5Z"/>
+    </g>
+
+    <!-- asas fechadas em volta do corpo, como uma capa -->
+    <path d="M24 11.4c-4.3 0-7.6 2.7-9.2 6.7-1.4 3.5-2.3 7.3-2.5 10.6q3 5 5.9 1q2.9 4.6 5.8.6q2.9 4 5.8-.6q2.9 4 5.9-1c-.2-3.3-1.1-7.1-2.5-10.6-1.6-4-4.9-6.7-9.2-6.7Z" fill="#191A21"/>
+    <!-- dobra da asa da frente, por cima da outra -->
+    <path d="M24 11.4c-4.3 0-7.6 2.7-9.2 6.7-1.4 3.5-2.3 7.3-2.5 10.6q3 5 5.9 1q2.9 4.6 5.8.6Z" fill="#21222C"/>
+
+    <!-- olhos fechados -->
+    <g fill="none" stroke="#D6ACFF" stroke-width="1.8" stroke-linecap="round">
+      <path d="M18.6 33.2q2.2 2.7 4.4 0"/>
+      <path d="M25 33.2q2.2 2.7 4.4 0"/>
+    </g>
+  </g>
+</svg>

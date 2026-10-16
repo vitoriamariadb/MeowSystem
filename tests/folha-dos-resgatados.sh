@@ -2,7 +2,7 @@
 # folha-dos-resgatados.sh — `meow icones resgatados folha` não perde o que a folha tem.
 #
 # POR QUE ESTE ARQUIVO NASCEU EM 25/09/2026 (sprint P68, item 4)
-#   A folha `assets/icones/resgatados/ANTES-E-DEPOIS.png` sai do
+#   A folha `assets/icones/resgatados-antes-e-depois.png` sai do
 #   `scripts/resgatados_folha.sh`, que pede o PNG de origem de cada par no
 #   caminho do mapa. Em 25/09 doze dos 21 não estavam mais no disco, e a P67
 #   costurou a folha à mão: a esquerda desses doze veio da folha de 12/09. O
@@ -43,18 +43,18 @@ git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null)"
 # Uma raiz de brinquedo por cenário: o script acha o acervo e o mapa pela raiz
 # dele, e não por variável.
 raiz() {   # raiz <dir> — o script, o lib/ e um acervo com os SVG de três pares
-  mkdir -p "$1/scripts" "$1/assets/icones/resgatados"
+  mkdir -p "$1/scripts" "$1/packs/dracula/icones/apps/resgatados"
   cp "$RAIZ/scripts/resgatados_folha.sh" "$1/scripts/"
   cp -a "$RAIZ/lib" "$1/"
   for n in luna sigilo discord; do
-    cp "$RAIZ/assets/icones/resgatados/$n.svg" "$1/assets/icones/resgatados/" || exit 2
+    cp "$RAIZ/packs/dracula/icones/apps/resgatados/$n.svg" "$1/packs/dracula/icones/apps/resgatados/" || exit 2
   done
 }
 mapa() {   # mapa <dir> <nome>... — o mapa com os pares nesta ordem, PNG em $T/png
   local d="$1"; shift
   { printf '# mapa de brinquedo\n'
     for n in "$@"; do printf '%s : %s/png/%s.png : dela\n' "$n" "$T" "$n"; done
-  } > "$d/assets/icones/apps-resgatados.map"
+  } > "$d/packs/dracula/icones/apps-resgatados.map"
 }
 png() {   # png <nome> <cor> — o PNG de origem de brinquedo
   convert -size 64x64 "xc:$2" -fill white -draw 'circle 32,32 32,12' "$T/png/$1.png" || exit 2
@@ -93,11 +93,11 @@ else
 fi
 
 # --- 3. o desenho de um par sem PNG muda: a direita anda, a esquerda fica ---
-cp "$RAIZ/assets/icones/resgatados/extase-em-4r73.svg" "$R/assets/icones/resgatados/luna.svg"
+cp "$RAIZ/packs/dracula/icones/apps/resgatados/extase-em-4r73.svg" "$R/packs/dracula/icones/apps/resgatados/luna.svg"
 folha "$R" "$F"
 #   A régua: a folha que o script monta com os PNG no disco e o desenho novo.
 R2="$T/raiz2"; raiz "$R2"; mapa "$R2" luna sigilo discord
-cp "$R/assets/icones/resgatados/luna.svg" "$R2/assets/icones/resgatados/"
+cp "$R/packs/dracula/icones/apps/resgatados/luna.svg" "$R2/packs/dracula/icones/apps/resgatados/"
 cp "$T/png-fora/"*.png "$T/png/"
 folha "$R2" "$T/regua.png"
 mv "$T/png/luna.png" "$T/png/discord.png" "$T/png-fora/"

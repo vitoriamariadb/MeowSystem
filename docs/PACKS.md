@@ -177,7 +177,7 @@ Dracula faz com sete categorias. O resto vem por herança, e só vem se o
   "vitrine": { "capa": "logo.svg" },
   "paleta":  { "arquivo": "paleta.json", "flavor_padrao": "meutema" },
   "cosmic":  { "nome_da_paleta": "meu-tema-<flavor>" },
-  "icones":  { "autorais": { "gerar": true, "desenhos": "icones/autorais/" } }
+  "icones":  { "autorais": { "gerar": true, "desenhos": "icones/apps/autorais/" } }
 }
 ```
 
@@ -303,9 +303,19 @@ em três linhas:
 
 | diretório | o que guarda | exemplo |
 |---|---|---|
-| `assets/` | **o que o MeowSystem É** — o motor | `assets/paleta/cosmic-map.json`, `assets/icones/autorais/`, `assets/gatos/` |
-| `packs/` | **o que ele VESTE** — o tema | `packs/dracula/paleta.json`, `packs/catppuccin/icones/mimetypes/` |
+| `assets/` | **o que o MeowSystem É** — o motor, menos a arte de ícone | `assets/paleta/cosmic-map.json`, `assets/gatos/`, `assets/icones/appid.map` |
+| `packs/` | **o que ele VESTE** — o tema, e **todo** desenho de ícone | `packs/dracula/paleta.json`, `packs/catppuccin/icones/sistema/mimetypes/`, `packs/meowsystem/icones/` |
 | `~/.local/state/meowsystem/` | **o que a máquina GEROU** — e não volta para o git | os `.ron` do COSMIC, os backups, o log |
+
+**Desenho de ícone é sempre `packs/`** (decisão 14, 15/10/2026). O que era o
+acervo do motor em `assets/icones/` — o traço Arcticons, os convertidos, os
+retoques, os glifos do sistema — é o **pack-base** `packs/meowsystem/`, no mesmo
+formato de três pastas, e todo pack o herda. A frase de 21/09/2026, «o mapa é do
+pack, o acervo pode ser do motor», está revogada. Em `assets/icones/` ficou só o
+que é ferramenta: a prévia das folhas, os originais de fábrica da bandeja, a
+folha de antes e depois dos resgatados e os mapas técnicos de aplicativo
+(`appid.map`, `wmclass.map`, `apps-nomes.map`, `jogos-fora.map`), que são fato
+da máquina e não arte.
 
 **A pergunta que separa as duas primeiras:** *este arquivo continuaria fazendo
 sentido se o tema fosse outro?* O `cosmic-map.json` sim — ele é o molde, e não
@@ -352,17 +362,15 @@ packs/<id>/
   capturas/                 fotos de tela, se quiser (vitrine.capturas)
   CREDITOS.md               a procedência de cada acervo — obrigatório se houver arte de terceiro
   cosmic-map.json           opcional: substitui o molde do tema do COSMIC
-  icones/                   MESMA FORMA para as quatro categorias — ver a seção própria
+  icones/                   TRÊS PASTAS, NO MÁXIMO (formato 2) — ver "O acervo de ícones do pack"
     apps.map                "nome-do-ícone : caminho/relativo.svg"
-    apps/                   os desenhos referidos pelo mapa
-    biblioteca/             desenhos que nenhum aplicativo veste ainda — o mapa pode apontar para cá
-    feitos-a-mao/           desenhos feitos à mão, em vetor — ver "Os feitos à mão"
-    pastas.map              pastas/
-    pastas/                 folder-documents.svg, folder-download.svg…
-    mimetypes.map           "nome-freedesktop : glifo"
-    mimetypes/<flavor>/     o acervo por tipo de arquivo (é grande: ~656 por flavor)
-    autorais/               <nome>-<flavor>.svg — sem mapa: o nome É o pareamento
-                            <nome>.json — a declaração de um desenho (ver "Desenhos autorais")
+    apps/                   o desenho LIGADO a um programa (o apps.map aponta para cá)
+      autorais/             <nome>-<flavor>.svg e <nome>.json — ver "Desenhos autorais"
+    sistema/                pasta, tipo de arquivo, status, simbólico — o tema monta daqui
+      pastas/               folder-documents.svg, folder-download.svg… (pastas.map, ao lado do apps.map)
+      mimetypes/<flavor>/   o acervo por tipo de arquivo (mimetypes.map; ~656 por flavor)
+    biblioteca/             TODO o resto, para escolher no painel: SVG e PNG feito à mão
+      feitos-a-mao/         subpasta é só etiqueta
   apps/
     <tema>.qbtheme                   os temas de DENTRO dos aplicativos — ver a seção própria
     PROCEDENCIA.md                   obrigatória quando a arte é de terceiro
@@ -441,7 +449,7 @@ suportado é recusado com o número na mensagem.
   "icones": {
     "apps":      { "mapa": "icones/apps.map", "desenhos": "icones/apps/",
                    "camada": "scalable/apps", "recolorir": false },
-    "pastas":    { "desenhos": "icones/pastas/" },
+    "pastas":    { "desenhos": "icones/sistema/pastas/" },
     "mimetypes": { "herda": "catppuccin", "flavor": "macchiato" },
     "autorais":  { "gerar": true },
     "base":      { "origem": { "url": "https://exemplo.org/tema-v1.tar.gz",
@@ -483,7 +491,7 @@ ele não desenha — ver [A base de ícones](#a-base-de-ícones).
 **`icones.mimetypes.derivar`** é a outra forma do bloco de ícones de arquivo:
 `{"de": "catppuccin", "pasta": "css-variables"}` manda o `meow pack construir`
 pegar o acervo daquele pack em que a cor vem escrita por papel, trocar cada papel
-pelo hex da sua paleta e escrever `icones/mimetypes/<flavor>/`, um diretório por
+pelo hex da sua paleta e escrever `icones/sistema/mimetypes/<flavor>/`, um diretório por
 flavor. É como o Dracula tem os 656 ícones de arquivo nas cores dele desde
 09/10/2026 (P74), sem copiar desenho nenhum.
 
@@ -614,14 +622,14 @@ Um **acervo** é um diretório ou um arquivo de arte que o pack declara: o mapa 
 |---|---|---|
 | 1 | **o pack ativo** | o que o `pack.json` dele declara naquela categoria |
 | 2 | **a herança** | o pack nomeado em `<categoria>.herda`, ou em `heranca` |
-| 3 | **o motor** | o acervo de `assets/`, para quem ainda não migrou |
+| 3 | **o pack-base** | `packs/meowsystem/`, o acervo do próprio MeowSystem (P88) |
 
 ```bash
 python3 scripts/pack.py acervo dracula icones.apps.mapa
 #   packs/dracula/icones/apps.map
 
 python3 scripts/pack.py acervo dracula icones.mimetypes.desenhos
-#   packs/catppuccin/icones/mimetypes/   <- subiu pela herança
+#   packs/catppuccin/icones/sistema/mimetypes/   <- subiu pela herança
 ```
 
 **A herança do bloco vence a do pack inteiro.** O Dracula declara
@@ -675,43 +683,98 @@ o `greeter.sh` rodam pelo timer e pelo hook, sem passar por ela.
 
 ## O acervo de ícones do pack
 
-**A regra cabe numa frase: o mapa é do pack; o acervo pode ser do motor.**
+**A regra cabe numa frase: todo desenho de ícone mora num pack, em três pastas
+no máximo** (decisão 14, 15/10/2026). Vale para o Dracula, o Catppuccin, o
+pack-base `meowsystem` e todo pack futuro, e revoga a fronteira de 21/09
+(«o acervo pode ser do motor»).
 
-Um pack diz *"o Telegram veste o desenho X"* — isso é **decisão de tema**, e vai
-para o pack. O desenho X pode vir do acervo Arcticons, que é ferramenta
-compartilhada e fica onde está. O que não pode é a decisão morar em `assets/`.
+### Versões e projetos dela
 
-### A forma é a mesma para as quatro categorias
+Duas outras subpastas da biblioteca do Dracula, etiqueta e nada mais, nasceram
+em 16/10/2026 (P87, «joga tudo pro pack»): `icones/biblioteca/versoes/` guarda
+cada versão e cada rascunho de um desenho, com o nome `<desenho>-<sha8>`, e
+`icones/biblioteca/projetos/` o desenho de cada projeto dela fora da lista de
+exclusão da regra de 23/09 (Beholder, Elden Ring Tracker, Nyx, Protocolo
+Ouroboros e Caldeirão não ganham desenho novo no pack). Nenhuma das duas veste um programa sozinha: quem veste é
+uma linha do `apps.map`, e o desenho ligado é o que vence a régua do BRIEFING
+(o RMSE contra o PNG feito à mão), não o mais novo. De onde veio cada arquivo
+está no `PROCEDENCIA.md`, e o `catalog.json` da pasta dá o rótulo do seletor.
+
+### As três pastas
 
 ```
 packs/<id>/icones/
-  apps.map          apps/         quais aplicativos, e os desenhos
-                    biblioteca/   a coleção de onde se escolhe (ver abaixo)
-  pastas.map        pastas/
-  mimetypes.map     mimetypes/<flavor>/
-                    autorais/     os desenhos do projeto, por flavor
+  apps/         o desenho ligado a um programa; o apps.map aponta só para cá
+  sistema/      pastas, tipos de arquivo, status, simbólicos — o tema monta daqui
+  biblioteca/   todo o resto, para escolher no painel (subpasta é só etiqueta)
+  apps.map      a ligação programa → desenho (e os outros mapas, ao lado dele)
 ```
+
+- **Flavor é sufixo ou subpasta** dentro de uma das três (`cosmic-term-mocha.svg`,
+  `sistema/mimetypes/mocha/`), nunca uma quarta pasta.
+- **A origem não é pasta.** PNG feito à mão, desenho recuperado, autoral ou
+  versão antiga: tudo é `biblioteca/` (ou `apps/`, se estiver ligado). O que
+  diferencia de onde veio é o `PROCEDENCIA.md`.
+- **O `validar` recusa a quarta pasta** num pack de formato 2, na porta de quem
+  publica — a do motor continua vendo o pack, para uma pasta solta não trocar o
+  tema de ninguém.
+- **Um pack de formato 1 continua valendo.** O motor lê as pastas que ele
+  declara, e o `meow pack importar` converte um `.meowpack` de formato 1 na
+  chegada: cada pasta vai para uma das três (pelo nome ou pela categoria), e o
+  `pack.json`, o `apps.map` e a primeira coluna do `PROCEDENCIA.md` passam a
+  dizer o caminho novo, sem mudar um byte de desenho.
+- **`meow pack novo` cria as três**, vazias, e o `CREDITOS.md` dele diz o que
+  vai em cada uma.
 
 **`autorais/` não tem mapa, e é de propósito:** o nome do arquivo *é* o
 pareamento. `cosmic-term-mocha.svg` diz, sozinho, qual ícone e qual flavor — um
-mapa ao lado seria uma segunda verdade sobre a mesma coisa, e ela divergiria na
-primeira renomeação. As outras três precisam de mapa porque o nome que o sistema
-pede (`application-x-cd-image`) não é o nome do desenho (`cd`).
+mapa ao lado seria uma segunda verdade sobre a mesma coisa. As pastas e os tipos
+de arquivo precisam de mapa porque o nome que o sistema pede
+(`application-x-cd-image`) não é o nome do desenho (`cd`).
 
 Cada categoria declara os dois no `pack.json`, e nenhuma é obrigatória:
 
 ```json fragmento
 "icones": {
   "apps":      { "mapa": "icones/apps.map", "desenhos": "icones/apps/" },
-  "mimetypes": { "mapa": "icones/mimetypes.map", "desenhos": "icones/mimetypes/" },
-  "autorais":  { "desenhos": "icones/autorais/" }
+  "mimetypes": { "mapa": "icones/mimetypes.map", "desenhos": "icones/sistema/mimetypes/" },
+  "autorais":  { "desenhos": "icones/apps/autorais/" }
 }
 ```
 
-O `validar` cobra a existência de tudo o que estiver declarado, nas quatro. Um
-pack que promete um acervo e não entrega é recusado — pelo mesmo motivo que o
-`creditos` é cobrado: um validador que carimba a promessa vazia ensina a
-escrevê-la.
+O `validar` cobra a existência de tudo o que estiver declarado. Um pack que
+promete um acervo e não entrega é recusado — pelo mesmo motivo que o `creditos`
+é cobrado: um validador que carimba a promessa vazia ensina a escrevê-la.
+
+### O pack-base `meowsystem`
+
+`packs/meowsystem/` é o acervo do próprio MeowSystem, no mesmo formato: o traço
+Arcticons e os convertidos em `apps/`, os glifos do sistema e do modo de leitura
+em `sistema/`. Ele declara `"papel": "base"`: **todo pack o herda sem
+declarar** — é a última camada de onde o motor tira o que um pack não traz, e é
+para onde `motor:` aponta —, e **ele não se veste sozinho**: não tem paleta nem
+logo, a porta do motor (o `meow pack usar`, o `PACK=` do `meow.conf`) o recusa, e
+o painel não faz cartão dele.
+
+Os mapas do motor desceram com ele, para `packs/meowsystem/icones/`, cada um no
+formato que o leitor dele lê: `apps-arcticons.map` (`nome:glifo:cor`),
+`apps-convertidos.map` (a receita do conversor), `apps-marca.map`, `sistema.map`,
+`bandeja.map`, `pastas.map`, `apps-hicolor.map`. Juntá-los num `apps.map` só é
+decidir um formato de mapa que caiba em todos, e reescrever os leitores que
+recolorem por categoria — fica para quando houver um quinto leitor que o peça.
+
+**O desenho de um pack vence o traço do pack-base em todo tamanho** (decisão 16,
+item 7). Um nome que o pack no ar põe em `scalable/apps` (pelo `apps.map`, pelos
+resgatados ou pela escolha do painel) não ganha o traço de 48 px, que antes o
+encobria naquele tamanho — eram 17 no Dracula. Fica o traço que quem usa
+escolheu (a linha dele no `icones-traco.map`).
+
+Os **resgatados** (os desenhos dela que só existiam em PNG, de cor Dracula fixa)
+**não** estão no pack-base: no `meowsystem` o Catppuccin os herdaria (decisão
+16). Moram em `packs/dracula/icones/apps/resgatados/`, com o mapa
+`apps-resgatados.map` ao lado do `apps.map`, declarados como
+`icones.resgatados`. Com outro pack no ar, nenhum vale, e o que estava no tema
+sai dele.
 
 ### A biblioteca: os desenhos que ainda não vestem ninguém
 
@@ -734,9 +797,10 @@ numa máquina.
   biblioteca do Dracula também moram em `apps/` com nome de aplicativo (o
   `dice.svg` é o `apps/foundryvtt.svg`, byte a byte), e contar por caminho diria
   que o dado não veste ninguém.
-- **O `validar` cobra a forma** — só `.svg` comum, sem subpasta nem link, todos
-  os achados de uma vez — e só na porta de quem publica: um arquivo solto numa
-  pasta que nada instala não pode fazer o motor ignorar o pack inteiro.
+- **O `validar` cobra a forma** — `.svg` e `.png` comuns, sem link, em qualquer
+  subpasta (a subpasta é etiqueta), todos os achados de uma vez — e só na porta
+  de quem publica: um arquivo solto numa pasta que nada instala não pode fazer o
+  motor ignorar o pack inteiro.
 - **Cada desenho tem a linha dele no `PROCEDENCIA.md`**, como qualquer arte
   copiada (ver [Fonte e derivados](#fonte-e-derivados)). O `tests/pack.sh`
   cobra isso, e conta a biblioteca do Dracula contra o `Dracula_OS-Theme` por
@@ -760,9 +824,11 @@ precedência é declarada no `fontes` do `scripts/pack.py` — o pack vence com
 
 ### Os feitos à mão
 
-`icones/feitos-a-mao/` guarda desenhos feitos à mão para aplicativos, como a
-biblioteca: sem campo no `pack.json`, e nada os instala sozinho — quem veste um
-programa com eles é uma linha de mapa, ou a escolha de quem usa no seletor.
+`icones/biblioteca/feitos-a-mao/` guarda desenhos feitos à mão para
+aplicativos: é uma subpasta da biblioteca, sem campo no `pack.json`, e nada os
+instala sozinho — quem veste um programa com eles é uma linha de mapa, ou a
+escolha de quem usa no seletor. (Até a P88 era `icones/feitos-a-mao/`, uma
+quarta pasta.)
 
 A pasta nasceu em 09/10/2026 (P74) com 39 PNG do tema Dracula de antes, porque
 nada podia sumir. Em 15/10/2026 (P84) os 39 viraram vetor: cada SVG foi desenhado
@@ -775,37 +841,35 @@ SVG tem a linha dele no `PROCEDENCIA.md`, com o sha256 do PNG de que nasceu.
 seletor, numa pasta à parte («feitos à mão (PNG)»), e travado: ele não se
 escolhe. No Dracula essa pasta está vazia, e não aparece.
 
-### `motor:` — apontar para o acervo do motor sem copiá-lo
+### `motor:` — apontar para o acervo do pack-base sem copiá-lo
 
 Um alvo de mapa pode sair do pack, **com prefixo declarado**:
 
 ```
-org.telegram.desktop          : motor:arcticons/telegram.svg
+org.telegram.desktop          : motor:apps/arcticons/telegram.svg
 io.github.flattool.Warehouse  : apps/Warehouse.svg
 ```
 
 | forma | resolve em |
 |---|---|
-| `motor:<caminho>` | `assets/icones/<caminho>` — o acervo do motor |
+| `motor:<caminho>` | `packs/meowsystem/icones/<caminho>` — o acervo do pack-base (até a P88, `assets/icones/`; as pastas de antes, como `arcticons/`, ainda valem num mapa velho) |
 | `pack:<id>:<caminho>` | `<pack id>/icones/<caminho>` — o acervo de **outro** pack (desde 23/09/2026) |
 | sem prefixo | dentro do pack, contra o diretório do próprio mapa |
 
 São três casas, e só três. `~/…` e caminho absoluto são **recusados** pelo
 `validar`, com a frase que diz por quê — ver [Fonte e derivados](#fonte-e-derivados).
 
-**É isto que permite tirar a decisão de `assets/` sem duplicar o acervo.** Sem o
-prefixo só havia duas saídas, e as duas eram ruins: ou a escolha fica em
-`assets/` (e trocar de pack não troca a escolha), ou cada pack carrega uma
-**cópia** dos 113 SVG do Arcticons — e a segunda cópia defasa da primeira
-calado, que é a lição que este projeto já pagou uma vez.
+**É isto que permite a decisão morar no pack sem duplicar o acervo.** Sem o
+prefixo, cada pack carregaria uma **cópia** dos SVG do Arcticons — e a segunda
+cópia defasa da primeira calado, que é a lição que este projeto já pagou uma vez.
 
 Os dois lados têm guarda: um alvo que **saia** da raiz dele é recusado, com o
 motivo no stderr. Um mapa é dado, e um pack de terceiro escreve o dado dele.
 
 ```bash
-printf 'motor:arcticons/telegram.svg\n' \
+printf 'motor:apps/arcticons/telegram.svg\n' \
   | python3 scripts/pack.py alvo packs/dracula/icones
-#   <raiz>/assets/icones/arcticons/telegram.svg
+#   <raiz>/packs/meowsystem/icones/apps/arcticons/telegram.svg
 ```
 
 O verbo lê a entrada padrão e devolve **uma linha por linha de entrada** — a
@@ -826,12 +890,12 @@ que não declara a categoria escreve **em casa**.
 
 ```bash
 python3 scripts/pack.py onde dracula icones.autorais.desenhos
-#   packs/dracula/icones/autorais/     — mesmo antes de o diretório existir
+#   packs/dracula/icones/apps/autorais/     — mesmo antes de o diretório existir
 ```
 
 ### Os autorais, e o flavor que caía no pack do vizinho
 
-Os desenhos de `icones/autorais/` nascem **por papel**, nunca por hex digitado:
+Os desenhos de `icones/apps/autorais/` nascem **por papel**, nunca por hex digitado:
 cada forma declara `sujeito`, `tinta`, `fundo`, e o papel resolve na paleta
 **daquele flavor**. É o que faz um flavor novo nascer sem redesenho.
 
@@ -938,14 +1002,15 @@ decisão 3, que revogou a regra da P60 de mostrar só o pack no ar):
 
 | pasta | de onde |
 |---|---|
-| feitos para apps, biblioteca, feitos à mão, autorais por flavor | cada pack, o que está no ar primeiro |
-| resgatados, autorais, traço, traço (Arcticons), convertidos | o motor, `assets/icones/` |
+| `apps/` e cada subpasta dele (resgatados…), `biblioteca/` e cada subpasta dela (feitos à mão…), autorais por flavor | cada pack, o que está no ar primeiro |
+| traço, convertidos, convertidos · retoques | o pack-base, em traço (`icones.apps.recolorir`), por último entre os packs |
 | enviados | o «Adicionar ícone» de quem usa, em `~/.local/share/meowsystem/icones-enviados/` |
 
 Quem decide as pastas é uma função só, a `acervos_de_icone` do
 `scripts/pack.py`; o servidor pergunta a ela, e o `tests/acervo-da-ficha.sh`
-conta o disco contra ela. Ficam de fora, de propósito, as pastas e os tipos de
-arquivo (um ícone de pasta no lugar de um programa no lançador seria engano).
+conta o disco contra ela. Os grupos são pack × `apps/`/`biblioteca/`; fica de
+fora, de propósito, todo o `sistema/` (um ícone de pasta no lugar de um programa
+no lançador seria engano). O PNG de uma pasta aparece num grupo à parte, travado.
 A busca casa pelo nome do arquivo e, onde houver, pela descrição em português
 do `catalog.json` da pasta (a biblioteca do Dracula e os resgatados têm um).
 
@@ -976,42 +1041,15 @@ um `Icon=` da máquina tem cartão na oficina daquele aplicativo. O teto é zero
 
 ### O que **não** vai para o pack
 
-Nem todo SVG do repositório é tema. Fica no motor o que não muda quando você
-troca de pack:
+Arte de ícone vai sempre para um pack. Fica no motor o que não é desenho:
 
 | fica em `assets/` | por quê |
 |---|---|
-| `icones/arcticons/`, `arcticons-apps/` | acervo de terceiro, base de conversão. Um pack **aponta** para ele com `motor:` |
-| `icones/convertidos-apps/`, `retoques/` | saída do conversor sobre o acervo acima |
-| `icones/resgatados/` | resgatados do PNG **desta máquina** — são da máquina, não do tema |
-| `icones/autorais/leitura/` | sem flavor no nome: são recoloridos em tempo de build |
 | `gatos/` | a marca MeowSystem. O seu pack pode trazer os dele; estes são os de casa |
-| `appid.map`, `wmclass.map`, `apps-nomes.map` | identidade técnica de aplicativo. Não é gosto, é fato da máquina |
-
-### O que ainda **não** desceu, e ninguém deve ler isto como pronto
-
-A regra lá em cima — *o mapa é do pack* — está escrita e o resolvedor está de
-pé. Cinco mapas que são **decisão de tema** continuam em `assets/icones/`, e
-estão listados aqui porque uma migração pela metade que não se declara é pior
-que a de antes: quem lê a regra e não vê a exceção escreve um pack contando com
-o que não existe.
-
-A ordem que a P27 manda é `estrutura -> resolvedor -> mover -> apagar`. O que
-falta a estes cinco é o **terceiro** passo, e para quatro deles falta antes uma
-decisão de formato.
-
-| ainda em `assets/icones/` | quem lê | o que falta |
-|---|---|---|
-| `sistema.map` (30 linhas) | `icones_sistema.sh` | o formato do pack tem **quatro** categorias (`apps`, `pastas`, `mimetypes`, `autorais`) e `sistema` não é uma delas. Descer o mapa é abrir a quinta — em `validar`, no `pack.json` e aqui |
-| `apps-arcticons.map` (16) | `icones_apps_arcticons.sh` | os quatro caem no **mesmo** `icones.apps.mapa`, que já tem dono e formato: `nome : caminho`, duas colunas. Estes quatro têm três e quatro colunas, e cada um as suas — `nome:glifo:cor:tipo`, `nome:caminho:cor`, `nome:cor:nota`, `nome:caminho:dono`. Juntá-los não é renomear arquivo: é decidir um formato de mapa de aplicativo que caiba nos cinco, e reescrever os leitores que recolorem por categoria |
-| `apps-convertidos.map` (31) | `icones_apps_arcticons.sh` | o mesmo da linha acima |
-| `apps-marca.map` (13) | `icones_apps_arcticons.sh` | o mesmo da linha acima |
-| `apps-resgatados.map` (21) | `icones_resgatados.sh` | o mesmo da linha acima. Eram 22: o Waterfox saiu em 23/09/2026 para o `apps.map` do Dracula (ver [Fonte e derivados](#fonte-e-derivados)) |
-
-`pastas.map` **não** está nesta lista: o leitor dele já pergunta ao pack
-(`icones.pastas.mapa`) e só cai em `assets/` quando nenhum pack declara o seu.
-O arquivo continua lá porque o quarto passo é apagar, e apagar antes de algum
-pack trazer o seu deixaria as sete pastas sem ícone.
+| `icones/appid.map`, `wmclass.map`, `apps-nomes.map`, `jogos-fora.map` | identidade técnica de aplicativo e decisão da máquina. Não é gosto, é fato |
+| `icones/previa-arcticons/` | a prévia que as folhas de proposta comparam (os mesmos bytes de desenhos que já estão no pack-base) |
+| `icones/tray-terceiros/` | os originais de fábrica da bandeja da Steam e do ZapZap, para desfazer |
+| `icones/resgatados-antes-e-depois.png` | a folha que prova os resgates (`meow icones resgatados folha`) |
 
 ---
 
@@ -1053,6 +1091,28 @@ exista lá e aqui não é empate, é a precedência *"Dracula vence tudo"* que f
 escolhida em 16/09/2026, com um interruptor (`ICONES_DRACULA`) que devolve o
 Arcticons sem apagar nada.
 
+### Alterou o desenho, o tema se atualiza sozinho
+
+Decisão 15 (15/10/2026): um SVG salvo numa das três pastas de qualquer pack de
+onde o tema deriva (o no ar, os herdados, o pack-base), uma linha de mapa ou o
+`logo.svg` chegam ao tema instalado em segundos, sem comando.
+
+- **O vigia** é o `meow-derivados.path`, uma linha `PathModified=` por pasta
+  (o `install.sh` a escreve, e reescreve ao trocar de pack), e o
+  `meow-derivados.service` irmão roda o `scripts/derivados.sh`.
+- **Uma função, idempotente.** A tabela `~/.local/state/meowsystem/derivados.tsv`
+  guarda o sha256 de cada fonte na passada anterior; a passada refaz só os
+  passos de quem mudou (os mesmos do instalador, que só reescrevem o que
+  difere), reindexa a cache do tema e relê a tela uma vez no fim. Salvar de
+  novo o mesmo conteúdo não escreve nada. O desenho apagado leva junto a cópia
+  dele no tema (o arquivo com o sha256 que ele tinha).
+- **A espera** de 2 s antes de comparar faz uma rajada de salvamentos virar uma
+  passada só.
+- **O doctor das 5h** confere a mesma tabela e refaz o que o vigia perdeu com o
+  PC desligado.
+- O tema não tem derivado raster: uma fonte SVG deriva `scalable`, e só ele (ver
+  abaixo). O seletor do painel lê o disco a cada abertura.
+
 ### `meow icones fonte`
 
 ```
@@ -1084,7 +1144,7 @@ tem para onde ir:**
   por ele. Pôr PNG no `48x48/apps` seria disputar arquivo com o
   `icones_apps_arcticons.sh`, que é o dono único daquele diretório.
 - **Flavors.** Recolorir por papel é o `gerar_icones_autorais.py`, para
-  `icones/autorais/`. Os desenhos de `icones/apps/` do Dracula declaram
+  `icones/apps/autorais/`. Os desenhos de `icones/apps/` do Dracula declaram
   `recolorir: false`: cada um tem de 6 a 10 cores próprias.
 - **Bandeja.** Tem mapa e instalador próprios (`bandeja.map`,
   `icones_bandeja.sh`), veste glifo Arcticons, e o mapa está vazio de propósito.
@@ -1102,7 +1162,7 @@ Arte de terceiro entra no pack **copiada**, e não apontada. Apontar para
 `rebuild_dracula_theme()` do Spellbook-OS reescrevia do zero — aconteceu em
 21/09/2026, às 16:52:33 (a P37 desativou aquela função em 23/09, e o Dracula
 passou a ser montado do pack). A regra já estava escrita em
-`assets/icones/PROCEDENCIA.md` desde 16/09 (*"por que copiar em vez de
+`assets/icones/PROCEDENCIA.md` (hoje `packs/meowsystem/PROCEDENCIA.md`) desde 16/09 (*"por que copiar em vez de
 apontar"*); a P28 a levou ao pack inteiro.
 
 Cada cópia ganha uma linha no `packs/<id>/PROCEDENCIA.md`:
@@ -1111,10 +1171,10 @@ Cada cópia ganha uma linha no `packs/<id>/PROCEDENCIA.md`:
 | arquivo | de onde | lido de | licença | copiado em | sha256 |
 |---|---|---|---|---|---|
 | `icones/apps/net.waterfox.waterfox.svg` | `m4thewz/dracula-icons`, ramo `circle` — … |  | GPL-3.0 | 2026-09-23 | `a13118bd…` |
-| `icones/apps/guvcview.svg` | este repositório — `assets/icones/resgatados/guvcview.svg` | `motor:resgatados/guvcview.svg` | a do pacote `guvcview` | 2026-09-17 | `085829f8…` |
+| `icones/apps/guvcview.svg` | este repositório — `assets/icones/resgatados/guvcview.svg` | `pack:dracula:apps/resgatados/guvcview.svg` | a do pacote `guvcview` | 2026-09-17 | `085829f8…` |
 ```
 
-`lido de` aceita `~/…`, `motor:…` ou caminho absoluto, e é só **lido**. Para
+`lido de` aceita `~/…`, `motor:…`, `pack:<id>:…` ou caminho absoluto, e é só **lido**. Para
 publicar, a casa vai como `~/…`: um `/home/<nome>/…` ali é nome de usuário, e o
 `validar` recusa (item 13 de [Validar antes de publicar](#validar-antes-de-publicar)).
 
@@ -1847,7 +1907,7 @@ e nas réguas da oficina, e medido em 23/09/2026 há dois motivos para ele não
 virar campo só com esses dois arquivos na mão (o `estilo_icone.py`, que a P12
 também nomeava, só MEDE a caneta; ele não tem parâmetro nenhum):
 
-- os padrões do conversor produzem `assets/icones/convertidos-apps/`, que é
+- os padrões do conversor produzem `packs/meowsystem/icones/apps/convertidos/`, que é
   **versionado no motor** — contadas em 23/09/2026, 28 das 31 linhas do
   `apps-convertidos.map` deixam o campo de parâmetros vazio, e usam o padrão.
   Um padrão vindo do pack ativo faria o acervo do git depender de qual pack

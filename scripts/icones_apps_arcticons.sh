@@ -3,11 +3,11 @@
 # linha, recolorido na paleta. DOIS acervos entram aqui, e um instalador só sai.
 #
 # DOIS ACERVOS, DESDE 11/08/2026
-#   `assets/icones/arcticons-apps/`    glifos do pack Arcticons, desenhados à mão por
-#                              terceiros. Mapa: `assets/icones/apps-arcticons.map`.
-#   `assets/icones/convertidos-apps/`  a arte do PRÓPRIO aplicativo, convertida de
+#   `packs/meowsystem/icones/apps/arcticons/`    glifos do pack Arcticons, desenhados à mão por
+#                              terceiros. Mapa: `packs/meowsystem/icones/apps-arcticons.map`.
+#   `packs/meowsystem/icones/apps/convertidos/`  a arte do PRÓPRIO aplicativo, convertida de
 #                              chapado para traço por nós. Mapa:
-#                              `assets/icones/apps-convertidos.map`. Quem gera é o
+#                              `packs/meowsystem/icones/apps-convertidos.map`. Quem gera é o
 #                              `scripts/construir_convertidos.sh`; aqui ela
 #                              chega pronta e commitada.
 #
@@ -102,8 +102,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ORIGEM="$RAIZ/assets/icones/arcticons-apps"
-MAPA="$RAIZ/assets/icones/apps-arcticons.map"
+ORIGEM="$RAIZ/packs/meowsystem/icones/apps/arcticons"
+MAPA="$RAIZ/packs/meowsystem/icones/apps-arcticons.map"
 # A ESCOLHA DE TRAÇO DO PAINEL MORA COM QUEM USA — 09/10/2026, P73 (I3). O
 # «Usar este ícone» com um glifo de traço gravava a linha no mapa acima, dentro
 # do clone, e copiava o glifo para `arcticons-apps/`: usar o programa sujava o
@@ -112,8 +112,8 @@ MAPA="$RAIZ/assets/icones/apps-arcticons.map"
 # que os dois nomeiam. O glifo é o nome em `arcticons-apps/` ou, para as outras
 # pastas de traço que a ficha oferece, o caminho a partir da raiz.
 MAPA_USUARIO="${MEOW_ICONES_TRACO:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-traco.map}"
-ORIGEM_CONV="$RAIZ/assets/icones/convertidos-apps"
-MAPA_CONV="$RAIZ/assets/icones/apps-convertidos.map"
+ORIGEM_CONV="$RAIZ/packs/meowsystem/icones/apps/convertidos"
+MAPA_CONV="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"
 # O DESENHO DA OFICINA DE QUEM USA — 15/10/2026, P82 (item 5; decisão 15). O
 # «Usar» da oficina do painel grava a linha no `icones-convertidos.map` ao lado
 # do meow.conf (o formato deste mapa) e o construído na casa. Lido depois de
@@ -121,8 +121,8 @@ MAPA_CONV="$RAIZ/assets/icones/apps-convertidos.map"
 # feita à mão, e não um empate (o `_conferir_gemeos` não a conta como duplo).
 MAPA_CONV_USUARIO="${MEOW_ICONES_CONVERTIDOS:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-convertidos.map}"
 ORIGEM_CONV_USUARIO="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/convertidos-apps"
-MAPA_MARCA="$RAIZ/assets/icones/apps-marca.map"
-MAPA_PNG="$RAIZ/assets/icones/apps.map"
+MAPA_MARCA="$RAIZ/packs/meowsystem/icones/apps-marca.map"
+MAPA_PNG="$RAIZ/packs/meowsystem/icones/apps.map"
 # A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
 # 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
 # Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
@@ -285,7 +285,11 @@ _ler_mapa() {
     fi
     GLIFO["$nome"]="$glifo"
     ARTE["$nome"]="$ORIGEM/$glifo.svg"
-    case "$glifo" in */*) ARTE["$nome"]="$RAIZ/$glifo" ;; esac
+    # O caminho gravado antes das três pastas (P88) é lido no endereço de hoje.
+    case "$glifo" in
+      */*) [ -e "$RAIZ/$glifo" ] || glifo="$(python3 "$RAIZ/scripts/pack.py" hoje "$glifo" 2>/dev/null || printf '%s' "$glifo")"
+           ARTE["$nome"]="$RAIZ/$glifo" ;;
+    esac
     ACERVO["$nome"]="Arcticons"
     COR["$nome"]="$cor"
     if [ "${marca:-}" = "alias" ]; then ALIAS_OK["$glifo"]=1; ALIAS_OK["cor:$cor"]=1; fi
@@ -362,6 +366,43 @@ _ler_mapa_convertidos() {
   return 0
 }
 
+# --- o desenho do pack vence o traço em todo tamanho ---------------------------
+# P88, decisão 16 (7). Medido em 15/10: 17 desenhos do pack Dracula (Discord,
+#   Spotify, Obsidian, Telegram, Steam…) ficavam encobertos a 48 px pelo traço
+#   deste diretório, porque um tema acha o `48x48/apps` antes do `scalable`
+#   naquele tamanho. O nome que o `pack.py fontes` põe em `scalable/apps` (o
+#   desenho do pack, o resgate, a escolha do painel) sai daqui, e o `.svg` de
+#   48 px dele vira órfão e é varrido. Fica o traço que quem usa escolheu: a
+#   linha dele no `icones-traco.map` ou no `icones-convertidos.map`.
+declare -A CEDIDO=()     # nome que o desenho do pack veste — o traço cede
+_ceder_ao_pack() {
+  local nome m
+  declare -A do_usuario=()
+  for m in "$MAPA_USUARIO" "$MAPA_CONV_USUARIO"; do
+    [ -f "$m" ] || continue
+    while IFS=':' read -r nome _; do
+      case "$nome" in ''|'#'*) continue ;; esac
+      do_usuario["$nome"]=1
+    done < "$m"
+  done
+  while IFS=$'\t' read -r nome fonte camada; do
+    [ -n "$nome" ] && [ -n "${ARTE[$nome]:-}" ] && [ -z "${do_usuario[$nome]:-}" ] || continue
+    # Só cede a quem de fato veste: o desenho existe, e a camada dele está
+    # ligada (`ICONES_DRACULA`, `ICONES_RESGATADOS`). Senão o nome ficaria
+    # sem o desenho e sem o traço.
+    case "$fonte" in /*) ;; *) fonte="$RAIZ/$fonte" ;; esac
+    [ -f "$fonte" ] || continue
+    case "$camada" in
+      pack:*)     [ "${ICONES_DRACULA:-sim}" != "nao" ] || continue ;;
+      resgatados) [ "${ICONES_RESGATADOS:-sim}" = "sim" ] || continue ;;
+    esac
+    meow_debug "$nome: o desenho do pack vence o traço, também a 48 px"
+    unset 'ARTE[$nome]' 'GLIFO[$nome]' 'ACERVO[$nome]' 'COR[$nome]' 'DUPLO[$nome]'
+    CEDIDO["$nome"]=1
+  done < <(MEOW_PACK_DIR="$(meow_pack_dir)" python3 "$RAIZ/scripts/pack.py" fontes 2>/dev/null || true)
+  return 0
+}
+
 # --- o TERCEIRO mapa: a cor puxada da MARCA, e ele nasce DESLIGADO ------------
 #
 # `ICONES_COR_MARCA="sim"` no `meow.conf` liga; qualquer outra coisa (inclusive
@@ -399,7 +440,7 @@ _ler_mapa_marca() {
   local linha nome cor
   [ "${ICONES_COR_MARCA:-nao}" = "sim" ] || return 0
   if [ ! -f "$MAPA_MARCA" ]; then
-    meow_aviso "ICONES_COR_MARCA=sim mas assets/icones/apps-marca.map não existe — a cor segue por categoria"
+    meow_aviso "ICONES_COR_MARCA=sim mas packs/meowsystem/icones/apps-marca.map não existe — a cor segue por categoria"
     return 0
   fi
   COR_MARCA_LIGADA=1
@@ -412,6 +453,7 @@ _ler_mapa_marca() {
     [ -n "$nome" ] && [ -n "$cor" ] || continue
     intocavel "$nome" && continue
     # Sem arte é sem efeito: este mapa só REPINTA o que já vem de um acervo.
+    [ -n "${CEDIDO[$nome]:-}" ] && continue
     if [ -z "${COR[$nome]:-}" ]; then
       meow_aviso "apps-marca.map: '$nome' não está em nenhum acervo de traço — linha ignorada"
       continue
@@ -459,7 +501,7 @@ PY
 #     vizinhos na mesma cor não é erro de sintaxe — é uma decisão, e decisão
 #     tomada em silêncio é a que este projeto persegue.
 #
-#   nome nos DOIS mapas — o mesmo aplicativo listado aqui e em `assets/icones/apps.map`.
+#   nome nos DOIS mapas — o mesmo aplicativo listado aqui e em `packs/meowsystem/icones/apps.map`.
 #     Não daria erro nenhum na tela: o SVG simplesmente venceria o PNG, porque
 #     dentro de um tema a EXTENSÃO é o laço externo da busca (§2 do
 #     docs/COSMIC-THEMING.md) — todos os `.svg`, em todos os tamanhos, antes de
@@ -525,11 +567,11 @@ _conferir_gemeos() {
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Arcticons de aplicativo não está em assets/icones/arcticons-apps"
+    meow_pula "o acervo Arcticons de aplicativo não está em packs/meowsystem/icones/apps/arcticons"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem assets/icones/apps-arcticons.map — nada a vestir"
+    meow_pula "sem packs/meowsystem/icones/apps-arcticons.map — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$PALETA" ]; then
@@ -586,8 +628,8 @@ _avisar_faltantes() {
       continue
     fi
     glifo="${GLIFO[$nome]}"
-    meow_aviso "o glifo '$glifo' não está em assets/icones/arcticons-apps — '$nome' fica no Papirus"
-    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o assets/icones/arcticons-apps/$glifo.svg"
+    meow_aviso "o glifo '$glifo' não está em packs/meowsystem/icones/apps/arcticons — '$nome' fica no Papirus"
+    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o packs/meowsystem/icones/apps/arcticons/$glifo.svg"
   done
   return 0
 }
@@ -694,6 +736,7 @@ main() {
   # detecta o nome repetido nos dois mapas. Trocar a ordem trocaria só a
   # mensagem, mas a mensagem é a metade útil de uma asserção.
   _ler_mapa_convertidos
+  _ceder_ao_pack
   # A marca entra por ÚLTIMO entre os leitores, e tem de ser assim: ela repinta
   # o que os dois acervos já trouxeram, então precisa deles lidos. Vem ANTES do
   # `_conferir_gemeos` para que a asserção veja a cor FINAL, e não a que seria.

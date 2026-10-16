@@ -268,7 +268,7 @@ r = glifos("chrome")
 print("  «chrome»: %d opção(ões) — %s" % (len(r.get("glifos", [])), ", ".join(
     "%s (%s)" % (g["glifo"], g["grupo"]) for g in r.get("glifos", []))))
 grupos = {g["grupo"] for g in r.get("glifos", []) if g["glifo"] == "google-chrome"}
-checa({"pack:dracula:apps", "motor:arcticons-apps"} <= grupos,
+checa({"pack:dracula:apps", "pack:meowsystem:apps/arcticons"} <= grupos,
       "«chrome» oferece o google-chrome do Dracula e o do Arcticons, cada um na sua pasta",
       repr(sorted(grupos)))
 
@@ -473,7 +473,7 @@ checa((glifos_de("programa-de-brinquedo").get("escolha") or {}).get("antes", "?"
 # `apps-arcticons.map` do projeto é curadoria, e não sai por clique. O Chrome
 # de brinquedo não tem escolha de traço: nada sai, e a resposta continua
 # dizendo o que fica na tela, que é o ponto da P64.]
-traco_projeto = os.path.join(raiz, "assets", "icones", "apps-arcticons.map")
+traco_projeto = os.path.join(raiz, "packs", "meowsystem", "icones", "apps-arcticons.map")
 antes_traco = texto(traco_projeto)
 codigo, dados = chamar(m._api_app_icone, {"app": "google-chrome", "remover": True})
 fica = dados.get("fica") or {}
@@ -566,7 +566,7 @@ rc, saida = passo_do_pack()
 checa(codigo == 200 and texto(os.path.join(tema, "programa-de-brinquedo.svg")) == texto(alien),
       "o programa veste o alien escolhido como desenho (rc=%s)" % rc, repr(dados) + saida[-400:])
 codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
-                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+                                          "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg"})
 with open(escolhas, encoding="utf-8") as fh:
     sobrou = [l for l in fh if l.startswith("programa-de-brinquedo ")]
 checa(codigo == 200 and dados.get("tirou_escolha") is True and not sobrou
@@ -578,7 +578,7 @@ checa(not os.path.exists(os.path.join(tema, "programa-de-brinquedo.svg")),
       "e o passo do pack tira o desenho do `scalable/apps`, para o traço aparecer (rc=%s)" % rc,
       saida[-400:])
 codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
-                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+                                          "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg"})
 checa(codigo == 200 and dados.get("tirou_escolha") is False,
       "sem escolha de desenho, o traço não diz que tirou nada", repr(dados))
 

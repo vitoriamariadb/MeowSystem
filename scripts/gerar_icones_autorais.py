@@ -140,7 +140,7 @@ PALETA = Path(pack.paleta_do_pack_ativo())
 #   cobre o pack que não declarou a categoria — ele escreve em casa, nunca no
 #   acervo de quem ele herda.
 DESTINO = Path(pack.dir_acervo("icones.autorais.desenhos",
-                               padrao="icones/autorais/"))
+                               padrao="icones/apps/autorais/"))
 
 # Papel -> (nome Catppuccin em flavor escuro, nome em flavor claro).
 #

@@ -495,7 +495,7 @@ NOME_TEMA_ICONES="MeowSystem-Icons"
 #   silhueta, mesmas cores, gradiente virando `<linearGradient>` de verdade.
 #   Medido no mesmo dia: dos 86 nomes de ícone que os 91 aplicativos visíveis
 #   pedem, 20 caíam em PNG. A lista, com a procedência de cada um, está em
-#   `assets/icones/apps-resgatados.map`.
+#   `packs/dracula/icones/apps-resgatados.map`.
 #
 # ISTO NÃO É O `ICONES_COR_MARCA` NEM O CONVERSOR
 #   O conversor pega arte de terceiro e a reescreve no traço do Arcticons. Aqui a
@@ -505,7 +505,7 @@ NOME_TEMA_ICONES="MeowSystem-Icons"
 #
 # DESLIGAR DESLIGA: "nao" remove do tema os SVG que este projeto pôs, por nome, e
 # o PNG que estava atrás volta a valer na passagem seguinte. Não há estado
-# guardado, não há resíduo. O acervo em `assets/icones/resgatados/` continua no
+# guardado, não há resíduo. O acervo em `packs/dracula/icones/apps/resgatados/` continua no
 # repo de qualquer forma — desligar é sobre o que aparece na tela, não sobre
 # apagar o desenho.
 ICONES_RESGATADOS="sim"           # sim | nao
@@ -635,7 +635,7 @@ ICONES_FLAVOR="$FLAVOR"
 # A cor do traço de cada aplicativo vem da MARCA dele, em vez da CATEGORIA?
 #
 #   nao (padrão)  a cor é por categoria — a escolha de 10/08/2026
-#   sim           `assets/icones/apps-marca.map` sobrepõe a cor de quem está listado lá
+#   sim           `packs/meowsystem/icones/apps-marca.map` sobrepõe a cor de quem está listado lá
 #
 # ISTO ESTÁ DESLIGADO PORQUE FOI UMA ESCOLHA, NÃO PORQUE NÃO FUNCIONA
 #   Em 23/08/2026, diante do dock: "a cor de alguns svgs tão diferentes

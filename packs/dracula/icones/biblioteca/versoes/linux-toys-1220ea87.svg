@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Pião inclinado com losangos e arcos de movimento; grade 512 reduzida por 0,25 -->
+  <g transform="scale(0.25)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="218" fill="#A4A6B8" stroke="#282A36" stroke-width="14"/>
+    <g stroke="#F8F8F2" stroke-width="4.5">
+      <g transform="rotate(29 262 245)">
+        <path d="M252 190 L254 140 Q254 128 262 126 H274 Q282 126 282 138 L280 190"/>
+        <ellipse cx="268" cy="128" rx="14" ry="7"/>
+        <path d="M250 195 Q150 210 158 255 Q178 310 262 366 Q346 310 366 255 Q374 210 280 195"/>
+        <path d="M188 232 Q268 252 342 232 M196 272 Q268 292 335 272"/>
+        <path d="M230 270 Q250 330 262 366 M300 272 Q282 330 262 366"/>
+        <g stroke-width="3.5">
+          <path d="M216 250 l10 -10 l10 10 l-10 10 z"/>
+          <path d="M252 256 l10 -10 l10 10 l-10 10 z"/>
+          <path d="M288 250 l10 -10 l10 10 l-10 10 z"/>
+          <path d="M232 212 l8 -8 l8 8 l-8 8 z"/>
+          <path d="M280 212 l8 -8 l8 8 l-8 8 z"/>
+        </g>
+      </g>
+      <path d="M200 185 Q168 190 160 212" stroke-width="4"/>
+      <path d="M355 142 Q362 170 352 190" stroke-width="4"/>
+      <path d="M342 292 Q352 300 346 322 M312 335 L338 332" stroke-width="4"/>
+      <path d="M178 325 Q170 340 182 352" stroke-width="4"/>
+    </g>
+    <g fill="#F8F8F2"><circle cx="335" cy="218" r="5"/><circle cx="254" cy="354" r="5"/><circle cx="178" cy="310" r="3"/></g>
+  </g>
+</svg>

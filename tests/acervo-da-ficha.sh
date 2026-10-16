@@ -133,7 +133,10 @@ checa(soma == contados, "o total que cada pasta anuncia é o número de itens de
 # [Integração da leva G, 09/10/2026: e o `wallpapers/` do pack, que a P74 item
 #   9 versionou em SVG no mesmo dia em que este teste nasceu na P73. Papel de
 #   parede não é ícone de aplicativo, e a ficha não o oferece de propósito.]
-FORA = {"pastas", "mimetypes", "previa-arcticons", "upstream", "tray-terceiros", "wallpapers"}
+# [P88: e o `sistema/` das três pastas — pasta, tipo de arquivo, status e
+#   simbólico não são ícone de programa.]
+FORA = {"pastas", "mimetypes", "previa-arcticons", "upstream", "tray-terceiros", "wallpapers",
+        "sistema"}
 versionados = subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icones"],
                              capture_output=True, text=True).stdout.split()
 sem_grupo = set()
@@ -141,7 +144,7 @@ for rel in versionados:
     if not rel.lower().endswith((".svg", ".png")) or rel.endswith("logo.svg"):
         continue
     partes = rel.split("/")
-    if FORA & set(partes) or os.path.basename(rel) == "ANTES-E-DEPOIS.png" or "temas" in partes:
+    if FORA & set(partes) or os.path.basename(rel) == "resgatados-antes-e-depois.png" or "temas" in partes:
         continue
     if os.path.normpath(os.path.dirname(os.path.join(raiz, rel))) not in {p for p, _e in por_pasta}:
         sem_grupo.add(os.path.dirname(rel))
@@ -159,8 +162,9 @@ for rel in subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icone
     if h not in oferecidos:
         sobra.setdefault(h, rel)
 fora_da_regra = sorted(r for r in sobra.values()
-                       if not ("/icones/pastas/" in r or r.startswith("assets/gatos/")
-                               or r.endswith("/logo.svg") or r.endswith("resgatados/ANTES-E-DEPOIS.png")))
+                       if not ("/icones/pastas/" in r or "/icones/sistema/" in r
+                               or r.startswith("assets/gatos/")
+                               or r.endswith("/logo.svg") or r.endswith("resgatados-antes-e-depois.png")))
 print("  versionados únicos menos oferecíveis: %d — %s" % (
     len(sobra), ", ".join(sorted({r.rsplit("/", 1)[0] if not r.endswith("logo.svg") else "logo.svg"
                                   for r in sobra.values()}))))
@@ -171,7 +175,7 @@ checa(not fora_da_regra,
 # --- 3. a busca pelo nome do app e pelo significado ------------------------------
 achados = {os.path.relpath(caminho_de(it), raiz) for it in glifos("firefox").get("glifos", [])}
 checa("packs/dracula/icones/apps/net.waterfox.waterfox.svg" in achados,
-      "«firefox» acha o net.waterfox.waterfox.svg (o Firefox-Dracula, pelo comentário do apps.map)",
+      "«firefox» acha o net.waterfox.waterfox.svg (o Firefox-Dracula, pelo catalog.json de apps/)",
       repr(sorted(achados)[:8]))
 achados = {os.path.relpath(caminho_de(it), raiz) for it in glifos("alienígena").get("glifos", [])}
 checa("packs/dracula/icones/biblioteca/alien.svg" in achados,
@@ -188,9 +192,43 @@ checa("net.waterfox.waterfox" in sugeridos and len(sugeridos) < len(itens),
 ordem = [g["id"] for g in grupos]
 checa(ordem and ordem[0].startswith("pack:dracula:")
       and any(g.startswith("pack:catppuccin:") for g in ordem)
-      and any(g.startswith("motor:") for g in ordem),
+      and any(g.startswith("pack:meowsystem:") for g in ordem),
       "o pack no ar vem primeiro, e os outros packs e o motor vêm depois, cada um na sua pasta",
       repr(ordem))
+
+# --- 4b. as três pastas — P88, decisão 14 ----------------------------------------
+import re  # noqa: E402
+#   Os grupos são pack × apps/biblioteca (cada subpasta, um grupo); `sistema/`
+#   não é ícone de programa; o traço do pack-base é traço.
+de_sistema = sorted({it["grupo"] for it in itens if "/icones/sistema/" in caminho_de(it)})
+checa(not de_sistema, "nenhuma pasta de sistema/ na ficha", repr(de_sistema))
+fora_das_duas = [g["id"] for g in grupos if g["pack"] and ":autorais:" not in g["id"]
+                 and not re.match(r"^pack:[a-z0-9-]+:(apps|biblioteca)(/[^:]+)?(:png)?$", g["id"])]
+checa(not fora_das_duas, "todo grupo de pack é apps/ ou biblioteca/, ou os autorais", repr(fora_das_duas))
+base = {g["id"]: g["tipo"] for g in grupos if g["pack"] == "meowsystem"}
+checa(base and set(base.values()) == {"traco"} and "pack:meowsystem:apps/arcticons" in base,
+      "o acervo do pack-base aparece como traço", repr(base))
+
+# --- 4c. as subpastas da P87: versões e projetos dela — decisões 13 e 16 -----------
+#   `biblioteca/versoes/` guarda todas as versões e rascunhos recuperados (SVG e
+#   PNG), e `biblioteca/projetos/` os desenhos dos projetos dela fora da lista de
+#   exclusão. Cada uma é um grupo da ficha, com o rótulo de gente e a contagem
+#   que o disco tem; o rótulo de cada desenho vem do `catalog.json` da pasta.
+por_caminho = {os.path.normpath(caminho_de(i)): i for i in itens}
+for sub, rotulo, minimo in (("versoes", "versões", 100), ("projetos", "projetos dela", 5)):
+    pasta_p87 = os.path.join(raiz, "packs", "dracula", "icones", "biblioteca", sub)
+    esperado = len([a for a in os.listdir(pasta_p87) if a.endswith(".svg")])
+    gp = next((g for g in grupos if g["id"] == "pack:dracula:biblioteca/" + sub), None)
+    checa(gp and gp["total"] == esperado and esperado >= minimo and gp["nome"] == rotulo,
+          "a pasta «%s» da biblioteca do Dracula aparece na ficha com %d desenhos" % (rotulo, esperado),
+          repr(gp))
+    png_p87 = next((g for g in grupos if g["id"] == "pack:dracula:biblioteca/%s:png" % sub), None)
+    npng = len([a for a in os.listdir(pasta_p87) if a.endswith(".png")])
+    checa(bool(png_p87) == bool(npng) and (not npng or png_p87["total"] == npng),
+          "e os PNG de «%s», vistos e travados, num grupo à parte (%d)" % (rotulo, npng), repr(png_p87))
+    sem_rotulo = sorted(a for a in os.listdir(pasta_p87) if a.endswith((".svg", ".png"))
+                        and not (por_caminho.get(os.path.normpath(os.path.join(pasta_p87, a))) or {}).get("rotulo"))
+    checa(not sem_rotulo, "todo desenho de «%s» tem rótulo na ficha" % rotulo, repr(sem_rotulo[:4]))
 
 # --- 5. o rótulo é amigável, e o nome técnico vai para a dica — P80, item 1 ------
 #   Medido no uso real de 10/10 (prints 05 e 06): `net.waterfo…`, `org.gnome.…`,
@@ -199,7 +237,7 @@ checa(ordem and ordem[0].startswith("pack:dracula:")
 #   `catalog.json`; sem nenhum dos dois, do próprio nome, sem número nem domínio.
 por_arquivo = {os.path.relpath(caminho_de(it), raiz): it for it in itens}
 esperados = {
-    "packs/dracula/icones/apps/net.waterfox.waterfox.svg": "Waterfox",   # o comentário do apps.map
+    "packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg": "Waterfox",   # o comentário do apps.map
     "packs/dracula/icones/biblioteca/alien.svg": "Alienígena",           # a descrição do catalog.json
     # [P82, item 8: o 005-potion ganhou descrição no catálogo; era «Potion», o
     #   nome sem o número, que é a queda de quando não há descrição.]
@@ -256,7 +294,7 @@ checa(dele and caminho_de(dele[0]).startswith(casa_real + os.sep) and dele[0]["t
 #   sem linha nem catálogo a busca não tinha texto para casar.
 achados = {os.path.relpath(caminho_de(it), raiz) for it in glifos("firefox").get("glifos", [])}
 checa({"packs/dracula/icones/apps/net.waterfox.waterfox.svg",
-       "assets/icones/resgatados/net.waterfox.waterfox.svg"} <= achados,
+       "packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg"} <= achados,
       "«firefox» acha os dois desenhos da raposa: o do pack e o resgatado",
       repr(sorted(a for a in achados if "waterfox" in a)))
 
@@ -264,8 +302,10 @@ checa({"packs/dracula/icones/apps/net.waterfox.waterfox.svg",
 #   O `_escolha_no_pack` só respondia quando a linha do mapa era uma escolha do
 #   painel: o Waterfox abria com o desenho do pack sem marca nenhuma. A ordem é
 #   a do tema: a escolha de quem usa, a linha do mapa do pack no ar, o traço.
+#   [P87, decisão 16 (3): a linha do Waterfox passou à raposa do motor, que
+#   vence a régua do BRIEFING.]
 veste = glifos("", "net.waterfox.waterfox").get("veste")
-checa(veste == "packs/dracula/icones/apps/net.waterfox.waterfox.svg",
+checa(veste == "packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg",
       "o net.waterfox.waterfox vem com «veste» no desenho do pack no ar", "veio %r" % veste)
 
 # --- 8. nomes na ficha — P82, item 8 -------------------------------------------
@@ -280,15 +320,15 @@ sem_descricao = sorted(a for a in os.listdir(bib) if a.endswith(".svg")
                        and not str((catalogo.get(a) or {}).get("descricao") or "").strip())
 checa(not sem_descricao, "todo desenho da biblioteca do Dracula tem descrição no catálogo",
       "%d sem: %s" % (len(sem_descricao), sem_descricao[:6]))
-with open(os.path.join(raiz, "assets", "icones", "apps-convertidos.map"), encoding="utf-8") as fh:
+with open(os.path.join(raiz, "packs", "meowsystem", "icones", "apps-convertidos.map"), encoding="utf-8") as fh:
     linhas_conv = fh.read().split("\n")
 sem_nome = [l.split(":", 1)[0] for i, l in enumerate(linhas_conv)
             if re.match(r"^[a-z]+\.[A-Za-z0-9_.-]+\.[A-Za-z0-9_.-]+:", l)
             and not (i and re.match(r"^# app: \S", linhas_conv[i - 1]))]
 checa(not sem_nome, "toda linha de id invertido do apps-convertidos.map tem o «# app:» com o nome",
       "%d sem: %s" % (len(sem_nome), sem_nome[:6]))
-for rel, rotulo in (("assets/icones/convertidos-apps/com.obsproject.Studio.svg", "OBS Studio"),
-                    ("assets/icones/convertidos-apps/io.github.shiftey.Desktop.svg", "GitHub Desktop")):
+for rel, rotulo in (("packs/meowsystem/icones/apps/convertidos/com.obsproject.Studio.svg", "OBS Studio"),
+                    ("packs/meowsystem/icones/apps/convertidos/io.github.shiftey.Desktop.svg", "GitHub Desktop")):
     it = por_arquivo.get(rel) or {}
     checa(it.get("rotulo") == rotulo, "%s ganha o rótulo «%s»" % (os.path.basename(rel), rotulo),
           "veio %r" % it.get("rotulo"))

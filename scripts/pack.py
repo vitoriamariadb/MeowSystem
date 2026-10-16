@@ -30,7 +30,7 @@ VERBOS
                                  ou não. É a porta de quem ESCREVE; o `acervo`
                                  acima é a de quem lê. Ver `dir_acervo`.
     alvo    <base>               resolve os alvos de mapa que chegam pelo STDIN,
-                                 um por linha: `motor:x` cai em assets/icones/,
+                                 um por linha: `motor:x` cai em packs/meowsystem/icones/,
                                  `pack:<id>:x` em <aquele pack>/icones/, sem
                                  prefixo cai na <base>. `~/` e caminho absoluto
                                  são recusados. Uma linha de saída por linha de
@@ -179,7 +179,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 FORMATO_MIN = 1
-FORMATO_MAX = 1
+FORMATO_MAX = 2
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -232,6 +232,8 @@ OK, RECUSADO, ERRO_USO = 0, 1, 2
 # mimetypes e autorais; `som.*` vale para as sete chaves que os LIMITES conhecem.
 CAMPOS_COM_LEITOR = {
     "formato", "id", "nome",            # identidade — validar
+    "papel",                            # validar, `eh_base` (o pack-base, P88)
+    "icones.apps.recolorir",            # `acervos_de_icone`: traço na ficha (P88)
     "heranca",                          # validar, cmd_info, acervo
     "creditos",                         # validar cobra a existência do arquivo
     "paleta", "paleta.arquivo",         # validar, verbo `paleta`, cmd_info
@@ -790,7 +792,7 @@ def dir_acervo(categoria, ref=None, padrao=None):
     if not isinstance(declarado, str) or not declarado:
         if not padrao:
             return None
-        declarado = padrao
+        declarado = padrao_do_formato(ref, padrao)
     # A MESMA GUARDA DO `acervo`, E PELO MESMO MOTIVO: um pack de terceiro com
     # `"desenhos": "../../../algum/lugar"` faria o gerador ESCREVER fora do
     # pack. Do lado da leitura o estrago é ler um mapa; do lado da escrita é
@@ -829,12 +831,76 @@ def dir_acervo(categoria, ref=None, padrao=None):
 #   raiz, e ela divergiria na primeira vez que um mapa mudasse de pasta.
 #
 # OS DOIS LADOS TÊM GUARDA, E O MOTIVO É O MESMO DO `acervo`
-#   Sem prefixo, o alvo tem de cair dentro da base; com `motor:`, dentro de
-#   `assets/icones/`. Um mapa é DADO, e um pack de terceiro escreve o dado dele:
+#   Sem prefixo, o alvo tem de cair dentro da base; com `motor:`, dentro do
+#   acervo do pack-base. Um mapa é DADO, e um pack de terceiro escreve o dado dele:
 #   `motor:../../../etc/algo` seria lido e copiado para o tema de quem instalou.
 #   Três linhas de guarda contra isso é barato.
+#
+# O MOTOR VIROU O PACK-BASE — P88, decisão 14. O acervo de `assets/icones/`
+#   desceu para `packs/meowsystem/icones/`, nas três pastas, e `motor:` passou a
+#   ser `pack:meowsystem:`. As pastas de antes continuam valendo num mapa velho:
+#   `PASTAS_DE_ANTES` diz para onde cada uma foi.
 MOTOR = "motor:"
-ACERVO_DO_MOTOR = os.path.join("assets", "icones")
+PACK_BASE = "meowsystem"
+ACERVO_DO_MOTOR = os.path.join("packs", PACK_BASE, "icones")
+PASTAS_DE_ANTES = {
+    "arcticons-apps": "apps/arcticons",
+    "convertidos-apps": "apps/convertidos",
+    "arcticons": "sistema/arcticons",
+    "autorais/leitura": "sistema/leitura",
+}
+
+# O ENDEREÇO DE ANTES, NO ESTADO DE QUEM USA — P88. Uma escolha do painel ou uma
+#   linha do `icones-traco.map` gravada antes das três pastas guarda o caminho
+#   de então (`assets/icones/resgatados/x.svg`). Ela continua valendo: quem lê
+#   pergunta aqui, e só troca quando o de antes não existe e o de hoje existe.
+#   `*` é o id de um pack.
+CAMINHOS_DE_ANTES = (
+    ("assets/icones/arcticons-apps/", "packs/meowsystem/icones/apps/arcticons/"),
+    ("assets/icones/convertidos-apps/", "packs/meowsystem/icones/apps/convertidos/"),
+    ("assets/icones/arcticons/", "packs/meowsystem/icones/sistema/arcticons/"),
+    ("assets/icones/autorais/leitura/", "packs/meowsystem/icones/sistema/leitura/"),
+    ("assets/icones/resgatados/", "packs/dracula/icones/apps/resgatados/"),
+    ("packs/*/icones/autorais/", "packs/*/icones/apps/autorais/"),
+    ("packs/*/icones/feitos-a-mao/", "packs/*/icones/biblioteca/feitos-a-mao/"),
+    ("packs/*/icones/pastas/", "packs/*/icones/sistema/pastas/"),
+    ("packs/*/icones/mimetypes/", "packs/*/icones/sistema/mimetypes/"),
+)
+
+
+# O PADRÃO DE UM PACK DE ANTES — P88. Um pack `formato` 1 que não declara a
+#   pasta dos autorais a tem em `icones/autorais/`; o de formato 2, dentro de
+#   `apps/`. Quem chama passa o padrão de hoje, e o pack velho recebe o dele.
+PADROES_DE_ANTES = {"icones/apps/autorais/": "icones/autorais/",
+                    "icones/biblioteca/feitos-a-mao/": "icones/feitos-a-mao/"}
+
+
+def padrao_do_formato(ref, padrao):
+    """O `padrao` de hoje, ou o de antes num pack de formato 1."""
+    formato = campo(ref, "formato", FORMATO_MAX)
+    if isinstance(formato, int) and formato < 2:
+        return PADROES_DE_ANTES.get(padrao, padrao)
+    return padrao
+
+
+def caminho_de_hoje(caminho):
+    """O caminho de um desenho que mudou de pasta na P88, ou ele mesmo."""
+    cheio = caminho if os.path.isabs(caminho) else os.path.join(RAIZ, caminho)
+    if os.path.exists(cheio):
+        return caminho
+    rel = os.path.relpath(cheio, RAIZ) if cheio.startswith(RAIZ + os.sep) else None
+    if rel is None:
+        return caminho
+    for antes, agora in CAMINHOS_DE_ANTES:
+        padrao = "^" + re.escape(antes).replace(r"\*", "([a-z0-9][a-z0-9-]*)")
+        achou = re.match(padrao, rel)
+        if not achou:
+            continue
+        novo = agora.replace("*", achou.group(1)) if achou.groups() else agora
+        novo = novo + rel[achou.end():]
+        if os.path.exists(os.path.join(RAIZ, novo)):
+            return novo if not os.path.isabs(caminho) else os.path.join(RAIZ, novo)
+    return caminho
 
 # O PREFIXO `pack:` — A TERCEIRA FORMA DE UM ALVO, E A ÚLTIMA — 23/09/2026
 #
@@ -862,7 +928,7 @@ def _caminho_da_maquina(resto):
 def resolver_alvo(valor, base):
     """O arquivo que uma linha de mapa nomeia. Recusa o que sai da raiz.
 
-    `motor:x` resolve em `assets/icones/x`; `pack:<id>:x` em
+    `motor:x` resolve no acervo do pack-base; `pack:<id>:x` em
     `<pack id>/icones/x`; sem prefixo, contra a `base` que o chamador passa.
     Devolve o caminho EXISTA ELE OU NÃO: quem chama é que sabe se um alvo
     ausente é erro (nome no mapa sem desenho no disco) ou não.
@@ -872,6 +938,10 @@ def resolver_alvo(valor, base):
         return ""
     if valor.startswith(MOTOR):
         raiz, resto = os.path.join(RAIZ, ACERVO_DO_MOTOR), valor[len(MOTOR):].strip()
+        for antes, agora in PASTAS_DE_ANTES.items():
+            if resto.startswith(antes + "/"):
+                resto = agora + resto[len(antes):]
+                break
     elif valor.startswith(OUTRO_PACK):
         id_outro, sep, resto = valor[len(OUTRO_PACK):].partition(":")
         id_outro, resto = id_outro.strip(), resto.strip()
@@ -1014,12 +1084,13 @@ def cmd_alvo(base):
 #   sem pagar uma partida de `bash` por mapa. O `tests/fonte-unica.sh` confere
 #   as duas contra o mesmo mapa.
 
-# O mapa do motor que também escreve em `scalable/apps`. A coluna do meio dele
+# O outro mapa que também escreve em `scalable/apps`. A coluna do meio dele
 # é PROCEDÊNCIA (onde o PNG foi achado em 11/09/2026) e ninguém a instala — o
-# desenho é sempre `assets/icones/resgatados/<nome>.svg`, e é só o NOME que se
-# lê daqui, como o `icones_resgatados.sh` faz (`NF>=3`, primeiro campo).
-MAPA_RESGATADOS = os.path.join("assets", "icones", "apps-resgatados.map")
-ACERVO_RESGATADOS = os.path.join("assets", "icones", "resgatados")
+# desenho é sempre `<desenhos>/<nome>.svg`, e é só o NOME que se lê daqui, como
+# o `icones_resgatados.sh` faz (`NF>=3`, primeiro campo).
+# [P88, decisão 16: os resgatados têm cor Dracula fixa e desceram do motor para
+#   o `packs/dracula` (`icones.resgatados`); com outro pack no ar, nenhum vale.]
+CATEGORIA_RESGATADOS = "icones.resgatados"
 
 
 def ler_mapa(caminho):
@@ -1098,6 +1169,7 @@ def _alvo_de_escolha(alvo):
     #   forma é uma só, a do `realpath`, e é ela que volta: ver "A REGRA ÚNICA".
     #   O "não é link" continua no caminho como foi escrito, porque é o arquivo
     #   da linha que não pode ser link.]
+    alvo = caminho_de_hoje(alvo)
     escrito = alvo if os.path.isabs(alvo) else os.path.join(RAIZ, alvo)
     # [P82: e a pasta dos desenhos que quem usa enviou pelo painel.]
     reais = [os.path.realpath(r) for r in [RAIZ] + raizes() + [pasta_de_enviados()]]
@@ -1178,15 +1250,17 @@ def fontes_e_atras(ref=None):
                 do_pack.append((nome, _relativo(resolver_alvo(alvo, base)), camada))
             except Recusa as e:
                 print(f"  aviso {_relativo(mapa)}:{num}: {e}", file=sys.stderr)
-    resg = os.path.join(RAIZ, MAPA_RESGATADOS)
-    if os.path.isfile(resg):
+    resg = acervo(CATEGORIA_RESGATADOS + ".mapa", ref=ref)
+    pasta_resg = acervo(CATEGORIA_RESGATADOS + ".desenhos", ref=ref)
+    if resg and pasta_resg and os.path.isfile(resg):
         with open(resg, encoding="utf-8") as fh:
             for linha in fh:
                 campos = linha.split("#", 1)[0].split(":")
                 nome = campos[0].strip()
-                if len(campos) >= 3 and nome:
+                # O nome é dado de pack (P78): só o de conjunto fechado vira arquivo.
+                if len(campos) >= 3 and nome and nome_de_destino(nome):
                     do_motor.append(
-                        (nome, os.path.join(ACERVO_RESGATADOS, nome + ".svg"), "resgatados"))
+                        (nome, _relativo(os.path.join(pasta_resg, nome + ".svg")), "resgatados"))
     # O padrão é ligada (P74 item 3, 09/10/2026): só o "nao" escrito desliga,
     # a mesma régua do `icones_apps_dracula.sh`.
     ligada = (os.environ.get("ICONES_DRACULA") or "sim") != "nao"
@@ -1310,13 +1384,13 @@ def _tabela_procedencia(caminho):
 
 def _origem(valor):
     """O arquivo que a coluna `lido de` nomeia. Só é LIDO, nunca escrito."""
-    if valor.startswith(MOTOR):
+    if valor.startswith(MOTOR) or valor.startswith(OUTRO_PACK):
         return resolver_alvo(valor, RAIZ)
     if valor.startswith("~"):
         return os.path.expanduser(valor)
     if os.path.isabs(valor):
         return valor
-    raise Recusa(f"lido de {valor!r}: use '~/…', 'motor:…' ou um caminho absoluto")
+    raise Recusa(f"lido de {valor!r}: use '~/…', 'motor:…', 'pack:<id>:…' ou um caminho absoluto")
 
 
 def _sha(caminho):
@@ -1460,7 +1534,7 @@ MARCA_ACCENT = "<accent>"
 #   gravada. Leitura e escrita perguntam agora ao mesmo `dir_acervo`, com este
 #   padrão; o `DESTINO` do gerador e o `onde` do `completar_icones.sh` passam o
 #   mesmo texto, e os três têm de continuar iguais.
-PASTA_AUTORAIS = "icones/autorais/"
+PASTA_AUTORAIS = "icones/apps/autorais/"
 LACUNAS_DO_GERADOR = ("titulo",)
 RE_PAPEL = re.compile(r"^[a-z][a-z0-9_]*$")
 RE_LACUNA = re.compile(r"\{([^{}]*)\}")
@@ -3646,6 +3720,9 @@ def validar(ref, silencioso=False):
             f"pack.json: id é {p['id']!r} mas o diretório chama-se {esperado!r}.\n"
             f"    Os dois precisam bater — o id é como o meow.conf nomeia o pack.")
 
+    if p.get("papel") is not None:
+        return _validar_base(p, dir_pack, silencioso)
+
     # --- paleta -------------------------------------------------------------
     pal = p.get("paleta") or {}
     arq = pal.get("arquivo", "paleta.json")
@@ -3762,7 +3839,8 @@ def validar(ref, silencioso=False):
     for cat, chaves in (("apps", ("mapa", "desenhos")),
                         ("pastas", ("mapa", "desenhos")),
                         ("mimetypes", ("mapa", "desenhos")),
-                        ("autorais", ("mapa", "desenhos"))):
+                        ("autorais", ("mapa", "desenhos")),
+                        ("resgatados", ("mapa", "desenhos"))):
         bloco = ic.get(cat) or {}
         for chave in chaves:
             if bloco.get(chave):
@@ -3828,6 +3906,13 @@ def validar(ref, silencioso=False):
             except Recusa as e:
                 raise Recusa(f"{mapa_apps}:{num}: {e}") from None
 
+    # NO MÁXIMO TRÊS PASTAS — P88, decisão 14. Um pack de formato 2 guarda o
+    #   ícone em `icones/apps/`, `icones/sistema/` e `icones/biblioteca/`, e só
+    #   nelas; o flavor e a etiqueta são subpasta de uma das três. Só na porta
+    #   de quem publica, como a forma da biblioteca logo abaixo.
+    if not silencioso:
+        _tres_pastas(p, dir_pack)
+
     # A BIBLIOTECA SÓ GUARDA DESENHO — 23/09/2026, P36
     #   `icones/biblioteca/` é a coleção de onde se escolhe o próximo desenho de
     #   aplicativo (ver `PASTA_BIBLIOTECA`, lá embaixo). Ela é o maior acervo
@@ -3845,22 +3930,32 @@ def validar(ref, silencioso=False):
     if not silencioso and os.path.lexists(pasta_bib.rstrip("/")):
         _exigir(os.path.isdir(pasta_bib) and not os.path.islink(pasta_bib.rstrip("/")),
                 f"{PASTA_BIBLIOTECA}: precisa ser uma pasta do pack, e não um arquivo ou link")
+        # [P88, decisão 14: a biblioteca guarda também o PNG feito à mão e aceita
+        #   subpasta, que é só etiqueta (`biblioteca/feitos-a-mao/`). A forma
+        #   vale em toda a árvore: desenho comum, sem link, e o catálogo.]
         fora_da_forma = []
-        for a in sorted(os.listdir(pasta_bib)):
-            cheio = os.path.join(pasta_bib, a)
-            if a.startswith("."):
-                continue
-            # O CATÁLOGO É O ÚNICO QUE NÃO É DESENHO — 09/10/2026, P73. É dado
-            # sobre os desenhos (descrição em português e etiquetas, um por
-            # arquivo), e a busca da ficha de ícone o lê ao lado deles. Arquivo
-            # comum de texto, com nome fixo: o resto da forma continua valendo.
-            if a == "catalog.json" and os.path.isfile(cheio) and not os.path.islink(cheio):
-                continue
-            if not a.endswith(".svg") or os.path.islink(cheio) or not os.path.isfile(cheio):
-                fora_da_forma.append(a)
+        for raiz_b, dirs, arqs in os.walk(pasta_bib):
+            rel_b = os.path.relpath(raiz_b, pasta_bib)
+            for dname in sorted(dirs):
+                if os.path.islink(os.path.join(raiz_b, dname)):
+                    fora_da_forma.append(os.path.normpath(os.path.join(rel_b, dname)))
+            dirs[:] = sorted(d for d in dirs if not d.startswith(".")
+                             and not os.path.islink(os.path.join(raiz_b, d)))
+            for a in sorted(arqs):
+                cheio = os.path.join(raiz_b, a)
+                if a.startswith("."):
+                    continue
+                # O CATÁLOGO É O ÚNICO QUE NÃO É DESENHO — 09/10/2026, P73. É dado
+                # sobre os desenhos (descrição em português e etiquetas, um por
+                # arquivo), e a busca da ficha de ícone o lê ao lado deles.
+                if a == "catalog.json" and os.path.isfile(cheio) and not os.path.islink(cheio):
+                    continue
+                if not a.endswith(EXT_DA_BIBLIOTECA) or os.path.islink(cheio) \
+                        or not os.path.isfile(cheio):
+                    fora_da_forma.append(os.path.normpath(os.path.join(rel_b, a)))
         _exigir(not fora_da_forma,
                 f"{PASTA_BIBLIOTECA}: {len(fora_da_forma)} entrada(s) que não são desenho "
-                f"(.svg comum, sem subpasta):\n      " + "\n      ".join(fora_da_forma))
+                f"(.svg ou .png comum, sem link):\n      " + "\n      ".join(fora_da_forma))
 
     # AS DECLARAÇÕES DE DESENHO AUTORAL — 23/09/2026, sprint P26
     #   Os `.json` da pasta `icones.autorais.desenhos` viraram a entrada do
@@ -4186,6 +4281,63 @@ def validar(ref, silencioso=False):
     return p, dados, dir_pack
 
 
+# O PACK-BASE — P88, decisão 14
+#   `papel: "base"` é o acervo do próprio MeowSystem (`packs/meowsystem/`), que
+#   todo pack herda sem declarar. Ele não tem paleta nem logo e não se veste:
+#   a porta do motor (`silencioso`, a sonda do `meow_pack_dir` e do `usar`) o
+#   recusa, e a de quem publica confere só o que ele tem, os ícones.
+PAPEL_BASE = "base"
+
+
+def eh_base(ref):
+    """True quando `ref` é o pack-base (o `papel: "base"` do pack.json)."""
+    return campo(ref, "papel") == PAPEL_BASE
+
+
+def _tres_pastas(p, dir_pack):
+    """Recusa a quarta pasta em `icones/` de um pack de formato 2."""
+    if not isinstance(p.get("formato"), int) or p["formato"] < 2:
+        return
+    pasta = os.path.join(dir_pack, "icones")
+    if not os.path.isdir(pasta):
+        return
+    a_mais = sorted(d for d in os.listdir(pasta) if d not in PASTAS_DO_FORMATO
+                    and (os.path.isdir(os.path.join(pasta, d)) or os.path.islink(os.path.join(pasta, d))))
+    _exigir(not a_mais,
+            f"icones/: {', '.join(a_mais)} — no formato {p['formato']} o ícone mora em\n"
+            f"    apps/ (ligado a um programa), sistema/ (pasta, tipo de arquivo, status)\n"
+            f"    ou biblioteca/ (o resto, para escolher). Mova a pasta para dentro de uma delas.")
+
+
+def _validar_base(p, dir_pack, silencioso):
+    _exigir(p["papel"] == PAPEL_BASE,
+            f"pack.json: papel {p['papel']!r} — o único que existe é {PAPEL_BASE!r}")
+    _exigir(not silencioso,
+            f"{p['id']!r} é o pack-base: todo pack herda dele, e ele não se veste sozinho")
+    for chave in ("paleta", "heranca"):
+        _exigir(chave not in p,
+                f"pack.json: o pack-base não tem {chave!r} — ele é a última camada")
+    ic = p.get("icones") or {}
+    for cat, bloco in ic.items():
+        if str(cat).startswith("_") or not isinstance(bloco, dict):
+            continue
+        for chave in ("mapa", "desenhos"):
+            if bloco.get(chave):
+                alvo = _dentro(dir_pack, bloco[chave], f"icones.{cat}.{chave}")
+                _exigir(os.path.exists(alvo),
+                        f"icones.{cat}.{chave}: {bloco[chave]!r} não existe no pack")
+    if p.get("creditos"):
+        _exigir(os.path.isfile(_dentro(dir_pack, p["creditos"], "creditos")),
+                f"creditos: {p['creditos']!r} está declarado e NÃO existe no pack")
+    _tres_pastas(p, dir_pack)
+    casas = nomes_de_usuario(dir_pack)
+    _exigir(not casas,
+            f"{len(casas)} linha(s) com a casa de alguém escrita por extenso:\n      "
+            + "\n      ".join(casas))
+    print(f"  ok   {p['nome']} ({p['id']}) — formato {p['formato']}, pack-base: só acervo")
+    return p, {"flavors": {}, "nomes": {}, "claros": []}, dir_pack
+
+
 # O TAMANHO DE UM PACK, EM VOZ ALTA — 22/09/2026
 #
 #   Até aqui não havia como saber o tamanho de um pack sem `find`. O `meow pack
@@ -4246,6 +4398,7 @@ def _contar_acervo(ref, categoria, flavors):
 #   deixá-los lá. Contar por caminho diria que o dado não veste ninguém,
 #   quando o Foundry o veste todo dia. O sha256 de ~300 SVG custa milissegundos.
 PASTA_BIBLIOTECA = "icones/biblioteca/"
+EXT_DA_BIBLIOTECA = (".svg", ".png")
 
 
 # ============================================================================
@@ -4272,7 +4425,8 @@ PASTA_BIBLIOTECA = "icones/biblioteca/"
 #     biblioteca (`PASTA_BIBLIOTECA`), os autorais de TODOS os flavors (o
 #     flavor é subgrupo) e os feitos à mão (`PASTA_FEITOS_A_MAO`): o vetor
 #     de cada um, e o PNG que ainda não ganhou o seu;
-#   · do motor: as pastas de `ACERVOS_DO_MOTOR`, com as subpastas.
+#   · [P88: num pack de formato 2, as árvores `apps/` e `biblioteca/`, cada
+#     subpasta um grupo — e o motor é o pack-base, com o traço dele.]
 #   Fora: `pastas/` e os mimetypes (pasta e tipo de arquivo não são ícone de
 #   aplicativo — oferecer um faria o lançador mostrar uma pasta no lugar do
 #   programa); `previa-arcticons/` (os 35 têm os mesmos bytes de desenhos que já
@@ -4283,17 +4437,16 @@ PASTA_BIBLIOTECA = "icones/biblioteca/"
 #   [O grupo «Catppuccin» que saiu na P60 era a pasta `catppuccin-apps/`, fora
 #   do git e de PNG. O que volta com a decisão 3 é o acervo versionado do pack
 #   Catppuccin — os autorais dele —, pela mesma porta dos outros packs.]
-PASTA_FEITOS_A_MAO = "icones/feitos-a-mao/"
-ACERVOS_DO_MOTOR = (
-    # (pasta em assets/icones/, nome na tela, tipo). O tipo diz o que a ficha
-    # faz com a escolha: `desenho` entra no tema como está; `traco` é glifo de
-    # contorno, que o `icones_apps_arcticons.sh` pinta na cor escolhida.
-    ("resgatados", "resgatados", "desenho"),
-    ("autorais", "autorais", "desenho"),
-    ("arcticons-apps", "traço", "traco"),
-    ("arcticons", "traço (Arcticons)", "traco"),
-    ("convertidos-apps", "convertidos", "traco"),
-)
+PASTA_FEITOS_A_MAO = "icones/biblioteca/feitos-a-mao/"
+# AS TRÊS PASTAS NA FICHA — P88, decisão 14. Num pack de formato 2 os grupos
+#   são as árvores `apps/` e `biblioteca/`, cada subpasta um grupo (a subpasta é
+#   etiqueta), e o PNG da mesma pasta num grupo à parte. `sistema/` não é ícone
+#   de programa e não entra. O motor deixou de ter grupos próprios: o acervo dele
+#   é o pack-base, e o traço dele é dito pelo `icones.apps.recolorir`.
+PASTAS_DA_FICHA = ("icones/apps/", PASTA_BIBLIOTECA)
+ROTULO_DA_PASTA = {"icones/apps": "feitos para apps", "icones/biblioteca": "biblioteca",
+                   "arcticons": "traço", "feitos-a-mao": "feitos à mão",
+                   "versoes": "versões", "projetos": "projetos dela"}
 FORA_DA_FICHA = ("ANTES-E-DEPOIS.png",)
 # O nome vira texto de mapa no estado de quem usa (`escolhas_do_painel`): `#`
 # cortaria a linha, `:` a partiria, e uma quebra a dividiria em duas.
@@ -4337,7 +4490,8 @@ def acervos_de_icone(no_ar=""):
     Um dicionário por grupo: `id`, `acervo` (o nome do pack, ou «MeowSystem»),
     `nome` (a pasta, como a tela a chama), `pack` (o id, ou ''), `no_ar`,
     `tipo` (`desenho`, `traco` ou `png`), `pasta` e `arquivos` (os caminhos).
-    O pack `no_ar` vem primeiro, depois os outros packs, depois o motor.
+    O pack `no_ar` vem primeiro, depois os outros packs, e o pack-base (o
+    acervo do motor) por último entre eles.
     """
     grupos = []
 
@@ -4361,40 +4515,16 @@ def acervos_de_icone(no_ar=""):
             nome_pack = str(campo(dir_pack, "nome", pid) or pid)
             # SÓ O QUE O PRÓPRIO PACK TRAZ: a herança não sobe aqui, porque o
             # acervo herdado já aparece na pasta do pack de onde ele vem.
-            pastas = []
-            declarada = campo(dir_pack, "icones.apps.desenhos")
-            if isinstance(declarada, str) and declarada:
-                try:
-                    pastas.append(("apps", "feitos para apps",
-                                   _dentro(dir_pack, declarada, "icones.apps.desenhos"),
-                                   "desenho", ".svg"))
-                except Recusa:
-                    pass
-            # A BIBLIOTECA E OS FEITOS À MÃO TAMBÉM PASSAM PELO `_dentro` — P78
-            #   As duas pastas são convenção, sem campo no pack.json, e por
-            #   isso entravam pelo `join` cru: uma `icones/biblioteca` que fosse
-            #   symlink para fora punha na ficha (e na `/previa`) o que estivesse
-            #   lá. Pasta que sai do pack fica de fora, calada como a declarada.
-            for chave, nome, rel, tipo, ext in (
-                    ("biblioteca", "biblioteca", PASTA_BIBLIOTECA, "desenho", ".svg"),
-                    # OS FEITOS À MÃO VIRAM VETOR — 15/10/2026, P84. A decisão 2 de
-                    #   09/10: cada PNG ganha um `.svg` ao lado, conferido por RMSE, e
-                    #   o PNG sai quando o vetor passa. O vetor é desenho como os da
-                    #   biblioteca e se escolhe; o PNG que sobrar segue visto e
-                    #   travado (raster não é fonte), num grupo à parte da mesma pasta.
-                    ("feitos-a-mao", "feitos à mão", PASTA_FEITOS_A_MAO, "desenho", ".svg"),
-                    ("feitos-a-mao-png", "feitos à mão (PNG)", PASTA_FEITOS_A_MAO, "png", ".png")):
-                try:
-                    pastas.append((chave, nome, _dentro(dir_pack, rel, chave), tipo, ext))
-                except Recusa:
-                    pass
-            for chave, nome, pasta, tipo, ext in pastas:
-                grupo("pack:%s:%s" % (pid, chave), nome_pack, nome, pid, tipo, pasta,
-                      _arquivos_da_pasta(pasta, ext))
+            aut = campo(dir_pack, "icones.autorais.desenhos") \
+                or padrao_do_formato(dir_pack, PASTA_AUTORAIS)
+            formato = campo(dir_pack, "formato", 1)
+            if isinstance(formato, int) and formato >= 2:
+                _grupos_das_tres_pastas(grupo, pid, nome_pack, dir_pack, aut)
+            else:
+                _grupos_de_antes(grupo, pid, nome_pack, dir_pack)
             # OS AUTORAIS DE TODOS OS FLAVORS, COM O FLAVOR COMO SUBGRUPO. Até a
             # P73 só o do flavor em vigor entrava: no Dracula escuro, os onze do
             # `alucard` não existiam para a ficha.
-            aut = campo(dir_pack, "icones.autorais.desenhos") or PASTA_AUTORAIS
             try:
                 pasta_aut = _dentro(dir_pack, aut, "icones.autorais.desenhos")
             except Recusa:
@@ -4410,20 +4540,79 @@ def acervos_de_icone(no_ar=""):
                 grupo("pack:%s:autorais:%s" % (pid, flavor or "-"), nome_pack,
                       "autorais · %s" % flavor if flavor else "autorais", pid, "desenho",
                       pasta_aut, por_flavor[flavor])
-    for pasta, nome, tipo in ACERVOS_DO_MOTOR:
-        raiz = os.path.join(RAIZ, "assets", "icones", pasta)
-        for dirpath, dirs, _nomes in os.walk(raiz):
-            dirs.sort()
-            sub = os.path.relpath(dirpath, raiz)
-            grupo("motor:" + (pasta if sub == "." else "%s/%s" % (pasta, sub)), "MeowSystem",
-                  nome if sub == "." else "%s · %s" % (nome, sub), "", tipo, dirpath,
-                  _arquivos_da_pasta(dirpath, ".svg"))
-    # Os enviados pelo painel (P82, item 4), depois do motor.
+    # Os enviados pelo painel (P82, item 4), depois dos packs.
     enviados = pasta_de_enviados()
     grupo("casa:enviados", "Seus", "enviados", "", "desenho", enviados,
           _arquivos_da_pasta(enviados, ".svg"))
-    # O PACK NO AR PRIMEIRO, e a ordem de dentro de cada lado fica a de cima.
-    return sorted(grupos, key=lambda g: (not g["no_ar"], not g["pack"]))
+    # O PACK NO AR PRIMEIRO, o pack-base (o acervo do motor) por último entre os
+    # packs, e a ordem de dentro de cada lado fica a de cima.
+    return sorted(grupos, key=lambda g: (not g["no_ar"], not g["pack"], g["pack"] == PACK_BASE))
+
+
+def _grupos_de_antes(grupo, pid, nome_pack, dir_pack):
+    """Os grupos de um pack de formato 1: as pastas declaradas e as de convenção."""
+    pastas = []
+    for cat, chave, nome in (("icones.apps.desenhos", "apps", "feitos para apps"),
+                             (CATEGORIA_RESGATADOS + ".desenhos", "resgatados", "resgatados")):
+        declarada = campo(dir_pack, cat)
+        if isinstance(declarada, str) and declarada:
+            try:
+                pastas.append((chave, nome, _dentro(dir_pack, declarada, cat), "desenho", ".svg"))
+            except Recusa:
+                pass
+    # A BIBLIOTECA E OS FEITOS À MÃO TAMBÉM PASSAM PELO `_dentro` — P78
+    #   As duas pastas são convenção, sem campo no pack.json, e por isso
+    #   entravam pelo `join` cru: uma `icones/biblioteca` que fosse symlink para
+    #   fora punha na ficha (e na `/previa`) o que estivesse lá. Pasta que sai do
+    #   pack fica de fora, calada como a declarada.
+    feitos = padrao_do_formato(dir_pack, PASTA_FEITOS_A_MAO)
+    for chave, nome, rel, tipo, ext in (
+            ("biblioteca", "biblioteca", PASTA_BIBLIOTECA, "desenho", ".svg"),
+            # OS FEITOS À MÃO VIRAM VETOR — 15/10/2026, P84. A decisão 2 de
+            #   09/10: cada PNG ganha um `.svg` ao lado, conferido por RMSE, e o
+            #   PNG sai quando o vetor passa. O vetor é desenho como os da
+            #   biblioteca e se escolhe; o PNG que sobrar segue visto e travado
+            #   (raster não é fonte), num grupo à parte da mesma pasta.
+            ("feitos-a-mao", "feitos à mão", feitos, "desenho", ".svg"),
+            ("feitos-a-mao-png", "feitos à mão (PNG)", feitos, "png", ".png")):
+        try:
+            pastas.append((chave, nome, _dentro(dir_pack, rel, chave), tipo, ext))
+        except Recusa:
+            pass
+    for chave, nome, pasta, tipo, ext in pastas:
+        grupo("pack:%s:%s" % (pid, chave), nome_pack, nome, pid, tipo, pasta,
+              _arquivos_da_pasta(pasta, ext))
+
+
+def _grupos_das_tres_pastas(grupo, pid, nome_pack, dir_pack, aut):
+    """Os grupos de `apps/` e `biblioteca/` de um pack de formato 2 (P88)."""
+    traco = campo(dir_pack, "icones.apps.recolorir") is True
+    try:
+        real_aut = _dentro(dir_pack, aut, "icones.autorais.desenhos")
+    except Recusa:
+        real_aut = ""
+    for rel_raiz in PASTAS_DA_FICHA:
+        # A pasta passa pelo `_dentro`, como a declarada (P78): uma que seja
+        # link para fora do pack fica de fora, calada.
+        try:
+            raiz = _dentro(dir_pack, rel_raiz, rel_raiz)
+        except Recusa:
+            continue
+        for dirpath, dirs, _nomes in os.walk(raiz):
+            dirs[:] = sorted(d for d in dirs if not d.startswith(".")
+                             and not os.path.islink(os.path.join(dirpath, d))
+                             and os.path.join(dirpath, d) != real_aut)
+            rel = os.path.relpath(dirpath, dir_pack)
+            partes = rel.split(os.sep)[2:]
+            nome = " · ".join([ROTULO_DA_PASTA.get(p, p) for p in partes]) \
+                or ROTULO_DA_PASTA.get(os.path.dirname(rel_raiz), rel_raiz)
+            gid = "pack:%s:%s" % (pid, "/".join(rel.split(os.sep)[1:]))
+            tipo = "traco" if traco and rel_raiz == "icones/apps/" else "desenho"
+            grupo(gid, nome_pack, nome, pid, tipo, dirpath, _arquivos_da_pasta(dirpath, ".svg"))
+            # O PNG que ainda não virou vetor é visto e travado, num grupo à
+            # parte da mesma pasta (raster não é fonte; ver o `feitos-a-mao-png`).
+            grupo(gid + ":png", nome_pack, nome + " (PNG)", pid, "png", dirpath,
+                  _arquivos_da_pasta(dirpath, ".png"))
 
 
 def _contar_biblioteca(ref, dir_pack):
@@ -5227,9 +5416,11 @@ def cmd_construir(ref, seco=False):
         print(f"  ok   {ident}: construído")
         return OK
 
-    # `_dentro` com o caminho que VAMOS ESCREVER: se um dia a saída vier do
-    # pack.json em vez de ser fixa, esta linha já barra o `../..`.
-    saida = _dentro(dir_pack, os.path.join("icones", "autorais"), "icones.autorais")
+    # `_dentro` com o caminho que VAMOS ESCREVER: o `dir_acervo` o aplica.
+    # [P88: a saída é a pasta declarada (ou a padrão do formato), e não mais
+    #   `icones/autorais` fixo — no formato de três pastas ela fica em `apps/`.]
+    saida = dir_acervo("icones.autorais.desenhos", ref=dir_pack,
+                       padrao=PASTA_AUTORAIS).rstrip(os.sep)
 
     gerador = os.path.join(RAIZ, "scripts", "gerar_icones_autorais.py")
     if not os.path.isfile(gerador):
@@ -5894,7 +6085,93 @@ def ler_meowpack(caminho):
     _exigir(manifesto is not None, f"{caminho}: sem o MANIFESTO, não há como conferir "
                                    f"o que chegou")
     _conferir_manifesto(manifesto, ident, membros)
-    return ident, membros
+    return ident, para_tres_pastas(ident, membros)
+
+
+# O PACK DE ANTES CHEGA NO FORMATO NOVO — P88, decisão 14 (item 4)
+#   Um `.meowpack` de formato 1 traz as pastas que cada pack inventava
+#   (`autorais/`, `pastas/`, `feitos-a-mao/`…). O `importar` o converte na
+#   memória, depois de todas as recusas da P78 e antes do `validar`: a pasta vai
+#   para uma das três, e o pack.json, o `apps.map` e a primeira coluna do
+#   PROCEDENCIA.md passam a dizer o caminho novo. A arte não muda um byte.
+PASTAS_DO_FORMATO = ("apps", "sistema", "biblioteca")
+PASTA_DE_ANTES_POR_NOME = {"autorais": "apps/autorais", "resgatados": "apps/resgatados",
+                           "feitos-a-mao": "biblioteca/feitos-a-mao",
+                           "pastas": "sistema/pastas", "mimetypes": "sistema/mimetypes"}
+PASTA_DA_CATEGORIA = {"apps": "apps", "autorais": "apps", "resgatados": "apps",
+                      "pastas": "sistema", "mimetypes": "sistema"}
+
+
+def para_tres_pastas(ident, membros):
+    """`membros` (caminho → bytes) de um pack de formato 1, no formato 2."""
+    try:
+        p = json.loads(membros.get("pack.json", b"{}").decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        return membros          # o `validar` diz o porquê, com a linha
+    if not isinstance(p, dict) or not isinstance(p.get("formato"), int) or p["formato"] >= 2:
+        return membros
+    ic = p.get("icones") if isinstance(p.get("icones"), dict) else {}
+    declarada = {}
+    for cat, bloco in ic.items():
+        if isinstance(bloco, dict) and isinstance(bloco.get("desenhos"), str):
+            topo = bloco["desenhos"].split("/")
+            if len(topo) >= 2 and topo[0] == "icones":
+                declarada.setdefault(topo[1], cat)
+    troca = {}
+    for rel in membros:
+        partes = rel.split("/")
+        if len(partes) > 2 and partes[0] == "icones" and partes[1] not in PASTAS_DO_FORMATO:
+            d = partes[1]
+            troca[d] = PASTA_DE_ANTES_POR_NOME.get(d) or (
+                "%s/%s" % (PASTA_DA_CATEGORIA[declarada[d]], d)
+                if declarada.get(d) in PASTA_DA_CATEGORIA else "biblioteca/%s" % d)
+
+    def novo(caminho, prefixo="icones/"):
+        for d, para in troca.items():
+            if caminho == prefixo + d or caminho.startswith(prefixo + d + "/"):
+                return prefixo + para + caminho[len(prefixo + d):]
+        return caminho
+
+    saida = {novo(rel): dado for rel, dado in membros.items()}
+    for cat, bloco in ic.items():
+        if isinstance(bloco, dict):
+            for chave in ("desenhos", "mapa"):
+                if isinstance(bloco.get(chave), str):
+                    bloco[chave] = novo(bloco[chave])
+    p["formato"] = 2
+    saida["pack.json"] = (json.dumps(p, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    mapa = ((ic.get("apps") or {}).get("mapa") if isinstance(ic.get("apps"), dict) else None)
+    if isinstance(mapa, str) and mapa in saida:
+        linhas = []
+        for linha in saida[mapa].decode("utf-8", "replace").split("\n"):
+            util, sep, resto = linha.partition("#")
+            nome, dois, alvo = util.partition(":")
+            alvo_limpo = alvo.strip()
+            if dois and alvo_limpo and not alvo_limpo.startswith((MOTOR, OUTRO_PACK)):
+                trocado = novo(alvo_limpo, "")
+                util = util.replace(alvo_limpo, trocado, 1) if trocado != alvo_limpo else util
+            elif dois and alvo_limpo.startswith("%s%s:" % (OUTRO_PACK, ident)):
+                cab = "%s%s:" % (OUTRO_PACK, ident)
+                util = util.replace(alvo_limpo, cab + novo(alvo_limpo[len(cab):], ""), 1)
+            linhas.append(util + sep + resto)
+        saida[mapa] = "\n".join(linhas).encode("utf-8")
+    if "PROCEDENCIA.md" in saida:
+        linhas = saida["PROCEDENCIA.md"].decode("utf-8", "replace").split("\n")
+        for i, linha in enumerate(linhas):
+            m = re.match(r"^\|\s*`?(icones/[^`|]+)`?\s*\|", linha)
+            if m and novo(m.group(1)) != m.group(1):
+                linhas[i] = linha.replace(m.group(1), novo(m.group(1)), 1)
+        saida["PROCEDENCIA.md"] = "\n".join(linhas).encode("utf-8")
+    return saida
+
+
+def _formato_dos_arquivos(arquivos):
+    """O `formato` do pack.json de `arquivos`, ou 0 quando não se lê."""
+    try:
+        formato = json.loads(arquivos.get("pack.json", b"{}").decode("utf-8")).get("formato")
+    except (UnicodeDecodeError, ValueError, AttributeError):
+        return 0
+    return formato if isinstance(formato, int) else 0
 
 
 def _instalar_pack(arquivos, base, ident, seco=False):
@@ -5926,6 +6203,11 @@ def _instalar_pack(arquivos, base, ident, seco=False):
             with open(alvo, "wb") as fh:
                 fh.write(conteudo)
             os.chmod(alvo, 0o644)
+        # AS TRÊS PASTAS NASCEM COM O PACK — P88, decisão 14: quem abre um pack
+        #   novo vê onde cada desenho mora, mesmo antes do primeiro.
+        if _formato_dos_arquivos(arquivos) >= 2:
+            for pasta in PASTAS_DO_FORMATO:
+                os.makedirs(os.path.join(dir_novo, "icones", pasta), exist_ok=True)
         p, dados, _ = validar(dir_novo)
         if seco:
             return p, dados, None
@@ -6432,7 +6714,7 @@ def montar_novo(ident, csv=None):
                              f"não tem um claro\").")
         sobre_paleta += "\n\n"
         autorais = (f"## Os ícones autorais\n\n"
-                    f"`icones/autorais/` foi desenhado pelo `meow pack construir`, nas cores "
+                    f"`icones/apps/autorais/` foi desenhado pelo `meow pack construir`, nas cores "
                     f"desta paleta: os desenhos são os do MeowSystem. Mudou a paleta? Rode-o "
                     f"de novo.\n\n")
     else:
@@ -6455,6 +6737,12 @@ def montar_novo(ident, csv=None):
         f"paleta. É seu para redesenhar — mantenha as `class`, que são o papel de "
         f"cada forma.\n\n"
         + autorais
+        + f"## Os ícones\n\n"
+        f"Moram em três pastas, e só nelas: `icones/apps/` (o desenho ligado a um "
+        f"programa, pelo `icones/apps.map`), `icones/sistema/` (pastas, tipos de "
+        f"arquivo, status) e `icones/biblioteca/` (o resto, para escolher no painel; "
+        f"subpasta é só etiqueta). O que o pack não traz vem do pack-base do "
+        f"MeowSystem.\n\n"
         + f"## O resto\n\n"
         f"Tudo o que o `pack.json` não declara vem do `{pf['id']}`, pela herança, e "
         f"é dele a procedência. `meow pack info {ident}` diz o que é próprio e o que "
@@ -6475,7 +6763,7 @@ def montar_novo(ident, csv=None):
 
 
 def _autorais_construidos(ident, arquivos):
-    """{icones/autorais/<nome>-<flavor>.svg: bytes} do pack que `arquivos` descreve.
+    """{icones/apps/autorais/<nome>-<flavor>.svg: bytes} do pack que `arquivos` descreve.
 
     POR QUE O PACK DE CSV PRECISA, E O DO AR NÃO [23/09/2026, P16]
         O `novo` sem CSV copia a paleta no ar e herda do pack no ar: os flavors
@@ -6526,6 +6814,114 @@ def _autorais_construidos(ident, arquivos):
         return saida
 
 
+# O QUE O VIGIA DOS DERIVADOS OLHA — P88, decisão 15
+#   «SVG alterado numa das três, qualquer outro arquivo se auto atualiza.» As
+#   fontes são as três pastas e os mapas de `icones/`, e o `logo.svg` (o ícone do
+#   lançador), de cada pack de onde o tema deriva: o no ar, os que ele herda e o
+#   pack-base. O `scripts/derivados.sh` compara o sha256 de cada uma com a
+#   tabela da passada anterior e refaz só os passos dos que mudaram.
+#   O sha256 é o do conteúdo sem as quebras de linha do fim: é a forma em que o
+#   `meow_escrever` grava a cópia no tema, e é por ela que um derivado de um
+#   desenho apagado se reconhece.
+def packs_dos_derivados(ref=None):
+    """[(id, diretório)] dos packs de onde o tema deriva, sem repetir."""
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
+    saida, vistos = [], set()
+
+    def junta(r):
+        d = achar(r) if r else None
+        if d and os.path.realpath(d) not in vistos:
+            vistos.add(os.path.realpath(d))
+            saida.append((os.path.basename(d), d))
+            return d
+        return None
+
+    pendentes = [ref]
+    while pendentes:
+        d = junta(pendentes.pop(0))
+        if not d:
+            continue
+        pendentes.append(campo(d, "heranca"))
+        ic = campo(d, "icones") or {}
+        for bloco in (ic.values() if isinstance(ic, dict) else ()):
+            if isinstance(bloco, dict) and isinstance(bloco.get("herda"), str):
+                pendentes.append(bloco["herda"])
+    junta(PACK_BASE)
+    return saida
+
+
+def _sha_sem_fim(caminho):
+    with open(caminho, "rb") as fh:
+        return hashlib.sha256(fh.read().rstrip(b"\n")).hexdigest()
+
+
+def _arvores_dos_derivados(d):
+    """O `icones/` e as três pastas de um pack, cada uma só se cair dentro dele
+    (a regra da P78: uma pasta que é link para fora não entra)."""
+    saida = []
+    for rel in ["icones"] + ["icones/" + p for p in PASTAS_DO_FORMATO]:
+        try:
+            saida.append(_dentro(d, rel, rel))
+        except Recusa:
+            continue
+    return [p for p in saida if os.path.isdir(p)]
+
+
+def fontes_dos_derivados(ref=None):
+    """{caminho real: sha256} de cada fonte do tema (ver o bloco acima)."""
+    fontes = {}
+    for _id, d in packs_dos_derivados(ref):
+        arvores = _arvores_dos_derivados(d)
+        cands = [os.path.join(d, LOGO)]
+        if arvores and os.path.basename(arvores[0]) == "icones":
+            cands += [os.path.join(arvores[0], a) for a in sorted(os.listdir(arvores[0]))
+                      if a.endswith(".map")]
+        for arvore in arvores[1:] if arvores and os.path.basename(arvores[0]) == "icones" else arvores:
+            for raiz, dirs, arqs in os.walk(arvore):
+                dirs[:] = [x for x in dirs if not os.path.islink(os.path.join(raiz, x))]
+                cands += [os.path.join(raiz, a) for a in arqs]
+        for c in cands:
+            if os.path.isfile(c) and not os.path.islink(c):
+                fontes[os.path.realpath(c)] = _sha_sem_fim(c)
+    return fontes
+
+
+def pastas_dos_derivados(ref=None):
+    """Os diretórios que a unidade `.path` vigia: a raiz de cada pack (o
+    logo), o `icones/` (os mapas) e cada pasta dentro das três."""
+    pastas = []
+    for _id, d in packs_dos_derivados(ref):
+        pastas.append(os.path.realpath(d))
+        for arvore in _arvores_dos_derivados(d):
+            for raiz, dirs, _arqs in os.walk(arvore):
+                dirs[:] = sorted(x for x in dirs if not os.path.islink(os.path.join(raiz, x)))
+                pastas.append(os.path.realpath(raiz))
+    return [p for i, p in enumerate(pastas) if os.path.isdir(p) and p not in pastas[:i]]
+
+
+def cmd_derivados(ref, o_que, resto):
+    if o_que == "fontes":
+        for caminho, sha in sorted(fontes_dos_derivados(ref).items()):
+            print(f"{caminho}\t{sha}")
+        return OK
+    if o_que == "pastas":
+        for pasta in pastas_dos_derivados(ref):
+            print(pasta)
+        return OK
+    # `derivados <id> copias <tema> <sha>...`: os arquivos do tema cujo
+    # conteúdo é o de uma fonte que saiu — a prova de que são cópia dela.
+    if o_que == "copias" and resto:
+        tema, procura = resto[0], set(resto[1:])
+        for raiz, _dirs, arqs in os.walk(tema):
+            for a in sorted(arqs):
+                c = os.path.join(raiz, a)
+                if not os.path.islink(c) and os.path.isfile(c) and _sha_sem_fim(c) in procura:
+                    print(c)
+        return OK
+    print("  erro uso: derivados <id> fontes|pastas|copias <tema> <sha>...", file=sys.stderr)
+    return ERRO_USO
+
+
 def cmd_caminho(ref, categoria):
     p, _, dir_pack = validar(ref, silencioso=True)
     trilha = categoria.split(".")
@@ -6552,6 +6948,11 @@ def main(argv):
             return OK
         if verbo == "padrao":
             print(dir_padrao())
+            return OK
+        if verbo == "derivados" and len(argv) >= 4:
+            return cmd_derivados(argv[2] or None, argv[3], argv[4:])
+        if verbo == "hoje" and len(argv) == 3:
+            print(caminho_de_hoje(argv[2]))
             return OK
         # OS DOIS ARGUMENTOS VÊM SEMPRE, VAZIOS OU NÃO: `adocao "" mocha` é o
         # conf de fábrica, e um verbo que aceitasse um só teria de adivinhar

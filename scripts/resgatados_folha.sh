@@ -15,7 +15,7 @@
 #   (`/opt`), e somem no próximo upgrade ou na próxima reinstalação. Quando o
 #   original não está mais lá, a folha desenha a moldura vazia e diz "sem o PNG"
 #   — o SVG resgatado continua íntegro, porque ele nunca dependeu do PNG em tempo
-#   de execução. Ver o cabeçalho de `assets/icones/apps-resgatados.map`.
+#   de execução. Ver o cabeçalho de `packs/dracula/icones/apps-resgatados.map`.
 #
 # A FOLHA DE HOJE NÃO SE PERDE PORQUE O DISCO PERDEU O PNG — 25/09/2026, P68
 #   A moldura vazia é o que a folha mostra quando não há outra coisa a mostrar
@@ -45,9 +45,9 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ACERVO="$RAIZ/assets/icones/resgatados"
-MAPA="$RAIZ/assets/icones/apps-resgatados.map"
-SAIDA="${1:-$RAIZ/assets/icones/resgatados/ANTES-E-DEPOIS.png}"
+ACERVO="$RAIZ/packs/dracula/icones/apps/resgatados"
+MAPA="$RAIZ/packs/dracula/icones/apps-resgatados.map"
+SAIDA="${1:-$RAIZ/assets/icones/resgatados-antes-e-depois.png}"
 
 FUNDO="#1E1E2E"      # o `base` do Mocha: a folha
 CELA="#282A36"       # o `base` do Dracula: a barra, atrás do ícone

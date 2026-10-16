@@ -49,7 +49,7 @@
 # E OS RESTOS QUE A P65 FECHOU (25/09/2026)
 #   7b. O ensaio de desligar as pastas especiais fala no condicional: dizia
 #      «0 posto(s), 7 removido(s)» logo depois de «removeria».
-#   9. O resgate do Nautilus (`assets/icones/resgatados/`), o mesmo desenho do
+#   9. O resgate do Nautilus (`packs/dracula/icones/apps/resgatados/`), o mesmo desenho do
 #      `folder-download.svg` sem a seta, tinha o corpo de antes; e o
 #      PROCEDENCIA.md dizia «nada mais no desenho mudou», com as aberturas do
 #      castelo tendo mudado junto com a frente.
@@ -144,14 +144,14 @@ saida="$(guarda "$T/up-torto")"
 #   seta, e seguia com os dois; e o PROCEDENCIA.md, que dizia «nada mais no
 #   desenho mudou» com as aberturas do castelo tendo ido junto com a frente, as
 #   conta e fala do resgate.]
-achado="$(python3 - "$RAIZ/packs/dracula" "$RAIZ/assets/icones/resgatados/org.gnome.Nautilus.svg" <<'PY'
+achado="$(python3 - "$RAIZ/packs/dracula" "$RAIZ/packs/dracula/icones/apps/resgatados/org.gnome.Nautilus.svg" <<'PY'
 import glob, json, os, re, sys
 pack, resgate = sys.argv[1], sys.argv[2]
 with open(os.path.join(pack, "paleta.json"), encoding="utf-8") as fh:
     dra = json.load(fh)["flavors"]["dracula"]
 quer = [dra["surface0"].upper(), dra["surface1"].upper()]
 erros, vistos = [], 0
-for svg in sorted(glob.glob(os.path.join(pack, "icones", "pastas", "*.svg"))) + [resgate]:
+for svg in sorted(glob.glob(os.path.join(pack, "icones", "sistema", "pastas", "*.svg"))) + [resgate]:
     vistos += 1
     nome = os.path.basename(svg)
     with open(svg, encoding="utf-8") as fh:
@@ -171,7 +171,7 @@ if vistos != 11:
     erros.append("eram dez desenhos em icones/pastas/ e o resgate, e são %d" % vistos)
 with open(os.path.join(pack, "PROCEDENCIA.md"), encoding="utf-8") as fh:
     proc = fh.read()
-linha = next((l for l in proc.splitlines() if l.startswith("| `icones/pastas/*.svg`")), "")
+linha = next((l for l in proc.splitlines() if l.startswith("| `icones/sistema/pastas/*.svg`")), "")
 if "aberturas do castelo" not in linha:
     erros.append("o PROCEDENCIA.md não conta as aberturas do castelo, que mudaram com a frente: %r" % linha[-160:])
 if "resgatados/org.gnome.Nautilus.svg" not in proc:
@@ -199,11 +199,11 @@ for n in documents download music pictures publicshare templates videos; do
   printf '<svg><path style="fill:#CAD3F5"/></svg>' > "$LUGAR/folder-$n.svg"
 done
 # Quantas o pack desenha: as sete de 15/09 e as três da P74 (09/10/2026).
-N_PASTAS="$(find "$RAIZ/packs/dracula/icones/pastas" -maxdepth 1 -name '*.svg' | wc -l)"
+N_PASTAS="$(find "$RAIZ/packs/dracula/icones/sistema/pastas" -maxdepth 1 -name '*.svg' | wc -l)"
 aplicou="$(xdg "$T/casa-xdg" dracula dracula --aplicar)"
 conferiu="$(xdg "$T/casa-xdg" dracula dracula --conferir)"; rc=$?
 postos=0
-for d in "$RAIZ/packs/dracula/icones/pastas/"*.svg; do
+for d in "$RAIZ/packs/dracula/icones/sistema/pastas/"*.svg; do
   [ "$(cat "$d")" = "$(cat "$LUGAR/$(basename "$d")" 2>/dev/null)" ] && postos=$((postos + 1))
 done
 if [ "$postos" = "$N_PASTAS" ] && [ "$N_PASTAS" = 10 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
@@ -269,7 +269,7 @@ velhas = {
                                  "a pasta volta a ser mauve na mesma rodada"],
     "scripts/construir_pastas.sh": ["Ceder um nome cujo pastel ainda não foi instalado",
                                     "este aqui volta a vestir o nome de mauve na mesma passagem"],
-    "assets/icones/pastas.map": ["para que o pastel não brigue com o mauve",
+    "packs/meowsystem/icones/pastas.map": ["para que o pastel não brigue com o mauve",
                                  "ele só cede o nome cujo pastel já está no disco"],
 }
 erros = []

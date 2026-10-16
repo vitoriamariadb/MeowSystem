@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Telegram">
+  <title>org.telegram.desktop — mensageiro: aviao de papel no disco</title>
+
+  <!-- disco -->
+  <circle cx="24" cy="24" r="21.5" fill="#62D6E8"/>
+
+  <!-- silhueta do aviao de papel -->
+  <path d="M37.5 13 L8.5 24 L20 30.2 L23 25.5 L31.2 36.2 Q36.2 25.8 37.5 13 Z" fill="#282A36"/>
+
+  <!-- asa dobrada (faceta do vinco) -->
+  <path d="M37.5 13 L23 25.5 L31.2 36.2 Q36.2 25.8 37.5 13 Z" fill="#44475A"/>
+</svg>

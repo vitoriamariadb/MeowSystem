@@ -502,6 +502,15 @@
     ],
     "tamanho_bytes": 790
   },
+  "aurora-iniciar.svg": {
+    "descricao": "gato lilás da aurora (ícone de iniciar, 04/08)",
+    "nome": "aurora-iniciar",
+    "tags": [
+      "gato",
+      "aurora",
+      "iniciar"
+    ]
+  },
   "axe.svg": {
     "cores_dominantes": [
       "#dad9dd",
@@ -4295,6 +4304,33 @@
     ],
     "tamanho_bytes": 4116
   },
+  "morcego-dia.svg": {
+    "descricao": "morcego do dia (logo do COSMIC)",
+    "nome": "morcego-dia",
+    "tags": [
+      "morcego",
+      "gato",
+      "logo"
+    ]
+  },
+  "morcego-noite.svg": {
+    "descricao": "morcego da noite (logo do COSMIC)",
+    "nome": "morcego-noite",
+    "tags": [
+      "morcego",
+      "gato",
+      "logo"
+    ]
+  },
+  "morcego.svg": {
+    "descricao": "morcego",
+    "nome": "morcego",
+    "tags": [
+      "morcego",
+      "gato",
+      "logo"
+    ]
+  },
   "mortar.svg": {
     "cores_dominantes": [
       "#3c5d78",
@@ -4497,6 +4533,15 @@
       "espaco_scifi"
     ],
     "tamanho_bytes": 12735
+  },
+  "obsidian-papirus.svg": {
+    "descricao": "Obsidian (Papirus)",
+    "nome": "obsidian-papirus",
+    "tags": [
+      "obsidian",
+      "notas",
+      "papirus"
+    ]
   },
   "org.gnome.Terminal.svg": {
     "cores_dominantes": [

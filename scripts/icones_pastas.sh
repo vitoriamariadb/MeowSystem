@@ -13,7 +13,7 @@
 #   Instalar aqueles 12 seria instalar ícone que ela nunca veria.
 #
 #   O que ele pede de verdade são os nomes XDG, e disso o pack cobre 7 — com
-#   OUTRO NOME. A tradução mora em `assets/icones/pastas.map`, com a medição completa.
+#   OUTRO NOME. A tradução mora em `packs/meowsystem/icones/pastas.map`, com a medição completa.
 #
 # ONDE ISTO ENTRA, E POR QUE NÃO NOS `<tam>/places`
 #   Em `scalable/places`, um diretório que nasce aqui: nenhum outro script do
@@ -46,7 +46,7 @@
 #
 # O QUE NÃO ESTIVER NO MAPA CONTINUA NA COR DAS OUTRAS PASTAS
 #   `folder` (a pasta comum), `user-desktop` e o lixo não estão no mapa — de
-#   propósito, e o porquê de cada um está em `assets/icones/pastas.map`.
+#   propósito, e o porquê de cada um está em `packs/meowsystem/icones/pastas.map`.
 #
 # CÓDIGOS DE SAÍDA (o contrato do projeto)
 #   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta o pack
@@ -103,7 +103,10 @@ ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
 # que EXISTE, não sobre como o tema se chama: o pack ativo tem um acervo de
 # pastas? Então é ele. É o mesmo idioma que o comentário acima desta linha já
 # prometia — "quem desenhar os seus não precisa editar este script".
-_pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)"
+# [P88: no formato de três pastas elas moram em `icones/sistema/pastas/`; a
+#   segunda linha é a de um pack de formato 1.]
+_pastas_do_pack="$(meow_pack_arquivo icones/sistema/pastas)"
+[ -n "$_pastas_do_pack" ] || _pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)"
 if [ -n "$_pastas_do_pack" ] && [ -d "$_pastas_do_pack" ]; then
   ORIGEM="$_pastas_do_pack"
 fi
@@ -139,7 +142,7 @@ fi
 #   mover -> apagar"; aqui está o resolvedor, e o arquivo do núcleo só sai
 #   quando algum pack trouxer o dele.
 MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.pastas.mapa)" || MAPA=""
-[ -n "$MAPA" ] || MAPA="$RAIZ/assets/icones/pastas.map"
+[ -n "$MAPA" ] || MAPA="$RAIZ/packs/meowsystem/icones/pastas.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 DESTINO="$HOME/.local/share/icons/$TEMA/scalable/places"
 
@@ -184,7 +187,7 @@ _pronto() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem assets/icones/pastas.map — nada a vestir"
+    meow_pula "sem packs/meowsystem/icones/pastas.map — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"
@@ -341,7 +344,7 @@ _aplicar() {
 #
 #   Ou seja: ligar `PASTAS_XDG="sim"` hoje não ACRESCENTA símbolo, SUBSTITUI o
 #   que já tem por traço vazado sem mauve. As duas decisões dela apontam para o
-#   mesmo lado. Quem for reabrir isto, releia `assets/icones/pastas.map` inteiro antes —
+#   mesmo lado. Quem for reabrir isto, releia `packs/meowsystem/icones/pastas.map` inteiro antes —
 #   a medição está lá, com a tabela nome -> arquivo final.
 #
 # COMO O DESLIGAMENTO FUNCIONA, E POR QUE NÃO TEM CÓDIGO NOVO

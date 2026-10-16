@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Espelho de mesa oval com um gato refletido; grade 512 reduzida por 0,25 -->
+  <g transform="scale(0.25)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="226" fill="#A4A6B8" stroke="#383A4C" stroke-width="12"/>
+    <!-- base e hastes -->
+    <path d="M172 228 Q170 300 205 335 Q228 352 256 352 Q284 352 307 335 Q342 300 340 228" stroke="#383A4C" stroke-width="12"/>
+    <path d="M238 352 Q240 362 220 366 Q214 372 218 378 H296 Q300 372 292 366 Q272 362 274 352 Z" fill="#383A4C"/>
+    <!-- moldura -->
+    <ellipse cx="256" cy="255" rx="70" ry="112" fill="#A4A6B8" stroke="#F8F8F2" stroke-width="16"/>
+    <ellipse cx="256" cy="255" rx="70" ry="112" stroke="#383A4C" stroke-width="9"/>
+    <path d="M232 182 L276 168 M222 202 L268 182" stroke="#F8F8F2" stroke-width="3.5"/>
+    <!-- gato refletido -->
+    <path fill="#F8F8F2" d="M240 224 L250 212 L260 220 L274 214 L276 232 Q272 250 268 258 Q266 280 262 294 Q258 304 252 292 Q250 272 248 262 Q234 262 226 250 Q240 246 240 238 Z"/>
+  </g>
+</svg>

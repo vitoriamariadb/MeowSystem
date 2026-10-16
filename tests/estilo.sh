@@ -3,7 +3,7 @@
 #
 # Em 09/09/2026 ela apontou o Arcticons-Linux e perguntou se dava para construir
 # um conversor usando o que eles já fizeram. Dá — e a primeira coisa que o
-# acervo deles serve é de RÉGUA. Os 39 glifos em `assets/icones/arcticons-apps/`
+# acervo deles serve é de RÉGUA. Os 39 glifos em `packs/meowsystem/icones/apps/arcticons/`
 # foram desenhados à mão por gente, no MESMO dialeto (grade de 48, `fill:none`,
 # traço, pontas redondas), e estão versionados aqui. Então a pergunta "a nossa
 # arte gerada parece do mesmo pack?" deixa de ser gosto e vira distribuição.
@@ -40,9 +40,9 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONV="$RAIZ/scripts/converter_icone.py"
 ESTILO="$RAIZ/scripts/estilo_icone.py"
-ACERVO="$RAIZ/assets/icones/arcticons-apps"
-MAPA="$RAIZ/assets/icones/apps-convertidos.map"
-RETOQUES="$RAIZ/assets/icones/convertidos-apps/retoques"
+ACERVO="$RAIZ/packs/meowsystem/icones/apps/arcticons"
+MAPA="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"
+RETOQUES="$RAIZ/packs/meowsystem/icones/apps/convertidos/retoques"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 falhas=0
 ok()   { printf 'ok: %s\n' "$1"; }

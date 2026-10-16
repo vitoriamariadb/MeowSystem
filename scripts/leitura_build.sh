@@ -210,10 +210,10 @@ EOF
 #   a mesma ordem em que o `main.rs` os embute. Qualquer um deles muda e o campo
 #   muda.
 ARTE=(
-  "$RAIZ/assets/icones/autorais/leitura/r2.svg"
-  "$RAIZ/assets/icones/autorais/leitura/s3.svg"
-  "$RAIZ/assets/icones/autorais/leitura/r1.svg"
-  "$RAIZ/assets/icones/autorais/leitura/r6.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura/r2.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura/s3.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura/r1.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura/r6.svg"
 )
 
 _sha_arte() {

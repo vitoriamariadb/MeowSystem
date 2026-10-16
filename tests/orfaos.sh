@@ -10,7 +10,7 @@
 #                                morreu no commit 045b82b, e não tem UMA
 #                                menção fora dele mesmo em todo o repositório.
 #     scripts/folha_barra.py     a folha dos ícones da barra, de 10/08/2026. O
-#                                `assets/icones/sistema.map` fala dela em duas
+#                                `packs/meowsystem/icones/sistema.map` fala dela em duas
 #                                linhas de comentário (89 e 100) e mais nada a
 #                                invoca — por isso a regra abaixo conta CHAMADA,
 #                                nunca menção: prosa não executa arquivo.

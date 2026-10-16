@@ -1172,7 +1172,7 @@ etapa_svg() {
   passo "Desenhos (SVG normalizados)"
   meow_tem python3 || { meow_pula "python3 não está aqui"; return 0; }
   local pastas=() p
-  for p in assets/gatos assets/icones/autorais assets/icones/overrides; do
+  for p in assets/gatos packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
     [ -d "$MEOW_RAIZ/$p" ] && pastas+=("$MEOW_RAIZ/$p")
   done
   # OS AUTORAIS DE CADA PACK ENTRAM JUNTO — 22/09/2026
@@ -1193,7 +1193,7 @@ etapa_svg() {
   #   `icones/apps/` do Dracula é arte de upstream — os dois caem na mesma regra
   #   que o parágrafo acima já dá ao `arcticons/`: ninguém os edita aqui, e
   #   varrê-los seria segundos por rodada para conferir o que não muda.
-  for p in "$MEOW_RAIZ"/packs/*/icones/autorais; do
+  for p in "$MEOW_RAIZ"/packs/*/icones/apps/autorais; do
     [ -d "$p" ] && pastas+=("$p")
   done
   [ "${#pastas[@]}" -gt 0 ] || return 0
@@ -1380,7 +1380,7 @@ etapa_icones_tray_steam() {
 #
 # ELE VOLTAVA SOZINHO, E ERA ISSO QUE ELA ESTAVA VENDO
 #   Queixa de 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon que
-#   fica no applet, voltaram aos originais". O `assets/icones/bandeja.map` previa a
+#   fica no applet, voltaram aos originais". O `packs/meowsystem/icones/bandeja.map` previa a
 #   regressão desde 10/08 e nada agia sobre ela. Quem repõe no EVENTO é a
 #   `etapa_vigia_flatpak`, lá embaixo; esta aqui é quem põe da primeira vez.
 etapa_icones_tray_zapzap() {
@@ -3071,7 +3071,7 @@ etapa_assets() {
 #   Um `flatpak update` troca a árvore de deploy inteira e apaga o que estava
 #   escrito lá dentro. Foi o que desfez o ícone de bandeja do ZapZap em
 #   `ago 20 03:30:36` (`flatpak history`), e o que ela viu em 23/08. O
-#   `assets/icones/bandeja.map` previa isso desde 10/08 e não havia gatilho nenhum.
+#   `packs/meowsystem/icones/bandeja.map` previa isso desde 10/08 e não havia gatilho nenhum.
 #
 #   O `meow-doctor.timer` não fecha este buraco: ele passa às 5h, então uma
 #   atualização das 10h da manhã deixa o ícone errado por dezenove horas. A lição
@@ -3114,6 +3114,20 @@ etapa_vigia_flatpak() {
 # LOGO DEPOIS DO IRMÃO, E PELO MESMO MOTIVO
 #   São as unidades `.path` do projeto, e elas andam juntas; o auto-reparo
 #   continua sendo o último de todos.
+# O VIGIA DOS DESENHOS — P88, decisão 15: alterou um desenho de pack, o tema se
+#   atualiza sozinho. Depois de todas as etapas que escrevem no tema: registra a
+#   tabela das fontes (o que os passos acabaram de derivar) e liga o vigia que
+#   refaz o resto. Sem systemd --user, a tabela basta: o doctor das 5h a confere.
+etapa_vigia_derivados() {
+  passo "Vigia dos desenhos dos packs (systemd --user)"
+  local rc rc_vigia
+  NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" "$MEOW_RAIZ/scripts/derivados.sh" --registrar; rc=$?
+  "$MEOW_RAIZ/scripts/vigia_derivados.sh"; rc_vigia=$?
+  { [ "$rc" = 2 ] || [ "$rc_vigia" = 2 ]; } && return 2
+  { [ "$rc" = 1 ] || [ "$rc_vigia" = 1 ]; } && return 1
+  return "$rc"
+}
+
 etapa_vigia_steam() {
   passo "Vigia da Steam (systemd --user)"
   STEAM_VIGIA="${STEAM_VIGIA:-sim}" "$MEOW_RAIZ/scripts/vigia_steam.sh"
@@ -3696,7 +3710,7 @@ main() {
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
-                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt
+                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 

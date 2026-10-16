@@ -108,7 +108,7 @@
 #
 # O `icones_bandeja.sh` se declara DONO ÚNICO de `20x20/status` dentro do
 # `MeowSystem-Icons` e remove órfão lá — qualquer arquivo cujo nome não esteja no
-# `assets/icones/bandeja.map` ele apaga. Este aqui escreve um PNG dentro da árvore de uma
+# `packs/meowsystem/icones/bandeja.map` ele apaga. Este aqui escreve um PNG dentro da árvore de uma
 # instalação da Steam, fora do tema de ícones, com a cor cozida no arquivo e uma
 # dependência que o outro não tem (a Steam instalada). Enfiar isso naquele laço
 # obrigaria o mapa a descrever destinos que não são diretório de tema, e a
@@ -135,7 +135,7 @@
 #
 # A COR VEM COZIDA NO ARQUIVO, E NÃO DA PALETA
 #   §4g do `docs/COSMIC-THEMING.md` e a remedição na própria bandeja
-#   (`assets/icones/bandeja.map:79-94`) mostram que o toolkit repinta `symbolic` e NÃO
+#   (`packs/meowsystem/icones/bandeja.map:79-94`) mostram que o toolkit repinta `symbolic` e NÃO
 #   repinta raster: o simbólico do Hefesto tem `#bebebe` em disco e sai `#FFFFFF`
 #   na tela; este PNG saía `#DEDEDE`, a cor exata do disco. Como aqui o formato é
 #   raster, a cor tem de estar no arquivo — e ela não sai de
@@ -162,7 +162,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-GLIFO="${MEOW_TRAY_STEAM_GLIFO:-$RAIZ/assets/icones/arcticons/steam.svg}"
+GLIFO="${MEOW_TRAY_STEAM_GLIFO:-$RAIZ/packs/meowsystem/icones/sistema/arcticons/steam.svg}"
 TRACO="${MEOW_TRAY_STEAM_TRACO:-4}"
 COR="${MEOW_TRAY_STEAM_COR:-#DEDEDE}"
 FABRICA="$RAIZ/assets/icones/tray-terceiros/steam_tray_mono.png.original"
@@ -299,7 +299,7 @@ PY
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -f "$GLIFO" ]; then
-    meow_pula "sem o glifo steam em assets/icones/arcticons — nada a vestir"
+    meow_pula "sem o glifo steam em packs/meowsystem/icones/sistema/arcticons — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   RAIZ_STEAM="$(_raiz_steam)" || {

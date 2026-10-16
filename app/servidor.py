@@ -154,6 +154,9 @@ PAGINA = os.path.join(RAIZ, "app", "pagina")
 # e um caminho digitado três vezes é como duas delas passam a olhar
 # arquivos diferentes no dia em que ele mudar de lugar.
 MAPA_JOGOS = os.path.join(RAIZ, "assets", "icones", "jogos-fora.map")
+# O acervo de ícone do motor mora no pack-base desde a P88 (decisão 14): o traço
+# Arcticons, os convertidos e os mapas deles, nas três pastas do formato.
+ICONES_DO_MOTOR = os.path.join(RAIZ, "packs", "meowsystem", "icones")
 CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.conf.exemplo")
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
 # A PALETA VIROU FUNÇÃO, E O LITERAL SAIU DAQUI — 22/09/2026
@@ -1036,7 +1039,9 @@ def _packs_no_disco():
         if not base or not os.path.isdir(base):
             continue
         for nome in os.listdir(base):
-            if os.path.isfile(os.path.join(base, nome, "pack.json")):
+            # O pack-base (P88) é acervo e não se veste: não tem cartão.
+            if os.path.isfile(os.path.join(base, nome, "pack.json")) \
+                    and not (hasattr(mod, "eh_base") and mod.eh_base(os.path.join(base, nome))):
                 achados.add(nome)
     return achados
 
@@ -8034,7 +8039,7 @@ class Manipulador(BaseHTTPRequestHandler):
             # ARTE da máquina, e nada mais. `/usr/share/pixmaps` entra porque é
             # de lá que vem o ícone de vários aplicativos antigos.
             permitidos = set()
-            for x in (os.path.join(RAIZ, "assets", "icones"),
+            for x in (os.path.join(RAIZ, "packs"),
                       os.path.expanduser("~/.local/share/icons"),
                       os.path.expanduser("~/.local/share/flatpak/exports/share/icons"),
                       "/usr/share/icons",
@@ -8439,8 +8444,8 @@ class Manipulador(BaseHTTPRequestHandler):
     # facilidade do user. pra não depender de ajuda sempre."
     #
     # É o pedido mais importante desta página inteira. Trocar o ícone de um
-    # aplicativo hoje exige editar `assets/icones/apps-arcticons.map` à mão,
-    # saber que o glifo tem de existir em `assets/icones/arcticons-apps/`, e
+    # aplicativo hoje exige editar `packs/meowsystem/icones/apps-arcticons.map` à mão,
+    # saber que o glifo tem de existir em `packs/meowsystem/icones/apps/arcticons/`, e
     # rodar o construtor. Nada disso é conhecimento que ela deveria precisar ter
     # para dizer "quero outro desenho no Telegram".
     #
@@ -8540,7 +8545,7 @@ class Manipulador(BaseHTTPRequestHandler):
         encontra. As outras 25 têm origem chapada e podem ser revetorizadas."""
         fora = {}
         # [P82: e o de quem usa, lido depois, que vence — o `meu` diz de onde.]
-        for caminho, meu in ((os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map"), False),
+        for caminho, meu in ((os.path.join(ICONES_DO_MOTOR, "apps-convertidos.map"), False),
                              (_mapa_de_convertidos_do_usuario(), True)):
             try:
                 with open(caminho, "r", encoding="utf-8") as fh:
@@ -8801,7 +8806,7 @@ class Manipulador(BaseHTTPRequestHandler):
         # O DE QUEM USA É LIDO DEPOIS, E VENCE — P73 (I3): é a ordem do
         # `_ler_mapa` do `icones_apps_arcticons.sh`. O `meu` diz que a linha é
         # escolha do painel, e é o que acende o «Desfazer a escolha no traço».
-        for caminho, meu in ((os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map"), False),
+        for caminho, meu in ((os.path.join(ICONES_DO_MOTOR, "apps-arcticons.map"), False),
                              (_mapa_de_traco_do_usuario(), True)):
             try:
                 with open(caminho, "r", encoding="utf-8") as fh:
@@ -8811,6 +8816,10 @@ class Manipulador(BaseHTTPRequestHandler):
                             continue
                         campos = [c.strip() for c in corte.split(":")]
                         if len(campos) >= 3:
+                            # O caminho de antes das três pastas (P88) vale pelo de hoje.
+                            mod = modulo_pack() if "/" in campos[1] else None
+                            if mod and hasattr(mod, "caminho_de_hoje"):
+                                campos[1] = mod.caminho_de_hoje(campos[1])
                             fora[campos[0]] = {"glifo": campos[1], "cor": campos[2],
                                                "alias": len(campos) > 3 and campos[3] == "alias",
                                                "meu": meu}
@@ -8818,7 +8827,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 pass
 
         if _valor_vivo("ICONES_COR_MARCA") == "sim":
-            marca = os.path.join(RAIZ, "assets", "icones", "apps-marca.map")
+            marca = os.path.join(ICONES_DO_MOTOR, "apps-marca.map")
             try:
                 with open(marca, "r", encoding="utf-8") as fh:
                     for linha in fh:
@@ -9888,17 +9897,17 @@ class Manipulador(BaseHTTPRequestHandler):
                 if arq and os.path.isfile(arq):
                     return self._arquivo_na_ficha(arq)
         d = next((x for x in self._desktops() if x["id"] == app), None) or {}
-        icones = os.path.join(RAIZ, "assets", "icones")
+        icones = ICONES_DO_MOTOR
         marca = self._mapa_arcticons().get(app) or self._mapa_arcticons().get(d.get("icone") or "")
         if marca:
             glifo = marca["glifo"]
             arq = (glifo if os.path.isabs(glifo) else os.path.join(RAIZ, glifo)) if "/" in glifo \
-                else os.path.join(icones, "arcticons-apps", glifo + ".svg")
+                else os.path.join(icones, "apps", "arcticons", glifo + ".svg")
             if os.path.isfile(arq):
                 return self._arquivo_na_ficha(arq)
         conv = self._mapa_convertidos()
         if conv.get(app) or conv.get(d.get("icone") or ""):
-            arq = os.path.join(icones, "convertidos-apps", nome + ".svg")
+            arq = os.path.join(icones, "apps", "convertidos", nome + ".svg")
             if os.path.isfile(arq):
                 return self._arquivo_na_ficha(arq)
         return None
@@ -10099,55 +10108,39 @@ class Manipulador(BaseHTTPRequestHandler):
                 mapa = mod.acervo("icones.apps.mapa", ref=dir_pack) or ""
                 if mapa and os.path.isfile(mapa):
                     mapas.add(os.path.realpath(mapa))
-                # O CATÁLOGO DOS FEITOS À MÃO — 16/10/2026, fechamento da leva H.
-                #   Os 39 vetores da P84 herdaram o nome do PNG de origem, e o
-                #   rótulo saía dele: «Calendario», «Gerenciador de extensoes»,
-                #   «File Zilla». A busca por «visualizador» não achava o
-                #   visualizador de imagens. O `catalog.json` da pasta, no
-                #   formato do da biblioteca, dá o nome em português e o texto
-                #   da busca; o arquivo continua com o nome que o mapa aceita.
-                for pasta_cat in (mod.PASTA_BIBLIOTECA,
-                                  getattr(mod, "PASTA_FEITOS_A_MAO", "")):
-                    if not pasta_cat:
-                        continue
-                    bib = os.path.join(dir_pack, pasta_cat)
-                    try:
-                        with open(os.path.join(bib, "catalog.json"), encoding="utf-8") as fh:
-                            catalogo = json.load(fh)
-                    except (OSError, ValueError):
-                        catalogo = {}
-                    for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
-                        if isinstance(ficha, dict):
-                            etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
-                            descricao = str(ficha.get("descricao") or "").strip()
-                            junta(os.path.join(bib, str(arq)), descricao,
-                                  *[str(t).replace("_", " ") for t in etiquetas])
-                            if descricao:
-                                rotulos[os.path.normpath(os.path.join(bib, str(arq)))] = (
-                                    descricao[:1].upper() + descricao[1:])
-        # O CATÁLOGO DAS PASTAS DO MOTOR — 15/10/2026, P82 (item 7). Um desenho
-        #   do motor sem linha de mapa (a raposa resgatada, que saiu do
-        #   `apps-resgatados.map` na P28) não tinha texto para a busca casar.
-        #   O `catalog.json` da pasta, no formato do da biblioteca, dá esse
-        #   texto. Só a busca: o nome que a ficha mostra continua o do mapa, para
-        #   o mesmo desenho não ter dois nomes.
-        for pasta, _nome, _tipo in getattr(mod, "ACERVOS_DO_MOTOR", ()):
-            dir_motor = os.path.join(RAIZ, "assets", "icones", pasta)
+        # O CATÁLOGO DE CADA PASTA DA FICHA — P73, P82 (item 7) e o fechamento
+        #   da leva H; nas três pastas desde a P88. O `catalog.json` ao lado dos
+        #   desenhos dá o texto da busca (descrição em português e etiquetas).
+        #   Na `biblioteca/` ele dá também o rótulo, porque lá o arquivo tem o
+        #   nome do PNG de origem («Calendario», «File Zilla»); em `apps/` o nome
+        #   na tela continua o do mapa, para o mesmo desenho não ter dois nomes
+        #   (a raposa resgatada, que saiu do `apps-resgatados.map` na P28).
+        vistas = set()
+        for g in mod.acervos_de_icone() if hasattr(mod, "acervos_de_icone") else ():
+            pasta_cat = os.path.normpath(g.get("pasta") or "")
+            if not pasta_cat or pasta_cat in vistas:
+                continue
+            vistas.add(pasta_cat)
+            com_rotulo = ":biblioteca" in g.get("id", "") or g.get("id", "").endswith(":feitos-a-mao")
             try:
-                with open(os.path.join(dir_motor, "catalog.json"), encoding="utf-8") as fh:
+                with open(os.path.join(pasta_cat, "catalog.json"), encoding="utf-8") as fh:
                     catalogo = json.load(fh)
             except (OSError, ValueError):
                 continue
             for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
                 if isinstance(ficha, dict):
                     etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
-                    junta(os.path.join(dir_motor, str(arq)), str(ficha.get("descricao") or "").strip(),
+                    descricao = str(ficha.get("descricao") or "").strip()
+                    junta(os.path.join(pasta_cat, str(arq)), descricao,
                           *[str(t).replace("_", " ") for t in etiquetas])
+                    if com_rotulo and descricao:
+                        rotulos[os.path.normpath(os.path.join(pasta_cat, str(arq)))] = (
+                            descricao[:1].upper() + descricao[1:])
         # O NOME DO APP DOS CONVERTIDOS — 15/10/2026, P82 (item 8). O
         #   `apps-convertidos.map` não tem comentário no fim da linha (os
         #   leitores dele cortam nos `:`), e o nome vem na linha de cima,
         #   `# app: OBS Studio`. Sem ele, o id invertido virava «Studio».
-        conv = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+        conv = os.path.join(ICONES_DO_MOTOR, "apps-convertidos.map")
         try:
             with open(conv, encoding="utf-8") as fh:
                 linhas_conv = fh.read().split("\n")
@@ -10157,7 +10150,7 @@ class Manipulador(BaseHTTPRequestHandler):
             nome_app = anterior[len("# app:"):].strip() if anterior.startswith("# app:") else ""
             nome = linha.split(":", 1)[0].strip()
             if nome_app and nome and not linha.startswith("#"):
-                caminho = os.path.join(RAIZ, "assets", "icones", "convertidos-apps", nome + ".svg")
+                caminho = os.path.join(ICONES_DO_MOTOR, "apps", "convertidos", nome + ".svg")
                 junta(caminho, nome_app)
                 rotulos.setdefault(os.path.normpath(caminho), nome_app)
                 do_nome.setdefault(nome.lower(), nome_app)
@@ -10395,14 +10388,15 @@ class Manipulador(BaseHTTPRequestHandler):
         # COPIADO do `upstream/` para lá: o repositório ganhava arquivo a cada
         # escolha. A ficha só oferece o que já está no repositório, e o
         # `icones_apps_arcticons.sh` lê o caminho direto da pasta dele.
-        trazer = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
+        trazer = os.path.join(ICONES_DO_MOTOR, "apps", "arcticons")
         if item:
             if os.path.dirname(os.path.normpath(item["caminho"])) == trazer:
                 glifo = item["glifo"]
             else:
                 glifo = self._arquivo_na_ficha(item["caminho"])
         if not re.match(r"^[a-z0-9._-]{1,60}$", glifo) and not (
-                item and re.match(r"^assets/icones/[A-Za-z0-9._+/-]{1,200}\.svg$", glifo)
+                item and re.match(r"^(assets/icones|packs/[a-z0-9][a-z0-9-]*/icones)/"
+                                  r"[A-Za-z0-9._+/-]{1,200}\.svg$", glifo)
                 and "/../" not in "/" + glifo + "/"):
             return self._json({"erro": "glifo inválido"}, 400)
         cores = set((_paleta_dados().get("ordem") or []))
@@ -10574,7 +10568,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
     def _retoque_do_projeto(self, app):
         """O retoque que veio com o clone (o do Gradia, por exemplo)."""
-        return os.path.join(RAIZ, "assets", "icones", "convertidos-apps", "retoques", app + ".svg")
+        return os.path.join(ICONES_DO_MOTOR, "apps", "convertidos", "retoques", app + ".svg")
 
     def _vizinhos_do_dock(self):
         """Os dois vizinhos da tira: a PRIMEIRA e a ÚLTIMA linha de dados do
@@ -10585,7 +10579,7 @@ class Manipulador(BaseHTTPRequestHandler):
         trocasse o primeiro ícone do acervo. Hoje saem `btop` (maroon) e
         `dev.edfloreshz.CosmicTweaks` (lavender).
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
+        caminho = os.path.join(ICONES_DO_MOTOR, "apps-arcticons.map")
         linhas = []
         try:
             with open(caminho, "r", encoding="utf-8") as fh:
@@ -10600,7 +10594,7 @@ class Manipulador(BaseHTTPRequestHandler):
             campos = [c.strip() for c in corte.split(":")]
             if len(campos) < 3 or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", campos[1]):
                 continue
-            arte = os.path.join(RAIZ, "assets", "icones", "arcticons-apps",
+            arte = os.path.join(ICONES_DO_MOTOR, "apps", "arcticons",
                                 campos[1] + ".svg")
             try:
                 with open(arte, "r", encoding="utf-8") as fh:
@@ -10618,7 +10612,7 @@ class Manipulador(BaseHTTPRequestHandler):
         """
         # [P82: o de quem usa primeiro, porque é ele que vence.]
         for caminho in (_mapa_de_convertidos_do_usuario(),
-                        os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")):
+                        os.path.join(ICONES_DO_MOTOR, "apps-convertidos.map")):
             try:
                 with open(caminho, "r", encoding="utf-8") as fh:
                     for linha in fh:
@@ -10641,7 +10635,7 @@ class Manipulador(BaseHTTPRequestHandler):
         conversor. Mostrar o construído havendo retoque seria mostrar a versão
         que perde.
         """
-        conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        conv = os.path.join(ICONES_DO_MOTOR, "apps", "convertidos")
         # [P82: o de quem usa vem antes do que veio com o clone.]
         for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
                                  (_oficina_do_usuario("convertidos-apps", nome + ".svg"), "conversao"),

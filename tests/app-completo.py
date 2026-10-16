@@ -117,7 +117,7 @@ except ImportError:
 #
 #   1. O REPOSITÓRIO TAMBÉM É DE BRINQUEDO. O painel escreve dentro da RAIZ
 #      dele, e não só na casa: o «Usar este ícone» grava o
-#      `assets/icones/apps-arcticons.map`, o «Adicionar logo» grava em
+#      `packs/meowsystem/icones/apps-arcticons.map`, o «Adicionar logo» grava em
 #      `assets/gatos/`, o «Importar um pack» monta `packs/<id>/`, o «Salvar no
 #      pack» dos desenhos autorais reescreve o pack, e o «Tirar da lista» de um
 #      jogo mexe no `assets/icones/jogos-fora.map`. O
@@ -346,7 +346,7 @@ def montar_casa():
     xcursor_liso(os.path.join(ponteiro, "left_ptr"))
     tema = os.path.join(icones, valor_de("NOME_TEMA_ICONES"), "scalable", "apps")
     os.makedirs(tema)
-    glifos = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
+    glifos = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
     for nome in sorted(os.listdir(glifos)):
         if nome.endswith(".svg"):
             shutil.copyfile(os.path.join(glifos, nome), os.path.join(tema, nome))

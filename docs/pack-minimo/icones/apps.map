@@ -1,0 +1,2 @@
+# Pack mínimo: o que cada aplicativo veste. Formato: nome-do-ícone : caminho relativo a icones/
+org.gnome.Console : apps/org.gnome.Console.svg   # Console

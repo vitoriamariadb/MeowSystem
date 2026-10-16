@@ -92,9 +92,9 @@ except ImportError:                                    # pragma: no cover
     sys.exit(3)
 
 CONVERSOR = os.path.join(RAIZ, "scripts", "converter_icone.py")
-ACERVO = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
-MAPA = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-RETOQUES = os.path.join(RAIZ, "assets", "icones", "convertidos-apps", "retoques")
+ACERVO = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
+MAPA = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps-convertidos.map")
+RETOQUES = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "convertidos", "retoques")
 
 # AS MEDIDAS QUE ENTRAM NA NOTA, e `seg_min` fica DE FORA por medida: o acervo
 # tem o idioma do pingo (`v 0.1` para um ponto), então o mínimo dele vai a zero
