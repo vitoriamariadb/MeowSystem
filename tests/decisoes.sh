@@ -62,7 +62,10 @@ elif caso == "vetores":
         if n + ".svg" not in tem:
             print("falta=" + n)
     sem_vetor = sorted(os.path.splitext(os.path.basename(a))[0] for g in grupos()
-                       if g["pack"] == "dracula" and g["tipo"] == "png" for a in g["arquivos"]
+                       if g["pack"] == "dracula" and g["tipo"] == "png"
+                       # versoes/ e projetos/ guardam todas as versões, PNG inclusive (decisão 13 do 02-decisoes.md)
+                       and not g["id"].startswith(("pack:dracula:biblioteca/versoes", "pack:dracula:biblioteca/projetos"))
+                       for a in g["arquivos"]
                        if os.path.splitext(os.path.basename(a))[0] + ".svg" not in tem)
     print("png_sem_vetor=" + ",".join(sem_vetor))
 elif caso == "seletor":
@@ -70,7 +73,8 @@ elif caso == "seletor":
         g = grupos(no_ar)
         print("%s:packs=%s" % (no_ar, ",".join(sorted({x["pack"] for x in g if x["pack"]}))))
         print("%s:primeiro=%s:%s" % (no_ar, g[0]["pack"], g[0]["no_ar"]))
-        print("%s:motor=%s" % (no_ar, any(not x["pack"] and x["acervo"] == "MeowSystem" for x in g)))
+        # o acervo do motor é o pack-base meowsystem (decisão 14 do 02-decisoes.md)
+        print("%s:motor=%s" % (no_ar, any(x["pack"] == "meowsystem" for x in g)))
 elif caso == "nomes":
     tem = stems("dracula")
     for n in sys.argv[3:]:
@@ -100,7 +104,7 @@ echo "== D3. o seletor mostra o acervo de todos os packs, o pack no ar primeiro"
 r="$(resolvedor seletor 2>&1)"
 bom=1
 for no_ar in dracula catppuccin; do
-  grep -qx "$no_ar:packs=catppuccin,dracula" <<< "$r" || bom=0
+  grep -qx "$no_ar:packs=catppuccin,dracula,meowsystem" <<< "$r" || bom=0
   grep -qx "$no_ar:primeiro=$no_ar:True" <<< "$r" || bom=0
   grep -qx "$no_ar:motor=True" <<< "$r" || bom=0
 done
