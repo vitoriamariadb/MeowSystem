@@ -2987,10 +2987,11 @@ function controlePorArea(item, aplica) {
   const nomesItem = ESQUEMA.chaves.find((k) => k.chave === "AREAS_NOMES");
   const nomes = String(nomesItem ? valorEmVigor(nomesItem) : "")
     .split(",").map((x) => x.trim()).filter(Boolean);
-  /* Sem áreas nomeadas não há o que ligar, e um controle vazio seria pior que o
-   * campo de texto: ele diria "não há escolha" quando o que há é uma chave de
-   * cima em branco. Cai no campo comum, que ao menos deixa escrever. */
-  if (!nomes.length) return null;
+  /* [P82, 15/10/2026 (item 28; decisão 28): sem áreas nomeadas o cartão é
+   *   uma trava, e não um campo livre. O `areas.sh` se pula com a lista vazia,
+   *   então o que se escrevesse ali não valeria; o ⊘ e o porquê na dica
+   *   saem do `montarCartao`, e o controle fica vazio.] */
+  if (!nomes.length) return elemento("div", { class: "por-area" });
 
   const marcadas = new Set(String(valorEmVigor(item))
     .split(",").map((x) => x.trim()).filter(Boolean));
@@ -6426,6 +6427,23 @@ function montarCartao(item) {
       estado.push(elemento("p", { class: "frase dominada" }, [
         elemento("b", { texto: `${quem} está descolad${o}, mas a distância é 0 px. ` }),
         elemento("span", { texto: "Com zero a barra continua encostada na borda: arraste a distância para ela se soltar." }),
+      ]));
+    }
+  }
+  /* FOLGA E ENCAIXE SEM ÁREAS — 15/10/2026, P82 (item 28; decisão 28). Com
+   * «AREAS_NOMES» vazio o `areas.sh` se pula, e os dois cartões por área não
+   * têm o que ligar: nascem travados, com o ⊘ e o porquê na dica, como as
+   * outras travas. (O encaixe sozinho também não vale: sem nome, o
+   * `_areas_planejar` recusa ou registra a pendência, e não escreve.) */
+  if (item.previa === "areas" || item.chave === "AREAS_ENCAIXE") {
+    const nomesItem = ESQUEMA.chaves.find((k) => k.chave === "AREAS_NOMES");
+    if (nomesItem && !String(valorEmVigor(nomesItem)).split(",").some((x) => x.trim())) {
+      const dono = nomeVisivel("AREAS_NOMES");
+      cartao.classList.add("anulado");
+      selos.append(selo("anulado", { balao: "Nenhuma área com nome" }));
+      estado.push(elemento("p", { class: "frase dominada" }, [
+        elemento("b", { texto: "Nenhuma área com nome. " }),
+        elemento("span", { texto: `Vale por área: dê nome às áreas em «${dono}».` }),
       ]));
     }
   }

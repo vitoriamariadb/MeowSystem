@@ -3684,7 +3684,6 @@ INVENTARIO = {
         ajuste AREAS_ENCAIXE · ?
         ajuste AREAS_ENCAIXE · nova ficha
         ajuste AREAS_FOLGA · ?
-        ajuste AREAS_FOLGA · campo
         ajuste AREAS_NOMES · ?
         ajuste AREAS_NOMES · campo
         ação «Criar a primeira área» · ?

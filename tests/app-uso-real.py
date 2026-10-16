@@ -657,6 +657,37 @@ def grade_sem_buraco(pag):
     return reprovas
 
 
+AREAS_SEM_NOME_JS = r"""
+() => {
+  const defeitos = [];
+  const nomes = ESQUEMA.chaves.find((k) => k.chave === 'AREAS_NOMES');
+  if (!nomes || String(valorEmVigor(nomes)).trim()) return ['a casa de brinquedo tem áreas com nome'];
+  for (const chave of ['AREAS_FOLGA', 'AREAS_ENCAIXE']) {
+    const c = document.querySelector(`#conteudo article.cartao[data-chave="${chave}"]`);
+    if (!c) { defeitos.push(`o cartão ${chave} não está na página`); continue; }
+    if (!c.querySelector('[data-selo="anulado"]')) defeitos.push(`${chave} sem áreas nasce sem o ⊘`);
+    const dica = document.getElementById(`dica-${chave}`);
+    if (!dica || !/área/.test(dica.textContent) || !dica.querySelector('.frase.dominada'))
+      defeitos.push(`${chave} sem áreas não diz o porquê na dica`);
+  }
+  const folga = document.querySelector('#conteudo article.cartao[data-chave="AREAS_FOLGA"]');
+  if (folga && folga.querySelector('input[type=text], input:not([type]), textarea'))
+    defeitos.push('AREAS_FOLGA sem áreas virou campo de texto livre');
+  return defeitos;
+}
+"""
+
+
+def casos_da_p82(pag):
+    """Os casos de interface da P82 (itens 28 em diante). Devolve [(onde, defeito)]."""
+    reprovas = []
+    # Item 28: folga e encaixe numa casa sem áreas com nome.
+    pag.locator('#trilho button[data-grupo="Áreas de trabalho"]').click()
+    assentar(pag)
+    reprovas += [("áreas sem nome", d) for d in pag.evaluate(AREAS_SEM_NOME_JS)]
+    return reprovas
+
+
 def a_375(pag, url):
     """Os casos da P82 (item 21) numa janela de celular. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -814,6 +845,13 @@ def main():
             achados = grade_sem_buraco(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} grade: {len(achados)} defeito(s)")
+
+            # 7. OS CASOS DA P82 (itens 28 em diante)
+            print("\n7. OS CASOS DA P82")
+            pagina_atual["nome"] = "casos da P82"
+            achados = casos_da_p82(pag)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} casos da P82: {len(achados)} defeito(s)")
 
             # 5. A 375 PX (P82, item 21)
             print("\n5. A 375 PX")
