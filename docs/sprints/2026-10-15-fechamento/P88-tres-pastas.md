@@ -56,3 +56,11 @@ se estiver ligado). O que diferencia origem é o `PROCEDENCIA.md`, não a pasta.
 - **Prova**: teste que edita um SVG numa casa temporária e confere, em até N segundos, o novo sha256 no
   tema instalado, o PNG re-renderizado e o cache novo; editar 2x o mesmo conteúdo → nada escreve; apagar
   → derivado some; rajada de 20 edições → uma passada.
+
+## 7. Dois avisos da varredura de 15/10 (decisão 16)
+- Os 19 desenhos com cor Dracula fixa que estão em `assets/icones/` vão para `packs/dracula`, NÃO para
+  o pack-base `meowsystem` (senão o Catppuccin herda desenho Dracula). O pack-base fica com o neutro: traço
+  Arcticons, convertidos, moldes.
+- Precedência: desenho do pack vence o traço Arcticons em todo tamanho (hoje os 47 de 48 px encobrem 17
+  desenhos do pack a 48 px), salvo escolha de traço de quem usa. Teste: o mesmo nome em `apps/` do pack e
+  no traço → o tema montado tem o do pack em 48 px e em scalable.
