@@ -274,6 +274,10 @@ CASA_REAL="$HOME"
 export SUITE_CASA_REAL="$CASA_REAL"
 SUITE_TMP="$(mktemp -d)" || { printf 'erro: mktemp\n' >&2; exit 2; }
 trap 'rm -rf "$SUITE_TMP"' EXIT
+# O sinal vira saída, para o EXIT de cima rodar: o bash morto por TERM ou INT
+# sem tratador não roda o EXIT, e a casa de brinquedo ficava em /tmp (P82, 38).
+trap 'exit 130' INT
+trap 'exit 143' TERM
 mkdir -p "$SUITE_TMP/falso" "$SUITE_TMP/casa" || exit 2
 export SUITE_SUDO_LOG="$SUITE_TMP/sudo.log"; : > "$SUITE_SUDO_LOG"
 for c in sudo pkexec su; do

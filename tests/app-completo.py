@@ -4341,11 +4341,23 @@ if __name__ == "__main__":
     # casa inteira e uma cópia do repositório em /tmp, com falsos dentro. O
     # TERM (o `timeout`, o Ctrl+C de quem roda a suíte) vira saída normal, para
     # o `finally` rodar e levar o painel junto.
+    #
+    # E O HUP TAMBÉM, E A PASTA É CONFERIDA DEPOIS — 15/10/2026, P82 (item 38).
+    #   O terminal que fecha manda HUP, e o HUP sem tratador mata o processo sem
+    #   o `finally`: a casa inteira ficava em /tmp. E um processo da casa que
+    #   ainda escrevia (um trabalho da gaveta no meio de um `mkdir -p`) podia
+    #   recriar a pasta depois do `rmtree`; por isso, se ela voltou, a casa é
+    #   encerrada de novo e a pasta sai de novo.
     import signal
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    signal.signal(signal.SIGHUP, lambda *_: sys.exit(129))
     try:
         sys.exit(main())
     finally:
-        if os.path.isdir(CASA):
-            encerrar_a_casa()
-        shutil.rmtree(BRINQUEDO, ignore_errors=True)
+        for _vez in range(2):
+            if os.path.isdir(CASA):
+                encerrar_a_casa()
+            shutil.rmtree(BRINQUEDO, ignore_errors=True)
+            if not os.path.exists(BRINQUEDO):
+                break
+            time.sleep(1)

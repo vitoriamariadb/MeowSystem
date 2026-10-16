@@ -42,6 +42,17 @@
 #   acontecer onde o padrão da chave já é `sim` ou `nao`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+# NADA FICA EM /tmp — 15/10/2026, P82 (item 38). O bloco 10 fazia um
+# `mkdtemp()` (o `bom.conf` e o `quebrado.conf`) sem apagar, e cada rodada da
+# suíte deixava uma pasta. Agora todo temporário deste teste, do bash e do
+# Python, nasce dentro de UMA pasta (o `TMPDIR`), e ela sai no fim, inclusive
+# por sinal (o Ctrl+C de quem roda, o TERM de um `timeout`).
+_TMP_DO_TESTE="$(mktemp -d)" || exit 2
+trap 'rm -rf "$_TMP_DO_TESTE"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+export TMPDIR="$_TMP_DO_TESTE"
 EXEMPLO="$RAIZ/meow.conf.exemplo"
 falhas=0
 
