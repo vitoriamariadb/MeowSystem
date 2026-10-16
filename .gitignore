@@ -89,7 +89,7 @@ assets/fontes/locais/*.[tT][tT][cC]
 #   existe mais como comparar: o "antes" terá desaparecido da máquina.
 #   É UM arquivo, regenerável por `meow icones resgatados folha`, e é a prova do
 #   trabalho que o acervo ao lado dele representa.
-!assets/icones/resgatados/*.png
+!assets/icones/resgatados-antes-e-depois.png
 
 # OS PNG FEITOS À MÃO DO PACK VÃO PARA O GIT — 09/10/2026, P73
 #   A decisão 2 daquele dia (docs/sprints/2026-10-09-uso-real/02-decisoes.md):
@@ -237,7 +237,7 @@ CLAUDE.md
 
 # A bancada do resgate de ícones: os PNG extraídos, os SVG antes de passarem no
 # teste de fidelidade, e os renders de conferência. O que sobrevive à medição é
-# copiado para `assets/icones/resgatados/` e commitado de lá — aqui fica o
+# copiado para `packs/dracula/icones/apps/resgatados/` e commitado de lá — aqui fica o
 # rascunho, que é grande e não interessa a ninguém depois.
 .trabalho-icones/
 

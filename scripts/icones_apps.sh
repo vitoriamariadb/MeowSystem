@@ -16,7 +16,7 @@
 #   impediria redistribuir num repositório GPL-3. Em 05/08/2026 ela decidiu que o
 #   projeto não será publicado: sem redistribuição, o impedimento deixa de
 #   existir para uso nesta máquina. O que continua valendo está no cabeçalho de
-#   assets/icones/apps.map, e vale a pena reler antes de mudar de ideia sobre publicar.
+#   packs/meowsystem/icones/apps.map, e vale a pena reler antes de mudar de ideia sobre publicar.
 #
 # PNG, NÃO SVG — E A ESCOLHA É MEDIDA
 #   O acervo entrega `.ico` de 256x256 a 24 bits por pixel, ou seja SEM canal
@@ -26,7 +26,7 @@
 #   são raster, vão para `512x512/apps` e NUNCA para `scalable/` — meter raster
 #   dentro de um diretório declarado como escalável é o defeito que o
 #   thunderbird.png já cometeu neste tema (consertado em 10/08/2026: hoje ele vai
-#   para `128x128/apps`, o tamanho real dele — ver `assets/icones/apps-hicolor.map`).
+#   para `128x128/apps`, o tamanho real dele — ver `packs/meowsystem/icones/apps-hicolor.map`).
 #
 # CÓDIGOS DE SAÍDA
 #   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta o acervo
@@ -51,7 +51,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   Medido (10/08/2026): `google-chrome.png` traz o red `#ED8796`, que é o
 #   macchiato; o mocha seria `#F38BA8`. Não é dívida técnica e não se "conserta"
 #   recolorindo — recolorir desfaria uma decisão dela em silêncio, e ainda por
-#   cima num acervo de terceiro cuja licença o `assets/icones/PROCEDENCIA.md` registra
+#   cima num acervo de terceiro cuja licença o `packs/meowsystem/PROCEDENCIA.md` registra
 #   como não declarada. Se um dia ela pedir mocha no lançador, a saída limpa é
 #   SEPARAR a chave (`APPS_FLAVOR`), e o acervo só publica latte e macchiato.
 #
@@ -84,7 +84,7 @@ case "$FLAVOR_ICONES" in
 esac
 
 ORIGEM="$RAIZ/assets/icones/catppuccin-apps/$VARIANTE"
-MAPA="$RAIZ/assets/icones/apps.map"
+MAPA="$RAIZ/packs/meowsystem/icones/apps.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 BASE_TEMA="$HOME/.local/share/icons/$TEMA"
 DESTINO="$BASE_TEMA/512x512/apps"
@@ -197,7 +197,7 @@ intocavel() {
 # A remoção de órfão daqui apaga `.png` cujo nome não está no `apps.map`. Isso
 # era certo enquanto TODO `.png` de `<tam>/apps` fosse meu — e não é mais:
 #
-#   `assets/icones/apps-hicolor.map`  o `completar_icones.sh` copia a marca de fábrica do
+#   `packs/meowsystem/icones/apps-hicolor.map`  o `completar_icones.sh` copia a marca de fábrica do
 #                             `hicolor` do sistema para o diretório do tamanho
 #                             REAL dela (`thunderbird` -> `128x128/apps`), que é
 #                             um dos meus;
@@ -229,7 +229,7 @@ _ler_alheios() {
   local linha chave caminho ext subdir lado
   # `nome:caminho-no-sistema` — a marca de fábrica. O diretório de destino sai
   # do caminho da fonte, exatamente como o `completar_icones.sh` o deriva.
-  if [ -f "$RAIZ/assets/icones/apps-hicolor.map" ]; then
+  if [ -f "$RAIZ/packs/meowsystem/icones/apps-hicolor.map" ]; then
     while IFS= read -r linha; do
       case "$linha" in ''|'#'*) continue ;; esac
       chave="${linha%%:*}"; caminho="${linha#*:}"
@@ -238,7 +238,7 @@ _ler_alheios() {
       case "$lado" in
         [0-9]*x[0-9]*) ALHEIO_ARQ["$lado/apps/$chave.png"]=1 ;;
       esac
-    done < "$RAIZ/assets/icones/apps-hicolor.map"
+    done < "$RAIZ/packs/meowsystem/icones/apps-hicolor.map"
   fi
   # `chave<TAB>extensão<TAB>subdiretório` — escrito pelo `importar_icones.sh`.
   # Ele só existe depois da primeira importação; ausência não é defeito.
@@ -294,7 +294,7 @@ _pronto() {
     meow_pula "o acervo Catppuccin de aplicativos não está em assets/icones/catppuccin-apps/$VARIANTE"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  [ -f "$MAPA" ] || { meow_pula "sem assets/icones/apps.map — nada a vestir"; return "$MEOW_SEM_DEPENDENCIA"; }
+  [ -f "$MAPA" ] || { meow_pula "sem packs/meowsystem/icones/apps.map — nada a vestir"; return "$MEOW_SEM_DEPENDENCIA"; }
   return "$MEOW_OK"
 }
 

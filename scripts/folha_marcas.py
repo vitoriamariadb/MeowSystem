@@ -419,7 +419,7 @@ def main():
     </p>
     <p class="porque" style="margin:0">
       Escolher só uma parte também vale: cada linha de
-      <code>assets/icones/apps-marca.map</code> é independente. Apagar a do Foliate, ou a
+      <code>packs/meowsystem/icones/apps-marca.map</code> é independente. Apagar a do Foliate, ou a
       do Brave, não afeta as outras.
     </p>
   </div>

@@ -295,12 +295,12 @@ for classe in CLASSES:
 
 # ---------------------------------------------------------------------------
 # 5b. A FOLHA DE ANTES E DEPOIS NÃO FICA VELHA CALADA
-#   A folha (`assets/icones/resgatados/ANTES-E-DEPOIS.png`) sai do
+#   A folha (`assets/icones/resgatados-antes-e-depois.png`) sai do
 #   `scripts/resgatados_folha.sh`, que pede os PNG de origem nos caminhos do
 #   mapa — e em 25/09/2026 doze dos 21 não estavam mais no disco, então a
 #   folha daquele dia foi remontada a partir da velha, e não pelo script (o
 #   PROCEDENCIA.md conta a costura). Uma folha pode ficar mais velha que os
-#   desenhos, mas não calada, e a nota dela, no `assets/icones/PROCEDENCIA.md`
+#   desenhos, mas não calada, e a nota dela, no `packs/meowsystem/PROCEDENCIA.md`
 #   (do parágrafo que fala da folha até o fim daquela seção, o próximo `## `),
 #   responde por duas coisas:
 #     · a data da frase «A folha de hoje é de dd/mm/aaaa» é a do commit da
@@ -320,9 +320,9 @@ for classe in CLASSES:
 #   ponto da nota, a data dela não era cobrada, e uma folha apagada passava por
 #   «refeita nesta árvore».]
 # ---------------------------------------------------------------------------
-FOLHA = "assets/icones/resgatados/ANTES-E-DEPOIS.png"
-MAPA = "assets/icones/apps-resgatados.map"
-PROC = "assets/icones/PROCEDENCIA.md"
+FOLHA = "assets/icones/resgatados-antes-e-depois.png"
+MAPA = "packs/dracula/icones/apps-resgatados.map"
+PROC = "packs/meowsystem/PROCEDENCIA.md"
 DATA_DA_NOTA = re.compile(r"\bA\s+folha\s+de\s+hoje\s+é\s+de\s+\**(\d{1,2})/(\d{1,2})/(\d{4})\b", I)
 
 
@@ -398,7 +398,7 @@ else:
             hoje = nomes_do_mapa(fh.read())
         mudaram = sorted(antes ^ hoje)
         for nome in sorted(antes & hoje):
-            svg = "assets/icones/resgatados/%s.svg" % nome
+            svg = "packs/dracula/icones/apps/resgatados/%s.svg" % nome
             era = git("rev-parse", "%s:%s" % (commit, svg)).stdout.strip()
             e = git("hash-object", "--", svg).stdout.strip()
             if era and e and era != e:

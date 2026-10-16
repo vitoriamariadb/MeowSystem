@@ -1172,7 +1172,7 @@ etapa_svg() {
   passo "Desenhos (SVG normalizados)"
   meow_tem python3 || { meow_pula "python3 não está aqui"; return 0; }
   local pastas=() p
-  for p in assets/gatos assets/icones/autorais assets/icones/overrides; do
+  for p in assets/gatos packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
     [ -d "$MEOW_RAIZ/$p" ] && pastas+=("$MEOW_RAIZ/$p")
   done
   # OS AUTORAIS DE CADA PACK ENTRAM JUNTO — 22/09/2026
@@ -1380,7 +1380,7 @@ etapa_icones_tray_steam() {
 #
 # ELE VOLTAVA SOZINHO, E ERA ISSO QUE ELA ESTAVA VENDO
 #   Queixa de 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon que
-#   fica no applet, voltaram aos originais". O `assets/icones/bandeja.map` previa a
+#   fica no applet, voltaram aos originais". O `packs/meowsystem/icones/bandeja.map` previa a
 #   regressão desde 10/08 e nada agia sobre ela. Quem repõe no EVENTO é a
 #   `etapa_vigia_flatpak`, lá embaixo; esta aqui é quem põe da primeira vez.
 etapa_icones_tray_zapzap() {
@@ -3071,7 +3071,7 @@ etapa_assets() {
 #   Um `flatpak update` troca a árvore de deploy inteira e apaga o que estava
 #   escrito lá dentro. Foi o que desfez o ícone de bandeja do ZapZap em
 #   `ago 20 03:30:36` (`flatpak history`), e o que ela viu em 23/08. O
-#   `assets/icones/bandeja.map` previa isso desde 10/08 e não havia gatilho nenhum.
+#   `packs/meowsystem/icones/bandeja.map` previa isso desde 10/08 e não havia gatilho nenhum.
 #
 #   O `meow-doctor.timer` não fecha este buraco: ele passa às 5h, então uma
 #   atualização das 10h da manhã deixa o ícone errado por dezenove horas. A lição

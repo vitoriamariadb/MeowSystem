@@ -6,7 +6,7 @@ pack herda quando não declara uma categoria. Até 22/09/2026 ele não era um pa
 `assets/`. A P13 o transformou num pack como os outros, sem privilégio nenhum.
 
 A procedência completa dos ícones deste repositório está em
-[`assets/icones/PROCEDENCIA.md`](../../assets/icones/PROCEDENCIA.md), e ela
+[`packs/meowsystem/PROCEDENCIA.md`](../meowsystem/PROCEDENCIA.md), e ela
 manda. O que está aqui é o recorte do que é **deste pack**.
 
 ## A paleta
@@ -114,9 +114,10 @@ A fronteira é de dono, não de assunto. O `assets/paleta/cosmic-map.json` é
 **motor** — é o molde do tema do COSMIC, e não tem um hex dentro. Ele ficou
 onde estava quando a paleta se mudou, e os dois eram irmãos no mesmo diretório.
 
-O mesmo vale para `assets/icones/autorais/` (o traço deste projeto),
-`assets/icones/arcticons*/`, `convertidos-apps/` e `resgatados/`: são acervos
-do motor, e vestem qualquer pack.
+O mesmo valia para o acervo de ícone do motor em `assets/icones/`. Desde a P88
+(15/10/2026) ele é o pack-base `packs/meowsystem/` — o traço Arcticons e os
+convertidos —, que todo pack herda. Os resgatados, de cor Dracula fixa, foram
+para o `packs/dracula/`.
 
 ## Licença
 

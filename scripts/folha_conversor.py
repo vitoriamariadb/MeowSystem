@@ -79,9 +79,9 @@ import tempfile
 HOME = os.path.expanduser("~")
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONV = os.path.join(RAIZ, "scripts", "converter_icone.py")
-MAPA = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-RETOQUES = os.path.join(RAIZ, "assets", "icones", "convertidos-apps", "retoques")
-ARCTICONS = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
+MAPA = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps-convertidos.map")
+RETOQUES = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "convertidos", "retoques")
+ARCTICONS = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
 # O ACERVO É O QUE ESTÁ NA TELA DELA, E NÃO É A MESMA COISA QUE A CONVERSÃO.
 #   Medido em 09/09/2026: NOVE das 24 linhas com origem chapada têm
 #   `retoques/<nome>.svg`, e o `_desejado_de()` do `construir_convertidos.sh`
@@ -89,7 +89,7 @@ ARCTICONS = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
 #   de hoje" desenhada a partir da origem mostra arte que ela nunca viu — o
 #   Chrome do acervo tem UM subcaminho desenhado à mão, e a conversão tem oito.
 #   Por isso a coluna lê o acervo primeiro e só converte quando não há arquivo.
-ACERVO = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+ACERVO = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "convertidos")
 
 # A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
 # Eram três linhas repetidas em seis arquivos, e as seis terminavam no mesmo
@@ -147,7 +147,7 @@ DESTAQUE = {
 #   some.
 #
 #   QUEM ESTÁ DE FORA ESTÁ DE FORA POR DECISÃO REGISTRADA, não por esquecimento;
-#   o `assets/icones/PROCEDENCIA.md` (10/08/2026) mediu o índice de 15.300 nomes
+#   o `packs/meowsystem/PROCEDENCIA.md` (10/08/2026) mediu o índice de 15.300 nomes
 #   do Arcticons e a regra dela é a de 10/08: genérico honesto pode, MARCA ALHEIA
 #   não. Então:
 #     · BleachBit  — `ccleaner` é outro programa; o `cleaner` do acervo não foi

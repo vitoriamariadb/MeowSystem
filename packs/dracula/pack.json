@@ -50,6 +50,11 @@
       "recolorir": false,
       "_nota_recolorir": "false porque cada desenho traz de 6 a 10 cores próprias e já nasceu Dracula. Recolorir pela paleta não seria aplicar o tema: seria destruir o desenho."
     },
+    "resgatados": {
+      "mapa": "icones/apps-resgatados.map",
+      "desenhos": "icones/apps/resgatados/",
+      "_nota": "Os desenhos dela que só existiam em PNG e voltaram a ser vetor (11 e 15/09/2026). Moravam no motor, em assets/icones/resgatados/; têm cor Dracula fixa, e no pack-base o Catppuccin os herdaria (decisão 16, P88). O `icones_resgatados.sh` os põe em `scalable/apps` pelo mapa ao lado; um nome que o `apps.map` também nomeia fica atrás dele."
+    },
     "pastas": {
       "desenhos": "icones/pastas/",
       "mapa": "icones/pastas.map",

@@ -179,7 +179,7 @@ fi
 #   LEIA-ME daquele diretório passa a mentir e ninguém consegue mais separar o
 #   que a máquina fez do que a pessoa decidiu.
 # --------------------------------------------------------------------------
-RET="$RAIZ/assets/icones/convertidos-apps/retoques/org.gimp.GIMP.svg"
+RET="$RAIZ/packs/meowsystem/icones/apps/convertidos/retoques/org.gimp.GIMP.svg"
 if [ -f "$GIMP" ] && [ -f "$RET" ]; then
   python3 "$CONV" "$GIMP" "$T/poli.svg" --polilinha >/dev/null 2>&1
   if python3 - "$T/poli.svg" "$RET" <<'PY'

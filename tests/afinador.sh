@@ -31,7 +31,7 @@
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 AFINA="$RAIZ/scripts/afinar_conversor.py"
-MAPA="$RAIZ/assets/icones/apps-convertidos.map"
+MAPA="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 falhas=0
 ok()   { printf 'ok: %s\n' "$1"; }

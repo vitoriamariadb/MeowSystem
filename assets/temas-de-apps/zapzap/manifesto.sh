@@ -40,7 +40,7 @@
 #   nosso tema em `scalable/apps/meow-whatsapp.svg`, trocando o verde do WhatsApp
 #   (`#47AD5D`) pelo verde da paleta. Era um BALÃO VERDE CHEIO.
 #
-#   E `meow-whatsapp` também está no `assets/icones/apps-arcticons.map`, desde a
+#   E `meow-whatsapp` também está no `packs/meowsystem/icones/apps-arcticons.map`, desde a
 #   unificação de 10/08/2026, com o glifo `whatsapp` em traço `sky` — que o
 #   `icones_apps_arcticons.sh` instala em `48x48/apps`. Dois donos para o mesmo
 #   nome, exatamente a doença dos oito `com.system76.Cosmic*` da Sprint J, e com
@@ -56,7 +56,7 @@
 #
 #   Isto NÃO mexe na bandeja: ela nunca passou por este arquivo. O ícone da
 #   bandeja é `IconPixmap` cru pelo D-Bus, e foi vestido na FONTE do app (o
-#   `tray_icon.py` do flatpak, ver `assets/icones/bandeja.map`) mais a chave
+#   `tray_icon.py` do flatpak, ver `packs/meowsystem/icones/bandeja.map`) mais a chave
 #   `tray_theme=symbolic_light`, que continua sendo escrita aqui embaixo.
 #
 #   Para desfazer: devolver `_zz_icone_desejado` (está no git, commit anterior a
@@ -129,7 +129,7 @@ _zz_desktop_desejado() {
 }
 
 # O balão verde cheio que este módulo instalava até 11/08/2026. Ver o cabeçalho:
-# quem veste `meow-whatsapp` agora é o `assets/icones/apps-arcticons.map`, em traço, num
+# quem veste `meow-whatsapp` agora é o `packs/meowsystem/icones/apps-arcticons.map`, em traço, num
 # diretório de dono único. O que sobra aqui é ARRANCAR o arquivo antigo — sem
 # isso ele continuaria vencendo em `scalable/apps`, e a decisão dela ficaria no
 # disco sem chegar à tela.
@@ -400,7 +400,7 @@ meow_app_reverter() {
     update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 
   meow_info "o ícone da bandeja segue vestido na FONTE do app (tray_icon.py do flatpak)"
-  meow_info "  para devolver aquele: flatpak update com.rtosta.zapzap — ver assets/icones/bandeja.map"
+  meow_info "  para devolver aquele: flatpak update com.rtosta.zapzap — ver packs/meowsystem/icones/bandeja.map"
   meow_info "tire 'zapzap' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
   return "$MEOW_DIVERGENTE"
 }

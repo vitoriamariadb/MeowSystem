@@ -114,7 +114,7 @@
 #   COMO SE DESFAZ
 #     Os oito SVGs continuam VERSIONADOS no `icones/autorais/` do pack e o gerador
 #     continua produzindo-os: desfazer é mover os oito nomes de `RETIRADOS` de
-#     volta para `AUTORAL` e tirar as oito linhas do `assets/icones/apps-arcticons.map`.
+#     volta para `AUTORAL` e tirar as oito linhas do `packs/meowsystem/icones/apps-arcticons.map`.
 #     Nada foi apagado do repositório.
 #
 # ONDE ESCREVE, E POR QUE ISSO BASTA
@@ -305,7 +305,7 @@ declare -A APELIDO=(
 #   esta lista morava aqui, ele não tinha como saber que `thunderbird.png` é de
 #   outro dono — e o `install.sh` roda os dois na mesma passagem, nesta ordem.
 #   O porquê inteiro, com a medição, está no cabeçalho do próprio mapa.
-MAPA_HICOLOR="$RAIZ/assets/icones/apps-hicolor.map"
+MAPA_HICOLOR="$RAIZ/packs/meowsystem/icones/apps-hicolor.map"
 declare -A DO_HICOLOR=()
 if [ -f "$MAPA_HICOLOR" ]; then
   while IFS= read -r linha; do

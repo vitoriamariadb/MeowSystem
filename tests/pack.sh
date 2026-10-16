@@ -627,12 +627,15 @@ PY
 #   saídas ruins: a decisão fica em `assets/`, ou cada pack carrega uma CÓPIA
 #   dos 113 — e a segunda cópia defasa da primeira calado.
 base_mapa="$PACK_DIR/icones"
-saida="$(printf 'apps/x.svg\nmotor:arcticons/y.svg\n' \
+#   [P88: o motor virou o pack-base, `packs/meowsystem/icones/`; a pasta de
+#   antes (`arcticons/`) num mapa velho vale pela de hoje (`sistema/arcticons/`).]
+saida="$(printf 'apps/x.svg\nmotor:arcticons/y.svg\nmotor:apps/arcticons/z.svg\n' \
            | amb python3 "$RAIZ/scripts/pack.py" alvo "$base_mapa" 2>/dev/null)"
 esperado="$base_mapa/apps/x.svg
-$RAIZ/assets/icones/arcticons/y.svg"
+$RAIZ/packs/meowsystem/icones/sistema/arcticons/y.svg
+$RAIZ/packs/meowsystem/icones/apps/arcticons/z.svg"
 [ "$saida" = "$esperado" ] \
-  && ok "'motor:' resolve em assets/icones/ e o resto cai dentro do pack" \
+  && ok "'motor:' resolve no pack-base, a pasta de antes pela de hoje, e o resto cai dentro do pack" \
   || falha "o prefixo motor: não resolveu como o contrato manda" "$saida"
 
 # UMA LINHA DE SAÍDA POR LINHA DE ENTRADA, E ISSO NÃO É DETALHE
@@ -679,7 +682,7 @@ pares="$(MAPA="$mapa_t" ICONES_BASE_MAPA="$base_mapa" RAIZ="$RAIZ" bash -c '
   # [P73: o parser do shell é o `_dracula_pares_do_mapa`; ver o tests/fonte-unica.sh.]
   eval "$(sed -n "/^_dracula_pares_do_mapa() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
   _dracula_pares_do_mapa' 2>/dev/null)"
-esperado_p="um.motor	$RAIZ/assets/icones/arcticons/telegram.svg
+esperado_p="um.motor	$RAIZ/packs/meowsystem/icones/sistema/arcticons/telegram.svg
 dois.pack	$base_mapa/apps/Warehouse.svg
 tres.comentario	$base_mapa/apps/Warehouse.svg"
 [ "$pares" = "$esperado_p" ] \

@@ -114,7 +114,8 @@ io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do g
 #   A linha saiu do `apps-resgatados.map` no mesmo commit: os dois escrevem em
 #   `scalable/apps`, e um nome com duas fontes ali é o último instalador que
 #   rodar vencendo calado — o que a regra 1 ("um nome, uma fonte") proíbe.
-#   A raposa continua em `assets/icones/resgatados/`, como alternativa.
+#   A raposa continua em `apps/resgatados/`, como alternativa (P88: era
+#   `assets/icones/resgatados/`).
 net.waterfox.waterfox : apps/net.waterfox.waterfox.svg   # Waterfox — o Firefox do dracula-icons (circle)
 
 # OS TRÊS RESGATADOS APROVADOS — 09/10/2026, P73 (I8)

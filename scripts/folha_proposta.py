@@ -329,8 +329,8 @@ def main():
     </ul>
     <h3>Quando você aprovar</h3>
     <p class="porque" style="margin:0">
-      Os 35 glifos vão para <code>assets/icones/arcticons-apps/</code> com a cor aplicada, as 35
-      linhas entram em <code>assets/icones/apps-arcticons.map</code>, e
+      Os 35 glifos vão para <code>packs/meowsystem/icones/apps/arcticons/</code> com a cor aplicada, as 35
+      linhas entram em <code>packs/meowsystem/icones/apps-arcticons.map</code>, e
       <code>meow icones reconstruir</code> monta o tema. Reverter é apagar as linhas do
       mapa e rodar de novo — o acervo Catppuccin continua no repo, intacto.
     </p>

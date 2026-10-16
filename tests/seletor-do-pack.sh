@@ -566,7 +566,7 @@ rc, saida = passo_do_pack()
 checa(codigo == 200 and texto(os.path.join(tema, "programa-de-brinquedo.svg")) == texto(alien),
       "o programa veste o alien escolhido como desenho (rc=%s)" % rc, repr(dados) + saida[-400:])
 codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
-                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+                                          "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg"})
 with open(escolhas, encoding="utf-8") as fh:
     sobrou = [l for l in fh if l.startswith("programa-de-brinquedo ")]
 checa(codigo == 200 and dados.get("tirou_escolha") is True and not sobrou
@@ -578,7 +578,7 @@ checa(not os.path.exists(os.path.join(tema, "programa-de-brinquedo.svg")),
       "e o passo do pack tira o desenho do `scalable/apps`, para o traço aparecer (rc=%s)" % rc,
       saida[-400:])
 codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
-                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+                                          "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg"})
 checa(codigo == 200 and dados.get("tirou_escolha") is False,
       "sem escolha de desenho, o traço não diz que tirou nada", repr(dados))
 

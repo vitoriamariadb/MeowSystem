@@ -54,7 +54,8 @@ arquivo existe no pack e não abre nada fora dele. A coluna ficou, vazia, em vez
 de sair: é a mesma tabela que o `meow pack exportar` lê para a licença, e sem ela
 o pack não seria reempacotado. A única linha que ainda compara é a do
 `guvcview.svg`, cuja origem é o próprio motor (`motor:resgatados/…`), dentro
-deste repositório.
+deste repositório. [P88: os resgatados desceram para este pack, e a linha lê
+`pack:dracula:apps/resgatados/…`.]
 
 ## As artes
 
@@ -65,8 +66,9 @@ lado andou depois: se a cópia mudou e a origem não, foi retoque daqui; se a
 origem mudou e a cópia não, foi o upstream.
 
 A coluna **lido de** é o arquivo que o `sincronizar` abre para comparar. `~/`
-é a pasta pessoal de quem roda; `motor:` é o `assets/icones/` deste
-repositório, o mesmo prefixo dos mapas de ícone. Numa máquina onde a origem não
+é a pasta pessoal de quem roda; `motor:` é o acervo do pack-base
+(`packs/meowsystem/icones/`, P88) e `pack:<id>:` o de outro pack, os mesmos
+prefixos dos mapas de ícone. Numa máquina onde a origem não
 existe, a linha sai como "fora de alcance", e isso não é divergência: é só não
 haver com o que comparar. **Vazia**, desde 24/09 (acima), a linha é só
 registro, e nada é aberto por ela.
@@ -150,7 +152,7 @@ estão em `docs/sprints/2026-10-15-fechamento/P84-png-para-vetor.md`.
 | `icones/apps/goa-panel.svg` | `m4thewz/dracula-icons`, ramo `circle` — `scalable/apps/goa-panel.svg` (link para `credentials-preferences.svg`) |  | GPL-3.0 | 2026-09-23 | `e6518416e92f92355b1130cfcfdc58bd2bb9edcd185864550e8bb5487811d674` |
 | `icones/apps/google-chrome.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/google-chrome.svg` |  | GPL-3.0 | 2026-09-16 | `66310f2646b82ab59c81d66950d84f945a88656ff760bc2e6bcf49827dbc4b0c` |
 | `icones/apps/guvcview-lente.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/guvcview.svg` |  | GPL-3.0 | 2026-09-24 | `417188c605306400d3e068e9027bb4a6ece9f88f7f6010fe84c12c12ed07a71c` |
-| `icones/apps/guvcview.svg` | este repositório — `assets/icones/resgatados/guvcview.svg` | `motor:resgatados/guvcview.svg` | a do pacote `guvcview` | 2026-09-17 | `085829f880ad8727fb077f58a84609e9e0b38dd12e323726a9ace2b84026700d` |
+| `icones/apps/guvcview.svg` | este repositório — `assets/icones/resgatados/guvcview.svg` | `pack:dracula:apps/resgatados/guvcview.svg` | a do pacote `guvcview` | 2026-09-17 | `085829f880ad8727fb077f58a84609e9e0b38dd12e323726a9ace2b84026700d` |
 | `icones/apps/help-about.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/help-about.svg` |  | GPL-3.0 | 2026-09-23 | `2ad7e2535f7f917b59aa5e66ec81b46714f7feeaf805952763eebaef343bace7` |
 | `icones/apps/ibus-setup-chewing.svg` | `m4thewz/dracula-icons`, ramo `main` — `scalable/apps/ibus-setup-chewing.svg` (link para `ibus.svg`) |  | GPL-3.0 | 2026-09-23 | `c1583e6145451bedf9779ebc3e9d1925f4c3ffc1f69ba285d841c09644d23a2b` |
 | `icones/apps/input-keyboard.svg` | `m4thewz/dracula-icons`, ramo `circle` — `scalable/apps/input-keyboard.svg` |  | GPL-3.0 | 2026-09-16 | `45865667705880f1c2867e3123215ae10acdd72c9244d50c37ab6d8805fceba8` |
@@ -208,9 +210,9 @@ estão em `docs/sprints/2026-10-15-fechamento/P84-png-para-vetor.md`.
 | `icones/apps/system-users.svg` | `m4thewz/dracula-icons`, ramo `circle` — `scalable/apps/system-users.svg` (link para `preferences-desktop-user.svg`) |  | GPL-3.0 | 2026-09-23 | `ec01fff1b0eae7df1f1fc2949dcf09569d65b9a6977e39dfd17e7e3ea5a89ab2` |
 | `icones/apps/thunderbolt.svg` | `m4thewz/dracula-icons`, ramo `circle` — `scalable/apps/thunderbolt.svg` |  | GPL-3.0 | 2026-09-23 | `19844a92b7f5d672ed03d2d575efb861c13991ac758174d9ac8a22a42f66e442` |
 | `icones/apps/video-display.svg` | `Dracula_OS-Theme` — `src/icons/current/scalable/apps/video-display.svg` |  | GPL-3.0 | 2026-09-23 | `9389f64f0b66d04527994c7eeb9d9a8493bd1959b5325639b92f445ddfd77ba0` |
-| `icones/apps/com.discordapp.Discord.svg` | este repositório — `assets/icones/resgatados/discord.svg`, desenho do projeto de 15/09/2026 (commit `5aee691`), aprovado por ela em 16/09 | `motor:resgatados/discord.svg` | GPL-3.0 | 2026-10-09 | `ce787b5b9bc8d05a802b59c1f0f689e491e15717c2f72b80b354d0b8ccd24db5` |
-| `icones/apps/com.spotify.Client.svg` | este repositório — `assets/icones/resgatados/spotify.svg`, desenho do projeto de 15/09/2026 (commit `5aee691`), aprovado por ela em 16/09 | `motor:resgatados/spotify.svg` | GPL-3.0 | 2026-10-09 | `78f93846b5d59bd6f75cab8817255b1d6e1f45ea2f8e29ed7ad22a9e548d3d93` |
-| `icones/apps/syncthing.svg` | este repositório — `assets/icones/resgatados/syncthing.svg`, desenho do projeto de 15/09/2026 (commit `5aee691`), aprovado por ela em 16/09 | `motor:resgatados/syncthing.svg` | GPL-3.0 | 2026-10-09 | `e042a9025dc566d43f32bdbf6b03787d5ad64cd181236cb7e3ae075c3cafdc0b` |
+| `icones/apps/com.discordapp.Discord.svg` | este repositório — `assets/icones/resgatados/discord.svg`, desenho do projeto de 15/09/2026 (commit `5aee691`), aprovado por ela em 16/09 | `pack:dracula:apps/resgatados/discord.svg` | GPL-3.0 | 2026-10-09 | `ce787b5b9bc8d05a802b59c1f0f689e491e15717c2f72b80b354d0b8ccd24db5` |
+| `icones/apps/com.spotify.Client.svg` | este repositório — `assets/icones/resgatados/spotify.svg`, desenho do projeto de 15/09/2026 (commit `5aee691`), aprovado por ela em 16/09 | `pack:dracula:apps/resgatados/spotify.svg` | GPL-3.0 | 2026-10-09 | `78f93846b5d59bd6f75cab8817255b1d6e1f45ea2f8e29ed7ad22a9e548d3d93` |
+| `icones/apps/syncthing.svg` | este repositório — `assets/icones/resgatados/syncthing.svg`, desenho do projeto de 15/09/2026 (commit `5aee691`), aprovado por ela em 16/09 | `pack:dracula:apps/resgatados/syncthing.svg` | GPL-3.0 | 2026-10-09 | `e042a9025dc566d43f32bdbf6b03787d5ad64cd181236cb7e3ae075c3cafdc0b` |
 | `icones/biblioteca/air-hockey.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/air-hockey.svg` |  | GPL-3.0 | 2026-09-23 | `e3594faf4ffd8aab3605bac5a31962c60350cb84b190fc409e3b6c57f8ae84ad` |
 | `icones/biblioteca/alien-variant.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/alien-variant.svg` |  | GPL-3.0 | 2026-09-23 | `dc2a68174c8f7466664467713c38392f3f7c381cfc5c504b5906e27ba803f615` |
 | `icones/biblioteca/alien.svg` | `Dracula_OS-Theme` — `src/icons/new-sessao-atual/alien.svg` |  | GPL-3.0 | 2026-09-23 | `b21755888a0e37cef08b491570745476e86423be3230030464da8212c04a1cd0` |

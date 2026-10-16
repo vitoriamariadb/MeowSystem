@@ -501,9 +501,9 @@ fi
 #   `apps-marca.map` mede); o Vesktop não tinha linha no mapa do pack; e os
 #   autorais `hefesto-*` e `fogstripper-*` (projetos pessoais) moravam nos dois
 #   packs, contra a regra de 23/09.
-grep -qx 'firefox:firefox:peach' "$RAIZ/assets/icones/apps-arcticons.map" \
+grep -qx 'firefox:firefox:peach' "$RAIZ/packs/meowsystem/icones/apps-arcticons.map" \
   && ok "o traço do Firefox é peach" \
-  || falha "o traço do Firefox não é peach" "$(grep '^firefox:' "$RAIZ/assets/icones/apps-arcticons.map")"
+  || falha "o traço do Firefox não é peach" "$(grep '^firefox:' "$RAIZ/packs/meowsystem/icones/apps-arcticons.map")"
 v="$(amb python3 "$RAIZ/scripts/pack.py" fonte dev.vencord.Vesktop 2>&1 | head -3)"
 grep -qE '^dev\.vencord\.Vesktop[[:space:]]*:[[:space:]]*apps/com\.discordapp\.Discord\.svg' "$RAIZ/packs/dracula/icones/apps.map" \
   && ok "o Vesktop veste o Discord do pack Dracula" \

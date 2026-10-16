@@ -74,9 +74,45 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 ALVO="$TEMA_DIR/scalable/apps"
-ACERVO="$RAIZ/assets/icones/resgatados"
-MAPA="$RAIZ/assets/icones/apps-resgatados.map"
 APPS_USUARIO="$HOME/.local/share/applications"
+
+# OS RESGATADOS SÃO DO PACK DRACULA — P88, decisão 16. Têm cor Dracula fixa e
+#   moravam no motor (assets/icones/), onde o Catppuccin os herdava. O mapa e os
+#   desenhos vêm agora do pack no ar, pela herança (`icones.resgatados`). Com um
+#   pack que não os traz, o que um dia foi posto sai do tema pelo nome, lido do
+#   mapa de quem os traz (`SO_TIRAR`).
+_pack_ref="$(meow_pack_dir)"
+[ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
+MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.resgatados.mapa 2>/dev/null)" || MAPA=""
+ACERVO="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.resgatados.desenhos 2>/dev/null)" || ACERVO=""
+ACERVO="${ACERVO%/}"
+SO_TIRAR=0
+if [ -z "$MAPA" ] || [ -z "$ACERVO" ]; then
+  # Só sai o que é byte a byte o desenho de quem os traz: o nome sozinho não
+  #   diz de quem é o arquivo em `scalable/apps`, que tem outros donos.
+  SO_TIRAR=1
+  { IFS= read -r MAPA; IFS= read -r ACERVO; } < <(python3 -I - "$RAIZ/scripts" <<'PYFIM' 2>/dev/null
+import os, sys
+sys.path.insert(0, sys.argv[1])
+import pack
+for base in pack.raizes():
+    try:
+        ids = sorted(os.listdir(base))
+    except OSError:
+        continue
+    for pid in ids:
+        dir_pack = os.path.join(base, pid)
+        if not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+            continue
+        mapa = pack.acervo("icones.resgatados.mapa", ref=dir_pack)
+        pasta = pack.acervo("icones.resgatados.desenhos", ref=dir_pack)
+        if mapa and pasta:
+            print(mapa)
+            print(pasta.rstrip("/"))
+            raise SystemExit(0)
+PYFIM
+)
+fi
 
 # Os `.desktop` cujo `Icon=` é caminho absoluto, e o nome de ícone que cada um
 # passa a usar. A chave é o ARQUIVO, porque é ele que a cópia local sombreia.
@@ -138,6 +174,7 @@ _resgatados_nomes() {
 
 # --- instalar -----------------------------------------------------------------
 _resgatados_instalar() {
+  [ "$SO_TIRAR" = "0" ] || { meow_pula "o pack no ar não traz resgatados"; return "$MEOW_SEM_DEPENDENCIA"; }
   local rc=0 nome origem
   local postos=0 faltando=()
 
@@ -163,7 +200,7 @@ _resgatados_instalar() {
   done < <(_resgatados_nomes)
 
   if [ "${#faltando[@]}" -gt 0 ]; then
-    meow_aviso "no mapa mas sem desenho em assets/icones/resgatados/: ${faltando[*]}"
+    meow_aviso "no mapa mas sem desenho em $ACERVO/: ${faltando[*]}"
     [ "$rc" = "0" ] && rc=1
   fi
 
@@ -297,6 +334,9 @@ _resgatados_remover() {
   while read -r nome; do
     [ -n "$nome" ] || continue
     [ -f "$ALVO/$nome.svg" ] || continue
+    if [ "$SO_TIRAR" = "1" ] && [ "$(cat "$ALVO/$nome.svg")" != "$(cat "$ACERVO/$nome.svg" 2>/dev/null)" ]; then
+      continue
+    fi
     if meow_seco; then
       meow_muda "removeria $ALVO/$nome.svg"; rc=1; continue
     fi
@@ -330,7 +370,10 @@ _resgatados_remover() {
   [ "$tirados" -gt 0 ] && { meow_ok "$tirados ícone(s) resgatado(s) retirado(s) do tema"; rc=1; }
   # Desligado e já sem nenhum no tema: a linha do doctor também precisa dizer
   # alguma coisa (o mesmo achado 5 de 09/10, do lado do `ICONES_RESGATADOS=nao`).
-  [ "$rc" = "0" ] && meow_ok "resgatados desligados — nenhum no tema"
+  if [ "$rc" = "0" ]; then
+    if [ "$SO_TIRAR" = "1" ]; then meow_ok "o pack no ar não traz resgatados — nenhum no tema"
+    else meow_ok "resgatados desligados — nenhum no tema"; fi
+  fi
   return "$rc"
 }
 
@@ -347,7 +390,7 @@ _resgatados_estado() {
 
 # --- ponto de entrada ---------------------------------------------------------
 _resgatados_aplicar() {
-  if [ "${ICONES_RESGATADOS:-sim}" = "sim" ]; then _resgatados_instalar
+  if [ "${ICONES_RESGATADOS:-sim}" = "sim" ] && [ "$SO_TIRAR" = "0" ]; then _resgatados_instalar
   else _resgatados_remover; fi
 }
 

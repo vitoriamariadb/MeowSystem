@@ -256,8 +256,8 @@ r = {}
 m._json = lambda d, c=200: r.update(d=d, c=c)
 falhou = 0
 for corpo in ({"app": "um-navegador", "arquivo": "packs/dracula/icones/biblioteca/alien.svg"},
-              {"app": "um-chat", "arquivo": "assets/icones/resgatados/discord.svg"},
-              {"app": "um-editor", "arquivo": "assets/icones/arcticons-apps/firefox.svg",
+              {"app": "um-chat", "arquivo": "packs/dracula/icones/apps/resgatados/discord.svg"},
+              {"app": "um-editor", "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg",
                "glifo": "firefox", "cor": "mauve"}):
     r.clear()
     m._api_app_icone(corpo)
@@ -350,8 +350,8 @@ else
   diff "$ANTES_O" "$DEPOIS_O" | sed 's/^/        /' >&2
 fi
 # O que a versão de antes gravava no clone volta ao que era (o teste não deixa resto).
-git -C "$RAIZ" checkout -q -- assets/icones/apps-convertidos.map 2>/dev/null
-rm -f "$RAIZ/assets/icones/convertidos-apps/um-desenho.svg" "$RAIZ/assets/icones/convertidos-apps/retoques/um-desenho.svg"
+git -C "$RAIZ" checkout -q -- packs/meowsystem/icones/apps-convertidos.map 2>/dev/null
+rm -f "$RAIZ/packs/meowsystem/icones/apps/convertidos/um-desenho.svg" "$RAIZ/packs/meowsystem/icones/apps/convertidos/retoques/um-desenho.svg"
 
 # --- 4/4 o painel em uso, e o repositório INTEIRO — P75, 09/10/2026 --------
 #   As seções 1 a 3 exercitam UM caminho de escrita: o `wallpaper.sh` (a 3b,

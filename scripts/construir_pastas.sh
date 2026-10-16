@@ -41,7 +41,7 @@
 #   pastel a 16px e mauve a 48px dentro de um mesmo aplicativo GTK.
 #
 #   A cessão é a saída, no padrão do `INTOCAVEIS` do `icones_apps.sh`: a lista
-#   vem de `assets/icones/pastas.map`, que é a mesma que o outro script instala — uma
+#   vem de `packs/meowsystem/icones/pastas.map`, que é a mesma que o outro script instala — uma
 #   fonte de verdade só.
 #
 #   MAS SÓ SE CEDE O QUE JÁ ESTÁ NO DISCO. Ceder um nome cujo desenho ainda não
@@ -436,7 +436,7 @@ TAMANHOS=(22x22 24x24 32x32 48x48 64x64)
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 MAPA_PASTAS="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.pastas.mapa 2>/dev/null)" || MAPA_PASTAS=""
-[ -n "$MAPA_PASTAS" ] || MAPA_PASTAS="$RAIZ/assets/icones/pastas.map"
+[ -n "$MAPA_PASTAS" ] || MAPA_PASTAS="$RAIZ/packs/meowsystem/icones/pastas.map"
 unset _pack_ref
 PASTEL_DIR="$TEMA_DIR/scalable/places"
 
@@ -500,7 +500,7 @@ mudou=0
 # `papirus-folders` simplesmente não os tem, então eles caem no Papirus base e
 # saem CINZA (`#8e8e8e`, `#9f9f9f`, os únicos fill dos cinco tamanhos).
 #
-# CORRIGE UM FATO ERRADO NO REPO: o `assets/icones/pastas.map` diz que essas duas
+# CORRIGE UM FATO ERRADO NO REPO: o `packs/meowsystem/icones/pastas.map` diz que essas duas
 # "continuam azuis". Não são azuis, são cinza — conferido nos 5 tamanhos.
 #
 # OS TONS SAEM DAS PASTAS DELA, NÃO DE UM HEX CRAVADO AQUI

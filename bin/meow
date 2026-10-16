@@ -1155,7 +1155,7 @@ chk_traysteam() {
 # ESTE É O VERIFICADOR QUE FALTAVA, e a falta tinha preço medido: o
 # `flatpak update` de `ago 20 03:30:36` devolveu o `tray_icon.py` de fábrica, o
 # ícone voltou a destoar e NADA acusou — ela descobriu olhando a barra, três dias
-# depois. O `assets/icones/bandeja.map` já previa a regressão desde 10/08.
+# depois. O `packs/meowsystem/icones/bandeja.map` já previa a regressão desde 10/08.
 #
 # Confere E conserta: não usa sudo, escreve no HOME dela. Quando o ZapZap muda o
 # formato do arquivo, o script devolve 3 e diz — nunca escreve às cegas, porque é
@@ -1362,7 +1362,7 @@ chk_atalho() {
 chk_svg() {
   meow_tem python3 || { echo "python3 não está aqui — nada a conferir"; return 0; }
   local pastas=() p
-  for p in assets/gatos assets/icones/autorais assets/icones/overrides; do
+  for p in assets/gatos packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
     [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
   done
   # OS AUTORAIS DE CADA PACK ENTRAM JUNTO — 22/09/2026
@@ -2023,7 +2023,7 @@ fix_atalho()    { "$RAIZ/scripts/atalho.sh" --aplicar 2>&1; }
 # de estragar o desenho dela.
 fix_svg()       { local pastas=() p
                   meow_tem python3 || return 0
-                  for p in assets/gatos assets/icones/autorais assets/icones/overrides; do
+                  for p in assets/gatos packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
                     [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
                   done
                   # Os autorais de cada pack, como no `chk_svg` — o conserto
@@ -3089,8 +3089,9 @@ cmd_icones() {
           meow_titulo "Ícones resgatados"
           campo "escolha"   "${ICONES_RESGATADOS:-sim}"
           campo "no tema"   "$postos de $total"
-          campo "acervo"    "$RAIZ/assets/icones/resgatados"
-          campo "mapa"      "$RAIZ/assets/icones/apps-resgatados.map"
+          local _ref; _ref="$(meow_pack_dir)"; _ref="${_ref:-$(meow_pack_padrao_dir)}"
+          campo "acervo"    "$(python3 "$RAIZ/scripts/pack.py" acervo "$_ref" icones.resgatados.desenhos 2>/dev/null || printf 'o pack no ar não traz')"
+          campo "mapa"      "$(python3 "$RAIZ/scripts/pack.py" acervo "$_ref" icones.resgatados.mapa 2>/dev/null || printf 'o pack no ar não traz')"
           printf '\n'
           local saida rc
           local LOG_NIVEL=info; export LOG_NIVEL
@@ -3098,9 +3099,8 @@ cmd_icones() {
           printf '  %s %s %s\n\n' "$(rotulo_rc "$rc")" "$(pad "resgatados" 10)" "$(primeira_linha "$saida")"
           return "$rc" ;;
         folha)
-          # A folha mora no repo, junto do acervo: ela é a prova do trabalho, e
-          # quem abre `assets/icones/resgatados/` encontra os desenhos e o
-          # antes-e-depois no mesmo lugar. Regerar é barato e idempotente.
+          # A folha mora no repo (`assets/icones/resgatados-antes-e-depois.png`):
+          # ela é a prova do trabalho. Regerar é barato e idempotente.
           "$RAIZ/scripts/resgatados_folha.sh"; return $? ;;
         sim|nao)
           meow_travar || return "$MEOW_ERRO"

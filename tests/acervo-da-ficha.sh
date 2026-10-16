@@ -133,7 +133,10 @@ checa(soma == contados, "o total que cada pasta anuncia é o número de itens de
 # [Integração da leva G, 09/10/2026: e o `wallpapers/` do pack, que a P74 item
 #   9 versionou em SVG no mesmo dia em que este teste nasceu na P73. Papel de
 #   parede não é ícone de aplicativo, e a ficha não o oferece de propósito.]
-FORA = {"pastas", "mimetypes", "previa-arcticons", "upstream", "tray-terceiros", "wallpapers"}
+# [P88: e o `sistema/` das três pastas — pasta, tipo de arquivo, status e
+#   simbólico não são ícone de programa.]
+FORA = {"pastas", "mimetypes", "previa-arcticons", "upstream", "tray-terceiros", "wallpapers",
+        "sistema"}
 versionados = subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icones"],
                              capture_output=True, text=True).stdout.split()
 sem_grupo = set()
@@ -141,7 +144,7 @@ for rel in versionados:
     if not rel.lower().endswith((".svg", ".png")) or rel.endswith("logo.svg"):
         continue
     partes = rel.split("/")
-    if FORA & set(partes) or os.path.basename(rel) == "ANTES-E-DEPOIS.png" or "temas" in partes:
+    if FORA & set(partes) or os.path.basename(rel) == "resgatados-antes-e-depois.png" or "temas" in partes:
         continue
     if os.path.normpath(os.path.dirname(os.path.join(raiz, rel))) not in {p for p, _e in por_pasta}:
         sem_grupo.add(os.path.dirname(rel))
@@ -159,8 +162,9 @@ for rel in subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icone
     if h not in oferecidos:
         sobra.setdefault(h, rel)
 fora_da_regra = sorted(r for r in sobra.values()
-                       if not ("/icones/pastas/" in r or r.startswith("assets/gatos/")
-                               or r.endswith("/logo.svg") or r.endswith("resgatados/ANTES-E-DEPOIS.png")))
+                       if not ("/icones/pastas/" in r or "/icones/sistema/" in r
+                               or r.startswith("assets/gatos/")
+                               or r.endswith("/logo.svg") or r.endswith("resgatados-antes-e-depois.png")))
 print("  versionados únicos menos oferecíveis: %d — %s" % (
     len(sobra), ", ".join(sorted({r.rsplit("/", 1)[0] if not r.endswith("logo.svg") else "logo.svg"
                                   for r in sobra.values()}))))
@@ -256,7 +260,7 @@ checa(dele and caminho_de(dele[0]).startswith(casa_real + os.sep) and dele[0]["t
 #   sem linha nem catálogo a busca não tinha texto para casar.
 achados = {os.path.relpath(caminho_de(it), raiz) for it in glifos("firefox").get("glifos", [])}
 checa({"packs/dracula/icones/apps/net.waterfox.waterfox.svg",
-       "assets/icones/resgatados/net.waterfox.waterfox.svg"} <= achados,
+       "packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg"} <= achados,
       "«firefox» acha os dois desenhos da raposa: o do pack e o resgatado",
       repr(sorted(a for a in achados if "waterfox" in a)))
 
@@ -280,15 +284,15 @@ sem_descricao = sorted(a for a in os.listdir(bib) if a.endswith(".svg")
                        and not str((catalogo.get(a) or {}).get("descricao") or "").strip())
 checa(not sem_descricao, "todo desenho da biblioteca do Dracula tem descrição no catálogo",
       "%d sem: %s" % (len(sem_descricao), sem_descricao[:6]))
-with open(os.path.join(raiz, "assets", "icones", "apps-convertidos.map"), encoding="utf-8") as fh:
+with open(os.path.join(raiz, "packs", "meowsystem", "icones", "apps-convertidos.map"), encoding="utf-8") as fh:
     linhas_conv = fh.read().split("\n")
 sem_nome = [l.split(":", 1)[0] for i, l in enumerate(linhas_conv)
             if re.match(r"^[a-z]+\.[A-Za-z0-9_.-]+\.[A-Za-z0-9_.-]+:", l)
             and not (i and re.match(r"^# app: \S", linhas_conv[i - 1]))]
 checa(not sem_nome, "toda linha de id invertido do apps-convertidos.map tem o «# app:» com o nome",
       "%d sem: %s" % (len(sem_nome), sem_nome[:6]))
-for rel, rotulo in (("assets/icones/convertidos-apps/com.obsproject.Studio.svg", "OBS Studio"),
-                    ("assets/icones/convertidos-apps/io.github.shiftey.Desktop.svg", "GitHub Desktop")):
+for rel, rotulo in (("packs/meowsystem/icones/apps/convertidos/com.obsproject.Studio.svg", "OBS Studio"),
+                    ("packs/meowsystem/icones/apps/convertidos/io.github.shiftey.Desktop.svg", "GitHub Desktop")):
     it = por_arquivo.get(rel) or {}
     checa(it.get("rotulo") == rotulo, "%s ganha o rótulo «%s»" % (os.path.basename(rel), rotulo),
           "veio %r" % it.get("rotulo"))

@@ -11,8 +11,8 @@ PARA QUE SERVE
 QUEM CHAMA ISTO
     `scripts/construir_convertidos.sh`, e SÓ ele — nunca o `install.sh`. A
     conversão não é etapa de instalação, é a ferramenta que GERA o acervo
-    `assets/icones/convertidos-apps/`, que fica COMMITADO no repositório como o
-    `assets/icones/arcticons-apps/`. Arte que ela aprovou numa folha tem de aparecer no
+    `packs/meowsystem/icones/apps/convertidos/`, que fica COMMITADO no repositório como o
+    `packs/meowsystem/icones/apps/arcticons/`. Arte que ela aprovou numa folha tem de aparecer no
     `git diff`; arte gerada em tempo de instalação mudaria em silêncio no dia
     em que o Papirus fosse atualizado. Ver o cabeçalho daquele script.
 
@@ -148,7 +148,7 @@ O QUE SOBROU DE FORA, E POR QUÊ (a leitura dela da folha, 11/08/2026)
       · btop — a conversão é fiel, e o original é justamente o "B" na placa
         opaca de que ela reclamou em 08/08. Aqui o Arcticons já tinha vencido.
     E três NÃO passam por aqui apesar de estarem no mapa: Flatseal, Warehouse
-    e Gradia têm desenho à mão em `assets/icones/convertidos-apps/retoques/`, que vence
+    e Gradia têm desenho à mão em `packs/meowsystem/icones/apps/convertidos/retoques/`, que vence
     a conversão sempre — ver `construir_convertidos.sh`.
 
 A GRAMÁTICA DE SAÍDA GANHOU `C`, `L` E `Z`, E OS DOIS LEITORES CONTINUAM LENDO

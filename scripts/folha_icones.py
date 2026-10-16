@@ -20,7 +20,7 @@
 #   que o traço de 1 px do Arcticons some e que o PNG de 24 px chega borrado.
 #   Uma folha num tamanho só esconde metade do problema.
 #
-#   Os quatro fundos são os já medidos no cabeçalho de `assets/icones/apps.map`: mocha
+#   Os quatro fundos são os já medidos no cabeçalho de `packs/meowsystem/icones/apps.map`: mocha
 #   `#1e1e2e`, latte `#eff1f5`, e os dois tons do vidro da dock, `#3C3B50` e
 #   `#826E92`. Um ícone que sobrevive no mocha e desaparece no vidro claro não
 #   está resolvido — e isso só aparece trocando o fundo debaixo dele.
@@ -495,7 +495,7 @@ def main():
   <p class="rodape">
     Contagem: {contagem}. A pergunta é uma só — <b>qual dessas linguagens vale para os
     {len(itens)}?</b> Depois que você responder, o resto é técnica: os mapas do repo
-    (<code>assets/icones/apps.map</code>, <code>assets/icones/apps-arcticons.map</code>) passam a apontar
+    (<code>packs/meowsystem/icones/apps.map</code>, <code>packs/meowsystem/icones/apps-arcticons.map</code>) passam a apontar
     todo mundo para o acervo escolhido, e seus desenhos continuam intocados.
     Para trocar um ícone específico à mão, a outra página é a
     <code>meow-icones-curadoria.html</code>.

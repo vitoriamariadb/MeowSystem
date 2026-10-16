@@ -3704,10 +3704,10 @@ function gradeDeIcones(limite = 24) {
  *
  * Cada aplicativo da máquina, com o ícone que está NA TELA agora. Trocar é
  * escolher um desenho e uma cor; a escolha é gravada no
- * `assets/icones/apps-arcticons.map` DO REPOSITÓRIO — é o que faz ela
+ * `packs/meowsystem/icones/apps-arcticons.map` DO REPOSITÓRIO — é o que faz ela
  * sobreviver a uma reinstalação, e é o que "atuar no repo local" quer dizer.
  * O desenho escolhido, se ainda não estava no repositório, vem junto do acervo
- * Arcticons (21 mil) para `assets/icones/arcticons-apps/`.
+ * Arcticons (21 mil) para `packs/meowsystem/icones/apps/arcticons/`.
  * [09/10/2026, P73: deixou de ser assim. Usar o programa não pode sujar o
  * repositório (P21), e as escolhas vão para o estado de quem usa, ao lado do
  * meow.conf — `icones-traco.map` e `icones-escolhidos.map`. Ver "AS ESCOLHAS
@@ -8116,7 +8116,7 @@ function botaoDeAssunto(assunto) {
  * acervo — e era isso o que estava errado: um desenho parecido com o Arcticons
  * não é o Arcticons, e a barra e o dock da máquina mostram os de verdade a três
  * centímetros deste menu. Cada entrada abaixo é o conteúdo de um arquivo de
- * `assets/icones/arcticons/` (39 glifos, Arcticons, CC BY-SA 4.0), sem o
+ * `packs/meowsystem/icones/sistema/arcticons/` (39 glifos, Arcticons, CC BY-SA 4.0), sem o
  * invólucro <svg> e sem os atributos que o invólucro daqui já dá.
  *
  * DUAS SÃO AUTORAIS, E ESTÃO MARCADAS: o acervo não tem gato. Os dois cartões de

@@ -188,7 +188,7 @@ const PACK = { glifo: "alien", grupo: "pack:dracula:biblioteca", tipo: "desenho"
                desenho: "biblioteca/alien.svg", arquivo: "packs/dracula/icones/biblioteca/alien.svg",
                url: "/previa?x" };
 const TRACO = { glifo: "google-chrome", grupo: "motor:arcticons-apps", tipo: "traco",
-                arquivo: "assets/icones/arcticons-apps/google-chrome.svg", url: "/previa?y" };
+                arquivo: "packs/meowsystem/icones/apps/arcticons/google-chrome.svg", url: "/previa?y" };
 const GRUPOS = [
   { id: "pack:dracula:biblioteca", acervo: "Dracula", nome: "biblioteca", no_ar: true, total: 1, achados: 1 },
   { id: "motor:arcticons-apps", acervo: "MeowSystem", nome: "traço", no_ar: false, total: 1, achados: 1 }];
