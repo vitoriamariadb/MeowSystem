@@ -3158,8 +3158,14 @@ class Percurso:
         self.assentar(quieto=300, teto=20000)
         self.esperar_trabalho()
         self.checa(post and post[0] == "app-desenho", "«Usar» grava o desenho da oficina")
-        self.checa(any(c.startswith("raiz/assets/icones/") for c in diferenca(antes, retrato())),
-                   "e o mapa de ícones do projeto (de brinquedo) muda")
+        # [P82, item 5 (decisão 15): o desenho da oficina mora no estado de quem
+        #   usa — o `icones-convertidos.map` ao lado do meow.conf —, e o
+        #   repositório não muda.]
+        mudou = diferenca(antes, retrato())
+        self.checa(any(c.endswith(".config/meow/icones-convertidos.map") for c in mudou),
+                   "e o mapa de convertidos de quem usa (de brinquedo) muda")
+        self.checa(not any(c.startswith("raiz/assets/icones/") for c in mudou),
+                   "e o repositório (de brinquedo) não muda")
 
     def h_texto_svg(self, nome):
         el = self.achar(nome)
@@ -3734,10 +3740,11 @@ INVENTARIO = {
         ação «Tema de ícones instalado» · ?
         ação «Tema de ícones instalado» · Executar
         ação «Tema de ícones instalado» · ver comando
-        desenhos autorais · ?
-        desenhos autorais · Salvar no pack
-        desenhos autorais › desenho autoral · escolher
     """),
+    # [P82, 15/10/2026: os «desenhos autorais» saíram do inventário — os dois
+    #   packs deixaram de declarar desenho (o Hefesto e o FogStripper,
+    #   decisão 16), e sem desenho a oficina não aparece. O gesto continua
+    #   coberto pelo `tests/oficina.sh`, num pack de brinquedo que declara.]
     "Painel e dock": _linhas("""
         aba · ?
         aba · abre «⋯ Ações técnicas»
@@ -4085,7 +4092,6 @@ REVELADOS = {
         ação «As áreas de agora» · ver comando
     """),
     "Ícones": PAINEL_DO_APLICATIVO | _linhas("""
-        desenhos autorais › papel do desenho · seletor
         ajuste ICONES_LOGO_HEFESTO · ?
         ajuste ICONES_LOGO_HEFESTO · campo
     """),

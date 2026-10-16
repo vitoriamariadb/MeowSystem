@@ -3798,7 +3798,10 @@ function montarApps() {
   /* Os desenhos autorais do pack — o gerador, com tela (sprint P26). Ficam
    * DEPOIS da grade: a pergunta desta aba é "que ícone veste cada programa?",
    * e desenhar um novo é o passo seguinte, não o primeiro. */
-  caixa.append(oficinaAutoral());
+  /* [P82, 15/10/2026: sem desenho declarado no pack, a oficina não aparece —
+   *   o Hefesto e o FogStripper eram os dois únicos, e saíram (decisão 16).] */
+  const autoral = oficinaAutoral();
+  if (autoral) caixa.append(autoral);
   return caixa;
 }
 
@@ -5380,10 +5383,12 @@ function oficinaAutoral() {
       },
     }));
   }
-  if (!AUTORAL.desenhos.length) {
-    escolha.append(elemento("p", { class: "sem-previa",
-      texto: "Este pack não declara nenhum desenho autoral." }));
-  }
+  /* SEM DESENHO DECLARADO, SEM OFICINA — 15/10/2026, P82. Era a frase «Este
+   * pack não declara nenhum desenho autoral.» com o «Salvar no pack» aceso
+   * embaixo, sem nada a salvar: texto no lugar do gesto. Os dois packs daqui
+   * deixaram de declarar desenhos (o Hefesto e o FogStripper saíram, decisão
+   * 16); o pack de terceiro que declarar algum ganha a oficina de volta. */
+  if (!AUTORAL.desenhos.length && !AUTORAL.erro) return null;
   caixa.append(escolha);
 
   const papeis = elemento("div", { role: "group", "aria-label": "Papéis",
