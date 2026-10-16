@@ -74,7 +74,7 @@ _oo_lugares() {
 #                                      `id_do_UITheme=<v>` (ver abaixo)
 #   escolher <conf> <uitheme> <UITheme> imprime o conf inteiro com os dois trocados
 _oo_py() {
-  python3 - "$@" <<'PY'
+  python3 -I - "$@" <<'PY'
 import base64, json, os, re, sys
 
 modo, caminho = sys.argv[1], sys.argv[2]

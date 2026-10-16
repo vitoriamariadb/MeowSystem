@@ -205,7 +205,7 @@ MEOW_OBSIDIAN_BAIXADOS="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/temas-de
 # Com `todos`, imprime TODOS os cofres dos dois arquivos, cada um terminado por
 # NUL (nome de pasta pode ter quebra de linha): é a lista do desfazer.
 _meow_obsidian_cofre() {
-  python3 - "${1:-um}" "$HOME/.var/app/$MEOW_OBSIDIAN_APP_ID/config/obsidian/obsidian.json" \
+  python3 -I - "${1:-um}" "$HOME/.var/app/$MEOW_OBSIDIAN_APP_ID/config/obsidian/obsidian.json" \
             "${XDG_CONFIG_HOME:-$HOME/.config}/obsidian/obsidian.json" <<'PYFIM'
 import json, os, sys
 
@@ -289,7 +289,7 @@ _OBS_URL=""; _OBS_SHA=""; _OBS_PASTA=""; _OBS_ORIGEM_RECUSA=""
 _meow_obsidian_packs() {
   local saida
   saida="$(PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" MEOW_PACKS_VALIDOS="$(meow_packs_validos)" \
-             python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+             python3 -I - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
 import json, os, re, sys
 sys.path.insert(0, sys.argv[1])
 import pack
@@ -644,7 +644,7 @@ _meow_obsidian_git() {
 _meow_obsidian_json() {
   local modo="$1" arquivo="$2" tema="$3" outros="${4:-}"
   MEOW_PY_SECO="$(meow_seco && echo 1 || echo 0)" \
-  python3 - "$modo" "$arquivo" "$tema" "$outros" <<'PYFIM'
+  python3 -I - "$modo" "$arquivo" "$tema" "$outros" <<'PYFIM'
 import json, os, re, sys, tempfile
 
 modo, caminho, tema = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -1000,7 +1000,7 @@ meow_app_aplicar() {
 # primeiro, depois o que desceu (só a pasta com a nossa `.meow-origem`). O nome
 # sai do manifest de cada um — é a pasta em `themes/` e o `cssTheme`.
 _meow_obsidian_nossos() {
-  python3 - "$MEOW_OBSIDIAN_DIR/vendor" "$MEOW_OBSIDIAN_BAIXADOS" <<'PYFIM' 2>/dev/null
+  python3 -I - "$MEOW_OBSIDIAN_DIR/vendor" "$MEOW_OBSIDIAN_BAIXADOS" <<'PYFIM' 2>/dev/null
 import json, os, sys
 
 def pastas(base, marca):
@@ -1028,7 +1028,7 @@ PYFIM
 # `aplicar` desmarca, e que a frase do fim do desfazer nomeia. Um por linha. A
 # régua é a de todos os packs, montada no `_meow_obsidian_packs` (25/09/2026).
 _meow_obsidian_snippets_desmarcados() {   # <régua dos packs> <cofre>...
-  python3 - "$@" <<'PYFIM' 2>/dev/null
+  python3 -I - "$@" <<'PYFIM' 2>/dev/null
 import json, os, re, sys
 
 packs = sys.argv[1]

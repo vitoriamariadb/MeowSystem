@@ -918,6 +918,10 @@ ASSENTAR_JS = r"""
 })
 """
 
+# O relógio da recarga das miniaturas está armado? (`agendarRecarga` do app.js;
+# ver o `assentar`.) A página sem o relógio responde que não.
+RECARGA_ARMADA_JS = "() => typeof RELOGIO_PREVIA !== 'undefined' && !!RELOGIO_PREVIA"
+
 
 # O que a página tentou buscar fora de 127.0.0.1 — a rota do contexto recusa
 # e anota. É por aqui que o link externo prova para onde iria.
@@ -940,6 +944,7 @@ class Percurso:
         self.acionados = set()
         self.esperadas = []          # [(status, trecho de url)] que o gesto pediu
         self.pedidos_vivos = 0
+        self.nascidos = 0            # todo pedido que nasceu (o `assentar` compara)
         self.posts = []              # (url, corpo) de todo POST de ação
         self.acoes_vistas = {}       # id de ação -> como o percurso a exerceu
         self.tempos = {}             # aba -> segundos
@@ -988,6 +993,7 @@ class Percurso:
         if not self._conta(req):
             return
         self.pedidos_vivos += 1
+        self.nascidos += 1
         if req.method == "POST" and re.search(r"/api/(rodar|salvar|acervo|pack-importar|"
                                               r"importar|pendencia-recusar|jogo-fora|"
                                               r"app-icone|app-desenho|autorais|definir)",
@@ -1035,14 +1041,45 @@ class Percurso:
 
     # --- a página ----------------------------------------------------------
     def assentar(self, quieto=250, teto=8000):
-        """Espera a rede (menos o pulso) e o DOM pararem."""
+        """Espera a rede (menos o pulso) e o DOM pararem.
+
+        O PEDIDO QUE NASCE DEPOIS DO GESTO — 15/10/2026, P82 (item 37). A cura
+        da integração da P80 (`e34845c`) valeu só para o `/api/pack-importar`:
+        todo gesto cujo pedido nasce num salto assíncrono (o `close` de uma
+        caixa) tinha a mesma janela. O pedido nascia enquanto o DOM assentava,
+        e a espera de depois era de 3 s cravados; um servidor mais lento que
+        isso deixava o gate conferir a tela antes da resposta. Agora o
+        `assentar` conta os pedidos que NASCEM enquanto o DOM assenta (a
+        janela é o próprio `quieto`), espera cada um deles pelo mesmo `teto`
+        do gesto, e assenta o DOM de novo, porque a resposta repinta a tela.
+        A volta tem limite: uma página que pergunta em laço não prende o gate.
+        """
         fim = time.time() + teto / 1000
         while self.pedidos_vivos and time.time() < fim:
             self.pag.wait_for_timeout(40)
-        self.pag.evaluate(ASSENTAR_JS, [quieto, max(300, int((fim - time.time()) * 1000))])
-        fim2 = time.time() + 3
-        while self.pedidos_vivos and time.time() < fim2:
-            self.pag.wait_for_timeout(40)
+        esperou_recarga = False
+        for _volta in range(4):
+            antes = self.nascidos
+            self.pag.evaluate(ASSENTAR_JS, [quieto, max(300, int((fim - time.time()) * 1000))])
+            # A RECARGA AGENDADA DAS MINIATURAS — 16/10/2026, P82 (conferência
+            #   do item 37). Com miniatura por fazer, a página relê as prévias
+            #   900 ms depois (`agendarRecarga`, um `setTimeout`) e repinta: o
+            #   pedido nasce DEPOIS do `quieto`, e o gesto seguinte do gate caía
+            #   no meio da repintura — o botão marcado pelo censo era trocado
+            #   («element was detached»), e o clique estourava o teto. Medido na
+            #   aba Papel de parede: 4 reprovações em 8 corridas. Um relógio
+            #   armado é uma volta a mais: espera ele disparar (uma vez só, para
+            #   uma miniatura que nunca fica pronta não prender o gate).
+            if not esperou_recarga and self.pag.evaluate(RECARGA_ARMADA_JS):
+                esperou_recarga = True
+                limite = time.time() + 1.5
+                while self.pag.evaluate(RECARGA_ARMADA_JS) and time.time() < limite:
+                    self.pag.wait_for_timeout(40)
+            elif self.nascidos == antes and not self.pedidos_vivos:
+                break
+            fim = max(fim, time.time() + teto / 1000)
+            while self.pedidos_vivos and time.time() < fim:
+                self.pag.wait_for_timeout(40)
 
     def censo(self):
         """O censo de agora. Tudo o que ele vê fica anotado: o que aparece no
@@ -1544,6 +1581,30 @@ class Percurso:
             self.acionar_revelados(antes)
         self.desfazer()
 
+    def h_pack_opcao(self, nome):
+        """O PACK SE ESCOLHE POR UM GESTO SÓ — P82, item 24 (decisão 23). Em «Cor
+        e tela» a opção de outro pack é o mesmo pedido do «Usar este» da Início:
+        a ação `pack_usar`, com o id do pack, pela mesma caixa — e nada entra na
+        bandeja do Salvar. A opção do pack no ar não faz nada."""
+        for i in range(self.quantos(nome)):
+            el = self.achar(nome, i)
+            if el is None or el.is_disabled() or el.get_attribute("aria-pressed") == "true":
+                continue
+            valor = el.get_attribute("data-valor") or ""
+            if not valor:
+                continue
+            n0 = len(self.posts)
+            self.gesto_de_acao(lambda i=i: self.clicar_nome(nome, i), f"pack {valor}")
+            pedidos = [c for d, c in self.posts[n0:] if d == "rodar"]
+            self.checa(pedidos and all(c.get("acao") == "pack_usar" and c.get("argumento") == valor
+                                       for c in pedidos),
+                       f"PACK: escolher {valor!r} em «Cor e tela» manda o mesmo pedido do «Usar "
+                       f"este» ({[(c.get('acao'), c.get('argumento')) for c in pedidos]})")
+            self.checa(not self.cartao("PACK")["pendente"],
+                       f"PACK: escolher {valor!r} não deixa nada na bandeja do Salvar")
+            return
+        self.falha("PACK: nenhuma opção de outro pack para escolher")
+
     def mexer_no_cartao(self, chave):
         """Um gesto qualquer que mude o cartão — para provar que um botão de
         voltar (Restaurar, Automático, vazio) desfaz alguma coisa."""
@@ -1614,8 +1675,11 @@ class Percurso:
         anterior = self.preservar
         self.preservar = set(self.js("() => [...MUDANCAS.keys()]") or []) | (anterior or set())
         try:
+            # [P82, item 23: e a AÇÃO que o modo revela — as do gato moram na
+            #   moldura do modo que as usa.]
             for n in sorted(set(self.censo()) - antes):
-                if (n.startswith("ajuste ") and not n.endswith(" · Aplicar")
+                if (((n.startswith("ajuste ") and not n.endswith(" · Aplicar"))
+                     or n.startswith("ação "))
                         and n not in self.acionados and self.acionador(n)):
                     self.acionar(n, limpar=False, esperar=False)
         finally:
@@ -1744,6 +1808,12 @@ class Percurso:
             return
         self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
 
+    def h_par(self, nome):
+        """O segundo botão do par «ver / aplicar» (P82, item 22): é o aplicar,
+        e o gesto é o de qualquer ação — a caixa, se houver, e o trabalho."""
+        rotulo = nome.split(" · ", 1)[1]
+        self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
+
     # O «EXECUTAR» APAGADO DIZ POR QUÊ, COM OS NOMES DA TELA — 24/09/2026, P50
     #   Achados 32 e 33: «Pôr um gato no dock» com o gato por horário e «Gravar
     #   as áreas» sem área fixada rodavam e não faziam nada. Agora o botão se
@@ -1763,7 +1833,7 @@ class Percurso:
       const antes = ref ? (ESQUEMA.acoes.find((x) => x.id === ref) || {}).rotulo : null;
       return { antes, chave: m.chave ? nomeVisivel(m.chave) : null,
                vale: m.vale ? rotuloDeValor(m.vale) : null,
-               pede: m.pede ? rotuloDeValor(m.pede) : null };
+               pede: m.pede ? rotuloDeValor(m.pede) : null, porque: m.porque || null };
     }
     """
 
@@ -1781,8 +1851,14 @@ class Percurso:
             return
         texto = " ".join(frase)
         nomes = [n for n in (motivo["antes"], motivo["chave"], motivo["vale"], motivo["pede"]) if n]
-        self.checa(nomes and all(f"«{n}»" in texto for n in nomes),
-                   f"«{rotulo}» apagado diz por quê com os nomes da tela {nomes}: {texto[:160]!r}")
+        # [P82, item 2: o motivo que não aponta outro cartão (o starship já
+        #   instalado) vem como `porque`, e é ele que o cartão tem de dizer.]
+        if not nomes and motivo.get("porque"):
+            self.checa(motivo["porque"].lower() in texto.lower(),
+                       f"«{rotulo}» apagado diz por quê: {texto[:160]!r}")
+        else:
+            self.checa(nomes and all(f"«{n}»" in texto for n in nomes),
+                       f"«{rotulo}» apagado diz por quê com os nomes da tela {nomes}: {texto[:160]!r}")
         self.esperar_status(409, "/api/rodar")
         sel = cartao.locator("select")
         arg = sel.input_value() if sel.count() else ""
@@ -3140,8 +3216,14 @@ class Percurso:
         self.assentar(quieto=300, teto=20000)
         self.esperar_trabalho()
         self.checa(post and post[0] == "app-desenho", "«Usar» grava o desenho da oficina")
-        self.checa(any(c.startswith("raiz/assets/icones/") for c in diferenca(antes, retrato())),
-                   "e o mapa de ícones do projeto (de brinquedo) muda")
+        # [P82, item 5 (decisão 15): o desenho da oficina mora no estado de quem
+        #   usa — o `icones-convertidos.map` ao lado do meow.conf —, e o
+        #   repositório não muda.]
+        mudou = diferenca(antes, retrato())
+        self.checa(any(c.endswith(".config/meow/icones-convertidos.map") for c in mudou),
+                   "e o mapa de convertidos de quem usa (de brinquedo) muda")
+        self.checa(not any(c.startswith("raiz/assets/icones/") for c in mudou),
+                   "e o repositório (de brinquedo) não muda")
 
     def h_texto_svg(self, nome):
         el = self.achar(nome)
@@ -3182,6 +3264,7 @@ class Percurso:
     def acionador(self, nome):
         tabela = [
             (r" · \?$", self.h_porque),
+            (r"^ajuste PACK · opção$", self.h_pack_opcao),
             (r"^ajuste \S+ · opção$", self.h_opcoes),
             # [P79, decisão 10: o restaurar das chaves de fábrica preenchida diz
             #   o de fábrica no parêntese; o «Não tocar» é o vazio delas.]
@@ -3195,6 +3278,10 @@ class Percurso:
             (r"^ajuste \S+ · seletor$", self.h_seletor_ajuste),
             (r" · ver comando$", self.h_ver_comando),
             (r"^ação «.*» · Executar$", self.h_executar),
+            # [P82, item 22: o par «ver / aplicar» — o «Conferir» é o Executar
+            #   do ver, e o segundo botão é o aplicar, pelo rótulo dele.]
+            (r"^ação «.*» · Conferir$", self.h_executar),
+            (r"^ação «(Ver o que mudaria nos jogos do Heroic|O que a atualização mudaria)» · ", self.h_par),
             (r"^ação «.*» · seletor$", self.h_seletor_acao),
             (r" · Adicionar (tema|logo|imagem|fonte|tema de ícones|ícone)$", self.h_acervo),
             (r"^aba · (Escuro|Vidro escuro|Vidro claro|Claro)$", self.h_fundo),
@@ -3510,17 +3597,10 @@ DEFEITOS_CONHECIDOS = {
     # lançador da máquina inteira) foram consertados na origem, e o percurso
     # passou a cobrar que o «Usar» da galeria termine bem.
     #
-    # P77, 10/10/2026: com as ações técnicas no «⋯», «O carrossel agora» passou
-    # a ser o PRIMEIRO script de papel de parede da aba (o «⋯» abre antes dos
-    # outros gestos, pela ordem dos nomes), e numa casa nova ele semeia o
-    # estado: o `meow_estado_com_padrao` (lib/comum.sh) copia o `BANIDOS.txt` e
-    # o `lado.tsv` da receita na primeira LEITURA, inclusive num verbo que só
-    # mostra. Antes, um gesto que escreve chegava primeiro e escondia isso.
-    # Aparece só quando nada semeou antes, por isso não em toda corrida.
-    r"«O carrossel agora» não muda a casa — mudou \d+: \['casa/\.local/state/meowsystem/"
-    r"papeis-de-parede/": (
-        "lib/comum.sh `meow_estado_com_padrao`: semear o estado só em verbo que "
-        "escreve (o `meow wallpaper` sem argumento só lê)", False),
+    # [P77, 10/10/2026: «O carrossel agora» semeava o estado do papel de
+    #   parede na primeira LEITURA, e estava aqui. Saiu em 15/10/2026 (P82, item
+    #   34): o `meow_estado_com_padrao` só semeia em verbo que escreve, e o
+    #   `estado` lê a semente do clone.]
 }
 
 
@@ -3587,6 +3667,7 @@ INVENTARIO = {
     "Cor e tela": _linhas("""
         aba · ?
         aba · abre «⋯ Ajustes técnicos»
+        aba · abre «⋯ Ações técnicas»
         aba · Claro
         aba · Escuro
         aba · Vidro claro
@@ -3611,17 +3692,9 @@ INVENTARIO = {
         ajuste MODO · opção
         ajuste PACK · ?
         ajuste PACK · opção
-        ação «Passar para claro ou escuro» · ?
-        ação «Passar para claro ou escuro» · Executar
-        ação «Passar para claro ou escuro» · seletor
-        ação «Passar para claro ou escuro» · ver comando
         ação «Temas prontos nesta máquina» · ?
         ação «Temas prontos nesta máquina» · Executar
         ação «Temas prontos nesta máquina» · ver comando
-        ação «Trocar de tema» · ?
-        ação «Trocar de tema» · Executar
-        ação «Trocar de tema» · seletor
-        ação «Trocar de tema» · ver comando
     """),
     "Áreas de trabalho": _linhas("""
         aba · ?
@@ -3629,7 +3702,6 @@ INVENTARIO = {
         ajuste AREAS_ENCAIXE · ?
         ajuste AREAS_ENCAIXE · nova ficha
         ajuste AREAS_FOLGA · ?
-        ajuste AREAS_FOLGA · campo
         ajuste AREAS_NOMES · ?
         ajuste AREAS_NOMES · campo
         ação «Criar a primeira área» · ?
@@ -3674,13 +3746,6 @@ INVENTARIO = {
         ajuste LOGO_MODO · opção
         ajuste LOGO_NOITE · ?
         ajuste LOGO_NOITE · opção
-        ação «Passar ao próximo gato» · ?
-        ação «Passar ao próximo gato» · Executar
-        ação «Passar ao próximo gato» · ver comando
-        ação «Pôr um gato no dock» · ?
-        ação «Pôr um gato no dock» · Executar
-        ação «Pôr um gato no dock» · seletor
-        ação «Pôr um gato no dock» · ver comando
     """),
     # [Integração da leva G, 09/10/2026: o `ajuste ICONES_BASE` saiu daqui. A
     #   P75 aposentou a chave (a base vem do pack, pinada — `migrar_conf.py`,
@@ -3716,10 +3781,11 @@ INVENTARIO = {
         ação «Tema de ícones instalado» · ?
         ação «Tema de ícones instalado» · Executar
         ação «Tema de ícones instalado» · ver comando
-        desenhos autorais · ?
-        desenhos autorais · Salvar no pack
-        desenhos autorais › desenho autoral · escolher
     """),
+    # [P82, 15/10/2026: os «desenhos autorais» saíram do inventário — os dois
+    #   packs deixaram de declarar desenho (o Hefesto e o FogStripper,
+    #   decisão 16), e sem desenho a oficina não aparece. O gesto continua
+    #   coberto pelo `tests/oficina.sh`, num pack de brinquedo que declara.]
     "Painel e dock": _linhas("""
         aba · ?
         aba · abre «⋯ Ações técnicas»
@@ -3780,7 +3846,7 @@ INVENTARIO = {
         ajuste MIDIA_FONTE · ?
         ajuste MIDIA_FONTE · deslizante
         ajuste MIDIA_LARGURA · ?
-        ajuste MIDIA_LARGURA · campo
+        ajuste MIDIA_LARGURA · deslizante
         ajuste RELOGIO_SEGUNDOS · ?
         ajuste RELOGIO_SEGUNDOS · deixar vazio
         ajuste RELOGIO_SEGUNDOS · opção
@@ -3911,7 +3977,8 @@ INVENTARIO = {
         ação «Quais programas estão vestidos» · Executar
         ação «Quais programas estão vestidos» · ver comando
         ação «Ver o que mudaria nos jogos do Heroic» · ?
-        ação «Ver o que mudaria nos jogos do Heroic» · Executar
+        ação «Ver o que mudaria nos jogos do Heroic» · Conferir
+        ação «Ver o que mudaria nos jogos do Heroic» · Pôr os jogos do Heroic no lançador
         ação «Ver o que mudaria nos jogos do Heroic» · ver comando
         jogo da Steam · abrir
         jogo órfão · Tirar da lista
@@ -3929,7 +3996,7 @@ INVENTARIO = {
         ajuste AUTO_REPARO_NOTIFICAR · ?
         ajuste AUTO_REPARO_NOTIFICAR · opção
         ajuste BACKUPS_MANTIDOS · ?
-        ajuste BACKUPS_MANTIDOS · campo
+        ajuste BACKUPS_MANTIDOS · deslizante
         ajuste FLATPAK_VIGIA · ?
         ajuste FLATPAK_VIGIA · opção
         ajuste FLATPAK_VIGIA_NOTIFICAR · ?
@@ -3969,14 +4036,12 @@ INVENTARIO = {
     """),
     "Atualização": _linhas("""
         aba · ?
-        ação «Atualizar a máquina inteira» · ?
-        ação «Atualizar a máquina inteira» · Executar
-        ação «Atualizar a máquina inteira» · ver comando
         ação «Limpar o que sobrou» · ?
         ação «Limpar o que sobrou» · Executar
         ação «Limpar o que sobrou» · ver comando
         ação «O que a atualização mudaria» · ?
-        ação «O que a atualização mudaria» · Executar
+        ação «O que a atualização mudaria» · Conferir
+        ação «O que a atualização mudaria» · Atualizar a máquina inteira
         ação «O que a atualização mudaria» · ver comando
     """),
 }
@@ -4051,7 +4116,18 @@ REVELADOS = {
     """),
     # [P77: os ajustes `[avancado]` moram no «⋯ Ajustes técnicos» do fim do
     # bloco; o `h_details` abre o «⋯» e aciona o que ele revela.]
+    # [P82, item 23 (decisão 25): as duas ações de tema estão no «⋯» de ações
+    #   técnicas de «Cor e tela», e as do gato aparecem dentro da moldura do
+    #   modo que as usa (o fixo e o girando).]
     "Cor e tela": _linhas("""
+        ação «Passar para claro ou escuro» · ?
+        ação «Passar para claro ou escuro» · Executar
+        ação «Passar para claro ou escuro» · seletor
+        ação «Passar para claro ou escuro» · ver comando
+        ação «Trocar de tema» · ?
+        ação «Trocar de tema» · Executar
+        ação «Trocar de tema» · seletor
+        ação «Trocar de tema» · ver comando
         ajuste CURSOR_VERSAO · ?
         ajuste CURSOR_VERSAO · campo
         ajuste WALLPAPER_DRACULA_COMMIT · ?
@@ -4067,7 +4143,6 @@ REVELADOS = {
         ação «As áreas de agora» · ver comando
     """),
     "Ícones": PAINEL_DO_APLICATIVO | _linhas("""
-        desenhos autorais › papel do desenho · seletor
         ajuste ICONES_LOGO_HEFESTO · ?
         ajuste ICONES_LOGO_HEFESTO · campo
     """),
@@ -4099,9 +4174,6 @@ REVELADOS = {
         ação «Baixar o tema do Spotify» · ?
         ação «Baixar o tema do Spotify» · Executar
         ação «Baixar o tema do Spotify» · ver comando
-        ação «Pôr os jogos do Heroic no lançador» · ?
-        ação «Pôr os jogos do Heroic no lançador» · Executar
-        ação «Pôr os jogos do Heroic no lançador» · ver comando
         ação «Vestir os programas agora» · ?
         ação «Vestir os programas agora» · Executar
         ação «Vestir os programas agora» · ver comando
@@ -4122,10 +4194,17 @@ REVELADOS = {
         ação «Recarregar o painel» · ver comando
     """),
     "Logo do sistema": _linhas("""
+        ação «Passar ao próximo gato» · ?
+        ação «Passar ao próximo gato» · Executar
+        ação «Passar ao próximo gato» · ver comando
+        ação «Pôr um gato no dock» · ?
+        ação «Pôr um gato no dock» · Executar
+        ação «Pôr um gato no dock» · seletor
+        ação «Pôr um gato no dock» · ver comando
         ajuste FASTFETCH_LOGO_BLOCOS · ?
         ajuste FASTFETCH_LOGO_BLOCOS · opção
         ajuste FASTFETCH_LOGO_CELULA · ?
-        ajuste FASTFETCH_LOGO_CELULA · campo
+        ajuste FASTFETCH_LOGO_CELULA · deslizante
         ajuste FASTFETCH_LOGO_CONF · ?
         ajuste FASTFETCH_LOGO_CONF · opção
         ajuste FASTFETCH_LOGO_DIA · ?
@@ -4166,9 +4245,9 @@ REVELADOS = {
         ajuste SOM_HARMONICO · ?
         ajuste SOM_HARMONICO · deslizante
         ajuste SOM_PESO_FUNDAMENTAL · ?
-        ajuste SOM_PESO_FUNDAMENTAL · campo
+        ajuste SOM_PESO_FUNDAMENTAL · deslizante
         ajuste SOM_PESO_HARMONICO · ?
-        ajuste SOM_PESO_HARMONICO · campo
+        ajuste SOM_PESO_HARMONICO · deslizante
         ação «Regravar o som» · ?
         ação «Regravar o som» · Executar
         ação «Regravar o som» · ver comando
@@ -4323,11 +4402,23 @@ if __name__ == "__main__":
     # casa inteira e uma cópia do repositório em /tmp, com falsos dentro. O
     # TERM (o `timeout`, o Ctrl+C de quem roda a suíte) vira saída normal, para
     # o `finally` rodar e levar o painel junto.
+    #
+    # E O HUP TAMBÉM, E A PASTA É CONFERIDA DEPOIS — 15/10/2026, P82 (item 38).
+    #   O terminal que fecha manda HUP, e o HUP sem tratador mata o processo sem
+    #   o `finally`: a casa inteira ficava em /tmp. E um processo da casa que
+    #   ainda escrevia (um trabalho da gaveta no meio de um `mkdir -p`) podia
+    #   recriar a pasta depois do `rmtree`; por isso, se ela voltou, a casa é
+    #   encerrada de novo e a pasta sai de novo.
     import signal
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    signal.signal(signal.SIGHUP, lambda *_: sys.exit(129))
     try:
         sys.exit(main())
     finally:
-        if os.path.isdir(CASA):
-            encerrar_a_casa()
-        shutil.rmtree(BRINQUEDO, ignore_errors=True)
+        for _vez in range(2):
+            if os.path.isdir(CASA):
+                encerrar_a_casa()
+            shutil.rmtree(BRINQUEDO, ignore_errors=True)
+            if not os.path.exists(BRINQUEDO):
+                break
+            time.sleep(1)

@@ -182,8 +182,9 @@ ACERVO_LOCAL="$RAIZ/assets/fontes/locais"
 DESTINO_LOCAL="$DESTINO/locais"
 
 COSMIC="$(meow_cosmic_dir)"
-TK="$COSMIC/com.system76.CosmicTk/v1"
-TERM_DIR="$COSMIC/com.system76.CosmicTerm/v1"
+# [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
+TK="$COSMIC/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)"
+TERM_DIR="$COSMIC/com.system76.CosmicTerm/$(meow_cosmic_v com.system76.CosmicTerm)"
 
 # ---------------------------------------------------------------------------
 # `adicionar <arquivo>` — a fonte que ela escolheu, sem abrir terminal
@@ -272,6 +273,24 @@ _fonte_instalar_face() {
   return "$MEOW_DIVERGENTE"
 }
 
+# AS FERRAMENTAS QUE A PONTE ROOT INSTALA — 15/10/2026, P82 (item 16)
+#   Faltando curl, xz-utils ou unzip (ou o pop-fonts da fonte da interface),
+#   este script dizia «faltam ferramentas» e saía 3, e a pessoa é que ia atrás.
+#   A ponte tem o verbo `pacotes`, e os quatro estão na lista literal dela: o
+#   pedido vai por ali, sem senha. Sem ponte no ar (ou num ensaio), nada é
+#   pedido e fica o estado — o `pacotes` do doctor cobre o resto.
+_fontes_pela_ponte() {   # <pacote>... → 0 quando a ponte instalou algum
+  local pedir=() p
+  for p in "$@"; do
+    case "$p" in curl|xz-utils|unzip|pop-fonts) pedir+=("$p") ;; esac
+  done
+  [ "${#pedir[@]}" -gt 0 ] || return 1
+  meow_seco && return 1
+  printf '%s\n' "${pedir[@]}" | meow_ponte pacotes >/dev/null 2>&1 || return 1
+  hash -r
+  meow_ok "instalados pela ponte root: ${pedir[*]}"
+}
+
 cmd_adicionar() {
   local origem="${1:-}"
   if [ -z "$origem" ]; then
@@ -288,6 +307,12 @@ cmd_adicionar() {
   meow_tem cmp      || faltam_add+=("cmp")
   meow_tem fc-cache || faltam_add+=("fc-cache")
   case "$origem" in *.zip|*.ZIP) meow_tem unzip || faltam_add+=("unzip") ;; esac
+  if [ ${#faltam_add[@]} -gt 0 ] && _fontes_pela_ponte "${faltam_add[@]}"; then
+    faltam_add=()
+    meow_tem cmp      || faltam_add+=("cmp")
+    meow_tem fc-cache || faltam_add+=("fc-cache")
+    case "$origem" in *.zip|*.ZIP) meow_tem unzip || faltam_add+=("unzip") ;; esac
+  fi
   if [ ${#faltam_add[@]} -gt 0 ]; then
     # A receita do `apt-get` saiu na P75 (09/10/2026): «nenhuma feature pode
     # mandar o usuário consertar à mão». O que falta fica nomeado.
@@ -366,17 +391,23 @@ fi
 mudou=0
 
 # --- dependências -----------------------------------------------------------
-faltam=()
-# O `cmp` está nesta lista porque é do diffutils — pacote DIFERENTE dos outros, e
-# o único que pode faltar sem levar junto meia distribuição. Ele só é usado no
-# ramo que instala; sem ele o script morria lá dentro com código 2 ("erro"),
-# mentindo sobre a natureza do problema, que é dependência (3). MEDIDO tirando o
-# cmp do PATH em 2026-08-04.
-for c in curl tar sha256sum cmp fc-cache fc-list fc-match; do
-  meow_tem "$c" || faltam+=("$c")
-done
-# O tarball é .xz: sem o descompressor, o `tar` falha no meio e deixa lixo.
-meow_tem xz || meow_tem unxz || faltam+=("xz-utils")
+# A conta do que falta é uma função para poder ser refeita depois do pedido à
+# ponte (P82, item 16).
+_fontes_faltam() {
+  faltam=()
+  # O `cmp` está nesta lista porque é do diffutils — pacote DIFERENTE dos outros, e
+  # o único que pode faltar sem levar junto meia distribuição. Ele só é usado no
+  # ramo que instala; sem ele o script morria lá dentro com código 2 ("erro"),
+  # mentindo sobre a natureza do problema, que é dependência (3). MEDIDO tirando o
+  # cmp do PATH em 2026-08-04.
+  for c in curl tar sha256sum cmp fc-cache fc-list fc-match; do
+    meow_tem "$c" || faltam+=("$c")
+  done
+  # O tarball é .xz: sem o descompressor, o `tar` falha no meio e deixa lixo.
+  meow_tem xz || meow_tem unxz || faltam+=("xz-utils")
+}
+_fontes_faltam
+[ ${#faltam[@]} -gt 0 ] && _fontes_pela_ponte "${faltam[@]}" && _fontes_faltam
 if [ ${#faltam[@]} -gt 0 ]; then
   # Sem a receita do `apt-get` desde a P75 (09/10/2026), pelo mesmo motivo do
   # `faltam_add` lá em cima.
@@ -405,6 +436,10 @@ arquivos_da_familia() {
 # do resto do sistema sem ninguém entender por quê.
 meow_passo "Fonte da interface"
 ui_arquivo="$(arquivos_da_familia "$FAMILIA_UI" | sort | head -1)"
+if [ -z "$ui_arquivo" ] && _fontes_pela_ponte pop-fonts; then
+  fc-cache -f >/dev/null 2>&1 || true
+  ui_arquivo="$(arquivos_da_familia "$FAMILIA_UI" | sort | head -1)"
+fi
 if [ -n "$ui_arquivo" ]; then
   meow_ok "'$FAMILIA_UI' já instalada — $(dirname "$ui_arquivo")"
   meow_pula "nada a baixar (vem do pacote do sistema)"

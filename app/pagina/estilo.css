@@ -617,20 +617,9 @@ main:focus-visible { outline: none; }
 }
 .subsecao-titulo:first-of-type { margin-top: .7rem; }
 
-/* ENQUANTO AS 14 ABAS DE CHAVES NÃO DESENHAREM `h2` (app.js:2262), a frase da
- * seção é a primeira coisa da tela — uma legenda de 14px abrindo a página
- * sozinha. Nesse caso, e só nele, ela ganha um pouco de corpo; no dia em que o
- * título existir ela volta a ser legenda sem eu tocar em nada. */
-.descricao-secao:first-child { font-size: 1rem; color: var(--subtext1); margin-bottom: 1.8rem; }
-
-.descricao-secao {
-  margin: 0 0 1.5rem;
-  font-size: .875rem;
-  line-height: 1.5;
-  color: var(--subtext0);
-  max-width: 58ch;
-  text-wrap: pretty;
-}
+/* [A `.descricao-secao` saiu em 15/10/2026 (P82, item 32; decisão 29):
+ * nenhum `app.js` nem `index.html` gerava mais a classe, e a regra ficou
+ * anotada pela regra da casa até o fechamento do projeto.] */
 
 /* A nota que substituiu as repetições dentro dos cartões. */
 .nota-secao {
@@ -716,6 +705,14 @@ main:focus-visible { outline: none; }
   .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .grade > * { min-width: 0; max-width: 640px; }
+/* A ALVENARIA (P82, item 26; o `assentarGrades` do app.js): linhas finas, sem
+ * vão entre elas (o vão entra na conta de cada item), e cada item na própria
+ * altura — esticado, ele voltaria a mostrar o vão por dentro. */
+.grade.alvenaria { grid-auto-rows: 4px; row-gap: 0; }
+.grade.alvenaria > * { align-self: start !important; }
+/* A figura de uma página só de ações, dentro da grade (P82, item 26): ela é
+ * um item como os cartões, e não a faixa grudada do alto. */
+.grade > .previa-bloco { position: static; box-shadow: none; border-bottom: 0; margin: 0; }
 .grade + .secao-titulo { margin-top: 2.8rem; }
 
 /* ===========================================================================
@@ -1404,6 +1401,14 @@ select { flex: 1 1 auto; }
    diferentes. O primeiro empurra o par inteiro para a direita; do espaço entre
    eles cuida o `gap`. */
 .acao .rodape .btn ~ .btn { margin-left: 0; }
+/* O PAR «CONFERIR / APLICAR» (P82, itens 22 e 26): as etiquetas e o «ver
+ * comando» na primeira linha, e os dois botões juntos na segunda, à direita.
+ * Lado a lado com o «ver comando» eles não cabiam numa coluna, e o aplicar
+ * descia sozinho para a esquerda. */
+.acao .rodape .par-quebra { order: 1; flex-basis: 100%; height: 0; }
+.acao .rodape .par-conferir, .acao .rodape .par-aplicar { order: 2; }
+.acao .rodape .btn.par-conferir { margin-left: auto; }
+.acao .rodape:has(.par-quebra) > .selo { order: -1; }
 /* O `margin-top: auto` do rodapé morava aqui, para a ação sem `code.cmd`;
  * desde a P77 ele é do próprio `.acao .rodape`, acima, para todas. */
 /* A LISTA DO «VER COMANDO» É A ÚLTIMA COISA DO CARTÃO — 22/09/2026
@@ -4116,6 +4121,12 @@ a.folha:hover b { color: var(--text); }
 .ajustes-tecnicos > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ajustes-tecnicos[open] > summary { color: var(--accent); border-color: var(--accent); }
 .tecnicos-glifo { font-size: 1.1rem; line-height: 1; letter-spacing: .05em; }
+/* O desenho do que o «⋯» guarda (P82, item 31): a pílula alarga para os dois. */
+.ajustes-tecnicos > summary:has(.tecnicos-icone) {
+  display: inline-flex; align-items: center; gap: .3rem;
+  width: auto; padding: 0 .65rem;
+}
+.tecnicos-icone { display: inline-flex; }
 .ajustes-tecnicos > .grade { margin-top: .8rem; }
 
 /* ===========================================================================
@@ -4138,6 +4149,21 @@ a.folha:hover b { color: var(--text); }
  * cima da caixa, com fundo, sobre a margem do desenho. */
 @media (max-width: 620px) {
   .par-previa > .com-dica > button.porque { right: .3rem; background: var(--mantle); }
+}
+/* E O `?` GANHA A SUA FAIXA — 15/10/2026, P82 (item 21). Dentro do canto da
+ * caixa ele ficava por cima do traço quando o desenho chega até ali (medido a
+ * 375 px em «Manutenção», sobre os «jogos», e em «Cor e tela»). A caixa ganha
+ * uma faixa à direita do tamanho do `?`, o desenho encolhe para ela, e o `?`
+ * mora nela, sem cobrir nada. */
+@media (max-width: 620px) {
+  .par-previa > .com-dica { padding-right: 2.1rem; box-sizing: border-box; }
+  .par-previa > .com-dica > button.porque { right: 0; }
+}
+/* A PRÉVIA NÃO GRUDA NA TELA DE CELULAR — 15/10/2026, P82 (item 21). Grudada
+ * no alto, ela levava um terço do que sobra embaixo do cabeçalho a 375 px, e os
+ * cartões passavam por baixo dela. Ali ela rola com a página, como o resto. */
+@media (max-width: 620px) {
+  .previa-bloco { position: static; box-shadow: none; }
 }
 
 /* ===========================================================================

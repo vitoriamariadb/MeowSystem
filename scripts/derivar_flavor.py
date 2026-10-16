@@ -391,8 +391,9 @@ def _opaca(c):
     return (c[0], c[1], c[2], 1.0)
 
 
-def build(r: dict) -> dict:
-    """`ThemeBuilder::build()` do theme.rs (c003a58), campo a campo.
+def build(r: dict, regra_do_19=False) -> dict:
+    """`ThemeBuilder::build()` do theme.rs (c003a58, com o aperto do fundo do
+    5a8bd94 — o COSMIC 1.10, P82), campo a campo.
 
     Devolve {arquivo: {caminho: rgba}} para as cores e {arquivo: rgba|None}
     para o `accent_text`. A ORDEM das contas é a do Rust, e ela importa: o
@@ -426,6 +427,15 @@ def build(r: dict) -> dict:
         return _alfa(c, 0.1), _alfa(c, 0.2)
 
     pairar_comp, apertar_comp = sobrevoo(i_bg)
+    # O APERTO DO FUNDO É O DO PRÓPRIO FUNDO — 15/10/2026, P82 (item 19;
+    #   decisão 49). No libcosmic do COSMIC 1.10 (5a8bd94) o `background` ganhou
+    #   um `background_pressed_overlay` derivado do `bg_index`; antes ele
+    #   recebia o `component_pressed_overlay` reatribuído pelo bloco do
+    #   `primary`. Só o aperto mudou: o sobrevoo do fundo segue sendo o do
+    #   primary. O oráculo das duas revisões mora em tests/oraculo/.
+    _pairar_fundo, apertar_fundo = sobrevoo(i_bg)
+    # `regra_do_19`: a conta do 1.9, que só a guarda das capturas usa (as fotos
+    # da GUI tiradas antes do 1.10 fecham por ela; ver `conferir_base`).
     fundo_botao = _alfa(controle[7], 0.25)
     pairar_botao, apertar_botao = _alfa(controle[5], 0.2), _alfa(controle[2], 0.5)
 
@@ -477,9 +487,11 @@ def build(r: dict) -> dict:
         acento_texto = reserva_txt if da.contraste(fundo_txt, t) < 4.0 else t
 
     produto = {}
-    # background — com o sobrevoo do PRIMARY, que é o que está na variável aqui
+    # background — com o sobrevoo do PRIMARY, que é o que está na variável aqui,
+    # e o aperto do próprio fundo (o 1.10; ver o `apertar_fundo` lá em cima)
     produto["background"] = conteiner(
-        componente(comp_bg, acento, on_comp_bg, pairar_comp, apertar_comp, hc, controle[8]),
+        componente(comp_bg, acento, on_comp_bg, pairar_comp,
+                   apertar_comp if regra_do_19 else apertar_fundo, hc, controle[8]),
         bg, texto(i_bg, escada, controle[8], tinta, alfa_real),
         widget_pequeno(i_bg, 5, neutras, controle[6]), hc)
     produto["primary"] = primary
@@ -641,6 +653,11 @@ def conferir_base(receita: dict, produto: dict, arvore: str):
     `base:` dos três contêineres fica fora da conta, como no `--conferir` do
     aplicar_tema.sh."""
     b = build(ler_receita(receita))
+    # A FOTO DO 1.9 FECHA PELA REGRA DO 1.9 — 15/10/2026, P82 (item 19). O
+    #   COSMIC 1.10 mudou um campo só, o aperto do `background`; uma captura da
+    #   GUI tirada antes dele traz o valor do 1.9, e continua sendo a foto
+    #   honesta da receita dela. Naquele campo, os dois valores fecham.
+    b19 = _hex_do_build(build(ler_receita(receita), regra_do_19=True))
     nao_fecha = []
     for arq, cams in _hex_do_build(b).items():
         if arq not in produto:
@@ -651,6 +668,9 @@ def conferir_base(receita: dict, produto: dict, arvore: str):
             atual = lidos.get(cam, "")
             if arq in DA_AURORA and cam == "base":
                 atual, hexa = atual[:7], hexa[:7]
+            if (arq, cam) == ("background", "component.pressed") \
+                    and atual.upper() == b19.get(arq, {}).get(cam, "").upper():
+                continue
             if atual.upper() != hexa.upper():
                 nao_fecha.append(f"{arvore}/v2/{arq} {cam} (capturado {atual}, a conta dá {hexa})")
     esperado = ('Some("%s")' % da.para_hex(b["accent_text"])) if b["accent_text"] else "None"

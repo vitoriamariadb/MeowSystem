@@ -284,6 +284,108 @@ else
   falha "as listas divergem — install.sh: [$do_install] · ponte: [$da_ponte]"
 fi
 
+printf '\n--- 6. a ponte não segue link no destino do greeter (P82, item 16) ---\n'
+# Numa CÓPIA da ponte, com o lar do greeter numa pasta de brinquedo e o dono
+# sendo quem roda o teste: nenhum root, nenhum sudo. O `cp -a` do
+# `greeter-aplicar` escrevia ATRAVÉS de um link simbólico que já estivesse no
+# destino; agora um link ali recusa o verbo inteiro, antes da cópia.
+PONTE_COPIA="$TMP/ponte-copia.sh"
+LAR_G="$TMP/greeter"
+sed -e "s#^GREETER_HOME=.*#GREETER_HOME=\"$LAR_G\"#" \
+    -e "s#^GREETER_DONO=.*#GREETER_DONO=\"$(id -un)\"#" \
+    -e 's#^anotar() {#anotar() { return 0#' \
+    "$RAIZ/scripts/ponte_root.sh" > "$PONTE_COPIA"
+# O link é de ARQUIVO: o `cp -a` do GNU escreve através dele (medido: o alvo
+# de fora recebe o conteúdo novo e sai 0).
+DESTINO_G="$LAR_G/.config/cosmic/com.system76.CosmicTheme.Dark/v1"
+mkdir -p "$DESTINO_G" "$TMP/alvo-do-elo" "$TMP/tar/com.system76.CosmicTheme.Dark/v1"
+printf 'de fora\n' > "$TMP/alvo-do-elo/segredo"
+ln -s "$TMP/alvo-do-elo/segredo" "$DESTINO_G/accent"
+printf 'isca\n' > "$TMP/tar/com.system76.CosmicTheme.Dark/v1/accent"
+( cd "$TMP/tar" && tar -cf - . ) | bash "$PONTE_COPIA" greeter-aplicar >/dev/null 2>"$TMP/ponte.err"; rc_ponte=$?
+if [ "$rc_ponte" -ne 0 ] && [ "$(cat "$TMP/alvo-do-elo/segredo")" = "de fora" ]; then
+  ok "um link simbólico no destino recusa o greeter-aplicar (rc=$rc_ponte), e nada é escrito através dele"
+else
+  falha "o greeter-aplicar seguiu o link do destino (rc=$rc_ponte; o alvo de fora diz '$(cat "$TMP/alvo-do-elo/segredo")')"
+fi
+rm -f "$DESTINO_G/accent"
+( cd "$TMP/tar" && tar -cf - . ) | bash "$PONTE_COPIA" greeter-aplicar >/dev/null 2>>"$TMP/ponte.err"; rc_ponte=$?
+if [ "$rc_ponte" -eq 0 ] && [ "$(cat "$LAR_G/.config/cosmic/com.system76.CosmicTheme.Dark/v1/accent" 2>/dev/null)" = "isca" ]; then
+  ok "sem link no destino, o greeter-aplicar copia como antes"
+else
+  falha "sem link no destino, o greeter-aplicar não copiou (rc=$rc_ponte): $(tail -2 "$TMP/ponte.err")"
+fi
+
+printf '\n--- 7. o instalar_fontes.sh pede a ferramenta que falta pela ponte (P82, item 16) ---\n'
+# Um PATH sem `curl` (cópia por link de /usr/bin, menos ele), uma ponte de
+# brinquedo que registra o stdin e "instala" um curl que sai 1 (a descarga
+# morre ali, sem rede), e o sudo de brinquedo que só a executa a ela.
+SEM_CURL="$TMP/sem-curl"; INST="$TMP/instalado"; PONTE2="$TMP/ponte2"
+mkdir -p "$SEM_CURL" "$INST" "$PONTE2" "$TMP/sudo-ponte2" "$TMP/casa-fontes/.config"
+for b in /usr/bin/*; do
+  [ "${b##*/}" = curl ] || ln -s "$b" "$SEM_CURL/${b##*/}" 2>/dev/null
+done
+cat > "$PONTE2/ponte_root.sh" <<FIM
+#!/bin/sh
+[ "\$1" = "pacotes" ] || exit 0
+cat > "$PONTE2/recebido"
+grep -qx curl "$PONTE2/recebido" && { printf '#!/bin/sh\nexit 1\n' > "$INST/curl"; chmod 755 "$INST/curl"; }
+exit 0
+FIM
+chmod 755 "$PONTE2/ponte_root.sh"
+printf 'lar=%s\n' "$TMP/casa-fontes" > "$PONTE2/perfil"
+cat > "$TMP/sudo-ponte2/sudo" <<FIM
+#!/bin/sh
+[ "\$1" = "-n" ] && [ "\$2" = "$PONTE2/ponte_root.sh" ] && { shift; exec "\$@"; }
+echo "sudo \$*" >> "\$DOCTOR_REGISTRO"; exit 1
+FIM
+chmod 755 "$TMP/sudo-ponte2/sudo"
+saida="$(env -i PATH="$TMP/sudo-ponte2:$FALSO:$INST:$SEM_CURL" HOME="$TMP/casa-fontes" NO_COLOR=1 \
+           DOCTOR_REGISTRO="$DOCTOR_REGISTRO" MEOW_PONTE="$PONTE2/ponte_root.sh" \
+           bash "$RAIZ/scripts/instalar_fontes.sh" 2>&1)"
+if [ "$(cat "$PONTE2/recebido" 2>/dev/null)" = "curl" ] && ! grep -q 'faltam ferramentas' <<< "$saida"; then
+  ok "sem curl, o instalar_fontes.sh o pede pela ponte (stdin: curl) e segue, sem «faltam ferramentas»"
+else
+  falha "sem curl, o instalar_fontes.sh não pediu pela ponte (recebido: '$(cat "$PONTE2/recebido" 2>/dev/null)')"
+  printf '%s\n' "$saida" | grep -i 'falta\|ponte' | head -5 | sed 's/^/       /' >&2
+fi
+
+printf '\n--- 8. o starship é opcional (P82, item 2; decisão 14) ---\n'
+# Sem starship, a linha `prompt` do doctor é um pulado de ROTINA (`--`), que
+# não pesa no veredito; e o «Instalar o starship» aparece. Com um starship
+# falso em ~/.cargo/bin (onde o `cargo install` o põe), o botão vem
+# indisponível: o painel não oferece baixar o que já está lá.
+CASA_S="$TMP/casa-starship"; mkdir -p "$CASA_S/.config/meow"
+cp "$RAIZ/meow.conf.exemplo" "$CASA_S/.config/meow/meow.conf"
+SEM_STARSHIP="$TMP/sem-starship"; mkdir -p "$SEM_STARSHIP"
+for b in /usr/bin/*; do
+  [ "${b##*/}" = starship ] || ln -s "$b" "$SEM_STARSHIP/${b##*/}" 2>/dev/null
+done
+saida="$(env -i PATH="$FALSO:$SEM_STARSHIP" HOME="$CASA_S" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           MEOW_DRY_RUN=1 PROMPT_STARSHIP=sim "$RAIZ/scripts/prompt.sh" conferir 2>&1)"; rc=$?
+if [ "$rc" = 3 ] && ! grep -qE '^[[:space:]]*!! ' <<< "$saida"; then
+  ok "sem starship, a linha prompt é pulado de rotina (rc=3, sem !!): o doctor não fica vermelho por ela"
+else
+  falha "sem starship, a linha prompt pesa no veredito (rc=$rc): $(grep -E '!!' <<< "$saida" | head -2 | tr '\n' ' ')"
+fi
+indisp() {
+  env -i PATH="$SEM_STARSHIP" HOME="$CASA_S" MEOW_RAIZ="$RAIZ" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+print("indisponivel=%s" % bool(servidor.indisponivel("prompt_instalar_starship")))
+PY
+}
+sem="$(indisp)"
+mkdir -p "$CASA_S/.cargo/bin"; printf '#!/bin/sh\nexit 0\n' > "$CASA_S/.cargo/bin/starship"
+chmod 755 "$CASA_S/.cargo/bin/starship"
+com="$(indisp)"
+if [ "$sem" = "indisponivel=False" ] && [ "$com" = "indisponivel=True" ]; then
+  ok "sem starship o «Instalar o starship» aparece; com ele em ~/.cargo/bin, vem indisponível"
+else
+  falha "o «Instalar o starship» não segue o starship instalado (sem: $sem · com: $com)"
+fi
+
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2

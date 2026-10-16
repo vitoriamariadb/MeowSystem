@@ -142,7 +142,7 @@ _MEOW_VSCODE_LISTA=""
 #   conferir <arquivo> <chave> <valor>...   -> 0 tudo igual · 1 divergente · 2 erro
 #   fundir   <arquivo> <chave> <valor>...   -> texto novo em stdout (não grava)
 _meow_vscode_json() {
-  python3 - "$@" <<'PYFIM'
+  python3 -I - "$@" <<'PYFIM'
 # -*- coding: utf-8 -*-
 import json, os, re, sys
 
@@ -487,7 +487,7 @@ _meow_vscode_tem_ext() {
 #   deles, e aceitar os dois não acusa a falta de um tema que está lá. A lista
 #   do «tem:» é a de antes.
 _meow_vscode_contribui() {   # <package.json> <tema> <ícone>
-  python3 - "$@" <<'PYFIM' 2>/dev/null
+  python3 -I - "$@" <<'PYFIM' 2>/dev/null
 import json, sys
 pkg, tema, icone = sys.argv[1:4]
 try:
@@ -548,7 +548,7 @@ _meow_vscode_auditar_ext() {
   for pkg in "$(_meow_vscode_pkg "$MEOW_VSCODE_EXT_TEMA" 2>/dev/null || true)" \
              "$(_meow_vscode_pkg "$MEOW_VSCODE_EXT_ICONES" 2>/dev/null || true)"; do
     if [ -z "$pkg" ] || [ ! -f "$pkg" ]; then continue; fi
-    python3 - "$pkg" "${menor:-0}" <<'PYFIM'
+    python3 -I - "$pkg" "${menor:-0}" <<'PYFIM'
 import json, sys
 pkg, minor = sys.argv[1], int(sys.argv[2] or 0)
 try:
@@ -638,7 +638,7 @@ _meow_vscode_backup() {
 _VSC_EXT=""; _VSC_URL=""; _VSC_SHA=""; _VSC_ICONES=""; _VSC_ICONES_PACK=""; _VSC_EXT_ICONES=""; _VSC_DO_REPO=""
 _meow_vscode_pack_no_ar() {
   local saida
-  saida="$(PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+  saida="$(PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" python3 -I - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
 import os, sys
 sys.path.insert(0, sys.argv[1])
 import pack
@@ -767,7 +767,7 @@ _meow_vscode_do_pack() {
 #   lib/comum.sh — uma cópia da conta aqui seria a segunda.
 _VSC_TODOS_ICONES=""
 _meow_vscode_icones_de_todos() {
-  _VSC_TODOS_ICONES="$(MEOW_PACKS_VALIDOS="$(meow_packs_validos)" python3 - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
+  _VSC_TODOS_ICONES="$(MEOW_PACKS_VALIDOS="$(meow_packs_validos)" python3 -I - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
 import os, sys
 sys.path.insert(0, sys.argv[1])
 import pack

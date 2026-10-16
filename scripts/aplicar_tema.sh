@@ -160,7 +160,7 @@ e_chave_dela() {
 #   `scripts/gerar_tema_v1.py`, que a deriva da paleta para dentro da captura.
 e_produto() {
   case "$1" in
-    com.system76.CosmicTheme.Dark/v1/*|com.system76.CosmicTheme.Light/v1/*) return 1 ;;
+    com.system76.CosmicTheme.Dark/v1/*|com.system76.CosmicTheme.Light/v1/*) return 1 ;;  # a v1 legada, de propósito
     com.system76.CosmicTheme.Dark/*|com.system76.CosmicTheme.Light/*) return 0 ;;
   esac
   return 1
@@ -672,7 +672,8 @@ MEOW_CAPTURA_VELHA=4
 
 aviso_receita() {
   echo "a captura '$NOME' está velha: você mexeu em Aparência e a GUI derivou um tema novo."
-  echo "  $cedidos arquivo(s) preservados. Para fixar o que está na tela: meow tema capturar $NOME"
+  # [P82: dizia «Para fixar o que está na tela: meow tema capturar»; fica o estado.]
+  echo "  $cedidos arquivo(s) preservados."
 }
 
 if [ "$CONFERIR" = "1" ]; then

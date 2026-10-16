@@ -114,6 +114,13 @@ MAPA="$RAIZ/assets/icones/apps-arcticons.map"
 MAPA_USUARIO="${MEOW_ICONES_TRACO:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-traco.map}"
 ORIGEM_CONV="$RAIZ/assets/icones/convertidos-apps"
 MAPA_CONV="$RAIZ/assets/icones/apps-convertidos.map"
+# O DESENHO DA OFICINA DE QUEM USA — 15/10/2026, P82 (item 5; decisão 15). O
+# «Usar» da oficina do painel grava a linha no `icones-convertidos.map` ao lado
+# do meow.conf (o formato deste mapa) e o construído na casa. Lido depois de
+# tudo, ele vence o app que os outros mapas de traço nomeiam: é a escolha
+# feita à mão, e não um empate (o `_conferir_gemeos` não a conta como duplo).
+MAPA_CONV_USUARIO="${MEOW_ICONES_CONVERTIDOS:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-convertidos.map}"
+ORIGEM_CONV_USUARIO="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/convertidos-apps"
 MAPA_MARCA="$RAIZ/assets/icones/apps-marca.map"
 MAPA_PNG="$RAIZ/assets/icones/apps.map"
 # A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
@@ -339,6 +346,19 @@ _ler_mapa_convertidos() {
     ACERVO["$nome"]="convertido"
     COR["$nome"]="$cor"
   done < "$MAPA_CONV"
+  # [P82: o de quem usa por último, e ele troca o que houver antes.]
+  [ -f "$MAPA_CONV_USUARIO" ] || return 0
+  while IFS= read -r linha; do
+    case "$linha" in ''|'#'*) continue ;; esac
+    IFS=':' read -r nome origem cor _ <<<"$linha"
+    [ -n "$nome" ] && [ -n "$origem" ] && [ -n "$cor" ] || continue
+    if [ "$origem" != "mao" ] && intocavel "$nome"; then continue; fi
+    if [ -n "${CURADO[$nome]:-}" ]; then continue; fi
+    unset 'GLIFO[$nome]' 'DUPLO[$nome]'
+    ARTE["$nome"]="$ORIGEM_CONV_USUARIO/$nome.svg"
+    ACERVO["$nome"]="convertido"
+    COR["$nome"]="$cor"
+  done < "$MAPA_CONV_USUARIO"
   return 0
 }
 

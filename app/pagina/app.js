@@ -528,20 +528,10 @@ function semRaiz(caminho) {
   return raiz && txt.startsWith(raiz + "/") ? txt.slice(raiz.length + 1) : txt;
 }
 
-/* DESDE 24/09/2026 (P52) O SERVIDOR JÁ MANDA O COMANDO PRONTO para a tela —
- * `meow …`, `./script.sh …` e `~/…`, ver `comando_na_tela` no servidor.py —,
- * porque a caixa de confirmar, o «ver comando» e a gaveta ainda levavam o
- * caminho absoluto, com o nome de usuário, e o que se copiava dali só colava
- * nesta máquina. O `acao.argv` que chega aqui já não começa pela raiz, e as
- * duas trocas abaixo não acham mais o que trocar nele. Elas ficam, e a nota
- * fica junto: é a regra da casa mencionar o que deixou de agir, não apagar.
- *   09/10/2026, P77: perdeu o último chamador, a linha `code.cmd` do cartão de
- * ação, que saiu (o comando mora só no «ver comando»). Fica pela mesma regra. */
-function comandoCurto(cmd) {
-  const curto = semRaiz(cmd);
-  return curto.startsWith("bin/meow") ? "meow" + curto.slice("bin/meow".length)
-                                      : curto;
-}
+/* [O `comandoCurto` saiu em 15/10/2026 (P82, item 32; decisão 29). Desde a
+ * P52 o servidor manda o comando pronto para a tela (`comando_na_tela`), e
+ * desde a P77 a função não tinha chamador: ficou anotada pela regra da casa
+ * até o fechamento do projeto.] */
 
 /* O 43º CAMINHO DA TELA, que não é comando — 22/09/2026
  * A linha «vale como:» do cartão existe para mostrar o valor com `$HOME` já
@@ -997,6 +987,16 @@ function completarParDaNoite(chave, valor) {
 function escolher(chave, valor, cartao) {
   const item = ESQUEMA.chaves.find((i) => i.chave === chave);
   if (!item) return;
+  /* O PACK SE ESCOLHE POR UM GESTO SÓ — 15/10/2026, P82 (item 24; decisão 23).
+   *   Em «Cor e tela» a escolha do pack ia para a bandeja e esperava o «Salvar e
+   *   aplicar»; na Início, o «Usar este» trocava na hora. Duas portas, dois
+   *   comportamentos para a mesma escolha. Agora as duas são o `usarPack`: a
+   *   mesma ação (`pack_usar`), a mesma caixa e o mesmo selo. O pack só muda
+   *   na tela quando a troca termina, por isso a marcação não anda aqui. */
+  if (chave === "PACK" && valor && valor !== (item.valor ?? "")) {
+    usarPack(PACKS.find((p) => p.id === valor) || { id: valor, nome: rotuloDeValor(valor) });
+    return false;
+  }
   completarParDaNoite(chave, valor);
   const noDisco = item.valor ?? "";
   if (valor === noDisco) MUDANCAS.delete(chave);
@@ -2113,8 +2113,11 @@ function montarControle(item, cartao) {
     /* «— DEIXAR COMO ESTÁ —» VIROU «— como está —» — 10/10/2026, P77 (U2):
      * «deixar» lia-se como «mantenha o que eu escolhi», e o vazio quer dizer
      * o contrário. «como está» é a palavra que o deslizante já usa para o
-     * mesmo estado. */
-    if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— como está —" }));
+     * mesmo estado.
+     * [P82, 15/10/2026 (item 29; decisão 27): «— não tocar —». O botão ao
+     *   lado grava o mesmo vazio com o nome «Não tocar», e um valor tem um
+     *   nome só.] */
+    if (item.aceita_vazio) sel.append(elemento("option", { value: "", texto: "— não tocar —" }));
     for (const opcao of item.opcoes) {
       sel.append(elemento("option", {
         value: opcao, texto: (item.rotulos && item.rotulos[opcao]) || rotuloDeValor(opcao) }));
@@ -2977,10 +2980,11 @@ function controlePorArea(item, aplica) {
   const nomesItem = ESQUEMA.chaves.find((k) => k.chave === "AREAS_NOMES");
   const nomes = String(nomesItem ? valorEmVigor(nomesItem) : "")
     .split(",").map((x) => x.trim()).filter(Boolean);
-  /* Sem áreas nomeadas não há o que ligar, e um controle vazio seria pior que o
-   * campo de texto: ele diria "não há escolha" quando o que há é uma chave de
-   * cima em branco. Cai no campo comum, que ao menos deixa escrever. */
-  if (!nomes.length) return null;
+  /* [P82, 15/10/2026 (item 28; decisão 28): sem áreas nomeadas o cartão é
+   *   uma trava, e não um campo livre. O `areas.sh` se pula com a lista vazia,
+   *   então o que se escrevesse ali não valeria; o ⊘ e o porquê na dica
+   *   saem do `montarCartao`, e o controle fica vazio.] */
+  if (!nomes.length) return elemento("div", { class: "por-area" });
 
   const marcadas = new Set(String(valorEmVigor(item))
     .split(",").map((x) => x.trim()).filter(Boolean));
@@ -3720,6 +3724,19 @@ const PASTAS_ABERTAS = new Map();
 /* A repintura da ficha que está na tela (ver "A TIRA SOBREVIVE À REPINTURA"). */
 let PINTAR_FICHA = null;
 
+/* O CARTÃO DO APLICATIVO VOLTA À VISTA — 15/10/2026, P82 (item 30). Depois
+ * do «Usar este ícone» a ficha fecha e a grade se relê: a página encurta e a
+ * rolagem, que estava na ficha, caía no fim dela, longe do cartão que acabou
+ * de mudar. Ele volta ao meio da tela, com o foco, para se ver o ícone novo. */
+function appAVista(id) {
+  const cartao = [...document.querySelectorAll("#conteudo .grade-apps button.app")]
+    .find((b) => b.dataset.app === id);
+  if (!cartao) return;
+  cartao.scrollIntoView({ block: "center" });
+  cartao.focus({ preventScroll: true });
+  ROLAGEM_PENDENTE = 0;
+}
+
 async function carregarApps() {
   const r = await api("/api/apps");
   APPS = r.erro ? { apps: [], total: 0 } : r;
@@ -3744,7 +3761,7 @@ async function carregarGlifos(termo, app) {
    * aplicativo, e não só por termo. */
   GLIFOS = { termo, app, itens: r.glifos || [], grupos: r.grupos || [], carregando: false,
              aviso: r.aviso || "", pack: r.pack || null, escolha: r.escolha || null,
-             minha: r.minha || null };
+             minha: r.minha || null, veste: r.veste || null };
   render();
 }
 
@@ -3798,7 +3815,10 @@ function montarApps() {
   /* Os desenhos autorais do pack — o gerador, com tela (sprint P26). Ficam
    * DEPOIS da grade: a pergunta desta aba é "que ícone veste cada programa?",
    * e desenhar um novo é o passo seguinte, não o primeiro. */
-  caixa.append(oficinaAutoral());
+  /* [P82, 15/10/2026: sem desenho declarado no pack, a oficina não aparece —
+   *   o Hefesto e o FogStripper eram os dois únicos, e saíram (decisão 16).] */
+  const autoral = oficinaAutoral();
+  if (autoral) caixa.append(autoral);
   return caixa;
 }
 
@@ -3837,6 +3857,7 @@ function gradeDeApps(apps, filtro, recarregar) {
       type: "button",
       class: "app" + (APP_ABERTO === a.id ? " aberto" : ""),
       title: `${a.id}  ·  ${a.origem}`,
+      "data-app": a.id,
       onclick: () => {
         APP_ABERTO = APP_ABERTO === a.id ? null : a.id;
         /* [Até 09/10/2026 a busca começava pelo nome do aplicativo — "o palpite
@@ -3968,8 +3989,10 @@ function montarEscolhaDeIcone(app, recarregar) {
    * (a `trava_pack`, em onze apps): o acervo sumia justo onde ela queria ver o
    * que existe. Agora a busca e as pastas ficam sempre; o desenho que não
    * valeria neste app aparece apagado, sem «Usar», e o porquê — a frase da
-   * trava, com o dono do ícone — vai para a dica. */
-  const comBusca = true;
+   * trava, com o dono do ícone — vai para a dica.
+   * [A `const comBusca = true` que sobrou daquela troca saiu em 15/10/2026
+   *   (P82, item 32): a busca é sempre, e o «Usar» abaixo só pergunta se
+   *   algum desenho vale.] */
   painel.append(busca);
 
   /* O glifo do mapa do traço não é escolha que a ficha travada ofereça: ele
@@ -4033,8 +4056,15 @@ function montarEscolhaDeIcone(app, recarregar) {
    * que vence no tema (`pack.py fontes`). O arquivo é a identidade da escolha. */
   const daMinha = GLIFOS.app === app.id && GLIFOS.minha
     ? itens.find((g) => g.arquivo === GLIFOS.minha.arquivo && !travaDe(g)) : null;
+  /* O QUE VESTE O APP AGORA ABRE MARCADO — 15/10/2026, P82 (item 6). Só a
+   * escolha dela e o traço abriam marcados: o Waterfox, vestido pelo desenho
+   * do pack no ar, abria a ficha sem marca nenhuma. O servidor manda o
+   * arquivo que veste o app (`veste`, na ordem do tema), e a ficha o marca. */
+  const daVeste = GLIFOS.app === app.id && GLIFOS.veste
+    ? itens.find((g) => g.arquivo === GLIFOS.veste && !travaDe(g)) : null;
   if (GLIFOS.escolhido === undefined) {
-    GLIFOS.escolhido = daMinha ? chaveDe(daMinha) : vestido ? chaveDe(vestido) : null;
+    GLIFOS.escolhido = daMinha ? chaveDe(daMinha) : daVeste ? chaveDe(daVeste)
+      : vestido ? chaveDe(vestido) : null;
   }
   const grupoDe = (id) => (GLIFOS.grupos || []).find((x) => x.id === id) || { id, acervo: "", nome: id };
   const itemEscolhido = () => itens.find((g) => chaveDe(g) === GLIFOS.escolhido) || null;
@@ -4199,13 +4229,13 @@ function montarEscolhaDeIcone(app, recarregar) {
    *   intocáveis sem uma palavra. Quem sabe se a escolha pode valer é o
    *   servidor (`trava`); a página só não oferece o que ele recusaria.
    *   [P64: com a trava do traço, a tira só tem o pack, e o botão fica para
-   *   ele — ver o `comBusca`, lá em cima.] */
+   *   ele — ver a trava, lá em cima.] */
   /* [A frase da `trava` saiu daqui na P73: ela é a dica dos desenhos que ela
    * apaga, e o botão abaixo continua lá para os que valem.] */
   /* Sem nenhum desenho que valha (as duas travas, como no CosmicEdit), o
    * «Usar» não nasce: só o acervo, apagado, com a dica do dono. */
   const algumVale = itens.some((g) => !travaDe(g));
-  if (comBusca && algumVale) acoes.append(elemento("button", {
+  if (algumVale) acoes.append(elemento("button", {
     type: "button", class: "btn btn-accent", texto: "Usar este ícone",
     /* A ESCOLHA FICA COM QUEM USA — 09/10/2026, P73 (I3). Até aqui ela ia para
      * o repositório (o mapa do traço, ou o `apps.map` do pack); agora vai para
@@ -4229,6 +4259,7 @@ function montarEscolhaDeIcone(app, recarregar) {
         APP_ABERTO = null;
         await fimDoTrabalho();
         await relerLista();
+        appAVista(app.id);
         return;
       }
       const r = await api("/api/app-icone", {
@@ -4261,6 +4292,7 @@ function montarEscolhaDeIcone(app, recarregar) {
       APP_ABERTO = null;
       await fimDoTrabalho();
       await relerLista();
+      appAVista(app.id);
     },
   }));
   /* Só a escolha DE QUEM USA se desfaz daqui (P73): a linha do mapa do
@@ -5373,10 +5405,12 @@ function oficinaAutoral() {
       },
     }));
   }
-  if (!AUTORAL.desenhos.length) {
-    escolha.append(elemento("p", { class: "sem-previa",
-      texto: "Este pack não declara nenhum desenho autoral." }));
-  }
+  /* SEM DESENHO DECLARADO, SEM OFICINA — 15/10/2026, P82. Era a frase «Este
+   * pack não declara nenhum desenho autoral.» com o «Salvar no pack» aceso
+   * embaixo, sem nada a salvar: texto no lugar do gesto. Os dois packs daqui
+   * deixaram de declarar desenhos (o Hefesto e o FogStripper saíram, decisão
+   * 16); o pack de terceiro que declarar algum ganha a oficina de volta. */
+  if (!AUTORAL.desenhos.length && !AUTORAL.erro) return null;
   caixa.append(escolha);
 
   const papeis = elemento("div", { role: "group", "aria-label": "Papéis",
@@ -6407,6 +6441,23 @@ function montarCartao(item) {
       ]));
     }
   }
+  /* FOLGA E ENCAIXE SEM ÁREAS — 15/10/2026, P82 (item 28; decisão 28). Com
+   * «AREAS_NOMES» vazio o `areas.sh` se pula, e os dois cartões por área não
+   * têm o que ligar: nascem travados, com o ⊘ e o porquê na dica, como as
+   * outras travas. (O encaixe sozinho também não vale: sem nome, o
+   * `_areas_planejar` recusa ou registra a pendência, e não escreve.) */
+  if (item.previa === "areas" || item.chave === "AREAS_ENCAIXE") {
+    const nomesItem = ESQUEMA.chaves.find((k) => k.chave === "AREAS_NOMES");
+    if (nomesItem && !String(valorEmVigor(nomesItem)).split(",").some((x) => x.trim())) {
+      const dono = nomeVisivel("AREAS_NOMES");
+      cartao.classList.add("anulado");
+      selos.append(selo("anulado", { balao: "Nenhuma área com nome" }));
+      estado.push(elemento("p", { class: "frase dominada" }, [
+        elemento("b", { texto: "Nenhuma área com nome. " }),
+        elemento("span", { texto: `Vale por área: dê nome às áreas em «${dono}».` }),
+      ]));
+    }
+  }
   /* NA MOLDURA DO MODO, O MODO NÃO ANULA — 10/10/2026, P77. O cartão que o
    * modo mostra só existe com o modo que o usa; o `dominada_por` do servidor
    * fala do modo GRAVADO, e com outro modo esperando «Salvar» ele apagava o
@@ -6964,6 +7015,9 @@ function fraseIndisponivel(motivo) {
     const depois = (ESQUEMA.acoes || []).find((a) => a.id === motivo.feito);
     return `Já feito: ${motivo.porque}. O passo seguinte é «${depois ? depois.rotulo : motivo.feito}».`;
   }
+  /* SÓ O PORQUÊ, SEM PASSO SEGUINTE — 15/10/2026, P82 (item 2): «Instalar o
+   * starship» com ele já instalado. */
+  if (motivo.porque && !motivo.chave) return `Já feito: ${motivo.porque}.`;
   return `Sem efeito com «${nomeVisivel(motivo.chave)}» em `
     + `«${rotuloDeValor(motivo.vale)}». Mude para «${rotuloDeValor(motivo.pede)}» `
     + "para usar este botão.";
@@ -7060,6 +7114,32 @@ function montarAcao(acao) {
     onclick: () => rodar(acao, escolha ? escolha.value : ""),
   });
   rodape.append(executar);
+  /* O PAR «VER / APLICAR» — 15/10/2026, P82 (item 22; decisão 24). A ação que
+   * mostra o que mudaria (`par`, declarado pelo servidor) leva no mesmo cartão
+   * a que aplica, no molde do «Conferir» e do «Arrumar» da Steam: o primeiro
+   * botão passa a ser «Conferir», o segundo é o rótulo do aplicar, com os
+   * selos de risco dele. O aplicar não ganha cartão próprio (ver o `render`). */
+  const par = acao.par && (ESQUEMA.acoes || []).find((a) => a.id === acao.par);
+  if (par) {
+    executar.textContent = "Conferir";
+    /* [P82, item 26: os dois botões do par andam juntos numa linha só, embaixo
+     *   das etiquetas e do «ver comando»; quem arruma é a `order` do CSS
+     *   (`.par-conferir`, `.par-quebra`, `.par-aplicar`), sem tirar o
+     *   «Conferir» da fileira, onde o `verComando` o procura.] */
+    executar.className = "btn par-conferir";
+    rodape.append(elemento("span", { class: "par-quebra", "aria-hidden": "true" }));
+    if (par.sudo) rodape.append(selo("sudo", { balao: "Pede a senha do sudo" }));
+    else if (par.pela_ponte) rodape.append(selo("ponte", {
+      balao: "Sem senha: o perfil do sudo está registrado" }));
+    if (par.destrutivo) rodape.append(selo("desfaz", { balao: "Desfaz o que foi feito" }));
+    if (par.rede) rodape.append(selo("rede", { balao: "Baixa da internet" }));
+    rodape.append(elemento("button", {
+      type: "button",
+      class: "btn par-aplicar " + (par.destrutivo ? "btn-perigo" : "btn-accent"),
+      texto: par.rotulo,
+      onclick: () => rodar(par, ""),
+    }));
+  }
   /* SEM O QUE ESCOLHER, O «EXECUTAR» NÃO ACENDE — 24/09/2026, sprint P46
    *   Uma ação que recebe argumento (`arg`, o `@ARG@` do comando) e cuja lista
    * veio vazia não tinha seletor, e o «Executar» mandava o argumento vazio: o
@@ -9214,13 +9294,22 @@ function valeDaChave(chave) {
  * que o controle do modo de leitura guarda (o servidor a lê no CosmicComp,
  * `noite_do_applet`), `WALLPAPER_NOITE_*`, e 18:00–07:00. Até aqui a página
  * pulava o segundo degrau, e cada ponta era resolvida sozinha: a Início dizia
- * uma noite que o gato não seguia. */
-function janelaDoGato() {
-  const ni = valeDaChave("NOITE_INICIO"), nf = valeDaChave("NOITE_FIM");
+ * uma noite que o gato não seguia.
+ * [P82, 15/10/2026 (item 27): é a regra ÚNICA da página. O desenho de «Dia e
+ *   noite» (`previas-sistema.js`) tinha a terceira cópia, e ela resolvia cada
+ *   ponta sozinha e pulava o controle do modo de leitura. Ele chama esta
+ *   função com o `ler` dele, porque desenha também o valor que ainda não foi
+ *   escolhido (o «depois»); o que ele não traz cai no da página.] */
+function janelaDoGato(ler) {
+  const vale = (c) => {
+    const v = ler ? ler(c) : undefined;
+    return v === undefined || v === null ? valeDaChave(c) : String(v);
+  };
+  const ni = vale("NOITE_INICIO"), nf = vale("NOITE_FIM");
   if (HORA_OK.test(ni) && HORA_OK.test(nf)) return { ini: doisDigitos(ni), fim: doisDigitos(nf), fonte: "conf" };
   const ap = ESQUEMA.noite_do_applet;
   if (ap && HORA_OK.test(ap.ini) && HORA_OK.test(ap.fim)) return { ini: ap.ini, fim: ap.fim, fonte: "applet" };
-  const pi = valeDaChave("WALLPAPER_NOITE_INICIO"), pf = valeDaChave("WALLPAPER_NOITE_FIM");
+  const pi = vale("WALLPAPER_NOITE_INICIO"), pf = vale("WALLPAPER_NOITE_FIM");
   if (HORA_OK.test(pi) && HORA_OK.test(pf)) return { ini: doisDigitos(pi), fim: doisDigitos(pf), fonte: "parede" };
   return { ini: "18:00", fim: "07:00", fonte: "padrao" };
 }
@@ -9450,10 +9539,16 @@ const DECISOES = [
    * chave que não aparece em `por` fica sempre. A antiga «O gato troca
    * sozinho» (o modo de antes do modo) e o «Recarregar o painel na virada»
    * foram para o «⋯» dos ajustes técnicos (`[avancado]` no arquivo). */
+  /* [AS AÇÕES DO GATO MORAM NA MOLDURA DO MODO QUE AS USA — 15/10/2026, P82
+   *   (item 23; decisão 25). «Pôr um gato no dock» e «Passar ao próximo gato»
+   *   eram cartões soltos, apagados em dois dos três modos. Agora cada uma
+   *   aparece dentro da moldura, no modo em que ela faz alguma coisa: o
+   *   `acoes` diz qual, como o `por` diz as chaves.] */
   { id: "gato-dock", nome: "Gato do dock",
     chaves: ["LOGO_MODO", "LOGO_DIA", "LOGO_NOITE", "LOGO_INTERVALO", "LOGO"],
     modo: { chave: "LOGO_MODO",
-            por: { hora: ["LOGO_DIA", "LOGO_NOITE"], rotacao: ["LOGO_INTERVALO"], fixo: ["LOGO"] } } },
+            por: { hora: ["LOGO_DIA", "LOGO_NOITE"], rotacao: ["LOGO_INTERVALO"], fixo: ["LOGO"] } },
+    acoes: { fixo: ["logo_trocar"], rotacao: ["logo_girar"] } },
   /* O mesmo no terminal: o gato no lugar do logo, o modo, e só o que o modo
    * usa. Em «espelho» o terminal mostra o gato que o dock não está mostrando,
    * e não há o que escolher além do modo. */
@@ -9464,6 +9559,17 @@ const DECISOES = [
             por: { espelho: [], hora: ["FASTFETCH_LOGO_DIA", "FASTFETCH_LOGO_NOITE"],
                    fixo: ["FASTFETCH_LOGO_GATO"] } } },
 ];
+
+/* O modo em vigor de uma decisão com `modo` (P82: o `mostraNoModo` e as ações
+ * da moldura perguntam o mesmo). */
+function modoEmVigor(decisao) {
+  if (!decisao.modo) return "";
+  const modoItem = ESQUEMA.chaves.find((k) => k.chave === decisao.modo.chave);
+  return modoItem ? (valorEmVigor(modoItem) || modoItem.valendo_agora || "") : "";
+}
+/* As ações que moram dentro de uma moldura (o `acoes` das `DECISOES`): fora
+ * da busca, elas não ganham cartão no bloco de ações. */
+const ACOES_EM_MOLDURA = new Set(DECISOES.flatMap((d) => Object.values(d.acoes || {}).flat()));
 
 /* A chave aparece na moldura com o modo em vigor? As que nenhum modo cita
  * aparecem sempre; as citadas, só no modo que as usa. */
@@ -9505,8 +9611,12 @@ const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
                                             "Áreas de trabalho", "Lançadores e jogos",
                                             "Manutenção", "Instalação"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
+/* [P82, 15/10/2026 (item 23; decisão 25): e a ação que o servidor declara
+ *   `tecnica` em qualquer página — as duas de tema de «Cor e tela», que
+ *   repetiam a moldura do tema logo acima delas.] */
 function acaoTecnica(assunto, acao) {
-  return PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza);
+  return (PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza))
+    || !!acao.tecnica;
 }
 function ajustesTecnicos(assunto, g, itens) {
   /* O TIPO ENTRA NO NOME DO «⋯»: o bloco de ajustes e o de ações de uma
@@ -9515,8 +9625,18 @@ function ajustesTecnicos(assunto, g, itens) {
   const id = assunto + "·" + g.nome + "·" + g.tipo;
   const acoes = g.tipo === "acoes";
   const nome = acoes ? "Ações técnicas" : "Ajustes técnicos";
+  /* [P82, 15/10/2026 (item 31): o desenho do que ele guarda vem antes do
+   *   «⋯» — os controles deslizantes nos ajustes, o «executar» nas ações. Os
+   *   dois eram idênticos na tela, e o nome só existia para o leitor.] */
+  const desenho = elemento("span", { class: "tecnicos-icone", "aria-hidden": "true" });
+  desenho.innerHTML = '<svg viewBox="0 0 48 48" width="15" height="15" fill="none" '
+    + 'stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'
+    + (acoes ? '<path d="M16 10l22 14l-22 14z"/>'
+       : '<path d="M8 14h20m8 0h4M8 34h4m8 0h20"/><circle cx="32" cy="14" r="4"/><circle cx="16" cy="34" r="4"/>')
+    + "</svg>";
   const caixa = elemento("details", { class: "ajustes-tecnicos" }, [
     elemento("summary", { title: nome }, [
+      desenho,
       elemento("span", { class: "tecnicos-glifo", "aria-hidden": "true", texto: "⋯" }),
       elemento("span", { class: "so-leitor", texto: " " + nome }),
     ]),
@@ -9533,6 +9653,8 @@ function ajustesTecnicos(assunto, g, itens) {
 }
 
 function render() {
+  /* A figura da seção sem chaves espera a primeira grade (P82, item 26). */
+  let figuraNaGrade = null;
   /* Os nós da passagem anterior morreram com ela. Um registro que sobrevive
    * ao `render` guarda referência para árvore descartada, e o repintar acha um
    * nó sem pai — silencioso, e cada vez mais caro. */
@@ -9695,8 +9817,10 @@ function render() {
          *   ler, então não há par antes/depois nem tempo real. É uma figura que
          *   responde "o que esta página faz com a minha máquina", e as funções
          *   já aceitam valores vazios — o contrato delas cai no padrão. */
-        const soloDaSecao = desenhoDaSecaoSemChaves(assunto);
-        if (soloDaSecao) alvo.append(soloDaSecao);
+        /* [P82, 15/10/2026 (item 26): a figura entra na GRADE, como o
+         *   primeiro item dela, e os cartões correm ao lado. Fora da grade ela
+         *   tomava a linha com 260 px e deixava o resto vazio.] */
+        figuraNaGrade = desenhoDaSecaoSemChaves(assunto);
       }
     }
     if (grupos.length > 1) {
@@ -9783,6 +9907,7 @@ function render() {
       }
     }
     const grade = elemento("div", { class: "grade" });
+    if (figuraNaGrade) { grade.append(figuraNaGrade); figuraNaGrade = null; }
     /* Os ajustes técnicos (`[avancado]`) vão para o «⋯» do fim do bloco, e os
      * que formam UMA decisão (`DECISOES`) para uma moldura só — P77. Na busca
      * não: o resultado já é a lista do que casou, e esconder parte dele num
@@ -9795,6 +9920,11 @@ function render() {
        * `<select>` com 255 nomes de arquivo seria a pior forma de perguntar
        * "qual foto?" numa página que sabe desenhá-las. */
       if (g.tipo === "acoes" && item.oculta) continue;
+      /* O aplicar de um par mora no cartão do ver dele (P82, item 22). Na
+       * busca ele aparece sozinho: o resultado é o que casou. */
+      if (g.tipo === "acoes" && !busca && (ESQUEMA.acoes || []).some((a) => a.par === item.id)) continue;
+      /* E a que mora na moldura de um modo (P82, item 23). */
+      if (g.tipo === "acoes" && !busca && ACOES_EM_MOLDURA.has(item.id)) continue;
       if (g.tipo === "acoes") {
         if (!busca && acaoTecnica(assunto, item)) tecnicos.push(item);
         else grade.append(montarAcao(item));
@@ -9822,6 +9952,11 @@ function render() {
       for (const chave of d.chaves) {
         const item = g.itens.find((i) => i.chave === chave);
         if (item && mostraNoModo(d, chave)) m.append(montarCartao(item));
+      }
+      /* As ações do modo em vigor, dentro da moldura (P82, item 23). */
+      for (const id of ((d.acoes || {})[modoEmVigor(d)] || [])) {
+        const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
+        if (acao) m.append(montarAcao(acao));
       }
       m.style.setProperty("--cartoes", String(m.childElementCount));
     }
@@ -9866,6 +10001,7 @@ function render() {
   afastarDicasDoTraco();
   pintarGatosEmCelulas($("#conteudo"));
   devolverFoco(ancora);
+  assentarGrades();
   devolverRolagem(rolagem);
   /* A ABA ABERTA APARECE — em 375px o trilho vira uma tira horizontal com vinte
    * botões, e a validação mediu que "a marcação existe fora da tela": a aba
@@ -9879,11 +10015,113 @@ function render() {
    * Ensaiar só existiam andando para trás. Com a aba já visível (o caso de
    * toda tela dela: o trilho inteiro cabe), nada se move e o Tab nasce onde o
    * HTML manda. */
+  /* [P82, 15/10/2026 (item 21): e os LADOS também. Na tira horizontal dos
+   * 375 px a aba aberta por endereço ficava a 1.600 px à direita, e só a
+   * altura era conferida — ela nunca rolava para a vista.] */
   if (ativa && ativa.scrollIntoView) {
     const t = $("#trilho").getBoundingClientRect();
     const b = ativa.getBoundingClientRect();
-    if (b.top < t.top || b.bottom > t.bottom) {
+    if (b.top < t.top || b.bottom > t.bottom || b.left < t.left || b.right > t.right) {
       ativa.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }
+}
+
+/* ===========================================================================
+ * A GRADE SEM BURACO — 15/10/2026, P82 (item 26)
+ * ===========================================================================
+ * A grade de três colunas põe os cartões em linhas, e a linha tem a altura do
+ * mais alto: um cartão de par de desenhos (Sim e Não, cada um com a figura)
+ * deixava um vão do tamanho dele embaixo dos cartões baixos da mesma linha —
+ * medido em «Manutenção», 136 px embaixo de «Consertos de sistema sem pedir
+ * senha». A cura é na grade de todas as páginas, e não numa página: com mais
+ * de uma coluna, a grade vira ALVENARIA. Cada item vai para a coluna que está
+ * mais curta (o empate fica com a da esquerda, então a leitura segue da
+ * esquerda para a direita e de cima para baixo), e ocupa as linhas finas que a
+ * altura dele pede. O que atravessa a grade (a moldura de uma decisão, o painel
+ * de um aplicativo aberto) começa embaixo da coluna mais funda e iguala todas.
+ * Numa coluna só, nada muda. Quem refaz é o fim do `render()`, a janela que
+ * muda de largura e o cartão que muda de altura (um desenho que chega depois).
+ * A FILEIRA DE AÇÕES QUE QUASE EMPATA CONTINUA FILEIRA: cartões de ação que
+ * começam na mesma linha e diferem até `ALVENARIA_EMPATE` px (contados do
+ * mais baixo do grupo) ganham a altura do mais alto do grupo, para os
+ * «Executar» do rodapé ficarem na mesma linha (a regra de 23/09 do
+ * `app-navegador.py`). Só os de ação: o rodapé deles desce até o fundo e
+ * ocupa a altura ganha, e num cartão de ajuste ela seria um vão por dentro.
+ * Acima do empate a diferença é buraco, e cada um fica com a sua. */
+const ALVENARIA_PASSO = 4;
+const ALVENARIA_EMPATE = 64;
+let OBSERVADOR_GRADES = null;
+/* O QUE ESTÁ À VISTA FICA À VISTA: a alvenaria refeita depois da pintura (um
+ * desenho que chegou, a janela que mudou) muda os cartões de lugar, e o
+ * cartão a que a Início levou (`.chegou`), ou o que tem o foco, saía da
+ * janela. Ele é a âncora: a rolagem anda o tanto que ele andou. */
+function assentarComAncora() {
+  const m = $("#principal");
+  const foco = document.activeElement;
+  const ancora = document.querySelector("#conteudo .grade > .chegou")
+    || (foco && foco.closest && foco.closest("#conteudo .grade > *"));
+  const antes = ancora ? ancora.getBoundingClientRect().top : null;
+  assentarGrades();
+  if (m && ancora && ancora.isConnected) m.scrollTop += ancora.getBoundingClientRect().top - antes;
+}
+function assentarGrades() {
+  if (typeof ResizeObserver === "function" && !OBSERVADOR_GRADES) {
+    let pedido = 0;
+    OBSERVADOR_GRADES = new ResizeObserver(() => {
+      cancelAnimationFrame(pedido);
+      pedido = requestAnimationFrame(assentarComAncora);
+    });
+    addEventListener("resize", assentarComAncora);
+  }
+  for (const g of document.querySelectorAll("#conteudo .grade")) {
+    const filhos = [...g.children];
+    for (const c of filhos) { c.style.gridColumn = ""; c.style.gridRow = ""; c.style.minHeight = ""; }
+    const colunas = getComputedStyle(g).gridTemplateColumns.split(" ").filter(Boolean).length;
+    g.classList.toggle("alvenaria", colunas > 1);
+    if (colunas < 2) continue;
+    const vao = parseFloat(getComputedStyle(g).columnGap) * .6 || 18;
+    const fundo = new Array(colunas).fill(1);
+    const postos = [];
+    for (const c of filhos) {
+      if (OBSERVADOR_GRADES) OBSERVADOR_GRADES.observe(c);
+      const alto = c.getBoundingClientRect().height;
+      if (!alto) continue;
+      const linhas = Math.max(1, Math.ceil((alto + vao) / ALVENARIA_PASSO));
+      const largo = getComputedStyle(c).gridColumnEnd === "-1"
+        || c.matches(".decisao, .escolha-icone, .escolha-jogo, .pack.aberto");
+      if (largo) {
+        const de = Math.max(...fundo);
+        c.style.gridColumn = "1 / -1";
+        c.style.gridRow = `${de} / span ${linhas}`;
+        fundo.fill(de + linhas);
+        continue;
+      }
+      let k = 0;
+      for (let i = 1; i < colunas; i++) if (fundo[i] < fundo[k]) k = i;
+      const p = { c, k, de: fundo[k], linhas, alto, natural: linhas };
+      postos.push(p);
+      /* A fileira: os já postos que começam na mesma linha, com nada embaixo,
+       * em grupos de quase empate, do mais baixo para o mais alto. */
+      const fileira = c.matches(".acao") ? postos.filter((o) => o !== p && o.de === p.de
+        && o.c.matches(".acao") && fundo[o.k] === o.de + o.linhas) : [];
+      fileira.push(p);
+      fileira.sort((a, b) => a.alto - b.alto);
+      for (let i = 0; i < fileira.length;) {
+        let j = i;
+        while (j + 1 < fileira.length && fileira[j + 1].alto - fileira[i].alto <= ALVENARIA_EMPATE) j++;
+        const maior = fileira[j];
+        for (const o of fileira.slice(i, j + 1)) {
+          o.linhas = maior.natural;
+          o.c.style.minHeight = o === maior ? "" : `${maior.alto}px`;
+          o.c.style.gridRow = `${o.de} / span ${o.linhas}`;
+          fundo[o.k] = o.de + o.linhas;
+        }
+        i = j + 1;
+      }
+      c.style.gridColumn = String(k + 1);
+      c.style.gridRow = `${p.de} / span ${p.linhas}`;
+      fundo[k] = p.de + p.linhas;
     }
   }
 }

@@ -1526,10 +1526,25 @@ MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 # terceiro caminho a inventar. Dois argumentos em vez de quatro, e nenhuma
 # chamada que possa cruzar as pastas por engano.
 #
+# O VERBO QUE SÓ LÊ NÃO SEMEIA — 15/10/2026, P82 (item 34). A semeadura
+#   acontecia na primeira LEITURA, e o `meow wallpaper` sem argumento (o
+#   «O carrossel agora» do painel, que só mostra) criava a pasta de estado de
+#   quem nunca escreveu nada. Com `MEOW_ESTADO_SO_LE=1` (o script põe no verbo
+#   que só lê) nada é criado, e sem o arquivo de estado o caminho devolvido é o
+#   da SEMENTE — o arquivo velho do clone ou o `.padrao`, na mesma ordem da
+#   semeadura —, que é o que o estado teria. Quem lê lê o mesmo que leria
+#   depois de semear; quem escreve semeia antes, como sempre.
+#
 # Uso:  caminho="$(meow_estado_com_padrao papeis-de-parede BANIDOS.txt)"
 meow_estado_com_padrao() {
   local pasta="$1" arquivo="$2" origem="$MEOW_RAIZ/assets/$1" dir="$MEOW_ESTADO/$1"
   local padrao semente
+  if [ "${MEOW_ESTADO_SO_LE:-0}" = "1" ] && [ ! -f "$dir/$arquivo" ]; then
+    if [ -f "$origem/$arquivo" ]; then printf '%s' "$origem/$arquivo"
+    elif [ -f "$origem/$arquivo.padrao" ]; then printf '%s' "$origem/$arquivo.padrao"
+    else printf '%s' "$dir/$arquivo"; fi
+    return 0
+  fi
   if [ ! -d "$dir" ] && ! meow_seco; then
     # Se o `mkdir` falhar, ecoamos o caminho do estado do mesmo jeito: quem
     # chamou trata "não consegui escrever" como sempre tratou, e devolver vazio
@@ -1790,7 +1805,11 @@ meow_pendencia_acionavel() {
   local id="$1" frase="$2" comando="${3:-}"
   local etapa; etapa="$(basename "${BASH_SOURCE[1]:-desconhecida}")"
 
-  meow_aviso "$frase"
+  # A PENDÊNCIA DE UM OPCIONAL NÃO AVISA — 15/10/2026, P82 (item 2). O `!!`
+  #   pesa no veredito do doctor (`pulado_com_aviso`). Quem oferece um botão
+  #   para o que é opcional (o starship) chama com `MEOW_PENDENCIA_ROTINA=1`,
+  #   e a linha sai como o pulado de rotina; o botão continua na Início.
+  if [ "${MEOW_PENDENCIA_ROTINA:-}" = "1" ]; then meow_pula "$frase"; else meow_aviso "$frase"; fi
   # O BOTÃO CITADO É O QUE EXISTE, NA ABA EM QUE ELE ESTÁ — P50 (achado 32).
   #   Dizia "(ou o botão «Resolver» no painel)": na gaveta de «Gravar as
   #   áreas» não há «Resolver» nenhum, e a pendência sem ação na tabela
@@ -1836,6 +1855,31 @@ meow_pendencia_resolvida() {
 }
 
 meow_tem() { command -v "$1" >/dev/null 2>&1; }
+
+# O RUST, QUANDO FALTA — a regra do applet de leitura (P80), que o de mídia
+# passou a usar também (P82, 15/10/2026). Devolve 0 com o `cargo` no PATH.
+# O rustup na casa de quem usa (`~/.cargo`), sem sudo e sem mexer no PATH do
+# shell dela: é o caminho que o próprio projeto do rust recomenda, e o cargo
+# do apt costuma ser velho demais para o libcosmic. Baixa da internet — por
+# isso só no conserto e no instalador, que já declaram rede (decisão 7).
+meow_garantir_cargo() {
+  meow_tem cargo && return 0
+  if [ -x "$HOME/.cargo/bin/cargo" ]; then PATH="$HOME/.cargo/bin:$PATH"; return 0; fi
+  meow_seco && { meow_muda "instalaria o rust pelo rustup, em ~/.cargo (baixa da internet)"; return 1; }
+  meow_tem curl || return 1
+  local instalador
+  instalador="$(mktemp)" || return 1
+  meow_info "instalando o rust pelo rustup, em ~/.cargo (baixa da internet)"
+  if curl --proto '=https' --tlsv1.2 -sSf --max-time 120 https://sh.rustup.rs -o "$instalador" \
+     && sh "$instalador" -y --profile minimal --no-modify-path >/dev/null 2>&1; then
+    rm -f "$instalador"
+    PATH="$HOME/.cargo/bin:$PATH"
+    meow_tem cargo
+    return $?
+  fi
+  rm -f "$instalador"
+  return 1
+}
 
 # Um flatpak instalado deixa DIRETÓRIO no disco; `flatpak info` deixa um repo
 # ostree INTEIRO em ~/.local/share/flatpak/repo só por ter sido perguntado

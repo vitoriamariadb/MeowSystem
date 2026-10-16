@@ -388,7 +388,6 @@ if [ "$pendente_sudo" -gt 0 ]; then
     meow_pula "$pendente_sudo nome(s) em /usr/share esperam root — rode: meow ativar"
   else
     meow_aviso "$pendente_sudo nome(s) precisam de sudo para encurtar"
-    meow_info "rode o install.sh de novo com sudo disponível"
   fi
 fi
 

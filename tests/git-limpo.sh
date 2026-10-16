@@ -90,6 +90,24 @@ rodar_curadoria() {
 }
 mkdir -p "$TMP/home" || exit 2
 
+# O VERBO QUE SÓ LÊ NÃO SEMEIA — P82, item 34. O `estado` (o «O carrossel
+# agora» do painel) criava a pasta de estado e copiava as sementes na primeira
+# leitura. Agora a semente nasce no primeiro verbo que escreve (o `banir`,
+# logo abaixo), e quem só lê lê a semente do clone.
+rodar_curadoria estado >"$TMP/log-estado" 2>&1
+if [ ! -e "$TMP/estado/papeis-de-parede" ]; then
+  ok "o «estado» não cria nem semeia \$MEOW_ESTADO/papeis-de-parede"
+else
+  falha "o «estado», que só lê, semeou o estado: $(ls "$TMP/estado/papeis-de-parede" | tr '\n' ' ')"
+fi
+le="$(MEOW_ESTADO="$TMP/estado" MEOW_ESTADO_SO_LE=1 MEOW_RAIZ="$RAIZ" bash -c \
+      '. "$MEOW_RAIZ/lib/comum.sh"; meow_estado_com_padrao papeis-de-parede lado.tsv' 2>/dev/null)"
+if [ "$le" = "$RAIZ/assets/papeis-de-parede/lado.tsv.padrao" ] && [ ! -e "$TMP/estado/papeis-de-parede" ]; then
+  ok "sem estado, a leitura devolve a semente do clone"
+else
+  falha "sem estado, a leitura devolveu «$le»"
+fi
+
 rodar_curadoria banir "$ACERVO/ativos/teste-banir.jpg" >"$TMP/log-banir" 2>&1
 rodar_curadoria lado  "teste-lado.jpg" noite           >"$TMP/log-lado"  2>&1
 
@@ -232,7 +250,7 @@ raiz, casa = sys.argv[1], sys.argv[2]
 sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor  # noqa: E402
 M = servidor.Manipulador
-M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "usuária"),)
+M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "pessoal"),)
 m = M.__new__(M)
 r = {}
 m._json = lambda d, c=200: r.update(d=d, c=c)
@@ -264,6 +282,76 @@ for arq in icones-escolhidos.map icones-traco.map; do
   [ -s "$CASA_I/.config/meow/$arq" ] && ok "a escolha foi para ~/.config/meow/$arq, no estado de quem usa" \
     || falha "~/.config/meow/$arq não recebeu a escolha"
 done
+
+# --- 3c o «Usar» da oficina grava no estado de quem usa — P82, item 5 --------
+#   A oficina gravava `retoques/<app>.svg`, o construído e a linha
+#   `<app>:mao:<cor>` dentro do clone (`assets/icones/`): usar o produto virava
+#   arquivo por commitar (decisão 15). Agora os três vão para a casa: a linha
+#   no `~/.config/meow/icones-convertidos.map`, o retoque e o construído em
+#   `~/.local/share/meowsystem/`.
+printf '\n--- 3c o «Usar» da oficina não muda o git status ---\n'
+CASA_O="$TMP/casa-oficina"; ANTES_O="$TMP/antes-o"; DEPOIS_O="$TMP/depois-o"
+# Com os não rastreados: o retoque nasce como arquivo novo.
+estado_com_novos() { git -C "$RAIZ" status --porcelain --untracked-files=all | LC_ALL=C sort; }
+mkdir -p "$CASA_O/.config/meow" "$CASA_O/.local/share/applications"
+cp "$RAIZ/meow.conf.exemplo" "$CASA_O/.config/meow/meow.conf"
+printf '[Desktop Entry]\nName=Um Desenho\nExec=true\nIcon=um-desenho\nType=Application\n' \
+  > "$CASA_O/.local/share/applications/um-desenho.desktop"
+estado_com_novos > "$ANTES_O"
+env -u MEOW_PACK_DIR -u PACK -u FLAVOR -u MEOW_ICONES_TRACO -u MEOW_ICONES_CONVERTIDOS \
+    HOME="$CASA_O" MEOW_CONF="$CASA_O/.config/meow/meow.conf" XDG_CONFIG_HOME="$CASA_O/.config" \
+    XDG_DATA_HOME="$CASA_O/.local/share" XDG_STATE_HOME="$CASA_O/.local/state" \
+    MEOW_ESTADO="$CASA_O/.local/state/meowsystem" PYTHONDONTWRITEBYTECODE=1 \
+    python3 - "$RAIZ" "$CASA_O" <<'PY'
+import os, sys
+raiz, casa = sys.argv[1], sys.argv[2]
+sys.path.insert(0, os.path.join(raiz, "app"))
+import servidor  # noqa: E402
+M = servidor.Manipulador
+M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "pessoal"),)
+m = M.__new__(M)
+r = {}
+m._json = lambda d, c=200: r.update(d=d, c=c)
+cor = (servidor._paleta_dados().get("ordem") or ["mauve"])[0]
+svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" '
+       'stroke="currentColor"><circle cx="24" cy="24" r="16"/></svg>')
+m._api_app_desenho({"app": "um-desenho", "acao": "salvar", "svg": svg, "cor": cor, "fonte": "texto"})
+if r.get("c") != 200:
+    print("  NÃO  o salvar da oficina foi recusado: %r" % (r.get("d"),), file=sys.stderr)
+    sys.exit(1)
+PY
+[ "$?" = "0" ] || falha "a oficina recusou salvar o desenho"
+estado_com_novos > "$DEPOIS_O"
+if cmp -s "$ANTES_O" "$DEPOIS_O"; then
+  ok "salvar um desenho na oficina deixa o git status como estava"
+else
+  falha "salvar na oficina mudou o git status:"
+  diff "$ANTES_O" "$DEPOIS_O" | sed 's/^/        /' >&2
+fi
+if grep -q '^um-desenho:mao:' "$CASA_O/.config/meow/icones-convertidos.map" 2>/dev/null \
+   && [ -s "$CASA_O/.local/share/meowsystem/retoques/um-desenho.svg" ] \
+   && [ -s "$CASA_O/.local/share/meowsystem/convertidos-apps/um-desenho.svg" ]; then
+  ok "a linha, o retoque e o construído foram para o estado de quem usa"
+else
+  falha "a oficina não gravou no estado de quem usa (mapa, retoque e construído)"
+fi
+# E O CONSTRUTOR LÊ AS DUAS FONTES: sem o construído, o `construir_convertidos.sh`
+# o refaz do retoque de quem usa, na casa, e o clone não muda.
+rm -f "$CASA_O/.local/share/meowsystem/convertidos-apps/um-desenho.svg"
+estado_com_novos > "$ANTES_O"
+env -i PATH="$PATH" HOME="$CASA_O" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  MEOW_CONF="$CASA_O/.config/meow/meow.conf" XDG_DATA_HOME="$CASA_O/.local/share" \
+  "$RAIZ/scripts/construir_convertidos.sh" --so-mao > /dev/null 2>&1
+estado_com_novos > "$DEPOIS_O"
+if [ -s "$CASA_O/.local/share/meowsystem/convertidos-apps/um-desenho.svg" ] && cmp -s "$ANTES_O" "$DEPOIS_O"; then
+  ok "o construir_convertidos.sh refaz o desenho de quem usa na casa, e o clone não muda"
+else
+  falha "o construir_convertidos.sh não leu o mapa de quem usa, ou escreveu no clone"
+  diff "$ANTES_O" "$DEPOIS_O" | sed 's/^/        /' >&2
+fi
+# O que a versão de antes gravava no clone volta ao que era (o teste não deixa resto).
+git -C "$RAIZ" checkout -q -- assets/icones/apps-convertidos.map 2>/dev/null
+rm -f "$RAIZ/assets/icones/convertidos-apps/um-desenho.svg" "$RAIZ/assets/icones/convertidos-apps/retoques/um-desenho.svg"
 
 # --- 4/4 o painel em uso, e o repositório INTEIRO — P75, 09/10/2026 --------
 #   As seções 1 a 3 exercitam UM caminho de escrita: o `wallpaper.sh` (a 3b,
@@ -400,10 +488,12 @@ printf '\n--- pendente: o que a P21 promete e esta passagem não entregou ---\n'
 PENDENTES=0
 # [P73, 09/10/2026: o `apps-arcticons.map` e o `arcticons-apps/` saíram da lista
 #   — a escolha de traço do painel mora no estado de quem usa, e a seção 3b
-#   cobra. A oficina de desenho ainda escreve os dois do convertido.]
-for alvo in assets/icones/apps-convertidos.map \
-            assets/icones/jogos-fora.map \
-            assets/icones/convertidos-apps assets/gatos; do
+#   cobra.]
+# [P82, 15/10/2026 (item 5): e o `apps-convertidos.map` e o `convertidos-apps/`
+#   também — a oficina grava no estado de quem usa, e a seção 3c cobra. Sobram
+#   o `jogos-fora.map` (a decisão de jogo do painel) e o `assets/gatos/` (o
+#   «Adicionar gato»), que nenhuma decisão tirou do clone.]
+for alvo in assets/icones/jogos-fora.map assets/gatos; do
   n_alvo="$(git -C "$RAIZ" ls-files -- "$alvo" | wc -l)"
   [ "$n_alvo" -gt 0 ] || continue
   PENDENTES=$((PENDENTES + n_alvo))

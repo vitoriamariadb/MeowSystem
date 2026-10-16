@@ -496,6 +496,150 @@ else
   falha "segurança: a paleta com quebra de linha num slot passou no validar" "$(printf '%s\n' "$saida" | tail -3)"
 fi
 
+# --- P82, item 9 (decisões 16, 18 e 19): Firefox, Vesktop e os projetos pessoais
+#   O traço do Firefox estava em `blue`, que é do Chrome (o próprio
+#   `apps-marca.map` mede); o Vesktop não tinha linha no mapa do pack; e os
+#   autorais `hefesto-*` e `fogstripper-*` (projetos pessoais) moravam nos dois
+#   packs, contra a regra de 23/09.
+grep -qx 'firefox:firefox:peach' "$RAIZ/assets/icones/apps-arcticons.map" \
+  && ok "o traço do Firefox é peach" \
+  || falha "o traço do Firefox não é peach" "$(grep '^firefox:' "$RAIZ/assets/icones/apps-arcticons.map")"
+v="$(amb python3 "$RAIZ/scripts/pack.py" fonte dev.vencord.Vesktop 2>&1 | head -3)"
+grep -qE '^dev\.vencord\.Vesktop[[:space:]]*:[[:space:]]*apps/com\.discordapp\.Discord\.svg' "$RAIZ/packs/dracula/icones/apps.map" \
+  && ok "o Vesktop veste o Discord do pack Dracula" \
+  || falha "o Vesktop não tem linha no mapa do pack Dracula" "$v"
+pessoais="$(find "$RAIZ/packs" -iname '*hefesto*' -o -iname '*fogstripper*')"
+[ -z "$pessoais" ] && ok "nenhum desenho de projeto pessoal (hefesto, fogstripper) nos packs" \
+  || falha "os packs ainda trazem desenhos de projeto pessoal" "$pessoais"
+# Sem a logo apontada (ICONES_LOGO_HEFESTO vazia, a de fábrica), o completar
+# não põe desenho nenhum para o Hefesto, e arranca o desenho gerado que uma
+# passagem antiga deixou no tema (o `<title>hefesto — ` é a marca de dono).
+CI="$T/casa-ci"; TEMA_CI="$CI/.local/share/icons/MeowSystem-Icons"
+mkdir -p "$TEMA_CI/scalable/apps"
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$TEMA_CI/index.theme"
+printf '<svg xmlns="http://www.w3.org/2000/svg"><title>hefesto — Dracula</title></svg>\n' \
+  > "$TEMA_CI/scalable/apps/hefesto-dualsense4unix.svg"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CI" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
+           PACK=dracula FLAVOR=dracula ACCENT=mauve ICONES_LOGO_HEFESTO="" \
+           "$RAIZ/scripts/completar_icones.sh" 2>&1)"
+if grep -q 'removeria hefesto-dualsense4unix.svg' <<< "$saida" \
+   && ! grep -qE '(instalaria|mudaria) .*(hefesto|vitoriamaria|fogstripper)' <<< "$saida"; then
+  ok "sem a logo apontada, o completar não desenha o Hefesto e arranca o desenho gerado antigo"
+else
+  falha "o completar ainda depende do desenho gerado do Hefesto" "$(grep -iE 'hefesto|fogstripper|vitoriamaria' <<< "$saida" | head -4)"
+fi
+# E na passada de verdade (casa de brinquedo), a falta do Hefesto não vira aviso.
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CI" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PACK=dracula FLAVOR=dracula ACCENT=mauve ICONES_LOGO_HEFESTO="" \
+           "$RAIZ/scripts/completar_icones.sh" 2>&1)"
+if ! grep -qiE 'não chegaram ao tema:.*(hefesto|vitoriamaria)' <<< "$saida" && [ ! -e "$TEMA_CI/scalable/apps/hefesto-dualsense4unix.svg" ]; then
+  ok "sem a logo apontada, o Hefesto fora do tema não é aviso, e o desenho gerado antigo saiu"
+else
+  falha "o completar avisa a falta do Hefesto, ou deixou o desenho gerado" "$(grep -iE 'chegaram|hefesto' <<< "$saida" | head -3)"
+fi
+
+# --- P82, item 10 (decisão 22): a camada de apps do Catppuccin só roda com ele
+#   Com o Dracula no ar, o `icones_apps.sh` mandava o flavor `dracula` para o
+#   `macchiato` e dizia «o acervo Catppuccin de aplicativos não está em …».
+CA="$T/casa-apps"; mkdir -p "$CA"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PACK=dracula FLAVOR=dracula ICONES_FLAVOR=dracula "$RAIZ/scripts/icones_apps.sh" 2>&1)"; rc=$?
+if [ -z "$saida" ] && [ "$rc" != 1 ] && [ "$rc" != 2 ] && [ -z "$(find "$CA" -type f)" ]; then
+  ok "com o Dracula no ar, a camada de apps do Catppuccin não diz nada e não escreve (rc=$rc)"
+else
+  falha "com o Dracula no ar, a camada de apps do Catppuccin falou ou escreveu (rc=$rc)" "$saida"
+fi
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PACK=catppuccin FLAVOR=mocha ICONES_FLAVOR=mocha "$RAIZ/scripts/icones_apps.sh" 2>&1)"
+[ -n "$saida" ] && ok "com o Catppuccin, a camada segue o caminho de sempre" \
+  || falha "com o Catppuccin, a camada de apps não respondeu"
+
+# --- P82, item 11 (decisões 17 e 21): trocar de pack devolve o que o pack escondia
+#   O `ocultar_apps.sh` só desfazia uma marca pelo `-nome`: trocar do Dracula
+#   para o Catppuccin deixava os 24 do `lancador.ocultar` do pack fora do
+#   lançador. Um /usr/share/applications falso, com os 24 e o `vim`; o conf
+#   esconde só o `vim`, para a lista de fábrica não se misturar à do pack.
+APPS="$T/apps-sistema"; CO="$T/casa-ocultar"; mkdir -p "$APPS" "$CO"
+nomes="$(python3 -c 'import json, sys; print("\n".join(json.load(open(sys.argv[1]))["lancador"]["ocultar"]))' \
+           "$RAIZ/packs/dracula/pack.json")"
+for n in $nomes vim; do
+  printf '[Desktop Entry]\nName=%s\nExec=true\nType=Application\n' "$n" > "$APPS/$n.desktop"
+done
+ocultar() {   # $1 = pack · $2 = flavor
+  env -i PATH="$FALSO:$PATH" HOME="$CO" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_APLICATIVOS_SISTEMA="$APPS" \
+    PACK="$1" FLAVOR="$2" LANCADOR_OCULTAR="vim" "$RAIZ/scripts/ocultar_apps.sh" 2>&1
+}
+marcados() { grep -l '^NoDisplay=true' "$APPS"/*.desktop 2>/dev/null | wc -l; }
+ocultar dracula dracula > /dev/null; com_dracula="$(marcados)"
+ocultar catppuccin mocha > /dev/null; com_catppuccin="$(marcados)"
+antes="$(cat "$APPS"/*.desktop | sha256sum)"
+saida="$(ocultar catppuccin mocha)"; rc=$?
+depois="$(cat "$APPS"/*.desktop | sha256sum)"
+if [ "$com_dracula" = 25 ] && [ "$com_catppuccin" = 1 ] && grep -q '^NoDisplay=true' "$APPS/vim.desktop" \
+   && [ "$rc" = 0 ] && [ "$antes" = "$depois" ]; then
+  ok "trocar do Dracula para o Catppuccin devolve os 24 que o pack escondia, e a 2ª passada não escreve"
+else
+  falha "a troca de pack não devolveu o que o pack escondia (Dracula: $com_dracula, Catppuccin: $com_catppuccin, 2ª rc=$rc)" "$saida"
+fi
+
+# --- P82, item 12 (decisão 20): as bases escondidas, a herança do exportado e o desinstalar
+#   Nenhum `Hidden=` nas bases, que apareciam nos seletores como «Dracula
+#   Circle» e «Dracula»; o exportado herdava só as bases e o `hicolor` (os
+#   `preferences-*` do COSMIC ficavam sem desenho); e o desinstalador tirava a
+#   `-Base` e esquecia a `-Base-2`.
+B="$T/icones12"; mkdir -p "$B/Tema" "$B/Tema-Base" "$B/Tema-Base-2"
+printf '[Icon Theme]\nName=Tema\nInherits=Tema-Base,Tema-Base-2,hicolor\nDirectories=a\n' > "$B/Tema/index.theme"
+printf '[Icon Theme]\nName=Dracula Circle\nInherits=Papirus-Dark,breeze-dark\nDirectories=a\n' > "$B/Tema-Base/index.theme"
+printf '[Icon Theme]\nName=Dracula\nInherits=hicolor\nDirectories=a\n' > "$B/Tema-Base-2/index.theme"
+lib12() { env -i PATH="$FALSO:$PATH" HOME="$T/casa12" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+            bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"; . "$MEOW_RAIZ/lib/desinstalar.sh"; "$@"' _ "$@" 2>&1; }
+lib12 meow_tema_exportado_heranca "$B" Tema > /dev/null
+herda="$(sed -n 's/^Inherits=//p' "$B/Tema/index.theme")"
+if [ "$herda" = "Tema-Base,Tema-Base-2,Cosmic,Adwaita,hicolor" ] \
+   && grep -qx 'Hidden=true' "$B/Tema-Base/index.theme" && grep -qx 'Hidden=true' "$B/Tema-Base-2/index.theme" \
+   && [ "$(sed -n 's/^Inherits=//p' "$B/Tema-Base/index.theme")" = "hicolor" ]; then
+  ok "o tema exportado herda as bases, Cosmic, Adwaita e hicolor, e as bases vão escondidas"
+else
+  falha "a herança do tema exportado ou o Hidden das bases não saiu" "Inherits=$herda; $(grep -h Hidden "$B"/Tema-Base*/index.theme)"
+fi
+L="$T/base-local"; mkdir -p "$L"
+printf '[Icon Theme]\nName=Dracula Circle\nDirectories=a\n' > "$L/index.theme"
+( cd "$L" && sha256sum ./index.theme > .meow-somas.sha256 )
+lib12 meow_tema_base_escondida "$L" > /dev/null; rc1=$?
+antes="$(sha256sum < "$L/index.theme")"
+lib12 meow_tema_base_escondida "$L" > /dev/null; rc2=$?
+if grep -qx 'Hidden=true' "$L/index.theme" && ( cd "$L" && sha256sum --status -c .meow-somas.sha256 ) \
+   && [ "$antes" = "$(sha256sum < "$L/index.theme")" ] && [ "$rc2" = 0 ]; then
+  ok "a base local ganha o Hidden=true e o manifesto dela continua conferindo; a 2ª passada não escreve"
+else
+  falha "a base local não ficou escondida, ou o manifesto dela parou de conferir (rc=$rc1/$rc2)"
+fi
+IC="$T/casa12/.local/share/icons"; mkdir -p "$IC/MeowSystem-Icons-Base" "$IC/MeowSystem-Icons-Base-2" "$IC/MeowSystem-Icons-Base-3"
+: > "$IC/MeowSystem-Icons-Base/.meow-origem"; : > "$IC/MeowSystem-Icons-Base-2/.meow-origem"
+lib12 meow_desinstalar_bases_de_icones > /dev/null
+if [ ! -e "$IC/MeowSystem-Icons-Base" ] && [ ! -e "$IC/MeowSystem-Icons-Base-2" ] && [ -d "$IC/MeowSystem-Icons-Base-3" ]; then
+  ok "o desinstalador tira a -Base e a -Base-2 com a marca de dono, e deixa a que não é nossa"
+else
+  falha "o desinstalador não tirou as duas bases (ou tirou a que não é nossa)" "$(ls "$IC")"
+fi
+
+# --- P82, item 13: o ICONES_DRACULA ausente vale como ligado ----------------------
+#   O `10a139f` (o `_dracula_no_ar` do icones_apps_dracula.sh) foi provado só por
+#   rodada: todo teste escrevia `ICONES_DRACULA="sim"`. Aqui o conf não tem a
+#   linha, o Dracula está no ar, e os desenhos do pack entram (no ensaio). O
+#   script de antes do `10a139f` punha 0 desenhos do pack.
+CD="$T/casa-dracula"; mkdir -p "$CD/.local/share/icons/MeowSystem-Icons/scalable/apps"
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$CD/.local/share/icons/MeowSystem-Icons/index.theme"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CD" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
+           PACK=dracula FLAVOR=dracula "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar 2>&1)"
+if grep -q 'mudaria .*/scalable/apps/net\.waterfox\.waterfox\.svg' <<< "$saida"; then
+  ok "sem a linha ICONES_DRACULA no conf, com o Dracula no ar, os desenhos do pack entram"
+else
+  falha "sem a linha ICONES_DRACULA, os desenhos do pack não entram" "$(tail -3 <<< "$saida")"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"

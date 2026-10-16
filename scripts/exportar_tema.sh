@@ -39,6 +39,9 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# A herança do exportado e o `Hidden=true` das bases (P82, item 12).
+# shellcheck source=../lib/icones.sh
+. "$RAIZ/lib/icones.sh"
 
 ID="${1:-}"
 [ -n "$ID" ] || { meow_erro "uso: exportar_tema.sh <id> [flavor] [arquivo.tar.gz]"; exit "$MEOW_ERRO"; }
@@ -150,21 +153,12 @@ TEMA="$ICONES/$NOME"
 #   O nosso herda as camadas da base que estão na casa (na ordem do índice) e o
 #   `hicolor`; cada base herda só o `hicolor` — o `Inherits=` do upstream
 #   (`-Dark,breeze-dark,Zafiro,…`) aponta para temas que não viajam.
+#   [P82, 15/10/2026 (item 12; decisão 20): e depois o `Cosmic` e o `Adwaita`,
+#   antes do `hicolor`, e cada base vai com o `Hidden=true`. A conta mora no
+#   `meow_tema_exportado_heranca` (lib/icones.sh), que diz as camadas.]
+_camadas="$(meow_tema_exportado_heranca "$ICONES" "$NOME")" || exit "$MEOW_ERRO"
 camadas=()
-for h in $(sed -n 's/^Inherits=//p' "$TEMA/index.theme" | head -1 | tr ',' ' '); do
-  case "$h" in "$NOME"-Base|"$NOME"-Base-[0-9]*) [ -d "$ICONES/$h" ] && camadas+=("$h") ;; esac
-done
-_herdar() {   # $1 = index.theme · $2 = a nova lista
-  local tmp; tmp="$(mktemp -p "$(dirname "$1")" .meow.XXXXXX)" || return 1
-  awk -v h="$2" 'BEGIN{feito=0} /^Inherits=/ && !feito {print "Inherits=" h; feito=1; next} {print}' "$1" > "$tmp" \
-    && mv -f "$tmp" "$1"
-}
-herda="$(printf '%s,' "${camadas[@]}")hicolor"
-_herdar "$TEMA/index.theme" "$herda" || exit "$MEOW_ERRO"
-for c in "${camadas[@]}"; do
-  _herdar "$ICONES/$c/index.theme" "hicolor" || exit "$MEOW_ERRO"
-  rm -f "$ICONES/$c/.meow-origem" "$ICONES/$c/.meow-somas.sha256"
-done
+[ -n "$_camadas" ] && mapfile -t camadas <<< "$_camadas"
 find "$TEMA" "${camadas[@]/#/$ICONES/}" -maxdepth 1 -name icon-theme.cache -delete 2>/dev/null
 
 # --- nenhum link para fora do que vai no arquivo ------------------------------

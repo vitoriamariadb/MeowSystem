@@ -106,6 +106,39 @@ else
   falha "o fonte não foi aberto"
 fi
 
+# --- P82, item 18: o completar_icones.sh lê a lista do `meow cosmic icones` ---
+#   O verbo dizia «sem desenho: com.system76.CosmicViewer», e ninguém
+#   completava. Um app do COSMIC de brinquedo (dpkg-query e dpkg falsos, a
+#   árvore em `CV_RAIZ_APPS`) sem desenho em mapa nenhum: o tema ganha o ícone
+#   de fábrica dele, e a 2ª passada não escreve.
+RA="$T/raiz-apps"; CI="$T/casa-completar"; FB="$T/falso-dpkg"
+mkdir -p "$RA/usr/share/applications" "$RA/usr/share/icons/hicolor/scalable/apps" "$FB" \
+         "$CI/.local/share/icons/MeowSystem-Icons/scalable/apps"
+printf '[Desktop Entry]\nName=Falso\nExec=true\nIcon=com.system76.CosmicFalso\nType=Application\n' \
+  > "$RA/usr/share/applications/com.system76.CosmicFalso.desktop"
+printf '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><title>falso</title></svg>\n' \
+  > "$RA/usr/share/icons/hicolor/scalable/apps/com.system76.CosmicFalso.svg"
+printf '#!/bin/sh\necho cosmic-falso\n' > "$FB/dpkg-query"
+printf '#!/bin/sh\n[ "$1" = -L ] && echo /usr/share/applications/com.system76.CosmicFalso.desktop\n' > "$FB/dpkg"
+printf '#!/bin/sh\nexit 1\n' > "$FB/sudo"
+chmod 755 "$FB"/*
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$CI/.local/share/icons/MeowSystem-Icons/index.theme"
+completar() {
+  env -i PATH="$FB:$PATH" HOME="$CI" MEOW_RAIZ="$RAIZ" NO_COLOR=1 CV_RAIZ_APPS="$RA" \
+    PACK=dracula FLAVOR=dracula ACCENT=mauve "$RAIZ/scripts/completar_icones.sh" >/dev/null 2>&1
+}
+ALVO_CI="$CI/.local/share/icons/MeowSystem-Icons/scalable/apps/com.system76.CosmicFalso.svg"
+completar
+if [ -f "$ALVO_CI" ] && [ "$(cat "$ALVO_CI")" = "$(cat "$RA/usr/share/icons/hicolor/scalable/apps/com.system76.CosmicFalso.svg")" ]; then
+  antes="$(stat -c %Y.%s "$ALVO_CI")"; sleep 1; completar
+  [ "$antes" = "$(stat -c %Y.%s "$ALVO_CI")" ] \
+    && ok "o app do COSMIC sem desenho ganha o ícone de fábrica no tema, e a 2ª passada não escreve" \
+    || falha "a 2ª passada do completar reescreveu o ícone do app do COSMIC"
+else
+  falha "o completar não pôs no tema o ícone do app do COSMIC sem desenho"
+fi
+
 echo
 if [ "$falhas" = 0 ]; then echo "cosmic-prever: tudo certo"; exit 0; fi
 echo "cosmic-prever: $falhas falha(s)"; exit 1

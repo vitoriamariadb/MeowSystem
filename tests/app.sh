@@ -42,6 +42,17 @@
 #   acontecer onde o padrão da chave já é `sim` ou `nao`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+# NADA FICA EM /tmp — 15/10/2026, P82 (item 38). O bloco 10 fazia um
+# `mkdtemp()` (o `bom.conf` e o `quebrado.conf`) sem apagar, e cada rodada da
+# suíte deixava uma pasta. Agora todo temporário deste teste, do bash e do
+# Python, nasce dentro de UMA pasta (o `TMPDIR`), e ela sai no fim, inclusive
+# por sinal (o Ctrl+C de quem roda, o TERM de um `timeout`).
+_TMP_DO_TESTE="$(mktemp -d)" || exit 2
+trap 'rm -rf "$_TMP_DO_TESTE"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+export TMPDIR="$_TMP_DO_TESTE"
 EXEMPLO="$RAIZ/meow.conf.exemplo"
 falhas=0
 
@@ -1306,5 +1317,131 @@ print("ok: a ficha diz o nome do lançador, o --onde cobre cartão e aba, o logo
       "«Adicionar» não leva o clone")
 PY
 rm -rf "$_tmp13"
+
+# --- 13b. A TRAVA DO PACK CABE NO BALÃO — P82, item 21 --------------------------
+#   A frase do porquê de um desenho do pack não valer num app (a `trava_pack`)
+#   vai para o balão do desenho, e passava do teto de 80 do balão: saía cortada
+#   (a 375 px e em qualquer largura). As quatro formas dela, com um nome de app
+#   comprido, cabem no teto.
+_trava="$(env -i PATH="$PATH" HOME="$(mktemp -d)" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+m = servidor.Manipulador.__new__(servidor.Manipulador)
+nome = "Visualizador de documentos do GNOME"
+d = {"id": "x", "icone": "x"}
+nada = (set(), (), set(), set())
+frases = [
+    m._trava_do_pack({"id": "x", "icone": "/opt/x/icone.png"}, nome, donos=set(), travas=nada),
+    m._trava_do_pack(d, nome, donos={"x"}, travas=nada),
+    m._trava_do_pack(d, nome, donos=set(), travas=({"x"}, (), set(), set())),
+    m._trava_do_pack(d, nome, donos=set(), travas=(set(), (), {"x"}, set())),
+]
+for f in frases:
+    print("%d\t%s" % (len(f or ""), f))
+PY
+)"
+_compridas="$(awk -F'\t' '$1 > 80 || $1 == 0' <<< "$_trava")"
+if [ -z "$_compridas" ] && [ "$(grep -c . <<< "$_trava")" = 4 ]; then
+  echo "ok: as quatro frases da trava do pack cabem no balão (até 80), com um nome de app comprido"
+else
+  echo "FALHOU: frase da trava do pack acima do teto do balão (80): $_compridas" >&2
+  falhas=$((falhas+1))
+fi
+
+# --- 14. O LANÇADOR DE FÁBRICA NÃO ESCONDE APP DE QUEM USA — P82, item 11 ------
+#   O `LANCADOR_OCULTAR` do exemplo escondia o `google-chrome`, o `steam` e o
+#   `github-desktop`: duplicatas desta máquina, e não programas de sistema
+#   (decisão 17). O conf dela já os tem e não muda.
+_lo="$(sed -n 's/^LANCADOR_OCULTAR="\(.*\)"$/\1/p' "$RAIZ/meow.conf.exemplo" | tr ',' '\n')"
+_errados="$(grep -xE 'google-chrome|steam|github-desktop' <<< "$_lo")"
+if [ -z "$_errados" ] && [ -n "$_lo" ]; then
+  echo "ok: o LANCADOR_OCULTAR de fábrica não esconde o Chrome, a Steam nem o GitHub Desktop"
+else
+  echo "FALHOU: o LANCADOR_OCULTAR de fábrica esconde app de quem usa: $(echo $_errados)" >&2
+  falhas=$((falhas+1))
+fi
+
+# --- 15. A NOITE NÃO GRAVA COM UMA PONTA SÓ — P82, item 27 (decisão 26) -------
+#   O `meow_noite_janela` pede `NOITE_INICIO` e `NOITE_FIM` juntas, e o arquivo
+#   aceitava uma só. O `/api/definir` e o `/api/salvar` recusam com 409 o pedido
+#   que deixaria a ponta solta; as duas, nenhuma, ou a que completa a do disco
+#   passam. O `definir` e o resto do salvar não rodam aqui: a recusa vem antes.
+_tmp15="$(mktemp -d)"
+_noite="$(env -i PATH="$PATH" HOME="$_tmp15" MEOW_CONF="$_tmp15/meow.conf" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import json, sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+open(servidor.CONF, "w").write('NOITE_INICIO=""\nNOITE_FIM=""\n')
+m = servidor.Manipulador.__new__(servidor.Manipulador)
+respostas = []
+m._json = lambda dados, status=200: respostas.append((status, dados))
+def _gravou(*a, **k):
+    raise AssertionError("gravou")
+servidor.definir = servidor.definir_varias = servidor.iniciar = _gravou
+erros = []
+for rota, corpo in (("/api/definir", {"chave": "NOITE_INICIO", "valor": "19:00"}),
+                    ("/api/salvar", {"mudancas": {"NOITE_FIM": "06:00"}})):
+    respostas.clear()
+    try:
+        m._api_post(rota, corpo)
+    except AssertionError as e:
+        erros.append("%s %s" % (rota, e))
+        continue
+    st = respostas[0][0] if respostas else None
+    if st != 409:
+        erros.append("%s com uma ponta deu %s" % (rota, st))
+f = servidor.pontas_da_noite_soltas
+casos = [({"NOITE_INICIO": "19:00", "NOITE_FIM": "06:00"}, {}, 0),
+         ({"NOITE_INICIO": "", "NOITE_FIM": ""}, {"NOITE_INICIO": "19:00"}, 0),
+         ({"NOITE_FIM": "06:00"}, {"NOITE_INICIO": "19:00"}, 0),
+         ({"NOITE_FIM": ""}, {"NOITE_INICIO": "19:00", "NOITE_FIM": "06:00"}, 1),
+         ({"LOG_NIVEL": "info"}, {"NOITE_INICIO": "19:00"}, 0)]
+for escolhas, disco, esperado in casos:
+    if len(f(escolhas, disco)) != esperado:
+        erros.append("%r sobre %r deu %r" % (escolhas, disco, f(escolhas, disco)))
+print("; ".join(erros) or "ok")
+PY
+)"
+rm -rf "$_tmp15"
+if [ "$_noite" = ok ]; then
+  echo "ok: a noite com uma ponta só é recusada (409) no definir e no salvar; as duas, nenhuma, ou a que completa a do disco passam"
+else
+  echo "FALHOU: a noite com uma ponta só: $_noite" >&2
+  falhas=$((falhas+1))
+fi
+
+# --- 16. TODA CHAVE NUMÉRICA DECLARA A FAIXA — P82, item 31 --------------------
+#   Uma chave que é número e não declara faixa vira campo de texto livre, e o
+#   painel aceita «abc» nela (era o «Quantos backups guardar»). Numérica é a
+#   chave cujo valor de fábrica é um número, ou cujo leitor nos scripts cai num
+#   número (`${CHAVE:-440}`). A conta das que ficam sem faixa tem de dar 0.
+_tmp16="$(mktemp -d)"
+_sem_faixa="$(cd "$RAIZ" && env -i PATH="$PATH" HOME="$_tmp16" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import re, subprocess, sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+NUM = re.compile(r"-?\d+(?:[.,]\d+)?")
+for i in servidor.ler_esquema():
+    if i.get("faixa") or i.get("opcoes") or i.get("horario") or i.get("lista"):
+        continue
+    padrao = str(i.get("padrao") or "")
+    if padrao and not NUM.fullmatch(padrao):
+        continue
+    leitores = subprocess.run(
+        ["grep", "-rhoE", r"\$\{" + i["chave"] + r":-[0-9][0-9.]*\}",
+         "scripts", "lib", "bin", "install.sh"],
+        capture_output=True, text=True).stdout.split()
+    if (padrao and NUM.fullmatch(padrao)) or leitores:
+        print(i["chave"])
+PY
+)"
+rm -rf "$_tmp16"
+if [ -z "$_sem_faixa" ]; then
+  echo "ok: toda chave numérica do exemplo declara a faixa (nenhuma vira campo de texto livre)"
+else
+  echo "FALHOU: chave numérica sem faixa no exemplo: $(echo $_sem_faixa)" >&2
+  falhas=$((falhas+1))
+fi
 
 exit "$falhas"

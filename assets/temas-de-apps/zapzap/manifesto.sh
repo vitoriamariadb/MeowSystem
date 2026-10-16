@@ -186,7 +186,7 @@ _zz_tray_atual() {
 _zz_conf_com_tray() {
   local desejado="$1"
   [ -f "$_ZZ_CONF" ] || return 1
-  python3 - "$_ZZ_CONF" "$desejado" <<'PY'
+  python3 -I - "$_ZZ_CONF" "$desejado" <<'PY'
 import sys, re
 caminho, valor = sys.argv[1], sys.argv[2]
 linhas = open(caminho, encoding='utf-8').read().split('\n')

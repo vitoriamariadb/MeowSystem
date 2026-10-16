@@ -70,11 +70,17 @@ _pack_ref="$(meow_pack_dir)"
 FLAVOR_ICONES="$(python3 "$RAIZ/scripts/pack.py" flavor-icones "$_pack_ref")" || FLAVOR_ICONES=""
 # O acervo só tem duas variantes: dark=Macchiato, light=Latte. Frappé e Mocha
 # caem no vizinho mais próximo em claridade, e o script DIZ que fez isso.
+# O FLAVOR QUE NÃO É DO CATPPUCCIN NÃO É DESTA CAMADA — 15/10/2026, P82 (item
+#   10; decisão 22). O `*)` mandava o `dracula` para o macchiato, e com o
+#   Dracula no ar a linha dizia «o acervo Catppuccin de aplicativos não está
+#   em …», como se faltasse alguma coisa. A camada é do pack Catppuccin, e não
+#   do motor: com outro pack ela sai calada, como pulada (3). O vazio (o
+#   pack.py não respondeu) continua no macchiato, que era o de antes.
 case "$FLAVOR_ICONES" in
   latte) VARIANTE="latte" ;;
-  macchiato) VARIANTE="macchiato" ;;
+  macchiato|'') VARIANTE="macchiato" ;;
   frappe|mocha) VARIANTE="macchiato"; APROXIMOU="$FLAVOR_ICONES" ;;
-  *) VARIANTE="macchiato"; APROXIMOU="$FLAVOR_ICONES" ;;
+  *) exit "$MEOW_SEM_DEPENDENCIA" ;;
 esac
 
 ORIGEM="$RAIZ/assets/icones/catppuccin-apps/$VARIANTE"

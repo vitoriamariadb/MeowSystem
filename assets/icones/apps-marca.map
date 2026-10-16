@@ -148,7 +148,7 @@ org.qbittorrent.qBittorrent:blue:qBittorrent #2F67BA, dH 2; vendor medido #356EB
 thunderbird:blue:Thunderbird #0A84FF, dH 4; arte do pacote medida #1480E3, dominancia 96%
 
 # — navegadores: os dois laranjas sao laranjas de verdade, e o Chrome fica azul
-firefox:peach:Firefox #FF7139 e dH 12 do peach; hoje esta blue, que e do Chrome
+firefox:peach:Firefox #FF7139 e dH 12 do peach; o traco tambem e peach desde a P82 (era blue, que e do Chrome)
 com.brave.Browser:peach:Brave #FB542B, dH 18 do peach; vendor medido #FF1F00, dominancia 99%. Alternativa: maroon (dH 26)
 
 # — midia e criacao

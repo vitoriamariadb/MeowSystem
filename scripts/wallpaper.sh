@@ -783,6 +783,9 @@ soltar_derivadas() {
 #   sobrevivendo à formatação — pelo `.padrao` para quem clona, e pelos backups
 #   de `$MEOW_ESTADO` para quem já usa. O contrato está em
 #   `meow_estado_com_padrao` (`lib/comum.sh`).
+# [P82, 15/10/2026 (item 34): o `estado` só lê, e não semeia — ver o
+#   `meow_estado_com_padrao`. Fica valendo para o BANIDOS.txt, lá embaixo.]
+case "${1:-aplicar}" in estado) MEOW_ESTADO_SO_LE=1 ;; esac
 LADO_TSV="${WALLPAPER_LADO:-$(meow_estado_com_padrao papeis-de-parede lado.tsv)}"
 
 # nome do arquivo -> dia|noite. Só quem discorda da medição; preenchido por
@@ -1187,7 +1190,9 @@ fixo_valido() {
 # imagens diferentes, "próximo" passa a ser relativo ao primeiro — e não há
 # resposta melhor: o `source` é um só por saída, mas o comando é um só.
 imagem_atual() {
-  local estado="$HOME/.local/state/cosmic/com.system76.CosmicBackground/v1/wallpapers"
+  # [P82: o estado do cosmic-bg usa o mesmo número de esquema do pacote.]
+  local estado
+  estado="$HOME/.local/state/cosmic/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)/wallpapers"
   local p
   [ -f "$estado" ] || return 1
   while IFS= read -r p; do
@@ -1237,7 +1242,8 @@ lista_do_grupo() {
 #   `meow doctor` acusaria diferença a cada rodada para sempre, e o auto-reparo
 #   "consertaria" de hora em hora algo que o COSMIC desfaz em cinco minutos —
 #   o mesmo ping-pong que o projeto já teve com a Aurora e resolveu cedendo.
-ESTADO_BG="$HOME/.local/state/cosmic/com.system76.CosmicBackground/v1/wallpapers"
+# [P82: o mesmo número de esquema do pacote, e não um v1 cravado.]
+ESTADO_BG="$HOME/.local/state/cosmic/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)/wallpapers"
 
 limpar_estado_morto() {
   [ -f "$ESTADO_BG" ] || return 1
@@ -1526,8 +1532,10 @@ cmd_aplicar() {
 
   local n; n="$(quantas)"
   if [ "$n" -lt 2 ]; then
-    meow_aviso "só $n imagem(ns) em $ATIVOS — o carrossel precisa de 2 ou mais"
-    meow_info "adicione com: meow wallpaper adicionar <arquivo|pasta>"
+    # [P82, 15/10/2026: era aviso com «adicione com: meow wallpaper adicionar»;
+    #   a galeria do painel já tem o «Adicionar», e menos de duas imagens é
+    #   uma rotina pulada, não um defeito.]
+    meow_pula "só $n imagem(ns) em $ATIVOS — o carrossel precisa de 2 ou mais"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -1871,6 +1879,22 @@ fontes_no_conf() {
   else
     conf_bruto WALLPAPER_FONTES_DELA
   fi
+}
+
+# O «DEIXAR ASSIM» DO PAPEL DE PAREDE DEVOLVIDO — 15/10/2026, P82 (item 3;
+#   decisão 13). A pendência `wallpaper-fonte-revertida` só saía pelo
+#   `permitir`, que AUTORIZA a imagem. Quando a devolução estava certa, o cartão
+#   ficava na Início até alguém autorizar a imagem errada para tirá-lo. Este
+#   verbo é a outra resposta: a devolução fica, o cartão sai, e o meow.conf não
+#   é tocado.
+cmd_dispensar() {
+  if meow_seco; then
+    meow_muda "tiraria da Início o aviso do papel de parede devolvido (o meow.conf fica como está)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_pendencia_resolvida wallpaper-fonte-revertida
+  meow_ok "a imagem devolvida fica como está — o aviso saiu da Início"
+  return "$MEOW_OK"
 }
 
 cmd_permitir() {
@@ -2893,6 +2917,7 @@ case "${1:-aplicar}" in
   desbanir)  shift; cmd_desbanir "${1:-}" ;;
   adicionar) shift; cmd_adicionar "${1:-}" ;;
   permitir)  shift; cmd_permitir "${1:-}" ;;
+  dispensar) cmd_dispensar ;;
   # O ÚNICO SUBCOMANDO DESTE ARQUIVO COM DOIS ARGUMENTOS, e isso importa para
   # quem for ligá-lo à CLI: o `cmd_wallpaper` do `bin/meow` encaminha UM só
   # (`"$acao" ${1:+"$1"}`), então `meow wallpaper lado <img> noite` chegaria aqui

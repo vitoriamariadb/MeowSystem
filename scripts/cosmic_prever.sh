@@ -325,16 +325,28 @@ _cv_icones_candidato() { # $1 árvore extraída $2 pacote
   return 0
 }
 
-cmd_icones() {
-  local d i n=0
+# Os apps visíveis do COSMIC instalado sem desenho em mapa nenhum, um
+# "<Icon><TAB><arquivo .desktop>" por linha. Uma função só, para o verbo e para
+# quem completa o tema (o `icones-lista`, que o `completar_icones.sh` lê — P82,
+# item 18). `CV_RAIZ_APPS` é a raiz da árvore (vazia = a instalada), para teste.
+_cv_sem_desenho() {
+  local d i
   local -a todos=()
   mapfile -t todos < <(dpkg -L $(dpkg-query -W -f='${Package}\n' 'cosmic-*' 2>/dev/null) 2>/dev/null |
                        grep '^/usr/share/applications/[^/]*\.desktop$' | sort -u)
   while IFS=$'\t' read -r d i; do
+    [ -n "$i" ] || continue
     _cv_tem_arte "$i" && continue
+    printf '%s\t%s\n' "$i" "$d"
+  done < <(_cv_desktops "${CV_RAIZ_APPS:-}" "${todos[@]}")
+}
+
+cmd_icones() {
+  local d i n=0
+  while IFS=$'\t' read -r i d; do
     n=$((n+1))
     meow_aviso "sem desenho: $i ($d)"
-  done < <(_cv_desktops "" "${todos[@]}")
+  done < <(_cv_sem_desenho)
   [ "$n" = "0" ] && meow_ok "todo app visível do COSMIC instalado tem desenho num mapa"
   return "$MEOW_OK"
 }
@@ -396,8 +408,8 @@ while [ $# -gt 0 ]; do
     --debs)     CV_DEBS="$2"; shift ;;
     --fontes)   CV_FONTES="$2"; shift ;;
     --sem-rede) CV_REDE="nao" ;;
-    prever|ler|icones) acao="$1" ;;
-    *) meow_erro "uso: cosmic_prever.sh [prever|ler|icones] [--debs DIR] [--fontes DIR] [--sem-rede]"; exit "$MEOW_ERRO" ;;
+    prever|ler|icones|icones-lista) acao="$1" ;;
+    *) meow_erro "uso: cosmic_prever.sh [prever|ler|icones|icones-lista] [--debs DIR] [--fontes DIR] [--sem-rede]"; exit "$MEOW_ERRO" ;;
   esac
   shift
 done
@@ -405,4 +417,6 @@ case "$acao" in
   prever) cmd_prever ;;
   ler)    cmd_ler ;;
   icones) cmd_icones ;;
+  # Só os nomes de ícone, um por linha, sem cor nem frase (P82, item 18).
+  icones-lista) _cv_sem_desenho | cut -f1 ;;
 esac

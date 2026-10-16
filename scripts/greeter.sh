@@ -181,7 +181,6 @@ fase_avatar; [ $? = 1 ] && mudou_avatar=1
 
 [ -d "$CAPTURA" ] || {
   meow_aviso "não há captura para '$ALVO' — a tela de login fica como está"
-  meow_info "capture antes: meow tema capturar $ALVO"
   exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 }
 
@@ -286,7 +285,6 @@ fi
 
 if ! sudo -n true 2>/dev/null; then
   meow_aviso "a tela de login precisa de sudo (${#pendentes[@]} arquivo(s) pendentes)"
-  meow_info "rode o install.sh de novo com sudo disponível"
   exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 fi
 

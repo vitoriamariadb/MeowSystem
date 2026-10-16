@@ -456,9 +456,11 @@ fi
 #   pior do que um recurso que falta: ela testaria, não veria efeito, e não teria
 #   como saber de quem é a culpa.
 applet_montado() {
-  local barras="$COSMIC/com.system76.CosmicPanel"
-  grep -qs 'LogoMenu' "$barras.Panel/v1/plugins_wings" "$barras.Panel/v1/plugins_center" \
-                      "$barras.Dock/v1/plugins_wings"  "$barras.Dock/v1/plugins_center"
+  local barras="$COSMIC/com.system76.CosmicPanel" vp vd
+  # [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
+  vp="$(meow_cosmic_v com.system76.CosmicPanel.Panel)"; vd="$(meow_cosmic_v com.system76.CosmicPanel.Dock)"
+  grep -qs 'LogoMenu' "$barras.Panel/$vp/plugins_wings" "$barras.Panel/$vp/plugins_center" \
+                      "$barras.Dock/$vd/plugins_wings"  "$barras.Dock/$vd/plugins_center"
 }
 
 # O AVISO SÓ VALE QUANDO A ROTAÇÃO ESTÁ LIGADA — DECISÃO DELA, 24/08/2026.

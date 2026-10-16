@@ -80,9 +80,34 @@ if t.vivo() is False and t.rc == 0 and t.fim is not None:
     print("ok: gravado o desfecho, vivo() diz que acabou, com rc=0 e o fim")
 else:
     falhas.append("depois do desfecho: vivo()=%r rc=%r fim=%r" % (t.vivo(), t.rc, t.fim))
+
+# O NETO QUE HERDA O STDOUT — P82, 15/10/2026 (item 36)
+#   O `fim` nascia só quando o stdout fechava, e um neto que herde o stdout
+#   (o `&` de um script) segura o cano aberto. O trabalho ficava vivo para
+#   sempre, com o pai morto. Aqui o pai sai na hora e o neto dorme 60 s com o
+#   stdout herdado: o desfecho tem de chegar em menos de 5 s, com rc=0.
+servidor.Trabalho._ler = original
+t2 = servidor.Trabalho("teste-neto", ["sh", "-c", "sleep 60 & echo ok"], dict(os.environ), "teste")
+try:
+    fim = time.time() + 5
+    while t2.vivo() and time.time() < fim:
+        time.sleep(0.05)
+    if t2.vivo() is False and t2.rc == 0:
+        print("ok: o pai saiu e o neto segura o stdout — o desfecho chegou em %.1f s, com rc=0"
+              % (t2.fim - t2.comeco))
+    else:
+        falhas.append("com um neto segurando o stdout, depois de 5 s: vivo()=%r rc=%r"
+                      % (t2.vivo(), t2.rc))
+finally:
+    # O neto é deste teste: sai junto, pelo grupo próprio do trabalho.
+    try:
+        os.killpg(t2.proc.pid, 15)
+    except OSError:
+        pass
+
 if falhas:
     for f in falhas:
         print("FALHOU: " + f)
     sys.exit(1)
-print("passou: a gaveta nunca lê «saiu» sem o código de saída")
+print("passou: a gaveta nunca lê «saiu» sem o código de saída, nem fica viva por um neto")
 PY

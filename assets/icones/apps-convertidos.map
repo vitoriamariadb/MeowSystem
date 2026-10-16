@@ -3,6 +3,13 @@
 #
 # Formato:  nome-de-icone-do-.desktop : origem-chapada : cor [ : parametros ]
 #
+# O NOME DO APP, NA LINHA DE CIMA — 15/10/2026, P82 (item 8). Um id invertido
+#   (`com.obsproject.Studio`) virava «Studio» na ficha de ícone: o rótulo pega o
+#   último pedaço do id quando não há `.desktop` que diga o nome. A linha
+#   `# app: OBS Studio` logo acima da linha do mapa é o nome que a ficha mostra.
+#   É comentário, e não um quinto campo, porque dez leitores deste arquivo cortam
+#   a linha nos `:` — um comentário no fim dela entraria no campo da cor.
+#
 # É UM MAPA SÓ PARA DOIS LEITORES, e isso não é economia: é a regra da casa.
 #   · `scripts/construir_convertidos.sh` lê os campos 1, 2 e 4 — o que converter,
 #     de onde, e com que botões. Ele GERA `assets/icones/convertidos-apps/<nome>.svg`.
@@ -206,42 +213,64 @@
 # ============================================================================
 
 # --- documentos e escritório -------------------------------------------------
+# app: ONLYOFFICE
 org.onlyoffice.desktopeditors:/usr/share/icons/Papirus/64x64/apps/org.onlyoffice.desktopeditors.svg:sapphire
 
 # --- navegadores -------------------------------------------------------------
+# app: Brave
 com.brave.Browser:/usr/share/icons/Papirus/64x64/apps/com.brave.Browser.svg:blue:--k 4 --funde 84 --tol 1.0
 
 # --- conversa e rede ---------------------------------------------------------
+# app: Discord
 com.discordapp.Discord:/usr/share/icons/Papirus/64x64/apps/com.discordapp.Discord.svg:sky
 meow-whatsapp:/usr/share/icons/Papirus/64x64/apps/whatsapp.svg:sky
+# app: qBittorrent
 org.qbittorrent.qBittorrent:/usr/share/icons/Papirus/64x64/apps/org.qbittorrent.qBittorrent.svg:sky
+# app: Telegram
 org.telegram.desktop:/usr/share/icons/Papirus/64x64/apps/org.telegram.desktop.svg:sky
 
 # --- mídia, captura e jogos --------------------------------------------------
+# app: OBS Studio
 com.obsproject.Studio:/usr/share/icons/Papirus/64x64/apps/com.obsproject.Studio.svg:green
+# app: Editor de Texto do COSMIC
 com.system76.CosmicEdit:mao:pink
+# app: Player do COSMIC
 com.system76.CosmicPlayer:mao:green
+# app: Spotify
 com.spotify.Client:/usr/share/icons/Papirus/64x64/apps/com.spotify.Client.svg:green
+# app: Câmera (Snapshot)
 org.gnome.Snapshot:/usr/share/icons/Papirus/64x64/apps/org.gnome.Snapshot.svg:green
+# app: VLC
 org.videolan.VLC:/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg:green
 steam:/usr/share/icons/Papirus/64x64/apps/steam.svg:green
 
 # --- criação e código --------------------------------------------------------
+# app: Gradia
 be.alexandervanhee.gradia:mao:pink
+# app: GitHub Desktop
 io.github.shiftey.Desktop:/usr/share/icons/Papirus/64x64/apps/io.github.shiftey.Desktop.svg:pink
+# app: GIMP
 org.gimp.GIMP:/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg:pink
+# app: Apostrophe
 org.gnome.gitlab.somas.Apostrophe:/usr/share/icons/Papirus/64x64/apps/org.gnome.gitlab.somas.Apostrophe.svg:pink
 vscode:/usr/share/icons/Papirus/64x64/apps/vscode.svg:pink
 
 # --- leitura e notas ---------------------------------------------------------
+# app: Foliate
 com.github.johnfactotum.Foliate:/usr/share/icons/Papirus/64x64/apps/com.github.johnfactotum.Foliate.svg:peach:--k 6 --funde 68 --tol 3.4 --min-traco 9.6
 
 # --- utilitários do sistema --------------------------------------------------
+# app: Flatseal
 com.github.tchx84.Flatseal:/usr/share/icons/Papirus/64x64/apps/com.github.tchx84.Flatseal.svg:lavender
+# app: Warehouse
 io.github.flattool.Warehouse:/usr/share/icons/Papirus/64x64/apps/io.github.flattool.Warehouse.svg:lavender
+# app: ProtonUp-Qt
 net.davidotek.pupgui2:/usr/share/icons/Papirus/64x64/apps/net.davidotek.pupgui2.svg:lavender
+# app: BleachBit
 org.bleachbit.BleachBit:/usr/share/icons/Papirus/64x64/apps/org.bleachbit.BleachBit.svg:lavender
+# app: Calculadora
 org.gnome.Calculator:/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg:lavender
+# app: Gerenciador de Compactação (File Roller)
 org.gnome.FileRoller:/usr/share/icons/Papirus/64x64/apps/org.gnome.FileRoller.svg:lavender:--k 10 --funde 36 --tol 3.4
 
 # --- jogos e emuladores ------------------------------------------------------
@@ -277,9 +306,15 @@ org.gnome.FileRoller:/usr/share/icons/Papirus/64x64/apps/org.gnome.FileRoller.sv
 #   Manter um convertido no meio de cinco desenhados quebraria a coerência que é
 #   a razão do acervo existir. Os seis são à mão, e o Heroic desenhado repete de
 #   propósito a leitura que a conversão dele já tinha: escudo com espada.
+# app: Heroic
 com.heroicgameslauncher.hgl:mao:mauve
+# app: Rare
 io.github.dummerle.rare:mao:mauve
+# app: mGBA
 io.mgba.mGBA:mao:mauve
+# app: Lutris
 net.lutris.Lutris:mao:mauve
+# app: Dolphin
 org.DolphinEmu.dolphin-emu:mao:mauve
+# app: RetroArch
 org.libretro.RetroArch:mao:mauve

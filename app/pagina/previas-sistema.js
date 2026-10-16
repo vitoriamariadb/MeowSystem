@@ -1284,18 +1284,23 @@
     { chave: "WALLPAPER_LIMIAR_LUZ", ok: (s) => numeroValido(s, 0, 1) },
   ];
 
+  /* [P82, 15/10/2026 (item 27): a janela é a do `janelaDoGato` do app.js, a
+   *   regra única da página (o `meow_noite_janela`, degrau por degrau). Esta
+   *   função tinha a terceira cópia, que resolvia cada ponta sozinha — uma
+   *   «herdada em parte» que o gato nunca segue — e pulava o controle do modo
+   *   de leitura.] */
+  const FONTE_DA_NOITE = {
+    conf: "das duas linhas gerais desta seção",
+    applet: "a do controle do modo de leitura",
+    parede: "herdada do papel de parede",
+    padrao: "o padrão de 18:00 às 07:00",
+  };
+
   function lerNoite(val) {
-    const geralIni = relogio(val.NOITE_INICIO, -1);
-    const geralFim = relogio(val.NOITE_FIM, -1);
-    const paredeIni = relogio(val.WALLPAPER_NOITE_INICIO, -1);
-    const paredeFim = relogio(val.WALLPAPER_NOITE_FIM, -1);
-    const ini = geralIni.ok ? geralIni : (paredeIni.ok ? paredeIni : relogio("18:00", 1080));
-    const fim = geralFim.ok ? geralFim : (paredeFim.ok ? paredeFim : relogio("07:00", 420));
-    let fonte;
-    if (geralIni.ok && geralFim.ok) fonte = "das duas linhas gerais desta seção";
-    else if (!geralIni.ok && !geralFim.ok && paredeIni.ok && paredeFim.ok) fonte = "herdada do papel de parede, porque as duas linhas gerais estão vazias";
-    else if (!geralIni.ok && !geralFim.ok && !paredeIni.ok && !paredeFim.ok) fonte = "o padrão de 18:00 às 07:00, porque as quatro linhas estão vazias";
-    else fonte = "herdada em parte: cada ponta veio da primeira linha preenchida";
+    const j = window.janelaDoGato((c) => (c in val ? val[c] : undefined));
+    const ini = relogio(j.ini, 1080);
+    const fim = relogio(j.fim, 420);
+    const fonte = FONTE_DA_NOITE[j.fonte];
     const dura = ((fim.min - ini.min) % 1440 + 1440) % 1440;
     return {
       ini: ini,

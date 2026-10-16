@@ -133,7 +133,7 @@ dc937b59892604f5a86ac96936cd7ff09e25f18ae6b758e8014a24c7fa039e91  ./com.system76
 84e578b56d8fb7fa992a8692ea0d8dd3606eabc072724ac161ca123608cb8310  ./com.system76.CosmicTheme.Light/v1/accent
 91edc1f4e64f5a6a6fa0e3e20f5dc4bfa4152e4605e7b7ee7dfb6ebe85fa5ea2  ./com.system76.CosmicTheme.Light/v1/accent_button
 4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce  ./com.system76.CosmicTheme.Light/v1/active_hint
-bd8f5eb87dd98a9a33d83c179325411d73352fa7de7f29158c11c95826d5c548  ./com.system76.CosmicTheme.Light/v1/background
+689d2b2f37560c4eddd2babc32bf0043de1863e3dee8051191c0ad6ec5712f4e  ./com.system76.CosmicTheme.Light/v1/background
 0dc677221a6156f8d22f50afcb923e6a2f9930441af9cc43bd9ef36f1a11b148  ./com.system76.CosmicTheme.Light/v1/button
 4af0e09bcc92ad4fc594e60c5e55771f7f47535a3017f99fa391ddbed92fbbd1  ./com.system76.CosmicTheme.Light/v1/destructive
 3b3f18b16fa06883e126fd0310093015eaa2a941bd01a678bdd50952050cd754  ./com.system76.CosmicTheme.Light/v1/destructive_button
@@ -153,7 +153,7 @@ cd2942973fa002e2bd0ad8936b682b75cf1657b94645fbe4721180909bc7410e  ./com.system76
 a94857eece4bc09f69850b39af2bd8707ed36ffe49a6bc5beb2f26db0a1f37ea  ./com.system76.CosmicTheme.Light/v2/accent_text
 4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a  ./com.system76.CosmicTheme.Light/v2/active_hint
 685fd31b28efe7e07996576f77a95881baee1a152de514964d6bb06f93a5ceed  ./com.system76.CosmicTheme.Light/v2/alpha_map
-e2736f531847539df78274029120cbdf13b70885533ee607bf04be8a0368c000  ./com.system76.CosmicTheme.Light/v2/background
+2dc054676b2d78277fe17c6431dcbf641892aa359c9145615654fb4c7f20aa3b  ./com.system76.CosmicTheme.Light/v2/background
 72fa5e8a04154ac2178be469e2d5b66c6a3d5c80357b0ab90a197c789cddfd2d  ./com.system76.CosmicTheme.Light/v2/button
 7753c49c055461074baad295128a8aa2da9f76dd8a3beda7af889a1285dd519b  ./com.system76.CosmicTheme.Light/v2/control_tint
 c767624fbd7c0a1017d138f7579c09d6102214993eea63878a88e1ff5de2cb28  ./com.system76.CosmicTheme.Light/v2/corner_radii

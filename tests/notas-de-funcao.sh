@@ -70,7 +70,11 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 
 command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; }
 
-SOMA_MEDIDA="6dd88a29f5ebd333f58e249f5945c56419446d42aae83dcbe5df5685f1c67626"
+# [P82, 15/10/2026 (item 19): a soma andou com o aperto do fundo da Light, que
+#   passou a seguir o libcosmic do COSMIC 1.10. Medido: com o `build()` na
+#   regra do 1.9 (o `regra_do_19`), a soma volta byte a byte à de antes,
+#   6dd88a29…c67626 — nada mais mudou.]
+SOMA_MEDIDA="4b85677d1504677476684d696bd0268f12c9718ca3a8b32738db516398504c5a"
 
 T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT

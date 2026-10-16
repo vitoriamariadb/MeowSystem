@@ -102,6 +102,38 @@ APOSENTADAS = {
     "ICONES_BASE": "a base de ícones vem do pack, pinada, por decisão de 24/09/2026",
 }
 
+# O BLOCO QUE O EXEMPLO TRAZIA ACIMA DA APOSENTADA — 15/10/2026, P82 (item 33)
+#   A linha ativa saía (acima), e o comentário que o exemplo pôs em cima dela
+#   ficava no arquivo dela sem chave embaixo: no desta casa, dois blocos
+#   «# @ Tema de onde herdar», um com a nota escrita à mão colada no fim. O
+#   bloco é texto do PROJETO, então sai também; e para nunca levar junto uma
+#   linha que ela escreveu, só sai o que é IGUAL, linha a linha, ao bloco que o
+#   exemplo trazia (aqui, como ele era antes de 18c1d88): a primeira linha que
+#   difere encerra o corte, e a nota dela fica.
+BLOCOS_APOSENTADOS = {
+    "ICONES_BASE": """# @ Tema de onde herdar
+# > De qual tema instalado o nosso puxa o que ele mesmo não desenha.
+# De qual tema instalado o nosso HERDA o que ele não desenha. Vira o `Inherits=`
+# do index.theme, e todo ícone que falta no MeowSystem sai daí — apontar para um
+# tema claro clareia justamente o que ficou de fora, e nada mais.
+#
+# ESTA CHAVE E A DE BAIXO NÃO TINHAM COMENTÁRIO PRÓPRIO — corrigido em 02/09/2026
+#   Estavam coladas na `NOME_TEMA_ICONES`, sem linha em branco entre elas, e
+#   quem lê uma chave sem comentário lê o comentário da chave de cima: os TRÊS
+#   cartões apareciam em fila com o mesmo título ("O nome do tema de ícones que
+#   este projeto constrói e instala em ~/.local/share/icons/") e o mesmo "Por
+#   quê", que explicava uma chave que não era a delas. O `meow configurar` fazia
+#   igual. O conserto é o branco e o parágrafo: cada uma diz o que faz.
+#
+# O PACK PODE TRAZER A BASE — 24/09/2026
+#   Um pack que declara a base dele (o Dracula declara) a baixa, confere e
+#   herda dela, e aí este valor de fábrica — `Papirus-Dark`, ou vazio — cede ao
+#   pack. Qualquer OUTRO tema escrito aqui vence o pack, como toda chave deste
+#   arquivo. O preço: com um pack assim no ar, o `Papirus-Dark` não se escolhe
+#   por aqui, porque escrevê-lo é o mesmo que deixar a chave de fábrica. A regra
+#   inteira está em docs/PACKS.md, "A base de ícones".""",
+}
+
 
 # OS VESTÍGIOS DE PACK — P79, 10/10/2026 (item 4)
 #   O QA de uso real da P77 achou na casa de quem usa `ICONES_FLAVOR="macchiato"`
@@ -226,6 +258,36 @@ def aposentar(texto: str) -> tuple[str, list[str]]:
     return "".join(fica), tiradas
 
 
+def tirar_blocos_orfaos(texto: str) -> tuple[str, list[str]]:
+    """(texto, [nomes]) — sem os blocos do exemplo que ficaram sem a aposentada.
+
+    O corte começa no `# @` do bloco e anda enquanto a linha é a mesma do
+    bloco antigo; só conta com o título e mais uma linha iguais. Uma linha em
+    branco que sobraria dobrada (antes e depois do corte) sai junto."""
+    linhas = texto.split("\n")
+    tirados = []
+    for chave, bloco in BLOCOS_APOSENTADOS.items():
+        modelo = bloco.split("\n")
+        i = 0
+        while i < len(linhas):
+            if linhas[i] != modelo[0]:
+                i += 1
+                continue
+            n = 0
+            while n < len(modelo) and i + n < len(linhas) and linhas[i + n] == modelo[n]:
+                n += 1
+            if n < 2:
+                i += 1
+                continue
+            fim = i + n
+            if i > 0 and linhas[i - 1] == "" and fim < len(linhas) and linhas[fim] == "":
+                fim += 1
+            del linhas[i:fim]
+            if chave not in tirados:
+                tirados.append(chave)
+    return "\n".join(linhas), tirados
+
+
 def renomear(texto: str) -> tuple[str, list[str]]:
     """(texto, ["ANTIGO -> NOVO"]) — o nome antigo trocado pelo novo, na linha.
 
@@ -292,14 +354,15 @@ def main() -> int:
 
     # O nome antigo vira o novo ANTES da conta do que falta — ver `RENOMEADAS`.
     if args.so_vestigios:
-        aposentadas, renomeadas, faltando = [], [], []
+        aposentadas, renomeadas, faltando, orfaos = [], [], [], []
     else:
         atual, aposentadas = aposentar(atual)
+        atual, orfaos = tirar_blocos_orfaos(atual)
         atual, renomeadas = renomear(atual)
         faltando = blocos_faltando(exemplo, chaves_de(atual))
     atual, vestigiais = vestigios(atual, exemplo,
                                   tuple(args.pack_de_antes) if args.pack_de_antes else None)
-    if not faltando and not renomeadas and not aposentadas and not vestigiais:
+    if not faltando and not renomeadas and not aposentadas and not vestigiais and not orfaos:
         return 0
 
     nomes = ", ".join(n for n, _ in faltando)
@@ -313,6 +376,8 @@ def main() -> int:
             print(f"faltam no meow.conf: {nomes}")
         if vestigiais:
             print("de outro pack, voltariam ao pack no ar: " + "; ".join(vestigiais))
+        if orfaos:
+            print("comentário do exemplo sem a chave aposentada embaixo: " + ", ".join(orfaos))
         return 1
 
     # Vão para o FIM, numa seção que se identifica. Tentar encaixar cada chave na
@@ -329,6 +394,8 @@ def main() -> int:
             acima.append(f"só o NOME de {', '.join(renomeadas)} mudou, com o valor de antes")
         if aposentadas:
             acima.append(f"saiu a linha de {', '.join(aposentadas)}, chave aposentada")
+        if orfaos:
+            acima.append(f"saiu o comentário do exemplo de {', '.join(orfaos)}, chave aposentada")
         intacto = ("# são os padrões; mexa à vontade. Nada acima desta linha foi alterado.\n"
                    if not acima else
                    "# são os padrões; mexa à vontade. Acima desta linha,\n"
@@ -354,6 +421,8 @@ def main() -> int:
         print(f"acrescentadas ao meow.conf: {nomes}")
     if vestigiais:
         print("de outro pack, voltaram ao pack no ar: " + "; ".join(vestigiais))
+    if orfaos:
+        print(f"comentário do exemplo sem a chave, tirado do meow.conf: {', '.join(orfaos)}")
     return 0
 
 

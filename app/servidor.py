@@ -1872,6 +1872,25 @@ def _mapa_de_traco_do_usuario():
             or os.path.join(os.path.dirname(CONF), "icones-traco.map"))
 
 
+# O DESENHO DA OFICINA TAMBÉM MORA COM QUEM USA — 15/10/2026, P82 (item 5;
+#   decisão 15). O «Usar» da oficina gravava o retoque, o construído e a linha
+#   `<app>:mao:<cor>` dentro do clone (`assets/icones/`). Os três vão para a
+#   casa, no mesmo molde do `icones-escolhidos.map` (P73, I3):
+#     · `icones-convertidos.map`, ao lado do meow.conf, no formato do
+#       `apps-convertidos.map` — lido depois dele pelo `construir_convertidos.sh`
+#       e pelo `icones_apps_arcticons.sh`, e vence o app que os dois nomeiam;
+#     · `~/.local/share/meowsystem/retoques/` e `convertidos-apps/`, o retoque e
+#       o construído. O repositório só os recebe por gesto explícito.
+def _mapa_de_convertidos_do_usuario():
+    return (os.environ.get("MEOW_ICONES_CONVERTIDOS")
+            or os.path.join(os.path.dirname(CONF), "icones-convertidos.map"))
+
+
+def _oficina_do_usuario(*partes):
+    xdg = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    return os.path.join(xdg, "meowsystem", *partes)
+
+
 def _gravar_escolha(caminho, chave, linha, separador):
     """Troca (ou tira, com `linha` None) a linha de `chave` em `caminho`.
 
@@ -3543,6 +3562,31 @@ def validar_valor(item, valor):
 #   arrancado — o modo de uma execução nunca é herdado, ele é PEDIDO, um pedido
 #   por vez, pelo corpo do POST. Ler esta função é ler as duas decisões na
 #   ordem em que elas acontecem, e nenhuma cancela a outra.
+# AS PONTAS DA NOITE ANDAM JUNTAS — 15/10/2026, P82 (item 27; decisão 26)
+#   O `meow_noite_janela` (lib/noite.sh) só obedece `NOITE_INICIO` e
+#   `NOITE_FIM` quando as DUAS estão escritas: com uma só, ele pula a linha
+#   inteira e a noite vem do degrau de baixo. A página já mostrava o ⊘ no
+#   cartão, e o arquivo aceitava a ponta solta mesmo assim. A conta é sobre o
+#   arquivo como ficaria: o disco com as escolhas do pedido por cima. E só
+#   quando o pedido mexe numa delas, para que um conf antigo com a ponta solta
+#   não impeça de gravar outra coisa.
+PONTAS_DA_NOITE = ("NOITE_INICIO", "NOITE_FIM")
+
+
+def pontas_da_noite_soltas(escolhas, brutos=None):
+    """A queixa (uma por ponta escrita) quando `escolhas` deixa a noite com uma
+    ponta só; lista vazia quando ela fica com as duas ou com nenhuma."""
+    if not any(c in escolhas for c in PONTAS_DA_NOITE):
+        return []
+    final = dict(valores_brutos() if brutos is None else brutos)
+    final.update(escolhas)
+    cheias = [c for c in PONTAS_DA_NOITE if str(final.get(c, "")).strip()]
+    if len(cheias) != 1:
+        return []
+    return [{"chave": cheias[0],
+             "erro": "a noite pede as duas pontas, começo e fim, ou nenhuma"}]
+
+
 def _ambiente_do_painel(seco=False):
     ambiente = dict(os.environ, MEOW_RAIZ=RAIZ)
     ambiente.pop("MEOW_DRY_RUN", None)
@@ -4621,6 +4665,22 @@ def _areas_ja_alfinetadas():
             "porque": "há área fixada nesta máquina"}
 
 
+def _starship_ja_instalado():
+    """«Instalar o starship» com ele já instalado: o botão não tem o que fazer.
+
+    15/10/2026, P82 (item 2; decisão 14). O botão ficava aceso com o starship
+    em `~/.cargo/bin`, que é onde o `cargo install starship` o põe. Os lugares
+    são os do `_prompt_onde_starship` (scripts/prompt.sh): o PATH, o
+    `~/.local/bin` (onde o nosso botão o põe) e o `~/.cargo/bin`."""
+    casa = os.path.expanduser("~")
+    for lugar in (shutil.which("starship"),
+                  os.path.join(casa, ".local", "bin", "starship"),
+                  os.path.join(casa, ".cargo", "bin", "starship")):
+        if lugar and os.path.isfile(lugar) and os.access(lugar, os.X_OK):
+            return {"porque": "o starship já está instalado"}
+    return None
+
+
 def indisponivel(acao_id):
     """O motivo de a ação não ter efeito agora (um dicionário), ou None."""
     medir = ACOES[acao_id].get("indisponivel")
@@ -4787,6 +4847,8 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
         "escreve": False, "sudo": False, "confirma": False,
+        # O par «ver / aplicar» (P82, item 22): ver o `par` do `jogos_heroic`.
+        "par": "sistema_atualizar",
         # "CAIXAS DE RUST" SAIU — 09/09/2026. Era `crates` traduzido ao pé da
         # letra, e a tradução é pior que o original: quem não programa lê
         # "caixas" e procura uma caixa. O que o `cargo` lista são PROGRAMAS
@@ -4853,6 +4915,9 @@ ACOES = {
         "grupo": "Cor e tela",
         "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "capturas",
+        # «⋯» de ações técnicas (P82, item 23; decisão 25): a moldura do
+        # tema, logo acima, já é o gesto de trocar.
+        "tecnica": True,
         "escreve": True, "sudo": False, "confirma": False,
         # "POR CÓPIA DE ARQUIVO" era o COMO, e o como não muda nenhuma decisão
         # dela; "captura" saiu pelo motivo da linha de cima. — 09/09/2026
@@ -4863,6 +4928,9 @@ ACOES = {
         "grupo": "Cor e tela",
         "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "modos",
+        # «⋯» de ações técnicas (P82, item 23; decisão 25): a moldura do
+        # tema, logo acima, já é o gesto de trocar.
+        "tecnica": True,
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
                  "pisca a interface.",
@@ -5104,6 +5172,17 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Autoriza a imagem que você pôs: o carrossel para de devolvê-la.",
     },
+    # O «DEIXAR ASSIM» — P82 (item 3; decisão 13). A outra resposta da mesma
+    #   pendência: tira o cartão sem autorizar a imagem. `oculta` pelo mesmo
+    #   motivo do «Era escolha minha»: quem o oferece é a pendência.
+    "wallpaper_dispensar": {
+        "rotulo": "Deixar assim",
+        "grupo": "Papel de parede",
+        "natureza": "gravar",
+        "argv": _meow("wallpaper", "dispensar"),
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "A imagem devolvida fica como está, e o aviso sai da Início.",
+    },
     "wallpaper_favoritar": {
         "rotulo": "Guardar nas favoritas",
         "grupo": "Papel de parede",
@@ -5292,6 +5371,7 @@ ACOES = {
         "natureza": "baixar",
         "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "indisponivel": _starship_ja_instalado,
         "ajuda": "Baixa o starship de starship.rs para ~/.local/bin, sem sudo. "
                  "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
     },
@@ -5474,6 +5554,12 @@ ACOES = {
         "natureza": "conferir",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--conferir"],
         "escreve": False, "sudo": False, "confirma": False,
+        # O PAR «VER / APLICAR» — 15/10/2026, P82 (item 22; decisão 24). O
+        #   ver ficava aberto e o aplicar ia para o «⋯» de ações técnicas: dois
+        #   lugares para uma decisão só. O `par` é a ação que aplica o que este
+        #   mostra; a página desenha os dois num cartão, no molde do «Conferir»
+        #   e do «Arrumar» da Steam, e não desenha o aplicar sozinho.
+        "par": "jogos_heroic_aplicar",
         "ajuda": "Lista atalho a criar e atalho a remover. Não escreve nada.",
     },
     "jogos_heroic_aplicar": {
@@ -6763,7 +6849,16 @@ class Trabalho:
         )
         threading.Thread(target=self._ler, daemon=True).start()
 
-    def _ler(self):
+    # O DESFECHO NÃO ESPERA O CANO FECHAR — 15/10/2026, P82 (item 36). O `fim`
+    #   nascia quando o stdout fechava, e um neto que herde o stdout (o `&` de
+    #   um script) segura o cano aberto: o pai morria e o trabalho ficava vivo
+    #   para sempre. Agora quem lê o cano é uma thread à parte, e esta espera o
+    #   PROCESSO. Morto o processo, o cano ganha `PRAZO_DO_CANO` segundos para
+    #   entregar o resto; depois disso o desfecho é gravado mesmo assim, e o
+    #   que o neto escrever depois continua entrando nas linhas.
+    PRAZO_DO_CANO = 2.0
+
+    def _bombear(self):
         try:
             for bruta in self.proc.stdout:
                 linha = bruta.decode("utf-8", "replace").rstrip("\n")
@@ -6771,7 +6866,13 @@ class Trabalho:
                     self.linhas.append(linha)
         except (OSError, ValueError):
             pass
-        self.rc = self.proc.wait()
+
+    def _ler(self):
+        leitor = threading.Thread(target=self._bombear, daemon=True)
+        leitor.start()
+        rc = self.proc.wait()
+        leitor.join(self.PRAZO_DO_CANO)
+        self.rc = rc
         self.fim = time.time()
         # DEPOIS do `rc` e do `fim`: a página pergunta "acabou?" pelo `vivo()`, e
         # a limpeza não pode atrasar a resposta nem falhar a ponto de o trabalho
@@ -7072,7 +7173,9 @@ def pendencias():
                 # do repositório) não desenha botão nenhum.
                 if ident == PENDENCIA_PAREDE and comando.startswith(PREFIXO_PERMITIR):
                     escolha = [{"acao": "wallpaper_permitir", "rotulo": "Era escolha minha",
-                                "argumento": comando[len(PREFIXO_PERMITIR):]}]
+                                "argumento": comando[len(PREFIXO_PERMITIR):]},
+                               {"acao": "wallpaper_dispensar", "rotulo": "Deixar assim",
+                                "argumento": ""}]
                     nome = "Papel de parede devolvido"
                 if ident == PENDENCIA_EXTENSAO and comando:
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
@@ -8070,11 +8173,15 @@ class Manipulador(BaseHTTPRequestHandler):
             "normaliza": False,
             "depois": "o carrossel passa a sortear a imagem nova",
         },
+        # [P82, 15/10/2026 (item 4; decisão 15): o ícone enviado deixou de
+        #   morar no clone (`assets/icones/overrides/`, que nem a ficha lia).
+        #   Ele vai para a casa de quem usa, na pasta que a ficha lista —
+        #   `pasta_de_enviados` do scripts/pack.py, a resposta única.]
         "icone": {
-            "pasta": ("assets", "icones", "overrides"),
+            "casa": "pasta_de_enviados",
             "extensoes": (".svg",),
             "normaliza": True,
-            "depois": "vale depois de \"Reconstruir o tema de ícones\"",
+            "depois": "o desenho aparece na ficha de ícone, na pasta «enviados»",
         },
         # OS TRÊS QUE NÃO MORAM NO REPOSITÓRIO — 06/09/2026
         #   Os três acima são ACERVO: o arquivo fica em `assets/`, versionado,
@@ -8203,7 +8310,13 @@ class Manipulador(BaseHTTPRequestHandler):
         if ext == ".svg" and b"<svg" not in dados[:4096].lower():
             return self._json({"erro": "isso não parece um SVG"}, 400)
 
-        destino_dir = os.path.join(RAIZ, *conf["pasta"])
+        if "casa" in conf:
+            mod = modulo_pack()
+            if not mod:
+                return self._json({"erro": "não achei o scripts/pack.py"}, 500)
+            destino_dir = getattr(mod, conf["casa"])()
+        else:
+            destino_dir = os.path.join(RAIZ, *conf["pasta"])
         try:
             os.makedirs(destino_dir, exist_ok=True)
         except OSError as e:
@@ -8310,7 +8423,7 @@ class Manipulador(BaseHTTPRequestHandler):
     DIRS_DESKTOP = (
         ("/usr/share/applications", "sistema"),
         ("/usr/local/share/applications", "local"),
-        ("~/.local/share/applications", "usuária"),
+        ("~/.local/share/applications", "pessoal"),
         ("/var/lib/flatpak/exports/share/applications", "flatpak"),
         ("~/.local/share/flatpak/exports/share/applications", "flatpak"),
         ("/var/lib/snapd/desktop/applications", "snap"),
@@ -8397,18 +8510,20 @@ class Manipulador(BaseHTTPRequestHandler):
         um desenho em `retoques/`, e é essa que "Abrir o que já está salvo"
         encontra. As outras 25 têm origem chapada e podem ser revetorizadas."""
         fora = {}
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                for linha in fh:
-                    corte = linha.strip()
-                    if not corte or corte.startswith("#"):
-                        continue
-                    campos = [c.strip() for c in corte.split(":")]
-                    if len(campos) >= 3:
-                        fora[campos[0]] = {"cor": campos[2], "mao": campos[1] == "mao"}
-        except OSError:
-            pass
+        # [P82: e o de quem usa, lido depois, que vence — o `meu` diz de onde.]
+        for caminho, meu in ((os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map"), False),
+                             (_mapa_de_convertidos_do_usuario(), True)):
+            try:
+                with open(caminho, "r", encoding="utf-8") as fh:
+                    for linha in fh:
+                        corte = linha.strip()
+                        if not corte or corte.startswith("#"):
+                            continue
+                        campos = [c.strip() for c in corte.split(":")]
+                        if len(campos) >= 3:
+                            fora[campos[0]] = {"cor": campos[2], "mao": campos[1] == "mao", "meu": meu}
+            except OSError:
+                pass
         return fora
 
     def _mapa_dracula(self):
@@ -9456,13 +9571,15 @@ class Manipulador(BaseHTTPRequestHandler):
                                        [d.get("id"), icone], rotulo)
         if motivo:
             return motivo
+        # AS FRASES CABEM NO BALÃO — 15/10/2026, P82 (item 21). Elas vão para o
+        #   balão do desenho na ficha, cujo teto é 80, e saíam cortadas (com o
+        #   nome do app dentro, passavam de 130). A ficha já é a do app: o nome
+        #   saiu da frase.
         if icone.startswith("/"):
-            return ("O lançador de %s aponta o ícone por caminho de arquivo, e o tema "
-                    "de ícones não é consultado para ele." % rotulo)
+            return "O lançador aponta o ícone por caminho de arquivo: o tema não vale aqui"
         donos = self._donos_do_scalable() if donos is None else donos
         if any(n in donos for n in (icone, d.get("id")) if n):
-            return ("O ícone de %s no tema é decidido por outro passo do MeowSystem, e "
-                    "um desenho do pack não duraria até a instalação seguinte." % rotulo)
+            return "O ícone deste app é de outro passo do MeowSystem; o do pack não duraria"
         return None
 
     def _escolher_do_pack(self, app, corpo):
@@ -9715,6 +9832,48 @@ class Manipulador(BaseHTTPRequestHandler):
             return {"tipo": "conversao", "frase": "a conversão em traço do projeto"}
         return {"tipo": "fabrica", "frase": "o ícone de fábrica"}
 
+    def _o_que_veste(self, app):
+        """O arquivo que veste o aplicativo agora, como a ficha o escreve, ou None.
+
+        15/10/2026, P82 (item 6). O `_escolha_no_pack` só responde quando a
+        linha do mapa é uma escolha do painel: o Waterfox abria a ficha com o
+        desenho do pack no ar sem marca nenhuma. A ordem é a do `_o_que_fica`,
+        que é a do tema: a escolha de quem usa, a linha do mapa do pack no ar
+        (com a camada ligada), e o traço (o glifo do Arcticons, depois a
+        conversão). Arquivo que não existe não veste nada."""
+        mod = modulo_pack()
+        minha = self._minha_escolha(app)
+        if minha:
+            return minha["arquivo"]
+        nome = self._nome_do_icone(app)
+        ident = _pack_adotado() if mod else ""
+        if ident and (valores_efetivos(["ICONES_DRACULA"]).get("ICONES_DRACULA") or "sim") != "nao":
+            mapa = mod.acervo("icones.apps.mapa", ref=ident) or ""
+            for _num, n, alvo in (mod.ler_mapa(mapa) if os.path.isfile(mapa) else ()):
+                if n != nome:
+                    continue
+                try:
+                    arq = mod.resolver_alvo(alvo, os.path.dirname(mapa))
+                except mod.Recusa:
+                    arq = ""
+                if arq and os.path.isfile(arq):
+                    return self._arquivo_na_ficha(arq)
+        d = next((x for x in self._desktops() if x["id"] == app), None) or {}
+        icones = os.path.join(RAIZ, "assets", "icones")
+        marca = self._mapa_arcticons().get(app) or self._mapa_arcticons().get(d.get("icone") or "")
+        if marca:
+            glifo = marca["glifo"]
+            arq = (glifo if os.path.isabs(glifo) else os.path.join(RAIZ, glifo)) if "/" in glifo \
+                else os.path.join(icones, "arcticons-apps", glifo + ".svg")
+            if os.path.isfile(arq):
+                return self._arquivo_na_ficha(arq)
+        conv = self._mapa_convertidos()
+        if conv.get(app) or conv.get(d.get("icone") or ""):
+            arq = os.path.join(icones, "convertidos-apps", nome + ".svg")
+            if os.path.isfile(arq):
+                return self._arquivo_na_ficha(arq)
+        return None
+
     # ========================================================================
     # A FICHA MOSTRA O ACERVO INTEIRO, EM PASTAS — 09/10/2026, sprint P73 (T1)
     # ========================================================================
@@ -9926,6 +10085,42 @@ class Manipulador(BaseHTTPRequestHandler):
                         if descricao:
                             rotulos[os.path.normpath(os.path.join(bib, str(arq)))] = (
                                 descricao[:1].upper() + descricao[1:])
+        # O CATÁLOGO DAS PASTAS DO MOTOR — 15/10/2026, P82 (item 7). Um desenho
+        #   do motor sem linha de mapa (a raposa resgatada, que saiu do
+        #   `apps-resgatados.map` na P28) não tinha texto para a busca casar.
+        #   O `catalog.json` da pasta, no formato do da biblioteca, dá esse
+        #   texto. Só a busca: o nome que a ficha mostra continua o do mapa, para
+        #   o mesmo desenho não ter dois nomes.
+        for pasta, _nome, _tipo in getattr(mod, "ACERVOS_DO_MOTOR", ()):
+            dir_motor = os.path.join(RAIZ, "assets", "icones", pasta)
+            try:
+                with open(os.path.join(dir_motor, "catalog.json"), encoding="utf-8") as fh:
+                    catalogo = json.load(fh)
+            except (OSError, ValueError):
+                continue
+            for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
+                if isinstance(ficha, dict):
+                    etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
+                    junta(os.path.join(dir_motor, str(arq)), str(ficha.get("descricao") or "").strip(),
+                          *[str(t).replace("_", " ") for t in etiquetas])
+        # O NOME DO APP DOS CONVERTIDOS — 15/10/2026, P82 (item 8). O
+        #   `apps-convertidos.map` não tem comentário no fim da linha (os
+        #   leitores dele cortam nos `:`), e o nome vem na linha de cima,
+        #   `# app: OBS Studio`. Sem ele, o id invertido virava «Studio».
+        conv = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+        try:
+            with open(conv, encoding="utf-8") as fh:
+                linhas_conv = fh.read().split("\n")
+        except OSError:
+            linhas_conv = []
+        for anterior, linha in zip([""] + linhas_conv, linhas_conv):
+            nome_app = anterior[len("# app:"):].strip() if anterior.startswith("# app:") else ""
+            nome = linha.split(":", 1)[0].strip()
+            if nome_app and nome and not linha.startswith("#"):
+                caminho = os.path.join(RAIZ, "assets", "icones", "convertidos-apps", nome + ".svg")
+                junta(caminho, nome_app)
+                rotulos.setdefault(os.path.normpath(caminho), nome_app)
+                do_nome.setdefault(nome.lower(), nome_app)
         for mapa in sorted(mapas):
             try:
                 with open(mapa, encoding="utf-8") as fh:
@@ -10009,7 +10204,9 @@ class Manipulador(BaseHTTPRequestHandler):
                  # A escolha do painel para ESTE app, no estado de quem usa (P73):
                  # acende o «Desfazer» e, se o desenho é do pack no ar, o «Levar
                  # para o pack».
-                 "minha": self._minha_escolha(app) if app_ok else None}
+                 "minha": self._minha_escolha(app) if app_ok else None,
+                 # O que veste o app agora (P82, item 6): a ficha o marca.
+                 "veste": self._o_que_veste(app) if app_ok else None}
         # `limitado` fica, sempre falso: é o campo que dizia «a lista foi
         # cortada», e nenhuma resposta corta mais.
         return self._json(dict({"grupos": grupos, "glifos": glifos, "limitado": False}, **extra))
@@ -10332,8 +10529,12 @@ class Manipulador(BaseHTTPRequestHandler):
         return nome
 
     def _caminho_retoque(self, app):
-        return os.path.join(RAIZ, "assets", "icones", "convertidos-apps",
-                            "retoques", app + ".svg")
+        """O retoque de quem usa (P82, item 5): é onde a oficina grava."""
+        return _oficina_do_usuario("retoques", app + ".svg")
+
+    def _retoque_do_projeto(self, app):
+        """O retoque que veio com o clone (o do Gradia, por exemplo)."""
+        return os.path.join(RAIZ, "assets", "icones", "convertidos-apps", "retoques", app + ".svg")
 
     def _vizinhos_do_dock(self):
         """Os dois vizinhos da tira: a PRIMEIRA e a ÚLTIMA linha de dados do
@@ -10375,19 +10576,21 @@ class Manipulador(BaseHTTPRequestHandler):
         `retoques/`", e qualquer outra coisa é um caminho de arte chapada, isto
         é, uma linha que o `construir_convertidos.sh` sabe refazer sozinho.
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                for linha in fh:
-                    corte = linha.strip()
-                    if not corte or corte.startswith("#"):
-                        continue
-                    campos = [c.strip() for c in corte.split(":", 2)]
-                    if campos[0] != nome or len(campos) < 2:
-                        continue
-                    return "mao" if campos[1] == "mao" else "conversao"
-        except OSError:
-            return ""
+        # [P82: o de quem usa primeiro, porque é ele que vence.]
+        for caminho in (_mapa_de_convertidos_do_usuario(),
+                        os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")):
+            try:
+                with open(caminho, "r", encoding="utf-8") as fh:
+                    for linha in fh:
+                        corte = linha.strip()
+                        if not corte or corte.startswith("#"):
+                            continue
+                        campos = [c.strip() for c in corte.split(":", 2)]
+                        if campos[0] != nome or len(campos) < 2:
+                            continue
+                        return "mao" if campos[1] == "mao" else "conversao"
+            except OSError:
+                continue
         return ""
 
     def _salvo_do_app(self, nome):
@@ -10399,7 +10602,10 @@ class Manipulador(BaseHTTPRequestHandler):
         que perde.
         """
         conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        # [P82: o de quem usa vem antes do que veio com o clone.]
         for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
+                                 (_oficina_do_usuario("convertidos-apps", nome + ".svg"), "conversao"),
+                                 (self._retoque_do_projeto(nome), "mao"),
                                  (os.path.join(conv, nome + ".svg"), "conversao")):
             try:
                 with open(caminho, "r", encoding="utf-8") as fh:
@@ -10425,8 +10631,7 @@ class Manipulador(BaseHTTPRequestHandler):
         recebido do cliente), e o alvo real tem de cair dentro da pasta
         `retoques/` depois do `realpath`.
         """
-        pasta = os.path.realpath(os.path.join(RAIZ, "assets", "icones",
-                                              "convertidos-apps", "retoques"))
+        pasta = os.path.realpath(_oficina_do_usuario("retoques"))
         alvo = os.path.realpath(self._caminho_retoque(nome))
         if not alvo.startswith(pasta + os.sep) or not os.path.isfile(alvo):
             return False
@@ -10517,7 +10722,10 @@ class Manipulador(BaseHTTPRequestHandler):
 
         # ------------------------------------------------------------------ ler
         if acao == "ler":
+            # O de quem usa; sem ele, o que veio com o clone (P82, item 5).
             alvo = self._caminho_retoque(nome)
+            if not os.path.isfile(alvo):
+                alvo = self._retoque_do_projeto(nome)
             if not os.path.isfile(alvo):
                 return self._json({"ok": True, "svg": "", "tem": False})
             try:
@@ -10835,10 +11043,12 @@ class Manipulador(BaseHTTPRequestHandler):
             if not erro_conv and feito.rstrip() == svg.rstrip():
                 modo = "conversao"
 
-        conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        # [P82, item 5: na casa de quem usa, e não no clone.]
+        conv = _oficina_do_usuario("convertidos-apps")
         tirou_retoque = False
         try:
-            os.makedirs(os.path.join(conv, "retoques"), exist_ok=True)
+            os.makedirs(conv, exist_ok=True)
+            os.makedirs(_oficina_do_usuario("retoques"), exist_ok=True)
             if modo == "mao":
                 with open(self._caminho_retoque(nome), "w", encoding="utf-8") as fh:
                     fh.write(svg if svg.endswith("\n") else svg + "\n")
@@ -10902,12 +11112,16 @@ class Manipulador(BaseHTTPRequestHandler):
         diferença entre um ícone que acompanha uma atualização do Papirus e um
         que congela no dia em que foi salvo.
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+        # [P82, item 5: o mapa de quem usa, ao lado do meow.conf; nasce no
+        #   primeiro «Usar».]
+        caminho = _mapa_de_convertidos_do_usuario()
         try:
             with open(caminho, "r", encoding="utf-8") as fh:
                 linhas = fh.read().split("\n")
+        except FileNotFoundError:
+            linhas = ["# os desenhos da oficina do painel — o mesmo formato do apps-convertidos.map", ""]
         except OSError as e:
-            return "não achei o mapa dos convertidos: %s" % e
+            return "não consegui ler o mapa dos convertidos: %s" % e
         linha = "%s:%s:%s" % (app, origem or "mao", cor)
         if extra:
             linha += ":" + extra
@@ -10929,6 +11143,7 @@ class Manipulador(BaseHTTPRequestHandler):
             ultima = max((i for i, l in enumerate(linhas) if id_da_linha(l)), default=None)
             linhas.insert(ultima + 1 if ultima is not None else len(linhas), linha)
         try:
+            os.makedirs(os.path.dirname(caminho), exist_ok=True)
             with open(caminho, "w", encoding="utf-8") as fh:
                 fh.write("\n".join(linhas))
         except OSError as e:
@@ -11193,11 +11408,10 @@ class Manipulador(BaseHTTPRequestHandler):
         intocaveis, prefixos, curados, convertidos = travas
         nomes = [n for n in nomes if n]
         if any(n in intocaveis or (prefixos and n.startswith(prefixos)) for n in nomes):
-            return ("%s fica como está, por pedido seu. Só um desenho feito na "
-                    "oficina «Gerar ícone», acima, troca o dele." % rotulo)
+            # [P82: sem o nome, para caber no balão (ver o `_trava_do_pack`).]
+            return "Fica como está, por pedido seu; só a oficina «Gerar ícone» o troca"
         if any(n in curados for n in nomes):
-            return ("%s usa a arte que você escolheu na curadoria, e ela vence "
-                    "este acervo." % rotulo)
+            return "Usa a arte da sua curadoria, que vence este acervo"
         if any(n in convertidos for n in nomes):
             if not vigor:
                 return ("%s já tem desenho convertido do projeto. O traço dele se "
@@ -11220,24 +11434,20 @@ class Manipulador(BaseHTTPRequestHandler):
         morre em vez de escolher um vencedor calado. Quem desenhou à mão decidiu
         — o Arcticons sai, e o `48x48/apps` órfão some na varredura da mesma
         passagem, porque aquele script é dono único do diretório.
+
+        [P82, 15/10/2026 (item 5): era o `apps-arcticons.map` do clone que
+        perdia a linha. Agora o desenho da oficina mora no
+        `icones-convertidos.map` de quem usa, que o script lê por último e que
+        vence a linha do projeto; o que sai é a escolha de traço de quem usa
+        (`icones-traco.map`), que é a outra escolha dela para o mesmo app.]
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                linhas = fh.read().split("\n")
-        except OSError:
-            return False
-        fora = [l for l in linhas
-                if not (l.strip() and not l.strip().startswith("#")
-                        and l.strip().split(":")[0].strip() == app)]
-        if len(fora) == len(linhas):
+        caminho = _mapa_de_traco_do_usuario()
+        if not os.path.isfile(caminho):
             return False
         try:
-            with open(caminho, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(fora))
+            return bool(_gravar_escolha(caminho, app, None, ":"))
         except OSError:
             return False
-        return True
 
     def do_POST(self):
         alvo = urlparse(self.path)
@@ -12062,6 +12272,12 @@ class Manipulador(BaseHTTPRequestHandler):
             queixa = validar_valor(item, valor)
             if queixa:
                 return self._json({"erro": queixa, "chave": chave, "valor": valor}, 400)
+            # A ponta solta da noite é 409: o valor cabe na chave, e o que não
+            # cabe é o par que ficaria no arquivo (P82, item 27).
+            soltas = pontas_da_noite_soltas({chave: valor})
+            if soltas:
+                return self._json({"erro": soltas[0]["erro"], "chave": chave,
+                                   "valor": valor, "recusadas": soltas}, 409)
             rc, saida = definir(chave, valor)
             # A frase do `meow_conf_definir` vira torrada: a casa sai como `~` (P52).
             return self._json({"rc": rc, "saida": texto_na_tela(saida),
@@ -12098,6 +12314,10 @@ class Manipulador(BaseHTTPRequestHandler):
                     pares.append((chave, valor))
             if recusadas:
                 return self._json({"recusadas": recusadas}, 400)
+            # O par da noite, sobre o arquivo como ficaria (P82, item 27).
+            soltas = pontas_da_noite_soltas(dict(pares))
+            if soltas:
+                return self._json({"recusadas": soltas}, 409)
 
             # O ENSAIO DO «SALVAR E APLICAR» — 22/09/2026, sprint P8
             #   A sprint: "Com 17 escolhas pendentes, «ver o que isto vai

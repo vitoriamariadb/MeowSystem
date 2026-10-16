@@ -45,6 +45,50 @@ else
   falha "mensagens que mandam digitar o conserto" "$achados"
 fi
 
+printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
+#   [15/10/2026: a P79 e a P80 curaram as linhas que o QA viu no painel; estas
+#    saem do terminal, do log e do doctor: «arme o supervisor… systemctl --user
+#    start», «diagnóstico: meow painel estado», «rode o install.sh de novo»,
+#    «sudo apt install …», «rustup toolchain install», «meow tema capturar»,
+#    «adicione com: meow wallpaper adicionar», «sudo -l». Cada linha virou a
+#    ação feita ou o estado.]
+#   Isentas, cada uma pelo nome: a linha de uso de um verbo (`uso: meow …`,
+#   que responde a quem já está digitando), e os três scripts de build que a
+#   P81 cura (o `files_menu.sh`, o `midia_build.sh` e o `leitura_build.sh`; a
+#   seção 8 dela os cobra). A recusa de rodar como root não casa com nenhuma
+#   forma: ela fala antes de existir qualquer coisa a fazer.
+MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
+FORMAS='(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z])'
+achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
+             | grep -vE '^scripts/(files_menu|midia_build|leitura_build)\.sh:' \
+             | grep -vE '"uso: meow ')"
+if [ -z "$achados" ]; then
+  ok "nenhuma mensagem manda armar o supervisor, rodar o install.sh, instalar com apt ou rustup, capturar o tema, adicionar papel de parede ou rodar sudo -l"
+else
+  falha "mensagens que ainda mandam digitar" "$achados"
+fi
+
+# E o applet de mídia, sem cargo, vai buscar o rust pela mesma regra do de
+# leitura (`meow_garantir_cargo`), em vez de pular dizendo «instale com
+# rustup». Um `curl` falso anota e recusa: a rede não sai do teste.
+CASA1B="$(mktemp -d)" || exit 2
+mkdir -p "$CASA1B/falso"
+for c in sudo pkexec su pkill killall notify-send systemd-run loginctl apt apt-get; do
+  printf '#!/bin/sh\nexit 1\n' > "$CASA1B/falso/$c"; chmod 755 "$CASA1B/falso/$c"
+done
+printf '#!/bin/sh\necho "curl $*" >> "%s/rede.log"\nexit 1\n' "$CASA1B" > "$CASA1B/falso/curl"
+chmod 755 "$CASA1B/falso/curl"
+env -i PATH="$CASA1B/falso:/usr/bin:/bin" HOME="$CASA1B" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  MIDIA_COMPILAR=1 "$RAIZ/scripts/midia_build.sh" --aplicar >/dev/null 2>&1
+if PATH=/usr/bin:/bin command -v cargo >/dev/null 2>&1; then
+  printf '  --   o /usr/bin desta máquina tem cargo: o caso «sem cargo» não se monta aqui\n'
+elif grep -q 'rustup' "$CASA1B/rede.log" 2>/dev/null; then
+  ok "sem cargo, o applet de mídia vai buscar o rust pelo rustup, como o de leitura"
+else
+  falha "sem cargo, o applet de mídia não tentou instalar o rust" "rede: $(cat "$CASA1B/rede.log" 2>/dev/null)"
+fi
+rm -rf "$CASA1B"
+
 printf '\n--- 2. as pendências novas têm botão ---\n'
 saida="$(env -i PATH="$PATH" HOME="$(mktemp -d)" python3 - "$RAIZ/app" <<'PY' 2>&1
 import sys
@@ -129,6 +173,37 @@ if grep -qx "escolha=wallpaper_permitir|$CASA/Imagens/minha.png" <<< "$saida" \
   ok "a pendência do papel de parede devolvido tem o botão que autoriza aquela imagem"
 else
   falha "a pendência do papel de parede devolvido não tem o botão que autoriza" "$saida"
+fi
+
+printf '\n--- 6b. «Deixar assim» tira o cartão sem autorizar a imagem (P82, item 3; decisão 13) ---\n'
+#   [15/10/2026: a pendência só saía pelo «Era escolha minha», que autoriza a
+#    imagem. Se a devolução estava certa, o cartão ficava na Início até alguém
+#    autorizar a imagem errada para tirá-lo.]
+mkdir -p "$CASA/.config/meow"; cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
+antes_conf="$(sha256sum < "$CASA/.config/meow/meow.conf")"
+pendencia_e_botao() {
+  env -i PATH="$PATH" HOME="$CASA" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+p = next((x for x in servidor.pendencias() if x["id"] == "wallpaper-fonte-revertida"), None)
+print("cartao=%s" % bool(p))
+for e in (p or {}).get("escolha") or []:
+    print("escolha=%s|%s" % (e["acao"], e["rotulo"]))
+print("argv=%s" % " ".join((servidor.ACOES.get("wallpaper_dispensar") or {}).get("argv") or [])[-19:])
+PY
+}
+antes_p="$(pendencia_e_botao)"
+env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  "$RAIZ/bin/meow" wallpaper dispensar >/dev/null 2>&1
+depois_p="$(pendencia_e_botao)"
+if grep -qx 'escolha=wallpaper_dispensar|Deixar assim' <<< "$antes_p" \
+   && grep -qx 'argv=wallpaper dispensar' <<< "$antes_p" \
+   && grep -qx 'cartao=False' <<< "$depois_p" \
+   && [ "$(sha256sum < "$CASA/.config/meow/meow.conf")" = "$antes_conf" ]; then
+  ok "«Deixar assim» tira o cartão do papel de parede devolvido, e o meow.conf não muda (sha256 igual)"
+else
+  falha "«Deixar assim» não tirou o cartão, ou mexeu no conf" "antes: $antes_p / depois: $depois_p"
 fi
 
 printf '\n--- 7. sem cargo, o conserto instala o rust (e não manda instalar) ---\n'

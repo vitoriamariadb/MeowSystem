@@ -348,7 +348,11 @@ cmd_estado() {
     meow_info "  (é ESTE que decide o login — o cosmic-comp lê o arquivo uma vez, ao iniciar)"
   fi
 
-  local gaps="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicTheme.Dark/v1/gaps"
+  # [P82, 15/10/2026 (item 17): lia o `Dark/v1/gaps`, e o COSMIC 1.10 traz o
+  #   `v2` nesse namespace — a linha mostrava o valor velho. O esquema é o do
+  #   pacote (`meow_cosmic_v`).]
+  local gaps
+  gaps="$(meow_cosmic_dir)/com.system76.CosmicTheme.Dark/$(meow_cosmic_v com.system76.CosmicTheme.Dark)/gaps"
   [ -f "$gaps" ] && meow_info "$(_janelas_col "gaps (do TEMA)") $(cat "$gaps") — (margem da tela, entre janelas)"
 
   local pid; pid="$(pgrep -x cosmic-comp 2>/dev/null | head -1)"

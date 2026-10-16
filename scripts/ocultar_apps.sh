@@ -124,19 +124,11 @@ OCULTAR=(
   syncthing-ui              # "Syncthing Web UI" — o mesmo serviço, dois ícones
 )
 
-# As DUPLICATAS. Separadas da lista de cima porque o motivo é outro: aqui o
-# aplicativo FICA — o que sai é a segunda cópia dele. Ver o cabeçalho.
-# Todos são o arquivo de `/usr/share`; a cópia que ela usa está em
-# `/usr/local/share/applications` (chrome, steam — desde 13/08/2026) ou no
-# Flatpak, e continua intocada.
-OCULTAR_DUPLICATA=(
-  google-chrome             # fica o de /usr/local/share: liga GPU e decode por hardware
-  steam                     # fica o de /usr/local/share: passa pelo steam-resiliente.sh
-  github-desktop            # fica o Flatpak; este .deb é de mai/2021
-)
-
-# Uma lista só para o laço — a divisão acima é para quem lê, não para o código.
-OCULTAR+=("${OCULTAR_DUPLICATA[@]}")
+# [AS DUPLICATAS SAÍRAM DA FÁBRICA EM 15/10/2026, P82 (decisão 17). Eram o
+#   `google-chrome`, o `steam` e o `github-desktop`: o arquivo de `/usr/share`
+#   que ESTA máquina esconde porque usa outra cópia (a de
+#   `/usr/local/share/applications`, ou o Flatpak). São apps de quem usa, e não
+#   de sistema; o que é só desta máquina mora no meow.conf dela, que já os tem.]
 
 # A LISTA DE FÁBRICA PASSA A TER UMA PORTA — 21/09/2026
 #   As 32 linhas acima são o gosto de UMA máquina, e o `meow.conf.exemplo` já
@@ -218,6 +210,28 @@ if [ "${#_fora[@]}" -gt 0 ]; then
 fi
 unset _do_pack _ja _resto
 
+# O QUE ESTE SCRIPT ESCONDEU FICA ANOTADO — 15/10/2026, P82 (item 11; decisão 21)
+#   Ele só desfazia uma marca pelo `-nome`. Trocar do Dracula para o Catppuccin
+#   deixava os 24 do `lancador.ocultar` do pack fora do lançador, porque a lista
+#   nova simplesmente não os nomeava mais. Agora o estado guarda os nomes que
+#   ESTE script marcou, e um nome que saiu da lista efetiva (pack + conf) tem a
+#   marca desfeita pela mesma régua do `-nome`. Só os anotados: um `.desktop`
+#   que já vinha escondido de fábrica não é nosso, e fica.
+#   Na primeira passada com este código não há anotação: ela nasce com os nomes
+#   da lista efetiva que já trazem a marca na forma que este script escreve.
+MARCADOS="$MEOW_ESTADO/lancador-ocultos.txt"
+_tem_marca() {
+  awk 'ant == "[Desktop Entry]" && $0 == "NoDisplay=true" { achou = 1 } { ant = $0 } END { exit !achou }' "$1"
+}
+declare -A _meus=()
+if [ -f "$MARCADOS" ]; then
+  while IFS= read -r _item; do [ -n "$_item" ] && _meus["$_item"]=1; done < "$MARCADOS"
+else
+  for _item in "${OCULTAR[@]}"; do
+    [ -f "$SISTEMA/$_item.desktop" ] && _tem_marca "$SISTEMA/$_item.desktop" && _meus["$_item"]=1
+  done
+fi
+
 mudou=0
 ausentes=0
 sem_root=0
@@ -262,7 +276,7 @@ for app in "${OCULTAR[@]}"; do
     continue
   fi
   if meow_desktop_escrever "$arq" "$tmp"; then
-    mudou=1
+    mudou=1; _meus["$app"]=1
   else
     sem_root=$((sem_root+1))
   fi
@@ -277,12 +291,19 @@ done
 #   este script escreve — a linha `NoDisplay=true` logo depois de
 #   `[Desktop Entry]` — e só nos nomes que a pessoa pediu com `-`. A cópia vem
 #   antes da escrita, como acima.
+# [P82: e os anotados que saíram da lista efetiva, pela mesma régua.]
+declare -A _na_lista=()
+for _item in "${OCULTAR[@]}"; do _na_lista["$_item"]=1; done
+_devolver=(${_fora[@]+"${_fora[@]}"})
+for _item in "${!_meus[@]}"; do
+  [ -n "${_na_lista[$_item]:-}" ] && continue
+  printf '%s\n' ${_fora[@]+"${_fora[@]}"} | grep -qxF -- "$_item" || _devolver+=("$_item")
+done
 devolvidos=0
-for app in ${_fora[@]+"${_fora[@]}"}; do
+for app in ${_devolver[@]+"${_devolver[@]}"}; do
   arq="$SISTEMA/$app.desktop"
-  [ -f "$arq" ] || continue
-  awk 'ant == "[Desktop Entry]" && $0 == "NoDisplay=true" { achou = 1 } { ant = $0 } END { exit !achou }' "$arq" \
-    || continue
+  [ -f "$arq" ] || { [ -z "${_na_lista[$app]:-}" ] && unset '_meus[$app]'; continue; }
+  _tem_marca "$arq" || { [ -z "${_na_lista[$app]:-}" ] && unset '_meus[$app]'; continue; }
   if meow_seco; then
     meow_muda "devolveria $app ao lançador"
     mudou=1
@@ -301,17 +322,23 @@ for app in ${_fora[@]+"${_fora[@]}"}; do
   tmp="$(mktemp)"
   printf '%s\n' "$novo" > "$tmp"
   if meow_desktop_escrever "$arq" "$tmp"; then
-    mudou=1; devolvidos=$((devolvidos+1))
+    mudou=1; devolvidos=$((devolvidos+1)); unset '_meus[$app]'
   else
     sem_root=$((sem_root+1))
   fi
   rm -f "$tmp"
 done
-[ "$devolvidos" -gt 0 ] && meow_muda "$devolvidos aplicativo(s) de volta ao lançador, pelo «-nome» do LANCADOR_OCULTAR"
+[ "$devolvidos" -gt 0 ] && meow_muda "$devolvidos aplicativo(s) de volta ao lançador"
+
+# A anotação se grava só fora do ensaio, e só quando muda (o `meow_escrever`
+# compara antes): a 2ª passada não escreve nada.
+if ! meow_seco; then
+  mkdir -p "$MEOW_ESTADO" 2>/dev/null
+  meow_escrever "$MARCADOS" "$(printf '%s\n' "${!_meus[@]}" | LC_ALL=C sort | sed '/^$/d')" 644 >/dev/null
+fi
 
 if [ "$sem_root" -gt 0 ]; then
   meow_aviso "$sem_root aplicativo(s) precisam de sudo para ocultar"
-  meow_info "rode o install.sh de novo com sudo disponível"
 fi
 
 if [ "$mudou" = "0" ]; then
