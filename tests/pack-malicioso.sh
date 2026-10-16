@@ -189,6 +189,26 @@ cp "$RAIZ/packs/dracula/paleta.json" "$MAL_UTF/"
 printf '{"formato": 1, "id": "mal-utf", "nome": "a\x9b[2Jb", "heranca": "dracula", "paleta": {"arquivo": "paleta.json"}, "icones": {"apps": {"desenhos": "icones/"}}}\n' \
   > "$MAL_UTF/pack.json"
 
+# `mal-fl-ponto` e `mal-fl-barra` [P82, item 15]: o nome do flavor vira
+# caminho de pasta e de traço (o `meow_flavor` o devolve cru), e o `validar` só
+# recusava o hífen. Um flavor `..` e um claro `a/b` passavam.
+for _p in mal-fl-ponto:..:flavors mal-fl-barra:a/b:claros; do
+  _id="${_p%%:*}"; _r="${_p#*:}"; _fl="${_r%%:*}"; _onde="${_r#*:}"
+  mkdir -p "$RAIZ_DELA/$_id"
+  python3 -I - "$RAIZ/packs/dracula/paleta.json" "$RAIZ_DELA/$_id/paleta.json" "$_fl" "$_onde" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+fl, onde = sys.argv[3], sys.argv[4]
+d["flavors"][fl] = dict(d["flavors"]["dracula"])
+d["nomes"][fl] = "Mal"
+if onde == "claros":
+    d["claros"].append(fl)
+json.dump(d, open(sys.argv[2], "w", encoding="utf-8"))
+PY
+  printf '{"formato": 1, "id": "%s", "nome": "Mal flavor", "versao": "1.0.0", "autor": "x",\n "licenca": "MIT", "heranca": "dracula",\n "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}}\n' \
+    "$_id" > "$RAIZ_DELA/$_id/pack.json"
+done
+
 PERMITIDAS=("$RAIZ" "$RAIZ_DELA")
 fora_da_raiz() {   # as linhas de caminho da entrada que caem fora das raízes
   local l r
@@ -252,6 +272,15 @@ fi
 recusado="$(amb python3 "$RAIZ/scripts/pack.py" adocao mal-esc "" 2>/dev/null | sed -n 's/^recusado=//p')"
 [ "$recusado" = "mal-esc" ] && ok "o pack com caractere de controle no nome é recusado inteiro" \
   || falha "o pack com caractere de controle no nome foi adotado (recusado='$recusado')"
+
+for _id in mal-fl-ponto mal-fl-barra; do
+  recusado="$(amb python3 "$RAIZ/scripts/pack.py" adocao "$_id" "" 2>/dev/null | sed -n 's/^recusado=//p')"
+  if [ "$recusado" = "$_id" ] && ! amb python3 "$RAIZ/scripts/pack.py" validar "$_id" >/dev/null 2>&1; then
+    ok "o pack com flavor fora da forma do conf ($_id) é recusado inteiro no validar"
+  else
+    falha "o pack com flavor '..' ou 'a/b' passou no validar ($_id, recusado='$recusado')"
+  fi
+done
 
 # A porta de saída (`meow_texto_seguro`): C1 cru que não forma UTF-8 também sai
 # (`\x9b\x9b`, `\xff\x9b`, `\xe2\x9b` truncado, `\x90`/`\x9d`/`\x9e`/`\x9f`), e o

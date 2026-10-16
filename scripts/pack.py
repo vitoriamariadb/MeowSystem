@@ -3694,6 +3694,21 @@ def validar(ref, silencioso=False):
                 f"    o nome no lugar errado. Use uma palavra só: o Catppuccin\n"
                 f"    faz 'latte'/'mocha', e o Dracula claro daqui é 'alucard'.")
 
+    # E O NOME TEM A FORMA DO CONF, JÁ AQUI — 15/10/2026, P82 (item 15)
+    #   O nome do flavor vira `FLAVOR=` no meow.conf, e dali caminho de pasta e
+    #   de traço: o `meow_flavor` (lib/comum.sh) o devolve cru. O hífen era a
+    #   única recusa, e um `..` ou um `a/b` passavam. A forma é a mesma que o
+    #   `meow pack usar` já exige antes de gravar (`RE_FLAVOR_CONF`), e vale
+    #   para `flavors` e para `claros`: uma regra, na origem, e o pack que não
+    #   cabe nela é recusado inteiro.
+    for campo in ("flavors", "claros"):
+        nomes = dados[campo] if isinstance(dados[campo], (dict, list)) else []
+        for flavor in nomes:
+            _exigir(isinstance(flavor, str) and RE_FLAVOR_CONF.match(flavor),
+                    f"{arq}: o nome {flavor!r} em {campo!r} não é um nome de flavor.\n"
+                    f"    Ele vira caminho de pasta e linha do meow.conf: use só\n"
+                    f"    letras minúsculas, algarismos e '_' (como 'latte' ou 'alucard').")
+
     # Os 26 slots, e o erro diz TODOS os que faltam de uma vez.
     for flavor, cores in dados["flavors"].items():
         faltam = [s for s in SLOTS if s not in cores]
