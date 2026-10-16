@@ -9768,6 +9768,48 @@ class Manipulador(BaseHTTPRequestHandler):
             return {"tipo": "conversao", "frase": "a conversão em traço do projeto"}
         return {"tipo": "fabrica", "frase": "o ícone de fábrica"}
 
+    def _o_que_veste(self, app):
+        """O arquivo que veste o aplicativo agora, como a ficha o escreve, ou None.
+
+        15/10/2026, P82 (item 6). O `_escolha_no_pack` só responde quando a
+        linha do mapa é uma escolha do painel: o Waterfox abria a ficha com o
+        desenho do pack no ar sem marca nenhuma. A ordem é a do `_o_que_fica`,
+        que é a do tema: a escolha de quem usa, a linha do mapa do pack no ar
+        (com a camada ligada), e o traço (o glifo do Arcticons, depois a
+        conversão). Arquivo que não existe não veste nada."""
+        mod = modulo_pack()
+        minha = self._minha_escolha(app)
+        if minha:
+            return minha["arquivo"]
+        nome = self._nome_do_icone(app)
+        ident = _pack_adotado() if mod else ""
+        if ident and (valores_efetivos(["ICONES_DRACULA"]).get("ICONES_DRACULA") or "sim") != "nao":
+            mapa = mod.acervo("icones.apps.mapa", ref=ident) or ""
+            for _num, n, alvo in (mod.ler_mapa(mapa) if os.path.isfile(mapa) else ()):
+                if n != nome:
+                    continue
+                try:
+                    arq = mod.resolver_alvo(alvo, os.path.dirname(mapa))
+                except mod.Recusa:
+                    arq = ""
+                if arq and os.path.isfile(arq):
+                    return self._arquivo_na_ficha(arq)
+        d = next((x for x in self._desktops() if x["id"] == app), None) or {}
+        icones = os.path.join(RAIZ, "assets", "icones")
+        marca = self._mapa_arcticons().get(app) or self._mapa_arcticons().get(d.get("icone") or "")
+        if marca:
+            glifo = marca["glifo"]
+            arq = (glifo if os.path.isabs(glifo) else os.path.join(RAIZ, glifo)) if "/" in glifo \
+                else os.path.join(icones, "arcticons-apps", glifo + ".svg")
+            if os.path.isfile(arq):
+                return self._arquivo_na_ficha(arq)
+        conv = self._mapa_convertidos()
+        if conv.get(app) or conv.get(d.get("icone") or ""):
+            arq = os.path.join(icones, "convertidos-apps", nome + ".svg")
+            if os.path.isfile(arq):
+                return self._arquivo_na_ficha(arq)
+        return None
+
     # ========================================================================
     # A FICHA MOSTRA O ACERVO INTEIRO, EM PASTAS — 09/10/2026, sprint P73 (T1)
     # ========================================================================
@@ -10062,7 +10104,9 @@ class Manipulador(BaseHTTPRequestHandler):
                  # A escolha do painel para ESTE app, no estado de quem usa (P73):
                  # acende o «Desfazer» e, se o desenho é do pack no ar, o «Levar
                  # para o pack».
-                 "minha": self._minha_escolha(app) if app_ok else None}
+                 "minha": self._minha_escolha(app) if app_ok else None,
+                 # O que veste o app agora (P82, item 6): a ficha o marca.
+                 "veste": self._o_que_veste(app) if app_ok else None}
         # `limitado` fica, sempre falso: é o campo que dizia «a lista foi
         # cortada», e nenhuma resposta corta mais.
         return self._json(dict({"grupos": grupos, "glifos": glifos, "limitado": False}, **extra))

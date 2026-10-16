@@ -245,6 +245,14 @@ checa(dele and caminho_de(dele[0]).startswith(casa_real + os.sep) and dele[0]["t
       "e o desenho enviado aparece na ficha, numa pasta da casa de quem usa",
       repr([(caminho_de(i), i["grupo"]) for i in dele]))
 
+# --- 7. a ficha diz o desenho que veste o app agora — P82, item 6 -----------------
+#   O `_escolha_no_pack` só respondia quando a linha do mapa era uma escolha do
+#   painel: o Waterfox abria com o desenho do pack sem marca nenhuma. A ordem é
+#   a do tema: a escolha de quem usa, a linha do mapa do pack no ar, o traço.
+veste = glifos("", "net.waterfox.waterfox").get("veste")
+checa(veste == "packs/dracula/icones/apps/net.waterfox.waterfox.svg",
+      "o net.waterfox.waterfox vem com «veste» no desenho do pack no ar", "veio %r" % veste)
+
 if falhas:
     print("FALHOU: o acervo da ficha de ícone:", file=sys.stderr)
     for linha in falhas:

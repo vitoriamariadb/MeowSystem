@@ -3744,7 +3744,7 @@ async function carregarGlifos(termo, app) {
    * aplicativo, e não só por termo. */
   GLIFOS = { termo, app, itens: r.glifos || [], grupos: r.grupos || [], carregando: false,
              aviso: r.aviso || "", pack: r.pack || null, escolha: r.escolha || null,
-             minha: r.minha || null };
+             minha: r.minha || null, veste: r.veste || null };
   render();
 }
 
@@ -4033,8 +4033,15 @@ function montarEscolhaDeIcone(app, recarregar) {
    * que vence no tema (`pack.py fontes`). O arquivo é a identidade da escolha. */
   const daMinha = GLIFOS.app === app.id && GLIFOS.minha
     ? itens.find((g) => g.arquivo === GLIFOS.minha.arquivo && !travaDe(g)) : null;
+  /* O QUE VESTE O APP AGORA ABRE MARCADO — 15/10/2026, P82 (item 6). Só a
+   * escolha dela e o traço abriam marcados: o Waterfox, vestido pelo desenho
+   * do pack no ar, abria a ficha sem marca nenhuma. O servidor manda o
+   * arquivo que veste o app (`veste`, na ordem do tema), e a ficha o marca. */
+  const daVeste = GLIFOS.app === app.id && GLIFOS.veste
+    ? itens.find((g) => g.arquivo === GLIFOS.veste && !travaDe(g)) : null;
   if (GLIFOS.escolhido === undefined) {
-    GLIFOS.escolhido = daMinha ? chaveDe(daMinha) : vestido ? chaveDe(vestido) : null;
+    GLIFOS.escolhido = daMinha ? chaveDe(daMinha) : daVeste ? chaveDe(daVeste)
+      : vestido ? chaveDe(vestido) : null;
   }
   const grupoDe = (id) => (GLIFOS.grupos || []).find((x) => x.id === id) || { id, acervo: "", nome: id };
   const itemEscolhido = () => itens.find((g) => chaveDe(g) === GLIFOS.escolhido) || null;
