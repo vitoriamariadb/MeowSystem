@@ -218,7 +218,7 @@ git -C "$ARV" diff | sed 's/[[:space:]]*$//' > "$PATCH"
 ```
 
 O caminho virou variável em 21/09/2026. Antes as duas linhas traziam
-`/mnt/Apate/Desenvolvimento/MeowSystem/...` cravado — um ponto de montagem que
+o ponto de montagem de um segundo disco cravado no caminho — um ponto de montagem que
 só existe numa máquina, e a receita de regenerar o patch é justamente a que
 alguém de fora precisa quando o upstream mexe. O `$PWD` é resolvido uma vez, no
 começo, porque o `git -C` muda de diretório mas o `>` da última linha é do shell
