@@ -7181,6 +7181,13 @@ def pendencias():
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
                     nome = "VS Code: extensão de pack importado"
+                # A PENDÊNCIA SEM BOTÃO TAMBÉM TEM NOME — 16/10/2026, QA final da
+                #   leva H. O `files-menu-build` nasce sem comando enquanto a
+                #   unidade compila, e sem `acao` a Início caía no nome da etapa:
+                #   «Files_menu.sh», o nome de um arquivo. O nome é o rótulo da
+                #   ação que a tabela liga a ela, o mesmo que o botão teria.
+                if not nome and not acao:
+                    nome = ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""), {}).get("rotulo", "")
                 rede = any(ACOES.get(a, {}).get("rede") for a in [acao] + [e["acao"] for e in escolha])
                 fora.append({
                     "id": ident, "etapa": etapa, "frase": frase,
