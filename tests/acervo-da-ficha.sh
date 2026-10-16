@@ -209,6 +209,27 @@ base = {g["id"]: g["tipo"] for g in grupos if g["pack"] == "meowsystem"}
 checa(base and set(base.values()) == {"traco"} and "pack:meowsystem:apps/arcticons" in base,
       "o acervo do pack-base aparece como traço", repr(base))
 
+# --- 4c. as subpastas da P87: versões e projetos dela — decisões 13 e 16 -----------
+#   `biblioteca/versoes/` guarda todas as versões e rascunhos recuperados (SVG e
+#   PNG), e `biblioteca/projetos/` os desenhos dos projetos dela fora da lista de
+#   exclusão. Cada uma é um grupo da ficha, com o rótulo de gente e a contagem
+#   que o disco tem; o rótulo de cada desenho vem do `catalog.json` da pasta.
+por_caminho = {os.path.normpath(caminho_de(i)): i for i in itens}
+for sub, rotulo, minimo in (("versoes", "versões", 100), ("projetos", "projetos dela", 15)):
+    pasta_p87 = os.path.join(raiz, "packs", "dracula", "icones", "biblioteca", sub)
+    esperado = len([a for a in os.listdir(pasta_p87) if a.endswith(".svg")])
+    gp = next((g for g in grupos if g["id"] == "pack:dracula:biblioteca/" + sub), None)
+    checa(gp and gp["total"] == esperado and esperado >= minimo and gp["nome"] == rotulo,
+          "a pasta «%s» da biblioteca do Dracula aparece na ficha com %d desenhos" % (rotulo, esperado),
+          repr(gp))
+    png_p87 = next((g for g in grupos if g["id"] == "pack:dracula:biblioteca/%s:png" % sub), None)
+    npng = len([a for a in os.listdir(pasta_p87) if a.endswith(".png")])
+    checa(bool(png_p87) == bool(npng) and (not npng or png_p87["total"] == npng),
+          "e os PNG de «%s», vistos e travados, num grupo à parte (%d)" % (rotulo, npng), repr(png_p87))
+    sem_rotulo = sorted(a for a in os.listdir(pasta_p87) if a.endswith((".svg", ".png"))
+                        and not (por_caminho.get(os.path.normpath(os.path.join(pasta_p87, a))) or {}).get("rotulo"))
+    checa(not sem_rotulo, "todo desenho de «%s» tem rótulo na ficha" % rotulo, repr(sem_rotulo[:4]))
+
 # --- 5. o rótulo é amigável, e o nome técnico vai para a dica — P80, item 1 ------
 #   Medido no uso real de 10/10 (prints 05 e 06): `net.waterfo…`, `org.gnome.…`,
 #   `005-potion` cortados embaixo de cada desenho. O rótulo sai do nome do app

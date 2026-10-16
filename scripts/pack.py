@@ -4445,7 +4445,8 @@ PASTA_FEITOS_A_MAO = "icones/biblioteca/feitos-a-mao/"
 #   é o pack-base, e o traço dele é dito pelo `icones.apps.recolorir`.
 PASTAS_DA_FICHA = ("icones/apps/", PASTA_BIBLIOTECA)
 ROTULO_DA_PASTA = {"icones/apps": "feitos para apps", "icones/biblioteca": "biblioteca",
-                   "arcticons": "traço", "feitos-a-mao": "feitos à mão"}
+                   "arcticons": "traço", "feitos-a-mao": "feitos à mão",
+                   "versoes": "versões", "projetos": "projetos dela"}
 FORA_DA_FICHA = ("ANTES-E-DEPOIS.png",)
 # O nome vira texto de mapa no estado de quem usa (`escolhas_do_painel`): `#`
 # cortaria a linha, `:` a partiria, e uma quebra a dividiria em duas.
