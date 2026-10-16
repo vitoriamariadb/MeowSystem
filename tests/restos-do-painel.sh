@@ -145,6 +145,9 @@ const documento = {
   createElement: (tag) => new El(tag),
   body: Object.assign(new El("body"), { dataset: { token: "brinquedo" } }),
   querySelector: () => new El("div"),
+  // [P82, itens 26 e 30: o fim do `render` e o «Usar este ícone» procuram as
+  //   grades e o cartão do aplicativo na página; aqui não há página.]
+  querySelectorAll: () => [],
   addEventListener() {},
 };
 
