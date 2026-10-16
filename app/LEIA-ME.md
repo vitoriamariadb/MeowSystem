@@ -128,16 +128,17 @@ que as aplica ao lado.
 
 ---
 
-## Sem modo seco
+## O ensaio é de um gesto, nunca da página inteira
 
-O painel não ensaia. Até 13/09/2026 havia um interruptor **Ensaiar sem gravar** no
-topo, que punha `MEOW_DRY_RUN=1` em tudo que aceitava — e o efeito, visto de fora,
-era o que ela descreveu: *"nada tá aplicando de verdade"*. Ela pediu o app fora do
-modo sandbox, e ele saiu da página e do servidor: nenhuma rota aceita mais `seco`,
-e um `MEOW_DRY_RUN` herdado do terminal que subiu o painel é arrancado do ambiente
-de tudo que ele roda.
+Até 13/09/2026 havia um interruptor **Ensaiar sem gravar** no topo, que punha
+`MEOW_DRY_RUN=1` em tudo que aceitava — e o efeito, visto de fora, era a queixa
+*"nada tá aplicando de verdade"*. O pedido foi tirar o app do modo sandbox, e o
+interruptor saiu da página e do servidor: um `MEOW_DRY_RUN` herdado do terminal que
+subiu o painel é arrancado do ambiente de tudo que ele roda.
 
-O modo seco continua onde auditar antes de rodar faz sentido — no terminal:
+Desde 22/09/2026 (P8) o ensaio voltou, de outro jeito: **Ver o que faria** mostra
+um gesto antes de ele valer, na gaveta de saída, e **Rodar de verdade** o manda
+valer. Não existe mais interruptor global. No terminal, o modo seco continua:
 `./install.sh --dry-run`, ou `MEOW_DRY_RUN=1` na frente de qualquer script.
 
 **O que o painel mostra da máquina.** As chaves que nascem vazias ("não toca")
@@ -145,7 +146,7 @@ não diziam o que a máquina tem, e o desenho da barra usava números de exemplo
 servidor agora lê, a cada esquema, o que o COSMIC guarda para a forma e o vidro
 das barras, o relógio, o lado a lado e o modo de leitura (`NA_MAQUINA`, em
 `servidor.py`), e manda como `valendo_agora`: o deslizante vazio diz "como está:
-24", o desenho da dock usa o raio dela, e o cartão cujo valor escolhido a máquina
+24", o desenho da dock usa o raio que ela tem, e o cartão cujo valor escolhido a máquina
 ainda não tem diz "Na máquina agora". Quando um trabalho que escreve termina, a
 página relê tudo isso.
 
@@ -191,7 +192,7 @@ dentro, sem tty e sem perguntar. Ou seja, `./install.sh` disparado por um clique
 **pode** atravessar as etapas de `/usr/share` — se a hora for aquela.
 
 Nenhuma senha é pedida, lida, guardada ou passada adiante em ponto nenhum deste
-código. O que existe é o cache que já era dela. O que mudou é que agora **está
+código. O que existe é o cache do sudo que já era de quem usa. O que mudou é que agora **está
 dito**, no diálogo, antes do clique. Se o cache estiver frio, aquelas etapas se
 pulam sozinhas e aparecem em `pulado:`.
 
@@ -292,7 +293,7 @@ Um arquivo com uma chave inventada e um número fora da faixa traz as boas e
 mostra as duas recusas com o motivo de cada uma.
 
 A primeira medição desse ciclo achou um defeito que não era da importação:
-`MIDIA_FONTE="auto"` — o valor que está no conf dela e que a aba Automação
+`MIDIA_FONTE="auto"` — o valor que está no conf da máquina de origem e que a aba Automação
 oferece como botão — era **recusado pelo validador**. A página propunha o que o
 servidor respondia com 400. Corrigido no mesmo dia: a palavra que uma chave
 numérica aceita como padrão passa a ser aceita por ela, e só por ela.
@@ -316,7 +317,7 @@ A busca atravessa **todas** as seções ao mesmo tempo, e é o que faz uma pági
 ## Duas coisas que estavam erradas no `meow.conf.exemplo` — consertadas em 01/09
 
 Eram achados sobre **o arquivo**, não sobre esta página, e o conserto mexe
-também no que o `meow configurar` mostra. Ela autorizou, e foi feito:
+também no que o `meow configurar` mostra. Quem usa autorizou, e foi feito:
 
 1. **O marcador `# --- Wallpaper` estava órfão** — no arquivo *antes* do bloco
    `A FORMA DO PAINEL E DO DOCK`, com as chaves de papel de parede dezenas de
@@ -349,7 +350,7 @@ mudo na página. Pego conferindo o esquema depois de mover, não antes.
 
 Nenhum dos dois quebra nada hoje. Os dois deixam o wizard e esta página com um
 cabeçalho errado, e o conserto é editar o `meow.conf.exemplo` — que é decisão
-dela, porque muda o que o `meow configurar` mostra.
+de quem usa, porque muda o que o `meow configurar` mostra.
 
 ---
 
