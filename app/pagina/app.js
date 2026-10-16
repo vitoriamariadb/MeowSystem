@@ -10052,14 +10052,27 @@ function render() {
 const ALVENARIA_PASSO = 4;
 const ALVENARIA_EMPATE = 64;
 let OBSERVADOR_GRADES = null;
+/* O QUE ESTÁ À VISTA FICA À VISTA: a alvenaria refeita depois da pintura (um
+ * desenho que chegou, a janela que mudou) muda os cartões de lugar, e o
+ * cartão a que a Início levou (`.chegou`), ou o que tem o foco, saía da
+ * janela. Ele é a âncora: a rolagem anda o tanto que ele andou. */
+function assentarComAncora() {
+  const m = $("#principal");
+  const foco = document.activeElement;
+  const ancora = document.querySelector("#conteudo .grade > .chegou")
+    || (foco && foco.closest && foco.closest("#conteudo .grade > *"));
+  const antes = ancora ? ancora.getBoundingClientRect().top : null;
+  assentarGrades();
+  if (m && ancora && ancora.isConnected) m.scrollTop += ancora.getBoundingClientRect().top - antes;
+}
 function assentarGrades() {
   if (typeof ResizeObserver === "function" && !OBSERVADOR_GRADES) {
     let pedido = 0;
     OBSERVADOR_GRADES = new ResizeObserver(() => {
       cancelAnimationFrame(pedido);
-      pedido = requestAnimationFrame(() => assentarGrades());
+      pedido = requestAnimationFrame(assentarComAncora);
     });
-    addEventListener("resize", () => assentarGrades());
+    addEventListener("resize", assentarComAncora);
   }
   for (const g of document.querySelectorAll("#conteudo .grade")) {
     const filhos = [...g.children];
