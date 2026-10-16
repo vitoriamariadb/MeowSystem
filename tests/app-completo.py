@@ -3578,17 +3578,10 @@ DEFEITOS_CONHECIDOS = {
     # lançador da máquina inteira) foram consertados na origem, e o percurso
     # passou a cobrar que o «Usar» da galeria termine bem.
     #
-    # P77, 10/10/2026: com as ações técnicas no «⋯», «O carrossel agora» passou
-    # a ser o PRIMEIRO script de papel de parede da aba (o «⋯» abre antes dos
-    # outros gestos, pela ordem dos nomes), e numa casa nova ele semeia o
-    # estado: o `meow_estado_com_padrao` (lib/comum.sh) copia o `BANIDOS.txt` e
-    # o `lado.tsv` da receita na primeira LEITURA, inclusive num verbo que só
-    # mostra. Antes, um gesto que escreve chegava primeiro e escondia isso.
-    # Aparece só quando nada semeou antes, por isso não em toda corrida.
-    r"«O carrossel agora» não muda a casa — mudou \d+: \['casa/\.local/state/meowsystem/"
-    r"papeis-de-parede/": (
-        "lib/comum.sh `meow_estado_com_padrao`: semear o estado só em verbo que "
-        "escreve (o `meow wallpaper` sem argumento só lê)", False),
+    # [P77, 10/10/2026: «O carrossel agora» semeava o estado do papel de
+    #   parede na primeira LEITURA, e estava aqui. Saiu em 15/10/2026 (P82, item
+    #   34): o `meow_estado_com_padrao` só semeia em verbo que escreve, e o
+    #   `estado` lê a semente do clone.]
 }
 
 

@@ -1526,10 +1526,25 @@ MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 # terceiro caminho a inventar. Dois argumentos em vez de quatro, e nenhuma
 # chamada que possa cruzar as pastas por engano.
 #
+# O VERBO QUE SÓ LÊ NÃO SEMEIA — 15/10/2026, P82 (item 34). A semeadura
+#   acontecia na primeira LEITURA, e o `meow wallpaper` sem argumento (o
+#   «O carrossel agora» do painel, que só mostra) criava a pasta de estado de
+#   quem nunca escreveu nada. Com `MEOW_ESTADO_SO_LE=1` (o script põe no verbo
+#   que só lê) nada é criado, e sem o arquivo de estado o caminho devolvido é o
+#   da SEMENTE — o arquivo velho do clone ou o `.padrao`, na mesma ordem da
+#   semeadura —, que é o que o estado teria. Quem lê lê o mesmo que leria
+#   depois de semear; quem escreve semeia antes, como sempre.
+#
 # Uso:  caminho="$(meow_estado_com_padrao papeis-de-parede BANIDOS.txt)"
 meow_estado_com_padrao() {
   local pasta="$1" arquivo="$2" origem="$MEOW_RAIZ/assets/$1" dir="$MEOW_ESTADO/$1"
   local padrao semente
+  if [ "${MEOW_ESTADO_SO_LE:-0}" = "1" ] && [ ! -f "$dir/$arquivo" ]; then
+    if [ -f "$origem/$arquivo" ]; then printf '%s' "$origem/$arquivo"
+    elif [ -f "$origem/$arquivo.padrao" ]; then printf '%s' "$origem/$arquivo.padrao"
+    else printf '%s' "$dir/$arquivo"; fi
+    return 0
+  fi
   if [ ! -d "$dir" ] && ! meow_seco; then
     # Se o `mkdir` falhar, ecoamos o caminho do estado do mesmo jeito: quem
     # chamou trata "não consegui escrever" como sempre tratou, e devolver vazio

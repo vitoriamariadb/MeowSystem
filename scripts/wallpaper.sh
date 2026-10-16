@@ -783,6 +783,9 @@ soltar_derivadas() {
 #   sobrevivendo à formatação — pelo `.padrao` para quem clona, e pelos backups
 #   de `$MEOW_ESTADO` para quem já usa. O contrato está em
 #   `meow_estado_com_padrao` (`lib/comum.sh`).
+# [P82, 15/10/2026 (item 34): o `estado` só lê, e não semeia — ver o
+#   `meow_estado_com_padrao`. Fica valendo para o BANIDOS.txt, lá embaixo.]
+case "${1:-aplicar}" in estado) MEOW_ESTADO_SO_LE=1 ;; esac
 LADO_TSV="${WALLPAPER_LADO:-$(meow_estado_com_padrao papeis-de-parede lado.tsv)}"
 
 # nome do arquivo -> dia|noite. Só quem discorda da medição; preenchido por

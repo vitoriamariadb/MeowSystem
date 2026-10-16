@@ -90,6 +90,24 @@ rodar_curadoria() {
 }
 mkdir -p "$TMP/home" || exit 2
 
+# O VERBO QUE SÓ LÊ NÃO SEMEIA — P82, item 34. O `estado` (o «O carrossel
+# agora» do painel) criava a pasta de estado e copiava as sementes na primeira
+# leitura. Agora a semente nasce no primeiro verbo que escreve (o `banir`,
+# logo abaixo), e quem só lê lê a semente do clone.
+rodar_curadoria estado >"$TMP/log-estado" 2>&1
+if [ ! -e "$TMP/estado/papeis-de-parede" ]; then
+  ok "o «estado» não cria nem semeia \$MEOW_ESTADO/papeis-de-parede"
+else
+  falha "o «estado», que só lê, semeou o estado: $(ls "$TMP/estado/papeis-de-parede" | tr '\n' ' ')"
+fi
+le="$(MEOW_ESTADO="$TMP/estado" MEOW_ESTADO_SO_LE=1 MEOW_RAIZ="$RAIZ" bash -c \
+      '. "$MEOW_RAIZ/lib/comum.sh"; meow_estado_com_padrao papeis-de-parede lado.tsv' 2>/dev/null)"
+if [ "$le" = "$RAIZ/assets/papeis-de-parede/lado.tsv.padrao" ] && [ ! -e "$TMP/estado/papeis-de-parede" ]; then
+  ok "sem estado, a leitura devolve a semente do clone"
+else
+  falha "sem estado, a leitura devolveu «$le»"
+fi
+
 rodar_curadoria banir "$ACERVO/ativos/teste-banir.jpg" >"$TMP/log-banir" 2>&1
 rodar_curadoria lado  "teste-lado.jpg" noite           >"$TMP/log-lado"  2>&1
 
