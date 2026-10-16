@@ -4139,6 +4139,21 @@ a.folha:hover b { color: var(--text); }
 @media (max-width: 620px) {
   .par-previa > .com-dica > button.porque { right: .3rem; background: var(--mantle); }
 }
+/* E O `?` GANHA A SUA FAIXA — 15/10/2026, P82 (item 21). Dentro do canto da
+ * caixa ele ficava por cima do traço quando o desenho chega até ali (medido a
+ * 375 px em «Manutenção», sobre os «jogos», e em «Cor e tela»). A caixa ganha
+ * uma faixa à direita do tamanho do `?`, o desenho encolhe para ela, e o `?`
+ * mora nela, sem cobrir nada. */
+@media (max-width: 620px) {
+  .par-previa > .com-dica { padding-right: 2.1rem; box-sizing: border-box; }
+  .par-previa > .com-dica > button.porque { right: 0; }
+}
+/* A PRÉVIA NÃO GRUDA NA TELA DE CELULAR — 15/10/2026, P82 (item 21). Grudada
+ * no alto, ela levava um terço do que sobra embaixo do cabeçalho a 375 px, e os
+ * cartões passavam por baixo dela. Ali ela rola com a página, como o resto. */
+@media (max-width: 620px) {
+  .previa-bloco { position: static; box-shadow: none; }
+}
 
 /* ===========================================================================
  * P77 · GRUPO 2 — Painel e dock, Papel de parede, Logo do sistema, Terminal

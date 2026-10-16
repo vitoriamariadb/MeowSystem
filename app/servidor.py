@@ -9530,13 +9530,15 @@ class Manipulador(BaseHTTPRequestHandler):
                                        [d.get("id"), icone], rotulo)
         if motivo:
             return motivo
+        # AS FRASES CABEM NO BALÃO — 15/10/2026, P82 (item 21). Elas vão para o
+        #   balão do desenho na ficha, cujo teto é 80, e saíam cortadas (com o
+        #   nome do app dentro, passavam de 130). A ficha já é a do app: o nome
+        #   saiu da frase.
         if icone.startswith("/"):
-            return ("O lançador de %s aponta o ícone por caminho de arquivo, e o tema "
-                    "de ícones não é consultado para ele." % rotulo)
+            return "O lançador aponta o ícone por caminho de arquivo: o tema não vale aqui"
         donos = self._donos_do_scalable() if donos is None else donos
         if any(n in donos for n in (icone, d.get("id")) if n):
-            return ("O ícone de %s no tema é decidido por outro passo do MeowSystem, e "
-                    "um desenho do pack não duraria até a instalação seguinte." % rotulo)
+            return "O ícone deste app é de outro passo do MeowSystem; o do pack não duraria"
         return None
 
     def _escolher_do_pack(self, app, corpo):
@@ -11365,11 +11367,10 @@ class Manipulador(BaseHTTPRequestHandler):
         intocaveis, prefixos, curados, convertidos = travas
         nomes = [n for n in nomes if n]
         if any(n in intocaveis or (prefixos and n.startswith(prefixos)) for n in nomes):
-            return ("%s fica como está, por pedido seu. Só um desenho feito na "
-                    "oficina «Gerar ícone», acima, troca o dele." % rotulo)
+            # [P82: sem o nome, para caber no balão (ver o `_trava_do_pack`).]
+            return "Fica como está, por pedido seu; só a oficina «Gerar ícone» o troca"
         if any(n in curados for n in nomes):
-            return ("%s usa a arte que você escolheu na curadoria, e ela vence "
-                    "este acervo." % rotulo)
+            return "Usa a arte da sua curadoria, que vence este acervo"
         if any(n in convertidos for n in nomes):
             if not vigor:
                 return ("%s já tem desenho convertido do projeto. O traço dele se "

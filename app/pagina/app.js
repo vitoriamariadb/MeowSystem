@@ -9894,10 +9894,13 @@ function render() {
    * Ensaiar só existiam andando para trás. Com a aba já visível (o caso de
    * toda tela dela: o trilho inteiro cabe), nada se move e o Tab nasce onde o
    * HTML manda. */
+  /* [P82, 15/10/2026 (item 21): e os LADOS também. Na tira horizontal dos
+   * 375 px a aba aberta por endereço ficava a 1.600 px à direita, e só a
+   * altura era conferida — ela nunca rolava para a vista.] */
   if (ativa && ativa.scrollIntoView) {
     const t = $("#trilho").getBoundingClientRect();
     const b = ativa.getBoundingClientRect();
-    if (b.top < t.top || b.bottom > t.bottom) {
+    if (b.top < t.top || b.bottom > t.bottom || b.left < t.left || b.right > t.right) {
       ativa.scrollIntoView({ block: "nearest", inline: "nearest" });
     }
   }

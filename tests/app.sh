@@ -1314,6 +1314,37 @@ print("ok: a ficha diz o nome do lançador, o --onde cobre cartão e aba, o logo
 PY
 rm -rf "$_tmp13"
 
+# --- 13b. A TRAVA DO PACK CABE NO BALÃO — P82, item 21 --------------------------
+#   A frase do porquê de um desenho do pack não valer num app (a `trava_pack`)
+#   vai para o balão do desenho, e passava do teto de 80 do balão: saía cortada
+#   (a 375 px e em qualquer largura). As quatro formas dela, com um nome de app
+#   comprido, cabem no teto.
+_trava="$(env -i PATH="$PATH" HOME="$(mktemp -d)" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+m = servidor.Manipulador.__new__(servidor.Manipulador)
+nome = "Visualizador de documentos do GNOME"
+d = {"id": "x", "icone": "x"}
+nada = (set(), (), set(), set())
+frases = [
+    m._trava_do_pack({"id": "x", "icone": "/opt/x/icone.png"}, nome, donos=set(), travas=nada),
+    m._trava_do_pack(d, nome, donos={"x"}, travas=nada),
+    m._trava_do_pack(d, nome, donos=set(), travas=({"x"}, (), set(), set())),
+    m._trava_do_pack(d, nome, donos=set(), travas=(set(), (), {"x"}, set())),
+]
+for f in frases:
+    print("%d\t%s" % (len(f or ""), f))
+PY
+)"
+_compridas="$(awk -F'\t' '$1 > 80 || $1 == 0' <<< "$_trava")"
+if [ -z "$_compridas" ] && [ "$(grep -c . <<< "$_trava")" = 4 ]; then
+  echo "ok: as quatro frases da trava do pack cabem no balão (até 80), com um nome de app comprido"
+else
+  echo "FALHOU: frase da trava do pack acima do teto do balão (80): $_compridas" >&2
+  falhas=$((falhas+1))
+fi
+
 # --- 14. O LANÇADOR DE FÁBRICA NÃO ESCONDE APP DE QUEM USA — P82, item 11 ------
 #   O `LANCADOR_OCULTAR` do exemplo escondia o `google-chrome`, o `steam` e o
 #   `github-desktop`: duplicatas desta máquina, e não programas de sistema

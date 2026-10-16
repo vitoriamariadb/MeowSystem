@@ -551,6 +551,74 @@ NOME_DO_APP_JS = r"""
 """
 
 
+# 5 — A 375 PX (P82, item 21): o que a integração da P80 viu numa tela de
+#   celular. Cada caso é o efeito, medido na página: a aba aberta por endereço
+#   aparece no menu horizontal; a prévia grudada não cobre o conteúdo que rola;
+#   e o «?» de uma prévia não fica por cima do desenho dela.
+ABA_NO_MENU_JS = r"""
+() => {
+  const t = document.getElementById('trilho').getBoundingClientRect();
+  const a = document.querySelector('#trilho button[aria-current="true"]');
+  if (!a) return ['nenhuma aba marcada no menu'];
+  const b = a.getBoundingClientRect();
+  return (b.left >= t.left - 1 && b.right <= t.right + 1) ? []
+    : [`a aba aberta (${a.dataset.grupo}) está fora do menu horizontal: ${Math.round(b.left)}..${Math.round(b.right)} num trilho de ${Math.round(t.left)}..${Math.round(t.right)}`];
+}
+"""
+PREVIA_COBRE_JS = r"""
+() => {
+  const m = document.getElementById('principal');
+  if (!document.querySelector('#conteudo .previa-bloco')) return ['a página não tem prévia para conferir'];
+  m.scrollTop += 700;
+  const r = m.getBoundingClientRect();
+  const el = document.elementFromPoint(r.left + r.width / 2, r.top + 60);
+  return (el && el.closest('.previa-bloco'))
+    ? ['a prévia grudada cobre o conteúdo que rola, no alto da página'] : [];
+}
+"""
+DICA_SOBRE_DESENHO_JS = r"""
+() => {
+  const vis = (el) => el && el.checkVisibility && el.checkVisibility();
+  const defeitos = [];
+  for (const b of document.querySelectorAll('#conteudo .par-previa > .com-dica > button.porque')) {
+    const svg = b.parentElement.querySelector('svg');
+    if (!vis(b) || !svg || !svg.getBBox || !svg.getScreenCTM()) continue;
+    const c = svg.getBBox(), m = svg.getScreenCTM();
+    const d = { l: m.a * c.x + m.e, r: m.a * (c.x + c.width) + m.e,
+                t: m.d * c.y + m.f, b: m.d * (c.y + c.height) + m.f };
+    const q = b.getBoundingClientRect();
+    if (q.left < d.r && q.right > d.l && q.top < d.b && q.bottom > d.t)
+      defeitos.push(`o «?» da prévia fica por cima do desenho (${b.getAttribute('aria-label') || ''})`);
+  }
+  return defeitos;
+}
+"""
+
+
+def a_375(pag, url):
+    """Os casos da P82 (item 21) numa janela de celular. Devolve [(onde, defeito)]."""
+    reprovas = []
+    pag.set_viewport_size({"width": 375, "height": 812})
+    # A aba aberta pelo ENDEREÇO (e não por um clique, que o Playwright traz
+    # para a vista sozinho): a última do menu, a que mais longe fica.
+    ultima = pag.evaluate("() => idDeAba([...document.querySelectorAll('#trilho button[data-grupo]')].pop().dataset.grupo)")
+    pag.goto(url.split("#")[0] + "#" + ultima, wait_until="commit")
+    pag.wait_for_selector("#trilho button", timeout=60000)
+    assentar(pag)
+    reprovas += [("375 px · menu", d) for d in pag.evaluate(ABA_NO_MENU_JS)]
+    for grupo, olhar in (("Painel e dock", PREVIA_COBRE_JS), ("Manutenção", DICA_SOBRE_DESENHO_JS),
+                         ("Cor e tela", DICA_SOBRE_DESENHO_JS)):
+        pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
+        pag.mouse.move(5, 800)
+        assentar(pag)
+        reprovas += [(f"375 px · {grupo}", d) for d in pag.evaluate(olhar)]
+        if FOTOS:
+            nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
+            pag.screenshot(path=os.path.join(FOTOS, f"p82-375-{nome}.png"))
+    pag.set_viewport_size({"width": 1440, "height": 900})
+    return reprovas
+
+
 def acabamento(pag):
     """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -674,6 +742,13 @@ def main():
             achados = acabamento(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} acabamento: {len(achados)} defeito(s)")
+
+            # 5. A 375 PX (P82, item 21)
+            print("\n5. A 375 PX")
+            pagina_atual["nome"] = "375 px"
+            achados = a_375(pag, url)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} 375 px: {len(achados)} defeito(s)")
             nav.close()
     finally:
         proc.terminate()
