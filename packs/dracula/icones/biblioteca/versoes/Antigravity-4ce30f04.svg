@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Antigravity: disco escuro com o arco em «A» de degradê (amarelo, verde, vermelho sobre o azul). -->
+  <defs>
+    <radialGradient id="la" gradientUnits="userSpaceOnUse" cx="390" cy="20" r="250">
+      <stop offset="0" stop-color="#F9A620"/><stop offset="1" stop-color="#F9A620" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ve" gradientUnits="userSpaceOnUse" cx="250" cy="200" r="210">
+      <stop offset="0" stop-color="#8BC34A"/><stop offset="1" stop-color="#8BC34A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vm" gradientUnits="userSpaceOnUse" cx="590" cy="110" r="280">
+      <stop offset="0" stop-color="#F4503C"/><stop offset="1" stop-color="#F4503C" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="arco">
+      <path d="M82 678C88 667 107 636 120 610C133 584 147 557 160 520C173 483 187 432 200 390C213 348 227 307 240 270C253 233 267 201 280 170C293 139 305 107 320 85C335 63 352 49 370 38C388 27 413 20 430 17C447 14 453 14 470 20C487 26 513 37 530 50C547 63 557 78 570 100C583 122 597 153 610 185C623 217 637 252 650 290C663 328 677 372 690 410C703 448 718 485 730 520C742 555 756 595 765 620C774 645 783 663 787 672A426 426 0 0 1 725 745C719 738 704 719 690 700C676 681 657 655 640 630C623 605 607 573 590 550C573 527 557 505 540 490C523 475 508 465 490 458C472 451 453 448 435 447C417 446 398 449 380 455C362 461 345 471 330 485C315 499 305 518 290 540C275 562 257 594 240 620C223 646 206 674 190 695C174 716 152 739 145 748A426 426 0 0 1 82 678Z"/>
+    </clipPath>
+  </defs>
+  <!-- o quadro é o PNG de 874 x 856 centrado num quadrado de 874 -->
+  <g transform="scale(.14645)">
+    <circle cx="433" cy="437" r="426" fill="#111317"/>
+    <g clip-path="url(#arco)">
+      <rect width="874" height="874" fill="#3388FE"/>
+      <rect width="874" height="874" fill="url(#ve)"/>
+      <rect width="874" height="874" fill="url(#vm)"/>
+      <rect width="874" height="874" fill="url(#la)"/>
+    </g>
+  </g>
+</svg>

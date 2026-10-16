@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<!-- Balão com fantasma: balão de fala escuro, disco laranja e fantasma de olhos ovais (paleta Dracula; tons por camada sobre a paleta). Desenhado em 823x776 e reduzido por escala, centrado no quadrado. -->
+<g transform="scale(0.155529) translate(0,24)">
+<circle cx="414" cy="383" r="366" fill="#21222C"/><circle cx="414" cy="383" r="366" fill="#BD93F9" fill-opacity="0.7"/><circle cx="414" cy="383" r="366" fill="#191A21" fill-opacity="0.6"/>
+<path d="M98 548L50 753L242 695Z" fill="#21222C"/><path d="M98 548L50 753L242 695Z" fill="#BD93F9" fill-opacity="0.7"/><path d="M98 548L50 753L242 695Z" fill="#191A21" fill-opacity="0.6"/>
+<circle cx="415" cy="375" r="290" fill="#FF5555"/><circle cx="415" cy="375" r="290" fill="#191A21" fill-opacity="0.3"/><circle cx="415" cy="375" r="290" fill="#FFB86C" fill-opacity="0.8"/>
+<path d="M185 540L155 648L262 618Z" fill="#FF5555"/><path d="M185 540L155 648L262 618Z" fill="#191A21" fill-opacity="0.3"/><path d="M185 540L155 648L262 618Z" fill="#FFB86C" fill-opacity="0.8"/>
+<path d="M285 300Q285 140 415 140Q545 140 548 290Q548 400 580 470Q605 500 607 515Q600 530 580 530Q555 520 540 535Q520 548 495 550Q470 548 445 565Q420 585 380 570Q350 545 320 540Q290 530 255 525Q215 520 205 500Q205 480 235 455Q280 420 280 340Z" fill="#21222C"/><path d="M285 300Q285 140 415 140Q545 140 548 290Q548 400 580 470Q605 500 607 515Q600 530 580 530Q555 520 540 535Q520 548 495 550Q470 548 445 565Q420 585 380 570Q350 545 320 540Q290 530 255 525Q215 520 205 500Q205 480 235 455Q280 420 280 340Z" fill="#BD93F9" fill-opacity="0.7"/><path d="M285 300Q285 140 415 140Q545 140 548 290Q548 400 580 470Q605 500 607 515Q600 530 580 530Q555 520 540 535Q520 548 495 550Q470 548 445 565Q420 585 380 570Q350 545 320 540Q290 530 255 525Q215 520 205 500Q205 480 235 455Q280 420 280 340Z" fill="#191A21" fill-opacity="0.6"/>
+<ellipse cx="363" cy="305" rx="29" ry="43" fill="#191A21"/><ellipse cx="363" cy="305" rx="29" ry="43" fill="#44475A" fill-opacity="0.1"/><ellipse cx="363" cy="305" rx="29" ry="43" fill="#BD93F9" fill-opacity="0.1"/>
+<ellipse cx="467" cy="313" rx="29" ry="43" fill="#191A21"/><ellipse cx="467" cy="313" rx="29" ry="43" fill="#44475A" fill-opacity="0.1"/><ellipse cx="467" cy="313" rx="29" ry="43" fill="#BD93F9" fill-opacity="0.1"/>
+</g></svg>
