@@ -530,6 +530,22 @@ else
   falha "o completar ainda depende do desenho gerado do Hefesto" "$(grep -iE 'hefesto|fogstripper|vitoriamaria' <<< "$saida" | head -4)"
 fi
 
+# --- P82, item 10 (decisão 22): a camada de apps do Catppuccin só roda com ele
+#   Com o Dracula no ar, o `icones_apps.sh` mandava o flavor `dracula` para o
+#   `macchiato` e dizia «o acervo Catppuccin de aplicativos não está em …».
+CA="$T/casa-apps"; mkdir -p "$CA"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PACK=dracula FLAVOR=dracula ICONES_FLAVOR=dracula "$RAIZ/scripts/icones_apps.sh" 2>&1)"; rc=$?
+if [ -z "$saida" ] && [ "$rc" != 1 ] && [ "$rc" != 2 ] && [ -z "$(find "$CA" -type f)" ]; then
+  ok "com o Dracula no ar, a camada de apps do Catppuccin não diz nada e não escreve (rc=$rc)"
+else
+  falha "com o Dracula no ar, a camada de apps do Catppuccin falou ou escreveu (rc=$rc)" "$saida"
+fi
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PACK=catppuccin FLAVOR=mocha ICONES_FLAVOR=mocha "$RAIZ/scripts/icones_apps.sh" 2>&1)"
+[ -n "$saida" ] && ok "com o Catppuccin, a camada segue o caminho de sempre" \
+  || falha "com o Catppuccin, a camada de apps não respondeu"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"
