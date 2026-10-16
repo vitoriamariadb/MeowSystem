@@ -2808,9 +2808,11 @@ cmd_passo() {
   cmd_aplicar >/dev/null || true
   meow_ok "papel de parede: $(basename "${lista[$alvo]}")  [$((alvo + 1))/$n · grupo $(basename "$dir")]"
   if [ "$(segundos_de "$FIXO_TTL")" -gt 0 ]; then
-    meow_info "  o carrossel volta em $FIXO_TTL (ou agora, com 'meow wallpaper carrossel')"
+    # [16/10/2026, QA final da leva H: o parêntese era «ou agora, com 'meow
+    #  wallpaper carrossel'»; no painel o gesto é o «Voltar a girar».]
+    meow_info "  o carrossel volta em $FIXO_TTL, ou antes, no «Voltar a girar»"
   else
-    meow_info "  fixado até você soltar: 'meow wallpaper carrossel'"
+    meow_info "  fixado até você soltar, no «Voltar a girar»"
   fi
   return "$MEOW_DIVERGENTE"
 }
@@ -2836,9 +2838,11 @@ cmd_usar() {
   cmd_aplicar >/dev/null || true
   meow_ok "papel de parede: $(basename "$img")"
   if [ "$(segundos_de "$FIXO_TTL")" -gt 0 ]; then
-    meow_info "  o carrossel volta em $FIXO_TTL (ou agora, com 'meow wallpaper carrossel')"
+    # [16/10/2026, QA final da leva H: o parêntese era «ou agora, com 'meow
+    #  wallpaper carrossel'»; no painel o gesto é o «Voltar a girar».]
+    meow_info "  o carrossel volta em $FIXO_TTL, ou antes, no «Voltar a girar»"
   else
-    meow_info "  fixado até você soltar: 'meow wallpaper carrossel'"
+    meow_info "  fixado até você soltar, no «Voltar a girar»"
   fi
   return "$MEOW_DIVERGENTE"
 }
