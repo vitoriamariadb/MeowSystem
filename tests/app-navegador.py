@@ -739,7 +739,12 @@ def main():
                 ("amostra de flavor", lambda k: k["previa"] == "flavor"),
                 ("bolinha de cor", lambda k: k["previa"] == "cor"),
                 ("imagem", lambda k: k["previa"] in ("gato", "cursor")),
-                ("botão de opção", lambda k: k["opcoes"] and not k["previa"]),
+                # [P82, item 24: o `PACK` saiu daqui. O botão dele é o gesto
+                #   inteiro (o `pack_usar`, com a confirmação), e não uma
+                #   escolha que espera o Salvar; quem o confere é o gate, no
+                #   `h_pack_opcao`.]
+                ("botão de opção", lambda k: k["opcoes"] and not k["previa"]
+                                             and k["chave"] != "PACK"),
             )
             for rotulo, condicao in formas:
                 # O REPRESENTANTE E O PRIMEIRO QUE DA PARA CLICAR, e nao o

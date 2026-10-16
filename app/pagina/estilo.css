@@ -1412,6 +1412,14 @@ select { flex: 1 1 auto; }
    diferentes. O primeiro empurra o par inteiro para a direita; do espaço entre
    eles cuida o `gap`. */
 .acao .rodape .btn ~ .btn { margin-left: 0; }
+/* O PAR «CONFERIR / APLICAR» (P82, itens 22 e 26): as etiquetas e o «ver
+ * comando» na primeira linha, e os dois botões juntos na segunda, à direita.
+ * Lado a lado com o «ver comando» eles não cabiam numa coluna, e o aplicar
+ * descia sozinho para a esquerda. */
+.acao .rodape .par-quebra { order: 1; flex-basis: 100%; height: 0; }
+.acao .rodape .par-conferir, .acao .rodape .par-aplicar { order: 2; }
+.acao .rodape .btn.par-conferir { margin-left: auto; }
+.acao .rodape:has(.par-quebra) > .selo { order: -1; }
 /* O `margin-top: auto` do rodapé morava aqui, para a ação sem `code.cmd`;
  * desde a P77 ele é do próprio `.acao .rodape`, acima, para todas. */
 /* A LISTA DO «VER COMANDO» É A ÚLTIMA COISA DO CARTÃO — 22/09/2026

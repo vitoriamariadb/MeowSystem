@@ -7093,7 +7093,12 @@ function montarAcao(acao) {
   const par = acao.par && (ESQUEMA.acoes || []).find((a) => a.id === acao.par);
   if (par) {
     executar.textContent = "Conferir";
-    executar.className = "btn";
+    /* [P82, item 26: os dois botões do par andam juntos numa linha só, embaixo
+     *   das etiquetas e do «ver comando»; quem arruma é a `order` do CSS
+     *   (`.par-conferir`, `.par-quebra`, `.par-aplicar`), sem tirar o
+     *   «Conferir» da fileira, onde o `verComando` o procura.] */
+    executar.className = "btn par-conferir";
+    rodape.append(elemento("span", { class: "par-quebra", "aria-hidden": "true" }));
     if (par.sudo) rodape.append(selo("sudo", { balao: "Pede a senha do sudo" }));
     else if (par.pela_ponte) rodape.append(selo("ponte", {
       balao: "Sem senha: o perfil do sudo está registrado" }));
@@ -7101,7 +7106,7 @@ function montarAcao(acao) {
     if (par.rede) rodape.append(selo("rede", { balao: "Baixa da internet" }));
     rodape.append(elemento("button", {
       type: "button",
-      class: "btn " + (par.destrutivo ? "btn-perigo" : "btn-accent"),
+      class: "btn par-aplicar " + (par.destrutivo ? "btn-perigo" : "btn-accent"),
       texto: par.rotulo,
       onclick: () => rodar(par, ""),
     }));
@@ -9988,8 +9993,16 @@ function render() {
  * altura dele pede. O que atravessa a grade (a moldura de uma decisão, o painel
  * de um aplicativo aberto) começa embaixo da coluna mais funda e iguala todas.
  * Numa coluna só, nada muda. Quem refaz é o fim do `render()`, a janela que
- * muda de largura e o cartão que muda de altura (um desenho que chega depois). */
+ * muda de largura e o cartão que muda de altura (um desenho que chega depois).
+ * A FILEIRA DE AÇÕES QUE QUASE EMPATA CONTINUA FILEIRA: cartões de ação que
+ * começam na mesma linha e diferem até `ALVENARIA_EMPATE` px (contados do
+ * mais baixo do grupo) ganham a altura do mais alto do grupo, para os
+ * «Executar» do rodapé ficarem na mesma linha (a regra de 23/09 do
+ * `app-navegador.py`). Só os de ação: o rodapé deles desce até o fundo e
+ * ocupa a altura ganha, e num cartão de ajuste ela seria um vão por dentro.
+ * Acima do empate a diferença é buraco, e cada um fica com a sua. */
 const ALVENARIA_PASSO = 4;
+const ALVENARIA_EMPATE = 64;
 let OBSERVADOR_GRADES = null;
 function assentarGrades() {
   if (typeof ResizeObserver === "function" && !OBSERVADOR_GRADES) {
@@ -10002,12 +10015,13 @@ function assentarGrades() {
   }
   for (const g of document.querySelectorAll("#conteudo .grade")) {
     const filhos = [...g.children];
-    for (const c of filhos) { c.style.gridColumn = ""; c.style.gridRow = ""; }
+    for (const c of filhos) { c.style.gridColumn = ""; c.style.gridRow = ""; c.style.minHeight = ""; }
     const colunas = getComputedStyle(g).gridTemplateColumns.split(" ").filter(Boolean).length;
     g.classList.toggle("alvenaria", colunas > 1);
     if (colunas < 2) continue;
     const vao = parseFloat(getComputedStyle(g).columnGap) * .6 || 18;
     const fundo = new Array(colunas).fill(1);
+    const postos = [];
     for (const c of filhos) {
       if (OBSERVADOR_GRADES) OBSERVADOR_GRADES.observe(c);
       const alto = c.getBoundingClientRect().height;
@@ -10024,9 +10038,29 @@ function assentarGrades() {
       }
       let k = 0;
       for (let i = 1; i < colunas; i++) if (fundo[i] < fundo[k]) k = i;
+      const p = { c, k, de: fundo[k], linhas, alto, natural: linhas };
+      postos.push(p);
+      /* A fileira: os já postos que começam na mesma linha, com nada embaixo,
+       * em grupos de quase empate, do mais baixo para o mais alto. */
+      const fileira = c.matches(".acao") ? postos.filter((o) => o !== p && o.de === p.de
+        && o.c.matches(".acao") && fundo[o.k] === o.de + o.linhas) : [];
+      fileira.push(p);
+      fileira.sort((a, b) => a.alto - b.alto);
+      for (let i = 0; i < fileira.length;) {
+        let j = i;
+        while (j + 1 < fileira.length && fileira[j + 1].alto - fileira[i].alto <= ALVENARIA_EMPATE) j++;
+        const maior = fileira[j];
+        for (const o of fileira.slice(i, j + 1)) {
+          o.linhas = maior.natural;
+          o.c.style.minHeight = o === maior ? "" : `${maior.alto}px`;
+          o.c.style.gridRow = `${o.de} / span ${o.linhas}`;
+          fundo[o.k] = o.de + o.linhas;
+        }
+        i = j + 1;
+      }
       c.style.gridColumn = String(k + 1);
-      c.style.gridRow = `${fundo[k]} / span ${linhas}`;
-      fundo[k] += linhas;
+      c.style.gridRow = `${p.de} / span ${p.linhas}`;
+      fundo[k] = p.de + p.linhas;
     }
   }
 }
