@@ -229,7 +229,8 @@ _NAO_E_AJUSTE = {
 # oráculo do tema (oraculo_tema.sh). Nenhuma é escolha de tema.
 # GB_ entrou em 15/10/2026, com a P81: os caminhos e comandos do
 # garantir_builds.sh, sobrescrevíveis para teste, da mesma família.
-_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|GB_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
+# SN_ entrou com a P86: o pré-voo e o estado da sentinela do apt, idem.
+_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|GB_|SN_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
 
 _catalogo = {i["chave"] for i in servidor.ler_esquema()}
 _lidas = {}

@@ -4961,10 +4961,12 @@ despachar() {
     cosmic)           shift
       case "${1:-prever}" in
         prever|ler|icones) "$RAIZ/scripts/cosmic_prever.sh" "$@"; exit $? ;;
+        sentinela) shift; "$RAIZ/scripts/sentinela.sh" "$@"; exit $? ;;
         -h|--help|ajuda)
           printf '  meow cosmic prever [--sem-rede]  o veredito sobre o COSMIC da fila do apt, antes do upgrade\n'
           printf '  meow cosmic ler                  o último veredito gravado\n'
-          printf '  meow cosmic icones               os apps do COSMIC instalados sem desenho em mapa nenhum\n' ;;
+          printf '  meow cosmic icones               os apps do COSMIC instalados sem desenho em mapa nenhum\n'
+          printf '  meow cosmic sentinela [ler]      a medida diária da fila do apt (roda sozinha, uma vez por dia)\n' ;;
         *) meow_erro "verbo desconhecido: $1"; meow_info "veja: meow cosmic --help"; exit "$MEOW_ERRO" ;;
       esac ;;
     # `abrir` sobe o painel de configuração visual (a pasta `app/`). É `exec`, e

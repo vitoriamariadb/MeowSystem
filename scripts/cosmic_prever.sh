@@ -25,6 +25,8 @@
 #   série      a série do compositor e o patch do menu no fonte candidato:
 #              `-F0`; se não, `-F1` (o contexto mudou); se não, falha
 #   toolchain  o `rust-version` do fonte contra o rustc que o build usaria
+#   ferramenta a receita de build que o fonte traz (`just`, `make` ou `cargo`)
+#              contra o que a máquina tem; faltar uma é vermelho (P86)
 #   tema       o libcosmic que o `cosmic-settings` candidato pina, e o hash dos
 #              três arquivos da derivação contra o contrato
 #   revisao    cada linha `revisao` do contrato contra a revisão instalada e a
@@ -239,6 +241,30 @@ _cv_toolchain() { # $1 árvore $2 pacote
   fi
 }
 
+# --- 4b. ferramenta de build -----------------------------------------------
+# A receita é a que o fonte traz, na mesma ordem do `_cp_receita` do
+# `compositor_patches.sh`: `just build-vendored`, senão `make`, senão `cargo`.
+# Sem a ferramenta o build não sai e o patch obrigatório não chega ao compositor,
+# e isso nenhum gatilho conserta. `CV_SEM` lista as que a sonda trata como
+# ausentes (teste).
+_cv_tem() { # $1 ferramenta
+  case " ${CV_SEM:-} " in *" $1 "*) return 1 ;; esac
+  meow_tem "$1"
+}
+
+_cv_ferramenta() { # $1 árvore $2 pacote
+  local pede faltam=() f
+  if grep -qsE '^build-vendored([ :]|$)' "$1/justfile" "$1"/*.just; then pede="just cargo"
+  elif [ -f "$1/Makefile" ]; then pede="make cargo"
+  else pede="tar cargo"; fi
+  for f in $pede; do _cv_tem "$f" || faltam+=("$f"); done
+  if [ "${#faltam[@]}" -gt 0 ]; then
+    _cv_dizer ferramenta vermelho "$2: o build pede ${pede// /, } e falta ${faltam[*]} nesta máquina"
+  else
+    _cv_dizer ferramenta verde "$2: o build pede ${pede// /, }, e estão instalados"
+  fi
+}
+
 # --- 5. tema ----------------------------------------------------------------
 # A revisão do libcosmic que um pacote do COSMIC pina, pelo `Cargo.lock` no
 # GitHub na revisão do pacote (o sufixo do `Version`).
@@ -368,6 +394,7 @@ cmd_prever() {
         if arvore="$(_cv_fonte "$p" "$v")"; then
           if [ "$p" = cosmic-comp ]; then _cv_serie_comp "$arvore"; else _cv_serie_files "$arvore"; fi
           _cv_toolchain "$arvore" "$p"
+          [ "$p" = cosmic-comp ] && _cv_ferramenta "$arvore" "$p"
         else
           _cv_dizer série amarelo "o fonte do $p $v não foi baixado — série e toolchain não medidas"
         fi ;;

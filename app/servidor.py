@@ -7206,6 +7206,28 @@ def pendencias():
         return []
     return fora
 
+# O QUE PRECISA DE GENTE — P86. `precisa-de-gente.tsv` (id, nome, desde, porquê) é o
+#   ponto único do que a máquina não conserta sozinha: a sentinela do apt e o patch
+#   obrigatório que não entra gravam por `meow_precisa_de_gente`, e a Início desenha
+#   UM cartão. Só leitura aqui; quem resolve o problema tira a linha.
+PRECISA_DE_GENTE = os.path.join(ESTADO, "precisa-de-gente.tsv")
+
+
+def precisa_de_gente():
+    """As linhas do precisa-de-gente.tsv: [{id, nome, desde, porque}]. Ausente é lista vazia."""
+    fora = []
+    try:
+        with open(PRECISA_DE_GENTE, "r", encoding="utf-8") as fh:
+            for linha in fh:
+                campos = linha.rstrip("\n").split("\t")
+                if len(campos) != 4 or not campos[0] or not campos[1]:
+                    continue
+                fora.append(dict(zip(("id", "nome", "desde", "porque"), campos)))
+    except OSError:
+        return []
+    return fora
+
+
 def _trabalho_json(trabalho, acao_id, seco=False):
     """O que a página precisa para abrir a gaveta de um trabalho que começou.
 
@@ -11529,6 +11551,9 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/pendencias":
             return self._json({"pendencias": pendencias()})
+
+        if caminho == "/api/precisa-de-gente":
+            return self._json({"itens": precisa_de_gente()})
 
         # Os packs com a vitrine — ver `packs_com_vitrine`. [23/09/2026, P15]
         if caminho == "/api/packs":

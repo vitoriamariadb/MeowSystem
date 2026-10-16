@@ -73,11 +73,9 @@ Cada linha tem dono e porquê; nenhuma é esquecimento.
 
 Escrito para não ser lido como pronto.
 
-- **As sprints depois da leva H**: P86 (a regra da vida: um sentinela antes do apt, o `GSD.md`,
-  um teste por decisão, um cartão de «precisa de gente»; ela acrescenta a este arquivo a seção
-  «A regra da vida»), P88 (o formato de três pastas de ícone por pack), P87 (tudo o que foi
-  achado e recuperado entra no pack) e P89 (o repositório enxuto). As specs da P87 à P89 e as
-  decisões que elas pedem estão no `dev`.
+- **As sprints depois da leva H**: P88 (o formato de três pastas de ícone por pack), P87 (tudo
+  o que foi achado e recuperado entra no pack) e P89 (o repositório enxuto). As specs e as
+  decisões que elas pedem estão no `dev`. A P86 (a regra da vida) está na seção 6.
 - **A numeração das decisões colide.** O `dev` acrescentou ao `02-decisoes.md` as decisões 13 a
   17 de 15/10/2026 (tudo para o pack, três pastas, derivados que se atualizam sozinhos, os
   achados da varredura, o repositório enxuto), e a P82 usou 13 a 49 para outras decisões. Quem
@@ -135,3 +133,50 @@ Escrito para não ser lido como pronto.
 | outro pack | `meow pack usar <id>`, ou o **Usar este** da Início |
 | um pack importado fora | `meow pack remover <id>` |
 | um ajuste ao valor de fábrica | **Restaurar ao padrão**, no cartão dele |
+
+---
+
+## 6. A regra da vida
+
+O que mantém o MeowSystem vivo sem ninguém olhar, o que só uma pessoa faz, e como cada coisa
+volta atrás. Veio da P86.
+
+### O que roda sozinho, e quando
+
+| quando | o quê | unidade |
+|---|---|---|
+| todo dia por volta do meio-dia (até 30 min de folga) | a sentinela lê `apt list --upgradable` (só leitura) e, havendo `cosmic-*` novo, mede o candidato com o `meow cosmic prever`: esquema, chaves, série de patches com a escada, ferramenta de build (`just`, `make` ou `cargo`) e `rust-version`. O resultado fica em `~/.local/state/meowsystem/sentinela.tsv`. A mesma fila não é medida duas vezes | `meow-sentinela.timer` |
+| todo dia às 5h | o doctor conserta o que estiver fora | `meow-doctor.timer` |
+| depois de todo apt | o pós-apt refaz o que o COSMIC novo desfez | `meow-pos-apt.path` |
+| depois de todo apt | a sentinela relê a fila: o cartão dela sai assim que o candidato foi instalado | `meow-sentinela.path` |
+| uma vez por login | o build que falta para a versão instalada | `meow-builds-login.service` |
+| a cada tique da sentinela, do doctor, do pós-apt e do login | o cartão «Precisa de gente» se confere: a linha sai sozinha quando o problema some | os de cima |
+
+`AUTO_REPARO="nao"` no `meow.conf` desliga a sentinela junto com o resto.
+
+### O que só uma pessoa faz
+
+A Início tem **um cartão só**, «Precisa de gente», com uma linha por pendência, o desde quando
+ao lado e o porquê atrás do **?**. Hoje duas coisas o alimentam:
+
+1. **O COSMIC da fila não entra.** A sentinela mediu vermelho: um patch obrigatório não entra,
+   uma chave que o MeowSystem grava sumiu do binário, falta ferramenta de build, ou o `rustc`
+   ficou para trás. O cartão aparece antes do apt, e some quando a fila muda.
+2. **Patch obrigatório precisa de rebase.** O COSMIC já instalado recusou o `req` (degrau 4 do
+   `garantir_builds.sh`). A sessão segue no compositor de fábrica, sem nada quebrado, até um
+   rebase em `patches/`. O cartão some quando o build da versão existe ou a série muda.
+
+O resto não passa por ali: escolha de quem usa (tema de terceiro, papel de parede devolvido,
+extensão de pack importado) continua pendência com botão. A regra de quem decide está no
+[`GSD.md`](../GSD.md): decisão de quem usa só se desfaz com sim explícito sobre aquele tema, e o
+`tests/decisoes.sh` fica vermelho se alguém a desfaz.
+
+### O caminho de volta de cada coisa
+
+| para voltar | faça |
+|---|---|
+| sem a sentinela | `AUTO_REPARO="nao"` no `meow.conf`, e `./install.sh` remove o timer e o path; ou `systemctl --user disable --now meow-sentinela.timer meow-sentinela.path` |
+| ver o último resultado dela | `meow cosmic sentinela ler`, ou o `sentinela.tsv` |
+| medir de novo o mesmo candidato | apague `~/.local/state/meowsystem/sentinela.tsv` |
+| tirar uma linha do cartão | resolva a causa: ele se confere sozinho. O arquivo é `~/.local/state/meowsystem/precisa-de-gente.tsv` |
+| desfazer uma decisão de quem usa | troque a linha em `02-decisoes.md` e o código que a lê, no mesmo commit, citando o sim; o `tests/decisoes.sh` acompanha |

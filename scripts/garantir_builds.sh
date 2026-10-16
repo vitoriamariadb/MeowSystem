@@ -101,6 +101,21 @@ _gb_comp_degrau4() { # $1 versão
   awk -F'\t' -v v="$1" '$1==v && $3 ~ /:4( |$)/ {a=1} END {exit !a}' "$GB_MATRIZ" 2>/dev/null || return 1
   [ -z "$(find "$GB_REPO" "$GB_SERIE" -newer "$GB_MATRIZ" -print -quit 2>/dev/null)" ]
 }
+# O patch obrigatório que não entra pede uma pessoa (rebase em `patches/`): vira a
+# linha `patch-obrigatorio` do cartão «precisa de gente», com o desde-quando do
+# primeiro registro, e sai quando a versão tem build ou a série mudou.
+_gb_gente() {
+  local vc linhas
+  vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
+  if [ -n "$vc" ] && _gb_comp_degrau4 "$vc" && ! _gb_comp_valido "$vc"; then
+    linhas="$(awk -F'\t' -v v="$vc" '$1==v {for (i = 1; i <= split($3, a, " "); i++) if (a[i] ~ /:4$/) {sub(/:4$/, "", a[i]); print a[i]}}' "$GB_MATRIZ" 2>/dev/null | sort -u | tr '\n' ' ')"
+    meow_precisa_de_gente patch-obrigatorio "Patch obrigatório precisa de rebase" \
+      "cosmic-comp $vc: ${linhas:-a série} não entra, e a sessão segue no compositor de fábrica até um rebase em patches/"
+  else
+    meow_precisa_de_gente_resolvida patch-obrigatorio
+  fi
+}
+
 # A chave do ambiente vence (o doctor exporta o conf inteiro); sem ela, o conf.
 _gb_files_quer() {
   local q="${FILES_MENU:-}"
@@ -157,6 +172,7 @@ cmd_rodar() {
   meow_tem dpkg-query || { meow_pula "sem dpkg nesta máquina"; return "$MEOW_SEM_DEPENDENCIA"; }
   mapfile -t pend < <(_gb_pendentes)
   if [ "${#pend[@]}" = "0" ]; then
+    _gb_gente
     local vc; vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
     if [ -n "$vc" ] && _gb_comp_degrau4 "$vc" && ! _gb_comp_valido "$vc"; then
       meow_pula "cosmic-comp $vc: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica até a série mudar"
@@ -189,6 +205,7 @@ cmd_rodar() {
     esac
   done
   meow_registrar "garantir_builds.sh falhou=$falhou"
+  _gb_gente
   [ "$falhou" = "1" ] && return "$MEOW_ERRO"
   return "$MEOW_OK"
 }

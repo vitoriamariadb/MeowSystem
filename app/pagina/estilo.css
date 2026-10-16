@@ -3490,6 +3490,11 @@ a.folha:hover b { color: var(--text); }
   border-radius: 0 var(--r-2) var(--r-2) 0;
   background: color-mix(in srgb, var(--yellow) 9%, transparent);
 }
+.home-gente {
+  border-left-color: var(--peach);
+  background: color-mix(in srgb, var(--peach) 9%, transparent);
+}
+.home-gente .pendencia + .pendencia { border-top-color: color-mix(in srgb, var(--peach) 22%, transparent); }
 .home-pendencias h3 {
   margin: 0;
   display: flex;
@@ -3861,6 +3866,7 @@ a.folha:hover b { color: var(--text); }
   color: var(--subtext1);
 }
 .selo-sudo     { color: var(--peach); }
+.selo-gente    { color: var(--peach); }
 .selo-ponte    { color: var(--green); }
 .selo-rede     { color: var(--sky); }
 .selo-desfaz   { color: var(--red); }
