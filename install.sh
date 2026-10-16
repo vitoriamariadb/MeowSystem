@@ -3257,11 +3257,18 @@ etapa_vigia_qt() {
 #   O GATILHO DEPENDE DO HOOK DE APT, que hoje mora no `99-meow-lancador` e só
 #   é instalado com LANCADOR_SISTEMA="sim": sem ele o vigia fica armado e
 #   nunca dispara, e o doctor das 5h continua sendo a rede.
+#
+#   E O LOGIN ENTRA JUNTO — P81, 15/10/2026. O `meow-builds-login.service`
+#   confere os builds uma vez por login (o apt feito com ela deslogada não
+#   acorda o vigia). Ele é só HABILITADO, nunca `--now`: o `start` de um
+#   oneshot espera o build inteiro, e a instalação ficaria meia hora parada.
+#   O primeiro login depois da instalação o roda.
 etapa_vigia_apt() {
   passo "Pós-apt do COSMIC (systemd --user)"
   local destino="$HOME/.config/systemd/user" u conteudo mudou=0
-  local unidades=(meow-pos-apt.service meow-pos-apt.path)
+  local unidades=(meow-pos-apt.service meow-pos-apt.path meow-builds-login.service)
   local ligaveis=(meow-pos-apt.path)
+  local no_login=(meow-builds-login.service)
 
   if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
     local motivo="AUTO_REPARO=\"${AUTO_REPARO:-}\""
@@ -3269,8 +3276,10 @@ etapa_vigia_apt() {
       meow_seco && { meow_muda "$motivo — removeria o pós-apt do COSMIC"; return "$MEOW_DIVERGENTE"; }
       systemctl --user disable --now "${ligaveis[@]}" >/dev/null 2>&1
       rm -f "${unidades[@]/#/$destino/}"
+      systemctl --user disable "${no_login[@]}" >/dev/null 2>&1
       rm -f "$destino"/*.wants/meow-pos-apt.path "$destino"/*.wants/meow-pos-apt.service \
-            "$destino"/*.requires/meow-pos-apt.path "$destino"/*.requires/meow-pos-apt.service
+            "$destino"/*.requires/meow-pos-apt.path "$destino"/*.requires/meow-pos-apt.service \
+            "$destino"/*.wants/meow-builds-login.service
       systemctl --user daemon-reload >/dev/null 2>&1
       meow_muda "$motivo — pós-apt do COSMIC desligado e removido"
       return "$MEOW_DIVERGENTE"
@@ -3299,6 +3308,9 @@ etapa_vigia_apt() {
         armaria="${armaria:+$armaria }$u"
       fi
     done
+    for u in "${no_login[@]}"; do
+      [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" = "enabled" ] || armaria="${armaria:+$armaria }$u"
+    done
     [ "$mudou" = "1" ] && meow_muda "instalaria/atualizaria as unidades do pós-apt do COSMIC"
     [ -n "$armaria" ] && meow_muda "armaria o pós-apt do COSMIC ($armaria)"
     { [ "$mudou" = "1" ] || [ -n "$armaria" ]; } && return "$MEOW_DIVERGENTE"
@@ -3319,6 +3331,12 @@ etapa_vigia_apt() {
         && { meow_muda "pós-apt do COSMIC armado ($u)"; rc=1; } \
         || meow_aviso "não consegui armar $u"
     fi
+  done
+  for u in "${no_login[@]}"; do
+    [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" = "enabled" ] && continue
+    systemctl --user enable "$u" >/dev/null 2>&1 \
+      && { meow_muda "builds conferidos a cada login ($u)"; rc=1; } \
+      || meow_aviso "não consegui habilitar $u"
   done
   [ "$rc" = "0" ] && meow_ok "pós-apt do COSMIC no ar — depois de um apt, o que ele desfez se refaz sozinho"
   return "$rc"

@@ -153,6 +153,29 @@ else
         "rede: $(cat "$REDE") / pendências: $(cut -f1 "$TSV" 2>/dev/null) / saída: $(tail -3 <<< "$saida")"
 fi
 
+printf '\n--- 8. as linhas dos builds dizem o estado, sem comando (P81) ---\n'
+#   [15/10/2026: a linha `patches` do doctor listava «meow compositor --seco»,
+#    «meow compositor ativar»…; a última linha do log do pós-apt real era «ou
+#    agora, com: meow painel reciclar»; o applet de mídia e o de leitura,
+#    quando o cargo falhava, mandavam colar a linha do cargo. Quem conserta é
+#    o `--consertar` (a função única dos builds); a linha diz o estado.]
+#   Só os verbos que o doctor e os gatilhos rodam: o `conferir` e o
+#   `compilar` do compositor. O `reverter`, o `validar` e o `aplicar` são
+#   verbos de quem digita, e nomear o vizinho ali é a resposta pedida.
+RECEITA='(meow compositor|meow painel reciclar|rode:|veja o motivo|CARGO_TARGET_DIR=|MIDIA_COMPILAR=1|instale com rustup)'
+MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|_cp_diz [a-z]+) '
+achados="$(
+  for f in cmd_conferir cmd_compilar; do
+    sed -n "/^$f()/,/^}/p" "$RAIZ/scripts/compositor_patches.sh" | grep -E "$MSG.*$RECEITA" | sed "s/^/compositor_patches.sh $f: /"
+  done
+  cd "$RAIZ" && grep -nE "$MSG.*$RECEITA" scripts/files_menu.sh scripts/midia_build.sh scripts/leitura_build.sh \
+    scripts/garantir_builds.sh scripts/cosmic_pos_apt.sh 2>/dev/null)"
+[ -z "$achados" ] && ok "o conferir e o compilar do compositor, o menu, os dois applets e os gatilhos não mandam digitar" \
+  || falha "linhas dos builds que mandam digitar" "$achados"
+grep -qE '^SEM_CONSERTO=.* patches ' "$RAIZ/bin/meow" \
+  && falha "a linha patches ainda está em SEM_CONSERTO (o doctor não a conserta)" \
+  || ok "a linha patches tem conserto: o doctor compila"
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: nada manda digitar\n'

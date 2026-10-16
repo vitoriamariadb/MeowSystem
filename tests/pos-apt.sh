@@ -2,6 +2,11 @@
 # pos-apt.sh — o pós-apt do COSMIC reconstrói UMA vez por versão nova, e zero
 # vezes na segunda passagem? (P76)
 #
+# P81, 15/10/2026: o compositor e o menu do cosmic-files passam pela função
+# única (`scripts/garantir_builds.sh`), que olha o artefato e não a versão
+# vista: o shim desligado não pula o build, o passo que falhou tenta de novo
+# na passagem seguinte, e sucesso sai 0 (o `ExecMainStatus=1` de 15/10).
+#
 # `scripts/cosmic_pos_apt.sh` com um `dpkg-query` falso (as versões vêm de um
 # arquivo) e os três passos trocados por registros de uma linha: o compositor
 # (que, como o de verdade, deixa o `estado` do build da versão), o menu do
@@ -34,12 +39,18 @@ echo "compositor \$*" >> "$T/log"
 [ "\$1" = compilar ] || exit 0
 v=\$(awk -F'\t' '\$1=="cosmic-comp"{print \$2}' "$T/dpkg.tsv")
 mkdir -p "$T/casa/\$v" && echo "req X y presente" > "$T/casa/\$v/estado"
+printf '#!/bin/sh\n' > "$T/casa/\$v/cosmic-comp" && chmod 755 "$T/casa/\$v/cosmic-comp"
 exit 1
 FIM
+# O menu falso deixa os dois binários com o marcador, como o build de verdade.
 cat > "$T/files" <<FIM
 #!/bin/sh
 echo "files \$*" >> "$T/log"
+[ "\$1" = build ] || exit 0
 [ -f "$T/files-falha" ] && exit 2
+v=\$(awk -F'\t' '\$1=="cosmic-files"{print \$2}' "$T/dpkg.tsv")
+mkdir -p "$T/estado/cosmic-files/\$v"
+for b in cosmic-files cosmic-files-applet; do echo MEOW-FILES-WALLPAPER-PATCH-1 > "$T/estado/cosmic-files/\$v/\$b"; done
 exit 1
 FIM
 cat > "$T/rustup" <<FIM
@@ -58,7 +69,7 @@ chmod 755 "$T/compositor" "$T/files" "$T/doctor" "$T/rustup" "$T/oraculo"
 
 rodar() {
   HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
-  PA_CASA="$T/casa" PA_COMPOSITOR="$T/compositor" PA_FILES="$T/files" PA_DOCTOR="$T/doctor" \
+  GB_CASA="$T/casa" GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" PA_DOCTOR="$T/doctor" \
   PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" \
     "$RAIZ/scripts/cosmic_pos_apt.sh" "$@" >/dev/null 2>&1
 }
@@ -67,7 +78,7 @@ linhas() { grep -c "$1" "$T/log" 2>/dev/null || true; }
 echo "== primeira passagem: tudo é novo"
 versoes cosmic-comp=0.1~a cosmic-files=1.10~a cosmic-panel=1.10~a
 : > "$T/log"
-rodar; igual "rc 1 (escreveu)" "$?" 1
+rodar; igual "rc 0 (sucesso, mesmo tendo escrito)" "$?" 0
 igual "um build do compositor" "$(linhas '^compositor compilar')" 1
 igual "um build do menu" "$(linhas '^files build')" 1
 igual "um doctor --consertar" "$(linhas '^doctor doctor --consertar')" 1
@@ -90,25 +101,30 @@ igual "e zero na passagem seguinte" "$(grep -c . "$T/log")" 0
 
 echo "== o compositor sobe e o build da versão já existe"
 mkdir -p "$T/casa/0.1~c"; echo "req X y presente" > "$T/casa/0.1~c/estado"
+printf '#!/bin/sh\n' > "$T/casa/0.1~c/cosmic-comp"; chmod 755 "$T/casa/0.1~c/cosmic-comp"
 versoes cosmic-comp=0.1~c cosmic-files=1.10~b cosmic-panel=1.10~a
 : > "$T/log"; rodar
 igual "artefato da versão presente: nenhum build" "$(linhas '^compositor compilar')" 0
 
-echo "== o passo que falha não grava a versão"
+echo "== o passo que falha sai 2, e a passagem seguinte tenta de novo"
 versoes cosmic-comp=0.1~c cosmic-files=1.10~c cosmic-panel=1.10~a
 touch "$T/files-falha"
 : > "$T/log"; rodar; igual "rc 2 (falhou)" "$?" 2
-grep -q $'cosmic-files\t1.10~b' "$T/estado/cosmic-versoes" && ok "ficou a versão antiga do cosmic-files" || falha "a versão nova foi gravada apesar da falha"
 rm -f "$T/files-falha"
-: > "$T/log"; rodar
-igual "a passagem seguinte tenta de novo" "$(linhas '^files build')" 1
+: > "$T/log"; rodar; igual "rc 0 na seguinte" "$?" 0
+igual "a passagem seguinte tenta de novo, sem versão nova" "$(linhas '^files build')" 1
 
-echo "== shim desligado: o compositor não compila"
+echo "== shim desligado: o compositor compila igual (15/10/2026)"
 rm -f "$T/home/.local/bin/cosmic-comp"
 versoes cosmic-comp=0.1~d cosmic-files=1.10~c cosmic-panel=1.10~a
+: > "$T/log"; rodar; igual "rc 0" "$?" 0
+igual "sem shim, um build" "$(linhas '^compositor compilar')" 1
+grep -q $'cosmic-comp\t0.1~d' "$T/estado/cosmic-versoes" && ok "e a versão é gravada" || falha "a versão não foi gravada"
+
+echo "== a versão já vista sem build (o shim era a desculpa): o build vem"
+rm -rf "$T/casa/0.1~d"
 : > "$T/log"; rodar
-igual "sem shim, nenhum build" "$(linhas '^compositor compilar')" 0
-grep -q $'cosmic-comp\t0.1~d' "$T/estado/cosmic-versoes" && ok "e a versão é gravada (nada a fazer não é falha)" || falha "a versão não foi gravada"
+igual "um build do compositor, sem versão nova" "$(linhas '^compositor compilar')" 1
 
 echo "== o pré-voo acusou o rustc baixo: rustup update antes do build"
 printf 'toolchain\tvermelho\tcosmic-comp pede rust 9.0\n' > "$T/candidato.tsv"
@@ -149,7 +165,7 @@ FIM
 versoes cosmic-comp=0.1~e cosmic-files=1.10~f cosmic-panel=1.10~a
 : > "$T/log"
 HOME="$T/home" PATH="$T/bin:/usr/local/bin:/usr/bin:/bin" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
-  PA_CASA="$T/casa" PA_COMPOSITOR="$T/compositor" PA_FILES="$T/files" PA_DOCTOR="$T/doctor" \
+  GB_CASA="$T/casa" GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" PA_DOCTOR="$T/doctor" \
   PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" \
   "$RAIZ/scripts/cosmic_pos_apt.sh" >/dev/null 2>&1
 igual "o passo de build acha o cargo do HOME" "$(sed -n 's/^files cargo=//p' "$T/log")" "$T/home/.cargo/bin/cargo"

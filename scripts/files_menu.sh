@@ -151,9 +151,12 @@ cmd_aplicar() {
     remover_nossos
     if [ "$?" = "1" ]; then
       meow_muda "FILES_MENU=\"$FILES_MENU\" — itens de papel de parede removidos do menu"
-    else
-      meow_pula "FILES_MENU=\"$FILES_MENU\" — o menu de contexto fica de fábrica"
+      # 1 QUANDO TIROU (ou tiraria) — P81, 15/10/2026. Saía 0 também aqui, e a
+      # conferência dizia «removeria» com 0: o doctor nunca chamava o conserto,
+      # e o caminho de volta do docs/MANUTENCAO.md não voltava.
+      return "$MEOW_DIVERGENTE"
     fi
+    meow_pula "FILES_MENU=\"$FILES_MENU\" — o menu de contexto fica de fábrica"
     return "$MEOW_OK"; }
 
   ver="$(versao_do_pacote)"
@@ -226,8 +229,9 @@ cmd_aplicar() {
   if meow_seco && [ "$mudou" = "1" ]; then return "$MEOW_DIVERGENTE"; fi
   if [ "$mudou" = "1" ]; then
     meow_ok "menu de contexto vestido: avançar e voltar papel de parede ($ver)"
-    meow_info "  vale nas janelas NOVAS; a área de trabalho pega no próximo login"
-    meow_info "  ou agora, com: meow painel reciclar"
+    # [P81, 15/10/2026: a linha de baixo era «ou agora, com: meow painel
+    #   reciclar» — a última do log do pós-apt real, mandando digitar.]
+    meow_info "  vale nas janelas novas; a área de trabalho no próximo login"
     return "$MEOW_DIVERGENTE"
   fi
   meow_ok "menu de contexto já tem avançar/voltar papel de parede ($ver)"
@@ -256,7 +260,11 @@ cmd_build() {
   trap 'rm -rf "$tmpdir"' RETURN
 
   meow_info "baixando o fonte do cosmic-files $ver…"
-  ( cd "$tmpdir" && apt-get source cosmic-files ) >/dev/null 2>&1 \
+  # COM O `=<versão>` — P81, 15/10/2026. Sem ele o apt baixa o CANDIDATO, e o
+  # build do login roda justamente entre um `apt update` e o upgrade: o fonte
+  # de outra versão iria para o diretório desta. É a regra do
+  # `compositor_patches.sh` (passo 3 do `compilar`).
+  ( cd "$tmpdir" && apt-get source "cosmic-files=$ver" ) >/dev/null 2>&1 \
     || { meow_erro "apt-get source falhou — o deb-src está habilitado?"; return "$MEOW_ERRO"; }
   fonte="$(find "$tmpdir" -maxdepth 1 -type d -name 'cosmic-files-*' | head -1)"
   [ -n "$fonte" ] || { meow_erro "não achei a árvore de fonte baixada"; return "$MEOW_ERRO"; }
@@ -354,13 +362,17 @@ disparar_autobuild() {
     "Construindo o menu de contexto de papel de parede em segundo plano (tentativa $((n+1)) de $MAX_TENTATIVAS) — leva alguns minutos e não precisa de você" \
     ""
 
+  # A UNIDADE RODA A FUNÇÃO ÚNICA DOS BUILDS — P81, 15/10/2026, e não o
+  # `build` direto: é ela que segura a trava, e um `build` daqui junto com o
+  # do pós-apt ou do login compilaria o mesmo menu duas vezes. O `build` que
+  # ela chama continua fechando a pendência (o `case` do fim deste arquivo).
   if systemd-run --user --unit=meow-files-menu-build --collect \
        --description="build do cosmic-files patchado ($ver)" \
        --property=SuccessExitStatus="1 3" \
        --property=Nice=19 --property=CPUWeight=10 \
        --property=IOWeight=10 --property=IOSchedulingClass=idle \
        --setenv=MEOW_RAIZ="$MEOW_RAIZ" \
-       "$MEOW_RAIZ/scripts/files_menu.sh" build >/dev/null 2>&1; then
+       "$MEOW_RAIZ/scripts/garantir_builds.sh" >/dev/null 2>&1; then
     meow_info "  auto-build DISPARADO em background (tentativa $((n+1))/$MAX_TENTATIVAS)"
   else
     meow_info "  auto-build já em andamento"

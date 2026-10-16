@@ -148,13 +148,16 @@ else
   falha "o 3 com a dependência recém-posta não foi consertado (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
 fi
 
+# [P81, 15/10/2026: o representante do «sem conserto» era o `patches`, que
+#   ganhou conserto (`fix_patches`, a função única dos builds — um build de
+#   verdade, que este cenário dispararia). O `convertidos` continua sem.]
 cat > "$TMP/c4" <<'FIM'
-VERIFICAVEIS=(a patches)
+VERIFICAVEIS=(a convertidos)
 chk_a() { echo "tudo certo"; return 0; }
-chk_patches() { echo "falta recompilar"; return 1; }
+chk_convertidos() { echo "falta reconverter"; return 1; }
 FIM
 saida="$(cenario "$TMP/c4" --consertar)"; rc=$?
-if [ "$rc" = "2" ] && grep -q 'patches — continua fora' <<< "$saida" \
+if [ "$rc" = "2" ] && grep -q 'convertidos — continua fora' <<< "$saida" \
    && ! grep -q 'nada a consertar' <<< "$saida"; then
   ok "o que não tem conserto automático termina vermelho e nomeado (rc=2)"
 else
