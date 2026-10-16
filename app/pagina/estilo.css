@@ -4132,6 +4132,12 @@ a.folha:hover b { color: var(--text); }
 .ajustes-tecnicos > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ajustes-tecnicos[open] > summary { color: var(--accent); border-color: var(--accent); }
 .tecnicos-glifo { font-size: 1.1rem; line-height: 1; letter-spacing: .05em; }
+/* O desenho do que o «⋯» guarda (P82, item 31): a pílula alarga para os dois. */
+.ajustes-tecnicos > summary:has(.tecnicos-icone) {
+  display: inline-flex; align-items: center; gap: .3rem;
+  width: auto; padding: 0 .65rem;
+}
+.tecnicos-icone { display: inline-flex; }
 .ajustes-tecnicos > .grade { margin-top: .8rem; }
 
 /* ===========================================================================

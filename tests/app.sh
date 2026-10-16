@@ -1407,4 +1407,37 @@ else
   falhas=$((falhas+1))
 fi
 
+# --- 16. TODA CHAVE NUMÉRICA DECLARA A FAIXA — P82, item 31 --------------------
+#   Uma chave que é número e não declara faixa vira campo de texto livre, e o
+#   painel aceita «abc» nela (era o «Quantos backups guardar»). Numérica é a
+#   chave cujo valor de fábrica é um número, ou cujo leitor nos scripts cai num
+#   número (`${CHAVE:-440}`). A conta das que ficam sem faixa tem de dar 0.
+_tmp16="$(mktemp -d)"
+_sem_faixa="$(cd "$RAIZ" && env -i PATH="$PATH" HOME="$_tmp16" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import re, subprocess, sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+NUM = re.compile(r"-?\d+(?:[.,]\d+)?")
+for i in servidor.ler_esquema():
+    if i.get("faixa") or i.get("opcoes") or i.get("horario") or i.get("lista"):
+        continue
+    padrao = str(i.get("padrao") or "")
+    if padrao and not NUM.fullmatch(padrao):
+        continue
+    leitores = subprocess.run(
+        ["grep", "-rhoE", r"\$\{" + i["chave"] + r":-[0-9][0-9.]*\}",
+         "scripts", "lib", "bin", "install.sh"],
+        capture_output=True, text=True).stdout.split()
+    if (padrao and NUM.fullmatch(padrao)) or leitores:
+        print(i["chave"])
+PY
+)"
+rm -rf "$_tmp16"
+if [ -z "$_sem_faixa" ]; then
+  echo "ok: toda chave numérica do exemplo declara a faixa (nenhuma vira campo de texto livre)"
+else
+  echo "FALHOU: chave numérica sem faixa no exemplo: $(echo $_sem_faixa)" >&2
+  falhas=$((falhas+1))
+fi
+
 exit "$falhas"

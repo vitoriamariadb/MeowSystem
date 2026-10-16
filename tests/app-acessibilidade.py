@@ -394,8 +394,24 @@ CENSO_JS = """
                     tam: t.length, texto: t.slice(0, 80) });
   }
 
+  /* OS «⋯» GÊMEOS — P82, item 31. Dois «⋯» na mesma página guardam coisas
+     diferentes (ajustes técnicos, ações técnicas), e eram idênticos na tela:
+     o nome distinto só existia para o leitor de tela. O que se vê (tudo menos
+     o `.so-leitor`) tem de ser distinto também. */
+  const gemeos = [];
+  const vistos = new Map();
+  for (const s of pr.querySelectorAll('details.ajustes-tecnicos > summary')) {
+    if (s.offsetParent === null) continue;
+    const nome = (s.getAttribute('aria-label') || s.textContent || '').trim();
+    const visto = [...s.children].filter((c) => !c.classList.contains('so-leitor'))
+      .map((c) => c.outerHTML).join('');
+    if (vistos.has(visto) && vistos.get(visto) !== nome)
+      gemeos.push({ texto: vistos.get(visto) + ' e ' + nome });
+    vistos.set(visto, nome);
+  }
+
   return { alvos, medidos, baloes,
-           daRaiz, daCasa, amostraCaminho, nomeComCaminho, minusculas, longos };
+           daRaiz, daCasa, amostraCaminho, nomeComCaminho, minusculas, longos, gemeos };
 }
 """
 
@@ -586,7 +602,7 @@ def percorrer(pag):
     pequenos, medidos, baloes = [], 0, []
     # A RAIZ VAI DAQUI PARA DENTRO DA PAGINA, e nao e' lida la': quem sabe de
     # onde o painel subiu e' este processo, que o subiu. Ver o censo.
-    p7 = {"caminhos": 0, "onde": [], "nomes": [], "minusculas": [], "longos": []}
+    p7 = {"caminhos": 0, "onde": [], "nomes": [], "minusculas": [], "longos": [], "gemeos": []}
     nomes = pag.locator("#trilho button").all_text_contents()
     for i in range(len(nomes)):
         pag.locator("#trilho button").nth(i).click()
@@ -596,7 +612,7 @@ def percorrer(pag):
         aba = re.sub(r"\s*\d+$", "", nomes[i].strip())
         d = pag.evaluate(CENSO_JS, [RAIZ, TETO_AJUDA])
         for chave in ("alvos", "baloes", "amostraCaminho",
-                      "nomeComCaminho", "minusculas", "longos"):
+                      "nomeComCaminho", "minusculas", "longos", "gemeos"):
             for x in d[chave]:
                 x["aba"] = aba
         pequenos += d["alvos"]
@@ -607,6 +623,7 @@ def percorrer(pag):
         p7["nomes"] += d["nomeComCaminho"]
         p7["minusculas"] += d["minusculas"]
         p7["longos"] += d["longos"]
+        p7["gemeos"] += d["gemeos"]
         print(f"  {aba[:34]:36s} alvos={d['medidos']:4d}"
               f"  abaixo de {PISO_PX} px={len(d['alvos']):4d}"
               f"  baloes={len(d['baloes']):4d}"
@@ -791,6 +808,11 @@ def main():
           f"{len(p7['longos'])}   (antes da P82: as 12 legendas eram isentas)")
     if p7["longos"]:
         falhas.append(f"{len(p7['longos'])} paragrafos pintados acima de {TETO_AJUDA} caracteres")
+    print(f"«⋯» iguais guardando coisas diferentes .. "
+          f"{len(p7['gemeos'])}   (antes da P82: 4 páginas)")
+    if p7["gemeos"]:
+        falhas.append("«⋯» iguais na mesma página: "
+                      + "; ".join(f"{g['aba']}: {g['texto']}" for g in p7["gemeos"][:4]))
 
     if DETALHE:
         print("\n--- quem reprovou -------------------------------------------")

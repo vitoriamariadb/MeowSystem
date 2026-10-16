@@ -3834,7 +3834,7 @@ INVENTARIO = {
         ajuste MIDIA_FONTE · ?
         ajuste MIDIA_FONTE · deslizante
         ajuste MIDIA_LARGURA · ?
-        ajuste MIDIA_LARGURA · campo
+        ajuste MIDIA_LARGURA · deslizante
         ajuste RELOGIO_SEGUNDOS · ?
         ajuste RELOGIO_SEGUNDOS · deixar vazio
         ajuste RELOGIO_SEGUNDOS · opção
@@ -3984,7 +3984,7 @@ INVENTARIO = {
         ajuste AUTO_REPARO_NOTIFICAR · ?
         ajuste AUTO_REPARO_NOTIFICAR · opção
         ajuste BACKUPS_MANTIDOS · ?
-        ajuste BACKUPS_MANTIDOS · campo
+        ajuste BACKUPS_MANTIDOS · deslizante
         ajuste FLATPAK_VIGIA · ?
         ajuste FLATPAK_VIGIA · opção
         ajuste FLATPAK_VIGIA_NOTIFICAR · ?
@@ -4192,7 +4192,7 @@ REVELADOS = {
         ajuste FASTFETCH_LOGO_BLOCOS · ?
         ajuste FASTFETCH_LOGO_BLOCOS · opção
         ajuste FASTFETCH_LOGO_CELULA · ?
-        ajuste FASTFETCH_LOGO_CELULA · campo
+        ajuste FASTFETCH_LOGO_CELULA · deslizante
         ajuste FASTFETCH_LOGO_CONF · ?
         ajuste FASTFETCH_LOGO_CONF · opção
         ajuste FASTFETCH_LOGO_DIA · ?
@@ -4233,9 +4233,9 @@ REVELADOS = {
         ajuste SOM_HARMONICO · ?
         ajuste SOM_HARMONICO · deslizante
         ajuste SOM_PESO_FUNDAMENTAL · ?
-        ajuste SOM_PESO_FUNDAMENTAL · campo
+        ajuste SOM_PESO_FUNDAMENTAL · deslizante
         ajuste SOM_PESO_HARMONICO · ?
-        ajuste SOM_PESO_HARMONICO · campo
+        ajuste SOM_PESO_HARMONICO · deslizante
         ação «Regravar o som» · ?
         ação «Regravar o som» · Executar
         ação «Regravar o som» · ver comando

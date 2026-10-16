@@ -992,7 +992,7 @@ MIDIA="sim"
 #   o mesmo número. O que muda é o que o arquivo DIZ: que isto se mede.
 #   Para medir a sua: deixe tocar uma música de nome longo e suba o número até
 #   o "…" sumir sem empurrar a Área de status.
-MIDIA_LARGURA=""
+MIDIA_LARGURA=""                  # 80..900 px
 
 # @ Como a cor da capa entra
 # > Tingindo só o traço, ou chapando o fundo.
@@ -1711,7 +1711,7 @@ FASTFETCH_LOGO_RECUO="3"
 #   `${FASTFETCH_LOGO_CELULA:-2.556}`, o mesmo número. O que muda é o convite a
 #   medir: `meow fastfetch logo` diz quantas linhas dá para as colunas atuais, e
 #   é por aí que se descobre a proporção desta tela.
-FASTFETCH_LOGO_CELULA=""
+FASTFETCH_LOGO_CELULA=""          # 1.0 a 4.0
 
 # @ Detalhe do desenho
 # > Quanto detalhe cabe em cada célula. Depende do que a sua fonte desenha.
@@ -2001,7 +2001,7 @@ HEROIC_VIGIA="sim"
 # Quantos backups o projeto guarda antes de apagar o mais antigo. Cada
 # escrita em arquivo do sistema deixa uma cópia; sem teto, elas se acumulam
 # para sempre. "0" desliga a poda e guarda todos.
-BACKUPS_MANTIDOS="10"
+BACKUPS_MANTIDOS="10"             # 0 a 100 — 0 guarda todos
 
 # @ Quanto o MeowSystem fala
 # > Só erro, o que mudou, ou cada passo.
@@ -2078,12 +2078,12 @@ SOM_HARMONICO=""                  # 60 a 12000 Hz — vazio = o do pack
 # @ Peso da nota base
 # > Quanto a primeira senoide pesa na mistura. Os dois pesos somados têm de caber em 1.
 # [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
-SOM_PESO_FUNDAMENTAL=""           # 0 a 1 — vazio = o do pack
+SOM_PESO_FUNDAMENTAL=""           # 0.0 a 1.0 — vazio = o do pack
 
 # @ Peso da segunda nota
 # > Quanto a segunda senoide pesa. Acima de 1 somado, a onda satura e vira estalo.
 # [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
-SOM_PESO_HARMONICO=""             # 0 a 1 — vazio = o do pack
+SOM_PESO_HARMONICO=""             # 0.0 a 1.0 — vazio = o do pack
 
 # @ Secura do sino
 # > O quanto o som cai rápido. Maior = mais seco; abaixo de 20 a cauda arrasta.

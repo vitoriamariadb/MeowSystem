@@ -9633,8 +9633,18 @@ function ajustesTecnicos(assunto, g, itens) {
   const id = assunto + "·" + g.nome + "·" + g.tipo;
   const acoes = g.tipo === "acoes";
   const nome = acoes ? "Ações técnicas" : "Ajustes técnicos";
+  /* [P82, 15/10/2026 (item 31): o desenho do que ele guarda vem antes do
+   *   «⋯» — os controles deslizantes nos ajustes, o «executar» nas ações. Os
+   *   dois eram idênticos na tela, e o nome só existia para o leitor.] */
+  const desenho = elemento("span", { class: "tecnicos-icone", "aria-hidden": "true" });
+  desenho.innerHTML = '<svg viewBox="0 0 48 48" width="15" height="15" fill="none" '
+    + 'stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'
+    + (acoes ? '<path d="M16 10l22 14l-22 14z"/>'
+       : '<path d="M8 14h20m8 0h4M8 34h4m8 0h20"/><circle cx="32" cy="14" r="4"/><circle cx="16" cy="34" r="4"/>')
+    + "</svg>";
   const caixa = elemento("details", { class: "ajustes-tecnicos" }, [
     elemento("summary", { title: nome }, [
+      desenho,
       elemento("span", { class: "tecnicos-glifo", "aria-hidden": "true", texto: "⋯" }),
       elemento("span", { class: "so-leitor", texto: " " + nome }),
     ]),
