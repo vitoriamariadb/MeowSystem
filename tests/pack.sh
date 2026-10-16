@@ -2767,7 +2767,10 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
     visto="$(p31_flavor_do_script <<< "$saida")"
     # O acervo de aplicativo só publica latte e macchiato, e o próprio script
     # aproxima o resto para o macchiato — é o `case` dele, e não outra regra.
-    apps="$5"; [ "$apps" = "latte" ] || apps="macchiato"
+    # [P82, 15/10/2026 (item 10; decisão 22): o flavor que não é do Catppuccin
+    #   (o `dracula`) não é desta camada, e ela sai calada — sem flavor nenhum.]
+    apps="$5"
+    case "$apps" in latte) ;; frappe|macchiato|mocha) apps="macchiato" ;; *) apps="" ;; esac
     if [ "$script" = "icones_apps" ]; then
       [ "$visto" = "$apps" ] || divergiu+=" $script='$visto' (esperava $apps)"
     elif [ "$script" = "icones_pastas" ] && [ -d "$RAIZ/packs/$2/icones/pastas" ]; then
