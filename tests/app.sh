@@ -1358,4 +1358,53 @@ else
   falhas=$((falhas+1))
 fi
 
+# --- 15. A NOITE NÃO GRAVA COM UMA PONTA SÓ — P82, item 27 (decisão 26) -------
+#   O `meow_noite_janela` pede `NOITE_INICIO` e `NOITE_FIM` juntas, e o arquivo
+#   aceitava uma só. O `/api/definir` e o `/api/salvar` recusam com 409 o pedido
+#   que deixaria a ponta solta; as duas, nenhuma, ou a que completa a do disco
+#   passam. O `definir` e o resto do salvar não rodam aqui: a recusa vem antes.
+_tmp15="$(mktemp -d)"
+_noite="$(env -i PATH="$PATH" HOME="$_tmp15" MEOW_CONF="$_tmp15/meow.conf" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import json, sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+open(servidor.CONF, "w").write('NOITE_INICIO=""\nNOITE_FIM=""\n')
+m = servidor.Manipulador.__new__(servidor.Manipulador)
+respostas = []
+m._json = lambda dados, status=200: respostas.append((status, dados))
+def _gravou(*a, **k):
+    raise AssertionError("gravou")
+servidor.definir = servidor.definir_varias = servidor.iniciar = _gravou
+erros = []
+for rota, corpo in (("/api/definir", {"chave": "NOITE_INICIO", "valor": "19:00"}),
+                    ("/api/salvar", {"mudancas": {"NOITE_FIM": "06:00"}})):
+    respostas.clear()
+    try:
+        m._api_post(rota, corpo)
+    except AssertionError as e:
+        erros.append("%s %s" % (rota, e))
+        continue
+    st = respostas[0][0] if respostas else None
+    if st != 409:
+        erros.append("%s com uma ponta deu %s" % (rota, st))
+f = servidor.pontas_da_noite_soltas
+casos = [({"NOITE_INICIO": "19:00", "NOITE_FIM": "06:00"}, {}, 0),
+         ({"NOITE_INICIO": "", "NOITE_FIM": ""}, {"NOITE_INICIO": "19:00"}, 0),
+         ({"NOITE_FIM": "06:00"}, {"NOITE_INICIO": "19:00"}, 0),
+         ({"NOITE_FIM": ""}, {"NOITE_INICIO": "19:00", "NOITE_FIM": "06:00"}, 1),
+         ({"LOG_NIVEL": "info"}, {"NOITE_INICIO": "19:00"}, 0)]
+for escolhas, disco, esperado in casos:
+    if len(f(escolhas, disco)) != esperado:
+        erros.append("%r sobre %r deu %r" % (escolhas, disco, f(escolhas, disco)))
+print("; ".join(erros) or "ok")
+PY
+)"
+rm -rf "$_tmp15"
+if [ "$_noite" = ok ]; then
+  echo "ok: a noite com uma ponta só é recusada (409) no definir e no salvar; as duas, nenhuma, ou a que completa a do disco passam"
+else
+  echo "FALHOU: a noite com uma ponta só: $_noite" >&2
+  falhas=$((falhas+1))
+fi
+
 exit "$falhas"

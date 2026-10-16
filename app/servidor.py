@@ -3562,6 +3562,31 @@ def validar_valor(item, valor):
 #   arrancado — o modo de uma execução nunca é herdado, ele é PEDIDO, um pedido
 #   por vez, pelo corpo do POST. Ler esta função é ler as duas decisões na
 #   ordem em que elas acontecem, e nenhuma cancela a outra.
+# AS PONTAS DA NOITE ANDAM JUNTAS — 15/10/2026, P82 (item 27; decisão 26)
+#   O `meow_noite_janela` (lib/noite.sh) só obedece `NOITE_INICIO` e
+#   `NOITE_FIM` quando as DUAS estão escritas: com uma só, ele pula a linha
+#   inteira e a noite vem do degrau de baixo. A página já mostrava o ⊘ no
+#   cartão, e o arquivo aceitava a ponta solta mesmo assim. A conta é sobre o
+#   arquivo como ficaria: o disco com as escolhas do pedido por cima. E só
+#   quando o pedido mexe numa delas, para que um conf antigo com a ponta solta
+#   não impeça de gravar outra coisa.
+PONTAS_DA_NOITE = ("NOITE_INICIO", "NOITE_FIM")
+
+
+def pontas_da_noite_soltas(escolhas, brutos=None):
+    """A queixa (uma por ponta escrita) quando `escolhas` deixa a noite com uma
+    ponta só; lista vazia quando ela fica com as duas ou com nenhuma."""
+    if not any(c in escolhas for c in PONTAS_DA_NOITE):
+        return []
+    final = dict(valores_brutos() if brutos is None else brutos)
+    final.update(escolhas)
+    cheias = [c for c in PONTAS_DA_NOITE if str(final.get(c, "")).strip()]
+    if len(cheias) != 1:
+        return []
+    return [{"chave": cheias[0],
+             "erro": "a noite pede as duas pontas, começo e fim, ou nenhuma"}]
+
+
 def _ambiente_do_painel(seco=False):
     ambiente = dict(os.environ, MEOW_RAIZ=RAIZ)
     ambiente.pop("MEOW_DRY_RUN", None)
@@ -12245,6 +12270,12 @@ class Manipulador(BaseHTTPRequestHandler):
             queixa = validar_valor(item, valor)
             if queixa:
                 return self._json({"erro": queixa, "chave": chave, "valor": valor}, 400)
+            # A ponta solta da noite é 409: o valor cabe na chave, e o que não
+            # cabe é o par que ficaria no arquivo (P82, item 27).
+            soltas = pontas_da_noite_soltas({chave: valor})
+            if soltas:
+                return self._json({"erro": soltas[0]["erro"], "chave": chave,
+                                   "valor": valor, "recusadas": soltas}, 409)
             rc, saida = definir(chave, valor)
             # A frase do `meow_conf_definir` vira torrada: a casa sai como `~` (P52).
             return self._json({"rc": rc, "saida": texto_na_tela(saida),
@@ -12281,6 +12312,10 @@ class Manipulador(BaseHTTPRequestHandler):
                     pares.append((chave, valor))
             if recusadas:
                 return self._json({"recusadas": recusadas}, 400)
+            # O par da noite, sobre o arquivo como ficaria (P82, item 27).
+            soltas = pontas_da_noite_soltas(dict(pares))
+            if soltas:
+                return self._json({"recusadas": soltas}, 409)
 
             # O ENSAIO DO «SALVAR E APLICAR» — 22/09/2026, sprint P8
             #   A sprint: "Com 17 escolhas pendentes, «ver o que isto vai

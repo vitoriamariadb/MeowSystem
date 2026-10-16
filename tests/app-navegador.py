@@ -2002,6 +2002,26 @@ def main():
                   f"mudar o comeco da noite leva o fim herdado junto, sem o ⊘ ({par}, herdado {noite['fim'][0]})")
             descartar_tudo(pag)
 
+            # (i4) A NOITE DO DESENHO E' A DO GATO (P82, item 27). O desenho de
+            #     «Dia e noite» tinha a terceira copia da regra: com o comeco
+            #     escrito e o fim vazio, ele juntava o comeco desta linha com o
+            #     fim da imagem escura — uma noite que o `meow_noite_janela`
+            #     nunca segue (ele pula a linha com uma ponta so, e vem o
+            #     controle do modo de leitura, aqui das 21:00 as 06:00).
+            legenda = pag.evaluate("""() => {
+              const salvo = ESQUEMA.noite_do_applet;
+              ESQUEMA.noite_do_applet = { ini: '21:00', fim: '06:00' };
+              try {
+                const r = window.MEOW_PREVIAS['Dia e noite']({
+                  NOITE_INICIO: '19:00', NOITE_FIM: '',
+                  WALLPAPER_NOITE_INICIO: '20:00', WALLPAPER_NOITE_FIM: '05:00' }, {});
+                const l = r && (r.legenda || (r.antes && r.antes.legenda));
+                return typeof l === 'string' ? l : (l && l.textContent) || JSON.stringify(Object.keys(r || {}));
+              } finally { ESQUEMA.noite_do_applet = salvo; }
+            }""")
+            checa("21:00" in legenda and "06:00" in legenda and "19:00" not in legenda,
+                  f"o desenho da noite segue a regra do gato, e nao cada ponta sozinha ({legenda[:90]})")
+
             # O DESENHO DO TOPO saiu de «Dia e noite» (o relogio e o desenho dela);
             # as duas medidas abaixo, que sao de qualquer desenho de faixa, vao
             # para «Lançadores e jogos», que continua com o dela.

@@ -9265,13 +9265,22 @@ function valeDaChave(chave) {
  * que o controle do modo de leitura guarda (o servidor a lê no CosmicComp,
  * `noite_do_applet`), `WALLPAPER_NOITE_*`, e 18:00–07:00. Até aqui a página
  * pulava o segundo degrau, e cada ponta era resolvida sozinha: a Início dizia
- * uma noite que o gato não seguia. */
-function janelaDoGato() {
-  const ni = valeDaChave("NOITE_INICIO"), nf = valeDaChave("NOITE_FIM");
+ * uma noite que o gato não seguia.
+ * [P82, 15/10/2026 (item 27): é a regra ÚNICA da página. O desenho de «Dia e
+ *   noite» (`previas-sistema.js`) tinha a terceira cópia, e ela resolvia cada
+ *   ponta sozinha e pulava o controle do modo de leitura. Ele chama esta
+ *   função com o `ler` dele, porque desenha também o valor que ainda não foi
+ *   escolhido (o «depois»); o que ele não traz cai no da página.] */
+function janelaDoGato(ler) {
+  const vale = (c) => {
+    const v = ler ? ler(c) : undefined;
+    return v === undefined || v === null ? valeDaChave(c) : String(v);
+  };
+  const ni = vale("NOITE_INICIO"), nf = vale("NOITE_FIM");
   if (HORA_OK.test(ni) && HORA_OK.test(nf)) return { ini: doisDigitos(ni), fim: doisDigitos(nf), fonte: "conf" };
   const ap = ESQUEMA.noite_do_applet;
   if (ap && HORA_OK.test(ap.ini) && HORA_OK.test(ap.fim)) return { ini: ap.ini, fim: ap.fim, fonte: "applet" };
-  const pi = valeDaChave("WALLPAPER_NOITE_INICIO"), pf = valeDaChave("WALLPAPER_NOITE_FIM");
+  const pi = vale("WALLPAPER_NOITE_INICIO"), pf = vale("WALLPAPER_NOITE_FIM");
   if (HORA_OK.test(pi) && HORA_OK.test(pf)) return { ini: doisDigitos(pi), fim: doisDigitos(pf), fonte: "parede" };
   return { ini: "18:00", fim: "07:00", fonte: "padrao" };
 }
