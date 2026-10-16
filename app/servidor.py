@@ -10070,21 +10070,32 @@ class Manipulador(BaseHTTPRequestHandler):
                 mapa = mod.acervo("icones.apps.mapa", ref=dir_pack) or ""
                 if mapa and os.path.isfile(mapa):
                     mapas.add(os.path.realpath(mapa))
-                bib = os.path.join(dir_pack, mod.PASTA_BIBLIOTECA)
-                try:
-                    with open(os.path.join(bib, "catalog.json"), encoding="utf-8") as fh:
-                        catalogo = json.load(fh)
-                except (OSError, ValueError):
-                    catalogo = {}
-                for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
-                    if isinstance(ficha, dict):
-                        etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
-                        descricao = str(ficha.get("descricao") or "").strip()
-                        junta(os.path.join(bib, str(arq)), descricao,
-                              *[str(t).replace("_", " ") for t in etiquetas])
-                        if descricao:
-                            rotulos[os.path.normpath(os.path.join(bib, str(arq)))] = (
-                                descricao[:1].upper() + descricao[1:])
+                # O CATÁLOGO DOS FEITOS À MÃO — 16/10/2026, fechamento da leva H.
+                #   Os 39 vetores da P84 herdaram o nome do PNG de origem, e o
+                #   rótulo saía dele: «Calendario», «Gerenciador de extensoes»,
+                #   «File Zilla». A busca por «visualizador» não achava o
+                #   visualizador de imagens. O `catalog.json` da pasta, no
+                #   formato do da biblioteca, dá o nome em português e o texto
+                #   da busca; o arquivo continua com o nome que o mapa aceita.
+                for pasta_cat in (mod.PASTA_BIBLIOTECA,
+                                  getattr(mod, "PASTA_FEITOS_A_MAO", "")):
+                    if not pasta_cat:
+                        continue
+                    bib = os.path.join(dir_pack, pasta_cat)
+                    try:
+                        with open(os.path.join(bib, "catalog.json"), encoding="utf-8") as fh:
+                            catalogo = json.load(fh)
+                    except (OSError, ValueError):
+                        catalogo = {}
+                    for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
+                        if isinstance(ficha, dict):
+                            etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
+                            descricao = str(ficha.get("descricao") or "").strip()
+                            junta(os.path.join(bib, str(arq)), descricao,
+                                  *[str(t).replace("_", " ") for t in etiquetas])
+                            if descricao:
+                                rotulos[os.path.normpath(os.path.join(bib, str(arq)))] = (
+                                    descricao[:1].upper() + descricao[1:])
         # O CATÁLOGO DAS PASTAS DO MOTOR — 15/10/2026, P82 (item 7). Um desenho
         #   do motor sem linha de mapa (a raposa resgatada, que saiu do
         #   `apps-resgatados.map` na P28) não tinha texto para a busca casar.

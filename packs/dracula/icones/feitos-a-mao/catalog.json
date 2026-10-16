@@ -1,0 +1,10 @@
+{
+  "box-buddy.svg": {"descricao": "BoxBuddy", "tags": ["distrobox", "contêineres"]},
+  "calendario.svg": {"descricao": "Calendário", "tags": ["agenda", "data"]},
+  "dbeaver.svg": {"descricao": "DBeaver", "tags": ["banco de dados"]},
+  "FileZilla.svg": {"descricao": "FileZilla", "tags": ["ftp", "transferência de arquivos"]},
+  "gerenciador-de-extensoes.svg": {"descricao": "Gerenciador de extensões", "tags": ["extensões", "gnome"]},
+  "linux-toys.svg": {"descricao": "LinuxToys", "tags": ["ferramentas"]},
+  "obs-studio.svg": {"descricao": "OBS Studio", "tags": ["gravação", "transmissão"]},
+  "visualizador-de-imagens.svg": {"descricao": "Visualizador de imagens", "tags": ["imagens", "fotos"]}
+}
