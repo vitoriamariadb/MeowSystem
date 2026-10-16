@@ -1746,6 +1746,9 @@ _pacotes_faltando() {
   }
   [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
   python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+  # O mesmo `pop-fonts` do `etapa_pacotes`, com a mesma guarda (P82).
+  [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
+    || faltam+=(pop-fonts)
   [ "${#faltam[@]}" -eq 0 ] || printf '%s\n' "${faltam[@]}"
   return 0
 }

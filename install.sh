@@ -885,6 +885,12 @@ etapa_pacotes() {
     # bacula-console-qt. Testar por `bat` faria o instalador reinstalar o pacote
     # a cada execução, para sempre, sem nunca ficar satisfeito.
     [batcat]=bat
+    # As ferramentas do `instalar_fontes.sh` (P82, 15/10/2026): ele baixa a
+    # Nerd Font com o curl, num .tar.xz, e aceita .zip no «adicionar». Ele as
+    # nomeava como faltando e não tinha a quem pedir.
+    [curl]=curl
+    [xz]=xz-utils
+    [unzip]=unzip
   )
   # O Papirus não tem binário — testa-se pelo diretório do tema.
   local faltam=()
@@ -893,6 +899,10 @@ etapa_pacotes() {
     meow_tem "$b" || faltam+=("${NECESSARIOS[$b]}")
   done
   [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
+  # A fonte da interface (Fira Sans) é do `pop-fonts`, que só existe nos
+  # repositórios do Pop!_OS: fora dele, pedi-lo derrubaria o `apt-get` inteiro.
+  [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
+    || faltam+=(pop-fonts)
 
   # O NUMPY NÃO TEM BINÁRIO, E NÃO BASTA "ter python3" — 16/09/2026
   #   O `converter_icone.py` é quem faz o traçado de contorno e o

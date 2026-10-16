@@ -180,9 +180,23 @@ greeter-aplicar)
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
   tar -x -C "$tmp" --no-same-owner -f - || morrer "tar recusado: o que chegou pelo stdin não se extrai"
   [ -z "$(find "$tmp" -mindepth 1 -type l -print -quit)" ] || morrer "link simbólico no tar"
-  ( cd "$tmp" && find . -mindepth 1 -printf '%P\n' ) | while IFS= read -r rel; do
-    case "$rel" in ..*|*/../*|*/..) morrer "caminho com .. no tar" ;; esac
+  # O `..` FORA DO CANO, E O LINK DO DESTINO — 15/10/2026, P82 (item 16)
+  #   A recusa de `..` morava num `| while`, e o `morrer` dali saía só do
+  #   subshell do cano: o verbo seguia para a cópia. Agora é uma pergunta só,
+  #   antes da cópia, na casca principal.
+  #   E o `cp -a` do GNU escreve ATRAVÉS de um link simbólico que já esteja no
+  #   destino (medido: o alvo de fora recebe o conteúdo e o `cp` sai 0). O
+  #   tar sem link não basta; um link no lar do greeter, de qualquer origem,
+  #   recusa o verbo inteiro antes de qualquer escrita.
+  if ( cd "$tmp" && find . -mindepth 1 -printf '%P\n' ) | grep -qE '(^|/)\.\.(/|$)'; then
+    morrer "caminho com .. no tar"
+  fi
+  for alvo in "$GREETER_HOME/.config" "$GREETER_CONF"; do
+    [ ! -L "$alvo" ] || morrer "link simbólico no destino: $alvo"
   done
+  if [ -d "$GREETER_CONF" ] && [ -n "$(find "$GREETER_CONF" -mindepth 1 -type l -print -quit)" ]; then
+    morrer "link simbólico no destino, dentro de $GREETER_CONF"
+  fi
   mkdir -p "$GREETER_CONF"
   cp -a "$tmp/." "$GREETER_CONF/"
   chown -R "$GREETER_DONO:$GREETER_DONO" "$GREETER_HOME/.config"
@@ -306,9 +320,11 @@ atualizar)
 #   sejam a mesma: uma cópia que envelhece calada é a armadilha nº 3.
 #
 # O QUE ELE CUSTA: quem rodar como a dona da máquina instala, sem senha, um
-#   destes nove pacotes dos repositórios já configurados. Nada além deles.
+#   destes treze pacotes dos repositórios já configurados. Nada além deles.
+#   [P82, 15/10/2026: `curl`, `xz-utils`, `unzip` e `pop-fonts` entraram — o
+#   `instalar_fontes.sh` os nomeava como faltando e não tinha a quem pedir.]
 pacotes)
-  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy "
+  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy curl xz-utils unzip pop-fonts "
   pedidos=()
   while IFS= read -r nome || [ -n "${nome:-}" ]; do
     [ -n "$nome" ] || continue
