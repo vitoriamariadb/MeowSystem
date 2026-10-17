@@ -30,7 +30,7 @@ O QUE ELE FAZ
   5. ACIONA cada um, pelo papel que ele tem (`Percurso.acionador`), e cobra um
      efeito que se vê: o DOM mudou, a API respondeu 2xx, a casa de brinquedo
      mudou — ou, no «Ver sem mudar», NÃO mudou. O que o gesto REVELA (a caixa
-     de pergunta, a gaveta, o «Copiar», o painel de um aplicativo) também está
+     de pergunta, a janela do resultado, o painel de um aplicativo) também está
      no inventário (`REVELADOS`), e também é acionado.
   6. Em toda a aba: nenhum erro no console, nenhuma resposta 4xx/5xx que o
      passo não esperava, nenhum `undefined`, `NaN`, `[object`, `${` ou `null`
@@ -78,6 +78,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
 import zlib
 from urllib.parse import quote
 
@@ -454,7 +455,7 @@ def montar_casa():
 def encerrar_a_casa():
     """Todo processo que ainda carregue o ambiente da casa recebe TERM, e o
     que resistir, KILL. O `app/run.sh` já derruba o servidor que subiu; este é
-    o cinto para o que um trabalho da gaveta tenha deixado em segundo plano —
+    o cinto para o que um trabalho da janela tenha deixado em segundo plano —
     um teste que sai deixando processo de pé na máquina de quem roda é o
     contrário do que a casa de brinquedo promete."""
     import signal
@@ -545,13 +546,11 @@ CENSO_JS = r"""
      papel do controle ali é o que ele FAZ, não o dado que ele carrega. */
   const MOLDES = [
     ['.ficha', 'ficha da lista', (el) => el.tagName === 'BUTTON' ? 'tirar' : null],
-    ['.comandos .comando', 'linha de comando', () => 'Copiar'],
     ['.linha-pendente', 'escolha pendente', () => 'ir ao cartão'],
     ['.galeria figure', 'papel de parede', null],
     ['.grade-apps .app', 'aplicativo', () => 'abrir'],
-    ['.grade-jogos .jogo', 'jogo da Steam', () => 'abrir'],
+    ['.grade-jogos .jogo', 'jogo', (el) => el.getAttribute('role') === 'switch' ? 'no lançador' : 'abrir'],
     ['.home-fichas .home-ficha', 'ajuste mudado', () => 'ir ao cartão'],
-    ['.linha-orfa', 'jogo órfão', null],
     ['article.pack', 'cartão de pack', null],
     ['.pendencia', 'pendência', null],
     /* [P73: o desenho que não vale no app fica na pasta, apagado, com o porquê
@@ -567,7 +566,7 @@ CENSO_JS = r"""
   ];
   const zona = (el) => el.closest('#trilho') ? 'menu'
     : el.closest('header.topo') ? 'topo'
-    : el.closest('#gaveta') ? 'gaveta'
+    : el.closest('#resultado') ? 'janela'
     : el.closest('dialog') ? 'caixa'
     : el.closest('#torradas') ? 'torrada'
     : el.closest('#aviso-aplicar') ? 'aviso'
@@ -711,7 +710,7 @@ TEXTO_RUIM_JS = r"""
 () => {
   const achados = [];
   const raizes = ['header.topo', '#trilho', '#conteudo', 'dialog[open]', '#torradas',
-                  '#gaveta .gaveta-topo', '#aviso-aplicar'];
+                  '#aviso-aplicar'];
   for (const sel of raizes) {
     for (const raiz of document.querySelectorAll(sel)) {
       const andar = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
@@ -733,7 +732,7 @@ TEXTO_RUIM_JS = r"""
 """
 
 # A varredura das 14 abas achou o caminho absoluto na caixa de confirmar, no
-# «ver comando», no topo da gaveta e em três balões de ícone.
+# topo da janela do resultado e em três balões de ícone.
 CAMINHO_JS = r"""
 ([casa, raiz]) => {
   const achados = [];
@@ -775,7 +774,7 @@ TORRADAS_VISTAS_JS = r"""
 """
 
 # A PÁGINA PARADA: nenhuma mutação por `quieto` ms (a marca do censo não
-# conta), com um teto — a gaveta de um trabalho vivo muda a cada 400 ms e
+# conta), com um teto — a janela de um trabalho vivo muda a cada 400 ms e
 # nunca para sozinha.
 ASSENTAR_JS = r"""
 ([quieto, teto]) => new Promise((pronto) => {
@@ -821,7 +820,7 @@ class Percurso:
         self.posts = []              # (url, corpo) de todo POST de ação
         self.acoes_vistas = {}       # id de ação -> como o percurso a exerceu
         self.tempos = {}             # aba -> segundos
-        self.resultados = []         # (aba, ação, como, estado da gaveta, cauda)
+        self.resultados = []         # (aba, ação, como, estado da janela, cauda)
         self.vistos = {}             # aba -> {nome: censo} de tudo o que apareceu
         self.url = ""
         self.base = {}               # aba -> censo da aba ao abrir
@@ -1036,7 +1035,7 @@ class Percurso:
             self.assentar()
 
     def esperar_trabalho(self, teto=240):
-        """Espera o trabalho da gaveta acabar e devolve (estado, saída)."""
+        """Espera o trabalho da janela acabar e devolve (estado, saída)."""
         if self.js("() => TRABALHO !== null"):
             try:
                 self.pag.wait_for_function("() => TRABALHO === null", timeout=teto * 1000)
@@ -1044,8 +1043,17 @@ class Percurso:
                 self.falha(f"o trabalho não acabou em {teto} s")
                 return None
             self.assentar()
-        return (self.pag.locator("#gaveta-estado").inner_text(),
+        return (self.pag.locator("#resultado-estado").inner_text(),
                 self.pag.locator("#saida").inner_text())
+
+    def fechar_janela(self):
+        """O OK da janela do resultado: ela é modal, e o próximo gesto não
+        passa por cima dela."""
+        if self.js("() => document.getElementById('resultado').open"):
+            self.censo()
+            self.pag.locator("#resultado-ok").click()
+            self.acionados.add("janela · #resultado-ok")
+            self.assentar(quieto=100)
 
     def texto_ruim(self):
         for achado in self.js(TEXTO_RUIM_JS):
@@ -1131,24 +1139,26 @@ class Percurso:
             self.checa(not (acao["sudo"] or acao["rede"]),
                        f"«{acao['rotulo']}» rodou sem caixa de pergunta, e declara "
                        f"{'pedir senha' if acao['sudo'] else 'baixar da internet'}")
-        self.conferir_trabalho(acao, bool(corpo.get("seco")), antes, reg0)
+        self.conferir_trabalho(acao, bool(corpo.get("seco")), antes, reg0, fechar=False)
         # O conferir que sai 1 deixa o botão da ação que conserta ao lado do
-        # «Fechar» (`conserta_com`, servidor); ele é um gesto de ação como outro
+        # OK (`conserta_com`, servidor); ele é um gesto de ação como outro
         # qualquer.
-        botao = self.pag.locator("#gaveta-consertar")
-        if botao.count() and botao.is_visible():
+        botao = self.pag.locator("#resultado-consertar")
+        if not (botao.count() and botao.is_visible()):
+            self.fechar_janela()
+        else:
             self.censo()             # o botão entra no que apareceu, antes de sumir no clique
-            self.acionados.add("gaveta · #gaveta-consertar")
-            # [Integração da onda 2: a porta da gaveta também mostra o selo da
+            self.acionados.add("janela · #resultado-consertar")
+            # [Integração da onda 2: a porta da janela também mostra o selo da
             # rede quando a ação que conserta baixa. Conferido ANTES do clique,
             # porque o botão e o selo somem nele.]
             conserto = self.acao_por_rotulo(botao.inner_text().strip())
             if conserto and reparo_que_baixa(conserto):
                 self.checa(self.js("""() => {
-                    const b = document.querySelector('#gaveta-consertar');
+                    const b = document.querySelector('#resultado-consertar');
                     const s = b && b.nextElementSibling;
                     return !!s && s.matches('.p-rede') && s.offsetParent !== null; }"""),
-                           f"«{conserto['rotulo']}» na gaveta mostra o selo «baixa da "
+                           f"«{conserto['rotulo']}» na janela mostra o selo «baixa da "
                            f"internet» logo depois do botão")
             self.gesto_de_acao(lambda: botao.click(), botao.inner_text().strip())
 
@@ -1161,14 +1171,9 @@ class Percurso:
             return titulo
         ident = acao["id"]
         oferece = self.pag.locator("#confirmar-ensaio").is_visible()
-        self.checa(self.pag.locator("#confirmar-comando").inner_text().strip(),
-                   f"a caixa de «{titulo}» mostra o comando que vai rodar")
-        # O COMANDO DA CAIXA COLA EM QUALQUER MÁQUINA. Sem a casa e sem o
-        # caminho do clone: `meow …`, `./script.sh …` ou `~/…`.
-        cmd = self.pag.locator("#confirmar-comando").inner_text()
-        self.checa(CASA not in cmd and RAIZ_B not in cmd,
-                   f"a caixa de «{titulo}» mostra o comando sem a casa nem o "
-                   f"caminho do clone ({cmd.strip()[:60]!r})")
+        # O COMANDO CRU NÃO APARECE: a caixa diz o que a ação faz, e só.
+        self.checa(not self.pag.locator("#confirmar-comando, #confirmar code.cmd").count(),
+                   f"a caixa de «{titulo}» não mostra o comando cru")
         self.checa(oferece == (acao["sudo"] or acao["destrutivo"]),
                    f"a caixa de «{titulo}» oferece o «Ver sem mudar» "
                    "exatamente quando a ação pede senha ou desfaz algo")
@@ -1205,12 +1210,15 @@ class Percurso:
             post = self.esperar_post(n1)
             self.checa(post and post[1].get("seco") is True,
                        f"«Ver sem mudar» em «{titulo}» pede o ensaio ao servidor")
-            self.conferir_trabalho(acao, True, antes1, reg1)
+            self.conferir_trabalho(acao, True, antes1, reg1, fechar=False)
             vistas.add("ensaio")
-            if ident not in EXCECOES and self.pag.locator("#ensaio-rodar").count():
+            if ident in EXCECOES or not self.pag.locator("#ensaio-rodar").count():
+                self.fechar_janela()
+            else:
                 n2, reg2, antes2 = len(self.posts), len(registro()), retrato()
+                self.censo()
                 self.pag.locator("#ensaio-rodar").click()
-                self.acionados.add("gaveta · #ensaio-rodar")
+                self.acionados.add("janela · #ensaio-rodar")
                 post = self.esperar_post(n2)
                 self.checa(post and post[1].get("seco") is False,
                            f"«Rodar de verdade» depois do ensaio de «{titulo}» roda sem ensaio")
@@ -1243,13 +1251,19 @@ class Percurso:
                         r"command not found|comando não encontrado|syntax error|"
                         r"erro de sintaxe|: line \d+: |: linha \d+: ")
 
-    def conferir_trabalho(self, acao, seco, antes, reg0):
+    def conferir_trabalho(self, acao, seco, antes, reg0, fechar=True):
+        self._conferir_trabalho(acao, seco, antes, reg0)
+        if fechar:
+            self.fechar_janela()
+
+    def _conferir_trabalho(self, acao, seco, antes, reg0):
         rot = acao["rotulo"]
-        # A resposta do POST é quem abre a gaveta: primeiro ela chega.
+        # A resposta do POST é quem abre a janela: primeiro ela chega.
         self.assentar(quieto=100)
-        if not self.checa(self.js("() => !document.getElementById('gaveta').hidden"),
-                          f"«{rot}» abriu a gaveta"):
+        if not self.checa(self.js("() => document.getElementById('resultado').open"),
+                          f"«{rot}» abriu a janela do resultado"):
             return
+        self.censo()                 # o «Parar» só aparece com o trabalho vivo
         # A MESMA AÇÃO POR OUTRA PORTA — o «Conferir a máquina» da Início e o
         # da aba Instalação são dois botões para o mesmo `doctor`. Aqui o
         # «Parar» ganha a vez, que é também onde ele é conferido.
@@ -1262,7 +1276,7 @@ class Percurso:
                 # «Parar» se apaga, e esperar por ele seria esperar por nada.
                 if parar.is_enabled():
                     parar.click(timeout=1500)
-                    self.acionados.add("gaveta · #parar")
+                    self.acionados.add("janela · #parar")
             except Exception:
                 pass
             # Um trabalho de décimos de segundo acaba antes do clique chegar:
@@ -1277,16 +1291,16 @@ class Percurso:
         if fim is None:
             return
         estado, saida = fim
-        self.acionados.add("gaveta · #gaveta-estado")
-        self.checa(saida.strip(), f"«{rot}» mostrou a saída na gaveta")
-        # A GAVETA NÃO TRAZ A CASA DE NINGUÉM. O comando do topo sai como a
-        # pessoa o digitaria, e as linhas trocam a casa por `~`.
-        topo = self.pag.locator("#gaveta-comando").inner_text()
-        self.checa(CASA not in topo and RAIZ_B not in topo,
-                   f"a gaveta de «{rot}» mostra o comando sem a casa nem o caminho "
-                   f"do clone ({topo.strip()[:60]!r})")
+        self.checa(saida.strip(), f"«{rot}» mostrou a saída na janela")
+        # A JANELA NÃO TRAZ A CASA DE NINGUÉM NEM O COMANDO CRU: o título é o
+        # nome da ação, e as linhas trocam a casa por `~`.
+        topo = self.pag.locator("#resultado-titulo").inner_text()
+        self.checa(CASA not in topo and RAIZ_B not in topo and "meow " not in topo
+                   and not self.pag.locator("#resultado code.cmd, #gaveta-comando").count(),
+                   f"a janela de «{rot}» tem o nome da ação no título, sem comando "
+                   f"({topo.strip()[:60]!r})")
         self.checa(CASA not in saida,
-                   f"a saída de «{rot}» na gaveta troca a casa por ~")
+                   f"a saída de «{rot}» na janela troca a casa por ~")
         for linha in saida.splitlines():
             if self.QUEBRA.search(linha):
                 self.falha(f"«{rot}» quebrou: {linha.strip()[:140]}")
@@ -1306,7 +1320,7 @@ class Percurso:
             mudou = diferenca(antes, retrato())
             self.checa(not mudou, f"«{rot}» {'em ensaio ' if seco else ''}não muda a casa"
                                   f" — mudou {len(mudou)}: {mudou[:4]}")
-        # O ESTADO DA GAVETA É INFORMAÇÃO, E NÃO VEREDITO: na casa de brinquedo
+        # O ESTADO DA JANELA É INFORMAÇÃO, E NÃO VEREDITO: na casa de brinquedo
         # não há sessão, rede nem senha, e uma ação honesta sai 2 dizendo isso
         # ("não consegui armar o timer").
         frase = estado.split(" · ")[0].strip().lower()
@@ -1318,6 +1332,65 @@ class Percurso:
         if re.match(r"saiu ", frase):
             cauda = " / ".join(l.strip() for l in saida.splitlines() if l.strip())[-160:]
         self.resultados.append((self.aba, rot, "ensaio" if seco else "de verdade", estado, cauda))
+        self.guardar_e_restaurar(acao, seco)
+
+    def esperar_volta(self, rot):
+        """O POST sai antes de a resposta trocar a janela: o fim lido antes
+        disso seria o da ação, e não o da volta."""
+        try:
+            self.pag.wait_for_function(
+                "(t) => document.getElementById('resultado-titulo').textContent === t",
+                arg=f"Restaurar «{rot}»", timeout=10000)
+        except Exception:
+            return None
+        return self.esperar_trabalho(teto=120)
+
+    def guardar_e_restaurar(self, acao, seco):
+        """Na primeira vez, o Guardar leva a saída a um arquivo com a data e o
+        nome da ação, e o selo diz onde; e o Restaurar da janela desfaz a
+        execução que acabou de escrever."""
+        rot = acao["rotulo"]
+        guardar = self.pag.locator("#resultado-guardar")
+        if "janela · #resultado-guardar" not in self.acionados and guardar.is_visible():
+            pasta = os.path.join(CASA, ".local", "state", "meowsystem", "logs")
+            antes = set(os.listdir(pasta)) if os.path.isdir(pasta) else set()
+            self.censo()
+            guardar.click()
+            self.acionados.add("janela · #resultado-guardar")
+            self.assentar(quieto=200, teto=4000)
+            novos = (set(os.listdir(pasta)) if os.path.isdir(pasta) else set()) - antes
+            selo = self.pag.locator("#resultado-guardado")
+            slug = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", rot.lower())
+                          .encode("ascii", "ignore").decode()).strip("-")
+            self.checa(any(re.match(r"\d{4}-\d\d-\d\d", n) and slug in n for n in novos),
+                       f"Guardar em «{rot}» grava a saída em logs/ com a data e o nome da ação ({novos})")
+            self.checa(selo.is_visible() and any(selo.inner_text().strip().lower().endswith(n.lower())
+                                                 for n in novos),
+                       f"e o selo diz onde ({selo.inner_text().strip()!r})")
+        restaurar = self.pag.locator("#resultado-restaurar")
+        if seco or not acao["escreve"]:
+            self.checa(not restaurar.is_visible(),
+                       f"«{rot}» {'em ensaio' if seco else 'só lê'} e não oferece Restaurar")
+            return
+        # Uma ação só desfaz pela janela, e outra pelo cartão: a volta muda a
+        # casa, e o gesto de quem chamou confere o que a ação escreveu.
+        if acao["id"] != "wallpaper_proximo" or "janela · #resultado-restaurar" in self.acionados:
+            return
+        if not self.checa(restaurar.is_visible(), f"«{rot}» escreveu e oferece Restaurar"):
+            return
+        n0 = len(self.posts)
+        self.censo()
+        restaurar.click()
+        self.acionados.add("janela · #resultado-restaurar")
+        post = self.esperar_post(n0, teto=10)
+        self.checa(post and post[1].get("acao") == "restaurar"
+                   and post[1].get("argumento") == acao["id"],
+                   f"Restaurar na janela de «{rot}» pede a volta desta execução ({post})")
+        fim = self.esperar_volta(rot)
+        titulo = self.pag.locator("#resultado-titulo").inner_text().strip()
+        frase = fim[0].split(" · ")[0].strip().lower() if fim else ""
+        self.checa(titulo == f"Restaurar «{rot}»" and frase in frases_do_fim("devolver"),
+                   f"e a janela mostra a volta terminada ({titulo!r}, {frase!r})")
 
     # OS AJUSTES: cada forma de controle de um cartão
     #
@@ -1637,12 +1710,33 @@ class Percurso:
             self.conferir_apagado(el, rotulo)
             return
         self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
+        acao = self.acao_por_rotulo(rotulo)
+        if acao and acao["id"] == "wallpaper_anterior":
+            self.h_restaurar_cartao(f"ação «{rotulo}» · Restaurar")
 
-    def h_par(self, nome):
-        """O segundo botão do par «ver / aplicar» (P82, item 22): é o aplicar,
-        e o gesto é o de qualquer ação — a caixa, se houver, e o trabalho."""
-        rotulo = nome.split(" · ", 1)[1]
-        self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
+    def h_restaurar_cartao(self, nome):
+        """O Restaurar do cartão desfaz a última execução da ação, e some
+        quando não há mais o que desfazer."""
+        rotulo = nome.split("«", 1)[1].rsplit("»", 1)[0]
+        acao = self.acao_por_rotulo(rotulo)
+        if not self.checa(self.esperar_nome(nome) is not None,
+                          f"«{rotulo}» escreveu e o cartão oferece Restaurar"):
+            return
+        n0 = len(self.posts)
+        self.clicar_nome(nome)
+        self.acionados.add(nome)
+        post = self.esperar_post(n0, teto=10)
+        self.checa(post and post[1].get("acao") == "restaurar"
+                   and post[1].get("argumento") == acao["id"],
+                   f"o Restaurar do cartão de «{rotulo}» pede a volta da última execução ({post})")
+        fim = self.esperar_volta(rotulo)
+        frase = fim[0].split(" · ")[0].strip().lower() if fim else ""
+        self.checa(frase in frases_do_fim("devolver"),
+                   f"e a janela mostra a volta terminada ({frase!r})")
+        self.fechar_janela()
+        self.assentar(quieto=300)
+        self.checa(self.achar(nome) is None,
+                   f"e o Restaurar de «{rotulo}» some: a última execução já voltou")
 
     # «Pôr um gato no dock» com o gato por horário e «Gravar as áreas» sem área
     # fixada rodavam e não faziam nada.
@@ -1708,21 +1802,18 @@ class Percurso:
     def h_seletor_acao(self, nome):
         el = self.achar(nome)
         atual = el.input_value()
-        linha = el.locator("xpath=ancestor::article[1]").locator("code.cmd")
-        c0 = linha.inner_text()
+        cartao = el.locator("xpath=ancestor::article[1]")
         opcoes = el.locator("option").evaluate_all("(os) => os.map((o) => o.value)")
         if nome.startswith("ação «Trocar de tema» "):
             self.conferir_temas_prontos(opcoes, atual)
+        self.checa(not cartao.locator("code.cmd").count(),
+                   "o cartão da ação não mostra o comando cru")
         outros = [o for o in opcoes if o != atual]
         if not outros:
-            # Uma opção só: não há o que trocar, e o que se confere é o
-            # comando dizer essa opção.
-            self.checa(atual in c0, f"o comando na tela leva a única opção ({c0!r})")
+            self.checa(atual, "o seletor de uma opção só já vem com ela escolhida")
             return
         el.select_option(outros[0])
-        self.checa(linha.inner_text() != c0,
-                   f"trocar o seletor reescreve o comando na tela ({c0!r} → "
-                   f"{linha.inner_text()!r})")
+        self.checa(el.input_value() == outros[0], f"o seletor guarda a escolha ({outros[0]!r})")
         el.select_option(atual)
 
     # Este percurso não via nada disso: o seletor de uma opção só caía no ramo
@@ -1745,36 +1836,6 @@ class Percurso:
                    f"«Trocar de tema» não oferece a `original`, o tema de fábrica de "
                    f"outra máquina (oferece {opcoes}, escolhida {atual!r})")
 
-    def h_ver_comando(self, nome):
-        el = self.achar(nome)
-        el.focus()
-        el.click()
-        lista = el.locator("xpath=ancestor::*[.//div[contains(@class,'comandos')]][1]") \
-                  .locator(".comandos").first
-        self.checa(el.get_attribute("aria-expanded") == "true" and lista.is_visible(),
-                   "«ver comando» abre a lista de comandos")
-        copiar = lista.locator("button")
-        if self.checa(copiar.count(), "a lista traz um «Copiar»"):
-            codigo = lista.locator("code").first.inner_text()
-            copiar.first.focus()
-            copiar.first.click()
-            self.assentar(quieto=100, teto=2000)
-            copiado = self.js("() => navigator.clipboard.readText()")
-            self.checa(copiado and codigo.strip() and
-                       (copiado.strip() == codigo.strip() or copiado.strip().endswith(
-                           codigo.strip().split(" ", 1)[-1])),
-                       f"«Copiar» põe o comando na área de transferência ({copiado[:50]!r})")
-            self.checa(self.pag.locator("#torradas .torrada", has_text="copiado").count(),
-                       "e diz que copiou")
-            self.acionados.add(nome.rsplit(" · ", 1)[0] + " › linha de comando · Copiar")
-        el = self.achar(nome)
-        if el is not None and el.get_attribute("aria-expanded") == "true":
-            el.click()
-            self.checa(el.get_attribute("aria-expanded") == "false", "e o segundo clique fecha")
-
-    # ======================================================================
-    # O RESTO DA ABA
-    # ======================================================================
     def h_fundo(self, nome):
         """As pílulas de fundo das prévias: a marca vai para quem foi clicado."""
         original = self.pag.locator(".fundos button[aria-pressed=true]").inner_text().strip()
@@ -2274,6 +2335,7 @@ class Percurso:
         self.checa(post and post[0] == "jogo-fora", f"{frase} grava a decisão")
         self.assentar(quieto=300)
         self.esperar_trabalho()
+        self.fechar_janela()
         self.checa(any(c.endswith("jogos-fora.map") for c in diferenca(antes, retrato())),
                    f"{frase} muda o mapa de jogos (de brinquedo)")
 
@@ -2282,7 +2344,8 @@ class Percurso:
         dos jogos de 24/09): a caixa diz o que sai e o que entra, e dá as três
         respostas. A conferência que enche a caixa é o `jogo-fora` com
         `previa`, que não grava; o «Ver sem mudar» é o mesmo pedido com
-        `seco`, e roda a passagem em ensaio na gaveta; só o «sim» grava."""
+        `seco`, e roda a passagem em ensaio na janela; só o «sim» grava. Na
+        grade, quem pergunta é o interruptor «no lançador» da capa."""
         acao = self.acoes().get("jogos_aplicar")
         antes, n0 = retrato(), len(self.posts)
         clicar()
@@ -2336,19 +2399,9 @@ class Percurso:
                        for d, c in self.posts[n3:]), f"o «sim» de {frase} grava a decisão")
         self.assentar(quieto=300)
         self.esperar_trabalho()
+        self.fechar_janela()
         self.checa(any(c.endswith("jogos-fora.map") for c in diferenca(antes3, retrato())),
                    f"{frase} muda o mapa de jogos (de brinquedo)")
-
-    def h_orfa(self, nome):
-        n0 = self.quantos(nome)
-        # A DECISÃO SEM MANIFESTO DIZ O NOME DO JOGO: o da casa só existe
-        # no `appinfo.vdf` de brinquedo, e não o número.
-        linhas = self.pag.locator("#conteudo .linha-orfa .orfa-nome").all_inner_texts()
-        self.checa(NOME_NA_STEAM in linhas,
-                   f"a decisão sem manifesto mostra o nome do cache da Steam ({linhas})")
-        self.decisao_com_caixa(lambda: self.achar(nome).click(), "«Tirar da lista»")
-        self.assentar(quieto=300)
-        self.checa(self.quantos(nome) == n0 - 1, "e o órfão sai da lista")
 
     def h_escolher(self, nome):
         """Um exemplar do molde: a marca vai para ele."""
@@ -2446,7 +2499,7 @@ class Percurso:
         post = self.esperar_post(n0, teto=10)
         self.checa(post and post[0] == "salvar" and post[1].get("seco") is True,
                    "«Ver sem mudar» pede ao servidor o ensaio das escolhas")
-        self.conferir_trabalho(self.acoes()["instalar"], True, antes, reg0)
+        self.conferir_trabalho(self.acoes()["instalar"], True, antes, reg0, fechar=False)
         self.checa(valor_de("LOG_NIVEL") == atual, "o ensaio não grava a escolha no meow.conf")
         self.checa(self.pag.locator("#ensaio-rodar").count(),
                    "e oferece «Rodar de verdade» — que aqui é o instalador, e fica sem clique")
@@ -2454,7 +2507,7 @@ class Percurso:
         self.acoes_vistas.setdefault("instalar", set()).add("ensaio do banner")
         self.h_mais_abaixo()
         self.h_saida()
-        self.h_fechar_gaveta()
+        self.h_fechar_janela()
         self.desfazer()
 
     def h_mais_abaixo(self):
@@ -2462,7 +2515,7 @@ class Percurso:
         self.js("() => { const s = document.getElementById('saida'); s.scrollTop = 0;"
                 " s.dispatchEvent(new Event('scroll')); }")
         self.assentar(quieto=100, teto=2000)
-        nome = "gaveta · #mais-abaixo"
+        nome = "janela · #mais-abaixo"
         el = self.achar(nome)
         if not self.checa(el is not None, "rolar a saída para cima acende o «mais linhas abaixo»"):
             return
@@ -2474,21 +2527,21 @@ class Percurso:
         self.acionados.add(nome)
 
     def h_saida(self):
-        nome = "gaveta · #saida"
+        nome = "janela · #saida"
         el = self.achar(nome)
-        if self.checa(el is not None, "a saída da gaveta está na tela"):
+        if self.checa(el is not None, "a saída da janela está na tela"):
             el.focus()
             self.checa(self.js("() => document.activeElement.id === 'saida'"),
                        "a saída recebe o foco do teclado, para ler rolando")
             self.acionados.add(nome)
 
-    def h_fechar_gaveta(self):
-        nome = "gaveta · #fechar-gaveta"
+    def h_fechar_janela(self):
+        nome = "janela · #resultado-ok"
         el = self.achar(nome)
-        if self.checa(el is not None, "a gaveta tem o Fechar"):
+        if self.checa(el is not None, "a janela tem o OK"):
             el.click()
-            self.checa(self.js("() => document.getElementById('gaveta').hidden"),
-                       "Fechar esconde a gaveta")
+            self.checa(self.js("() => !document.getElementById('resultado').open"),
+                       "OK fecha a janela")
             self.acionados.add(nome)
 
     def h_salvar(self, nome):
@@ -2523,12 +2576,8 @@ class Percurso:
         outra = self.pag.context.new_page()
         outra.goto(self.url, wait_until="domcontentloaded")
         outra.wait_for_selector("#trilho button")
-        outra.locator('#trilho button[data-grupo="Instalação"]').click()
-        # O `has` é procurado DENTRO do `<details>`: sem o `#conteudo` na
-        # frente.
-        acao = outra.locator("article.acao", has_text="O que está no ar agora")
-        outra.locator("#conteudo details.ajustes-tecnicos", has=acao).locator("summary").click()
-        acao.get_by_role("button", name="Executar", exact=True).click()
+        outra.wait_for_function("() => typeof ESQUEMA !== 'undefined' && !!ESQUEMA.acoes")
+        outra.evaluate("() => rodar(ESQUEMA.acoes.find((a) => a.id === 'status'))")
         outra.wait_for_function("() => TRABALHO !== null && TRABALHO.timer !== null",
                                 timeout=15000)
 
@@ -2562,12 +2611,12 @@ class Percurso:
             parar.click()
             try:
                 outra.wait_for_function("() => TRABALHO === null", timeout=30000)
-                estado = outra.locator("#gaveta-estado").inner_text()
+                estado = outra.locator("#resultado-estado").inner_text()
                 self.checa(re.search(r"saiu -|interromp|parad", estado, re.I),
-                           f"«Parar» encerra o trabalho, e a gaveta diz ({estado})")
+                           f"«Parar» encerra o trabalho, e a janela diz ({estado})")
             except Exception:
                 self.falha("«Parar» não encerrou o trabalho em 30 s")
-            self.acionados.add("gaveta · #parar")
+            self.acionados.add("janela · #parar")
         outra.close()
         self.pag.fill("#busca", "")
         self.assentar()
@@ -2735,42 +2784,58 @@ class Percurso:
     # UM JOGO DA STEAM: o painel da decisão
     # ======================================================================
     def h_jogo(self, nome):
-        """Tirar do lançador, voltar ao normal, apagar os arquivos — as três
-        decisões, cada uma com o jogo reaberto, na pasta de brinquedo."""
+        """A capa abre o jogo; o interruptor tira do lançador e põe de volta,
+        com a pergunta; o apagar mora no painel da capa."""
+        if {"jogo · abrir", "jogo · no lançador"} <= self.acionados:
+            return
+        capa = f'#conteudo .grade-jogos .jogo[data-jogo="steam-{APPID}"]'
+        interruptor = f"{capa} [role=switch]"
+
         def abrir():
             if not self.pag.locator("#conteudo .escolha-jogo").count():
-                self.esperar_nome(nome).click()
+                self.pag.locator(f"{capa} .jogo-capa").click()
                 self.assentar(quieto=300)
-        abrir()
-        if not self.checa(self.pag.locator("#conteudo .escolha-jogo").count(),
-                          "clicar no jogo abre a decisão dele"):
+        if not self.checa(self.pag.locator(capa).count(), "o jogo instalado ganha uma capa na grade"):
             return
-        # TODA CONTAGEM DA ABA CONCORDA COM O NÚMERO.
-        self.js("() => { JOGOS.total_apps = 1; render(); }")
-        texto = self.pag.locator("#conteudo").inner_text() + "\n" + self.js(
-            "() => [...document.querySelectorAll('#conteudo [aria-label]')]"
-            ".map((e) => e.getAttribute('aria-label')).join('\\n')")
-        self.js("() => carregarJogos()")
-        self.assentar(quieto=300)
+        abrir()
+        self.acionados.add("jogo · abrir")
+        if not self.checa(self.pag.locator("#conteudo .escolha-jogo").count(),
+                          "clicar na capa abre o jogo"):
+            return
         loja = self.js("() => (JOGOS.apps || []).some((a) => a.id === 'steam')")
         self.checa(not loja, "a loja (a Steam, que se declara Game) não conta como jogo")
-        solto = re.findall(r"\b1 jogos\b[^.]*", texto)
-        self.checa(not solto and "1 jogo tem atalho" in texto,
-                   f"a aba não diz «1 jogos», e diz «1 jogo tem atalho» ({solto})")
-        motivo = self.achar("decisão do jogo · campo «Por que este jogo sai do lançador»")
-        if self.checa(motivo is not None, "a decisão tem o campo do motivo"):
-            motivo.fill("teste do percurso")
-            self.acionados.add("decisão do jogo · campo «Por que este jogo sai do lançador»")
-        for rotulo in ("Tirar do lançador", "Voltar ao normal"):
-            abrir()
-            botao = f"decisão do jogo · {rotulo}"
-            if self.checa(self.achar(botao) is not None, f"a decisão oferece «{rotulo}»"):
-                self.decisao_com_caixa(lambda b=botao: self.achar(b).click(),
-                                       f"«{rotulo}»", abrir)
-                self.acionados.add(botao)
+        # O JOGO SEM MANIFESTO DIZ O NOME: o da casa só existe no `appinfo.vdf`
+        # de brinquedo, e não o número.
+        nomes = self.pag.locator("#conteudo .grade-jogos .jogo .app-nome").all_inner_texts()
+        self.checa(NOME_NA_STEAM in nomes,
+                   f"o jogo que saiu do disco mostra o nome do cache da Steam ({nomes})")
+        texto = self.pag.locator("#conteudo").inner_text()
+        self.checa("Decisões já executadas" not in texto and not re.search(r"(^|\n)0(\n|$)", texto),
+                   "a aba não tem «Decisões já executadas» nem um «0» solto")
+
+        def ligado():
+            return self.pag.locator(interruptor).get_attribute("aria-checked") == "true"
+        self.checa(ligado(), "o jogo instalado começa com o interruptor «no lançador» ligado")
+        for frase, deve in (("«Tirar do lançador»", False), ("«Pôr no lançador»", True)):
+            self.decisao_com_caixa(lambda: self.pag.locator(interruptor).click(), frase)
+            self.assentar(quieto=300)
+            self.checa(self.pag.locator(interruptor).count() and ligado() == deve,
+                       f"depois de {frase}, o interruptor fica {'ligado' if deve else 'desligado'}")
+        self.acionados.add("jogo · no lançador")
+        # O PAINEL DO ÍCONE DO JOGO é o mesmo `montarEscolhaDeIcone` que a aba
+        # Ícones percorre inteiro; aqui basta ele abrir e responder.
+        abrir()
+        oficina = next((n for n in self.censo() if n.startswith("decisão do jogo › ícone do aplicativo")
+                        and " · abre «" in n), None)
+        if self.checa(oficina is not None, "o jogo aberto traz a escolha do ícone dele"):
+            d = self.achar(oficina).locator("xpath=..")
+            self.achar(oficina).click()
+            self.assentar(quieto=300, teto=8000)
+            self.checa(d.evaluate("(d) => d.open"), f"«{oficina.split('«')[-1]} abre no jogo")
+            self.acionados.add(oficina)
         abrir()
         apagar = "decisão do jogo · Apagar os arquivos"
-        if self.checa(self.achar(apagar) is not None, "a decisão oferece «Apagar os arquivos»"):
+        if self.checa(self.achar(apagar) is not None, "o jogo aberto oferece «Apagar os arquivos»"):
             n0 = len(self.posts)
             self.achar(apagar).click()
             if self.checa(self.caixa_aberta(), "«Apagar os arquivos» pergunta antes"):
@@ -2788,12 +2853,6 @@ class Percurso:
             self.checa(not os.path.exists(pasta),
                        "e a pasta do jogo (de brinquedo) sai do disco")
             self.acionados.add(apagar)
-            # O jogo apagado leva o manifesto junto: ele sai da grade e passa às
-            # «Decisões já executadas», com a data — é onde ela o vê depois.
-            self.assentar(quieto=300)
-            orfa = self.pag.locator("#conteudo .linha-orfa", has_text="Jogo de Brinquedo")
-            self.checa(orfa.count() and "apagados" in orfa.first.inner_text(),
-                       "e o jogo passa às «Decisões já executadas», com os arquivos apagados")
 
     # O CARTÃO A QUE A FICHA LEVOU: existe, está na janela e está aceso.
     CHEGADA_JS = r"""
@@ -2993,10 +3052,8 @@ class Percurso:
             (r"^ajuste \S+ · nova ficha$", self.h_nova_ficha),
             (r"^ajuste \S+ › ficha da lista · tirar$", self.h_tirar_ficha),
             (r"^ajuste \S+ · seletor$", self.h_seletor_ajuste),
-            (r" · ver comando$", self.h_ver_comando),
             (r"^ação «.*» · Executar$", self.h_executar),
-            (r"^ação «.*» · Conferir$", self.h_executar),
-            (r"^ação «(Ver o que mudaria nos jogos do Heroic|O que a atualização mudaria)» · ", self.h_par),
+            (r"^ação «.*» · Restaurar$", self.h_restaurar_cartao),
             (r"^ação «.*» · seletor$", self.h_seletor_acao),
             (r" · Adicionar (tema|logo|imagem|fonte|tema de ícones|ícone)$", self.h_acervo),
             (r"^aba · (Escuro|Vidro escuro|Vidro claro|Claro)$", self.h_fundo),
@@ -3006,7 +3063,7 @@ class Percurso:
             (r"^aba · filtro «", self.h_filtro),
             (r"âncora «Pular", self.h_pular),
             (r"^aplicativo · abrir$", self.h_aplicativo),
-            (r"^jogo da Steam · abrir$", self.h_jogo),
+            (r"^jogo · (abrir|no lançador)$", self.h_jogo),
             (r"^ajuste mudado · ir ao cartão$", self.h_ficha_mudada),
             (r" · abre «", self.h_details),
             (r" · link externo$", self.h_link_externo),
@@ -3019,8 +3076,6 @@ class Percurso:
             (r"^aba · (Tópicos|Sistema|Abrir .+)$", self.h_porta),
             (r"^aba · Exportar o meu$", self.h_exportar_pack),
             (r"^aba · Importar um pack$", self.h_importar_pack),
-            (r"^aba · (Conferir|Arrumar os jogos no lançador)$", self.h_clique_de_acao),
-            (r"^jogo órfão · Tirar da lista$", self.h_orfa),
             (r" › (desenho do acervo|cor|variação|desenho autoral) · escolher$", self.h_escolher),
             (r" › papel do desenho · seletor$", self.h_seletor_solto),
             (r"^ícone do aplicativo · filtro «", self.h_filtro_glifos),
@@ -3061,8 +3116,15 @@ class Percurso:
         else:
             try:
                 funcao(nome)
+                # A janela do resultado é modal: o gesto termina com o OK.
+                if self.js("() => document.getElementById('resultado').open"):
+                    self.esperar_trabalho()
+                    self.fechar_janela()
             except Exception as e:
-                self.falha(f"o gesto quebrou: {type(e).__name__}: {str(e).splitlines()[0][:160]}")
+                linhas = str(e).splitlines()
+                quem = next((l.strip() for l in linhas if "intercepts pointer events" in l), "")
+                self.falha(f"o gesto quebrou: {type(e).__name__}: {linhas[0][:160]}"
+                           + (f" — {quem[:160]}" if quem else ""))
                 self.foto(f"quebra-{len(self.falhas)}")
         self.acionados.add(nome)
         self.duracoes[nome] = self.duracoes.get(nome, 0) + (time.time() - t0)
@@ -3165,7 +3227,7 @@ class Percurso:
         t0 = time.time()
         self.abrir_aba("Início")
         self.aba = "topo"
-        print("\n== topo (menu, banner, gaveta e caixa)")
+        print("\n== topo (menu, banner, janela e caixa)")
         base = {n: a for n, a in self.censo().items() if a["zona"] != "aba"}
         self.base["topo"] = base
         self.conferir_inventario("topo", base)
@@ -3195,7 +3257,7 @@ class Percurso:
             self.falha(f"a aba «{grupo}» não tem inventário — aba nova precisa de uma "
                        "entrada em INVENTARIO")
             conhecidos = set()
-        for nome in sorted(set(base) - conhecidos):
+        for nome in sorted(n for n in set(base) - conhecidos if not casa_revelado(n, grupo)):
             self.falha(f"o controle «{nome}» da aba «{grupo}» não tem teste: ele não está "
                        "no inventário")
         for nome in sorted(conhecidos - set(base)):
@@ -3321,7 +3383,6 @@ INVENTARIO = {
         aba · Importar um pack
         aba · Sistema
         aba · Tópicos
-        aba · ação rápida doctor
         aba · ação rápida doctor_consertar
         aba · ação rápida painel_reciclar
         aba · ação rápida wallpaper_proximo
@@ -3364,7 +3425,6 @@ INVENTARIO = {
         ajuste PACK · opção
         ação «Temas prontos nesta máquina» · ?
         ação «Temas prontos nesta máquina» · Executar
-        ação «Temas prontos nesta máquina» · ver comando
     """),
     "Áreas de trabalho": _linhas("""
         aba · ?
@@ -3376,17 +3436,13 @@ INVENTARIO = {
         ajuste AREAS_NOMES · campo
         ação «Criar a primeira área» · ?
         ação «Criar a primeira área» · Executar
-        ação «Criar a primeira área» · ver comando
         ação «Gravar as áreas» · ?
         ação «Gravar as áreas» · Executar
-        ação «Gravar as áreas» · ver comando
         ação «Tirar uma área» · ?
         ação «Tirar uma área» · Executar
         ação «Tirar uma área» · seletor
-        ação «Tirar uma área» · ver comando
         ação «Voltar as áreas de antes» · ?
         ação «Voltar as áreas de antes» · Executar
-        ação «Voltar as áreas de antes» · ver comando
     """),
     "Logo do sistema": _linhas("""
         aba · ?
@@ -3431,7 +3487,6 @@ INVENTARIO = {
         ajuste ICONES_FLAVOR · opção
         ajuste ICONES_PASTAS · ?
         ajuste ICONES_PASTAS · seletor
-        ajuste ICONES_PASTAS · ver comando
         ajuste ICONES_RESGATADOS · ?
         ajuste ICONES_RESGATADOS · opção
         ajuste NOME_TEMA_ICONES · ?
@@ -3441,13 +3496,10 @@ INVENTARIO = {
         aplicativo · abrir
         ação «Pôr os desenhos em traço na tela» · ?
         ação «Pôr os desenhos em traço na tela» · Executar
-        ação «Pôr os desenhos em traço na tela» · ver comando
         ação «Reconstruir o tema de ícones» · ?
         ação «Reconstruir o tema de ícones» · Executar
-        ação «Reconstruir o tema de ícones» · ver comando
         ação «Tema de ícones instalado» · ?
         ação «Tema de ícones instalado» · Executar
-        ação «Tema de ícones instalado» · ver comando
     """),
     "Painel e dock": _linhas("""
         aba · ?
@@ -3547,19 +3599,15 @@ INVENTARIO = {
         ajuste WALLPAPER_ORDEM · opção
         ação «Imagem anterior» · ?
         ação «Imagem anterior» · Executar
-        ação «Imagem anterior» · ver comando
         ação «Próxima imagem» · ?
         ação «Próxima imagem» · Executar
-        ação «Próxima imagem» · ver comando
         ação «Voltar a girar» · ?
         ação «Voltar a girar» · Executar
-        ação «Voltar a girar» · ver comando
         papel de parede · Dia
         papel de parede · Guardar nas favoritas
         papel de parede · Noite
         papel de parede · Tirar
         papel de parede · Usar
-        papel de parede · ver comando
     """),
     "Dia e noite": _linhas("""
         aba · ?
@@ -3600,7 +3648,6 @@ INVENTARIO = {
         ajuste LEITURA_TEXTURA · deslizante
         ação «Desligar o modo de leitura» · ?
         ação «Desligar o modo de leitura» · Executar
-        ação «Desligar o modo de leitura» · ver comando
     """),
     "Terminal": _linhas("""
         aba · ?
@@ -3613,15 +3660,10 @@ INVENTARIO = {
         ajuste TERMINAL_ESQUEMA · opção
         ação «Instalar o starship» · ?
         ação «Instalar o starship» · Executar
-        ação «Instalar o starship» · ver comando
     """),
     "Lançadores e jogos": _linhas("""
         aba · ?
-        aba · Arrumar os jogos no lançador
-        aba · Conferir
         aba · abre «⋯ Ações técnicas»
-        aba · filtro «Filtrar jogo»
-        aba · âncora «Pular a lista»
         aba · âncora «Pular os jogos»
         ajuste APPS_ATIVOS · ?
         ajuste APPS_ATIVOS · nova ficha
@@ -3635,16 +3677,14 @@ INVENTARIO = {
         ajuste LANCADOR_SISTEMA · opção
         ajuste SPOTIFY_MARKETPLACE · ?
         ajuste SPOTIFY_MARKETPLACE · opção
-        aplicativo · abrir
+        ação «Arrumar os jogos no lançador» · ?
+        ação «Arrumar os jogos no lançador» · Executar
+        ação «Pôr os jogos do Heroic no lançador» · ?
+        ação «Pôr os jogos do Heroic no lançador» · Executar
         ação «Quais programas estão vestidos» · ?
         ação «Quais programas estão vestidos» · Executar
-        ação «Quais programas estão vestidos» · ver comando
-        ação «Ver o que mudaria nos jogos do Heroic» · ?
-        ação «Ver o que mudaria nos jogos do Heroic» · Conferir
-        ação «Ver o que mudaria nos jogos do Heroic» · Pôr os jogos do Heroic no lançador
-        ação «Ver o que mudaria nos jogos do Heroic» · ver comando
-        jogo da Steam · abrir
-        jogo órfão · Tirar da lista
+        jogo · abrir
+        jogo · no lançador
     """),
     "Manutenção": _linhas("""
         aba · ?
@@ -3676,42 +3716,30 @@ INVENTARIO = {
         ajuste STEAM_VIGIA · opção
         ação «Ouvir o som» · ?
         ação «Ouvir o som» · Executar
-        ação «Ouvir o som» · ver comando
     """),
     "Instalação": _linhas("""
         aba · ?
-        aba · abre «⋯ Ações técnicas»
-        ação «Conferir a máquina» · ?
-        ação «Conferir a máquina» · Executar
-        ação «Conferir a máquina» · ver comando
-        ação «Consertar o que estiver fora» · ?
-        ação «Consertar o que estiver fora» · Executar
-        ação «Consertar o que estiver fora» · ver comando
+        ação «Conferir e consertar» · ?
+        ação «Conferir e consertar» · Executar
         ação «Desinstalar o MeowSystem» · ?
         ação «Desinstalar o MeowSystem» · Executar
-        ação «Desinstalar o MeowSystem» · ver comando
         ação «Instalar tudo» · ?
         ação «Instalar tudo» · Executar
-        ação «Instalar tudo» · ver comando
         ação «Voltar ao tema de antes» · ?
         ação «Voltar ao tema de antes» · Executar
-        ação «Voltar ao tema de antes» · ver comando
     """),
     "Atualização": _linhas("""
         aba · ?
         ação «Limpar o que sobrou» · ?
         ação «Limpar o que sobrou» · Executar
-        ação «Limpar o que sobrou» · ver comando
-        ação «O que a atualização mudaria» · ?
-        ação «O que a atualização mudaria» · Conferir
-        ação «O que a atualização mudaria» · Atualizar a máquina inteira
-        ação «O que a atualização mudaria» · ver comando
+        ação «Atualizar a máquina inteira» · ?
+        ação «Atualizar a máquina inteira» · Executar
     """),
 }
 
-# O QUE SÓ APARECE DEPOIS DE UM GESTO: a caixa de pergunta, a gaveta, o
-# «Copiar» do «ver comando», o «Aplicar» do cartão com escolha pendente, o
-# conteúdo de um `<details>`, o painel de um aplicativo.
+# O QUE SÓ APARECE DEPOIS DE UM GESTO: a caixa de pergunta, a janela do
+# resultado, o Restaurar do cartão que já rodou, o «Aplicar» do cartão com
+# escolha pendente, o conteúdo de um `<details>`, o painel de um aplicativo.
 PAINEL_DO_APLICATIVO = _linhas("""
     ícone do aplicativo · Adicionar ícone
     ícone do aplicativo · Usar este ícone
@@ -3742,18 +3770,19 @@ REVELADOS = {
         caixa · #confirmar-ok
         caixa · #confirmar-ensaio
         caixa · ?
-        gaveta · #parar
-        gaveta · #fechar-gaveta
-        gaveta · #saida
-        gaveta · #mais-abaixo
-        gaveta · #ensaio-rodar
-        gaveta · #gaveta-consertar
+        janela · #parar
+        janela · #resultado-ok
+        janela · #resultado-guardar
+        janela · #resultado-restaurar
+        janela · #saida
+        janela · #mais-abaixo
+        janela · #ensaio-rodar
+        ação «*» · Restaurar
         topo · #botao-descartar
         topo · #salvar-conta
         topo › lista de escolhas › escolha pendente · ir ao cartão
         aviso · #aviso-aplicar-botao
         ajuste * · Aplicar
-        *linha de comando · Copiar
         aba · Como está (desfaz o bloco)
         ajuste * · Restaurar ao padrão
         ajuste * · Restaurar ao padrão (*)
@@ -3772,11 +3801,9 @@ REVELADOS = {
         ação «Passar para claro ou escuro» · ?
         ação «Passar para claro ou escuro» · Executar
         ação «Passar para claro ou escuro» · seletor
-        ação «Passar para claro ou escuro» · ver comando
         ação «Trocar de tema» · ?
         ação «Trocar de tema» · Executar
         ação «Trocar de tema» · seletor
-        ação «Trocar de tema» · ver comando
         ajuste CURSOR_VERSAO · ?
         ajuste CURSOR_VERSAO · campo
         ajuste WALLPAPER_DRACULA_COMMIT · ?
@@ -3789,7 +3816,6 @@ REVELADOS = {
         ajuste AREAS_FOLGA · opção
         ação «As áreas de agora» · ?
         ação «As áreas de agora» · Executar
-        ação «As áreas de agora» · ver comando
     """),
     "Ícones": PAINEL_DO_APLICATIVO | _linhas("""
         ajuste ICONES_LOGO_HEFESTO · ?
@@ -3802,54 +3828,40 @@ REVELADOS = {
         ajuste WALLPAPER_BASE · campo
         ação «Baixar a coleção curada» · ?
         ação «Baixar a coleção curada» · Executar
-        ação «Baixar a coleção curada» · ver comando
         ação «Construir o menu da área de trabalho» · ?
         ação «Construir o menu da área de trabalho» · Executar
-        ação «Construir o menu da área de trabalho» · ver comando
         ação «Menu da área de trabalho» · ?
         ação «Menu da área de trabalho» · Executar
-        ação «Menu da área de trabalho» · ver comando
         ação «O carrossel agora» · ?
         ação «O carrossel agora» · Executar
-        ação «O carrossel agora» · ver comando
         ação «Reaplicar as regras do carrossel» · ?
         ação «Reaplicar as regras do carrossel» · Executar
-        ação «Reaplicar as regras do carrossel» · ver comando
         papel de parede · Devolver
         papel de parede · Medir
         papel de parede · Tirar das favoritas
     """),
-    "Lançadores e jogos": PAINEL_DO_APLICATIVO | _linhas("""
+    "Lançadores e jogos": _linhas("""
         ação «Baixar o tema do Spotify» · ?
         ação «Baixar o tema do Spotify» · Executar
-        ação «Baixar o tema do Spotify» · ver comando
         ação «Vestir os programas agora» · ?
         ação «Vestir os programas agora» · Executar
-        ação «Vestir os programas agora» · ver comando
         decisão do jogo · Apagar os arquivos
-        decisão do jogo · Tirar do lançador
-        decisão do jogo · Voltar ao normal
-        decisão do jogo · campo «Por que este jogo sai do lançador»
+        decisão do jogo › ícone do aplicativo*
     """),
     "Painel e dock": _linhas("""
         ação «Até quanto o canto pode arredondar» · ?
         ação «Até quanto o canto pode arredondar» · Executar
-        ação «Até quanto o canto pode arredondar» · ver comando
         ação «Como estão o painel e a dock» · ?
         ação «Como estão o painel e a dock» · Executar
-        ação «Como estão o painel e a dock» · ver comando
         ação «Recarregar o painel» · ?
         ação «Recarregar o painel» · Executar
-        ação «Recarregar o painel» · ver comando
     """),
     "Logo do sistema": _linhas("""
         ação «Passar ao próximo gato» · ?
         ação «Passar ao próximo gato» · Executar
-        ação «Passar ao próximo gato» · ver comando
         ação «Pôr um gato no dock» · ?
         ação «Pôr um gato no dock» · Executar
         ação «Pôr um gato no dock» · seletor
-        ação «Pôr um gato no dock» · ver comando
         ajuste FASTFETCH_LOGO_BLOCOS · ?
         ajuste FASTFETCH_LOGO_BLOCOS · opção
         ajuste FASTFETCH_LOGO_CELULA · ?
@@ -3872,15 +3884,6 @@ REVELADOS = {
         ajuste LOGO_ROTACAO · opção
         ação «Qual gato está no ar, e por quê» · ?
         ação «Qual gato está no ar, e por quê» · Executar
-        ação «Qual gato está no ar, e por quê» · ver comando
-    """),
-    "Instalação": _linhas("""
-        ação «As últimas 50 linhas do registro» · ?
-        ação «As últimas 50 linhas do registro» · Executar
-        ação «As últimas 50 linhas do registro» · ver comando
-        ação «O que está no ar agora» · ?
-        ação «O que está no ar agora» · Executar
-        ação «O que está no ar agora» · ver comando
     """),
     # (natureza `aplicar`) moram nos dois «⋯» do fim da página.]
     "Manutenção": _linhas("""
@@ -3896,15 +3899,12 @@ REVELADOS = {
         ajuste SOM_PESO_HARMONICO · deslizante
         ação «Regravar o som» · ?
         ação «Regravar o som» · Executar
-        ação «Regravar o som» · ver comando
     """),
     "Modo de leitura": _linhas("""
         ação «Aplicar o degrau desta hora» · ?
         ação «Aplicar o degrau desta hora» · Executar
-        ação «Aplicar o degrau desta hora» · ver comando
         ação «Modo de leitura agora» · ?
         ação «Modo de leitura agora» · Executar
-        ação «Modo de leitura agora» · ver comando
     """),
 }
 
@@ -4005,7 +4005,7 @@ def main():
         encerrar_a_casa()
 
     total = time.time() - inicio
-    print("\n== o que rodou, e como a gaveta terminou")
+    print("\n== o que rodou, e como a janela terminou")
     for aba, rot, como, estado, cauda in v.resultados:
         print(f"   {aba[:18]:18s} {rot[:44]:44s} {como:15s} {estado}")
         if cauda:

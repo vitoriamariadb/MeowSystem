@@ -850,8 +850,8 @@ def main():
                   "e diz que aplica o que ja' esta' salvo")
 
             print("\n10. UMA ACAO, COM SAIDA AO VIVO")
-            # O «O que está no ar agora» só lê; desde a P90 a Instalação não o
-            # mostra em cartão, e quem o roda é o mesmo `rodar()` dos cartões.
+            # O «O que está no ar agora» só lê e não tem cartão; quem o roda é
+            # o mesmo `rodar()` dos cartões.
             secao("Instalação")
             pag.evaluate("() => rodar(ESQUEMA.acoes.find((a) => a.id === 'status'), '')")
             saida = ""
@@ -941,8 +941,8 @@ def main():
             print("\n12. CONFERIR NÃO ESCREVE")
             secao("Instalação")
             md5_antes = md5_conf()
-            # O doctor que só confere não tem cartão desde a P90 (a Instalação
-            # tem «Conferir e consertar»); ele continua sendo uma ação.
+            # O doctor que só confere não tem cartão (a Instalação tem o
+            # «Conferir e consertar»); ele continua sendo uma ação.
             pag.evaluate("() => rodar(ESQUEMA.acoes.find((a) => a.id === 'doctor'), '')")
             pag.wait_for_function("() => TRABALHO === null", timeout=120000)
             checa(md5_conf() == md5_antes, "o doctor so' le: o meow.conf não mudou")
