@@ -11,3 +11,6 @@
 11. **A versão de 15/10 do `folder-download`**: o arquivo `.versao-folder-download.svg` na raiz desta
     worktree (edição solta que estava no dev) entra como versão em `packs/dracula/icones/biblioteca/`
     com linha no PROCEDENCIA (decisão 16, item 5: a ligada continua a atual). Apague o arquivo da raiz.
+12. **Dois miúdos do install real de 17/10 (01:20)**: `meow compositor` compilou e guardou o build com os
+    5 marcadores e saiu rc=1 (sucesso que escreveu tem que sair 0, como a P81 fez no pós-apt); e a linha
+    `iconesapps` do `meow doctor` sai vazia («--   iconesapps» sem texto). Teste para os dois.
