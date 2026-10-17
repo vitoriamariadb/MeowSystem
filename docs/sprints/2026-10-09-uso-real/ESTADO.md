@@ -40,11 +40,17 @@ cosmic-files e a série do compositor em escopo de usuário. Log: `~/.local/stat
 
 P81 build sempre, P82 abertos (decisões 13–49), P83 documentação, P84 vetores, P85 série no 4d14528.
 
-## Leva I — EM VOO (workflow leva-i-final, run wf_a4815e79-31a)
+## Leva I — CONCLUÍDA (integracao/leva-h `ae2fc7c`, suíte 2x: 69 verdes, 1 pulado, 0 vermelhos)
 
-P88 três pastas ∥ P86 regra da vida → P87 tudo pro pack → P89 repo enxuto + AGENTS.md + gancho →
-integração final, suíte 2x, QA. 7 agente + 2 agente.
-Retomar: `Workflow({scriptPath: ".../leva-i-final-wf_a4815e79-31a.js", resumeFromRunId: "wf_a4815e79-31a"})`.
+P88 três pastas, P86 regra da vida (GSD.md, sentinela, tests/decisoes.sh), P87 tudo pro pack,
+P89 repo enxuto + AGENTS.md + gancho. Dracula: apps/ 123, biblioteca/ 670.
+
+## P90 — EM VOO (workflow p90-acoes-e-divisorias, run wf_7856b717-3cd)
+
+Pedido de 16/10 pelos prints: só Executar/Restaurar, janela de resultado (OK/Guardar/Restaurar),
+«Ver sem mudar», jogos refeitos, divisórias em todas as telas; mais as pendências da leva I (projetos
+pessoais fora, porquê de volta, terminal sem «rode:», versão do folder-download guardada em
+`~/.local/state/meowsystem/guardado-16-10/`). 2 Opus.
 
 ## Fim combinado com quem usa (15/10, antes de dormir)
 
