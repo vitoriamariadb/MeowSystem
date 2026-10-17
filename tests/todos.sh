@@ -72,6 +72,7 @@ PORTATIL=(
   casa-real.sh           # o migrar_conf, o doctor e a troca de pack num HOME e COSMIC de brinquedo, sudo falso; bash e python3
   nada-manda-digitar.sh  # grep nas mensagens versionadas e a tabela de pendências do painel; bash e python3
   achados-tecnicos.sh    # mapa CRLF, BOM, vidro, modo do gato e favoritas num HOME, COSMIC e packs de brinquedo; bash e python3
+  restaurar.sh           # cada ação do painel que escreve, e o Restaurar dela, numa árvore e HOME de brinquedo com falsos que recusam; bash e python3
   trabalho-vivo.sh       # o Trabalho do painel com a janela entre a morte e o desfecho aberta à força, HOME de brinquedo; bash e python3
   reler-uma-vez.sh       # a lib com getent, pgrep e painel.sh falsos numa raiz e HOME de brinquedo; um reler por passada, e o passo de traço de verdade; bash e python3
   derivados.sh           # alterou o desenho, o tema se atualiza: cópia da árvore e HOME de brinquedo, sem systemd; bash, git e python3

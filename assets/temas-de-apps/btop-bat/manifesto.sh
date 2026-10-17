@@ -336,6 +336,7 @@ _bb_carimbo() {
 # suspenso, então tudo aqui é `if`.
 _bb_backup() {
   local alvo="$1" rel dest
+  meow_guardar_antes "$1"
   [ -f "$alvo" ] || return 0
   if meow_seco; then return 0; fi
   case "$alvo" in "$HOME"/*) rel="${alvo#"$HOME"/}" ;; *) rel="fora-da-home/${alvo#/}" ;; esac
@@ -799,7 +800,7 @@ _bb_bat_reverter() {
   if [ -f "$destino" ]; then
     if cmp -s "$(_bb_bat_tema_arquivo)" "$destino"; then
       if meow_seco; then meow_muda "bat: removeria $destino"; mudou=1
-      elif rm -f "$destino"; then mudou=1; meow_muda "bat: tema '$nome' removido"
+      elif meow_guardar_antes "$destino"; rm -f "$destino"; then mudou=1; meow_muda "bat: tema '$nome' removido"
       fi
     else
       meow_pula "bat: $destino mudou depois que escrevemos — fica"
@@ -813,6 +814,7 @@ _bb_bat_reverter() {
       # A linha do NOSSO tema sai; o resto do config dela fica intacto.
       texto="$(awk -v pad="$(_bb_bat_padrao_chave)" -v ok="$(_bb_bat_padrao_ok "$nome")" \
                  '$0 ~ pad && $0 ~ ok { next } { print }' "$cfg")"
+      meow_guardar_antes "$cfg"
       if printf '%s\n' "$texto" > "$cfg" 2>/dev/null; then
         mudou=1; meow_muda "bat: --theme='$nome' retirado de $cfg"
       else
@@ -838,7 +840,7 @@ _bb_btop_reverter() {
   if [ -f "$destino" ]; then
     if _bb_btop_conteudo | _bb_igual_stdin "$destino"; then
       if meow_seco; then meow_muda "btop: removeria $destino"; mudou=1
-      elif rm -f "$destino"; then mudou=1; meow_muda "btop: tema '$stem' removido"
+      elif meow_guardar_antes "$destino"; rm -f "$destino"; then mudou=1; meow_muda "btop: tema '$stem' removido"
       fi
     else
       meow_pula "btop: $destino mudou depois que escrevemos — fica"
@@ -853,6 +855,7 @@ _bb_btop_reverter() {
       meow_muda "btop: color_theme voltaria para \"Default\""; mudou=1
     else
       texto="$(_bb_merge_linha "$conf" "$(_bb_btop_padrao_chave)" 'color_theme = "Default"')"
+      meow_guardar_antes "$conf"
       if printf '%s\n' "$texto" > "$conf" 2>/dev/null; then
         mudou=1; meow_muda "btop: color_theme = \"Default\""
       else

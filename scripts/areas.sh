@@ -609,6 +609,7 @@ _areas_guardar() {
   if [ ! -f "$AREAS_ANTES/pinned_workspaces.antes" ]; then
     mkdir -p "$AREAS_ANTES" 2>/dev/null \
       || { meow_erro "não consegui criar $AREAS_ANTES"; return "$MEOW_ERRO"; }
+    meow_guardar_antes "$AREAS_ANTES/pinned_workspaces.antes"
     cp -a "$AREAS_ALVO" "$AREAS_ANTES/pinned_workspaces.antes" 2>/dev/null \
       || { meow_erro "não consegui guardar o estado de antes — não vou escrever"; return "$MEOW_ERRO"; }
   fi

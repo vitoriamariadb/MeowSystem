@@ -299,6 +299,7 @@ _meow_qbt_receita() {
 # Backup obrigatório antes de sobrescrever qualquer arquivo dela.
 _meow_qbt_backup() {
   local alvo="$1" dir base
+  meow_guardar_antes "$1"
   [ -e "$alvo" ] || return 0
   base="$(basename "$alvo")"
   # Carimbo ISO com `-` no lugar do `:` — é o formato que os outros módulos já

@@ -132,6 +132,7 @@ _ci_instalar_tema() {
     rm -rf "$palco"; meow_erro "não consegui copiar o tema '$nome'"; return "$MEOW_ERRO"
   fi
   chmod 755 "$palco"
+  meow_guardar_pasta "$destino"
   rm -rf "$destino"
   if ! mv -f "$palco" "$destino"; then
     rm -rf "$palco"; meow_erro "falha ao mover o tema para $destino"; return "$MEOW_ERRO"

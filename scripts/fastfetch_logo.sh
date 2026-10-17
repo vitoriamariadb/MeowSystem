@@ -600,6 +600,7 @@ _ffl_instalar() {
     return "$MEOW_OK"                        # regra 5: idêntico, não reescreve
   fi
   chmod 644 "$tmp"
+  meow_guardar_antes "$FFL_ALVO"; meow_guardar_antes "$(_ffl_carimbo)"
   mv -f "$tmp" "$FFL_ALVO" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   printf '%s\n' "$(_ffl_carimbo_texto)" > "$(_ffl_carimbo)" 2>/dev/null || true
   meow_manifesto_registrar "$FFL_ALVO"
@@ -619,7 +620,7 @@ _ffl_varrer_orfaos() {
     [ -f "$velho" ] || continue
     [ "$velho" = "$FFL_ALVO" ] && continue
     if meow_seco; then meow_muda "removeria $velho (sobrou do modo anterior)"
-    else rm -f "$velho" && meow_info "removi $(basename "$velho") (sobrou do modo anterior)"; fi
+    else meow_guardar_antes "$velho"; rm -f "$velho" && meow_info "removi $(basename "$velho") (sobrou do modo anterior)"; fi
   done
   return 0
 }
@@ -892,6 +893,7 @@ _ffl_instalar_meow_fetch() {
     return 0
   fi
   meow_seco && { meow_muda "escreveria $alvo"; return 1; }
+  meow_guardar_antes "$alvo"
   mkdir -p "$(dirname "$alvo")" || return 2
   printf '%s\n' "$texto" > "$alvo" || return 2
   chmod 755 "$alvo" || return 2
@@ -1161,6 +1163,7 @@ cmd_ver() {
 cmd_remover() {
   if [ ! -f "$FFL_ALVO" ]; then meow_pula "nada a remover"; return "$MEOW_OK"; fi
   meow_seco && { meow_muda "removeria $FFL_ALVO"; return "$MEOW_DIVERGENTE"; }
+  meow_guardar_antes "$FFL_ALVO"
   rm -f "$FFL_ALVO"
   # Só apaga o diretório se ele ficar vazio, e só o NOSSO: o
   # `~/.local/share/meowsystem` pode hospedar outra coisa amanhã.

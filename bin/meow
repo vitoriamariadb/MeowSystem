@@ -3489,6 +3489,11 @@ cmd_desfazer() {
       meow_muda "copiaria $primeiro/com.system76.CosmicTheme.* para $COSMIC/"
       return "$MEOW_DIVERGENTE"
     fi
+    if [ -n "${MEOW_BACKUPS:-}" ]; then
+      while IFS= read -r -d '' f; do
+        meow_guardar_antes "$COSMIC/${f#"$primeiro"/}"
+      done < <(find "$primeiro" -path "$primeiro/com.system76.CosmicTheme.*" -type f -print0)
+    fi
     cp -a "$primeiro"/com.system76.CosmicTheme.* "$COSMIC/" || return "$MEOW_ERRO"
     registrar "desfazer -> $primeiro"
     notificar "MeowSystem" "Tema devolvido ao estado de antes da instalação."
@@ -3536,6 +3541,55 @@ cmd_desfazer() {
     notificar "MeowSystem" "Tema devolvido para a captura original."
   fi
   return "$rc"
+}
+
+# Repõe o estado de antes de UMA execução: a pasta que o `MEOW_BACKUPS` dela
+# encheu (lib/restauro.sh). O que existia volta byte a byte; o que a execução
+# criou sai. De trás para a frente: a cópia mais antiga de um caminho é a que
+# vale. O painel recicla se um arquivo dele voltou; o tema o COSMIC relê sozinho.
+cmd_restaurar() {
+  local pasta="${1:-}" alvo estado painel=0 n=0 falhou=0 tmp
+  [ -n "$pasta" ] && [ -f "$pasta/tocados.tsv" ] || { meow_ok "nada a restaurar"; return "$MEOW_OK"; }
+  meow_travar || return "$MEOW_ERRO"
+  while IFS=$'\t' read -r alvo estado; do
+    case "$alvo" in /*) ;; *) continue ;; esac
+    meow_destino_permitido "$alvo" || { falhou=1; continue; }
+    if meow_seco; then meow_muda "devolveria $alvo"; n=$((n + 1)); continue; fi
+    case "$estado" in
+      existia)
+        mkdir -p "$(dirname "$alvo")" || { falhou=1; continue; }
+        tmp="$(mktemp -p "$(dirname "$alvo")" ".atomicwrite.meow.XXXXXX")" || { falhou=1; continue; }
+        rm -f -- "$tmp"
+        if cp -a -- "$pasta/antes$alvo" "$tmp" && mv -fT -- "$tmp" "$alvo"; then
+          meow_muda "voltou: ${alvo/#$HOME/\~}"
+          meow_manifesto_registrar "$alvo"
+        else
+          rm -f -- "$tmp"; falhou=1; continue
+        fi ;;
+      novo)
+        [ -e "$alvo" ] || [ -L "$alvo" ] || continue
+        rm -f -- "$alvo" || { falhou=1; continue; }
+        meow_muda "saiu: ${alvo/#$HOME/\~}" ;;
+      pasta)
+        rm -rf -- "$alvo" && mkdir -p "$(dirname "$alvo")" \
+          && cp -a -- "$pasta/antes$alvo" "$alvo" || { falhou=1; continue; }
+        meow_muda "voltou: ${alvo/#$HOME/\~}/" ;;
+      pasta-nova)
+        [ -e "$alvo" ] || continue
+        rm -rf -- "$alvo" || { falhou=1; continue; }
+        meow_muda "saiu: ${alvo/#$HOME/\~}/" ;;
+      *) continue ;;
+    esac
+    n=$((n + 1))
+    case "$alvo" in */com.system76.CosmicPanel*) painel=1 ;; esac
+  done < <(tac "$pasta/tocados.tsv")
+  if [ "$painel" = "1" ] && ! meow_seco; then
+    MEOW_QUEM_RECICLA="meow restaurar" "$RAIZ/scripts/painel.sh" reciclar || true
+  fi
+  [ "$falhou" = "1" ] && { meow_erro "parte do estado de antes não voltou"; return "$MEOW_ERRO"; }
+  [ "$n" -gt 0 ] && { registrar "restaurar -> $(basename "$pasta")"; meow_ok "o estado de antes voltou ($n arquivo(s))"; return "$MEOW_DIVERGENTE"; }
+  meow_ok "já estava como antes"
+  return "$MEOW_OK"
 }
 
 cmd_log() {
@@ -4441,6 +4495,7 @@ despachar() {
     abrir|app)        shift; exec "$RAIZ/app/run.sh" "$@" ;;
     aplicar|ativar)   shift; cmd_aplicar "$@" ;;
     desfazer)         shift; cmd_desfazer "$@" ;;
+    restaurar)        shift; cmd_restaurar "$@" ;;
     log)              shift; cmd_log "$@" ;;
     ajuda|-h|--help|help) cmd_ajuda ;;
     *) meow_erro "comando desconhecido: $1"

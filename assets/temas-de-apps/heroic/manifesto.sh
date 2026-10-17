@@ -461,6 +461,7 @@ PY
 # Code, que documenta a medição).
 _heroic_backup() {
   local origem="$1" carimbo destino rel
+  meow_guardar_antes "$1"
   [ -f "$origem" ] || return 0
   carimbo="${MEOW_CARIMBO:-$(date +%Y-%m-%dT%H-%M-%S)}"
   destino="$MEOW_ESTADO/backups/$carimbo"

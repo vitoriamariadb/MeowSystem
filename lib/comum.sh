@@ -662,6 +662,10 @@ meow_mesmo_conteudo() {
   [ -f "$1" ] && [ -f "$2" ] && [ "$(cat "$1" 2>/dev/null)" = "$(cat "$2" 2>/dev/null)" ]
 }
 
+# O estado de antes de cada escrita, para o Restaurar do painel.
+# shellcheck source=restauro.sh
+. "$(dirname "${BASH_SOURCE[0]}")/restauro.sh"
+
 meow_escrever() {
   local destino="$1" conteudo="$2" modo="${3:-644}" tmp dir
   meow_destino_permitido "$destino" || return "$MEOW_ERRO"
@@ -674,6 +678,7 @@ meow_escrever() {
     meow_muda "mudaria $destino"
     return "$MEOW_DIVERGENTE"
   fi
+  meow_guardar_antes "$destino"
   mkdir -p "$dir" || return "$MEOW_ERRO"
   #   O `cosmic-config` do libcosmic IGNORA de propósito os temporários cujo nome
   #   começa com `.atomicwrite`, ao traduzir eventos de inotify em mudanças de

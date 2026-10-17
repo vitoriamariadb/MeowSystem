@@ -185,6 +185,7 @@ _som_instalar() {
     return "$MEOW_OK"      # regra 5: idêntico, não reescreve
   fi
   chmod 644 "$tmp"
+  meow_guardar_antes "$SOM_ALVO"
   mv -f "$tmp" "$SOM_ALVO" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   return "$MEOW_DIVERGENTE"
 }
@@ -217,11 +218,13 @@ _som_tema() {
   if [ "$modo" = "tirar" ]; then
     [ -d "$SOM_TEMA_DIR" ] || return "$MEOW_OK"
     meow_seco && { meow_muda "tiraria o tema de som de $SOM_TEMA_DIR"; return "$MEOW_DIVERGENTE"; }
+    meow_guardar_pasta "$SOM_TEMA_DIR"
     rm -rf -- "$SOM_TEMA_DIR" || return "$MEOW_ERRO"
     meow_muda "o tema de som saiu de $SOM_TEMA_DIR"
     return "$MEOW_DIVERGENTE"
   fi
   [ "$modo" = "conferir" ] || meow_seco || meow_destino_permitido "$SOM_TEMA_DIR" || return "$MEOW_ERRO"
+  [ "$modo" = "conferir" ] || meow_guardar_pasta "$SOM_TEMA_DIR"
   MEOW_PY_SECO="$( { [ "$modo" = "conferir" ] || meow_seco; } && echo 1 || echo 0)" \
   python3 -I - "$SOM_TEMA_PACK" "$SOM_TEMA_DIR" <<'PY'
 import filecmp, os, shutil, sys
@@ -456,6 +459,7 @@ cmd_remover() {
     meow_pula "nada a remover"; return "$MEOW_OK"
   fi
   meow_seco && { meow_muda "removeria $SOM_ALVO"; return "$MEOW_DIVERGENTE"; }
+  meow_guardar_antes "$SOM_ALVO"; meow_guardar_antes "$SOM_LICENCAS"
   rm -f "$SOM_ALVO" "$SOM_LICENCAS"
   # rmdir só apaga diretório vazio: se ela puser outros sons ali, ficam.
   rmdir "$SOM_BASE" "$SOM_RAIZ/$SOM_TEMA" 2>/dev/null

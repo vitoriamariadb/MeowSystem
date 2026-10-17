@@ -503,6 +503,7 @@ _meow_obsidian_igual() {
 # Um diretório por execução, para dar para desfazer tudo junto.
 _meow_obsidian_backup() {
   local arquivo="$1" rotulo="$2" destino
+  meow_guardar_antes "$1"
   [ -f "$arquivo" ] || return 0
   meow_seco && return 0
   # ISO sem ':' — é o formato que os outros módulos do MeowSystem já usam nesta
