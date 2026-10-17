@@ -17,23 +17,24 @@ done
 
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
-mkdir -p "$T/casa" "$T/ganchos"
+mkdir -p "$T/casa"
 export HOME="$T/casa" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
-printf '#!/bin/sh\nexec bash scripts/higiene.sh\n' > "$T/ganchos/pre-commit"
-chmod +x "$T/ganchos/pre-commit"
 
 R="$T/repo"
 git clone -q --shared --no-checkout "$RAIZ" "$R" 2>/dev/null
 git -C "$R" checkout -q "$(git -C "$RAIZ" rev-parse HEAD)" 2>/dev/null
 # O que está sendo testado vem da árvore de trabalho, e não só do último commit.
 COPIA=(scripts/higiene.sh scripts/comentarios.py tests/numeros.sh tests/frases-velhas.sh
-       tests/portabilidade.sh README.md README.en.md)
+       tests/portabilidade.sh tests/higiene.sh README.md README.en.md)
 for f in "${COPIA[@]}"; do cp "$RAIZ/$f" "$R/$f"; done
 g() { git -C "$R" -c user.name=teste -c user.email=teste@exemplo.invalid "$@"; }
 g add -- "${COPIA[@]}" >/dev/null
-g -c core.hooksPath=/dev/null commit -qm base >/dev/null 2>&1
-com_gancho() { g -c core.hooksPath="$T/ganchos" commit -qm "$1" >/dev/null 2>&1; }
+g commit -qm base >/dev/null 2>&1
+# Sem configuração global, o clone usa o próprio .git/hooks: o gancho entra depois da base.
+printf '#!/bin/sh\nexec bash scripts/higiene.sh\n' > "$R/.git/hooks/pre-commit"
+chmod +x "$R/.git/hooks/pre-commit"
+com_gancho() { g commit -qm "$1" >"$T/saida" 2>&1; }
 
 # 1. o comentário de registro sai e o porquê fica
 cat > "$R/scripts/brinquedo.sh" <<'SH'
@@ -67,7 +68,8 @@ fi
 
 # 3. a frase velha barra o commit
 antes="$(g rev-parse HEAD)"
-printf '\nUse o botão Voltar ao ícone de fábrica.\n' >> "$R/README.md"
+# a frase montada em pedaços, para este arquivo não ser ele mesmo uma frase velha
+printf '\nUse o botão %s ao ícone de fábrica.\n' Voltar >> "$R/README.md"
 g add README.md
 if com_gancho "frase velha"; then
   falha "o commit com frase velha passou"
@@ -76,5 +78,5 @@ else
     || falha "o commit mudou o HEAD mesmo barrado"
 fi
 
-[ "$falhas" -eq 0 ] || exit 1
+[ "$falhas" -eq 0 ] || { cat "$T/saida" >&2; exit 1; }
 exit 0
