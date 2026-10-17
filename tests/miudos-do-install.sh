@@ -59,7 +59,9 @@ export -f kill pkill killall
 saida="$(env -u DBUS_SESSION_BUS_ADDRESS PATH="$TMP/falso:$PATH" HOME="$TMP/casa" NO_COLOR=1 \
   MEOW_RAIZ="$RAIZ" MEOW_PONTE="$TMP/sem-ponte" bash "$RAIZ/bin/meow" doctor 2>&1)"
 vazias="$(printf '%s\n' "$saida" | grep -E '^  (ok|~~|--|!!|erro) +[a-z0-9_]+ *$')"
-if ! printf '%s\n' "$saida" | grep -qE '^  [^ ]+ +iconesapps '; then
+# Here-string, e não pipe: com o pipefail, o `grep -q` que acha cedo fecha o
+# pipe e o printf sai 141 numa saída grande.
+if ! grep -qE '^  [^ ]+ +iconesapps ' <<< "$saida"; then
   reclamar "o doctor não chegou à linha iconesapps (o teste não prova nada)\n$(printf '%s\n' "$saida" | tail -5)"
 elif [ -n "$vazias" ]; then
   reclamar "linha do doctor sem texto:\n$vazias"
