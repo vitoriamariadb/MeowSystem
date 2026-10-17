@@ -22,10 +22,21 @@ REGISTRO="$ESTADO/vizinhos-desativados.tsv"
 REVISADOS="$ESTADO/vizinhos-revisados.tsv"
 COPIAS="$ESTADO/vizinhos"
 ETC="${VIZINHOS_ETC:-/etc}"
-ZD="${ZDOTDIR:-$HOME/.config/zsh}"
 DESENV="${VIZINHOS_DESENV:-$HOME/Desenvolvimento}"
-REPOS="${VIZINHOS_REPOS:-Dracula_* NitroKit Migração-OS hefesto-* Andromeda*}"
+CONTRATO="${VIZINHOS_CONTRATO:-$RAIZ/contratos/vizinhos.tsv}"
 export LC_ALL=C
+
+# O ZDOTDIR da casa: o do ambiente, ou o que o ~/.zshenv exporta (é onde o zsh o
+# lê), ou a própria casa.
+_zdotdir() {
+  local z=""
+  if [ -n "${ZDOTDIR:-}" ]; then printf '%s' "$ZDOTDIR"; return 0; fi
+  [ -r "$HOME/.zshenv" ] && z="$(sed -n -E 's/^[[:space:]]*(export[[:space:]]+)?ZDOTDIR=["'"'"']?([^"'"'"' ]*).*/\2/p' "$HOME/.zshenv" | head -1)"
+  z="${z//\$\{HOME\}/$HOME}"; z="${z//\$HOME/$HOME}"; z="${z/#\~/$HOME}"
+  printf '%s' "${z:-$HOME}"
+}
+ZD="$(_zdotdir)"
+REPOS="${VIZINHOS_REPOS:-$(awk -F'\t' '$1 == "repo" { printf "%s ", $2 }' "$CONTRATO" 2>/dev/null)}"
 
 # O MeowSystem que conta é o INSTALADO (o ponteiro da raiz); sem ele, este clone.
 MEOW_LIDO="$RAIZ"
@@ -461,22 +472,20 @@ cmd_conferir() {
   return 4
 }
 
-# --- o que o --desativar conhece --------------------------------------------
-# item|tipo|arquivo|início|fim|requer|motivo (barra, e não tab: o `read` junta tabs vazios)
-#   saida  põe `exit 0` (com o motivo na tela) logo abaixo do shebang
-#   bloco  comenta as linhas de início a fim (a primeira linha de fim depois do início)
-#   requer arquivo-do-MeowSystem:texto que o MeowSystem INSTALADO precisa ter para o
-#          item poder sair; vazio = o instalado de hoje já cuida
+# --- o que o --desativar conhece: as linhas `item` do contrato ---------------
+# Saem com `|` entre as colunas, e não tab: o `read` juntaria as colunas vazias.
 _catalogo() {
-  local dr="$DESENV/Dracula_OS-Theme/scripts"
-  cat <<FIM
-dracula-reaplicar-tema|saida|$dr/reaplicar_tema.sh||||o tema, o cursor, os ícones, os sons e os lançadores são do MeowSystem, e o meow doctor confere todo dia
-dracula-gancho-apt|saida|$dr/instalar_apt_hook.sh||||quem reaplica depois do apt é o MeowSystem (99-meow-lancador e meow-pos-apt)
-dracula-hicolor|saida|$dr/reparar_hicolor_index.sh||||o index.theme do hicolor do usuário é do MeowSystem (hicolor.sh, conferido pelo meow doctor)
-dracula-icones-absolutos|saida|$dr/normalizar_desktops.sh||||o Icon= de caminho absoluto é do MeowSystem (icones_absolutos.sh, conferido pelo meow doctor)
-dracula-spicetify|saida|$dr/instalar_spicetify.sh||||o Spicetify e o tema do Spotify são do MeowSystem; as extensões seguem no spicetify_reparar
-caches-icones-casa|bloco|$ZD/functions/sistema.zsh|for tema_dir in "\$HOME/.local/share/icons/"*/; do|^    done\$|scripts/hicolor.sh:_hicolor_cache_velha|a cache dos temas de ícones da casa é do MeowSystem (índice do tema e hicolor, conferidos pelo meow doctor)
-FIM
+  [ -r "$CONTRATO" ] || return 0
+  awk -F'\t' -v desenv="$DESENV" -v zd="$ZD" '
+    $1 != "item" { next }
+    {
+      arq = $4
+      if (index(arq, "$DESENV/") == 1) arq = desenv substr(arq, 8)
+      else if (index(arq, "$ZD/") == 1) arq = zd substr(arq, 4)
+      linha = $2 "|" $3 "|" arq
+      for (i = 5; i <= 8; i++) linha = linha "|" ($i == "-" ? "" : $i)
+      print linha
+    }' "$CONTRATO"
 }
 
 _item() { _catalogo | awk -F'|' -v i="$1" '$1 == i'; }

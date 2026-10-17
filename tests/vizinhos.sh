@@ -120,6 +120,11 @@ confere "a função com o aviso de desativado sai desativada" \
 confere "comentário do .zshrc não vira chamada" '! linha "install.sh" | grep -q .'
 confere "o rodapé conta as escritas" 'printf "%s\n" "$inv1" | tail -1 | grep -q "^# escritas: [0-9]"'
 confere "nenhum caminho da casa de brinquedo cravado na tabela" '! printf "%s\n" "$inv1" | grep -qF "$CASA"'
+# Sem ZDOTDIR no ambiente (o timer do doctor), ele vem do ~/.zshenv, como o zsh faz.
+printf 'export ZDOTDIR="$HOME/.config/zsh"\n' > "$CASA/.zshenv"
+inv3="$(env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" VIZINHOS_ETC="$ETC" VIZINHOS_DESENV="$DESENV" \
+        VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 bash "$V" --inventario)"
+confere "sem ZDOTDIR no ambiente, o do ~/.zshenv dá a mesma tabela" '[ "$inv3" = "$inv1" ]'
 
 printf '\n2. a linha do doctor\n'
 saida="$(rodar --conferir)"; rc=$?
