@@ -1092,6 +1092,14 @@ chk_autostart() {
   AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" "$RAIZ/scripts/autostart.sh" conferir 2>&1
 }
 
+# Outro programa que escreve sozinho onde o MeowSystem escreve. Só mostra: desligar
+# o de fora é decisão dela (4), e a duplicata já revisada não volta a aparecer.
+chk_vizinhos() {
+  local rc
+  "$RAIZ/scripts/vizinhos.sh" --conferir 2>&1; rc=$?
+  case "$rc" in 0|4) return "$rc" ;; *) return 3 ;; esac
+}
+
 
 # É ele que põe o `meow-doctor.timer` de pé, e é o timer que faz o resto desta
 # tabela convergir sozinho às 5h.
@@ -1645,7 +1653,7 @@ fix_autoreparo() {
 #   que dependem deles, e a passada terminava com os dois pulados por "falta
 #   dependência" que ela mesma tinha acabado de instalar. Logo depois da
 #   ponte, que é por onde o `pacotes` passa.
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho autoreparo cli escala fontes logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho autoreparo cli escala fontes logo vizinhos indice)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
