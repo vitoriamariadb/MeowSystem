@@ -850,110 +850,36 @@ def main():
                   "e diz que aplica o que ja' esta' salvo")
 
             print("\n10. UMA ACAO, COM SAIDA AO VIVO")
-            # Conferir a maquina e ver o que esta' no ar sao a mesma pergunta
-            # feita de dois jeitos.
+            # O «O que está no ar agora» só lê; desde a P90 a Instalação não o
+            # mostra em cartão, e quem o roda é o mesmo `rodar()` dos cartões.
             secao("Instalação")
-            # (o `has` e' procurado DENTRO do `<details>`: sem `#conteudo`)
-            acao_status = pag.locator(".acao, .cartao", has_text="O que está no ar agora")
-            pag.locator("#conteudo details.ajustes-tecnicos", has=acao_status) \
-               .locator("summary").click()
-            acao_status.get_by_role("button", name="Executar", exact=True).click()
+            pag.evaluate("() => rodar(ESQUEMA.acoes.find((a) => a.id === 'status'), '')")
             saida = ""
             # PACIÊNCIA DE 25 s, e não de 10: o `meow status` consulta systemd,
             # cosmic-randr e o tema inteiro.
             for _ in range(50):
                 pag.wait_for_timeout(500)
-                saida = pag.locator(".gaveta, .saida, pre").first.inner_text()
+                saida = pag.locator("#resultado #saida").inner_text()
                 if len(saida) > 200:
                     break
             checa(len(saida) > 200, f"'Estado da maquina' devolveu {len(saida)} caracteres")
             checa("meow" in saida.lower() or "flavor" in saida.lower(),
                   "a saida e a do comando de verdade")
 
-            print("\n10b. A GAVETA CABE EM 25% E NÃO ENCOSTA NO MENU")
-            # A gaveta era IRMÃ do `.corpo`, e uma irmã que cresce rouba altura
-            # de quem está ao lado.
-            #
-            # A CONTA É DE RAZÃO, E NÃO DE PIXEL CRAVADO: este arquivo roda em
-            # 1500x1000 hoje e numa janela qualquer amanhã.
-            gav = pag.evaluate("""() => {
-              const el = document.getElementById('gaveta');
-              const g = el.getBoundingClientRect();
-              const t = document.getElementById('trilho').getBoundingClientRect();
-              const c = document.querySelector('.corpo').getBoundingClientRect();
-              return { pct: Math.round(g.height / innerHeight * 100),
-                       trilho: Math.round(t.height), corpo: Math.round(c.height),
-                       fundo: Math.round(g.bottom), janela: innerHeight,
-                       pai: el.parentElement.id,
-                       presa: getComputedStyle(el).position };
+            print("\n10b. A JANELA DE RESULTADO: SOBRE O FUNDO, E O LOG NÃO SE PERDE")
+            jan = pag.evaluate("""() => {
+              const d = document.getElementById('resultado');
+              const r = d.getBoundingClientRect();
+              const s = document.getElementById('saida').getBoundingClientRect();
+              return { aberta: d.open, modal: d.matches(':modal'),
+                       dentro: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight,
+                       saida: Math.round(s.height), janela: innerHeight,
+                       gaveta: !!document.getElementById('gaveta') };
             }""")
-            checa(gav["pct"] <= 25,
-                  f"a gaveta ocupa {gav['pct']}% da altura da tela (o teto é 25%)")
-            checa(gav["fundo"] >= gav["janela"] - 1,
-                  f"e ela mesma desce até o rodapé da janela: "
-                  f"{gav['fundo']} px de {gav['janela']}")
-            checa(gav["trilho"] == gav["corpo"],
-                  f"e o menu ocupa a coluna dele inteira: {gav['trilho']} px de "
-                  f"trilho para {gav['corpo']} px de corpo")
-            # Um `max-height` menor consertaria o número e deixaria a gaveta
-            # irmã do `.corpo` — no dia em que ela voltasse a crescer, o menu
-            # encolheria de novo.
-            checa(gav["pai"] == "principal",
-                  f"e ela é filha do #principal, não irmã do .corpo (pai: "
-                  f"{gav['pai'] or '<sem id>'})")
-            checa(gav["presa"] == "sticky",
-                  f"e está presa no rodapé da coluna ({gav['presa']}) — sem isso "
-                  "o conteúdo passa por baixo dela")
-            # A regra é sobre TODA aba; uma aba que encurtar amanhã nasce
-            # coberta.
-            grupos = pag.evaluate(
-                "() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
-                ".map(b => b.dataset.grupo)")
-            flutuando = []
-            for aba_ in grupos:
-                pag.locator(f'#trilho button[data-grupo="{aba_}"]').first.click()
-                pag.wait_for_timeout(380)
-                d = pag.evaluate("""() => {
-                  const g = document.getElementById('gaveta').getBoundingClientRect();
-                  return { fundo: Math.round(g.bottom), janela: innerHeight };
-                }""")
-                if d["janela"] - d["fundo"] > 1:
-                    flutuando.append(f"{aba_}: {d['fundo']} de {d['janela']}")
-            checa(not flutuando,
-                  f"e isso vale nas {len(grupos)} abas, curtas e longas"
-                  + (f" — {flutuando}" if flutuando else ""))
-            # O `resize: vertical` que estava aqui desenhava a alça no canto
-            # INFERIOR DIREITO — com a gaveta presa no rodapé, o último canto da
-            # janela — e a borda de cima ficava inerte: medido, puxá-la 150 px
-            # deixava a altura em 250, a mesma de antes.
-            antes_h, alvo = pag.evaluate("""() => {
-              const g = document.getElementById('gaveta').getBoundingClientRect();
-              return [Math.round(g.height), [g.left + g.width / 2, g.top + 4]];
-            }""")
-            pag.mouse.move(alvo[0], alvo[1])
-            pag.mouse.down()
-            pag.mouse.move(alvo[0], alvo[1] - 150, steps=12)
-            pag.mouse.up()
-            pag.wait_for_timeout(250)
-            depois_h = pag.evaluate(
-                "() => Math.round(document.getElementById('gaveta')"
-                ".getBoundingClientRect().height)")
-            checa(depois_h >= antes_h + 140,
-                  f"arrastar a borda de cima 150 px cresce a gaveta: {antes_h} px "
-                  f"-> {depois_h} px")
-            checa(depois_h <= round(0.6 * gav["janela"]) + 1,
-                  f"e o teto de 60vh segura: {depois_h} px de "
-                  f"{round(0.6 * gav['janela'])} px")
-            # O QUE O ARRASTO ESTICOU VOLTA, pela mesma porta que o
-            # `abrirGaveta` usa na abertura seguinte — esticar é para o momento.
-            pag.evaluate("""() => {
-              const g = document.getElementById('gaveta');
-              g.style.removeProperty('height');
-              g.removeAttribute('data-esticada');
-            }""")
-            pag.wait_for_timeout(200)
-            # Com 25% de teto, quem sobe para reler um erro perde o fio do que
-            # continua chegando.
+            checa(jan["aberta"] and jan["modal"], "a ação abre a janela de resultado, modal, sobre o fundo")
+            checa(jan["dentro"], "e a janela cabe inteira na tela")
+            checa(jan["saida"] >= 120, f"o log tem altura para ler ({jan['saida']} px)")
+            checa(not jan["gaveta"], "e a gaveta de baixo não existe mais")
             rolavel = pag.evaluate("""() => {
               const s = document.getElementById('saida');
               s.scrollTop = 0;
@@ -974,22 +900,18 @@ def main():
                     pag.wait_for_timeout(300)
                     checa(not aviso.is_visible(),
                           "e clicar nela devolve o fim da saída — a pastilha some")
-                # Com a gaveta `hidden` ela é `display: none`: `offsetTop` e
-                # `clientHeight` valem 0 lá dentro, o limite da busca binária
-                # vira 0 e a conta devolve TODAS as linhas.
-                #
-                # O caminho é o do `puxar`, e não um atalho: quem remede é o
-                # mesmo ouvinte de rolagem do `#saida`.
+                # Fechada a janela, a conta não roda (sem caixa, ela daria a
+                # saída inteira); reaberta, é a mesma.
                 fechada = pag.evaluate("""() => {
-                  const g = document.getElementById('gaveta');
+                  const d = document.getElementById('resultado');
                   const s = document.getElementById('saida');
                   s.scrollTop = 0;
                   s.dispatchEvent(new Event('scroll'));
                   const a = document.getElementById('mais-abaixo');
                   const antes = a ? a.textContent : '';
-                  g.hidden = true;
+                  d.close();
                   s.dispatchEvent(new Event('scroll'));
-                  g.hidden = false;
+                  d.showModal();
                   const b = document.getElementById('mais-abaixo');
                   return { antes, depois: b ? b.textContent : '',
                            linhas: s.childElementCount };
@@ -1002,7 +924,11 @@ def main():
                       f"e ela não conta a saída inteira: {abaixo.group() if abaixo else '?'} "
                       f"de {fechada['linhas']} linhas")
             else:
-                print("  -- a saída coube inteira na gaveta; nada a indicar abaixo")
+                print("  -- a saída coube inteira na janela; nada a indicar abaixo")
+            pag.wait_for_function("() => TRABALHO === null", timeout=60000)
+            pag.locator("#resultado-ok").click()
+            checa(not pag.evaluate("() => document.getElementById('resultado').open"),
+                  "o OK fecha a janela")
 
             print("\n11. O ENSAIO SAIU DA PÁGINA")
             # O interruptor não pode voltar por engano, e a página não pode
@@ -1013,26 +939,15 @@ def main():
                   "e a página não tem mais quem pergunte se esta' ensaiando")
 
             print("\n12. CONFERIR NÃO ESCREVE")
-            # Um passo que depende de onde o passo anterior parou nao pode ser
-            # reordenado; este agora diz onde quer estar.
             secao("Instalação")
-            # A acao anterior precisa TERMINAR: o servidor recusa dois trabalhos
-            # ao mesmo tempo (409), e recusar e o comportamento certo dele.
-            for _ in range(20):
-                pag.wait_for_timeout(500)
-                if not pag.locator(".gaveta .rodando, .gaveta [data-rodando]").count():
-                    break
-            pag.wait_for_timeout(1500)
             md5_antes = md5_conf()
-            # "Conferir a maquina" e' o `doctor`, e o `has_text` casa por
-            # substring: "Conferir" sozinho pegaria tambem "Conferir e consertar
-            # todo dia" se um dia essa acao existir.
-            secao("Instalação")
-            pag.locator("#conteudo .acao, #conteudo .cartao",
-                        has_text="Conferir a máquina").get_by_role(
-                            "button", name="Executar", exact=True).click()
-            pag.wait_for_timeout(6000)
+            # O doctor que só confere não tem cartão desde a P90 (a Instalação
+            # tem «Conferir e consertar»); ele continua sendo uma ação.
+            pag.evaluate("() => rodar(ESQUEMA.acoes.find((a) => a.id === 'doctor'), '')")
+            pag.wait_for_function("() => TRABALHO === null", timeout=120000)
             checa(md5_conf() == md5_antes, "o doctor so' le: o meow.conf não mudou")
+            if pag.evaluate("() => document.getElementById('resultado').open"):
+                pag.locator("#resultado-ok").click()
 
             print("\n13. TELA ESTREITA (a pagina nao pode rolar de lado)")
             for larg in (320, 375, 414, 768):
@@ -2080,7 +1995,7 @@ def main():
                     pag.wait_for_timeout(400)
                     foto(pag, "22-oficina-rolada")
 
-            print("\n23. DUAS LEITURAS DA GAVETA NO AR")
+            print("\n23. DUAS LEITURAS DA JANELA NO AR")
             # Derrubou uma rodada do gate em «Ouvir o som»: a leitura que
             # voltava depois do fim escrevia num `TRABALHO` que já era `null`.
             corrida = pag.evaluate("""async () => {
@@ -2102,14 +2017,14 @@ def main():
               const tique = () => new Promise((r) => setTimeout(r, 80));
               const saida = () => [...document.querySelectorAll('#saida span')]
                 .map((s) => s.textContent.trim());
-              const trabalho = (id) => ({ id, rotulo: 'Leitura dupla', comando: 'meow teste',
+              const trabalho = (id) => ({ id, rotulo: 'Leitura dupla',
                                           escreve: false, fim: { '0': ['ok', 'pronto'] } });
               const erros = [];
               const ouvir = (e) => erros.push(String((e.reason && e.reason.message) || e.reason));
               window.addEventListener('unhandledrejection', ouvir);
               const fora = {};
               try {
-                abrirGaveta(trabalho('a'));          // leitura 0, desde 0
+                abrirResultado(trabalho('a'));          // leitura 0, desde 0
                 clearInterval(TRABALHO.timer);
                 puxar();                             // leitura 1, desde 0
                 await tique();
@@ -2123,7 +2038,7 @@ def main():
                 await tique();
                 fora.mesmo = saida();
 
-                abrirGaveta(trabalho('b'));          // leitura 3
+                abrirResultado(trabalho('b'));          // leitura 3
                 clearInterval(TRABALHO.timer);
                 puxar();                             // leitura 4
                 await tique();
@@ -2132,13 +2047,13 @@ def main():
                 responde(4, ['três'], false);        // depois do fim
                 await tique();
 
-                abrirGaveta(trabalho('c'));          // leitura 5
+                abrirResultado(trabalho('c'));          // leitura 5
                 clearInterval(TRABALHO.timer);
                 puxar();                             // leitura 6
                 await tique();
                 responde(5, ['quatro'], false);
                 await tique();
-                abrirGaveta(trabalho('d'));          // leitura 7
+                abrirResultado(trabalho('d'));          // leitura 7
                 clearInterval(TRABALHO.timer);
                 await tique();
                 responde(6, ['quatro'], false);      // a do trabalho c, no d
@@ -2150,6 +2065,7 @@ def main():
               } finally {
                 window.fetch = original;
                 window.removeEventListener('unhandledrejection', ouvir);
+                document.getElementById('resultado').close();
               }
               fora.erros = erros;
               return fora;
@@ -2162,7 +2078,7 @@ def main():
                   + (f" — {corrida['erros'][:1]}" if corrida["erros"] else ""))
             seguinte = corrida["seguinte"]
             checa(seguinte["vivo"] and seguinte["saida"] == [] and seguinte["depois"] == ["cinco"],
-                  "a leitura de um trabalho que acabou não escreve na gaveta do seguinte nem o "
+                  "a leitura de um trabalho que acabou não escreve na janela do seguinte nem o "
                   f"dá por terminado: vivo={seguinte['vivo']}, saída {seguinte['saida']} e depois "
                   f"{seguinte['depois']}")
 
