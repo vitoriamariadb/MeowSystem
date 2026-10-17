@@ -52,6 +52,16 @@ Pedido de 16/10 pelos prints: só Executar/Restaurar, janela de resultado (OK/Gu
 pessoais fora, porquê de volta, terminal sem «rode:», versão do folder-download guardada em
 `~/.local/state/meowsystem/guardado-16-10/`). 2 Opus.
 
+## 17/10 — levas G, H e I no dev (8d71a1d) e instaladas; P90 em voo
+
+Quem usa (17/10): «integra e roda o install agora, com tudo antes da P90; depois rodamos o install com
+ela de novo, integramos e pushamos pra dev». Sequência depois da P90:
+1. merge da P90 (integracao/leva-h) no dev; `./install.sh`; `meow doctor --consertar`; `meow doctor`.
+2. ANTES do push: reescrever a história local para tirar a senha do askpass do commit 63ed2ca
+   (`git filter-repo --replace-text` com a senha -> ***, em todas as branches), conferir
+   `git log --all -S<senha>` vazio, e só então `git push fork dev`.
+3. PR para `vitoriamariadb/MeowSystem` a partir do dev reescrito.
+
 ## Fim combinado com quem usa (15/10, antes de dormir)
 
 1. merge da integracao/leva-h no dev; `./install.sh`; `meow compositor` (4d14528, com `just`);
