@@ -17,6 +17,8 @@ H="$(mktemp -d)"; FALSO="$(mktemp -d)"; trap 'rm -rf "$H" "$FALSO"' EXIT
 # pedir a senha — a ponte fica de fora", devolve MEOW_SEM_DEPENDENCIA), e
 # `pulado:` não conta como `mexeu:` — a convergência que este teste mede
 # continua sendo medida, agora sem escrever em /usr.
+# Com `NOPASSWD: ALL` o `sudo -n true` de verdade passa e a etapa escreveria em
+# `/usr/local/lib`; por isso o falso recusa.
 cat > "$FALSO/sudo" <<'FIM'
 #!/bin/sh
 printf 'sudo: recusado pelo tests/convergencia.sh\n' >&2

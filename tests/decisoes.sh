@@ -6,6 +6,7 @@
 #
 # Fora dela (sem `/usr/local/lib/aurora`) cada um sai «pulado» na própria linha;
 # nunca lê o conteúdo da senha, só o modo do arquivo.
+# Tudo numa casa de brinquedo, com falsos que recusam; nada de sudo, apt nem rede.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

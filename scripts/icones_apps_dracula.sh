@@ -57,6 +57,12 @@ _dracula_pares_do_mapa() {
   #
   # São três campos para o `awk`, e `$2` valia ` motor` — o alvo resolvido
   # virava `<pack>/icones/motor`, um diretório.
+  # Por isso o caminho é tudo depois do primeiro `:` (`substr`), e não o campo 2.
+  #
+  # O nome da coluna 1 é dado não confiável: vira `scalable/apps/<nome>.svg`, e um
+  # `../` escreveria fora do tema. Só passa o conjunto do `meow_nome_seguro`, repetido
+  # no `awk` porque os testes extraem esta função sem o lib/comum.sh; a linha que
+  # falha sai com `!`, é contada e pulada.
   cru="$(sed -e 's/#.*//' "$MAPA" | awk -F: '
     NF>=2 {
       nome=$1; caminho=substr($0, index($0, ":") + 1)

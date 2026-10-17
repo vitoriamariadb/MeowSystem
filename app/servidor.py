@@ -786,6 +786,9 @@ def _packs_no_disco():
 #
 # Um `pack.json` de terceiro pode estar malformado de jeitos que o `validar` não
 # previu (um `"paleta": "x"` estoura AttributeError antes de virar Recusa).
+#
+# A história (`vitrine.descricao`) é Markdown de terceiro e viaja crua no JSON: a
+# página só a monta por `textContent`, porque carrega o token de sessão.
 def _pack_no_ar():
     """O id do pack que veste a máquina agora, ou '' sem `scripts/pack.py`."""
     _ponte_em_dia()
@@ -3255,6 +3258,8 @@ def _acento_da_pagina(flavor, valores):
 #
 # `arg` nomeia um PROVEDOR de valores válidos, e o valor que a página mandar é
 # conferido contra a lista que o provedor monta DO DISCO.
+# É a fronteira de segurança do arquivo: texto do navegador nunca vira comando
+# (não há `shell=True` aqui), e `id` desconhecido é recusado antes de qualquer processo.
 PROVEDORES = {
     "capturas": _capturas,
     "gatos": _gatos,
@@ -6401,6 +6406,9 @@ class Manipulador(BaseHTTPRequestHandler):
             # de uma raiz permitida; plantar um lá exige já ser dono de
             # `/usr/share` ou da pasta de flatpak dela, e a peneira de extensão
             # continua de pé.
+            #
+            # A lista de raízes não cresce: o `normpath` do caminho pedido mata o `..`
+            # (`/usr/share/icons/../../etc/shadow` vira `/etc/shadow`, que raiz nenhuma cobre).
             pedido = os.path.normpath(consulta.get("id", [""])[0] or "")
             alvo_arq = os.path.realpath(pedido)
             ok_pasta = any(pedido.startswith(p + os.sep) or alvo_arq.startswith(p + os.sep)
@@ -8860,6 +8868,9 @@ class Manipulador(BaseHTTPRequestHandler):
         # O desenho é gravado do mesmo jeito; o que muda é a ESPÉCIE: retoque à
         # mão, que não promete nada a ninguém, em vez de uma linha regenerável
         # que só se regenera nesta casa.
+        #
+        # Origem dentro da casa não vira linha de mapa: o repositório é público (o caminho
+        # levaria o nome de usuário) e o `_ler_mapa` não expande `~`.
         casa = os.path.realpath(os.path.expanduser("~")) + os.sep
         da_casa = bool(origem_arte) and os.path.realpath(origem_arte).startswith(casa)
         modo = "mao"

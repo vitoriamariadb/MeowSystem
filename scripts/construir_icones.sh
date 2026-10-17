@@ -62,7 +62,12 @@ COMENTARIO_TEMA="$(python3 "$RAIZ/scripts/pack.py" tema-icones "$(meow_pack_dir)
 # `~/.local/share/icons`, `~/.icons` e `/usr/share/icons` que tenha um
 # `index.theme` com `Directories=` e sem `Hidden=true`.
 #
-# `index.theme` com uma linha `Directories=` não-vazia.
+# Tema é o que tem `index.theme` com `Directories=` não-vazio: sem isso, um tema
+# de cursor entraria na lista. `$TEMA_NOME`, `hicolor` e `default` são recusados
+# (o tema daqui, a reserva do freedesktop e o ponteiro do compositor).
+#
+# O argumento é de fora: sem `eval`, citado, o zip abre num temporário e o
+# diretório é o `basename` peneirado, nunca o caminho de dentro do pacote.
 _ci_nome_seguro() {
   local n="$1"
   n="${n//[^A-Za-z0-9._-]/-}"
@@ -348,6 +353,8 @@ _ci_base_baixar() {
   # pasta, ou um diretório do caminho dela, como LINK para fora do palco — e aí
   # o `.meow-origem` e o manifesto abaixo seriam escritos dentro do alvo do
   # link, e o `mv` poria o link no lugar da base.
+  # Por isso nenhum componente do caminho pode ser link, e o `realpath` dele tem de
+  # cair dentro do que o `tar` abriu.
   local dentro resolvido parcial comp
   dentro="$(realpath -e -- "$palco/x")"
   resolvido="$(realpath -e -- "$src" 2>/dev/null)" || resolvido=""

@@ -7,6 +7,7 @@
 #      não entra (degrau 4) é regra e sai 0, a falha de verdade sai 2; o seco
 #      não compila; duas passagens juntas compilam uma vez (flock); e a
 #      segunda passagem não escreve um byte.
+# Nada de apt, cargo, sudo, systemd nem rede: os falsos do PATH recusam.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

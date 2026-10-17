@@ -7920,7 +7920,8 @@ function montarPendencias() {
  * A capa é o `logo.svg` do pack; a tira continua, de 6 px, como amostra.
  *
  * O `vitrine.descricao` é um Markdown de quem publicou o pack, e esta página
- * carrega o token de sessão. */
+ * carrega o token de sessão: ela entra só por `textContent`, nunca como HTML,
+ * e só o link `https://` vira `href` (o `tests/pack.sh` cobra). */
 let PACKS = [];
 
 async function recarregarPacks() {
@@ -7981,6 +7982,8 @@ function selosDeOrigem(p, origem) {
   return caixa;
 }
 
+/* Nada do texto do pack vira HTML: só título, lista, negrito, código e link viram
+ * nó, com o texto por `textContent`; o link só ganha `href` com `https://`. */
 function trechosDaLinha(linha) {
   const nos = [];
   const forma = /\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\(([^)\s]+)\)/g;

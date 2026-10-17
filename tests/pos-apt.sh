@@ -6,6 +6,7 @@
 # (`scripts/garantir_builds.sh`), que olha o artefato e não a versão vista: o
 # shim desligado não pula o build, o passo que falhou tenta de novo na passagem
 # seguinte, e sucesso sai 0.
+# HOME, estado e casa de brinquedo; nada de apt, cargo, sudo nem rede.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# leitura-fonte-unica.sh — o modo de leitura tem UMA fonte de verdade (P77, 10/10/2026).
+# leitura-fonte-unica.sh — o modo de leitura tem UMA fonte de verdade. `sudo`
+# falso na frente do PATH: com `NOPASSWD`, o de verdade escreveria no sistema.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 

@@ -9,6 +9,7 @@
 #
 # Não é escalada de privilégio: plantar o link exige escrita numa das raízes, e
 # quem a tem já lê os arquivos dela.
+# `sudo` falso na frente do PATH: com `NOPASSWD: ALL` o `sudo -n` de verdade passa.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"

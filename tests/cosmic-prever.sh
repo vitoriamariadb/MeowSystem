@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# cosmic-prever.sh — o pré-voo do COSMIC candidato distingue o bom do quebrado? (P76)
+# cosmic-prever.sh — o pré-voo do COSMIC candidato distingue o bom do quebrado?
+# Tudo em diretórios de brinquedo: nada de apt, rede, sudo nem HOME de verdade.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

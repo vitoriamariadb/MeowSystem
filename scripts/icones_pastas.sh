@@ -85,6 +85,9 @@ _ler_mapa() {
     linha="${linha%$'\r'}"
     case "$linha" in ''|'#'*) continue ;; esac
     nome="${linha%%:*}"; glifo="${linha#*:}"
+    # Os dois lados viram nome de arquivo, e um mapa de terceiro com `../` escreveria
+    # fora do tema.
+    #
     # Só do conjunto fechado do `meow_nome_seguro`; a linha fora dele é
     # pulada e contada.
     if ! meow_nome_seguro "$nome" || ! meow_nome_seguro "$glifo"; then

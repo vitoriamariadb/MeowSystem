@@ -99,6 +99,9 @@ TERM_DIR="$COSMIC/com.system76.CosmicTerm/$(meow_cosmic_v com.system76.CosmicTer
 # A seção 2c-bis, logo abaixo, remove de `$DESTINO/locais` TODO arquivo que não
 # esteja em `assets/fontes/locais/` — é a limpeza de órfão que só é segura
 # porque aquele diretório tem dono único.
+#
+# O arquivo é de fora: sem `eval`, citado em todo comando, o zip abre num
+# temporário e o que entra no disco é o `basename`, nunca o caminho de dentro do pacote.
 _fonte_nome_seguro() {
   local n; n="$(basename -- "$1" | tr -d '[:cntrl:]')"
   n="${n#"${n%%[!.-]*}"}"      # ponto na frente é fonte que o fontconfig ignora
@@ -516,6 +519,10 @@ fi
 # O DIRETÓRIO É DE DONO ÚNICO, COMO O `locais/` `$DESTINO/pack/` só recebe o que
 # o pack ativo declara, e é por isso que a limpeza de órfão aqui é segura pelo
 # mesmo motivo da 2c-bis: trocar de pack tira as fontes do anterior.
+#
+# O verbo `tipografia` do pack.py confere cada entrada (`https://`, sha256,
+# `realpath`, assinatura); aqui só se instala o que ele respondeu, e recusa quer
+# dizer não mexer em nada.
 DESTINO_PACK="$DESTINO/pack"
 lista_pack=""; rc_pack=0
 if meow_tem python3; then

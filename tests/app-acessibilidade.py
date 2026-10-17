@@ -159,6 +159,8 @@ except ImportError:
 # Ele nao clica em nada que escreva, mas o painel que ele sobe e' o de verdade,
 # e a regra do projeto e' que nada da interface e' aplicado em sandbox — tudo e'
 # aplicado na maquina da pessoa.
+# `sudo` falso na frente do PATH: com `NOPASSWD: ALL` o `sudo -n` de verdade passa,
+# e um teste cujo alcance depende disso é roleta.
 BRINQUEDO = tempfile.mkdtemp(prefix="meow-acessibilidade-")
 
 

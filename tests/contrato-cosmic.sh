@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# contrato-cosmic.sh — os escritores seguem o esquema do pacote? (P76)
+# contrato-cosmic.sh — os escritores seguem o esquema do pacote? HOME
+# e COSMIC de brinquedo; nada de sudo nem de sessão.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

@@ -578,6 +578,9 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
             # Sair do pack é IGNORAR aquela camada, e não levantar: quem chama o
             # `acervo` espera "achei" ou "não achei", e a herança logo abaixo
             # ainda pode ter a resposta certa.
+            #
+            # Por isso o caminho passa pelo `_dentro` aqui também, e o que se usa é o realpath
+            # que ele conferiu.
             try:
                 alvo = _dentro(dir_pack,
                                os.path.join(declarado, arquivo) if arquivo else declarado,
@@ -859,6 +862,8 @@ def _alvo_de_escolha(alvo):
     da raiz do MeowSystem ou de uma raiz de packs: o arquivo é da pessoa, mas o
     que ele aponta vai para o tema, e uma linha não pode puxar `/etc/` para lá.
     """
+    # Uma forma só, a do `realpath`, e é ela que volta: o `normpath` corta `a/../b` no
+    # texto, e o kernel sobe a partir do destino quando `a` é link.
     alvo = caminho_de_hoje(alvo)
     escrito = alvo if os.path.isabs(alvo) else os.path.join(RAIZ, alvo)
     reais = [os.path.realpath(r) for r in [RAIZ] + raizes() + [pasta_de_enviados()]]
@@ -1362,6 +1367,8 @@ def captura(par, ref=None):
     # O `aplicar_tema.sh` copia a captura inteira para ~/.config/cosmic: uma
     # `temas/capturados/<par>` que fosse symlink para fora levaria para lá o
     # que estivesse no destino do link.
+    # Por isso o par passa pela régua de nome, e a pasta, pelo `_dentro` da pasta de
+    # capturas.
     if not nome_de_destino(par):
         return None
     for ident, dir_pack in _cadeia(_ref_ativa(ref)):
@@ -1700,6 +1707,10 @@ def ponteiro(ref=None):
 #
 # O `instalar_fontes.sh` instala a JetBrainsMono Nerd Font pinada e aponta o
 # terminal para ela, para todo pack — isso continua do motor.
+#
+# Duas formas: `{"arquivo": "fontes/X.otf"}` dentro do pack, pelo `realpath`; ou
+# `{"nome", "url": "https://…", "sha256"}` fora dele, com o conteúdo pinado. A URL
+# é de um arquivo de fonte, nunca de um pacote: o que entra sozinho se confere byte a byte.
 CATEGORIA_FONTES = "fontes"
 EXT_FONTE = (".ttf", ".otf")
 # O nome vira nome de arquivo em `~/.local/share/fonts/` e viaja numa linha
@@ -1967,6 +1978,13 @@ def _exigir(cond, msg):
 # Um pack pode vir de terceiros (`meow pack importar`, ou um `git clone` na
 # raiz da pessoa, que traz symlink), e tudo o que vem dele — campo do
 # pack.json, linha de mapa, arquivo de pasta de desenho — é dado não confiável.
+#
+# A REGRA ÚNICA: conferir numa forma e abrir noutra é o defeito. As duas metades
+# moram aqui (a gêmea em shell é o `meow_dentro`/`meow_nome_seguro`):
+#   1. `_dentro`: o caminho resolve com `realpath` e só vale DENTRO da raiz; quem
+#      chama abre o que ele devolve, nunca o `join` que entrou.
+#   2. `nome_de_destino`: nome que vira arquivo do lado de cá, só
+#      `[A-Za-z0-9._+-]`, sem `..`.
 RE_NOME_DESTINO = re.compile(r"^[A-Za-z0-9._+-]+$")
 
 
@@ -2743,6 +2761,8 @@ def vitrine(p, dir_pack):
     problemas = []
 
     def arquivo(campo, valor, extensoes, porque):
+        # O caminho declarado passa pelo `_dentro` e é aberto, não só olhado.
+        #
         # Um pack que promete a capa e não entrega é o pack que "promete e não
         # entrega" que aquele comentário descreve.
         if not isinstance(valor, str) or not valor:
@@ -3906,6 +3926,7 @@ SOM_NO_CONF = {
 # Quem grava o meow.conf é o `meow pack usar` (bin/meow), pela
 # `meow_conf_definir` — a única rotina deste projeto que escreve naquele
 # arquivo, e o cabeçalho dela conta o que custou ter duas.
+# Aqui se decide QUAL id e QUAL flavor, e a recusa vem antes da primeira escrita.
 RE_FLAVOR_CONF = re.compile(r"^[a-z0-9_]+$")
 
 

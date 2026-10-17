@@ -2,6 +2,8 @@
 # doctor-veredito.sh — o doctor corrige, e o veredito final é o pior estado.
 #
 #   0 = passou · 1 = falhou · 2 = erro deste teste
+# `sudo`, `pkill` e `kill` são falsos que registram e recusam: com `NOPASSWD: ALL`,
+# um teste que chama sudo ESCREVE no sistema.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 

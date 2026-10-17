@@ -3,6 +3,7 @@
 #
 # O shim (`scripts/compositor_shim.sh`) é o `cosmic-comp` que a sessão acha
 # pelo PATH.
+# HOME de brinquedo. Nada aqui toca `/usr/bin`, nem chama sudo.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

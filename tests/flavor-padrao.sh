@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# flavor-padrao.sh — o flavor padrão é uma regra só (P61, 25/09/2026).
+# flavor-padrao.sh — o flavor padrão é uma regra só. `sudo` falso na frente do
+# PATH: com `NOPASSWD`, o de verdade escreveria no sistema.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 

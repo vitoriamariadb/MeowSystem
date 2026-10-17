@@ -437,6 +437,8 @@ PYFIM
 # Um caminho de dentro do pack ativo, com queda para o do núcleo.
 # meow_pack_arquivo icones/apps.map  assets/icones/apps-dracula.map devolve o
 # primeiro que existir, nessa ordem.
+# O caminho passa pelo `meow_dentro`: uma pasta do pack que seja link para fora
+# não vira acervo.
 meow_pack_arquivo() {
   local no_pack="$1" no_nucleo="${2:-}" dir real
   dir="$(meow_pack_dir)"
@@ -457,6 +459,11 @@ meow_pack_arquivo() {
 # `meow_dentro <raiz> <caminho>` Imprime o `realpath` do caminho (relativo à
 # raiz, ou absoluto) e sai 0 só se ele EXISTIR e cair dentro do `realpath` da
 # raiz.
+# O `realpath` segue todo symlink, do meio e do fim; quem chama usa o que ele
+# IMPRIME, nunca o caminho que entrou.
+#
+# `meow_nome_seguro <nome>`: 0 quando o nome serve de arquivo do lado de cá, só
+# `[A-Za-z0-9._+-]` e sem `..`. A linha que falha é pulada e contada por quem chama.
 meow_dentro() {
   local raiz cheio real
   raiz="$(realpath -e -- "$1" 2>/dev/null)" || return 1
