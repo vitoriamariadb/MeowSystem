@@ -51,6 +51,16 @@ O QUE REPROVA (e de onde cada regra vem)
          começa | termina;
        · a fileira «Fundo» mora só em Cor e tela;
        · o «Usar este» de um pack mostra o selo «baixa da internet» (decisão 12).
+  9. AÇÃO É EXECUTAR E RESTAURAR (P90), nas 14 páginas e na Início: sem «ver
+     comando» nem comando cru, cartão de ação só com Executar e Restaurar,
+     «Ver sem mudar» no lugar de «Ver o que faria», jogos em capas com
+     interruptor, a Instalação com as quatro ações; e, a 1440 e a 1920 px,
+     nenhum fio que termina no meio, barra lateral só no «mudado por você» e
+     as colunas e linhas de cada grade alinhadas.
+  10. A JANELA DE RESULTADO (P90): a ação abre um dialog modal com OK, Guardar
+     e Restaurar; o Guardar grava o log em `logs/`; o Restaurar (da janela e do
+     cartão) volta o arquivo ao sha256 de antes; a ação que só lê não tem
+     Restaurar.
 
 A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
   A decisão 8 de 02-decisoes.md manda o painel de QA subir SÓ com HOME
@@ -62,7 +72,7 @@ A CASA É A DO `tests/app-completo.py`, e A ÁRVORE PODE SER OUTRA
 
 USO
   ~/.pyenv/versions/3.12.1/bin/python3 tests/app-uso-real.py [--raiz <árvore>] [--fotos <pasta>]
-                                                             [--so-acabamento]
+                                                             [--so-acabamento] [--so-p90]
 
   `--so-acabamento` roda só o 8 (e o console): é o laço curto de quem conserta
   um caso dele, e o gate de verdade é a corrida inteira.
@@ -87,6 +97,7 @@ from playwright.sync_api import sync_playwright  # noqa: E402  (o app-completo j
 RAIZ_OUTRA = casa._arg("--raiz")
 FOTOS = casa._arg("--fotos")
 SO_ACABAMENTO = "--so-acabamento" in sys.argv
+SO_P90 = "--so-p90" in sys.argv
 if RAIZ_OUTRA:
     # A cópia da árvore (`copiar_raiz`) e as leituras do `montar_casa` usam o
     # `RAIZ` do módulo: trocá-lo aqui faz o brinquedo nascer da outra árvore.
@@ -862,6 +873,298 @@ def cartao_de_gente(pag):
     return reprovas
 
 
+# 9 — AÇÃO É EXECUTAR E RESTAURAR (P90, prints 3 a 7 de 16/10): nenhum «ver
+#   comando», nenhum comando cru, nenhum «Conferir» solto nos jogos, e o
+#   «Ver o que faria» virou «Ver sem mudar». Vale para as 14 páginas e a Início.
+ACOES_P90_JS = r"""
+(grupo) => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
+  const defeitos = [];
+  for (const el of document.querySelectorAll('button, a, summary, [role=button]')) {
+    if (vis(el) && /ver comando/i.test(limpo(el.textContent))) defeitos.push('botão «ver comando» na tela');
+  }
+  for (const el of document.querySelectorAll('.comandos, .ver-comando, #gaveta-comando, #confirmar-comando'))
+    if (vis(el)) defeitos.push(`comando cru à vista (${el.id || el.className})`);
+  for (const el of document.querySelectorAll('body *')) {
+    if (el.closest('script, style')) continue;
+    const t = [...el.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join(' ');
+    if (/Ver o que faria/.test(t) || /Ver o que faria/.test(el.title || '') || /Ver o que faria/.test(el.dataset.balao || ''))
+      { defeitos.push('«Ver o que faria» ainda escrito (é «Ver sem mudar»)'); break; }
+  }
+  const topo = [...document.querySelectorAll('header.topo button')].map((b) => limpo(b.textContent));
+  if (!topo.includes('Ver sem mudar')) defeitos.push('a barra de cima não tem o «Ver sem mudar»');
+  const gaveta = document.getElementById('gaveta');
+  if (gaveta && vis(gaveta)) defeitos.push('a gaveta de baixo continua na tela');
+  for (const a of document.querySelectorAll('#conteudo article.acao')) {
+    if (!vis(a)) continue;
+    const h = limpo((a.querySelector('h3') || {}).textContent);
+    const outros = [...a.querySelectorAll('button')]
+      .filter((b) => vis(b) && !b.matches('button.porque'))
+      .map((b) => limpo(b.textContent))
+      .filter((t) => !['Executar', 'Restaurar'].includes(t));
+    if (outros.length) defeitos.push(`a ação «${h}» tem botão além de Executar e Restaurar: ${outros.map((t) => '«' + t + '»').join(', ')}`);
+  }
+  if (grupo === 'Lançadores e jogos') {
+    for (const b of document.querySelectorAll('#conteudo button'))
+      if (vis(b) && limpo(b.textContent) === 'Conferir') { defeitos.push('«Conferir» solto em Lançadores e jogos'); break; }
+    if ([...document.querySelectorAll('#conteudo input')].some((i) => vis(i) && /filtrar jogo/i.test(i.placeholder || '')))
+      defeitos.push('o filtro solto «Filtrar jogo…» continua');
+    if (/Decisões já executadas/.test(document.querySelector('#conteudo').innerText))
+      defeitos.push('«Decisões já executadas» como lista técnica');
+    const capas = [...document.querySelectorAll('#conteudo .grade-jogos .jogo')].filter(vis);
+    if (!capas.length) defeitos.push('a grade das capas dos jogos instalados não apareceu');
+    for (const c of capas)
+      if (!c.querySelector('[role=switch], input[type=checkbox]'))
+        { defeitos.push(`a capa «${limpo(c.textContent).slice(0, 30)}» não tem o interruptor «no lançador»`); break; }
+  }
+  if (grupo === 'Instalação') {
+    const nomes = [...document.querySelectorAll('#conteudo article.acao h3')].filter(vis).map((h) => limpo(h.textContent));
+    const quer = ['Instalar tudo', 'Conferir e consertar', 'Desinstalar o MeowSystem', 'Voltar ao tema de antes'];
+    if (nomes.slice().sort().join('|') !== quer.slice().sort().join('|'))
+      defeitos.push(`a Instalação mostra ${nomes.map((n) => '«' + n + '»').join(', ')}, e não as quatro`);
+  }
+  return defeitos;
+}
+"""
+
+# 10 — AS DIVISÓRIAS E A GRADE (P90, print 5 e 7): nenhum fio que termina no
+#   meio, nenhuma barra lateral fora do «mudado por você», e as colunas de cada
+#   grade alinhadas (mesma largura, a linha da grade na mesma altura).
+FIOS_JS = r"""
+() => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const defeitos = [];
+  const raiz = document.querySelector('#conteudo');
+  const caixa = (el) => {
+    const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    return { l: r.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft),
+             r: r.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight) };
+  };
+  const borda = (cs, lado) => parseFloat(cs[`border${lado}Width`]) >= 1 && cs[`border${lado}Style`] !== 'none'
+    && !/rgba\(.*,\s*0\)$/.test(cs[`border${lado}Color`]);
+  const fechada = (el) => { const cs = getComputedStyle(el);
+    return ['Top', 'Right', 'Bottom', 'Left'].every((l) => borda(cs, l)); };
+  const nome = (el) => {
+    const h = el.matches('h2, h3, h4') ? el : el.querySelector('h2, h3, h4, .titulo-cartao');
+    return (h ? '«' + (h.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) + '»' : '') + ` (${el.tagName.toLowerCase()}.${[...el.classList].join('.')})`;
+  };
+  const SALTA = '.dica, [role=tooltip], #balao, input, select, textarea, button, .btn, svg, .selo, .pastilha, '
+    + 'summary, .abas-bloco, .tira-glifos, .ficha, .esqueleto, img, canvas, code, pre, .torrada, dialog';
+  for (const el of raiz.querySelectorAll('*')) {
+    if (!vis(el) || el.closest(SALTA)) continue;
+    const cs = getComputedStyle(el);
+    const fio = (borda(cs, 'Top') || borda(cs, 'Bottom')) && !borda(cs, 'Left') && !borda(cs, 'Right');
+    if (fio) {
+      const r = el.getBoundingClientRect();
+      if (r.width < 160) continue;
+      let dono = el.parentElement;
+      while (dono && dono !== raiz && !fechada(dono)) dono = dono.parentElement;
+      const c = caixa(dono || raiz);
+      if (Math.abs(r.left - c.l) > 3 || Math.abs(r.right - c.r) > 3)
+        defeitos.push(`fio que termina no meio em ${nome(el)}: ${Math.round(r.left)}..${Math.round(r.right)} numa largura de ${Math.round(c.l)}..${Math.round(c.r)}`);
+    }
+    /* A barra lateral colorida só marca «mudado por você». */
+    const sombra = cs.boxShadow || '';
+    const lateral = /inset\s+[1-9]\d*px\s+0px\s+0px\s+0px/.test(sombra) || (borda(cs, 'Left') && !borda(cs, 'Right') && parseFloat(cs.borderLeftWidth) >= 2);
+    if (lateral && !el.matches('.mexeu, .nao-salvo') && !el.closest('.dica'))
+      defeitos.push(`barra lateral colorida fora do «mudado por você» em ${nome(el)}`);
+  }
+  const trilhas = (g) => {
+    const cs = getComputedStyle(g), r = g.getBoundingClientRect();
+    const larg = cs.gridTemplateColumns.split(' ').map(parseFloat);
+    const vao = parseFloat(cs.columnGap) || 0;
+    let x = r.left + parseFloat(cs.paddingLeft);
+    return larg.map((w) => { const t = [x, x + w]; x += w + vao; return t; });
+  };
+  const comColunas = [];
+  for (const g of raiz.querySelectorAll('.grade')) {
+    if (!vis(g)) continue;
+    const t = trilhas(g);
+    if (t.length < 2) continue;
+    comColunas.push([g, t]);
+    const filhos = [...g.children].filter(vis).map((c) => ({ c, r: c.getBoundingClientRect() }));
+    for (const { c, r } of filhos) {
+      if (!t.some(([a]) => Math.abs(a - r.left) <= 2) || !t.some(([, b]) => Math.abs(b - r.right) <= 2))
+        defeitos.push(`coluna desalinhada: ${nome(c)} vai de ${Math.round(r.left)} a ${Math.round(r.right)}`);
+    }
+    for (let i = 0; i < filhos.length; i++) for (let j = i + 1; j < filhos.length; j++) {
+      const a = filhos[i].r, b = filhos[j].r;
+      const cruza = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+      if (cruza && (Math.abs(a.top - b.top) > 2 || Math.abs(a.bottom - b.bottom) > 2))
+        defeitos.push(`linha da grade desalinhada: ${nome(filhos[i].c)} (${Math.round(a.top)}..${Math.round(a.bottom)}) ao lado de ${nome(filhos[j].c)} (${Math.round(b.top)}..${Math.round(b.bottom)})`);
+    }
+  }
+  /* As grades da mesma página dividem as mesmas colunas. */
+  const base = comColunas.find(([g]) => g.parentElement === raiz || g.parentElement.matches('.secao-com-previa'));
+  if (base) for (const [g, t] of comColunas) {
+    if (!(g.parentElement === raiz || g.parentElement.matches('.secao-com-previa'))) continue;
+    const b = base[1];
+    if (t.length !== b.length || t.some(([x], i) => Math.abs(x - b[i][0]) > 2))
+      defeitos.push(`as colunas de uma grade não batem com as da primeira grade da página (${nome(g.previousElementSibling || g)})`);
+  }
+  return defeitos;
+}
+"""
+
+
+def acoes_e_fios(pag):
+    """Os casos 9 e 10 da P90, página por página, a 1440 e a 1920 px."""
+    reprovas = []
+    grupos = pag.evaluate("() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
+                          ".map((b) => b.dataset.grupo)")
+    for largura in (1440, 1920):
+        pag.set_viewport_size({"width": largura, "height": 900})
+        for grupo in grupos:
+            abrir_pagina(pag, grupo)
+            if largura == 1440:
+                reprovas += [(f"P90 · {grupo}", d) for d in pag.evaluate(ACOES_P90_JS, grupo)]
+            vistos = []
+            for d in pag.evaluate(FIOS_JS):
+                if d not in vistos:
+                    vistos.append(d)
+            reprovas += [(f"P90 · {largura} px · {grupo}", d) for d in vistos]
+            if FOTOS:
+                nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
+                pag.screenshot(path=os.path.join(FOTOS, f"p90-{largura}-{nome}.png"))
+    pag.set_viewport_size({"width": 1440, "height": 900})
+    return reprovas
+
+
+PINOS = os.path.join(casa.CASA, ".config", "cosmic", "com.system76.CosmicComp", "v1",
+                     "pinned_workspaces")
+
+
+def _sha(caminho):
+    import hashlib
+    try:
+        with open(caminho, "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()
+    except OSError:
+        return None
+
+
+JANELA_JS = r"""
+() => {
+  const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
+  const d = document.getElementById('resultado');
+  if (!d) return { existe: false };
+  const botoes = [...d.querySelectorAll('button')].filter(vis).map((b) => ({
+    t: (b.textContent || '').replace(/\s+/g, ' ').trim(), off: b.disabled }));
+  return { existe: true, aberta: d.open, modal: d.matches(':modal'), botoes,
+           saida: (d.querySelector('#saida') || {}).textContent || '',
+           vivo: typeof TRABALHO !== 'undefined' && TRABALHO !== null,
+           selo: ((d.querySelector('#resultado-guardado') || {}).textContent || '').trim(),
+           comando: [...d.querySelectorAll('code')].filter(vis).map((c) => c.textContent).join(' ') };
+}
+"""
+
+
+def _esperar_fim(pag):
+    pag.wait_for_function("() => document.getElementById('resultado') && document.getElementById('resultado').open",
+                          timeout=30000)
+    pag.wait_for_function("() => typeof TRABALHO !== 'undefined' && TRABALHO === null", timeout=120000)
+    pag.wait_for_timeout(400)
+
+
+def _executar_tirar_area(pag, area):
+    abrir_pagina(pag, "Áreas de trabalho")
+    cartao = pag.locator("#conteudo article.acao", has=pag.locator("h3", has_text="Tirar uma área"))
+    cartao.locator("select").select_option(area)
+    cartao.get_by_role("button", name="Executar", exact=True).click()
+    pag.wait_for_selector("#confirmar[open]", timeout=10000)
+    comando = pag.evaluate("() => { const c = document.getElementById('confirmar-comando');"
+                           " return c && c.checkVisibility() ? c.textContent : ''; }")
+    pag.locator("#confirmar-ok").click()
+    _esperar_fim(pag)
+    return cartao, comando
+
+
+def janela_e_restaurar(pag):
+    """A janela de resultado e o Restaurar de verdade (P90, tarefas 1 a 3)."""
+    reprovas = []
+    onde = "P90 · janela"
+    antes = _sha(PINOS)
+    cartao, comando = _executar_tirar_area(pag, "Quintal")
+    if comando.strip():
+        reprovas.append((onde, f"a caixa de pergunta mostra o comando cru: «{comando[:60]}»"))
+    j = pag.evaluate(JANELA_JS)
+    if not j["existe"] or not j["aberta"] or not j["modal"]:
+        reprovas.append((onde, "a ação não abriu a janela de resultado sobre o fundo escurecido (dialog modal)"))
+        return reprovas
+    rotulos = [b["t"] for b in j["botoes"]]
+    for quer in ("OK", "Guardar", "Restaurar"):
+        if quer not in rotulos:
+            reprovas.append((onde, f"a janela de «Tirar uma área» não tem o botão «{quer}» (tem {rotulos})"))
+    if j["comando"].strip():
+        reprovas.append((onde, f"a janela mostra o comando cru: «{j['comando'][:60]}»"))
+    if not j["saida"].strip():
+        reprovas.append((onde, "a janela não mostrou o progresso da ação"))
+    depois = _sha(PINOS)
+    if depois == antes:
+        reprovas.append((onde, "«Tirar uma área» não mudou o pinned_workspaces (o teste não prova nada)"))
+    # Guardar
+    if "Guardar" in rotulos:
+        pag.locator("#resultado").get_by_role("button", name="Guardar", exact=True).click()
+        pag.wait_for_timeout(800)
+        logs = os.path.join(casa.ESTADO, "logs")
+        guardados = sorted(os.listdir(logs)) if os.path.isdir(logs) else []
+        if not any("tirar-uma-area" in g for g in guardados):
+            reprovas.append((onde, f"o «Guardar» não gravou o log em ~/.local/state/meowsystem/logs/ ({guardados})"))
+        if "logs/" not in pag.evaluate(JANELA_JS)["selo"]:
+            reprovas.append((onde, "o «Guardar» não mostrou onde gravou num selo"))
+    # Restaurar na janela
+    if "Restaurar" in rotulos:
+        pag.locator("#resultado").get_by_role("button", name="Restaurar", exact=True).click()
+        pag.wait_for_timeout(300)
+        if pag.locator("#confirmar[open]").count():
+            pag.locator("#confirmar-ok").click()
+        pag.wait_for_function("() => typeof TRABALHO !== 'undefined' && TRABALHO === null", timeout=120000)
+        pag.wait_for_timeout(500)
+        if _sha(PINOS) != antes:
+            reprovas.append((onde, "o «Restaurar» da janela não voltou o pinned_workspaces ao sha256 de antes"))
+    if pag.locator("#resultado[open]").count():
+        pag.locator("#resultado").get_by_role("button", name="OK", exact=True).click()
+    # Restaurar do cartão: desfaz a ÚLTIMA execução daquela ação.
+    cartao, _ = _executar_tirar_area(pag, "Quintal")
+    meio = _sha(PINOS)
+    pag.locator("#resultado").get_by_role("button", name="OK", exact=True).click()
+    assentar(pag)
+    cartao = pag.locator("#conteudo article.acao", has=pag.locator("h3", has_text="Tirar uma área"))
+    botao = cartao.get_by_role("button", name="Restaurar", exact=True)
+    if meio == antes:
+        reprovas.append(("P90 · cartão", "a segunda execução não mudou o arquivo"))
+    elif not botao.count():
+        reprovas.append(("P90 · cartão", "o cartão de «Tirar uma área» não oferece o «Restaurar» depois de executar"))
+    else:
+        botao.click()
+        pag.wait_for_timeout(300)
+        if pag.locator("#confirmar[open]").count():
+            pag.locator("#confirmar-ok").click()
+        _esperar_fim(pag)
+        if _sha(PINOS) != antes:
+            reprovas.append(("P90 · cartão", "o «Restaurar» do cartão não voltou o pinned_workspaces ao sha256 de antes"))
+        pag.locator("#resultado").get_by_role("button", name="OK", exact=True).click()
+        assentar(pag)
+        cartao = pag.locator("#conteudo article.acao", has=pag.locator("h3", has_text="Tirar uma área"))
+        if cartao.get_by_role("button", name="Restaurar", exact=True).count():
+            reprovas.append(("P90 · cartão", "o «Restaurar» continua no cartão depois de restaurar"))
+    # Ação que só lê: a janela sem Restaurar (o botão some, não fica cinza).
+    pag.evaluate("() => rodar(ESQUEMA.acoes.find((a) => a.id === 'areas_ver'), '')")
+    _esperar_fim(pag)
+    j = pag.evaluate(JANELA_JS)
+    rotulos = [b["t"] for b in j.get("botoes", [])]
+    if "Restaurar" in rotulos:
+        reprovas.append(("P90 · só lê", "a janela de uma ação que só lê mostra o «Restaurar»"))
+    if "OK" not in rotulos:
+        reprovas.append(("P90 · só lê", f"a janela de uma ação que só lê não tem o OK ({rotulos})"))
+    if pag.locator("#resultado[open]").count():
+        pag.locator("#resultado").get_by_role("button", name="OK", exact=True).click()
+    if FOTOS:
+        pag.screenshot(path=os.path.join(FOTOS, "p90-depois-da-janela.png"))
+    return reprovas
+
+
 def main():
     ambiente = casa.montar_casa()
     os.makedirs(casa.ESTADO, exist_ok=True)
@@ -903,7 +1206,7 @@ def main():
             assentar(pag)
 
             grupos = []
-            if not SO_ACABAMENTO:
+            if not SO_ACABAMENTO and not SO_P90:
                 # 2. O BALÃO DO MENU
                 print("\n2. O BALÃO DE CADA ITEM DO MENU")
                 for d in balao_do_menu(pag):
@@ -938,34 +1241,50 @@ def main():
             pagina_atual["nome"] = "acabamento"
             if FOTOS:
                 os.makedirs(FOTOS, exist_ok=True)
-            achados = acabamento(pag)
+            achados = [] if SO_P90 else acabamento(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} acabamento: {len(achados)} defeito(s)")
 
             # 6. A GRADE SEM BURACO — antes dos 375 px, a 1440
             print("\n6. A GRADE SEM BURACO")
             pagina_atual["nome"] = "grade"
-            achados = grade_sem_buraco(pag)
+            achados = [] if SO_P90 else grade_sem_buraco(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} grade: {len(achados)} defeito(s)")
 
             print("\n7. OS CASOS DA P82")
             pagina_atual["nome"] = "casos da P82"
-            achados = casos_da_p82(pag)
+            achados = [] if SO_P90 else casos_da_p82(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} casos da P82: {len(achados)} defeito(s)")
 
             # 8. O CARTÃO DE «PRECISA DE GENTE»
             print("\n8. O CARTÃO DE PRECISA DE GENTE")
             pagina_atual["nome"] = "precisa de gente"
-            achados = cartao_de_gente(pag)
+            achados = [] if SO_P90 else cartao_de_gente(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} precisa de gente: {len(achados)} defeito(s)")
+
+            if not SO_ACABAMENTO:
+                print("\n9. AÇÃO É EXECUTAR E RESTAURAR, E AS DIVISÓRIAS (P90)")
+                pagina_atual["nome"] = "P90"
+                achados = acoes_e_fios(pag)
+                reprovas += achados
+                print(f"  {'ok' if not achados else 'XX'} ações e divisórias: {len(achados)} defeito(s)")
+                print("\n10. A JANELA DE RESULTADO E O RESTAURAR (P90)")
+                pagina_atual["nome"] = "P90 · janela"
+                try:
+                    achados = janela_e_restaurar(pag)
+                except Exception as e:  # noqa: BLE001 — a base sem janela quebra aqui, e isso é reprova
+                    achados = [("P90 · janela", f"o gesto da janela de resultado quebrou: {str(e).splitlines()[0][:160]}")]
+                    pag.keyboard.press("Escape")
+                reprovas += achados
+                print(f"  {'ok' if not achados else 'XX'} janela e restaurar: {len(achados)} defeito(s)")
 
             # 5. A 375 PX
             print("\n5. A 375 PX")
             pagina_atual["nome"] = "375 px"
-            achados = a_375(pag, url)
+            achados = [] if SO_P90 else a_375(pag, url)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} 375 px: {len(achados)} defeito(s)")
             nav.close()
