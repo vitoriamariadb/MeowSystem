@@ -245,7 +245,7 @@ CLAUDE.md
 .trabalho-icones/
 
 # --- anti-IA (anonimato local) ---
-AGENTS.md
+# O AGENTS.md fica de fora desta lista: é o guia versionado do projeto.
 GEMINI.md
 COPILOT.md
 HANDOFF-PROMPT.md
