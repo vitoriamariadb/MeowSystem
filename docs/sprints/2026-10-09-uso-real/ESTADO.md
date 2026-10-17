@@ -64,7 +64,7 @@ ela de novo, integramos e pushamos pra dev». Sequência depois da P90:
 
 ## Registrada para depois (NÃO executar sem quem usa mandar)
 
-- P91 vizinhos e duplicatas (`docs/sprints/2026-10-15-fechamento/P91-vizinhos-e-duplicatas.md`).
+- P91 vizinhos e duplicatas — EM EXECUÇÃO desde 17/10, a pedido de quem usa.
 
 ## Fim combinado com quem usa (15/10, antes de dormir)
 

@@ -1,6 +1,6 @@
 # P91 — Quem mais manda na máquina: conflitos e duplicatas com o MeowSystem
 
-**Status: REGISTRADA — não executar sem quem usa mandar (17/10: «não executa, só registra pra eu executar depois»).**
+**Status: EM EXECUÇÃO — quem usa mandou executar em 17/10 («li a spec, pode mandar um Opus executar»).**
 
 **Branch:** `sprint/p91` · **Pedido de quem usa (17/10):** «procurar se tem algo no zsh ou
 no Dracula theme ou qualquer outro repo local que entre em conflito com o MeowSystem, e se temos dois
