@@ -259,7 +259,7 @@ _gatilhos_automaticos() {
     while IFS= read -r r; do [ -n "$r" ] && _seguir "$r" "$g" "ativo"; done < <(printf '%s\n' "$cmd" | _refs "")
   done
   # Os atalhos de teclado do COSMIC: cada Spawn("...") roda quando a tecla é apertada.
-  for f in "$HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts"/v1/custom; do
+  for f in "$(meow_cosmic_dir)/com.system76.CosmicSettings.Shortcuts"/v*/custom; do
     [ -f "$f" ] || continue
     cmd="$(grep -oE 'Spawn\("[^"]+"\)' "$f" | sed -E 's/^Spawn\("//; s/"\)$//')"
     while IFS= read -r r; do [ -n "$r" ] && _seguir "$r" "atalho de teclado" "ativo"; done < <(printf '%s\n' "$cmd" | _refs "")
