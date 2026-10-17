@@ -11,6 +11,10 @@
 #   Escrever `margin: 8` com `anchor_gap: false` é escrever um número que o
 #   compositor descarta calado — a barra continua colada e ninguém diz por quê.
 #
+# Raio maior que metade da menor dimensão da barra é `post_error` no cosmic-comp:
+# erro de protocolo, fatal, e painel e dock somem juntos. A conta usa o buffer do
+# frame anterior (corrida, não limiar), por isso o teto daqui é conservador.
+#
 #       cosmic_corner_radius_layer_v1#109: error 1: ... corner radius too large
 _forma_teto_raio() { # $1 = Panel|Dock
   local t

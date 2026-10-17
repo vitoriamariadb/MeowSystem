@@ -41,9 +41,9 @@ AREAS_BINARIO="/usr/bin/cosmic-comp"
 AREAS_ANTES="$MEOW_ESTADO/areas"
 BACKUPS_MANTIDOS="${BACKUPS_MANTIDOS:-10}"
 
-# Já tava assim antes e o nome precisa de mais espaço, adiciona um caracter
-# fantasma pra ser um espaço invisível." Ela recusou encurtar o nome e recusou
-# trocá-lo por um glifo — o problema é o desenho da pastilha, não a palavra.
+# O espaço-figura (U+2007) dá folga ao nome da área sem trocar a palavra: o
+# problema é o desenho da pastilha. Espaço comum morreria em qualquer `trim()`;
+# o U+2007 tem largura de dígito e não quebra linha.
 #
 # O `cosmic-applet-workspaces` (`src/components/app.rs:190-205`) desenha cada
 # área como `column!(row!(texto, espaço), espaço_horizontal(quadrado))`: a

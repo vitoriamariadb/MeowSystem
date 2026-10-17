@@ -47,7 +47,8 @@ LOGO="${LOGO:-$FLAVOR}"
 
 # --- AS TRÊS MANEIRAS DE ESCOLHER O GATO ------------------------------------
 #
-# O `meow.conf` desta máquina tem `LOGO_ROTACAO="nao"`.
+# Chave velha não vira inerte: quem tem `LOGO_ROTACAO="sim"` e não escreveu
+# `LOGO_MODO` continua no modo `rotacao`.
 if [ -n "${LOGO_MODO:-}" ]; then
   :
 elif [ "${LOGO_ROTACAO:-nao}" = "sim" ]; then
