@@ -43,14 +43,12 @@ cd MeowSystem
 meow ativar               # todas as outras
 ```
 
-São 63 etapas. Rodar de novo numa máquina já pronta **não escreve um byte** — e diz isso, em vez
-de listar as etapas como se as tivesse refeito. Para ver o que aconteceria antes de deixar
-acontecer: `MEOW_DRY_RUN=1 ./install.sh`, ou o **Ver o que faria** do painel.
+São 63 etapas. Numa máquina já pronta, rodar de novo **não escreve um byte** e diz isso. Para
+ensaiar antes: `MEOW_DRY_RUN=1 ./install.sh`, ou **Ver o que faria** no painel.
 
-A senha do sudo é pedida **uma vez**, no instalador, para registrar a ponte root: um conjunto
-fechado de verbos (marcar `.desktop` do sistema, vestir a tela de login, o hook do apt, os
-pacotes de que o projeto depende) que depois rodam sem senha e sem terminal. `PONTE_ROOT="nao"`
-no `meow.conf` tira a ponte na passagem seguinte.
+A senha do sudo é pedida **uma vez**, para registrar a ponte root: um conjunto fechado de verbos
+(`.desktop` do sistema, tela de login, hook do apt, dependências) que depois roda sem senha.
+`PONTE_ROOT="nao"` no `meow.conf` tira a ponte na passagem seguinte.
 
 ## Os packs
 
@@ -64,15 +62,13 @@ meow pack remover meu-tema            # tira um pack importado
 meow pack exportar-tema dracula       # o tema de ícones montado, para usar sem o MeowSystem
 ```
 
-No painel, a **Início** abre com um cartão por pack: o logo, a paleta, o que ele traz e o que
-herda. **Usar este** troca o pack; o cartão do pack no ar tem o anel de acento. Trocar de pack
-leva junto o que é do pack — a base de ícones, o ponteiro, o som, o que ele esconde do lançador
-— e devolve o que o pack anterior escondia.
+No painel, a **Início** mostra um cartão por pack: logo, paleta, o que traz e o que herda.
+**Usar este** troca o pack. A troca leva o que é do pack (base de ícones, ponteiro, som, o que ele
+esconde do lançador) e devolve o que o anterior escondia.
 
-**Um pack é dado, nunca código.** Nada dentro dele é executado: todo caminho tem de cair dentro
-do pack, link para fora é recusado, script é recusado, e o desenho de um pack de terceiro é
-servido ao painel numa caixa de areia. Um pack importado que pede uma extensão do VS Code mostra
-a extensão, e ela só se instala por um gesto naquela extensão.
+**Um pack é dado, nunca código.** Nada dele é executado: caminho tem de cair dentro do pack, link
+para fora e script são recusados, e o desenho de um pack de terceiro é servido numa caixa de
+areia. Extensão do VS Code pedida por pack importado só se instala por um gesto nela.
 
 ## O painel
 
@@ -80,51 +76,42 @@ a extensão, e ela só se instala por um gesto naquela extensão.
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-122 ajustes e 64 ações em catorze páginas: a Início e treze de assunto, cada uma com tudo o que
-existe sobre ele. O menu tem dois blocos: **Tópicos**, que é a sua tela, e **Sistema**, que é o
-que a máquina faz sozinha.
+122 ajustes e 64 ações em catorze páginas: a Início e treze de assunto. O menu tem dois blocos:
+**Tópicos** (a sua tela) e **Sistema** (o que a máquina faz sozinha).
 
 ### A interface mostra, em vez de explicar
 
 <img src="docs/capturas/painel-leitura.png" width="920" alt="A aba Modo de leitura: o desenho mostra a mesma página fria à esquerda e quente à direita">
 
-Na tela fica só o que nomeia ou mede: título, rótulo, valor. O porquê de cada coisa mora atrás de
-um **?**, que abre a dica. Cada bloco abre com uma prévia que responde «o que isto faz com a
-minha tela?», desenhada a partir dos valores de verdade — o papel de parede da coleção, o gato do
-acervo, o ícone do tema instalado — e ela **repinta enquanto você arrasta o deslizante**.
+Na tela fica só título, rótulo e valor. O porquê mora atrás do **?**. Cada bloco abre com uma
+prévia desenhada com os valores de verdade (o papel de parede, o gato, o ícone instalado), que
+**repinta enquanto você arrasta o deslizante**.
 
-Quando há uma escolha esperando, a prévia vira duas: **Como está** e **Como fica**, lado a lado.
-Apertar «Como está» desfaz aquele bloco e só aquele.
+Com uma escolha pendente, a prévia vira duas: **Como está** e **Como fica**. «Como está» desfaz
+só aquele bloco.
 
 ### O que dá para fazer aqui
 
 <img src="docs/capturas/painel-areas.png" width="920" alt="A aba Áreas de trabalho, com o desenho da barra e das duas telas acima dos ajustes">
 
-- **Ícones** — um ícone por programa instalado, trocável um a um. O seletor mostra o acervo
-  inteiro, em pastas: os desenhos de cada pack (o no ar primeiro), a biblioteca, os feitos à mão,
-  o traço do Arcticons, os resgatados e os que você enviou. O desenho que veste o programa agora
-  vem marcado.
-- **Papel de parede** — a coleção e as ações dela na mesma tela. Soltar um arquivo diz na hora se
-  ele entrou no grupo de dia ou no de noite, e **Dia** e **Noite** mandam a imagem para o lado
-  que você quiser.
-- **Áreas de trabalho** — o nome e a **ordem** das suas áreas, e o encaixe de janelas de cada
-  uma.
-- **Modo de leitura** — a tela quente da noite: temperatura, textura, horário e a rampa da
-  virada.
-- **Instalar sem sair do painel** — um `.zip` de tema de ponteiro, uma fonte, um tema de ícones,
-  um gato novo, um papel de parede, um ícone. O arquivo enviado nunca toca o repositório: ele
-  mora no seu estado, em `~/.local/share/meowsystem/`.
+- **Ícones**: um por programa, trocável um a um. O seletor mostra o acervo inteiro em pastas
+  (cada pack, o no ar primeiro; biblioteca; feitos à mão; Arcticons; resgatados; enviados). O
+  desenho em uso vem marcado.
+- **Papel de parede**: a coleção e as ações. Um arquivo solto entra no grupo de dia ou de noite,
+  e **Dia** e **Noite** o mudam de lado.
+- **Áreas de trabalho**: nome, **ordem** e encaixe de janelas de cada uma.
+- **Modo de leitura**: temperatura, textura, horário e rampa da tela quente da noite.
+- **Instalar pelo painel**: tema de ponteiro (`.zip`), fonte, tema de ícones, gato, papel de
+  parede, ícone. O enviado mora em `~/.local/share/meowsystem/`, nunca no repositório.
 - E **Cor e tela**, **Logo do sistema**, **Painel e dock**, **Dia e noite**, **Terminal**,
-  **Lançadores e jogos**, **Manutenção**, **Instalação** e **Atualização** — esta última com
-  `apt`, `flatpak` e `cargo` numa tela e, logo depois, o `doctor` consertando o que a
-  atualização desfez.
+  **Lançadores e jogos**, **Manutenção**, **Instalação** e **Atualização** (`apt`, `flatpak` e
+  `cargo`, seguidos do `doctor`).
 
-Toda variável que o instalador lê tem um controle aqui — e um teste cobra isso, para que uma
-chave nova não nasça invisível.
+Toda variável que o instalador lê tem um controle aqui, e um teste cobra isso.
 
-Clicar não muda a máquina: as escolhas se acumulam, e **Salvar e aplicar** grava tudo e roda o
-instalador na mesma hora. **Ver o que faria** ensaia antes, sem escrever nada. **Restaurar ao
-padrão** volta ao valor de fábrica. Ação que baixa da internet leva o selo dela.
+Clicar não muda a máquina: as escolhas se acumulam e **Salvar e aplicar** grava e roda o
+instalador. **Ver o que faria** ensaia sem escrever. **Restaurar ao padrão** volta ao valor de
+fábrica. Ação que baixa da internet leva o selo de rede.
 
 <img src="docs/capturas/painel-forma.png" width="920" alt="A aba Painel e dock, com o desenho do painel e da dock acima dos controles">
 
@@ -165,41 +152,33 @@ meow desfazer                          # devolve o tema de antes desta máquina
 ./install.sh --uninstall               # tira tema, ícones e agendamentos
 ```
 
-O `doctor` não manda ninguém digitar nada: o que ele sabe consertar, o `--consertar` conserta, e
-a linha diz o estado. Ele roda sozinho todo dia às 5h, e o **Consertar** do painel é o mesmo
-gesto. O que precisa da rede leva, no painel, o selo de quem baixa da internet.
+O `doctor` não manda digitar: o que ele sabe consertar, o `--consertar` conserta. Roda sozinho
+às 5h, e o **Consertar** do painel é o mesmo gesto.
 
-Cada escrita em arquivo do sistema deixa uma cópia antes, e o instalador **recusa por caminho** —
-não por boa intenção — escrever fora dos lugares que ele conhece.
+Toda escrita em arquivo do sistema guarda uma cópia antes, e o instalador **recusa por caminho**
+escrever fora dos lugares que conhece.
 
 ## O COSMIC pode atualizar
 
-O MeowSystem mantém dois builds próprios: o compositor (`cosmic-comp` com a série de `patches/`)
-e o menu de papel de parede do `cosmic-files`. Quando o apt traz uma versão nova do COSMIC, o
-build é refeito sozinho, sem sudo e sem pergunta — depois do apt, no login seguinte e no doctor
-das 5h, pela mesma função. A sessão aberta segue com o binário antigo, e o novo vale no próximo
+Dois builds são próprios: o compositor (`cosmic-comp` com a série de `patches/`) e o menu de
+papel de parede do `cosmic-files`. Quando o apt traz um COSMIC novo, o build se refaz sozinho,
+sem sudo: depois do apt, no login seguinte e no doctor das 5h. O binário novo vale no próximo
 login. Patch que não entra na versão nova não troca nada: a sessão sobe com o compositor de
-fábrica até a série ser refeita.
+fábrica.
 
-Pode rodar `apt full-upgrade` à vontade. O que acontece depois de cada passo da cadeia de
-atualização, e como voltar, está em **[docs/MANUTENCAO.md](docs/MANUTENCAO.md)**.
+`apt full-upgrade` à vontade. A cadeia de atualização e como voltar: **[docs/MANUTENCAO.md](docs/MANUTENCAO.md)**.
 
 ## O que esperar
 
-Este repositório nasceu para uma máquina — **Pop!_OS 24.04 LTS com COSMIC** — e boa parte do
-trabalho desde então foi tirar dele o que só valia ali. O que sobrou de acoplamento está escrito,
-não escondido, e o `doctor` fala antes de você descobrir na tela.
+Feito para **Pop!_OS 24.04 LTS com COSMIC**. O acoplamento que sobrou está escrito, e o `doctor`
+avisa antes da tela.
 
-O que ele derruba sozinho, em vez de exigir da sua máquina:
-
-- **as cores** saem de um theme pack, não de um nome cravado no código;
-- **o que não existe aqui é pulado, não é erro**: sem painel configurado, sem tema em disco, sem
-  Steam, sem Heroic, cada etapa diz o que pulou e segue;
-- **o COSMIC que você tem decide o caminho**: onde há chave nativa para um ajuste, é ela que é
-  escrita; o remendo só entra onde a chave ainda não existe;
-- **nada é aplicado sem cópia do que havia antes**, e o `--wizard` pergunta só as cinco chaves
-  essenciais — `FLAVOR`, `ACCENT`, `MODO`, `LANCADOR_SISTEMA` e `PONTE_ROOT`. O `LOGO`, que o
-  instalador também exige, vem preenchido do `meow.conf.exemplo` e não precisa de resposta.
+- **as cores** saem de um theme pack, não do código;
+- **o que não existe é pulado, não é erro**: sem Steam, sem Heroic, sem tema em disco, cada etapa
+  diz o que pulou e segue;
+- **o COSMIC instalado decide o caminho**: chave nativa quando existe, remendo só onde não;
+- **nada se aplica sem cópia do que havia**, e o `--wizard` pergunta só cinco chaves: `FLAVOR`,
+  `ACCENT`, `MODO`, `LANCADOR_SISTEMA` e `PONTE_ROOT` (o `LOGO` vem do `meow.conf.exemplo`).
 
 Se a sua máquina é um COSMIC, instale.
 
@@ -211,8 +190,8 @@ navegador que já estiver instalado, e só escuta em `127.0.0.1`.
 
 ## Créditos
 
-O MeowSystem é uma casca: quase tudo o que aparece na tela foi desenhado por outra pessoa, sob uma
-licença que permite isso. Os maiores:
+Quase tudo o que aparece na tela foi desenhado por outras pessoas, sob licenças que permitem
+isso. Os maiores:
 
 - [Catppuccin](https://github.com/catppuccin/catppuccin) — a paleta do pack padrão (MIT)
 - [Dracula](https://draculatheme.com) — a paleta do pack Dracula, e os [`dracula-icons`](https://github.com/m4thewz/dracula-icons) como base de ícones dele (GPL-3.0)
@@ -221,7 +200,7 @@ licença que permite isso. Os maiores:
 - [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) — as pastas coloridas, pinado em `f83671d1`
 
 **A lista inteira está em [`docs/CREDITOS.md`](docs/CREDITOS.md)** e no `CREDITOS.md` de cada
-pack — os cursores, as fontes, os papéis de parede, os temas de dentro dos programas, o que foi
-recusado e por quê, e o que você precisa fazer se redistribuir alguma coisa daqui.
+pack: cursores, fontes, papéis de parede, temas de programas, o recusado e o que fazer ao
+redistribuir.
 
 Licença: GPL-3.0.

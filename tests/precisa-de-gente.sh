@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# precisa-de-gente.sh — o que a máquina não conserta sozinha aparece num cartão só,
-# com desde quando, e some quando resolvido? (P86)
+# precisa-de-gente.sh — o que a máquina não conserta sozinha aparece num cartão
+# só, com desde quando, e some quando resolvido?
 #
 #   1. os dois verbos do `lib/comum.sh`: registrar é idempotente (o desde quando é do
 #      primeiro registro e a repetição não escreve nada), e resolver tira a linha;

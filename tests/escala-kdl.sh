@@ -2,13 +2,8 @@
 # escala-kdl.sh — o `escala.sh` lê o `cosmic-randr list --kdl` (P76).
 #
 # Um `cosmic-randr` falso devolve um KDL fixo, com o formato medido nas versões
-# 0.1.0 e 1.10 em 09/10/2026: uma saída em 1.25 a 59.951 Hz, uma em 1.00 a
-# 144 Hz, e uma desligada. O `saidas()` do script tem de devolver as duas
-# ligadas, uma linha cada, com a escala em fração, o modo corrente e o hz com
-# três casas — e nada da desligada. Sem COSMIC, sem sessão, sem escrever.
-# O KDL falso põe o HDMI-A-1 ANTES do eDP-1 (conferência da P76): o
-# `cosmic-randr` não promete ordem, e a saída do `saidas()` tem de ser a mesma
-# em qualquer uma — eDP-1 primeiro.
+# 0.1.0 e 1.10: uma saída em 1.25 a 59.951 Hz, uma em 1.00 a 144 Hz, e uma
+# desligada.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

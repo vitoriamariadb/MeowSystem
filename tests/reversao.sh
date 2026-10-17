@@ -2,55 +2,9 @@
 # O `--uninstall` desfaz TODO módulo de aplicativo, e não só os que alguém
 # lembrou de cobrir.
 #
-# O DEFEITO QUE ESTE TESTE PEGA JÁ ACONTECEU, E DUROU MESES
-#   Até 11/08/2026 o `install.sh --uninstall` não chamava `aplicar_apps.sh
-#   reverter` nenhuma vez. O manifesto levava embora tudo que passa pela
-#   `meow_escrever`, e por isso a desinstalação PARECIA completa — mas o Spotify
-#   continuava com o tema do spicetify, o ZapZap continuava chamando-se
-#   "WhatsApp" com o `.desktop` do export trocado, e o GTK continuava com o
-#   symlink religado. Nada disso está no manifesto, por desenho: são mutações
-#   fora da `meow_escrever`, e é justamente por isso que precisam de um verbo
-#   próprio.
-#
-#   O buraco não deu erro em lugar nenhum. Foi preciso alguém perguntar "o
-#   install e o uninstall estão pareados?" para ele aparecer.
-#
-# SÃO CINCO AFIRMAÇÕES, E AS QUATRO ÚLTIMAS SÃO AS QUE ENVELHECEM
-#   1. o desinstalador chama o `reverter` — uma linha, quebra alto se sumir;
-#   2. TODO módulo em `assets/temas-de-apps/` define `meow_app_reverter` — esta é a que
-#      apodrece sozinha: um módulo novo nasce com `detectar/conferir/aplicar`
-#      (é o que o contrato exige) e o quarto verbo é opcional no runner. Sem
-#      este teste, o primeiro app-tema escrito depois de hoje volta a ficar
-#      para trás no `--uninstall`, em silêncio.
-#   3. TODA unidade de `systemd/` está nas DUAS listas do desinstalador — a que
-#      APAGA o arquivo (o `find`) e a que PARA a unidade viva (o
-#      `systemctl --user disable --now`). Acrescentada em 09/09/2026, e pelo
-#      mesmo motivo da 2: o `lib/desinstalar.sh` já trazia o comentário
-#      *"toda unidade nova entra nas DUAS"* — e o `meow-qt.{path,service}`,
-#      nascido naquele dia, entrou só numa. A frase estava lá desde 01/09,
-#      quando as três unidades da Sprint W tinham cometido exatamente o mesmo
-#      erro. **Uma regra que só existe como comentário é uma regra que se
-#      repete**: da segunda vez, quem cobra é este bloco.
-#
-#      O sintoma que ele evita não é cosmético: o `find` apaga o arquivo de uma
-#      unidade que continua ATIVA, e sobra processo rodando sem arquivo. No
-#      `meow-painel.service` isso é um supervisor com `Restart=on-failure`
-#      batendo num binário que o passo seguinte apagou.
-#   4. TODO módulo que já usa `meow_app_sem` declara o motivo em CADA saída de
-#      pendência do `detectar` — acrescentada em 21/09/2026, quando o log disse
-#      "Spotify não instalado" para um Spotify instalado. O bloco 4 lá embaixo
-#      explica as duas cobranças; esta é a que nasce velha se alguém migrar um
-#      módulo pela metade, e o custo de falhar nela é o log mentir de novo.
-#   5. TODO módulo diz se o programa está instalado (`meow_app_instalado`), e
-#      o `detectar` dele chama a mesma função — acrescentada em 24/09/2026
-#      (P49), quando a tabela do `meow apps` disse «não instalado» para dois
-#      flatpaks que estavam no disco. O bloco 5 lá embaixo conta o resto.
-#
-# POR QUE `declare -F` NUM SUBSHELL, E NÃO UM `grep`
-#   `grep -q meow_app_reverter` passaria com a palavra dentro de um comentário —
-#   e este projeto tem cabeçalhos que citam os nomes das funções o tempo todo.
-#   O que importa é a função EXISTIR depois do `source`, que é exatamente como o
-#   `rodar_modulo` a procura.
+# POR QUE `declare -F` NUM SUBSHELL, E NÃO UM `grep` `grep -q meow_app_reverter`
+# passaria com a palavra dentro de um comentário — e este projeto tem cabeçalhos
+# que citam os nomes das funções o tempo todo.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 falhou=0
@@ -64,8 +18,7 @@ fi
 
 # --- 2. todo módulo sabe desfazer -------------------------------------------
 # `MEOW_IGNORA_DESKTOP=1` e o `lib/comum.sh` antes: os módulos são escritos para
-# serem `source` DEPOIS dele (usam meow_ok, MEOW_OK, meow_seco). Carregá-los
-# soltos daria "comando não encontrado" e um falso positivo de sintaxe.
+# serem `source` DEPOIS dele (usam meow_ok, MEOW_OK, meow_seco).
 for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
   if ! (
@@ -112,27 +65,13 @@ else
 fi
 
 # --- 4. o motivo da pendência viaja junto com o código 3 --------------------
-# POR QUE ESTA AFIRMAÇÃO MORA AQUI
-#   Este arquivo já é o teste do CONTRATO dos módulos de aplicativo — do verbo
-#   que um módulo novo esquece de escrever. O motivo é a segunda cláusula do
-#   mesmo contrato, e esquecê-la custa o mesmo: em 21/09/2026 o log do
-#   install.sh dizia "Spotify não instalado" para um Spotify instalado,
-#   patchado e tematizado, porque o `meow_app_detectar` sabia a causa (faltava o
-#   tema catppuccin do spicetify) e devolvia só o número 3.
 #
-# SÃO DUAS COBRANÇAS, E NENHUMA DAS DUAS SOZINHA BASTA
-#   A ESTÁTICA pega o caminho que esta máquina não percorre hoje: num módulo
-#   migrado, NENHUMA saída-3 do `detectar` pode escapar do `meow_app_sem` — é
-#   ele que guarda o motivo, e sair por outra porta é sair mudo. É a cobrança
-#   que o risco da sprint nomeia: um módulo com vários `return 3` precisa do
-#   motivo em CADA um, e só o grep vê todos.
-#   A DINÂMICA pega o que o grep não vê: roda o `detectar` de verdade e, se ele
-#   disser 3 aqui e agora, cobra o motivo. Foi por este caminho que o Spotify
-#   mentiu, e é ele que passaria batido numa conferência só de texto.
+# Este arquivo já é o teste do CONTRATO dos módulos de aplicativo — do verbo que
+# um módulo novo esquece de escrever.
 #
-#   MÓDULO NÃO MIGRADO PASSA BATIDO DE PROPÓSITO. Quem se declara sujeito ao
-#   contrato é o próprio arquivo, por usar `meow_app_sem` — uma lista de
-#   migrados escrita aqui seria a armadilha nº 3 do projeto de novo.
+# A ESTÁTICA pega o caminho que esta máquina não percorre hoje: num módulo
+# migrado, NENHUMA saída-3 do `detectar` pode escapar do `meow_app_sem` — é ele
+# que guarda o motivo, e sair por outra porta é sair mudo.
 migrados=0
 for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
@@ -157,16 +96,10 @@ for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
     falhou=1
   fi
 
-  # A dinâmica, e O ESTADO VAI PARA UM DESCARTÁVEL — corrigido em 22/09/2026.
-  #   Este comentário dizia que `detectar` é leitura pura e que rodá-lo "não
-  #   escreve um byte na máquina de ninguém". Deixou de ser verdade na sprint
-  #   P2: o `detectar` do Spotify registra pendência (é o desenho dela), e a
-  #   pendência mora em `$MEOW_ESTADO/pendencias.tsv`. Medido: a suíte criava
-  #   aquele arquivo no HOME REAL de quem rodasse o teste.
+  # Este comentário dizia que `detectar` é leitura pura e que rodá-lo "não
+  # escreve um byte na máquina de ninguém".
   #
-  #   O conserto é apontar `MEOW_ESTADO` para um temporário, e não desligar a
-  #   medição: o que este bloco quer saber é se o `detectar` declara o motivo
-  #   AQUI E AGORA, na máquina de verdade. Só o efeito colateral se desvia.
+  # Só o efeito colateral se desvia.
   medida="$(
     set +u
     MEOW_ESTADO="$(mktemp -d -p "${TMPDIR:-/tmp}" .meow-reversao.XXXXXX)"
@@ -189,18 +122,6 @@ for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
 done
 
 # --- 5. "instalado" é uma regra só, e o `detectar` a chama -----------------
-# 24/09/2026, P49 (achado 45 da validação no painel de verdade): a tabela do
-# `meow apps` disse qBittorrent e Discord «não instalado», e os dois estavam. A
-# coluna lia o código do `detectar`, e o módulo tinha a regra dele. Agora a
-# regra é o `meow_app_instalado` de cada módulo, que a tabela pergunta. Três
-# cobranças, pelos mesmos motivos das de cima:
-#   a) todo módulo a define — um módulo novo sem ela deixaria a coluna sem
-#      resposta, e o runner diria erro onde a tela diz «não»;
-#   b) o arquivo a CHAMA além de defini-la — é o `detectar` abrindo com ela, e
-#      é o que faz a frase «não está instalado» do módulo e a coluna da tabela
-#      saírem da mesma função (no qBittorrent, pelo núcleo `_meow_qbt_pronto`);
-#   c) aqui e agora, nesta máquina: se o `detectar` diz que dá para trabalhar,
-#      o `instalado` não pode dizer que o programa não está.
 instalados=0
 for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
@@ -236,9 +157,7 @@ for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
   fi
 done
 
-# E A GUARDA MORDE. Sem esta conferência o `meow_app_pendente` poderia degenerar
-# numa frase genérica sem ninguém notar, que é o defeito voltando pela porta de
-# trás: motivo vazio tem de GRITAR "defeito no módulo", não virar silêncio bonito.
+# E A GUARDA MORDE.
 guarda="$(
   set +u
   NO_COLOR=1

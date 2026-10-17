@@ -1,40 +1,24 @@
 #!/usr/bin/env bash
 # construir_icones.sh — monta o tema MeowSystem-Icons e a logo do painel.
 #
-# ONDE, E POR QUE AQUI
-#   `~/.local/share/icons/MeowSystem-Icons`. Sem sudo, sem `/usr/share`, sem
-#   envolver o Ritual da Aurora. Isso foi MEDIDO (docs/COSMIC-THEMING.md §2): o
-#   laço externo da resolução de ícone do COSMIC é o NOME DO TEMA, não o
-#   diretório-base. O tema selecionado é consultado primeiro em
-#   `/usr/share/icons/<tema>` e logo depois em `~/.local/share/icons/<tema>` —
-#   e só muito depois se chega ao `hicolor`. Como nenhum `/usr/share/icons/
-#   MeowSystem-Icons` existe, o do usuário ganha sozinho.
+# Sem sudo, sem `/usr/share`, sem envolver o Ritual da Aurora. Isso foi MEDIDO
+# (docs/COSMIC-THEMING.md §2): o laço externo da resolução de ícone do COSMIC é
+# o NOME DO TEMA, não o diretório-base.
 #
-#   Um teste anterior concluiu o contrário porque plantou o ícone no `hicolor`
-#   do usuário: aquilo perdeu por estar no FIM DA CADEIA DE HERANÇA, não por ser
-#   do usuário. A conclusão certa custou dois testes e está registrada no doc.
+# Um teste anterior concluiu o contrário porque plantou o ícone no `hicolor` do
+# usuário: aquilo perdeu por estar no FIM DA CADEIA DE HERANÇA, não por ser do
+# usuário.
 #
-# DOIS GATOS, DOIS MECANISMOS DIFERENTES
 #   - O botão do dock/menu vem do TEMA DE ÍCONES, pelo nome
 #     `com.system76.CosmicPanelAppButton` / `com.system76.CosmicAppLibrary`.
 #   - A logo do painel NÃO passa por tema de ícones: o applet LogoMenu guarda um
 #     CAMINHO DE ARQUIVO em `custom_logo_path`. Por isso ela é tratada à parte.
-#
-# O ARQUIVO DA LOGO NÃO PODE TERMINAR EM `-symbolic.svg`
-#   O applet faz `.symbolic(path.contains("-symbolic.svg"))` e achata o desenho
-#   numa cor só. O nome que usamos é `meow-<flavor>.svg`, de propósito.
-#
-# O `gato-pop.svg` NÃO EXISTE MAIS
-#   Ele era do Ritual da Aurora e era reinstalado a cada ciclo, num diretório em
-#   que a chave `custom_logo_path` já apontava para um arquivo nosso. O self-heal
-#   v3.56 aposentou a etapa e removeu o arquivo: `~/.config/cosmic/logos/` tem um
-#   dono só, e é este projeto. Ver docs/FRONTEIRA.md.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
-# O `meow_tema_base_escondida` (P82, item 12) mora lá.
+# O `meow_tema_base_escondida` mora lá.
 # shellcheck source=../lib/icones.sh
 . "$RAIZ/lib/icones.sh"
 
@@ -42,7 +26,6 @@ TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 COSMIC="$(meow_cosmic_dir)"
 LOGOS_DIR="$COSMIC/logos"
-# [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
 TK="$COSMIC/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)"
 # (o diretório do applet LogoMenu não é mais tocado aqui — ver o bloco 3)
 
@@ -51,72 +34,40 @@ TK="$COSMIC/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)"
 BOTOES=(com.system76.CosmicPanelAppButton com.system76.CosmicAppLibrary)
 
 # Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só.
 FLAVOR="$(meow_flavor)"
 LOGO="${LOGO:-$FLAVOR}"
 ICONES_BASE="${ICONES_BASE:-Papirus-Dark}"
-# A base que o PACK traz mora aqui, ao lado do tema que a herda (P41, 24/09/2026).
-# O nome é deste projeto, e não o do upstream, por dois motivos medidos: nesta
-# máquina já existem `dracula-icons-circle` e `-main` que o Spellbook montou e
-# retocou (links trocados, arquivos a menos — o `diff` contra o pacote do commit
-# acusa), e escrever por cima deles seria mexer em diretório de outro dono. E um
-# diretório de dono único é o que deixa a troca de pack levar a base junto, como
-# a `MeowSystem/pack/` do `instalar_fontes.sh` leva as fontes.
+# A base que o PACK traz mora aqui, ao lado do tema que a herda.
 TEMA_BASE="$TEMA_NOME-Base"
 BASE_DIR="$HOME/.local/share/icons/$TEMA_BASE"
 # O que o `Inherits=` escreve. Começa como sempre foi, e a `_ci_base` o troca
 # pela base do pack quando ela vale e está no disco.
 HERDA="$ICONES_BASE"
-# As camadas que ficam ATRÁS da base (P74 item 2, 09/10/2026): `,<nome>` por
-# camada que está no disco, na ordem do `icones.base.por_tras` do pack. Moram
-# em `$TEMA_BASE-2`, `-3`…, ao lado da frente, com a mesma régua dela.
+# As camadas que ficam ATRÁS da base: `,<nome>` por camada que está no disco,
+# na ordem do `icones.base.por_tras` do pack. Moram em `$TEMA_BASE-2`, `-3`…,
+# ao lado da frente, com a mesma régua dela.
 HERDA_ATRAS=""
-# O `Comment=` do índice é o do PACK NO AR, no flavor da máquina (P74 item 4,
-# 09/10/2026). Era `Catppuccin $FLAVOR para o COSMIC` com qualquer pack — o
-# Dracula instalado se descrevia como Catppuccin. Quem compõe a frase é o
-# `tema_de_icones` do `pack.py`, o mesmo que dá o nome ao tema exportado.
+# O `Comment=` do índice é o do PACK NO AR, no flavor da máquina. Era
+# `Catppuccin $FLAVOR para o COSMIC` com qualquer pack — o Dracula instalado
+# se descrevia como Catppuccin.
 COMENTARIO_TEMA="$(python3 "$RAIZ/scripts/pack.py" tema-icones "$(meow_pack_dir)" "$FLAVOR" 2>/dev/null \
                      | sed -n 's/^comentario=//p')"
 [ -n "$COMENTARIO_TEMA" ] || COMENTARIO_TEMA="MeowSystem $FLAVOR para o COSMIC"
 
-# ---------------------------------------------------------------------------
 # `adicionar <pasta-ou-zip>` e `remover <nome>` — um acervo de ícones de fora
-# ---------------------------------------------------------------------------
-# O QUE A TELA PEDE, E POR QUE ELE MORA AQUI E NÃO NUM SCRIPT NOVO
-#   A aba de ícones do painel oferece a chave `ICONES_BASE` — o tema que o nosso
-#   herda —, e a lista dela sai do disco: todo diretório de
-#   `~/.local/share/icons`, `~/.icons` e `/usr/share/icons` que tenha um
-#   `index.theme` com `Directories=` e sem `Hidden=true`. Ou seja, a única forma
-#   de a lista crescer é um tema novo entrar no disco, e não havia porta para
-#   isso. Ela entra aqui porque este script é o dono de `~/.local/share/icons`
-#   neste projeto e é quem escreve a linha `Inherits=$ICONES_BASE`: um segundo
-#   script instalando tema no mesmo diretório seria a segunda verdade sobre o
-#   mesmo disco — exatamente o "dois donos" que este arquivo persegue desde 08/08.
 #
-# O CRITÉRIO DE "ISTO É UM TEMA DE ÍCONES" NÃO É O NOME DA PASTA, É O ARQUIVO
-#   `index.theme` com uma linha `Directories=` não-vazia. É a mesma regra que a
-#   lista do painel usa, e ela existe por medição: sem o `Directories=`, um tema
-#   de CURSOR (que também mora em `~/.local/share/icons` e também tem
-#   `index.theme`) entraria na lista de temas de ícone, e escolhê-lo deixaria a
-#   máquina com uma árvore sem um único ícone de aplicativo. Uma pasta de SVG
-#   solta também não passa — e isso é resposta, não recusa: ícone avulso tem
-#   outra porta, que é o «Adicionar ícone» da ficha (desde a P82 ele grava em
-#   `~/.local/share/meowsystem/icones-enviados/`, e não mais no clone).
+# A aba de ícones do painel oferece a chave `ICONES_BASE` — o tema que o nosso
+# herda —, e a lista dela sai do disco: todo diretório de
+# `~/.local/share/icons`, `~/.icons` e `/usr/share/icons` que tenha um
+# `index.theme` com `Directories=` e sem `Hidden=true`.
 #
-# TRÊS NOMES SÃO RECUSADOS, E CADA UM POR UM MOTIVO DIFERENTE
-#   `$TEMA_NOME`  é o tema que ESTE script constrói. Deixar um pacote de fora
-#                 cair em cima dele apagaria o trabalho das outras seis etapas de
-#                 ícone na próxima linha do zip.
-#   `hicolor`     é a hierarquia de RESERVA do freedesktop, não um tema. O
-#                 `hicolor.sh` deste projeto já conserta o `index.theme` dela;
-#                 sobrescrevê-lo esconde ícone de jogo da Steam (medido em 04/08).
-#   `default`     é o ponteiro do compositor, escrito pelo `scripts/cursor.sh`.
-#                 Um zip que se chamasse assim trocaria o cursor da tela inteira.
+# Tema é o que tem `index.theme` com `Directories=` não-vazio: sem isso, um tema
+# de cursor entraria na lista. `$TEMA_NOME`, `hicolor` e `default` são recusados
+# (o tema daqui, a reserva do freedesktop e o ponteiro do compositor).
 #
-# O ARGUMENTO É DE FORA, E É TRATADO COMO TAL
-#   Sem `eval`, sem `shell=True`: o caminho entra citado, o zip é aberto num
-#   temporário (nunca no destino) e o que vira diretório é o `basename` peneirado
-#   para `[A-Za-z0-9._-]`, nunca o caminho que veio dentro do pacote.
+# O argumento é de fora: sem `eval`, citado, o zip abre num temporário e o
+# diretório é o `basename` peneirado, nunca o caminho de dentro do pacote.
 _ci_nome_seguro() {
   local n="$1"
   n="${n//[^A-Za-z0-9._-]/-}"
@@ -269,11 +220,7 @@ _ci_adicionar() {
   return "$rc"
 }
 
-# O desfazer do `adicionar`. Só apaga em `~/.local/share/icons`: tema de
-# `/usr/share/icons` é do gerenciador de pacotes (a TRAVA 1 recusa o caminho de
-# qualquer jeito) e tema em `~/.icons` não foi este script que pôs lá. E se o que
-# sair for o `ICONES_BASE` em vigor, a herança do nosso tema aponta para o vazio
-# — então avisa-se, em vez de deixar a máquina descobrir sozinha.
+# O desfazer do `adicionar`.
 _ci_remover() {
   local nome; nome="$(_ci_nome_seguro "${1:-}")"
   [ -n "$nome" ] || { meow_erro "uso: construir_icones.sh remover <nome>"; return "$MEOW_ERRO"; }
@@ -295,59 +242,24 @@ _ci_remover() {
   return "$MEOW_DIVERGENTE"
 }
 
-# ---------------------------------------------------------------------------
-# A BASE QUE O PACK TRAZ — 24/09/2026, sprint P41
-# ---------------------------------------------------------------------------
-# O BURACO, MEDIDO
-#   O `Inherits=` do nosso tema era sempre o `ICONES_BASE`, e o de fábrica é o
-#   Papirus-Dark. Numa máquina vestida de Dracula, os 191 aplicativos do mapa
-#   do pack saíam no desenho dele e todo o resto saía Papirus — menos nesta
-#   máquina, cujo meow.conf aponta para o `Dracula-Icones` que o Spellbook
-#   montava e a P37 desligou. O pack passou a declarar a base
-#   (`icones.base.origem`: URL, commit, sha256), e é aqui que ela entra, porque
-#   este script é o dono de `~/.local/share/icons` e de quem escreve o
-#   `Inherits=` (o cabeçalho do `adicionar`, acima, conta por que um segundo
-#   script instalando tema ali seria a segunda verdade sobre o mesmo disco).
+# A BASE QUE O PACK TRAZ
 #
-# QUEM VALE NÃO É DECIDIDO AQUI
-#   A regra — o `ICONES_BASE` escrito à mão vence, o de fábrica cede ao pack,
-#   sem base na cadeia vale o de fábrica — mora no `base_que_vale` do
-#   `scripts/pack.py`, uma vez, e este script lê a resposta. Aqui se faz o que
-#   é de disco: baixar, conferir, instalar, tirar.
-#
-# O PACOTE ENTRA INTEIRO OU NÃO ENTRA, COMO A NERD FONT
-#   Desce para um palco DENTRO de `~/.local/share/icons` (o `mv` final é no
-#   mesmo disco — TRAVA 2 do lib/comum.sh), o sha256 do pacote é conferido
-#   contra o que o pack pinou, a pasta declarada tem de ser um tema de ícones,
-#   e nenhum link pode apontar para fora dele. Só então ela vira `$BASE_DIR`,
-#   com um `mv` só. Sem rede é aviso e fica para o próximo ciclo; sha256 que
-#   não bate é erro, pelo motivo que o `instalar_fontes.sh` escreve: é o
-#   arquivo mudando debaixo do pino, e isso tem de acordar alguém.
-#
-# A CONFERÊNCIA DE TODA PASSAGEM É POR CONTEÚDO, E CUSTA POUCO
-#   Quem instala escreve dois arquivos ao lado do tema: `.meow-origem` (o
-#   sha256 do pacote de onde ele veio, e quantos links ele tem) e
-#   `.meow-somas.sha256` (o sha256 de cada arquivo). Medido em 24/09/2026 no
-#   ramo circle: 12.514 arquivos, e o `sha256sum -c` de todos leva 0,08 s com
-#   o disco quente. Um carimbo de versão sozinho juraria que está certo um tema
-#   com arquivo apagado; o manifesto não. O ponto na frente dos dois nomes os
-#   tira da vista de quem lista o tema, e nenhum leitor de ícone os abre.
+# A regra — o `ICONES_BASE` escrito à mão vence, o de fábrica cede ao pack, sem
+# base na cadeia vale o de fábrica — mora no `base_que_vale` do
+# `scripts/pack.py`, uma vez, e este script lê a resposta.
 
 # Os alvos de link que caem FORA do diretório, um por linha. `realpath` de
 # todos de uma vez, e não um por link: o ramo circle tem 12.456 links, e um
-# `realpath` por link levaria segundos a cada instalação. O `cursor.sh` tem o
-# gêmeo dele, no `_cursor_baixar_do_pack` (ver lá por que ainda são dois).
+# `realpath` por link levaria segundos a cada instalação.
 _ci_links_fora() {
   local dir; dir="$(realpath -m -- "$1")"
   find "$dir" -type l -print0 2>/dev/null | xargs -0 -r realpath -m -- 2>/dev/null \
     | grep -v -e "^$dir/" -e "^$dir\$" || true
 }
 
-# A BASE NÃO APARECE NOS SELETORES — 15/10/2026, P82 (item 12; decisão 20).
-#   A que já conferia, instalada antes desta data, não tem o `Hidden=true`: ele
-#   entra aqui, e o manifesto dela é refeito na mesma linha (ver o
-#   `meow_tema_base_escondida`, no lib/icones.sh). No seco, só se diz.
-#   0 = já escondida · 1 = escondeu (ou esconderia) · 2 = erro
+# A que já conferia, instalada antes desta data, não tem o `Hidden=true`: ele
+# entra aqui, e o manifesto dela é refeito na mesma linha (ver o
+# `meow_tema_base_escondida`, no lib/icones.sh).
 _ci_base_esconder() {
   if awk '/^\[/{sec=$0} sec=="[Icon Theme]" && $0=="Hidden=true"{achou=1} END{exit !achou}' \
        "$BASE_DIR/index.theme" 2>/dev/null; then
@@ -436,14 +348,13 @@ _ci_base_baixar() {
     return "$MEOW_ERRO"
   fi
   src="$palco/x/$pasta"
-  # A PASTA É CONFERIDA PELA FORMA QUE VAI SER USADA — conferência da P74
-  #   (alerta de segurança de 09/10/2026). O `pack.py` valida o texto da
-  #   `pasta` (sem `..`, sem barra na frente), mas quem a usa é o disco: um
-  #   pacote pinado por um pack importado pode trazer a pasta, ou um diretório
-  #   do caminho dela, como LINK para fora do palco — e aí o `.meow-origem` e o
-  #   manifesto abaixo seriam escritos dentro do alvo do link, e o `mv` poria o
-  #   link no lugar da base. Então: nenhum componente do caminho é link, e o
-  #   `realpath` dele cai dentro do que o `tar` abriu.
+  # O `pack.py` valida o texto da `pasta` (sem `..`, sem barra na frente), mas
+  # quem a usa é o disco: um pacote pinado por um pack importado pode trazer a
+  # pasta, ou um diretório do caminho dela, como LINK para fora do palco — e aí
+  # o `.meow-origem` e o manifesto abaixo seriam escritos dentro do alvo do
+  # link, e o `mv` poria o link no lugar da base.
+  # Por isso nenhum componente do caminho pode ser link, e o `realpath` dele tem de
+  # cair dentro do que o `tar` abriu.
   local dentro resolvido parcial comp
   dentro="$(realpath -e -- "$palco/x")"
   resolvido="$(realpath -e -- "$src" 2>/dev/null)" || resolvido=""
@@ -471,8 +382,8 @@ _ci_base_baixar() {
     meow_info "  $(printf '%s\n' "$fora" | head -1)"
     return "$MEOW_ERRO"
   fi
-  # Escondida dos seletores ANTES do manifesto (P82, item 12): o `index.theme`
-  # com o `Hidden=true` é o que ele mede.
+  # Escondida dos seletores ANTES do manifesto: o `index.theme` com o
+  # `Hidden=true` é o que ele mede.
   meow_tema_base_escondida "$src" >/dev/null
   [ "$?" -le 1 ] || { rm -rf "$palco"; meow_erro "não consegui esconder a base de ícones"; return "$MEOW_ERRO"; }
   # O manifesto nasce do que acabou de ser conferido, e fora do tema: um
@@ -484,12 +395,9 @@ _ci_base_baixar() {
   printf 'sha256=%s\nurl=%s\nlinks=%s\n' "$sha" "$url" "$(find "$src" -type l | wc -l)" > "$src/.meow-origem" \
     || { rm -rf "$palco"; return "$MEOW_ERRO"; }
   chmod 755 "$src"
-  # A BASE DE ANTES SAI POR ÚLTIMO — revisão da P41, 24/09/2026. O `rm -rf`
-  # vinha antes do `mv`, e um `mv` que falhasse deixava o índice de antes
-  # apontando para uma base apagada, com a construção dizendo que o tema "fica
-  # como estava". A de antes vai para o palco (o mesmo disco: é um rename), a
-  # nova entra, e só então a de antes é apagada, junto com o palco. Se a nova
-  # não entra, a de antes volta para o lugar.
+  # O `rm -rf` vinha antes do `mv`, e um `mv` que falhasse deixava o índice de
+  # antes apontando para uma base apagada, com a construção dizendo que o tema
+  # "fica como estava".
   if [ -e "$BASE_DIR" ] || [ -L "$BASE_DIR" ]; then
     mv -f "$BASE_DIR" "$palco/antes" || {
       rm -rf "$palco"; meow_erro "não consegui tirar do lugar a base de antes, em $BASE_DIR"
@@ -500,30 +408,17 @@ _ci_base_baixar() {
     rm -rf "$palco"; meow_erro "falha ao mover a base de ícones para $BASE_DIR"; return "$MEOW_ERRO"
   fi
   rm -rf "$palco"
-  # O MANIFESTO LEVA SÓ O index.theme, E O `--uninstall` DE HOJE NÃO LEVA A
-  # BASE — revisão da P41, 24/09/2026. O passo 4/6 do `lib/desinstalar.sh`
-  # apaga os ARQUIVOS do manifesto, um a um, e o 5/6 apaga as árvores inteiras
-  # que ele conhece: o `MeowSystem-Icons`, e não esta. Medido pela revisão: a
-  # desinstalação tira este index.theme e deixa 12.514 arquivos e 12.456 links
-  # (54 MB), que nem são mais um tema. O conserto é a `-Base` entrar no laço do
-  # passo 5/6, e o `lib/desinstalar.sh` estava fora da tabela da P41: fica
-  # pendente, para a decisão dela. Registrar o index.theme segue valendo até
-  # lá: sem ele, a sobra deixa ao menos de ser oferecida como tema de ícones.
+  # Medido pela revisão: a desinstalação tira este index.theme e deixa 12.514
+  # arquivos e 12.456 links (54 MB), que nem são mais um tema.
   meow_manifesto_registrar "$BASE_DIR/index.theme"
   meow_muda "base de ícones do pack $pack instalada em $BASE_DIR"
   return "$MEOW_DIVERGENTE"
 }
 
-# AS CAMADAS DE TRÁS — 09/10/2026, P74 item 2 (T10 e a decisão 1)
-#   A base do Dracula é o `circle` do m4thewz; o `Dracula-Icones` de antes
-#   herdava o `circle` e, ATRÁS dele, o `main`, e é do `main` que vinham 458
-#   nomes `*-symbolic` que a cadeia nova perdeu em 24/09 (medido contra o
-#   backup congelado). O pack declara as camadas em `icones.base.por_tras`, e
-#   cada uma passa pela mesma régua da frente — o mesmo `_ci_base_baixar`, o
-#   mesmo `_ci_base_confere`, o mesmo `_ci_base_tirar` —, com o `BASE_DIR`
-#   local apontando para o diretório dela: as três funções leem o `BASE_DIR`
-#   do escopo de quem chama, e uma régua só é o que impede duas verdades sobre
-#   o que é "uma base inteira".
+# A base do Dracula é o `circle` do m4thewz; o `Dracula-Icones` de antes
+# herdava o `circle` e, ATRÁS dele, o `main`, e é do `main` que vinham 458
+# nomes `*-symbolic` que a cadeia nova perdeu (medido contra o backup
+# congelado).
 
 # Tira as camadas `$TEMA_BASE-<n>` com n >= $1 (as que o pack no ar não usa).
 _ci_base_tirar_atras() {
@@ -584,14 +479,7 @@ _ci_base() {
   HERDA_ATRAS=""
   meow_tem python3 || return "$MEOW_OK"
   # `"$(meow_pack_dir)"` vazio é o pack padrão, a mesma porta do `cursor.sh` e
-  # do `instalar_fontes.sh`. Recusado (o pack declara uma origem torta) quer
-  # dizer "não mexa em nada": a base que já estiver no disco fica, e o nosso
-  # tema herda do que herdava.
-  #   O NOSSO PRÓPRIO DIRETÓRIO ESCOLHIDO PELO NOME É "O DO PACK", e quem sabe
-  #   disso é o `_base_escolhida` do `pack.py` — a primeira versão tinha a
-  #   exceção só aqui, e o verbo e o `info` diziam outra coisa (revisão da P41,
-  #   24/09/2026). O `NOME_TEMA_ICONES` vai junto porque o nome da base é o
-  #   deste tema com `-Base`, e é por ele que o `pack.py` a reconhece.
+  # do `instalar_fontes.sh`.
   if ! saida="$(ICONES_BASE="$ICONES_BASE" NOME_TEMA_ICONES="$TEMA_NOME" \
                 python3 "$RAIZ/scripts/pack.py" base-icones "$(meow_pack_dir)")"; then
     meow_aviso "não deu para ler a base de ícones do pack — o '$TEMA_NOME' herda de '$ICONES_BASE', como antes"
@@ -664,27 +552,11 @@ _ci_base_cmd() {
 # a linha `Inherits=`: a construção e o `indice` (que a relê do disco).
 CAUDA_HERANCA="breeze-dark,Cosmic,Adwaita,hicolor"
 
-# `indice` — O ÍNDICE NO FIM, DE UMA VEZ — 09/10/2026, P74 item 5 (T8)
-#   O DEFEITO, MEDIDO numa casa de brinquedo com o Dracula: uma passada das
-#   etapas de ícone deixava o `Directories=` sem `48x48/apps`,
-#   `scalable/mimetypes` e os dois `status`. O índice é escrito no passo 1
-#   desta construção, ANTES das etapas que criam esses diretórios; só o laço
-#   de até cinco passagens do `install.sh` escondia isso, porque na segunda o
-#   disco já tinha tudo. Uma máquina que rodasse uma passagem só (o doctor, o
-#   `--uma-passagem`) ficava com mimetypes e status que ninguém acha.
+# O DEFEITO, MEDIDO numa casa de brinquedo com o Dracula: uma passada das etapas
+# de ícone deixava o `Directories=` sem `48x48/apps`, `scalable/mimetypes` e os
+# dois `status`.
 #
-#   A CURA é uma etapa única, a última que escreve no tema: esta. Ela recalcula
-#   o `Directories=` do disco com as mesmas funções da construção (uma verdade
-#   só sobre o que é um diretório do tema), e mantém a herança que a construção
-#   decidiu no passo 0 — ela é lida do índice, e não decidida de novo, porque
-#   decidir é o trabalho do `_ci_base`, que pode baixar. Sem índice no disco o
-#   tema ainda não foi construído, e não há o que indexar.
-#
-#   E A CACHE VAI JUNTO: o `gtk-update-icon-cache` indexa o que o
-#   `Directories=` declara, e a cache que existir e for mais velha que algum
-#   arquivo do tema esconde o arquivo dos aplicativos GTK (o cabeçalho do
-#   `completar_icones.sh` conta a medição). Como lá, a cache só é reindexada se
-#   já existir: criá-la seria escolher pela máquina um regime que ela não pediu.
+# A CURA é uma etapa única, a última que escreve no tema: esta.
 _ci_indice_cmd() {
   local rc=0 cache="$TEMA_DIR/icon-theme.cache" herda
   if [ ! -f "$TEMA_DIR/index.theme" ]; then
@@ -714,24 +586,12 @@ _ci_indice_cmd() {
   return "$rc"
 }
 
-# O DESPACHO É ANTES DE TUDO, E SÓ RECONHECE OS DOIS VERBOS NOVOS
-#   Argumento nenhum continua sendo a construção do tema, que é como o
-#   `install.sh` e o `bin/meow` chamam este script desde sempre. Um argumento
-#   desconhecido vira ERRO (2) em vez de cair calado na construção: a lição está
-#   escrita no `instalar_fontes.sh`, onde `--dry-run` — o nome da VARIÁVEL
-#   documentada — caía no ramo que ESCREVE com quem digitou jurando que só tinha
-#   conferido.
-#
-#   `base` (P41, 24/09/2026) põe ou confere SÓ a base que o pack traz, e diz de
-#   quem o tema herda. É a porta do teste — que não pode rodar a construção
-#   inteira só para ver a base descer — e a de quem quer saber, sem esperar
-#   pelo `meow aplicar`, se a base do pack chegou.
 case "${1:-}" in
   "")        : ;;
   adicionar) _ci_adicionar "${2:-}"; exit $? ;;
   remover)   _ci_remover   "${2:-}"; exit $? ;;
   base)      _ci_base_cmd;           exit $? ;;
-  indice)    : ;;   # despachado depois do `indice()`, que ele usa (P74 item 5)
+  indice)    : ;;   # despachado depois do `indice()`, que ele usa
   *)
     meow_erro "argumento desconhecido: $1"
     meow_info "  uso: construir_icones.sh [adicionar <pasta-ou-zip> | remover <nome> | base | indice]"
@@ -741,14 +601,10 @@ esac
 
 # Os `<tam>/places` que existem DE FATO dentro do tema, um por linha. O glob do
 # bash já devolve ordenado, então a lista é estável entre execuções — requisito
-# para o `meow_escrever` conseguir comparar por conteúdo. O filtro `NxN` existe
-# porque um diretório de nome inesperado viraria um `Size=` inválido no índice.
+# para o `meow_escrever` conseguir comparar por conteúdo.
 #
-# `scalable` ENTROU EM 08/08/2026, e não é simetria gratuita com o `status`
-#   `scalable/places` é onde o `icones_pastas.sh` põe as pastas especiais em
-#   Catppuccin. Sem estar aqui, o diretório existiria no disco e NINGUÉM o
-#   acharia — é o erro clássico de quem monta tema de ícones à mão, e este
-#   projeto já o cometeu uma vez com os próprios `<tam>/places`.
+# `scalable` ENTROU, e não é simetria gratuita com o `status` `scalable/places`
+# é onde o `icones_pastas.sh` põe as pastas especiais em Catppuccin.
 places_no_disco() {
   local d tam
   for d in "$TEMA_DIR"/*/places; do
@@ -760,30 +616,19 @@ places_no_disco() {
   done
 }
 
-# `scalable/mimetypes` é o pack Catppuccin vestindo TIPO DE ARQUIVO, posto lá pelo
-# `icones_mimetypes.sh`. Vale a mesma regra do §1: declarar só o que EXISTE. Se a
-# lista viesse fixa, uma máquina sem o pack teria um `Directories=` apontando para
-# o vazio — e foi exatamente esse o defeito que custou as "três rodadas".
+# `scalable/mimetypes` é o pack Catppuccin vestindo TIPO DE ARQUIVO, posto lá
+# pelo `icones_mimetypes.sh`. Vale a mesma regra do §1: declarar só o que
+# EXISTE.
 tem_mimetypes() { [ -d "$TEMA_DIR/scalable/mimetypes" ]; }
 
 # `512x512/apps` é o acervo Catppuccin de APLICATIVO (PNG com alpha, posto pelo
-# icones_apps.sh). Fica num tamanho fixo, e não em `scalable/`, porque é raster:
-# declarar raster como escalável é o defeito que o thunderbird.png já cometeu
-# aqui — e que foi consertado em 10/08/2026 pelo mesmo princípio (o raster do
-# `hicolor` agora vai para o diretório do tamanho real dele). Vem ANTES de `scalable/apps` na lista para vencer o desenho autoral nos
-# nomes em que os dois existem — a ordem de `Directories=` é a ordem de busca.
+# icones_apps.sh).
 tem_apps_png() { [ -d "$TEMA_DIR/512x512/apps" ]; }
 
 # Os `<tam>/apps` que existem no disco, do MENOR para o maior — e a razão de
 # existirem é o serrilhado.
 #
-# Até 08/08/2026 o acervo raster de aplicativo morava só em `512x512/apps`, e a
-# dock, que desenha a 48 px, recebia um PNG de 512 para reduzir 10,7× em tempo de
-# desenho. Ela viu na tela: "cheio de serrilhados". Agora o `icones_apps.sh`
-# entrega 48, 64, 128 e 256 já reduzidos com Lanczos, e o resolvedor pega o
-# tamanho exato — mas só se ele estiver DECLARADO aqui. Diretório no disco que
-# ninguém declara é diretório que ninguém acha (§2 do COSMIC-THEMING), e este
-# projeto já cometeu esse erro uma vez com os próprios `<tam>/places`.
+# Ela viu na tela: "cheio de serrilhados".
 #
 # Derivado do disco, como todo o resto deste arquivo: assim um tamanho novo em
 # `TAMANHOS_DERIVADOS` aparece aqui sozinho, e um que saia deixa de ser
@@ -803,25 +648,12 @@ apps_no_disco() {
 # `48x48/apps` é o Arcticons vestindo APLICATIVO, posto lá pelo
 # `icones_apps_arcticons.sh`. Mesma regra dos outros: declarar só o que EXISTE.
 #
-# POR QUE UM DIRETÓRIO PRÓPRIO, E POR QUE 48
-#   `scalable/apps` já tem TRÊS donos (`completar_icones.sh`, `logo.sh` e o
-#   bootstrap logo abaixo). O script novo precisa remover órfão quando uma linha
-#   sai do mapa, e remover órfão em diretório de dono compartilhado apagaria
-#   arquivo dos outros. 48 não é chute: a dock dela está em `size L` e desenha
-#   ícone de aplicativo a 48 px (medido por captura de tela em 08/08/2026), e é
-#   a mesma convenção do Papirus, que também guarda SVG em `48x48/apps`.
+# `scalable/apps` já tem TRÊS donos (`completar_icones.sh`, `logo.sh` e o
+# bootstrap logo abaixo).
 tem_apps_traco() { [ -d "$TEMA_DIR/48x48/apps" ]; }
 
-# `<tam>/status` é o Arcticons vestindo os ícones do PRÓPRIO COSMIC, posto lá pelo
-# `icones_sistema.sh`. Mesma regra dos outros: declarar só o que EXISTE.
-#
-# SÃO DOIS TAMANHOS DE PROPÓSITO, E ISSO FOI MEDIDO
-#   O mesmo ícone entra em `22x22/status` com o traço dobrado e em
-#   `scalable/status` com o traço fino do pack. Funciona porque a crate do COSMIC
-#   escolhe POR TAMANHO, não pela ordem desta lista: plantando o mesmo nome nos
-#   dois e rodando o `cosmic-settings` sob strace, ele abriu o grande mesmo com o
-#   22x22 declarado primeiro. É o que dá à barra um traço que se enxerga a 22px
-#   sem engrossar o ícone das Configurações.
+# `<tam>/status` é o Arcticons vestindo os ícones do PRÓPRIO COSMIC, posto lá
+# pelo `icones_sistema.sh`. Mesma regra dos outros: declarar só o que EXISTE.
 status_no_disco() {
   local d tam
   for d in "$TEMA_DIR"/*/status; do
@@ -835,11 +667,7 @@ status_no_disco() {
 
 indice() {
   local dirs="" tam
-  # Ordem crescente, derivada do disco. Não é ela que DECIDE — o resolvedor
-  # escolhe pelo tamanho mais próximo (ver o cabeçalho do icones_apps.sh) —, mas é
-  # a ordem que o `hicolor.sh` adota pelo mesmo motivo e mantém o arquivo legível.
-  # `apps_no_disco` cobre TODO `<tam>/apps`, o do Arcticons e os derivados do
-  # acervo raster: uma lista só, para não haver duas verdades sobre o mesmo disco.
+  # Ordem crescente, derivada do disco.
   while IFS= read -r tam; do [ -n "$tam" ] && dirs="$dirs$tam/apps,"; done < <(apps_no_disco)
   tem_apps_png && dirs="${dirs}512x512/apps,"
   dirs="${dirs}scalable/apps"
@@ -883,11 +711,8 @@ Type=Fixed
 FIM
   fi
 
-  # (o bloco de `48x48/apps` sai do laço genérico acima, junto com 64, 128 e 256.
-  #  Havia um `if tem_apps_traco` fixo aqui e ele passou a duplicar a seção quando
-  #  os derivados nasceram — `Type=Fixed` com SVG dentro convive, é o que o
-  #  Papirus faz no `48x48/apps` dele, mas declarar duas vezes o mesmo diretório
-  #  é um índice que se contradiz.)
+  # (o bloco de `48x48/apps` sai do laço genérico acima, junto com 64, 128 e
+  # 256.
 
   if tem_mimetypes; then
     cat <<'FIM'
@@ -955,11 +780,8 @@ fi
 
 mudou=0
 
-# --- 0. a base que o nosso tema herda — 24/09/2026, P41 ---------------------
-# ANTES do índice, porque é ela que decide o `Inherits=`. Erro aqui (o sha256
-# que não bate, o pacote torto) para a construção ANTES de escrever: o índice
-# de antes continua apontando para a base de antes, que é um estado inteiro, e
-# não para um diretório pela metade.
+# --- 0. a base que o nosso tema herda ---------------------
+# ANTES do índice, porque é ela que decide o `Inherits=`.
 _ci_base
 case $? in
   1) mudou=1 ;;
@@ -972,55 +794,30 @@ esac
 # MinSize e MaxSize são texto morto para ela (medido). Ficam por educação, para
 # outros toolkits que leiam o mesmo tema.
 #
-# O ÍNDICE DESCREVE O QUE ESTÁ NO DISCO — E É ISSO QUE IMPEDE UM LAÇO ETERNO
-#   MEDIDO em 2026-08-04, com o auto-reparo diário já ligado: este script gravava
-#   `Directories=scalable/apps` FIXO, e o `construir_pastas.sh` reescrevia a mesma
-#   linha acrescentando os `<tam>/places`. Cada um desfazia o outro, e os DOIS
-#   devolviam 1 ("estava divergente, consertei") em TODA rodada — seis rodadas
-#   seguidas em teste, sem nunca convergir.
-#   As consequências não eram cosméticas: o `meow doctor` acusava divergência para
-#   sempre, o timer das 5h consertaria e avisaria todo dia (exatamente o que o
-#   auto-reparo existe para não fazer), e no intervalo entre a gravação daqui e a
-#   do outro script as pastas dela ficavam FORA do índice — isto é, azuis,
-#   herdadas do Papirus, até a rodada seguinte.
-#   A correção é não ter dois donos da mesma linha: a lista sai dos diretórios que
-#   existem em `$TEMA_DIR`. O que o `construir_pastas.sh` instalar entra no índice
-#   na próxima passagem por aqui, e a condição `grep -q 48x48/places` dele nunca
-#   mais dispara. Numa máquina recém-instalada isso custa uma gravação a mais na
-#   segunda rodada (a primeira roda antes de os diretórios existirem); da terceira
-#   em diante não se escreve mais nada.
+# Cada um desfazia o outro, e os DOIS devolviam 1 ("estava divergente,
+# consertei") em TODA rodada — seis rodadas seguidas em teste, sem nunca
+# convergir.
 meow_escrever "$TEMA_DIR/index.theme" "$(indice)" 644
 case $? in 1) mudou=1 ;; 2) meow_erro "não consegui escrever o index.theme"; exit "$MEOW_ERRO" ;; esac
 
 # --- 2. o gato do botão -----------------------------------------------------
-# O PISO SAI DO ACERVO DELA, NÃO DE UM GATO GERADO
-#   Até 08/08/2026 este piso era `assets/meow-<flavor>-painel.svg`, desenhado por
-#   `scripts/gerar_gato.py`. Ela mandou excluir os gatos do projeto e ficar só
-#   com a Coquinha e o Mimir, então o gerador e os SVG foram embora — e com eles
-#   o único caminho que este script conhecia.
 #
-#   Acervo vazio não é erro daqui: quem sabe dizer isso é o `logo.sh`, que já
-#   avisa "solte um .svg lá e ele entra". Abortar com 3 faria a etapa de ícones
-#   inteira parar por causa de uma pasta de gatos vazia — e o tema de ícones não
-#   tem nada que ver com o acervo.
+# Ela mandou excluir os gatos do projeto e ficar só com a Coquinha e o Mimir,
+# então o gerador e os SVG foram embora — e com eles o único caminho que este
+# script conhecia.
+#
+# Acervo vazio não é erro daqui: quem sabe dizer isso é o `logo.sh`, que já
+# avisa "solte um .svg lá e ele entra".
 GATO_PISO=""
 if [ -d "$RAIZ/assets/gatos" ]; then
   GATO_PISO="$(find "$RAIZ/assets/gatos" -maxdepth 1 -name '*.svg' \
                  ! -name '*-symbolic.svg' | sort | head -n1)"
 fi
-# SÓ NO BOOTSTRAP — O DONO DESTE ARQUIVO PASSOU A SER O logo.sh EM 05/08/2026
-#   Este laço escrevia o gato do dock a partir de um caminho FIXO
-#   (`assets/meow-${FLAVOR}-painel.svg`), em toda rodada. O efeito, medido no dia
-#   em que ela apontou o gato do canto e perguntou por que não era a Coquinha:
-#   o ícone que ela olha todo dia NUNCA participou da rotação, e a rotação
-#   inteira mirava no applet Logo Menu, que não está montado em barra nenhuma.
+# Este laço escrevia o gato do dock a partir de um caminho FIXO
+# (`assets/meow-${FLAVOR}-painel.svg`), em toda rodada.
 #
-#   Agora quem veste o botão é o `scripts/logo.sh`, que é o dono do acervo e de
-#   quem está no ar. Aqui fica só o bootstrap: se o arquivo ainda não existe
-#   (máquina nova, antes de a etapa de logo rodar), põe o gato do flavor para
-#   que não haja um botão sem ícone no meio da instalação. Escrever sempre
-#   traria de volta os DOIS DONOS descritos no §3 logo abaixo — e aquele defeito
-#   desfazia a rotação em silêncio a cada `install.sh`.
+# Agora quem veste o botão é o `scripts/logo.sh`, que é o dono do acervo e de
+# quem está no ar.
 if [ -n "$GATO_PISO" ]; then
   for nome in "${BOTOES[@]}"; do
     [ -f "$TEMA_DIR/scalable/apps/$nome.svg" ] && continue
@@ -1030,25 +827,13 @@ if [ -n "$GATO_PISO" ]; then
 fi
 
 # --- 3. a logo do painel (caminho de arquivo, não tema) ---------------------
-# O ARQUIVO É DAQUI; A CHAVE QUE APONTA PARA ELE É DO `scripts/logo.sh`.
 #
-# Até 05/08/2026 este script escrevia os dois, e aí nasceu a rotação de gatos —
-# que também precisa da chave. Ficaram DOIS DONOS DA MESMA LINHA, o modo de
-# falha que este projeto persegue desde o começo: girei para `mimir`, rodei o
-# `install.sh`, e a etapa de ícones (que roda ANTES da de logo) devolveu tudo
-# para `meow-mocha.svg`. Medido, e não deduzido — a rotação se desfazia sozinha
-# a cada instalação, sem erro nenhum na tela.
-#
-# A DIVISÃO ACABOU EM 08/08/2026: ESTA SEÇÃO NÃO ESCREVE MAIS NADA.
+# Ficaram DOIS DONOS DA MESMA LINHA, o modo de falha que este projeto persegue
+# desde o começo: girei para `mimir`, rodei o `install.sh`, e a etapa de ícones
+# (que roda ANTES da de logo) devolveu tudo para `meow-mocha.svg`.
 #
 # O que havia aqui era o "piso" — garantir que `~/.config/cosmic/logos/
-# meow-<flavor>.svg` existisse, copiado do gato gerado do flavor. Com os gatos
-# do projeto excluídos a pedido dela (só Coquinha e Mimir), o piso perdeu a
-# fonte; e ele já era o último resquício dos dois donos: o `logo.sh` instala
-# TODOS os gatos do acervo neste mesmo diretório e remove os `meow-*.svg` que
-# não estão no acervo — ou seja, ele apagava este arquivo a cada rodada e este
-# script o recriava na seguinte. Medido no disco em 08/08: `meow-mocha.svg`
-# continuava lá, sozinho, sem participar de rotação nenhuma.
+# meow-<flavor>.svg` existisse, copiado do gato gerado do flavor.
 #
 # Agora o diretório tem dono único, e é o `logo.sh`.
 
@@ -1056,8 +841,7 @@ fi
 # Sem isto nada acima aparece: o tema só entra na busca se for O SELECIONADO.
 #
 # A troca do NOME do tema é o único evento que obriga a reiniciar o painel (ver
-# o bloco 5). Marcamos aqui, antes de escrever: se a chave já apontava para o
-# nosso tema, não houve troca de nome.
+# o bloco 5).
 tema_mudou_de_nome=0
 [ "$(cat "$TK/icon_theme" 2>/dev/null)" = "\"$TEMA_NOME\"" ] || tema_mudou_de_nome=1
 meow_escrever "$TK/icon_theme" "\"$TEMA_NOME\"" 644
@@ -1074,55 +858,22 @@ fi
 
 # --- 5. fazer o COSMIC reler ------------------------------------------------
 # O cosmic-panel e o cosmic-app-list leem a config no início da sessão e não a
-# vigiam. SIGTERM: o cosmic-session respawna em ~4ms e trata exit 15 como
-# "reiniciar" — é o mesmo caminho que o vigia do painel fantasma usa.
-# SÓ REINICIA O PAINEL SE O TEMA MUDOU DE NOME — e isto custou a tela dela duas vezes.
+# vigiam.
 #
 # O cosmic-panel não vigia NADA DISTO — mas vigia outras coisas, e a frase que
-# estava aqui ("zero fds de inotify, medido") era falsa. Medido de novo em
-# 05/08/2026 por `/proc/<pid>/fdinfo/*`: ele mantém SEIS watches, sobre
-# `CosmicPanel/v1`, `CosmicPanel.Panel/v1`, `CosmicPanel.Dock/v1`,
-# `CosmicTheme.Mode/v1`, `CosmicTheme.Light/v2` e `CosmicTheme.Dark/v2`.
-# O que ele NÃO vigia é o `CosmicTk/icon_theme` e os arquivos de ícone — que são
-# justamente o que este script mexe. Ou seja: a conclusão abaixo continua de pé,
-# só a justificativa estava errada. (É por isso que o `vidro.sh`, que escreve em
-# `CosmicPanel.*/v1`, aplica na hora sem reiniciar nada.)
-#
-# Um ícone reescrito só aparece no próximo início dele. A tentação é reiniciar
-# sempre que algo mudar. O problema é que reiniciar tem custo real e cumulativo:
-#   - a tela dela PISCA a cada vez;
-#   - o respawn do cosmic-session tem limite, e depois de muitas mortes na mesma
-#     sessão ele desiste — foi assim que ela ficou sem painel e sem dock duas
-#     vezes em 04/08/2026, numa máquina de uma tela só;
-#   - e se a gente sobe um painel enquanto o session acorda, ficam DOIS painéis
-#     empilhados (aconteceu, ela mandou a captura rindo).
+# estava aqui ("zero fds de inotify, medido") era falsa.
 #
 # Trocar o NOME do tema de ícones é o único evento que realmente exige o
-# reinício, e acontece uma vez por instalação. Ícone reescrito dentro do mesmo
-# tema espera o próximo login — e o script diz isso em voz alta, em vez de
-# derrubar o painel dela para economizar uma espera.
+# reinício, e acontece uma vez por instalação.
 precisa_reiniciar=0
 [ "$tema_mudou_de_nome" = "1" ] && precisa_reiniciar=1
 
-# DUAS RECUSAS ANTES DE MATAR — as duas custaram a tela dela em 26/08/2026.
+# DUAS RECUSAS ANTES DE MATAR — as duas custaram a tela dela.
 #
-# (1) HOME DE BRINQUEDO AINDA MATA O PAINEL DE VERDADE.
-#     O `tests/convergencia.sh:25` roda tudo com `env -i HOME="$H"`, num HOME
-#     descartável — e é o certo: nada do ~/.config dela é tocado. Mas o `pgrep`
-#     e o `pkill` logo abaixo NÃO olham HOME nenhum: eles varrem a tabela de
-#     processos da máquina e derrubam o cosmic-panel da SESSÃO REAL. Rodar a
-#     suíte de testes com ela usando o computador apagava topbar e dock.
-#     Se o HOME não é o do dono da sessão gráfica, este script não tem painel
-#     nenhum para reiniciar — o dele é imaginário.
+# O `tests/convergencia.sh:25` roda tudo com `env -i HOME="$H"`, num HOME
+# descartável — e é o certo: nada do ~/.config dela é tocado.
 #
-# (2) MATAR SÓ VALE SE ALGUÉM FOR RESSUSCITAR.
-#     O comentário acima diz "o cosmic-session respawna em ~4ms". Isso é
-#     verdade no começo da sessão e MENTIRA depois: o backoff dele é
-#     `2^restarts` ms vezes um inteiro sorteado de 0 a 9, sem teto, e o contador
-#     nunca zera por sucesso. Medido em 26/08/2026, no restart 23, a espera saiu
-#     `58720256ms` — 16h18min. Matar o painel nesse estado não é reiniciar: é
-#     apagar a barra até o próximo login.
-#     A espera vigente está no journal do próprio supervisor, de graça.
+# O comentário acima diz "o cosmic-session respawna em ~4ms".
 _ci_home_e_da_sessao() {
   local dono
   dono="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
@@ -1160,34 +911,11 @@ if [ "$precisa_reiniciar" = "0" ]; then
   exit "$MEOW_DIVERGENTE"
 fi
 
-# O RECICLAR ENTRA PELA PORTA ÚNICA — 26/08/2026
-#   Este bloco fazia `pkill -x cosmic-panel` e, se o respawn não viesse em 10s,
-#   `setsid cosmic-panel &`. Os dois pedaços eram bugs conhecidos, e os dois
-#   custaram a tela dela:
+# Este bloco fazia `pkill -x cosmic-panel` e, se o respawn não viesse em 10s,
+# `setsid cosmic-panel &`.
 #
-#   1. `setsid cosmic-panel` SEM sanear o ambiente é o bug de um caractere de
-#      25/08: sem `env -i` o painel herda `PANEL_NOTIFICATIONS_FD` e
-#      `X_PRIVILEGED_WAYLAND_SOCKET` de quem chamou, e sobe SEM bandeja e SEM
-#      botão de desligar (panic em libcosmic wayland_handler.rs:110 para
-#      StatusArea, Power, Audio e Network). E isto roda desatendido às 05:00,
-#      pelo meow-doctor.timer.
-#   2. `pgrep -x cosmic-panel` como prova de sucesso responde "existe algum?",
-#      não "voltou o meu" — declara vitória vendo o processo velho agonizando,
-#      ou o painel de outro spawner.
-#
-#   Além disso, ter DOIS spawners no projeto é o que produz dois painéis
-#   disputando as mesmas layer surfaces. Agora existe um: scripts/painel.sh.
-#   Ele sabe sanear o ambiente, sabe se o cosmic-session ainda socorre (o
-#   backoff dele não tem teto e nunca zera), e recusa matar quando ninguém vai
-#   repor — inclusive quando este script roda num HOME de teste.
-#
-# [E A PORTA ÚNICA É O `meow_tela_reler` — conferência da P80 (item 7). Este
-#   bloco chamava o `painel.sh reciclar` direto, e uma instalação inteira
-#   reciclava o painel aqui, no `logo.sh` e no fim da passada — a marca de
-#   «relê uma vez, no fim» (ver "UM RELER POR PASSADA", lib/comum.sh) não o
-#   alcançava. O `meow_tela_reler` faz o mesmo reciclo, com o lançador junto,
-#   ou só anota o pedido quando o install.sh ou o doctor relê no fim (4). O 1 é
-#   a recusa do painel, que antes caía no mesmo erro.]
+# Além disso, ter DOIS spawners no projeto é o que produz dois painéis
+# disputando as mesmas layer surfaces.
 _ci_reler=0
 meow_tela_reler || _ci_reler=$?
 if [ "$_ci_reler" = 1 ]; then

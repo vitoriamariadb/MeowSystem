@@ -1,20 +1,12 @@
 #!/usr/bin/env bash
 # decisoes.sh — uma decisão, um teste: desfazer uma decisão de quem usa deixa a suíte vermelha. (P86)
 #
-# Um caso por decisão de `docs/sprints/2026-10-09-uso-real/02-decisoes.md` (1 a 12,
-# e o registro de 13 a 17), por regra do `GSD.md` e por quatro da leva H
-# (`P82-abertos.md`, citadas como P82·N porque a numeração colide). O caso prova o
-# comportamento quando dá para provar aqui, e o registro quando o código ainda não
-# existe (13 a 17 chegam com a P87, a P88 e a P89).
+# O caso prova o comportamento quando dá para provar aqui, e o registro quando o
+# código ainda não existe.
 #
-# OS ÍCONES SÃO PERGUNTADOS AO RESOLVEDOR (`scripts/pack.py`), nunca a um caminho
-# fixo: a P88 muda as pastas dos packs e estes casos têm de sobreviver a ela.
-#
-# 5 e 6 dependem do que está INSTALADO na máquina de quem usa (askpass, GPU, shim).
-# Fora dela (sem `/usr/local/lib/aurora`) cada um sai «pulado» na própria linha; nunca
-# lê o conteúdo da senha, só o modo do arquivo.
+# Fora dela (sem `/usr/local/lib/aurora`) cada um sai «pulado» na própria linha;
+# nunca lê o conteúdo da senha, só o modo do arquivo.
 # Tudo numa casa de brinquedo, com falsos que recusam; nada de sudo, apt nem rede.
-#   0 = passou · 1 = falhou
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

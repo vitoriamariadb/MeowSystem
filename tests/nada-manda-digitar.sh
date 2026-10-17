@@ -1,21 +1,7 @@
 #!/usr/bin/env bash
 # nada-manda-digitar.sh — saída do MeowSystem não manda a pessoa digitar o
-# conserto. P79, item 5, 10/10/2026.
+# conserto.
 #
-# O QUE ABRIU ISTO — o QA de uso real da P77
-#   Dentro do painel, três saídas ainda eram receita de terminal:
-#     · o `icones_apps_dracula.sh` (e o irmão `icones_resgatados.sh`): «para
-#       ver agora… pkill -x cosmic-panel && pkill -f cosmic-app-library»;
-#     · o instalador: «Para completá-las:  sudo -v && ./install.sh»;
-#     · o doctor: «conserto: LEITURA_COMPILAR=1 …» e «para construir agora:
-#       meow files-menu build».
-#   O princípio de 09/10 é que o programa faz (ou põe o botão que faz). A tela
-#   do painel tem a porta da tela inteira (`meow_tela_reler`), o «Instalar
-#   tudo», o «Construir o menu da área de trabalho» e o «Consertar o que
-#   estiver fora»; a saída passa a usar a porta, ou a pendência que o botão
-#   resolve.
-#
-# O QUE ESTE TESTE COBRA
 #   1. Nenhuma mensagem (`meow_info`, `meow_pula`, `meow_aviso`, `meow_muda`,
 #      `meow_ok`, `meow_erro`) de `scripts/`, `lib/`, `bin/meow` ou do
 #      `install.sh` carrega as quatro receitas.
@@ -23,12 +9,9 @@
 #      «Instalar tudo», e `leitura-applet` o «Consertar o que estiver fora».
 #   3. Os dois scripts de ícone relêem a tela pela porta única, e não dizem
 #      `pkill`.
-#   5 a 7. (P80, item 8) A linha «resolve:» de uma pendência diz o botão, e
+#   5 a 7. A linha «resolve:» de uma pendência diz o botão, e
 #      não o comando; o papel de parede devolvido vira pendência com o botão
 #      que autoriza aquela imagem; e sem cargo o conserto instala o rust.
-#
-# PORTÁTIL: grep e python3.
-#   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ACHADOS=0
@@ -46,24 +29,8 @@ else
 fi
 
 printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
-#   [15/10/2026: a P79 e a P80 curaram as linhas que o QA viu no painel; estas
-#    saem do terminal, do log e do doctor: «arme o supervisor… systemctl --user
-#    start», «diagnóstico: meow painel estado», «rode o install.sh de novo»,
-#    «sudo apt install …», «rustup toolchain install», «meow tema capturar»,
-#    «adicione com: meow wallpaper adicionar», «sudo -l». Cada linha virou a
-#    ação feita ou o estado.]
-#   Isenta, pelo nome: a linha de uso de um verbo (`uso: meow …`, que
-#   responde a quem já está digitando). A recusa de rodar como root não casa
-#   com nenhuma forma: ela fala antes de existir qualquer coisa a fazer.
-#   [Integração da leva H, 16/10/2026: os três scripts de build (`files_menu`,
-#    `midia_build`, `leitura_build`) ficavam isentos enquanto a P81 os curava
-#    em paralelo. Com as duas juntas eles passam nas formas daqui, e a isenção
-#    saiu: um «rode» que voltar a eles fica vermelho também nesta seção.]
-#   [QA final da leva H, 16/10/2026: as seis linhas que o painel mostrou ao
-#    conferir a máquina, trocar de pack e usar um papel de parede («rode: meow
-#    doctor --consertar», «'meow doctor --consertar' os escreve», «rode uma vez
-#    no terminal», «com sudo disponível», «para ter o nosso de volta: …» e «ou
-#    agora, com 'meow wallpaper carrossel'») viraram estado, e entram aqui.]
+# Isenta, pelo nome: a linha de uso de um verbo (`uso: meow …`, que responde a
+# quem já está digitando).
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
 FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com ')"
 achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
@@ -96,8 +63,6 @@ fi
 rm -rf "$CASA1B"
 
 printf '\n--- 2. as pendências novas têm botão ---\n'
-#   [QA final da leva H, 16/10/2026: o HOME desta pergunta era um `mktemp -d`
-#    que ninguém apagava, e cada rodada da suíte deixava uma `/tmp/tmp.*`.]
 CASA2="$(mktemp -d)" || exit 2
 saida="$(env -i PATH="$PATH" HOME="$CASA2" python3 - "$RAIZ/app" <<'PY' 2>&1
 import sys

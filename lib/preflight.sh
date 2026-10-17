@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 # preflight.sh — a única fase que SÓ OLHA.
 #
-# ESTE ARQUIVO É `source`, NÃO EXECUTADO.
+# Roda antes do lock e antes da primeira escrita.
 #
-# Roda antes do lock e antes da primeira escrita. Não abre rede e não invoca
-# binário de terceiro que tenha efeito colateral: `code --list-extensions` e
-# `flatpak info` criam perfil e repositório no home só por serem perguntados, e
-# uma fase de diagnóstico que escreve não é diagnóstico.
+# O instalador escrevia o meow.conf e a CLI ANTES de descobrir que faltava o
+# apt, que o desktop não era o COSMIC ou que o esquema de tema era outro.
 #
-# NÃO HAVIA NADA DISSO ATÉ AQUI
-#   O instalador escrevia o meow.conf e a CLI ANTES de descobrir que faltava o
-#   apt, que o desktop não era o COSMIC ou que o esquema de tema era outro. O
-#   sintoma nunca era "não dá": era meia instalação e um diretório
-#   `~/.config/cosmic/` que ninguém lê.
-#
-# O QUE ELE DEVOLVE
 #   0 = pode ir   ·   1 = vai com pedaços de fora   ·   2 = não dá.
 #   Só o 2 aborta — cada etapa continua sabendo se pular sozinha.
 
@@ -63,11 +54,8 @@ meow_preflight() {
   #    docs/COSMIC-THEMING.md §4 e §4h). Um esquema que não reconhecemos tem de
   #    ser dito ANTES de copiar mais de cem arquivos por cima dele.
   #
-  #    O FURO DO `*" v2 "*`, FECHADO EM 09/10/2026 (P76): o ramo verde casava
-  #    qualquer lista que CONTIVESSE v2 — `v1 v2 v3` e `v2 v3` passavam verdes,
-  #    e um v3 é justamente o esquema que as capturas não cobrem. A lista agora
-  #    é comparada INTEIRA contra a do contrato (`contratos/cosmic.tsv`, a linha
-  #    `esquema` do `CosmicTheme.Dark`).
+  # A lista agora é comparada INTEIRA contra a do contrato
+  # (`contratos/cosmic.tsv`, a linha `esquema` do `CosmicTheme.Dark`).
   local esquemas="" _v cobertos
   for _v in "$(meow_cosmic_dir)/com.system76.CosmicTheme.Dark/"v*; do
     [ -d "$_v" ] && esquemas="$esquemas${_v##*/} "
@@ -80,12 +68,8 @@ meow_preflight() {
   case " $esquemas " in
     "  ") meow_pula "o COSMIC ainda não escreveu tema neste usuário — a captura vai criar" ;;
     " $cobertos ") meow_ok "esquema de tema: ${esquemas% } (as capturas cobrem $cobertos)" ;;
-    # v1 SEM v2 É CONHECIDO, E O `case` NÃO TINHA RAMO PARA ELE ATÉ 10/08/2026.
-    #   O comentário logo acima diz "as capturas deste repositório são v1+v2" e o
-    #   código chamava metade disso de "desconhecido". É um COSMIC anterior ao
-    #   esquema v2; a captura escreve as duas árvores e a v2 fica inerte até o dia
-    #   em que ele atualizar. Inerte nesta máquina — aqui o disco tem v1 e v2 —,
-    #   mas errado, e um aviso falso no pré-voo é o que faz pré-voo ser ignorado.
+    # O comentário logo acima diz "as capturas deste repositório são v1+v2" e o
+    # código chamava metade disso de "desconhecido".
     " v1 ") meow_ok "esquema de tema: ${esquemas% } — COSMIC anterior ao v2; a captura cobre e a v2 fica inerte" ;;
     *) meow_aviso "esquema de tema desconhecido aqui: ${esquemas% }"
        meow_info "  as capturas deste repositório cobrem $cobertos (contratos/cosmic.tsv)"
@@ -99,39 +83,13 @@ meow_preflight() {
     meow_erro "preciso de bash 4.3+ (aqui: ${BASH_VERSION:-?})"; fatal=1
   fi
 
-  # 5 e 6. A TABELA DOS COMANDOS, E POR QUE ELA VIROU TABELA — 21/09/2026
+  # Dois deles davam o pior tipo de defeito, o SILENCIOSO E ETERNO:
   #
-  #   MEDIDO: o pré-voo conferia SEIS comandos (`flock sed awk find mktemp
-  #   sha256sum`) mais nove avisados, e o caminho de instalação usa 41 —
-  #   contados pela união dos nomes que passam por `meow_tem` em `install.sh`,
-  #   `lib/`, `scripts/` e `bin/meow`, mais os que são chamados direto
-  #   (`md5sum`, `fc-list`, `fc-match`, `tar`, `cmp`). Dois deles davam o pior
-  #   tipo de defeito, o SILENCIOSO E ETERNO:
-  #
-  #     · sem `md5sum`, a comparação da ponte root (`install.sh`, `$md5_quer`)
-  #       lê string vazia, nunca bate com o `regra_md5=` que a ponte devolve, e
-  #       a etapa REINSTALA a ponte — pedindo senha — em TODA passagem, para
-  #       sempre, sem nada acusar;
-  #     · sem `cmp`, o `cmp -s` falha e todo arquivo comparado por ele é dado
-  #       como divergente, com o mesmo efeito.
-  #
-  #   Por isso os dois são FATAIS aqui, e não avisos. Parar com uma frase limpa
-  #   é mais barato do que uma máquina que pede senha toda vez e não diz por
-  #   quê. Os dois moram em `coreutils` e `diffutils`: se faltam, falta mais
-  #   coisa do que este projeto.
-  #
-  #   A LINHA DE CONSERTO É GERADA, e não digitada. A que existia aqui tinha
-  #   oito pacotes escritos à mão numa string — e uma lista à mão envelhece
-  #   calada: bastava uma etapa nova precisar de `xz` para a linha mandar
-  #   instalar o conjunto errado. Agora ela sai da coluna `pacote` da tabela, e
-  #   só com os que faltam de verdade.
-  #
-  #   FORMATO: comando|nível|pacote|quem depende dele.
-  #     base  = sem isto nem começa (fatal)
-  #     etapa = a etapa que depende dele se pula sozinha (aviso)
-  #     extra = enfeite ou coisa de outra procedência (aviso manso)
-  #   Pacote `-` quer dizer "não se instala pelo apt" — vem com o COSMIC, com o
-  #   rustup ou do site do projeto —, e esse não entra na linha de conserto.
+  # · sem `md5sum`, a comparação da ponte root (`install.sh`, `$md5_quer`) lê
+  # string vazia, nunca bate com o `regra_md5=` que a ponte devolve, e a etapa
+  # REINSTALA a ponte — pedindo senha — em TODA passagem, para sempre, sem nada
+  # acusar; · sem `cmp`, o `cmp -s` falha e todo arquivo comparado por ele é
+  # dado como divergente, com o mesmo efeito.
   local -a COMANDOS=(
     "flock|base|util-linux|o lock que impede duas execuções ao mesmo tempo"
     "sed|base|sed|reescrita de arquivo em quase toda etapa"
@@ -148,9 +106,7 @@ meow_preflight() {
     "rsvg-convert|etapa|librsvg2-bin|todo SVG que vira PNG"
     # O `magick` (ImageMagick 7) NÃO tem linha própria: ele é ALTERNATIVA a
     # este `convert`, e não requisito — `wallpaper.sh:490` prefere um e cai no
-    # outro. Uma linha para ele mandaria instalar `imagemagick` numa máquina
-    # que já tem o ImageMagick 6, que é exatamente o aviso falso que faz
-    # pré-voo virar ruído.
+    # outro.
     "convert|etapa|imagemagick|as capas de jogo e as folhas de contato"
     "gtk-update-icon-cache|etapa|libgtk-3-bin|o cache do tema de ícones"
     "fc-cache|etapa|fontconfig|o registro das fontes instaladas"

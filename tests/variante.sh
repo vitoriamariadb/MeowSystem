@@ -1,35 +1,13 @@
 #!/usr/bin/env bash
 # variante.sh — toda variante aplica: o flavor sem fotografia sai de outro do mesmo lado.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 25/09/2026 (sprint P59)
-#   Usando o painel como uma pessoa usaria: FLAVOR=alucard e «Salvar e aplicar»
-#   terminaram em «APLICOU, COM PENDÊNCIA» — «não há captura para
-#   'alucard-mauve'» —, com o desktop parado, o painel vestido de claro e a
-#   gaveta mandando rodar `sudo -v && ./install.sh`. A P48 tinha anotado o mesmo
-#   para `frappe` e `macchiato`: nenhuma captura de que derivar.
+# O `build()` portado no scripts/derivar_flavor.py foi conferido contra o do
+# libcosmic compilado, árvore a árvore — ver o cabeçalho dele. Um teste que
+# precisasse do cargo e do ~/.cargo desta máquina não rodaria em CI nenhum.
 #
-#   A prova que a sprint pediu, numa casa de brinquedo: `alucard`, `frappe` e
-#   `macchiato` aplicam o tema do COSMIC pelas MESMAS etapas do install.sh que o
-#   «Salvar e aplicar» roda; o lado que não se deriva vem do par do pack; e a
-#   página se veste do lado que o MODO escolhe, com a mesma regra do derivador.
-#   Que `dracula`, `mocha` e `latte` saem com os bytes de antes foi medido na
-#   bancada contra a árvore de antes (42 pares, 8004 arquivos iguais); aqui fica
-#   a trava de que eles continuam pelo caminho da P48, que não mudou.
-#
-# O ORÁCULO NÃO RODA AQUI
-#   O `build()` portado no scripts/derivar_flavor.py foi conferido contra o do
-#   libcosmic compilado (o oráculo da P48), árvore a árvore — ver o cabeçalho
-#   dele. Um teste que precisasse do cargo e do ~/.cargo desta máquina não
-#   rodaria em CI nenhum. O que roda é a GUARDA: a porta reproduz as bases que
-#   se reproduzem e recusa as que não, dizendo o campo.
-#
-# NADA FORA DO TEMPORÁRIO
-#   COSMIC, casa, estado e os DOIS packs são de brinquedo: a captura derivada
-#   nasce dentro do pack no ar, e sem a cópia o `frappe` nasceria dentro do
-#   `packs/catppuccin` do clone. `env -i` em toda chamada, a ponte apontando para
-#   o vazio, e o teste confere no fim que o repositório não mudou.
-#
-#   0 = passou · 1 = achados · 2 = erro deste teste
+# COSMIC, casa, estado e os DOIS packs são de brinquedo: a captura derivada
+# nasce dentro do pack no ar, e sem a cópia o `frappe` nasceria dentro do
+# `packs/catppuccin` do clone.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -130,13 +108,9 @@ PY
   || falha "a guarda do build() portado não bate com as capturas" "$saida"
 
 # --- 2. FLAVOR=alucard, «Salvar e aplicar»: o tema do COSMIC muda -----------
-#   O ponto de partida é o Dracula aplicado, com o modo escuro: é a máquina de
-#   onde o alucard foi escolhido na medição da sprint.
-#   COM O CLARO QUE A FOTO TINHA ANTES DA P63 (25/09/2026). Desde ela a Light
-#   do dracula-mauve é o próprio alucard-mauve, e aplicar o alucard sobre ela
-#   não escreveria nada — «já aplicado», e esta seção não provaria que a etapa
-#   aplica. A Light de antes era o Latte (a receita igual à do latte-mauve), e
-#   é ela que vai no brinquedo.
+# Desde ela a Light do dracula-mauve é o próprio alucard-mauve, e aplicar o
+# alucard sobre ela não escreveria nada — «já aplicado», e esta seção não
+# provaria que a etapa aplica.
 cp -a "$DRA/dracula-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
 cp -a "$CAT/latte-mauve"/com.system76.CosmicTheme.Light* "$COSMIC/"
 conf alucard mauve dracula escuro
@@ -201,25 +175,10 @@ etapa gerar >/dev/null; saida_t="$(etapa tema)"; rc_t="$(rc)"
 $(cat "$COSMIC/com.system76.CosmicTheme.Light.Builder/v2/accent" "$COSMIC/com.system76.CosmicTheme.Dark.Builder/v2/accent")"
 
 # --- 5. frappe e macchiato, com o Catppuccin no ar -------------------------
-#   A LIGHT É A DO LATTE-MAUVE COM O VIDRO DESTE COSMIC — 25/09/2026, sprint P68
-#   Esta seção comparava a Light do COSMIC com a do `latte-mauve` byte a byte, e
-#   reprovou com as levas D e E mescladas: a P58 (o vidro segue o COSMIC
-#   instalado) nasceu ao lado da P59, e a camada dela rederiva, ao aplicar, as
-#   cores que carregam o alpha. O brinquedo está no mocha-mauve, com o `frosted`
-#   em ExtremelyHigh2 (alpha 8A) nas duas receitas, e a Light do latte-mauve foi
-#   fotografada em VeryLow2 (D9): «Light 'ExtremelyHigh2' = alpha 8A do
-#   alpha_map deste COSMIC (a captura trazia D9)».
-#   Medido na P68 se as duas camadas se compõem, com frappe-mauve e
-#   macchiato-mauve: a Light que o COSMIC recebe é, byte a byte (produto e
-#   receita), a que a FOTO latte-mauve deixa no mesmo COSMIC; a captura
-#   derivada leva a Light do latte-mauve sem mudar um byte; as duas árvores do
-#   COSMIC são a vista do `derivar_vidro.py` da captura derivada; e a segunda
-#   passagem não escreve nada. O defeito era do teste, que não contava o vidro.
-#   A régua passa a ser a foto vista por este COSMIC — a vista do vidro do
-#   latte-mauve, a mesma que a P58 dá às fotos —, e o alpha 8A do fundo
-#   translúcido é conferido pelo número, para a vista não ser a única
-#   testemunha. A Light do mocha-mauve que o brinquedo já tinha difere dessa
-#   vista em 37 arquivos: uma etapa que não a aplicasse não passaria aqui.
+# O brinquedo está no mocha-mauve, com o `frosted` em ExtremelyHigh2 (alpha 8A)
+# nas duas receitas, e a Light do latte-mauve foi fotografada em VeryLow2 (D9):
+# «Light 'ExtremelyHigh2' = alpha 8A do alpha_map deste COSMIC (a captura trazia
+# D9)».
 cp -a "$CAT/mocha-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
 LATTE_AQUI="$T/latte-mauve-neste-cosmic"
 vidro_latte="$(amb python3 "$RAIZ/scripts/derivar_vidro.py" "$CAT/latte-mauve" --vista "$LATTE_AQUI" 2>&1)"
@@ -243,11 +202,7 @@ $saida_t"
   fi
 done
 
-# --- 6. dracula, mocha e latte continuam pelo caminho da P48 ---------------
-#   A derivada de flavor só entra quando o flavor não tem fotografia nenhuma.
-#   Para os três fotografados, o plano continua o da P48 (a base é a foto do
-#   próprio flavor, e não há `como` de troca de flavor) — é o que mantém os
-#   bytes de hoje, medidos na bancada contra a árvore de antes.
+# A derivada de flavor só entra quando o flavor não tem fotografia nenhuma.
 saida="$(amb python3 - "$RAIZ" "$PACKS" <<'PY' 2>&1
 import json, os, sys
 sys.path.insert(0, sys.argv[1] + "/scripts")
@@ -274,10 +229,8 @@ PY
   || falha "um flavor fotografado passou a ser derivado por outro caminho" "$saida"
 
 # --- 7. a regra do lado é uma só: o servidor e o derivador respondem igual --
-#   O painel se veste pelo `_flavor_no_modo` (app/servidor.py), e a captura de um
-#   flavor claro leva no escuro o `par_do_outro_lado` (scripts/derivar_flavor.py).
-#   Se os dois discordarem, a página e o desktop voltam a se vestir de coisas
-#   diferentes — o defeito da sprint, por outra porta.
+# O painel se veste pelo `_flavor_no_modo` (app/servidor.py), e a captura de um
+# flavor claro leva no escuro o `par_do_outro_lado` (scripts/derivar_flavor.py).
 for pack_id in dracula catppuccin; do
   saida="$(amb env MEOW_PACK_DIR="$PACKS/$pack_id" MEOW_PALETA="$PACKS/$pack_id/paleta.json" \
     python3 - "$RAIZ" "$pack_id" <<'PY' 2>&1
@@ -324,24 +277,10 @@ saida_t="$(etapa tema MEOW_DRY_RUN=1)"; rc_t="$(rc)"; sem="$(cat "$T/sem_captura
 [ "$rc_t" = "1" ] && [ "$sem" = "deriva" ] && [ ! -e "$CAT/macchiato-green" ] \
   && ok "no ensaio, um par que se deriva deixa TEMA_SEM_CAPTURA=deriva e não escreve a captura" \
   || falha "o ensaio do macchiato-green não deu o recado certo (rc=$rc_t, TEMA_SEM_CAPTURA='$sem')" "$saida_t"
-#   A página: com o par sem tema, ela veste o que o COSMIC mostra (a Dark do
-#   macchiato-pink, posta no brinquedo), e não o frappe.
-#   O ACENTO TAMBÉM, E PERGUNTADO À ROTA — 25/09/2026, revisão da P59. Esta
-#   seção conferia só o flavor (`mocha`), e a página vestia o mocha com o pink
-#   do conf: `--accent: var(--pink)` com o COSMIC em `#CBA6F7`, e a prévia de
-#   «Cor e tela», que pinta a variante sem tema com o `--accent` da página,
-#   desenhava um destaque rosa que a tela não tem. Passava aqui e errava na
-#   vida. A pergunta agora é aos três que vestem a página — o `/paleta.css` do
-#   `do_GET`, a página exportada e a marca do painel —, e a resposta tem de ser
-#   o hex que a receita do COSMIC de brinquedo guarda.
-#   A TELA NÃO PODE SER A QUEDA — 25/09/2026, segunda revisão da P59. O
-#   brinquedo punha o COSMIC em mocha-mauve, e mocha e mauve são as duas quedas
-#   do servidor: o `flavor_padrao` do pack no `_flavor_da_pagina` e o
-#   `or "mauve"` do `_acento_da_pagina`. Com o `_flavor_na_tela` ou o
-#   `_acento_na_tela` devolvendo sempre None, esta seção passava igual (medido
-#   numa cópia mutada). A tela agora é a do macchiato-pink, que a etapa gerar
-#   deriva do mocha-pink, e o conf é o frappe-green: o flavor e o acento da tela
-#   não são nem os do conf nem as quedas, e cada caminho errado dá outra cor.
+# Esta seção conferia só o flavor (`mocha`), e a página vestia o mocha com o
+# pink do conf: `--accent: var(--pink)` com o COSMIC em `#CBA6F7`, e a prévia de
+# «Cor e tela», que pinta a variante sem tema com o `--accent` da página,
+# desenhava um destaque rosa que a tela não tem.
 conf macchiato pink catppuccin escuro
 etapa gerar >/dev/null
 conf frappe green catppuccin escuro

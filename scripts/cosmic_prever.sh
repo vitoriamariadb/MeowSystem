@@ -7,42 +7,10 @@
 #   ./cosmic_prever.sh ler                   imprime o último veredito gravado
 #   ./cosmic_prever.sh icones                os apps do COSMIC instalados sem desenho em mapa nenhum
 #
-# O rosto é o `meow cosmic prever`. Sai 0 sem vermelho, 1 com algum vermelho,
-# 2 em erro deste script. NÃO bloqueia upgrade nenhum: o veredito só decide o
-# que o pós-apt vai fazer e onde gente precisa entrar.
+# O rosto é o `meow cosmic prever`. Sai 0 sem vermelho, 1 com algum vermelho, 2
+# em erro deste script.
 #
-# POR QUE ANTES, E NÃO DEPOIS (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.2)
-#   O repositório do Pop guarda UMA versão por pacote. Em 09/10/2026 o fonte do
-#   `cosmic-comp` instalado (0fbd457) já tinha saído do índice, e só existia no
-#   cache do meow. O fonte e o `.deb` do candidato estão disponíveis AGORA,
-#   antes do upgrade — é aí que a sonda roda, e o fonte baixado fica guardado
-#   em `~/.local/share/meowsystem/fontes/`, porque ele é o fonte da versão que
-#   vai estar instalada amanhã.
-#
-# OS CINCO ITENS, cada um uma linha do veredito (`item<TAB>veredito<TAB>detalhe`)
-#   esquema    os `v*` de `usr/share/cosmic/<ns>` no `.deb` contra os de hoje
-#   chave      cada `chave` de `contratos/cosmic.tsv` no binário candidato
-#   série      a série do compositor e o patch do menu no fonte candidato:
-#              `-F0`; se não, `-F1` (o contexto mudou); se não, falha
-#   toolchain  o `rust-version` do fonte contra o rustc que o build usaria
-#   ferramenta a receita de build que o fonte traz (`just`, `make` ou `cargo`)
-#              contra o que a máquina tem; faltar uma é vermelho (P86)
-#   tema       o libcosmic que o `cosmic-settings` candidato pina, e o hash dos
-#              três arquivos da derivação contra o contrato
-#   revisao    cada linha `revisao` do contrato contra a revisão instalada e a
-#              candidata do pacote (o comentário que mediu outra revisão)
-#   icones     os `.desktop` que o candidato traz a mais ou a menos que o
-#              instalado, e os novos sem desenho em mapa nenhum (só informa:
-#              nada é apagado nem desenhado sozinho)
-#
-# OS TRÊS VEREDITOS, e a regra de quem usa: gente só entra no vermelho.
-#   verde     nada a fazer;
-#   amarelo   degrada sozinho ou se refaz sozinho (um `opt` fica de fora, o
-#             contexto mudou e entra com `-F1`, a derivação mudou e o oráculo
-#             refaz) — não pede ninguém;
-#   vermelho  o pós-apt não tem como consertar sozinho: o `req` do compositor
-#             não entra, o menu do `cosmic-files` não entra, uma chave que o
-#             meow grava sumiu do binário, o rustc ficou para trás.
+# O repositório do Pop guarda UMA versão por pacote.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

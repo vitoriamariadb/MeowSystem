@@ -197,17 +197,11 @@ def _cor(receita: dict, chave: str, obrigatoria: bool = False):
     return ac.cor_exata(txt)
 
 
-# A ESCADA É O GROSSO DO CUSTO, E ELA SE REPETE — 25/09/2026, revisão da P58
-#   A revisão mediu cada `aplicar_tema.sh` 0,15 a 0,2 s mais lento com a P58.
-#   Fora os ~45 ms de partida do Python (o que custa a `original`, que para no
-#   `bg_color`), o tempo é das escadas Oklch: o `pintar_vidro` roda duas vezes
-#   por árvore (o vidro da captura, para a guarda, e o do destino), cada
-#   passada sobe cinco escadas, e as cinco são as mesmas nas duas — a escada é
-#   do RGB, o alpha só entra depois. Guardada pela cor, a segunda passada não
-#   refaz nenhuma: medido, mediana de nove, o `derivar_vidro.py` foi de 170 a
-#   200 ms por captura de pack para 115 a 130 ms, com as mesmas 1180 respostas
-#   na varredura. A escada guardada é tupla: o `ctl.reverse()` do claro vira a
-#   lista que o `_escada` monta a cada chamada, nunca a guardada.
+# Fora os ~45 ms de partida do Python (o que custa a `original`, que para no
+# `bg_color`), o tempo é das escadas Oklch: o `pintar_vidro` roda duas vezes
+# por árvore (o vidro da captura, para a guarda, e o do destino), cada passada
+# sobe cinco escadas, e as cinco são as mesmas nas duas — a escada é do RGB, o
+# alpha só entra depois.
 @functools.lru_cache(maxsize=None)
 def _degraus(rgb: tuple, n: int) -> tuple:
     return tuple(tuple(c[:3]) for c in ac.degraus(rgb, n))

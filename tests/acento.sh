@@ -1,35 +1,10 @@
 #!/usr/bin/env bash
 # acento.sh — escolher a cor de destaque e aplicar muda o COSMIC, sem passo à mão.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 24/09/2026 (sprint P48, achados 30 e 31)
-#   A validação no painel de verdade mediu os dois defeitos mais graves da onda:
-#
-#     31. Com o Dracula, «Cor de destaque» oferecia doze cores e só o mauve
-#         aplicava. Pink gravava o conf, gerava o `.ron`, e o instalador mandava
-#         importar o `.ron` na GUI e rodar `meow tema capturar dracula-pink`.
-#         O desktop continuava #BD93F9, e a tela dizia «MEXEU E APLICOU».
-#     30. `meow tema original` não recusava: aplicaria, num clique do painel, o
-#         tema de fábrica de OUTRA máquina e apagaria as chaves que ele não tem.
-#
-#   Este teste é a prova que a sprint pediu: num COSMIC de brinquedo, trocar o
-#   acento muda o `com.system76.CosmicTheme.Dark/v1/accent` (e a v2, e a
-#   receita), pelas MESMAS duas etapas que o «Salvar e aplicar» roda.
-#
-# AS ETAPAS SÃO AS DO install.sh, TIRADAS DELE PELO NOME
-#   O instalador inteiro não roda aqui (ele instala pacote, mexe em systemd, e o
-#   `tests/convergencia.sh` já é quem o percorre inteiro). O que se roda são as
-#   funções `etapa_gerar` e `etapa_tema` como estão escritas no install.sh, na
-#   ordem em que a lista dele as chama, num shell com a ponte montada do conf
-#   de brinquedo. Copiar a lógica delas para cá mediria uma cópia.
-#
-# NADA FORA DO TEMPORÁRIO
-#   O COSMIC, a casa, o estado e o PACK são de brinquedo: o `packs/dracula` vai
-#   copiado para um `$MEOW_PACKS` temporário, porque a captura derivada nasce
-#   dentro do pack no ar — e o teste confere, no fim, que o repositório não
-#   ganhou nem perdeu um arquivo. `env -i` em toda chamada: nem o HOME, nem o
-#   barramento da sessão de quem roda chegam aqui.
-#
-#   0 = passou · 1 = achados · 2 = erro deste teste
+# O COSMIC, a casa, o estado e o PACK são de brinquedo: o `packs/dracula` vai
+# copiado para um `$MEOW_PACKS` temporário, porque a captura derivada nasce
+# dentro do pack no ar — e o teste confere, no fim, que o repositório não ganhou
+# nem perdeu um arquivo.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -45,13 +20,8 @@ CONF="$CASA/.config/meow/meow.conf"
 mkdir -p "$(dirname "$CONF")" "$COSMIC" "$PACKS" "$ESTADO"
 cp -a "$RAIZ/packs/dracula" "$PACKS/" || exit 2
 CAPS="$PACKS/dracula/temas/capturados"
-# A CÓPIA SAI SEM AS CAPTURAS DERIVADAS — 25/09/2026, suíte depois da leva D.
-#   A captura derivada mora DENTRO do pack, fora do git (é a regra da P48), e
-#   uma máquina em que a pessoa já escolheu o rosa tem a `dracula-pink` ali. O
-#   `cp -a` a trazia junto, e o teste reprovava na partida («o ponto de partida
-#   não é o esperado») sem defeito nenhum no código — medido no clone principal
-#   depois de um «Salvar e aplicar» de verdade com o rosa. Quem é derivada diz
-#   isso no próprio `captura.txt`; é essa a marca lida aqui, e não um nome.
+# A captura derivada mora DENTRO do pack, fora do git, e uma máquina em que a
+# pessoa já escolheu o rosa tem a `dracula-pink` ali.
 for cap in "$CAPS"/*/; do
   grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
 done
@@ -60,8 +30,6 @@ git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null)"
 
 # O pack de brinquedo é um repositório: é assim que se vê que a captura
 # derivada, que nasce DENTRO dele, não aparece no `git status` de ninguém.
-# Sem commit: o que se pergunta é só se a pasta dela aparece como não
-# rastreada, e isso o `status` responde num repositório recém-criado.
 git -C "$PACKS" init -q >/dev/null 2>&1 \
   || { printf 'erro: não consegui criar o repositório de brinquedo\n' >&2; exit 2; }
 
@@ -162,9 +130,9 @@ for rel in com.system76.CosmicTheme.Dark.Builder/v2/neutral_tint \
   cmp -s "$CAPS/dracula-mauve/$rel" "$COSMIC/$rel" || { iguais=0; falha "mudou o que o acento não pinta: $rel"; }
 done
 [ "$iguais" = "1" ] && ok "a neutra, o vidro e a paleta ficaram os da captura do mauve"
-# A LIGHT É A DO ALUCARD NO MESMO ACENTO — 25/09/2026, sprint P63. Até aqui
-# ela era a da captura do mauve, copiada, e a do mauve era o Latte do
-# Catppuccin. O tests/claro-do-pack.sh confere a árvore inteira; aqui, o acento.
+# A LIGHT É A DO ALUCARD NO MESMO ACENTO Até aqui ela era a da captura do mauve,
+# copiada, e a do mauve era o Latte do Catppuccin. O tests/claro-do-pack.sh
+# confere a árvore inteira; aqui, o acento.
 claro="$(campo "$COSMIC/com.system76.CosmicTheme.Light/v2/accent" base)"
 [ "$claro" = "#ED77BBFF" ] \
   && ok "a Light/v2/accent é o pink do alucard ($claro), e não o mauve da captura da base" \
@@ -179,16 +147,11 @@ saida_t2="$(etapa tema)"; rc_t2="$(rc)"
 $saida_t2"
 
 # --- 4b. com a receita DELA diferente da captura, trocar o acento ainda chega
-#   O COSMIC de brinquedo acima é cópia byte a byte da captura, e numa máquina
-#   de verdade ele nunca é: com VIDRO_AO_MAXIMIZAR="sim" (o padrão do
-#   meow.conf.exemplo) o `vidro.sh` grava `frosted_maximized_apps=true` onde o
-#   dracula-mauve traz `false`, e o slider «Opacidade do vidro» dela move o
-#   `alpha_map`. Medido na revisão da P48, numa cópia do ~/.config/cosmic
-#   desta máquina: "tema 'dracula-pink' aplicado: 20 escritos, 150 já estavam
-#   certos, 0 removidos, 19 preservados da sua GUI", a receita no pink e a
-#   Dark/v2 inteira no mauve, com a notificação dizendo que aplicou. Aqui o
-#   brinquedo ganha as duas diferenças, do jeito que o vidro.sh e a GUI as
-#   escrevem, e o acento troca de novo pelas mesmas duas etapas.
+# O COSMIC de brinquedo acima é cópia byte a byte da captura, e numa máquina
+# de verdade ele nunca é: com VIDRO_AO_MAXIMIZAR="sim" (o padrão do
+# meow.conf.exemplo) o `vidro.sh` grava `frosted_maximized_apps=true` onde o
+# dracula-mauve traz `false`, e o slider «Opacidade do vidro» dela move o
+# `alpha_map`.
 for f in "$COSMIC"/com.system76.CosmicTheme.*/v*/frosted_maximized_apps; do
   [ -f "$f" ] && printf 'true' > "$f"
 done
@@ -214,10 +177,9 @@ fi
   && ok "e o alpha_map dela e o frosted_maximized_apps do vidro.sh continuam os dela" \
   || falha "trocar o acento desfez o vidro dela"
 
-#   A FRONTEIRA CONTINUA DE PÉ: com o MESMO tema, o que a GUI dela derivou do
-#   slider vence a captura na manutenção. É o caso que motivou a cessão (05/08:
-#   o instalador reescreveu nove arquivos da Dark/v2 um minuto depois de ela
-#   mexer no vidro), e trocar o acento não pode tê-lo reaberto.
+# A FRONTEIRA CONTINUA DE PÉ: com o MESMO tema, o que a GUI dela derivou do
+# slider vence a captura na manutenção. É o caso que motivou a cessão, e trocar
+# o acento não pode tê-lo reaberto.
 tb="$COSMIC/com.system76.CosmicTheme.Dark/v2/transparent_background"
 sed -i '0,/^    base: "#\([0-9A-F]\{6\}\)[0-9A-F]\{2\}"/s//    base: "#\171"/' "$tb"
 derivado="$(cat "$tb")"
@@ -228,10 +190,9 @@ saida_t="$(etapa tema)"; rc_t="$(rc)"
   && [ "$rc_t" = "0" ] && [ "$(cat "$tb")" = "$derivado" ] \
   && ok "com o mesmo tema, o que a GUI dela derivou do vidro continua (a captura não o desfaz)" \
   || falha "a manutenção desfez o que a GUI dela derivou (rc=$rc_t)" "$saida_t"
-#   E o `frosted_maximized_apps` sozinho NÃO é o vidro dela: quem o escreve é o
-#   vidro.sh, e o COSMIC não deriva cor nenhuma dele. Com o `alpha_map` de
-#   volta ao da captura, a mesma diferença na Dark/v2 é defeito e se conserta,
-#   em vez de virar "a captura está velha: você mexeu em Aparência".
+# Com o `alpha_map` de volta ao da captura, a mesma diferença na Dark/v2 é
+# defeito e se conserta, em vez de virar "a captura está velha: você mexeu em
+# Aparência".
 for f in "$COSMIC"/com.system76.CosmicTheme.Dark.Builder/v2/alpha_map \
          "$COSMIC"/com.system76.CosmicTheme.Dark/v2/alpha_map; do
   cp "$CAPS/dracula-green/${f#"$COSMIC"/}" "$f"
@@ -266,12 +227,9 @@ saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/catppuccin" MEOW_PALETA="$RAIZ/packs
   || falha "a escolha da base do mocha não passou pela guarda (rc=$r)" "$saida"
 
 # --- 7. o flavor sem base do mesmo lado não aplica, e vira pendência -------
-#   DESDE A P59 (25/09/2026) O FRAPPE SE DERIVA: sai do mocha-pink, trocado slot
-#   a slot (scripts/derivar_flavor.py, e o tests/variante.sh prova). O que não
-#   aplica agora é o flavor sem base NENHUMA do mesmo lado — e é esse o caso
-#   que esta seção continua cobrando: um Catppuccin de brinquedo sem as duas
-#   fotos escuras. E o pack vai para o `$MEOW_PACKS`, e não fica no clone: um
-#   frappe que se derivasse nasceria dentro do `packs/catppuccin` daqui.
+# O que não aplica agora é o flavor sem base NENHUMA do mesmo lado — e é esse o
+# caso que esta seção continua cobrando: um Catppuccin de brinquedo sem as duas
+# fotos escuras.
 cp -a "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
 rm -rf "$PACKS"/catppuccin/temas/capturados/mocha-*
 conf frappe pink catppuccin

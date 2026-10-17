@@ -1,64 +1,15 @@
 /* app/pagina/estilo.css — a folha de estilo da página de configuração.
  *
- * REDESENHO DE 06/09/2026, PRIMEIRA PASSAGEM. Nada ali exigiu uma linha de HTML
- * nova: tudo o que mudou de posição no cartão e no cartão de ação mudou por
- * `order` de flex, e tudo o que mudou de peso mudou por `:has()`.
- *
- * SEGUNDA PASSAGEM DE 06/09/2026, E ESTA PEDE MARCAÇÃO NOVA — a frase acima
- * deixou de valer para o cartão de chave, e é honesto dizer onde. A queixa dela,
- * com a tela na frente: *"tem algo no nosso estilo que deixa tudo muito confuso
- * e difícil de entender. temos que melhorar isso e darmos respiro nesse
- * sentido."* E, apontando o `VIDRO_OPACIDADE_DOCK` no pé de um cartão: *"essa
- * parte que selecionei tem que sumir também — isso pra todos"*.
+ * Nada ali exigiu uma linha de HTML nova: tudo o que mudou de posição no cartão
+ * e no cartão de ação mudou por `order` de flex, e tudo o que mudou de peso
+ * mudou por `:has()`.
  *
  * O cartão tinha seis camadas e passa a ter três (ver o comentário do CARTÃO DE
- * CHAVE, mais abaixo). O que saiu do corpo não sumiu do produto: mudou de casa
- * para dentro de uma dica que um `?` ao lado do título abre. Duas classes novas
- * nascem aqui e o `app.js` as escreve: `button.porque` (o gatilho) e `.dica` (o
- * balão). Nenhuma cor nova, nenhuma medida nova — o `?` é `--t-legenda`, que já
- * era o degrau das legendas desta folha.
+ * CHAVE, mais abaixo).
  *
- * NENHUM HEX AQUI DENTRO, E ISSO É A REGRA DO README, NÃO UM CAPRICHO
- *   Toda cor sai de `/paleta.css` — a folha que o `app/servidor.py` gera do
- *   pack ativo, no flavor que o meow.conf manda — pelas variáveis que o
- *   `<style id="paleta-do-painel">` define. O caminho do arquivo de paleta NÃO
- *   é nomeado aqui de propósito desde 22/09/2026: ele mudou de casa na P13, e
- *   uma folha de estilo que crava o caminho da paleta é a mesma divergência
- *   silenciosa de sempre, com outra extensão. Trocar `FLAVOR="latte"` veste a
- *   página inteira de claro sem uma linha a mais aqui — e por isso não há
- *   sombra que só funcione no escuro, nem `invert()` cravado (ver a tira de
- *   glifos, que agora inverte por `light-dark()`).
- *
- * O ACCENT SIGNIFICA "ACESO", E ESTE REDESENHO TIROU ACCENT DE ONZE LUGARES
- *   `var(--accent)` ficou só onde algo está LIGADO, SELECIONADO, ESPERANDO ou
- *   COM FOCO. Saiu do nome do produto, do título do diálogo, do número do
- *   deslizante, do título do log, do fundo do desenho da barra, da seção-mãe
- *   aberta no menu, do selo "essencial", do traço de "mexeu" (virou pêssego,
- *   que já é "atenção sem erro") e — a maior — dos 34 botões "Rodar" da parte
- *   de Fazer. Trinta e quatro ações principais não são ação principal nenhuma;
- *   a ação principal desta página é "Salvar e aplicar", e ela é uma só.
- *
- * TRÊS REGISTROS, PORQUE SÃO TRÊS ASSUNTOS
- *   Ver e escolher .. a imagem é o objeto. A moldura saiu: sem borda, sem
- *                     fundo, sem legenda permanente. Grade densa, largura
- *                     inteira da tela.
- *   Ajustar ........ o controle é o objeto. O cartão perdeu a caixa e virou
- *                     linha de lista com um fio em cima; só quem carrega
- *                     PRÉVIA (as tiras de flavor, os gatos, as bolinhas de
- *                     cor, o desenho da barra) continua dentro de uma caixa,
- *                     porque aí há o que olhar. Largura limitada: em 27
- *                     polegadas, seis colunas de 330px não se leem.
- *   Fazer .......... o risco é o objeto. Ação que só lê fica em linha rasa;
- *                     ação que pode pedir sudo ganha caixa e fio pêssego;
- *                     ação que desfaz ganha caixa e fio vermelho. Nenhum
- *                     `:has()` novo no HTML: as pastilhas que já existem é que
- *                     dizem o grau.
- *
- * DEGRAU DE TAMANHO
- *   23 px seção · 14 px título de cartão · 12,8 px frase · 10,5 px legenda.
- *   Antes a página inteira vivia entre 15,4 e 14,9 px — meio pixel de
- *   diferença em telas com 22 cartões.
- */
+ * Toda cor sai de `/paleta.css` — a folha que o `app/servidor.py` gera do pack
+ * ativo, no flavor que o meow.conf manda — pelas variáveis que o `<style
+ * id="paleta-do-painel">` define. */
 
 /* --- as medidas ----------------------------------------------------------- */
 /* Só forma: raio, espaço e tamanho de letra. Cor nenhuma mora aqui. */
@@ -84,12 +35,9 @@
 /* --- o esqueleto ---------------------------------------------------------- */
 * { box-sizing: border-box; }
 
-/* `hidden` TEM DE VENCER, E ELE NÃO VENCIA — visto na tela em 01/09/2026
- *   O atributo `hidden` é `display: none` na folha do NAVEGADOR, que perde para
- *   qualquer regra de autor. Como `.aviso` e `.gaveta` declaram `display:flex`,
- *   as duas apareciam mesmo com o atributo posto: a página abria com uma tarja
- *   de aviso vazia no topo e o console ocupando o rodapé antes de existir um
- *   único trabalho para mostrar. */
+/* `hidden` TEM DE VENCER, E ELE NÃO VENCIA — visto na tela O atributo `hidden`
+ * é `display: none` na folha do NAVEGADOR, que perde para qualquer regra de
+ * autor. */
 [hidden] { display: none !important; }
 
 html, body {
@@ -184,14 +132,11 @@ a:hover { color: var(--accent); text-decoration: underline; }
 #busca::placeholder { color: var(--overlay1); }
 #busca:focus-visible { border-color: transparent; }
 
-/* O botão amarelo do ensaio morava aqui até 13/09/2026, quando ela pediu o app
- * fora do "modo sandbox". A regra saiu junto com o botão: estilo de um controle
- * que não existe é convite para alguém desenhá-lo de volta.
+/* A regra saiu junto com o botão: estilo de um controle que não existe é
+ * convite para alguém desenhá-lo de volta.
  *
- * O AMARELO VOLTOU EM 22/09/2026 (sprint P8) E NÃO VOLTOU PARA CÁ: o que morava
- * neste bloco era o INTERRUPTOR de sandbox, um irmão do `#busca` na barra do
- * alto, e ele continua morto. O que existe hoje é o `.btn-ensaio`, junto dos
- * outros botões — ver o bloco dele, ao lado do `.btn-perigo`. */
+ * O que existe hoje é o `.btn-ensaio`, junto dos outros botões — ver o bloco
+ * dele, ao lado do `.btn-perigo`. */
 
 /* --- levar embora e trazer de volta ---------------------------------------
  * O menu é um `<details>`: o navegador já abre, fecha, faz o Enter e o Espaço
@@ -216,8 +161,7 @@ a:hover { color: var(--accent); text-decoration: underline; }
   background: var(--mantle);
   /* Uma das três sombras desta folha — e as três são a mesma coisa: superfície
    * que FLUTUA por cima do conteúdo (este menu, o diálogo e a dica do cartão).
-   * Sem ela as duas superfícies escuras encostam sem fronteira. Sai de `--crust`
-   * para o latte não ganhar um halo escuro inventado. */
+   * Sem ela as duas superfícies escuras encostam sem fronteira. */
   box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
 }
 .menu-item {
@@ -248,10 +192,8 @@ a:hover { color: var(--accent); text-decoration: underline; }
   background: color-mix(in srgb, var(--accent) 12%, var(--mantle));
 }
 .barra-salvar strong { font-size: .8rem; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
-/* A BARRA SEM ESCOLHA ESPERANDO — 13/09/2026. Ela ficou sempre à vista (ver o
- * `index.html`), e o aceso de cima só existia porque ela só aparecia com
- * pendência. Sem pendência a moldura some e fica o Salvar como qualquer botão:
- * continua ali, continua aplicando, e não anuncia um estado que não existe. */
+/* Ela ficou sempre à vista (ver o `index.html`), e o aceso de cima só existia
+ * porque ela só aparecia com pendência. */
 .barra-salvar.vazia {
   padding: 0;
   border-color: transparent;
@@ -263,8 +205,8 @@ a:hover { color: var(--accent); text-decoration: underline; }
 #salvar-conta { cursor: pointer; text-decoration: underline dotted var(--overlay0); text-underline-offset: 3px; }
 #salvar-conta:hover { text-decoration-color: var(--accent); }
 
-/* A LISTA DO QUE ESPERA — 07/09/2026. Ancorada na própria barra, cai como um
- * balão abaixo dela. Cada linha é um botão que leva ao cartão da chave. */
+/* A LISTA DO QUE ESPERA. Ancorada na própria barra, cai como um balão abaixo
+ * dela. Cada linha é um botão que leva ao cartão da chave. */
 .barra-salvar { position: relative; }
 #lista-pendentes {
   position: absolute;
@@ -305,7 +247,7 @@ a:hover { color: var(--accent); text-decoration: underline; }
 /* O ponto de pendência no trilho: no canto do ícone, SEM ocupar coluna — o
  * botão é uma grade de três colunas (ícone · nome · crachá), e um quarto filho
  * no fluxo abria uma segunda linha: na primeira captura o "11" de Cor e tela
- * caiu para baixo do nome. Absoluto, ele não disputa lugar com ninguém. */
+ * caiu para baixo do nome. */
 .trilho .ponto-pendente {
   position: absolute;
   left: 1.35rem;
@@ -329,14 +271,10 @@ a:hover { color: var(--accent); text-decoration: underline; }
 /* --- corpo ---------------------------------------------------------------- */
 .corpo { display: flex; flex: 1 1 auto; min-height: 0; }
 
-/* ===========================================================================
- * O TRILHO — vinte itens, uma linha cada
- * ===========================================================================
+/* O TRILHO — vinte itens, uma linha cada
+ *
  * Era um paredão: cada item de nível de cima carregava uma frase de descrição
- * de duas a três linhas, sempre visível, vinte vezes. A frase não sumiu do
- * produto — ela é a `.descricao-secao`, e aparece no alto do conteúdo, que é
- * onde ela tem trabalho: confirmar que se entrou no lugar certo. No menu ela
- * era a mesma informação, repetida vinte vezes, para escolher UM.
+ * de duas a três linhas, sempre visível, vinte vezes.
  *
  * Com ela fora, o trilho encolheu de ~62 px por item para 26, os três blocos do
  * produto (Ver / Ajustar / Fazer) caíram na mesma tela, e a régua horizontal
@@ -351,11 +289,9 @@ a:hover { color: var(--accent); text-decoration: underline; }
 .trilho .descricao-menu { display: none; }
 .trilho hr { display: none; }
 
-/* O RÓTULO DE BLOCO GANHOU O DESENHO — pedido dela em 06/09/2026.
- * Os três blocos são os três verbos do produto e eram as três únicas linhas do
+/* Os três blocos são os três verbos do produto e eram as três únicas linhas do
  * menu com a coluna dos ícones vazia — um buraco justamente nas linhas que
- * dividem a lista. Com o desenho, o texto do rótulo cai na mesma vertical do
- * texto dos itens, e o desenho passa a ser o que distingue BLOCO de SEÇÃO. */
+ * dividem a lista. */
 .trilho .rotulo-grupo {
   display: flex;
   align-items: center;
@@ -372,10 +308,8 @@ a:hover { color: var(--accent); text-decoration: underline; }
 
 /* Cada item é UMA linha com reticências (o nome inteiro fica no `title`, que o
  * app.js já preenche) e o número numa coluna própria, alinhado à direita. */
-/* OS ÍCONES DO MENU. Uma coluna própria no grid do botão (`auto 1fr auto`), no
- * lugar do traço que ficava antes da palavra. O desenho herda a cor do item por
- * `currentColor`: cinza no repouso, accent no item aberto — nenhuma regra de cor
- * a mais, e nenhum hex. */
+/* Uma coluna própria no grid do botão (`auto 1fr auto`), no lugar do traço que
+ * ficava antes da palavra. */
 .menu-icone {
   display: flex;
   align-items: center;
@@ -390,12 +324,9 @@ a:hover { color: var(--accent); text-decoration: underline; }
 .trilho .item-externo:hover .menu-icone { color: var(--subtext0); }
 .trilho button[aria-current="true"] .menu-icone { color: var(--accent); }
 
-/* O TRAÇO EM TODOS OS ITENS, E NÃO SÓ NOS FILHOS.
- * Ele nasceu como marca de subitem, e o resultado é que metade do menu tinha
- * uma coluna à esquerda e a outra metade não — a linha vertical aparecia e
- * desaparecia descendo a lista. Agora ela atravessa o menu inteiro e o degrau
- * de nível passa a ser o RECUO, que é o que sempre disse hierarquia numa lista.
- * Aceso, o traço é accent: é o único item aberto. */
+/* Agora ela atravessa o menu inteiro e o degrau de nível passa a ser o RECUO,
+ * que é o que sempre disse hierarquia numa lista. Aceso, o traço é accent: é o
+ * único item aberto. */
 /* O item do manual usa as MESMAS regras dos irmãos, e por isso ele entra em
    cada seletor em vez de ganhar um bloco só seu: um bloco irmão é a folha
    que envelhece calada no dia em que o menu mudar de recheio ou de fonte. */
@@ -439,24 +370,13 @@ a:hover { color: var(--accent); text-decoration: underline; }
 }
 .trilho button[aria-current="true"] .conta { color: var(--accent); }
 
-/* O item que sai da máquina. A seta é a convenção de "abre em outra janela", e
-   ela vale mais que qualquer palavra que coubesse ali; o `text-decoration: none`
-   existe porque é um `<a>` e o navegador o sublinharia sozinho, sozinho entre
-   os irmãos. A margem de cima o separa do último item de Sistema: ele não
-   pertence a bloco nenhum, e encostado leria como o quarto item do Sistema. */
-/* O «INÍCIO» E OS «CRÉDITOS» SÃO ROXOS — pedido dela, em duas passagens: primeiro
-   "coloca verde igual Sistema", depois "na verdade deixa Início e Créditos em
-   fonte de cor roxa". Vale a segunda.
-
-   `--mauve` e não `--accent`: o accent é a cor que marca a página ABERTA, e se
-   os dois usassem a mesma variável o Início perderia o contraste entre "esta é
-   a página" e "esta é uma das opções" no dia em que ela trocar o accent. Com o
-   mauve fixo, o `aria-current` continua tendo fundo, peso e a cor de destaque
-   só para si.
-
-   Os dois andam juntos porque são a mesma categoria: nenhum dos dois é um
-   assunto do meow.conf. Um é a página que resume as outras; o outro sai da
-   máquina. */
+/* O item que sai da máquina. */
+/* `--mauve` e não `--accent`: o accent é a cor que marca a página ABERTA, e se
+ * os dois usassem a mesma variável o Início perderia o contraste entre "esta é
+ * a página" e "esta é uma das opções" no dia em que ela trocar o accent.
+ *
+ * Os dois andam juntos porque são a mesma categoria: nenhum dos dois é um
+ * assunto do meow.conf. */
 .trilho > button.e-inicio:not([aria-current="true"]) { color: var(--mauve); }
 .trilho > button.e-inicio:not([aria-current="true"]) .menu-icone { color: inherit; }
 .trilho > button.e-inicio:not([aria-current="true"]):hover {
@@ -478,20 +398,14 @@ a:hover { color: var(--accent); text-decoration: underline; }
 .trilho .item-externo:hover .menu-icone { color: inherit; }
 .trilho .seta-externa { color: inherit; opacity: .6; font-size: var(--t-legenda); }
 
-/* «BARRA E DOCK» E «TERMINAL» SÃO SEÇÃO, E AGORA SE LEEM COMO SEÇÃO — 06/09/2026
- * Ela, olhando o menu: "isso não é uma seção como o AJUSTAR?". Era: as duas
- * tinham peso de item clicável, desenho na coluna dos ícones e filhas recuadas
- * — três sinais de aba numa linha que não abre nada. E o recuo das filhas
- * (1,3 rem) as tirava da vertical de todos os outros itens: metade do menu com
- * sangria, metade sem, que é o "recuo estranho" que ela viu no Terminal.
+/* Era: as duas tinham peso de item clicável, desenho na coluna dos ícones e
+ * filhas recuadas — três sinais de aba numa linha que não abre nada.
  *
  * Agora ela é rótulo, como o do bloco, com dois degraus de distância: caixa
- * alta menor e um degrau de recuo, que é o que a aninha debaixo do bloco. As
- * filhas subiram a item de primeiro nível: uma vertical só, menu inteiro.
+ * alta menor e um degrau de recuo, que é o que a aninha debaixo do bloco.
  *
- * OS DOIS NÍVEIS DE RÓTULO SÃO VERDES — pedido dela em 06/09/2026. O verde não é
- * o accent (que segue querendo dizer ACESO) e não é a cor de nenhum item: ele
- * diz "esta linha é um título, não um lugar para clicar". Uma cor, um sentido. */
+ * O verde não é o accent (que segue querendo dizer ACESO) e não é a cor de
+ * nenhum item: ele diz "esta linha é um título, não um lugar para clicar". */
 .secao-menu {
   display: flex;
   align-items: center;
@@ -511,46 +425,19 @@ a:hover { color: var(--accent); text-decoration: underline; }
 main {
   flex: 1 1 auto;
   overflow-y: auto;
-  /* A ÂNCORA DE ROLAGEM FAZIA A FAIXA SAMBAR — 07/09/2026
-     Queixa dela: "os ícones que ficam congelados ficam sambando na tela tipo
-     travando, em todas as páginas".
-
-     Medido, quadro a quadro, rolando: o `presa` da faixa trocava de estado
-     entre 32 e 62 vezes numa rolagem só, e o navegador mexia no `scrollTop`
-     sozinho, subtraindo EXATAMENTE o que a faixa encolhe — 103 px em "Ícones",
-     104 em "Cor e tela", 60 em "Painel e dock", de 17 a 31 vezes por rolagem.
-
-     É a ancoragem de rolagem do Chrome, e o laço se fecha assim: a faixa gruda
-     e encolhe; o conteúdo abaixo sobe; o navegador compensa a subida mexendo no
-     `scrollTop` para o leitor não perder o lugar; isso devolve a sentinela para
-     dentro da tela; a faixa desgruda e cresce; o navegador compensa de novo.
-     Ninguém está errado sozinho — as duas correções se anulam em ciclo.
-
-     `none` no ROLADOR, e não na faixa: a âncora que o navegador escolhe é o
-     conteúdo ABAIXO dela, então excluir a faixa não muda nada. Medido também:
-     com a regra na `.previa-bloco`, continuam 34 e 62 trocas; aqui, uma só — a
-     legítima, de solta para grudada — e zero salto de rolagem.
-
-     O que se perde: quando algo cresce ACIMA do ponto onde ela está, a página
-     não compensa mais sozinha. Aqui isso é o carregamento das listas, que
-     chega antes de ela rolar; o samba era a cada rolagem, em seis páginas. */
+  /* Medido, quadro a quadro, rolando: o `presa` da faixa trocava de estado
+   * entre 32 e 62 vezes numa rolagem só, e o navegador mexia no `scrollTop`
+   * sozinho, subtraindo EXATAMENTE o que a faixa encolhe — 103 px em "Ícones",
+   * 104 em "Cor e tela", 60 em "Painel e dock", de 17 a 31 vezes por rolagem.
+   *
+   * `none` no ROLADOR, e não na faixa: a âncora que o navegador escolhe é o
+   * conteúdo ABAIXO dela, então excluir a faixa não muda nada. */
   overflow-anchor: none;
-  /* SEM RECHEIO EM CIMA, E ISSO É O QUE FAZ O DESENHO GRUDADO FUNCIONAR.
-     Quem rola é o `main`, e um `sticky` com `top: 0` gruda no topo do PADDING
-     BOX. Enquanto havia `padding-top` aqui, esse ponto ficava 22 px ABAIXO do
-     topo visível, e naqueles 22 px o conteúdo passava à vista.
-
-     A primeira tentativa foi tapar o vão com uma faixa pintada acima do
-     desenho. Ela funciona quando o desenho está grudado e é destrutiva quando
-     não está: pinta por cima do que vier antes dele. Medido — comeu a frase da
-     seção em cinco abas e a metade de baixo do botão de instalar fonte no
-     Terminal. Faixa que não sabe se o elemento está grudado não deveria
-     existir, e o CSS não tem como lhe contar.
-
-     Então o vão deixa de existir. O respiro de cima passa a ser MARGEM DOS
-     FILHOS: `overflow-y: auto` faz do `main` um contexto de formatação próprio,
-     então essa margem não escapa para fora dele, e as margens dos dois irmãos
-     se fundem quando o aviso aparece. `top: 0` passa a ser o topo visível. */
+  /* Quem rola é o `main`, e um `sticky` com `top: 0` gruda no topo do PADDING
+   * BOX.
+   *
+   * A primeira tentativa foi tapar o vão com uma faixa pintada acima do
+   * desenho. */
   padding: 0 1.6rem 4rem;
   min-width: 0;
 }
@@ -561,10 +448,9 @@ main:focus-visible { outline: none; }
 #aviso-aplicar { margin-top: 1.4rem; }
 #conteudo { margin-top: 1.4rem; padding-bottom: 3rem; }
 
-/* O ESQUELETO DA PRIMEIRA CARGA — 10/10/2026, P77 (achado 22). Formas lisas na
-   cor das superfícies, sem palavra e sem animação (a direção cortou o
-   movimento): o menu, o título, o desenho do topo e seis cartões em grade.
-   Some na primeira pintura, que troca os filhos do trilho e do `#conteudo`. */
+/* Formas lisas na cor das superfícies, sem palavra e sem animação (a direção
+ * cortou o movimento): o menu, o título, o desenho do topo e seis cartões em
+ * grade. */
 .esqueleto { display: block; background: var(--surface0); border-radius: var(--r-2); opacity: .55; }
 .esqueleto-item { height: 1.9rem; margin: .25rem .2rem; }
 .esqueleto-bloco { height: .8rem; width: 45%; margin: 1.1rem .5rem .5rem; opacity: .35; }
@@ -603,11 +489,8 @@ main:focus-visible { outline: none; }
 .secao-titulo::after { content: none; }
 .secao-titulo:first-child { margin-top: 0; }
 
-/* O SUBTÍTULO DE UM GRUPO DENTRO DA PÁGINA DO ASSUNTO — 06/09/2026.
- * Com uma página por assunto, uma tela pode ter quatro grupos (a coleção, dois
- * blocos de ajuste, as ações) sob um título só. O degrau entre o título da
- * página e este é de tamanho e de cor, não de régua: são 23 px contra 16, e o
- * subtítulo não é accent — quem está aceso é o item do menu. */
+/* Com uma página por assunto, uma tela pode ter quatro grupos (a coleção, dois
+ * blocos de ajuste, as ações) sob um título só. */
 .subsecao-titulo {
   margin: 1.7rem 0 .1rem;
   font-size: 1rem;
@@ -616,10 +499,6 @@ main:focus-visible { outline: none; }
   color: var(--subtext1);
 }
 .subsecao-titulo:first-of-type { margin-top: .7rem; }
-
-/* [A `.descricao-secao` saiu em 15/10/2026 (P82, item 32; decisão 29):
- * nenhum `app.js` nem `index.html` gerava mais a classe, e a regra ficou
- * anotada pela regra da casa até o fechamento do projeto.] */
 
 /* A nota que substituiu as repetições dentro dos cartões. */
 .nota-secao {
@@ -634,55 +513,15 @@ main:focus-visible { outline: none; }
   text-wrap: pretty;
 }
 
-/* ===========================================================================
- * A GRADE — uma regra só, para todas as páginas
- * ===========================================================================
- * ELA PEDIU EM 06/09/2026, olhando "Cor e tema": *"dava pra ser 2 linhas cada
- * qual com 3 colunas e ficaria melhor e mais otimizado"*, e sobre "O gato":
- * *"aqui acho que caberia 4"*. E, sobre como fazer: *"otimizarmos cada bloco
- * pra caber e fazer disso um padrão universal"*.
- *
- * O QUE ESTAVA NO CAMINHO ERAM DUAS DECISÕES, E AS DUAS ERAM EXCEÇÕES
- *
- * 1. `max-width: 1240px`. Medido na tela dela: o `#principal` tem 1671px, e a
- *    grade usava 1240 — 431px de margem à direita em toda página. O teto
- *    existia contra "seis colunas de 330px numa tela de 27 polegadas", que é um
- *    problema real; a resposta certa não é limitar a GRADE, é limitar a
- *    COLUNA. Uma coluna de 520px é a largura em que um cartão ainda se lê, e
- *    quantas couberem cabem.
- *
- * 2. `:has(> :nth-child(-n+3):last-child)` dava colunas de 480px às grades de
- *    até três cartões. Com 1240px de teto, 480×2 cabia e 480×3 não: os três
- *    ajustes de "Cor e tema" desenhavam DOIS numa linha e um sozinho embaixo.
- *    A exceção existia para uma aba de dois cartões não virar duas fichas
- *    estreitas num canto — e o `auto-fit` resolve isso sem exceção nenhuma.
- *
- * COMO A REGRA ÚNICA RESOLVE OS DOIS CASOS DELA
- *   O número de colunas sai do MÍNIMO (320px + espaço) e cada uma cresce para
- *   ocupar a sobra. Na tela dela cabem quatro colunas de 320.
- *   - "Cor e tema", 3 cartões: o `auto-fit` colapsa a quarta coluna vazia e as
- *     três crescem até 520 — três colunas, que é o que ela pediu.
- *   - "O gato ▸ No dock", 7 cartões: nenhuma coluna fica vazia, as quatro
- *     ficam com 395px — quatro colunas, que é o que ela pediu.
- *   Sem `:has`, sem contar cartões, sem uma linha por página.
+/* A GRADE — uma regra só, para todas as páginas
  *
  * `align-items: start` (e não `stretch`): era o `stretch` que fazia o cartão
  * "Cor de destaque" ter 313px de altura para 100px de conteúdo, com o rodapé de
- * metadados empurrado ao chão pelo `margin-top:auto`. Cartão vazio ao lado de
- * cartão cheio é o que ela viu e chamou de não otimizado. Aquele rodapé saiu do
- * cartão em 06/09/2026 e o `margin-top:auto` com ele; o `start` fica, porque a
- * altura dos cartões de uma linha continua desigual e nenhum deles deve fingir
- * ter conteúdo que não tem.
+ * metadados empurrado ao chão pelo `margin-top:auto`.
  *
  * `minmax(0, …)` no filho continua obrigatório: com `1fr` puro, um nome de
  * arquivo longo empurra a coluna e desalinha a linha inteira. */
-/* O TETO VAI NO CARTÃO, E NÃO NA COLUNA — e a primeira tentativa errou nisto.
- * Com `minmax(320px, 520px)` o navegador conta as colunas pelo MÁXIMO quando
- * ele é um comprimento fixo (é o que a especificação manda), então 1620px de
- * grade davam DUAS colunas de 520 — o defeito que se queria consertar, com
- * outro número. Com `1fr` a conta volta a sair do mínimo, e o teto de leitura
- * passa a ser do cartão: ele só morde nas grades de um ou dois cartões, onde a
- * coluna ficaria larga demais para uma linha de texto. */
+/* O TETO VAI NO CARTÃO, E NÃO NA COLUNA — e a primeira tentativa errou nisto. */
 .grade {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
@@ -690,89 +529,35 @@ main:focus-visible { outline: none; }
   align-items: start;
   justify-content: start;
 }
-/* TRÊS COLUNAS, E NÃO "QUANTAS COUBEREM" — 06/09/2026
-   Pedido dela: "deixa 3x3 em todas as demais abas". O `auto-fit` acima conta
-   quantas colunas de 320 px cabem, e na tela dela — 1918 px, mais larga do que a
-   que eu vinha medindo — davam QUATRO. Uma seção de nove chaves virava 4+4+1, com
-   um cartão órfão na terceira fileira, e a mesma seção lida em duas máquinas
-   diferentes ficava com formas diferentes.
-
-   Três é o número dela, e é bom por medida além do gosto: com 3 colunas o cartão
-   fica entre 400 e 520 px, que é onde uma frase de explicação cabe em duas linhas
-   em vez de quatro. O `auto-fit` continua valendo abaixo de 1100 px — ali a
-   escolha não é de composição, é de caber. */
+/* O `auto-fit` acima conta quantas colunas de 320 px cabem, e na tela dela —
+ * 1918 px, mais larga do que a que eu vinha medindo — davam QUATRO.
+ *
+ * Três é o número dela, e é bom por medida além do gosto: com 3 colunas o
+ * cartão fica entre 400 e 520 px, que é onde uma frase de explicação cabe em
+ * duas linhas em vez de quatro. */
 @media (min-width: 1100px) {
   .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .grade > * { min-width: 0; max-width: 640px; }
-/* A ALVENARIA (P82, item 26; o `assentarGrades` do app.js): linhas finas, sem
- * vão entre elas (o vão entra na conta de cada item), e cada item na própria
- * altura — esticado, ele voltaria a mostrar o vão por dentro. */
+/* A ALVENARIA: linhas finas, sem vão entre elas (o vão entra na conta de cada
+ * item), e cada item na própria altura — esticado, ele voltaria a mostrar o
+ * vão por dentro. */
 .grade.alvenaria { grid-auto-rows: 4px; row-gap: 0; }
 .grade.alvenaria > * { align-self: start !important; }
-/* A figura de uma página só de ações, dentro da grade (P82, item 26): ela é
- * um item como os cartões, e não a faixa grudada do alto. */
+/* A figura de uma página só de ações, dentro da grade: ela é um item como
+ * os cartões, e não a faixa grudada do alto. */
 .grade > .previa-bloco { position: static; box-shadow: none; border-bottom: 0; margin: 0; }
 .grade + .secao-titulo { margin-top: 2.8rem; }
 
-/* ===========================================================================
- * O CARTÃO DE CHAVE — de seis camadas para três
- * ===========================================================================
- * A PRIMEIRA PASSAGEM DE 06/09 INVERTEU A LEITURA. `FASTFETCH_LOGO_COLUNAS`
+/* O CARTÃO DE CHAVE — de seis camadas para três
+ *
+ * A PRIMEIRA PASSAGEM INVERTEU A LEITURA. `FASTFETCH_LOGO_COLUNAS`
  * (mono, 600, cor de texto) era a primeira coisa lida em cada um dos 102
  * cartões; o título — a frase que diz o que a chave FAZ — passou para a frente e
  * o identificador desceu para o pé. A pilha ficou assim:
  *   1. título · 2. aviso · 3. controle · 4. explicação
  *   5. o rodapé: nome da chave, selo de essencial, padrão de fábrica
- *   6. o "▸ Por quê"
- *
- * A SEGUNDA PASSAGEM CONTOU AS CAMADAS. Seis, vezes 102 cartões, em quatro
- * colunas — é isso que ela viu quando disse *"tem algo no nosso estilo que deixa
- * tudo muito confuso e difícil de entender; temos que melhorar isso e darmos
- * respiro nesse sentido"*. E o rodapé era a parte mais barata de cortar, porque
- * nenhuma das três coisas que moravam nele é o que se lê para DECIDIR: são o que
- * se lê DEPOIS de decidir, ou quando algo não bate. Ela apontou o
- * `VIDRO_OPACIDADE_DOCK` no pé de um cartão: *"essa parte que selecionei tem que
- * sumir também — isso pra todos"*.
- *
- * O CARTÃO AGORA:
- *
- *     Opacidade da dock  (?)
- *     [ deixar como está          ]
- *     0 é transparente, 1 é opaco.
- *
- *   1. o título e, colado à direita dele, o `?`
- *   2. o controle
- *   3. a explicação
- *
- * NADA SE PERDE — MUDA DE CASA. O `?` abre a `.dica`, e dentro dela estão as
- * três coisas que saíram: o porquê inteiro (que era o `<details>` "▸ Por quê"),
- * o nome da chave e o padrão de fábrica. O identificador continua existindo
- * porque é por ele que ela procura no arquivo; o que mudou é que ele deixou de
- * ser lido cento e duas vezes por quem não estava procurando por ele.
- *
- * AS CAMADAS QUE SOBRARAM SÃO CONDICIONAIS, e é por isso que elas ficam: o aviso
- * de quem está mandando (`.frase.dominada`) aparece em três cartões, e o traço
- * de "sem prévia honesta" em uma seção. Camada que aparece em três cartões não é
- * o que empilha a tela; camada que aparece em cento e dois, é.
- *
- * POR QUE GRADE, E NÃO MAIS UMA COLUNA DE FLEX. O `?` é irmão do título, não
- * filho — o contrato de marcação com o `app.js` é esse, e ele existe para que o
- * título continue sendo um `<h3>` sozinho, legível por leitor de tela sem um
- * "ponto de interrogação" grudado no fim do nome. Dois irmãos na MESMA linha,
- * numa coluna de flex, só se resolvem com invólucro ou com posicionamento
- * absoluto (que atropela o título quando ele quebra em duas linhas). Com
- * `grid-template-columns: auto minmax(0, 1fr)` eles dividem a primeira linha
- * sem invólucro nenhum, e todo o resto do cartão atravessa as duas colunas.
- *
- * Nos 39 cartões sem título derivado, a explicação sobe para o lugar 1 e é ELA
- * que divide a linha com o `?`: sem título, ela é o que se lê para decidir.
- *
- * O CARTÃO PERDEU A CAIXA. Uma borda igual em 102 cartões é o que faz "escolher
- * entre dois gatos" pesar igual a "rodar o instalador inteiro". Quem
- * ficou com caixa é só quem carrega PRÉVIA — a tira de flavors, os gatos, as
- * bolinhas de cor, o desenho da barra, a simulação do modo de leitura — porque
- * ali existe algo para olhar, e o que se olha merece moldura. */
+ *   6. o "▸ Por quê" */
 .cartao {
   /* A âncora da dica. Sem ela o balão se penduraria no `<main>` e escorregaria
    * do cartão que o abriu na primeira rolagem. */
@@ -783,13 +568,11 @@ main:focus-visible { outline: none; }
   border-radius: 0;
   padding: .9rem .9rem 1.1rem;
   display: grid;
-  /* A COLUNA DO `?` TEM PISO — 10/10/2026, conferência da P77. Com
-   * `minmax(0, 1fr)` o título (`auto`) crescia até o fim do cartão sempre que
-   * quebrava em duas linhas, a segunda coluna ficava com 0 px e o `?` de 24 px
-   * saía 7 a 10 px para fora, em cima do fio da moldura vizinha (medido a 1280
-   * px: «Como o gato do dock é escolhido», «Devolver os ícones depois de
-   * atualizar flatpak»). O piso de 1.6rem reserva o lugar do botão antes de o
-   * título repartir a sobra. */
+  /* Com `minmax(0, 1fr)` o título (`auto`) crescia até o fim do cartão sempre
+   * que quebrava em duas linhas, a segunda coluna ficava com 0 px e o `?` de
+   * 24 px saía 7 a 10 px para fora, em cima do fio da moldura vizinha (medido
+   * a 1280 px: «Como o gato do dock é escolhido», «Devolver os ícones depois
+   * de atualizar flatpak»). */
   grid-template-columns: auto minmax(1.6rem, 1fr);
   /* UMA linha explícita, e ela não é enfeite: a `.dica` é posicionada dentro
    * desta linha (ver `.cartao > .dica`), e uma linha implícita não serve de
@@ -806,23 +589,15 @@ main:focus-visible { outline: none; }
   padding: 1rem 1.05rem 1.05rem;
 }
 
-/* A ORDEM E A COLUNA, NA MESMA REGRA.
- * `.cartao > *` põe todo mundo em 3 e atravessando as duas colunas, senão um
+/* `.cartao > *` põe todo mundo em 3 e atravessando as duas colunas, senão um
  * `<select>` ou um `<textarea>` solto (que não tem classe) cai em `order: 0`,
- * pula para a frente e ainda por cima nasce espremido na coluna do título.
- * Só o título e o `?` moram numa coluna cada; o resto do cartão é largura
- * inteira, exatamente como era quando isto era uma coluna de flex. */
+ * pula para a frente e ainda por cima nasce espremido na coluna do título. */
 .cartao > * { order: 3; grid-column: 1 / -1; }
 .cartao > .titulo-cartao,
 .cartao > .titulo { order: 1; grid-column: 1; }
-/* O `?` LEVA LINHA E COLUNA CRAVADAS, E ISSO FOI MEDIDO — 06/09/2026.
- * Com só a coluna cravada, o navegador o coloca pelo cursor de encaixe, e o
+/* Com só a coluna cravada, o navegador o coloca pelo cursor de encaixe, e o
  * cursor tem uma regra que morde aqui: colocado um item na coluna 2, o cursor
- * fica na 3; o item seguinte, que pede a coluna 1, força uma linha nova. Nos 39
- * cartões sem título é a EXPLICAÇÃO que pede a coluna 1 — e ela descia uma linha,
- * deixando o `?` sozinho no meio do nada. Com a posição cravada, o `?` é
- * encaixado antes de o cursor começar a andar, e a explicação encontra a coluna
- * 1 da primeira linha livre. Medido nos dois casos: com título e sem. */
+ * fica na 3; o item seguinte, que pede a coluna 1, força uma linha nova. */
 .cartao > button.porque { order: 1; grid-column: 2; grid-row: 1; }
 .cartao > .frase.dominada { order: 2; }
 .cartao > .frase { order: 4; }
@@ -844,26 +619,13 @@ main:focus-visible { outline: none; }
   text-wrap: pretty;
 }
 
-/* ---------------------------------------------------------------------------
- * O `?` E A DICA — pedido dela, literal: *"o tooltip fica em `?` ao lado direito
- * do nome da seção"* (o nome da seção, aqui, é o título do cartão).
- * ---------------------------------------------------------------------------
- * PEQUENO DE VER, GRANDE DE ACERTAR. O glifo é `--t-legenda` (10,5 px), que é o
- * degrau das legendas desta folha — ele não pode competir com o título de 14 px
- * que está do lado. O ALVO, porém, é 24×24 px, que é o mínimo com que se acerta
- * um controle com o dedo ou com um mouse apressado. Uma coisa é o desenho, outra
- * é a área: `width`/`height` fixos com o texto centrado resolvem as duas sem
- * `padding` que empurre o título.
+/* O glifo é `--t-legenda` (10,5 px), que é o degrau das legendas desta folha —
+ * ele não pode competir com o título de 14 px que está do lado.
  *
- * OS -2 px SÃO CONTA, NÃO GOSTO. A primeira linha do título mede 19,6 px
- * (14 px × 1.4). Centrar um alvo de 24 px sobre uma linha de 19,6 pede
- * (19,6 − 24) ÷ 2 = −2,2 px de deslocamento para cima. Com `align-self: start` o
- * `?` fica preso à PRIMEIRA linha, e não ao meio do bloco — que é o que importa
- * quando o título quebra em duas.
+ * A primeira linha do título mede 19,6 px (14 px × 1.4).
  *
- * ACESO É ABERTO. No repouso e no hover o `?` é cinza: passar o mouse não acende
- * nada nesta folha. Em `aria-expanded="true"` ele é accent, que é o que accent
- * significa aqui — ligado, selecionado, esperando ou aberto. */
+ * No repouso e no hover o `?` é cinza: passar o mouse não acende nada nesta
+ * folha. */
 button.porque {
   align-self: start;
   margin-top: -2px;
@@ -886,27 +648,11 @@ button.porque {
 button.porque:hover { color: var(--subtext1); border-color: var(--overlay0); }
 button.porque[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
 
-/* A DICA NÃO TRANSBORDA A JANELA, E NÃO PRECISA DE BIBLIOTECA PARA ISSO.
- * O truque é não ancorar o balão no BOTÃO — que é pequeno, fica encostado na
+/* O truque é não ancorar o balão no BOTÃO — que é pequeno, fica encostado na
  * direita e obrigaria a medir a janela em JavaScript — e sim no CARTÃO: `left`
  * e `right` a zero fazem o balão nascer com a largura exata do cartão, e o
  * cartão já é uma caixa que cabe na tela (`.grade > *` a limita em 640 px e a
- * grade só cria coluna que cabe). Se o cartão não transborda, o balão também
- * não, em qualquer largura de janela e sem uma linha de medição.
- *
- * A VERTICAL SAI DA GRADE. Filho absoluto de um contêiner de grade recebe como
- * caixa-mãe a ÁREA que as propriedades de grade lhe dão — aqui a linha 1, a do
- * título. `top: 100%` é, então, "logo abaixo da linha do título", e continua
- * certo quando o título quebra em duas linhas. É por isso que `.cartao` declara
- * `grid-template-rows: auto`: sem uma linha explícita não há área para apontar.
- *
- * O `!important` É OBRIGATÓRIO, E A CULPA É DA FOLHA DO NAVEGADOR. A dica nasce
- * com o atributo `hidden`, e o `[hidden] { display: none !important }` lá de
- * cima existe justamente para vencer as regras de autor. Para o hover abrir o
- * balão sem esperar o JavaScript, esta regra precisa empatar em `!important` e
- * ganhar na especificidade — que é o que estes seletores fazem. O clique, o Esc
- * e o `aria-expanded` continuam sendo do `app.js`: o CSS cobre o rato e o
- * teclado que só passa por cima. */
+ * grade só cria coluna que cabe). */
 .cartao > .dica {
   position: absolute;
   grid-column: 1 / -1;
@@ -931,22 +677,6 @@ button.porque[aria-expanded="true"] { color: var(--accent); border-color: var(--
   overflow: auto;
   overscroll-behavior: contain;
 }
-/* O ESPIAR NÃO PODE ROUBAR O PONTEIRO, E O CLIQUE QUE FECHA TEM DE FECHAR.
- * Medido em 07/09: com `.dica:hover` na lista, o balão se sustentava sozinho —
- * ele cai em `top: 100%`, ou seja, exatamente em cima dos controles do próprio
- * cartão, e bastava o ponteiro sair do `?` e entrar nele para ele continuar
- * aberto e passar a interceptar os cliques. Em "Cor e tela" isso deixou 22 dos
- * 50 botões inalcançáveis: o caminho do `?` até "mocha" atravessa o balão.
- *   1. `.dica:hover` saiu da lista — quem sustenta o espiar é o gatilho, só;
- *   2. enquanto o balão está apenas SENDO ESPIADO (o atributo `hidden` ainda
- *      posto), ele não recebe ponteiro nenhum: o dedo atravessa por baixo dele
- *      até o botão que ela quer. Quando o CLIQUE o abre de verdade, o `hidden`
- *      cai, esta regra deixa de valer e ele volta a ser clicável — que é o que
- *      rolar o texto e selecioná-lo precisam;
- *   3. `[data-fechei]` é o clique que FECHA: sem ele o `:hover` do gatilho
- *      reabriria o balão no mesmo gesto, e o `?` ficaria inerte para o rato. O
- *      atributo cai quando o ponteiro sai do botão, então espiar de novo é só
- *      voltar. */
 button.porque:hover:not([data-fechei]) + .dica[hidden],
 button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
   display: flex !important;
@@ -955,12 +685,9 @@ button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
 
 /* O porquê é o comentário do `meow.conf.exemplo`, que é a documentação deste
  * projeto e vem com as quebras de linha que o autor escreveu — daí o
- * `pre-wrap`. Ele ocupa a primeira linha inteira do balão; o nome da chave e o
- * padrão de fábrica dividem a de baixo, separados por um fio. */
+ * `pre-wrap`. */
 /* A PROCEDÊNCIA DO TEXTO, quando ele é emprestado. Linha inteira, acima do
-   comentário, e menor que ele: é etiqueta, não leitura. Leva O MESMO TRAÇO à
-   esquerda do `.frase.herdada`, que diz a mesma coisa no cartão — o sinal de
-   "esta explicação é da irmã" passa a ser um só, nos dois lugares. */
+ * comentário, e menor que ele: é etiqueta, não leitura. */
 .dica .de-quem {
   flex: 1 0 100%;
   margin: 0 0 .4rem;
@@ -992,17 +719,10 @@ button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
   font-size: var(--t-legenda);
   color: var(--overlay2);
   font-variant-numeric: tabular-nums;
-  /* A irmã `.chave` já tinha isto e esta não. Medido em "Programas que o
-     MeowSystem veste": o padrão de fábrica é uma lista separada por vírgula com
-     dezenas de nomes, e sem ponto de quebra ela saía do balão pela horizontal —
-     a frase acabava no meio de uma palavra e o resto sumia. */
+  /* A irmã `.chave` já tinha isto e esta não. */
   overflow-wrap: anywhere;
 }
-/* O selo de essencial é um ponto, e ponto não é controle. Antes ele era um
- * ponto mauve dentro de uma caixinha de contorno pêssego do tamanho de uma
- * caixa de marcar — lia-se como caixa desmarcada, e é rótulo. Uma declaração
- * só, sem borda, sem caixa alta, e em cinza: é metadado, não estado. Com o
- * rodapé fora, a casa dele é a dica, ao lado do nome da chave. */
+/* O selo de essencial é um ponto, e ponto não é controle. */
 .marca-essencial {
   font-size: .85rem;
   line-height: 1;
@@ -1030,12 +750,9 @@ button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 .cartao[data-sem-previa] { border-left: 0; }
-/* O CARTÃO A QUE A FICHA DA INÍCIO LEVOU — 24/09/2026, sprint P54 (achado 18).
- * Um contorno de acento que se apaga sozinho: é o "está aqui" de quem acabou de
+/* Um contorno de acento que se apaga sozinho: é o "está aqui" de quem acabou de
  * chegar rolando, e não um estado — por isso contorno, que não mexe no layout
- * nem briga com a aresta de «mexeu» e «não salvo». Com movimento reduzido a
- * animação sai (a regra do fim deste arquivo), e o contorno fica parado até a
- * ficha o tirar, dois segundos e meio depois. */
+ * nem briga com a aresta de «mexeu» e «não salvo». */
 .cartao.chegou {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
@@ -1135,22 +852,15 @@ select { flex: 1 1 auto; }
 
 /* O número do deslizante NÃO é accent: ele é a leitura de um valor, não um
  * estado ligado. Quem está aceso é o polegar da régua, pelo `accent-color`. */
-/* OS BOTÕES DE ESTADO VÃO PARA A LINHA DE BAIXO — 06/09/2026
-   Medido em "Painel e dock": num cartão onde a chave está vazia, o deslizante
-   fica desabilitado, o `<output>` diz "como está" e ao lado vêm dois botões.
-   Os quatro disputavam a mesma linha de ~270 px: o "como está" quebrava em duas
-   linhas no meio do controle e os botões empilhavam um sobre o outro. Nos
-   cartões com número (20, 0, 4) o mesmo arranjo ficava bem, e foi por isso que
-   passou — o defeito só aparece quando a palavra é longa.
-
-   `flex-wrap` mais `flex-basis: 100%` na fileira de estados: o deslizante e o
-   valor ficam em cima, os botões embaixo, sempre. Um arranjo só para os dois
-   casos, em vez de um que depende do comprimento da palavra. */
+/* Os quatro disputavam a mesma linha de ~270 px: o "como está" quebrava em duas
+ * linhas no meio do controle e os botões empilhavam um sobre o outro.
+ *
+ * `flex-wrap` mais `flex-basis: 100%` na fileira de estados: o deslizante e o
+ * valor ficam em cima, os botões embaixo, sempre. */
 .faixa { display: flex; align-items: center; gap: .6rem; width: 100%; flex-wrap: wrap; }
-/* A ALÇA TAMBÉM É ALVO — 21/09/2026. Os 24 deslizantes da página mediam 16 e
-   18 px de altura; o piso de 24 px vale para eles como vale para os botões, e
-   aqui ele não custa largura nenhuma. A alça continua do mesmo tamanho: o que
-   cresce é a faixa sensível ao redor dela. */
+/* Os 24 deslizantes da página mediam 16 e 18 px de altura; o piso de 24 px
+ * vale para eles como vale para os botões, e aqui ele não custa largura
+ * nenhuma. */
 .faixa input[type="range"] {
   flex: 1 1 auto;
   accent-color: var(--accent);
@@ -1158,39 +868,16 @@ select { flex: 1 1 auto; }
   height: 1.5rem;
 }
 /* `[disabled]` continua aqui e hoje não casa com nenhum deslizante de chave —
-   desde 21/09/2026 nenhum nasce travado (ver `.faixa-comoesta`, abaixo). Fica
-   porque a regra é do elemento, não daquele estado: um deslizante desabilitado
-   por outro motivo, um dia, não pode nascer sem tratamento. */
+ * nenhum nasce travado (ver `.faixa-comoesta`, abaixo). */
 .faixa input[disabled] { opacity: .45; }
 
-/* O TERCEIRO ESTADO SAIU DA TRAVA E FOI PARA A TRILHA — 21/09/2026
-   -------------------------------------------------------------------------
-   Até aqui, "vazio" (= não toca, quem decide é o COSMIC) era desenhado
-   DESABILITANDO o deslizante, e ao lado dele nascia um botão «Usar número» só
-   para destravá-lo. Eram 17 deslizantes travados na página, 11 numa aba só.
-
-   A trava saiu; o estado não pode sair junto. Um deslizante livre marcando 24
-   e um que ESCOLHEU 24 são coisas diferentes — o COSMIC se comporta diferente
-   nos dois — e se a diferença ficar sutil o problema só muda de lugar. Daí
-   três sinais no mesmo controle, e nenhum deles sozinho:
-
-     trilha .. em traço, não cheia. É o sinal que se vê de longe, e é a razão de
-               este estado precisar de `appearance: none`: a trilha nativa é
-               pintada pelo navegador e não aceita fundo. A régua ESCOLHIDA fica
-               nativa de propósito — a diferença entre as duas é parte do
-               recado, e não um acidente de estilo.
-     alça .... oca e em `--overlay1`. Accent nesta folha quer dizer ACESO, e
-               aqui não há nada aceso: ninguém escolheu ainda.
-     número .. `.como-esta`, apagado, dizendo "como está: 24" em vez de "24".
-
-   O quarto sinal é o `aria-valuetext`, e ele mora no app.js porque não é cor. */
 .faixa input[type="range"].faixa-comoesta {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
-  /* 1.1rem até 21/09/2026, quando o piso de alvo de 24 px passou a valer para
-     a alça também. A trilha e a alça não mudaram de tamanho — o `margin-top`
-     negativo da alça é medido contra a TRILHA, não contra a caixa. */
+  /* 1.1rem, quando o piso de alvo de 24 px passou a valer para a alça também.
+   * A trilha e a alça não mudaram de tamanho — o `margin-top` negativo da
+   * alça é medido contra a TRILHA, não contra a caixa. */
   height: 1.5rem;
 }
 .faixa input[type="range"].faixa-comoesta::-webkit-slider-runnable-track {
@@ -1239,38 +926,16 @@ select { flex: 1 1 auto; }
    (quem tira a classe é o `input` do deslizante, no app.js). */
 .faixa output.como-esta { color: var(--overlay2); font-weight: 500; }
 
-/* O «Aplicar» do cartão com escolha pendente. Linha própria, embaixo do
-   controle: ele é a conclusão do gesto, não mais uma alternativa dele — por
-   isso não entra na fileira de `.faixa-estados`, que é onde moram os estados
-   que disputam o mesmo valor. */
+/* O «Aplicar» do cartão com escolha pendente. */
 .acao-cartao { display: flex; gap: .35rem; align-items: center; margin-top: .15rem; }
-/* O TETO DO RAIO QUE VALE NESTA SESSÃO — 24/09/2026, P50 (achado 36). Era
-   uma frase de linha inteira; desde o QA da P77 (10/10/2026) é um selo ao lado
-   do número, com o porquê no balão. */
 /* Os estados que não moram na régua do deslizante. */
 .faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; flex: 0 0 100%; }
-/* O PISO DE 24 PX — 21/09/2026, WCAG 2.2 critério 2.5.8
-   -------------------------------------------------------------------------
-   Medido com o painel no ar, as 14 abas percorridas uma a uma: 176 botões
-   abaixo de 24 px de altura, 119 deles numa aba só. Na ficha de imagem os
-   quatro mediam 38x22, 32x22, 42x22 e 38x22 — e a queixa dela ("botão
-   impossível de clicar") nasce daí, não da imagem.
-
-   `min-height` e não `height`: o botão que já é maior continua como está. E
-   `inline-flex`, porque com `min-height` sozinho a sobra de altura cai toda
-   embaixo do rótulo e ele fica encostado no topo da moldura.
-
-   Onde isto apertar a grade, a grade ganha coluna — o botão não perde altura.
-   Ver a `.galeria .acoes`, que subiu para 28 px pelo mesmo motivo.
-
-   O `.btn` MORA COM O `.btn` — corrigido em 21/09/2026, no mesmo dia
-   -------------------------------------------------------------------------
-   A primeira versão desta seção trazia um `.btn { min-height: 24px }` aqui
-   dentro, 147 linhas antes do bloco `.btn` de verdade. Funcionava, porque o
-   bloco de baixo não mexe em `min-height` — e era uma armadilha: um
-   `min-height` escrito lá, que é onde se escreve `.btn`, apagaria o piso sem
-   aviso e sem ninguém passar por este comentário. O piso do `.btn` está no
-   bloco "botões", com um ponteiro para cá. */
+/* Medido com o painel no ar, as 14 abas percorridas uma a uma: 176 botões
+ * abaixo de 24 px de altura, 119 deles numa aba só.
+ *
+ * `min-height` e não `height`: o botão que já é maior continua como está.
+ *
+ * Onde isto apertar a grade, a grade ganha coluna — o botão não perde altura. */
 .btn-mini {
   font-size: var(--t-legenda);
   padding: .18rem .45rem;
@@ -1295,10 +960,9 @@ select { flex: 1 1 auto; }
   font-size: .74rem;
   color: var(--subtext1);
 }
-/* O x DA FICHA MEDIA 13x14 PX — 21/09/2026. Eram 57 deles numa aba só
-   ("Lançadores e jogos"), e são o único jeito de tirar um app da lista. Um
-   alvo de 13 px é um alvo que se erra, e errar aqui apaga a ficha errada.
-   O 24x24 engorda a ficha em uns 6 px de altura; é o lado certo da troca. */
+/* Eram 57 deles numa aba só ("Lançadores e jogos"), e são o único jeito de
+ * tirar um app da lista. Um alvo de 13 px é um alvo que se erra, e errar
+ * aqui apaga a ficha errada. */
 .ficha button {
   border: 0;
   background: transparent;
@@ -1316,26 +980,18 @@ select { flex: 1 1 auto; }
 }
 .ficha button:hover { color: var(--red); background: color-mix(in srgb, var(--red) 18%, transparent); }
 .fichas .nova { flex: 1 1 8ch; min-width: 7rem; }
-/* A FICHA DE PROGRAMA — 24/09/2026, sprint P54 (achado 41): o ícone do
-   `.desktop` antes do nome, no tamanho da letra, e a ficha abre um pouco mais
-   perto dele do que do texto (o desenho já tem respiro próprio). */
+/* A FICHA DE PROGRAMA: o ícone do `.desktop` antes do nome, no tamanho da
+ * letra, e a ficha abre um pouco mais perto dele do que do texto (o desenho
+ * já tem respiro próprio). */
 .ficha-programa { padding-left: .35rem; }
 .ficha-programa img { width: 16px; height: 16px; flex: none; object-fit: contain; }
 
-/* O BLOCO DO `details.porque` — o "▸ Por quê" que era a sexta camada do cartão —
- * saiu daqui em 06/09/2026. O comentário inteiro do `meow.conf.exemplo` não se
- * perdeu: ele é o `.motivo` dentro da `.dica`, que o `?` ao lado do título abre.
- * Ver o bloco do CARTÃO DE CHAVE, acima. */
+/* O BLOCO DO `details.porque` — o "▸ Por quê" que era a sexta camada do cartão
+ * — saiu daqui. */
 
-/* ===========================================================================
- * FAZER — as 34 ações, em três graus de risco
- * ===========================================================================
- * A queixa em uma frase: "escolher entre dois gatos, arrastar um número, e
- * rodar o instalador inteiro, que pode pedir sudo" tinham a mesma borda, o
- * mesmo tamanho e o mesmo botão mauve.
+/* FAZER — as 34 ações, em três graus de risco
  *
- * O grau já estava escrito no HTML — nas pastilhas que cada ação carrega. O
- * `:has()` só o lê:
+ * O grau já estava escrito no HTML — nas pastilhas que cada ação carrega.
  *
  *   nenhuma pastilha ........ só lê. Linha rasa, sem caixa. (Conferir, Ver a
  *                             tabela, Listar.) A ação mais segura da página é
@@ -1343,15 +999,7 @@ select { flex: 1 1 auto; }
  *   pode usar sudo .......... caixa e fio pêssego. Pêssego já é "atenção sem
  *                             erro" nesta folha (`.p-sudo`, `.aviso-sudo`,
  *                             `.cartao.mexeu`).
- *   desfaz coisas ........... caixa e fio vermelho, e o botão continua vermelho.
- *
- * "usa rede" não muda a moldura: é propriedade da ação, não risco. Fica dita na
- * pastilha.
- *
- * O SELO "PODE ENSAIAR" SAIU EM 06/09/2026, e a razão é dela: *"o botão Pode
- * ensaiar não faz sentido se temos o executar ali em todas as páginas — é pq o
- * user quer arrumar só aquilo"*. A regra `.p-seco` foi apagada junto. Em
- * 13/09/2026 saiu também o interruptor global: `Executar` executa, sempre. */
+ *   desfaz coisas ........... caixa e fio vermelho, e o botão continua vermelho. */
 .acao {
   background: transparent;
   border: 0;
@@ -1379,11 +1027,8 @@ select { flex: 1 1 auto; }
 .acao > * { order: 2; }
 .acao h3 { order: 0; margin: 0; font-size: var(--t-titulo); font-weight: 600; color: var(--text); letter-spacing: -.005em; }
 .acao p { order: 1; margin: 0; font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
-/* A LINHA `code.cmd` SOBRE O RODAPÉ SAIU DA TELA — 09/10/2026, P77 (achado
- * 30): o comando mora só no «ver comando». A regra dela saiu junto, porque a
- * linha do «ver comando» herdou a classe (é por ela que o teste acha o comando)
- * e o `margin-top: auto` + reticências desta regra a desalinhavam dentro da
- * fileira do Copiar. Quem empurra o rodapé para o fundo é o próprio rodapé. */
+/* A LINHA `code.cmd` SOBRE O RODAPÉ SAIU DA TELA: o comando mora só no «ver
+ * comando». */
 .acao .rodape {
   order: 4;
   display: flex;
@@ -1395,43 +1040,21 @@ select { flex: 1 1 auto; }
 }
 /* As etiquetas à esquerda, o gatilho à direita: lê-se o risco entrando no botão. */
 .acao .rodape .btn { margin-left: auto; }
-/* SÓ O PRIMEIRO BOTÃO EMPURRA — 22/09/2026. Com o «ver comando» na fileira são
-   dois `.btn`, e dois `margin-left: auto` dividem a folga entre si: os botões
-   nasciam separados por meia largura de cartão, como se fossem de assuntos
-   diferentes. O primeiro empurra o par inteiro para a direita; do espaço entre
-   eles cuida o `gap`. */
+/* Com o «ver comando» na fileira são dois `.btn`, e dois `margin-left: auto`
+ * dividem a folga entre si: os botões nasciam separados por meia largura de
+ * cartão, como se fossem de assuntos diferentes. */
 .acao .rodape .btn ~ .btn { margin-left: 0; }
-/* O PAR «CONFERIR / APLICAR» (P82, itens 22 e 26): as etiquetas e o «ver
- * comando» na primeira linha, e os dois botões juntos na segunda, à direita.
- * Lado a lado com o «ver comando» eles não cabiam numa coluna, e o aplicar
- * descia sozinho para a esquerda. */
+/* O PAR «CONFERIR / APLICAR»: as etiquetas e o «ver comando» na primeira
+ * linha, e os dois botões juntos na segunda, à direita. */
 .acao .rodape .par-quebra { order: 1; flex-basis: 100%; height: 0; }
 .acao .rodape .par-conferir, .acao .rodape .par-aplicar { order: 2; }
 .acao .rodape .btn.par-conferir { margin-left: auto; }
 .acao .rodape:has(.par-quebra) > .selo { order: -1; }
-/* O `margin-top: auto` do rodapé morava aqui, para a ação sem `code.cmd`;
- * desde a P77 ele é do próprio `.acao .rodape`, acima, para todas. */
-/* A LISTA DO «VER COMANDO» É A ÚLTIMA COISA DO CARTÃO — 22/09/2026
- * A regra genérica `.acao > * { order: 2 }`, acima, é quem decide o lugar de
- * qualquer filho sem ordem própria — e o bloco de comandos, que o cartão de
- * ação passou a ter quando o caminho absoluto saiu da linha visível, caía com
- * ela ENTRE a explicação e o comando: a lista abria ACIMA do botão que a abre,
- * empurrando o «Executar» para baixo a cada clique. Ela pertence ao fim, depois
- * do rodapé, porque é o que se lê depois de decidir olhar. */
+/* Ela pertence ao fim, depois do rodapé, porque é o que se lê depois de decidir
+ * olhar. */
 .acao > .comandos { order: 5; padding-top: .15rem; }
 
-/* OS «EXECUTAR» DA MESMA FILEIRA EM TRÊS ALTURAS — 07/09/2026
- * Quatro dos cinco relatos da conferência de uso trouxeram este mesmo defeito,
- * em quatro abas diferentes: "os três Executar ficam em escadinha", "um cartão
- * é quase o dobro da altura do outro". A raiz é uma linha só: `align-items:
- * start` na `.grade`, acima. Com ela cada cartão tem a própria altura, e o
- * `margin-top: auto` que existe DENTRO do `.acao` não tem folga nenhuma para
- * consumir — não há fundo do cartão, o cartão acaba onde o texto acaba.
- *   Esticar é o conserto certo, e não «alinhar o botão»: quem lê uma fileira
- * de três compara os três, e comparar exige a mesma linha de base. O
- * `align-content: start` de dentro impede que a folga recém-ganha se espalhe
- * entre as linhas do próprio cartão — ela fica toda no fim, que é onde o
- * `margin-top: auto` a quer. */
+/* A raiz é uma linha só: `align-items: start` na `.grade`, acima. */
 .grade > .acao,
 .grade > .cartao { align-self: stretch; }
 .grade > .cartao { align-content: start; }
@@ -1447,9 +1070,9 @@ select { flex: 1 1 auto; }
   font-size: .8rem;
   cursor: pointer;
   white-space: nowrap;
-  /* O PISO DE 24 PX (WCAG 2.2, critério 2.5.8) — 21/09/2026. O porquê inteiro,
-     com a medição das 14 abas, está no bloco "O PISO DE 24 PX" junto ao
-     `.btn-mini`; aqui fica a regra, que é onde se procura por ela. */
+  /* O PISO DE 24 PX (WCAG 2.2, critério 2.5.8). O porquê inteiro, com a
+   * medição das 14 abas, está no bloco "O PISO DE 24 PX" junto ao `.btn-mini`;
+   * aqui fica a regra, que é onde se procura por ela. */
   min-height: 24px;
 }
 .btn:hover { border-color: var(--overlay0); background: var(--surface1); }
@@ -1461,17 +1084,12 @@ select { flex: 1 1 auto; }
   color: var(--red);
 }
 .btn-perigo:hover { background: color-mix(in srgb, var(--red) 15%, transparent); border-color: var(--red); }
-/* O BOTÃO DO ENSAIO — 22/09/2026, sprint P8
- * Ele é o irmão do `.btn-perigo`, e o desenho é o mesmo de propósito: contorno
- * e letra coloridos, fundo transparente. Os dois falam do MESMO gesto, e o que
- * muda entre eles é só a cor — vermelho para "isto apaga", amarelo para "isto
- * só mostra". Um botão cheio (como o `.btn-accent`) roubaria a ação principal
- * da caixa, que é o «Rodar» ao lado: ver o que faria é o caminho prudente, e
- * não o caminho que a tela empurra.
+/* Os dois falam do MESMO gesto, e o que muda entre eles é só a cor — vermelho
+ * para "isto apaga", amarelo para "isto só mostra".
  *
  * O AMARELO É O DO PROJETO, E NÃO UMA COR NOVA: `--yellow` é o que o
  * `lib/comum.sh` usa no glifo `~~` («mudaria»), que é exatamente o que este
- * botão produz na tela. A mesma cor da causa e do efeito. */
+ * botão produz na tela. */
 .btn-ensaio {
   background: transparent;
   border-color: color-mix(in srgb, var(--yellow) 38%, var(--surface1));
@@ -1482,11 +1100,7 @@ select { flex: 1 1 auto; }
   border-color: var(--yellow);
 }
 .btn:disabled {
-  /* Cores explícitas em vez de `opacity`. [2026-09-18]
-   * O esmaecimento global apagava texto E fundo juntos e derrubava o
-   * contraste para ~3,1:1 — legal pela letra da norma (estado inativo é
-   * isento), ilegível na prática. Assim o desabilitado continua
-   * visivelmente apagado, mas o rótulo permanece legível: 6,66:1. */
+  /* Cores explícitas em vez de `opacity`. */
   background: var(--surface0);
   border-color: var(--surface1);
   color: var(--subtext0);
@@ -1494,14 +1108,8 @@ select { flex: 1 1 auto; }
 }
 .btn:disabled:hover { background: var(--surface0); border-color: var(--surface1); }
 
-/* TRINTA E QUATRO "RODAR" EM MAUVE NÃO SÃO AÇÃO PRINCIPAL.
- * `--accent` marca LIGADO, SELECIONADO ou AÇÃO PRINCIPAL, e a ação principal
- * desta página é uma: "Salvar e aplicar". Numa aba de oito ações, oito botões
- * acesos apagam o sinal — e apagam junto a diferença entre "Conferir", que só
- * lê, e "Instalar", que pode pedir sudo. Aqui o botão volta a ser botão: o que
- * diz o grau é a moldura da ação e a etiqueta ao lado.
- * O accent segue no diálogo de confirmação, na barra de salvar e no "Consertar"
- * do aviso — os três lugares em que ele é, de fato, a ação principal. */
+/* `--accent` marca LIGADO, SELECIONADO ou AÇÃO PRINCIPAL, e a ação principal
+ * desta página é uma: "Salvar e aplicar". */
 .grade > .acao .btn-accent {
   background: var(--surface1);
   border-color: var(--surface2);
@@ -1510,11 +1118,8 @@ select { flex: 1 1 auto; }
 }
 .grade > .acao .btn-accent:hover { background: var(--surface2); border-color: var(--overlay0); filter: none; }
 
-/* AS ETIQUETAS DE RISCO PERDERAM A CAIXA.
- * Três pílulas de contorno em fila, vezes 34 ações, é textura: o vermelho de
- * "desfaz coisas" ficava igual ao azul de "usa rede". Sem contorno e em caixa
- * alta pequena, elas viram o que são — palavras marcadas —, e a única que ainda
- * ganha corpo é a de estado do trabalho que está correndo, na gaveta. */
+/* Três pílulas de contorno em fila, vezes 34 ações, é textura: o vermelho de
+ * "desfaz coisas" ficava igual ao azul de "usa rede". */
 .pastilha {
   font-size: var(--t-legenda);
   font-weight: 700;
@@ -1576,28 +1181,14 @@ select { flex: 1 1 auto; }
   color: var(--peach);
   margin: .7rem 0;
 }
-/* [P79, decisão 11: a caixa é uma linha e o `?` da dica ao lado dela.] */
 .aviso-sudo:not([hidden]) { display: flex; align-items: center; gap: .5rem; }
 .aviso-sudo strong { font-weight: 600; }
 
 /* --- gaveta de saída ------------------------------------------------------ */
-/* ELA MUDOU DE PAI EM 21/09/2026, e é isso que explica cada linha daqui.
- * O `index.html` conta a medição; o que sobra para o CSS é a consequência:
- *
- *   - `position: sticky; bottom: 0` porque agora a gaveta divide o rolador com
- *     o conteúdo. Sem isso o conteúdo passa POR BAIXO dela, e a gaveta só
- *     aparece para quem rolar a coluna até o fim — que é o contrário de uma
- *     saída ao vivo;
- *   - `max-height: 25vh` no lugar dos `46vh` de antes: é o teto que ela pediu,
- *     *"no máximo 25% (não afetando o menu lateral)"*;
- *   - `min-height: 120px` para o cabeçalho — título, comando, pastilha de
- *     estado, Parar e Fechar — nunca ser comprimido numa janela baixa, onde
- *     25vh é menos que a linha dos botões;
- *   - `overflow: hidden` para a saída não vazar por baixo da borda enquanto a
- *     gaveta encolhe. Quem rola continua sendo o `#saida`.
+/* ELA MUDOU DE PAI, e é isso que explica cada linha daqui.
  *
  * O `flex: 0 0 auto` saiu junto com a mudança de pai: ele só valia enquanto ela
- * era filha do `<body>`, que é uma coluna flex. O `#principal` é bloco. */
+ * era filha do `<body>`, que é uma coluna flex. */
 .gaveta {
   position: sticky;
   bottom: 0;
@@ -1616,34 +1207,12 @@ select { flex: 1 1 auto; }
   background: var(--crust);
   border-top: 1px solid var(--surface1);
 }
-/* O RODAPÉ DO `main` SAI ENQUANTO A GAVETA ESTÁ NO AR.
- * São 4rem de respiro no fim da coluna, e eles são do CONTEÚDO. Com a gaveta
- * aberta, esse respiro viraria uma faixa vazia entre ela e a beira de baixo da
- * janela assim que a pessoa rolasse até o fim — a gaveta deixaria de encostar
- * no rodapé justamente no momento em que ela está sendo lida. O respiro do
- * conteúdo não se perde: o `#conteudo` tem 3rem próprios, e a gaveta acrescenta
- * 1rem de margem. */
-/* E A COLUNA VIRA UMA COLUNA FLEX, PELA CAUSA IRMÃ — 21/09/2026
- * `position: sticky; bottom: 0` só sabe puxar a gaveta PARA CIMA: ele a segura
- * na beira de baixo enquanto ainda há conteúdo a rolar, e não faz nada quando a
- * posição natural dela já está acima dessa beira. É o que acontece na aba
- * curta, onde `scrollHeight == clientHeight`: a gaveta fica no fluxo logo
- * depois do conteúdo e sobra uma tira de `--base` debaixo de um painel
- * `--crust`. Medido com a gaveta aberta nas 14 abas, janela de 1500x1000:
- * "Terminal" parava em 958 de 1000 (vão de 42 px) e "Atualização" em 924
- * (76 px) — a mesma faixa vazia que o `padding-bottom: 0` aqui de cima diz ter
- * eliminado, com a outra causa.
+/* São 4rem de respiro no fim da coluna, e eles são do CONTEÚDO. */
+/* É o que acontece na aba curta, onde `scrollHeight == clientHeight`: a gaveta
+ * fica no fluxo logo depois do conteúdo e sobra uma tira de `--base` debaixo de
+ * um painel `--crust`.
  *
- * Então o `#conteudo` CRESCE para ocupar a sobra (`flex: 1 0 auto`) e empurra a
- * gaveta até o rodapé; quando a aba é longa não há sobra, o `flex-grow` não faz
- * nada, o `flex-shrink: 0` impede que o conteúdo seja espremido no lugar de
- * rolar, e quem gruda a gaveta volta a ser o `sticky`. Os dois casos, um
- * mecanismo cada.
- *
- * O `margin-bottom` do aviso zera porque coluna flex NÃO funde margem de
- * irmãos: os 1,2rem dele mais os 1,4rem do `#conteudo` viravam 2,6rem de vão
- * justamente na tela que tem aviso e gaveta ao mesmo tempo. Fundidos davam
- * 1,4rem, e é 1,4rem que fica — ver o comentário do `#conteudo` lá em cima. */
+ * Os dois casos, um mecanismo cada. */
 main:has(> .gaveta:not([hidden])) {
   padding-bottom: 0;
   display: flex;
@@ -1652,24 +1221,14 @@ main:has(> .gaveta:not([hidden])) {
 main:has(> .gaveta:not([hidden])) > * { flex: 0 0 auto; }
 main:has(> .gaveta:not([hidden])) > #conteudo { flex: 1 0 auto; }
 main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
-/* O TETO DO ARRASTO, E POR QUE ELE É UM ATRIBUTO PRÓPRIO — 21/09/2026
- * Crescer a gaveta é para o momento, não é preferência gravada: ela nasce
- * sempre em 25vh, e o `abrirGaveta` apaga a altura arrastada na abertura
- * seguinte. Enquanto o arrasto dura, quem manda é o `height` que o `app.js`
- * escreve no `style` do elemento — e um `max-height: 25vh` o cortaria no
- * primeiro pixel. Então o teto de 60vh passa a valer só enquanto o arrasto
- * marcou a gaveta com `data-esticada`.
+/* Enquanto o arrasto dura, quem manda é o `height` que o `app.js` escreve no
+ * `style` do elemento — e um `max-height: 25vh` o cortaria no primeiro pixel.
  *
  * O SELETOR ERA `[style*="height"]`, E ISSO É UMA BUSCA DE SUBSTRING: ele casa
- * com `min-height`, `max-height` e `line-height`. Qualquer estilo inline futuro
- * nesta seção destravaria os 60vh sem que ninguém tivesse arrastado nada. Um
- * atributo que só o arrasto escreve não tem como ser casado por engano. */
+ * com `min-height`, `max-height` e `line-height`. */
 .gaveta[data-esticada] { max-height: 60vh; }
 /* A faixa de 9 px logo abaixo da borda de cima: é ela que a pessoa arrasta, e o
- * `pointerdown` mora no `app.js`. O risquinho existe para a pega ser VISTA —
- * uma área de arrasto que não se anuncia é uma área de arrasto que ninguém
- * descobre. `touch-action: none` porque sem ele o dedo rola a coluna no meio do
- * gesto, em vez de crescer a gaveta. */
+ * `pointerdown` mora no `app.js`. */
 .gaveta-alca {
   flex: 0 0 auto;
   height: 9px;
@@ -1687,10 +1246,6 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
   background: var(--surface1);
 }
 .gaveta-alca:hover::before { background: var(--overlay1); }
-/* O recheio da coluna encolhe para 1rem na tela estreita (lá embaixo, no bloco
- * «telas estreitas»), e o cancelamento tem de acompanhar: com -1.6rem contra
- * 1rem de recheio, a gaveta estoura a coluna 1,2rem para cada lado e o
- * `#principal` ganha uma rolagem horizontal que ninguém pediu. */
 @media (max-width: 860px) {
   .gaveta { margin-inline: -1rem; }
 }
@@ -1705,21 +1260,14 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
 .gaveta-topo code { display: block; font: .68rem var(--mono); color: var(--overlay1); }
 .gaveta-botoes { margin-left: auto; display: flex; align-items: center; gap: .45rem; }
 
-/* A FAIXA DO ENSAIO — 22/09/2026, sprint P8
- * ===========================================================================
+/* A FAIXA DO ENSAIO
+ *
  * "ENSAIO · nada foi escrito", e ela existe porque as duas saídas da gaveta são
  * o MESMO texto do mesmo instalador: a diferença entre "mudei isto" e "mudaria
- * isto" são os verbos no meio de centenas de linhas. Quem abre a gaveta no
- * meio da corrida não lê verbo nenhum — lê a faixa.
+ * isto" são os verbos no meio de centenas de linhas.
  *
  * ELA FICA ENTRE O TOPO E A SAÍDA, e não dentro do `.gaveta-topo`: o topo é a
- * linha do título, do comando e dos botões, e tem largura disputada. Uma faixa
- * de largura inteira, logo acima da primeira linha de log, é o cabeçalho de uma
- * saída — que é o que a sprint pede — e não mais um enfeite na barra.
- *
- * `flex: 0 0 auto` pelo mesmo motivo que o `.gaveta-alca`: a `.gaveta` é uma
- * coluna flex com o `#saida` rolando dentro, e sem isto a faixa encolheria
- * junto com o resto quando a saída ficasse longa. */
+ * linha do título, do comando e dos botões, e tem largura disputada. */
 .faixa-ensaio {
   flex: 0 0 auto;
   display: flex;
@@ -1755,8 +1303,7 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
 }
 /* As cores do log do projeto, relidas do texto. O `lib/comum.sh` marca cada
  * linha com um glifo justamente porque a cor do terminal não sobrevive a um
- * cano — aqui a cor volta a partir do glifo. O título da linha saiu do mauve:
- * um cabeçalho de log não é uma coisa acesa, é um cabeçalho. */
+ * cano — aqui a cor volta a partir do glifo. */
 #saida .l-ok   { color: var(--green); }
 #saida .l-muda { color: var(--yellow); }
 #saida .l-pula { color: var(--overlay1); }
@@ -1764,13 +1311,9 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
 #saida .l-info { color: var(--blue); }
 #saida .l-tit  { color: var(--text); font-weight: 700; }
 
-/* A PASTILHA DE «MAIS N LINHAS ABAIXO» — 21/09/2026
- * Flutua sobre o `#saida`, encostada no rodapé da gaveta, porque é de um lugar
- * que ela fala: o fim, que está logo abaixo da beira. Fora do fluxo de
- * propósito — uma linha a mais no rodapé empurraria a saída para cima toda vez
- * que a pessoa rolasse. Quem a posiciona é a própria `.gaveta`, que virou
- * `sticky` e com isso passou a ser bloco de contenção dos filhos absolutos.
- * Ela só existe quando há o que dizer: o `app.js` a esconde com `hidden`. */
+/* Fora do fluxo de propósito — uma linha a mais no rodapé empurraria a saída
+ * para cima toda vez que a pessoa rolasse. Ela só existe quando há o que
+ * dizer: o `app.js` a esconde com `hidden`. */
 #mais-abaixo {
   position: absolute;
   left: 50%;
@@ -1792,10 +1335,9 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
   font-style: italic;
 }
 
-/* A FAIXA DE SERVIDOR PERDIDO — 07/09/2026. Vermelha e FIXA: diferente da
- * torrada, ela relata um estado, não um evento — e o estado dura até o `api()`
- * ouvir o servidor de novo. Mora logo sob o cabeçalho, empurrando o conteúdo
- * em vez de tapá-lo. */
+/* Vermelha e FIXA: diferente da torrada, ela relata um estado, não um evento —
+ * e o estado dura até o `api()` ouvir o servidor de novo. Mora logo sob o
+ * cabeçalho, empurrando o conteúdo em vez de tapá-lo. */
 #faixa-sem-servidor {
   display: flex;
   align-items: center;
@@ -1829,13 +1371,8 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
   font-size: .8rem;
   color: var(--text);
   animation: entra .18s ease-out;
-  /* O TETO DE LARGURA E O PONTEIRO — 07/09/2026. Medido com o servidor fora:
-     a frase de erro esticava a torrada a ~1490 px, uma tarja atravessando a
-     tela. E `pointer-events: none` (herdado do contêiner) fazia o rato
-     atravessá-la: impossível segurar para ler ou selecionar o texto de um
-     erro. O contêiner continua `none` — é ele que não pode roubar cliques da
-     página —; a torrada em si volta a ser tocável, e o `app.js` pausa o
-     relógio dela no `mouseenter`. */
+  /* Medido com o servidor fora: a frase de erro esticava a torrada a ~1490
+   * px, uma tarja atravessando a tela. */
   max-width: 28rem;
   pointer-events: auto;
   user-select: text;
@@ -1846,24 +1383,11 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
 @keyframes entra { from { opacity: 0; transform: translateY(6px); } }
 
 /* --- o balão -------------------------------------------------------------- */
-/* O BALÃO NATIVO SAIU — 21/09/2026, e o porquê inteiro está no `app.js`, no
-   bloco "O BALÃO É NOSSO". Aqui ficam as quatro medidas que o nativo não
-   deixava escolher, e que são a razão de ele ter saído:
-
-     largura .. 28rem de teto. O nativo tem a largura do texto: 154 caracteres
-                davam perto de 600 px, uma tarja atravessando três cartões.
-     lugar .... `fixed`, com o topo e a esquerda escritos pelo `mostrarBalao`
-                a partir do CARTÃO, não do cursor. É o que faz ele nascer
-                ACIMA da fileira e nunca sobre os botões irmãos.
-     camada ... 60, acima das torradas (50) e abaixo do diálogo (100): ele
-                acompanha um elemento da página, e some antes de qualquer
-                pergunta modal.
-     rato ..... `pointer-events: none`, porque o balão nasce ao lado do botão
-                que o abriu e não pode ficar entre o dedo e ele.
-
-   Fundo `--mantle` e borda `--surface1` são os mesmos do diálogo: o balão é
-   voz da página, e no latte um cinza-escuro de tema de navegador seria a
-   única mancha preta da tela. */
+/* Aqui ficam as quatro medidas que o nativo não deixava escolher, e que são a
+ * razão de ele ter saído:
+ *
+ * O nativo tem a largura do texto: 154 caracteres davam perto de 600 px, uma
+ * tarja atravessando três cartões. lugar .... */
 .balao {
   position: fixed;
   z-index: 60;
@@ -1899,8 +1423,7 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
   border-top-color: transparent;
   border-bottom-color: var(--surface1);
 }
-/* Ao lado (o menu lateral, P77 U3): a seta sai da borda que encosta no dono,
-   na altura do meio dele. */
+/* Ao lado: a seta sai da borda que encosta no dono, na altura do meio dele. */
 .balao.ao-lado::after {
   top: 50%;
   left: auto;
@@ -1918,10 +1441,7 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
 
 /* --- o comando, fora do balão --------------------------------------------- */
 /* A lista que o «ver comando» abre: uma linha por comando, cada uma com o seu
-   Copiar. Na galeria ela entra na COLUNA da figura, depois da legenda — ver o
-   bloco "O CARTÃO CRESCE" mais abaixo, que explica por que não dentro dela.
-   O `<code>` rola de lado: um nome de arquivo de papel de parede não cabe em
-   180 px e quebrá-lo em três linhas comeria o cartão inteiro. */
+ * Copiar. */
 .comandos { display: flex; flex-direction: column; gap: .25rem; }
 .galeria .comandos { background: var(--surface0); padding: 0 .4rem .45rem; }
 .comando {
@@ -1973,22 +1493,14 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   overflow-x: auto;
 }
 
-/* ===========================================================================
- * VER E ESCOLHER — a moldura sai, a imagem fica
- * ===========================================================================
+/* VER E ESCOLHER — a moldura sai, a imagem fica
+ *
  * São as três telas em que ela passa mais tempo (46 papéis, 64 ícones, 23
  * capas) e eram as menos desenhadas: cada imagem morava dentro de um cartão com
- * borda, fundo e legenda permanente, e a grade tinha o mesmo respiro da grade de
- * texto. O resultado é que a moldura ocupava mais pixels do que a imagem em
- * telas de 190px de coluna.
+ * borda, fundo e legenda permanente, e a grade tinha o mesmo respiro da grade
+ * de texto.
  *
- * Aqui a imagem É o objeto. Sem borda, sem fundo, sem legenda fixa, grade
- * densa, e — diferente de Ajustar — largura inteira: quanto mais couber numa
- * tela de 27 polegadas, melhor, porque a tarefa é comparar.
- *
- * OS NÚMEROS DA PRÉVIA DE ÍCONES NÃO SÃO NOVOS: são os das 19 folhas visuais de
- * `docs/folhas/` — ícone a 48px dentro de caixa de 64, raio 8. 48 é o tamanho
- * REAL que a dock desenha. */
+ * Aqui a imagem É o objeto. */
 
 /* --- os quatro fundos de teste ------------------------------------------- */
 /* A dock é translúcida e o papel de parede gira, então o fundo por trás de um
@@ -2019,12 +1531,9 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .fundos button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
 /* --- a galeria dos 46 papéis de parede ------------------------------------
- * O NOME DO ARQUIVO E O "BANIR" SAÍRAM DA PRIMEIRA LEITURA.
- * Eram 46 nomes em monoespaçado e 46 botões de contorno vermelho na mesma tela;
- * o vermelho virou textura e deixou de significar "cuidado". Agora a legenda e a
- * ação aparecem sobre a imagem no `:hover` e no `:focus-within` — o teclado
- * chega a elas do mesmo jeito, porque focar o botão acende a legenda. O que
- * decide entre uma foto e outra é a foto. */
+ * Agora a legenda e a ação aparecem sobre a imagem no `:hover` e no
+ * `:focus-within` — o teclado chega a elas do mesmo jeito, porque focar o botão
+ * acende a legenda. */
 .galeria {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
@@ -2058,14 +1567,9 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 }
 @keyframes brilho { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 .galeria figure:hover, .galeria figure:focus-within { outline: 2px solid var(--surface2); outline-offset: 0; }
-/* O NOME EM CIMA, AS AÇÕES EMBAIXO — 07/09/2026
-   Era uma linha só, com o nome e os botões dividindo a largura. A conferência
-   de uso mediu o resultado: as QUARENTA E SEIS imagens do acervo mostravam
-   "cat-la…" e "meow-l…" — 51 px de nome, porque as ações não encolhem e ficam
-   com o resto. Um nome cortado no quinto caractere não distingue imagem
-   nenhuma, que é a única coisa que ele existe para fazer.
-     Em coluna o nome tem a largura inteira da miniatura. O `text-overflow`
-   continua valendo para o que ainda não couber. */
+/* Um nome cortado no quinto caractere não distingue imagem nenhuma, que é a
+ * única coisa que ele existe para fazer. Em coluna o nome tem a largura
+ * inteira da miniatura. */
 .galeria figcaption {
   position: absolute;
   inset: auto 0 0 0;
@@ -2080,15 +1584,8 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 }
 .galeria figure:hover figcaption,
 .galeria figure:focus-within figcaption { opacity: 1; pointer-events: auto; }
-/* O CARTÃO CRESCE, O BOTÃO NÃO ENCOLHE — 21/09/2026, com o «ver comando».
-   Com a lista aberta a legenda sai do véu e entra na coluna: a ficha passa a
-   ser imagem + legenda + comandos, e quem ganha altura é a LINHA DA GRADE.
-   Medido antes de escolher: a alternativa era manter a legenda flutuando e
-   rolar os quatro comandos dentro dos 132 px do cartão — cabia uma linha e
-   meia, e uma lista que nasce cortada lê-se como defeito, não como lista.
-   E a legenda tem de FICAR: é nela que mora o «ver comando» que fecha isto, e
-   uma lista que só se fecha levando o rato de volta ao lugar certo é uma lista
-   que fica aberta. */
+/* Com a lista aberta a legenda sai do véu e entra na coluna: a ficha passa a
+ * ser imagem + legenda + comandos, e quem ganha altura é a LINHA DA GRADE. */
 .galeria { align-items: start; }
 .galeria figure:has(.comandos:not([hidden])) figcaption {
   position: static;
@@ -2106,14 +1603,8 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   white-space: nowrap;
 }
 .galeria .acoes { display: flex; gap: .3rem; flex: 0 0 auto; flex-wrap: wrap; }
-/* 22 PX VIRARAM 28 — 21/09/2026. São os quatro botões da queixa dela, e a
-   ficha inteira já nasce escondida (aparece no hover e no foco — ver a
-   `figcaption` acima, que é assim desde 07/09/2026): a altura que eles ganham
-   não é altura que a imagem perde. 28 e não 24 porque aqui o alvo está sobre
-   uma foto, onde a borda do botão compete com o que estiver embaixo dela.
-   O `flex-wrap` é a consequência: com o «ver comando», cinco botões de 28 px
-   não cabem nos 180 px da coluna, e ele desce para a segunda linha em vez de
-   espremer os quatro verbos de volta ao tamanho de onde saíram. */
+/* 28 e não 24 porque aqui o alvo está sobre uma foto, onde a borda do botão
+ * compete com o que estiver embaixo dela. */
 .galeria .acoes .btn {
   padding: .2rem .5rem;
   font-size: var(--t-legenda);
@@ -2145,9 +1636,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 
 /* --- os 64 aplicativos e seus ícones -------------------------------------
  * Grade densa e SEM CAIXA: são 64, e a pergunta é sempre comparativa — "o que
- * entrou aqui e ainda está sem ícone". Sessenta e quatro bordas de 150px
- * gastavam metade da tela em moldura; com 116px e sem borda, os 64 caem numa
- * tela só e o que se vê são os desenhos, lado a lado, que é a comparação. */
+ * entrou aqui e ainda está sem ícone". */
 .linha-filtro {
   display: flex;
   align-items: center;
@@ -2204,16 +1693,8 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
  * traz de 6 a 10 cores próprias. Então a etiqueta é o NOME do acervo, e o
  * mauve a separa das outras, que são todas nome de cor da paleta. */
 .app-dracula { color: var(--mauve); }
-/* O SELO DA ORIGEM — 09/10/2026, P73 (achado 24). A palavra saiu da grade e
- * virou forma; o nome vai para a dica (`title`, pelo balão). Cinco formas, de
- * propósito distintas também sem cor (o daltônico lê a forma): anel cheio,
- * losango, ponto, quadrado e anel vazio. A cor do ponto do traço é a do próprio
- * traço (`--cor-do-selo`, a cor da paleta que o pinta). */
-/* [P77, 09/10/2026: as cinco formas ficaram presas à `.app-marca`. O selo de
- * estado da P77 (`.selo`, `.selo-pack`, no fim da folha) nasceu com os mesmos
- * nomes, e estas regras soltas o espremiam num quadrado de .7rem — o valor ao
- * lado do ícone vazava por cima do selo vizinho, e o «Vem do pack» ganhava o
- * losango cheio daqui.] */
+/* A palavra saiu da grade e virou forma; o nome vai para a dica (`title`, pelo
+ * balão). */
 .app-marca.selo { display: inline-block; width: .7rem; height: .7rem; margin-top: .15rem; }
 .app-marca.selo-escolha { border-radius: 50%; border: 3px solid var(--accent); background: var(--base); }
 .app-marca.selo-pack { background: var(--accent); transform: rotate(45deg) scale(.85); border-radius: 2px; }
@@ -2222,9 +1703,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .app-marca.selo-fabrica { border-radius: 50%; border: 1.5px solid var(--overlay2); }
 
 /* O painel de escolha nasce embaixo do aplicativo clicado, ocupando a linha
- * inteira — assim o contexto não se perde. Borda em accent porque ele está
- * ABERTO; o fundo tingido saiu: 6% de accent espalhados por um painel grande é
- * accent de enfeite. */
+ * inteira — assim o contexto não se perde. */
 .escolha-icone, .escolha-jogo {
   grid-column: 1 / -1;
   display: flex;
@@ -2236,14 +1715,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   border-radius: var(--r-3);
   background: var(--mantle);
 }
-/* `flex: 0 0 auto` PORQUE O PAINEL DO JOGO É UMA COLUNA — 07/09/2026
-   A regra geral `input[type="text"] { flex: 1 1 12ch }` (acima) foi escrita
-   para as LINHAS de controle, onde o campo de texto deve tomar a largura livre.
-   Dentro do `.escolha-jogo`, que é `flex-direction: column`, o mesmo
-   `flex-grow: 1` cresce em ALTURA: a conferência de uso mediu o campo
-   "Por quê?" com 90 px para uma linha de texto — uma caixa enorme e vazia
-   onde cabe uma frase. Varridos os treze assuntos, este é o único campo que
-   caía nisso. */
+/* Varridos os treze assuntos, este é o único campo que caía nisso. */
 .escolha-icone input[type="search"], .motivo-jogo {
   flex: 0 0 auto;
   padding: .45rem .7rem;
@@ -2255,10 +1727,8 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   font-size: .82rem;
 }
 
-/* A TIRA ROLA, E O NOME CABE.
- * A validação mediu: com 57 resultados o botão era esmagado para 40px e o
- * <span> do nome ficava com ALTURA ZERO. `align-content: start` é o que impede
- * o grid de espremer as linhas para caber; a altura mínima garante o nome. */
+/* `align-content: start` é o que impede o grid de espremer as linhas para
+ * caber; a altura mínima garante o nome. */
 .tira-glifos {
   display: flex;
   flex-direction: column;
@@ -2267,10 +1737,8 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   overflow-y: auto;
   padding: .2rem;
 }
-/* UMA PASTA POR ACERVO — 09/10/2026, P73. A tira deixou de ser uma grade só
- * (60 + 60, cortada sem aviso) e virou uma pilha de pastas recolhíveis, cada
- * uma com o dono, o nome e a conta. A grade de cada pasta é a de antes; a
- * rolagem é da pilha, para a pasta aberta não esconder as de baixo. */
+/* A grade de cada pasta é a de antes; a rolagem é da pilha, para a pasta
+ * aberta não esconder as de baixo. */
 .pasta-acervo { border: 1px solid var(--surface0); border-radius: var(--r-2); background: var(--base); }
 .pasta-acervo > summary {
   display: flex;
@@ -2284,23 +1752,14 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .pasta-acervo > summary .dono { font-weight: 700; color: var(--text); }
 .pasta-acervo > summary .conta { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--overlay2); }
 .pasta-acervo[open] > summary { border-bottom: 1px solid var(--surface0); }
-/* A TRAVA É ESTADO, E NÃO SUMIÇO — P73 (T4). O desenho que não valeria neste
- * app fica na pasta, apagado e sem resposta ao clique; a dica diz o dono do
- * ícone. A pasta inteira travada ganha o selo de trava (sem palavra). */
+/* O desenho que não valeria neste app fica na pasta, apagado e sem resposta
+ * ao clique; a dica diz o dono do ícone. A pasta inteira travada ganha o
+ * selo de trava (sem palavra). */
 .tira-glifos button.travado { opacity: .38; cursor: not-allowed; }
 .tira-glifos button.travado:hover { border-color: var(--surface0); }
-/* [P80, item 3: o cadeado desenhado em CSS (`.cadeado`) saiu; a pasta
- * travada leva o selo de trava da página — ver o `selo("trava")` no app.js.] */
 .pasta-acervo > summary .selo { align-self: center; }
-/* A COLUNA CABE A PALAVRA MAIS LONGA DO RÓTULO — QA de uso real da P80
- * (10/10/2026). Com 76 px, o rótulo tinha 65 px de largura útil, e o nome
- * amigável que a P80 pôs embaixo de cada desenho partia no meio da palavra:
- * «Configuraçõe» numa linha e «s» na outra, «Siliconsneake» e «r». O
- * navegador não hifeniza português aqui (medido: `hyphens: auto` não quebra
- * «Configurações»), então quem resolve é a largura: com 88 px sobram 76 de
- * rótulo, e a palavra mais longa da casa medida (`Spacestation14`, 72 px no
- * corpo da legenda) cabe inteira. O `overflow-wrap: anywhere` do rótulo fica
- * como último recurso, para o nome que nem assim caiba. */
+/* O `overflow-wrap: anywhere` do rótulo fica como último recurso, para o
+ * nome que nem assim caiba. */
 .grade-glifos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
@@ -2325,18 +1784,15 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   overflow: hidden;
 }
 /* OS GLIFOS SÃO TRAÇO PRETO, E `invert(1)` CRAVADO É UMA SUPOSIÇÃO DE FUNDO
- * ESCURO — no latte ele deixava desenho claro sobre painel claro, invisível.
- * `light-dark()` lê o `color-scheme` que a própria paleta gerada declara, então
- * a inversão passa a acompanhar o FLAVOR sem uma linha de JavaScript. A primeira
- * declaração é a rede para navegador que não conheça a função. */
+ * ESCURO — no latte ele deixava desenho claro sobre painel claro, invisível. */
 .tira-glifos button img { width: 34px; height: 34px; filter: invert(1) opacity(.85); }
 @supports (color: light-dark(black, white)) {
   .tira-glifos button img { filter: invert(light-dark(0, 1)) opacity(.85); }
 }
 .tira-glifos button:hover { border-color: var(--surface2); color: var(--text); }
-/* O RÓTULO QUEBRA EM DUAS LINHAS — P80 (item 1). Era uma linha só, com
- * reticências: o nome amigável («Mesa de air hockey») cabe em duas, e cortar
- * em uma era o defeito. A terceira linha, se houver, vira reticências. */
+/* O RÓTULO QUEBRA EM DUAS LINHAS. Era uma linha só, com reticências: o nome
+ * amigável («Mesa de air hockey») cabe em duas, e cortar em uma era o
+ * defeito. A terceira linha, se houver, vira reticências. */
 .tira-glifos button span {
   max-width: 100%;
   overflow: hidden;
@@ -2348,11 +1804,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   overflow-wrap: anywhere;
 }
 .tira-glifos button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
-/* O DESENHO DO PACK SAI COMO ELE ENTRA NO TEMA — 25/09/2026, P60. A inversão
- * acima é para o traço preto do acervo. Um desenho do pack traz as cores dele
- * e entra no tema sem ser recolorido (o Dracula declara `recolorir: false`, e
- * nenhum passo recolore): invertido, a miniatura mostraria um roxo que vira
- * verde, uma cor que a tela nunca vai ter. */
+/* A inversão acima é para o traço preto do acervo. */
 .tira-glifos button.do-pack img { filter: none; }
 /* O rótulo do grupo (o nome do pack, e o do traço) ocupa a linha inteira da
  * grade, e não uma célula entre os desenhos. */
@@ -2361,28 +1813,19 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .rotulo-mini { font-size: var(--t-legenda); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--overlay2); }
 
 /* --- a oficina de desenho ------------------------------------------------- */
-/* 09/09/2026, Sprint R. Ela, em 08/09: "o nosso gerador de ícones é fraco, não
- * gera variações nem é tão bonito quanto o original, além de ficar pixelado e
- * não ser intuitivo e fácil de usar". Quatro queixas, e esta tela responde três.
+/* Ela,: "o nosso gerador de ícones é fraco, não gera variações nem é tão bonito
+ * quanto o original, além de ficar pixelado e não ser intuitivo e fácil de
+ * usar".
  *
  *   · não gera variações  -> uma FOLHA de cartões, todos desenhados de uma vez
  *   · não é tão bonito quanto o original -> o original entra na folha, ao lado,
  *     como régua: até ontem ele nunca aparecia, e comparar era memória
  *   · não é intuitivo     -> "Cores/Fusão/Aparo" era o vocabulário do conversor;
  *     agora são duas réguas de gosto, e editar é CLICAR num traço, não escrever
- *     XML — o textarea continua existindo, dobrado
- *
- * A quarta (o pixelado) é da frente do conversor, e não desta folha de estilo.
- *
- * SEM UM HEX SEQUER, e não por gosto: o `tests/app.sh` varre este arquivo
- * procurando cor solta fora de comentário. O vidro da dock era `#3C3B50` no
- * rascunho e aqui é uma mistura de dois tokens que dá o mesmo tom nos quatro
- * flavors — ver o `.oficina-dock`. */
+ *     XML — o textarea continua existindo, dobrado */
 .oficina { margin: .2rem 0 1rem; }
-/* O RESUMO É UM CONVITE, E NÃO UM RODAPÉ — 08/09/2026
-   Era versalete cinza no fim do painel: do tamanho de uma nota de rodapé, com a
-   cor de uma nota de rodapé, e lido como uma. Agora abre o painel, ao lado do
-   acervo, e o `Usar` mora nele — o único verbo desta tela que escreve. */
+/* Agora abre o painel, ao lado do acervo, e o `Usar` mora nele — o único verbo
+ * desta tela que escreve. */
 .oficina > summary {
   cursor: pointer;
   display: flex;
@@ -2401,11 +1844,8 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 /* O marcador do `details` some quando o summary é flex em alguns motores; o
    `list-item` devolve o triângulo, que é o que diz "isto abre". */
 .oficina > summary::marker { color: var(--overlay1); }
-/* O TRIÂNGULO DESENHADO, PORQUE O DO MOTOR NÃO VEIO — 10/10/2026, QA da P77.
-   Medido no Chromium: com o summary em flex, o `::marker` não nasce, e a linha
-   «Gerar ícone — MeowSystem» ficava igual a um cartão parado com um botão —
-   nada nela dizia que abre a oficina. O triângulo é o mesmo do «Editar o SVG»
-   logo abaixo, e gira quando a oficina abre. */
+/* O triângulo é o mesmo do «Editar o SVG» logo abaixo, e gira quando a oficina
+ * abre. */
 .oficina > summary { list-style: none; }
 .oficina > summary::-webkit-details-marker { display: none; }
 .oficina > summary::before {
@@ -2458,24 +1898,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 /* --- a tira do dock -------------------------------------------------------- */
 .oficina-dock-caixa { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin: .4rem 0 .8rem; }
 .oficina-legenda { font-size: var(--t-legenda); color: var(--subtext0); }
-/* O VIDRO DA DOCK, E POR QUE ELE TEM DUAS RECEITAS
-   No escuro o vidro já existe e tem nome: `--fundo-vidro-escuro`, que o
-   `paleta_css` deriva como `--base` puxada 17% para o `--text` e cujo valor
-   reproduz o medido nas folhas visuais com erro de 2/255. Repetir a conta aqui
-   seria uma segunda verdade sobre a mesma cor.
-
-   No claro NÃO se usa o `--fundo-vidro-claro`, e isso foi olhado: aquele token é
-   a dock sobre papel de parede CLARO (`--surface1` 55% + `--mauve`), um roxo de
-   verdade — e a tira mostra o vizinho `lavender`, que sumiria dentro dele. Aqui
-   a tira é uma amostra da dock, não um fundo de teste, então o claro repete a
-   receita do escuro com a mistura mais funda que o papel claro pede: 76/24, que
-   dá cinza médio, contra o 83/17 que sobre latte quase não sai do branco.
-
-   O que separa os dois é `light-dark()`, e não `prefers-color-scheme`: o painel
-   se veste pelo `FLAVOR` do meow.conf dela, que o `paleta_css` traduz em
-   `color-scheme` no `:root`. A consulta de mídia leria a preferência do
-   NAVEGADOR e mostraria o vidro escuro num painel latte aberto num Chrome
-   escuro — medido: `light-dark()` segue o `color-scheme`, a consulta não. */
+/* O VIDRO DA DOCK, E POR QUE ELE TEM DUAS RECEITAS No escuro o vidro já existe
+ * e tem nome: `--fundo-vidro-escuro`, que o `paleta_css` deriva como `--base`
+ * puxada 17% para o `--text` e cujo valor reproduz o medido nas folhas visuais
+ * com erro de 2/255. */
 .oficina-dock {
   display: inline-flex;
   align-items: center;
@@ -2489,10 +1915,9 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .oficina-dock svg { display: block; }
 
 /* --- a lupa, que é o editor ------------------------------------------------ */
-/* A SEGUNDA COLUNA NÃO É `1fr`, E FOI A FOTO QUE DISSE. Com `1fr` as duas
-   réguas comiam os 950 px que sobram numa tela de 1240: um deslizante daquele
-   comprimento tem onze paradas espalhadas por meio metro de tela, e mirar o
-   valor 6 vira pontaria. 26rem é largura de controle, não de página. */
+/* Com `1fr` as duas réguas comiam os 950 px que sobram numa tela de 1240: um
+ * deslizante daquele comprimento tem onze paradas espalhadas por meio metro
+ * de tela, e mirar o valor 6 vira pontaria. */
 .oficina-par { display: grid; grid-template-columns: minmax(216px, 232px) minmax(0, 26rem); gap: .8rem; }
 /* Numa tela estreita as duas colunas viram uma: a lupa espremida não serve de
    juízo, e a régua a 110 px não se arrasta. */
@@ -2508,28 +1933,21 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   color: var(--text);
 }
 .oficina-lupa svg { display: block; }
-/* SEM `stroke` NO `pointer-events` O CLIQUE ATRAVESSA O TRAÇO, e foi a primeira
-   coisa medida desta tela: o conversor grava os caminhos dentro de um
-   `<g fill="none">`, e a área "dentro" de um path sem preenchimento NÃO É DO
-   PATH — o clique cai no `<div>` atrás e nada acontece. Com `stroke`, o alvo
-   passa a ser a linha desenhada, que é exatamente o que ela mira. */
+/* Com `stroke`, o alvo passa a ser a linha desenhada, que é exatamente o que
+ * ela mira. */
 .oficina-lupa svg path { pointer-events: stroke; cursor: pointer; }
 .oficina-lupa svg path:hover { stroke: var(--red); }
 .oficina-lupa-dica { font-size: var(--t-legenda); color: var(--overlay1); text-align: center; margin: 0; }
 .oficina-lado { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
 .oficina-regua { display: flex; align-items: center; gap: .6rem; font-size: var(--t-frase); color: var(--subtext0); }
-/* 6,6rem E NÃO 5,5rem — 09/09/2026. As réguas eram «Detalhe» e «Suavidade»; com
-   «Linhas fracas» e «Traço mínimo» (13 e 12 caracteres) o rótulo quebrava em
-   duas linhas e SÓ AQUELAS DUAS ficavam mais altas, desalinhando os quatro
-   deslizantes. O `nowrap` é a tranca: um rótulo mais longo amanhã empurra a
-   coluna em vez de dobrar. */
+/* 6,6rem E NÃO 5,5rem. As réguas eram «Detalhe» e «Suavidade»; com «Linhas
+ * fracas» e «Traço mínimo» */
 .oficina-regua span { min-width: 6.6rem; white-space: nowrap; }
 .oficina-regua input { flex: 1; min-width: 0; }
 /* A fileira de cor dentro da oficina é a mesma `.cores-grade` do acervo — o
-   mesmo tamanho de amostra e a mesma marca de escolhida, porque as duas
-   escrevem no MESMO campo do mapa e pareceriam controles diferentes se
-   tivessem desenhos diferentes. Aqui ela só respira menos: o `rotulo-mini`
-   «Cor» vem colado nela, e o espaço da coluna é o da lupa. */
+ * mesmo tamanho de amostra e a mesma marca de escolhida, porque as duas
+ * escrevem no MESMO campo do mapa e pareceriam controles diferentes se
+ * tivessem desenhos diferentes. */
 .oficina-lado > .rotulo-mini { margin-top: .2rem; }
 .oficina-edicao > summary { font-size: var(--t-frase); color: var(--subtext0); cursor: pointer; }
 /* Os dois botões do editor de fora ficam ENTRE o resumo e a caixa de texto: a
@@ -2609,9 +2027,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   font-weight: 600;
 }
 /* O terceiro estado, aqui como nos segmentos: tracejado, e aceso ele é CINZA —
- * nunca accent, que nesta folha quer dizer "escolhido por nós". Ele não tem
- * miniatura (não há figura para "herda a vizinha"), então ganha a altura das
- * outras pelo `justify-content` em vez de por um espaçador falso. */
+ * nunca accent, que nesta folha quer dizer "escolhido por nós". */
 .opcoes-imagem button.vazio {
   border-style: dashed;
   justify-content: center;
@@ -2659,15 +2075,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   padding: 0;
 }
 .cores-grade button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--base), 0 0 0 4px var(--accent); }
-/* [P80, item 2: a fileira apagada (`.sem-efeito`) saiu. Sem traço marcado na
-   ficha ela não nasce — o `hidden` do `pintarGlifos`, no app.js.] */
 
 /* --- a barra desenhada ao vivo -------------------------------------------- */
 /* Um print da barra envelheceria; este desenho acompanha o controle deslizante
- * no mesmo quadro. Ele NÃO é a barra de verdade e a legenda diz isso.
- * O FUNDO ERA UM DEGRADÊ DE MAUVE E AZUL — accent de enfeite, e num lugar em
- * que o ponto accent DENTRO da barra é o que representa o applet aceso. Virou
- * uma lavada neutra: o único accent do desenho volta a significar algo. */
+ * no mesmo quadro. Ele NÃO é a barra de verdade e a legenda diz isso. */
 .mock {
   width: 100%;
   background: color-mix(in srgb, var(--surface2) 55%, var(--crust));
@@ -2679,36 +2090,19 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   min-height: 92px;
   justify-content: space-between;
 }
-/* A BARRA TEM TRÊS SEGMENTOS, e não uma fileira de quadrados iguais — 07/09/2026
-   O `cosmic-panel` hospeda ala inicial, centro e ala final, cada uma com o seu
-   próprio tamanho de applet (`size_wings` é TUPLA, `size_center` é direto — ver
-   `scripts/forma.sh:217`). Enquanto o desenho era uma fileira só, as seis
-   chaves de tamanho por segmento não tinham onde aparecer, e ela clicava nos
-   botões sem que nada mudasse.
-
-   A grade de três colunas com `1fr auto 1fr` centraliza o MEIO de verdade, em
-   vez de aproximá-lo com `space-between`: com as alas de larguras diferentes,
-   `space-between` deslocaria o centro, e o centro deslocado é exatamente a
-   queixa que o `FORMA_DOCK_ILHA` documenta. */
+/* Enquanto o desenho era uma fileira só, as seis chaves de tamanho por segmento
+ * não tinham onde aparecer, e ela clicava nos botões sem que nada mudasse. */
 .mock .barra {
   height: var(--altura, 22px);
   background: color-mix(in srgb, var(--base) calc(var(--op, .8) * 100%), transparent);
   border-radius: var(--raio, 8px);
-  /* A MARGEM É O VÃO ATÉ A BORDA EM QUE A BARRA ESTÁ ANCORADA — 07/09/2026
-     e ela era desenhada de lado, o que estava errado duas vezes.
-
-     No cosmic-panel a `margin` só existe por causa do `anchor_gap`
-     (`get_effective_anchor_gap()` é `if self.anchor_gap { self.margin } else
-     { 0 }`, `forma.sh:20-25`), e o que ela afasta é a borda da TELA a que a
-     barra se prende — o alto, no caso do painel. Horizontalmente uma barra com
-     `expand_to_edges` atravessa a tela inteira: não há vão lateral nenhum.
-
-     E de lado ela ainda brigava com a pastilha: `.mock .barra.ilha` centraliza
-     com `margin-left/right: auto`, especificidade maior e mais abaixo na folha,
-     então com a ilha ligada — que é o valor dela agora — o número escrito não
-     chegava a UM pixel. Medido: `--margem: 20px` e margem real de 247px.
-     Continuava saindo "margem 20" na legenda, sobre um desenho que não a
-     mostrava. */
+  /* No cosmic-panel a `margin` só existe por causa do `anchor_gap`
+   * (`get_effective_anchor_gap()` é `if self.anchor_gap { self.margin } else {
+   * 0 }`, `forma.sh:20-25`), e o que ela afasta é a borda da TELA a que a barra
+   * se prende — o alto, no caso do painel.
+   *
+   * Continuava saindo "margem 20" na legenda, sobre um desenho que não a
+   * mostrava. */
   margin-top: var(--margem, 6px);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -2719,11 +2113,8 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .mock .barra .seg:nth-child(1) { justify-self: start; }
 .mock .barra .seg:nth-child(3) { justify-self: end; }
 /* A PASTILHA: `expand_to_edges=false` encolhe a barra até o conteúdo e o
-   cosmic-panel FUNDE os três segmentos num bloco único centralizado
-   (`space/layout.rs:197-206`). Aqui a grade vira uma fileira e as três caixas
-   encostam com o mesmo espaço de dentro — que é a fusão, desenhada.
-   O tamanho de cada segmento SOBREVIVE à fusão: são dois códigos diferentes do
-   cosmic-panel, e só a arrumação se funde (`forma.sh:229`). */
+ * cosmic-panel FUNDE os três segmentos num bloco único centralizado
+ * (`space/layout.rs:197-206`). */
 .mock .barra.ilha {
   display: flex;
   gap: var(--espaco, 4px);
@@ -2743,18 +2134,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .mock .rodape { height: 26px; }
 
 /* O par de barras no topo da seção de forma: lado a lado onde couber. */
-/* O PAR DE PRÉVIAS TEM CAIXA PRÓPRIA — 06/09/2026
-   A `grade-barras` abaixo é da FORMA, e os dois mocks dela são caixas que
-   esticam. Um SVG de proporção fixa não estica: ele se centraliza e deixa o
-   resto vazio. Medido na tela do "Modo de leitura", onde há um desenho só: numa
-   coluna de 1600 px o desenho ocupava 200 px, e sobravam 1400 de nada.
-
-   A coluna aqui é do tamanho do desenho (340 px comporta os 317 que a altura de
-   190 pede, na proporção 100×60 dos dois arquivos de prévia). `auto-fit` com
-   teto FIXO é de propósito, e é o inverso da regra da grade universal: lá o
-   `1fr` existe para o cartão crescer; aqui o desenho não deve crescer além do
-   que consegue preencher. `justify-content: start` encosta o desenho solitário
-   à esquerda, no alinhamento do texto, em vez de deixá-lo boiando no meio. */
+/* Um SVG de proporção fixa não estica: ele se centraliza e deixa o resto vazio.
+ *
+ * A coluna aqui é do tamanho do desenho (340 px comporta os 317 que a altura de
+ * 190 pede, na proporção 100×60 dos dois arquivos de prévia). */
 .par-previa {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 340px));
@@ -2763,41 +2146,24 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   margin-bottom: 0.5rem;
 }
 .par-previa svg { display: block; width: 100%; height: auto; }
-/* OS DOIS LADOS TÊM DE MEDIR IGUAL. Medido na tela dela: o "Como está" é um
-   `<button>` com borda de 1 px e recheio, e o "Como fica" é um `div` sem nada —
-   então o desenho da esquerda saía visivelmente menor que o da direita, e a
-   diferença de TAMANHO competia com a diferença que o par existe para mostrar.
-   O lado que não é botão ganha a mesma caixa, com a borda transparente. */
+/* O lado que não é botão ganha a mesma caixa, com a borda transparente. */
 .par-previa > div {
   border: 1px solid transparent;
   border-radius: var(--r-3);
   padding: 0.5rem 0.6rem 0.55rem;
 }
-/* SOZINHO ELE PODE SER MAIOR. Com par, os dois dividem a largura e 340 px cada
-   é o que cabe lado a lado num conteúdo de 1300; sem par, 340 px deixavam dois
-   terços da linha vazios e o desenho parecia perdido na página. O teto continua
-   existindo — um desenho de 1300 px de largura viraria um cartaz. */
+/* Com par, os dois dividem a largura e 340 px cada é o que cabe lado a lado num
+ * conteúdo de 1300; sem par, 340 px deixavam dois terços da linha vazios e o
+ * desenho parecia perdido na página. */
 .par-previa:has(> :only-child) {
   grid-template-columns: minmax(min(280px, 100%), 480px);
 }
 
-/* O DESENHO NÃO SOBE COM A ROLAGEM — 06/09/2026
-   Queixa dela, literal: "esse svg tem que ter a linha congelada pois quando eu
-   desço o navegador ele se some e eu tenho que levantar de novo".
-
-   É a queixa certa sobre a coisa certa: o desenho existe para responder "o que
-   este controle faz com a minha tela", e o controle está trinta centímetros
-   abaixo dele. Ler a pergunta e a resposta exigia rolar para cima e para baixo a
-   cada cartão — que é exatamente o gesto que o desenho veio abolir.
-
-   `sticky` e não `fixed`: ele gruda no alto ENQUANTO a seção dele está na tela e
-   sai junto com ela, em vez de pairar sobre a página inteira. O fundo opaco é
-   obrigatório — sem ele os cartões passariam por trás do traço — e o `--r-3`
-   fecha a caixa no lugar onde ela encosta no topo.
-
-   O teto de altura existe porque um desenho de 300 px grudado no alto comeria um
-   terço da tela: acima dele o desenho encolhe em vez de empurrar os controles
-   para fora. */
+/* Ler a pergunta e a resposta exigia rolar para cima e para baixo a cada cartão
+ * — que é exatamente o gesto que o desenho veio abolir.
+ *
+ * `sticky` e não `fixed`: ele gruda no alto ENQUANTO a seção dele está na tela
+ * e sai junto com ela, em vez de pairar sobre a página inteira. */
 .previa-bloco {
   position: sticky;
   top: 0;
@@ -2806,47 +2172,28 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   padding: .55rem 0 .7rem;
   margin-bottom: .2rem;
   border-radius: 0 0 var(--r-3) var(--r-3);
-  /* A SOMBRA NÃO É ENFEITE: ELA DIZ QUE ALGO PASSA POR BAIXO.
-     Medido na tela dela, em "Papel de parede": sem a sombra, um cartão de ação
-     deslizando por trás era cortado no meio do botão "Executar", com o corte
-     limpo e sem transição — e a página inteira lia-se como renderização
-     quebrada, não como um elemento fixo. A borda inferior e a sombra curta
-     dizem "há mais coisa embaixo", que é a verdade. */
+  /* A borda inferior e a sombra curta dizem "há mais coisa embaixo", que é a
+   * verdade. */
   border-bottom: 1px solid var(--surface0);
   box-shadow: 0 10px 12px -10px var(--crust);
 }
-/* GRUDADO, ELE PODE SER MENOR. Um desenho de 250 px preso no alto come um quarto
-   da tela, e nesse tamanho ele deixa de ser referência para virar o assunto —
-   que é o oposto do que ele faz ali. 150 px ainda mostra a diferença entre os
-   dois lados; foi o que a folha de contato confirmou. */
-/* O TETO É DE ALTURA, ENTÃO A LARGURA TEM DE SEGUIR A PROPORÇÃO — 07/09/2026
-   `max-height` com `width: 100%` não encolhe a caixa: ela continua com a
-   largura da coluna e o desenho se CENTRALIZA dentro dela, pelo
-   `preserveAspectRatio`. Medido na tela dela, na faixa de "Painel e dock":
-   caixa de 459 px pintando 249 px — 210 px de vazio DENTRO do próprio SVG, e
-   o desenho começando 115 px à direita da margem do texto, sem alinhar com
-   nada. Era essa a "faixa vazia ao lado do desenho": não a linha sobrando à
-   direita, e sim o desenho recuado no meio de uma caixa maior que ele.
-
-   Com a altura fixa e a largura em `auto`, a caixa passa a medir o que o
-   desenho mede, e ele encosta na margem do texto — que é o que o
-   `justify-content: start` da `.par-previa` sempre quis. O `max-width` é a
-   rede: numa coluna estreita demais o desenho volta a encolher em vez de
-   estourar. */
+/* Um desenho de 250 px preso no alto come um quarto da tela, e nesse tamanho
+ * ele deixa de ser referência para virar o assunto — que é o oposto do que ele
+ * faz ali. */
+/* Era essa a "faixa vazia ao lado do desenho": não a linha sobrando à
+ * direita, e sim o desenho recuado no meio de uma caixa maior que ele.
+ *
+ * Com a altura fixa e a largura em `auto`, a caixa passa a medir o que o
+ * desenho mede, e ele encosta na margem do texto — que é o que o
+ * `justify-content: start` da `.par-previa` sempre quis. */
 .previa-bloco .par-previa svg {
   height: 150px;
   width: auto;
   max-width: 100%;
-  /* A SANGRIA É DE PROPÓSITO EM DOIS DESENHOS, E A CAIXA LARGA A ESCONDIA.
-     Medidos os 16 desenhos da faixa: 13 cabem inteiros no `viewBox`; o de
-     "Painel e dock" tem um `<rect>` de fundo em `x=-12 w=124` — a tela que
-     continua além do quadro, desenhada assim de propósito — e o de "Dia e
-     noite" começa o rótulo `18:00` em `x=-1.8`. Enquanto a caixa era mais
-     larga que o desenho, os dois apareciam inteiros por acidente: o recorte
-     do SVG é o VIEWPORT, não o `viewBox`, e sobrava viewport de fora. Com a
-     caixa colada no desenho, o recorte passou a cortar — e o relógio da faixa
-     de "Dia e noite" virou "8:00", com o 1 comido. `visible` devolve o que
-     estava na tela antes desta regra, agora de propósito e não por sobra. */
+  /* Medidos os 16 desenhos da faixa: 13 cabem inteiros no `viewBox`; o de
+   * "Painel e dock" tem um `<rect>` de fundo em `x=-12 w=124` — a tela que
+   * continua além do quadro, desenhada assim de propósito — e o de "Dia e
+   * noite" começa o rótulo `18:00` em `x=-1.8`. */
   overflow: visible;
 }
 
@@ -2855,52 +2202,31 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
    `app.js`; aqui ela só precisa não ocupar lugar nenhum e não aparecer. */
 .sentinela-previa { height: 0; margin: 0; padding: 0; pointer-events: none; }
 
-/* A VAGA — 08/09/2026, e ela é a razão de a aba curta voltar a rolar.
-   Encolher a faixa encolhe a PÁGINA junto: a faixa está no fluxo, e o que ela
-   devolve de altura sai do `scrollHeight`. Medido na aba "Atualização", numa
-   janela de 830 px: a página tinha 877 px para 771 de tela — 106 px de folga —
-   e a faixa encolhe 164. Rolar 106 prendia a faixa, a página caía para 771,
-   ficava do tamanho exato da tela, e o navegador grampeava a rolagem em zero.
-   A faixa desprendia, a página voltava a 877, e recomeçava: a barra não descia
-   nunca. Não era a rolagem que estava quebrada — era a folga sendo comida pelo
-   próprio gesto de rolar.
-
-   A vaga é um nó vazio NO FIM DO CONTEÚDO que engorda exatamente o que a faixa
-   emagrece. A altura da página fica a mesma, a folga fica a mesma, e o ganho da
-   tira continua inteiro — o que ela devolve é espaço de TELA, no alto.
-
-   No fim, e não ao lado da faixa: ver o comentário `A VAGA VAI PARA O FIM DO
-   CONTEÚDO` no `app.js`. E nunca ANTES da faixa — ali ela empurraria a
-   sentinela de volta para dentro da tela, e prender desprenderia em ciclo. */
+/* Encolher a faixa encolhe a PÁGINA junto: a faixa está no fluxo, e o que ela
+ * devolve de altura sai do `scrollHeight`.
+ *
+ * A vaga é um nó vazio NO FIM DO CONTEÚDO que engorda exatamente o que a faixa
+ * emagrece.
+ *
+ * No fim, e não ao lado da faixa: ver o comentário `A VAGA VAI PARA O FIM DO
+ * CONTEÚDO` no `app.js`. */
 .vaga-previa {
   height: 0;
   margin: 0;
   padding: 0;
   pointer-events: none;
-  /* SEM TRANSIÇÃO, DE PROPÓSITO — e a primeira versão desta regra tinha uma.
-     Parecia certo animar a vaga no mesmo compasso do encolhimento; medido, era
-     o defeito de volta. A faixa NÃO encolhe em .14s: o que a transição dela
-     cobre é `padding` e `max-height`, e a altura de verdade vem do
-     `svg { height: 150px -> 78px }`, que troca num quadro. Com a vaga animada,
-     a página ficava 174 px mais curta durante 140 ms — tempo de sobra para o
-     navegador grampear a rolagem em zero. As duas mudanças têm de cair no MESMO
-     quadro, e isso quer dizer nenhuma das duas animada. */
+  /* Parecia certo animar a vaga no mesmo compasso do encolhimento; medido, era
+   * o defeito de volta. */
 }
 
-/* MEDIR NÃO PODE ANIMAR. O encolhimento tem transição, e `offsetHeight` no meio
-   dela devolve o valor do quadro, não o de chegada. Esta classe existe por
-   frações de milissegundo, dentro de uma volta síncrona do JavaScript — o
-   navegador não chega a pintar nada com ela no ar. */
+/* O encolhimento tem transição, e `offsetHeight` no meio dela devolve o valor
+ * do quadro, não o de chegada. */
 .previa-bloco.medindo,
 .previa-bloco.medindo * { transition: none !important; }
 
-/* PRESA, ELA É UMA TIRA — 07/09/2026
-   Ver o bloco `A FAIXA GRUDADA ENCOLHE QUANDO GRUDA` no `app.js`. Parada, a
-   faixa é o desenho inteiro com a legenda; encostada no teto, ela é referência
-   e não leitura, então a legenda sai e a figura encolhe. Medido: 213 px caem
-   para perto de 100, e a fileira de títulos que ficava escondida atrás dela
-   volta a aparecer. A transição existe para o encolhimento não parecer um
-   salto de renderização. */
+/* Parada, a faixa é o desenho inteiro com a legenda; encostada no teto, ela é
+ * referência e não leitura, então a legenda sai e a figura encolhe. A
+ * transição existe para o encolhimento não parecer um salto de renderização. */
 .previa-bloco {
   transition: padding .14s ease-out;
 }
@@ -2931,16 +2257,12 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 .par-desfazivel { position: relative; }
 .par-desfazivel > .desfazer-forma { grid-column: 1 / -1; justify-self: start; margin-bottom: .1rem; }
 
-/* O LADO QUE SE APERTA — 06/09/2026
-   Pedido dela: "selecionamos o antes ou o depois com bordas indicando se
-   tratarem de botões". A borda é a única coisa que diferencia um desenho que se
-   olha de um desenho que se aperta, e ela só aparece quando há de fato o que
-   escolher: sem escolha pendente o "Como está" volta a ser um `div`, e este
-   seletor não o alcança.
-
-   O `aria-pressed` faz o trabalho de sempre — o "Como fica" nasce marcado
-   porque ele É a escolha em vigor na bandeja. Ele não é botão (não há para onde
-   ir a partir dele), então quem recebe as regras aqui é só o "Como está". */
+/* A borda é a única coisa que diferencia um desenho que se olha de um desenho
+ * que se aperta, e ela só aparece quando há de fato o que escolher: sem escolha
+ * pendente o "Como está" volta a ser um `div`, e este seletor não o alcança.
+ *
+ * O `aria-pressed` faz o trabalho de sempre — o "Como fica" nasce marcado
+ * porque ele É a escolha em vigor na bandeja. */
 button.lado-previa {
   appearance: none;
   display: block;
@@ -2973,10 +2295,8 @@ button.lado-previa:focus-visible {
   margin-bottom: 1.6rem;
   max-width: var(--medida);
 }
-/* DENTRO DA CAIXA GRUDADA ELA NÃO PRECISA DA MARGEM: a caixa já tem o recheio de
-   baixo, e a margem só empurraria o primeiro cartão para longe. O `max-width`
-   fica na grade e não na caixa: quem tem de pintar a linha inteira é a caixa,
-   senão o conteúdo rolando por baixo reaparece à direita dela. */
+/* DENTRO DA CAIXA GRUDADA ELA NÃO PRECISA DA MARGEM: a caixa já tem o recheio
+ * de baixo, e a margem só empurraria o primeiro cartão para longe. */
 .previa-bloco > .grade-barras { margin-bottom: 0; }
 
 /* --- simulação do modo de leitura ----------------------------------------- */
@@ -2993,19 +2313,15 @@ button.lado-previa:focus-visible {
 
 /* --- os 23 jogos da Steam ------------------------------------------------
  * A capa É a identidade do jogo — foi por isso que este projeto decidiu não
- * tematizá-la. Então ela não fica dentro de um cartão: a capa é o cartão. Uma
- * borda em volta de uma capa 600×900 só rouba os pixels dela. */
+ * tematizá-la. Então ela não fica dentro de um cartão: a capa é o cartão. */
 /* A LINHA DE UMA DECISÃO EXECUTADA. Discreta de propósito: ela não é conteúdo,
    é o resto de uma escolha, e a única coisa que se faz com ela é tirá-la. */
-/* O PAR DE DESENHOS QUE É O CONTROLE — 07/09/2026
-   Pedido dela: "selecionamos o antes ou o depois com bordas indicando se
-   tratarem de botões". A borda é o que diferencia um desenho que se olha de um
-   desenho que se aperta, e aqui os DOIS se apertam: cada um é uma escolha que
-   ela ainda não fez. (No par grudado no alto da seção só um é botão, porque lá
-   o outro já é a escolha em vigor e não leva a lugar nenhum.)
-
-   Duas colunas iguais, sempre: os dois lados têm de MEDIR igual, senão a
-   diferença de tamanho compete com a diferença que o par existe para mostrar. */
+/* A borda é o que diferencia um desenho que se olha de um desenho que se
+ * aperta, e aqui os DOIS se apertam: cada um é uma escolha que ela ainda não
+ * fez.
+ *
+ * Duas colunas iguais, sempre: os dois lados têm de MEDIR igual, senão a
+ * diferença de tamanho compete com a diferença que o par existe para mostrar. */
 .par-botoes {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3013,14 +2329,9 @@ button.lado-previa:focus-visible {
   align-items: stretch;
 }
 .par-botoes .linha-inteira { grid-column: 1 / -1; justify-self: start; }
-/* O «Deixar como está» do PAR nasceu sem folha nenhuma. A aparência do botão
- * vazio estava escrita em `.segmentos button.vazio` (acima), e este botão nasce
- * dentro de `.par-botoes` — outro ancestral, seletor não pega. O que ele
- * desenhava era a folha do NAVEGADOR: Arial no meio de uma página em Inter,
- * `border: 2px outset white`, canto reto e o `ButtonFace` cinza, que é uma cor
- * que não existe na paleta. Aparecia assim em três abas — "Cor e tela",
- * "Painel e dock" e "Modo de leitura". Tracejado e cinza, como o irmão dos
- * segmentos: é a AUSÊNCIA de opinião nossa, nunca accent. */
+/* A aparência do botão vazio estava escrita em `.segmentos button.vazio`
+ * (acima), e este botão nasce dentro de `.par-botoes` — outro ancestral,
+ * seletor não pega. */
 .par-botoes button.vazio {
   appearance: none;
   font: inherit;
@@ -3067,17 +2378,12 @@ button.lado-botao[aria-pressed="true"] {
 button.lado-botao:focus-visible { outline-offset: 1px; }
 .par-botoes .desenho-botao { display: block; }
 .par-botoes .desenho-botao svg { display: block; width: 100%; height: auto; max-height: 96px; }
-/* O mock da FORMA é HTML, e dentro do botão ele não pode encolher a ponto de os
-   quadradinhos sumirem — 82px é a altura em que os três segmentos ainda se
-   distinguem, medida na tela dela. */
 .par-botoes .desenho-botao .mock { min-height: 0; padding: 6px; gap: 4px; }
 .par-botoes .desenho-botao .mock .rodape { height: 14px; }
 .par-botoes .rotulo-lado { font-size: var(--t-legenda); text-align: left; }
 
 /* O MEDIDOR: fora da tela, mas COM LAYOUT. `display: none` daria caixa zero em
-   tudo, e é a caixa que se quer medir. Ele existe para a página perguntar ao
-   navegador "quanto desta figura muda quando esta chave vira?" — ver
-   `retratoDoDesenho`. Nunca tem conteúdo entre duas medições. */
+ * tudo, e é a caixa que se quer medir. */
 #medidor-de-desenho {
   position: absolute;
   left: -99999px;
@@ -3186,36 +2492,22 @@ a.folha:hover b { color: var(--text); }
 
 .vazio-msg { color: var(--overlay1); font-size: .85rem; padding: 2.5rem 0; text-align: center; }
 
-/* ===========================================================================
- * A HOME
- * ===========================================================================
- * Ela não repete a linguagem das outras abas — ela a apresenta. Um retrato do
+/* Ela não repete a linguagem das outras abas — ela a apresenta. Um retrato do
  * que está no ar, uma frase do que espera por você, três portas, e as quatro
- * ações da semana. Nenhum accent de enfeite: ele aparece no anel do acento
- * dentro da tira (a cor que significa "aceso" em toda a interface), na tarja de
- * pendência quando há pendência, e no único botão principal.
+ * ações da semana.
  *
  * Largura da mesma medida das grades de texto: a home é para ler, não para
  * comparar imagem. */
 /* DUAS COLUNAS: o retrato e as portas à esquerda, o que espera por você à
- * direita. Em uma coluna só, as três portas e as ações da semana caíam abaixo
- * da dobra — uma home que precisa de rolagem para dizer o que se pode fazer não
- * é uma home. */
+ * direita. */
 .home {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 21rem);
-  /* OS PACKS NA PRIMEIRA LINHA, DE PONTA A PONTA — 23/09/2026, sprint P10.
-   * "O pack é o centro": o bloco ganha área nomeada e vem antes do retrato,
-   * atravessando as duas colunas. Sem área, a P15 mediu o bloco caindo onde a
-   * grade tivesse espaço — a 1398px do topo a 1101px de largura. */
+  /* "O pack é o centro": o bloco ganha área nomeada e vem antes do retrato,
+   * atravessando as duas colunas. */
   grid-template-areas: "packs packs" "retrato lado" "portas lado" "noite lado" ". lado";
-  /* A QUINTA LINHA É A FOLGA DA COLUNA DA DIREITA — 24/09/2026, P53 (achado
-   * 5). O `lado` atravessa as linhas do retrato, das portas e da noite, e
-   * quando ele é mais alto que as três somadas a grade reparte a sobra ENTRE
-   * elas: medido no painel de verdade, 374 px entre o retrato e as portas e
-   * 373 entre as portas e a noite, com quatro pendências na direita. Uma
-   * linha a mais, `1fr` e vazia à esquerda, fica com a sobra inteira — as
-   * três de cima voltam à altura do que têm dentro. */
+  /* Uma linha a mais, `1fr` e vazia à esquerda, fica com a sobra inteira —
+   * as três de cima voltam à altura do que têm dentro. */
   grid-template-rows: auto auto auto auto 1fr;
   align-content: start;
   align-items: start;
@@ -3227,12 +2519,10 @@ a.folha:hover b { color: var(--text); }
 .home-noite { grid-area: noite; }
 .home-packs { grid-area: packs; }
 
-/* --- os theme packs — 23/09/2026, sprint P10 ------------------------------
- * O desenho é o do mockup aprovado (docs/folhas/folha-sprints-2026-09-21.html,
- * seção #p10), com a correção da P25: a capa é o LOGO do pack, e a tira de
- * cores fica embaixo dele, fina, como amostra. Nenhuma cor nova: o anel do pack
- * no ar é o accent (o mesmo "aceso" do resto da página), o estado "no ar" é o
- * verde do `ok`, e o problema é o amarelo do aviso. */
+/* --- os theme packs ------------------------------
+ * Nenhuma cor nova: o anel do pack no ar é o accent (o mesmo "aceso" do resto
+ * da página), o estado "no ar" é o verde do `ok`, e o problema é o amarelo do
+ * aviso. */
 .home-packs { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
 .home-packs-topo {
   display: flex;
@@ -3311,12 +2601,9 @@ a.folha:hover b { color: var(--text); }
 }
 .pack-mais summary:hover { color: var(--text); }
 .pack-mais[open] { display: flex; flex-direction: column; gap: .55rem; }
-/* O link do site também é alvo de clique, e o piso de 24 px da P6 vale para
- * ele: em letra de legenda ele tinha 14 px de altura, medido pelo
- * `tests/app-acessibilidade.py`. */
 .pack-mais a { display: inline-flex; align-items: center; min-height: 24px; }
-/* A HISTÓRIA É TEXTO PURO NUM <pre> — a regra de segurança da P15. Quebra de
- * linha e rolagem ficam aqui para ela nunca empurrar o cartão de lado. */
+/* Quebra de linha e rolagem ficam aqui para ela nunca empurrar o cartão de
+ * lado. */
 .pack-historia {
   margin: 0;
   /* O fio embaixo é o fim da caixa que rola: sem ele, a linha cortada pela
@@ -3330,10 +2617,9 @@ a.folha:hover b { color: var(--text); }
   line-height: 1.5;
   color: var(--subtext0);
 }
-/* A HISTÓRIA DEIXOU DE SER UM <pre> — P53: o `historiaDoPack` monta títulos,
- * listas e parágrafos, e a letra volta a ser a do texto. O mono fica só no
- * código, que é onde ele diz alguma coisa. Os títulos são pequenos de
- * propósito: estão dentro de um cartão, e o maior dele é o nome do pack. */
+/* O mono fica só no código, que é onde ele diz alguma coisa. Os títulos são
+ * pequenos de propósito: estão dentro de um cartão, e o maior dele é o nome
+ * do pack. */
 .pack-historia h4, .pack-historia h5 {
   margin: .6rem 0 .2rem;
   font-size: var(--t-frase);
@@ -3361,11 +2647,11 @@ a.folha:hover b { color: var(--text); }
 .pack-flavor { display: flex; flex-direction: column; gap: .2rem; font-size: var(--t-legenda); color: var(--subtext1); }
 .pack-flavor .pack-amostra { height: 12px; border-radius: var(--r-1); overflow: hidden; }
 .pack-acoes { display: flex; justify-content: flex-end; gap: .4rem; margin-top: .2rem; }
-/* Por que o pack da casa dela não sai agora (P53): prosa, e não a linha de
+/* Por que o pack da casa dela não sai agora: prosa, e não a linha de
  * origem em mono logo acima. */
 .pack-fica { margin: 0; font-size: var(--t-legenda); color: var(--overlay2); }
 
-/* --- a cor das pastas em dois seletores — P10 ------------------------------
+/* --- a cor das pastas em dois seletores ------------------------------
  * O molde `cat-${FLAVOR}-${ACCENT}` saiu da tela: variante e cor, lado a lado,
  * com a amostra da cor ao lado do seletor dela. */
 .pastas-molde { display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
@@ -3393,10 +2679,7 @@ a.folha:hover b { color: var(--text); }
 
 /* --- a noite ------------------------------------------------------------- */
 /* A home dizia como a máquina está vestida AGORA e não dizia a única coisa que
- * ela faz sozinha: virar de noite. As chaves que respondem isso moram em três
- * abas diferentes, e nenhuma tela as reunia — quem quisesse saber o que muda às
- * 18:00 abria três abas e somava de cabeça. Sem caixa, como os outros blocos
- * desta coluna: o título em caixa alta já separa. */
+ * ela faz sozinha: virar de noite. */
 .home-noite {
   display: flex;
   flex-direction: column;
@@ -3467,19 +2750,14 @@ a.folha:hover b { color: var(--text); }
 .home-nota { margin: 0; font-size: var(--t-frase); color: var(--overlay2); }
 
 /* --- as pendências acionáveis -------------------------------------------- */
-/* [2026-09-22, sprint P2] Uma linha por coisa que o programa sabe consertar,
- * com o botão que conserta. Ele mora acima do "Nada esperando" porque conserto
- * NOSSO vem antes de escolha DELA.
+/* Uma linha por coisa que o programa sabe consertar, com o botão que conserta.
+ * Ele mora acima do "Nada esperando" porque conserto NOSSO vem antes de escolha
+ * DELA.
  *
- * NADA NOVO NA LINGUAGEM DA PÁGINA, de propósito. É o mesmo traço na borda
- * esquerda do `.home-atencao` e o mesmo cabeçalho de número do `.home-mexeu` —
- * só a cor muda, e ela não é escolhida: `--yellow` é a cor que o projeto usa
- * para "mexeu/atenção" desde sempre, no `~~` do terminal (`lib/comum.sh`), na
- * pastilha de trabalho correndo e nas linhas `l-muda` da gaveta. Um terceiro
- * idioma de alerta nesta página seria a terceira coisa a manter em dia.
+ * NADA NOVO NA LINGUAGEM DA PÁGINA, de propósito.
  *
  * SEM PENDÊNCIA NÃO HÁ REGRA QUE VALHA: o `montarPendencias()` devolve `null` e
- * o elemento nem nasce. Não há estado vazio a desenhar aqui. */
+ * o elemento nem nasce. */
 .home-pendencias {
   display: flex;
   flex-direction: column;
@@ -3626,10 +2904,8 @@ a.folha:hover b { color: var(--text); }
 }
 
 /* --- o que espera por você ----------------------------------------------- */
-/* SEM PENDÊNCIA A FRASE NÃO SOME. A distinção central do produto — clicar
- * guarda, Salvar grava — só aparecia depois do primeiro clique arriscado, na
- * barra que nasce escondida. Aqui ela é a primeira coisa dita, e quando há
- * pendência é a MESMA linha que muda de conteúdo e de cor. */
+/* A distinção central do produto — clicar guarda, Salvar grava — só aparecia
+ * depois do primeiro clique arriscado, na barra que nasce escondida. */
 .home-atencao {
   display: flex;
   flex-direction: column;
@@ -3718,7 +2994,7 @@ a.folha:hover b { color: var(--text); }
 }
 
 /* --- telas estreitas ------------------------------------------------------ */
-/* A PÁGINA NÃO ROLA DE LADO — medido em 01/09/2026 com o navegador em 320, 375,
+/* A PÁGINA NÃO ROLA DE LADO — medido com o navegador em 320, 375,
  * 414, 768 e 1024px. Eram duas causas, e nenhuma aparece lendo o CSS:
  *   1. o bloco do título dentro de `.marca` é filho de um flex e não tinha
  *      `min-width: 0` — então o caminho do meow.conf impunha a própria largura
@@ -3748,24 +3024,13 @@ a.folha:hover b { color: var(--text); }
   .lista-chaves { display: none; }
 }
 
-/* ===========================================================================
- * P77 — A INTERFACE MOSTRA EM VEZ DE EXPLICAR (09/10/2026)
- * ===========================================================================
- * Hallmark · genre: modern-minimal · design-system: docs/sprints/2026-10-09-uso-real/P77-direcao.md
- * · designed-as-app · tema: a paleta do pack no ar (paleta.css) · movimento: cortado
- *
- * Os componentes comuns da direção: a dica de qualquer dono (`.com-dica`), o
+/* Os componentes comuns da direção: a dica de qualquer dono (`.com-dica`), o
  * cabeçalho de página, o selo de estado, o cartão de ação de duas camadas e o
- * `?` do desenho. Ficam no fim da folha de propósito: eles reescrevem regras
- * mais antigas (a `.dica` era só do cartão, a frase era visível) e a ordem da
- * cascata é a forma mais legível de dizer "isto vence aquilo". */
+ * `?` do desenho. */
 
 /* --- a dica de qualquer dono --------------------------------------------- */
 /* O balão é o MESMO do cartão (`.cartao > .dica`, lá em cima): a mesma caixa,
- * a mesma sombra, o mesmo teto de 22 rem. O que muda é a âncora: fora do
- * cartão não há linha de grade para apontar, então o dono ganha `position` e o
- * balão cai logo abaixo dele. A largura tem teto de leitura (36 rem) e nunca
- * passa do dono, que já é uma caixa que cabe na tela. */
+ * a mesma sombra, o mesmo teto de 22 rem. */
 .com-dica { position: relative; }
 .com-dica > .dica {
   position: absolute;
@@ -3787,10 +3052,8 @@ a.folha:hover b { color: var(--text); }
   overscroll-behavior: contain;
   text-align: left;
 }
-/* As linhas que a P77 trouxe para dentro da dica. Todas de largura inteira: o
- * balão é uma coluna de leitura, e só a chave e o «de fábrica» dividem linha.
- * A primeira linha (o estado, ou o resumo) é a mais clara: é a resposta curta,
- * e o comentário inteiro do arquivo vem depois, em tom de nota. */
+/* Todas de largura inteira: o balão é uma coluna de leitura, e só a chave e o
+ * «de fábrica» dividem linha. */
 .dica .resumo,
 .dica .frase,
 .dica .legenda-desenho,
@@ -3830,10 +3093,7 @@ a.folha:hover b { color: var(--text); }
 
 /* --- o selo de estado ---------------------------------------------------- */
 /* Ícone de traço de 14 px na cor do estado e, no máximo, um valor curto ao
- * lado. Sem caixa alta e sem moldura: o selo é sinal, não botão — moldura
- * convidaria ao clique que ele não tem. As cores são as que a folha já usa
- * para o mesmo sentido: pêssego é "atenção/diferente de fábrica", vermelho é
- * "desfaz", céu é rede, verde é "está como deveria", amarelo é "outro manda". */
+ * lado. */
 .selos {
   display: flex;
   flex-wrap: wrap;
@@ -3905,14 +3165,9 @@ a.folha:hover b { color: var(--text); }
 /* --- o `?` do desenho ---------------------------------------------------- */
 /* Do lado de fora da caixa do desenho da direita, encostado no canto de cima:
  * dentro dela ele cairia por cima do traço, e longe dela não se leria como
- * dele. A caixa da direita sempre tem folga à direita (a `.par-previa` encosta
- * os desenhos à esquerda, `justify-content: start`). O balão abre a partir da
- * caixa, para a direita, com largura de leitura e sem passar da janela. */
-/* A caixa que leva o `?` mede o desenho, e não a coluna: a coluna da prévia
- * única vai até 480 px e o desenho tem a largura que a altura de 150 px lhe
- * dá — medido em «Logo do sistema», 190 px de vazio entre o traço e o `?`. A
- * borda desta caixa é transparente (só o «Como está» botão tem borda), então
- * encolhê-la não muda nada que se veja além do lugar do `?`. */
+ * dele. */
+/* A borda desta caixa é transparente (só o «Como está» botão tem borda),
+ * então encolhê-la não muda nada que se veja além do lugar do `?`. */
 .par-previa > .com-dica { justify-self: start; width: fit-content; max-width: 100%; }
 .par-previa > .com-dica > button.porque {
   position: absolute;
@@ -3940,11 +3195,6 @@ a.folha:hover b { color: var(--text); }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
-
-/* ===========================================================================
- * P77 · INÍCIO — a página mostra em vez de explicar (09/10/2026)
- * ===========================================================================
- * O sistema é o do P77-direcao.md; aqui só o que a Início precisa a mais. */
 
 /* Texto que só o leitor de tela ouve: o nome do `<summary>` do cartão do pack,
  * que na tela é uma seta. */
@@ -4063,7 +3313,6 @@ a.folha:hover b { color: var(--text); }
 .home-mexeu-linha > .menu-icone { margin-top: .2rem; color: var(--overlay2); }
 
 /* ===========================================================================
- * P77 · COR E TELA — uma decisão, uma moldura; o técnico no «⋯» (09/10/2026)
  * =========================================================================== */
 /* A MOLDURA ATRAVESSA A GRADE: pack, variante e claro ou escuro lado a lado,
  * na ordem da escolha, dentro de uma caixa só. Os cartões de dentro perdem a
@@ -4101,15 +3350,10 @@ a.folha:hover b { color: var(--text); }
  * (o nome vai no balão e no leitor de tela). Aberto, a grade de dentro é a
  * mesma das outras. */
 .ajustes-tecnicos { margin: .6rem 0 0; }
-/* O `position: relative` SEGURA O NOME DO LEITOR DE TELA — QA de uso real da
- * P80 (10/10/2026). O `.so-leitor` de dentro é `position: absolute`, e sem
- * ancestral posicionado o bloco dele era a janela, e não o `#principal`: o
- * pedacinho de 1 px ficava lá embaixo, onde o «⋯» mora na página, e esticava
- * a PÁGINA INTEIRA. Medido em sete páginas (Cor e tela, Logo, Painel e dock,
- * Papel de parede, Modo de leitura, Lançadores, Manutenção): duas barras de
- * rolagem na borda direita, a da página e a do `#principal`, e o topo
- * deslocado 15 px; a 375 px eram 15 px a menos de largura. Preso ao
- * `summary`, ele fica dentro de quem rola. */
+/* O `.so-leitor` de dentro é `position: absolute`, e sem ancestral
+ * posicionado o bloco dele era a janela, e não o `#principal`: o pedacinho
+ * de 1 px ficava lá embaixo, onde o «⋯» mora na página, e esticava a PÁGINA
+ * INTEIRA. */
 .ajustes-tecnicos > summary {
   position: relative;
   display: inline-grid;
@@ -4127,7 +3371,7 @@ a.folha:hover b { color: var(--text); }
 .ajustes-tecnicos > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ajustes-tecnicos[open] > summary { color: var(--accent); border-color: var(--accent); }
 .tecnicos-glifo { font-size: 1.1rem; line-height: 1; letter-spacing: .05em; }
-/* O desenho do que o «⋯» guarda (P82, item 31): a pílula alarga para os dois. */
+/* O desenho do que o «⋯» guarda: a pílula alarga para os dois. */
 .ajustes-tecnicos > summary:has(.tecnicos-icone) {
   display: inline-flex; align-items: center; gap: .3rem;
   width: auto; padding: 0 .65rem;
@@ -4136,7 +3380,6 @@ a.folha:hover b { color: var(--text); }
 .ajustes-tecnicos > .grade { margin-top: .8rem; }
 
 /* ===========================================================================
- * P77 · ÍCONES — a faixa fica na sua seção; frases viram selo e dica (09/10/2026)
  * =========================================================================== */
 /* A seção que leva a faixa grudada e a grade do bloco: o `sticky` da faixa
  * fica preso a ela (ver `render`). Sem caixa própria: é só o limite. */
@@ -4148,38 +3391,28 @@ a.folha:hover b { color: var(--text); }
 .oficina-topo > .dica { left: 0; right: 0; width: auto; }
 .oficina-topo > button.porque { margin-top: 0; }
 
-/* O `?` DO DESENHO NÃO EMPURRA A PÁGINA EM TELA ESTREITA — 09/10/2026, P77.
- * Encostado do lado de fora da caixa (`right: -2rem`), ele passava 15 px da
- * coluna a 375 px quando o desenho ocupa a largura toda — medido em «Cor e
- * tela» e «Ícones»: `#principal` rolava de lado. Aqui ele entra no canto de
- * cima da caixa, com fundo, sobre a margem do desenho. */
+/* Aqui ele entra no canto de cima da caixa, com fundo, sobre a margem do
+ * desenho. */
 @media (max-width: 620px) {
   .par-previa > .com-dica > button.porque { right: .3rem; background: var(--mantle); }
 }
-/* E O `?` GANHA A SUA FAIXA — 15/10/2026, P82 (item 21). Dentro do canto da
- * caixa ele ficava por cima do traço quando o desenho chega até ali (medido a
- * 375 px em «Manutenção», sobre os «jogos», e em «Cor e tela»). A caixa ganha
- * uma faixa à direita do tamanho do `?`, o desenho encolhe para ela, e o `?`
- * mora nela, sem cobrir nada. */
+/* Dentro do canto da caixa ele ficava por cima do traço quando o desenho
+ * chega até ali (medido a 375 px em «Manutenção», sobre os «jogos», e em «Cor
+ * e tela»). */
 @media (max-width: 620px) {
   .par-previa > .com-dica { padding-right: 2.1rem; box-sizing: border-box; }
   .par-previa > .com-dica > button.porque { right: 0; }
 }
-/* A PRÉVIA NÃO GRUDA NA TELA DE CELULAR — 15/10/2026, P82 (item 21). Grudada
- * no alto, ela levava um terço do que sobra embaixo do cabeçalho a 375 px, e os
- * cartões passavam por baixo dela. Ali ela rola com a página, como o resto. */
+/* A PRÉVIA NÃO GRUDA NA TELA DE CELULAR. Grudada no alto, ela levava um terço
+ * do que sobra embaixo do cabeçalho a 375 px, e os cartões passavam por baixo
+ * dela. Ali ela rola com a página, como o resto. */
 @media (max-width: 620px) {
   .previa-bloco { position: static; box-shadow: none; }
 }
 
-/* ===========================================================================
- * P77 · GRUPO 2 — Painel e dock, Papel de parede, Logo do sistema, Terminal
- * (10/10/2026)
- * =========================================================================== */
-/* «COMO ESTÁ» NUM SEGMENTO OU NUMA MINIATURA: com a chave vazia, o valor que a
- * máquina tem (ou o gato herdado) ganha o mesmo traço da trilha do deslizante
- * no terceiro estado. Não é «escolhido» (isso é o acento cheio); é «é o que
- * está valendo sem você ter escolhido». */
+/* NUM SEGMENTO OU NUMA MINIATURA: com a chave vazia, o valor que a máquina tem
+ * (ou o gato herdado) ganha o mesmo traço da trilha do deslizante no terceiro
+ * estado. */
 .segmentos button.como-esta,
 .opcoes-imagem button.como-esta,
 .par-botoes button.como-esta {
@@ -4229,10 +3462,7 @@ a.folha:hover b { color: var(--text); }
  * da caixa e a margem passa a ser o vão até a borda de baixo. */
 .mock.dock { flex-direction: column-reverse; }
 .mock.dock .barra { margin-top: 0; margin-bottom: var(--margem, 8px); }
-/* O PAR DE DESENHOS NÃO ESTOURA A MOLDURA EM TELA ESTREITA. `1fr` tem mínimo
- * `auto`: a pastilha da dock (seis applets lado a lado) pedia 164 px num botão
- * de 148, e a 375 px a moldura da dock passava 9 px da coluna. Com `minmax(0,
- * 1fr)` o desenho encolhe dentro do botão em vez de empurrá-lo. */
+/* Com `minmax(0, 1fr)` o desenho encolhe dentro do botão em vez de empurrá-lo. */
 .par-botoes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .par-botoes button.lado-botao { min-width: 0; overflow: hidden; }
 
@@ -4283,12 +3513,9 @@ a.folha:hover b { color: var(--text); }
 .decisao[data-decisao^="gato-"] > .cartao { max-width: 36rem; }
 
 /* ===========================================================================
- * P77 · DIA E NOITE — um relógio, três anéis, uma linha por anel (10/10/2026)
  * =========================================================================== */
 /* O relógio à esquerda ocupa as três linhas; cada linha é o ícone na cor do
- * anel, o começo da noite e o fim dela. A posição sai de `data-linha` e
- * `data-ponta` (o JS não fixa lugar), porque em tela estreita as pontas descem
- * uma sob a outra. */
+ * anel, o começo da noite e o fim dela. */
 .grade > .decisao.decisao-relogio {
   grid-template-columns: auto auto minmax(0, 1fr) minmax(0, 1fr);
   align-items: stretch;
@@ -4356,7 +3583,6 @@ input[type="time"].hora-herdada {
 }
 
 /* ===========================================================================
- * P77 · MODO DE LEITURA — a prévia faz a conta do compositor (10/10/2026)
  * =========================================================================== */
 /* As duas molduras (quando, quanto) em fileira flexível, como o seletor de
  * gato: o «quando» tem um cartão ou quatro, conforme a agenda. */
@@ -4395,7 +3621,6 @@ input[type="time"].hora-herdada {
 .previa-bloco.presa .leitura-real-horas { display: none; }
 
 /* ===========================================================================
- * P77 · ÁREAS DE TRABALHO — pastilhas que se arrastam, e a barra de verdade
  * =========================================================================== */
 .areas-pilulas { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; width: 100%; }
 .area-pilula {
@@ -4449,7 +3674,6 @@ input[type="time"].hora-herdada {
 .areas-barra-area.vazia { background: transparent; color: var(--overlay1); }
 
 /* ===========================================================================
- * P77 · LANÇADORES E JOGOS — contas em selo, frases no `?` do título
  * =========================================================================== */
 .subsecao-titulo.com-dica { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 .subsecao-titulo.com-dica > .selo { font-weight: 500; }

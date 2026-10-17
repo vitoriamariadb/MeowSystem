@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
 # exportar_tema.sh — o tema de ícones MONTADO de um pack, num arquivo que se
-# instala em qualquer máquina (P74 item 4, 09/10/2026; T7 da paridade).
+# instala em qualquer máquina.
 #
 #   scripts/exportar_tema.sh <id> [flavor] [arquivo.tar.gz]
 #   meow pack exportar-tema <id> [flavor] [arquivo.tar.gz]
 #
-# O BURACO, MEDIDO
-#   O `meow pack exportar` leva a RECEITA (o pack: mapas, desenhos, paleta), e
-#   não o tema montado: o `.meowpack` do Dracula tinha 0 `index.theme`. Quem
-#   recebia precisava do MeowSystem inteiro para ver um ícone. E o tema montado
-#   se chamava `MeowSystem-Icons` em qualquer pack, com `Comment=Catppuccin`
-#   (docs/pesquisas/2026-10-09-paridade-de-icones.md, seção 5).
-#
-# O QUE SAI
 #   Um `.tar.gz` com três pastas de tema, prontas para `~/.local/share/icons/`:
 #     <nome>          o tema, com o nome do pack e do flavor (`MeowSystem-
 #                     Dracula-Icons`; o `tema-icones` do pack.py dá o nome e o
@@ -21,25 +13,12 @@
 #     <nome>-Base-<n> as camadas de trás dela, quando o pack as declara.
 #   Os recibos de instalação (`.meow-origem`, `.meow-somas.sha256`) e a cache
 #   não vão: são desta máquina, e quem instala refaz a cache.
-#
-# ONDE ELE É MONTADO: NUMA CASA DE BRINQUEDO, DO ZERO
-#   As etapas de ícone do `install.sh` rodam num HOME temporário, com o
-#   `meow.conf.exemplo` (o pack e o flavor pedidos, o resto de fábrica). Assim
-#   o tema exportado é o do PACK, e não o desta casa: nenhuma escolha do
-#   meow.conf de quem exporta (a logo do Hefesto, um ICONES_BASE à mão) viaja
-#   sem querer. As etapas são as que escrevem no tema e não pedem root nem
-#   sessão — as mesmas linhas de ambiente do `install.sh`, na mesma ordem, e o
-#   `indice` no fim (P74 item 5). Uma base que esta máquina já tem, conferida
-#   pelo sha256 do pino, é copiada para a casa de brinquedo em vez de baixada
-#   de novo; o `construir_icones.sh` confere o manifesto dela do mesmo jeito.
-#
-#   0 = exportado · 1 = no seco, exportaria · 2 = erro (nada é deixado pela metade)
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
-# A herança do exportado e o `Hidden=true` das bases (P82, item 12).
+# A herança do exportado e o `Hidden=true` das bases.
 # shellcheck source=../lib/icones.sh
 . "$RAIZ/lib/icones.sh"
 
@@ -48,7 +27,6 @@ ID="${1:-}"
 # O id e o flavor entram num meow.conf que a casa de brinquedo carrega com `.`
 # (o `sed` lá embaixo): só da forma que o pack.py aceita (RE_ID e
 # RE_FLAVOR_CONF), para uma aspa ou um `$(` não virar código ao carregar.
-# [Conferência da P74, alerta de segurança de 09/10/2026.]
 case "$ID" in ''|-*|*[!a-z0-9-]*) meow_erro "'$ID' não é um id de pack (minúsculas, dígitos e hífen)"; exit "$MEOW_ERRO" ;; esac
 if ! python3 "$RAIZ/scripts/pack.py" validar "$ID" >/dev/null 2>&1; then
   meow_erro "o pack '$ID' não valida — rode: meow pack validar $ID"

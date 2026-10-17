@@ -101,15 +101,8 @@ COMPONENTES = da.COMPONENTES
 DA_AURORA = ("background", "primary", "secondary")
 
 
-# ===========================================================================
-# 1. A ESCADA COM ALPHA, E SÓ OS DEGRAUS QUE SE PEDEM
-# ===========================================================================
 # O `steps()` do libcosmic devolve 100 cores, e o `build()` lê UMA ou duas de
-# cada escada. A P48 calcula a escada inteira (`da.degraus`); aqui ela é
-# preguiçosa, porque são onze escadas por árvore e cada degrau fora do sRGB
-# custa até 64 conversões Oklch. E ela carrega o ALPHA da cor de origem: o
-# `Oklcha` guarda o alpha, e é assim que o `background.component.base` sai com o
-# D9 do `bg_color` (medido na Light do latte-mauve: #EAEEF8D9).
+# cada escada.
 class Escada:
     def __init__(self, cor, n):
         _, self.croma, self.matiz = da._para_oklch(cor[:3])
@@ -174,12 +167,8 @@ def texto(base, escada, reserva, tinta, alfa):
     return escada[i] if i < len(escada) else reserva
 
 
-# ===========================================================================
-# 2. O CIE LCh DO `small_widget` — A ÚNICA CONTA QUE A P48 NÃO PRECISOU
-# ===========================================================================
 # `get_small_widget_color` prende o croma do degrau em 3% do máximo do CIE LCh
-# (128, o `Lch::max_chroma()` do palette 0.7). É a cor das pílulas pequenas, e
-# ela passa pelo Lab com o branco D65 — em f32, como o palette faz.
+# (128, o `Lch::max_chroma()` do palette 0.7).
 _M_RGB_XYZ = tuple(f32(x) for x in (
     0.4124564, 0.3575761, 0.1804375,
     0.2126729, 0.7151522, 0.0721750,
@@ -427,12 +416,9 @@ def build(r: dict, regra_do_19=False) -> dict:
         return _alfa(c, 0.1), _alfa(c, 0.2)
 
     pairar_comp, apertar_comp = sobrevoo(i_bg)
-    # O APERTO DO FUNDO É O DO PRÓPRIO FUNDO — 15/10/2026, P82 (item 19;
-    #   decisão 49). No libcosmic do COSMIC 1.10 (5a8bd94) o `background` ganhou
-    #   um `background_pressed_overlay` derivado do `bg_index`; antes ele
-    #   recebia o `component_pressed_overlay` reatribuído pelo bloco do
-    #   `primary`. Só o aperto mudou: o sobrevoo do fundo segue sendo o do
-    #   primary. O oráculo das duas revisões mora em tests/oraculo/.
+    # No libcosmic do COSMIC 1.10 (5a8bd94) o `background` ganhou um
+    # `background_pressed_overlay` derivado do `bg_index`; antes ele recebia o
+    # `component_pressed_overlay` reatribuído pelo bloco do `primary`.
     _pairar_fundo, apertar_fundo = sobrevoo(i_bg)
     # `regra_do_19`: a conta do 1.9, que só a guarda das capturas usa (as fotos
     # da GUI tiradas antes do 1.10 fecham por ela; ver `conferir_base`).
@@ -605,8 +591,6 @@ def _trocar_paleta(texto: str, de: dict, para: dict, nome: str) -> str:
         if valor.upper()[:7] != de[papel].upper():
             raise ValueError(f"palette.{slot} é {valor}, e o {papel} do flavor de origem é {de[papel]}")
         trocas[slot] = para[papel].upper() + valor.upper()[7:9]
-    # O hex vira hex do mesmo tamanho: o `name`, que vem antes das cores no
-    # arquivo, continua no lugar que o parser mediu.
     return _trocar_literal(da._trocar_no_lugar(texto, trocas), "name", '"%s"' % nome)
 
 
@@ -653,10 +637,9 @@ def conferir_base(receita: dict, produto: dict, arvore: str):
     `base:` dos três contêineres fica fora da conta, como no `--conferir` do
     aplicar_tema.sh."""
     b = build(ler_receita(receita))
-    # A FOTO DO 1.9 FECHA PELA REGRA DO 1.9 — 15/10/2026, P82 (item 19). O
-    #   COSMIC 1.10 mudou um campo só, o aperto do `background`; uma captura da
-    #   GUI tirada antes dele traz o valor do 1.9, e continua sendo a foto
-    #   honesta da receita dela. Naquele campo, os dois valores fecham.
+    # O COSMIC 1.10 mudou um campo só, o aperto do `background`; uma captura da
+    # GUI tirada antes dele traz o valor do 1.9, e continua sendo a foto
+    # honesta da receita dela.
     b19 = _hex_do_build(build(ler_receita(receita), regra_do_19=True))
     nao_fecha = []
     for arq, cams in _hex_do_build(b).items():
@@ -745,8 +728,6 @@ def derivar_lado(base: Path, arvore: str, de: dict, acento_de: str, para: dict, 
     novo = escrever_produto(produto, receita_nova, build(ler_receita(receita_nova)))
     saida = {f"com.system76.CosmicTheme.{arvore}.Builder/v2/{k}": v for k, v in trocas.items()}
     saida.update({f"com.system76.CosmicTheme.{arvore}/v2/{k}": v for k, v in novo.items()})
-    # A v1 sai da v2 NOVA pela mesma função do gerar_tema_v1.py, com a v1 da
-    # própria base como molde — o mesmo que a P48 faz com o acento.
     v1_d = base / f"com.system76.CosmicTheme.{arvore}" / "v1"
     for chave in v1.CONJUNTO:
         molde = v1_d / chave
@@ -874,13 +855,7 @@ def plano(par: str, paleta: dict, _com_par: bool = True) -> dict:
         return saida
 
     # O CONTEÚDO: a base inteira, menos as duas árvores do outro lado, que são
-    # as do par do pack no mesmo acento. Sem par (pack sem claro declarado), a
-    # base fica como está desse lado — a mesma queda que a P48 dá à árvore que
-    # não é a do acento.
-    # `_com_par=False` (P63, 25/09/2026) é do `lado_do_par`, lá embaixo: ele
-    # pede só o lado derivado, e o outro lado — que seria o da captura de quem
-    # pergunta — não se busca. Sem isso o claro do dracula-pink pediria o
-    # alucard-pink, que pediria o escuro ao dracula-pink, e o laço não acabaria.
+    # as do par do pack no mesmo acento.
     parceiro = par_do_outro_lado(flavor, paleta) if _com_par else None
     como = f"o {fl_c} trocado slot a slot pelo {flavor}"
     lado_do_par = None
@@ -893,8 +868,6 @@ def plano(par: str, paleta: dict, _com_par: bool = True) -> dict:
                                f"não tem tema: {e}")
             return saida
         como += f"; o {'escuro' if outro == 'Dark' else 'claro'} é o do {par_do_par}"
-    # A montagem é o `montar` do derivar_acento.py desde a P66 (25/09/2026): a
-    # mesma que a derivada de acento faz com o lado do par.
     conteudo = da.montar(cand, outro if parceiro else None, lado_do_par)
     for rel, txt in arquivos.items():
         conteudo[rel] = txt.encode("utf-8")
@@ -904,29 +877,12 @@ def plano(par: str, paleta: dict, _com_par: bool = True) -> dict:
     return saida
 
 
-# ===========================================================================
-# 7. O OUTRO LADO DE UMA FOTO, QUANDO O PAR DO PACK NUNCA FOI FOTOGRAFADO
-# ===========================================================================
-# O DEFEITO — 25/09/2026, sprint P63 (medido na revisão da P59)
-#   Com FLAVOR=dracula e MODO=claro o COSMIC vestia a Light da foto
-#   `dracula-mauve`: `name: "catppuccin-latte"`, acento #8839EF, e as dez chaves
-#   de cor da receita iguais às do `latte-mauve` — o Latte do Catppuccin. E a
-#   P48 copiava essa Light da base para toda derivada de acento: o dracula-pink
-#   no claro também era o Latte, com o acento mauve dele. O pack diz o
-#   contrário: o claro do dracula é o alucard (`claros` da paleta, o
-#   `_nota_claro` do pack.json), e a página e a prévia já o desenhavam assim.
+# O pack diz o contrário: o claro do dracula é o alucard (`claros` da paleta, o
+# `_nota_claro` do pack.json), e a página e a prévia já o desenhavam assim.
 #
-# A REGRA SAI DO ESTADO, E NÃO DO NOME DE UM PACK
-#   O lado de uma captura que não é o do flavor dela é o do PAR do pack nesse
-#   lado (`par_do_outro_lado`), no MESMO acento — a regra que a seção 6 já dá à
-#   derivada de um flavor sem foto (o escuro do alucard-pink é o dracula-pink).
-#   E ela só vale quando o par NUNCA foi fotografado: aí o lado dele só existe
-#   como esta derivação, e o que a foto de outro flavor traz desse lado é tema
-#   de outro pack ou de outro dia. Com o par fotografado (o latte, no
-#   Catppuccin) nada muda: a Light do mocha-pink é a que a GUI fotografou, e a
-#   P48 continua copiando a da base.
-#   A derivação é a do `plano` acima, com `_com_par=False`: do par se quer o
-#   lado dele, e o outro lado dele seria o de quem pergunta.
+# O lado de uma captura que não é o do flavor dela é o do PAR do pack nesse lado
+# (`par_do_outro_lado`), no MESMO acento — a regra que a seção 6 já dá à
+# derivada de um flavor sem foto (o escuro do alucard-pink é o dracula-pink).
 def lado_do_par(par: str, paleta: dict):
     """O lado que a captura `par` (`<flavor>-<acento>`) leva do par do pack.
 
@@ -960,15 +916,9 @@ def linha_do_lado(lado: dict) -> str:
     return f"{nome}: o do {lado['par']}, derivado de {lado['base']} (scripts/derivar_flavor.py)"
 
 
-# A FOTO GANHA O LADO DO PAR POR ESTE COMANDO, E NÃO À MÃO
-#   `derivar_flavor.py dracula-mauve` escreve na FOTOGRAFIA as duas árvores do
-#   lado do par, e a linha que diz de onde vieram; o resto da foto (a Dark, o
-#   Mode, a data) não muda um byte. O `manifesto.sha256` é refeito pelo mesmo
-#   comando do capturar_tema.sh. O instalador não chama isto: a foto é
-#   versionada, e o que se escreve aqui vai para um commit. O
-#   `tests/claro-do-pack.sh` roda o `--conferir` contra a foto do repositório —
-#   uma foto cujo lado não é o que a derivação dá hoje (a porta do `build()`
-#   mudou, ou alguém copiou uma árvore à mão) faz o teste cair.
+# `derivar_flavor.py dracula-mauve` escreve na FOTOGRAFIA as duas árvores do
+# lado do par, e a linha que diz de onde vieram; o resto da foto (a Dark, o
+# Mode, a data) não muda um byte.
 def refazer_foto(par: str, paleta: dict, conferir: bool = False) -> tuple[int, str]:
     """(0, frase) já confere; (1, frase) escreveu, ou escreveria no `conferir`;
     (3, frase) não há o que pôr, e a frase diz por quê."""

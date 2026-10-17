@@ -1,43 +1,15 @@
 #!/usr/bin/env bash
 # resgatados_folha.sh — monta a folha de ANTES E DEPOIS dos ícones resgatados.
 #
-# PARA QUE SERVE UMA FOLHA, SE OS ÍCONES JÁ ESTÃO NA TELA
-#   Porque na tela eles aparecem a 48 px, um de cada vez, no meio de outros
-#   oitenta. A pergunta "o redesenho ficou fiel?" não se responde assim: ela
-#   precisa do par lado a lado, no mesmo tamanho, no mesmo fundo. A folha é o
-#   único lugar onde o PNG de origem e o SVG novo podem ser comparados de
-#   verdade — e é por isso que ela é gerada a partir do MAPA, e não de uma lista
-#   à parte: se um ícone entrar ou sair do resgate, a folha acompanha sozinha.
+# Porque na tela eles aparecem a 48 px, um de cada vez, no meio de outros
+# oitenta. A pergunta "o redesenho ficou fiel?" não se responde assim: ela
+# precisa do par lado a lado, no mesmo tamanho, no mesmo fundo.
 #
-# POR QUE O PNG DA ESQUERDA PODE FALTAR, E ISSO NÃO É ERRO
-#   A coluna da esquerda é o PNG de ORIGEM, no caminho em que ele foi achado em
-#   11/09/2026. Vários desses caminhos são de pacote (`/usr/share`) ou de app
-#   (`/opt`), e somem no próximo upgrade ou na próxima reinstalação. Quando o
-#   original não está mais lá, a folha desenha a moldura vazia e diz "sem o PNG"
-#   — o SVG resgatado continua íntegro, porque ele nunca dependeu do PNG em tempo
-#   de execução. Ver o cabeçalho de `packs/dracula/icones/apps-resgatados.map`.
+# Vários desses caminhos são de pacote (`/usr/share`) ou de app (`/opt`), e
+# somem no próximo upgrade ou na próxima reinstalação.
 #
-# A FOLHA DE HOJE NÃO SE PERDE PORQUE O DISCO PERDEU O PNG — 25/09/2026, P68
-#   A moldura vazia é o que a folha mostra quando não há outra coisa a mostrar
-#   — e havia: a folha que já está em `$SAIDA` tem a célula da esquerda
-#   daquele par, do dia em que o PNG ainda existia. Rodado em 25/09, com 12 dos
-#   21 PNG fora do disco, este script trocava a folha que a P67 costurou à mão
-#   (a de 12/09, com a direita refeita) por uma com doze molduras vazias:
-#   181952 pixels diferentes, e o `tests/frases-velhas.sh` diria «refeita».
-#   Agora a costura é dele: a célula da esquerda de um par sem PNG sai da
-#   folha de hoje, no mesmo lugar — o lugar de cada célula é medido numa
-#   MÁSCARA, o mesmo `montage` com cada peça trocada por uma cor chapada, e
-#   não calculado —, desde que a folha de hoje tenha o mesmo tamanho e, ali, o
-#   mesmo rótulo, pixel a pixel. O que não se costura assim (a folha mudou de
-#   forma, o par é outro) faz o script sair 3 sem escrever: a folha fica a de
-#   antes, e a frase diz qual par. Sem folha nenhuma em `$SAIDA`, não há o que
-#   perder, e a moldura vazia vale como sempre. E a folha que sai igual, pixel
-#   a pixel, à que já está não é regravada.
-#
-# O FUNDO É O DA BARRA DELA, E ISSO NÃO É ENFEITE
-#   Um ícone com borda escura sobre fundo branco parece ter halo; o mesmo ícone
-#   sobre o `#282A36` da barra parece correto. Comparar arte de dock sobre fundo
-#   de folha de papel é comparar com a iluminação errada.
+# Um ícone com borda escura sobre fundo branco parece ter halo; o mesmo ícone
+# sobre o `#282A36` da barra parece correto.
 
 set -uo pipefail
 
@@ -70,7 +42,7 @@ trap 'rm -rf "$TMP"' EXIT
 # aqui, e não no arquivo, porque um mapa com `/home/<usuário>` cravado seria um
 # mapa que só serve nesta máquina.
 pares=0; sem_png=0; sem_svg=(); larg=""
-faltou=(); pecas=()   # o índice de cada par sem PNG, e os tamanhos das peças de cada par (P68)
+faltou=(); pecas=()   # o índice de cada par sem PNG, e os tamanhos das peças de cada par
 while IFS=: read -r nome origem autoria; do
   nome="$(printf '%s' "$nome" | tr -d '[:space:]')"
   [ -n "$nome" ] || continue
@@ -101,14 +73,6 @@ while IFS=: read -r nome origem autoria; do
   # O rótulo carrega a AUTORIA junto do nome: quem olha a folha precisa saber se
   # está vendo obra dela ou logo de terceiro — são critérios de julgamento
   # diferentes, e o cabeçalho do mapa explica a diferença.
-  # O RÓTULO É DESENHADO EM CIMA DE UMA FAIXA DA LARGURA DO PAR, e não com
-  # `-annotate` sobre o par direto: um nome como `org.andrebfarias.Crononauta`
-  # é mais largo que os dois ícones juntos, e o `-gravity north` centraliza o
-  # texto pelo MEIO — as duas pontas saíam fora da imagem e a folha ficava com
-  # `otocolo-ouroboros` e `.gnome.Nautilus`. Medido na primeira folha, em
-  # 11/09/2026: 7 dos 16 rótulos cortados.
-  # `-size <largura>x` com `caption:` quebra a linha sozinho dentro da largura
-  # dada, então o nome comprido vira duas linhas em vez de virar meio nome.
   larg="$(identify -format '%w' "$TMP/antes.png")"
   larg=$(( larg * 2 + 2 ))
   convert -background "$FUNDO" -fill "$TEXTO" -pointsize 15 -gravity center \
@@ -132,10 +96,8 @@ convert -size "$(identify -format '%w' "$TMP/folha.png")x58" "xc:$FUNDO" -gravit
         "$TMP/cabeca.png" 2>/dev/null
 convert "$TMP/cabeca.png" "$TMP/folha.png" -append "$TMP/final.png" 2>/dev/null
 
-# A COSTURA — P68, ver o cabeçalho. A máscara é o mesmo par, peça a peça, em
-# cores chapadas: o rótulo do par k em rgb(k+1,0,1), a célula da esquerda em
-# rgb(k+1,0,2). Montada como a folha, o retângulo de cada cor é o lugar exato
-# daquela peça na folha de verdade.
+# A máscara é o mesmo par, peça a peça, em cores chapadas: o rótulo do par k
+# em rgb(k+1,0,1), a célula da esquerda em rgb(k+1,0,2).
 nao_costura=(); costurados=0
 if [ "${#faltou[@]}" -gt 0 ] && [ -f "$SAIDA" ]; then
   for k in "${!pecas[@]}"; do

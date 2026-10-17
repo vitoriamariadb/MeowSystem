@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # folha_proposta.py — a folha de APROVAÇÃO da unificação em Arcticons.
 #
-# O QUE ELA DECIDIU EM 10/08/2026, E O QUE SOBROU PARA DECIDIR
 #   Ela viu a folha `folha_icones.py`, aceitou trocar a marca colorida pelo
 #   traço, e escolheu:
 #     escopo   TODOS, inclusive os 8 do próprio COSMIC
@@ -9,28 +8,14 @@
 #     glifos   eu proponho, ela aprova AQUI antes de tocar no sistema
 #     os 3 sem glifo honesto (Flatseal, Gradia, Warehouse) ficam no Papirus
 #
-#   Sobrou uma coisa: 22 dos 35 aplicativos NÃO TÊM a marca deles no pack, e o
-#   glifo é uma INTERPRETAÇÃO minha do que o aplicativo faz (GIMP -> editor de
-#   foto, File Roller -> zip). Interpretação é onde eu erro, e é exatamente o
-#   que esta folha existe para ela conferir — cada cartão diz de onde veio a
-#   escolha e por quê.
-#
-# POR QUE ESTA FOLHA É SEPARADA DA OUTRA
-#   A `folha_icones.py` responde "unificar em quê?" e continua verdadeira depois
-#   que a resposta for dada — é o retrato do que está na tela hoje. Esta responde
-#   "estes 35 glifos servem?" e MORRE quando ela responder. Juntar as duas faria
-#   a página do retrato mudar de assunto a cada decisão tomada.
+# A `folha_icones.py` responde "unificar em quê?" e continua verdadeira depois
+# que a resposta for dada — é o retrato do que está na tela hoje.
 #
 #   uso: scripts/folha_proposta.py [saida.html]
 #        (padrão: ~/Documentos/meow-icones-proposta.html)
 
-# CORRIGIDO EM 2026-09-17 — caminhos de antes da tradução do projeto.
-# Este arquivo procurava `palette/` e `icons/` na raiz, nomes que deixaram de
-# existir quando os diretórios viraram `assets/paleta/` e `assets/icones/`. O
-# script falhava com FileNotFoundError e ninguém via, porque nada no instalador
-# o chama — ele é gerador de folha de conferência, rodado à mão. Medido com
-# `python3 scripts/<este arquivo>`: rc=1 antes, rc=0 depois.
-# A referência de caminho certo é `scripts/folha_conversor.py:82-83`.
+# Medido com `python3 scripts/<este arquivo>`: rc=1 antes, rc=0 depois. A
+# referência de caminho certo é `scripts/folha_conversor.py:82-83`.
 
 import base64
 import html
@@ -38,22 +23,14 @@ import json
 import os
 import sys
 
-# A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
-# `pack.py` é vizinho de arquivo deste script, e `scripts/` já é o `sys.path[0]`
-# de quem o roda: não há sys.path a atravessar, que era a isenção que o cabeçalho
-# do `meow_paleta` (lib/comum.sh) dava a quem é Python. A ordem de precedência
-# inteira mora em `pack.paleta_do_pack_ativo()`.
+# A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
 import pack
 
 # PyGObject/Gtk3 não é stdlib, e o badge do README promete "python 3 só stdlib".
-# A promessa vale para o INSTALADOR: nenhuma das folhas é chamada por install.sh,
-# bin/meow ou lib/ — elas são ferramentas de bancada, rodadas à mão por quem está
-# curando ícone. Ainda assim, quem clonasse o repositório e as rodasse recebia um
-# ModuleNotFoundError cru, sem dizer o que instalar. [2026-09-17]
 #
-# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única das
-# quatro que o instalador chama e que já tratava isso: mensagem que diz o que falta
-# e código de saída próprio, em vez de traceback.
+# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única
+# das quatro que o instalador chama e que já tratava isso: mensagem que diz o
+# que falta e código de saída próprio, em vez de traceback.
 MEOW_SEM_DEPENDENCIA = 3
 try:
     import gi
@@ -158,8 +135,6 @@ NO_PAPIRUS = [
 
 
 def paleta(flavor='mocha'):
-    # precedência: ver `pack.paleta_do_pack_ativo()`, a porta única do lado
-    # Python desde a P13 — era o literal `catppuccin.json` até 22/09/2026.
     _paleta = pack.paleta_do_pack_ativo()
     with open(_paleta, encoding='utf-8') as fh:
         return json.load(fh)['flavors'][flavor]

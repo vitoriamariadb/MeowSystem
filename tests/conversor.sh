@@ -1,23 +1,7 @@
 #!/usr/bin/env bash
-# A ESCADA NÃO VOLTA SEM NINGUÉM VER.
-#
-# Em 09/09/2026 ela olhou a lupa da oficina e chamou o traço de "pixelado". A
-# causa era o conversor emitir só polilinha: marching squares em lados de pixel
-# numa grade de 256, aparada por Douglas–Peucker. O DP escolhe QUAIS degraus
-# ficam; não desfaz nenhum. Este teste afirma, em três origens fixas do
-# repositório e do sistema, que a saída padrão é curva, que os cantos
-# sobrevivem, que as retas continuam retas, que a FORMA não mudou e que o
-# dialeto do acervo está intacto.
-#
-# AS TRÊS ASSERÇÕES QUE VALEM MAIS QUE AS OUTRAS, porque cada uma prende um
-# defeito que ACONTECEU durante a passagem, não um que se imaginou:
-#
-#   1. `cantos ≥ 2` no `>_` do terminal. O primeiro desenho da passagem alisava
-#      a cadeia ANTES de procurar canto — e a média móvel come o canto que se ia
-#      procurar. Medido: na cadeia crua o `>` tem quatro vértices de 90,0°;
-#      depois de alisar, o maior é 53,7° e nenhum passa do limiar de 60°. O
-#      terminal saía com o `>` sem bico. A ordem certa é cantos → partir →
-#      alisar, e é esta linha que a segura.
+# A causa era o conversor emitir só polilinha: marching squares em lados de
+# pixel numa grade de 256, aparada por Douglas–Peucker. O DP escolhe QUAIS
+# degraus ficam; não desfaz nenhum.
 #
 #   2. `retas ≥ 1` no terminal. Ajustar Bézier em TUDO ondula os quatro lados
 #      retos da moldura, porque a cúbica compra a folga da tolerância onde ela é
@@ -25,7 +9,7 @@
 #
 #   3. a mesma forma. Só a linha que desenha podia mudar; a quantização, o
 #      filtro de moda e o colapso de fitas não foram tocados de propósito,
-#      porque a forma foi aprovada na folha de 11/08/2026.
+#      porque a forma foi aprovada na folha.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONV="$RAIZ/scripts/converter_icone.py"
@@ -42,13 +26,7 @@ done
 # As três origens são de procedências diferentes DE PROPÓSITO: o que decide a
 # conversão não é PNG contra SVG, é o desenho ser geométrico ou orgânico.
 #
-# OS AUTORAIS MUDARAM DE CASA EM 22/09/2026 — a P27 os desceu de
-# `assets/icones/autorais/` para `packs/catppuccin/icones/apps/autorais/`, porque
-# aquele diretório guardava 55 desenhos de dois packs no mesmo monte. O caminho
-# aqui é CRAVADO e não resolvido pelo `pack.py` de propósito: estes cinco
-# arquivos são FIXTURE, e uma fixture que muda com o pack ativo mediria coisas
-# diferentes em máquinas diferentes — que é justamente o que uma trava de
-# regressão não pode fazer. O `[ -f ]` de cada laço já pula o que não existir.
+# O `[ -f ]` de cada laço já pula o que não existir.
 ORIGENS=(
   "$RAIZ/packs/catppuccin/icones/apps/autorais/cosmic-edit-mocha.svg"          # autoral, já tem contorno (a fita colapsa)
   "/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg"       # Papirus, orgânico, com gradiente e sombra
@@ -85,16 +63,8 @@ for origem in "${ORIGENS[@]}"; do
   [ "$caidos" -le 2 ] && ok "$nome: $caidos trecho(s) caíram para polilinha" \
                       || falha "$nome: $caidos trechos caíram — o ajuste não converge"
 
-  # O TETO DE PONTOS ANDA PARA O LADO CONTRÁRIO DO QUE A SPRINT SUPUNHA, e o
-  # número é medido. A sprint pedia "≤ 40 % dos pontos da polilinha", supondo
-  # que curva economiza. Ela NÃO economiza: cada cúbica escreve três pares de
-  # coordenadas e cada vértice de polilinha escreve um. Medido em 09/09/2026 nas
-  # 29 origens do mapa e dos recusados, a razão vai de 1,46x (Calculadora) a
-  # 3,07x (btop) — nunca abaixo de 1. Curva aqui é MAIS bytes e MENOS escada, e
-  # essa é a troca que a Sprint Q comprou.
-  #   O que a régua ainda tem de prender é a EXPLOSÃO: se alguém apertar a
-  # tolerância ou o ajuste degenerar numa cúbica por par de pontos, o arquivo
-  # inflaria sem nada ganhar. 4x é o pior medido (3,07x) com folga.
+  # Ela NÃO economiza: cada cúbica escreve três pares de coordenadas e cada
+  # vértice de polilinha escreve um.
   pc=$(metrica "$T/c.json" pontos)
   pp=$(metrica "$T/p.json" pontos)
   [ "$pc" -le $(( pp * 4 )) ] && ok "$nome: $pc pontos contra $pp da polilinha (teto 4x)" \
@@ -103,10 +73,8 @@ for origem in "${ORIGENS[@]}"; do
   [ "$dur" -lt 1000 ] && ok "$nome: ${dur} ms" || falha "$nome: ${dur} ms — passou de 1 s"
 
   # A MESMA FORMA: as duas saídas, a 48 px, diferem em menos de 138 px de 2304.
-  #   O `-b` NÃO É ENFEITE, e sem ele esta linha não testa nada. Em PNG com
-  #   alfa o `compare -fuzz` acha zero diferença até entre ícones DIFERENTES —
-  #   medido: btop contra Spotify deu 0 com fundo transparente e 515 com fundo
-  #   opaco. Rasterizar sobre o mocha é o que faz a régua existir.
+  # O `-b` NÃO É ENFEITE, e sem ele esta linha não testa nada. Rasterizar sobre
+  # o mocha é o que faz a régua existir.
   rsvg-convert -w 48 -h 48 -b '#1e1e2e' "$T/c.svg" -o "$T/c48.png" 2>/dev/null
   rsvg-convert -w 48 -h 48 -b '#1e1e2e' "$T/p.svg" -o "$T/p48.png" 2>/dev/null
   dif=$(compare -metric AE -fuzz 8% "$T/c48.png" "$T/p48.png" null: 2>&1 | awk '{print int($1)}')
@@ -138,12 +106,9 @@ BTOP="/usr/share/icons/Papirus/64x64/apps/btop.svg"
 if [ -f "$BTOP" ]; then
   python3 "$CONV" "$BTOP" "$T/b.svg" --json >"$T/b.json" 2>/dev/null
   bcantos=$(metrica "$T/b.json" cantos)
-  # O `B` DO PAPIRUS NÃO TEM BARRIGA REDONDA, E A SPRINT SUPUNHA QUE TINHA.
-  #   Olhado a 400 px em 09/09/2026: o btop do Papirus é um "B" de blocos, arte
-  #   de pixel — retângulos e ângulos retos, nenhuma curva. Então a asserção
-  #   certa é o CONTRÁRIO da que a sprint escreveu ("cantos entre 2 e 4"): o B
-  #   tem de sair com MUITO canto, e arredondá-lo é que seria o defeito. Medido:
-  #   26 cantos. O piso fica em 8, longe do medido e longe de zero.
+  # Olhado a 400 px: o btop do Papirus é um "B" de blocos, arte de pixel —
+  # retângulos e ângulos retos, nenhuma curva. O piso fica em 8, longe do medido
+  # e longe de zero.
   [ "$bcantos" -ge 8 ] && ok "btop: $bcantos cantos — o B de blocos não arredondou" \
                        || falha "btop: $bcantos cantos — o B de blocos ganhou curva onde é ângulo reto"
 else
@@ -159,11 +124,9 @@ if [ -f "$GIMP" ]; then
   python3 "$CONV" "$GIMP" "$T/s.svg" --json >/dev/null 2>&1
   nf=$(grep -o 'fill="currentColor"' "$T/f.svg" | wc -l)
   ns=$(grep -o 'fill="currentColor"' "$T/s.svg" | wc -l)
-  # A CONTA É DE CLASSE, NÃO DE `<path>`, e a sprint pedia "no máximo um fill".
-  #   Errado por medida: a classe escolhida pode ter vários pedaços soltos — no
-  #   Wilber são os dois olhos, e cada pedaço é um subcaminho. Três `<path>`
-  #   cheios é a resposta certa para UMA classe cheia. Quem responde "uma
-  #   classe" é a métrica `cheia`, que é booleana por construção.
+  # Errado por medida: a classe escolhida pode ter vários pedaços soltos — no
+  # Wilber são os dois olhos, e cada pedaço é um subcaminho. Três `<path>`
+  # cheios é a resposta certa para UMA classe cheia.
   [ "$nf" -ge 1 ] && ok "--cheia: $nf subcaminho(s) cheios" || falha "--cheia: nenhum fill saiu"
   [ "$(metrica "$T/f.json" cheia)" = "True" ] && ok "--cheia: a métrica diz qual classe encheu" \
                                               || falha "--cheia: a métrica não registrou a área cheia"
@@ -171,14 +134,8 @@ if [ -f "$GIMP" ]; then
                   || falha "sem --cheia: saíram $ns fills — preenchimento é a exceção do dialeto"
 fi
 
-# --------------------------------------------------------------------------
-# `--polilinha` É CONTRATO, NÃO CORTESIA
-#   `retoques/org.gimp.GIMP.svg` é uma conversão com UMA curva desenhada à mão
-#   (a boca do Wilber). A prova de qual parte é a mão é que os outros seis
-#   subcaminhos batem BYTE A BYTE com `--polilinha`. Se esta asserção cair, o
-#   LEIA-ME daquele diretório passa a mentir e ninguém consegue mais separar o
-#   que a máquina fez do que a pessoa decidiu.
-# --------------------------------------------------------------------------
+# `retoques/org.gimp.GIMP.svg` é uma conversão com UMA curva desenhada à mão
+# (a boca do Wilber).
 RET="$RAIZ/packs/meowsystem/icones/apps/convertidos/retoques/org.gimp.GIMP.svg"
 if [ -f "$GIMP" ] && [ -f "$RET" ]; then
   python3 "$CONV" "$GIMP" "$T/poli.svg" --polilinha >/dev/null 2>&1
@@ -193,37 +150,16 @@ PY
   fi
 fi
 
-# --------------------------------------------------------------------------
-# `--peso-fronteira` — a chave da Sprint T, e a TRAVA que ela tem de respeitar
-#
-# A queixa dela, 09/09/2026: *"sinto que não tá fidedigno"*. A medição da Sprint
-# T derrubou a explicação que o cabeçalho do conversor dava ("geométrico sai,
-# orgânico não") e pôs outra no lugar: o que decide é quantas fronteiras de cor
-# existem dentro da silhueta, e quanto contraste cada uma tem. O Brave falha com
-# QUATRO classes porque uma das fronteiras dele vale 57,9 de RGB — o vermelho
-# contra o vermelho escuro do escudo — e mesmo assim custa uma linha.
+# O Brave falha com QUATRO classes porque uma das fronteiras dele vale 57,9 de
+# RGB — o vermelho contra o vermelho escuro do escudo — e mesmo assim custa uma
+# linha.
 #
 # AS DUAS ASSERÇÕES QUE VALEM MAIS, e são as duas metades do mesmo experimento:
 #
 #   1. DESLIGADO NÃO MUDA UM BYTE. A arte convertida que está na tela dela foi
-#      aprovada numa folha (11/08/2026). Uma chave que mexesse no padrão
+#      aprovada numa folha. Uma chave que mexesse no padrão
 #      trocaria arte aprovada em silêncio. `--peso-fronteira 0` tem de sair
 #      idêntico ao padrão, arquivo a arquivo.
-#
-#   2. LIGADO NÃO PIORA QUEM JÁ SAÍA BEM. A Sprint T nomeou a trava: a
-#      Calculadora, o Telegram e o VLC saem fiéis hoje e não podem piorar. Como
-#      o limiar de 70 foi ESCOLHIDO no vale medido (64,6 … 77,1 vazio) e a
-#      fronteira interna mais fraca do Telegram vale 78,4, a saída dos três tem
-#      de continuar byte a byte igual. Se alguém subir o limiar, esta linha cai
-#      antes de a folha da próxima leva ser gerada.
-#
-# E o canário do modo de falha: o `cosmic-edit` (as três linhas de texto vivem
-# numa fronteira de 82,7) e o `cosmic-term` (o `>_` numa de 271,0). Medido em
-# 09/09/2026 com `--peso-fronteira 140`, que é o mínimo para o limiar tocar o
-# Chrome: o Editor cai de 5 traços para 2 e vira A FOLHA EM BRANCO do cabeçalho
-# do `colapsar_fitas`, o btop de 4 para 1 e vira O QUADRADO VAZIO, e o Chrome
-# ganha… um traço a menos. É por isso que 70 é o número e 140 não é.
-# --------------------------------------------------------------------------
 for origem in "${ORIGENS[@]}"; do
   [ -f "$origem" ] || continue
   nome="$(basename "$origem")"
@@ -240,22 +176,13 @@ for origem in "${ORIGENS[@]}"; do
     || falha "$nome: o padrão fundiu fronteira — a chave está ligada sozinha"
 done
 
-# A TRAVA: os três que a Sprint T proibiu de piorar, e os dois canários.
-#   Byte a byte, não "parecido": o limiar de 70 foi medido justamente para não
-#   os alcançar, e qualquer mudança aqui é mudança de arte aprovada.
+# Byte a byte, não "parecido": o limiar de 70 foi medido justamente para não
+# os alcançar, e qualquer mudança aqui é mudança de arte aprovada.
 TRAVA=(
   "/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg"   # fiel, mín. 204,6
-  # O TELEGRAM SAIU DA TRAVA — 23/09/2026, decidido com as cinco à vista.
-  #   Ele era o sentinela mais justo (78,4, rente ao limiar de 70), e o
-  #   1e85809 (16/09) o derrubou: o `argsort` estável escolhe outras cores nos
-  #   empates, e com elas o `--peso-fronteira` passa a fundir uma fronteira
-  #   dele. Voltar ao quicksort poria a arte a depender da versão do numpy da
-  #   máquina, que é o defeito que aquele commit consertou. E a arte dele na
-  #   tela não passa pelo conversor: é `retoques/org.telegram.desktop.svg`,
-  #   desenhada à mão. Comparadas lado a lado (origem, antes, hoje, hoje com a
-  #   chave, retoque), a decisão foi tirá-lo daqui. O que se perde: o vizinho
-  #   mais próximo do limiar agora é a Calculadora, a 204,6 — subir o limiar
-  #   até 78 já não derruba esta linha.
+  # Ele era o sentinela mais justo (78,4, rente ao limiar de 70), e o 1e85809
+  # o derrubou: o `argsort` estável escolhe outras cores nos empates, e com
+  # elas o `--peso-fronteira` passa a fundir uma fronteira dele.
   "/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg"       # fiel, mín. 281,3
   "$RAIZ/packs/catppuccin/icones/apps/autorais/cosmic-edit-mocha.svg"             # canário: a folha em branco
   "$RAIZ/packs/catppuccin/icones/apps/autorais/cosmic-term-mocha.svg"             # canário: o quadrado
@@ -270,10 +197,6 @@ for origem in "${TRAVA[@]}"; do
     || falha "trava: $nome MUDOU com --peso-fronteira — o limiar subiu e alcançou quem já saía bem"
 done
 
-# O GANHO: o Brave é o caso que a Sprint T nomeou, e ele tem de encolher.
-#   Medido em 09/09/2026: 10 traços -> 3, fundindo UMA fronteira de 57,9 (o
-#   vermelho contra o vermelho escuro do escudo). Se isto parar de valer, ou o
-#   limiar caiu abaixo de 58 ou a fusão deixou de acontecer.
 BRAVE="/usr/share/icons/Papirus/64x64/apps/com.brave.Browser.svg"
 if [ -f "$BRAVE" ]; then
   python3 "$CONV" "$BRAVE" "$T/w0.svg" --json >"$T/w0.json" 2>/dev/null

@@ -2,26 +2,16 @@
 # lib/comum.sh — a base de todo módulo do MeowSystem: cores, log, códigos de
 # saída e as duas travas que impedem o instalador de estragar a máquina dela.
 #
-# ESTE ARQUIVO É `source`, NÃO EXECUTADO.
+# São os mesmos hex de `packs/catppuccin/paleta.json`, convertidos para o
+# truecolor do terminal.
 #
-# AS CORES SAEM DA PALETA, COMO TUDO AQUI
-#   São os mesmos hex de `packs/catppuccin/paleta.json`, convertidos para o truecolor
-#   do terminal. Se um dia a paleta mudar, muda aqui também — mas continua sem
-#   inventar cor nova no meio do caminho.
-#
-# CÓDIGOS DE SAÍDA HONESTOS (regra 7 do contrato)
-#   0 = certo · 1 = divergente · 2 = erro de execução · 3 = falta dependência.
-#   A diferença entre 1 e 3 é o que permite ao auto-reparo ficar quieto quando o
-#   app simplesmente não está instalado, e gritar quando algo de fato quebrou.
+# 0 = certo · 1 = divergente · 2 = erro de execução · 3 = falta dependência.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-# A VARIÁVEL QUE VALE É `MEOW_DRY_RUN`, E ESTA LINHA É O MOTIVO
-#   Esta atribuição roda no `source`, então `MEOW_SECO=1 ./algum_script.sh` é
-#   SOBRESCRITO aqui e não liga seco nenhum — o script roda de verdade achando
-#   que está só prevendo. Aconteceu comigo em 24/08/2026: dois `semear` que eu
-#   dei por "em seco" foram execuções reais. Dentro do script, depois deste
-#   source, atribuir `MEOW_SECO=1` funciona (é o que o `--conferir` faz).
+# Esta atribuição roda no `source`, então `MEOW_SECO=1 ./algum_script.sh` é
+# SOBRESCRITO aqui e não liga seco nenhum — o script roda de verdade achando
+# que está só prevendo.
 MEOW_SECO="${MEOW_DRY_RUN:-0}"
 
 MEOW_OK=0; MEOW_DIVERGENTE=1; MEOW_ERRO=2; MEOW_SEM_DEPENDENCIA=3
@@ -36,20 +26,8 @@ else
   C_DIM=""; C_FORTE=""; C_ZERO=""
 fi
 
-# --- LOG_NIVEL: silencioso | info | debug -----------------------------------
-# A chave existia no `meow.conf.exemplo` desde a primeira versão e NENHUM script
-# a lia — o `meow configurar` perguntava, dizia "gravado", e a saída continuava
-# idêntica. Em 08/08/2026 as chaves inertes foram varridas: as da estrutura do
-# tema saíram (não tinham como funcionar), e esta ficou, porque custa três
-# linhas e é o único jeito de calar o instalador.
-#
-# O QUE ELA CALA, E O QUE NUNCA CALA
-#   `silencioso` esconde o que é PROGRESSO — título, passo, info e o "já estava
-#   certo". Continua mostrando o que MUDOU (`~~`), o que foi pulado, aviso e
-#   erro. Um modo silencioso que engula erro não é silêncio, é cegueira: quem
-#   liga isto quer parar de ler 25 etapas dizendo "ok", não parar de saber que
-#   algo quebrou. `debug` não acrescenta ruído por conta própria; ele existe
-#   para os scripts consultarem com `meow_debug`.
+# `silencioso` esconde o que é PROGRESSO — título, passo, info e o "já estava
+# certo". Continua mostrando o que MUDOU (`~~`), o que foi pulado, aviso e erro.
 MEOW_LOG_NIVEL="${LOG_NIVEL:-info}"
 meow_quieto() { [ "$MEOW_LOG_NIVEL" = "silencioso" ]; }
 meow_debug()  { [ "$MEOW_LOG_NIVEL" = "debug" ] && printf '  %s..%s   %s\n' "$C_DIM" "$C_ZERO" "$*"; return 0; }
@@ -71,22 +49,6 @@ meow_seco()   { [ "$MEOW_SECO" = "1" ]; }
 
 # --- O MOTIVO DA PENDÊNCIA: quem mede é o `detectar`, quem fala é o `aplicar` -
 #
-# O DEFEITO QUE ISTO MATA, MEDIDO EM 21/09/2026
-#   O Spotify dela ESTÁ instalado: `flatpak list --app` devolve
-#   `com.spotify.Client 1.2.95.453.g0eeebbed stable user`, com o `Apps/xpui`
-#   patchado e o spicetify já pintando o app de Dracula. E o log do install.sh
-#   do mesmo dia dizia, com todas as letras:
-#
-#     --   Spotify não instalado (ou não é o flatpak de usuário)
-#
-#   A causa verdadeira era outra, e o módulo a conhecia: falta o tema catppuccin
-#   em ~/.config/spicetify/Themes. O `meow_app_detectar` mediu isso e devolveu
-#   3; o `meow_app_aplicar` recebeu só o NÚMERO e imprimiu a primeira frase de
-#   uma lista de causas possíveis. O código de saída sobreviveu à viagem, o
-#   motivo não — e frase chutada é pior que silêncio: ela manda a pessoa
-#   procurar defeito onde não há. O mesmo desenho estava em quatro módulos.
-#
-# O CONTRATO, EM DUAS FUNÇÕES
 #   `meow_app_sem "<motivo>"`      guarda a causa e devolve 3. É a ÚNICA porta
 #                                  por onde um `detectar` sai pendente.
 #   `meow_app_pendente <módulo>`   diz a causa guardada e devolve 3. É a ÚNICA
@@ -97,17 +59,6 @@ meow_seco()   { [ "$MEOW_SECO" = "1" ]; }
 #   PROPÓSITO: sem argumento ele devolve o status do último comando, que é o 3
 #   da própria `meow_app_sem`. Motivo e código saem do mesmo lugar, então não há
 #   como um ficar para trás quando o outro mudar.
-#
-#   TODO `detectar` COMEÇA ZERANDO O MOTIVO. Um motivo velho, deixado por uma
-#   chamada anterior que falhou por outra razão, mente igual ao chute — e mente
-#   com cara de coisa medida, que é pior.
-#
-# MOTIVO VAZIO É DEFEITO DO MÓDULO, NÃO CASO A COBRIR COM FRASE GENÉRICA
-#   Uma frase guarda-chuva ("não deu para agir agora") é exatamente como o
-#   defeito acima nasceu: ela cala o buraco em vez de mostrá-lo. Por isso o
-#   motivo vazio aparece na tela como erro de programação E quebra o
-#   `tests/reversao.sh`. É a única forma de a próxima saída-3 sem motivo não
-#   nascer muda.
 MEOW_APP_MOTIVO=""
 
 meow_app_sem() { MEOW_APP_MOTIVO="$*"; return "$MEOW_SEM_DEPENDENCIA"; }
@@ -124,30 +75,6 @@ meow_app_pendente() {
 
 # --- O TEMA DE APLICATIVO VEM DO PACK ---------------------------------------
 #
-# O DEFEITO QUE ISTO MATA, CONTADO EM 21/09/2026
-#   Uma varredura mediu 446 citações da palavra `catppuccin` dentro de
-#   `assets/temas-de-apps/`, em oito módulos, e a segunda coluna era sempre a
-#   mesma:
-#
-#     módulo            citações   lê o pack ativo?
-#     btop-bat              58            não
-#     heroic               246            não
-#     obsidian              48            não
-#     qbittorrent           28            não
-#     spotify               39            não
-#     toolkits-gtk-qt        5            não
-#     vscode                19            não
-#     zapzap                 3            não
-#                        -----        --------
-#                          446         0 de 8
-#
-#   Aquele acervo é ANTERIOR ao formato de pack e nunca soube que ele existe: os
-#   oito eram, na prática, aplicadores de Catppuccin. O preço estava na tela
-#   desta máquina no mesmo dia — o pack ativo é o Dracula e o módulo do Obsidian
-#   anunciou «Catppuccin Mocha já estava aplicado». O único dos oito que "deu
-#   certo" foi o que aplicou o tema do OUTRO pack e chamou de sucesso.
-#
-# O CONTRATO, EM DUAS FUNÇÕES, E ELAS SÃO IRMÃS
 #   `meow_app_tema_do_pack <app>.<chave>`  O QUE aplicar. O módulo pergunta em
 #                                          vez de saber, e deixa de conhecer o
 #                                          nome de qualquer tema. A resposta sai
@@ -156,53 +83,21 @@ meow_app_pendente() {
 #   `meow_app_tema_no_ar <app> <no-ar> <do-pack> [de-quem] [pergunte]`
 #                                          SE aplicar. Lê o que está no ar antes
 #                                          de escrever, e tem três saídas.
-#
-#   Usar a primeira sem a segunda troca um defeito por outro: o módulo passaria
-#   a aplicar o tema certo por cima do que a pessoa escolheu à mão.
 MEOW_APP_TEMA=""
 MEOW_APP_TEMA_PACK=""
 
 # Devolve o que o pack ATIVO declara para aquele aplicativo, ou o que ele herda,
 # em `MEOW_APP_TEMA`, e o id de QUEM respondeu em `MEOW_APP_TEMA_PACK` — que é
-# como o log diz "herdado do catppuccin" em vez de fingir que o tema é do pack no
-# ar. Sem declaração em cadeia nenhuma, devolve 1 e deixa as duas vazias:
-# ausência é resposta, e quem chama decide se ela é problema.
+# como o log diz "herdado do catppuccin" em vez de fingir que o tema é do pack
+# no ar.
 #
 #   meow_app_tema_do_pack spotify.spicetify_tema
 #     MEOW_APP_TEMA=Sleek          MEOW_APP_TEMA_PACK=dracula
 #   meow_app_tema_do_pack qbittorrent.arquivo
 #     MEOW_APP_TEMA=/…/x.qbtheme   MEOW_APP_TEMA_PACK=catppuccin  (herdado)
 #
-# ELA NÃO IMPRIME NADA, E ISSO É O CONSERTO — 22/09/2026, na revisão da P18
-#   A primeira versão fazia as duas coisas: imprimia o valor E guardava o id em
-#   `MEOW_APP_TEMA_PACK`. Todo módulo a chamou do jeito natural em shell —
-#   `tema="$(meow_app_tema_do_pack spotify.spicetify_tema)"` — e `$( )` é
-#   SUBSHELL: a variável era atribuída num processo que morria na mesma linha.
-#   Medido com o sourcing real dos dois manifestos, com PACK=catppuccin:
-#
 #     _SPOT_TEMA_NOME=[catppuccin]  _SPOT_TEMA_DE=[]   <- sempre vazio
 #     MEOW_QBT_ORIGEM=[/…/catppuccin-mocha.qbtheme]  MEOW_QBT_NOME_AURORA=[]
-#
-#   O valor chegava; o "quem respondeu" se perdia, calado — e um `""` calado é
-#   pior que um erro, porque ele vira `--tema ''` e `grep -qE "^[[:space:]]*\)"`
-#   lá na frente. Um canal de saída que não sobrevive ao `$( )` não é contrato,
-#   é armadilha: quem escrever o nono módulo escreveria o mesmo `$( )`.
-#
-#   Por isso o stdout ficou MUDO. Quem insistir no `$( )` recebe string vazia na
-#   hora, não um valor certo com a procedência faltando — o defeito fica alto em
-#   vez de ficar escondido. É o mesmo desenho do `meow_app_sem`/`MEOW_APP_MOTIVO`
-#   logo acima: função que precisa devolver duas coisas devolve pelas duas
-#   variáveis, e é chamada DIRETO. O `tests/temas-de-apps.sh` recusa o `$( )`.
-#
-# QUEM RESOLVE O FORMATO CONTINUA SENDO UM SÓ. Esta função não abre `pack.json`
-# — ela pergunta ao `scripts/pack.py`, pela mesma porta que o `meow_pack_arquivo`
-# e o `meow_paleta` usam. Um segundo interpretador do formato seria a
-# divergência silenciosa de volta, num andar novo.
-#
-# O `FLAVOR` VAI EXPLÍCITO NO AMBIENTE DO COMANDO, e não por `export`: ele é
-# variável de shell em quem chama (install.sh, bin/meow), e um `export` aqui
-# mudaria o ambiente de todo processo filho daquele ponto em diante por causa de
-# uma consulta de leitura.
 meow_app_tema_do_pack() {
   local trilha="$1" saida
   MEOW_APP_TEMA=""
@@ -217,84 +112,17 @@ meow_app_tema_do_pack() {
 
 # --- LER O QUE ESTÁ NO AR ANTES DE ESCREVER ---------------------------------
 #
-# AS TRÊS SAÍDAS, E AS TRÊS APARECEM NA TELA
 #   0  MEOW_OK              já está no tema do pack -> nada a fazer, e diz qual
 #   1  MEOW_DIVERGENTE      está sem tema           -> aplica
 #   3  MEOW_SEM_DEPENDENCIA está num tema que não veio daqui -> PERGUNTA
 #
-#   Em 21/09/2026 nenhum dos oito módulos fazia a terceira, e é por isso que o
-#   trabalho que ele já tinha feito à mão ficou invisível para o programa: o
-#   qBittorrent estava em `~/.themes/dracula.qbtheme` desde as 16:49 daquele
-#   dia, com o `qBittorrent.conf` apontando para lá, e o módulo se declarava
-#   bloqueado dizendo que "não há quem escreva o qBittorrent.conf" — enquanto o
-#   conf já estava escrito, com um tema que o MeowSystem não conhecia.
+# O instalador roda desatendido, de hora em hora.
 #
-# SOBRESCREVER CALADO SERIA TROCAR UM DEFEITO POR UM PIOR
-#   O tema que ela escolheu à mão é uma decisão dela. Um instalador que o apaga
-#   sem avisar não conserta a divergência: ele apaga a pessoa do processo.
-#
-# A PERGUNTA NÃO PODE TRAVAR O TIMER, E É POR ISSO QUE ELA TEM DUAS FORMAS
-#   O instalador roda desatendido, de hora em hora. Um `read` sem dono na frente
-#   penduraria o ciclo para sempre, e o sintoma seria um timer que nunca termina
-#   — o tipo de defeito que ninguém liga ao tema do qBittorrent.
-#
-#   Por isso a pergunta só acontece quando há ALGUÉM: as duas pontas precisam
-#   ser terminal. Fora da tela o caso vira PENDÊNCIA ACIONÁVEL, o arquivo dele
-#   fica intocado, e a linha espera na Home. E mesmo com terminal a espera tem
-#   teto de 30 segundos: um `install.sh` chamado por um script a partir de um
-#   tty herdado ainda é uma corrida desatendida, e silêncio conta como "não".
-#
-#   A PENDÊNCIA NASCE SEM COMANDO, e não é esquecimento: nenhum botão daqui
-#   resolve isto. A decisão é dela — ou o tema que está no ar fica, ou ela roda
-#   o `aplicar` de um terminal e responde. Publicar um comando que o painel
-#   rodaria sem tty seria oferecer um botão que não faz nada, que é a classe de
-#   falha que a P2 apagou do projeto inteiro.
-#   [Envelheceu em 24/09/2026, P53: o painel passou a mandar a resposta junto
-#   (`MEOW_TEMA_DE_TERCEIRO`), então o botão já não roda "sem tty e sem
-#   resposta" — ele roda com a resposta dela. A linha nasce com comando. Ver "A
-#   RESPOSTA TAMBÉM CHEGA PELO PAINEL", logo abaixo.]
-#
-#   `<app>` É O ID DO MÓDULO, e ele vira o id da pendência (`<app>-tema-de-
-#   terceiro`). A irmã do caminho feliz está nas duas primeiras saídas: uma
-#   pendência que sobrevive ao problema é a caixa de entrada que ninguém lê.
-#
-# E A PERGUNTA SÓ EXISTE NO CAMINHO QUE ESCREVE — 22/09/2026, revisão da P18
-#   O 5º argumento é a palavra `pergunte`, e sem ela esta função NUNCA pergunta:
-#   diz o fato, registra a pendência e devolve 3. O padrão é o silêncio porque o
-#   erro de esquecer tem de ser o inofensivo.
-#
-#   O que custou a lição: o módulo do qBittorrent chama a leitura de dentro do
-#   `_meow_qbt_pronto`, que é o núcleo COMUM dos três verbos. Um `meow apps
-#   conferir qbittorrent` — uma LEITURA, com `escreve: False` na tabela do
-#   painel — parava num «trocar pelo tema do pack? [s/N]»; respondido `s`, a
-#   tela imprimia "trocando pelo tema do pack a pedido dela" e o `conferir`
-#   voltava sem escrever nada. A resposta dela nem sobrevivia ao processo: o
-#   `aplicar_apps.sh` roda cada ação num subshell próprio. Prometer escrita
-#   dentro de uma leitura é a mesma classe de falha que esta sprint veio matar.
-#
-#   Quem passa `pergunte` é o `meow_app_aplicar` de cada módulo, e só ele.
-#
-# A RESPOSTA TAMBÉM CHEGA PELO PAINEL — 24/09/2026, sprint P53 (achado 4)
-#   A pendência dizia "é decisão sua, e ela se toma rodando o aplicar deste app
-#   de um terminal": medido no painel de verdade com o OnlyOffice, a Home
-#   mandava a pessoa para o terminal. Agora a linha leva o comando (`meow apps
-#   aplicar <app>`, que num terminal faz a pergunta), e a Home desenha os dois
-#   lados da decisão como botões, pela rota de sempre: o mesmo `aplicar`, com a
-#   resposta em `MEOW_TEMA_DE_TERCEIRO` — `trocar` é o "s" da pergunta, `manter`
-#   é o "não, e não pergunte de novo".
-#
-#   O `manter` FICA GRAVADO, POR APP E POR TEMA, em `temas-mantidos.tsv` no
-#   estado. Sem isso a pendência voltaria na passagem seguinte do timer, e o
-#   botão teria respondido nada. É por tema e não só por app: se ela trocar o
-#   tema do programa por outro que também não veio daqui, a pergunta é nova. E
-#   a gravação não cala o terminal — quem roda o `aplicar` à mão ainda é
-#   perguntado, porque é ali que se muda de ideia.
-#
-#   A resposta só vale no caminho que ESCREVE (`pergunte`), pelo motivo do
-#   bloco acima: uma leitura não troca tema, nem grava decisão.
+# Fora da tela o caso vira PENDÊNCIA ACIONÁVEL, o arquivo dele fica intocado, e
+# a linha espera na Home.
 _meow_temas_mantidos() { printf '%s/temas-mantidos.tsv' "$MEOW_ESTADO"; }
 
-_meow_tema_mantido() {  # <app> <no-ar> — 0 = ela disse «Manter o meu» para este tema
+_meow_tema_mantido() {
   local arq no_ar="${2//$'\t'/ }"; arq="$(_meow_temas_mantidos)"
   no_ar="${no_ar//$'\n'/ }"
   [ -f "$arq" ] || return 1
@@ -312,8 +140,7 @@ _meow_tema_esquecer() {  # <app> — tira a resposta gravada daquele app
 # O PAR SE SOMA, e não substitui o que o app já tinha: o Discord pergunta uma
 # vez por PASTA de cliente (BetterDiscord, Vencord, Vesktop), cada uma com o
 # arquivo dela, e um «Manter o meu» que apagasse a linha da pasta anterior
-# deixaria a primeira perguntando de novo na passagem seguinte. Quem limpa o
-# app inteiro é o «Trocar» (`_meow_tema_esquecer`).
+# deixaria a primeira perguntando de novo na passagem seguinte.
 _meow_tema_manter() {  # <app> <no-ar>
   local app="$1" no_ar="${2//$'\t'/ }"
   no_ar="${no_ar//$'\n'/ }"
@@ -327,11 +154,6 @@ meow_app_tema_no_ar() {
   local pode_perguntar="${5:-}"
   local id="$app-tema-de-terceiro" fonte=""
   # A ORIGEM VAI SEMPRE QUE HOUVER UMA, inclusive quando ela é o pack no ar.
-  # Dizê-la só na herança pouparia uma repetição e criaria uma ambiguidade pior:
-  # a linha sem sufixo passaria a significar duas coisas — "é o pack que você
-  # escolheu" e "ninguém respondeu por este app" —, e é justamente a segunda que
-  # a pessoa precisa enxergar. Com o sufixo, "(do pack catppuccin)" numa máquina
-  # vestida de Dracula É a herança aparecendo, que é o que a sprint pediu.
   [ -n "$de_quem" ] && fonte=" (do pack $de_quem)"
 
   if [ -z "$no_ar" ]; then
@@ -346,10 +168,8 @@ meow_app_tema_no_ar() {
     return "$MEOW_OK"
   fi
 
-  # A RESPOSTA QUE O PAINEL MANDOU, E A QUE FICOU GRAVADA — P53. Ver o bloco de
-  # cima. A gravada vem ANTES do aviso: um «Manter o meu» respondido não pode
-  # virar um `!!` no log a cada hora. E ela cede a duas coisas: a resposta nova
-  # do painel, e o terminal que vai perguntar.
+  # Ver o bloco de cima. A gravada vem ANTES do aviso: um «Manter o meu»
+  # respondido não pode virar um `!!` no log a cada hora.
   local do_painel=""
   [ "$pode_perguntar" = "pergunte" ] && do_painel="${MEOW_TEMA_DE_TERCEIRO:-}"
   if [ -z "$do_painel" ] && _meow_tema_mantido "$app" "$no_ar" \
@@ -404,8 +224,8 @@ meow_app_tema_no_ar() {
     esac
   fi
 
-  # O COMANDO VAI NA LINHA — P53. Sem ele o painel não desenha botão (a regra
-  # "o botão precisa das duas pontas", no `pendencias()` do app/servidor.py), e
+  # O COMANDO VAI NA LINHA. Sem ele o painel não desenha botão (a regra "o
+  # botão precisa das duas pontas", no `pendencias()` do app/servidor.py), e
   # ele é também o que um terminal responde: o `aplicar` deste app pergunta.
   meow_pendencia_acionavel "$id" \
     "O $app está no tema '$no_ar', que não veio do MeowSystem — deixei como está. Trocar pelo tema do pack ou manter o seu é decisão sua" \
@@ -415,129 +235,19 @@ meow_app_tema_no_ar() {
 
 # --- A PORTA ÚNICA DA PALETA -------------------------------------------------
 #
-# POR QUE ISTO EXISTE [2026-09-17]
-#   Onze lugares liam a paleta, e DEZ cravavam o nome do arquivo:
-#     scripts/terminal.sh:260        scripts/midia.sh:74
-#     scripts/icones_apps_arcticons.sh:111
-#     assets/temas-de-apps/heroic/manifesto.sh:161
-#     assets/temas-de-apps/spotify/manifesto.sh:168
-#     app/servidor.py:158            scripts/gerar_icones_autorais.py:123
-#     scripts/folha_conversor.py:94  scripts/folha_marcas.py:166
-#     scripts/folha_proposta.py:154
-#   O décimo primeiro — scripts/gerar_temas.py:52 — já respeitava `PALETA_ARQUIVO`
-#   e `MEOW_PALETA` desde 11/09/2026, e o comentário dele prometia que a paleta
-#   era trocável pelo meow.conf.
+# A promessa era falsa em duas camadas. A chave `PALETA_ARQUIVO` não existia no
+# meow.conf.exemplo, e o install.sh chamava o gerador sem exportar variável
+# nenhuma.
 #
-#   A promessa era falsa em duas camadas. A chave `PALETA_ARQUIVO` não existia no
-#   meow.conf.exemplo, e o install.sh chamava o gerador sem exportar variável
-#   nenhuma. E mesmo que existisse, trocar a paleta teria partido o projeto ao
-#   meio: o tema do COSMIC viria de uma paleta e o terminal, os ícones, o painel
-#   e os temas de aplicativo continuariam lendo o Catppuccin. Não daria erro —
-#   daria DIVERGÊNCIA SILENCIOSA, que é pior.
+# A paleta do pack padrão morava em `assets/paleta/catppuccin.json`, e o nome
+# dela estava cravado aqui.
 #
-# O CONTRATO, em ordem de precedência
-#   1. $MEOW_PALETA       caminho completo. É a porta de teste e a que um pack usa.
-#                         Só vale quando foi a PESSOA que a pôs — ver o bloco
-#                         "O ECO DA PONTE NÃO É ESCOLHA DE NINGUÉM", abaixo.
-#   2. o pack ATIVO       `meow_pack_dir`/paleta.json — ver o bloco logo abaixo.
-#   3. $PALETA_ARQUIVO    só o nome, resolvido dentro de assets/paleta/.
-#   4. o pack PADRÃO      que hoje é um pack como os outros.
-#   A ordem é EXATAMENTE a de scripts/gerar_temas.py:52-54, que já funcionava —
-#   esta função generaliza aquele comportamento, não inventa outro.
-#
-#   O DEGRAU 4 DIZIA `catppuccin.json`, E DEIXOU DE PODER DIZER [22/09/2026]
-#     A paleta do pack padrão morava em `assets/paleta/catppuccin.json`, e o
-#     nome dela estava cravado aqui. A P13 mudou o arquivo de casa: ele é
-#     `packs/catppuccin/paleta.json`, e o nome do pack padrão mora em UM lugar,
-#     `scripts/pack.py:PACK_PADRAO`. Esta função pergunta por
-#     `meow_pack_padrao_dir` em vez de repetir o nome — repetir é como as duas
-#     respostas passam a divergir no dia em que o padrão mudar.
-#
-#     O DEGRAU 3 FICOU, E FICOU VAZIO. `PALETA_ARQUIVO` nasceu em 11/09/2026,
-#     antes de o formato de pack existir, e nunca chegou ao `meow.conf.exemplo`.
-#     Hoje `assets/paleta/` só guarda o `cosmic-map.json`, que é do MOTOR — a
-#     chave não aponta para nada que venha de fábrica. Ela fica porque alguém
-#     pode ter posto a paleta dele ali, e tirá-la quebraria essa máquina calada.
-#     O jeito certo de trocar de paleta é um pack, e é o que docs/PACKS.md ensina.
-#
-# POR QUE UMA FUNÇÃO, E NÃO UMA VARIÁVEL EXPORTADA
-#   Uma variável precisaria ser exportada em TODO ponto de entrada — as etapas
-#   do install.sh e as ações do bin/meow, que são dezenas — e esquecer um ponto
-#   daria o mesmo defeito de novo, calado. Uma função resolve na hora da
-#   chamada, e quem esquecer de usá-la aparece no grep de tests/estilo.sh.
-#
-#   O NÚMERO EXATO SAIU DAQUI EM 21/09/2026, E NÃO FOI ATUALIZADO
-#     Esta linha dizia "54 etapas, 46 ações". Eram 58 e 50 desde o commit que
-#     as mudou, e este arquivo foi editado DEPOIS dele sem que ninguém notasse:
-#     o `tests/numeros.sh` cobra README, LEIA-ME e SPRINTS, e não cobra
-#     comentário de biblioteca. Um número sem cobrador apodrece — a armadilha
-#     nº 3 do projeto num único inteiro. Quem conta de verdade é o
-#     `_medidas_do_projeto()` do `app/servidor.py`; aqui o que vale é a ordem
-#     de grandeza, e ela não muda.
-#
-#   E O `grep` DO tests/estilo.sh PASSOU A EXISTIR NO MESMO DIA
-#     Até 21/09/2026 a frase acima descrevia uma cobrança que não estava
-#     escrita em lugar nenhum: o `tests/estilo.sh` mede a caneta do conversor e
-#     não olhava uma linha de código. Agora ele abre com essa varredura, antes
-#     das guardas de dependência, e ela morde de verdade.
-#
-# QUEM NÃO PODE USAR ESTA FUNÇÃO
-#   Os cinco consumidores em Python. Eles repetem as três linhas equivalentes,
-#   com um comentário apontando para cá — é o idioma que gerar_temas.py já usava,
-#   e acrescentar um módulo importável entre `scripts/` e `app/` traria um
-#   problema de sys.path que este projeto não tem hoje.
-#
-# O ECO DA PONTE NÃO É ESCOLHA DE NINGUÉM [22/09/2026]
-#   O curto-circuito abaixo lia `$MEOW_PALETA` e devolvia sem olhar o pack. Isso
-#   estava certo enquanto a variável só podia vir da PESSOA — e deixou de estar
-#   no dia em que o `meow_ponte_python` passou a EXPORTÁ-LA. A partir dali o
-#   valor virava pegajoso: o filho herdava a resolução do pai e nunca
-#   reresolvia, mesmo com o meow.conf reescrito no meio do caminho.
-#
-#   MEDIDO EM 22/09/2026, com a cadeia real do `meow configurar` (os elos vão
-#   por NOME, e não por número de linha: o cabeçalho acima já conta o que
-#   acontece com um número que ninguém cobra):
-#     `carregar_conf` chama esta ponte e exporta o resultado
-#       -> `cmd_configurar` chama o `carregar_conf` no topo
-#       -> o wizard reescreve o meow.conf (FLAVOR=dracula)
-#       -> `cmd_aplicar` chama o `"$RAIZ/install.sh"` como FILHO
-#     PAI   MEOW_PALETA=.../assets/paleta/catppuccin.json
-#     FILHO MEOW_PALETA=.../assets/paleta/catppuccin.json   <- o valor velho
-#     FILHO MEOW_PACK_DIR=.../packs/dracula                 <- o par incoerente
-#     ERRO: flavor 'dracula' desconhecido. Há: latte, frappe, macchiato, mocha
-#   O `MEOW_PACK_DIR` reresolvia (ele nasce de PACK/FLAVOR a cada chamada) e a
-#   paleta não: a ponte exportava um par que não fecha — o diretório de um pack
-#   com a paleta de outro. Enquanto o `dracula` morava dentro do
-#   `catppuccin.json` isto era divergência muda; com ele fora, virou falha dura.
-#
-#   O CONSERTO É SABER DE QUEM É A VARIÁVEL, e é para isso que existe o
-#   `MEOW_PALETA_DA_PONTE`: a ponte grava nele o mesmo caminho que exportou.
-#   Ler os dois iguais quer dizer "fui eu, um andar acima" — e aí a resolução
-#   recomeça do pack. Ler diferentes (ou o marcador vazio) quer dizer "foi a
-#   pessoa", e a escolha dela continua vencendo tudo, que é o que a conferência
-#   nº 1 da P20 cobra (`MEOW_PALETA=/tmp/nao-existe.json ./install.sh` tem de
-#   morrer nomeando o arquivo).
-#
-#   POR QUE UM MARCADOR, E NÃO COMPARAR COM O QUE O PACK DARIA
-#     Porque a pessoa pode apontar para a paleta DO PRÓPRIO pack ativo — os dois
-#     caminhos seriam iguais e a intenção dela sumiria na comparação. Quem
-#     responde "de quem é isto" é a procedência, não o valor.
+# Os cinco consumidores em Python.
 meow_paleta() {
   if [ -n "${MEOW_PALETA:-}" ] && [ "$MEOW_PALETA" != "${MEOW_PALETA_DA_PONTE:-}" ]; then
     printf '%s' "$MEOW_PALETA"
     return 0
   fi
-  # O PACK ATIVO VEM ANTES DO EMBUTIDO [19/09/2026]
-  #   Sem esta consulta o formato de pack ficava pela metade: `meow_pack_dir`
-  #   resolvia `packs/<id>` corretamente, o `pack validar` conferia os 26 slots
-  #   da `paleta.json` dele, e nenhum consumidor a lia. O pack declarava uma
-  #   paleta que não vestia nada — e a tela continuava saindo do embutido,
-  #   calada, que é a forma mais cara de um formato falhar.
-  #
-  #   Medido antes de ligar, e é por isso que ligar foi seguro: os 26 slots do
-  #   flavor `dracula` são IDÊNTICOS nos dois arquivos hoje. Trocar a fonte não
-  #   move um pixel nesta máquina — o que muda é que a partir daqui o pack passa
-  #   a mandar de verdade, que é o ponto do formato.
   local _pack_dir
   _pack_dir="$(meow_pack_dir)"
   if [ -n "$_pack_dir" ] && [ -f "$_pack_dir/paleta.json" ]; then
@@ -552,51 +262,20 @@ meow_paleta() {
 }
 
 # O nome do arquivo, sem o caminho — para MENSAGEM, nunca para abrir.
-# Existe porque as mensagens de erro também cravavam "assets/paleta/catppuccin.json"
-# (icones_apps_arcticons.sh:394 e :489, midia.sh:195), e uma mensagem que nomeia
-# o arquivo errado manda a pessoa procurar defeito onde não há.
-# O diretório do pack ativo, ou vazio quando não há pack nenhum resolvido.
 #
 # Quem decide qual pack é o ativo: a chave PACK do meow.conf, ou o FLAVOR quando
-# ela não existe (a adoção por convenção, logo abaixo). Sem os dois, esta função
-# devolve vazio — que é o sinal para o chamador cair no degrau seguinte dele.
+# ela não existe (a adoção por convenção, logo abaixo).
 #
-# O `catppuccin` DEIXOU DE SER DESVIO AQUI [22/09/2026]
-#   Havia uma linha `[ "$PACK" = "catppuccin" ] && return 0` logo abaixo: o pack
-#   padrão não tinha `pack.json`, então perguntar ao `pack.py` por ele estourava
-#   um FileNotFoundError, e o desvio existia para não perguntar. A P13 deu
-#   `pack.json` a ele; o desvio saiu, e o traceback morreu junto. Agora
-#   `PACK=catppuccin` resolve `packs/catppuccin` pelas mesmas três raízes que
-#   todo pack usa — que é o ponto inteiro da sprint.
-#
-# O resolvedor de verdade é scripts/pack.py (ver docs/PACKS.md). Esta função só
-# pergunta a ele, e o faz sem sair do lugar quando PACK e FLAVOR estão vazios:
-# um fork de python por script, num instalador de 54 etapas, custaria caro à
-# toa. Com FLAVOR preenchido ela pergunta sempre — ver "A ADOÇÃO É UMA REGRA
-# SÓ", dentro dela.
+# Havia uma linha `[ "$PACK" = "catppuccin" ] && return 0` logo abaixo: o pack
+# padrão não tinha `pack.json`, então perguntar ao `pack.py` por ele estourava
+# um FileNotFoundError, e o desvio existia para não perguntar.
 
-# AS RAÍZES DE BUSCA VINHAM DIGITADAS EM QUATRO LUGARES [21/09/2026]
-#   A mesma lista de três diretórios — `$MEOW_PACKS`, o XDG e `$MEOW_RAIZ/packs`
-#   — estava escrita à mão em `scripts/pack.py:raizes()`, DUAS vezes aqui dentro
-#   do `meow_pack_dir` e em `app/servidor.py:_packs_no_disco`. Uma quinta, no
-#   mesmo `servidor.py`, só conhecia `RAIZ/packs` e por isso ignorava o XDG e a
-#   variável. É a armadilha nº 3 do projeto no formato mais caro: o dia em que
-#   uma raiz nova entrar, quatro arquivos precisam concordar, e o que discordar
-#   não dá erro — some um pack da tela, calado.
+# A mesma lista de três diretórios — `$MEOW_PACKS`, o XDG e `$MEOW_RAIZ/packs` —
+# estava escrita à mão em `scripts/pack.py:raizes()`, DUAS vezes aqui dentro do
+# `meow_pack_dir` e em `app/servidor.py:_packs_no_disco`.
 #
-#   Quem manda é o `scripts/pack.py:raizes()`, porque é ele quem abre o
-#   `pack.json`. Esta função só pergunta.
-#
-# POR QUE A RESPOSTA É GUARDADA NUMA VARIÁVEL EXPORTADA
-#   Sem cache seria um fork de python por consulta, e o `meow_paleta` consulta a
-#   cada chamada — o cabeçalho logo acima explica por que isso custa caro num
-#   instalador de dezenas de etapas. Exportada, a lista é calculada UMA vez por
-#   árvore de processos e herdada pelos filhos.
-#
-#   O PREÇO ESTÁ DITO: quem mudar `MEOW_PACKS` ou `XDG_DATA_HOME` no MEIO de uma
-#   execução continua vendo a lista antiga. Quem monta ambiente de teste tem de
-#   pôr as duas variáveis no lugar ANTES da primeira consulta — que é o que os
-#   testes já fazem, por rodarem num `env` próprio.
+# Quem manda é o `scripts/pack.py:raizes()`, porque é ele quem abre o
+# `pack.json`.
 meow_pack_raizes() {
   if [ -z "${MEOW_PACK_RAIZES:-}" ]; then
     MEOW_PACK_RAIZES="$(python3 "$MEOW_RAIZ/scripts/pack.py" raizes 2>/dev/null)"
@@ -618,29 +297,17 @@ meow_pack_raizes() {
 # O diretório do pack PADRÃO — o que acompanha o projeto e de quem todo mundo
 # herda o que não declarou.
 #
-# POR QUE PERGUNTAR, EM VEZ DE ESCREVER `packs/catppuccin` [22/09/2026]
-#   Até a P13 o nome do pack padrão estava cravado em NOVE pontos de código
-#   (contados em 22/09/2026, seis deles em Python), e o `meow_paleta` era um
-#   deles. Agora ele mora em UM: `scripts/pack.py`, constante
-#   `PACK_PADRAO`. O dia em que o padrão mudar, muda ali e só ali — e
-#   um segundo lugar que o repita é exatamente a divergência silenciosa que a
-#   porta única da paleta veio matar, por outra porta.
+# Agora ele mora em UM: `scripts/pack.py`, constante `PACK_PADRAO`.
 #
 # O CACHE É O MESMO DO `meow_pack_raizes`, E PELO MESMO MOTIVO: sem ele seria um
 # fork de python por chamada, e o `meow_paleta` chama a cada consulta, num
-# instalador de dezenas de etapas. Exportada, a resposta é calculada UMA vez por
-# árvore de processos. O preço também é o mesmo: quem mudar `MEOW_PACKS` no MEIO
-# de uma execução continua vendo a resposta antiga.
+# instalador de dezenas de etapas.
 meow_pack_padrao_dir() {
   if [ -z "${MEOW_PACK_PADRAO_DIR:-}" ]; then
     MEOW_PACK_PADRAO_DIR="$(python3 "$MEOW_RAIZ/scripts/pack.py" padrao 2>/dev/null)"
     export MEOW_PACK_PADRAO_DIR
   fi
   # SEM RESPOSTA É AVISO, NUNCA SILÊNCIO — a mesma regra do `meow_pack_raizes`.
-  # Quem cai aqui está numa árvore sem `scripts/pack.py` ou sem python3, e o que
-  # sai do `meow_paleta` vira `/paleta.json`: um caminho que não existe e que
-  # mandaria a pessoa procurar a paleta na raiz do sistema. O aviso é o que liga
-  # o caminho torto à causa.
   if [ -z "$MEOW_PACK_PADRAO_DIR" ]; then
     [ "${MEOW_PACK_PADRAO_AVISADO:-0}" = "1" ] || {
       MEOW_PACK_PADRAO_AVISADO=1
@@ -653,27 +320,11 @@ meow_pack_padrao_dir() {
 
 meow_pack_dir() {
   local PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" saida recusado
-  # ADOÇÃO POR CONVENÇÃO [2026-09-17]
-  #   Sem a chave PACK, um FLAVOR que nomeie um pack existente adota esse pack.
-  #   É o que faz um meow.conf escrito ANTES do formato existir continuar
-  #   valendo: o desta máquina tem FLAVOR="dracula" e nenhuma linha PACK, e
-  #   exigir a chave nova faria o desktop perder os ícones no primeiro `meow
-  #   ativar` depois da atualização — calado, que é o pior jeito.
-  #   A chave explícita continua vencendo; isto é só o default.
+  # Sem a chave PACK, um FLAVOR que nomeie um pack existente adota esse pack.
   #
-  # A ADOÇÃO É UMA REGRA SÓ, E MORA NO `pack.py` — 23/09/2026, sprint P35
-  #   A conta acima estava escrita AQUI, em shell, e o painel tinha a dele em
-  #   Python (`_pack_adotado`, app/servidor.py), que também adotava pelo SABOR
-  #   que a paleta declara. Medido com PACK vazio e `FLAVOR="alucard"`: este
-  #   lado vestia o padrão e o painel dizia Dracula. Agora os dois perguntam ao
-  #   `adocao` do `scripts/pack.py`, que tem a regra inteira e o porquê de
-  #   cada passo; aqui só se lê a resposta.
-  #
-  #   O PREÇO: o conf de fábrica (`FLAVOR="mocha"`) não fazia fork aqui, e agora
-  #   faz um, de ~45 ms — o mesmo que a chave PACK preenchida já pagava pela
-  #   sonda `caminho`. Um atalho em shell ("mocha não é nome de pack, então é o
-  #   padrão") seria a segunda cópia da regra, e foi uma segunda cópia que abriu
-  #   a divergência.
+  # A conta acima estava escrita AQUI, em shell, e o painel tinha a dele em
+  # Python (`_pack_adotado`, app/servidor.py), que também adotava pelo SABOR que
+  # a paleta declara.
   [ -n "$PACK$FLAVOR" ] || return 0
   saida="$(python3 "$MEOW_RAIZ/scripts/pack.py" adocao "$PACK" "$FLAVOR" 2>/dev/null)" || {
     meow_aviso "scripts/pack.py não disse qual pack adotar (PACK='$PACK', FLAVOR='$FLAVOR') — usando o padrão"
@@ -687,43 +338,12 @@ meow_pack_dir() {
 
 # O FLAVOR QUE VALE: o do meow.conf, e, vazio, o padrão do pack no ar.
 #
-# ERA UMA LINHA EM CADA SCRIPT, E TODAS DIZIAM `mocha` — 25/09/2026, sprint P61
-#   Oito scripts tinham o seu `${FLAVOR:-mocha}` (`fzf`, `completar_icones`,
-#   `greeter`, `midia`, `construir_icones`, `logo`, `icones_apps_arcticons` e
-#   `terminal`), e o `mocha` é o padrão de UM pack. A página já caía no flavor
-#   padrão do pack no ar (P56, o `flavorEmVigor` do app/pagina/app.js), e o
-#   `carregar_conf` do bin/meow perguntava ao pack desde a revisão da P56 — mas
-#   quem roda sem o bin/meow, como as unidades do systemd, que leem o meow.conf
-#   direto, ficava com o `mocha`. Medido numa casa de brinquedo, com o Dracula no
-#   ar e `FLAVOR=""`: o `fzf.sh conferir` dizia que a paleta do Dracula não tem
-#   o "mocha" e deixava as cores como estavam; o `terminal.sh` e o `midia.sh`,
-#   o mesmo, cada um com a sua frase.
+# Oito scripts tinham o seu `${FLAVOR:-mocha}` (`fzf`, `completar_icones`,
+# `greeter`, `midia`, `construir_icones`, `logo`, `icones_apps_arcticons` e
+# `terminal`), e o `mocha` é o padrão de UM pack.
 #
 # A REGRA É A DO docs/PACKS.md ("Quem vence"): o FLAVOR do conf vence; vazio,
-#   entra o `paleta.flavor_padrao` do pack no ar. Quem diz qual é o pack no ar, e
-#   o padrão dele, é a `adocao` do scripts/pack.py — a pergunta do
-#   `meow_pack_dir`, logo acima, e do `conf_exportada` do painel. O fork só
-#   acontece com o FLAVOR vazio.
-#
-# SEM RESPOSTA, AVISO E VAZIO (1), e não um nome de reserva. O `mocha` que o
-#   `carregar_conf` guardava para esse caso era o padrão de um pack dito sem
-#   perguntar a ninguém; sem o pack.py não há pack no ar que se saiba, e quem
-#   chama diz, com a frase dele, que o flavor não resolve.
-#
-# O PACK SEM `flavor_padrao` CAI NO PRIMEIRO FLAVOR DA PALETA — 25/09/2026, P65
-#   O campo é opcional no `validar`, e a pergunta era a linha `flavor_padrao=`
-#   da `adocao`, que diz só o que o pack.json declara. Medido com um pack de
-#   brinquedo sem o campo e o FLAVOR vazio: o pack.py respondia (saída 0, o
-#   pack e o diretório), a linha vinha vazia, e este aviso dizia que ele «não
-#   disse» — enquanto o `vocabulario` do pack.py e o `flavorEmVigor` da página
-#   caíam no primeiro flavor da paleta. E o `icones_apps_arcticons.sh`, que roda
-#   sob `set -e`, morria na atribuição.
-#   A pergunta agora é ao `vocabulario`, pelo pack que a `adocao` escolhe: a
-#   queda mora lá, e é a mesma que a página já segue. Escrevê-la aqui em shell
-#   seria a cópia que a P61 veio tirar. O custo é o do fork de antes (~45 ms),
-#   e só com o FLAVOR vazio. Com resposta, sempre há flavor — a paleta que passa
-#   no `validar` tem ao menos um —, e o aviso ficou só para quando o pack.py não
-#   responde.
+# entra o `paleta.flavor_padrao` do pack no ar.
 meow_flavor() {
   local padrao
   if [ -n "${FLAVOR:-}" ]; then
@@ -744,17 +364,8 @@ PYFIM
   printf '%s' "$padrao"
 }
 
-# O FLAVOR DO LADO QUE A TELA VESTE — 09/10/2026, P74 item 10 (I10)
-#   O `meow_flavor` diz QUAL escuro (ou claro) a pessoa escolheu; o MODO diz
-#   qual LADO a tela veste. Com `MODO="claro"` o COSMIC veste o claro do pack
-#   (o Alucard, com o Dracula), e o traço do dock e as pastas continuavam
-#   pintados com a paleta do escuro — traço quase branco sobre fundo claro
-#   (P69 de 26/09, nunca feito). Esta função devolve o flavor do lado vestido:
-#   o par do outro lado quando o MODO pede o lado que o FLAVOR não é, pela
-#   regra que monta a captura (o `par_do_outro_lado` do
-#   scripts/derivar_flavor.py, a mesma do `_flavor_no_modo` do painel). Com
-#   `MODO="auto"` o relógio alterna e um tema de ícones não acompanha sem ser
-#   refeito: vale o FLAVOR, como antes. Sem resposta do Python, o FLAVOR.
+# O `meow_flavor` diz QUAL escuro (ou claro) a pessoa escolheu; o MODO diz
+# qual LADO a tela veste.
 meow_flavor_vestido() {
   local fl
   fl="$(meow_flavor)" || return 1
@@ -781,46 +392,21 @@ print(par if isinstance(par, str) and re.fullmatch(r"[a-z0-9_]+", par) else fl)
 PYFIM
 }
 
-# O MOLDE DAS PASTAS, COMPLETADO PELO FLAVOR QUE VALE — 25/09/2026, sprint P66
-#   O `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` de fábrica se expande quando o
-#   meow.conf é lido, antes de o FLAVOR vazio virar o padrão do pack, e chega
-#   como `cat--<acento>`. Quem o completa com o FLAVOR do `meow_flavor` era uma
-#   linha no `carregar_conf` do bin/meow e a mesma linha, escrita de novo, no
-#   `conf_exportada` do app/servidor.py (P61 e P65) — as duas versões da mesma
-#   regra que a docstring do próprio `conf_exportada` condena. Os dois a chamam
-#   daqui, depois de dar o FLAVOR. Mexe no `ICONES_PASTAS` do shell que chama
-#   (exportado, se já era), e só quando ele é o molde.
-#   AINDA HÁ UMA TERCEIRA CÓPIA (revisão da P66, 25/09/2026): o
-#   scripts/construir_pastas.sh completa o mesmo molde no `$COR` dele (~346, a
-#   da revisão da P56), com a guarda do FLAVOR vazio. A P66 só nomeava estas
-#   duas; quem mexer lá a troca por esta função.
-#   [P68, 25/09/2026: trocada — o construir_pastas.sh a chama num subshell com
-#   o `$COR`, e a regra mora só aqui.]
+# O `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` de fábrica se expande quando o
+# meow.conf é lido, antes de o FLAVOR vazio virar o padrão do pack, e chega
+# como `cat--<acento>`.
 meow_pastas_do_molde() {
   case "${ICONES_PASTAS:-}" in cat--?*) ICONES_PASTAS="cat-${FLAVOR:-}-${ICONES_PASTAS#cat--}" ;; esac
 }
 
 # OS PACKS DO DISCO QUE PASSAM NO `validar`, um id por linha, em ordem.
 #
-# UMA RÉGUA SÓ PARA "ESTE NOME É DE UM PACK" — 25/09/2026, sprint P61
-#   O Obsidian e o VS Code perguntam a mesma coisa sobre o que está no
-#   aplicativo — o snippet ligado, o tema de ícones — e contavam os packs cada um
-#   à sua maneira. A revisão da P55 pôs o Obsidian na regra certa: uma pasta com
-#   um pack.json qualquer não é pack, e só conta o que passa no `validar`. O VS
-#   Code ficou contando toda pasta com um pack.json. Medido com uma pasta `torta`
-#   que não passa no `validar` (falta o `formato`) e declara o tema de ícones
-#   `icones-dela`: com o settings.json dela nesse tema e um pack sem ícones no
-#   ar, o `aplicar` o trocava pelo de fábrica. A régua saiu do Obsidian para
-#   cá, sem mudar uma conta, e os dois a perguntam.
+# O Obsidian e o VS Code perguntam a mesma coisa sobre o que está no aplicativo
+# — o snippet ligado, o tema de ícones — e contavam os packs cada um à sua
+# maneira.
 #
-# A CONTA É A DO `achar` (scripts/pack.py): as raízes na precedência, um id uma
-#   vez só — o de cima esconde o de baixo, porque é ele que o id encontra —, e o
-#   nome da pasta passando pelo RE_ID antes de virar caminho. O `validar` é o do
-#   motor, calado, e QUALQUER exceção dele reprova, pelo motivo do `adocao`: um
-#   pack de terceiro quebrado estoura antes de virar Recusa.
-#
-# Sem resposta do pack.py, a lista sai vazia — e vazia quer dizer "pack
-#   nenhum", que não desmarca nem troca nada em aplicativo nenhum.
+# Sem resposta do pack.py, a lista sai vazia — e vazia quer dizer "pack nenhum",
+# que não desmarca nem troca nada em aplicativo nenhum.
 meow_packs_validos() {
   python3 -I - "$MEOW_RAIZ/scripts" <<'PYFIM' 2>/dev/null
 import os, sys
@@ -849,15 +435,10 @@ PYFIM
 }
 
 # Um caminho de dentro do pack ativo, com queda para o do núcleo.
-#   meow_pack_arquivo icones/apps.map  assets/icones/apps-dracula.map
-# devolve o primeiro que existir, nessa ordem. É o que permite migrar um acervo
-# para dentro de um pack sem quebrar quem ainda não migrou.
-#
-# [P78, 09/10/2026: o `$dir/$no_pack` era montado à mão e devolvido cru. Um
-#   `icones/pastas` que fosse symlink para fora do pack (um `git clone` traz
-#   link) punha a pasta de fora como acervo, e o `icones_pastas.sh` copiava de
-#   lá para o tema. Agora o caminho passa pelo `meow_dentro`, e o que volta é a
-#   forma que ele conferiu.]
+# meow_pack_arquivo icones/apps.map  assets/icones/apps-dracula.map devolve o
+# primeiro que existir, nessa ordem.
+# O caminho passa pelo `meow_dentro`: uma pasta do pack que seja link para fora
+# não vira acervo.
 meow_pack_arquivo() {
   local no_pack="$1" no_nucleo="${2:-}" dir real
   dir="$(meow_pack_dir)"
@@ -869,30 +450,20 @@ meow_pack_arquivo() {
   return 0
 }
 
-# --- A REGRA ÚNICA DO DADO DE PACK, EM SHELL — P78, 09/10/2026 ---------------
+# --- A REGRA ÚNICA DO DADO DE PACK, EM SHELL ---------------
 #
 # Um pack pode vir de terceiros (`meow pack importar`, ou um `git clone` na raiz
 # da pessoa, que traz symlink), e o que vem dele é dado não confiável: campo do
-# pack.json, linha de mapa, arquivo de pasta de desenho. A regra é a do
-# `_dentro`/`nome_de_destino` do scripts/pack.py ("A REGRA ÚNICA", lá), com a
-# mesma conta, para o lado do shell — que monta caminho com o que leu de um mapa
-# e não pode pagar uma partida de Python por linha.
+# pack.json, linha de mapa, arquivo de pasta de desenho.
 #
-# `meow_dentro <raiz> <caminho>`
-#   Imprime o `realpath` do caminho (relativo à raiz, ou absoluto) e sai 0 só se
-#   ele EXISTIR e cair dentro do `realpath` da raiz. O `realpath` segue todo
-#   symlink, do meio e do fim: um arquivo que é link para fora, uma pasta do
-#   meio que é link para fora e um `../` saem 1, sem imprimir nada.
-#   QUEM CHAMA USA O QUE ELE IMPRIME, e não o caminho que entrou. Conferir uma
-#   forma e abrir outra é o defeito que os alertas da onda 1 acharam.
+# `meow_dentro <raiz> <caminho>` Imprime o `realpath` do caminho (relativo à
+# raiz, ou absoluto) e sai 0 só se ele EXISTIR e cair dentro do `realpath` da
+# raiz.
+# O `realpath` segue todo symlink, do meio e do fim; quem chama usa o que ele
+# IMPRIME, nunca o caminho que entrou.
 #
-# `meow_nome_seguro <nome>`
-#   0 quando o nome serve de nome de arquivo do lado de cá (`<nome>.svg` no
-#   tema): só `[A-Za-z0-9._+-]`, sem `..`. É o conjunto fechado do
-#   `nome_de_destino` do pack.py.
-#
-# A linha que falha é PULADA E CONTADA por quem chama, sem abortar o resto: um
-# pack com uma linha torta continua vestindo o que tem de bom.
+# `meow_nome_seguro <nome>`: 0 quando o nome serve de arquivo do lado de cá, só
+# `[A-Za-z0-9._+-]` e sem `..`. A linha que falha é pulada e contada por quem chama.
 meow_dentro() {
   local raiz cheio real
   raiz="$(realpath -e -- "$1" 2>/dev/null)" || return 1
@@ -907,21 +478,8 @@ meow_nome_seguro() {
   return 0
 }
 
-# `meow_texto_seguro <texto…>` — conferência da P78, 10/10/2026
-#   Imprime o texto pronto para o terminal: todo caractere de controle vira `?`.
-#   É a porta de saída de texto que veio de pack, mapa, `.meowpack` ou nome de
-#   arquivo e vai para um aviso — nome de pack, linha pulada, pasta da raiz. Um
-#   `\e]52;c;…\a` cru escreve na área de transferência de quem lê; `\e[2J`
-#   apaga a tela; `\e]0;…` troca o título.
-#   A CONTA É POR LETRA, E NÃO POR BYTE: o texto é lido como UTF-8, todo byte
-#   que não forma UTF-8 vira `?` (o `\x9b` solto, o CSI de 8 bits, e os outros
-#   C1 crus — `\x90` DCS, `\x9d` OSC), e só então saem C0 (a quebra de linha
-#   inclusive), DEL e C1 por ponto de código (U+0080–U+009F). Uma regex em bytes
-#   (a primeira versão, com `sed`) deixava passar `\x9b\x9b` e `\xff\x9b`, e
-#   não tinha como distinguir o `\x9b` solto do que é metade do `ě` (`\xc4\x9b`),
-#   que tem de sobreviver. O argv chega ao Python com `surrogateescape`; voltar
-#   aos bytes e decodificar com `replace` é o que separa um caso do outro.
-#   O pack.py tem a gêmea na entrada: o `validar` recusa texto com controle.
+# É a porta de saída de texto que veio de pack, mapa, `.meowpack` ou nome de
+# arquivo e vai para um aviso — nome de pack, linha pulada, pasta da raiz.
 meow_texto_seguro() {
   python3 -I -c 'import re, sys
 t = sys.argv[1].encode("utf-8", "surrogateescape").decode("utf-8", "replace")
@@ -930,23 +488,13 @@ sys.stdout.write(re.sub("[\x00-\x1f\x7f-\x9f\ufffd]", "?", t))' "$*"
 
 # --- A CAPTURA DE TEMA: UMA PERGUNTA, UM LUGAR QUE RESPONDE -----------------
 #
-# POR QUE ELAS NASCERAM [22/09/2026]
-#   As capturas desceram para dentro do pack dono (`packs/<id>/temas/capturados/`),
-#   e a `original` ficou no motor porque não é tema de pack nenhum — é o molde do
-#   esquema v1 e o reset de fábrica desta máquina. Com duas casas possíveis, os
-#   NOVE lugares que montavam `$MEOW_RAIZ/assets/temas/capturados/$par` à mão
-#   viravam nove jeitos de não achar o mesmo arquivo.
+# As capturas desceram para dentro do pack dono
+# (`packs/<id>/temas/capturados/`), e a `original` ficou no motor porque não é
+# tema de pack nenhum — é o molde do esquema v1 e o reset de fábrica desta
+# máquina.
 #
-#   Quem responde é o `scripts/pack.py`, e só ele: é lá que a subida pack ->
-#   herança -> motor já mora, para os acervos de ícone. Uma segunda escada em
-#   shell divergiria da primeira no dia em que alguém mexesse numa só.
-#
-# POR QUE A PONTE É REFEITA AQUI DENTRO
-#   `MEOW_PACK_DIR` é exportada pelo `meow_ponte_python`, e os três pontos de
-#   entrada que chamam Python o fazem. Mas o `vidro.sh` e o `greeter.sh` também
-#   rodam sozinhos, pelo timer e pelo hook — e aí a variável não chegou. A queda
-#   para `meow_pack_dir` custa uma linha e evita que o pack ativo valha na CLI e
-#   não valha no timer, que é a divergência silenciosa de sempre.
+# Quem responde é o `scripts/pack.py`, e só ele: é lá que a subida pack ->
+# herança -> motor já mora, para os acervos de ícone.
 meow_captura() {
   MEOW_PACK_DIR="${MEOW_PACK_DIR:-$(meow_pack_dir)}" \
     python3 "$MEOW_RAIZ/scripts/pack.py" captura "$1" 2>/dev/null
@@ -967,64 +515,26 @@ meow_paleta_nome() {
 
 # --- A PONTE SHELL -> PYTHON ------------------------------------------------
 #
-# POR QUE ELA EXISTE [21/09/2026]
-#   O cabeçalho do `meow_paleta`, logo acima, diz "POR QUE UMA FUNÇÃO, E NÃO UMA
-#   VARIÁVEL EXPORTADA" — e o argumento continua certo PARA O SHELL. Ele só não
-#   cobre metade dos consumidores.
+# O cabeçalho do `meow_paleta`, logo acima, diz "POR QUE UMA FUNÇÃO, E NÃO UMA
+# VARIÁVEL EXPORTADA" — e o argumento continua certo PARA O SHELL. Ele só não
+# cobre metade dos consumidores.
 #
-#   Medido no dia: sete consumidores de paleta são Python (`gerar_temas.py`,
-#   `gerar_icones_autorais.py`, `app/servidor.py`, `folha_conversor.py`,
-#   `folha_marcas.py`, `folha_proposta.py`, `gerar_tema_v1.py`). Nenhum deles
-#   pode chamar uma função de shell. Os sete resolvem sozinhos por
-#   `$MEOW_PALETA` -> `$PALETA_ARQUIVO` -> `catppuccin.json`, e `MEOW_PALETA`
-#   NÃO ERA EXPORTADA POR NINGUÉM: nem pelo install.sh, nem pelo bin/meow, nem
-#   pelo app/run.sh. Ou seja, todo consumidor Python caía no fallback SEMPRE — o
-#   pack ativo mandava no shell e não mandava no Python, e a divergência era
-#   muda.
+# Nenhum deles pode chamar uma função de shell.
 #
-#   Então a ponte é isto: nos TRÊS pontos de entrada que chamam Python, a função
-#   é resolvida uma vez e o resultado vira ambiente. Não são "dezenas de pontos"
-#   como o parágrafo acima teme, são três — e o esquecimento de um deles aparece
-#   na conferência da P20, não em silêncio.
-#
-# POR QUE ELA RECUSA, E NÃO SÓ EXPORTA
-#   Exportar um caminho que não existe seria pior que não exportar nada: cada
-#   consumidor Python falharia à sua maneira (um `sys.exit`, um `KeyError`, um
-#   traceback) no meio da fila de etapas, e o instalador seguiria contra um tema
-#   meio construído. É o defeito que a spec desta sprint descreve como "metade
-#   Nord, metade Catppuccin". Recusar aqui custa uma linha e para antes da
-#   primeira escrita.
-#
-# MEOW_PACK_DIR VAI JUNTO, E VAZIO É RESPOSTA
-#   Vazio quer dizer "o pack é o embutido" — o mesmo sinal que o `meow_pack_dir`
-#   já dá ao shell. Quem lê do lado Python trata vazio como ausência, nunca como
-#   erro.
-#
-# QUEM NÃO LEU O meow.conf TAMBÉM PRECISA SABER QUAL É O PACK
-#   O `install.sh` e o `bin/meow` chegam aqui com PACK/FLAVOR já no ambiente. O
-#   `app/run.sh` NÃO: ele nunca leu o conf, e é exatamente isso que o comentário
-#   do `app/servidor.py` registra ao dizer que "o processo do servidor NÃO tem
-#   FLAVOR nem PACK no environ". Sem as duas linhas abaixo, a ponte do painel
-#   resolveria sempre o embutido — o mesmo defeito que esta função veio matar,
-#   um andar acima.
-#
-#   Elas só preenchem o que FALTA. Quem já leu o conf continua mandando, e o
-#   valor lido aqui nunca é exportado: ele serve a esta resolução e morre nela.
+# Vazio quer dizer "o pack é o embutido" — o mesmo sinal que o `meow_pack_dir`
+# já dá ao shell.
 meow_ponte_python() {
   local paleta pack_dir da_pessoa=0
   local PACK="${PACK:-$(meow_conf_valor PACK || true)}"
   local FLAVOR="${FLAVOR:-$(meow_conf_valor FLAVOR || true)}"
-  # DE QUEM É O `MEOW_PALETA` QUE CHEGOU AQUI — ver o bloco "O ECO DA PONTE NÃO
-  # É ESCOLHA DE NINGUÉM", no `meow_paleta`. A pergunta é feita ANTES de
-  # qualquer coisa porque o `meow_paleta` logo abaixo já responde por ela; o que
-  # se guarda aqui é só o que o FILHO precisa saber para repetir a conta.
+  # A pergunta é feita ANTES de qualquer coisa porque o `meow_paleta` logo
+  # abaixo já responde por ela; o que se guarda aqui é só o que o FILHO precisa
+  # saber para repetir a conta.
   [ -n "${MEOW_PALETA:-}" ] && [ "$MEOW_PALETA" != "${MEOW_PALETA_DA_PONTE:-}" ] && da_pessoa=1
-  # AQUECE O CACHE DAS RAÍZES NESTE SHELL, E NÃO DENTRO DE UM `$( )`
-  #   O `meow_paleta` logo abaixo é chamado por substituição de comando, que roda
-  #   num SUBSHELL: o `export MEOW_PACK_RAIZES` feito lá dentro morre com ele, e
-  #   a lista seria refeita a cada consulta. Chamado aqui, o valor fica NESTE
-  #   shell e é herdado por todo filho — que é o ponto do cache.
-  #   A saída vai para o nada de propósito: o que interessa é o efeito colateral.
+  # AQUECE O CACHE DAS RAÍZES NESTE SHELL, E NÃO DENTRO DE UM `$( )` O
+  # `meow_paleta` logo abaixo é chamado por substituição de comando, que roda
+  # num SUBSHELL: o `export MEOW_PACK_RAIZES` feito lá dentro morre com ele, e a
+  # lista seria refeita a cada consulta.
   meow_pack_raizes >/dev/null || true
   paleta="$(meow_paleta)"
   if [ ! -f "$paleta" ]; then
@@ -1041,13 +551,8 @@ meow_ponte_python() {
   pack_dir="$(meow_pack_dir)"
   MEOW_PALETA="$paleta"
   MEOW_PACK_DIR="$pack_dir"
-  # O MARCADOR VAI JUNTO, SEMPRE, E VAZIO TAMBÉM É RESPOSTA
-  #   Cheio, e igual ao `MEOW_PALETA`, quer dizer "este valor é meu": o filho
-  #   pode jogá-lo fora e reresolver do pack. Vazio quer dizer "quem mandou foi a
-  #   pessoa": o filho honra o que ela escolheu, sem reresolver nada. Exportar o
-  #   vazio é tão importante quanto exportar o cheio — sem isso, um `meow
-  #   configurar` com `MEOW_PALETA` da pessoa passaria o marcador VELHO para o
-  #   `install.sh`, e o filho decidiria pela procedência errada.
+  # Cheio, e igual ao `MEOW_PALETA`, quer dizer "este valor é meu": o filho pode
+  # jogá-lo fora e reresolver do pack.
   if [ "$da_pessoa" = "1" ]; then MEOW_PALETA_DA_PONTE=""; else MEOW_PALETA_DA_PONTE="$paleta"; fi
   export MEOW_PALETA MEOW_PACK_DIR MEOW_PALETA_DA_PONTE
   return 0
@@ -1056,67 +561,29 @@ meow_ponte_python() {
 # --- A RAIZ DO COSMIC: UM LUGAR SÓ PARA DIZER ONDE ELA É --------------------
 # Onde mora a configuração do COSMIC desta pessoa.
 #
-# HAVIA DOIS IDIOMAS, E SÓ UM DELES ERA HONRADO [21/09/2026]
-#   Medido no dia: 11 pontos em shell liam `${MEOW_COSMIC_DIR:-$HOME/...}` e 24
-#   cravavam o caminho direto — entre eles o `lib/preflight.sh`, que é o
-#   GUARDIÃO e roda antes da primeira escrita. Uma costura meio construída é
-#   pior que nenhuma: quem lê o código vê a variável e supõe que ela vale,
-#   quando ela valia em pouco mais de um terço dos lugares.
+# Uma costura meio construída é pior que nenhuma: quem lê o código vê a variável
+# e supõe que ela vale, quando ela valia em pouco mais de um terço dos lugares.
 #
-#   A divergência ainda não mordeu ninguém, e o motivo é um acaso: NADA neste
-#   repositório atribui `MEOW_COSMIC_DIR` — conferido em 21/09/2026, zero
-#   atribuições. Quem desvia a raiz nos testes desvia o `HOME` inteiro
-#   (`tests/convergencia.sh` roda o instalador com `env -i HOME=<temporário>`),
-#   e mover o HOME move os dois idiomas de uma vez. O dia em que alguém usar a
-#   variável para valer é o dia em que metade do projeto olha para o lugar
-#   errado, calada. Fechar a costura agora é mais barato que depurar aquilo.
+# A divergência ainda não mordeu ninguém, e o motivo é um acaso: NADA neste
+# repositório atribui `MEOW_COSMIC_DIR` — conferido, zero atribuições.
 #
-# ISTO NÃO É UMA CAMADA DE DESKTOP, E A RECUSA ESTÁ MEDIDA
-#   Também em 21/09/2026: de 89 arquivos executáveis do projeto, 72 citam o
-#   COSMIC. Portar para GNOME/KDE foi recusado com esse número na mesa, e o
-#   `meow_preflight` já recusa instalar fora do COSMIC. Um verbo com um ramo só
-#   fecha uma divergência que existe; um `case` com um ramo só mentiria dizendo
-#   que existe alternativa.
-#
-# O QUE MUDA SOB `set -u` COM HOME INDEFINIDO, E POR QUE PASSA
-#   Medido em 21/09/2026: a expansão inline morria na hora (`HOME: variável não
-#   associada`, rc 127). O verbo morre no SUBSHELL do `$( )`, então quem o chama
-#   sem `set -e` SEGUE com a raiz VAZIA — e os caminhos viram
-#   `/com.system76...`. Nenhum caminho do projeto roda assim: os oito `env -i`
-#   do repositório são todos de `tests/` e passam `HOME=`, e o único de
-#   produção (`scripts/painel.sh:390`) lança o `cosmic-panel`, não um script
-#   meow. Fica registrado porque o sintoma, no dia em que houver um, será um
-#   caminho absoluto esquisito e não uma mensagem de erro.
-#
-# Quem esquecer de chamá-lo aparece no grep do `tests/estilo.sh`. Lá a cobrança
-# é só para CÓDIGO: comentário continua livre, porque é onde a explicação mora
-# e reescrevê-la apagaria o porquê.
+# Quem esquecer de chamá-lo aparece no grep do `tests/estilo.sh`.
 meow_cosmic_dir() {
   printf '%s' "${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 }
 
-# O ESQUEMA DE UM NAMESPACE DO COSMIC — 09/10/2026, P76
-#   O `v1` estava escrito à mão em cada escritor. O COSMIC migra esquema
-#   (medido em 09/10/2026 nesta máquina: `io.github.cosmic_utils.camera` tem
-#   `v20` e `v21`, o `clipboard-manager` tem `v2` e `v3`), e um escritor
-#   cravado em `v1` continua gravando, verde no doctor, numa pasta que ninguém
-#   lê mais. A verdade é o pacote: o maior `v<n>` em `/usr/share/cosmic/<ns>`.
-#   Namespace que o pacote não traz (o do terminal, o do relógio) fica em `v1`.
-#   O contrato inteiro está em `contratos/cosmic.tsv`.
+# O `v1` estava escrito à mão em cada escritor. O COSMIC migra esquema, e um
+# escritor cravado em `v1` continua gravando, verde no doctor, numa pasta que
+# ninguém lê mais.
 meow_cosmic_v() {
   local n
   n="$(ls -1 "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/$1" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1)"
   printf 'v%s' "${n:-1}"
 }
 
-# A REVISÃO DO LIBCOSMIC QUE UM PACOTE DO COSMIC PINA — 09/10/2026, P76
-#   O sufixo do `Version` do pacote do Pop (`…~24.04~58aeb65`) é a revisão do
-#   upstream, e o `Cargo.lock` dela no GitHub diz o libcosmic que o pacote
-#   compilou. É por ela que o pré-voo, o oráculo do tema e os applets acompanham
-#   o COSMIC instalado (ou o candidato). Devolve o SHA completo; sem rede, ou
-#   sem `Cargo.lock`, sai 1 e não inventa. `MEOW_SEM_REDE=1` corta a pergunta.
-#   (Decisão aberta da pesquisa, §6.1: GitHub primeiro; o fonte do apt como
-#   reserva fica para quando o GitHub faltar de verdade.)
+# É por ela que o pré-voo, o oráculo do tema e os applets acompanham o COSMIC
+# instalado (ou o candidato). Devolve o SHA completo; sem rede, ou sem
+# `Cargo.lock`, sai 1 e não inventa.
 meow_libcosmic_de() { # $1 repositório (cosmic-settings, cosmic-panel) $2 versão do pacote
   local sha="${2##*~}" rev
   [ "${MEOW_SEM_REDE:-0}" = "1" ] && return 1
@@ -1126,13 +593,9 @@ meow_libcosmic_de() { # $1 repositório (cosmic-settings, cosmic-panel) $2 vers�
   printf '%s' "$rev"
 }
 
-# O `cosmic-comp` QUE O PRÓXIMO LOGIN VAI RODAR — 09/10/2026, P76
-#   Com o shim do compositor ligado (`meow compositor ativar`), o binário
-#   patchado mora em `~/.local/libexec/meow/cosmic-comp/<versão>/`, e quem
-#   decide entre ele e o de fábrica é o próprio shim. Perguntar a ele
-#   (`MEOW_SHIM_SO_DIZER=1`) mantém a regra num lugar só. Sem shim, é o de
-#   `/usr/bin`, como sempre foi — e os verificadores que liam marcador lá
-#   continuam lendo o mesmo arquivo.
+# Com o shim do compositor ligado (`meow compositor ativar`), o binário
+# patchado mora em `~/.local/libexec/meow/cosmic-comp/<versão>/`, e quem
+# decide entre ele e o de fábrica é o próprio shim.
 meow_cosmic_comp_disco() {
   local shim="$HOME/.local/bin/cosmic-comp"
   if grep -qs -- MEOW-COSMIC-COMP-SHIM "$shim"; then
@@ -1144,36 +607,12 @@ meow_cosmic_comp_disco() {
 # --- TRAVA 1: territórios proibidos ----------------------------------------
 # Uma escrita fora de lugar aqui não dá erro: dá um sintoma bizarro dias depois.
 #
-# SÃO DUAS LISTAS, E A DIFERENÇA ENTRE ELAS É A DIFERENÇA ENTRE MÁQUINA E PROJETO
-#   A primeira vale em qualquer lugar do mundo: /usr é território do gerenciador
-#   de pacotes, e um `apt upgrade` sobrescreve.
+# A primeira vale em qualquer lugar do mundo: /usr é território do gerenciador
+# de pacotes, e um `apt upgrade` sobrescreve.
 #
-#   O "o self-heal reverte em até 1h" que estava escrito aqui era grande demais
-#   para o que é medido: em 10/08/2026, `grep -rn /usr/share/applications
-#   ~/.config/zsh` não devolveu UMA linha. O Aurora disputa `/usr/share` em
-#   pontos nomeados (o ícone do App Library, self-heal:793 — e lá ele só DESFAZ o
-#   que a v3.45 dele plantou), não o diretório inteiro. Quem escreve em
-#   `/usr/share/applications` é o MeowSystem, sozinho: `ocultar_apps.sh` e
-#   `nomes_apps.sh`, com `sudo install` direto, por fora desta função.
-#
-#   A trava continua recusando o caminho, e isso está certo: ela existe para que
-#   ninguém escreva ali SEM PERCEBER. Quem precisa escrever escolheu escrever, e
-#   documentou por quê — no caso do lançador, porque o `cosmic-app-library` não
-#   deduplica por ID e uma cópia no home apareceria ao LADO da do sistema, e não
-#   no lugar dela. O que NÃO servia era "o pacote do apt é o backup": reinstalar
-#   um pacote para desfazer uma linha é caro demais para ser um botão de volta.
-#   Agora essas três escritas passam por `meow_backup_sistema` (abaixo), só
-#   acontecem com LANCADOR_SISTEMA="sim", e voltam por `meow desfazer --lancador`.
-#
-#   A segunda lista é dos VIZINHOS desta máquina — aqui, o repo Andromeda em
-#   ~/.config/zsh (auto-commit a cada 10min: arquivo largado lá vira commit no
-#   repo PRIVADO dela) e os atalhos de teclado, que são do Ritual da Aurora.
-#
-#   Cravar a segunda no código fazia o instalador recusar, na máquina de um
-#   estranho, um diretório que é dele: `~/.config/zsh` é a convenção ZDOTDIR mais
-#   comum do mundo zsh, e a recusa vinha explicada por um "repo Andromeda" que
-#   ele não tem. Pior: a própria completion mora lá, e a trava já tinha uma
-#   exceção reimplementada à mão (install.sh:185) para contorná-la.
+# O Aurora disputa `/usr/share` em pontos nomeados (o ícone do App Library,
+# self-heal:793 — e lá ele só DESFAZ o que a v3.45 dele plantou), não o
+# diretório inteiro.
 MEOW_PROIBIDOS_SISTEMA=(/usr/share /usr/local/share /usr/bin /usr/lib)
 MEOW_PROIBIDOS_LOCAIS=()
 MEOW_VIZINHOS="${MEOW_VIZINHOS:-$HOME/.config/meow/vizinhos.conf}"
@@ -1218,11 +657,7 @@ meow_destino_permitido() {
 #
 # `meow_mesmo_conteudo <a> <b>` é a MESMA régua que o `meow_escrever` usa para
 # decidir "já está certo": o conteúdo, com a newline final normalizada — o
-# `$(cat)` a come dos dois lados. Quem confere um arquivo que o `meow_escrever`
-# gravou tem de conferir por ela. Em 24/09/2026 o doctor comparava a CLI e as
-# unidades do autoreparo com `cmp` (byte a byte), o instalador as gravava por
-# aqui (sem a newline final), e cada um dizia uma coisa: o install saía com
-# "nada mais a escrever" e o doctor acusava a CLI e as unidades como diferentes.
+# `$(cat)` a come dos dois lados.
 meow_mesmo_conteudo() {
   [ -f "$1" ] && [ -f "$2" ] && [ "$(cat "$1" 2>/dev/null)" = "$(cat "$2" 2>/dev/null)" ]
 }
@@ -1240,27 +675,12 @@ meow_escrever() {
     return "$MEOW_DIVERGENTE"
   fi
   mkdir -p "$dir" || return "$MEOW_ERRO"
-  # O PREFIXO `.atomicwrite` NÃO É COSMÉTICO — 26/08/2026
   #   O `cosmic-config` do libcosmic IGNORA de propósito os temporários cujo nome
   #   começa com `.atomicwrite`, ao traduzir eventos de inotify em mudanças de
   #   chave (`libcosmic/cosmic-config/src/lib.rs:407-408`:
   #       // Skip any .atomicwrite temporary files
   #       if key.starts_with(".atomicwrite") { continue }
   #   ), porque é assim que ele mesmo escreve.
-  #
-  #   Com o nosso `.meow.` o painel recebia QUATRO eventos por chave gravada — o
-  #   Create do temporário, o Modify(Data), o Name(From) e só então o Name(To)
-  #   legítimo —, e cada um faz o `cosmic-panel` reler a ENTRADA INTEIRA e
-  #   recomitar o raio de canto contra o bbox do frame anterior
-  #   (`corner_radius.rs:658` e `:685`). Ou seja: multiplicávamos por quatro os
-  #   dados jogados na corrida que apaga topbar e dock, e justamente no instante
-  #   em que a barra está mais frágil. O `forma.sh` grava até 12 chaves numa
-  #   rajada, e `spacing` está na lista `must_recreate` do painel, que respawna
-  #   os applets no meio dela.
-  #
-  #   A atomicidade não muda: o temporário continua no diretório de destino
-  #   (TRAVA 2, logo acima), então o `mv -f` segue sendo rename no mesmo
-  #   filesystem. Muda só o nome — e com ele o silêncio.
   tmp="$(mktemp -p "$dir" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
   printf '%s' "$conteudo" > "$tmp" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   chmod "$modo" "$tmp"
@@ -1270,48 +690,26 @@ meow_escrever() {
 }
 
 # --- O MEOW.CONF: UM CAMINHO SÓ, E UMA FORMA SÓ DE ESCREVER NELE ------------
-# Os dois caminhos e as duas funções abaixo VIERAM do `bin/meow` em 11/08/2026,
-# e a mudança é de endereço, não de comportamento: o texto delas é o mesmo.
+# Os dois caminhos e as duas funções abaixo VIERAM do `bin/meow`, e a mudança é
+# de endereço, não de comportamento: o texto delas é o mesmo.
 #
-# O motivo é a Sprint M. O `wallpaper.sh permitir` precisa gravar uma chave no
-# meow.conf, e ele NÃO é a CLI — é um script de `scripts/`, que roda como
-# processo filho. Sem mover isto para cá, a saída seria reescrever a mesma
-# lógica de "trocar a chave preservando o comentário" num segundo lugar; e
-# chave de configuração com duas rotinas de escrita é a receita de as duas
-# discordarem no dia em que uma delas for corrigida (foi exatamente o que
-# aconteceu com a `conf_definir`, que escrevia só a PRIMEIRA ocorrência
-# enquanto o shell obedece a ÚLTIMA — ver o cabeçalho abaixo).
+# O `wallpaper.sh permitir` precisa gravar uma chave no meow.conf, e ele NÃO é
+# a CLI — é um script de `scripts/`, que roda como processo filho.
 #
 # `MEOW_CONF` continua sendo o override de sempre, e agora ele vale para todo
 # módulo que sourceia este arquivo, não só para a CLI.
 MEOW_CONF_ARQUIVO="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
 MEOW_CONF_PADRAO="${MEOW_CONF_PADRAO:-$MEOW_RAIZ/meow.conf.exemplo}"
 
-# Troca (ou acrescenta) uma chave do meow.conf preservando o comentário da linha.
-# É o que faz `meow tema claro`, `meow logo <x>` e `meow wallpaper permitir`
-# valerem também para o próximo `meow aplicar` — sem isso a mudança duraria até
-# o self-heal seguinte.
+# Troca (ou acrescenta) uma chave do meow.conf preservando o comentário da
+# linha.
 #
-# É FEITO EM BASH, E NÃO COM UM `sed`, POR CAUSA DO COMENTÁRIO DA LINHA
 #   O meow.conf é comentado linha a linha, e o comentário é metade do valor dele
 #   como documentação. Um `sed -E 's|^(MODO=)[^#]*(#.*)?$|...|'` parece resolver
 #   e não resolve: o `[^#]*` é guloso, engole os espaços que separam o valor do
 #   comentário e devolve `MODO="claro"# escuro | claro | auto`, colado. ERE não
 #   tem quantificador preguiçoso para consertar isso. Aqui a linha é partida no
 #   primeiro `#` e os espaços de antes dele são preservados como estavam.
-#
-#   Limite conhecido: valor que CONTENHA `#` (um hex de cor, por exemplo) seria
-#   lido como comentário. Nenhuma chave deste conf é assim — as cores vêm da
-#   paleta, nunca do conf — e o wizard recusa `#` e `"` na resposta dela.
-#
-# TODAS AS OCORRÊNCIAS, NÃO SÓ A PRIMEIRA — E ISSO É MEDIÇÃO, NÃO ZELO
-#   O `meow.conf.exemplo` tinha `LOGO_INTERVALO=` DUAS vezes (30m na seção da
-#   logo, 1d na do wallpaper) até 05/08/2026. O arquivo é lido pelo `.` do shell,
-#   onde vale a ÚLTIMA atribuição; esta função escrevia só a PRIMEIRA. O
-#   resultado numa máquina recém-instalada seria `meow configurar` gravar `2h`,
-#   imprimir o diff certo, e o valor em vigor continuar `1d` — sem nada acusar.
-#   O exemplo foi corrigido, e aqui a regra passou a ser "a chave inteira": um
-#   conf com a mesma chave duas vezes sai deste caminho com as duas concordando.
 meow_conf_texto_definir() {
   local texto="$1" chave="$2" valor="$3" novo="" linha resto antes espacos comentario achou=0
   while IFS= read -r linha; do

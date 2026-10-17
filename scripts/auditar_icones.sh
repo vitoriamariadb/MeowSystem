@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# auditar_icones.sh — responde, a qualquer momento, a pergunta dela:
-# "a lista de ícones está toda baixada e pareada?"
-#
 #   ./scripts/auditar_icones.sh            tabela colorida + o que falta
 #   ./scripts/auditar_icones.sh --lista    acrescenta app por app
 #   ./scripts/auditar_icones.sh --ocultos  inclui os .desktop que ela não vê
@@ -10,117 +7,13 @@
 #
 #   0 = todo mundo pareado · 1 = algum app sem ícone · 2 = erro · 3 = falta dependência
 #
-# ESTE SCRIPT NÃO MEXE EM CONFIGURAÇÃO NENHUMA
-#   É auditoria, não reparo: nada em `~/.config`, nada em `~/.local/share/icons`,
-#   nada em `/usr`. A única escrita do processo inteiro é UMA linha no
-#   `~/.local/state/meowsystem/meow.log` (via `meow_registrar`, igual aos outros
-#   módulos), para o histórico dizer quando a máquina esteve pareada — e nem essa,
-#   no `--json`: modo de máquina costuma rodar em laço, e engordar o log dela a cada
-#   volta seria o único estrago que este script saberia fazer.
-#
-#   Por isso ele também NÃO pega o lock do MeowSystem (`meow_travar`): ela precisa
-#   poder rodar isto no meio de um `install.sh`, para ver o efeito, sem que um dos
-#   dois recuse a rodar. Consequência boa: a idempotência é de graça — rodar duas
-#   vezes dá saída byte a byte idêntica, porque não existe segunda escrita.
-#
-# ------------------------------------------------------------------------------
-# A FONTE DA VERDADE É O CÓDIGO QUE A MÁQUINA DELA RODA, NÃO A ESPECIFICAÇÃO
-#
-#   Auditoria que "quase" imita o buscador de ícone é pior que nenhuma: ela diz
-#   "tudo pareado" e o app aparece com ícone genérico. Por isso a resolução aqui é
-#   copiada do buscador REAL — a crate `cosmic-freedesktop-icons`, commit
-#   `ab4c57b8e416c6af9297cb04d101889896fd9a92` de github.com/pop-os/freedesktop-icons.
-#
-#   Esse commit não é chute: é o que os TRÊS programas que desenham ícone nesta
-#   máquina fixam no Cargo.lock, todos no mesmo hash (conferido em 04/08/2026):
-#     cosmic-applets     1.0.15~...~ec8ffdc   (o app-list do dock)
-#     cosmic-panel       0.1.0~...~d6699ff
-#     cosmic-app-library 1.0.12~...~172acda
-#   O `cosmic-comp` (091583a) fixa o mesmo, e o binário instalado confirma a versão:
-#   a mensagem "unable to read icon theme directory" está na linha 175 de
-#   `src/theme/mod.rs` tanto nas `strings` do binário quanto naquele commit.
-#
-#   Há DUAS buscas acontecendo aqui, e elas NÃO seguem a mesma regra:
-#
-#   1) achar o .desktop  -> vence o diretório de MAIOR precedência XDG, e o do
-#      usuário vem PRIMEIRO ($XDG_DATA_HOME, depois $XDG_DATA_DIRS na ordem).
-#      É por isso que o `google-chrome.desktop` de `~/.local/share/applications`
-#      (existem 8 nomes duplicados nesta máquina) é o que vale, e o de
-#      `/usr/share/applications` nem é lido.
-#
-#   2) achar o ÍCONE    -> o laço EXTERNO é o NOME DO TEMA, e o diretório-base é o
-#      laço interno (`lib.rs`: `THEMES` é um mapa nome -> lista de bases, e a busca
-#      é `icon_themes.iter().find_map(search_theme)`). A lista de bases sai de
-#      `paths.rs::icon_theme_base_paths`, nesta ordem:
-#        $XDG_DATA_DIRS/{icons,pixmaps} · $XDG_DATA_HOME/{icons,pixmaps} · $HOME/.icons
-#      Ou seja: `/usr/share/icons` vem ANTES de `~/.local/share/icons`, e o
-#      `~/.icons` é o ÚLTIMO, não o primeiro. **O comentário de doc da própria
-#      função mente** ("Look in $HOME/.icons ... in that order") — o código faz o
-#      contrário. Seguir o comentário custaria a ordem inteira.
-#
-#   Uma sessão anterior misturou as duas e concluiu que "/usr/share vence o
-#   usuário" — errado; o que perdia era o `hicolor`, que é o FIM da fila de
-#   herança. Este script implementa as duas ordens separadamente, de propósito.
-#
-# ------------------------------------------------------------------------------
-# A CADEIA TEM DOIS NÍVEIS, NÃO INFINITOS — E ISSO JÁ MENTIU AQUI
-#
-#   A tentação é descer a herança recursivamente (avô, bisavô...), que é o que a
-#   especificação freedesktop manda. A crate NÃO faz isso: `search_theme_inherits`
-#   lê o `Inherits=` do tema selecionado e chama `search_inherited_theme` para cada
-#   pai — e essa função só varre os diretórios DAQUELE pai, sem tocar no `Inherits=`
-#   dele. Depois vêm quatro temas implícitos, sempre, nesta ordem (lib.rs 344-350):
+# Consequência boa: a idempotência é de graça — rodar duas vezes dá saída byte a
+# byte idêntica, porque não existe segunda escrita.
 #
 #       Cosmic  ->  hicolor  ->  gnome  ->  Yaru
 #
-#   MEDIDO, e a diferença não é acadêmica: `MeowSystem-Icons` herda de `Cosmic`, que
-#   herda de `Pop`. Uma versão anterior deste script descia até o `Pop` e dava
-#   `repoman` como PAREADO — o COSMIC nunca chega lá, e o ícone que ela veria é o
-#   genérico. Na direção contrária, o `gnome` (instalado em /usr/share/icons/gnome)
-#   ficava de fora, e um ícone que só existe lá seria acusado de "falta baixar".
-#
-#   O `hicolor` citado no meio de um `Inherits=` é DESCARTADO ali (parse.rs 86,
-#   "Filtering out 'hicolor' since we are going to fallback there anyway") e só entra
-#   na posição fixa acima. Como os ícones de Flatpak vivem em
-#   `~/.local/share/flatpak/exports/share/icons/hicolor`, quase todo app Flatpak
-#   resolve nesse degrau — é normal, não é defeito.
-#
-# ------------------------------------------------------------------------------
-# ARMADILHAS QUE ESTE SCRIPT SABE VER (e que um `ls` não veria)
-#
-#   - A lista branca de subdiretórios do tema NÃO é a chave `Directories=`.
-#     `parse.rs::get_all_directories` percorre as SEÇÕES `[...]` do index.theme e
-#     aceita cada uma que declare `Size=`, parando na primeira que não declare — a
-#     chave `Directories=` nunca é lida. As duas leituras divergem em 3 dos 22
-#     index.theme instalados aqui (04/08/2026): o `Pop` tem `[scalable/web]` fora
-#     do `Directories=`, e o `ubuntu-mono-*`, `[animations/22]`. Um SVG numa seção
-#     que não existe é invisível para o COSMIC, e o sintoma é "baixei e não
-#     apareceu": o `~/.local/share/icons/hicolor` desta máquina não tem seção
-#     `[scalable/apps]` e tem arquivo largado em `scalable/apps`. Quando um app cai
-#     em "sem ícone", o diagnóstico procura por isso e diz o nome do pecado.
-#
-#   - Depois de TODOS os temas ainda há o último recurso: `<base>/<nome>.<ext>`,
-#     arquivo solto na raiz de cada base (lib.rs 351-374). É assim que
-#     `/usr/share/pixmaps/xterm.xpm` funciona — mas as bases são todas, e nesta
-#     máquina isso inclui `~/.local/share/pixmaps` e a raiz de `/usr/share/icons`
-#     (que tem dois .png soltos). Tratar só o `/usr/share/pixmaps` deixaria de fora
-#     ícone que o COSMIC acha.
-#
-#   - Dentro de um tema, a EXTENSÃO é o laço externo (`try_fold_icon_path`: o
-#     `find_map` de fora é o das extensões): todo `.svg` (de qualquer tamanho) é
-#     tentado antes de qualquer `.png`. A ordem `svg,png,xpm` é a de `force_svg`, e
-#     é a medida com strace nesta máquina (docs/COSMIC-THEMING.md §2) — sem
-#     `force_svg` a crate prefere `.png`. Isso não muda o veredito (existe ou não
-#     existe), só qual arquivo aparece na coluna de caminho.
-#
 #   - `Size=`, `MinSize=`, `MaxSize=` e `Type=` só ORDENAM os subdiretórios
 #     (`closest_match_size`), nunca excluem nenhum. Não perca tempo afinando-os.
-#
-#   - `NoDisplay=true`, `Hidden=true` e `OnlyShowIn=`/`NotShowIn=` decidem o que
-#     ela VÊ no menu. São 121 dos 187 `.desktop` desta máquina: auditar os 187
-#     encheria a tela de trabalho que não existe (handlers de MIME, applets, o
-#     `.desktop` do próprio Flatpak). O padrão é auditar só os visíveis; `--ocultos`
-#     traz o resto para quem quiser conferir.
 set -uo pipefail
 
 # O `--json` tem de silenciar a cor ANTES de o comum.sh decidir se colore: ele
@@ -129,10 +22,9 @@ set -uo pipefail
 # shellcheck disable=SC2034  # quem lê $NO_COLOR é o lib/comum.sh, no `source` abaixo
 case " $* " in *" --json "*) NO_COLOR=1 ;; esac
 
-# `dirname` é comando EXTERNO, e usá-lo aqui fazia o script morrer com código 1 —
-# "divergente, consertei" — quando o problema era não conseguir nem se carregar.
-# `cd` e `pwd` são builtins: assim o bootstrap não depende de PATH nenhum, e a única
-# falha possível vira um 3 honesto.
+# `dirname` é comando EXTERNO, e usá-lo aqui fazia o script morrer com código 1
+# — "divergente, consertei" — quando o problema era não conseguir nem se
+# carregar.
 _meow_dir="${BASH_SOURCE[0]}"
 case "$_meow_dir" in */*) _meow_dir="${_meow_dir%/*}" ;; *) _meow_dir="." ;; esac
 RAIZ="$(cd "$_meow_dir/.." && pwd)"
@@ -190,12 +82,8 @@ DADOS_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 DADOS_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 AMBIENTE="${XDG_CURRENT_DESKTOP:-COSMIC}"
 
-# ==============================================================================
-# 1. QUAL É O TEMA SELECIONADO
-# ==============================================================================
 # O valor é RON: uma string entre aspas, sem newline no fim. `tr -d` em vez de
 # `sed` porque o arquivo pode legitimamente não ter quebra de linha nenhuma.
-# [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
 TK="$(meow_cosmic_dir)/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme"
 if [ -n "$TEMA_FORCADO" ]; then
   TEMA="$TEMA_FORCADO"; FONTE_TEMA="--tema (simulação)"
@@ -209,17 +97,10 @@ else
 fi
 [ -n "$TEMA" ] || { meow_erro "o tema de ícones selecionado está vazio em $TK"; exit "$MEOW_ERRO"; }
 
-# ==============================================================================
 # 2. AS BASES DE ÍCONE, NA ORDEM DO paths.rs::icon_theme_base_paths
-# ==============================================================================
-# cada $XDG_DATA_DIRS/{icons,pixmaps} -> $XDG_DATA_HOME/{icons,pixmaps} -> $HOME/.icons
 #
-# Os diretórios `pixmaps` entram na MESMA lista que os `icons`, e não como um
-# apêndice: para a crate eles são base de tema como qualquer outra (nenhum tem
-# index.theme, então não rendem tema nenhum — mas rendem o último recurso do
-# arquivo solto, lá na seção 6). E o `$HOME/.icons` é o ÚLTIMO da lista, ao
-# contrário do que a especificação freedesktop e o comentário da própria função
-# dizem.
+# cada $XDG_DATA_DIRS/{icons,pixmaps} -> $XDG_DATA_HOME/{icons,pixmaps} ->
+# $HOME/.icons
 BASES=()
 IFS=':' read -r -a _dd <<<"$DADOS_DIRS"
 for d in "${_dd[@]}"; do [ -n "$d" ] && BASES+=("$d/icons" "$d/pixmaps"); done

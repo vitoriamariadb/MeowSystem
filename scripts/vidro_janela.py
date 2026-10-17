@@ -68,10 +68,9 @@ import os
 import re
 import sys
 
-# O MESMO ENDEREÇO DO `meow_cosmic_dir` (lib/comum.sh) — 10/10/2026, P79. Era
-# `~/.config/cosmic` cravado, e o `vidro.sh`, que chama este arquivo, respeita o
-# `MEOW_COSMIC_DIR`: numa casa com o COSMIC noutro lugar, as duas
-# metades da mesma chave olhavam pastas diferentes (conferência da P77).
+# Era `~/.config/cosmic` cravado, e o `vidro.sh`, que chama este arquivo,
+# respeita o `MEOW_COSMIC_DIR`: numa casa com o COSMIC noutro lugar, as duas
+# metades da mesma chave olhavam pastas diferentes.
 COSMIC_DIR = os.environ.get("MEOW_COSMIC_DIR") or os.path.join(os.path.expanduser("~"), ".config", "cosmic")
 
 # Alpha de fábrica: opaco. É para onde `--restaurar` volta.

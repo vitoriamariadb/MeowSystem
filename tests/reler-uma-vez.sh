@@ -1,41 +1,11 @@
 #!/usr/bin/env bash
 # reler-uma-vez.sh — a instalação relê a tela uma vez só, no fim da passada.
-# Sprint P80, item 7, 10/10/2026.
-#
-# O QUE ABRIU ISTO (docs/sprints/2026-10-09-uso-real/04-integracao-onda-2.md, P79)
-#   O `icones_apps_arcticons.sh`, o `icones_apps_dracula.sh` e o
-#   `icones_resgatados.sh` chamam o `meow_tela_reler` (lib/comum.sh), cada um
-#   no fim do seu passo, e uma instalação que muda os três recicla o
-#   `cosmic-panel` três vezes seguidas. Um reciclo do painel foi o gatilho da
-#   faixa verde de 09/10 (Migração-OS/levas/leva-08-gpu-regressao.md). E
-#   nada registrava quem pediu cada reciclo.
-#
-# O QUE ESTE TESTE COBRA
-#   1. Dentro de uma passada (`MEOW_RELER_NO_FIM` no ambiente, que o
-#      install.sh arma), três chamadas ao `meow_tela_reler`, de três processos,
-#      não reciclam nada: marcam «precisa reler», com o nome de quem pediu.
-#   2. O `meow_tela_reler_no_fim` relê UMA vez, e o `painel.sh reciclar` recebe
-#      os três nomes; chamado de novo, não relê mais.
-#   3. Fora de uma passada, o `meow_tela_reler` relê na hora, como sempre: um
-#      «Usar este ícone» do painel roda o passo sozinho, e a dock tem de mudar.
-#   4. O install.sh arma a marca antes do laço das passagens e relê depois dele.
-#   4b. O `meow doctor --consertar` faz o mesmo em volta dos consertos dele
-#      (conferência da P80).
-#   4c. Só o `meow_tela_reler` chama o `painel.sh reciclar`: o
-#      `construir_icones.sh` e o `logo.sh` reciclavam por fora (conferência da
-#      P80, medida com um contador numa instalação inteira).
-#   5. O `painel.sh reciclar` registra no meow.log quem o chamou, até quando
-#      não há painel a reciclar.
-#   6. O `icones_apps_arcticons.sh` de verdade, com a marca armada, sai 1
-#      (mudou), e não com o código do reler (conferência da P80).
 #
 # A TELA É DE BRINQUEDO: o `getent` falso diz que a casa de brinquedo é a da
-#   conta (a cerca do `meow_tela_reler`), o `pgrep` falso diz que há painel, e
-#   o `painel.sh` é um falso que só anota — na raiz de brinquedo. O item 5 roda
-#   o `painel.sh` de verdade numa casa onde o `pgrep` falso não acha painel.
+# conta (a cerca do `meow_tela_reler`), o `pgrep` falso diz que há painel, e o
+# `painel.sh` é um falso que só anota — na raiz de brinquedo.
 #
 # PORTÁTIL: bash, e python3 no caso 6 (o passo de traço de verdade lê o pack).
-#   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ACHADOS=0
@@ -106,9 +76,6 @@ else
 fi
 
 printf '\n--- 4b. o conserto do doctor também relê uma vez, depois do laço dele ---\n'
-#   Conferência da P80: o `meow doctor --consertar` (o auto-reparo das 5h e o
-#   «Consertar» do painel) chama o `fix_arcticons`, o `fix_resgatados` e o
-#   `fix_dracula` no mesmo laço — os mesmos três reciclos da instalação.
 laco="$(grep -n 'meow_passo "Consertando o que falhou"' "$RAIZ/bin/meow" | head -1 | cut -d: -f1)"
 fixes="$(grep -n '"fix_\$nome"' "$RAIZ/bin/meow" | head -1 | cut -d: -f1)"
 arma="$(grep -nE '^[^#]*export MEOW_RELER_NO_FIM' "$RAIZ/bin/meow" | head -1 | cut -d: -f1)"
@@ -122,11 +89,7 @@ else
 fi
 
 printf '\n--- 4c. nenhum passo recicla o painel por fora da porta única ---\n'
-#   Conferência da P80, medido com um contador numa instalação inteira numa
-#   casa de brinquedo (sessão de mentira): depois dos três passos de ícone, o
-#   painel ainda reciclava três vezes — o `construir_icones.sh` e o `logo.sh`
-#   chamavam o `painel.sh reciclar` direto, sem passar pelo `meow_tela_reler`,
-#   e a marca da passada não os alcançava. Só a porta (lib/comum.sh) o chama.
+# Só a porta (lib/comum.sh) o chama.
 achados="$(grep -rnE '^[^#]*painel\.sh"?[[:space:]]+reciclar' "$RAIZ/scripts" "$RAIZ/lib" "$RAIZ/install.sh" \
            | grep -v '^[^:]*/lib/comum\.sh:')"
 [ -z "$achados" ] && ok "só o meow_tela_reler chama o painel.sh reciclar" \
@@ -144,11 +107,7 @@ else
 fi
 
 printf '\n--- 6. o passo de ícone que adia o reler continua dizendo «mudou» ---\n'
-#   Conferência da P80: o `icones_apps_arcticons.sh` roda sob `set -e`, e o
-#   `meow_tela_reler` solto no fim do `_aplicar` derrubava o script com o código
-#   do reler — 4 dentro da passada, que o `concluir` do install.sh conta como
-#   PULADO, e não como feito (e 3 fora da sessão, desde a P79). O script de
-#   verdade, numa casa de brinquedo, com a marca da passada armada.
+# O script de verdade, numa casa de brinquedo, com a marca da passada armada.
 CASA6="$T/casa6"; mkdir -p "$CASA6"; : > "$T/marca6"
 for c in sudo pkexec su; do printf '#!/bin/sh\nexit 1\n' > "$FALSO/$c"; chmod 755 "$FALSO/$c"; done
 env -i PATH="$FALSO:$PATH" HOME="$CASA6" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_RELER_NO_FIM="$T/marca6" \

@@ -2,256 +2,20 @@
 # terminal.sh — a paleta ANSI do `cosmic-term`, que era a única peça da tela
 # dela que continuava de fábrica.
 #
-# ELA TEM CATPPUCCIN EM TUDO, MENOS ONDE DIGITA
-#   VS Code, Obsidian, btop, bat, qBittorrent e Spotify já estão vestidos. O
-#   terminal — a janela onde ela passa o dia — não. Medido em 25/08/2026:
-#   `~/.config/cosmic/com.system76.CosmicTerm/v1/` tinha OITO arquivos
-#   (`focus_follow_mouse`, `font_name`, `font_size`,
-#   `font_size_zoom_step_mul_100`, `opacity`, `shortcuts_custom`,
-#   `tab_new_inherit_working_directory`, `use_bright_bold`) e NENHUM deles é
-#   cor. Sem `color_schemes_dark`, sem `color_schemes_light`: o vermelho do
-#   `ls` era o `#F16161` embutido no binário, não o `#f38ba8` da paleta.
+# VS Code, Obsidian, btop, bat, qBittorrent e Spotify já estão vestidos.
 #
-# ===========================================================================
-# A ARMADILHA QUE DECIDE O DESENHO: O ARQUIVO DE IMPORTAÇÃO NÃO É O ARQUIVO
-# DE CONFIGURAÇÃO. SÃO DOIS FORMATOS DIFERENTES.
-# ===========================================================================
-#   O README do port oficial (`catppuccin/cosmic-desktop`, pasta
-#   `assets/temas/cosmic-term/`) manda importar pela GUI — View → Color schemes… →
-#   Import — e os quatro `.ron` de lá são UM `ColorScheme` solto:
+# A ARMADILHA QUE DECIDE O DESENHO: O ARQUIVO DE IMPORTAÇÃO NÃO É O ARQUIVO DE
+# CONFIGURAÇÃO.
+#
+# O README do port oficial (`catppuccin/cosmic-desktop`, pasta
+# `assets/temas/cosmic-term/`) manda importar pela GUI — View → Color schemes… →
+# Import — e os quatro `.ron` de lá são UM `ColorScheme` solto:
 #
 #       (
 #           name: "Catppuccin Mocha",
 #           foreground: "#cdd6f4",
-#           ...
+#
 #       )
-#
-#   Copiar esse arquivo por cima de `color_schemes_dark` NÃO funciona, e o
-#   modo de falha é silencioso. O `Config` do cosmic-term 1.6.0 declara
-#   (`src/config.rs`, commit `032a107`, o mesmo que gerou o binário desta
-#   máquina — conferido no `apt-get source --print-uris`):
-#
-#       pub color_schemes_dark:  BTreeMap<ColorSchemeId, ColorScheme>,
-#       pub color_schemes_light: BTreeMap<ColorSchemeId, ColorScheme>,
-#
-#   com `#[serde(transparent)] pub struct ColorSchemeId(pub u64)`. Ou seja: o
-#   arquivo no disco é um MAPA de inteiro para struct —
-#
-#       {
-#           0: (
-#               name: "Catppuccin Mocha",
-#               ...
-#           ),
-#       }
-#
-#   — e o `.ron` do port é só o MIOLO de uma entrada desse mapa. O que a GUI
-#   faz no Import é exatamente isto: `ron::de::from_reader::<ColorScheme>` do
-#   arquivo escolhido e `insert(id, color_scheme)` no mapa
-#   (`src/main.rs`, `Message::ColorSchemeImportResult`).
-#
-#   Por isso este script NÃO baixa o port: ele reproduz o port a partir da
-#   PALETA DO PACK ATIVO (`meow_paleta`), que é a fonte de cor deste projeto, e
-#   faz o `insert` que a GUI faria.
-#
-# O PORT OFICIAL SAI INTEIRO DA NOSSA PALETA — E ISSO FOI CONFERIDO, NÃO SUPOSTO
-#   Os quatro arquivos de `assets/temas/cosmic-term/` foram baixados em 25/08/2026 e
-#   comparados campo a campo com o que a regra abaixo deriva de
-#   `packs/catppuccin/paleta.json`. Os QUATRO bateram: mocha, latte, frappé e
-#   macchiato, todos os 29 hex de cada um. A regra é:
-#
-#       foreground = text          cursor            = rosewater
-#       bright_foreground = text   dim_foreground    = overlay0
-#       normal  = surface1, red, green, yellow, blue, PINK, TEAL, subtext1
-#       bright  = surface2, (as mesmas seis), subtext0
-#       dim     = idêntico a normal
-#
-#   Duas trocas nessa linha merecem a maiúscula, porque são o oposto do que se
-#   chutaria: o MAGENTA do ANSI é o `pink` do Catppuccin (não o `mauve`), e o
-#   CYAN é o `teal` (não o `sky`).
-#
-#   E no LATTE o par claro/escuro se inverte, como manda um tema claro:
-#   `normal.black` é `subtext1` (não `surface1`), `normal.white` é `surface2`,
-#   `bright.black` é `subtext0` e `bright.white` é `surface1`.
-#
-# O CAMPO `background` ESTÁ AUSENTE DE PROPÓSITO, E ISSO PROTEGE O `opacity: 96`
-#   Nenhum dos quatro arquivos do port oficial tem `background:` — `grep -c
-#   background` devolveu 0 nos quatro. Não é esquecimento. O `ColorScheme` tem
-#   o campo como `Option<HexColor>` com `skip_serializing_if`, e o
-#   `terminal_theme.rs` do upstream comenta a linha equivalente no tema
-#   embutido com todas as letras:
-#
-#       // Background comes from theme settings:
-#       // colors[NamedColor::Background] = colors[NamedColor::Black];
-#
-#   e o `terminal.rs` trata o `None` como "Allow using an unset background".
-#   Traduzindo: sem `background`, o fundo continua vindo do tema COSMIC dela e
-#   o `opacity: 96` continua valendo. Gravar `background: "#1e1e2e"` chumbaria
-#   um fundo opaco por cima da transparência que ela escolheu. Este script
-#   nunca escreve esse campo.
-#
-# ===========================================================================
-# UM ESQUEMA INSTALADO E NÃO SELECIONADO NÃO MUDA UM PIXEL
-# ===========================================================================
-#   Este é o modo de falha mais provável da sprint, e o nome da chave não é
-#   `color_scheme_*` coisa nenhuma. É:
-#
-#       syntax_theme_dark    (String)   padrão de fábrica: "COSMIC Dark"
-#       syntax_theme_light   (String)   padrão de fábrica: "COSMIC Light"
-#
-#   Achados no binário (`strings /usr/bin/cosmic-term | grep syntax_theme`) e
-#   confirmados na lista de campos do `Config`. A seleção é por NOME, casada
-#   contra o `name` de dentro do `ColorScheme` — e o `main.rs` tem um
-#   `.or_else()` que cai calado no tema embutido quando o nome não existe:
-#
-#       self.themes.get(&self.config.syntax_theme(kind, profile))
-#           .or_else(|| self.themes.get(&(COSMIC_THEME_DARK.to_string(), Dark)))
-#
-#   Ou seja: nome errado por um acento = tela idêntica à de antes, sem erro,
-#   sem log, sem nada. Por isso o nome do esquema e o valor de `syntax_theme_*`
-#   saem da MESMA função aqui dentro (`_nome_esquema`), e não de duas listas.
-#
-#   E A SELEÇÃO TEM DONO COMPARTILHADO — ver `_slot_por`. Esta chave é o que o
-#   seletor de Ajustes → Cores do cosmic-term escreve, então ela só é escrita
-#   quando está vazia, de fábrica ou já nossa. A lição é de 17/08/2026, quando
-#   o `vidro.sh` perdeu a chave `opacity` por reimpor todo dia a escolha da
-#   GUI dela.
-#
-#   O acento importa: o flavor `frappe` da paleta vira `"Catppuccin Frappé"` no
-#   nome, com É, porque é assim que o port oficial escreve.
-#
-# POR QUE OS DOIS SLOTS, E NÃO SÓ O ESCURO
-#   O `app_theme` do cosmic-term nasce `System`, e o `color_scheme_kind()`
-#   escolhe o mapa `dark` ou `light` conforme o tema do sistema. Com
-#   `MODO="auto"` no meow.conf — ou no dia em que ela clicar em claro — só o
-#   slot escuro vestido devolveria o terminal ao "COSMIC Light" de fábrica no
-#   meio do dia. Escrever os dois custa quatro arquivos e fecha o buraco.
-#
-#   O flavor claro NÃO é escolha: a paleta DO PACK ATIVO é quem grava
-#   `claros` — no Catppuccin é `["latte"]`, um flavor claro só; no Dracula é
-#   `["alucard"]`. O
-#   slot claro é sempre o Latte, e o slot escuro é o `FLAVOR` do meow.conf
-#   (ou mocha, se `FLAVOR` for latte).
-#
-# ===========================================================================
-# O ACCENT: A ÚNICA COISA AQUI QUE É GOSTO, E ONDE ELA DESLIGA
-# ===========================================================================
-#   O port oficial não usa `mauve` em lugar nenhum — o `#CBA6F7` dela não
-#   aparece em nenhum dos 29 hex do `catppuccin-mocha.ron`. O magenta do ANSI
-#   é `pink` e o cursor é `rosewater`.
-#
-#   Como `ACCENT` é chave do meow.conf e o mauve é a assinatura dela na
-#   máquina inteira, o accent entra no CURSOR — o único campo que o port
-#   escolhe por conta própria e o único ponto "aceso" permanente da janela.
-#   Com `ACCENT="mauve"` e `FLAVOR="mocha"`, o cursor vira `#CBA6F7`.
-#
-#   Isto é desvio do upstream, e portanto tem botão:
-#
-#       TERMINAL_CURSOR="port"   -> cursor = rosewater, idêntico ao oficial
-#       TERMINAL_CURSOR="accent" -> cursor = ACCENT     (padrão)
-#
-# ===========================================================================
-# TRÊS MEDIÇÕES QUE ECONOMIZAM UM DIA CADA
-# ===========================================================================
-#   1. VALE NA HORA, SEM REINICIAR NADA. Lendo
-#      `/proc/<pid do cosmic-term>/fdinfo/*` em 25/08/2026, ele mantém
-#      EXATAMENTE UM watch de inotify, e o inode resolve para
-#      `~/.config/cosmic/com.system76.CosmicTerm/v1`. O `Message::Config` do
-#      `main.rs` chama `update_config()` -> `update_color_schemes()` -> aplica
-#      em todas as abas abertas. Não é preciso fechar janela, nem reiniciar
-#      app, nem tocar no `cosmic-panel` (que aliás é da Aurora).
-#
-#   2. O `\n` FINAL É UMA ARMADILHA DE IDEMPOTÊNCIA, E ELA FOI PROVADA.
-#      O `ron::ser::to_string_pretty` fecha o mapa com `}\n` — o
-#      `shortcuts_custom` dela termina em `7d 0a`, conferido no `xxd`. Só que
-#      o `meow_escrever` compara com `[ "$conteudo" = "$(cat "$destino")" ]`,
-#      e `$( )` COME o `\n` final. Medido:
-#
-#          conteúdo COM \n final  -> rc=1, rc=1, rc=1 ... para sempre
-#          conteúdo SEM \n final  -> rc=0 (e não reescreve, nem contra um
-#                                    arquivo que TEM o \n)
-#
-#      Um módulo que devolve 1 toda vez faz o `meow-doctor.timer` das 5h
-#      pendurar "o auto-reparo corrigiu" na TV dela todo dia sem ter
-#      corrigido nada. Por isso tudo aqui é gerado SEM `\n` final. O RON
-#      ignora espaço no fim, e o cosmic-term repõe o dele quando reescrever.
-#
-#   2b. O HEX É MAIÚSCULO, E ISSO NÃO É ESTILO — É A SEGUNDA ARMADILHA DE
-#      IDEMPOTÊNCIA, E A MAIS DIFÍCIL DE ADIVINHAR.
-#      Para provar que este arquivo é aceito eu compilei um validador de 80
-#      linhas com os structs COPIADOS de `src/config.rs` e as mesmas versões
-#      de `ron` (0.12.2) e `hex_color` (3.0.0) do `Cargo.lock` do commit. Ele
-#      desserializa o nosso arquivo e reserializa. O resultado:
-#
-#          PARSE OK: 1 esquema(s)
-#          id 0 = "Catppuccin Mocha"  cursor=#CBA6F7  background=None
-#
-#      e a reserialização voltou com TODOS os hex em MAIÚSCULA — o `Serialize`
-#      do `hex_color` imprime `#CDD6F4`, nunca `#cdd6f4`. O port oficial do
-#      Catppuccin está em minúscula, e o `HexColor` aceita as duas na leitura,
-#      então nada quebra.
-#
-#      O que quebraria é pior que quebrar: a GUI reescreve o mapa INTEIRO
-#      (`save_color_schemes` -> `config_handler.set("color_schemes_dark", ...)`)
-#      a cada importação, renomeação ou exclusão de qualquer esquema. Bastava
-#      ela mexer numa dessas para o NOSSO trecho voltar em maiúscula, e a
-#      passagem seguinte deste script o reescreveria em minúscula: dois
-#      programas empurrando o mesmo arquivo em direções opostas, para sempre,
-#      com o doctor gritando "consertado" toda madrugada. Escrevendo em
-#      maiúscula, o que a GUI grava é BYTE A BYTE o que gravamos, e ninguém
-#      empurra nada.
-#
-#      A paleta já guarda os hex em maiúscula; quem os abaixava era o python
-#      daqui. Agora ele os sobe.
-#
-#   3. O FORMATO EXATO SAIU DE UM ARQUIVO QUE O PRÓPRIO APP ESCREVEU.
-#      O `cosmic-config` grava com `ron::ser::to_string_pretty(&value,
-#      PrettyConfig::new())` (`cosmic-config/src/lib.rs:459`), e o
-#      `shortcuts_custom` dela é a amostra: indentação de 4 espaços por nível,
-#      `\n` (nunca `\r\n`), vírgula depois do ÚLTIMO membro, e `(` sem nome de
-#      struct na frente. É esse layout que `_entrada_ron` reproduz.
-#
-# ===========================================================================
-# O QUE ESTE SCRIPT NÃO TOCA, NUNCA
-# ===========================================================================
-#   `font_name`, `font_size`, `font_size_zoom_step_mul_100`, `opacity`,
-#   `use_bright_bold`, `focus_follow_mouse`, `shortcuts_custom` e
-#   `tab_new_inherit_working_directory` são DELA. O `opacity: 96` está no
-#   ponto e a fonte é a JetBrainsMono Nerd Font Mono que o
-#   `instalar_fontes.sh` instalou. Este módulo escreve QUATRO arquivos e mais
-#   nenhum:
-#
-#       color_schemes_dark   color_schemes_light
-#       syntax_theme_dark    syntax_theme_light
-#
-#   E dentro dos dois mapas ele mexe em UMA entrada — a que tem o nome dele.
-#   Qualquer outro esquema que ela tenha importado pela GUI atravessa este
-#   script byte a byte, verbatim, inclusive a formatação. Se o mapa não puder
-#   ser lido, o script RECUSA escrever e sai 2: melhor um erro alto que um
-#   arquivo dela reescrito por um parser que não entendeu o que leu.
-#
-# DESLIGAR TEM DE DESLIGAR
-#   `remover` (ou `TERMINAL_ESQUEMA="nao"` no meow.conf) tira a nossa entrada
-#   dos dois mapas e devolve a seleção ao padrão de fábrica. Se o mapa ficar
-#   vazio, o ARQUIVO é apagado — que é o mesmo que o `BTreeMap::new()` do
-#   `Default`, e é o estado em que a máquina dela estava antes desta sprint.
-#   O `syntax_theme_*` só é apagado se ainda estiver apontando para um nome
-#   NOSSO; se ela trocou o esquema pela GUI depois, a escolha dela fica.
-#
-# USO
-#   scripts/terminal.sh aplicar     instala o esquema e o seleciona (idempotente)
-#   scripts/terminal.sh conferir    não escreve nada; 0 igual, 1 divergente,
-#                                   3 sem cosmic-term / desligado no conf
-#   scripts/terminal.sh remover     tira o nosso e volta ao de fábrica
-#
-#   Aliases `--aplicar`, `--conferir` e `--remover` existem para o `bin/meow`
-#   chamar com a mesma cara dos módulos vizinhos.
-#
-#   FLAVOR=""                 slot escuro; vazio, o flavor padrão do pack no ar
-#                             (`meow_flavor`); sendo o claro, o 1º escuro da paleta
-#   ACCENT="mauve"            cor do cursor, quando TERMINAL_CURSOR="accent"
-#   TERMINAL_ESQUEMA="sim"    "nao" desinstala
-#   TERMINAL_CURSOR="accent"  "port" devolve o rosewater do port oficial
-#   TERMINAL_DIR=...          override do diretório de config (existe para teste)
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -259,14 +23,15 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 
 DIR="${TERMINAL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicTerm/$(meow_cosmic_v com.system76.CosmicTerm)}"
-# A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
-# 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
-# Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
+# A paleta vem da porta única (lib/comum.sh). Era
+# `assets/paleta/catppuccin.json` cravado — e um nome cravado aqui faz este
+# script continuar lendo o Catppuccin enquanto o resto do projeto já mudou de
+# paleta, sem dar erro.
 PALETA="$(meow_paleta)"
 
 ESQUEMA="${TERMINAL_ESQUEMA:-sim}"
 # Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+# Era `${FLAVOR:-mocha}`, o padrão de um pack só.
 _FLAVOR="$(meow_flavor)"
 _ACCENT="${ACCENT:-mauve}"
 _CURSOR="${TERMINAL_CURSOR:-accent}"
@@ -290,25 +55,11 @@ esac
 # porque o `source` do comum.sh já passou (ver o cabeçalho de MEOW_SECO lá).
 # shellcheck disable=SC2034  # quem lê MEOW_SECO é o meow_seco() do comum.sh
 [ "$ACAO" = "conferir" ] && MEOW_SECO=1
-# `MEOW_DRY_RUN=1 terminal.sh` (a forma que os `chk_` vizinhos usam) também
-# tem de virar conferência, e nunca uma remoção de verdade.
 meow_seco && [ "$ACAO" = "aplicar" ] && ACAO="conferir"
 
 # --- os nomes, e por que eles são a chave de tudo ---------------------------
 # O nome é a IDENTIDADE da nossa entrada dentro do mapa (é por ele que o
-# `remover` acha o que apagar) E é o valor que vai para `syntax_theme_*`. Uma
-# função só para os dois usos: duas listas discordariam no dia em que alguém
-# corrigisse o acento de "Frappé" em uma delas.
-#
-# A LISTA SAIU DAQUI E FOI PARA A PALETA — 16/09/2026
-#   Era um `case` com quatro braços e uma string com os mesmos quatro nomes.
-#   Custou exatamente o que uma lista chumbada custa: entrando o `dracula` como
-#   quinta variante (15/09), o `_pronto` recusava o flavor e o instalador dizia
-#   `FLAVOR="dracula" não é um flavor do Catppuccin` — numa máquina onde TODO o
-#   resto do tema já estava em dracula, porque todo o resto lê a paleta.
-#   Agora estes nomes também leem: a paleta do pack ativo tem `nomes` ao lado
-#   de `flavors`, e a próxima variante entra escrevendo um par lá, em um
-#   arquivo só.
+# `remover` acha o que apagar) E é o valor que vai para `syntax_theme_*`.
 NOMES_ESQUEMA="$(python3 -I -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -326,29 +77,12 @@ _nome_esquema() {
   printf '%s' "$linha"
 }
 
-# Tudo o que este módulo pode ter escrito algum dia, em qualquer flavor. É o
-# que o `remover` procura: se ela trocou o FLAVOR entre um `aplicar` e o
-# `remover`, apagar só o flavor de agora deixaria o antigo para trás. Sai da
+# Tudo o que este módulo pode ter escrito algum dia, em qualquer flavor. Sai da
 # MESMA paleta pelo mesmo motivo: um nome que só o `remover` conhece é lixo que
 # ninguém apaga.
 #
-# E EM QUALQUER PACK, NÃO SÓ NO DE AGORA — 24/09/2026, P51 (achado 40)
-#   A frase de cima dizia "em qualquer flavor" e a conta lia só a paleta do
-#   pack ATIVO. Trocar de pack é o caso que ela não via: o nome que o pack
-#   anterior escreveu no `syntax_theme_*` deixava de ser "nosso" no instante da
-#   troca, e o `_slot_por` o tratava como escolha dela — com o Dracula no ar, o
-#   esquema Dracula ficava instalado e NÃO selecionado, e o instalador mandava
-#   escolher à mão em Ajustes › Cores. MEDIDO nesta máquina antes de mexer:
-#   `syntax_theme_dark` dizia «Catppuccin Mocha» e o `light` «Catppuccin
-#   Latte» — os nomes exatos que a paleta do pack Catppuccin gera —, os dois
-#   arquivos com mtime de 22/09 15:38:01.206 e .208, 1,5 ms de distância, que
-#   nenhum clique da GUI produz (ela escreve um seletor por vez); e o próprio
-#   MeowSystem, com o Catppuccin no ar, o tratou como seu (o backup
-#   `2026-09-24T08-44-09-sistema` é o `_gravar` dele sobre a seleção). Era do
-#   MeowSystem, então a troca de pack o troca.
-#   Os nomes saem de TODO pack do disco (as mesmas raízes do `pack.py`), e os
-#   da paleta de agora vão junto — uma `MEOW_PALETA` escolhida à mão não mora
-#   em pack nenhum. Um nome que pack nenhum gera continua sendo dela.
+# A frase de cima dizia "em qualquer flavor" e a conta lia só a paleta do pack
+# ATIVO.
 NOSSOS_NOMES="$(python3 -I -c '
 import json, os, sys
 sys.path.insert(0, sys.argv[1])
@@ -381,16 +115,11 @@ print(",".join(nomes))
 # O slot escuro segue o FLAVOR; o claro sai da PALETA, não de um nome cravado.
 #
 # ERA `FLAVOR_CLARO="latte"`, E ISSO QUEBRAVA TODO PACK QUE NÃO FOSSE O
-# CATPPUCCIN [19/09/2026]
-#   O comentário anterior dizia, com todas as letras, "o claro é sempre o Latte,
-#   porque o Catppuccin tem um flavor claro só". Era verdade enquanto o
-#   Catppuccin ERA o projeto. Com o formato de pack, o claro é o que o pack
-#   declarar: o `dracula` declara `alucard`. Pedir `latte` a um pack que não o
-#   tem fazia o módulo morrer — e foi assim que este defeito apareceu, como um
-#   `erro terminal` sem mensagem no `meow doctor`.
+# CATPPUCCIN O comentário anterior dizia, com todas as letras, "o claro é sempre
+# o Latte, porque o Catppuccin tem um flavor claro só".
 #
-#   A mesma lição que o bloco acima já contava sobre `NOMES_ESQUEMA`: uma lista
-#   de nomes chumbada custa exatamente o dia em que entra o quinto nome.
+# A mesma lição que o bloco acima já contava sobre `NOMES_ESQUEMA`: uma lista de
+# nomes chumbada custa exatamente o dia em que entra o quinto nome.
 _FLAVOR_CLARO_PALETA="$(python3 -I -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -421,14 +150,6 @@ esac
 #   gerar <flavor> <nome> <cursor_hex|-->   imprime a entrada pronta
 #   por   <arquivo> <nome>                  põe/substitui a nossa (ENTRADA=...)
 #   tirar <arquivo>                         tira as nossas (NOSSOS=...)
-#
-# `por` e `tirar` imprimem o CONTEÚDO desejado do arquivo inteiro, ou a
-# palavra `__VAZIO__` quando o mapa fica sem nenhuma entrada — e aí o
-# chamador apaga o arquivo, que é o padrão de fábrica (`BTreeMap::new()`).
-#
-# O parser guarda o texto CRU de cada entrada que não é nossa e o devolve sem
-# tocar: ele precisa saber onde uma entrada começa e termina, não o que tem
-# dentro. Qualquer coisa que ele não entenda vira erro e ninguém escreve nada.
 _py() {
   PALETA="$PALETA" python3 -I - "$@" <<'PY'
 import json, os, re, sys
@@ -675,18 +396,10 @@ _pronto() {
 }
 
 # --- escrever um arquivo do cosmic-config -----------------------------------
-# BACKUP ANTES DE TODA SOBRESCRITA. O `meow_backup_sistema` guarda em
+# O `meow_backup_sistema` guarda em
 # `~/.local/state/meowsystem/backups/<carimbo>-sistema/<caminho absoluto>`, uma
 # vez por passagem (o `MEOW_CARIMBO` é exportado pelo comum.sh), e não faz nada
-# quando o arquivo ainda não existe. Sem o backup, NÃO escrevemos: um mapa de
-# esquemas importados por ela vale mais que esta sprint.
-#
-# O BACKUP SÓ QUANDO HÁ O QUE SOBRESCREVER [09/10/2026, QA da P74]
-#   O backup vinha antes da comparação do `meow_escrever`: a 2ª passada, com
-#   os dois mapas já iguais, deixava uma pasta `<carimbo>-sistema` nova a cada
-#   rodada (medido numa casa temporária: 18 entradas novas e rc 0), e o
-#   `meow-doctor.timer` a repetiria todo dia. A mesma régua do `meow_escrever`
-#   (conteúdo igual = nada a fazer) decide aqui se há o que guardar.
+# quando o arquivo ainda não existe.
 _gravar() {
   local arq="$1" conteudo="$2"
   if [ -f "$arq" ] && ! meow_seco && [ "$conteudo" != "$(cat "$arq" 2>/dev/null)" ]; then
@@ -719,14 +432,9 @@ _slot_por() {
   local mapa="$DIR/color_schemes_$tipo" sel="$DIR/syntax_theme_$tipo"
   local nome entrada desejado hex rc mudou=0
 
-  # ERRO MUDO É PIOR QUE ERRO [19/09/2026]
-  #   Esta linha devolvia 2 sem imprimir uma palavra, e o `meow doctor`
-  #   mostrava `erro terminal` com a mensagem VAZIA — não havia como saber o
-  #   que faltava sem rodar o script com `bash -x`.
-  #   O caso real que expôs isso: um pack sem flavor claro. O módulo pede o
-  #   esquema claro, `_nome_esquema` não acha o nome, e tudo para. Agora ele
-  #   diz QUAL flavor faltou e ONDE se declara — que é a diferença entre um
-  #   minuto e uma hora para quem estiver escrevendo um pack.
+  # Esta linha devolvia 2 sem imprimir uma palavra, e o `meow doctor`
+  # mostrava `erro terminal` com a mensagem VAZIA — não havia como saber o
+  # que faltava sem rodar o script com `bash -x`.
   if ! nome="$(_nome_esquema "$flavor")"; then
     meow_erro "a paleta não nomeia o flavor '$flavor' (esquema $tipo do terminal)"
     meow_info "  quem declara é a chave \"nomes\" da paleta: $(basename "$PALETA")"
@@ -753,20 +461,8 @@ _slot_por() {
     2) meow_erro "não consegui escrever $mapa"; return "$MEOW_ERRO" ;;
   esac
 
-  # A SELEÇÃO. Sem esta linha o esquema fica instalado e INVISÍVEL — é o modo
-  # de falha mais provável desta sprint.
-  #
-  # MAS A ESCOLHA DELA VENCE, E ISSO É A LIÇÃO DA OPACIDADE DO PAINEL (17/08).
-  #   O `syntax_theme_*` é exatamente o que o seletor de Ajustes → Cores do
-  #   cosmic-term escreve. Reescrevê-lo em toda passagem faria o
-  #   `meow-doctor.timer` desfazer, todo dia às 5h e sem dizer por quê, o
-  #   esquema que ela tivesse escolhido na GUI — que foi o defeito que custou
-  #   ao `vidro.sh` a chave `opacity` inteira.
-  #
-  #   Então só escrevemos quando o campo está VAZIO, no padrão de fábrica, ou
-  #   já apontando para um nome nosso. Se ela escolheu outra coisa, avisamos
-  #   alto (um esquema instalado e não selecionado é invisível, e o silêncio
-  #   aqui seria pior que a divergência) e não mexemos.
+  # O `syntax_theme_*` é exatamente o que o seletor de Ajustes → Cores do
+  # cosmic-term escreve.
   local atual=""
   if [ -f "$sel" ]; then
     atual="$(cat "$sel" 2>/dev/null)"
@@ -815,7 +511,7 @@ _slot_tirar() {
   fi
 
   # A seleção só volta ao de fábrica se ainda estiver apontando para um nome
-  # NOSSO. Se ela escolheu outro esquema pela GUI depois, a escolha é dela.
+  # NOSSO.
   if [ -f "$sel" ]; then
     atual="$(cat "$sel" 2>/dev/null)"
     atual="${atual#\"}"; atual="${atual%\"}"

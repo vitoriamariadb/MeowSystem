@@ -2,44 +2,13 @@
 # Todo desenho de pack que veste um aplicativo DESTA máquina tem cartão na
 # oficina daquele aplicativo. O teto é zero.
 #
-# A QUEIXA QUE ABRIU ISTO, 21/09/2026
-#   *"você viu que os ícones do Dracula, todos os SVGs meus, não aparecem lá,
-#   né?"* Os 18 desenhos de `packs/dracula/icones/apps/` estavam INSTALADOS —
-#   18 de 18 conferidos contra `~/.local/share/icons/MeowSystem-Icons/` — e
-#   invisíveis na tela onde se escolhe o ícone. A oficina do Warehouse, que tem
-#   desenho feito à mão no pack, oferecia converter e gerar em traço e dizia
-#   "já tem desenho convertido do projeto". Ela não sabia que o pack existia.
+# A oficina do Warehouse, que tem desenho feito à mão no pack, oferecia
+# converter e gerar em traço e dizia "já tem desenho convertido do projeto".
 #
-#   Medido de novo em 23/09/2026, antes do conserto, pela MESMA porta que este
-#   teste usa: 18 desenhos casam um `Icon=` desta máquina (17 pelo nome do
-#   arquivo, e o `guvcview.svg` pelo `apps.map`, que o põe na Câmera), e os 18
-#   saíam sem cartão.
-#
-# A PERGUNTA É FEITA À OFICINA, NÃO A UMA CÓPIA DELA
-#   O teste chama o `_api_app_desenho` com `acao: variacoes` — a mesma rota que
-#   a página chama ao abrir a oficina — e lê a resposta. Uma função paralela
-#   que "calculasse o que a oficina deveria mostrar" provaria que a função
-#   paralela funciona, e o defeito de 21/09 era justamente a tela não saber.
-#
-#   O conversor é trocado por um que não converte: o cartão do pack não
-#   depende de vetorizar nada, e sem a troca o teste custaria seis conversões
-#   por aplicativo para conferir um campo que não passa por elas.
-#
-# O QUE CONTA COMO "VESTE UM APLICATIVO DESTA MÁQUINA"
-#   Um SVG de `packs/<id>/icones/apps/` casa quando o nome dele, ou um nome que
-#   o `apps.map` do pack aponta para ele, é o `Icon=` (ou o id) de algum
-#   `.desktop` da máquina — inclusive os ocultos: `NoDisplay=true` tira o
-#   programa do lançador, não tira o ícone do tema, e a rota os atende igual.
-#   Numa máquina sem nenhum desses programas o teste confere zero e diz isso.
-#
-# POR QUE É DA LISTA `MAQUINA` DO `todos.sh`
-#   A resposta depende dos programas instalados aqui. Numa máquina de CI ele
-#   passaria conferindo nada — e um verde que não mediu nada é pior que um
-#   teste que só roda onde tem o que medir.
-#
-# A SEGUNDA PERGUNTA, DESDE A REVISÃO DE 23/09/2026: A OFICINA DE AUTORAL LÊ O
-# QUE SALVA. Ver o bloco dela, no fim. Ela não depende da máquina — o pack é
-# descartável —, e mora aqui porque a rota que ela interroga é a da mesma aba.
+# Medido de novo, antes do conserto, pela MESMA porta que este teste usa: 18
+# desenhos casam um `Icon=` desta máquina (17 pelo nome do arquivo, e o
+# `guvcview.svg` pelo `apps.map`, que o põe na Câmera), e os 18 saíam sem
+# cartão.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 

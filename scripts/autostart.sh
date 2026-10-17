@@ -1,60 +1,7 @@
 #!/usr/bin/env bash
-# autostart.sh — impede que um app suba sozinho no login, SEM escrever uma
-# linha em `~/.config/autostart/`.
+# autostart.sh — impede que um app suba sozinho no login, SEM escrever uma linha
+# em `~/.config/autostart/`.
 #
-# ============================================================================
-# LEIA ESTAS SEIS LINHAS ANTES DE MEXER AQUI
-# ============================================================================
-#   `~/.config/autostart/` é da AURORA (`docs/FRONTEIRA.md:52`). Este arquivo
-#   NÃO abre aquele diretório, nem para apagar, nem para escrever `Hidden=true`.
-#   O nome do script é `autostart` porque é assim que o problema se chama em
-#   XDG e em systemd — quem for procurar "o app abre sozinho" vai grepar essa
-#   palavra —, mas o único lugar em que ele escreve é
-#   `~/.config/systemd/user/`, por `systemctl --user mask`.
-#
-# ============================================================================
-# O QUE ESTE SCRIPT FAZ, E POR QUE É MASK E NÃO OUTRA COISA
-# ============================================================================
-#
-# O CAMINHO INTEIRO, MEDIDO
-#   Um `.desktop` em `~/.config/autostart/` não é lido pelo COSMIC diretamente:
-#   quem o lê é o `systemd-xdg-autostart-generator`, que gera, em
-#   `/run/user/1000/systemd/generator.late/`, uma unidade chamada
-#       app-<id-escapado>@autostart.service
-#   e a pendura em `xdg-desktop-autostart.target.wants/`. Conferido lendo a
-#   unidade gerada do `openrgb-gloway`, que traz literalmente
-#       SourcePath=/home/<usuário>/.config/autostart/openrgb-gloway.desktop
-#       PartOf=graphical-session.target
-#   O escape é o do systemd: `openrgb-gloway` vira `openrgb\x2dgloway`, e é por
-#   isso que este script chama `systemd-escape` em vez de montar o nome à mão.
-#
-# POR QUE `Hidden=true` NO `.desktop` NÃO SERVE — E ESTE É O PONTO DA SPRINT L
-#   Porque o arquivo não é nosso e não fica parado. Enquanto a seção "6.
-#   autostart" do `aurora-qbittorrent-config.sh` estava LIGADA, ela recopiava o
-#   `.desktop` do flatpak com um `cmp -s`: qualquer edição — `Hidden=true`
-#   inclusive — contava como "diferente da fonte" e era sobrescrita **em
-#   silêncio**, no próximo ciclo do `ritual-aurora-self-heal.timer` (~1h) ou
-#   logo depois do próximo `apt`, pelo hook `99-ritual-aurora-self-heal`. Uma
-#   edição que dura até uma hora não é conserto, é uma armadilha com fusível.
-#
-#   O mask não tem esse problema porque ele não disputa o `.desktop`: a Aurora
-#   pode recopiar o arquivo para sempre, o generator pode gerar a unidade para
-#   sempre, e a ATIVAÇÃO continua bloqueada.
-#
-# POR QUE O MASK GANHA DO GENERATOR — MEDIDO, NÃO SUPOSTO
-#   `systemctl --user show --property=UnitPath` desta máquina, em ordem:
-#       …/.config/systemd/user.control
-#       /run/user/1000/systemd/user.control
-#       /run/user/1000/systemd/transient
-#       /run/user/1000/systemd/generator.early
-#       /home/<usuário>/.config/systemd/user         <- o mask mora AQUI
-#       …
-#       /run/user/1000/systemd/generator.late        <- o autostart nasce AQUI
-#   O `~/.config/systemd/user` aparece **doze posições antes** do
-#   `generator.late`. O link para `/dev/null` que o `mask` planta lá vence, e o
-#   `systemctl --user is-enabled` responde `masked`.
-#
-# ABRIR PELO ÍCONE CONTINUA FUNCIONANDO — PROVADO, NÃO SUPOSTO
 #   O mask bloqueia a UNIDADE `app-<id>@autostart.service`, e o lançador não
 #   passa por ela. Medido com `systemctl --user list-units 'app-*'` com a
 #   sessão dela viva: todo app aberto pelo ícone vive num **escopo transitório**
@@ -65,73 +12,6 @@
 #   "Application launched by COSMIC", `.scope` e não `.service`, com o PID no
 #   nome. Um mask em `…@autostart.service` não alcança nenhum deles: são nomes
 #   diferentes, criados na hora pela API do systemd.
-#
-#   E o `@autostart.service` só é puxado por `xdg-desktop-autostart.target`, que
-#   sobe uma vez, no início da sessão. Fora do login ele não é alvo de ninguém.
-#
-# ============================================================================
-# O ESTADO DO qBITTORRENT EM 25/08/2026 — A SPRINT L JÁ ESTAVA RESOLVIDA
-# ============================================================================
-#   Está registrado aqui porque quem ler a Sprint L vai procurar um defeito que
-#   não existe mais, e gastar o dia:
-#
-#   1. A seção "6. autostart" do `aurora-qbittorrent-config.sh` foi **DESLIGADA
-#      em 11/08/2026, a pedido dela**. O bloco de hoje (linhas 496-514) faz o
-#      OPOSTO do que a sprint descreve — ele REMOVE o arquivo:
-#          AUTOSTART="$HOME/.config/autostart/$APP.desktop"
-#          if [ -f "$AUTOSTART" ]; then rm -f "$AUTOSTART"; …
-#      com o comentário "A decisão de ligar isso foi minha, não dela, e ela
-#      reclamou do app subindo no login."
-#   2. `~/.config/autostart/` tem só `openrgb-gloway.desktop` e
-#      `ritual_aurora.desktop`. Não há `.desktop` do qBittorrent.
-#   3. O generator não gera mais a unidade: `ls /run/user/1000/systemd/
-#      generator.late/ | grep -i qbit` não devolve nada.
-#   4. O mask **já está aplicado**, à mão, desde 11/08 09:59:
-#          ~/.config/systemd/user/app-org.qbittorrent.qBittorrent@autostart.service -> /dev/null
-#   5. `pgrep -ai qbittorrent` não devolve nada: o app não está rodando.
-#
-#   Ou seja: o conserto já existe em DOIS lugares independentes. Este script não
-#   inventa um terceiro — ele torna o de número 4 **conferível e reversível**
-#   pelo projeto, que é o que faltava. Um link para `/dev/null` largado num
-#   diretório de systemd, sem ninguém que saiba dizer quem o pôs lá nem como
-#   tirar, é exatamente o tipo de coisa que este repositório existe para não ter.
-#
-# ============================================================================
-# DESLIGAR TEM DE DESLIGAR — E POR ISSO ESTE SCRIPT ANOTA O ESTADO DE ANTES
-# ============================================================================
-#   O `remover` só desmascara o que **nós** mascaramos. O mask do qBittorrent é
-#   anterior a este arquivo e foi feito pela mão dela em 11/08: desfazê-lo num
-#   `meow desfazer` seria devolver um app que ela mandou calar, achando que
-#   estava limpando a nossa sujeira. Por isso o `aplicar` grava, em
-#       ~/.local/state/meowsystem/autostart-mascarados.tsv
-#   o que `systemctl --user is-enabled` respondia ANTES de encostarmos na
-#   unidade. Quem já estava `masked` sai da lista de responsabilidade nossa e o
-#   `remover` o deixa exatamente como estava.
-#
-#   Tirar um nome de `AUTOSTART_BLOQUEADOS` **não** desmascara sozinho — o
-#   `aplicar` só AVISA, com o comando na tela. Desmascarar é `remover`, que é um
-#   verbo que a pessoa digita. Um script que desfaz o próprio trabalho porque
-#   uma vírgula sumiu de um arquivo de configuração é como se perde uma escolha
-#   sem ninguém saber por quê.
-#
-# O QUE ESTE SCRIPT NÃO FAZ, DE PROPÓSITO
-#   - Não mata processo. Se o app já está aberto, ele continua aberto: o mask
-#     vale para a ATIVAÇÃO, e o efeito aparece no próximo login. O `aplicar` diz
-#     isso na tela quando encontra o processo vivo.
-#   - Não chama `daemon-reload`. O `systemctl mask` já avisa o gerenciador; um
-#     reload do gerenciador de usuário durante a sessão do COSMIC é risco sem
-#     ganho nenhum aqui.
-#   - Não usa `meow_escrever`. O que o mask planta é um SYMLINK para /dev/null,
-#     e o `meow_escrever` grava arquivo comum — e o gerenciador precisa ser
-#     avisado, o que só o `systemctl` faz. Pelo mesmo motivo o manifesto não
-#     recebe o caminho: um `rm` cego do link, no `--uninstall`, deixaria o
-#     gerenciador com uma visão velha. Quem desfaz é o `remover` daqui.
-#
-# USO
-#   autostart.sh aplicar        mascara o que estiver em AUTOSTART_BLOQUEADOS
-#   autostart.sh conferir       0 = tudo mascarado · 1 = falta algum · 3 = sem systemd
-#   autostart.sh estado         diz, por app, o que o systemd responde hoje
-#   autostart.sh remover [id…]  desmascara o que NÓS mascaramos (tudo, ou os id dados)
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -156,9 +36,7 @@ _auto_unidade() {
 
 # O `\n` do printf NÃO é enfeite: com `printf '%s'` a última (e única) linha sai
 # sem quebra, o `read` devolve 1 no EOF, a condição do `while` falha e o corpo
-# NUNCA roda. Escrito assim primeiro, o script deu rc=0 calado para uma lista
-# com um item — o pior defeito possível aqui, porque "não fez nada" e "está tudo
-# certo" ficam com a mesma cara na tela.
+# NUNCA roda.
 _auto_lista() {
   local item
   printf '%s\n' "$AUTOSTART_BLOQUEADOS" | tr ',' '\n' | while IFS= read -r item; do
@@ -228,15 +106,10 @@ _auto_ids_registrados() {
 }
 
 # O app está aberto AGORA? Não é para matar nada — é para o script poder dizer,
-# na tela, que o efeito só aparece no próximo login. Sem esta linha o `aplicar`
-# diria "pronto" e ela veria o app ali, na cara dela, contradizendo a mensagem.
+# na tela, que o efeito só aparece no próximo login.
 #
-# É `-x` no ÚLTIMO componente do id (`org.qbittorrent.qBittorrent` -> `qBittorrent`)
-# e NÃO `pgrep -f` no id inteiro. O `-f` casa a linha de comando de qualquer
-# processo — inclusive a do shell que chamou este script, se o nome do app
-# estiver nela. Já me custou um diagnóstico errado hoje, medindo outra coisa:
-# `pgrep -f cosmic-applet-time` devolveu o applet E o meu próprio `zsh -c`.
-# Um falso positivo aqui vira um aviso "o app está aberto" que não é verdade.
+# É `-x` no ÚLTIMO componente do id (`org.qbittorrent.qBittorrent` ->
+# `qBittorrent`) e NÃO `pgrep -f` no id inteiro.
 _auto_vivo() { pgrep -i -x -- "${1##*.}" >/dev/null 2>&1; }
 
 cmd_aplicar() {
@@ -254,9 +127,9 @@ cmd_aplicar() {
     }
 
     if _auto_mascarada "$unidade"; then
-      # Já estava bloqueado. Se ainda não está no registro, é mask de fora (a
-      # mão dela, em 11/08, no caso do qBittorrent) — anotamos QUE era de fora,
-      # para o `remover` não desfazer o que não foi nosso.
+      # Já estava bloqueado. Se ainda não está no registro, é mask de fora —
+      # anotamos QUE era de fora, para o `remover` não desfazer o que não foi
+      # nosso.
       if ! _auto_antes_de "$id" >/dev/null 2>&1; then
         _auto_registrar "$id" "$unidade" "masked-antes-de-nos"
         meow_ok "$id já estava mascarado por fora — anotado, e o 'remover' não vai desfazer"

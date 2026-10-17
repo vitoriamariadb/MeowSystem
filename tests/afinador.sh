@@ -1,27 +1,8 @@
 #!/usr/bin/env bash
-# O AFINADOR PROPÕE, E NUNCA DECIDE SOZINHO.
-#
-# Em 09/09/2026 ela pediu: *"só implementa o gerador"*. O `afinar_conversor.py`
-# é esse gerador — ele escolhe os botões do conversor por busca, contra a faixa
-# derivada dos 39 Arcticons desenhados à mão. O que este teste prende não é o
-# resultado da busca (esse muda quando o acervo muda, e deve mudar): é o
-# CONTRATO dela com o repositório.
-#
-# AS TRÊS ASSERÇÕES QUE VALEM MAIS, porque cada uma prende um defeito que
-# ACONTECEU durante a construção, não um que se imaginou:
-#
-#   1. A TRANCA DE FORMA EXISTE E MORDE. Sem ela a busca escolheu `--k 2` para a
-#      Calculadora: nota 1,115, a melhor da grade inteira — e os nove botões
-#      redondos viram um nó entrelaçado. Menos ponto, menos traço, nota boa,
-#      desenho destruído. Medido: aquele candidato fica a 542 px de 2304 do que
-#      o padrão desenha, contra 0 e 4 das escolhas dela. O teto de 138 (o mesmo
-#      do `tests/conversor.sh`, e pela mesma pergunta) barra o nó. Esta linha
-#      afirma que a Calculadora NÃO recebe proposta que mude a forma.
-#
-#   2. RODAR SEM `--escrever` NÃO ESCREVE UM BYTE. Um afinador que mexesse no
-#      mapa ao ser consultado trocaria decisão dela por busca automática em
-#      silêncio, que é exatamente o que o `bin/meow` já proíbe para o acervo:
-#      *"reconverter trocaria arte que você aprovou por arte que ninguém viu"*.
+# O `afinar_conversor.py` é esse gerador — ele escolhe os botões do conversor
+# por busca, contra a faixa derivada dos 39 Arcticons desenhados à mão. O que
+# este teste prende não é o resultado da busca (esse muda quando o acervo muda,
+# e deve mudar): é o CONTRATO dela com o repositório.
 #
 #   3. RECEITA JÁ ESCRITA NÃO É SOBRESCRITA SEM `--refazer`. As três receitas do
 #      mapa (Brave, Foliate, FileRoller) são escolha dela na bancada. A busca
@@ -49,10 +30,7 @@ python3 -c 'import numpy' 2>/dev/null || { printf 'pulado: falta numpy\n'; exit 
 antes="$(md5sum "$MAPA" | cut -d' ' -f1)"
 
 # A Calculadora e o FileRoller: uma é o caso da tranca, o outro é o caso da
-# receita escrita. `--grade-teste` reduz a busca a quatro jogos, e `detalhe 0`
-# está dentro deles de propósito — é o `--k 2` que destruía a Calculadora. Uma
-# grade de teste sem o candidato ruim não provaria nada, e a grade cheia custaria
-# minutos numa suíte que roda a cada leva.
+# receita escrita.
 python3 "$AFINA" --grade-teste --so org.gnome.Calculator --so org.gnome.FileRoller \
   --json >"$T/saida.json" 2>"$T/err"
 rc=$?

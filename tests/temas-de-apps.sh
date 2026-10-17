@@ -1,50 +1,12 @@
 #!/usr/bin/env bash
 # temas-de-apps.sh — os módulos de `assets/temas-de-apps/` obedecem ao PACK.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 22/09/2026 (sprint P18)
-#   Uma contagem mediu, naquele acervo, 446 citações da palavra `catppuccin`
-#   espalhadas por oito módulos — e ZERO consultas ao pack ativo:
+# Zero é o destino, e para spotify e qbittorrent ele já vale HOJE.
 #
-#     módulo            citações   lê o pack ativo?
-#     btop-bat              58            não
-#     heroic               246            não
-#     obsidian              48            não
-#     qbittorrent           28            não
-#     spotify               39            não
-#     toolkits-gtk-qt        5            não
-#     vscode                19            não
-#     zapzap                 3            não
-#                        -----        --------
-#                          446         0 de 8
+# Um módulo que ganhe uma citação nova falha aqui; um módulo que perca as suas
+# cobra que o número seja baixado.
 #
-#   `assets/temas-de-apps/` é ANTERIOR ao sistema de packs e nunca soube que ele
-#   existe. O preço estava na tela desta máquina em 21/09/2026: o pack ativo era
-#   o Dracula e o módulo do Obsidian anunciou «Catppuccin Mocha já estava
-#   aplicado». O único dos oito que "deu certo" foi o que aplicou o tema do
-#   OUTRO pack e chamou de sucesso.
-#
-# O TETO É POR MÓDULO, E NÃO UM ZERO SÓ — E ISSO NÃO É INDULGÊNCIA
-#   A sprint escreveu «o teste fixa o teto em zero para código». Zero é o
-#   destino, e para spotify e qbittorrent ele já vale HOJE. Para os outros seis
-#   não: são 27 linhas de código em cinco módulos, e o heroic sozinho traz 59
-#   arquivos de arte upstream cujo NOME contém a palavra — um teto de zero sobre
-#   a árvore inteira seria impossível de alcançar, e teste impossível é teste
-#   que alguém desliga.
-#
-#   Então o teto é uma TABELA que só pode descer. Um módulo que ganhe uma
-#   citação nova falha aqui; um módulo que perca as suas cobra que o número seja
-#   baixado. É a mesma disciplina do `tests/numeros.sh`: o número medido fica
-#   escrito, e mentir sobre ele custa vermelho.
-#
-# O QUE CONTA COMO CÓDIGO
-#   Linha cujo primeiro caractere não-branco NÃO é `#`. Comentário histórico
-#   continua valendo — a regra da casa é que a história do defeito fica escrita
-#   onde o defeito morava, e um teste que apagasse isso apagaria o porquê.
-#   Só `manifesto.sh`: é onde mora a decisão. `upstream/`, `PROCEDENCIA.md` e
-#   `SHA256SUMS` nomeiam arte de terceiro, e renomear arte de terceiro seria
-#   perder a procedência dela.
-#
-#   0 = os módulos obedecem ao pack · 1 = achados · 2 = erro deste teste
+# Linha cujo primeiro caractere não-branco NÃO é `#`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ACERVO="$RAIZ/assets/temas-de-apps"
@@ -54,25 +16,22 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 
 command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; }
 
-# ---------------------------------------------------------------------------
-# 1. O TETO POR MÓDULO
-# ---------------------------------------------------------------------------
-# MIGRADOS: perguntam ao pack e não conhecem mais o nome de tema nenhum.
-# Os cinco do fim NASCERAM migrados, em 24/09/2026 (P42): são os temas que o
-# Dracula de antes aplicava, e cada um lê um MODELO do pack (seções 7 e 8).
+# MIGRADOS: perguntam ao pack e não conhecem mais o nome de tema nenhum. Os
+# cinco do fim NASCERAM migrados,: são os temas que o Dracula de antes
+# aplicava, e cada um lê um MODELO do pack (seções 7 e 8).
 MIGRADOS=(spotify qbittorrent kitty gnome-terminal telegram discord onlyoffice)
 
-# A TABELA. Medida em 22/09/2026, depois da P18. Ela só desce.
+# A TABELA. Ela só desce.
 declare -A TETO=(
-  [spotify]=0          # migrado na P18
-  [qbittorrent]=0      # migrado na P18
+  [spotify]=0
+  [qbittorrent]=0
   [toolkits-gtk-qt]=0  # nunca teve citação em código; as 5 dele são comentário
-  [zapzap]=0           # era 1 (a frase «ícone Catppuccin»); a P55 (24/09/2026) a trocou pelo nome do pack no ar
-  [heroic]=0           # era 5; a P55 levou a família do acervo para o `apps.heroic` do pack
-  [btop-bat]=2         # era 6; a P49 (24/09/2026) tirou a família cravada e as duas frases «Catppuccin <flavor>», e a P51 a do reverter
-  [vscode]=0           # era 6; a P55 levou tema, ícones e extensões para o `apps.vscode` do pack
-  [obsidian]=0         # era 9; a P55 levou o nome do tema para o `apps.obsidian` do pack
-  [kitty]=0            # os cinco da P42 (24/09/2026) nasceram com teto zero
+  [zapzap]=0
+  [heroic]=0
+  [btop-bat]=2
+  [vscode]=0
+  [obsidian]=0
+  [kitty]=0
   [gnome-terminal]=0
   [telegram]=0
   [discord]=0
@@ -108,9 +67,6 @@ for mod in "${MODULOS[@]}"; do
   fi
 done
 
-# ---------------------------------------------------------------------------
-# 2. MÓDULO MIGRADO PERGUNTA AO PACK
-# ---------------------------------------------------------------------------
 # Teto zero sozinho não prova nada: um módulo sem a palavra e sem a pergunta
 # continua aplicando o que estiver cravado em outro nome.
 for mod in "${MIGRADOS[@]}"; do
@@ -126,16 +82,11 @@ for mod in "${MIGRADOS[@]}"; do
     falha "$mod: está na lista de migrados e não chama meow_app_tema_no_ar" \
           "  Aplicar sem ler é sobrescrever calado o que a pessoa fez à mão."
   fi
-  # O `$( )` É PROIBIDO, E FOI UM DEFEITO MEDIDO — 22/09/2026, revisão da P18
-  #   `tema="$(meow_app_tema_do_pack …)"` é o jeito natural de escrever isto em
-  #   shell, e é o jeito errado: `$( )` é subshell, e o `MEOW_APP_TEMA_PACK` que
-  #   a função atribui morre com ele. Os dois módulos migrados nasceram assim, e
-  #   a procedência chegava vazia em todas as telas deles. Esta linha é o que
-  #   impede o nono módulo de copiar a mesma armadilha do documento.
+  # Os dois módulos migrados nasceram assim, e a procedência chegava vazia em
+  # todas as telas deles.
   #
-  #   Só CÓDIGO, pela mesma régua da seção 1: a linha que conta é a que não
-  #   começa por `#`. O padrão errado tem de continuar escrito nos comentários
-  #   dos dois módulos — é lá que mora a história do defeito.
+  # Só CÓDIGO, pela mesma régua da seção 1: a linha que conta é a que não começa
+  # por `#`.
   if grep -n '\$(meow_app_tema_do_pack' "$arq" | grep -qv '^[0-9]*: *#'; then
     falha "$mod: chama meow_app_tema_do_pack dentro de \$( )" \
           "  \$( ) é subshell: MEOW_APP_TEMA_PACK morre lá dentro e a procedência some."
@@ -144,20 +95,12 @@ for mod in "${MIGRADOS[@]}"; do
   fi
 done
 
-# ---------------------------------------------------------------------------
 # 3. AS TRÊS SAÍDAS DE `meow_app_tema_no_ar`
-# ---------------------------------------------------------------------------
-# Elas são o coração da sprint, e as três aparecem na tela:
-#   já está no tema do pack · está sem tema · está num tema que não veio daqui.
 T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
 
-# UM FLATPAK INSTALADO NA CASA DE BRINQUEDO TEM A FORMA DE UM DE VERDADE — P57
-#   `app/<id>/<arquitetura>/<ramo>/active` apontando para a pasta do commit, que
-#   é o que o `meow_flatpak_tem` pergunta desde 24/09/2026. A pasta de dados
-#   (`~/.var/app/<id>`) sozinha não é mais "instalado": ela sobra depois do
-#   `flatpak uninstall`, e as casas das seções abaixo que só a criavam passavam
-#   por causa do defeito.
+# `app/<id>/<arquitetura>/<ramo>/active` apontando para a pasta do commit, que é
+# o que o `meow_flatpak_tem` pergunta.
 implantar() {  # <raiz da instalação> <id>
   local ramo="$1/app/$2/x86_64/stable"
   mkdir -p "$ramo/0123abcd" && ln -sfn 0123abcd "$ramo/active"
@@ -165,9 +108,7 @@ implantar() {  # <raiz da instalação> <id>
 
 tres_saidas() {
   # Subshell com estado de brinquedo: a terceira saída REGISTRA pendência, e
-  # pendência é arquivo. Sem esta gaiola o teste sujaria o
-  # ~/.local/state/meowsystem de quem o roda — o mesmo cuidado que o
-  # `aplicar_apps.sh tabela` documenta.
+  # pendência é arquivo.
   (
     export MEOW_RAIZ="$RAIZ"
     export MEOW_ESTADO="$T/estado"
@@ -215,9 +156,6 @@ else
         "  Sem tela ninguém responde a pergunta; sem pendência ninguém lembra dela."
 fi
 
-# ---------------------------------------------------------------------------
-# 4. O PACK RESPONDE, E A HERANÇA DIZ DE QUEM HERDOU
-# ---------------------------------------------------------------------------
 # O `apps` do pack padrão é o que faz os módulos terem o que aplicar; o do
 # Dracula é a prova de que um segundo pack manda no mesmo módulo.
 saida="$(python3 "$RAIZ/scripts/pack.py" app dracula apps.spotify.spicetify_tema 2>&1)"
@@ -227,9 +165,9 @@ else
   falha "pack: 'app dracula apps.spotify.spicetify_tema' não respondeu pelo dracula" "$saida"
 fi
 
-# O qBittorrent do Dracula deixou de ser herdado em 09/10/2026 (P74 item 9): o
-# pack traz o tema oficial dele. A herança segue provada pelo `vscode-icones`,
-# que o Dracula não declara de propósito (`_nota_vscode_icones`).
+# O qBittorrent do Dracula deixou de ser herdado: o pack traz o tema oficial
+# dele. A herança segue provada pelo `vscode-icones`, que o Dracula não
+# declara de propósito (`_nota_vscode_icones`).
 saida="$(python3 "$RAIZ/scripts/pack.py" app dracula apps.qbittorrent.arquivo 2>&1)"
 if printf '%s' "$saida" | grep -qx 'pack=dracula'; then
   ok "pack: o Dracula responde pelo próprio qBittorrent (P74)"
@@ -253,16 +191,8 @@ else
   ok "pack: chave ausente num bloco declarado é ausência, não herança"
 fi
 
-# ---------------------------------------------------------------------------
-# 5. A PROCEDÊNCIA CHEGA AO MÓDULO — E É O CAMINHO QUE O MÓDULO USA
-# ---------------------------------------------------------------------------
-# POR QUE ESTA SEÇÃO NASCEU — 22/09/2026, na revisão da P18
-#   A seção 3 acima passa "pack-de-teste" como 4º argumento, à mão. Ela exercita
-#   a função e NUNCA o caminho que os módulos usam: perguntar ao pack e deixar a
-#   resposta chegar sozinha. E era exatamente ali que estava o defeito — a
-#   pergunta era feita dentro de `$( )`, o `MEOW_APP_TEMA_PACK` morria no
-#   subshell, e o sufixo "(do pack …)" nunca aparecia na tela. Teste que só
-#   chama a função pela porta de teste não vê a porta da frente.
+# Ela exercita a função e NUNCA o caminho que os módulos usam: perguntar ao pack
+# e deixar a resposta chegar sozinha.
 prova_da_procedencia() {
   (
     export MEOW_RAIZ="$RAIZ"
@@ -291,14 +221,8 @@ else
   Sem isto o item 2 da sprint não se cumpre em produção: o log cala a origem."
 fi
 
-# ---------------------------------------------------------------------------
-# 6. PACK SEM TEMA PARA O APP NÃO DESTRAVA O qBITTORRENT
-# ---------------------------------------------------------------------------
 # A trava do módulo do qBittorrent é um `grep` pelo NOME do pack dentro do
-# script do Aurora. Com o nome vazio o padrão vira `^[[:space:]]*\)`, que casa
-# qualquer fechamento de subshell indentado — medidos 32 dos `.sh` deste
-# repositório. O módulo se daria por destravado sozinho e chamaria o script de
-# terceiro com `--tema ''`. Vazio tem de ser NÃO-destravado.
+# script do Aurora.
 cat > "$T/aurora-de-brinquedo.sh" <<'FIM'
 #!/usr/bin/env bash
 case "$1" in
@@ -328,16 +252,8 @@ else
   ok "qbittorrent: nome de pack vazio não destrava (o ')' indentado não conta)"
 fi
 
-# ---------------------------------------------------------------------------
-# 7. OS MODELOS DO PACK NÃO TRAZEM COR ESCRITA, E MONTAM EM TODO FLAVOR
-# ---------------------------------------------------------------------------
-# POR QUE ESTA SEÇÃO NASCEU — 24/09/2026, sprint P42
-#   Os temas de kitty, GNOME Terminal, Telegram, Discord e OnlyOffice entraram
-#   no pack Dracula como MODELO: o papel da cor no lugar dela, e quem põe o hex é
-#   o `assets/temas-de-apps/modelo.py`, com a paleta do pack no ar. Um hex
-#   escrito num modelo é o flavor `dracula` cravado — o `alucard` sairia com uma
-#   cor escura no meio, e nada acusaria. A régua é por PACK, e não pela lista dos
-#   cinco: o modelo que o próximo pack trouxer entra nela sozinho.
+# Um hex escrito num modelo é o flavor `dracula` cravado — o `alucard` sairia
+# com uma cor escura no meio, e nada acusaria.
 MODELO_PY="$RAIZ/assets/temas-de-apps/modelo.py"
 mapfile -t MODELOS < <(find "$RAIZ/packs" -path '*/apps/*.modelo.*' -type f | sort)
 if [ "${#MODELOS[@]}" -eq 0 ]; then
@@ -370,21 +286,6 @@ else
   ok "modelo.py recusa o papel que a paleta não tem, em vez de deixá-lo no tema"
 fi
 
-# ---------------------------------------------------------------------------
-# 8. CADA TEMA APLICA, CONFERE E DESFAZ — NUMA CASA DE BRINQUEDO
-# ---------------------------------------------------------------------------
-# A casa é outra por inteiro: HOME, XDG, estado e packs de brinquedo, e o PATH
-# começa por um `bin/` com os aplicativos de mentira — o kitty, o GNOME
-# Terminal e o `dconf` são scripts que só existem aqui, e o `pgrep` também,
-# para "o OnlyOffice está aberto?" responder o que o teste manda e não o que a
-# máquina de quem roda tiver aberto. O `env -i` tira o D-Bus da sessão do
-# ambiente: sem ele, nem um `dconf` de verdade que escapasse do PATH alcançaria
-# o banco de quem roda o teste.
-#   AS INSTALAÇÕES DO FLATPAK TAMBÉM SÃO DE BRINQUEDO — revisão da P57. O
-# `meow_flatpak_tem` pergunta à do sistema (`FLATPAK_SYSTEM_DIR`) e às de
-# `installations.d` (`FLATPAK_CONFIG_DIR`); sem as duas aqui, o `mod` e o
-# `tabela` liam o /var/lib/flatpak e o /etc/flatpak de quem roda, e um app
-# instalado nele desmentiria o «não instalado» das casas abaixo.
 CASA="$T/casa8"
 BIN="$T/bin8"
 mkdir -p "$CASA" "$BIN" "$T/packs8"
@@ -432,8 +333,6 @@ saida="$(mod kitty aplicar)"; rc=$?
   && ok "kitty: o tema dela fica como está, e a pergunta vira pendência (rc=3)" \
   || falha "kitty: o tema de terceiro não foi respeitado (rc=$rc)" "$saida"
 rm -rf "$K"
-# Cor escrita no próprio kitty.conf também é escolha dela — é o caso da máquina
-# onde esta sprint nasceu, com as dezesseis cores logo abaixo do include.
 mkdir -p "$K"; printf 'include current-theme.conf\nforeground #ffffff\n' > "$K/kitty.conf"
 saida="$(mod kitty aplicar)"; rc=$?
 [ "$rc" = 3 ] && [ ! -e "$K/current-theme.conf" ] \
@@ -441,10 +340,8 @@ saida="$(mod kitty aplicar)"; rc=$?
   || falha "kitty: sobrescreveu as cores escritas no kitty.conf (rc=$rc)" "$saida"
 rm -rf "$K"
 # O `include` fora do bloco também é tema dela, quando o incluído pinta — é como
-# o dracula/kitty manda instalar (`include dracula.conf`). A primeira versão lia
-# isso como "sem tema" e punha o nosso bloco no fim, onde ele vence: o tema dela
-# trocado calado (revisão da P42, 24/09/2026). E o `include` que só traz fonte
-# não é tema: aplica, e a linha dela fica.
+# o dracula/kitty manda instalar (`include dracula.conf`). E o `include` que só
+# traz fonte não é tema: aplica, e a linha dela fica.
 mkdir -p "$K"; printf 'font_size 12\ninclude gruvbox.conf\n' > "$K/kitty.conf"
 printf 'background #282828\nforeground #ebdbb2\n' > "$K/gruvbox.conf"
 antes="$(cat "$K/kitty.conf")"
@@ -477,7 +374,7 @@ saida="$(mod telegram aplicar)"; rc=$?
   && ok "telegram: aplicar entrega o tema montado no lugar fixo, e não diz que o app está sem tema" \
   || falha "telegram: o tema não foi entregue, ou a tela disse 'está sem tema' (rc=$rc)" "$saida"
 # O que daqui se lê é o ARQUIVO, e não o tema no ar (ele mora no `tdata`): a
-# segunda passada diz "entregue", nunca "já está no tema do pack" (revisão da P42).
+# segunda passada diz "entregue", nunca "já está no tema do pack".
 saida="$(mod telegram aplicar)"; rc=$?
 [ "$rc" = 0 ] && printf '%s' "$saida" | grep -q 'já está entregue' && ! printf '%s' "$saida" | grep -q 'já está no tema do pack' \
   && ok "telegram: a segunda passada diz que o arquivo está entregue (rc=0)" \
@@ -494,14 +391,9 @@ saida="$(mod discord aplicar)"; rc=$?
 [ "$rc" = 3 ] && printf '%s' "$saida" | grep -q 'cliente modificado' \
   && ok "discord: o cliente oficial sozinho é pendência, e o motivo diz o que falta" \
   || falha "discord: sem cliente modificado não saiu pendência com motivo (rc=$rc)" "$saida"
-# PENDENTE NÃO É "NÃO INSTALADO" — 24/09/2026, P49 (achado 45). A tabela do
-# `meow apps` dizia Discord e qBittorrent «não instalado» com os dois flatpaks do
-# usuário no disco: a coluna lia o código do `detectar`, e ele sai 3 pelo cliente
-# que falta, ou pelo tema que já está no ar. É esta casa, este Discord e um
-# qBittorrent sem o escritor do conf: instalados (0) e pendentes (3), na MESMA
-# linha do TSV que a CLI pinta. [P74, 09/10/2026: o qBittorrent ganhou escritor
-# próprio do conf, e sem tema no app ele é divergente (1), que é o «aplica»; a
-# coluna «instalado» é o que esta seção cobra, e continua 0.]
+# A tabela do `meow apps` dizia Discord e qBittorrent «não instalado» com os
+# dois flatpaks do usuário no disco: a coluna lia o código do `detectar`, e ele
+# sai 3 pelo cliente que falta, ou pelo tema que já está no ar.
 tabela() {
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
       XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$T/packs8" MEOW_RAIZ="$RAIZ" \
@@ -510,23 +402,16 @@ tabela() {
       "$RAIZ/scripts/aplicar_apps.sh" tabela </dev/null 2>/dev/null
 }
 implantar "$CASA/.local/share/flatpak" org.qbittorrent.qBittorrent
-# As quatro primeiras colunas: a quinta, o motivo do 3, entrou na P62 e é
-# cobrada na seção da P55, lá embaixo.
 saida="$(tabela discord,qbittorrent | cut -f1-4)"
 [ "$saida" = "$(printf 'discord\tdiscord\t0\t3\nqbittorrent\tqbittorrent\t0\t1')" ] \
   && ok "meow apps: Discord e qBittorrent instalados e pendentes saem «instalado» na tabela" \
   || falha "meow apps: a coluna «instalado» ainda não é a do programa no disco" "$saida"
 rm -rf "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
-# INSTALADO É A IMPLANTAÇÃO, E NÃO A PASTA DE DADOS — 24/09/2026, P57 (item 1).
-#   A regra única da P49 aceitava `~/.var/app/<id>`, a pasta de DADOS, que o
-#   `flatpak uninstall` deixa para trás: medido nesta máquina, o
-#   `org.mozilla.thunderbird_esr` tinha pasta lá, não estava no `flatpak list`,
-#   e contava como instalado — na tabela do `meow apps` e nos módulos. E ela só
-#   olhava duas instalações escritas por extenso. As cinco casas abaixo são as
-#   que o flatpak consulta, pelas variáveis dele: a do usuário, a do sistema
-#   (`FLATPAK_SYSTEM_DIR`) e uma declarada num `.conf` de `installations.d`
-#   (`FLATPAK_CONFIG_DIR`) — mais a pasta de dados sozinha e a pasta do app sem
-#   implantação (a sobra de uma remoção), que não são instalação nenhuma.
+# As cinco casas abaixo são as que o flatpak consulta, pelas variáveis dele: a
+# do usuário, a do sistema (`FLATPAK_SYSTEM_DIR`) e uma declarada num `.conf`
+# de `installations.d` (`FLATPAK_CONFIG_DIR`) — mais a pasta de dados sozinha e
+# a pasta do app sem implantação (a sobra de uma remoção), que não são
+# instalação nenhuma.
 fp() {  # <id> — o código de saída do meow_flatpak_tem nesta casa
   env -i PATH="$PATH" HOME="$CASA" XDG_DATA_HOME="$CASA/.local/share" MEOW_RAIZ="$RAIZ" \
       MEOW_ESTADO="$T/estado8" FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" \
@@ -569,18 +454,18 @@ saida="$(mod discord aplicar)"; rc=$?
   || falha "discord: o tema não chegou à pasta do Vencord (rc=$rc)" "$saida"
 saida="$(mod discord conferir)"; rc=$?
 [ "$rc" = 0 ] && ok "discord: depois de aplicar, o conferir dá 0" || falha "discord: conferir devolveu $rc" "$saida"
-# LIGADO NO CLIENTE, E NÃO SÓ NA PASTA — 09/10/2026, P74 item 9 (T6). O tema
-#   vai para a lista `enabledThemes` do `settings/settings.json` do Vencord, e
-#   o que já estava lá fica; o desfazer o tira da lista junto com o arquivo.
+# O tema vai para a lista `enabledThemes` do `settings/settings.json` do
+# Vencord, e o que já estava lá fica; o desfazer o tira da lista junto com o
+# arquivo.
 VS="$CASA/.config/Vencord/settings/settings.json"
 ligado() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(" ".join(d.get("enabledThemes",[])), d.get("outra","-"))' "$VS" 2>&1; }
 [ "$(ligado)" = "MeowSystem.theme.css -" ] \
   && ok "discord: o tema do pack sai ligado no Vencord (enabledThemes)" \
   || falha "discord: o tema não foi ligado no settings.json do Vencord" "$(ligado)"
 python3 -c 'import json,sys;json.dump({"enabledThemes":["dela.css"],"outra":"fica"},open(sys.argv[1],"w"))' "$VS"
-# COM O VESKTOP DO FLATPAK ABERTO, NADA SE ESCREVE (conferência da P74): o
-#   processo dele é `vesktop.bin`, e um `pgrep` que só conhece esse nome tem de
-#   segurar a escrita — senão ele desfaz a lista na próxima gravação dele.
+# COM O VESKTOP DO FLATPAK ABERTO, NADA SE ESCREVE: o
+# processo dele é `vesktop.bin`, e um `pgrep` que só conhece esse nome tem de
+# segurar a escrita — senão ele desfaz a lista na próxima gravação dele.
 printf '#!/bin/sh\n[ "$1" = "-x" ] && [ "$2" = "vesktop.bin" ] && exit 0\nexit 1\n' > "$BIN/pgrep"; chmod +x "$BIN/pgrep"
 antes_vs="$(cat "$VS")"
 saida="$(mod discord aplicar)"; rc_v=$?
@@ -646,7 +531,7 @@ falso pgrep 1
 mod onlyoffice reverter >/dev/null
 # Sem o `appdata`, o que diz o tema no ar é o `UITheme` — e ele guarda o
 # CAMINHO do JSON. A primeira versão comparava esse caminho com o id e lia o
-# próprio tema como de terceiro na segunda passagem (medido aqui, 24/09/2026).
+# próprio tema como de terceiro na segunda passagem.
 printf '[General]\nUITheme=theme-dark\n' > "$OO_CONF"
 mod onlyoffice aplicar >/dev/null; rc1=$?
 saida="$(mod onlyoffice aplicar)"; rc2=$?
@@ -656,9 +541,6 @@ mod onlyoffice reverter >/dev/null
   || falha "onlyoffice: sem appdata o próprio tema virou terceiro (rc=$rc1 e $rc2)" "$saida$(cat "$OO_CONF")"
 # NUNCA ABERTO: sem o conf, a escolha não tem onde morar. O tema vai para a
 # pasta e a escolha espera, dita como pendência nas duas passadas e no conferir.
-# A primeira versão dizia "aplicado" na 1ª e "já está no tema do pack" com rc=0
-# na 2ª, enquanto o conferir dava 1 — e o doctor nunca convergia (revisão da
-# P42, 24/09/2026). E o conf continua sem ser criado: é do app.
 rm -f "$OO_CONF"
 saida="$(mod onlyoffice aplicar)"; rc1=$?
 saida="$saida$(mod onlyoffice aplicar)"; rc2=$?
@@ -669,12 +551,9 @@ saida="$saida$(mod onlyoffice conferir)"; rc3=$?
   || falha "onlyoffice: nunca aberto, a tela e os códigos discordam (aplicar=$rc1 e $rc2, conferir=$rc3)" "$saida"
 mod onlyoffice reverter >/dev/null
 
-# A ESCOLHA PELO PAINEL — 24/09/2026, sprint P53 (achado 4). O caso medido no
-#   painel de verdade: o OnlyOffice num tema dela, e a pendência mandando
-#   "rodar o aplicar deste app de um terminal". A linha passa a levar o comando
-#   (é o que acende os botões na Home), e a resposta chega pelo ambiente:
-#   `manter` grava e cala a pendência nas passagens seguintes; `trocar` troca,
-#   e esquece o `manter`. O ensaio da troca não escreve nada.
+# A linha passa a levar o comando (é o que acende os botões na Home), e a
+# resposta chega pelo ambiente: `manter` grava e cala a pendência nas passagens
+# seguintes; `trocar` troca, e esquece o `manter`.
 pend() { awk -F'\t' -v i="$1" '$1 == i { print $4 }' "$T/estado8/pendencias.tsv" 2>/dev/null; }
 mantidos="$T/estado8/temas-mantidos.tsv"
 oo_conf theme-de-alguem
@@ -712,15 +591,9 @@ mod onlyoffice reverter >/dev/null
   && ok "onlyoffice: a escolha vem do painel — «Manter o meu» grava e cala, «Trocar» troca, e o ensaio não escreve" \
   || falha "onlyoffice: a escolha do painel não cumpre:$faltam"
 
-# O ENSAIO DIZ «APLICARIA», E A GAVETA APONTA OS BOTÕES — 25/09/2026, sprint P62
-#   Medido no painel de verdade: o «Ver o que faria» do «Trocar pelo tema do
-#   pack» terminava em «ok aplicados: onlyoffice», e o «Vestir os programas
-#   agora» mandava ao terminal («resolve: meow apps aplicar onlyoffice») com os
-#   dois botões da decisão esperando na Início. O resumo do `aplicar_apps.sh`
-#   segue o tempo verbal do seco, e a frase da pendência cita o que o `--onde`
-#   do servidor diz dela — o nome dos botões não vem escrito aqui.
-#   [P80, item 8: com botão, a linha «resolve:» diz só o botão, e não mais o
-#   comando ao lado dele.]
+# O resumo do `aplicar_apps.sh` segue o tempo verbal do seco, e a frase da
+# pendência cita o que o `--onde` do servidor diz dela — o nome dos botões não
+# vem escrito aqui.
 apps8() {  # <verbo> <apps> [VAR=valor ...] — o `aplicar_apps.sh` nesta casa
   local v="$1" a="$2"; shift 2
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
@@ -753,13 +626,10 @@ mod onlyoffice reverter >/dev/null
   && ok "P62: o ensaio do OnlyOffice diz «aplicaria» e «desfaria», e a gaveta cita os botões que o --onde dá" \
   || falha "P62: o ensaio ou a gaveta do OnlyOffice:$faltam"
 
-# --- qBittorrent: SEM O AURORA, O CONF É ESCRITO AQUI — P74 item 9 (T4) -----
-#   Até a P74, sem o script do Aurora (o caso de toda máquina, e o desta) o
-#   módulo parava em 3 com a pendência «escrever o qBittorrent.conf não é
-#   escopo deste módulo». Agora ele é o escritor: sem tema no app, o tema do
-#   pack entra e as duas chaves do conf apontam para ele, e o resto do conf
-#   fica; com o app aberto, nada se escreve (ele reescreve o conf ao sair); e
-#   vestido por ela (P53, achado 3), o conf dela fica, e a linha diz o fato.
+# Agora ele é o escritor: sem tema no app, o tema do pack entra e as duas
+# chaves do conf apontam para ele, e o resto do conf fica; com o app aberto,
+# nada se escreve (ele reescreve o conf ao sair); e vestido por ela, o conf
+# dela fica, e a linha diz o fato.
 falso flatpak
 implantar "$CASA/.local/share/flatpak" org.qbittorrent.qBittorrent
 QB="$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent"
@@ -793,22 +663,8 @@ ficou="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/penden
 conf: $(cat "$QB/qBittorrent.conf")
 pendência antes: $tinha
 pendência depois: $ficou"
-# «NÃO VESTE» SÓ COM O MOTIVO EMBAIXO — 25/09/2026, revisão da P62
-#   A P62 pintou de «não veste» todo 3 de programa instalado, e o motivo só
-#   vinha quando o `conferir` dava linha `--`. Nesta casa — o qBittorrent vestido
-#   por ela, o estado da máquina onde a revisão mediu — a tabela dizia `sim  não
-#   veste` sem linha nenhuma, com o `conferir` dizendo «já está vestido». E o
-#   Discord só com o cliente oficial, cujo `conferir` sai 3 calado, perdia o
-#   motivo que o `detectar` guardou. Sem motivo, o `--` de antes; com ele,
-#   «não veste» e as palavras do módulo na linha de baixo. (A pasta do Vencord
-#   que a seção do Discord deixou sai de cena e volta no fim: sem ela, o Discord
-#   é só o cliente oficial de novo.)
-#   O QBITTORRENT VESTIDO POR FORA TEM MOTIVO — 25/09/2026, P65. A revisão
-#   da P62 o deixou no `--` porque o módulo dizia o estado por `!!` (no stderr,
-#   que a tabela descarta) e `>>`; o OnlyOffice, no mesmo estado, saía com o
-#   dele, que é uma linha `--` do `conferir`. Agora o qBittorrent diz o mesmo
-#   fato pela mesma porta, e a tabela o mostra sem regra nova: «não veste» e a
-#   linha de baixo.
+# Sem motivo, o `--` de antes; com ele, «não veste» e as palavras do módulo na
+# linha de baixo.
 mv "$CASA/.config/Vencord" "$T/vencord-de-lado"
 printf 'PACK="dracula"\nFLAVOR="dracula"\nACCENT="mauve"\nAPPS_ATIVOS="discord,qbittorrent"\n' > "$T/meow8.conf"
 saida="$(env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
@@ -835,12 +691,8 @@ rm -rf "$CASA/.var/app/org.qbittorrent.qBittorrent" "$BIN/flatpak" \
        "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
 
 # --- GNOME Terminal ------------------------------------------------------
-#   O `dconf` de mentira guarda cada chave numa linha do HOME de brinquedo, e
-#   imita os cinco verbos que o módulo usa. O formato do `dump` (as chaves em
-#   ordem, `chave=valor` com as aspas simples do GVariant) é o do dconf de
-#   verdade — conferido uma vez num D-Bus privado com HOME de brinquedo, em
-#   24/09/2026, e não aqui, onde um D-Bus que escapasse chegaria ao banco de
-#   quem roda.
+# O `dconf` de mentira guarda cada chave numa linha do HOME de brinquedo, e
+# imita os cinco verbos que o módulo usa.
 falso gnome-terminal
 cat > "$BIN/dconf" <<'DCONF'
 #!/usr/bin/env python3
@@ -903,8 +755,6 @@ saida="$(mod gnome-terminal reverter)"; rc=$?
 [ "$rc" = 1 ] && [ -z "$(dc read "$GT/default")" ] && [ -z "$(dc read "$GT/list")" ] && [ -z "$(dc dump "$GT/:$UUID/")" ] \
   && ok "gnome-terminal: desfazer devolve o padrão e a lista de fábrica, e apaga o perfil" \
   || falha "gnome-terminal: desfazer deixou sobra (rc=$rc)" "$saida$(cat "$CASA/.dconf-de-mentira" 2>&1)"
-# O perfil de fábrica com cores próprias é o que o tema de antes deixou na
-# máquina onde esta sprint nasceu: é escolha dela, e fica.
 dc write "$GT/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9/use-theme-colors" false
 dc write "$GT/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9/visible-name" "'Dracula'"
 saida="$(mod gnome-terminal aplicar)"; rc=$?
@@ -912,15 +762,6 @@ saida="$(mod gnome-terminal aplicar)"; rc=$?
   && ok "gnome-terminal: um perfil padrão com cores próprias fica, e vira pendência (rc=3)" \
   || falha "gnome-terminal: trocou o perfil padrão dela (rc=$rc)" "$saida"
 
-# ---------------------------------------------------------------------------
-# 9. O `.desktop` DO HOME VOLTA A 644 — E O DOCTOR CONFERE
-# ---------------------------------------------------------------------------
-# O caso que o hook do apt do tema de antes consertava, e que saiu com ele em
-# 24/09/2026: `.desktop` em `~/.local/share/applications` com 600. Quem conserta
-# agora é o `scripts/nomes_apps.sh` (o doctor o confere com `--conferir` e o
-# conserta com `--sem-sudo`). O mapa de nomes é de brinquedo e VAZIO: o teste
-# mede a permissão, e um nome encurtado chamaria o `meow_lancador_reler`, que
-# derruba o lançador da sessão de quem roda.
 AP="$T/casa9/.local/share/applications"
 mkdir -p "$AP"
 for n in seiscentos seiscentos-e-quarenta-e-quatro setecentos; do
@@ -955,14 +796,8 @@ saida="$(nomes --aplicar --so-flatpak)"; rc=$?
   && ok "permissão: o gatilho do flatpak (--so-flatpak) também conserta — é o evento que deixa o 600" \
   || falha "permissão: o --so-flatpak não consertou (rc=$rc)" "$saida"
 # O chmod que falha é erro, mas não pode calar o lançador: com um nome encurtado
-# na mesma passada, o `meow_lancador_reler` roda antes do erro (revisão da P42,
-# 24/09/2026). O `chmod` de mentira falha só no `trava.desktop`.
-#   O LANÇADOR É DE MENTIRA, E HÁ DOIS — 24/09/2026, depois do conserto do
-#   `meow_lancador_reler`: ele deixou de ser `pkill -f` na máquina inteira e
-#   passou a mirar só o processo deste usuário E deste HOME. Então a prova é o
-#   comportamento: um `cosmic-launcher` de mentira com o HOME da casa tem de
-#   morrer, e um com outro HOME tem de continuar vivo. O de quem roda o teste
-#   (HOME de verdade) está no mesmo caso do segundo.
+# na mesma passada, o `meow_lancador_reler` roda antes do erro. O `chmod` de
+# mentira falha só no `trava.desktop`.
 BIN9="$T/bin9"; mkdir -p "$BIN9"
 printf '#!/bin/sh\ncase "$*" in *trava.desktop*) exit 1 ;; esac\nexec %s "$@"\n' "$(command -v chmod)" > "$BIN9/chmod"
 chmod +x "$BIN9/chmod"
@@ -988,18 +823,7 @@ kill "$(cat "$T/pid-casa9")" "$(cat "$T/pid-outra9")" 2>/dev/null
   && ok "lançador: o reler só alcança o lançador desta casa — o de outro HOME ficou vivo" \
   || falha "lançador: o reler matou o lançador de outro HOME — o sinal saiu da casa"
 
-# ---------------------------------------------------------------------------
-# 8. O DESFAZER DO OBSIDIAN SÓ VOLTA O QUE É DELE, E EM TODOS OS COFRES
-# ---------------------------------------------------------------------------
-# POR QUE ESTA SEÇÃO NASCEU — 24/09/2026, na revisão da P43
-#   O item 5 da P43 tirou do módulo o cofre escrito por extenso: o cofre passou
-#   a sair do `obsidian.json`, o que o Obsidian abriu por último. O `aplicar`
-#   ficou certo. O `reverter` herdou a mesma pergunta e ficou errado: com o
-#   cofre A tematizado, bastava a pessoa abrir o cofre B e escolher ali um tema
-#   dela para o desfazer ir ao B — zerava o `cssTheme` dela, tirava o snippet,
-#   sem backup, dizia que tinha tirado o tema e deixava o A tematizado. Com o
-#   doctor diário tematizando o cofre da vez, o `--uninstall` deixava o tema em
-#   todos os cofres de antes.
+# O `aplicar` ficou certo.
 #
 #   A casa de brinquedo tem DOIS cofres, de nomes inventados, e três tempos:
 #     1. o `aplicar` tematiza o A, o único que o obsidian.json conhece;
@@ -1008,12 +832,6 @@ kill "$(cat "$T/pid-casa9")" "$(cat "$T/pid-outra9")" 2>/dev/null
 #   O A tem de voltar, arquivo por arquivo, ao que era antes do MeowSystem, e o
 #   appearance.json tematizado tem de ficar num backup. O B tem de ficar byte a
 #   byte como ela o deixou.
-#
-#   O flatpak e o pgrep daqui são de brinquedo: basta existirem, e o pgrep que
-#   sai 1 é "o Obsidian está fechado". Sem ele, um Obsidian aberto na máquina de
-#   quem roda o teste faria o módulo recusar, e a seção falharia por fora. O
-#   XDG_CONFIG_HOME vai para dentro da casa pelo mesmo motivo que o HOME: é por
-#   ali que o módulo acharia o obsidian.json de verdade.
 C="$T/casa7"
 A="$C/Cofre Alfa"
 B="$C/cofre-beta"
@@ -1101,14 +919,7 @@ else
   falha "obsidian: o segundo desfazer não devolveu 0, ou mexeu no B" "$saida"
 fi
 
-# ---------------------------------------------------------------------------
 # 9. A LISTA DO SPICETIFY SE SEPARA POR `|`
-# ---------------------------------------------------------------------------
-# POR QUE ESTA SEÇÃO NASCEU — 24/09/2026, na instalação
-#   O `config-xpui.ini` guarda as listas com `|` (`custom_apps = a|b|c`), e o
-#   `_spot_mp_registrado` procurava `,marketplace,`. Com um CustomApp só, a
-#   lista era a própria palavra e passava; com quatro, a máquina que instalou
-#   em 24/09 ouviu "o spicetify não gravou o custom_apps" com o Marketplace lá.
 CASA9="$T/casa9"; mkdir -p "$CASA9/.config/spicetify"
 spot_registrado() {  # <valor do custom_apps>
   printf '[AdditionalOptions]\ncustom_apps           = %s\n' "$1" > "$CASA9/.config/spicetify/config-xpui.ini"
@@ -1128,39 +939,10 @@ spot_registrado "marketplace-extra|lyrics" && f9+=" [um nome que só começa com
   && ok "spotify: o Marketplace é achado no custom_apps, com a lista separada por |" \
   || falha "spotify: a leitura do custom_apps errou:$f9"
 
-# ---------------------------------------------------------------------------
-# 10. OS APLICATIVOS VESTEM O PACK NO AR — 24/09/2026, sprint P55
-# ---------------------------------------------------------------------------
-# POR QUE ESTA SEÇÃO NASCEU
-#   Medido naquele dia, com o Dracula no ar: o cofre do Obsidian estava com
-#   `cssTheme: "Catppuccin"`, e os módulos do Obsidian, do VS Code e do Heroic só
-#   conheciam o Catppuccin — com outro pack no ar punham o dele, e o do Heroic
-#   parava em erro. O ZapZap dizia «ícone Catppuccin» com qualquer pack. A régua é
-#   a da sprint: com o Catppuccin no ar, o de sempre; com o Dracula, o Dracula ou
-#   pendente com o motivo; com um pack sem tema, nada — e, com outro pack no ar,
-#   nenhum arquivo de configuração deles recebe "catppuccin".
-#
-#   NADA DE REDE. O `curl` é de mentira e entrega `$REDE/<fim da URL>`, como o da
-#   P41 no tests/pack.sh. Os pacotes são de brinquedo no formato real: um .tar.gz
-#   com a pasta do tema, como o GitHub gera para um commit, e um .vsix — um zip
-#   com a pasta `extension/`. O `code` também é de mentira: instala o .vsix (do
-#   arquivo, ou pelo id, de um mercado de brinquedo) desempacotando `extension/`
-#   onde o VS Code desempacota. O Dracula de verdade é pinado pelo sha256 do
-#   pacote de verdade: servido um de brinquedo no lugar, ele TEM de ser recusado.
-#   O caminho feliz da descida é provado no `noite`, um pack de brinquedo que pina
-#   os de brinquedo.
-#
-#   O FLATPAK INSTALADO DA CASA TEM A FORMA DE UM DE VERDADE: a implantação
-#   ativa, `app/<id>/<arquitetura>/<ramo>/active` apontando para a pasta do
-#   commit, e o `current` apontando para o ramo. É a regra de "instalado" que a
-#   P57 (paralela a esta) levou para o `meow_flatpak_tem`, e ela também passa na
-#   de antes. A pasta de dados (`~/.var/app/<id>`) sozinha não conta mais.
+# 10. OS APLICATIVOS VESTEM O PACK NO AR
 
 # OS TRÊS PERGUNTAM AO PACK, SEM O `$( )`, e não estão na lista MIGRADOS da
 # seção 2: eles não leem o que está no ar antes de escrever (a segunda função).
-# Continuam sobrescrevendo o tema do app como sempre fizeram, porque a sprint
-# pediu o Catppuccin igual ao de antes, byte a byte — a leitura do que está no ar
-# é outra conversa, e fica dita aqui para não parecer esquecida.
 for mod in obsidian vscode heroic; do
   arq="$ACERVO/$mod/manifesto.sh"
   if grep -n 'meow_app_tema_do_pack' "$arq" | grep -qv '^[0-9]*: *#' \
@@ -1250,10 +1032,9 @@ vsix10 "$MERCADO10/catppuccin.catppuccin-vsc.vsix" Catppuccin catppuccin-vsc 3.1
 vsix10 "$MERCADO10/catppuccin.catppuccin-vsc-icons.vsix" Catppuccin catppuccin-vsc-icons 1.26.0 \
   '{"iconThemes": [{"id": "catppuccin-mocha"}]}'
 vsix10 "$REDE10/tema-noite.vsix" noite tema-noite 1.0.0 '{"themes": [{"label": "Noite Escura"}]}'
-# A MESMA EXTENSÃO NA LOJA, noutra versão (P79, alerta de segurança do 8f668d0):
-#   o pack importado `noite` pina um .vsix pela URL dele, e o gesto consente
-#   pelo NOME; o que se instala tem de ser o da loja, pelo id — nunca a URL que
-#   o pack escolheu. A versão diferente é o que mostra de onde veio.
+# A MESMA EXTENSÃO NA LOJA, noutra versão: o pack importado `noite` pina um.vsix
+# pela URL dele, e o gesto consente pelo NOME; o que se instala tem de ser o da
+# loja, pelo id — nunca a URL que o pack escolheu.
 vsix10 "$MERCADO10/noite.tema-noite.vsix" noite tema-noite 2.0.0 '{"themes": [{"label": "Noite Escura"}]}'
 mkdir -p "$T10/pacote/noite-obsidian-1a2b"
 printf '.theme-dark { --background-primary: var(--color-base-00); }\n' > "$T10/pacote/noite-obsidian-1a2b/theme.css"
@@ -1263,10 +1044,9 @@ tar -czf "$REDE10/obsidian-noite.tar.gz" -C "$T10/pacote" noite-obsidian-1a2b ||
 SHA_OBS10="$(sha256sum < "$REDE10/obsidian-noite.tar.gz" | cut -d' ' -f1)"
 SHA_VSIX10="$(sha256sum < "$REDE10/tema-noite.vsix" | cut -d' ' -f1)"
 
-# Os packs de brinquedo. O `noite` pina o tema do Obsidian e a extensão do
-# VS Code, e não declara Heroic nem ícones: a herança leva ao Catppuccin, e o
-# módulo tem de recusar. O `sem-apps` não declara aplicativo nenhum. O `torto`
-# declara o que um pack de terceiro não pode mandar (a seção f).
+# Os packs de brinquedo. O `noite` pina o tema do Obsidian e a extensão do VS
+# Code, e não declara Heroic nem ícones: a herança leva ao Catppuccin, e o
+# módulo tem de recusar.
 for p in noite sem-apps torto; do
   cp "$RAIZ/packs/dracula/logo.svg" "$PACKS10/$p/"
   python3 - "$RAIZ/packs/dracula/paleta.json" "$PACKS10/$p/paleta.json" "$p" <<'PY' || exit 2
@@ -1349,9 +1129,8 @@ mudaram_com_catppuccin10() {  # <impressão de antes>
 }
 
 # --- a) COM O CATPPUCCIN NO AR, O DE SEMPRE --------------------------------
-#   Byte a byte, é a comparação da árvore de antes com a de depois que prova
-#   (feita na sprint, numa casa de brinquedo por aplicativo). Aqui ficam as
-#   pontas que a tela e o disco mostram, para a próxima mudança não as mover.
+# Aqui ficam as pontas que a tela e o disco mostram, para a próxima mudança
+# não as mover.
 semear10
 faltam=""
 saida="$(mod10 obsidian aplicar catppuccin mocha)"; rc=$?
@@ -1381,9 +1160,8 @@ saida="$(mod10 zapzap conferir catppuccin mocha)"; rc=$?
   || falha "P55: com o Catppuccin no ar, o de sempre mudou:$faltam"
 
 # --- b) COM O DRACULA NO AR: O DRACULA, OU PENDENTE COM O MOTIVO -----------
-#   Sem rede: o Obsidian e o VS Code ficam pendentes dizendo por quê, e nada
-#   deles é escrito. O Heroic veste o Dracula que ele mesmo traz, só pela chave.
-#   E nenhum arquivo que mudou recebe "catppuccin" — a semente não tem nenhum.
+# Sem rede: o Obsidian e o VS Code ficam pendentes dizendo por quê, e nada deles
+# é escrito. O Heroic veste o Dracula que ele mesmo traz, só pela chave.
 semear10 fonte_grande
 antes="$(impressao10)"
 faltam=""
@@ -1432,13 +1210,9 @@ saida="$saida$(mod10 vscode aplicar dracula dracula)"; rc2=$?
 rm -f "$REDE10/ddb95ec25babe3ef21907b8b612bbdb9fc2904c9.tar.gz" "$REDE10/dracula-theme.theme-dracula-2.25.1.vsix"
 
 # --- c) O TEMA PINADO DESCE, E A TROCA DE PACK LEVA O DE ANTES -------------
-#   A casa sai do Catppuccin para o `noite`. O Obsidian baixa uma vez, confere,
-#   veste; o snippet com o nome de outro pack sai (o do Catppuccin também, agora
-#   que ele é o outro). O VS Code instala do .vsix e devolve ao de fábrica os
-#   ícones que o Catppuccin deixou. A segunda passada não toca a rede. O desfazer
-#   do Obsidian leva o de antes e o de agora, com a pasta do que desceu (o que é
-#   nosso ali são os bytes); o do VS Code tira a extensão do pack no ar, devolve
-#   as duas chaves ao de fábrica, e deixa as do Catppuccin (ver a seção e).
+# A casa sai do Catppuccin para o `noite`. O Obsidian baixa uma vez, confere,
+# veste; o snippet com o nome de outro pack sai (o do Catppuccin também, agora
+# que ele é o outro).
 semear10
 mod10 obsidian aplicar catppuccin mocha >/dev/null
 mod10 vscode aplicar catppuccin mocha >/dev/null
@@ -1452,26 +1226,20 @@ saida="$(mod10 obsidian conferir noite dracula)$(mod10 obsidian aplicar noite dr
 [ "$rc" = 0 ] && [ "$(chamadas10)" = 1 ] && printf '%s' "$saida" | grep -q 'obsidian: Noite já aplicado' \
   || faltam+=" obsidian na segunda passada (rc=$rc, chamadas=$(chamadas10): $saida);"
 rm -f "$REDE10/.chamadas"
-# DECISÃO 9 (10/10/2026, P79): o `noite` é pack IMPORTADO (mora no MEOW_PACKS,
-#   fora do `packs/` do repositório), e extensão é código que roda a cada
-#   abertura do editor. Sem o gesto, nada desce e nada é instalado: a extensão
-#   que ele pede fica dita numa pendência com botão, e o settings.json não muda.
-#   O gesto numa OUTRA extensão não vale por esta.
+# DECISÃO 9: o `noite` é pack IMPORTADO (mora no MEOW_PACKS, fora do `packs/` do
+# repositório), e extensão é código que roda a cada abertura do editor.
 antes_vsc="$(cat "$VSC10")"
 saida="$(mod10 vscode aplicar noite dracula)$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=outro.tema)"; rc=$?
 [ "$rc" = 3 ] && [ "$(chamadas10)" = 0 ] && [ ! -e "$CASA10/.vscode/extensions/noite.tema-noite-1.0.0" ] \
   && [ "$(cat "$VSC10")" = "$antes_vsc" ] \
   && grep -q '^vscode-extensao-de-terceiro	.*noite\.tema-noite' "$T10/estado/pendencias.tsv" 2>/dev/null \
   || faltam+=" vscode instalou extensão de pack importado sem o gesto (rc=$rc, chamadas=$(chamadas10): $saida);"
-# [Conferência da P79: a extensão que espera o gesto é pendência, e não
-#   divergência — o doctor não promete um conserto que o `--consertar` não faz.]
 saida="$(mod10 vscode conferir noite dracula)"; rc=$?
 [ "$rc" = 3 ] && printf '%s' "$saida" | grep -q 'noite.tema-noite, do pack importado .* espera o seu gesto' \
   || faltam+=" o conferir chama de divergência a extensão que espera o gesto (rc=$rc: $saida);"
 # O BOTÃO DO GESTO, NO PAINEL: a pendência traz um botão por extensão que o
-#   pack no ar pede, com o selo de rede; a ação só aceita uma extensão da lista
-#   e a entrega ao módulo pelo ambiente. Com o Dracula (do repositório) no ar a
-#   lista é vazia: pack do motor não precisa de gesto.
+# pack no ar pede, com o selo de rede; a ação só aceita uma extensão da lista e
+# a entrega ao módulo pelo ambiente.
 gesto10() {  # <PACK> — imprime o que o painel diria; o trabalho não nasce
   printf 'PACK="%s"\nFLAVOR="dracula"\n' "$1" > "$T10/gesto.conf"
   env -i PATH="$PATH" HOME="$CASA10" XDG_DATA_HOME="$CASA10/.local/share" MEOW_PACKS="$PACKS10" \
@@ -1535,11 +1303,8 @@ saida="$(mod10 obsidian reverter noite dracula)$(mod10 vscode reverter noite dra
   || falha "P55: a troca de pack com o tema pinado:$faltam"
 
 # --- d) PACK SEM TEMA: NADA, E O MOTIVO ------------------------------------
-#   O `sem-apps` herda do Catppuccin e não declara aplicativo nenhum. O que a
-#   herança traz é recusado, dito, e a casa fica como estava.
-#   [Revisão da P55, 25/09/2026: a frase do Heroic mostrava o molde cru, «o que a
-#   herança traz é o 'catppuccin-dracula-<accent>.css'». O `<accent>` é deste
-#   módulo expandir, e a frase diz o nome que o molde daria.]
+# O `sem-apps` herda do Catppuccin e não declara aplicativo nenhum. O que a
+# herança traz é recusado, dito, e a casa fica como estava.
 semear10
 antes="$(impressao10)"
 faltam=""
@@ -1561,11 +1326,8 @@ saida="$(env -i PATH="$BIN10:$PATH" HOME="$CASA10" XDG_CONFIG_HOME="$CASA10/.con
            NO_COLOR=1 APPS_ATIVOS=obsidian,vscode,heroic "$RAIZ/scripts/aplicar_apps.sh" conferir </dev/null 2>&1)"
 [ "$(printf '%s\n' "$saida" | grep -c 'sem tema neste pack (Sem Apps)')" = 3 ] \
   || faltam+=" meow apps conferir não disse três vezes «sem tema neste pack» ($saida);"
-# E A TABELA TAMBÉM — 25/09/2026, sprint P62 (a nota 7 da reconferência da P55).
-#   O `meow apps` sem verbo, que é o «Quais programas estão vestidos» do painel,
-#   pintava os três de `--`. O motivo vem na quinta coluna do TSV, a CLI o põe
-#   embaixo da linha, e a coluna do tema diz «não veste». Tabela é leitura: a
-#   casa não muda.
+# O `meow apps` sem verbo, que é o «Quais programas estão vestidos» do painel,
+# pintava os três de `--`.
 printf 'PACK="sem-apps"\nFLAVOR="dracula"\nACCENT="mauve"\nAPPS_ATIVOS="obsidian,vscode,heroic"\n' \
   > "$T10/meow.conf"
 saida="$(env -i PATH="$BIN10:$PATH" HOME="$CASA10" XDG_CONFIG_HOME="$CASA10/.config" \
@@ -1582,12 +1344,9 @@ saida="$(env -i PATH="$BIN10:$PATH" HOME="$CASA10" XDG_CONFIG_HOME="$CASA10/.con
   && ok "P55: pack sem tema para o app não aplica o de outro pack — diz «sem tema neste pack», no módulo e no meow apps, e não escreve" \
   || falha "P55: pack sem tema:$faltam"
 
-# --- d2) O DOCTOR DIZ O QUE O MÓDULO DO HEROIC GRAVA — 25/09/2026, P62 ------
-#   O `heroictema` dizia «o módulo grava com o .css» com qualquer pack, e com o
-#   Dracula no ar o módulo grava o tema que o Heroic já traz, sem extensão. A
-#   frase sai do pack no ar, pela porta do módulo; com o Catppuccin é a de
-#   antes, palavra por palavra. O `app.asar` é de brinquedo: tem a linha que o
-#   verificador procura, ou não tem.
+# --- d2) O DOCTOR DIZ O QUE O MÓDULO DO HEROIC GRAVA ------
+# O `heroictema` dizia «o módulo grava com o .css» com qualquer pack, e com o
+# Dracula no ar o módulo grava o tema que o Heroic já traz, sem extensão.
 asar10="$CASA10/.local/share/flatpak/app/com.heroicgameslauncher.hgl/current/active/files/bin/heroic/resources"
 chk10() {  # <PACK> <FLAVOR> — o `chk_heroictema` do bin/meow, recortado, nesta casa
   env -i PATH="$BIN10:$PATH" HOME="$CASA10" XDG_DATA_HOME="$CASA10/.local/share" \
@@ -1613,11 +1372,7 @@ saida="$(chk10 dracula dracula)"; rc=$?
 saida="$(chk10 sem-apps dracula)"; rc=$?
 [ "$rc" = 0 ] && printf '%s' "$saida" | grep -qF 'o módulo não grava nada com o pack no ar: sem tema neste pack (Sem Apps)' \
   || faltam+=" sem tema no pack a frase não diz (rc=$rc: $saida);"
-# QUEM CLASSIFICA É O MÓDULO — revisão da P62, no mesmo dia. A primeira versão
-#   reescrevia no doctor a regra do `_heroic_do_pack`, e as duas se afastavam num
-#   pack que pede um `.css` fora do acervo: o doctor dizia «o módulo grava com o
-#   .css, e está certo», e o módulo recusa e não grava nada. A frase agora é a
-#   recusa do módulo, com as palavras dele.
+# A frase agora é a recusa do módulo, com as palavras dele.
 mkdir -p "$PACKS10/css-fora"
 cp "$PACKS10/sem-apps/logo.svg" "$PACKS10/sem-apps/paleta.json" "$PACKS10/css-fora/"
 printf '{"formato": 1, "id": "css-fora", "nome": "Css Fora", "heranca": "catppuccin",
@@ -1641,10 +1396,9 @@ saida="$(chk10 catppuccin mocha)"; rc=$?
   || falha "P62: o heroictema:$faltam"
 
 # --- e) O DESFAZER DO VS CODE TIRA SÓ AS EXTENSÕES DO PACK NO AR -----------
-#   Estar instalada não diz de quem é a extensão: a de outro pack pode ter sido
-#   posta por ela (a do Dracula, o script dela instala sozinho). Com o Catppuccin
-#   no ar, o desfazer tira as duas do Catppuccin, como antes da P55, e a do outro
-#   pack fica. O `code` de mentira instala do arquivo, como ela instalaria.
+# Estar instalada não diz de quem é a extensão: a de outro pack pode ter sido
+# posta por ela (a do Dracula, o script dela instala sozinho). O `code` de
+# mentira instala do arquivo, como ela instalaria.
 semear10
 mod10 vscode aplicar catppuccin mocha >/dev/null
 env HOME="$CASA10" MERCADO="$MERCADO10" "$BIN10/code" --install-extension "$REDE10/tema-noite.vsix"
@@ -1658,11 +1412,9 @@ saida="$(mod10 vscode reverter catppuccin mocha)"; rc=$?
   || falha "P55: o desfazer do VS Code mexeu na extensão de outro pack, ou não tirou as do Catppuccin (rc=$rc)" "$saida"
 
 # --- f) O NOME E O ID QUE O PACK ESCREVE PASSAM PELA RÉGUA -----------------
-#   O nome do tema do Obsidian vira pasta no cofre, e o id da extensão vai para
-#   a linha de comando do `code` — e quem os escreve é o pack, que pode ser de
-#   terceiro. O `torto` pede `..` (a pasta de cima de `themes/`) e um id que o
-#   CLI leria como opção: os dois viram pendência dita, e nada é escrito — nem
-#   pelo desfazer, que pergunta as extensões ao mesmo pack.
+# O nome do tema do Obsidian vira pasta no cofre, e o id da extensão vai para a
+# linha de comando do `code` — e quem os escreve é o pack, que pode ser de
+# terceiro.
 semear10
 mod10 vscode aplicar catppuccin mocha >/dev/null
 saida="$(mod10 obsidian aplicar torto dracula)"; rc1=$?
@@ -1679,17 +1431,9 @@ $(mod10 vscode reverter torto dracula)"; rc3=$?
   || falha "P55: um nome ou id torto do pack passou (obsidian=$rc1, vscode=$rc2, desfazer=$rc3)" "$saida"
 
 # --- g) O SNIPPET É DE OUTRO PACK SÓ QUANDO TRAZ O ID INTEIRO --------------
-#   Revisão da P55 (25/09/2026). A régua comparava por PEDAÇO de texto com o id
-#   de toda pasta que tivesse um pack.json — e o painel importa um CSV com o nome
-#   do arquivo como id: `Mar.csv` vira o pack `mar`. Medido com ele no disco e o
-#   Catppuccin no ar: dos quatro snippets ligados (`markdown-tables`,
-#   `margin-fix`, `summary-cards`, `fonte`) sobrava o `fonte`; e uma pasta `e`
-#   com `{}` no pack.json desmarcava o `meu_realce` e o `fonte`. O doctor de hora
-#   em hora desmarcava snippets dela que não têm nada com pack nenhum. Agora o id
-#   conta como PALAVRA do nome (o que separa as palavras é o que não é letra nem
-#   dígito — o hífen do id também), e só o de pack que passa no `validar`: a
-#   pasta `realce`, com `{}`, prova isso, porque `realce` é palavra do
-#   `meu_realce`. O desfazer nomeia os desmarcados pela mesma régua.
+# A régua comparava por PEDAÇO de texto com o id de toda pasta que tivesse um
+# pack.json — e o painel importa um CSV com o nome do arquivo como id: `Mar.csv`
+# vira o pack `mar`.
 mkdir -p "$PACKS10/mar" "$PACKS10/realce"
 cp "$PACKS10/sem-apps/logo.svg" "$PACKS10/sem-apps/paleta.json" "$PACKS10/mar/"
 printf '{"formato": 1, "id": "mar", "nome": "Mar", "heranca": "catppuccin",
@@ -1724,14 +1468,8 @@ saida="$(mod10 obsidian reverter catppuccin mocha)"; rc=$?
   || falha "P55: a régua do snippet:$faltam"
 
 # --- h) A EXTENSÃO QUE ESTÁ NO EDITOR TEM DE TRAZER O TEMA -----------------
-#   Revisão da P55 (25/09/2026). A 2.25 do Dracula renomeou o tema de «Dracula»
-#   para «Dracula Theme» (ver o PROCEDENCIA.md), e o módulo só baixava quando a
-#   extensão FALTA. Medido com uma 2.24.3 de brinquedo e o Dracula no ar: o
-#   `aplicar` gravava «Dracula Theme», avisava uma vez, e o `conferir` dizia «já
-#   no lugar» dali em diante, com o editor no tema de fábrica. Agora a versão que
-#   não traz o tema não conta como no lugar: com pino, o pacote pinado entra por
-#   cima — uma vez só, mesmo com a pasta velha ao lado, como o `code` de mentira
-#   a deixa —; sem pino, é pendência dita, e nada é escrito.
+# A 2.25 do Dracula renomeou o tema de «Dracula» para «Dracula Theme» (ver o
+# PROCEDENCIA.md), e o módulo só baixava quando a extensão FALTA.
 semear10
 vsix10 "$T10/tema-noite-0.9.vsix" noite tema-noite 0.9.0 '{"themes": [{"label": "Noite"}]}'
 env HOME="$CASA10" MERCADO="$MERCADO10" "$BIN10/code" --install-extension "$T10/tema-noite-0.9.vsix"
@@ -1740,11 +1478,6 @@ faltam=""
 saida="$(mod10 vscode conferir noite dracula)"; rc=$?
 [ "$rc" = 1 ] && printf '%s' "$saida" | grep -q "tema-noite@0.9.0 não contribui o tema 'Noite Escura' (tem: Noite)" \
   || faltam+=" conferir com a versão velha (rc=$rc: $saida);"
-# [P79: o `noite` é importado, e o pino dele (a URL do .vsix) não vale — só o
-#   do pack do repositório vale (alerta de segurança do 8f668d0). Sem pino, a
-#   versão sem o tema é pendência dita, nem com o gesto nada desce, e nada é
-#   escrito. O pino que entra por cima uma vez só segue provado pelo Dracula,
-#   do repositório, na seção b («o pacote que não é o pinado é recusado»).]
 antes="$(impressao10)"
 saida="$(mod10 vscode aplicar noite dracula MEOW_VSCODE_EXTENSAO=noite.tema-noite)"; rc=$?
 [ "$rc" = 3 ] && [ "$(chamadas10)" = 0 ] && printf '%s' "$saida" | grep -q 'atualize a extensão pelo editor' \
@@ -1762,14 +1495,10 @@ saida="$(mod10 vscode aplicar catppuccin mocha)"; rc=$?
   && ok "P55: a extensão que está no editor e não traz o tema do pack não conta como no lugar — sem pino que valha, pendência e nada escrito" \
   || falha "P55: a extensão sem o tema:$faltam"
 
-# --- i) A ORIGEM PELA REGRA DA P41, E O DESFAZER LEVA TUDO O QUE DESCEU -----
-#   Revisão da P55 (25/09/2026). A forma da origem do Obsidian era uma cópia, em
-#   shell, da regra do `origem_pinada` do scripts/pack.py, e a cópia não conferia
-#   a extensão do pacote: medido com uma URL .zip de sha256 certo, o módulo
-#   baixava e parava em «pacote corrompido» (2). Agora quem confere é a regra
-#   única, antes de tocar a rede. E o desfazer levava o tema baixado mas deixava
-#   a pasta dele, e a sobra de uma descida interrompida (`.meow-descendo.*`)
-#   ficava para sempre — nem ele nem o `--uninstall` olhavam pastas com ponto.
+# A forma da origem do Obsidian era uma cópia, em shell, da regra do
+# `origem_pinada` do scripts/pack.py, e a cópia não conferia a extensão do
+# pacote: medido com uma URL.zip de sha256 certo, o módulo baixava e parava em
+# «pacote corrompido»
 mkdir -p "$PACKS10/zipado"
 cp "$PACKS10/sem-apps/logo.svg" "$PACKS10/sem-apps/paleta.json" "$PACKS10/zipado/"
 (cd "$T10/pacote" && python3 -c 'import sys, zipfile
@@ -1802,15 +1531,11 @@ saida="$(mod10 obsidian reverter noite dracula)"; rc=$?
   && ok "P55: a origem do Obsidian passa pela regra da P41 antes da rede, e o desfazer leva a pasta do que desceu, com a sobra" \
   || falha "P55: a origem e o que desceu:$faltam"
 
-# --- j) O VS CODE CONTA SÓ O PACK QUE PASSA NO VALIDAR — 25/09/2026, P61 ----
-#   A régua do «tema de ícones de outro pack» do VS Code contava toda pasta com
-#   um pack.json, sem o `validar` — a régua que a revisão da P55 tirou do snippet
-#   do Obsidian (a seção g). Medido com uma pasta `torta`, cujo pack.json não
-#   passa no `validar` (falta o `formato`) e declara o tema de ícones
-#   `icones-dela`, e o settings.json dela nesse tema: o `aplicar` com o `noite`
-#   no ar (que não traz ícones) o trocava pelo `vs-seti` de fábrica. A régua dos
-#   dois é agora uma só, a lista de packs válidos do lib/comum.sh: nenhum dos
-#   dois manifestos chama o `validar` do pack.py por conta própria.
+# --- j) O VS CODE CONTA SÓ O PACK QUE PASSA NO VALIDAR ----
+# Medido com uma pasta `torta`, cujo pack.json não passa no `validar` (falta o
+# `formato`) e declara o tema de ícones `icones-dela`, e o settings.json dela
+# nesse tema: o `aplicar` com o `noite` no ar (que não traz ícones) o trocava
+# pelo `vs-seti` de fábrica.
 mkdir -p "$PACKS10/torta"
 printf '{"apps": {"vscode-icones": {"esquema": "icones-dela", "origem": {"extensao": "dela.icones"}}}}\n' \
   > "$PACKS10/torta/pack.json"
@@ -1834,17 +1559,10 @@ done
   && ok "P61: o tema de ícones que só um pack inválido declara não é de pack nenhum, e a régua dos packs válidos é uma só" \
   || falha "P61: o VS Code e o pack inválido:$faltam"
 
-# --- k) O OBSIDIAN NÃO DEIXA PASTA VAZIA NEM SOBRA — 25/09/2026, P61 --------
-#   Sem rede, o `aplicar` criava a pasta do que desce (o `mkdir` vem antes da
-#   descida, e tem de vir: o palco mora nela) e a deixava vazia; o desfazer,
-#   sem nada nosso para tirar, dizia «já estava sem o Dracula» e a deixava. E a
-#   sobra de uma descida interrompida (`.meow-descendo.*`) sobrevivia a um
-#   `aplicar` que descia de novo. Agora a descida que não entra leva a pasta,
-#   se ela ficou vazia; o desfazer leva a pasta vazia que uma versão de antes
-#   deixou; e toda descida leva as sobras das anteriores.
-#   [P65: e as mães dela, `meowsystem/temas-de-apps/` e `meowsystem/`, que o
-#   `mkdir -p` cria numa casa nova e ficavam vazias depois do aplicar sem rede.
-#   A casa do `semear10` é nova, sem `meowsystem/` nenhum.]
+# --- k) O OBSIDIAN NÃO DEIXA PASTA VAZIA NEM SOBRA --------
+# Sem rede, o `aplicar` criava a pasta do que desce (o `mkdir` vem antes da
+# descida, e tem de vir: o palco mora nela) e a deixava vazia; o desfazer, sem
+# nada nosso para tirar, dizia «já estava sem o Dracula» e a deixava.
 faltam=""
 semear10
 saida="$(mod10 obsidian aplicar dracula dracula)"; rc=$?

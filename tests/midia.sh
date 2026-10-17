@@ -1,39 +1,16 @@
 #!/usr/bin/env bash
 # O applet de mídia: as seis afirmações do módulo, num HOME de brinquedo.
 #
-# POR QUE ESTE TESTE PRECISA EXISTIR — E POR QUE OS QUE JÁ HAVIA NÃO SERVEM
-#   `tests/seco.sh:16` e `tests/convergencia.sh:24` rodam o instalador debaixo de
-#   `env -i HOME=<falso>`. Nesse ambiente o shim do rustup FALHA — a mensagem é
-#   `rustup could not choose a version of cargo to run` — e a etapa do applet cai
-#   em FALHOS/PULADOS sem executar uma linha do caminho de verdade. Pior no
-#   `convergencia.sh`, que só faz `grep` de `mexeu:`: uma etapa que nunca escreve
-#   porque nunca chega a rodar aparece como etapa CONVERGIDA. O teste ficaria
-#   VERDE sem exercitar o carimbo, a sombra ou o fail-safe.
+# `tests/seco.sh:16` e `tests/convergencia.sh:24` rodam o instalador debaixo de
+# `env -i HOME=<falso>`.
 #
-#   Fingir cobertura é pior que não ter teste: o verde some da lista de dúvidas.
-#   Por isso este arquivo não instala nada de verdade — ele arma o estado no
-#   disco com um binário FALSO e mede o que os dois scripts fazem com ele.
+# Fingir cobertura é pior que não ter teste: o verde some da lista de dúvidas.
 #
-# ELE NUNCA COMPILA, E ISSO É REGRA E NÃO ECONOMIA
-#   `MIDIA_COMPILAR=1` aparece aqui uma vez só, e sempre acompanhado de
-#   `MEOW_DRY_RUN=1` — no seco o `midia_build.sh` força `--conferir` (a trava da
-#   linha 77 dele), então o caminho do `cargo` é inalcançável. Uma compilação de
-#   verdade custa ~91s e ~1,5 GB de download; um teste que faz isso é um teste
-#   que ninguém roda.
+# `MIDIA_COMPILAR=1` aparece aqui uma vez só, e sempre acompanhado de
+# `MEOW_DRY_RUN=1` — no seco o `midia_build.sh` força `--conferir` (a trava da
+# linha 77 dele), então o caminho do `cargo` é inalcançável.
 #
-# AS SEIS AFIRMAÇÕES
-#   1. o seco não escreve um byte — nem o `.rustup/settings.toml`;
-#   2. a segunda aplicação devolve 0: a comparação é por CONTEÚDO;
-#   3. sombra órfã é removida, porque sombra sem binário = dock SEM applet;
-#   4. `MIDIA="nao"` DESLIGA (não é só "deixar de instalar");
-#   5. valor inválido é recusado com aviso, e não gravado;
-#   6. o `--reverter` tira a sombra ANTES do binário, e as chaves dela ficam.
-#
-# UM HOME DE BRINQUEDO, SEMPRE
-#   O território real é a dock dela. Os dois scripts respeitam `HOME`,
-#   `XDG_DATA_HOME`, `XDG_CONFIG_HOME`, `XDG_CACHE_HOME` e `MEOW_ESTADO`; todos
-#   os cinco são apontados para dentro do `mktemp -d` e o `env -i` corta o resto,
-#   para que um `XDG_DATA_HOME` de fora não leve uma escrita para a casa dela.
+# O território real é a dock dela.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 H="$(mktemp -d)"; trap 'rm -rf "$H"' EXIT
@@ -94,12 +71,9 @@ chave_vale() {                    # chave_vale <nome> <valor esperado>
 
 # =============================================================================
 caso "1. o seco não escreve um byte, nem o .rustup/settings.toml"
-# =============================================================================
 # A guarda que está sendo medida é o `_rustc_versao` do `midia_build.sh`: ele
 # devolve VAZIO no seco justamente porque `rustc` aqui é um shim do rustup que,
-# sob `env -i`, falha E AINDA ASSIM escreve `~/.rustup/settings.toml`. Um
-# `rustc -V` inocente no caminho do `--conferir` faria um script que promete não
-# escrever nada nascer um arquivo no HOME.
+# sob `env -i`, falha E AINDA ASSIM escreve `~/.rustup/settings.toml`.
 zerar
 antes="$(arquivos)"
 
@@ -110,10 +84,7 @@ saida="$(correr MEOW_DRY_RUN=1 midia.sh)"; rc=$?
 [ "$rc" = "3" ] || reclamar "midia.sh no seco, sem binário, devolveu rc=$rc (esperado 3)" "$saida"
 
 # Agora COM binário e COM carimbo, que é a única forma de o `_carimbo_bate`
-# chegar a chamar o `_rustc_versao`. O carimbo bate em patch/commit/binário e
-# mente no rustc de propósito: se a guarda do seco sumisse, o campo vivo entraria
-# na comparação e o rc viraria 1. Devolver 0 é a prova de que a linha rodou e o
-# campo foi pulado.
+# chegar a chamar o `_rustc_versao`.
 binario_falso
 comm_pino="$( set +u; . "$RECEITA/PINO" >/dev/null 2>&1; printf '%s' "${COMMIT:-}" )"
 [ -n "$comm_pino" ] || reclamar "não consegui ler COMMIT de $RECEITA/PINO"
@@ -146,13 +117,9 @@ fecha
 
 # =============================================================================
 caso "2. a segunda aplicação devolve 0 (comparação por conteúdo)"
-# =============================================================================
 # Com `MIDIA_COMPILAR` desligado e um binário falso no lugar, o `midia.sh` roda
 # inteiro: escreve as três chaves e a sombra pela `meow_escrever`, e na segunda
-# passagem tem de reconhecer o próprio trabalho. É aqui que mora o erro que já
-# custou a este projeto um `--conferir` gritando 123 divergências num tema
-# correto: a `meow_escrever` grava com `printf '%s'` e come o `\n` final, então
-# quem comparar com `cmp` acusa divergência para sempre.
+# passagem tem de reconhecer o próprio trabalho.
 zerar; binario_falso
 
 saida="$(correr midia.sh)"; rc=$?
@@ -179,12 +146,7 @@ fecha
 
 # =============================================================================
 caso "3. sombra órfã é removida (o pior modo de falha da família)"
-# =============================================================================
-# Sombra presente + binário ausente = NENHUM applet na dock. O cosmic-panel casa
-# pelo BASENAME do `.desktop` e CONSOME o slot no primeiro acerto: ele nunca
-# chega a tentar o export do flatpak, e ela fica com um BURACO — não com o
-# applet de fábrica. Acontece de graça (um `rm`, um BleachBit, um disco cheio no
-# meio de um build), e é por isso que o `--aplicar` APAGA neste caso.
+# Sombra presente + binário ausente = NENHUM applet na dock.
 zerar; binario_falso
 correr midia.sh >/dev/null
 rm -f "$BIN"
@@ -206,10 +168,6 @@ fecha
 
 # =============================================================================
 caso "4. MIDIA=\"nao\" desliga de verdade"
-# =============================================================================
-# Deixar de instalar não é desligar: a sombra que a execução de ontem escreveu
-# continuaria de pé, e o sintoma seria "desliguei e continua" — o pior de todos,
-# porque não há onde olhar.
 zerar; binario_falso
 correr midia.sh >/dev/null
 
@@ -234,10 +192,6 @@ fecha
 
 # =============================================================================
 caso "5. valor inválido é recusado com aviso, e não gravado"
-# =============================================================================
-# Uma largura de 5000 sairia do clamp do próprio applet e voltaria ao padrão sem
-# nada avisar — e a conferência gritaria divergência para sempre, contra um
-# arquivo que o applet nunca vai obedecer.
 zerar; binario_falso
 
 saida="$(correr MIDIA_LARGURA=5000 midia.sh)"; rc=$?
@@ -272,11 +226,8 @@ fecha
 
 # =============================================================================
 caso "6. o --reverter tira a sombra ANTES do binário"
-# =============================================================================
 # A ordem é metade do valor da reversão: a sombra sai primeiro para que o
-# flatpak reassuma o slot; só depois o binário. O contrário abriria — mesmo que
-# por milissegundos — exatamente o buraco que o fail-safe do caso 3 existe para
-# tapar.
+# flatpak reassuma o slot; só depois o binário.
 zerar; binario_falso
 correr midia.sh >/dev/null
 [ -f "$SOMBRA" ] && [ -x "$BIN" ] || reclamar "não consegui armar o estado do caso 6"
@@ -286,13 +237,11 @@ saida="$(correr midia.sh --reverter)"; rc=$?
 [ -e "$SOMBRA" ] && reclamar "o --reverter deixou a sombra em $SOMBRA" "$saida"
 [ -e "$BIN" ]    && reclamar "o --reverter deixou o binário em $BIN" "$saida"
 # As chaves FICAM: são preferência dela, e o applet do flatpak não as lê.
-# Apagá-las faria uma reinstalação perder a largura e a cor que ela escolheu.
 chave_vale panel-text-width 440
 
 saida="$(correr midia.sh --reverter)"; rc=$?
 [ "$rc" = "0" ] || reclamar "o --reverter sem nada para remover devolveu rc=$rc (esperado 0)" "$saida"
 
-# A ORDEM, E POR QUE ELA É MEDIDA NO CÓDIGO E NÃO NO DISCO
 #   As duas remoções não têm saída antecipada entre elas: com a sombra primeiro
 #   ou com o binário primeiro, o estado FINAL é o mesmo, e o estado
 #   INTERMEDIÁRIO dura microssegundos. Todo jeito de flagrá-lo de fora (deixar um

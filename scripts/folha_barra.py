@@ -1,44 +1,15 @@
 #!/usr/bin/env python3
 # folha_barra.py — a folha dos ícones da BARRA (applets + bandeja).
 #
-# A PERGUNTA DELA, EM 10/08/2026
-#   Depois de unificar os 35 do lançador em Arcticons: "os ícones da tray e do
-#   applet tão sincronizados também?" Não estavam. Medido: dos 30 ícones que os
-#   applets da barra realmente pedem, 26 vinham do Papirus-Dark e 4 do `hicolor`.
-#   ZERO do nosso tema. O `packs/meowsystem/icones/sistema.map` já é Arcticons, mas cobre os
-#   `preferences-*-symbolic`, que são as PÁGINAS do app Ajustes — não a barra.
+# Depois de unificar os 35 do lançador em Arcticons: "os ícones da tray e do
+# applet tão sincronizados também?" Não estavam. ZERO do nosso tema.
 #
-#   Ela escolheu trocar o que tivesse glifo e manter o resto. Esta folha existe
-#   porque a medição feita DEPOIS dessa escolha mudou o que a escolha significa.
-#
-# O ACHADO QUE DERRUBA A TROCA: O ARCTICONS NÃO TEM VOCABULÁRIO DE ESTADO
-#   O pack é de ícones de APLICATIVO Android. Ele tem 14.996 nomes e quase todos
-#   são marcas. Buscando por substring o que faltava:
+# O pack é de ícones de APLICATIVO Android.
 #
 #     mute    -> só `mutereminder`, que é um app
 #     bell    -> `taco-bell`, `mybell`, `bell-smart-home` — todos apps
 #     power   -> `microsoft-powerpoint`, `chargemap`, `apowermirror` — apps
 #     pause · logout · ethernet -> ZERO
-#
-#   Os oito nomes que "casaram" numa primeira contagem (volume, wifi, battery,
-#   bluetooth, lock, moon, next, reboot) existem por acaso: são palavras curtas
-#   que um app qualquer também usa. Nenhum é parte de um conjunto de estados.
-#
-#   E estado é o que a barra É. `audio-volume-high` e `audio-volume-muted` não
-#   são dois ícones: são dois quadros do MESMO ícone. Vestir um e não o outro
-#   faz o desenho trocar de linguagem no instante em que ela aperta mudo — que é
-#   pior que a barra inteira numa linguagem só.
-#
-#   Resultado por família, medido: DEZ famílias, ZERO completas.
-#     volume 3/4 · wifi 3/4 · energia 4/5 · bluetooth 2/3 · rede 1/2 · brilho 1/2
-#     bateria 1/4 · notificação 1/3 · mídia 1/3 · microfone 0/2
-#
-# O QUE A FOLHA MOSTRA, ENTÃO
-#   Os dois lados honestos, no tamanho real da barra (20 px, medido no
-#   `icones_bandeja.sh`) e ampliado a 64 px para a vista: o Papirus symbolic de
-#   hoje e o Arcticons onde ele existe — com o buraco marcado em vermelho onde
-#   não existe. É para ela ver que o Papirus symbolic JÁ é traço fino
-#   monocromático, e decidir se a diferença que sobra justifica o estrago.
 #
 #   uso: scripts/folha_barra.py [saida.html]
 #        (padrão: ~/Documentos/meow-icones-barra.html)
@@ -49,14 +20,10 @@ import os
 import sys
 
 # PyGObject/Gtk3 não é stdlib, e o badge do README promete "python 3 só stdlib".
-# A promessa vale para o INSTALADOR: nenhuma das folhas é chamada por install.sh,
-# bin/meow ou lib/ — elas são ferramentas de bancada, rodadas à mão por quem está
-# curando ícone. Ainda assim, quem clonasse o repositório e as rodasse recebia um
-# ModuleNotFoundError cru, sem dizer o que instalar. [2026-09-17]
 #
-# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única das
-# quatro que o instalador chama e que já tratava isso: mensagem que diz o que falta
-# e código de saída próprio, em vez de traceback.
+# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única
+# das quatro que o instalador chama e que já tratava isso: mensagem que diz o
+# que falta e código de saída próprio, em vez de traceback.
 MEOW_SEM_DEPENDENCIA = 3
 try:
     import gi
@@ -102,9 +69,7 @@ FAMILIAS = [
         ('system-suspend-symbolic',    'moon',   'suspender'),
         # `arcticons/reboot` foi descartado ao ser RASTERIZADO: o desenho não é
         # uma seta de reinício, é uma FIGURA HUMANA — a marca de algum app
-        # chamado "reboot". É a quarta vez neste projeto que um nome certo
-        # entrega um desenho errado (ver `markdown`, `shop`, `zip` no
-        # `folha_proposta.py`). Conferir o nome no índice nunca basta.
+        # chamado "reboot".
         ('system-reboot-symbolic',     None,     'REINICIAR'),
         ('system-log-out-symbolic',    None,     'SAIR'),
     ]),

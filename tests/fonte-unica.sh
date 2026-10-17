@@ -2,41 +2,10 @@
 # fonte-unica.sh — um nome de ícone, um arquivo de onde ele sai, e esse arquivo
 # mora no repositório.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 23/09/2026 (P28)
-#   A diretriz: "centralizar os SVGs — e alterando lá alteraremos o resto".
-#   Ela só vale se cada ícone tiver UMA fonte, e se essa fonte for um arquivo
-#   daqui. Medido no dia em que a P28 foi escrita: o `net.waterfox.waterfox`
-#   tinha a linha no `apps-resgatados.map` do motor e um `?` comentado no
-#   `apps.map` do pack, e nenhum validador recusava um mapa de pack que
-#   apontasse para `~/.local/share/icons/` — um diretório que outro programa
-#   reescrevia (o `rebuild_dracula_theme()` do Spellbook-OS, 21/09 16:52:33; a
-#   P37 o desativou lá em 23/09, e quem monta o Dracula agora é o pack).
-#
-# O QUE ELE COBRA, REGRA POR REGRA DA P28
-#   1. Um nome, uma fonte — na camada `scalable/apps`, onde dois donos disputam
-#      o MESMO arquivo. Nome com duas fontes é falha; nome sem desenho também.
-#      Desde 24/09/2026 (P43) o pack no ar x o resgate do motor NÃO é empate:
-#      a precedência é declarada no `fontes` do pack.py (o pack vence com
-#      `ICONES_DRACULA="sim"`, o motor sem ele), e o bloco 10 prova os dois
-#      lados pelos instaladores de verdade — inclusive num pack que herda o
-#      Dracula sem declarar mapa, que é o que o `meow pack novo` escreve.
-#   4. Mapa não aponta para fora: pack, `motor:` ou `pack:`, e só.
-#   5. Arte de terceiro entra por cópia, com procedência: o Waterfox tem linha
-#      no PROCEDENCIA.md do pack.
-#   7. `meow icones fonte` responde com o arquivo e com o que deriva dele.
-#   8. `sincronizar` compara e NÃO copia — nem quando a origem andou, nem
-#      quando a cópia foi retocada.
-#
-# "CADA Icon= DA MÁQUINA", E POR QUE ELE NÃO LÊ A MÁQUINA
-#   A sprint escreve a regra 1 sobre os `Icon=` desta máquina. O teste a cobra
-#   sobre os MAPAS, que são o que o repositório promete: ler os `.desktop` de
-#   quem roda faria o placar depender de quais aplicativos estão instalados, e
-#   o CI diria verde ou vermelho por ausência, não por defeito — o que o
-#   `tests/todos.sh` veio proibir. Quem quer a pergunta da máquina tem o
-#   `meow icones fonte <nome>`, que este teste também exercita.
-#
-# CÓDIGOS DE SAÍDA (os do projeto)
-#   0 = tudo cobrado passou · 1 = achados · 2 = erro deste teste.
+# O teste a cobra sobre os MAPAS, que são o que o repositório promete: ler os
+# `.desktop` de quem roda faria o placar depender de quais aplicativos estão
+# instalados, e o CI diria verde ou vermelho por ausência, não por defeito — o
+# que o `tests/todos.sh` veio proibir.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -50,11 +19,8 @@ T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/packs" "$T/xdg" "$T/home"
 
-# O AMBIENTE É DE BRINQUEDO, E A RAZÃO É A LISTA DE RAÍZES
-#   O `pack.py` procura packs em `$MEOW_PACKS`, no `$XDG_DATA_HOME` de quem roda
-#   e no repositório. Sem o XDG de brinquedo, um pack que a pessoa tenha
-#   instalado em `~/.local/share/meowsystem/packs/` entraria na conta, e o
-#   teste mediria a máquina dela em vez do repositório.
+# O `pack.py` procura packs em `$MEOW_PACKS`, no `$XDG_DATA_HOME` de quem roda e
+# no repositório.
 amb() { env MEOW_PACKS="$T/packs" XDG_DATA_HOME="$T/xdg" HOME="$T/home" MEOW_RAIZ="$RAIZ" "$@"; }
 pack_py() { amb python3 "$RAIZ/scripts/pack.py" "$@"; }
 
@@ -66,25 +32,16 @@ pack_de_brinquedo() {
   cp "$RAIZ/packs/dracula/paleta.json" "$d/paleta.json"
   printf '{"formato": 1, "id": "%s", "nome": "%s", "paleta": {"arquivo": "paleta.json"}, "icones": {"apps": {"mapa": "icones/apps.map"}}, "vitrine": {"capa": "logo.svg"}}\n' \
     "$id" "$id" > "$d/pack.json"
-  # A VITRINE ENTROU NO PACK MÍNIMO EM 23/09/2026 — e este teste foi escrito
-  #   em paralelo, pela P28, na mesma leva em que a P15 a tornou obrigatória.
-  #   Sem ela o `validar` recusava o pack de brinquedo por "falta o bloco
-  #   'vitrine'", e a conferência do prefixo `pack:` falhava por um motivo que
-  #   não é o que ela pergunta — medido depois do merge das quatro. O logo sai
-  #   do GERADOR da P25, igual ao tests/pack.sh, e não de um SVG escrito aqui:
-  #   é o que um pack novo de verdade recebe.
-  #   A ORDEM IMPORTA: o `logo-gerado` VALIDA o pack antes de desenhar, e
-  #   recusa um `icones.apps.mapa` declarado que ainda não existe. O mapa
-  #   nasce vazio primeiro; o logo vem depois.
+  # A ORDEM IMPORTA: o `logo-gerado` VALIDA o pack antes de desenhar, e recusa
+  # um `icones.apps.mapa` declarado que ainda não existe. O mapa nasce vazio
+  # primeiro; o logo vem depois.
   : > "$d/icones/apps.map"
   amb python3 "$RAIZ/scripts/pack.py" logo-gerado "$d" > "$d/logo.svg" || return 2
   printf '%s' "$d"
 }
 
 # --- 1. regra 4 e regra 1 nos packs de verdade --------------------------------
-#   O `validar` passou a ler as LINHAS do mapa de aplicativos: alvo fora das
-#   três casas, nome repetido e alvo ausente são recusa. Todo pack do
-#   repositório tem de passar por ele.
+# Todo pack do repositório tem de passar por ele.
 for d in "$RAIZ"/packs/*/; do
   id="$(basename "$d")"
   saida="$(pack_py validar "$id" 2>&1)"; rc=$?

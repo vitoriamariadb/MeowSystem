@@ -1,16 +1,10 @@
-# meow-oraculo-tema — o `ThemeBuilder::build()` do libcosmic, chamado de verdade.
+# meow-oraculo-tema — o `ThemeBuilder::build()` do libcosmic, chamado de
+# verdade.
 #
-# POR QUE ISTO EXISTE (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.5)
-#   Os `scripts/derivar_*.py` são uma CÓPIA em Python da derivação do tema do
-#   libcosmic, feita sobre a revisão c003a58 (29/08/2026). Em 09/10/2026 o
-#   `model/theme.rs` do libcosmic que o cosmic-settings 1.10 pina (5a8bd94) já
-#   diferia em 30 linhas, e uma delas muda cor. Copiar uma revisão não
-#   acompanha o COSMIC; chamar o algoritmo, sim.
+# Os `scripts/derivar_*.py` são uma CÓPIA em Python da derivação do tema do
+# libcosmic, feita sobre a revisão c003a58.
 #
-# A REVISÃO NÃO MORA AQUI: `@REV@` é trocado pelo `scripts/oraculo_tema.sh`
-# pela revisão do libcosmic que o cosmic-settings INSTALADO pina, numa cópia
-# de trabalho em `~/.cache`. Este arquivo é o molde; nunca é compilado no
-# lugar.
+# Este arquivo é o molde; nunca é compilado no lugar.
 [package]
 name = "meow-oraculo-tema"
 version = "0.1.0"

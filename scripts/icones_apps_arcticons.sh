@@ -2,7 +2,6 @@
 # icones_apps_arcticons.sh — os aplicativos do LANÇADOR vestidos em TRAÇO de
 # linha, recolorido na paleta. DOIS acervos entram aqui, e um instalador só sai.
 #
-# DOIS ACERVOS, DESDE 11/08/2026
 #   `packs/meowsystem/icones/apps/arcticons/`    glifos do pack Arcticons, desenhados à mão por
 #                              terceiros. Mapa: `packs/meowsystem/icones/apps-arcticons.map`.
 #   `packs/meowsystem/icones/apps/convertidos/`  a arte do PRÓPRIO aplicativo, convertida de
@@ -10,92 +9,6 @@
 #                              `packs/meowsystem/icones/apps-convertidos.map`. Quem gera é o
 #                              `scripts/construir_convertidos.sh`; aqui ela
 #                              chega pronta e commitada.
-#
-#   A junção é ADITIVA e `_vestido()` NÃO MUDOU uma linha: a conversão sai no
-#   mesmo dialeto do pack (sem `stroke-width`, `stroke="currentColor"`), de
-#   propósito. Conferido: 39 de 39 Arcticons e 25 de 25 convertidos casam com o
-#   regex de injeção abaixo.
-#
-#   E continua havendo UM dono de `48x48/apps`. Um segundo script instalador
-#   seria o laço eterno: cada um veria a arte do outro como órfã, apagaria, e o
-#   `meow fix` alternaria entre os dois estados sem nunca convergir.
-#
-# POR QUE EXISTE UM SEGUNDO SCRIPT DE APLICATIVO
-#   O `icones_apps.sh` só sabe ler `assets/icones/catppuccin-apps/$VARIANTE/*.png` e só
-#   sabe escrever em `512x512/apps`. O Arcticons é outra coisa em tudo: é SVG, é
-#   traço monocromático, e a cor é atribuída por nós a partir da paleta. Enfiar
-#   os dois no mesmo script obrigaria a um `if` por linha do mapa; separar custa
-#   um arquivo e mantém cada caminho dizendo uma coisa só.
-#
-#   O que NÃO se duplicou foi a verdade: são dois mapas porque são dois acervos,
-#   e um nome que aparecesse nos DOIS faz este script ESTOURAR (ver `_conferir_
-#   gemeos`). Duas listas do mesmo aplicativo é o defeito de "dois donos" com
-#   outra roupa.
-#
-# O ARCTICONS É APOIO, NÃO O TEMA PRINCIPAL
-#   Decisão dela, textual, em 08/08/2026: "o arcticons ele vem pra apoiar o outro
-#   tema principal não vem pra ser o tema principal." Ou seja: ele preenche
-#   lacuna. Onde não houver match honesto o ícone FICA no Papirus, e isso é
-#   resultado, não fracasso.
-#
-# O QUE FOI MEDIDO ANTES DE ESCREVER UMA LINHA
-#
-#   1. O DESTINO PRECISA DE DONO ÚNICO, E `scalable/apps` NÃO TEM. Ali escrevem
-#      TRÊS: `completar_icones.sh` (apelidos e desenho autoral), `logo.sh` (os
-#      botões do dock) e o bootstrap do `construir_icones.sh`. Remover órfão lá
-#      apagaria arquivo dos outros. Por isso este script é dono de `48x48/apps`,
-#      diretório que nasce aqui e onde mais ninguém escreve — a mesma disciplina
-#      do `icones_sistema.sh` com `22x22/status` e `scalable/status`.
-#
-#   2. O TAMANHO DO DESTINO NÃO É CHUTE: A DOCK DESENHA A 48 px. Medido em
-#      08/08/2026 na tela dela, sem abrir janela nenhuma — captura de tela e
-#      caixa delimitadora dos ícones da dock por saturação:
-#          x 1063..1109  largura 47   (Chrome)
-#          x  978..1025  largura 48
-#      A dock está em `size L` e é o ÚNICO lugar onde ícone de aplicativo
-#      aparece pequeno: o `plugins_center` do painel de cima não tem
-#      `CosmicAppList`, só applets (que são `status`, e já são da Sprint A).
-#      Papirus usa a mesma convenção — `48x48/apps/*.svg`, `Type=Fixed`.
-#
-#   3. O TRAÇO É **1,75** DESDE 11/08/2026, E O NÚMERO FOI MEDIDO.
-#      O pack desenha num `viewBox="0 0 48 48"` e NÃO declara `stroke-width`; o
-#      padrão SVG é 1, e era isso que estava no ar. Em 11/08/2026 ela olhou o
-#      lançador e pediu: "só engrossaria mais a linha".
-#
-#      Quanto engrossar não foi votado. A régua é a CONTRA-FORMA QUE SOBREVIVE —
-#      quantos dos buracos fechados do desenho original ainda existem depois de
-#      engrossar (o empastamento deixou de servir: traço de 2 px tem miolo
-#      próprio, e todo pixel do miolo tem 8 vizinhos com tinta). Em 75 ícones ×
-#      7 pesos, a 48 px:
-#
-#         peso | contra-formas vivas    | tinta na caixa
-#              | Arcticons | conversão  | Arcticons | conversão
-#         1,0  |   100%    |   100%     |   13,0%   |   18,8%
-#         1,5  |    97%    |    80%     |   19,1%   |   24,6%
-#         1,75 |    97%    |    76%     |   21,2%   |   27,8%   <- escolhido
-#         2,0  |    97%    |    74%     |   23,0%   |   30,0%
-#         2,5  |    96%    |    66%     |   26,8%   |   35,2%
-#
-#      Quem limita NÃO é o Arcticons (97% de 1,5 a 2,25): é a conversão, densa
-#      por construção. 1,75 é o maior peso em que a Spotify ainda tem três ondas
-#      e o Wilber ainda tem olho — a 2,0 as duas ondas de cima soldam. E entrega
-#      o que ela pediu: +63% de tinta na caixa contra o 1,0.
-#
-#      O NÚMERO É UM SÓ PARA OS DOIS ACERVOS, e isso é o ponto: se só o
-#      convertido engrossasse, quebrava-se a coerência que é a razão de tudo
-#      isto. Por isso nenhum arquivo dos dois acervos grava `stroke-width` —
-#      quem manda é o array `TRACO` abaixo, e engrossar continua sendo UM número.
-#      Cuidado ao inserir: `stroke-width` DUPLICADO é XML inválido e o
-#      rasterizador recusa o SVG inteiro, calado.
-#
-#   4. A COR ENTRA AQUI, AO CONTRÁRIO DO `icones_sistema.sh`. Lá o toolkit
-#      descarta a cor do arquivo e repinta tudo numa cor só (§4g) — pintar seria
-#      trabalho apagado. Isso vale para ícone `symbolic` de sistema; ícone de
-#      APLICATIVO não passa por esse caminho, e a cor sobrevive. Conferido
-#      rasterizando o arquivo instalado.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -104,94 +17,40 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 ORIGEM="$RAIZ/packs/meowsystem/icones/apps/arcticons"
 MAPA="$RAIZ/packs/meowsystem/icones/apps-arcticons.map"
-# A ESCOLHA DE TRAÇO DO PAINEL MORA COM QUEM USA — 09/10/2026, P73 (I3). O
-# «Usar este ícone» com um glifo de traço gravava a linha no mapa acima, dentro
-# do clone, e copiava o glifo para `arcticons-apps/`: usar o programa sujava o
-# repositório (a regra da P21). A linha vai agora para este arquivo, ao lado do
-# meow.conf, no MESMO formato; lido depois do mapa do projeto, ele vence o app
-# que os dois nomeiam. O glifo é o nome em `arcticons-apps/` ou, para as outras
-# pastas de traço que a ficha oferece, o caminho a partir da raiz.
+# O «Usar este ícone» com um glifo de traço gravava a linha no mapa acima,
+# dentro do clone, e copiava o glifo para `arcticons-apps/`: usar o programa
+# sujava o repositório.
 MAPA_USUARIO="${MEOW_ICONES_TRACO:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-traco.map}"
 ORIGEM_CONV="$RAIZ/packs/meowsystem/icones/apps/convertidos"
 MAPA_CONV="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"
-# O DESENHO DA OFICINA DE QUEM USA — 15/10/2026, P82 (item 5; decisão 15). O
-# «Usar» da oficina do painel grava a linha no `icones-convertidos.map` ao lado
-# do meow.conf (o formato deste mapa) e o construído na casa. Lido depois de
-# tudo, ele vence o app que os outros mapas de traço nomeiam: é a escolha
-# feita à mão, e não um empate (o `_conferir_gemeos` não a conta como duplo).
+# O «Usar» da oficina do painel grava a linha no `icones-convertidos.map` ao
+# lado do meow.conf (o formato deste mapa) e o construído na casa.
 MAPA_CONV_USUARIO="${MEOW_ICONES_CONVERTIDOS:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-convertidos.map}"
 ORIGEM_CONV_USUARIO="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/convertidos-apps"
 MAPA_MARCA="$RAIZ/packs/meowsystem/icones/apps-marca.map"
 MAPA_PNG="$RAIZ/packs/meowsystem/icones/apps.map"
-# A paleta vem da porta única (lib/comum.sh). Era `assets/paleta/catppuccin.json` cravado até
-# 17/09/2026 — e um nome cravado aqui faz este script continuar lendo o
-# Catppuccin enquanto o resto do projeto já mudou de paleta, sem dar erro.
+# A paleta vem da porta única (lib/comum.sh). Era
+# `assets/paleta/catppuccin.json` cravado — e um nome cravado aqui faz este
+# script continuar lendo o Catppuccin enquanto o resto do projeto já mudou de
+# paleta, sem dar erro.
 PALETA="$(meow_paleta)"
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
 # O FLAVOR AQUI É O DE VERDADE, E ESSA É A VANTAGEM DO SVG
-#   O `icones_apps.sh` usa `ICONES_FLAVOR` porque o acervo PNG dele só existe em
-#   macchiato e latte, e ele APROXIMA mocha e frappé para o vizinho. Aqui a cor
-#   sai da paleta, que tem os quatro — então mocha é mocha.
-# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-# Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
-# O `||` NÃO É ENFEITE — 25/09/2026, P65: este é o único dos scripts do
-#   `meow_flavor` que roda sob `set -e`, e o 1 de «sem resposta do pack.py»
-#   matava o script na própria atribuição. A tela ficava com o aviso do
-#   `meow_flavor` e mais nada: nem quem parou, nem o que ficou por fazer.
-# O DO LADO QUE A TELA VESTE (P74 item 10): com `MODO="claro"` o traço sai da
-#   paleta do claro do pack, e não do escuro que o FLAVOR nomeia.
 FLAVOR="$(meow_flavor_vestido)" || {
   meow_erro "aplicativos em traço: sem o flavor não há cor para o traço — nada foi tocado"
   exit "$MEOW_ERRO"
 }
 
-# O diretório de destino e a espessura do traço dele. Array para que acrescentar
-# um segundo tamanho (um `22x22/apps` com traço grosso, se um dia a barra passar
-# a mostrar aplicativo) seja uma linha. Quem DECLARA o diretório no `index.theme`
-# não é este script — é o `construir_icones.sh`, que o monta a partir do que
-# existe no disco. Ter dois donos daquela linha já custou um laço eterno.
-# 2,25 DESDE 27/08/2026, E O 1,75 NÃO ESTAVA ERRADO — A CAIXA É QUE MUDOU
-#   O 1,75 foi medido em 11/08 contra uma caixa de 48 px, e o cabeçalho acima
-#   registra a prova: captura de tela com os ícones da dock em `x 1063..1109`,
-#   47 px de largura. Duas premissas daquele dia caíram desde então:
-#     · a dock está em `size M`, não `L` (o disco diz M; o forma.sh já anotou a
-#       divergência em 26/08, e ela nunca chegou aos scripts de ícone);
-#     · a escala da tela saiu de 100% para 114%.
-#   MEDIDO na captura de 27/08, caixa de tinta dos três ícones do centro da dock:
-#   40, 36 e 40 px. A dock desenha aplicativo a ~41 px, não a 48.
+# A consequência é aritmética: 1,75 num viewBox de 48 desenhado a 41 px vale
+# 1,50 px de tela.
 #
-#   A consequência é aritmética: 1,75 num viewBox de 48 desenhado a 41 px vale
-#   1,50 px de tela. Traço fracionário nunca cai em pixel inteiro — cada linha
-#   fica repartida entre dois pixels em tons diferentes, e nas diagonais e nos
-#   cantos isso é a sujeira que ela chamou de serrilhado ("na real todos os apps
-#   ficam serrilhados agora que notei"). Não era esticamento: está medido que o
-#   COSMIC rasteriza o vetor no tamanho pedido, e que `Type=Fixed` contra
-#   `Type=Scalable` dá ZERO pixel de diferença na tela.
+# 2,25 é escolha dela na folha, com o mesmo ícone em 1,75 / 2,0 / 2,25 / 2,5
+# rasterizado a 41 px.
 #
-#   2,25 é escolha dela na folha de 27/08, com o mesmo ícone em 1,75 / 2,0 /
-#   2,25 / 2,5 rasterizado a 41 px. Vale 1,92 px de tela — firma o desenho sem
-#   fechar o vão do ">" do terminal, que é o que o 2,5 começa a fazer.
-#
-# 1,25 DESDE 09/09/2026, E ELE CONTRARIA O PARÁGRAFO ACIMA — ESCOLHA DELA
-#   Na bancada de 09/09 (`~/Documentos/meow-bancada-do-traco.html`) ela desceu a
-#   régua de espessura até o fim e disse, sobre o resultado inteiro: *"por mim é
-#   isso"*. O número exportado foi 1,25, e ele está aqui porque foi decidido, não
-#   porque foi medido melhor.
-#
-#   O QUE ELE DESLOCA, E ESTÁ REGISTRADO PARA NÃO SE PERDER:
-#     · a bancada desenha a 48 px; a dock desenha a ~41 (medido em 27/08, caixa
-#       de tinta de 40, 36 e 40 px). 1,25 num viewBox de 48 a 41 px vale 1,07 px
-#       de tela — MAIS FINO que o 1,75 que o parágrafo acima recusou por cair em
-#       1,50 e repartir a linha entre dois pixels;
-#     · o argumento do serrilhado não some com o número: ele piora, porque
-#       quanto menor a fração, maior a parte da linha que vira tom intermediário.
-#
-#   Então este número tem uma folha própria a 41 px — a de 09/09, com 1,25 / 1,75
-#   / 2,25 lado a lado no tamanho REAL da dock. Se ela mantiver o 1,25 depois de
-#   ver, fica; e o parágrafo de 27/08 fica acima, inteiro, porque a medida dele
-#   continua verdadeira: quem mudou foi o gosto, não a aritmética.
+# O número exportado foi 1,25, e ele está aqui porque foi decidido, não porque
+# foi medido melhor.
 declare -A TRACO=( ["48x48/apps"]=1.25 )
 
 # Pedido expresso dela: estes ficam como estão, venha o que vier. Mesma lista do
@@ -207,20 +66,12 @@ intocavel() {
   return 1
 }
 
-# A ESCOLHA DELA NA PÁGINA DE CURADORIA TIRA O NOME DAQUI
-#   `assets/icones/curadoria.map` é escrito pelo `importar_icones.sh` com a arte que ELA
-#   escolheu à mão. Um nome que está lá não pode continuar sendo vestido aqui:
-#   a arte dela vai para `scalable/apps`, a minha fica em `48x48/apps`, e a de
-#   48 vence a 48 px — a escolha dela ficaria no disco sem nunca aparecer na
-#   tela, que é o pior desfecho possível, porque parece que funcionou.
+# Um nome que está lá não pode continuar sendo vestido aqui: a arte dela vai
+# para `scalable/apps`, a minha fica em `48x48/apps`, e a de 48 vence a 48 px —
+# a escolha dela ficaria no disco sem nunca aparecer na tela, que é o pior
+# desfecho possível, porque parece que funcionou.
 #
-#   Tirar o nome do mapa lido basta, e é por causa do dono único: sem o nome, o
-#   `.svg` que sobrou em `48x48/apps` vira órfão e a varredura o remove sozinha
-#   na mesma passagem. Não é preciso proteger caminho nenhum aqui, ao contrário
-#   do `icones_apps.sh`: aquele escreve `.png` em ONZE diretórios de tamanho, e
-#   este escreve `.svg` em UM, que nasce aqui e onde mais ninguém escreve.
-#
-#   O arquivo só existe depois da primeira importação; ausência não é defeito.
+# O arquivo só existe depois da primeira importação; ausência não é defeito.
 declare -A CURADO=()
 _ler_curadoria() {
   local chave ext subdir
@@ -241,28 +92,12 @@ declare -A COR=()        # nome do .desktop -> chave da paleta
 declare -A ALIAS_OK=()   # glifo ou cor -> 1, quando a repetição é deliberada
 declare -A HEX=()        # chave da paleta -> hex do flavor em uso
 
-# A ASSERÇÃO DE COR REPETIDA DEIXOU DE VALER QUANDO A POLÍTICA MUDOU (10/08/2026)
-#   Ela existia para um mapa de TRÊS linhas, onde duas cores iguais só podiam ser
-#   descuido. Em 10/08/2026 ela decidiu unificar os 35 aplicativos do lançador no
-#   Arcticons e pediu a cor **por categoria** — seis cores para trinta e cinco
-#   nomes. Repetir passou a ser o DESENHO, não o acidente: os três navegadores
-#   são azuis porque são navegadores.
+# Ela existia para um mapa de TRÊS linhas, onde duas cores iguais só podiam ser
+# descuido.
 #
-#   Desligar isso linha a linha com `:alias` seria mentir duas vezes. Primeiro
-#   porque `:alias` marca glifo E cor de uma vez (a linha abaixo), e a asserção
-#   de GLIFO repetido continua valendo — dois aplicativos com o mesmo desenho
-#   continua sendo decisão que ninguém deve tomar em silêncio. Segundo porque
-#   trinta e cinco `:alias` não declaram uma política: declaram trinta e cinco
-#   exceções, e uma regra com exceção em toda linha não é regra.
-#
-#   Então a política é declarada UMA vez, no topo do mapa, e o script obedece:
+# Desligar isso linha a linha com `:alias` seria mentir duas vezes.
 #
 #     #!cor-por-categoria
-#
-#   Com ela, cor repetida é esperada e cala; sem ela, o comportamento antigo
-#   volta inteiro. O `:alias` continua existindo e continua marcando os dois —
-#   é o que a linha do Monitor usa para dizer que dividir o `osmonitor` com o
-#   btop foi escolha dela, feita depois de eu avisar.
 COR_POR_CATEGORIA=0
 
 # --- o mapa, lido uma vez ----------------------------------------------------

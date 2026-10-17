@@ -109,12 +109,9 @@ RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "scripts"))
 import pack  # noqa: E402  — depois do RAIZ de propósito, como no gerar_temas.py
 
-# ONDE O MOLDE MORA, E ONDE AS CAPTURAS MORAM, SÃO DUAS PERGUNTAS — 22/09/2026
-#   Eram a mesma: tudo vivia em `assets/temas/capturados/`. Desde a P14 cada
-#   captura mora dentro do pack dono dela e só a `original` ficou aqui, porque
-#   ela não é tema de pack nenhum — é o MOLDE do esquema v1 e o reset de fábrica
-#   desta máquina. Esta constante passa a nomear só o molde; quem acha uma
-#   captura é o `pack.captura()`, que sobe pack -> herança -> motor.
+# Eram a mesma: tudo vivia em `assets/temas/capturados/`. Esta constante passa a
+# nomear só o molde; quem acha uma captura é o `pack.captura()`, que sobe pack
+# -> herança -> motor.
 CAPTURAS = RAIZ / "assets" / "temas" / "capturados"
 # `original` tem DOIS empregos, e só um deles é portátil:
 #   (a) MOLDE do esquema v1 — o conjunto de chaves e a forma dos arquivos que o
@@ -128,19 +125,8 @@ MOLDE = "original"
 ARVORES = ("Dark", "Light")
 
 
-# SEM ARGUMENTO, AS CAPTURAS SÃO AS QUE O PACK NO AR ALCANÇA — 24/09/2026, P51
-#   Era `PADRAO = ["mocha-mauve", "mocha-pink", "latte-mauve"]`: as três
-#   capturas do Catppuccin, escritas à mão. A `dracula-mauve` nunca entrou na
-#   lista, e a v1 dela ficou sendo a do Catppuccin — medido pela P48 e pela P49,
-#   e de novo antes deste conserto: `Dark/v1/accent` em #CBA6F7 numa captura
-#   cuja v2 diz #BD93F9, e 18 arquivos da v1 divergindo da v2 dela
-#   (`gerar_tema_v1.py --conferir dracula-mauve`). Acrescentar o nome que
-#   faltou consertaria a captura de hoje e esqueceria a próxima — a que o
-#   `derivar_acento.py` cria para um acento novo (P48), a de um pack de
-#   terceiro. A lista é o estado: as capturas que o `pack.capturas()` alcança
-#   do pack no ar (ele, o que ele herda, o motor), menos o molde, que não se
-#   gera. É a mesma escada que o `aplicar_tema.sh` sobe para achar a captura
-#   que vai aplicar, então toda captura que pode chegar à tela tem a v1 em dia.
+# Era `PADRAO = ["mocha-mauve", "mocha-pink", "latte-mauve"]`: as três capturas
+# do Catppuccin, escritas à mão.
 def padrao():
     return [c for c in pack.capturas() if c != MOLDE]
 
@@ -394,33 +380,13 @@ class Backup:
                 "MEOW_ESTADO", Path.home() / ".local/state/meowsystem"))
             self.dir = estado / "backups" / f"{carimbo()}-tema-v1"
             self.dir.mkdir(parents=True, exist_ok=True)
-        # RELATIVO À RAIZ, E NÃO À PASTA DE CAPTURAS — 22/09/2026
-        #   Com as capturas dentro dos packs, `relative_to(CAPTURAS)` levantaria
-        #   ValueError em toda captura que não fosse a `original`, e o backup —
-        #   que é a rede embaixo da escrita — morreria com traceback ANTES de
-        #   escrever. Relativo à raiz o caminho continua único e agora diz de
-        #   qual pack a cópia veio, que é o que `origens.txt` precisa dizer.
+        # Com as capturas dentro dos packs, `relative_to(CAPTURAS)` levantaria
+        # ValueError em toda captura que não fosse a `original`, e o backup —
+        # que é a rede embaixo da escrita — morreria com traceback ANTES de
+        # escrever.
         #
-        # E A RAIZ TAMBÉM NÃO É A ÚNICA CASA — CORREÇÃO DO MESMO DIA
-        #   A frase acima só vale para o pack que mora em `RAIZ/packs/`, e essa
-        #   é a TERCEIRA e última raiz do `pack.raizes()`. As outras duas —
-        #   `$MEOW_PACKS` e `$XDG_DATA_HOME/meowsystem/packs` — ficam FORA da
-        #   RAIZ e ainda VENCEM a de dentro. Com um pack de terceiro instalado
-        #   ali, o `relative_to(RAIZ)` estourava o MESMO ValueError que a troca
-        #   acima achou que tinha matado: ele só mudou de linha, e continuava
-        #   matando a rede ANTES de a escrita acontecer. E era alcançável
-        #   sozinho: basta esse pack trazer um dos nomes do `PADRAO`
-        #   (mocha-mauve, mocha-pink, latte-mauve) para o `install.sh` e o
-        #   `doctor --consertar` das 5h morrerem com traceback.
-        #   MEDIDO em 22/09/2026, com um pack em `$MEOW_PACKS/dracula`:
-        #     ValueError: '.../packs/dracula/temas/capturados/dracula-mauve/
-        #     com.system76.CosmicTheme.Dark/v1/accent' is not in the subpath of
-        #     '.../MeowSystem'
-        #   Quem vem de fora entra sob `fora-da-raiz/<o absoluto sem a barra>`:
-        #   caminho absoluto é único, então o backup continua sem colidir, e
-        #   continua dizendo de qual pack a cópia veio. O prefixo só colidiria
-        #   com um diretório `fora-da-raiz/` na raiz do projeto — que não
-        #   existe, e cujo nome ninguém escolheria sem querer.
+        # A frase acima só vale para o pack que mora em `RAIZ/packs/`, e essa é
+        # a TERCEIRA e última raiz do `pack.raizes()`.
         absoluto = arq.resolve()
         try:
             rel = absoluto.relative_to(RAIZ)
@@ -483,22 +449,9 @@ def main() -> int:
     if MOLDE in alvos:
         sys.exit(f"ERRO: '{MOLDE}' é o molde e o reset de fábrica — não se gera nela.")
 
-    # O ACENTO DO meow.conf GANHA CAPTURA AQUI — 24/09/2026, sprint P48
-    #   Sem argumento este script é a etapa `gerar` do instalador (e o conserto
-    #   do `chk_gerar`), que roda ANTES da etapa `tema`. É o lugar em que a
-    #   captura do acento escolhido tem de passar a existir: a etapa `tema` a
-    #   procura pelo `meow_captura`, e sem ela mandava importar o `.ron` na GUI e
-    #   rodar `meow tema capturar` — o passo manual do achado 31. Quem deriva é
-    #   o irmão `derivar_acento.py`; aqui só se pergunta a ele, e o `--conferir`
-    #   sai 1 quando há o que derivar, que é o que faz o instalador rodar esta
-    #   geração. Um par que não se deriva sai 3 lá e é só informação aqui:
-    #   quem avisa é a etapa `tema`. É o par que não tem base nenhuma: nem foto
-    #   do mesmo flavor, nem de outro flavor do mesmo lado que se reproduza —
-    #   desde a P59 o flavor sem foto sai de outro, pelo `derivar_flavor.py`.
-    #   (25/09/2026, P63: dizia «flavor sem captura nenhuma», e esse flavor
-    #   passou a se derivar.)
-    #   Antes da checagem do esquema v1, de propósito: a derivação copia a v1 da
-    #   própria base, não gera nada por cima do molde de 04/2026.
+    # Quem deriva é o irmão `derivar_acento.py`; aqui só se pergunta a ele, e o
+    # `--conferir` sai 1 quando há o que derivar, que é o que faz o instalador
+    # rodar esta geração.
     rc_acento = 0
     if not args.capturas:
         import derivar_acento
@@ -507,13 +460,9 @@ def main() -> int:
             rc_acento, frase = derivar_acento.derivar(par, conferir)
             print(f"  {frase}")
 
-    # O MOLDE É DE UM COSMIC DE 04/2026, E ISSO NÃO É UMA GARANTIA
-    #   Se o COSMIC desta máquina escreve outro conjunto de chaves na Dark/v1,
-    #   gerar por cima produz o tema híbrido que docs/COSMIC-THEMING.md §4 manda
-    #   evitar — o "quase funciona" que só aparece semanas depois, num applet.
-    #   Sair 3 (= MEOW_SEM_DEPENDENCIA) faz a etapa virar "pulado", que o
-    #   `concluir()` do install.sh já sabe tratar; sair 2 diria que ALGO
-    #   quebrou, e não quebrou: esta máquina é que é outra.
+    # Se o COSMIC desta máquina escreve outro conjunto de chaves na Dark/v1,
+    # gerar por cima produz o tema híbrido que docs/COSMIC-THEMING.md §4 manda
+    # evitar — o "quase funciona" que só aparece semanas depois, num applet.
     vivo = Path.home() / ".config" / "cosmic" / "com.system76.CosmicTheme.Dark" / "v1"
     if vivo.is_dir():
         molde_v1 = CAPTURAS / MOLDE / "com.system76.CosmicTheme.Dark" / "v1"
@@ -580,14 +529,7 @@ def main() -> int:
 
             # --- A CAPTURA TEM DE FICAR COMPLETA, E ISSO NÃO É ZELO -----------
             # O `aplicar_tema.sh` REMOVE do disco o que a captura não tem (ver o
-            # bloco "os arquivos que SOBRAM" lá). Desde que a v1 saiu da cessão
-            # de `e_produto`, uma captura com v1 incompleta passaria a APAGAR as
-            # chaves vivas que faltassem nela — `is_frosted`, `shade`, `spacing`,
-            # `corner_radii`... As quatro capturas desta máquina estão completas
-            # (30 na Dark, 18 na Light), então hoje isto não faz nada; existe para
-            # que uma captura mutilada, ou uma máquina recém-formatada, não vire
-            # perda de chave. Só cria o que FALTA: nunca sobrescreve o que a
-            # captura fotografou.
+            # bloco "os arquivos que SOBRAM" lá).
             if not conferir:
                 for molde_f in sorted(molde_d.iterdir()):
                     if not molde_f.is_file() or molde_f.name in CONJUNTO:

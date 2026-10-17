@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
-# cosmic-prever.sh — o pré-voo do COSMIC candidato distingue o bom do quebrado? (P76)
-#
-# Dois candidatos de brinquedo do `cosmic-comp`, montados com `dpkg-deb -b`, e
-# dois fontes de brinquedo:
-#   bom       mesmo `v1` de hoje, as duas chaves do contrato no binário, o patch
-#             da série entra com `-F0`, `rust-version` antigo;
-#   quebrado  o pacote sobe para `v3`, uma chave do contrato sumiu do binário,
-#             o hunk do patch não casa mais, `rust-version` que nenhum rustc tem,
-#             e entra um `.desktop` cujo ícone nenhum mapa desenha.
-# O veredito precisa sair diferente: o bom sem vermelho (rc 0), o quebrado com
-# vermelho em chave, série e toolchain (rc 1) e amarelo em esquema.
+# cosmic-prever.sh — o pré-voo do COSMIC candidato distingue o bom do quebrado?
 # Tudo em diretórios de brinquedo: nada de apt, rede, sudo nem HOME de verdade.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,17 +7,16 @@ T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 # O rustup de verdade, lido ANTES de o HOME virar brinquedo: a sonda pergunta
 # ao rustc de dentro da árvore, e o rustup acha os toolchains pelo RUSTUP_HOME.
 RH="${RUSTUP_HOME:-$HOME/.rustup}"; CH="${CARGO_HOME:-$HOME/.cargo}"
-# A SUÍTE RODA COM HOME DE BRINQUEDO (conferência da P76): aí o `$HOME/.rustup`
-# não existe, o proxy `rustc` do PATH não acha toolchain nenhum, e o teste
-# acusava "o toolchain não saiu vermelho" sem a sonda ter errado. O rustup de
-# verdade é lido (só lido) no lar da conta, que o `getent` diz.
+# A SUÍTE RODA COM HOME DE BRINQUEDO: aí o `$HOME/.rustup` não existe, o proxy
+# `rustc` do PATH não acha toolchain nenhum, e o teste acusava "o toolchain não
+# saiu vermelho" sem a sonda ter errado.
 if [ ! -d "$RH/toolchains" ]; then
   _lar="$(getent passwd "$(id -un)" | cut -d: -f6)"
   [ -d "$_lar/.rustup/toolchains" ] && { RH="$_lar/.rustup"; CH="$_lar/.cargo"; }
 fi
 falhas=0
-# A sonda de ferramenta (P86) só pergunta se `just`, `make` e `cargo` existem:
-# três falsos no PATH deixam o veredito do bom igual em qualquer máquina.
+# A sonda de ferramenta só pergunta se `just`, `make` e `cargo` existem: três
+# falsos no PATH deixam o veredito do bom igual em qualquer máquina.
 mkdir -p "$T/ferramentas"
 for _c in just make cargo; do printf '#!/bin/sh\nexit 1\n' > "$T/ferramentas/$_c"; chmod 755 "$T/ferramentas/$_c"; done
 PATH="$T/ferramentas:$PATH"
@@ -112,11 +101,8 @@ else
   falha "o fonte não foi aberto"
 fi
 
-# --- P82, item 18: o completar_icones.sh lê a lista do `meow cosmic icones` ---
-#   O verbo dizia «sem desenho: com.system76.CosmicViewer», e ninguém
-#   completava. Um app do COSMIC de brinquedo (dpkg-query e dpkg falsos, a
-#   árvore em `CV_RAIZ_APPS`) sem desenho em mapa nenhum: o tema ganha o ícone
-#   de fábrica dele, e a 2ª passada não escreve.
+# --- o completar_icones.sh lê a lista do `meow cosmic icones` ---
+# O verbo dizia «sem desenho: com.system76.CosmicViewer», e ninguém completava.
 RA="$T/raiz-apps"; CI="$T/casa-completar"; FB="$T/falso-dpkg"
 mkdir -p "$RA/usr/share/applications" "$RA/usr/share/icons/hicolor/scalable/apps" "$FB" \
          "$CI/.local/share/icons/MeowSystem-Icons/scalable/apps"

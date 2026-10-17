@@ -1,34 +1,8 @@
 #!/usr/bin/env bash
 # casa-real.sh — a casa fica coerente com o pack no ar. P79, item 4, 10/10/2026.
 #
-# O QUE ABRIU ISTO — o QA de uso real da P77, na casa de quem usa
-#   1. `ICONES_FLAVOR="macchiato"` com o Dracula no ar: herança do Dracula de
-#      antes da P74, quando ele vestia os ícones de arquivo do Catppuccin no
-#      macchiato. Desde a P74 o Dracula traz os dele, e o valor velho seguia
-#      vestindo a máquina com o acervo do outro pack («123 tipos de arquivo já
-#      vestidos de Catppuccin macchiato»).
-#   2. O ensaio de trocar o Dracula pelo Catppuccin avisava que `CURSOR` e
-#      `ICONES_PASTAS` continuavam citando o Dracula: a troca de pack saía pela
-#      metade numa casa que tinha o ponteiro e as pastas que o pack escolhe.
-#   3. O `CosmicBackground` apontando para uma pasta que não é o carrossel.
-#
-# O QUE ESTE TESTE COBRA
-#   1. O `migrar_conf.py` (a migração do doctor e do install.sh) devolve ao de
-#      fábrica o `ICONES_FLAVOR` que nomeia um flavor que o pack no ar não tem,
-#      e devolve à forma que acompanha o pack (`cat-${FLAVOR}-${ACCENT}`) o
-#      `ICONES_PASTAS` com um flavor que o pack no ar não tem. O que quem usa
-#      fixou (um flavor do próprio pack, nas duas chaves) fica.
-#   2. O doctor acusa o `ICONES_FLAVOR` no `conf` e o `--consertar` corrige.
-#   3. O `meow pack usar` leva junto o `CURSOR` que é o ponteiro do pack de
-#      antes (vira o do pack novo) e as pastas; o `CURSOR` que quem usa fixou
-#      fica. O ensaio da troca já não lista os dois como vestígio. E o painel
-#      dá como de fábrica do ponteiro o que o pack no ar escolhe (conferência).
-#   4. O `CosmicBackground` numa pasta que não é o carrossel (fora do acervo,
-#      ou a pasta do grupo errado) é acusado pelo doctor e corrigido pelo
-#      `--consertar`.
-#
-# PORTÁTIL: HOME, COSMIC e packs de brinquedo; sudo, pkill e afins falsos.
-#   0 = passou · 1 = falhou · 2 = erro deste teste
+# PORTÁTIL: HOME, COSMIC e packs de brinquedo; sudo, pkill e afins falsos. 0 =
+# passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -70,9 +44,6 @@ conf_com "$TMP/c1" 'PACK="dracula"' 'FLAVOR="dracula"' 'ICONES_FLAVOR="macchiato
 migrar "$TMP/c1" "$EXEMPLO" --conferir > "$TMP/s1" 2>&1; rc_c=$?
 migrar "$TMP/c1" "$EXEMPLO" > "$TMP/s1b" 2>&1; rc=$?
 migrar "$TMP/c1" "$EXEMPLO" --conferir > /dev/null 2>&1; rc_d=$?
-# [Conferência da P79: a variante do PRÓPRIO pack nas pastas (`cat-dracula-…`
-#  com o Dracula no ar) é o que o painel grava quando quem usa a escolhe, e
-#  fica; ela só é resto quando o pack no ar não tem o flavor — logo abaixo.]
 if [ "$rc_c" = 1 ] && grep -q 'ICONES_FLAVOR' "$TMP/s1" && ! grep -q 'ICONES_PASTAS' "$TMP/s1" \
    && [ "$rc" = 0 ] && [ "$rc_d" = 0 ] \
    && [ "$(linha_de "$TMP/c1" ICONES_FLAVOR)" = 'ICONES_FLAVOR="$FLAVOR"' ] \

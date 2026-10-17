@@ -1,34 +1,12 @@
 #!/usr/bin/env bash
 # greeter.sh — a TELA DE LOGIN também é dela.
 #
-# O QUE ESTAVA ACONTECENDO
-#   O `cosmic-greeter` roda como um usuário próprio (`cosmic-greeter`, uid 987) e
-#   lê a configuração dele em `/var/lib/cosmic-greeter/.config/cosmic/`. As pastas
-#   de tema existiam lá — `CosmicTheme.Dark/v1`, `.Dark/v2`, `.Light`, `.Mode` —
-#   e estavam TODAS VAZIAS (medido em 2026-08-05). Pasta vazia não é meio-termo:
-#   o COSMIC cai no tema embutido, e a tela de login abria em azul de fábrica,
-#   a única superfície da máquina que ainda não era Catppuccin.
+# A tentação é escrever `CosmicTk/v1/icon_theme` com "MeowSystem-Icons" para
+# fechar o conjunto. Não funciona, e falha do pior jeito: nosso tema mora em
+# `~/.local/share/icons`, dentro de uma home com modo `drwx------`.
 #
-# A TELA DE BLOQUEIO JÁ ERA DELA, E POR OUTRO CAMINHO
-#   O mesmo binário faz as duas coisas, mas com sessões diferentes. Bloqueio roda
-#   DENTRO da sessão dela, lê `~/.config/cosmic` e por isso sempre esteve certo —
-#   é o mesmo processo que aparecia no journal reclamando do wallpaper dela:
-#       cosmic-greeter[3112]: failed to read wallpaper "/home/<usuário>/..."
-#   Login roda ANTES de existir sessão, e é só ele que precisa desta cópia.
-#
-# NÃO MEXEMOS NO TEMA DE ÍCONES DELE, E ISSO É DELIBERADO
-#   A tentação é escrever `CosmicTk/v1/icon_theme` com "MeowSystem-Icons" para
-#   fechar o conjunto. Não funciona, e falha do pior jeito: nosso tema mora em
-#   `~/.local/share/icons`, dentro de uma home com modo `drwx------`. O uid 987
-#   não consegue nem listar o diretório. O resultado seria um greeter apontando
-#   para um tema que ele não pode ler — ícone faltando em vez de ícone errado.
-#   Se um dia isso for desejado, o caminho é instalar o tema em
-#   `/usr/share/icons`, que é território da Aurora e do apt (lib/comum.sh, trava 1).
-#
-# SÓ PREENCHEMOS PASTA QUE ELE JÁ TEM
-#   As `.Builder` ficam de fora: são insumo da GUI de temas, que o greeter não
-#   tem. Criar árvore nova na configuração de um serviço do sistema é o tipo de
-#   coisa que funciona hoje e confunde o diagnóstico daqui a um ano.
+# As `.Builder` ficam de fora: são insumo da GUI de temas, que o greeter não
+# tem.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -50,52 +28,24 @@ ARVORES=(
 alvo_tema() {
   # Mesmo nome de captura que o resto do projeto usa: <flavor>-<accent>.
   # Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-  # Era `${FLAVOR:-mocha}`, o padrão de um pack só (P61, 25/09/2026).
+  # Era `${FLAVOR:-mocha}`, o padrão de um pack só.
   local flavor accent="${ACCENT:-mauve}"
   flavor="$(meow_flavor)"
   printf '%s-%s' "$flavor" "$accent"
 }
 
 ALVO="$(alvo_tema)"
-# A captura mora dentro do pack dono desde 22/09/2026, e este script roda pelo
-# hook e pelo timer — sem a ponte do `meow_ponte_python`. O `meow_captura` refaz
-# a ponte sozinho; ver o cabeçalho dele em lib/comum.sh.
+# A captura mora dentro do pack dono, e este script roda pelo hook e pelo timer
+# — sem a ponte do `meow_ponte_python`. O `meow_captura` refaz a ponte sozinho;
+# ver o cabeçalho dele em lib/comum.sh.
 CAPTURA="$(meow_captura "$ALVO")"
 
-# ---------------------------------------------------------------------------
-# FASE 1 — O AVATAR, QUE NÃO PRECISA DE sudo E POR ISSO VEM ANTES DE TUDO
-#
-# O gato JÁ ESTAVA na tela de login desta máquina — `/var/lib/AccountsService/
-# icons/<usuário>` bate byte a byte com `assets/meow-mocha-preto.svg`. Mas
-# nenhum script deste repositório sabia disso: foi posto na mão em 04/08/2026, e
-# numa máquina recém-instalada simplesmente não existiria. Era um enfeite sem
-# dono, do tipo que some no primeiro reset e ninguém sabe repor.
-#
-# POR QUE ANTES DO PORTÃO DE sudo
-#   Trocar o próprio avatar NÃO precisa de root: o polkit
-#   `org.freedesktop.accounts.change-own-user-data` tem `implicit any: yes`
-#   (medido). O portão que existe mais abaixo — o `sudo -n test -d` — é
-#   necessário para o TEMA, que mora num diretório `drwxr-x---` do uid 987. Se o
-#   avatar ficasse depois dele, uma rodada sem sudo em cache abortaria o módulo
-#   inteiro e o avatar nunca chegaria. O `doctor.log` mostra isso acontecendo
-#   todo dia: "greeter: falta dependência", na rodada automática das 5h.
-#
-# O GREETER RENDERIZA SVG — CONFERIDO, NÃO SUPOSTO
-#   Havia a suspeita de que ele só lesse raster (a crate `image` não traz codec
-#   de SVG). Mas `strings /usr/bin/cosmic-greeter` acha `resvg` 18 vezes e
-#   `usvg` 35: o suporte entra por outra crate. O SVG serve, e é o que já está
-#   em produção aqui desde 04/08.
-#
-# A GUARDA QUE IMPEDE O PIOR PING-PONG DE TODOS
-#   Se o avatar atual não for reconhecidamente nosso, este script NÃO TOCA.
-#   Sem isso, o dia em que ela puser uma foto própria pelo Ajustes → Sistema e
-#   Contas, o timer diário a apagaria de madrugada — e brigar com a USUÁRIA é
-#   pior do que brigar com a Aurora, porque ela não tem log para consultar.
+# Se o avatar atual não for reconhecidamente nosso, este script NÃO TOCA.
 avatar_nosso() {
   local md5="$1" f
-  # Só o acervo: os `assets/meow-*.svg` foram excluídos em 08/08/2026 e os globs
-  # não casariam nada. O md5 guardado, logo abaixo, é o que ainda reconhece um
-  # avatar posto por uma versão anterior deste script.
+  # Só o acervo: os `assets/meow-*.svg` foram excluídos e os globs não casariam
+  # nada. O md5 guardado, logo abaixo, é o que ainda reconhece um avatar posto
+  # por uma versão anterior deste script.
   for f in "$RAIZ"/assets/gatos/*.svg; do
     [ -f "$f" ] || continue
     [ "$(md5sum < "$f" | cut -d' ' -f1)" = "$md5" ] && return 0
@@ -114,13 +64,9 @@ fase_avatar() {
             | sed -n 's/^o "\(.*\)"$/\1/p')"
   [ -n "$objeto" ] || { meow_pula "AccountsService não respondeu — avatar como está"; return 0; }
 
-  # O AVATAR SAI DO ACERVO DELA, E É O PRIMEIRO EM ORDEM ALFABÉTICA — NÃO O DA
-  # ROTAÇÃO. Até 08/08/2026 era `assets/meow-<flavor>-preto.svg`, do gerador que
-  # ela mandou excluir. Poderia ser o gato que está no ar, mas aí o avatar da
-  # tela de login trocaria junto com a rotação diária, e cada troca é uma escrita
-  # no AccountsService via D-Bus. Estável é melhor: um gato só, sempre o mesmo,
-  # e quem quiser trocar renomeia o arquivo ou põe a própria foto — que o
-  # `avatar_nosso` respeita.
+  # Poderia ser o gato que está no ar, mas aí o avatar da tela de login trocaria
+  # junto com a rotação diária, e cada troca é uma escrita no AccountsService
+  # via D-Bus.
   desejado="$(find "$RAIZ/assets/gatos" -maxdepth 1 -name '*.svg' \
                 ! -name '*-symbolic.svg' 2>/dev/null | sort | head -n1)"
   [ -n "$desejado" ] && [ -f "$desejado" ] \
@@ -155,9 +101,7 @@ fase_avatar() {
   fi
 
   # O daemon roda como root e COPIA o arquivo para /var/lib/AccountsService/
-  # assets/icones/. O caminho de origem precisa ser legível por ele — o repo pode estar
-  # numa partição que só o usuário monta, então a origem é uma cópia em /tmp
-  # com modo 644, e não o caminho do repo.
+  # assets/icones/.
   local tmp; tmp="$(mktemp --suffix=.svg)" || return 2
   cat "$desejado" > "$tmp"; chmod 644 "$tmp"
   if busctl call org.freedesktop.Accounts "$objeto" org.freedesktop.Accounts.User \
@@ -165,8 +109,6 @@ fase_avatar() {
     rm -f "$tmp"
     # `>` trunca antes de escrever, e quem lê no meio (linha 98, a comparação
     # que evita a chamada ao Accounts) veria md5 vazio e refaria o trabalho.
-    # `meow_escrever` é temporário + `mv`, que o leitor não consegue pegar pela
-    # metade.
     meow_escrever "$MEOW_ESTADO/greeter-avatar.md5" "$md5_novo" 644 >/dev/null || true
     meow_ok "avatar da tela de login: gato $(basename "${desejado%.svg}")"
     return 1
@@ -185,16 +127,7 @@ fase_avatar; [ $? = 1 ] && mudou_avatar=1
 }
 
 # TUDO que olha para dentro do home do greeter passa por sudo, INCLUSIVE o teste
-# de existência. `/var/lib/cosmic-greeter` é `drwxr-x---` do uid 987: um `[ -d ]`
-# comum devolve falso por PERMISSÃO, não por ausência, e a primeira versão deste
-# script anunciou "não há cosmic-greeter nesta máquina" numa máquina que tem.
-# Um diagnóstico errado com cara de diagnóstico certo é o pior resultado possível.
-# A PONTE VÊ A ÁRVORE INTEIRA NUMA CHAMADA — 08/09/2026
-#   `greeter-ver` imprime `<md5>  <caminho relativo>` de tudo que está lá dentro.
-#   O laço abaixo fazia DOIS `sudo` por arquivo numa árvore de ~190; com a ponte
-#   é um processo, e a comparação continua sendo por conteúdo. Vazio significa
-#   "a pasta existe e não tem nada", e por isso o mapa é preenchido antes de
-#   qualquer teste — distinguir isso de "não consegui olhar" é o ponto.
+# de existência.
 declare -A GREETER_MD5=()
 GREETER_VISTO=0
 if meow_ponte_viva; then

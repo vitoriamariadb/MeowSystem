@@ -5,30 +5,10 @@
 #   ./vigia_steam.sh              instala as unidades e liga o vigia
 #   ./vigia_steam.sh --conferir   não escreve; 1 se algo divergir
 #
-# POR QUE ISTO EXISTE
-#   Queixa dela, 02/09/2026: "tem jogo da steam que tá desinstalado mas ainda tem
-#   o .desktop, em teoria isso não deveria ocorrer". A limpeza de órfãos do
-#   `jogos_steam.sh` já existia e funcionava — o que faltava era alguém CHAMAR o
-#   script depois de uma desinstalação. Sem isto, o cartão de um jogo removido às
-#   3h da tarde ficava até a passagem do `meow doctor`, às 5h da manhã seguinte.
-#
-#   O cabeçalho de `systemd/meow-steam.path` traz o resto: por que o evento é o
-#   diretório `steamapps/`, por que os dois caminhos, e por que a biblioteca
-#   externa fica de fora.
-#
-# É O IRMÃO GÊMEO DO `vigia_flatpak.sh`, DE PROPÓSITO
-#   Mesma estrutura, mesmos códigos de saída, mesma divisão `_desligar`/
-#   `_conferir`/`_aplicar` — e pelo mesmo motivo que aquele dá: o `meow doctor`
-#   precisa da MESMA verificação e o `--consertar` do MESMO conserto, então a
-#   regra mora num lugar só. Duas unidades vão por CÓPIA byte a byte (elas
-#   resolvem tudo com `%h`, sem marcador a substituir), como lá.
-#
-# DESLIGAR TEM DE DESLIGAR
-#   Deixar de instalar não é desligar: a unidade que uma execução anterior ligou
-#   continuaria vigiando depois de ela escrever STEAM_VIGIA="nao" no meow.conf.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
+# A limpeza de órfãos do `jogos_steam.sh` já existia e funcionava — o que
+# faltava era alguém CHAMAR o script depois de uma desinstalação. Sem isto, o
+# cartão de um jogo removido às 3h da tarde ficava até a passagem do `meow
+# doctor`, às 5h da manhã seguinte.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -91,9 +71,7 @@ _pronto() {
     fi
   done
   # Sem a pasta da Steam não há evento a vigiar — e a etapa some do relatório,
-  # que é o certo para uma etapa que depende de um programa opcional. A pergunta
-  # é pelo DIRETÓRIO e não pelo binário: o `jogos_steam.sh` já se pula sozinho
-  # quando `~/.steam/steam/steamapps` não existe, e é o mesmo critério.
+  # que é o certo para uma etapa que depende de um programa opcional.
   if [ ! -d "$HOME/.steam/steam/steamapps" ] && [ ! -d "$HOME/.steam/debian-installation/steamapps" ]; then
     meow_pula "Steam não instalada — nada a vigiar"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -139,8 +117,7 @@ _aplicar() {
 
   # O diretório do log tem de existir ANTES de a unidade subir: o
   # `StandardOutput=append:` é montado antes de qualquer comando do serviço, e
-  # sem ele a unidade morre com `status=209/STDOUT`. Medido em 05/08/2026, na
-  # unidade irmã.
+  # sem ele a unidade morre com `status=209/STDOUT`.
   if ! mkdir -p "$estado"; then
     meow_erro "não consegui criar $estado (é lá que fica o log do vigia)"
     return "$MEOW_ERRO"

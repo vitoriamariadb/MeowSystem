@@ -1,36 +1,5 @@
 #!/usr/bin/env bash
 # acervo-da-ficha.sh — a ficha de ícone oferece o acervo inteiro, em pastas.
-# Sprint P73, 09/10/2026.
-#
-# A QUEIXA QUE ABRIU ISTO
-#   «Era pra aparecerem todos os Drácula feitos e todos os do MeowSystem
-#   feitos, numa pasta cada. Independente do app que eu escolher, eu deveria
-#   acessar todas as imagens disponíveis, não só as que mapeamos à mão.»
-#   Medido na auditoria de 09/10 (docs/pesquisas/2026-10-09-paridade-de-
-#   icones.md): no máximo 120 desenhos por tela, a ficha aberta com a 1ª
-#   palavra do nome do app como filtro, e 146 dos 591 desenhos versionados
-#   distintos nunca oferecidos.
-#
-# O QUE ELE COBRA — a prova da spec da P73
-#   1. Para cada pasta de acervo, o total que a ficha oferece é o número de
-#      SVG (ou PNG, na pasta dos feitos à mão) da pasta, contado AQUI, no disco,
-#      e não pela função que monta a ficha. E nenhuma pasta de desenho do
-#      repositório fica sem grupo, fora as excluídas de propósito.
-#   2. Por sha256: os desenhos versionados menos os oferecíveis só deixam
-#      `pastas/`, `assets/gatos/`, os `logo.svg` e a folha de antes e depois
-#      dos resgatados (que é comparação, e não ícone). Os papéis de parede do
-#      pack (`packs/<id>/wallpapers/`, P74 item 9) ficam fora da conta, como o
-#      `temas/`: são SVG versionados, e não são desenho de aplicativo.
-#   3. A busca acha pelo nome do app e pelo significado: «firefox» acha o
-#      `apps/net.waterfox.waterfox.svg`; «alienígena» acha o `alien.svg`.
-#   4. Abrir a ficha sem busca não corta nada (`limitado` falso) e o nome do
-#      app vira destaque (`sugerido`), não filtro.
-#
-# NÃO ESCREVE NADA: as rotas são chamadas no processo, no molde do
-#   tests/oficina.sh, com o HOME de brinquedo; o repositório só é lido.
-#
-# CÓDIGOS DE SAÍDA (os do projeto)
-#   0 = tudo cobrado passou · 1 = achados · 2 = erro deste teste · 3 = pulado.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 

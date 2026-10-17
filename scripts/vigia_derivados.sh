@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
 # vigia_derivados.sh — põe de pé o vigia dos desenhos dos packs (P88, decisão 15).
 #
-# O QUE ELE FAZ
-#   Instala o `meow-derivados.path` com uma linha `PathModified=` por pasta que
-#   o `derivados.sh --pastas` lista, e o `meow-derivados.service` irmão, e liga
-#   o par. Sem chave no meow.conf: o pedido foi «se auto atualiza», sem escolha.
-#   A tabela das fontes, quem registra é o `derivados.sh --registrar`, que o
-#   `install.sh` roda na mesma etapa.
+# Instala o `meow-derivados.path` com uma linha `PathModified=` por pasta que o
+# `derivados.sh --pastas` lista, e o `meow-derivados.service` irmão, e liga o
+# par.
 #
 # --conferir (o doctor) só lê: a unidade como seria escrita, contra o disco.
-# Sem systemd --user nesta sessão (a casa de brinquedo dos testes, um TTY): sai
-#   3, e o doctor das 5h segue cobrindo pela tabela.
 #
 # CÓDIGOS: 0 em dia · 1 mudou (ou mudaria) · 2 erro · 3 sem systemd --user.
 set -uo pipefail

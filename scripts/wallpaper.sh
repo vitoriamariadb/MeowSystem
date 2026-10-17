@@ -1,163 +1,19 @@
 #!/usr/bin/env bash
 # wallpaper.sh — o carrossel de papéis de parede, na rotação NATIVA do COSMIC.
 #
-# POR QUE NATIVA, E NÃO UM TIMER NOSSO
-#   Medido em 2026-08-04: com `source: Path(<diretório>)` e `rotation_frequency: 60`,
-#   o `cosmic-bg` abriu três arquivos distintos em intervalos de 60,04s. A rotação
-#   sempre funcionou — o motivo de não girar nesta máquina é que o `source` aponta
-#   para um ARQUIVO ÚNICO. Em teste de controle com um arquivo só, o timer disparava
-#   e redesenhava a mesma imagem. Ligar o carrossel é trocar UM campo.
+# A rotação sempre funcionou — o motivo de não girar nesta máquina é que o
+# `source` aponta para um ARQUIVO ÚNICO. Em teste de controle com um arquivo só,
+# o timer disparava e redesenhava a mesma imagem.
 #
-#   Um timer `systemd --user` faria o mesmo com um processo a mais, uma unit a mais
-#   e um modo de falha a mais. Fica documentado como plano B, não implementado.
+# Um timer `systemd --user` faria o mesmo com um processo a mais, uma unit a
+# mais e um modo de falha a mais.
 #
-# AS TRÊS ARMADILHAS MEDIDAS
 #   1. A lista de imagens é FOTOGRAFADA quando a configuração é carregada. Um arquivo
 #      novo largado no diretório NÃO entra na rotação, apesar de o log dizer
 #      "watching source" — passou cinco rotações inteiras sem ser aberto. Por isso
 #      `adicionar` força a releitura no fim, com o `forcar_releitura` abaixo.
 #
-#      ATÉ 25/08/2026 ESTA LINHA DIZIA "`adicionar` reescreve a configuração no
-#      fim: é o que força a releitura", E ELA SE CONTRADIZIA COM A ARMADILHA 3,
-#      TRÊS LINHAS ABAIXO. O `adicionar` chamava `cmd_aplicar`, que escreve a
-#      configuração — e a configuração NÃO CONTÉM a lista de imagens, só o
-#      caminho da pasta. Então o conteúdo saía idêntico, o `meow_escrever`
-#      devolvia "sem mudança", e nenhuma releitura acontecia: a imagem
-#      adicionada não entrava na rotação até que outra coisa mudasse o texto do
-#      arquivo. O comando dizia "1 imagem adicionada" e estava certo sobre o
-#      `cp` e errado sobre o efeito.
-#   2. Escrever na configuração NÃO AVANÇA, REINICIA: revarre o diretório, volta para
-#      a PRIMEIRA imagem alfanumérica e zera o timer. Logo não existe "próximo" barato.
-#   3. Escrever conteúdo IDÊNTICO é no-op total — nem releitura acontece. Quando se
-#      QUER forçar a releitura, é preciso que o conteúdo mude DE FATO. É o que o
-#      `forcar_releitura` faz: escreve uma vez com o `rotation_frequency`
-#      trocado e outra com o valor certo. Duas escritas, dois conteúdos
-#      diferentes, e o estado final é o correto.
-#
-# NÃO EXISTE GATILHO DE "PRÓXIMO"
-#   O `cosmic-bg` não fala D-Bus: não tem nome no barramento, não tem conexão, e o
-#   binário não contém nenhuma string de D-Bus (medido). Os fds dele são dois sockets
-#   Wayland e um inotify. Então `proximo` só é possível reiniciando a rotação — o que
-#   leva de volta à primeira imagem, não à seguinte. Este script não finge o contrário.
-#
-# AS QUATRO PASTAS
-#   ativos/     o que entra na rotação  <- é ela que vira `source`
-#   favoritos/  guardadas por escolha dela; entram na rotação por cópia
-#   banidos/    saíram por decisão dela. MOVIDAS, nunca apagadas.
-#   originais/  a foto antes de qualquer recolorização, para poder refazer
-#
-#   E, desde 25/08/2026, mais duas que NÃO são curadoria e sim DERIVADAS:
-#   `ativos-noite/` e `ativos-dia/`. Ninguém guarda imagem nelas — são links
-#   duros para os arquivos de `ativos/`, remontados a cada `aplicar` e apagados
-#   inteiros quando `WALLPAPER_NOITE="nao"`. O acervo continua sendo um só, e
-#   nenhum arquivo dela é movido para separar claro de escuro.
-#
 # --- DIA E NOITE: POR QUE UMA PASTA A MAIS, E NÃO UM FILTRO ------------------
-# O QUE ELA VIU (24/08/2026, captura de 23:57)
-#   O papel de parede era vaporwave pastel CLARO e saturado dentro de um sistema
-#   Mocha, e as duas barras apareciam lavadas e sem lugar. Ela baniu a imagem no
-#   mesmo dia ("esse em específico eu odiei"). O papel de parede é 95% dos pixels
-#   da tela: sem campo escuro não existe "aceso", e o carrossel não distinguia
-#   claro de escuro.
-#
-# A MEDIÇÃO, QUE VEIO ANTES DO CÓDIGO (25/08/2026, os 54 papéis de `ativos/`)
-#   Duas métricas foram medidas e comparadas, e a diferença entre elas não é
-#   acadêmica:
-#
-#     `%[fx:mean]` é a média dos TRÊS canais com peso IGUAL — não é luminância.
-#     O verde carrega 71,5% do brilho que o olho enxerga e o azul só 7,2%. Num
-#     papel roxo-escuro deste acervo (R=0,412 G=0,029 B=0,279) essa média dá
-#     0,240 e o coloca em 15º entre os 54, quando ele é, para o olho, o SEGUNDO
-#     mais escuro do acervo (0,128). O erro é de 0,112 — maior que duas faixas
-#     inteiras do histograma.
-#
-#     `-colorspace Gray` antes do `%[fx:mean]` aplica 0,2126·R + 0,7152·G +
-#     0,0722·B (Rec.709), e é o que este arquivo usa. Cuidado com o atalho que
-#     parece equivalente: `%[fx:luminance]` é um símbolo POR PIXEL, avaliado no
-#     pixel (0,0) — na primeira imagem testada ele devolveu 0,0248 contra os
-#     0,1824 da imagem inteira. Ele não mede o papel, mede o canto dele.
-#
-#   As duas concordam na ORDEM (com grupos do mesmo tamanho, UMA imagem troca de
-#   lado) e discordam em ONDE CORTAR, que é o que decide a sprint: no histograma
-#   da média crua não existe vale nenhum entre 0,30 e 0,50 (6, 6, 4, 6 imagens
-#   por faixa de 0,05), e o único vazio aparece lá em cima, perto de 0,52 — um
-#   corte ali deixaria 45 imagens de um lado e 9 do outro.
-#
-# O LIMIAR, E POR QUE ELE NÃO É UM NÚMERO REDONDO
-#   Na luminância perceptual o histograma tem um vale onde o corte cabe: das 54,
-#   só DUAS caem entre 0,35 e 0,40, contra 7 em cada faixa vizinha.
-#
-#       0,20-0,25   6        0,35-0,40   2   <- o vale
-#       0,25-0,30   5        0,40-0,45   7
-#       0,30-0,35   7        0,45-0,50   5
-#
-#   E o vale coincide com a paleta do próprio sistema: `surface2` do Mocha
-#   (#585B70) tem luminância 0,3603 e é o tom mais claro que o tema usa como
-#   FUNDO. Mais claro que o fundo mais claro do tema, o papel deixa de ser campo
-#   e passa a competir com a interface — que é exatamente o que ela viu às 23:57.
-#
-#   O padrão é 0,37 e não 0,36 por um motivo medido: 0,3603 cai EM CIMA de uma
-#   imagem do acervo (0,3605). O trecho vazio mais largo dentro do vale vai de
-#   0,3605 a 0,3818, e 0,37 é o meio dele — assim nenhuma imagem fica a menos de
-#   0,01 do corte. Limiar apoiado num ponto de dado é limiar que um reencode
-#   desempata sozinho.
-#
-#   Nos 54 de hoje isso dá 32 na noite e 22 no dia. A sprint avisava que menos
-#   de ~20 de um dos lados seria falta de imagem, e não erro de corte; não é o
-#   caso, mas 22 é pouca folga — quem for buscar imagem nova, busque clara.
-#
-# POR QUE UMA PASTA, E NÃO UM CAMPO DE CONFIGURAÇÃO
-#   O `cosmic-bg` aponta para uma PASTA e roda o carrossel sozinho: não existe
-#   "lista de imagens" na configuração dele, e o `filter_by_theme` que ele tem é
-#   o que este arquivo já desliga de propósito, logo abaixo. Separar claro de
-#   escuro exige, portanto, DUAS pastas — e mover arquivo entre elas está fora
-#   de questão: `ativos/` é o caminho que a `WALLPAPER_FONTES_PERMITIDAS`
-#   conhece, que o README manda ela usar para arrastar imagem, e sobre o
-#   qual `banir`, `adicionar` e `semear` operam. O acervo tem de continuar
-#   sendo um só.
-#
-#   Então as pastas derivadas são feitas de LINK DURO (`ln`, sem `-s`). Como
-#   aponta para o mesmo inode, ele não custa disco nem duplica imagem — e exige
-#   o mesmo sistema de arquivos, que é por que as duas pastas nascem ao LADO de
-#   `ativos/`. (Há queda para simbólico se o `ln` duro falhar.)
-#
-#   A JUSTIFICATIVA QUE ESTAVA AQUI ERA UM MEDO NÃO MEDIDO, E FOI MEDIDA EM
-#   01/09/2026. O texto dizia: *"o `read_dir` do Rust devolve `file_type()` SEM
-#   seguir link simbólico, e um `is_file()` do outro lado descartaria a pasta
-#   inteira — tela preta, sem mensagem. Não dá para medir isso sem apontar a
-#   configuração dela para uma pasta de teste e olhar a TV dela, o que esta
-#   sprint não faz."*
-#
-#   Dá, e foi feito: uma pasta `teste-simbolico/` com três links simbólicos para
-#   imagens de `ativos/`, o `source:` apontado para lá, e o estado do próprio
-#   cosmic-bg lido depois:
-#       ("DP-1", Path(".../teste-simbolico/cat-landscapes-Cloudsnight.jpg"))
-#   Ou seja: **o cosmic-bg SEGUE link simbólico e desenha a imagem**. Não há tela
-#   preta. O link duro continua sendo a escolha certa — por inode e por disco,
-#   não por medo —, e a queda para simbólico deixou de ser um degrau para o
-#   desconhecido.
-#
-#   (O primeiro teste foi DESFEITO EM SEGUNDOS pelo `meow-fundo.path`, que viu a
-#   configuração mudar e a restaurou. Foi preciso parar o vigia para medir — e
-#   isso é, por si só, a melhor prova de que aquela proteção funciona.)
-#
-# A TROCA CUSTA UMA REESCRITA DE CONFIGURAÇÃO POR VIRADA, E SÓ
-#   Trocar `ativos-noite/` por `ativos-dia/` muda o texto do `source:`, e o
-#   `meow_escrever` só escreve quando o conteúdo muda de fato. Ou seja: a rotação
-#   é reiniciada (armadilha 2, lá em cima) duas vezes por dia, nas duas viradas,
-#   e em nenhum outro momento. Remontar os links NÃO reinicia nada — o
-#   `cosmic-bg` tem uma única watch de inotify, e é sobre o diretório de
-#   CONFIGURAÇÃO, não sobre a pasta de imagens.
-#
-#   A virada acontece no tique seguinte do `meow-wallpaper.timer`: ela vê a troca
-#   em até 15 minutos depois do horário, não no minuto exato. Um relógio próprio
-#   só para isso seria o processo a mais que o topo deste arquivo já recusou.
-#
-# O QUE ACONTECE QUANDO NÃO DÁ PARA MEDIR
-#   Sem ImageMagick, ou com um grupo que ficou com menos de duas imagens (ela
-#   banir os escuros todos, por exemplo), a rotação volta para `ativos/` com um
-#   aviso e o carrossel continua girando. Um papel de parede claro é um defeito
-#   de gosto; uma tela preta é um defeito de verdade.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -173,38 +29,20 @@ ORDEM="${WALLPAPER_ORDEM:-aleatoria}"
 INTERVALO="${WALLPAPER_INTERVALO:-5m}"
 
 # A pasta que o `source:` vai apontar nesta rodada. Nasce em `ativos/` — que é o
-# comportamento de antes de 25/08/2026 e o de sempre com a noite desligada — e
-# só muda dentro de `resolver_rotacao`. `GRUPO` fica vazio quando a rotação é o
-# acervo inteiro, e é isso que o `estado` mostra.
+# comportamento de antes e o de sempre com a noite desligada — e só muda dentro
+# de `resolver_rotacao`.
 ROTACAO="$ATIVOS"
 GRUPO=""
 NOITE_N=0
 DIA_N=0
 
-# --- LER O MEOW.CONF DIRETO, E POR QUE ISSO PRECISOU EXISTIR AQUI ------------
-# As chaves antigas de wallpaper chegam pelo AMBIENTE: o `install.sh`, o
-# `bin/meow` e o `meow-wallpaper.service` exportam uma a uma, e o cabeçalho da
-# `WALLPAPER_FONTES_PERMITIDAS`, mais abaixo, explica por que uma chave fora
-# daquelas listas chega vazia e o relógio de 15 minutos passa a desfazer a
-# escolha dela quatro vezes por hora.
-#
 # As quatro chaves da noite nasceram DEPOIS daquelas listas, e mudá-las é mudar
 # `install.sh`, `bin/meow` e a unit — três arquivos, de três donos diferentes,
-# para uma chave só. Enquanto isso não acontece, uma chave nova que só fosse
-# lida do ambiente seria uma chave que a Vitória escreve no `meow.conf`, vê o
-# `meow wallpaper aplicar` obedecer (a CLI sourceia o conf) e vê o timer ignorar
-# quinze minutos depois. Silenciosamente, que é o pior jeito.
+# para uma chave só.
 #
-# Então a ordem de precedência passa a ser explícita: AMBIENTE, depois
-# MEOW.CONF, depois o padrão do código. A leitura do arquivo é a mesma regra do
-# wizard (`wiz_linha_da_chave` em bin/meow) e a mesma que a `fontes_no_conf`
-# usava sozinha desde 11/08: vale a ÚLTIMA atribuição, que é a que o `.` do
-# shell obedece.
-#
-# VALOR CRU, SEM EXPANDIR: `WALLPAPER_BASE="$HOME/..."` é o estilo do arquivo, e
-# expandir aqui congelaria o caminho. Quem precisa do caminho expandido expande
-# na hora de comparar — é o que o `cmd_permitir` faz. Para as chaves da noite,
-# que são "sim", "18:00" e "0.37", a diferença não aparece.
+# A leitura do arquivo é a mesma regra do wizard (`wiz_linha_da_chave` em
+# bin/meow) e a mesma que a `fontes_no_conf` usava sozinha: vale a ÚLTIMA
+# atribuição, que é a que o `.` do shell obedece.
 conf_bruto() {
   local chave="$1" linha resto
   [ -f "$MEOW_CONF_ARQUIVO" ] || return 0
@@ -234,11 +72,7 @@ valor_da_chave() {
 #
 # É a mesma forma do `modo_de_ajuste` lá em cima, e a escolha de cair no PADRÃO
 # (e não no contrário) é deliberada: um valor que o script não entende não pode
-# virar a decisão oposta à que ela escreveu. `WALLPAPER_NOITE="nao "`, com um
-# espaço sobrando, ligaria a noite; `WALLPAPER_NOITE="Sim"` a desligaria. Aqui os
-# dois são aparados, o `ã` é normalizado à mão (o `${v,,}` do bash depende do
-# locale, e sob `LC_ALL=C` — que é como o timer pode rodar — ele não mexe em
-# multibyte) e o que sobrar de estranho sai avisado.
+# virar a decisão oposta à que ela escreveu.
 sim_ou_nao() {
   local v="$1" chave="$2" padrao="$3"
   v="${v#"${v%%[![:space:]]*}"}"
@@ -253,11 +87,9 @@ sim_ou_nao() {
 }
 
 # --- AS QUATRO CHAVES DA NOITE ----------------------------------------------
-# O PADRÃO NASCE LIGADO, E ISSO É ESCOLHA DELA, NÃO MINHA. A Sprint S existe
-# porque ela viu o desktop lavado às 23:57 e mandou consertar; nascer desligado
-# seria entregar a sprint e não entregar o efeito. Desligar é uma linha
-# (`WALLPAPER_NOITE="nao"`), e desligar DESLIGA: a rotação volta para `ativos/`
-# e as duas pastas derivadas somem do disco no mesmo comando.
+# Desligar é uma linha (`WALLPAPER_NOITE="nao"`), e desligar DESLIGA: a rotação
+# volta para `ativos/` e as duas pastas derivadas somem do disco no mesmo
+# comando.
 NOITE="$(sim_ou_nao "$(valor_da_chave WALLPAPER_NOITE sim)" WALLPAPER_NOITE sim)"
 NOITE_INICIO="$(valor_da_chave WALLPAPER_NOITE_INICIO 18:00)"
 NOITE_FIM="$(valor_da_chave WALLPAPER_NOITE_FIM 07:00)"
@@ -269,23 +101,17 @@ LIMIAR_LUZ="$(valor_da_chave WALLPAPER_LIMIAR_LUZ 0.37)"
 LUZ_TSV="$MEOW_ESTADO/wallpaper-luz.tsv"
 
 # --- COMO A IMAGEM OCUPA A TELA ----------------------------------------------
-# Em 11/08/2026 ela mandou uma captura da tela e disse: "o wallpaper precisa
-# preencher a largura e altura". A captura mostrava duas tarjas pretas, uma de
-# cada lado — a imagem cabia inteira no meio e sobrava tela.
+# A captura mostrava duas tarjas pretas, uma de cada lado — a imagem cabia
+# inteira no meio e sobrava tela.
 #
 # A causa estava AQUI, e o comentário que existia neste arquivo mentia: dizia
 # que `scaling_mode` "é escolha dela e é preservada", mas a `config_desejada`
 # gravava `Fit((0.0, 0.0, 0.0))` cravado no texto, toda vez, por cima do que ela
-# tivesse escolhido na GUI. Não era preservação nenhuma: era imposição de um
-# valor que ninguém tinha decidido.
+# tivesse escolhido na GUI.
 #
 #   preencher -> `Zoom`   a imagem cobre a tela inteira; o que não couber, corta
 #   caber     -> `Fit`    a imagem inteira aparece; o que sobrar vira tarja
 #   esticar   -> `Stretch` a imagem deforma até caber (nunca é o que se quer)
-#
-# `Fit` leva uma cor de tarja `(r, g, b)` em floats 0-1. Os outros dois não
-# levam nada — e escrever `Zoom(...)` com argumento é erro de sintaxe RON que o
-# cosmic-bg engole calado, ficando com a config anterior em memória.
 AJUSTE="${WALLPAPER_AJUSTE:-preencher}"
 
 modo_de_ajuste() {
@@ -301,23 +127,11 @@ modo_de_ajuste() {
 
 # --- A ALLOWLIST: A ESCOLHA DELA PASSOU A SER DITA, NÃO ADIVINHADA -----------
 # Caminhos absolutos separados por `:` (convenção do $PATH), cada um valendo
-# para ele mesmo e para tudo abaixo dele. Quem preenche é `permitir <caminho>`,
-# e o porquê inteiro está no comentário desta chave no `meow.conf.exemplo` e na
-# fronteira, mais abaixo neste arquivo.
+# para ele mesmo e para tudo abaixo dele.
 #
 # LER DO AMBIENTE É O QUE TORNA ISTO REAL NO RELÓGIO DE 15 MINUTOS: o
 # `meow-wallpaper.service` sourceia o meow.conf e exporta as chaves de wallpaper
-# uma a uma. Uma chave nova que não entre naquela lista de `export` chega aqui
-# vazia — e o timer passaria a desfazer, a cada quinze minutos, exatamente a
-# escolha que ela acabou de autorizar.
-#
-# O NOME DA CHAVE MUDOU EM 24/09/2026 (P52): `WALLPAPER_FONTES_DELA` virou
-# `WALLPAPER_FONTES_PERMITIDAS`, a palavra do verbo que a preenche. O nome
-# antigo continua lido, pela regra que o `scripts/migrar_conf.py` escreve em
-# `RENOMEADAS`: o novo vence quando existe, MESMO VAZIO — por isso o `-` sem
-# dois-pontos no primeiro nível. Com `:-`, esvaziar a lista pelo nome novo
-# ressuscitaria a do nome antigo, que fica na linha velha de quem ainda não
-# passou pelo `install.sh`.
+# uma a uma.
 FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}"
 
 fonte_autorizada() {

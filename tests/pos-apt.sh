@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
 # pos-apt.sh — o pós-apt do COSMIC reconstrói UMA vez por versão nova, e zero
-# vezes na segunda passagem? (P76)
+# vezes na segunda passagem?
 #
-# P81, 15/10/2026: o compositor e o menu do cosmic-files passam pela função
-# única (`scripts/garantir_builds.sh`), que olha o artefato e não a versão
-# vista: o shim desligado não pula o build, o passo que falhou tenta de novo
-# na passagem seguinte, e sucesso sai 0 (o `ExecMainStatus=1` de 15/10).
-#
-# `scripts/cosmic_pos_apt.sh` com um `dpkg-query` falso (as versões vêm de um
-# arquivo) e os três passos trocados por registros de uma linha: o compositor
-# (que, como o de verdade, deixa o `estado` do build da versão), o menu do
-# cosmic-files e o doctor. A prova da pesquisa (§4.3): "gera exatamente um
-# rebuild por versão nova e zero na segunda vez". E o passo que falha não grava
-# a versão, para o próximo apt tentar de novo.
+# o compositor e o menu do cosmic-files passam pela função única
+# (`scripts/garantir_builds.sh`), que olha o artefato e não a versão vista: o
+# shim desligado não pula o build, o passo que falhou tenta de novo na passagem
+# seguinte, e sucesso sai 0.
 # HOME, estado e casa de brinquedo; nada de apt, cargo, sudo nem rede.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

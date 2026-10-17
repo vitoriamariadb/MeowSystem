@@ -2,181 +2,23 @@
 # cursor.sh — o ponteiro, que é o único elemento que atravessa a tela inteira o
 # tempo todo e era o de fábrica.
 #
-# LEIA ISTO ANTES DE ACREDITAR QUE `gsettings cursor-theme` RESOLVE
-#   Não resolve sozinho, e a razão é que NESTA MÁQUINA EXISTEM DOIS CURSORES
-#   DESENHADOS POR DOIS PROGRAMAS DIFERENTES, com dois mecanismos de escolha que
-#   não se falam. Medido em 25/08/2026:
-#
-#   1. O CURSOR DO COMPOSITOR — o que ela vê sobre a área de trabalho, sobre o
-#      painel, sobre a dock e sobre qualquer superfície que não seja GTK. Quem
-#      desenha é o `cosmic-comp`, e ele NÃO LÊ GSETTINGS PARA ISSO:
-#        strings /usr/bin/cosmic-comp | grep -c 'cursor-theme'   ->  0
-#      A ÚNICA chave `org.gnome.desktop.interface` que o binário carrega é
-#      `color-scheme` (o literal no binário é
-#      "/usr/bin/gsettings" "get" "org.gnome.desktop.interface" "color-scheme").
-#      O que ele usa é a crate `xcursor` (`vendor/xcursor/src/lib.rs` aparece no
-#      binário) com a variável `XCURSOR_THEME` — e ela está VAZIA no ambiente do
-#      processo vivo (`tr '\0' '\n' < /proc/$(pgrep -x cosmic-comp)/environ`
-#      não devolve uma linha de XCURSOR). Sem a variável, o nome do tema cai no
-#      literal `default`, que é resolvido pelo caminho de busca do XCursor.
-#
-#   2. O CURSOR DOS APLICATIVOS GTK — o que ela vê DENTRO de uma janela GTK.
-#      Esse sim sai do gsettings, e quem o lê é a libgtk, não um binário do
-#      COSMIC:
-#        strings libgtk-3.so.0 | grep -c cursor-theme   ->  2
-#        strings libgtk-4.so.1 | grep -c cursor-theme   ->  3
-#      (a chave vira `gtk-cursor-theme-name` no GtkSettings). Por isso a varredura
-#      `grep -rl cursor-theme /usr/bin/` devolve ZERO arquivos: nenhum executável
-#      do sistema lê essa chave — quem lê é biblioteca, dentro de cada app.
-#
-#   Conclusão prática, e é o desenho inteiro deste script: **escrever só o
-#   gsettings troca o cursor DENTRO das janelas GTK e deixa o cursor do desktop
-#   como estava.** Um script que fizesse só isso "funcionaria" no teste e
-#   deixaria metade da tela com o cursor de fábrica.
-#
-# O 'Pop' QUE O gsettings DEVOLVE É DEFAULT DE ESQUEMA, NÃO ESCOLHA GRAVADA
-#   Esta distinção importa para o `remover`, e foi medida:
-#     gsettings get org.gnome.desktop.interface cursor-theme  ->  'Pop'
-#     dconf read /org/gnome/desktop/interface/cursor-theme    ->  (VAZIO)
-#   O valor vem de dois overrides de pacote:
-#     /usr/share/glib-2.0/schemas/50_pop-desktop.gschema.override:33
-#     /usr/share/glib-2.0/schemas/10_cosmic-session.gschema.override:5
-#   O segundo é `[org.gnome.desktop.interface:COSMIC]`, ou seja, um default POR
-#   AMBIENTE. Nunca houve valor escrito no dconf dela. É por isso que o `remover`
-#   faz `gsettings reset` e NÃO `gsettings set ... 'Pop'`: repor 'Pop' à mão
-#   deixaria um valor gravado onde antes não havia nenhum — o `reset` devolve o
-#   estado exatamente como estava, e o valor efetivo volta a ser 'Pop' de graça,
-#   pelo override. Desligar tem de DESLIGAR, e isso inclui não deixar sujeira.
-#
 # ONDE A CHAVE **NÃO** MORA, para ninguém refazer a procura
-#   `~/.config/cosmic/com.system76.CosmicTk/v1/` tem apply_theme_global,
-#   header_size, icon_theme, interface_density, interface_font e monospace_font.
-#   NÃO existe `cursor_theme`. `com.system76.CosmicComp/v1/` também não tem —
-#   as 14 chaves de lá são de entrada, autotile, workspaces e xkb. Ou seja: o
-#   COSMIC não tem, hoje, controle de tema de cursor em lugar nenhum da GUI.
+# `~/.config/cosmic/com.system76.CosmicTk/v1/` tem apply_theme_global,
+# header_size, icon_theme, interface_density, interface_font e monospace_font.
 #
-# A FRONTEIRA COM O RITUAL DA AURORA — PERGUNTADA ANTES DE ESCREVER, E MEDIDA
-#   A `docs/FRONTEIRA.md:53` dá `gsettings`/`dconf` à Aurora, mas nomeando
-#   `button-layout`. A pergunta "e `cursor-theme`?" foi feita medindo, e a
-#   resposta é QUE A CHAVE É NOSSA. As quatro medições que sustentam isso:
-#
-#     a) TODO `gsettings set` vivo da Aurora mira OUTRO esquema. O grep
-#        `grep -rn 'gsettings set' ~/.config/zsh/scripts/` devolve só
-#        `aurora-button-layout.service:19` e `ritual-aurora-self-heal.sh:1833`,
-#        e os dois escrevem `org.gnome.desktop.wm.preferences button-layout` —
-#        `wm.preferences`, não `desktop.interface`. Nenhum toca `desktop.interface`.
-#
-#     b) A ÚNICA ocorrência de `cursor-theme` no repositório dela é
-#        `functions/restaurar.zsh:587`, e ela é de um comando MANUAL de
-#        recuperação de desastre (`sistema_restaurar <manifesto.json>`, alias
-#        `restaurar`). Não há timer, unidade nem self-heal que a chame: o grep
-#        por chamadores só acha o alias em `aliases.zsh:361` e a linha de ajuda
-#        do `install.sh:1680`.
-#
-#     c) Mesmo se ela rodasse à mão, a linha não dispara NESTA máquina. O
-#        `__restaurar_capturar_tema()` (restaurar.zsh:151-158) tem saída
-#        antecipada para COSMIC — `if [[ "$de" == *"COSMIC"* ]]; then echo
-#        "|||24|"; return 0; fi` — que grava cursor VAZIO no manifesto, e o lado
-#        que escreve é guardado por `[[ -n "$cursor" ]]`. Guarda falsa, escrita
-#        nenhuma.
-#
-#     d) E não há manifesto: `~/.config/andromeda/manifesto/` NÃO EXISTE no
-#        disco, então não há nem o `dconf-backup.ini` que a restaurar.zsh:594
-#        carregaria com `dconf load /`.
-#
-#   Registrado porque a assimetria é o ponto: a Aurora manda em `wm.preferences`
-#   (o `button-layout`, que ela reaplica de 5 em 5 minutos por timer), e o Meow
-#   manda em `desktop.interface` (onde já moram `icon-theme` = MeowSystem-Icons e
-#   `gtk-theme`, que são nossos por esta mesma tabela). Não há um único ponto em
-#   que os dois escrevam a mesma chave.
-#
-#   O ÚNICO risco residual está registrado para não ser esquecido: o `dconf load /`
-#   da restaurar.zsh:594 é um restaurador EM MASSA — se um dia existir um
-#   `dconf-backup.ini`, ele repõe o dump inteiro, `cursor-theme` junto. Isso não
-#   é disputa de chave, é um comando de desastre que sobrescreve tudo por
-#   definição, e ele é manual. Não muda o dono; muda o que dizer se um dia o
-#   cursor voltar sozinho DEPOIS de ela ter rodado `restaurar` à mão.
-#
-# AS DUAS ALAVANCAS QUE ESTE SCRIPT PUXA, E POR QUE SÃO DUAS
 #   A. `gsettings org.gnome.desktop.interface cursor-theme` — pega os apps GTK,
 #      VALE NA HORA (a libgtk assina a mudança do GSettings; nada a reiniciar).
 #   B. `~/.icons/default/index.theme` com `Inherits=<tema>` — pega o
 #      `cosmic-comp`, e só VALE NO PRÓXIMO LOGIN, porque o compositor carrega o
 #      tema de cursor uma vez, na subida.
-#
-#      Essa é a forma canônica e por-usuário de trocar o cursor do X/Wayland, e
-#      ela funciona porque o caminho de busca da crate `xcursor` põe o HOME na
-#      frente do sistema. Os literais estão no binário do `cosmic-settings`, nesta
-#      ordem: `.icons`, `.local/share/icons`, `/usr/local/share/icons`,
-#      `/usr/share/pixmaps`, `/usr/share/cursors/xorg-x11`, mais `XCURSOR_PATH`,
-#      `XDG_DATA_HOME` e `XDG_DATA_DIRS`. Como `~/.icons/default` vem ANTES de
-#      `/usr/share/icons/default`, o nosso `Inherits` vence sem que ninguém
-#      encoste em `/usr/share` — que a TRAVA 1 proíbe de qualquer jeito.
-#
-#      O que existe hoje em `/usr/share/icons/default/index.theme` é
-#      `Inherits=Adwaita`. Ou seja: **antes deste script, o cursor do desktop
-#      dela era o Adwaita, não o 'Pop' que o gsettings anuncia** — e o Adwaita
-#      tem corpo PRETO (medido: a cor opaca dominante do `default` dele é
-#      #000000, contra #ffffff do Pop). Sobre papel de parede escuro, preto some.
-#      Não dá para provar isso por captura de tela: o `cosmic-screenshot` não
-#      grava o ponteiro, e a partição é `noatime`, então o atime dos arquivos de
-#      cursor também não denuncia quem foi lido. A checagem de um segundo é
-#      humana: se o ponteiro dela tem miolo PRETO, é Adwaita; se tem miolo
-#      BRANCO, é Pop.
-#
-#   NÃO se mexe em `XCURSOR_THEME` por variável de ambiente. Fazer isso exigiria
-#   escrever em `~/.config/environment.d/` ou `~/.config/autostart/` — e
-#   `~/.config/autostart/` é da Aurora nesta mesma tabela (FRONTEIRA.md:52).
-#   O `index.theme` do home chega no mesmo lugar sem cruzar fronteira nenhuma.
-#
-# O TAMANHO É DELA, E POR ISSO ESTE SCRIPT NÃO O ESCREVE
-#   `cursor-size` = 24, e também é default de esquema (o `dconf read` é vazio).
-#   24 é igualmente o default da crate `xcursor` quando `XCURSOR_SIZE` não existe
-#   — que é o caso. Os dois lados já concordam em 24 sem ninguém gravar nada, e
-#   gravar seria trocar um acordo silencioso por uma imposição nossa. O script
-#   informa o tamanho em vigor e não o toca.
-#
-# A ARMADILHA DO NOME DO FLAVOR — E ELA DERRUBA O MOTIVO DA ESCOLHA
-#   Está medido, com contagem de pixel opaco, no `default` de cada tema:
-#
-#     tema                       corpo (cor dominante)   contorno    luminância
-#     catppuccin-latte-mauve     #8839ef  790 px         #eff1f5      86,9/255
-#     catppuccin-mocha-mauve     #cba6f7  790 px         #1e1e2e     179,7/255
-#     catppuccin-frappe-mauve    #ca9ee6  790 px         #303446     172,6/255
-#
-#   Nos flavors com nome de ACCENT (`-mauve`), o corpo é pintado com a cor do
-#   ACCENT e o CONTORNO com a cor Base do flavor. Isso é o INVERSO do que se
-#   supõe: o Latte-mauve é o de corpo mais ESCURO dos três (86,9), e o
-#   Mocha-mauve é o mais CLARO (179,7). A regra "só o Latte tem corpo claro" vale
-#   para os flavors `-light`/`-dark` do mesmo release, não para os de accent.
-#   Quem decide é ela, e a folha visual existe para ela ver isto com os próprios
-#   olhos antes de o valor entrar no meow.conf.
-#
-# LICENÇA (regra do projeto: acervo de terceiro tem licença registrada)
-#   O tema é o Volantes Cursors (varlesh), **GPL-2.0**, recolorido com a paleta
-#   Catppuccin e empacotado por catppuccin/cursors. Registro auditável no
-#   repositório: `assets/cursores/CREDITOS.md`. Este script escreve uma cópia do
-#   `LICENSE` e do `AUTHORS` que vêm dentro do próprio pacote ao lado do tema
-#   instalado, para que a auditoria também funcione na máquina dela.
-#
-# USO
-#   cursor.sh aplicar    baixa, instala em ~/.local/share/icons e aponta as duas
-#                        alavancas (idempotente; sem rede, falha inteira e diz o
-#                        comando manual — nunca instala pela metade)
-#   cursor.sh conferir   0 = igual · 1 = divergente · 3 = falta dependência
-#   cursor.sh estado     diz qual cursor cada metade da tela está usando hoje
-#   cursor.sh listar     um valor por linha: os ponteiros que a chave CURSOR aceita
-#   cursor.sh adicionar <url-ou-zip-ou-pasta>   instala um ponteiro de terceiro
-#   cursor.sh remover [valor]   devolve o cursor de fábrica e apaga o que instalamos
-#                        (sem argumento: o tema do $CURSOR; com argumento: aquele)
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# Vazio = NÃO TOCA, exatamente como VIDRO_OPACIDADE_PAINEL/DOCK fazem desde
-# 17/08/2026. É o que permite ela desistir do tema sem desinstalar nada.
+# Vazio = NÃO TOCA, exatamente como VIDRO_OPACIDADE_PAINEL/DOCK fazem. É o
+# que permite ela desistir do tema sem desinstalar nada.
 CURSOR="${CURSOR:-}"
 CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}"
 
@@ -185,38 +27,19 @@ CURSOR_DEFAULT_DIR="$HOME/.icons/default"
 CURSOR_DEFAULT="$CURSOR_DEFAULT_DIR/index.theme"
 CURSOR_CHAVE="org.gnome.desktop.interface"
 
-# AS TRÊS RAÍZES DE BUSCA, EM UMA LISTA SÓ — 06/09/2026
-#   Elas já estavam aqui, escritas à mão dentro do `_cursor_instalado`. Passaram
-#   a ser uma lista porque o `listar` precisa percorrer EXATAMENTE o mesmo
-#   conjunto que o `aplicar` sabe resolver: uma lista que ofereça menos do que o
-#   `aplicar` aceita esconde um ponteiro instalado, e uma que ofereça mais
-#   devolve um botão que falha na rede (foi esse o defeito que o
-#   `_temas_de_cursor` do painel consertou em 01/09). Com uma lista só não há
-#   como as duas divergirem no dia em que uma quarta raiz aparecer.
+# Elas já estavam aqui, escritas à mão dentro do `_cursor_instalado`. Com uma
+# lista só não há como as duas divergirem no dia em que uma quarta raiz
+# aparecer.
 #
-#   A primeira é onde ESTE script instala; as outras duas são só de leitura — a
-#   TRAVA 1 do lib/comum.sh proíbe escrever em `/usr/share`.
+# A primeira é onde ESTE script instala; as outras duas são só de leitura — a
+# TRAVA 1 do lib/comum.sh proíbe escrever em `/usr/share`.
 CURSOR_RAIZES=("$CURSOR_ICONES" "$HOME/.icons" "/usr/share/icons")
 
 # O que o `adicionar` acabou de pôr no disco — lido pelo `_cursor_dizer_como_usar`.
 CURSOR_ADICIONADO=""
 
-# O diretório do tema é sempre `<valor>-cursors`: é o nome que o próprio pacote
-# usa por dentro, e o `index.theme` do tema não pode ser renomeado sem quebrar a
-# correspondência com o `Inherits` que escrevemos.
-# UM TEMA QUE JÁ EXISTE COM O NOME EXATO VENCE A CONVENÇÃO — 2026-09-11
-#     A convenção `<valor>-cursors` vem do Catppuccin, cujos pacotes se chamam
-#     assim (`catppuccin-mocha-light-cursors`). Ela é boa para o que o projeto
-#     baixa, e ruim para o que já está na máquina: o tema Dracula instala a pasta
-#     `Dracula-Cursor` (sem o `-s`, e sem o sufixo), então `CURSOR="Dracula-Cursor"`
-#     procurava `Dracula-Cursor-cursors`, não achava, e saía BAIXANDO um zip do
-#     GitHub do Catppuccin que não existe — a mesma armadilha que o comentário
-#     de `aplicar` já descreve para o caso `-cursors-cursors`.
-#
-#     A regra agora tem duas linhas, nesta ordem: se existir uma pasta com o nome
-#     EXATO em alguma das raízes, ela é o tema; senão, vale a convenção de antes.
-#     Quem usa Catppuccin não vê diferença — `catppuccin-mocha-light` não existe
-#     como pasta, só `catppuccin-mocha-light-cursors`, então cai na segunda linha.
+# A regra agora tem duas linhas, nesta ordem: se existir uma pasta com o nome
+# EXATO em alguma das raízes, ela é o tema; senão, vale a convenção de antes.
 _cursor_dir_exato() {
   local raiz
   for raiz in "${CURSOR_RAIZES[@]}"; do
@@ -237,38 +60,18 @@ _cursor_url() {
          "$CURSOR_VERSAO" "$1"
 }
 
-# O PONTEIRO QUE O PACK TRAZ — 23/09/2026, sprint P12
-#   Até aqui este script não perguntava nada ao pack: o `packs/dracula/pack.json`
-#   declarava `origens.cursores.herda` e o `meow pack info` dizia "HERDADO", mas
-#   o ponteiro saía da chave CURSOR e, sem ela no disco, do release pinado do
-#   `catppuccin/cursors` — o mesmo para todo pack. Agora um pack pode trazer o
-#   dele em `cursores/<nome>/cursors/` (`origens.cursores.proprio`), e é aqui
-#   que ele entra, ANTES da rede.
+# Agora um pack pode trazer o dele em `cursores/<nome>/cursors/`
+# (`origens.cursores.proprio`), e é aqui que ele entra, ANTES da rede.
 #
-#   QUEM ESCOLHE CONTINUA SENDO A CHAVE CURSOR. O pack oferece; `CURSOR` vazio
-#   continua não tocando em nada, e um CURSOR que nomeia outro tema continua
-#   valendo — "o meow.conf vence o pack" (docs/PACKS.md).
-#
-#   QUEM RESOLVE O FORMATO É O `pack.py`, e ele responde uma vez por execução:
-#   `ponteiro` sobe o pack ativo e a herança, confere o tema (nome, `cursors/`,
-#   nenhum link para fora) e devolve o diretório e o VALOR que a chave escreve.
-#
-#   A TERCEIRA LINHA DA REGRA, E O PAINEL TEM A MESMA
-#     1. nome EXATO numa das raízes (`_cursor_dir_exato`)
-#     2. `<valor>-cursors` numa das raízes (`_cursor_instalado`)
-#     3. o pack traz `<valor>` — e só quando a linha 1 não sequestra o nome
-#   A condição da linha 3 é o `_cursor_nome_tema` dar `<valor>-cursors`, que é
-#   onde o `_cursor_instalar_pasta` põe o tema. Com um diretório de nome exato
-#   em alguma raiz, as duas alavancas apontariam para ELE, e o tema do pack
-#   ficaria instalado sem ninguém usá-lo. A irmã desta regra no painel é o
-#   `_cursor_pastas_do_valor` do `app/servidor.py`: mudar uma sem a outra é o
-#   defeito que a P17 pegou duas vezes ("a lista não acompanhou").
+# O pack oferece; `CURSOR` vazio continua não tocando em nada, e um CURSOR que
+# nomeia outro tema continua valendo — "o meow.conf vence o pack"
+# (docs/PACKS.md).
 CURSOR_PACK_LIDO=0
 CURSOR_PACK_ID=""
 CURSOR_PACK_DIR=""
 CURSOR_PACK_VALOR=""
-# O PONTEIRO QUE O PACK MANDA BAIXAR — 24/09/2026, sprint P41. Vazios quando o
-# pack traz o tema dentro dele (o `CURSOR_PACK_DIR` acima) ou não traz nada.
+# O PONTEIRO QUE O PACK MANDA BAIXAR Vazios quando o pack traz o tema dentro
+# dele (o `CURSOR_PACK_DIR` acima) ou não traz nada.
 CURSOR_PACK_URL=""
 CURSOR_PACK_SHA=""
 CURSOR_PACK_PASTA=""
@@ -281,12 +84,9 @@ _cursor_ler_pack() {
   # `"$(meow_pack_dir)"` vazio é o pack padrão: o verbo trata o vazio como "o
   # pack ativo", a mesma porta do `meow_app_tema_do_pack`.
   #
-  # O STDERR PASSA — revisão da P12, 23/09/2026. O verbo só escreve nele quando
-  # o pack declara um ponteiro que não passa na conferência, e aí diz o porquê
-  # ("... é um link que não leva a arquivo nenhum — o ponteiro do pack foi
-  # ignorado"). Calado, o que sobrava na tela era a linha seguinte do
-  # `aplicar`: "não deu para baixar (sem rede, ou release mudou)", o motivo
-  # errado para um pack quebrado.
+  # Calado, o que sobrava na tela era a linha seguinte do `aplicar`: "não deu
+  # para baixar (sem rede, ou release mudou)", o motivo errado para um pack
+  # quebrado.
   saida="$(python3 "$MEOW_RAIZ/scripts/pack.py" ponteiro "$(meow_pack_dir)")" || return 0
   CURSOR_PACK_ID="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
   CURSOR_PACK_DIR="$(printf '%s\n' "$saida" | sed -n 's/^dir=//p')"
@@ -297,8 +97,6 @@ _cursor_ler_pack() {
 }
 
 # 0 = este valor é o ponteiro que o pack traz, e é o pack que o resolve.
-# O `-n` do diretório entrou com a P41 (24/09/2026): o ponteiro BAIXADO chega
-# com `dir=` vazio, e `"/cursors"` não pode ser a pergunta que decide.
 _cursor_do_pack() {
   _cursor_ler_pack
   [ -n "$CURSOR_PACK_VALOR" ] && [ -n "$CURSOR_PACK_DIR" ] && [ -d "$CURSOR_PACK_DIR/cursors" ] || return 1
@@ -306,23 +104,14 @@ _cursor_do_pack() {
   [ "$(_cursor_nome_tema "$1")" = "$1-cursors" ]
 }
 
-# O PONTEIRO QUE O PACK MANDA BAIXAR — 24/09/2026, sprint P41
-#   O Dracula achou a origem do ponteiro dele: o `Dracula-cursors.tar.xz` do
-#   release v4.0.0 do `dracula/gtk`, com os mesmos 113 ponteiros que o
-#   `Dracula-Cursor` desta máquina, um a um. Ele não entra no pack porque 66
-#   deles são links, e o `exportar` recusa link (ver `origens.cursores` no
-#   `packs/dracula/pack.json`); então o pack declara a ORIGEM — URL, sha256 e
-#   a pasta de dentro do pacote — e é aqui que ela desce.
+# O Dracula achou a origem do ponteiro dele: o `Dracula-cursors.tar.xz` do
+# release v4.0.0 do `dracula/gtk`, com os mesmos 113 ponteiros que o
+# `Dracula-Cursor` desta máquina, um a um.
 #
-#   A MESMA TERCEIRA LINHA DA REGRA, e com a mesma condição: o valor é o do
-#   pack, e nenhum diretório de nome exato o sequestra. Nesta máquina ele
-#   sequestra — `~/.local/share/icons/Dracula-Cursor` existe —, e aí nada é
-#   baixado: as alavancas apontam para o que já está lá, como desde 15/09.
+# A MESMA TERCEIRA LINHA DA REGRA, e com a mesma condição: o valor é o do
+# pack, e nenhum diretório de nome exato o sequestra.
 #
-#   NÃO ENTRA NA LISTA DO PAINEL NEM NA DO `listar`. As duas oferecem "o que a
-#   chave aceita sem baixar nada", e este baixa. É a mesma fronteira do
-#   `catppuccin/cursors`: o valor funciona escrito no meow.conf, e aparece na
-#   lista depois de instalado.
+# As duas oferecem "o que a chave aceita sem baixar nada", e este baixa.
 _cursor_baixavel_do_pack() {
   _cursor_ler_pack
   [ -n "$CURSOR_PACK_URL" ] && [ "$1" = "$CURSOR_PACK_VALOR" ] || return 1
@@ -332,9 +121,7 @@ _cursor_baixavel_do_pack() {
 # TUDO OU NADA, como o `_cursor_baixar_instalar`: desce para um temporário,
 # confere o sha256 que o pack pinou, abre, confere que a pasta declarada é um
 # tema de ponteiro sem link para fora, e só então entra pelo
-# `_cursor_instalar_pasta`, com o nome que a chave usa. Sem rede é 3 e o
-# ponteiro fica como estava; sha256 que não bate é 2 — é o arquivo mudando
-# debaixo do pino, e isso tem de acordar alguém.
+# `_cursor_instalar_pasta`, com o nome que a chave usa.
 _cursor_baixar_do_pack() {
   local valor="$1" tmp alvo real fora obtido f
   for f in curl tar sha256sum realpath; do
@@ -368,12 +155,8 @@ _cursor_baixar_do_pack() {
     meow_erro "o pacote não tem '$CURSOR_PACK_PASTA/cursors' — o pack $CURSOR_PACK_ID declara a pasta errada?"
     return "$MEOW_ERRO"
   fi
-  # O link que sai do tema iria junto no `cp -a` do `_cursor_instalar_pasta`,
-  # e é a regra que o `pack.py` aplica ao ponteiro de dentro do pack.
-  #   É O GÊMEO DO `_ci_links_fora` do `construir_icones.sh`, e a revisão da P41
-  #   apontou a cópia (24/09/2026). Os dois scripts só dividem o `lib/comum.sh`,
-  #   que estava fora da tabela da P41: juntá-los lá é o conserto, e até lá
-  #   quem mexer num mexe no outro.
+  # O link que sai do tema iria junto no `cp -a` do `_cursor_instalar_pasta`, e
+  # é a regra que o `pack.py` aplica ao ponteiro de dentro do pack.
   real="$(realpath -m -- "$alvo")"
   fora="$(find "$real" -type l -print0 | xargs -0 -r realpath -m -- 2>/dev/null \
             | grep -v -e "^$real/" -e "^$real\$" || true)"
@@ -392,9 +175,7 @@ _cursor_baixar_do_pack() {
 }
 
 # O `index.theme` que faz o compositor obedecer. O `Comment=` não é enfeite: é a
-# assinatura que o `remover` usa para saber se este arquivo é nosso. Sem ela,
-# apagar um `~/.icons/default/index.theme` que ela mesma tenha escrito um dia
-# seria destruir configuração alheia em nome de "reverter".
+# assinatura que o `remover` usa para saber se este arquivo é nosso.
 _cursor_default_texto() {
   printf '[Icon Theme]\nName=Default\nComment=escrito pelo MeowSystem (scripts/cursor.sh)\nInherits=%s\n' \
          "$(_cursor_nome_tema "$1")"
@@ -404,33 +185,13 @@ _cursor_default_e_nosso() {
   [ -f "$CURSOR_DEFAULT" ] && grep -q 'MeowSystem' "$CURSOR_DEFAULT" 2>/dev/null
 }
 
-# LER NÃO PODE ESCREVER — E O `gsettings get` ESCREVE QUANDO NÃO HÁ BARRAMENTO
-#   Medido em 25/08/2026: com a sessão de pé, `gsettings get` fala com o serviço
-#   do dconf e não toca em disco nenhum. SEM `DBUS_SESSION_BUS_ADDRESS`, o
-#   cliente do dconf não tem com quem falar e CRIA `~/.cache/dconf/user` sozinho
-#   — abrindo com O_RDWR|O_CREAT. Uma LEITURA que escreve.
+# SEM `DBUS_SESSION_BUS_ADDRESS`, o cliente do dconf não tem com quem falar e
+# CRIA `~/.cache/dconf/user` sozinho — abrindo com O_RDWR|O_CREAT. Uma LEITURA
+# que escreve.
 #
-#   Isso deixou o `tests/seco.sh` vermelho: ele roda o `install.sh --dry-run` com
-#   `env -i` num HOME vazio, justamente para provar que o seco não escreve nada,
-#   e a fase de DETECÇÃO do cursor sujava o HOME. É a mesma classe do defeito que
-#   aquele teste já pegou em 10/08 (o `code --list-extensions` e o
-#   `flatpak info` deixando oito arquivos): detecção com efeito colateral.
-#
-#   `DCONF_PROFILE=/dev/null` cala a criação do cache. Mas ele NÃO pode valer
-#   sempre que falta barramento, e essa foi a minha primeira tentativa, errada:
-#   sem perfil o `gsettings get` devolve o default do ESQUEMA e não o que está
-#   no banco da usuária, então logo depois de um `gsettings set` a leitura ainda
-#   diz `Adwaita` — a etapa se acha divergente e reescreve A CADA PASSAGEM. Isso
-#   deixou o `tests/convergencia.sh` vermelho ("ainda mexia na passagem 3"): eu
-#   tinha trocado um teste quebrado por outro.
-#
-#   A guarda certa é o SECO, não o barramento. No seco não há `set` nenhum para
-#   ler de volta — só se descreve o que MUDARIA —, então o default do esquema
-#   serve de base e nada precisa ser exato. Fora do seco o caminho é o normal, e
-#   aí criar o cache do dconf não viola promessa alguma: execução que escreve,
-#   escreve.
-#
-#   Vale só para LEITURA. O `gsettings set` lá embaixo nunca passa por aqui.
+# Isso deixou o `tests/seco.sh` vermelho: ele roda o `install.sh --dry-run` com
+# `env -i` num HOME vazio, justamente para provar que o seco não escreve nada, e
+# a fase de DETECÇÃO do cursor sujava o HOME.
 _cursor_gsettings_ler() {
   if meow_seco && [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
     DCONF_PROFILE=/dev/null gsettings "$@"
@@ -464,45 +225,13 @@ _cursor_instalado() {
 # Os valores que a chave `CURSOR` aceita, um por linha, sem repetir.
 #
 # O QUE SE IMPRIME É O VALOR, E NÃO O NOME DA PASTA — E A DIFERENÇA JÁ CUSTOU
-# QUATRO BOTÕES QUEBRADOS NA TELA DELA
-#   A pasta chama `catppuccin-mocha-light-cursors`; o valor que o `aplicar`
-#   resolve é `catppuccin-mocha-light`, porque o `_cursor_nome_tema` acrescenta o
-#   sufixo SEMPRE. Imprimir a pasta faria a página gravar
-#   `CURSOR=catppuccin-mocha-light-cursors`, o `aplicar` procuraria
-#   `…-cursors-cursors`, não acharia, e sairia BAIXANDO um zip que não existe.
-#   Esse é literalmente o defeito medido em 01/09/2026 e registrado no
-#   `_temas_de_cursor` do `app/servidor.py`. A lista existe para dizer o que
-#   FUNCIONA, não o que está no disco.
-#
-#   O PARÁGRAFO QUE ESTAVA AQUI CAIU EM 15/09, E A LISTA FICOU NELE ATÉ A P35
-#   Ele dizia que pasta sem o sufixo `-cursors` ficava de fora "mesmo tendo
-#   ponteiros dentro: o `aplicar` não sabe montar o nome dela" — medido em
-#   06/09, quando era verdade. Em 15/09 (commit 4963d11) o `_cursor_dir_exato`
-#   ensinou o `aplicar` a aceitar o nome EXATO (é o que faz
-#   `CURSOR="Dracula-Cursor"` funcionar), e o `_temas_de_cursor` do painel
-#   acompanhou no dia seguinte. Esta função não. Medido nesta máquina em
-#   23/09/2026, com o conf dela (`CURSOR="Dracula-Cursor"`):
+# QUATRO BOTÕES QUEBRADOS NA TELA DELA A pasta chama
+# `catppuccin-mocha-light-cursors`; o valor que o `aplicar` resolve é
+# `catppuccin-mocha-light`, porque o `_cursor_nome_tema` acrescenta o sufixo
+# SEMPRE.
 #
 #     cursor.sh listar     catppuccin-mocha-light
 #     painel               Adwaita Dracula-Cursor Pop catppuccin-mocha-light
-#
-#   O ponteiro que ela USA não aparecia na lista do script que o aplica.
-#
-# A REGRA AGORA É A DA RESOLUÇÃO, E NÃO UM FILTRO DE NOME — 23/09/2026, P35
-#   A mesma do painel: todo diretório com `cursors/` dentro, em qualquer das
-#   três raízes, PROPÕE um valor (`<x>-cursors` propõe `<x>`; o resto, o
-#   próprio nome), e quem decide se ele entra é o `_cursor_instalado` — a
-#   função que o `aplicar` usa. Uma lista que só pergunta à resolução não tem
-#   regra própria para envelhecer. O sequestro continua valendo: com
-#   `Dracula/` (tema de ícones, sem `cursors/`) ao lado de
-#   `Dracula-cursors/cursors/`, a pasta propõe `Dracula`, a resolução escolhe o
-#   nome exato, não acha `Dracula/cursors`, e ele fica de fora — nos dois lados.
-#
-#   `dotglob` porque o painel lista com `os.listdir`, que vê nome com ponto na
-#   frente, e o `aplicar` resolve esse nome como qualquer outro. O `sort` é o
-#   do locale C porque o painel ordena por `sorted()` do Python, que é por
-#   código de caractere; em pt_BR o `sort` põe `catppuccin` antes de
-#   `Dracula`, e "a mesma lista" tem de ser também a mesma ordem.
 _cursor_temas_instalados() (
   local raiz d nome
   shopt -s dotglob
@@ -517,27 +246,19 @@ _cursor_temas_instalados() (
 )
 
 # --- instalação ------------------------------------------------------------
-# A ROTA DE DESCARGA, EM UMA FUNÇÃO SÓ — 06/09/2026
-#   O `aplicar` baixa do release pinado do catppuccin/cursors; o `adicionar`
-#   baixa de um endereço que ela escolheu. Os dois querem exatamente o mesmo
-#   cuidado (falhar inteiro, com tempo-limite, sem seguir para o disco), e uma
-#   segunda invocação de `curl` escrita ao lado desta seria a segunda verdade
-#   sobre "como este projeto baixa arquivo" — a que ninguém corrige no dia em que
-#   a primeira ganhar um cabeçalho ou um limite novo.
 #
-#   `--fail` para que uma página de erro do GitHub (HTTP 404 com corpo HTML) não
-#   vire um "zip corrompido" três linhas abaixo; `--max-time` porque um
-#   temporizador é a única coisa que separa "sem rede" de "pendurado para
-#   sempre" num script que o instalador chama desatendido.
+# Os dois querem exatamente o mesmo cuidado (falhar inteiro, com tempo-limite,
+# sem seguir para o disco), e uma segunda invocação de `curl` escrita ao lado
+# desta seria a segunda verdade sobre "como este projeto baixa arquivo" — a que
+# ninguém corrige no dia em que a primeira ganhar um cabeçalho ou um limite
+# novo.
 _cursor_curl() {
   curl -sSL --fail --connect-timeout 15 --max-time 300 -o "$2" "$1" 2>/dev/null
 }
 
-# TUDO OU NADA. O tema são 121 arquivos; um download cortado no meio deixaria um
-# diretório com metade dos ponteiros e o cursor sumindo em algumas formas e não
-# em outras — o tipo de defeito que ninguém liga ao instalador. Por isso o zip
-# desce inteiro para um temporário, é extraído inteiro, conferido, e só então
-# entra no lugar com um `mv` único.
+# O tema são 121 arquivos; um download cortado no meio deixaria um diretório com
+# metade dos ponteiros e o cursor sumindo em algumas formas e não em outras — o
+# tipo de defeito que ninguém liga ao instalador.
 _cursor_baixar_instalar() {
   local valor="$1" url tmp zip extraido origem destino
   url="$(_cursor_url "$valor")"
@@ -587,32 +308,11 @@ _cursor_baixar_instalar() {
 }
 
 # --- adicionar: um ponteiro de terceiro entra no disco ----------------------
-# POR QUE ESTE SUBCOMANDO EXISTE, E QUAL QUEIXA ELE RESPONDE
-#   "Temas do Ponteiro só aparece um." A medição de 06/09/2026 diz que a página
-#   está CERTA: existe um só diretório `*-cursors` na máquina inteira (a conta
-#   está no `_cursor_temas_instalados`). O que faltava não era a lista, era a
-#   porta de entrada — sem ela, ganhar um ponteiro novo exigia abrir um
-#   terminal, e o painel não tinha o que chamar.
 #
-# O NOME DA PASTA GANHA O SUFIXO `-cursors` QUANDO NÃO O TEM, E ISSO NÃO É
-# CAPRICHO
-#   O `_cursor_nome_tema` acrescenta `-cursors` SEMPRE, então um tema instalado
-#   como `Bibata-Modern-Ice` é um tema que a chave `CURSOR` não sabe escolher: o
-#   `aplicar` procuraria `Bibata-Modern-Ice-cursors`, não acharia, e sairia
-#   BAIXANDO um zip do release do catppuccin que não existe. Instalar com o nome
-#   cru seria pôr no disco algo que a interface mostra e o clique não resolve —
-#   o mesmo defeito que o painel consertou em 01/09 tirando três botões da lista.
-#   Renomear o DIRETÓRIO é seguro porque, para o XCursor, o nome do tema É o nome
-#   do diretório: o `index.theme` de dentro traz `Name=`, que nenhuma das duas
-#   alavancas deste script consulta.
-#
-# O ARGUMENTO É TEXTO DE FORA, E É TRATADO COMO TAL
-#   Nada de `eval`, nada de `shell=True`: o caminho e a URL entram citados em
-#   todo comando, o nome que sai de dentro do pacote é peneirado para
-#   `[A-Za-z0-9._-]` antes de virar diretório, e a extração acontece num
-#   temporário — nunca direto no destino. Um zip com `../` no caminho não tem por
-#   onde escapar: o `unzip` já recusa subir, e o que entra no destino é o
-#   `basename` peneirado, nunca o caminho que veio no pacote.
+# Nada de `eval`, nada de `shell=True`: o caminho e a URL entram citados em todo
+# comando, o nome que sai de dentro do pacote é peneirado para `[A-Za-z0-9._-]`
+# antes de virar diretório, e a extração acontece num temporário — nunca direto
+# no destino.
 _cursor_nome_seguro() {
   local n="$1"
   n="${n//[^A-Za-z0-9._-]/-}"      # só o alfabeto que um diretório de tema usa
@@ -635,24 +335,9 @@ _cursor_nome_do_argumento() {
 # Instala UM diretório de tema (o que tem um `cursors/` dentro) em
 # $CURSOR_ICONES. 0 = já estava idêntico · 1 = instalado/atualizado · 2 = erro.
 #
-# A IDEMPOTÊNCIA É POR CONTEÚDO, COMO A REGRA 5 DO PROJETO MANDA
-#   "Já existe um diretório com esse nome" responderia 0 para um tema instalado
-#   pela metade — que é exatamente o estado que o `_cursor_baixar_instalar`
-#   inteiro existe para evitar. O `diff -rq` responde a pergunta certa: é o mesmo
-#   tema, arquivo a arquivo? Sem o `diff` no PATH a pergunta não tem resposta
-#   honesta, e aí a presença do diretório é o melhor que se pode dizer — dito em
-#   voz alta, não escondido.
-#
-# O LINK É COMPARADO COMO LINK — achado da revisão da P12, 23/09/2026
-#   O `cp -a` lá embaixo copia o link, e não o arquivo para onde ele aponta;
-#   então a pergunta "o instalado é a cópia do pacote?" é sobre o link. O `diff`
-#   que segue link responde outra, e às vezes nem responde: medido num HOME de
-#   brinquedo, um `cursors/hand -> hand2` sem o `hand2` fazia o GNU diff 3.10
-#   imprimir "Arquivo ou diretório inexistente" e sair 2, e um `aqui -> .` sai 2
-#   com "loop de diretório recursivo". O 2 caía no "difere", e o ponteiro do
-#   pack era reinstalado em TODA passagem — o instalador que nunca converge. Com
-#   `--no-dereference` (GNU diffutils 3.3 em diante) os dois lados comparam o
-#   texto do link. O `cmd_conferir` usa a mesma régua.
+# "Já existe um diretório com esse nome" responderia 0 para um tema instalado
+# pela metade — que é exatamente o estado que o `_cursor_baixar_instalar`
+# inteiro existe para evitar.
 _cursor_instalar_pasta() {
   local origem="$1" nome destino
   nome="$(_cursor_nome_seguro "$(basename -- "$origem")")"
@@ -752,8 +437,7 @@ cmd_adicionar() {
   # ── no seco não se baixa nem se extrai ────────────────────────────────────
   # Extrair é escrever, e `MEOW_SECO=1` promete não escrever NADA — o
   # `tests/seco.sh` roda num HOME de brinquedo justamente para pegar quem
-  # escreve "só num temporário". Baixar é pior: é gastar a rede dela para
-  # ensaiar. Então o seco responde pelo NOME, que é palpite, e diz que é.
+  # escreve "só num temporário".
   if meow_seco; then
     local palpite; palpite="$(_cursor_nome_do_argumento "$alvo")"
     if [ -n "$palpite" ] && _cursor_instalado "$palpite"; then
@@ -842,13 +526,9 @@ cmd_aplicar() {
 
   # 1. o tema no disco
   #
-  # O DO PACK VEM PRIMEIRO, E É REFEITO DO PACK A CADA PASSAGEM — 23/09/2026
-  #   Não é "instala se faltar": o `_cursor_instalar_pasta` compara por
-  #   conteúdo (`diff -rq --no-dereference`) e diz "já está instalado e
-  #   idêntico" quando nada mudou. Se o autor do pack redesenhar o ponteiro, a
-  #   próxima passagem traz o novo; um "instala se faltar" congelaria a
-  #   primeira cópia para sempre, que é a defasagem calada que a P28 escreveu
-  #   para a arte copiada.
+  # Não é "instala se faltar": o `_cursor_instalar_pasta` compara por conteúdo
+  # (`diff -rq --no-dereference`) e diz "já está instalado e idêntico" quando
+  # nada mudou.
   if _cursor_do_pack "$CURSOR"; then
     meow_info "o ponteiro '$CURSOR' vem do pack $CURSOR_PACK_ID — sem rede"
     _cursor_instalar_pasta "$CURSOR_PACK_DIR"; rc=$?
@@ -857,9 +537,9 @@ cmd_aplicar() {
     rc=0
   elif _cursor_instalado "$CURSOR"; then
     meow_ok "tema de cursor '$nome' já está instalado"
-  # O PACK MANDA BAIXAR (P41, 24/09/2026): antes do release do Catppuccin,
-  # que não tem este nome e sairia num 404 — o `CURSOR="Dracula-Cursor"` numa
-  # máquina sem o diretório ia buscar um `Dracula-Cursor-cursors.zip` que o
+  # O PACK MANDA BAIXAR: antes do release do Catppuccin, que não tem este
+  # nome e sairia num 404 — o `CURSOR="Dracula-Cursor"` numa máquina sem o
+  # diretório ia buscar um `Dracula-Cursor-cursors.zip` que o
   # `catppuccin/cursors` nunca publicou.
   elif _cursor_baixavel_do_pack "$CURSOR"; then
     if meow_seco; then
@@ -891,23 +571,6 @@ cmd_aplicar() {
   elif meow_seco; then
     meow_muda "gsettings cursor-theme: '$atual' -> '$nome'"; mudou=1
   else
-    # CONFERIR DEPOIS DE ESCREVER, PORQUE O `gsettings set` MENTE (25/08/2026)
-    #   Medido num HOME de brinquedo sem `DBUS_SESSION_BUS_ADDRESS`:
-    #       gsettings set ... cursor-theme 'teste-meow'   -> exit 0, sem uma
-    #       gsettings get ... cursor-theme                -> 'Adwaita'   palavra
-    #   O escritor do dconf é um serviço de D-Bus (`ca.desrt.dconf`). Sem
-    #   barramento não há quem guarde, e mesmo assim o `gsettings` sai ZERO.
-    #
-    #   O efeito era esta etapa se achar divergente TODA passagem e reescrever
-    #   para sempre — `tests/convergencia.sh` acusava "ainda mexia na passagem
-    #   3", e o culpado era `cursor`. Confiar no código de saída é o modo de
-    #   falha silencioso de sempre: o instalador dizia "já vale" e nada valia.
-    #
-    #   Não é erro fatal: numa sessão de verdade isto nunca acontece, e num CI
-    #   sem sessão não há o que consertar. Então vira PULO, com o conserto dito
-    #   em voz alta — e, principalmente, sem contar como mudança, senão a
-    #   promessa de convergência do README seria falsa em qualquer máquina sem
-    #   barramento.
     if ! gsettings set "$CURSOR_CHAVE" cursor-theme "$nome" 2>/dev/null; then
       meow_erro "gsettings recusou escrever cursor-theme"; return "$MEOW_ERRO"
     fi
@@ -1010,19 +673,8 @@ cmd_estado() {
   return "$MEOW_OK"
 }
 
-# A LISTA É DADO, NÃO RELATÓRIO — por isso ela sai limpa no stdout
-#   Quem chama é a página, que quer um valor por linha e nada mais. Toda linha
-#   decorada deste script (`meow_ok`, `meow_info`) já vai para o stdout com
-#   marcador e cor; misturar as duas coisas obrigaria o outro lado a filtrar por
-#   aparência, que é o acoplamento mais frágil que existe entre dois programas.
-#   Aqui não se imprime mais nada: lista vazia é uma resposta legítima, e o
-#   código de saída continua 0 porque LER não muda nada.
-#
-# O PONTEIRO DO PACK ENTRA NA LISTA ANTES DE ESTAR NO DISCO — 23/09/2026, P12.
-#   A lista é "o que a chave aceita sem tocar a rede", e o do pack é isso: o
-#   `aplicar` o instala do próprio pack. Deixá-lo de fora até a primeira
-#   instalação seria esconder, na tela, justamente o ponteiro que o tema traz —
-#   e ele só seria instalado se alguém o escrevesse à mão no meow.conf.
+# A LISTA É DADO, NÃO RELATÓRIO — por isso ela sai limpa no stdout Quem chama é
+# a página, que quer um valor por linha e nada mais.
 cmd_listar() {
   { _cursor_temas_instalados
     _cursor_ler_pack
@@ -1031,10 +683,8 @@ cmd_listar() {
   return "$MEOW_OK"
 }
 
-# `remover` sem argumento é o de sempre: desliga as duas alavancas e apaga o tema
-# do `$CURSOR`. Com um argumento, apaga SÓ o tema nomeado — é o desfazer do
-# `adicionar`, e sem ele o subcomando novo seria a única coisa deste script que
-# entra no disco e não sabe sair.
+# `remover` sem argumento é o de sempre: desliga as duas alavancas e apaga o
+# tema do `$CURSOR`.
 cmd_remover() {
   if [ -n "${1:-}" ]; then
     _cursor_remover_tema "$1"
@@ -1096,15 +746,9 @@ cmd_remover() {
 
 # Apaga UM tema pelo valor — o desfazer do `adicionar`.
 #
-# SÓ APAGA O QUE ESTÁ EM `$CURSOR_ICONES`, E ISSO É PROPOSITAL
-#   Tema que veio de `/usr/share/icons` é do gerenciador de pacotes (a TRAVA 1
-#   recusaria o caminho de qualquer jeito) e tema em `~/.icons` não foi este
-#   script que pôs lá. Apagar o que não instalamos é destruir configuração alheia
-#   em nome de "reverter" — a mesma regra que o `_cursor_default_e_nosso` aplica
-#   ao `index.theme` do compositor.
-#
-#   E se o tema apagado for o que a chave `CURSOR` aponta, a tela dela cai no
-#   ponteiro de fábrica no próximo login sem ninguém avisar. Então avisa-se.
+# Tema que veio de `/usr/share/icons` é do gerenciador de pacotes (a TRAVA 1
+# recusaria o caminho de qualquer jeito) e tema em `~/.icons` não foi este
+# script que pôs lá.
 _cursor_remover_tema() {
   local valor nome dir
   valor="$(_cursor_nome_seguro "${1%-cursors}")"

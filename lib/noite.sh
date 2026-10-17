@@ -1,81 +1,23 @@
 #!/usr/bin/env bash
 # lib/noite.sh — "é noite AGORA?", uma vez só, para o gato do dock e o do
-# terminal. [Até 25/09/2026, P62, esta linha dizia "para a máquina inteira": o
-# papel de parede e o modo de leitura têm hora própria — ver logo abaixo.]
-#
-# ESTE ARQUIVO É `source`, NÃO EXECUTADO.
-#
-# POR QUE ELE EXISTE: A MÁQUINA TINHA TRÊS NOITES
-#   Em 01/09/2026 a mesma regra estava escrita em TRÊS lugares, e os três
-#   cabeçalhos diziam, cada um por sua vez, que a igualdade entre eles era o que
-#   impedia a máquina de ter duas noites:
+# terminal.
 #
 #     scripts/wallpaper.sh:637   `e_noite()`, em bash
 #     scripts/leitura.sh:521     as mesmas três linhas, em awk, dentro do BEGIN
 #     src/applets/leitura/src/main.rs:518  `fn e_noite()`, em Rust
 #
-#   Três cópias mantidas à mão por um comentário que pede "se um dia esta regra
-#   mudar lá, tem de mudar aqui" é uma promessa que ninguém pode cumprir. E em
-#   01/09/2026 chegou o QUARTO consumidor — o gato do dock e o do fastfetch,
-#   que trocam de rosto com a hora. Quatro cópias seria pedir para divergirem.
+# Três cópias mantidas à mão por um comentário que pede "se um dia esta regra
+# mudar lá, tem de mudar aqui" é uma promessa que ninguém pode cumprir.
 #
-#   A do gato (o `logo.sh` e o `fastfetch_logo.sh`) nasceu sendo ESTA. A do
-#   `wallpaper.sh` era para vir junto, e não veio: o `e_noite` dele continua o
-#   dele, sobre as `WALLPAPER_NOITE_*` — medido em 24/09/2026 (P54). Até
-#   25/09/2026 (P62) esta linha dizia "as duas em shell passam a ser ESTA",
-#   como se ele tivesse vindo. A do awk continua onde está, porque o
-#   `leitura.sh` calcula a rampa DENTRO do mesmo `awk` (ele precisa da fase E do
-#   fator no mesmo passo, e chamar bash de dentro do awk seria pior); a do Rust
-#   continua onde está, porque o applet não pode chamar shell a cada quadro. As
-#   duas ficam com um comentário apontando para cá, e o `--conferir` do
-#   `leitura.sh` compara os números — divergência vira aviso, não silêncio.
-#
-# A REGRA, QUE É A MESMA DE SEMPRE
 #     ini == fim  ->  é noite o dia inteiro
 #     ini >  fim  ->  a janela atravessa a meia-noite (é o caso NORMAL aqui:
 #                     o padrão é 18:00-07:00, e "entre os dois" seria vazio)
 #     ini <  fim  ->  janela normal, dentro do mesmo dia
-#
-#   `ini == fim` fica valendo NOITE O DIA INTEIRO, e não "janela vazia". A outra
-#   leitura transformaria dois valores iguais numa chave que não faz nada e não
-#   avisa — o defeito que este projeto mais documenta ter cometido (a `LOG_NIVEL`
-#   inerte, as `WALLPAPER_SEMENTES`).
-#
-# DE ONDE VEM A JANELA, E POR QUE A ORDEM É ESTA
-#   `meow_noite_janela` devolve `<ini> <fim> <fonte>` e a fonte é dita em voz
-#   alta, porque "que noite está valendo" é pergunta que aparece quando algo
-#   troca na hora errada. A ordem de precedência:
-#
-#     1. `NOITE_INICIO` / `NOITE_FIM` no meow.conf — o nome canônico, novo em
-#        01/09/2026. Quem escrever isto manda em quem pergunta a ESTA
-#        biblioteca — hoje, o gato do dock e o do terminal. O papel de parede
-#        continua com o `e_noite` dele, sobre as `WALLPAPER_NOITE_*`, e o modo
-#        de leitura com o horário dele (medido em 24/09/2026, P54).
-#     2. `leitura_hora_inicio` / `leitura_hora_fim` do CosmicComp — a janela que
-#        ELA ARRASTA na interface do applet do modo de leitura. Vem antes do
-#        conf antigo de propósito: é a única que ela pode mudar sem abrir editor,
-#        e uma janela que a interface mostra e a máquina ignora é mentira na tela.
-#        MEDIDO em 01/09/2026: os dois arquivos estão AUSENTES nesta máquina
-#        (ela nunca arrastou), então hoje quem vence é o item 3 — e é por isso
-#        que a ordem só aparece quando alguém mexe.
-#     3. `WALLPAPER_NOITE_INICIO` / `WALLPAPER_NOITE_FIM` — o nome com que essas
-#        chaves nasceram. Continuam valendo para sempre; renomear chave de
-#        configuração de alguém sem aviso é quebrar a máquina dela por estética.
-#     4. 18:00 / 07:00, o padrão.
-#
-#   O `wallpaper.sh` já chamava suas variáveis internas de `NOITE_INICIO` e
-#   `NOITE_FIM` (ele mapeava `WALLPAPER_NOITE_*` para elas na leitura do conf).
-#   Ou seja: o nome canônico não é invenção nova, é a promoção de um nome que já
-#   existia dentro de um script para o vocabulário da máquina inteira.
-#
-# NADA AQUI ESCREVE EM DISCO, E NADA AQUI IMPRIME SOZINHO. É biblioteca de
-# consulta: quem decide o que fazer com a resposta é quem chamou.
 
 # `HH:MM` -> minutos desde a meia-noite. Falha (1) em qualquer outra coisa.
 #
 # ACEITA `H:MM` TAMBÉM, e isso não é frouxidão: o RON do CosmicComp guarda a
 # hora como string entre aspas e nada impede um `"7:00"` vindo da interface.
-# O que NÃO se aceita é hora fora da faixa — `25:00` vira falha, não 1500.
 meow_minutos_de_hora() {
   local v="${1:-}" h m
   v="${v%\"}"; v="${v#\"}"          # o RON entrega com aspas; o conf, sem
@@ -90,7 +32,6 @@ meow_minutos_de_hora() {
 
 # Lê uma chave do CosmicComp sem explodir quando o diretório não existe.
 _meow_noite_cosmic() {
-  # [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
   local f; f="$(meow_cosmic_dir)/com.system76.CosmicComp/$(meow_cosmic_v com.system76.CosmicComp)/$1"
   [ -f "$f" ] || return 1
   local v; v="$(cat "$f" 2>/dev/null)" || return 1

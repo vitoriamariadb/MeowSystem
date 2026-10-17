@@ -94,54 +94,13 @@ except ImportError:
     print("  receita no cabecalho de tests/app-navegador.py")
     sys.exit(3)
 
-# O PAINEL SOBE NUM HOME DE BRINQUEDO, E NUNCA CONTRA O `meow.conf` DELA —
-# 23/09/2026, sprint P33
-#   Ate' hoje este arquivo subia o `app/run.sh` com o ambiente de quem o
-#   chamava: o `meow.conf` de verdade, o estado de verdade e o `sudo` da
-#   maquina — e rodava acoes de verdade nesse painel (o `meow status`, o
-#   `doctor`, o rascunho da oficina gravado no estado dela). A regra do
-#   projeto e' que nada da interface e' aplicado em sandbox, tudo e' aplicado
-#   na maquina da pessoa; por isso quem vai para a sandbox e' o TESTE. E a P33
-#   tornou isto urgente: o `tests/todos.sh` passou a achar o python com
-#   Playwright, e este arquivo, que saia "pulado" nos terminais sem o pyenv,
-#   agora roda de fato a cada `./tests/todos.sh`.
+# A regra do projeto e' que nada da interface e' aplicado em sandbox, tudo e'
+# aplicado na maquina da pessoa; por isso quem vai para a sandbox e' o TESTE.
 #
-#   O servidor recebe um ambiente limpo, o `env -i` do `tests/convergencia.sh`:
-#   HOME e `MEOW_CONF` num diretorio temporario, `MEOW_PONTE` para o vazio e um
-#   `sudo` falso na frente do PATH — numa maquina com `NOPASSWD: ALL` o
-#   `sudo -n` de verdade PASSA, e um teste cujo alcance depende disso e' roleta.
-#   O `meow.conf` do brinquedo e' uma copia do `meow.conf.exemplo`, o arquivo
-#   de uma instalacao nova — e e' ele que o passo 21 confere byte a byte.
-#
-#   E A CASA NAO FICA VAZIA — corrigido no mesmo dia, na revisao da P33
-#   A primeira corrida inteira no brinquedo reprovou em quatro conferencias,
-#   e a primeira versao deste bloco as deu por "decisao de outra sprint". Nao
-#   eram: tres liam o que esta' INSTALADO numa casa e olhavam uma vazia, e a
-#   quarta escolhia mal o que medir. Defeito DESTE arquivo, e vermelho em
-#   qualquer maquina. As tres ganharam o que mediam na casa dela, derivado do
-#   `meow.conf` do brinquedo e nunca de um nome escrito aqui (`montar_casa`):
-#     · a grade de icones do tema, zero: o `NOME_TEMA_ICONES` nao existia em
-#       ~/.local/share/icons. Recebe os glifos versionados em
-#       `packs/meowsystem/icones/apps/arcticons/`, que sao o que o construtor veste;
-#     · a galeria, zero: `ativos/` vazio. Recebe PAREDES imagens lisas;
-#     · o ponteiro, "3 de 0": o `CURSOR` de fabrica nao estava instalado, a
-#       lista do disco nao virava cerca e a chave ficava sem opcoes, enquanto
-#       as 3 previas saiam de /usr/share/icons. Recebe um XCursor de verdade
-#       com o nome do valor de fabrica.
-#   A quarta, a Suavidade da oficina em 0,0%, NAO nasceu do brinquedo. O
-#   primeiro aplicativo da grade e' o «Arquivos» do COSMIC nas duas casas
-#   (medido lendo os `.desktop` com um HOME e com o outro), e a arte de
-#   fabrica dele e' a mesma, a do hicolor do sistema — tao simples que a rota
-#   devolve o MESMO SVG com a suavidade em 2 e em 9. Na casa dela o teste
-#   morria antes, no `networkidle`, e nunca chegava ate' la'. Nao se planta:
-#   a oficina passa a escolher um aplicativo em que a mudanca da Suavidade
-#   aparece na lupa (ver o passo 22).
-#   A reprovação que sobrava NÃO era do brinquedo: o `FLAVOR` não ganhava
-#   amostras em casa nenhuma, porque as cinco opções do exemplo não cabem na
-#   paleta de nenhum dos dois packs (4 no catppuccin, 2 no dracula). Ela
-#   reprovava o "FLAVOR mostra as paletas" do passo 4 e derrubava o passo 20c.
-#   O conserto era do `servidor.py`, fora do que a P33 liberava, e veio na P40
-#   (24/09/2026): a prévia se pergunta de novo sobre os flavors do pack no ar.
+# O servidor recebe um ambiente limpo, o `env -i` do `tests/convergencia.sh`:
+# HOME e `MEOW_CONF` num diretorio temporario, `MEOW_PONTE` para o vazio e um
+# `sudo` falso na frente do PATH — numa maquina com `NOPASSWD: ALL` o `sudo -n`
+# de verdade PASSA, e um teste cujo alcance depende disso e' roleta.
 BRINQUEDO = tempfile.mkdtemp(prefix="meow-navegador-")
 CASA = os.path.join(BRINQUEDO, "casa")
 CONF = os.path.join(CASA, ".config", "meow", "meow.conf")
@@ -160,14 +119,6 @@ def checa(condicao, texto):
     if not condicao:
         falhas.append(texto)
 
-
-# O ENSAIO SAIU DA PÁGINA — 13/09/2026.
-#   Pedido dela: "eu tinha pedido pra tirar o app do modo sandbox". As duas
-#   funções que ligavam e conferiam o «Ensaiar sem gravar» (`seco`,
-#   `seco_ligado`) sairam junto com o botão. O que este arquivo usava o ensaio
-#   para evitar — escrever no disco de quem testa — agora e' evitado em cada
-#   passo: o Salvar so' e' chamado com escolha que a peneira recusa antes de
-#   gravar, e o editor de fora não abre porque o painel sobe com `--sem-abrir`.
 
 
 def descartar_tudo(pag):
@@ -191,7 +142,6 @@ def md5_conf():
 
 
 def md5_de(caminho):
-    # [P82: o mapa de quem usa nasce no primeiro «Usar» — ausente é um estado.]
     if not os.path.isfile(caminho):
         return None
     with open(caminho, "rb") as fh:
@@ -218,12 +168,10 @@ def valor_de(chave):
     return None
 
 
-# O CENSO: UM RETRATO DE CADA CARTAO DESENHADO.
-#   Ele responde, para cada chave, QUE FORMA a pagina deu a ela — campo de
-#   texto, deslizante, fichas, grupo de botoes — e o `tipo` do grupo sai da
-#   propria arvore (a classe do elemento que segura os botoes), em vez de uma
-#   lista de nomes de classe escrita aqui. Se amanha nascer uma quinta forma de
-#   escolha, ela aparece no censo sozinha.
+# Ele responde, para cada chave, QUE FORMA a pagina deu a ela — campo de texto,
+# deslizante, fichas, grupo de botoes — e o `tipo` do grupo sai da propria
+# arvore (a classe do elemento que segura os botoes), em vez de uma lista de
+# nomes de classe escrita aqui.
 CENSO_JS = """
 () => [...document.querySelectorAll('#conteudo article.cartao')].map((a) => {
   const grupo = [...a.querySelectorAll('button[data-valor]')];
@@ -256,10 +204,9 @@ ESQUEMA_JS = """
 }))
 """
 
-# AS ACOES QUE A PAGINA PEDE PELO NOME.
-#   Duas procedencias, as duas varridas por regra: o atributo `data-acao*` de
-#   qualquer elemento (e assim o atalho do cabecalho entra) e, no `app.js`, o
-#   primeiro argumento literal de qualquer funcao cujo nome comece com `rodar`.
+# Duas procedencias, as duas varridas por regra: o atributo `data-acao*` de
+# qualquer elemento (e assim o atalho do cabecalho entra) e, no `app.js`, o
+# primeiro argumento literal de qualquer funcao cujo nome comece com `rodar`.
 ACOES_NO_DOM_JS = """
 () => [...document.querySelectorAll('*')].flatMap(
   (el) => [...el.attributes].filter((a) => a.name.startsWith('data-acao'))
@@ -279,9 +226,9 @@ def cartao_da_chave(pag, chave):
     por_dado = pag.locator(f'#conteudo article[data-chave="{chave}"]')
     if por_dado.count():
         return por_dado.first
-    # `data-chave` e recente (02/09/2026, a ancora do foco). Enquanto ele podia
-    # nao existir, o nome da chave no `<code>` do topo continua sendo o unico
-    # identificador visivel do cartao.
+    # `data-chave` e recente. Enquanto ele podia nao existir, o nome da chave
+    # no `<code>` do topo continua sendo o unico identificador visivel do
+    # cartao.
     return pag.locator(f'#conteudo article.cartao:has(code:text-is("{chave}"))').first
 
 
@@ -478,13 +425,9 @@ def main():
         with sync_playwright() as p:
             nav = p.chromium.launch()
             pag = nav.new_page(viewport={"width": 1500, "height": 1000})
-            # SO EXCECOES DE JAVASCRIPT CONTAM AQUI.
-            #   O `console` do navegador tambem registra falha de REDE — e um
-            #   409 e o servidor fazendo o certo: recusar um segundo trabalho
-            #   enquanto o primeiro corre. Contar isso como defeito da pagina
-            #   fazia o teste reprovar justamente a protecao que ele deveria
-            #   confirmar. O que a pagina precisa e DIZER o 409 na tela, e isso
-            #   ela passou a fazer no mesmo dia.
+            # O `console` do navegador tambem registra falha de REDE — e um 409
+            # e o servidor fazendo o certo: recusar um segundo trabalho
+            # enquanto o primeiro corre.
             pag.on("console", lambda m: (
                 m.type == "error"
                 and "Failed to load resource" not in m.text
@@ -493,36 +436,18 @@ def main():
                 and "Failed to fetch" not in m.text
                 and erros_de_console.append(m.text)))
             pag.on("pageerror", lambda e: erros_de_console.append(str(e)))
-            # A PAGINA PRONTA E' O TRILHO DESENHADO, NAO O SILENCIO DA REDE —
-            # 23/09/2026, sprint P33
-            #   Era `wait_until="networkidle"`, que espera 500 ms sem conexao
-            #   nenhuma, e o `page.goto` estourava os 30 s em toda corrida — em
-            #   `dev` tambem. Medido antes de trocar a espera: com a pagina
-            #   aberta, aos 2, 8 e 20 s o UNICO pedido aberto e' o
-            #   `GET /api/pulso`, tipo `eventsource`, e nenhum pedido novo nasce
-            #   depois dos 3 s — nao ha intervalo vazando. E o pulso nao e'
-            #   vazamento: e' o interruptor do servidor (o bloco "O PAINEL MORRE
-            #   COM A JANELA QUE O ABRIU", em `servidor.py`), aberto de proposito
-            #   enquanto a pagina existir — entao a rede desta pagina NUNCA
-            #   silencia.
-            #
-            #   O `#trilho button` e' a prova certa de "pronta": o `iniciar()`
-            #   so' o desenha depois de o esquema chegar, e na mesma volta em
-            #   que pinta o `#resumo` que o passo 1 le logo abaixo.
+            # O `#trilho button` e' a prova certa de "pronta": o `iniciar()` so'
+            # o desenha depois de o esquema chegar, e na mesma volta em que
+            # pinta o `#resumo` que o passo 1 le logo abaixo.
             pag.goto(url, wait_until="domcontentloaded")
             pag.wait_for_selector("#trilho button")
 
             print("\n1. A PAGINA ABRE")
             checa(pag.title() == "MeowSystem", "o titulo e MeowSystem")
             resumo = pag.locator("#resumo").inner_text()
-            # O NÚMERO NÃO SE ESCREVE AQUI.
-            #   Ele era "95 chaves" cravado, e envelheceu em silêncio: cada
-            #   chave nova no `meow.conf.exemplo` quebrava este teste sem que
-            #   nada estivesse errado no painel. O catálogo é derivado dos
-            #   comentários do exemplo — então o número certo é o que o exemplo
-            #   diz hoje, e é com ele que se compara.
-            # "chaves" virou "ajustes" na tela em 06/09/2026: quem le a tela
-            # nunca precisa saber o nome da variavel, e "chave" era o nome dela.
+            # Ele era "95 chaves" cravado, e envelheceu em silêncio: cada chave
+            # nova no `meow.conf.exemplo` quebrava este teste sem que nada
+            # estivesse errado no painel.
             m_resumo = re.search(r"(\d+) ajustes", resumo)
             checa(bool(m_resumo), f"o resumo conta os ajustes: {resumo[:44]}…")
             with open(os.path.join(RAIZ, "meow.conf.exemplo"), encoding="utf-8") as fh:
@@ -530,22 +455,17 @@ def main():
             checa(m_resumo and int(m_resumo.group(1)) == chaves_no_exemplo,
                   f"o resumo conta {m_resumo.group(1) if m_resumo else '?'} ajustes"
                   f" e o meow.conf.exemplo cataloga {chaves_no_exemplo}")
-            # O MENU ENCOLHEU DE PROPOSITO — 06/09/2026, pedido dela: "temos
-            #   duas guias de papeis de parede… essas repetidas deveriam serem
-            #   unidas cada qual em uma unica pagina". Sao 12 assuntos mais o
-            #   Inicio, num nivel so'. O piso de 20 media o menu antigo; agora
-            #   ele cobraria de volta o que ela pediu para tirar.
+            # Sao 12 assuntos mais o Inicio, num nivel so'.
             n_trilho = pag.locator("#trilho button").count()
             checa(10 <= n_trilho <= 16, f"o trilho tem {n_trilho} paginas")
 
             print("\n2. CADA SECAO RENDERIZA (uma a uma, medindo o que apareceu)")
             nomes = pag.locator("#trilho button").all_text_contents()
             vazias = []
-            # A MESMA VARREDURA COLHE O CENSO.
-            #   Abrir as 23 secoes ja custa cinco segundos; colher o retrato de
-            #   cada cartao enquanto ele esta na tela custa um `evaluate` por
-            #   secao e paga as regras dos passos 6, 7 e 15 sem uma segunda
-            #   volta pela pagina inteira.
+            # Abrir as 23 secoes ja custa cinco segundos; colher o retrato de
+            # cada cartao enquanto ele esta na tela custa um `evaluate` por
+            # secao e paga as regras dos passos 6, 7 e 15 sem uma segunda volta
+            # pela pagina inteira.
             censo = {}
             for i in range(len(nomes)):
                 pag.locator("#trilho button").nth(i).click()
@@ -562,19 +482,8 @@ def main():
                               + (f" — VAZIAS: {vazias}" if vazias else ""))
 
             chaves = pag.evaluate(ESQUEMA_JS)
-            # UMA CHAVE SEM CARTAO E UMA CHAVE QUE ELA NAO PODE CONFIGURAR.
-            #   O resumo do topo conta as chaves do catálogo; isto confere que todas
-            #   chegaram a ALGUMA aba. Uma chave que o servidor le e a pagina
-            #   nao desenha e a definicao de "depender de ajuda sempre".
-            # [P77, achado 12: a chave de um programa que a casa nao tem
-            # (`sem_programa`, da marca `[so-com-app ...]`) fica sem cartao DE
-            # PROPOSITO — nao ha o que trocar. Ela sai da conta, e o contrario
-            # e cobrado: uma chave assim que ganhasse cartao seria o defeito.]
-            # [P77, achado 17: num seletor com modo (o gato do dock e o do
-            # terminal, `DECISOES[].modo` no app.js), a chave que o modo em
-            # vigor nao usa fica fora da tela ate o modo dela ser escolhido. Ela
-            # sai da conta, e o que se cobra e que a chave do MODO tenha cartao
-            # — e por ele que as outras aparecem.]
+            # O resumo do topo conta as chaves do catálogo; isto confere que
+            # todas chegaram a ALGUMA aba.
             por_modo = pag.evaluate(
                 "() => DECISOES.filter((d) => d.modo).map((d) => ({modo: d.modo.chave,"
                 " chaves: Object.values(d.modo.por).flat()}))")
@@ -637,36 +546,21 @@ def main():
                         r"^\s*" + re.escape(parte))).first.click()
                 pag.wait_for_timeout(600)
 
-            # O MENU VIROU UM NIVEL SO, UMA PAGINA POR ASSUNTO — 06/09/2026.
-            #   "Aparencia" era o bloco de arquivo; agora a pagina e o assunto,
-            #   e as paletas moram em "Cor e tela". Os gatos, que vinham na
-            #   mesma aba por serem vizinhos no meow.conf.exemplo, foram para a
-            #   pagina "Logo do sistema" — que e onde alguem os procuraria.
+            # "Aparencia" era o bloco de arquivo; agora a pagina e o assunto, e
+            # as paletas moram em "Cor e tela".
             secao("Cor e tela")
             checa(pag.locator("#conteudo .tira").count() >= 4, "FLAVOR mostra as paletas")
             checa(pag.locator("#conteudo .cores-grade button, #conteudo .amostras button").count() > 8,
                   "ACCENT mostra as cores da paleta")
 
-            # AS DUAS LISTAS DO PONTEIRO TEM DE TER O MESMO TAMANHO — 21/09/2026
-            #   `_temas_de_cursor` diz o que a chave CURSOR aceita, e e' dela
-            #   que saem os BOTOES; `_prev_cursores` diz o que vira DESENHO. Em
-            #   15/09 a primeira passou a aceitar nome exato — foi assim que o
-            #   `Dracula-Cursor` entrou — e a segunda continuou montando
-            #   `<valor>-cursors` sempre. Medido em 21/09: quatro opcoes, UMA
-            #   previa, tres botoes com um retangulo vazio no lugar do ponteiro.
-            #   Divergencia entre as duas listas e', por definicao, defeito — e
-            #   esta e' a unica conferencia que teria pegado aquilo no dia.
-            #   Ela pergunta as duas fontes pela rede, e nao conta pixels: vale
-            #   com a pagina em qualquer aba. Fica aqui, e nao entre os gatos,
-            #   porque o `CURSOR` mora na "Cor e tela" (meow.conf.exemplo:242) —
-            #   um relatorio que le em ordem nao pode dizer a secao errada.
+            # `_temas_de_cursor` diz o que a chave CURSOR aceita, e e' dela que
+            # saem os BOTOES; `_prev_cursores` diz o que vira DESENHO.
             n_opcoes, n_previas = pag.evaluate("""async () => {
               const esq = await (await fetch('/api/esquema')).json();
               const prev = await (await fetch('/api/previas?tipo=cursor')).json();
               const k = (esq.chaves || []).find((c) => c.chave === 'CURSOR');
               return [((k && k.opcoes) || []).length, (prev.itens || []).length];
             }""")
-            # O `> 0` NAO E' CINTO E SUSPENSORIO — 21/09/2026
             #   So' a igualdade passa em VERDE com `0 == 0`, e ha' dois jeitos
             #   baratos de chegar la': a chave CURSOR sumir do esquema (`k` vem
             #   undefined e o `|| []` devolve zero) ou `/api/previas` responder
@@ -676,9 +570,7 @@ def main():
             checa(n_opcoes > 0 and n_opcoes == n_previas,
                   f"o ponteiro tem uma prévia por opção ({n_previas} de {n_opcoes})")
             # O MESMO MOTIVO DA GRADE DE ICONES LOGO ABAIXO, e que aqui faltava:
-            # os gatos chegam por `/previa`, uma requisicao por desenho. Medir no
-            # instante do clique reprovou a pagina numa das rodadas de 02/09/2026
-            # com os gatos inteiros no lugar — era a rede, nao o cartao.
+            # os gatos chegam por `/previa`, uma requisicao por desenho.
             secao("Logo do sistema")
             n_gatos = 0
             for _ in range(10):
@@ -700,9 +592,6 @@ def main():
             secao("Papel de parede")
             pag.wait_for_timeout(1500)
             n_fotos = pag.locator("#conteudo figure").count()
-            # [P77, achado 15: a coleção abre a página com a primeira leva
-            # (`PRIMEIRA_LEVA_GALERIA`, três fileiras); o resto vem pelo
-            # «Mostrar mais», que também se cobra aqui.]
             leva = pag.evaluate("() => PRIMEIRA_LEVA_GALERIA")
             checa(n_fotos >= min(leva, 20), f"a galeria mostra {n_fotos} papeis de parede")
             mais = pag.locator("#conteudo button", has_text="Mostrar mais")
@@ -723,26 +612,12 @@ def main():
                       f"a aba '{aba}' responde")
 
             print("\n6. A MARCACAO SEGUE O CLIQUE")
-            # O DEFEITO Nº 1 DA AUDITORIA, E O QUE NENHUM TESTE VIA.
-            #   "Cliquei na tira `latte`. O banner passou a '1 escolha' e o
-            #   cartao ganhou a borda de nao-salvo, mas o aria-pressed continuou
-            #   `mocha=true`." A pagina registrava a escolha certa e mostrava a
-            #   errada — e o teste antigo so olhava para o banner, que estava
-            #   certo. Prova-se o contrario: depois do clique, o botao clicado e
-            #   o unico marcado.
-            #
-            #   O representante de cada forma sai do ESQUEMA, nunca de uma lista
-            #   de chaves: `previa` diz se a escolha e uma tira de flavor, uma
-            #   bolinha de cor ou um desenho, e `opcoes` sem previa e o botao de
-            #   texto. Chave nova entra na regra sozinha.
+            # "Cliquei na tira `latte`. Prova-se o contrario: depois do clique,
+            # o botao clicado e o unico marcado.
             formas = (
                 ("amostra de flavor", lambda k: k["previa"] == "flavor"),
                 ("bolinha de cor", lambda k: k["previa"] == "cor"),
                 ("imagem", lambda k: k["previa"] in ("gato", "cursor")),
-                # [P82, item 24: o `PACK` saiu daqui. O botão dele é o gesto
-                #   inteiro (o `pack_usar`, com a confirmação), e não uma
-                #   escolha que espera o Salvar; quem o confere é o gate, no
-                #   `h_pack_opcao`.]
                 ("botão de opção", lambda k: k["opcoes"] and not k["previa"]
                                              and k["chave"] != "PACK"),
             )
@@ -750,9 +625,7 @@ def main():
                 # O REPRESENTANTE E O PRIMEIRO QUE DA PARA CLICAR, e nao o
                 # primeiro da lista: uma chave pode ter uma opcao so (o `CURSOR`
                 # ficou assim quando os apelidos duplicados sairam) e ali nao ha
-                # gesto a medir. A paciencia de 6 s vale para o primeiro
-                # candidato, que e quem espera a previa; os seguintes ja pegam o
-                # acervo carregado.
+                # gesto a medir.
                 candidatos = [k for k in chaves if condicao(k)]
                 if not candidatos:
                     continue
@@ -784,12 +657,10 @@ def main():
             descartar(pag)
 
             print("\n7. AS FICHAS DE LISTA DESENHAM O QUE A ESCOLHA DIZ")
-            # "Cliquei no × da ficha 'steam': o cabecalho passou a '1 escolha',
-            #  mas as 23 fichas continuaram as mesmas." E, do outro lado, "o
-            #  segundo caminho acrescentado APAGA o primeiro". As duas metades
-            #  do gesto sao conferidas aqui, nas duas familias de lista que o
-            #  esquema declara (virgula e dois-pontos) — e o que entra e sai e
-            #  SEMPRE ficha inventada pelo teste, nunca uma das dela.
+            # As duas metades do gesto sao conferidas aqui, nas duas familias
+            # de lista que o esquema declara (virgula e dois-pontos) — e o que
+            # entra e sai e SEMPRE ficha inventada pelo teste, nunca uma das
+            # dela.
             postica = ("zzz-teste-navegador-a", "zzz-teste-navegador-b")
             for rotulo, condicao in (("vírgula", lambda k: k["lista"]),
                                      ("dois-pontos", lambda k: k["pathsep"])):
@@ -830,21 +701,10 @@ def main():
             descartar(pag)
 
             print("\n8. O DESENHO AO VIVO SEGUE O CONTROLE")
-            # "O DESENHO AO VIVO NAO E AO VIVO: nenhuma mudanca de controle mexe
-            #  nele." A auditoria mediu isso duas vezes — no veu de Kelvin do
-            #  modo de leitura ("o <output> foi para 1315 e a div .veu continuou
-            #  com a cor de 3500K") e na barra desenhada das secoes de FORMA
-            #  ("nas cinco medicoes o HTML do mock ficou byte a byte igual").
-            #  Uma previa que nao acompanha o controle e pior que previa nenhuma:
-            #  ela mostra, com confianca, o estado errado.
+            # Uma previa que nao acompanha o controle e pior que previa nenhuma:
+            # ela mostra, com confianca, o estado errado.
             #
-            #  A regra: toda previa que ACOMPANHA o controle tem de reagir a ele.
-            #  Quais sao elas sai do esquema por exclusao — as previas que SAO o
-            #  controle (a tira do flavor, a bolinha, o desenho do gato) nao
-            #  entram aqui, porque nelas o clique ja foi medido no passo 6.
-            # [P77: a prévia do modo de leitura é feita de PIXEL — a conta do
-            # compositor sobre uma imagem, num <canvas> —, e pixel não é `style`.
-            # O retrato leva também o conteúdo de cada canvas da página.]
+            # A regra: toda previa que ACOMPANHA o controle tem de reagir a ele.
             ESTILOS_JS = """
               () => [...document.querySelectorAll('#conteudo [style]')]
                 .filter((e) => !['INPUT', 'BUTTON', 'OUTPUT', 'SELECT', 'TEXTAREA']
@@ -869,20 +729,15 @@ def main():
                     anterior = agora
                 return anterior
 
-            # A BUSCA DO PASSO ANTERIOR TEM DE SAIR ANTES.
-            #   Com texto na busca, `render` mostra os RESULTADOS e nao a aba —
-            #   e o `secao()` abaixo clica no trilho sem efeito visivel. Foi o
-            #   que fez as tres primeiras rodadas dizerem "o cartão não apareceu
-            #   na aba dele" para cartoes que estavam inteiros, uma busca atras.
+            # Com texto na busca, `render` mostra os RESULTADOS e nao a aba — e
+            # o `secao()` abaixo clica no trilho sem efeito visivel.
             def mexer_no_controle(cartao):
                 """Move o controle do cartao e diz o gesto feito, ou None."""
                 faixa = cartao.locator("input[type=range]")
                 if faixa.count() and faixa.first.is_disabled():
                     # DESLIZANTE DESABILITADO E' O ESTADO "Deixar como esta".
-                    #   `FORMA_RAIO_PAINEL=""` no conf dela desenha o deslizante
-                    #   cinza, e nenhuma tecla o move — corretamente. Tratar isso
-                    #   como "o controle nao reage" acusaria a pagina de um
-                    #   defeito que e' a chave estando vazia.
+                    # `FORMA_RAIO_PAINEL=""` no conf dela desenha o deslizante
+                    # cinza, e nenhuma tecla o move — corretamente.
                     return None
                 if faixa.count():
                     # `End` (ou `Home`, quando ja esta no fim) e um gesto de
@@ -908,22 +763,13 @@ def main():
             pag.wait_for_timeout(300)
             por_previa = {}
             for k in chaves:
-                # O CAMPO `previa` NOMEIA DUAS COISAS DIFERENTES, e so' uma delas
-                # cabe aqui.
-                #   Umas dizem QUAL DESENHO a secao ganha (`barra`, `kelvin`,
-                #   `textura`) — sao essas que este passo cobra, porque e' delas
-                #   que se espera repintar quando o controle mexe.
-                #   Outras dizem QUAL CONTROLE substitui o campo de texto
-                #   (`flavor`, `cor`, `gato`, `cursor`, `areas`): elas nao tem
-                #   desenho proprio, ja foram medidas no passo do clique, e
-                #   cobrar repintura delas e' cobrar de um controle uma coisa que
-                #   ele nunca prometeu.
+                # O CAMPO `previa` NOMEIA DUAS COISAS DIFERENTES, e so' uma
+                # delas cabe aqui.
                 #
-                #   A LISTA E' DE NAO-DESENHOS, e nao de desenhos, de proposito:
-                #   assim uma previa de desenho NOVA entra coberta sozinha, e uma
-                #   previa de controle nova reprova aqui na primeira rodada — que
-                #   e' barulhento, e e' o lado certo para errar. Foi o que
-                #   aconteceu com `areas` em 07/09/2026.
+                # A LISTA E' DE NAO-DESENHOS, e nao de desenhos, de proposito:
+                # assim uma previa de desenho NOVA entra coberta sozinha, e uma
+                # previa de controle nova reprova aqui na primeira rodada — que
+                # e' barulhento, e e' o lado certo para errar.
                 if k["previa"] in ("", "flavor", "cor", "gato", "cursor", "areas"):
                     continue
                 if k["chave"] in censo:
@@ -931,20 +777,7 @@ def main():
 
             for previa, candidatos in por_previa.items():
                 # TENTA ATE TRES CHAVES DA MESMA PREVIA, e cobra que UMA mova o
-                # desenho. Cobrar de todas seria injusto com o desenho honesto: a
-                # barra nao tem como mostrar `VIDRO_AO_MAXIMIZAR`, que fala do que
-                # acontece quando uma janela cobre o painel. O que o defeito da
-                # auditoria dizia — "nas cinco medicoes o HTML ficou byte a byte
-                # igual" — e uma previa que nao reage a NADA, e e isso que cai
-                # aqui.
-                # AS CANDIDATAS SAO AS QUE O DESENHO LE, E NAO AS TRES PRIMEIRAS.
-                #   A prevía `barra` cobre 21 chaves, e o desenho so' consulta
-                #   cinco pares — raio, margem, espaco, recheio e opacidade.
-                #   `FORMA_PAINEL_SOLTO`, `FORMA_DOCK_SOLTO` e `FORMA_PAINEL_ILHA`
-                #   sao as tres primeiras da lista e nenhuma delas entra no
-                #   desenho: o teste cobrava do mock uma coisa que ele nunca
-                #   prometeu, e reprovava a pagina por isso. Aqui as que o
-                #   desenho de fato le vem na frente.
+                # desenho.
                 LIDAS = ("RAIO", "MARGEM", "ESPACO", "RECHEIO", "OPACIDADE",
                          "TEMPERATURA", "TEXTURA")
                 candidatos = sorted(
@@ -977,10 +810,9 @@ def main():
             print("\n9. AS ESCOLHAS ESPERAM O SALVAR")
             pag.fill("#busca", "LOG_NIVEL")
             pag.wait_for_timeout(400)
-            # OS ROTULOS DOS VALORES MUDARAM — 06/09/2026. O valor no arquivo
-            #   continua `debug`/`info`; o que a tela escreve passou pelo
-            #   `ROTULO_DE_VALOR`, e agora e "Detalhado"/"Informacao". O teste
-            #   clica no que a pessoa ve, entao e o rotulo que ele procura.
+            # O valor no arquivo continua `debug`/`info`; o que a tela escreve
+            # passou pelo `ROTULO_DE_VALOR`, e agora e
+            # "Detalhado"/"Informacao".
             alvo = "Detalhado" if log_nivel_inicial != "debug" else "Informação"
             pag.locator("#conteudo .cartao button", has_text=re.compile(f"^{alvo}$")).first.click()
             pag.wait_for_timeout(500)
@@ -993,11 +825,8 @@ def main():
             print("\n   ... e sobrevivem a troca de aba")
             pag.fill("#busca", "")
             secao("Instalação")
-            # A VOLTA TEM DE SER A' PAGINA ONDE A CHAVE MORA.
-            #   O teste ia para "Terminal" e cobrava um cartao marcado — mas
-            #   `LOG_NIVEL` nunca esteve la, e desde 06/09/2026 mora em
-            #   "Manutencao". Cobrar a marca numa pagina que nao tem o cartao e'
-            #   cobrar da pagina uma coisa que a pessoa nao pediu.
+            # O teste ia para "Terminal" e cobrava um cartao marcado — mas
+            # `LOG_NIVEL` nunca esteve la, e mora em "Manutencao".
             secao("Manutenção")
             checa(pag.locator("#salvar-conta").is_visible(),
                   "depois de duas trocas de aba, a escolha continua la")
@@ -1013,35 +842,17 @@ def main():
             checa(valor_de("LOG_NIVEL") == log_nivel_inicial, "e o disco nunca foi tocado")
 
             print("\n   ... e o Salvar continua na barra")
-            # A BARRA NÃO SOME MAIS — 13/09/2026. Ela sumia sem escolha
-            # pendente, e ela leu isso como o botão removido: "removeu o botão
-            # Salvar, que salva e aplica". Sem escolha, ele aplica o que ja'
-            # esta' salvo — e por isso este teste NÃO o aperta: seria rodar o
-            # instalador inteiro na maquina de quem testa.
+            # Ela sumia sem escolha pendente, e ela leu isso como o botão
+            # removido: "removeu o botão Salvar, que salva e aplica".
             checa(pag.locator("#botao-salvar").is_visible(),
                   "sem escolha pendente, o Salvar continua na tela")
-            # O BALAO E' `data-balao` DESDE A P6 (21/09/2026): o `porBalao` tira
-            # o `title` nativo de todo elemento. Lendo o `title`, esta
-            # conferencia reprovava um Salvar que diz exatamente o que ela pede
-            # — medido na primeira corrida depois do `networkidle`, 23/09/2026.
             checa("Aplica" in (pag.locator("#botao-salvar").get_attribute("data-balao") or ""),
                   "e diz que aplica o que ja' esta' salvo")
 
             print("\n10. UMA ACAO, COM SAIDA AO VIVO")
-            # `status` mudou duas vezes em 06/09/2026: de "Estado da maquina" no
-            # "Ciclo de vida" para "O que esta' no ar agora" em "Ver o estado",
-            # e dai para "Instalação" — pedido dela: *"unificar o
-            # Instalar e Conferir com o Ver o Estado"*. Conferir a maquina e ver
-            # o que esta' no ar sao a mesma pergunta feita de dois jeitos.
+            # Conferir a maquina e ver o que esta' no ar sao a mesma pergunta
+            # feita de dois jeitos.
             secao("Instalação")
-            # O «EXECUTAR» PELO NOME, E NAO O PRIMEIRO BOTAO — 23/09/2026
-            #   Desde 22/09 (P7) o «ver comando» nasce ANTES do «Executar» no
-            #   rodape do cartao, e o `.first` passou a abrir a lista de
-            #   comandos em vez de rodar a acao: a gaveta nunca abria, e este
-            #   passo e o 10b mediam uma gaveta de 0 px. Medido na primeira
-            #   corrida depois do `networkidle`, com captura da aba.
-            # [P77 grupo 4: a acao so mostra (natureza `mostrar`) e mora no
-            # «⋯» das acoes tecnicas da Instalação; abre-se o «⋯» primeiro.]
             # (o `has` e' procurado DENTRO do `<details>`: sem `#conteudo`)
             acao_status = pag.locator(".acao, .cartao", has_text="O que está no ar agora")
             pag.locator("#conteudo details.ajustes-tecnicos", has=acao_status) \
@@ -1049,10 +860,7 @@ def main():
             acao_status.get_by_role("button", name="Executar", exact=True).click()
             saida = ""
             # PACIÊNCIA DE 25 s, e não de 10: o `meow status` consulta systemd,
-            # cosmic-randr e o tema inteiro. Numa máquina ocupada — foi o caso
-            # em 01/09/2026, durante a auditoria da pagina — ele
-            # passa de dez segundos, e o teste reprovava uma ação que estava
-            # certa.
+            # cosmic-randr e o tema inteiro.
             for _ in range(50):
                 pag.wait_for_timeout(500)
                 saida = pag.locator(".gaveta, .saida, pre").first.inner_text()
@@ -1063,33 +871,11 @@ def main():
                   "a saida e a do comando de verdade")
 
             print("\n10b. A GAVETA CABE EM 25% E NÃO ENCOSTA NO MENU")
-            # Queixa dela, 21/09/2026: *"a tela do terminal, quando clicamos em
-            # aplicar ou salvar, toma até a tela do menu e cresce mais
-            # verticalmente — ocupa quase metade verticalmente da tela, ao invés
-            # de ser no máximo 25% (não afetando o menu lateral)"*.
-            #
-            # Medido antes da correção, em janela de 900 px: 414 px de gaveta
-            # (46% da tela) e o trilho caindo de 841 px para 427. A gaveta era
-            # IRMÃ do `.corpo`, e uma irmã que cresce rouba altura de quem está
-            # ao lado.
+            # A gaveta era IRMÃ do `.corpo`, e uma irmã que cresce rouba altura
+            # de quem está ao lado.
             #
             # A CONTA É DE RAZÃO, E NÃO DE PIXEL CRAVADO: este arquivo roda em
-            # 1500x1000 hoje e numa janela qualquer amanhã. 25% é a regra.
-            #
-            # E O «MENU INTEIRO» NÃO É `trilho == corpo`: antes da correção os
-            # dois já mediam o mesmo (427 px), porque quem encolhia era o
-            # `.corpo` INTEIRO, com o trilho dentro. O que separa o antes do
-            # depois é o `.corpo` chegar à beira de baixo da janela — tudo o que
-            # não é cabeçalho é dele.
-            #
-            # O `fundo` É O DA GAVETA, E NÃO O DO `.corpo` — 21/09/2026
-            # Aferir o `.corpo` chegando à beira de baixo confere o que o
-            # LAYOUT faz com a coluna, e isso o `trilho == corpo` logo abaixo já
-            # conta. O que a pessoa vê é a GAVETA: com o `.corpo` colado no
-            # rodapé, ela ainda podia flutuar acima dele — foi o que a revisão
-            # mediu, 958 de 1000 no "Terminal" e 924 em "Atualização", uma tira
-            # de `--base` debaixo de um painel `--crust`. Quem responde pela
-            # queixa é a beira de baixo da gaveta, então é ela que se mede.
+            # 1500x1000 hoje e numa janela qualquer amanhã.
             gav = pag.evaluate("""() => {
               const el = document.getElementById('gaveta');
               const g = el.getBoundingClientRect();
@@ -1109,24 +895,17 @@ def main():
             checa(gav["trilho"] == gav["corpo"],
                   f"e o menu ocupa a coluna dele inteira: {gav['trilho']} px de "
                   f"trilho para {gav['corpo']} px de corpo")
-            # A CAUSA, E NÃO SÓ O SINTOMA. Um `max-height` menor consertaria o
-            # número e deixaria a gaveta irmã do `.corpo` — no dia em que ela
-            # voltasse a crescer, o menu encolheria de novo. Quem garante o
-            # trilho é o PAI, e é o pai que este passo confere.
+            # Um `max-height` menor consertaria o número e deixaria a gaveta
+            # irmã do `.corpo` — no dia em que ela voltasse a crescer, o menu
+            # encolheria de novo.
             checa(gav["pai"] == "principal",
                   f"e ela é filha do #principal, não irmã do .corpo (pai: "
                   f"{gav['pai'] or '<sem id>'})")
             checa(gav["presa"] == "sticky",
                   f"e está presa no rodapé da coluna ({gav['presa']}) — sem isso "
                   "o conteúdo passa por baixo dela")
-            # ... E EM TODA ABA, E NÃO SÓ NUMA LONGA — 21/09/2026
-            # Este passo media a aba "Instalação", que é comprida, e ali o
-            # `sticky` tem o que fazer: a coluna rola, e ele segura a gaveta na
-            # beira de baixo. Numa aba CURTA (`scrollHeight == clientHeight`)
-            # não há o que rolar, o `sticky` não gruda em nada e a gaveta fica no
-            # fluxo logo depois do conteúdo — 42 px acima do rodapé no
-            # "Terminal", 76 px em "Atualização", medido em 1500x1000. A regra é
-            # sobre TODA aba; uma aba que encurtar amanhã nasce coberta.
+            # A regra é sobre TODA aba; uma aba que encurtar amanhã nasce
+            # coberta.
             grupos = pag.evaluate(
                 "() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
                 ".map(b => b.dataset.grupo)")
@@ -1143,12 +922,10 @@ def main():
             checa(not flutuando,
                   f"e isso vale nas {len(grupos)} abas, curtas e longas"
                   + (f" — {flutuando}" if flutuando else ""))
-            # A ALÇA É A BORDA DE CIMA, QUE É A QUE A SPRINT NOMEIA.
-            # O item 3 pede que a pessoa cresça a gaveta *"arrastando a borda de
-            # cima"*. O `resize: vertical` que estava aqui desenhava a alça no
-            # canto INFERIOR DIREITO — com a gaveta presa no rodapé, o último
-            # canto da janela — e a borda de cima ficava inerte: medido, puxá-la
-            # 150 px deixava a altura em 250, a mesma de antes.
+            # O `resize: vertical` que estava aqui desenhava a alça no canto
+            # INFERIOR DIREITO — com a gaveta presa no rodapé, o último canto da
+            # janela — e a borda de cima ficava inerte: medido, puxá-la 150 px
+            # deixava a altura em 250, a mesma de antes.
             antes_h, alvo = pag.evaluate("""() => {
               const g = document.getElementById('gaveta').getBoundingClientRect();
               return [Math.round(g.height), [g.left + g.width / 2, g.top + 4]];
@@ -1167,20 +944,16 @@ def main():
             checa(depois_h <= round(0.6 * gav["janela"]) + 1,
                   f"e o teto de 60vh segura: {depois_h} px de "
                   f"{round(0.6 * gav['janela'])} px")
-            # O QUE O ARRASTO ESTICOU VOLTA, pela mesma porta que o `abrirGaveta`
-            # usa na abertura seguinte — esticar é para o momento. Sem desfazer,
-            # os passos daqui para baixo mediriam uma gaveta de 400 px que
-            # ninguém mais pediu.
+            # O QUE O ARRASTO ESTICOU VOLTA, pela mesma porta que o
+            # `abrirGaveta` usa na abertura seguinte — esticar é para o momento.
             pag.evaluate("""() => {
               const g = document.getElementById('gaveta');
               g.style.removeProperty('height');
               g.removeAttribute('data-esticada');
             }""")
             pag.wait_for_timeout(200)
-            # O INDICADOR DE «ABAIXO». Com 25% de teto, quem sobe para reler um
-            # erro perde o fio do que continua chegando. A pastilha só tem o que
-            # dizer quando a saída não coube — então o passo só cobra quando ela
-            # de fato não coube.
+            # Com 25% de teto, quem sobe para reler um erro perde o fio do que
+            # continua chegando.
             rolavel = pag.evaluate("""() => {
               const s = document.getElementById('saida');
               s.scrollTop = 0;
@@ -1201,21 +974,12 @@ def main():
                     pag.wait_for_timeout(300)
                     checa(not aviso.is_visible(),
                           "e clicar nela devolve o fim da saída — a pastilha some")
-                # E ELA NÃO MENTE DE PORTAS FECHADAS — 21/09/2026
-                # Fechar com trabalho vivo deixa o `puxar` de pé (o fluxo de
-                # 07/09/2026), e o `puxar` remede a pastilha. Com a gaveta
-                # `hidden` ela é `display: none`: `offsetTop` e `clientHeight`
-                # valem 0 lá dentro, o limite da busca binária vira 0 e a conta
-                # devolve TODAS as linhas. Medido antes da correção: «mais 26
-                # linhas abaixo» virava «mais 36», sobre 36 linhas — e a mentira
-                # ficava colada, porque depois da última medição o timer morre e
-                # mais nada recalcula.
+                # Com a gaveta `hidden` ela é `display: none`: `offsetTop` e
+                # `clientHeight` valem 0 lá dentro, o limite da busca binária
+                # vira 0 e a conta devolve TODAS as linhas.
                 #
                 # O caminho é o do `puxar`, e não um atalho: quem remede é o
-                # mesmo ouvinte de rolagem do `#saida`. Reabrir é na mão porque
-                # a pastilha que reabre morre junto com o trabalho, e este já
-                # terminou; o que se confere é o que ficou ESCRITO enquanto a
-                # gaveta estava fechada.
+                # mesmo ouvinte de rolagem do `#saida`.
                 fechada = pag.evaluate("""() => {
                   const g = document.getElementById('gaveta');
                   const s = document.getElementById('saida');
@@ -1241,22 +1005,16 @@ def main():
                 print("  -- a saída coube inteira na gaveta; nada a indicar abaixo")
 
             print("\n11. O ENSAIO SAIU DA PÁGINA")
-            # Pedido dela em 13/09/2026: "eu tinha pedido pra tirar o app do
-            # modo sandbox". O interruptor não pode voltar por engano, e a
-            # página não pode guardar quem pergunte por ele.
+            # O interruptor não pode voltar por engano, e a página não pode
+            # guardar quem pergunte por ele.
             checa(pag.locator("#seco").count() == 0,
                   "não ha interruptor de ensaio na barra")
             checa(pag.evaluate("() => typeof ensaiando") == "undefined",
                   "e a página não tem mais quem pergunte se esta' ensaiando")
 
             print("\n12. CONFERIR NÃO ESCREVE")
-            # A ABA E DITA AQUI, E NAO HERDADA DO PASSO ANTERIOR.
-            #   Este bloco procurava o cartao "Conferir" na aba que sobrou da
-            #   verificacao anterior — e quando o passo 10 entrou no meio, com
-            #   duas trocas de aba de proposito, o cartao deixou de estar na
-            #   tela e o teste morreu num timeout de 30 s. Um passo que depende
-            #   de onde o passo anterior parou nao pode ser reordenado; este
-            #   agora diz onde quer estar.
+            # Um passo que depende de onde o passo anterior parou nao pode ser
+            # reordenado; este agora diz onde quer estar.
             secao("Instalação")
             # A acao anterior precisa TERMINAR: o servidor recusa dois trabalhos
             # ao mesmo tempo (409), e recusar e o comportamento certo dele.
@@ -1268,12 +1026,8 @@ def main():
             md5_antes = md5_conf()
             # "Conferir a maquina" e' o `doctor`, e o `has_text` casa por
             # substring: "Conferir" sozinho pegaria tambem "Conferir e consertar
-            # todo dia" se um dia essa acao existir. O rotulo inteiro nao tem
-            # esse risco.
+            # todo dia" se um dia essa acao existir.
             secao("Instalação")
-            # O «Executar» pelo nome, pelo mesmo motivo do passo 10: com o
-            # `.first` este passo clicava no «ver comando» e o `doctor` nem
-            # rodava — a conferencia de que ele so' le passava sem ter lido.
             pag.locator("#conteudo .acao, #conteudo .cartao",
                         has_text="Conferir a máquina").get_by_role(
                             "button", name="Executar", exact=True).click()
@@ -1300,19 +1054,13 @@ def main():
             pag.keyboard.press("Escape")
 
             print("\n15. TODA ACAO QUE A PAGINA OFERECE TEM DONO NO SERVIDOR")
-            # 46 BOTOES CHAMANDO UMA ACAO QUE NAO EXISTE.
-            #   "Banir" e "Devolver", um por imagem da galeria, chamavam
-            #   `wallpaper_banir` e `wallpaper_desbanir`; o `ACOES` do servidor
-            #   nao tem nenhum dos dois, e `rodarNaGaleria` desiste em silencio
-            #   quando o `find` volta `undefined`. O clique nao fazia nada, nao
-            #   dizia nada, e nenhum erro chegava ao console — por isso o teste
-            #   antigo passava com a galeria inteira morta.
+            # "Banir" e "Devolver", um por imagem da galeria, chamavam
+            # `wallpaper_banir` e `wallpaper_desbanir`; o `ACOES` do servidor
+            # nao tem nenhum dos dois, e `rodarNaGaleria` desiste em silencio
+            # quando o `find` volta `undefined`.
             #
-            #   O que a pagina PEDE nao da para ler do DOM: o id mora dentro do
-            #   `onclick`. Entao a varredura e nas duas procedencias possiveis,
-            #   as duas por regra: o atributo `data-acao*` de qualquer elemento
-            #   e o primeiro argumento literal de qualquer `rodar…()` do
-            #   `app.js`.
+            # O que a pagina PEDE nao da para ler do DOM: o id mora dentro do
+            # `onclick`.
             ids_do_servidor = set(pag.evaluate("() => (ESQUEMA.acoes || []).map((a) => a.id)"))
             with open(os.path.join(RAIZ, "app", "pagina", "app.js"), encoding="utf-8") as fh:
                 fonte_js = fh.read()
@@ -1325,14 +1073,9 @@ def main():
                   + (f" — SEM DONO: {orfas}" if orfas else ""))
 
             print("\n16. O CONTROLE CASA COM O QUE O ESQUEMA DECLARA")
-            # ONDE HA VALORES FECHADOS, BOTOES.
-            #   "Digitei 'gigante' no ESCALA_TELA e sai do campo: aceito em
-            #   silencio." Um campo de texto para uma chave que so aceita quatro
-            #   valores obriga a decorar os quatro e ainda deixa passar o quinto.
-            #   A regra nao lista chave nenhuma: pergunta ao esquema quem declara
-            #   `opcoes` e cobra que o cartao daquela chave NAO seja texto livre.
-            #   Enquanto o servidor nao reconhecer as opcoes de uma chave, ela
-            #   nao entra aqui — e passa a entrar no dia em que reconhecer.
+            # "Digitei 'gigante' no ESCALA_TELA e sai do campo: aceito em
+            # silencio." Um campo de texto para uma chave que so aceita quatro
+            # valores obriga a decorar os quatro e ainda deixa passar o quinto.
             por_chave = {k["chave"]: k for k in chaves}
             fechadas = [c for c in censo.values()
                         if por_chave.get(c["chave"], {}).get("opcoes")]
@@ -1341,9 +1084,6 @@ def main():
                   f"nenhuma das {len(fechadas)} chaves de opções fechadas virou campo de texto"
                   + (f" — TEXTO LIVRE: {texto_livre}" if texto_livre else ""))
 
-            # [P80, item 4: a faixa de HORA CHEIA (`hora_cheia`, as duas horas do
-            #  tema claro) é o seletor de hora das outras linhas de «Dia e noite»,
-            #  e não deslizante — ela é cobrada no tests/app-uso-real.py.]
             com_faixa = [c for c in censo.values() if por_chave.get(c["chave"], {}).get("faixa")
                          and not por_chave.get(c["chave"], {}).get("hora_cheia")]
             sem_deslizante = sorted(c["chave"] for c in com_faixa if not c["faixa"])
@@ -1359,18 +1099,9 @@ def main():
                   f"as {len(listas)} chaves de lista viraram fichas"
                   + (f" — SEM FICHAS: {sem_fichas}" if sem_fichas else ""))
 
-            # DOIS CARTOES NA MESMA TELA NAO PODEM DIZER A MESMA FRASE.
-            #   "Os TRES mostram o mesmo bloco: 'O nome do tema de icones que
-            #   este projeto constroi…'" — o titulo do vizinho vira o titulo
-            #   desta chave quando a ajuda e herdada de um bloco que cobre
-            #   varias. Um cartao com o titulo de outra chave nao explica a
-            #   chave dele: engana sobre ela.
-            #
-            #   A comparacao e POR ABA, e nao pela pagina inteira, porque o que
-            #   ela ve de uma vez e uma aba: dois "Fim" em secoes diferentes sao
-            #   duas coisas com o mesmo nome curto, e cada uma se explica pela
-            #   companhia; oito "Dock" na mesma tela sao oito cartoes que ela
-            #   nao tem como distinguir sem ler o nome da chave em cima.
+            # "Os TRES mostram o mesmo bloco: 'O nome do tema de icones que este
+            # projeto constroi…'" — o titulo do vizinho vira o titulo desta
+            # chave quando a ajuda e herdada de um bloco que cobre varias.
             repetidos = {}
             por_aba = {}
             for c in censo.values():
@@ -1389,25 +1120,12 @@ def main():
                      if repetidos else ""))
 
             print("\n17. O DESENHO ACOMPANHA O DEDO, E NAO GRAVA NADA")
-            # Pedido dela em 06/09/2026: "os slides mostrando os ajustes ... real
-            # time quando for algo nesse sentido". Ate' entao o deslizante so'
-            # mexia no NUMERO enquanto ela arrastava; o desenho so' mudava ao
-            # SOLTAR, pelo caminho comprido do `aplica()` + `render()`.
+            # Ate' entao o deslizante so' mexia no NUMERO enquanto ela
+            # arrastava; o desenho so' mudava ao SOLTAR, pelo caminho comprido
+            # do `aplica()` + `render()`.
             #
             # Duas coisas sao medidas aqui, e a segunda importa tanto quanto a
-            # primeira: o desenho muda, E a barra do Salvar NAO aparece. Um
-            # arrasto que gravasse quebraria a regra da casa — "gravar nao e'
-            # aplicar" — sem ninguem perceber, porque a tela ficaria igual.
-            #
-            # O VALOR TEM DE SOBREVIVER AO PASSO. Na primeira versao deste teste
-            # eu escrevia max*0.82; com max 24 e passo 1 isso volta para 20, que
-            # era o valor original, e o teste acusava "nao mudou" num desenho que
-            # mudava certo. Ir para a ponta oposta e' o unico valor que o passo
-            # nao pode arredondar de volta.
-            # A BARRA TEM DE COMECAR APAGADA, senao a segunda medicao mente.
-            #   As seções anteriores deixam escolhas pendentes, e "a contagem
-            #   esta' visivel" passaria a ser verdade ANTES do arrasto — o teste
-            #   acusaria gravacao em todas as abas, e a acusacao seria falsa.
+            # primeira: o desenho muda, E a barra do Salvar NAO aparece.
             if pag.locator("#botao-descartar").is_visible():
                 descartar_tudo(pag)
                 pag.wait_for_timeout(700)
@@ -1421,12 +1139,7 @@ def main():
                 if not desenhos.count() or not puxadores.count():
                     continue
                 antes = [desenhos.nth(i).inner_html() for i in range(desenhos.count())]
-                # AS DUAS PONTAS, E NÃO SO' UMA — 13/09/2026. Desde que o "como
-                # esta'" do desenho passou a ser a MAQUINA (`valendo_agora`), a
-                # ponta escolhida pode ser justamente o valor que a maquina tem:
-                # o modo de leitura dela guarda 1000 K, o piso da regua, e
-                # arrastar ate' la não muda a tela — o desenho, certo, fica
-                # igual. As duas pontas nunca sao as duas o valor da maquina.
+                # As duas pontas nunca sao as duas o valor da maquina.
                 mudou = False
                 for ponta in ("min", "max"):
                     puxadores.first.evaluate("""(el, ponta) => {
@@ -1449,43 +1162,15 @@ def main():
                   f"as {vivas} abas com deslizante repintam o desenho durante o arrasto")
             checa(not pag.locator("#salvar-conta:visible").count(),
                   "e arrastar nao acendeu a barra do Salvar — nada foi escolhido")
-            # O RELOAD ESPERA O TRILHO, PELO MESMO MOTIVO DO `goto` DO PASSO 1 —
-            # 23/09/2026, sprint P33
-            #   O `reload` volta no `load`, e o `iniciar()` so' desenha o trilho
-            #   quando o esquema chega. Medido no brinquedo: 1,8 s entre um e
-            #   outro, e com os 1500 ms fixos daqui o passo 17b contava as abas
-            #   de uma pagina que ainda nao tinha nenhuma — "nenhum deslizante
-            #   nas 0 abas", e duas reprovacoes que nao eram da pagina. As
-            #   outras idas e voltas deste arquivo esperam o mesmo seletor.
+            # As outras idas e voltas deste arquivo esperam o mesmo seletor.
             pag.reload()
             pag.wait_for_selector("#trilho button")
             pag.wait_for_timeout(1500)
 
             print("\n17b. O DESLIZANTE NASCE LIVRE, E OS DOIS BOTOES")
-            # Queixa dela em 21/09/2026: "em qualquer canto que eu precise
-            # apertar em «usar numero» pra poder usar o slicer, ta errado. ele
-            # tem que ta liberado por default." E: "deixar como esta induz ao
-            # erro. vc muda o slicer e quer que fique como esta. clica e ele
-            # reseta."
-            #
-            # MEDIDO ANTES DA MUDANCA, aba a aba: 25 deslizantes na pagina, 17
-            # nascendo `disabled` (11 so' na aba Painel e dock), 17 botoes «Usar
-            # numero» cuja unica funcao era destravar o vizinho, e 31 botoes
-            # «Deixar como esta».
-            #
-            # SAO QUATRO COBRANCAS, E A TERCEIRA E' A QUE IMPORTA MAIS.
-            #   Tirar a trava e' facil; tirar a trava SEM perder o terceiro
-            #   estado e' a sprint. Um deslizante livre marcando 24 e um que
-            #   ESCOLHEU 24 sao coisas diferentes — o COSMIC se comporta
-            #   diferente nos dois — e a unica coisa que os separa agora e' o
-            #   desenho. Entao o teste cobra os tres sinais por nome: a classe
-            #   da trilha em traco, o `aria-valuetext` (que e' o unico dos tres
-            #   que chega a quem nao ve) e o NUMERO NUNCA APARECENDO SOZINHO.
-            #   Este ultimo e' cobrado pela negativa de proposito: sao duas
-            #   redacoes legitimas — "como esta: 24" quando a chave esta' vazia
-            #   e "Automatico" quando ela guarda a palavra especial
-            #   (`MIDIA_FONTE="auto"`) — e o que as duas tem em comum, e o que
-            #   importa, e' que nenhuma delas se le como um valor escolhido.
+            # Um deslizante livre marcando 24 e um que ESCOLHEU 24 sao coisas
+            # diferentes — o COSMIC se comporta diferente nos dois — e a unica
+            # coisa que os separa agora e' o desenho.
             if pag.locator("#botao-descartar").is_visible():
                 descartar_tudo(pag)
                 pag.wait_for_timeout(700)
@@ -1523,18 +1208,10 @@ def main():
                   f" ({travados}; antes de 21/09/2026 eram 17)")
             checa(usar_numero == 0,
                   f"nao ha botao «Usar numero» na pagina ({usar_numero}; antes 17)")
-            # [Integracao da onda 2, 10/10/2026: desde o QA da P77 (achado 14,
-            #  `temOQueRestaurar`) o «Restaurar ao padrao» so' nasce sobre uma
-            #  escolha a desfazer. Esta casa e' o `meow.conf.exemplo`, toda chave
-            #  no valor de fabrica: aqui o certo e' NENHUM dos dois botoes. O
-            #  `restaurar > 0` de antes cobrava o botao sobre o padrao, que e' o
-            #  defeito que a P77 tirou; o `app-uso-real.py` cobra o mesmo caso.]
             checa(deixar == 0 and restaurar == 0,
                   f"nem «Deixar como esta» nem «Restaurar ao padrao» sobre o valor"
                   f" de fabrica ({deixar} e {restaurar})")
             # O TERCEIRO ESTADO CONTINUA NA TELA, E OS TRES SINAIS ANDAM JUNTOS.
-            #   Um deles faltando e' o defeito que a sprint chama de "o problema
-            #   so' mudou de lugar": a trava saiu e nada ocupou o lugar dela.
             checa(comoesta["classe"] > 0
                   and comoesta["valuetext"] == comoesta["classe"]
                   and comoesta["palavra"] == comoesta["classe"],
@@ -1542,11 +1219,8 @@ def main():
                   f" sinais: trilha em traco, aria-valuetext ({comoesta['valuetext']})"
                   f" e numero que nunca aparece sozinho ({comoesta['palavra']})")
 
-            # E O GESTO: arrastar escolhe, sem pedir licenca antes. A aba e' a
-            # que ele citou, e o cartao acende com o «Aplicar» que fecha aquela
-            # escolha ali mesmo. O botao NAO e' clicado aqui, e de proposito:
-            # clicar roda o instalador na maquina de quem testa, que e' a
-            # mesma razao de `Instalar` e `Desinstalar` ficarem de fora.
+            # A aba e' a que ele citou, e o cartao acende com o «Aplicar» que
+            # fecha aquela escolha ali mesmo.
             secao("Painel e dock")
             pag.wait_for_timeout(600)
             livre = pag.locator("#principal input[type=range].faixa-comoesta")
@@ -1556,7 +1230,6 @@ def main():
                 # dentro, e a primeira coisa que o arrasto faz e' TIRAR essa
                 # classe: reavaliar o locator depois disso acharia o deslizante
                 # SEGUINTE, e o teste mediria um elemento que nao foi tocado.
-                # (Perdido uma vez aqui, em 21/09/2026.)
                 punho = livre.first.element_handle()
                 punho.evaluate("""(el) => {
                   el.value = el.max;
@@ -1592,13 +1265,9 @@ def main():
                 checa(False, "nenhum deslizante em «como esta» na aba Painel e dock")
 
             print("\n18. O SALVAR RECUSA ANTES DE ESCREVER")
-            # A ROTA NOVA DO SALVAR — 13/09/2026. Ela grava as escolhas e
-            # comeca o instalador na mesma chamada, e a unica coisa entre ela e
-            # um meow.conf pela metade e' a peneira que vem ANTES. O teste bate
-            # na rota direto com um valor que o esquema recusa junto de um que
-            # ele aceitaria: nada pode ser gravado, e nenhum trabalho pode
-            # comecar. (A seção que morava aqui conferia que as rotas recusavam
-            # em ensaio; o ensaio saiu, e com ele o `seco` de todas elas.)
+            # Ela grava as escolhas e comeca o instalador na mesma chamada, e a
+            # unica coisa entre ela e um meow.conf pela metade e' a peneira que
+            # vem ANTES.
             antes_conf = md5_conf()
             r = pag.evaluate("""async () => {
               const res = await fetch('/api/salvar', {
@@ -1614,32 +1283,6 @@ def main():
             checa(md5_conf() == antes_conf, "e o meow.conf não foi tocado")
 
             print("\n19. OS DOIS LADOS DE CADA PAR SAO FIGURAS DIFERENTES")
-            # A TRAVA QUE FALTOU NAS DUAS TENTATIVAS ANTERIORES.
-            #   A ideia do par-como-controle ja' caiu duas vezes aqui, sempre
-            #   pelo mesmo defeito: dois botoes com borda, lado a lado, e a
-            #   MESMA figura nos dois. Escolher entre duas imagens iguais e'
-            #   pior do que escolher entre as palavras «Sim» e «Não».
-            #
-            #   A pagina decide quem ganha par por uma conta sobre o DOM
-            #   (`areaQueMuda`, em `app.js`). Essa conta pode errar — errou
-            #   quatro vezes enquanto era escrita, e foi esta secao que acusou
-            #   as quatro. Entao ela nao tem a ultima palavra: aqui os dois
-            #   lados sao FOTOGRAFADOS e comparados pixel a pixel, o que nao
-            #   depende de nenhuma heuristica.
-            #
-            #   O PISO SAI DO VAO MEDIDO, e ele mudou de lugar em 07/09/2026.
-            #   Ate' entao o que a pagina aceitava comecava em 0,53% — tecnica-
-            #   mente diferente e visualmente identico, que foi a queixa da
-            #   conferencia de uso ("o Sim e o Nao desenham a mesma figura").
-            #   Onze desenhos foram refeitos e o corte da pagina subiu de 100
-            #   para 2000 de tinta, recusando os dois pares que nao tinham
-            #   desenho honesto (WALLPAPER_ORDEM e STEAM_VIGIA, que voltaram
-            #   para «Sim» e «Nao»). Medidos os 31 que sobraram, o mais parecido
-            #   e' LEITURA_AGENDA com 4,08%.
-            #
-            #   2% e' metade disso, e e' onde o piso fica: alto o bastante para
-            #   pegar uma regressao de verdade, e com folga para o serrilhado
-            #   nao derrubar a conferencia por meio ponto.
             PISO_DE_DIFERENCA = 2.0
             fotos_dir = tempfile.mkdtemp(prefix="meow-par-")
             pares, parecidos, menor = 0, [], None
@@ -1652,8 +1295,6 @@ def main():
                     "l => l.map(b => b.getAttribute('data-grupo'))")
                 for aba in abas:
                     secao(aba)
-                    # [P77: os ajustes técnicos moram num «⋯» fechado; abertos
-                    # aqui, os pares de dentro também são medidos.]
                     pag.evaluate("() => document.querySelectorAll("
                                  "'#conteudo details.ajustes-tecnicos').forEach((d) => { d.open = true; })")
                     cartoes = pag.locator(
@@ -1702,16 +1343,9 @@ def main():
 
             # ---------------------------------------------------------------
             print("\n20. O QUE A CONFERENCIA DE USO PEGOU, CLICANDO")
-            # Cinco defeitos medidos em 07/09/2026 percorrendo a pagina botao a
-            # botao. Os cinco eram invisiveis para quem le o codigo e obvios
-            # para quem usa: e por isso que eles viram conferencia.
+            # Cinco defeitos medidos percorrendo a pagina botao a botao.
 
-            # (a) O BALAO DO "?" NAO PODE ROUBAR O CLIQUE DO PROPRIO CARTAO.
-            #     Ele cai em `top: 100%`, ou seja, em cima dos controles. Com o
-            #     `.dica:hover` sustentando-o, o caminho do "?" ate a opcao
-            #     atravessava o balao e 22 dos 50 botoes de "Cor e tela" ficavam
-            #     inalcancaveis. Mede-se pelo ponteiro: quem esta sob o centro
-            #     do botao tem de ser o botao.
+            # Ele cai em `top: 100%`, ou seja, em cima dos controles.
             pag.goto(url); pag.wait_for_selector("#trilho button"); pag.wait_for_timeout(1800)
             pag.locator('#trilho button[data-grupo="Cor e tela"]').first.click()
             pag.wait_for_timeout(700)
@@ -1735,20 +1369,15 @@ def main():
                   "o balao do '?' aberto nao tapa nenhuma opcao do proprio cartao"
                   + (f" — {tapados} tapadas" if tapados else ""))
 
-            # (b) NENHUM BOTAO CAI NA FOLHA DO NAVEGADOR. Um `<button>` sem
-            #     regra de autor sai em Arial, `border: 2px outset white` e o
-            #     cinza de sistema — no meio de uma pagina em Inter e Catppuccin.
-            #     Aconteceu com o "Deixar como esta" do par, em tres abas.
+            # regra de autor sai em Arial, `border: 2px outset white` e o cinza
+            # de sistema — no meio de uma pagina em Inter e Catppuccin.
             crus = []
             for aba_ in ("Cor e tela", "Painel e dock", "Modo de leitura", "Manutencao"):
                 alvo_ = pag.locator(f'#trilho button[data-grupo^="{aba_[:6]}"]').first
                 if not alvo_.count():
                     continue
                 alvo_.click(); pag.wait_for_timeout(700)
-                # SO CONTA BOTAO COM TEXTO. As amostras de cor sao <button>
-                # de 28px sem conteudo nenhum, pintadas por `style` — nelas a
-                # familia da fonte nao desenha coisa alguma, e a primeira
-                # versao desta conferencia as acusou por isso.
+                # SO CONTA BOTAO COM TEXTO.
                 crus += pag.evaluate("""() => {
                   const fora = [];
                   for (const b of document.querySelectorAll('#conteudo button')) {
@@ -1766,14 +1395,9 @@ def main():
                   "nenhum botao da pagina caiu na folha do navegador"
                   + (f" — {crus[:3]}" if crus else ""))
 
-            # (c) OS "EXECUTAR" DA MESMA FILEIRA FICAM NA MESMA LINHA. Com
-            #     `align-items: start` na grade cada cartao tinha a propria
-            #     altura e os botoes saiam em escadinha de ate 20px. Um pixel de
-            #     folga e arredondamento de sub-pixel; vinte e defeito.
-            #     O `:not(.ver-comando)` e' de 23/09/2026: desde a P7 o rodape
-            #     tem DOIS botoes, e o «ver comando» quebra linha junto das
-            #     pastilhas quando elas sao muitas — contado aqui, ele virava
-            #     uma escada de 42 px que o «Executar» nao tem.
+            # `align-items: start` na grade cada cartao tinha a propria altura e
+            # os botoes saiam em escadinha de ate 20px. Um pixel de folga e
+            # arredondamento de sub-pixel; vinte e defeito.
             escadas = []
             for aba_ in ("Atualização", "Instalação", "Papel de parede", "Logo do sistema"):
                 bt = pag.locator(f'#trilho button[data-grupo="{aba_}"]').first
@@ -1794,24 +1418,10 @@ def main():
                   "os 'Executar' de cada fileira ficam na mesma linha"
                   + (f" — {escadas[:2]}" if escadas else ""))
 
-            # (d) A FAIXA GRUDADA ENCOLHE QUANDO GRUDA. Medida em 213px o
-            #     tempo todo — um quinto da altura util — ela escondia a fileira
-            #     de titulos que passava por baixo: sobravam botoes sem nome.
-            #
-            #     O QUE ESTA CONFERENCIA NAO COBRA: "nao tapa nada". Uma faixa
-            #     `sticky` opaca tapa por definicao o que rola sob ela, e um
-            #     alvo de zero so passaria por sorte da posicao de rolagem — foi
-            #     o que aconteceu na primeira versao desta linha, que passou uma
-            #     vez e reprovou na seguinte sem que nada tivesse mudado. O que
-            #     se pode exigir, e o que resolve a queixa, e ela ser PEQUENA:
-            #     100px contra 213, e a legenda saindo de cena enquanto e tira.
             faixa_ruim = []
             for aba_ in ("Cor e tela", "Logo do sistema", "Papel de parede"):
                 pag.locator(f'#trilho button[data-grupo="{aba_}"]').first.click()
                 pag.wait_for_timeout(1100)
-                # [P77: a rolagem é medida a partir da FAIXA, e não do topo da
-                # página — em «Papel de parede» a coleção passou a abrir a
-                # página, e 600 px ainda não chegavam ao desenho.]
                 pag.evaluate("""() => { const p = document.getElementById('principal');
                   const b = document.querySelector('#conteudo .previa-bloco');
                   p.scrollTop = b ? p.scrollTop + b.getBoundingClientRect().top
@@ -1856,7 +1466,7 @@ def main():
 
             # ---------------------------------------------------------------
             print("\n20c. O QUE A CONFERENCIA DE PRODUTO PEGOU")
-            # Seis lentes de uso em 07/09/2026; estas linhas cobram os consertos.
+            # Seis lentes de uso; estas linhas cobram os consertos.
 
             # (a) A BANDEJA SOBREVIVE AO F5. Antes: 14 escolhas pendentes, um
             #     recarregar, e MUDANCAS.size === 0 sem uma palavra. O espelho
@@ -1889,7 +1499,7 @@ def main():
             descartar_tudo(pag)
             pag.wait_for_timeout(500)
 
-            # (c) SEM ESCOLHA, O SALVAR FICA E NÃO SE DESTACA — 13/09/2026. O
+            # (c) SEM ESCOLHA, O SALVAR FICA E NÃO SE DESTACA. O
             #     acento e' de quando ha' o que gravar; sem nada pendente o
             #     botão continua ali, neutro, e o Descartar sai.
             est = pag.evaluate("""() => ({
@@ -1921,9 +1531,6 @@ def main():
             }""")
             checa(n_torradas == 1, f"a mesma frase nao empilha torradas ({n_torradas} na tela)")
 
-            # (f) O IMPORTAR É BOTÃO — uma <label> não entra na fila do Tab, e
-            #     a conferência de teclado mediu ZERO paradas: quem usa só
-            #     teclado não importava um .conf de jeito nenhum.
             tag_importar = pag.evaluate(
                 "() => document.getElementById('rotulo-importar').tagName")
             checa(tag_importar == "BUTTON",
@@ -1945,12 +1552,10 @@ def main():
                 "() => (ESQUEMA.acoes||[]).some(a => a.id === 'wallpaper_usar')")
             checa(tem_usar, "a acao wallpaper_usar existe no esquema do servidor")
 
-            # (i) O BALAO DO «?» DIZ DE QUEM E' O TEXTO QUANDO ELE E' EMPRESTADO.
-            #     Trinta chaves herdam o comentario da irma de cima, e o balao
-            #     abria o bloco cru: o de "Imagem escura ate as" comeca por uma
-            #     captura de 23:57 e a luminancia do acervo — verdade sobre a
-            #     chave dona, estranho sobre esta. A cadeia importa: o _FIM herda
-            #     de WALLPAPER_NOITE, nao da vizinha _INICIO.
+            # Trinta chaves herdam o comentario da irma de cima, e o balao abria
+            # o bloco cru: o de "Imagem escura ate as" comeca por uma captura de
+            # 23:57 e a luminancia do acervo — verdade sobre a chave dona,
+            # estranho sobre esta.
             pag.locator('#trilho button[data-grupo="Dia e noite"]').first.click()
             pag.wait_for_timeout(350)
             de_quem = pag.evaluate("""() => {
@@ -1963,7 +1568,7 @@ def main():
                   and "Separar imagens de dia e de noite" in de_quem["texto"],
                   f"o balao herdado nomeia o bloco dono ({de_quem['dona']})")
 
-            # (i2) UM RELOGIO PARA A NOITE (P77, achado 25). A pagina abre com a
+            # (i2) UM RELOGIO PARA A NOITE. A pagina abre com a
             #     moldura do relogio, os tres aneis e as seis horas; os dois
             #     campos da noite do gato, vazios na casa de brinquedo, mostram a
             #     hora que vale (a da imagem escura), e nao `--:--`.
@@ -1986,10 +1591,8 @@ def main():
                   and noite["ini"][0] == noite["parede"][0],
                   f"a noite vazia mostra a hora herdada, a traco, e nao --:-- ({noite['ini']}, {noite['fim']})")
 
-            # (i3) A NOITE SE ESCOLHE PELAS DUAS PONTAS (QA da P77). Mudar so o
-            #     comeco, com as duas vazias, acendia o ⊘ «So vale com A noite
-            #     termina as preenchida» e o relogio nao andava. A irma vazia
-            #     entra na mesma escolha com a hora herdada que ela mostrava.
+            # comeco, com as duas vazias, acendia o ⊘ «So vale com A noite
+            # termina as preenchida» e o relogio nao andava.
             campo = pag.locator('article.cartao[data-chave="NOITE_INICIO"] input[type=time]')
             campo.fill("20:00")
             campo.dispatch_event("change")
@@ -2002,7 +1605,7 @@ def main():
                   f"mudar o comeco da noite leva o fim herdado junto, sem o ⊘ ({par}, herdado {noite['fim'][0]})")
             descartar_tudo(pag)
 
-            # (i4) A NOITE DO DESENHO E' A DO GATO (P82, item 27). O desenho de
+            # (i4) A NOITE DO DESENHO E' A DO GATO. O desenho de
             #     «Dia e noite» tinha a terceira copia da regra: com o comeco
             #     escrito e o fim vazio, ele juntava o comeco desta linha com o
             #     fim da imagem escura — uma noite que o `meow_noite_janela`
@@ -2028,11 +1631,7 @@ def main():
             pag.locator('#trilho button[data-grupo="Lançadores e jogos"]').first.click()
             pag.wait_for_timeout(450)
 
-            # (j) A CAIXA DO DESENHO MEDE O QUE O DESENHO MEDE. Com `max-height`
-            #     e `width: 100%` a caixa ficava com a largura da coluna e o
-            #     desenho se centralizava dentro dela: medido, 459px de caixa
-            #     para 249px de desenho, comecando 115px a direita da margem do
-            #     texto. Aqui a folga tem de ser a do recheio, nao um vao.
+            # Aqui a folga tem de ser a do recheio, nao um vao.
             folga = pag.evaluate("""() => {
               const svg = document.querySelector('.previa-bloco .par-previa svg');
               if (!svg) return null;
@@ -2047,10 +1646,6 @@ def main():
                   f"a caixa do desenho cola no desenho (caixa {folga['caixa']}px, "
                   f"desenho {folga['pintado']}px, recuo {folga['recuo']}px)")
 
-            # (k) E O QUE SANGRA DE PROPOSITO CONTINUA INTEIRO. A caixa colada
-            #     passou a recortar o que os desenhos pintam FORA do viewBox — o
-            #     relogio da faixa virou "8:00", com o 1 comido. Dois desenhos
-            #     sangram de proposito; o `overflow: visible` os devolve.
             corte = pag.evaluate("""() => {
               const svg = document.querySelector('.previa-bloco .par-previa svg');
               return svg ? getComputedStyle(svg).overflow : '';
@@ -2058,16 +1653,6 @@ def main():
             checa(corte == "visible",
                   f"o desenho que sangra fora do viewBox nao e' recortado ({corte})")
 
-            # (l) A FAIXA NAO SAMBA ENQUANTO ELA ROLA. Queixa dela: "os icones
-            #     que ficam congelados ficam sambando na tela tipo travando, em
-            #     todas as paginas". Medido quadro a quadro: o `presa` trocava
-            #     de estado 32 a 62 vezes numa rolagem so, porque a ancoragem de
-            #     rolagem do Chrome compensava o encolhimento da faixa mexendo
-            #     no scrollTop (-103px em "Icones"), o que devolvia a sentinela
-            #     para a tela e desgrudava a faixa — as duas correcoes se
-            #     anulando em ciclo. Uma troca (solta -> grudada) e' o certo;
-            #     duas ou mais e' o samba de volta, e nenhum salto de rolagem
-            #     pode partir do navegador.
             samba = []
             for aba_ in ("Ícones", "Cor e tela", "Painel e dock"):
                 pag.locator(f'#trilho button[data-grupo="{aba_}"]').first.click()
@@ -2098,16 +1683,12 @@ def main():
                   + (f" — {samba}" if samba else ""))
 
             # (m) A ABA CURTA CHEGA AO FIM E FICA LA. O defeito que esta regra
-            #     guarda, medido em 08/09/2026 numa janela de 830px: "Atualizacao"
+            #     guarda, medido numa janela de 830px: "Atualizacao"
             #     tinha 106px de folga e a faixa encolhe 174. Rolar ate o fim
             #     prendia a faixa, a pagina encolhia ate ficar do tamanho exato
             #     da tela e o navegador grampeava o scrollTop em zero — a barra
             #     nao descia NUNCA. Ela: "pagina de atualizacao e outras seguem
             #     com aquele problema de impedir de descer a barra de navegacao".
-            #
-            #     A regra e sobre TODA aba, e nao sobre uma lista: a aba curta e'
-            #     descoberta medindo (folga menor que o encolhimento da faixa), e
-            #     uma aba que encurtar amanha nasce coberta.
             grupos = pag.evaluate(
                 "() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
                 ".map(b => b.dataset.grupo)")
@@ -2133,37 +1714,15 @@ def main():
                   + (f" — {grampeadas}" if grampeadas else ""))
 
             print("\n22. A OFICINA: VARIACOES, O ORIGINAL AO LADO, CLIQUE PARA TIRAR")
-            # ELA VEM ANTES DA 20b DE PROPOSITO, e o contrato da sprint pedia
-            # depois: a 20b confere que o console ficou limpo "em toda a visita",
-            # e uma secao depois dela seria a unica da suite cujos erros de
-            # JavaScript ninguem le. Em 07/09 a suite passou 84/84 com defeito
-            # visivel a olho nu — nao se acrescenta um ponto cego de proposito.
             secao("Ícones")
             pag.wait_for_selector(".grade-apps button.app", timeout=15000)
             # Um aplicativo com arte de fabrica: o primeiro dos doze primeiros
-            # cuja oficina responde com pelo menos cinco cartoes. Nao se fixa um
-            # nome porque a grade e' a maquina dela; se nenhum servir, pula.
+            # cuja oficina responde com pelo menos cinco cartoes.
             #
-            # E EM QUE A SUAVIDADE MUDA O TRACO A VISTA — 23/09/2026, revisao
-            # da P33
-            #   A regua, mais abaixo, sai do cartao «Limpo» e vai a `SUAVE`, e
-            #   a conferencia cobra que a lupa mude mais de 0,3% dos pixels.
-            #   Cinco cartoes nao garantem que haja o que mudar, e foi medido
-            #   no brinquedo com a regua indo a 9: o primeiro da grade (o
-            #   «Arquivos» do COSMIC, arte do hicolor) volta da rota com o MESMO
-            #   SVG, 0,0%; o seguinte, o BleachBit, volta com outro texto e o
-            #   mesmo numero de nos, 0,1% — abaixo do piso que separa desenho
-            #   novo do antialiasing. Nos dois a pagina redesenhou exatamente o
-            #   que recebeu, e a conferencia reprovava a arte, nao a pagina.
-            #
-            #   Entao a pergunta vai antes, e por outro caminho: o SVG do
-            #   «Limpo» e o que a ROTA devolve com `SUAVE` sao desenhados pelo
-            #   mesmo `desenhar()` da lupa, em duas caixas `.oficina-lupa` da
-            #   largura dela, e medidos com o mesmo `pixels_diferentes` e o
-            #   mesmo piso. So' serve o aplicativo em que a diferenca aparece.
-            #   Isto nao e' a conferencia de novo: ela passa pela regua, pelo
-            #   `reguar()` e pela repintura da lupa, e e' ali que um defeito da
-            #   pagina apareceria — com a arte ja' provada capaz de mudar.
+            # Entao a pergunta vai antes, e por outro caminho: o SVG do «Limpo»
+            # e o que a ROTA devolve com `SUAVE` sao desenhados pelo mesmo
+            # `desenhar()` da lupa, em duas caixas `.oficina-lupa` da largura
+            # dela, e medidos com o mesmo `pixels_diferentes` e o mesmo piso.
             SUAVE = "9"
             desenha_limpo_e_suave = """async (valor) => {
               const c = (OFICINA.variacoes || []).find((v) => v.id === 'limpo');
@@ -2211,9 +1770,9 @@ def main():
                 if not det.count():
                     botao.click()
                     continue
-                # `> summary`, e nao `summary`: desde 09/09 a oficina tem um
-                # SEGUNDO details dentro dela ("Editar o SVG"), e o seletor solto
-                # casa os dois — o Playwright recusa em modo estrito.
+                # `> summary`, e nao `summary`: a oficina tem um SEGUNDO details
+                # dentro dela ("Editar o SVG"), e o seletor solto casa os dois —
+                # o Playwright recusa em modo estrito.
                 if det.first.get_attribute("open") is None:
                     det.first.locator("> summary").click()
                 try:
@@ -2229,21 +1788,17 @@ def main():
             checa(achou is not None, "achei uma ficha cuja oficina desenha pelo menos cinco"
                                      " variacoes e cuja Suavidade muda o traco a vista")
             if achou is not None:
-                # O id do `.desktop` que a oficina abriu. Ele nao e' fixo: a
-                # grade e' a maquina de quem roda, e as chamadas de porta feitas
-                # daqui para baixo precisam falar do MESMO aplicativo que esta
-                # na tela — pergunta-se ao estado, nunca se adivinha.
+                # O id do `.desktop` que a oficina abriu.
                 OFICINA_APP = pag.evaluate("() => OFICINA.app")
                 folha = pag.locator(".oficina-folha")
                 checa(folha.locator("figure.oficina-original img").count() == 2,
                       "o original esta na folha, a 48 e a 96, ao lado das variacoes")
                 # CONTAR AS <img> NAO PROVA QUE ELAS DESENHAM, e foi a foto que
                 # pegou: a arte de fabrica de metade dos aplicativos desta
-                # maquina e' um link simbolico do flatpak, o `/previa` resolvia o
-                # link e caia fora das raizes permitidas, e o cartao «Original» —
-                # que e' a metade da tela que responde "nao e tao bonito quanto o
-                # original" — aparecia como icone quebrado. `naturalWidth` e' a
-                # unica pergunta que o navegador responde com a verdade.
+                # maquina e' um link simbolico do flatpak, o `/previa` resolvia
+                # o link e caia fora das raizes permitidas, e o cartao
+                # «Original» — que e' a metade da tela que responde "nao e tao
+                # bonito quanto o original" — aparecia como icone quebrado.
                 pag.wait_for_timeout(400)
                 largas = pag.eval_on_selector_all(
                     "figure.oficina-original img", "es => es.map(e => e.naturalWidth)")
@@ -2266,13 +1821,9 @@ def main():
                       "a tira do dock tem os dois vizinhos e a escolhida")
 
                 # O CLIQUE TEM DE CHEGAR NO TRACO, e esta e a primeira coisa que
-                # se mede nesta tela: com `fill:none`, a area "dentro" de um path
-                # NAO E' DO PATH, e sem `pointer-events: stroke` o clique
-                # atravessa e cai no <div> atras. Nao basta ler o estilo — o que
-                # prova e' mirar um ponto SOBRE a linha (`getPointAtLength`, o
-                # mesmo ponto que o mouse dela acertaria) e perguntar ao
-                # navegador quem esta la. Um `.click()` de locator mira o CENTRO
-                # da caixa do path, que num contorno e' o vazio do meio.
+                # se mede nesta tela: com `fill:none`, a area "dentro" de um
+                # path NAO E' DO PATH, e sem `pointer-events: stroke` o clique
+                # atravessa e cai no <div> atras.
                 caminhos = lupa.locator("svg path")
                 n = caminhos.count()
                 pe = caminhos.first.evaluate("p => getComputedStyle(p).pointerEvents")
@@ -2312,15 +1863,7 @@ def main():
                 checa(folha.locator("button.oficina-cartao[aria-pressed='true']").count() == 0,
                       "depois da regua nenhum cartao fica marcado — o desenho ja nao e o dele")
 
-                # ------------------------------------------------------------
-                # AS DUAS REGUAS NOVAS — 09/09/2026
-                #   Ela: "falta setar cores e os outros dois slicers". Sao
-                #   `Linhas fracas` (--peso-fronteira) e `Traco minimo`
-                #   (--min-traco), e a regra que as governa e' uma so: em 0 elas
-                #   nao existem. A afirmacao abaixo e' essa regra, medida pela
-                #   PORTA — dois `vetorizar` iguais em tudo menos pelas duas
-                #   chaves, e o SVG que volta tem de ser o mesmo texto.
-                # ------------------------------------------------------------
+                # Ela: "falta setar cores e os outros dois slicers".
                 reguas = pag.eval_on_selector_all(
                     ".oficina-regua input", "es => es.map(e => [e.name, e.value])")
                 nomes = [n for n, _v in reguas]
@@ -2345,11 +1888,10 @@ def main():
                       "as reguas novas em 0 devolvem o desenho de ontem, texto por texto "
                       f"({mesmo['pa']!r} == {mesmo['pb']!r}, {mesmo['n']} caracteres)")
 
-                # E LIGADAS, ELAS CHEGAM AO CONVERSOR. A afirmacao e' a STRING
-                # CANONICA e nao a foto: quantos tracos o `--min-traco` tira
-                # depende do icone que esta grade ofereceu hoje, e um teste que
-                # depende disso falha na maquina de outra pessoa. A string e' o
-                # contrato — e' ela que vai para o campo 4 do mapa.
+                # A afirmacao e' a STRING CANONICA e nao a foto: quantos tracos
+                # o `--min-traco` tira depende do icone que esta grade ofereceu
+                # hoje, e um teste que depende disso falha na maquina de outra
+                # pessoa.
                 reguaMin = pag.locator(".oficina-regua input[name='minimo']")
                 with pag.expect_response(lambda r: "/api/app-desenho" in r.url, timeout=25000):
                     reguaMin.fill("10")
@@ -2366,20 +1908,10 @@ def main():
                 checa("--min-traco" not in param,
                       f"e voltar a 0 a tira de novo ({param!r})")
 
-                # ------------------------------------------------------------
-                # O CAMPO DE COR — 09/09/2026
-                #   Ela: "FALTA UM CAMPO PRA SELECIONAR As cores". A cor ja
-                #   estava viva na tela (a oficina desenha na cor do mapa) e era
-                #   justamente isso que fazia faltar: nao havia como troca-la
-                #   sem fechar a oficina. Duas coisas se afirmam aqui, e a
-                #   segunda e' a regra da casa: escolher NAO grava.
-                # ------------------------------------------------------------
+                # Ela: "FALTA UM CAMPO PRA SELECIONAR As cores".
                 amostras = pag.locator(".oficina-lado .cores-grade button")
                 checa(amostras.count() >= 14,
                       f"a oficina tem a fileira de cores da paleta ({amostras.count()} amostras)")
-                # [P82, item 5: o «Usar» da oficina grava no estado de quem usa
-                #   — o `icones-convertidos.map` ao lado do meow.conf da casa de
-                #   brinquedo —, e o que sai é a escolha de traço dela.]
                 mapa_c = os.path.join(CASA, ".config", "meow", "icones-convertidos.map")
                 mapa_a = os.path.join(CASA, ".config", "meow", "icones-traco.map")
                 antes_mapas = (md5_de(mapa_c), md5_de(mapa_a))
@@ -2408,25 +1940,13 @@ def main():
                 checa((md5_de(mapa_c), md5_de(mapa_a)) == antes_mapas,
                       "e escolher a cor NAO escreveu em mapa nenhum — quem grava e' o Usar")
 
-                # ------------------------------------------------------------
-                # O EDITOR DE FORA, E A VOLTA — 09/09/2026
-                #   Ela: "o botao svg deveria abrir o svg no app que eu tiver se
-                #   eu editar la". O que este teste exercita e' a VOLTA, que e' a
-                #   metade que decide se o recurso funciona: sem ela, ela salva
-                #   no Boxy SVG e o painel continua mostrando o desenho de antes.
+                # Ela: "o botao svg deveria abrir o svg no app que eu tiver se
+                # eu editar la".
                 #
-                #   A IDA NAO E' CLICADA, E ISSO E' DE PROPOSITO. Clicar em
-                #   «Abrir no ...» faria NASCER UMA JANELA na tela de quem esta
-                #   rodando o teste. Quem segura a janela e' o servidor: o painel
-                #   subiu com `--sem-abrir`, que liga `MEOW_APP_SEM_JANELA=1`, e
-                #   a rota para antes do `Popen` (ate' 13/09/2026 era um `seco:
-                #   true` no corpo, que saiu junto com o ensaio). Nenhum caminho
-                #   deste arquivo abre um programa.
-                # ------------------------------------------------------------
-                # O `<details>` «Editar o SVG» ABRE PRIMEIRO, e nao e' detalhe de
-                # teste: dentro de um `details` fechado o botao existe no DOM e
-                # nao existe para quem olha — `inner_text()` volta vazio e um
-                # clique estoura por elemento invisivel. Abrir e' o que ela faz.
+                # Clicar em «Abrir no...» faria NASCER UMA JANELA na tela de
+                # quem esta rodando o teste.
+                #
+                # O `<details>` «Editar o SVG»
                 edicao = pag.locator("details.oficina-edicao").first
                 if edicao.get_attribute("open") is None:
                     edicao.locator("> summary").click()
@@ -2477,32 +1997,19 @@ def main():
                         if os.path.isfile(rascunho):
                             os.unlink(rascunho)
 
-                # O «USAR» NÃO E' CLICADO — 13/09/2026. Ate' hoje ele era
-                # apertado com o ensaio ligado, e so' torrava. Sem o ensaio, o
-                # clique grava o desenho E roda `icones_traco` na maquina de quem
-                # testa. A escrita e' conferida logo abaixo, pela porta, e
-                # devolvida no `finally`; aqui fica so' a prova de que o botão
-                # mora no resumo, onde ela o procura.
+                # Ate' hoje ele era apertado com o ensaio ligado, e so' torrava.
+                # Sem o ensaio, o clique grava o desenho E roda `icones_traco`
+                # na maquina de quem testa.
                 checa(pag.locator("details.oficina > summary button").count() == 1,
                       "o «Usar» mora no resumo da oficina")
 
-                # ------------------------------------------------------------
-                # E O SALVAR GRAVA A COR NO CAMPO CERTO — 09/09/2026
                 #   Este e' o UNICO ponto desta secao que escreve de verdade, e
                 #   ele devolve tudo no `finally`. A pergunta que so uma escrita
                 #   responde: a cor escolhida na oficina cai no TERCEIRO campo
                 #   da linha do mapa que passa a ser dono do aplicativo?
                 #
-                #   NAO SE CLICA NO «USAR», e nao e' descuido: aquele botao faz
-                #   duas coisas, e a segunda e' `icones_traco` — reconstruir o
-                #   tema de icones da maquina inteira. O que se testa aqui e' a
-                #   ESCRITA, entao chama-se a porta que escreve, e so ela.
-                #
-                #   A linha do `apps-convertidos.map` e' `nome:origem:cor[:params]`
-                #   — a cor e' o campo 3. Salvar um desenho sempre passa a posse
-                #   para este mapa (o `_tirar_do_mapa_arcticons` tira o nome do
-                #   outro, porque um nome nos dois mapas faz o `_conferir_gemeos`
-                #   estourar), e por isso ele e' o mapa "dono" depois do Usar.
+                # A linha do `apps-convertidos.map` e'
+                # `nome:origem:cor[:params]` — a cor e' o campo 3.
                 nome_icone = pag.evaluate("() => OFICINA.nome") or OFICINA_APP
                 conv_dir = os.path.join(CASA, ".local", "share", "meowsystem", "convertidos-apps")
                 guardados = {}
@@ -2559,9 +2066,7 @@ def main():
                       "e os dois mapas voltaram byte a byte ao que eram antes do teste")
                 if FOTOS:
                     # ROLAR E' `#principal`, NAO A JANELA — a pagina inteira nao
-                    # rola, quem rola e' a coluna. E o alvo e' a OFICINA: um
-                    # scrollTop fixo enquadrava o topo da aba e a folha ficava
-                    # fora da foto, que e' o mesmo que nao tirar foto.
+                    # rola, quem rola e' a coluna.
                     pag.wait_for_timeout(2800)      # a torrada sai da frente
                     topo = pag.evaluate("""() => {
                       const m = document.getElementById('principal');
@@ -2576,19 +2081,8 @@ def main():
                     foto(pag, "22-oficina-rolada")
 
             print("\n23. DUAS LEITURAS DA GAVETA NO AR")
-            # A CORRIDA DO `puxar` — 24/09/2026, sprint P57 (item 2)
-            #   O `puxar` lê o `TRABALHO` antes do `await` e escreve nele depois,
-            #   e o intervalo de 400 ms dispara uma leitura nova com a anterior
-            #   ainda no ar sempre que o servidor demora — com a máquina
-            #   carregada, é a regra. Derrubou uma rodada do gate em «Ouvir o
-            #   som»: a leitura que voltava depois do fim escrevia num
-            #   `TRABALHO` que já era `null`. As três corridas abaixo são as que
-            #   o intervalo produz, com o `/api/trabalho` de mentira respondendo
-            #   na ordem que o teste escolhe: a leitura velha do MESMO trabalho
-            #   que chega por último (a saída repetia), a que chega depois do
-            #   fim (a exceção) e a de um trabalho que acabou chegando no
-            #   trabalho SEGUINTE (escrevia na gaveta dele e o dava por
-            #   terminado, com ele ainda rodando no servidor).
+            # Derrubou uma rodada do gate em «Ouvir o som»: a leitura que
+            # voltava depois do fim escrevia num `TRABALHO` que já era `null`.
             corrida = pag.evaluate("""async () => {
               const original = window.fetch;
               const fila = [];
@@ -2673,18 +2167,9 @@ def main():
                   f"{seguinte['depois']}")
 
             print("\n24. A GRADE DE APLICATIVOS NÃO SOME NO FIM DE UM TRABALHO")
-            # A RELEITURA DA GRADE — 24/09/2026, sprint P57 (item 6)
-            #   Um trabalho que escreve esquece a lista de aplicativos (P46), e a
-            #   grade de Ícones era trocada por «Lendo os aplicativos…» até a
-            #   primeira pintura seguinte pedir a lista de novo: medido numa casa
-            #   de brinquedo, 110 ms sem cartão nenhum, 240 ms com a máquina
-            #   carregada, e o gate tropeçava nisso. Um vigia no `#conteudo`
-            #   anota toda pintura sem cartão, ou com o «Lendo», do clique até
-            #   depois das três releituras do fim — e não pode anotar nenhuma. A
-            #   ação é a «Próxima imagem»: escreve, é rápida, e não toca no
-            #   meow.conf que o passo 21 confere.
-            #   E A LISTA É PEDIDA UMA VEZ SÓ (revisão da P57): o `.then` do
-            #   esquema a pedia de novo, já relida.
+            # Um vigia no `#conteudo` anota toda pintura sem cartão, ou com o
+            # «Lendo», do clique até depois das três releituras do fim — e não
+            # pode anotar nenhuma.
             secao("Ícones")
             pag.wait_for_selector("#conteudo .grade-apps .app", timeout=30000)
             grade = pag.evaluate("""async () => {

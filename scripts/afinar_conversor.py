@@ -201,21 +201,14 @@ def _um(tarefa):
         cand = os.path.join(td, "x.png")
         ancora = os.path.join(td, "p.png")
         # A ÂNCORA É O PADRÃO, não a origem chapada: quem afina caneta compara
-        # caneta com caneta. E é o padrão, não o que está escrito no mapa, para
-        # que a régua seja a mesma para todo ícone e não dependa de quem já
-        # ganhou um campo 4.
+        # caneta com caneta.
         base = os.path.join(td, "p.svg")
         if subprocess.run([sys.executable, CONVERSOR, alvo["origem"], base]
                           + argv_de(PADRAO), capture_output=True).returncode != 0 \
            or not _raster(base, ancora):
             return {"nome": alvo["nome"], "erro": "o padrão não converteu — sem âncora"}
         # PRIMEIRO A NOTA, DEPOIS A TRANCA — e a ordem é desempenho, não
-        # semântica. Medir a caneta custa um `converter`; medir a forma custa
-        # mais um `rsvg-convert` e um `compare`. Como a tranca só precisa
-        # responder sobre QUEM IA GANHAR, ordenar por nota e descer a lista até
-        # o primeiro que passa dá exatamente o mesmo vencedor por um terço do
-        # trabalho. Rodar a tranca em toda a grade seria pagar 4.860 vezes por
-        # uma resposta que se usa 15.
+        # semântica.
         fila = []
         for r in combos:
             a = argv_de(r)
@@ -225,10 +218,8 @@ def _um(tarefa):
             n = nota_de(medir(saida), f)
             if n == float("inf"):
                 continue
-            # O EMPATE VAI PARA A RECEITA MAIS CURTA — e, empatando de novo, para
-            # a que está mais perto do padrão. Sem isto a busca devolveria uma
-            # bandeira diferente a cada rodada entre candidatos idênticos, e o
-            # `git diff` do mapa viraria ruído.
+            # O EMPATE VAI PARA A RECEITA MAIS CURTA — e, empatando de novo,
+            # para a que está mais perto do padrão.
             fila.append(((round(n, 6), len(a),
                           sum(abs(r[k] - PADRAO[k]) for k in PADRAO)),
                          dict(r), " ".join(a), n))

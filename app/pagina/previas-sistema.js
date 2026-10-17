@@ -1,50 +1,16 @@
 /* app/pagina/previas-sistema.js — um desenho por bloco, metade dos "sistemas".
  *
- * POR QUE ESTE ARQUIVO EXISTE
- *   A dona do projeto olhou a própria tela e disse, com todas as letras, que
- *   não consegue usar o painel sozinha: "eu mesma tô extremamente confusa sobre
- *   o que tal coisa faz". O único lugar onde isso não acontece é o bloco FORMA
- *   de "Painel e dock", e o que ele tem de diferente não é texto melhor — é um
- *   desenho que responde ANTES da leitura e que muda quando o valor muda.
- *   Daí a regra: todo bloco tem um desenho, e o desenho reage aos valores do
- *   próprio bloco. Não é ilustração; é a resposta à pergunta "o que isto faz
- *   com a minha tela?".
+ * A dona do projeto olhou a própria tela e disse, com todas as letras, que não
+ * consegue usar o painel sozinha: "eu mesma tô extremamente confusa sobre o que
+ * tal coisa faz".
  *
- *   O critério de qualidade de cada função aqui NÃO é "o traço ficou bonito".
- *   É: alguém que nunca abriu o meow.conf olha os dois desenhos e entende o que
- *   a chave faz. Um desenho correto que não passa nesse teste está errado.
+ * O critério de qualidade de cada função aqui NÃO é "o traço ficou bonito".
  *
- * O QUE ESTE ARQUIVO DEVOLVE
- *   `window.MEOW_PREVIAS["Seção :: BLOCO"](v, escolhido)` devolve `{ antes,
- *   depois, legenda }` — o segundo argumento é opcional e traz só as chaves
- *   que ela mexeu e ainda não salvou:
- *     antes    SVGElement com os valores em vigor (ou o padrão, quando a chave
- *              está vazia);
- *     depois   o MESMO desenho com o valor que ela acabou de escolher, ou
- *              `null` quando não há escolha pendente no bloco;
- *     legenda  uma linha, começando por "desenho, não é a sua tela:", dizendo os
- *              números que foram desenhados.
- *   Os dois lados usam o mesmo viewBox e o mesmo enquadramento — desenho que
- *   muda de escala entre um e outro não deixa comparar nada, que é a única
- *   coisa que o par existe para permitir.
+ * A outra metade desta frente é `previas-tela.js`, escrita ao mesmo tempo, com
+ * o mesmo contrato e certamente com auxiliares de nome parecido (`linha`,
+ * `texto`, `moldura`…).
  *
- * TUDO AQUI DENTRO DE UMA FUNÇÃO, E ISSO NÃO É ESTILO
- *   A outra metade desta frente é `previas-tela.js`, escrita ao mesmo tempo,
- *   com o mesmo contrato e certamente com auxiliares de nome parecido
- *   (`linha`, `texto`, `moldura`…). Dois `<script>` clássicos dividem o MESMO
- *   escopo global, e dois `const linha` no topo dos dois arquivos são um
- *   SyntaxError na hora do parse — o segundo arquivo simplesmente não carrega,
- *   sem uma linha no console que diga qual dos dois brigou. A folha da frente
- *   mostra o mapa em nível de topo e não fala disso; a casca abaixo é o preço
- *   de uma linha para que a colisão não exista.
- *
- * O ESTILO DO TRAÇO É O DELA, DE 11/08/2026: "o nosso tema é o traço, não o
- *   chapado". Então `fill="none"` por padrão, ponta e canto arredondados, e
- *   preenchimento só onde ele é a informação (o vidro que esconde a janela
- *   atrás, a tarja preta de quem escolheu "caber"). Cor só de `currentColor` e
- *   das variáveis de `/paleta.css` — nenhum literal de cor neste arquivo, com
- *   uma exceção medida e explicada lá embaixo, no modo de leitura.
- */
+ * O ESTILO DO TRAÇO É O DELA,: "o nosso tema é o traço, não o chapado". */
 "use strict";
 
 (function () {
@@ -52,15 +18,9 @@
 
   /* --- o quadro ----------------------------------------------------------- */
   /* UM viewBox SÓ PARA OS SETE, e ele é largo de propósito: todo desenho desta
-   * metade é sobre uma TELA, e tela é larga. 100x60 é a proporção 5:3, que é o
-   * que sobra de um monitor 16:9 depois da legenda e das margens do cartão.
+   * metade é sobre uma TELA, e tela é larga.
    *
-   * A folha pede "stroke-width por volta de 2 num viewBox de 48". Aqui a
-   * unidade é outra, e copiar o 2 ao pé da letra num quadro duas vezes maior
-   * daria metade do peso do desenho da FORMA — que é o vizinho com quem estes
-   * sete vão dividir a tela. Então o traço fica em 2 mesmo, medido pelo lado
-   * CURTO (2/60 contra 2/48 da folha): é o mesmo peso visual, não o mesmo
-   * número.
+   * A folha pede "stroke-width por volta de 2 num viewBox de 48".
    *
    * `height` em pixel e `width` em 100% deixam o desenho crescer com o cartão
    * sem nunca deformar — `preserveAspectRatio` de fábrica já centraliza. */
@@ -70,26 +30,14 @@
 
   const NS = "http://www.w3.org/2000/svg";
 
-  /* A ABERTURA DE TODA LEGENDA, NUM LUGAR SÓ — 09/09/2026
-   * Ela dizia "desenho, não captura:". Duas coisas erradas na mesma frase de
-   * três palavras: em português "captura" lê-se primeiro como VERBO, e a
-   * legenda abria parecendo dizer que o desenho *não captura* alguma coisa; e
-   * "captura" já era o nome de outra coisa desta mesma página — os temas
-   * prontos dos packs (`packs/<id>/temas/capturados/`), que a aba "Cor e
-   * tela" oferece.
-   * Uma palavra, dois conceitos, e o mais visível dos dois num fragmento sem
-   * verbo. A pergunta que a legenda existe para responder é "isto é a minha
-   * máquina?", e agora ela responde com essas palavras.
-   *
-   * Ela é constante porque são dois pontos de chamada nos dois arquivos de
-   * prévia mais o `app.js`: escrita à mão em cada um, a próxima troca deixaria
-   * metade das legendas com a abertura de ontem, calada. */
+  /* Duas coisas erradas na mesma frase de três palavras: em português
+   * "captura" lê-se primeiro como VERBO, e a legenda abria parecendo dizer que
+   * o desenho *não captura* alguma coisa; e "captura" já era o nome de outra
+   * coisa desta mesma página — os temas prontos dos packs
+   * (`packs/<id>/temas/capturados/`), que a aba "Cor e tela" oferece. */
   const ABERTURA_DA_LEGENDA = "desenho, não é a sua tela: ";
 
-  /* Números que entram em atributo passam por aqui. Duas razões: um `NaN` num
-   * atributo de SVG não levanta exceção nenhuma — ele apaga a forma em silêncio,
-   * que é o pior defeito possível numa página que promete explicar —, e três
-   * casas decimais em cada coordenada engordam o DOM sem mudar um pixel. */
+  /* Números que entram em atributo passam por aqui. */
   const q = (x) => (Number.isFinite(x) ? Math.round(x * 100) / 100 : 0);
 
   const aLista = (x) => (x === null || x === undefined ? [] : (Array.isArray(x) ? x : [x]));
@@ -110,10 +58,6 @@
     return el;
   }
 
-  /* O `<title>` não é enfeite de acessibilidade: com `role="img"` ele É o
-   * desenho para quem usa leitor de tela, e a promessa da frente ("o desenho
-   * responde antes da leitura") só vale para os dois se ele descrever a mesma
-   * coisa que o traço mostra. */
   function moldura(titulo) {
     const svg = no("svg", {
       viewBox: "0 0 " + LARGURA + " " + ALTURA,
@@ -154,13 +98,9 @@
   const caminho = (d, extra) => no("path", Object.assign({ d: d }, extra || {}));
 
   /* Texto dentro do desenho é sempre um NÚMERO ou um RÓTULO de uma palavra —
-   * frase é trabalho da legenda. `stroke: none` porque o traço padrão do quadro
-   * contornaria cada glifo e a 5 unidades isso vira borrão.
+   * frase é trabalho da legenda.
    *
-   * O PISO DE TAMANHO É 4. Medido no pior caso: o par antes/depois lado a lado
-   * num cartão estreito dá ~150 px de largura, ou seja 1,5 px por unidade —
-   * texto de 4 unidades sai com 6 px, que é o limite do legível. Abaixo disso
-   * o rótulo mente: ocupa espaço e não informa. */
+   * Abaixo disso o rótulo mente: ocupa espaço e não informa. */
   const texto = (x, y, conteudo, extra) => no("text", Object.assign({
     x: q(x), y: q(y),
     "font-size": 5,
@@ -170,9 +110,7 @@
   }, extra || {}), String(conteudo));
 
   /* Polar com 0 no TOPO e sentido horário — a convenção do relógio, que é a que
-   * o arco de 24 horas precisa. A direção do movimento em graus de tela (0 à
-   * direita, positivo para baixo) coincide com o próprio ângulo polar, o que
-   * dá a ponta da seta de graça. */
+   * o arco de 24 horas precisa. */
   function ponto(cx, cy, r, graus) {
     const rad = (graus - 90) * Math.PI / 180;
     return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
@@ -237,22 +175,13 @@
     ]);
   }
 
-  /* A TARJA DE AVISO — o que as chaves NOTIFICAR fazem de verdade.
-   * O sino sozinho é um glifo de raio 4,5 num quadro de 100x60: dez pixels no
-   * botão do par, e os dois lados desenhavam a mesma figura (0,53% dos pixels
-   * diferentes, fotografados em 07/09/2026). E o sino ainda dizia a coisa
-   * errada — a chave não pendura sino nenhum em lugar nenhum: ela manda o
-   * `notify-send` pôr uma TARJA na tela dela. Então é a tarja que se desenha, no
-   * tamanho em que uma tarja se vê.
+  /* A TARJA DE AVISO — o que as chaves NOTIFICAR fazem de verdade. O sino
+   * sozinho é um glifo de raio 4,5 num quadro de 100x60: dez pixels no botão do
+   * par, e os dois lados desenhavam a mesma figura.
    *
-   * O PREENCHIMENTO AQUI É A INFORMAÇÃO, e é por isso que ele existe num arquivo
-   * de traço: uma notificação é uma superfície opaca que aparece POR CIMA do que
-   * ela está fazendo. Desligada, a mesma tarja fica só o contorno pontilhado com
-   * o sino cortado — o lugar onde o aviso apareceria, e não aparece.
-   *
-   * A BARRA DA DIREITA É BARRA, E NÃO PALAVRA, de propósito: o texto da
-   * notificação é o nome do arquivo (ou da imagem) que entrou, e ele não se sabe
-   * na hora de desenhar. Inventar um nome seria a única mentira possível aqui. */
+   * O PREENCHIMENTO AQUI É A INFORMAÇÃO, e é por isso que ele existe num
+   * arquivo de traço: uma notificação é uma superfície opaca que aparece POR
+   * CIMA do que ela está fazendo. */
   function tarjaDeAviso(x, y, w, h, palavra, avisa) {
     const nome = emTexto(palavra);
     const fonte = Math.min(4.8, h * 0.62);
@@ -299,21 +228,12 @@
 
   /* --- ler o que veio ----------------------------------------------------- */
   /* `v` chega como `{ NOME_DA_CHAVE: "valor" }`, valores do jeito que estão no
-   * meow.conf. Mas o par antes/depois só existe se der para saber o que ela
-   * ACABOU DE ESCOLHER, e isso não cabe numa string por chave: com uma entrada
-   * só, e sendo a função pura, `depois` seria `null` SEMPRE — a mesma entrada
-   * não tem como dar dois desenhos diferentes. Daí o segundo argumento, que é
-   * a convenção combinada entre as duas metades:
+   * meow.conf.
    *
    *     previa(v)                     -> depois: null (o caso comum)
    *     previa(v, escolhido)          -> depois desenhado com o que ela mexeu
    *
-   * `escolhido` traz só as chaves ainda não salvas, no mesmo formato de `v`.
-   * Escolha igual ao que já vale também devolve `null`: não há o que comparar.
-   *
-   * Por garantia este arquivo também aceita a escolha embutida no próprio `v`,
-   * na forma `{ RELOGIO_SEGUNDOS: { valor: "nao", escolhido: "sim" } }` — quem
-   * consome decide, e nenhuma das formas quebra a outra. */
+   * `escolhido` traz só as chaves ainda não salvas, no mesmo formato de `v`. */
   function primeiro() {
     for (let i = 0; i < arguments.length; i++) {
       if (arguments[i] !== undefined && arguments[i] !== null) return arguments[i];
@@ -348,13 +268,7 @@
     for (const chave of Object.keys(depois)) {
       if (depois[chave] !== agora[chave]) mudou = true;
     }
-    /* QUAIS CHAVES FORAM PEDIDAS — e isso não é o mesmo que quais mudaram.
-     * O par de botões do `app.js` desenha o bloco INTEIRO para responder por uma
-     * chave só, e chama esta função uma vez por lado: o botão da esquerda pede o
-     * valor que JÁ vale. Se o desenho olhasse a DIFERENÇA para decidir a quem
-     * dar destaque, o lado esquerdo (onde não há diferença) sairia num
-     * enquadramento e o direito noutro — que é a única coisa que o par existe
-     * para não fazer. Então o que sai daqui é o PEDIDO. */
+    /* QUAIS CHAVES FORAM PEDIDAS — e isso não é o mesmo que quais mudaram. */
     const pedidas = [];
     for (const chave of Object.keys(bruto)) {
       const item = bruto[chave];
@@ -388,12 +302,7 @@
 
   const booleanoValido = (s) => (SIM.indexOf(achatar(s)) >= 0 || NAO.indexOf(achatar(s)) >= 0);
 
-  /* FORA DA FAIXA É INVÁLIDO, E INVÁLIDO DESENHA O PADRÃO — não o extremo.
-   * Grampear um `-5` em 0 e um `999` em 1 desenharia uma barra invisível e uma
-   * barra opaca, as duas com cara de escolha deliberada; e o `999` do
-   * MIDIA_LARGURA nem chega a ser gravado (a chave o recusa). O desenho que
-   * responde à verdade é o do padrão, com a legenda dizendo que o valor escrito
-   * não serve. */
+  /* FORA DA FAIXA É INVÁLIDO, E INVÁLIDO DESENHA O PADRÃO — não o extremo. */
   /* `parseFloat` sozinho não serve de leitor: ele lê "25:99" como 25 e "1.0.0"
    * como 1, e um número que veio de um texto que não era número entraria no
    * desenho como se fosse escolha. A linha inteira tem de ser um número. */
@@ -455,12 +364,7 @@
     const fator = { s: 1 / 60, m: 1, h: 60, d: 1440 }[unidade];
     /* Número sem letra é minuto, e o rótulo diz a unidade em vez de deixar um
      * "999" solto na legenda — que tanto pode ser minuto quanto segundo para
-     * quem está lendo.
-     *   E COM letra ele também fala a língua do painel: o valor gravado "5m" é
-     * a gramática do `wallpaper.sh`, não a da tela — os botões da mesma aba já
-     * dizem "5 min", e a legenda dizia "troca a cada 5m" dois dedos abaixo
-     * deles. A conferência de língua contou três grafias para o mesmo minuto
-     * na mesma aba. O que se grava não muda; o que se lê, sim. */
+     * quem está lendo. */
     const numero = m[1].replace(",", ".");
     const rotuloDe = { s: numero + " s", m: numero + " min", h: numero + " h",
                        d: numero === "1" ? "1 dia" : numero + " dias" };
@@ -473,7 +377,7 @@
 
   /* "5 min" -> ["5", "min"]; "sempre" -> ["sempre", ""]. Os rótulos da
    * `duracao` são sempre número, espaço e unidade, e é o que deixa o desenho
-   * pôr a unidade numa linha de baixo quando a de cima não cabe (P54). */
+   * pôr a unidade numa linha de baixo quando a de cima não cabe. */
   function partirRotulo(rotulo) {
     const s = emTexto(rotulo);
     const i = s.indexOf(" ");
@@ -492,9 +396,7 @@
   ];
 
   /* NUNCA interpolar texto do meow.conf dentro de um `var(--…)` sem conferir
-   * contra esta lista. Não é medo de execução — é que um nome inventado vira
-   * uma variável que não existe, a cor cai para o valor de fallback e o desenho
-   * mente sobre o que está gravado, calado. */
+   * contra esta lista. */
   function corDaPaleta(valor, padrao) {
     const s = achatar(valor);
     if (s === "auto" || s === "") return "currentColor";
@@ -519,12 +421,7 @@
 
   /* --- as legendas --------------------------------------------------------- */
   /* O PADRÃO DA FRASE É O DA FORMA, e ele é curto de propósito: uma linha, os
-   * números desenhados, e o aviso de vazio quando há vazio. A folha crava a
-   * frase do vazio falando em COSMIC — e ela só é verdade para as chaves que o
-   * COSMIC também escreve (as duas opacidades, o relógio). Para uma chave que é
-   * só nossa, dizer "o COSMIC decide" seria mentira; aí a frase é a do padrão
-   * de fábrica. É a divergência desta metade em relação à folha, e ela está
-   * aqui em vez de escondida. */
+   * números desenhados, e o aviso de vazio quando há vazio. */
   const VAZIO_COSMIC = "vazio no meow.conf significa que o COSMIC decide, e aqui aparece o padrão dele";
   const VAZIO_FABRICA = "vazio no meow.conf significa que vale o padrão de fábrica, e é ele que aparece aqui";
 
@@ -535,9 +432,8 @@
     return /[.!?…]$/.test(frase) ? frase : frase + ".";
   }
 
-  /* Conferência de valores para a legenda: quais chaves do bloco estão vazias e
-   * quais trazem coisa que a chave não aceita. As duas informações mudam o que
-   * o desenho mostra, então as duas têm de aparecer escritas. */
+  /* As duas informações mudam o que o desenho mostra, então as duas têm de
+   * aparecer escritas. */
   function conferir(val, regras) {
     const vazias = [];
     const erradas = [];
@@ -552,18 +448,15 @@
   function notaDeErradas(erradas) {
     if (!erradas.length) return "";
     const nomes = erradas.slice(0, 2).join(" e ") + (erradas.length > 2 ? " (e outras)" : "");
-    /* "A CHAVE NÃO ACEITA" -> "o ajuste não aceita" — 09/09/2026. Mesma troca
-     * do `app.js`: a página inteira chama isto de ajuste, do banner à busca,
-     * e "chave" era o nome da variável aparecendo na legenda de um desenho. */
+    /* "A CHAVE NÃO ACEITA" -> "o ajuste não aceita". Mesma troca do `app.js`:
+     * a página inteira chama isto de ajuste, do banner à busca, e "chave" era
+     * o nome da variável aparecendo na legenda de um desenho. */
     return nomes + " tem valor que o ajuste não aceita, e o desenho mostra o padrão";
   }
 
   /* --- a casca que nunca deixa a exceção subir ----------------------------- */
   /* Um desenho que quebra apaga a página inteira: quem consome monta os cartões
-   * num laço só, e uma exceção no terceiro cartão leva os outros noventa junto.
-   * Então cada entrada do mapa é embrulhada aqui, e o pior caso desta função é
-   * um quadro vazio com a legenda dizendo que o desenho falhou — nunca o
-   * silêncio, e nunca a página branca. */
+   * num laço só, e uma exceção no terceiro cartão leva os outros noventa junto. */
   function seguro(titulo, desenhar, legendar) {
     return function (v, escolhido) {
       let leitura;
@@ -592,14 +485,7 @@
         legenda = montarLegenda(titulo + " (não deu para ler os valores desta seção)");
       }
       if (!legenda) legenda = montarLegenda(titulo);
-      /* A frase que diz "e o da direita é a escolha pendente" NÃO nasce aqui.
-       * Ela era escrita neste ponto e por isso saía só nos desenhos deste
-       * arquivo — as dez prévias do `previas-tela.js` ficavam com uma legenda
-       * que descrevia a esquerda sem dizer que descrevia a esquerda. Medido em
-       * "Cor e tela": com latte escolhido, o `<title>` do SVG da direita já
-       * dizia "latte" e a frase embaixo dos dois continuava dizendo "mocha".
-       * Agora quem a acrescenta é o `parDePrevias` do `app.js`, uma vez, para
-       * todo desenho que ganhe par. */
+      /* A frase que diz "e o da direita é a escolha pendente" NÃO nasce aqui. */
       return { antes: antes, depois: depois, legenda: legenda };
     };
   }
@@ -621,19 +507,10 @@
   /* ======================================================================== */
   /* A PERGUNTA QUE O DESENHO RESPONDE: "0 é transparente, 1 é opaco" não diz
    * nada sozinho — transparente em cima de quê? A resposta é a janela
-   * maximizada ATRÁS da barra. Por isso o desenho põe uma janela com texto
-   * embaixo do painel e embaixo da dock: onde a barra é translúcida, as linhas
-   * da janela atravessam; onde ela é opaca, somem. É a mesma pergunta que o
-   * VIDRO_AO_MAXIMIZAR faz, e são as duas no mesmo quadro porque na tela dela
-   * elas também são a mesma cena.
+   * maximizada ATRÁS da barra.
    *
    * O relógio entra com o texto, e não com um ponteiro: RELOGIO_SEGUNDOS mexe
-   * no relógio DIGITAL da barra de cima. "9:41" e "9:41:07" lado a lado é a
-   * diferença inteira, sem uma palavra.
-   *
-   * O 0,8 de padrão não é chute: é o mesmo número que o desenho da FORMA já usa
-   * quando as chaves estão vazias, e duas prévias vizinhas discordando do
-   * padrão seria a pior coisa que este arquivo poderia fazer. */
+   * no relógio DIGITAL da barra de cima. */
   const REGRAS_VIDRO = [
     { chave: "VIDRO_AO_MAXIMIZAR", ok: booleanoValido },
     { chave: "VIDRO_OPACIDADE_PAINEL", ok: (s) => numeroValido(s, 0, 1) },
@@ -650,9 +527,7 @@
       painel: painel,
       dock: dock,
       /* Com "nao" e uma janela maximizada, o COSMIC devolve o comportamento de
-       * fábrica: as duas ficam opacas. O desenho obedece a isso — mostrar 19%
-       * numa cena onde o valor não vale seria desenhar uma coisa que ela nunca
-       * vai ver. */
+       * fábrica: as duas ficam opacas. */
       painelDesenhada: manter ? painel : 1,
       dockDesenhada: manter ? dock : 1,
       segundos: ligado(val.RELOGIO_SEGUNDOS, false),
@@ -661,16 +536,8 @@
 
   function desenharVidro(val, pedidas) {
     const d = lerVidro(val);
-    /* O RELÓGIO DE PERTO, E SÓ NO CARTÃO DELE
-     * O que o RELOGIO_SEGUNDOS governa são três caracteres: "9:41" vira
-     * "9:41:07". No relógio da barra isso dá 0,92% dos pixels do botão (medido
-     * em 07/09/2026) e os dois lados saem a mesma figura. Aumentar o relógio DA
-     * BARRA para resolver seria mentir sobre o tamanho do relógio dela; então
-     * entra a mesma gramática de desenho técnico da cota da largura da música,
-     * aqui embaixo: o canto direito da barra aparece de novo, ampliado, com o
-     * mesmo recheio e a mesma opacidade — é aquele pedaço, de perto.
-     * Nos outros três cartões deste bloco a ampliação não aparece: lá o assunto
-     * é o vidro, que já ocupa o quadro inteiro. */
+    /* O RELÓGIO DE PERTO, E SÓ NO CARTÃO DELE O que o RELOGIO_SEGUNDOS governa
+     * são três caracteres: "9:41" vira "9:41:07". */
     const perto = Array.isArray(pedidas) && pedidas.length === 1
       && pedidas[0] === "RELOGIO_SEGUNDOS";
     const svg = moldura("o painel e a dock sobre uma janela maximizada, com o relógio da barra"
@@ -679,12 +546,6 @@
     svg.appendChild(retangulo(2, 3, 96, 54, 3.5, { "stroke-width": 1.6, opacity: 0.55 }));
     svg.appendChild(retangulo(6, 7, 88, 45, 2, { "stroke-width": 1.3, opacity: 0.45 }));
 
-    /* O conteúdo da janela é o que PROVA a transparência, e por isso as linhas
-     * que passam por baixo da barra e por baixo da dock são desenhadas mais
-     * fortes que as outras: a primeira versão deste desenho tinha uma linha só
-     * atrás do painel, fraca, e a diferença entre 19% e 80% não aparecia — a
-     * conferência a olho mostrou dois desenhos idênticos onde deveria haver a
-     * resposta inteira da chave. */
     const linhas = [[9, 66], [14, 78], [22, 76], [27, 46], [32, 66], [37, 52], [42, 74], [48.5, 58]];
     for (const [y, largura] of linhas) {
       const atras = (y < 17) || (y > 43);
@@ -710,8 +571,7 @@
       /* A moldura da ampliação é a MESMA receita da barra — `--surface2` com a
        * opacidade do painel —, e é isso que a faz ler como "aquele pedaço" em
        * vez de um cartaz colado por cima: as linhas da janela continuam
-       * atravessando por baixo dela, do mesmo jeito que atravessam a barra.
-       * As duas linhas de chamada saem das quinas do cerco do relógio pequeno. */
+       * atravessando por baixo dela, do mesmo jeito que atravessam a barra. */
       const chamada = { "stroke-width": 0.8, "stroke-dasharray": "2 1.6", opacity: 0.55 };
       svg.appendChild(retangulo(62, 7.2, 29.5, 8, 1.6, chamada));
       svg.appendChild(linha(62, 15.2, 6, 19, chamada));
@@ -753,20 +613,11 @@
   /* 2. Painel e dock :: MÚSICA NO PAINEL                                        */
   /* ======================================================================== */
   /* A PERGUNTA: "quantos pixels o nome da música pode ocupar antes de virar
-   * reticências" é impossível de responder de cabeça. Então o desenho mostra a
-   * pastilha inteira e, embaixo dela, a MEDIDA — a mesma cota que um desenho
-   * técnico usa —, com o nome cortando de verdade quando a largura não dá.
+   * reticências" é impossível de responder de cabeça.
    *
    * A calibração não é livre: ela foi ajustada para reproduzir o fato medido
    * que está no meow.conf — em 260 (o número do upstream) o nome corta, em 440
-   * (o dela) cabe. Um desenho que coubesse nos dois faria a chave parecer
-   * inútil; um que cortasse nos dois faria o 440 dela parecer errado.
-   *
-   * A cor do álbum é uma cor de disco, não da paleta — o próprio meow.conf
-   * mede que ela SEMPRE destoa do Catppuccin. Como não há hex neste arquivo, o
-   * lugar dela é ocupado por `var(--peach)` e a legenda diz que é exemplo: o
-   * que o desenho precisa responder é ONDE a cor entra (no traço ou no fundo),
-   * não qual ela é. */
+   * (o dela) cabe. */
   const REGRAS_MIDIA = [
     { chave: "MIDIA", ok: booleanoValido },
     { chave: "MIDIA_LARGURA", ok: (s) => numeroValido(s, 80, 900) },
@@ -780,38 +631,12 @@
 
   const COR_DO_ALBUM = "var(--peach)";
 
-  /* O ENQUADRAMENTO: A BARRA EM CIMA, O APPLET AMPLIADO EMBAIXO — 07/09/2026
-   *   A primeira versão desenhava a barra inteira na escala da barra, e nela o
-   *   applet cabia num naco de 56x18 unidades. Medido nos dois botões do
-   *   cartão, no tamanho em que eles aparecem (228x96): trocar `MIDIA_CAPA`
-   *   mudava 1,51% dos pixels, e `MIDIA_CONTROLES`, os mesmos 1,51% —
-   *   tecnicamente dois desenhos, a mesma figura para quem olha. Os pares que
-   *   funcionam neste painel vivem entre 6% e 20%.
+  /* Medido nos dois botões do cartão, no tamanho em que eles aparecem (228x96):
+   * trocar `MIDIA_CAPA` mudava 1,51% dos pixels, e `MIDIA_CONTROLES`, os mesmos
+   * 1,51% — tecnicamente dois desenhos, a mesma figura para quem olha.
    *
-   *   O conserto é de ENQUADRAMENTO, e não de capricho: o assunto do bloco é o
-   *   applet, então é ele que ocupa o quadro. A tira de cima continua sendo a
-   *   barra — com o relógio, que é o vizinho que o próprio bloco cita, e com os
-   *   outros applets em cinza — e as duas linhas pontilhadas são a chamada de
-   *   detalhe que todo desenho técnico usa: "o que está marcado ali é isto
-   *   aqui, ampliado". A seção não sumiu; virou o contexto, que é o papel dela.
-   *
-   * A CAPA E A COR SÃO A MESMA CHAVE, E O DESENHO NÃO PODE SEPARÁ-LAS
-   *   `MIDIA_CAPA` não é "mostrar a capa": é BAIXAR a capa quando o tocador
-   *   publica `mpris:artUrl` como link (`album-art-remote`, em
-   *   `scripts/midia.sh`). O Spotify só publica link. E a cor dominante é
-   *   EXTRAÍDA do arquivo da capa — sem imagem no disco não há de onde tirá-la.
-   *   As duas queixas dela caíam na mesma linha do `src/media.rs`, e por isso
-   *   em "não" o desenho tira as duas coisas: o quadrado da capa (que o applet
-   *   nem chega a pôr no `Row`, ele some, não fica um vazio) e a cor do álbum
-   *   do botão inteiro. Um tocador local que publica arquivo continua com capa
-   *   mesmo em "não" — é o que a legenda diz, porque o desenho mostra o caso
-   *   dela, que é o Spotify.
-   *
-   * O `ZOOM` NÃO MEXE NA CALIBRAÇÃO DA LARGURA, e isso é o que permite ampliar
-   *   sem refazer a conta: ele multiplica a largura desenhada do nome E o
-   *   tamanho da letra pelo mesmo número, e `cabem` é a razão entre os dois. O
-   *   fato medido lá em cima continua de pé — em 260 o nome corta, em 440
-   *   cabe. */
+   * O conserto é de ENQUADRAMENTO, e não de capricho: o assunto do bloco é o
+   * applet, então é ele que ocupa o quadro. */
   const TIRA = { y: 3, h: 10, x: 26 };   // a barra, e onde o applet se apoia nela
   const LUPA = { x: 2, y: 19, h: 26 };   // o applet ampliado
   const RECUO = 3.5;                     // a folga interna do botão do applet
@@ -823,18 +648,12 @@
     const larguraPx = numero(val.MIDIA_LARGURA, 440, 80, 900);
     const auto = achatar(val.MIDIA_FONTE) === "auto" || vazio(val.MIDIA_FONTE);
     const fontePx = auto ? 0 : numero(val.MIDIA_FONTE, 12, 6, 48);
-    /* 5 unidades é a letra que o painel usa quando a chave diz `auto`; a partir
-     * daí o tamanho cravado sobe na mesma proporção, e o teto de 10 existe só
-     * para o desenho não sair do quadro — que já é o sintoma que a chave
-     * descreve, e ele aparece de qualquer jeito. */
     const fonte = (auto ? 5 : Math.max(3, Math.min(10, 5 * (fontePx / 12)))) * ZOOM;
     const larguraDesenhada = (7 + (larguraPx / 900) * 31) * ZOOM;
     const capa = ligado(val.MIDIA_CAPA, true);
     const controles = ligado(val.MIDIA_CONTROLES, false);
     /* A ORDEM DO `Row` DO APPLET: [capa][nome · banda][⏮⏸⏭], e o botão é
-     * `Length::Shrink` — ele mede o próprio conteúdo. Então tirar a capa
-     * encosta o nome na borda esquerda, e pôr os três controles alarga o botão
-     * de verdade. É essa conta, e não um enfeite, que move as bordas aqui. */
+     * `Length::Shrink` — ele mede o próprio conteúdo. */
     const textoX = LUPA.x + RECUO + (capa ? CAPA_LADO + RECUO : 0);
     const fimTexto = textoX + larguraDesenhada;
     const trioX = fimTexto + RECUO;
@@ -928,11 +747,7 @@
       svg.appendChild(linha(nx + 2.3, cy + CAPA_LADO * 0.2, nx + 7, cy + CAPA_LADO * 0.34, { "stroke-width": 1.5, stroke: corGlifo }));
     }
 
-    /* A pastilha cresce com a letra. Com `MIDIA_FONTE` cravado em 30 ou 48 a
-     * banda desce para fora do botão — que é exatamente o defeito que ela
-     * reparou primeiro em 24/08/2026, quando o applet passava o tamanho do
-     * ÍCONE como tamanho da FONTE. O desenho mostra o transbordo em vez de
-     * escondê-lo. */
+    /* A pastilha cresce com a letra. */
     const yTitulo = meio - d.fonte * 0.21 - 0.75;
     const yArtista = yTitulo + d.fonte * 0.95 + 1.5;
     svg.appendChild(texto(d.textoX, yTitulo, cortar("A música", d.cabem), {
@@ -943,11 +758,8 @@
     }));
 
     if (d.controles) {
-      /* DO TAMANHO QUE ELES TÊM: no `src/ui.rs` do applet o ícone de controle é
-       * pedido na MESMA medida do ícone da capa (`.size(size.0)` para os dois),
-       * então desenhá-los como três risquinhos ao lado de uma capa grande seria
-       * desenhar outro applet. Cheios porque `media-skip-*-symbolic` é glifo
-       * cheio, e é assim que eles aparecem na barra. */
+      /* Cheios porque `media-skip-*-symbolic` é glifo cheio, e é assim que eles
+       * aparecem na barra. */
       const alt = 15;
       const topo = meio - alt / 2;
       const base = meio + alt / 2;
@@ -987,8 +799,7 @@
     if (!d.ligada) {
       corpo = "a barra sem a pastilha da música — desligar não deixa de instalar, reverte: o botão de música do flatpak volta no próximo login";
     } else {
-      /* O nome que a tela diz é o dos botões ao lado, e não o slot — P51, na
-       * revisão (ver `MEOW_NOME_DA_COR`, no app.js). Sem o app, o slot. */
+      /* Sem o app, o slot. */
       const dizer = (typeof window !== "undefined" && window.MEOW_NOME_DA_COR) || ((s) => s);
       const nomeDeCor = (bruta, padrao) => {
         const s = achatar(bruta) || padrao;
@@ -1021,21 +832,13 @@
   /* ======================================================================== */
   /* A PERGUNTA: "preencher, caber ou esticar" é a palavra mais cara desta
    * seção — foi ela que, cravada em `Fit` dentro do script, pôs duas tarjas
-   * pretas na tela dela em 11/08/2026. As três palavras só significam alguma
+   * pretas na tela dela. As três palavras só significam alguma
    * coisa quando a MESMA foto aparece nos três ajustes:
    *   preencher  a foto é maior que a tela e sobra para fora (o pontilhado)
    *   caber      a foto inteira aparece e sobram as tarjas hachuradas
    *   esticar    o sol vira ovo
    * O sol virando elipse é o coração deste desenho: é a única forma de mostrar
-   * deformação sem escrever a palavra "deforma".
-   *
-   * A foto de origem é 4:3 e a tela é mais larga que isso, de propósito: com as
-   * duas proporções iguais os três ajustes desenhariam a mesma coisa e a chave
-   * pareceria não fazer nada.
-   *
-   * O CORTE TEM `id` FIXO, e isso é seguro aqui: `antes` e `depois` são o mesmo
-   * enquadramento por contrato, então os dois recortes são geometricamente
-   * idênticos e tanto faz qual dos dois o navegador resolve primeiro. */
+   * deformação sem escrever a palavra "deforma". */
   const CORTE_PAREDE = "meow-previa-parede";
   const REGRAS_PAREDE = [
     { chave: "WALLPAPER_AJUSTE", ok: (s) => escolhaValida(s, ["preencher", "caber", "esticar"]) },
@@ -1089,9 +892,7 @@
     const dentro = grupo({ "clip-path": "url(#" + CORTE_PAREDE + ")" }, []);
     if (d.ajuste === "caber") {
       /* Cabe inteira: a foto 4:3 encolhe até a altura da tela e sobram duas
-       * tarjas. Hachura em vez de preto chapado — a tarja preta de verdade é
-       * preta, mas um retângulo cheio aqui brigaria com o traço do resto e, no
-       * sabor claro, com o próprio fundo da página. */
+       * tarjas. */
       const w = TELA.h * 4 / 3;
       const x = TELA.x + (TELA.w - w) / 2;
       for (const faixa of [[TELA.x, x - TELA.x], [x + w, TELA.x + TELA.w - (x + w)]]) {
@@ -1140,15 +941,7 @@
     svg.appendChild(caminho(arco(82, 16, 9, 35, 325), { "stroke-width": 1.8 }));
     const fim = ponto(82, 16, 9, 325);
     svg.appendChild(seta(fim.x, fim.y, 325, 3.4));
-    /* O NÚMERO NO MIOLO DA SETA, E A UNIDADE EMBAIXO DELE — 24/09/2026, sprint
-     * P54 (achado 37). «5 min» numa linha só, em corpo 7, é mais largo que o
-     * miolo do círculo de raio 9: o «5» e o «n» saíam por cima do traço, e a
-     * validação no painel de verdade leu o rótulo como cortado pela seta. Em
-     * duas linhas cada pedaço cabe folgado. O corpo do número só encolhe a
-     * partir de QUATRO algarismos: 15/(n·0,6) fica abaixo de 7 com n=4 (6,25),
-     * e com n=3 dá 8,3, que o teto prende em 7. O `999` de quem digitou minuto
-     * solto sai em corpo 7 e ainda cabe no miolo (medido na revisão da P54: x
-     * de 75,99 a 88,01, com o traço do círculo de 73 a 91). */
+    /* Em duas linhas cada pedaço cabe folgado. */
     const [numIntervalo, unIntervalo] = partirRotulo(d.intervalo.rotulo);
     svg.appendChild(texto(82, 17, numIntervalo, {
       "font-size": q(Math.max(4, Math.min(7, 15 / Math.max(1, numIntervalo.length * 0.6)))),
@@ -1171,11 +964,8 @@
      * quanto tempo. */
     svg.appendChild(circulo(9, 47, 2.2, { "stroke-width": 1.5 }));
     svg.appendChild(linha(9, 49.2, 9, 54, { "stroke-width": 1.5 }));
-    /* E O PRAZO TAMBÉM EM DUAS LINHAS — mesma sprint, mesmo achado. «30 min» em
-     * corpo 5,5 ia de x=14 a x≈33, e a tarja do aviso começava em 31: o «n»
-     * entrava no balão da notificação. Número em cima e unidade embaixo ocupam
-     * menos da metade da largura; o «sempre», que é uma palavra só, desce de
-     * corpo em vez de partir. */
+    /* «30 min» em corpo 5,5 ia de x=14 a x≈33, e a tarja do aviso começava em
+     * 31: o «n» entrava no balão da notificação. */
     if (d.ttlEterno) {
       svg.appendChild(texto(13.5, 52.5, "sempre", { "font-size": 4.6, "text-anchor": "start" }));
     } else {
@@ -1184,34 +974,19 @@
       if (unTtl) svg.appendChild(texto(13.5, 55.5, unTtl, { "font-size": 4.2, "text-anchor": "start" }));
     }
 
-    /* O AVISO É UMA TARJA, E NÃO UM SINO — 07/09/2026
-     * A chave não pendura sino nenhum em lugar nenhum: ela manda o
-     * `meow_notificar` pôr uma notificação na tela dizendo QUAL imagem entrou.
-     * O sino de raio 4,5 que morava aqui mudava 0,67% dos pixels do botão do
-     * par — os dois lados desenhavam a mesma figura, e a conferência de uso
-     * relatou exatamente isso.
-     *   A largura sai do que sobrou: o alfinete do prazo ocupa até x≈30 e o
-     * menu do botão direito começa em x=66, então a tarja mora entre os dois.
-     * Ela é a mesma `tarjaDeAviso` das três de "Manutenção", e é de propósito:
-     * quatro chaves fazem a mesma coisa e passam a ter a mesma figura. */
-    /* 31 -> 33 na P54: dois dedos de folga entre o prazo e a tarja, que antes
-     * se encostavam. A tarja encolhe na mesma conta e continua terminando em
-     * 64, antes do menu. */
+    /* A largura sai do que sobrou: o alfinete do prazo ocupa até x≈30 e o menu
+     * do botão direito começa em x=66, então a tarja mora entre os dois. */
+    /* A tarja encolhe na mesma conta e continua terminando em 64, antes do
+     * menu. */
     svg.appendChild(tarjaDeAviso(33, 45.5, 31, 11, "imagem", d.avisa));
 
-    /* O MENU DO BOTÃO DIREITO, INTEIRO — e não uma caixinha pontilhada. Medido
-     * em 07/09/2026, a caixinha mudava 1,91% dos pixels do botão entre "sim" e
-     * "nao": os dois lados eram a mesma figura com o traço tracejado. Mas a
-     * chave não acende nem apaga uma caixa; ela ACRESCENTA DOIS ITENS ao menu
-     * da área de trabalho, e com isso o menu cresce e o que estava embaixo
-     * desce. Desenhar o menu dos dois tamanhos é desenhar o que ela vai ver
-     * quando clicar com o botão direito.
+    /* O MENU DO BOTÃO DIREITO, INTEIRO — e não uma caixinha pontilhada. Medido,
+     * a caixinha mudava 1,91% dos pixels do botão entre "sim" e "nao": os dois
+     * lados eram a mesma figura com o traço tracejado.
      *
      * Os itens de fábrica são barras, e não palavras: quantos e quais o COSMIC
      * põe ali muda de versão para versão, e escrever nomes que este arquivo não
-     * lê de lugar nenhum seria a única mentira possível neste canto. Os NOSSOS
-     * dois vão com seta, um para cada lado, porque é isso que eles fazem —
-     * "Próximo papel de parede" e "Papel de parede anterior". */
+     * lê de lugar nenhum seria a única mentira possível neste canto. */
     const itensDeFabrica = [[69.5, 93], [69.5, 88], [69.5, 91]];
     if (d.menu) {
       svg.appendChild(retangulo(66, 37, 32, 22, 2, { "stroke-width": 1.6 }));
@@ -1264,17 +1039,10 @@
   /* ======================================================================== */
   /* A PERGUNTA: "18:00" e "07:00" em duas caixas de texto não mostram que a
    * janela ATRAVESSA a meia-noite — e é justamente essa a regra da seção
-   * (início > fim quer dizer "depois do início OU antes do fim"). Num arco de
-   * 24 horas isso não precisa ser explicado: o trecho pintado passa por cima do
-   * topo e pronto.
+   * (início > fim quer dizer "depois do início OU antes do fim").
    *
-   * A PRECEDÊNCIA TAMBÉM É DESENHO. As duas chaves gerais vencem; vazias, elas
-   * herdam as do papel de parede; vazias as quatro, valem 18:00–07:00. Essa é
-   * a janela do gato do dock e do terminal: o papel de parede lê só as
-   * `WALLPAPER_NOITE_*`, e o modo de leitura, o horário dele (P54). O
-   * desenho mostra a janela que está VALENDO e a legenda diz de onde ela veio —
-   * "está vazio e mesmo assim tem noite" é uma das perguntas mais caras desta
-   * seção. */
+   * As duas chaves gerais vencem; vazias, elas herdam as do papel de parede;
+   * vazias as quatro, valem 18:00–07:00. */
   const REGRAS_NOITE = [
     { chave: "NOITE_INICIO", ok: (s) => relogio(s, 0).ok },
     { chave: "NOITE_FIM", ok: (s) => relogio(s, 0).ok },
@@ -1284,11 +1052,6 @@
     { chave: "WALLPAPER_LIMIAR_LUZ", ok: (s) => numeroValido(s, 0, 1) },
   ];
 
-  /* [P82, 15/10/2026 (item 27): a janela é a do `janelaDoGato` do app.js, a
-   *   regra única da página (o `meow_noite_janela`, degrau por degrau). Esta
-   *   função tinha a terceira cópia, que resolvia cada ponta sozinha — uma
-   *   «herdada em parte» que o gato nunca segue — e pulava o controle do modo
-   *   de leitura.] */
   const FONTE_DA_NOITE = {
     conf: "das duas linhas gerais desta seção",
     applet: "a do controle do modo de leitura",
@@ -1365,19 +1128,7 @@
     }
 
     /* O ACERVO É A COLUNA DA DIREITA INTEIRA, e não uma tira de 12 unidades no
-     * alto: era ali que a chave desta seção ficava invisível. Medido em
-     * 07/09/2026, o par "sim"/"nao" mudava 2,05% dos pixels do botão — duas
-     * pastinhas viravam uma, e nada mais. A régua do corte desceu para a faixa
-     * de baixo (onde não havia nada) e o acervo herdou os 42 de altura.
-     *
-     * AS MESMAS DOZE FICHAS NOS DOIS LADOS, porque a chave não move arquivo
-     * nenhum: ligada, o `wallpaper.sh` mede a luminância de cada imagem de
-     * `ativos/` e monta duas pastas de LINK DURO ao lado dela (`ativos-dia/` e
-     * `ativos-noite/`), apontando o carrossel para a do horário; desligada, as
-     * duas somem do disco e volta a haver um sorteio só. Por isso as fichas se
-     * REAGRUPAM em vez de aparecer e sumir — separar não é apagar. E a divisão
-     * é desigual (sete claras, cinco escuras) porque no acervo dela também é:
-     * o `wallpaper.sh` imprime "32 de 54" numa hora e "22 de 54" na outra. */
+     * alto: era ali que a chave desta seção ficava invisível. */
     const FICHAS = [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0];   // 1 = clara · 0 = escura
     function fichaDeAcervo(x, y, clara) {
       svg.appendChild(retangulo(x, y, 6.6, 7.6, 1, { "stroke-width": 1.2, opacity: 0.85 }));
@@ -1422,12 +1173,9 @@
     const d = lerNoite(val);
     const c = conferir(val, REGRAS_NOITE);
     const horas = Math.round(d.duraMin / 60 * 10) / 10;
-    /* O PAPEL DE PAREDE TEM HORA PRÓPRIA — 24/09/2026, reconferência da P54.
-     *   A janela desta seção só decide a troca do gato do dock e do terminal:
-     *   o `wallpaper.sh` lê as `WALLPAPER_NOITE_*` (18:00–07:00 vazias), e o
-     *   modo de leitura, o horário dele. A legenda dizia que ela mandava nos
-     *   três, logo acima dos cartões que dizem o contrário. Quando a hora do
-     *   papel de parede não é a da seção, o acervo sai com a dele. */
+    /* A janela desta seção só decide a troca do gato do dock e do terminal: o
+     * `wallpaper.sh` lê as `WALLPAPER_NOITE_*` (18:00–07:00 vazias), e o modo
+     * de leitura, o horário dele. */
     const pIni = relogio(val.WALLPAPER_NOITE_INICIO, -1);
     const pFim = relogio(val.WALLPAPER_NOITE_FIM, -1);
     const parede = {
@@ -1453,24 +1201,14 @@
   /* ======================================================================== */
   /* 5. Modo de leitura                                                        */
   /* ======================================================================== */
-  /* A PERGUNTA é a que ela fez em voz alta em 29/08/2026: "3500 é demais?".
-   * Nenhum texto responde isso. Duas metades da MESMA página, uma neutra e
-   * outra na temperatura escolhida, respondem em meio segundo — e é por isso
-   * que o desenho é uma página de texto e não um retângulo abstrato: o que
-   * incomoda numa tela quente é ler nela.
+  /* A PERGUNTA é a que ela fez em voz alta: "3500 é demais?". Nenhum texto
+   * responde isso.
    *
    * A ÚNICA COR DESTE ARQUIVO QUE NÃO VEM DA PALETA ESTÁ AQUI, e é decisão, não
-   * descuido. Temperatura de cor é física: 3500 K tem uma cor, e ela não é
-   * `var(--peach)` nem nenhuma outra das 26. Fingir que é faria o desenho
-   * mentir sobre o número — que é exatamente o que ele existe para responder.
-   * A aproximação é a mesma (Tanner Helland) que a simulação do modo de leitura
-   * já usa em `app.js`, e de propósito: as duas aparecem na mesma aba, e duas
-   * aproximações diferentes para o mesmo Kelvin seriam duas respostas para a
-   * mesma pergunta. Sai em `rgb()`, sem literal hexadecimal.
+   * descuido.
    *
    * Quem pinta de verdade é o cosmic-comp recompilado, e o que ele faz com os
-   * mesmos dois números não é um multiply em cima de uma imagem. A direção e a
-   * intensidade batem; a legenda não promete mais que isso. */
+   * mesmos dois números não é um multiply em cima de uma imagem. */
   function corDeKelvin(k) {
     const t = Math.max(1000, Math.min(6500, Number(k) || 6500)) / 100;
     const lim = (x) => Math.max(0, Math.min(255, x));
@@ -1494,11 +1232,7 @@
     const bruta = emTexto(val.LEITURA_TEXTURA);
     return {
       /* Três estados, não dois: vazio é "o modo de leitura é seu e de mais
-       * ninguém", e "nao" é apagar o efeito. Nos dois casos o relógio não
-       * vira a cor da tela sozinho — que é o que o desenho tem de dizer.
-       * O padrão do que não é nem uma coisa nem outra é o de fábrica ("sim"),
-       * pela mesma regra das outras seis: valor que a chave não entende
-       * desenha o padrão e a legenda avisa. */
+       * ninguém", e "nao" é apagar o efeito. */
       agenda: !vazio(val.LEITURA_AGENDA) && ligado(val.LEITURA_AGENDA, true),
       agendaVazia: vazio(val.LEITURA_AGENDA),
       ini: relogio(val.LEITURA_HORARIO_INICIO, 1080),
@@ -1539,13 +1273,11 @@
     svg.appendChild(texto(9, 8.2, "21:41", { "font-size": 4.5, "text-anchor": "start", opacity: 0.6 }));
 
     /* A textura levanta o preto: o mesmo parágrafo, do lado do papel, perde
-     * contraste. É metade do que a chave faz, e a única metade que dá para ver
-     * num desenho de traço.
+     * contraste.
      *
-     * AS DUAS COLUNAS ENCOLHERAM DE 41 PARA 32 UNIDADES em 07/09/2026, as duas
-     * na mesma medida — o que a comparação exige é que as metades sejam a MESMA
-     * página, não que sejam largas. O que entrou na largura que sobrou está no
-     * bloco do controle na barra, logo abaixo. */
+     * AS DUAS COLUNAS ENCOLHERAM DE 41 PARA 32 UNIDADES, as duas na mesma
+     * medida — o que a comparação exige é que as metades sejam a MESMA página,
+     * não que sejam largas. */
     const opacidadeDireita = 1 - d.textura * 0.45;
     const linhasEsq = [39, 38, 40, 31];
     const linhasDir = [78, 77, 79, 70];
@@ -1555,44 +1287,21 @@
       svg.appendChild(linha(47, y, linhasDir[i], y, { "stroke-width": 1.8, opacity: q(0.75 * opacidadeDireita) }));
     }
 
-    /* O CONTROLE NA BARRA PRECISAVA SER VISTO — 07/09/2026
-     *   Ele era dois riscos de 9 unidades no canto da topbar, e o par de
-     *   desenhos do `LEITURA_APPLET` mudava 0,53% dos pixels do botão:
-     *   fotografados lado a lado, o «Sim» e o «Não» desenhavam a mesma figura.
-     *   Foi a conferência de uso, clicando botão a botão, quem pegou.
+    /* Ele era dois riscos de 9 unidades no canto da topbar, e o par de desenhos
+     * do `LEITURA_APPLET` mudava 0,53% dos pixels do botão: fotografados lado a
+     * lado, o «Sim» e o «Não» desenhavam a mesma figura.
      *
-     *   O QUE ENTROU NO LUGAR é o que a chave dá: o selo no canto da barra e,
-     *   pendurado nele, o popup com os DOIS DESLIZANTES — que é o nome que o
-     *   próprio meow.conf.exemplo dá a esta chave ("um ícone com dois
-     *   deslizantes, para mexer sem abrir este painel").
+     * Na barra ele é só o selo; o popup abre no clique.
      *
-     *   O POPUP ESTÁ DESENHADO ABERTO, E A LEGENDA DIZ ISSO. Na barra ele é só
-     *   o selo; o popup abre no clique. Um desenho não é captura, mas também
-     *   não pode deixar quem olha achar que a tela dela fica assim parada — daí
-     *   a nota, e não só o traço.
-     *
-     *   TRÊS COISAS SÃO COPIADAS DO APPLET, não inventadas aqui: o selo da
-     *   barra é a LUA quando é noite, e o popup repete o MESMO selo na primeira
-     *   linha (`arte_da_barra` e o comentário do `view_window`, em
-     *   src/applets/leitura/src/main.rs); o deslizante de cima é a temperatura,
-     *   de 1000 a 6500 K (PISO e NEUTRO, no mesmo arquivo); o de baixo é a
-     *   textura, de 0 a 100%. Os dois cursores ficam onde os números desta
-     *   seção os põem — um controle que não anda com o número ao lado seria uma
-     *   segunda mentira, menor e mais fácil de acreditar.
-     *
-     *   Com "nao" nada disso está lá: nem pontilhado, nem fantasma. É o que a
-     *   chave faz com o ícone. */
+     * Com "nao" nada disso está lá: nem pontilhado, nem fantasma. */
     if (d.applet) {
       svg.appendChild(lua(88, 6.4, 2, { "stroke-width": 1.3 }));
       /* O popup é a única coisa CHAPADA deste quadro, e aqui o chapado é a
        * informação: popup é superfície, e superfície esconde a página atrás —
-       * a mesma decisão do vidro da barra e da janela solta. `surface0` porque
-       * o fundo do cartão é `base`/`mantle`: um popup pintado de `base` teria
-       * só o contorno, e sumiria de novo no tamanho do botão.
+       * a mesma decisão do vidro da barra e da janela solta.
        *
        * ELE ENTRA ANTES DO VÉU DE PROPÓSITO: o cosmic-comp esquenta a saída
-       * inteira, popup incluído. Desenhá-lo por cima do véu o deixaria frio
-       * dentro de uma tela quente, que é coisa que a máquina não faz. */
+       * inteira, popup incluído. */
       svg.appendChild(retangulo(70, 11.5, 25, 22.5, 2.5, {
         fill: "var(--surface0)", "stroke-width": 1.4,
       }));
@@ -1618,12 +1327,7 @@
     if (d.textura > 0) {
       const fibras = Math.max(1, Math.round(d.textura * 5));
       /* A FIBRA É DA PÁGINA, O VÉU É DA TELA — e é por isso que uma para na
-       * borda do popup e o outro passa por cima dele. O grão do cosmic-comp
-       * cai sobre a saída inteira, popup incluído; desenhado, ele virava um
-       * tracejado atravessando o "%" e o cursor do deslizante, que se lê como
-       * defeito de desenho e não como grão. Então a fibra fica no papel, que é
-       * onde a metáfora deste quadro a põe, e o popup a cobre como qualquer
-       * janela cobre o que está embaixo. */
+       * borda do popup e o outro passa por cima dele. */
       const fimDaFibra = d.applet ? 69 : 94;
       for (let i = 0; i < fibras; i++) {
         const y = 13 + (i + 0.5) * (23 / fibras);
@@ -1688,23 +1392,9 @@
   /* ======================================================================== */
   /* A PERGUNTA: "Programas que o MeowSystem veste" é uma lista de 22 nomes
    * separados por vírgula, e ninguém lê 22 nomes para saber o que a chave faz.
-   * A fileira de cima mostra o lançador com quatro atalhos ACESOS — os quatro
-   * primeiros da lista, escritos como estão nela —, e é aí que a palavra
-   * "veste" ganha sentido: são os aplicativos que ganham a cara do tema.
    *
-   * A FILEIRA DE BAIXO É "ARRUMAR O LANÇADOR", E ELA MUDOU EM 07/09/2026.
-   *   Era UM atalho com um olho cortado dentro, e o par "nao"/"sim" mudava
-   *   2,29% dos pixels do botão — dois desenhos que a olho eram o mesmo. A
-   *   causa não era falta de capricho: um glifo de 14x14 num quadro de 100x60
-   *   não tem como responder nada. Agora são cinco atalhos de sistema que
-   *   viram dois, porque é isso que a chave faz — a lista do
-   *   `scripts/ocultar_apps.sh` tem TRINTA nomes, e o que se vê na tela é uma
-   *   fileira do lançador esvaziando. Continua sendo a única coisa que este
-   *   projeto faz fora do home dela.
-   *
-   * E O SPOTIFY VIROU UMA JANELA INTEIRA, pelo mesmo motivo: o Marketplace do
-   *   spicetify é uma PÁGINA dentro do programa (um item na lateral e uma grade
-   *   de extensões), e não uma janelinha com um mais. */
+   * Era UM atalho com um olho cortado dentro, e o par "nao"/"sim" mudava 2,29%
+   * dos pixels do botão — dois desenhos que a olho eram o mesmo. */
   const REGRAS_LANCADOR = [
     { chave: "APPS_ATIVOS", ok: null },
     { chave: "SPOTIFY_MARKETPLACE", ok: booleanoValido },
@@ -1832,20 +1522,12 @@
   /* 7. Manutenção                                                             */
   /* ======================================================================== */
   /* A PERGUNTA: esta seção tem nove chaves e todas parecem a mesma coisa —
-   * "conferir", "vigiar", "avisar". A diferença que importa é POR QUE cada uma
-   * existe, e ela é de TEMPO: o conserto é um relógio (uma vez por dia, às 5h)
-   * e os três vigias são gatilhos de EVENTO (soltou um SVG, atualizou um
-   * flatpak, desinstalou um jogo). Por isso o relógio fica separado, à
-   * esquerda, movendo a esteira onde as três engrenagens estão presas: quem
-   * olha entende na hora que uma coisa espera e as outras três reagem.
+   * "conferir", "vigiar", "avisar".
    *
-   * O sino em cima de uma engrenagem é o par NOTIFICAR dela. O vigia do Steam
-   * não tem sino porque não tem chave de aviso — e essa ausência é informação:
-   * o desenho não inventa um interruptor que não existe.
+   * O sino em cima de uma engrenagem é o par NOTIFICAR dela.
    *
-   * A FOLHA PEDIU TRÊS ENGRENAGENS e é isso que está desenhado; o relógio não é
-   * a quarta. Ele é o que move a linha, porque AUTO_REPARO="nao" não desliga os
-   * vigias — desliga o conserto diário (e, por tabela, o modo de leitura). */
+   * Ele é o que move a linha, porque AUTO_REPARO="nao" não desliga os vigias —
+   * desliga o conserto diário (e, por tabela, o modo de leitura). */
   const REGRAS_MANUTENCAO = [
     { chave: "AUTO_REPARO", ok: booleanoValido },
     { chave: "AUTO_REPARO_NOTIFICAR", ok: booleanoValido },
@@ -1877,10 +1559,7 @@
     const svg = moldura("o conserto diário movendo a esteira dos três vigias, e as notificações que cada um põe na tela");
 
     /* A FAIXA DE CIMA são os dois medidores de QUANTO — quantos backups ficam
-     * guardados e quanto o MeowSystem fala. Eles subiram para cá em 07/09/2026
-     * para abrir o rodapé inteiro às tarjas de aviso, e a máquina do meio não
-     * andou um milímetro: é ela que responde pelas quatro chaves de liga-desliga
-     * desta seção, e mexer nela seria mexer no par que já funciona. */
+     * guardados e quanto o MeowSystem fala. */
 
     /* Os backups: uma pilha, e o número. Com "0" a poda está desligada e a pilha
      * não para de crescer — daí a folha pontilhada continuando embaixo dela. */
@@ -1933,14 +1612,11 @@
 
     /* --- o que chega na tela dela ----------------------------------------- */
     /* Uma tarja por peça que TEM chave de aviso, na ordem em que as peças estão
-     * lá em cima: o conserto diário, o vigia do logo, o vigia da bandeja. O
-     * vigia dos jogos não ganha linha nenhuma porque não tem chave de aviso — e
-     * essa ausência é informação, a mesma que o sino ausente carregava antes.
+     * lá em cima: o conserto diário, o vigia do logo, o vigia da bandeja.
      *
      * A PEÇA DESLIGADA NÃO GANHA TARJA, nem pontilhada: quem não roda não tem
      * como avisar, e desenhar o lugar de um aviso impossível seria oferecer um
-     * interruptor que não existe. Ligada e calada, aí sim: a tarja fica em
-     * contorno pontilhado, dizendo onde o aviso apareceria. */
+     * interruptor que não existe. */
     const avisos = [
       { palavra: "conserto", ligado: d.reparo, avisa: d.reparoAvisa },
       { palavra: "logo", ligado: d.vigias[0].ligado, avisa: d.vigias[0].avisa },
@@ -1953,20 +1629,9 @@
     return svg;
   }
 
-  /* O PAR DE CADA CARTÃO MOSTRA SÓ A PEÇA QUE A CHAVE MEXE — 10/10/2026, P77
-   *   (achado 21). Cada Sim/Não da página desenhava a máquina INTEIRA, com uma
-   *   peça de dez pixels trocando de traço: sete pares quase iguais, lado a
-   *   lado, e quem usa não achava a diferença sem procurar. O desenho do alto
-   *   da seção continua sendo a máquina inteira (é ele que mostra como as
-   *   peças se ligam); no botão, o enquadramento fecha na peça: o relógio do
-   *   conserto, a engrenagem do vigia, a notificação dele. A figura é a mesma
-   *   (o mesmo `desenharManutencao`), só o `viewBox` muda — então o par nunca
-   *   desenha algo que o desenho grande não desenharia.
-   *   A NOTIFICAÇÃO ANDA: a tarja de cada peça ligada entra na ordem conserto,
-   *   logo, bandeja, e a peça desligada não tem tarja. O enquadramento sai da
-   *   mesma conta do `desenharManutencao`, com a tela de agora (`val`); sem
-   *   tarja nos dois lados, o par nem chega aqui (o `parVisivel` do app.js
-   *   mede a figura inteira e devolve «Sim» e «Não»). */
+  /* O desenho do alto da seção continua sendo a máquina inteira (é ele que
+   * mostra como as peças se ligam); no botão, o enquadramento fecha na peça: o
+   * relógio do conserto, a engrenagem do vigia, a notificação dele. */
   function recorteManutencao(chave, val) {
     const d = lerManutencao(val);
     const peca = (cx) => (cx - 11) + " 11.4 22 23.2";
@@ -1998,15 +1663,9 @@
       + " e " + (acesos.length
         ? acesos.length + " dos 3 vigias acesos (" + acesos.map((v) => v.rotulo).join(", ") + ")"
         : "nenhum dos 3 vigias aceso")
-      /* "TARJA" TINHA DOIS DONOS NESTE ARQUIVO — 09/09/2026. Na legenda do
-       * papel de parede ela é a FAIXA PRETA de quem escolheu "caber", que é o
-       * sentido certo da palavra; aqui ela era a notificação do sistema. As
-       * duas apareciam na mesma página, e uma delas tinha de ter nota de pé
-       * dizendo o que era. Notificação é como as próprias chaves se chamam
-       * ("Avisar quando consertar algo", "Uma notificação com o nome do
-       * arquivo"), então é essa que fica; a faixa preta continua tarja.
-       * O nome da função que DESENHA (`tarjaDeAviso`) não mudou: ela desenha
-       * uma tarja mesmo, e é código, não texto de tela. */
+      /* Na legenda do papel de parede ela é a FAIXA PRETA de quem escolheu
+       * "caber", que é o sentido certo da palavra; aqui ela era a notificação
+       * do sistema. */
       + ", " + (avisando.length
         ? plural(avisando.length, "notificação na tela", "notificações na tela") + " (" + avisando.join(", ") + ")"
         : "nenhuma notificação na tela")
@@ -2016,7 +1675,7 @@
       notaDeErradas(c.erradas),
       /* A primeira metade desta nota existia só para dizer o que "tarja"
        * queria dizer. Com a palavra certa na legenda, ela some, e sobra o
-       * fato que a legenda não conta sozinha. — 09/09/2026 */
+       * fato que a legenda não conta sozinha. */
       "o vigia dos jogos não tem ajuste de aviso, e por isso nunca notifica",
       !d.reparo ? "com o conserto desligado o modo de leitura também não é aplicado nem agendado" : "",
       c.vazias.length ? VAZIO_FABRICA : "",
@@ -2027,22 +1686,13 @@
   /* 8. Áreas de trabalho                                                      */
   /* ======================================================================== */
   /* A PERGUNTA QUE O DESENHO RESPONDE: as três chaves desta seção falam de uma
-   * coisa que ela NÃO VÊ ao salvar. O `pinned_workspaces` é lido pelo
-   * cosmic-comp uma vez, ao iniciar a sessão: mudar aqui e olhar a barra não
-   * mostra nada até o próximo login. Sem desenho, a seção inteira é um campo de
-   * texto e um ato de fé.
+   * coisa que ela NÃO VÊ ao salvar.
    *
-   * Então o desenho é a BARRA COMO ELA VAI FICAR. Em cima, as pastilhas na
-   * ordem exata da lista — a primeira da lista desenhada na primeira posição,
-   * que é a frase da chave dita em figura. Embaixo, uma tela por área com as
-   * janelas encaixadas ou soltas, porque "encaixe" é palavra e duas janelas
-   * lado a lado contra duas empilhadas é a diferença.
+   * Em cima, as pastilhas na ordem exata da lista — a primeira da lista
+   * desenhada na primeira posição, que é a frase da chave dita em figura.
    *
    * A FOLGA É O CASO MAIS DIFÍCIL, e é o que mais precisa de figura: o valor é
-   * um caractere INVISÍVEL (U+2007) dos dois lados do nome. Desenhar um espaço
-   * invisível é desenhar a pastilha mais larga com o texto no mesmo tamanho, e
-   * marcar onde o espaço entrou — os dois tracinhos internos são isso, e são a
-   * única parte do desenho que não existe na tela dela de verdade. */
+   * um caractere INVISÍVEL (U+2007) dos dois lados do nome. */
   function lerAreas(val) {
     const nomes = lista(val.AREAS_NOMES, ",");
     const folga = lista(val.AREAS_FOLGA, ",").map(achatar);
@@ -2079,11 +1729,8 @@
     let x = 6.5;
     for (let i = 0; i < MOSTRA; i++) {
       const a = d.areas[i];
-      /* A LARGURA SAI DA MEDIÇÃO, NÃO DO CHUTE. `getBBox()` na página, com
-       * `font-size: 4.4`: "Meow" ocupa 12,65 unidades — 3,16 por caractere.
-       * A conta é meia-largura do texto + a folga do tracinho + um respiro,
-       * e as duas primeiras versões (2,6 e 3,2 por caractere sem respiro)
-       * desenharam o tracinho POR CIMA da palavra. */
+      /* `getBBox()` na página, com `font-size: 4.4`: "Meow" ocupa 12,65
+       * unidades — 3,16 por caractere. */
       const larg = Math.min(30, Math.max(14, a.nome.length * 3.2 + (a.folga ? 8 : 5)));
       /* A PRIMEIRA É A ATIVA. Não é enfeite: a chave promete que "a primeira da
        * lista é a primeira da barra", e sem nada distinguindo a primeira o
@@ -2180,55 +1827,15 @@
   /* ======================================================================== */
   /* 9. Instalação                                                             */
   /* ======================================================================== */
-  /* ESTA SEÇÃO NÃO TEM CHAVE NENHUMA — são sete botões e nada mais, e é por
-   * isso que ela ficou sem figura até hoje: o `parDePrevias` do app.js só roda
-   * sobre grupo de CHAVES. Medido nas 14 abas, as três sem desenho são também
-   * as que deixam mais tela vazia. Quem chama esta função é o
-   * `desenhoDaSecaoSemChaves`, com `{}` na mão, e o contrato muda de lugar: sem
-   * valores não há par antes/depois nem tempo real, e a figura responde uma
-   * pergunta que não depende do meow.conf.
+  /* Medido nas 14 abas, as três sem desenho são também as que deixam mais tela
+   * vazia.
    *
    * A PERGUNTA QUE O DESENHO RESPONDE: "o que acontece quando eu aperto um
-   * destes botões?". Os sete são variações de UM mecanismo, e é ele que está no
-   * quadro:
+   * destes botões?".
    *
    *     a fila de etapas   →  cada uma OLHA a máquina antes de escrever
    *     já está no lugar   →  confere, e não escreve nada        (verde)
-   *     está fora          →  guarda cópia, e então escreve      (pêssego)
-   *
-   * A ideia mais forte do projeto está aí e não aparecia em canto nenhum da
-   * página: rodar de novo numa máquina pronta não escreve um byte. Quem decide
-   * isso é a `meow_escrever` do lib/comum.sh, que compara o CONTEÚDO e volta
-   * sem tocar no arquivo quando ele já está do jeito que devia — a volta de
-   * baixo, da máquina para a fila, é essa segunda passagem.
-   *
-   * A GRAMÁTICA DAS DUAS CORES É A MESMA nas linhas da fila e nos dois
-   * caminhos, senão o quadro seria dois riscos paralelos sem sentido. E o que
-   * separa os caminhos não é a cor: é a PONTA. A do confere para antes da
-   * moldura da tela e termina num visto; a do escreve atravessa a moldura, e só
-   * depois de passar pela cópia. Cor confirma, geometria informa — quem não
-   * distingue verde de pêssego continua vendo um traço que entra e um que não.
-   *
-   * OS DOIS NÚMEROS SÃO CONTADOS, NÃO LEMBRADOS — E ATÉ 09/09/2026 ERAM
-   * LEMBRADOS. Este comentário dizia exatamente a frase acima e logo abaixo
-   * vinha `const ETAPAS_DO_INSTALADOR = 52`, escrito à mão. O install.sh
-   * tinha 53 etapas e o bin/meow, 48 conferências; a ajuda dos dois botões
-   * ao lado dizia 52 e 46; o README dizia 47. Cinco versões da mesma verdade,
-   * nenhuma conferida — o desenho discordando do botão ao lado, que é
-   * justamente o que a frase original prometia não deixar acontecer.
-   *
-   * Agora quem conta é o `_medidas_do_projeto()` do servidor, lendo o
-   * `local etapas=(…)` do install.sh e o `VERIFICAVEIS=(…)` do bin/meow, e o
-   * número chega pelo `window.MEOW_MEDIDAS` que o app.js publica. Uma etapa
-   * nova aparece aqui sozinha, no mesmo dia.
-   *
-   * QUANDO NÃO HÁ NÚMERO, A FRASE PERDE O NÚMERO — não ganha um chute. O
-   * servidor devolve `null` quando não consegue contar (o `medida()` abaixo
-   * trata), e "as etapas do instalador" é uma frase honesta; "as 52 etapas"
-   * numa máquina de 53 não é.
-   *
-   * As cinco linhas da fila, essas, continuam esquemáticas: quantas escrevem
-   * muda a cada passagem, e é exatamente o que a segunda zera. */
+   *     está fora          →  guarda cópia, e então escreve      (pêssego) */
 
   /** O número contado, ou `null`. Lido na HORA DE DESENHAR: este arquivo
    *  carrega antes do app.js, então no corpo do módulo `MEOW_MEDIDAS` ainda
@@ -2248,9 +1855,7 @@
   }
 
   /* O visto mora aqui e não lá em cima com o sol e a lua, de propósito: é o
-   * único desenho que precisa dele. Glifo genérico no topo do arquivo vira o
-   * "check" que cada seção usa com um sentido diferente, e aí ele deixa de
-   * significar alguma coisa. */
+   * único desenho que precisa dele. */
   function visto(cx, cy, tam, extra) {
     return caminho(
       "M " + q(cx - tam) + "," + q(cy + tam * 0.05)
@@ -2297,8 +1902,7 @@
     /* --- a máquina --- */
     /* Tela com barra em cima e dock embaixo: é o mesmo desenho de máquina do
      * VIDRO E RELÓGIO, lá na Barra e dock, e quem viu um reconhece o outro sem
-     * legenda. O pé existe só para que a moldura não seja lida como "janela" —
-     * o que a etapa atravessa é o computador inteiro. */
+     * legenda. */
     svg.appendChild(retangulo(68, 13, 29, 26, 2.5, { "stroke-width": 1.6 }));
     svg.appendChild(retangulo(70.5, 15, 24, 4, 1.2, { "stroke-width": 1.1, opacity: 0.55 }));
     svg.appendChild(retangulo(77, 31, 11, 3, 1.5, { "stroke-width": 1.1, opacity: 0.55 }));
@@ -2319,11 +1923,7 @@
 
     /* --- quem escreve --- */
     /* A cópia vem ANTES da seta, e a ordem é a de verdade: nenhuma escrita
-     * deste projeto acontece sem que o arquivo de antes esteja guardado. Duas
-     * folhas sobrepostas, e não uma: uma folha só seria "arquivo", e o que se
-     * guarda é a segunda via. As duas linhas dentro da folha da frente foram
-     * medidas na tela — sem elas, na primeira conferência a olho, o par de
-     * retângulos lia como um interruptor. */
+     * deste projeto acontece sem que o arquivo de antes esteja guardado. */
     svg.appendChild(linha(35.5, 36, 37.5, 36, { "stroke-width": 1.6, stroke: "var(--peach)" }));
     svg.appendChild(retangulo(37.5, 27.5, 11, 12, 1, { "stroke-width": 1.3, opacity: 0.55 }));
     svg.appendChild(retangulo(40.5, 30, 11, 12, 1, { "stroke-width": 1.5 }));
@@ -2333,10 +1933,8 @@
     svg.appendChild(linha(43, 33.5, 49, 33.5, { "stroke-width": 1, opacity: 0.5 }));
     svg.appendChild(linha(43, 38.5, 47.5, 38.5, { "stroke-width": 1, opacity: 0.5 }));
     svg.appendChild(linha(51.5, 36, 71, 36, { "stroke-width": 1.6, stroke: "var(--peach)" }));
-    /* OS DOIS RÓTULOS FICAM NA MESMA LINHA DE BASE, embaixo do caminho, e os
-     * centros estão medidos na tela: com "cópia" em 46,5 e "escreve" em 60 as
-     * duas palavras se encostaram e leram como uma só. A folga de agora é de
-     * quase quatro unidades, que na tela dela dão dez pixels. */
+    /* A folga de agora é de quase quatro unidades, que na tela dela dão dez
+     * pixels. */
     svg.appendChild(texto(44.5, 46.5, "cópia", { "font-size": 4.4, opacity: 0.85 }));
     svg.appendChild(texto(62, 46.5, "escreve", {
       "font-size": 4.4, fill: "var(--peach)", opacity: 0.95,
@@ -2349,9 +1947,7 @@
 
     /* --- rodar de novo --- */
     /* A volta da máquina para o começo da fila, apagada de propósito: ela é a
-     * promessa que a página inteira faz e que nenhum botão mostra. Na segunda
-     * passagem as cinco linhas ficam verdes e o instalador termina dizendo, com
-     * essas palavras, que não há "nada mais a escrever". */
+     * promessa que a página inteira faz e que nenhum botão mostra. */
     svg.appendChild(caminho("M 88,44 L 88,54 L 19,54 L 19,50", {
       "stroke-width": 1.2, opacity: 0.5,
     }));
@@ -2381,42 +1977,14 @@
   /* 9. Idempotência                                                           */
   /* ======================================================================== */
   /* A PERGUNTA QUE O DESENHO RESPONDE: por que ATUALIZAR A MÁQUINA é assunto
-   * deste projeto, e não do terminal dela. Ela já tem o comando — está escrito
-   * no cabeçalho do `atualizar_sistema.sh`, uma linha com `apt full-upgrade`,
-   * `topgrade` e `cargo install-update`. O que essa linha não tem é a SEGUNDA
-   * METADE: cada troca de pacote (cosmic-comp, cosmic-panel, fastfetch,
-   * papirus) desfaz alguma coisa que este projeto escreveu, e ninguém se lembra
-   * de rodar o `doctor` depois de uma atualização de meia hora.
+   * deste projeto, e não do terminal dela.
    *
-   * Então o desenho é a linha do tempo das duas metades: as três fontes
-   * atualizam, uma peça do MeowSystem cai da prateleira, a lupa do `doctor`
-   * fica em cima do buraco e a seta verde repõe a peça. Os dois colchetes
-   * embaixo são a frase inteira sem frase nenhuma — o pontilhado mede até onde
-   * vai o comando digitado à mão, o cheio mede o que esta página faz.
-   *
-   * ESTA SEÇÃO NÃO TEM CHAVE, SÓ TRÊS AÇÕES, e por isso a função é chamada com
-   * `{}`. Não há valor para ler, não há par antes/depois e não há tempo real:
-   * é uma figura sobre o que a página faz com a máquina, não sobre um número
-   * gravado no meow.conf. As duas funções abaixo mantêm a forma das outras oito
-   * (o mesmo `val`, o mesmo `seguro`) e não tocam em chave nenhuma — o dia em
-   * que a seção ganhar uma, o contrato já está de pé.
-   *
-   * AS QUATRO PEÇAS SÃO AS DO SCRIPT, não uma invenção: o passo "4/4 O que a
-   * atualização desfez" nomeia o tema, os ícones, o applet da barra e o gato do
-   * terminal. Quatro com nome, e não uma por conferência do `doctor`: medido na
-   * página, este quadro sai com 250 x 150 px na tela dela — 2,5 px por unidade
-   * do viewBox —, e quase cinquenta quadradinhos ali dentro seriam pontos de
-   * 5 px, que é o mesmo que nada.
-   *
-   * A PEÇA CAI, NÃO GANHA UM X. Um X vermelho em cima do quadrado leria "deu
-   * erro"; o que um `full-upgrade` faz é outra coisa — a peça deixa de estar no
-   * lugar. Buraco pontilhado em cima e o quadrado tombado embaixo dizem isso, e
-   * dizem também que a peça não sumiu: ela está ali para ser reposta. */
+   * Os dois colchetes embaixo são a frase inteira sem frase nenhuma — o
+   * pontilhado mede até onde vai o comando digitado à mão, o cheio mede o que
+   * esta página faz. */
   const PECAS_DA_PRATELEIRA = ["tema", "ícones", "painel", "gato"];
   /* A terceira, e não a primeira: uma peça no meio da fila deixa o buraco
-   * cercado dos dois lados, e na ponta ele leria como o fim da prateleira. E é
-   * o "painel" porque o `cosmic-panel` é um dos quatro pacotes que o cabeçalho
-   * do script nomeia como os que a atualização troca. */
+   * cercado dos dois lados, e na ponta ele leria como o fim da prateleira. */
   const PECA_QUE_CAI = 2;
   const PRATELEIRA = { x: 44, y: 8, w: 11, h: 10, passo: 13.5, linha: 19.5 };
 
@@ -2425,9 +1993,7 @@
 
     /* --- as três fontes, empilhadas e etiquetadas --- */
     /* São os três nomes que aparecem na saída do script, na ordem em que ele os
-     * roda. A seta para cima é a versão subindo; ela fica em `currentColor` de
-     * propósito, para que o verde do desenho signifique uma coisa só (repor) e
-     * o vermelho, uma só (o que caiu). */
+     * roda. */
     const fontes = ["apt", "flatpak", "cargo"];
     for (let i = 0; i < fontes.length; i++) {
       const y = 5 + i * 11;
@@ -2460,11 +2026,7 @@
           "stroke-width": 1.5, "stroke-dasharray": "3 3", stroke: "var(--red)",
         }));
       } else {
-        /* Quadrado limpo, sem miolo. A primeira versão punha um círculo dentro
-         * de cada peça, e na captura da página o círculo saiu do tamanho da
-         * lente da lupa: as três peças inteiras e o buraco com a lupa em cima
-         * viraram quatro quadrados com uma bolinha dentro, e o buraco — que é a
-         * informação — desapareceu. */
+        /* Quadrado limpo, sem miolo. */
         svg.appendChild(retangulo(x, PRATELEIRA.y, PRATELEIRA.w, PRATELEIRA.h, 2, {
           "stroke-width": 1.8, stroke: "var(--mauve)",
         }));
@@ -2480,10 +2042,8 @@
       retangulo(63.5, 30, PRATELEIRA.w, PRATELEIRA.h, 2, { "stroke-width": 1.8 }),
     ]));
 
-    /* A volta. Verde, e é a única coisa verde do quadro: é a metade que só este
-     * projeto tem. Ela atravessa a linha da prateleira de propósito — a peça
-     * volta PARA CIMA dela, e uma seta que parasse embaixo diria "achei", que é
-     * meio serviço. */
+    /* Verde, e é a única coisa verde do quadro: é a metade que só este projeto
+     * tem. */
     svg.appendChild(caminho("M 74.5,29 C 78.2,27 78.6,23 77.8,18.4", {
       "stroke-width": 1.8, stroke: "var(--green)",
     }));
@@ -2492,9 +2052,7 @@
     ]));
 
     /* A lupa em cima do buraco é o `doctor`: ele não conserta sozinho no
-     * "aplicar" — ele DIZ o que saiu do lugar, e o conserto é o botão seguinte.
-     * Por isso ela fica em `currentColor`, entre o vermelho do que caiu e o
-     * verde do que volta. */
+     * "aplicar" — ele DIZ o que saiu do lugar, e o conserto é o botão seguinte. */
     svg.appendChild(circulo(78, 11, 3.6, { "stroke-width": 1.8 }));
     svg.appendChild(linha(80.5, 13.5, 84, 17, { "stroke-width": 2 }));
     /* O nome embaixo, na direção em que o cabo aponta: é a palavra que ela lê
@@ -2505,9 +2063,7 @@
 
     /* --- os dois colchetes: a medida do que cada caminho cobre --- */
     /* O pontilhado abraça só as três fontes — é onde o comando à mão termina. O
-     * cheio abraça o quadro inteiro, prateleira e lupa incluídas. Colchete e
-     * não chave porque é medida, e medida neste arquivo já se desenha assim (a
-     * cota da largura da música). */
+     * cheio abraça o quadro inteiro, prateleira e lupa incluídas. */
     svg.appendChild(caminho("M 3,38.5 L 3,42.5 L 30,42.5 L 30,38.5", {
       "stroke-width": 1.3, "stroke-dasharray": "3 3", opacity: 0.6,
     }));
@@ -2538,30 +2094,9 @@
    *
    * O mapa já está na tela três vezes no instante em que ela abre o painel: o
    * trilho da esquerda lista as treze páginas com a contagem de cada uma, as
-   * duas portas somam os ajustes por bloco, e o cabeçalho traz o total. Um
-   * desenho do mapa seria a quarta cópia da única coisa que a home já diz bem.
+   * duas portas somam os ajustes por bloco, e o cabeçalho traz o total.
    *
-   * O QUE NÃO ESTÁ DESENHADO EM LUGAR NENHUM é a regra da casa — "gravar não é
-   * aplicar", e antes dela "clicar não é gravar". Hoje ela é uma frase cinza no
-   * canto da coluna da direita ("Escolher aqui não muda a máquina: clicar
-   * guarda, e «Salvar e aplicar» é o que grava e aplica"), e é exatamente o que
-   * quem chega não sabe: em todo outro painel de ajustes do mundo, clicar É
-   * aplicar.
-   *
-   * ENTÃO O DESENHO É O CAMINHO DE UMA ESCOLHA, e cada traço dele sai do
-   * código, não da imaginação: `escolher()` põe a chave em `MUDANCAS` e não
-   * fala com o servidor; `salvarEscolhas()` é o único caminho de escrita da
-   * página e faz DUAS coisas, nesta ordem — grava chave a chave no `meow.conf`
-   * e só então chama `rodarAcao("instalar")`. Os dois traços verdes são essas
-   * duas metades, e é por isso que são dois, e não um.
-   *
-   * A PAREDE PONTILHADA É O DISCO, e o botão é o único buraco nela. Por isso
-   * ele fica montado EM CIMA da linha, e não ao lado dela: mais nada atravessa.
-   *
-   * AS TRÊS ESCOLHAS SÃO ESQUEMÁTICAS, como as cinco linhas da fila da
-   * Instalação. Esta função é chamada com `{}` — não há valor nenhum para ler,
-   * e desenhar "3 escolhas esperando" seria inventar um número. Quem conta é o
-   * banner do alto da página, que é onde o número vive de verdade. */
+   * A PAREDE PONTILHADA É O DISCO, e o botão é o único buraco nela. */
   function desenharInicio(val) {
     /* `val` chega `{}`, como em "Instalação" e "Atualização": a home não tem
      * chave, e ler qualquer coisa daqui seria inventar uma. */
@@ -2618,10 +2153,8 @@
     }));
 
     /* --- do outro lado: o arquivo, e só depois a tela --- */
-    /* DOIS TRAÇOS, E NÃO UM. `salvarEscolhas()` faz duas coisas em ordem: grava
-     * chave a chave no meow.conf e só então chama o instalador. Um traço só
-     * leria como um gesto, e é justamente o gesto que a frase da casa parte em
-     * dois — "gravar não é aplicar". */
+    /* `salvarEscolhas()` faz duas coisas em ordem: grava chave a chave no
+     * meow.conf e só então chama o instalador. */
     svg.appendChild(linha(59, 28, 75, 28, { "stroke-width": 1.6, stroke: "var(--green)" }));
     svg.appendChild(grupo({ "stroke-width": 1.6, stroke: "var(--green)" }, [
       seta(75, 28, 0, 3),
@@ -2659,15 +2192,10 @@
   }
 
   function legendaInicio(val) {
-    /* UMA LINHA, COMO AS OUTRAS DEZ — 07/09/2026
-     * A primeira versão desta legenda tinha o corpo mais três notas, e na tela
-     * virou um bloco de quatro linhas correndo a página inteira: a legenda mais
-     * comprida do painel, embaixo do desenho mais simples dele. As três notas
-     * diziam coisas verdadeiras que o desenho já diz (que os cartões são
-     * esquemáticos), que a tela já diz (o «Descartar» está ao lado do «Salvar»,
-     * escrito), ou que pertencem a outra aba (as etapas do instalador). O
-     * desenho existe para ser lido antes do texto; uma legenda de quatro linhas
-     * inverte isso. */
+    /* As três notas diziam coisas verdadeiras que o desenho já diz (que os
+     * cartões são esquemáticos), que a tela já diz (o «Descartar» está ao lado
+     * do «Salvar», escrito), ou que pertencem a outra aba (as etapas do
+     * instalador). */
     const corpo = "o caminho de uma escolha: clicar guarda na página, e só o «Salvar e aplicar»"
       + " atravessa a linha do disco — grava o meow.conf e roda o instalador, que é quem muda"
       + " a tela";
@@ -2677,12 +2205,10 @@
   /* ======================================================================== */
   /* o mapa                                                                    */
   /* ======================================================================== */
-  /* OS NOMES SÃO OS NOVOS. "Lançadores e jogos" era "Programas e jogos" e
-   * "Modo de leitura" nasce agora, com as sete chaves LEITURA_* que hoje moram
-   * em "Dia e noite" — as duas mudanças estão sendo feitas no meow.conf.exemplo
-   * pela frente dos nomes. Enquanto ela não chegar, estas duas entradas não são
-   * encontradas por ninguém e o resto continua funcionando; nenhuma delas
-   * quebra nada por não achar a seção. */
+  /* "Lançadores e jogos" era "Programas e jogos" e "Modo de leitura" nasce
+   * agora, com as sete chaves LEITURA_* que hoje moram em "Dia e noite" — as
+   * duas mudanças estão sendo feitas no meow.conf.exemplo pela frente dos
+   * nomes. */
   window.MEOW_PREVIAS = Object.assign(window.MEOW_PREVIAS || {}, {
     "Painel e dock :: VIDRO E RELÓGIO": seguro("o vidro do painel e o relógio", desenharVidro, legendaVidro),
     "Painel e dock :: MÚSICA NO PAINEL": seguro("a música no painel", desenharMidia, legendaMidia),
@@ -2701,10 +2227,7 @@
      * do app.js — a Idempotência só tem ações, e o `parDePrevias` nunca passa
      * por ela. */
     "Atualização": seguro("a atualização e a conferência", desenharIdempotencia, legendaIdempotencia),
-    /* A HOME TAMBÉM ENTRA PELO NOME, e ela é a terceira sem chave nenhuma. Uma
-     * ressalva que as outras duas não têm: o `render` corta o grupo `home`
-     * antes do bloco que chama o `desenhoDaSecaoSemChaves`, então registrar
-     * aqui não basta — o `if (g.tipo === "home")` do app.js precisa chamá-lo. */
+    /* A HOME TAMBÉM ENTRA PELO NOME, e ela é a terceira sem chave nenhuma. */
     "Início": seguro("o caminho de uma escolha", desenharInicio, legendaInicio),
   });
 })();

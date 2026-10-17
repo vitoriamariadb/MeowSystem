@@ -1,55 +1,9 @@
 #!/usr/bin/env bash
 # UM JOGO INSTALADO = UM CARTÃO NO LANÇADOR, venha o rival de onde vier.
 #
-# O DEFEITO QUE ESTE TESTE PEGA JÁ ACONTECEU, E ELA VIU
-#   15/08/2026: quinze jogos apareciam DUAS vezes na pasta Steam do lançador do
-#   COSMIC. O `jogos_steam.sh` escrevia `meow-steam-<id>.desktop` e, ao lado,
-#   havia `steam_app_<id>.desktop` com o mesmo `Name=` — escritos às 03h02 de
-#   14/08 pelo resgate do estrago do BleachBit, com o molde que a Steam usa nos
-#   atalhos da área de trabalho. A limpeza do script conhecia dois donos rivais
-#   (`steam-jogo-*` e `steam-<id>*`) e não conhecia esse terceiro nome.
+# Ela instalou Future Knight e o lançador mostrou dois.
 #
-# E ACONTECEU DE NOVO EM 09/09/2026, COM UM QUARTO MOLDE
-#   Ela instalou Future Knight e o lançador mostrou dois. O rival era
-#   `Future Knight.desktop` — o atalho que a Steam escreve a pedido, cujo nome
-#   de arquivo É o nome do jogo, com espaço e maiúsculas. Nenhum glob descreve
-#   esse nome: `A Casa` viraria `A Casa.desktop`. Este teste passava verde
-#   enquanto ela contava dois cartões na tela, porque afirmava a regra pelos
-#   MOLDES QUE A LIMPEZA CONHECIA, e não pela pergunta que interessa. Desde
-#   09/09 a limpeza reconhece o rival pelo CONTEÚDO, e os casos 1b, 5 e 6 abaixo
-#   são o que impede a quinta vez.
-#
-# AS AFIRMAÇÕES
-#   1a. o rival com o MESMO appid sai, e sobra um cartão só;
-#   1b. e sai também quando o nome do arquivo não tem molde nenhum — espaço e
-#       acento, `Jogo Qualquer Ação.desktop`, que é o `Future Knight.desktop`
-#       de 09/09 com outro rótulo;
-#   2. rodar de novo dá o mesmo (rc=0, nada a fazer) — idempotência;
-#   3. se o rival VOLTAR (é o que o próximo resgate fará), a rodada seguinte o
-#      tira outra vez e volta a convergir;
-#   4. o que não tem SUBSTITUTO sobrevive: um `.desktop` escrito à mão com
-#      `rungameid` de um jogo sem manifesto, e um `steam_app_<id>.desktop` de um
-#      jogo que não está instalado — nos dois casos, remover deixaria o jogo sem
-#      cartão nenhum no lançador;
-#   5. o que não aponta para jogo nenhum sobrevive: um lançador genérico da
-#      Steam, com `Exec=steam` e nenhum appid;
-#   6. a âncora do appid: `rungameid/17159800` não é o jogo `1715980`.
-#
-# O QUE MUDOU EM 09/09/2026, E CUSTOU METADE DE UMA GARANTIA
-#   Até aqui a afirmação 4 dizia que um `.desktop` escrito à mão por ela com
-#   `rungameid` de um jogo INSTALADO sobrevivia — era o `o-jogo-dela.desktop`,
-#   apontando para o appid 1715980. Não sobrevive mais, e não é descuido: o
-#   `Future Knight.desktop` que a Steam escreveu é INDISTINGUÍVEL dele. Mesmo
-#   `rungameid`, sem a nossa marca, nome de arquivo livre. Preservar um é
-#   preservar o outro, e o outro é a duplicata que ela viu na tela.
-#   A garantia encolheu para a metade que continua verdadeira, e é ela que o
-#   arquivo abaixo passa a afirmar: o escrito à mão fica quando NÃO temos cartão
-#   para aquele appid. O que repõe a metade perdida é o backup — por isso a 1ª
-#   rodada exige a cópia do rival de nome livre, e não só a do molde da Steam.
-#
-# POR QUE UM HOME DE BRINQUEDO
-#   O território real é o lançador dela. Um teste que apaga `.desktop` de
-#   verdade para ver se sabe apagar é o próprio defeito com outro nome.
+# O território real é o lançador dela.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 H="$(mktemp -d)"; trap 'rm -rf "$H"' EXIT
@@ -72,7 +26,7 @@ ACF
 # Ícone bom da Steam: evita depender do `convert` para o caminho feliz.
 : > "$HICOLOR/256x256/apps/steam_icon_$INSTALADO.png"
 
-# O molde da Steam, byte a byte como os 17 de 14/08.
+# O molde da Steam, byte a byte como os 17.
 molde() {
   cat <<DESKTOP
 [Desktop Entry]
@@ -90,15 +44,12 @@ molde "$INSTALADO"    > "$APPS/steam_app_$INSTALADO.desktop"
 molde "$DESINSTALADO" > "$APPS/steam_app_$DESINSTALADO.desktop"
 
 # O QUARTO MOLDE, QUE NÃO É MOLDE: nome de arquivo livre, com espaço e acento.
-# É o `Future Knight.desktop` de 09/09/2026. O conteúdo é o do atalho da Steam,
-# byte a byte — a única coisa imprevisível é o nome, e é justamente por ele que
-# a limpeza antiga procurava.
+# É o `Future Knight.desktop`.
 RIVAL_LIVRE="$APPS/Jogo Qualquer Ação.desktop"
 molde "$INSTALADO" > "$RIVAL_LIVRE"
 
 # O que ela escreveu à mão para um jogo SEM manifesto: tem `rungameid` e NÃO
-# pode sumir, porque não temos cartão para pôr no lugar (a metade da garantia de
-# 10/08 que sobreviveu a 09/09 — ver o cabeçalho).
+# pode sumir, porque não temos cartão para pôr no lugar.
 cat > "$APPS/o-jogo-dela.desktop" <<DESKTOP
 [Desktop Entry]
 Name=Um jogo do jeito dela
@@ -107,9 +58,8 @@ Type=Application
 Categories=Game;
 DESKTOP
 
-# Um lançador genérico da Steam: a palavra `steam` está lá e appid NENHUM. É o
-# primeiro risco que a sprint listou — "casar `Exec=` com regex frouxa e pegar
-# um lançador dela". A regra por conteúdo tem de se calar aqui.
+# Um lançador genérico da Steam: a palavra `steam` está lá e appid NENHUM. A
+# regra por conteúdo tem de se calar aqui.
 cat > "$APPS/abrir-a-steam.desktop" <<DESKTOP
 [Desktop Entry]
 Name=Abrir a Steam
@@ -119,11 +69,7 @@ DESKTOP
 
 # A ÂNCORA DO APPID, com o mesmo formato do par real desta máquina
 # (`316790`/`3167900`): $SEQUELA TEM o appid instalado como prefixo e não tem
-# manifesto. Um `grep` sem âncora casaria os dois e tiraria do lançador o cartão
-# de um jogo que nem é nosso assunto.
-#   O nome do arquivo não leva dígito nenhum DE PROPÓSITO: a 2ª rodada conta os
-#   cartões com o glob `*"$INSTALADO"*.desktop`, e um nome com 17159800 dentro
-#   entraria nessa conta e faria o teste falhar pelo motivo errado.
+# manifesto.
 SEQUELA="${INSTALADO}0"
 cat > "$APPS/sequela-sem-manifesto.desktop" <<DESKTOP
 [Desktop Entry]
@@ -206,12 +152,9 @@ case "$saida" in
   *) reclamar "o seco não NOMEOU o arquivo que sairia\n$saida" ;;
 esac
 
-# --- e a caixa dos jogos do painel conta o rival que sai (revisão da P54) ------
+# --- e a caixa dos jogos do painel conta o rival que sai ------
 # O painel lê as linhas `@@jogo` deste mesmo ensaio para dizer, antes do clique,
-# o que a passagem tira do lançador. O duplicado sai na mesma passagem que a
-# decisão dela; sem a linha, a caixa dizia «nenhum atalho sai» e só o «Ver o
-# que faria» o mostrava. Os dois rivais continuam no disco, porque o seco acima
-# não removeu nada.
+# o que a passagem tira do lançador.
 resumo="$(env -i PATH="$PATH" HOME="$H" USER="${USER:-t}" NO_COLOR=1 MEOW_DRY_RUN=1 \
   MEOW_JOGOS_RESUMO=1 bash "$RAIZ/scripts/jogos_steam.sh" 2>&1 | grep '^@@jogo repete ')"
 [ "$(printf '%s\n' "$resumo" | grep -c "^@@jogo repete $INSTALADO Bail or Jail$")" = "2" ] \

@@ -1,99 +1,13 @@
 #!/usr/bin/env bash
-# construir_convertidos.sh — GERA o acervo `packs/meowsystem/icones/apps/convertidos/`: os ícones
-# do lançador que nós convertemos de CHAPADO para TRAÇO, no dialeto do Arcticons.
+# construir_convertidos.sh — GERA o acervo
+# `packs/meowsystem/icones/apps/convertidos/`: os ícones do lançador que nós
+# convertemos de CHAPADO para TRAÇO, no dialeto do Arcticons.
 #
-# Ele NÃO instala nada. Quem veste o lançador continua sendo UM script só, o
-# `icones_apps_arcticons.sh`, e o porquê disso é a primeira coisa deste arquivo.
-#
-# ============================================================================
-# POR QUE O CONVERSOR **NÃO** PODE VIRAR UM SEGUNDO INSTALADOR
-# ============================================================================
+# Ele NÃO instala nada.
 #
 # A primeira ideia — "um `icones_apps_convertidos.sh` irmão do
 # `icones_apps_arcticons.sh`" — está errada, e o motivo é o mesmo laço eterno
-# que o cabeçalho daquele script descreve. Vale a pena escrever inteiro porque
-# a ideia errada é a natural:
-#
-#   O `icones_apps_arcticons.sh` é DONO de `48x48/apps` e, na varredura final,
-#   REMOVE todo `.svg` de lá cujo nome não esteja no mapa dele. Um segundo
-#   script escrevendo `48x48/apps/org.gimp.GIMP.svg` teria esse arquivo apagado
-#   na passagem seguinte do irmão — que o veria como órfão —, e o reporia na
-#   passagem seguinte. `meow doctor` acusaria os dois como divergentes PARA
-#   SEMPRE e `meow fix` alternaria entre os dois estados sem nunca convergir.
-#
-#   E não adianta escolher outro diretório: `48x48/apps` não é gosto, é o que
-#   VENCE. A dock desenha a 48 px (medido em 08/08/2026 na captura dela), o
-#   diretório é `Type=Fixed`, e um `64x64/apps` só seria consultado no
-#   desempate por proximidade — ou seja, o ícone convertido existiria no disco e
-#   nunca apareceria na tela, que é o pior desfecho possível porque parece que
-#   funcionou. `scalable/apps` casa qualquer tamanho, mas já tem TRÊS donos
-#   (`completar_icones.sh`, `logo.sh`, o bootstrap do `construir_icones.sh`).
-#
-# ENTÃO A CONVERSÃO NÃO É UMA ETAPA DE INSTALAÇÃO: É UM ACERVO.
-#
-#   Exatamente como `packs/meowsystem/icones/apps/arcticons/`, que está COMMITADO no repositório e
-#   não é baixado no install. Este script gera `packs/meowsystem/icones/apps/convertidos/*.svg`
-#   DENTRO do repositório, e quem instala continua sendo um script só.
-#
-#   Três razões, e nenhuma é preguiça:
-#     1. arte que ela aprovou numa folha tem de aparecer no `git diff`. Gerar no
-#        install faria o desenho mudar em silêncio quando o Papirus atualizasse.
-#     2. converter custa tempo de CPU por ícone (rasteriza a 256², rotula
-#        componentes, traça, simplifica) para um resultado que é idêntico 364
-#        dias por ano. Pagar isso a cada `./install.sh` é pagar por nada.
-#     3. o retoque à mão (a boca do Wilber) precisa de um lugar onde SOBREVIVA à
-#        próxima conversão. Um arquivo gerado em tempo de instalação não tem
-#        onde guardar uma decisão humana.
-#
-#   Por isso o `install.sh` NÃO ganhou etapa nenhuma, e isso foi confirmado por
-#   ela em 11/08/2026: "Nenhuma etapa nova no install." Este script é ferramenta
-#   de MANUTENÇÃO, rodada à mão quando o Papirus for atualizado ou entrar
-#   aplicativo novo — como o `curl` do Iconify já é hoje para o Arcticons.
-#
-# ============================================================================
-# O QUE ESTE SCRIPT É DONO, E POR QUE ISSO É SEGURO
-# ============================================================================
-#
-# Dono único de `packs/meowsystem/icones/apps/convertidos/`, um diretório que NASCE aqui e onde
-# mais ninguém escreve — a mesma disciplina do `icones_apps_arcticons.sh` com
-# `48x48/apps` e do `icones_sistema.sh` com `22x22/status`. Por isso ele pode
-# remover órfão: nome que saiu do mapa, arquivo que sai do disco.
-#
-# A EXCEÇÃO SÃO OS RETOQUES, e ela é explícita: `packs/meowsystem/icones/apps/convertidos/
-# retoques/NOME.svg` é escrito À MÃO e NUNCA é sobrescrito nem varrido. Se o
-# retoque existe, ele é copiado para o acervo e a conversão automática nem roda.
-# Um retoque é decisão humana registrada, e reconverter por cima apagaria a
-# decisão em silêncio — o defeito que este projeto persegue.
-#
-# ============================================================================
-# COMO ISTO SE LIGA AO RESTO
-# ============================================================================
-#
-#   `packs/meowsystem/icones/apps-convertidos.map`          o mapa, lido por ESTE script e pelo
-#                                         `icones_apps_arcticons.sh`. Campos 1,
-#                                         2 e 4 são meus; o campo 3 (a cor) é
-#                                         dele. Um mapa só, porque duas listas
-#                                         da mesma verdade é o defeito que o
-#                                         `_conferir_gemeos` daquele script
-#                                         ESTOURA para impedir.
-#   `scripts/converter_icone.py`          o conversor. Chamado SEM `--lw`.
-#   `packs/meowsystem/icones/apps/convertidos/`             a saída, commitada.
-#   `packs/meowsystem/icones/apps/convertidos/retoques/`    a decisão humana, escrita à mão.
-#   `bin/meow` -> `chk_convertidos`       confere, e está em SEM_CONSERTO: o
-#                                         `--conferir` avisa que a origem do
-#                                         Papirus mudou, mas o conserto
-#                                         automático trocaria arte que ELA
-#                                         aprovou por arte que ninguém viu.
-#
-# O TRAÇO NÃO MORA AQUI, E ISSO É DE PROPÓSITO
-#   Quem manda na espessura é o `TRACO` do `icones_apps_arcticons.sh`, UM número
-#   que engrossa os DOIS acervos juntos. Se a conversão gravasse `stroke-width`,
-#   ela obedeceria a este arquivo e o Arcticons obedeceria àquele: dois donos da
-#   mesma decisão, e a tela ficaria incoerente por esquecimento. Por isso o
-#   conversor é chamado SEM `--lw`. O `--lw` existe só para a folha de escolha.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
+# que o cabeçalho daquele script descreve.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -104,29 +18,17 @@ CONVERSOR="$RAIZ/scripts/converter_icone.py"
 MAPA="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"
 DESTINO="$RAIZ/packs/meowsystem/icones/apps/convertidos"
 RETOQUES="$DESTINO/retoques"
-# OS DESENHOS DA OFICINA DE QUEM USA — 15/10/2026, P82 (item 5; decisão 15).
-#   O «Usar» da oficina do painel deixou de gravar no clone: a linha vai para o
-#   `icones-convertidos.map` ao lado do meow.conf (o mesmo formato deste mapa)
-#   e o retoque e o construído para `~/.local/share/meowsystem/`. Este script
-#   lê as duas fontes: a de quem usa por último, vencendo o nome que as duas
-#   dizem, e cada linha constrói no lugar do dono dela — a do projeto em
-#   `assets/`, a de quem usa na casa.
 MAPA_USUARIO="${MEOW_ICONES_CONVERTIDOS:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-convertidos.map}"
 DESTINO_USUARIO="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/convertidos-apps"
 RETOQUES_USUARIO="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/retoques"
-declare -A DO_USUARIO=() # nome -> 1 quando a linha que vale é a de quem usa
+declare -A DO_USUARIO=()
 declare -A DO_PROJETO=() # nome -> 1 para toda linha do mapa do projeto (a varredura de órfão)
 
 declare -A ORIGEM=()     # nome do .desktop -> arquivo chapado de origem
 declare -A ARGS=()       # nome -> parâmetros extras do conversor (ou vazio)
 declare -A MAO=()        # nome -> 1 quando a linha declara `mao` (sem origem)
 
-# "ESTE NOME ESTÁ NO MAPA?" NÃO É A MESMA PERGUNTA QUE "ELE TEM ORIGEM?"
-#   E confundir as duas custou o Gradia na primeira execução deste script: a
-#   varredura de órfão perguntava `[ -z "${ORIGEM[$nome]}" ]`, e a linha `mao`
-#   guarda origem VAZIA de propósito — então o arquivo recém-gerado a partir do
-#   retoque à mão foi visto como órfão e apagado na mesma passagem. Um registro
-#   separado, com a pergunta certa, e o modo de falha não volta.
+# Um registro separado, com a pergunta certa, e o modo de falha não volta.
 declare -A CONHECIDO=()  # nome -> 1 para toda linha do mapa, com origem ou sem
 
 # --- o mapa, lido uma vez ----------------------------------------------------
@@ -135,20 +37,10 @@ declare -A CONHECIDO=()  # nome -> 1 para toda linha do mapa, com origem ou sem
 #     nome-de-icone-do-.desktop : origem-chapada : cor [ : parametros ]
 #
 # O campo `cor` parece morto aqui e não é: ele é do OUTRO leitor deste mesmo
-# arquivo. Ver o cabeçalho do mapa.
+# arquivo.
 #
 # O caminho da origem pode ser absoluto (o Papirus, um flatpak), relativo ao
 # repositório (`assets/icones/autorais/...`), ou a palavra `mao`.
-#
-# `mao` NÃO É "sem origem por descuido": é a declaração de que aquele ícone
-# NASCE à mão, porque não existe arte chapada honesta de onde partir. Hoje só o
-# Gradia: ele dá zero no índice de 14.996 nomes do Arcticons, não está no
-# Papirus, e o que o flatpak entrega é um ícone com GRADIENTE cuja fronteira de
-# cor vira bolha a 48px. Escrever esse caminho aqui seria registrar como origem
-# um arquivo que nunca é lido — e que some se ela desinstalar o aplicativo.
-#
-# Os `parametros` são a válvula para o caso raro em que um ícone pede `--k 8`;
-# vazio é o normal, e hoje TODOS estão vazios.
 _ler_mapa() {
   local linha nome origem cor extra dono
   while IFS= read -r linha; do

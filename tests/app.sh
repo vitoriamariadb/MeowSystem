@@ -1,53 +1,22 @@
 #!/usr/bin/env bash
 # O painel e o wizard leem o MESMO meow.conf.exemplo — e têm de concordar.
 #
-# POR QUE ESTE TESTE EXISTE
-#   O catálogo de chaves do painel (`app/servidor.py`, em Python) é uma tradução
-#   das regras do `wiz_ler_esquema` do `bin/meow` (em bash). Duas implementações
-#   da mesma leitura é exatamente a coisa que este repositório mais persegue —
-#   `lib/comum.sh` conta o que custou quando existiram duas rotinas de escrita na
-#   mesma chave: uma trocava a PRIMEIRA ocorrência enquanto o shell obedece a
-#   ÚLTIMA, e o `meow configurar` gravava um valor mostrando o diff certo
-#   enquanto o valor em vigor continuava outro, sem nada acusar.
+# O catálogo de chaves do painel (`app/servidor.py`, em Python) é uma tradução
+# das regras do `wiz_ler_esquema` do `bin/meow` (em bash).
 #
-#   Aqui a duplicação é inevitável (o navegador não roda bash, e reescrever o
-#   wizard em Python seria trocar um problema por outro). O que dá para fazer é
-#   PROVAR TODO DIA que as duas concordam, em vez de esperar o dia em que alguém
-#   mexe no formato do exemplo e só uma das duas acompanha.
+# Aqui a duplicação é inevitável (o navegador não roda bash, e reescrever o
+# wizard em Python seria trocar um problema por outro).
 #
-# O QUE ELE COMPARA
 #   1. a LISTA de chaves — mesmos nomes, mesma quantidade, mesma ordem;
 #   2. o VALOR PADRÃO de cada uma, como está escrito no exemplo;
 #   3. as OPÇÕES de cada chave (`a | b | c`), que é a regra mais fácil de
 #      divergir — o bash descarta a linha inteira se um token não parecer valor,
 #      e o Python tem de fazer o mesmo.
-#
-#   O QUE ELE COMPARA É A REGRA COMPARTILHADA, NÃO A TELA
-#   O painel acrescenta DUAS coisas por cima do que o texto literalmente diz, e
-#   as duas são de apresentação — nenhuma muda o valor que vai para o disco:
-#
-#     - tira o `vazio` da lista. `vazio` não é um valor, é a ausência de um:
-#       gravá-lo daria `RELOGIO_SEGUNDOS="vazio"`, que não é `sim` nem `nao` e
-#       cairia no `*)` de qualquer `case` do projeto sem nada avisar. Na página
-#       ele vira o terceiro estado do controle ("não mexer");
-#     - infere `sim | nao` para a chave cujo VALOR DE FÁBRICA já é `sim` ou `nao`
-#       e cujo comentário não lista nada (são 19 hoje, entre elas a
-#       `LOGO_ROTACAO`). Sem isso a página desenhava um campo de texto livre para
-#       uma pergunta de sim ou não — e ainda deixava passar `não` com til, que o
-#       `case` do shell não casa.
-#
-#   Por isso a comparação é contra o `_opcoes()` do servidor, que é a tradução
-#   literal do `wiz_opcoes` do bash, e não contra a lista final que a página
-#   desenha. A inferência tem conferência PRÓPRIA, logo abaixo: ela só pode
-#   acontecer onde o padrão da chave já é `sim` ou `nao`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
-# NADA FICA EM /tmp — 15/10/2026, P82 (item 38). O bloco 10 fazia um
-# `mkdtemp()` (o `bom.conf` e o `quebrado.conf`) sem apagar, e cada rodada da
-# suíte deixava uma pasta. Agora todo temporário deste teste, do bash e do
-# Python, nasce dentro de UMA pasta (o `TMPDIR`), e ela sai no fim, inclusive
-# por sinal (o Ctrl+C de quem roda, o TERM de um `timeout`).
+# NADA FICA EM /tmp. O bloco 10 fazia um `mkdtemp()` (o `bom.conf` e o
+# `quebrado.conf`) sem apagar, e cada rodada da suíte deixava uma pasta.
 _TMP_DO_TESTE="$(mktemp -d)" || exit 2
 trap 'rm -rf "$_TMP_DO_TESTE"' EXIT
 trap 'exit 130' INT
@@ -63,10 +32,7 @@ python3 -m py_compile "$RAIZ/app/servidor.py" || {
   printf 'FALHOU: app/servidor.py não compila\n' >&2; exit 1; }
 
 # --- 2. a leitura do bash, extraída do próprio bin/meow ---------------------
-# Sourcear o `bin/meow` inteiro rodaria o `despachar` no fim. Em vez disso o
-# teste recorta as funções do wizard com `sed` e as avalia sozinhas — assim o que
-# está sendo testado é o CÓDIGO DE VERDADE do wizard, e não uma cópia dele que
-# envelheceria junto com o resto.
+# Sourcear o `bin/meow` inteiro rodaria o `despachar` no fim.
 esquema_bash="$(
   MEOW_RAIZ="$RAIZ" bash -c '
     set -uo pipefail
@@ -139,13 +105,10 @@ else
 fi
 
 # --- 5 e 6. as duas regras que valem para o CÓDIGO, não para o comentário ---
-# O COMENTÁRIO TEM DE PODER FALAR DA REGRA SEM QUEBRÁ-LA
-#   A primeira versão destes dois testes era um `grep` seco, e os dois acusaram —
-#   o `estilo.css` porque o cabeçalho dele explica a regra citando um `#1e1e2e`
-#   de exemplo, e o `servidor.py` porque o cabeçalho promete que `shell=True`
-#   "não aparece uma vez neste arquivo". Um teste que proíbe explicar a própria
-#   regra faria este repositório, que é escrito em prosa comentada, perder a
-#   prosa. Então os comentários saem antes da varredura.
+#
+# Um teste que proíbe explicar a própria regra faria este repositório, que é
+# escrito em prosa comentada, perder a prosa. Então os comentários saem antes da
+# varredura.
 python3 - "$RAIZ" <<'PY' || falhas=$((falhas+1))
 import re, sys, os
 raiz = sys.argv[1]
@@ -522,24 +485,7 @@ else:
 sys.exit(falhou)
 PY
 
-# --- 11. O COMANDO DA TELA COLA, E O QUE SE EXPORTA NÃO LEVA NOME — 24/09/2026 --
-#   Revisão da P52. Dois defeitos que o `tests/app-completo.py` não via, porque a
-#   casa de brinquedo dele não tem caminho entre aspas na gaveta nem fonte de
-#   papel de parede fora do home:
-#   11a. A gaveta trocava a casa por `~` DENTRO das aspas. O `wallpaper.sh`
-#        imprime `meow wallpaper permitir "$fonte_atual"`, a gaveta mostrava
-#        `permitir "~/Imagens/…"`, e colado o `~` não expandia: o `readlink -m`
-#        gravava `/tmp/~/Imagens/…`, uma autorização que nunca casa. Aqui o texto
-#        da tela é COLADO num bash de verdade, com a mesma casa, e o argumento
-#        que chega tem de ser o caminho absoluto.
-#   11b. A página exportada levava o valor de uma chave com caminho fora da
-#        casa: `/run/media/<usuário>/…` saía duas vezes, no `valor` e no
-#        `efetivo`. O nome de usuário aqui é inventado e único, para que achá-lo
-#        em qualquer canto da página seja prova e não coincidência. E o
-#        `WALLPAPER_BASE` num disco de fora, com uma foto no acervo: a pasta
-#        voltava pela `origem` e pelo `banir` de cada foto da galeria.
-#   A casa e o `meow.conf` são de brinquedo, e chegam pelo ambiente ANTES do
-#   `import`: o `servidor.CONF` é lido uma vez, na carga do módulo.
+# --- 11. O COMANDO DA TELA COLA, E O QUE SE EXPORTA NÃO LEVA NOME --
 _tmp11="$(mktemp -d)"
 HOME="$_tmp11/casa" MEOW_CONF="$_tmp11/casa/.config/meow/meow.conf" MEOW_RAIZ="$RAIZ" \
   python3 - "$RAIZ" <<'PY' || falhas=$((falhas+1))
@@ -610,23 +556,7 @@ print("ok: o comando da gaveta cola com a casa entre aspas, e a página exportad
 PY
 rm -rf "$_tmp11"
 
-# --- 12. O RÓTULO DIZ O QUE A AÇÃO FEZ — 24/09/2026, sprint P50 ----------------
-#   Os achados 11, 14, 15, 16, 17, 32, 33, 36 e 47 da validação no painel de
-#   verdade, na parte que se prova sem navegador (o `tests/app-completo.py`
-#   cobra a tela):
-#   12a. Toda ação declara uma `natureza` que a tabela `NATUREZAS` conhece, e
-#        o fim de cada uma diz o que ela fez: o reciclo não diz «já estava
-#        certo», a troca não diz «consertou», o som diz «tocou», o 1 do
-#        instalador (P48) não é verde, e o ensaio não diz verbo de quem fez.
-#   12b. O nome de botão e de aba que um script cita sai da tabela `ACOES`
-#        (`--onde`), e as duas frases escritas à mão sumiram do código.
-#   12c. O botão sem efeito se apaga: o gato por horário ou girando, as áreas
-#        sem alfinete — e o servidor recusa rodá-lo. E o «Pôr» aceso põe o
-#        gato no dock de verdade.
-#   12d. O raio: acima do teto de agora, o valor não é gravado.
-#   Casa, conf, estado e COSMIC de brinquedo, antes do `import`: nada aqui lê
-#   ou escreve a máquina de quem roda, a não ser a pergunta "o compositor
-#   desta sessão tem o patch do raio?", que só lê o `/proc`.
+# --- 12. O RÓTULO DIZ O QUE A AÇÃO FEZ ----------------
 _tmp12="$(mktemp -d)"
 HOME="$_tmp12/casa" MEOW_CONF="$_tmp12/casa/.config/meow/meow.conf" \
 MEOW_ESTADO="$_tmp12/casa/.local/state/meowsystem" \
@@ -909,22 +839,7 @@ print("ok: cada ação declara a natureza e o fim diz o que ela fez; o nome de t
 PY
 rm -rf "$_tmp12"
 
-# --- 13. AS REGRAS QUE AINDA MENTIAM — 24/09/2026, sprint P57 -----------------
-#   Quatro regras que diziam uma coisa e faziam outra, cada uma com a prova que
-#   reprova o código de antes (o item 1, o flatpak, mora no
-#   `tests/temas-de-apps.sh`; o 2, a corrida da gaveta, no `app-navegador.py`):
-#   13a. O nome da ficha é o que o lançador mostra: o `Name[...]` da cadeia de
-#        idioma da sessão, e não o `Name=` cru (item 3).
-#   13b. O `--onde` cobre cartões e abas, e as frases do `install.sh` que citam
-#        um lugar do painel saem dele (item 4).
-#   13c. O `logo.sh`: o applet de logo é o que está instalado, o aviso do modo
-#        fixo diz o que acontece, e o gato do terminal acompanha o do dock em
-#        todo modo (item 5).
-#   13d. Uma leitura do esquema mede cada fato da máquina uma vez, e não uma
-#        vez por chave (item 6).
-#   13e. A torrada do «Adicionar» não leva o caminho do clone (a revisão: o
-#        esquema rápido do item 6 deixou à vista um vazamento antigo).
-#   Casa, conf, estado e COSMIC de brinquedo, como na 12.
+# --- 13. AS REGRAS QUE AINDA MENTIAM -----------------
 _tmp13="$(mktemp -d)"
 HOME="$_tmp13/casa" MEOW_CONF="$_tmp13/casa/.config/meow/meow.conf" \
 MEOW_ESTADO="$_tmp13/casa/.local/state/meowsystem" \
@@ -1319,11 +1234,10 @@ print("ok: a ficha diz o nome do lançador, o --onde cobre cartão e aba, o logo
 PY
 rm -rf "$_tmp13"
 
-# --- 13b. A TRAVA DO PACK CABE NO BALÃO — P82, item 21 --------------------------
-#   A frase do porquê de um desenho do pack não valer num app (a `trava_pack`)
-#   vai para o balão do desenho, e passava do teto de 80 do balão: saía cortada
-#   (a 375 px e em qualquer largura). As quatro formas dela, com um nome de app
-#   comprido, cabem no teto.
+# --- 13b. A TRAVA DO PACK CABE NO BALÃO --------------------------
+# A frase do porquê de um desenho do pack não valer num app (a `trava_pack`) vai
+# para o balão do desenho, e passava do teto de 80 do balão: saía cortada (a 375
+# px e em qualquer largura).
 _trava="$(env -i PATH="$PATH" HOME="$(mktemp -d)" python3 -I - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])

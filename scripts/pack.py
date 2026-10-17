@@ -198,42 +198,16 @@ RE_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 OK, RECUSADO, ERRO_USO = 0, 1, 2
 
-# OS CAMPOS QUE O PROJETO DE FATO LÊ — 21/09/2026
+# O pack previu um defeito, declarou o conserto, e o conserto era decorativo — o
+# tema Dracula aparecia na GUI do COSMIC chamado `catppuccin-dracula`.
 #
-# POR QUE ESTA LISTA EXISTE
-#   Uma varredura de acoplamento mediu que metade do que o `packs/dracula/`
-#   declara NÃO TEM UM ÚNICO LEITOR em código: o `grep -rn nome_da_paleta`
-#   devolvia a spec em docs/PACKS.md, a declaração no pack.json, e mais nada.
-#   O pack previu um defeito, declarou o conserto, e o conserto era decorativo —
-#   o tema Dracula aparecia na GUI do COSMIC chamado `catppuccin-dracula`.
+# Um formato que aceita declaração morta ENSINA a escrever declaração morta.
 #
-#   Um formato que aceita declaração morta ENSINA a escrever declaração morta.
-#   Quem escreve um pack novo copia o do Dracula e repete os campos mortos,
-#   acreditando que eles fazem alguma coisa. Por isso o `validar` passa a dizer,
-#   em voz alta, quais campos daquele pack ninguém vai ler.
-#
-# É AVISO, E NÃO RECUSA
-#   Um campo sem leitor hoje pode ser o campo que a sprint seguinte vai ler, e
-#   recusar o pack por causa dele quebraria packs que já funcionam. O que não
-#   pode é o silêncio.
-#
-# ESCRITA À MÃO, E O PORQUÊ ESTÁ MEDIDO
-#   Derivar esta lista de um `grep` seria mais bonito e estaria errado: nomes
-#   como `mapa`, `tipo`, `tema`, `arquivo` e `versao` aparecem às dezenas em
-#   código que não tem nada a ver com pack — medido no dia, `mapa` dá 13 linhas
-#   e nenhuma delas lê um pack.json. Uma lista que mente por excesso é pior que
-#   nenhuma: ela cala justamente o campo morto.
-#
-#   O PREÇO: quem der leitor a um campo precisa escrever o nome aqui. O
-#   `tests/pack.sh` cobra a lista contra o `packs/dracula/`, que é o pack mais
-#   completo que existe — então um campo novo sem entrada aqui aparece lá.
-#
-# O `*` CASA UM SEGMENTO INTEIRO. `icones.*.herda` vale para apps, pastas,
-# mimetypes e autorais; `som.*` vale para as sete chaves que os LIMITES conhecem.
+# O que não pode é o silêncio.
 CAMPOS_COM_LEITOR = {
     "formato", "id", "nome",            # identidade — validar
-    "papel",                            # validar, `eh_base` (o pack-base, P88)
-    "icones.apps.recolorir",            # `acervos_de_icone`: traço na ficha (P88)
+    "papel",                            # validar, `eh_base`
+    "icones.apps.recolorir",            # `acervos_de_icone`: traço na ficha
     "heranca",                          # validar, cmd_info, acervo
     "creditos",                         # validar cobra a existência do arquivo
     "paleta", "paleta.arquivo",         # validar, verbo `paleta`, cmd_info
@@ -245,103 +219,60 @@ CAMPOS_COM_LEITOR = {
     "icones.*.desenhos",                # validar, `acervo`
     # `*.*.herda` e não `icones.*.herda`: o bloco de heranças do `validar` varre
     # `icones` E `origens` juntos, e o `acervo` sobe a cadeia de qualquer
-    # categoria. Restringir a `icones` faria o aviso acusar de morto o
-    # `origens.cursores.herda`, que é lido — e um aviso que mente por excesso
-    # ensina a ignorar o aviso.
+    # categoria.
     "*.*.herda",                        # validar, `acervo`
     "som.*",                            # validar, cmd_som
-    # O BLOCO `apps` — 22/09/2026, sprint P18. Só as chaves que JÁ têm leitor:
-    # `apps.*.tema` (obsidian) e as dos outros cinco módulos entram no dia em
-    # que aqueles módulos passarem a perguntar ao pack. Declará-las antes seria
-    # ensinar a promessa vazia que este bloco inteiro veio caçar.
+    # Só as chaves que JÁ têm leitor: `apps.*.tema` (obsidian) e as dos outros
+    # cinco módulos entram no dia em que aqueles módulos passarem a perguntar
+    # ao pack.
     "apps.*.arquivo",                   # validar, `tema_de_app`, qbittorrent
     "apps.*.sha256",                    # validar, qbittorrent
     "apps.*.spicetify_tema",            # spotify
     "apps.*.esquema",                   # spotify
     "apps.*.acento_no_color_ini",       # spotify
     "apps.*.origem.*",                  # spotify (de onde o tema desce)
-    # OS METADADOS E A VITRINE — 23/09/2026, sprint P15. `autor`, `versao` e
-    # `licenca` estavam no aviso de campo morto do Dracula desde a P20, e o
-    # `packs/catppuccin/pack.json` deixou de declará-los justamente por isso
-    # ("quando a P15 der leitor a eles, eles entram"). Deu: o `cmd_info` imprime
-    # os três, e o `autor` vai para o cartão do painel.
+    # Deu: o `cmd_info` imprime os três, e o `autor` vai para o cartão do
+    # painel.
     #
     # A vitrine vai campo a campo, e NÃO como `vitrine.*`: a máscara larga
     # calaria o erro de digitação — um `vitrine.descricao_curto` passaria por
     # lido, e é exatamente o campo morto que este aviso existe para nomear.
     "autor", "versao", "licenca",       # cmd_info; `autor` também no /api/packs
-    "vitrine.capa",                     # `vitrine` e `logo()` (P25): a capa É o logo
+    "vitrine.capa",                     # `vitrine` e `logo()`: a capa É o logo
     "vitrine.descricao_curta",
     "vitrine.descricao",
     "vitrine.tags",
     "vitrine.capturas",
     "vitrine.site",
-    # O PONTEIRO E AS FONTES — 23/09/2026, sprint P12. Os dois nasceram com
-    # leitor no mesmo commit: o `proprio` do ponteiro é lido pelo `cursor.sh`
-    # (antes de baixar) e pelo painel (`_cursor_pastas_do_valor`); a lista de
-    # fontes, pelo `instalar_fontes.sh`, pelo verbo `tipografia`. O `herda` das
-    # fontes vai escrito por extenso porque a trilha tem DOIS segmentos, e a
-    # máscara `*.*.herda` pede três.
+    # Os dois nasceram com leitor no mesmo commit: o `proprio` do ponteiro é
+    # lido pelo `cursor.sh` (antes de baixar) e pelo painel
+    # (`_cursor_pastas_do_valor`); a lista de fontes, pelo
+    # `instalar_fontes.sh`, pelo verbo `tipografia`.
     "origens.cursores.proprio",
     "fontes.proprio",
     "fontes.herda",
-    # O FLAVOR DOS ÍCONES DE ARQUIVO HERDADOS — 23/09/2026, sprint P10. O Dracula
-    # o declarava desde que nasceu ("o macchiato é o vizinho mais próximo em
-    # luminosidade") e ele estava na lista de mortos do aviso. Quem lê agora é o
-    # `vocabulario`, e por ele o painel: a «Variante dos ícones de arquivo» de um
-    # pack que herda mimetypes oferece o flavor que ESTE pack escolheu, com o nome
-    # do dono ao lado — e não os quatro sabores do Catppuccin soltos numa máquina
-    # vestida de Dracula. O shell passou a lê-lo na P31 (23/09/2026), pela mesma
-    # regra do painel: o `flavor_de_icones`, logo acima do `vocabulario`.
+    # Quem lê agora é o `vocabulario`, e por ele o painel: a «Variante dos
+    # ícones de arquivo» de um pack que herda mimetypes oferece o flavor que
+    # ESTE pack escolheu, com o nome do dono ao lado — e não os quatro sabores
+    # do Catppuccin soltos numa máquina vestida de Dracula.
     "icones.mimetypes.flavor",
-    # O `gerar` DOS AUTORAIS TINHA LEITOR, E O AVISO DIZIA QUE NÃO — 23/09/2026,
-    # sprint P16. O `cmd_construir` o lê desde a P29 (é o único "derivado" que um
-    # pack declara), e ele seguia na lista de mortos do Dracula. Passou a doer
-    # quando o `novo --de-csv` nasceu declarando-o: o `validar` do pack que o
-    # próprio MeowSystem acabou de escrever dizia "não faz nada" de um campo que
-    # é o motivo de os ícones dele estarem nas cores dele.
-    # OS DOIS QUE O AVISO CHAMAVA DE MORTOS, E ESTAVAM VIVOS — 23/09/2026, P32.
-    #   O aviso mentia para o outro lado: acusava o Dracula de declarar onze
-    #   campos sem leitor, e dois tinham leitor desde antes. Recontados um a um:
-    #   · `icones.autorais.gerar` — o `cmd_construir`, aqui mesmo, sai com
-    #     "nada a construir" quando ele é falso ou falta;
-    #   · `origens.cursores.tema` — o `_declarado_pelo_pack` (app/servidor.py)
-    #     o reconhece como receita do pack. Medido: numa cópia do Dracula sem
-    #     ele, `_declarado_pelo_pack("dracula", "catppuccin-mocha-light")` vira
-    #     de True para False, e o painel passa a acusar o CURSOR de fábrica de
-    #     ser resto do Catppuccin. A função varre toda string do pack.json, mas
-    #     só chega nela o valor do meow.conf que cita o nome de OUTRO pack — e
-    #     dos nove que sobram no aviso nenhum é assim (`scalable/apps`,
-    #     `github-arvore`, `herdar`, `svg`, os acentos).
-    #   Os nove restantes deram `grep` vazio de leitor no mesmo dia: os dois
-    #   `recolorir`, `icones.apps.camada`, `paleta.acentos` e os cinco de
-    #   `origens.wallpapers` — o `wallpaper.sh` lê `WALLPAPER_DRACULA_*` do
-    #   meow.conf, e não lê campo nenhum do pack.json. (Aqui dizia "pelo nome
-    #   do flavor, e não abre pack nenhum", e envelheceu com a P40, 24/09/2026:
-    #   a semente segue o pack DONO do flavor, que o `meow_pack_dir` pergunta ao
-    #   `adocao`. Ele acha o pack, mas não lê o bloco — os cinco continuam no
-    #   aviso de campo morto, conferido no `validar dracula` da P45.)
     "icones.autorais.gerar",            # cmd_construir
     "origens.cursores.tema",            # app/servidor.py, `_declarado_pelo_pack`
-    # O QUE O PACK BAIXA EM VEZ DE COPIAR — 24/09/2026, sprint P41. A base de
-    # ícones nasceu com leitor (o `base_de_icones`, e por ele o verbo
-    # `base-icones` que o `construir_icones.sh` pergunta), e a origem pinada do
-    # ponteiro também (o `ponteiro`, que o `cursor.sh` pergunta antes de
-    # baixar). O `icones.base.herda` já cabe na máscara `*.*.herda`.
+    # O `icones.base.herda` já cabe na máscara `*.*.herda`.
     "icones.base.origem.*",
     "origens.cursores.origem.*",
-    # As camadas de trás da base (P74 item 2): o `base_de_icones` as lê, e o
+    # As camadas de trás da base: o `base_de_icones` as lê, e o
     # `construir_icones.sh` as baixa pelo verbo `base-icones` (linhas `atras=`).
     "icones.base.por_tras",
-    # Os ícones de arquivo derivados da paleta (P74 item 6): o `construir` lê.
+    # Os ícones de arquivo derivados da paleta: o `construir` lê.
     "icones.mimetypes.derivar.*",
-    # Os papéis de parede do pack (P74 item 9): o `wallpaper.sh` os semeia pelo
-    # `acervo`, rasterizando o SVG.
+    # Os papéis de parede do pack: o `wallpaper.sh` os semeia pelo `acervo`,
+    # rasterizando o SVG.
     "origens.wallpapers.desenhos",
-    # O que o pack esconde do lançador (P74 item 9): o `ocultar_apps.sh` pergunta
-    # pelo verbo `ocultar`.
+    # O que o pack esconde do lançador: o `ocultar_apps.sh` pergunta pelo verbo
+    # `ocultar`.
     "lancador.ocultar",
-    # O tema de som do pack (P74 item 9): o `som.sh` o instala pelo `acervo`.
+    # O tema de som do pack: o `som.sh` o instala pelo `acervo`.
     "som.tema",
 }
 
@@ -397,31 +328,7 @@ def raizes():
     return saida
 
 
-# O PACK PADRÃO, E ELE É UM PACK COMO OS OUTROS DESDE 22/09/2026
-#
-# O QUE ESTAVA ESCRITO AQUI ATÉ ONTEM, E POR QUE SAIU
-#   Era `PACK_EMBUTIDO = "catppuccin"`, com uma função `eh_embutido` ao lado e um
-#   `achar` que devolvia a RAIZ do projeto para ele: o pack padrão não morava em
-#   `packs/`, não tinha `pack.json`, e a paleta dele era um arquivo dentro de
-#   `assets/`. O comentário de 17/09/2026 dizia, com todas as letras, que aquilo
-#   era exceção temporária e que "quando a mudança acontecer, esta constante e a
-#   função `eh_embutido` somem". A mudança aconteceu; elas sumiram.
-#
-#   O PREÇO DA EXCEÇÃO ERA MEDIDO: enquanto o padrão fosse código, todo pack de
-#   terceiro era cidadão de segunda classe. O Dracula é a prova — ele herda sete
-#   categorias de um "embutido" que não tinha `pack.json` onde declarar nenhuma
-#   delas, e o `meow pack listar` precisava de uma linha especial para que a
-#   lista não mentisse por omissão.
-#
-#   E O QUE FALHAVA CALADO: `pack.py validar catppuccin` estourava um
-#   FileNotFoundError em `RAIZ/pack.json`, porque o `achar` devolvia a RAIZ e lá
-#   não há `pack.json`. O `meow_pack_dir` desviava antes com uma linha que
-#   comparava o nome do pack com "catppuccin". As duas saíram juntas.
-#
-# O NOME MORA AQUI E SÓ AQUI. Quem precisa dele — o shell, os sete consumidores
-# de paleta em Python, o painel — pergunta, e a pergunta é `dir_padrao()` ou o
-# verbo `padrao`. Um segundo lugar que crave "catppuccin" é a divergência
-# silenciosa de volta, por outra porta.
+# O PACK PADRÃO, E ELE É UM PACK COMO OS OUTROS
 PACK_PADRAO = "catppuccin"
 
 
@@ -450,56 +357,14 @@ def dir_padrao():
     return achar(PACK_PADRAO) or os.path.join(RAIZ, "packs", PACK_PADRAO)
 
 
-# A ADOÇÃO: QUE PACK UM meow.conf VESTE — 23/09/2026, sprint P35
+# A ADOÇÃO: QUE PACK UM meow.conf VESTE
 #
-# A MESMA PERGUNTA TINHA TRÊS RESPOSTAS, EM DUAS LÍNGUAS
-#   O `meow_pack_dir` (lib/comum.sh) adotava pelo NOME do FLAVOR; o
-#   `_pack_adotado` do painel, pelo SABOR que a paleta declara; e o
-#   `_ponteiro_do_pack`, também do painel, repetia a conta do shell de
-#   propósito, para a lista de ponteiros não oferecer o que o script não acha.
-#   Medido em 23/09, com PACK vazio, num HOME de brinquedo:
+# O `meow_pack_dir` (lib/comum.sh) adotava pelo NOME do FLAVOR; o
+# `_pack_adotado` do painel, pelo SABOR que a paleta declara; e o
+# `_ponteiro_do_pack`, também do painel, repetia a conta do shell de propósito,
+# para a lista de ponteiros não oferecer o que o script não acha.
 #
-#     FLAVOR        shell        painel
-#     dracula       dracula      dracula
-#     alucard       o padrão     dracula      <- a divergência que a P12 anotou
-#     mocha         o padrão     catppuccin
-#     latte         o padrão     catppuccin
-#     inexistente   o padrão     ''           ("nenhum pack responde")
-#
-#   `mocha` e `latte` só concordavam porque o padrão É o Catppuccin. Com
-#   `FLAVOR="alucard"` o shell vestia a máquina com a paleta do Catppuccin e o
-#   painel abria a oficina do Dracula. É o defeito que a P17 pegou duas vezes e
-#   que reprovou a P10: a mesma regra escrita duas vezes, e as cópias
-#   divergindo no primeiro caso esquisito.
-#
-# A REGRA MORA AQUI, E OS DOIS LADOS PERGUNTAM
-#   O shell pelo verbo `adocao`; o painel importando este arquivo, como já faz
-#   para todo o resto. Nesta ordem:
-#     1. a chave PACK, quando preenchida, vence tudo;
-#     2. um FLAVOR que NOMEIE um pack existente adota esse pack — a promessa do
-#        meow.conf.exemplo, e o que faz um conf de antes do formato valer;
-#     3. um FLAVOR que o pack PADRÃO declara fica no padrão: PACK vazio já quer
-#        dizer "o embutido", e o sabor dele não muda isso. Vem antes do passo 4
-#        para que um pack de terceiro que também chame um flavor de `mocha` não
-#        tome a máquina de fábrica calado;
-#     4. um FLAVOR que outro pack DECLARA na paleta adota esse pack — o
-#        `alucard` é do Dracula. Na ordem do `achar`: as raízes na precedência,
-#        os ids em ordem alfabética, e um id escondido por uma raiz de cima não
-#        conta, porque não é ele que o id encontra;
-#     5. nada disso: o padrão.
-#   O pack escolhido em 1, 2 ou 4 passa pela validação do MOTOR
-#   (`silencioso=True`), a mesma da sonda `caminho` que o shell fazia. Reprovado,
-#   a máquina veste o padrão, e quem chamou diz por quê.
-#
-# O DIRETÓRIO VAZIO CONTINUA SENDO O SINAL DE "NINGUÉM ESCOLHEU"
-#   Nos passos 3 e 5 o `dir` sai vazio, e não com o caminho do padrão. É o que
-#   o `meow_pack_dir` sempre devolveu nesses casos, e o `meow_paleta` depende
-#   disso: entre o pack escolhido e o padrão ele ainda olha `PALETA_ARQUIVO`, e
-#   um caminho aqui pularia esse degrau para quem nunca escolheu pack.
-#
-# O PREÇO, MEDIDO: o conf de fábrica (`FLAVOR="mocha"`, PACK vazio) não fazia
-#   fork nenhum no `meow_pack_dir`, e agora faz um — ~45 ms nesta máquina, o
-#   mesmo que a chave PACK preenchida já pagava pela sonda `caminho`.
+# `mocha` e `latte` só concordavam porque o padrão É o Catppuccin.
 def _flavors_do_pack(dir_pack):
     """Os flavors que a paleta de um pack declara, ou um conjunto vazio.
 
@@ -554,11 +419,8 @@ def adocao(pack="", flavor=""):
     try:
         _p, _d, dir_pack = validar(escolhido, silencioso=True)
     except Exception:
-        # QUALQUER exceção, e não só Recusa: um `"paleta": "x"` de terceiro
-        # estoura AttributeError antes de virar Recusa (o bloco "A VITRINE DOS
-        # PACKS", no app/servidor.py, mediu o caso), e aqui ele tem de virar "o
-        # padrão veste", nunca um traceback no instalador. É o mesmo `except
-        # Exception` que o `_ponteiro_do_pack` do painel já usava.
+        # É o mesmo `except Exception` que o `_ponteiro_do_pack` do painel já
+        # usava.
         return PACK_PADRAO, "", escolhido
     return os.path.basename(dir_pack), dir_pack, ""
 
@@ -641,9 +503,9 @@ def campo(ref, trilha, padrao=None):
     try:
         with open(os.path.join(dir_pack, "pack.json"), encoding="utf-8") as fh:
             no = json.load(fh)
-    # `ValueError`, e não só o JSONDecodeError (conferência da P78): um pack.json
-    # que não é UTF-8 levanta UnicodeDecodeError, e com ele instalado ao lado a
-    # ficha de ícone (`acervos_de_icone`) caía inteira — o par do NUL do `_dentro`.
+    # `ValueError`, e não só o JSONDecodeError: um pack.json que não é UTF-8
+    # levanta UnicodeDecodeError, e com ele instalado ao lado a ficha de ícone
+    # (`acervos_de_icone`) caía inteira — o par do NUL do `_dentro`.
     except (OSError, ValueError):
         return padrao
     for parte in trilha.split("."):
@@ -698,10 +560,9 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
     chama decide se ela é erro.
     """
     ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
-    # A HERANÇA PODE SER CIRCULAR, E UM PACK DE TERCEIRO PODE ESCREVÊ-LA ASSIM
-    #   Dois packs que herdam um do outro pendurariam o painel num laço infinito.
-    #   O conjunto de vistos custa uma linha e transforma o travamento em "não
-    #   achei", que é uma resposta que a pessoa consegue ler.
+    # Dois packs que herdam um do outro pendurariam o painel num laço infinito.
+    # O conjunto de vistos custa uma linha e transforma o travamento em "não
+    # achei", que é uma resposta que a pessoa consegue ler.
     vistos = set()
     while ref and ref not in vistos:
         vistos.add(ref)
@@ -710,33 +571,16 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
             break
         declarado = campo(ref, categoria)
         if isinstance(declarado, str):
-            # O CAMINHO DECLARADO TEM DE CAIR DENTRO DO PACK [22/09/2026]
-            #   `validar` já aplica o `_dentro` em `icones.*.mapa`, `desenhos` e
-            #   `cosmic.mapa` — e esta função NÃO valida nada antes de ler, como
-            #   o `campo` explica duas telas acima. As duas coisas juntas abriam
-            #   a porta: um pack de terceiro com `"mapa": "../../../etc/algo"`
-            #   era aberto e lido, porque aqui só se perguntava `os.path.exists`.
-            #   O impacto é baixo (lê-se um mapa de ícone), mas a P20 é
-            #   exatamente a sprint do pack de terceiro — e a guarda que o
-            #   validador já escreveu custa três linhas aqui.
+            # `validar` já aplica o `_dentro` em `icones.*.mapa`, `desenhos` e
+            # `cosmic.mapa` — e esta função NÃO valida nada antes de ler, como o
+            # `campo` explica duas telas acima.
             #
-            #   Sair do pack é IGNORAR aquela camada, e não levantar: quem chama
-            #   o `acervo` espera "achei" ou "não achei", e a herança logo abaixo
-            #   ainda pode ter a resposta certa. O que não pode é passar calado —
-            #   o aviso vai para o stderr com o nome do campo, como o do campo
-            #   sem leitor.
+            # Sair do pack é IGNORAR aquela camada, e não levantar: quem chama o
+            # `acervo` espera "achei" ou "não achei", e a herança logo abaixo
+            # ainda pode ter a resposta certa.
             #
-            #   O `_dentro` é usado como GUARDA, e não como resolvedor: o que
-            #   volta continua sendo o `join` de sempre. O `_dentro` devolve
-            #   realpath, e trocar a resposta por ele mudaria o caminho que o
-            #   chamador imprime quando a raiz do pack passa por um link — um
-            #   efeito que este conserto não precisa ter.
-            #   [P78, 09/10/2026: o `_dentro` deixou de ser só GUARDA. Validar
-            #   o realpath e devolver o `join` era validar uma forma e entregar
-            #   outra — a do kernel, que passa por symlink —, o defeito que a
-            #   "A REGRA ÚNICA" (junto do `_dentro`) descreve. O preço que o
-            #   parágrafo acima temia é só o caminho impresso mudar quando a
-            #   raiz do pack passa por um link; o que se abre é o mesmo arquivo.]
+            # Por isso o caminho passa pelo `_dentro` aqui também, e o que se usa é o realpath
+            # que ele conferiu.
             try:
                 alvo = _dentro(dir_pack,
                                os.path.join(declarado, arquivo) if arquivo else declarado,
@@ -747,10 +591,10 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
             if alvo and os.path.exists(alvo):
                 # A barra do fim de uma pasta declarada volta, como no `dir_acervo`.
                 return alvo + os.sep if not arquivo and declarado.endswith("/") else alvo
-        # A HERANÇA DO BLOCO VENCE A DO PACK INTEIRO. O Dracula declara
-        # `heranca: "catppuccin"` no topo E `icones.mimetypes.herda:
-        # "catppuccin"` no bloco — a do bloco é a que fala daquela categoria, e
-        # um pack que herde só uma categoria de outro lugar precisa dela.
+        # O Dracula declara `heranca: "catppuccin"` no topo E
+        # `icones.mimetypes.herda: "catppuccin"` no bloco — a do bloco é a que
+        # fala daquela categoria, e um pack que herde só uma categoria de outro
+        # lugar precisa dela.
         bloco = categoria.rsplit(".", 1)[0]
         ref = campo(ref, bloco + ".herda") or campo(ref, "heranca")
     if motor:
@@ -759,26 +603,14 @@ def acervo(categoria, arquivo="", motor=None, ref=None):
             return alvo
     return None
 
-# O ACERVO ONDE ELE **DEVE** MORAR, EXISTA OU NÃO — 22/09/2026
+# O `acervo` é a porta de quem LÊ: ele devolve None quando o arquivo não
+# existe, e isso é a resposta certa para quem vai abrir.
 #
-# POR QUE ELA NÃO É O `acervo` ACIMA
-#   O `acervo` é a porta de quem LÊ: ele devolve None quando o arquivo não
-#   existe, e isso é a resposta certa para quem vai abrir. Quem ESCREVE precisa
-#   do contrário — o diretório onde o acervo deve nascer, justamente quando ele
-#   ainda não existe. O `gerar_icones_autorais.py` é o caso: num pack novo, o
-#   `icones/autorais/` só passa a existir depois que ele escreve o primeiro
-#   arquivo lá dentro.
+# Sem esta função, cada escritor montaria `<dir do pack>/<declarado>` à mão —
+# que é a mesma divergência silenciosa que o `acervo` veio matar do lado da
+# leitura, entrando de volta pela porta da escrita.
 #
-#   Sem esta função, cada escritor montaria `<dir do pack>/<declarado>` à mão —
-#   que é a mesma divergência silenciosa que o `acervo` veio matar do lado da
-#   leitura, entrando de volta pela porta da escrita.
-#
-# ELA NÃO SOBE A HERANÇA, E ISSO É DE PROPÓSITO
-#   Herdar é dizer "leia do vizinho". Escrever no acervo do vizinho seria um
-#   pack gravando dentro de outro — o Dracula regeraria os autorais dentro do
-#   `packs/catppuccin/`, e o dono do pack base veria arquivo aparecendo sem ter
-#   pedido. Um pack que não declara a categoria recebe o `padrao` e escreve em
-#   casa.
+# Herdar é dizer "leia do vizinho".
 def dir_acervo(categoria, ref=None, padrao=None):
     """O diretório de um acervo do pack, para quem vai ESCREVER nele.
 
@@ -795,51 +627,21 @@ def dir_acervo(categoria, ref=None, padrao=None):
         declarado = padrao_do_formato(ref, padrao)
     # A MESMA GUARDA DO `acervo`, E PELO MESMO MOTIVO: um pack de terceiro com
     # `"desenhos": "../../../algum/lugar"` faria o gerador ESCREVER fora do
-    # pack. Do lado da leitura o estrago é ler um mapa; do lado da escrita é
-    # criar arquivo no disco de quem instalou. Aqui a recusa sobe — quem escreve
-    # não tem uma "próxima camada da herança" para tentar.
-    # [P78: devolve a forma que o `_dentro` conferiu — ver "A REGRA ÚNICA". A
-    #   barra do fim volta quando o pack a escreveu: o `realpath` a come, e é
-    #   com ela que quem chama emenda o nome do arquivo.]
+    # pack.
     real = _dentro(dir_pack, declarado, categoria)
     return real + os.sep if declarado.endswith("/") else real
 
 
-# O PREFIXO `motor:` — A DECISÃO SAI DE `assets/` SEM O ACERVO SAIR JUNTO
+# Essa frase é decisão de TEMA, e o lugar dela é o pack.
 #
-# O QUE ELE RESOLVE [22/09/2026]
-#   Um mapa de pack diz *"o Telegram veste o desenho X"*. Essa frase é decisão
-#   de TEMA, e o lugar dela é o pack. Mas o desenho X pode vir do acervo
-#   Arcticons — 113 SVG de terceiro que são base de conversão, ferramenta
-#   compartilhada, e que não mudam quando se troca de pack.
+# Sem prefixo havia só duas saídas, e as duas eram ruins: ou a decisão fica em
+# `assets/` (e trocar de pack não troca a escolha), ou cada pack carrega uma
+# CÓPIA dos 113 SVG.
 #
-#   Sem prefixo havia só duas saídas, e as duas eram ruins: ou a decisão fica em
-#   `assets/` (e trocar de pack não troca a escolha), ou cada pack carrega uma
-#   CÓPIA dos 113 SVG (e a segunda cópia defasa da primeira calado — é a lição
-#   que a memória do Dracula-OS-Theme já tinha pago em 18/08/2026).
-#
-#   O prefixo é a terceira saída: a linha mora no pack, o arquivo mora no motor.
+# O prefixo é a terceira saída: a linha mora no pack, o arquivo mora no motor.
 #
 #     org.telegram.desktop          : motor:arcticons/telegram.svg
 #     io.github.flattool.Warehouse  : apps/Warehouse.svg
-#
-# A BASE VEM DE QUEM CHAMA, E NÃO DE UMA CONSTANTE AQUI
-#   O `icones_apps_dracula.sh` resolve os caminhos sem prefixo contra o
-#   DIRETÓRIO DO MAPA, e o cabeçalho dele explica por quê: assim o mesmo mapa
-#   serve ao pack e ao endereço antigo sem o script saber em qual dos dois está.
-#   Cravar `<dir do pack>/icones` aqui seria uma segunda verdade sobre essa
-#   raiz, e ela divergiria na primeira vez que um mapa mudasse de pasta.
-#
-# OS DOIS LADOS TÊM GUARDA, E O MOTIVO É O MESMO DO `acervo`
-#   Sem prefixo, o alvo tem de cair dentro da base; com `motor:`, dentro do
-#   acervo do pack-base. Um mapa é DADO, e um pack de terceiro escreve o dado dele:
-#   `motor:../../../etc/algo` seria lido e copiado para o tema de quem instalou.
-#   Três linhas de guarda contra isso é barato.
-#
-# O MOTOR VIROU O PACK-BASE — P88, decisão 14. O acervo de `assets/icones/`
-#   desceu para `packs/meowsystem/icones/`, nas três pastas, e `motor:` passou a
-#   ser `pack:meowsystem:`. As pastas de antes continuam valendo num mapa velho:
-#   `PASTAS_DE_ANTES` diz para onde cada uma foi.
 MOTOR = "motor:"
 PACK_BASE = "meowsystem"
 ACERVO_DO_MOTOR = os.path.join("packs", PACK_BASE, "icones")
@@ -850,11 +652,8 @@ PASTAS_DE_ANTES = {
     "autorais/leitura": "sistema/leitura",
 }
 
-# O ENDEREÇO DE ANTES, NO ESTADO DE QUEM USA — P88. Uma escolha do painel ou uma
-#   linha do `icones-traco.map` gravada antes das três pastas guarda o caminho
-#   de então (`assets/icones/resgatados/x.svg`). Ela continua valendo: quem lê
-#   pergunta aqui, e só troca quando o de antes não existe e o de hoje existe.
-#   `*` é o id de um pack.
+# Uma escolha do painel ou uma linha do `icones-traco.map` gravada antes das
+# três pastas guarda o caminho de então (`assets/icones/resgatados/x.svg`).
 CAMINHOS_DE_ANTES = (
     ("assets/icones/arcticons-apps/", "packs/meowsystem/icones/apps/arcticons/"),
     ("assets/icones/convertidos-apps/", "packs/meowsystem/icones/apps/convertidos/"),
@@ -868,9 +667,9 @@ CAMINHOS_DE_ANTES = (
 )
 
 
-# O PADRÃO DE UM PACK DE ANTES — P88. Um pack `formato` 1 que não declara a
-#   pasta dos autorais a tem em `icones/autorais/`; o de formato 2, dentro de
-#   `apps/`. Quem chama passa o padrão de hoje, e o pack velho recebe o dele.
+# O PADRÃO DE UM PACK DE ANTES. Um pack `formato` 1 que não declara a pasta
+# dos autorais a tem em `icones/autorais/`; o de formato 2, dentro de
+# `apps/`. Quem chama passa o padrão de hoje, e o pack velho recebe o dele.
 PADROES_DE_ANTES = {"icones/apps/autorais/": "icones/autorais/",
                     "icones/biblioteca/feitos-a-mao/": "icones/feitos-a-mao/"}
 
@@ -902,21 +701,14 @@ def caminho_de_hoje(caminho):
             return novo if not os.path.isabs(caminho) else os.path.join(RAIZ, novo)
     return caminho
 
-# O PREFIXO `pack:` — A TERCEIRA FORMA DE UM ALVO, E A ÚLTIMA — 23/09/2026
-#
-#   A P28 fecha a lista de onde um alvo de mapa pode estar, e ela tem três
-#   casas e só três: dentro do próprio pack (sem prefixo), no acervo do motor
-#   (`motor:`) ou dentro de OUTRO pack (`pack:<id>:<caminho>`). É a mesma razão
-#   do `motor:`, um nível ao lado: um pack que queira o Obsidian do Catppuccin
-#   escreve a linha que diz isso, em vez de carregar uma cópia que defasa.
+# É a mesma razão do `motor:`, um nível ao lado: um pack que queira o Obsidian
+# do Catppuccin escreve a linha que diz isso, em vez de carregar uma cópia que
+# defasa.
 #
 #     md.obsidian.Obsidian : pack:catppuccin:apps/obsidian.svg
 #
-#   O `<caminho>` é relativo a `<outro pack>/icones/`, que é onde mora o mapa
-#   de todo pack (a forma de `packs/<id>/icones/` é a mesma para todos, P27). O
-#   `<id>` passa pelo `RE_ID` antes de ir ao `achar`: o `achar` também aceita
-#   CAMINHO, e sem essa guarda `pack:/qualquer/lugar:x` viraria uma quarta
-#   forma de sair da raiz, pela porta que existe para não sair.
+# O `<caminho>` é relativo a `<outro pack>/icones/`, que é onde mora o mapa de
+# todo pack.
 OUTRO_PACK = "pack:"
 
 
@@ -956,38 +748,18 @@ def resolver_alvo(valor, base):
         raiz, resto = base, valor
     if not resto:
         raise Recusa(f"{valor!r} não nomeia arquivo nenhum")
-    # `~/` E CAMINHO ABSOLUTO SÃO RECUSADOS COM O NOME DELES — 23/09/2026
-    #   Um absoluto já caía na guarda do `_dentro` logo abaixo, mas com a frase
-    #   "sai de <raiz>", que manda procurar um `../` que não existe. E o `~/`
-    #   NÃO caía em guarda nenhuma: o `join` o tratava como um diretório
-    #   chamado `~` dentro da base, e a linha passava como alvo ausente — o
-    #   aviso "no mapa mas sem desenho no disco", que manda procurar um desenho
-    #   esquecido e não um mapa apontando para a máquina.
+    # Um absoluto já caía na guarda do `_dentro` logo abaixo, mas com a frase
+    # "sai de <raiz>", que manda procurar um `../` que não existe.
     #
-    #   A P28 achou a forma escrita em 23 linhas de `assets/icones/*.map`, com
-    #   `~/.local/share/icons/...` — o `Dracula-Icones` que o
-    #   `rebuild_dracula_theme()` do Spellbook-OS reescrevia (21/09 16:52:33; a
-    #   P37 o desativou em 23/09, e o Dracula passou a ser montado do pack).
-    #   Medido no dia: ali ela era PROCEDÊNCIA (a coluna do meio do
-    #   `apps-resgatados.map`, que o instalador não lê), e não alvo. Mas nada a
-    #   recusava num mapa de pack, onde ela SERIA alvo: a arte passaria a vir
-    #   de um diretório que outro programa reescreve. Um mapa aponta para o
-    #   pack, para o motor ou para outro pack; arte da máquina entra por CÓPIA,
-    #   com uma linha no PROCEDENCIA.md — é a regra 5, e a frase diz isso.
+    # Um mapa aponta para o pack, para o motor ou para outro pack; arte da
+    # máquina entra por CÓPIA, com uma linha no PROCEDENCIA.md — é a regra 5, e
+    # a frase diz isso.
     if _caminho_da_maquina(resto):
         raise Recusa(f"{valor!r} é um endereço desta máquina, e não do pack. "
                      f"Copie a arte para dentro do pack e registre a origem no "
                      f"PROCEDENCIA.md — ver docs/PACKS.md, 'Fonte e derivados'")
-    # A CHECAGEM É A DO `_dentro`; SÓ A FRASE MUDA
-    #   O `_dentro` diz "sai de dentro do pack", que é a frase certa para ele:
-    #   os cinco campos que ele guarda no `validar` são todos do pack.json. Aqui
-    #   a raiz é o PACK numa metade dos casos e `assets/icones/` na outra, e
-    #   dizer "do pack" sobre um alvo `motor:` mandaria procurar no lugar errado.
-    #   Reimplementar a comparação para trocar a frase seria a segunda definição
-    #   de "está contido", e ela divergiria da primeira — então a conta continua
-    #   sendo dele e só a mensagem é reescrita aqui.
-    #   [P78: e o que volta é o realpath que a conta conferiu, e não o `join`
-    #   — ver "A REGRA ÚNICA", junto do `_dentro`.]
+    # O `_dentro` diz "sai de dentro do pack", que é a frase certa para ele: os
+    # cinco campos que ele guarda no `validar` são todos do pack.json.
     try:
         return _dentro(raiz, resto, "alvo")
     except Recusa:
@@ -1024,72 +796,18 @@ def cmd_alvo(base):
     return OK
 
 
-# --- A FONTE ÚNICA: um nome, um arquivo — P28, 23/09/2026 ------------------
+# --- A FONTE ÚNICA: um nome, um arquivo ------------------
 #
-# A PERGUNTA QUE ISTO RESPONDE
-#   "De onde sai o ícone do Waterfox?" Até hoje responder exigia ler três
-#   mapas e dois scripts: o `apps.map` do pack, o `apps-resgatados.map` do
-#   motor, e os dois instaladores que escrevem no MESMO `scalable/apps/` — cada
-#   um com o seu parser. Dois acervos oferecendo o mesmo nome ali não davam
-#   erro: davam o último que escreveu, e o `meow doctor` "consertando" um para o
-#   outro todo dia.
+# Dois acervos oferecendo o mesmo nome ali não davam erro: davam o último que
+# escreveu, e o `meow doctor` "consertando" um para o outro todo dia.
 #
-# A CAMADA É `scalable/apps`, E SÓ ELA, DE PROPÓSITO
-#   É o diretório onde dois donos disputam o MESMO arquivo. O Arcticons e os
-#   convertidos moram no `48x48/apps`, e um nome que exista lá e aqui não é
-#   empate: é a precedência que ele escolheu com os dois lados na mesa em
-#   16/09/2026 ("Dracula vence tudo", registrado no `icones_apps_dracula.sh`),
-#   com um interruptor que devolve o Arcticons sem apagar nada. Contar aquilo
-#   como "duas fontes" transformaria uma escolha documentada em erro.
+# É o diretório onde dois donos disputam o MESMO arquivo.
 #
-# DENTRO DE `scalable/apps`, O PACK NO AR VENCE O MOTOR — 24/09/2026, P43
-#   A decisão de 23/09 sobre os sete nomes que a P36 deixou de fora: com o
-#   Dracula no ar, o desenho do Dracula vence; com o Catppuccin no ar, a
-#   escolha de antes continua. Dois deles (`guvcview`, `setup-mozc`) são nomes
-#   do `apps-resgatados.map`, e aí não há camada diferente para desempatar: os
-#   dois instaladores escrevem o MESMO arquivo. Medido numa casa de brinquedo
-#   com as linhas já no mapa do Dracula: depois da instalação, o
-#   `icones_resgatados.sh --conferir` saía 1 acusando os dois, e o doctor os
-#   trocaria um pelo outro todo dia — o defeito que a P28 veio extinguir.
-#
-#   A regra "um nome, uma fonte" continua valendo; o que muda é que o empate
-#   pack x motor deixou de ser empate e passou a ter vencedor DECLARADO, aqui,
-#   onde o `fonte`, o `tests/fonte-unica.sh` e o `icones_resgatados.sh`
-#   perguntam. O mapa do pack é decisão de TEMA e o resgate é arte do motor,
-#   igual para todo pack — quem pôs o nome no mapa do pack no ar escolheu
-#   vesti-lo. Com o Catppuccin no ar nenhum mapa de pack nomeia os dois, e o
-#   resgate volta a ser a fonte sem ninguém mexer em nada. O que continua
-#   empate é o mesmo nome duas vezes num mapa só, e esse o `validar` recusa.
-#
-#   SÓ COM A CAMADA LIGADA — 24/09/2026, revisão da P43. A primeira versão
-#   punha o resgate atrás sempre, e a condição `ICONES_DRACULA="sim"` morava
-#   só no `icones_resgatados.sh`: a mesma regra em dois lugares, com condições
-#   diferentes. Medido com o Dracula no ar e a camada desligada (o padrão do
-#   `meow.conf.exemplo`): o `meow icones fonte guvcview` apontava a lente do
-#   Dracula como fonte e dizia "o pack no ar vence o motor", e o arquivo no
-#   tema era o resgate — a linha saía "DIFERE da fonte". Desligada, o
-#   `icones_apps_dracula.sh` não põe nada deste mapa no tema (e tira o que
-#   pôs), então quem vence é o motor, e o lado que fica atrás é o do pack.
-#   A condição mora AQUI e só aqui: o `icones_resgatados.sh` pergunta ao
-#   `fontes` e cede o que ele der ao pack, sem repetir a conta. O interruptor
-#   vem do ambiente, como o `ICONES_FLAVOR` do `flavor-icones`, e o padrão é o
-#   mesmo dos dois instaladores e do `meow icones fonte`.
-#
-# O PARSER É O MESMO DO SHELL, LINHA A LINHA
-#   `nome` é o que vem antes do PRIMEIRO `:`, `alvo` é o resto, e o comentário
-#   é cortado ANTES — o formato de docs/PACKS.md, e o que o `_dracula_pares`
-#   faz com `sed` + `awk` desde 22/09/2026 (o cabeçalho dele conta o dia em que
-#   o `$2` do `awk` truncava o `motor:`). São duas cópias do parser, uma em cada
-#   língua, porque o shell não pode importar esta e esta não pode chamar aquela
-#   sem pagar uma partida de `bash` por mapa. O `tests/fonte-unica.sh` confere
-#   as duas contra o mesmo mapa.
+# Dois deles (`guvcview`, `setup-mozc`) são nomes do `apps-resgatados.map`, e aí
+# não há camada diferente para desempatar: os dois instaladores escrevem o MESMO
+# arquivo.
 
-# O outro mapa que também escreve em `scalable/apps`. A coluna do meio dele
-# é PROCEDÊNCIA (onde o PNG foi achado em 11/09/2026) e ninguém a instala — o
-# desenho é sempre `<desenhos>/<nome>.svg`, e é só o NOME que se lê daqui, como
-# o `icones_resgatados.sh` faz (`NF>=3`, primeiro campo).
-# [P88, decisão 16: os resgatados têm cor Dracula fixa e desceram do motor para
-#   o `packs/dracula` (`icones.resgatados`); com outro pack no ar, nenhum vale.]
+# O outro mapa que também escreve em `scalable/apps`.
 CATEGORIA_RESGATADOS = "icones.resgatados"
 
 
@@ -1121,32 +839,13 @@ def _pack_de(caminho):
     return "?"
 
 
-# A ESCOLHA DO PAINEL MORA COM QUEM USA, E VENCE — 09/10/2026, sprint P73 (I3)
-#
-# A REGRESSÃO: desde a P60 (25/09) o «Usar este ícone» com um desenho do pack
-#   gravava a linha no `apps.map` do pack, DENTRO do clone. A P21 (21/09) tinha
-#   dito o contrário — «usar o programa não pode sujar o repositório», e gravar
-#   no pack só «por gesto explícito, não por uso». Medido em 09/10: o `git
-#   status` do dev com ` M packs/dracula/icones/apps.map`, a linha do
-#   ghostwriter escolhida no painel. E o `.meowpack` exportava a escolha junto.
-#   (Ver I3 em docs/sprints/2026-10-09-uso-real/01-regressoes.md.)
-#
-# A CURA: a escolha vai para um arquivo do ESTADO de quem usa, ao lado do
-#   meow.conf — `icones-escolhidos.map`, no formato dos mapas de pack:
-#
 #     org.kde.ghostwriter : packs/dracula/icones/apps/org.gnome.gitlab.somas.Apostrophe.svg   # ghostwriter — escolhido no painel
 #
-#   O alvo é o caminho do desenho a partir da raiz do MeowSystem (absoluto
-#   quando o desenho mora num pack de fora dela, em `~/.local/share/
-#   meowsystem/packs`). Qualquer pasta da ficha vale, de qualquer pack: a
-#   decisão 3 de 09/10 pôs todos os acervos na ficha. Levar a escolha para o
-#   mapa do pack continua existindo, como o gesto explícito «Levar para o pack»
-#   do painel — o `_escolher_do_pack` do servidor, que é o código da P60.
+# O alvo é o caminho do desenho a partir da raiz do MeowSystem (absoluto quando
+# o desenho mora num pack de fora dela, em `~/.local/share/ meowsystem/packs`).
 #
 # A ESCOLHA VENCE O PACK E O MOTOR, com a camada ligada ou não: quem escolheu
-#   um desenho para um app à mão decidiu, e é isso que o `fontes` diz. O
-#   `icones_apps_dracula.sh` a põe no `scalable/apps` (é o dono daquela camada
-#   para os mapas), e o `icones_resgatados.sh` a cede como cede o pack.
+# um desenho para um app à mão decidiu, e é isso que o `fontes` diz.
 def arquivo_de_escolhas():
     """O caminho do `icones-escolhidos.map` de quem usa (exista ou não)."""
     if os.environ.get("MEOW_ICONES_ESCOLHAS"):
@@ -1163,15 +862,10 @@ def _alvo_de_escolha(alvo):
     da raiz do MeowSystem ou de uma raiz de packs: o arquivo é da pessoa, mas o
     que ele aponta vai para o tema, e uma linha não pode puxar `/etc/` para lá.
     """
-    # [P78: era `normpath` para conferir o link e devolver, e `realpath` para
-    #   conferir a raiz — duas formas. O `normpath` corta `a/../b` no texto, e
-    #   o kernel, se `a` for symlink, sobe a partir do destino do link. Agora a
-    #   forma é uma só, a do `realpath`, e é ela que volta: ver "A REGRA ÚNICA".
-    #   O "não é link" continua no caminho como foi escrito, porque é o arquivo
-    #   da linha que não pode ser link.]
+    # Uma forma só, a do `realpath`, e é ela que volta: o `normpath` corta `a/../b` no
+    # texto, e o kernel sobe a partir do destino quando `a` é link.
     alvo = caminho_de_hoje(alvo)
     escrito = alvo if os.path.isabs(alvo) else os.path.join(RAIZ, alvo)
-    # [P82: e a pasta dos desenhos que quem usa enviou pelo painel.]
     reais = [os.path.realpath(r) for r in [RAIZ] + raizes() + [pasta_de_enviados()]]
     real = os.path.realpath(escrito)
     _exigir(any(real.startswith(r + os.sep) for r in reais),
@@ -1193,8 +887,8 @@ def escolhas_do_painel():
     saida = []
     for num, nome, alvo in linhas:
         try:
-            # O NOME TAMBÉM É DADO — P78. Ele vira `<nome>.svg` no tema, e uma
-            # linha `../../x : …` escrevia `~/.local/share/x.svg`, fora dele.
+            # O NOME TAMBÉM É DADO. Ele vira `<nome>.svg` no tema, e uma linha
+            # `../../x : …` escrevia `~/.local/share/x.svg`, fora dele.
             _exigir(nome_de_destino(nome),
                     f"{nome!r}: o nome do ícone só tem letras, dígitos e . _ + -, "
                     f"sem '/' nem '..'")
@@ -1257,17 +951,16 @@ def fontes_e_atras(ref=None):
             for linha in fh:
                 campos = linha.split("#", 1)[0].split(":")
                 nome = campos[0].strip()
-                # O nome é dado de pack (P78): só o de conjunto fechado vira arquivo.
+                # O nome é dado de pack: só o de conjunto fechado vira arquivo.
                 if len(campos) >= 3 and nome and nome_de_destino(nome):
                     do_motor.append(
                         (nome, _relativo(os.path.join(pasta_resg, nome + ".svg")), "resgatados"))
-    # O padrão é ligada (P74 item 3, 09/10/2026): só o "nao" escrito desliga,
-    # a mesma régua do `icones_apps_dracula.sh`.
+    # O padrão é ligada: só o "nao" escrito desliga, a mesma régua do
+    # `icones_apps_dracula.sh`.
     ligada = (os.environ.get("ICONES_DRACULA") or "sim") != "nao"
     vence = {nome for nome, _fonte, _camada in (do_pack if ligada else do_motor)}
     atras = [linha for linha in (do_motor if ligada else do_pack) if linha[0] in vence]
-    # A ESCOLHA DO PAINEL VENCE AS DUAS — P73, ver "A ESCOLHA DO PAINEL MORA COM
-    # QUEM USA" acima. O que ela nomeia vai para trás, do pack e do motor.
+    # O que ela nomeia vai para trás, do pack e do motor.
     escolhas = [(nome, _relativo(arq), "escolha") for _num, nome, arq in escolhas_do_painel()]
     escolhidos = {nome for nome, _f, _c in escolhas}
     atras += [linha for linha in do_pack + do_motor
@@ -1289,10 +982,7 @@ def cmd_fonte(nome, ref):
         print(f"{nome}\t{fonte}\t{camada}")
     # O LADO QUE FICOU ATRÁS É DITO, E NÃO ESCONDIDO: quem pergunta "de onde
     # sai o guvcview?" com o Dracula no ar precisa saber que o outro desenho
-    # existe e volta sozinho quando o interruptor ou o pack mudar. No stderr,
-    # para o stdout continuar sendo uma linha por fonte que vale — o formato
-    # que o `meow icones fonte` lê. O valor do interruptor sai do ambiente, e
-    # não escrito aqui: é o que a pessoa tem no meow.conf.
+    # existe e volta sozinho quando o interruptor ou o pack mudar.
     chave = os.environ.get("ICONES_DRACULA") or "sim"
     escolhido = any(c == "escolha" for _f, c in achadas)
     for _n, fonte, camada in (a for a in atras if a[0] == nome):
@@ -1322,41 +1012,13 @@ def cmd_fonte(nome, ref):
     return OK
 
 
-# --- SINCRONIZAR: a cópia e a origem, lado a lado — regra 8 da P28 ----------
+# Sem caminho de volta, a cópia defasa e ninguém percebe.
 #
-# POR QUE ELE SÓ LÊ, E ISSO NÃO É CAUTELA DE ENFEITE [23/09/2026]
-#   A regra 5 manda COPIAR arte de terceiro para dentro do pack, e a cópia
-#   congela: a origem é outro repositório, que continua andando (em 23/09 era o
-#   `Dracula-Icones`, reconstruído dele pelo `rebuild_dracula_theme()` do
-#   Spellbook-OS — que a P37 desativou lá no mesmo dia). Sem caminho de volta,
-#   a cópia defasa e ninguém percebe.
+# Ele diz qual lado andou e imprime o `cp` para quem decidir; o gesto é da
+# pessoa.
 #
-#   Mas o caminho de volta não pode copiar sozinho. Uma arte retocada AQUI
-#   depois da cópia é trabalho de alguém, e um `git pull` do outro repositório
-#   não pode apagá-la — é a frase da P28, e é o motivo de este verbo não ter
-#   um ramo que escreva. Ele diz qual lado andou e imprime o `cp` para quem
-#   decidir; o gesto é da pessoa.
-#
-# QUAL LADO ANDOU: o registro decide
-#   Só com a cópia e a origem na mão não dá para saber quem mudou — as duas
-#   diferem, e é tudo. O `sha256` do PROCEDENCIA.md é o terceiro ponto: é a
-#   cópia no dia da cópia. Com ele, "a cópia mudou e a origem não" é retoque
-#   daqui, e "a origem mudou e a cópia não" é o upstream.
-#
-# `lido de` VAZIO É SÓ REGISTRO — 24/09/2026, P43
-#   A decisão de 23/09 sobre o Dracula foi "aposentar tudo": o `meow doctor` e
-#   este verbo deixam de ler o repositório de onde a arte do pack veio, que só
-#   existe na máquina de quem o escreveu. Era a última leitura, em execução, de
-#   um caminho da casa de alguém — 364 das 365 linhas daquele PROCEDENCIA.md
-#   apontavam para lá. A coluna `lido de` ficou VAZIA nelas, e a origem
-#   continua escrita como texto na coluna `de onde`.
-#
-#   Vazio, e não a coluna removida: a tabela é a mesma que o `exportar` lê
-#   para a licença (`_licencas`), e sem uma das três colunas ele recusaria
-#   reempacotar o pack inteiro. A linha vazia é contada como "só registro": o
-#   arquivo do pack ainda tem de existir, e nada fora do pack é aberto por ela.
-#   A comparação continua de pé para quem escreve `lido de` — um pack de
-#   terceiro, ou a linha do guvcview, cuja origem é o próprio motor.
+# QUAL LADO ANDOU: o registro decide Só com a cópia e a origem na mão não dá
+# para saber quem mudou — as duas diferem, e é tudo.
 COLUNAS_PROCEDENCIA = ("arquivo", "lido de", "sha256")
 
 
@@ -1423,11 +1085,9 @@ def cmd_sincronizar(ref):
             # Sem `lido de`, sem origem: é só registro (ver o bloco acima).
             origem = _origem(lido) if lido else ""
             _exigir(RE_SHA256.match(reg), f"sha256 {reg!r} não tem 64 hex")
-            # A MESMA EXTENSÃO NOS DOIS LADOS. A coluna `lido de` é dado de
-            # quem escreveu o pack, e um pack de terceiro escreve o dele: sem
-            # esta linha, `~/.ssh/id_ed25519` seria aberto e teria o sha256
-            # impresso na tela. Comparar um `.svg` com outra coisa não é
-            # sincronizar arte — então não se abre.
+            # A coluna `lido de` é dado de quem escreveu o pack, e um pack de
+            # terceiro escreve o dele: sem esta linha, `~/.ssh/id_ed25519`
+            # seria aberto e teria o sha256 impresso na tela.
             _exigir(not origem
                     or os.path.splitext(origem)[1].lower() == os.path.splitext(aqui)[1].lower(),
                     f"lido de {lido!r} não é o mesmo tipo de arquivo que {arquivo!r}")
@@ -1485,55 +1145,20 @@ def cmd_sincronizar(ref):
     print(f"\n  {resumo}")
     return RECUSADO if andou else OK
 
-# --- OS DESENHOS AUTORAIS, DECLARADOS — 23/09/2026, sprint P26 --------------
+# --- OS DESENHOS AUTORAIS, DECLARADOS --------------
 #
-# O QUE ESTAVA ESCRITO ANTES, E POR QUE NÃO SERVIA
-#   O `gerar_icones_autorais.py` abria dizendo "Desenha os ícones dos DOIS
-#   aplicativos da Vitória: FogStripper, Hefesto". Um gerador bom — nasce da
-#   paleta, por papel, e sobrevive ao flavor claro — que servia dois
-#   aplicativos NOMEADOS NO PYTHON. Um terceiro não entrava sem editar código,
-#   e um pack de terceiro não tinha como trazer desenho nenhum.
+# Cada `icones/autorais/<nome>.json` descreve UM desenho, no vocabulário que o
+# gerador já usava por dentro: papéis (`sujeito`, `tinta`, `fundo`...) que
+# resolvem na paleta do flavor, e o SVG com uma lacuna `{papel}` onde a cor
+# entra.
 #
-# O DESENHO VIRA DADO, E O DADO MORA NO PACK
-#   Cada `icones/autorais/<nome>.json` descreve UM desenho, no vocabulário que o
-#   gerador já usava por dentro: papéis (`sujeito`, `tinta`, `fundo`...) que
-#   resolvem na paleta do flavor, e o SVG com uma lacuna `{papel}` onde a cor
-#   entra. Os SVG gerados nascem AO LADO, como `<nome>-<flavor>.svg` — a mesma
-#   pasta que o `icones.autorais.desenhos` já declara.
-#
-#   `desenhos` CONTINUA SENDO UM DIRETÓRIO, e a spec da P26 pedia outra coisa:
-#   `"desenhos": "icones/autorais/*.json"`. Ela foi escrita em 21/09, antes de
-#   a P27 dar a esse campo, no dia seguinte, o sentido de "a pasta onde os
-#   autorais deste pack moram" — é por ele que o gerador sabe onde ESCREVER. Um
-#   glob ali quebraria o `dir_acervo` do gerador, o `onde` do
-#   `completar_icones.sh` e o `_contar_acervo` do `info`, e os quatro `desenhos`
-#   do formato deixariam de ser a mesma coisa. As declarações são os `.json`
-#   daquela pasta; nenhum campo novo foi preciso.
-#
-# AS REGRAS, E CADA UMA É UMA RECUSA COM O QUE CONSERTAR
-#   · o nome do arquivo é o nome do desenho, com a regra do id de pack;
-#   · cada papel diz a cor no flavor `escuro` e no `claro`, por NOME da paleta —
-#     um dos 26 que todo pack é obrigado a ter, ou `<accent>`, o acento que a
-#     pessoa escolheu. Por isso uma declaração serve a QUALQUER pack: o alucard
-#     do Dracula nasce dela sem redesenho, como nasceu em 22/09;
-#   · nenhum hex no SVG. É a regra que o gerador cumpre desde que nasceu, pelo
-#     mesmo motivo: SVG escrito à mão sai fora da paleta sem ninguém notar;
-#   · toda lacuna tem papel, e todo papel tem lacuna. Um papel declarado e não
-#     usado é a promessa vazia que o `CAMPOS_COM_LEITOR` caça no pack.json;
-#   · nada de script, `foreignObject`, `on*=` ou `href` para fora. Um pack de
-#     terceiro escreve o dado dele, e este SVG vai para o tema de quem instala.
+# Um glob ali quebraria o `dir_acervo` do gerador, o `onde` do
+# `completar_icones.sh` e o `_contar_acervo` do `info`, e os quatro `desenhos`
+# do formato deixariam de ser a mesma coisa.
 MARCA_ACCENT = "<accent>"
-# A PASTA DE QUEM NÃO DECLARA `desenhos` — 23/09/2026, revisão da P26
-#   O modelo de pack do docs/PACKS.md declara só `"autorais": { "gerar": true }`.
-#   Para esse pack o `dir_acervo` do gerador e do «Salvar no pack» cai no
-#   padrão e ESCREVE em `icones/autorais/`, e o `autorais()` lia só a pasta
-#   DECLARADA — então não lia nada ali. Medido na revisão, numa cópia
-#   descartável: `validar` ok, `construir` ok com 22 SVG e nenhum do desenho
-#   novo; e pelo painel, «salvo no pack» com `foto` em red, e o SVG regerado
-#   saindo em overlay0 — a declaração herdada vencia a cópia que acabara de ser
-#   gravada. Leitura e escrita perguntam agora ao mesmo `dir_acervo`, com este
-#   padrão; o `DESTINO` do gerador e o `onde` do `completar_icones.sh` passam o
-#   mesmo texto, e os três têm de continuar iguais.
+# Para esse pack o `dir_acervo` do gerador e do «Salvar no pack» cai no padrão e
+# ESCREVE em `icones/autorais/`, e o `autorais()` lia só a pasta DECLARADA —
+# então não lia nada ali.
 PASTA_AUTORAIS = "icones/apps/autorais/"
 LACUNAS_DO_GERADOR = ("titulo",)
 RE_PAPEL = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -1565,9 +1190,6 @@ def ler_autoral(caminho):
         raise Recusa(f"{arq}: não consegui ler — {e}")
     _exigir(isinstance(dados, dict), f"{arq}: precisa ser um objeto JSON")
 
-    # O CAMPO DESCONHECIDO É RECUSA, E NÃO AVISO como no pack.json: aqui não há
-    # "a sprint seguinte vai ler" — um `papel` no lugar de `papeis` é erro de
-    # digitação, e aceitá-lo calado geraria o desenho sem cor nenhuma.
     estranhos = [k for k in dados if not str(k).startswith("_") and k not in CAMPOS_DO_AUTORAL]
     _exigir(not estranhos,
             f"{arq}: campo(s) que uma declaração não tem: {', '.join(sorted(estranhos))}.\n"
@@ -1655,10 +1277,9 @@ def autorais(ref=None):
         dir_pack = achar(ref)
         if not dir_pack:
             break
-        # A PASTA É A DO `dir_acervo`, COM O MESMO PADRÃO — ver `PASTA_AUTORAIS`.
-        #   Vale em toda camada, e não só na do próprio pack: um pack base sem
-        #   `desenhos` lê as declarações dele em `icones/autorais/`, e quem o
-        #   herda tem de ver o mesmo conjunto que ele vê.
+        # Vale em toda camada, e não só na do próprio pack: um pack base sem
+        # `desenhos` lê as declarações dele em `icones/autorais/`, e quem o
+        # herda tem de ver o mesmo conjunto que ele vê.
         try:
             pasta = dir_acervo("icones.autorais.desenhos", ref=dir_pack,
                                padrao=PASTA_AUTORAIS)
@@ -1676,28 +1297,13 @@ def autorais(ref=None):
 
 # --- A CAPTURA DE TEMA, E DE QUEM ELA É -------------------------------------
 #
-# A FRONTEIRA, EM UMA FRASE [22/09/2026]
-#   `assets/` é o que o MeowSystem É; `packs/` é o que ele VESTE. Uma captura de
-#   tema é a fotografia de um tema — ela veste. Até esta data as cinco moravam
-#   juntas em `assets/temas/capturados/`, e o `docs/PACKS.md` prometia, desde
-#   que nasceu, `packs/<id>/temas/capturados/<flavor>-<accent>/`. Era promessa
-#   sem lastro: nenhum pack conseguia trazer a própria captura pronta, porque
-#   nada sabia procurá-la lá dentro.
+# `assets/` é o que o MeowSystem É; `packs/` é o que ele VESTE. Era promessa sem
+# lastro: nenhum pack conseguia trazer a própria captura pronta, porque nada
+# sabia procurá-la lá dentro.
 #
-# A `original` FICA NO MOTOR, E NÃO É ESQUECIMENTO
-#   Ela não é tema de pack nenhum: é o MOLDE do esquema v1 que o COSMIC de
-#   04/2026 escrevia (`gerar_tema_v1.py` deriva dela, chave por chave) e o reset
-#   de fábrica DESTA máquina. O `capturar_tema.sh` recusa recapturá-la, então
-#   fora do git ela é irrecuperável. Quem vai mexer no destino dela é a P24 —
-#   ela já a chama de `referencia/` — e antecipar aquilo aqui seria decidir por
-#   uma sprint que ainda não rodou.
-#
-# POR QUE UMA FUNÇÃO, E NÃO UM CAMINHO CRAVADO EM CADA LEITOR
-#   Eram NOVE lugares montando `$RAIZ/assets/temas/capturados/$par` à mão — o
-#   `bin/meow` em quatro, o `install.sh`, o `lib/preflight.sh`, o `vidro.sh`, o
-#   `greeter.sh`, o `aplicar_tema.sh`. Com a captura dentro do pack, nove
-#   caminhos cravados viram nove jeitos de não achar o mesmo arquivo. É o
-#   mesmo argumento que fez nascer o `acervo`, três telas acima.
+# Ela não é tema de pack nenhum: é o MOLDE do esquema v1 que o COSMIC de 04/2026
+# escrevia (`gerar_tema_v1.py` deriva dela, chave por chave) e o reset de
+# fábrica DESTA máquina.
 CAPTURAS_DO_MOTOR = os.path.join("assets", "temas", "capturados")
 CAPTURAS_NO_PACK = os.path.join("temas", "capturados")
 CATEGORIA_CAPTURA = "temas.capturados"
@@ -1758,11 +1364,11 @@ def captura(par, ref=None):
     Devolve None quando não existe em lugar nenhum — ausência é resposta, e quem
     chama decide se ela é erro.
     """
-    # O PAR É NOME, E A CAPTURA FICA DENTRO DA PASTA DE CAPTURAS — P78
-    #   O `aplicar_tema.sh` copia a captura inteira para ~/.config/cosmic: uma
-    #   `temas/capturados/<par>` que fosse symlink para fora levaria para lá o
-    #   que estivesse no destino do link. O par passa pela régua de nome, e a
-    #   pasta, pelo `_dentro` da pasta de capturas.
+    # O `aplicar_tema.sh` copia a captura inteira para ~/.config/cosmic: uma
+    # `temas/capturados/<par>` que fosse symlink para fora levaria para lá o
+    # que estivesse no destino do link.
+    # Por isso o par passa pela régua de nome, e a pasta, pelo `_dentro` da pasta de
+    # capturas.
     if not nome_de_destino(par):
         return None
     for ident, dir_pack in _cadeia(_ref_ativa(ref)):
@@ -1793,7 +1399,7 @@ def captura_destino(par, ref=None):
     """
     if par == CAPTURA_DO_MOTOR:
         return os.path.join(RAIZ, CAPTURAS_DO_MOTOR, par)
-    # O par vira pasta dentro do pack: a régua de nome da "A REGRA ÚNICA" (P78).
+    # O par vira pasta dentro do pack: a régua de nome da "A REGRA ÚNICA".
     if not nome_de_destino(par):
         return None
     ref = _ref_ativa(ref)
@@ -1926,41 +1532,15 @@ def tema_de_app(categoria, ref=None):
     return None, None
 
 
-# --- O PONTEIRO PRÓPRIO — 23/09/2026, sprint P12 ----------------------------
+# --- O PONTEIRO PRÓPRIO ----------------------------
 #
-# O "HERDADO" DO PONTEIRO ERA FOLCLORE, E FOI MEDIDO
-#   `origens.cursores` só aceitava `herda`. O Dracula declara `herda:
-#   "catppuccin"`, o `meow pack info` imprimia "HERDADO de catppuccin" — e o
-#   `packs/catppuccin/pack.json` não declara ponteiro nenhum. Mais: NENHUMA
-#   linha do `scripts/cursor.sh` perguntava ao pack. O ponteiro saía da chave
-#   CURSOR do meow.conf e, sem ele no disco, do release pinado do
-#   `catppuccin/cursors`, o mesmo para todo pack. A herança existia só na tela.
+# `cursores/<nome>/cursors/` — a forma de todo tema de ponteiro, a mesma que o
+# `cursor.sh adicionar` já instala.
 #
-# `proprio` É UM TEMA XCURSOR DENTRO DO PACK, E ENTRA COMO QUALQUER OUTRO
-#   `cursores/<nome>/cursors/` — a forma de todo tema de ponteiro, a mesma que o
-#   `cursor.sh adicionar` já instala. O `cursor.sh` pergunta AQUI antes de
-#   baixar: se a chave CURSOR nomeia o ponteiro do pack, ele entra do pack, sem
-#   rede, pelo mesmo `_cursor_instalar_pasta` de um tema de terceiro. Quem
-#   ESCOLHE continua sendo a chave — "o meow.conf vence" (docs/PACKS.md).
+# O `_cursor_nome_seguro` troca por `-` o que estiver fora de [A-Za-z0-9._-] e
+# come o `.`/`-` da frente antes de o nome virar diretório.
 #
-# O NOME TEM O ALFABETO DA PENEIRA DO `cursor.sh`, E SÓ ELE
-#   O `_cursor_nome_seguro` troca por `-` o que estiver fora de [A-Za-z0-9._-] e
-#   come o `.`/`-` da frente antes de o nome virar diretório. Um nome que ele
-#   MUDASSE seria instalado com um nome e oferecido pelo painel com outro — o
-#   clique que sai baixando da rede, que a P17 tirou da tela duas vezes. Então o
-#   formato só aceita o nome que aquela peneira deixa como está.
-#
-# O VALOR PERDE O `-cursors`, PELA REGRA DO `cursor.sh`
-#   O `_cursor_instalar_pasta` instala `<nome>` como `<nome>-cursors` e anuncia
-#   o valor sem o sufixo; o `_cursor_nome_tema` o põe de volta. É o que faz
-#   `cursores/dracula-roxo/` ser escolhido por `CURSOR="dracula-roxo"`.
-#
-# TODO ARQUIVO DO TEMA CAI DENTRO DELE
-#   Um tema Xcursor é feito de links (`left_ptr -> default`, dezenas deles). O
-#   `cursor.sh` copia o diretório inteiro com `cp -a`, que copia o LINK, e um
-#   `cursors/x -> /etc/algo` iria parar em `~/.local/share/icons/` apontando
-#   para fora. É a regra do `realpath` que o formato aplica a todo caminho
-#   declarado, levada para dentro do diretório declarado.
+# Um tema Xcursor é feito de links (`left_ptr -> default`, dezenas deles).
 CATEGORIA_PONTEIRO = "origens.cursores.proprio"
 SUFIXO_PONTEIRO = "-cursors"
 RE_NOME_PONTEIRO = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,79}$")
@@ -1987,13 +1567,8 @@ def conferir_ponteiro(tema, campo=CATEGORIA_PONTEIRO):
     _exigir(any(os.path.isfile(os.path.join(tema, "cursors", c)) for c in PONTEIROS_DE_REPOUSO),
             f"{campo}: {nome}/cursors/ não tem {' nem '.join(PONTEIROS_DE_REPOUSO)} —\n"
             f"    é o ponteiro de repouso, o primeiro que aparece na tela.")
-    # O LINK QUE NÃO LEVA A NADA — achado da revisão da P12, 23/09/2026.
-    #   `cursors/hand -> hand2` sem o `hand2` cai DENTRO do tema pelo `realpath`
-    #   e passava. Medido num HOME de brinquedo: `validar` saía 0, e o `aplicar`
-    #   reinstalava o tema em toda passagem, sem convergir. O ponteiro que o link
-    #   promete não existe, e o autor do pack é quem tem de saber — aqui, e não
-    #   na máquina de quem instalou. (O `cursor.sh` compara o link como link
-    #   desde o mesmo dia; ver `_cursor_instalar_pasta`.)
+    # `cursors/hand -> hand2` sem o `hand2` cai DENTRO do tema pelo `realpath` e
+    # passava.
     for base, dirs, arqs in os.walk(tema):
         for n in dirs + arqs:
             rel = os.path.relpath(os.path.join(base, n), tema)
@@ -2008,34 +1583,13 @@ def conferir_ponteiro(tema, campo=CATEGORIA_PONTEIRO):
                     f"    ou tire-o.")
 
 
-# --- A ARTE QUE O PACK BAIXA, PINADA — 24/09/2026, sprint P41 ---------------
+# --- A ARTE QUE O PACK BAIXA, PINADA ---------------
 #
-# O QUE NÃO CABE DENTRO DO PACK, MEDIDO
-#   A base de ícones do Dracula é o `m4thewz/dracula-icons` — 24.958 SVG no
-#   ramo `circle`, contados no pacote do commit em 24/09/2026. Copiá-los para o repositório seria
-#   congelar arte de terceiro, que é o modo de falha que o PROCEDENCIA.md do
-#   pack conta ter vivido. E o ponteiro Dracula tem 66 links entre os 113
-#   ponteiros: dentro do pack, o `exportar` o recusaria, porque um pack viaja
-#   com cópias (`_arquivos_do_pack`). Os dois são do tipo que o projeto já
-#   BAIXA em vez de copiar — a JetBrainsMono do `instalar_fontes.sh`, o
-#   `catppuccin/cursors` do `cursor.sh` —, e o pack passa a poder declarar a
-#   mesma coisa: a receita, e não os megabytes.
+# {"url": "https://…", "sha256": "<64 hex>", "pasta": "<dentro do pacote>"}
+# `url` é um .tar (gz ou xz): o arquivo de um commit no GitHub e o asset de um
+# release são isso.
 #
-# UMA FORMA SÓ, PARA OS DOIS
-#   {"url": "https://…", "sha256": "<64 hex>", "pasta": "<dentro do pacote>"}
-#   `url` é um .tar (gz ou xz): o arquivo de um commit no GitHub e o asset de
-#   um release são isso. `sha256` é o do PACOTE, e é o pino — sem ele a URL
-#   entrega o que quiser. `pasta` é onde, no pacote aberto, está o tema; ela
-#   vira caminho no disco de quem instala, então vai nome por nome, sem `..` e
-#   sem barra na frente. O ponteiro acrescenta `nome`, o valor que a chave
-#   CURSOR escreve para escolhê-lo — o diretório de dentro do pacote tem o nome
-#   que o autor dele quis, e não o que a chave usa.
-#
-# QUEM BAIXA É O SHELL, NUNCA ESTE ARQUIVO
-#   O `pack.py` não escreve fora do pack (ver o `plano_de_uso`). Aqui se diz o
-#   que a origem é e se confere a forma; o `construir_icones.sh` e o
-#   `cursor.sh` baixam, conferem o sha256, abrem num temporário e só então
-#   instalam.
+# O `pack.py` não escreve fora do pack (ver o `plano_de_uso`).
 EXT_PACOTE = (".tar.gz", ".tgz", ".tar.xz", ".txz")
 RE_PASTA_PACOTE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]*(/[A-Za-z0-9_][A-Za-z0-9._-]*)*$")
 
@@ -2146,36 +1700,17 @@ def ponteiro(ref=None):
             "valor": valor_do_ponteiro(os.path.basename(tema))}
 
 
-# --- AS FONTES DE TEXTO — 23/09/2026, sprint P12 ----------------------------
+# --- AS FONTES DE TEXTO ----------------------------
 #
-# POR QUE `tipografia`, E NÃO `fontes`
-#   Em português "fonte" é a tipografia e é a origem. A P28 tomou o verbo
-#   `fontes` para "de onde sai cada ícone"; reaproveitar o nome aqui faria o
-#   `tests/fonte-unica.sh` e quem chama `pack.py fontes` receberem outra coisa,
-#   calados. A CHAVE do pack.json é `fontes` — é como quem escreve um pack
-#   procura —; o VERBO é `tipografia`.
+# Em português "fonte" é a tipografia e é a origem. A CHAVE do pack.json é
+# `fontes` — é como quem escreve um pack procura —; o VERBO é `tipografia`.
 #
-# O QUE O MOTOR JÁ FAZ, E O QUE O PACK ACRESCENTA
-#   O `instalar_fontes.sh` instala a JetBrainsMono Nerd Font pinada e aponta o
-#   terminal para ela, para todo pack — isso continua do motor. O que era
-#   impossível era um pack TRAZER fontes. Agora ele declara uma lista, e ela
-#   entra em `~/.local/share/fonts/MeowSystem/pack/`, um diretório de dono
-#   único: trocar de pack tira as fontes do pack anterior, que é o que "a
-#   fonte é do pack" quer dizer.
+# O `instalar_fontes.sh` instala a JetBrainsMono Nerd Font pinada e aponta o
+# terminal para ela, para todo pack — isso continua do motor.
 #
-# DUAS FORMAS, E CADA UMA COM A REGRA QUE O FORMATO JÁ TEM
-#   {"arquivo": "fontes/X.otf"}                 dentro do pack — o `realpath`
-#   {"nome": "X.ttf", "url": "https://…",       fora dele — o `https://` e o
-#    "sha256": "<64 hex>"}                      conteúdo pinado, como a Nerd Font
-#   A URL aponta para UM arquivo de fonte, e não para um pacote: abrir .zip ou
-#   .tar é o que o `adicionar` do mesmo script faz pelas mãos dela, com ela
-#   olhando. Um pack instala sozinho, e o que entra sozinho é o que se confere
-#   byte a byte.
-#
-# A HERANÇA É DO BLOCO INTEIRO, COMO NOS TEMAS DE APLICATIVO
-#   O primeiro pack da cadeia que declara `fontes.proprio` responde, e a lista
-#   dele é a lista — uma fonte não "falta" e desce ao vizinho. `[]` é "este pack
-#   não traz fonte, e não herda": é como um pack diz isso.
+# Duas formas: `{"arquivo": "fontes/X.otf"}` dentro do pack, pelo `realpath`; ou
+# `{"nome", "url": "https://…", "sha256"}` fora dele, com o conteúdo pinado. A URL
+# é de um arquivo de fonte, nunca de um pacote: o que entra sozinho se confere byte a byte.
 CATEGORIA_FONTES = "fontes"
 EXT_FONTE = (".ttf", ".otf")
 # O nome vira nome de arquivo em `~/.local/share/fonts/` e viaja numa linha
@@ -2214,8 +1749,6 @@ def _fontes_declaradas(dir_pack, lista, trilha="fontes.proprio"):
             _exigir(cabeca in ASSINATURAS_DE_FONTE,
                     f"{aqui}.arquivo: {arq!r} não é TrueType nem OpenType por dentro —\n"
                     f"    a extensão diz fonte, os primeiros bytes não.")
-            # [P78: a origem é o `alvo` que o `_dentro` conferiu, e não o `join`
-            #   — ver "A REGRA ÚNICA", junto do `_dentro`.]
             nome, origem, soma = os.path.basename(arq), alvo, ""
         else:
             _exigir(chaves == {"nome", "url", "sha256"},
@@ -2262,56 +1795,16 @@ def tipografia(ref=None):
     return None, []
 
 
-# --- A BASE DE ÍCONES — 24/09/2026, sprint P41 -------------------------------
+# --- A BASE DE ÍCONES -------------------------------
 #
-# O QUE ELA É, E O BURACO QUE ELA FECHA
-#   O `MeowSystem-Icons` desenha uma parte dos ícones e HERDA o resto
-#   (`Inherits=` do index.theme, escrito pelo `construir_icones.sh`). Até aqui o
-#   herdado era sempre a chave `ICONES_BASE`, com o `Papirus-Dark` de fábrica.
-#   Medido em 23/09/2026: numa máquina vestida de Dracula, os 191 aplicativos
-#   do `icones/apps.map` saíam no desenho do pack e todo o resto saía Papirus.
-#   Nesta máquina não, porque o meow.conf dela diz `ICONES_BASE="Dracula-Icones"`
-#   — uma cópia em `~/.local/share/icons` que o `rebuild_dracula_theme` do
-#   Spellbook montava, e que a P37 desligou. Em qualquer outra, o Dracula caía
-#   no Papirus. "O pack traz a base" (decisão de 23/09): `icones.base.origem` é
-#   a base declarada, baixada e conferida por quem constrói o tema.
+# O `MeowSystem-Icons` desenha uma parte dos ícones e HERDA o resto (`Inherits=`
+# do index.theme, escrito pelo `construir_icones.sh`).
 #
 # QUEM VENCE — A ORDEM DO "Quem vence" DO docs/PACKS.md
 #   1. `ICONES_BASE` escrito à mão, diferente do de fábrica, vence: é o tema
 #      que a pessoa escolheu, e o meow.conf manda na máquina.
 #   2. O de fábrica (`Papirus-Dark`, ou vazio) cede à base que o pack declara.
 #   3. Sem base na cadeia, vale o de fábrica, como sempre valeu.
-#
-# `Papirus-Dark` ESCRITO À MÃO É TRATADO COMO O DE FÁBRICA
-#   Depois do `.` do meow.conf só se vê o valor, e todo meow.conf copiado do
-#   `meow.conf.exemplo` antes desta sprint TEM `ICONES_BASE="Papirus-Dark"`.
-#   Tratá-lo como escolha faria o Dracula continuar caindo no Papirus
-#   justamente em quem já instalou. É a mesma troca que o `flavor_de_icones`
-#   faz com o `ICONES_FLAVOR` igual ao `FLAVOR`, e pelo mesmo motivo. O preço
-#   está dito no docs/PACKS.md: com um pack que traz base, o `Papirus-Dark` não
-#   se escolhe por esta chave — escrevê-lo é o mesmo que deixá-la de fábrica.
-#
-# E A NOSSA PRÓPRIA BASE, ESCOLHIDA PELO NOME, É "A DO PACK" — revisão da P41
-#   O `construir_icones.sh` instala a base em `<NOME_TEMA_ICONES>-Base`, e a
-#   «Base de ícones» do painel oferece todo tema instalado (o `_temas_de_icones`
-#   só tira da lista o `NOME_TEMA_ICONES`). Escolher o `MeowSystem-Icons-Base`
-#   ali é pedir a base do pack, e não um tema com esse nome: ele só existe
-#   enquanto o pack no ar o traz. A primeira versão tinha essa exceção só no
-#   shell, e medido pela revisão em 24/09/2026: o verbo `base-icones` respondia
-#   `quem=conf` e o `info` dizia "vale o ICONES_BASE="MeowSystem-Icons-Base" do
-#   meow.conf", enquanto o construir herdava da base do pack. A regra mora no
-#   `_base_escolhida`, uma vez, e o shell lê a resposta do verbo. O sufixo
-#   `-Base` é o que o `construir_icones.sh` usa para o nome do diretório; o
-#   `tests/pack.sh` cobra que os dois concordam.
-#
-# O NOME DE FÁBRICA É CONFERIDO CONTRA O meow.conf.exemplo
-#   É o valor que a chave traz de fábrica, e ela mora lá. A constante existe
-#   porque este arquivo não lê o exemplo em execução; o `tests/pack.sh` cobra
-#   que os dois digam o mesmo, e o dia em que o exemplo mudar, o teste diz.
-#
-# A HERANÇA É DO BLOCO INTEIRO, como a das fontes: responde o primeiro pack da
-#   cadeia que declara `icones.base.origem`; `icones.base.herda` vence a
-#   `heranca`.
 CATEGORIA_BASE = "icones.base"
 ICONES_BASE_DO_EXEMPLO = "Papirus-Dark"
 
@@ -2324,8 +1817,8 @@ def _base_escolhida(pedido):
     """
     pedido = (pedido or "").strip()
     nossa = (os.environ.get("NOME_TEMA_ICONES") or "").strip() or "MeowSystem-Icons"
-    # As camadas de trás da base (P74 item 2) moram em `<nossa>-Base-<n>`, e
-    # escolher uma delas pelo nome também é pedir a base do pack.
+    # As camadas de trás da base moram em `<nossa>-Base-<n>`, e escolher uma
+    # delas pelo nome também é pedir a base do pack.
     if re.fullmatch(re.escape(nossa) + r"-Base(-[0-9]+)?", pedido):
         return ""
     return "" if pedido in ("", ICONES_BASE_DO_EXEMPLO) else pedido
@@ -2347,8 +1840,8 @@ def base_de_icones(ref=None):
         bloco = campo(ref, CATEGORIA_BASE)
         if isinstance(bloco, dict) and not bloco.get("herda") and "origem" in bloco:
             quem = campo(ref, "id") or os.path.basename(dir_pack)
-            # `por_tras` (P74 item 2): as camadas que ficam atrás da frente, na
-            # ordem do `Inherits=`. Vazia num pack que traz uma base só.
+            # `por_tras`: as camadas que ficam atrás da frente, na ordem do
+            # `Inherits=`. Vazia num pack que traz uma base só.
             atras = [origem_pinada(c.get("origem") if isinstance(c, dict) else None,
                                    f"{CATEGORIA_BASE}.por_tras[{i}].origem")
                      for i, c in enumerate(bloco.get("por_tras") or [])]
@@ -2378,33 +1871,8 @@ def base_que_vale(ref, pedido):
     return "motor", ICONES_BASE_DO_EXEMPLO, None
 
 
-# --- A ÁRVORE DOS APELIDOS — 09/10/2026, P74 item 1 (I1/I2) ------------------
-#
-# O DEFEITO, MEDIDO
-#   O `construir_pastas.sh` e o `completar_icones.sh` liam a chave crua e
-#   montavam `/usr/share/icons/$ICONES_BASE`. Com o conf dizendo
-#   `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, que mora em
-#   `~/.local/share/icons`), os dois diziam "não está instalado" e as pastas
-#   coloridas sumiram por sete passadas do doctor (01-regressoes.md, I1/I2).
-#   A regra de quem vence já morava no `_base_escolhida`, e só dois leitores a
-#   perguntavam.
-#
-# POR QUE NÃO É A MESMA RESPOSTA DO `base_que_vale`
-#   Esses dois não herdam a base: eles COPIAM dela desenhos com nome de
-#   Papirus — os links `folder-blue-*` que o papirus-folders recolore, a
-#   lixeira cinza, o `64x64/apps/cs-sources.svg`. A base de um pack (a do
-#   Dracula é a m4thewz, com `scalable/places` e sem `folder-blue`) não tem
-#   essa árvore, e nem é o papel dela. Então a regra é a mesma, e o que muda é
-#   o que "ceder" quer dizer: o `ICONES_BASE` escolhido à mão vence (é o tema
-#   que a pessoa pôs e é dele que ela quer as pastas), e o que cede — fábrica,
-#   vazio, o nome da nossa própria base — cai no Papirus-Dark de fábrica, o
-#   companheiro do papirus-folders que o `install.sh` instala como
-#   pré-requisito da etapa de pastas.
-#
-# ONDE O TEMA ESTÁ É PERGUNTA AO DISCO, NOS LUGARES DA ESPECIFICAÇÃO
-#   `$XDG_DATA_HOME/icons`, `~/.icons` e `<XDG_DATA_DIRS>/icons`, nessa ordem —
-#   a do resolvedor. O `/usr/share/icons/` cravado era o segundo meio do
-#   defeito: um tema escolhido à mão em `~/.local/share/icons` nunca era achado.
+# `$XDG_DATA_HOME/icons`, `~/.icons` e `<XDG_DATA_DIRS>/icons`, nessa ordem — a
+# do resolvedor.
 def dir_de_tema_de_icones(nome):
     """O diretório do tema de ícones `nome` no disco, ou "" se ele não está."""
     if not nome or "/" in nome or nome in (".", ".."):
@@ -2422,21 +1890,9 @@ def dir_de_tema_de_icones(nome):
     return ""
 
 
-# --- O NOME E O COMENTÁRIO DO TEMA MONTADO — 09/10/2026, P74 item 4 (T7) -----
-#
-# O DEFEITO, MEDIDO
-#   O `index.theme` do tema montado dizia `Comment=Catppuccin $FLAVOR para o
-#   COSMIC` com qualquer pack no ar (`construir_icones.sh`), e o tema se chama
-#   `MeowSystem-Icons` em qualquer pack: um tema exportado do Dracula chegaria
-#   à outra máquina dizendo Catppuccin, e dois exportados (o escuro e o claro)
-#   cairiam no mesmo diretório.
-#
-# O NOME É DO PACK E DO FLAVOR, E SÓ O EXPORTADO O USA
-#   `MeowSystem-<Nome>-<Flavor>-Icons`, com o flavor omitido quando ele é o
-#   próprio pack (o `dracula` do Dracula): `MeowSystem-Dracula-Icons`,
-#   `MeowSystem-Dracula-Alucard-Icons`, `MeowSystem-Catppuccin-Mocha-Icons`.
-#   O tema instalado nesta máquina continua `NOME_TEMA_ICONES` (o COSMIC, o
-#   painel e o doctor o leem por esse nome); trocá-lo é outra decisão.
+# `MeowSystem-<Nome>-<Flavor>-Icons`, com o flavor omitido quando ele é o
+# próprio pack (o `dracula` do Dracula): `MeowSystem-Dracula-Icons`,
+# `MeowSystem-Dracula-Alucard-Icons`, `MeowSystem-Catppuccin-Mocha-Icons`.
 #
 # O COMENTÁRIO É O DO PACK: o nome, o flavor e a frase curta da vitrine.
 def _so_letras(texto):
@@ -2459,15 +1915,8 @@ def tema_de_icones(ref=None, flavor=""):
     return "-".join(partes + ["Icons"]), comentario.replace("\n", " ")
 
 
-# --- O QUE O PACK ESCONDE DO LANÇADOR — 09/10/2026, P74 item 9 (T5) ----------
-#   Os 30 overrides de `.desktop` que o tema Dracula de antes trazia (a pasta
-#   `overrides/` do Dracula_OS-Theme), medidos na P37: 3 mostram e já são
-#   feitos por outros módulos (o `appid.map`, o do zapzap, o
-#   `icones_absolutos.sh`); 27 escondem do menu. A decisão de 24/09 foi
-#   «migrar para o pack», e a P42 a devolveu sem cumprir («esconder é gosto de
-#   uma casa»). O pack declara a lista em `lancador.ocultar`, e o
-#   `ocultar_apps.sh` a soma à do conf. A herança é a do pack inteiro: o
-#   primeiro da cadeia que declara a lista responde.
+# O pack declara a lista em `lancador.ocultar`, e o `ocultar_apps.sh` a soma à
+# do conf.
 RE_DESKTOP_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$")
 
 
@@ -2526,33 +1975,23 @@ def _exigir(cond, msg):
         raise Recusa(msg)
 
 
-# A REGRA ÚNICA DO DADO DE PACK — P78, 09/10/2026
-#   Um pack pode vir de terceiros (`meow pack importar`, ou um `git clone` na
-#   raiz da pessoa, que traz symlink), e tudo o que vem dele — campo do
-#   pack.json, linha de mapa, arquivo de pasta de desenho — é dado não
-#   confiável. Seis alertas automáticos da onda 1 da leva G acharam o mesmo
-#   defeito em seis lugares: o caminho era CONFERIDO numa forma (o `realpath`
-#   aqui, um `normpath`, um `startswith` no texto) e USADO noutra (o `join`
-#   cru, que o kernel resolve passando por symlink). Validar uma forma e abrir
-#   outra é o "parser differential" do alerta.
+# Um pack pode vir de terceiros (`meow pack importar`, ou um `git clone` na
+# raiz da pessoa, que traz symlink), e tudo o que vem dele — campo do
+# pack.json, linha de mapa, arquivo de pasta de desenho — é dado não confiável.
 #
-#   Por isso as duas metades da regra moram aqui, e só aqui (a gêmea em shell é
-#   o `meow_dentro`/`meow_nome_seguro` do lib/comum.sh, com a mesma conta):
-#     1. `_dentro`: o caminho resolve com `realpath` — que segue todo symlink,
-#        do meio e do fim — e só vale se cair DENTRO da raiz permitida. O que
-#        volta é essa forma resolvida, e é ELA que quem chama abre ou copia:
-#        nunca o `join` que entrou.
-#     2. `nome_de_destino`: um nome que vira arquivo do lado de cá (`<nome>.svg`
-#        no tema) só de `[A-Za-z0-9._+-]`, sem `..`.
-#   Quem chama decide o que a recusa custa: o `validar` recusa o pack, o leitor
-#   de mapa pula a linha e conta.
+# A REGRA ÚNICA: conferir numa forma e abrir noutra é o defeito. As duas metades
+# moram aqui (a gêmea em shell é o `meow_dentro`/`meow_nome_seguro`):
+#   1. `_dentro`: o caminho resolve com `realpath` e só vale DENTRO da raiz; quem
+#      chama abre o que ele devolve, nunca o `join` que entrou.
+#   2. `nome_de_destino`: nome que vira arquivo do lado de cá, só
+#      `[A-Za-z0-9._+-]`, sem `..`.
 RE_NOME_DESTINO = re.compile(r"^[A-Za-z0-9._+-]+$")
 
 
 def nome_de_destino(nome):
     """True quando `nome` serve de nome de arquivo do lado de cá: sem '/', sem '..'."""
     # `fullmatch`, e não `match` com `$`: o `$` do Python também casa ANTES de
-    # um `\n` final, e `"x\n"` passava (medido na conferência da P78).
+    # um `\n` final, e `"x\n"` passava.
     return isinstance(nome, str) and bool(RE_NOME_DESTINO.fullmatch(nome)) \
         and ".." not in nome and nome != "."
 
@@ -2583,12 +2022,10 @@ def _dentro(base, alvo, campo):
 
     Devolve o realpath, e é ele que se usa daqui em diante — ver "A REGRA ÚNICA".
     """
-    # O NUL TAMBÉM É RECUSA, E NÃO TRACEBACK (conferência da P78). Um
-    #   `"mapa": "x\u0000y"` no pack.json é JSON válido, e o `realpath` levanta
-    #   ValueError, que nenhum chamador espera: um pack assim na raiz da pessoa
-    #   derrubava a `/api/glifos` inteira (a ficha de ícone de TODO pack), com
-    #   a conexão fechada sem resposta. Como Recusa, ele cai no "esta camada foi
-    #   ignorada" de cada chamador, igual a um `../`.
+    # `"mapa": "x\u0000y"` no pack.json é JSON válido, e o `realpath` levanta
+    # ValueError, que nenhum chamador espera: um pack assim na raiz da pessoa
+    # derrubava a `/api/glifos` inteira (a ficha de ícone de TODO pack), com a
+    # conexão fechada sem resposta.
     try:
         cheio = os.path.realpath(os.path.join(base, alvo))
     except (TypeError, ValueError):
@@ -2598,96 +2035,25 @@ def _dentro(base, alvo, campo):
     return cheio
 
 
-# --- A PALETA ENTRA POR CSV — 23/09/2026, sprint P16 ------------------------
+# --- A PALETA ENTRA POR CSV ------------------------
 #
-# O PEDIDO, NAS PALAVRAS DELE
-#   *"a ideia é darmos via json ou csv um theme completo."* O `paleta.json` tem
-#   `ordem_canonica`, `claros`, `nomes` e `flavors` — natural para quem
-#   programa. O designer que ele descreve tem outra coisa na mão: 26 cores numa
-#   coluna do Figma. Vinte e seis linhas `slot,flavor,hex` é o que ele já sabe
-#   fazer, e é a única coisa que este bloco pede.
+# Nenhum leitor do projeto passa a entender CSV. Este bloco o traduz UMA vez
+# para o `paleta.json` equivalente, e dali em diante é o JSON que manda — um
+# formato de leitura e um de escrita.
 #
-# O CSV É ENTRADA; O JSON CONTINUA SENDO A FORMA CANÔNICA
-#   Nenhum leitor do projeto passa a entender CSV. Este bloco o traduz UMA vez
-#   para o `paleta.json` equivalente, e dali em diante é o JSON que manda — um
-#   formato de leitura e um de escrita. Dois formatos aceitos em todo leitor
-#   seriam cada consumidor de paleta escolhendo, por conta própria, qual dos
-#   dois vence quando os dois estão no pack: a divergência silenciosa do
-#   cabeçalho deste arquivo.
-#
-# FUNÇÃO PURA, E O VERBO SÓ IMPRIME
-#   `paleta_de_csv` lê o CSV e a régua, e devolve o dicionário: não escreve em
-#   lugar nenhum. O verbo `de-csv` o imprime no STDOUT, como o `logo-gerado`, e
-#   quem põe o arquivo num pack é a pessoa, com `>`.
-#
-# O `novo --de-csv` E O `.csv` DA TELA ENTRARAM DEPOIS DA P11 [23/09/2026]
-#   A sprint pede `meow pack novo <id> --de-csv <arquivo>` (item 2) e a tela
-#   de importar aceitando `.csv` (item 5). A primeira metade da P16 os deixou
-#   por fazer, porque o `novo`, o `/api/pack-importar` e a tela de importar
-#   nascem na P11, que não tinha entrado no dev (medido então: zero `novo` no
-#   `bin/meow`, zero `pack-importar` no servidor e no app.js do dev 249d60a).
-#   Um segundo `novo` escrito em paralelo seria o conflito que ninguém
-#   resolveria igual duas vezes. A P11 entrou (8f50bd8), e a segunda metade
-#   ligou os dois — ver `montar_novo`, onde o CSV vira PACK, e não só paleta:
-#     · a paleta vem desta seção (`paleta_de_csv`), e a régua e a notícia do
-#       claro derivado saem pela `_noticiar_csv`, a mesma do `cmd_de_csv`;
-#     · o `flavor_padrao` é o primeiro flavor do CSV, o mesmo de onde o claro
-#       se deriva;
-#     · a `heranca` é o pack PADRÃO, sem a qual ícones, ponteiro e papéis de
-#       parede não subiriam para pack nenhum;
-#     · os ícones AUTORAIS nascem construídos, nas cores do CSV — ver
-#       `_autorais_construidos`, que diz por que o CSV precisa e o `novo` do
-#       pack no ar não.
-#   O `importar` de um `.csv` solto — a porta da tela — chama o MESMO
-#   `montar_novo`: uma regra só para "este CSV vira este pack", e os dois
-#   verbos diferem só em ONDE escrevem, cada um pelo motivo do seu cabeçalho.
-#
-# O CLARO DERIVADO É O MÉTODO DO ALUCARD, E NÃO UM SEGUNDO
-#   As três regras de docs/PACKS.md, "Se o seu tema não tem um claro", viraram
-#   código uma vez só: `scripts/derivar_claro.py`, em 19/09/2026, que gerou o
-#   `alucard`. Aquele script cravava o `dracula` na leitura e gravava num
-#   arquivo de /tmp, então não servia de biblioteca, e ele não estava entre os
-#   arquivos da P16. O `derivar_claro` abaixo é o MESMO algoritmo, passo a passo
-#   e com os mesmos números (S < 0,10, 12 tentativas de -0,07 em S, 40 passos de
-#   busca, o ajuste do `text` até 7,02). A prova de que não é um método novo é
-#   medida, e o `tests/pack.sh` a cobra: dadas as 26 cores do `dracula`, ele
-#   devolve o `alucard` versionado — 26 de 26 iguais.
-#   UMA CÓPIA SÓ DESDE 23/09/2026 (P34). A P16 deixou as duas lado a lado e
-#   disse que unificá-las era mexer no `derivar_claro.py`. Foi o que se fez: o
-#   `main()` dele chama esta função e imprime o claro no STDOUT, sem gravar em
-#   /tmp. A história das três correções continua lá, onde foi aprendida, e o
-#   `tests/pack.sh` cobra que as duas portas — o script e o `de-csv` — dão o
-#   mesmo claro.
-#
-# A RÉGUA É O LATTE DO PACK PADRÃO, NOMEADO
-#   O método se chama "do Latte" porque a calibração É o Latte, e o
-#   `derivar_claro.py` explica por que ela não acompanha o pack ativo: a régua
-#   mudaria junto com o tema e o resultado deixaria de ser reprodutível. O
-#   arquivo sai do `dir_padrao()`, que é a porta do nome do pack padrão; o
-#   flavor, desta constante. Um padrão futuro sem `latte` faz a derivação parar
-#   com o nome do que falta, e não inventar outra régua calada.
+# `paleta_de_csv` lê o CSV e a régua, e devolve o dicionário: não escreve em
+# lugar nenhum.
 REFERENCIA_CLARA = "latte"
 COLUNAS_CSV = ("slot", "flavor", "hex")
 RE_FLAVOR_CSV = re.compile(r"^[a-z0-9]+$")   # ver "O FLAVOR É [a-z0-9]", abaixo
-# O nome do claro derivado é o do escuro com `claro` colado. Colado porque
-# nome de flavor não tem hífen (ver o `validar`, 19/09/2026), e com o nome do
-# escuro na frente porque o `.ron` do COSMIC é gravado por flavor: dois packs
-# feitos de CSV com um flavor chamado só `claro` disputariam o mesmo arquivo.
+# O nome do claro derivado é o do escuro com `claro` colado.
 SUFIXO_DO_CLARO = "claro"
 
-# NÃO PIOR QUE O LATTE É "NÃO ABAIXO DE 95% DELE", E ISTO FOI MEDIDO
-#   O docs/PACKS.md diz "cada slot não pior que o Latte no mesmo slot". Lido ao
-#   pé da letra, o próprio `alucard` reprova em 21 dos 26 slots — `rosewater`
-#   2,32 contra 2,34, `mauve` 4,76 contra 4,79 —, porque a derivação MIRA a
-#   luminância do Latte e o arredondamento para hexa cai um centésimo abaixo.
-#   A régua que o gerou é 95% (`derivar_claro.py`, e o `_comentario` da paleta
-#   do Dracula diz o mesmo com todas as letras). É ela que vale aqui: uma régua
-#   que reprova o precedente que a define é uma régua errada.
 TOLERANCIA_DA_REGUA = 0.95
 MINIMO_TEXTO = 7.0     # `text` sobre `base`, WCAG AAA — é onde a pessoa lê
 # Abaixo disto o `validar` RECUSA; a régua só avisa. É ESTA constante que o
-# `validar` lê [revisão da P16, 23/09/2026]: com o 4.5 escrito nos dois lugares,
-# mudar o piso de um deixaria o aviso da régua prometendo uma recusa que não vem.
+# `validar` lê: com o 4.5 escrito nos dois lugares, mudar o piso de um deixaria
+# o aviso da régua prometendo uma recusa que não vem.
 MINIMO_VALIDAR = 4.5
 
 
@@ -2773,9 +2139,9 @@ def regua_de_contraste(dados, referencia):
                             if r_text < MINIMO_VALIDAR else ""))
         for s in SLOTS:
             # O `text` que já saiu pela régua absoluta não sai de novo pela
-            # relativa [revisão da P16, 23/09/2026]: reprovado nas duas, ele
-            # aparecia duas vezes na lista, e a contagem do aviso dizia uma
-            # reprovação a mais do que as que existem.
+            # relativa: reprovado nas duas, ele aparecia duas vezes na
+            # lista, e a contagem do aviso dizia uma reprovação a mais do
+            # que as que existem.
             if s == "text" and r_text < MINIMO_TEXTO:
                 continue
             r = contraste(cores[s], cores["base"])
@@ -2795,10 +2161,10 @@ def claros_derivados(dados):
     causa de uma etiqueta; quem recusa é o `validar`, na porta de quem publica.
     """
     deriv = dados.get("derivados")
-    # O `claros` também: o `validar` cobra a chave e não o tipo, e um
-    # `claros: null` levantava TypeError aqui — fora do try do
-    # `packs_com_vitrine`, derrubando o /api/packs de TODOS os packs por causa
-    # da etiqueta de um só. Medido na revisão da P16, 23/09/2026.
+    # O `claros` também: o `validar` cobra a chave e não o tipo, e um `claros:
+    # null` levantava TypeError aqui — fora do try do `packs_com_vitrine`,
+    # derrubando o /api/packs de TODOS os packs por causa da etiqueta de um
+    # só.
     claros = dados.get("claros")
     if not isinstance(deriv, dict) or not isinstance(claros, list):
         return {}
@@ -2836,10 +2202,8 @@ def paleta_de_csv(caminho):
     _exigir(corpo, f"{nome}: está vazio. A primeira linha é o cabeçalho "
                    f"{','.join(COLUNAS_CSV)}, e depois uma linha por cor.")
     n_cab, cab = corpo[0]
-    # O PONTO E VÍRGULA GANHA DICA, E NÃO ACEITAÇÃO [revisão da P16, 23/09/2026]
-    #   O Excel em português salva "CSV" com ';', porque a vírgula é o decimal
-    #   daqui — é o CSV mais provável de chegar. Adivinhar o separador seria um
-    #   segundo formato de entrada; dizer o que houve custa uma linha.
+    # O Excel em português salva "CSV" com ';', porque a vírgula é o decimal
+    # daqui — é o CSV mais provável de chegar.
     dica = ("\n    O separador é a vírgula, e este arquivo usa ';' — é como o Excel em\n"
             "    português salva. Troque os ';' por ',' e rode de novo."
             if len(cab) == 1 and ";" in cab[0] else "")
@@ -2858,20 +2222,12 @@ def paleta_de_csv(caminho):
             erros.append(f"{nome}:{num}: slot desconhecido {slot!r}. Os 26 nomes estão\n"
                          f"    em docs/PACKS.md, 'As 26 cores', e são minúsculos.")
             continue
-        # O FLAVOR É [a-z0-9], E NÃO "QUALQUER COISA SEM HÍFEN" [revisão da P16,
-        #   23/09/2026]. Medido na revisão: 'a/b', 'Tinta' e 'x$(id)' passavam,
-        #   como 'Meu Tema' antes do 5dd3c32. O nome vai para três lugares que
-        #   não o aguentam: o
-        #   '<flavor>-<accent>' do arquivo de tema (a barra vira diretório), o
-        #   `FLAVOR=` do meow.conf, que o `bin/meow` lê com `.` (o '$(id)' é
-        #   comando), e o painel, que compara flavor SEM caixa (o
-        #   `_pack_do_sabor`, em app/servidor.py, baixa os dois lados) enquanto
-        #   o arquivo de tema é gravado COM caixa — 'Tinta' e 'tinta' seriam um
-        #   flavor para um e dois para o outro. Minúsculas, como os seis
-        #   flavors versionados. Esta porta é a do CSV, e é ela que fecha aqui;
-        #   o `validar` tem a mesma folga desde antes, e ela fica dita, não mexida.
-        # Uma vez por flavor, na primeira linha dele: o nome se repete nas 26
-        # linhas, e 26 cópias da mesma recusa enterravam os outros erros.
+        # O nome vai para três lugares que não o aguentam: o '<flavor>-<accent>'
+        # do arquivo de tema (a barra vira diretório), o `FLAVOR=` do meow.conf,
+        # que o `bin/meow` lê com `.` (o '$(id)' é comando), e o painel, que
+        # compara flavor SEM caixa (o `_pack_do_sabor`, em app/servidor.py,
+        # baixa os dois lados) enquanto o arquivo de tema é gravado COM caixa —
+        # 'Tinta' e 'tinta' seriam um flavor para um e dois para o outro.
         if not RE_FLAVOR_CSV.match(flavor):
             if flavor not in flavor_recusado:
                 flavor_recusado.add(flavor)
@@ -2891,10 +2247,9 @@ def paleta_de_csv(caminho):
         if not RE_HEX.match(hexcor):
             erros.append(f"{nome}:{num}: {slot} = {hexcor!r} não é #RRGGBB")
             continue
-        # MAIÚSCULAS, PORQUE É A FORMA CANÔNICA [revisão da P16, 23/09/2026]:
-        # as 146 cores com letra das duas paletas versionadas são todas
-        # maiúsculas, e o claro derivado sai do `_hexa` assim. Um CSV minúsculo
-        # dava uma paleta com as duas caixas, o escuro de um jeito e o claro do outro.
+        # MAIÚSCULAS, PORQUE É A FORMA CANÔNICA: as 146 cores com letra das duas
+        # paletas versionadas são todas maiúsculas, e o claro derivado sai do
+        # `_hexa` assim.
         flavors.setdefault(flavor, {})[slot] = hexcor.upper()
     for flavor in dict.fromkeys(f for f, _ in onde):
         faltam = [s for s in SLOTS if (flavor, s) not in onde]
@@ -2918,9 +2273,7 @@ def paleta_de_csv(caminho):
         nomes[novo] = f"{nomes[escuro]} claro"
         claros, derivados[novo] = [novo], escuro
 
-    # Sem sprint e sem data [revisão da P16, 23/09/2026]: a paleta é de quem a
-    # gerou, e um "(P16, 23/09/2026)" cravado em toda saída se lia como a data
-    # da geração, que é outra. A história do verbo mora neste arquivo.
+    # A história do verbo mora neste arquivo.
     comentario = (f"Gerada de {nome} pelo `meow pack de-csv`. O CSV foi a "
                   f"ENTRADA; esta paleta.json é a forma canônica, e é ela que o MeowSystem "
                   f"lê: edite aqui, ou gere de novo a partir do CSV.")
@@ -2941,11 +2294,9 @@ def paleta_de_csv(caminho):
 
 def cmd_de_csv(caminho):
     """Imprime o `paleta.json` do CSV. O que é notícia vai no STDERR."""
-    # O PREFIXO É DO CSV, E NÃO DE PACK [revisão da P16, 23/09/2026]. Pela porta
-    #   geral do `main`, um CSV torto saía "erro pack recusado: cores.csv:1: …",
-    #   sem pack nenhum envolvido — e quem lê "pack" vai procurar num pack.json.
-    #   A régua entra no mesmo try porque ela também lê o Latte do pack padrão,
-    #   e a falta dele é o mesmo "o CSV não virou paleta", não outra notícia.
+    # Pela porta geral do `main`, um CSV torto saía "erro pack recusado:
+    # cores.csv:1: …", sem pack nenhum envolvido — e quem lê "pack" vai procurar
+    # num pack.json.
     try:
         dados = paleta_de_csv(caminho)
         reprovados = regua_de_contraste(dados, _referencia_clara())
@@ -2974,12 +2325,7 @@ def _noticiar_csv(caminho, dados, reprovados, arq):
         print(f"  --   {claro}: claro derivado de {escuro!r} pelo método do Latte — "
               f"não é próprio.\n"
               f"       Para ter o seu, traga as 26 linhas dele no CSV.", file=arq)
-    # A RÉGUA AVISA E NÃO BLOQUEIA, E O CÓDIGO DE SAÍDA CONTINUA 0
-    #   A sprint é explícita: "a régua é do projeto; a decisão é de quem fez o
-    #   tema". Medido em 23/09/2026: as cores oficiais do Dracula reprovam em
-    #   três slots contra o Latte (`blue` 3,03 contra 4,34, `red` e `surface0`),
-    #   e bloquear aqui recusaria o tema que o próprio projeto já veste. O que
-    #   não pode é o silêncio: a lista inteira sai, e antes do JSON.
+    # O que não pode é o silêncio: a lista inteira sai, e antes do JSON.
     if reprovados:
         print(f"  aviso {len(reprovados)} abaixo da régua de contraste (docs/PACKS.md) — "
               f"não bloqueia, a decisão é sua:", file=arq)
@@ -3013,30 +2359,13 @@ def id_do_csv(caminho):
     return ident
 
 
-# --- O LOGO DO PACK — 23/09/2026, sprint P25 --------------------------------
+# --- O LOGO DO PACK --------------------------------
 #
-# O PEDIDO, NAS PALAVRAS DELE
-#   *"precisa usar um svg pra cada logo do theme pack, o icon do menu de
-#   lançamento."* Até aqui um pack era um `id` e 26 hexadecimais: nenhum dos
-#   dois tinha um único SVG que o representasse. O mockup de 21/09 desenhou a
-#   capa do cartão como uma TIRA DE CORES — e tira de cor é paleta, não
-#   identidade: dois packs de paleta parecida ficam indistinguíveis no cartão.
+# Quem precisa do logo pergunta a `logo()`.
 #
-# O ARQUIVO É O QUE A `vitrine.capa` NOMEIA, E `logo.svg` NA FALTA DELA
-#   A P15 dá à vitrine o campo `capa`, e a capa É o logo — P25 faz o logo, P15
-#   faz o resto da vitrine, e o campo é um só. A primeira versão desta seção
-#   dizia "o nome é fixo, não há campo", e a revisão de 23/09 mediu o conflito:
-#   um pack com `"capa": "cara.svg"` teria a capa num arquivo e o logo cobrado
-#   noutro, duas verdades para a mesma figura. Então o campo manda quando existe;
-#   sem ele (os packs de antes da P15), vale `packs/<id>/logo.svg`, a convenção
-#   que o próprio campo recomenda. Quem precisa do logo pergunta a `logo()`.
-#
-# COBRADO DE QUEM PUBLICA, NUNCA DE QUEM USA — ver o bloco "o logo" do `validar`.
-#
-# AS CORES SAEM DA PALETA, POR PAPEL — NENHUM HEX É DIGITADO NO DESENHO
-#   É a regra que o `gerar_icones_autorais.py` cumpre no cabeçalho dele, levada
-#   para um arquivo que é DADO, e não código: cada forma do logo declara, na
-#   `class`, o PAPEL que ela cumpre, e o papel resolve para um dos 26 nomes.
+# É a regra que o `gerar_icones_autorais.py` cumpre no cabeçalho dele, levada
+# para um arquivo que é DADO, e não código: cada forma do logo declara, na
+# `class`, o PAPEL que ela cumpre, e o papel resolve para um dos 26 nomes.
 #
 #       class="fundo"           fill   <- base
 #       class="tinta"           fill   <- text
@@ -3044,20 +2373,6 @@ def id_do_csv(caminho):
 #       class="traco-<papel>"   stroke <- o mesmo papel, no traço
 #       class="<um dos 26>"     fill   <- o nome direto, para quem precisar de
 #                                         uma quarta cor sem cravar hex
-#
-#   É o que faz o logo acompanhar o flavor claro SEM REDESENHO: no Latte o
-#   `text` escurece e o `base` clareia sozinhos, e um logo descrito por papel
-#   se inverte junto. A P27 mediu a mesma coisa nos onze autorais do alucard —
-#   as três cores do `cosmic-term-alucard.svg` não coincidem com nenhuma do
-#   latte, porque o desenho nasceu da paleta e não de uma cópia.
-#
-# O BLOCO `<style id="meow-papeis">` É SAÍDA, E ESTÁ NO ARQUIVO POR UM MOTIVO
-#   Sem ele o logo aberto cru — num editor de SVG, na prévia do git, num `<img>`
-#   — é um quadrado preto: toda forma sem `fill` é preta. Quem desenha precisa
-#   VER as cores enquanto desenha. Então o arquivo versionado leva o bloco
-#   resolvido para o `flavor_padrao`, e `logo()` o REESCREVE a cada resolução.
-#   O que manda é a `class`; o bloco é só a prévia. Um logo de terceiro sem
-#   papel nenhum, com hex fixo, não é recusado: ele só não acompanha o flavor.
 LOGO = "logo.svg"
 SVG_NS = "{http://www.w3.org/2000/svg}"
 ACCENT_NO_LOGO = "__ACCENT__"
@@ -3069,28 +2384,18 @@ PAPEIS_DO_LOGO = {
 # O MESMO PADRÃO DO RESTO DO PROJETO, E NÃO UMA ESCOLHA NOVA: `${ACCENT:-mauve}`
 # no `completar_icones.sh`, `--accent default="mauve"` no gerador de autorais.
 ACCENT_PADRAO_DO_LOGO = "mauve"
-# ASPAS DOS DOIS TIPOS, E O BLOCO AUTOFECHADO — revisão de 23/09/2026. A primeira
-# versão só casava `id="meow-papeis"`: um `id='meow-papeis'` (XML válido, e o que
-# alguns editores escrevem) passava batido, o bloco novo entrava ANTES do velho, o
-# velho vencia a cascata e o logo ficava preso nas cores do `flavor_padrao` em
-# todo flavor, com o id repetido. E um `<style id="meow-papeis"/>` vazio fazia o
-# `.*?</style>` correr até o `</style>` do bloco SEGUINTE e apagá-lo junto.
 RE_ESTILO_PAPEIS = re.compile(
     r"""\s*<style\b[^>]*?\bid\s*=\s*(["'])meow-papeis\1[^>]*?(?:/>|>.*?</style>)""", re.S)
 RE_RAIZ_SVG = re.compile(r"<svg\b[^>]*>")
 RE_URL_CSS = re.compile(r"""url\(\s*['"]?\s*([^)'"\s]*)""", re.I)
-# O ESCAPE DE CSS: `\69` é `i`, `\72` é `r`, e `\x` é `x`. O CSS desfaz o escape
-# ANTES de reconhecer a regra, então `@\69mport` É um `@import` e `u\72l(` É um
-# `url(` — medido no Chromium em 23/09/2026: os dois buscaram o arquivo remoto.
-# Quem confere o texto tem de ler o que o navegador lê.
+# O ESCAPE DE CSS: `\69` é `i`, `\72` é `r`, e `\x` é `x`. Quem confere o texto
+# tem de ler o que o navegador lê.
 RE_ESCAPE_CSS = re.compile(r"\\(?:([0-9a-fA-F]{1,6})[ \t\n\r\f]?|(.))", re.S)
 XHTML_NS = "{http://www.w3.org/1999/xhtml}"
 
 # O QUE UM LOGO NÃO PODE CARREGAR, e as regras são as que o docs/PACKS.md já
 # declara para o pack inteiro ("um pack é dado, nunca é código"), aplicadas ao
-# arquivo novo. `feImage` e `foreignObject` entram junto de `image` porque são a
-# mesma porta com outro nome: o primeiro carrega imagem num filtro, o segundo
-# carrega HTML inteiro dentro do SVG.
+# arquivo novo.
 ELEMENTOS_RECUSADOS_NO_LOGO = {
     "script": "executa código",
     "image": "embute imagem (um logo é vetor, não uma foto dentro de um SVG)",
@@ -3103,17 +2408,12 @@ def _ler_logo(caminho, nome):
     """(texto, raiz, instruções) de um SVG, ou Recusa dizendo por que ele não é um SVG."""
     with open(caminho, "rb") as fh:
         bruto = fh.read()
-    # PNG RENOMEADO É O CASO QUE A SPRINT NOMEIA, e ele não passa daqui: bytes
-    # de imagem não decodificam como UTF-8 e, se decodificassem, não seriam XML.
     try:
         texto = bruto.decode("utf-8")
     except UnicodeDecodeError:
         raise Recusa(f"{nome}: não é texto — é um SVG de verdade, ou uma imagem "
                      f"renomeada?\n    Um PNG com nome de .svg não vira vetor.") from None
-    # ENTIDADE DECLARADA É RECUSADA ANTES DE O PARSER VÊ-LA. Um `<!ENTITY>` que
-    # se expande em si mesmo mil vezes (o "bilhão de risadas") trava quem valida,
-    # e quem valida é também quem MOSTRA: o `logo()` confere o arquivo antes de
-    # devolvê-lo à tela que pediu. Nenhum desenho precisa de entidade.
+    # Nenhum desenho precisa de entidade.
     _exigir("<!ENTITY" not in texto,
             f"{nome}: declara <!ENTITY> — um logo não precisa de entidade, e ela "
             f"pode travar quem o lê")
@@ -3121,12 +2421,9 @@ def _ler_logo(caminho, nome):
         raiz = ET.fromstring(bruto)
     except ET.ParseError as e:
         raise Recusa(f"{nome}: não é XML válido — {e}") from None
-    # AS INSTRUÇÕES DE PROCESSAMENTO SÓ APARECEM POR EVENTO — revisão de 23/09.
-    #   O `fromstring` joga fora todo `<?...?>`, e o validador nunca via um
-    #   `<?xml-stylesheet href="https://..."?>` — que o navegador SEGUE, e que o
-    #   `logo()` devolvia intacto. Uma segunda leitura, só pelos eventos `pi`,
-    #   pega as do prólogo, as de dentro e as do fim; a declaração `<?xml ...?>`
-    #   não é instrução e não aparece, e um `<?` dentro de comentário também não.
+    # O `fromstring` joga fora todo `<?...?>`, e o validador nunca via um
+    # `<?xml-stylesheet href="https://..."?>` — que o navegador SEGUE, e que o
+    # `logo()` devolvia intacto.
     leitor = ET.XMLPullParser(events=("pi",))
     leitor.feed(bruto)
     leitor.close()
@@ -3190,20 +2487,16 @@ def _validar_logo(dir_pack, p):
     # SEM DISTINGUIR MAIÚSCULA, e o motivo é o cartão: o XML distingue, e um
     # `<Script>` não executa num SVG aberto como arquivo — mas se alguém um dia
     # colar este texto dentro de HTML, o parser do HTML baixa tudo para
-    # minúscula e o `<SCRIPT>` roda. Recusar pelos dois leitores custa um `lower`.
+    # minúscula e o `<SCRIPT>` roda.
     recusados = {k.lower(): v for k, v in ELEMENTOS_RECUSADOS_NO_LOGO.items()}
     for el in raiz.iter():
         nome = str(el.tag).rsplit("}", 1)[-1]
         _exigir(nome.lower() not in recusados,
                 f"{arq}: tem <{nome}>, que {recusados.get(nome.lower())}. "
                 f"Um pack é dado, nunca código.")
-        # HTML DENTRO DO SVG, fora de um `foreignObject` — revisão de 23/09/2026.
-        #   Ele não desenha nada ali, mas o navegador CRIA o elemento, e um `<img>`
-        #   criado busca a imagem mesmo sem aparecer. Medido no Chromium:
-        #   `<img xmlns="http://www.w3.org/1999/xhtml" src="https://...">` buscou,
-        #   e passava por aqui porque a regra do `href` não olha `src`. Sai o
-        #   namespace inteiro, e não uma lista de nomes (img, iframe, audio,
-        #   video, object, link...) que envelhece a cada elemento novo do HTML.
+        # HTML DENTRO DO SVG, fora de um `foreignObject` — revisão. Ele não
+        # desenha nada ali, mas o navegador CRIA o elemento, e um `<img>` criado
+        # busca a imagem mesmo sem aparecer.
         _exigir(not str(el.tag).startswith(XHTML_NS),
                 f"{arq}: tem <{nome}> do HTML dentro do SVG. Ele não desenha nada ali, e o\n"
                 f"    navegador o cria assim mesmo — um <img src> busca a imagem. Um logo é vetor.")
@@ -3216,38 +2509,26 @@ def _validar_logo(dir_pack, p):
                     f"{arq}: o atributo {local!r} executa código. Um pack é dado, nunca código.")
             # O LOGO É COPIADO PARA FORA DO PACK — para o tema de ícones, para o
             # cartão —, e é por isso que ele não pode apontar nem para o vizinho
-            # de pasta: depois da cópia, `apps/x.svg` é um caminho quebrado. Só
-            # referência interna (`#id`) sobrevive à viagem.
+            # de pasta: depois da cópia, `apps/x.svg` é um caminho quebrado.
             if local == "href":
                 _exigir(valor.strip().startswith("#"),
                         f"{arq}: href={valor!r} aponta para fora do arquivo.\n"
                         f"    Só referência interna (#id): o logo é copiado para o tema de\n"
                         f"    ícones, e lá fora nenhum outro caminho existe.")
-            # O `href` TAMBÉM MUDA POR ANIMAÇÃO — revisão de 23/09/2026. Um
-            #   `<a href="#a"><set attributeName="href" to="https://...">` passa na
-            #   regra de cima com o `#a` e troca o destino depois de carregado; o
-            #   `to`, o `from`, o `by` e o `values` são o `href` com outro nome.
-            #   Animar o destino de um link não é desenho: recusa-se o alvo, e
-            #   não cada um dos quatro atributos que o carregam. `xlink:href`
-            #   termina em `href` também.
+            # O `href` TAMBÉM MUDA POR ANIMAÇÃO — revisão.
             if local == "attributename":
                 _exigir(not valor.strip().lower().endswith("href"),
                         f"{arq}: <{nome} attributeName={valor!r}> troca o destino de um link\n"
                         f"    depois de carregado — é o href apontando para fora por outra porta.")
             textos.append(valor)
         for t in textos:
-            # O QUE O CSS LÊ, E NÃO O QUE ESTÁ ESCRITO — revisão de 23/09/2026.
-            #   `@IMPORT` passava porque o teste era `"@import" not in t`, e
-            #   at-rule de CSS não distingue maiúscula; `@\69mport` e `u\72l(`
-            #   passavam porque o escape só é desfeito pelo navegador. Os três
-            #   buscaram o arquivo remoto no Chromium, medido. É o mesmo motivo do
-            #   `lower` nos elementos, lá em cima, aplicado ao CSS.
+            # `@IMPORT` passava porque o teste era `"@import" not in t`, e
+            # at-rule de CSS não distingue maiúscula; `@\69mport` e `u\72l(`
+            # passavam porque o escape só é desfeito pelo navegador.
             plano = _css_sem_escape(t)
             _exigir("@import" not in plano.lower(),
                     f"{arq}: <style> com @import busca folha de fora. Um logo se basta.")
-            # `image-set("https://...")` aceita a URL como TEXTO, sem `url(` —
-            # medido no Chromium: buscou. Um logo não troca de imagem por
-            # densidade de tela; ele é vetor.
+            # Um logo não troca de imagem por densidade de tela; ele é vetor.
             _exigir("image-set(" not in plano.lower(),
                     f"{arq}: image-set() carrega imagem de fora. Um logo é vetor, e se basta.")
             for alvo in RE_URL_CSS.findall(plano):
@@ -3339,17 +2620,12 @@ def logo(ref, flavor=None, accent=None):
 
 # --- o logo gerado, para o pack que ainda não tem cara -----------------------
 #
-# FEIO E HONESTO É MELHOR QUE AUSENTE — a regra que a P15 escreveu para a capa.
-# A inicial do nome sobre o `base` do pack, com o accent como contorno. É o que o
-# `meow pack novo` (P11) põe num pack recém-nascido, e é o ponto de partida de
-# quem vai desenhar o seu: `pack.py logo-gerado <id> > <pack>/logo.svg`.
+# A inicial do nome sobre o `base` do pack, com o accent como contorno. É o que
+# o `meow pack novo` põe num pack recém-nascido, e é o ponto de partida de quem
+# vai desenhar o seu: `pack.py logo-gerado <id> > <pack>/logo.svg`.
 #
-# A LETRA É TRAÇO, E NÃO `<text>`
-#   `<text>` depende de fonte, e quem desenha ícone de tema no COSMIC é o resvg,
-#   que só desenha texto quando alguém lhe entrega um banco de fontes. Uma inicial
-#   que some em UM renderizador é o logo vazio que esta regra veio proibir. Então
-#   a letra é caminho: uma grade de 4 x 6, pontas redondas, um glifo por
-#   caractere que um `id` pode começar — `[a-z0-9]`, e mais nenhum.
+# `<text>` depende de fonte, e quem desenha ícone de tema no COSMIC é o resvg,
+# que só desenha texto quando alguém lhe entrega um banco de fontes.
 _GLIFOS_DO_LOGO = {
     "a": "M0 6 L2 0 L4 6 M0.7 4 H3.3",
     "b": "M0 3 H2.5 Q4 3 4 4.5 Q4 6 2.5 6 H0 V0 H2.2 Q3.6 0 3.6 1.5 Q3.6 3 2.2 3",
@@ -3415,13 +2691,8 @@ def logo_gerado(nome, ident):
     import unicodedata
     from xml.sax.saxutils import escape, quoteattr
 
-    # A INICIAL É A PRIMEIRA LETRA OU ALGARISMO DO NOME, E SÓ ELA — revisão de
-    # 23/09/2026. Símbolo e espaço na frente não são letra e são pulados (`* Nord`
-    # dá `n`); o acento cai na letra base pela decomposição (`Árvore` dá `a`).
-    # Se ESSA letra não tem glifo na grade — `Ωmega`, `日本` —, a inicial vem do
-    # id, que o `validar` garante começar por [a-z0-9]. A primeira versão varria o
-    # nome inteiro atrás de qualquer caractere com glifo, e `Ωmega` saía `m`:
-    # uma letra do meio, que ninguém lê como a inicial do pack.
+    # Símbolo e espaço na frente não são letra e são pulados (`* Nord` dá `n`);
+    # o acento cai na letra base pela decomposição (`Árvore` dá `a`).
     def inicial_de(texto):
         c = next((c for c in texto if c.isalnum()), "")
         base = unicodedata.normalize("NFKD", c)[:1].lower()
@@ -3459,66 +2730,11 @@ def cmd_logo_gerado(ref, flavor=None, accent=None):
     return OK
 
 
-# A VITRINE — 23/09/2026, sprint P15
+# Até aqui um pack era um `id` e 26 hexadecimais. A tela que escolhe um pack não
+# tinha o que desenhar, e ninguém escolhe um tema por um `id`.
 #
-# POR QUE ELA EXISTE
-#   Até aqui um pack era um `id` e 26 hexadecimais. A tela que escolhe um pack
-#   não tinha o que desenhar, e ninguém escolhe um tema por um `id`. O bloco
-#   `vitrine` é o que o pack diz de si para quem vai escolher: a capa, uma frase,
-#   a história inteira, as etiquetas, as fotos e o endereço de casa.
-#
-# A CAPA É O LOGO, E É UM CAMPO SÓ
-#   A P25 corrigiu o mockup de 21/09, que desenhava a capa como uma tira de
-#   cores: tira é paleta, não identidade — dois packs de paleta parecida ficam
-#   iguais no cartão. `vitrine.capa` aponta para o logo que a P25 desenha, o
-#   mesmo arquivo que vira o ícone do lançador; por convenção, `logo.svg`. Um
-#   `vitrine.logo` ao lado seriam duas verdades para a mesma figura, e a segunda
-#   envelhece calada. Aqui mora o CAMPO — declarado, SVG pelo nome, dentro do
-#   pack, existindo. O que vai DENTRO do arquivo (viewBox quadrado, sem script,
-#   nada apontando para fora) é o `_validar_logo` da P25, acima.
-#
-#   E NENHUMA CAPA ESCAPA DA CONFERÊNCIA DO LOGO [23/09/2026, revisão da P15]
-#   A revisão pegou que uma `capa.svg` ao lado do `logo.svg` passaria por fora
-#   da conferência de conteúdo e recriaria as duas verdades. Quem fechou foi a
-#   P25 (a3ee4a6): o logo É o arquivo que `vitrine.capa` nomeia (`_nome_do_logo`),
-#   e `logo.svg` só na falta do campo. Então a capa, qualquer que seja o nome,
-#   passa pelo `_validar_logo` no verbo `validar` e no `logo()`, que é a porta
-#   de quem mostra — e o `/pack-vitrine` do painel serve a capa por ela.
-#
-# ELA É COBRADA DE QUEM PUBLICA, E NUNCA DE QUEM USA
-#   `validar(silencioso=True)` é a porta do MOTOR: o `caminho` que o
-#   `meow_pack_dir` (lib/comum.sh) usa como sonda de existência, a `paleta`, o
-#   `som`, o `construir`. Se a vitrine entrasse ali, uma capa ausente faria o
-#   pack SUMIR do desktop — o tema inteiro trocado pelo padrão, com um aviso de
-#   "não resolve", por causa de uma figura que só a tela de escolha mostra.
-#   Então quem cobra é o verbo `validar`, que é a pergunta de quem publica (e o
-#   `meow pack listar`, que o chama para dizer "não valida"). A P25 pôs o logo
-#   na mesma fronteira (a3ee4a6), e a capa ausente — que é o logo ausente — não
-#   tira o tema do desktop por nenhuma das duas portas.
-#
-#   COM UMA EXCEÇÃO, QUE NÃO É DESTA FUNÇÃO [23/09/2026, revisão da P15]: uma
-#   URL que não seja https:// em QUALQUER campo do `pack.json` — o
-#   `vitrine.site`, ou uma `descricao_curta` que cite `http://` — cai na
-#   varredura de URL do `validar`, que é anterior à vitrine, vale para o pack
-#   inteiro e roda também no motor. Medido: com `"site": "http://..."` o
-#   `caminho` e o `info` recusam o pack. Este bloco dizia o contrário. O que só
-#   esta função pega é o esquema sem `://`, que a varredura não vê
-#   (`javascript:alert(1)`, lá embaixo).
-#
-# ELA NÃO LEVANTA: DEVOLVE O QUE VALE, E A LISTA DO QUE NÃO VALE
-#   Quem a lê são três — o `validar`, o `cmd_info` e o `/api/packs` do painel —,
-#   e só o primeiro recusa por ela. Os outros dois mostram o pack assim mesmo,
-#   dizendo o que falta — desde que ele tenha passado pela porta do motor, que
-#   eles também atravessam (ver a exceção logo acima). O valor que não passa na
-#   regra SAI da resposta em vez de ir junto com o aviso: a URL que não é https
-#   não vira link, o caminho que sai do pack não é servido. É isso que deixa o
-#   painel usar a vitrine de um pack de terceiro sem repetir regra nenhuma do
-#   lado de lá.
-#
-# O TETO DE 80 É O DOS BALÕES DA P6, pelo mesmo motivo: é o que cabe numa linha
-#   do cartão sem virar parágrafo. O da descrição longa não é estética — o texto
-#   viaja inteiro no `/api/packs`, e um LEIA-ME de pack é uma página, não um
-#   livro.
+# Um `vitrine.logo` ao lado seriam duas verdades para a mesma figura, e a
+# segunda envelhece calada.
 TETO_DESCRICAO_CURTA = 80
 TETO_DESCRICAO = 64 * 1024
 # As mesmas quatro que a rota `/previa` do painel já serve. Uma quinta aqui
@@ -3545,9 +2761,9 @@ def vitrine(p, dir_pack):
     problemas = []
 
     def arquivo(campo, valor, extensoes, porque):
-        # O MESMO MECANISMO DO `creditos` DA P20, lá embaixo no `validar`: o
-        # caminho declarado passa pelo `_dentro` e é aberto, não só olhado. Um
-        # pack que promete a capa e não entrega é o pack que "promete e não
+        # O caminho declarado passa pelo `_dentro` e é aberto, não só olhado.
+        #
+        # Um pack que promete a capa e não entrega é o pack que "promete e não
         # entrega" que aquele comentário descreve.
         if not isinstance(valor, str) or not valor:
             problemas.append(f"{campo}: precisa ser o caminho de um arquivo dentro do pack")
@@ -3613,11 +2829,8 @@ def vitrine(p, dir_pack):
             if alvo:
                 saida["capturas"].append(alvo)
 
-    # O `https://` É COBRADO AQUI DE NOVO, E NÃO É REDUNDÂNCIA
-    #   A varredura de URLs do `validar` só olha texto que tenha `://` — e
-    #   `javascript:alert(1)` não tem. O `site` é o único campo do formato que
-    #   vira LINK clicável numa página com token de sessão; um esquema que não
-    #   seja https ali é código de terceiro rodando no painel.
+    # A varredura de URLs do `validar` só olha texto que tenha `://` — e
+    # `javascript:alert(1)` não tem.
     site = v.get("site")
     if site is not None:
         if isinstance(site, str) and site.startswith("https://"):
@@ -3627,42 +2840,12 @@ def vitrine(p, dir_pack):
     return saida, problemas
 
 
-# O NOME DE QUEM ESCREVEU NÃO VIAJA — 23/09/2026, sprint P30
+# O docs/PACKS.md pede, para publicar, "nenhum nome de usuário", e nada o
+# cobrava.
 #
-#   O docs/PACKS.md pede, para publicar, "nenhum nome de usuário", e nada o
-#   cobrava. MEDIDO: as quatro capturas versionadas dos dois packs traziam
-#   `/home/<nome>/.config/cosmic` na linha `origem:` do `captura.txt` — dois
-#   nomes, de duas máquinas —, e o `exportar` os levava dentro de todo
-#   `.meowpack`. A causa foi consertada onde nasce (o `capturar_tema.sh` escreve
-#   `~`); esta régua é o que impede de voltar, venha de onde vier: um
-#   PROCEDENCIA.md escrito à mão, um SVG que o editor salvou com o caminho de
-#   exportação absoluto dentro, um mapa copiado da máquina de alguém.
-#
-#   `~/` PASSA, E É DE PROPÓSITO: diz "a casa de quem estiver lendo" sem dizer
-#   de quem — é como a linha `origem:` do `captura.txt` escreve, e como a
-#   coluna "lido de" do PROCEDENCIA.md do Dracula escrevia até 24/09/2026 (a
-#   P43 a esvaziou quando aposentou a comparação com o `Dracula_OS-Theme`).
-#   `/home/<nome>/` e `/Users/<nome>/` (o macOS) não passam, e o `/home/` pode
-#   vir depois de qualquer coisa: `/var/home/<nome>/` é a casa nos Fedora
-#   atômicos, e `file:///home/<nome>/` é a mesma casa com outro prefixo. O preço
-#   é um link com `/home/<palavra>/` no meio do caminho ser recusado também —
-#   raro, e a recusa diz a linha. O nome é o que um usuário pode ter (letra,
-#   dígito, `_`, `.`, `-`), então o `<nome>` de um texto que ensina a forma não
-#   é nome de ninguém, e passa.
-#
-#   SÓ TEXTO, SÓ DENTRO DO PACK. A lista é a do `exportar` (`_arquivos_do_pack`):
-#   sem o oculto — o `.git` de um pack publicado por clone não é do pack — e sem
-#   link, que ele recusa por conta própria. Binário é o que tem byte nulo nos
-#   primeiros 8000 bytes, a mesma pergunta que o git faz: o PNG de uma captura e
-#   o `.qbtheme` do Catppuccin (um recurso compilado do Qt) não têm linha para
-#   apontar.
-#
-#   SÓ NA PORTA DE QUEM PUBLICA, como a vitrine e o logo: um pack pessoal com o
-#   próprio caminho num PROCEDENCIA.md continua vestindo o desktop de quem o
-#   escreveu — recusá-lo no motor trocaria o tema da pessoa pelo padrão por
-#   causa de uma linha de texto. O `exportar`, o `importar` e o `novo` (com ou
-#   sem `--de-csv`) passam pelo `validar` inteiro, e herdam a régua sem uma
-#   linha a mais.
+# `~/` PASSA, E É DE PROPÓSITO: diz "a casa de quem estiver lendo" sem dizer de
+# quem — é como a linha `origem:` do `captura.txt` escreve, e como a coluna
+# "lido de" do PROCEDENCIA.md do Dracula escrevia.
 RE_CASA_DE_ALGUEM = re.compile(r"/(?:home|Users)/[\w.-]+/")
 
 
@@ -3737,15 +2920,8 @@ def validar(ref, silencioso=False):
     except UnicodeDecodeError as e:
         raise Recusa(f"{arq}: não é UTF-8 (byte {e.object[e.start]:#04x} na posição {e.start})")
 
-    # TEXTO DE PACK NÃO LEVA CARACTERE DE CONTROLE — conferência da P78
-    #   O `nome`, o `autor` e os nomes de flavor saem crus no terminal (`meow
-    #   pack listar`, o resumo do `importar`, o doctor) e entram em arquivo de
-    #   configuração de aplicativo pelo `{{nome}}` dos modelos. Medido: um pack
-    #   com `"nome": "Esc\u001b]52;c;…\u0007"` escrevia na área de
-    #   transferência e trocava o título do terminal de quem rodava o `listar`;
-    #   e um `\n` no nome do flavor abre linha nova dentro do tema do kitty. Os
-    #   dois arquivos, chave e valor, a fundo: C0 (o `\n` e o `\t` inclusive),
-    #   DEL e C1. Nenhum pack publicado tem um (conferido nos três).
+    # Os dois arquivos, chave e valor, a fundo: C0 (o `\n` e o `\t` inclusive),
+    # DEL e C1. Nenhum pack publicado tem um (conferido nos três).
     for nome_arq, doc in (("pack.json", p), (arq, dados)):
         ruim = _caractere_de_controle(doc)
         _exigir(ruim is None,
@@ -3757,14 +2933,8 @@ def validar(ref, silencioso=False):
     _exigir(isinstance(dados["flavors"], dict) and dados["flavors"],
             f"{arq}: 'flavors' está vazio")
 
-    # NOME DE FLAVOR NÃO PODE TER HÍFEN [19/09/2026]
-    #   O gerador monta o arquivo de tema como "<flavor>-<accent>" e o leitor
-    #   corta no hífen. Um flavor chamado "dracula-claro" vira flavor "dracula"
-    #   com accent "claro-mauve" — e o erro que aparece é
-    #   `accent 'claro-mauve' não é uma cor`, que manda procurar defeito no
-    #   lugar errado. Medido aqui ao nomear o flavor claro do Dracula.
-    #   Recusar na validação custa uma linha; descobrir isso na tela custa uma
-    #   tarde.
+    # O gerador monta o arquivo de tema como "<flavor>-<accent>" e o leitor
+    # corta no hífen.
     for flavor in dados["flavors"]:
         _exigir("-" not in flavor,
                 f"{arq}: o flavor {flavor!r} tem hífen no nome.\n"
@@ -3772,13 +2942,9 @@ def validar(ref, silencioso=False):
                 f"    o nome no lugar errado. Use uma palavra só: o Catppuccin\n"
                 f"    faz 'latte'/'mocha', e o Dracula claro daqui é 'alucard'.")
 
-    # E O NOME TEM A FORMA DO CONF, JÁ AQUI — 15/10/2026, P82 (item 15)
-    #   O nome do flavor vira `FLAVOR=` no meow.conf, e dali caminho de pasta e
-    #   de traço: o `meow_flavor` (lib/comum.sh) o devolve cru. O hífen era a
-    #   única recusa, e um `..` ou um `a/b` passavam. A forma é a mesma que o
-    #   `meow pack usar` já exige antes de gravar (`RE_FLAVOR_CONF`), e vale
-    #   para `flavors` e para `claros`: uma regra, na origem, e o pack que não
-    #   cabe nela é recusado inteiro.
+    # O nome do flavor vira `FLAVOR=` no meow.conf, e dali caminho de pasta e
+    # de traço: o `meow_flavor` (lib/comum.sh) o devolve cru. O hífen era a
+    # única recusa, e um `..` ou um `a/b` passavam.
     for campo in ("flavors", "claros"):
         nomes = dados[campo] if isinstance(dados[campo], (dict, list)) else []
         for flavor in nomes:
@@ -3819,23 +2985,10 @@ def validar(ref, silencioso=False):
 
     # --- caminhos declarados ------------------------------------------------
     ic = p.get("icones") or {}
-    # AS QUATRO CATEGORIAS, E NÃO DUAS — 22/09/2026
-    #   Eram `apps` e `pastas`. `mimetypes` e `autorais` não eram cobradas, e o
-    #   silêncio era o de sempre: um pack que declarasse
-    #   `icones.autorais.desenhos` apontando para um diretório inexistente saía
-    #   0 aqui e falhava lá adiante, no gerador, com um traceback que fala de
-    #   Path e não de pack.json. A P27 deu acervo próprio às duas — o
-    #   `icones/autorais/` dos dois packs e o `icones/mimetypes.map` do
-    #   Catppuccin —, então a validação que já existia para as outras duas passa
-    #   a valer para elas pelo mesmo motivo que o comentário do `creditos`
-    #   explica algumas linhas abaixo: um pack que promete arquivo e não entrega
-    #   não está sendo validado, está sendo carimbado.
+    # Eram `apps` e `pastas`.
     #
-    #   `mapa` E `desenhos` NAS QUATRO, e não um par diferente para cada: a
-    #   forma de `packs/<id>/icones/` é a MESMA para toda categoria e para todo
-    #   pack (é o que a P27 chama de "a estrutura completa"). Uma tabela com
-    #   exceção por categoria seria a próxima que alguém esquece de atualizar —
-    #   e a chave que a categoria não declara simplesmente não é cobrada.
+    # `mapa` E `desenhos` NAS QUATRO, e não um par diferente para cada: a forma
+    # de `packs/<id>/icones/` é a MESMA para toda categoria e para todo pack.
     for cat, chaves in (("apps", ("mapa", "desenhos")),
                         ("pastas", ("mapa", "desenhos")),
                         ("mimetypes", ("mapa", "desenhos")),
@@ -3847,17 +3000,17 @@ def validar(ref, silencioso=False):
                 alvo = _dentro(dir_pack, bloco[chave], f"icones.{cat}.{chave}")
                 _exigir(os.path.exists(alvo),
                         f"icones.{cat}.{chave}: {bloco[chave]!r} não existe no pack")
-    # A LISTA DO LANÇADOR (P74 item 9): ids de `.desktop`, e só eles — eles
-    #   viram nome de arquivo em /usr/share/applications, pela ponte root.
+    # A LISTA DO LANÇADOR: ids de `.desktop`, e só eles — eles viram nome
+    # de arquivo em /usr/share/applications, pela ponte root.
     oc = (p.get("lancador") or {}).get("ocultar") if isinstance(p.get("lancador"), dict) else None
     if p.get("lancador") is not None:
         _exigir(isinstance(p.get("lancador"), dict) and isinstance(oc, list)
                 and all(isinstance(n, str) and RE_DESKTOP_ID.match(n) for n in oc),
                 "lancador.ocultar: uma lista de ids de `.desktop` (letras, dígitos, '.', '_' e '-'),\n"
                 "    sem '/' e sem a extensão — viram nome de arquivo do sistema.")
-    # OS ÍCONES DE ARQUIVO DERIVADOS (P74 item 6): de qual pack e de qual pasta
-    #   do acervo dele. A pasta é um nome só, pela régua das pastas de pacote, e
-    #   o `derivar` precisa dos `desenhos` ao lado — é onde a derivação escreve.
+    # OS ÍCONES DE ARQUIVO DERIVADOS: de qual pack e de qual pasta do acervo
+    # dele. A pasta é um nome só, pela régua das pastas de pacote, e o `derivar`
+    # precisa dos `desenhos` ao lado — é onde a derivação escreve.
     der = (ic.get("mimetypes") or {}).get("derivar")
     if der is not None:
         _exigir(isinstance(der, dict) and isinstance(der.get("de"), str) and der.get("de")
@@ -3866,31 +3019,10 @@ def validar(ref, silencioso=False):
                 "icones.mimetypes.derivar: {\"de\": \"<id do pack>\", \"pasta\": \"<pasta do acervo dele>\"},\n"
                 "    ao lado de `desenhos`, que é onde a derivação escreve.")
 
-    # AS LINHAS DO MAPA DE APLICATIVOS — regras 1 e 4 da P28, 23/09/2026
-    #   Até aqui o `validar` conferia que o MAPA existe, e não o que ele diz. Um
-    #   pack com `waterfox : ~/.local/share/icons/Dracula-Icones/...` saía 0: a
-    #   linha só virava problema dentro do instalador, na máquina de quem
-    #   instalou, e como aviso de "desenho ausente" — nunca como "este mapa
-    #   aponta para a máquina". E dois `steam :` no mesmo mapa passavam também,
-    #   com o segundo vencendo calado.
-    #
-    #   Duas recusas, e cada uma diz a linha:
-    #     · alvo fora das três casas (pack, `motor:`, `pack:`) — regra 4;
-    #     · o mesmo nome duas vezes — regra 1, "um nome, uma fonte". É erro de
-    #       validação, e não escolha de precedência.
-    #   Só o `apps`: é o único mapa de pack cujo formato é `nome : alvo`. O
-    #   `mimetypes.map` casa tipo de arquivo com glifo, e outro formato pede
-    #   outro leitor.
-    #
-    #   ALVO AUSENTE NÃO É RECUSA AQUI, e foi medido: o `validar` é também a
-    #   sonda de existência do `meow_pack_dir` (via `caminho`), e um pack
-    #   recusado é um pack IGNORADO inteiro — "usando o padrão". Recusar por
-    #   um desenho que falta trocaria o tema da pessoa por causa de um ícone; o
-    #   `tests/pack.sh` pegou isso na primeira rodada (o pack de brinquedo dele
-    #   mapeia um `firefox` sem desenho). Nome sem desenho continua dito, onde
-    #   ele é notícia: o instalador avisa "no mapa mas sem desenho no disco", o
-    #   `pack.py fonte` sai 1 e o `tests/fonte-unica.sh` falha para os packs
-    #   do repositório.
+    # Um pack com `waterfox : ~/.local/share/icons/Dracula-Icones/...` saía 0: a
+    # linha só virava problema dentro do instalador, na máquina de quem
+    # instalou, e como aviso de "desenho ausente" — nunca como "este mapa aponta
+    # para a máquina".
     mapa_apps = (ic.get("apps") or {}).get("mapa")
     if mapa_apps:
         caminho_mapa = _dentro(dir_pack, mapa_apps, "icones.apps.mapa")
@@ -3906,33 +3038,22 @@ def validar(ref, silencioso=False):
             except Recusa as e:
                 raise Recusa(f"{mapa_apps}:{num}: {e}") from None
 
-    # NO MÁXIMO TRÊS PASTAS — P88, decisão 14. Um pack de formato 2 guarda o
-    #   ícone em `icones/apps/`, `icones/sistema/` e `icones/biblioteca/`, e só
-    #   nelas; o flavor e a etiqueta são subpasta de uma das três. Só na porta
-    #   de quem publica, como a forma da biblioteca logo abaixo.
+    # Um pack de formato 2 guarda o ícone em `icones/apps/`, `icones/sistema/`
+    # e `icones/biblioteca/`, e só nelas; o flavor e a etiqueta são subpasta de
+    # uma das três.
     if not silencioso:
         _tres_pastas(p, dir_pack)
 
-    # A BIBLIOTECA SÓ GUARDA DESENHO — 23/09/2026, P36
-    #   `icones/biblioteca/` é a coleção de onde se escolhe o próximo desenho de
-    #   aplicativo (ver `PASTA_BIBLIOTECA`, lá embaixo). Ela é o maior acervo
-    #   que um pack pode trazer — a do Dracula tem 295 —, e uma pasta desse
-    #   tamanho é onde um arquivo que não é desenho entra sem ninguém ver: um
-    #   `.png` de rascunho, um link para a máquina de quem montou. O `exportar`
-    #   já barra link e script; esta linha diz, antes, que a pasta tem uma
-    #   forma — `.svg` comum, sem subpasta —, e lista todos de uma vez.
+    # `icones/biblioteca/` é a coleção de onde se escolhe o próximo desenho de
+    # aplicativo (ver `PASTA_BIBLIOTECA`, lá embaixo).
     #
-    #   SÓ NA PORTA DE QUEM PUBLICA, pelo motivo do "ALVO AUSENTE" acima: um
-    #   pack recusado no motor é ignorado inteiro, e um arquivo solto numa
-    #   pasta que nada instala não pode trocar o tema de ninguém. O oculto fica
-    #   de fora, como no `exportar`.
+    # SÓ NA PORTA DE QUEM PUBLICA, pelo motivo do "ALVO AUSENTE" acima: um pack
+    # recusado no motor é ignorado inteiro, e um arquivo solto numa pasta que
+    # nada instala não pode trocar o tema de ninguém.
     pasta_bib = os.path.join(dir_pack, PASTA_BIBLIOTECA)
     if not silencioso and os.path.lexists(pasta_bib.rstrip("/")):
         _exigir(os.path.isdir(pasta_bib) and not os.path.islink(pasta_bib.rstrip("/")),
                 f"{PASTA_BIBLIOTECA}: precisa ser uma pasta do pack, e não um arquivo ou link")
-        # [P88, decisão 14: a biblioteca guarda também o PNG feito à mão e aceita
-        #   subpasta, que é só etiqueta (`biblioteca/feitos-a-mao/`). A forma
-        #   vale em toda a árvore: desenho comum, sem link, e o catálogo.]
         fora_da_forma = []
         for raiz_b, dirs, arqs in os.walk(pasta_bib):
             rel_b = os.path.relpath(raiz_b, pasta_bib)
@@ -3945,9 +3066,9 @@ def validar(ref, silencioso=False):
                 cheio = os.path.join(raiz_b, a)
                 if a.startswith("."):
                     continue
-                # O CATÁLOGO É O ÚNICO QUE NÃO É DESENHO — 09/10/2026, P73. É dado
-                # sobre os desenhos (descrição em português e etiquetas, um por
-                # arquivo), e a busca da ficha de ícone o lê ao lado deles.
+                # O CATÁLOGO É O ÚNICO QUE NÃO É DESENHO. É dado sobre os
+                # desenhos (descrição em português e etiquetas, um por arquivo),
+                # e a busca da ficha de ícone o lê ao lado deles.
                 if a == "catalog.json" and os.path.isfile(cheio) and not os.path.islink(cheio):
                     continue
                 if not a.endswith(EXT_DA_BIBLIOTECA) or os.path.islink(cheio) \
@@ -3957,22 +3078,12 @@ def validar(ref, silencioso=False):
                 f"{PASTA_BIBLIOTECA}: {len(fora_da_forma)} entrada(s) que não são desenho "
                 f"(.svg ou .png comum, sem link):\n      " + "\n      ".join(fora_da_forma))
 
-    # AS DECLARAÇÕES DE DESENHO AUTORAL — 23/09/2026, sprint P26
-    #   Os `.json` da pasta `icones.autorais.desenhos` viraram a entrada do
-    #   gerador: um terceiro desenho entra copiando um arquivo, sem tocar em
-    #   Python. Sem esta conferência, um papel com a cor escrita errado passava
-    #   aqui e morria no gerador, dentro do instalador, longe de quem publicou o
-    #   pack. As regras são as do `ler_autoral`, e só ele as conhece.
+    # Os `.json` da pasta `icones.autorais.desenhos` viraram a entrada do
+    # gerador: um terceiro desenho entra copiando um arquivo, sem tocar em
+    # Python. As regras são as do `ler_autoral`, e só ele as conhece.
     #
-    #   SÓ AS DO PRÓPRIO PACK: a declaração herdada é validada no pack de onde
-    #   ela vem. E a paleta não precisa ser consultada de novo — uma declaração
-    #   só aceita os 26 nomes que todo pack é obrigado a ter, conferidos acima.
-    #
-    #   A PASTA É A MESMA QUE O GERADOR LÊ (revisão, 23/09/2026): a declarada ou,
-    #   sem `desenhos`, a `PASTA_AUTORAIS`. Conferir só a declarada, com o
-    #   `autorais()` já lendo a padrão, deixaria o pack do modelo do PACKS.md
-    #   passar aqui com qualquer `.json` naquela pasta, e a recusa só sairia no
-    #   `construir`, dentro do instalador.
+    # A PASTA É A MESMA QUE O GERADOR LÊ: a declarada ou, sem `desenhos`, a
+    # `PASTA_AUTORAIS`.
     pasta_aut = dir_acervo("icones.autorais.desenhos", ref=dir_pack, padrao=PASTA_AUTORAIS)
     if os.path.isdir(pasta_aut):
         for arq in sorted(os.listdir(pasta_aut)):
@@ -3983,17 +3094,11 @@ def validar(ref, silencioso=False):
         alvo = _dentro(dir_pack, p["cosmic"]["mapa"], "cosmic.mapa")
         _exigir(os.path.isfile(alvo), f"cosmic.mapa: {p['cosmic']['mapa']!r} não existe")
 
-    # O ARQUIVO PROMETIDO E AUSENTE PASSAVA — 21/09/2026
-    #   O `packs/dracula/pack.json` declara `"creditos": "CREDITOS.md"` desde que
-    #   nasceu, o arquivo NUNCA esteve no pack, e `meow pack validar dracula`
-    #   saía 0. Um validador que aprova um pack que promete um arquivo que não
-    #   entrega não está validando o formato: está carimbando.
+    # Um validador que aprova um pack que promete um arquivo que não entrega não
+    # está validando o formato: está carimbando.
     #
-    #   `creditos` É O ÚNICO CAMPO DE ARQUIVO QUE FALTAVA AQUI. Os outros
-    #   quatro — `paleta.arquivo`, `icones.*.mapa`, `icones.*.desenhos` e
-    #   `cosmic.mapa` — já são cobrados acima. Campo de arquivo novo entra nesta
-    #   vizinhança, e não numa tabela à parte: uma segunda lista de "campos que
-    #   nomeiam arquivo" seria a próxima que alguém esquece de atualizar.
+    # Os outros quatro — `paleta.arquivo`, `icones.*.mapa`, `icones.*.desenhos`
+    # e `cosmic.mapa` — já são cobrados acima.
     if p.get("creditos"):
         alvo = _dentro(dir_pack, p["creditos"], "creditos")
         _exigir(os.path.isfile(alvo),
@@ -4003,16 +3108,8 @@ def validar(ref, silencioso=False):
                 f"    e quem copiar este pack.json vai repetir a promessa.")
 
     # --- apps ---------------------------------------------------------------
-    # OS TEMAS DE APLICATIVO — 22/09/2026, sprint P18
-    #   `apps` NÃO é `icones.apps`, e a coincidência de nome é a primeira pedra
-    #   do caminho: `icones.apps` são os ÍCONES dos aplicativos, este bloco é o
-    #   TEMA de dentro deles (o esquema do spicetify, o `.qbtheme`). As trilhas
-    #   não colidem, mas quem lê o pack.json de cima para baixo colide.
-    #
-    #   A VALIDAÇÃO É A MESMA DO `creditos`, TRÊS LINHAS ACIMA, E DE PROPÓSITO:
-    #   um pack que declara `arquivo` e não entrega o arquivo é um pack que
-    #   promete tema e não tem tema — e o módulo só descobriria na hora de
-    #   aplicar, dentro do instalador, longe de quem publicou o pack.
+    # As trilhas não colidem, mas quem lê o pack.json de cima para baixo
+    # colide.
     apps = p.get("apps") or {}
     _exigir(isinstance(apps, dict), "pack.json: 'apps' precisa ser um objeto")
     for nome_app, bloco in apps.items():
@@ -4037,27 +3134,17 @@ def validar(ref, silencioso=False):
                     f"apps.{nome_app}.sha256: declarado sem `arquivo` — não há o que conferir")
             with open(alvo_app, "rb") as fh:
                 medido = hashlib.sha256(fh.read()).hexdigest()
-            # O SHA VEM DO PACK, E NÃO DO MÓDULO [22/09/2026]
-            #   Até hoje o número morava no `qbittorrent/manifesto.sh`, cravado
-            #   ao lado do nome do arquivo. Um módulo que confere o sha de UM
-            #   arquivo específico é um módulo que só sabe aplicar aquele tema —
-            #   é a mesma amarra que esta sprint veio cortar, escrita em hex.
+            # O SHA VEM DO PACK, E NÃO DO MÓDULO
             _exigir(medido == str(soma_app).lower(),
                     f"apps.{nome_app}.sha256 não confere com o arquivo.\n"
                     f"    declarado: {soma_app}\n"
                     f"    medido   : {medido}")
 
-    # --- o ponteiro e as fontes — 23/09/2026, sprint P12 ---------------------
-    #   Os dois são campos de arquivo, e entram na vizinhança do `creditos` e
-    #   do `apps.*.arquivo` pelo motivo que aqueles dois já contam: o pack que
-    #   promete e não entrega só falharia dentro do instalador, na máquina de
-    #   quem instalou. E pelas duas portas, como aqueles: o `cursor.sh` COPIA o
-    #   tema para `~/.local/share/icons/`, e um link para fora não pode passar
-    #   por nenhuma delas.
-    #
-    #   `proprio` E `herda` JUNTOS É RECUSA, e não precedência: um bloco que diz
-    #   "o meu" e "o do vizinho" ao mesmo tempo não disse nada, e escolher um
-    #   dos dois por quem o escreveu é o default escondido que o formato evita.
+    # --- o ponteiro e as fontes ---------------------
+    # Os dois são campos de arquivo, e entram na vizinhança do `creditos` e do
+    # `apps.*.arquivo` pelo motivo que aqueles dois já contam: o pack que
+    # promete e não entrega só falharia dentro do instalador, na máquina de quem
+    # instalou.
     cur = (p.get("origens") or {}).get("cursores")
     if isinstance(cur, dict) and "proprio" in cur:
         prop = cur["proprio"]
@@ -4073,11 +3160,9 @@ def validar(ref, silencioso=False):
                 f"    Ou crie o tema, ou tire o campo.")
         conferir_ponteiro(tema)
 
-    # O QUE O PACK BAIXA — 24/09/2026, sprint P41. A origem pinada é conferida
-    #   aqui pela FORMA (https, sha256, a pasta sem `..`); o conteúdo, quem
-    #   confere é o shell, byte a byte, na hora de instalar — o `validar` não
-    #   toca a rede. `origem` vem sozinha pela regra do `proprio` e do `herda`
-    #   logo acima: um bloco que diz "baixe" e "use o do vizinho" não disse qual.
+    # A origem pinada é conferida aqui pela FORMA (https, sha256, a pasta sem
+    # `..`); o conteúdo, quem confere é o shell, byte a byte, na hora de
+    # instalar — o `validar` não toca a rede.
     if isinstance(cur, dict) and "origem" in cur:
         _exigir("proprio" not in cur and not cur.get("herda"),
                 "origens.cursores: `origem` vem sozinha. Ou o pack baixa o ponteiro, ou o\n"
@@ -4092,9 +3177,9 @@ def validar(ref, silencioso=False):
                 "    herda a de outro — as duas juntas não dizem qual.")
         if "origem" in base:
             origem_pinada(base["origem"], CATEGORIA_BASE + ".origem")
-        # AS CAMADAS DE TRÁS (P74 item 2, 09/10/2026): cada uma é uma origem
-        #   pinada como a da frente, e só existem atrás de uma frente — sem a
-        #   `origem`, "por trás" de quê?
+        # AS CAMADAS DE TRÁS: cada uma é uma origem pinada como a da frente,
+        # e só existem atrás de uma frente — sem a `origem`, "por trás" de
+        # quê?
         if "por_tras" in base:
             atras = base["por_tras"]
             _exigir("origem" in base and isinstance(atras, list) and atras,
@@ -4134,8 +3219,8 @@ def validar(ref, silencioso=False):
     for chave, valor in som.items():
         if chave.startswith("_"):
             continue
-        # O TEMA DE SOM (P74 item 9) não é timbre: é o diretório de um tema de
-        #   som freedesktop dentro do pack, com o `index.theme` dele.
+        # O TEMA DE SOM não é timbre: é o diretório de um tema de som
+        # freedesktop dentro do pack, com o `index.theme` dele.
         if chave == "tema":
             alvo = _dentro(dir_pack, valor if isinstance(valor, str) else "", "som.tema")
             _exigir(os.path.isfile(os.path.join(alvo, "index.theme")),
@@ -4158,21 +3243,17 @@ def validar(ref, silencioso=False):
 
     # --- heranças e URLs ----------------------------------------------------
     herancas = [p["heranca"]] if p.get("heranca") else []
-    # `apps` entra aqui junto com `icones` e `origens` porque `apps.<app>.herda`
-    # é lido pelo `tema_de_app` exatamente como `icones.*.herda` é lido pelo
-    # `acervo` — e uma herança que aponta para um pack inexistente precisa ser
-    # recusada na publicação, não descoberta na hora de aplicar.
-    # `fontes` entrou em 23/09/2026 (P12) pelo mesmo motivo: o `tipografia` lê o
-    # `fontes.herda` como o `acervo` lê o `icones.*.herda`.
+    # `fontes` entrou pelo mesmo motivo: o `tipografia` lê o `fontes.herda` como
+    # o `acervo` lê o `icones.*.herda`.
     for cat, bloco in (list(ic.items()) + list((p.get("origens") or {}).items())
                        + list((p.get("apps") or {}).items())
                        + [(CATEGORIA_FONTES, p.get(CATEGORIA_FONTES))]):
         if isinstance(bloco, dict) and bloco.get("herda"):
             herancas.append(bloco["herda"])
     for h in set(herancas):
-        # O `or eh_embutido(h)` SAIU EM 22/09/2026, e com ele a última exceção:
-        # `catppuccin` agora é um diretório com pack.json como qualquer outro, e
-        # o `achar` o encontra pelas mesmas três raízes. Ver `PACK_PADRAO`.
+        # O `or eh_embutido(h)` SAIU, e com ele a última exceção: `catppuccin`
+        # agora é um diretório com pack.json como qualquer outro, e o `achar` o
+        # encontra pelas mesmas três raízes. Ver `PACK_PADRAO`.
         _exigir(achar(h),
                 f"herança {h!r}: esse pack não existe em nenhuma das raízes:\n      "
                 + "\n      ".join(raizes()))
@@ -4191,10 +3272,7 @@ def validar(ref, silencioso=False):
 
     # --- o claro derivado ---------------------------------------------------
     # O `derivados` da paleta é a etiqueta que faz um claro derivado DIZER que é
-    # derivado [23/09/2026, P16]. Só na porta de quem publica, como a vitrine
-    # logo abaixo: uma etiqueta torta não pode tirar o tema do desktop, e quem
-    # só mostra (`info`, `/api/packs`) a lê pelo `claros_derivados`, que ignora
-    # o que não faz sentido. Quem publica ouve o que está torto.
+    # derivado.
     if not silencioso and "derivados" in dados:
         bons = claros_derivados(dados)
         deriv = dados["derivados"]
@@ -4204,7 +3282,7 @@ def validar(ref, silencioso=False):
                 f"    listado em 'claros', o escuro em 'flavors'. Não confere: "
                 f"{', '.join(map(str, tortos))}")
 
-    # --- o nome de quem escreveu — 23/09/2026, P30 ---------------------------
+    # --- o nome de quem escreveu ---------------------------
     # Só na porta de quem publica; o porquê está em `nomes_de_usuario`, acima.
     if not silencioso:
         casas = nomes_de_usuario(dir_pack)
@@ -4215,20 +3293,11 @@ def validar(ref, silencioso=False):
 
     # --- vitrine ------------------------------------------------------------
     # Só na porta de quem PUBLICA — ver `vitrine`, acima, "ELA É COBRADA DE QUEM
-    # PUBLICA". O `silencioso` é exatamente essa fronteira hoje: todo chamador
-    # do motor (`caminho`, `paleta`, `som`, `info`, `construir`) passa True, e só
-    # o verbo `validar` passa False. Todos os problemas de uma vez, como os slots
-    # que faltam: consertar um por rodada é o que faz alguém desistir de publicar.
-    # Cada um na própria linha de `erro`, porque as mensagens já trazem linha de
-    # continuação indentada e, emendadas no mesmo recuo, não se sabe onde uma
-    # acaba e a outra começa.
+    # PUBLICA".
     #
-    # ANTES DO LOGO, E DE PROPÓSITO [23/09/2026, junção com a P25]: o logo é o
-    # arquivo que `vitrine.capa` nomeia, e é a vitrine que confere o CAMPO — um
-    # `.svg`, dentro do pack, existindo. Na ordem inversa, uma capa `.png` seria
-    # recusada pelo `_validar_logo` como "não é texto", e a mensagem certa é
-    # "não é .svg"; uma capa ausente, como "o pack não tem logo", sem dizer que
-    # o campo aponta para um arquivo que não existe.
+    # ANTES DO LOGO, E DE PROPÓSITO: o logo é o arquivo que `vitrine.capa`
+    # nomeia, e é a vitrine que confere o CAMPO — um `.svg`, dentro do pack,
+    # existindo.
     if not silencioso:
         _, problemas = vitrine(p, dir_pack)
         _exigir(not problemas, "\n  erro ".join(problemas))
@@ -4237,40 +3306,19 @@ def validar(ref, silencioso=False):
     # POR ÚLTIMO, E DE PROPÓSITO: um pack de formato errado ou paleta quebrada
     # deve ouvir primeiro sobre isso, que é o que impede qualquer tela de sair.
     #
-    # SÓ NA PORTA DE QUEM PUBLICA — revisão de 23/09/2026. A primeira versão
-    #   cobrava o logo aqui de todo chamador, e o `silencioso=True` é a porta do
-    #   MOTOR: o `caminho` que o `meow_pack_dir` (lib/comum.sh) usa como sonda de
-    #   existência, a `paleta`, o `som`, o `construir`. Medido na revisão: um
-    #   pack íntegro em tudo menos o logo saía com "pack 'meu' não resolve —
-    #   usando o padrão", sem dizer que era o logo, e o desktop inteiro voltava
-    #   ao Catppuccin por causa de uma figura que só o cartão e o lançador
-    #   mostram. E um pack `formato` 1 de antes de 23/09 pintaria errado depois
-    #   de atualizar — o contrário do que o `formato` promete. É a fronteira que
-    #   a P15 traçou para a capa, e a capa É este arquivo. Quem MOSTRA o logo não
-    #   depende daqui: o `logo()` confere o arquivo por conta própria.
+    # SÓ NA PORTA DE QUEM PUBLICA — revisão.
     if not silencioso:
         _validar_logo(dir_pack, p)
 
     if not silencioso:
-        # O AVISO VEM ANTES DO `ok`, E NÃO MUDA O CÓDIGO DE SAÍDA
-        #   Depois do `ok` ninguém lê: a linha verde é a que encerra a leitura.
-        #   E ele não recusa porque um campo sem leitor hoje pode ser o campo que
-        #   a sprint seguinte vai ler — o que não pode é o silêncio. Ver
-        #   `CAMPOS_COM_LEITOR`, no topo.
         mortos = campos_sem_leitor(p)
         if mortos:
             print(f"  aviso {len(mortos)} campo(s) que este pack declara e NENHUM código lê:",
                   file=sys.stderr)
             for trilha in mortos:
                 print(f"          {trilha}", file=sys.stderr)
-            # A MENSAGEM MANDAVA "Ver docs/PACKS.md" E PROMETIA DEMAIS [22/09/2026]
-            #   O docs/PACKS.md descreve cada CAMPO, e é para isso que ele serve
-            #   aqui. O que ele não descreve — conferido no dia — é a ideia de
-            #   campo sem leitor nem o verbo `acervo`, que nasceram nesta sprint.
-            #   Mandar a pessoa procurar lá por uma explicação que não está
-            #   escrita é a mesma promessa vazia que este aviso veio caçar.
-            #   `docs/` está fora da tabela de arquivos da P20; então quem se
-            #   ajusta é a frase, não o documento.
+            # O docs/PACKS.md descreve cada CAMPO, e é para isso que ele serve
+            # aqui.
             print("        Eles não quebram nada — e também não fazem nada: "
                   "nenhuma linha deste projeto os consulta.\n"
                   "        O que cada campo deveria significar está em docs/PACKS.md.",
@@ -4281,11 +3329,9 @@ def validar(ref, silencioso=False):
     return p, dados, dir_pack
 
 
-# O PACK-BASE — P88, decisão 14
-#   `papel: "base"` é o acervo do próprio MeowSystem (`packs/meowsystem/`), que
-#   todo pack herda sem declarar. Ele não tem paleta nem logo e não se veste:
-#   a porta do motor (`silencioso`, a sonda do `meow_pack_dir` e do `usar`) o
-#   recusa, e a de quem publica confere só o que ele tem, os ícones.
+# Ele não tem paleta nem logo e não se veste: a porta do motor (`silencioso`, a
+# sonda do `meow_pack_dir` e do `usar`) o recusa, e a de quem publica confere
+# só o que ele tem, os ícones.
 PAPEL_BASE = "base"
 
 
@@ -4338,23 +3384,12 @@ def _validar_base(p, dir_pack, silencioso):
     return p, {"flavors": {}, "nomes": {}, "claros": []}, dir_pack
 
 
-# O TAMANHO DE UM PACK, EM VOZ ALTA — 22/09/2026
+# Até aqui não havia como saber o tamanho de um pack sem `find`. O `meow pack
+# info` dizia de ONDE vem cada categoria — próprio, herdado, do motor — e não
+# dizia QUANTO vem.
 #
-#   Até aqui não havia como saber o tamanho de um pack sem `find`. O `meow pack
-#   info` dizia de ONDE vem cada categoria — próprio, herdado, do motor — e não
-#   dizia QUANTO vem. As duas perguntas que a pessoa faz ao instalar um pack de
-#   terceiro são exatamente essas, e ele respondia meia.
-#
-#   E a metade que faltava é a que denuncia o pack vazio: um `pack.json` que
-#   declara `icones.apps.desenhos` apontando para um diretório com zero arquivo
-#   passa no `validar` (o diretório existe) e imprime `PRÓPRIO` aqui. Com a
-#   contagem ao lado, `PRÓPRIO` com `0 desenho(s)` conta a história inteira.
-#
-# A CONTAGEM SEGUE A HERANÇA, PORQUE É ASSIM QUE O ACERVO CHEGA À TELA
-#   O Dracula não tem mimetype nenhum e mostra os 3.280 do Catppuccin — então
-#   `mimetypes  HERDADO de catppuccin  3.280` é a verdade do que a pessoa vai
-#   ver. Contar só o que é próprio imprimiria zero para uma categoria que
-#   funciona, e a pessoa iria procurar defeito onde não há.
+# Com a contagem ao lado, `PRÓPRIO` com `0 desenho(s)` conta a história
+# inteira.
 def _contar_acervo(ref, categoria, flavors):
     """Quantos SVG aquela categoria entrega, e em quantos flavors do pack.
 
@@ -4367,99 +3402,42 @@ def _contar_acervo(ref, categoria, flavors):
     svgs = []
     for base, _dirs, arquivos in os.walk(dir_acv):
         svgs += [a for a in arquivos if a.endswith(".svg")]
-    # O FLAVOR SAI DO NOME DO ARQUIVO, E SÓ CONTA O QUE O PACK DECLARA
-    #   Os autorais nascem como `<nome>-<flavor>.svg`. Casar o sufixo contra os
-    #   flavors da paleta DESTE pack é o que impede um `cosmic-term-latte.svg`
-    #   perdido no acervo do Dracula de ser contado como um terceiro flavor
-    #   dele — e é justamente esse arquivo perdido que esta sprint foi tirar de
-    #   `assets/icones/autorais/`.
+    # Os autorais nascem como `<nome>-<flavor>.svg`.
     achados = {f for f in flavors for a in svgs if a.endswith(f"-{f}.svg")}
     quantos = f"{len(svgs):,} desenho(s)".replace(",", ".")
     return quantos, (f"{len(achados)} flavor(s)" if achados else "")
 
 
-# A BIBLIOTECA: DESENHOS QUE NENHUM APLICATIVO VESTE AINDA — 23/09/2026, P36
+# Estavam 11 de 295: o pack guardava só o desenho que já vestia alguém, e o
+# resto da coleção — de onde a pessoa escolhe o próximo — morava num repositório
+# que só existe numa máquina.
 #
-#   A queixa: "vc tinha achado mais de 300 [SVGs] do tema dracula mas eles não
-#   estão no pack". Estavam 11 de 295: o pack guardava só o desenho que já
-#   vestia alguém, e o resto da coleção — de onde a pessoa escolhe o próximo —
-#   morava num repositório que só existe numa máquina. `icones/biblioteca/` é
-#   essa coleção, dentro do pack.
-#
-#   SEM CAMPO NO pack.json, E É DE PROPÓSITO: nada INSTALA a biblioteca. Quem
-#   põe desenho no tema é o `icones.apps.mapa`, e uma linha dele pode apontar
-#   para `biblioteca/x.svg` como aponta para `apps/x.svg` — é o mesmo
-#   `resolver_alvo`. A pasta é convenção, como a `temas/capturados/`: um campo
-#   que declarasse "tenho biblioteca" seria lido só por esta conta.
-#
-#   "SEM APP LIGADO" É POR CONTEÚDO, E NÃO POR CAMINHO. Onze desenhos da
-#   biblioteca do Dracula já moravam em `icones/apps/` com nome de aplicativo
-#   (o `dice.svg` é o `apps/foundryvtt.svg`, byte a byte), e a decisão foi
-#   deixá-los lá. Contar por caminho diria que o dado não veste ninguém,
-#   quando o Foundry o veste todo dia. O sha256 de ~300 SVG custa milissegundos.
+# SEM CAMPO NO pack.json, E É DE PROPÓSITO: nada INSTALA a biblioteca.
 PASTA_BIBLIOTECA = "icones/biblioteca/"
 EXT_DA_BIBLIOTECA = (".svg", ".png")
 
 
-# ============================================================================
-# O ACERVO DA FICHA DE ÍCONE, DECLARADO NUM LUGAR SÓ — 09/10/2026, sprint P73
-# ============================================================================
-# O pedido de quem usa, 09/10: «Era pra aparecerem todos os Drácula feitos e
-# todos os do MeowSystem feitos, numa pasta cada. Independente do app que eu
-# escolher, eu deveria acessar todas as imagens disponíveis.» E a decisão 3 do
-# mesmo dia (docs/sprints/2026-10-09-uso-real/02-decisoes.md): os acervos de
-# TODOS os packs aparecem, cada um na sua pasta, com o pack no ar primeiro.
-# Ela revoga a regra da P60 («o acervo de um pack fora do ar não entra»).
+# Independente do app que eu escolher, eu deveria acessar todas as imagens
+# disponíveis.»
 #
-# POR QUE AQUI, E NÃO NUMA TUPLA DO SERVIDOR
-#   Até a P73 a ficha (`_api_glifos`) lia uma tupla fixa —
-#   `("arcticons-apps", "autorais", "convertidos-apps")` — e os autorais do
-#   pack só no flavor em vigor. Medido na auditoria de 09/10: `resgatados/` (29
-#   desenhos, 28 sem gêmeo em grupo nenhum), `arcticons/` (34 sem gêmeo) e os
-#   onze `-alucard` nunca apareciam. Uma lista no servidor é a quinta cópia de
-#   "onde moram os desenhos": o `tests/acervo-da-ficha.sh` conta o disco contra
-#   ESTA função, e o servidor pergunta a ela.
-#
-# O QUE ENTRA, E O QUE FICA DE FORA DE PROPÓSITO
-#   · de cada pack em qualquer raiz: os `icones.apps.desenhos` declarados, a
-#     biblioteca (`PASTA_BIBLIOTECA`), os autorais de TODOS os flavors (o
-#     flavor é subgrupo) e os feitos à mão (`PASTA_FEITOS_A_MAO`): o vetor
-#     de cada um, e o PNG que ainda não ganhou o seu;
-#   · [P88: num pack de formato 2, as árvores `apps/` e `biblioteca/`, cada
-#     subpasta um grupo — e o motor é o pack-base, com o traço dele.]
-#   Fora: `pastas/` e os mimetypes (pasta e tipo de arquivo não são ícone de
-#   aplicativo — oferecer um faria o lançador mostrar uma pasta no lugar do
-#   programa); `previa-arcticons/` (os 35 têm os mesmos bytes de desenhos que já
-#   chegam por outra pasta, medido sha a sha em 09/10); `upstream/` (é o
-#   papirus-folders, 21.000 pastas coloridas, e não o Arcticons — a validação
-#   de 08/09 mediu «steam» dando 56 pastas); a folha `ANTES-E-DEPOIS.png` dos
-#   resgatados, que é a comparação de antes e depois, e não um ícone.
-#   [O grupo «Catppuccin» que saiu na P60 era a pasta `catppuccin-apps/`, fora
-#   do git e de PNG. O que volta com a decisão 3 é o acervo versionado do pack
-#   Catppuccin — os autorais dele —, pela mesma porta dos outros packs.]
+# Uma lista no servidor é a quinta cópia de "onde moram os desenhos": o
+# `tests/acervo-da-ficha.sh` conta o disco contra ESTA função, e o servidor
+# pergunta a ela.
 PASTA_FEITOS_A_MAO = "icones/biblioteca/feitos-a-mao/"
-# AS TRÊS PASTAS NA FICHA — P88, decisão 14. Num pack de formato 2 os grupos
-#   são as árvores `apps/` e `biblioteca/`, cada subpasta um grupo (a subpasta é
-#   etiqueta), e o PNG da mesma pasta num grupo à parte. `sistema/` não é ícone
-#   de programa e não entra. O motor deixou de ter grupos próprios: o acervo dele
-#   é o pack-base, e o traço dele é dito pelo `icones.apps.recolorir`.
+# Num pack de formato 2 os grupos são as árvores `apps/` e `biblioteca/`, cada
+# subpasta um grupo (a subpasta é etiqueta), e o PNG da mesma pasta num grupo à
+# parte.
 PASTAS_DA_FICHA = ("icones/apps/", PASTA_BIBLIOTECA)
 ROTULO_DA_PASTA = {"icones/apps": "feitos para apps", "icones/biblioteca": "biblioteca",
                    "arcticons": "traço", "feitos-a-mao": "feitos à mão",
                    "versoes": "versões", "projetos": "projetos dela"}
 FORA_DA_FICHA = ("ANTES-E-DEPOIS.png",)
-# O nome vira texto de mapa no estado de quem usa (`escolhas_do_painel`): `#`
-# cortaria a linha, `:` a partiria, e uma quebra a dividiria em duas.
 RE_NOME_NA_FICHA = re.compile(r"^[^#:\x00-\x1f]{1,200}$")
 
 
-# O DESENHO QUE QUEM USA ENVIOU MORA NA CASA DELA — 15/10/2026, P82 (item 4;
-#   decisão 15). O «Adicionar ícone» do painel gravava em
-#   `assets/icones/overrides/`, dentro do clone: usar o produto virava arquivo
-#   por commitar, e a pasta nem estava aqui, então o desenho não aparecia para
-#   ser escolhido. Agora ele mora ao lado da raiz 2 dos packs, no estado de quem
-#   usa, e a ficha o lista como uma pasta dela. O repositório só o recebe pelo
-#   «Levar para o pack», que é o gesto explícito.
+# O «Adicionar ícone» do painel gravava em `assets/icones/overrides/`, dentro do
+# clone: usar o produto virava arquivo por commitar, e a pasta nem estava aqui,
+# então o desenho não aparecia para ser escolhido.
 def pasta_de_enviados():
     """`~/.local/share/meowsystem/icones-enviados/` (exista ou não)."""
     return os.path.join(os.path.dirname(raiz_da_pessoa()), "icones-enviados")
@@ -4522,9 +3500,7 @@ def acervos_de_icone(no_ar=""):
                 _grupos_das_tres_pastas(grupo, pid, nome_pack, dir_pack, aut)
             else:
                 _grupos_de_antes(grupo, pid, nome_pack, dir_pack)
-            # OS AUTORAIS DE TODOS OS FLAVORS, COM O FLAVOR COMO SUBGRUPO. Até a
-            # P73 só o do flavor em vigor entrava: no Dracula escuro, os onze do
-            # `alucard` não existiam para a ficha.
+            # OS AUTORAIS DE TODOS OS FLAVORS, COM O FLAVOR COMO SUBGRUPO.
             try:
                 pasta_aut = _dentro(dir_pack, aut, "icones.autorais.desenhos")
             except Recusa:
@@ -4540,7 +3516,7 @@ def acervos_de_icone(no_ar=""):
                 grupo("pack:%s:autorais:%s" % (pid, flavor or "-"), nome_pack,
                       "autorais · %s" % flavor if flavor else "autorais", pid, "desenho",
                       pasta_aut, por_flavor[flavor])
-    # Os enviados pelo painel (P82, item 4), depois dos packs.
+    # Os enviados pelo painel, depois dos packs.
     enviados = pasta_de_enviados()
     grupo("casa:enviados", "Seus", "enviados", "", "desenho", enviados,
           _arquivos_da_pasta(enviados, ".svg"))
@@ -4560,19 +3536,14 @@ def _grupos_de_antes(grupo, pid, nome_pack, dir_pack):
                 pastas.append((chave, nome, _dentro(dir_pack, declarada, cat), "desenho", ".svg"))
             except Recusa:
                 pass
-    # A BIBLIOTECA E OS FEITOS À MÃO TAMBÉM PASSAM PELO `_dentro` — P78
-    #   As duas pastas são convenção, sem campo no pack.json, e por isso
-    #   entravam pelo `join` cru: uma `icones/biblioteca` que fosse symlink para
-    #   fora punha na ficha (e na `/previa`) o que estivesse lá. Pasta que sai do
-    #   pack fica de fora, calada como a declarada.
+    # As duas pastas são convenção, sem campo no pack.json, e por isso entravam
+    # pelo `join` cru: uma `icones/biblioteca` que fosse symlink para fora punha
+    # na ficha (e na `/previa`) o que estivesse lá.
     feitos = padrao_do_formato(dir_pack, PASTA_FEITOS_A_MAO)
     for chave, nome, rel, tipo, ext in (
             ("biblioteca", "biblioteca", PASTA_BIBLIOTECA, "desenho", ".svg"),
-            # OS FEITOS À MÃO VIRAM VETOR — 15/10/2026, P84. A decisão 2 de
-            #   09/10: cada PNG ganha um `.svg` ao lado, conferido por RMSE, e o
-            #   PNG sai quando o vetor passa. O vetor é desenho como os da
-            #   biblioteca e se escolhe; o PNG que sobrar segue visto e travado
-            #   (raster não é fonte), num grupo à parte da mesma pasta.
+            # A decisão 2: cada PNG ganha um `.svg` ao lado, conferido por RMSE,
+            # e o PNG sai quando o vetor passa.
             ("feitos-a-mao", "feitos à mão", feitos, "desenho", ".svg"),
             ("feitos-a-mao-png", "feitos à mão (PNG)", feitos, "png", ".png")):
         try:
@@ -4592,8 +3563,8 @@ def _grupos_das_tres_pastas(grupo, pid, nome_pack, dir_pack, aut):
     except Recusa:
         real_aut = ""
     for rel_raiz in PASTAS_DA_FICHA:
-        # A pasta passa pelo `_dentro`, como a declarada (P78): uma que seja
-        # link para fora do pack fica de fora, calada.
+        # A pasta passa pelo `_dentro`, como a declarada: uma que seja link
+        # para fora do pack fica de fora, calada.
         try:
             raiz = _dentro(dir_pack, rel_raiz, rel_raiz)
         except Recusa:
@@ -4645,17 +3616,13 @@ def _contar_biblioteca(ref, dir_pack):
     return len(nomes), soltos
 
 
-# A TABELA DO `info` E A LINHA DO CARTÃO SAEM DA MESMA CONTA — 23/09/2026, P15
+# A classificação morava dentro do laço do `cmd_info`; ela saiu para cá porque
+# uma tabela e uma frase calculadas cada uma por si discordariam no primeiro
+# pack que declarasse uma categoria nova, e a tela mostraria "herdado" onde o
+# terminal diz "próprio".
 #
-#   A P15 pediu, no cartão do painel e no alto do `info`, a linha "próprio:
-#   paleta, ícones · herdado do catppuccin: ponteiro, mimetypes" — que é esta
-#   tabela virada frase. A classificação morava dentro do laço do `cmd_info`;
-#   ela saiu para cá porque uma tabela e uma frase calculadas cada uma por si
-#   discordariam no primeiro pack que declarasse uma categoria nova, e a tela
-#   mostraria "herdado" onde o terminal diz "próprio".
-#
-#   O NOME DE GENTE mora ao lado, e só é usado pela frase: a tabela continua
-#   com a trilha do pack.json, que é o que quem escreve um pack procura.
+# O NOME DE GENTE mora ao lado, e só é usado pela frase: a tabela continua com
+# a trilha do pack.json, que é o que quem escreve um pack procura.
 ROTULO_DA_CATEGORIA = {
     "paleta": "paleta",
     "cosmic.mapa": "mapa do COSMIC",
@@ -4663,10 +3630,8 @@ ROTULO_DA_CATEGORIA = {
     "icones.pastas": "pastas",
     "icones.mimetypes": "ícones de arquivo",
     "icones.autorais": "ícones autorais",
-    # "ícones-base", e não "base de ícones": o cartão da Home tem o teto de 220
-    # da P7, e com a base o do Dracula foi a 222 pelo nome comprido (medido na
-    # P41, 24/09/2026). O nome curto diz o mesmo, e a tabela do `info` mostra a
-    # trilha inteira ao lado.
+    # O nome curto diz o mesmo, e a tabela do `info` mostra a trilha inteira ao
+    # lado.
     "icones.base": "ícones-base",
     "cursores": "ponteiro",
     "wallpapers": "papéis de parede",
@@ -4680,26 +3645,12 @@ ROTULO_DA_CATEGORIA = {
 }
 
 
-# AS QUE O FORMATO AINDA NÃO DECLARA, DITAS NA TABELA — 23/09/2026, sprint P12
+# Uma categoria que some da tela é lida como "o pack cuida disso", e a nota de
+# herança do Dracula dizia que prompt, fastfetch e gatos "vêm do pack base".
 #
-#   A tabela da P12 contou onze categorias, e o `info` imprimia nove linhas:
-#   som, fontes, o traço do gerador de ícone, prompt, fastfetch e gatos não
-#   apareciam — e a P18 e a P27 tinham acrescentado duas que a tabela não
-#   contava (temas de aplicativo, ícones autorais). Uma categoria que some da
-#   tela é lida como "o pack cuida disso", e a nota de herança do Dracula dizia
-#   que prompt, fastfetch e gatos "vêm do pack base". Não vêm: vêm de `assets/`,
-#   iguais para todo pack, e nenhum pack tem campo onde declarar outros.
-#
-#   Então elas entram na tabela com o nome do que são — DO MOTOR, não
-#   declaráveis — e o lugar de onde saem na coluna ao lado. Quando uma sprint
-#   der campo e leitor a uma delas, ela sai DESTA tabela e passa a ser
-#   classificada como as outras; enquanto estiver aqui, o `info` diz a verdade.
-#
-#   O TRAÇO DO GERADOR NÃO É O `icones.autorais`. A P26 tornou declarável O QUE
-#   o gerador de autorais desenha (os `.json` do pack). O traço da conversão —
-#   espessura, fusão, aparo, cantos, preenchimento — continua nos padrões do
-#   `converter_icone.py` e nas réguas da oficina, e é a mesma saída para todo
-#   pack. Ver a seção "O que ainda não é do pack" do docs/PACKS.md.
+# O traço da conversão — espessura, fusão, aparo, cantos, preenchimento —
+# continua nos padrões do `converter_icone.py` e nas réguas da oficina, e é a
+# mesma saída para todo pack.
 FIXAS_NO_MOTOR = {
     "gerador": "scripts/converter_icone.py",
     "prompt": "assets/prompt/",
@@ -4708,16 +3659,8 @@ FIXAS_NO_MOTOR = {
 }
 
 
-# O QUE A DECLARAÇÃO DAS PASTAS VESTE — 24/09/2026, P56 (item 2, na revisão)
-#   A tabela dizia «pastas: próprio» e «7 desenho(s)» para o Dracula, e a tela
-#   mostrava outra coisa. O que um pack declara em `icones.pastas` veste só as
-#   pastas ESPECIAIS (o `scripts/icones_pastas.sh`, pelo `pastas.map`), e só com
-#   PASTAS_XDG="sim", que de fábrica vem desligado. Todas as outras, a pasta comum
-#   inclusive, são o papirus-folders do motor na paleta do pack — o
-#   `scripts/construir_pastas.sh` deriva a variante que ele não traz —, e isso
-#   nenhum pack declara. A coluna de origem continua dizendo de quem é a
-#   declaração; a nota diz o que ela veste. O `info` e o «Mais sobre» do cartão
-#   leem a mesma nota, como leem o mesmo `origens`.
+# A tabela dizia «pastas: próprio» e «7 desenho(s)» para o Dracula, e a tela
+# mostrava outra coisa.
 NOTA_DA_CATEGORIA = {
     "icones.pastas": ("só as pastas especiais, com «Ícones das pastas especiais» ligado "
                       "(PASTAS_XDG); as outras são o papirus-folders, na paleta do pack"),
@@ -4760,16 +3703,10 @@ def origens(p):
     for cat, bloco in [("paleta", p.get("paleta")), ("cosmic.mapa", (p.get("cosmic") or {}).get("mapa")),
                        ("icones.apps", ic.get("apps")), ("icones.pastas", ic.get("pastas")),
                        ("icones.mimetypes", ic.get("mimetypes")), ("icones.autorais", ic.get("autorais")),
-                       # A DÉCIMA SEXTA LINHA — 24/09/2026, sprint P41: a base
-                       # que o `MeowSystem-Icons` herda, baixada pelo que o pack
-                       # declara. Sem ela, vale o `ICONES_BASE` do meow.conf,
-                       # que é do motor.
+                       # A DÉCIMA SEXTA LINHA: a base que o `MeowSystem-Icons`
+                       # herda, baixada pelo que o pack declara.
                        (CATEGORIA_BASE, ic.get("base")),
                        ("cursores", org.get("cursores")), ("wallpapers", org.get("wallpapers")),
-                       # A NONA CATEGORIA — 22/09/2026, sprint P18. Ela não
-                       # estava na tabela de P12 porque não existia: até aqui
-                       # `assets/temas-de-apps/` era anterior ao formato de pack
-                       # e nenhum pack tinha onde declarar tema de aplicativo.
                        ("apps", p.get("apps")),
                        ("som", p.get("som")), (CATEGORIA_FONTES, p.get(CATEGORIA_FONTES))] \
             + [(cat, None) for cat in FIXAS_NO_MOTOR]:
@@ -4779,73 +3716,38 @@ def origens(p):
             continue
         # O SOM NÃO SOBE A HERANÇA, E A TABELA NÃO PODE DIZER QUE SOBE: o
         # `cmd_som` lê só o `som` do próprio pack, e o `som.sh` põe os padrões
-        # dele no que faltar. Um pack que herda do Dracula e não declara `som`
-        # toca o sino do motor, e não o do Dracula.
+        # dele no que faltar.
         if cat == "som":
             declarou = isinstance(bloco, dict) and any(not str(k).startswith("_") for k in bloco)
             saida.append((cat, "próprio" if declarou else "motor", ""))
             continue
-        # OS PAPÉIS DE PAREDE SÃO DO MOTOR, DECLARE O PACK O QUE DECLARAR —
-        # 23/09/2026, sprint P32.
-        #   A tabela dizia PRÓPRIO para o Dracula porque ele declara
-        #   `origens.wallpapers`, e nenhum código lê esse bloco: o
-        #   `scripts/wallpaper.sh` não o abre. Quem escolhe a semente é o
-        #   `_semente_do_flavor` de lá, pelo ID do pack dono do flavor — desde a
-        #   P40 (24/09/2026) ele pergunta ao `adocao` de quem é o flavor, e não
-        #   olha mais o nome dele; `dracula` lê `WALLPAPER_DRACULA_REPO` do
-        #   meow.conf, todo o resto cai no acervo do Catppuccin —, com
-        #   `WALLPAPER_SEMENTE_REPO` vencendo por cima. Quem lia "próprio"
-        #   acreditava que o pack trazia os papéis de parede dele.
-        #   Nem HERDADO serve: ninguém sobe a herança desta categoria.
+        # A tabela dizia PRÓPRIO para o Dracula porque ele declara
+        # `origens.wallpapers`, e nenhum código lê esse bloco: o
+        # `scripts/wallpaper.sh` não o abre.
         #
-        #   POR QUE MUDA A TELA, E NÃO O SEMEADOR. Dar leitor ao bloco seria um
-        #   segundo caminho de semeadura — achar o pack ativo no shell, ler cinco
-        #   campos, expandir a chave do conf que `repo_do_conf` nomeia, cumprir o
-        #   `se_vazio` — para chegar ao que o `dracula)` do `wallpaper.sh` já faz,
-        #   e ninguém pediu por ele. O menor passo verdadeiro é a tabela dizer de
-        #   onde a imagem sai. Os campos seguem no aviso de campo morto, que conta
-        #   que declará-los não faz nada; no dia em que o `wallpaper.sh`
-        #   ler o bloco do pack, este sai e a categoria volta à regra geral.
-        #   [P74 item 7, 09/10/2026: o dia chegou para o `desenhos`. O
-        #   `wallpaper.sh` passou a semear, pelo `acervo`, os papéis de parede
-        #   que o pack traz em `origens.wallpapers.desenhos` (os SVG do Dracula,
-        #   rasterizados em 4K). Com a pasta declarada e no disco, PRÓPRIO; o
-        #   resto do bloco continua sem leitor, e continua do motor.]
+        # O menor passo verdadeiro é a tabela dizer de onde a imagem sai.
         if cat == "wallpapers":
             desenhos = bloco.get("desenhos") if isinstance(bloco, dict) else None
             proprio = isinstance(desenhos, str) and dir_pack_info and \
                 os.path.isdir(os.path.join(dir_pack_info, desenhos))
             saida.append((cat, "próprio" if proprio else "motor", ""))
             continue
-        # PONTEIRO E FONTES SÃO PRÓPRIOS SÓ COM `proprio`. Um bloco com só o
-        # `tema` do ponteiro (o nome que a chave CURSOR recebe) não traz tema
-        # nenhum, e a tabela dizia PRÓPRIO para ele; sem `proprio` e sem
-        # `herda`, a categoria cai na `heranca`, que é o que o `ponteiro` e o
-        # `tipografia` fazem de verdade.
-        #   A `origem` pinada (P41, 24/09/2026) também é PRÓPRIA: o pack
-        #   declara de onde o ponteiro ou a base descem, e é ele que responde.
+        # Um bloco com só o `tema` do ponteiro (o nome que a chave CURSOR
+        # recebe) não traz tema nenhum, e a tabela dizia PRÓPRIO para ele; sem
+        # `proprio` e sem `herda`, a categoria cai na `heranca`, que é o que o
+        # `ponteiro` e o `tipografia` fazem de verdade.
         if (cat in ("cursores", CATEGORIA_FONTES, CATEGORIA_BASE) and isinstance(bloco, dict)
                 and "proprio" not in bloco and "origem" not in bloco and not bloco.get("herda")):
             bloco = None
         if bloco is None:
-            # SEM HERANÇA DECLARADA NÃO EXISTE "HERDADO DE" — 22/09/2026
-            #   O pack PADRÃO não herda de ninguém, e esta coluna imprimia
-            #   `HERDADO de (nenhuma)` em cinco das oito categorias dele — uma
-            #   frase que diz o contrário do que acontece. Categoria que um
-            #   pack sem herança não declara vem do MOTOR (o
-            #   `assets/paleta/cosmic-map.json`, os acervos de `assets/`) ou
-            #   não existe para aquele pack. O `acervo()` já resolve assim; era
-            #   só a tela que discordava dele.
+            # O pack PADRÃO não herda de ninguém, e esta coluna imprimia
+            # `HERDADO de (nenhuma)` em cinco das oito categorias dele — uma
+            # frase que diz o contrário do que acontece.
             tipo, quem = ("herdado", p["heranca"]) if p.get("heranca") else ("motor", "")
-            # A HERANÇA QUE NÃO TRAZ NADA É O MOTOR — 09/10/2026, P74 item 7.
-            #   O Dracula dizia «HERDADO de catppuccin» no mapa do COSMIC e nas
-            #   fontes, e o Catppuccin não declara nenhum dos dois: o mapa é o
-            #   `assets/paleta/cosmic-map.json` do motor e a fonte é a Nerd Font
-            #   do motor. «Herdado do Catppuccin» com o Dracula no ar era a
-            #   frase do achado 9 de 09/10, sobre coisa que não é dele.
-            #   Só nessas duas: nas outras, «herdado de» é o nome da porta por
-            #   onde o valor chega (o ponteiro do pack de CSV vem do CURSOR que
-            #   o Catppuccin nomeia), e o `tests/pack.sh` o cobra.
+            # O Dracula dizia «HERDADO de catppuccin» no mapa do COSMIC e nas
+            # fontes, e o Catppuccin não declara nenhum dos dois: o mapa é o
+            # `assets/paleta/cosmic-map.json` do motor e a fonte é a Nerd Font
+            # do motor.
             if tipo == "herdado" and cat in ("cosmic.mapa", CATEGORIA_FONTES) \
                     and not _cadeia_declara(p["heranca"], cat):
                 tipo, quem = "motor", ""
@@ -4857,31 +3759,10 @@ def origens(p):
     return saida
 
 
-# A LINHA ESTÁ A UM CARACTERE DO TETO, E O CONSERTO FICA ESCRITO — 24/09/2026,
-# sprint P45, item 10.
-#   Medido hoje: 219 caracteres no Dracula e 195 no Catppuccin, contra os 220
-#   da P7. A próxima categoria que o Dracula declarar estoura, e o
-#   `tests/pack.sh` acusa. Duas propostas, medidas nos dois packs:
+# A próxima categoria que o Dracula declarar estoura, e o `tests/pack.sh`
+# acusa. Duas propostas, medidas nos dois packs:
 #
-#   A. A família dos ícones vira um item só quando o grupo tem dois ou mais:
-#      "ícones (aplicativo, pastas, autorais, base)". Dracula 204, Catppuccin
-#      179. Continua listando tudo, e por isso cada categoria nova volta a
-#      comer a folga de 15.
-#   B. O grupo MAIOR vira "o resto", e os outros seguem por extenso:
-#      "herdado de catppuccin: mapa do COSMIC, ícones de arquivo, fontes · do
-#      motor, ou ausente: papéis de parede · próprio: o resto". Dracula 124,
-#      Catppuccin 112. É a menor que ainda diz o que é próprio e o que é
-#      herdado — um por extenso, o outro pelo complemento —, e o grupo que mais
-#      cresce é o que deixa de crescer na linha. Nada some: a tabela do `info`
-#      e o «Mais sobre este pack» do cartão listam categoria por categoria.
-#
-#   A proposta é a B, e ela NÃO entrou aqui por causa da tela. Desde a P34 o
-#   cartão não imprime esta função: imprime o `linhaDeOrigem` do
-#   `app/pagina/app.js`, que refaz o mesmo agrupamento a partir das
-#   `categorias` do `vocabulario`. Mudar só este lado faria o `tests/pack.sh`
-#   medir uma linha de 124 enquanto a Home desenha a de 219 — o teste passaria
-#   a mentir para o lado do verde. O app.js não está entre os arquivos da P45;
-#   as duas funções mudam juntas, na sprint que o tiver.
+# A proposta é a B, e ela NÃO entrou aqui por causa da tela.
 def resumo_de_origem(p):
     """A tabela do `info` numa linha: 'próprio: … · herdado de X: …'.
 
@@ -4906,21 +3787,17 @@ def resumo_de_origem(p):
 def cmd_info(ref):
     p, dados, dir_pack = validar(ref, silencioso=True)
     vit, problemas = vitrine(p, dir_pack)
-    # O QUE VAI DENTRO DA CAPA TAMBÉM ENTRA NA CONTA [23/09/2026, junção com a
-    #   P25]. Desde a a3ee4a6 o motor não confere o logo, e a vitrine só confere o
-    #   campo; sem esta linha, um logo com `<script>` sairia aqui como "capa
-    #   logo.svg", tudo certo, e o `validar` o recusaria logo depois.
+    # Desde a a3ee4a6 o motor não confere o logo, e a vitrine só confere o
+    # campo; sem esta linha, um logo com `<script>` sairia aqui como "capa
+    # logo.svg", tudo certo, e o `validar` o recusaria logo depois.
     if vit["capa"]:
         try:
             _validar_logo(dir_pack, p)
         except Recusa as e:
             problemas.append(str(e))
     base = p.get("heranca") or "(nenhuma)"
-    # AS SEIS PRIMEIRAS LINHAS SÃO A VITRINE — 23/09/2026, P15
-    #   A conferência da sprint é `meow pack info dracula | head -6`, e ela é o
-    #   retrato certo da pergunta: quem é, de quem é, o que diz de si, e o que é
-    #   dele. O diretório e a herança descem uma linha porque respondem outra
-    #   pergunta — a de quem está consertando, não a de quem está escolhendo.
+    # O diretório e a herança descem uma linha porque respondem outra pergunta —
+    # a de quem está consertando, não a de quem está escolhendo.
     versao = f"versão {p['versao']} · " if p.get("versao") else ""
     print(f"{p['nome']}  [{p['id']}]  {versao}formato {p['formato']}")
     licenca = f" · licença {p['licenca']}" if p.get("licenca") else ""
@@ -4931,24 +3808,17 @@ def cmd_info(ref):
     print(f"  diretório : {dir_pack}")
     print(f"  herança   : {base}")
     print(f"  flavors   : {', '.join(sorted(dados['flavors']))}")
-    # O CLARO DERIVADO DIZ NA CARA QUE É DERIVADO [23/09/2026, P16]. A sprint
-    #   registra o risco com as palavras certas: derivar é opinativo, e o
-    #   `alucard` de 19/09 só saiu depois de três correções do método (o
-    #   `derivar_claro.py` conta as três). Um claro que nasceu do
-    #   CSV sem ninguém desenhá-lo aparecendo aqui igual a um desenhado seria o
-    #   "fingido" que ela proíbe.
+    # registra o risco com as palavras certas: derivar é opinativo, e o
+    # `alucard` só saiu depois de três correções do método (o
+    # `derivar_claro.py` conta as três).
     derivados = claros_derivados(dados)
     claros = [f"{c} — claro: derivado do escuro pelo método do Latte (não é próprio), "
               f"a partir de {derivados[c]!r}" if c in derivados else c
               for c in dados["claros"]]
     print(f"  claros    : {', '.join(claros) or '(nenhum)'}")
-    # O `info` MOSTRA O PACK MESMO COM A VITRINE QUEBRADA, e diz o que falta: ele
-    # é a pergunta de quem está consertando, e esconder o pack inteiro atrás de
-    # uma capa ausente não ajudaria ninguém a achar a capa.
-    #   MENOS A URL FORA DE https:// [23/09/2026, revisão da P15]: essa é regra
-    #   do pack inteiro, e o `validar(silencioso=True)` da primeira linha já a
-    #   recusou — um `vitrine.site` em `http://` faz o `info` sair 1, com a
-    #   mesma mensagem do `validar`. Ver `vitrine`, "COM UMA EXCEÇÃO".
+    # O `info` MOSTRA O PACK MESMO COM A VITRINE QUEBRADA, e diz o que falta:
+    # ele é a pergunta de quem está consertando, e esconder o pack inteiro atrás
+    # de uma capa ausente não ajudaria ninguém a achar a capa.
     if problemas:
         print(f"  vitrine   : NÃO VALIDA — `meow pack validar {p['id']}` recusa por isto:")
         for linha in problemas:
@@ -4968,20 +3838,13 @@ def cmd_info(ref):
         estado = {"próprio": "PRÓPRIO", "herdado": f"HERDADO de {quem}",
                   "motor": "DO MOTOR, ou inexistente",
                   "fixo": "DO MOTOR — não declarável"}[tipo]
-        # SÓ AS CATEGORIAS DE ÍCONE TÊM ACERVO PARA CONTAR. `paleta` é um
-        # arquivo, `cosmic.mapa` é um arquivo, e cursores e wallpapers são
-        # origens que este pack nem baixou ainda — contar SVG em qualquer uma
-        # das quatro imprimiria uma coluna vazia que faz a pessoa procurar o que
-        # deu errado.
+        # `paleta` é um arquivo, `cosmic.mapa` é um arquivo, e cursores e
+        # wallpapers são origens que este pack nem baixou ainda — contar SVG em
+        # qualquer uma das quatro imprimiria uma coluna vazia que faz a pessoa
+        # procurar o que deu errado.
         conta = ""
-        # A BASE DIZ DE ONDE DESCE, E QUEM VALE — 24/09/2026, P41. Ela não tem
-        # desenho no pack para contar: a coluna diz a origem pinada e o pack
-        # que a declara. Quando o `ICONES_BASE` chega pelo ambiente — o `meow
-        # pack info` SEM id carrega o meow.conf com `set -a`; com id, não —, um
-        # valor escolhido à mão aparece ao lado: "quando os dois existem e
-        # discordam, o info mostra os dois e diz qual está valendo"
-        # (docs/PACKS.md, "Quem vence"). Sem ele no ambiente, a linha diz que
-        # quem decide é a chave, e qual é o valor de fábrica dela.
+        # Ela não tem desenho no pack para contar: a coluna diz a origem pinada
+        # e o pack que a declara.
         if cat == CATEGORIA_BASE:
             a_mao = _base_escolhida(os.environ.get("ICONES_BASE"))
             try:
@@ -5004,25 +3867,19 @@ def cmd_info(ref):
             quantos, fl = _contar_acervo(ref, cat, dados["flavors"])
             conta = f"{quantos}, {fl}" if quantos and fl else quantos
             # COM BIBLIOTECA, A LINHA DOS APLICATIVOS CONTA NOMES, E NÃO
-            # ARQUIVOS DE `apps/` [23/09/2026, P36]: um mapa que aponta para
-            # `biblioteca/` veste aplicativos com desenho que não mora em
-            # `apps/`, e "70 desenho(s)" ali contaria a metade. A mesma linha,
-            # e não uma nova: a tabela tem as 16 que o `tests/pack.sh` cobra
-            # (eram 15 até a base de ícones da P41, 24/09/2026).
+            # ARQUIVOS DE `apps/`: um mapa que aponta para `biblioteca/` veste
+            # aplicativos com desenho que não mora em `apps/`, e "70
+            # desenho(s)" ali contaria a metade.
             bib = _contar_biblioteca(ref, dir_pack) if cat == "icones.apps" else None
             if bib:
                 conta = f"{bib[0]} apps, {bib[1]} na biblioteca sem app ligado"
-        # PONTEIRO E FONTES DIZEM ONDE A CADEIA TERMINA — 23/09/2026, P12.
-        #   "HERDADO de catppuccin" era tudo o que o Dracula mostrava para o
-        #   ponteiro, e o catppuccin não traz ponteiro nenhum. A coluna ao lado
-        #   diz o que a subida de fato acha — o valor da chave CURSOR e o pack
-        #   que o traz —, ou que ela não acha nada. É o mesmo papel do
-        #   `0 desenho(s)` das categorias de ícone.
+        # "HERDADO de catppuccin" era tudo o que o Dracula mostrava para o
+        # ponteiro, e o catppuccin não traz ponteiro nenhum.
         elif cat == "cursores":
             pt = ponteiro(ref)
             conta = (f"CURSOR=\"{pt['valor']}\", do pack {pt['pack']}" if pt
                      else "" if tipo == "motor" else "a cadeia não traz ponteiro")
-            # O baixado diz de onde desce (P41): "do pack X" sozinho faria
+            # O baixado diz de onde desce: "do pack X" sozinho faria
             # procurar o tema dentro do pack, e ele não mora lá.
             if pt and pt.get("url"):
                 conta += f", baixado de {_url_curta(pt['url'])}"
@@ -5036,12 +3893,12 @@ def cmd_info(ref):
                          else "" if tipo == "motor" else "a cadeia não traz fonte")
             except Recusa:
                 conta = "a lista herdada não valida — rode o `validar` do pack base"
-        # DE ONDE O PAPEL DE PAREDE SAI, como nas fixas do motor — P32. A
-        # segunda metade é o porquê de o bloco declarado não mudar a linha: ver
-        # "OS PAPÉIS DE PAREDE SÃO DO MOTOR", no `origens`.
+        # DE ONDE O PAPEL DE PAREDE SAI, como nas fixas do motor. A segunda
+        # metade é o porquê de o bloco declarado não mudar a linha: ver "OS
+        # PAPÉIS DE PAREDE SÃO DO MOTOR", no `origens`.
         elif cat == "wallpapers":
             conta = "scripts/wallpaper.sh — segue o pack do flavor, sem ler este bloco"
-            # Com os desenhos no pack (P74), a linha conta os SVG que ele traz.
+            # Com os desenhos no pack, a linha conta os SVG que ele traz.
             if tipo == "próprio":
                 pasta = acervo("origens.wallpapers.desenhos", ref=ref) or ""
                 n = sum(1 for _r, _d, fs in os.walk(pasta) for a in fs if a.lower().endswith(".svg"))
@@ -5054,10 +3911,7 @@ def cmd_info(ref):
     return OK
 
 
-# A chave do `som` no pack.json e a do meow.conf que a vence. Saiu de dentro do
-# `cmd_som` em 23/09/2026 (P11): o `novo` lê o mesmo par no sentido contrário —
-# o timbre que está NO AR é o do pack com o meow.conf por cima —, e duas cópias
-# da tabela discordariam na primeira chave nova.
+# A chave do `som` no pack.json e a do meow.conf que a vence.
 SOM_NO_CONF = {
     "fundamental": "SOM_FUNDAMENTAL",
     "harmonico": "SOM_HARMONICO",
@@ -5069,22 +3923,10 @@ SOM_NO_CONF = {
 }
 
 
-# TROCAR DE PACK, E A TELA FALAR COM AS PALAVRAS DELE — 23/09/2026, sprint P10
-#
-# A QUEIXA
-#   "o programa original foi feito não pensando em um produto mas em aplicar o
-#   tema catppuccin." Trocar de pack era editar `PACK=` no meow.conf à mão: os
-#   verbos daqui liam, validavam e construíam, e nenhum dizia à máquina "use
-#   este". E a tela, com o Dracula no ar, oferecia `Mocha`, `Frappé` e
-#   `cat-${FLAVOR}-${ACCENT}` — o vocabulário de um pack vestindo a máquina de
-#   outro.
-#
-# AQUI MORA A DECISÃO, E NÃO A ESCRITA
-#   Quem grava o meow.conf é o `meow pack usar` (bin/meow), pela
-#   `meow_conf_definir` — a única rotina deste projeto que escreve naquele
-#   arquivo, e o cabeçalho dela conta o que custou ter duas. Este arquivo decide
-#   QUAL id e QUAL flavor, e recusa antes da primeira escrita: é a mesma
-#   fronteira do resto do `pack.py`, que nunca escreve fora do pack.
+# Quem grava o meow.conf é o `meow pack usar` (bin/meow), pela
+# `meow_conf_definir` — a única rotina deste projeto que escreve naquele
+# arquivo, e o cabeçalho dela conta o que custou ter duas.
+# Aqui se decide QUAL id e QUAL flavor, e a recusa vem antes da primeira escrita.
 RE_FLAVOR_CONF = re.compile(r"^[a-z0-9_]+$")
 
 
@@ -5096,18 +3938,12 @@ def plano_de_uso(ref, flavor=None, flavor_atual=None):
     pessoa no Mocha; e o `flavor_padrao` do pack. O terceiro campo diz qual dos
     três venceu, para a tela dizer por quê.
     """
-    # A VALIDAÇÃO É A DO MOTOR (`silencioso=True`), e não a de quem publica. É a
-    #   que o `meow_pack_dir` (lib/comum.sh) aplica por baixo de tudo: um pack que
-    #   a reprova vira "pack não resolve — usando o padrão", e o desktop sai
-    #   Catppuccin com `PACK="meu"` escrito no conf. Recusar aqui o que lá seria
-    #   trocado em silêncio é o ponto do verbo. Capa e logo ausentes não entram:
-    #   o motor usa o pack sem eles, e o `validar` diz a quem publica.
+    # É a que o `meow_pack_dir` (lib/comum.sh) aplica por baixo de tudo: um pack
+    # que a reprova vira "pack não resolve — usando o padrão", e o desktop sai
+    # Catppuccin com `PACK="meu"` escrito no conf.
     p, dados, dir_pack = validar(ref, silencioso=True)
     ident = p["id"]
-    # O ID TEM DE LEVAR DE VOLTA A ESTE DIRETÓRIO. O meow.conf nomeia pack por
-    #   id, e quem acha o id são as três raízes. Um caminho de fora delas (ou um
-    #   id que uma raiz de cima esconde) validaria aqui e resolveria OUTRA coisa
-    #   no `meow_pack_dir` — o conf diria um pack e a máquina vestiria outro.
+    # O meow.conf nomeia pack por id, e quem acha o id são as três raízes.
     _exigir(achar(ident) == dir_pack,
             f"o pack em {dir_pack} não é o que o id {ident!r} encontra.\n"
             f"    O meow.conf nomeia pack por id, procurado nesta ordem:\n      "
@@ -5124,10 +3960,8 @@ def plano_de_uso(ref, flavor=None, flavor_atual=None):
     else:
         escolhido = (p.get("paleta") or {}).get("flavor_padrao") or flavors[0]
         porque = "padrão do pack"
-    # O FLAVOR VAI PARA UM ARQUIVO QUE O SHELL SOURCEIA. O `validar` só proíbe o
-    #   hífen; um nome de flavor com aspas ou `$(` numa paleta de terceiro viraria
-    #   comando no próximo `meow ativar`. Minúsculas, dígitos e sublinhado são o
-    #   que os dois packs daqui usam, e o que o gerador de tema já espera.
+    # hífen; um nome de flavor com aspas ou `$(` numa paleta de terceiro viraria
+    # comando no próximo `meow ativar`.
     _exigir(RE_FLAVOR_CONF.match(escolhido),
             f"o flavor {escolhido!r} do pack {ident!r} não pode ir para o meow.conf:\n"
             f"    só minúsculas, dígitos e sublinhado — ele é sourceado pelo shell.")
@@ -5151,44 +3985,9 @@ def _nomes_curtos(p, dados):
 
 
 # O FLAVOR DOS ÍCONES DE ARQUIVO HERDADOS: UMA REGRA, CHAMADA PELOS DOIS LADOS
-# — 23/09/2026, sprint P31
 #
-# O DEFEITO, MEDIDO
-#   A P10 ensinou o painel a ler `icones.mimetypes.flavor` (o `vocabulario`,
-#   logo abaixo) e o shell ficou para trás: os três `icones_*.sh` seguiam em
-#   `${ICONES_FLAVOR:-macchiato}`. Com o conf de fábrica (`ICONES_FLAVOR="$FLAVOR"`)
-#   e o Dracula no ar o valor chegava `dracula`, que não tem acervo de mimetype,
-#   e o `icones_mimetypes.sh` saía com "não há acervo de mimetype para o flavor
-#   'dracula' — nada a vestir" (rc=3, num HOME de brinquedo) — enquanto a aba
-#   Ícones oferecia o macchiato que o pack escolheu e dizia «Vale como:
-#   dracula». É o "a lista não acompanhou a irmã" que a P17 pegou duas vezes, e
-#   a P10 foi reprovada por refazer em `awk` uma regra que o painel tinha. Por
-#   isso a regra mora AQUI, uma vez: o shell a pergunta pelo verbo
-#   `flavor-icones` e o painel pelo `_com_o_vocabulario_do_pack` do servidor.
-#
-# A ORDEM É A DO "Quem vence" DO docs/PACKS.md
-#   1. `ICONES_FLAVOR` escrito à mão — diferente do `FLAVOR` — vence, exista ou
-#      não no acervo. Quem escreveu `latte` com o Dracula no ar escolheu isso; se
-#      não houver o que vestir, o script diz em português, como sempre disse.
-#   2. O de fábrica (`"$FLAVOR"`, ou vazio, que vale o mesmo) que EXISTE no
-#      acervo alcançado vale como está: o Catppuccin no Latte veste Latte.
-#   3. O de fábrica que NÃO existe cai no `icones.mimetypes.flavor` do pack que
-#      herda o acervo, se ele declarou um e esse um existe lá.
-#   4. Sem nada disso, o de fábrica volta como veio — e o script diz que não há
-#      acervo para ele, que é a resposta de antes. A regra não inventa um flavor
-#      que ninguém escolheu.
-#
-# `ICONES_FLAVOR` IGUAL AO `FLAVOR` É TRATADO COMO O DE FÁBRICA
-#   Depois do `.` do meow.conf a regra só vê o valor expandido, e não tem como
-#   distinguir `"$FLAVOR"` de `"dracula"` escrito à mão com `FLAVOR="dracula"`.
-#   Não precisa: nos dois casos o pedido é um flavor que o acervo não tem, e
-#   vestir o que o pack escolheu é melhor que não vestir nada.
-#
-# O VAZIO DEIXOU DE SER MACCHIATO. Era `${ICONES_FLAVOR:-macchiato}` — um nome
-#   do Catppuccin cravado em três scripts, e a escolha pessoal de ícones em
-#   macchiato com a interface em mocha, de antes de 21/09/2026, quando a chave
-#   passou a herdar o `FLAVOR` de fábrica. Vazio agora é "acompanha o tema",
-#   como a chave de fábrica.
+# Depois do `.` do meow.conf a regra só vê o valor expandido, e não tem como
+# distinguir `"$FLAVOR"` de `"dracula"` escrito à mão com `FLAVOR="dracula"`.
 def _mimetypes_de(ident, p, dados):
     """O acervo de mimetype que o pack `ident` alcança, ou None.
 
@@ -5266,10 +4065,6 @@ def vocabulario(ref):
     def nome_do_pack(outro):
         return campo(outro, "nome") or outro
 
-    # `derivado` É O CLARO QUE NINGUÉM DESENHOU [P31, 23/09/2026]. A «Variante
-    # do tema» passou a oferecer os flavors DESTE pack, e o claro de um pack
-    # feito de CSV pode ter saído do método do Latte: a opção diz isso ao lado
-    # do nome, pela mesma conta do `meow pack info` e do cartão (P16).
     derivados = claros_derivados(dados)
     saida = {
         "id": ident,
@@ -5297,14 +4092,11 @@ def vocabulario(ref):
             "herdado": dono != ident,
             "flavors": [escolhido] if escolhido in existem else existem,
             "nomes": {f: curtos_dono[f] for f in existem},
-            # O CLARO E A LUZ SÃO OS DO DONO DO ACERVO — 24/09/2026, P51, na
-            #   revisão. O desenho da aba Ícones pinta o fundo pelo sabor dos
-            #   ícones de arquivo, e esse sabor é um flavor do DONO: com o
-            #   Dracula no ar e `ICONES_FLAVOR="latte"`, a régua de claro e
-            #   escuro dos flavors do pack no ar não conhecia o latte, o fundo
-            #   saía escuro e a tinta, pedida escura para o latte, sumia nele.
-            #   A mesma conta dos `flavors` acima (os `claros` da paleta, a
-            #   luminância do `base`), feita na paleta de quem traz os desenhos.
+            # O desenho da aba Ícones pinta o fundo pelo sabor dos ícones de
+            # arquivo, e esse sabor é um flavor do DONO: com o Dracula no ar e
+            # `ICONES_FLAVOR="latte"`, a régua de claro e escuro dos flavors do
+            # pack no ar não conhecia o latte, o fundo saía escuro e a tinta,
+            # pedida escura para o latte, sumia nele.
             "claros": [f for f in existem if f in (mt["dados_dono"].get("claros") or [])],
             "luz": {f: round(_luminancia(mt["dados_dono"]["flavors"][f]["base"]), 4)
                     for f in existem},
@@ -5408,8 +4200,8 @@ def cmd_construir(ref, seco=False):
     if not gerar and not derivar:
         print(f"  --   {ident}: não declara nada derivado — nada a construir")
         return OK
-    # Os ícones de arquivo derivados (P74 item 6) vêm antes dos autorais: não
-    # dependem de gerador de fora, e um pack pode declarar só eles.
+    # Os ícones de arquivo derivados vêm antes dos autorais: não dependem de
+    # gerador de fora, e um pack pode declarar só eles.
     if derivar:
         derivar_mimetypes(ident, seco=seco)
     if not gerar:
@@ -5417,8 +4209,6 @@ def cmd_construir(ref, seco=False):
         return OK
 
     # `_dentro` com o caminho que VAMOS ESCREVER: o `dir_acervo` o aplica.
-    # [P88: a saída é a pasta declarada (ou a padrão do formato), e não mais
-    #   `icones/autorais` fixo — no formato de três pastas ela fica em `apps/`.]
     saida = dir_acervo("icones.autorais.desenhos", ref=dir_pack,
                        padrao=PASTA_AUTORAIS).rstrip(os.sep)
 
@@ -5444,32 +4234,13 @@ def cmd_construir(ref, seco=False):
     return OK
 
 
-# --- OS ÍCONES DE ARQUIVO DERIVADOS DA PALETA — 09/10/2026, P74 item 6 (T9) ---
+# O upstream do Catppuccin (catppuccin/vscode-icons, MIT) publica, ao lado dos
+# quatro flavors, o `css-variables/`: os MESMOS 656 desenhos com cada cor
+# escrita por papel (`var(--vscode-ctp-mauve)`).
 #
-# O BURACO, MEDIDO
-#   O Dracula herdava os 656 ícones de arquivo do Catppuccin no flavor
-#   `macchiato`: com o Dracula no ar, o cosmic-files abria uma pasta e os tipos
-#   de arquivo saíam no lilás e no azul do Catppuccin, e o doctor dizia «123
-#   tipos de arquivo já vestidos de Catppuccin macchiato». O `pack.json` dizia
-#   «não existe acervo de mimetype Dracula» — e não existia mesmo.
-#
-# A CURA É O ACERVO DE ORIGEM, NÃO UM RECOLORIDO
-#   O upstream do Catppuccin (catppuccin/vscode-icons, MIT) publica, ao lado
-#   dos quatro flavors, o `css-variables/`: os MESMOS 656 desenhos com cada cor
-#   escrita por papel (`var(--vscode-ctp-mauve)`). Medido em 09/10/2026: trocar
-#   cada `var(--vscode-ctp-<papel>)` pelo hex do papel na paleta do Mocha dá os
-#   656 arquivos do `mocha/` byte a byte (com o hex em minúsculas, como lá).
-#   Então o pack que declara `icones.mimetypes.derivar` ganha um diretório por
-#   flavor DA PALETA DELE, pela mesma conta: o papel é o da paleta, o hex é o do
-#   pack. Os 16 papéis usados existem em toda paleta que o `validar` aceita (os
-#   26 slots são obrigatórios).
-#
-# QUEM ESCREVE É O `construir`, DENTRO DO PACK, E A SAÍDA É VERSIONADA
-#   Como o acervo do Catppuccin, e ao contrário dos autorais (ver a dívida no
-#   `cmd_construir`): aqui não há segunda cópia em lugar nenhum, e a máquina de
-#   quem instala não precisa construir nada. O `LICENSE` da origem vai junto,
-#   porque o desenho é dela. Idempotente: arquivo igual não é reescrito, e o
-#   que saiu da origem sai do flavor.
+# Como o acervo do Catppuccin, e ao contrário dos autorais (ver a dívida no
+# `cmd_construir`): aqui não há segunda cópia em lugar nenhum, e a máquina de
+# quem instala não precisa construir nada.
 RE_VAR_CTP = re.compile(r"var\(--vscode-ctp-([a-z0-9]+)\)")
 
 
@@ -5484,10 +4255,9 @@ def derivar_mimetypes(ref, seco=False):
     if not origem or not os.path.isdir(origem):
         raise Recusa(f"icones.mimetypes.derivar: o pack {der.get('de')!r} não tem "
                      f"{der.get('pasta')!r} no acervo de mimetype dele")
-    # SÓ ARQUIVO COMUM DE DENTRO DA ORIGEM — conferência da P74 (alerta de
-    #   segurança de 09/10/2026). O pack de onde se deriva pode ser importado, e
-    #   um `.svg` que é link para fora (`~/.ssh/id_ed25519`) seria lido e escrito
-    #   dentro deste pack. O link, ou o que resolve fora da pasta, fica de fora.
+    # O pack de onde se deriva pode ser importado, e um `.svg` que é link para
+    # fora (`~/.ssh/id_ed25519`) seria lido e escrito dentro deste pack. O link,
+    # ou o que resolve fora da pasta, fica de fora.
     dentro_origem = os.path.realpath(origem) + os.sep
     desenhos = sorted(f for f in os.listdir(origem) if f.endswith(".svg")
                       and not os.path.islink(os.path.join(origem, f))
@@ -5512,10 +4282,9 @@ def derivar_mimetypes(ref, seco=False):
                 raise Recusa(f"{nome}: a paleta {flavor!r} não tem {', '.join(faltou)}")
             novo = RE_VAR_CTP.sub(lambda m: cores[m.group(1)].lower(), texto)
             alvo = os.path.join(destino, nome)
-            # UM LINK NO DESTINO NÃO É ATRAVESSADO (conferência da P74): o
-            #   `open(alvo, "w")` escreveria no alvo dele, fora do pack. O link
-            #   conta como diferente e é trocado por um arquivo comum, pelo
-            #   temporário + `os.replace`, que substitui o link sem segui-lo.
+            # `open(alvo, "w")` escreveria no alvo dele, fora do pack. O link
+            # conta como diferente e é trocado por um arquivo comum, pelo
+            # temporário + `os.replace`, que substitui o link sem segui-lo.
             if not os.path.islink(alvo):
                 try:
                     with open(alvo, encoding="utf-8") as fh:
@@ -5556,61 +4325,14 @@ def derivar_mimetypes(ref, seco=False):
     return escritos + removidos
 
 
-# --- O PACK QUE VIAJA: novo, exportar, importar — 23/09/2026, sprint P11 -----
+# --- O PACK QUE VIAJA: novo, exportar, importar -----
 #
-# A QUEIXA, NAS PALAVRAS DELE
-#   *"que qualquer um possa exportar o próprio tema e importar outros pro seu
-#   sistema operacional."* Os botões Exportar e Importar do alto da página
-#   existiam e funcionavam — mas eram de AJUSTES: levavam o meow.conf. Não havia
-#   caminho, nem na tela nem aqui, para empacotar um pack e mandá-lo a alguém. O
-#   docs/PACKS.md mandava publicar "como quiser: um git, um tarball", cada jeito
-#   de quem publicava, e nada conferia do outro lado o que tinha chegado.
-#
-# TRÊS VERBOS, E NENHUM DELES APLICA TEMA
-#   `novo` escreve um pack onde pack se escreve (packs/ do projeto, ou a raiz de
-#   teste). `exportar` escreve o arquivo que a pessoa nomeou, e nada mais.
-#   `importar` escreve em ~/.local/share/meowsystem/packs/, e só depois de
-#   conferir tudo. Importar é GANHAR UMA OPÇÃO, não trocar de tema: quem troca é
-#   o PACK do meow.conf, e ninguém aqui o toca.
-#
-# UM PACK É DADO, NUNCA É CÓDIGO — E A REGRA PASSA A SER CONFERIDA
-#   Ela está no docs/PACKS.md desde o primeiro dia, e até aqui dependia de quem
-#   escrevia o pack ter lido. Um `.meowpack` vem de fora, e fora é onde mora
-#   quem não leu. Então um `.sh` — ou qualquer arquivo que comece com `#!`, que
-#   é script seja qual for o nome — recusa o pacote INTEIRO, com uma linha por
-#   arquivo. O `#!` é a mesma regra medida pelo conteúdo em vez do nome: um
-#   `ganchos.txt` que abre com `#!/bin/sh` é o mesmo código com outra roupa. E
-#   nada do que entra ganha bit de execução — todo arquivo nasce 0644, seja
-#   qual for o modo que o tar diga.
-#
-# A LICENÇA, QUE A P28 JÁ TINHA DEIXADO ESCRITA
-#   "PROCEDENCIA.md não é burocracia: é o que permite o `meow pack exportar`
-#   recusar empacotar o que não pode ser redistribuído." Então o exportar recusa
-#   pack sem CREDITOS.md, e lê a tabela do PROCEDENCIA.md: arte de terceiro sem
-#   licença escrita na linha dela não sai daqui.
-#
-# O ARQUIVO
-#       MANIFESTO        "meowpack 1", "formato <n>", "pack <id>", e uma linha
-#                        "<sha256>  <caminho>" por arquivo — a forma do
-#                        `sha256sum`, relativa ao diretório do pack
-#       <id>/…           o diretório do pack, e nada fora dele
-#   passado pelo zstd. `meowpack` é a versão DESTE contêiner e `formato` é a do
-#   pack.json (a do docs/PACKS.md, "a versão do formato, não do seu pack"): os
-#   dois mudam por motivos diferentes, e um número só obrigaria a subir os dois
-#   quando só um mudou.
+# `novo` escreve um pack onde pack se escreve (packs/ do projeto, ou a raiz de
+# teste). `exportar` escreve o arquivo que a pessoa nomeou, e nada mais.
 MEOWPACK = 1
 MANIFESTO = "MANIFESTO"
-# O TETO É DO ARQUIVO ABERTO, E NÃO DO COMPRIMIDO. O zstd reduz uma fila de
-# zeros a quase nada: um `.meowpack` de um megabyte pode abrir em gigabytes e
-# derrubar quem o lê. O maior pack daqui, o catppuccin, sai em 338 KB e abre
-# num tar de 5.980.160 bytes com 3.903 entradas (medido em 23/09/2026). Os
-# 2,4 MB que o `exportar` anuncia são a soma dos arquivos; o tar aberto pesa
-# mais que o dobro porque cada um dos 3.902 arquivos (3.325 deles SVG, de 654
-# bytes em média) ganha um cabeçalho de 512 bytes e é completado até o bloco
-# seguinte — e é o aberto que este teto mede. Os dois tetos ficam em umas 45
-# e cinco vezes isso. Os 256 MB não saem do catppuccin, e sim do teto de
-# envio do painel (64 MB, `servidor.py`): um pack de capturas é raster, que
-# o zstd não encolhe, então o aberto tem de caber folgado acima do enviado.
+# O zstd reduz uma fila de zeros a quase nada: um `.meowpack` de um megabyte
+# pode abrir em gigabytes e derrubar quem o lê.
 TETO_MEOWPACK = 256 << 20
 TETO_ARQUIVOS_MEOWPACK = 20000
 # "As imagens" da pergunta do exportar: o que é raster. Ícone, logo e capa são
@@ -5836,8 +4558,7 @@ def meowpack(exp, sem_imagens=False):
             conteudo[rel] = fh.read()
     if sem_imagens and exp["imagens"]:
         conteudo["pack.json"] = _sem_capturas_raster(conteudo["pack.json"])
-        # Calado: o `ok` desta segunda conferência repetiria o da primeira, e a
-        # pessoa leria duas validações onde pediu uma. A recusa não é calada.
+        # A recusa não é calada.
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             _instalar_pack(conteudo, None, ident, seco=True)
 
@@ -5899,19 +4620,13 @@ def cmd_exportar(ref, opcoes):
     _exigir(not saida.startswith(os.path.realpath(exp["dir"]) + os.sep),
             f"{saida}: o .meowpack não pode nascer dentro do próprio pack — a próxima\n"
             f"    exportação o levaria junto")
-    # O DESTINO É CONFERIDO ANTES DA PERGUNTA, E NÃO NA HORA DE ESCREVER — a
-    #   revisão de 23/09/2026 mediu `exportar meu-tema <dir-inexistente>/x.meowpack`
-    #   saindo com o traceback do `open`, depois de a pessoa já ter respondido
-    #   pelas imagens. Não é recusa do pack (o pack está bom), então não passa
-    #   pela `Recusa`: é o endereço que ela deu, e sai como erro de uso.
     pasta = os.path.dirname(saida)
     if not os.path.isdir(pasta):
         print(f"  erro {pasta}: esse diretório não existe — o exportar não cria pasta;\n"
               f"       crie-a antes, ou diga outro lugar", file=sys.stderr)
         return ERRO_USO
 
-    # O TAMANHO É DITO ANTES, E A PERGUNTA SÓ VEM SE HÁ O QUE PERGUNTAR. É o
-    # risco que a sprint escreveu: "um pack com 91 papéis de parede é grande".
+    # O TAMANHO É DITO ANTES, E A PERGUNTA SÓ VEM SE HÁ O QUE PERGUNTAR.
     imagens = (f" — {exp['imagens']} imagem(ns), {_mb(exp['bytes_imagens'])}"
                if exp["imagens"] else "")
     quantos = f"{exp['arquivos']:,}".replace(",", ".")
@@ -5937,8 +4652,6 @@ def cmd_exportar(ref, opcoes):
     # Atômico: um `.meowpack` pela metade no lugar do nome pedido seria mandado
     # adiante e recusado do outro lado como "não é zstd", longe de quem errou.
     parcial = saida + ".parcial"
-    # E o que a conferência do destino não prevê — pasta sem permissão, disco
-    # cheio — também sai numa linha, e sem deixar o `.parcial` para trás.
     try:
         with open(parcial, "wb") as fh:
             fh.write(dados)
@@ -6043,11 +4756,9 @@ def ler_meowpack(caminho):
         for i, m in enumerate(tar):
             _exigir(i < TETO_ARQUIVOS_MEOWPACK,
                     f"mais de {TETO_ARQUIVOS_MEOWPACK} entradas — maior que qualquer pack")
-            # O NOME DA ENTRADA NÃO LEVA CARACTERE DE CONTROLE — conferência da
-            #   P78. As recusas abaixo (o "traz script", o "veio sem estar no
-            #   MANIFESTO") listam o nome cru, e o terminal de quem importa o
-            #   leria como comando (`\e]52;…` escreve na área de transferência).
-            #   Vem primeiro, em `repr`, e recusa o arquivo inteiro.
+            # As recusas abaixo (o "traz script", o "veio sem estar no
+            # MANIFESTO") listam o nome cru, e o terminal de quem importa o
+            # leria como comando (`\e]52;…` escreve na área de transferência).
             _exigir(not RE_CONTROLE.search(m.name),
                     f"{m.name!r}: nome com caractere de controle — recusado inteiro")
             nome = m.name.rstrip("/") if m.isdir() else m.name
@@ -6088,12 +4799,8 @@ def ler_meowpack(caminho):
     return ident, para_tres_pastas(ident, membros)
 
 
-# O PACK DE ANTES CHEGA NO FORMATO NOVO — P88, decisão 14 (item 4)
-#   Um `.meowpack` de formato 1 traz as pastas que cada pack inventava
-#   (`autorais/`, `pastas/`, `feitos-a-mao/`…). O `importar` o converte na
-#   memória, depois de todas as recusas da P78 e antes do `validar`: a pasta vai
-#   para uma das três, e o pack.json, o `apps.map` e a primeira coluna do
-#   PROCEDENCIA.md passam a dizer o caminho novo. A arte não muda um byte.
+# Um `.meowpack` de formato 1 traz as pastas que cada pack inventava
+# (`autorais/`, `pastas/`, `feitos-a-mao/`…). A arte não muda um byte.
 PASTAS_DO_FORMATO = ("apps", "sistema", "biblioteca")
 PASTA_DE_ANTES_POR_NOME = {"autorais": "apps/autorais", "resgatados": "apps/resgatados",
                            "feitos-a-mao": "biblioteca/feitos-a-mao",
@@ -6203,8 +4910,6 @@ def _instalar_pack(arquivos, base, ident, seco=False):
             with open(alvo, "wb") as fh:
                 fh.write(conteudo)
             os.chmod(alvo, 0o644)
-        # AS TRÊS PASTAS NASCEM COM O PACK — P88, decisão 14: quem abre um pack
-        #   novo vê onde cada desenho mora, mesmo antes do primeiro.
         if _formato_dos_arquivos(arquivos) >= 2:
             for pasta in PASTAS_DO_FORMATO:
                 os.makedirs(os.path.join(dir_novo, "icones", pasta), exist_ok=True)
@@ -6246,9 +4951,9 @@ def o_que_traz(p, dados, membros):
         "som": "próprio" if som else "não traz — vale o do MeowSystem",
         "arquivos": len(membros),
         "bytes": sum(len(c) for c in membros.values()),
-        # O claro que ninguém desenhou se declara também ANTES de entrar
-        # [23/09/2026, P16]: o `info` e o cartão já dizem, e a caixa de
-        # confirmar mostrava "claro" igual para o derivado e para o desenhado.
+        # O claro que ninguém desenhou se declara também ANTES de entrar: o
+        # `info` e o cartão já dizem, e a caixa de confirmar mostrava "claro"
+        # igual para o derivado e para o desenhado.
         "derivados": claros_derivados(dados),
     }
 
@@ -6311,15 +5016,7 @@ def cmd_importar(caminho, opcoes):
                   f"[--seco]", file=sys.stderr)
             return ERRO_USO
     _exigir(os.path.isfile(caminho), f"não achei o arquivo {caminho!r}")
-    # O `.csv` SOLTO TAMBÉM SE IMPORTA — 23/09/2026, P16, item 5
-    #   "O 'Importar um pack' de P11 aceita um .csv solto, não só um .meowpack."
-    #   Ele não é lido como tarball: vira pack pelo `montar_novo`, o mesmo do
-    #   `novo --de-csv`, e daí para baixo é o importar de sempre — o mesmo
-    #   `_instalar_pack`, na mesma raiz da pessoa, com o mesmo "não aplica". É
-    #   aqui que a tela chega, e não ao `novo`: o `novo` escreve em `packs/` do
-    #   projeto, que é onde se publica por commit, e um clique no painel que
-    #   deixasse um diretório no `git status` é a sujeira que a P21 tirou do
-    #   repositório. A extensão decide, como decide para quem escolhe o arquivo.
+    # A extensão decide, como decide para quem escolhe o arquivo.
     de_csv = caminho.lower().endswith(".csv")
     if de_csv:
         ident = id_do_csv(caminho)
@@ -6330,14 +5027,10 @@ def cmd_importar(caminho, opcoes):
                         f"    Importar por cima trocaria o que está lá sem perguntar, e um pack\n"
                         f"    com o mesmo nome noutra raiz esconderia um dos dois. Para trocar,\n"
                         f"    tire o que está lá primeiro."
-                        # Desde a P53 a casa da pessoa tem por onde tirar: a
-                        # frase aponta o verbo em vez de deixar a pasta à mão.
                         + (f"\n    Ele é seu: meow pack remover {ident}, ou o «Remover» do cartão."
                            if existe and os.path.dirname(existe) == raiz_da_pessoa() else "")
                         + ("\n    O id sai do nome do CSV: com outro nome, ele vira outro pack."
                            if de_csv else ""))
-    # Depois da conferência do id, e não antes: montar desenha os autorais, e
-    # desenhar 22 ícones para então recusar pelo nome seria trabalho jogado fora.
     if de_csv:
         membros, paleta, reprovados = montar_novo(ident, caminho)
         _noticiar_csv(caminho, paleta, reprovados, sys.stdout)
@@ -6363,31 +5056,14 @@ def _til(caminho):
     return "~" + caminho[len(casa):] if caminho.startswith(casa + os.sep) else caminho
 
 
-# REMOVER UM PACK IMPORTADO — 24/09/2026, sprint P53 (achado 8)
+# REMOVER UM PACK IMPORTADO
 #
-# O QUE FOI MEDIDO NO PAINEL DE VERDADE
-#   "Pack importado não tem como ser removido: nem botão no cartão, nem rota,
-#   nem verbo do meow." O `importar` grava em `raiz_da_pessoa()` e nada tirava
-#   de lá: o pack só saía apagando a pasta à mão. E a dica do claro derivado
-#   manda importar de novo com outro nome — um segundo pack, que também não
-#   saía.
+# "Pack importado não tem como ser removido: nem botão no cartão, nem rota, nem
+# verbo do meow." O `importar` grava em `raiz_da_pessoa()` e nada tirava de lá:
+# o pack só saía apagando a pasta à mão.
 #
-# A REGRA MORA AQUI, E O TERMINAL E O CARTÃO PERGUNTAM A ELA
-#   O `meow pack remover` chama o `cmd_remover`; o painel chama a `remocao` para
-#   decidir se o cartão ganha o «Remover» e, se não ganha, dizer por quê. Uma
-#   segunda cópia no painel discordaria no primeiro caso esquisito — é a
-#   história da `adocao`, logo no começo deste arquivo.
-#
-# SAI SÓ O QUE MORA NA CASA DA PESSOA, e fica, com o motivo dito:
-#   · o que vem com o MeowSystem: o que mora em `packs/` do projeto. Pela RAIZ,
-#     e não por nome — nenhuma lista de ids mora aqui, e o terceiro pack que o
-#     projeto publicar fica protegido sem ninguém vir a este bloco;
-#   · o pack no ar, pela `adocao` do PACK e do FLAVOR do meow.conf — a mesma
-#     conta do `meow_pack_dir`. E o que a chave PACK NOMEIA, mesmo reprovado:
-#     sem ele no disco o próximo aplicar vestiria o padrão, calado;
-#   · o que outro pack herda, pela `heranca` ou por um `herda` de qualquer
-#     bloco: o outro passaria a ser recusado pelo `validar` sem que a pessoa
-#     tivesse tocado nele.
+# O `meow pack remover` chama o `cmd_remover`; o painel chama a `remocao` para
+# decidir se o cartão ganha o «Remover» e, se não ganha, dizer por quê.
 def _quem_herda_de(ident):
     """Os ids dos packs do disco que herdam de `ident`, por qualquer campo."""
     def herdas(no):
@@ -6477,10 +5153,7 @@ def cmd_remover(ident, opcoes):
         print(f"  ~~   removeria {_til(casa)} — o pack {nome}, {peso}; nada foi apagado")
         return OK
     # SAI INTEIRO OU NÃO SAI: primeiro o `rename` para um oculto AO LADO, e só
-    # então o `rmtree`. É o avesso do `_instalar_pack`, pelo motivo dele: no
-    # mesmo sistema de arquivos o `rename` é atômico, e o `.saindo-…` não é
-    # visto por quem procura pack. Um Ctrl+C no meio do `rmtree` deixa o resto
-    # no oculto, e não meio pack com `pack.json` que o `validar` recusaria.
+    # então o `rmtree`.
     import shutil
     import tempfile
     parede = tempfile.mkdtemp(prefix=".saindo-", dir=raiz_da_pessoa())
@@ -6539,10 +5212,9 @@ def cmd_novo(ident, opcoes):
     for op in it:
         if op in ("--seco", "--dry-run"):
             seco = True
-        # `--de-csv <arquivo>` É MAIS UM RAMO, no lugar que a P11 deixou marcado,
-        # com `next(it)` para o caminho. Sem o arquivo, ou com um segundo
-        # `--de-csv`, é erro de uso: dois CSV não viram uma paleta, e um
-        # `--seco` no lugar do arquivo seria lido como um CSV chamado `--seco`.
+        # Sem o arquivo, ou com um segundo `--de-csv`, é erro de uso: dois CSV
+        # não viram uma paleta, e um `--seco` no lugar do arquivo seria lido
+        # como um CSV chamado `--seco`.
         elif op == "--de-csv" and csv is None:
             csv = next(it, None)
             if not csv or csv.startswith("-"):
@@ -6612,17 +5284,9 @@ def montar_novo(ident, csv=None):
     """
     import time
     nome = " ".join(parte.capitalize() for parte in ident.split("-"))
-    # O NOME DE UM PACK DE CSV É O DO ARQUIVO, COMO FOI ESCRITO — 24/09/2026,
-    #   P53 (achado 9). A linha de cima capitaliza cada pedaço do id, e o
-    #   painel perguntou «Importar o Tinta De Teste?» por um arquivo chamado
-    #   `tinta de teste.csv`: o «De» maiúsculo saiu da regra, e não do arquivo.
-    #   O nome agora é o do arquivo — hífen e sublinhado viram espaço, e só a
-    #   primeira letra sobe. "Minha Tinta.csv" continua «Minha Tinta».
-    #   SÓ QUANDO O ID TAMBÉM SAIU DELE, que é o caso do `importar` (o
-    #   `id_do_csv`): no `novo <id> --de-csv cores.csv` o id foi DADO na linha
-    #   de comando, e o pack `meu-pack` não pode se chamar «Cores» porque o
-    #   arquivo da paleta se chamava assim. Sem CSV, ninguém escreveu nome
-    #   nenhum, e fica como estava.
+    # A linha de cima capitaliza cada pedaço do id, e o painel perguntou
+    # «Importar o Tinta De Teste?» por um arquivo chamado `tinta de teste.csv`:
+    # o «De» maiúsculo saiu da regra, e não do arquivo.
     if csv:
         try:
             do_arquivo = id_do_csv(csv) == ident
@@ -6658,8 +5322,8 @@ def montar_novo(ident, csv=None):
             raise Recusa(f"a paleta no ar ({arq_paleta}) não serve de ponto de partida: {e}")
         flavor, accent = _flavor_e_accent(pf, paleta)
 
-        # Só o timbre: o `tema` (P74) é uma pasta DO pack de onde se parte, e o
-        # novo a alcança pela herança, sem copiá-la.
+        # Só o timbre: o `tema` é uma pasta DO pack de onde se parte, e o novo
+        # a alcança pela herança, sem copiá-la.
         som = {k: v for k, v in (pf.get("som") or {}).items()
                if not str(k).startswith("_") and k != "tema"}
         for chave, var in SOM_NO_CONF.items():
@@ -6814,15 +5478,9 @@ def _autorais_construidos(ident, arquivos):
         return saida
 
 
-# O QUE O VIGIA DOS DERIVADOS OLHA — P88, decisão 15
-#   «SVG alterado numa das três, qualquer outro arquivo se auto atualiza.» As
-#   fontes são as três pastas e os mapas de `icones/`, e o `logo.svg` (o ícone do
-#   lançador), de cada pack de onde o tema deriva: o no ar, os que ele herda e o
-#   pack-base. O `scripts/derivados.sh` compara o sha256 de cada uma com a
-#   tabela da passada anterior e refaz só os passos dos que mudaram.
-#   O sha256 é o do conteúdo sem as quebras de linha do fim: é a forma em que o
-#   `meow_escrever` grava a cópia no tema, e é por ela que um derivado de um
-#   desenho apagado se reconhece.
+# As fontes são as três pastas e os mapas de `icones/`, e o `logo.svg` (o ícone
+# do lançador), de cada pack de onde o tema deriva: o no ar, os que ele herda e
+# o pack-base.
 def packs_dos_derivados(ref=None):
     """[(id, diretório)] dos packs de onde o tema deriva, sem repetir."""
     ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
@@ -6956,32 +5614,22 @@ def main(argv):
             return OK
         # OS DOIS ARGUMENTOS VÊM SEMPRE, VAZIOS OU NÃO: `adocao "" mocha` é o
         # conf de fábrica, e um verbo que aceitasse um só teria de adivinhar
-        # qual dos dois chegou. Sai 0 também na recusa — a máquina veste o
-        # padrão, que é resposta; o `recusado=` é o que o shell transforma em
-        # aviso, com a cara dos avisos dele.
+        # qual dos dois chegou.
         if verbo == "adocao" and len(argv) == 4:
             ident, dir_pack, recusado = adocao(argv[2], argv[3])
             print(f"pack={ident}")
             print(f"dir={dir_pack}")
             print(f"recusado={recusado}")
-            # O NOME DE TELA VAI JUNTO — 24/09/2026, P51 (achado 24): o
-            # cabeçalho do `install.sh` dizia «Catppuccin» com qualquer pack no
-            # ar, e o nome é o que o `pack.json` declara, lido aqui uma vez.
+            # O NOME DE TELA VAI JUNTO: o cabeçalho do `install.sh` dizia
+            # «Catppuccin» com qualquer pack no ar, e o nome é o que o
+            # `pack.json` declara, lido aqui uma vez.
             print(f"nome={campo(ident, 'nome') or ident}")
-            # E O FLAVOR DE QUEM VESTE — 24/09/2026, na revisão da P56 (achado
-            # 4): é o que o `carregar_conf` do bin/meow e o `conf_exportada` do
-            # painel dão a um FLAVOR vazio, a regra do docs/PACKS.md ("Quem
-            # vence": com o conf vazio, entra o `paleta.flavor_padrao`). A
-            # página já a seguia pelo `vocabulario`; o shell caía no `mocha`.
+            # A página já a seguia pelo `vocabulario`; o shell caía no `mocha`.
             print(f"flavor_padrao={campo(ident, 'paleta.flavor_padrao') or ''}")
             return OK
         # OS TRÊS VERBOS DA CAPTURA NÃO RECEBEM `<id>`, e os outros recebem.
-        #   Quem pergunta por uma captura é sempre o desktop VIVO — o
-        #   `aplicar_tema.sh`, o `meow tema`, o pré-voo. O pack ativo dele já
-        #   chegou aqui por `MEOW_PACK_DIR`, que é a ponte do `lib/comum.sh`.
-        #   Pedir o id de novo na linha de comando seria uma segunda declaração
-        #   do pack ativo, e duas declarações divergem no dia em que uma delas
-        #   for esquecida.
+        # Quem pergunta por uma captura é sempre o desktop VIVO — o
+        # `aplicar_tema.sh`, o `meow tema`, o pré-voo.
         if verbo == "capturas" and len(argv) == 2:
             for nome in capturas():
                 print(nome)
@@ -7050,42 +5698,37 @@ def main(argv):
             print(f"pack={pt['pack']}")
             print(f"dir={pt['dir']}")
             print(f"valor={pt['valor']}")
-            # O BAIXADO TRAZ A ORIGEM (P41): as três linhas só existem nele, e
-            # o ponteiro de dentro do pack continua saindo em três linhas — é o
+            # O BAIXADO TRAZ A ORIGEM: as três linhas só existem nele, e o
+            # ponteiro de dentro do pack continua saindo em três linhas — é o
             # que o `cursor.sh` e o `tests/pack.sh` já leem.
             for chave in ("url", "sha256", "pasta"):
                 if pt.get(chave):
                     print(f"{chave}={pt[chave]}")
             return OK
         if verbo == "tipografia" and len(argv) in (2, 3):
-            # SAI 0 COM A LISTA VAZIA, e 1 só na recusa. Para quem instala, "o
-            # pack não traz fonte" é uma resposta que manda LIMPAR as do pack
-            # anterior; "a lista não valida" manda não tocar em nada. Os dois
-            # não podem ter o mesmo código.
+            # SAI 0 COM A LISTA VAZIA, e 1 só na recusa.
             quem, lista = tipografia((argv[2] if len(argv) == 3 else "") or None)
             for nome, origem, soma in lista:
                 print(f"{quem}\t{nome}\t{origem}\t{soma or '-'}")
             return OK
         if verbo == "base-icones" and len(argv) in (2, 3):
             # O `ICONES_BASE` VEM DO AMBIENTE, como o `ICONES_FLAVOR` do
-            # `flavor-icones`: é de lá que o `construir_icones.sh` o recebe. As
-            # quatro linhas da origem saem sempre, vazias sem ela, para o shell
-            # ler com `sed` sem ter de perguntar se a linha existe.
+            # `flavor-icones`: é de lá que o `construir_icones.sh` o recebe.
             quem, tema, decl = base_que_vale((argv[2] if len(argv) == 3 else "") or None,
                                              os.environ.get("ICONES_BASE"))
             print(f"quem={quem}")
             print(f"tema={tema}")
             for chave in ("pack", "url", "sha256", "pasta"):
                 print(f"{chave}={(decl or {}).get(chave, '')}")
-            # Uma linha por camada de trás (P74 item 2), na ordem do
-            # `Inherits=`: `atras=<url><TAB><sha256><TAB><pasta>`. Nenhuma
-            # quando o pack traz uma base só, ou quando o conf vence.
+            # Uma linha por camada de trás, na ordem do `Inherits=`:
+            # `atras=<url><TAB><sha256><TAB><pasta>`. Nenhuma quando o
+            # pack traz uma base só, ou quando o conf vence.
             for c in (decl or {}).get("por_tras", []):
                 print(f"atras={c['url']}\t{c['sha256']}\t{c['pasta']}")
             return OK
         if verbo == "tema-icones" and len(argv) in (2, 3, 4):
             # `nome=` e `comentario=`, para o shell ler com `sed`. Ver
-            # `tema_de_icones` (P74 item 4).
+            # `tema_de_icones`.
             nome, comentario = tema_de_icones((argv[2] if len(argv) >= 3 else "") or None,
                                               argv[3] if len(argv) == 4 else "")
             print(f"nome={nome}")
@@ -7122,11 +5765,7 @@ def main(argv):
             # OS DOIS VALORES VÊM DO AMBIENTE, como o `$FLAVOR` do `usar`: é de
             # lá que os `icones_*.sh` os recebem (o `install.sh` e o `bin/meow`
             # passam o `ICONES_FLAVOR` e exportam o conf), e repeti-los na linha
-            # de comando seria uma segunda declaração do mesmo par. O `[id]`
-            # vazio é o pack ativo, pela `_ref_ativa`, como no `ponteiro`.
-            # VAZIO SAI 1, e não uma linha em branco: `acervo ... ""` devolve a
-            # pasta-mãe do acervo, e um script que a tomasse por flavor diria
-            # "0 já vestidos" com nada vestido.
+            # de comando seria uma segunda declaração do mesmo par.
             achado = flavor_de_icones((argv[2] if len(argv) == 3 else "") or None,
                                       os.environ.get("ICONES_FLAVOR"),
                                       os.environ.get("FLAVOR"))
@@ -7139,9 +5778,6 @@ def main(argv):
             # o que faria e não escreve. Aceito pelos dois nomes porque quem
             # chama daqui é o `bin/meow`, que já traduz o ambiente em flag.
             return cmd_construir(argv[2], seco=(len(argv) == 4 and argv[3] in ("--seco", "--dry-run")))
-        # OS TRÊS DA P11. As opções seguem cruas para o verbo, e é de propósito:
-        # a P16 acrescenta `novo <id> --de-csv <arquivo>` como mais um ramo
-        # dentro do `cmd_novo`, sem precisar mexer nesta linha.
         if verbo == "novo" and len(argv) >= 3:
             return cmd_novo(argv[2], argv[3:])
         if verbo == "exportar" and len(argv) >= 3:
@@ -7155,15 +5791,13 @@ def main(argv):
         if verbo == "app" and len(argv) == 4:
             # O `ref` vem por argumento e não do ambiente: quem chama do shell é
             # o `meow_app_tema_do_pack`, que já resolveu o pack ativo pela mesma
-            # porta que todo o resto (`meow_pack_dir`). Duas resoluções do pack
-            # ativo em ordens diferentes é a divergência silenciosa de volta.
+            # porta que todo o resto (`meow_pack_dir`).
             quem, valor = tema_de_app(argv[3], ref=argv[2] or None)
             if quem is None or valor is None:
                 return RECUSADO
             # BOOLEANO SAI COMO `sim`/`nao`, e não como o `True` do Python: quem
             # lê é um `case` de shell, e `[ "$x" = "True" ]` seria o idioma de
-            # outra linguagem vazando para dentro deste. É o mesmo `sim`/`nao`
-            # que o `acento.py` já imprime em `ok=`.
+            # outra linguagem vazando para dentro deste.
             if isinstance(valor, bool):
                 valor = "sim" if valor else "nao"
             print(f"pack={quem}")
