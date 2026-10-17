@@ -31,6 +31,7 @@ PORTATIL=(
   leitura-fonte-unica.sh # o meow leitura adotar e o servidor num HOME de brinquedo; bash e python3
   flavor-padrao.sh       # o lib/comum.sh, quatro scripts que só leem, dois manifestos, o conf do painel e o meow icones num HOME de brinquedo; bash e python3
   git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash
+  higiene.sh             # o gancho do repositório num clone --shared, HOME e git de brinquedo
   app.sh                 # compara o esquema do painel com o do wizard; python3
   estilo.sh              # régua da caneta contra o acervo Arcticons DAQUI (pede numpy)
   reversao.sh            # grep no desinstalador + install.sh com MEOW_IGNORA_DESKTOP=1
