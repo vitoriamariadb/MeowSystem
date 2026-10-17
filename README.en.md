@@ -78,7 +78,7 @@ sandbox. A VS Code extension asked for by an imported pack only installs on a ge
 meow abrir                # or the MeowSystem icon in the launcher
 ```
 
-122 settings and 64 actions across fourteen pages: Início and thirteen subject pages. The menu
+122 settings and 67 actions across fourteen pages: Início and thirteen subject pages. The menu
 has two blocks: **Tópicos** (your screen) and **Sistema** (what the machine does on its own).
 
 ### The interface shows instead of explaining

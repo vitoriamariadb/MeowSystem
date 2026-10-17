@@ -76,7 +76,7 @@ areia. Extensão do VS Code pedida por pack importado só se instala por um gest
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-122 ajustes e 64 ações em catorze páginas: a Início e treze de assunto. O menu tem dois blocos:
+122 ajustes e 67 ações em catorze páginas: a Início e treze de assunto. O menu tem dois blocos:
 **Tópicos** (a sua tela) e **Sistema** (o que a máquina faz sozinha).
 
 ### A interface mostra, em vez de explicar
