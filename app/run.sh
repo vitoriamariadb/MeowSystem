@@ -9,6 +9,9 @@
 #                               nascer janela na tela dela)
 #     ./app/run.sh --porta-só   imprime a URL e sai (não serve para nada além
 #                               de conferir que o backend sobe)
+#
+# A URL carrega o token e não vai para log, `meow_registrar` nem arquivo: um
+# token gravado em disco sobreviveria à sessão que o criou.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"

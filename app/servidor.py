@@ -17,6 +17,11 @@
 #     0
 #     $ sudo -n -l | grep timestamp
 #     ... timestamp_type=global, timestamp_timeout=60
+#
+# A superfície de rede é pequena de propósito: escuta só em 127.0.0.1, em porta
+# efêmera; todo pedido traz o token da sessão (`hmac.compare_digest`); `Host` e
+# `Origin` são conferidos (DNS rebinding e site de fora); e nenhum comando vem
+# da página como texto, só `id` de um dicionário fechado.
 """Backend local do painel de configuração visual do MeowSystem."""
 
 import base64
@@ -5085,6 +5090,8 @@ def importar_conf(texto):
 
 # «Cores», «Fusão» e «Aparo» são o vocabulário do conversor, não o dela —
 # números que só quem leu o `converter_icone.py` sabe mexer.
+# O número é preso ANTES da conta (0…10 dá `--k` de 2 a 12): um `--k 900` de um
+# POST forjado seria um processo de minutos dentro do servidor.
 def _parametros_de(detalhe, suavidade, cheia=False, fracas=0, minimo=0):
     """(argv para o subprocess, string canônica para o campo 4 do mapa)."""
     def _regua(v, padrao):
@@ -6168,11 +6175,14 @@ class Manipulador(BaseHTTPRequestHandler):
         porta = self.server.server_address[1]
         return origem in ("http://127.0.0.1:%d" % porta, "http://localhost:%d" % porta)
 
-    # Vi na tela, não no código. Os três subrecursos tomavam 403, calados.
+    # O token entra por três portas: o cabeçalho `X-Meow-Token`, o `?t=` da URL e o
+    # cookie. Folha e script são pedidos que o navegador faz sozinho, sem cabeçalho
+    # nosso; sem o cookie eles tomavam 403, calados.
     #
     # Havia um segundo defeito escondido atrás do primeiro, e pior: o `app.js`
     # apaga o `?t=` da barra de endereço no primeiro instante (um token no
-    # histórico do navegador sobreviveria à sessão que o criou).
+    # histórico do navegador sobreviveria à sessão que o criou). O cookie
+    # `SameSite=Strict` cobre o F5, e pedido de outro site não o carrega (CSRF).
     def _token_confere(self, consulta):
         for dado in (self.headers.get("X-Meow-Token") or "",
                      consulta.get("t", [""])[0],
@@ -6208,6 +6218,8 @@ class Manipulador(BaseHTTPRequestHandler):
         if plantar_cookie:
             # Sem `Expires`/`Max-Age`: é cookie de SESSÃO, e morre quando o
             # navegador fecha — que é mais ou menos quando este processo morre.
+            # Sem `Secure` de propósito: a origem é `http://127.0.0.1`, e um cookie
+            # `Secure` não seria gravado ali.
             self.send_header(
                 "Set-Cookie",
                 "meow_token=%s; Path=/; SameSite=Strict; HttpOnly" % TOKEN,
@@ -6479,8 +6491,13 @@ class Manipulador(BaseHTTPRequestHandler):
     # novo entram pela página e caem na pasta que já é a configuração deste
     # projeto ("soltou o arquivo, entrou").
     #
-    # É o mesmo conserto que o `logo.sh` faz: um desenho salvo no Boxy com
-    # `transform-origin` entra e não aparece na tela, e o defeito é mudo.
+    # O destino não é escolhido pelo navegador: a página manda um `tipo` e o
+    # servidor resolve a pasta (caminho no corpo deixaria um POST forjado escrever
+    # em qualquer lugar). O nome é saneado até `[A-Za-z0-9._-]`, e `..` some junto.
+    #
+    # SVG passa pelo `normalizar_svg.py` antes do acervo. É o mesmo conserto que o
+    # `logo.sh` faz: um desenho salvo no Boxy com `transform-origin` entra e não
+    # aparece na tela, e o defeito é mudo.
     ACERVOS = {
         "gato": {
             "pasta": ("assets", "gatos"),
@@ -8366,6 +8383,9 @@ class Manipulador(BaseHTTPRequestHandler):
     #                vez de recomeçar do zero.
     #   `salvar`     grava o texto que ela aprovou em `retoques/<app>.svg` e a
     #                linha `<app>:mao:<cor>` no `apps-convertidos.map`.
+    #
+    # A recusa do SVG é do servidor: é aqui que a escrita mora, e é aqui que ela
+    # tem de valer contra um POST forjado.
     _SVG_PROIBIDO = re.compile(
         r"<\s*(script|style|image|foreignObject|iframe|use)\b"
         r"|xlink:|href\s*=|\bon[a-z]+\s*=|url\s*\(|@import",
@@ -10016,9 +10036,10 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": "o arquivo veio vazio"}, 400)
             return self._json(importar_conf(texto))
 
-        # A RECUSA, e ela é a outra metade da pergunta Sem ela o "não quero" não
-        # existiria na tela, e a pendência voltaria amanhã: a notificação que
-        # volta todo dia é a que se aprende a ignorar.
+        # A RECUSA é a outra metade da pergunta: sem ela o "não quero" não
+        # existiria na tela, e a pendência voltaria amanhã. A tabela
+        # `RECUSA_DA_PENDENCIA` é a cerca: id fora dela não tem recusa, e um POST
+        # forjado não vira execução de nada.
         if caminho == "/api/pendencia-recusar":
             ident = str(corpo.get("id", ""))
             argv = RECUSA_DA_PENDENCIA.get(ident)
