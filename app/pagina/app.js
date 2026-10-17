@@ -7358,84 +7358,14 @@ function render() {
   }
 }
 
-/* A cura é na grade de todas as páginas, e não numa página: com mais de uma
- * coluna, a grade vira ALVENARIA. */
-const ALVENARIA_PASSO = 4;
-const ALVENARIA_EMPATE = 64;
-let OBSERVADOR_GRADES = null;
-/* O QUE ESTÁ À VISTA FICA À VISTA: a alvenaria refeita depois da pintura (um
- * desenho que chegou, a janela que mudou) muda os cartões de lugar, e o
- * cartão a que a Início levou (`.chegou`), ou o que tem o foco, saía da
- * janela. */
-function assentarComAncora() {
-  const m = $("#principal");
-  const foco = document.activeElement;
-  const ancora = document.querySelector("#conteudo .grade > .chegou")
-    || (foco && foco.closest && foco.closest("#conteudo .grade > *"));
-  const antes = ancora ? ancora.getBoundingClientRect().top : null;
-  assentarGrades();
-  if (m && ancora && ancora.isConnected) m.scrollTop += ancora.getBoundingClientRect().top - antes;
-}
+/* A grade é a do CSS (linhas alinhadas, P90); aqui só sai o que uma pintura
+ * antiga tenha deixado no `style` de um cartão. */
 function assentarGrades() {
-  if (typeof ResizeObserver === "function" && !OBSERVADOR_GRADES) {
-    let pedido = 0;
-    OBSERVADOR_GRADES = new ResizeObserver(() => {
-      cancelAnimationFrame(pedido);
-      pedido = requestAnimationFrame(assentarComAncora);
-    });
-    addEventListener("resize", assentarComAncora);
-  }
   for (const g of document.querySelectorAll("#conteudo .grade")) {
-    const filhos = [...g.children];
-    for (const c of filhos) { c.style.gridColumn = ""; c.style.gridRow = ""; c.style.minHeight = ""; }
-    const colunas = getComputedStyle(g).gridTemplateColumns.split(" ").filter(Boolean).length;
-    g.classList.toggle("alvenaria", colunas > 1);
-    if (colunas < 2) continue;
-    const vao = parseFloat(getComputedStyle(g).columnGap) * .6 || 18;
-    const fundo = new Array(colunas).fill(1);
-    const postos = [];
-    for (const c of filhos) {
-      if (OBSERVADOR_GRADES) OBSERVADOR_GRADES.observe(c);
-      const alto = c.getBoundingClientRect().height;
-      if (!alto) continue;
-      const linhas = Math.max(1, Math.ceil((alto + vao) / ALVENARIA_PASSO));
-      const largo = getComputedStyle(c).gridColumnEnd === "-1"
-        || c.matches(".decisao, .escolha-icone, .escolha-jogo, .pack.aberto");
-      if (largo) {
-        const de = Math.max(...fundo);
-        c.style.gridColumn = "1 / -1";
-        c.style.gridRow = `${de} / span ${linhas}`;
-        fundo.fill(de + linhas);
-        continue;
-      }
-      let k = 0;
-      for (let i = 1; i < colunas; i++) if (fundo[i] < fundo[k]) k = i;
-      const p = { c, k, de: fundo[k], linhas, alto, natural: linhas };
-      postos.push(p);
-      /* A fileira: os já postos que começam na mesma linha, com nada embaixo,
-       * em grupos de quase empate, do mais baixo para o mais alto. */
-      const fileira = c.matches(".acao") ? postos.filter((o) => o !== p && o.de === p.de
-        && o.c.matches(".acao") && fundo[o.k] === o.de + o.linhas) : [];
-      fileira.push(p);
-      fileira.sort((a, b) => a.alto - b.alto);
-      for (let i = 0; i < fileira.length;) {
-        let j = i;
-        while (j + 1 < fileira.length && fileira[j + 1].alto - fileira[i].alto <= ALVENARIA_EMPATE) j++;
-        const maior = fileira[j];
-        for (const o of fileira.slice(i, j + 1)) {
-          o.linhas = maior.natural;
-          o.c.style.minHeight = o === maior ? "" : `${maior.alto}px`;
-          o.c.style.gridRow = `${o.de} / span ${o.linhas}`;
-          fundo[o.k] = o.de + o.linhas;
-        }
-        i = j + 1;
-      }
-      c.style.gridColumn = String(k + 1);
-      c.style.gridRow = `${p.de} / span ${p.linhas}`;
-      fundo[k] = p.de + p.linhas;
-    }
+    for (const c of g.children) { c.style.gridColumn = ""; c.style.gridRow = ""; c.style.minHeight = ""; }
   }
 }
+function assentarComAncora() { assentarGrades(); }
 
 /* Parada no alto da página ela é o desenho inteiro, com legenda — é ali que ela
  * é lida.

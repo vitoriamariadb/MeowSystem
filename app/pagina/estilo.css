@@ -30,6 +30,10 @@
    * grades de Ajustar e de Fazer, e NÃO vale para as grades de imagem — ali,
    * quanto mais couber na tela, melhor. */
   --medida: 1240px;
+
+  /* Os dois vãos da página: entre cartões, e entre seções. */
+  --vao-grade: 1rem;
+  --vao-secao: 2.2rem;
 }
 
 /* --- o esqueleto ---------------------------------------------------------- */
@@ -491,14 +495,16 @@ main:focus-visible { outline: none; }
 
 /* Com uma página por assunto, uma tela pode ter quatro grupos (a coleção, dois
  * blocos de ajuste, as ações) sob um título só. */
+/* O fio da seção vai de ponta a ponta: é ele, e só ele, que divide a página. */
 .subsecao-titulo {
-  margin: 1.7rem 0 .1rem;
+  margin: var(--vao-secao) 0 var(--vao-grade);
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--surface0);
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -.01em;
   color: var(--subtext1);
 }
-.subsecao-titulo:first-of-type { margin-top: .7rem; }
 
 /* A nota que substituiu as repetições dentro dos cartões. */
 .nota-secao {
@@ -522,13 +528,16 @@ main:focus-visible { outline: none; }
  * `minmax(0, …)` no filho continua obrigatório: com `1fr` puro, um nome de
  * arquivo longo empurra a coluna e desalinha a linha inteira. */
 /* O TETO VAI NO CARTÃO, E NÃO NA COLUNA — e a primeira tentativa errou nisto. */
+/* Linhas alinhadas: cada cartão estica até a altura da linha, e o vão é o
+ * mesmo nos dois sentidos e em toda página. */
 .grade {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
-  gap: 1.15rem 1.9rem;
-  align-items: start;
+  gap: var(--vao-grade);
+  align-items: stretch;
   justify-content: start;
 }
+.grade + .grade, .grade + .ajustes-tecnicos, .secao-com-previa + .grade { margin-top: var(--vao-grade); }
 /* O `auto-fit` acima conta quantas colunas de 320 px cabem, e na tela dela —
  * 1918 px, mais larga do que a que eu vinha medindo — davam QUATRO.
  *
@@ -538,12 +547,8 @@ main:focus-visible { outline: none; }
 @media (min-width: 1100px) {
   .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-.grade > * { min-width: 0; max-width: 640px; }
-/* A ALVENARIA: linhas finas, sem vão entre elas (o vão entra na conta de cada
- * item), e cada item na própria altura — esticado, ele voltaria a mostrar o
- * vão por dentro. */
-.grade.alvenaria { grid-auto-rows: 4px; row-gap: 0; }
-.grade.alvenaria > * { align-self: start !important; }
+.grade > * { min-width: 0; }
+.grade > :is(.decisao, .escolha-icone, .escolha-jogo, .pack.aberto) { grid-column: 1 / -1; }
 /* A figura de uma página só de ações, dentro da grade: ela é um item como
  * os cartões, e não a faixa grudada do alto. */
 .grade > .previa-bloco { position: static; box-shadow: none; border-bottom: 0; margin: 0; }
@@ -562,11 +567,10 @@ main:focus-visible { outline: none; }
   /* A âncora da dica. Sem ela o balão se penduraria no `<main>` e escorregaria
    * do cartão que o abriu na primeira rolagem. */
   position: relative;
-  background: transparent;
-  border: 0;
-  border-top: 1px solid var(--surface0);
-  border-radius: 0;
-  padding: .9rem .9rem 1.1rem;
+  background: var(--mantle);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  padding: 1rem 1.05rem 1.05rem;
   display: grid;
   /* Com `minmax(0, 1fr)` o título (`auto`) crescia até o fim do cartão sempre
    * que quebrava em duas linhas, a segunda coluna ficava com 0 px e o `?` de
@@ -581,12 +585,6 @@ main:focus-visible { outline: none; }
   grid-template-rows: auto;
   gap: .6rem .45rem;
   min-height: 0;
-}
-.cartao:has(.amostras, .opcoes-imagem, .cores-grade, .previa-grade, .simul, .mock) {
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  padding: 1rem 1.05rem 1.05rem;
 }
 
 /* `.cartao > *` põe todo mundo em 3 e atravessando as duas colunas, senão um
@@ -744,12 +742,10 @@ button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
  * `inset box-shadow` no lugar de `border-left`: não desloca o texto, e as duas
  * regras podem coexistir sem somar 3px de recuo. "Sem prévia" devolveu a aresta
  * e diz o que tem para dizer na frase que já existe. */
-.cartao.mexeu { box-shadow: inset 3px 0 0 var(--peach); }
-.cartao.nao-salvo {
-  background: color-mix(in srgb, var(--accent) 7%, var(--mantle));
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-.cartao[data-sem-previa] { border-left: 0; }
+/* A aresta lateral é uma só e diz uma coisa só: mudado por você. O «ainda não
+ * salvo» é o fundo tingido, na mesma aresta. */
+.cartao.mexeu, .cartao.nao-salvo { box-shadow: inset 3px 0 0 var(--peach); }
+.cartao.nao-salvo { background: color-mix(in srgb, var(--accent) 7%, var(--mantle)); }
 /* Um contorno de acento que se apaga sozinho: é o "está aqui" de quem acabou de
  * chegar rolando, e não um estado — por isso contorno, que não mexe no layout
  * nem briga com a aresta de «mexeu» e «não salvo». */
@@ -1000,25 +996,15 @@ select { flex: 1 1 auto; }
  *                             erro" nesta folha (`.p-sudo`, `.aviso-sudo`,
  *                             `.cartao.mexeu`).
  *   desfaz coisas ........... caixa e fio vermelho, e o botão continua vermelho. */
+/* A mesma caixa do cartão de ajuste; o risco mora nos selos e no botão. */
 .acao {
-  background: transparent;
-  border: 0;
-  border-top: 1px solid var(--surface0);
-  border-radius: 0;
-  padding: .9rem .9rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: .4rem;
-}
-.acao:has(.p-sudo), .acao:has(.p-perigo) {
   background: var(--mantle);
   border: 1px solid var(--surface0);
   border-radius: var(--r-3);
-}
-.acao:has(.p-sudo) { box-shadow: inset 3px 0 0 var(--peach); }
-.acao:has(.p-perigo) {
-  border-color: color-mix(in srgb, var(--red) 32%, var(--surface0));
-  box-shadow: inset 3px 0 0 var(--red);
+  padding: 1rem 1.05rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
 }
 
 /* A ordem: nome, o que faz, o comando exato, e só então as etiquetas de risco
@@ -1044,9 +1030,8 @@ select { flex: 1 1 auto; }
  * olhar. */
 
 /* A raiz é uma linha só: `align-items: start` na `.grade`, acima. */
-.grade > .acao,
-.grade > .cartao { align-self: stretch; }
-.grade > .cartao { align-content: start; }
+.cartao { align-content: start; }
+.cartao .btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
 /* --- botões --------------------------------------------------------------- */
 .btn {
@@ -2664,15 +2649,10 @@ a.folha:hover b { color: var(--text); }
   gap: .55rem;
   min-width: 0;
   padding: .9rem 1.05rem;
-  border-left: 3px solid var(--yellow);
-  border-radius: 0 var(--r-2) var(--r-2) 0;
-  background: color-mix(in srgb, var(--yellow) 9%, transparent);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  background: var(--mantle);
 }
-.home-gente {
-  border-left-color: var(--peach);
-  background: color-mix(in srgb, var(--peach) 9%, transparent);
-}
-.home-gente .pendencia + .pendencia { border-top-color: color-mix(in srgb, var(--peach) 22%, transparent); }
 .home-pendencias h3 {
   margin: 0;
   display: flex;
@@ -2702,7 +2682,7 @@ a.folha:hover b { color: var(--text); }
 }
 .pendencia + .pendencia {
   padding-top: .55rem;
-  border-top: 1px solid color-mix(in srgb, var(--yellow) 22%, transparent);
+  border-top: 1px solid var(--surface0);
 }
 .pendencia-frase {
   margin: 0;
@@ -2811,14 +2791,11 @@ a.folha:hover b { color: var(--text); }
   flex-direction: column;
   gap: .45rem;
   padding: .9rem 1.05rem;
-  border-left: 3px solid var(--surface1);
-  border-radius: 0 var(--r-2) var(--r-2) 0;
-  background: color-mix(in srgb, var(--surface0) 45%, transparent);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  background: var(--mantle);
 }
-.home-atencao[data-esperando] {
-  border-left-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 9%, transparent);
-}
+.home-atencao[data-esperando] { background: color-mix(in srgb, var(--accent) 7%, var(--mantle)); }
 .home-atencao p {
   margin: 0;
   font-size: var(--t-frase);
@@ -3217,33 +3194,14 @@ a.folha:hover b { color: var(--text); }
 /* A MOLDURA ATRAVESSA A GRADE: pack, variante e claro ou escuro lado a lado,
  * na ordem da escolha, dentro de uma caixa só. Os cartões de dentro perdem a
  * própria caixa (a moldura é a caixa) e ficam separados por um fio vertical. */
+/* A MOLDURA É UMA FILEIRA DA GRADE: os cartões da decisão caem nas mesmas
+ * colunas dos outros (subgrade), lado a lado e na ordem da escolha. */
 .grade > .decisao {
   grid-column: 1 / -1;
-  max-width: none;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
-  align-items: start;
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-}
-.decisao > .cartao,
-.decisao > .cartao:has(.amostras, .opcoes-imagem, .cores-grade, .previa-grade, .simul, .mock) {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 1rem 1.05rem 1.1rem;
-  align-self: stretch;
-  /* Esticado para os fios verticais irem até o fim da moldura, mas com o
-   * conteúdo no alto: sem isto a fileira de botões crescia até a altura da
-   * lista de variantes. */
-  align-content: start;
-}
-.decisao > .cartao + .cartao { border-left: 1px solid var(--surface0); }
-.decisao > .cartao.nao-salvo { background: color-mix(in srgb, var(--accent) 7%, transparent); }
-@media (max-width: 900px) {
-  .grade > .decisao { grid-template-columns: minmax(0, 1fr); }
-  .decisao > .cartao + .cartao { border-left: 0; border-top: 1px solid var(--surface0); }
+  grid-template-columns: subgrid;
+  gap: var(--vao-grade);
+  align-items: stretch;
 }
 
 /* O «⋯» DOS AJUSTES TÉCNICOS: um alvo de 32 px no fim do bloco, sem palavra
@@ -3399,18 +3357,6 @@ a.folha:hover b { color: var(--text); }
  * ao fluxo, onde está (`.pular-grade:focus`, lá em cima). */
 .pular-grade:not(:focus) { position: absolute; }
 
-/* LOGO DO SISTEMA: o seletor de gato numa moldura só. O modo é estreito (três
- * segmentos), e os cartões que ele mostra dividem o resto da linha; em tela
- * estreita eles descem um por linha, como a moldura do tema. */
-.grade > .decisao[data-decisao^="gato-"] { display: flex; flex-wrap: wrap; }
-.decisao[data-decisao^="gato-"] > .cartao { flex: 1 1 17rem; min-width: 0; }
-.decisao[data-decisao="gato-dock"] > .cartao[data-chave="LOGO_MODO"],
-.decisao[data-decisao="gato-terminal"] > .cartao[data-chave="FASTFETCH_LOGO_MODO"] { flex: 0 1 15rem; }
-@media (max-width: 900px) {
-  .decisao[data-decisao^="gato-"] > .cartao { flex-basis: 100%; }
-}
-/* O cartão do par de desenhos não cresce além do que o desenho preenche. */
-.decisao[data-decisao^="gato-"] > .cartao { max-width: 36rem; }
 
 /* ===========================================================================
  * =========================================================================== */
@@ -3441,7 +3387,6 @@ a.folha:hover b { color: var(--text); }
   grid-column: 2;
   display: grid; place-items: center;
   padding: 0 .35rem 0 .9rem;
-  border-left: 1px solid var(--surface0);
 }
 .linha-noite-icone > svg {
   width: 20px; height: 20px;
@@ -3453,11 +3398,6 @@ a.folha:hover b { color: var(--text); }
 .decisao-relogio > [data-linha="3"] { grid-row: 3; }
 .decisao-relogio > .cartao[data-ponta="ini"] { grid-column: 3; }
 .decisao-relogio > .cartao[data-ponta="fim"] { grid-column: 4; }
-/* Os fios: entre as linhas, horizontais; a primeira coluna de cartões não
- * herda o fio vertical da moldura comum (o ícone já separa). */
-.decisao-relogio > .cartao + .cartao { border-left: 0; }
-.decisao-relogio > .cartao[data-ponta="fim"] { border-left: 1px solid var(--surface0); }
-.decisao-relogio > :is(.cartao, .linha-noite-icone):not([data-linha="1"]) { border-top: 1px solid var(--surface0); }
 /* O campo de hora que herda: a traço e apagado, como o «como está» do
  * deslizante. Escolher uma hora o devolve ao desenho de sempre. */
 input[type="time"].hora-herdada {
@@ -3468,8 +3408,8 @@ input[type="time"].hora-herdada {
 @media (max-width: 900px) {
   .grade > .decisao.decisao-relogio { grid-template-columns: auto minmax(0, 1fr); }
   .decisao-relogio > .relogio-noite { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
-  .decisao-relogio > .linha-noite-icone { grid-column: 1; border-left: 0; padding: 0 .4rem 0 .8rem; }
-  .decisao-relogio > .cartao[data-ponta] { grid-column: 2; border-left: 0; }
+  .decisao-relogio > .linha-noite-icone { grid-column: 1; padding: 0 .4rem 0 .8rem; }
+  .decisao-relogio > .cartao[data-ponta] { grid-column: 2; }
   .decisao-relogio > .linha-noite-icone[data-linha="1"] { grid-row: 2 / span 2; }
   .decisao-relogio > .cartao[data-linha="1"][data-ponta="ini"] { grid-row: 2; }
   .decisao-relogio > .cartao[data-linha="1"][data-ponta="fim"] { grid-row: 3; }
@@ -3479,7 +3419,7 @@ input[type="time"].hora-herdada {
   .decisao-relogio > .linha-noite-icone[data-linha="3"] { grid-row: 6 / span 2; }
   .decisao-relogio > .cartao[data-linha="3"][data-ponta="ini"] { grid-row: 6; }
   .decisao-relogio > .cartao[data-linha="3"][data-ponta="fim"] { grid-row: 7; }
-  .decisao-relogio > :is(.cartao, .linha-noite-icone) { border-top: 1px solid var(--surface0); }
+
 }
 
 /* ===========================================================================

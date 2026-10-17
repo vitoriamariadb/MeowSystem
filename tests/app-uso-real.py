@@ -615,8 +615,9 @@ GATO_NA_DOCK_JS = r"""
 
 
 # 6 — A GRADE SEM BURACO: um cartão alto numa linha deixava o vão embaixo dos
-# baixos; a régua é o fim do CONTEÚDO de cada cartão (o cartão estica até a
-# linha) contra o começo do de baixo, na mesma coluna.
+# baixos. Desde a P90 cada cartão é uma caixa que estica até a altura da linha
+# (pedido de 16/10: colunas e linhas alinhadas), e a régua é o fim da CAIXA
+# contra o começo da de baixo, na mesma coluna.
 BURACO_JS = r"""
 (teto) => {
   const vis = (el) => el && el.checkVisibility && el.checkVisibility();
@@ -625,8 +626,7 @@ BURACO_JS = r"""
     if (!vis(g) || getComputedStyle(g).gridTemplateColumns.split(' ').length < 2) continue;
     const filhos = [...g.children].filter(vis).map((c) => {
       const r = c.getBoundingClientRect();
-      const fim = Math.max(r.top, ...[...c.children].filter(vis).map((x) => x.getBoundingClientRect().bottom));
-      return { c, r, fim };
+      return { c, r, fim: r.bottom };
     });
     for (const a of filhos) {
       const abaixo = filhos.filter((b) => b !== a && b.r.top >= a.r.bottom - 1
