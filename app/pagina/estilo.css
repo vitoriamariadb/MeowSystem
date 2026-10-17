@@ -1150,6 +1150,7 @@ select { flex: 1 1 auto; }
 }
 
 .linha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.botao-com-selo { display: inline-flex; flex-wrap: nowrap; gap: .5rem; align-items: center; }
 /* Os botões que agem sobre a própria seção ficam colados no filtro, antes da
  * grade: é o passo seguinte natural de quem acabou de marcar alguma coisa. */
 .acoes-da-secao { margin: -.4rem 0 1.4rem; }

@@ -8881,14 +8881,21 @@ function montarHome() {
   ]) {
     const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
     if (!acao) continue;
-    linha.append(elemento("button", {
+    const botao = elemento("button", {
       type: "button", class: "btn" + (principal ? " btn-accent" : ""),
       "data-acao-rapida": id, texto: rotulo, title: acao.ajuda || "",
-    }));
+    });
     /* O «Consertar» roda sem pergunta e baixa da internet; o mesmo selo do
      * cartão da aba Instalação, logo depois do botão, do mesmo campo
-     * `acao.rede`. */
-    if (acao.rede) linha.append(elemento("span", { class: "pastilha p-rede", texto: "baixa da internet" }));
+     * `acao.rede`. Botão e selo quebram de linha juntos: soltos, a 1440 px o
+     * selo descia sozinho e parecia ser da «Próxima imagem». */
+    if (acao.rede) {
+      linha.append(elemento("span", { class: "botao-com-selo" }, [
+        botao, elemento("span", { class: "pastilha p-rede", texto: "baixa da internet" }),
+      ]));
+    } else {
+      linha.append(botao);
+    }
   }
   semana.append(linha);
   lado.append(semana);
