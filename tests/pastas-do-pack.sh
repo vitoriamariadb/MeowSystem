@@ -1,72 +1,14 @@
 #!/usr/bin/env bash
 # pastas-do-pack.sh — as pastas vestem a paleta do pack no ar (P56, 24/09/2026).
 #
-# O DEFEITO QUE ESTE ARQUIVO VIGIA
-#   Com o Dracula no ar, o `folder.svg` instalado apontava para
-#   `folder-cat-mocha-mauve.svg`, e os hex dele eram os do Catppuccin Mocha: o
-#   papirus-folders só traz as 56 combinações do Catppuccin, e o
-#   `scripts/construir_pastas.sh` caía nelas. Desde a P56 a variante que falta
-#   sai da do Catppuccin, trocada cor por cor pela paleta do pack no ar — o
-#   bloco "A VARIANTE DO PACK NO AR" do script conta a medição e a regra.
-#
-# O QUE ELE CONFERE, NUMA CASA DE BRINQUEDO
-#   1. Com o Catppuccin no ar nada se deriva: cada `folder-cat-mocha-mauve*`
-#      instalado é o do papirus-folders, byte a byte, e o `folder.svg` aponta
-#      para ele — os bytes das pastas são os de antes da P56.
-#   2. Com o Dracula no ar o `folder.svg` aponta para a variante derivada, e
-#      os hex dele são da paleta do Dracula mais a sombra do acento dele (o
-#      acento com o mesmo deslocamento que o upstream dá ao dele). Nas pastas
-#      instaladas, lixeira e órfãs azuis inclusive, não sobra hex nenhum do
-#      Catppuccin — nem slot de paleta, nem sombra do upstream.
-#   3. A segunda passagem não escreve nada, e o seco numa casa vazia não cria
-#      um arquivo.
-#   4. As guardas: um upstream que a paleta do pack padrão não descreve, e um
-#      tom fora da paleta que não é o acento deslocado por igual, param a
-#      derivação dizendo por quê, e a queda de 15/09 (a variante do Mocha) vale.
-#
-# E O QUE A REVISÃO DA P56 ACHOU, NO MESMO DIA (24/09/2026)
-#   5. O claro sai do claro. A primeira versão derivava todo flavor do Mocha, e
-#      o Alucard (o claro do Dracula) saía de papel escuro e símbolo claro. Com
-#      ele no ar, o `folder.svg` é a variante derivada do latte — cada hex no
-#      slot do latte que o upstream usa ali —, e os 56 do Catppuccin, derivados
-#      pela mesma regra, saem iguais ao upstream byte a byte (o `peach`, o `sky`
-#      e o `red` do latte têm a sombra presa no zero).
-#   6. O molde de fábrica com o FLAVOR vazio chega como `cat--mauve`, e veste a
-#      variante do tema, e não a do Mocha.
-#   7. As sete pastas especiais do Dracula (PASTAS_XDG="sim") chegam ao disco:
-#      o `icones_pastas.sh` procurava nelas o nome do glifo do Catppuccin, não
-#      achava nenhuma e dizia «já vestidas de Catppuccin macchiato».
-#
-# E AS DUAS REGRAS QUE A P61 CONSERTOU (25/09/2026)
-#   8. A lixeira dos flavors do Catppuccin: o `recolorir_lixeiras` pulava só o
-#      papel do Mocha, e com o latte, o frappé e o macchiato tomava o papel ou
-#      o símbolo da pasta por tom. A lixeira de cada flavor sai da sombra e do
-#      acento dele, e a do Mocha é a de antes, byte a byte.
-#   9. O corpo das sete pastas especiais do Dracula, fora da paleta dele
-#      (#433F4D e #534B62), passou ao slot mais próximo dela: o `surface0` e o
-#      `surface1`. Continuam sem recolorir pelo acento.
-#
-# E OS RESTOS QUE A P65 FECHOU (25/09/2026)
-#   7b. O ensaio de desligar as pastas especiais fala no condicional: dizia
-#      «0 posto(s), 7 removido(s)» logo depois de «removeria».
-#   9. O resgate do Nautilus (`assets/icones/resgatados/`), o mesmo desenho do
-#      `folder-download.svg` sem a seta, tinha o corpo de antes; e o
-#      PROCEDENCIA.md dizia «nada mais no desenho mudou», com as aberturas do
-#      castelo tendo mudado junto com a frente.
-#   10. Os comentários das pastas especiais dizem a cor das outras pastas, e não
-#      o mauve de uma casa.
-#
-# POR QUE É DA MÁQUINA
-#   O script lê o Papirus-Dark por `/usr/share/icons/<base>` e o papirus-folders
-#   que o `scripts/baixar_upstream.sh` baixa (ou o que `MEOW_CAT_FOLDERS`
-#   aponta). As guardas (4) usam um upstream de brinquedo e param antes do
-#   Papirus; sem os dois de verdade, o resto sai "pulado", com o motivo.
+# O script lê o Papirus-Dark por `/usr/share/icons/<base>` e o papirus-folders
+# que o `scripts/baixar_upstream.sh` baixa (ou o que `MEOW_CAT_FOLDERS` aponta).
+# As guardas (4) usam um upstream de brinquedo e param antes do Papirus; sem os
+# dois de verdade, o resto sai "pulado", com o motivo.
 #
 # NADA SAI DA CASA DE BRINQUEDO: `env -i` com HOME temporário, e um `sudo` falso
-#   na frente do PATH — o script não chama sudo, e o falso existe para que ele
-#   nunca passe a chamar calado numa máquina com `NOPASSWD`.
-#
-#   0 = as pastas vestem o pack no ar · 1 = achados · 2 = erro deste teste
+# na frente do PATH — o script não chama sudo, e o falso existe para que ele
+# nunca passe a chamar calado numa máquina com `NOPASSWD`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -94,10 +36,8 @@ pastas() {
 }
 
 # --- 4. as guardas, com um upstream de brinquedo ---------------------------
-#   Um `folder-cat-mocha-mauve` de quatro cores, como o de verdade, e duas
-#   versões tortas dele. A base de ícones aponta para um tema que não existe:
-#   a derivação roda antes de o script procurá-la, e ele sai 3 logo depois,
-#   sem escrever nada — o que se confere aqui é só o que a derivação diz.
+# Um `folder-cat-mocha-mauve` de quatro cores, como o de verdade, e duas
+# versões tortas dele.
 brinquedo() {   # $1 = o diretório · $2..$5 = os quatro hex do desenho
   local d="$1/src/64x64/places" n; mkdir -p "$d"
   for n in folder-cat-mocha-mauve folder-cat-mocha-mauve-documents; do
@@ -133,25 +73,17 @@ saida="$(guarda "$T/up-torto")"
   || falha "as guardas escreveram na casa de brinquedo" "$(find "$T/casa-guarda" | head)"
 
 # --- 9. o corpo das pastas especiais do Dracula é da paleta dele ------------
-#   As sete desenham a pasta em dois tons, as costas e a frente — os dois
-#   primeiros `<path>` de cada uma, a mesma silhueta nas sete —, e eles eram
-#   #433F4D e #534B62, fora da paleta do Dracula. Continuam sem recolorir pelo
-#   acento (`icones.pastas.recolorir: false`), e os dois tons passaram ao slot
-#   mais próximo, medido no OKLab e escrito no PROCEDENCIA.md do pack: as costas
-#   no `surface0`, a frente no `surface1`, lidos aqui da paleta.json. Nenhum dos
-#   dois tons de antes sobra em desenho nenhum.
-#   [P65: e o resgate do Nautilus, que é o `folder-download.svg` de antes sem a
-#   seta, e seguia com os dois; e o PROCEDENCIA.md, que dizia «nada mais no
-#   desenho mudou» com as aberturas do castelo tendo ido junto com a frente, as
-#   conta e fala do resgate.]
-achado="$(python3 - "$RAIZ/packs/dracula" "$RAIZ/assets/icones/resgatados/org.gnome.Nautilus.svg" <<'PY'
+# As sete desenham a pasta em dois tons, as costas e a frente — os dois
+# primeiros `<path>` de cada uma, a mesma silhueta nas sete —, e eles eram
+# #433F4D e #534B62, fora da paleta do Dracula.
+achado="$(python3 - "$RAIZ/packs/dracula" "$RAIZ/packs/dracula/icones/apps/resgatados/org.gnome.Nautilus.svg" <<'PY'
 import glob, json, os, re, sys
 pack, resgate = sys.argv[1], sys.argv[2]
 with open(os.path.join(pack, "paleta.json"), encoding="utf-8") as fh:
     dra = json.load(fh)["flavors"]["dracula"]
 quer = [dra["surface0"].upper(), dra["surface1"].upper()]
 erros, vistos = [], 0
-for svg in sorted(glob.glob(os.path.join(pack, "icones", "pastas", "*.svg"))) + [resgate]:
+for svg in sorted(glob.glob(os.path.join(pack, "icones", "sistema", "pastas", "*.svg"))) + [resgate]:
     vistos += 1
     nome = os.path.basename(svg)
     with open(svg, encoding="utf-8") as fh:
@@ -171,7 +103,7 @@ if vistos != 11:
     erros.append("eram dez desenhos em icones/pastas/ e o resgate, e são %d" % vistos)
 with open(os.path.join(pack, "PROCEDENCIA.md"), encoding="utf-8") as fh:
     proc = fh.read()
-linha = next((l for l in proc.splitlines() if l.startswith("| `icones/pastas/*.svg`")), "")
+linha = next((l for l in proc.splitlines() if l.startswith("| `icones/sistema/pastas/*.svg`")), "")
 if "aberturas do castelo" not in linha:
     erros.append("o PROCEDENCIA.md não conta as aberturas do castelo, que mudaram com a frente: %r" % linha[-160:])
 if "resgatados/org.gnome.Nautilus.svg" not in proc:
@@ -184,10 +116,8 @@ PY
   || falha "o corpo das pastas especiais do Dracula, ou do resgate, está fora da paleta dele, ou a procedência não conta" "$achado"
 
 # --- 7. as sete pastas especiais do Dracula chegam ao disco ----------------
-#   O `icones_pastas.sh` não precisa do Papirus: ele copia os desenhos do pack
-#   para `scalable/places`. A casa começa como a máquina de 24/09 estava — os
-#   sete do Catppuccin macchiato no lugar (aqui, de brinquedo) —, e o `--aplicar`
-#   tem de trocá-los pelos do Dracula e dizer de quem eles são.
+# O `icones_pastas.sh` não precisa do Papirus: ele copia os desenhos do pack
+# para `scalable/places`.
 xdg() {   # $1 = a casa · $2 = PACK · $3 = FLAVOR · $4 = o modo
   env -i PATH="$FALSO:$PATH" HOME="$1" USER="${USER:-t}" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
     PACK="$2" FLAVOR="$3" ACCENT=mauve PASTAS_XDG=sim ICONES_FLAVOR=macchiato \
@@ -198,12 +128,11 @@ mkdir -p "$LUGAR"
 for n in documents download music pictures publicshare templates videos; do
   printf '<svg><path style="fill:#CAD3F5"/></svg>' > "$LUGAR/folder-$n.svg"
 done
-# Quantas o pack desenha: as sete de 15/09 e as três da P74 (09/10/2026).
-N_PASTAS="$(find "$RAIZ/packs/dracula/icones/pastas" -maxdepth 1 -name '*.svg' | wc -l)"
+N_PASTAS="$(find "$RAIZ/packs/dracula/icones/sistema/pastas" -maxdepth 1 -name '*.svg' | wc -l)"
 aplicou="$(xdg "$T/casa-xdg" dracula dracula --aplicar)"
 conferiu="$(xdg "$T/casa-xdg" dracula dracula --conferir)"; rc=$?
 postos=0
-for d in "$RAIZ/packs/dracula/icones/pastas/"*.svg; do
+for d in "$RAIZ/packs/dracula/icones/sistema/pastas/"*.svg; do
   [ "$(cat "$d")" = "$(cat "$LUGAR/$(basename "$d")" 2>/dev/null)" ] && postos=$((postos + 1))
 done
 if [ "$postos" = "$N_PASTAS" ] && [ "$N_PASTAS" = 10 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
@@ -216,22 +145,18 @@ else
 $conferiu"
 fi
 
-# --- 7b. desligadas, elas seguem a cor das outras — 25/09/2026, sprint P62 ---
-#   As frases diziam «devolvendo as pastas especiais ao mauve» e «as pastas
-#   seguem mauve», o acento de uma casa, com qualquer pack. A regra é a do
-#   `construir_pastas.sh`: as sete voltam a ele e vestem o que as outras
-#   vestem. A frase diz a regra, sem nomear cor nem tema. A casa é a da seção
-#   7, com os desenhos do Dracula no lugar.
+# --- 7b. desligadas, elas seguem a cor das outras ---
+# As frases diziam «devolvendo as pastas especiais ao mauve» e «as pastas
+# seguem mauve», o acento de uma casa, com qualquer pack.
 desligar() {   # $1 = a casa · [VAR=valor ...], que vencem
   local casa="$1"; shift
   env -i PATH="$FALSO:$PATH" HOME="$casa" USER="${USER:-t}" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
     PACK=dracula FLAVOR=dracula ACCENT=mauve PASTAS_XDG=nao ICONES_FLAVOR=macchiato \
     ICONES_TEMA=MeowSystem-Icons "$@" bash "$RAIZ/scripts/icones_pastas.sh" --aplicar 2>&1
 }
-# O ENSAIO VEM ANTES, E FALA NO CONDICIONAL — 25/09/2026, P65. O seco dizia
-#   «removeria» arquivo por arquivo e fechava com «0 posto(s), 7 removido(s)»,
-#   no passado, com os sete ainda no disco; e abria com «devolvendo». O ensaio
-#   não tira nada, e cada frase dele diz o que faria.
+# O seco dizia «removeria» arquivo por arquivo e fechava com «0 posto(s), 7
+# removido(s)», no passado, com os sete ainda no disco; e abria com
+# «devolvendo».
 ensaio="$(desligar "$T/casa-xdg" MEOW_DRY_RUN=1)"; rc=$?
 if [ "$(find "$LUGAR" -name '*.svg' 2>/dev/null | wc -l)" = "$N_PASTAS" ] && [ "$rc" = 1 ] \
    && [[ "$ensaio" == *"removeria"* ]] && [[ "$ensaio" == *"pastas especiais: poria 0, removeria $N_PASTAS"* ]] \
@@ -253,13 +178,9 @@ else
 $de_novo"
 fi
 
-# --- 10. os comentários dizem a regra, e não o mauve — 25/09/2026, P65 ------
-#   A P62 tirou da tela o «mauve» e o «pastel» das pastas especiais: sem os
-#   desenhos, os sete nomes vestem a cor das outras pastas, com qualquer pack e
-#   acento. Quatro comentários ainda o diziam no presente, como regra — os que
-#   a revisão da P62 apontou —, e comentário é o que o próximo a mexer lê
-#   primeiro. As frases velhas são procuradas no texto dos comentários com as
-#   quebras de linha desfeitas, porque cada uma atravessa duas linhas.
+# --- 10. os comentários dizem a regra, e não o mauve ------
+# As frases velhas são procuradas no texto dos comentários com as quebras de
+# linha desfeitas, porque cada uma atravessa duas linhas.
 achado="$(python3 - "$RAIZ" <<'PY'
 import os, re, sys
 raiz = sys.argv[1]
@@ -269,7 +190,7 @@ velhas = {
                                  "a pasta volta a ser mauve na mesma rodada"],
     "scripts/construir_pastas.sh": ["Ceder um nome cujo pastel ainda não foi instalado",
                                     "este aqui volta a vestir o nome de mauve na mesma passagem"],
-    "assets/icones/pastas.map": ["para que o pastel não brigue com o mauve",
+    "packs/meowsystem/icones/pastas.map": ["para que o pastel não brigue com o mauve",
                                  "ele só cede o nome cujo pastel já está no disco"],
 }
 erros = []
@@ -321,15 +242,8 @@ else
 fi
 
 # --- 8. a lixeira de cada flavor do Catppuccin --------------------------------
-#   O `recolorir_lixeiras` pinta os dois cinzas da lixeira do Papirus com os
-#   dois tons da pasta vizinha que não são o papel dela — e pulava só o papel do
-#   Mocha. Medido com o mauve: a lixeira do latte saía `#4C4F69 #7425DB` (o
-#   `text` do latte e a sombra), e não `#7425DB #8839EF` (a sombra e o acento),
-#   como a do Mocha é `#B792E3 #CBA6F7`; a do frappé, `#414559 #B68AD2`; a do
-#   macchiato, `#363A4F #B28CE2`. A régua é a do script, dita daqui: os dois
-#   tons são a sombra (o hex da pasta do upstream que não é slot do flavor) e o
-#   acento, em ordem de texto — o primeiro no cinza claro, o segundo no escuro.
-#   No Mocha isso é a lixeira de antes, byte a byte; a casa dele é a da seção 1.
+# O `recolorir_lixeiras` pinta os dois cinzas da lixeira do Papirus com os dois
+# tons da pasta vizinha que não são o papel dela — e pulava só o papel do Mocha.
 for fl in latte frappe macchiato; do
   pastas "$T/casa-lixeira-$fl" "" "$fl" mauve >/dev/null
 done
@@ -460,10 +374,10 @@ criados="$(find "$T/casa-seca" -mindepth 1 | wc -l)"
   || falha "o seco escreveu na casa, ou não acusou a divergência (rc=$rc, $criados entradas)" "$saida"
 
 # --- 5. o claro sai do claro -------------------------------------------------
-#   O Alucard no ar: a variante sai do `cat-latte-mauve`, e cada hex dela é o
-#   slot do Alucard que o latte do upstream usa naquela posição — o papel no
-#   `surface0`, o símbolo no `text` — e a sombra, o acento dele com o
-#   deslocamento que o latte mostra. Derivado do Mocha, o papel saía #4A4F67.
+# O Alucard no ar: a variante sai do `cat-latte-mauve`, e cada hex dela é o
+# slot do Alucard que o latte do upstream usa naquela posição — o papel no
+# `surface0`, o símbolo no `text` — e a sombra, o acento dele com o
+# deslocamento que o latte mostra.
 CASA_ALU="$T/casa-alucard"
 saida="$(pastas "$CASA_ALU" dracula alucard mauve)"; rc=$?
 TEMA_ALU="$CASA_ALU/.local/share/icons/MeowSystem-Icons"
@@ -519,10 +433,8 @@ PY
   fi
 fi
 
-#   E a regra inteira, contra o que o upstream já traz: os 56 do Catppuccin,
-#   derivados pela função do próprio script (a origem escura entra, e o claro
-#   troca sozinho), saem iguais ao upstream byte a byte. Derivando tudo do
-#   Mocha, os 14 do latte saíam diferentes nos cinco tamanhos.
+# Derivando tudo do Mocha, os 14 do latte saíam diferentes nos cinco
+# tamanhos.
 sed -n '/^_derivar_py() {/,/^}/p' "$RAIZ/scripts/construir_pastas.sh" > "$T/derivar.sh"
 # shellcheck source=/dev/null
 . "$T/derivar.sh"

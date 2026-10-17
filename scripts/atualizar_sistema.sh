@@ -2,43 +2,14 @@
 # atualizar_sistema.sh — atualiza a máquina inteira e prova que o MeowSystem
 # sobreviveu.
 #
-# POR QUE ISTO É UM SCRIPT DESTE PROJETO, E NÃO UM ALIAS NO ZSH DELA
-#   Ela já tem o comando, e ele é uma linha só:
+# Ela já tem o comando, e ele é uma linha só:
 #
 #     sudo apt update && sudo apt full-upgrade -y && topgrade -y \
 #       && sudo apt autoclean -y && sudo apt autoremove -y \
 #       && cargo install cargo-update --force && limpar_cache \
 #       && cargo-install-update-config
 #
-#   O que falta nessa linha é a SEGUNDA METADE do problema. Um `full-upgrade`
-#   troca o `cosmic-comp`, o `cosmic-panel`, o `fastfetch`, o `papirus-icon-
-#   theme` — e cada uma dessas trocas desfaz alguma coisa que este projeto
-#   escreveu. É a razão de o projeto existir: o `meow doctor` sabe dizer o que
-#   saiu do lugar, mas ninguém se lembra de rodá-lo logo depois de uma
-#   atualização de meia hora.
-#
-#   Aqui as duas metades ficam grudadas: atualiza, e em seguida CONFERE o que a
-#   atualização desfez — e conserta, se ela pedir. A frase dela foi *"conferir a
-#   idempotência do app como um todo, se sobreviveríamos a um [upgrade], que é a
-#   ideia do projeto também"*.
-#
-# O QUE ELE NÃO FAZ
-#   Não decide por ela. `ver` não escreve um byte e é o padrão; `aplicar` é o
-#   que mexe, e o painel o marca como ação que pede senha e pede confirmação.
-#   E ele NUNCA responde a um prompt de conflito de arquivo de configuração do
-#   `dpkg`: as opções abaixo mandam o apt MANTER o que está no disco e listar o
-#   que ficou pendente. Escolher por ela num `.conf` do sistema seria trocar uma
-#   pergunta de dez segundos por um estrago silencioso.
-#
-# AS PEÇAS, E POR QUE CADA UMA
-#   apt update / full-upgrade   os pacotes do sistema. `full-upgrade` e não
-#                               `upgrade`: o Pop!_OS move pacotes entre metas e
-#                               o `upgrade` os segura para trás.
-#   topgrade                    o resto — flatpak, cargo, pnpm, o que houver.
-#   apt autoclean / autoremove  o que sobrou. Separado, no `limpar`.
-#   cargo install-update -a     as caixas de Rust instaladas por ela.
-#
-#   `snap` não entra: não está instalado nesta máquina (medido em 06/09/2026).
+# O que falta nessa linha é a SEGUNDA METADE do problema.
 #
 # USO
 #   atualizar_sistema.sh ver        o que mudaria. Não escreve, não pede senha.
@@ -51,10 +22,8 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# O apt NUNCA PERGUNTA E NUNCA DECIDE. `--force-confold` mantém o arquivo que
-# está no disco quando o pacote traz um novo; `--force-confdef` só aceita o
-# padrão quando NÃO há versão dela. Sem os dois, um `-y` em terminal sem tty
-# pode aceitar o arquivo do pacote e apagar configuração dela em silêncio.
+# `--force-confold` mantém o arquivo que está no disco quando o pacote traz
+# um novo; `--force-confdef` só aceita o padrão quando NÃO há versão dela.
 APT_OPCOES=(-y -o Dpkg::Options::=--force-confold -o Dpkg::Options::=--force-confdef)
 
 _as_tem() { command -v "$1" >/dev/null 2>&1; }
@@ -112,26 +81,13 @@ cmd_aplicar() {
   meow_titulo "Atualizar a máquina"
 
   meow_passo "1/4 Pacotes do sistema"
-  # O PRÉ-VOO DO COSMIC VEM ANTES DO UPGRADE, E NÃO O BLOQUEIA — P76
-  #   O candidato (o `.deb` e o fonte) só existe no índice do Pop até sair o
-  #   próximo; depois do upgrade o fonte da versão instalada pode não estar
-  #   mais lá. A sonda lê o candidato agora, guarda o fonte e grava o veredito
-  #   que o pós-apt usa. Vermelho não segura o apt: diz onde gente vai entrar.
-  #   (A ponte faz `update` e `full-upgrade` num verbo só, então a fila lida
-  #   aqui é a do último `apt update` — a do sistema, que roda sozinho.)
   if _as_tem apt && [ -x "$MEOW_RAIZ/scripts/cosmic_prever.sh" ]; then
     "$MEOW_RAIZ/scripts/cosmic_prever.sh" prever \
       || meow_info "  o veredito do COSMIC tem vermelho — o upgrade segue; o detalhe fica em: meow cosmic ler"
   fi
   if _as_tem apt; then
-    # PELA PONTE, SEM SENHA — 08/09/2026. É o que faz o botão "Atualizar a
-    # máquina inteira" do painel funcionar: ele roda sem terminal, e um prompt
-    # de senha ali nunca chegava a lugar nenhum. O verbo `atualizar` da ponte é
-    # `apt update` + `full-upgrade` dos repositórios JÁ configurados — ela não
-    # instala pacote por nome nem acrescenta fonte.
-    # `rc_ponte` NUM `local` PRÓPRIO, e não `$?` no `elif`: ali ele já é o
-    # status do teste anterior em alguns caminhos, e o 127 ("não há ponte") é
-    # justamente o que precisa sobreviver intacto para escolher o outro caminho.
+    # É o que faz o botão "Atualizar a máquina inteira" do painel funcionar: ele
+    # roda sem terminal, e um prompt de senha ali nunca chegava a lugar nenhum.
     local rc_ponte=0
     meow_ponte atualizar || rc_ponte=$?
     if [ "$rc_ponte" = "0" ]; then
@@ -183,10 +139,8 @@ cmd_aplicar() {
     0) meow_ok "a atualização não desfez nada — o MeowSystem sobreviveu inteiro" ;;
     *) meow_muda "há etapa fora do lugar depois da atualização"
        meow_info "  conserte com:  meow doctor --consertar"
-       # O NOME DA ABA SAI DE ONDE A TELA O DEFINE — 24/09/2026, P50 (achado
-       # 47). Esta linha dizia «pelo painel, em "Instalar e conferir"», a aba
-       # que se chama «Instalação» desde 06/09. Quem sabe o nome do botão e
-       # da aba é a tabela do painel, e é a ela que se pergunta.
+       # Esta linha dizia «pelo painel, em "Instalar e conferir"», a aba que
+       # se chama «Instalação».
        local onde; onde="$(meow_onde_no_painel doctor_consertar)"
        [ -n "$onde" ] && meow_info "  (ou, no painel, $onde)"
        rc="$MEOW_DIVERGENTE" ;;
@@ -197,14 +151,10 @@ cmd_aplicar() {
 }
 
 # --- a limpeza --------------------------------------------------------------
-# A VOLTA PARA TRÁS DO COSMIC — 09/10/2026, P76
-#   O repositório do Pop serve UMA versão por pacote. Medido em 09/10/2026: o
-#   `cosmic-comp_…0fbd457_amd64.deb` em `/var/cache/apt/archives` era o único
-#   pacote de fábrica do compositor instalado que existia no mundo, e o `apt
-#   clean` daqui o apagaria. Antes do clean, o `.deb` da versão INSTALADA de
-#   cada `cosmic-*` é copiado para a guarda do usuário — sem sudo: o cache do
-#   apt é legível por todos. Da guarda sai só o que não é nem a versão
-#   instalada nem a mais nova das outras: um passo para trás basta para voltar.
+#
+# O repositório do Pop serve UMA versão por pacote. Antes do clean, o `.deb` da
+# versão INSTALADA de cada `cosmic-*` é copiado para a guarda do usuário — sem
+# sudo: o cache do apt é legível por todos.
 AS_ARQUIVOS="${AS_ARQUIVOS:-/var/cache/apt/archives}"
 AS_GUARDA_DEBS="${AS_GUARDA_DEBS:-${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/debs}"
 

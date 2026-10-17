@@ -1,68 +1,18 @@
 #!/usr/bin/env python3
 # fastfetch_alinhar.py — o texto do fastfetch abraçando o contorno do gato.
 #
-# POR QUE ISTO EXISTE, E POR QUE NÃO PODE SER UMA CHAVE DO config.jsonc
-#   Pedido dela em 06/09/2026, com setas desenhadas por cima de uma captura do
-#   terminal: "escolher se as configs aparecem 3 espaços após a linha do svg
-#   (alinhado à esquerda) ou se aparecem em formato tabular como está hoje".
+# As setas apontavam para lugares DIFERENTES em cada linha — curtas em cima
+# (onde o círculo do gato ainda é estreito), longas no meio (onde ele é largo).
+# Ou seja: o começo de cada linha de informação deveria seguir o CONTORNO do
+# desenho, e não uma coluna fixa.
 #
-#   As setas apontavam para lugares DIFERENTES em cada linha — curtas em cima
-#   (onde o círculo do gato ainda é estreito), longas no meio (onde ele é
-#   largo). Ou seja: o começo de cada linha de informação deveria seguir o
-#   CONTORNO do desenho, e não uma coluna fixa.
-#
-#   O fastfetch não sabe fazer isso, e medi antes de escrever uma linha. Com
-#   `--logo-type file-raw` e um logo cujas linhas têm larguras diferentes, o
-#   fastfetch 2.61.0 imprime o desenho inteiro, sobe o cursor com `ESC[<n>A` e
-#   emite, para CADA linha de módulo, um `ESC[<N>C` com o MESMO N — a largura
-#   máxima do logo somada ao `padding.right`:
+# O fastfetch não sabe fazer isso, e medi antes de escrever uma linha.
 #
 #       $ printf 'AA\nBBBBBBBBBB\nCCCC\nDDDDDDDDDDDDDDDD\nEE\n' > /tmp/t.ansi
 #       $ fastfetch --logo-type file-raw --logo /tmp/t.ansi \
 #           --logo-padding-right 3 --structure os:kernel:shell --pipe false | cat -A
 #       …^[[1G^[[5A^[[m^[[19C…OS: …$
 #                      ^[[19C…Kernel: …$      <- 16 + 3, igual em toda linha
-#
-#   19 é constante. Não há opção que mude isso: `--logo-width`,
-#   `--logo-padding-*` e `--key-width` todos deslocam a MESMA coluna para todas
-#   as linhas. O alinhamento tabular não é um padrão do fastfetch — é a única
-#   coisa que ele sabe fazer. O contorno tem de ser composto por fora.
-#
-# ENTÃO O QUE ESTE ARQUIVO FAZ
-#   Recebe a saída do fastfetch SEM logo (`--logo none`), lê o `gato.ansi` que o
-#   `fastfetch_logo.sh` gerou, e costura as duas colunas linha a linha: a linha
-#   do desenho tem o rabo de espaços cortado, e a linha de texto entra
-#   `--recuo` colunas depois do último traço visível daquela linha.
-#
-#   O corte é o ponto delicado, e é por isso que ele não é um `rstrip()` seco: o
-#   `.ansi` é feito de blocos coloridos, e cada bloco carrega um `ESC[38;2;r;g;b`
-#   à frente. Cortar a string crua no meio de uma sequência de escape pintaria o
-#   terminal inteiro da cor de um pixel do focinho. A função `_cortar` percorre
-#   texto e escapes separadamente: conta só o que OCUPA coluna, e deixa passar
-#   todo escape que encontrar pelo caminho.
-#
-# O ALINHAMENTO VERTICAL É O MESMO DO `padding.top`
-#   `--topo N` empurra o DESENHO N linhas para baixo, que é o que o
-#   `"padding": {"top": 6}` do config.jsonc dela faz hoje. As N primeiras linhas
-#   de texto (o título, o separador e as duas ou três primeiras chaves) ficam
-#   então acima do gato e começam na coluna 0 — exatamente o que as setas mais
-#   compridas do desenho dela indicavam.
-#
-# O QUE ELE NÃO FAZ
-#   Não chama o fastfetch (quem chama é o `meow-fetch`, que o `install.sh`
-#   instala em ~/.local/bin), não lê o meow.conf, não escreve em disco e não
-#   colore nada: as cores que saem daqui são as que entraram, do fastfetch e do
-#   `.ansi`. Um filtro que repinta é um segundo dono da paleta, e este projeto
-#   já pagou essa conta.
-#
-#   E ele NUNCA falha com pilha de erro na cara dela: um `gato.ansi` ausente,
-#   ilegível ou vazio faz a saída do fastfetch passar INTACTA (o `--logo none`
-#   já é uma tela válida). Um terminal que não abre porque o filtro do gato
-#   quebrou seria um preço absurdo por um enfeite.
-#
-# USO
-#   fastfetch --logo none --pipe false | fastfetch_alinhar.py \
-#       --gato ~/.local/share/meowsystem/fastfetch/gato.ansi --recuo 3 --topo 6
 #
 #   --conferir  não imprime a composição: sai 0 se dá para compor (o .ansi está
 #               lá e é legível) e 4 se não dá. É o que o `doctor` usa.
@@ -147,22 +97,12 @@ def _e_separador(linha):
 
 # --- o que é TINTA, e por que é uma função só ---------------------------------
 # ESPAÇO COM COR DE FUNDO É PIXEL, e o gerador escreve exatamente isso: no
-# `fastfetch_logo.sh`, célula opaca e uniforme cai em `melhor = 0`, o glifo é
-# " " e a célula sai como `ESC[48;2;r;g;bm` + espaço. Há 723 sequências `48;2`
-# no gato de hoje e 43 delas são espaço pintado.
+# `fastfetch_logo.sh`, célula opaca e uniforme cai em `melhor = 0`, o glifo é "
+# " e a célula sai como `ESC[48;2;r;g;bm` + espaço.
 #
-# A primeira versão disto era uma expressão regular, e ela CASAVA COR DE
-# FRENTE: em `\x1b[(?:[0-9;]*;)?(?:4[0-7]|10[0-7]|48)(?:[;m])`, o grupo da
-# frente pode terminar em qualquer `;` do meio, então `ESC[38;2;30;30;46m` (o
-# azul-base do Mocha, cor de TEXTO) casava — o grupo comia `38;2;30;30;` e
-# sobrava `46m`. Parâmetro SGR não se lê por casamento solto: 38, 48 e 58
-# carregam 2 ou 4 argumentos atrás, e é preciso andar por eles.
-#
-# E a mesma varredura serve aos DOIS EIXOS. A tinta de fundo só valia na
-# vertical: o `_tem_tinta` sabia que espaço pintado é pixel, e o
-# `len(_visivel(d).rstrip())` que mede a largura tratava o mesmo espaço como
-# enchimento. Quando um deles caía na ponta da linha, o `rstrip` o apagava da
-# conta e o texto entrava EM CIMA de onde o pixel estava.
+# A tinta de fundo só valia na vertical: o `_tem_tinta` sabia que espaço pintado
+# é pixel, e o `len(_visivel(d).rstrip())` que mede a largura tratava o mesmo
+# espaço como enchimento.
 _SGR = re.compile(r"\x1b\[([0-9;]*)m")
 
 
@@ -309,29 +249,15 @@ def colunas(desenho, texto, recuo, modo, passo):
     else:
         cols = list(base)
 
-    # O TÍTULO E A RÉGUA SÃO UM PAR, E TÊM DE COMEÇAR JUNTOS.
-    #   Vista na tela dela: o título caiu na coluna 3 (ali o gato ainda não
-    #   começou) e a régua logo abaixo na coluna 44 — um salto de quarenta
-    #   colunas entre duas linhas que são a mesma coisa. O bloco de informação
-    #   parecia começar no traço, com o nome órfão no canto de cima.
-    #   Aqui as duas vão para a MAIOR das duas colunas: a régua tem o
-    #   comprimento do título, então empurrá-la para a esquerda a faria invadir
-    #   o gato.
+    # O bloco de informação parecia começar no traço, com o nome órfão no canto
+    # de cima.
     for i, linha in enumerate(texto):
         if i and _e_separador(linha) and _visivel(texto[i - 1]).strip():
             junto = max(cols[i - 1], cols[i])
             cols[i - 1] = cols[i] = junto
 
-    # A PALETA É UM BLOCO, PELO MESMO MOTIVO DO PAR TÍTULO+RÉGUA.
-    #   Ela são duas linhas de oito quadrados de cor, e o olho as lê como uma
-    #   grade: se começarem em colunas diferentes, a grade entorta. Elas caíam
-    #   em 56 e 53 — três colunas de diferença — porque o `--topo auto` levou o
-    #   texto para o meio do gato, onde o queixo dele está afinando. Com o topo
-    #   fixo de antes elas caíam em duas linhas da mesma largura e ficavam
-    #   alinhadas por sorte.
-    #   O bloco é a corrida de linhas que têm tinta mas nenhum caractere
-    #   visível: espaço colorido, e nada mais. Todas recebem a MAIOR coluna do
-    #   bloco, para nenhuma invadir o desenho.
+    # Ela são duas linhas de oito quadrados de cor, e o olho as lê como uma
+    # grade: se começarem em colunas diferentes, a grade entorta.
     i = 0
     while i < len(texto):
         if _tem_tinta(texto[i]) and not _visivel(texto[i]).strip():
@@ -369,13 +295,9 @@ def compor(texto, gato, recuo, topo, modo="contorno", passo=4):
             # O `ESC[0m` fecha a cor do último bloco do desenho. Sem ele o
             # branco da chave herdaria a cor do pixel em que o corte caiu.
             #
-            # O CLAMP É 0, E NÃO 1. Ele estava em 1 contra um perigo que não se
-            # mede: `alvo` é sempre `largura + recuo` e os três modos derivados
-            # só sobem, então `alvo < largura` não acontece (varridos 4000
-            # sorteios × 4 modos). O que o 1 fazia de verdade era mentir sobre a
-            # chave: o meow.conf documenta `FASTFETCH_LOGO_RECUO` de 0 a 12, e
-            # quem pedia 0 recebia 1 sem explicação. A proteção real veio da
-            # largura passar a contar pixel pintado.
+            # Ele estava em 1 contra um perigo que não se mede: `alvo` é sempre
+            # `largura + recuo` e os três modos derivados só sobem, então `alvo
+            # < largura` não acontece (varridos 4000 sorteios × 4 modos).
             enche = max(alvo - largura, 0) if t else 0
             yield _cortar(d, largura) + "\x1b[0m" + " " * enche + t
         elif t:
@@ -387,13 +309,10 @@ def compor(texto, gato, recuo, topo, modo="contorno", passo=4):
 def main():
     p = argparse.ArgumentParser(add_help=True, description=__doc__)
     p.add_argument("--gato", default="~/.local/share/meowsystem/fastfetch/gato.ansi")
-    # SEM `type=int` NOS TRÊS. O cabeçalho promete que este filtro "NUNCA falha
-    # com pilha de erro na cara dela", e o argparse quebrava a promessa: os
-    # valores vêm do meow.conf, que é arquivo editado à mão, e um `type=int`
-    # sobre `FASTFETCH_LOGO_RECUO="tres"` mata o processo ANTES de o stdin ser
-    # lido. O cano é `fastfetch --logo none | python3 alinhar`: quando o Python
-    # morre, o stdout do cano fica VAZIO — a saudação inteira some e sobra o
-    # rastreamento, em toda janela nova. A leitura tolerante está no `_inteiro`.
+    # O cabeçalho promete que este filtro "NUNCA falha com pilha de erro na cara
+    # dela", e o argparse quebrava a promessa: os valores vêm do meow.conf, que
+    # é arquivo editado à mão, e um `type=int` sobre
+    # `FASTFETCH_LOGO_RECUO="tres"` mata o processo ANTES de o stdin ser lido.
     p.add_argument("--recuo", default="3",
                    help="colunas entre o fim do desenho e o começo do texto")
     p.add_argument("--topo", default="auto",
@@ -427,10 +346,8 @@ def main():
         return 0
 
     texto = bruto.rstrip("\n").split("\n")
-    # A ÚLTIMA REDE. O stdin já está lido: qualquer coisa que a composição faça
-    # de errado devolve a saída do fastfetch como ela veio, que é o mesmo
-    # caminho do `if not gato` acima. Um terminal sem gato é um contratempo; um
-    # terminal em branco com um rastreamento é um defeito na cara dela.
+    # Um terminal sem gato é um contratempo; um terminal em branco com um
+    # rastreamento é um defeito na cara dela.
     try:
         saida = "\n".join(compor(texto, gato, recuo, topo, args.modo, passo)) + "\n"
     except Exception as erro:

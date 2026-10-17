@@ -1,46 +1,18 @@
 # versao — a versão do pacote cosmic-comp contra a qual a série vale.
 #
-# Uma versão por linha, exatamente como o `dpkg-query -W cosmic-comp` a
-# escreve. Linha começada por `#` é comentário. O `meow compositor` RECUSA
-# compilar sobre qualquer versão que não esteja aqui, e diz por quê.
+# Uma versão por linha, exatamente como o `dpkg-query -W cosmic-comp` a escreve.
 #
-# POR QUE A RECUSA, E NÃO SÓ O DRY-RUN (24/09/2026, sprint P39)
-#   O `aplicar` já roda o dry-run de todos com `-F0`, e isso pega o hunk cujo
-#   contexto mudou. Não pega o hunk que ainda casa em código que mudou de
-#   sentido em volta dele — compila, sobe, e faz outra coisa. Este binário é
-#   TAMBÉM a tela de login (`cosmic-greeter-start` é `exec cosmic-comp
-#   cosmic-greeter`): compilar sobre uma versão que ninguém olhou é arriscar a
-#   sessão e o login juntos. Uma versão entra aqui quando alguém validou a
-#   série nela, e o registro diz como.
+# O `aplicar` já roda o dry-run de todos com `-F0`, e isso pega o hunk cujo
+# contexto mudou.
 #
-# COMO UMA VERSÃO NOVA ENTRA
-#   `meow compositor validar` baixa o fonte da versão INSTALADA e roda o
-#   dry-run da série nele, sem escrever na árvore. Se todos os `req` entram
-#   limpos, a versão pode vir para cá — num commit, com a frase de como foi
-#   validada. É decisão de gente, e por isso nenhum verbo escreve este arquivo.
+# `meow compositor validar` baixa o fonte da versão INSTALADA e roda o dry-run
+# da série nele, sem escrever na árvore.
 #
-# O QUE VALIDOU A LINHA ABAIXO (medido em 24/09/2026)
-#   - em 17/09/2026 esta série foi compilada sobre este fonte e instalada; o
-#     `.estado` gravado naquela noite lista os cinco marcadores `presente`
-#     (WS-PATCH-3.67, RADIUS-PATCH-2, MENU-PATCH-1, READING-MODE-1,
-#     BLUR-CACHE-1), medidos com `strings` no binário instalado;
-#   - hoje, o `.tar.xz` desta versão extraído limpo, os cinco `.patch` DESTE
-#     diretório entram em sequência com `-F0` (rc=0, só deslocamento de
-#     linha, nenhum fuzz), e o `src/` resultante é byte a byte igual ao da
-#     árvore que foi compilada em 17/09 (`diff -rq`: só os `.orig` que o
-#     aplicador antigo largava).
-#
-# A VERSÃO INSTALADA NESTA MÁQUINA EM 24/09/2026 É OUTRA: 0.1~1789989464~24.04~cd881a4.
 #   Ela não está aqui porque não foi validada, e hoje NÃO PODE ser: o
 #   repositório do Pop já não serve o fonte dela (`apt-get source` devolve 404
 #   no `.tar.xz`). O caminho é atualizar o cosmic-comp — o apt traz binário e
 #   fonte da mesma versão — e validar a série nessa.
-0.1~1788962084~24.04~a557859
+# 0.1~1788962084~24.04~a557859
 
-# O QUE VALIDOU A LINHA ABAIXO (medido em 24/09/2026, depois da instalação)
-#   - `apt-get install --only-upgrade cosmic-comp` levou a máquina da cd881a4
-#     para esta, e só este pacote mudou;
-#   - `meow compositor validar` baixou o fonte desta versão e rodou o dry-run
-#     da série com `-F0`: os cinco entram limpos, o `req`
-#     (cosmic-comp-sem-workspace-vazio) e os quatro `opt`.
-0.1~1790118748~24.04~0fbd457
+# O `patches/` não guarda variante por versão: há UM arquivo por patch.
+0.1~1791491785~24.04~4d14528

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Calendário lunar: disco amarelo com aro cinza e o ciclo das fases em runas. -->
+  <g transform="scale(.125)" fill="none" stroke="#FBFDF4" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="512" cy="512" r="464" fill="#494B4E" stroke="none"/>
+    <circle cx="512" cy="512" r="436" fill="#F3E8A5" stroke="none"/>
+    <!-- anel das fases -->
+    <circle cx="512" cy="512" r="245"/>
+    <!-- luas cheias: norte, sul, oeste, leste -->
+    <circle cx="512" cy="244" r="54" fill="#F3E8A5"/>
+    <circle cx="512" cy="780" r="54" fill="#F3E8A5"/>
+    <circle cx="238" cy="512" r="54" fill="#F3E8A5"/>
+    <circle cx="786" cy="512" r="54" fill="#F3E8A5"/>
+    <!-- luas crescentes nas diagonais -->
+    <g id="c" fill="#F3E8A5">
+      <path d="M321 261C360 275 380 320 366 350C350 374 305 382 267 352C305 362 335 345 347 305C350 285 340 272 321 261Z"/>
+    </g>
+    <use href="#c" transform="translate(1024 0) scale(-1 1)"/>
+    <use href="#c" transform="translate(0 1024) scale(1 -1)"/>
+    <use href="#c" transform="translate(1024 1024) scale(-1 -1)"/>
+    <!-- lua grande ao centro -->
+    <circle cx="512" cy="508" r="146"/>
+    <circle cx="543" cy="512" r="105"/>
+    <!-- runas -->
+    <path d="M405 305V357M405 305L435 357M435 305V357"/>
+    <path d="M481 357V305L510 335L538 305V357"/>
+    <path d="M600 357V305H612L620 315L612 326H600"/>
+    <path d="M320 462V520M320 478H332L338 487L332 497H320"/>
+    <path d="M688 485V535L712 510ZM736 485V535L712 510Z"/>
+    <path d="M420 668V712"/>
+    <path d="M512 680L526 694L512 708L498 694Z"/>
+    <path d="M600 712V664H612L620 674L612 685H600"/>
+  </g>
+</svg>

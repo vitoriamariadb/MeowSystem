@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- O serifado com um olho no vão; grade 512 reduzida por 0,25 -->
+  <g transform="scale(0.25)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="246" fill="#282A36"/>
+    <circle cx="256" cy="256" r="216" fill="#FF79C6"/>
+    <path fill="#F8F8F2" fill-rule="evenodd" d="M256 142 C320 142 352 200 352 256 C352 316 318 368 256 368 C194 368 160 316 160 256 C160 200 192 142 256 142 Z M256 158 C226 158 206 200 206 256 C206 312 226 352 256 352 C286 352 306 312 306 256 C306 200 286 158 256 158 Z"/>
+    <path fill="#FF79C6" stroke="#F8F8F2" stroke-width="4" d="M196 256 Q256 196 318 256 Q256 316 196 256 Z"/>
+    <g stroke="#F8F8F2" stroke-width="6">
+      <circle cx="257" cy="255" r="34"/>
+      <circle cx="257" cy="255" r="18" stroke-width="5"/>
+    </g>
+    <circle cx="268" cy="246" r="5" fill="#F8F8F2"/>
+  </g>
+</svg>

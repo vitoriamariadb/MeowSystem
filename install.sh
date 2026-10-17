@@ -885,6 +885,12 @@ etapa_pacotes() {
     # bacula-console-qt. Testar por `bat` faria o instalador reinstalar o pacote
     # a cada execução, para sempre, sem nunca ficar satisfeito.
     [batcat]=bat
+    # As ferramentas do `instalar_fontes.sh` (P82, 15/10/2026): ele baixa a
+    # Nerd Font com o curl, num .tar.xz, e aceita .zip no «adicionar». Ele as
+    # nomeava como faltando e não tinha a quem pedir.
+    [curl]=curl
+    [xz]=xz-utils
+    [unzip]=unzip
   )
   # O Papirus não tem binário — testa-se pelo diretório do tema.
   local faltam=()
@@ -893,6 +899,10 @@ etapa_pacotes() {
     meow_tem "$b" || faltam+=("${NECESSARIOS[$b]}")
   done
   [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
+  # A fonte da interface (Fira Sans) é do `pop-fonts`, que só existe nos
+  # repositórios do Pop!_OS: fora dele, pedi-lo derrubaria o `apt-get` inteiro.
+  [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
+    || faltam+=(pop-fonts)
 
   # O NUMPY NÃO TEM BINÁRIO, E NÃO BASTA "ter python3" — 16/09/2026
   #   O `converter_icone.py` é quem faz o traçado de contorno e o
@@ -1057,8 +1067,6 @@ etapa_tema() {
     deriva="${deriva#*não se deriva — }"
     TEMA_NAO_APLICADO="O tema do COSMIC não foi aplicado: não há captura para '$alvo' (${deriva#  })."
     meow_pendencia_acionavel tema-sem-captura "$TEMA_NAO_APLICADO"
-    meow_info "importe $MEOW_ESTADO/temas/meowsystem-$alvo.ron uma vez em"
-    meow_info "  Configurações > Área de trabalho > Aparência > Importar"
     # O COMANDO OFERECIDO TEM DE CARREGAR A PONTE — 22/09/2026
     #   Esta linha dizia `./scripts/capturar_tema.sh $alvo`, cru. Aquele script
     #   não carrega o `lib/comum.sh` (de propósito) e pergunta direto ao
@@ -1070,7 +1078,9 @@ etapa_tema() {
     #   ponte sozinho na entrada, e a `etapa_cli` é a terceira da lista contra a
     #   oitava desta — ele já está no PATH quando esta mensagem aparece. É o
     #   mesmo comando que o `chk_tema` e a linha do rc=4, logo abaixo, ofereciam.
-    meow_info "e depois rode: meow tema capturar $alvo"
+    #   [P82, 15/10/2026: as três linhas da receita (importar pela GUI e rodar
+    #   o `meow tema capturar`) saíram — a pendência «tema-sem-captura» de
+    #   cima é o estado, na Início.]
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -1086,7 +1096,6 @@ etapa_tema() {
   case "$rc" in
     0) meow_ok "tema '$alvo' já aplicado"; return 0 ;;
     4) meow_pula "tema '$alvo': a captura está velha — você mexeu em Aparência"
-       meow_info "para fixar o que está na tela: meow tema capturar $alvo"
        return 0 ;;
   esac
   if meow_seco; then
@@ -1103,7 +1112,8 @@ etapa_tema() {
 # ---------------------------------------------------------------------------
 etapa_modo() {
   passo "Modo claro/escuro"
-  local arq; arq="$(meow_cosmic_dir)/com.system76.CosmicTheme.Mode/v1/is_dark"
+  # [P82: o esquema é o do pacote (`meow_cosmic_v`), e não um v1 cravado.]
+  local arq; arq="$(meow_cosmic_dir)/com.system76.CosmicTheme.Mode/$(meow_cosmic_v com.system76.CosmicTheme.Mode)/is_dark"
   local desejado
   case "$MODO" in
     escuro) desejado=true ;;
@@ -1162,7 +1172,7 @@ etapa_svg() {
   passo "Desenhos (SVG normalizados)"
   meow_tem python3 || { meow_pula "python3 não está aqui"; return 0; }
   local pastas=() p
-  for p in assets/gatos assets/icones/autorais assets/icones/overrides; do
+  for p in assets/gatos packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
     [ -d "$MEOW_RAIZ/$p" ] && pastas+=("$MEOW_RAIZ/$p")
   done
   # OS AUTORAIS DE CADA PACK ENTRAM JUNTO — 22/09/2026
@@ -1183,7 +1193,7 @@ etapa_svg() {
   #   `icones/apps/` do Dracula é arte de upstream — os dois caem na mesma regra
   #   que o parágrafo acima já dá ao `arcticons/`: ninguém os edita aqui, e
   #   varrê-los seria segundos por rodada para conferir o que não muda.
-  for p in "$MEOW_RAIZ"/packs/*/icones/autorais; do
+  for p in "$MEOW_RAIZ"/packs/*/icones/apps/autorais; do
     [ -d "$p" ] && pastas+=("$p")
   done
   [ "${#pastas[@]}" -gt 0 ] || return 0
@@ -1370,7 +1380,7 @@ etapa_icones_tray_steam() {
 #
 # ELE VOLTAVA SOZINHO, E ERA ISSO QUE ELA ESTAVA VENDO
 #   Queixa de 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon que
-#   fica no applet, voltaram aos originais". O `assets/icones/bandeja.map` previa a
+#   fica no applet, voltaram aos originais". O `packs/meowsystem/icones/bandeja.map` previa a
 #   regressão desde 10/08 e nada agia sobre ela. Quem repõe no EVENTO é a
 #   `etapa_vigia_flatpak`, lá embaixo; esta aqui é quem põe da primeira vez.
 etapa_icones_tray_zapzap() {
@@ -1592,7 +1602,10 @@ etapa_ponte_root() {
       sudo -v || { meow_aviso "sem sudo — a ponte fica de fora, e o resto vai"; return "$MEOW_SEM_DEPENDENCIA"; }
     else
       meow_aviso "sem terminal para pedir a senha — a ponte fica de fora"
-      meow_info "  rode uma vez no terminal:  ./install.sh   (ou  meow ativar)"
+      # [16/10/2026, QA final da leva H: era «rode uma vez no terminal:
+      #  ./install.sh», visto no painel ao trocar de pack. Diz o estado; a
+      #  pendência `instalar-com-root` do rodapé leva ao «Instalar tudo».]
+      meow_info "  ela entra na próxima instalação que puder pedir a senha"
       return "$MEOW_SEM_DEPENDENCIA"
     fi
   fi
@@ -1633,7 +1646,6 @@ etapa_ponte_root() {
     return "$MEOW_DIVERGENTE"
   fi
   meow_aviso "a ponte foi instalada, mas o sudo ainda pede senha para ela"
-  meow_info "  confira:  sudo -l | grep meowsystem"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -1681,7 +1693,7 @@ etapa_lancador_apt() {
       #   etapa. Medido em 24/08/2026; nasceu com o hook, em 14/08.
       if [ -f "$hook" ] || [ -f "$wrapper" ]; then
         meow_aviso "sem sudo para remover $hook — ele continua ativo"
-        meow_info "  rode com sudo disponível, ou ponha LANCADOR_SISTEMA=\"sim\""
+        meow_info "  ele sai na próxima passada que tiver sudo ou a ponte root"
         return "$MEOW_SEM_DEPENDENCIA"
       fi
       meow_muda "LANCADOR_SISTEMA=\"${LANCADOR_SISTEMA:-}\" — hook de apt removido"
@@ -1735,7 +1747,9 @@ etapa_lancador_apt() {
 
   if [ ! -w /etc/apt/apt.conf.d ] && ! sudo -n true 2>/dev/null; then
     meow_aviso "sem sudo para instalar o hook de apt do lançador"
-    meow_info "  rode 'meow ativar' com sudo disponível — ou ligue PONTE_ROOT=\"sim\""
+    # [16/10/2026, QA final da leva H: era «rode 'meow ativar' com sudo
+    #  disponível», visto no painel ao trocar de pack. Diz o estado.]
+    meow_info "  ele entra na próxima passada que tiver sudo ou a ponte root"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -3057,7 +3071,7 @@ etapa_assets() {
 #   Um `flatpak update` troca a árvore de deploy inteira e apaga o que estava
 #   escrito lá dentro. Foi o que desfez o ícone de bandeja do ZapZap em
 #   `ago 20 03:30:36` (`flatpak history`), e o que ela viu em 23/08. O
-#   `assets/icones/bandeja.map` previa isso desde 10/08 e não havia gatilho nenhum.
+#   `packs/meowsystem/icones/bandeja.map` previa isso desde 10/08 e não havia gatilho nenhum.
 #
 #   O `meow-doctor.timer` não fecha este buraco: ele passa às 5h, então uma
 #   atualização das 10h da manhã deixa o ícone errado por dezenove horas. A lição
@@ -3100,6 +3114,20 @@ etapa_vigia_flatpak() {
 # LOGO DEPOIS DO IRMÃO, E PELO MESMO MOTIVO
 #   São as unidades `.path` do projeto, e elas andam juntas; o auto-reparo
 #   continua sendo o último de todos.
+# O VIGIA DOS DESENHOS — P88, decisão 15: alterou um desenho de pack, o tema se
+#   atualiza sozinho. Depois de todas as etapas que escrevem no tema: registra a
+#   tabela das fontes (o que os passos acabaram de derivar) e liga o vigia que
+#   refaz o resto. Sem systemd --user, a tabela basta: o doctor das 5h a confere.
+etapa_vigia_derivados() {
+  passo "Vigia dos desenhos dos packs (systemd --user)"
+  local rc rc_vigia
+  NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" "$MEOW_RAIZ/scripts/derivados.sh" --registrar; rc=$?
+  "$MEOW_RAIZ/scripts/vigia_derivados.sh"; rc_vigia=$?
+  { [ "$rc" = 2 ] || [ "$rc_vigia" = 2 ]; } && return 2
+  { [ "$rc" = 1 ] || [ "$rc_vigia" = 1 ]; } && return 1
+  return "$rc"
+}
+
 etapa_vigia_steam() {
   passo "Vigia da Steam (systemd --user)"
   STEAM_VIGIA="${STEAM_VIGIA:-sim}" "$MEOW_RAIZ/scripts/vigia_steam.sh"
@@ -3257,11 +3285,24 @@ etapa_vigia_qt() {
 #   O GATILHO DEPENDE DO HOOK DE APT, que hoje mora no `99-meow-lancador` e só
 #   é instalado com LANCADOR_SISTEMA="sim": sem ele o vigia fica armado e
 #   nunca dispara, e o doctor das 5h continua sendo a rede.
+#
+#   E O LOGIN ENTRA JUNTO — P81, 15/10/2026. O `meow-builds-login.service`
+#   confere os builds uma vez por login (o apt feito com ela deslogada não
+#   acorda o vigia). Ele é só HABILITADO, nunca `--now`: o `start` de um
+#   oneshot espera o build inteiro, e a instalação ficaria meia hora parada.
+#   O primeiro login depois da instalação o roda.
+#
+#   A SENTINELA (P86) vai pela mesma etapa: o `meow-sentinela.timer` mede o COSMIC
+#   da fila do apt uma vez por dia, antes de quem usa atualizar. É um timer, então
+#   `enable --now` só o arma; a passagem em si espera o relógio. O
+#   `meow-sentinela.path` a chama depois de todo apt, para o cartão sair na hora.
 etapa_vigia_apt() {
   passo "Pós-apt do COSMIC (systemd --user)"
   local destino="$HOME/.config/systemd/user" u conteudo mudou=0
-  local unidades=(meow-pos-apt.service meow-pos-apt.path)
-  local ligaveis=(meow-pos-apt.path)
+  local unidades=(meow-pos-apt.service meow-pos-apt.path meow-builds-login.service
+                  meow-sentinela.service meow-sentinela.timer meow-sentinela.path)
+  local ligaveis=(meow-pos-apt.path meow-sentinela.timer meow-sentinela.path)
+  local no_login=(meow-builds-login.service)
 
   if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
     local motivo="AUTO_REPARO=\"${AUTO_REPARO:-}\""
@@ -3269,8 +3310,11 @@ etapa_vigia_apt() {
       meow_seco && { meow_muda "$motivo — removeria o pós-apt do COSMIC"; return "$MEOW_DIVERGENTE"; }
       systemctl --user disable --now "${ligaveis[@]}" >/dev/null 2>&1
       rm -f "${unidades[@]/#/$destino/}"
+      systemctl --user disable "${no_login[@]}" >/dev/null 2>&1
       rm -f "$destino"/*.wants/meow-pos-apt.path "$destino"/*.wants/meow-pos-apt.service \
-            "$destino"/*.requires/meow-pos-apt.path "$destino"/*.requires/meow-pos-apt.service
+            "$destino"/*.requires/meow-pos-apt.path "$destino"/*.requires/meow-pos-apt.service \
+            "$destino"/*.wants/meow-builds-login.service "$destino"/*.wants/meow-sentinela.timer \
+            "$destino"/*.wants/meow-sentinela.path
       systemctl --user daemon-reload >/dev/null 2>&1
       meow_muda "$motivo — pós-apt do COSMIC desligado e removido"
       return "$MEOW_DIVERGENTE"
@@ -3299,6 +3343,9 @@ etapa_vigia_apt() {
         armaria="${armaria:+$armaria }$u"
       fi
     done
+    for u in "${no_login[@]}"; do
+      [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" = "enabled" ] || armaria="${armaria:+$armaria }$u"
+    done
     [ "$mudou" = "1" ] && meow_muda "instalaria/atualizaria as unidades do pós-apt do COSMIC"
     [ -n "$armaria" ] && meow_muda "armaria o pós-apt do COSMIC ($armaria)"
     { [ "$mudou" = "1" ] || [ -n "$armaria" ]; } && return "$MEOW_DIVERGENTE"
@@ -3319,6 +3366,12 @@ etapa_vigia_apt() {
         && { meow_muda "pós-apt do COSMIC armado ($u)"; rc=1; } \
         || meow_aviso "não consegui armar $u"
     fi
+  done
+  for u in "${no_login[@]}"; do
+    [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" = "enabled" ] && continue
+    systemctl --user enable "$u" >/dev/null 2>&1 \
+      && { meow_muda "builds conferidos a cada login ($u)"; rc=1; } \
+      || meow_aviso "não consegui habilitar $u"
   done
   [ "$rc" = "0" ] && meow_ok "pós-apt do COSMIC no ar — depois de um apt, o que ele desfez se refaz sozinho"
   return "$rc"
@@ -3657,7 +3710,7 @@ main() {
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
-                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt
+                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 

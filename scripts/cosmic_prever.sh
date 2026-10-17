@@ -7,40 +7,10 @@
 #   ./cosmic_prever.sh ler                   imprime o último veredito gravado
 #   ./cosmic_prever.sh icones                os apps do COSMIC instalados sem desenho em mapa nenhum
 #
-# O rosto é o `meow cosmic prever`. Sai 0 sem vermelho, 1 com algum vermelho,
-# 2 em erro deste script. NÃO bloqueia upgrade nenhum: o veredito só decide o
-# que o pós-apt vai fazer e onde gente precisa entrar.
+# O rosto é o `meow cosmic prever`. Sai 0 sem vermelho, 1 com algum vermelho, 2
+# em erro deste script.
 #
-# POR QUE ANTES, E NÃO DEPOIS (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.2)
-#   O repositório do Pop guarda UMA versão por pacote. Em 09/10/2026 o fonte do
-#   `cosmic-comp` instalado (0fbd457) já tinha saído do índice, e só existia no
-#   cache do meow. O fonte e o `.deb` do candidato estão disponíveis AGORA,
-#   antes do upgrade — é aí que a sonda roda, e o fonte baixado fica guardado
-#   em `~/.local/share/meowsystem/fontes/`, porque ele é o fonte da versão que
-#   vai estar instalada amanhã.
-#
-# OS CINCO ITENS, cada um uma linha do veredito (`item<TAB>veredito<TAB>detalhe`)
-#   esquema    os `v*` de `usr/share/cosmic/<ns>` no `.deb` contra os de hoje
-#   chave      cada `chave` de `contratos/cosmic.tsv` no binário candidato
-#   série      a série do compositor e o patch do menu no fonte candidato:
-#              `-F0`; se não, `-F1` (o contexto mudou); se não, falha
-#   toolchain  o `rust-version` do fonte contra o rustc que o build usaria
-#   tema       o libcosmic que o `cosmic-settings` candidato pina, e o hash dos
-#              três arquivos da derivação contra o contrato
-#   revisao    cada linha `revisao` do contrato contra a revisão instalada e a
-#              candidata do pacote (o comentário que mediu outra revisão)
-#   icones     os `.desktop` que o candidato traz a mais ou a menos que o
-#              instalado, e os novos sem desenho em mapa nenhum (só informa:
-#              nada é apagado nem desenhado sozinho)
-#
-# OS TRÊS VEREDITOS, e a regra de quem usa: gente só entra no vermelho.
-#   verde     nada a fazer;
-#   amarelo   degrada sozinho ou se refaz sozinho (um `opt` fica de fora, o
-#             contexto mudou e entra com `-F1`, a derivação mudou e o oráculo
-#             refaz) — não pede ninguém;
-#   vermelho  o pós-apt não tem como consertar sozinho: o `req` do compositor
-#             não entra, o menu do `cosmic-files` não entra, uma chave que o
-#             meow grava sumiu do binário, o rustc ficou para trás.
+# O repositório do Pop guarda UMA versão por pacote.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -239,6 +209,30 @@ _cv_toolchain() { # $1 árvore $2 pacote
   fi
 }
 
+# --- 4b. ferramenta de build -----------------------------------------------
+# A receita é a que o fonte traz, na mesma ordem do `_cp_receita` do
+# `compositor_patches.sh`: `just build-vendored`, senão `make`, senão `cargo`.
+# Sem a ferramenta o build não sai e o patch obrigatório não chega ao compositor,
+# e isso nenhum gatilho conserta. `CV_SEM` lista as que a sonda trata como
+# ausentes (teste).
+_cv_tem() { # $1 ferramenta
+  case " ${CV_SEM:-} " in *" $1 "*) return 1 ;; esac
+  meow_tem "$1"
+}
+
+_cv_ferramenta() { # $1 árvore $2 pacote
+  local pede faltam=() f
+  if grep -qsE '^build-vendored([ :]|$)' "$1/justfile" "$1"/*.just; then pede="just cargo"
+  elif [ -f "$1/Makefile" ]; then pede="make cargo"
+  else pede="tar cargo"; fi
+  for f in $pede; do _cv_tem "$f" || faltam+=("$f"); done
+  if [ "${#faltam[@]}" -gt 0 ]; then
+    _cv_dizer ferramenta vermelho "$2: o build pede ${pede// /, } e falta ${faltam[*]} nesta máquina"
+  else
+    _cv_dizer ferramenta verde "$2: o build pede ${pede// /, }, e estão instalados"
+  fi
+}
+
 # --- 5. tema ----------------------------------------------------------------
 # A revisão do libcosmic que um pacote do COSMIC pina, pelo `Cargo.lock` no
 # GitHub na revisão do pacote (o sufixo do `Version`).
@@ -325,16 +319,28 @@ _cv_icones_candidato() { # $1 árvore extraída $2 pacote
   return 0
 }
 
-cmd_icones() {
-  local d i n=0
+# Os apps visíveis do COSMIC instalado sem desenho em mapa nenhum, um
+# "<Icon><TAB><arquivo .desktop>" por linha. Uma função só, para o verbo e para
+# quem completa o tema (o `icones-lista`, que o `completar_icones.sh` lê — P82,
+# item 18). `CV_RAIZ_APPS` é a raiz da árvore (vazia = a instalada), para teste.
+_cv_sem_desenho() {
+  local d i
   local -a todos=()
   mapfile -t todos < <(dpkg -L $(dpkg-query -W -f='${Package}\n' 'cosmic-*' 2>/dev/null) 2>/dev/null |
                        grep '^/usr/share/applications/[^/]*\.desktop$' | sort -u)
   while IFS=$'\t' read -r d i; do
+    [ -n "$i" ] || continue
     _cv_tem_arte "$i" && continue
+    printf '%s\t%s\n' "$i" "$d"
+  done < <(_cv_desktops "${CV_RAIZ_APPS:-}" "${todos[@]}")
+}
+
+cmd_icones() {
+  local d i n=0
+  while IFS=$'\t' read -r i d; do
     n=$((n+1))
     meow_aviso "sem desenho: $i ($d)"
-  done < <(_cv_desktops "" "${todos[@]}")
+  done < <(_cv_sem_desenho)
   [ "$n" = "0" ] && meow_ok "todo app visível do COSMIC instalado tem desenho num mapa"
   return "$MEOW_OK"
 }
@@ -356,6 +362,7 @@ cmd_prever() {
         if arvore="$(_cv_fonte "$p" "$v")"; then
           if [ "$p" = cosmic-comp ]; then _cv_serie_comp "$arvore"; else _cv_serie_files "$arvore"; fi
           _cv_toolchain "$arvore" "$p"
+          [ "$p" = cosmic-comp ] && _cv_ferramenta "$arvore" "$p"
         else
           _cv_dizer série amarelo "o fonte do $p $v não foi baixado — série e toolchain não medidas"
         fi ;;
@@ -396,8 +403,8 @@ while [ $# -gt 0 ]; do
     --debs)     CV_DEBS="$2"; shift ;;
     --fontes)   CV_FONTES="$2"; shift ;;
     --sem-rede) CV_REDE="nao" ;;
-    prever|ler|icones) acao="$1" ;;
-    *) meow_erro "uso: cosmic_prever.sh [prever|ler|icones] [--debs DIR] [--fontes DIR] [--sem-rede]"; exit "$MEOW_ERRO" ;;
+    prever|ler|icones|icones-lista) acao="$1" ;;
+    *) meow_erro "uso: cosmic_prever.sh [prever|ler|icones|icones-lista] [--debs DIR] [--fontes DIR] [--sem-rede]"; exit "$MEOW_ERRO" ;;
   esac
   shift
 done
@@ -405,4 +412,6 @@ case "$acao" in
   prever) cmd_prever ;;
   ler)    cmd_ler ;;
   icones) cmd_icones ;;
+  # Só os nomes de ícone, um por linha, sem cor nem frase (P82, item 18).
+  icones-lista) _cv_sem_desenho | cut -f1 ;;
 esac

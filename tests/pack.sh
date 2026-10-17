@@ -1,47 +1,15 @@
 #!/usr/bin/env bash
 # pack.sh — um pack de TERCEIRO instala inteiro, ou para inteiro.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 21/09/2026
-#   Uma varredura de acoplamento perguntou o que aconteceria com um pack que não
-#   fosse nem o Catppuccin nem o Dracula. A resposta, medida por leitura, foi a
-#   pior possível:
+# Ele é montado num diretório temporário a cada rodada, apontado por
+# `$MEOW_PACKS`, com 26 slots derivados de uma cor só. Não é um tema bonito — é
+# um pack que NÃO É NENHUM DOS DOIS que este repositório conhece, que é
+# exatamente a pergunta.
 #
-#     1. `gerar_temas.py` falha duro:            flavor 'nord' desconhecido
-#     2. `gerar_icones_autorais.py` levanta      KeyError
-#     3. o `concluir()` marca as duas em FALHOS  — E O INSTALADOR SEGUE
-#     4. pastas, mimetypes, agente, papel de parede e painel saem CATPPUCCIN
+# Não roda o `install.sh` até o fim, nem escreve uma linha fora do temporário.
 #
-#   O estranho termina com uma máquina metade Nord, metade Catppuccin, e um log
-#   dizendo que duas etapas falharam. Nenhum teste fazia essa pergunta.
-#
-#   A CAUSA RAIZ era a ponte shell->Python não existir: `MEOW_PALETA` não era
-#   exportada por ninguém, então TODO consumidor em Python caía no
-#   `assets/paleta/catppuccin.json`, sempre, houvesse o pack que houvesse. Este
-#   teste é o que impede a ponte de sumir de novo — e ela sumiria calada, que é
-#   como ela nasceu ausente.
-#
-# O PACK `nord` É DE MENTIRA, E ISSO É O RECURSO
-#   Ele é montado num diretório temporário a cada rodada, apontado por
-#   `$MEOW_PACKS`, com 26 slots derivados de uma cor só. Não é um tema bonito —
-#   é um pack que NÃO É NENHUM DOS DOIS que este repositório conhece, que é
-#   exatamente a pergunta. Versionar um `packs/nord/` de brinquedo poria arte
-#   morta no repositório e daria ao `meow pack listar` um pack que ninguém quer.
-#
-# O QUE ELE NÃO FAZ, E É DE PROPÓSITO
-#   Não roda o `install.sh` até o fim, nem escreve uma linha fora do temporário.
-#   A promessa "instala inteiro ou para inteiro" é medida onde ela de fato mora:
-#   a RECUSA acontece antes da primeira escrita, e a ORDEM disso dentro do
-#   `main()` é conferida no código. Um teste que instalasse de verdade para
-#   provar que a recusa funciona seria um teste que escreve na máquina de quem o
-#   roda para provar que nada foi escrito.
-#
-# O ID DO PACK VEM POR ARGUMENTO, E O PADRÃO É `nord`
-#   `./tests/pack.sh nord` é a linha que a spec da P20 manda rodar, e ela tem de
-#   funcionar como está escrita. O argumento não é enfeite: trocá-lo prova que
-#   nada aqui — nem no código que ele mede — depende do NOME do pack. Um teste
-#   que só passasse com `nord` teria o defeito que veio caçar.
-#
-#   0 = o pack de terceiro é honrado · 1 = achados · 2 = erro deste teste
+# O argumento não é enfeite: trocá-lo prova que nada aqui — nem no código que
+# ele mede — depende do NOME do pack.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ID="${1:-nord}"
@@ -97,20 +65,12 @@ json.dump({"formato": 1, "id": ident, "nome": ident.capitalize(),
            "vitrine": {"capa": "logo.svg"}},
           open(os.path.join(dir_pack, "pack.json"), "w"), indent=2, ensure_ascii=False)
 PY
-# O PACK DE MENTIRA TAMBÉM PRECISA DE CARA — 23/09/2026, sprint P25. Desde ela o
-# `logo.svg` é obrigatório para PUBLICAR, e sem ele o verbo `validar` recusa o
-# `nord`: medido na revisão, caem as três conferências que pedem `validar` com
-# saída 0 (a 1 e as duas da 7). O motor não cobra o logo, então a sonda
-# `caminho` e a ponte seguem vendo o pack. Ele sai do GERADOR, e não de um SVG
-# escrito aqui: é o que um pack novo de verdade recebe, e assim o gerador roda a
-# cada rodada contra uma paleta que não é nenhuma das duas do repositório.
+# O motor não cobra o logo, então a sonda `caminho` e a ponte seguem vendo o
+# pack.
 python3 "$RAIZ/scripts/pack.py" logo-gerado "$PACK_DIR" > "$PACK_DIR/logo.svg" || exit 2
 
 # O ambiente de um pack de terceiro: ele mora onde `$MEOW_PACKS` aponta, e NÃO
 # em `RAIZ/packs`. É aí que a quinta cópia da lista de raízes morria.
-# `ID` vai no ambiente porque os `bash -c '...'` abaixo são de aspas SIMPLES —
-# o texto deles é do shell FILHO, de propósito (aspas duplas fariam o pai expandir
-# `$MEOW_PALETA` antes de a ponte existir, e o teste mediria o nada).
 amb() { env MEOW_PACKS="$PACKS" MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/meow.conf" ID="$ID" "$@"; }
 printf 'FLAVOR="%s"\nACCENT="mauve"\nMODO="escuro"\nLOGO="%s"\nPACK="%s"\n' \
   "$ID" "$ID" "$ID" > "$T/meow.conf"
@@ -122,9 +82,6 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
   || falha "o pack em \$MEOW_PACKS não validou (rc=$rc)" "$saida"
 
 # --- 2. a ponte shell->Python existe e aponta para o pack --------------------
-# É o conserto mais barato da P20 e o que desbloqueia todos os outros: sem ele
-# nenhum gerador em Python enxerga o pack, e nada do que vem abaixo é sequer
-# observável.
 saida="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"
   PACK="$ID" FLAVOR="$ID" meow_ponte_python >/dev/null 2>&1 || exit 9
   printf "%s\n%s\n" "$MEOW_PALETA" "$MEOW_PACK_DIR"')"; rc=$?
@@ -223,9 +180,7 @@ printf 'creditos do pack de mentira\n' > "$PACK_DIR/CREDITOS.md"
 
 # --- 7. o campo sem leitor é AVISO NOMEADO, nunca silêncio -------------------
 # Metade do que o `packs/dracula/pack.json` declara não tinha um único leitor em
-# código. Um formato que aceita declaração morta ensina a escrever declaração
-# morta: quem copia um pack.json repete os campos mortos achando que eles fazem
-# alguma coisa.
+# código.
 python3 - "$PACK_DIR" "$ID" <<'PY' || exit 2
 import json, os, sys
 alvo = os.path.join(sys.argv[1], "pack.json")
@@ -241,11 +196,9 @@ esac
   && ok "o campo sem leitor é aviso, e não recusa" \
   || falha "o aviso de campo sem leitor recusou o pack (rc=$rc)" "$saida"
 
-# E O AVISO NÃO CHAMA DE MORTO O QUE ESTÁ VIVO — 23/09/2026, P32. Ele acusava
-# `icones.autorais.gerar` (lido pelo `cmd_construir`) e `origens.cursores.tema`
-# (lido pelo `_declarado_pelo_pack` do painel). Um aviso que mente por excesso
-# ensina a ignorar o aviso. Os dois entram e saem daqui, para não mudar o pack
-# que os passos seguintes montam.
+# Ele acusava `icones.autorais.gerar` (lido pelo `cmd_construir`) e
+# `origens.cursores.tema` (lido pelo `_declarado_pelo_pack` do painel). Um
+# aviso que mente por excesso ensina a ignorar o aviso.
 python3 - "$PACK_DIR" <<'PY' || exit 2
 import json, os, sys
 alvo = os.path.join(sys.argv[1], "pack.json")
@@ -270,8 +223,6 @@ json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
 PY
 
 # --- 8. `caminho` continua sendo a sonda de existência -----------------------
-# A ARMADILHA MEDIDA DA P20, e ela mata em silêncio: `lib/comum.sh` chama
-# `pack.py caminho "$PACK" id`, joga a saída fora e só olha o código de retorno.
 # Quem reaproveitar o nome `caminho` para outra semântica faz TODO script de
 # shell deixar de enxergar o pack, sem erro nenhum na tela. Por isso o verbo do
 # resolvedor de acervo chama-se `acervo`.
@@ -312,8 +263,6 @@ dir_shell="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; PACK="$ID" meow_pack_dir'
   || falha "meow_pack_dir não achou o pack em \$MEOW_PACKS" "$dir_shell"
 
 # --- 11. o valor da ponte NÃO gruda no filho --------------------------------
-# O defeito que a revisão de 22/09 mediu: a ponte exportava `MEOW_PALETA` e o
-# `meow_paleta` devolvia essa variável em curto-circuito, ANTES de olhar o pack.
 # Num processo de vida longa — `meow configurar`, que reescreve o meow.conf e
 # depois chama o `install.sh` como filho — o filho herdava a resolução do PAI e
 # nunca reresolvia: paleta do Catppuccin com `MEOW_PACK_DIR` do pack, um par que
@@ -345,15 +294,9 @@ else
 fi
 
 # --- 12. a variável da PESSOA continua vencendo, inclusive no filho ---------
-# A outra metade do mesmo conserto, e a que a conferência nº 1 da P20 cobra: o
-# marcador distingue "eu mesmo exportei isto" de "a pessoa escolheu isto". Se ele
-# passasse a jogar fora os dois casos, `MEOW_PALETA=... ./install.sh` deixaria de
-# valer — e esse é o jeito de testar uma paleta sem editar o meow.conf.
-#
-# O caminho do embutido é PERGUNTADO ao `meow_paleta`, e não digitado aqui: o
-# `tests/estilo.sh` recusa shell que resolva a paleta sozinho, e ele tem razão
-# até dentro de um teste — foi um caminho digitado à mão que abriu a divergência
-# que a P20 inteira veio fechar.
+# Se ele passasse a jogar fora os dois casos, `MEOW_PALETA=... ./install.sh`
+# deixaria de valer — e esse é o jeito de testar uma paleta sem editar o
+# meow.conf.
 embutida="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; PACK=catppuccin meow_paleta')"
 saida="$(amb bash -c 'export MEOW_PALETA="'"$embutida"'"
   . "$MEOW_RAIZ/lib/comum.sh"
@@ -368,7 +311,7 @@ esac
 # --- 13. o acervo não lê fora do pack ---------------------------------------
 # O `validar` aplica o `_dentro` em `icones.*.mapa` e `desenhos`; o `acervo` só
 # olhava `os.path.exists`, e ele é chamado SEM validação antes (o painel o chama
-# direto). Um pack de terceiro com `"mapa": "../../algo"` era lido.
+# direto).
 printf 'isto esta fora do pack\n' > "$T/fora-do-pack.map"
 python3 - "$PACK_DIR" <<'PY' || exit 2
 import json, os, sys
@@ -391,15 +334,8 @@ json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
 PY
 
 # --- 14. a paleta não tranca a porta de saída -------------------------------
-# O `install.sh` põe a ponte DEPOIS do desinstalar de propósito — "quem está indo
-# embora não deve nada à paleta". No `bin/meow` a ponte ficou pendurada no
-# `carregar_conf`, e com isso o `desfazer`, o `status` e o `doctor` passaram a
-# recusar por causa de um arquivo de cor. Conferido no FONTE, como o teste 4: os
-# três não escrevem tema nenhum e pedem a ponte como opcional.
-#
-# O corpo vai para uma VARIÁVEL antes do grep, e não por um cano: com
-# `set -o pipefail`, um `grep -q` que acha no começo fecha o cano e mata o `sed`
-# com SIGPIPE — a busca teria achado e o teste falharia mesmo assim.
+# O `install.sh` põe a ponte DEPOIS do desinstalar de propósito — "quem está
+# indo embora não deve nada à paleta".
 for verbo in cmd_status cmd_doctor cmd_desfazer; do
   corpo="$(sed -n "/^$verbo()/,/^}/p" "$RAIZ/bin/meow")"
   if printf '%s\n' "$corpo" | grep -q 'carregar_conf --ponte-opcional'; then
@@ -411,14 +347,10 @@ done
 
 
 # --- 15. o pack PADRÃO é um pack, e não uma exceção no código ---------------
-# A P13, em 22/09/2026. Até ela, `PACK_PADRAO` chamava-se `PACK_EMBUTIDO`, não
-# havia `packs/catppuccin/`, e `pack.py validar catppuccin` estourava um
+# Até ela, `PACK_PADRAO` chamava-se `PACK_EMBUTIDO`, não havia
+# `packs/catppuccin/`, e `pack.py validar catppuccin` estourava um
 # FileNotFoundError em `RAIZ/pack.json` — porque o `achar` devolvia a RAIZ para
 # ele, e lá não há `pack.json`.
-#
-# O NOME DO PADRÃO É PERGUNTADO, NUNCA DIGITADO, pelo mesmo motivo que o `ID`
-# deste teste vem por argumento: um teste que só passa com `catppuccin` teria o
-# defeito que veio caçar. Quem responde é o verbo `padrao`.
 padrao="$(amb python3 "$RAIZ/scripts/pack.py" padrao 2>/dev/null)"
 if [ -z "$padrao" ] || [ ! -f "$padrao/pack.json" ]; then
   falha "o pack padrão não é um diretório com pack.json" "padrao=$padrao"
@@ -438,10 +370,9 @@ fi
 
 # --- 16. o padrão aparece na varredura, e não por linha especial ------------
 # O `bin/meow:cmd_pack listar` tinha um `meow_info "catppuccin — Catppuccin
-# (embutido, em assets/paleta/)"` com um comentário admitindo o defeito:
-# "o embutido não tem pack.json e não aparece na varredura — mas existe, e
-# esconder isso faria a lista mentir por omissão". A lista sai do DISCO; um pack
-# que precisa de código para aparecer nela não é um pack.
+# (embutido, em assets/paleta/)"` com um comentário admitindo o defeito: "o
+# embutido não tem pack.json e não aparece na varredura — mas existe, e esconder
+# isso faria a lista mentir por omissão".
 corpo="$(sed -n '/^cmd_pack()/,/^}/p' "$RAIZ/bin/meow")"
 if printf '%s\n' "$corpo" | grep -vE '^\s*#' | grep -q 'catppuccin'; then
   falha "cmd_pack voltou a cravar o nome de um pack em código" \
@@ -457,65 +388,26 @@ linha_padrao="$(printf '%s\n' "$saida" | grep -F "$padrao" || true)"
   || falha "o pack padrão sumiu da lista, ou entrou sem vir da varredura" "$saida"
 
 # --- 17. nenhum código volta a cravar o caminho da paleta do padrão ---------
-# A P13 tirou o literal `assets/paleta/catppuccin.json` de nove pontos de código.
-# Sobrou UM, e ele está isentado abaixo com nome e motivo: são 9 -> 1, e não
-# 9 -> 0. Fora dele, todo o resto pergunta: `pack.paleta_do_pack_ativo()` no
-# Python, `meow_paleta`/`meow_pack_padrao_dir` no shell, e o nome do pack padrão
-# mora em `scripts/pack.py:PACK_PADRAO`.
+# Sobrou UM, e ele está isentado abaixo com nome e motivo: são 9 -> 1, e não 9
+# -> 0.
 #
 # COMENTÁRIO CONTINUA LIVRE, e o filtro é o MESMO do `tests/estilo.sh`: a
-# citação que tem um `#` antes dela não conta. Reescrever a prosa para agradar um
-# grep apagaria o porquê e não consertaria nada — e o histórico desta casa ("era
-# `assets/paleta/catppuccin.json` cravado até a porta única") é exatamente o que
-# explica por que a porta existe.
+# citação que tem um `#` antes dela não conta.
 #
-#   ELE SÓ PASSOU A SER O MESMO EM 22/09/2026. Estava escrito `[^#]*#`, sem o
-#   resto: isso descarta QUALQUER linha que tenha um `#`, esteja ele onde
-#   estiver. Um `PAL = "assets/paleta/catppuccin.json"  # nota` — código de
-#   verdade, com prosa no fim — saía verde. O `.*` que veio depois é o que
-#   exige que o `#` venha ANTES da citação, e é a forma que o
-#   `tests/estilo.sh:94` já usava.
-#
-# `scripts/pack.py` SAI DA VARREDURA PORQUE É A PRÓPRIA PORTA — é a mesma
-# isenção que o `tests/estilo.sh` dá ao `lib/comum.sh`, e pelo mesmo motivo: é
-# ali que o nome do pack padrão tem o direito de morar. O preço está dito: uma
-# docstring dele (prosa indentada, sem `#` na frente) escapa dos dois filtros
-# acima, e por isso a isenção é por ARQUIVO e não por linha.
-#
-# O PADRÃO É MONTADO EM DUAS METADES, E NÃO É CAPRICHO
-#   O `tests/estilo.sh` cobra qualquer `.sh` que escreva `assets/paleta` seguido
-#   de uma barra e um nome — e esta linha, escrita inteira, casaria com a régua
-#   dele: o teste que procura o defeito seria acusado de tê-lo. Partir a palavra
-#   é o que diz "isto é um padrão de busca, não uma resolução de paleta". Quem
-#   juntar as duas metades de volta pinta o CI de vermelho sem nada ter
-#   acontecido.
+# Estava escrito `[^#]*#`, sem o resto: isso descarta QUALQUER linha que tenha
+# um `#`, esteja ele onde estiver.
 _velho='assets/paleta'"/catppuccin\.json"
 
-# O ENDEREÇO NOVO CONTA TANTO QUANTO O VELHO — 22/09/2026
-#   A primeira versão desta conferência procurava SÓ o literal velho, e por isso
-#   dava verde para um caminho cravado no endereço novo — o mesmo defeito com
-#   outro CEP. Medido: `scripts/derivar_claro.py:79` atravessou a P13 trocando
-#   `assets/paleta/catppuccin.json` por `packs/catppuccin/paleta.json`, e este
-#   teste não viu. Um grep que só conhece o passado promete para sempre uma
-#   coisa que deixou de conferir no dia em que a casa mudou.
-#   Partido em duas metades por SIMETRIA com o `_velho`, e não por obrigação:
-#   nenhuma régua de hoje procura `packs/<pack>/paleta.json` dentro de um teste.
-#   Custa nada e tira a pergunta de quem ler os dois lado a lado.
+# Partido em duas metades por SIMETRIA com o `_velho`, e não por obrigação:
+# nenhuma régua de hoje procura `packs/<pack>/paleta.json` dentro de um teste.
+# Custa nada e tira a pergunta de quem ler os dois lado a lado.
 _novo='packs/catppuccin'"/paleta\.json"
 
-# `bin/` ENTRA PORQUE A CONFERÊNCIA DA SPRINT O INCLUI — e o `--include` precisa
-# do nome inteiro: `bin/meow` não tem extensão, e `*.sh`/`*.py` o deixavam de
-# fora sem uma palavra. Era um diretório inteiro fora da varredura.
+# Era um diretório inteiro fora da varredura.
 #
-# `scripts/derivar_claro.py` É ISENTO, E A ISENÇÃO TEM MOTIVO ESCRITO
-#   Ele não resolve a paleta ATIVA: ele nomeia, lado a lado, as duas paletas de
-#   que precisa — a do Dracula, que é a identidade, e a do Catppuccin, que é a
-#   RÉGUA de luminância do Latte. Trocar a régua junto com o pack ativo faria a
-#   saída dele deixar de ser reprodutível, e o cabeçalho da função diz isso com
-#   todas as letras. É um gerador de tiro único, registrado como órfão em
-#   `tests/orfaos.sh:119`, cuja saída já está colada em
-#   `packs/dracula/paleta.json`. A isenção é por ARQUIVO, como a do `pack.py`, e
-#   o preço é o mesmo: uma cravação NOVA dentro dele passaria verde. Está dito.
+# Ele não resolve a paleta ATIVA: ele nomeia, lado a lado, as duas paletas de
+# que precisa — a do Dracula, que é a identidade, e a do Catppuccin, que é a
+# RÉGUA de luminância do Latte.
 cravado="$(grep -rnE --include='*.sh' --include='*.py' --include='meow' \
              "($_velho|$_novo)" "$RAIZ/install.sh" "$RAIZ/lib" \
              "$RAIZ/scripts" "$RAIZ/app" "$RAIZ/bin" 2>/dev/null \
@@ -532,23 +424,11 @@ fi
 
 # --- 15. o acervo de ícone mora no pack, e nenhum desenho some no caminho ----
 #
-# A P27 DESCEU 55 DESENHOS DE `assets/icones/autorais/` PARA DENTRO DOS PACKS
-#   Aquele diretório se chamava `autorais` e não dizia DE QUEM: guardava, lado a
-#   lado, 44 do Catppuccin e 11 do Dracula. Quem trocava de pack levava os dois
-#   montes. As três conferências abaixo são a trava dessa mudança.
+# Aquele diretório se chamava `autorais` e não dizia DE QUEM: guardava, lado a
+# lado, 44 do Catppuccin e 11 do Dracula. Quem trocava de pack levava os dois
+# montes.
 #
-# POR QUE NÃO UM NÚMERO CRAVADO
-#   A spec manda "conta 3.566 SVG antes e depois". Um teste com esse número
-#   dentro falharia na próxima sprint que desenhar um ícone — e o que ele
-#   protege não é o total, é a IDENTIDADE: nenhum arquivo versionado pode deixar
-#   de existir no disco. É isso que um `git mv` errado quebra, e é isso que se
-#   mede sem número mágico.
-# `-e` E NÃO `-d`: num WORKTREE o `.git` é um ARQUIVO que aponta para o
-# repositório de verdade, não um diretório. Com `-d` as duas conferências abaixo
-# se pulavam caladas justamente onde toda sprint deste projeto é desenvolvida —
-# medido aqui em 22/09/2026, com o bloco inteiro sem imprimir uma linha. O
-# `rev-parse` é o que decide de fato: ele responde pelos dois casos e também por
-# quem rodar o teste de um tarball sem git nenhum.
+# A spec manda "conta 3.566 SVG antes e depois".
 if command -v git >/dev/null 2>&1 \
    && git -C "$RAIZ" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   sumidos="$(git -C "$RAIZ" ls-files '*.svg' | while IFS= read -r f; do
@@ -558,11 +438,8 @@ if command -v git >/dev/null 2>&1 \
     && ok "todo SVG versionado existe no disco — nenhum sumiu numa mudança de casa" \
     || falha "SVG versionado que não está no disco:" "$sumidos"
 
-  # A conferência 1 da spec: nenhum desenho DE TEMA sobrou em assets/icones/.
   # O `*/*.svg` é de propósito — pega um nível de subdiretório, que é onde os
-  # acervos por flavor moravam. O `autorais/leitura/` sobrevive a ela porque
-  # aqueles oito não têm flavor no nome: são recoloridos em tempo de build, e
-  # por isso são do MOTOR e não de pack nenhum.
+  # acervos por flavor moravam.
   restos="$(git -C "$RAIZ" ls-files 'assets/icones/*/*.svg' \
               | grep -E '(mocha|macchiato|frappe|latte|dracula|alucard)' || true)"
   [ -z "$restos" ] \
@@ -570,20 +447,7 @@ if command -v git >/dev/null 2>&1 \
     || falha "desenho de flavor ainda em assets/icones/:" "$restos"
 fi
 
-# O BURACO DO ALUCARD, E ELE ERA ESTE — 22/09/2026
-#   O flavor claro do Dracula nasceu em 19/09 e ficou com ZERO dos onze
-#   autorais. No modo claro do Dracula esses ícones caíam no `latte`, que é o
-#   claro do OUTRO pack — o mesmo defeito que o `packs/dracula/pack.json` já
-#   tinha consertado para a PALETA e que continuou vivo para os ÍCONES mais três
-#   dias, porque a paleta morava no pack e os desenhos não.
-#
-#   A TRAVA É POR FLAVOR VAZIO, E NÃO POR "TEM 11 DO ALUCARD"
-#     Contar onze do alucard protegeria este caso e só ele. O defeito de verdade
-#     é ESTRUTURAL: um flavor declarado na paleta que não tem desenho nenhum no
-#     acervo cai, calado, no acervo de quem o pack herda — e num pack de
-#     terceiro isso é a cara de outro tema. A pergunta certa é "algum flavor
-#     deste pack está vazio enquanto um irmão dele não está?", e ela vale para o
-#     pack que ainda nem foi escrito.
+# O BURACO DO ALUCARD, E ELE ERA ESTE
 vazios="$(python3 - "$RAIZ" <<'PY'
 import json, os, sys
 raiz = sys.argv[1]
@@ -621,25 +485,22 @@ PY
 
 # --- 16. o prefixo `motor:` tira a DECISÃO de assets/ sem duplicar o acervo --
 #
-#   Um mapa de pack diz "o Telegram veste o desenho X". A frase é decisão de
-#   TEMA e mora no pack; o desenho X pode vir do acervo Arcticons, que são 113
-#   SVG de terceiro e ferramenta compartilhada. Sem o prefixo só havia duas
-#   saídas ruins: a decisão fica em `assets/`, ou cada pack carrega uma CÓPIA
-#   dos 113 — e a segunda cópia defasa da primeira calado.
+# Um mapa de pack diz "o Telegram veste o desenho X". A frase é decisão de TEMA
+# e mora no pack; o desenho X pode vir do acervo Arcticons, que são 113 SVG de
+# terceiro e ferramenta compartilhada.
 base_mapa="$PACK_DIR/icones"
-saida="$(printf 'apps/x.svg\nmotor:arcticons/y.svg\n' \
+saida="$(printf 'apps/x.svg\nmotor:arcticons/y.svg\nmotor:apps/arcticons/z.svg\n' \
            | amb python3 "$RAIZ/scripts/pack.py" alvo "$base_mapa" 2>/dev/null)"
 esperado="$base_mapa/apps/x.svg
-$RAIZ/assets/icones/arcticons/y.svg"
+$RAIZ/packs/meowsystem/icones/sistema/arcticons/y.svg
+$RAIZ/packs/meowsystem/icones/apps/arcticons/z.svg"
 [ "$saida" = "$esperado" ] \
-  && ok "'motor:' resolve em assets/icones/ e o resto cai dentro do pack" \
+  && ok "'motor:' resolve no pack-base, a pasta de antes pela de hoje, e o resto cai dentro do pack" \
   || falha "o prefixo motor: não resolveu como o contrato manda" "$saida"
 
-# UMA LINHA DE SAÍDA POR LINHA DE ENTRADA, E ISSO NÃO É DETALHE
-#   Quem chama junta esta saída com os NOMES do mapa, lado a lado, com `paste`.
-#   Uma linha a mais ou a menos veste cada aplicativo com o ícone do vizinho, e
-#   não há erro nenhum na tela para dizer isso. Por isso a linha recusada sai
-#   VAZIA em vez de sair fora.
+# Quem chama junta esta saída com os NOMES do mapa, lado a lado, com `paste`.
+# Uma linha a mais ou a menos veste cada aplicativo com o ícone do vizinho, e
+# não há erro nenhum na tela para dizer isso.
 entrada="$(printf 'apps/a.svg\n../../fora.svg\nmotor:../../../etc/passwd\napps/b.svg\n')"
 n_ent=$(printf '%s\n' "$entrada" | wc -l)
 n_sai=$(printf '%s\n' "$entrada" \
@@ -657,17 +518,10 @@ fugas="$(printf '%s\n' "$entrada" \
 
 # --- 16b. e o PARSER do mapa tem de entregar o prefixo inteiro --------------
 #
-#   O teste 16 acima alimenta o `pack.py alvo` pelo STDIN, e por isso ele passava
-#   com o único ponto de integração que existe quebrado: o `_dracula_pares` do
-#   `icones_apps_dracula.sh` cortava a linha com `awk -F:` e pegava `$2`, que
-#   para `nome : motor:caminho` vale ` motor`. O alvo virava `<pack>/icones/motor`
-#   e o prefixo nunca chegava ao resolvedor — nem para resolver, nem para ser
-#   recusado. Um teste que pula o parser não mede o recurso; mede metade dele.
-#
-#   Então este mede a linha do mapa até o caminho no disco, com a função
-#   VERBATIM do script — e o `sed` que a extrai é de propósito: copiar o `awk`
-#   para cá criaria uma segunda cópia do parser, e seria ela que passaria no dia
-#   em que a primeira quebrasse.
+# O teste 16 acima alimenta o `pack.py alvo` pelo STDIN, e por isso ele passava
+# com o único ponto de integração que existe quebrado: o `_dracula_pares` do
+# `icones_apps_dracula.sh` cortava a linha com `awk -F:` e pegava `$2`, que para
+# `nome : motor:caminho` vale ` motor`.
 mapa_t="$T/apps-parser.map"
 printf '%s\n' \
   'um.motor : motor:arcticons/telegram.svg' \
@@ -679,7 +533,7 @@ pares="$(MAPA="$mapa_t" ICONES_BASE_MAPA="$base_mapa" RAIZ="$RAIZ" bash -c '
   # [P73: o parser do shell é o `_dracula_pares_do_mapa`; ver o tests/fonte-unica.sh.]
   eval "$(sed -n "/^_dracula_pares_do_mapa() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
   _dracula_pares_do_mapa' 2>/dev/null)"
-esperado_p="um.motor	$RAIZ/assets/icones/arcticons/telegram.svg
+esperado_p="um.motor	$RAIZ/packs/meowsystem/icones/sistema/arcticons/telegram.svg
 dois.pack	$base_mapa/apps/Warehouse.svg
 tres.comentario	$base_mapa/apps/Warehouse.svg"
 [ "$pares" = "$esperado_p" ] \
@@ -687,42 +541,22 @@ tres.comentario	$base_mapa/apps/Warehouse.svg"
   || falha "o parser do mapa truncou o caminho — o 'motor:' não chega ao resolvedor" "$pares"
 
 # --- 17. a porta de quem ESCREVE responde antes de o diretório existir -------
-#   O `acervo` só responde o que já está no disco, e essa é a resposta certa
-#   para quem vai abrir. O gerador precisa do contrário: num pack novo o
-#   `icones/autorais/` só passa a existir depois que ele escreve lá dentro. Se
-#   as duas portas discordassem, o `completar_icones.sh` instalaria de um
-#   diretório e o `gerar_icones_autorais.py` escreveria noutro — e o passo 2
-#   procuraria a fonte que o passo 1 acabara de gravar.
+# O `acervo` só responde o que já está no disco, e essa é a resposta certa para
+# quem vai abrir.
 onde="$(amb python3 "$RAIZ/scripts/pack.py" onde "$ID" icones.autorais.desenhos icones/autorais/ 2>&1)"; rc=$?
 [ "$rc" = "0" ] && [ "$onde" = "$PACK_DIR/icones/autorais/" ] && [ ! -d "$onde" ] \
   && ok "o 'onde' responde o endereço do acervo antes de ele existir" \
   || falha "o 'onde' não respondeu o acervo de um pack que ainda não o criou (rc=$rc)" "$onde"
 
-# --- 18. a vitrine: o pack tem cara, e ela é cobrada — 23/09/2026, P15 -------
+# --- 18. a vitrine: o pack tem cara, e ela é cobrada -------
 #
-#   "Ninguém escolhe um tema por um `id`." O bloco `vitrine` é o que o cartão
-#   de pack mostra, e a conferência da sprint é esta: com capa, `validar` sai 0;
-#   sem ela, recusa nomeando o arquivo. As outras recusas são as quatro que a
-#   sprint lista — capa que não é SVG, capa fora do pack, frase acima do teto,
-#   URL que não é https —, mais a que a varredura genérica de URL não pega:
-#   `javascript:` não tem `://`, e o `site` é o único campo que vira link.
-#
-#   QUAL PORTA COBRA O QUÊ, e isto também é cobrado aqui, porque o texto já
-#   mentiu uma vez [23/09/2026, revisão da P15]. A vitrine é da porta de quem
-#   PUBLICA: sem a capa, ou com a frase acima do teto, o `caminho` — a sonda de
-#   existência do `meow_pack_dir` — continua vendo o pack, e o logo da P25 está
-#   na mesma fronteira desde a a3ee4a6. A exceção é a URL fora de https, que é
-#   regra do pack inteiro e roda no motor; o `pack.py` e o docs/PACKS.md diziam
-#   que não. Cada afirmação do documento vira uma conferência abaixo, para a
-#   próxima divergência aparecer aqui, e não numa revisão.
+# QUAL PORTA COBRA O QUÊ, e isto também é cobrado aqui, porque o texto já mentiu
+# uma vez.
 mkdir -p "$PACK_DIR/capturas"
 printf '# %s\n\nHistória com <script>alert(1)</script> e **negrito**.\n' "$ID" > "$PACK_DIR/LEIA-ME.md"
 printf '\x89PNG\r\n\x1a\n' > "$PACK_DIR/capturas/tela.png"
 cp "$PACK_DIR/logo.svg" "$T/logo-guardado.svg"
-# Uma capa que NÃO é o `logo.svg`, com `<script>` dentro. O logo é o arquivo
-# que `vitrine.capa` nomeia (P25, a3ee4a6), então ela tem de passar pela
-# conferência do logo — no `validar` e na porta do painel —, e não escapar dela
-# por ter outro nome. É o achado 5.3 da revisão, medido do lado de cá.
+# Uma capa que NÃO é o `logo.svg`, com `<script>` dentro.
 sed 's#</svg>#<script>alert(1)</script></svg>#' "$PACK_DIR/logo.svg" > "$PACK_DIR/outra-capa.svg"
 por_vitrine() {
   python3 - "$PACK_DIR" "$1" <<'PY' || exit 2
@@ -747,8 +581,6 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
   && ok "a vitrine completa valida (capa, frase, história, tags, captura, site)" \
   || falha "a vitrine completa foi recusada (rc=$rc)" "$saida"
 
-# A conferência da sprint, literal: `info | head -6` traz nome, autor, frase,
-# tags e o "próprio / herdado" numa linha só.
 cabeca="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1 | head -6)"
 case "$cabeca" in
   *"o tests/pack.sh"*"Um pack de mentira"*"escuro, teste"*"próprio: "*" · "*)
@@ -786,9 +618,9 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1)"; rc=$?
   && ok "o info mostra o pack de frase comprida, e diz o que falta" \
   || falha "o info escondeu o pack de frase comprida, ou não disse por quê (rc=$rc)" "$saida"
 
-# A URL FORA DE https:// É REGRA DO PACK INTEIRO (item 11), e vale no motor
-# desde antes da vitrine. Cobrado para o documento não voltar a dizer que só o
-# verbo `validar` a vê.
+# A URL FORA DE https:// É REGRA DO PACK INTEIRO, e vale no motor desde antes
+# da vitrine. Cobrado para o documento não voltar a dizer que só o verbo
+# `validar` a vê.
 por_vitrine '{"capa": "logo.svg", "site": "http://exemplo.org"}'
 amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id >/dev/null 2>&1 \
   && falha "o site em http:// não tirou o pack do motor — o docs/PACKS.md diz que tira" \
@@ -818,13 +650,9 @@ done <<'CASOS'
 CASOS
 por_vitrine "$VIT_BOA"
 
-# O PAINEL: a história chega CRUA, e a arte só sai pelo que o pack declarou.
-#   O `<script>` do LEIA-ME tem de chegar como texto no JSON — nem executado,
-#   nem "limpo" pelo servidor: quem garante que ele não roda é o `textContent`
-#   da página (o `<pre>` até a P53, o `historiaDoPack` desde ela), e um
-#   servidor que escapasse HTML esconderia um cliente que
-#   voltou a usar `innerHTML`. A rota de arte não aceita caminho; `../` e
-#   número fora da lista são "não achei".
+# O PAINEL: a história chega CRUA, e a arte só sai pelo que o pack declarou. A
+# rota de arte não aceita caminho; `../` e número fora da lista são "não
+# achei".
 saida="$(amb python3 - "$RAIZ" "$ID" <<'PY' 2>&1
 import os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "app"))
@@ -865,10 +693,9 @@ PY
   && ok "o /api/packs leva a história crua, e a rota de arte só serve o que o pack declarou" \
   || falha "o painel não honra a vitrine" "$saida"
 
-# A CAPA COM SCRIPT NÃO CHEGA AO PAINEL, e o cartão diz por quê. O motor não
-# confere o logo desde a a3ee4a6 da P25, então quem segura aqui é o `logo()`,
-# pelo qual o servidor passa a capa. O `info` também tem de dizer o motivo, em
-# vez de listar a capa como boa enquanto o `validar` a recusa.
+# A CAPA COM SCRIPT NÃO CHEGA AO PAINEL, e o cartão diz por quê. O `info`
+# também tem de dizer o motivo, em vez de listar a capa como boa enquanto o
+# `validar` a recusa.
 por_vitrine '{"capa": "outra-capa.svg"}'
 saida="$(amb python3 - "$RAIZ" "$ID" <<'PY' 2>&1
 import os, sys
@@ -892,15 +719,8 @@ info="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1)"
 $info"
 por_vitrine "$VIT_BOA"
 
-# A REGRA DE SEGURANÇA, NO CÓDIGO DA PÁGINA. Um `html:` ou um `innerHTML` no
-# caminho da história é o Markdown de terceiro virando HTML numa página com
-# token de sessão.
-#   DESDE A P53 (24/09/2026) a história não é mais um `<pre>`: o
-# `historiaDoPack` monta títulos, listas, negrito, código e link nó a nó, e o
-# `trechosDaLinha` faz o de dentro da linha. A regra passou a valer para as
-# três funções, e o link tem de passar pelo `https://` antes de virar `href`.
-# O comportamento — uma tag no texto sai como texto, um `javascript:` não vira
-# link — é cobrado no navegador, pelo `tests/app-completo.py`.
+# Um `html:` ou um `innerHTML` no caminho da história é o Markdown de terceiro
+# virando HTML numa página com token de sessão.
 corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
 historia="$(sed -n '/^function historiaDoPack(/,/^}/p;/^function trechosDaLinha(/,/^}/p' "$RAIZ/app/pagina/app.js")"
 if [ -z "$corpo" ] || [ -z "$historia" ]; then
@@ -917,20 +737,14 @@ else
   falha "o cartão de pack deixou de montar a história pelo historiaDoPack, ou o href escapou do https"
 fi
 
-# --- 19. trocar de pack e voltar, conferindo o tema no disco — 23/09/2026, P10
+# --- 19. trocar de pack e voltar, conferindo o tema no disco
 #
-#   A sprint: "`meow pack usar <id>` — escreve PACK= e FLAVOR= no meow.conf,
-#   valida antes, e roda a aplicação". A aplicação é o `install.sh` inteiro, e
-#   este arquivo não o roda (ver o cabeçalho). O que se confere é a CADEIA que
-#   ele percorre: o verbo grava as duas chaves e mais nada; um shell novo,
-#   lendo aquele conf, resolve o pack pela ponte; e o tema do COSMIC que esse
-#   pack captura é o que vai para o disco — escrito aqui num COSMIC de
-#   brinquedo, pelo mesmo `aplicar_tema.sh` que o instalador chama. Ida e volta,
-#   porque a volta é o que prova que nada ficou grudado no primeiro.
+# A aplicação é o `install.sh` inteiro, e este arquivo não o roda (ver o
+# cabeçalho).
 #
-#   TUDO DENTRO DO TEMPORÁRIO. `env -i` com HOME, conf e COSMIC próprios: o
-#   `aplicar_tema.sh` escreve de verdade, e o endereço dele tem de ser o
-#   brinquedo, nunca o `~/.config/cosmic` de quem roda o teste.
+# `env -i` com HOME, conf e COSMIC próprios: o `aplicar_tema.sh` escreve de
+# verdade, e o endereço dele tem de ser o brinquedo, nunca o `~/.config/cosmic`
+# de quem roda o teste.
 CASA="$T/casa"; mkdir -p "$CASA"
 cp "$RAIZ/meow.conf.exemplo" "$T/usar.conf"
 usar_amb() {
@@ -948,10 +762,6 @@ tema_do_conf() {
     "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$par" --conferir >/dev/null 2>&1; rc=$?
     printf "%s %s %s\n" "$(basename "$MEOW_PACK_DIR")" "$par" "$rc"'
 }
-# [P79, 10/10/2026, item 4: a troca leva junto o que o pack de antes escolhia
-#   — o ponteiro de fábrica, que é o do Catppuccin, vira o do Dracula (ver o
-#   `vestigios` do scripts/migrar_conf.py e o tests/casa-real.sh). Fora o
-#   CURSOR, nenhuma outra linha.]
 sem_as_duas() { grep -vE '^(PACK|FLAVOR|CURSOR)=' "$1"; }
 
 antes="$(sem_as_duas "$T/usar.conf")"
@@ -999,16 +809,10 @@ saida="$(usar_amb env MEOW_PACKS="$PACKS" "$RAIZ/bin/meow" pack usar "$ID" --sem
   && ok "o pack de terceiro também se usa pelo verbo, com o flavor padrão dele" \
   || falha "meow pack usar $ID não gravou o pack de terceiro (rc=$rc)" "$saida"
 
-# O QUE FICOU DE OUTRO PACK É O QUE O PAINEL DIRIA — 23/09/2026, revisão da P10
-#   A primeira versão do verbo refazia em `awk` a regra do «Vestígio do pack» e
-#   perdia as duas exceções que o `_vestigio_de_pack` (app/servidor.py) já
-#   tinha aprendido. Medido pela revisão, com o conf de fábrica e o Catppuccin no
-#   ar: `usar dracula` acusava `CURSOR` de ser resto do Catppuccin — o valor que
-#   o próprio `packs/dracula/pack.json` receita —, e prometia que o painel o
-#   marcaria, enquanto o painel respondia `None`. No sentido inverso, com
-#   `PACK=""` e um sabor no FLAVOR, o verbo calava o que o painel marca.
-#   Os três casos abaixo são esses dois e o vestígio de verdade, e em cada um a
-#   lista do terminal tem de ser a do painel lida no conf que a troca deixou.
+# Medido pela revisão, com o conf de fábrica e o Catppuccin no ar: `usar
+# dracula` acusava `CURSOR` de ser resto do Catppuccin — o valor que o próprio
+# `packs/dracula/pack.json` receita —, e prometia que o painel o marcaria,
+# enquanto o painel respondia `None`.
 vestigios_do_painel() {
   usar_amb env MEOW_CONF="$1" python3 - "$RAIZ" <<'PY' 2>/dev/null
 import os, sys
@@ -1868,9 +1672,11 @@ saida="$(amb "$RAIZ/bin/meow" pack info "$CSV_ID" 2>&1)"
 # OS AUTORAIS NAS CORES DO CSV, E NÃO NOS FLAVORS DO PAI. Herdados, eles eram
 # os 44 do Catppuccin — mocha, macchiato, frappe, latte —, e nenhum vestia o
 # `tinta`. O `novo` os entrega construídos: 11 desenhos x 2 flavors, próprios.
+# [P82, 15/10/2026 (decisão 16): o Hefesto e o FogStripper saíram dos autorais
+#   dos packs, e são 9 desenhos x 2 flavors.]
 linha_autorais="$(grep '^  icones.autorais ' <<< "$saida")"
-[[ "$linha_autorais" == *"PRÓPRIO"*"22 desenho(s), 2 flavor(s)"* ]] \
-  && ok "os ícones autorais nascem próprios, nas cores do CSV: 22 desenhos, 2 flavors" \
+[[ "$linha_autorais" == *"PRÓPRIO"*"18 desenho(s), 2 flavor(s)"* ]] \
+  && ok "os ícones autorais nascem próprios, nas cores do CSV: 18 desenhos, 2 flavors" \
   || falha "os ícones autorais do pack de CSV não são dele" "$linha_autorais"
 # O id tem hífen e o flavor não pode ter: um CSV com o flavor escrito como o id
 # é recusado com a linha, e nada é escrito.
@@ -1974,14 +1780,14 @@ if [ "$rc" != "0" ] || [ ! -d "$DA_PESSOA/minha-tinta" ]; then
 else
   ok "meow pack importar aceita um .csv solto, e o id sai do nome do arquivo"
   saida="$(viaja "$RAIZ/bin/meow" pack validar minha-tinta 2>&1)"; rc=$?
-  n_autorais="$(find "$DA_PESSOA/minha-tinta/icones/autorais" -name '*.svg' | wc -l)"
+  n_autorais="$(find "$DA_PESSOA/minha-tinta/icones/apps/autorais" -name '*.svg' | wc -l)"
   # Igual MENOS o `_comentario`, que diz o nome do CSV de onde a paleta saiu —
   # e aqui o CSV se chama outra coisa, de propósito, porque é ele que faz o id.
   mesma="$(python3 -c 'import json, sys
 a, b = (json.load(open(x, encoding="utf-8")) for x in sys.argv[1:])
 for d in (a, b): d.pop("_comentario", None)
 print("sim" if a == b else "nao")' "$T/csv-paleta.json" "$DA_PESSOA/minha-tinta/paleta.json")"
-  [ "$rc" = "0" ] && [ "$mesma" = "sim" ] && [ "$n_autorais" = "22" ] \
+  [ "$rc" = "0" ] && [ "$mesma" = "sim" ] && [ "$n_autorais" = "18" ] \
     && ok "o pack importado do .csv valida, com a paleta e os autorais do novo --de-csv" \
     || falha "o .csv importado não é o pack que o novo --de-csv monta (rc=$rc, $n_autorais autorais)" "$saida"
 fi
@@ -2098,7 +1904,7 @@ if not (st == 200 and r.get("precisa_confirmar") is True and "minha-tinta" in r.
     erros.append(f"o ensaio do .csv não pediu confirmação com o pack desenhado: {st} {r}")
 if pack.get("derivados") != {"tintaclaro": "tinta"} or not any("blue/base" in l for l in pack.get("regua", [])):
     erros.append(f"o pack do ensaio não traz o claro derivado e a régua: {pack.get('derivados')} {pack.get('regua')}")
-if pack.get("icones") != 22 or "herdado de" not in pack.get("ponteiro", ""):
+if pack.get("icones") != 18 or "herdado de" not in pack.get("ponteiro", ""):
     erros.append(f"o pack do ensaio não diz os autorais próprios e o que é herdado: {pack}")
 if os.path.exists(destino):
     erros.append("o ensaio do .csv escreveu o pack")
@@ -2765,10 +2571,13 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
     visto="$(p31_flavor_do_script <<< "$saida")"
     # O acervo de aplicativo só publica latte e macchiato, e o próprio script
     # aproxima o resto para o macchiato — é o `case` dele, e não outra regra.
-    apps="$5"; [ "$apps" = "latte" ] || apps="macchiato"
+    # [P82, 15/10/2026 (item 10; decisão 22): o flavor que não é do Catppuccin
+    #   (o `dracula`) não é desta camada, e ela sai calada — sem flavor nenhum.]
+    apps="$5"
+    case "$apps" in latte) ;; frappe|macchiato|mocha) apps="macchiato" ;; *) apps="" ;; esac
     if [ "$script" = "icones_apps" ]; then
       [ "$visto" = "$apps" ] || divergiu+=" $script='$visto' (esperava $apps)"
-    elif [ "$script" = "icones_pastas" ] && [ -d "$RAIZ/packs/$2/icones/pastas" ]; then
+    elif [ "$script" = "icones_pastas" ] && [ -d "$RAIZ/packs/$2/icones/sistema/pastas" ]; then
       # AS PASTAS PRÓPRIAS DO PACK NÃO TÊM FLAVOR — 24/09/2026, na revisão da
       # P56. As sete do Dracula são desenho dele, e a frase diz o pack; até ali
       # o script não as achava, não escrevia nada e dizia «Catppuccin
@@ -2953,12 +2762,19 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
 [ "$rc" = "0" ] \
   && ok "um pack de terceiro com biblioteca de SVG valida" \
   || falha "a biblioteca de SVG foi recusada (rc=$rc)" "$saida"
+# [P88, decisão 14: o PNG feito à mão mora na biblioteca, e subpasta é
+#   etiqueta. O que continua fora da forma é o link e o que não é imagem.]
 printf 'rascunho' > "$PACK_DIR/icones/biblioteca/rascunho.png"
+mkdir -p "$PACK_DIR/icones/biblioteca/etiqueta"
+cp "$RAIZ/packs/dracula/icones/apps/steam.svg" "$PACK_DIR/icones/biblioteca/etiqueta/vapor2.svg"
 ln -s /etc/hostname "$PACK_DIR/icones/biblioteca/link.svg"
+printf 'nota' > "$PACK_DIR/icones/biblioteca/etiqueta/nota.txt"
 saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
-[ "$rc" = "1" ] && [[ "$saida" == *"rascunho.png"* ]] && [[ "$saida" == *"link.svg"* ]] \
-  && ok "o validar recusa o que não é desenho na biblioteca, e nomeia os dois de uma vez" \
-  || falha "o validar aceitou um .png e um link na biblioteca (rc=$rc)" "$saida"
+[ "$rc" = "1" ] && [[ "$saida" == *"link.svg"* ]] && [[ "$saida" == *"etiqueta/nota.txt"* ]] \
+  && [[ "$saida" != *"rascunho.png"* ]] && [[ "$saida" != *"vapor2.svg"* ]] \
+  && ok "o validar aceita PNG e subpasta na biblioteca, recusa link e o que não é imagem, e nomeia todos de uma vez" \
+  || falha "a forma da biblioteca não é a da decisão 14 (rc=$rc)" "$saida"
+rm -rf "$PACK_DIR/icones/biblioteca/etiqueta" "$PACK_DIR/icones/biblioteca/rascunho.png"
 # A PORTA DO MOTOR NÃO RECUSA: a biblioteca não é instalada por ninguém, e um
 #   arquivo solto nela não pode fazer o pack inteiro ser ignorado.
 saida="$(amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id 2>&1)"; rc=$?

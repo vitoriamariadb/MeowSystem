@@ -1,111 +1,17 @@
 #!/usr/bin/env bash
 # relogio.sh — os SEGUNDOS do relógio da topbar, e nada além disso.
 #
-# POR QUE UMA CHAVE SÓ MERECE UM ARQUIVO INTEIRO
-#   O relógio é o único elemento da tela dela que se move sozinho. Com
-#   `show_seconds = true` ele redesenha uma vez por segundo, o dia inteiro:
-#   86.400 pedidos de atenção por dia para dizer uma informação que ela nunca
-#   pediu. A Sprint T chama isso de "a regra da atenção" e o teste dela é
-#   apertar os olhos até a captura virar borrão — têm que sobrar no máximo três
-#   manchas claras. Um dígito que pisca 86.400 vezes é a quarta.
+# O relógio é o único elemento da tela dela que se move sozinho. Um dígito que
+# pisca 86.400 vezes é a quarta.
 #
-#   O que justifica o arquivo não é o tamanho da mudança (é UMA palavra num
-#   arquivo de 4 bytes). É a FRONTEIRA. Esta chave tem controle na GUI, e a
-#   regra do projeto (`docs/FRONTEIRA.md`, seção de 17/08/2026) diz, com todas
-#   as letras: **onde a GUI do COSMIC tem um controle, o valor é dela.** Um
-#   `printf false > show_seconds` solto no install.sh seria a quarta travessia
-#   da mesma fronteira que já custou o `opacity` do painel. Aqui a mudança é
-#   feita, mas com o mesmo desenho que devolveu a opacidade a ela: a chave nasce
-#   no `meow.conf`, VAZIO quer dizer "não toque", e ela retoma o controle
-#   apagando uma palavra.
+# O que justifica o arquivo não é o tamanho da mudança (é UMA palavra num
+# arquivo de 4 bytes).
 #
-# ============================================================================
-# O QUE FOI MEDIDO EM 25/08/2026, NESTA MÁQUINA, ANTES DE ESCREVER UMA LINHA
-# ============================================================================
-#
-# 1. O QUE EXISTE NO DISCO
-#      ~/.config/cosmic/com.system76.CosmicAppletTime/v1/
-#          first_day_of_week = 6
-#          military_time     = true
-#          show_seconds      = true     <- é esta, e só esta
-#    Três arquivos, sem `\n` final, 4 bytes cada nos booleanos. O `meow_escrever`
-#    grava com `printf '%s'` e come o `\n` — quer dizer que ele produz
-#    exatamente o mesmo byte a byte que o COSMIC produz, e um `cmp` entre os
-#    dois não acusa nada. Isso não é sorte: é o mesmo motivo pelo qual o
-#    `chk_mimetypes` compara pelo critério do escritor e não byte a byte.
-#
-# 2. VALE NA HORA — MEDIDO NA TELA, NÃO DEDUZIDO
-#    A pergunta da sprint era "o applet relê a chave sozinho (inotify) ou só no
-#    próximo login?". A resposta é SOZINHO, e em menos de dois segundos:
+# A resposta é SOZINHO, e em menos de dois segundos:
 #
 #      02:11:13  `show_seconds` = true   -> a topbar mostrava "25 de ago., 02:11:13"
 #      02:11:37  gravado `false`         -> 6 s depois a topbar mostrava "25 de ago., 02:11"
 #      02:13:06  gravado `true` de volta -> 2 s depois a topbar mostrava "02:13:08"
-#
-#    Capturas de tela comparadas uma a uma, sem reiniciar NADA — nem
-#    `cosmic-panel`, nem `cosmic-comp`, nem a sessão.
-#
-#    A ARMADILHA: O MECANISMO **NÃO** É O INOTIFY DO APPLET.
-#    Foi o que eu supus, e a medição derrubou. O processo `cosmic-applet-time`
-#    (PID 4865, filho do `cosmic-panel`) tem ZERO descritores de inotify:
-#        for f in /proc/4865/fdinfo/*; do grep -l inotify "$f"; done   -> nada
-#    enquanto o `cosmic-panel` (PID 4265) tem SEIS, e eles apontam para
-#    `CosmicPanel/v1`, `CosmicPanel.Panel/v1`, `CosmicPanel.Dock/v1`,
-#    `CosmicTheme.Mode/v1`, `CosmicTheme.Light/v2` e `CosmicTheme.Dark/v2` —
-#    nenhum para `CosmicAppletTime/v1`. Ou seja: ninguém nesta máquina vigia o
-#    diretório do relógio por inotify, e mesmo assim a mudança aparece na tela.
-#    O relógio já acorda uma vez por segundo para desenhar a hora, e relê a
-#    configuração nessa mesma volta.
-#
-#    A consequência prática é a única que importa aqui, e ela é a mesma nos dois
-#    casos: **este script NÃO reinicia o painel.** Não precisa — e a issue #13 do
-#    upstream (`xdg_popup: tried to grab after being mapped`) derruba topbar e
-#    dock juntas quando alguém tenta, que é o painel fantasma que este projeto
-#    já perseguiu uma vez inteira (`docs/FRONTEIRA.md`, 24/08/2026).
-#
-# 3. APAGAR O ARQUIVO **NÃO** É REVERTER — POR ISSO `remover` ESCREVE `true`
-#    Medido: com `show_seconds` movido para fora do diretório, a topbar
-#    continuou mostrando "02:15:29", com segundos. Não dá para saber pela tela
-#    se isso é o `Default` do applet ou cache do processo vivo, e a diferença
-#    não importa: em qualquer das duas leituras, apagar o arquivo é um jeito de
-#    reverter que não se pode conferir. Escrever `true` de volta é conferível,
-#    idempotente, e é o que a GUI de Ajustes lê quando ela for olhar o botão.
-#
-# 4. AS DUAS CHAVES QUE O BINÁRIO CONHECE E QUE NÃO ESTÃO NO DISCO
-#      strings /usr/bin/cosmic-applet-time | grep -oE 'show_[a-z_]+'
-#    devolve, no bloco do struct de configuração do applet:
-#      show_seconds · show_weekday · show_date_in_top_panel · first_day_of_week
-#      · military_time · format_strftime
-#    `show_weekday` e `show_date_in_top_panel` **existem e não estão no disco** —
-#    e a data ESTÁ na tela ("25 de ago., 02:11"), o que quer dizer que o
-#    `Default` de `show_date_in_top_panel` é ligado.
-#
-#    **Este script não escreve nenhuma das duas, de propósito.** Tirar a data da
-#    topbar é exatamente o tipo de decisão de gosto que a `MEMORY` deste projeto
-#    manda não tomar sozinho ("a folha visual vem antes do código"), e a sprint
-#    autorizou os SEGUNDOS, não a data. Se ela pedir, são seis linhas aqui e
-#    duas chaves novas no conf, no mesmo desenho de "vazio = não toca".
-#
-# 5. O QUE NÃO É DESTE ARQUIVO
-#    O canto superior direito da topbar (`plugins_wings`) é território da
-#    Aurora — `docs/FRONTEIRA.md:32`. Medido hoje, a asa direita tem SEIS
-#    applets, e um script que assumisse "a asa é uma lista de um" apagaria a
-#    Status Area dela (o susto está registrado em `docs/FRONTEIRA.md:85-88`).
-#    Este arquivo não abre `plugins_wings` nem para ler.
-#
-# O CUSTO DE PREENCHER A CHAVE, DITO SEM ROMANCE
-#   Com `RELOGIO_SEGUNDOS` preenchido e `chk_relogio` no `meow doctor`, o valor
-#   é REIMPOSTO em toda passagem do doctor — inclusive às 5h da manhã. Se ela
-#   mexer no botão da GUI e quiser que a escolha valha, o caminho é ESVAZIAR a
-#   chave no `meow.conf`, não brigar com o botão. É o mesmo contrato do
-#   `VIDRO_OPACIDADE_PAINEL`, e o `conferir` abaixo diz isso na cara quando
-#   encontra divergência.
-#
-# USO
-#   relogio.sh aplicar    grava a escolha do conf (idempotente; vazio = não toca)
-#   relogio.sh conferir   0 = conforme · 1 = divergente · 2 = erro · 3 = sem applet
-#   relogio.sh estado     lê o disco e diz o que a topbar está desenhando
-#   relogio.sh remover    devolve `show_seconds = true`, que é o que havia antes
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -255,9 +161,9 @@ cmd_estado() {
 
 cmd_remover() {
   _relogio_dependencia || return $?
-  # O padrão é `true`: foi o que estava no disco em 25/08/2026, antes de este
-  # arquivo existir, e é o que a tela mostra quando o arquivo some (medição 3 do
-  # cabeçalho). Se houver registro do valor de antes, ele vence o padrão.
+  # O padrão é `true`: foi o que estava no disco, antes de este arquivo existir,
+  # e é o que a tela mostra quando o arquivo some (medição 3 do cabeçalho). Se
+  # houver registro do valor de antes, ele vence o padrão.
   local devolver="true"
   if [ -f "$RELOGIO_ANTES" ]; then
     local guardado; guardado="$(cat "$RELOGIO_ANTES" 2>/dev/null)"

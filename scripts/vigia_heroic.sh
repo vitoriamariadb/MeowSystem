@@ -5,30 +5,10 @@
 #   ./vigia_heroic.sh              instala as unidades e liga o vigia
 #   ./vigia_heroic.sh --conferir   não escreve; 1 se algo divergir
 #
-# POR QUE ISTO EXISTE
-#   Pedido dela, 10/09/2026: "o ponto é que qualquer jogo que eu instalar quero
-#   que automaticamente isso se corrija". O `scripts/jogos_heroic.sh` já sabe
-#   escrever e limpar; o que faltava era alguém CHAMÁ-LO na hora. Sem o gatilho,
-#   um jogo instalado às 3h da tarde só apareceria no lançador na passagem
-#   seguinte do `meow doctor` — às 5h da manhã do dia seguinte.
-#
-#   O cabeçalho de `systemd/meow-heroic.path` traz o resto: por que o evento são
-#   os arquivos do `store_cache` (e não a pasta, nem o `installed.json` do
-#   backend) e por que os dois prefixos de configuração estão lá.
-#
-# É O IRMÃO GÊMEO DO `vigia_steam.sh`, DE PROPÓSITO
-#   Mesma estrutura, mesmos códigos de saída, mesma divisão `_desligar`/
-#   `_conferir`/`_aplicar` — e pelo mesmo motivo que aquele dá: o `meow doctor`
-#   precisa da MESMA verificação e o `--consertar` do MESMO conserto, então a
-#   regra mora num lugar só. As duas unidades vão por CÓPIA byte a byte (elas
-#   resolvem tudo com `%h`, sem marcador a substituir).
-#
-# DESLIGAR TEM DE DESLIGAR
-#   Deixar de instalar não é desligar: a unidade que uma execução anterior ligou
-#   continuaria vigiando depois de ela escrever HEROIC_VIGIA="nao" no meow.conf.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
+# O `scripts/jogos_heroic.sh` já sabe escrever e limpar; o que faltava era
+# alguém CHAMÁ-LO na hora. Sem o gatilho, um jogo instalado às 3h da tarde só
+# apareceria no lançador na passagem seguinte do `meow doctor` — às 5h da manhã
+# do dia seguinte.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -139,8 +119,7 @@ _aplicar() {
 
   # O diretório do log tem de existir ANTES de a unidade subir: o
   # `StandardOutput=append:` é montado antes de qualquer comando do serviço, e
-  # sem ele a unidade morre com `status=209/STDOUT`. Medido em 05/08/2026, na
-  # primeira unidade `.path` do projeto.
+  # sem ele a unidade morre com `status=209/STDOUT`.
   if ! mkdir -p "$estado"; then
     meow_erro "não consegui criar $estado (é lá que fica o log do vigia)"
     return "$MEOW_ERRO"

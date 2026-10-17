@@ -117,10 +117,8 @@ def intocavel(icone, marca):
         return True
     if icone.startswith('steam_icon_') or icone.startswith('meow-steam-'):
         return True
-    # Os do Heroic entram pela mesma porta e pelo mesmo motivo: a capa é do jogo,
-    # não do tema. O prefixo fica ao lado da marca porque o `Icon=` de um jogo
-    # sem capa no disco cai no `com.heroicgameslauncher.hgl` — e esse é o ícone
-    # do PROGRAMA Heroic, que o tema veste e deve continuar sendo cobrado.
+    # Os do Heroic entram pela mesma porta e pelo mesmo motivo: a capa é do
+    # jogo, não do tema.
     if icone.startswith('meow-heroic-'):
         return True
     return icone in ('fogstripper', 'hefesto-dualsense4unix',
@@ -170,7 +168,7 @@ def main():
             print(f"     {o['icone'] or '(sem Icon=)':40s} -> {o['atual']}")
         if orfaos:
             print('  >> ficar fora não é defeito: um ícone errado é pior que um '
-                  'genérico (assets/icones/apps.map)')
+                  'genérico (packs/meowsystem/icones/apps.map)')
 
     return MEOW_DIVERGENTE if orfaos else MEOW_OK
 

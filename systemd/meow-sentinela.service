@@ -1,0 +1,22 @@
+# meow-sentinela.service — a passagem da sentinela (scripts/sentinela.sh).
+#
+# Sai 1 quando há vermelho (o cartão «precisa de gente» foi posto) e 3 sem apt:
+# nenhum dos dois é falha da unidade.
+[Unit]
+Description=MeowSystem — sentinela do COSMIC antes do apt
+Documentation=file:%h/.local/state/meowsystem/sentinela.log
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${AUTO_REPARO:-sim}" = "sim" ]'
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStart=/bin/sh -c 'PATH="%h/.cargo/bin:$PATH"; export PATH; R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/sentinela.sh" ] || exit 3; exec "$R/scripts/sentinela.sh"'
+SuccessExitStatus=1 3
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=10
+TimeoutStartSec=30min
+StandardOutput=append:%h/.local/state/meowsystem/sentinela.log
+StandardError=inherit
+SyslogIdentifier=meow-sentinela

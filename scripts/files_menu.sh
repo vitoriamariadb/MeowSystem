@@ -8,64 +8,7 @@
 #   ./files_menu.sh estado      diagnóstico
 #   ./files_menu.sh remover     tira o nosso e devolve o do pacote
 #
-# ============================================================================
 # 1. QUEM DESENHA A ÁREA DE TRABALHO NÃO É O `cosmic-files`
-# ============================================================================
-# É o `cosmic-files-applet`, e descobrir isso custou um build inteiro. Medido em
-# 01/09/2026: o `src/main.rs` do `cosmic-files` chama `cosmic_files::main()`
-# (modo App), e quem chama `cosmic_files::desktop()` — o que fixa
-# `app::Mode::Desktop`, o único modo em que o bloco de papel de parede do menu
-# aparece — é `cosmic-files-applet/src/main.rs`. Os dois vêm do MESMO pacote e
-# da MESMA lib, então o patch é um só; o que muda é que são DOIS binários a
-# instalar. Instalar só o primeiro compila, instala, não dá erro nenhum e não
-# muda um item no menu dela.
-#
-# ============================================================================
-# 2. POR QUE `~/.local/bin/` E NÃO `/usr/bin/`
-# ============================================================================
-# A TRAVA 1 do `lib/comum.sh` recusa `/usr/bin` — e está certa: é território do
-# gerenciador de pacotes, e um `apt upgrade` sobrescreve. O `cosmic-files` subiu
-# de versão DUAS vezes na semana de 25/08 a 01/09/2026; escrever ali seria
-# refazer o trabalho a cada atualização, com janela de binário sobrescrito no
-# meio.
-#
-# `~/.local/bin` VEM ANTES DE `/usr/bin` NO PATH DA SESSÃO DELA — medido no
-# `environ` dos processos vivos em 01/09/2026:
-#     PATH=~/.cargo/bin:~/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:…
-# e os dois são lançados por NOME, não por caminho absoluto: o `.desktop` do
-# pacote diz `Exec=cosmic-files %U`, e o applet nasce como filho do
-# `cosmic-panel` com a cmdline `cosmic-files-applet`. Então um arquivo nosso em
-# `~/.local/bin` vence o do pacote no próximo lançamento, sem sudo, sem tocar em
-# território de ninguém, e sem que um `apt upgrade` tenha o que desfazer.
-#
-# ============================================================================
-# 3. A REGRA QUE IMPEDE O BINÁRIO VELHO DE FICAR NO AR: FALHAR PARA O UPSTREAM
-# ============================================================================
-# O artefato é guardado POR VERSÃO DO PACOTE. Quando o `apt` sobe a versão e não
-# há artefato para a nova, este script REMOVE os nossos e deixa o do pacote
-# valer — perde-se os dois itens do menu até o próximo build, e ganha-se a
-# certeza de que ela nunca fica com um gerenciador de arquivos de uma semana
-# atrás vencendo o que o apt acabou de instalar.
-#
-# É O CONTRÁRIO DO QUE O `aurora-cosmic-comp-ws.sh` FAZ, e de propósito: lá o
-# binário patchado é o compositor, e ficar sem ele é ficar sem sessão, então
-# vale segurar o velho até o build novo. Aqui o custo de falhar para o upstream
-# é dois itens de menu a menos por alguns minutos.
-#
-# ============================================================================
-# 4. O BUILD, E POR QUE ELE NÃO RODA DENTRO DE UM TIQUE
-# ============================================================================
-# São 161 MB de fonte e ~4 min de compilação (medido: 28,9 s para o
-# `cosmic-files` e 1 min 23 s para o applet, incrementais, sobre uma árvore já
-# construída; a primeira vez é bem mais). Um `--conferir` que compilasse
-# seguraria o `meow doctor` por minutos. Então:
-#   `aplicar`/`--conferir`  nunca compilam;
-#   `build`                 compila, e é o que ela (ou o auto-build) chama;
-#   auto-build              `systemd-run` numa unit transitória de nome fixo,
-#                           Nice=19 e IO idle, no máximo 3 tentativas por versão.
-# As guardas são as mesmas do irmão do cosmic-comp, pelas mesmas razões
-# medidas lá: unit de nome fixo não empilha, carimbo por versão limita as
-# tentativas, e jogo aberto adia.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -75,14 +18,8 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 FILES_MENU="${FILES_MENU:-sim}"
 FILES_MENU_AUTOBUILD="${FILES_MENU_AUTOBUILD:-sim}"
 
-# UM PATCH POR GERAÇÃO DO `cosmic-files`, DO MAIS NOVO PARA O MAIS VELHO — P76.
-#   O 1.10 (ac5cef7) reescreveu o menu da área de trabalho: `menu_item(...)`
-#   deixou de levar `.into()` e cada chamada virou bloco de várias linhas
-#   (`docs/pesquisas/2026-10-09-cosmic-vivo.md` §2.2). É mudança de API, não só
-#   de contexto: nenhum fuzz faz o patch do 1.9 entrar ali, e o do 1.10 não
-#   compila no 1.9. Então os dois ficam, e o build tenta um por um com
-#   `--dry-run -F0`: o primeiro que encosta limpo é o desta versão. Quem
-#   rebasear para uma geração nova põe o arquivo novo NO TOPO da lista.
+# É mudança de API, não só de contexto: nenhum fuzz faz o patch do 1.9 entrar
+# ali, e o do 1.10 não compila no 1.9.
 PATCHES=(
   "$MEOW_RAIZ/patches/cosmic-files-wallpaper-menu.patch"       # 1.10 em diante
   "$MEOW_RAIZ/patches/cosmic-files-wallpaper-menu-1.9.patch"   # 1.8 e 1.9
@@ -119,10 +56,7 @@ tudo_no_ar() {
 # 0 = não havia nada nosso · 1 = removi (ou removeria)
 #
 # O RETORNO SEGUE O CONTRATO DO PROJETO, E NÃO O `&&` DO SHELL, e a diferença
-# custou a convergência da instalação. Os três chamadores escreviam
-# `remover_nossos && …`, que dispara quando o retorno é ZERO — ou seja,
-# exatamente quando NÃO havia o que remover. Os efeitos, todos medidos em
-# 06/09/2026 num HOME de teste:
+# custou a convergência da instalação.
 #
 #   - a etapa dizia "(removi o nosso, que era de outra versão)" em toda
 #     passagem, sobre um diretório vazio;
@@ -131,9 +65,6 @@ tudo_no_ar() {
 #     alguém olhar;
 #   - `files_menu.sh remover` dizia "removidos" quando não havia nada, e
 #     "não havia nada nosso instalado" logo depois de apagar dois binários.
-#
-# Manter o 1 para "mudei" é o certo — é o que o `MEOW_DIVERGENTE` quer dizer no
-# projeto inteiro. Quem tinha de mudar era quem chama, e agora compara o código.
 remover_nossos() {
   local b n=0
   for b in "${BINS[@]}"; do
@@ -151,29 +82,24 @@ cmd_aplicar() {
     remover_nossos
     if [ "$?" = "1" ]; then
       meow_muda "FILES_MENU=\"$FILES_MENU\" — itens de papel de parede removidos do menu"
-    else
-      meow_pula "FILES_MENU=\"$FILES_MENU\" — o menu de contexto fica de fábrica"
+      # 1 QUANDO TIROU (ou tiraria).
+      return "$MEOW_DIVERGENTE"
     fi
+    meow_pula "FILES_MENU=\"$FILES_MENU\" — o menu de contexto fica de fábrica"
     return "$MEOW_OK"; }
 
   ver="$(versao_do_pacote)"
   [ -n "$ver" ] || { meow_pula "o cosmic-files não está instalado por pacote — nada a vestir"; return "$MEOW_SEM_DEPENDENCIA"; }
   dir="$(artefato_de "$ver")"
 
-  # A REGRA 3 DO CABEÇALHO, e ela vem ANTES de qualquer coisa: sem artefato para
-  # a versão de agora, o nosso sai da frente. Um binário de outra versão
-  # vencendo o que o apt acabou de instalar é pior que dois itens de menu a
-  # menos.
+  # Um binário de outra versão vencendo o que o apt acabou de instalar é pior
+  # que dois itens de menu a menos.
   if [ ! -d "$dir" ]; then
     remover_nossos; [ "$?" = "1" ] && mudou=1
     meow_aviso "não há build patchado para o cosmic-files $ver — o do pacote está valendo"
     if [ "$mudou" = "1" ]; then
       meow_info "  (removi o nosso, que era de outra versão)"
     fi
-    # [P79, item 5: «para construir agora: meow files-menu build» era a tela
-    #   mandando digitar. No ensaio, diz o que o conserto faria; sem o
-    #   auto-build, a pendência `files-menu-build`, que o painel liga ao
-    #   «Construir o menu da área de trabalho».]
     disparar_autobuild "$ver" || {
       if meow_seco; then
         meow_muda "construiria o menu de contexto do cosmic-files $ver, em segundo plano"
@@ -183,25 +109,20 @@ cmd_aplicar() {
           "meow files-menu build"
       fi
     }
-    # 1 SÓ QUANDO ESTA PASSAGEM ESCREVEU. Sem artefato para a versão instalada,
-    # não há nada que ESTE script possa fazer agora: quem constrói é uma unit em
-    # background, que leva minutos e baixa 161 MB. Devolver 1 aqui fazia o
-    # instalador contar `files_menu` em `mexeu:` em TODA passagem, e o
-    # `tests/convergencia.sh` reprovar na terceira sobre um passo que não tinha
-    # escrito um byte — a instalação parecia não convergir, e convergia.
+    # Sem artefato para a versão instalada, não há nada que ESTE script possa
+    # fazer agora: quem constrói é uma unit em background, que leva minutos e
+    # baixa 161 MB.
     #
     # O 4 é o "está pendente e não há conserto nosso possível" que o
     # `fastfetch_logo.sh` já usa, e que o `concluir` do install.sh lê como
-    # pulado. Quando o binário velho SAIU do caminho, aí sim houve escrita, e o
-    # 1 volta a ser a verdade.
+    # pulado.
     [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
     return 4
   fi
 
-  # O ARTEFATO EXISTE: seja lá quem o construiu, a pendência do auto-build
-  # deixou de ser verdade. A irmã no caminho feliz é obrigatória (lib/comum.sh),
-  # e ela precisa estar AQUI e não só no fim do `build`: um `construindo`
-  # gravado antes de um reinício sobreviveria à unit que o apagaria.
+  # A irmã no caminho feliz é obrigatória (lib/comum.sh), e ela precisa estar
+  # AQUI e não só no fim do `build`: um `construindo` gravado antes de um
+  # reinício sobreviveria à unit que o apagaria.
   meow_pendencia_resolvida files-menu-build
 
   mkdir -p "$DESTINO" 2>/dev/null || { meow_erro "não consegui criar $DESTINO"; return "$MEOW_ERRO"; }
@@ -219,15 +140,13 @@ cmd_aplicar() {
     mudou=1
   done
 
-  # O SECO SEM MUDANÇA DESCE ATÉ O `ok` LÁ DE BAIXO — P75, 09/10/2026. Ele
-  # voltava 0 daqui, calado, e a linha `files_menu` do doctor saía vazia
-  # (achado 5 de 09/10): a tabela mostra a primeira linha do conferidor, e o
-  # conferidor no lugar não dizia nada.
+  # Ele voltava 0 daqui, calado, e a linha `files_menu` do doctor saía
+  # vazia: a tabela mostra a primeira linha do conferidor, e o conferidor no
+  # lugar não dizia nada.
   if meow_seco && [ "$mudou" = "1" ]; then return "$MEOW_DIVERGENTE"; fi
   if [ "$mudou" = "1" ]; then
     meow_ok "menu de contexto vestido: avançar e voltar papel de parede ($ver)"
-    meow_info "  vale nas janelas NOVAS; a área de trabalho pega no próximo login"
-    meow_info "  ou agora, com: meow painel reciclar"
+    meow_info "  vale nas janelas novas; a área de trabalho no próximo login"
     return "$MEOW_DIVERGENTE"
   fi
   meow_ok "menu de contexto já tem avançar/voltar papel de parede ($ver)"
@@ -256,16 +175,17 @@ cmd_build() {
   trap 'rm -rf "$tmpdir"' RETURN
 
   meow_info "baixando o fonte do cosmic-files $ver…"
-  ( cd "$tmpdir" && apt-get source cosmic-files ) >/dev/null 2>&1 \
+  # Sem ele o apt baixa o CANDIDATO, e o build do login roda justamente entre
+  # um `apt update` e o upgrade: o fonte de outra versão iria para o
+  # diretório desta.
+  ( cd "$tmpdir" && apt-get source "cosmic-files=$ver" ) >/dev/null 2>&1 \
     || { meow_erro "apt-get source falhou — o deb-src está habilitado?"; return "$MEOW_ERRO"; }
   fonte="$(find "$tmpdir" -maxdepth 1 -type d -name 'cosmic-files-*' | head -1)"
   [ -n "$fonte" ] || { meow_erro "não achei a árvore de fonte baixada"; return "$MEOW_ERRO"; }
 
-  # IDEMPOTÊNCIA POR MARCADOR, NUNCA PELO CÓDIGO DE SAÍDA DO `patch`:
-  # `patch --forward` devolve 1 tanto para "já aplicado" quanto para erro. É a
-  # mesma lição que o `patches/LEIA-ME.txt` registra ter custado caro.
-  # `-F0` NO DRY-RUN: com fuzz o patch de uma geração pode "entrar" na outra
-  # num lugar errado, e é exatamente a geração que o dry-run está escolhendo.
+  # IDEMPOTÊNCIA POR MARCADOR, NUNCA PELO CÓDIGO DE SAÍDA DO `patch`: `patch
+  # --forward` devolve 1 tanto para "já aplicado" quanto para erro. É a mesma
+  # lição que o `patches/LEIA-ME.txt` registra ter custado caro.
   if ! grep -rq -- "$MARCA" "$fonte/src/app.rs" 2>/dev/null; then
     local p
     for p in "${PATCHES[@]}"; do
@@ -311,10 +231,9 @@ disparar_autobuild() {
 
   f="$(tentativa_de "$ver")"; n=0; [ -f "$f" ] && n="$(wc -l < "$f")"
   if [ "$n" -ge "$MAX_TENTATIVAS" ]; then
-    # O `journalctl` que ficava aqui saiu — 22/09/2026, sprint P2. Ele era
-    # receita de terminal dentro de mensagem, e pior: a receita que a pessoa
-    # não pode usar, porque ler o journal não conserta nada. Agora a pendência
-    # carrega o estado E o comando que de fato tenta de novo.
+    # O `journalctl` que ficava aqui saiu Ele era receita de terminal dentro
+    # de mensagem, e pior: a receita que a pessoa não pode usar, porque ler o
+    # journal não conserta nada.
     meow_pendencia_acionavel files-menu-build \
       "O menu de contexto de papel de parede não compilou em $n tentativas e parei de tentar sozinha" \
       "meow files-menu build"
@@ -325,42 +244,23 @@ disparar_autobuild() {
   # Unit de NOME FIXO: o systemd recusa a segunda enquanto a primeira roda, e é
   # isso que impede dois builds no mesmo diretório quando o doctor e um
   # `install.sh` caem juntos.
-  # `SuccessExitStatus=1 3` — E ELE FALTAVA NA PRIMEIRA VERSÃO, medido no
-  # primeiro auto-build de verdade (01/09/2026, 16:49): o build funcionou, o
-  # binário foi instalado, e o journal registrou
-  # `Failed with result 'exit-code'` porque `cmd_build` devolve 1, que neste
-  # projeto é "estava divergente e eu consertei". Uma unit que fica `failed`
-  # depois de um sucesso ensina a ignorar `failed` — é o mesmo motivo pelo qual
-  # o `meow-logo.service` tem esta linha.
-  # O AUTO-BUILD DEIXOU DE DISPARAR E SUMIR — 22/09/2026, sprint P2
-  #   A sprint atribuiu esta linha ao `compositor_patches.sh`; ela mora aqui (o
-  #   irmão do cosmic-comp não tem auto-build — `grep -n DISPARADO` em
-  #   scripts/ devolve só este arquivo). O deliverable é o mesmo: o estado fica
-  #   visível, e tem três valores. `construindo` é este; `pronto` e `falhou`
-  #   saem do `case` do fim do arquivo, quando o `build` que esta unit dispara
-  #   termina; e o caminho feliz do `cmd_aplicar` apaga a linha quando o
-  #   artefato aparece, que é a irmã obrigatória do lib/comum.sh.
   #
-  #   A ESCRITA VEM ANTES DO `systemd-run`, E A ORDEM É O CONTRATO. A unit
-  #   escreve `pronto` quando termina; registrar `construindo` DEPOIS de
-  #   dispará-la abriria a janela em que um build que acaba rápido (artefato já
-  #   pronto para a versão) é sobrescrito por um `construindo` que ninguém mais
-  #   apaga — a caixa de entrada que não esvazia.
-  #
-  #   SEM COMANDO de propósito: enquanto a unit trabalha não há o que clicar, e
-  #   um botão que dispara um segundo build sobre o primeiro promete conserto e
-  #   entrega briga por diretório.
+  # SEM COMANDO de propósito: enquanto a unit trabalha não há o que clicar, e
+  # um botão que dispara um segundo build sobre o primeiro promete conserto e
+  # entrega briga por diretório.
   meow_pendencia_acionavel files-menu-build \
     "Construindo o menu de contexto de papel de parede em segundo plano (tentativa $((n+1)) de $MAX_TENTATIVAS) — leva alguns minutos e não precisa de você" \
     ""
 
+  # O `build` que ela chama continua fechando a pendência (o `case` do fim
+  # deste arquivo).
   if systemd-run --user --unit=meow-files-menu-build --collect \
        --description="build do cosmic-files patchado ($ver)" \
        --property=SuccessExitStatus="1 3" \
        --property=Nice=19 --property=CPUWeight=10 \
        --property=IOWeight=10 --property=IOSchedulingClass=idle \
        --setenv=MEOW_RAIZ="$MEOW_RAIZ" \
-       "$MEOW_RAIZ/scripts/files_menu.sh" build >/dev/null 2>&1; then
+       "$MEOW_RAIZ/scripts/garantir_builds.sh" >/dev/null 2>&1; then
     meow_info "  auto-build DISPARADO em background (tentativa $((n+1))/$MAX_TENTATIVAS)"
   else
     meow_info "  auto-build já em andamento"
@@ -389,20 +289,9 @@ cmd_estado() {
 case "${1:-aplicar}" in
   aplicar)             cmd_aplicar ;;
   --conferir|conferir) MEOW_SECO=1; cmd_aplicar ;;
-  # O `build` É QUEM FECHA O ESTADO DO AUTO-BUILD — 22/09/2026, sprint P2.
   # Esta é a ponta `pronto`/`falhou` da pendência que o `disparar_autobuild`
   # abre como `construindo`: a unit do systemd roda exatamente esta linha, e
   # sem ela o `construindo` ficaria na Home para sempre.
-  #
-  # 0 e 1 são os dois sucessos do projeto ("já estava" e "construí"). 2 e 3
-  # falham, e falham DIFERENTE — por isso não dividem a mesma linha:
-  #   2 é erro do build (rede, patch que não aplicou, cargo que quebrou), e
-  #     tentar de novo é conserto plausível: ganha o botão.
-  #   3 é dependência faltando (sem cargo, sem apt-get). O botão aqui seria o
-  #     de sempre e falharia igual — instalar compilador é decisão dela, e
-  #     `apt install` não cabe nos oito verbos da ponte root. Então a mensagem
-  #     diz A DECISÃO e a linha nasce sem botão, que é a terceira saída da
-  #     sprint.
   build)               cmd_build; rc_build=$?
                        case "$rc_build" in
                          0|1) meow_pendencia_resolvida files-menu-build ;;

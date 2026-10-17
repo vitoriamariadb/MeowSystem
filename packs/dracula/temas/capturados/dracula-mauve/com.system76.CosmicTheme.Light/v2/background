@@ -3,7 +3,7 @@
     component: (
         base: "#ECEDFAD9",
         hover: "#EAEBF7DD",
-        pressed: "#E9EAF5E1",
+        pressed: "#B6B7C2E1",
         selected: "#EAEBF7DD",
         selected_text: "#853AF2FF",
         focus: "#853AF2FF",

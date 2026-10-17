@@ -1,62 +1,14 @@
 #!/usr/bin/env bash
 # sem-receita-no-log.sh — nenhuma etapa termina em "faça você mesmo".
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 22/09/2026
-#   Ele não reclamou de dezoito coisas. Reclamou de UMA, dezoito vezes:
+# Uma etapa que sabe o conserto ou FAZ, ou oferece um botão que faz
+# (`meow_pendencia_acionavel`, lib/comum.sh). Quando nem o botão é possível —
+# porque o que falta é decisão humana genuína —, a mensagem diz A DECISÃO, e não
+# a receita.
 #
-#     O app descobre o problema, sabe o conserto, e manda a pessoa consertar.
-#
-#   A sprint P2 mediu seis provas no log da própria máquina dele — `areas.sh`
-#   mandando alfinetar pelo COSMIC, o `spotify/manifesto.sh` com um `git clone`
-#   dentro de um `meow_info`, o `prompt.sh` com um `curl | sh`, o
-#   `qbittorrent/manifesto.sh` delegando a um script de outro projeto, o
-#   `fastfetch_logo.sh` com a conta pronta e o conserto por fazer. Todas com a
-#   mesma forma: diagnóstico certo, conserto conhecido, nenhum botão.
-#
-#   "Um engenheiro lê isso como cortesia; um designer leigo lê como «o programa
-#   desistiu»."
-#
-# A REGRA QUE ESTE TESTE COBRA
-#   Uma etapa que sabe o conserto ou FAZ, ou oferece um botão que faz
-#   (`meow_pendencia_acionavel`, lib/comum.sh). Quando nem o botão é possível —
-#   porque o que falta é decisão humana genuína —, a mensagem diz A DECISÃO, e
-#   não a receita.
-#
-#   Na prática, o que o teste procura é a receita: uma linha de `meow_info` ou
-#   `meow_aviso` que carregue `curl | sh`, `git clone` ou `apt install` (em
-#   qualquer das duas grafias, `apt` e `apt-get`). Esses três são o formato de
-#   uma instalação copiável — o sinal mais barato e mais confiável de que a
-#   frase virou tutorial.
-#
-# O `apt-get` ENTROU NA REVISÃO DE 22/09/2026, E COM UM CASO VIVO NO REPO
-#   A primeira versão casava só a substring `apt install`, e por isso
-#   `scripts/instalar_fontes.sh:380` — `sudo apt-get install curl tar …` —
-#   passava VERDE: mesma classe das cinco isentas, mesmo motivo, e nenhuma
-#   isenção escrita. Um teste que aprova por omissão do detector é pior que um
-#   teste ausente, porque quem lê o verde acha que a classe inteira foi olhada.
-#
-#   A revisão apontou UMA linha; o detector corrigido achou TRÊS, todas no
-#   mesmo arquivo (`instalar_fontes.sh`, linhas 292, 380 e 412). São OITO dessa
-#   classe, não cinco nem seis, e agora as oito estão na lista abaixo com o
-#   motivo ao lado — que é o ponto da isenção explícita: ela conta quantas são.
-#
-# POR QUE SÓ ESSES TRÊS, E NÃO UMA GRAMÁTICA DE RECEITA
-#   Porque um detector esperto de "isto parece um comando" acusaria toda frase
-#   que cita o nome de um arquivo, e um teste que grita demais é desligado na
-#   segunda semana. Três padrões literais, zero falso positivo fora da lista de
-#   isenção, e o resto fica com a revisão humana — que é onde ele já estava.
-#
-# AS ISENÇÕES CASAM PELO CONTEÚDO DA LINHA, NUNCA PELO NÚMERO
-#   Mesma disciplina do `tests/portabilidade.sh`, e pelo mesmo motivo escrito
-#   lá: isenção presa a número apodrece no primeiro rebase, e o teste fica verde
-#   sobre o defeito que veio pegar. Cada isenção abaixo carrega o motivo na
-#   mesma entrada.
-#
-# ESTE ARQUIVO NÃO SE VARRE, e nem o `lib/comum.sh`: o primeiro carrega, por
-# definição, todos os padrões que caça; o segundo DEFINE `meow_info` e
-# `meow_aviso`, e as linhas onde eles nascem não são mensagens.
-#
-#   0 = nenhuma receita solta no log · 1 = achados · 2 = erro deste teste
+# Na prática, o que o teste procura é a receita: uma linha de `meow_info` ou
+# `meow_aviso` que carregue `curl | sh`, `git clone` ou `apt install` (em
+# qualquer das duas grafias, `apt` e `apt-get`).
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$RAIZ" || exit 2
@@ -71,25 +23,14 @@ acusa() {
   achados=$((achados+1))
 }
 
-# ---------------------------------------------------------------------------
 # AS ISENÇÕES, uma a uma, com o motivo ao lado
-# ---------------------------------------------------------------------------
-# Cada entrada é um trecho LITERAL da linha isenta (comparação por substring,
-# sem regex). Tudo o que não estiver aqui é achado.
 #
-# AS OITO ISENÇÕES DE 22/09 ERAM A MESMA, OITO VEZES: `sudo apt[-get] install`.
+# Cada entrada é um trecho LITERAL da linha isenta (comparação por substring,
+# sem regex).
+#
 #   O argumento era que a ponte root não tinha verbo de pacote, e terminava
 #   assim: "O dia em que a ponte ganhar um verbo de pacote, estas oito viram
 #   botão e a isenção para de casar sozinha."
-#
-#   ESSE DIA FOI 09/10/2026 (P75), e a isenção NÃO parou de casar sozinha — foi
-#   o contrário que aconteceu antes dele: com a frase do Papirus isenta à mão,
-#   ela voltou ERRADA (`sudo apt install papirus-icon-theme` numa máquina que
-#   tinha o Papirus) e este teste seguiu verde (01-regressoes.md, D1 e «Por que
-#   voltou», item 4). A ponte ganhou o verbo `pacotes`, o doctor instala pela
-#   ponte, e as sete frases que o doctor alcançava saíram do código. Fica UMA:
-#   a do `lib/preflight.sh`, que fala ANTES de existir ponte — no primeiro
-#   `./install.sh`, que é justamente quem pede a senha e a instala.
 ISENTAS=(
   'meow_info "      sudo apt install ${faltam_apt% }"'
 )
@@ -102,12 +43,9 @@ isenta() {
   return 1
 }
 
-# ---------------------------------------------------------------------------
-# a varredura
-# ---------------------------------------------------------------------------
-# `-print0`/`read -d ''` porque nome de arquivo pode ter espaço, e um `for` sobre
-# `$(find)` partiria o caminho no meio — a armadilha que o resto da suíte já
-# evita do mesmo jeito.
+# `-print0`/`read -d ''` porque nome de arquivo pode ter espaço, e um `for`
+# sobre `$(find)` partiria o caminho no meio — a armadilha que o resto da suíte
+# já evita do mesmo jeito.
 while IFS= read -r -d '' arq; do
   case "$arq" in
     "./$EU"|./lib/comum.sh) continue ;;
@@ -132,7 +70,7 @@ while IFS= read -r -d '' arq; do
       *'git clone'*)                   motivo="receita de \`git clone\` dentro de uma mensagem" ;;
       # As duas grafias do mesmo comando. `apt-get` é a que os scripts usam
       # quando querem a interface estável; `apt`, a que a pessoa digita. Casar
-      # só uma deixa a outra passar, e foi o que aconteceu até 22/09/2026.
+      # só uma deixa a outra passar, e foi o que aconteceu.
       *'apt install'*|*'apt-get install'*)
                                        motivo="receita de \`apt install\` dentro de uma mensagem" ;;
     esac

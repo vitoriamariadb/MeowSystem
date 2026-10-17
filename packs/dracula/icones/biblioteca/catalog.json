@@ -1,4 +1,256 @@
 {
+  "005-potion.svg": {
+    "cores_dominantes": [
+      "#d9d9d9",
+      "#7c49a8",
+      "#ededed",
+      "#f0f0f0",
+      "#33b5c6"
+    ],
+    "descricao": "poção",
+    "nome": "005-potion",
+    "tags": [
+      "fantasia_magia"
+    ],
+    "tamanho_bytes": 3400
+  },
+  "007-mobile-game.svg": {
+    "cores_dominantes": [
+      "#ed55a9",
+      "#ffde56",
+      "#574d70",
+      "#dd98f2",
+      "#d6dfe8"
+    ],
+    "descricao": "jogo de celular",
+    "nome": "007-mobile-game",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 5365
+  },
+  "009-crystal-ball.svg": {
+    "cores_dominantes": [
+      "#daf0f6",
+      "#189681",
+      "#1b4450",
+      "#edc555",
+      "#384e64"
+    ],
+    "descricao": "bola de cristal",
+    "nome": "009-crystal-ball",
+    "tags": [
+      "fantasia_magia"
+    ],
+    "tamanho_bytes": 11240
+  },
+  "016-galaxy.svg": {
+    "cores_dominantes": [
+      "#b26cde",
+      "#9d4ad3",
+      "#fd7e31",
+      "#c78fe8",
+      "#fbb362"
+    ],
+    "descricao": "galáxia",
+    "nome": "016-galaxy",
+    "tags": [
+      "espaco_scifi"
+    ],
+    "tamanho_bytes": 9807
+  },
+  "020-halloween.svg": {
+    "cores_dominantes": [
+      "#d863bb",
+      "#d9d9d9",
+      "#282942",
+      "#393a59",
+      "#ededed"
+    ],
+    "descricao": "halloween",
+    "nome": "020-halloween",
+    "tags": [
+      "halloween_doces"
+    ],
+    "tamanho_bytes": 9119
+  },
+  "026-building.svg": {
+    "cores_dominantes": [
+      "#3ac184",
+      "#31af7d",
+      "#574d70",
+      "#3fc0dd",
+      "#ed55a9"
+    ],
+    "descricao": "prédio",
+    "nome": "026-building",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 3992
+  },
+  "030-lantern.svg": {
+    "cores_dominantes": [
+      "#333031",
+      "#231f20",
+      "#ef8318",
+      "#ffd00d",
+      "#eef6ff"
+    ],
+    "descricao": "lanterna",
+    "nome": "030-lantern",
+    "tags": [
+      "gotico"
+    ],
+    "tamanho_bytes": 12035
+  },
+  "040-scarecrow.svg": {
+    "cores_dominantes": [
+      "#313b5a",
+      "#a63914",
+      "#ed771b",
+      "#c55835",
+      "#68fcdf"
+    ],
+    "descricao": "espantalho",
+    "nome": "040-scarecrow",
+    "tags": [
+      "halloween_doces"
+    ],
+    "tamanho_bytes": 6642
+  },
+  "041-scroll.svg": {
+    "cores_dominantes": [
+      "#ffef87",
+      "#614182",
+      "#edc555",
+      "#ffe473",
+      "#c9993f"
+    ],
+    "descricao": "pergaminho",
+    "nome": "041-scroll",
+    "tags": [
+      "fantasia_magia"
+    ],
+    "tamanho_bytes": 3241
+  },
+  "043-scythe.svg": {
+    "cores_dominantes": [
+      "#282942",
+      "#d9d9d9",
+      "#e0554a",
+      "#f0f0f0",
+      "#ef7064"
+    ],
+    "descricao": "foice",
+    "nome": "043-scythe",
+    "tags": [
+      "gotico"
+    ],
+    "tamanho_bytes": 8486
+  },
+  "045-computer-game.svg": {
+    "cores_dominantes": [
+      "#ed55a9",
+      "#3fc0dd",
+      "#6b6889",
+      "#463f5b",
+      "#574d70"
+    ],
+    "descricao": "jogo de computador",
+    "nome": "045-computer-game",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 6643
+  },
+  "AtomicGameEngine.svg": {
+    "cores_dominantes": [
+      "#ccf24e",
+      "#585950",
+      "#4c4d47",
+      "#d2ef71"
+    ],
+    "descricao": "motor de jogos Atomic",
+    "nome": "AtomicGameEngine",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 7238
+  },
+  "BTORRENT.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#666666",
+      "#85a7bf",
+      "#bc564b",
+      "#f6edff"
+    ],
+    "descricao": "cliente de torrent BTorrent",
+    "nome": "BTORRENT",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 7137
+  },
+  "Kazam.svg": {
+    "cores_dominantes": [
+      "#3e5d69",
+      "#a15d8e",
+      "#d7d7d7"
+    ],
+    "descricao": "gravador de tela Kazam",
+    "nome": "Kazam",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 511
+  },
+  "LogAnalyzer.svg": {
+    "cores_dominantes": [
+      "#efe6b5",
+      "#ebe1a5",
+      "#f5efef",
+      "#bfbfbf",
+      "#a1d4ed"
+    ],
+    "descricao": "analisador de registros LogAnalyzer",
+    "nome": "LogAnalyzer",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3035
+  },
+  "PySimpleCV.svg": {
+    "cores_dominantes": [
+      "#dbdb57",
+      "#dfdf68",
+      "#586265",
+      "#cea862",
+      "#f9f9f9"
+    ],
+    "descricao": "visão computacional PySimpleCV",
+    "nome": "PySimpleCV",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2481
+  },
+  "SPEEDTEST.svg": {
+    "cores_dominantes": [
+      "#f2f2f2",
+      "#000000",
+      "#ffffff",
+      "#ffab00",
+      "#ebee00"
+    ],
+    "descricao": "teste de velocidade da internet",
+    "nome": "SPEEDTEST",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 20405
+  },
   "air-hockey.svg": {
     "cores_dominantes": [
       "#463f5b",
@@ -44,6 +296,21 @@
     ],
     "tamanho_bytes": 13935
   },
+  "alpaca.svg": {
+    "cores_dominantes": [
+      "#63616b",
+      "#a9a27a",
+      "#a0986c",
+      "#82b6d9",
+      "#b3ceef"
+    ],
+    "descricao": "Alpaca, conversa com modelos de IA locais",
+    "nome": "alpaca",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2918
+  },
   "amphora.svg": {
     "cores_dominantes": [
       "#a0391e",
@@ -73,6 +340,77 @@
       "mitologia"
     ],
     "tamanho_bytes": 8190
+  },
+  "app-launcher.svg": {
+    "cores_dominantes": [
+      "#e3695b",
+      "#85a2d6",
+      "#83ba6e",
+      "#e4e4e4"
+    ],
+    "descricao": "lançador de aplicativos",
+    "nome": "app-launcher",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2335
+  },
+  "application-vnd.ms-cab-compressed.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#666666",
+      "#869296",
+      "#f9f9f9",
+      "#fffff4"
+    ],
+    "descricao": "arquivo compactado CAB",
+    "nome": "application-vnd.ms-cab-compressed",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 5815
+  },
+  "application-x-dreamcast-rom.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#e67d4a",
+      "#ed9a73",
+      "#000000"
+    ],
+    "descricao": "ROM de Dreamcast",
+    "nome": "application-x-dreamcast-rom",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2361
+  },
+  "application-x-genesis-rom.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#4f4f4f",
+      "#696969"
+    ],
+    "descricao": "ROM de Mega Drive",
+    "nome": "application-x-genesis-rom",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 1802
+  },
+  "arcade-antigo.svg": {
+    "cores_dominantes": [
+      "#574d70",
+      "#ffe584",
+      "#463f5b",
+      "#db428f",
+      "#ed55a9"
+    ],
+    "descricao": "fliperama antigo",
+    "nome": "arcade-antigo",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 8578
   },
   "arcade.svg": {
     "cores_dominantes": [
@@ -134,6 +472,45 @@
     ],
     "tamanho_bytes": 8868
   },
+  "atoms.svg": {
+    "cores_dominantes": [
+      "#584c94",
+      "#504587",
+      "#6765cd",
+      "#f1920e",
+      "#dd8913"
+    ],
+    "descricao": "átomos",
+    "nome": "atoms",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 2097
+  },
+  "audio-volume-high-warning-symbolic.svg": {
+    "cores_dominantes": [
+      "#dfdfdf",
+      "#4285f4",
+      "#ff9800",
+      "#4caf50",
+      "#f44336"
+    ],
+    "descricao": "volume alto, com alerta",
+    "nome": "audio-volume-high-warning-symbolic",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 790
+  },
+  "aurora-iniciar.svg": {
+    "descricao": "gato lilás da aurora (ícone de iniciar, 04/08)",
+    "nome": "aurora-iniciar",
+    "tags": [
+      "gato",
+      "aurora",
+      "iniciar"
+    ]
+  },
   "axe.svg": {
     "cores_dominantes": [
       "#dad9dd",
@@ -148,6 +525,18 @@
       "objetos_ferramentas"
     ],
     "tamanho_bytes": 6228
+  },
+  "bad-marker.svg": {
+    "cores_dominantes": [
+      "#363636",
+      "#d35f5f"
+    ],
+    "descricao": "marcador de erro",
+    "nome": "bad-marker",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 217
   },
   "bag.svg": {
     "cores_dominantes": [
@@ -194,6 +583,19 @@
     ],
     "tamanho_bytes": 6978
   },
+  "basex.svg": {
+    "cores_dominantes": [
+      "#ce5952",
+      "#c94840",
+      "#474747"
+    ],
+    "descricao": "banco de dados BaseX",
+    "nome": "basex",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1516
+  },
   "bat.svg": {
     "cores_dominantes": [
       "#282942",
@@ -222,6 +624,66 @@
       "gotico"
     ],
     "tamanho_bytes": 8927
+  },
+  "battery-030-charging-profile-performance.svg": {
+    "cores_dominantes": [
+      "#444444",
+      "#4285f4",
+      "#ff9800",
+      "#4caf50",
+      "#f44336"
+    ],
+    "descricao": "bateria em 30%, carregando, no perfil de desempenho",
+    "nome": "battery-030-charging-profile-performance",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1851
+  },
+  "battery-080-charging-profile-balanced.svg": {
+    "cores_dominantes": [
+      "#444444",
+      "#4285f4",
+      "#ff9800",
+      "#4caf50",
+      "#f44336"
+    ],
+    "descricao": "bateria em 80%, carregando, no perfil equilibrado",
+    "nome": "battery-080-charging-profile-balanced",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1675
+  },
+  "battery-100-charging-profile-balanced.svg": {
+    "cores_dominantes": [
+      "#444444",
+      "#4285f4",
+      "#ff9800",
+      "#4caf50",
+      "#f44336"
+    ],
+    "descricao": "bateria cheia, carregando, no perfil equilibrado",
+    "nome": "battery-100-charging-profile-balanced",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1442
+  },
+  "bibfilex.svg": {
+    "cores_dominantes": [
+      "#d6d8d9",
+      "#e7c9a1",
+      "#ebd3b2",
+      "#c3832d",
+      "#979898"
+    ],
+    "descricao": "gerenciador de bibliografia Bibfilex",
+    "nome": "bibfilex",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 5513
   },
   "bible.svg": {
     "cores_dominantes": [
@@ -253,6 +715,19 @@
     ],
     "tamanho_bytes": 7120
   },
+  "bitshares-ui.svg": {
+    "cores_dominantes": [
+      "#47c0ed",
+      "#35baeb",
+      "#f9f9f9"
+    ],
+    "descricao": "carteira BitShares",
+    "nome": "bitshares-ui",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3354
+  },
   "black-cat.svg": {
     "cores_dominantes": [
       "#20273a",
@@ -268,6 +743,19 @@
     ],
     "tamanho_bytes": 8977
   },
+  "blackbody.svg": {
+    "cores_dominantes": [
+      "#f5ae45",
+      "#f6b75b",
+      "#e16f14"
+    ],
+    "descricao": "corpo negro (Blackbody)",
+    "nome": "blackbody",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2333
+  },
   "blood-transfusion.svg": {
     "cores_dominantes": [
       "#ba0d5c",
@@ -282,6 +770,32 @@
       "utilitarios_conceitos"
     ],
     "tamanho_bytes": 4956
+  },
+  "blue-folder-system.svg": {
+    "cores_dominantes": [
+      "#4662cf",
+      "#5677fc"
+    ],
+    "descricao": "pasta azul do sistema",
+    "nome": "blue-folder-system",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1671
+  },
+  "boilr.svg": {
+    "cores_dominantes": [
+      "#214f74",
+      "#255983",
+      "#f4b67b",
+      "#fbecda"
+    ],
+    "descricao": "BoilR, jogos de outras lojas na Steam",
+    "nome": "boilr",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2860
   },
   "bomb.svg": {
     "cores_dominantes": [
@@ -342,6 +856,21 @@
     ],
     "tamanho_bytes": 9580
   },
+  "box-antigo.svg": {
+    "cores_dominantes": [
+      "#e6a0fa",
+      "#ba623e",
+      "#964f32",
+      "#ffe473",
+      "#ffcd61"
+    ],
+    "descricao": "caixa, desenho antigo",
+    "nome": "box-antigo",
+    "tags": [
+      "objetos_ferramentas"
+    ],
+    "tamanho_bytes": 3013
+  },
   "box.svg": {
     "cores_dominantes": [
       "#c174dc",
@@ -357,6 +886,19 @@
     ],
     "tamanho_bytes": 1767
   },
+  "braid.svg": {
+    "cores_dominantes": [
+      "#d1713c",
+      "#d57e4e",
+      "#474747"
+    ],
+    "descricao": "Braid, jogo de quebra-cabeça",
+    "nome": "braid",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 3416
+  },
   "brain.svg": {
     "cores_dominantes": [
       "#de1065",
@@ -371,6 +913,20 @@
       "utilitarios_conceitos"
     ],
     "tamanho_bytes": 20277
+  },
+  "briar.svg": {
+    "cores_dominantes": [
+      "#74a612",
+      "#8dc71e",
+      "#ecefe6",
+      "#e3e7da"
+    ],
+    "descricao": "mensageiro Briar",
+    "nome": "briar",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2205
   },
   "broken.svg": {
     "cores_dominantes": [
@@ -417,6 +973,29 @@
     ],
     "tamanho_bytes": 13643
   },
+  "brown-user-desktop.svg": {
+    "cores_dominantes": [
+      "#e48a7f",
+      "#faecea"
+    ],
+    "descricao": "área de trabalho, pasta marrom",
+    "nome": "brown-user-desktop",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1104
+  },
+  "bspline.svg": {
+    "cores_dominantes": [
+      "#363636"
+    ],
+    "descricao": "curva B-spline",
+    "nome": "bspline",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 688
+  },
   "bucket.svg": {
     "cores_dominantes": [
       "#323b5a",
@@ -447,6 +1026,19 @@
     ],
     "tamanho_bytes": 8930
   },
+  "buhocms.svg": {
+    "cores_dominantes": [
+      "#d76f6f",
+      "#d35f5f",
+      "#f9f9f9"
+    ],
+    "descricao": "editor de sites BuhoCMS",
+    "nome": "buhocms",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2569
+  },
   "building.svg": {
     "cores_dominantes": [
       "#3ac184",
@@ -461,6 +1053,106 @@
       "utilitarios_conceitos"
     ],
     "tamanho_bytes": 3637
+  },
+  "calendar-black-10.svg": {
+    "cores_dominantes": [
+      "#282828",
+      "#dcdcdc",
+      "#e4e4e4",
+      "#404040",
+      "#868686"
+    ],
+    "descricao": "calendário preto, dia 10",
+    "nome": "calendar-black-10",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 4305
+  },
+  "calendar-black-12.svg": {
+    "cores_dominantes": [
+      "#282828",
+      "#dcdcdc",
+      "#e4e4e4",
+      "#404040",
+      "#868686"
+    ],
+    "descricao": "calendário preto, dia 12",
+    "nome": "calendar-black-12",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 4136
+  },
+  "calendar-blue-26.svg": {
+    "cores_dominantes": [
+      "#20517f",
+      "#dcdcdc",
+      "#e4e4e4",
+      "#3685d6",
+      "#868686"
+    ],
+    "descricao": "calendário azul, dia 26",
+    "nome": "calendar-blue-26",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 5900
+  },
+  "calendar-purple-11.svg": {
+    "cores_dominantes": [
+      "#362f70",
+      "#dcdcdc",
+      "#e4e4e4",
+      "#6c59a6",
+      "#868686"
+    ],
+    "descricao": "calendário roxo, dia 11",
+    "nome": "calendar-purple-11",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 3495
+  },
+  "calendar-red-27.svg": {
+    "cores_dominantes": [
+      "#7f2c20",
+      "#dcdcdc",
+      "#e4e4e4",
+      "#d64936",
+      "#868686"
+    ],
+    "descricao": "calendário vermelho, dia 27",
+    "nome": "calendar-red-27",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 3787
+  },
+  "calligrastage.svg": {
+    "cores_dominantes": [
+      "#b057b8",
+      "#be75c5"
+    ],
+    "descricao": "apresentações Calligra Stage",
+    "nome": "calligrastage",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1169
+  },
+  "calls.svg": {
+    "cores_dominantes": [
+      "#23cdaf",
+      "#20bca0",
+      "#f9f9f9"
+    ],
+    "descricao": "chamadas telefônicas",
+    "nome": "calls",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2030
   },
   "candies-variant.svg": {
     "cores_dominantes": [
@@ -626,6 +1318,21 @@
     ],
     "tamanho_bytes": 4746
   },
+  "cartridges.svg": {
+    "cores_dominantes": [
+      "#f4b8ae",
+      "#f1a99c",
+      "#cd82d4",
+      "#464356",
+      "#506168"
+    ],
+    "descricao": "lançador de jogos Cartridges",
+    "nome": "cartridges",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2508
+  },
   "castle.svg": {
     "cores_dominantes": [
       "#fff",
@@ -716,6 +1423,21 @@
     ],
     "tamanho_bytes": 12500
   },
+  "chatons.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#f0980c",
+      "#a46708",
+      "#f9cc01",
+      "#feca5d"
+    ],
+    "descricao": "logo do Chatons",
+    "nome": "chatons",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 11101
+  },
   "chess.svg": {
     "cores_dominantes": [
       "#463f5b",
@@ -775,6 +1497,36 @@
     ],
     "tamanho_bytes": 8209
   },
+  "chrome-ieicmdpibfnjbmjolkmohnelljmjomoj-Default.svg": {
+    "cores_dominantes": [
+      "#826b94",
+      "#8c779d",
+      "#f1b513",
+      "#7ec232",
+      "#dc704b"
+    ],
+    "descricao": "app web do Chrome",
+    "nome": "chrome-ieicmdpibfnjbmjolkmohnelljmjomoj-Default",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2529
+  },
+  "chrome-ofbpedjdfkboehhknoohhenbpmgcjoik-Default.svg": {
+    "cores_dominantes": [
+      "#e1e1e1",
+      "#ebebeb",
+      "#38b85b",
+      "#ed6359",
+      "#f6cf32"
+    ],
+    "descricao": "app web do Chrome",
+    "nome": "chrome-ofbpedjdfkboehhknoohhenbpmgcjoik-Default",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3273
+  },
   "circle.svg": {
     "cores_dominantes": [
       "#804096",
@@ -787,6 +1539,21 @@
       "utilitarios_conceitos"
     ],
     "tamanho_bytes": 3880
+  },
+  "cleaner.svg": {
+    "cores_dominantes": [
+      "#a5ebce",
+      "#343b41",
+      "#484e55",
+      "#e3b64b",
+      "#c9993f"
+    ],
+    "descricao": "limpeza do sistema",
+    "nome": "cleaner",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2474
   },
   "cleaver.svg": {
     "cores_dominantes": [
@@ -802,6 +1569,21 @@
       "objetos_ferramentas"
     ],
     "tamanho_bytes": 1763
+  },
+  "clima2.svg": {
+    "cores_dominantes": [
+      "#3c5d78",
+      "#384e64",
+      "#40718c",
+      "#fff4a5",
+      "#ffe473"
+    ],
+    "descricao": "previsão do tempo",
+    "nome": "clima2",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 4443
   },
   "clown.svg": {
     "cores_dominantes": [
@@ -846,6 +1628,30 @@
       "mitologia"
     ],
     "tamanho_bytes": 6229
+  },
+  "com.github.bilelmoussaoui.Authenticator.svg": {
+    "cores_dominantes": [],
+    "descricao": "autenticador de dois fatores",
+    "nome": "com.github.bilelmoussaoui.Authenticator",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2839
+  },
+  "com.github.freeeradicals.elements.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#fdfeff",
+      "#f5faff",
+      "#e7f3ff",
+      "#d4eaff"
+    ],
+    "descricao": "tabela periódica Elements",
+    "nome": "com.github.freeeradicals.elements",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 27124
   },
   "computer-game.svg": {
     "cores_dominantes": [
@@ -906,6 +1712,20 @@
       "espaco_scifi"
     ],
     "tamanho_bytes": 10581
+  },
+  "coolero.svg": {
+    "cores_dominantes": [
+      "#e0dee8",
+      "#d3d1e0",
+      "#7c75f0",
+      "#9f98e6"
+    ],
+    "descricao": "controle de ventoinhas Coolero",
+    "nome": "coolero",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 4361
   },
   "corpse.svg": {
     "cores_dominantes": [
@@ -1027,6 +1847,21 @@
     ],
     "tamanho_bytes": 15222
   },
+  "cups-launcher.svg": {
+    "cores_dominantes": [
+      "#f9f9f9",
+      "#424242",
+      "#4d4d4d",
+      "#a0a0a0",
+      "#d2d2d2"
+    ],
+    "descricao": "impressoras (CUPS)",
+    "nome": "cups-launcher",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2858
+  },
   "cyclops.svg": {
     "cores_dominantes": [
       "#e5a876",
@@ -1041,6 +1876,21 @@
       "mitologia"
     ],
     "tamanho_bytes": 10170
+  },
+  "czkawka-gui.svg": {
+    "cores_dominantes": [
+      "#c0bfbc",
+      "#a297a2",
+      "#deddda",
+      "#f6f5f4",
+      "#ffffff"
+    ],
+    "descricao": "caçador de arquivos repetidos Czkawka",
+    "nome": "czkawka-gui",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 4313
   },
   "dagger.svg": {
     "cores_dominantes": [
@@ -1057,6 +1907,21 @@
     ],
     "tamanho_bytes": 3485
   },
+  "dart.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#000000",
+      "#fdfeff",
+      "#f5faff",
+      "#e7f3ff"
+    ],
+    "descricao": "linguagem Dart",
+    "nome": "dart",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 108327
+  },
   "darts.svg": {
     "cores_dominantes": [
       "#eaf1f9",
@@ -1072,6 +1937,36 @@
     ],
     "tamanho_bytes": 4586
   },
+  "dbeaver.svg": {
+    "cores_dominantes": [
+      "#282942",
+      "#393a59",
+      "#7f7d89",
+      "#6a6577",
+      "#7c49a8"
+    ],
+    "descricao": "banco de dados DBeaver",
+    "nome": "dbeaver",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 6312
+  },
+  "dbt.svg": {
+    "cores_dominantes": [
+      "#012d4e",
+      "#f5b65d",
+      "#fc5426",
+      "#f9d19a",
+      "#ffe899"
+    ],
+    "descricao": "dbt, transformação de dados",
+    "nome": "dbt",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 4880
+  },
   "dead-tree.svg": {
     "cores_dominantes": [
       "#012d4e",
@@ -1086,6 +1981,60 @@
       "gotico"
     ],
     "tamanho_bytes": 7803
+  },
+  "deepin-deb-installer.svg": {
+    "cores_dominantes": [
+      "#6b99c5"
+    ],
+    "descricao": "instalador de pacotes .deb do Deepin",
+    "nome": "deepin-deb-installer",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 234
+  },
+  "deepin-image-viewer.svg": {
+    "cores_dominantes": [
+      "#481307",
+      "#5f636c",
+      "#f4e3d7",
+      "#c78e59",
+      "#37150d"
+    ],
+    "descricao": "visualizador de imagens do Deepin",
+    "nome": "deepin-image-viewer",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1792
+  },
+  "default-folder-github.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#333333",
+      "#5294e2",
+      "#000000"
+    ],
+    "descricao": "pasta do GitHub",
+    "nome": "default-folder-github",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 4625
+  },
+  "default-network-server.svg": {
+    "cores_dominantes": [
+      "#333333",
+      "#ffffff",
+      "#5294e2",
+      "#000000"
+    ],
+    "descricao": "servidor de rede",
+    "nome": "default-network-server",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1714
   },
   "dessert.svg": {
     "cores_dominantes": [
@@ -1131,6 +2080,121 @@
       "jogos"
     ],
     "tamanho_bytes": 5315
+  },
+  "diffpdf.svg": {
+    "cores_dominantes": [
+      "#6579b5",
+      "#5f5f5f",
+      "#77767b",
+      "#63452c",
+      "#c0bfbc"
+    ],
+    "descricao": "comparador de PDF DiffPDF",
+    "nome": "diffpdf",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 15952
+  },
+  "discord.svg": {
+    "cores_dominantes": [
+      "#f4d99d",
+      "#7f4223",
+      "#dae2fe",
+      "#e9efff",
+      "#e5c88f"
+    ],
+    "descricao": "logo do Discord",
+    "nome": "discord",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 13348
+  },
+  "distccmon.svg": {
+    "cores_dominantes": [
+      "#63d4ba",
+      "#81826c",
+      "#e5e5e5",
+      "#a9cef8",
+      "#f9f9f9"
+    ],
+    "descricao": "monitor do distcc",
+    "nome": "distccmon",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 9170
+  },
+  "distributor-logo-lmde.svg": {
+    "cores_dominantes": [
+      "#c40649",
+      "#d70751",
+      "#c6c6c6"
+    ],
+    "descricao": "logo do LMDE",
+    "nome": "distributor-logo-lmde",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2686
+  },
+  "distributor-logo-nomadbsd.svg": {
+    "cores_dominantes": [
+      "#29526d",
+      "#24475e",
+      "#247acc",
+      "#24517c"
+    ],
+    "descricao": "logo do NomadBSD",
+    "nome": "distributor-logo-nomadbsd",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2220
+  },
+  "distributor-logo-quirky.svg": {
+    "cores_dominantes": [
+      "#474747",
+      "#e6e6e6",
+      "#c7779f",
+      "#c16995",
+      "#cf8c97"
+    ],
+    "descricao": "logo do Quirky",
+    "nome": "distributor-logo-quirky",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2329
+  },
+  "distributor-logo-ubuntu-unity.svg": {
+    "cores_dominantes": [
+      "#940ee7",
+      "#870dd3",
+      "#fafafa"
+    ],
+    "descricao": "logo do Ubuntu Unity",
+    "nome": "distributor-logo-ubuntu-unity",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2618
+  },
+  "distributor-logo-vanillaos.svg": {
+    "cores_dominantes": [
+      "#f2dca6",
+      "#f0d594",
+      "#dcaa4f",
+      "#f0d37f",
+      "#f2d88d"
+    ],
+    "descricao": "logo do Vanilla OS",
+    "nome": "distributor-logo-vanillaos",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2622
   },
   "domino.svg": {
     "cores_dominantes": [
@@ -1190,6 +2254,20 @@
     ],
     "tamanho_bytes": 7803
   },
+  "dwarf-fortress.svg": {
+    "cores_dominantes": [
+      "#5c6270",
+      "#535865",
+      "#fafafa",
+      "#b8b8b8"
+    ],
+    "descricao": "Dwarf Fortress",
+    "nome": "dwarf-fortress",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2565
+  },
   "dwarf.svg": {
     "cores_dominantes": [
       "#794091",
@@ -1220,6 +2298,19 @@
     ],
     "tamanho_bytes": 11632
   },
+  "easyssh.svg": {
+    "cores_dominantes": [
+      "#4d5b52",
+      "#445048",
+      "#f5f5ea"
+    ],
+    "descricao": "EasySSH, conexões SSH",
+    "nome": "easyssh",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3797
+  },
   "eclipse.svg": {
     "cores_dominantes": [
       "#4374d3",
@@ -1235,6 +2326,21 @@
     ],
     "tamanho_bytes": 14670
   },
+  "eddy.svg": {
+    "cores_dominantes": [
+      "#37c47a",
+      "#1a2b63",
+      "#02af8e",
+      "#ff9f60",
+      "#60d882"
+    ],
+    "descricao": "instalador de pacotes Eddy",
+    "nome": "eddy",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 16322
+  },
   "enchanted-mirror.svg": {
     "cores_dominantes": [
       "#384e64",
@@ -1249,6 +2355,20 @@
       "fantasia_magia"
     ],
     "tamanho_bytes": 5356
+  },
+  "enteauth.svg": {
+    "cores_dominantes": [
+      "#000000",
+      "#af47e5",
+      "#ececec",
+      "#ffffff"
+    ],
+    "descricao": "autenticador Ente Auth",
+    "nome": "enteauth",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3150
   },
   "evil.svg": {
     "cores_dominantes": [
@@ -1309,6 +2429,19 @@
       "utilitarios_conceitos"
     ],
     "tamanho_bytes": 5282
+  },
+  "face-confused.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#666666",
+      "#e5a87f"
+    ],
+    "descricao": "rosto confuso",
+    "nome": "face-confused",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 4749
   },
   "fairy-dust.svg": {
     "cores_dominantes": [
@@ -1504,6 +2637,21 @@
     ],
     "tamanho_bytes": 3476
   },
+  "gaiasky.svg": {
+    "cores_dominantes": [
+      "#bfae2d",
+      "#d7d7d7",
+      "#606060",
+      "#2f2f2f",
+      "#31333e"
+    ],
+    "descricao": "Gaia Sky, mapa do universo",
+    "nome": "gaiasky",
+    "tags": [
+      "espaco_scifi"
+    ],
+    "tamanho_bytes": 8868
+  },
   "galaxy-variant.svg": {
     "cores_dominantes": [
       "#b26cde",
@@ -1557,10 +2705,10 @@
       "#3ac184",
       "#dd98f2"
     ],
-    "descricao": "game controller variant five",
+    "descricao": "controle de videogame (variação 5)",
     "nome": "game-controller-variant-five",
     "tags": [
-      "outros"
+      "jogos"
     ],
     "tamanho_bytes": 4149
   },
@@ -1572,10 +2720,10 @@
       "#129bbd",
       "#3fc0dd"
     ],
-    "descricao": "game controller variant four",
+    "descricao": "controle de videogame (variação 4)",
     "nome": "game-controller-variant-four",
     "tags": [
-      "outros"
+      "jogos"
     ],
     "tamanho_bytes": 3113
   },
@@ -1587,10 +2735,10 @@
       "#129bbd",
       "#dd98f2"
     ],
-    "descricao": "game controller variant six",
+    "descricao": "controle de videogame (variação 6)",
     "nome": "game-controller-variant-six",
     "tags": [
-      "outros"
+      "jogos"
     ],
     "tamanho_bytes": 7140
   },
@@ -1602,10 +2750,10 @@
       "#e6bdf9",
       "#574d70"
     ],
-    "descricao": "game controller variant three",
+    "descricao": "controle de videogame (variação 3)",
     "nome": "game-controller-variant-three",
     "tags": [
-      "outros"
+      "jogos"
     ],
     "tamanho_bytes": 5643
   },
@@ -1617,10 +2765,10 @@
       "#f486c3",
       "#d6dfe8"
     ],
-    "descricao": "game controller variant two",
+    "descricao": "controle de videogame (variação 2)",
     "nome": "game-controller-variant-two",
     "tags": [
-      "outros"
+      "jogos"
     ],
     "tamanho_bytes": 5550
   },
@@ -1632,10 +2780,10 @@
       "#5dd5e5",
       "#d6dfe8"
     ],
-    "descricao": "game controller variant",
+    "descricao": "controle de videogame (variação)",
     "nome": "game-controller-variant",
     "tags": [
-      "outros"
+      "jogos"
     ],
     "tamanho_bytes": 2975
   },
@@ -1697,6 +2845,36 @@
       "objetos_ferramentas"
     ],
     "tamanho_bytes": 12344
+  },
+  "gdevelop.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#000000",
+      "#dddddd",
+      "#bebebe",
+      "#ff54d2"
+    ],
+    "descricao": "GDevelop, criador de jogos",
+    "nome": "gdevelop",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 136386
+  },
+  "gedit.svg": {
+    "cores_dominantes": [
+      "#ef7064",
+      "#393a59",
+      "#f9d368",
+      "#ededed",
+      "#33b5c6"
+    ],
+    "descricao": "editor de texto gedit",
+    "nome": "gedit",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 4052
   },
   "gemstone.svg": {
     "cores_dominantes": [
@@ -1773,6 +2951,21 @@
     ],
     "tamanho_bytes": 5644
   },
+  "ghostwriter2.svg": {
+    "cores_dominantes": [
+      "#2e4c89",
+      "#eef6ff",
+      "#333031",
+      "#231f20",
+      "#b7092b"
+    ],
+    "descricao": "editor Markdown ghostwriter",
+    "nome": "ghostwriter2",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 13112
+  },
   "gift.svg": {
     "cores_dominantes": [
       "#fff",
@@ -1803,6 +2996,36 @@
     ],
     "tamanho_bytes": 19100
   },
+  "github.svg": {
+    "cores_dominantes": [
+      "#2e4c89",
+      "#ffd00d",
+      "#11204c",
+      "#aec1ed",
+      "#ffaf10"
+    ],
+    "descricao": "logo do GitHub",
+    "nome": "github",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 9377
+  },
+  "glimpse.svg": {
+    "cores_dominantes": [
+      "#8298cb",
+      "#ffffff",
+      "#666666",
+      "#74a2f3",
+      "#9caacb"
+    ],
+    "descricao": "editor de imagens Glimpse",
+    "nome": "glimpse",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 4725
+  },
   "globe.svg": {
     "cores_dominantes": [
       "#e0f9fe",
@@ -1832,6 +3055,36 @@
       "objetos_ferramentas"
     ],
     "tamanho_bytes": 4107
+  },
+  "gnome-design-vectorslicer.svg": {
+    "cores_dominantes": [
+      "#257be3",
+      "#1c71d8",
+      "#f9f9f9",
+      "#f9af65",
+      "#c0bfbc"
+    ],
+    "descricao": "fatiador de vetores do GNOME",
+    "nome": "gnome-design-vectorslicer",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2278
+  },
+  "gnome-remote-desktop.svg": {
+    "cores_dominantes": [
+      "#e1a184",
+      "#000000",
+      "#ffffff",
+      "#0a0a0a",
+      "#2883c3"
+    ],
+    "descricao": "área de trabalho remota do GNOME",
+    "nome": "gnome-remote-desktop",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 36836
   },
   "grapes.svg": {
     "cores_dominantes": [
@@ -1908,6 +3161,20 @@
     ],
     "tamanho_bytes": 12250
   },
+  "green-qt.svg": {
+    "cores_dominantes": [
+      "#266947",
+      "#215a3d",
+      "#f9f9f9",
+      "#11cf71"
+    ],
+    "descricao": "carteira Blockstream Green",
+    "nome": "green-qt",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2230
+  },
   "griffin.svg": {
     "cores_dominantes": [
       "#c16f38",
@@ -1938,6 +3205,21 @@
     ],
     "tamanho_bytes": 6212
   },
+  "gucview.svg": {
+    "cores_dominantes": [
+      "#393a59",
+      "#26a6af",
+      "#9ce2ae",
+      "#33b5c6",
+      "#4fcae0"
+    ],
+    "descricao": "webcam (guvcview)",
+    "nome": "gucview",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 5428
+  },
   "guillotine.svg": {
     "cores_dominantes": [
       "#e0554a",
@@ -1952,6 +3234,21 @@
       "objetos_ferramentas"
     ],
     "tamanho_bytes": 3244
+  },
+  "halftone.svg": {
+    "cores_dominantes": [
+      "#7c5a7c",
+      "#705170",
+      "#b2b2b2",
+      "#f5f5f5",
+      "#eed93a"
+    ],
+    "descricao": "Halftone, pontilhado de imagens",
+    "nome": "halftone",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3111
   },
   "halloween-variant.svg": {
     "cores_dominantes": [
@@ -2027,6 +3324,17 @@
       "objetos_ferramentas"
     ],
     "tamanho_bytes": 2592
+  },
+  "hardinfo.svg": {
+    "cores_dominantes": [
+      "#86915a"
+    ],
+    "descricao": "informações do sistema HardInfo",
+    "nome": "hardinfo",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 772
   },
   "harp.svg": {
     "cores_dominantes": [
@@ -2177,6 +3485,101 @@
     ],
     "tamanho_bytes": 20927
   },
+  "i-score.svg": {
+    "cores_dominantes": [
+      "#a0b1b8",
+      "#abbac1",
+      "#474747"
+    ],
+    "descricao": "i-score, roteiros interativos",
+    "nome": "i-score",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3841
+  },
+  "iaito.svg": {
+    "cores_dominantes": [
+      "#ededed",
+      "#e3e3e3",
+      "#474747"
+    ],
+    "descricao": "Iaito, engenharia reversa",
+    "nome": "iaito",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1859
+  },
+  "ic_light_enpass.svg": {
+    "cores_dominantes": [
+      "#dfdfdf",
+      "#5294e2"
+    ],
+    "descricao": "cofre de senhas Enpass",
+    "nome": "ic_light_enpass",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 605
+  },
+  "ignition.svg": {
+    "cores_dominantes": [
+      "#b5b5b5",
+      "#f65850",
+      "#5c5c5c",
+      "#f6e451",
+      "#fafafa"
+    ],
+    "descricao": "Ignition, o que abre com o sistema",
+    "nome": "ignition",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3817
+  },
+  "image-aseprite.svg": {
+    "cores_dominantes": [
+      "#7a5a72",
+      "#ffffff"
+    ],
+    "descricao": "imagem do Aseprite",
+    "nome": "image-aseprite",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 873
+  },
+  "io.github.dvlv.boxbuddyrs.svg": {
+    "cores_dominantes": [
+      "#4d4d4d",
+      "#d4a782",
+      "#f9548f",
+      "#f9f9f9",
+      "#b5835a"
+    ],
+    "descricao": "BoxBuddy, gerenciador do Distrobox",
+    "nome": "io.github.dvlv.boxbuddyrs",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1406
+  },
+  "iotas.svg": {
+    "cores_dominantes": [
+      "#e87a31",
+      "#f1c5bb",
+      "#eeb7aa",
+      "#d06425",
+      "#e5e4e1"
+    ],
+    "descricao": "notas Iotas",
+    "nome": "iotas",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1963
+  },
   "jack-o-lantern.svg": {
     "cores_dominantes": [
       "#794091",
@@ -2205,6 +3608,36 @@
       "jogos"
     ],
     "tamanho_bytes": 5501
+  },
+  "jogos.svg": {
+    "cores_dominantes": [
+      "#463f5b",
+      "#6b6889",
+      "#dd98f2",
+      "#e6bdf9",
+      "#574d70"
+    ],
+    "descricao": "jogos",
+    "nome": "jogos",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 5994
+  },
+  "jupyter.svg": {
+    "cores_dominantes": [
+      "#b26cde",
+      "#face7a",
+      "#d7f9b7",
+      "#4374d3",
+      "#162680"
+    ],
+    "descricao": "Jupyter",
+    "nome": "jupyter",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 8895
   },
   "kappa.svg": {
     "cores_dominantes": [
@@ -2251,6 +3684,20 @@
     ],
     "tamanho_bytes": 7161
   },
+  "kongress.svg": {
+    "cores_dominantes": [
+      "#39526a",
+      "#32475c",
+      "#d0e9f6",
+      "#f8b344"
+    ],
+    "descricao": "Kongress, agenda de conferências",
+    "nome": "kongress",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2698
+  },
   "kraken.svg": {
     "cores_dominantes": [
       "#7255ce",
@@ -2280,6 +3727,21 @@
       "objetos_ferramentas"
     ],
     "tamanho_bytes": 3657
+  },
+  "latex.svg": {
+    "cores_dominantes": [
+      "#a63914",
+      "#68fcdf",
+      "#10e2c4",
+      "#1aba9f",
+      "#95d600"
+    ],
+    "descricao": "LaTeX",
+    "nome": "latex",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 14460
   },
   "laurel.svg": {
     "cores_dominantes": [
@@ -2311,6 +3773,20 @@
     ],
     "tamanho_bytes": 9600
   },
+  "logo-dat-desktop.svg": {
+    "cores_dominantes": [
+      "#56a866",
+      "#6dcc80",
+      "#ffffff",
+      "#666666"
+    ],
+    "descricao": "logo do Dat Desktop",
+    "nome": "logo-dat-desktop",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2809
+  },
   "lollipop.svg": {
     "cores_dominantes": [
       "#fff5f5",
@@ -2325,6 +3801,36 @@
       "halloween_doces"
     ],
     "tamanho_bytes": 5352
+  },
+  "lunarvim.svg": {
+    "cores_dominantes": [
+      "#c1c1d7",
+      "#575757",
+      "#4d4d4d",
+      "#7878ca",
+      "#f9f9f9"
+    ],
+    "descricao": "editor LunarVim",
+    "nome": "lunarvim",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 4413
+  },
+  "luppp.svg": {
+    "cores_dominantes": [
+      "#4a4a4a",
+      "#dc843d",
+      "#d0783b",
+      "#ffffff",
+      "#666666"
+    ],
+    "descricao": "Luppp, música ao vivo",
+    "nome": "luppp",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 5485
   },
   "lyre.svg": {
     "cores_dominantes": [
@@ -2596,6 +4102,19 @@
     ],
     "tamanho_bytes": 5736
   },
+  "manta.svg": {
+    "cores_dominantes": [
+      "#e8d1ef",
+      "#e0c2ea",
+      "#8258bb"
+    ],
+    "descricao": "logo do Manta",
+    "nome": "manta",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2324
+  },
   "mask-variant.svg": {
     "cores_dominantes": [
       "#012d4e",
@@ -2656,6 +4175,19 @@
     ],
     "tamanho_bytes": 8787
   },
+  "minimal-podcasts-player.svg": {
+    "cores_dominantes": [
+      "#f08d33",
+      "#ef8321",
+      "#fafafa"
+    ],
+    "descricao": "tocador de podcasts",
+    "nome": "minimal-podcasts-player",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2959
+  },
   "minotaur.svg": {
     "cores_dominantes": [
       "#f2ba88",
@@ -2670,6 +4202,32 @@
       "mitologia"
     ],
     "tamanho_bytes": 16431
+  },
+  "minuet-rhythms.svg": {
+    "cores_dominantes": [
+      "#363636"
+    ],
+    "descricao": "Minuet, ritmos musicais",
+    "nome": "minuet-rhythms",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1280
+  },
+  "mirrorhall.svg": {
+    "cores_dominantes": [
+      "#7fc3a4",
+      "#70bc9a",
+      "#d9d9d9",
+      "#ebebeb",
+      "#5c5c5c"
+    ],
+    "descricao": "Mirror Hall, espelhar a tela",
+    "nome": "mirrorhall",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2929
   },
   "mobile-game.svg": {
     "cores_dominantes": [
@@ -2746,6 +4304,33 @@
     ],
     "tamanho_bytes": 4116
   },
+  "morcego-dia.svg": {
+    "descricao": "morcego do dia (logo do COSMIC)",
+    "nome": "morcego-dia",
+    "tags": [
+      "morcego",
+      "gato",
+      "logo"
+    ]
+  },
+  "morcego-noite.svg": {
+    "descricao": "morcego da noite (logo do COSMIC)",
+    "nome": "morcego-noite",
+    "tags": [
+      "morcego",
+      "gato",
+      "logo"
+    ]
+  },
+  "morcego.svg": {
+    "descricao": "morcego",
+    "nome": "morcego",
+    "tags": [
+      "morcego",
+      "gato",
+      "logo"
+    ]
+  },
   "mortar.svg": {
     "cores_dominantes": [
       "#3c5d78",
@@ -2775,6 +4360,21 @@
       "utilitarios_conceitos"
     ],
     "tamanho_bytes": 2330
+  },
+  "ms-teams.svg": {
+    "cores_dominantes": [
+      "#bbbcdf",
+      "#c8c8e5",
+      "#505aca",
+      "#7b83eb",
+      "#4b53bc"
+    ],
+    "descricao": "Microsoft Teams",
+    "nome": "ms-teams",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2902
   },
   "muffin.svg": {
     "cores_dominantes": [
@@ -2821,6 +4421,67 @@
     ],
     "tamanho_bytes": 3476
   },
+  "musictube.svg": {
+    "cores_dominantes": [
+      "#e4e4e4",
+      "#474747",
+      "#ead82f"
+    ],
+    "descricao": "MusicTube",
+    "nome": "musictube",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2029
+  },
+  "network-mobile-20-edge-locked.svg": {
+    "cores_dominantes": [
+      "#dfdfdf"
+    ],
+    "descricao": "sinal de celular fraco, EDGE, bloqueado",
+    "nome": "network-mobile-20-edge-locked",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1072
+  },
+  "network-mobile-20-lte.svg": {
+    "cores_dominantes": [
+      "#dfdfdf"
+    ],
+    "descricao": "sinal de celular fraco, LTE",
+    "nome": "network-mobile-20-lte",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 820
+  },
+  "network-mobile-60-edge.svg": {
+    "cores_dominantes": [
+      "#dfdfdf"
+    ],
+    "descricao": "sinal de celular médio, EDGE",
+    "nome": "network-mobile-60-edge",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 684
+  },
+  "network-wireless-80-limited-symbolic.svg": {
+    "cores_dominantes": [
+      "#dfdfdf",
+      "#4285f4",
+      "#ff9800",
+      "#4caf50",
+      "#f44336"
+    ],
+    "descricao": "wi-fi forte, conexão limitada",
+    "nome": "network-wireless-80-limited-symbolic",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 802
+  },
   "night.svg": {
     "cores_dominantes": [
       "#6a6577",
@@ -2833,6 +4494,30 @@
       "utilitarios_conceitos"
     ],
     "tamanho_bytes": 4321
+  },
+  "noisetorch.svg": {
+    "cores_dominantes": [
+      "#393a59",
+      "#282942",
+      "#6a6577",
+      "#e0554a",
+      "#4e4d68"
+    ],
+    "descricao": "NoiseTorch, filtro de ruído do microfone",
+    "nome": "noisetorch",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 6131
+  },
+  "nuclear.png.svg": {
+    "cores_dominantes": [],
+    "descricao": "tocador de música Nuclear",
+    "nome": "nuclear.png",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1764
   },
   "observatory.svg": {
     "cores_dominantes": [
@@ -2848,6 +4533,44 @@
       "espaco_scifi"
     ],
     "tamanho_bytes": 12735
+  },
+  "obsidian-papirus.svg": {
+    "descricao": "Obsidian (Papirus)",
+    "nome": "obsidian-papirus",
+    "tags": [
+      "obsidian",
+      "notas",
+      "papirus"
+    ]
+  },
+  "org.gnome.Terminal.svg": {
+    "cores_dominantes": [
+      "#393a59",
+      "#6a6577",
+      "#ef7064",
+      "#f9d368"
+    ],
+    "descricao": "terminal do GNOME",
+    "nome": "org.gnome.Terminal",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2555
+  },
+  "org.kde.kompare.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#828282",
+      "#000000",
+      "#bebebe",
+      "#ff54d2"
+    ],
+    "descricao": "comparador de arquivos Kompare",
+    "nome": "org.kde.kompare",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 140910
   },
   "owl.svg": {
     "cores_dominantes": [
@@ -2878,6 +4601,19 @@
       "objetos_ferramentas"
     ],
     "tamanho_bytes": 1903
+  },
+  "paisa.svg": {
+    "cores_dominantes": [
+      "#ededed",
+      "#e3e3e3",
+      "#4d4d4d"
+    ],
+    "descricao": "Paisa, finanças pessoais",
+    "nome": "paisa",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2082
   },
   "paper-bag.svg": {
     "cores_dominantes": [
@@ -2954,6 +4690,34 @@
     ],
     "tamanho_bytes": 10699
   },
+  "picsaw.svg": {
+    "cores_dominantes": [
+      "#767676",
+      "#808080",
+      "#7fc82a",
+      "#6ed61a"
+    ],
+    "descricao": "Picsaw, recorte de imagens",
+    "nome": "picsaw",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2671
+  },
+  "pink-folder-gradle.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#505050",
+      "#c55078",
+      "#f06292"
+    ],
+    "descricao": "pasta rosa do Gradle",
+    "nome": "pink-folder-gradle",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 8968
+  },
   "pirate.svg": {
     "cores_dominantes": [
       "#fff",
@@ -3027,6 +4791,21 @@
       "utilitarios_conceitos"
     ],
     "tamanho_bytes": 4048
+  },
+  "plasmavault.svg": {
+    "cores_dominantes": [
+      "#3f3f3f",
+      "#dcdcdc",
+      "#4f4f4f",
+      "#ffffff",
+      "#c2c2c2"
+    ],
+    "descricao": "cofre do Plasma",
+    "nome": "plasmavault",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1326
   },
   "podium.svg": {
     "cores_dominantes": [
@@ -3118,6 +4897,21 @@
     ],
     "tamanho_bytes": 3935
   },
+  "preferences-desktop-display-color.svg": {
+    "cores_dominantes": [
+      "#f8f8f2",
+      "#282a36",
+      "#d1d1d1",
+      "#66bcff",
+      "#b29aff"
+    ],
+    "descricao": "cores da tela",
+    "nome": "preferences-desktop-display-color",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 6172
+  },
   "prisoner.svg": {
     "cores_dominantes": [
       "#ef9614",
@@ -3132,6 +4926,19 @@
       "utilitarios_conceitos"
     ],
     "tamanho_bytes": 14969
+  },
+  "proton-mail.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#b7a4f1",
+      "#6841df"
+    ],
+    "descricao": "Proton Mail",
+    "nome": "proton-mail",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1619
   },
   "pumpkin-variant.svg": {
     "cores_dominantes": [
@@ -3178,6 +4985,21 @@
     ],
     "tamanho_bytes": 12886
   },
+  "purple-folder-script.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#505050",
+      "#67479f",
+      "#7e57c2",
+      "#000000"
+    ],
+    "descricao": "pasta roxa de scripts",
+    "nome": "purple-folder-script",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2596
+  },
   "puzzle.svg": {
     "cores_dominantes": [
       "#ed55a9",
@@ -3190,6 +5012,75 @@
       "jogos"
     ],
     "tamanho_bytes": 3331
+  },
+  "pyspread.svg": {
+    "cores_dominantes": [
+      "#d1bdaf",
+      "#d8c8bc",
+      "#438bb7",
+      "#f9f747"
+    ],
+    "descricao": "planilha Pyspread",
+    "nome": "pyspread",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3454
+  },
+  "python-idle.svg": {
+    "cores_dominantes": [
+      "#f9f9f9",
+      "#acacac",
+      "#b6b6b6",
+      "#3d7bab",
+      "#f8a22c"
+    ],
+    "descricao": "IDLE do Python",
+    "nome": "python-idle",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2520
+  },
+  "python.svg": {
+    "cores_dominantes": [
+      "#dad9dd",
+      "#ccccce",
+      "#603256",
+      "#4f2649",
+      "#5fc16a"
+    ],
+    "descricao": "Python",
+    "nome": "python",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 20933
+  },
+  "qcanvas.svg": {
+    "cores_dominantes": [
+      "#f24545",
+      "#f13434",
+      "#f9f9f9"
+    ],
+    "descricao": "QCanvas, cliente do Canvas",
+    "nome": "qcanvas",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 4057
+  },
+  "qgifer.svg": {
+    "cores_dominantes": [
+      "#424242",
+      "#4c4c4c"
+    ],
+    "descricao": "QGifer, vídeo para GIF",
+    "nome": "qgifer",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1962
   },
   "rabbit.svg": {
     "cores_dominantes": [
@@ -3221,6 +5112,21 @@
     ],
     "tamanho_bytes": 6031
   },
+  "readitlater.svg": {
+    "cores_dominantes": [
+      "#195eb3",
+      "#ff7800",
+      "#3382e3",
+      "#eb333a",
+      "#5c5c63"
+    ],
+    "descricao": "ler mais tarde",
+    "nome": "readitlater",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 4099
+  },
   "reaper.svg": {
     "cores_dominantes": [
       "#422953",
@@ -3235,6 +5141,72 @@
       "gotico"
     ],
     "tamanho_bytes": 10663
+  },
+  "recordbox.svg": {
+    "cores_dominantes": [
+      "#62a0ea",
+      "#74abec",
+      "#4c5e74",
+      "#77a4da"
+    ],
+    "descricao": "Recordbox, tocador de música",
+    "nome": "recordbox",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2465
+  },
+  "red-folder-video.svg": {
+    "cores_dominantes": [
+      "#c44442",
+      "#ef5350"
+    ],
+    "descricao": "pasta vermelha de vídeos",
+    "nome": "red-folder-video",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1260
+  },
+  "rede.svg": {
+    "cores_dominantes": [
+      "#393a59",
+      "#8adeef",
+      "#f9d368",
+      "#33b5c6",
+      "#ededed"
+    ],
+    "descricao": "rede",
+    "nome": "rede",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 7977
+  },
+  "retro.svg": {
+    "cores_dominantes": [
+      "#f4882a",
+      "#f37d16",
+      "#3d3d3d"
+    ],
+    "descricao": "jogos retrô",
+    "nome": "retro",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2008
+  },
+  "rhb.svg": {
+    "cores_dominantes": [
+      "#6b6b6e",
+      "#dfdfe1"
+    ],
+    "descricao": "logo do RHB",
+    "nome": "rhb",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2898
   },
   "ring.svg": {
     "cores_dominantes": [
@@ -3536,6 +5508,34 @@
     ],
     "tamanho_bytes": 3475
   },
+  "sigviewer.svg": {
+    "cores_dominantes": [
+      "#2166cd",
+      "#1e5dbc",
+      "#f9f9f9"
+    ],
+    "descricao": "SigViewer, sinais biomédicos",
+    "nome": "sigviewer",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 16466
+  },
+  "siliconsneaker.svg": {
+    "cores_dominantes": [
+      "#f5f5f5",
+      "#74abec",
+      "#62a0ea",
+      "#404c68",
+      "#8c8c8c"
+    ],
+    "descricao": "logo do Silicon Sneaker",
+    "nome": "siliconsneaker",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3977
+  },
   "skeleton-variant.svg": {
     "cores_dominantes": [
       "#012d4e",
@@ -3580,6 +5580,51 @@
       "gotico"
     ],
     "tamanho_bytes": 2321
+  },
+  "skype-call-recorder.svg": {
+    "cores_dominantes": [
+      "#000000",
+      "#ffffff",
+      "#126136",
+      "#20bef9",
+      "#1890d0"
+    ],
+    "descricao": "gravador de chamadas do Skype",
+    "nome": "skype-call-recorder",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 28293
+  },
+  "slack.svg": {
+    "cores_dominantes": [
+      "#6a6577",
+      "#e87bc2",
+      "#33b5c6",
+      "#393a59",
+      "#ededed"
+    ],
+    "descricao": "Slack",
+    "nome": "slack",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 2083
+  },
+  "slimbook.svg": {
+    "cores_dominantes": [
+      "#d9d9d9",
+      "#f9d368",
+      "#393a59",
+      "#7f7d89",
+      "#f0f0f0"
+    ],
+    "descricao": "Slimbook",
+    "nome": "slimbook",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 8024
   },
   "slot-machine.svg": {
     "cores_dominantes": [
@@ -3671,6 +5716,21 @@
     ],
     "tamanho_bytes": 14256
   },
+  "spacestation14.svg": {
+    "cores_dominantes": [
+      "#4e4e56",
+      "#44444b",
+      "#d1d1d1",
+      "#ed756e",
+      "#f9f9f9"
+    ],
+    "descricao": "Space Station 14",
+    "nome": "spacestation14",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2301
+  },
   "spell-book.svg": {
     "cores_dominantes": [
       "#964f32",
@@ -3761,6 +5821,19 @@
     ],
     "tamanho_bytes": 21602
   },
+  "spring.svg": {
+    "cores_dominantes": [
+      "#db2d27",
+      "#de403a",
+      "#f9f9f9"
+    ],
+    "descricao": "Spring",
+    "nome": "spring",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1717
+  },
   "stage.svg": {
     "cores_dominantes": [
       "#964f32",
@@ -3775,6 +5848,224 @@
       "jogos"
     ],
     "tamanho_bytes": 3823
+  },
+  "steam_icon_1250.svg": {
+    "cores_dominantes": [
+      "#6c4f37",
+      "#7a593e",
+      "#f1a33c",
+      "#f1ec3c"
+    ],
+    "descricao": "jogo da Steam (appid 1250)",
+    "nome": "steam_icon_1250",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 4687
+  },
+  "steam_icon_241600.svg": {
+    "cores_dominantes": [
+      "#99a8df",
+      "#a9b5e4",
+      "#c63939"
+    ],
+    "descricao": "jogo da Steam (appid 241600)",
+    "nome": "steam_icon_241600",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2183
+  },
+  "steam_icon_265930.svg": {
+    "cores_dominantes": [
+      "#f7dfb7",
+      "#f9e7c9",
+      "#d77a69"
+    ],
+    "descricao": "jogo da Steam (appid 265930)",
+    "nome": "steam_icon_265930",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 3552
+  },
+  "steam_icon_304930.svg": {
+    "cores_dominantes": [
+      "#8ba18b",
+      "#809880",
+      "#474747",
+      "#de3a46"
+    ],
+    "descricao": "jogo da Steam (appid 304930)",
+    "nome": "steam_icon_304930",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 1607
+  },
+  "steam_icon_308420.svg": {
+    "cores_dominantes": [
+      "#574c7b",
+      "#4e446f",
+      "#c08a30",
+      "#c89032",
+      "#cd9437"
+    ],
+    "descricao": "jogo da Steam (appid 308420)",
+    "nome": "steam_icon_308420",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2075
+  },
+  "steam_icon_356570.svg": {
+    "cores_dominantes": [
+      "#3d4447",
+      "#ac59ca",
+      "#a449c5",
+      "#1b8eb8",
+      "#55edcd"
+    ],
+    "descricao": "jogo da Steam (appid 356570)",
+    "nome": "steam_icon_356570",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2755
+  },
+  "steam_icon_38740.svg": {
+    "cores_dominantes": [
+      "#3c3c77",
+      "#444483",
+      "#7a5aa6",
+      "#604bb4",
+      "#967fb1"
+    ],
+    "descricao": "jogo da Steam (appid 38740)",
+    "nome": "steam_icon_38740",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 1873
+  },
+  "steam_icon_400020.svg": {
+    "cores_dominantes": [
+      "#8122aa",
+      "#8e25bb",
+      "#f9f9f9"
+    ],
+    "descricao": "jogo da Steam (appid 400020)",
+    "nome": "steam_icon_400020",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 1723
+  },
+  "steam_icon_435530.svg": {
+    "cores_dominantes": [
+      "#4c4c4c",
+      "#424242"
+    ],
+    "descricao": "jogo da Steam (appid 435530)",
+    "nome": "steam_icon_435530",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2110
+  },
+  "steam_icon_457760.svg": {
+    "cores_dominantes": [
+      "#424242",
+      "#4c4c4c",
+      "#f9f9f9"
+    ],
+    "descricao": "jogo da Steam (appid 457760)",
+    "nome": "steam_icon_457760",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 1902
+  },
+  "steam_icon_514900.svg": {
+    "cores_dominantes": [
+      "#424242",
+      "#4c4c4c",
+      "#0eedf1"
+    ],
+    "descricao": "jogo da Steam (appid 514900)",
+    "nome": "steam_icon_514900",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2572
+  },
+  "steam_icon_524220.svg": {
+    "cores_dominantes": [
+      "#4c4c4c",
+      "#424242",
+      "#f9f9f9"
+    ],
+    "descricao": "jogo da Steam (appid 524220)",
+    "nome": "steam_icon_524220",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 4865
+  },
+  "steam_icon_552620.svg": {
+    "cores_dominantes": [
+      "#85553d",
+      "#774c37",
+      "#c9ad88"
+    ],
+    "descricao": "jogo da Steam (appid 552620)",
+    "nome": "steam_icon_552620",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2514
+  },
+  "steam_icon_607260.svg": {
+    "cores_dominantes": [
+      "#c0c0c0",
+      "#b6b6b6",
+      "#696969"
+    ],
+    "descricao": "jogo da Steam (appid 607260)",
+    "nome": "steam_icon_607260",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2226
+  },
+  "steam_icon_65980.svg": {
+    "cores_dominantes": [
+      "#455c67",
+      "#474747",
+      "#5366c5",
+      "#f5f5f5"
+    ],
+    "descricao": "jogo da Steam (appid 65980)",
+    "nome": "steam_icon_65980",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 2484
+  },
+  "steam_icon_953490.svg": {
+    "cores_dominantes": [
+      "#be224b",
+      "#ad1f44",
+      "#424242",
+      "#8c4a5a",
+      "#cec7b5"
+    ],
+    "descricao": "jogo da Steam (appid 953490)",
+    "nome": "steam_icon_953490",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 4029
   },
   "sun.svg": {
     "cores_dominantes": [
@@ -3821,6 +6112,18 @@
     ],
     "tamanho_bytes": 3471
   },
+  "system-suspend-inhibited.svg": {
+    "cores_dominantes": [
+      "#565656",
+      "#da4453"
+    ],
+    "descricao": "suspensão bloqueada",
+    "nome": "system-suspend-inhibited",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 946
+  },
   "target.svg": {
     "cores_dominantes": [
       "#daf0f6",
@@ -3850,6 +6153,19 @@
       "fantasia_magia"
     ],
     "tamanho_bytes": 3116
+  },
+  "tauno-plotter.svg": {
+    "cores_dominantes": [
+      "#4d4d4d",
+      "#575757",
+      "#f5a23d"
+    ],
+    "descricao": "Tauno Plotter, gráficos",
+    "nome": "tauno-plotter",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3133
   },
   "telescope.svg": {
     "cores_dominantes": [
@@ -3955,6 +6271,21 @@
     ],
     "tamanho_bytes": 3431
   },
+  "timetrack.svg": {
+    "cores_dominantes": [
+      "#f9f9f9",
+      "#ab4a5e",
+      "#9c4456",
+      "#625b71",
+      "#62a0ea"
+    ],
+    "descricao": "controle de horas",
+    "nome": "timetrack",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3024
+  },
   "tombstone-variant.svg": {
     "cores_dominantes": [
       "#282942",
@@ -3999,6 +6330,19 @@
       "objetos_ferramentas"
     ],
     "tamanho_bytes": 2817
+  },
+  "top-power-off-icon.svg": {
+    "cores_dominantes": [
+      "#ffffff",
+      "#666666",
+      "#ececec"
+    ],
+    "descricao": "desligar",
+    "nome": "top-power-off-icon",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1669
   },
   "torch.svg": {
     "cores_dominantes": [
@@ -4090,6 +6434,21 @@
     ],
     "tamanho_bytes": 14281
   },
+  "tromapps.svg": {
+    "cores_dominantes": [
+      "#bc5151",
+      "#000000",
+      "#ffffff",
+      "#666666",
+      "#393939"
+    ],
+    "descricao": "logo do Tromapps",
+    "nome": "tromapps",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 24725
+  },
   "tube.svg": {
     "cores_dominantes": [
       "#614182",
@@ -4105,6 +6464,21 @@
     ],
     "tamanho_bytes": 2855
   },
+  "ultrastardx.svg": {
+    "cores_dominantes": [
+      "#467da6",
+      "#407298",
+      "#f5f5f5",
+      "#474747",
+      "#f99d2e"
+    ],
+    "descricao": "UltraStar Deluxe, karaokê",
+    "nome": "ultrastardx",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 8667
+  },
   "unicorn.svg": {
     "cores_dominantes": [
       "#614182",
@@ -4119,6 +6493,21 @@
       "fantasia_magia"
     ],
     "tamanho_bytes": 6355
+  },
+  "upnp-router-control.svg": {
+    "cores_dominantes": [
+      "#6dc72e",
+      "#4d4d4d",
+      "#c9d3df",
+      "#d5dde7",
+      "#191919"
+    ],
+    "descricao": "controle do roteador UPnP",
+    "nome": "upnp-router-control",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2243
   },
   "vampire.svg": {
     "cores_dominantes": [
@@ -4195,6 +6584,21 @@
     ],
     "tamanho_bytes": 3744
   },
+  "vnclicensewiz.svg": {
+    "cores_dominantes": [
+      "#000000",
+      "#f8ee4c",
+      "#f9f05f",
+      "#5b5bd1",
+      "#e94646"
+    ],
+    "descricao": "licença do VNC",
+    "nome": "vnclicensewiz",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 3837
+  },
   "voodoo-doll.svg": {
     "cores_dominantes": [
       "#d9d9d9",
@@ -4254,6 +6658,33 @@
       "gotico"
     ],
     "tamanho_bytes": 5906
+  },
+  "whatsapp.svg": {
+    "cores_dominantes": [
+      "#84260d",
+      "#dad9dd",
+      "#ebeaec",
+      "#ccccce",
+      "#bc4c2e"
+    ],
+    "descricao": "WhatsApp",
+    "nome": "whatsapp",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 11668
+  },
+  "window-pop-out.svg": {
+    "cores_dominantes": [
+      "#565656",
+      "#5294e2"
+    ],
+    "descricao": "destacar janela",
+    "nome": "window-pop-out",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 450
   },
   "winner.svg": {
     "cores_dominantes": [
@@ -4359,6 +6790,63 @@
       "fantasia_magia"
     ],
     "tamanho_bytes": 3521
+  },
+  "workspace-switcher-symbolic.svg": {
+    "cores_dominantes": [
+      "#444444",
+      "#4285f4",
+      "#ff9800",
+      "#4caf50",
+      "#f44336"
+    ],
+    "descricao": "trocar de área de trabalho",
+    "nome": "workspace-switcher-symbolic",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 780
+  },
+  "wrapbox.svg": {
+    "cores_dominantes": [
+      "#babdbf",
+      "#606d7b",
+      "#758698",
+      "#97a9bc"
+    ],
+    "descricao": "logo do Wrapbox",
+    "nome": "wrapbox",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1112
+  },
+  "xfce-system.svg": {
+    "cores_dominantes": [
+      "#e5ecef",
+      "#ffffff",
+      "#666666"
+    ],
+    "descricao": "sistema do Xfce",
+    "nome": "xfce-system",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 3356
+  },
+  "xtactics.svg": {
+    "cores_dominantes": [
+      "#858585",
+      "#7a7a7a",
+      "#f9f9f9",
+      "#6158da",
+      "#f04242"
+    ],
+    "descricao": "logo do XTactics",
+    "nome": "xtactics",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 1977
   },
   "zeus.svg": {
     "cores_dominantes": [

@@ -1,26 +1,14 @@
 /* app/pagina/standalone.js — o que faz a página exportada funcionar sem servidor.
  *
- * ESTE ARQUIVO SÓ EXISTE DENTRO DO HTML EXPORTADO. Ele nunca é servido ao
- * painel de verdade: o `servidor.py` o costura entre o `<script id="meow-dados">`
- * e o `app.js`, e é lido pelo `_exportar_pagina`.
+ * Ele nunca é servido ao painel de verdade: o `servidor.py` o costura entre o
+ * `<script id="meow-dados">` e o `app.js`, e é lido pelo `_exportar_pagina`.
  *
- * A IDEIA INTEIRA EM UMA FRASE
- *   O `app.js` que roda aqui é o MESMO arquivo do painel, sem uma linha
- *   diferente. Quem mente para ele são as trinta linhas abaixo: o `fetch` passa
- *   a ler o JSON embutido, o `src` das imagens passa a apontar para os `data:`
- *   da amostra, e o `EventSource` do pulso vira um objeto que não faz nada.
+ * O `app.js` que roda aqui é o MESMO arquivo do painel, sem uma linha
+ * diferente.
  *
- *   A alternativa seria escrever uma segunda versão da página só para exportar.
- *   Seria a terceira cópia da mesma tela neste projeto (a primeira foi a lista
- *   de chaves escrita à mão que o cabeçalho do `servidor.py` conta), e ela
- *   envelheceria na primeira semana: um cartão novo no painel não apareceria
- *   aqui, e ninguém notaria até alguém redesenhar a tela errada.
+ * A alternativa seria escrever uma segunda versão da página só para exportar.
  *
- * O QUE ELE RECUSA A FINGIR
- *   Sem servidor não há o que gravar, rodar ou apagar. Toda rota que escreve
- *   devolve um erro com todas as letras em vez de responder "ok" — uma página
- *   de demonstração que finge ter salvo é pior que uma que diz que não salva.
- */
+ * Sem servidor não há o que gravar, rodar ou apagar. */
 (function () {
   "use strict";
 
@@ -46,10 +34,7 @@
   };
 
   /* --- o fetch que lê de dentro do arquivo ---------------------------------
-   * O `api()` do `app.js` (linha 38) faz `fetch(rota)` e lê `resposta.text()`.
-   * Devolver um `Response` de verdade — e não um objeto parecido — é o que faz
-   * o `resposta.status`, o `resposta.ok` e o `await resposta.text()` de lá
-   * continuarem valendo sem uma linha de exceção para o modo exportado. */
+   * O `api()` do `app.js` (linha 38) faz `fetch(rota)` e lê `resposta.text()`. */
   const resposta = (corpo, status) =>
     Promise.resolve(new Response(JSON.stringify(corpo), {
       status: status || 200,
@@ -106,10 +91,7 @@
   });
 
   /* --- a barra de instruções, e o modo "todas as abas" ---------------------
-   * Quem abre este arquivo não abriu o painel: abriu um anexo. A barra diz o
-   * que ele é, quando foi tirado, e oferece a única coisa que o painel de
-   * verdade não tem — ver as vinte e quatro abas empilhadas, que é como se
-   * julga um layout inteiro sem clicar vinte e quatro vezes. */
+   * Quem abre este arquivo não abriu o painel: abriu um anexo. */
   function montarBarra() {
     const barra = document.createElement("div");
     barra.className = "aviso-standalone";
@@ -138,11 +120,9 @@
     document.body.insertBefore(barra, document.body.firstChild);
   }
 
-  /* EMPILHAR É CLICAR NO MENU, e não chamar o `render()` por dentro.
-   *   O `render()` é função de módulo do `app.js`; alcançá-la daqui prenderia
-   *   este arquivo ao nome dela. Clicar no botão do trilho é a mesma coisa
-   *   pela porta da frente: o `onclick` de lá troca a aba, redesenha e ainda
-   *   limpa a busca. O que se copia depois é o resultado. */
+  /* EMPILHAR É CLICAR NO MENU, e não chamar o `render()` por dentro. O
+   * `render()` é função de módulo do `app.js`; alcançá-la daqui prenderia
+   * este arquivo ao nome dela. */
   async function empilhar() {
     const pilha = document.getElementById("pilha") || document.createElement("div");
     pilha.id = "pilha";
@@ -158,11 +138,10 @@
       const titulo = document.createElement("h2");
       titulo.textContent = b.querySelector("span").textContent;
       titulo.dataset.mw = "pilha-aba-titulo";
-      /* O `id` SAI DO CLONE, e isto não é limpeza — é o defeito que a primeira
-       * versão teve. `cloneNode` copia o `id="conteudo"`, e a regra que esconde
-       * o conteúdo no modo empilhado (`body.empilhado #conteudo`) passava a
-       * valer para os vinte e quatro clones também: a pilha montava certo, com
-       * os 96 cartões dentro, e aparecia vazia na tela. */
+      /* `cloneNode` copia o `id="conteudo"`, e a regra que esconde o conteúdo
+       * no modo empilhado (`body.empilhado #conteudo`) passava a valer para os
+       * vinte e quatro clones também: a pilha montava certo, com os 96 cartões
+       * dentro, e aparecia vazia na tela. */
       const copia = document.getElementById("conteudo").cloneNode(true);
       copia.removeAttribute("id");
       copia.dataset.mw = "conteudo-copiado";

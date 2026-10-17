@@ -2,36 +2,8 @@
 # pack-malicioso.sh — um pack de terceiro consegue ler, escrever ou rodar algo
 # fora da raiz dele?
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 09/10/2026 (sprint P78)
-#   Seis alertas automáticos de segurança nos commits da onda 1 da leva G
-#   (`scripts/pack.py` duas vezes, `scripts/icones_apps_dracula.sh`,
-#   `scripts/som.sh`, `app/servidor.py` e `bin/meow`) disseram a mesma coisa de
-#   seis jeitos: um pack pode vir de terceiros — por `meow pack importar`, ou
-#   por `git clone` na raiz da pessoa, que é como o docs/PACKS.md ensina a
-#   publicar —, e tudo o que vem de `packs/<id>/`, de um `.meowpack` ou do
-#   `icones-escolhidos.map` é DADO NÃO CONFIÁVEL. O `git clone` é o caso mais
-#   largo: ele traz symlink e arquivo executável, que o `importar` recusa.
-#
-# O QUE SE PROVA, E SÓ COM O DESFECHO
-#   Cada sonda olha o que aconteceu no disco e na saída, e não o mecanismo:
-#   "a linha foi pulada" ou "o pack foi recusado inteiro" passam igual, desde
-#   que nada saia da raiz. O que não pode passar:
-#     1. ler fora da raiz: um segredo em `~/.ssh` e um `.svg` fora da raiz
-#        trazem o token `SEGREDO-P78-NAO-VAZA`, e ele não pode aparecer em
-#        tema, saída de verbo ou listagem do painel;
-#     2. escrever fora da raiz: nenhum arquivo `mal-evil*` nasce em lugar
-#        nenhum (o nome com `/` ou `..` é o que o poria fora do tema);
-#     3. rodar código: todo `manifesto.sh` e todo `json.py` plantados escrevem
-#        uma marca, e ela não pode existir no fim;
-#     4. o SVG com `<script>`/`onload`, aberto direto pela URL do painel, sai
-#        com a CSP de `sandbox` e o `nosniff` — o curl mostra os cabeçalhos;
-#     5. a linha ruim é PULADA E CONTADA, sem abortar: o desenho bom do mesmo
-#        mapa chega ao tema.
-#
-# O AMBIENTE É DE BRINQUEDO, E NADA CHEGA AO SISTEMA
-#   HOME, XDG_DATA_HOME e MEOW_PACKS temporários; falsos de sudo, pkexec, apt e
-#   companhia à frente do PATH, que registram e recusam. O painel sobe com o
-#   HOME de brinquedo (decisão 8 da leva G) e morre pelo PID dele.
+# HOME, XDG_DATA_HOME e MEOW_PACKS temporários; falsos de sudo, pkexec, apt e
+# companhia à frente do PATH, que registram e recusam.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -85,9 +57,8 @@ amb() {
 }
 
 # --- os packs -----------------------------------------------------------------
-# `mal` VALIDA: tudo o que ele tem de ruim é o que o `validar` não olha (nome
-# de destino no mapa, linha do mapa de pastas, symlink dentro de pasta de
-# desenho). É ele que prova que a linha ruim é pulada e a boa chega.
+# `mal` VALIDA: tudo o que ele tem de ruim é o que o `validar` não olha (nome de
+# destino no mapa, linha do mapa de pastas, symlink dentro de pasta de desenho).
 MAL="$RAIZ_DELA/mal"
 mkdir -p "$MAL/icones/apps" "$MAL/icones/pastas"
 cp "$RAIZ/packs/dracula/paleta.json" "$MAL/"
@@ -156,12 +127,8 @@ cat > "$MAL_CAMPO/pack.json" <<'J'
  "origens": {"wallpapers": {"desenhos": "icones/elo/"}}}
 J
 
-# `mal-nulo` e `mal-esc` [conferência da P78]: texto de pack que não é caminho
-# nem nome de destino, mas que chega a lugares que não o esperam. O NUL num campo
-# de caminho é JSON válido e fazia o `realpath` levantar ValueError — com o pack
-# só INSTALADO, a `/api/glifos` fechava a conexão sem resposta. A sequência de
-# terminal no `nome` saía crua no `meow pack listar` (título, tela, área de
-# transferência de quem lista).
+# `mal-nulo` e `mal-esc`: texto de pack que não é caminho nem nome de destino,
+# mas que chega a lugares que não o esperam.
 MAL_NULO="$RAIZ_DELA/mal-nulo"
 mkdir -p "$MAL_NULO/icones/apps"
 cp "$RAIZ/packs/dracula/paleta.json" "$MAL_NULO/"
@@ -188,6 +155,26 @@ mkdir -p "$MAL_UTF"
 cp "$RAIZ/packs/dracula/paleta.json" "$MAL_UTF/"
 printf '{"formato": 1, "id": "mal-utf", "nome": "a\x9b[2Jb", "heranca": "dracula", "paleta": {"arquivo": "paleta.json"}, "icones": {"apps": {"desenhos": "icones/"}}}\n' \
   > "$MAL_UTF/pack.json"
+
+# `mal-fl-ponto` e `mal-fl-barra`: o nome do flavor vira caminho de pasta e de
+# traço (o `meow_flavor` o devolve cru), e o `validar` só recusava o hífen. Um
+# flavor `..` e um claro `a/b` passavam.
+for _p in mal-fl-ponto:..:flavors mal-fl-barra:a/b:claros; do
+  _id="${_p%%:*}"; _r="${_p#*:}"; _fl="${_r%%:*}"; _onde="${_r#*:}"
+  mkdir -p "$RAIZ_DELA/$_id"
+  python3 -I - "$RAIZ/packs/dracula/paleta.json" "$RAIZ_DELA/$_id/paleta.json" "$_fl" "$_onde" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+fl, onde = sys.argv[3], sys.argv[4]
+d["flavors"][fl] = dict(d["flavors"]["dracula"])
+d["nomes"][fl] = "Mal"
+if onde == "claros":
+    d["claros"].append(fl)
+json.dump(d, open(sys.argv[2], "w", encoding="utf-8"))
+PY
+  printf '{"formato": 1, "id": "%s", "nome": "Mal flavor", "versao": "1.0.0", "autor": "x",\n "licenca": "MIT", "heranca": "dracula",\n "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}}\n' \
+    "$_id" > "$RAIZ_DELA/$_id/pack.json"
+done
 
 PERMITIDAS=("$RAIZ" "$RAIZ_DELA")
 fora_da_raiz() {   # as linhas de caminho da entrada que caem fora das raízes
@@ -253,6 +240,15 @@ recusado="$(amb python3 "$RAIZ/scripts/pack.py" adocao mal-esc "" 2>/dev/null | 
 [ "$recusado" = "mal-esc" ] && ok "o pack com caractere de controle no nome é recusado inteiro" \
   || falha "o pack com caractere de controle no nome foi adotado (recusado='$recusado')"
 
+for _id in mal-fl-ponto mal-fl-barra; do
+  recusado="$(amb python3 "$RAIZ/scripts/pack.py" adocao "$_id" "" 2>/dev/null | sed -n 's/^recusado=//p')"
+  if [ "$recusado" = "$_id" ] && ! amb python3 "$RAIZ/scripts/pack.py" validar "$_id" >/dev/null 2>&1; then
+    ok "o pack com flavor fora da forma do conf ($_id) é recusado inteiro no validar"
+  else
+    falha "o pack com flavor '..' ou 'a/b' passou no validar ($_id, recusado='$recusado')"
+  fi
+done
+
 # A porta de saída (`meow_texto_seguro`): C1 cru que não forma UTF-8 também sai
 # (`\x9b\x9b`, `\xff\x9b`, `\xe2\x9b` truncado, `\x90`/`\x9d`/`\x9e`/`\x9f`), e o
 # `ě` (`\xc4\x9b`), que tem um `\x9b` de continuação, sobrevive.
@@ -311,9 +307,6 @@ grep -q 'pulad' "$T/pastas.log" && ok "icones_pastas.sh contou as linhas puladas
   || falha "icones_pastas.sh pulou calado" "$(cat "$T/pastas.log")"
 
 # --- 4. o painel, com o HOME de brinquedo ---------------------------------------
-# `( exec env … ) &`, e não `amb … &`: a função em segundo plano é um subshell,
-# e o `$!` seria o dele, e não o do `run.sh` — o `kill` do fim mataria o
-# subshell e deixaria o painel de pé (medido: sete servidores órfãos).
 ( exec env -i PATH="$T/falso:$PATH" HOME="$CASA" USER="${USER:-t}" LANG="${LANG:-C.UTF-8}" \
     XDG_DATA_HOME="$XDG" MEOW_PACKS="$T/vazio" MEOW_RAIZ="$RAIZ" \
     MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE=/nao/existe PACK=mal \
@@ -440,11 +433,9 @@ else
   falha "o painel subiu para QA com o HOME da conta (rc=$rc)" "$(tail -3 "$T/casa-real.log")"
 fi
 
-#   [Conferência da P78] As outras portas para a mesma casa: o HOME vazio (o
-#   Python do painel cairia no `pwd`, a casa da conta) e, com um HOME de
-#   brinquedo, um `XDG_DATA_HOME` herdado que aponta para a casa da conta.
-#   O HOME vazio, e não ausente: se a guarda regredir, o vazio cai em `/.local`,
-#   que ninguém escreve, e não na casa de quem roda.
+# As outras portas para a mesma casa: o HOME vazio (o Python do painel cairia no
+# `pwd`, a casa da conta) e, com um HOME de brinquedo, um `XDG_DATA_HOME`
+# herdado que aponta para a casa da conta.
 for caso in vazio xdg; do
   if [ "$caso" = vazio ]; then extra=(HOME=); else extra=(HOME="$T/outra" XDG_DATA_HOME="$CASA/.local/share"); fi
   timeout 20 env -i PATH="$T/falso-getent:$T/falso:$PATH" USER="${USER:-t}" \

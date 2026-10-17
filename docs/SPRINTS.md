@@ -1,24 +1,189 @@
-# Sprints do MeowSystem-Theme
+# Sprints do MeowSystem
 
-Este arquivo é **autossuficiente**: quem for executar uma sprint não precisa de
-nenhum contexto de conversa anterior. Cada uma traz o que já foi medido, o que
-fazer, em que arquivo, como conferir que ficou certo, e o que pode dar errado.
+Este arquivo é o **índice**: cada sprint numerada, de P1 à última, numa linha, com a data, o
+que ela fez, o arquivo da spec, a branch e o merge. As specs moram em
+[`docs/sprints/`](sprints/), e cada uma traz o que foi medido, o que se fez e como se conferiu.
+Abaixo do índice fica o registro das sprints por letra (05/08 a 21/09/2026), que é história
+medida e não plano.
 
-**A REGRA DE MERGE (24/09/2026, P46): nada entra em `dev` sem o
-`./tests/app-completo.py` verde** — o painel inteiro pelo navegador, aba por
-aba e controle por controle. Ele roda dentro do `./tests/todos.sh` e ali não sai
-"pulado": sem Playwright ele é vermelho, com a receita de instalar. Botão novo
-na tela entra no inventário do teste no mesmo commit que o criou; sem isso o
-teste o reprova pelo nome. (Até esta data a regra não estava escrita em lugar
-nenhum — nem aqui, nem num `CONTRIBUTING`, que o projeto não tem.)
-
-Última atualização: **21/09/2026**.
+Última atualização: **16/10/2026** (P83).
 
 ---
 
-## A LEVA ABERTA: 21/09/2026 — vinte e quatro sprints, nenhuma executada
+## A regra de merge
 
-**Esta é a leva em aberto. Comece por ela.** Ela não fecha nada: abre dezesseis
+**Nada entra em `dev` sem a suíte inteira verde, `./tests/todos.sh`**, e dentro dela o gate do
+painel, `./tests/app-completo.py`: o painel inteiro pelo navegador, aba por aba e controle por
+controle (P46, 24/09/2026). Sem Playwright o gate sai vermelho, e não pulado. Botão novo na tela
+entra no inventário do gate no mesmo commit que o criou; sem isso o gate o reprova pelo nome.
+
+Desde a P75 e a P82 a suíte se protege sozinha: roda numa casa de brinquedo, sem o barramento
+da sessão, com `sudo`, `pkexec`, `su`, `apt`, `pkill`, `notify-send` e afins no começo do PATH
+recusando e registrando, e `systemctl`, `gsettings`, `dconf` e `busctl` só para leitura. O
+placar final diz quantas escritas cada falso parou.
+
+As sprints de 09/10 em diante passam por uma árvore de integração (`integracao/leva-g`,
+`integracao/leva-h`) antes do `dev`: cada branch entra ali com `merge --no-ff`, a suíte roda
+depois de cada merge, e o `dev` recebe a leva inteira de uma vez.
+
+---
+
+## O estado de hoje, medido
+
+| | |
+|---|---|
+| `install.sh` | 63 etapas; rodar de novo não escreve um byte |
+| `meow doctor` | **65** conferências; o `--consertar` repara o que estiver fora, sem mandar ninguém digitar |
+| painel | 122 chaves · 64 ações · 14 páginas (a Início e treze de assunto) |
+| packs | dois, versionados: Catppuccin (o padrão; latte, frappé, macchiato e mocha) e Dracula (dracula e o claro alucard) |
+| suíte | `./tests/todos.sh`. O placar não é copiado para cá de propósito: quadro de placar copiado à mão foi o que mentiu por três dias (P23). Cada integração registra o dela, na pasta da leva |
+
+Os números de cima são cobrados pelo `tests/numeros.sh`: o conserto, quando ele acusar, é
+atualizar o texto, e nunca o código.
+
+---
+
+## O índice: P1 a P89
+
+Coluna «merge»: o commit que pôs a branch na linha principal. «avanço» quer dizer que a branch
+entrou sem commit de merge (avanço rápido), e o hash é o da ponta dela. As levas G e H
+entraram primeiro numa árvore de integração; o merge dela no `dev` está na tabela das levas,
+mais abaixo.
+
+| P | data | o quê | spec | branch | merge |
+|---|---|---|---|---|---|
+| P1 | 21/09 | o instalador converge sozinho | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p1` | `9502756` |
+| P2 | 22/09 | nenhuma etapa termina em «faça você mesmo» | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p2` | `19de190` |
+| P3 | 21/09 | a mensagem nunca mente | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p3` | `178bf0a` |
+| P4 | 21/09 | o deslizante nasce livre, e os dois botões | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p4` | avanço `aa0aece` |
+| P5 | 21/09 | a gaveta cabe em 25% e não encosta no menu | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p5` | `511cfc5` |
+| P6 | 21/09 | alvo de clique e balão | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p6` | `8fde309` |
+| P7 | 22/09 | a tela fala português de gente | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p7` | `8ef183f` |
+| P8 | 22/09 | ver antes de aplicar: o ensaio volta | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p8` | `5caba39` |
+| P9 | 22/09 | uma senha só, e ela é a do install | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p9` | `e3d3924` |
+| P10 | 23/09 | o pack é o centro, e o Catppuccin é só um deles | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p10` | `7c3691f` |
+| P11 | 23/09 | exportar e importar um theme pack | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p11` | `8f50bd8` |
+| P12 | 23/09 | o pack cobre ponteiro, som, gerador e fontes | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p12` | `038923e` |
+| P13 | 22/09 | o Catppuccin deixa de ser código e vira pack | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p13` | `32386bf` |
+| P14 | 22/09 | tudo do tema mora dentro do pack | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p14` | `78a7990` |
+| P15 | 23/09 | o pack tem cara: capa, descrição, metadados | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p15` | `06294fb` |
+| P16 | 23/09 | a paleta entra por JSON ou CSV | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p16`, `sprint/p16b` | `b6e6c1c`, `154448f` |
+| P17 | 21/09 | a prévia do ponteiro e a irmã que não acompanhou | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p17` | avanço `517eef3` |
+| P18 | 22/09 | os temas de aplicativo obedecem ao pack | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p18` | `8749b4c` |
+| P19 | 21/09 | a raiz da configuração tinha dois idiomas, e fica um | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p19` | `ae438d5` |
+| P20 | 22/09 | o `pack.json` só promete o que alguém lê | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p20` | avanço `11bfc28` |
+| P21 | 22/09 | usar o programa não suja o repositório | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p21` | `1eea16c` |
+| P22 | 21/09 | o primeiro comando do README não rodava, e passa a rodar | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p22` | `6c4133b` |
+| P23 | 21/09 | a suíte vermelha que nada rodava ganha o `tests/todos.sh` | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p23` | `732b15c` |
+| P24 | 21/09 | a primeira instalação num estranho | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md) | `sprint/p24` | `a394550` |
+| P25 | 23/09 | cada pack tem um logo em SVG | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p25` | `16dd763` |
+| P26 | 23/09 | o acervo do pack é uma origem na oficina | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p26` | `1beeb17` |
+| P27 | 22/09 | todo ícone que veste alguém mora no pack | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p27` | `23f50ca` |
+| P28 | 23/09 | a fonte única: um desenho no pack, o resto derivado | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p28` | avanço `ae9696b` |
+| P29 | 22/09 | o que é tema volta para casa | [packs-modulares](sprints/2026-09-21-packs-modulares.md) | `sprint/p29` | `b127641` |
+| P30 | 23/09 | o pack que viaja não leva o nome de ninguém | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p30` | `a661fb2` |
+| P31 | 23/09 | o Catppuccin que sobrou na tela | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p31` | `96c80db` |
+| P32 | 23/09 | o que a tela diz é o que o código faz | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p32` | `04a5c02` |
+| P33 | 23/09 | os dois testes de navegador voltam a ser verdes | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p33` | `6efdc69` |
+| P34 | 23/09 | os miúdos que as sprints anotaram | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p34` | `d4422af` |
+| P35 | 23/09 | o script e o painel respondem a mesma coisa | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p35` | `ac4d133` |
+| P36 | 23/09 | a biblioteca Dracula inteira mora no pack | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p36` | `4bd6910` |
+| P37 | 23/09 | o Spellbook para de brigar com o MeowSystem | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p37` | avanço `8e21369` |
+| P38 | 24/09 | nenhuma linha do projeto é da máquina de alguém | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p38` | `1e7afaa` |
+| P39 | 24/09 | o MeowSystem traz o que é dele (o compositor inclusive) | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p39` | `7e96dc7` |
+| P40 | 24/09 | o que a onda deixou para trás | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p40` | `cd404c5` |
+| P41 | 24/09 | o pack Dracula traz a base de ícones, pinada | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p41` | `4de3993` |
+| P42 | 24/09 | os temas de aplicativo do Dracula moram no pack | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p42` | `2b98bd3` |
+| P43 | 24/09 | o pack Dracula fecha as pontas | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p43` | `88b4410` |
+| P44 | 24/09 | o doctor só lê, e o tema sai do Spellbook | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p44` | `08c9a88` |
+| P45 | 24/09 | as pontas que P39 a P43 anotaram | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p45` | `d34229b` |
+| P46 | 24/09 | o painel inteiro é um gate, botão por botão | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p46` | avanço `308c61b` |
+| P47 | 24/09 | o que a P44 deixou | [acabamento](sprints/2026-09-23-acabamento.md) | `sprint/p47` | `1ccfa67` |
+| P48 | 24/09 | o tema pronto e a cor de destaque aplicam de verdade | [validacao](sprints/2026-09-24-validacao.md) | `sprint/p48` | `eea246c` |
+| P49 | 24/09 | trocar de pack não deixa vestígio que quebra | [validacao](sprints/2026-09-24-validacao.md) | `sprint/p49` | `046ba03` |
+| P50 | 24/09 | o rótulo diz o que a ação fez | [validacao](sprints/2026-09-24-validacao.md) | `sprint/p50` | `0f8a52f` |
+| P51 | 24/09 | o Catppuccin que sobrou, de novo | [validacao](sprints/2026-09-24-validacao.md) | `sprint/p51` | `e22757d` |
+| P52 | 24/09 | a tela e o export sem nome nem casa de ninguém | [validacao](sprints/2026-09-24-validacao.md) | `sprint/p52` | `8a24dda` |
+| P53 | 24/09 | a Início e os packs, com o `pack remover` | [validacao](sprints/2026-09-24-validacao.md) | `sprint/p53` | `6d494c2` |
+| P54 | 24/09 | os restos das abas, e a confirmação dos jogos | [validacao](sprints/2026-09-24-validacao.md) | `sprint/p54` | `7d0f8fc` |
+| P55 | 25/09 | os aplicativos vestem o pack no ar | [restos](sprints/2026-09-24-restos.md) | `sprint/p55` | `e899492` |
+| P56 | 25/09 | as pastas vestem a paleta do pack | [restos](sprints/2026-09-24-restos.md) | `sprint/p56` | `cfd348f` |
+| P57 | 25/09 | as regras que ainda mentiam | [restos](sprints/2026-09-24-restos.md) | `sprint/p57` | `3913eca` |
+| P58 | 25/09 | o vidro segue o COSMIC instalado | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p58` | `b1e27db` |
+| P59 | 25/09 | toda variante aplica | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p59` | `4d72195` |
+| P60 | 25/09 | os desenhos do pack no seletor de ícone | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p60` | `d1d0e6f` |
+| P61 | 25/09 | as regras que sobraram | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p61` | `1292721` |
+| P62 | 25/09 | os textos que ainda mentiam | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p62` | `b47c797` |
+| P63 | 25/09 | o claro do Dracula é o Alucard | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p63` | `3fd75fd` |
+| P64 | 25/09 | os restos do painel | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p64` | `580a810` |
+| P65 | 25/09 | os restos do shell e dos textos | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p65` | `57a14d5` |
+| P66 | 25/09 | as notas de função da leva D2 | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p66` | `445b58b` |
+| P67 | 25/09 | a varredura das frases velhas | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p67` | `e0949bb` |
+| P68 | 25/09 | o que a suíte das levas D e E mostrou | [corretivas](sprints/2026-09-25-corretivas.md) | `sprint/p68` | `f54405b` |
+| P69 | 26/09 | as cores seguem o lado que a tela veste | [fechamento de 26/09](sprints/2026-09-26-fechamento.md) | — | sem branch própria: entrou como P74 item 10 (`412ff75`) |
+| P70 | 26/09 | a tela de login pela ponte, o status que diz a verdade, o Vesktop | [fechamento de 26/09](sprints/2026-09-26-fechamento.md) | — | sem branch própria: P75 itens 2 e 7 (`c276080`, `f561972`) e P74 item 9 (`88530a5`) |
+| P71 | 26/09 | a documentação do produto | [fechamento de 26/09](sprints/2026-09-26-fechamento.md) | — | sem branch própria: é a P83 |
+| P72 | 26/09 | o índice das sprints | [fechamento de 26/09](sprints/2026-09-26-fechamento.md) | — | sem branch própria: é a P83 (este arquivo) |
+| P73 | 09/10 | o seletor de ícone mostra o acervo inteiro, em pastas | [P73](sprints/2026-10-09-uso-real/P73-seletor-e-acervo.md) | `sprint/p73` | `d3b9790` (leva G) |
+| P74 | 09/10 | o pack Dracula é um tema completo e exportável | [P74](sprints/2026-10-09-uso-real/P74-pack-dracula-completo.md) | `sprint/p74` | `eeface3` (leva G) |
+| P75 | 09/10 | o doctor corrige; nada manda consertar à mão | [P75](sprints/2026-10-09-uso-real/P75-doctor-corrige.md) | `sprint/p75` | `0ba1d3c` (leva G) |
+| P76 | 09/10 | sobreviver às atualizações do COSMIC | [P76](sprints/2026-10-09-uso-real/P76-cosmic-vivo.md) | `sprint/p76` | `e24ca06` (leva G) |
+| P77 | 10/10 | a interface mostra em vez de explicar | [direção](sprints/2026-10-09-uso-real/P77-direcao.md), [P77](sprints/2026-10-09-uso-real/P77-interface-mostra.md), [QA](sprints/2026-10-09-uso-real/P77-qa.md) | `sprint/p77` | `9f75ebf` (leva G) |
+| P78 | 10/10 | pack é dado não confiável; o gate volta a ficar verde | [P78](sprints/2026-10-09-uso-real/P78-seguranca-e-gate.md) | `sprint/p78` | `8e0f202` (leva G) |
+| P79 | 10/10 | a casa real fica coerente com o pack no ar | [P79](sprints/2026-10-09-uso-real/P79-casa-real.md) | `sprint/p79` | `4e98e52` (leva G) |
+| P80 | 10/10 | o acabamento do uso real | [P80](sprints/2026-10-09-uso-real/P80-acabamento.md) | `sprint/p80` | `5580d30` (leva G) |
+| P81 | 16/10 | o compositor e o cosmic-files se recompilam sozinhos | [P81](sprints/2026-10-15-fechamento/P81-build-sempre.md) | `sprint/p81` | `d6d893c` (leva H) |
+| P82 | 16/10 | os abertos da leva G, conferidos e fechados | [P82](sprints/2026-10-15-fechamento/P82-abertos.md) | `sprint/p82` | `096b134` (leva H) |
+| P83 | 16/10 | a documentação fecha o projeto | [P83](sprints/2026-10-15-fechamento/P83-documentacao.md) | `sprint/p83` | leva H |
+| P84 | 16/10 | os 39 PNG feitos à mão viram vetor | [P84](sprints/2026-10-15-fechamento/P84-png-para-vetor.md) | `sprint/p84` | `96d4a99` (leva H) |
+| P85 | 15/10 | a série do compositor entra no cosmic-comp 4d14528 | [P85](sprints/2026-10-15-fechamento/P85-serie-no-4d14528.md) | `sprint/p85` | `8f55e73` (leva H) |
+| P86 | 15/10 | a regra da vida: o funcionamento contínuo garantido | [P86](sprints/2026-10-15-fechamento/P86-regra-da-vida.md) | — | aberta: spec escrita, depois da leva H |
+| P87 | 15/10 | tudo o que foi achado e recuperado entra no pack | spec no `dev` (`P87-tudo-pro-pack.md`) | — | aberta: depois da P88 |
+| P88 | 15/10 | o formato de pack com três pastas de ícone | spec no `dev` (`P88-tres-pastas.md`) | — | aberta: decisão 14 |
+| P89 | 15/10 | o repositório enxuto, e um gancho que o mantém | spec no `dev` (`P89-repo-enxuto.md`) | — | aberta: a última antes da integração final |
+
+---
+
+## As levas
+
+| leva | data | arquivo | sprints | o que fechou |
+|---|---|---|---|---|
+| eixo I e eixo II | 21 a 23/09 | [de-tema-a-produto](sprints/2026-09-21-de-tema-a-produto.md), [packs-modulares](sprints/2026-09-21-packs-modulares.md) | P1 a P29 | de «aplicar o Catppuccin» a produto de theme packs: o Catppuccin vira pack, o pack vira a unidade, a suíte ganha runner |
+| acabamento | 23 e 24/09 | [acabamento](sprints/2026-09-23-acabamento.md) | P30 a P47 | o Dracula completo no pack, o Spellbook fora do caminho, o doctor que só lê, o gate do painel |
+| validação | 24/09 | [validacao](sprints/2026-09-24-validacao.md) | P48 a P54 | os 48 achados da validação pelo painel de verdade |
+| C, restos | 24 e 25/09 | [restos](sprints/2026-09-24-restos.md) | P55 a P57 | os aplicativos e as pastas vestem o pack no ar |
+| D, D2 e E | 25/09 | [corretivas](sprints/2026-09-25-corretivas.md) | P58 a P68 | o vidro, as variantes, o Alucard, as frases velhas |
+| F, fechamento de 26/09 | 26/09 | [fechamento](sprints/2026-09-26-fechamento.md) | P69 a P72 | escrita e não executada como leva; o conteúdo entrou nas levas G e H |
+| G, uso real | 09 e 10/10 | [2026-10-09-uso-real/](sprints/2026-10-09-uso-real/) | P73 a P80 | o seletor, o Dracula completo, o doctor que corrige, o COSMIC vivo, a interface sem texto, pack é dado; no `dev` em `cd34d87` |
+| H, fechamento | 15 e 16/10 | [2026-10-15-fechamento/](sprints/2026-10-15-fechamento/) | P81 a P85 | build sempre, os abertos fechados, os feitos à mão em vetor, a série no 4d14528, esta documentação; em `integracao/leva-h` |
+| depois da H | — | [2026-10-15-fechamento/](sprints/2026-10-15-fechamento/) | P86 a P89 | abertas: a regra da vida, o formato de três pastas, tudo para o pack, o repositório enxuto |
+
+As decisões tomadas em nome de quem usa moram em
+[`2026-10-09-uso-real/02-decisoes.md`](sprints/2026-10-09-uso-real/02-decisoes.md) (1 a 12) e na
+seção «Decisões» da [P82](sprints/2026-10-15-fechamento/P82-abertos.md) (13 a 49). O que o projeto
+entrega hoje, e como se mantém, está em [`ESTADO-FINAL.md`](ESTADO-FINAL.md).
+
+---
+
+## Antes das P: as sprints por letra (05/08 a 21/09/2026)
+
+| período | onde está | sprints |
+|---|---|---|
+| 05/08 | [plano de 05/08](sprints/2026-08-05-plano.md) | as sprints 1 a 4 da primeira varredura |
+| 05/08 a 01/09 | o registro abaixo, com o índice próprio em «O índice de estado» | A a W |
+| 06 e 07/09 | [painel-produto](sprints/2026-09-06-painel-produto.md), [acabamento-do-painel](sprints/2026-09-07-acabamento-do-painel.md) | as frentes A a I do painel, e as passagens v1.2.2 a v1.2.4 |
+| 09/09 | [heroic-e-oficina](sprints/2026-09-09-heroic-e-oficina.md), [sprint-q](sprints/2026-09-09-sprint-q-conversor.md), [sprint-r](sprints/2026-09-09-sprint-r-oficina.md), [duplicata-e-fidelidade](sprints/2026-09-09-duplicata-e-fidelidade.md) | P (Heroic), Q (conversor), R (oficina), S e T: as letras recomeçaram aqui, e não são as P numeradas. As cinco fecharam em 09/09 |
+
+---
+
+# O registro, de 05/08 a 21/09/2026
+
+Tudo daqui para baixo é como foi escrito no dia, e fica como está. Onde o texto diz «hoje»,
+«agora» ou «aberta», é o dia da seção, e não 16/10/2026: o estado de hoje é o do índice acima.
+
+## A leva de 21/09/2026, como foi aberta (executada de 21 a 23/09: ver o índice)
+
+**Era a leva em aberto em 21/09.** Ela não fechava nada: abre dezesseis
 sprints escritas a partir de uma sessão de queixas dele e de uma medição do app
 rodando (Playwright, as 14 abas, 21/09/2026). Nenhuma linha de código foi
 tocada.
@@ -170,7 +335,7 @@ com teste.
 
 ---
 
-## AO VOLTAR, COMECE POR AQUI  (leva de 09/09/2026 — FECHADA)
+## A leva de 09/09/2026 — FECHADA
 
 **A leva de 09/09/2026 (tarde) fechou CINCO frentes.** As duas sprints que este
 arquivo listava como abertas — S e T de
@@ -258,21 +423,14 @@ estavam anotadas em lugar nenhum.
 o `meow doctor` diz "15 desatualizados de 33" — é o esperado,
 porque o padrão do conversor mudou e **arte aprovada não se troca em silêncio**.
 
-**O ESTADO DE HOJE, MEDIDO:**
-
-| | |
-|---|---|
-| `install.sh` | 62 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | **64** conferências; a única divergência é a arte convertida, e ela espera a folha |
-| painel | 122 chaves · 54 ações · 13 páginas de assunto |
-| conferência do navegador | **123/123**, console limpo nas catorze páginas |
-| suítes de shell | 14 arquivos, e desde 21/09 a pergunta "a suíte passa?" se faz com `./tests/todos.sh`. O placar NÃO é copiado para cá de propósito: quadro de placar copiado à mão foi o que mentiu por três dias, e é o defeito que a P23 veio consertar. O `--portatil`, que é o que o CI roda, está verde; fora dele o `conversor` está vermelho por uma regressão medida em 21/09, não por ambiente — ver abaixo |
+**O ESTADO DAQUELE DIA** saiu daqui em 16/10/2026 (P83): o quadro do estado de hoje mora
+no topo deste arquivo, e é ele que o `tests/numeros.sh` cobra.
 
 **O QUE ENVELHECEU NESTE ARQUIVO:** tudo abaixo da linha é registro de sprint
 **fechada**, e fica como está — é história medida, não plano. Duas coisas que a
 leitura de hoje contradiz, e por isso ficam ditas aqui em cima:
 
-- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **64 conferências**
+- o *"doctor em 41 ok"* da Sprint W é de 01/09; hoje são **65 conferências**
   (eram 55 até 21/09; a P23 acrescentou as sete que faltavam);
 - o *"falta um logout"* daquela mesma leva **já aconteceu**: o doctor diz
   *"4 marcadores de pé no disco e na sessão"* e o pipewire está em 1.6.8.

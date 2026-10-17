@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Raposa enroscada diante da lua cheia, com casarão e morcegos. O miolo do disco
+       é vazado: a borda roxa esmaece até o transparente, e o casarão, os morcegos e o
+       olho da raposa são vãos. Grade 512 reduzida por 0,25 -->
+  <defs>
+    <radialGradient id="esmaece" gradientUnits="userSpaceOnUse" cx="275" cy="243" r="200">
+      <stop offset="0.86" stop-color="#000"/>
+      <stop offset="1" stop-color="#FFF"/>
+    </radialGradient>
+    <mask id="anel" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#FFF"/>
+      <circle cx="275" cy="243" r="200" fill="url(#esmaece)"/>
+    </mask>
+    <path id="morcego" d="M-42 -18 Q-30 -22 -23 -10 Q-15 -22 -5 -15 L0 -25 L5 -15 Q17 -22 27 -10 Q33 -18 45 -10 Q37 0 40 15 Q27 7 17 15 Q10 5 0 22 Q-10 5 -17 15 Q-27 7 -37 15 Q-35 0 -42 -18 Z"/>
+    <mask id="vaos" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#FFF"/>
+      <g fill="#000">
+        <use href="#morcego" transform="translate(336 150)"/>
+        <use href="#morcego" transform="translate(338 220) rotate(-14)"/>
+        <path d="M315 265 L342 300 V328 L362 328 L386 356 L380 360 V412 H246 V360 L240 356 L290 312 V300 Z"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="scale(0.25)">
+    <circle cx="257" cy="255" r="241" fill="#53407B" mask="url(#anel)"/>
+    <g mask="url(#vaos)">
+      <!-- lua com manchas -->
+      <circle cx="292" cy="212" r="130" fill="#EF9B2D"/>
+      <g fill="#DF7C28">
+        <circle cx="253" cy="120" r="8"/><circle cx="263" cy="160" r="5"/><circle cx="392" cy="238" r="9"/>
+        <circle cx="371" cy="290" r="5"/><circle cx="241" cy="323" r="5"/>
+      </g>
+      <!-- raposa, com o olho vazado -->
+      <path fill="#654E8D" fill-rule="evenodd" d="M157 90 L170 150 Q215 152 245 192 L262 210 Q280 220 286 230 Q284 246 268 252 Q258 262 240 266 Q200 276 172 296 Q155 318 170 338 Q190 352 248 352 L246 416 Q170 420 120 372 Q84 330 84 262 Q86 210 100 168 L124 178 Q135 128 157 90 Z M190 215 a10 13 0 1 0 20 0 a10 13 0 1 0 -20 0 Z"/>
+    </g>
+    <!-- presa -->
+    <path d="M232 268 L244 266 L240 300 Q236 302 234 296 Z" fill="#FBECB7"/>
+    <path d="M236 280 L241 279 L239 296 Z" fill="#D9452B"/>
+    <!-- janelas e porta do casarão -->
+    <g fill="#EF9B2D">
+      <rect x="263" y="368" width="10" height="18"/><rect x="351" y="368" width="10" height="18"/>
+      <rect x="309" y="316" width="10" height="20"/>
+      <path d="M305 412 V392 Q314 376 324 392 V412 Z"/>
+    </g>
+  </g>
+</svg>

@@ -1,27 +1,6 @@
 #!/usr/bin/env bash
-# achados-tecnicos.sh — os achados técnicos das specs P77 e P78 que a P79 fecha.
-# 10/10/2026, item 6.
-#
-# O QUE ESTE TESTE COBRA, UM ACHADO POR SEÇÃO
-#   1. Mapa com CRLF. Um `pastas.map` escrito no Windows tem `\r` no glifo, o
-#      `meow_nome_seguro` o recusava, e a linha era pulada: o pack inteiro
-#      ficava sem pastas (P78). O `pack.py` (`splitlines`) já aceitava o mesmo
-#      arquivo; o leitor de mapa do shell passa a aceitar também.
-#   2. O `_proibido` do pack via só `.sh` e `#!` no primeiro byte: um
-#      `leia.txt` com BOM e `#!` entrava (P78, medido). Agora o BOM não esconde
-#      o `#!`.
-#   3. O `vidro_janela.py` achava o tema em `~/.config/cosmic` cravado, e não
-#      lia o `MEOW_COSMIC_DIR` que o `vidro.sh` respeita (conferência da P77).
-#   4. Com `LOGO_MODO=""`, a página não sabia o modo que vale, e a moldura do
-#      gato saía vazia (conferência da P77): o servidor manda o modo efetivo
-#      (`_modo_do_gato`) no `valendo_agora` da chave.
-#   5. A galeria tem a aba «Favoritos», e nenhuma imagem oferecia o gesto de
-#      favoritar (QA da P77): os verbos `favoritar` e `desfavoritar` do
-#      `wallpaper.sh`, as duas ações do painel e o campo `favorito` de cada
-#      imagem.
-#
-# PORTÁTIL: HOME, COSMIC e packs de brinquedo; bash e python3.
-#   0 = passou · 1 = falhou · 2 = erro deste teste
+# PORTÁTIL: HOME, COSMIC e packs de brinquedo; bash e python3. 0 = passou · 1 =
+# falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ACHADOS=0

@@ -1,101 +1,15 @@
 #!/usr/bin/env bash
 # construir_pastas.sh — as pastas do Papirus na cor do flavor, sem tocar no Papirus.
 #
-# O MÉTODO OFICIAL DO CATPPUCCIN NÃO SERVE AQUI
 #   O README de `catppuccin/papirus-folders` manda:
 #       sudo cp -r src/* /usr/share/icons/Papirus
 #   Isto é, escrever por cima de um diretório do apt. Todo `apt upgrade` do
 #   `papirus-icon-theme` desfaz — e a especificação deste projeto proíbe, com
 #   razão. Aqui o Papirus fica intacto e derivamos um tema por cima.
 #
-# NEM PRECISAMOS DA FERRAMENTA `papirus-folders`
-#   Ela existe para resolver um problema que não temos: trocar a cor DENTRO do
-#   Papirus instalado. O que ela faz é criar, para cada `folder-<cor>-X.svg`, um
-#   link `folder-X.svg`. Como estamos montando um tema do zero, fazemos isso
-#   direto — uma dependência de rede a menos, e sem o SHA de um repositório
-#   parado há dois anos no caminho crítico.
-#
-# A ARMADILHA DOS APELIDOS (mediria mal quem só testasse a pasta genérica)
-#   O Papirus define 85 nomes-APELIDO em `places` que são symlinks para
-#   `folder-blue-*` e `user-blue-*` — entre eles `user-home`, `folder-download`,
-#   `folder-documents` e `inode-directory`, que é o nome genérico de diretório
-#   que os aplicativos realmente pedem. Um tema derivado que copie só os SVGs
-#   coloridos NÃO cobre esses nomes: a busca cai no Papirus-Dark e metade das
-#   pastas fica na cor pedida enquanto a outra metade continua AZUL.
-#   Por isso este script reproduz cada apelido apontando para o equivalente
-#   colorido, e conta quantos conseguiu — o número aparece no log de propósito.
-#
-# CÓPIA REAL, NÃO SYMLINK PARA /usr/share
-#   Symlinkar os SVGs coloridos para o Papirus economizaria disco, mas amarraria
-#   o tema à versão instalada do pacote: um `apt upgrade` que renomeie um arquivo
-#   deixaria links quebrados espalhados. São ~2 MB; a cópia é barata e é honesta.
-#
-# ESTE SCRIPT CEDE ALGUNS NOMES — E A CESSÃO É CONDICIONAL, DE PROPÓSITO
-#   Desde 08/08/2026 as pastas ESPECIAIS que o `cosmic-files` pede pelo nome XDG
-#   (`folder-pictures`, `folder-music`, ...) são vestidas pelo desenho do pack
-#   no ar (o do Catppuccin, ou o próprio do pack que tem um), em
-#   `scalable/places`, pelo `scripts/icones_pastas.sh`. Se este script
-#   continuasse criando o apelido colorido no mesmo nome, haveria DOIS arquivos
-#   para o mesmo ícone — e medido, os dois resolvedores discordam: a crate do COSMIC
-#   abre o `scalable`, o GTK abre o tamanho exato. A mesma pasta apareceria
-#   pastel a 16px e mauve a 48px dentro de um mesmo aplicativo GTK.
-#
-#   A cessão é a saída, no padrão do `INTOCAVEIS` do `icones_apps.sh`: a lista
-#   vem de `assets/icones/pastas.map`, que é a mesma que o outro script instala — uma
-#   fonte de verdade só.
-#
-#   MAS SÓ SE CEDE O QUE JÁ ESTÁ NO DISCO. Ceder um nome cujo desenho ainda não
-#   foi instalado deixaria aquela pasta AZUL (herdada do Papirus) até a rodada
-#   seguinte — pior que a cor errada, porque quebra o conjunto. Por isso o teste
-#   é `[ -f scalable/places/<nome>.svg ]`, e não a mera presença no mapa: se o
-#   outro script falhar, sumir ou perder o pack, este aqui volta a vestir o nome
-#   na cor das outras pastas na mesma passagem, sozinho. [Dizia «cujo pastel» e
-#   «de mauve» até a P65 (25/09/2026): o desenho do Catppuccin e o acento de uma
-#   casa, a classe que a P62 tirou da tela.]
-#
-# CEDER UM NOME QUEBRA OS APELIDOS QUE PASSAM POR ELE — MEDIDO, SÃO 11
-#   O `SPRINTS.md` avisava de UMA cadeia (`folder-videos -> folder-video`) e
-#   errava o lado: cedemos `folder-videos`, que é o topo, então `folder-video`
-#   nem é tocado. O problema real é o inverso e é maior. Medido no Papirus-Dark,
-#   fecho transitivo dos 7 nomes cedidos, idêntico nos 5 tamanhos:
-#
-#       folder-documents  <- folder_man folder-text folder-txt folder_wordprocessing
-#       folder-download   <- folder-downloads
-#       folder-music      <- folder-sound library-music
-#       folder-pictures   <- folder-images <- folder-image ; folder-picture
-#       folder-publicshare<- folder-public
-#
-#   São 11 nomes × 5 tamanhos = 55 apelidos que o passe 2 abandonaria (ele exige
-#   `[ -e "$destino/$alvo" ]`), e que cairiam AZUIS sem ninguém acusar. O conserto
-#   está no passe 2: quando o alvo foi cedido, desce a cadeia inteira do Papirus
-#   com `readlink -f` e aponta direto para a cor. Eles continuam na cor das
-#   outras pastas.
-#
-# 22x22 E 24x24 FICARAM SEM APELIDO NENHUM ATÉ 08/08/2026 — E NÃO ERA COR
-#   `Papirus-Dark/22x22/places` e `.../24x24/places` são SYMLINK para a árvore
-#   `Papirus` (clara); só 32/48/64 são diretório de verdade. O `find` do laço dos
-#   apelidos não tinha barra no fim, e sem barra ele não desce em diretório
-#   linkado: achava 1 entrada (o próprio link) em vez de 223. Resultado no disco:
-#   118 apelidos em cada um dos três tamanhos grandes e ZERO nos dois pequenos.
-#
-#   E A CONTA "116 NOMES FICAM AZUIS" ESTAVA ERRADA — MEDIDO NOS DOIS RESOLVEDORES
-#   O laço externo da busca é o TEMA, não o tamanho: o GTK e a
-#   `cosmic-freedesktop-icons` varrem TODOS os diretórios do tema selecionado,
-#   ordenados por distância de tamanho, antes de tocar no `Inherits=`. Com o nome
-#   presente em 32/48/64, um pedido de 16 px era servido pelo NOSSO 32x32 — mauve,
-#   só com a arte do tamanho errado. O Papirus nunca entrou. Provado com
-#   `Gtk.IconTheme.lookup_icon` a 16/22/24/32/48 px e com `directories.rs`
-#   (`directory_size_distance`) + `theme/mod.rs` (`closest_match_size`) do commit
-#   `ab4c57b8` que os binários do COSMIC fixam.
-#
-#   O QUE O CONSERTO GANHA, ENTÃO: a arte do tamanho certo. Medido em pixels de
-#   borda parcial (anti-aliasing) da pasta genérica:
-#       pedido 22 px:  arte nativa 6,0%  contra  14,9% da arte de 32 reduzida
-#       pedido 24 px:  arte nativa 5,0%  contra  14,1%
-#       pedido 16 px:  arte de 22    21,5%  contra   9,8% da arte de 32
-#   Ou seja 22 e 24 px melhoram muito, e 16 px fica um pouco MAIS macio, porque
-#   32→16 é uma divisão exata por 2 e 22→16 não é. É o preço honesto, e é o que a
-#   especificação freedesktop manda de todo jeito (usar o tamanho mais próximo).
+# Ela existe para resolver um problema que não temos: trocar a cor DENTRO do
+# Papirus instalado. O que ela faz é criar, para cada `folder-<cor>-X.svg`, um
+# link `folder-X.svg`.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -104,12 +18,10 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
-# A ÁRVORE DE ONDE AS PASTAS COPIAM DESENHO É PERGUNTA AO `pack.py` — P74 item 1
-#   Era `/usr/share/icons/$ICONES_BASE`, a chave crua: com o conf dizendo
-#   `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, em ~/.local/share)
-#   a etapa de pastas se pulava por sete passadas do doctor (I1/I2 do 01-regressoes.md). A
-#   regra de quem vence mora no `_base_escolhida`, e o `base-apelidos` diz o
-#   tema (o escolhido à mão, ou o Papirus-Dark) e onde ele está no disco.
+# Era `/usr/share/icons/$ICONES_BASE`, a chave crua: com o conf dizendo
+# `ICONES_BASE="MeowSystem-Icons-Base"` (a base do pack, em ~/.local/share) a
+# etapa de pastas se pulava por sete passadas do doctor (I1/I2 do
+# 01-regressoes.md).
 _base="$(ICONES_BASE="${ICONES_BASE:-}" NOME_TEMA_ICONES="$TEMA_NOME" \
            python3 "$RAIZ/scripts/pack.py" base-apelidos 2>/dev/null)"
 BASE="$(printf '%s\n' "$_base" | sed -n 's/^tema=//p')"
@@ -119,100 +31,25 @@ unset _base
 COR="${ICONES_PASTAS:-cat-mocha-mauve}"
 FONTE="${MEOW_CAT_FOLDERS:-$RAIZ/assets/icones/upstream/papirus-folders}"
 
-# UM FLAVOR SEM COR NO PAPIRUS-FOLDERS CAI NO VIZINHO, E DIZ QUE CAIU — 15/09/2026
-#   O valor padrão de `ICONES_PASTAS` é `cat-${FLAVOR}-${ACCENT}`, e o
-#   papirus-folders traz só as 56 combinações do Catppuccin (4 flavors × 14
-#   accents). Desde que o `dracula` entrou como variante, `FLAVOR="dracula"` pede
-#   `cat-dracula-mauve` — que não existe.
+# O valor padrão de `ICONES_PASTAS` é `cat-${FLAVOR}-${ACCENT}`, e o
+# papirus-folders traz só as 56 combinações do Catppuccin (4 flavors × 14
+# accents).
 #
-#   O que acontecia: `montar_de_para` testa `[ -f "$mauve" ]` e devolve 1 quando
-#   o arquivo não está lá. A função falha, o passe não pinta, e as pastas ficam
-#   com a cor de fábrica SEM UMA LINHA DE AVISO. É o modo de falhar que este
-#   repositório não aceita — o mesmo da leva das ferramentas que falhavam caladas.
+# O que acontecia: `montar_de_para` testa `[ -f "$mauve" ]` e devolve 1 quando o
+# arquivo não está lá.
 #
-#   A queda preserva o ACCENT, que é escolha à parte: quem pediu `pink` continua
-#   com pink. Só o flavor troca, e para o `mocha` — o mais escuro do Catppuccin,
-#   que é onde o Dracula mora. Trocar o `ICONES_PASTAS` à mão continua valendo e
-#   passa direto por aqui, porque a condição é o arquivo existir, não o nome.
+# Só o flavor troca, e para o `mocha` — o mais escuro do Catppuccin, que é onde
+# o Dracula mora.
 _cor_de_pasta_existe() { [ -f "$FONTE/src/64x64/places/folder-$1-documents.svg" ]; }
 
-# A VARIANTE DO PACK NO AR SAI DA DO CATPPUCCIN, COR POR COR — 24/09/2026, P56
-#   A queda acima deixava as pastas no Catppuccin com qualquer outro pack no ar.
-#   Medido nesta máquina, com o Dracula: o `folder.svg` instalado apontava para
-#   `folder-cat-mocha-mauve.svg`, de hex #CBA6F7 e #CDD6F4 (o mauve e o text do
-#   Mocha) e #B792E3. A tela inteira trocava de pack, e as pastas não.
+# A queda acima deixava as pastas no Catppuccin com qualquer outro pack no ar. A
+# tela inteira trocava de pack, e as pastas não.
 #
-#   O QUE O PAPIRUS-FOLDERS PINTA, MEDIDO NAS 56 COMBINAÇÕES
-#     Cada uma usa QUATRO hex, os mesmos nos cinco tamanhos. Três são slots do
-#     flavor dela: o acento (a frente), o `text` e o `surface0`. Nos 42 dos três
-#     escuros o papel é o `text` e o símbolo, o `surface0`; nos 14 do latte é o
-#     contrário — papel #CCD0DA (o `surface0`), símbolo #4C4F69 (o `text`). O
-#     quarto, a sombra de trás, NÃO é cor de paleta nenhuma: é o acento com 0x14
-#     a menos em cada canal, preso em zero (o `red` do latte, #D20F39, dá
-#     #BE0025). Nas 56, sem exceção.
-#     [Corrigido na revisão, 24/09/2026: a primeira versão deste bloco dizia "o
-#     `text` (o papel)" para as 56, e derivava todo flavor do Mocha — ver "O
-#     CLARO SAI DO CLARO", logo abaixo.]
+# É a ideia do `scripts/derivar_acento.py`: o que não existe pronto sai do que
+# existe, pela regra que a origem obedece, e não de mais uma lista de variantes.
 #
-#   ENTÃO A TROCA É SLOT A SLOT, E A SOMBRA SEGUE O ACENTO
-#     O hex que é slot do flavor de origem vira o MESMO slot do flavor pedido,
-#     na paleta do pack no ar; a sombra vira o acento pedido com o mesmo
-#     deslocamento que a origem mostra — lido do disco a cada passagem, e não o
-#     0x14 cravado aqui. É a ideia do `scripts/derivar_acento.py` (P48): o que
-#     não existe pronto sai do que existe, pela regra que a origem obedece, e
-#     não de mais uma lista de variantes.
-#
-#   O CLARO SAI DO CLARO — 24/09/2026, na revisão da P56
-#     Slot a slot só vale entre dois flavors do MESMO LADO, porque o papel de um
-#     escuro é o `text` e o de um claro é o `surface0`. A primeira versão partia
-#     sempre do `cat-mocha-<acento>`, e o `alucard` (o claro do Dracula) saía
-#     `fill:#7126DE #4A4F67 #853AF2 #4A4F67`, papel escuro e símbolo claro, onde
-#     o latte do upstream é `#7425DB #CCD0DA #8839EF #CCD0DA`. Medido com o
-#     próprio `_derivar_py`, derivando do Mocha o que o upstream já traz:
-#     frappe, macchiato e mocha iguais nos 5.460 arquivos de cada um; o latte,
-#     diferente nos 5.460 — papel e símbolo trocados.
-#     Então a origem fica do lado do pedido: o flavor que o pack no ar lista em
-#     `claros` sai do primeiro `claros` do pack padrão (o latte); o escuro, do
-#     Mocha da queda de 15/09. É a pergunta da P48 para escolher a árvore Light
-#     ou Dark (`plano`, no `scripts/derivar_acento.py`), feita às duas paletas.
-#     Derivados assim, os 56 do Catppuccin saem iguais ao upstream, byte a byte.
-#
-#   E PARA, EM VEZ DE PINTAR TORTO. As guardas são três:
-#     · o acento de origem tem de estar nos desenhos — senão a paleta não
-#       descreve este papirus-folders, e cada troca seria um chute;
-#     · um hex que é dois slots na origem e duas cores no pedido não tem
-#       tradução — o mesmo motivo do `DE_PARA` do `tabela_azul_mauve`, abaixo;
-#     · um tom fora da paleta que não é o acento deslocado por igual é tom que
-#       ninguém mediu, e derivá-lo seria inventar cor. "Por igual" vale nos
-#       canais que não bateram em 0 ou 255; nos que bateram, o prendedor tem de
-#       explicar o valor. Com a origem clara isso conta: o `peach`, o `sky` e o
-#       `red` do latte têm um canal abaixo de 0x14, e as sombras deles ficam a
-#       (20,20,11), (4,20,20) e (20,15,20) do acento.
-#     Parada, a variante cai na queda de 15/09, com o motivo no log.
-#
-#   COM O CATPPUCCIN NO AR ISTO NÃO RODA: as 56 existem, a condição do bloco é o
-#   arquivo NÃO existir, e os bytes das pastas são os de antes. O
-#   `tests/pastas-do-pack.sh` confere, arquivo a arquivo, contra o upstream.
-#
-#   ONDE A VARIANTE MORA: num temporário apagado na saída, com o `FONTE`
-#   apontando para ele. Ela é produto da passagem — sai igual byte a byte da
-#   mesma origem e da mesma paleta —, e assim o passe 1, as lixeiras e as
-#   órfãs azuis leem a MESMA variante, pelo caminho de sempre. No seco o
-#   temporário também nasce e morre: ele não é a casa de ninguém.
-#
-#   AS DUAS PALETAS: a do pedido é a do pack no ar (`meow_paleta`, a porta de
-#   todo consumidor); a de origem, a do pack padrão, que é o Catppuccin que o
-#   papirus-folders pinta — a primeira guarda confere que é mesmo.
-#
-# O PAPEL E O SÍMBOLO DAS PASTAS, QUE A LIXEIRA NÃO PODE TOMAR POR ACENTO
-#   São o `text`, o `surface0`, o `crust` e o `base` do Mocha, que o
-#   `recolorir_lixeiras` pula ao ler os tons da pasta vizinha. Numa variante
-#   derivada são os MESMOS QUATRO SLOTS, lidos no flavor pedido: sem isso a
-#   lixeira do Dracula tomava o `surface0` dele (#383A4C, que o `sort` põe antes
-#   do acento) por tom, e saía cinza-escura no meio das pastas roxas. Pelo nome
-#   do slot, e não pelos hex do Mocha traduzidos (a primeira versão): com a
-#   origem clara os hex do Mocha nem estão nos desenhos, e traduzi-los pararia a
-#   derivação do `alucard` inteira.
+# COM O CATPPUCCIN NO AR ISTO NÃO RODA: as 56 existem, a condição do bloco é o
+# arquivo NÃO existir, e os bytes das pastas são os de antes.
 PAPEL_DAS_PASTAS="CDD6F4|313244|11111B|1E1E2E"
 SLOTS_DO_PAPEL="text|surface0|crust|base"
 DERIVADA=""
@@ -436,7 +273,7 @@ TAMANHOS=(22x22 24x24 32x32 48x48 64x64)
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 MAPA_PASTAS="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.pastas.mapa 2>/dev/null)" || MAPA_PASTAS=""
-[ -n "$MAPA_PASTAS" ] || MAPA_PASTAS="$RAIZ/assets/icones/pastas.map"
+[ -n "$MAPA_PASTAS" ] || MAPA_PASTAS="$RAIZ/packs/meowsystem/icones/pastas.map"
 unset _pack_ref
 PASTEL_DIR="$TEMA_DIR/scalable/places"
 
@@ -500,7 +337,7 @@ mudou=0
 # `papirus-folders` simplesmente não os tem, então eles caem no Papirus base e
 # saem CINZA (`#8e8e8e`, `#9f9f9f`, os únicos fill dos cinco tamanhos).
 #
-# CORRIGE UM FATO ERRADO NO REPO: o `assets/icones/pastas.map` diz que essas duas
+# CORRIGE UM FATO ERRADO NO REPO: o `packs/meowsystem/icones/pastas.map` diz que essas duas
 # "continuam azuis". Não são azuis, são cinza — conferido nos 5 tamanhos.
 #
 # OS TONS SAEM DAS PASTAS DELA, NÃO DE UM HEX CRAVADO AQUI

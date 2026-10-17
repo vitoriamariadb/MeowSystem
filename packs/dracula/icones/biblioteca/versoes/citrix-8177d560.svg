@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Citrix: disco índigo com aro marinho e um portal em cúpula cercado de ondas. -->
+  <g transform="scale(.125)" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="512" cy="512" r="464" fill="#1A2D47" stroke="none"/>
+    <circle cx="512" cy="512" r="432" fill="#FFFFFF" stroke="none"/>
+    <circle cx="512" cy="512" r="424" fill="#332A68" stroke="none"/>
+    <!-- portal -->
+    <path d="M432 688V470C432 428 482 410 512 352C542 410 595 428 595 470V688"/>
+    <path d="M462 438C490 425 506 410 512 392C518 410 534 425 562 438"/>
+    <!-- ondas do lado esquerdo, espelhadas à direita -->
+    <g id="o">
+      <path d="M183 348C262 400 278 500 332 556C362 588 402 596 432 598"/>
+      <path d="M262 375C300 460 318 530 392 560C410 566 424 568 432 568"/>
+      <path d="M152 477C250 490 300 610 432 632"/>
+      <path d="M187 570C250 565 290 640 330 655C360 667 400 668 432 668"/>
+      <path d="M356 432C354 472 384 492 420 492"/>
+      <path d="M392 524H430"/>
+      <path d="M380 654H430"/>
+    </g>
+    <use href="#o" transform="translate(1027 0) scale(-1 1)"/>
+  </g>
+</svg>

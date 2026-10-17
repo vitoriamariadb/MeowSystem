@@ -43,7 +43,7 @@ passagem. É o mesmo desenho do módulo da Steam.
 | `legendaryConfig/legendary/installed.json` | está no disco (Epic) | dicionário `{app_name: {...}}` |
 | `gog_store/installed.json` | está no disco (GOG) | `{"installed": [ {"appName": …} ]}` |
 | `nile_config/nile/installed.json` | está no disco (Amazon) | lista `[ {"id": …} ]` |
-| `sideload_apps/library.json` | os jogos que ela mesma apontou | não tem backend: a biblioteca é a verdade |
+| `sideload_apps/library.json` | os jogos que quem usa apontou à mão | não tem backend: a biblioteca é a verdade |
 
 Um jogo entra no lançador quando os **dois** concordam. O cache sozinho não
 basta (o frontend o reescreve e ele pode falar de um jogo que saiu); o
@@ -129,7 +129,7 @@ tamanho só devolve pixbuf grande para todo pedido e serrilha na dock.
 
 ## 5. Um cartão por jogo — e aqui o rival é o próprio Heroic
 
-Se ela ligar "criar atalho" na interface dele, o arquivo nasce com o **nome do
+Se quem usa ligar "criar atalho" na interface dele, o arquivo nasce com o **nome do
 jogo**: `shortcutFiles()` no `app.asar` devolve `${sanitize(title)}.desktop`.
 Nome livre, com espaço e apóstrofo — nenhum glob o descreve. É o
 `Future Knight.desktop` de 09/09/2026 com outro sobrenome, e é por isso que a
@@ -140,7 +140,7 @@ limpeza pergunta pelo **conteúdo**:
   arquivo;
 - o arquivo **não** traz `X-MeowSystem=jogo-heroic`;
 - esse mesmo jogo **acabou de receber o nosso cartão** — nunca se tira um cartão
-  sem deixar substituto, senão o jogo some da tela dela.
+  sem deixar substituto, senão o jogo some da tela.
 
 Some com **cópia guardada antes** em
 `~/.local/state/meowsystem/backups/<carimbo>-duplicatas/`, e a remoção é
@@ -155,7 +155,7 @@ mesmo adiamento que o módulo da Steam faz com a biblioteca desmontada.
 
 ## 6. Como conferir, e como desfazer
 
-    cd /mnt/Apate/Desenvolvimento/MeowSystem
+    cd <o clone do MeowSystem>
     ./scripts/jogos_heroic.sh --conferir     # rc=1 enquanto houver o que fazer
     ./scripts/jogos_heroic.sh                # rc=1 (consertou)
     ./scripts/jogos_heroic.sh                # rc=0 (convergiu)
@@ -185,7 +185,7 @@ de nome sozinho.
 
 ## 7. O gatilho: jogo instalado entra no lançador sozinho
 
-Pedido dela no mesmo dia, depois de ver o primeiro cartão: *"o ponto é que
+Pedido de quem usa no mesmo dia, depois de ver o primeiro cartão: *"o ponto é que
 qualquer jogo que eu instalar quero que automaticamente isso se corrija"*.
 
 O par `systemd/meow-heroic.path` + `.service` faz isso, e é a **quinta** unidade
@@ -223,6 +223,6 @@ passagem seguinte, sem ninguém rodar nada.
   nesta leva: aqui o módulo não encosta nos arquivos do jogo, só no atalho e no
   ícone.
 - **A grade de capas do painel.** A aba "Jogos da Steam" lê o `librarycache` da
-  Steam e continua só dela. Os jogos do Heroic aparecem no painel pela aba
+  Steam e continua só da Steam. Os jogos do Heroic aparecem no painel pela aba
   "Lançadores e jogos" (o `Categories=Game;` do cartão basta), mas sem grade
   própria.

@@ -2,45 +2,12 @@
 # fastfetch_logo.sh — a Coquinha em ANSI no lugar do logo do Pop!_OS, e a
 # fronteira que impede este script de terminar o serviço sozinho.
 #
-# O QUE ELA VÊ HOJE, E POR QUE INCOMODA
-#   O `fastfetch` abre o terminal dela com o logo do **Pop!_OS**, numa máquina
-#   que se chama MeowSystem, tem gato no painel e cujo dono tem dois gatos
-#   reais. O cartão de visita mostra a marca errada. A escolha dela, de
-#   25/08/2026: a Coquinha, em ANSI colorido, no lugar do `pop`.
+# O `fastfetch` abre o terminal dela com o logo do **Pop!_OS**, numa máquina que
+# se chama MeowSystem, tem gato no painel e cujo dono tem dois gatos reais.
 #
-# NADA AQUI É DESENHADO À MÃO — E ISSO É REGRA, NÃO ZELO
-#   Ela reprovou desenho autoral em 05/08/2026 ("sinceramente são péssimos") e
-#   estava certa. O logo que este script gera sai de um arquivo que JÁ É DELA:
-#   `assets/gatos/coquinha.svg`, a mesma logo que o `meow logo` põe no painel —
-#   md5 idêntico ao `~/.config/cosmic/logos/meow-coquinha.svg` e ao
-#   `~/coquinha.svg`. O script não inventa um pixel: ele **rasteriza e reduz**.
+# Ela reprovou desenho autoral ("sinceramente são péssimos") e estava certa.
 #
-#   Registro da contradição com o `docs/SPRINTS.md`: a sprint diz "a partir de
-#   FOTO dela". **Não existe foto da Coquinha nesta máquina** (varrido em
-#   25/08/2026). O que existe é o SVG de traço acima. Foi ele que serviu, e o
-#   teste de legibilidade abaixo é o que autoriza usá-lo.
-#
-# AS QUATRO MEDIÇÕES QUE DECIDIRAM O FORMATO (25/08/2026)
-#   1. O `cosmic-term` NÃO TEM PROTOCOLO DE IMAGEM. Sondado ao vivo, dentro de
-#      uma janela `cosmic-term` 1.6.0, lendo a resposta do próprio terminal:
-#        DA1  (`\e[c`)  -> `\e[?6c`      ("VT102"; sem `;4` = **sem sixel**)
-#        DA2  (`\e[>c`) -> `\e[>0;2501;1c`
-#        query kitty (`\e_Gi=31,...,a=q\e\\` seguida de DA1) -> voltou **só** a
-#          DA1, sem nenhuma resposta APC = **sem protocolo kitty**
-#        XTSMGRAPHICS (`\e[?1;1;0S`) -> silêncio
-#      Confere com o binário: `strings /usr/bin/cosmic-term | grep -ci sixel` e
-#      o mesmo para `kitty` devolvem **0**. O VTE dele é o `alacritty_terminal`,
-#      que nunca implementou nenhum dos dois. Ou seja: `logo.type` `sixel`,
-#      `kitty` e `iterm` estão fora. **ANSI é o único caminho** — que já era a
-#      escolha dela, agora medida em vez de suposta.
-#
-#   2. A CÉLULA DELA NÃO É 1:2, É 1:2,556. Medido pelo `TIOCGWINSZ` de uma
-#      janela `cosmic-term` real (JetBrainsMono Nerd Font Mono 16):
-#        linhas=23 colunas=103 xpixel=927 ypixel=529  ->  célula 9,00 x 23,00 px
-#      É por isso que o "~40x20 células" do `docs/SPRINTS.md` **deforma**: 40
-#      colunas por 20 linhas desenham um retângulo 28% mais alto que largo, e o
-#      disco da Coquinha vira elipse. Para sair quadrado na TELA DELA a conta é
-#      `linhas = colunas / 2,556` — 40 colunas pedem **16** linhas, não 20.
+# **Não existe foto da Coquinha nesta máquina**.
 #
 #   3. O `chafa` NÃO FOI INSTALADO, E NÃO FAZ FALTA. O binário não está na
 #      máquina e `ldconfig -p | grep chafa` é vazio; o `--logo-type chafa` deste
@@ -48,228 +15,68 @@
 #      `*`, com `\e[36m`/`\e[37m`) — pior que o meio-bloco truecolor que o
 #      conversor daqui escreve. Um `apt install` para piorar o resultado seria
 #      dependência nova em troca de nada.
-#
-#   4. `logo.type: "file"` CONTAMINA, `file-raw` NÃO. Os dois foram rodados
-#      sobre o mesmo `.ansi`: o `file` emite um `\e[36m` na frente do arquivo
-#      (é a cor 1 dele) e ainda faz substituição de `$1`..`$9` no conteúdo. O
-#      `file-raw` entrega byte por byte. Por isso o patch pede **`file-raw`**.
-#      Em ambos o `~` do `logo.source` é expandido — conferido.
-#
-# O CONVERSOR: MEIO-BLOCO, DOIS PIXELS POR CÉLULA
-#   Cada célula é um `▀` com a cor de CIMA no foreground e a de BAIXO no
-#   background (truecolor 24 bits), o que dobra a resolução vertical. Onde só a
-#   metade de baixo é opaca, o caractere vira `▄` e o fundo fica o do terminal —
-#   assim o disco da Coquinha nasce recortado, sem retângulo preto em volta, e
-#   funciona igual no tema claro dela.
-#
-#   Não usa PIL (esta máquina não tem) nem `chafa`. Usa o que já está aqui:
-#   `rsvg-convert` rasteriza o SVG em 2048 px, o `convert` reduz por Lanczos e
-#   cospe `txt:`, que é ASCII e se lê com dez linhas de Python. O `identify`/
-#   `convert` são o ImageMagick 6 do sistema.
-#
-# A FRONTEIRA, QUE É A METADE DIFÍCIL DESTA SPRINT
-#   A chave que faz o logo aparecer é `logo.source`, e ela mora em
-#   `~/.config/fastfetch/config.jsonc` — que é **symlink para
-#   `~/.config/zsh/fastfetch/`**, território do Ritual da Aurora, recusado pela
-#   TRAVA 1 do `lib/comum.sh` (e com auto-commit a cada 10 min no repo PRIVADO
-#   dela). O `docs/FRONTEIRA.md` já dizia isso na última linha da tabela:
-#   *"tema do qBittorrent, ~/.config/fastfetch | Aurora | **Aurora**"*.
-#
-#   Então este script faz DUAS coisas e para:
-#     - escreve o `.ansi` em `~/.local/share/meowsystem/fastfetch/`, que é NOSSO;
-#     - **lê** o `config.jsonc` dela e diz se ele já aponta para o arquivo.
-#   Se não apontar, ele imprime o patch exato e sai com **4**, não com 1.
-#
-#   O 4 NÃO É CAPRICHO DE CÓDIGO DE SAÍDA. O `meow-doctor.timer` roda às 5h e o
-#   `ExecStopPost` notifica quando o código é 1. Um estado que o auto-reparo
-#   NÃO PODE consertar, saindo 1, viraria "o auto-reparo corrigiu" na tela dela
-#   toda madrugada, sem nada ter sido corrigido — foi ela quem apontou esse
-#   risco, e é o mesmo motivo pelo qual o 4 já existe para a captura de tema.
-#   O `bin/meow` trata o 4 como "não há nada que o auto-reparo deva fazer".
-#
-# O QUE ACONTECE SE O ARQUIVO SUMIR, E POR QUE NÃO É PERIGOSO
-#   Ao contrário da sombra do applet de mídia (que, sem binário, abre um BURACO
-#   na dock), um `logo.source` apontando para arquivo inexistente não derruba
-#   nada: o `fastfetch` cai no logo detectado por distribuição e a linha de
-#   comando dela continua funcionando. Por isso aqui não há fail-safe: o custo
-#   de errar é o logo do Pop de volta, que é exatamente o estado de hoje.
-#
-# USO
-#   fastfetch_logo.sh aplicar    gera o .ansi (idempotente) e confere a fronteira
-#   fastfetch_logo.sh conferir   0 = tudo certo · 1 = o .ansi divergiu ·
-#                                4 = o .ansi está certo e o config.jsonc (da
-#                                    Aurora) ainda aponta para outro logo
-#   fastfetch_logo.sh ver        imprime o logo no terminal, do jeito que ele sai
-#   fastfetch_logo.sh patch      imprime o bloco JSON exato para o config.jsonc
-#   fastfetch_logo.sh remover    apaga o .ansi (o fastfetch volta ao logo padrão)
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# A chave liga/desliga. Ela é LIDA aqui, e não só no `install.sh`, porque chave
-# de configuração que ninguém lê é o defeito que este repositório já varreu uma
-# vez (08/08/2026): o `meow configurar` perguntava, dizia "gravado", e a saída
-# continuava idêntica. Com "nao", `aplicar` e `conferir` saem 0 sem escrever;
-# `remover` continua funcionando, porque desligar não pode virar tranca.
+# Ela é LIDA aqui, e não só no `install.sh`, porque chave de configuração que
+# ninguém lê é o defeito que este repositório já varreu uma vez: o `meow
+# configurar` perguntava, dizia "gravado", e a saída continuava idêntica.
 FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}"
 
 # O gato. `coquinha` e `mimir` saem de `assets/gatos/`; qualquer outro valor é
 # tratado como caminho de arquivo, para ela poder apontar um SVG dela mesma.
 FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}"
 
-# --- 01/09/2026: O GATO DO TERMINAL PASSA A SEGUIR O RELÓGIO ------------------
-# Ela pediu o mesmo que o dock: Coquinha de dia, Mimir de noite. Aqui é MUITO
-# mais barato que lá — o `fastfetch` lê o arquivo do logo a cada execução, não
-# guarda nada, e não há painel para reciclar. Trocar o conteúdo do arquivo é o
-# recurso inteiro.
+# --- O GATO DO TERMINAL PASSA A SEGUIR O RELÓGIO ------------------
+# Aqui é MUITO mais barato que lá — o `fastfetch` lê o arquivo do logo a cada
+# execução, não guarda nada, e não há painel para reciclar. Trocar o conteúdo do
+# arquivo é o recurso inteiro.
 #
 #   espelho (padrão) o terminal mostra o gato que o dock NÃO está mostrando.
 #   hora    o terminal segue o relógio igual ao dock — os dois iguais.
-#   fixo    `FASTFETCH_LOGO_GATO` vence sempre — o comportamento até 31/08.
+#   fixo `FASTFETCH_LOGO_GATO` vence sempre — o comportamento.
 #
 # --- O MODO `espelho`, E POR QUE ELE É UMA REGRA E NÃO QUATRO VALORES --------
-# O PEDIDO DELA, 01/09/2026: *"mimir de dia, e durante o dia no terminal fica a
-# coquinha. coquinha de noite e durante a noite o mimir fica no terminal. pra
-# sempre termos os 2?"*
-#
-# Dava para atender fixando quatro chaves — `LOGO_DIA=mimir`,
-# `LOGO_NOITE=coquinha`, `FASTFETCH_LOGO_DIA=coquinha`,
-# `FASTFETCH_LOGO_NOITE=mimir`. Funcionaria HOJE e envelheceria no primeiro dia
-# em que ela trocasse o gato do dock: as quatro chaves são dois pares que
-# precisam ser mantidos opostos à mão, e nada avisaria se eles deixassem de ser.
-# Um dia os dois mostrariam o mesmo gato e o "sempre termos os 2" viraria
-# mentira em silêncio.
-#
-# A REGRA É "O OUTRO", e ela se mantém sozinha. Trocar `LOGO_DIA` no meow.conf
-# passa a bastar: o terminal segue, invertido, sem tocar em mais nada.
-#
-# DE ONDE SAI "O QUE O DOCK ESTÁ MOSTRANDO": do ARQUIVO no tema de ícones, não
-# de um cálculo paralelo. Recomputar a fase aqui seria uma SEGUNDA opinião sobre
-# a mesma pergunta — e num dia de borda (o tique das 18:00 pegando um dos dois
-# antes do outro) as duas discordariam. Lendo o disco, o pior caso é o terminal
-# ficar um tique atrás, nunca contradizer o que ela vê.
-#
-# COM MAIS DE DOIS GATOS NO ACERVO, "o outro" vira "o SEGUINTE na ordem
-# alfabética, em círculo". Com dois, que é o caso dela, as duas definições são a
-# mesma coisa. É o mesmo critério de ordem que o `logo.sh` usa para girar.
-# No MODO HORA, desde 25/09/2026, "o outro" é o outro do par `LOGO_DIA` /
-# `LOGO_NOITE` — ver o bloco do `espelho`, lá embaixo.
-#
-# O ARQUIVO PASSA A SE CHAMAR `gato.ansi`, E O NOME IMPORTA
-#   No modo `fixo` o destino continua `<nome-do-gato>.ansi`, e um arquivo
-#   chamado `coquinha.ansi` contém a Coquinha. No modo `hora` o conteúdo muda
-#   duas vezes por dia: manter o nome `coquinha.ansi` faria um arquivo mentir
-#   sobre si mesmo metade do tempo, e quem fosse depurar leria o nome e pararia
-#   ali. `gato.ansi` diz o que é — o gato da vez.
 FASTFETCH_LOGO_MODO="${FASTFETCH_LOGO_MODO:-espelho}"
 FASTFETCH_LOGO_DIA="${FASTFETCH_LOGO_DIA:-${LOGO_DIA:-mimir}}"
 FASTFETCH_LOGO_NOITE="${FASTFETCH_LOGO_NOITE:-${LOGO_NOITE:-coquinha}}"
 
 # --- A FRONTEIRA MUDOU DE LADO, E ISSO É DECISÃO CONSCIENTE -------------------
-# ATÉ 31/08/2026 este script SÓ LIA o `config.jsonc` dela e imprimia o patch,
-# saindo 4. O cabeçalho explicava: o arquivo é symlink para
-# `~/.config/zsh/fastfetch/`, território do Ritual da Aurora, recusado pela
-# TRAVA 1 do `lib/comum.sh`, e com auto-commit a cada 10 min no repo PRIVADO dela.
-#
-# O QUE MUDOU
-#   1. Ela pediu, em 01/09/2026, que tudo fosse "idempotente e autoajustável de
-#      forma que ele sobreviva sempre". Um recurso cuja última etapa é um humano
-#      colando JSON à mão não sobrevive a nada.
-#   2. O modo `hora` torna a pendência PERMANENTE em vez de pontual: sem a troca
-#      da linha, o terminal fica com a Coquinha das 18h às 7h, todo dia, para
-#      sempre — e o script diria "gerei o mimir" enquanto a tela mostra a
-#      coquinha. Aviso que se repete todo dia é aviso que se aprende a ignorar.
-#   3. Ela já autorizou a direção em 05/08/2026: "o Andromeda pode ser corrigido
-#      pelo MeowSystem". A regra que fica é a mesma de lá — corrigir vale quando
-#      o outro lado está objetivamente atrás, e NUNCA em silêncio.
-#
-# AS QUATRO GUARDAS, sem as quais isto seria exatamente o que a TRAVA 1 impede
-#   1. UMA LINHA, NUNCA O ARQUIVO. A escrita é cirúrgica: troca `logo.source` (e
-#      `logo.type`, se estiver errado) e mais nada. Comentários, os módulos em
-#      português, a ordem das chaves e o `padding` saem intactos — e o
-#      `_ffl_ler_conf` conta os módulos com chave própria justamente para
-#      acusar o dia em que alguém colar por cima do arquivo inteiro.
-#   2. BACKUP ANTES, sempre, em `$MEOW_ESTADO/backups/`. É o mesmo idioma do
-#      `meow_backup_sistema`, e pelo mesmo motivo: sem ele, "desfazer" seria
-#      reinstalar o repo dela.
-#   3. EM VOZ ALTA. Nenhuma escrita aqui acontece sem uma linha na tela dizendo
-#      qual arquivo de qual vizinho foi tocado.
-#   4. `FASTFETCH_LOGO_CONF="nao"` volta ao comportamento antigo (só imprime o
-#      patch e sai 4), sem editar script nenhum.
-#
-# E O SELF-HEAL NÃO DISPUTA ESTA LINHA — MEDIDO EM 01/09/2026
-#   `grep -n fastfetch /usr/local/sbin/ritual-aurora-self-heal.sh` devolve TRÊS
-#   linhas, todas sobre o SYMLINK `~/.config/fastfetch -> ~/.config/zsh/fastfetch`
-#   (self-heal:1585-1587). O CONTEÚDO do `config.jsonc` não é escrito por ele em
-#   ponto nenhum. Sem isso, isto aqui seria ping-pong de hora em hora — os dois
-#   donos da mesma linha, que é o defeito que este projeto mais persegue.
+# O cabeçalho explicava: o arquivo é symlink para `~/.config/zsh/fastfetch/`,
+# território do Ritual da Aurora, recusado pela TRAVA 1 do `lib/comum.sh`, e com
+# auto-commit a cada 10 min no repo PRIVADO dela.
 FASTFETCH_LOGO_CONF="${FASTFETCH_LOGO_CONF:-sim}"
 
-# --- O DIRETÓRIO PASSOU A SER NOSSO — 24/09/2026 (P44) ------------------------
+# --- O DIRETÓRIO PASSOU A SER NOSSO ------------------------
 # As quatro guardas acima existiam porque o `~/.config/fastfetch` era SYMLINK
 # para o repositório de shell de uma casa (o Spellbook, com auto-commit a cada
 # 10 min): cada chave que este script gravava — `logo.source`, `logo.type` e os
 # dois números do `padding`, mais o título — virava commit no repositório de
-# outra pessoa. A regra de 23/09 ("tema é do MeowSystem; máquina é do
-# Spellbook") decidiu o lado: o fastfetch é tema, e o diretório vem para cá.
-#
-# O QUE MUDA, E SÓ QUANDO HÁ O QUE MUDAR (`_ffl_assumir_diretorio`)
-#   - `~/.config/fastfetch` é symlink: vira um diretório de verdade com o MESMO
-#     conteúdo (cópia do alvo, byte a byte), e o de antes vai para
-#     `$MEOW_ESTADO/backups/<carimbo>-fastfetch/` — o conteúdo e para onde o
-#     link apontava. Dito em voz alta, como toda escrita daqui.
-#   - É diretório de verdade, ou não existe: nada muda. A troca não pergunta
-#     se o link é do Spellbook (ver o parágrafo logo abaixo): um
-#     `~/.config/fastfetch` de dotfiles via stow, em qualquer máquina, também
-#     vira diretório — no `aplicar` e no `doctor --consertar` do timer das 5h —,
-#     sempre com backup e aviso. Até a revisão da P44 (24/09/2026) esta linha
-#     dizia que "uma máquina sem Spellbook nunca passa por esta função", e o
-#     código nunca fez essa distinção.
-#   - `FASTFETCH_LOGO_CONF="nao"` continua sendo "não mexa no config do
-#     fastfetch", e isso inclui não trocar o symlink.
-#   O SYMLINK É PERGUNTADO AO DISCO, NUNCA PELO NOME DE QUEM ESTÁ DO OUTRO LADO:
-#   qualquer link ali é tratado igual, porque a pergunta é "o arquivo que o
-#   MeowSystem escreve mora fora da casa do MeowSystem?", e não "de quem é".
-#
-# O DO OUTRO LADO PARA DE VERSIONAR NO MESMO DIA, e isso é trabalho de lá, não
-# daqui: este script não escreve no repositório de ninguém. Se o de lá sair
-# primeiro, o link fica apontando para o nada; aí o que vira diretório é um
-# diretório VAZIO — o fastfetch cai no padrão dele, que é o mesmo que um link
-# quebrado já dava.
+# outra pessoa.
 
 # LARGURA EM COLUNAS. 40 não é chute: é a largura do logo `pop` que este
 # substitui (medido — o bloco de informação continua começando na MESMA coluna,
 # então nada do texto dela se desloca). Mexer aqui é seguro.
 FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}"
 
-# ALTURA EM LINHAS — nova em 06/09/2026, e ela desmente o que este arquivo dizia
-# antes ("a altura não se configura").
+# ALTURA EM LINHAS — nova, e ela desmente o que este arquivo dizia antes ("a
+# altura não se configura").
 #
-#   Vazio (o padrão) continua sendo o comportamento de sempre: a altura sai de
-#   `colunas / FASTFETCH_LOGO_CELULA`, e o gato sai redondo.
+# Vazio (o padrão) continua sendo o comportamento de sempre: a altura sai de
+# `colunas / FASTFETCH_LOGO_CELULA`, e o gato sai redondo.
 #
-#   Com número, ela manda ATÉ 12% fora da proporção. Isso permite um gato mais
-#   alto numa tela que tem altura sobrando — mas sair da proporção da célula
-#   DEFORMA o desenho, porque o `-resize LxA!` do conversor (linha ~419) estica
-#   sem perguntar. Um gato oval por escolha dela é escolha; um gato oval calado
-#   é defeito.
-#
-#   ACIMA DE 12% A ALTURA É APARADA, DESDE 22/09/2026 (sprint P2). Até essa data
-#   o `aplicar` AVISAVA e mandava editar o conf — "use 37 linhas para 95
-#   colunas" —, com a conta já feita na frase. Agora ele faz a conta e diz o que
-#   aparou. Ver `_ffl_linhas` para o porquê e para onde mora o limite.
+# Com número, ela manda ATÉ 12% fora da proporção.
 FASTFETCH_LOGO_LINHAS="${FASTFETCH_LOGO_LINHAS:-}"
 
-# PROPORÇÃO ALTURA/LARGURA DA CÉLULA — 23,00 / 9,00 px, medido no cosmic-term
-# dela (ver medição 2 do cabeçalho). É CONSTANTE de propósito: medir isto em
-# tempo de execução tornaria o arquivo diferente conforme a janela, e o
-# `conferir` (que regera e compara) acusaria divergência eterna. Quem mudar de
-# fonte muda este número aqui, uma vez.
+# É CONSTANTE de propósito: medir isto em tempo de execução tornaria o arquivo
+# diferente conforme a janela, e o `conferir` (que regera e compara) acusaria
+# divergência eterna.
 FASTFETCH_LOGO_CELULA="${FASTFETCH_LOGO_CELULA:-2.556}"
 
-# AS DUAS MEDIDAS DO ESPAÇO EM VOLTA DO GATO, que até 06/09/2026 estavam
+# AS DUAS MEDIDAS DO ESPAÇO EM VOLTA DO GATO, que estavam
 # cravadas no `config.jsonc` dela e só se mudavam abrindo o arquivo:
 #   QUEBRAS  linhas em branco antes do desenho  (`padding.top`)
 #   RECUO    colunas entre o desenho e o texto  (`padding.right`, no tabular)
@@ -295,23 +102,7 @@ FFL_BASE="$HOME/.local/share/meowsystem/fastfetch"
 # dock. Duas noites nesta máquina é o que aquele arquivo existe para impedir.
 
 # O gato que está NO BOTÃO DO DOCK agora, pelo arquivo — ou vazio se não der
-# para dizer. Compara por conteúdo, não por nome: o arquivo do tema de ícones
-# se chama `com.system76.CosmicPanelAppButton.svg` e não carrega o nome do gato
-# em lugar nenhum.
-#
-# QUEM RESPONDE É O `logo.sh no-dock` — 24/09/2026, revisão da P57
-#   Esta função comparava o botão com o `.svg` CRU de `assets/gatos/`, e o
-#   botão não é o cru: o `logo.sh` o grava com o `$(cat)` do `meow_escrever`,
-#   que come a quebra de linha do fim. Três dos cinco gatos do acervo terminam
-#   numa (os três morcegos), e com qualquer um deles no dock a resposta daqui
-#   era "nenhum": o espelho caía na fase e, com o `morcego-dia` fixo de noite e
-#   o `LOGO_DIA` desta máquina (o mesmo morcego-dia), punha no terminal o MESMO
-#   gato do dock (medido numa casa de brinquedo). É o descompasso que o
-#   `_esta_no_dock` do `logo.sh` consertou em 16/09, e o `no-dock` existe para
-#   ser o dono único da pergunta — o `meow status` já a faz a ele. A cópia da
-#   regra que morava aqui era a que tinha envelhecido.
-#   O `no-dock` só lê (o seco vai junto, como no `meow status`) e custa uns
-#   25 ms, dentro do tique do `meow-gato.timer`.
+# para dizer.
 _ffl_gato_do_dock() {
   local nome
   [ -x "$MEOW_RAIZ/scripts/logo.sh" ] || return 1
@@ -341,18 +132,8 @@ case "$FASTFETCH_LOGO_MODO" in
     FFL_ALVO="$FFL_BASE/gato.ansi"
     _dock="$(_ffl_gato_do_dock || true)"
     _outro=""
-    # NO MODO HORA, "O OUTRO" É O OUTRO DO PAR — 25/09/2026, decisão do dono
-    # desta máquina depois da P57.
-    #   Com o dock no `LOGO_DIA` ou no `LOGO_NOITE`, o terminal mostra o outro
-    #   gato do par: à noite o do dia, de dia o da noite. É o pedido de 01/09
-    #   («pra sempre termos os 2») ao pé da letra, e o que esta máquina mostrava
-    #   até a P57 — só que por acaso: o espelho não reconhecia os morcegos e
-    #   caía na fase invertida. Com o espelho consertado, "o seguinte na ordem"
-    #   punha à noite um TERCEIRO gato no terminal (o `morcego`, depois do
-    #   `morcego-noite`), e o par sumia da tela.
-    #   O modo é o que o `logo.sh modo` diz, e não uma cópia da regra de
-    #   compatibilidade do `LOGO_ROTACAO` aqui. Fora do modo hora, ou com um par
-    #   de gatos iguais, vale "o seguinte" de sempre, logo abaixo.
+    # Com o dock no `LOGO_DIA` ou no `LOGO_NOITE`, o terminal mostra o outro
+    # gato do par: à noite o do dia, de dia o da noite.
     if [ -n "$_dock" ] && [ "$("$MEOW_RAIZ/scripts/logo.sh" modo 2>/dev/null)" = "hora" ]; then
       _par_dia="${LOGO_DIA:-mimir}"; _par_noite="${LOGO_NOITE:-coquinha}"
       if [ "$_par_dia" != "$_par_noite" ]; then
@@ -369,8 +150,7 @@ case "$FASTFETCH_LOGO_MODO" in
     else
       # CAIR PARA A FASE, e não para o primeiro do acervo. Isto acontece na
       # PRIMEIRA instalação (o botão do dock ainda não existe) e num acervo de
-      # um gato só. Cair na fase invertida mantém a promessa "os dois na tela"
-      # assim que houver dois; cair no primeiro do acervo daria os dois iguais.
+      # um gato só.
       # shellcheck source=../lib/noite.sh
       . "$MEOW_RAIZ/lib/noite.sh"
       if meow_e_noite; then FFL_FASE="noite"; FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_DIA}"
@@ -394,17 +174,11 @@ esac
 FFL_CONF_DELA="$HOME/.config/fastfetch/config.jsonc"
 FFL_CONF_DIR="$(dirname "$FFL_CONF_DELA")"
 
-# O symlink vira diretório — ver "O DIRETÓRIO PASSOU A SER NOSSO", no topo.
-# 0 = nada a fazer (já é diretório, não existe, ou a chave desliga) ·
-# 1 = assumi (ou, no seco, assumiria) · 2 = não deu, e nada foi trocado.
+# 0 = nada a fazer (já é diretório, não existe, ou a chave desliga) · 1 = assumi
+# (ou, no seco, assumiria) · 2 = não deu, e nada foi trocado.
 #
-# A TROCA É EM DOIS PASSOS, E O SEGUNDO É O ÚNICO QUE ENCOSTA NO LINK
-#   O diretório novo é montado INTEIRO ao lado (temporário no mesmo pai, que é o
-#   mesmo sistema de arquivos) antes de o link sair. `rename(2)` não põe um
-#   diretório por cima de um symlink (ENOTDIR), então são um `rm` e um `mv`
-#   seguidos: a janela em que `~/.config/fastfetch` não existe é de dois
-#   syscalls, e um fastfetch aberto nela sai com o logo e os módulos padrão —
-#   uma vez. Se o `mv` falhar, o link volta.
+# O diretório novo é montado INTEIRO ao lado (temporário no mesmo pai, que é o
+# mesmo sistema de arquivos) antes de o link sair.
 _ffl_assumir_diretorio() {
   local para alvo novo bkp
   [ -L "$FFL_CONF_DIR" ] || return 0
@@ -458,15 +232,10 @@ _ffl_svg() {
   esac
 }
 
-# A ALTURA, EM LINHAS. A chave vence; vazia, a proporção da célula decide.
+# A chave vence; vazia, a proporção da célula decide.
 #
 # TODA A ALTURA PASSA POR AQUI, e isso é o que faz o carimbo continuar honesto:
-# ele guarda `<gato> <colunas> <linhas>`, e as linhas saem desta função. Uma
-# chave de altura que entrasse por qualquer outro caminho deixaria o carimbo
-# dizendo "já está certo" sobre um arquivo que não corresponde ao conf — e o
-# `meow-gato.timer`, que roda de cinco em cinco minutos, repetiria a mentira
-# para sempre.
-# A ALTURA DA PROPORÇÃO — a conta da célula, sem opinião de ninguém.
+# ele guarda `<gato> <colunas> <linhas>`, e as linhas saem desta função.
 _ffl_linhas_da_proporcao() {
   awk -v c="$FASTFETCH_LOGO_COLUNAS" -v r="$FASTFETCH_LOGO_CELULA" \
       'BEGIN { n = int(c / r + 0.5); if (n < 1) n = 1; print n }'
@@ -481,27 +250,14 @@ _ffl_linhas_pedida() {
   esac
 }
 
-# A ALTURA QUE VALE, E ELA É CALCULADA — 22/09/2026, sprint P2
+# O QUE ELA ERA: a chave mandava sempre, e o `aplicar` AVISAVA quando o
+# resultado passava de 12% fora da proporção da célula.
 #
-#   O QUE ELA ERA: a chave mandava sempre, e o `aplicar` AVISAVA quando o
-#   resultado passava de 12% fora da proporção da célula. A frase era
-#   "o gato vai sair 68% fora da proporção da célula (esticado) ... para o
-#   desenho redondo: deixe FASTFETCH_LOGO_LINHAS vazio, ou use 37 linhas para
-#   95 colunas". Diagnóstico certo, conta já feita, conserto conhecido — e
-#   mandando a pessoa editar o conf. É a sexta das seis falhas que a P2 mediu.
+# O QUE ELA É: acima do limite a altura é a da PROPORÇÃO, e o `aplicar` diz o
+# que ajustou e por quê.
 #
-#   O QUE ELA É: acima do limite a altura é a da PROPORÇÃO, e o `aplicar` diz o
-#   que ajustou e por quê. Não é ignorar a chave — é apará-la ao que cabe, o
-#   mesmo que o `meow painel` faz com o raio das barras (scripts/painel.sh:168).
-#
-#   O LIMITE CONTINUA SENDO 12%, e não um número novo: ele já estava medido
-#   neste arquivo ("comparando 25 e 28 linhas para 64 colunas") como o ponto em
-#   que a deformação se vê na tela. Abaixo dele, a chave manda e nada muda —
-#   um gato levemente oval por escolha dela continua sendo escolha.
-#
-#   E ELA É O ÚNICO CAMINHO DA ALTURA, como já era: o carimbo
-#   (`_ffl_carimbo_texto`) sai daqui, então o `conferir` e o `meow-gato.timer`
-#   comparam contra o desenho que de fato foi gerado.
+# Abaixo dele, a chave manda e nada muda — um gato levemente oval por escolha
+# dela continua sendo escolha.
 FASTFETCH_LOGO_DESVIO_TETO=12
 
 _ffl_linhas() {
@@ -516,10 +272,8 @@ _ffl_linhas() {
 
 # Quanto UMA altura se afasta da proporção da célula, em por cento.
 #
-# ELE RECEBE O NÚMERO EM VEZ DE CHAMAR `_ffl_linhas`, e isso deixou de ser
-# detalhe em 22/09/2026: agora é a `_ffl_linhas` que consulta o desvio para
-# decidir se apara. As duas chamando uma à outra seria recursão infinita — e a
-# pergunta certa é sobre a altura PEDIDA, não sobre a que já foi aparada.
+# As duas chamando uma à outra seria recursão infinita — e a pergunta certa é
+# sobre a altura PEDIDA, não sobre a que já foi aparada.
 _ffl_desvio_de() {
   awk -v c="$FASTFETCH_LOGO_COLUNAS" -v r="$FASTFETCH_LOGO_CELULA" -v l="$1" \
       'BEGIN { ideal = c / r; if (ideal <= 0) { print 0; exit }
@@ -529,15 +283,12 @@ _ffl_desvio_de() {
 # O desvio da altura PEDIDA — é o número que a frase do `aplicar` cita.
 _ffl_desvio() { _ffl_desvio_de "$(_ffl_linhas_pedida)"; }
 
-# O CARIMBO, EM UM LUGAR SÓ. Ele era montado por `printf` em três pontos deste
-# arquivo, e cada campo novo tinha de ser lembrado nos três — a receita para o
-# `conferir` dizer "conforme" sobre um desenho que mudou. Agora quem acrescenta
-# campo acrescenta aqui, e os três pontos acompanham.
+# Ele era montado por `printf` em três pontos deste arquivo, e cada campo novo
+# tinha de ser lembrado nos três — a receita para o `conferir` dizer "conforme"
+# sobre um desenho que mudou.
 #
 # Os campos são TUDO O QUE O GERADOR CONSOME: trocar qualquer um deles tem de
-# regerar o `.ansi`. `blocos` entrou junto com a altura, e ele faltava desde
-# sempre — mudar `FASTFETCH_LOGO_BLOCOS` de `auto` para `quadrante` mudava o
-# desenho e o carimbo dizia que estava tudo certo.
+# regerar o `.ansi`.
 _ffl_carimbo_texto() {
   printf '%s %s %s %s' "$(basename "${FASTFETCH_LOGO_GATO%.svg}")" \
     "$FASTFETCH_LOGO_COLUNAS" "$(_ffl_linhas)" "$(_ffl_blocos)"
@@ -559,21 +310,10 @@ _ffl_quer_meow_fetch() {
 }
 
 # QUANTAS LINHAS O BLOCO DE INFORMAÇÃO OCUPA, medido rodando o fastfetch sem
-# logo. É o que o `auto` das quebras precisa saber, e não há como derivá-lo do
-# conf: quem decide são os módulos do `config.jsonc` dela, que são dela.
+# logo.
 #
-# O `--pipe false` importa: com o cano detectado o fastfetch some com as cores
-# E com algumas linhas, e a conta sairia curta.
-#
-# MEMOIZADO, e não por elegância: uma passagem de `aplicar` que precisa
-# consertar o config.jsonc chamava isto SEIS vezes, e o `conferir` do doctor,
-# duas — cada uma um `fastfetch` inteiro. Pior: o `logo.sh` roda
-# `FFL_FUNDO=1 LOG_NIVEL=silencioso fastfetch_logo.sh aplicar` de cinco em cinco
-# minutos (`FASTFETCH_LOGO_MODO="hora"`), e o `silencioso` não evita nada — a
-# substituição de comando acontece na EXPANSÃO DO ARGUMENTO do `meow_info`,
-# antes de o `meow_quieto` poder devolver. O cabeçalho do `meow-gato.timer`
-# crava "0,05 s por tique", que era verdade antes de a fronteira consultar o
-# fastfetch.
+# O `--pipe false` importa: com o cano detectado o fastfetch some com as cores E
+# com algumas linhas, e a conta sairia curta.
 _ffl_linhas_do_texto() {
   if [ -z "${FFL_TEXTO_LINHAS:-}" ]; then
     if meow_tem fastfetch; then
@@ -585,10 +325,7 @@ _ffl_linhas_do_texto() {
   printf '%s' "$FFL_TEXTO_LINHAS"
 }
 
-# O `padding.top` que o config.jsonc deve levar. Com `auto`, é a metade da
-# sobra entre a altura do gato e a altura do texto — a mesma conta que o
-# `fastfetch_alinhar.py` faz do lado do contorno, para os dois alinhamentos
-# ficarem centrados do mesmo jeito.
+# O `padding.top` que o config.jsonc deve levar.
 _ffl_quebras() {
   case "$FASTFETCH_LOGO_QUEBRAS" in
     ''|auto)
@@ -600,9 +337,7 @@ _ffl_quebras() {
 }
 
 # --- QUAL BLOCO A FONTE DELA SABE DESENHAR -----------------------------------
-# 01/09/2026, pedido dela depois de ver o gato do terminal: "outra fonte
-# melhoraria?" e "o projeto precisa ser mais inteligente pra se adaptar nesse
-# sentido". As duas perguntas têm a mesma resposta, e ela é medível.
+# As duas perguntas têm a mesma resposta, e ela é medível.
 #
 # O TETO DE DETALHE DE UM DESENHO FEITO DE LETRAS é quantos subpixels cabem numa
 # célula, e isso depende do que a FONTE tem:
@@ -610,27 +345,9 @@ _ffl_quebras() {
 #   half   `▀▄`        1x2 por célula   qualquer fonte
 #   quad   `▘▝▖▗▚▞…`   2x2              qualquer fonte monoespaçada séria
 #   sext   `🬀🬁🬂…`      2x3              Symbols for Legacy Computing (Unicode 13)
-#
-# MEDIDO NA MÁQUINA DELA, hoje: a `JetBrainsMono Nerd Font Mono` NÃO tem os
-# sextantes — renderizados com ela, os glifos saem em branco (média de pixel
-# 0.000, contra 0.234 do `▘` e 0.936 do `█`). Varri as fontes instaladas: NENHUMA
-# tem. Por isso o padrão cai em `quad`, e é isso que ela vê hoje.
-#
-# ENTÃO POR QUE O CÓDIGO DOS SEXTANTES EXISTE: porque a fonte do terminal é
-# escolha dela e muda. Cascadia Code nova, JuliaMono e Iosevka têm os glifos; no
-# dia em que ela trocar, o gato ganha 50% de detalhe vertical SOZINHO, sem
-# ninguém lembrar de vir aqui. É a mesma disciplina do resto do projeto: medir a
-# máquina e escolher, em vez de chumbar o que era verdade um dia.
-#
-# A GUARDA CONTRA O FALSO POSITIVO: existir o glifo não basta — se ele vier de
-# uma fonte de FALLBACK com métrica diferente, o mosaico abre frestas. Por isso
-# o teste é feito no ARQUIVO da fonte do terminal (via `fc-match`), não no nome:
-# o fallback do fontconfig não entra na conta.
-#
-# `FASTFETCH_LOGO_BLOCOS` no meow.conf: auto (padrão) · quadrante · sextante.
 _ffl_fonte_arquivo() {
   local nome
-  nome="$(sed -n 's/^"\(.*\)"$/\1/p' "$(meow_cosmic_dir)/com.system76.CosmicTerm/v1/font_name" 2>/dev/null)"
+  nome="$(sed -n 's/^"\(.*\)"$/\1/p' "$(meow_cosmic_dir)/com.system76.CosmicTerm/$(meow_cosmic_v com.system76.CosmicTerm)/font_name" 2>/dev/null)"
   [ -n "$nome" ] || nome="${FASTFETCH_LOGO_FONTE:-monospace}"
   fc-match -f '%{file}' "$nome:spacing=100" 2>/dev/null
 }
@@ -661,8 +378,7 @@ _ffl_blocos() {
 
 # --- o conversor -------------------------------------------------------------
 # DETERMINÍSTICO, que é o que torna o `conferir` possível: gera de novo num
-# temporário e compara com o que está no disco. Sem isso toda checagem acusaria
-# divergência e o auto-reparo entraria em ping-pong (a lição do `custom_logo_path`).
+# temporário e compara com o que está no disco.
 _ffl_gerar() {
   local destino="$1" svg="$2" colunas="$3" linhas="$4"
   python3 -I - "$svg" "$colunas" "$linhas" "$destino" "$FFL_RASTER" "$(_ffl_blocos)" <<'PY'
@@ -828,32 +544,16 @@ PY
 # --- escrita: temporário no diretório de DESTINO (TRAVA 2) -------------------
 # O `meow_escrever` não serve aqui: ele recebe o conteúdo como argumento, e este
 # conteúdo é um arquivo de 20 KB cheio de ESC — passá-lo por `$( )` e por
-# `printf '%s'` é pedir para o shell comer byte. Segue-se o mesmo caminho do
-# `som.sh`: escreve-se com `mv`, e por isso o conferidor compara com `cmp`.
+# `printf '%s'` é pedir para o shell comer byte.
 
 # --- A GUARDA BARATA, E POR QUE ELA PRECISOU EXISTIR -------------------------
-# MEDIDO EM 01/09/2026: um `aplicar` que não muda nada custa 0,37 s — porque
-# `_ffl_instalar` gera o ANSI num temporário SEMPRE, só para poder comparar. É o
-# preço do determinismo, e estava certo enquanto isto rodava uma vez por
-# `install.sh`. Com o `meow-gato.timer` de cinco em cinco minutos passariam a ser
-# 288 rasterizações de 2048 px por dia = ~106 s de CPU, para um efeito que
-# acontece DUAS vezes.
-#
-# O CARIMBO GUARDA TUDO O QUE O GERADOR CONSOME, e é por isso que ele é uma
-# linha com quatro campos e não só o nome: mudar `FASTFETCH_LOGO_COLUNAS` no
-# conf tem de regerar, e um carimbo só com o nome do gato diria "já está certo".
-#   <nome-do-gato> <colunas> <linhas> <blocos>
-# Quem monta a linha é `_ffl_carimbo_texto`, e é lá que se acrescenta campo.
+# É o preço do determinismo, e estava certo enquanto isto rodava uma vez por
+# `install.sh`.
 #
 # AS TRÊS PORTAS QUE ATRAVESSAM A GUARDA — sem elas isto vira cache que mente:
 #   1. o `.ansi` não existe (alguém apagou, ou é a primeira vez);
 #   2. o carimbo não bate (trocou de gato, de largura ou de proporção);
 #   3. o SVG é MAIS NOVO que o `.ansi` (ela redesenhou o gato no acervo).
-#
-# E O `conferir` NÃO USA A GUARDA, DE PROPÓSITO. Ele é o comando do
-# `meow-doctor.timer`, roda uma vez por dia e a função dele é justamente
-# desconfiar do carimbo: se o conversor mudar de código, ou se alguém editar o
-# `.ansi` à mão, quem acusa é ele. Barato no minuto, desconfiado no dia.
 _ffl_carimbo() { printf '%s/.gato-atual' "$FFL_BASE"; }
 _ffl_ja_esta_certo() {
   local svg="$1" colunas="$2" linhas="$3" querido lido
@@ -895,9 +595,7 @@ _ffl_instalar() {
   if [ -f "$FFL_ALVO" ] && cmp -s "$tmp" "$FFL_ALVO"; then
     rm -f "$tmp"
     # O CARIMBO É REESCRITO MESMO SEM MUDANÇA, e essa linha é o que faz a guarda
-    # barata nascer valendo numa máquina que já tinha o `.ansi` no lugar. Sem
-    # ela, a primeira rodada depois desta versão passaria pelo caminho caro e a
-    # SEGUNDA também — para sempre, porque nada jamais escreveria o carimbo.
+    # barata nascer valendo numa máquina que já tinha o `.ansi` no lugar.
     printf '%s\n' "$(_ffl_carimbo_texto)" > "$(_ffl_carimbo)" 2>/dev/null || true
     return "$MEOW_OK"                        # regra 5: idêntico, não reescreve
   fi
@@ -910,12 +608,7 @@ _ffl_instalar() {
 }
 
 # --- O QUE SOBROU DO MODO ANTERIOR SAI DO DISCO ------------------------------
-# Regra 3 do contrato: reescrever o estado inteiro, nunca acrescentar. Sem isto,
-# trocar `FASTFETCH_LOGO_MODO` de `fixo` para `hora` deixaria o `coquinha.ansi`
-# de 20 KB parado ali para sempre — um arquivo que ninguém lê, que ninguém sabe
-# de onde veio, e que ainda por cima PARECE a fonte do logo para quem for
-# depurar. É o mesmo motivo pelo qual o `logo.sh` apaga os `meow-*.svg` que
-# saíram do acervo.
+# Regra 3 do contrato: reescrever o estado inteiro, nunca acrescentar.
 #
 # SÓ SE APAGA `.ansi` DENTRO DE `$FFL_BASE`, que é diretório NOSSO, criado por
 # este script e por mais ninguém — e nunca o alvo da vez.
@@ -938,9 +631,7 @@ _ffl_varrer_orfaos() {
 # tira-comentários abaixo respeitar aspas e escapes.
 #
 # Devolve, em três linhas: `type`, `source` (com `~` expandido) e a contagem de
-# módulos com `key` própria. A contagem é o critério de aceite da sprint ("os
-# módulos em português continuam intactos") e serve de alarme se alguém, algum
-# dia, colar o patch por cima do arquivo inteiro em vez de trocar duas chaves.
+# módulos com `key` própria.
 _ffl_ler_conf() {
   [ -f "$FFL_CONF_DELA" ] || return 1
   python3 -I - "$FFL_CONF_DELA" <<'PY'
@@ -992,15 +683,11 @@ PY
 }
 
 # --- a escrita cirúrgica no config.jsonc dela --------------------------------
-# TROCA DUAS CHAVES E MAIS NADA. Não reserializa o JSON: um `json.dump` mataria
-# os comentários (é JSONC), a ordem das chaves e a indentação dela — e o arquivo
-# vive num repo com auto-commit, então o diff de 10 minutos depois seria o
-# arquivo inteiro reescrito por um enfeite. O que se faz aqui é achar o VALOR de
-# `logo.source` (e de `logo.type`) DENTRO do bloco `"logo"`, por varredura que
-# respeita aspas e escapes, e substituir o intervalo de bytes.
+# Não reserializa o JSON: um `json.dump` mataria os comentários (é JSONC), a
+# ordem das chaves e a indentação dela — e o arquivo vive num repo com
+# auto-commit, então o diff de 10 minutos depois seria o arquivo inteiro
+# reescrito por um enfeite.
 #
-# O `~` VAI LITERAL, e isso é medido: o cabeçalho deste arquivo registra que o
-# `fastfetch` expande `~` em `logo.source` nos dois tipos (`file` e `file-raw`).
 # Gravar o caminho absoluto funcionaria igual, mas quebraria o arquivo dela no
 # dia em que o home mudasse de nome — e o resto do arquivo usa `~`.
 _ffl_escrever_conf() {
@@ -1019,20 +706,9 @@ _ffl_escrever_conf() {
     || { meow_erro "não consegui guardar backup de $FFL_CONF_DELA — não vou escrever"; return "$MEOW_ERRO"; }
 
   # A ESCRITA MORA NO `fastfetch_conf.py`, E ISSO NÃO É ORGANIZAÇÃO: é a mesma
-  # lição que já custou o arquivo dela uma vez. Este trecho era um heredoc de
-  # 90 linhas de Python, e ele tinha o defeito de camada de sempre — trocava os
-  # números do padding de dentro de um COMENTÁRIO. Com a linha antiga comentada
-  # logo acima da que vale (o jeito mais comum de mexer em JSONC), a escrita
-  # acertava o comentário, o padding de verdade ficava como estava, e a
-  # divergência voltava todo dia: o aviso "escrevi no config.jsonc" saía em
-  # toda passagem sobre um arquivo que nunca mudava.
+  # lição que já custou o arquivo dela uma vez.
   #
   # Duas varreduras de ESCRITA de JSONC em duas linguagens divergiriam de novo.
-  # Agora é uma só, com máscara de comentários, e ela confere que o resultado
-  # ainda é JSONC válido antes de gravar. O `_ffl_ler_conf` continua com a
-  # varredura dele porque só LÊ (e conta os módulos com chave própria, que é
-  # outra pergunta): um leitor que erre devolve um número torto, não um arquivo
-  # truncado.
   #
   # 0 = nada a mudar · 1 = mudou · 2 = não deu.
   python3 "$MEOW_RAIZ/scripts/fastfetch_conf.py" escrever-logo \
@@ -1073,11 +749,9 @@ _ffl_fronteira() {
   esac
 
   meow_info "seu config.jsonc: logo.type=\"$tipo\" logo.source=\"${fonte:-<vazio>}\""
-  # A LINHA SÓ SE MONTA SE ALGUÉM FOR LER. O `$(_ffl_quebras)` roda um
-  # `fastfetch` inteiro quando as quebras estão em `auto`, e a substituição de
-  # comando acontece na expansão do argumento — antes de o `meow_info` poder
-  # calar pelo `LOG_NIVEL=silencioso`. É o tique de cinco minutos do
-  # `meow-gato.timer` pagando por um número que ele descarta.
+  # O `$(_ffl_quebras)` roda um `fastfetch` inteiro quando as quebras estão em
+  # `auto`, e a substituição de comando acontece na expansão do argumento —
+  # antes de o `meow_info` poder calar pelo `LOG_NIVEL=silencioso`.
   meow_quieto || meow_info "  padding: topo=${pad_topo:-<sem>} recuo=${pad_recuo:-<sem>} (o conf pede $(_ffl_quebras) e $FASTFETCH_LOGO_RECUO)"
   meow_info "  módulos com chave própria (as em português): $nchaves"
 
@@ -1088,10 +762,10 @@ _ffl_fronteira() {
     meow_aviso "aponta para $(basename "$FFL_ALVO"), mas com logo.type=\"$tipo\" — o certo é \"file-raw\""
     return 1
   fi
-  # O PADDING SÓ É COBRADO NO ALINHAMENTO TABULAR. No `contorno` quem desenha o
-  # espaço é o `meow-fetch`, com as mesmas duas chaves passadas na linha de
-  # comando — o `padding` do config.jsonc fica sem efeito, e cobrá-lo daria uma
-  # divergência eterna sobre um número que ninguém lê.
+  # No `contorno` quem desenha o espaço é o `meow-fetch`, com as mesmas duas
+  # chaves passadas na linha de comando — o `padding` do config.jsonc fica sem
+  # efeito, e cobrá-lo daria uma divergência eterna sobre um número que ninguém
+  # lê.
   if [ "$(_ffl_alinhamento)" = "tabular" ]; then
     if [ -n "$pad_topo" ] && [ "$pad_topo" != "$(_ffl_quebras)" ]; then
       meow_muda "o padding.top do config.jsonc é $pad_topo e o conf pede $(_ffl_quebras)"
@@ -1106,27 +780,14 @@ _ffl_fronteira() {
   return 0
 }
 
-# ============================================================================
-# O CONTORNO: O TEXTO ABRAÇANDO O GATO — 06/09/2026
-# ============================================================================
-# Pedido dela, com setas desenhadas por cima de uma captura do terminal — e as
-# setas apontavam para colunas DIFERENTES em cada linha, seguindo a silhueta do
-# desenho. O `scripts/fastfetch_alinhar.py` conta a medição que prova que o
-# fastfetch não sabe fazer isso sozinho. Aqui está o resto: onde o compositor
-# entra na vida dela sem que o MeowSystem vire dono do terminal dos outros.
+# Aqui está o resto: onde o compositor entra na vida dela sem que o MeowSystem
+# vire dono do terminal dos outros.
 #
-# A PEÇA É UM LANÇADOR EM ~/.local/bin, COMO O `meow-painel`
-#   Pelo mesmo motivo daquele: o repositório mora num NVMe separado, e o dia em
-#   que o Ápate não montar não pode ser o dia em que o terminal dela abre com um
-#   erro de Python. O `meow-fetch` resolve a raiz pelo ponteiro
-#   `~/.local/state/meowsystem/raiz` e, sem ela, roda o `fastfetch` puro e cala.
+# A PEÇA É UM LANÇADOR EM ~/.local/bin, COMO O `meow-painel` Pelo mesmo motivo
+# daquele: o repositório mora num NVMe separado, e o dia em que o Ápate não
+# montar não pode ser o dia em que o terminal dela abre com um erro de Python.
 #
-# E A CHAVE DECIDE EM TEMPO DE EXECUÇÃO, NÃO DE INSTALAÇÃO
-#   O `meow-fetch` lê o `FASTFETCH_LOGO_ALINHAR` a cada chamada. Com `tabular`
-#   ele é um `exec fastfetch` e mais nada — mesma saída, mesmo custo. Isso é o
-#   que permite tocar o `env.zsh` UMA VEZ e nunca mais: trocar de alinhamento
-#   depois é mudar uma chave no conf dela, sem escrita em arquivo de vizinho,
-#   sem `git` de outro projeto se mexendo, sem nada para desfazer.
+# O `meow-fetch` lê o `FASTFETCH_LOGO_ALINHAR` a cada chamada.
 _ffl_meow_fetch() { printf '%s/.local/bin/meow-fetch' "$HOME"; }
 
 _ffl_texto_meow_fetch() {
@@ -1238,45 +899,24 @@ _ffl_instalar_meow_fetch() {
   return 1
 }
 
-# --- a fronteira do lado do zsh: SAIU EM 24/09/2026 (P39) -------------------
+# --- a fronteira do lado do zsh: SAIU -------------------
 # AQUI MORAVA A ESCRITA NA LINHA DO FASTFETCH DO `env.zsh` DO SPELLBOOK: o
 # `_ffl_zsh_estado` lia qual das duas chamadas estava lá, o `_ffl_zsh_fronteira`
 # trocava `fastfetch --pipe false` por `meow-fetch --pipe false` (com backup e
-# em voz alta), e o `cmd_reverter` destrocava na desinstalação. O caminho era
-# `${MEOW_ZSH_ENV:-<o env.zsh do repositório privado dela>}`.
+# em voz alta), e o `cmd_reverter` destrocava na desinstalação.
 #
-# A REGRA DE 23/09 TIROU ISTO SEM TERCEIRA VIA: o que o MeowSystem lia ou
-# escrevia no Spellbook, ou migra para cá, ou sai daqui. A peça que é do
-# produto já mora aqui — o `meow-fetch`, gerado e conferido por este arquivo. A
-# chamada dele é uma linha no shell de quem usa, e o shell de ninguém é
-# território deste projeto: numa máquina qualquer não existe `env.zsh`, e ler o
-# `.zshrc` de alguém seria adivinhar uma cadeia de `source` que é dela.
-#
-# O QUE MUDOU PARA QUEM ESTAVA LÁ: o `env.zsh` desta casa passou, no mesmo dia,
-# a escolher sozinho — `meow-fetch` quando ele existe, `fastfetch` quando não —,
-# e é isso que tira o `command not found` do terminal no dia em que o
-# desinstalador apagar o `meow-fetch`. Era esse o serviço que o `reverter` fazia.
-#
-# O QUE O CONTORNO PEDE AGORA, e é dito no `aplicar`: com `FASTFETCH_LOGO_ALINHAR`
-# diferente de `tabular`, o gato só abraça o texto se o shell chamar
-# `meow-fetch` no lugar de `fastfetch`.
+# A REGRA TIROU ISTO SEM TERCEIRA VIA: o que o MeowSystem lia ou escrevia no
+# Spellbook, ou migra para cá, ou sai daqui.
 
 # --- o formato do título, no config.jsonc dela -------------------------------
 # ELE TEM DE MORAR LÁ, e a alternativa foi tentada e medida: o fastfetch 2.61.0
 # recusa `--title-format` com "Support of module options has been removed.
-# Please add the flag to the JSON config instead" e SAI ANTES de imprimir uma
-# linha — o terminal abria só com o gato, sem uma palavra de informação.
 #
 # A escrita é do mesmo tipo cirúrgico do `logo.source`: acha a entrada `title`
-# dentro do array `modules` e troca só ela. Dois formatos existem no mundo real,
-# e os dois são tratados:
+# dentro do array `modules` e troca só ela.
 #
 #   "title"                                    a forma curta, que é a dela
 #   { "type": "title", "format": "…" }         a forma longa, com o formato
-#
-# Com `FASTFETCH_TITULO` vazio, o caminho anda para trás: a forma longa volta a
-# ser a curta, e o fastfetch decide o título como sempre decidiu. É o mesmo
-# desfazer do alinhamento — nada aqui é de mão única.
 
 # 0 = já está como o conf pede · 1 = precisa mudar · 2 = não deu para ler
 _ffl_titulo_confere() {
@@ -1284,9 +924,7 @@ _ffl_titulo_confere() {
   [ -f "$FFL_CONF_DELA" ] || return 2
   # O `2` PRECISA CHEGAR INTEIRO até aqui — "não há módulo title neste arquivo"
   # e "o título é outro" são respostas diferentes, e só a segunda autoriza
-  # escrever. Um `| grep` engoliria o código de saída do python e as duas
-  # virariam a mesma coisa: o script passaria a tentar escrever num arquivo que
-  # não tem onde receber.
+  # escrever.
   atual="$(python3 "$MEOW_RAIZ/scripts/fastfetch_conf.py" ler-titulo "$FFL_CONF_DELA" 2>/dev/null)"
   rc=$?
   [ "$rc" = "0" ] || return 2
@@ -1328,10 +966,7 @@ _ffl_escrever_titulo() {
 }
 
 _ffl_patch_texto() {
-  # OS NÚMEROS SAEM DO CONF, e não são mais constantes. Antes este bloco imprimia
-  # `top: 6, right: 4` fixos e a linha seguinte dizia que o padding "não precisa
-  # mudar" — o que deixou de ser verdade no dia em que a altura do gato virou
-  # chave: um gato de 25 linhas com recuo de 6 empurra o texto para fora da tela.
+  # OS NÚMEROS SAEM DO CONF, e não são mais constantes.
   cat <<TXT
   "logo": {
     "type": "file-raw",
@@ -1375,29 +1010,23 @@ cmd_aplicar() {
     meow_ok "o logo ANSI já estava gerado (${FASTFETCH_LOGO_GATO}${FFL_PORQUE:+ — $FFL_PORQUE})"
   fi
 
-  # O GATO OVAL É APARADO, E O QUE FOI APARADO É DITO — 22/09/2026, sprint P2.
-  # A altura virou chave dela em 06/09/2026, e o conversor estica com
-  # `-resize LxA!` sem perguntar: fora da proporção da célula o círculo vira
-  # elipse. Doze por cento é onde isso começa a se ver na tela (medido,
-  # comparando 25 e 28 linhas para 64 colunas). Até hoje a etapa avisava e
-  # mandava editar o conf; agora ela calcula e diz a conta que fez.
+  # A altura virou chave dela, e o conversor estica com `-resize LxA!` sem
+  # perguntar: fora da proporção da célula o círculo vira elipse.
   _dv="$(_ffl_desvio)"
   if [ "${_dv:-0}" -gt "$FASTFETCH_LOGO_DESVIO_TETO" ] 2>/dev/null; then
     # `meow_aviso` E NÃO `meow_muda`, e a diferença não é de gosto: o `~~` do
     # `meow_muda` é o que o painel lê para dizer "mexeu e aplicou" (app.js, o
     # `TRABALHO.mudou`), e aparar a altura não escreve byte nenhum a mais — o
-    # desenho já nasce na medida certa. É o mesmo verbo que o `painel.sh` usa
-    # para o raio que não cabe, pelo mesmo motivo.
+    # desenho já nasce na medida certa.
     meow_aviso "altura aparada: $(_ffl_linhas_pedida) linhas sairiam ${_dv}% fora da proporção da célula (esticado)"
     meow_info  "  usei $(_ffl_linhas) linhas para $FASTFETCH_LOGO_COLUNAS colunas, que é a proporção desta fonte"
     meow_info  "  guardei o seu $(_ffl_linhas_pedida): ele volta a valer se você mudar as colunas, ou baixar de ${FASTFETCH_LOGO_DESVIO_TETO}% de desvio"
   fi
   unset _dv
 
-  # O COMPOSITOR. Ele é instalado sempre, e não só quando o alinhamento pede:
-  # ele mesmo lê a chave e vira `exec fastfetch` no tabular sem título próprio,
-  # e é isso que permite trocar de alinhamento sem tocar em arquivo de vizinho
-  # de novo. Ver o bloco "O CONTORNO" lá em cima.
+  # Ele é instalado sempre, e não só quando o alinhamento pede: ele mesmo lê a
+  # chave e vira `exec fastfetch` no tabular sem título próprio, e é isso que
+  # permite trocar de alinhamento sem tocar em arquivo de vizinho de novo.
   _ffl_instalar_meow_fetch; _rcm=$?
   case "$_rcm" in
     1) rc="$MEOW_DIVERGENTE"; meow_muda "meow-fetch em $(_ffl_meow_fetch)" ;;
@@ -1405,11 +1034,8 @@ cmd_aplicar() {
   esac
   unset _rcm
 
-  # A CHAMADA NO SHELL É DE QUEM USA — 24/09/2026, P39. Até aqui esta passagem
-  # trocava a linha do fastfetch no `env.zsh` do Spellbook e devolvia 4 quando
-  # não a achava. Agora ela só diz o que o contorno pede, uma linha, e o código
-  # de saída fica sendo o do que ela de fato escreveu. Ver o bloco "a fronteira
-  # do lado do zsh", lá em cima.
+  # Até aqui esta passagem trocava a linha do fastfetch no `env.zsh` do
+  # Spellbook e devolvia 4 quando não a achava.
   if _ffl_quer_meow_fetch; then
     meow_info "o $(_ffl_alinhamento) aparece quando o seu shell chama meow-fetch no lugar de fastfetch"
     meow_info "  o MeowSystem não lê nem escreve arquivo de shell — essa linha é sua"
@@ -1417,7 +1043,7 @@ cmd_aplicar() {
 
   # O DIRETÓRIO ANTES DAS CHAVES: o título e o `logo.source` logo abaixo são
   # escritos dentro dele, e escritos através do link iriam parar no
-  # repositório de outra pessoa (P44, 24/09/2026 — ver o topo).
+  # repositório de outra pessoa.
   _ffl_assumir_diretorio
   case $? in
     1) rc="$MEOW_DIVERGENTE" ;;
@@ -1441,16 +1067,14 @@ cmd_aplicar() {
       rc="$MEOW_DIVERGENTE"
       # Reconferir em vez de assumir: se a troca não pegou (um `logo` aninhado
       # inesperado, um arquivo que mudou entre a leitura e a escrita), o patch
-      # impresso abaixo continua sendo a saída honesta. Assumir sucesso aqui
-      # seria o "consertei" sem conserto que o `4` deste script existe para evitar.
+      # impresso abaixo continua sendo a saída honesta.
       meow_seco || { _ffl_fronteira >/dev/null 2>&1; rcf=$?; }
     elif [ "$rce" = "$MEOW_ERRO" ]; then
       meow_erro "não consegui escrever no config.jsonc — deixo o patch abaixo"
     fi
     # `rce` = 0 é "não havia o que trocar": a fronteira acusa divergência em
     # algo que esta escrita não cobre (uma chave `padding` que o arquivo dela
-    # não tem, por exemplo). O `rcf` fica como estava e o patch abaixo sai — que
-    # é a saída honesta, e não um "consertei" sobre um arquivo intocado.
+    # não tem, por exemplo).
   fi
 
   if [ "$rcf" = "1" ]; then
@@ -1461,12 +1085,9 @@ cmd_aplicar() {
     _ffl_patch_texto
     printf '\n'
     meow_registrar "fastfetch_logo.sh aplicar rc=$rc fronteira=pendente"
-    # O 1 VENCE O 4 QUANDO ESTA PASSAGEM ESCREVEU DE VERDADE. Devolver 4 aqui
-    # esconderia do resumo do `install.sh` (e da notificação do doctor) um
-    # arquivo que ACABOU de nascer — mentira de relatório na direção contrária à
-    # do `midia_build`. Só quando não houve nada a escrever o código vira 4, que
-    # é o "não há conserto nosso possível" do cabeçalho: aí o timer das 5h passa
-    # todo dia sem pendurar "o auto-reparo corrigiu" na tela dela.
+    # Devolver 4 aqui esconderia do resumo do `install.sh` (e da notificação do
+    # doctor) um arquivo que ACABOU de nascer — mentira de relatório na direção
+    # contrária à do `midia_build`.
     [ "$rc" = "$MEOW_DIVERGENTE" ] && return "$MEOW_DIVERGENTE"
     return 4
   fi
@@ -1496,9 +1117,7 @@ cmd_conferir() {
     return "$MEOW_DIVERGENTE"
   fi
   # O symlink é divergência NOSSA (1), e não da fronteira (4): quem o conserta
-  # é o `aplicar` daqui, sem mão de ninguém. Ver "O DIRETÓRIO PASSOU A SER
-  # NOSSO". Vem antes do "conforme" para ser a PRIMEIRA linha — é ela que a
-  # tabela do doctor mostra.
+  # é o `aplicar` daqui, sem mão de ninguém.
   if [ -L "$FFL_CONF_DIR" ] && [ "$FASTFETCH_LOGO_CONF" = "sim" ]; then
     meow_muda "$FFL_CONF_DIR é symlink para $(readlink "$FFL_CONF_DIR") — viraria um diretório do MeowSystem, com o mesmo conteúdo"
     return "$MEOW_DIVERGENTE"
@@ -1506,17 +1125,8 @@ cmd_conferir() {
   meow_ok "logo ANSI conforme ($FASTFETCH_LOGO_COLUNAS x $(_ffl_linhas) células, $(_ffl_blocos))"
   meow_info "alinhamento: $(_ffl_alinhamento) · $(_ffl_quebras) linha(s) antes, recuo de $FASTFETCH_LOGO_RECUO"
 
-  # O `meow-fetch` entra na conferência do `doctor`: sem isto, ele podia ficar
-  # desatualizado e nada acusaria — o gato continuaria certo no disco e errado
-  # na tela. (A outra peça, a linha do shell, saiu da conferência em
-  # 24/09/2026 junto com a escrita: ver "a fronteira do lado do zsh".)
   # O SECO É OBRIGATÓRIO AQUI, e a linha logo acima já dizia isso para a irmã
-  # (`MEOW_SECO=1 _ffl_instalar`). Sem ele, `_ffl_instalar_meow_fetch` GRAVA o
-  # arquivo com modo 755, registra no manifesto, e só depois o `conferir`
-  # imprime "está desatualizado" — o diagnóstico consertava o que estava
-  # diagnosticando, e a passagem seguinte devolvia 0. Isso desmentia a promessa
-  # do `bin/meow` de que "conferir é leitura: nenhum caminho de doctor sem
-  # --consertar escreve configuração", inclusive no timer das 5h.
+  # (`MEOW_SECO=1 _ffl_instalar`).
   if ! MEOW_SECO=1 _ffl_instalar_meow_fetch >/dev/null; then
     meow_muda "o $(_ffl_meow_fetch) está desatualizado (ou não existe)"
     return "$MEOW_DIVERGENTE"
@@ -1563,13 +1173,9 @@ cmd_remover() {
 }
 
 # --- desfazer a fronteira, na hora de desinstalar ----------------------------
-# O VERBO FICOU, E FICOU VAZIO — 24/09/2026, P39. Ele devolvia `fastfetch` na
-# linha do `env.zsh` do Spellbook antes de o desinstalador apagar o
-# `meow-fetch`, para o terminal não abrir com `command not found`. Este arquivo
-# deixou de escrever naquela linha, então não há o que devolver; e quem tira o
-# `command not found` agora é o próprio `env.zsh`, que escolhe pelo que está
-# instalado. O `lib/desinstalar.sh` continua chamando este verbo, e é por isso
-# que ele existe: sai 0 dizendo que não há nada, em vez de "verbo desconhecido".
+# Ele devolvia `fastfetch` na linha do `env.zsh` do Spellbook antes de o
+# desinstalador apagar o `meow-fetch`, para o terminal não abrir com `command
+# not found`.
 cmd_reverter() {
   meow_pula "o MeowSystem não escreve em arquivo de shell — nada a desfazer no fastfetch"
   return "$MEOW_OK"

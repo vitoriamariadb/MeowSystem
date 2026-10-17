@@ -1,50 +1,12 @@
 #!/usr/bin/env bash
 # restos-do-painel.sh — a gaveta que a ficha espera, o desfazer da escolha no
-# pack e a busca da ficha, no motor de JavaScript e sem navegador. Sprint P64,
-# 25/09/2026.
+# pack e a busca da ficha, no motor de JavaScript e sem navegador.
 #
-# O QUE ABRIU ISTO — as revisões da leva D (P50 e P60)
-#   1. O `app/pagina/app.js` declarava DUAS funções `fimDoTrabalho` no topo do
-#      script: a da P46, sem parâmetros, que devolve uma Promise que só se
-#      resolve quando o trabalho da gaveta acaba; e a da P50, com três, que
-#      devolve a linha da tabela do fim. Num script, a segunda declaração
-#      vence as duas: o `await fimDoTrabalho()` do ramo do pack (P60) e dos
-#      três vizinhos recebia um ARRAY, e não esperava nada — a lista era relida
-#      com o passo ainda correndo, que é o defeito que a P46 veio fechar.
-#   2. O «Voltar ao ícone de fábrica» dizia «voltou para o ícone de fábrica»
-#      mesmo com o aplicativo no mapa do pack no ar, e a escolha de um desenho
-#      do pack não tinha desfazer.
-#   3. A busca da ficha pintava a resposta de uma busca VELHA que chegasse
-#      depois da de agora, e sumia inteira para o aplicativo com trava do
-#      traço, levando junto o grupo do pack, que não depende dessa trava.
+# · O rótulo «Voltar ao ícone de fábrica» era a mentira da torrada em outro
+# lugar: com o Chrome nos dois mapas, ele prometia a fábrica logo acima da
+# torrada que dizia o pack.
 #
-# E O QUE A REVISÃO DA P64 ACHOU NO CONSERTO
-#   · O rótulo «Voltar ao ícone de fábrica» era a mentira da torrada em outro
-#     lugar: com o Chrome nos dois mapas, ele prometia a fábrica logo acima da
-#     torrada que dizia o pack. Ele diz agora o que desfaz («Desfazer a escolha
-#     no traço»), e a torrada diz o que fica.
-#   · Na ficha travada com pack, a frase da busca sem resultado prometia «o
-#     acervo que veio com o projeto» e mostrava só os desenhos do pack.
-#   · (A trava do intocável e a da curadoria, que voltaram a travar o pack, são
-#     do servidor, e é o tests/seletor-do-pack.sh que as cobra.)
-#
-# COMO SE MEDE
-#   · A contagem das declarações no topo sai do texto (a regra da casa: toda
-#     função de topo começa na coluna 0), e roda sem node.
-#   · Com node, o próprio parser do V8 confirma: o arquivo, lido como MÓDULO,
-#     não pode declarar o mesmo nome duas vezes no topo (num script pode, e é
-#     por isso que o navegador nunca reclamou).
-#   · E o arquivo INTEIRO roda num `vm` do node, com um DOM de mentira que só
-#     tem o que a ficha usa. É o mesmo içamento de declarações do navegador: a
-#     função que se chama aqui é a que a página chama. As rotas do servidor são
-#     trocadas por respostas escritas aqui — o que elas respondem de verdade é
-#     do tests/seletor-do-pack.sh.
-#
-# PORTÁTIL NA PRIMEIRA METADE: bash e grep. A segunda pede node; sem ele o
-#   teste diz "pulado" depois de contar.
-#
-# CÓDIGOS DE SAÍDA (os do projeto)
-#   0 = tudo cobrado passou · 1 = achados · 2 = erro deste teste · 3 = pulado.
+# PORTÁTIL NA PRIMEIRA METADE: bash e grep.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 APP="$RAIZ/app/pagina/app.js"
@@ -145,6 +107,9 @@ const documento = {
   createElement: (tag) => new El(tag),
   body: Object.assign(new El("body"), { dataset: { token: "brinquedo" } }),
   querySelector: () => new El("div"),
+  // [P82, itens 26 e 30: o fim do `render` e o «Usar este ícone» procuram as
+  //   grades e o cartão do aplicativo na página; aqui não há página.]
+  querySelectorAll: () => [],
   addEventListener() {},
 };
 
@@ -185,7 +150,7 @@ const PACK = { glifo: "alien", grupo: "pack:dracula:biblioteca", tipo: "desenho"
                desenho: "biblioteca/alien.svg", arquivo: "packs/dracula/icones/biblioteca/alien.svg",
                url: "/previa?x" };
 const TRACO = { glifo: "google-chrome", grupo: "motor:arcticons-apps", tipo: "traco",
-                arquivo: "assets/icones/arcticons-apps/google-chrome.svg", url: "/previa?y" };
+                arquivo: "packs/meowsystem/icones/apps/arcticons/google-chrome.svg", url: "/previa?y" };
 const GRUPOS = [
   { id: "pack:dracula:biblioteca", acervo: "Dracula", nome: "biblioteca", no_ar: true, total: 1, achados: 1 },
   { id: "motor:arcticons-apps", acervo: "MeowSystem", nome: "traço", no_ar: false, total: 1, achados: 1 }];

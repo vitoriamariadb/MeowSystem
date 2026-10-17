@@ -5,95 +5,17 @@
 #   LEITURA_COMPILAR=1 ./leitura_build.sh     compila, instala e planta a sombra
 #   ./leitura_build.sh --reverter             tira a sombra, o binário e a árvore
 #
-# ESTE ARQUIVO É O IRMÃO DO `midia_build.sh`, E A DIFERENÇA CABE EM DUAS LINHAS
-#   Lá a receita é um clone do upstream mais um patch, e o carimbo guarda o
-#   COMMIT do PINO. Aqui a receita é NOSSA — `src/applets/leitura/` mora no
-#   repositório —, então não há clone, não há PINO, e o que o carimbo guarda são
-#   os três arquivos que definem a compilação: o `main.rs`, o `Cargo.toml` (onde
-#   o `rev` do libcosmic está pinado) e o `Cargo.lock` (que é nosso, porque não
-#   há upstream de onde herdá-lo).
+# Lá a receita é um clone do upstream mais um patch, e o carimbo guarda o COMMIT
+# do PINO.
 #
-# A TRAVA É ESTRUTURAL, NÃO EDUCADA
-#   `LEITURA_COMPILAR=1` é obrigatório para chegar ao `cargo`. Não é convenção:
-#   o caminho é literalmente inalcançável sem a variável, e quem a exporta é o
-#   `install.sh`. O `meow doctor` das 05:00 não a exporta e não tem como — no
-#   pior caso ele ACUSA a divergência e escreve o comando na tela.
+# `LEITURA_COMPILAR=1` é obrigatório para chegar ao `cargo`.
 #
-# O CARIMBO É O QUE FAZ A SEGUNDA PASSAGEM CUSTAR ZERO
-#   Seis campos (o sexto, `arte`, entrou em 31/08 — ver o `_sha_arte`). Batendo
-#   os seis, este script devolve 0 sem invocar o cargo
-#   uma única vez. MEDIDO no irmão: até um rebuild que não muda nada custa ~20s,
-#   e o `meow-doctor.service` tem `TimeoutStartSec=5min`.
-#
-# O `meow_seco` VEM ANTES DE QUALQUER TOQUE NO RUSTUP, E ISSO É MEDIÇÃO
-#   `rustc` nesta máquina é um shim do rustup. Sob `env -i HOME=<falso>` — que é
-#   como o `tests/seco.sh` roda — o shim FALHA e ainda assim escreve
-#   `.rustup/settings.toml` no HOME falso. Um `rustc -V` inocente no caminho do
-#   `--conferir` faria o teste do seco acusar escrita num script que promete não
-#   escrever nada. Por isso `_rustc_versao` devolve vazio no seco.
-#
-# `--locked` SEMPRE, E AQUI ELE PESA MAIS QUE NO IRMÃO
-#   O `Cargo.lock` deste crate é o ÚNICO lock que existe: ninguém o herda de um
-#   upstream. Sem `--locked`, uma compilação de amanhã resolveria 638 pacotes de
-#   novo e pegaria versões que ninguém pediu, e a falha apareceria como erro de
-#   compilação num dia em que ninguém mexeu em nada.
-#
-# ============================================================================
-# A ORDEM — BINÁRIO, DEPOIS SOMBRA — E O BURACO QUE ELA EVITA
-# ============================================================================
-#   O `cosmic-panel` acha os applets pelo BASENAME do `.desktop` e consome o
-#   slot no primeiro acerto. Sombra presente com binário ausente não devolve o
-#   applet de fábrica: deixa um BURACO na barra. Por isso, aqui:
+# Batendo os seis, este script devolve 0 sem invocar o cargo uma única vez.
 #
 #     instalar   binário primeiro, sombra depois
 #     remover    sombra primeiro, binário depois
 #     consertar  binário sumiu  ->  a sombra é REMOVIDA
 #     repor      sombra sumiu   ->  reescrita SEM cargo (ver `_sem_cargo`)
-#
-#   As duas últimas rodam MESMO SEM `LEITURA_COMPILAR`, e isso é o desenho: um
-#   `rm` de arquivo nosso não é compilar, e 365 bytes de texto também não. As
-#   duas vêm antes da trava, de propósito — ver `_orfa` e `_sem_cargo`.
-#
-#   A TERCEIRA PEÇA, `plugins_wings`, NÃO É ESCRITA POR ESTE ARQUIVO E NUNCA
-#   SERÁ. É território da Aurora (docs/FRONTEIRA.md) e é onde moram os applets
-#   dela. Este script CONFERE se a linha está lá e AVISA quando não está —
-#   aviso, jamais divergência, porque o conserto não é dele.
-#
-#   E ELA NÃO É INERTE — O PLANO DE 29/08 ERRA AQUI, E O ERRO É PERIGOSO
-#     O plano diz que `plugins_wings` "só vale no próximo início de sessão", e
-#     usa isso como razão para tratar a escrita como inofensiva. MEDIDO em
-#     30/08/2026, às 05:43, com a sessão dela de pé:
-#       · `/proc/<pid do cosmic-panel>/fdinfo/*` tem um watch de inotify no
-#         INODE do diretório `~/.config/cosmic/com.system76.CosmicPanel.Panel/v1`
-#         — o painel está ouvindo aquele diretório agora;
-#       · `plugins_wings` está na lista `must_recreate` do painel
-#         (`cosmic-panel-bin/src/space_container/space_container.rs`, o braço
-#         `c.plugins_wings != entry.plugins_wings`);
-#       · escrever a linha RECRIOU o espaço da topbar NA HORA: o processo do
-#         painel manteve o mesmo PID (189474) e TODOS os applets renasceram com
-#         PIDs novos — inclusive o nosso, que apareceu na barra dela sem logout.
-#
-#     Ou seja, esta é a MESMA classe de evento que já apagou topbar e dock juntas
-#     nesta máquina. Escrever `plugins_wings` é barato UMA VEZ e desastroso em
-#     rajada — e é exatamente por isso que ele continua fora de todo script:
-#     nenhum doctor, nenhum timer e nenhum `install.sh` pode tocá-lo.
-#
-# O QUE ESTE SCRIPT NÃO CONSEGUE CONSERTAR SOZINHO, E POR QUE ISSO É ACEITO
-#   O `bin/meow` registra `leiturabin` em SEM_CONSERTO, e o laço de conserto dá
-#   `continue` pelo NOME antes de olhar o código de saída. Ou seja: o doctor
-#   nunca vai chamar o caminho que remove a sombra órfã — ele só acusa, com o
-#   comando na tela.
-#
-#   No applet de mídia isso foi resolvido partindo em dois nomes (`midiabin` e
-#   `midia`), e lá valia a pena: sem o conserto automático, a dock dela ficaria
-#   sem o applet de mídia que o flatpak forneceria de graça. Aqui não existe
-#   applet de fábrica por trás: se o nosso some, o pior caso é um espaço vazio
-#   na topbar, e o `meow doctor` diz em uma linha qual comando o fecha. Um
-#   segundo verificável para essa diferença seria mais superfície do que
-#   conserto.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -115,35 +37,19 @@ CARIMBO="$ESTADO/carimbo"
 APP_ID="com.meowsystem.AppletLeitura"
 BINARIO="$HOME/.local/bin/meow-applet-leitura"
 SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$APP_ID.desktop"
-# A TOPBAR TEM TRÊS LUGARES, E ESTE ARQUIVO SÓ OLHAVA UM — 16/09/2026
-#   O cosmic-panel guarda os applets em DOIS arquivos: `plugins_wings`, que é o
-#   par (asa esquerda, asa direita), e `plugins_center`, que é o meio. Arrastar
-#   um applet para o centro em Ajustes -> Painel -> Applets o grava no segundo.
+# O cosmic-panel guarda os applets em DOIS arquivos: `plugins_wings`, que é o
+# par (asa esquerda, asa direita), e `plugins_center`, que é o meio.
 #
-#   Nesta máquina o `com.meowsystem.AppletLeitura` está no `plugins_center`
-#   desde sempre, ao lado do relógio e do audio, e o `plugins_wings` é
-#   literalmente `Some(([], []))`. O `_asa_cita` olhava só as asas, não achava,
-#   e toda rodada do instalador imprimia "o applet está instalado, mas a topbar
-#   não o cita — acrescente à mão" sobre um applet que ESTAVA na topbar, na
-#   tela, funcionando. Aviso falso é pior que aviso nenhum: ensina a ignorar a
-#   linha amarela, e a próxima é de verdade.
-#
-#   Os dois arquivos continuam sendo território da Aurora — nenhum script daqui
-#   escreve neles (ver `docs/FRONTEIRA.md` e o bloco de cima). O que muda é só
-#   onde se PROCURA.
-ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
-MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center"
+# Nesta máquina o `com.meowsystem.AppletLeitura` está no `plugins_center` desde
+# sempre, ao lado do relógio e do audio, e o `plugins_wings` é literalmente
+# `Some(([], []))`.
+ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_wings"
+MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_center"
 
 LEITURA_APPLET="${LEITURA_APPLET:-sim}"
 COMPILAR="${LEITURA_COMPILAR:-0}"
 
-# O PINO ANDA COM O PAINEL — 09/10/2026, P76
-#   O `rev` do libcosmic no `Cargo.toml` daqui é o conhecido-bom (1f6dc99). O
-#   applet passa a compilar contra o libcosmic do cosmic-panel INSTALADO, numa
-#   cópia da receita com o `rev` trocado (`$ESTADO/receita-painel`); se não
-#   compilar ali, fica registrado e o build volta ao pino. A regra inteira está
-#   no `scripts/applet_pino.sh`. O carimbo ganha a linha `libcosmic` só quando
-#   o alvo não é o pino — assim um carimbo antigo, do pino, continua batendo.
+# O `rev` do libcosmic no `Cargo.toml` daqui é o conhecido-bom (1f6dc99).
 . "$RAIZ/scripts/applet_pino.sh"
 PINO_REV="$(ap_rev_do_lock "$TRAVA")"
 _alvo_rev() { ap_alvo leitura "$PINO_REV"; }
@@ -156,7 +62,7 @@ case "${1:-}" in
   *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar|--reverter]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && [ "$REVERTER" = 0 ] && CONFERIR=1
-# P76: conferir é só leitura também para a regra do pino (`applet_pino.sh`).
+# conferir é só leitura também para a regra do pino (`applet_pino.sh`).
 [ "$CONFERIR" = 1 ] && AP_SO_LER=1
 
 _sha() { sha256sum -- "$1" 2>/dev/null | cut -d' ' -f1; }
@@ -171,13 +77,10 @@ _rustc_versao() {
 
 # O `Icon=` aponta para um nome do TEMA, não para um caminho: assim ele segue o
 # tema de ícones que ela estiver usando, e continua existindo se o repositório
-# sair do disco. `night-light-symbolic` está no Papirus e no Adwaita desta
-# máquina (conferido em 30/08/2026), que são os dois que o COSMIC alcança.
+# sair do disco.
 #
 # SEM `X-CosmicHoverPopup=Auto`, e isto é escolha, não esquecimento: com ela o
-# popup abre ao PASSAR o mouse. Um popup de dois sliders que se abre sozinho
-# quando o cursor atravessa a topbar é um convite a arrastar sem querer a
-# temperatura da tela inteira. O applet de mídia pode: lá o popup só mostra.
+# popup abre ao PASSAR o mouse.
 _texto_sombra() {
   cat <<EOF
 [Desktop Entry]
@@ -196,23 +99,16 @@ X-CosmicShrinkable=true
 EOF
 }
 
-# O SEXTO CAMPO, E POR QUE ELE PRECISOU EXISTIR — 31/08/2026
-#   Os quatro SVGs do modo de leitura entraram DENTRO do binário, por
-#   `include_bytes!` (ver o bloco dos ícones em src/main.rs). Isso os torna parte
-#   da receita sem que nenhum dos cinco campos anteriores saiba: editar o traço
-#   de `r2.svg` não muda o `main.rs`, não muda o Cargo.toml e não muda o lock — o
-#   carimbo bateria, este script devolveria 0, e o applet continuaria desenhando
-#   a arte VELHA. Falha silenciosa completa, do mesmo feitio das que o
-#   `patches/LEIA-ME.txt` cataloga.
+# Os quatro SVGs do modo de leitura entraram DENTRO do binário, por
+# `include_bytes!` (ver o bloco dos ícones em src/main.rs).
 #
-#   Um campo só para os quatro: o sha dos shas, na ordem do `ARTE` abaixo, que é
-#   a mesma ordem em que o `main.rs` os embute. Qualquer um deles muda e o campo
-#   muda.
+# Um campo só para os quatro: o sha dos shas, na ordem do `ARTE` abaixo, que é a
+# mesma ordem em que o `main.rs` os embute.
 ARTE=(
-  "$RAIZ/assets/icones/autorais/leitura/r2.svg"
-  "$RAIZ/assets/icones/autorais/leitura/s3.svg"
-  "$RAIZ/assets/icones/autorais/leitura/r1.svg"
-  "$RAIZ/assets/icones/autorais/leitura/r6.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura/r2.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura/s3.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura/r1.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura/r6.svg"
 )
 
 _sha_arte() {
@@ -382,28 +278,8 @@ _sem_cargo() {
 }
 
 # --- o rust, quando falta ---------------------------------------------------
-# O rustup na casa de quem usa (`~/.cargo`), sem sudo e sem mexer no PATH do
-# shell dela: é o caminho que o próprio projeto do rust recomenda, e o cargo
-# do apt costuma ser velho demais para o libcosmic. Baixa da internet — por
-# isso só no conserto e no instalador, que já declaram rede (decisão 7).
-_garantir_cargo() {
-  meow_tem cargo && return 0
-  if [ -x "$HOME/.cargo/bin/cargo" ]; then PATH="$HOME/.cargo/bin:$PATH"; return 0; fi
-  meow_seco && { meow_muda "instalaria o rust pelo rustup, em ~/.cargo (baixa da internet)"; return 1; }
-  meow_tem curl || return 1
-  local instalador
-  instalador="$(mktemp)" || return 1
-  meow_info "instalando o rust pelo rustup, em ~/.cargo (baixa da internet)"
-  if curl --proto '=https' --tlsv1.2 -sSf --max-time 120 https://sh.rustup.rs -o "$instalador" \
-     && sh "$instalador" -y --profile minimal --no-modify-path >/dev/null 2>&1; then
-    rm -f "$instalador"
-    PATH="$HOME/.cargo/bin:$PATH"
-    meow_tem cargo
-    return $?
-  fi
-  rm -f "$instalador"
-  return 1
-}
+# [P82, 15/10/2026: a função mora no lib/comum.sh (`meow_garantir_cargo`),
+#   porque o applet de mídia passou a instalar o rust pela mesma regra.]
 
 # --- aplicação ---------------------------------------------------------------
 _aplicar() {
@@ -437,7 +313,7 @@ _aplicar() {
   #   do doctor ou o instalador (`LEITURA_COMPILAR=1`), e os dois já baixam e
   #   compilam (decisão 7: o reparo baixa, com o selo «baixa da internet»).
   #   Sem rede, fica a pendência com o botão do conserto, para tentar de novo.]
-  if ! _garantir_cargo; then
+  if ! meow_garantir_cargo; then
     meow_pula "sem cargo, e o rust não pôde ser instalado agora — o applet do modo de leitura fica de fora"
     meow_pendencia_acionavel leitura-applet \
       "O applet do modo de leitura precisa do rust, e a instalação dele não respondeu" \
@@ -468,10 +344,10 @@ _aplicar() {
       meow_aviso "o applet não compila no libcosmic ${alvo_rev:0:7} do painel — volta ao pino ${PINO_REV:0:7}"
     fi
   fi
+  # [P81: a tela dava a linha do cargo para colar; o motivo fica num registro.]
   if [ "$compilou" = 0 ] && ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
-        --manifest-path "$MANIFESTO" >/dev/null 2>&1; then
-    meow_erro "o cargo falhou — veja o motivo com:"
-    meow_info "  CARGO_TARGET_DIR=$ALVO cargo build --release --locked --manifest-path $MANIFESTO"
+        --manifest-path "$MANIFESTO" >"$ESTADO/compilar.log" 2>&1; then
+    meow_erro "o cargo falhou — o registro está em $ESTADO/compilar.log"
     meow_info "  o binário anterior, se houver, segue instalado e funcionando; nada foi trocado"
     return "$MEOW_ERRO"
   fi

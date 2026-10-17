@@ -19,9 +19,9 @@
             alpha: 1.0,
         ),
         pressed: (
-            red: 0.9137255,
-            green: 0.91764706,
-            blue: 0.9607843,
+            red: 0.7137255,
+            green: 0.7176471,
+            blue: 0.7607843,
             alpha: 1.0,
         ),
         selected: (

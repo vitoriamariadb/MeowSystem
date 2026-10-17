@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Capivara de capa e abóbora num disco escuro; grade 512 reduzida por 0,25 -->
+  <g transform="scale(0.25)">
+    <circle cx="254" cy="256" r="146" fill="#383A4C"/>
+    <!-- capivara -->
+    <path fill="#565A72" d="M238 160 L262 150 L292 170 L322 146 L332 172 L350 200 L372 214 L368 236 L340 252 L316 248 L330 292 L346 336 L330 358 L300 372 L270 368 L246 372 L252 330 L222 292 L228 240 L226 190 Z"/>
+    <g fill="#F8F8F2">
+      <path d="M330 252 L340 270 L348 254 Z"/>
+      <path d="M353 254 L360 270 L362 254 Z"/>
+    </g>
+    <circle cx="300" cy="206" r="6" fill="#383A4C"/>
+    <!-- abóbora -->
+    <path fill="#FFB86C" d="M134 280 Q130 240 168 232 Q190 232 202 250 Q214 252 224 270 Q246 288 240 312 Q232 332 190 334 Q150 334 134 300 Z"/>
+    <path fill="#FFB86C" d="M182 232 L180 212 L190 206 L196 224 L200 236 Z"/>
+    <g fill="#383A4C">
+      <path d="M152 268 L170 254 L172 270 Z"/>
+      <path d="M202 268 L214 262 L222 276 Z"/>
+      <path d="M144 288 L172 304 L192 296 L218 306 L196 316 L162 312 Z"/>
+    </g>
+  </g>
+</svg>

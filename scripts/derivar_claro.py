@@ -83,15 +83,9 @@ def com_luminancia(hexa, alvo, sat_extra=0.0):
 
 
 def main():
-    # AQUI O `catppuccin` É NOMEADO DE PROPÓSITO, E NÃO É A PALETA ATIVA
-    #   Este script deriva UM flavor claro a partir de outro escuro, e a régua
-    #   de saturação e luminância é o Latte do Catppuccin — é o que o bloco "A
-    #   CALIBRAÇÃO VEM DO LATTE" abaixo explica. Trocar por
-    #   `pack.paleta_do_pack_ativo()` mudaria a régua junto com o pack ativo e o
-    #   resultado deixaria de ser reprodutível. Os dois arquivos são nomeados
-    #   pelo pack a que pertencem, lado a lado, e é assim que se lê.
-    #   O caminho mudou em 22/09/2026 (era `assets/paleta/catppuccin.json`)
-    #   porque o pack padrão passou a morar em `packs/`, como os outros.
+    # Este script deriva UM flavor claro a partir de outro escuro, e a régua de
+    # saturação e luminância é o Latte do Catppuccin — é o que o bloco "A
+    # CALIBRAÇÃO VEM DO LATTE" abaixo explica.
     cat = json.load(open(f"{RAIZ}/packs/catppuccin/paleta.json"))
     pack = json.load(open(f"{RAIZ}/packs/dracula/paleta.json"))
     escuro = pack["flavors"]["dracula"]
@@ -104,59 +98,19 @@ def main():
                "peach", "yellow", "green", "teal", "sky", "sapphire",
                "blue", "lavender"}
 
-    # A CALIBRAÇÃO VEM DO LATTE, A IDENTIDADE VEM DO DRACULA.
-    #   A primeira tentativa manteve a saturação do Dracula e levou só a
-    #   luminância ao alvo. Resultado medido: `base` virou #BDC6FF — um azul
-    #   claro forte, porque o #282A36 do Dracula é azulado e saturado, e
-    #   clarear mantendo S não dá cinza, dá pastel. Todos os 14 acentos
-    #   reprovaram no contraste contra esse fundo.
+    # A primeira tentativa manteve a saturação do Dracula e levou só a
+    # luminância ao alvo. Todos os 14 acentos reprovaram no contraste contra
+    # esse fundo.
     #
-    #   O Latte clareia BAIXANDO a saturação na estrutura (o #EFF1F5 dele é
-    #   quase neutro) e SUBINDO nos acentos. Então o que se copia dele é o par
-    #   (saturação, luminância) de cada slot; do Dracula vem o MATIZ, que é o
-    #   que faz uma cor ser reconhecida como daquele tema.
-    #   SEGUNDA CORREÇÃO: copiar (S, V) do Latte também não basta. A luminância
-    #   percebida depende do MATIZ — um amarelo e um azul com o mesmo S e V não
-    #   têm o mesmo brilho, e é por isso que o `yellow` saiu a 1,30 de contraste
-    #   enquanto o `mauve` passou. O que tem de ser igual ao Latte é a
-    #   LUMINÂNCIA; S entra como ponto de partida e V se ajusta até bater.
-    #   TERCEIRA CORREÇÃO: o matiz de um quase-neutro é ruído, e amplificá-lo
-    #   vira cor. O `text` do Dracula é #F8F8F2 — saturação 0,02, praticamente
-    #   branco. Preservar "o matiz dele" e subir a saturação para a do Latte
-    #   produziu #52523C, um oliva: uma cor que o Dracula não tem, inventada a
-    #   partir de dois pontos de amarelo num branco.
-    #
-    #   Onde o original é neutro (S < 0,10), o que define a família do tema não
-    #   é o matiz daquele slot: é o do `base`. O Dracula é azul-arroxeado, então
-    #   os cinzas claros puxam para lá — que é exatamente o que o Latte faz com
-    #   os dele.
-    #
-    # AJUSTE FINO DO `text`, E SÓ DELE.
-    #   Mirar a luminância do Latte deixou o `text` a 6,99 de contraste — AAA
-    #   pede 7,0, e a diferença é o arredondamento para hexa, não o método.
-    #   Este é o único slot com exigência ABSOLUTA (é onde a pessoa lê), então
-    #   ele desce alguns pontos de V até passar. Os demais são comparados com o
-    #   Latte, e lá o critério é relativo.
-    #
-    # AS TRÊS CORREÇÕES E O AJUSTE SÃO O `derivar_claro` DO `pack.py` [P34, 23/09/2026]
-    #   Até aqui eles estavam escritos DUAS vezes: neste `main()` e no
-    #   `pack.py`, que a P16 copiou passo a passo para o CSV de cores. A
-    #   história fica escrita acima, onde foi aprendida; o código é um só, e o
-    #   `tests/pack.sh` cobra que esta porta e a do `de-csv` devolvam o mesmo
-    #   claro — o `alucard` versionado, 26 de 26.
+    # O Latte clareia BAIXANDO a saturação na estrutura (o #EFF1F5 dele é quase
+    # neutro) e SUBINDO nos acentos.
     claro = derivar_claro(escuro, latte)
 
-    # --- conferência, que é o que autoriza imprimir o claro -------------------
-    # A RÉGUA É O LATTE, NÃO UM NÚMERO QUE EU INVENTEI.
-    #   A primeira conferência exigia 4,5:1 de TODO acento sobre o base — e
-    #   reprovou 12 slots. Medindo o Latte com a mesma régua, ele reprova nos
-    #   mesmos: `rosewater` sobre `base` dá 2,32 lá também. Esses slots não são
-    #   texto, são decoração (realce, borda, gráfico), e o WCAG de texto não se
-    #   aplica a eles.
+    # Medindo o Latte com a mesma régua, ele reprova nos mesmos: `rosewater`
+    # sobre `base` dá 2,32 lá também.
     #
-    #   O que vale conferir é: o Dracula claro não pode ser PIOR que o claro de
-    #   referência do projeto no mesmo slot. Assim a régua é verificável e não
-    #   depende de eu achar um número bonito.
+    # O que vale conferir é: o Dracula claro não pode ser PIOR que o claro de
+    # referência do projeto no mesmo slot.
     falhas = []
     c_text = contraste(claro["text"], claro["base"])
     if c_text < 7.0:
@@ -167,11 +121,9 @@ def main():
         if c < ref * 0.95:
             falhas.append("%s/base %.2f — o Latte faz %.2f no mesmo slot" % (k, c, ref))
 
-    # O RELATÓRIO VAI PARA O STDERR, E O CLARO PARA O STDOUT [P34, 23/09/2026]
-    #   Era tudo no STDOUT, e o claro gravado em `/tmp/dracula-claro.json` —
-    #   um arquivo fixo num diretório de todos, que a segunda rodada
-    #   sobrescrevia calada. Agora quem quer o arquivo o nomeia com `>`, como
-    #   no `meow pack de-csv`, e o relatório continua na tela.
+    # Era tudo no STDOUT, e o claro gravado em `/tmp/dracula-claro.json` — um
+    # arquivo fixo num diretório de todos, que a segunda rodada sobrescrevia
+    # calada.
     err = sys.stderr
     print("%-11s %-9s -> %-9s  contraste c/ base" % ("slot", "dracula", "claro"), file=err)
     for k in ordem:

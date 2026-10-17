@@ -4,7 +4,7 @@
 
 # MeowSystem
 
-**Catppuccin for COSMIC, built for one machine — and documented well enough to become yours.**
+**COSMIC dressed from head to toe by a theme pack, and a doctor that fixes things on its own.**
 
 *Everything it writes, it knows how to undo — and running it again on a ready machine writes nothing.*
 
@@ -13,16 +13,22 @@
 [![languages](https://img.shields.io/badge/bash%204.3+-python%203%20stdlib%20only-A6E3A1?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 
-[![installer](https://img.shields.io/badge/installer-62%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-64%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![installer](https://img.shields.io/badge/installer-63%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-65%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 [![browser suite](https://img.shields.io/badge/browser-123%2F123-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
-Theme, icons, panel, dock, terminal and wallpaper for Pop!_OS with COSMIC in a single installer,
-plus a local panel that changes all of it without opening a text file.
+Theme, icons, panel, dock, terminal, login screen, wallpaper and the themes inside your programs,
+for Pop!_OS with COSMIC, in a single installer — plus a local panel that changes all of it
+without opening a text file.
+
+The colours come from a **theme pack**: a directory of data, without a single line of code.
+Catppuccin is the default pack; Dracula ships complete, light side (Alucard) included. Whatever a
+pack doesn't declare it inherits, and `meow pack info` says, category by category, where each
+thing came from. The format is in **[docs/PACKS.md](docs/PACKS.md)** (in Portuguese).
 
 <img src="docs/capturas/painel.png" width="920" alt="The MeowSystem configuration panel, home screen">
 
-[Português](README.md) · [Full manual](docs/) · [Credits](docs/CREDITOS.md) · GPL-3.0
+[Português](README.md) · [Full manual](docs/) · [Final state](docs/ESTADO-FINAL.md) · [Credits](docs/CREDITOS.md) · GPL-3.0
 
 </div>
 
@@ -37,9 +43,34 @@ cd MeowSystem
 meow ativar               # every other run
 ```
 
-62 steps. Running it again on a machine that is already set up **writes nothing** — and says so,
-instead of listing the steps as if it had redone them. To see what would happen before letting it
-happen: `MEOW_DRY_RUN=1 ./install.sh`.
+63 steps. On a machine already set up, running it again **writes nothing** and says so. To
+rehearse first: `MEOW_DRY_RUN=1 ./install.sh`, or **Ver o que faria** (see what it would do) in
+the panel.
+
+The sudo password is asked **once**, to register the root bridge: a closed set of verbs (system
+`.desktop` files, login screen, apt hook, dependencies) that then runs with no password.
+`PONTE_ROOT="nao"` in `meow.conf` removes the bridge on the next pass.
+
+## Packs
+
+```bash
+meow pack listar                      # installed packs, and whether each one validates
+meow pack usar dracula                # switch the machine's pack and apply it
+meow pack usar catppuccin latte       # with the chosen flavour
+meow pack exportar dracula            # a .meowpack to take to another machine
+meow pack importar my-theme.meowpack  # checks everything before touching the disk
+meow pack remover my-theme            # removes an imported pack
+meow pack exportar-tema dracula       # the assembled icon theme, usable without MeowSystem
+```
+
+In the panel, **Início** (home) shows one card per pack: logo, palette, what it brings and what
+it inherits. **Usar este** (use this one) switches packs. The switch carries what belongs to the
+pack (icon base, pointer, sound, what it hides from the launcher) and gives back what the previous
+one hid.
+
+**A pack is data, never code.** Nothing in it is executed: paths must land inside the pack, links
+pointing outside and scripts are refused, and a third-party pack's drawings are served in a
+sandbox. A VS Code extension asked for by an imported pack only installs on a gesture on it.
 
 ## The panel
 
@@ -47,56 +78,44 @@ happen: `MEOW_DRY_RUN=1 ./install.sh`.
 meow abrir                # or the MeowSystem icon in the launcher
 ```
 
-122 settings and 54 actions across thirteen pages — one per subject, each holding everything
-there is about it. The menu has two blocks: **Tópicos** (topics), which is your screen, and
-**Sistema** (system), which is what the machine does on its own.
+122 settings and 64 actions across fourteen pages: Início and thirteen subject pages. The menu
+has two blocks: **Tópicos** (your screen) and **Sistema** (what the machine does on its own).
 
-### Every block ships with a drawing, and the drawing is the control
+### The interface shows instead of explaining
 
-<img src="docs/capturas/painel-leitura.png" width="920" alt="The reading-mode tab: the drawing shows the same page cold on the left and warm on the right, with the schedule below">
+<img src="docs/capturas/painel-leitura.png" width="920" alt="The reading-mode tab: the drawing shows the same page cold on the left and warm on the right">
 
-No control here explains itself in words alone. Each block opens with an SVG answering the
-question "what does this do to my screen?", drawn from your real values — and it **repaints while
-you drag the slider**, before you let go.
+Only title, label and value stay on screen. The why lives behind the **?**. Each block opens with
+a preview drawn from your real values (wallpaper, cat, installed icon) that **repaints while you
+drag the slider**.
 
-When a choice is waiting, the drawing becomes two: **Como está** (as it is) and **Como fica** (as
-it will be), side by side, framed as buttons. Pressing "Como está" undoes that block and only
-that block. The drawing sticks to the top of the page as you scroll, so it keeps being a
-reference.
-
-A drawing is never a screenshot: each one states, in its caption, exactly which numbers were
-drawn.
+With a pending choice, the preview becomes two: **Como está** (as it is) and **Como fica** (as it
+will be). "Como está" undoes only that block.
 
 ### What you can do here
 
-<img src="docs/capturas/painel-areas.png" width="920" alt="The workspaces tab, with a drawing of the bar and the two screens above its three settings">
+<img src="docs/capturas/painel-areas.png" width="920" alt="The workspaces tab, with a drawing of the bar and the two screens above its settings">
 
-- **Papel de parede** (wallpaper) — the collection, its 9 settings and 13 actions, on one
-  screen. Dropping a file here says right away whether it landed in the day or the night group,
-  and why — and you can disagree: **Dia** and **Noite** send an image to whichever side you want,
-  and **Medir** hands the decision back to the luminance.
-- **Áreas de trabalho** (workspaces) — the name and the **order** of your areas, the invisible
-  padding in the name, and window tiling per area. Until now the only way was editing RON by hand.
-- **Ícones** (icons) — one icon per installed program, swappable one by one, plus the theme the
-  project builds.
-- **Modo de leitura** (reading mode) — the warm night screen got its own page: temperature,
-  texture, schedule and the ramp of the transition.
-- **Install without leaving the panel** — a cursor theme `.zip`, a `.ttf` font, a base icon theme,
-  a new cat, a wallpaper. The uploaded file never touches the repository: what installs it is the
-  same command you would run in the terminal.
+- **Ícones** (icons): one per program, swappable one by one. The picker shows the whole
+  collection in folders (each pack, the one in use first; library; hand-made; Arcticons; rescued;
+  uploaded). The drawing in use is marked.
+- **Papel de parede** (wallpaper): the collection and its actions. A dropped file lands in the
+  day or the night group, and **Dia** and **Noite** move it.
+- **Áreas de trabalho** (workspaces): name, **order** and window tiling of each one.
+- **Modo de leitura** (reading mode): temperature, texture, schedule and ramp of the warm night
+  screen.
+- **Install from the panel**: pointer theme (`.zip`), font, icon theme, cat, wallpaper, icon.
+  Uploads live in `~/.local/share/meowsystem/`, never in the repository.
 - Plus **Cor e tela**, **Logo do sistema**, **Painel e dock**, **Dia e noite**, **Terminal**,
-  **Lançadores e jogos**, **Manutenção**, **Instalação** and **Atualização** — that last one runs
-  `apt`, `flatpak` and `cargo` on one screen and then has `doctor` tell you what the upgrade
-  undid. That second half is what a `full-upgrade` by hand doesn't have.
+  **Lançadores e jogos**, **Manutenção**, **Instalação** and **Atualização** (`apt`, `flatpak`
+  and `cargo`, followed by `doctor`).
 
-Every variable the installer reads has a control here — and a test enforces it, so a new key
-can't be born invisible.
+Every variable the installer reads has a control here, and a test enforces it.
 
-Clicking never changes the machine: choices pile up, and **Salvar e aplicar** writes them and runs
-the installer right away. With nothing pending, the same button applies what is already saved.
-The cards show what the machine has now — the dock's radius, the opacity, the clock's seconds —
-and the page re-reads the machine when the job finishes. To see what would change first, the dry
-run is still in the terminal: `./install.sh --dry-run`.
+Clicking never changes the machine: choices pile up and **Salvar e aplicar** (save and apply)
+writes them and runs the installer. **Ver o que faria** rehearses without writing. **Restaurar ao
+padrão** (restore default) goes back to the factory value. Actions that download wear a network
+badge.
 
 <img src="docs/capturas/painel-forma.png" width="920" alt="The panel-and-dock tab, with a live drawing above the controls">
 
@@ -104,15 +123,16 @@ run is still in the terminal: `./install.sh --dry-run`.
 
 | | |
 |---|---|
-| **The COSMIC theme** | All four trees, applied by file copy. Light and dark are the same theme with a switch, so switching doesn't flash the interface. |
-| **The login screen** | `cosmic-greeter` keeps its own config and shipped empty: the last surface still stock. |
-| **Panel and dock** | Shape, radius, margin, spacing and padding per segment; the blur that survives a maximized window; seconds on the clock; and the playing track beside it, with cover art and controls. |
-| **The workspaces** | Name, order and tiling for each one. The order of the list is the order of the bar, and it is the only way to decide which area is born first. |
-| **The icons** | Papirus as the base, folders tinted by the accent colour, and Arcticons glyphs per program — swappable one by one, from the panel. |
-| **The terminal** | All sixteen colours, the cursor, the `starship` prompt, and the cat replacing the `fastfetch` logo, redrawn in characters on every build. |
-| **The wallpaper** | A carousel with day and night folders split by luminance, next/previous on right-click, and favourites. The collection starts empty: `meow wallpaper semear` downloads the curated set, `meow wallpaper adicionar` uses images you already have. |
+| **The colours** | From a theme pack: `pack.json` and `paleta.json` with 26 named slots. Catppuccin (latte, frappé, macchiato, mocha) and Dracula (dracula and the light alucard) ship with the project; yours lives in `~/.local/share/meowsystem/packs`. |
+| **The COSMIC theme** | All four trees, applied by file copy. Light and dark are the same theme with a switch, and with `MODO=claro` the pack's light side also dresses the dock line art and the folders. |
+| **The login screen** | `cosmic-greeter` keeps its own config, and the bridge dresses it. |
+| **Panel and dock** | Shape, radius, margin, spacing and padding per segment; the blur that follows the installed COSMIC, **on the bar and on windows**; seconds on the clock; and the playing track beside it, with cover art and controls. And a watcher that brings the bar back when it dies **or when it stays alive without drawing**. |
+| **The workspaces** | Name, order and tiling for each one. The order of the list is the order of the bar. |
+| **The icons** | The base comes from the pack (Papirus for Catppuccin; `dracula-icons` for Dracula, the `circle` branch over `main`), folders and file types in the pack's palette, and one drawing per program — swappable one by one, from the panel. |
+| **The terminal** | All sixteen colours, the `starship` prompt, the `fzf` colours, and the cat replacing the `fastfetch` logo, redrawn in characters on every build. |
+| **The wallpaper** | A carousel with day and night folders split by luminance, next/previous on right-click, and favourites. A pack can bring its own. |
 | **Day and night** | At night the dock cat and the terminal cat change faces, the background switches to the dark images, and reading mode warms the screen and gives it paper texture, on a ramp — each on its own schedule, all 18:00 to 07:00 by default. |
-| **Programs** | Spotify, VS Code and friends themed from the inside; Steam and Heroic games with one launcher entry each, cover art included, removed when the game is. |
+| **Programs** | Spotify, VS Code, Obsidian, qBittorrent, Heroic, Telegram, Discord (Vesktop and Vencord), OnlyOffice, kitty, GNOME Terminal, ZapZap, btop and bat in the pack in use; Steam and Heroic games with one launcher entry each, cover art included, removed when the game is. |
 
 ## The machine
 
@@ -127,46 +147,66 @@ run is still in the terminal: `./install.sh --dry-run`.
 </tr>
 </table>
 
-## Check and undo
+## The doctor fixes
 
 ```bash
-meow doctor                            # 64 checks. Writes nothing.
-meow doctor --consertar                # applies only what is out of place
+meow doctor                            # 65 checks. Writes nothing.
+meow doctor --consertar                # fixes whatever is out of place
 meow desfazer                          # restores this machine's previous theme
-meow desinstalar                       # removes theme, icons and timers
+./install.sh --uninstall               # removes theme, icons and timers
 ```
 
-Every write to a system file leaves a copy behind first, and the installer **refuses by path** —
-not by good intentions — to write anywhere it doesn't know.
+`doctor` never asks you to type: whatever it knows how to fix, `--consertar` fixes. It runs by
+itself at 05:00, and the panel's **Consertar** (fix) is the same gesture.
+
+Every write to a system file keeps a copy first, and the installer **refuses by path** to write
+anywhere it doesn't know.
+
+## COSMIC can update
+
+Two builds are its own: the compositor (`cosmic-comp` with the `patches/` series) and the
+wallpaper menu of `cosmic-files`. When apt brings a new COSMIC, the build redoes itself with no
+sudo: after apt, at the next login and in the 05:00 doctor. The new binary takes effect at the
+next login. A patch that doesn't apply changes nothing: the session comes up with the stock
+compositor.
+
+Run `apt full-upgrade` freely. The upgrade chain and how to go back:
+**[docs/MANUTENCAO.md](docs/MANUTENCAO.md)** (in Portuguese).
 
 ## What to expect
 
-This repository was born for one machine: **Pop!_OS 24.04 LTS with COSMIC**, `apt`, an RTX 4060
-and her Steam `.desktop` files. That coupling is allowed and written down — absolute paths, the
-`cosmic-greeter` uid, the list of programs the launcher hides. What you get in return is the
-opposite of the usual: `--wizard` asks only the five essential keys — `FLAVOR`, `ACCENT`, `MODO`,
-`LANCADOR_SISTEMA` and `PONTE_ROOT` —, `doctor` tells you what is out of place before the screen
-does, and nothing is applied without a copy of what was there before. `LOGO`, which the installer
-also requires, comes filled in from `meow.conf.exemplo` and needs no answer. If your machine looks
-like this one, install it. If it doesn't, read `doctor` — it talks.
+Made for **Pop!_OS 24.04 LTS with COSMIC**. The coupling that remains is written down, and
+`doctor` warns before the screen does.
+
+- **the colours** come from a theme pack, not from the source;
+- **what isn't here is skipped, not an error**: no Steam, no Heroic, no theme on disk, each step
+  says what it skipped and moves on;
+- **the installed COSMIC decides the path**: native key when there is one, patch only where not;
+- **nothing is applied without a copy of what was there**, and `--wizard` asks only five keys:
+  `FLAVOR`, `ACCENT`, `MODO`, `LANCADOR_SISTEMA` and `PONTE_ROOT` (`LOGO` comes from
+  `meow.conf.exemplo`).
+
+If your machine runs COSMIC, install it.
 
 ## Requirements
 
-Pop!_OS 24.04 LTS · COSMIC 1.0 · `bash`, `python3` and `apt`. The panel opens in whichever browser
-is already installed, and only listens on `127.0.0.1`.
+Pop!_OS 24.04 LTS · COSMIC (measured from 1.0 to 1.10) · `bash`, `python3` and `apt`. The builds
+of its own need `cargo`, which whoever compiles installs through rustup when it's missing. The
+panel opens in whichever browser is already installed, and only listens on `127.0.0.1`.
 
 ## Credits
 
-MeowSystem is a shell: almost everything you see on screen was drawn by someone else, under a
-licence that allows this. The four largest:
+Almost everything on screen was drawn by other people, under licences that allow this. The
+largest:
 
-- [Catppuccin](https://github.com/catppuccin/catppuccin) — the palette (MIT)
+- [Catppuccin](https://github.com/catppuccin/catppuccin) — the default pack's palette (MIT)
+- [Dracula](https://draculatheme.com) — the Dracula pack's palette, and [`dracula-icons`](https://github.com/m4thewz/dracula-icons) as its icon base (GPL-3.0)
 - [Arcticons](https://github.com/Donnnno/Arcticons) — the program and panel glyphs (CC BY-SA 4.0)
-- [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) — the icon base (GPL-3.0)
+- [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) — Catppuccin's icon base (GPL-3.0)
 - [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) — the coloured folders, pinned at `f83671d1`
 
-**The full list is in [`docs/CREDITOS.md`](docs/CREDITOS.md)** — cursors, fonts, wallpapers,
-in-app themes, what was turned down and why, and what you must do if you redistribute anything
-from here. (That page is in Portuguese.)
+**The full list is in [`docs/CREDITOS.md`](docs/CREDITOS.md)** and in each pack's `CREDITOS.md`:
+cursors, fonts, wallpapers, in-app themes, what was turned down and what to do when redistributing
+(in Portuguese).
 
 Licence: GPL-3.0.

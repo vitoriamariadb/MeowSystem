@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Pack mínimo">
+  <style id="meow-papeis">.fundo{fill:#282A36}.traco-sujeito{stroke:#BD93F9}.traco-tinta{stroke:#F8F8F2}</style>
+  <title>Pack mínimo — logo gerado pelo MeowSystem</title>
+  <rect class="fundo traco-sujeito" x="8" y="8" width="112" height="112" rx="26" stroke-width="8"/>
+  <path class="traco-tinta" d="M 46 91 V 37 H 66.7 Q 82 37 82 52.3 Q 82 67.6 66.7 67.6 H 46" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

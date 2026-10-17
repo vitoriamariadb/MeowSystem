@@ -1,27 +1,17 @@
 #!/usr/bin/env bash
 # capturar_tema.sh — fotografa as árvores de tema do COSMIC para dentro do pack ativo.
 #
-# POR QUE ISTO EXISTE
-#   O COSMIC não tem CLI de tema: a derivação que transforma o que a GUI edita
-#   (`*.Builder/v1`) no que o sistema lê (`*/v1` e `*/v2`) mora dentro do app
-#   gráfico. Não dá para reproduzir de fora, e escrever chave por chave à mão
-#   produz um tema híbrido que "quase" funciona.
+# O COSMIC não tem CLI de tema: a derivação que transforma o que a GUI edita
+# (`*.Builder/v1`) no que o sistema lê (`*/v1` e `*/v2`) mora dentro do app
+# gráfico.
 #
-#   A saída é fotografar. A Vitória importa o tema UMA vez pela GUI, este script
-#   captura o resultado inteiro, e a partir daí aplicar é copiar de volta —
-#   sem GUI, sem flag e replicável numa máquina recém-formatada.
+# A saída é fotografar.
 #
-# O QUE SE CAPTURA, E POR QUE TUDO
-#   As quatro árvores (Dark, Dark.Builder, Light, Light.Builder) mais o Mode.
-#   Capturar só a que "parece" relevante é o erro clássico: as árvores derivadas
-#   já discordam entre si nesta máquina (Dark/v1 tem 30 chaves, Dark/v2 tem 17,
-#   e o `window_hint` de uma é `Some(...)` enquanto o da outra é `None`).
-#   Metade da foto reproduz meio tema.
+# As quatro árvores (Dark, Dark.Builder, Light, Light.Builder) mais o Mode.
 #
-# O MANIFESTO NÃO É BUROCRACIA
-#   Sem sha256 não há como saber, meses depois, se a captura ainda descreve o
-#   que está no disco — e é exatamente isso que o `meow doctor` precisa perguntar
-#   para decidir se conserta ou fica quieto.
+# Sem sha256 não há como saber, meses depois, se a captura ainda descreve o que
+# está no disco — e é exatamente isso que o `meow doctor` precisa perguntar para
+# decidir se conserta ou fica quieto.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -54,18 +44,11 @@ case "$NOME" in
   ''|*/*|.*) echo "ERRO: nome inválido: '$NOME'" >&2; exit 2 ;;
 esac
 
-# `original` É O FÓSSIL DE FÁBRICA, E RECAPTURAR É VIA DE MÃO ÚNICA
-#   É o que `meow desfazer` restaura (bin/meow, `cmd_desfazer`) e o molde de que
-#   o `gerar_tema_v1.py` deriva a v1 — e AQUELE script já recusa escrever nela,
-#   pelo mesmo motivo (`MOLDE = "original"`). Este aqui tinha ficado para trás:
-#   um `meow tema capturar original` digitado sem pensar troca o tema de fábrica
-#   desta máquina pelo Catppuccin que estiver na tela, e daí em diante o
-#   `desfazer` restaura Catppuccin em cima de Catppuccin, sem erro nenhum.
-#   (`assets/temas/capturados/original` está versionado e limpo no git, então um
-#   `git checkout assets/temas/capturados/original` ainda salva — mas o script não pode
-#   depender disso, porque ele saía 0 dizendo "capturado".)
-#   ELA CONTINUA EM `assets/` DEPOIS DE 22/09/2026, quando as outras quatro
-#   desceram para dentro do pack dono: a `original` não é tema de pack nenhum.
+# `original` é o tema de fábrica, e recapturá-lo é via de mão única: daí em diante o
+# `desfazer` restauraria o tema que estava na tela, sem erro nenhum.
+# É o que `meow desfazer` restaura (bin/meow, `cmd_desfazer`) e o molde de que o
+# `gerar_tema_v1.py` deriva a v1 — e AQUELE script já recusa escrever nela, pelo
+# mesmo motivo (`MOLDE = "original"`).
 if [ "$NOME" = "original" ] && [ "${MEOW_RECAPTURAR_ORIGINAL:-0}" != "1" ]; then
   echo "ERRO: 'original' é o reset de fábrica e não se recaptura." >&2
   echo "      É o que 'meow desfazer' restaura e o molde do gerar_tema_v1.py." >&2
@@ -74,26 +57,11 @@ if [ "$NOME" = "original" ] && [ "${MEOW_RECAPTURAR_ORIGINAL:-0}" != "1" ]; then
   exit 2
 fi
 
-# ESCREVER NÃO SOBE PELA HERANÇA, E LER SOBE — 22/09/2026
-#   O `pack.py captura` acha o `mocha-mauve` do Catppuccin mesmo com o Dracula
-#   no ar, porque o Dracula herda dele. Gravar ali seria pôr a foto do Dracula
-#   DENTRO do pack do Catppuccin, e quem instalasse o Catppuccin depois
-#   receberia um tema que não é dele. Por isso o verbo de escrita é outro:
-#   `captura-destino`, que responde sempre o pack ATIVO — e, para a `original`,
-#   o motor. As duas regras moram no pack.py, não aqui.
+# O `pack.py captura` acha o `mocha-mauve` do Catppuccin mesmo com o Dracula no
+# ar, porque o Dracula herda dele.
 #
-# O `|| DESTINO=""` NÃO É CINTO E SUSPENSÓRIO — 22/09/2026
-#   Com o `set -euo pipefail` da linha 25, uma atribuição por substituição de
-#   comando que FALHA aborta o script ali mesmo. O `pack.py captura-destino`
-#   sai 1 quando o pack ativo não resolve (e também quando o pack declara
-#   `temas.capturados` para fora de si — o `_dir_capturas` devolve None), então
-#   as quatro linhas escritas logo abaixo, que existem exatamente para esse
-#   caso, NUNCA rodavam. MEDIDO:
-#     MEOW_PACK_DIR=/bogus/nao-existe bash scripts/capturar_tema.sh teste-x
-#     -> RC=1, zero linhas de saída
-#   Prometido: 3 (MEOW_SEM_DEPENDENCIA) e a frase que diz onde olhar. Saía 1
-#   (MEOW_DIVERGENTE) e calado — e falhar calado é o defeito que metade dos
-#   cabeçalhos deste repositório existe para nomear.
+# Com o `set -euo pipefail` da linha 25, uma atribuição por substituição de
+# comando que FALHA aborta o script ali mesmo.
 DESTINO="$(python3 "$RAIZ/scripts/pack.py" captura-destino "$NOME" 2>/dev/null)" || DESTINO=""
 if [ -z "$DESTINO" ]; then
   echo "ERRO: não sei onde gravar a captura '$NOME' — o pack ativo não resolve." >&2
@@ -138,27 +106,12 @@ fi
 ( cd "$TMP" && find . -type f ! -name manifesto.sha256 -print0 \
     | sort -z | xargs -0 sha256sum > manifesto.sha256 )
 
-# A `origem:` DE UMA CAPTURA DE PACK DIZ `~`, E NÃO DE QUEM ELA É — 23/09/2026, P30
-#   Esta linha gravava o `$COSMIC` expandido, e com ele o nome de usuário de
-#   quem capturou. MEDIDO: as quatro capturas versionadas dos dois packs levavam
-#   `/home/<nome>/.config/cosmic`, de DUAS máquinas diferentes, e todo
-#   `.meowpack` exportado de qualquer um dos dois os levava junto — o
-#   docs/PACKS.md pede, para publicar, "nenhum nome de usuário". Consertar no
-#   `exportar` seria curar o sintoma: a próxima captura escreveria de novo.
-#   Com `~` a linha diz o que importa (de qual árvore do COSMIC a foto saiu) e
-#   cala o que não importa (de quem).
+# Esta linha gravava o `$COSMIC` expandido, e com ele o nome de usuário de quem
+# capturou.
 #
-#   A `original` É A EXCEÇÃO, E O MOTIVO É QUEM LÊ. Medido antes de trocar: o
-#   único leitor desta linha é o `cmd_desfazer` (bin/meow), e ele só lê a da
-#   `original` — compara com o `$COSMIC` desta máquina para recusar o reset de
-#   fábrica de OUTRA pessoa. Ali o caminho absoluto É a identidade da máquina:
-#   com `~`, expandir no leitor faria a guarda passar em toda máquina (o defeito
-#   de 21/09 de volta, calado), e não expandir faria o `desfazer` recusar na
-#   própria máquina que capturou. E ela não viaja: mora no motor, fora de pack
-#   nenhum (`pack.py captura-destino`), e o `exportar` só leva o pack.
-#   Fora do `$HOME` (um `MEOW_COSMIC_DIR` de teste) não há nome a esconder, e o
-#   caminho fica como está — se ele tiver cara de casa de alguém, a régua do
-#   `pack.py validar` recusa o pack dizendo o arquivo e a linha.
+# Ali o caminho absoluto É a identidade da máquina: com `~`, expandir no leitor
+# faria a guarda passar em toda máquina, e não expandir faria o `desfazer`
+# recusar na própria máquina que capturou.
 ORIGEM="$COSMIC"
 if [ "$NOME" != "original" ] && [ -n "${HOME:-}" ]; then
   # shellcheck disable=SC2088  # o "~" é o DADO que se grava, não caminho a expandir
@@ -173,16 +126,6 @@ fi
   [ ${#ausentes[@]} -gt 0 ] && echo "ausentes: ${ausentes[*]}"
 } > "$TMP/captura.txt"
 
-# GUARDA O QUE VAI SER DESTRUÍDO, ANTES DE DESTRUIR
-#   Este era o único `rm -rf` do projeto sem rede embaixo: todo o resto que
-#   escreve por cima de arquivo alheio faz backup antes (aplicar_tema.sh,
-#   hicolor.sh, os manifestos de app, o próprio gerar_tema_v1.py).
-#   O carimbo usa HÍFENS, e não `date -Iseconds`, porque a pasta `backups/` é
-#   compartilhada e o formato dela é o do `MEOW_CARIMBO` — a razão está por
-#   extenso em assets/temas-de-apps/vscode/manifesto.sh §helper 3. O sufixo é `-captura-`
-#   e não `-tema-` de propósito: `-tema-<nome>` é o que a poda do
-#   `aplicar_tema.sh` colhe, e o que se guarda aqui não é dela para apagar.
-#   `MEOW_ESTADO` vem com padrão porque este script NÃO carrega lib/comum.sh.
 if [ -d "$DESTINO" ]; then
   BK="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/backups/$(date +%Y-%m-%dT%H-%M-%S)-captura-$NOME"
   if mkdir -p "$BK" && cp -a "$DESTINO/." "$BK/"; then

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Raposa roxa diante da lua cheia, com casarão e morcegos; grade 512 reduzida por 0,25 -->
+  <g transform="scale(0.25)">
+    <circle cx="256" cy="256" r="246" fill="#565A72"/>
+    <!-- lua -->
+    <circle cx="316" cy="230" r="140" fill="#FFB86C"/>
+    <g fill="#FF5555" fill-opacity="0.55">
+      <circle cx="258" cy="126" r="5"/><circle cx="366" cy="132" r="6"/><circle cx="392" cy="238" r="8"/><circle cx="268" cy="172" r="5"/>
+    </g>
+    <!-- raposa -->
+    <path fill="#6272A4" d="M104 170 L128 122 L154 94 L170 150 Q205 146 235 160 Q256 200 290 218 Q284 238 262 240 Q240 246 232 262 Q200 270 172 288 Q168 340 205 380 Q228 404 252 408 L92 404 Q66 340 88 250 Z"/>
+    <path fill="#F8F8F2" d="M170 290 Q160 350 205 392 L248 410 L244 380 Q200 350 192 296 Z"/>
+    <circle cx="198" cy="214" r="9" fill="#F8F8F2"/>
+    <path fill="#FF5555" d="M232 262 L244 268 L240 300 L230 296 Z"/>
+    <!-- casarão -->
+    <path fill="#F8F8F2" d="M240 360 L240 348 L262 336 L262 322 L296 316 L318 266 L338 316 L338 340 L378 350 L380 392 L240 392 Z M250 394 L378 394 L378 410 L250 410 Z"/>
+    <path fill="#F8F8F2" d="M266 336 L296 316 L296 392 L266 392 Z"/>
+    <g fill="#565A72"><rect x="306" y="320" width="14" height="22"/><path d="M302 392 V372 Q313 358 324 372 V392 Z"/></g>
+    <!-- morcegos -->
+    <g fill="#FFB86C" transform="translate(0,0)">
+      <path d="M294 126 Q316 120 330 138 Q348 118 366 130 Q372 150 380 160 Q364 156 358 162 Q346 154 332 164 Q318 154 306 160 Q300 142 294 126 Z"/>
+      <path d="M298 238 Q316 220 346 214 Q362 206 372 212 Q372 226 376 236 Q352 232 342 240 Q328 236 312 242 Z"/>
+    </g>
+  </g>
+</svg>

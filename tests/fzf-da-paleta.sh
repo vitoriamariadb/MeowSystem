@@ -1,24 +1,6 @@
 #!/usr/bin/env bash
 # fzf-da-paleta.sh — as cores do fzf saem da paleta do pack no ar, nunca de hex.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 24/09/2026 (P44)
-#   As cores do fzf moravam cravadas no `env.zsh` do Spellbook, e em DUAS
-#   paletas na mesma máquina: o `FZF_DEFAULT_OPTS` em Catppuccin e o fzf-tab em
-#   Dracula, com `FLAVOR="dracula"` no meow.conf. Trocar de pack não mudava
-#   nenhuma. O `scripts/fzf.sh` tirou as duas de lá; este teste cobra que o que
-#   ele escreve é função da paleta e de nada mais.
-#
-# AS QUATRO PERGUNTAS
-#   1. O script não carrega hex nenhum. Um `#RRGGBB` no fonte seria o cravado
-#      de volta, só que do lado de cá.
-#   2. Uma paleta INVENTADA (cores que nenhum pack tem) sai no arquivo, papel
-#      por papel. É a prova de que a cor vem da paleta: um script que tivesse
-#      guardado o Catppuccin passaria nos dois packs de verdade e cairia aqui.
-#   3. Os dois packs do repositório: com o Dracula no ar, as cores do Dracula;
-#      com o Catppuccin, as do Catppuccin — lidas da `paleta.json` de cada um.
-#   4. Idempotência e conferência: a segunda passagem não escreve, e o
-#      `conferir` diz 0 depois do `aplicar` e 1 quando o pack muda.
-#
 #   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -112,7 +94,6 @@ else
   falha "Dracula e Catppuccin deram a mesma saída: [$d]"
 fi
 
-# --- 4. idempotência e conferência --------------------------------------------
 printf '\n--- 4. a segunda passagem não escreve, e o conferir acompanha ---\n'
 casa="$TMP/casa-mocha"
 antes="$(stat -c '%Y %i' "$(arquivo "$casa")" 2>/dev/null)"

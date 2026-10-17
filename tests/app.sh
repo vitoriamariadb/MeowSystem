@@ -1,47 +1,27 @@
 #!/usr/bin/env bash
 # O painel e o wizard leem o MESMO meow.conf.exemplo — e têm de concordar.
 #
-# POR QUE ESTE TESTE EXISTE
-#   O catálogo de chaves do painel (`app/servidor.py`, em Python) é uma tradução
-#   das regras do `wiz_ler_esquema` do `bin/meow` (em bash). Duas implementações
-#   da mesma leitura é exatamente a coisa que este repositório mais persegue —
-#   `lib/comum.sh` conta o que custou quando existiram duas rotinas de escrita na
-#   mesma chave: uma trocava a PRIMEIRA ocorrência enquanto o shell obedece a
-#   ÚLTIMA, e o `meow configurar` gravava um valor mostrando o diff certo
-#   enquanto o valor em vigor continuava outro, sem nada acusar.
+# O catálogo de chaves do painel (`app/servidor.py`, em Python) é uma tradução
+# das regras do `wiz_ler_esquema` do `bin/meow` (em bash).
 #
-#   Aqui a duplicação é inevitável (o navegador não roda bash, e reescrever o
-#   wizard em Python seria trocar um problema por outro). O que dá para fazer é
-#   PROVAR TODO DIA que as duas concordam, em vez de esperar o dia em que alguém
-#   mexe no formato do exemplo e só uma das duas acompanha.
+# Aqui a duplicação é inevitável (o navegador não roda bash, e reescrever o
+# wizard em Python seria trocar um problema por outro).
 #
-# O QUE ELE COMPARA
 #   1. a LISTA de chaves — mesmos nomes, mesma quantidade, mesma ordem;
 #   2. o VALOR PADRÃO de cada uma, como está escrito no exemplo;
 #   3. as OPÇÕES de cada chave (`a | b | c`), que é a regra mais fácil de
 #      divergir — o bash descarta a linha inteira se um token não parecer valor,
 #      e o Python tem de fazer o mesmo.
-#
-#   O QUE ELE COMPARA É A REGRA COMPARTILHADA, NÃO A TELA
-#   O painel acrescenta DUAS coisas por cima do que o texto literalmente diz, e
-#   as duas são de apresentação — nenhuma muda o valor que vai para o disco:
-#
-#     - tira o `vazio` da lista. `vazio` não é um valor, é a ausência de um:
-#       gravá-lo daria `RELOGIO_SEGUNDOS="vazio"`, que não é `sim` nem `nao` e
-#       cairia no `*)` de qualquer `case` do projeto sem nada avisar. Na página
-#       ele vira o terceiro estado do controle ("não mexer");
-#     - infere `sim | nao` para a chave cujo VALOR DE FÁBRICA já é `sim` ou `nao`
-#       e cujo comentário não lista nada (são 19 hoje, entre elas a
-#       `LOGO_ROTACAO`). Sem isso a página desenhava um campo de texto livre para
-#       uma pergunta de sim ou não — e ainda deixava passar `não` com til, que o
-#       `case` do shell não casa.
-#
-#   Por isso a comparação é contra o `_opcoes()` do servidor, que é a tradução
-#   literal do `wiz_opcoes` do bash, e não contra a lista final que a página
-#   desenha. A inferência tem conferência PRÓPRIA, logo abaixo: ela só pode
-#   acontecer onde o padrão da chave já é `sim` ou `nao`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+# NADA FICA EM /tmp. O bloco 10 fazia um `mkdtemp()` (o `bom.conf` e o
+# `quebrado.conf`) sem apagar, e cada rodada da suíte deixava uma pasta.
+_TMP_DO_TESTE="$(mktemp -d)" || exit 2
+trap 'rm -rf "$_TMP_DO_TESTE"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+export TMPDIR="$_TMP_DO_TESTE"
 EXEMPLO="$RAIZ/meow.conf.exemplo"
 falhas=0
 
@@ -52,10 +32,7 @@ python3 -m py_compile "$RAIZ/app/servidor.py" || {
   printf 'FALHOU: app/servidor.py não compila\n' >&2; exit 1; }
 
 # --- 2. a leitura do bash, extraída do próprio bin/meow ---------------------
-# Sourcear o `bin/meow` inteiro rodaria o `despachar` no fim. Em vez disso o
-# teste recorta as funções do wizard com `sed` e as avalia sozinhas — assim o que
-# está sendo testado é o CÓDIGO DE VERDADE do wizard, e não uma cópia dele que
-# envelheceria junto com o resto.
+# Sourcear o `bin/meow` inteiro rodaria o `despachar` no fim.
 esquema_bash="$(
   MEOW_RAIZ="$RAIZ" bash -c '
     set -uo pipefail
@@ -128,13 +105,10 @@ else
 fi
 
 # --- 5 e 6. as duas regras que valem para o CÓDIGO, não para o comentário ---
-# O COMENTÁRIO TEM DE PODER FALAR DA REGRA SEM QUEBRÁ-LA
-#   A primeira versão destes dois testes era um `grep` seco, e os dois acusaram —
-#   o `estilo.css` porque o cabeçalho dele explica a regra citando um `#1e1e2e`
-#   de exemplo, e o `servidor.py` porque o cabeçalho promete que `shell=True`
-#   "não aparece uma vez neste arquivo". Um teste que proíbe explicar a própria
-#   regra faria este repositório, que é escrito em prosa comentada, perder a
-#   prosa. Então os comentários saem antes da varredura.
+#
+# Um teste que proíbe explicar a própria regra faria este repositório, que é
+# escrito em prosa comentada, perder a prosa. Então os comentários saem antes da
+# varredura.
 python3 - "$RAIZ" <<'PY' || falhas=$((falhas+1))
 import re, sys, os
 raiz = sys.argv[1]
@@ -216,7 +190,10 @@ _NAO_E_AJUSTE = {
 # COSMIC (cosmic_prever.sh), do pós-apt (cosmic_pos_apt.sh), do pino dos
 # applets (applet_pino.sh), da guarda do `.deb` (atualizar_sistema.sh) e do
 # oráculo do tema (oraculo_tema.sh). Nenhuma é escolha de tema.
-_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
+# GB_ entrou em 15/10/2026, com a P81: os caminhos e comandos do
+# garantir_builds.sh, sobrescrevíveis para teste, da mesma família.
+# SN_ entrou com a P86: o pré-voo e o estado da sentinela do apt, idem.
+_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|GB_|SN_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
 
 _catalogo = {i["chave"] for i in servidor.ler_esquema()}
 _lidas = {}
@@ -508,24 +485,7 @@ else:
 sys.exit(falhou)
 PY
 
-# --- 11. O COMANDO DA TELA COLA, E O QUE SE EXPORTA NÃO LEVA NOME — 24/09/2026 --
-#   Revisão da P52. Dois defeitos que o `tests/app-completo.py` não via, porque a
-#   casa de brinquedo dele não tem caminho entre aspas na gaveta nem fonte de
-#   papel de parede fora do home:
-#   11a. A gaveta trocava a casa por `~` DENTRO das aspas. O `wallpaper.sh`
-#        imprime `meow wallpaper permitir "$fonte_atual"`, a gaveta mostrava
-#        `permitir "~/Imagens/…"`, e colado o `~` não expandia: o `readlink -m`
-#        gravava `/tmp/~/Imagens/…`, uma autorização que nunca casa. Aqui o texto
-#        da tela é COLADO num bash de verdade, com a mesma casa, e o argumento
-#        que chega tem de ser o caminho absoluto.
-#   11b. A página exportada levava o valor de uma chave com caminho fora da
-#        casa: `/run/media/<usuário>/…` saía duas vezes, no `valor` e no
-#        `efetivo`. O nome de usuário aqui é inventado e único, para que achá-lo
-#        em qualquer canto da página seja prova e não coincidência. E o
-#        `WALLPAPER_BASE` num disco de fora, com uma foto no acervo: a pasta
-#        voltava pela `origem` e pelo `banir` de cada foto da galeria.
-#   A casa e o `meow.conf` são de brinquedo, e chegam pelo ambiente ANTES do
-#   `import`: o `servidor.CONF` é lido uma vez, na carga do módulo.
+# --- 11. O COMANDO DA TELA COLA, E O QUE SE EXPORTA NÃO LEVA NOME --
 _tmp11="$(mktemp -d)"
 HOME="$_tmp11/casa" MEOW_CONF="$_tmp11/casa/.config/meow/meow.conf" MEOW_RAIZ="$RAIZ" \
   python3 - "$RAIZ" <<'PY' || falhas=$((falhas+1))
@@ -596,23 +556,7 @@ print("ok: o comando da gaveta cola com a casa entre aspas, e a página exportad
 PY
 rm -rf "$_tmp11"
 
-# --- 12. O RÓTULO DIZ O QUE A AÇÃO FEZ — 24/09/2026, sprint P50 ----------------
-#   Os achados 11, 14, 15, 16, 17, 32, 33, 36 e 47 da validação no painel de
-#   verdade, na parte que se prova sem navegador (o `tests/app-completo.py`
-#   cobra a tela):
-#   12a. Toda ação declara uma `natureza` que a tabela `NATUREZAS` conhece, e
-#        o fim de cada uma diz o que ela fez: o reciclo não diz «já estava
-#        certo», a troca não diz «consertou», o som diz «tocou», o 1 do
-#        instalador (P48) não é verde, e o ensaio não diz verbo de quem fez.
-#   12b. O nome de botão e de aba que um script cita sai da tabela `ACOES`
-#        (`--onde`), e as duas frases escritas à mão sumiram do código.
-#   12c. O botão sem efeito se apaga: o gato por horário ou girando, as áreas
-#        sem alfinete — e o servidor recusa rodá-lo. E o «Pôr» aceso põe o
-#        gato no dock de verdade.
-#   12d. O raio: acima do teto de agora, o valor não é gravado.
-#   Casa, conf, estado e COSMIC de brinquedo, antes do `import`: nada aqui lê
-#   ou escreve a máquina de quem roda, a não ser a pergunta "o compositor
-#   desta sessão tem o patch do raio?", que só lê o `/proc`.
+# --- 12. O RÓTULO DIZ O QUE A AÇÃO FEZ ----------------
 _tmp12="$(mktemp -d)"
 HOME="$_tmp12/casa" MEOW_CONF="$_tmp12/casa/.config/meow/meow.conf" \
 MEOW_ESTADO="$_tmp12/casa/.local/state/meowsystem" \
@@ -820,9 +764,11 @@ if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinet
 # O `.png` que é SVG (QA de uso real da P80) sai como SVG, e o leitor do
 # começo do arquivo não volta atrás: 4 KB hostis respondem em menos de 50 ms
 # (o alerta de ReDoS da revisão de segurança da P80).
+# [P84, 15/10/2026: o `obsidian.png` saiu do pack, trocado pelo vetor dele. Os
+#   bytes de um SVG de verdade continuam sendo o caso, agora os do `obsidian.svg`.]
 import time as _t
-svg_png = open(os.path.join(raiz, "packs", "dracula", "icones", "feitos-a-mao",
-                            "obsidian.png"), "rb").read()
+svg_png = open(os.path.join(raiz, "packs", "dracula", "icones", "biblioteca", "feitos-a-mao",
+                            "obsidian.svg"), "rb").read()
 casos = ((svg_png, True), (b"\x89PNG\r\n\x1a\n", False),
          (b'\xef\xbb\xbf<?xml version="1.0"?>\n<!-- a -->\n<!DOCTYPE svg>\n<svg xmlns="x"/>', True),
          (b"<svgx/>", False), (b"<!--" * 1000, False), (b"<!--a-->" * 500 + b"<x", False))
@@ -893,22 +839,7 @@ print("ok: cada ação declara a natureza e o fim diz o que ela fez; o nome de t
 PY
 rm -rf "$_tmp12"
 
-# --- 13. AS REGRAS QUE AINDA MENTIAM — 24/09/2026, sprint P57 -----------------
-#   Quatro regras que diziam uma coisa e faziam outra, cada uma com a prova que
-#   reprova o código de antes (o item 1, o flatpak, mora no
-#   `tests/temas-de-apps.sh`; o 2, a corrida da gaveta, no `app-navegador.py`):
-#   13a. O nome da ficha é o que o lançador mostra: o `Name[...]` da cadeia de
-#        idioma da sessão, e não o `Name=` cru (item 3).
-#   13b. O `--onde` cobre cartões e abas, e as frases do `install.sh` que citam
-#        um lugar do painel saem dele (item 4).
-#   13c. O `logo.sh`: o applet de logo é o que está instalado, o aviso do modo
-#        fixo diz o que acontece, e o gato do terminal acompanha o do dock em
-#        todo modo (item 5).
-#   13d. Uma leitura do esquema mede cada fato da máquina uma vez, e não uma
-#        vez por chave (item 6).
-#   13e. A torrada do «Adicionar» não leva o caminho do clone (a revisão: o
-#        esquema rápido do item 6 deixou à vista um vazamento antigo).
-#   Casa, conf, estado e COSMIC de brinquedo, como na 12.
+# --- 13. AS REGRAS QUE AINDA MENTIAM -----------------
 _tmp13="$(mktemp -d)"
 HOME="$_tmp13/casa" MEOW_CONF="$_tmp13/casa/.config/meow/meow.conf" \
 MEOW_ESTADO="$_tmp13/casa/.local/state/meowsystem" \
@@ -1302,5 +1233,130 @@ print("ok: a ficha diz o nome do lançador, o --onde cobre cartão e aba, o logo
       "«Adicionar» não leva o clone")
 PY
 rm -rf "$_tmp13"
+
+# --- 13b. A TRAVA DO PACK CABE NO BALÃO --------------------------
+# A frase do porquê de um desenho do pack não valer num app (a `trava_pack`) vai
+# para o balão do desenho, e passava do teto de 80 do balão: saía cortada (a 375
+# px e em qualquer largura).
+_trava="$(env -i PATH="$PATH" HOME="$(mktemp -d)" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+m = servidor.Manipulador.__new__(servidor.Manipulador)
+nome = "Visualizador de documentos do GNOME"
+d = {"id": "x", "icone": "x"}
+nada = (set(), (), set(), set())
+frases = [
+    m._trava_do_pack({"id": "x", "icone": "/opt/x/icone.png"}, nome, donos=set(), travas=nada),
+    m._trava_do_pack(d, nome, donos={"x"}, travas=nada),
+    m._trava_do_pack(d, nome, donos=set(), travas=({"x"}, (), set(), set())),
+    m._trava_do_pack(d, nome, donos=set(), travas=(set(), (), {"x"}, set())),
+]
+for f in frases:
+    print("%d\t%s" % (len(f or ""), f))
+PY
+)"
+_compridas="$(awk -F'\t' '$1 > 80 || $1 == 0' <<< "$_trava")"
+if [ -z "$_compridas" ] && [ "$(grep -c . <<< "$_trava")" = 4 ]; then
+  echo "ok: as quatro frases da trava do pack cabem no balão (até 80), com um nome de app comprido"
+else
+  echo "FALHOU: frase da trava do pack acima do teto do balão (80): $_compridas" >&2
+  falhas=$((falhas+1))
+fi
+
+# --- 14. O LANÇADOR DE FÁBRICA NÃO ESCONDE APP DE QUEM USA — P82, item 11 ------
+#   O `LANCADOR_OCULTAR` do exemplo escondia o `google-chrome`, o `steam` e o
+#   `github-desktop`: duplicatas desta máquina, e não programas de sistema
+#   (decisão 17). O conf dela já os tem e não muda.
+_lo="$(sed -n 's/^LANCADOR_OCULTAR="\(.*\)"$/\1/p' "$RAIZ/meow.conf.exemplo" | tr ',' '\n')"
+_errados="$(grep -xE 'google-chrome|steam|github-desktop' <<< "$_lo")"
+if [ -z "$_errados" ] && [ -n "$_lo" ]; then
+  echo "ok: o LANCADOR_OCULTAR de fábrica não esconde o Chrome, a Steam nem o GitHub Desktop"
+else
+  echo "FALHOU: o LANCADOR_OCULTAR de fábrica esconde app de quem usa: $(echo $_errados)" >&2
+  falhas=$((falhas+1))
+fi
+
+# --- 15. A NOITE NÃO GRAVA COM UMA PONTA SÓ — P82, item 27 (decisão 26) -------
+#   O `meow_noite_janela` pede `NOITE_INICIO` e `NOITE_FIM` juntas, e o arquivo
+#   aceitava uma só. O `/api/definir` e o `/api/salvar` recusam com 409 o pedido
+#   que deixaria a ponta solta; as duas, nenhuma, ou a que completa a do disco
+#   passam. O `definir` e o resto do salvar não rodam aqui: a recusa vem antes.
+_tmp15="$(mktemp -d)"
+_noite="$(env -i PATH="$PATH" HOME="$_tmp15" MEOW_CONF="$_tmp15/meow.conf" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import json, sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+open(servidor.CONF, "w").write('NOITE_INICIO=""\nNOITE_FIM=""\n')
+m = servidor.Manipulador.__new__(servidor.Manipulador)
+respostas = []
+m._json = lambda dados, status=200: respostas.append((status, dados))
+def _gravou(*a, **k):
+    raise AssertionError("gravou")
+servidor.definir = servidor.definir_varias = servidor.iniciar = _gravou
+erros = []
+for rota, corpo in (("/api/definir", {"chave": "NOITE_INICIO", "valor": "19:00"}),
+                    ("/api/salvar", {"mudancas": {"NOITE_FIM": "06:00"}})):
+    respostas.clear()
+    try:
+        m._api_post(rota, corpo)
+    except AssertionError as e:
+        erros.append("%s %s" % (rota, e))
+        continue
+    st = respostas[0][0] if respostas else None
+    if st != 409:
+        erros.append("%s com uma ponta deu %s" % (rota, st))
+f = servidor.pontas_da_noite_soltas
+casos = [({"NOITE_INICIO": "19:00", "NOITE_FIM": "06:00"}, {}, 0),
+         ({"NOITE_INICIO": "", "NOITE_FIM": ""}, {"NOITE_INICIO": "19:00"}, 0),
+         ({"NOITE_FIM": "06:00"}, {"NOITE_INICIO": "19:00"}, 0),
+         ({"NOITE_FIM": ""}, {"NOITE_INICIO": "19:00", "NOITE_FIM": "06:00"}, 1),
+         ({"LOG_NIVEL": "info"}, {"NOITE_INICIO": "19:00"}, 0)]
+for escolhas, disco, esperado in casos:
+    if len(f(escolhas, disco)) != esperado:
+        erros.append("%r sobre %r deu %r" % (escolhas, disco, f(escolhas, disco)))
+print("; ".join(erros) or "ok")
+PY
+)"
+rm -rf "$_tmp15"
+if [ "$_noite" = ok ]; then
+  echo "ok: a noite com uma ponta só é recusada (409) no definir e no salvar; as duas, nenhuma, ou a que completa a do disco passam"
+else
+  echo "FALHOU: a noite com uma ponta só: $_noite" >&2
+  falhas=$((falhas+1))
+fi
+
+# --- 16. TODA CHAVE NUMÉRICA DECLARA A FAIXA — P82, item 31 --------------------
+#   Uma chave que é número e não declara faixa vira campo de texto livre, e o
+#   painel aceita «abc» nela (era o «Quantos backups guardar»). Numérica é a
+#   chave cujo valor de fábrica é um número, ou cujo leitor nos scripts cai num
+#   número (`${CHAVE:-440}`). A conta das que ficam sem faixa tem de dar 0.
+_tmp16="$(mktemp -d)"
+_sem_faixa="$(cd "$RAIZ" && env -i PATH="$PATH" HOME="$_tmp16" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import re, subprocess, sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+NUM = re.compile(r"-?\d+(?:[.,]\d+)?")
+for i in servidor.ler_esquema():
+    if i.get("faixa") or i.get("opcoes") or i.get("horario") or i.get("lista"):
+        continue
+    padrao = str(i.get("padrao") or "")
+    if padrao and not NUM.fullmatch(padrao):
+        continue
+    leitores = subprocess.run(
+        ["grep", "-rhoE", r"\$\{" + i["chave"] + r":-[0-9][0-9.]*\}",
+         "scripts", "lib", "bin", "install.sh"],
+        capture_output=True, text=True).stdout.split()
+    if (padrao and NUM.fullmatch(padrao)) or leitores:
+        print(i["chave"])
+PY
+)"
+rm -rf "$_tmp16"
+if [ -z "$_sem_faixa" ]; then
+  echo "ok: toda chave numérica do exemplo declara a faixa (nenhuma vira campo de texto livre)"
+else
+  echo "FALHOU: chave numérica sem faixa no exemplo: $(echo $_sem_faixa)" >&2
+  falhas=$((falhas+1))
+fi
 
 exit "$falhas"

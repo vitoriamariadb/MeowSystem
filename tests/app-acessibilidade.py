@@ -156,34 +156,11 @@ except ImportError:
     sys.exit(3)
 
 
-# O PAINEL SOBE NUM HOME DE BRINQUEDO, E NUNCA CONTRA A CASA DELA —
-# 23/09/2026, sprint P33
-#   Ate' hoje este arquivo subia o `app/run.sh` com o ambiente de quem o
-#   chamava: o `meow.conf` de verdade, o estado de verdade e o `sudo` da
-#   maquina. Ele nao clica em nada que escreva, mas o painel que ele sobe e' o
-#   de verdade, e a regra do projeto e' que nada da interface e' aplicado em
-#   sandbox — tudo e' aplicado na maquina da pessoa. Por isso quem vai para a
-#   sandbox e' o TESTE. E a P33 tornou isto urgente: o `tests/todos.sh`
-#   passou a achar o python com Playwright, e este arquivo, que saia "pulado"
-#   nos terminais sem o pyenv, agora roda de fato a cada `./tests/todos.sh`.
-#
-#   O servidor recebe um ambiente limpo, o `env -i` do `tests/convergencia.sh`:
-#   HOME e `MEOW_CONF` num diretorio temporario, `MEOW_PONTE` para o vazio e um
-#   `sudo` falso na frente do PATH — numa maquina com `NOPASSWD: ALL` o
-#   `sudo -n` de verdade PASSA, e um teste cujo alcance depende disso e' roleta.
-#
-#   E A CASA NAO FICA VAZIA, porque vazia ela mediria menos e seguiria verde —
-#   o jeito errado de ficar verde que o cabecalho inteiro combate. Duas coisas
-#   que a casa dela tinha e o brinquedo nao teria sao plantadas, e cada uma
-#   por uma conferencia que sem ela nao mediria nada:
-#     · UMA PENDENCIA POR CONSERTO QUE O SERVIDOR CONHECE (`ACAO_DA_PENDENCIA`,
-#       lido da fonte, e nao uma lista escrita aqui). Sem elas a Home nao
-#       desenha nenhum «Resolver», e o balao dele — o que a P33 conserta —
-#       sairia da conta calado. O comando plantado tem a forma crua do que o
-#       `meow_pendencia_acionavel` grava, `./scripts/<x>.sh <verbo>`: se o
-#       balao voltar a ser o comando, o passo 4 reprova.
-#     · UMA IMAGEM NA GALERIA. O passo 3 mede o balao no foco do teclado sobre
-#       os botoes da ficha de imagem; sem ficha, ele reprova por "nao achei".
+# Ele nao clica em nada que escreva, mas o painel que ele sobe e' o de verdade,
+# e a regra do projeto e' que nada da interface e' aplicado em sandbox — tudo e'
+# aplicado na maquina da pessoa.
+# `sudo` falso na frente do PATH: com `NOPASSWD: ALL` o `sudo -n` de verdade passa,
+# e um teste cujo alcance depende disso é roleta.
 BRINQUEDO = tempfile.mkdtemp(prefix="meow-acessibilidade-")
 
 
@@ -250,12 +227,11 @@ def montar_casa():
             "MEOW_PONTE": "/nao/existe"}
 
 
-# O CENSO DE UMA ABA, COLHIDO DE UMA VEZ.
-#   Abrir as 14 abas ja' custa alguns segundos; medir cada alvo e cada balao
-#   enquanto a aba esta' na tela custa um `evaluate` por aba, e nao uma segunda
-#   volta pela pagina inteira.
+# Abrir as 14 abas ja' custa alguns segundos; medir cada alvo e cada balao
+# enquanto a aba esta' na tela custa um `evaluate` por aba, e nao uma segunda
+# volta pela pagina inteira.
 CENSO_JS = """
-(raiz) => {
+([raiz, tetoParagrafo]) => {
   const SELETOR_ALVO = 'button, a[href], input:not([type=hidden]), select,'
                      + ' textarea, summary, [role=button],'
                      + ' [tabindex]:not([tabindex="-1"])';
@@ -375,67 +351,66 @@ CENSO_JS = """
                         texto: t.slice(0, 80) });
   }
 
+  /* 4. O TETO DE 220 NO PARÁGRAFO PINTADO — 15/10/2026, P82 (item 39). Ele
+     ficava só na fonte do `servidor.py`, porque na tela as 12 legendas de
+     desenho dos `previas-*.js` passavam dele e eram isentas. A P77 levou a
+     legenda para o balão do `?` (o `dicaDoDesenho`), e a isenção ficou sem
+     objeto: agora o teto vale para todo parágrafo pintado. Fora só o que
+     já estava fora pela mesma razão do passo 3: o balão (`.dica`), o estado
+     de carregamento e a história do pack, que é texto do autor dele. Uma
+     legenda que volte à tela reprova aqui. */
+  const longos = [];
+  for (const p of pr.querySelectorAll('p')) {
+    if (p.offsetParent === null || p.closest('.dica')) continue;
+    if (p.classList.contains('sem-previa')) continue;
+    if (p.closest('.pack-historia')) continue;
+    const t = (p.textContent || '').trim().replace(/\s+/g, ' ');
+    if (t.length > tetoParagrafo)
+      longos.push({ classe: (p.className || '').toString().slice(0, 30),
+                    tam: t.length, texto: t.slice(0, 80) });
+  }
+
+  /* OS «⋯» GÊMEOS — P82, item 31. Dois «⋯» na mesma página guardam coisas
+     diferentes (ajustes técnicos, ações técnicas), e eram idênticos na tela:
+     o nome distinto só existia para o leitor de tela. O que se vê (tudo menos
+     o `.so-leitor`) tem de ser distinto também. */
+  const gemeos = [];
+  const vistos = new Map();
+  for (const s of pr.querySelectorAll('details.ajustes-tecnicos > summary')) {
+    if (s.offsetParent === null) continue;
+    const nome = (s.getAttribute('aria-label') || s.textContent || '').trim();
+    const visto = [...s.children].filter((c) => !c.classList.contains('so-leitor'))
+      .map((c) => c.outerHTML).join('');
+    if (vistos.has(visto) && vistos.get(visto) !== nome)
+      gemeos.push({ texto: vistos.get(visto) + ' e ' + nome });
+    vistos.set(visto, nome);
+  }
+
   return { alvos, medidos, baloes,
-           daRaiz, daCasa, amostraCaminho, nomeComCaminho, minusculas };
+           daRaiz, daCasa, amostraCaminho, nomeComCaminho, minusculas, longos, gemeos };
 }
 """
 
-# O COMANDO CRU DENTRO DO BALAO.
-#   `meow` seguido de um verbo, com ou sem parenteses a' volta — que era a
-#   forma dos 119 —, e tambem o caminho absoluto do `bin/meow` ou de um script
-#   do projeto, que e' a mesma coisa escrita por extenso. `meow.conf` NAO casa:
-#   e' o nome de um arquivo, e falar dele em portugues e' legitimo.
+# `meow` seguido de um verbo, com ou sem parenteses a' volta — que era a forma
+# dos 119 —, e tambem o caminho absoluto do `bin/meow` ou de um script do
+# projeto, que e' a mesma coisa escrita por extenso.
 #
-#   O `.sh` NO FIM DO BALAO TAMBEM CONTA — corrigido em 21/09/2026
-#     A primeira versao pedia `\S+\.sh\s`, com espaco OBRIGATORIO depois, e com
-#     isso um balao que TERMINASSE no nome do script escapava da conta inteira:
-#     "roda o ~/bin/meow-pack.sh" passava. Buraco numa rede e' pior que rede
-#     nenhuma, porque ela declara cobrir o que nao cobre. Agora o fim da frase
-#     fecha o casamento como um espaco fecharia.
-#
-#   E O LADO FALSO-POSITIVO FICA COMO ESTA, de proposito: `meow\s+[a-z]` pega
-#   tambem uma frase legitima que comece com "meow " mais minuscula ("o meow le
-#   o arquivo"). Distinguir exigiria a lista dos verbos do `meow`, que e' a
-#   armadilha nº 3 do projeto — lista fixa que alguem vai esquecer de crescer. E
-#   o erro cai para o lado seguro: um falso positivo REPROVA e alguem le a
-#   frase; um falso negativo passa calado, que e' o que esta rede veio matar.
+# Buraco numa rede e' pior que rede nenhuma, porque ela declara cobrir o que nao
+# cobre.
 COMANDO_NO_BALAO = re.compile(r"(?:^|[(\s/])meow\s+[a-z]|\S+\.sh(?:\s|$)")
 
 
-# O TETO DE 80 MEDIDO NA FONTE, E NAO SO' NA TELA — 21/09/2026
-#   A sprint pede "limite duro de 80 caracteres — o teste falha acima disso", e
-#   a primeira versao deste arquivo nao cumpria isso por dois motivos somados:
-#   o `partirAjuda` APARA antes de escrever o `data-balao`, e a varredura das 14
-#   abas so' ve' o que a pagina pinta. O caso que escapou tinha as duas coisas:
-#   a frase de 83 caracteres do «Desfazer N escolhas» saia mutilada na tela
-#   ("O meow.conf nao e'…", que diz o oposto do que a frase existe para dizer) e
-#   o botao so' nasce quando ha escolha pendente no bloco — estado que a
-#   varredura nunca alcanca. Verde por duas ausencias.
+# O caso que escapou tinha as duas coisas: a frase de 83 caracteres do «Desfazer
+# N escolhas» saia mutilada na tela ("O meow.conf nao e'…", que diz o oposto do
+# que a frase existe para dizer) e o botao so' nasce quando ha escolha pendente
+# no bloco — estado que a varredura nunca alcanca.
 #
-#   A apara agora deixa marca (`data-balao-aparado`, contada no passo 4). Esta
-#   leitura da FONTE cobre a outra metade: a frase escrita a mao acima do teto
-#   aparece mesmo que o elemento dela nunca seja pintado. Rodada contra o
-#   commit que a introduziu, ela devolve exatamente aquela linha.
+# A apara agora deixa marca (`data-balao-aparado`, contada no passo 4).
 #
-# POR QUE SO' `app.js` E `index.html`
-#   E' onde o balao e' AUTORADO. As ajudas do `servidor.py` sao, na quase
-#   totalidade, prosa VISIVEL do cartao de acao — medi-las por este teto
-#   reprovaria vinte frases que nunca viram balao. As quatro que viram (os
-#   botoes do cabecalho da Inicio) passam pelo `porBalao` na aba Inicio, que a
-#   varredura percorre, e caem na marca da apara se estourarem.
-#
-# O QUE FICA DE FORA, DITO EM VOZ ALTA
-#   Frase MONTADA (`${…}`) nao entra: o comprimento dela depende do dado, e e'
-#   exatamente para ela que a rede do `partirAjuda` existe — quem cuida desse
-#   caso e' a marca da apara. E o denominador ("N frases fixas medidas") sai na
-#   tela de proposito: um "0 reprovado" tambem e' o que uma expressao quebrada
-#   devolve, e sem o denominador os dois se parecem.
+# POR QUE SO' `app.js` E `index.html` E' onde o balao e' AUTORADO.
 LITERAL = r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\'|`(?:[^`\\]|\\.)*`'
 _VALOR = r'((?:' + LITERAL + r')(?:\s*\+\s*(?:' + LITERAL + r'))*)'
-# A ANCORA DE POSICAO NAO E' ZELO: sem exigir inicio de linha, `{` ou `,` antes
-# da chave, o `title` CITADO num comentario casa, e o literal de crase que vem
-# depois dele engole o comentario inteiro — um achado de 1195 caracteres que
-# nao existe na tela. A chave tem de estar em posicao de propriedade.
+# A chave tem de estar em posicao de propriedade.
 AJUDA_NA_FONTE = {
     "app/pagina/app.js": re.compile(
         r'(?:^[ \t]*|[{,][ \t]*)(?:title|titulo):\s*' + _VALOR, re.M),
@@ -463,45 +438,17 @@ def frases_fixas():
 
 
 # O TETO DE 220 E A PALAVRA REPETIDA, LIDOS NA FONTE DO `servidor.py`
-# ---------------------------------------------------------------------------
+#
 # Os dois medem a mesma coisa que a tela mostraria, e medem ANTES: uma ajuda
 # comprida ou com uma palavra duplicada já está errada no arquivo, e esperar a
-# varredura pintá-la é esperar que a aba dela seja aberta. O `ast` é quem lê, e
-# não uma expressão regular: as ajudas são literais concatenados em várias
-# linhas, e juntar as partes é exatamente o que o `literal_eval` faz sem errar.
-#
-# POR QUE SÓ O `servidor.py`, DITO EM VOZ ALTA
-#   É onde mora a ajuda de ação — a prosa que o cartão imprime embaixo do
-#   título. As outras duas fontes de parágrafo da página NÃO entram, e cada uma
-#   por uma razão diferente, medida em 22/09/2026:
-#     · o `.motivo` do balão do `?` (110 dos 122 parágrafos acima de 220) é o
-#       comentário do `meow.conf.exemplo` copiado cru, e é ele a REDE que
-#       justifica encurtar o resto. Aplicar o teto nele seria cortar justamente
-#       o texto para onde o que não cabe deve ir;
-#     · a legenda de desenho (12) vem dos `previas-*.js` e é a enumeração dos
-#       números que o desenho mostra — `raio 0, espaço 2, recheio 0, margem 0…`.
-#       Ela não tem gordura: cortá-la deixa metade dos números do desenho sem
-#       explicação, que é o risco que a P7 declara.
-#   O que esta leitura cobra é o que esta sprint pode manter honestamente.
+# varredura pintá-la é esperar que a aba dela seja aberta.
 TETO_AJUDA = 220
 CHAVES_DE_AJUDA = ("ajuda", "frase", "nota", "texto")
 
-# TRECHO REPETIDO COLADO. A P7 achou um em produção: *"Não escreve, não
-# escreve e não pede senha"* — duas vezes a mesma metade, e a outra metade
-# perdida. O separador entre as duas é vírgula ou só espaço; com ponto no meio
-# são duas frases, e repetir palavras em frases vizinhas é legítimo.
+# O separador entre as duas é vírgula ou só espaço; com ponto no meio são duas
+# frases, e repetir palavras em frases vizinhas é legítimo.
 #
-# E O QUE SE REPETE NÃO É UMA PALAVRA, É UM TRECHO — medido em 22/09/2026
-#   A primeira versão desta rede pedia uma palavra colada nela mesma
-#   (`\b(\w+)\b\s*,?\s+\1\b`) e devolvia ZERO contra a frase que a motivou:
-#   em "Não escreve, não escreve", nenhuma palavra encosta na sua igual —
-#   "escreve," é seguido de "não". O que se duplicou foi o par. O grupo agora
-#   vai de uma a quatro palavras, que é o tamanho de uma oração curta; medido
-#   contra as 50 ajudas deste arquivo, ele pega exatamente aquela e mais
-#   nenhuma.
-#   O lado falso-positivo fica como está, de propósito: um trecho legitimamente
-#   repetido REPROVA e alguém lê a frase; um duplicado que passe calado é o que
-#   esta rede veio matar. É a mesma escolha que o `COMANDO_NO_BALAO` já fez.
+# O que se duplicou foi o par.
 TRECHO_REPETIDO = re.compile(r"\b(\w{2,}(?:\s+\w+){0,3})\b\s*,?\s+\1\b",
                              re.IGNORECASE)
 
@@ -567,7 +514,7 @@ def percorrer(pag):
     pequenos, medidos, baloes = [], 0, []
     # A RAIZ VAI DAQUI PARA DENTRO DA PAGINA, e nao e' lida la': quem sabe de
     # onde o painel subiu e' este processo, que o subiu. Ver o censo.
-    p7 = {"caminhos": 0, "onde": [], "nomes": [], "minusculas": []}
+    p7 = {"caminhos": 0, "onde": [], "nomes": [], "minusculas": [], "longos": [], "gemeos": []}
     nomes = pag.locator("#trilho button").all_text_contents()
     for i in range(len(nomes)):
         pag.locator("#trilho button").nth(i).click()
@@ -575,9 +522,9 @@ def percorrer(pag):
         # O nome do botao do trilho traz a contagem colada no fim ("Painel e
         # dock12"); no relatorio isso vira um numero sem dono, entao ele sai.
         aba = re.sub(r"\s*\d+$", "", nomes[i].strip())
-        d = pag.evaluate(CENSO_JS, RAIZ)
+        d = pag.evaluate(CENSO_JS, [RAIZ, TETO_AJUDA])
         for chave in ("alvos", "baloes", "amostraCaminho",
-                      "nomeComCaminho", "minusculas"):
+                      "nomeComCaminho", "minusculas", "longos", "gemeos"):
             for x in d[chave]:
                 x["aba"] = aba
         pequenos += d["alvos"]
@@ -587,6 +534,8 @@ def percorrer(pag):
         p7["onde"] += d["amostraCaminho"]
         p7["nomes"] += d["nomeComCaminho"]
         p7["minusculas"] += d["minusculas"]
+        p7["longos"] += d["longos"]
+        p7["gemeos"] += d["gemeos"]
         print(f"  {aba[:34]:36s} alvos={d['medidos']:4d}"
               f"  abaixo de {PISO_PX} px={len(d['alvos']):4d}"
               f"  baloes={len(d['baloes']):4d}"
@@ -594,11 +543,7 @@ def percorrer(pag):
     return pequenos, medidos, baloes, p7
 
 
-# O BALAO NO TECLADO — o risco declarado da sprint.
-#   `:focus-visible` so' casa quando o foco veio do teclado. Um `Tab` de
-#   verdade antes do `focus()` e' o que poe o navegador nessa modalidade; sem
-#   ele o teste mediria o clique, que e' justamente onde o balao NAO deve
-#   nascer.
+# `:focus-visible` so' casa quando o foco veio do teclado.
 FOCO_JS = """
 (sel) => {
   const alvo = document.querySelector(sel);
@@ -767,6 +712,15 @@ def main():
     if p7["minusculas"]:
         falhas.append(f"{len(p7['minusculas'])} paragrafos de ajuda comecando "
                       f"em minuscula")
+    print(f"paragrafos pintados acima de {TETO_AJUDA} ......... "
+          f"{len(p7['longos'])}   (antes da P82: as 12 legendas eram isentas)")
+    if p7["longos"]:
+        falhas.append(f"{len(p7['longos'])} paragrafos pintados acima de {TETO_AJUDA} caracteres")
+    print(f"«⋯» iguais guardando coisas diferentes .. "
+          f"{len(p7['gemeos'])}   (antes da P82: 4 páginas)")
+    if p7["gemeos"]:
+        falhas.append("«⋯» iguais na mesma página: "
+                      + "; ".join(f"{g['aba']}: {g['texto']}" for g in p7["gemeos"][:4]))
 
     if DETALHE:
         print("\n--- quem reprovou -------------------------------------------")
@@ -788,6 +742,9 @@ def main():
             print(f"  nome       [{x['aba'][:16]:16s}] {x['tag']} {x['nome']!r}")
         for x in p7["minusculas"]:
             print(f"  minuscula  [{x['aba'][:16]:16s}] {x['classe'][:20]:22s}"
+                  f" {x['texto']!r}")
+        for x in p7["longos"]:
+            print(f"  longo {x['tam']:4d} [{x['aba'][:16]:16s}] {x['classe'][:20]:22s}"
                   f" {x['texto']!r}")
 
     if pequenos:

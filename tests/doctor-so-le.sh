@@ -1,47 +1,6 @@
 #!/usr/bin/env bash
-# doctor-so-le.sh — o `meow doctor` sem `--consertar` só lê, e sinal nenhum sai
-# da casa de quem pediu.
-#
-# POR QUE ESTE ARQUIVO NASCEU EM 24/09/2026 (P44)
-#   A revisão da P39 rodou `HOME=$(mktemp -d) meow doctor` com o `pkill` e o
-#   `kill` trocados por registradores e achou as duas regras quebradas de uma
-#   vez. Remedido no dia, antes do conserto:
-#
-#     13 arquivos na casa de brinquedo — os cinco gatos em
-#        ~/.config/cosmic/logos, os dois botões do dock, o `.ansi` e o
-#        `.gato-atual` do fastfetch, o `~/.local/bin/meow-fetch`, o estado do
-#        logo, o manifesto e o `meow.log`;
-#     1  `pkill -x cosmic-panel` — no painel da sessão de VERDADE.
-#
-#   As duas vinham do `chk_logo`: o `--conferir` do `logo.sh` não ligava o seco,
-#   o gato "trocado" na casa vazia pedia o reciclo, e o `painel.sh reciclar`
-#   derrubava o painel da máquina inteira por `pkill -x`. O defeito é anterior à
-#   P39 (dev 1e7afaa); ninguém o via porque um doctor que "só lê" nunca é
-#   rodado com os olhos no painel.
-#
-# O QUE ESTE TESTE COBRA, E A ORDEM IMPORTA
-#   1. A PROVA POSITIVA: o doctor rodou até o fim e ACUSOU divergência na casa
-#      vazia (sai 1, e a linha do `logo` diz o que "mudaria"). Sem ela, um doctor
-#      que morresse na primeira linha também deixaria a casa limpa, e o verde
-#      seria de um programa que não fez nada.
-#   2. Nenhum ARQUIVO novo na casa de brinquedo. Diretório vazio não entra na
-#      conta, e está dito: o `gerar_temas.py --conferir` ainda cria a pasta de
-#      saída dele (fora dos arquivos da P44); arquivo, nenhum.
-#   3. Nenhum SINAL: o `pkill`, o `killall` e o `kill` (o binário E o builtin do
-#      bash, que não passa pelo PATH) são registradores aqui dentro. `kill -0`
-#      não conta — é pergunta, não sinal.
-#   4. O PID do `cosmic-panel` de verdade é o mesmo antes e depois. Só é
-#      conferido onde há painel (a máquina dela); no CI a linha diz que pulou.
-#   5. O reciclo mira só o painel desta casa: com um `HOME` de brinquedo, o
-#      `meow_painel_desta_casa` não devolve painel nenhum.
-#
-# O QUE É FALSO AQUI, E POR QUÊ
-#   `sudo` recusa (a máquina dela tem `NOPASSWD: ALL`, e um teste que chama sudo
-#   ali escreve em /usr — já custou restauração à mão duas vezes). `systemctl`,
-#   `gsettings` e `dconf` respondem às perguntas e recusam o resto: o barramento
-#   é o da sessão de verdade, e a casa de brinquedo não isola o que passa por
-#   ele. Um doctor que só lê não chama nenhum dos verbos recusados; se chamar, a
-#   linha aparece no registro e o teste falha dizendo qual.
+# `sudo` recusa (a máquina dela tem `NOPASSWD: ALL`, e um teste que chama sudo
+# ali escreve em /usr — já custou restauração à mão duas vezes).
 #
 #   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
@@ -71,13 +30,6 @@ FIM
 done
 # Os que respondem pergunta: o verbo de leitura vai ao programa de verdade, o
 # resto é registrado e recusado.
-#
-# O DE VERDADE SE ACHA PULANDO ESTE DIRETÓRIO, E NÃO CORTANDO O COMEÇO DO PATH.
-#   A primeira versão fazia `${PATH#$FALSO:}` e contava que o PATH ainda
-#   começasse por aqui. Um script no meio do caminho que ponha outro diretório
-#   na frente, e o corte não corta: o `command -v` devolve o próprio falso, o
-#   `exec` chama a si mesmo, e o processo gira para sempre — medido na bancada
-#   em 24/09/2026, um `gsettings` falso a 72% de CPU por dez minutos.
 responde() {   # $1 = programa · $2 = padrão `case` dos verbos de leitura
   cat > "$FALSO/$1" <<FIM
 #!/bin/bash
@@ -115,14 +67,8 @@ export -f kill pkill killall
 
 painel_real() { pgrep -x cosmic-panel 2>/dev/null | LC_ALL=C sort | paste -sd' ' -; }
 
-# O STARSHIP SAI DO PATH DO DOCTOR — 24/09/2026 (P44, revisão)
-#   A primeira versão deste teste passava nesta máquina só porque ela tem o
-#   starship (em ~/.cargo/bin): o ramo "falta o starship" do `chk_prompt`, que
-#   gravava `pendencias.tsv`, nunca rodava aqui, e só o CI, que não o tem, o
-#   pegaria — vermelho. Tirar do PATH o diretório que o guarda põe a máquina
-#   dela no mesmo ramo do runner e do Pop!_OS limpo. `/usr/bin` e `/bin` ficam:
-#   sem eles nada roda, e o starship ali viria do apt da distribuição, que é o
-#   caso de quem o tem de fábrica — a linha abaixo diz que o ramo não rodou.
+# Tirar do PATH o diretório que o guarda põe a máquina dela no mesmo ramo do
+# runner e do Pop!_OS limpo.
 PATH_DOCTOR=""
 IFS=: read -ra _dirs <<< "$PATH"
 for _d in "${_dirs[@]}"; do
@@ -141,8 +87,10 @@ RC=$?
 DEPOIS="$(painel_real)"
 
 # 1. a prova positiva
+# [QA final da leva H, 16/10/2026: a última linha do doctor era «rode: meow
+#  doctor --consertar» e passou a dizer o estado; o fim do doctor é ela.]
 if [ "$RC" = "1" ] && grep -qE '^ *~~ +logo ' "$TMP/saida" \
-   && grep -q 'rode: meow doctor --consertar' "$TMP/saida"; then
+   && grep -q 'há divergências — o conserto do doctor as acerta' "$TMP/saida"; then
   ok "o doctor rodou até o fim e acusou a casa vazia (rc=1, com a linha do logo)"
 else
   falha "o doctor não chegou ao fim como devia (rc=$RC) — as outras linhas não provam nada"

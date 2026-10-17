@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<!-- Folha de demonstração do pacote Zafiro: logotipo hexagonal, letreiro em script e quinze miniaturas (paleta Dracula). Desenhado em 962x931 e reduzido por escala, centrado no quadrado. -->
+<g transform="scale(0.133056) translate(0,15)">
+<rect width="962" height="931" fill="#21222C"/>
+<path d="M402 70L568 73L647 218L585 318L540 316L596 215L540 117L423 117L367 215L420 316L365 305L315 213Z" fill="#F8F8F2"/>
+<path d="M437 316H505L490 332H455Z" fill="#F8F8F2"/>
+<g fill="none" stroke="#F8F8F2" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+<path d="M296 350L332 342L305 372L332 366"/><ellipse cx="354" cy="362" rx="15" ry="14"/><path d="M370 352V378"/><path d="M398 372Q400 345 410 335Q420 328 415 345L402 380M392 352H418"/><path d="M432 352V378M433 338V340"/><path d="M452 352V378M452 362Q456 350 470 353"/><ellipse cx="490" cy="364" rx="14" ry="13"/>
+<path d="M520 352V378M521 338V340"/><path d="M560 356Q538 348 540 366Q542 380 562 374"/><ellipse cx="590" cy="364" rx="14" ry="13"/><path d="M616 352V378M616 364Q620 352 634 356V378"/><path d="M660 354Q646 347 646 358Q646 364 658 367Q658 380 646 377"/>
+</g>
+<rect x="132" y="430" width="90" height="90" rx="4" fill="#FF5555"/><rect x="132" y="430" width="90" height="90" rx="4" fill="#191A21" fill-opacity="0.3"/>
+<path d="M132 430H222V451H132Z" fill="#191A21"/>
+<path d="M138 432L146 449L154 432M160 432L168 449L176 432M182 432L190 449L198 432M204 432L212 449" fill="none" stroke="#F8F8F2" stroke-width="5"/>
+<path d="M140 500Q150 470 180 462Q200 455 205 470V500Z" fill="#FF5555"/><path d="M140 500Q150 470 180 462Q200 455 205 470V500Z" fill="#F8F0EC" fill-opacity="0.25"/>
+<circle cx="203" cy="499" r="20" fill="#F8F8F2"/><path d="M194 490L212 508M212 490L194 508" stroke="#FF5555" stroke-width="5"/>
+<rect x="284" y="430" width="90" height="90" rx="4" fill="#62D6E8"/><rect x="284" y="430" width="90" height="90" rx="4" fill="#191A21" fill-opacity="0.3"/>
+<g fill="none" stroke="#F8F8F2" stroke-width="5"><rect x="290" y="437" width="46" height="34"/><rect x="348" y="437" width="20" height="34"/><rect x="312" y="480" width="56" height="34"/></g><path d="M296 468L312 452L326 466L330 460L336 468Z" fill="#F8F8F2"/><path d="M355 465V448L360 440L365 448V465Z" fill="#F8F8F2"/>
+<rect x="436" y="430" width="90" height="90" rx="4" fill="#8B8DA0"/><rect x="436" y="430" width="90" height="90" rx="4" fill="#191A21" fill-opacity="0.3"/>
+<path d="M444 468Q458 468 462 450Q470 435 478 468Q486 480 496 458Q500 450 516 468" fill="none" stroke="#F8F8F2" stroke-width="4"/><path d="M444 480H492" stroke="#F8F8F2" stroke-width="4"/><rect x="436" y="500" width="90" height="20" fill="#191A21" fill-opacity=".6"/>
+<rect x="588" y="430" width="90" height="90" rx="4" fill="#62D6E8"/><rect x="588" y="430" width="90" height="90" rx="4" fill="#191A21" fill-opacity="0.3"/>
+<path d="M678 490V520H648Z" fill="#191A21" fill-opacity=".6"/><path d="M620 450Q650 470 640 500Q630 470 612 490Q640 470 666 482" fill="none" stroke="#F8F8F2" stroke-width="5"/><circle cx="607" cy="449" r="16" fill="#F8F8F2"/>
+<rect x="740" y="430" width="90" height="90" rx="4" fill="#FF5555"/><rect x="740" y="430" width="90" height="90" rx="4" fill="#191A21" fill-opacity="0.3"/>
+<path d="M830 430V520H740Z" fill="#F8F8F2"/><path d="M752 447H775M764 447V470M752 460H776" stroke="#F8F8F2" stroke-width="5" fill="none"/><path d="M788 500L800 480L812 500M792 495H808" stroke="#FF5555" stroke-width="5" fill="none"/>
+<circle cx="176" cy="643" r="47" fill="#BD93F9"/><circle cx="176" cy="643" r="47" fill="#191A21" fill-opacity="0.2"/>
+<rect x="146" y="625" width="60" height="36" fill="none" stroke="#F8F8F2" stroke-width="5"/><path d="M158 650V642M168 650V636M178 650V645" stroke="#F8F8F2" stroke-width="5"/>
+<circle cx="329" cy="643" r="47" fill="#FF6E6E"/><circle cx="329" cy="643" r="47" fill="#191A21" fill-opacity="0.15"/>
+<path d="M300 620L329 648L358 620L350 660L329 678L308 660Z" fill="#F8F0EC"/>
+<circle cx="481" cy="643" r="47" fill="#A4A6B8"/><circle cx="481" cy="643" r="47" fill="#191A21" fill-opacity="0.25"/>
+<path d="M460 640H474V630H490V640H506V656H494V668H474V656H460Z" fill="#F8F8F2"/>
+<circle cx="633" cy="643" r="47" fill="#62D6E8"/><circle cx="633" cy="643" r="47" fill="#191A21" fill-opacity="0.15"/>
+<rect x="608" y="606" width="54" height="64" rx="6" fill="#F8F8F2"/><rect x="615" y="672" width="40" height="12" fill="#8BE9FD"/>
+<circle cx="617" cy="622" r="18" fill="#62D6E8"/><path d="M609 622H625M617 614V630" stroke="#F8F8F2" stroke-width="4"/>
+<circle cx="785" cy="643" r="47" fill="#FFB8D1"/><circle cx="785" cy="643" r="47" fill="#191A21" fill-opacity="0.2"/>
+<rect x="773" y="613" width="24" height="42" rx="12" fill="#F8F0EC"/><path d="M760 645Q760 665 785 665Q810 665 810 645M785 665V678H772H798" fill="none" stroke="#F8F0EC" stroke-width="4"/>
+<path d="M176 767L219 810L176 860L131 812Z" fill="#565A72"/>
+<path d="M146 802L176 782L206 802L196 802L176 790L156 802Z" fill="#F8F8F2"/>
+<rect x="285" y="768" width="90" height="90" rx="4" fill="#8B8DA0"/><rect x="285" y="768" width="90" height="90" rx="4" fill="#191A21" fill-opacity="0.2"/>
+<path d="M369 835V858H346Z" fill="#191A21" fill-opacity=".3"/><path d="M318 790Q308 790 308 800V805Q308 810 303 812Q308 814 308 820V825Q308 835 318 835M338 790Q348 790 348 800V805Q348 810 353 812Q348 814 348 820V825Q348 835 338 835" fill="none" stroke="#F8F8F2" stroke-width="6"/>
+<rect x="434" y="768" width="90" height="90" rx="3" fill="#6272A4"/>
+<path d="M436 778L458 778L466 770L522 770V780H436Z" fill="#191A21" fill-opacity=".5"/><rect x="438" y="785" width="82" height="66" fill="#F8F8F2"/><path d="M455 828Q455 815 470 817Q475 805 490 810Q500 805 503 820Q515 825 508 838H460Q452 836 455 828Z" fill="#6272A4"/><circle cx="480" cy="815" r="8" fill="#6272A4"/>
+<rect x="595" y="777" width="70" height="70" rx="6" fill="#44475A"/>
+<path d="M631 765L680 813L631 862L582 813Z" fill="#A4A6B8"/><path d="M631 765L680 813L631 862L582 813Z" fill="#191A21" fill-opacity="0.25"/>
+<circle cx="632" cy="810" r="14" fill="#F8F8F2"/><path d="M620 830Q618 842 632 842Q646 842 646 826" stroke="#F8F8F2" stroke-width="7" fill="none"/>
+<rect x="742" y="768" width="82" height="90" rx="6" fill="#FFB86C"/><rect x="742" y="768" width="82" height="90" rx="6" fill="#F1FA8C" fill-opacity="0.2"/>
+<rect x="742" y="768" width="82" height="17" rx="5" fill="#FFB86C"/><rect x="742" y="768" width="82" height="17" rx="5" fill="#FF5555" fill-opacity="0.2"/>
+</g></svg>

@@ -1,64 +1,23 @@
 #!/usr/bin/env bash
 # todos.sh — A PERGUNTA "A SUÍTE PASSA?" PASSA A TER UMA RESPOSTA.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 21/09/2026
-#   Até hoje a única forma de saber que um teste estava vermelho era lembrar de
-#   chamá-lo pelo nome. E a medição diz o que isso custou: o `tests/numeros.sh`
-#   passou três dias em `rc=1` apontando 14 números errados, o `README.md` foi
-#   editado no dia seguinte ao teste ficar vermelho, e os números não foram
-#   corrigidos — porque ninguém rodou. No mesmo período o `docs/SPRINTS.md`
-#   afirmava "123/123 passando" duas linhas abaixo da frase, dele mesmo, "a
-#   suíte verde não fecha sprint".
+# Metade desta suíte roda em qualquer lugar — HOME de brinquedo, `env -i`,
+# `MEOW_IGNORA_DESKTOP=1`, nada além de bash e python3.
 #
-#   Um teste que ninguém roda não é rede de segurança: é decoração.
-#
-# OS DOIS SUBCONJUNTOS, E POR QUE ELES EXISTEM
-#   Metade desta suíte roda em qualquer lugar — HOME de brinquedo, `env -i`,
-#   `MEOW_IGNORA_DESKTOP=1`, nada além de bash e python3. A outra metade só
-#   responde a verdade NA MÁQUINA DELA: precisa do Papirus instalado, do
-#   `rsvg-convert`, do Playwright com Chromium, ou dos `.desktop` que estão
-#   instalados nela. (A lista dizia também "subir o painel e escrever uma isca
-#   dentro do `~/.local/share/icons` de verdade", e estava velha desde a P40: o
-#   `previa-cerca.sh` planta a isca numa casa de brinquedo, e um `grep` por
-#   `local/share/icons` em `tests/` só acha casas de brinquedo — 24/09/2026,
-#   P45.)
-#
-#   Misturar os dois faz o CI ficar vermelho por AUSÊNCIA e não por defeito — e
-#   vermelho que não significa nada é a coisa que este arquivo veio matar, não
-#   criar. Por isso:
+# Misturar os dois faz o CI ficar vermelho por AUSÊNCIA e não por defeito — e
+# vermelho que não significa nada é a coisa que este arquivo veio matar, não
+# criar.
 #
 #     ./tests/todos.sh              tudo, que é o que se roda na bancada dela
 #     ./tests/todos.sh --portatil   só o que roda em máquina sem COSMIC (o CI)
 #     ./tests/todos.sh --maquina    só o que exige a máquina dela
-#
-#   E a tela SEMPRE diz qual subconjunto rodou. Um placar sem essa frase mente
-#   por omissão: "12 de 12" não quer dizer nada se os quatro caros ficaram fora.
-#
-# A LISTA É ESCRITA, MAS NÃO PODE FICAR INCOMPLETA
-#   A armadilha nº 3 do projeto (toda lista fixa é uma lista que alguém vai
-#   esquecer) não deixa cravar a lista de testes: um teste novo ficaria de fora
-#   e a suíte diria verde sem ele. Aqui a CLASSIFICAÇÃO precisa ser escrita, que
-#   é a parte que nenhuma medição adivinha — então os arquivos são DESCOBERTOS
-#   em `tests/` e quem aparecer sem classificação faz este runner sair com 2. O
-#   custo de acrescentar um teste é uma linha aqui, e é de propósito.
-#
-# PULADO NÃO É OK, E APARECE SEPARADO
-#   Vários testes saem 0 dizendo "pulado: falta numpy". Somar isso ao verde é
-#   fingir cobertura, que é o defeito que o `tests/midia.sh` descreve no
-#   cabeçalho dele. O placar conta os três estados, e o resumo final diz quantos
-#   foram pulados.
-#
-# CÓDIGOS DE SAÍDA (os do projeto)
-#   0 = todos passaram · 1 = algum falhou · 2 = erro deste runner.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TESTES="$RAIZ/tests"
 
-# ---------------------------------------------------------------------------
 # A CLASSIFICAÇÃO, com o motivo de cada linha
-# ---------------------------------------------------------------------------
-# PORTÁTIL: só bash, python3 e o que está versionado aqui. Roda num CI sem
-# sessão gráfica, sem COSMIC, sem Papirus e sem rede.
+#
+# PORTÁTIL: só bash, python3 e o que está versionado aqui.
 PORTATIL=(
   numeros.sh             # lê o repositório e conta; nada mais
   orfaos.sh              # idem
@@ -69,9 +28,10 @@ PORTATIL=(
   sem-dracula-os-theme.sh # tokenize no código versionado + a camada Dracula num HOME de brinquedo; bash e python3
   sem-receita-no-log.sh  # grep nos .sh versionados; nada além de bash
   temas-de-apps.sh       # grep nos manifestos + pack.py; estado de brinquedo
-  leitura-fonte-unica.sh # o meow leitura adotar e o servidor num HOME de brinquedo (P77); bash e python3
-  flavor-padrao.sh       # o lib/comum.sh, quatro scripts que só leem, dois manifestos, o conf do painel e o meow icones num HOME de brinquedo (P61, P65); bash e python3
+  leitura-fonte-unica.sh # o meow leitura adotar e o servidor num HOME de brinquedo; bash e python3
+  flavor-padrao.sh       # o lib/comum.sh, quatro scripts que só leem, dois manifestos, o conf do painel e o meow icones num HOME de brinquedo; bash e python3
   git-limpo.sh           # acervo, HOME e estado de brinquedo; só git e bash
+  higiene.sh             # o gancho do repositório num clone --shared, HOME e git de brinquedo
   app.sh                 # compara o esquema do painel com o do wizard; python3
   estilo.sh              # régua da caneta contra o acervo Arcticons DAQUI (pede numpy)
   reversao.sh            # grep no desinstalador + install.sh com MEOW_IGNORA_DESKTOP=1
@@ -82,33 +42,40 @@ PORTATIL=(
   jogos-heroic.sh        # HOME de brinquedo com biblioteca falsa do Heroic
   um-cartao-por-jogo.sh  # HOME de brinquedo com manifesto falso da Steam
   doctor-so-le.sh        # o doctor inteiro num HOME de brinquedo, sudo/pkill/kill falsos (~15s)
-  chaves-aposentadas.sh  # o migrar_conf.py e o doctor num HOME de brinquedo, sudo falso: a chave aposentada não volta (P75)
-  doctor-veredito.sh     # o runner do doctor com conferências de mentira, ponte e sudo falsos; o doctor inteiro num HOME de brinquedo (P75, ~20s)
+  chaves-aposentadas.sh  # o migrar_conf.py e o doctor num HOME de brinquedo, sudo falso: a chave aposentada não volta
+  doctor-veredito.sh
   fzf-da-paleta.sh       # paleta inventada e os dois packs daqui num HOME de brinquedo; bash e python3
   acento.sh              # COSMIC, pack e HOME de brinquedo; as etapas gerar e tema do install.sh; bash e python3
-  vidro-do-cosmic.sh     # COSMIC, packs, HOME e TMPDIR de brinquedo; o alpha_map de 17/09 vai escrito no teste
-  seletor-do-pack.sh     # cópia da árvore e HOME de brinquedo; as rotas da ficha e o passo do pack (P60); bash, git e python3
-  acervo-da-ficha.sh     # as rotas da ficha no processo, HOME de brinquedo; conta o disco e o git contra a ficha (P73); bash, git e python3
-  variante.sh            # COSMIC, os dois packs e HOME de brinquedo; as etapas gerar, tema e modo (P59); bash e python3
-  claro-do-pack.sh       # COSMIC, os dois packs e HOME de brinquedo; a foto só é lida (P63); bash e python3
-  notas-de-funcao.sh     # COSMIC, packs, HOME e estado de brinquedo; as etapas do install.sh e os passos de ícone (P66); bash e python3
-  frases-velhas.sh       # lê o que está versionado e pergunta ao git a idade da folha dos resgatados (P67); bash, git e python3
-  pack-dracula-completo.sh # o pack Dracula completo e exportável, packs e HOME de brinquedo (P74); bash e python3
-  compositor-shim.sh     # shim do compositor com dpkg-query e binários falsos, HOME de brinquedo (P76); só bash
-  cosmic-prever.sh       # .deb e fontes de brinquedo do cosmic-comp, sem apt nem rede (P76); bash e dpkg-deb
-  pos-apt.sh             # pós-apt do COSMIC com dpkg-query e passos falsos, HOME de brinquedo (P76); só bash
-  volta-do-cosmic.sh     # guarda do .deb e do fonte com dpkg-query, apt e sudo falsos, HOME de brinquedo (P76); só bash
-  contrato-cosmic.sh     # /usr/share/cosmic e COSMIC de brinquedo com v2; seis escritores e o pré-voo (P76); bash e python3
-  oraculo-tema.sh        # saídas do oráculo guardadas em tests/oraculo/ contra a cópia em Python (P76); só python3
-  applet-pino.sh         # dois Cargo.lock falsos e um cargo falso; o leitura_build.sh num HOME de brinquedo (P76); só bash
-  escala-kdl.sh          # cosmic-randr falso com KDL fixo; só o saidas() do escala.sh (P76); só bash
-  backoff-do-supervisor.sh # journalctl falso com as duas formas do log do cosmic-session (P76); só bash
-  pack-malicioso.sh      # pack de terceiro com '..', absoluto, symlink e script; painel num HOME de brinquedo (P78); bash, python3 e curl
-  casa-real.sh           # o migrar_conf, o doctor e a troca de pack num HOME e COSMIC de brinquedo, sudo falso (P79); bash e python3
-  nada-manda-digitar.sh  # grep nas mensagens versionadas e a tabela de pendências do painel (P79); bash e python3
-  achados-tecnicos.sh    # mapa CRLF, BOM, vidro, modo do gato e favoritas num HOME, COSMIC e packs de brinquedo (P79); bash e python3
-  trabalho-vivo.sh       # o Trabalho do painel com a janela entre a morte e o desfecho aberta à força, HOME de brinquedo (P80); bash e python3
-  reler-uma-vez.sh       # a lib com getent, pgrep e painel.sh falsos numa raiz e HOME de brinquedo; um reler por passada, e o passo de traço de verdade (P80); bash e python3
+  vidro-do-cosmic.sh     # COSMIC, packs, HOME e TMPDIR de brinquedo; o alpha_map vai escrito no teste
+  seletor-do-pack.sh     # cópia da árvore e HOME de brinquedo; as rotas da ficha e o passo do pack; bash, git e python3
+  acervo-da-ficha.sh     # as rotas da ficha no processo, HOME de brinquedo; conta o disco e o git contra a ficha; bash, git e python3
+  variante.sh            # COSMIC, os dois packs e HOME de brinquedo; as etapas gerar, tema e modo; bash e python3
+  claro-do-pack.sh       # COSMIC, os dois packs e HOME de brinquedo; a foto só é lida; bash e python3
+  notas-de-funcao.sh     # COSMIC, packs, HOME e estado de brinquedo; as etapas do install.sh e os passos de ícone; bash e python3
+  frases-velhas.sh       # lê o que está versionado e pergunta ao git a idade da folha dos resgatados; bash, git e python3
+  pack-dracula-completo.sh # o pack Dracula completo e exportável, packs e HOME de brinquedo; bash e python3
+  compositor-shim.sh     # shim do compositor com dpkg-query e binários falsos, HOME de brinquedo; só bash
+  decisoes.sh            # uma decisão, um teste: o resolvedor de ícones, o servidor, o app.js no node, o run.sh com getent falso e a troca de pack, HOME de brinquedo; bash, python3 e node
+  precisa-de-gente.sh    # os verbos, o degrau 4 do garantir_builds, o servidor e o app.js no node, HOME de brinquedo; bash, python3 e node
+  sentinela.sh           # apt falso,.deb e fontes de brinquedo, HOME de brinquedo: a fila medida uma vez, o cartão de «precisa de gente»; bash e dpkg-deb
+  cosmic-prever.sh       # .deb e fontes de brinquedo do cosmic-comp, sem apt nem rede; bash e dpkg-deb
+  pos-apt.sh             # pós-apt do COSMIC com dpkg-query e passos falsos, HOME de brinquedo; só bash
+  garantir-builds.sh     # a função dos builds com dpkg-query e builds falsos, HOME de brinquedo, falsos que recusam; só bash
+  cadeia-de-atualizacao.sh # a cadeia apt/topgrade/limpar_cache com dpkg, apt-get, make, just e cargo falsos e os scripts de verdade, HOME de brinquedo; bash, patch e tar
+  volta-do-cosmic.sh     # guarda do.deb e do fonte com dpkg-query, apt e sudo falsos, HOME de brinquedo; só bash
+  contrato-cosmic.sh     # /usr/share/cosmic e COSMIC de brinquedo com v2; seis escritores e o pré-voo; bash e python3
+  oraculo-tema.sh        # saídas do oráculo guardadas em tests/oraculo/ contra a cópia em Python; só python3
+  applet-pino.sh         # dois Cargo.lock falsos e um cargo falso; o leitura_build.sh num HOME de brinquedo; só bash
+  escala-kdl.sh          # cosmic-randr falso com KDL fixo; só o saidas() do escala.sh; só bash
+  backoff-do-supervisor.sh # journalctl falso com as duas formas do log do cosmic-session; só bash
+  pack-malicioso.sh      # pack de terceiro com '..', absoluto, symlink e script; painel num HOME de brinquedo; bash, python3 e curl
+  casa-real.sh           # o migrar_conf, o doctor e a troca de pack num HOME e COSMIC de brinquedo, sudo falso; bash e python3
+  nada-manda-digitar.sh  # grep nas mensagens versionadas e a tabela de pendências do painel; bash e python3
+  achados-tecnicos.sh    # mapa CRLF, BOM, vidro, modo do gato e favoritas num HOME, COSMIC e packs de brinquedo; bash e python3
+  trabalho-vivo.sh       # o Trabalho do painel com a janela entre a morte e o desfecho aberta à força, HOME de brinquedo; bash e python3
+  reler-uma-vez.sh       # a lib com getent, pgrep e painel.sh falsos numa raiz e HOME de brinquedo; um reler por passada, e o passo de traço de verdade; bash e python3
+  derivados.sh           # alterou o desenho, o tema se atualiza: cópia da árvore e HOME de brinquedo, sem systemd; bash, git e python3
+  tres-pastas.sh         # o formato de três pastas: os três packs, a quarta pasta, o.meowpack de antes convertido, packs e HOME de brinquedo; bash, python3 e zstd
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
@@ -116,32 +83,22 @@ PORTATIL=(
 MAQUINA=(
   conversor.sh           # traça a partir de /usr/share/icons/Papirus; muda com a versão do pacote
   afinador.sh            # precisa de rsvg-convert e do `compare` do ImageMagick
-  previa-cerca.sh        # painel numa casa de brinquedo (P40); serve um .svg do Papirus da máquina
+  previa-cerca.sh        # painel numa casa de brinquedo; serve um.svg do Papirus da máquina
   app-navegador.py       # Playwright com Chromium, a página usada como ela usaria
   app-acessibilidade.py  # Playwright com Chromium; sobe o painel
   oficina.sh             # lê os .desktop da máquina: o desenho de pack que veste um deles tem cartão
-  pastas-do-pack.sh      # parte do Papirus-Dark de /usr/share/icons e do papirus-folders baixado (P56)
-  restos-do-painel.sh    # a ficha de ícone e a gaveta no vm do node, sem navegador (P64); sem node, conta e pula
-  folha-dos-resgatados.sh # acervo e raiz de brinquedo; pede rsvg-convert e o ImageMagick, sem eles pula (P68)
-  app-completo.py        # Playwright com Chromium: TODA aba, TODO controle — o gate de merge (P46)
-  app-uso-real.py        # Playwright com Chromium: as 14 páginas como quem usa — parágrafo, coberto, prévia vazia, contradição (P77, U7)
-  app-texto-visivel.py   # Playwright com Chromium: a régua do texto visível da P77; mede e sai 0, só reprova se o painel não sobe
-  gate-link-externo.py   # Playwright com Chromium: o «Créditos» do gate aguenta a repintura entre o censo e o clique (P79)
+  pastas-do-pack.sh      # parte do Papirus-Dark de /usr/share/icons e do papirus-folders baixado
+  restos-do-painel.sh    # a ficha de ícone e a gaveta no vm do node, sem navegador; sem node, conta e pula
+  folha-dos-resgatados.sh # acervo e raiz de brinquedo; pede rsvg-convert e o ImageMagick, sem eles pula
+  app-completo.py        # Playwright com Chromium: TODA aba, TODO controle — o gate de merge
+  app-uso-real.py
+  app-texto-visivel.py
+  gate-link-externo.py   # Playwright com Chromium: o «Créditos» do gate aguenta a repintura entre o censo e o clique
 )
-# [Integração da onda 2, 10/10/2026: o `app-texto-visivel.py` chegou da P77
-#  executável e sem linha aqui, e a guarda de cima fazia a suíte inteira sair 2
-#  antes de rodar qualquer teste. Ele é régua, não gate: fora do SEM_PULO.]
 
-# O GATE NÃO SE PULA — 24/09/2026, sprint P46
-#   O `app-completo.py` é o percurso do painel inteiro, aba por aba e botão por
-#   botão, e é a condição para uma sprint entrar em `dev` (a regra está escrita
-#   no `docs/SPRINTS.md`). Um gate que sai "pulado" quando falta o Playwright
-#   deixaria a suíte dizer "0 vermelhos" sem ele ter rodado — e "pulado não é
-#   verde" é a regra deste arquivo desde o primeiro dia. Para os testes desta
-#   lista, `pulado` é VERMELHO, com a receita de instalar na tela.
-#   O `app-uso-real.py` (P77, U7) entra pelo mesmo motivo: é o pedido «abrir
-#   cada aba como user… e colocar como gate», e o que ele olha (o que a pessoa
-#   VÊ) o `app-completo.py` não olha.
+# Um gate que sai "pulado" quando falta o Playwright deixaria a suíte dizer "0
+# vermelhos" sem ele ter rodado — e "pulado não é verde" é a regra deste
+# arquivo desde o primeiro dia.
 SEM_PULO=(
   app-completo.py
   app-uso-real.py
@@ -176,16 +133,8 @@ conhecido() {
   return 1
 }
 
-# E A DESCOBERTA NÃO PODE SER POR EXTENSÃO — corrigido em 21/09/2026
-#   A primeira versão varria `tests/*.sh` e `tests/*.py`, e com isso a guarda
-#   tinha o buraco que ela diz fechar: um teste novo em `.bats`, `.expect` ou
-#   sem extensão nenhuma não era DESCOBERTO, não caía no `exit 2`, e o placar
-#   dizia verde sem ele — a armadilha nº 3 de novo, um nível abaixo. Agora entra
-#   todo arquivo de `tests/` que seja EXECUTÁVEL (que é o que um teste é aqui)
-#   ou que tenha as duas extensões de sempre. As duas extensões continuam na
-#   conta de propósito: um `.sh` a que alguém esqueceu de dar `chmod +x` tem de
-#   aparecer, e ele aparece — vermelho, no laço da corrida, por não ser
-#   executável. `-maxdepth 1` porque material de apoio mora em subdiretório.
+# Agora entra todo arquivo de `tests/` que seja EXECUTÁVEL (que é o que um teste
+# é aqui) ou que tenha as duas extensões de sempre.
 mapfile -t ENCONTRADOS < <(
   find "$TESTES" -maxdepth 1 -type f \
        \( -perm -u+x -o -name '*.sh' -o -name '*.py' \) -printf '%f\n' | sort
@@ -214,25 +163,10 @@ esac
 
 printf '== suíte MeowSystem: %s ==\n' "$QUAL"
 
-# ---------------------------------------------------------------------------
-# O PYTHON QUE TEM O PLAYWRIGHT — 23/09/2026, sprint P33
-# ---------------------------------------------------------------------------
-#   Os dois testes de navegador são `#!/usr/bin/env python3`, e o `env` pega o
-#   PRIMEIRO python3 do PATH. Numa bancada com pyenv esse costuma ser o do
-#   sistema (/usr/bin/python3), sem Playwright; quem tem é o do pyenv, e os
-#   shims dele só entram no PATH quando o shell os carrega — há configuração
-#   de shell que só carrega o pyenv na primeira chamada ao `python3`, e um
-#   `./tests/todos.sh` aberto antes disso herda o PATH sem eles. Medido em
-#   23/09/2026 numa bancada assim: a suíte marcava os dois como *pulados* com
-#   Playwright e Chromium instalados — e pulado não é verde, é o placar sem os
-#   dois testes que mais olham a tela.
+# Os dois testes de navegador são `#!/usr/bin/env python3`, e o `env` pega o
+# PRIMEIRO python3 do PATH.
 #
-#   Então o runner PERGUNTA a cada candidato se ele importa o Playwright, em vez
-#   de aceitar o primeiro que o PATH oferece: todo python3 do PATH, na ordem
-#   dele; o que o `pyenv` resolve, se o comando existe; e o venv que a receita
-#   no cabeçalho dos dois testes manda criar. O primeiro que responder roda os
-#   `.py`. Nenhum respondeu: eles rodam como sempre e dizem "pulado" com a
-#   receita na tela — agora sim porque falta, e não porque ninguém procurou.
+# O primeiro que responder roda os `.py`.
 PY_NAVEGADOR=""
 TEM_PY=0
 for nome in "${ALVOS[@]}"; do [[ $nome == *.py ]] && TEM_PY=1; done
@@ -253,27 +187,26 @@ if [ "$TEM_PY" -eq 1 ]; then
 fi
 printf '\n'
 
-# ---------------------------------------------------------------------------
-# O SUDO E A CASA DE BRINQUEDO DA SUÍTE INTEIRA — P75, 09/10/2026 (S6)
-# ---------------------------------------------------------------------------
-#   A máquina de quem usa tem `NOPASSWD: ALL` desde abril: um teste que chama
-#   `sudo` ali não falha, ESCREVE em /usr e em /etc. Cada teste se protegia por
-#   conta própria (o `doctor-so-le.sh`, o `previa-cerca.sh`), e um que
-#   esquecesse escrevia no sistema de verdade — já custou restauração à mão
-#   duas vezes. Por isso a suíte não era rodada inteira (01-regressoes.md, S6).
+# Com `NOPASSWD: ALL` na máquina, um teste que chama `sudo` não falha: ESCREVE
+# em /usr e em /etc.
 #
-#   Agora a proteção é do runner, e vale para todo teste, inclusive o que for
-#   escrito amanhã: `sudo`, `pkexec` e `su` no começo do PATH registram a
-#   chamada e recusam, e o HOME de todos é uma casa de brinquedo. O que um
-#   teste precisa ler da casa de verdade para RODAR — os navegadores do
-#   Playwright, o pyenv, o site do pip do usuário — vai apontado por variável,
-#   e é só leitura. No fim, o placar diz quantas vezes alguém tentou o sudo.
+# Cada teste se protegia por conta própria (o `doctor-so-le.sh`, o
+# `previa-cerca.sh`), e um que esquecesse escrevia no sistema de verdade — já
+# custou restauração à mão duas vezes.
+#
+# Agora a proteção é do runner, e vale para todo teste, inclusive o que for
+# escrito amanhã: `sudo`, `pkexec` e `su` no começo do PATH registram a chamada
+# e recusam, e o HOME de todos é uma casa de brinquedo.
 CASA_REAL="$HOME"
 # A casa de verdade fica dita, só para leitura, a quem precisa PERGUNTAR algo
 # dela (o `doctor-so-le.sh` confere que o reciclo acha o painel da sessão).
 export SUITE_CASA_REAL="$CASA_REAL"
 SUITE_TMP="$(mktemp -d)" || { printf 'erro: mktemp\n' >&2; exit 2; }
 trap 'rm -rf "$SUITE_TMP"' EXIT
+# O sinal vira saída, para o EXIT de cima rodar: o bash morto por TERM ou INT
+# sem tratador não roda o EXIT, e a casa de brinquedo ficava em /tmp.
+trap 'exit 130' INT
+trap 'exit 143' TERM
 mkdir -p "$SUITE_TMP/falso" "$SUITE_TMP/casa" || exit 2
 export SUITE_SUDO_LOG="$SUITE_TMP/sudo.log"; : > "$SUITE_SUDO_LOG"
 for c in sudo pkexec su; do
@@ -281,13 +214,46 @@ for c in sudo pkexec su; do
     > "$SUITE_TMP/falso/$c"
   chmod 755 "$SUITE_TMP/falso/$c"
 done
+
+# O RESTO DO ENVOLTÓRIO, QUE MORAVA FORA DAQUI
+export SUITE_FALSOS_LOG="$SUITE_TMP/falsos.log"; : > "$SUITE_FALSOS_LOG"
+for c in pkill killall notify-send systemd-run loginctl apt apt-get xdg-open; do
+  printf '#!/bin/sh\nprintf "%%s %%s\\n" "$(basename "$0")" "$*" >> "$SUITE_FALSOS_LOG"\nexit 1\n' \
+    > "$SUITE_TMP/falso/$c"
+  chmod 755 "$SUITE_TMP/falso/$c"
+done
+# O verbo que só lê, de cada um. O primeiro argumento que não começa com `-` é
+# o verbo; sem verbo nenhum (`systemctl --version`) também é leitura.
+_so_leitura() {
+  local c="$1" verbos="$2" real
+  real="$(command -v "$c" 2>/dev/null)" || real=""
+  cat > "$SUITE_TMP/falso/$c" <<FIM
+#!/bin/sh
+verbo=""
+for a in "\$@"; do case "\$a" in -*) ;; *) verbo="\$a"; break ;; esac; done
+case " \$verbo " in
+  "  "|$verbos)
+    [ -n "$real" ] && exec "$real" "\$@"
+    exit 1 ;;
+esac
+printf "%s %s\\n" "$c" "\$*" >> "\$SUITE_FALSOS_LOG"
+exit 1
+FIM
+  chmod 755 "$SUITE_TMP/falso/$c"
+}
+_so_leitura systemctl '" is-active "|" is-enabled "|" is-failed "|" is-system-running "|" status "|" show "|" cat "|" list-units "|" list-unit-files "|" list-timers "|" list-jobs "|" list-dependencies "|" get-default "|" show-environment "'
+_so_leitura gsettings '" get "|" list-schemas "|" list-relocatable-schemas "|" list-keys "|" list-children "|" list-recursively "|" range "|" describe "|" writable "|" help "'
+_so_leitura dconf '" read "|" list "|" dump "|" help "'
+_so_leitura busctl '" list "|" status "|" tree "|" introspect "|" get-property "|" help "'
+unset DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR WAYLAND_DISPLAY DISPLAY
 [ -d "$CASA_REAL/.cache/ms-playwright" ] && \
   export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$CASA_REAL/.cache/ms-playwright}"
 [ -d "$CASA_REAL/.pyenv" ] && export PYENV_ROOT="${PYENV_ROOT:-$CASA_REAL/.pyenv}"
 export PYTHONUSERBASE="${PYTHONUSERBASE:-$CASA_REAL/.local}"
 export PATH="$SUITE_TMP/falso:$PATH" HOME="$SUITE_TMP/casa"
 unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME MEOW_CONF MEOW_ESTADO
-printf 'casa de brinquedo da suíte: %s (sudo, pkexec e su recusam e registram)\n\n' "$HOME"
+printf 'casa de brinquedo da suíte: %s (sudo, pkexec e su recusam e registram)\n' "$HOME"
+printf 'sem barramento da sessão; pkill, killall, notify-send, systemd-run, loginctl, apt, apt-get e xdg-open recusam; systemctl, gsettings, dconf e busctl só leem\n\n'
 
 VERDES=0; PULADOS=0; VERMELHOS=()
 for nome in "${ALVOS[@]}"; do
@@ -308,32 +274,8 @@ for nome in "${ALVOS[@]}"; do
   # `pulado` no começo de uma linha é o idioma da casa para "não dava para
   # conferir aqui". O rc=3 é o mesmo em número (regra 7 do contrato).
   #
-  # O `rc` MANDA, E A PALAVRA SÓ DESEMPATA — medido em 21/09/2026
-  #   A primeira versão deste laço olhava a palavra antes do código e marcou o
-  #   `conversor.sh` como *pulado* com `rc=1`: ele imprime "pulado: ... não
-  #   existe nesta máquina" para UM caso e falha em outro, linhas adiante. Um
-  #   runner que esconde vermelho atrás de um pulado é o defeito que este
-  #   arquivo veio matar, com o crachá de quem veio consertá-lo.
-  #
-  # E O MESMO DEFEITO VOLTOU PELA PORTA DO NÚMERO — corrigido em 21/09/2026
-  #   A segunda versão aceitava `rc=3` sozinho como pulado, e cinco testes desta
-  #   suíte terminam em `exit "$falhas"`: `estilo.sh`, `app.sh`, `conversor.sh`,
-  #   `afinador.sh` e `previa-cerca.sh`. Com EXATAMENTE três falhas eles saem 3,
-  #   e o runner os carimbava *pulado* — fora do placar vermelho, sem imprimir a
-  #   saída vermelha, e a suíte inteira saindo 0. Dois deles (`estilo.sh` e
-  #   `app.sh`) estão no subconjunto do CI, e em `estilo.sh` chegar a três é
-  #   trivial: uma TRAVA mais os dois PISO que o cabeçalho dele já diz estarem
-  #   fora. Reproduzido com dois esboços em 21/09: o que imprime três `FALHOU:`
-  #   e sai 3 agora aparece vermelho, com as três linhas na tela.
-  #
-  #   Então o pulado passou a exigir as TRÊS coisas ao mesmo tempo: código 0 ou
-  #   3, a palavra `pulado` abrindo alguma linha, e NENHUM `FALHOU` na saída. A
-  #   palavra vermelha manda sobre as outras duas — um teste que falou em falha
-  #   nunca é pulado, seja qual for o número com que ele saiu.
-  #
-  # E A BUSCA É CASAMENTO DE PADRÃO, NÃO UM CANO PARA `grep -q`
-  #   Com `set -o pipefail`, o `-q` fecha o cano na primeira linha, o lado de
-  #   cá morre de SIGPIPE e a condição inverte sozinha.
+  # Um runner que esconde vermelho atrás de um pulado é o defeito que este
+  # arquivo veio matar, com o crachá de quem veio consertá-lo.
   disse_pulado=0
   [[ $saida == pulado* || $saida == *$'\n'pulado* ]] && disse_pulado=1
   disse_falhou=0
@@ -369,23 +311,9 @@ $saida"
   # Quem falhou mostra o que disse. Quem passou não polui a tela: o placar
   # responde, e o detalhe de um teste verde ninguém lê.
   #
-  # E DE QUEM FALHOU SÓ SAI A PARTE VERMELHA. O `conversor.sh` imprime 48
-  # linhas de `ok:` em volta de UMA de `FALHOU:` — despejar as 48 esconde a
-  # única que interessa no meio do verde, que é a forma mais boba de um log
-  # ilegível. Se o teste falhou sem usar a palavra, aí sim vai tudo: melhor
-  # ruído que silêncio.
-  #
-  # OS `.py` FALAM OUTRO IDIOMA, E O FILTRO NÃO O CONHECIA — 23/09/2026, P33
-  #   Os dois testes de navegador marcam reprovação com `  XX ` no começo da
-  #   linha, e não com `FALHOU`. Enquanto eles saíam *pulados* isso não
-  #   aparecia; quando a P33 os fez rodar, o vermelho do `app-navegador.py`
-  #   chegou à tela como UMA linha, `| Traceback (most recent call last):` —
-  #   sem as quatro `XX` que vieram antes e sem a exceção que veio depois.
-  #   Agora sai a linha `XX`, e do traceback só o que diz onde e o quê: o
-  #   cabeçalho, os quadros que moram em `tests/` (arquivo, linha e o código
-  #   daquela linha) e a primeira linha sem recuo depois deles, que é a
-  #   exceção. Os quadros de dentro do Playwright ficam de fora — são quinze
-  #   linhas que dizem o mesmo que a exceção.
+  # O `conversor.sh` imprime 48 linhas de `ok:` em volta de UMA de `FALHOU:`
+  # — despejar as 48 esconde a única que interessa no meio do verde, que é a
+  # forma mais boba de um log ilegível.
   if [ "$estado" = "FALHOU" ]; then
     vermelho="$(printf '%s\n' "$saida" | awk '
       /FALHOU|^Erro|^ *XX / { print; next }
@@ -406,6 +334,13 @@ if [ -s "$SUITE_SUDO_LOG" ]; then
   LC_ALL=C sort "$SUITE_SUDO_LOG" | uniq -c | sort -rn | head -10 | sed 's/^/    /'
 else
   printf 'nenhum teste chamou sudo, pkexec ou su\n'
+fi
+# E os outros falsos, um por um: quantas vezes cada escrita foi parada.
+if [ -s "$SUITE_FALSOS_LOG" ]; then
+  printf 'escritas paradas nos falsos: %s chamada(s)\n' "$(grep -c . "$SUITE_FALSOS_LOG")"
+  awk '{print $1}' "$SUITE_FALSOS_LOG" | LC_ALL=C sort | uniq -c | sort -rn | sed 's/^/    /'
+else
+  printf 'nenhuma escrita parada nos outros falsos\n'
 fi
 if [ "${#VERMELHOS[@]}" -gt 0 ]; then
   printf 'vermelhos: %s\n' "${VERMELHOS[*]}" >&2

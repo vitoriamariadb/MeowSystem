@@ -2,174 +2,23 @@
 # areas.sh — as ÁREAS DE TRABALHO do COSMIC: o nome de cada uma, a ordem em que
 # nascem e se as janelas se encaixam sozinhas dentro delas.
 #
-# O PEDIDO, LITERAL — 06/09/2026
-#   "não temos a seção pra setar os dois ambientes de trabalho tipo o Meow e o
-#   OS". Ela tem duas áreas com nome, e não havia nenhuma porta no projeto para
-#   ver, renomear ou reordenar isso. A única forma era editar RON na mão.
+# Um workspace do COSMIC só tem nome se estiver ALFINETADO (pinned).
 #
-# ============================================================================
-# OS TRÊS FATOS QUE MANDAM NO DESENHO DESTE ARQUIVO
-# ============================================================================
+# Ele renomeia, reordena, liga o encaixe e ACRESCENTA.
 #
-# 1. O ALFINETE É O QUE SEGURA TUDO
-#    Um workspace do COSMIC só tem nome se estiver ALFINETADO (pinned). Sem
-#    alfinete o `cosmic-comp` destrói o workspace assim que ele esvazia, e o
-#    painel passa a mostrar a POSIÇÃO dele — o "3" seco que ela já viu na tela.
-#    Ou seja: tirar um alfinete não é "desmarcar uma caixa", é APAGAR uma área
-#    de trabalho e tudo que dependia da posição dela.
+# O `cosmic-comp` lê o `pinned_workspaces` UMA vez, ao iniciar.
 #
-#    Por isso o `aplicar` deste arquivo NUNCA remove um alfinete. Ele renomeia,
-#    reordena, liga o encaixe e ACRESCENTA. Quem quiser tirar usa o
-#    `desalfinetar`, que é um subcomando separado, exige `MEOW_SIM=1` e diz
-#    por extenso o que se perde. Um botão que apaga a área dela não pode morar
-#    no mesmo lugar que um botão que a renomeia.
+# Todo caminho de escrita deste arquivo termina dizendo isso em voz alta.
 #
-# 2. QUALQUER MUDANÇA AQUI SÓ VALE NO PRÓXIMO INÍCIO DE SESSÃO
-#    O `cosmic-comp` lê o `pinned_workspaces` UMA vez, ao iniciar (medido duas
-#    vezes em 04/08/2026: escrita às 04:03, o nome velho ainda na tela 3s
-#    depois, o nome novo só no boot das 10:26). Não há inotify neste caminho,
-#    ao contrário do tema e das chaves de `autotile`.
-#
-#    Todo caminho de escrita deste arquivo termina dizendo isso em voz alta. Um
-#    ajuste que parece não funcionar é pior que um ajuste que não existe: quem
-#    troca o nome, olha a barra e não vê mudança conclui que o painel está
-#    quebrado, e a próxima coisa que ela faz é mexer no arquivo na mão.
-#
-# 3. A ORDEM IMPORTA, E ELA TEM UMA RAZÃO ESCRITA
-#    No `cosmic-comp` (`src/shell/mod.rs`, `add_output`) os alfinetados são
-#    criados PRIMEIRO, na ordem do arquivo, e só depois os dinâmicos entram.
-#    Com apenas o "OS" alfinetado, ele nascia na POSIÇÃO 1 — na frente da área
-#    dela. É por isso que os DOIS são alfinetados, e é por isso que o "Meow"
-#    vem primeiro: não é gosto, é a única forma de a área dela ser a primeira.
-#    Reordenar a lista aqui reordena a barra dela no próximo login.
-#
-# ============================================================================
-# O ARQUIVO, E O QUE NELE É INTOCÁVEL
-# ============================================================================
-#   `~/.config/cosmic/com.system76.CosmicComp/v1/pinned_workspaces`, em RON.
-#   Uma lista de registros, cada um assim (medido no disco desta máquina):
-#
-#       (
-#           output: (
-#               name: "DP-1",
-#               edid: Some((manufacturer: ('G','D','H'), product: 48, ...)),
-#           ),
-#           tiling_enabled: true,
-#           id: Some("c0ffee"),
-#           name: Some("<nome>"),
-#       )
-#
-#   O BLOCO `output:` E O `edid` SAEM DAQUI EXATAMENTE COMO ENTRARAM. Eles
-#   amarram a área a um monitor, e um EDID errado põe a área num monitor que
-#   não existe. Este script nunca os reescreve: quando precisa criar uma área
-#   nova, ele HERDA o bloco `output:` de uma entrada que já está no arquivo, em
-#   bytes, e só cai fora se não houver nenhuma de onde herdar.
-#
-#   Os `id` são hexadecimais de 24 bits que o próprio COSMIC sorteia
-#   (`shell/workspace.rs`, `random_workspace_id`) — daí os legíveis a olho que
-#   estão neste arquivo (`c0ffee`, `deb970`, e o `decaf0` do "III", que saiu em
-#   25/08/2026). Uma área nova ganha um id sorteado do mesmo jeito, conferido
-#   contra os que já existem.
-#
-#   TRÊS `.bak-*` moram ao lado do arquivo e são a melhor documentação do
-#   formato que existe nesta máquina: `.bak-pre-rename` tem `name: None` (é
-#   valor válido — área alfinetada e sem nome), `.bak-pre-iii-fora` tem os três
-#   alfinetes e `tiling_enabled: false`, e `.bak-aurora` tem os dois de hoje.
-#
-# ============================================================================
-# ESTE ARQUIVO TEM DOIS VIZINHOS NO MESMO ALVO, E OS DOIS FORAM MEDIDOS
-# ============================================================================
-#
-# VIZINHO 1 — o `scripts/janelas.sh`, que é DESTE projeto
-#   Ele escreve `tiling_enabled` em TODAS as entradas de uma vez
-#   (`_janelas_pin_escrever`, com `sed ... /g`), a partir da chave
-#   `JANELAS_TILING`, e o `meow doctor` o chama todo dia. Ou seja: um encaixe
-#   POR ÁREA gravado aqui é achatado por ele na passagem seguinte, calado.
-#
-#   Não há como os dois estarem certos ao mesmo tempo, então o desenho é
-#   explícito: `AREAS_ENCAIXE` vazio (o padrão) deixa o `janelas.sh` ser o dono,
-#   e este script não encosta no campo. Com `AREAS_ENCAIXE` preenchido, o
-#   `aplicar` daqui RECUSA (rc 4) enquanto `JANELAS_TILING` também estiver
-#   preenchido e as duas respostas não coincidirem — e diz qual esvaziar. É a
-#   mesma regra que o resto do projeto usa: dois donos da mesma linha é o
-#   defeito que mais custou caro aqui.
-#
-# VIZINHO 2 — o `aurora-cosmic-workspaces.py`, que NÃO é deste projeto
-#   SAIU EM 24/09/2026 (P39), e o texto abaixo fica como a história da guarda.
-#   A P37 mediu que o script não existe mais no Spellbook, e o
-#   `~/.local/bin/aurora-cosmic-workspaces.py` também não existe nesta casa: a
-#   guarda procurava um vizinho que tinha ido embora. E a regra de 23/09 manda
-#   o resto: o que era recurso do produto (dar nome e ordem às áreas) já mora
-#   aqui desde 07/09, e o que era só daquela máquina sai daqui, sem "integração
-#   opcional" que continue olhando para o `~/.config/zsh` quando ele existe.
-#   Sem vizinho, todo alfinete é nosso — que é o que o parágrafo "Máquina sem
-#   Aurora" lá embaixo já dizia para quem instala de fora.
-#
-#   O `docs/FRONTEIRA.md` dá o `pinned_workspaces` ao Ritual da Aurora, e a
-#   medição diz por quê: o self-heal roda de hora em hora (timer conferido:
-#   `ritual-aurora-self-heal.timer`, ciclo de 1h) e chama aquele script, que
-#   tem uma lista `MANAGED` com os alfinetes canônicos e FORÇA o nome de cada
-#   um deles. Lendo o fonte:
-#
-#     - ele casa o canônico por `id` PRIMEIRO e por `name` depois;
-#     - ao casar, ele monta a entrada com `"name": alvo["name"]` — o nome da
-#       lista dele, não o do disco;
-#     - `tiling_enabled` e o bloco `output:` ele PRESERVA do disco;
-#     - alfinete que não é dele é preservado e empurrado para depois dos
-#       canônicos;
-#     - ele só escreve quando a semântica diverge, e guarda o anterior em
-#       `.bak-aurora`.
-#
-#   A consequência prática, e ela decide o desenho: **renomear um alfinete que
-#   está na `MANAGED` dele é desfeito em até uma hora.** Não é hipótese — é o
-#   que aquele arquivo faz, linha a linha. Gravar assim mesmo seria entregar
-#   exatamente o sintoma do fato 2 acima, só que pior, porque voltaria sozinho
-#   DEPOIS de ter funcionado por um login.
-#
-#   O `FRONTEIRA.md` já responde a esse caso em uma frase: "quando o Aurora
-#   precisa continuar sendo o dono, o Meow NÃO ESCREVE — ele confere e diz". É
-#   o que este arquivo faz: rc 4 (pendência que não é nossa), com o caminho do
-#   arquivo e da lista a mudar. Renomear vale para todo alfinete que NÃO esteja
-#   na lista dele, e o encaixe vale sempre, porque ele preserva o campo.
-#
-#   A conferência é barata e não acopla os dois projetos: procura-se o `id`
-#   como texto dentro do script vizinho. Máquina sem Aurora não tem o arquivo,
-#   a guarda não arma, e tudo é escrevível — que é o certo para quem instalar
-#   este projeto de fora.
-#
-# ============================================================================
-# IDEMPOTÊNCIA E MODO SECO
-# ============================================================================
-#   0 já estava assim · 1 estava diferente e consertei · 2 erro · 3 falta
-#   dependência · 4 pendência que não é nossa. Quando mais de um acontece na
-#   mesma passagem, vence o mais grave nesta ordem: 2 > 3 > 4 > 1 > 0.
-#
-#   O texto novo é montado inteiro e comparado com o do disco ANTES de
-#   qualquer escrita, e quando nada muda de estrutura a montagem é feita por
-#   substituição de intervalo no texto original — então "nada a fazer" é
-#   byte-idêntico, e não uma reserialização que empata por sorte.
-#
-#   `MEOW_DRY_RUN=1` é a porta do modo seco, e não `MEOW_SECO=1`: o
-#   `lib/comum.sh:25` sobrescreve o `MEOW_SECO` que vier do ambiente, no
-#   `source`. Está documentado lá, com o incidente de 24/08/2026.
-#
-# USO
-#   areas.sh estado        lista as áreas alfinetadas, na ordem, com nome e id
-#   areas.sh conferir      0 = conforme · 1 = divergente · 2 = erro · 3 = sem comp
-#   areas.sh aplicar       põe o arquivo de acordo com as chaves do meow.conf
-#   areas.sh alfinetar-primeira  CRIA o primeiro alfinete no monitor em uso
-#   areas.sh reverter      devolve o arquivo como estava antes da nossa 1ª escrita
-#   areas.sh desalfinetar <nome>   TIRA uma área (destrutivo; exige MEOW_SIM=1)
+# No `cosmic-comp` (`src/shell/mod.rs`, `add_output`) os alfinetados são criados
+# PRIMEIRO, na ordem do arquivo, e só depois os dinâmicos entram.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# 4 = pendência que não é nossa para consertar. O `lib/comum.sh` não declara
-# esta constante (ela nasceu depois dos quatro primeiros códigos), então cada
-# script que a usa a nomeia — é o que o `prompt.sh` e o `fastfetch_logo.sh` já
-# fazem, com o número cru.
+# 4 = pendência que não é nossa para consertar.
 AREAS_PENDENCIA=4
 
 # --- as chaves do meow.conf -------------------------------------------------
@@ -192,26 +41,13 @@ AREAS_BINARIO="/usr/bin/cosmic-comp"
 AREAS_ANTES="$MEOW_ESTADO/areas"
 BACKUPS_MANTIDOS="${BACKUPS_MANTIDOS:-10}"
 
-# O ESPAÇO-FIGURA (U+2007), E POR QUE ELE MERECE UMA CHAVE
-#   30/08/2026, com a topbar na frente: "Pq não pode ficar Meow? Já tava assim
-#   antes e o nome precisa de mais espaço, adiciona um caracter fantasma pra ser
-#   um espaço invisível." Ela recusou encurtar o nome e recusou trocá-lo por um
-#   glifo — o problema é o desenho da pastilha, não a palavra.
+# O espaço-figura (U+2007) dá folga ao nome da área sem trocar a palavra: o
+# problema é o desenho da pastilha. Espaço comum morreria em qualquer `trim()`;
+# o U+2007 tem largura de dígito e não quebra linha.
 #
-#   O `cosmic-applet-workspaces` (`src/components/app.rs:190-205`) desenha cada
-#   área como `column!(row!(texto, espaço), espaço_horizontal(quadrado))`: a
-#   pastilha é do tamanho do TEXTO, com um piso de um quadrado da barra. Com
-#   "Meow" em negrito o texto empata com o piso e as letras encostam na borda.
-#
-#   U+2007 e não espaço comum: espaço comum morre em qualquer `trim()`, e o
-#   U+2007 tem a largura de um dígito e não quebra linha. O `cosmic-comp` não
-#   corta nome de área — conferido no fonte 5c93094, não há um `.trim()` sequer
-#   em `src/shell/workspace.rs` nem no caminho do `create_workspace_from_pinned`.
-#
-#   Isto é uma CHAVE e não uma esperteza do código porque é decisão dela, por
-#   área, e porque sem ela o nome no disco (` Meow `) e o nome no conf (`Meow`)
-#   divergiriam para sempre — o `aplicar` acusaria "divergente" em toda
-#   passagem sobre um arquivo que ninguém quer mudar.
+# O `cosmic-applet-workspaces` (`src/components/app.rs:190-205`) desenha cada
+# área como `column!(row!(texto, espaço), espaço_horizontal(quadrado))`: a
+# pastilha é do tamanho do TEXTO, com um piso de um quadrado da barra.
 AREAS_FIGURA=$'\u2007'   # U+2007 FIGURE SPACE, escrito por escape: um byte
                          # invisível no fonte seria a próxima armadilha, não o conserto.
 
@@ -233,18 +69,9 @@ _areas_dependencia() {
 
 # --- O MOTOR DE RON, E POR QUE ELE É PYTHON DENTRO DE UM SCRIPT DE SHELL -----
 # O `pinned_workspaces` não é um arquivo de linhas: é uma árvore com parênteses
-# aninhados, strings com escape e literais de caractere (`'G'`, do EDID). Mexer
-# nele com `sed` ancorado só é seguro quando o campo é um booleano numa linha
-# própria — que é exatamente o que o `janelas.sh` faz com `tiling_enabled`, e é
-# o limite do que aquele caminho aguenta. NOME e ORDEM não cabem ali: um nome
-# pode conter `)` , `,` e `:` sem nada quebrar do lado do COSMIC, e uma linha
-# de `sed` que casasse isso reescreveria o arquivo errado calada.
+# aninhados, strings com escape e literais de caractere (`'G'`, do EDID).
 #
-# O motor aqui NÃO ESCREVE NADA. Ele lê e devolve texto no stdout; quem grava é
-# o `meow_escrever` do `lib/comum.sh`, que já tem o modo seco, a escrita atômica
-# no diretório de destino, o prefixo `.atomicwrite` que o cosmic-config ignora, e
-# o registro no manifesto. Duas rotinas de escrita para o mesmo arquivo é o
-# defeito que o cabeçalho do `lib/comum.sh` conta por extenso.
+# O motor aqui NÃO ESCREVE NADA.
 _areas_motor() {
   python3 -I - "$@" <<'PY'
 import glob
@@ -669,14 +496,11 @@ PY
 }
 
 # --- a peneira do nome ------------------------------------------------------
-# SEM `eval` E SEM SUBSTITUIÇÃO SILENCIOSA. Aspas, contrabarra, parênteses e
-# quebra de linha destruiriam o RON; `#` não destrói o RON mas destrói a LINHA
-# do meow.conf, que é partida no primeiro `#` para preservar o comentário
-# (`meow_conf_texto_definir`, lib/comum.sh).
+# Aspas, contrabarra, parênteses e quebra de linha destruiriam o RON; `#` não
+# destrói o RON mas destrói a LINHA do meow.conf, que é partida no primeiro
+# `#` para preservar o comentário (`meow_conf_texto_definir`, lib/comum.sh).
 #
-# A resposta é RECUSAR, e não limpar calado: quem digitou `Meow (dela)` e viu
-# aparecer `Meow dela` na barra não teve o pedido atendido nem negado — teve
-# outro. Dizer qual caractere não cabe é o que permite escolher outro nome.
+# Dizer qual caractere não cabe é o que permite escolher outro nome.
 _areas_nome_seguro() {
   local nome="$1"
   case "$nome" in
@@ -701,31 +525,10 @@ _areas_partir() {
   done < <(printf '%s,' "$texto")
 }
 
-# CAPTURAR SEM PERDER A QUEBRA FINAL — e isto é o defeito nº 2 deste arquivo,
-# medido em 06/09/2026: `aplicar` devolveu 1 e disse "gravadas" sobre um arquivo
-# cujo md5 não mudou.
-#   `$( )` come TODA quebra de linha do fim. O `pinned_workspaces` termina em
-#   `]\n`, então `texto="$(motor)"` perdia o byte final e a comparação com o
-#   disco nunca podia dar igual — o script reescrevia o mesmo conteúdo em toda
-#   passagem, e a idempotência era falsa por um byte invisível.
-#   O `printf x` põe uma âncora depois da quebra, e o `${v%x}` a tira: o que
-#   sobra é o texto EXATO, com quantas quebras finais ele tiver.
+# `$( )` come TODA quebra de linha do fim.
 #
-#   O `meow_escrever` compara com `$(cat "$destino")` e sofre do mesmo corte,
-#   então ele nunca reconhece "igual" quando o conteúdo termina em quebra. Por
-#   isso a comparação certa é feita AQUI, antes de chamá-lo — que é a mesma
-#   ordem que o `janelas.sh` usa (ele só chama depois de um `grep -q` dizer que
-#   há o que trocar).
-#   E A FUNÇÃO TEM DE ATRIBUIR, NÃO IMPRIMIR — foi o defeito nº 3, na mesma
-#   noite. A primeira versão destes dois ajudantes IMPRIMIA o texto certo, e
-#   quem chamava fazia `texto="$(ajudante ...)"` — pondo o corte de volta, uma
-#   camada acima. Não há como devolver uma quebra final POR STDOUT em bash: a
-#   substituição de comando a come sempre, venha ela de onde vier. Por isso o
-#   resultado sai por `AREAS_TEXTO`, escrito DENTRO da função, e o `printf x`
-#   mora do lado de dentro, onde a substituição ainda não aconteceu.
-#
-#   O sintoma, medido numa caixa de areia em /tmp: o `reverter` devolvia um
-#   arquivo de 837 bytes onde o original tinha 838 — o `]` sem a quebra depois.
+# O `meow_escrever` compara com `$(cat "$destino")` e sofre do mesmo corte,
+# então ele nunca reconhece "igual" quando o conteúdo termina em quebra.
 AREAS_TEXTO=""
 
 _areas_ler_arquivo() {
@@ -743,9 +546,8 @@ _areas_montar_texto() {
 # `${arr[*]}` com `IFS=', '` junta pelo PRIMEIRO caractere do IFS e mais nada —
 # saía `Meow ,OS`. Uma linha de laço diz o que se quis dizer.
 #
-# E o nome sai SEM a folga invisível: com ela, a linha na tela vira ` Meow , OS`
-# e parece erro de digitação nossa. A folga é dita por extenso no `estado`, que
-# é onde ela é informação; numa frase de confirmação ela é só ruído.
+# A folga é dita por extenso no `estado`, que é onde ela é informação; numa
+# frase de confirmação ela é só ruído.
 _areas_juntar() {
   local sep="" x
   for x in "$@"; do printf '%s%s' "$sep" "$(_areas_sem_folga "$x")"; sep=", "; done
@@ -785,18 +587,11 @@ _areas_sem_folga() {
   printf '%s' "$n"
 }
 
-# --- a guarda do vizinho: SAIU EM 24/09/2026 (P39) --------------------------
-# Aqui moravam três caminhos do Ritual da Aurora (o script no Spellbook, a
-# cópia em ~/.local/bin e a sentinela `.aurora-workspaces-off`) e as quatro
-# funções que os liam: `_areas_vizinho_armado`, `_areas_assumir_posse`,
-# `_areas_vizinho_manda` e `_areas_dizer_bloqueadas`. A guarda nasceu certa
-# (06/09, quando o reparador rodava de hora em hora e desfazia o nome), ganhou a
-# cessão em 07/09 pela sentinela que o próprio vizinho oferecia, e perdeu o
-# assunto quando o script sumiu do Spellbook. Ver "VIZINHO 2" no cabeçalho.
-#
-# A SENTINELA QUE ESTE ARQUIVO JÁ ESCREVEU, onde escreveu, fica no disco: ela
-# não atrapalha ninguém, e apagá-la seria o MeowSystem mexendo, de novo, numa
-# convenção que é de outro projeto.
+# --- a guarda do vizinho: SAIU --------------------------
+# Aqui moravam três caminhos do Ritual da Aurora (o script no Spellbook, a cópia
+# em ~/.local/bin e a sentinela `.aurora-workspaces-off`) e as quatro funções
+# que os liam: `_areas_vizinho_armado`, `_areas_assumir_posse`,
+# `_areas_vizinho_manda` e `_areas_dizer_bloqueadas`.
 
 # --- backup, e ele é a diferença entre ter e não ter área de trabalho -------
 # Duas cópias, com propósitos diferentes:
@@ -843,16 +638,6 @@ FIM
   for velho in "$MEOW_ESTADO"/backups/*-areas; do
     [ -d "$velho" ] && antigas+=("$velho")
   done
-  # "0" DESLIGA A PODA — e sem esta linha ele fazia o OPOSTO. [2026-09-18]
-  #   meow.conf.exemplo:1763 promete, na ajuda que a pessoa lê na tela:
-  #       "0" desliga a poda e guarda todos.
-  #   Mas o corte abaixo é `head -n "-$BACKUPS_MANTIDOS"`, e `head -n "-0"` NÃO
-  #   imprime nada a menos — ele imprime o arquivo INTEIRO. Medido:
-  #       $ printf 'a\nb\nc\n' | head -n "-0"
-  #       a b c        (head, GNU coreutils 9.4)
-  #   Ou seja: quem escreveu 0 para guardar TODOS os backups perdia TODOS eles na
-  #   primeira poda. As três pontas discordavam — a ajuda, o painel (que aceita 0)
-  #   e o código. Quem manda é a ajuda: é a promessa que a pessoa leu.
   [ "${BACKUPS_MANTIDOS:-10}" -eq 0 ] 2>/dev/null && return 0
   if [ "${#antigas[@]}" -gt "$BACKUPS_MANTIDOS" ]; then
     printf '%s\n' "${antigas[@]}" | sort | head -n "-$BACKUPS_MANTIDOS" \
@@ -899,8 +684,8 @@ cmd_estado() {
   meow_info "áreas alfinetadas, na ordem em que nascem:"
   for i in "${!AREAS_NOME[@]}"; do
     nu="$(_areas_sem_folga "${AREAS_NOME[$i]}")"
-    # Sempre "nosso" desde 24/09/2026: a coluna ficou para a linha não mudar
-    # de forma para quem já a lê, e o outro valor saiu com a guarda do vizinho.
+    # Sempre "nosso": a coluna ficou para a linha não mudar de forma para quem
+    # já a lê, e o outro valor saiu com a guarda do vizinho.
     dono="nosso"
     printf '  %s%2d.%s %s  id=%-8s encaixe=%-5s (%s)%s\n' \
       "$C_MAUVE" "$((i + 1))" "$C_ZERO" "$(_areas_col "$nu")" \
@@ -926,13 +711,10 @@ cmd_estado() {
   return "$MEOW_OK"
 }
 
-# ============================================================================
 # o cálculo que `aplicar` e `conferir` dividem
-# ============================================================================
+#
 # Preenche AREAS_ALVO_NOME / AREAS_ALVO_ENCAIXE a partir do conf e devolve o
 # que sobrou para escrever.
-#   0 = tudo resolvido · 2 = erro de valor · 4 = há pendência (o `janelas.sh`
-#   discorda do encaixe; a pendência do Ritual da Aurora saiu em 24/09/2026)
 AREAS_ALVO_NOME=(); AREAS_ALVO_ENCAIXE=()
 
 _areas_planejar() {
@@ -1006,49 +788,16 @@ _areas_planejar() {
   return "$pendencia"
 }
 
-# ============================================================================
-# alfinetar-primeira
-# ============================================================================
-# POR QUE ESTE VERBO EXISTE [2026-09-22]
-#   A sprint P2 mediu seis mensagens do projeto que descobrem o problema, sabem
-#   o conserto e mandam a pessoa consertar. Esta era a primeira da lista:
+# Esta era a primeira da lista:
 #
 #     "alfinete uma área pelo COSMIC (visão geral, botão direito) e rode de novo"
 #
-#   Para um designer leigo isso não é cortesia, é o programa desistindo — e o
-#   pior é que o conserto era conhecido. Agora ele é um verbo, e o painel o
-#   oferece como botão.
+# Para um designer leigo isso não é cortesia, é o programa desistindo — e o pior
+# é que o conserto era conhecido.
 #
-# O MONITOR SAI DO ESTADO REAL, NUNCA DE UMA LISTA DE NOMES
-#   O conector vem do `cosmic-randr list`, que fala com o compositor vivo, e o
-#   EDID vem de /sys/class/drm/<card>-<conector>/edid, que é a mesma fonte que
-#   o cosmic-comp lê. Nada aqui é cravado: numa máquina com outra placa, outro
-#   conector e outra TV, o alfinete nasce amarrado ao que estiver ligado.
+# A primeira é a difícil: sem nenhuma, não há bloco `output:` de onde herdar.
 #
-# ELE CRIA UMA ÁREA SÓ, E O `aplicar` FAZ O RESTO
-#   A primeira é a difícil: sem nenhuma, não há bloco `output:` de onde herdar.
-#   Com uma, o `montar` de sempre acrescenta as outras herdando os bytes dela —
-#   conferido em caixa de areia antes de este verbo entrar.
-#
-# E ELE NÃO ESCREVE POR CIMA DE ALFINETE NENHUM
-#   Se já houver área alfinetada, ele diz e sai em 0. Um verbo que reescreve o
-#   `pinned_workspaces` de quem já tem áreas apagaria as áreas dela, que é o
-#   estrago que o `_areas_recusar_vazio` existe para impedir do outro lado.
-# A SAÍDA "EM USO", E COM DUAS LIGADAS ELA NÃO É "A PRIMEIRA DA LISTA"
-#   A primeira versão desta função pegava a primeira `(enabled)` do
-#   `cosmic-randr list`. Medido em 22/09/2026, nesta máquina de DOIS monitores
-#   (`HDMI-A-1` e `eDP-1`, as duas ligadas): duas chamadas seguidas devolveram
-#   saídas DIFERENTES. A ordem daquela listagem não é contrato, e um alfinete
-#   que cai num monitor por sorteio é pior que nenhum.
-#
-#   O desempate sai do próprio compositor: `Xwayland primary: true` é como ele
-#   responde "qual é a principal". É a mesma disciplina do resto do projeto —
-#   perguntar ao estado real em vez de escolher por uma lista de nomes. Sem
-#   nenhuma marcada (é campo opcional), cai na primeira ligada, que continua
-#   sendo melhor que desistir.
-#
-#   A limpeza de escape e o `^[^ ]` são os do `escala.sh`, que lê esta mesma
-#   saída desde 17/08/2026.
+# Se já houver área alfinetada, ele diz e sai em 0.
 _areas_saida_em_uso() {
   meow_tem cosmic-randr || return 1
   cosmic-randr list 2>/dev/null \
@@ -1140,18 +889,7 @@ cmd_aplicar() {
   if [ ! -f "$AREAS_ALVO" ] || [ "${#AREAS_NOME[@]}" -eq 0 ]; then
     # O `aplicar` continua sem criar o arquivo do zero, e isso é de propósito:
     # ele herda o bloco `output:` de uma área que já existe, e sem nenhuma não
-    # há de onde herdar. Quem cria é o `alfinetar-primeira`, que desde
-    # 22/09/2026 MEDE o EDID do conector em vez de inventá-lo — e é para ele
-    # que a pendência aponta. A divisão fica: quem herda herda, quem mede mede.
-    #
-    # O BOTÃO SÓ NASCE SE HOUVER NOME — 22/09/2026, na revisão da P2
-    #   A guarda do começo desta função deixa passar `AREAS_NOMES=""` quando
-    #   `AREAS_ENCAIXE` está preenchido. Nesse caso o `alfinetar-primeira` não
-    #   tem o que escrever — ele recusa inventar "Área 1", e a razão está no
-    #   comentário dele —, então o «Resolver» sairia 0 sem criar nada e sem
-    #   apagar a linha: botão que não resolve e pendência que não sai. Sem
-    #   nome, a saída é a TERCEIRA da sprint: a mensagem diz A DECISÃO, e a
-    #   Home desenha a linha sem botão, porque a decisão é dela.
+    # há de onde herdar.
     if [ -z "$(_areas_partir "$AREAS_NOMES" | head -1)" ]; then
       meow_pendencia_acionavel areas-sem-alfinete \
         "Nenhuma área de trabalho está fixada, e o nome da primeira é escolha sua: escreva-o em AREAS_NOMES (no painel ou no meow.conf) e eu crio a área" \
@@ -1164,12 +902,10 @@ cmd_aplicar() {
     return "$AREAS_PENDENCIA"
   fi
 
-  # A IRMÃ NO CAMINHO FELIZ — 22/09/2026, na revisão da P2
-  #   Passou daqui: existe área alfinetada, e a pendência acima deixou de ser
-  #   verdade. Quem registra é obrigado a apagar (lib/comum.sh), e faltando
-  #   isto quem alfinetasse pelo COSMIC — que é exatamente o que a frase velha
-  #   mandava fazer — ficaria com a linha na Home para sempre: só o «Resolver»
-  #   a apagava, e ele respondia "já há N área(s) alfinetada(s)".
+  # Quem registra é obrigado a apagar (lib/comum.sh), e faltando isto quem
+  # alfinetasse pelo COSMIC — que é exatamente o que a frase velha mandava
+  # fazer — ficaria com a linha na Home para sempre: só o «Resolver» a
+  # apagava, e ele respondia "já há N área(s) alfinetada(s)".
   meow_pendencia_resolvida areas-sem-alfinete
 
   local rc_plano; _areas_planejar; rc_plano=$?
@@ -1298,9 +1034,6 @@ cmd_reverter() {
   return "$rc"
 }
 
-# ============================================================================
-# desalfinetar — a faca, e ela vem embainhada
-# ============================================================================
 # Ver o fato 1 do cabeçalho: isto APAGA uma área de trabalho. Por isso mora
 # fora do `aplicar`, exige `MEOW_SIM=1` (o mesmo pedágio do `meow desfazer`) e
 # imprime o que se perde ANTES de perguntar.

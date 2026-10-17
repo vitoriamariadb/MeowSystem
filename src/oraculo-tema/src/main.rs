@@ -5,14 +5,7 @@
 //!   meow-oraculo-tema <dark|light> <dir-cosmic>
 //!
 //! `<dir-cosmic>` é um diretório no formato de `~/.config/cosmic` que contém a
-//! árvore `com.system76.CosmicTheme.<Dark|Light>.Builder/v<n>`. A saída, em
-//! stdout, é o `Theme` inteiro em JSON — é o que o `scripts/oraculo_tema.sh`
-//! compara campo a campo com a cópia em Python, e de onde ele refaz o produto.
-//!
-//! O DIRETÓRIO ENTRA PELO `XDG_CONFIG_HOME`, e não por um leitor nosso: quem
-//! lê a receita é o mesmo `CosmicConfigEntry` que o COSMIC usa, com os mesmos
-//! valores padrão para o que faltar. Ler à mão seria uma segunda cópia — a
-//! coisa que este programa existe para não ser.
+//! árvore `com.system76.CosmicTheme.<Dark|Light>.Builder/v<n>`.
 use cosmic_config::CosmicConfigEntry;
 use cosmic_theme::ThemeBuilder;
 use std::process::ExitCode;
@@ -45,9 +38,7 @@ fn main() -> ExitCode {
         }
     };
     // `get_entry` devolve o que conseguiu ler MESMO quando um campo falha (o
-    // erro vem junto). Um campo ilegível vira o padrão do libcosmic, e isso
-    // tem de ser dito: um produto feito com um padrão no lugar da receita
-    // dela não é o tema dela.
+    // erro vem junto).
     let builder = match ThemeBuilder::get_entry(&config) {
         Ok(b) => b,
         Err((erros, b)) => {

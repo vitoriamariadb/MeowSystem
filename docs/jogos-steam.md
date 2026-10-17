@@ -8,10 +8,11 @@ Este documento guarda **fatos verificados nesta máquina**, com o comando que os
 prova ao lado. Ele existe porque foi uma suposição confortável — *"a Steam deve
 criar os atalhos sozinha"* — que produziu o `scripts/jogos_steam.sh` quebrado de
 05/08: um script que lia a área de trabalho, encontrava zero arquivos e saía
-verde enquanto **nenhum** jogo existia no lançador dela.
+verde enquanto **nenhum** jogo existia no lançador.
 
 Máquina: Pop!_OS 24.04 · COSMIC · Wayland · Steam **nativa (deb)** · duas
-bibliotecas (`~/.steam/debian-installation` e `/mnt/Mnemosyne/SteamLibrary`).
+bibliotecas (`~/.steam/debian-installation` e uma num segundo disco, declarada no
+`libraryfolders.vdf`).
 
 ---
 
@@ -34,8 +35,8 @@ duplicaria os 21 atalhos com ícones diferentes.
 
 O desarme não é feito por nós: `~/.config/zsh` é o repo Andromeda com
 auto-commit a cada 10 min, e `/usr/local/bin` é revertido pelo self-heal em até
-uma hora. Se ela quiser o desarme físico, é edição no repo do Aurora, feita por
-ela ou por quem tenha esse escopo.
+uma hora. Se quem usa quiser o desarme físico, é edição no repo do Aurora, feita por
+quem tenha esse escopo.
 
 **Corrija esta justificativa onde quer que ela apareça:** a trava
 `meow_destino_permitido` (`lib/comum.sh:77-84`) barra `/usr/share`,
@@ -54,7 +55,7 @@ outro dono pode remover é um jogo que não abre.
 **1. A Steam NÃO cria `.desktop` de jogo sozinha.** Ela instala um `.desktop`
 para o CLIENTE e mais nada; atalho de jogo é ação manual da pessoa, um por vez,
 na área de trabalho. Foi assim que nasceram os oito que o script de 05/08
-copiava — e que ela apagou depois.
+copiava — e que foram apagados depois.
 
     ls /usr/share/applications | grep -i steam     # -> steam.desktop, só
     ls ~/"Área de trabalho"/ | wc -l                # -> 0
@@ -82,7 +83,7 @@ criá-los"* — é falsa. As provas:
 
 Ou seja: foram escritos à mão no resgate do BleachBit e ficaram. O
 `jogos_steam.sh` rodou duas horas depois e escreveu os dele ao lado — **17
-jogos com dois cartões no lançador**. Ela contou **quinze**, e os dois que
+jogos com dois cartões no lançador**. Na tela eram **quinze**, e os dois que
 faltam explicam o resto: no Sackboy e no ORPHEUS o nosso cartão usa o nome
 curto do `apps-nomes.map`, então os dois cartões não parecem o mesmo jogo. A
 limpeza do script passou a conhecer esse terceiro dono (seção 2 do próprio
@@ -98,7 +99,7 @@ script).
 
 **3. Existe uma cópia de `steam.desktop` em `~/.local/share/applications`, e ela
 é do Aurora.** Duas diferenças: tira o `NoDisplay=true` (por isso a Steam
-aparece no lançador dela) e troca o `Exec` por
+aparece no lançador) e troca o `Exec` por
 `/usr/local/bin/steam-resiliente.sh`. O MeowSystem **não** reescreve essa cópia
 nem imita o wrapper nos atalhos de jogo.
 
@@ -107,7 +108,7 @@ nem imita o wrapper nos atalhos de jogo.
 **4. Todos os 30 manifestos estão com `StateFlags=4`** (instalados por
 completo), então nenhum atalho aponta para jogo pela metade.
 
-Se um dia ela pedir o wrapper resiliente nos atalhos, isso vira
+Se um dia o pedido for o wrapper resiliente nos atalhos, isso vira
 `JOGOS_STEAM_EXEC="padrao"|"resiliente"` no `meow.conf` — **com** pergunta no
 `meow configurar`, senão é chave inerte (`lib/comum.sh:34-39`) — e com fallback
 automático para `/usr/games/steam` quando o wrapper não existir. Nunca o padrão.
@@ -131,11 +132,12 @@ de verdade chamado "Protocol". O critério aqui é estrutural e foi medido um a 
 - **`steam_icon_<appid>.png`** no hicolor, como guarda-costas para o jogo
   recém-instalado cuja arte ainda não baixou: também 0 das 9 ferramentas.
 
-Comando de reverificação, para quando ela instalar um jogo novo e ele não
+Comando de reverificação, para quando um jogo novo instalado não
 aparecer:
 
     CACHE=~/.steam/steam/appcache/librarycache
-    for m in ~/.steam/steam/steamapps/appmanifest_*.acf /mnt/Mnemosyne/SteamLibrary/steamapps/appmanifest_*.acf; do
+    # uma linha por biblioteca do libraryfolders.vdf; aqui, só a principal
+    for m in ~/.steam/steam/steamapps/appmanifest_*.acf; do
       [ -e "$m" ] || continue
       id=$(awk -F'"' '/"appid"/{print $4;exit}' "$m"); nm=$(awk -F'"' '/"name"/{print $4;exit}' "$m")
       cap=$(find "$CACHE/$id" -type f \( -name library_capsule.jpg -o -name library_600x900.jpg \) 2>/dev/null | wc -l)
@@ -143,7 +145,7 @@ aparecer:
       printf '%-9s capa=%s icone=%s %s\n' "$id" "$cap" "$ico" "$nm"
     done
     # capa=0 e icone=0 -> o script trata como ferramenta. Se for jogo de verdade,
-    # abra a biblioteca da Steam uma vez para ela baixar a arte e rode de novo.
+    # abra a biblioteca da Steam uma vez para a Steam baixar a arte e rode de novo.
 
 ---
 
@@ -165,7 +167,7 @@ Por isso `arte_do_jogo()` busca por *basename* com `find -type f` **sem
 `-maxdepth`** (cobre raiz e subpasta de uma tacada) e deixa o jpg de nome-hash
 **fora** da lista de preferências, de propósito.
 
-Nota de portabilidade que morde num teste manual: no shell interativo dela
+Nota de portabilidade que morde num teste manual: no shell interativo da máquina de origem
 `find` é uma função que chama `bfs`, não o GNU. Mas `/usr/bin/find` é GNU
 findutils 4.9.0 e um script com `#!/usr/bin/env bash` não herda funções de zsh —
 então o `-printf` é seguro **dentro** do script, e um teste colado no terminal
@@ -192,7 +194,7 @@ distingue:
 | manifestos de jogo e atalhos faltando | `~~ 21 jogo(s) da Steam: 21 atalho(s) a escrever` | 1 |
 | tudo em dia | `ok 21 jogo(s) da Steam no lançador` | 0 |
 
-Quando `/mnt/Mnemosyne` está **desmontado** o script sai 0 com um `!!` visível, e
+Quando o disco de uma biblioteca está **desmontado** o script sai 0 com um `!!` visível, e
 **adia a limpeza de órfãos**: sem o disco, a ausência do manifesto é falsa, e
 apagar o atalho do Wukong para recriá-lo no boot seguinte é o script brigando
 consigo mesmo. Devolver 1 aí faria o auto-reparo das 5h tentar consertar todo dia
@@ -202,16 +204,16 @@ perpétuo.
 Duas correções factuais que circularam erradas e não devem ser repetidas:
 
 1. `~/.config/systemd/user/meow-doctor.service:84` diz `SuccessExitStatus=1 3 4`
-   — o `4` ("divergente por escolha dela") também está lá.
+   — o `4` ("divergente por escolha de quem usa") também está lá.
 2. O bloco `show_content` que a versão antiga do script tinha era **código
    morto** quando foi acusado: o guarda era `grep -q 'show_content: *false'` e
    `~/.config/cosmic/com.system76.CosmicFiles/v1/desktop` já traz
    `show_content: true`. O bloco saiu por contradizer o requisito, e **a chave
-   fica como está** — o MeowSystem parou de opinar sobre a área de trabalho dela.
+   fica como está** — o MeowSystem parou de opinar sobre a área de trabalho de quem usa.
 
 ---
 
-## 6. O grupo "Jogos" no lançador é decisão dela
+## 6. O grupo "Jogos" no lançador é decisão de quem usa
 
 O COSMIC **não agrupa por `Categories` sozinho**: `cat
 ~/.config/cosmic/com.system76.CosmicAppLibrary/v1/groups` devolve `[]` e não há
@@ -220,12 +222,12 @@ default de sistema em `/usr/share/cosmic/`. O script garante a matéria-prima
 busca por "jogo" achar os 21) e **imprime a instrução**, sem tocar no arquivo.
 
 Grupo é gosto, e a folha visual vem antes do código. **Não** ponha esse arquivo
-sob o `meow doctor` nem sob o auto-reparo: `groups` é justamente o que ela vai
-editar pela interface, e um script que o reescreve todo dia desfaz o que ela fez
-— num arquivo em que isso custa caro (RON inválido derruba todos os grupos dela
+sob o `meow doctor` nem sob o auto-reparo: `groups` é justamente o que quem usa vai
+editar pela interface, e um script que o reescreve todo dia desfaz o que foi feito
+— num arquivo em que isso custa caro (RON inválido derruba todos os grupos
 de uma vez).
 
-Se ela pedir o grupo pronto, o RON abaixo está conferido contra
+Se o pedido for o grupo pronto, o RON abaixo está conferido contra
 `pop-os/cosmic-applibrary`, `src/app_group.rs` — `AppLibraryConfig { groups:
 Vec<AppGroup> }` (lista), `AppGroup { name, icon, filter }` (struct de três
 campos nomeados), `FilterType::Categories { categories, exclude, include }`
@@ -258,7 +260,7 @@ backup.
 
 ## 7. Como conferir, e como desfazer
 
-    cd /mnt/Apate/Desenvolvimento/MeowSystem
+    cd <o clone do MeowSystem>
     MEOW_DRY_RUN=1 ./scripts/jogos_steam.sh    # rc=1 enquanto houver o que fazer
     ./scripts/jogos_steam.sh                   # rc=1 (consertou)
     ./scripts/jogos_steam.sh                   # rc=0 (convergiu)
@@ -274,7 +276,7 @@ iguais em TODOS os diretórios que o lançador lê, não só no nosso:
       grep -h '^Name=' "$d"/*.desktop 2>/dev/null
     done | sort | uniq -d                      # -> vazio, em 15/08
 
-Desfazer, se ela não gostar de ver os 24 no lançador:
+Desfazer, se os 24 no lançador não agradarem:
 
     rm -f ~/.local/share/applications/meow-steam-*.desktop \
           ~/.local/share/icons/hicolor/256x256/apps/meow-steam-*.png

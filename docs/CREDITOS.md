@@ -7,7 +7,7 @@ licença**, com o link para o lugar de onde veio.
 
 A regra do projeto é antiga e não tem exceção: **nenhum acervo de terceiro entra
 sem licença registrada.** A auditoria fina de cada família mora ao lado do próprio
-acervo — [`assets/icones/PROCEDENCIA.md`](../assets/icones/PROCEDENCIA.md),
+acervo — [`packs/meowsystem/PROCEDENCIA.md`](../packs/meowsystem/PROCEDENCIA.md),
 [`assets/cursores/CREDITOS.md`](../assets/cursores/CREDITOS.md),
 [`assets/sons/CREDITOS.md`](../assets/sons/CREDITOS.md) e os `PROCEDENCIA.md` de
 `assets/temas-de-apps/`. Esta página é o índice delas.
@@ -28,8 +28,8 @@ flavor. É o que permite trocar Mocha por Latte sem reescrever um arquivo.
 
 | projeto | o que dá | licença | onde |
 |---|---|---|---|
-| [Arcticons](https://github.com/Donnnno/Arcticons) — Donno e colaboradores | **78** glifos de traço (39 de sistema + 39 de aplicativo), recoloridos pela paleta | **CC BY-SA 4.0** | `assets/icones/arcticons/`, `assets/icones/arcticons-apps/` |
-| [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) | a base sobre a qual o tema é montado, e a arte de origem dos **33** SVGs convertidos para traço | GPL-3.0 | pacote do sistema, `assets/icones/convertidos-apps/` |
+| [Arcticons](https://github.com/Donnnno/Arcticons) — Donno e colaboradores | **78** glifos de traço (39 de sistema + 39 de aplicativo), recoloridos pela paleta | **CC BY-SA 4.0** | `packs/meowsystem/icones/sistema/arcticons/`, `packs/meowsystem/icones/apps/arcticons/` |
+| [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) | a base sobre a qual o tema é montado, e a arte de origem dos **33** SVGs convertidos para traço | GPL-3.0 | pacote do sistema, `packs/meowsystem/icones/apps/convertidos/` |
 | [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) | as pastas na cor do acento, com o símbolo interno de cada uma — pinado em `f83671d1` | GPL-3.0 | `assets/icones/upstream/papirus-folders/` |
 | [catppuccin/vscode-icons](https://github.com/catppuccin/vscode-icons) | glifos de arquivo do editor (recurso desligado — ver a procedência) | MIT | `packs/catppuccin/icones/mimetypes/` |
 
@@ -39,7 +39,7 @@ tabela da procedência) e *share-alike* — os derivados dele saem sob a mesma
 licença.
 
 Os **52 desenhos autorais** de `assets/icones/autorais/` e os **19 retoques à
-mão** de `assets/icones/convertidos-apps/retoques/` são deste projeto, no dialeto
+mão** de `packs/meowsystem/icones/apps/convertidos/retoques/` são deste projeto, no dialeto
 do Arcticons mas sem copiar traço nenhum dele. A folha que descreve o dialeto está
 em [`docs/folhas/`](folhas/).
 
@@ -75,7 +75,7 @@ luminância de cada flavor: [`assets/cursores/CREDITOS.md`](../assets/cursores/C
 | fonte | de onde | licença |
 |---|---|---|
 | **JetBrains Mono Nerd Font** | release [ryanoasis/nerd-fonts](https://github.com/ryanoasis/nerd-fonts) `v3.5.0` | OFL-1.1 (a fonte) · MIT (o patcher) |
-| `zrnic rg.otf` | arquivo que ela mesma trouxe, instalado como qualquer fonte local | da distribuidora original |
+| `zrnic rg.otf` | arquivo que quem usa trouxe, instalado como qualquer fonte local | da distribuidora original |
 
 ## Os temas dentro dos programas
 

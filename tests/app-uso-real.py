@@ -45,7 +45,8 @@ O QUE REPROVA (e de onde cada regra vem)
        · a ficha de ícone mostra o nome amigável, e o nome técnico só na dica;
        · a paleta «Cor» da ficha só aparece com um traço marcado;
        · a pasta travada (a dos PNG feitos à mão) leva o selo de trava da
-         página, com o porquê na dica;
+         página, com o porquê na dica; [P84: os feitos à mão viraram vetor,
+         e a pasta deles se escolhe sem a trava de raster]
        · as três linhas de Dia e noite usam o seletor de hora, na ordem
          começa | termina;
        · a fileira «Fundo» mora só em Cor e tela;
@@ -70,6 +71,7 @@ USO
 """
 import importlib.util
 import os
+import re
 import shutil
 import sys
 import time
@@ -315,7 +317,6 @@ def gesto_do_descolado(pag):
 
 
 # ---------------------------------------------------------------------------
-# 8. O ACABAMENTO DA P80 — um caso por defeito do uso real final (10/10/2026)
 # ---------------------------------------------------------------------------
 VISIVEL_JS = "(el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true })"
 
@@ -397,9 +398,7 @@ PALETA_JS = r"""
 
 
 # 8.3 — O PNG FEITO À MÃO E A TRAVA (print 06): o PNG aparecia apagado, com um
-#   selo que ninguém lia (um retângulo desenhado em CSS). A pasta travada leva
-#   o selo de trava de toda a página, com o porquê inteiro na dica — o mesmo
-#   em toda pasta —, e o desenho travado diz o porquê na dica dele.
+# selo que ninguém lia (um retângulo desenhado em CSS).
 TRAVA_JS = r"""
 () => {
   const vis = (el) => !!el && el.checkVisibility && el.checkVisibility({ checkOpacity: true });
@@ -407,8 +406,17 @@ TRAVA_JS = r"""
   const ficha = document.querySelector('.escolha-icone');
   for (const c of ficha.querySelectorAll('.pasta-acervo .cadeado'))
     if (vis(c)) defeitos.push('a pasta travada usa o cadeado desenhado em CSS, e não o selo de trava');
-  const png = [...ficha.querySelectorAll('.pasta-acervo')].find((d) => /:feitos-a-mao$/.test(d.dataset.grupo || ''));
-  if (!png) return ['a busca «firefox» não abriu a pasta dos feitos à mão'];
+  /* [P84, 15/10/2026: os feitos à mão viraram vetor. A pasta deles se escolhe
+   *   como a biblioteca, e a trava de raster não pode aparecer nela; a dos PNG
+   *   (`:feitos-a-mao-png`) só existe enquanto sobrar PNG sem vetor, e é nela
+   *   que a trava continua sendo cobrada.] */
+  const pastas = [...ficha.querySelectorAll('.pasta-acervo')];
+  const vetores = pastas.find((d) => /[:/]feitos-a-mao$/.test(d.dataset.grupo || ''));
+  if (!vetores) return ['a busca «firefox» não abriu a pasta dos feitos à mão'];
+  for (const el of vetores.querySelectorAll('[data-balao]'))
+    if (/em PNG/.test(el.dataset.balao)) defeitos.push(`o vetor feito à mão leva a trava de raster: «${el.dataset.balao}»`);
+  const png = pastas.find((d) => /[:/]feitos-a-mao(-png|:png)$/.test(d.dataset.grupo || ''));
+  if (!png) return defeitos;
   const selo = png.querySelector('summary .selo[data-selo="trava"]');
   if (!vis(selo)) defeitos.push('a pasta dos feitos à mão, travada, não leva o selo de trava');
   else if (!selo.dataset.balao || selo.dataset.balaoAparado)
@@ -425,9 +433,8 @@ TRAVA_JS = r"""
 
 
 # 8.4 — DIA E NOITE (print 07): a linha do tema claro usava um deslizante
-#   pontilhado («como está: 18») ao lado de duas linhas com seletor de hora, e
-#   lia ao contrário (termina à esquerda). As três linhas: o mesmo seletor de
-#   hora, a mesma ordem — começa | termina.
+# pontilhado («como está: 18») ao lado de duas linhas com seletor de hora, e
+# lia ao contrário (termina à esquerda).
 NOITE_JS = r"""
 () => {
   const defeitos = [];
@@ -490,13 +497,6 @@ PACK_REDE_JS = r"""
 """
 
 
-# 8.6 — O QA DE USO REAL DA P80 (10/10/2026), com a casa copiada da pessoa:
-#   · o rótulo da ficha partia a palavra no meio («Configuraçõe» numa linha,
-#     «s» na outra): a palavra inteira cabe na largura do desenho;
-#   · o `obsidian.png` do pack é um SVG com nome de PNG (veio assim do
-#     Dracula_OS-Theme), e a ficha o mostrava como imagem quebrada;
-#   · o rótulo de reserva (o nome do arquivo limpo) mostrava o identificador de
-#     32 letras dos atalhos do Chrome: «Chrome ieicmdpib… Default».
 PALAVRA_PARTIDA_JS = r"""
 () => {
   const defeitos = [];
@@ -536,6 +536,231 @@ IDENTIFICADOR_JS = r"""
 """
 
 
+# 8.7 — UM NOME POR APP, E NÃO O ÚLTIMO PEDAÇO DO ID: o
+# `com.obsproject.Studio` e o `io.github.shiftey.Desktop` viravam «Studio» e
+# «Desktop» embaixo do desenho. O nome vem da linha `# app:` do mapa.
+NOME_DO_APP_JS = r"""
+([glifo, nome]) => {
+  const deles = [...document.querySelectorAll('.escolha-icone .tira-glifos button[data-glifo]')]
+    .filter((b) => b.dataset.glifo === glifo);
+  if (!deles.length) return [`a busca não mostrou o desenho ${glifo}`];
+  return deles.map((b) => ((b.querySelector('span') || {}).textContent || '').trim())
+    .filter((t) => t !== nome)
+    .map((t) => `o desenho ${glifo} diz «${t}», e não «${nome}»`);
+}
+"""
+
+
+ABA_NO_MENU_JS = r"""
+() => {
+  const t = document.getElementById('trilho').getBoundingClientRect();
+  const a = document.querySelector('#trilho button[aria-current="true"]');
+  if (!a) return ['nenhuma aba marcada no menu'];
+  const b = a.getBoundingClientRect();
+  return (b.left >= t.left - 1 && b.right <= t.right + 1) ? []
+    : [`a aba aberta (${a.dataset.grupo}) está fora do menu horizontal: ${Math.round(b.left)}..${Math.round(b.right)} num trilho de ${Math.round(t.left)}..${Math.round(t.right)}`];
+}
+"""
+PREVIA_COBRE_JS = r"""
+() => {
+  const m = document.getElementById('principal');
+  if (!document.querySelector('#conteudo .previa-bloco')) return ['a página não tem prévia para conferir'];
+  m.scrollTop += 700;
+  const r = m.getBoundingClientRect();
+  const el = document.elementFromPoint(r.left + r.width / 2, r.top + 60);
+  return (el && el.closest('.previa-bloco'))
+    ? ['a prévia grudada cobre o conteúdo que rola, no alto da página'] : [];
+}
+"""
+DICA_SOBRE_DESENHO_JS = r"""
+() => {
+  const vis = (el) => el && el.checkVisibility && el.checkVisibility();
+  const defeitos = [];
+  for (const b of document.querySelectorAll('#conteudo .par-previa > .com-dica > button.porque')) {
+    const svg = b.parentElement.querySelector('svg');
+    if (!vis(b) || !svg || !svg.getBBox || !svg.getScreenCTM()) continue;
+    const c = svg.getBBox(), m = svg.getScreenCTM();
+    const d = { l: m.a * c.x + m.e, r: m.a * (c.x + c.width) + m.e,
+                t: m.d * c.y + m.f, b: m.d * (c.y + c.height) + m.f };
+    const q = b.getBoundingClientRect();
+    if (q.left < d.r && q.right > d.l && q.top < d.b && q.bottom > d.t)
+      defeitos.push(`o «?» da prévia fica por cima do desenho (${b.getAttribute('aria-label') || ''})`);
+  }
+  return defeitos;
+}
+"""
+
+
+# 8.8 — O GATO DE VERDADE NA PONTA DA DOCK DESENHADA: a ponta da dock da prévia
+# é a miniatura do gato escolhido, e não o gato de traço de reserva.
+GATO_NA_DOCK_JS = r"""
+() => {
+  const grupos = [...document.querySelectorAll('#conteudo g.gato-no-dock')];
+  if (!grupos.length) return ['a prévia de «Logo do sistema» não desenhou a dock com o gato'];
+  return grupos.filter((g) => g.dataset.pintado !== g.dataset.gato || !g.querySelector('image'))
+    .map((g) => `a ponta da dock desenhada mostra o gato de traço, e não o «${g.dataset.gato}» do acervo`);
+}
+"""
+
+
+# 6 — A GRADE SEM BURACO: um cartão alto numa linha deixava o vão embaixo dos
+# baixos; a régua é o fim do CONTEÚDO de cada cartão (o cartão estica até a
+# linha) contra o começo do de baixo, na mesma coluna.
+BURACO_JS = r"""
+(teto) => {
+  const vis = (el) => el && el.checkVisibility && el.checkVisibility();
+  const defeitos = [];
+  for (const g of document.querySelectorAll('#conteudo .grade')) {
+    if (!vis(g) || getComputedStyle(g).gridTemplateColumns.split(' ').length < 2) continue;
+    const filhos = [...g.children].filter(vis).map((c) => {
+      const r = c.getBoundingClientRect();
+      const fim = Math.max(r.top, ...[...c.children].filter(vis).map((x) => x.getBoundingClientRect().bottom));
+      return { c, r, fim };
+    });
+    for (const a of filhos) {
+      const abaixo = filhos.filter((b) => b !== a && b.r.top >= a.r.bottom - 1
+                                   && b.r.left < a.r.right - 5 && b.r.right > a.r.left + 5);
+      if (!abaixo.length) continue;
+      const vao = Math.min(...abaixo.map((b) => b.r.top)) - a.fim;
+      if (vao > teto) {
+        const nome = (a.c.querySelector('h3, .titulo-cartao, .titulo') || a.c).textContent.trim().slice(0, 40);
+        defeitos.push(`vão de ${Math.round(vao)} px embaixo de «${nome}»`);
+      }
+    }
+  }
+  for (const f of document.querySelectorAll('#conteudo > .previa-bloco'))
+    if (vis(f) && !document.querySelector('#conteudo article.cartao'))
+      defeitos.push('a figura da página só de ações toma a linha sozinha, fora da grade');
+  return defeitos;
+}
+"""
+
+
+def grade_sem_buraco(pag):
+    """Os casos da P82 (item 26), a 1440 px. Devolve [(onde, defeito)]."""
+    reprovas = []
+    for grupo in ("Papel de parede", "Instalação", "Atualização", "Manutenção"):
+        pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
+        pag.mouse.move(5, 890)
+        assentar(pag)
+        reprovas += [(f"grade · {grupo}", d) for d in pag.evaluate(BURACO_JS, 64)]
+        if FOTOS:
+            nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
+            pag.screenshot(path=os.path.join(FOTOS, f"p82-grade-{nome}.png"), full_page=True)
+    return reprovas
+
+
+AREAS_SEM_NOME_JS = r"""
+() => {
+  const defeitos = [];
+  const nomes = ESQUEMA.chaves.find((k) => k.chave === 'AREAS_NOMES');
+  if (!nomes || String(valorEmVigor(nomes)).trim()) return ['a casa de brinquedo tem áreas com nome'];
+  for (const chave of ['AREAS_FOLGA', 'AREAS_ENCAIXE']) {
+    const c = document.querySelector(`#conteudo article.cartao[data-chave="${chave}"]`);
+    if (!c) { defeitos.push(`o cartão ${chave} não está na página`); continue; }
+    if (!c.querySelector('[data-selo="anulado"]')) defeitos.push(`${chave} sem áreas nasce sem o ⊘`);
+    const dica = document.getElementById(`dica-${chave}`);
+    if (!dica || !/área/.test(dica.textContent) || !dica.querySelector('.frase.dominada'))
+      defeitos.push(`${chave} sem áreas não diz o porquê na dica`);
+  }
+  const folga = document.querySelector('#conteudo article.cartao[data-chave="AREAS_FOLGA"]');
+  if (folga && folga.querySelector('input[type=text], input:not([type]), textarea'))
+    defeitos.push('AREAS_FOLGA sem áreas virou campo de texto livre');
+  return defeitos;
+}
+"""
+
+
+# Item 29: o `<select>` das listas longas que aceitam o vazio. Nenhuma chave da
+# casa de brinquedo cai nele (a lista longa que ela tem é a de cores), então o
+# controle é montado aqui, com uma chave de verdade e seis opções.
+SELETOR_VAZIO_JS = r"""
+() => {
+  const base = ESQUEMA.chaves.find((k) => k.chave === 'LOG_NIVEL');
+  const item = { ...base, opcoes: ['a', 'b', 'c', 'd', 'e', 'f'], rotulos: null,
+                 aceita_vazio: true, previa: null, lista: false };
+  const cartao = document.createElement('article');
+  const c = montarControle(item, cartao);
+  const vazio = c && c.querySelector('select option[value=""]');
+  return vazio ? vazio.textContent : '(sem opção vazia)';
+}
+"""
+
+
+def casos_da_p82(pag):
+    """Os casos de interface da P82 (itens 28 em diante). Devolve [(onde, defeito)]."""
+    reprovas = []
+    # Item 28: folga e encaixe numa casa sem áreas com nome.
+    pag.locator('#trilho button[data-grupo="Áreas de trabalho"]').click()
+    assentar(pag)
+    reprovas += [("áreas sem nome", d) for d in pag.evaluate(AREAS_SEM_NOME_JS)]
+    # Item 30: o «Usar este ícone» deixa o cartão do aplicativo à vista.
+    aplicativos = os.path.join(casa.CASA, ".local", "share", "applications")
+    extras = []
+    for i in range(120):
+        extras.append(os.path.join(aplicativos, f"zz.brinquedo.App{i:03d}.desktop"))
+        with open(extras[-1], "w", encoding="utf-8") as fh:
+            fh.write(f"[Desktop Entry]\nName=Zz Brinquedo {i:03d}\nExec=true\nType=Application\n")
+    try:
+        pag.evaluate("() => { APP_ABERTO = null; return carregarApps(); }")
+        abrir_ficha(pag, "firefox")
+        pag.locator(".busca-apps").fill("")
+        assentar(pag)
+        pag.locator(".escolha-icone .tira-glifos button[data-glifo]:not([aria-disabled=true])").first.click()
+        pag.evaluate("() => { const m = document.querySelector('#principal');"
+                     " const f = document.querySelector('.escolha-icone');"
+                     " m.scrollTop += f.getBoundingClientRect().top - m.getBoundingClientRect().top; }")
+        pag.get_by_role("button", name="Usar este ícone", exact=True).click()
+        pag.wait_for_function("() => typeof TRABALHO !== 'undefined' && TRABALHO !== null", timeout=20000)
+        pag.wait_for_function("() => TRABALHO === null", timeout=120000)
+        assentar(pag)
+        vista = pag.evaluate("""(nome) => {
+          const m = document.querySelector('#principal').getBoundingClientRect();
+          const t = [...document.querySelectorAll('.grade-apps button.app')]
+            .find((b) => b.textContent.includes(nome));
+          if (!t) return 'o cartão do aplicativo sumiu da grade';
+          const r = t.getBoundingClientRect();
+          const dentro = r.top >= m.top && r.bottom <= m.bottom;
+          return dentro ? '' : `o cartão do aplicativo ficou fora da vista (topo ${Math.round(r.top)}, `
+            + `janela ${Math.round(m.top)}..${Math.round(m.bottom)})`;
+        }""", casa.PROGRAMA[1])
+        if vista:
+            reprovas.append(("usar este ícone", vista))
+    finally:
+        for f in extras:
+            os.remove(f)
+        pag.evaluate("() => { APP_ABERTO = null; return carregarApps(); }")
+    # Item 29: um nome por valor — o vazio do `<select>` é o «Não tocar».
+    vazio = pag.evaluate(SELETOR_VAZIO_JS)
+    if vazio != "— não tocar —":
+        reprovas.append(("seletor", f"o vazio do <select> se chama «{vazio}», e o botão ao lado, «Não tocar»"))
+    return reprovas
+
+
+def a_375(pag, url):
+    """Os casos da P82 (item 21) numa janela de celular. Devolve [(onde, defeito)]."""
+    reprovas = []
+    pag.set_viewport_size({"width": 375, "height": 812})
+    # A aba aberta pelo ENDEREÇO (e não por um clique, que o Playwright traz
+    # para a vista sozinho): a última do menu, a que mais longe fica.
+    ultima = pag.evaluate("() => idDeAba([...document.querySelectorAll('#trilho button[data-grupo]')].pop().dataset.grupo)")
+    pag.goto(url.split("#")[0] + "#" + ultima, wait_until="commit")
+    pag.wait_for_selector("#trilho button", timeout=60000)
+    assentar(pag)
+    reprovas += [("375 px · menu", d) for d in pag.evaluate(ABA_NO_MENU_JS)]
+    for grupo, olhar in (("Painel e dock", PREVIA_COBRE_JS), ("Manutenção", DICA_SOBRE_DESENHO_JS),
+                         ("Cor e tela", DICA_SOBRE_DESENHO_JS)):
+        pag.locator(f'#trilho button[data-grupo="{grupo}"]').click()
+        pag.mouse.move(5, 800)
+        assentar(pag)
+        reprovas += [(f"375 px · {grupo}", d) for d in pag.evaluate(olhar)]
+        if FOTOS:
+            nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
+            pag.screenshot(path=os.path.join(FOTOS, f"p82-375-{nome}.png"))
+    pag.set_viewport_size({"width": 1440, "height": 900})
+    return reprovas
+
+
 def acabamento(pag):
     """Os casos da P80, cada um com o gesto de quem usa. Devolve [(onde, defeito)]."""
     reprovas = []
@@ -552,7 +777,6 @@ def acabamento(pag):
             reprovas.append(("ficha de ícone", d))
         if FOTOS and passo != "abrir":
             pag.screenshot(path=os.path.join(FOTOS, f"p80-paleta-{passo}.png"))
-    # 8.6 — o QA de uso real da P80, na mesma ficha.
     for busca, olhar in (("", PALAVRA_PARTIDA_JS), ("obsidian", IMAGEM_QUEBRADA_JS),
                          ("chrome", IDENTIFICADOR_JS)):
         pag.locator(".escolha-icone input[type=search]").fill(busca)
@@ -561,6 +785,17 @@ def acabamento(pag):
             arg=busca, timeout=20000)
         assentar(pag)
         reprovas += [("ficha de ícone", d) for d in pag.evaluate(olhar)]
+    for busca, glifo, nome in (("obs", "com.obsproject.Studio", "OBS Studio"),
+                               ("github", "io.github.shiftey.Desktop", "GitHub Desktop")):
+        pag.locator(".escolha-icone input[type=search]").fill(busca)
+        pag.wait_for_function(
+            "(t) => typeof GLIFOS !== 'undefined' && GLIFOS.termo === t && !GLIFOS.carregando",
+            arg=busca, timeout=20000)
+        assentar(pag)
+        reprovas += [("ficha de ícone", d) for d in pag.evaluate(NOME_DO_APP_JS, [glifo, nome])]
+    abrir_pagina(pag, "Logo do sistema")
+    pag.wait_for_timeout(800)
+    reprovas += [("Logo do sistema", d) for d in pag.evaluate(GATO_NA_DOCK_JS)]
     abrir_pagina(pag, "Dia e noite")
     reprovas += [("Dia e noite", d) for d in pag.evaluate(NOITE_JS)]
     if FOTOS:
@@ -575,8 +810,64 @@ def acabamento(pag):
     return reprovas
 
 
+GENTE_TSV = os.path.join(casa.ESTADO, "precisa-de-gente.tsv")
+GENTE = (
+    ("sentinela-cosmic", "O COSMIC da fila não entra", "2026-10-14T12:03:00-03:00",
+     "série: cosmic-comp-sem-workspace-vazio.patch é OBRIGATÓRIO e não entra nem com -F1"),
+    ("patch-obrigatorio", "Patch obrigatório precisa de rebase", "2026-10-15T20:15:00-03:00",
+     "cosmic-comp 4d14528: a série não entra, e a sessão segue no compositor de fábrica até um rebase em patches/"),
+)
+
+GENTE_JS = """() => {
+  const cartoes = [...document.querySelectorAll('.home-gente')];
+  const linhas = cartoes.flatMap((c) => [...c.querySelectorAll('.pendencia')]);
+  return {
+    cartoes: cartoes.length,
+    linhas: linhas.length,
+    nomes: linhas.map((l) => l.querySelector('.pendencia-frase').textContent),
+    selos: linhas.map((l) => (l.querySelector('.selo-gente .selo-valor') || {}).textContent || ''),
+    dicas: linhas.map((l) => !!l.querySelector('.pendencia-topo button.porque, .pendencia-topo [aria-label]')),
+    texto: cartoes.map((c) => c.innerText.length),
+  };
+}"""
+
+
+def cartao_de_gente(pag):
+    """O cartão «precisa de gente» da Início: UM, uma linha por item, e some sem o arquivo."""
+    reprovas = []
+    abrir_pagina(pag, "Início")
+    assentar(pag)
+    v = pag.evaluate(GENTE_JS)
+    if v["cartoes"] != 1:
+        reprovas.append(("Início", f"o cartão «precisa de gente» devia ser UM, são {v['cartoes']}"))
+    elif v["linhas"] != len(GENTE):
+        reprovas.append(("Início", f"o cartão devia ter {len(GENTE)} linhas, tem {v['linhas']}"))
+    else:
+        if v["nomes"] != [g[1] for g in GENTE]:
+            reprovas.append(("Início", f"nomes do cartão fora da ordem do arquivo: {v['nomes']}"))
+        if not all(re.fullmatch(r"desde \d\d/\d\d", t) for t in v["selos"]):
+            reprovas.append(("Início", f"o selo de desde-quando saiu torto: {v['selos']}"))
+        if not all(v["dicas"]):
+            reprovas.append(("Início", "uma linha do cartão ficou sem o porquê na dica"))
+        if v["texto"][0] > 200:
+            reprovas.append(("Início", f"o cartão tem {v['texto'][0]} caracteres visíveis: o porquê é da dica"))
+    if FOTOS:
+        os.makedirs(FOTOS, exist_ok=True)
+        pag.screenshot(path=os.path.join(FOTOS, "p86-precisa-de-gente.png"))
+    os.remove(GENTE_TSV)
+    pag.evaluate("() => recarregarPendencias().then(() => render())")
+    assentar(pag)
+    if pag.evaluate(GENTE_JS)["cartoes"] != 0:
+        reprovas.append(("Início", "o cartão «precisa de gente» não sumiu quando o arquivo saiu"))
+    return reprovas
+
+
 def main():
     ambiente = casa.montar_casa()
+    os.makedirs(casa.ESTADO, exist_ok=True)
+    with open(GENTE_TSV, "w", encoding="utf-8") as fh:
+        for linha in GENTE:
+            fh.write("\t".join(linha) + "\n")
     proc, url = casa.sobe_servidor(ambiente)
     if not url:
         print("ERRO: o app/run.sh não imprimiu a URL")
@@ -643,7 +934,6 @@ def main():
                         nome = "".join(c if c.isalnum() else "-" for c in grupo.lower())
                         pag.screenshot(path=os.path.join(FOTOS, f"uso-real-{nome}.png"))
 
-            # 4. O ACABAMENTO DA P80
             print("\n4. O ACABAMENTO DA P80, UM CASO POR DEFEITO")
             pagina_atual["nome"] = "acabamento"
             if FOTOS:
@@ -651,6 +941,33 @@ def main():
             achados = acabamento(pag)
             reprovas += achados
             print(f"  {'ok' if not achados else 'XX'} acabamento: {len(achados)} defeito(s)")
+
+            # 6. A GRADE SEM BURACO — antes dos 375 px, a 1440
+            print("\n6. A GRADE SEM BURACO")
+            pagina_atual["nome"] = "grade"
+            achados = grade_sem_buraco(pag)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} grade: {len(achados)} defeito(s)")
+
+            print("\n7. OS CASOS DA P82")
+            pagina_atual["nome"] = "casos da P82"
+            achados = casos_da_p82(pag)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} casos da P82: {len(achados)} defeito(s)")
+
+            # 8. O CARTÃO DE «PRECISA DE GENTE»
+            print("\n8. O CARTÃO DE PRECISA DE GENTE")
+            pagina_atual["nome"] = "precisa de gente"
+            achados = cartao_de_gente(pag)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} precisa de gente: {len(achados)} defeito(s)")
+
+            # 5. A 375 PX
+            print("\n5. A 375 PX")
+            pagina_atual["nome"] = "375 px"
+            achados = a_375(pag, url)
+            reprovas += achados
+            print(f"  {'ok' if not achados else 'XX'} 375 px: {len(achados)} defeito(s)")
             nav.close()
     finally:
         proc.terminate()

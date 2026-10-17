@@ -1,21 +1,7 @@
 #!/usr/bin/env bash
 # nada-manda-digitar.sh — saída do MeowSystem não manda a pessoa digitar o
-# conserto. P79, item 5, 10/10/2026.
+# conserto.
 #
-# O QUE ABRIU ISTO — o QA de uso real da P77
-#   Dentro do painel, três saídas ainda eram receita de terminal:
-#     · o `icones_apps_dracula.sh` (e o irmão `icones_resgatados.sh`): «para
-#       ver agora… pkill -x cosmic-panel && pkill -f cosmic-app-library»;
-#     · o instalador: «Para completá-las:  sudo -v && ./install.sh»;
-#     · o doctor: «conserto: LEITURA_COMPILAR=1 …» e «para construir agora:
-#       meow files-menu build».
-#   O princípio de 09/10 é que o programa faz (ou põe o botão que faz). A tela
-#   do painel tem a porta da tela inteira (`meow_tela_reler`), o «Instalar
-#   tudo», o «Construir o menu da área de trabalho» e o «Consertar o que
-#   estiver fora»; a saída passa a usar a porta, ou a pendência que o botão
-#   resolve.
-#
-# O QUE ESTE TESTE COBRA
 #   1. Nenhuma mensagem (`meow_info`, `meow_pula`, `meow_aviso`, `meow_muda`,
 #      `meow_ok`, `meow_erro`) de `scripts/`, `lib/`, `bin/meow` ou do
 #      `install.sh` carrega as quatro receitas.
@@ -23,12 +9,9 @@
 #      «Instalar tudo», e `leitura-applet` o «Consertar o que estiver fora».
 #   3. Os dois scripts de ícone relêem a tela pela porta única, e não dizem
 #      `pkill`.
-#   5 a 7. (P80, item 8) A linha «resolve:» de uma pendência diz o botão, e
+#   5 a 7. A linha «resolve:» de uma pendência diz o botão, e
 #      não o comando; o papel de parede devolvido vira pendência com o botão
 #      que autoriza aquela imagem; e sem cargo o conserto instala o rust.
-#
-# PORTÁTIL: grep e python3.
-#   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ACHADOS=0
@@ -45,8 +28,43 @@ else
   falha "mensagens que mandam digitar o conserto" "$achados"
 fi
 
+printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
+# Isenta, pelo nome: a linha de uso de um verbo (`uso: meow …`, que responde a
+# quem já está digitando).
+MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
+FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com ')"
+achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
+             | grep -vE '"uso: meow ')"
+if [ -z "$achados" ]; then
+  ok "nenhuma mensagem manda armar o supervisor, rodar o install.sh, instalar com apt ou rustup, capturar o tema, adicionar papel de parede ou rodar sudo -l"
+else
+  falha "mensagens que ainda mandam digitar" "$achados"
+fi
+
+# E o applet de mídia, sem cargo, vai buscar o rust pela mesma regra do de
+# leitura (`meow_garantir_cargo`), em vez de pular dizendo «instale com
+# rustup». Um `curl` falso anota e recusa: a rede não sai do teste.
+CASA1B="$(mktemp -d)" || exit 2
+mkdir -p "$CASA1B/falso"
+for c in sudo pkexec su pkill killall notify-send systemd-run loginctl apt apt-get; do
+  printf '#!/bin/sh\nexit 1\n' > "$CASA1B/falso/$c"; chmod 755 "$CASA1B/falso/$c"
+done
+printf '#!/bin/sh\necho "curl $*" >> "%s/rede.log"\nexit 1\n' "$CASA1B" > "$CASA1B/falso/curl"
+chmod 755 "$CASA1B/falso/curl"
+env -i PATH="$CASA1B/falso:/usr/bin:/bin" HOME="$CASA1B" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  MIDIA_COMPILAR=1 "$RAIZ/scripts/midia_build.sh" --aplicar >/dev/null 2>&1
+if PATH=/usr/bin:/bin command -v cargo >/dev/null 2>&1; then
+  printf '  --   o /usr/bin desta máquina tem cargo: o caso «sem cargo» não se monta aqui\n'
+elif grep -q 'rustup' "$CASA1B/rede.log" 2>/dev/null; then
+  ok "sem cargo, o applet de mídia vai buscar o rust pelo rustup, como o de leitura"
+else
+  falha "sem cargo, o applet de mídia não tentou instalar o rust" "rede: $(cat "$CASA1B/rede.log" 2>/dev/null)"
+fi
+rm -rf "$CASA1B"
+
 printf '\n--- 2. as pendências novas têm botão ---\n'
-saida="$(env -i PATH="$PATH" HOME="$(mktemp -d)" python3 - "$RAIZ/app" <<'PY' 2>&1
+CASA2="$(mktemp -d)" || exit 2
+saida="$(env -i PATH="$PATH" HOME="$CASA2" python3 - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
 import servidor
@@ -54,6 +72,7 @@ for p in ("instalar-com-root", "leitura-applet"):
     print("%s=%s" % (p, servidor.ACAO_DA_PENDENCIA.get(p, "")))
 PY
 )"
+rm -rf "$CASA2"
 if grep -qx 'instalar-com-root=instalar' <<< "$saida" && grep -qx 'leitura-applet=doctor_consertar' <<< "$saida"; then
   ok "instalar-com-root -> «Instalar tudo», leitura-applet -> «Consertar o que estiver fora»"
 else
@@ -131,6 +150,37 @@ else
   falha "a pendência do papel de parede devolvido não tem o botão que autoriza" "$saida"
 fi
 
+printf '\n--- 6b. «Deixar assim» tira o cartão sem autorizar a imagem (P82, item 3; decisão 13) ---\n'
+#   [15/10/2026: a pendência só saía pelo «Era escolha minha», que autoriza a
+#    imagem. Se a devolução estava certa, o cartão ficava na Início até alguém
+#    autorizar a imagem errada para tirá-lo.]
+mkdir -p "$CASA/.config/meow"; cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
+antes_conf="$(sha256sum < "$CASA/.config/meow/meow.conf")"
+pendencia_e_botao() {
+  env -i PATH="$PATH" HOME="$CASA" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+p = next((x for x in servidor.pendencias() if x["id"] == "wallpaper-fonte-revertida"), None)
+print("cartao=%s" % bool(p))
+for e in (p or {}).get("escolha") or []:
+    print("escolha=%s|%s" % (e["acao"], e["rotulo"]))
+print("argv=%s" % " ".join((servidor.ACOES.get("wallpaper_dispensar") or {}).get("argv") or [])[-19:])
+PY
+}
+antes_p="$(pendencia_e_botao)"
+env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  "$RAIZ/bin/meow" wallpaper dispensar >/dev/null 2>&1
+depois_p="$(pendencia_e_botao)"
+if grep -qx 'escolha=wallpaper_dispensar|Deixar assim' <<< "$antes_p" \
+   && grep -qx 'argv=wallpaper dispensar' <<< "$antes_p" \
+   && grep -qx 'cartao=False' <<< "$depois_p" \
+   && [ "$(sha256sum < "$CASA/.config/meow/meow.conf")" = "$antes_conf" ]; then
+  ok "«Deixar assim» tira o cartão do papel de parede devolvido, e o meow.conf não muda (sha256 igual)"
+else
+  falha "«Deixar assim» não tirou o cartão, ou mexeu no conf" "antes: $antes_p / depois: $depois_p"
+fi
+
 printf '\n--- 7. sem cargo, o conserto instala o rust (e não manda instalar) ---\n'
 achados="$(grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*instale com rustup' "$RAIZ/scripts/leitura_build.sh")"
 [ -z "$achados" ] && ok "o leitura_build.sh não manda «instale com rustup»" \
@@ -152,6 +202,29 @@ else
   falha "sem cargo, o conserto não tentou instalar o rust, ou não deixou a pendência" \
         "rede: $(cat "$REDE") / pendências: $(cut -f1 "$TSV" 2>/dev/null) / saída: $(tail -3 <<< "$saida")"
 fi
+
+printf '\n--- 8. as linhas dos builds dizem o estado, sem comando (P81) ---\n'
+#   [15/10/2026: a linha `patches` do doctor listava «meow compositor --seco»,
+#    «meow compositor ativar»…; a última linha do log do pós-apt real era «ou
+#    agora, com: meow painel reciclar»; o applet de mídia e o de leitura,
+#    quando o cargo falhava, mandavam colar a linha do cargo. Quem conserta é
+#    o `--consertar` (a função única dos builds); a linha diz o estado.]
+#   Só os verbos que o doctor e os gatilhos rodam: o `conferir` e o
+#   `compilar` do compositor. O `reverter`, o `validar` e o `aplicar` são
+#   verbos de quem digita, e nomear o vizinho ali é a resposta pedida.
+RECEITA='(meow compositor|meow painel reciclar|rode:|veja o motivo|CARGO_TARGET_DIR=|MIDIA_COMPILAR=1|instale com rustup)'
+MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|_cp_diz [a-z]+) '
+achados="$(
+  for f in cmd_conferir cmd_compilar; do
+    sed -n "/^$f()/,/^}/p" "$RAIZ/scripts/compositor_patches.sh" | grep -E "$MSG.*$RECEITA" | sed "s/^/compositor_patches.sh $f: /"
+  done
+  cd "$RAIZ" && grep -nE "$MSG.*$RECEITA" scripts/files_menu.sh scripts/midia_build.sh scripts/leitura_build.sh \
+    scripts/garantir_builds.sh scripts/cosmic_pos_apt.sh 2>/dev/null)"
+[ -z "$achados" ] && ok "o conferir e o compilar do compositor, o menu, os dois applets e os gatilhos não mandam digitar" \
+  || falha "linhas dos builds que mandam digitar" "$achados"
+grep -qE '^SEM_CONSERTO=.* patches ' "$RAIZ/bin/meow" \
+  && falha "a linha patches ainda está em SEM_CONSERTO (o doctor não a conserta)" \
+  || ok "a linha patches tem conserto: o doctor compila"
 
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }

@@ -1,88 +1,27 @@
 #!/usr/bin/env bash
 # ocultar_apps.sh — some com os aplicativos que ela nunca vai abrir.
 #
-# O QUE ELA VÊ HOJE, E POR QUE
-#   O lançador mostra Vim, XTerm, UXTerm, qt5ct, ImageMagick, TeXInfo — coisas que
-#   são dependência de outro pacote, não aplicativo que se abre. O Ritual da Aurora
-#   já tentou escondê-los, e o comentário lá diz o motivo da tentativa:
-#       "Overrides em ~/.local/share/applications têm prioridade sobre /usr/share."
+# O `~/.local/share/applications/vim.desktop` tem `NoDisplay=true` E
+# `Hidden=true`, e o Vim continua no lançador.
 #
-#   ESSA PREMISSA É FALSA NO COSMIC — medido em 2026-08-04. O
-#   `~/.local/share/applications/vim.desktop` tem `NoDisplay=true` E `Hidden=true`
-#   desde 03/08, e o Vim continua no lançador. O `cosmic-app-library` NÃO
-#   deduplica por ID: ele varre todos os diretórios de `applications`, pula o
-#   arquivo que tem `NoDisplay`, e mostra o outro assim mesmo. Foi a mesma
-#   descoberta que fez o ZapZap aparecer duas vezes.
+# Prova pelo lado oposto: Chrome e Steam têm `.desktop` de mesmo nome no home E
+# em /usr/share, e o COSMIC mostra OS DOIS, desambiguando com "(Local)" e
+# "(Sistema)" — os parênteses que ela viu.
 #
-#   Prova pelo lado oposto: Chrome e Steam têm `.desktop` de mesmo nome no home E
-#   em /usr/share, e o COSMIC mostra OS DOIS, desambiguando com "(Local)" e
-#   "(Sistema)" — os parênteses que ela viu. Não é sujeira dela: é o COSMIC
-#   avisando que achou dois.
+# `NoDisplay=true` no próprio `/usr/share/applications/<app>.desktop`.
 #
-# ENTÃO A ÚNICA COISA QUE FUNCIONA É MARCAR O ARQUIVO DO SISTEMA
-#   `NoDisplay=true` no próprio `/usr/share/applications/<app>.desktop`. Isso é
-#   território do apt: um `apt upgrade` do pacote devolve o arquivo original e o
-#   aplicativo reaparece. Por isso este script é idempotente e roda no `install.sh`
-#   e no `meow doctor` — reaparecer é esperado, ficar assim não.
-#
-# POR QUE NÃO DESINSTALAR
-#   Quase nenhum deles é removível. `xterm` é dependência de `xinit` e das
-#   bibliotecas da Steam; `vim-tiny`/`vim-common` são seed do Ubuntu; o
-#   ImageMagick é o `convert` que ESTE projeto usa para montar ícone. Ocultar é o
-#   que dá para fazer sem quebrar coisa boa.
-#
-# A LISTA É CURTA E EXPLÍCITA, de propósito
-#   Nada de heurística do tipo "esconde tudo que for Categories=System". Cada
-#   linha aqui é uma decisão dela, e o dia em que ela quiser um de volta é uma
-#   linha a remover.
-#
-# AS DUPLICATAS SÃO OUTRO PROBLEMA, E SE RESOLVEM PELO MESMO LADO
-#   Três aplicativos apareciam DUAS vezes no lançador dela — "(Local)" e
-#   "(Sistema)", "(Flatpak)" e "(Sistema)". Não é sujeira: é o COSMIC achando
-#   dois `.desktop` de mesmo ID e desambiguando com o sufixo, porque ele não
-#   deduplica (a mesma descoberta que fez o ZapZap aparecer em dobro).
-#
-#   Em todos os três casos a cópia boa é a que NÃO está em `/usr/share`:
-#     google-chrome  o override dela liga aceleração de GPU e decode por
-#                    hardware (LIBVA_DRIVER_NAME=nvidia + VaapiVideoDecoder). O
-#                    do sistema abre o Chrome sem nada disso.
-#     steam          o override dela chama o `steam-resiliente.sh`, que cura o
-#                    cliente zumbi. O do sistema chama o binário cru.
-#     github-desktop o do sistema é de mai/2021 e não recebe update; o Flatpak
-#                    (io.github.shiftey.Desktop) é o que ela mantém atualizado.
-#
-#   ONDE MORA A CÓPIA BOA MUDOU EM 13/08/2026 (chrome e steam)
-#   Ela saiu de `~/.local/share/applications` e foi para
-#   `/usr/local/share/applications`, e a causa é a MESMA descoberta do cabeçalho
-#   deste arquivo, aplicada ao `Exec=` em vez do `NoDisplay`: o COSMIC não honra
-#   `$XDG_DATA_HOME`. O arquivo do home estava correto no disco e o dock subia o
-#   Chrome PELADO assim mesmo — medido no processo vivo, `/proc/PID/environ` sem
-#   `LIBVA_DRIVER_NAME`. O que ele honra é o `XDG_DATA_DIRS`, e ali
-#   `/usr/local/share` vem antes de `/usr/share`.
-#
-#   Some-se a isso o fato, já anotado acima, de que o `cosmic-app-library` NÃO
-#   deduplica: manter o arquivo no home E em /usr/local dava DUAS entradas de
-#   Chrome no lançador. Por isso é um lugar só, e o Aurora recolhe a cópia do
-#   home. Detalhes em `docs/FRONTEIRA.md`.
-#
-#   Para ESTE script nada muda no mecanismo: marcar `NoDisplay=true` no arquivo
-#   de `/usr/share` continua sendo a única coisa que esconde app.
-#
-#   Então ocultar a cópia do SISTEMA resolve os três — e é exatamente a mesma
-#   operação da lista de cima. `NoDisplay` esconde do lançador e NÃO mexe nos
-#   handlers de MIME e de esquema (`steam://`, `x-scheme-handler/https`): esses
-#   continuam resolvendo, inclusive pelo arquivo oculto.
+# Quase nenhum deles é removível.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-# A pasta do sistema vem de fora só para o teste (P74): o `tests/` monta uma de
+# A pasta do sistema vem de fora só para o teste: o `tests/` monta uma de
 # brinquedo, e nada aqui escreve no /usr/share de verdade num teste.
 SISTEMA="${MEOW_APLICATIVOS_SISTEMA:-/usr/share/applications}"
 
-# Um por linha, com o porquê ao lado. Só entra o que ela pediu.
+# Um por linha, com o porquê ao lado.
 OCULTAR=(
   # --- dependência de outro pacote, não aplicativo que se abre ---------------
   vim                       # editor de terminal; dependência, não aplicativo
@@ -124,53 +63,14 @@ OCULTAR=(
   syncthing-ui              # "Syncthing Web UI" — o mesmo serviço, dois ícones
 )
 
-# As DUPLICATAS. Separadas da lista de cima porque o motivo é outro: aqui o
-# aplicativo FICA — o que sai é a segunda cópia dele. Ver o cabeçalho.
-# Todos são o arquivo de `/usr/share`; a cópia que ela usa está em
-# `/usr/local/share/applications` (chrome, steam — desde 13/08/2026) ou no
-# Flatpak, e continua intocada.
-OCULTAR_DUPLICATA=(
-  google-chrome             # fica o de /usr/local/share: liga GPU e decode por hardware
-  steam                     # fica o de /usr/local/share: passa pelo steam-resiliente.sh
-  github-desktop            # fica o Flatpak; este .deb é de mai/2021
-)
-
-# Uma lista só para o laço — a divisão acima é para quem lê, não para o código.
-OCULTAR+=("${OCULTAR_DUPLICATA[@]}")
-
-# A LISTA DE FÁBRICA PASSA A TER UMA PORTA — 21/09/2026
-#   As 32 linhas acima são o gosto de UMA máquina, e o `meow.conf.exemplo` já
-#   dizia isso com todas as letras na chave `LANCADOR_SISTEMA`: "a lista de
-#   nomes em `scripts/ocultar_apps.sh` é o gosto de quem escreveu, não o seu".
-#   Dizer e não oferecer saída é a armadilha nº 3 do projeto — uma lista fechada
-#   que só se muda editando código versionado, num arquivo que o `git pull` do
-#   dia seguinte sobrescreve.
+# As 32 linhas acima são o gosto de UMA máquina, e o `meow.conf.exemplo` já
+# dizia isso com todas as letras na chave `LANCADOR_SISTEMA`: "a lista de nomes
+# em `scripts/ocultar_apps.sh` é o gosto de quem escreveu, não o seu".
 #
-#   Quem NÃO tem aqueles aplicativos não perdia nada (o laço pula o `.desktop`
-#   que não existe); quem tem OUTROS é que não tinha como dizer. Agora tem.
+# Quem NÃO tem aqueles aplicativos não perdia nada (o laço pula o `.desktop` que
+# não existe); quem tem OUTROS é que não tinha como dizer.
 #
-#   A CHAVE SUBSTITUI, NÃO ACRESCENTA, e isso é deliberado: esconder aplicativo
-#   é mexer em `/usr/share` com sudo, e a única lista honesta é a que a pessoa
-#   consegue ler inteira numa linha do conf dela. Uma chave que só ACRESCENTA
-#   deixaria as 32 de fábrica invisíveis e impossíveis de tirar — e tirar uma é
-#   metade do motivo de a chave existir. O valor de fábrica está escrito no
-#   `meow.conf.exemplo`, então mexer nele é apagar um nome, não redigitar 32.
-#
-#   Vazia ou ausente, vale a lista daqui: um `meow.conf` escrito antes desta
-#   chave existir continua se comportando exatamente como se comportava.
-#
-#   "VAZIA" É DEPOIS DE APARAR, E NÃO ANTES — corrigido em 21/09/2026
-#   O primeiro desenho decidia pela lista de fábrica com um `[ -n ]` na chave
-#   CRUA. Bastava `LANCADOR_OCULTAR=" "` — um espaço, ou uma vírgula solta —
-#   para o teste dar verdadeiro, o laço descartar tudo o que aparou, e sobrar
-#   uma lista VAZIA: zero aplicativo escondido, com o placar dizendo "0 na
-#   lista de meow.conf" como se fosse escolha. O texto do conf promete que
-#   "apagar a linha inteira (ou deixá-la vazia) devolve a lista de fábrica", e
-#   uma linha com um espaço é uma linha vazia para qualquer pessoa que a leia.
-#
-#   Daí o array à parte: a lista da conf só SUBSTITUI a de fábrica depois de
-#   provar que sobrou nome nela. Enquanto o `OCULTAR=()` vinha antes do laço,
-#   não havia para onde voltar.
+# Enquanto o `OCULTAR=()` vinha antes do laço, não havia para onde voltar.
 LANCADOR_OCULTAR="${LANCADOR_OCULTAR:-}"
 LANCADOR_OCULTAR_FONTE="fábrica"
 _da_conf=()
@@ -182,7 +82,7 @@ if [ -n "$LANCADOR_OCULTAR" ]; then
     # `.desktop` que não existe e um "não instalado" silencioso no placar.
     _item="${_item#"${_item%%[![:space:]]*}"}"
     _item="${_item%"${_item##*[![:space:]]}"}"
-    # `-nome` é «este não», para os que o pack esconde (P74, logo abaixo).
+    # `-nome` é «este não», para os que o pack esconde.
     case "$_item" in
       -?*) _fora+=("${_item#-}") ;;
       ?*)  _da_conf+=("$_item") ;;
@@ -194,13 +94,11 @@ if [ -n "$LANCADOR_OCULTAR" ]; then
   fi
 fi
 
-# O QUE O PACK ESCONDE ENTRA SOMADO — 09/10/2026, P74 item 9 (T5)
-#   O pack no ar declara a lista dele (`lancador.ocultar`, os overrides de
-#   `.desktop` que o tema Dracula de antes trazia), e ela se SOMA à do conf: a
-#   chave do conf é escrita por quem instala e vem com os 32 de fábrica, então
-#   uma lista do pack que só valesse com a chave vazia não valeria em lugar
-#   nenhum. Tirar um nome do pack é escrevê-lo com `-` na frente, no conf — a
-#   mesma linha que a pessoa já lê inteira. Nome repetido entra uma vez.
+# O pack no ar declara a lista dele (`lancador.ocultar`, os overrides de
+# `.desktop` que o tema Dracula de antes trazia), e ela se SOMA à do conf: a
+# chave do conf é escrita por quem instala e vem com os 32 de fábrica, então
+# uma lista do pack que só valesse com a chave vazia não valeria em lugar
+# nenhum.
 _do_pack="$(meow_pack_dir)"
 [ -n "$_do_pack" ] || _do_pack="$(meow_pack_padrao_dir 2>/dev/null || true)"
 declare -A _ja=()
@@ -217,6 +115,22 @@ if [ "${#_fora[@]}" -gt 0 ]; then
   OCULTAR=(${_resto[@]+"${_resto[@]}"})
 fi
 unset _do_pack _ja _resto
+
+# Ele só desfazia uma marca pelo `-nome`. Trocar do Dracula para o Catppuccin
+# deixava os 24 do `lancador.ocultar` do pack fora do lançador, porque a lista
+# nova simplesmente não os nomeava mais.
+MARCADOS="$MEOW_ESTADO/lancador-ocultos.txt"
+_tem_marca() {
+  awk 'ant == "[Desktop Entry]" && $0 == "NoDisplay=true" { achou = 1 } { ant = $0 } END { exit !achou }' "$1"
+}
+declare -A _meus=()
+if [ -f "$MARCADOS" ]; then
+  while IFS= read -r _item; do [ -n "$_item" ] && _meus["$_item"]=1; done < "$MARCADOS"
+else
+  for _item in "${OCULTAR[@]}"; do
+    [ -f "$SISTEMA/$_item.desktop" ] && _tem_marca "$SISTEMA/$_item.desktop" && _meus["$_item"]=1
+  done
+fi
 
 mudou=0
 ausentes=0
@@ -252,37 +166,34 @@ for app in "${OCULTAR[@]}"; do
 
   tmp="$(mktemp)"
   printf '%s\n' "$novo" > "$tmp"
-  # A CÓPIA VEM ANTES DA ESCRITA, SEMPRE. Este arquivo é do apt, e até aqui
-  # marcá-lo era uma via de mão única: `dpkg -V` acusava a divergência e não
-  # havia de onde voltar. Se não der para guardar, não se escreve — `meow
-  # desfazer --lancador` é a contrapartida de mexer em /usr/share.
+  # Este arquivo é do apt, e até aqui marcá-lo era uma via de mão única:
+  # `dpkg -V` acusava a divergência e não havia de onde voltar.
   if ! meow_backup_sistema "$arq"; then
     meow_aviso "não consegui guardar cópia de $arq — não vou marcá-lo"
     rm -f "$tmp"
     continue
   fi
   if meow_desktop_escrever "$arq" "$tmp"; then
-    mudou=1
+    mudou=1; _meus["$app"]=1
   else
     sem_root=$((sem_root+1))
   fi
   rm -f "$tmp"
 done
 
-# O «-nome» DEVOLVE O QUE JÁ ESTAVA ESCONDIDO — conferência da P74, 09/10/2026
-#   Sem isto o `-nome` só impedia de esconder: um app que uma passada anterior
-#   já tinha marcado (o pack Dracula esconde o `mpv`, por exemplo) continuava
-#   fora do lançador, e a frase do meow.conf.exemplo («para manter um deles à
-#   vista, escreva `-nome`») não era verdade. Desfaz-se só a marca na forma que
-#   este script escreve — a linha `NoDisplay=true` logo depois de
-#   `[Desktop Entry]` — e só nos nomes que a pessoa pediu com `-`. A cópia vem
-#   antes da escrita, como acima.
+# A cópia vem antes da escrita, como acima.
+declare -A _na_lista=()
+for _item in "${OCULTAR[@]}"; do _na_lista["$_item"]=1; done
+_devolver=(${_fora[@]+"${_fora[@]}"})
+for _item in "${!_meus[@]}"; do
+  [ -n "${_na_lista[$_item]:-}" ] && continue
+  printf '%s\n' ${_fora[@]+"${_fora[@]}"} | grep -qxF -- "$_item" || _devolver+=("$_item")
+done
 devolvidos=0
-for app in ${_fora[@]+"${_fora[@]}"}; do
+for app in ${_devolver[@]+"${_devolver[@]}"}; do
   arq="$SISTEMA/$app.desktop"
-  [ -f "$arq" ] || continue
-  awk 'ant == "[Desktop Entry]" && $0 == "NoDisplay=true" { achou = 1 } { ant = $0 } END { exit !achou }' "$arq" \
-    || continue
+  [ -f "$arq" ] || { [ -z "${_na_lista[$app]:-}" ] && unset '_meus[$app]'; continue; }
+  _tem_marca "$arq" || { [ -z "${_na_lista[$app]:-}" ] && unset '_meus[$app]'; continue; }
   if meow_seco; then
     meow_muda "devolveria $app ao lançador"
     mudou=1
@@ -301,17 +212,23 @@ for app in ${_fora[@]+"${_fora[@]}"}; do
   tmp="$(mktemp)"
   printf '%s\n' "$novo" > "$tmp"
   if meow_desktop_escrever "$arq" "$tmp"; then
-    mudou=1; devolvidos=$((devolvidos+1))
+    mudou=1; devolvidos=$((devolvidos+1)); unset '_meus[$app]'
   else
     sem_root=$((sem_root+1))
   fi
   rm -f "$tmp"
 done
-[ "$devolvidos" -gt 0 ] && meow_muda "$devolvidos aplicativo(s) de volta ao lançador, pelo «-nome» do LANCADOR_OCULTAR"
+[ "$devolvidos" -gt 0 ] && meow_muda "$devolvidos aplicativo(s) de volta ao lançador"
+
+# A anotação se grava só fora do ensaio, e só quando muda (o `meow_escrever`
+# compara antes): a 2ª passada não escreve nada.
+if ! meow_seco; then
+  mkdir -p "$MEOW_ESTADO" 2>/dev/null
+  meow_escrever "$MARCADOS" "$(printf '%s\n' "${!_meus[@]}" | LC_ALL=C sort | sed '/^$/d')" 644 >/dev/null
+fi
 
 if [ "$sem_root" -gt 0 ]; then
   meow_aviso "$sem_root aplicativo(s) precisam de sudo para ocultar"
-  meow_info "rode o install.sh de novo com sudo disponível"
 fi
 
 if [ "$mudou" = "0" ]; then

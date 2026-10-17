@@ -1,36 +1,10 @@
 #!/usr/bin/env bash
 # claro-do-pack.sh — o claro do Dracula é o Alucard, na foto e em toda derivada de acento.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 25/09/2026 (sprint P63)
-#   Medido na revisão da P59: com FLAVOR=dracula e MODO=claro o COSMIC vestia a
-#   Light da foto `dracula-mauve` — `name: "catppuccin-latte"`, o acento
-#   #8839EF, e as dez chaves de cor da receita iguais às do `latte-mauve`: o
-#   Latte do Catppuccin. A derivada de acento (P48) copiava essa Light, e o
-#   dracula-pink no claro era o mesmo Latte, com o acento mauve. O pack diz que
-#   o claro do dracula é o alucard, e a página e a prévia já o desenhavam assim.
+# Mexer na Dark da foto é outra decisão, e quem a tomar troca este número junto.
 #
-#   A prova que a sprint pediu, num COSMIC de brinquedo e pelas MESMAS etapas
-#   do install.sh que o «Salvar e aplicar» roda: FLAVOR=dracula com MODO=claro
-#   aplica uma Light com as cores do alucard, nenhum hex do Latte; e com
-#   MODO=escuro a Dark é a de antes, byte a byte.
-#
-# A FOTO É CONFERIDA CONTRA A DERIVAÇÃO, E NÃO CONTRA UMA CÓPIA GUARDADA
-#   A Light da foto foi escrita pelo `scripts/derivar_flavor.py dracula-mauve`,
-#   e o `--conferir` dele refaz a conta e diz se a foto é o que ela dá hoje. Uma
-#   árvore copiada à mão, ou uma porta do `build()` que mudou sem a foto mudar
-#   junto, derruba a primeira seção — e a frase diz o comando que a refaz.
-#
-# A DARK É A DE ANTES, E O NÚMERO ABAIXO É A PROVA
-#   O sha256 das 109 linhas do manifesto que são da Dark, da Dark.Builder e do
-#   Mode, medido em 25/09/2026 antes e depois da P63: o mesmo. Mexer na Dark da
-#   foto é outra decisão, e quem a tomar troca este número junto.
-#
-# NADA FORA DO TEMPORÁRIO
-#   COSMIC, casa, estado e os DOIS packs são de brinquedo: a derivada de acento
-#   nasce dentro do pack no ar. `env -i` em toda chamada, a ponte apontando para
-#   o vazio, e o teste confere no fim que o repositório não mudou.
-#
-#   0 = passou · 1 = achados · 2 = erro deste teste
+# COSMIC, casa, estado e os DOIS packs são de brinquedo: a derivada de acento
+# nasce dentro do pack no ar.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -118,7 +92,6 @@ grep -qxF "claro: o do alucard-mauve, derivado de latte-mauve (scripts/derivar_f
   && ok "o captura.txt continua dizendo a casa da foto, e diz de onde veio o claro" \
   || falha "o captura.txt da foto não diz de onde veio o claro" "$(cat "$FOTO/captura.txt")"
 
-# --- 2. a Dark da foto é a de antes da P63 ---------------------------------
 dark="$(grep -E '  \./com\.system76\.CosmicTheme\.(Dark|Dark\.Builder|Mode)/' "$FOTO/manifesto.sha256" | sha256sum | cut -d' ' -f1)"
 n="$(grep -cE '  \./com\.system76\.CosmicTheme\.(Dark|Dark\.Builder|Mode)/' "$FOTO/manifesto.sha256")"
 [ "$dark" = "$DARK_MEDIDA" ] && [ "$n" = "109" ] \
@@ -126,8 +99,6 @@ n="$(grep -cE '  \./com\.system76\.CosmicTheme\.(Dark|Dark\.Builder|Mode)/' "$FO
   || falha "a Dark da foto mudou ($n linhas, $dark)"
 
 # --- 3. FLAVOR=dracula, MODO=claro: a Light é o alucard ---------------------
-#   O ponto de partida é a máquina da medição: o Dracula aplicado, com o claro
-#   que a foto tinha antes da P63 — o Latte, que é a Light do latte-mauve.
 cp -a "$DRA/dracula-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
 cp -a "$CAT/latte-mauve"/com.system76.CosmicTheme.Light* "$COSMIC/"
 [ "$(cat "$COSMIC/com.system76.CosmicTheme.Light/v2/name")" = '"catppuccin-latte"' ] \
@@ -215,10 +186,8 @@ PY
   && ok "a Light do dracula-pink é a do alucard-pink, byte a byte ($saida)" \
   || falha "a Light do dracula-pink não é a que o FLAVOR=alucard mostra" "$saida"
 
-# --- 6. uma derivada de antes da P63 se refaz ------------------------------
-#   Uma máquina que escolheu o pink antes da P63 tem o dracula-pink com o Latte
-#   no claro. Escolher o pink de novo («Salvar e aplicar») passa pela etapa
-#   gerar, e ela confere a derivada contra a conta e a refaz.
+# Escolher o pink de novo («Salvar e aplicar») passa pela etapa gerar, e ela
+# confere a derivada contra a conta e a refaz.
 cp -a "$CAT/latte-mauve"/com.system76.CosmicTheme.Light* "$DRA/dracula-pink/"
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
 [ "$rc_g" = "1" ] && [[ "$saida_g" == *"o claro é o do alucard-pink"* ]] \
@@ -236,10 +205,8 @@ saida_t2="$(etapa tema)"; rc_t2="$(rc)"
 $saida_t2"
 
 # --- 8. o Catppuccin não muda: o claro dele tem foto ------------------------
-#   A regra vale quando o par do outro lado NUNCA foi fotografado. O latte tem
-#   foto, e a derivada de acento do mocha continua levando a Light da base.
-#   [P66, 25/09/2026: a da base, no acento pedido — o green do latte no
-#   mocha-green; o tests/notas-de-funcao.sh prova o resto dela byte a byte.]
+# A regra vale quando o par do outro lado NUNCA foi fotografado. O latte tem
+# foto, e a derivada de acento do mocha continua levando a Light da base.
 saida="$(amb env MEOW_PACK_DIR="$PACKS/catppuccin" MEOW_PALETA="$PACKS/catppuccin/paleta.json" \
   python3 - "$RAIZ" <<'PY' 2>&1
 import json, os, sys

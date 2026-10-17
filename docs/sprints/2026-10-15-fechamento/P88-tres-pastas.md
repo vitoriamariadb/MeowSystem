@@ -64,3 +64,12 @@ se estiver ligado). O que diferencia origem é o `PROCEDENCIA.md`, não a pasta.
 - Precedência: desenho do pack vence o traço Arcticons em todo tamanho (hoje os 47 de 48 px encobrem 17
   desenhos do pack a 48 px), salvo escolha de traço de quem usa. Teste: o mesmo nome em `apps/` do pack e
   no traço → o tema montado tem o do pack em 48 px e em scalable.
+
+## Alerta de segurança (16/10, revisão automática do 11c5c5b): `scripts/icones_resgatados.sh`
+O mapa e a pasta dos resgatados passaram a vir do PACK (que pode ser importado), e o primeiro campo
+de cada linha (`nome`) entra cru em `$ALVO/$nome.svg` e `$ACERVO/$nome.svg`: um `../../x` escreve ou
+lê fora do tema. Obrigatório para o conferente: passar todo leitor de mapa que a P88 tocou pela regra
+única da P78 (nome de conjunto fechado, `realpath` dentro da raiz do pack, symlink para fora
+recusado, linha ruim pulada e contada) — e grep dos outros scripts que a P88 religou ao pack
+(`icones_*.sh`, `construir_*.sh`, `lib/icones.sh`) atrás do mesmo padrão. Teste: pack importado com
+`../../../../tmp/x : y` no mapa dos resgatados → nada fora do tema.

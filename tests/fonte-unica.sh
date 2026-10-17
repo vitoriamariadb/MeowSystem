@@ -2,41 +2,10 @@
 # fonte-unica.sh — um nome de ícone, um arquivo de onde ele sai, e esse arquivo
 # mora no repositório.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 23/09/2026 (P28)
-#   A diretriz: "centralizar os SVGs — e alterando lá alteraremos o resto".
-#   Ela só vale se cada ícone tiver UMA fonte, e se essa fonte for um arquivo
-#   daqui. Medido no dia em que a P28 foi escrita: o `net.waterfox.waterfox`
-#   tinha a linha no `apps-resgatados.map` do motor e um `?` comentado no
-#   `apps.map` do pack, e nenhum validador recusava um mapa de pack que
-#   apontasse para `~/.local/share/icons/` — um diretório que outro programa
-#   reescrevia (o `rebuild_dracula_theme()` do Spellbook-OS, 21/09 16:52:33; a
-#   P37 o desativou lá em 23/09, e quem monta o Dracula agora é o pack).
-#
-# O QUE ELE COBRA, REGRA POR REGRA DA P28
-#   1. Um nome, uma fonte — na camada `scalable/apps`, onde dois donos disputam
-#      o MESMO arquivo. Nome com duas fontes é falha; nome sem desenho também.
-#      Desde 24/09/2026 (P43) o pack no ar x o resgate do motor NÃO é empate:
-#      a precedência é declarada no `fontes` do pack.py (o pack vence com
-#      `ICONES_DRACULA="sim"`, o motor sem ele), e o bloco 10 prova os dois
-#      lados pelos instaladores de verdade — inclusive num pack que herda o
-#      Dracula sem declarar mapa, que é o que o `meow pack novo` escreve.
-#   4. Mapa não aponta para fora: pack, `motor:` ou `pack:`, e só.
-#   5. Arte de terceiro entra por cópia, com procedência: o Waterfox tem linha
-#      no PROCEDENCIA.md do pack.
-#   7. `meow icones fonte` responde com o arquivo e com o que deriva dele.
-#   8. `sincronizar` compara e NÃO copia — nem quando a origem andou, nem
-#      quando a cópia foi retocada.
-#
-# "CADA Icon= DA MÁQUINA", E POR QUE ELE NÃO LÊ A MÁQUINA
-#   A sprint escreve a regra 1 sobre os `Icon=` desta máquina. O teste a cobra
-#   sobre os MAPAS, que são o que o repositório promete: ler os `.desktop` de
-#   quem roda faria o placar depender de quais aplicativos estão instalados, e
-#   o CI diria verde ou vermelho por ausência, não por defeito — o que o
-#   `tests/todos.sh` veio proibir. Quem quer a pergunta da máquina tem o
-#   `meow icones fonte <nome>`, que este teste também exercita.
-#
-# CÓDIGOS DE SAÍDA (os do projeto)
-#   0 = tudo cobrado passou · 1 = achados · 2 = erro deste teste.
+# O teste a cobra sobre os MAPAS, que são o que o repositório promete: ler os
+# `.desktop` de quem roda faria o placar depender de quais aplicativos estão
+# instalados, e o CI diria verde ou vermelho por ausência, não por defeito — o
+# que o `tests/todos.sh` veio proibir.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -50,11 +19,8 @@ T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/packs" "$T/xdg" "$T/home"
 
-# O AMBIENTE É DE BRINQUEDO, E A RAZÃO É A LISTA DE RAÍZES
-#   O `pack.py` procura packs em `$MEOW_PACKS`, no `$XDG_DATA_HOME` de quem roda
-#   e no repositório. Sem o XDG de brinquedo, um pack que a pessoa tenha
-#   instalado em `~/.local/share/meowsystem/packs/` entraria na conta, e o
-#   teste mediria a máquina dela em vez do repositório.
+# O `pack.py` procura packs em `$MEOW_PACKS`, no `$XDG_DATA_HOME` de quem roda e
+# no repositório.
 amb() { env MEOW_PACKS="$T/packs" XDG_DATA_HOME="$T/xdg" HOME="$T/home" MEOW_RAIZ="$RAIZ" "$@"; }
 pack_py() { amb python3 "$RAIZ/scripts/pack.py" "$@"; }
 
@@ -66,25 +32,16 @@ pack_de_brinquedo() {
   cp "$RAIZ/packs/dracula/paleta.json" "$d/paleta.json"
   printf '{"formato": 1, "id": "%s", "nome": "%s", "paleta": {"arquivo": "paleta.json"}, "icones": {"apps": {"mapa": "icones/apps.map"}}, "vitrine": {"capa": "logo.svg"}}\n' \
     "$id" "$id" > "$d/pack.json"
-  # A VITRINE ENTROU NO PACK MÍNIMO EM 23/09/2026 — e este teste foi escrito
-  #   em paralelo, pela P28, na mesma leva em que a P15 a tornou obrigatória.
-  #   Sem ela o `validar` recusava o pack de brinquedo por "falta o bloco
-  #   'vitrine'", e a conferência do prefixo `pack:` falhava por um motivo que
-  #   não é o que ela pergunta — medido depois do merge das quatro. O logo sai
-  #   do GERADOR da P25, igual ao tests/pack.sh, e não de um SVG escrito aqui:
-  #   é o que um pack novo de verdade recebe.
-  #   A ORDEM IMPORTA: o `logo-gerado` VALIDA o pack antes de desenhar, e
-  #   recusa um `icones.apps.mapa` declarado que ainda não existe. O mapa
-  #   nasce vazio primeiro; o logo vem depois.
+  # A ORDEM IMPORTA: o `logo-gerado` VALIDA o pack antes de desenhar, e recusa
+  # um `icones.apps.mapa` declarado que ainda não existe. O mapa nasce vazio
+  # primeiro; o logo vem depois.
   : > "$d/icones/apps.map"
   amb python3 "$RAIZ/scripts/pack.py" logo-gerado "$d" > "$d/logo.svg" || return 2
   printf '%s' "$d"
 }
 
 # --- 1. regra 4 e regra 1 nos packs de verdade --------------------------------
-#   O `validar` passou a ler as LINHAS do mapa de aplicativos: alvo fora das
-#   três casas, nome repetido e alvo ausente são recusa. Todo pack do
-#   repositório tem de passar por ele.
+# Todo pack do repositório tem de passar por ele.
 for d in "$RAIZ"/packs/*/; do
   id="$(basename "$d")"
   saida="$(pack_py validar "$id" 2>&1)"; rc=$?
@@ -119,8 +76,8 @@ done
 # --- 1b. a precedência declarada, nos dois nomes que a pedem (P43) ----------
 #   `guvcview` e `setup-mozc` estão no `apps-resgatados.map` do motor e, desde
 #   24/09/2026, no mapa do Dracula. Com o Dracula no ar, UMA fonte — a do pack —
-#   e o resgate dito como "atrás" no stderr; com o Catppuccin no ar, a fonte é
-#   o resgate, como sempre foi. Se alguém tirar a precedência do `fontes`, o
+#   e o resgate dito como "atrás" no stderr; com o Catppuccin no ar, nenhuma
+#   (P88: os resgatados são do pack Dracula). Se alguém tirar a precedência do `fontes`, o
 #   Dracula volta a dar duas linhas e sair 1 aqui.
 #
 #   A PRECEDÊNCIA OLHA O INTERRUPTOR — revisão da P43. Com o Dracula no ar e
@@ -135,25 +92,29 @@ for nome in guvcview setup-mozc; do
     && ok "$nome com o Dracula no ar e a camada ligada: uma fonte, a do pack, e o resgate dito como atrás" \
     || falha "$nome com o Dracula no ar não tem o pack como fonte única (rc=$rc)" "$saida$(cat "$T/erro")"
   saida="$(ICONES_DRACULA=nao pack_py fonte "$nome" dracula 2>"$T/erro")"; rc=$?
-  [ "$rc" = "0" ] && [ "$saida" = "$nome	assets/icones/resgatados/$nome.svg	resgatados" ] \
+  [ "$rc" = "0" ] && [ "$saida" = "$nome	packs/dracula/icones/apps/resgatados/$nome.svg	resgatados" ] \
     && grep -q '(pack:dracula) fica atrás' "$T/erro" && grep -qF 'ICONES_DRACULA="nao"' "$T/erro" \
     && ok "$nome com o Dracula no ar e a camada desligada: a fonte é o resgate, e o pack dito como atrás" \
     || falha "$nome com a camada desligada não tem o resgate como fonte única (rc=$rc)" "$saida$(cat "$T/erro")"
+  # P88, decisão 16: os resgatados têm cor Dracula fixa e moram no pack
+  #   Dracula. Com o Catppuccin no ar nenhum mapa nomeia os dois.
   saida="$(pack_py fonte "$nome" catppuccin 2>/dev/null)"; rc=$?
-  [ "$rc" = "0" ] && [ "$saida" = "$nome	assets/icones/resgatados/$nome.svg	resgatados" ] \
-    && ok "$nome com o Catppuccin no ar: a fonte é o resgate, a escolha de antes" \
-    || falha "$nome com o Catppuccin no ar perdeu o resgate (rc=$rc)" "$saida"
+  [ "$rc" = "1" ] && [ -z "$saida" ] \
+    && ok "$nome com o Catppuccin no ar: o resgate do Dracula não veste o Catppuccin" \
+    || falha "$nome com o Catppuccin no ar ainda tem fonte (rc=$rc)" "$saida"
 done
 
 # --- 2. o Waterfox: uma fonte, no pack, com procedência ----------------------
+#   [P87, decisão 16 (3): a linha passou à raposa do motor, que vence a régua;
+#   o Firefox-Dracula copiado na P28 fica em `apps/`, com a procedência dele.]
 saida="$(pack_py fonte net.waterfox.waterfox dracula 2>&1)"; rc=$?
-[ "$rc" = "0" ] && [ "$saida" = "net.waterfox.waterfox	packs/dracula/icones/apps/net.waterfox.waterfox.svg	pack:dracula" ] \
-  && ok "o Waterfox tem uma fonte só, e ela é packs/dracula/icones/apps/net.waterfox.waterfox.svg" \
+[ "$rc" = "0" ] && [ "$saida" = "net.waterfox.waterfox	packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg	pack:dracula" ] \
+  && ok "o Waterfox tem uma fonte só, e ela é packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg" \
   || falha "a fonte do Waterfox não é a do pack (rc=$rc)" "$saida"
 
 # A linha que saiu do motor não pode voltar calada: com ela, o resgate e o pack
 # escreveriam o mesmo arquivo, e o doctor trocaria um pelo outro todo dia.
-if sed -e 's/#.*//' "$RAIZ/assets/icones/apps-resgatados.map" | grep -q '^[[:space:]]*net\.waterfox\.waterfox[[:space:]]*:'; then
+if sed -e 's/#.*//' "$RAIZ/packs/dracula/icones/apps-resgatados.map" | grep -q '^[[:space:]]*net\.waterfox\.waterfox[[:space:]]*:'; then
   falha "o apps-resgatados.map voltou a nomear o Waterfox — duas fontes para um nome"
 else
   ok "o apps-resgatados.map não nomeia mais o Waterfox"
@@ -175,9 +136,9 @@ fora=""
 for mapa in "$RAIZ"/assets/icones/*.map "$RAIZ"/packs/*/icones/*.map; do
   while IFS= read -r linha; do
     case "$mapa" in
-      */assets/icones/apps-resgatados.map)
+      */packs/dracula/icones/apps-resgatados.map)
         nome="$(printf '%s' "$linha" | cut -d: -f1 | tr -d '[:space:]')"
-        [ -f "$RAIZ/assets/icones/resgatados/$nome.svg" ] || fora="$fora${mapa#"$RAIZ"/}: $linha
+        [ -f "$RAIZ/packs/dracula/icones/apps/resgatados/$nome.svg" ] || fora="$fora${mapa#"$RAIZ"/}: $linha
 " ;;
       *) fora="$fora${mapa#"$RAIZ"/}: $linha
 " ;;
@@ -238,11 +199,18 @@ saida="$(pack_py fonte steam maquina 2>/dev/null)"; rc=$?
 # precedência declarada diz que o pack no ar vence (com a camada ligada — o
 # bloco 1b cobre a desligada). Até a P43 isto era "duas fontes, sai 1"; agora
 # é uma fonte, a do pack, e o resgate dito como atrás.
-cp "$RAIZ/assets/icones/resgatados/luna.svg" "$d/icones/apps/luna.svg"
+#   [P88: os resgatados são do Dracula; o pack que os disputa herda dele.]
+d="$(pack_de_brinquedo herdeira)"
+python3 - "$d/pack.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1])); p["heranca"] = "dracula"
+json.dump(p, open(sys.argv[1], "w"))
+PY
+cp "$RAIZ/packs/dracula/icones/apps/resgatados/luna.svg" "$d/icones/apps/luna.svg"
 printf 'luna : apps/luna.svg\n' > "$d/icones/apps.map"
-saida="$(ICONES_DRACULA=sim pack_py fonte luna maquina 2>"$T/erro")"; rc=$?
-[ "$rc" = "0" ] && [ "$saida" = "luna	$d/icones/apps/luna.svg	pack:maquina" ] \
-  && grep -q 'assets/icones/resgatados/luna.svg (resgatados) fica atrás' "$T/erro" \
+saida="$(ICONES_DRACULA=sim pack_py fonte luna herdeira 2>"$T/erro")"; rc=$?
+[ "$rc" = "0" ] && [ "$saida" = "luna	$d/icones/apps/luna.svg	pack:herdeira" ] \
+  && grep -q 'packs/dracula/icones/apps/resgatados/luna.svg (resgatados) fica atrás' "$T/erro" \
   && ok "pack x resgate: o pack no ar vence, e o 'fonte' diz o resgate que ficou atrás" \
   || falha "o 'fonte' não aplicou a precedência pack x motor (rc=$rc)" "$saida$(cat "$T/erro")"
 
@@ -272,7 +240,7 @@ plano="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
   && ok "uma fonte SVG deriva o vetor em scalable/apps" \
   || falha "o plano de derivados não é o esperado" "$plano"
 amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
-  meow_icones_derivados "$1" x "$2"' _ "$RAIZ/assets/icones/resgatados/ANTES-E-DEPOIS.png" "$tema" >/dev/null 2>&1
+  meow_icones_derivados "$1" x "$2"' _ "$RAIZ/assets/icones/resgatados-antes-e-depois.png" "$tema" >/dev/null 2>&1
 [ "$?" = "2" ] \
   && ok "raster não é fonte: um PNG é recusado com 2" \
   || falha "o derivar aceitou um PNG como fonte"
@@ -288,7 +256,7 @@ r2="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
 printf 'FLAVOR="dracula"\nACCENT="mauve"\nICONES_DRACULA="sim"\n' > "$T/meow.conf"
 saida="$(amb env MEOW_CONF="$T/meow.conf" "$RAIZ/bin/meow" icones fonte net.waterfox.waterfox 2>&1)"; rc=$?
 [ "$rc" = "0" ] \
-  && [ "$(printf '%s\n' "$saida" | sed -n 1p)" = "fonte: packs/dracula/icones/apps/net.waterfox.waterfox.svg" ] \
+  && [ "$(printf '%s\n' "$saida" | sed -n 1p)" = "fonte: packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg" ] \
   && [ "$(printf '%s\n' "$saida" | sed -n 2p)" = "deriva: scalable" ] \
   && ok "meow icones fonte diz a fonte do Waterfox e o que deriva dela" \
   || falha "meow icones fonte não respondeu como a P28 pede (rc=$rc)" "$saida"
@@ -381,8 +349,8 @@ CATPPUCCIN=(PACK=catppuccin FLAVOR=mocha ICONES_DRACULA=sim)
 DESLIGADO=(PACK=dracula FLAVOR=dracula ICONES_DRACULA=nao)
 DO_PACK_G="packs/dracula/icones/apps/guvcview-lente.svg"
 DO_PACK_M="packs/dracula/icones/biblioteca/tarot.svg"
-RESG_G="assets/icones/resgatados/guvcview.svg"
-RESG_M="assets/icones/resgatados/setup-mozc.svg"
+RESG_G="packs/dracula/icones/apps/resgatados/guvcview.svg"
+RESG_M="packs/dracula/icones/apps/resgatados/setup-mozc.svg"
 
 # A ordem do install.sh: o resgate primeiro, o Dracula depois.
 casa_a="$T/casa-dracula"; mkdir -p "$casa_a"
@@ -412,12 +380,15 @@ veste "$casa_a" guvcview "$DO_PACK_G" && veste "$casa_a" setup-mozc "$DO_PACK_M"
   && ok "ICONES_RESGATADOS=nao com o Dracula no ar não apaga o desenho do pack" \
   || falha "o remover do resgate apagou o desenho que é do pack"
 
-# A mesma casa troca para o Catppuccin: a escolha de antes volta sozinha.
+# A mesma casa troca para o Catppuccin: o que era do Dracula sai, e o resgate
+#   (cor Dracula, decisão 16) não volta — o ícone cai na base do tema.
+icones_em "$casa_a" icones_resgatados.sh --aplicar "${DRACULA[@]}"
 icones_em "$casa_a" icones_resgatados.sh --aplicar "${CATPPUCCIN[@]}"
 icones_em "$casa_a" icones_apps_dracula.sh --aplicar "${CATPPUCCIN[@]}"
-veste "$casa_a" guvcview "$RESG_G" && veste "$casa_a" setup-mozc "$RESG_M" \
-  && ok "Catppuccin no ar (depois do Dracula): guvcview e setup-mozc voltam ao resgate" \
-  || falha "Catppuccin no ar: o resgate não voltou"
+tema_a="$casa_a/.local/share/icons/MeowSystem-Icons/scalable/apps"
+[ ! -e "$tema_a/guvcview.svg" ] && [ ! -e "$tema_a/setup-mozc.svg" ] && [ ! -e "$tema_a/luna.svg" ] \
+  && ok "Catppuccin no ar (depois do Dracula): nem o desenho do Dracula nem o resgate ficam no tema" \
+  || falha "Catppuccin no ar: sobrou desenho do Dracula no tema" "$(ls "$tema_a" 2>&1 | head)"
 icones_em "$casa_a" icones_resgatados.sh --conferir "${CATPPUCCIN[@]}"; r1=$?
 icones_em "$casa_a" icones_apps_dracula.sh --conferir "${CATPPUCCIN[@]}"; r2=$?
 [ "$r1" = "0" ] && [ "$r2" = "0" ] \
@@ -433,6 +404,11 @@ icones_em "$casa_c" icones_resgatados.sh --conferir "${DESLIGADO[@]}"; r1=$?
 veste "$casa_c" guvcview "$RESG_G" && veste "$casa_c" setup-mozc "$RESG_M" && [ "$r1" = "0" ] \
   && ok "Dracula com ICONES_DRACULA=nao: o resgate veste os dois, e o --conferir sai 0" \
   || falha "Dracula desligado: o resgate não é a escolha (conferir=$r1)"
+# [P87: o uad-ng está nos dois mapas, apontando para o MESMO arquivo. Com a camada
+#   desligada o remover do pack achava os bytes dele e o apagava do tema.]
+veste "$casa_c" uad-ng "packs/dracula/icones/apps/resgatados/uad-ng.svg" \
+  && ok "Dracula desligado: o uad-ng, que os dois mapas dão com os mesmos bytes, fica no tema" \
+  || falha "Dracula desligado: o remover tirou o uad-ng, que é do resgate"
 
 # E a camada desligada DEPOIS de ligada, que é o caminho de quem mexe no
 # interruptor: o Dracula tira a lente (é dele, pelo conteúdo) e o resgate volta.

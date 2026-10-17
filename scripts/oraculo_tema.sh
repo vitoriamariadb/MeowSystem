@@ -1,36 +1,15 @@
 #!/usr/bin/env bash
 # oraculo_tema.sh — a derivação do tema do COSMIC INSTALADO, e não a de agosto.
 #
-#   ./oraculo_tema.sh revisao             a revisão do libcosmic que o cosmic-settings instalado pina
-#   ./oraculo_tema.sh construir           compila o oráculo nessa revisão (só se a derivação mudou)
-#   ./oraculo_tema.sh conferir [captura…] oráculo contra a cópia em Python, campo a campo
-#   ./oraculo_tema.sh caminho             o binário do oráculo da revisão instalada, se existe
+# Os `scripts/derivar_*.py` copiam o `ThemeBuilder::build()` do libcosmic da
+# revisão c003a58. Três revisões do libcosmic leem o mesmo tema ao mesmo tempo,
+# e a do cosmic-settings 1.10 (5a8bd94) já muda uma cor.
 #
-# POR QUE ISTO EXISTE (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §2.4 e §4.5)
-#   Os `scripts/derivar_*.py` copiam o `ThemeBuilder::build()` do libcosmic da
-#   revisão c003a58. Três revisões do libcosmic leem o mesmo tema ao mesmo
-#   tempo, e a do cosmic-settings 1.10 (5a8bd94) já muda uma cor. O oráculo
-#   (`src/oraculo-tema`) CHAMA o `build()` da revisão que o cosmic-settings
-#   instalado pina — compilado contra ela, em escopo de usuário.
+# QUANDO SE COMPILA, e por que quase nunca O contrato (`contratos/cosmic.tsv`,
+# linhas `tema`) guarda o hash dos três arquivos da derivação na revisão que o
+# Python copia.
 #
-# QUANDO SE COMPILA, e por que quase nunca
-#   O contrato (`contratos/cosmic.tsv`, linhas `tema`) guarda o hash dos três
-#   arquivos da derivação na revisão que o Python copia. Se na revisão
-#   instalada os três hashes são os mesmos, a cópia em Python É a derivação
-#   dela, e nada se compila. Medido em 09/10/2026: a d77e99f do cosmic-settings
-#   1.9 instalado tem os três iguais aos da c003a58; a 5a8bd94 do 1.10 muda o
-#   `model/theme.rs`.
-#
-# O QUE O ORÁCULO DECIDIU, NA PRIMEIRA MEDIDA (09/10/2026, dracula-mauve)
-#   d77e99f contra o Python: 254 campos, zero diferença, nas duas árvores.
-#   5a8bd94 contra o Python: a Dark igual; a Light (o alucard) difere num campo
-#   só, `background.component.pressed` (#E9EAF5E1 no Python, #B6B7C2E1 no
-#   oráculo) — exatamente o campo que a pesquisa previu, e ela supunha que o
-#   Dracula escuro sairia igual. Saiu.
-#
-# OS `derivar_*.py` FICAM: são a derivação de quem não tem cargo, ou de quando
-# o build do oráculo falhar. O `conferir` é o teste lado a lado: divergência
-# vira aviso, nunca bloqueio.
+# d77e99f contra o Python: 254 campos, zero diferença, nas duas árvores.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -144,8 +123,6 @@ cmd_conferir() {
   done
   rm -rf "$tmp"
   [ "$n" -gt 0 ] || meow_pula "nenhuma captura com receita para conferir"
-  # DIVERGÊNCIA É AVISO, nunca vermelho: o tema no ar continua o que ela
-  # escolheu, e a diferença é de um degrau de cor que só o oráculo enxerga.
   [ "$rc" = "0" ] || meow_info "a cópia em Python é a derivação da c003a58; quem refaz o produto da revisão nova é o oráculo"
   return "$MEOW_OK"
 }

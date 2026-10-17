@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
-# cosmic-prever.sh — o pré-voo do COSMIC candidato distingue o bom do quebrado? (P76)
-#
-# Dois candidatos de brinquedo do `cosmic-comp`, montados com `dpkg-deb -b`, e
-# dois fontes de brinquedo:
-#   bom       mesmo `v1` de hoje, as duas chaves do contrato no binário, o patch
-#             da série entra com `-F0`, `rust-version` antigo;
-#   quebrado  o pacote sobe para `v3`, uma chave do contrato sumiu do binário,
-#             o hunk do patch não casa mais, `rust-version` que nenhum rustc tem,
-#             e entra um `.desktop` cujo ícone nenhum mapa desenha.
-# O veredito precisa sair diferente: o bom sem vermelho (rc 0), o quebrado com
-# vermelho em chave, série e toolchain (rc 1) e amarelo em esquema.
+# cosmic-prever.sh — o pré-voo do COSMIC candidato distingue o bom do quebrado?
 # Tudo em diretórios de brinquedo: nada de apt, rede, sudo nem HOME de verdade.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,15 +7,19 @@ T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 # O rustup de verdade, lido ANTES de o HOME virar brinquedo: a sonda pergunta
 # ao rustc de dentro da árvore, e o rustup acha os toolchains pelo RUSTUP_HOME.
 RH="${RUSTUP_HOME:-$HOME/.rustup}"; CH="${CARGO_HOME:-$HOME/.cargo}"
-# A SUÍTE RODA COM HOME DE BRINQUEDO (conferência da P76): aí o `$HOME/.rustup`
-# não existe, o proxy `rustc` do PATH não acha toolchain nenhum, e o teste
-# acusava "o toolchain não saiu vermelho" sem a sonda ter errado. O rustup de
-# verdade é lido (só lido) no lar da conta, que o `getent` diz.
+# A SUÍTE RODA COM HOME DE BRINQUEDO: aí o `$HOME/.rustup` não existe, o proxy
+# `rustc` do PATH não acha toolchain nenhum, e o teste acusava "o toolchain não
+# saiu vermelho" sem a sonda ter errado.
 if [ ! -d "$RH/toolchains" ]; then
   _lar="$(getent passwd "$(id -un)" | cut -d: -f6)"
   [ -d "$_lar/.rustup/toolchains" ] && { RH="$_lar/.rustup"; CH="$_lar/.cargo"; }
 fi
 falhas=0
+# A sonda de ferramenta só pergunta se `just`, `make` e `cargo` existem: três
+# falsos no PATH deixam o veredito do bom igual em qualquer máquina.
+mkdir -p "$T/ferramentas"
+for _c in just make cargo; do printf '#!/bin/sh\nexit 1\n' > "$T/ferramentas/$_c"; chmod 755 "$T/ferramentas/$_c"; done
+PATH="$T/ferramentas:$PATH"
 ok()    { printf '  ok    %s\n' "$*"; }
 falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 command -v dpkg-deb >/dev/null || { echo "cosmic-prever: pulado — sem dpkg-deb"; exit 0; }
@@ -85,6 +79,7 @@ prever bom; rc=$?
 [ "$(veredito bom esquema verde)" -ge 1 ] && ok "esquema igual: verde" || falha "esquema não saiu verde"
 [ "$(veredito bom chave verde)" = 3 ] && ok "as 3 chaves verdes (a do patch, ausente, é a esperada)" || falha "chaves: $(cut -f1,2 "$T/saida-bom.tsv" | tr '\n' ' ')"
 [ "$(veredito bom série verde)" = 1 ] && ok "o patch entra com -F0" || falha "a série não saiu verde"
+[ "$(veredito bom ferramenta verde)" = 1 ] && ok "a ferramenta de build existe: verde" || falha "a ferramenta não saiu verde"
 grep -q vermelho "$T/saida-bom.tsv" && falha "há vermelho no bom: $(grep vermelho "$T/saida-bom.tsv")" || ok "nenhum vermelho"
 
 echo "== candidato quebrado"
@@ -104,6 +99,36 @@ if [ -f "$T/trabalho-quebrado/src/cosmic-comp-1.0~quebrado/.pronto" ]; then
   ok "o fonte foi aberto no diretório de trabalho, não no dos fontes"
 else
   falha "o fonte não foi aberto"
+fi
+
+# --- o completar_icones.sh lê a lista do `meow cosmic icones` ---
+# O verbo dizia «sem desenho: com.system76.CosmicViewer», e ninguém completava.
+RA="$T/raiz-apps"; CI="$T/casa-completar"; FB="$T/falso-dpkg"
+mkdir -p "$RA/usr/share/applications" "$RA/usr/share/icons/hicolor/scalable/apps" "$FB" \
+         "$CI/.local/share/icons/MeowSystem-Icons/scalable/apps"
+printf '[Desktop Entry]\nName=Falso\nExec=true\nIcon=com.system76.CosmicFalso\nType=Application\n' \
+  > "$RA/usr/share/applications/com.system76.CosmicFalso.desktop"
+printf '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><title>falso</title></svg>\n' \
+  > "$RA/usr/share/icons/hicolor/scalable/apps/com.system76.CosmicFalso.svg"
+printf '#!/bin/sh\necho cosmic-falso\n' > "$FB/dpkg-query"
+printf '#!/bin/sh\n[ "$1" = -L ] && echo /usr/share/applications/com.system76.CosmicFalso.desktop\n' > "$FB/dpkg"
+printf '#!/bin/sh\nexit 1\n' > "$FB/sudo"
+chmod 755 "$FB"/*
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$CI/.local/share/icons/MeowSystem-Icons/index.theme"
+completar() {
+  env -i PATH="$FB:$PATH" HOME="$CI" MEOW_RAIZ="$RAIZ" NO_COLOR=1 CV_RAIZ_APPS="$RA" \
+    PACK=dracula FLAVOR=dracula ACCENT=mauve "$RAIZ/scripts/completar_icones.sh" >/dev/null 2>&1
+}
+ALVO_CI="$CI/.local/share/icons/MeowSystem-Icons/scalable/apps/com.system76.CosmicFalso.svg"
+completar
+if [ -f "$ALVO_CI" ] && [ "$(cat "$ALVO_CI")" = "$(cat "$RA/usr/share/icons/hicolor/scalable/apps/com.system76.CosmicFalso.svg")" ]; then
+  antes="$(stat -c %Y.%s "$ALVO_CI")"; sleep 1; completar
+  [ "$antes" = "$(stat -c %Y.%s "$ALVO_CI")" ] \
+    && ok "o app do COSMIC sem desenho ganha o ícone de fábrica no tema, e a 2ª passada não escreve" \
+    || falha "a 2ª passada do completar reescreveu o ícone do app do COSMIC"
+else
+  falha "o completar não pôs no tema o ícone do app do COSMIC sem desenho"
 fi
 
 echo

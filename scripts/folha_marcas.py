@@ -1,81 +1,38 @@
 #!/usr/bin/env python3
 # folha_marcas.py — a folha de APROVAÇÃO da cor por MARCA.
 #
-# A PERGUNTA QUE ESTA FOLHA FAZ
-#   Em 23/08/2026 ela disse, olhando o dock: *"a cor de alguns svgs tão
-#   diferentes das logos originais. tipo a do wpp ou steam, chrome, coisa que
-#   nas linhas ia facilitar nossa vida"*.
+# O traço continua traço, `fill:none` continua `fill:none`, e a paleta continua
+# sendo a DO PACK ATIVO — nenhum hex de fora entra no tema. O que muda é QUAL
+# cor da paleta cada aplicativo veste.
 #
-#   O pedido é só de COR. O traço continua traço, `fill:none` continua
-#   `fill:none`, e a paleta continua sendo a DO PACK ATIVO — nenhum hex
-#   de fora entra no tema. O que muda é QUAL cor da paleta cada aplicativo veste.
+# Porque isto DERRUBA uma escolha que foi dela.
 #
-# POR QUE ELA PRECISA DECIDIR, E NÃO EU
-#   Porque isto DERRUBA uma escolha que foi dela. Em 10/08/2026, entre "uma cor
-#   só", "por categoria" e "uma a uma", ela escolheu POR CATEGORIA. Cor por marca
-#   é a terceira opção com outro nome. As duas não convivem, e a folha mostra o
-#   custo com nome e sobrenome: a categoria "rede" (hoje `sky` inteira) se
-#   reparte em quatro cores e deixa de existir.
+# POR QUE ESTA FOLHA É SEPARADA DA `folha_proposta.py` Aquela perguntou "estes
+# 35 GLIFOS servem?" e já foi respondida — os glifos estão no ar.
 #
-# POR QUE ESTA FOLHA É SEPARADA DA `folha_proposta.py`
-#   Aquela perguntou "estes 35 GLIFOS servem?" e já foi respondida — os glifos
-#   estão no ar desde 10/08. Esta pergunta é sobre COR e não toca em desenho
-#   nenhum. Juntar as duas faria uma página respondida mudar de assunto.
-#
-# O QUE ESTA FOLHA MOSTRA, E O QUE ELA NÃO INVENTA
-#   Cada cartão põe lado a lado o arquivo EXATO de hoje e o arquivo EXATO que
-#   seria instalado — mesma arte, mesmo `stroke-width`, só a cor trocada, do
-#   mesmo jeito que o `icones_apps_arcticons.sh` troca (no literal
-#   `currentColor`). Não é aproximação: é o arquivo.
-#
-#   O quadradinho de "marca" ao lado é a cor REAL do logo — cor de fora, posta
-#   ali só para conferir a proximidade a olho. Ela NÃO entra no tema em lugar
-#   nenhum; o que entra é sempre a chave da paleta.
+# O quadradinho de "marca" ao lado é a cor REAL do logo — cor de fora, posta ali
+# só para conferir a proximidade a olho.
 #
 #   uso: scripts/folha_marcas.py [saida.html]
 #        (padrão: ~/Documentos/meow-icones-marcas.html)
 
-# CORRIGIDO EM 2026-09-17 — caminhos de antes da tradução do projeto.
-# Este arquivo procurava `palette/` e `icons/` na raiz, nomes que deixaram de
-# existir quando os diretórios viraram `assets/paleta/` e `assets/icones/`. O
-# script falhava com FileNotFoundError e ninguém via, porque nada no instalador
-# o chama — ele é gerador de folha de conferência, rodado à mão. Medido com
-# `python3 scripts/<este arquivo>`: rc=1 antes, rc=0 depois.
-# A referência de caminho certo é `scripts/folha_conversor.py:82-83`.
+# Medido com `python3 scripts/<este arquivo>`: rc=1 antes, rc=0 depois. A
+# referência de caminho certo é `scripts/folha_conversor.py:82-83`.
 
 import html
 import json
 import os
 import sys
 
-# A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
-# `pack.py` é vizinho de arquivo deste script, e `scripts/` já é o `sys.path[0]`
-# de quem o roda: não há sys.path a atravessar, que era a isenção que o cabeçalho
-# do `meow_paleta` (lib/comum.sh) dava a quem é Python. A ordem de precedência
-# inteira mora em `pack.paleta_do_pack_ativo()`.
+# A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
 import pack
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOME = os.path.expanduser('~')
 
-# ============================================================================
 # AS CORES DE MARCA — medidas, e conferidas contra o hex oficial
-# ============================================================================
 #
-# Estes hexes são de FORA e existem só para comparação visual nesta folha. A
-# regra "nenhum hex hardcoded" vale para a cor do TEMA, que continua saindo da
-# paleta do PACK ATIVO — aqui não há cor de tema nenhuma.
-#
-# `medido`  = a arte instalada NESTA máquina, rasterizada a 128 px e medida em
-#             Oklab (bin de matiz de 30°, cor do bin dominante). Sempre a arte
-#             do PRÓPRIO FORNECEDOR quando ela existe — o SVG do flatpak, o PNG
-#             do `hicolor` do pacote. NUNCA o Papirus quando havia alternativa:
-#             o Papirus é um redesenho na paleta DELE, não a marca.
-# `oficial` = o hex publicado pela marca, conferido contra o medido. Onde os dois
-#             caem na mesma cor Catppuccin, a linha entrou; onde discordam, não.
-# `dom`     = dominância: a fatia do maior bin de matiz entre os pixels
-#             cromáticos. É ela que decide se a marca TEM uma cor (≥ 60%) ou é
-#             multicolor.
+# Estes hexes são de FORA e existem só para comparação visual nesta folha.
 MARCAS = {
     'meow-whatsapp':              ('#25D366', '#31C03E', 1.00, 'ZapZap (flatpak)'),
     'steam':                      ('#66C0F4', '#136295', 0.93, 'hicolor do pacote'),
@@ -170,8 +127,6 @@ SEM_MARCA = [
 
 
 def paleta(flavor='mocha'):
-    # precedência: ver `pack.paleta_do_pack_ativo()`, a porta única do lado
-    # Python desde a P13 — era o literal `catppuccin.json` até 22/09/2026.
     _paleta = pack.paleta_do_pack_ativo()
     with open(_paleta, encoding='utf-8') as fh:
         return json.load(fh)['flavors'][flavor]
@@ -180,18 +135,18 @@ def paleta(flavor='mocha'):
 def mapas():
     """nome -> caminho da arte, lido dos mesmos dois mapas que o instalador lê."""
     arte = {}
-    for linha in open(os.path.join(RAIZ, 'assets', 'icones', 'apps-arcticons.map'), encoding='utf-8'):
+    for linha in open(os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps-arcticons.map'), encoding='utf-8'):
         linha = linha.strip()
         if not linha or linha.startswith('#'):
             continue
         c = linha.split(':')
-        arte[c[0]] = os.path.join(RAIZ, 'assets', 'icones', 'arcticons-apps', c[1] + '.svg')
-    for linha in open(os.path.join(RAIZ, 'assets', 'icones', 'apps-convertidos.map'), encoding='utf-8'):
+        arte[c[0]] = os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps', 'arcticons', c[1] + '.svg')
+    for linha in open(os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps-convertidos.map'), encoding='utf-8'):
         linha = linha.strip()
         if not linha or linha.startswith('#'):
             continue
         c = linha.split(':')
-        arte[c[0]] = os.path.join(RAIZ, 'assets', 'icones', 'convertidos-apps', c[0] + '.svg')
+        arte[c[0]] = os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps', 'convertidos', c[0] + '.svg')
     return arte
 
 
@@ -419,7 +374,7 @@ def main():
     </p>
     <p class="porque" style="margin:0">
       Escolher só uma parte também vale: cada linha de
-      <code>assets/icones/apps-marca.map</code> é independente. Apagar a do Foliate, ou a
+      <code>packs/meowsystem/icones/apps-marca.map</code> é independente. Apagar a do Foliate, ou a
       do Brave, não afeta as outras.
     </p>
   </div>

@@ -5,50 +5,11 @@
 #   ./vigia_assets.sh              instala as unidades e liga o vigia
 #   ./vigia_assets.sh --conferir   não escreve; 1 se algo divergir
 #
-# POR QUE ISTO EXISTE
-#   Pedido dela em 05/08/2026: "o comando do meow tem que disparar em automático,
-#   talvez no self heal algo assim". O acervo de gatos JÁ era a interface — soltar
-#   um SVG em `assets/gatos/` o põe na rotação —, mas o efeito só chegava ao disco
-#   na volta seguinte do relógio, que hoje é de um dia. O par
-#   `meow-assets.path` + `meow-assets.service` fecha essa distância.
+# O acervo de gatos JÁ era a interface — soltar um SVG em `assets/gatos/` o põe
+# na rotação —, mas o efeito só chegava ao disco na volta seguinte do relógio,
+# que hoje é de um dia.
 #
-# POR QUE UM SCRIPT, E NÃO A LÓGICA DENTRO DO install.sh
-#   Porque o `meow doctor` precisa da MESMA verificação, e o `--consertar` precisa
-#   do MESMO conserto. É o desenho que `icones_mimetypes.sh` e `icones_sistema.sh`
-#   já seguem: o `install.sh` chama, o `bin/meow` chama com `--conferir` e com
-#   `--aplicar`, e a regra mora num lugar só. Duplicá-la no `bin/meow` seria a
-#   segunda verdade que ninguém atualiza.
-#
-# POR QUE NÃO NO SELF-HEAL DO RITUAL DA AURORA
-#   Ela sugeriu "talvez no self heal". O Aurora é de OUTRO projeto, roda como root
-#   e ela pode desligá-lo — e nesse dia o gato pararia de entrar sozinho sem nada
-#   dizer por quê. A unidade é do MeowSystem; quem liga e desliga é o `meow.conf`.
-#
-# O MARCADOR `@ACERVO@`
-#   O `meow-assets.path` é a única unidade deste projeto que NÃO pode ir por cópia
-#   byte a byte: o diretório vigiado é o do repositório, em /mnt/Apate, e o systemd
-#   não tem especificador para "onde está o clone" (`%h` só resolve o HOME). A
-#   troca acontece aqui, antes de gravar — e por isso a CONFERÊNCIA tem de fazer a
-#   mesma troca antes de comparar, ou a unidade divergiria eternamente.
-#
-#   E POR ISSO O CAMINHO AQUI É O FÍSICO, `pwd -P`. Esta máquina tem
-#   `~/Desenvolvimento/MeowSystem` como link simbólico para `/mnt/Apate/...`, e o
-#   `pwd` lógico devolve o caminho pelo qual o script FOI CHAMADO. Medido em
-#   10/08/2026: chamado de /mnt/Apate o `--conferir` dizia `ok`, e chamado do
-#   link dizia "1 unidade(s) a instalar ou atualizar" — a mesma máquina, o mesmo
-#   disco, duas respostas. Pior que o barulho: aplicar pelo link reescreveria o
-#   `PathModified=` com o caminho do link, e o vigia passaria a depender de um
-#   symlink que ninguém prometeu manter. O acervo é UM só; o nome dele também.
-#
-# COMPARAR DO MESMO JEITO QUE SE ESCREVE
-#   `meow_escrever` grava com `printf '%s'`, que come o `\n` final. Comparar com
-#   `cmp` byte a byte acusaria divergência para sempre num arquivo perfeito — já
-#   custou a este projeto um `--conferir` gritando 123 divergências num tema
-#   correto. Aqui a comparação é `"$texto" = "$(cat ...)"`, que é o critério do
-#   escritor.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
+# Ela sugeriu "talvez no self heal".
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -89,10 +50,7 @@ _ligado() {
 }
 
 # --- desligado: o que existe tem de SAIR -------------------------------------
-# Deixar de instalar não é desligar. Sem esta metade, a unidade que uma execução
-# anterior ligou continuaria vigiando depois de ela ter escrito ASSETS_VIGIA="nao"
-# — e o sintoma seria "desliguei e continua acontecendo", que é o pior de todos
-# porque não há onde olhar.
+# Deixar de instalar não é desligar.
 _desligar() {
   local u restos=0
   for u in "${UNIDADES[@]}"; do [ -f "$DESTINO/$u" ] && restos=$((restos + 1)); done
@@ -166,12 +124,6 @@ _conferir() {
 _aplicar() {
   local u texto mudou=0 estado="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 
-  # O DIRETÓRIO DO LOG TEM DE EXISTIR ANTES DA UNIDADE SUBIR
-  #   `StandardOutput=append:` é montado antes de qualquer comando do serviço e
-  #   antes até do `StateDirectory=`. Reproduzido em 05/08/2026 com o diretório
-  #   ausente: `Failed to set up standard output: No such file or directory`,
-  #   `status=209/STDOUT`, e nada mais roda. Este mkdir é o que garante o primeiro
-  #   disparo numa máquina recém-instalada.
   if ! mkdir -p "$estado"; then
     meow_erro "não consegui criar $estado (é lá que fica o log do vigia)"
     return "$MEOW_ERRO"
@@ -218,10 +170,6 @@ _aplicar() {
     return "$MEOW_OK"
   fi
   meow_ok "vigia ligado: soltou um .svg em assets/gatos/, ele entra na hora"
-  # A frase antiga ("só troca no próximo login") morreu em 01/09/2026: o
-  # `logo.sh` passou a reciclar o painel e a chacoalhar o menu de lançamento
-  # quando o arquivo do dock muda de verdade. Aviso que envelhece é pior que
-  # aviso nenhum — manda ela esperar por algo que já aconteceu.
   meow_info "  o gato novo aparece em segundos: dock (painel reciclado), terminal e menu"
   return "$MEOW_DIVERGENTE"
 }

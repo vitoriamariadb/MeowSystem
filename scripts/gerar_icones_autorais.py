@@ -109,67 +109,38 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 RAIZ = Path(__file__).resolve().parent.parent
-# A PALETA VEM DA PORTA ÚNICA DO LADO PYTHON — 22/09/2026
-# Eram três linhas repetidas em seis arquivos, e as seis terminavam no mesmo
-# literal: `assets/paleta/catppuccin.json`. A P13 mudou esse arquivo de casa (é
-# `packs/catppuccin/paleta.json`) e derrubou a isenção que o cabeçalho do
-# `meow_paleta` dava a quem é Python: `pack.py` é VIZINHO deste arquivo, e
-# `scripts/` já é o `sys.path[0]` de quem o roda — não há sys.path a atravessar.
 # A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
 import pack  # noqa: E402  — vizinho de arquivo, e o RAIZ acima precede
 
 PALETA = Path(pack.paleta_do_pack_ativo())
 
-# ONDE OS DESENHOS NASCEM — QUEM DIZ É O PACK, DESDE 22/09/2026
-#   Era `RAIZ / "assets" / "icones" / "autorais"`, e o preço dessa linha foi
-#   medido: aquele diretório guardava 55 desenhos de DOIS packs misturados — 44
-#   do Catppuccin e 11 do Dracula —, num nome (`autorais`) que diz que são do
-#   projeto e não diz de QUEM. A paleta já vinha do pack ativo desde a linha
-#   acima; só o destino é que continuava cravado, e por isso o Dracula regerava
-#   os desenhos dele dentro do acervo do vizinho.
+# A paleta já vinha do pack ativo desde a linha acima; só o destino é que
+# continuava cravado, e por isso o Dracula regerava os desenhos dele dentro do
+# acervo do vizinho.
 #
-#   E O QUE ISSO DEIXAVA QUEBRADO ERA O FLAVOR CLARO. O `alucard` nasceu em
-#   19/09/2026 e ficou com ZERO dos onze: no modo claro do Dracula estes ícones
-#   caíam no `latte`, que é o claro do OUTRO pack. O laço lá embaixo sempre
-#   soube gerá-los — ele varre `paleta["flavors"]`, e a paleta do Dracula
-#   declara os dois — mas ninguém rodava o gerador com a paleta do Dracula
-#   porque o destino era o mesmo monte para todo mundo.
-#
-#   `dir_acervo` e não `acervo`: quem ESCREVE precisa do caminho mesmo quando o
-#   diretório ainda não existe, e num pack novo ele não existe. O `padrao`
-#   cobre o pack que não declarou a categoria — ele escreve em casa, nunca no
-#   acervo de quem ele herda.
+# O laço lá embaixo sempre soube gerá-los — ele varre `paleta["flavors"]`, e a
+# paleta do Dracula declara os dois — mas ninguém rodava o gerador com a paleta
+# do Dracula porque o destino era o mesmo monte para todo mundo.
 DESTINO = Path(pack.dir_acervo("icones.autorais.desenhos",
-                               padrao="icones/autorais/"))
+                               padrao="icones/apps/autorais/"))
 
 # Papel -> (nome Catppuccin em flavor escuro, nome em flavor claro).
 #
-# OS PAPÉIS DO FOGSTRIPPER E DO HEFESTO SAÍRAM DAQUI — 23/09/2026, sprint P26.
-#   `foto`, `sol`, `xadrez_a`, `xadrez_b`, `corpo`, `tinta` e `touchpad` eram de
-#   dois desenhos só, e foram com eles para o `papeis` de cada `.json` em
-#   `packs/catppuccin/icones/autorais/`, com os mesmos nomes de cor. Esta tabela
-#   ficou sendo o vocabulário dos nove desenhos que ainda são função aqui.
+# `foto`, `sol`, `xadrez_a`, `xadrez_b`, `corpo`, `tinta` e `touchpad` eram de
+# dois desenhos só, e foram com eles para o `papeis` de cada `.json` em
+# `packs/catppuccin/icones/autorais/`, com os mesmos nomes de cor.
 PAPEIS = {
     # Os oito do sistema
     "vazio":    ("crust", "base"),          # a tela do terminal e do monitor
     "borda":    ("surface1", "overlay0"),   # contorno que separa do fundo
     "trilho":   ("surface2", "surface2"),   # o sulco dos deslizadores
-    # O CONTORNO NÃO É O MESMO QUE `tinta`, e a diferença é o Latte.
-    # `tinta` inverte (crust/base) porque no Hefesto ela é a MARCA impressa no
-    # corpo do controle, e ali inverter é certo. Aqui ela é a SILHUETA, e uma
-    # silhueta quase branca (o `base` do Latte) desaparece contra papel de parede
-    # claro — o pior caso caía para 2,00. Com `text` no claro, o contorno é
-    # escuro nos DOIS flavors e o pior caso sobe para 3,53 no lilás dela, 7,99
-    # no branco e 3,87 no preto. Só o cinza-50%-exato fica em 2,02, e nesse
-    # fundo nenhum tema de ícone do mundo passa: é o ponto equidistante de tudo.
+    # O CONTORNO NÃO É O MESMO QUE `tinta`, e a diferença é o Latte. `tinta`
+    # inverte (crust/base) porque no Hefesto ela é a MARCA impressa no corpo do
+    # controle, e ali inverter é certo.
     "contorno": ("crust", "text"),          # a silhueta, contra qualquer fundo
-    # A FOLHA NÃO INVERTE, e essa foi a única coisa que o Latte reprovou.
-    # A primeira versão usava ("text","text"), copiado do `corpo` do Hefesto —
-    # e ali inverter é certo, porque um controle preto no claro e branco no
-    # escuro continua sendo um controle. Uma FOLHA, não: no Latte ela virava
-    # #4C4F69 e o ícone lia como quadro-negro, não como documento. Papel é claro
-    # nos dois flavors; quem resolve o contraste contra o lançador claro é o
-    # contorno em `borda`, do mesmo jeito que na moldura do Terminal.
+    # A FOLHA NÃO INVERTE, e essa foi a única coisa que o Latte reprovou. Uma
+    # FOLHA, não: no Latte ela virava #4C4F69 e o ícone lia como quadro-negro,
+    # não como documento.
     "folha":    ("text", "base"),           # a página do editor
 }
 # `sujeito` usa o ACCENT do tema — vem por parâmetro. Numa declaração, o mesmo
@@ -189,18 +160,14 @@ IDENTIDADE = {
 }
 
 
-# O FOGSTRIPPER E O HEFESTO MORAVAM AQUI — `_xadrez`, `fogstripper`, `_CORPO` e
-# `hefesto` — até 23/09/2026. Eles são os dois primeiros desenhos DECLARADOS:
+# Eles são os dois primeiros desenhos DECLARADOS:
 # `packs/catppuccin/icones/autorais/{fogstripper,hefesto}.json`, cada um com a
-# docstring que tinha aqui transformada em `_nota`. O SVG de cada um foi tirado
-# destas funções com uma lacuna `{papel}` no lugar de cada cor, e por isso o
-# arquivo gerado continua byte a byte o mesmo.
+# docstring que tinha aqui transformada em `_nota`.
 
 
 # --- os oito do sistema ------------------------------------------------------
 # Todos partilham o mesmo esqueleto: `viewBox` de 48, formas chapadas, traço de
-# ~3px onde há traço, e a cor de identidade em `c['marca']`. O que muda de um
-# para outro é só a silhueta — que é o que o olho lê depois da cor.
+# ~3px onde há traço, e a cor de identidade em `c['marca']`.
 
 def _moldura(c: dict) -> str:
     """A tela retangular do Terminal e do Monitor.
@@ -433,15 +400,6 @@ def main() -> int:
     paleta = json.loads(PALETA.read_text())
     claros = paleta.get("claros", [])
 
-    # AS DECLARAÇÕES SÃO LIDAS ANTES DE ESCREVER A PRIMEIRA LINHA — 23/09/2026
-    #   Uma declaração recusada no meio do laço deixaria metade dos flavors
-    #   regerados e a outra metade não. Conferir tudo primeiro faz o erro sair
-    #   com o pack intacto, dizendo o arquivo e o que consertar — a frase é do
-    #   `pack.ler_autoral`, que é quem conhece o formato.
-    #
-    #   `pack.autorais()` segue o mesmo pack que o `DESTINO` e a `PALETA`: o do
-    #   `MEOW_PACK_DIR`, ou o padrão. Ele sobe a herança para LER; quem escreve
-    #   continua sendo este pack, em casa.
     declarados = {}
     try:
         for nome, (caminho, _dono) in sorted(pack.autorais().items()):
@@ -456,18 +414,8 @@ def main() -> int:
     if not args.conferir:
         args.saida.mkdir(parents=True, exist_ok=True)
 
-    # O TÍTULO DIZ O PACK DONO DO FLAVOR — 23/09/2026, P34 (anotado na P16b)
-    #   Era `Catppuccin <Flavor>` cravado nas duas fontes, do tempo em que o
-    #   gerador só pintava o Catppuccin. Com a paleta do pack ativo, os onze do
-    #   Dracula saíam «Catppuccin Dracula» e «Catppuccin Alucard», e um pack de
-    #   CSV sairia «Catppuccin Meutema». O nome vem do `pack.json` do MESMO pack
-    #   de onde vêm a paleta e o destino — o `MEOW_PACK_DIR`, ou o padrão —, e
-    #   sem `nome` fica o nome do diretório.
-    #   O FLAVOR QUE SE CHAMA COMO O PACK NÃO SE REPETE: o `dracula` do Dracula
-    #   seria «Dracula Dracula», gagueira e não informação. E o nome é texto de
-    #   quem fez o pack, então entra escapado — um «Tom & Jerry» não pode tirar
-    #   o `<title>` do XML. O `{titulo}` de uma declaração não escapa nada, e
-    #   por isso o escape é daqui.
+    # Era `Catppuccin <Flavor>` cravado nas duas fontes, do tempo em que o
+    # gerador só pintava o Catppuccin.
     ref = pack._ref_ativa(None)
     nome_do_pack = str(pack.campo(ref, "nome") or os.path.basename(str(ref).rstrip("/")))
 
@@ -491,8 +439,6 @@ def main() -> int:
             for nome, desenha in DESENHOS.items():
                 # A cor de identidade dos oito do sistema. Quem não está na
                 # tabela (o painel) não usa `marca` e não precisa de entrada.
-                # Uma cor inventada aqui morreria alta, como toda cor neste
-                # projeto: ou o nome existe na paleta, ou o KeyError estoura.
                 identidade = IDENTIDADE.get(nome)
                 if identidade is not None:
                     c["marca"] = cores[args.accent if identidade == "__ACCENT__" else identidade]

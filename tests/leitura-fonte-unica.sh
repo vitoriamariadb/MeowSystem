@@ -1,28 +1,6 @@
 #!/usr/bin/env bash
-# leitura-fonte-unica.sh — o modo de leitura tem UMA fonte de verdade (P77, 10/10/2026).
-#
-# O DEFEITO QUE ESTE ARQUIVO VIGIA (achado 26 do uso real de 09/10)
-#   O painel dizia 3500 K e «Sim», a máquina estava em 6300 K e «Não», e o
-#   cartão prometia «Salvar e aplicar faz este ajuste vencer». Não fazia: o
-#   `leitura.sh` lê primeiro o que o applet da barra guarda (o ponto dos
-#   sliders no estado dele, a agenda e o horário no CosmicComp), e o meow.conf
-#   é o padrão de fábrica. O painel lia a tela deste minuto e procurava o
-#   horário num nome que o applet não grava (`leitura_horario_inicio`).
-#
-# O QUE ELE CONFERE
-#   1. O `meow leitura adotar CHAVE...` põe o valor do meow.conf no lugar que o
-#      applet guarda — a mesma casa onde o `leitura.sh` lê —, e não escreve o
-#      que os portões dele recusariam (kelvin fora da faixa) nem o vazio da
-#      agenda («não toca»).
-#   2. O servidor lê esses mesmos lugares (`_valendo_agora`): o ponto do slider,
-#      e não o zero da tela de dia; `leitura_hora_inicio`, e não o nome errado.
-#   3. O «Salvar e aplicar» chama o `adotar` com as chaves do modo de leitura
-#      que ele leva (conferido na fonte do servidor: a rota é uma só).
-#
-# NADA SAI DA CASA DE BRINQUEDO: `env -i`, HOME temporário com o COSMIC e o
-#   estado dentro dela, e um `sudo` falso na frente do PATH.
-#
-#   0 = passou · 1 = falhou · 2 = erro deste teste
+# leitura-fonte-unica.sh — o modo de leitura tem UMA fonte de verdade. `sudo`
+# falso na frente do PATH: com `NOPASSWD`, o de verdade escreveria no sistema.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 

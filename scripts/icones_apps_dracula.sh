@@ -1,49 +1,14 @@
 #!/usr/bin/env bash
 # icones_apps_dracula.sh — instala no tema os desenhos do pack autoral Dracula.
 #
-# O MAPA EXISTIA E NINGUÉM O LIA — MEDIDO EM 16/09/2026
-#   `assets/icones/apps-dracula.map` nasceu em 15/09 com 17 casamentos
-#   app -> desenho, herdados da SPRINT 32 do `Dracula_OS-Theme`. Um `grep`
-#   pelo nome do arquivo em todo o repositório devolvia UMA linha: a primeira
-#   do próprio mapa. Nenhum script, nenhuma etapa, nenhum verbo.
-#   O sintoma na tela: a aba «Ícones» do painel listava 44 aplicativos e seis
-#   deles como "de fábrica" — entre eles o Menu Editor, o Nyx e o R, que
-#   TINHAM linha no mapa. "nem aqui nossos icons aparecem" (16/09/2026).
+# O `48x48/apps` é `Type=Fixed` e tem dono único declarado — o
+# `icones_apps_arcticons.sh`. Escrever lá seria disputar arquivo.
 #
-# POR QUE `scalable/apps`, E POR QUE ISSO FAZ O DRACULA VENCER
-#   O `48x48/apps` é `Type=Fixed` e tem dono único declarado — o
-#   `icones_apps_arcticons.sh`. Escrever lá seria disputar arquivo.
-#   O `scalable/apps` é `Type=Scalable` (Size=128, MinSize=8, MaxSize=512 no
-#   nosso index.theme) e, pelo strace de 08/08/2026 registrado no cabeçalho do
-#   `completar_icones.sh`, o resolvedor pede `scalable` no caso comum — um
-#   arquivo ali VENCE o `48x48`.
+# Não é acidente de precedência — é a escolha, e este parágrafo existe para que
+# no dia em que alguém estranhar a troca ela esteja escrita.
 #
-#   E vencer é a decisão dele, de 16/09/2026, feita com os dois lados na mesa:
-#   onze dos dezoito nomes já vestem Arcticons monocromático pintado pela
-#   paleta, e ele escolheu "Dracula vence tudo" sabendo disso. Não é acidente
-#   de precedência — é a escolha, e este parágrafo existe para que no dia em
-#   que alguém estranhar a troca ela esteja escrita.
-#
-#   O caminho de volta é barato e não destrói nada: `ICONES_DRACULA="nao"`
-#   apaga o que ESTE script pôs, por nome, lido do mesmo mapa. O Arcticons
-#   continua no `48x48` o tempo todo, intacto — ele reaparece na tela sozinho.
-#
-# O ACERVO É LOCAL, E ISSO NÃO É DETALHE DE ARRUMAÇÃO
-#   A segunda coluna do mapa apontava para dentro do `Dracula_OS-Theme`, que é
-#   outro repositório e só existe na máquina dele. Um script que lesse aquilo
-#   funcionaria aqui e quebraria na dela — e este projeto é puxado dos dois
-#   lados. Os desenhos foram copiados para `assets/icones/dracula-apps/` e a
-#   coluna passou a ser um caminho relativo a `assets/icones/`.
-#
-# ESTE SCRIPT NÃO PINTA NADA, E É A DIFERENÇA PARA O IRMÃO DELE
-#   O `icones_apps_arcticons.sh` recolore porque o Arcticons é monocromático —
-#   medido: 0 cores declaradas num `.svg` do pack. Aqui cada desenho traz de 6
-#   a 10 cores próprias e já nasceu Dracula. O cabeçalho do mapa diz a frase:
-#   "Recolorir pela paleta não seria aplicar o tema: seria destruir o desenho."
-#   Por isso a cópia é literal — o desenho que sai do acervo é o que chega ao
-#   tema, sem uma tag tocada. (Literal, e não "byte a byte": o `meow_escrever`
-#   normaliza o newline final, e é por isso que o `_dracula_remover` compara do
-#   mesmo jeito que escreve — ver o bloco lá embaixo.)
+# O caminho de volta é barato e não destrói nada: `ICONES_DRACULA="nao"` apaga
+# o que ESTE script pôs, por nome, lido do mesmo mapa.
 
 set -uo pipefail
 
@@ -59,28 +24,13 @@ TEMA_NOME="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 TEMA_DIR="$HOME/.local/share/icons/$TEMA_NOME"
 ALVO="$TEMA_DIR/scalable/apps"
 ICONES="$RAIZ/assets/icones"
-# O acervo do Dracula virou um THEME PACK em 17/09/2026 (ver docs/PACKS.md).
-# O mapa e os desenhos moveram de assets/icones/{apps-dracula.map,dracula-apps/}
-# para packs/dracula/icones/{apps.map,apps/}, e os caminhos DENTRO do mapa
-# passaram de `dracula-apps/x.svg` para `apps/x.svg`.
-# A queda para o caminho antigo existe para quem atualizar o MeowSystem sem ter
-# o pack ainda: sem ela, um `git pull` no meio da migração deixaria o dock sem
-# os ícones, calado.
+# O acervo do Dracula virou um THEME PACK (ver docs/PACKS.md).
 #
-# O MAPA SOBE A HERANÇA, PELA MESMA PORTA DO `fontes` — 24/09/2026, revisão da P43
-#   Era só o `meow_pack_arquivo`, que olha o pack ativo e o núcleo e NÃO sobe a
-#   herança. Quem responde "de onde sai este ícone" é o `fontes` do pack.py, que
-#   sobe (o `acervo`), e desde a P43 é a resposta dele que manda o
-#   `icones_resgatados.sh` ceder `guvcview` e `setup-mozc` ao pack. Medido numa
-#   casa de brinquedo com o caminho do próprio produto — `meow pack novo meu`
-#   com o Dracula no ar, que escreve `"heranca": "dracula"` sem `icones.apps` —
-#   e `ICONES_DRACULA="sim"`: o resgate cedia os dois nomes, este script lia
-#   mapa nenhum ("0 de 0 no tema"), e o tema ficava sem os dois arquivos, com os
-#   dois `--conferir` em 0. A precedência era decidida numa resolução de mapa e
-#   executada noutra. Agora as duas são a mesma: o `acervo`, como o
-#   `icones_pastas.sh` já faz para o mapa das pastas e o painel para esta mesma
-#   lista. O `meow_pack_arquivo` fica como queda, para o pack que tenha o
-#   arquivo sem o declarar no `pack.json` — era o que ele achava antes.
+# Medido numa casa de brinquedo com o caminho do próprio produto — `meow pack
+# novo meu` com o Dracula no ar, que escreve `"heranca": "dracula"` sem
+# `icones.apps` — e `ICONES_DRACULA="sim"`: o resgate cedia os dois nomes, este
+# script lia mapa nenhum ("0 de 0 no tema"), e o tema ficava sem os dois
+# arquivos, com os dois `--conferir` em 0.
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.apps.mapa)" || MAPA=""
@@ -96,74 +46,23 @@ ICONES_BASE_MAPA="$(dirname "$MAPA")"
 # O `awk` corta o comentário ANTES de contar os campos: sem isso, uma linha com
 # `#` no meio viraria três campos e o caminho sairia truncado no `#`.
 #
-# O ALVO PASSA PELO `pack.py alvo`, E É O QUE FAZ O PREFIXO `motor:` EXISTIR
-#   [22/09/2026] Um mapa de pack diz *"o Telegram veste o desenho X"* — decisão
-#   de TEMA, e por isso a linha mora no pack. Mas o desenho X pode vir do acervo
-#   Arcticons: 113 SVG de terceiro, base de conversão, ferramenta compartilhada
-#   que não muda quando se troca de pack. Sem prefixo só havia duas saídas, e as
-#   duas eram ruins: ou a decisão fica em `assets/` (e trocar de pack não troca
-#   a escolha), ou cada pack carrega uma CÓPIA dos 113 — e a segunda cópia
-#   defasa da primeira calado.
-#
 #     org.telegram.desktop          : motor:arcticons/telegram.svg
 #     io.github.flattool.Warehouse  : apps/Warehouse.svg
-#
-#   O `packs/dracula/icones/apps.map` de hoje NÃO usa o prefixo: os dezoito
-#   apontam para `apps/`, dentro do pack. Ele entra aqui porque é o resolvedor
-#   que a P27 pede, e porque um mapa que o use precisa achar quem o entenda no
-#   dia em que for escrito — não depois.
-#
-# EM LOTE, E O MOTIVO FOI MEDIDO
-#   Uma chamada de `python3` por linha custou 1,1 s para as dezoito deste mapa,
-#   e este laço roda dentro do `meow doctor` — o comando das 5h. Um mapa de cem
-#   aplicativos custaria seis segundos, e a regressão apareceria como "o doctor
-#   ficou lento", longe da causa. O `alvo` lê o STDIN inteiro e devolve UMA
-#   linha por linha de entrada, então o mapa custa uma partida só.
-#
-#   O `paste` depende desse alinhamento: uma linha a mais ou a menos vestiria
-#   cada aplicativo com o ícone do vizinho, sem erro nenhum na tela. Por isso a
-#   linha recusada volta VAZIA em vez de voltar fora — e vazia não casa com
-#   arquivo nenhum, caindo no aviso "no mapa mas sem desenho no disco" que o
-#   `_dracula_instalar` já tem.
 _dracula_pares_do_mapa() {
   [ -f "$MAPA" ] || return 1
   local cru
-  # O CAMINHO É TUDO DEPOIS DO PRIMEIRO `:`, E NÃO O CAMPO 2 — 22/09/2026
-  #   Era `caminho=$2`, e com `-F:` isso significa "até o PRÓXIMO dois-pontos".
-  #   A linha que esta sprint dá como exemplo tem dois:
+  # Era `caminho=$2`, e com `-F:` isso significa "até o PRÓXIMO dois-pontos".
   #
   #       org.telegram.desktop : motor:arcticons/telegram.svg
   #
-  #   São três campos para o `awk`, e `$2` valia ` motor` — o alvo resolvido
-  #   virava `<pack>/icones/motor`, um diretório. Medido antes do conserto: a
-  #   saída era `org.telegram.desktop<TAB>motor`, e o recurso inteiro que a P27
-  #   veio entregar ficava inerte no único ponto de integração que existe. Pior:
-  #   o `pack.py alvo` nunca via o prefixo, então a guarda de caminho dele não
-  #   recusava `motor:../../../etc/passwd` — ela recusa `motor:`, e o que
-  #   chegava lá era `motor`.
+  # São três campos para o `awk`, e `$2` valia ` motor` — o alvo resolvido
+  # virava `<pack>/icones/motor`, um diretório.
+  # Por isso o caminho é tudo depois do primeiro `:` (`substr`), e não o campo 2.
   #
-  #   É o MESMO defeito que o parágrafo acima já contava ter previsto para o
-  #   `#`: "uma linha com `#` no meio viraria três campos e o caminho sairia
-  #   truncado no `#`". A previsão estava certa e o remédio só cobriu metade dos
-  #   casos — o `sed` corta o comentário, mas o prefixo do próprio formato de
-  #   mapa continuava partindo a linha. `substr` a partir do primeiro `:` não
-  #   conta campos: ele diz "nome é o que vem antes, caminho é o resto", que é o
-  #   formato escrito em docs/PACKS.md.
-  #
-  # O NOME É DADO NÃO CONFIÁVEL — conferência da P74 (alerta de segurança de
-  #   09/10/2026, path traversal). O nome da coluna 1 vira o arquivo
-  #   `scalable/apps/<nome>.svg` no tema, e um mapa de pack importado podia
-  #   dizer `../../../../.config/autostart/x : apps/y.svg` e escrever fora do
-  #   tema. Agora o nome só passa num conjunto fechado (`[A-Za-z0-9._+-]`, sem
-  #   `..`); a linha que falha sai marcada com `!` (que o conjunto não tem),
-  #   é contada no aviso e pulada, e as outras seguem. O desenho de origem já
-  #   era conferido do outro lado: o `pack.py alvo` o resolve com `realpath` e
-  #   recusa o que cai fora da raiz do pack ou do motor (o `_dentro`).
-  #   [P78: o conjunto do `awk` é o mesmo do `meow_nome_seguro` (lib/comum.sh)
-  #   e do `nome_de_destino` (pack.py), a regra única. Ele fica aqui, escrito no
-  #   `awk`, porque os testes extraem esta função VERBATIM e a rodam sem o
-  #   lib/comum.sh; e o desenho de origem volta do `pack.py alvo` já como o
-  #   realpath que ele conferiu.]
+  # O nome da coluna 1 é dado não confiável: vira `scalable/apps/<nome>.svg`, e um
+  # `../` escreveria fora do tema. Só passa o conjunto do `meow_nome_seguro`, repetido
+  # no `awk` porque os testes extraem esta função sem o lib/comum.sh; a linha que
+  # falha sai com `!`, é contada e pulada.
   cru="$(sed -e 's/#.*//' "$MAPA" | awk -F: '
     NF>=2 {
       nome=$1; caminho=substr($0, index($0, ":") + 1)
@@ -187,16 +86,9 @@ _dracula_pares_do_mapa() {
 }
 
 # --- as escolhas do painel ----------------------------------------------------
-# A ESCOLHA MORA COM QUEM USA, E ESTE PASSO A PÕE NO TEMA — 09/10/2026, P73 (I3)
-#   Até a P73 o «Usar este ícone» do painel gravava a linha no `apps.map` do
-#   pack, dentro do clone (a regressão I3: `git status` sujo de tanto usar o
-#   programa). A escolha passou para o `icones-escolhidos.map`, ao lado do
-#   meow.conf, e quem a lê é o `pack.py escolhas` — o mesmo que o `fontes` usa
-#   para dizer que ela vence (ver "A ESCOLHA DO PAINEL MORA COM QUEM USA", lá).
-#   Este passo é o dono do `scalable/apps` para os mapas, então é ele quem a
-#   põe lá: com a camada do pack ligada ou não, porque a escolha foi feita à
-#   mão, app a app. O nome escolhido sai dos pares do pack, para não haver dois
-#   desenhos disputando o mesmo arquivo dentro de uma passada.
+# Este passo é o dono do `scalable/apps` para os mapas, então é ele quem a põe
+# lá: com a camada do pack ligada ou não, porque a escolha foi feita à mão, app
+# a app.
 _escolhas_pares() {
   python3 "$RAIZ/scripts/pack.py" escolhas
 }
@@ -210,10 +102,7 @@ _dracula_pares() {
 }
 
 # O que este passo põe no tema: o mapa do pack (com a camada ligada) e as
-# escolhas do painel (sempre). Ligada é tudo menos o "nao" escrito, a régua do
-# `_dracula_aplicar` desde a P74 item 3 [integração da leva G, 09/10/2026: a
-# P73 nasceu com o padrão antigo, `nao`, e com o conf de fábrica o passo
-# entrava pelo instalar e só punha as escolhas — 0 desenhos do pack no tema].
+# escolhas do painel (sempre).
 _dracula_no_ar() {
   [ "${ICONES_DRACULA:-sim}" != "nao" ] && _dracula_pares
   _escolhas_pares
@@ -226,12 +115,9 @@ _dracula_instalar() {
 
   while IFS=$'\t' read -r nome caminho; do
     [ -n "$nome" ] || continue
-    # JÁ VEM RESOLVIDO do `_dracula_pares`, desde 22/09/2026. Era
-    # `"$ICONES_BASE_MAPA/$caminho"` aqui e de novo no `_dracula_remover` — duas
-    # junções da mesma coisa, e o prefixo `motor:` teria de ser entendido nas
-    # duas. Uma delas esqueceria, e o ramo que apaga passaria a não reconhecer
-    # como "nosso" o arquivo que o ramo que instala pôs lá: o desligar deixaria
-    # ícone para trás, calado. Quem junta agora é o `pack.py alvo`, uma vez só.
+    # Era `"$ICONES_BASE_MAPA/$caminho"` aqui e de novo no `_dracula_remover` —
+    # duas junções da mesma coisa, e o prefixo `motor:` teria de ser entendido
+    # nas duas.
     origem="$caminho"
     if [ ! -f "$origem" ]; then
       # Nome no mapa sem desenho no disco: é falha de quem editou o mapa, e
@@ -239,14 +125,9 @@ _dracula_instalar() {
       # não têm culpa de um caminho digitado errado.
       faltando+=("$nome -> $caminho"); continue
     fi
-    # O QUE VAI PARA O TEMA É O QUE O `derivar` DIZ — 23/09/2026, P28
-    #   Era `meow_escrever "$ALVO/$nome.svg" "$(cat "$origem")"` aqui, e o
-    #   `meow icones fonte` precisaria repetir a mesma conta para dizer o que
-    #   deriva de cada desenho. Duas contas da mesma coisa divergem na primeira
-    #   vez que uma mudar. Agora as duas perguntam ao `lib/icones.sh`. O byte
-    #   que chega ao tema é o mesmo de antes: o vetor, como está, em
-    #   `scalable/apps/<nome>.svg` — e é esse o endereço que o
-    #   `_dracula_remover` confere lá embaixo.
+    # Era `meow_escrever "$ALVO/$nome.svg" "$(cat "$origem")"` aqui, e o `meow
+    # icones fonte` precisaria repetir a mesma conta para dizer o que deriva de
+    # cada desenho.
     meow_icones_derivar "$origem" "$nome" "$TEMA_DIR"
     case $? in
       0) : ;;
@@ -270,14 +151,13 @@ _dracula_instalar() {
     _dracula_avisar
     rc=1
   elif [ "$rc" = "0" ] && [ "${ICONES_DRACULA:-sim}" = "nao" ]; then
-    # Com a camada desligada, este ramo só pôs as escolhas do painel (P73).
+    # Com a camada desligada, este ramo só pôs as escolhas do painel.
     meow_ok "$(_escolhas_pares | grep -c .) escolha(s) do painel no tema"
   elif [ "$rc" = "0" ]; then
     # UMA LINHA MESMO QUANDO NADA MUDA, e o motivo é a tela do doctor: um `chk_`
     # que devolve 0 e não escreve nada vira `ok dracula` seguido de vazio, ao
     # lado de vizinhos que dizem o que conferiram ("47 aplicativo(s) já vestidos
-    # em traço"). Silêncio ali não é economia — é um check que não diz o que
-    # checou.
+    # em traço").
     local par; par="$(_dracula_estado)"
     meow_ok "pack Dracula: ${par% *} de ${par#* } no tema"
   fi
@@ -285,29 +165,27 @@ _dracula_instalar() {
 }
 
 # --- remover ------------------------------------------------------------------
-# Por NOME, lido do MESMO mapa que a instalação lê. Uma varredura de órfãos em
-# `scalable/apps` apagaria arquivo dos outros três donos do diretório (o
-# `completar_icones.sh`, o `icones_resgatados.sh` e o `logo.sh`).
 #
-# E SÓ APAGA O QUE É NOSSO, CONFERINDO O CONTEÚDO: se o arquivo que está lá não
-# for o desenho do acervo, ele é de outro dono (ou foi editado à mão) e fica.
+# Desligada a camada, o `fontes` entrega o nome ao resgate.
+_dracula_do_resgate() {
+  MEOW_PACK_DIR="$_pack_ref" python3 "$RAIZ/scripts/pack.py" fontes 2>/dev/null \
+    | awk -F'\t' '$3 == "resgatados" { print $1 }'
+}
+
+# Por NOME, lido do MESMO mapa que a instalação lê.
+#
 # Apagar por nome sem olhar o conteúdo é como se perde o trabalho de outra
 # pessoa sem nada na tela dizendo que se perdeu.
 #
-# A COMPARAÇÃO É `$(cat)` DOS DOIS LADOS, E NÃO `cmp` — 16/09/2026
-#   Com `cmp` este ramo errava 7 dos 18: o `meow_escrever` recebe o conteúdo por
-#   `$(cat "$origem")`, e o `$(...)` do shell come o `\n` final. O arquivo
-#   instalado sai um byte mais curto que a origem SEMPRE que a origem termina em
-#   newline — sete dos dezoito, incluindo steam, telegram e a câmera. O `cmp`
-#   dizia "difere", o desligar os preservava, e `ICONES_DRACULA="nao"` deixava
-#   sete ícones na tela sem nada avisando.
-#   Comparar do mesmo jeito que se escreve é a única forma de as duas metades
-#   deste script concordarem sobre o que é "o nosso arquivo".
+# O arquivo instalado sai um byte mais curto que a origem SEMPRE que a origem
+# termina em newline — sete dos dezoito, incluindo steam, telegram e a câmera.
 _dracula_remover() {
-  local rc=0 tirados=0 nome caminho origem
+  local rc=0 tirados=0 nome caminho origem do_resgate
+  do_resgate="$(_dracula_do_resgate)"
   while IFS=$'\t' read -r nome caminho; do
     [ -n "$nome" ] || continue
     [ -f "$ALVO/$nome.svg" ] || continue
+    grep -qxF -- "$nome" <<<"$do_resgate" && continue
     # JÁ VEM RESOLVIDO do `_dracula_pares` — ver o comentário gêmeo no
     # `_dracula_instalar`. As duas metades deste script PRECISAM resolver o alvo
     # do mesmo jeito: é comparando o conteúdo da origem com o que está no tema

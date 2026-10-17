@@ -1,0 +1,13 @@
+# meow-sentinela.path — relê a fila do apt logo depois de todo apt (P86).
+#
+# O timer mede o candidato antes; este tira o cartão quando a fila esvazia, sem
+# esperar o meio-dia. A mesma fila não é medida de novo, então custa um `apt list`.
+[Unit]
+Description=MeowSystem — relê a fila do COSMIC depois de um apt
+
+[Path]
+PathChanged=/var/lib/meowsystem/apt-mudou
+Unit=meow-sentinela.service
+
+[Install]
+WantedBy=default.target

@@ -1,11 +1,15 @@
 # Como o COSMIC se veste — o que foi medido nesta máquina
 
-Este documento guarda **fatos verificados na MeowSystem**, não o que a documentação
+Este documento guarda **fatos verificados na máquina de origem do MeowSystem**, não o que a documentação
 promete. Cada um traz a data e como foi medido, para que a próxima sessão possa
 refazer o teste em vez de acreditar.
 
 Máquina: Pop!_OS 24.04 · COSMIC (settings 1.0.12 / applets 1.0.15) · Wayland ·
 DP-1 1920x1080 numa TV de 52 polegadas.
+
+As medições abaixo são dessa versão, cada uma com a data dela. Desde 15/10/2026 o COSMIC
+instalado é o 1.10 (`cosmic-comp` 4d14528). Uma seção que não diz que foi medida de novo
+no 1.10 não foi; a §6 conta por que atualizar o COSMIC deixou de ser proibido.
 
 ---
 
@@ -66,7 +70,7 @@ estava no fim da fila.
 ### A regra real
 
 O laço **externo** da busca é o **nome do tema**; o diretório-base é o laço **interno**.
-Ordem observada por `strace` (num `Xvfb :99`, sem tocar na sessão dela), para o tema
+Ordem observada por `strace` (num `Xvfb :99`, sem tocar na sessão de quem usa), para o tema
 selecionado `MeowTesteIcones`:
 
 ```
@@ -86,7 +90,7 @@ Disso saem duas consequências:
   o mesmo nome existir nos dois lugares, o de `/usr/share` ofusca o do usuário em
   silêncio.
 
-### Confirmado na prática, no desktop dela
+### Confirmado na prática, no desktop de quem usa
 
 Montado `~/.local/share/icons/MeowSystem-Icons` com `scalable/apps/` e
 `icon_theme = "MeowSystem-Icons"`: **o botão do dock virou o gato Catppuccin na hora**,
@@ -152,7 +156,7 @@ Consequências práticas:
 > `LogoMenu` não aparece em `plugins_wings` nem em `plugins_center` do
 > `CosmicPanel.Panel` nem do `CosmicPanel.Dock`. Tudo o que esta seção descreve
 > sobre `custom_logo_path` está certo e continua funcionando — só que **ninguém
-> desenha o resultado**. O gato que ela de fato vê é outro caminho: o
+> desenha o resultado**. O gato que se vê de fato é outro caminho: o
 > `com.system76.CosmicPanelAppButton`, que vem do TEMA DE ÍCONES e é lido uma
 > vez, no login.
 >
@@ -243,7 +247,7 @@ criariam chaves que nunca existiram aqui.
 **Não.** As duas árvores derivadas estão em uso ao mesmo tempo, por duas gerações
 de `libcosmic`, e cada uma tem o seu leitor.
 
-### Como se mede sem tocar na sessão dela
+### Como se mede sem tocar na sessão de quem usa
 
 Todo cliente de `cosmic-config` põe uma **watch de inotify** no diretório que lê.
 As watches de um processo vivo estão em `/proc/<pid>/fdinfo/*`, com o inode do
@@ -311,7 +315,7 @@ no arquivo `v2` da captura — que é o produto que o COSMIC derivou do `.ron` q
 `assets/paleta/catppuccin.json`; o caminho é transitivo. A estrutura RON é, por
 construção, a de um arquivo que o COSMIC escreveu.
 
-**O alpha não entra: é dela.** Na v2 o alpha já vem multiplicado pelos dois
+**O alpha não entra: é de quem usa.** Na v2 o alpha já vem multiplicado pelos dois
 slideres de Vidro fosco (`background.base` = `#313244B3`). Copiá-lo para a v1
 seria impor o valor *fotografado* de um controle contínuo — o defeito corrigido em
 05/08 — e pior, a captura é congelada, então o valor imposto seria sempre o
@@ -380,7 +384,7 @@ pw-play --media-role Notification ~/.local/share/sounds/freedesktop/stereo/audio
 `xdg::BaseDirectories::with_prefix("sounds").find_data_file("freedesktop/stereo/audio-volume-change.oga")`,
 e `find_data_file` consulta o `XDG_DATA_HOME` antes do `XDG_DATA_DIRS`.
 
-Para ver isto ao vivo, com a tecla de volume na mão dela:
+Para ver isto ao vivo, com a tecla de volume na mão:
 
 ```
 while :; do pgrep -af '(^|/)pw-play '; done     # e aperte a tecla
@@ -392,7 +396,7 @@ Duas consequências que custam tempo se forem invertidas:
 
 - **O nome do tema é cravado no binário.** Um tema `MeowSystem-Sounds` nunca seria
   lido, por mais correto que fosse o `index.theme`. O jeito de trocar o som é
-  sombrear o nome `freedesktop` dentro do data home dela.
+  sombrear o nome `freedesktop` dentro do data home de quem usa.
 - **Em som o usuário ganha; em ícone, não.** A seção 2 mostra que, com o mesmo nome
   nos dois lugares, `/usr/share/icons` **ofusca** `~/.local/share/icons`. Em som é ao
   contrário.
@@ -458,7 +462,7 @@ contrário da logo do painel da seção 3).
 ### Achado colateral que não é sobre som
 
 Em 04/08/2026 o `cosmic-settings-daemon` foi encontrado **morto** no meio da sessão
-dela. Com ele morrem as teclas de **volume e de brilho** inteiras, não só o som:
+de quem usa. Com ele morrem as teclas de **volume e de brilho** inteiras, não só o som:
 `busctl --user call ... VolumeDown` responde `The name is not activatable`. Por isso
 `som.sh estado` e `som.sh conferir` avisam quando ele não está de pé. O conserto
 durável é sair e entrar na sessão; religá-lo à mão vale até o próximo boot.
@@ -537,7 +541,7 @@ fora era invisível:
 O arquivo é de 12/05/2026, muito anterior a este projeto — foi escrito por um
 instalador de terceiro (a Steam grava ícone aqui a cada jogo). O `scripts/hicolor.sh`
 regenera o `index.theme` **a partir do que existe no disco**, nunca de uma lista
-fixa: uma lista cravada ficaria velha na próxima compra dela, e o sintoma voltaria
+fixa: uma lista cravada ficaria velha na próxima compra de quem usa, e o sintoma voltaria
 idêntico meses depois sem ninguém ligar uma coisa à outra.
 
 Dois detalhes que o script precisa acertar, e ambos são silenciosos se errados:
@@ -551,7 +555,7 @@ Dois detalhes que o script precisa acertar, e ambos são silenciosos se errados:
   resolvedor abriu o de 48 px quando se pediu 48. Confere com o strace da Sprint C
   no `cosmic-files`.
 
-  A consequência prática levou meses para aparecer, e apareceu na tela dela: o
+  A consequência prática levou meses para aparecer, e apareceu na tela de quem usa: o
   `MeowSystem-Icons` tinha o acervo raster **só** em `512x512/apps`, e a dock, que
   desenha a 48 px, reduzia 10,7× em tempo de desenho — serrilhando. A regra deste
   parágrafo estava certa e aplicada **só ao `hicolor.sh`**; o nosso próprio tema
@@ -566,7 +570,7 @@ O mesmo binário `cosmic-greeter` faz as duas coisas, em sessões diferentes:
 
 | | onde lê | estava |
 |---|---|---|
-| **bloqueio** | `~/.config/cosmic` (roda dentro da sessão dela) | já correto, sempre |
+| **bloqueio** | `~/.config/cosmic` (roda dentro da sessão de quem usa) | já correto, sempre |
 | **login** | `/var/lib/cosmic-greeter/.config/cosmic` (uid 987) | **vazio** → tema de fábrica |
 
 As pastas de tema existiam lá e estavam **todas vazias** — e pasta vazia não é
@@ -608,8 +612,8 @@ São dois problemas, e só um se conserta sozinho:
 Isto importa para o MeowSystem porque o `meow_notificar` é como o auto-reparo
 avisa que consertou algo sozinho: com o painel nesse estado, o auto-reparo fica
 **mudo**. O projeto não reinicia o painel por causa disso — o custo está em §
-`construir_icones.sh` (a tela pisca, e o respawn tem limite). O reparo é dela,
-com um comando: `pkill -x cosmic-panel`.
+`construir_icones.sh` (a tela pisca, e o respawn tem limite). O reparo é reciclar o
+painel: `meow painel reciclar`, ou o «Consertar» do painel.
 
 ---
 
@@ -634,7 +638,7 @@ $ grep -oE '(fill|stroke)="[^"]*"' \
       1 fill="none"
 ```
 
-E na tela dela, no painel, sai **um tom só**:
+E na tela, no painel, sai **um tom só**:
 
 ```bash
 $ convert Screenshot.png -crop 26x26+1755+12 +repage -depth 8 txt: \
@@ -657,7 +661,7 @@ alvos são ícones de aplicativo, que não passam por este caminho.
 
 ### Nem o FORMATO do arquivo escapa (medido em 27/08/2026)
 
-Ela pediu uma **borda roxa** no botão de desligar do dock. A hipótese que valia a
+O pedido foi uma **borda roxa** no botão de desligar do dock. A hipótese que valia a
 pena testar era a do §3: o applet decide `symbolic` por `path.contains("-symbolic
 .svg")`, uma checagem de STRING no caminho — então um arquivo `.png` teria o
 sufixo errado e escaparia do achatamento.
@@ -676,7 +680,7 @@ barra do COSMIC**, em nenhum formato — a única cor ali é a cor de texto do t
 e ela vale para todos os applets ao mesmo tempo.
 
 O que sobrevive continua sendo o DESENHO: o anel externo daquele ícone É a borda
-que ela pediu, e o botão passou de 75% para 95% da caixa. Só a cor não pôde vir.
+que foi pedido, e o botão passou de 75% para 95% da caixa. Só a cor não pôde vir.
 Ver `assets/icones/sistema-retoques/LEIA-ME.txt`.
 
 ### De onde vêm os 126 ícones que o COSMIC pede
@@ -702,7 +706,7 @@ Resolvidos no resolvedor real (`Gtk.IconTheme` com `MeowSystem-Icons`), a 22 e 2
 | hicolor | 5 |
 | Pop | 1 (lixo: a string `-symbolic` solta, que é o `ends_with` do libcosmic) |
 
-Os **24 do tema Cosmic são exatamente as páginas das Configurações** que ela
+Os **24 do tema Cosmic são exatamente as páginas das Configurações** que quem usa
 fotografou (`preferences-*`).
 
 > **Este parágrafo envelheceu, e a correção é de 08/08/2026.** Ele dizia: *"O
@@ -857,31 +861,47 @@ mandar no mesmo arquivo, **o visual é do MeowSystem** — e onde o Aurora conti
 | `~/.config/cosmic/logos/` | Meow | O `custom_logo_path` aponta para `meow-coquinha.svg`. O `gato-pop.svg` do Aurora foi aposentado no self-heal v3.56. |
 | ícone do App Library em `/usr/share` | Meow | O tema `MeowSystem-Icons` ganha o laço externo (§2). O Aurora **restaura o `.aurora-original`** a cada ciclo (self-heal v3.56) em vez de plantar o dele. |
 | tema do qBittorrent | Aurora | A allowlist dele ganha `catppuccin`; o `meow` chama o script em vez de escrever no `.conf`. |
-| `~/.config/fastfetch` | Aurora | É symlink para o repo Andromeda, com auto-commit em 10 min. Mudança ali é deliberada, com commit. |
+| `~/.config/fastfetch` | Meow | Desde 24/09/2026 (P44) é diretório de verdade, e não mais symlink para o repositório vizinho; o `fastfetch_logo.sh` escreve nele. |
 | atalhos de teclado | Aurora | O `meow` não escreve e exclui do restaurar. |
 | `pinned_workspaces` | Aurora | Fora do restaurar: restaurar por cópia derrubaria os workspaces `Meow` e `OS`. |
-| `CosmicTerm/v1` | dividido | O `meow` escreve só `color_schemes_*`. Nunca `keybindings` nem `shortcuts_custom` — é o colar dela. |
-| `plugins_wings` do painel | Aurora | Entra no backup, sai do restaurar. A ordem dos applets é dela. |
+| `CosmicTerm/v1` | dividido | O `meow` escreve só `color_schemes_*`. Nunca `keybindings` nem `shortcuts_custom` — é o colar de quem usa. |
+| `plugins_wings` do painel | Aurora | Entra no backup, sai do restaurar. A ordem dos applets é de quem usa. |
 
 > A tabela completa de domínio — alvo por alvo, quem escreve hoje e quem ganha —
 > vive em [`FRONTEIRA.md`](FRONTEIRA.md).
 
 ---
 
-## 6. O que nunca fazer nesta máquina
+## 6. O que nunca fazer nesta máquina — e o que passou a poder
 
-- **`apt upgrade` ou mexer em pacote `cosmic-*`.** O `/usr/bin/cosmic-comp` está
-  patchado **três** vezes, e não duas — o night light saiu e outros dois entraram.
-  Medido em 31/08/2026:
-  `strings -a /usr/bin/cosmic-comp | grep -o 'AURORA-[A-Z0-9.-]*' | sort -u` devolve
-  `AURORA-COSMIC-WS-PATCH-3.67` (workspace vazio), `AURORA-COSMIC-RADIUS-PATCH-1` (raio de
-  canto clampado) e `AURORA-READING-MODE-1` (o modo de leitura) — e
-  `/var/lib/aurora/cosmic-comp-patches.estado` lista os três, um `req` e dois `opt`. Uma
-  versão nova do pacote mata os três de uma vez, derruba os workspaces alfinetados junto e
-  faz o modo de leitura parar de pintar sem dizer nada. Quem responde por unidade é
-  `meow doctor` (verificável `patches`); quem responde pelo modo de leitura é
-  `meow leitura estado`, que separa o binário do disco da sessão viva (§4i).
+- **`apt full-upgrade`, com COSMIC novo no meio, AGORA PODE.** Até 15/10/2026 esta
+  linha dizia «nunca `apt upgrade`»: o compositor patchado morava em `/usr/bin/cosmic-comp`,
+  uma versão nova do pacote matava os patches de uma vez, calada, derrubava os workspaces
+  alfinetados e fazia o modo de leitura parar de pintar. Três coisas mudaram isso:
+  1. **o build é da casa, não do sistema** (P76, 09/10/2026): mora em
+     `~/.local/libexec/meow/cosmic-comp/<versão>/`, sem sudo, e o shim
+     `~/.local/bin/cosmic-comp` escolhe a cada sessão entre ele e o de fábrica. O apt
+     nunca toca no shim, e a tela de login usa só o binário do pacote;
+  2. **o build se refaz sozinho** (P81, 16/10/2026): depois de todo apt
+     (`meow-pos-apt.path`), uma vez por login (`meow-builds-login.service`, para o apt
+     feito pelo TTY ou com a sessão fechada) e no doctor das 5h, pela mesma função, o
+     `scripts/garantir_builds.sh`. O mesmo vale para o menu do `cosmic-files`;
+  3. **o que não entra não troca nada**: um patch obrigatório que não aplica na versão nova
+     deixa a sessão no compositor de fábrica até a série ser refeita num commit; um
+     opcional que não aplica sai só ele.
+
+  A sessão aberta segura o binário antigo, e o build novo vale no próximo login. A cadeia
+  inteira (`apt update`, `full-upgrade`, `topgrade`, `autoremove`, `autoclean`, limpar
+  o cache) e o que cada passo faz estão em [`MANUTENCAO.md`](MANUTENCAO.md). O que é medido
+  hoje, sem sudo: `meow doctor` (verificável `patches`) diz o estado de cada marcador no
+  build e na sessão, e `meow cosmic prever` lê o COSMIC que está na fila do apt e diz,
+  antes do upgrade, se a série e o esquema de chaves vão entrar. A série de hoje
+  (`patches/series`) tem cinco: `AURORA-COSMIC-WS-PATCH` (obrigatório, o workspace
+  vazio), e os opcionais do raio de canto, do menu de clique curto, do modo de leitura e
+  do cache do desfoque.
 - **`sudo` perto de `~/.config`.** Um arquivo de dono root ali faz a GUI de tema falhar
   **em silêncio**, e o sintoma aparece dias depois.
-- **Escrever em `~/.config/zsh`.** É o repo Andromeda, com auto-commit a cada 10 min:
-  qualquer arquivo largado lá vira commit e push no repositório privado dela.
+- **Escrever em `~/.config/zsh`, nesta máquina.** É o repositório de shell de quem usa,
+  com auto-commit a cada 10 min: qualquer arquivo largado lá vira commit e push num
+  repositório privado. Ele está no `~/.config/meow/vizinhos.conf` daqui, e a TRAVA 1 do
+  `lib/comum.sh` recusa escrever nele (ver [`FRONTEIRA.md`](FRONTEIRA.md)).

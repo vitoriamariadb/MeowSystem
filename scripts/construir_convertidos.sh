@@ -1,99 +1,13 @@
 #!/usr/bin/env bash
-# construir_convertidos.sh — GERA o acervo `assets/icones/convertidos-apps/`: os ícones
-# do lançador que nós convertemos de CHAPADO para TRAÇO, no dialeto do Arcticons.
+# construir_convertidos.sh — GERA o acervo
+# `packs/meowsystem/icones/apps/convertidos/`: os ícones do lançador que nós
+# convertemos de CHAPADO para TRAÇO, no dialeto do Arcticons.
 #
-# Ele NÃO instala nada. Quem veste o lançador continua sendo UM script só, o
-# `icones_apps_arcticons.sh`, e o porquê disso é a primeira coisa deste arquivo.
-#
-# ============================================================================
-# POR QUE O CONVERSOR **NÃO** PODE VIRAR UM SEGUNDO INSTALADOR
-# ============================================================================
+# Ele NÃO instala nada.
 #
 # A primeira ideia — "um `icones_apps_convertidos.sh` irmão do
 # `icones_apps_arcticons.sh`" — está errada, e o motivo é o mesmo laço eterno
-# que o cabeçalho daquele script descreve. Vale a pena escrever inteiro porque
-# a ideia errada é a natural:
-#
-#   O `icones_apps_arcticons.sh` é DONO de `48x48/apps` e, na varredura final,
-#   REMOVE todo `.svg` de lá cujo nome não esteja no mapa dele. Um segundo
-#   script escrevendo `48x48/apps/org.gimp.GIMP.svg` teria esse arquivo apagado
-#   na passagem seguinte do irmão — que o veria como órfão —, e o reporia na
-#   passagem seguinte. `meow doctor` acusaria os dois como divergentes PARA
-#   SEMPRE e `meow fix` alternaria entre os dois estados sem nunca convergir.
-#
-#   E não adianta escolher outro diretório: `48x48/apps` não é gosto, é o que
-#   VENCE. A dock desenha a 48 px (medido em 08/08/2026 na captura dela), o
-#   diretório é `Type=Fixed`, e um `64x64/apps` só seria consultado no
-#   desempate por proximidade — ou seja, o ícone convertido existiria no disco e
-#   nunca apareceria na tela, que é o pior desfecho possível porque parece que
-#   funcionou. `scalable/apps` casa qualquer tamanho, mas já tem TRÊS donos
-#   (`completar_icones.sh`, `logo.sh`, o bootstrap do `construir_icones.sh`).
-#
-# ENTÃO A CONVERSÃO NÃO É UMA ETAPA DE INSTALAÇÃO: É UM ACERVO.
-#
-#   Exatamente como `assets/icones/arcticons-apps/`, que está COMMITADO no repositório e
-#   não é baixado no install. Este script gera `assets/icones/convertidos-apps/*.svg`
-#   DENTRO do repositório, e quem instala continua sendo um script só.
-#
-#   Três razões, e nenhuma é preguiça:
-#     1. arte que ela aprovou numa folha tem de aparecer no `git diff`. Gerar no
-#        install faria o desenho mudar em silêncio quando o Papirus atualizasse.
-#     2. converter custa tempo de CPU por ícone (rasteriza a 256², rotula
-#        componentes, traça, simplifica) para um resultado que é idêntico 364
-#        dias por ano. Pagar isso a cada `./install.sh` é pagar por nada.
-#     3. o retoque à mão (a boca do Wilber) precisa de um lugar onde SOBREVIVA à
-#        próxima conversão. Um arquivo gerado em tempo de instalação não tem
-#        onde guardar uma decisão humana.
-#
-#   Por isso o `install.sh` NÃO ganhou etapa nenhuma, e isso foi confirmado por
-#   ela em 11/08/2026: "Nenhuma etapa nova no install." Este script é ferramenta
-#   de MANUTENÇÃO, rodada à mão quando o Papirus for atualizado ou entrar
-#   aplicativo novo — como o `curl` do Iconify já é hoje para o Arcticons.
-#
-# ============================================================================
-# O QUE ESTE SCRIPT É DONO, E POR QUE ISSO É SEGURO
-# ============================================================================
-#
-# Dono único de `assets/icones/convertidos-apps/`, um diretório que NASCE aqui e onde
-# mais ninguém escreve — a mesma disciplina do `icones_apps_arcticons.sh` com
-# `48x48/apps` e do `icones_sistema.sh` com `22x22/status`. Por isso ele pode
-# remover órfão: nome que saiu do mapa, arquivo que sai do disco.
-#
-# A EXCEÇÃO SÃO OS RETOQUES, e ela é explícita: `assets/icones/convertidos-apps/
-# retoques/NOME.svg` é escrito À MÃO e NUNCA é sobrescrito nem varrido. Se o
-# retoque existe, ele é copiado para o acervo e a conversão automática nem roda.
-# Um retoque é decisão humana registrada, e reconverter por cima apagaria a
-# decisão em silêncio — o defeito que este projeto persegue.
-#
-# ============================================================================
-# COMO ISTO SE LIGA AO RESTO
-# ============================================================================
-#
-#   `assets/icones/apps-convertidos.map`          o mapa, lido por ESTE script e pelo
-#                                         `icones_apps_arcticons.sh`. Campos 1,
-#                                         2 e 4 são meus; o campo 3 (a cor) é
-#                                         dele. Um mapa só, porque duas listas
-#                                         da mesma verdade é o defeito que o
-#                                         `_conferir_gemeos` daquele script
-#                                         ESTOURA para impedir.
-#   `scripts/converter_icone.py`          o conversor. Chamado SEM `--lw`.
-#   `assets/icones/convertidos-apps/`             a saída, commitada.
-#   `assets/icones/convertidos-apps/retoques/`    a decisão humana, escrita à mão.
-#   `bin/meow` -> `chk_convertidos`       confere, e está em SEM_CONSERTO: o
-#                                         `--conferir` avisa que a origem do
-#                                         Papirus mudou, mas o conserto
-#                                         automático trocaria arte que ELA
-#                                         aprovou por arte que ninguém viu.
-#
-# O TRAÇO NÃO MORA AQUI, E ISSO É DE PROPÓSITO
-#   Quem manda na espessura é o `TRACO` do `icones_apps_arcticons.sh`, UM número
-#   que engrossa os DOIS acervos juntos. Se a conversão gravasse `stroke-width`,
-#   ela obedeceria a este arquivo e o Arcticons obedeceria àquele: dois donos da
-#   mesma decisão, e a tela ficaria incoerente por esquecimento. Por isso o
-#   conversor é chamado SEM `--lw`. O `--lw` existe só para a folha de escolha.
-#
-# CÓDIGOS DE SAÍDA (o contrato do projeto)
-#   0 já estava certo · 1 divergia e foi consertado · 2 erro · 3 falta dependência
+# que o cabeçalho daquele script descreve.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -101,20 +15,20 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 
 CONVERSOR="$RAIZ/scripts/converter_icone.py"
-MAPA="$RAIZ/assets/icones/apps-convertidos.map"
-DESTINO="$RAIZ/assets/icones/convertidos-apps"
+MAPA="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"
+DESTINO="$RAIZ/packs/meowsystem/icones/apps/convertidos"
 RETOQUES="$DESTINO/retoques"
+MAPA_USUARIO="${MEOW_ICONES_CONVERTIDOS:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-convertidos.map}"
+DESTINO_USUARIO="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/convertidos-apps"
+RETOQUES_USUARIO="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/retoques"
+declare -A DO_USUARIO=()
+declare -A DO_PROJETO=() # nome -> 1 para toda linha do mapa do projeto (a varredura de órfão)
 
 declare -A ORIGEM=()     # nome do .desktop -> arquivo chapado de origem
 declare -A ARGS=()       # nome -> parâmetros extras do conversor (ou vazio)
 declare -A MAO=()        # nome -> 1 quando a linha declara `mao` (sem origem)
 
-# "ESTE NOME ESTÁ NO MAPA?" NÃO É A MESMA PERGUNTA QUE "ELE TEM ORIGEM?"
-#   E confundir as duas custou o Gradia na primeira execução deste script: a
-#   varredura de órfão perguntava `[ -z "${ORIGEM[$nome]}" ]`, e a linha `mao`
-#   guarda origem VAZIA de propósito — então o arquivo recém-gerado a partir do
-#   retoque à mão foi visto como órfão e apagado na mesma passagem. Um registro
-#   separado, com a pergunta certa, e o modo de falha não volta.
+# Um registro separado, com a pergunta certa, e o modo de falha não volta.
 declare -A CONHECIDO=()  # nome -> 1 para toda linha do mapa, com origem ou sem
 
 # --- o mapa, lido uma vez ----------------------------------------------------
@@ -123,23 +37,15 @@ declare -A CONHECIDO=()  # nome -> 1 para toda linha do mapa, com origem ou sem
 #     nome-de-icone-do-.desktop : origem-chapada : cor [ : parametros ]
 #
 # O campo `cor` parece morto aqui e não é: ele é do OUTRO leitor deste mesmo
-# arquivo. Ver o cabeçalho do mapa.
+# arquivo.
 #
 # O caminho da origem pode ser absoluto (o Papirus, um flatpak), relativo ao
 # repositório (`assets/icones/autorais/...`), ou a palavra `mao`.
-#
-# `mao` NÃO É "sem origem por descuido": é a declaração de que aquele ícone
-# NASCE à mão, porque não existe arte chapada honesta de onde partir. Hoje só o
-# Gradia: ele dá zero no índice de 14.996 nomes do Arcticons, não está no
-# Papirus, e o que o flatpak entrega é um ícone com GRADIENTE cuja fronteira de
-# cor vira bolha a 48px. Escrever esse caminho aqui seria registrar como origem
-# um arquivo que nunca é lido — e que some se ela desinstalar o aplicativo.
-#
-# Os `parametros` são a válvula para o caso raro em que um ícone pede `--k 8`;
-# vazio é o normal, e hoje TODOS estão vazios.
 _ler_mapa() {
-  local linha nome origem cor extra
+  local linha nome origem cor extra dono
   while IFS= read -r linha; do
+    # O marcador entre as duas fontes (ver o `done` deste laço).
+    case "$linha" in '#!meow:usuario') dono=usuario; continue ;; esac
     case "$linha" in ''|'#'*) continue ;; esac
     IFS=':' read -r nome origem cor extra <<<"$linha"
     [ -n "$nome" ] && [ -n "$origem" ] && [ -n "$cor" ] || continue
@@ -151,7 +57,15 @@ _ler_mapa() {
     CONHECIDO["$nome"]=1
     ORIGEM["$nome"]="$origem"
     ARGS["$nome"]="${extra:-}"
-  done < "$MAPA"
+    if [ "${dono:-}" = usuario ]; then
+      DO_USUARIO["$nome"]=1
+      # A linha de quem usa troca a do projeto inteira: um `mao` de lá não
+      # sobrevive a uma conversão daqui.
+      if [ -n "$origem" ]; then unset 'MAO[$nome]'; fi
+    else
+      DO_PROJETO["$nome"]=1
+    fi
+  done < <(cat "$MAPA"; echo; [ -f "$MAPA_USUARIO" ] && { echo '#!meow:usuario'; cat "$MAPA_USUARIO"; echo; })
   # `return 0` NÃO É DECORAÇÃO: um `while` devolve o status do último comando do
   # corpo, e com `set -e` um teste falso na última linha mataria o script calado.
   # Já aconteceu no `icones_apps_arcticons.sh`.
@@ -161,7 +75,7 @@ _ler_mapa() {
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem assets/icones/apps-convertidos.map — nada a converter"
+    meow_pula "sem packs/meowsystem/icones/apps-convertidos.map — nada a converter"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$CONVERSOR" ]; then
@@ -179,6 +93,11 @@ _pronto() {
   return "$MEOW_OK"
 }
 
+# Onde mora o retoque e o construído de um nome: na casa, quando a linha que
+# vale é a de quem usa (P82, item 5); no projeto, no resto.
+_retoques_de() { if [ -n "${DO_USUARIO[$1]:-}" ]; then printf '%s' "$RETOQUES_USUARIO"; else printf '%s' "$RETOQUES"; fi; }
+_destino_de()  { if [ -n "${DO_USUARIO[$1]:-}" ]; then printf '%s' "$DESTINO_USUARIO";  else printf '%s' "$DESTINO";  fi; }
+
 # --- o conteúdo desejado de UM ícone -----------------------------------------
 # Retoque à mão VENCE, sempre, e nem chama o conversor. A origem que sumiu é
 # AVISO, não erro: aquele aplicativo continua vindo do Papirus, como sempre.
@@ -186,9 +105,10 @@ _desejado_de() {
   # DOIS `local`, e não um: num `local a=X b=$a` o `b` NÃO enxerga o `a` da
   # mesma linha — a atribuição só vale depois que o comando inteiro termina.
   local nome="$1" saida
-  local origem="${ORIGEM[$nome]}"
-  if [ -f "$RETOQUES/$nome.svg" ]; then
-    cat "$RETOQUES/$nome.svg"
+  local origem="${ORIGEM[$nome]}" retoques
+  retoques="$(_retoques_de "$nome")"
+  if [ -f "$retoques/$nome.svg" ]; then
+    cat "$retoques/$nome.svg"
     return "$MEOW_OK"
   fi
   # Sem retoque e sem origem (linha `mao`, ou caminho que sumiu): não há o que
@@ -210,7 +130,7 @@ _avisar_faltantes() {
   for nome in "${!CONHECIDO[@]}"; do
     # `A || B && continue` mataria o script: com as duas falsas a lista devolve
     # 1 e o `set -e` derruba tudo, calado. `if` explícito, então.
-    if [ -f "$RETOQUES/$nome.svg" ]; then continue; fi
+    if [ -f "$(_retoques_de "$nome")/$nome.svg" ]; then continue; fi
     if [ -n "${MAO[$nome]:-}" ]; then
       meow_aviso "'$nome' está declarado como 'mao' e não tem retoques/$nome.svg"
       meow_info "  a linha promete um desenho à mão que não existe — desenhe ou tire a linha"
@@ -228,7 +148,7 @@ _avisar_faltantes() {
 #   byte a byte acusaria divergência eterna num acervo perfeito — já custou um
 #   `--conferir` gritando 123 divergências num tema correto.
 _conferir() {
-  local nome ausentes=0 divergentes=0 orfaos=0 total=0 arq querido rc
+  local nome ausentes=0 divergentes=0 orfaos=0 total=0 arq querido rc dest
   # QUAIS, E NÃO SÓ QUANTOS — 16/09/2026
   #   A linha dizia "0 a gerar, 1 desatualizados, 0 a remover (de 31)" e o
   #   parágrafo seguinte mandava gerar a folha e mostrar a ela ANTES de
@@ -244,18 +164,28 @@ _conferir() {
     # "4 em dia" quando um dos quatro não existe é um número que mente.
     [ "$rc" = "$MEOW_OK" ] || continue
     total=$((total + 1))
-    if [ ! -f "$DESTINO/$nome.svg" ]; then
+    dest="$(_destino_de "$nome")"
+    if [ ! -f "$dest/$nome.svg" ]; then
       ausentes=$((ausentes + 1)); n_ausentes+=("$nome")
-    elif [ "$querido" != "$(cat "$DESTINO/$nome.svg")" ]; then
+    elif [ "$querido" != "$(cat "$dest/$nome.svg")" ]; then
       divergentes=$((divergentes + 1)); n_divergentes+=("$nome")
     fi
   done
 
+  # O órfão é contado por dono (P82): o do projeto saiu do mapa do projeto, o
+  # de quem usa saiu do dela.
   if [ -d "$DESTINO" ]; then
     for arq in "$DESTINO"/*.svg; do
       [ -e "$arq" ] || continue
       nome="$(basename "$arq" .svg)"
-      [ -n "${CONHECIDO[$nome]:-}" ] || { orfaos=$((orfaos + 1)); n_orfaos+=("$nome"); }
+      [ -n "${DO_PROJETO[$nome]:-}" ] || { orfaos=$((orfaos + 1)); n_orfaos+=("$nome"); }
+    done
+  fi
+  if [ -d "$DESTINO_USUARIO" ]; then
+    for arq in "$DESTINO_USUARIO"/*.svg; do
+      [ -e "$arq" ] || continue
+      nome="$(basename "$arq" .svg)"
+      [ -n "${DO_USUARIO[$nome]:-}" ] || { orfaos=$((orfaos + 1)); n_orfaos+=("$nome"); }
     done
   fi
 
@@ -296,7 +226,7 @@ _conferir() {
 SO_MAO=0
 
 _aplicar() {
-  local nome arq mudou=0 postos=0 removidos=0 querido rc
+  local nome arq mudou=0 postos=0 removidos=0 querido rc dest
   for nome in "${!CONHECIDO[@]}"; do
     [ "$SO_MAO" = "1" ] && [ -z "${MAO[$nome]:-}" ] && continue
     set +e
@@ -307,26 +237,33 @@ _aplicar() {
       "$MEOW_SEM_DEPENDENCIA") continue ;;
       *) meow_erro "o conversor falhou em '$nome' (${ORIGEM[$nome]})"; return "$MEOW_ERRO" ;;
     esac
+    dest="$(_destino_de "$nome")"
+    [ -d "$dest" ] || meow_seco || mkdir -p "$dest"
     set +e
-    meow_escrever "$DESTINO/$nome.svg" "$querido" 644
+    meow_escrever "$dest/$nome.svg" "$querido" 644
     rc=$?
     set -e
     case "$rc" in
       "$MEOW_OK") ;;
       "$MEOW_DIVERGENTE") mudou=1; postos=$((postos + 1)) ;;
-      *) meow_erro "não consegui escrever $DESTINO/$nome.svg"; return "$MEOW_ERRO" ;;
+      *) meow_erro "não consegui escrever $dest/$nome.svg"; return "$MEOW_ERRO" ;;
     esac
   done
 
   # Órfão: estava no mapa ontem, não está hoje. Removível porque o dono é único —
-  # `assets/icones/convertidos-apps/` nasce aqui e nenhum outro script escreve nele.
+  # `packs/meowsystem/icones/apps/convertidos/` nasce aqui e nenhum outro script escreve nele.
   # O subdiretório `retoques/` NÃO é varrido: é escrito à mão, e o glob `*.svg`
   # não desce em subdiretório.
-  if [ "$SO_MAO" != "1" ] && [ -d "$DESTINO" ]; then
-    for arq in "$DESTINO"/*.svg; do
+  # [P82: por dono — o do projeto contra o mapa do projeto, o de quem usa
+  #   contra o dela.]
+  local pasta conhecidos
+  for pasta in "$DESTINO" "$DESTINO_USUARIO"; do
+    [ "$SO_MAO" != "1" ] && [ -d "$pasta" ] || continue
+    for arq in "$pasta"/*.svg; do
       [ -e "$arq" ] || continue
       nome="$(basename "$arq" .svg)"
-      if [ -z "${CONHECIDO[$nome]:-}" ]; then
+      if [ "$pasta" = "$DESTINO" ]; then conhecidos="${DO_PROJETO[$nome]:-}"; else conhecidos="${DO_USUARIO[$nome]:-}"; fi
+      if [ -z "$conhecidos" ]; then
         if meow_seco; then
           meow_muda "removeria $arq (saiu do mapa)"
         else
@@ -336,7 +273,7 @@ _aplicar() {
         mudou=1; removidos=$((removidos + 1))
       fi
     done
-  fi
+  done
 
   if [ "$mudou" = 0 ]; then
     if [ "$SO_MAO" = "1" ]; then

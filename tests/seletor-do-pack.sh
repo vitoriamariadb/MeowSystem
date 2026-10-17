@@ -1,62 +1,15 @@
 #!/usr/bin/env bash
 # seletor-do-pack.sh — os desenhos do pack no ar na ficha de ícone, e onde a
-# escolha de um deles mora. Sprint P60, 25/09/2026.
+# escolha de um deles mora.
 #
-# A PERGUNTA QUE ABRIU ISTO
-#   «Nosso pack de 300 icons aparece pro user pra que ele possa escolher um
-#   deles pra substituir algum atual?» Não aparecia. A busca da ficha de ícone
-#   (`_api_glifos`) varria quatro pastas do motor: na ficha do Chrome, «chrome»
-#   dava uma opção só, o traço do Arcticons, e «alien» — um dos 295 desenhos da
-#   biblioteca do Dracula — não dava nenhuma.
-#
-# O QUE ELE COBRA — a conferência da sprint, e as cercas em volta dela
-#   1. Com o Dracula no ar e a camada ligada, «alien» acha o desenho da
-#      biblioteca, num grupo com o nome do pack, com a miniatura liberada na
-#      cerca do `/previa`; «chrome» acha o do Dracula E o do Arcticons.
-#   2. Nenhum acervo de pack fora do ar: o grupo «Catppuccin» cravado saiu.
-#   3. Escolher o alien para um programa grava a linha no `apps.map` do
-#      Dracula, e só ela muda no arquivo; a ação que a ficha dispara em seguida
-#      (`icones_pack`) o põe no tema instalado, com os bytes que a miniatura
-#      mostrou; e o `--conferir` do passo sai 0 depois dela.
-#   4. As recusas: o pack fora do ar, o desenho que a busca não ofereceria, o
-#      nome que outro dono do `scalable/apps` decide, a camada desligada — com
-#      a frase que aponta o cartão pelo título que ele tem na tela. E as duas
-#      grades que abrem a ficha (Aplicativos, e Lançadores e jogos) mandam a
-#      trava do pack que o POST aplica.
-#   5. Trocar para o Catppuccin não carrega a escolha: a busca não oferece o
-#      Dracula, o passo do pack tira do tema o que o Dracula tinha posto, o
-#      Catppuccin não ganha arquivo nenhum — e a escolha volta com o Dracula.
-#   [09/10/2026, P73 — o que mudou, e as seções acima dizem a regra nova:
-#    · a ficha mostra TODOS os acervos, de todos os packs, em pastas (a decisão
-#      3 de 09/10 revoga a regra da P60 do item 2): o Catppuccin aparece com o
-#      Dracula no ar, depois dele; e a camada desligada não tira nada da ficha;
-#    · o «Usar este ícone» grava no estado de quem usa (`icones-escolhidos.map`,
-#      ao lado do meow.conf), e o mapa do pack só muda pelo gesto explícito
-#      «Levar para o pack» (a regressão I3). O item 3 confere as duas metades:
-#      escolher não toca o mapa; levar troca a linha, como a P60 trocava.]
-#   6. (P64, 25/09/2026) A escolha tem desfazer: a linha do painel leva a que
-#      ela trocou, e desfazer a devolve — o mapa volta byte a byte. A resposta
-#      diz o ícone que fica, e o «Desfazer a escolha no traço» de um app que
-#      está nos dois mapas não diz mais «de fábrica». E a trava do traço não
-#      recusa o desenho do pack — só a do convertido: o intocável e a curadoria
-#      travam os dois, na grade e no POST (revisão da P64).
+# «Nosso pack de 300 icons aparece pro user pra que ele possa escolher um deles
+# pra substituir algum atual?»
 #
 # AS PERGUNTAS VÃO ÀS ROTAS DE VERDADE, no molde do tests/oficina.sh: o
-#   `Manipulador` sem socket, com o `_json` capturado. O passo que põe no tema é
-#   a AÇÃO (`iniciar`), com o meow.conf de brinquedo no ambiente — o mesmo
-#   caminho que a página percorre depois do «Usar este ícone».
+# `Manipulador` sem socket, com o `_json` capturado.
 #
-# O REPOSITÓRIO TAMBÉM É DE BRINQUEDO: a escolha é gravada no mapa do pack,
-#   que mora dentro da raiz. O teste roda sobre uma cópia da árvore de trabalho
-#   (o versionado e o novo, como o tests/app-completo.py), e o repositório de
-#   verdade não é tocado por construção.
-#
-# PORTÁTIL: bash, git, tar e python3. Os `.desktop` são só os da casa de
-#   brinquedo — a lista de pastas do servidor é trocada pela dela —, e nada
-#   instalado na máquina entra na conta.
-#
-# CÓDIGOS DE SAÍDA (os do projeto)
-#   0 = tudo cobrado passou · 1 = achados · 2 = erro deste teste · 3 = pulado.
+# O REPOSITÓRIO TAMBÉM É DE BRINQUEDO: a escolha é gravada no mapa do pack, que
+# mora dentro da raiz.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -90,23 +43,15 @@ desktop() {   # desktop <arquivo> <Name> <Icon>
 desktop google-chrome "Chrome de Brinquedo" google-chrome
 desktop programa-de-brinquedo "Programa de Brinquedo" programa-de-brinquedo
 desktop com.system76.CosmicFiles "Arquivos de Brinquedo" com.system76.CosmicFiles
-# E um com a trava do TRAÇO (P64): a Calculadora tem desenho convertido no
+# E um com a trava do TRAÇO: a Calculadora tem desenho convertido no
 # `apps-convertidos.map`, e nenhum outro dono do `scalable/apps`.
 desktop org.gnome.Calculator "Calculadora de Brinquedo" org.gnome.Calculator
-# E dois jogos, que a aba «Lançadores e jogos» mostra com a MESMA ficha: um com
-# o `Icon=` por caminho de arquivo, onde o desenho do pack não vale, e um com
-# nome de ícone, onde vale. Revisão da P60: a grade de jogos não mandava a trava
-# do pack, e a ficha do primeiro oferecia o Dracula que o POST recusa com 409.
 jogo() {   # jogo <arquivo> <Name> <Icon>
   printf '[Desktop Entry]\nName=%s\nExec=true\nIcon=%s\nTerminal=false\nType=Application\nCategories=Game;\n' \
     "$2" "$3" > "$CASA/.local/share/applications/$1.desktop"
 }
 jogo jogo-de-brinquedo "Jogo de Brinquedo" "$CASA/jogo.svg"
 jogo jogo-por-nome "Jogo por Nome" jogo-por-nome
-# E os dois casos da trava do traço que travam o pack também (revisão da P64):
-# um jogo da Steam, intocável pelo prefixo `steam_icon_` da lista do script, e
-# um programa com a arte que ela escolheu na curadoria — a linha como o
-# `importar_icones.sh` a escreve, no `curadoria.map` da raiz de brinquedo.
 jogo meow-steam-12345 "Jogo da Steam" steam_icon_12345
 desktop programa-curado "Programa Curado" programa-curado
 printf 'programa-curado\tsvg\tscalable/apps\n' > "$T/raiz/assets/icones/curadoria.map" || exit 2
@@ -131,7 +76,7 @@ sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor  # noqa: E402
 
 M = servidor.Manipulador
-M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "usuária"),)
+M.DIRS_DESKTOP = ((os.path.join(casa, ".local", "share", "applications"), "pessoal"),)
 m = M.__new__(M)
 resposta = {}
 m._json = lambda dados, codigo=200: resposta.update(dados=dados, codigo=codigo)
@@ -268,7 +213,7 @@ r = glifos("chrome")
 print("  «chrome»: %d opção(ões) — %s" % (len(r.get("glifos", [])), ", ".join(
     "%s (%s)" % (g["glifo"], g["grupo"]) for g in r.get("glifos", []))))
 grupos = {g["grupo"] for g in r.get("glifos", []) if g["glifo"] == "google-chrome"}
-checa({"pack:dracula:apps", "motor:arcticons-apps"} <= grupos,
+checa({"pack:dracula:apps", "pack:meowsystem:apps/arcticons"} <= grupos,
       "«chrome» oferece o google-chrome do Dracula e o do Arcticons, cada um na sua pasta",
       repr(sorted(grupos)))
 
@@ -473,7 +418,7 @@ checa((glifos_de("programa-de-brinquedo").get("escolha") or {}).get("antes", "?"
 # `apps-arcticons.map` do projeto é curadoria, e não sai por clique. O Chrome
 # de brinquedo não tem escolha de traço: nada sai, e a resposta continua
 # dizendo o que fica na tela, que é o ponto da P64.]
-traco_projeto = os.path.join(raiz, "assets", "icones", "apps-arcticons.map")
+traco_projeto = os.path.join(raiz, "packs", "meowsystem", "icones", "apps-arcticons.map")
 antes_traco = texto(traco_projeto)
 codigo, dados = chamar(m._api_app_icone, {"app": "google-chrome", "remover": True})
 fica = dados.get("fica") or {}
@@ -566,7 +511,7 @@ rc, saida = passo_do_pack()
 checa(codigo == 200 and texto(os.path.join(tema, "programa-de-brinquedo.svg")) == texto(alien),
       "o programa veste o alien escolhido como desenho (rc=%s)" % rc, repr(dados) + saida[-400:])
 codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
-                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+                                          "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg"})
 with open(escolhas, encoding="utf-8") as fh:
     sobrou = [l for l in fh if l.startswith("programa-de-brinquedo ")]
 checa(codigo == 200 and dados.get("tirou_escolha") is True and not sobrou
@@ -578,7 +523,7 @@ checa(not os.path.exists(os.path.join(tema, "programa-de-brinquedo.svg")),
       "e o passo do pack tira o desenho do `scalable/apps`, para o traço aparecer (rc=%s)" % rc,
       saida[-400:])
 codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
-                                          "arquivo": "assets/icones/arcticons-apps/firefox.svg"})
+                                          "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg"})
 checa(codigo == 200 and dados.get("tirou_escolha") is False,
       "sem escolha de desenho, o traço não diz que tirou nada", repr(dados))
 

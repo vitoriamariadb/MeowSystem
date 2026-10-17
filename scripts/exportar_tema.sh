@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
 # exportar_tema.sh — o tema de ícones MONTADO de um pack, num arquivo que se
-# instala em qualquer máquina (P74 item 4, 09/10/2026; T7 da paridade).
+# instala em qualquer máquina.
 #
 #   scripts/exportar_tema.sh <id> [flavor] [arquivo.tar.gz]
 #   meow pack exportar-tema <id> [flavor] [arquivo.tar.gz]
 #
-# O BURACO, MEDIDO
-#   O `meow pack exportar` leva a RECEITA (o pack: mapas, desenhos, paleta), e
-#   não o tema montado: o `.meowpack` do Dracula tinha 0 `index.theme`. Quem
-#   recebia precisava do MeowSystem inteiro para ver um ícone. E o tema montado
-#   se chamava `MeowSystem-Icons` em qualquer pack, com `Comment=Catppuccin`
-#   (docs/pesquisas/2026-10-09-paridade-de-icones.md, seção 5).
-#
-# O QUE SAI
 #   Um `.tar.gz` com três pastas de tema, prontas para `~/.local/share/icons/`:
 #     <nome>          o tema, com o nome do pack e do flavor (`MeowSystem-
 #                     Dracula-Icons`; o `tema-icones` do pack.py dá o nome e o
@@ -21,31 +13,20 @@
 #     <nome>-Base-<n> as camadas de trás dela, quando o pack as declara.
 #   Os recibos de instalação (`.meow-origem`, `.meow-somas.sha256`) e a cache
 #   não vão: são desta máquina, e quem instala refaz a cache.
-#
-# ONDE ELE É MONTADO: NUMA CASA DE BRINQUEDO, DO ZERO
-#   As etapas de ícone do `install.sh` rodam num HOME temporário, com o
-#   `meow.conf.exemplo` (o pack e o flavor pedidos, o resto de fábrica). Assim
-#   o tema exportado é o do PACK, e não o desta casa: nenhuma escolha do
-#   meow.conf de quem exporta (a logo do Hefesto, um ICONES_BASE à mão) viaja
-#   sem querer. As etapas são as que escrevem no tema e não pedem root nem
-#   sessão — as mesmas linhas de ambiente do `install.sh`, na mesma ordem, e o
-#   `indice` no fim (P74 item 5). Uma base que esta máquina já tem, conferida
-#   pelo sha256 do pino, é copiada para a casa de brinquedo em vez de baixada
-#   de novo; o `construir_icones.sh` confere o manifesto dela do mesmo jeito.
-#
-#   0 = exportado · 1 = no seco, exportaria · 2 = erro (nada é deixado pela metade)
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+# A herança do exportado e o `Hidden=true` das bases.
+# shellcheck source=../lib/icones.sh
+. "$RAIZ/lib/icones.sh"
 
 ID="${1:-}"
 [ -n "$ID" ] || { meow_erro "uso: exportar_tema.sh <id> [flavor] [arquivo.tar.gz]"; exit "$MEOW_ERRO"; }
 # O id e o flavor entram num meow.conf que a casa de brinquedo carrega com `.`
 # (o `sed` lá embaixo): só da forma que o pack.py aceita (RE_ID e
 # RE_FLAVOR_CONF), para uma aspa ou um `$(` não virar código ao carregar.
-# [Conferência da P74, alerta de segurança de 09/10/2026.]
 case "$ID" in ''|-*|*[!a-z0-9-]*) meow_erro "'$ID' não é um id de pack (minúsculas, dígitos e hífen)"; exit "$MEOW_ERRO" ;; esac
 if ! python3 "$RAIZ/scripts/pack.py" validar "$ID" >/dev/null 2>&1; then
   meow_erro "o pack '$ID' não valida — rode: meow pack validar $ID"
@@ -150,21 +131,12 @@ TEMA="$ICONES/$NOME"
 #   O nosso herda as camadas da base que estão na casa (na ordem do índice) e o
 #   `hicolor`; cada base herda só o `hicolor` — o `Inherits=` do upstream
 #   (`-Dark,breeze-dark,Zafiro,…`) aponta para temas que não viajam.
+#   [P82, 15/10/2026 (item 12; decisão 20): e depois o `Cosmic` e o `Adwaita`,
+#   antes do `hicolor`, e cada base vai com o `Hidden=true`. A conta mora no
+#   `meow_tema_exportado_heranca` (lib/icones.sh), que diz as camadas.]
+_camadas="$(meow_tema_exportado_heranca "$ICONES" "$NOME")" || exit "$MEOW_ERRO"
 camadas=()
-for h in $(sed -n 's/^Inherits=//p' "$TEMA/index.theme" | head -1 | tr ',' ' '); do
-  case "$h" in "$NOME"-Base|"$NOME"-Base-[0-9]*) [ -d "$ICONES/$h" ] && camadas+=("$h") ;; esac
-done
-_herdar() {   # $1 = index.theme · $2 = a nova lista
-  local tmp; tmp="$(mktemp -p "$(dirname "$1")" .meow.XXXXXX)" || return 1
-  awk -v h="$2" 'BEGIN{feito=0} /^Inherits=/ && !feito {print "Inherits=" h; feito=1; next} {print}' "$1" > "$tmp" \
-    && mv -f "$tmp" "$1"
-}
-herda="$(printf '%s,' "${camadas[@]}")hicolor"
-_herdar "$TEMA/index.theme" "$herda" || exit "$MEOW_ERRO"
-for c in "${camadas[@]}"; do
-  _herdar "$ICONES/$c/index.theme" "hicolor" || exit "$MEOW_ERRO"
-  rm -f "$ICONES/$c/.meow-origem" "$ICONES/$c/.meow-somas.sha256"
-done
+[ -n "$_camadas" ] && mapfile -t camadas <<< "$_camadas"
 find "$TEMA" "${camadas[@]/#/$ICONES/}" -maxdepth 1 -name icon-theme.cache -delete 2>/dev/null
 
 # --- nenhum link para fora do que vai no arquivo ------------------------------

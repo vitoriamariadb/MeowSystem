@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
 # pack-dracula-completo.sh — o pack Dracula é um tema completo, montado certo e
-# exportável (P74, 09/10/2026).
+# exportável.
 #
-# O QUE ELE VIGIA
-#   Cada bloco abaixo é um item da spec `docs/sprints/2026-10-09-uso-real/
-#   P74-pack-dracula-completo.md`, e confere o contrato dele sem rede e sem
-#   escrever fora de um temporário. As provas que pedem rede (baixar a base,
-#   montar o tema inteiro) estão no relatório da spec, com o comando e a saída.
-#
-# NADA SAI DA CASA DE BRINQUEDO: `env -i` com HOME temporário, e um `sudo`
-#   falso na frente do PATH — nenhuma linha daqui chama sudo, e o falso existe
-#   para que nenhuma passe a chamar calada numa máquina com `NOPASSWD`.
-#
-#   0 = o pack Dracula cumpre o que a P74 pediu · 1 = achados · 2 = erro deste teste
+# NADA SAI DA CASA DE BRINQUEDO: `env -i` com HOME temporário, e um `sudo` falso
+# na frente do PATH — nenhuma linha daqui chama sudo, e o falso existe para que
+# nenhuma passe a chamar calada numa máquina com `NOPASSWD`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -34,10 +26,9 @@ amb() {
 }
 
 # --- item 2: a base em duas camadas, as duas pinadas -------------------------
-#   Decisão 1 de 09/10: `circle` por cima, `main` por trás, como o tema antigo.
-#   O verbo diz a frente nas linhas de sempre e uma `atras=` por camada; o nome
-#   da camada de trás, escolhido no conf, cede ao pack como o da frente; e o
-#   `validar` recusa uma camada sem pino.
+# O verbo diz a frente nas linhas de sempre e uma `atras=` por camada; o nome
+# da camada de trás, escolhido no conf, cede ao pack como o da frente; e o
+# `validar` recusa uma camada sem pino.
 saida="$(amb env ICONES_BASE=Papirus-Dark python3 "$RAIZ/scripts/pack.py" base-icones dracula 2>&1)"
 atras="$(printf '%s\n' "$saida" | sed -n 's/^atras=//p')"
 if [[ "$saida" == *"quem=pack"* ]] && [[ "$saida" == *"/00a230a277d5e6ad913b90182977738335afee89.tar.gz"* ]] \
@@ -69,10 +60,8 @@ saida="$(amb env MEOW_PACKS="$T/packs" python3 "$RAIZ/scripts/pack.py" validar t
   || falha "o validar aceitou uma camada de trás sem pino (rc=$rc)" "$saida"
 
 # --- item 4: o tema exportado tem o nome e o comentário do pack ---------------
-#   O nome é do pack e do flavor (o flavor some quando é o próprio pack), e o
-#   `Comment=` não diz Catppuccin com o Dracula. O índice instalado nesta
-#   máquina passa a ter o mesmo comentário: quem o escreve pergunta ao mesmo
-#   verbo. A montagem inteira (rede, base, etapas) fica no relatório da spec.
+# O nome é do pack e do flavor (o flavor some quando é o próprio pack), e o
+# `Comment=` não diz Catppuccin com o Dracula.
 nomes="$(for par in "dracula" "dracula alucard" "catppuccin mocha"; do
   # shellcheck disable=SC2086
   amb python3 "$RAIZ/scripts/pack.py" tema-icones $par 2>&1 | sed -n 's/^nome=//p'
@@ -90,11 +79,10 @@ grep -q '^Comment=\$COMENTARIO_TEMA$' "$RAIZ/scripts/construir_icones.sh" \
   || falha "o construir_icones.sh ainda escreve um Comment fixo"
 
 # --- item 5: o índice no fim, por uma etapa só --------------------------------
-#   Numa casa de brinquedo com um tema já construído pela metade (o índice só
-#   com `scalable/apps`) e diretórios que outras etapas criaram depois, o
-#   `indice` declara todos, guarda a herança que a construção decidiu, e a
-#   segunda chamada não escreve nada. E a etapa vem depois da última que
-#   escreve no tema, no `install.sh` e no doctor.
+# Numa casa de brinquedo com um tema já construído pela metade (o índice só com
+# `scalable/apps`) e diretórios que outras etapas criaram depois, o `indice`
+# declara todos, guarda a herança que a construção decidiu, e a segunda chamada
+# não escreve nada.
 TEMA="$T/casa/.local/share/icons/MeowSystem-Icons"
 mkdir -p "$TEMA/scalable/apps" "$TEMA/48x48/apps" "$TEMA/scalable/mimetypes" "$TEMA/22x22/status" "$TEMA/scalable/status"
 for d in scalable/apps 48x48/apps scalable/mimetypes 22x22/status scalable/status; do
@@ -127,18 +115,17 @@ ordem="$(sed -n '/local etapas=(/,/)/p' "$RAIZ/install.sh" | grep -oE '\betapa_[
   || falha "o doctor não confere o índice depois de tudo"
 
 # --- item 6: ícones de arquivo e pastas do próprio Dracula --------------------
-#   Os 656 ícones de arquivo por flavor são do pack, derivados do
-#   `css-variables` do Catppuccin pela paleta do Dracula: nenhum hex do
-#   macchiato sobra, o `construir` no seco não tem nada a escrever (o versionado
-#   é o que ele produz), e o `info` diz PRÓPRIO. E as pastas: o mapa do pack
-#   veste as dez, e o `construir_pastas.sh` cede pelo MESMO mapa.
+# Os 656 ícones de arquivo por flavor são do pack, derivados do `css-variables`
+# do Catppuccin pela paleta do Dracula: nenhum hex do macchiato sobra, o
+# `construir` no seco não tem nada a escrever (o versionado é o que ele produz),
+# e o `info` diz PRÓPRIO.
 linha="$(amb python3 "$RAIZ/scripts/pack.py" info dracula 2>&1 | grep -E '^  icones\.mimetypes ')"
 [[ "$linha" == *"PRÓPRIO"*"1.312 desenho(s)"* ]] \
   && ok "icones.mimetypes do Dracula é PRÓPRIO: 656 por flavor, nos dois flavors" \
   || falha "o info não diz os ícones de arquivo do Dracula como próprios" "$linha"
 macc="$(python3 -c 'import json,sys;print("|".join(v.lower() for v in json.load(open(sys.argv[1]))["flavors"]["macchiato"].values()))' "$RAIZ/packs/catppuccin/paleta.json")"
-com_macc="$(grep -liE "$macc" "$RAIZ"/packs/dracula/icones/mimetypes/*/*.svg | wc -l)"
-total="$(find "$RAIZ/packs/dracula/icones/mimetypes" -name '*.svg' | wc -l)"
+com_macc="$(grep -liE "$macc" "$RAIZ"/packs/dracula/icones/sistema/mimetypes/*/*.svg | wc -l)"
+total="$(find "$RAIZ/packs/dracula/icones/sistema/mimetypes" -name '*.svg' | wc -l)"
 [ "$total" = 1312 ] && [ "$com_macc" = 0 ] \
   && ok "nenhum dos $total ícones de arquivo do Dracula tem cor do macchiato" \
   || falha "ícones de arquivo do Dracula com cor do Catppuccin, ou contagem errada" "total=$total com_macchiato=$com_macc"
@@ -151,17 +138,15 @@ nomes="$(grep -v '^#' "$mapa" 2>/dev/null | grep -c ':')"
 faltam=""
 while IFS=: read -r n g; do
   case "$n" in ''|'#'*) continue ;; esac
-  [ -f "$RAIZ/packs/dracula/icones/pastas/$g.svg" ] || faltam="$faltam $g"
+  [ -f "$RAIZ/packs/dracula/icones/sistema/pastas/$g.svg" ] || faltam="$faltam $g"
 done < "$mapa"
 [ "$nomes" = 10 ] && [ -z "$faltam" ] && grep -q 'acervo "$_pack_ref" icones.pastas.mapa' "$RAIZ/scripts/construir_pastas.sh" \
   && ok "o mapa de pastas do Dracula veste dez nomes (folder, user-home e user-desktop inclusive), e quem cede lê o mesmo mapa" \
   || falha "o mapa de pastas do Dracula não tem as dez, falta desenho, ou o construir_pastas não o lê" "nomes=$nomes faltam=$faltam"
 
 # --- item 7: nada de Catppuccin com o Dracula no ar ---------------------------
-#   O prompt: com o Dracula, a paleta do starship é a dele, nos 26 slots; com o
-#   Catppuccin Mocha, o arquivo é o preset de antes. Um `starship` falso na
-#   frente do PATH, porque o script só escreve com ele presente. E as quatro
-#   rotas da página que caíam em `mocha` com o FLAVOR vazio.
+# O prompt: com o Dracula, a paleta do starship é a dele, nos 26 slots; com o
+# Catppuccin Mocha, o arquivo é o preset de antes.
 printf '#!/bin/sh\nexit 0\n' > "$FALSO/starship"; chmod 755 "$FALSO/starship"
 prompt() {   # $1 = PACK · $2 = FLAVOR · $3 = destino
   amb PACK="$1" FLAVOR="$2" MEOW_ESTADO="$T/estado" PROMPT_ALVO="$3" \
@@ -187,14 +172,8 @@ else
 fi
 
 # --- item 8: o tema do Obsidian sobrevive ao git do cofre ---------------------
-#   Um cofre de brinquedo versionado em git, com outro tema no commit (como o
-#   cofre dela, com «Catppuccin» no HEAD). Depois do `aplicar`: o disco tem o
-#   tema do pack no ar, o `git status` não vê o arquivo mudado, um checkout do
-#   arquivo devolve o tema desta máquina (era aí que ele oscilava), um commit
-#   não leva o tema para o cofre, e a segunda passada não tem o que fazer. O
-#   `reverter` tira o filtro. O pack é o padrão (o tema dele mora no vendor/,
-#   sem rede); o filtro não depende do pack. O flatpak e o pgrep são de
-#   brinquedo, como no tests/temas-de-apps.sh.
+# Um cofre de brinquedo versionado em git, com outro tema no commit (como o
+# cofre dela, com «Catppuccin» no HEAD).
 if command -v git >/dev/null 2>&1; then
   C="$T/casa-obs"; V="$C/Cofre em Git"
   mkdir -p "$C/bin" "$V/.obsidian" "$C/.local/share/flatpak/app/md.obsidian.Obsidian/x86_64/stable/active" \
@@ -247,9 +226,9 @@ else
 fi
 
 # --- item 10 (I10): com MODO=claro, o traço e as pastas vestem o claro --------
-#   O `meow_flavor_vestido` dá o flavor do lado que a tela veste: no claro, o
-#   claro do pack; no escuro, o escuro, mesmo com um FLAVOR claro; no `auto`,
-#   o FLAVOR. O traço do dock e as pastas perguntam a ele.
+# O `meow_flavor_vestido` dá o flavor do lado que a tela veste: no claro, o
+# claro do pack; no escuro, o escuro, mesmo com um FLAVOR claro; no `auto`, o
+# FLAVOR.
 vestido() {   # $1 = PACK · $2 = FLAVOR · $3 = MODO
   amb PACK="$1" FLAVOR="$2" MODO="$3" bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_ponte_python >/dev/null 2>&1; meow_flavor_vestido' 2>/dev/null
 }
@@ -275,11 +254,9 @@ if [ -d "$UPF/src" ] && [ -d /usr/share/icons/Papirus-Dark ]; then
 fi
 
 # --- item 9 (T3): o tema de som do Dracula, e quem o toca ---------------------
-#   O `som.sh` instala os 25 efeitos do pack como tema de som e a unidade que
-#   os toca nas notificações; a 2ª passada é 0; com o Catppuccin (sem tema de
-#   som) os dois saem. E o `vigiar`, com um `dbus-monitor` de brinquedo: toca
-#   o som de notificação do tema numa chamada `Notify`, e cala na que pede
-#   `suppress-sound`. O `systemctl` não é chamado num HOME de teste.
+# O `som.sh` instala os 25 efeitos do pack como tema de som e a unidade que os
+# toca nas notificações; a 2ª passada é 0; com o Catppuccin (sem tema de som) os
+# dois saem.
 CS="$T/casa-som"; FS="$CS/falso"; mkdir -p "$FS"
 printf '#!/bin/sh\necho "pw-play $*" >> "%s/tocou.log"\n' "$CS" > "$FS/pw-play"
 printf '#!/bin/sh\necho "systemctl $*" >> "%s/systemctl.log"\n' "$CS" > "$FS/systemctl"
@@ -318,10 +295,9 @@ systemctl: $(cat "$CS/systemctl.log" 2>/dev/null)"
 fi
 
 # --- item 9 (T5): os overrides de `.desktop` do Dracula moram no pack ---------
-#   O pack esconde do lançador o que o tema Dracula de antes escondia, somado
-#   à lista do conf; um `-nome` no conf tira um do pack; e com o Catppuccin no
-#   ar a lista do Dracula não vale. No seco, numa pasta de sistema de brinquedo:
-#   nada é escrito, e o que se lê é o «ocultaria».
+# O pack esconde do lançador o que o tema Dracula de antes escondia, somado à
+# lista do conf; um `-nome` no conf tira um do pack; e com o Catppuccin no ar a
+# lista do Dracula não vale.
 SIS="$T/aplicativos"; mkdir -p "$SIS"
 for n in org.keepassxc.KeePassXC mpv vim; do
   printf '[Desktop Entry]\nName=%s\nExec=%s\n' "$n" "$n" > "$SIS/$n.desktop"
@@ -338,10 +314,9 @@ else
   falha "a lista do lançador do pack não somou, não obedeceu ao «-nome», ou vazou para o Catppuccin" "dracula: $d1
 catppuccin: $c1"
 fi
-# O «-nome» DEVOLVE o que uma passada anterior já escondeu (conferência da P74):
-#   o `mpv` marcado na forma que o script escreve volta ao lançador, o `vim`
-#   continua escondido, e a segunda passada não tem nada a fazer. Na pasta de
-#   sistema de brinquedo, que é gravável: nada passa por sudo.
+# DEVOLVE o que uma passada anterior já escondeu: o `mpv` marcado na forma que o
+# script escreve volta ao lançador, o `vim` continua escondido, e a segunda
+# passada não tem nada a fazer.
 printf '[Desktop Entry]\nNoDisplay=true\nName=mpv\nExec=mpv\n' > "$SIS/mpv.desktop"
 oculta_de_vez() {
   amb PACK=dracula FLAVOR="" LANCADOR_OCULTAR="vim,-mpv" MEOW_APLICATIVOS_SISTEMA="$SIS" \
@@ -357,10 +332,9 @@ else
 fi
 
 # --- item 9 (T7): os papéis de parede do Dracula vêm do pack, em 4K -----------
-#   Numa casa nova (o conf de fábrica, sem repositório de papel de parede), o
-#   Dracula semeia os SVG do pack rasterizados em PNG 3840x2160, e não o acervo
-#   do Catppuccin. A curadoria (que baixa da rede) fica de fora com uma receita
-#   vazia; os recusados de fábrica (`BANIDOS.txt.padrao`) continuam recusados.
+# Numa casa nova (o conf de fábrica, sem repositório de papel de parede), o
+# Dracula semeia os SVG do pack rasterizados em PNG 3840x2160, e não o acervo do
+# Catppuccin.
 if command -v rsvg-convert >/dev/null 2>&1; then
   CW="$T/casa-papel"; mkdir -p "$CW/.config/meow"
   sed -e 's/^PACK=.*/PACK="dracula"/' -e 's/^FLAVOR=.*/FLAVOR="dracula"/' "$RAIZ/meow.conf.exemplo" > "$CW/.config/meow/meow.conf"
@@ -388,20 +362,7 @@ else
   printf 'pulado: sem rsvg-convert, o SVG do pack não se rasteriza\n'
 fi
 
-# --- segurança: o pack é dado não confiável (conferência da P74) -------------
-#   Os alertas de 09/10/2026 (spec, seção «Segurança»): um pack pode ser
-#   importado, e nada que vem dele pode ler ou escrever fora da raiz dele. Um
-#   pack «mal», cópia do Dracula com o que um terceiro poria lá:
-#     · a base pinada é um pacote cuja `pasta` é um LINK para fora (o `curl`
-#       falso entrega o pacote local; o sha256 é o dele, como o pack pinou);
-#     · uma linha do `apps.map` e uma do mapa de tipos de arquivo com `../`
-#       no nome de destino;
-#     · um som, um papel de parede e um ícone de arquivo que são links para um
-#       «segredo» fora do pack;
-#     · um ícone de arquivo derivado que é link no DESTINO (escrever nele seria
-#       escrever no segredo), e um desenho-link na origem da derivação.
-#   Nada sai da casa de brinquedo, o segredo fica intacto, e cada script segue
-#   com o resto.
+# --- segurança: o pack é dado não confiável -------------
 TM="$T/mal"; HM="$TM/casa"; FM="$TM/falso"; PM="$TM/packs/mal"
 mkdir -p "$TM/packs" "$FM" "$TM/alvo-fora/scalable/apps" "$TM/tar" \
          "$HM/.local/share/icons/MeowSystem-Icons/scalable/apps" "$HM/.config/meow"
@@ -446,8 +407,8 @@ cp "$RAIZ/packs/catppuccin/icones/mimetypes.map" "$PM/icones/mimetypes.map"
 printf '../../../../../../escapou2:%s\n' "$G" >> "$PM/icones/mimetypes.map"
 ln -s "$TM/segredo.oga" "$PM/sons/stereo/notification/vazou.oga"
 ln -s "$TM/segredo.svg" "$PM/wallpapers/catedral/vazou.svg"
-rm -f "$PM/icones/mimetypes/dracula/$G.svg"; ln -s "$TM/segredo.svg" "$PM/icones/mimetypes/dracula/$G.svg"
-ln -s "$TM/segredo.svg" "$TM/packs/malsrc/icones/mimetypes/css-variables/zz_vazou.svg"
+rm -f "$PM/icones/sistema/mimetypes/dracula/$G.svg"; ln -s "$TM/segredo.svg" "$PM/icones/sistema/mimetypes/dracula/$G.svg"
+ln -s "$TM/segredo.svg" "$TM/packs/malsrc/icones/sistema/mimetypes/css-variables/zz_vazou.svg"
 printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n' > "$HM/.local/share/icons/MeowSystem-Icons/index.theme"
 sed -e 's/^PACK=.*/PACK="mal"/' -e 's/^FLAVOR=.*/FLAVOR="dracula"/' "$RAIZ/meow.conf.exemplo" > "$HM/.config/meow/meow.conf"
 : > "$TM/fontes-vazio.tsv"
@@ -467,12 +428,12 @@ if [ "$(amb env MEOW_PACKS="$TM/packs" python3 "$RAIZ/scripts/pack.py" validar m
   injetado="$(grep -c '^\[custom' "$TM/starship.toml" 2>/dev/null)"
   escapou="$(find "$TM" -name 'escapou*' | wc -l)"
   no_alvo="$(find "$TM/alvo-fora" -name '.meow-*' | wc -l)"
-  vazou="$(grep -rlF 'SEGREDO' "$HM" "$PM/icones/mimetypes" 2>/dev/null | wc -l)"
+  vazou="$(grep -rlF 'SEGREDO' "$HM" "$PM/icones/sistema/mimetypes" 2>/dev/null | wc -l)"
   intacto=0; [ "$(cat "$TM/segredo.svg")" = "$SEGREDO" ] && [ "$(cat "$TM/segredo.oga")" = "$SEGREDO" ] && intacto=1
   if [ "$rc_base" = 2 ] && [ "$no_alvo" = 0 ] && [ ! -L "$HM/.local/share/icons/MeowSystem-Icons-Base" ] \
      && [ "$escapou" = 0 ] && [ "$vazou" = 0 ] && [ "$intacto" = 1 ] \
      && [ -f "$TM/starship.toml" ] && [ "$injetado" = 0 ] \
-     && [ ! -L "$PM/icones/mimetypes/dracula/$G.svg" ] \
+     && [ ! -L "$PM/icones/sistema/mimetypes/dracula/$G.svg" ] \
      && grep -q 'linha(s) com nome fora' "$TM/log-apps.txt" && grep -q 'link ou saem' "$TM/log-som.txt" \
      && [ "$(find "$HM/.local/share/icons/MeowSystem-Icons/scalable/apps" -name '*.svg' | wc -l)" -gt 100 ]; then
     ok "segurança: o pack «mal» não lê nem escreve fora da raiz (base com pasta-link, ../ nos mapas, links no som, no papel, nos ícones de arquivo e no destino da derivação), nem injeta módulo no starship pela paleta"
@@ -494,6 +455,149 @@ if printf '%s' "$saida" | grep -q 'caractere de controle'; then
   ok "segurança: a paleta que abre linha nova (o [custom.evil] do starship) recusa o pack inteiro"
 else
   falha "segurança: a paleta com quebra de linha num slot passou no validar" "$(printf '%s\n' "$saida" | tail -3)"
+fi
+
+# O traço do Firefox estava em `blue`, que é do Chrome (o próprio
+# `apps-marca.map` mede); o Vesktop não tinha linha no mapa do pack; e os
+# autorais `hefesto-*` e `fogstripper-*` (projetos pessoais) moravam nos dois
+# packs, contra a regra.
+grep -qx 'firefox:firefox:peach' "$RAIZ/packs/meowsystem/icones/apps-arcticons.map" \
+  && ok "o traço do Firefox é peach" \
+  || falha "o traço do Firefox não é peach" "$(grep '^firefox:' "$RAIZ/packs/meowsystem/icones/apps-arcticons.map")"
+v="$(amb python3 "$RAIZ/scripts/pack.py" fonte dev.vencord.Vesktop 2>&1 | head -3)"
+grep -qE '^dev\.vencord\.Vesktop[[:space:]]*:[[:space:]]*apps/com\.discordapp\.Discord\.svg' "$RAIZ/packs/dracula/icones/apps.map" \
+  && ok "o Vesktop veste o Discord do pack Dracula" \
+  || falha "o Vesktop não tem linha no mapa do pack Dracula" "$v"
+pessoais="$(find "$RAIZ/packs" -iname '*hefesto*' -o -iname '*fogstripper*')"
+[ -z "$pessoais" ] && ok "nenhum desenho de projeto pessoal (hefesto, fogstripper) nos packs" \
+  || falha "os packs ainda trazem desenhos de projeto pessoal" "$pessoais"
+# Sem a logo apontada (ICONES_LOGO_HEFESTO vazia, a de fábrica), o completar
+# não põe desenho nenhum para o Hefesto, e arranca o desenho gerado que uma
+# passagem antiga deixou no tema (o `<title>hefesto — ` é a marca de dono).
+CI="$T/casa-ci"; TEMA_CI="$CI/.local/share/icons/MeowSystem-Icons"
+mkdir -p "$TEMA_CI/scalable/apps"
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$TEMA_CI/index.theme"
+printf '<svg xmlns="http://www.w3.org/2000/svg"><title>hefesto — Dracula</title></svg>\n' \
+  > "$TEMA_CI/scalable/apps/hefesto-dualsense4unix.svg"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CI" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
+           PACK=dracula FLAVOR=dracula ACCENT=mauve ICONES_LOGO_HEFESTO="" \
+           "$RAIZ/scripts/completar_icones.sh" 2>&1)"
+if grep -q 'removeria hefesto-dualsense4unix.svg' <<< "$saida" \
+   && ! grep -qE '(instalaria|mudaria) .*(hefesto|vitoriamaria|fogstripper)' <<< "$saida"; then
+  ok "sem a logo apontada, o completar não desenha o Hefesto e arranca o desenho gerado antigo"
+else
+  falha "o completar ainda depende do desenho gerado do Hefesto" "$(grep -iE 'hefesto|fogstripper|vitoriamaria' <<< "$saida" | head -4)"
+fi
+# E na passada de verdade (casa de brinquedo), a falta do Hefesto não vira aviso.
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CI" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PACK=dracula FLAVOR=dracula ACCENT=mauve ICONES_LOGO_HEFESTO="" \
+           "$RAIZ/scripts/completar_icones.sh" 2>&1)"
+if ! grep -qiE 'não chegaram ao tema:.*(hefesto|vitoriamaria)' <<< "$saida" && [ ! -e "$TEMA_CI/scalable/apps/hefesto-dualsense4unix.svg" ]; then
+  ok "sem a logo apontada, o Hefesto fora do tema não é aviso, e o desenho gerado antigo saiu"
+else
+  falha "o completar avisa a falta do Hefesto, ou deixou o desenho gerado" "$(grep -iE 'chegaram|hefesto' <<< "$saida" | head -3)"
+fi
+
+# --- P82, item 10 (decisão 22): a camada de apps do Catppuccin só roda com ele
+#   Com o Dracula no ar, o `icones_apps.sh` mandava o flavor `dracula` para o
+#   `macchiato` e dizia «o acervo Catppuccin de aplicativos não está em …».
+CA="$T/casa-apps"; mkdir -p "$CA"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PACK=dracula FLAVOR=dracula ICONES_FLAVOR=dracula "$RAIZ/scripts/icones_apps.sh" 2>&1)"; rc=$?
+if [ -z "$saida" ] && [ "$rc" != 1 ] && [ "$rc" != 2 ] && [ -z "$(find "$CA" -type f)" ]; then
+  ok "com o Dracula no ar, a camada de apps do Catppuccin não diz nada e não escreve (rc=$rc)"
+else
+  falha "com o Dracula no ar, a camada de apps do Catppuccin falou ou escreveu (rc=$rc)" "$saida"
+fi
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PACK=catppuccin FLAVOR=mocha ICONES_FLAVOR=mocha "$RAIZ/scripts/icones_apps.sh" 2>&1)"
+[ -n "$saida" ] && ok "com o Catppuccin, a camada segue o caminho de sempre" \
+  || falha "com o Catppuccin, a camada de apps não respondeu"
+
+# --- P82, item 11 (decisões 17 e 21): trocar de pack devolve o que o pack escondia
+#   O `ocultar_apps.sh` só desfazia uma marca pelo `-nome`: trocar do Dracula
+#   para o Catppuccin deixava os 24 do `lancador.ocultar` do pack fora do
+#   lançador. Um /usr/share/applications falso, com os 24 e o `vim`; o conf
+#   esconde só o `vim`, para a lista de fábrica não se misturar à do pack.
+APPS="$T/apps-sistema"; CO="$T/casa-ocultar"; mkdir -p "$APPS" "$CO"
+nomes="$(python3 -c 'import json, sys; print("\n".join(json.load(open(sys.argv[1]))["lancador"]["ocultar"]))' \
+           "$RAIZ/packs/dracula/pack.json")"
+for n in $nomes vim; do
+  printf '[Desktop Entry]\nName=%s\nExec=true\nType=Application\n' "$n" > "$APPS/$n.desktop"
+done
+ocultar() {   # $1 = pack · $2 = flavor
+  env -i PATH="$FALSO:$PATH" HOME="$CO" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_APLICATIVOS_SISTEMA="$APPS" \
+    PACK="$1" FLAVOR="$2" LANCADOR_OCULTAR="vim" "$RAIZ/scripts/ocultar_apps.sh" 2>&1
+}
+marcados() { grep -l '^NoDisplay=true' "$APPS"/*.desktop 2>/dev/null | wc -l; }
+ocultar dracula dracula > /dev/null; com_dracula="$(marcados)"
+ocultar catppuccin mocha > /dev/null; com_catppuccin="$(marcados)"
+antes="$(cat "$APPS"/*.desktop | sha256sum)"
+saida="$(ocultar catppuccin mocha)"; rc=$?
+depois="$(cat "$APPS"/*.desktop | sha256sum)"
+if [ "$com_dracula" = 25 ] && [ "$com_catppuccin" = 1 ] && grep -q '^NoDisplay=true' "$APPS/vim.desktop" \
+   && [ "$rc" = 0 ] && [ "$antes" = "$depois" ]; then
+  ok "trocar do Dracula para o Catppuccin devolve os 24 que o pack escondia, e a 2ª passada não escreve"
+else
+  falha "a troca de pack não devolveu o que o pack escondia (Dracula: $com_dracula, Catppuccin: $com_catppuccin, 2ª rc=$rc)" "$saida"
+fi
+
+# --- P82, item 12 (decisão 20): as bases escondidas, a herança do exportado e o desinstalar
+#   Nenhum `Hidden=` nas bases, que apareciam nos seletores como «Dracula
+#   Circle» e «Dracula»; o exportado herdava só as bases e o `hicolor` (os
+#   `preferences-*` do COSMIC ficavam sem desenho); e o desinstalador tirava a
+#   `-Base` e esquecia a `-Base-2`.
+B="$T/icones12"; mkdir -p "$B/Tema" "$B/Tema-Base" "$B/Tema-Base-2"
+printf '[Icon Theme]\nName=Tema\nInherits=Tema-Base,Tema-Base-2,hicolor\nDirectories=a\n' > "$B/Tema/index.theme"
+printf '[Icon Theme]\nName=Dracula Circle\nInherits=Papirus-Dark,breeze-dark\nDirectories=a\n' > "$B/Tema-Base/index.theme"
+printf '[Icon Theme]\nName=Dracula\nInherits=hicolor\nDirectories=a\n' > "$B/Tema-Base-2/index.theme"
+lib12() { env -i PATH="$FALSO:$PATH" HOME="$T/casa12" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+            bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"; . "$MEOW_RAIZ/lib/desinstalar.sh"; "$@"' _ "$@" 2>&1; }
+lib12 meow_tema_exportado_heranca "$B" Tema > /dev/null
+herda="$(sed -n 's/^Inherits=//p' "$B/Tema/index.theme")"
+if [ "$herda" = "Tema-Base,Tema-Base-2,Cosmic,Adwaita,hicolor" ] \
+   && grep -qx 'Hidden=true' "$B/Tema-Base/index.theme" && grep -qx 'Hidden=true' "$B/Tema-Base-2/index.theme" \
+   && [ "$(sed -n 's/^Inherits=//p' "$B/Tema-Base/index.theme")" = "hicolor" ]; then
+  ok "o tema exportado herda as bases, Cosmic, Adwaita e hicolor, e as bases vão escondidas"
+else
+  falha "a herança do tema exportado ou o Hidden das bases não saiu" "Inherits=$herda; $(grep -h Hidden "$B"/Tema-Base*/index.theme)"
+fi
+L="$T/base-local"; mkdir -p "$L"
+printf '[Icon Theme]\nName=Dracula Circle\nDirectories=a\n' > "$L/index.theme"
+( cd "$L" && sha256sum ./index.theme > .meow-somas.sha256 )
+lib12 meow_tema_base_escondida "$L" > /dev/null; rc1=$?
+antes="$(sha256sum < "$L/index.theme")"
+lib12 meow_tema_base_escondida "$L" > /dev/null; rc2=$?
+if grep -qx 'Hidden=true' "$L/index.theme" && ( cd "$L" && sha256sum --status -c .meow-somas.sha256 ) \
+   && [ "$antes" = "$(sha256sum < "$L/index.theme")" ] && [ "$rc2" = 0 ]; then
+  ok "a base local ganha o Hidden=true e o manifesto dela continua conferindo; a 2ª passada não escreve"
+else
+  falha "a base local não ficou escondida, ou o manifesto dela parou de conferir (rc=$rc1/$rc2)"
+fi
+IC="$T/casa12/.local/share/icons"; mkdir -p "$IC/MeowSystem-Icons-Base" "$IC/MeowSystem-Icons-Base-2" "$IC/MeowSystem-Icons-Base-3"
+: > "$IC/MeowSystem-Icons-Base/.meow-origem"; : > "$IC/MeowSystem-Icons-Base-2/.meow-origem"
+lib12 meow_desinstalar_bases_de_icones > /dev/null
+if [ ! -e "$IC/MeowSystem-Icons-Base" ] && [ ! -e "$IC/MeowSystem-Icons-Base-2" ] && [ -d "$IC/MeowSystem-Icons-Base-3" ]; then
+  ok "o desinstalador tira a -Base e a -Base-2 com a marca de dono, e deixa a que não é nossa"
+else
+  falha "o desinstalador não tirou as duas bases (ou tirou a que não é nossa)" "$(ls "$IC")"
+fi
+
+# --- P82, item 13: o ICONES_DRACULA ausente vale como ligado ----------------------
+#   O `10a139f` (o `_dracula_no_ar` do icones_apps_dracula.sh) foi provado só por
+#   rodada: todo teste escrevia `ICONES_DRACULA="sim"`. Aqui o conf não tem a
+#   linha, o Dracula está no ar, e os desenhos do pack entram (no ensaio). O
+#   script de antes do `10a139f` punha 0 desenhos do pack.
+CD="$T/casa-dracula"; mkdir -p "$CD/.local/share/icons/MeowSystem-Icons/scalable/apps"
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' \
+  > "$CD/.local/share/icons/MeowSystem-Icons/index.theme"
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CD" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
+           PACK=dracula FLAVOR=dracula "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar 2>&1)"
+if grep -q 'mudaria .*/scalable/apps/net\.waterfox\.waterfox\.svg' <<< "$saida"; then
+  ok "sem a linha ICONES_DRACULA no conf, com o Dracula no ar, os desenhos do pack entram"
+else
+  falha "sem a linha ICONES_DRACULA, os desenhos do pack não entram" "$(tail -3 <<< "$saida")"
 fi
 
 printf '\n'

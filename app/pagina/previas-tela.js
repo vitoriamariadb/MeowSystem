@@ -1,98 +1,38 @@
-/* ============================================================================
- * previas-tela.js — um desenho por bloco (metade H1)
- * ============================================================================
+/* previas-tela.js — um desenho por bloco (metade H1)
+ *
  * POR QUE ESTE ARQUIVO EXISTE, e a razão é dura de ouvir: a dona do projeto
- * olhou a tela e disse que não consegue usar o painel sozinha. O único lugar
- * onde isso não acontece é o bloco FORMA de "Painel e dock", e o que ele tem de
- * diferente não é texto melhor — é um desenho que responde ANTES da leitura, e
- * que muda quando o valor muda.
+ * olhou a tela e disse que não consegue usar o painel sozinha.
  *
- * Então o critério de qualidade aqui não é "o SVG ficou bonito". É:
- *
- *     alguém que nunca leu o meow.conf olha os dois desenhos e entende
- *     o que a chave faz.
+ * alguém que nunca leu o meow.conf olha os dois desenhos e entende o que a
+ * chave faz.
  *
  * Um desenho que não passa nesse teste está errado, por mais correto que seja.
  *
- * O CONTRATO
  *   window.MEOW_PREVIAS["Seção :: BLOCO"](v, escolhido)
- *       -> { antes: SVGElement, depois: SVGElement|null, legenda: string }
- *
- *   `v`         valores COMO ESTÃO no meow.conf (string, podendo ser vazia).
- *   `escolhido` (opcional) o que ela acabou de escolher na tela e ainda não
- *               salvou. Só as chaves que mudaram; o resto vem de `v`.
- *   `antes`     como está agora.
- *   `depois`    como fica com a escolha — `null` quando não há escolha pendente
- *               ou quando a escolha não muda um pixel deste desenho.
- *   `legenda`   UMA linha, começando por "desenho, não é a sua tela:".
- *
- *   O SEGUNDO ARGUMENTO NÃO ESTÁ NA FOLHA, E A MEDIÇÃO MOSTROU QUE ELE FALTAVA.
- *   A folha pede `antes` e `depois` no retorno mas descreve a entrada como um
- *   objeto só, com "os valores como estão no meow.conf". Com uma entrada só não
- *   existe caminho por onde `depois` possa ser diferente de `antes` — a função é
- *   pura, e a mesma entrada só pode produzir o mesmo desenho. Daí o segundo
- *   argumento, opcional e retrocompatível: chamar com um argumento continua
- *   valendo e devolve `depois: null`, que é exatamente o que a folha manda
- *   fazer quando não há escolha pendente.
- *
- * AS REGRAS DE DESENHO, todas da folha, e nenhuma é gosto:
- *   - `document.createElementNS`, nó por nó. Nada de marcação crua atribuída a
- *     um elemento, nada de biblioteca — a conferência da folha passa um grep
- *     por isso neste arquivo e ele tem de sair vazio.
- *   - Nenhum literal hexadecimal: as cores são `currentColor` e as variáveis de
- *     `/paleta.css`, que o servidor gera a partir da paleta do FLAVOR salvo.
- *   - Traço, não chapado: `fill="none"`, traço por volta de 2 num viewBox de
- *     48, pontas e cantos arredondados. Onde há preenchimento, ele é tom de
- *     superfície — e as poucas exceções (a barra de título no acento, a tira
- *     ANSI do terminal) estão comentadas onde acontecem, porque ali a cor É o
- *     assunto do cartão.
- *   - Mesmo viewBox e mesmo enquadramento no `antes` e no `depois`, senão não
- *     há o que comparar.
- *   - Função pura: sem rede, sem relógio, sem `Math.random`.
- *   - NUNCA lançar. Um desenho que quebra apaga a página inteira, então todo
- *     valor vazio ou inválido cai no padrão e a legenda diz isso em voz alta.
- * ========================================================================= */
+ *       -> { antes: SVGElement, depois: SVGElement|null, legenda: string } */
 
 (function () {
   "use strict";
 
   var NS = "http://www.w3.org/2000/svg";
 
-  /* A ABERTURA DE TODA LEGENDA, NUM LUGAR SÓ — 09/09/2026
-   * Ela dizia "desenho, não captura:". Duas coisas erradas na mesma frase de
-   * três palavras: em português "captura" lê-se primeiro como VERBO, e a
-   * legenda abria parecendo dizer que o desenho *não captura* alguma coisa; e
-   * "captura" já era o nome de outra coisa desta mesma página — os temas
-   * prontos dos packs (`packs/<id>/temas/capturados/`), que a aba "Cor e
-   * tela" oferece.
-   * Uma palavra, dois conceitos, e o mais visível dos dois num fragmento sem
-   * verbo. A pergunta que a legenda existe para responder é "isto é a minha
-   * máquina?", e agora ela responde com essas palavras.
-   *
-   * Ela é constante porque são dois pontos de chamada nos dois arquivos de
-   * prévia mais o `app.js`: escrita à mão em cada um, a próxima troca deixaria
-   * metade das legendas com a abertura de ontem, calada. */
+  /* Duas coisas erradas na mesma frase de três palavras: em português
+   * "captura" lê-se primeiro como VERBO, e a legenda abria parecendo dizer que
+   * o desenho *não captura* alguma coisa; e "captura" já era o nome de outra
+   * coisa desta mesma página — os temas prontos dos packs
+   * (`packs/<id>/temas/capturados/`), que a aba "Cor e tela" oferece. */
   var ABERTURA_DA_LEGENDA = "desenho, não é a sua tela: ";
 
   /* --- o quadro ----------------------------------------------------------
    * 96 por 48: a tela, a dock, o terminal e a fileira de ícones são todos
-   * DEITADOS, e um quadro quadrado sobraria em cima e embaixo em todos eles. O
-   * "viewBox de 48" da folha vale como referência do traço: é a altura, e é
-   * contra ela que a espessura 2 foi calibrada. */
+   * DEITADOS, e um quadro quadrado sobraria em cima e embaixo em todos eles. */
   var LARG = 96;
   var ALT = 48;
   var TRACO = 2;
   var FINO = 1.2;
 
   /* --- as cores ----------------------------------------------------------
-   * DUAS ÂNCORAS ABSOLUTAS, e elas resolvem um problema que parecia sem saída.
-   * O `/paleta.css` é gerado no FLAVOR salvo: `var(--base)` já é o base do
-   * sabor em vigor, então usá-lo para desenhar "como fica no mocha" seria
-   * desenhar o sabor de agora com outro nome. Mas o mesmo arquivo publica
-   * `--fundo-mocha` e `--fundo-latte`, que são fixos — o escuro mais escuro e o
-   * claro mais claro da paleta, independentes do que está salvo.
-   * Com esses dois eu construo qualquer degrau de claridade por `color-mix`, e
-   * nenhum hexadecimal precisa aparecer aqui. */
+   * DUAS ÂNCORAS ABSOLUTAS, e elas resolvem um problema que parecia sem saída. */
   var ESCURO = "var(--fundo-mocha, var(--crust))";
   var CLARO = "var(--fundo-latte, var(--surface2))";
 
@@ -107,23 +47,12 @@
   var FLAVORS = ["mocha", "macchiato", "frappe", "latte"];
 
   /* Quanto cada sabor caminha do escuro para o claro. Não são medidas de
-   * luminância: são a ORDEM, que é o que a pergunta "qual escuro?" quer saber.
-   * Mocha é o mais escuro, latte é o claro, e macchiato e frappe são os dois
-   * degraus no meio — desenhar os três iguais faria a escolha parecer inócua. */
+   * luminância: são a ORDEM, que é o que a pergunta "qual escuro?" quer saber. */
   var CLAREZA = { mocha: 0, macchiato: 9, frappe: 19, latte: 100 };
 
-  /* OS FLAVORS SÃO OS DO PACK NO AR — 24/09/2026, P51 (achados 27 e 28).
-   * As duas constantes de cima eram o desenho inteiro: com FLAVOR=dracula a
-   * aba Cor e tela caía no padrão, desenhava mocha, e a legenda dizia que o
-   * valor «não é um dos aceitos». O app.js publica o vocabulário do pack no ar
-   * em `window.MEOW_PACK` (a porta do `MEOW_MEDIDAS`), lido aqui na hora de
-   * desenhar, porque este arquivo carrega antes dele.
-   *   A CLAREZA CONTINUA SENDO A ORDEM, e não a luminância: os escuros do mais
-   * escuro ao mais claro, pela `luz` do `base` que o servidor manda (a régua da
-   * «Variante do tema»), um degrau de 9,5 cada, e os claros no topo. Com o
-   * Catppuccin isso dá 0, 9,5 e 19 (o macchiato era 9, e o meio ponto não se
-   * vê). As constantes ficam como
-   * a resposta de quando o pack não respondeu. */
+  /* As duas constantes de cima eram o desenho inteiro: com FLAVOR=dracula a aba
+   * Cor e tela caía no padrão, desenhava mocha, e a legenda dizia que o valor
+   * «não é um dos aceitos». */
   function packNoAr() {
     var p = typeof window !== "undefined" ? window.MEOW_PACK : null;
     return p && p.flavors && p.flavors.length ? p : null;
@@ -149,12 +78,7 @@
     return reguaDe(p.flavors);
   }
 
-  /* OS ÍCONES DE ARQUIVO TÊM A RÉGUA DO DONO DO ACERVO — 24/09/2026, P51, na
-   * revisão. O sabor deles é um flavor de quem traz os desenhos, e não do pack
-   * no ar: com o Dracula no ar e ICONES_FLAVOR="latte", a régua do Dracula não
-   * conhecia o latte, o fundo saía escuro, a tinta pedida para o claro saía
-   * escura também, e o desenho sumia (medido: fundo e traço na mesma cor). O
-   * servidor manda os claros e a luz do dono (`mimetypes.claros`/`.luz`, no
+  /* O servidor manda os claros e a luz do dono (`mimetypes.claros`/`.luz`, no
    * `vocabulario` do scripts/pack.py). */
   function flavorsDosIcones() {
     var p = packNoAr();
@@ -223,9 +147,7 @@
     return no;
   }
 
-  /* O `<title>` não é enfeite de acessibilidade: quem usa leitor de tela recebe
-   * por ele a MESMA informação que o desenho dá, em meia linha. Sem ele o
-   * cartão fica mudo justamente para quem mais depende de texto. */
+  /* Sem ele o cartão fica mudo justamente para quem mais depende de texto. */
   function quadro(titulo) {
     var s = el("svg", {
       xmlns: NS,
@@ -282,14 +204,9 @@
 
   /* --- a leitura dos valores ---------------------------------------------
    * Todo `ler*` recebe um DIÁRIO e anota nele o que veio vazio e o que veio
-   * inválido. É o diário que escreve o fim da legenda, e é por isso que ele
-   * existe em vez de um `try/catch` mudo: a folha manda dizer na legenda quando
-   * o desenho caiu no padrão, e a única forma de dizer é ter registrado.
+   * inválido.
    *
-   * O diário é OPCIONAL de propósito. Há chaves cujo vazio é documentado e não
-   * significa "o COSMIC decide" — `FASTFETCH_LOGO_LINHAS` vazio quer dizer
-   * "calculada", `FASTFETCH_LOGO_DIA` vazio quer dizer "herda a do dock". Anotar
-   * essas como falta encheria a legenda de um aviso falso. */
+   * O diário é OPCIONAL de propósito. */
 
   function diario() {
     return { vazias: [], invalidas: [] };
@@ -337,8 +254,7 @@
 
   /* Três estados, e o terceiro não é detalhe: "sim", "nao" e VAZIO, que em
    * várias chaves deste projeto quer dizer "não toca" — o COSMIC fica com o que
-   * já estava. Devolver `null` obriga quem desenha a decidir o que fazer com o
-   * desconhecido, em vez de fingir que vazio é "nao". */
+   * já estava. */
   function lerTriEstado(v, d, chave) {
     var t = texto(v[chave]).toLowerCase();
     if (t === "") {
@@ -375,29 +291,18 @@
 
   /* NOME LIVRE NÃO É NOME CURTO, e a legenda paga a conta. Chaves como LOGO,
    * CURSOR e NOME_TEMA_ICONES aceitam qualquer texto — é o desenho delas: solte
-   * um SVG na pasta e o nome do arquivo vira o valor. Um valor comprido (ou
-   * colado torto) empurraria a legenda de uma linha para três, e a medição do
-   * roteiro mostrou isso acontecendo com um valor de quarenta caracteres. */
+   * um SVG na pasta e o nome do arquivo vira o valor. */
   function curto(s, limite) {
     var t = umaLinha(s);
     var max = limite || 28;
     return t.length > max ? t.slice(0, max - 1) + "…" : t;
   }
 
-  /* ==========================================================================
-   * O GATO DE TRAÇO
-   * ==========================================================================
-   * O acervo de logos é um punhado de SVGs em `assets/gatos/`, e uma função pura
-   * não pode buscá-los. Desenhar o gato aqui não é reproduzir a Coquinha — é
-   * mostrar O LUGAR dela e QUANDO ela troca, que é a pergunta do cartão. A
-   * legenda diz "desenho, não é a sua tela" exatamente por isto.
+  /* O acervo de logos é um punhado de SVGs em `assets/gatos/`, e uma função
+   * pura não pode buscá-los.
    *
    * O que precisa ser verdade é a DIFERENÇA: se o de dia e o de noite forem
-   * iguais na tela, a chave que decide os dois vira invisível. Por isso cada
-   * nome recebe um rosto, e os dois gatos de fábrica têm rosto fixo — a Mimir
-   * dormindo, porque "mimir" é dormir, e a Coquinha de olhos alegres. Qualquer
-   * outro nome cai num dos quatro rostos por uma conta sobre as letras: mesma
-   * palavra, mesmo rosto, sempre. */
+   * iguais na tela, a chave que decide os dois vira invisível. */
   var ROSTOS_FIXOS = { coquinha: 2, mimir: 1 };
 
   function rostoDoGato(nome) {
@@ -425,10 +330,7 @@
     var ex = r * 0.38;
     var ey = cy - r * 0.06;
     /* A DIFERENÇA ENTRE DOIS ROSTOS TEM DE SOBREVIVER AO TAMANHO DA DOCK, que
-     * é onde eles aparecem menores. Na conferência visual, com arcos rasos, o
-     * gato de dia e o de noite ficaram parecidos demais — e o cartão inteiro
-     * existe para mostrar que eles TROCAM. Arcos fundos e olhos mais afastados
-     * é o que devolve a diferença sem inventar detalhe novo. */
+     * é onde eles aparecem menores. */
     if (rosto === 1) {
       /* dormindo: as pálpebras caídas */
       g.appendChild(cam("M" + n2(cx - ex - r * 0.26) + "," + n2(ey - r * 0.08)
@@ -461,9 +363,7 @@
   }
 
   /* O lugar da logo quando ela é DESCONHECIDA: em rotação, o próximo do acervo
-   * depende do que estiver na pasta, e uma função pura não tem como saber. Um
-   * gato inventado ali seria mentira; o quadrado tracejado com a seta circular
-   * diz a verdade — "o próximo, seja qual for". */
+   * depende do que estiver na pasta, e uma função pura não tem como saber. */
   function logoIndefinida(cx, cy, r, cor) {
     var g = grupo([], { stroke: cor, "stroke-width": n2(faixa(r * 0.26, 0.7, 1.6)) });
     g.appendChild(circ(cx, cy, r, { "stroke-dasharray": n2(r * 0.5) + " " + n2(r * 0.42) }));
@@ -483,14 +383,9 @@
 
   /* --- sol, lua e o "automático" -----------------------------------------
    * Três glifos que aparecem em dois cartões e significam a mesma coisa nos
-   * dois: o mundo de dia, o mundo de noite, e "o relógio decide".
-   * A lua é feita por OCLUSÃO — um círculo cheio da cor do fundo comendo parte
-   * do outro — em vez de um arco duplo. O arco duplo depende de acertar dois
-   * `sweep-flag` e quebra em silêncio quando a corda passa do diâmetro; a
-   * oclusão não tem como dar errado. */
-  /* OITO RAIOS, E NÃO QUATRO. Com quatro, a conferência visual mostrou uma
-   * MIRA, não um sol: uma cruz em volta de um círculo é o desenho de mira mais
-   * comum que existe. O oitavo raio é o que resolve, e custa quatro linhas. */
+   * dois: o mundo de dia, o mundo de noite, e "o relógio decide". */
+  /* OITO RAIOS, E NÃO QUATRO. O oitavo raio é o que resolve, e custa quatro
+   * linhas. */
   function glifoSol(cx, cy, r, cor) {
     var g = grupo([], { stroke: cor, "stroke-width": n2(faixa(r * 0.32, 0.8, 1.5)) });
     g.appendChild(circ(cx, cy, r * 0.52));
@@ -521,14 +416,8 @@
     return g;
   }
 
-  /* ==========================================================================
-   * O EMBRULHO QUE NÃO DEIXA LANÇAR
-   * ==========================================================================
-   * Um desenho que estoura não estraga o cartão dele: estraga a PÁGINA, porque
-   * quem chama monta os cartões num laço só. Então a fronteira é aqui, e ela é
-   * dupla — o desenho por dentro e o desenho de falha por fora, cada um no seu
-   * `try`. No pior caso devolvemos `antes: null` e uma legenda que diz o que
-   * houve, e a página continua de pé. */
+  /* Um desenho que estoura não estraga o cartão dele: estraga a PÁGINA, porque
+   * quem chama monta os cartões num laço só. */
   function bloco(cfg) {
     return function (v, escolhido) {
       try {
@@ -538,21 +427,13 @@
         var mb = vb ? cfg.modelo(vb) : null;
         var mudou = !!(mb && JSON.stringify(ma) !== JSON.stringify(mb));
         /* O contexto existe por um motivo só, e ele está na folha: "desenho que
-         * muda de escala entre um e outro não deixa comparar nada". No terminal
-         * a altura da linha depende do tamanho do gato, então ela é calculada
-         * UMA vez, olhando os dois modelos, e vale para os dois desenhos. */
-        /* E O TERCEIRO ARGUMENTO É *QUAL CHAVE ESTÁ SOB DECISÃO*.
-         * O par de botões do `app.js` desenha o bloco INTEIRO para responder por
-         * uma chave só — `desenhoNoValor` chama esta função com um `escolhido`
-         * de uma chave. Sem saber qual é, o desenho dá o mesmo peso às três, e
-         * uma chave que governa um caractere sai igual dos dois lados (medido em
-         * 07/09/2026: TERMINAL_CURSOR mudava 0,76% dos pixels do botão).
+         * muda de escala entre um e outro não deixa comparar nada". */
+        /* O par de botões do `app.js` desenha o bloco INTEIRO para responder
+         * por uma chave só — `desenhoNoValor` chama esta função com um
+         * `escolhido` de uma chave.
          *
-         * A LISTA VEM DO PEDIDO, E NÃO DA DIFERENÇA. O botão da esquerda pede o
-         * valor que JÁ vale: os dois modelos saem iguais e `mudou` é falso. Se o
-         * foco saísse da diferença entre eles, o lado esquerdo perderia o
-         * enquadramento e o direito ficaria com ele — os dois lados em escalas
-         * diferentes, que é a única coisa que o par existe para não fazer. */
+         * O botão da esquerda pede o valor que JÁ vale: os dois modelos saem
+         * iguais e `mudou` é falso. */
         var pedidas = escolhido ? Object.keys(normalizar(escolhido)) : [];
         var ctx = cfg.contexto ? cfg.contexto(ma, mudou ? mb : ma, pedidas) : null;
         return {
@@ -593,32 +474,13 @@
     }
   }
 
-  /* ==========================================================================
-   * 1. "Cor e tela"
-   * ==========================================================================
+  /* 1. "Cor e tela"
+   *
    * FLAVOR · ACCENT · MODO · JANELAS_TILING · JANELAS_TILING_ESCOPO ·
    * ESCALA_TELA · CURSOR · CURSOR_VERSAO
    *
    * A pergunta que este desenho responde é "o que isto faz com a minha tela?",
-   * e ela tem quatro respostas ao mesmo tempo. O desenho as separa em quatro
-   * lugares que não competem:
-   *
-   *   o FUNDO da tela   diz claro ou escuro, e qual escuro (o sabor).
-   *   a BARRA de título diz onde a cor de destaque aparece.
-   *   a ARRUMAÇÃO       diz encaixado (lado a lado) ou solto (uma sobre a outra).
-   *   o TAMANHO do que  diz a escala: no mesmo monitor, com escala maior, cabe
-   *   está dentro         MENOS linha de texto e o ponteiro fica maior. Foi a
-   *                       forma que sobrou de mostrar escala sem mudar o
-   *                       enquadramento — aumentar o desenho inteiro faria os
-   *                       dois quadros ficarem incomparáveis.
-   *
-   * As três pastilhas de área de trabalho embaixo existem por causa do ESCOPO,
-   * que é a armadilha documentada da chave: com `workspace`, ligar o lado a
-   * lado muda ZERO pixel nas áreas que já existem. Desenhar a divisão só na
-   * pastilha atual é dizer isso sem uma palavra.
-   *
-   * CURSOR_VERSAO não aparece no desenho e é de propósito: ela fixa o release
-   * do acervo para o tema não mudar sozinho, e não muda um pixel da tela. */
+   * e ela tem quatro respostas ao mesmo tempo. */
 
   var ESCALAS_NOMEADAS = { nitida: 1, auto: 1 };
 
@@ -639,11 +501,9 @@
     return { fator: faixa(n, 0.75, 2), rotulo: "tudo em " + Math.round(n * 100) + "%", nitida: false };
   }
 
-  /* O NOME DO TEMA DE PONTEIRO MENTE SOBRE A COR, e isso está medido no
-   * meow.conf: nos temas `-mauve`, `-blue` e afins o CORPO recebe o accent e o
-   * contorno recebe a base — o oposto do que o nome sugere. O `-light` é o
-   * único claro e neutro. Desenhar o ponteiro na cor que ele realmente tem é o
-   * que faz o cartão responder "esse aqui some no meu papel de parede?". */
+  /* O `-light` é o único claro e neutro. Desenhar o ponteiro na cor que ele
+   * realmente tem é o que faz o cartão responder "esse aqui some no meu papel
+   * de parede?". */
   function corDoPonteiro(nome) {
     var t = texto(nome).toLowerCase();
     if (t === "") return { corpo: CLARO, rotulo: "" };
@@ -659,7 +519,7 @@
     modelo: function (v) {
       var d = diario();
       /* A lista, o padrão e os claros são os do pack no ar — ver
-       * `flavorsDoPack`. [P51, achado 28] */
+       * `flavorsDoPack`. */
       var fl = flavorsDoPack();
       var pack = packNoAr();
       var flavor = lerOpcao(v, d, "FLAVOR", fl.lista, (pack && pack.flavor_padrao) || fl.lista[0]);
@@ -672,20 +532,11 @@
       var ponteiro = corDoPonteiro(cursor);
       /* O sabor diz QUAL escuro; o modo diz SE a máquina veste claro. Quando os
        * dois se contradizem (latte com modo escuro) quem vence é o par que a
-       * máquina de fato usa: latte é claro, e o modo claro é claro. O claro é
-       * o que o pack declara em `claros` — o alucard, com o Dracula. [P51]
+       * máquina de fato usa: latte é claro, e o modo claro é claro.
        *
-       * QUEM VENCE É O MODO, E ISSO FOI MEDIDO — 25/09/2026, P59. A frase de
-       * cima dizia que a máquina usava o claro, e a máquina não usa: quem
-       * escreve o `is_dark` do COSMIC é a `etapa_modo`, pelo MODO e só por ele,
-       * e o FLAVOR escolhe a captura, que traz as duas árvores. Com alucard e
-       * modo escuro esta prévia desenhava uma tela clara e o instalador
-       * deixava o desktop escuro. O lado agora é o do MODO, e o flavor
-       * desenhado é o que veste aquele lado: o servidor manda a conta pronta
-       * (`pack.lados`, do mesmo `_flavor_no_modo` que veste a página — o
-       * alucard no escuro veste o dracula; o mocha no claro, o latte). O
-       * automático fica como era, porque ali quem alterna é o relógio. Sem a
-       * conta do servidor (página exportada antes dela), vale a regra de cima. */
+       * A frase de cima dizia que a máquina usava o claro, e a máquina não usa:
+       * quem escreve o `is_dark` do COSMIC é a `etapa_modo`, pelo MODO e só por
+       * ele, e o FLAVOR escolhe a captura, que traz as duas árvores. */
       var lados = pack && pack.lados ? pack.lados[flavor] : null;
       var vestido = flavor;
       var claro = modo === "claro" || fl.claros.indexOf(flavor) >= 0;
@@ -693,23 +544,15 @@
         vestido = lados[modo] || flavor;
         claro = modo === "claro";
       }
-      /* A VARIANTE SEM TEMA NÃO MUDA A COR DA TELA — P59. Quando o par não
-       * aplica (o `acentos_que_aplicam` do esquema, a conta do instalador), o
-       * instalador pula a etapa do tema e o COSMIC fica como está: o desenho
-       * pinta com a cor que a página veste agora (ver o `desenho`, abaixo).
-       *   A FRASE DIZIA «que é a da tela», E O ACENTO NÃO ERA — 25/09/2026,
-       * revisão da P59. A página vestia o flavor da tela com o acento do conf:
-       * com o frappe-pink sem tema e o COSMIC em mocha-mauve, o destaque saía
-       * rosa. Quem escreve acento no COSMIC é só o aplicar_tema.sh, e ele não
-       * roda nesse caso; o servidor agora tira os dois da tela. */
+      /* Quando o par não aplica (o `acentos_que_aplicam` do esquema, a conta
+       * do instalador), o instalador pula a etapa do tema e o COSMIC fica como
+       * está: o desenho pinta com a cor que a página veste agora (ver o
+       * `desenho`, abaixo). */
       var aplica = typeof window !== "undefined" && typeof window.MEOW_PAR_APLICA === "function"
         ? window.MEOW_PAR_APLICA(flavor, accent) : null;
       return {
         flavor: vestido,
-        /* O NOME QUE A TELA DIZ é o do pack, e o da cor sai do hex dela
-         * (achado 27: «Uma tela em mocha escuro, com destaque mauve», com o
-         * Dracula no ar). O `accent` continua sendo o valor; o `flavor`, desde
-         * a P59, é o que veste o lado do MODO (o `vestido`, acima). */
+        /* O NOME QUE A TELA DIZ é o do pack, e o da cor sai do hex dela. */
         flavorNome: fl.nome[vestido] || vestido,
         accent: accent,
         accentNome: nomeDaCorNoPack(accent, vestido),
@@ -728,11 +571,7 @@
 
     desenho: function (m) {
       /* Sem tema, a cor é a que a página veste: `--base` e `--accent` são os
-       * do `/paleta.css`. Com o par sem tema salvo, o servidor veste a página
-       * com o flavor e o acento que o COSMIC mostra (`_flavor_da_pagina` e
-       * `_acento_da_pagina`), e o que a tela não diz sai do padrão do pack;
-       * com ele só escolhido no cartão, a página ainda veste o conf salvo.
-       * [P59, e a revisão] */
+       * do `/paleta.css`. */
       var tom = m.semTema ? "var(--base)" : m.claro ? CLARO : tomDoFlavor(m.flavor);
       var tinta = m.claro ? ESCURO : CLARO;
       var corpo = mistura(tinta, tom, m.claro ? 7 : 11);
@@ -777,9 +616,7 @@
       else s.appendChild(glifoLua(85.8, 41.3, 3, tinta, tom));
 
       /* A janela: barra de título no acento, corpo um degrau acima do fundo, e
-       * as linhas de conteúdo no tamanho da escala. O preenchimento da barra é
-       * a única cor chapada deste desenho, e ela é o ASSUNTO do cartão — "onde
-       * a cor de destaque aparece" não se responde com contorno. */
+       * as linhas de conteúdo no tamanho da escala. */
       function janela(x, y, w, h, foco) {
         var g = grupo();
         var tb = faixa(3.1 * esc, 2.4, 7);
@@ -852,26 +689,15 @@
     },
   });
 
-  /* ==========================================================================
-   * 2. "Logo do sistema :: NO DOCK"
-   * ==========================================================================
+  /* 2. "Logo do sistema :: NO DOCK"
+   *
    * LOGO · LOGO_ROTACAO · LOGO_MODO · LOGO_DIA · LOGO_NOITE · LOGO_RECICLAR ·
    * LOGO_INTERVALO
    *
    * Sete chaves para uma pergunta só: QUAL logo fica na ponta da dock, e quando
-   * ela troca. Então o desenho é a dock DUAS vezes, empilhada — a de cima é o
-   * mundo de dia, a de baixo o de noite, e a seta que liga as duas é a troca.
+   * ela troca.
    *
-   * Duas decisões que valem explicação:
-   *
-   *   A dock aparece de perto, e não dentro de um monitor inteiro. Num monitor
-   *   a logo teria uns quatro pixels na tela dela e a comparação — que é o
-   *   ponto do cartão — não existiria.
-   *
-   *   A seta é TRACEJADA quando LOGO_RECICLAR="nao". Está medido no meow.conf:
-   *   sem reciclar o painel, reescrever o SVG não muda um pixel, e o gato novo
-   *   só aparece no próximo login. Uma seta cheia promete "agora"; a tracejada
-   *   promete "depois", que é a verdade. */
+   * Duas decisões que valem explicação: */
 
   var LOGO_NO_DOCK = bloco({
     rotulo: "a logo no dock",
@@ -904,17 +730,12 @@
       /* Em rotação as duas faixas não são dia e noite — são "agora" e "depois
        * de um intervalo". Pintá-las de claro e escuro ali seria dizer que a
        * troca segue o sol, e ela não segue. */
-      /* CLARO, NÃO BRANCO — 07/09/2026
-       *   `CLARO` é o base do Latte, que é quase branco: correto como ideia
-       *   ("de dia a tela é clara") e violento como desenho. Medido na tela
-       *   dela: um retângulo de 94×22 em branco chapado no meio de uma página
-       *   escura puxa o olho antes de qualquer traço, e a folha dela diz que o
-       *   tema deste projeto é o TRAÇO, não o chapado.
+      /* `CLARO` é o base do Latte, que é quase branco: correto como ideia ("de
+       * dia a tela é clara") e violento como desenho.
        *
-       *   62% de claro sobre o escuro mantém a distância entre a faixa de dia e
-       *   a de noite — que é a única coisa que este desenho precisa provar — sem
-       *   abrir um buraco branco na página. A tinta continua sendo escolhida
-       *   pelo mesmo teste, agora contra a constante certa. */
+       * 62% de claro sobre o escuro mantém a distância entre a faixa de dia e a
+       * de noite — que é a única coisa que este desenho precisa provar — sem
+       * abrir um buraco branco na página. */
       var DIA = mistura(CLARO, ESCURO, 62);
       var tomCima = rotativo ? tomDoFlavor("mocha") : DIA;
       var tomBaixo = ESCURO;
@@ -930,12 +751,9 @@
         g.appendChild(ret(17.5, y + 5.5, 11, 11, 3, { stroke: borda, "stroke-width": 1 }));
         if (indefinida) g.appendChild(logoIndefinida(23, y + 11, 3.6, tinta));
         else {
-          /* O GATO DE VERDADE NA PONTA DA DOCK — 10/10/2026, QA da P77. O gato
-           * de traço dá um rosto por nome, e nomes diferentes caem no mesmo
-           * rosto: trocar «morcego-dia» por «Mimir» deixava o «como está» e o
-           * «como fica» iguais. Ele fica como reserva dentro de um grupo que
-           * diz QUAL gato e ONDE, e a página troca a reserva pela miniatura do
-           * acervo (`pintarGatosNoDock`, app.js) — a técnica do terminal. */
+          /* O gato de traço dá um rosto por nome, e nomes diferentes caem no
+           * mesmo rosto: trocar «morcego-dia» por «Mimir» deixava o «como
+           * está» e o «como fica» iguais. */
           var noDock = grupo(null, { "class": "gato-no-dock", "data-gato": nomeLogo,
                                      "data-x": 18, "data-y": n2(y + 6), "data-lado": 10 });
           noDock.appendChild(gatoDeTraco(23, y + 11.2, 3.4, tinta, nomeLogo));
@@ -951,12 +769,9 @@
       s.appendChild(faixaDock(1, tomCima, m.dia, false));
       s.appendChild(faixaDock(25, tomBaixo, m.noite, rotativo));
 
-      /* EM ROTAÇÃO NÃO HÁ NOITE, e desenhar uma lua embaixo dizia que havia. A
-       * conferência visual pegou isto: com LOGO_MODO="rotacao" o quadro mostrava
-       * a seta circular em cima e a lua embaixo ao mesmo tempo — duas causas
-       * diferentes para a mesma troca. Em rotação as faixas são "agora" (o
-       * ponto) e "a próxima" (a seta circular); só no modo por hora elas são o
-       * sol e a lua. */
+      /* EM ROTAÇÃO NÃO HÁ NOITE, e desenhar uma lua embaixo dizia que havia. Em
+       * rotação as faixas são "agora" (o ponto) e "a próxima" (a seta
+       * circular); só no modo por hora elas são o sol e a lua. */
       if (rotativo) {
         s.appendChild(circ(8.5, 12, 1.9, { fill: CLARO, stroke: CLARO, "stroke-width": 1 }));
         s.appendChild(setaCircular(8.5, 36, 3, CLARO, 1.3));
@@ -996,40 +811,20 @@
     },
   });
 
-  /* ==========================================================================
-   * 3. "Logo do sistema :: NO TERMINAL"
-   * ==========================================================================
+  /* 3. "Logo do sistema :: NO TERMINAL"
+   *
    * As catorze chaves FASTFETCH_*.
    *
    * Este é o bloco onde o painel mais precisava de um desenho, porque as chaves
    * são todas MEDIDA: colunas, linhas, quebras, recuo, proporção de célula,
    * alinhamento. Ler "tabular | contorno | degraus | crescente | reto" não diz
    * nada; ver a borda esquerda do texto acompanhando ou não a silhueta do gato
-   * responde na hora.
-   *
-   * O DESENHO É FEITO DE CÉLULAS, E ISSO NÃO É ESTILO — é o assunto. O gato do
-   * fastfetch é desenhado com CARACTERES, e por isso a silhueta aqui é uma
-   * escadinha presa à grade: cada degrau é meia célula. Com `quadrante` a grade
-   * é 2x2 por célula, com `sextante` é 2x3, e a escadinha fica visivelmente
-   * mais fina — que é exatamente a diferença entre as duas opções.
-   *
-   * A REDONDEZA DO GATO É CONSEQUÊNCIA, e o desenho a mostra sem avisar: a
-   * silhueta é uma elipse ajustada ao bloco de N colunas por M linhas, com a
-   * largura da célula derivada de FASTFETCH_LOGO_CELULA. Deixar LINHAS vazia
-   * mantém a conta redonda; cravar um valor fora da proporção deforma o gato
-   * aqui na tela antes de deformá-lo no terminal.
-   *
-   * FASTFETCH_LOGO_CONF não entra no desenho: ela não decide um pixel do que
-   * aparece, decide se o MeowSystem tem permissão para manter sozinho a linha
-   * `logo.source` no config.jsonc, que é território do Ritual da Aurora. */
+   * responde na hora. */
 
   var TERM = { x: 4.5, y: 10.5, w: 88, h: 34 };
   var LINHAS_DE_TEXTO = 11;   /* título + régua + nove linhas de informação */
 
-  /* A silhueta, em coordenadas do bloco (0 a 1 nos dois eixos, y para baixo).
-   * A cabeça é uma elipse; as orelhas são desenhadas por fora e entram só no
-   * perfil que o TEXTO consulta — se o contorno as ignorasse, as primeiras
-   * linhas começariam por cima delas. */
+  /* A silhueta, em coordenadas do bloco (0 a 1 nos dois eixos, y para baixo). */
   function perfilCabeca(u) {
     var dy = (u - 0.6) / 0.4;
     if (dy <= -1 || dy >= 1) return 0;
@@ -1059,10 +854,7 @@
     var colunas = Math.round(lerNumero(v, null, "FASTFETCH_LOGO_COLUNAS", 40, 20, 120));
     var celula = lerNumero(v, null, "FASTFETCH_LOGO_CELULA", 2.556, 1, 4);
     /* Vazio aqui NÃO é falta: o meow.conf diz que a altura vazia é calculada de
-     * `colunas / celula`, e é isso que mantém o gato redondo. Um valor que não
-     * é número cai na mesma conta — e nesse caso ele É falta, porque a pessoa
-     * quis cravar uma altura e não cravou. A medição do roteiro mostrou a
-     * legenda dizendo "cravadas" justamente no caso em que nada foi cravado. */
+     * `colunas / celula`, e é isso que mantém o gato redondo. */
     var calculadas = Math.round(colunas / celula);
     var linhasBrutas = texto(v.FASTFETCH_LOGO_LINHAS).replace(",", ".");
     var linhasValidas = linhasBrutas !== "" && isFinite(Number(linhasBrutas));
@@ -1079,9 +871,8 @@
     var blocos = lerOpcao(v, d, "FASTFETCH_LOGO_BLOCOS", ["auto", "quadrante", "sextante"], "auto");
     var titulo = texto(v.FASTFETCH_TITULO);
 
-    /* `auto` cai em QUADRANTE, e não é palpite: está medido no meow.conf que a
-     * fonte do terminal dela não tem os sextantes, nem nenhuma instalada aqui.
-     * Desenhar sextantes no `auto` prometeria um detalhe que a tela não entrega. */
+    /* Desenhar sextantes no `auto` prometeria um detalhe que a tela não
+     * entrega. */
     var grade = blocos === "sextante" ? 3 : 2;
 
     var qual = gato;
@@ -1150,15 +941,8 @@
     }
 
     if (m.ligado) {
-      /* O GATO DE VERDADE, EM CÉLULAS — 10/10/2026, P77 (achado 18). A
-       * silhueta e as orelhas abaixo eram o desenho inteiro: um contorno de
-       * gato genérico, o mesmo para qualquer gato escolhido. Elas continuam
-       * aqui como reserva (sem rede, sem miniatura), dentro de um grupo que
-       * diz à página QUAL gato e EM QUE grade: o `app.js` lê o SVG do gato do
-       * acervo, amostra nas mesmas células (2 por coluna, 2 ou 3 por linha) e
-       * troca a reserva pelo gato pintado com as cores dele — que é o que o
-       * fastfetch faz com caracteres. Esta função continua pura: quem busca a
-       * imagem é a página. */
+      /* A silhueta e as orelhas abaixo eram o desenho inteiro: um contorno de
+       * gato genérico, o mesmo para qualquer gato escolhido. */
       var celulas = grupo(null, {
         "class": "gato-em-celulas",
         "data-modo": m.modo,
@@ -1267,9 +1051,7 @@
   }
 
   /* A escadinha: para cada sub-linha da grade, a borda direita e a esquerda são
-   * arredondadas para a sub-COLUNA mais próxima. Sub-linhas seguidas com a
-   * mesma borda viram um segmento só — sem isso o caminho ganha duzentos pontos
-   * repetidos e a escadinha some numa mancha. */
+   * arredondadas para a sub-COLUNA mais próxima. */
   function silhuetaEmCelulas(x0, y0, w, h, m, cor, fundoDoQuadro) {
     var subLinhas = Math.max(4, Math.min(240, Math.round(m.linhas * m.grade)));
     var subColunas = Math.max(4, Math.min(480, Math.round(m.colunas * 2)));
@@ -1375,39 +1157,17 @@
     },
   });
 
-  /* ==========================================================================
-   * 4. "Ícones"
-   * ==========================================================================
+  /* 4. "Ícones"
+   *
    * NOME_TEMA_ICONES · ICONES_BASE · ICONES_PASTAS · ICONES_FLAVOR ·
    * ICONES_COR_MARCA · PASTAS_XDG
    *
    * Duas fileiras, porque são dois assuntos que as chaves misturam:
    *
-   *   EM CIMA, quatro pastas. As duas primeiras são pastas comuns, na cor do
-   *   ICONES_PASTAS. As duas últimas são as pastas especiais (Imagens,
-   *   Transferências) e são elas que PASTAS_XDG troca — de cheias na cor do
-   *   tema para vazadas de traço claro. A queixa dela sobre esse pack foi
-   *   exatamente essa: "pasta VAZADA de traço claro ao lado das mauve CHEIAS".
-   *   Ver as quatro lado a lado é ver a queixa.
+   * EM CIMA, quatro pastas.
    *
-   *   EMBAIXO, quatro programas e um lugar tracejado. Os quatro mudam de cor
-   *   com ICONES_COR_MARCA, e as cores dos dois lados não são inventadas: são a
-   *   tabela que o próprio meow.conf publica (o mensageiro sai de sky para
-   *   green, a loja de jogos de green para sapphire, o navegador de blue para
-   *   peach). O lugar tracejado no fim é o ICONES_BASE — "todo ícone que falta
-   *   sai daqui", que é a única coisa que essa chave faz.
-   *
-   * O FUNDO é o ICONES_FLAVOR, e ele fica atrás de tudo porque é o que ele é:
-   * o sabor dos ícones de tipo de arquivo, o pano de fundo do gerenciador.
-   *
-   * NOME_TEMA_ICONES não tem desenho — trocar o nome cria uma pasta nova em
-   * ~/.local/share/icons e não muda um traço. A legenda o diz. */
+   * EMBAIXO, quatro programas e um lugar tracejado. */
 
-  /* ICONES_PASTAS chega escrito com as variáveis por expandir, e ISSO É O
-   * PEDIDO do meow.conf: `cat-${FLAVOR}-${ACCENT}` acompanha o tema sozinho.
-   * Então o valor tem de ser lido sem ser expandido — o que sobra depois do
-   * último traço é o nome da cor, e quando ele é a variável do accent a cor é a
-   * de destaque da página. */
   function corDasPastas(valor) {
     var t = texto(valor);
     if (t === "") return { cor: "var(--accent, var(--mauve))", rotulo: "" };
@@ -1442,19 +1202,16 @@
       var d = diario();
       var pastas = corDasPastas(v.ICONES_PASTAS);
       var pack = packNoAr();
-      /* A BASE QUE VALE É A QUE A REGRA RESPONDE — 24/09/2026, P51 (achado
-       * 34). O desenho dizia «o que faltar vem do Papirus-Dark» com o Dracula
-       * no ar, que traz a base dele desde a P41 e diante da qual o valor de
-       * fábrica cede. O servidor manda a resposta do `base_que_vale` e os
-       * valores que cedem (`base_de_icones`); aqui só se confere a qual dos
-       * dois lados o valor da tela pertence. */
+      /* O servidor manda a resposta do `base_que_vale` e os valores que cedem
+       * (`base_de_icones`); aqui só se confere a qual dos dois lados o valor
+       * da tela pertence. */
       var bi = pack && pack.base_de_icones;
       var bruta = texto(v.ICONES_BASE);
       var base = bi && bi.cede.indexOf(bruta) >= 0 ? bi.vale : (bruta || "Papirus-Dark");
       /* O SABOR DOS ÍCONES DE ARQUIVO é o do acervo que o pack alcança, e o de
        * fábrica (`"$FLAVOR"`) acompanha a variante: vale o que a regra do
        * pack.py responde (`mimetypes.efetivo`), e não "um valor que não é
-       * aceito". O nome é o do dono do acervo, com a herança dita. [P51] */
+       * aceito". */
       var mt = pack && pack.mimetypes;
       var padraoIcones = (mt && (mt.efetivo || mt.flavors[0])) || "macchiato";
       var flavorIcones = /\$/.test(texto(v.ICONES_FLAVOR))
@@ -1482,7 +1239,7 @@
 
     desenho: function (m) {
       /* O tom e o claro pela MESMA régua, a do dono do acervo — ver
-       * `flavorsDosIcones`. [P51] */
+       * `flavorsDosIcones`. */
       var regua = flavorsDosIcones();
       var tom = tomDoFlavor(m.flavor, regua);
       var claro = regua.claros.indexOf(m.flavor) >= 0;
@@ -1543,10 +1300,9 @@
       s.appendChild(ret(78, 29, 14, 14, 3.4, {
         stroke: fraco, "stroke-width": 1.1, "stroke-dasharray": "3 2.4",
       }));
-      /* TRÊS PONTOS, E NÃO UMA SETA PARA BAIXO. A seta que estava aqui era a
-       * MESMA da pasta Transferências três centímetros acima, e o quadro passava
-       * a ter dois desenhos iguais querendo dizer coisas diferentes. Os três
-       * pontos dizem "e os demais", que é o que o tema herdado é. */
+      /* A seta que estava aqui era a MESMA da pasta Transferências três
+       * centímetros acima, e o quadro passava a ter dois desenhos iguais
+       * querendo dizer coisas diferentes. */
       for (var t = 0; t < 3; t++) {
         s.appendChild(circ(81.6 + t * 3.4, 36, 0.85, { fill: fraco, stroke: "none" }));
       }
@@ -1603,23 +1359,11 @@
     ]);
   }
 
-  /* ==========================================================================
-   * 5. "Terminal"
-   * ==========================================================================
-   * TERMINAL_ESQUEMA · TERMINAL_CURSOR · PROMPT_STARSHIP
+  /* 5. "Terminal"
    *
    * Três chaves, três coisas visíveis, e as três na mesma linha de comando:
    *
-   *   PROMPT_STARSHIP muda a FORMA do prompt. O preset powerline são pastilhas
-   *   emendadas com bico à direita, e não existe nada na tela que se pareça com
-   *   isso — é a diferença mais reconhecível dos três, então ela é o corpo do
-   *   desenho.
-   *   TERMINAL_ESQUEMA muda as DEZESSEIS cores. A tira embaixo é a paleta ANSI
-   *   inteira, em traços verticais: com o esquema ligado, as cores do
-   *   Catppuccin; desligado, a tira apagada, porque o que fica ali é o que o
-   *   cosmic-term traz de fábrica e não é nosso para desenhar.
-   *   TERMINAL_CURSOR muda a COR do cursor — não a forma. O bloco depois do
-   *   prompt é o cursor, e ele sai na cor de destaque ou na do port oficial.
+   * PROMPT_STARSHIP muda a FORMA do prompt.
    *
    * O rosewater do port não é escolha: é a cor que o port oficial do Catppuccin
    * usa para o cursor, e "port" quer dizer exatamente devolver o arquivo dele. */
@@ -1644,20 +1388,12 @@
       };
     },
 
-    /* A VISTA DE DETALHE, E POR QUE ELA SÓ NASCE NO CARTÃO DO CURSOR
-     * O que esta chave governa é UM caractere: o bloco que pisca no fim da
-     * linha. Ele é 3,6 por 8 num quadro de 96 por 48 — 0,76% dos pixels do
-     * botão, medido em 07/09/2026, e nesse tamanho mauve e rosewater são a
-     * mesma figura. Desenhar o cursor MAIOR do que ele é seria mentir sobre o
-     * terminal; então o que entra é a gramática de desenho técnico que este
-     * projeto já usa na cota da largura da música: o MESMO cursor aparece de
-     * novo, 3,6 vezes maior, numa moldura tracejada ligada ao original por uma
-     * linha de chamada. Vista ampliada ninguém confunde com captura.
+    /* A VISTA DE DETALHE, E POR QUE ELA SÓ NASCE NO CARTÃO DO CURSOR O que
+     * esta chave governa é UM caractere: o bloco que pisca no fim da linha.
      *
-     * NOS OUTROS DOIS CARTÕES A LUPA NÃO APARECE. Lá o que a chave governa já
-     * ocupa meio quadro (TERMINAL_ESQUEMA muda 20,2% dos pixels do botão,
-     * PROMPT_STARSHIP 11,6%), e roubar espaço deles para o cursor seria trocar
-     * um defeito por outro. */
+     * Lá o que a chave governa já ocupa meio quadro (TERMINAL_ESQUEMA muda
+     * 20,2% dos pixels do botão, PROMPT_STARSHIP 11,6%), e roubar espaço deles
+     * para o cursor seria trocar um defeito por outro. */
     contexto: function (a, b, pedidas) {
       return { lupa: !!(pedidas && pedidas.length === 1 && pedidas[0] === "TERMINAL_CURSOR") };
     },
@@ -1674,9 +1410,8 @@
        * estreitas. A metade direita é a ampliação. */
       var esc = lupa ? 0.42 : 1;
 
-      /* O PACK NO AR, E NÃO O CATPPUCCIN — 24/09/2026, P51 (achado 40). As
-       * dezesseis cores e o `port` do TERMINAL_CURSOR saem da paleta do pack
-       * ativo (o `terminal.sh` a lê pelo `meow_paleta`); a frase dizia
+      /* As dezesseis cores e o `port` do TERMINAL_CURSOR saem da paleta do
+       * pack ativo (o `terminal.sh` a lê pelo `meow_paleta`); a frase dizia
        * «do Catppuccin» com o Dracula no ar. */
       var s = quadro("Uma linha de comando com "
         + (m.starship ? "o prompt do starship em pastilhas" : "o prompt simples")
@@ -1693,10 +1428,7 @@
 
       var x = 5;
       if (m.starship) {
-        /* As pastilhas do powerline: retângulo com bico à direita, emendadas.
-         * O preenchimento é leve porque a cor É a informação, mas o contorno
-         * continua sendo o traço — a pastilha chapada viraria um bloco de cor
-         * no meio de um desenho de linha. */
+        /* As pastilhas do powerline: retângulo com bico à direita, emendadas. */
         var segmentos = [
           { w: 20 * esc, cor: m.esquema ? "var(--mauve)" : fraco },
           { w: 15 * esc, cor: m.esquema ? "var(--blue)" : fraco },
@@ -1762,10 +1494,7 @@
 
       if (lupa) {
         /* 3,6 é a ampliação que faz o cursor caber na moldura sem tocar as
-         * bordas. O cursor pequeno ganha um cerco tracejado e uma linha de
-         * chamada vai dele à moldura: é a convenção da vista de detalhe, e ela
-         * diz sozinha "isto é aquilo, de perto". O chevron ampliado ao lado dá a
-         * escala e conta onde o cursor mora — no fim de uma linha vazia. */
+         * bordas. */
         var F = 3.6;
         var chamada = { stroke: fraco, "stroke-width": 0.7, "stroke-dasharray": "2 1.8" };
         s.appendChild(ret(52.5, 10.5, 41, 33.5, 2.5, {
@@ -1783,10 +1512,7 @@
     },
 
     legenda: function (m) {
-      /* O PROMPT VESTE O PACK NO AR — P74, 09/10/2026. O desenho é o do
-       * preset do motor (catppuccin-powerline), e as cores, desde a P74, são
-       * as da paleta do pack no ar (`scripts/prompt.sh`). A frase da P51
-       * dizia «o mesmo com qualquer pack», e era verdade até ali. */
+      /* O PROMPT VESTE O PACK NO AR. */
       return (m.esquema
         ? "as dezesseis cores do terminal vêm da paleta do pack " + nomeDoPack("no ar")
         : "o terminal fica com a paleta de fábrica do cosmic-term")
@@ -1800,13 +1526,9 @@
     },
   });
 
-  /* ==========================================================================
-   * O MAPA
-   * ==========================================================================
-   * As chaves são "Seção :: BLOCO" com os nomes NOVOS das seções — a Frente A
+  /* As chaves são "Seção :: BLOCO" com os nomes NOVOS das seções — a Frente A
    * juntou "Cor e tema" e "Janelas e tela" numa só "Cor e tela", e "O gato"
-   * virou "Logo do sistema". Os nomes de bloco em caixa alta (NO DOCK, NO
-   * TERMINAL) continuam os mesmos. */
+   * virou "Logo do sistema". */
   window.MEOW_PREVIAS = Object.assign(window.MEOW_PREVIAS || {}, {
     "Cor e tela": COR_E_TELA,
     "Logo do sistema :: NO DOCK": LOGO_NO_DOCK,

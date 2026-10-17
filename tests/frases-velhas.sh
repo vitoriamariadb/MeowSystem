@@ -1,68 +1,9 @@
 #!/usr/bin/env bash
 # frases-velhas.sh — as frases que envelheceram não voltam a ser ditas no presente.
 #
-# POR QUE ESTE ARQUIVO NASCEU EM 25/09/2026, NA P67
-#   A cauda de frase velha crescia por linha. A P62 tirou o «mauve» das pastas
-#   da tela, a P65 de quatro comentários, e a reconferência da leva D2 ainda
-#   achou a mesma afirmação em outros arquivos: cada revisão consertava as
-#   linhas que tinha lido, e a que ninguém leu seguia dizendo a regra de antes.
-#   A P67 varreu por CLASSE, no repositório inteiro, e este teste trava a
-#   classe, e não a linha: uma frase dela que volte no presente, em qualquer
-#   arquivo versionado, é achado.
+# A cauda de frase velha crescia por linha.
 #
-# AS CINCO CLASSES
-#   1. «o flavor que nunca foi fotografado» como o caso sem saída. Desde a P59
-#      esse flavor se deriva de outro do mesmo lado; o que sobra é o par sem
-#      captura daquele lado ao alcance do pack.
-#   2. a Light do Dracula como o Latte. Desde a P63 ela é o alucard.
-#   3. as pastas em mauve, ou no pastel do Catppuccin, como a regra. Elas seguem
-#      o `ICONES_PASTAS` (o acento, por padrão) e o desenho do pack no ar.
-#   4. o botão do traço pelo nome velho. «Voltar ao ícone de fábrica» virou
-#      «Desfazer a escolha no traço» na P64.
-#   5. a procedência dos resgatados. A faixa de RMSE é de 11/09/2026, a folha
-#      de antes e depois tem a idade do commit dela, e desenho muda depois das
-#      duas. Esta classe tem três travas: a frase da faixa leva a data, a nota
-#      ao lado da folha diz a data da folha, e a folha mais velha que um
-#      desenho tem o nome dele numa tabela da nota (a seção do fim).
-#
-# O QUE É HISTÓRIA, E FICA
-#   A mesma frase é mentira no presente e registro na história, e só o entorno
-#   diz qual das duas ela é. Aqui é história o que:
-#     · está entre colchetes, o jeito do projeto de anotar a revisão («[Dizia
-#       «em mauve» até a P65 (25/09/2026)...]»);
-#     · está citado entre aspas: «», “” e, em comentário ou em tests/, as
-#       retas. É a frase velha dita como frase, e não como regra. Na classe 4
-#       não vale: lá as aspas são o nome do botão, e o nome velho entre aspas é
-#       justamente o que não pode voltar. E no código fora de tests/ as retas
-#       não valem: ali elas cercam o texto que vai para a tela;
-#     · está numa frase com data (25/09, 25/09/2026, 2026-09-25), com marca de
-#       revisão ou de medição («até a P64», «antes da P63», «na revisão da
-#       P59», «desfeito pela P63», «medido», «conferido»), ou seguido do verbo
-#       no passado («o «Voltar ao ícone de fábrica» dizia»).
-#   O resto é presente. A frase sai do texto com as quebras de linha desfeitas
-#   e os marcadores de comentário tirados, porque quase toda frase atravessa
-#   duas linhas; título em CAIXA ALTA, linha de régua (`--- x ---`) e a linha
-#   que é só a data de um título são frases sozinhas, para a data do título
-#   não valer pelo parágrafo inteiro.
-#
-# O QUE NÃO SE VARRE, e por quê
-#   `docs/sprints/`, `docs/SPRINTS.md`, `docs/pesquisas/`, `docs/historico/` e
-#   `docs/folhas/` são registro datado por natureza: a especificação que pede a
-#   correção cita a frase velha, e é para citar. E este arquivo, que carrega os
-#   padrões que caça.
-#
-# O LIMITE, DITO: é um detector de frase canônica, com as flexões que a P67
-#   achou, e não uma gramática. Uma paráfrase nova escapa dele, e quem a pega é
-#   a revisão, como antes. O que ele garante é que as formas já corrigidas não
-#   voltam.
-#
-# CÓDIGOS DE SAÍDA (os do projeto)
-#   0 = nenhuma frase velha no presente · 1 = achados · 2 = erro deste teste
-#   O Python de dentro sai 3 quando acha, e não 1, porque 1 é também o que ele
-#   devolve quando quebra (exceção, erro de sintaxe) — e quebra é erro deste
-#   teste, não achado. A tradução para os códigos do projeto é a última linha.
-#   [Até a revisão da P67 (25/09/2026) o Python saía 1 nos dois casos, e um
-#   teste quebrado se passava por achado.]
+# A tradução para os códigos do projeto é a última linha.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -134,7 +75,8 @@ CLASSES = [
      "cita": False, "onde": None, "gatilho": ("voltar ao",),
      "padroes": [re.compile(r"\bVoltar\s+ao\s+[íi]cone\s+de\s+f[áa]brica\b", I)]},
     {"num": 5, "nome": "a faixa de RMSE dos resgatados sem a data dela",
-     "cita": True, "onde": ("assets/icones/",), "gatilho": ("ficaram entre",),
+     "cita": True, "onde": ("assets/icones/", "packs/meowsystem/", "packs/dracula/icones/"),
+     "gatilho": ("ficaram entre",),
      "padroes": [re.compile(r"\bficaram\s+entre\s+\**\d+,\d+\**\s+e\s+\**\d+,\d+", I)]},
 ]
 
@@ -295,12 +237,12 @@ for classe in CLASSES:
 
 # ---------------------------------------------------------------------------
 # 5b. A FOLHA DE ANTES E DEPOIS NÃO FICA VELHA CALADA
-#   A folha (`assets/icones/resgatados/ANTES-E-DEPOIS.png`) sai do
+#   A folha (`assets/icones/resgatados-antes-e-depois.png`) sai do
 #   `scripts/resgatados_folha.sh`, que pede os PNG de origem nos caminhos do
 #   mapa — e em 25/09/2026 doze dos 21 não estavam mais no disco, então a
 #   folha daquele dia foi remontada a partir da velha, e não pelo script (o
 #   PROCEDENCIA.md conta a costura). Uma folha pode ficar mais velha que os
-#   desenhos, mas não calada, e a nota dela, no `assets/icones/PROCEDENCIA.md`
+#   desenhos, mas não calada, e a nota dela, no `packs/meowsystem/PROCEDENCIA.md`
 #   (do parágrafo que fala da folha até o fim daquela seção, o próximo `## `),
 #   responde por duas coisas:
 #     · a data da frase «A folha de hoje é de dd/mm/aaaa» é a do commit da
@@ -320,9 +262,9 @@ for classe in CLASSES:
 #   ponto da nota, a data dela não era cobrada, e uma folha apagada passava por
 #   «refeita nesta árvore».]
 # ---------------------------------------------------------------------------
-FOLHA = "assets/icones/resgatados/ANTES-E-DEPOIS.png"
-MAPA = "assets/icones/apps-resgatados.map"
-PROC = "assets/icones/PROCEDENCIA.md"
+FOLHA = "assets/icones/resgatados-antes-e-depois.png"
+MAPA = "packs/dracula/icones/apps-resgatados.map"
+PROC = "packs/meowsystem/PROCEDENCIA.md"
 DATA_DA_NOTA = re.compile(r"\bA\s+folha\s+de\s+hoje\s+é\s+de\s+\**(\d{1,2})/(\d{1,2})/(\d{4})\b", I)
 
 
@@ -354,7 +296,8 @@ def nomes_da_tabela(nota, cabeca):
 
 
 try:
-    r = git("log", "-1", "--format=%H %ad", "--date=short", "--", FOLHA)
+    # `--follow` e só A/M: a mudança de pasta da P88 (um `git mv`) não refaz a folha.
+    r = git("log", "-1", "--follow", "--diff-filter=AM", "--format=%H %ad", "--date=short", "--", FOLHA)
 except OSError:
     r = None
 if r is None or r.returncode != 0 or not r.stdout.strip():
@@ -391,6 +334,9 @@ else:
 
     velho = git("show", "%s:%s" % (commit, MAPA))
     if velho.returncode != 0:
+        # o endereço do mapa antes da P88, que o desceu do motor para o pack Dracula
+        velho = git("show", "%s:%s" % (commit, "assets/icones/apps-resgatados.map"))
+    if velho.returncode != 0:
         print("  --   classe 5 — o mapa dos resgatados não existia no commit da folha (pulado)")
     else:
         antes = nomes_do_mapa(velho.stdout)
@@ -398,8 +344,10 @@ else:
             hoje = nomes_do_mapa(fh.read())
         mudaram = sorted(antes ^ hoje)
         for nome in sorted(antes & hoje):
-            svg = "assets/icones/resgatados/%s.svg" % nome
-            era = git("rev-parse", "%s:%s" % (commit, svg)).stdout.strip()
+            svg = "packs/dracula/icones/apps/resgatados/%s.svg" % nome
+            era = (git("rev-parse", "--verify", "-q", "%s:%s" % (commit, svg)).stdout.strip()
+                   or git("rev-parse", "--verify", "-q",
+                          "%s:assets/icones/resgatados/%s.svg" % (commit, nome)).stdout.strip())
             e = git("hash-object", "--", svg).stdout.strip()
             if era and e and era != e:
                 mudaram.append(nome)

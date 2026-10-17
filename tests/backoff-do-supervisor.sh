@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # backoff-do-supervisor.sh — a espera do cosmic-session é medida, ou dita não
-# medida, e nunca confundida com "nunca falhou" (P76).
+# medida, e nunca confundida com "nunca falhou".
 #
-# Um `journalctl` falso devolve três journals: o formato de hoje (medido no
-# 1.9 e no 1.10 em 09/10/2026), um formato que mudou (o painel reiniciou e a
-# frase do `sleeping for … ms` sumiu) e um boot sem reinício nenhum. O
-# `meow_painel_espera_supervisor` do lib/painel.sh tem de devolver, nessa
-# ordem: os ms, `nao-medida` e nada. Sem sessão, sem COSMIC, sem escrever.
+# Um `journalctl` falso devolve três journals: o formato de hoje, um formato
+# que mudou (o painel reiniciou e a frase do `sleeping for … ms` sumiu) e um
+# boot sem reinício nenhum.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -35,6 +33,35 @@ caso "formato que mudou: nao-medida" nao-medida
 
 printf 'out 10 09:00:00 nitro-5 cosmic-session[4525]: launch_pad started\n' > "$T/journal"
 caso "boot sem reinício: nada" ""
+
+# Com o meow-painel.service parado e a espera não medida, o `painel.sh
+# reciclar` mandava digitar o `systemctl --user start` e saía 2.
+cat > "$T/journal" <<'FIM'
+out 10 09:00:00 nitro-5 cosmic-session[4525]: backoff 4096 ms, then respawn cosmic-panel
+out 10 09:00:04 nitro-5 cosmic-session[4525]: Restarted cosmic-panel (attempt 3)
+FIM
+mkdir -p "$T/casa-rec"
+HOME="$T/casa-rec" sleep 30 & PAINEL_FALSO=$!
+printf '#!/bin/sh\ncase "$*" in *cosmic-panel*) echo %s ;; *) exit 1 ;; esac\n' "$PAINEL_FALSO" > "$T/bin/pgrep"
+cat > "$T/bin/systemctl" <<FIM
+#!/bin/sh
+case "\$*" in
+  *is-active*) [ -f "$T/armado" ] ;;
+  *start*) echo "\$*" >> "$T/systemctl.log"; : > "$T/armado" ;;
+  *) exit 1 ;;
+esac
+FIM
+chmod 755 "$T/bin/pgrep" "$T/bin/systemctl"
+saida="$(PATH="$T/bin:$PATH" HOME="$T/casa-rec" NO_COLOR=1 "$RAIZ/scripts/painel.sh" reciclar 2>&1)"; rc=$?
+sleep 0.2
+if [ "$rc" = 0 ] && grep -q 'start meow-painel.service' "$T/systemctl.log" 2>/dev/null \
+   && ! kill -0 "$PAINEL_FALSO" 2>/dev/null; then
+  printf '  ok    supervisor parado e espera não medida: o reciclo arma o supervisor e recicla\n'
+else
+  printf '  FALHA o reciclo não armou o supervisor (rc=%s): %s\n' "$rc" "$(printf '%s' "$saida" | tail -2 | tr '\n' ' ')"
+  falhas=$((falhas+1))
+fi
+kill "$PAINEL_FALSO" 2>/dev/null
 
 echo
 if [ "$falhas" = 0 ]; then echo "backoff-do-supervisor: tudo certo"; exit 0; fi

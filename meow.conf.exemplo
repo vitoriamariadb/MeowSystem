@@ -495,7 +495,7 @@ NOME_TEMA_ICONES="MeowSystem-Icons"
 #   silhueta, mesmas cores, gradiente virando `<linearGradient>` de verdade.
 #   Medido no mesmo dia: dos 86 nomes de ícone que os 91 aplicativos visíveis
 #   pedem, 20 caíam em PNG. A lista, com a procedência de cada um, está em
-#   `assets/icones/apps-resgatados.map`.
+#   `packs/dracula/icones/apps-resgatados.map`.
 #
 # ISTO NÃO É O `ICONES_COR_MARCA` NEM O CONVERSOR
 #   O conversor pega arte de terceiro e a reescreve no traço do Arcticons. Aqui a
@@ -505,7 +505,7 @@ NOME_TEMA_ICONES="MeowSystem-Icons"
 #
 # DESLIGAR DESLIGA: "nao" remove do tema os SVG que este projeto pôs, por nome, e
 # o PNG que estava atrás volta a valer na passagem seguinte. Não há estado
-# guardado, não há resíduo. O acervo em `assets/icones/resgatados/` continua no
+# guardado, não há resíduo. O acervo em `packs/dracula/icones/apps/resgatados/` continua no
 # repo de qualquer forma — desligar é sobre o que aparece na tela, não sobre
 # apagar o desenho.
 ICONES_RESGATADOS="sim"           # sim | nao
@@ -635,7 +635,7 @@ ICONES_FLAVOR="$FLAVOR"
 # A cor do traço de cada aplicativo vem da MARCA dele, em vez da CATEGORIA?
 #
 #   nao (padrão)  a cor é por categoria — a escolha de 10/08/2026
-#   sim           `assets/icones/apps-marca.map` sobrepõe a cor de quem está listado lá
+#   sim           `packs/meowsystem/icones/apps-marca.map` sobrepõe a cor de quem está listado lá
 #
 # ISTO ESTÁ DESLIGADO PORQUE FOI UMA ESCOLHA, NÃO PORQUE NÃO FUNCIONA
 #   Em 23/08/2026, diante do dock: "a cor de alguns svgs tão diferentes
@@ -992,7 +992,7 @@ MIDIA="sim"
 #   o mesmo número. O que muda é o que o arquivo DIZ: que isto se mede.
 #   Para medir a sua: deixe tocar uma música de nome longo e suba o número até
 #   o "…" sumir sem empurrar a Área de status.
-MIDIA_LARGURA=""
+MIDIA_LARGURA=""                  # 80..900 px
 
 # @ Como a cor da capa entra
 # > Tingindo só o traço, ou chapando o fundo.
@@ -1711,7 +1711,7 @@ FASTFETCH_LOGO_RECUO="3"
 #   `${FASTFETCH_LOGO_CELULA:-2.556}`, o mesmo número. O que muda é o convite a
 #   medir: `meow fastfetch logo` diz quantas linhas dá para as colunas atuais, e
 #   é por aí que se descobre a proporção desta tela.
-FASTFETCH_LOGO_CELULA=""
+FASTFETCH_LOGO_CELULA=""          # 1.0 a 4.0
 
 # @ Detalhe do desenho
 # > Quanto detalhe cabe em cada célula. Depende do que a sua fonte desenha.
@@ -1832,7 +1832,13 @@ LANCADOR_SISTEMA="nao"
 #   O PACK NO AR SOMA A LISTA DELE (P74, 09/10/2026): o Dracula esconde o que o
 #   tema Dracula de antes escondia (`lancador.ocultar` no pack.json). Para
 #   manter um deles à vista, escreva o nome aqui com `-` na frente (`-mpv`).
-LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,info,im-config,ibus-setup,org.freedesktop.IBus.Setup,org.gnome.font-viewer,gnome-language-selector,system-config-printer,org.gnome.eog,org.gnome.Evince,org.gnome.baobab,org.gnome.PowerStats,org.gnome.seahorse.Application,org.gnome.DiskUtility,simple-scan,yelp,gucharmap,nm-connection-editor,repoman,com.system76.Popsicle,gparted,nvidia-settings,syncthing-start,syncthing-ui,google-chrome,steam,github-desktop"
+#   Trocar de pack devolve ao lançador o que o pack anterior escondia (P82).
+#
+#   [P82, 15/10/2026: o `google-chrome`, o `steam` e o `github-desktop` saíram
+#   da fábrica. Eram duplicatas de UMA máquina (a cópia que ela usa mora em
+#   /usr/local/share ou no Flatpak), e não programas de sistema; quem tem a
+#   mesma duplicata os escreve aqui.]
+LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,info,im-config,ibus-setup,org.freedesktop.IBus.Setup,org.gnome.font-viewer,gnome-language-selector,system-config-printer,org.gnome.eog,org.gnome.Evince,org.gnome.baobab,org.gnome.PowerStats,org.gnome.seahorse.Application,org.gnome.DiskUtility,simple-scan,yelp,gucharmap,nm-connection-editor,repoman,com.system76.Popsicle,gparted,nvidia-settings,syncthing-start,syncthing-ui"
 
 # @ Programas bloqueados no início
 # > Um por ficha. Impede que iniciem junto com a sessão.
@@ -1995,7 +2001,7 @@ HEROIC_VIGIA="sim"
 # Quantos backups o projeto guarda antes de apagar o mais antigo. Cada
 # escrita em arquivo do sistema deixa uma cópia; sem teto, elas se acumulam
 # para sempre. "0" desliga a poda e guarda todos.
-BACKUPS_MANTIDOS="10"
+BACKUPS_MANTIDOS="10"             # 0 a 100 — 0 guarda todos
 
 # @ Quanto o MeowSystem fala
 # > Só erro, o que mudou, ou cada passo.
@@ -2072,12 +2078,12 @@ SOM_HARMONICO=""                  # 60 a 12000 Hz — vazio = o do pack
 # @ Peso da nota base
 # > Quanto a primeira senoide pesa na mistura. Os dois pesos somados têm de caber em 1.
 # [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
-SOM_PESO_FUNDAMENTAL=""           # 0 a 1 — vazio = o do pack
+SOM_PESO_FUNDAMENTAL=""           # 0.0 a 1.0 — vazio = o do pack
 
 # @ Peso da segunda nota
 # > Quanto a segunda senoide pesa. Acima de 1 somado, a onda satura e vira estalo.
 # [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
-SOM_PESO_HARMONICO=""             # 0 a 1 — vazio = o do pack
+SOM_PESO_HARMONICO=""             # 0.0 a 1.0 — vazio = o do pack
 
 # @ Secura do sino
 # > O quanto o som cai rápido. Maior = mais seco; abaixo de 20 a cauda arrasta.

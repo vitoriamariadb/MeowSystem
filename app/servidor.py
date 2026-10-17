@@ -1,97 +1,27 @@
 #!/usr/bin/env python3
 # app/servidor.py — o backend da página de configuração do MeowSystem.
 #
-# ESTE ARQUIVO NÃO É UM SERVIDOR WEB. É UMA PONTE ENTRE UMA PÁGINA LOCAL E A CLI
-# QUE JÁ EXISTE, e a diferença importa em cada decisão abaixo: ele não decide
-# nada sobre o tema, não sabe o que é um flavor, não conhece uma única chave pelo
-# nome. Tudo o que ele sabe fazer é (a) LER o `meow.conf.exemplo` e o
-# `meow.conf` dela, (b) chamar `meow_conf_definir` para escrever, e (c) rodar
-# comandos de uma lista fechada, mostrando a saída ao vivo.
+# É UMA PONTE ENTRE UMA PÁGINA LOCAL E A CLI QUE JÁ EXISTE, e a diferença
+# importa em cada decisão abaixo: ele não decide nada sobre o tema, não sabe o
+# que é um flavor, não conhece uma única chave pelo nome.
 #
-# ─────────────────────────────────────────────────────────────────────────────
-# POR QUE O CATÁLOGO É DERIVADO, E NUNCA DIGITADO — A ARMADILHA Nº 3
-# ─────────────────────────────────────────────────────────────────────────────
 # A tentação óbvia era escrever aqui uma lista das ~90 chaves com rótulo, tipo e
-# ajuda bonitinhos. Seria a SEGUNDA lista de chaves do projeto, e o `bin/meow` já
-# pagou essa conta duas vezes (11/08 e 25/08/2026): chave nova nasce morta,
-# ninguém percebe, e o pior sintoma possível — a tela dizendo "confere" sobre
-# algo que nunca foi conferido.
+# ajuda bonitinhos.
 #
-# Então o esquema sai do `meow.conf.exemplo`, com EXATAMENTE as mesmas regras que
-# o `wiz_ler_esquema` do `bin/meow` usa (a ordem, a seção `# --- Nome`, o bloco de
-# comentário colado acima da chave, o `[essencial]`, e o `a | b | c` do
-# comentário virando lista de opções). Chave nova no exemplo aparece na página
-# sozinha; chave que sair de lá some da página sozinha. Se as duas leituras
-# divergirem um dia, é bug — e `tests/app.sh` compara as duas listas (nome, valor
-# padrão e opções, chave a chave) justamente para que a divergência apareça no
-# mesmo dia, e não meses depois. Em 01/09/2026 as 95 chaves leem igual dos dois
-# lados; o teste recorta as funções do `bin/meow` VIVO com `sed`, então ele
-# compara com o wizard de verdade, e não com uma cópia dele.
+# Python tem `re.sub` e seria uma linha.
 #
-# ─────────────────────────────────────────────────────────────────────────────
-# QUEM ESCREVE NO MEOW.CONF É O `meow_conf_definir`, EM BASH, SEMPRE
-# ─────────────────────────────────────────────────────────────────────────────
-# Python tem `re.sub` e seria uma linha. Seria também a terceira rotina de
-# escrita na mesma chave — e o cabeçalho de `lib/comum.sh` conta o que aconteceu
-# quando existiram duas: uma trocava a PRIMEIRA ocorrência enquanto o shell
-# obedece a ÚLTIMA, e o `meow configurar` gravava `2h` mostrando o diff certo
-# enquanto o valor em vigor continuava `1d`, sem nada acusar.
-#
-# Aqui a escrita é literalmente:
-#     bash -c '. "$1/lib/comum.sh"; meow_conf_definir "$2" "$3"' _ RAIZ CHAVE VALOR
-# Medido em 01/09/2026: devolve 0 quando a chave já estava com aquele valor e 1
-# quando escreveu — o mesmo contrato de `meow_escrever`, que é o que a página usa
-# para dizer "já estava assim" em vez de fingir que gravou.
-#
-# ─────────────────────────────────────────────────────────────────────────────
-# A SUPERFÍCIE DE REDE, E POR QUE ELA É TÃO PEQUENA
-# ─────────────────────────────────────────────────────────────────────────────
-#   - escuta em 127.0.0.1 e em porta EFÊMERA (`porta 0`, o kernel escolhe). Não
-#     há porta fixa para alguém adivinhar, e não há bind em 0.0.0.0 nenhum;
-#   - todo pedido carrega um token de sessão sorteado a cada execução
-#     (`secrets.token_urlsafe`), comparado com `hmac.compare_digest`;
-#   - o cabeçalho `Host` é conferido contra o par (127.0.0.1|localhost):<porta>.
-#     Sem isso, um site aberto noutra aba poderia resolver um domínio dele para
-#     127.0.0.1 e falar com este processo (DNS rebinding) — o token já barraria,
-#     mas duas trancas custam seis linhas;
-#   - `Origin`, quando vem, tem de bater. Página local não manda `Origin` em GET;
-#     um navegador atacante manda, e é justamente ele que queremos recusar;
-#   - NENHUM comando vem da página como texto. A página manda um `id` de ação, e
-#     o `id` é chave de um dicionário fechado aqui embaixo. O argumento, quando
-#     existe, é conferido contra uma lista montada DO DISCO (as capturas que
-#     existem, os gatos que existem) — nunca contra o que o navegador mandou.
-#
-# ─────────────────────────────────────────────────────────────────────────────
-# O SUDO: O QUE FOI MEDIDO NESTA MÁQUINA EM 01/09/2026, E O QUE MUDOU POR CAUSA
-# ─────────────────────────────────────────────────────────────────────────────
 # O plano inicial era confortável e ERRADO: "o backend não tem tty, então todo
-# `sudo` falha sozinho e nada privilegiado roda daqui". Medido:
+# `sudo` falha sozinho e nada privilegiado roda daqui".
 #
 #     $ sudo -n -v ; echo $?
 #     0
 #     $ sudo -n -l | grep timestamp
 #     ... timestamp_type=global, timestamp_timeout=60
 #
-# `timestamp_type=global` quer dizer que o cache do sudo NÃO é por terminal: um
-# `sudo` que ela digitou em QUALQUER janela nos últimos 60 minutos faz `sudo -n`
-# devolver 0 aqui dentro, sem tty e sem perguntar nada. Ou seja, o `./install.sh`
-# disparado por um clique nesta página PODE, sim, mexer em `/usr/share` — se a
-# hora for aquela, e sem nada na tela avisando.
-#
-# Por isso as ações que podem atravessar o `sudo` são marcadas `sudo: True`, a
-# página as mostra com o aviso ANTES do clique, e elas exigem uma confirmação
-# escrita. Nenhuma senha é pedida, guardada, lida ou passada adiante em ponto
-# nenhum deste arquivo — o que existe é o cache que já era dela, e o que muda é
-# que agora está DITO.
-#
-# ─────────────────────────────────────────────────────────────────────────────
-# UM TRABALHO POR VEZ, E O MOTIVO É O CADEADO
-# ─────────────────────────────────────────────────────────────────────────────
-# `meow doctor --consertar` e `./install.sh` pegam o `flock` de
-# `~/.local/state/meowsystem/lock` (regra 10 do contrato). Dois cliques rápidos
-# dariam "outro meow está rodando" com o culpado sendo a própria página. Então o
-# servidor recusa começar um segundo trabalho enquanto o primeiro vive, e diz
-# qual está correndo.
+# A superfície de rede é pequena de propósito: escuta só em 127.0.0.1, em porta
+# efêmera; todo pedido traz o token da sessão (`hmac.compare_digest`); `Host` e
+# `Origin` são conferidos (DNS rebinding e site de fora); e nenhum comando vem
+# da página como texto, só `id` de um dicionário fechado.
 """Backend local do painel de configuração visual do MeowSystem."""
 
 import base64
@@ -115,9 +45,9 @@ import sys
 import tempfile
 import threading
 import time
-# A folha da oficina roda SEIS conversores de uma vez (09/09/2026): em série
-# eram 1,42 s medidos, e o servidor é `ThreadingHTTPServer`, então a rota
-# ocupada não tranca as outras.
+# A folha da oficina roda SEIS conversores de uma vez: em série eram 1,42 s
+# medidos, e o servidor é `ThreadingHTTPServer`, então a rota ocupada não
+# tranca as outras.
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs, quote
@@ -125,7 +55,7 @@ from urllib.parse import urlparse, parse_qs, quote
 # --- 1. onde está o repositório ---------------------------------------------
 # Mesma pergunta que o `bin/meow` responde em quatro passos, e aqui bastam dois:
 # este arquivo mora DENTRO do clone (`app/servidor.py`), então o diretório acima
-# é a raiz. `MEOW_RAIZ` continua vencendo, porque é o que os testes usam.
+# é a raiz.
 def _raiz_valida(caminho):
     return bool(caminho) and os.path.isfile(os.path.join(caminho, "lib", "comum.sh")) \
         and os.path.isfile(os.path.join(caminho, "install.sh"))
@@ -149,23 +79,11 @@ if RAIZ is None:
     sys.exit(3)
 
 PAGINA = os.path.join(RAIZ, "app", "pagina")
-# O mapa dos jogos que ficam fora do lançador. Constante e não literal
-# espalhado: as três funções da seção "Jogos" o leem e uma delas o escreve,
-# e um caminho digitado três vezes é como duas delas passam a olhar
-# arquivos diferentes no dia em que ele mudar de lugar.
+# O mapa dos jogos que ficam fora do lançador.
 MAPA_JOGOS = os.path.join(RAIZ, "assets", "icones", "jogos-fora.map")
+ICONES_DO_MOTOR = os.path.join(RAIZ, "packs", "meowsystem", "icones")
 CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.conf.exemplo")
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
-# A PALETA VIROU FUNÇÃO, E O LITERAL SAIU DAQUI — 22/09/2026
-#   Era uma constante de módulo que terminava em `assets/paleta/catppuccin.json`,
-#   uma das sete cópias da mesma escada de precedência. A P13 mudou esse arquivo
-#   de casa e pôs a escada num lugar só: `pack.paleta_do_pack_ativo()`.
-#
-#   POR QUE FUNÇÃO E NÃO CONSTANTE: quem sabe resolver é o `scripts/pack.py`, e
-#   quem o carrega aqui é o `modulo_pack()` — que está definido umas telas
-#   abaixo. Constante de módulo é calculada na ordem do arquivo; função é
-#   calculada na hora da chamada, e aí o `modulo_pack` já existe. Mover o
-#   `modulo_pack` para cá em vez disso mexeria em código que não é desta sprint.
 _PALETA = None
 
 
@@ -189,25 +107,10 @@ def paleta_canonica():
     return _PALETA
 
 
-# A PONTE DO PAINEL ACOMPANHA O meow.conf — 23/09/2026, sprint P10
+# A PONTE DO PAINEL ACOMPANHA O meow.conf
 #
-# O QUE ESTAVA PARADO NO TEMPO
-#   A ponte shell->Python (`meow_ponte_python`, lib/comum.sh) roda UMA vez, no
-#   `app/run.sh`, e exporta `MEOW_PALETA`/`MEOW_PACK_DIR` para este processo. Os
-#   trabalhos já reliam a ponte a cada execução (o bloco "A PONTE VEM JUNTO", no
-#   `conf_exportada`); o painel, não. Enquanto trocar de pack era editar o conf à
-#   mão e reabrir tudo, isso não aparecia. Com o «Usar este» da Home, aparece no
-#   primeiro clique: o instalador veste a máquina de Catppuccin, e a página
-#   continua pintada, e desenhando prévias, com a paleta do Dracula — o painel
-#   discordando da máquina que ele acabou de vestir.
-#
-# A PERGUNTA É O RELÓGIO DO ARQUIVO, E A RESPOSTA É A MESMA PONTE DE SEMPRE
-#   Um `stat` por consulta é o preço; o `conf_exportada` (a ponte em bash, a
-#   mesma do `run.sh`) só roda quando o meow.conf mudou desde a última vez. A
-#   primeira consulta só anota o relógio: a ponte que o `run.sh` exportou na
-#   subida é deste mesmo arquivo. Um `MEOW_PALETA` que seja DA PESSOA atravessa
-#   intacto — é o marcador `MEOW_PALETA_DA_PONTE` que diz de quem ele é, como no
-#   `meow_paleta`.
+# Um `stat` por consulta é o preço; o `conf_exportada` (a ponte em bash, a mesma
+# do `run.sh`) só roda quando o meow.conf mudou desde a última vez.
 _PONTE_TRAVA = threading.Lock()
 _PONTE_VISTA = {"iniciada": False, "relogio": None}
 
@@ -217,8 +120,7 @@ def _ponte_em_dia():
     # página pede `/api/packs` e `/api/esquema` juntas logo depois de um
     # trabalho, e a segunda, achando o relógio já anotado pela primeira, leria a
     # ponte VELHA enquanto a nova ainda estava a caminho — o cartão diria um
-    # pack no ar e a aba Ícones outro. Esperar os décimos de segundo do bash é
-    # o preço de as duas respostas falarem do mesmo meow.conf.
+    # pack no ar e a aba Ícones outro.
     global _PALETA
     try:
         relogio = os.stat(CONF).st_mtime_ns
@@ -255,29 +157,16 @@ ESTADO = os.environ.get("MEOW_ESTADO") or os.path.join(
 TOKEN = secrets.token_urlsafe(32)
 
 # A CSP de toda resposta `image/*` — ver "TODA IMAGEM SAI COMO DOCUMENTO QUE NÃO
-# RODA NADA", no `_responder` (P78).
+# RODA NADA", no `_responder`.
 CSP_DE_IMAGEM = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
 
 
-# UMA LEITURA DO ESQUEMA PERGUNTA CADA COISA À MÁQUINA UMA VEZ
-# — 24/09/2026, sprint P57 (item 6)
-#   O `/api/esquema` é lido a cada carga da página e no fim de todo trabalho que
-#   escreve, e levava 2,2 s numa casa de brinquedo e de 3,3 a 4,2 s nesta
-#   máquina. O perfil mostrou para onde ia: o `_tipo_de_previa` pergunta,
-#   chave por chave, se o valor é um ponteiro instalado, e cada uma das 69
-#   perguntas refazia a lista de ponteiros e, com ela, a adoção do pack (a
-#   validação inteira do pack.json, 30 mil `realpath`) e o bash que lê o
-#   meow.conf; o `_vestigio_de_pack` relia os dois confs e rodava o bash de novo
-#   para cada uma das 123 chaves. Numa leitura só: 233 bashes e 149 adoções, com
-#   a mesma resposta — e o comentário do `_vestigio_de_pack` já dizia que a
-#   leitura "é cacheada pelo próprio `valores_brutos`", que não cacheava nada.
+# Numa leitura só: 233 bashes e 149 adoções, com a mesma resposta — e o
+# comentário do `_vestigio_de_pack` já dizia que a leitura "é cacheada pelo
+# próprio `valores_brutos`", que não cacheava nada.
 #
-#   A MEMÓRIA É DE UMA LEITURA, E DA LINHA DE EXECUÇÃO QUE A FAZ. Fora de uma
-#   leitura (`_numa_leitura`) as funções marcadas perguntam como sempre; dentro
-#   dela, a primeira resposta vale até a leitura acabar. O servidor é
-#   `ThreadingHTTPServer`: a leitura de outro pedido, ou o `/api/definir` que
-#   acabou de gravar, nunca vê a resposta desta. Guardar ENTRE leituras seria a
-#   página mostrando o que já mudou — a lição da P46.
+# Fora de uma leitura (`_numa_leitura`) as funções marcadas perguntam como
+# sempre; dentro dela, a primeira resposta vale até a leitura acabar.
 _LEITURA = threading.local()
 
 
@@ -320,9 +209,6 @@ def _numa_leitura(funcao):
 # --- 2. o esquema, lido do meow.conf.exemplo --------------------------------
 # As quatro regras abaixo são a tradução literal do `wiz_ler_esquema`,
 # `wiz_valor_da_linha`, `wiz_comentario_da_linha` e `wiz_opcoes` do `bin/meow`.
-# Onde o bash e o Python discordarem, o bash é que está certo: ele é quem a
-# pessoa vê no terminal, e duas verdades sobre a mesma chave é o defeito que este
-# projeto mais persegue.
 
 RE_CHAVE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
 # O token de uma lista de opções: exatamente o `[!A-Za-z0-9_.:+-]` do bash, ao
@@ -429,7 +315,6 @@ def _opcoes(chave, ajuda, inline):
             continue
         return tokens
     tabela = _opcoes_da_lista_indentada(ajuda)
-    # A TABELA SÓ É DESTA CHAVE SE O VALOR DE FÁBRICA DELA ESTIVER NA TABELA.
     #   `FASTFETCH_LOGO_MODO` traz `espelho | hora | fixo` e nasce `espelho` — é
     #   dele. As duas chaves logo abaixo (`_DIA`, `_NOITE`) herdam o mesmo
     #   comentário porque não têm um próprio, e nascem VAZIAS: ganhariam três
@@ -443,11 +328,9 @@ def _opcoes(chave, ajuda, inline):
 
 
 # A SEGUNDA FORMA DE LISTAR OPÇÕES NESTE ARQUIVO — e ela era invisível para a
-# página até 01/09/2026, quando ela apontou:
+# página, quando ela apontou:
 #
-#   "Como o gato do dock e do terminal são escolhidos e tá escrito horas. Cara,
-#    era pra ter o que de opção ali? Se era pra ter opção pq não tem botões de
-#    escolha?"
+# "Como o gato do dock e do terminal são escolhidos e tá escrito horas.
 #
 # O `LOGO_MODO` TEM três opções, e o `meow.conf.exemplo` as lista — mas numa
 # tabela indentada, não em `a | b | c`:
@@ -455,17 +338,6 @@ def _opcoes(chave, ajuda, inline):
 #   #   hora     (padrão) LOGO_NOITE de noite, LOGO_DIA de dia...
 #   #   rotacao  gira pelo acervo ao encerrar a sessão...
 #   #   fixo     LOGO= vence sempre; nada gira, nada segue relógio.
-#
-# Como só a forma com barras era reconhecida, a chave caía em CAMPO DE TEXTO e
-# ela tinha de digitar `hora` de cabeça — numa página cujo motivo de existir é
-# não precisar decorar valor.
-#
-# A regra é derivada da FORMA, não de uma lista de chaves: três ou mais linhas
-# seguidas do comentário, todas indentadas igual, todas começando por uma
-# palavra curta em minúsculas seguida de dois ou mais espaços e uma explicação.
-# Isso é uma tabela de opções em qualquer arquivo, e é assim que este projeto
-# escreve as dele. Hoje pega `LOGO_MODO` e `FASTFETCH_LOGO_MODO`; amanhã pega a
-# próxima que nascer com a mesma cara, sem ninguém vir aqui.
 RE_OPCAO_TABELA = re.compile(r"^#(\s{2,})([a-z][a-z0-9_-]{1,14})\s{2,}\S")
 
 
@@ -504,58 +376,13 @@ def _e_tabela(chave, ajuda, inline):
     return bool(_opcoes_da_lista_indentada(ajuda))
 
 
-# A TERCEIRA FORMA DE LISTAR OPÇÕES: ELAS NÃO ESTÃO ESCRITAS, ELAS SÃO O DISCO
-# ─────────────────────────────────────────────────────────────────────────────
-# Havia aqui, até 01/09/2026, uma lista de quatro nomes de chave — as do gato —
-# e ela era a única lista fixa do arquivo. A auditoria daquele dia mostrou o
-# preço de a regra não ser geral: `ICONES_BASE` (um TEMA DE ÍCONES INSTALADO) e
-# `CURSOR` (um PONTEIRO INSTALADO) caíam em campo de texto, e ela tinha de
-# digitar de cabeça o nome de uma pasta — numa página cujo motivo de existir é
-# não precisar decorar valor.
+# Havia aqui, uma lista de quatro nomes de chave — as do gato — e ela era a
+# única lista fixa do arquivo.
 #
-# A regra passa a ser a mesma do resto do arquivo: perguntar ao CONTEÚDO. O
-# comentário da chave diz de onde os valores vêm ("o acervo é a pasta
-# `assets/gatos/`", "o nome do tema de ícones", "o PONTEIRO"), e o gatilho é
-# esse texto. Chave nova cujo comentário cite o mesmo acervo ganha os botões
-# sozinha.
+# A regra passa a ser a mesma do resto do arquivo: perguntar ao CONTEÚDO.
 #
 # A GUARDA É O VALOR DE FÁBRICA, e é ela que faz uma regra de texto largo não
-# atropelar as vizinhas. Três exemplos medidos nesta árvore:
-#
-#   LOGO_ROTACAO   o bloco dele cita `assets/gatos/*.svg` (explica o acervo da
-#                  rotação) e o padrão é `nao` — que não é gato nenhum. Fica de
-#                  fora, e continua com os dois botões sim/não.
-#   CURSOR_VERSAO  herda o bloco do `CURSOR`, que fala de ponteiro o tempo
-#                  todo; o padrão é `v2.0.0`, que não é ponteiro instalado.
-#   TERMINAL_CURSOR  a palavra "cursor" está no nome e no bloco; o padrão é
-#                  `accent`, e a lista `accent | port` do texto continua valendo.
-#
-# É o MESMO critério que já governa a tabela indentada ("a tabela só é desta
-# chave se o valor de fábrica dela estiver na tabela"), aplicado a uma lista que
-# mora no disco em vez de no comentário.
-#
-# POR ISSO O GATILHO PODE SER LARGO, e é de propósito que ele seja: a palavra
-# "ícone" aparece em dezenas de blocos deste arquivo, e o que decide não é ela —
-# é o disco. Um gatilho estreito ("tema de ícones", exatamente assim) quebraria
-# no dia em que alguém reescrevesse o comentário para dizer a mesma coisa com
-# outras palavras, e o sintoma seria a chave voltando a ser campo de texto sem
-# ninguém entender por quê. Largo + guarda apertada envelhece melhor que
-# estreito + guarda apertada.
-#
-# A TERCEIRA COLUNA É "ESTA LISTA É UMA CERCA?", E ELA SEPARA DOIS ACERVOS QUE
-# PARECEM IGUAIS
-#   `assets/gatos/` é uma pasta que ESTA PÁGINA sabe encher: o botão "Adicionar
-#   gato" manda um `.svg` para lá, e o próprio `meow.conf.exemplo` avisa que
-#   "qualquer outro valor é tratado como caminho de um SVG seu". Recusar na
-#   escrita um nome que ainda não está na pasta seria a página proibindo o que a
-#   CLI aceita — o pior lado para errar.
-#
-#   Um tema de ícones e um ponteiro são o oposto: têm de JÁ estar instalados no
-#   sistema, e esta página não instala nem um nem outro. Um valor que não esteja
-#   lá não é "ainda não chegou", é erro — e o erro aparece longe daqui e mudo
-#   (o `construir_pastas.sh:135` sai com SEM_DEPENDENCIA; o `cursor.sh` vai
-#   tentar BAIXAR `<valor>-cursors.zip` e falhar). Aí a lista vira cerca, e o
-#   `/api/definir` recusa na hora, com a frase que diz o que se esperava.
+# atropelar as vizinhas.
 FONTES_DO_DISCO = (
     (re.compile(r"assets/gatos/"), "gatos", False),
     (re.compile(r"[íi]cones?\b", re.I), "temas_icones", True),
@@ -563,9 +390,7 @@ FONTES_DO_DISCO = (
 )
 
 # "Vazio = herda LOGO_DIA": uma chave que declara herdar outra oferece as MESMAS
-# opções que a outra oferece. É o que devolve os botões de gato às
-# `FASTFETCH_LOGO_DIA/NOITE`, cujo bloco de comentário é o da vizinha `_MODO` e
-# por isso não cita acervo nenhum — quem cita é a chave de quem elas herdam.
+# opções que a outra oferece.
 RE_HERDA = re.compile(r"herda\s+([A-Z][A-Z0-9_]{2,})")
 
 
@@ -628,17 +453,8 @@ def _opcoes_finais(chave, ajuda, inline, padrao, herdada=False):
     if do_disco:
         return do_disco
     opcoes = [o for o in _opcoes(chave, ajuda, inline) if o != "vazio"]
-    # A TABELA INDENTADA SÓ DESCREVE A CHAVE SE O VALOR DE FÁBRICA ESTIVER NELA.
-    #   `FASTFETCH_LOGO_MODO` traz a tabela `espelho / hora / fixo` e nasce
-    #   `espelho` — a tabela é dele. As duas chaves logo abaixo, `_DIA` e
-    #   `_NOITE`, herdam aquele comentário porque não têm um próprio, e nascem
-    #   VAZIAS: ganhavam três botões de modo para escolher um NOME DE GATO.
-    #   Pego pelo `tests/app.sh`, que compara o que o painel lê com o que o
-    #   wizard lê. O critério é o mesmo nos dois, e não depende de saber quem
-    #   herdou o quê — só de olhar se o valor de fábrica é uma das opções.
-    #   `padrao or ""` e não `padrao and ...`: as duas chaves do caso nascem
-    #   VAZIAS, e uma condição que exige padrão preenchido as deixaria passar —
-    #   que era exatamente o defeito.
+    # `FASTFETCH_LOGO_MODO` traz a tabela `espelho / hora / fixo` e nasce
+    # `espelho` — a tabela é dele.
     if opcoes and (padrao or "") not in opcoes and _e_tabela(chave, ajuda, inline):
         return []
     if not opcoes and padrao in ("sim", "nao"):
@@ -649,13 +465,9 @@ def _opcoes_finais(chave, ajuda, inline, padrao, herdada=False):
 RE_DURACAO = re.compile(r"^\d+(?:[.,]\d+)?[smhd]$")
 
 
-# AS CHAVES QUE ANULAM OUTRAS, DECLARADAS EM UM LUGAR SÓ.
-#   Isto é uma lista, e listas envelhecem — mas esta descreve uma RELAÇÃO entre
-#   chaves que só existe dentro dos scripts (`logo.sh:113-119` e `:432-449`), e
-#   não há como derivá-la do texto do `meow.conf.exemplo` sem inventar. O que dá
-#   para exigir é que ela seja pequena, explicada, e conferida: cada entrada diz
-#   a condição em que a chave dominante vence, e o teste `tests/app.sh` confere
-#   que as chaves citadas existem.
+# Isto é uma lista, e listas envelhecem — mas esta descreve uma RELAÇÃO entre
+# chaves que só existe dentro dos scripts (`logo.sh:113-119` e `:432-449`), e
+# não há como derivá-la do texto do `meow.conf.exemplo` sem inventar.
 DOMINIOS = {
     "LOGO_ROTACAO": {
         "chave": "LOGO_MODO",
@@ -669,15 +481,7 @@ DOMINIOS = {
         "porque": "Por horário quem escolhe são os gatos de dia e de noite; "
                   "esta só entra quando um daqueles dois não está na lista.",
     },
-    # A MARGEM QUE O COMPOSITOR JOGA FORA — 07/09/2026.
-    #   Mesmo defeito das de cima, achado no cabeçalho do próprio `forma.sh`
-    #   (linhas 19-26), que já o descrevia sem que a página soubesse: o
-    #   `get_effective_anchor_gap()` do cosmic-panel é literalmente
-    #       if self.anchor_gap { self.margin as u32 } else { 0 }
-    #   e o "solto" é quem escreve o `anchor_gap`. Com ele em "nao", o
-    #   deslizante de distância aceita o número, grava, e a barra continua
-    #   colada — "e ninguém diz por quê", nas palavras do próprio arquivo.
-    #   Agora o cartão diz.
+    # A MARGEM QUE O COMPOSITOR JOGA FORA.
     "FORMA_MARGEM_PAINEL": {
         "chave": "FORMA_PAINEL_SOLTO",
         "quando": lambda v: v == "nao",
@@ -693,23 +497,13 @@ DOMINIOS = {
     "FASTFETCH_LOGO_GATO": {
         "chave": "FASTFETCH_LOGO_MODO",
         "quando": lambda v: bool(v) and v != "fixo",
-        # CORRIGIDO EM 07/09/2026: dizia "nos outros modos o gato do terminal
-        # segue o do dock" — e em "espelho" (o padrão!) ele mostra o OUTRO
-        # gato, de propósito (scripts/fastfetch_logo.sh:128). A ajuda afirmava
-        # o contrário do comportamento de fábrica.
+        # A ajuda afirmava o contrário do comportamento de fábrica.
         "porque": "Ela só vale com a escolha em \u201cfixo\u201d. Em "
                   "\u201chora\u201d o terminal segue o gato do dock; em "
                   "\u201cespelho\u201d ele mostra o OUTRO gato.",
     },
-    # A VERSÃO SÓ MANDA NO PONTEIRO QUE SE BAIXA POR ELA — 24/09/2026, P51
-    #   (achado 20). O `CURSOR_VERSAO` é o release que o `cursor.sh` pede no
-    #   ÚLTIMO degrau dele, quando baixa o tema pelo nome (`_cursor_url`). O
-    #   ponteiro que o pack no ar traz — próprio, ou pinado por url e sha256
-    #   (`origens.cursores.origem`, P41) — entra antes, e nunca passa por esse
-    #   número. Com o Dracula no ar o cartão oferecia a v2.0.0 como se ela
-    #   mandasse no ponteiro do Dracula. Quem responde "este valor é o ponteiro
-    #   do pack" é o `_ponteiro_do_pack`, a mesma pergunta que a lista do
-    #   ponteiro faz ao `cursor.sh`.
+    # O `CURSOR_VERSAO` é o release que o `cursor.sh` pede no ÚLTIMO degrau
+    # dele, quando baixa o tema pelo nome (`_cursor_url`).
     "CURSOR_VERSAO": {
         "chave": "CURSOR",
         "quando": lambda v: _ponteiro_vem_do_pack(v),
@@ -731,21 +525,13 @@ def _valor_vivo(chave):
 COSMIC_DIR = os.environ.get("MEOW_COSMIC_DIR") or os.path.expanduser("~/.config/cosmic")
 CONF_COMP = os.path.join(COSMIC_DIR, "com.system76.CosmicComp", "v1")
 
-# O QUE A MÁQUINA TEM, NA LÍNGUA DO meow.conf — 13/09/2026
-#   Queixa dela: "muita métrica que tá hardcoded muita variavel feita na mão e
-#   não integrada ou funcionando conforme a interface do app de forma que o user
-#   não consegue ver nada se alterado de fato". Medido nesta máquina: o desenho
-#   da dock mostrava raio 16, opacidade 0,8 e a ponta esquerda "herdada" (M),
-#   com a dock dela em raio 24, opacidade 0,87 e ponta esquerda L. Os números
-#   eram constantes do `app.js`, porque as chaves de forma nascem VAZIAS — e
-#   vazio, nelas, é "não toca": o que vale é o que o COSMIC já tem no disco.
+# Os números eram constantes do `app.js`, porque as chaves de forma nascem
+# VAZIAS — e vazio, nelas, é "não toca": o que vale é o que o COSMIC já tem no
+# disco.
 #
-#   A TABELA É A LEITURA INVERSA DO QUE OS SCRIPTS ESCREVEM, e cada grupo diz de
-#   qual: `forma.sh` (aplicar_barra, aplicar_tamanhos), `vidro.sh`, `relogio.sh`
-#   e `janelas.sh`. Ela não tem como sair do `meow.conf.exemplo` — o arquivo diz
-#   O QUE a chave faz, não ONDE o COSMIC a guarda —, então quem a segura contra
-#   o esquecimento é o `tests/app.sh`, que confere que cada arquivo daqui ainda
-#   é escrito pelo script citado.
+# A TABELA É A LEITURA INVERSA DO QUE OS SCRIPTS ESCREVEM, e cada grupo diz de
+# qual: `forma.sh` (aplicar_barra, aplicar_tamanhos), `vidro.sh`, `relogio.sh` e
+# `janelas.sh`.
 _BARRAS = (("PAINEL", "com.system76.CosmicPanel.Panel/v1/"),
            ("DOCK", "com.system76.CosmicPanel.Dock/v1/"))
 _DEGRAU = r"(XS|S|M|L|XL)"
@@ -813,28 +599,10 @@ for _suf, _pasta in _BARRAS:
     })
 
 
-# O ZERO DA TEMPERATURA É "DESLIGADO", E NÃO UMA TEMPERATURA — 24/09/2026, P51
-#   (achado 39). O `leitura.sh` escreve `leitura_temperatura = 0` quando o modo
-#   de leitura não está esquentando a tela — fora do horário, ou com o
-#   deslizante no neutro —, e nunca o 6500, porque o `is_noop()` do
-#   compositor só pula o passe do shader com o zero (o bloco da conta, no
-#   `leitura.sh`). Lido como valor, o zero aparecia no cartão como «Na máquina
-#   agora: 0», e o desenho do Modo de leitura o recebia como a temperatura
-#   escolhida e acusava «LEITURA_TEMPERATURA tem valor que o ajuste não aceita»,
-#   com 3500 no conf. De dia a máquina não tem temperatura nenhuma para
-#   mostrar: o cartão diz «desligado» (o campo `desligado_agora` do esquema de
-#   cada chave) e o desenho volta ao valor escolhido.
-#
-# E A TEXTURA TAMBÉM — 24/09/2026, P51, na revisão. O mesmo tique grava
-#   `leitura_textura = 0.00` fora do horário (o `tex = f * alvo_x` com f = 0,
-#   pelo `printf "%.2f"`), e o zero da textura é, do mesmo jeito, o passe que
-#   não roda. Só a temperatura era reconhecida, e o cartão irmão dizia «Na
-#   máquina agora: 0.00. [...] Salvar e aplicar faz este ajuste vencer.» de
-#   dia, com 0.35 no conf — e salvar de dia não faz 0.35 vencer: o tique do
-#   minuto seguinte grava 0.00 de novo. O zero é lido como NÚMERO, e não pelos
-#   bytes, porque cada chave o escreve de um jeito (`0`, `0.00`).
-#   São as duas chaves que o `leitura.sh` zera para desligar; as outras cinco
-#   do modo de leitura não têm estado de "desligado agora".
+# O `leitura.sh` escreve `leitura_temperatura = 0` quando o modo de leitura não
+# está esquentando a tela — fora do horário, ou com o deslizante no neutro —, e
+# nunca o 6500, porque o `is_noop()` do compositor só pula o passe do shader com
+# o zero (o bloco da conta, no `leitura.sh`).
 _LEITURA_ZERO_DESLIGA = ("LEITURA_TEMPERATURA", "LEITURA_TEXTURA")
 
 
@@ -847,14 +615,8 @@ def _leitura_desligada(chave, valor):
         return False
 
 
-# ONDE O APPLET DO MODO DE LEITURA GUARDA CADA CHAVE — 10/10/2026, P77 (achado 26)
-#   O `_valendo_agora` lia `com.system76.CosmicComp/v1/<chave em minúscula>`,
-#   e só acertava por acaso: `leitura_temperatura` é o que está NA TELA neste
-#   minuto (0 de dia), e não o ponto que ela arrastou; `leitura_horario_inicio`
-#   não existe — o applet grava `leitura_hora_inicio`. O lugar de cada uma é o
-#   que o `scripts/leitura.sh` lê (`LEITURA_K_*`): o ponto dos sliders no ESTADO
-#   do applet, a agenda e o horário no CosmicComp. As duas que não estão aqui
-#   (a rampa e o applet na barra) só existem no meow.conf.
+# O lugar de cada uma é o que o `scripts/leitura.sh` lê (`LEITURA_K_*`): o ponto
+# dos sliders no ESTADO do applet, a agenda e o horário no CosmicComp.
 _LEITURA_NO_APPLET = {
     "LEITURA_TEMPERATURA": ("estado", "ultima_temperatura"),
     "LEITURA_TEXTURA": ("estado", "ultima_textura"),
@@ -898,22 +660,16 @@ def _leitura_no_applet(chave):
 
 def _valendo_agora(chave):
     if chave == "LOGO_MODO":
-        # O MODO QUE VALE COM A CHAVE VAZIA — 10/10/2026, P79 (conferência da
-        # P77). Com `LOGO_MODO=""` o `logo.sh` lê `rotacao` (com
-        # `LOGO_ROTACAO="sim"`) ou `hora`, e a moldura «Gato do dock» procurava
-        # o modo vazio e não mostrava gato nenhum. Quem sabe a regra é o
-        # `logo.sh modo`, pelo `_modo_do_gato`; a página recebe a resposta aqui.
+        # Com `LOGO_MODO=""` o `logo.sh` lê `rotacao` (com `LOGO_ROTACAO="sim"`)
+        # ou `hora`, e a moldura «Gato do dock» procurava o modo vazio e não
+        # mostrava gato nenhum.
         return _modo_do_gato() or None
     if chave.startswith("LEITURA_"):
-        # [P77: o lugar do applet, e não a tela deste minuto — ver acima.]
         return _leitura_no_applet(chave)
     if chave == "AREAS_NOMES":
-        # AS ÁREAS QUE O COSMIC TEM — 10/10/2026, P77 (achado 29). Vazio é «as
-        # áreas são suas», e mesmo assim elas existem e têm nome e ordem: a
-        # página as desenha como estão, a traço, e o primeiro gesto de
-        # arrastar ou renomear parte delas. Cheio e ainda não aplicado (o
-        # cosmic-comp lê o arquivo no início da sessão), o «Como está» é o do
-        # disco. `_areas_alfinetadas` já tira a folga invisível dos nomes.
+        # Vazio é «as áreas são suas», e mesmo assim elas existem e têm nome e
+        # ordem: a página as desenha como estão, a traço, e o primeiro gesto
+        # de arrastar ou renomear parte delas.
         return ", ".join(_areas_alfinetadas()) or None
     if chave == "VIDRO_AO_MAXIMIZAR":
         # Uma chave para as duas barras (o `vidro.sh` grava as duas): só há
@@ -971,29 +727,14 @@ def _titulo_de(chave):
 
 # --- o scripts/pack.py, carregado por caminho --------------------------------
 #
-# POR QUE ESTE CARREGADOR EXISTE [21/09/2026]
-#   A lista das raízes de busca de pack estava digitada em QUATRO lugares —
-#   `scripts/pack.py:raizes()`, duas vezes no `lib/comum.sh` e uma aqui. E havia
-#   uma quinta, no `_mapa_dracula` lá embaixo, que só conhecia `RAIZ/packs` e por
-#   isso ignorava o XDG e o `$MEOW_PACKS`: um pack instalado em
-#   `~/.local/share/meowsystem/packs` simplesmente não existia para o painel.
-#   Nenhuma dessas divergências dá erro — elas somem um pack da tela, caladas.
+# A lista das raízes de busca de pack estava digitada em QUATRO lugares —
+# `scripts/pack.py:raizes()`, duas vezes no `lib/comum.sh` e uma aqui.
 #
-#   Quem manda é o `scripts/pack.py`, porque é ele quem abre o `pack.json`. A
-#   docstring dele diz, desde que nasceu, que "o shell consulta por
-#   `python3 scripts/pack.py <verbo>`; o Python IMPORTA ou consulta igual" — o
-#   import é o caminho previsto, não um atalho.
+# Quem manda é o `scripts/pack.py`, porque é ele quem abre o `pack.json`.
 #
-# POR QUE POR CAMINHO, E NÃO COM `sys.path.insert`
-#   Pôr `scripts/` no `sys.path` deste processo colocaria os outros 40 módulos de
-#   lá na frente da biblioteca padrão para sempre, por causa de um. O cabeçalho
-#   do `meow_paleta` (lib/comum.sh) isenta os consumidores em Python de importar
-#   uns aos outros citando exatamente "um problema de sys.path que este projeto
-#   não tem hoje" — e continuar não tendo custa estas seis linhas.
-#
-# POR QUE O SUBPROCESSO NÃO SERVIA
-#   `_mapa_dracula` roda por requisição da página de ícones. Um fork de python
-#   por requisição é caro, e a resposta não muda entre elas.
+# POR QUE POR CAMINHO, E NÃO COM `sys.path.insert` Pôr `scripts/` no `sys.path`
+# deste processo colocaria os outros 40 módulos de lá na frente da biblioteca
+# padrão para sempre, por causa de um.
 _PACK_MOD = None
 
 
@@ -1036,49 +777,23 @@ def _packs_no_disco():
         if not base or not os.path.isdir(base):
             continue
         for nome in os.listdir(base):
-            if os.path.isfile(os.path.join(base, nome, "pack.json")):
+            # O pack-base é acervo e não se veste: não tem cartão.
+            if os.path.isfile(os.path.join(base, nome, "pack.json")) \
+                    and not (hasattr(mod, "eh_base") and mod.eh_base(os.path.join(base, nome))):
                 achados.add(nome)
     return achados
 
 
-# A VITRINE DOS PACKS — 23/09/2026, sprint P15
+# A VITRINE DOS PACKS
 #
-# O QUE ELA SERVE
-#   O cartão de pack da Home: capa, nome, autor, a frase curta, as etiquetas, a
-#   linha "próprio / herdado" e, para quem abrir, a história inteira. Tudo sai
-#   do `pack.vitrine()` e do `pack.resumo_de_origem()`, que são os mesmos que o
-#   `meow pack info` imprime — a tela e o terminal não podem contar dois packs
-#   diferentes.
+# O cartão de pack da Home: capa, nome, autor, a frase curta, as etiquetas, a
+# linha "próprio / herdado" e, para quem abrir, a história inteira.
 #
-# A HISTÓRIA VAI COMO TEXTO, E A REGRA É DURA
-#   O `vitrine.descricao` é um Markdown escrito por quem publicou o pack, e esta
-#   página carrega o token de sessão. Renderizar Markdown de terceiro aqui é dar
-#   a um arquivo baixado da internet a chance de virar HTML dentro do painel.
-#   Então o texto viaja CRU no JSON e a página o põe num `<pre>` por
-#   `textContent` — nada é interpretado, nem do lado de cá nem do de lá. Quem
-#   quiser negrito escreve no site dele, que o cartão linka.
-#   [24/09/2026, P53: o `<pre>` mostrava `#`, `##` e `**` crus na tela — medido
-#   no painel de verdade, 25 marcas na história do Dracula. A página passou a
-#   montar um SUBCONJUNTO — títulos, listas, negrito, código e link https — nó
-#   a nó, cada pedaço por `textContent` (o `historiaDoPack` do app.js). Deste
-#   lado nada muda, e a regra também não: o texto viaja cru, e HTML de
-#   terceiro continua sem jeito de virar HTML aqui.]
+# Um `pack.json` de terceiro pode estar malformado de jeitos que o `validar` não
+# previu (um `"paleta": "x"` estoura AttributeError antes de virar Recusa).
 #
-# UM PACK QUEBRADO NÃO DERRUBA A LISTA
-#   Um `pack.json` de terceiro pode estar malformado de jeitos que o `validar`
-#   não previu (um `"paleta": "x"` estoura AttributeError antes de virar
-#   Recusa). Um pack desses aparece com o erro dele no lugar da vitrine; os
-#   outros aparecem inteiros. Sumir com a lista por causa de um seria a tela
-#   inteira quebrada por um arquivo que ela nem escolheu.
-# QUAL PACK ESTÁ NO AR — 23/09/2026, sprint P10
-#
-#   A resposta é a da PONTE, e não uma leitura do PACK/FLAVOR daqui: o
-#   `meow_pack_dir` (lib/comum.sh) tem regras — a adoção pelo FLAVOR, o pack que
-#   não valida e cai no padrão — e uma segunda cópia delas em Python discordaria
-#   no primeiro caso esquisito. A ponte já as aplicou e deixou o resultado em
-#   `MEOW_PACK_DIR`; o `_ponte_em_dia` a mantém fiel ao meow.conf de agora.
-#   Vazio quer dizer "nenhum pack resolvido", e aí o que veste a máquina é o
-#   padrão — a mesma queda do `meow_paleta`.
+# A história (`vitrine.descricao`) é Markdown de terceiro e viaja crua no JSON: a
+# página só a monta por `textContent`, porque carrega o token de sessão.
 def _pack_no_ar():
     """O id do pack que veste a máquina agora, ou '' sem `scripts/pack.py`."""
     _ponte_em_dia()
@@ -1121,14 +836,8 @@ def vocabulario_do_pack():
         return None
 
 
-# O «REMOVER» DO CARTÃO — 24/09/2026, sprint P53 (achado 8)
-#   Quem decide o que sai é a `remocao` do scripts/pack.py, a mesma que o
-#   `meow pack remover` pergunta; daqui só sai o que o cartão precisa saber.
-#   None é "este pack não mora na casa dela" — o que vem com o MeowSystem —, e o
-#   cartão não ganha botão nenhum. Com `pode` falso, o cartão diz o `motivo`
-#   (o pack no ar, o que outro herda) em vez de oferecer o clique que o comando
-#   recusaria. O PACK e o FLAVOR são os que o `carregar_conf` do `bin/meow`
-#   passaria: os efetivos do meow.conf.
+# None é "este pack não mora na casa dela" — o que vem com o MeowSystem —, e o
+# cartão não ganha botão nenhum.
 def _remocao_do_cartao(mod, ident, conf):
     try:
         casa, motivo = mod.remocao(ident, conf.get("PACK") or "", conf.get("FLAVOR") or "")
@@ -1163,9 +872,7 @@ def packs_com_vitrine():
         except Exception as erro:
             # `valido` falso tira o «Usar este» do cartão: o `meow pack usar`
             # recusaria este pack pelo mesmo motivo, e um botão que só leva a
-            # uma recusa ensina a desconfiar dos outros. [P10]
-            #   O «Remover» FICA [P53]: um pack importado que não valida é
-            # justamente o que se quer tirar, e sem o botão ele só sairia à mão.
+            # uma recusa ensina a desconfiar dos outros.
             saida.append({"id": ident, "nome": ident, "problemas": [str(erro)],
                           "no_ar": ident == no_ar, "valido": False,
                           "remover": _remocao_do_cartao(mod, ident, conf)})
@@ -1177,12 +884,8 @@ def packs_com_vitrine():
             vocab = mod.vocabulario(ident)
         except Exception:
             vocab = {"flavors": [], "categorias": []}
-        # A CAPA SÓ ENTRA NO CARTÃO SE O `logo()` A ENTREGAR [23/09/2026, junção
-        #   com a P25]. Desde a a3ee4a6 o motor não confere o logo, e a vitrine só
-        #   confere o campo: um logo com `<script>` passaria pelas duas. Quem
-        #   confere o conteúdo é o `logo()`, a porta de quem mostra — a mesma que
-        #   o `/pack-vitrine` usa. O que ele recusa vira problema do cartão, em
-        #   vez de um <img> quebrado sem motivo.
+        # Desde a a3ee4a6 o motor não confere o logo, e a vitrine só confere o
+        # campo: um logo com `<script>` passaria pelas duas.
         flavor = (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"]))
         if vit["capa"]:
             try:
@@ -1197,10 +900,8 @@ def packs_com_vitrine():
                     texto = fh.read()
             except OSError:
                 texto = ""
-        # A AMOSTRA É O FLAVOR PADRÃO, NA ORDEM DOS 26. É a tira fina que fica
-        # embaixo da capa: amostra da paleta, e não identidade — a correção que
-        # a P25 fez no mockup de 21/09. Os hex já passaram pelo `#RRGGBB` do
-        # `validar`, então vão direto para o `style` sem outra peneira.
+        # Os hex já passaram pelo `#RRGGBB` do `validar`, então vão direto para
+        # o `style` sem outra peneira.
         cores = dados["flavors"].get(flavor) or {}
         base_url = "/pack-vitrine?id=" + quote(ident, safe="")
         saida.append({
@@ -1214,20 +915,15 @@ def packs_com_vitrine():
             "capturas": [base_url + "&arte=%d" % i for i in range(len(vit["capturas"]))],
             "site": vit["site"] or "",
             "origem": mod.resumo_de_origem(p),
-            # O CLARO QUE NINGUÉM DESENHOU [23/09/2026, P16]. Um pack feito de
-            # CSV pode ter o flavor claro DERIVADO, e o cartão tem de dizer —
-            # ao lado da linha de herança, que já diz que o resto vem de outro
-            # pack. Sai do mesmo `claros_derivados` do `meow pack info`.
+            # Um pack feito de CSV pode ter o flavor claro DERIVADO, e o
+            # cartão tem de dizer — ao lado da linha de herança, que já diz
+            # que o resto vem de outro pack.
             "claros_derivados": [{"flavor": c, "de": e}
                                  for c, e in mod.claros_derivados(dados).items()],
             "amostra": [cores[s] for s in mod.SLOTS if s in cores],
             "problemas": problemas,
-            # O PACK VIRA ESCOLHA, E O `meow pack info` VIRA TELA — P10
-            #   `no_ar` é o anel de acento do cartão e o que tira dele o «Usar
-            #   este». `flavors` e `categorias` são o `info` inteiro: as 26 cores
-            #   de cada flavor e, categoria a categoria, o que é próprio e o que
-            #   é herdado de quem. Saem do `vocabulario`, a mesma conta que a aba
-            #   Ícones usa — o cartão e a aba não podem contar dois packs.
+            # `no_ar` é o anel de acento do cartão e o que tira dele o «Usar
+            # este».
             "no_ar": ident == no_ar,
             "valido": True,
             "flavors": vocab["flavors"],
@@ -1257,13 +953,8 @@ def arte_da_vitrine(ident, arte):
         return None
     vit, _problemas = mod.vitrine(p, dir_pack)
     if arte == "capa":
-        # A CAPA SAI DO `logo()`, E NÃO DOS BYTES CRUS [23/09/2026, junção com a
-        #   P25]. O cru traz a prévia do `flavor_padrao` e não passou por
-        #   conferência nenhuma desde que o motor deixou de cobrar o logo; o
-        #   `logo()` confere o arquivo e reescreve as cores por papel. O flavor é
-        #   o padrão do pack, o mesmo da tira fina que o cartão põe embaixo: a
-        #   cara e a amostra falam do mesmo flavor. Trocar para o flavor que está
-        #   no ar é da P10, que faz da Home o lugar de trocar de pack.
+        # O flavor é o padrão do pack, o mesmo da tira fina que o cartão põe
+        # embaixo: a cara e a amostra falam do mesmo flavor.
         if not vit["capa"]:
             return None
         flavor = (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"]))
@@ -1286,37 +977,11 @@ def arte_da_vitrine(ident, arte):
         return None
 
 
-# O VOCABULÁRIO DA ABA ÍCONES SAI DO PACK NO AR — 23/09/2026, sprint P10
+# Não é regra derivada do comentário, e é de propósito: as três dizem coisas
+# diferentes (uma lista de flavors de um acervo, um rótulo, um molde de dois
+# campos), e uma regra que as juntasse precisaria de três exceções.
 #
-# O QUE A TELA DIZIA, MEDIDO COM O DRACULA NO AR
-#   Na aba Ícones, contado pelo texto visível: `Mocha` x2, `Macchiato`, `Frappé`,
-#   `Latte` x2, `${FLAVOR}` x2, `${ACCENT}` x2, `cat-` x2, e um cartão chamado
-#   «Pack de ícones Dracula nos aplicativos». Os nomes de flavor são do
-#   Catppuccin, numa máquina vestida de Dracula; o molde é sintaxe de shell
-#   pedida a quem não sabe o que é shell; e o nome de um pack estava cravado no
-#   rótulo de um ajuste que serve a qualquer pack.
-#
-# POR QUE AQUI, E NÃO NO `meow.conf.exemplo`
-#   O exemplo é a fonte única do texto de cada chave — e continua sendo: o balão
-#   `?` mostra o comentário inteiro, com o molde cru, para quem precisar dele. O
-#   que muda de pack para pack não cabe num arquivo de texto estático: quais
-#   flavors existem, de quem vêm os ícones de arquivo, se o papirus-folders tem
-#   pasta para a variante no ar. Isso é leitura de disco, e quem lê o disco para
-#   a página é este arquivo.
-#
-# SÃO TRÊS CHAVES, NOMEADAS, E O PORQUÊ DE CADA UMA ESTÁ NO BLOCO DELA, ABAIXO
-#   Não é regra derivada do comentário, e é de propósito: as três dizem coisas
-#   diferentes (uma lista de flavors de um acervo, um rótulo, um molde de dois
-#   campos), e uma regra que as juntasse precisaria de três exceções. A P31
-#   (23/09/2026) acrescentou a quarta, a «Variante do tema», com o bloco dela.
-#
-# O QUE NÃO MUDA: a cerca do `validar_valor`. Ela continua sendo a lista do
-# `meow.conf.exemplo` — o meow.conf vence o pack (docs/PACKS.md, "Quem vence"),
-# e quem escreveu `ICONES_FLAVOR="mocha"` à mão com o Dracula no ar continua
-# podendo; a página só não OFERECE o que o pack não escolheu, e mostra o valor
-# de agora quando ele estiver fora da lista. A exceção é a da P31: a «Variante
-# do tema» cerca pelos flavors dos packs do disco (`_flavors_dos_packs`), porque
-# a linha do exemplo recusava o alucard que a página passou a oferecer.
+# O QUE NÃO MUDA: a cerca do `validar_valor`.
 
 # Onde o `construir_pastas.sh` procura as cores do papirus-folders, com o mesmo
 # `MEOW_CAT_FOLDERS` por cima. As duas pontas leem o mesmo diretório; o que a
@@ -1341,7 +1006,7 @@ def _cores_de_pasta():
 
 
 # O `NOME_TEMA_ICONES` do meow.conf no ambiente, só durante a pergunta à regra
-# da base de ícones — ver o bloco 7, logo abaixo. [P56]
+# da base de ícones — ver o bloco 7, logo abaixo.
 _NOME_DO_TEMA_TRAVA = threading.Lock()
 
 
@@ -1366,20 +1031,13 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         if agora and "$" not in agora and agora not in oferta:
             oferta.append(agora)
         item["opcoes"] = oferta
-        # O VALOR QUE NÃO É DO PACK NO AR SAI COM NOME, E NÃO CRU — QA da P77,
-        #   10/10/2026. Com o Dracula completo (P74) o acervo dele tem nomes
-        #   próprios, e a casa que ainda guarda `ICONES_FLAVOR="macchiato"` (o
-        #   que o Dracula antigo herdava) via «Dracula · Alucard · macchiato»: o
-        #   único ladrilho em minúscula, com cara de identificador. O nome
-        #   próprio é o de qualquer flavor (`Macchiato`), sem inventar o dono.
+        # O nome próprio é o de qualquer flavor (`Macchiato`), sem inventar o
+        # dono.
         item["rotulos"] = {f: (mt["nomes"].get(f) or f[:1].upper() + f[1:]) + herdado
                            for f in oferta}
-        # O «VALE COMO» É A RESPOSTA DA REGRA, E NÃO A EXPANSÃO DO SHELL — P31
-        #   Com o conf de fábrica e o Dracula no ar o cartão dizia «Vale como:
-        #   dracula» — o `"$FLAVOR"` expandido —, e o `icones_mimetypes.sh` não
-        #   vestia nada, porque dracula não tem acervo. Os dois agora perguntam ao
-        #   `flavor_de_icones` do scripts/pack.py, e o `tests/pack.sh` confere
-        #   que a resposta daqui é a que o script instala.
+        # Com o conf de fábrica e o Dracula no ar o cartão dizia «Vale como:
+        # dracula» — o `"$FLAVOR"` expandido —, e o `icones_mimetypes.sh` não
+        # vestia nada, porque dracula não tem acervo.
         try:
             item["efetivo"] = modulo_pack().flavor_de_icones(
                 vocab["id"], efetivos.get("ICONES_FLAVOR"), efetivos.get("FLAVOR"))
@@ -1404,11 +1062,6 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
             item["frase"] = ("O pack «%s» não traz desenhos de aplicativo: com ele no ar, "
                              "este ajuste não tem o que vestir." % nome_pack)
 
-    # 3. «Cor das pastas» — o molde `cat-<variante>-<cor>` vira dois seletores
-    #    na página. Aqui sai o que cada um oferece: todo flavor do pack no ar
-    #    (desde a P56 o `construir_pastas.sh` deriva o que o papirus-folders não
-    #    tem), e as cores que o papirus-folders tem. A primeira opção de cada um
-    #    é o molde que acompanha o tema, que é o valor de fábrica.
     item = por_chave.get("ICONES_PASTAS")
     if item:
         cores_de = _cores_de_pasta()
@@ -1420,12 +1073,8 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         ibase = mod.SLOTS.index("base") if mod else 0
         luz = (lambda f: mod._luminancia(f["cores"][ibase])) if mod else (lambda f: 0.0)
         variantes = [{"valor": "${FLAVOR}", "rotulo": "Acompanha o tema"}]
-        # CADA FLAVOR DO PACK NO AR É VARIANTE — 24/09/2026, P56. Eram só os que o
-        #   papirus-folders traz, e com o Dracula no ar a lista ficava vazia: ele
-        #   só tem os quatro do Catppuccin. O `construir_pastas.sh` agora deriva
-        #   a variante que falta da do Catppuccin, trocando cor por cor pela
-        #   paleta do pack; com o papirus-folders no disco, todo flavor do pack
-        #   tem pasta.
+        # Eram só os que o papirus-folders traz, e com o Dracula no ar a lista
+        # ficava vazia: ele só tem os quatro do Catppuccin.
         if cores_de:
             variantes += [{"valor": f["id"], "rotulo": f["nome"]}
                           for f in sorted(vocab["flavors"], key=luz)]
@@ -1434,15 +1083,8 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         # cromáticos da paleta, que é exatamente o que ele traz quando chega; a
         # etapa das pastas se pula sozinha até lá, e a página diz isso.
         ordem = [s for s in (_paleta_dados().get("ordem_canonica") or [])[:14]]
-        # O NOME É O DA COR QUE A PASTA RECEBE — 24/09/2026, P56. Eram os slots
-        #   do Catppuccin com inicial maiúscula («Mauve», «Sapphire»), e a P51
-        #   recusou trocá-los pelo nome da cor enquanto a pasta recebesse o hex
-        #   do Mocha com qualquer pack no ar: nomear pelo pack mentiria. Agora a
-        #   pasta recebe o hex do flavor dela, e o nome é o da `nomeDaCor` da
-        #   P51 (`_nomes_de_cor`, abaixo), no flavor que o valor de agora pinta
-        #   — o de «Acompanha o tema» é o FLAVOR. O valor gravado continua sendo
-        #   o slot. Um flavor que o pack no ar não tem (escrito à mão) fica com
-        #   o slot, que é o nome que ele sempre teve.
+        # O valor gravado continua sendo o slot. Um flavor que o pack no ar não
+        # tem (escrito à mão) fica com o slot, que é o nome que ele sempre teve.
         achado = re.match(r"^cat-(.+)-([^-]+)$", efetivos.get("ICONES_PASTAS") or "")
         fl_pastas = achado.group(1) if achado else (efetivos.get("FLAVOR") or "")
         do_fl = next((f for f in vocab["flavors"] if f["id"] == fl_pastas), None)
@@ -1459,28 +1101,13 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
             "variantes": variantes,
             "cores": cores,
             "sem_upstream": not cores_de,
-            # A VARIANTE NO AR QUE O PAPIRUS-FOLDERS NÃO TEM, E QUE NÃO SE
-            # DERIVA. O `construir_pastas.sh` cai na variante escura que ele tem
-            # e avisa no log; a página diz o mesmo antes, com o nome do flavor.
-            # Desde a P56 só chega aqui um flavor que o pack no ar não tem: os
-            # dele saem derivados, na cor dele.
+            # O `construir_pastas.sh` cai na variante escura que ele tem e avisa
+            # no log; a página diz o mesmo antes, com o nome do flavor.
             "fora_do_papirus": (nomes.get(flavor_no_ar) or flavor_no_ar)
                                if cores_de and flavor_no_ar not in cores_de
                                and flavor_no_ar not in nomes else "",
         }
 
-    # 4. «Variante do tema» — os flavors do PACK NO AR, e não a cerca do
-    #    exemplo. [P31, 23/09/2026] A linha `mocha | macchiato | frappe | latte |
-    #    dracula` do `meow.conf.exemplo` oferecia, com o Dracula no ar, quatro
-    #    sabores do Catppuccin e nenhum alucard — que é o claro do próprio
-    #    Dracula, e que a cerca recusava com 400. As opções saem do
-    #    `paleta.json` do pack (pelo `vocabulario`), do escuro para o claro pela
-    #    luminância do `base` como as variantes das pastas acima, com o nome que
-    #    o pack dá; o claro que o método do Latte derivou diz "derivado". O valor
-    #    de agora, se estiver fora, continua oferecido, como no bloco 1. A frase
-    #    do exemplo ("Catppuccin em três escuros e um claro, ou Dracula") dava o
-    #    inventário de dois packs cravado em texto; a daqui diz de qual pack são.
-    #    A cerca da escrita é a do `_flavors_dos_packs`, logo abaixo.
     item = por_chave.get("FLAVOR")
     mod = modulo_pack()
     if item and mod and vocab["flavors"]:
@@ -1495,30 +1122,9 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
                            for f in flavors}
         item["frase"] = ("As variantes do pack «%s», do escuro ao claro. Vale com "
                          "qualquer cor de destaque." % nome_pack)
-        # A PRÉVIA SE PERGUNTA DE NOVO, SOBRE AS OPÇÕES QUE VÃO PARA A PÁGINA —
-        # 24/09/2026, sprint P40
-        #   O `_tipo_de_previa` roda no `ler_esquema`, ANTES deste bloco, e olha
-        #   a linha do exemplo: `mocha | macchiato | frappe | latte | dracula`.
-        #   Cinco nomes não cabem na paleta de pack nenhum (4 no catppuccin, 2 no
-        #   dracula), a resposta era `""`, e a «Variante do tema» saía sem uma
-        #   amostra em casa nenhuma desde a P31 — o `tests/app-navegador.py`
-        #   reprovava "FLAVOR mostra as paletas" e morria no passo 20c, sem
-        #   botão de amostra para clicar. A pergunta é a mesma função, feita ao
-        #   conteúdo novo, e não uma exceção para esta chave: com um valor de
-        #   agora que o pack não tem, a resposta continua `""`, e o cartão mostra
-        #   esse valor como opção em vez de escondê-lo — o `controleFlavor`
-        #   pularia o flavor sem cor.
         item["previa"] = _tipo_de_previa(item["chave"], oferta, item.get("faixa"),
                                          item.get("padrao"))
 
-    # 5. «Theme pack» — os packs DO DISCO, pelo nome. [P53, 24/09/2026, achado
-    #    29] Era um campo de texto: para escolher o Dracula era preciso digitar
-    #    `dracula`, e o que se digitasse errado caía no padrão calado no próximo
-    #    aplicar. A oferta é a mesma varredura do `/api/packs` e do «Usar este»
-    #    (`_packs_no_disco`), e a cerca da escrita também (`validar_valor`). O
-    #    vazio continua sendo o terceiro estado — "o embutido", como o exemplo
-    #    diz. O valor de agora fora da lista continua oferecido, como nos
-    #    blocos 1 e 4: o meow.conf vence, e a tela mostra o que está lá.
     item = por_chave.get("PACK")
     if item and mod:
         oferta = sorted(_packs_no_disco())
@@ -1528,41 +1134,17 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         item["opcoes"] = oferta
         item["rotulos"] = {i: (mod.campo(i, "nome") or i) for i in oferta}
 
-    # 6. A COR DO TERMINAL_CURSOR É DO PACK NO AR — 24/09/2026, P51 (achados 19
-    #    e 40). O cartão dizia «Do Catppuccin» e «a que o Catppuccin escolheu»
-    #    com o Dracula no ar. O `port` é o `rosewater` da paleta do pack ATIVO
-    #    (o `terminal.sh` a lê pelo `meow_paleta`), então quem se nomeia é o
-    #    pack. O `meow.conf.exemplo` continua sendo o texto do `?`.
+    # O cartão dizia «Do Catppuccin» e «a que o Catppuccin escolheu» com o
+    # Dracula no ar.
     item = por_chave.get("TERMINAL_CURSOR")
     if item:
         item["frase"] = "A cor de destaque, ou a que o tema «%s» escolhe." % nome_pack
         item["rotulos"] = {"accent": "Cor de destaque", "port": "Do tema «%s»" % nome_pack}
 
-    # 7. «Tema de onde herdar» DIZ A BASE QUE VALE — 24/09/2026, P51 (achado 34).
-    #    Com o Dracula no ar o cartão mostrava `Papirus-Dark`, e o desenho dizia
-    #    «o que faltar vem do Papirus-Dark»: desde a P41 o pack declara a base
-    #    dele (`icones.base.origem`), e o valor de fábrica CEDE a ela. Quem
-    #    responde é o `base_que_vale` do scripts/pack.py, o mesmo que o
-    #    `construir_icones.sh` pergunta. O «Vale como» do cartão ganha o nome da
-    #    base e o do pack; o desenho recebe, pelo `vocab`, a mesma resposta e os
-    #    valores que cedem — perguntados à regra opção a opção (`_base_escolhida`),
-    #    e não copiados dela.
-    #
-    #    A REGRA LÊ O NOME DO TEMA DO AMBIENTE, E ESTE PROCESSO NÃO O TEM — P56.
-    #    O `_base_escolhida` cede o `<NOME_TEMA_ICONES>-Base` pelo nome que o
-    #    shell exporta do meow.conf, e o painel nunca leu o conf para o ambiente:
-    #    com um nome próprio, a regra aqui cedia o `MeowSystem-Icons-Base`, que
-    #    numa casa assim nem existe, e tomava a base do pack por um tema
-    #    escolhido à mão. Medido com `NOME_TEMA_ICONES="Tema-P56"` e o Dracula no
-    #    ar: o desenho dizia «o que faltar vem do Tema-P56-Base», e o
-    #    `pack.py base-icones` do shell, com o mesmo conf, responde `quem=pack`.
-    #    O nome vai para o ambiente só enquanto a regra responde, com o do conf,
-    #    e volta ao que era; a trava é porque o ambiente é um só para as linhas
-    #    do servidor.
-    #    [P75, 09/10/2026: a chave saiu do meow.conf.exemplo — aposentada no
-    #    `migrar_conf.py` —, e sem cartão a pergunta continua: a base que vale
-    #    é a do pack, e o desenho precisa dela. O `{}` faz a regra responder
-    #    pelo valor vazio, que é o que um conf sem a linha tem.]
+    # O `_base_escolhida` cede o `<NOME_TEMA_ICONES>-Base` pelo nome que o shell
+    # exporta do meow.conf, e o painel nunca leu o conf para o ambiente: com um
+    # nome próprio, a regra aqui cedia o `MeowSystem-Icons-Base`, que numa casa
+    # assim nem existe, e tomava a base do pack por um tema escolhido à mão.
     item = por_chave.get("ICONES_BASE") or {}
     if mod:
         with _NOME_DO_TEMA_TRAVA:
@@ -1591,18 +1173,10 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
             item["rotulos"] = dict(item.get("rotulos") or {},
                                    **{nossa: "%s, a base do pack «%s»" % (nossa, dono)})
 
-    # 8. O NOME DE UMA COR É O DA COR, E NÃO O DO SLOT — 24/09/2026, P51
-    #    (achado 26). Os botões da «Cor de destaque» se apresentavam ao leitor de
-    #    tela como `mauve`, `sapphire`, `maroon` — os nomes que o Catppuccin dá
-    #    às cores DELE —, com o Dracula no ar, onde o `maroon` é um vermelho
-    #    claro (#FF6E6E) e o `blue` um azul acinzentado. O slot é o vocabulário
-    #    com que o MeowSystem fala de cor e continua sendo o VALOR gravado; o
-    #    nome que a tela lê sai do hex daquele flavor (`_nomes_de_cor`), então
-    #    acompanha o pack sem que pack nenhum precise declarar nada.
-    #    As catorze primeiras do `SLOTS` são as cromáticas, como no bloco 3.
-    #    A `luz` vai junto pelo mesmo caminho: é a luminância do `base`, a régua
-    #    com que o bloco 4 ordena as variantes, e é com ela que o desenho de Cor
-    #    e tela põe cada flavor do pack no seu degrau do escuro ao claro.
+    # Os botões da «Cor de destaque» se apresentavam ao leitor de tela como
+    # `mauve`, `sapphire`, `maroon` — os nomes que o Catppuccin dá às cores DELE
+    # —, com o Dracula no ar, onde o `maroon` é um vermelho claro (#FF6E6E) e o
+    # `blue` um azul acinzentado.
     if mod:
         ibase = mod.SLOTS.index("base")
         for f in vocab["flavors"]:
@@ -1610,35 +1184,23 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
                                      **_NOMES_DAS_NEUTRAS)
             f["luz"] = round(mod._luminancia(f["cores"][ibase]), 4)
 
-    # E O DESENHO DOS ÍCONES VÊ O FLAVOR QUE VALE — o «Vale como» do bloco 1.
-    #   O desenho lia `ICONES_FLAVOR` cru, e o de fábrica é `"$FLAVOR"`: fora da
-    #   lista, a legenda dizia «o valor de ICONES_FLAVOR não é um dos aceitos»
-    #   com qualquer pack no ar. A resposta da regra vai junto do vocabulário.
+    # O desenho lia `ICONES_FLAVOR` cru, e o de fábrica é `"$FLAVOR"`: fora da
+    # lista, a legenda dizia «o valor de ICONES_FLAVOR não é um dos aceitos» com
+    # qualquer pack no ar.
     it_flavor = por_chave.get("ICONES_FLAVOR")
     if vocab.get("mimetypes") and it_flavor and it_flavor.get("efetivo"):
         vocab["mimetypes"]["efetivo"] = it_flavor["efetivo"]
 
 
-# OS MATIZES, EM PORTUGUÊS, DE 0 A 360 GRAUS — 24/09/2026, P51 (achado 26)
-#   O teto de cada faixa. As faixas são as do círculo cromático que qualquer
-#   pessoa nomeia sem pensar (o que o olho chama de roxo, e não o que um tema
-#   chama de lavanda), e o vermelho aparece nas duas pontas porque o círculo
-#   fecha nele. As exceções são três, e as três são de língua: a cor quase
-#   branca é «quase branco», a quase sem saturação é cinza, e o vermelho muito
-#   claro é o que se chama de rosa.
+# O teto de cada faixa.
 _MATIZES = ((15, "vermelho"), (40, "laranja"), (70, "amarelo"), (160, "verde"),
             (185, "verde-água"), (200, "ciano"), (250, "azul"), (290, "roxo"),
             (335, "rosa"), (361, "vermelho"))
 _MAIS_CLARO = ("", " claro", " mais claro")
 
-# AS DOZE NEUTRAS SE CHAMAM PELO PAPEL — 24/09/2026, P51, na revisão.
-#   O `_nomes_de_cor` nomeia só as catorze cromáticas, e as doze neutras ficavam
-#   com o slot: a grade das cores da música, no Painel e dock, lia «Roxo» e
-#   «Verde» e, logo ao lado, «Surface2», «Overlay0», «Mantle», «Crust». Pelo
-#   matiz elas seriam doze cinzas numerados, que não distinguem nada; o que as
-#   distingue é o PAPEL que a paleta de todo pack dá a cada uma (o texto, o
-#   fundo, as camadas entre os dois), e é ele que o nome diz. O número é o do
-#   slot, para o nome e o valor gravado continuarem se achando.
+# O `_nomes_de_cor` nomeia só as catorze cromáticas, e as doze neutras ficavam
+# com o slot: a grade das cores da música, no Painel e dock, lia «Roxo» e
+# «Verde» e, logo ao lado, «Surface2», «Overlay0», «Mantle», «Crust».
 _NOMES_DAS_NEUTRAS = {
     "text": "texto", "subtext1": "texto secundário 1", "subtext0": "texto secundário 0",
     "overlay2": "sobreposição 2", "overlay1": "sobreposição 1", "overlay0": "sobreposição 0",
@@ -1734,17 +1296,10 @@ def _vestigio_de_pack(chave):
     # adoção por convenção de meow_pack_dir() em lib/comum.sh.
     vals = valores_efetivos(["PACK", "FLAVOR"])
     adotado = (vals.get("PACK") or vals.get("FLAVOR") or "").strip().lower()
-    # E SE O QUE CHEGOU FOI UM SABOR, TRADUZA PARA O PACK — 22/09/2026.
-    #   A linha acima é `PACK or FLAVOR`, e com o meow.conf DE FÁBRICA
-    #   (`PACK=""`, `FLAVOR="mocha"`) o `adotado` vira "mocha". Nenhum pack se
-    #   chama mocha, então `pack == adotado` nunca casava, e o laço abaixo
-    #   acusava `CURSOR="catppuccin-mocha-light"` de ser "do pack «catppuccin»"
-    #   enquanto "o adotado é «mocha»" — prometendo tela misturada onde mocha
-    #   É o sabor do catppuccin, que é justamente o pack adotado.
+    # A linha acima é `PACK or FLAVOR`, e com o meow.conf DE FÁBRICA
+    # (`PACK=""`, `FLAVOR="mocha"`) o `adotado` vira "mocha".
     #
-    #   Medido em 22/09: o aviso nascia para latte, frappe, macchiato e mocha,
-    #   ou seja, para o usuário PADRÃO. O conserto anterior tratava só o ramo
-    #   do Dracula, que é o caso raro.
+    # O conserto anterior tratava só o ramo do Dracula, que é o caso raro.
     if adotado and adotado not in packs:
         mod = modulo_pack()
         dir_sabor = _pack_do_sabor(mod, adotado) if mod else None
@@ -1755,17 +1310,8 @@ def _vestigio_de_pack(chave):
         if pack == adotado:
             continue
         if pack in alvo:
-            # O PACK ADOTADO TAMBÉM RECEITA VALORES DE OUTRO PACK — 22/09/2026
-            #   Quando o Catppuccin virou pack (P13), `_packs_no_disco` passou
-            #   de {dracula} para {dracula, catppuccin} e este aviso começou a
-            #   disparar no `CURSOR="catppuccin-mocha-light"` que o
-            #   meow.conf.exemplo traz de fábrica — para quem usa Dracula.
-            #   E o aviso era FALSO: esse valor é o que o
-            #   `packs/dracula/pack.json` PRESCREVE, em
-            #   `origens.cursores.tema`, porque "não há pack de agente Dracula
-            #   com release fixável por tag". Mandar a pessoa desconfiar do
-            #   valor certo, e prometer tela misturada onde não há mistura, é
-            #   pior que não avisar nada.
+            # Mandar a pessoa desconfiar do valor certo, e prometer tela
+            # misturada onde não há mistura, é pior que não avisar nada.
             if _declarado_pelo_pack(adotado, alvo):
                 return None
             return {"pack": pack, "adotado": adotado or "(o padrão)",
@@ -1848,18 +1394,6 @@ def _declarado_pelo_pack(adotado, alvo):
     return False
 
 
-# AS ESCOLHAS DE ÍCONE DO PAINEL MORAM COM QUEM USA — 09/10/2026, sprint P73 (I3)
-#   «Usar o programa não pode sujar o repositório» (P21, 21/09). Desde a P60 o
-#   «Usar este ícone» gravava no `apps.map` do pack, e desde sempre o do traço
-#   gravava no `apps-arcticons.map` e copiava o glifo para `arcticons-apps/` —
-#   tudo dentro do clone. As duas escolhas passaram para dois arquivos ao lado
-#   do meow.conf, no formato dos mapas que elas substituem por cima:
-#     · `icones-escolhidos.map`: `nome : desenho   # app — escolhido no painel`,
-#       lido pelo `pack.py escolhas` (o `icones_apps_dracula.sh` o põe no
-#       `scalable/apps`, e o `fontes` diz que ele vence o pack e o motor);
-#     · `icones-traco.map`: `app:glifo:cor[:alias]`, lido pelo
-#       `icones_apps_arcticons.sh` depois do mapa do projeto.
-#   Levar uma escolha para o pack é o gesto explícito «Levar para o pack».
 def _mapa_de_escolhas_do_usuario():
     mod = modulo_pack()
     if mod and hasattr(mod, "arquivo_de_escolhas"):
@@ -1870,6 +1404,24 @@ def _mapa_de_escolhas_do_usuario():
 def _mapa_de_traco_do_usuario():
     return (os.environ.get("MEOW_ICONES_TRACO")
             or os.path.join(os.path.dirname(CONF), "icones-traco.map"))
+
+
+#   decisão 15). O «Usar» da oficina gravava o retoque, o construído e a linha
+#   `<app>:mao:<cor>` dentro do clone (`assets/icones/`). Os três vão para a
+#   casa, no mesmo molde do `icones-escolhidos.map`:
+#     · `icones-convertidos.map`, ao lado do meow.conf, no formato do
+#       `apps-convertidos.map` — lido depois dele pelo `construir_convertidos.sh`
+#       e pelo `icones_apps_arcticons.sh`, e vence o app que os dois nomeiam;
+#     · `~/.local/share/meowsystem/retoques/` e `convertidos-apps/`, o retoque e
+#       o construído. O repositório só os recebe por gesto explícito.
+def _mapa_de_convertidos_do_usuario():
+    return (os.environ.get("MEOW_ICONES_CONVERTIDOS")
+            or os.path.join(os.path.dirname(CONF), "icones-convertidos.map"))
+
+
+def _oficina_do_usuario(*partes):
+    xdg = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    return os.path.join(xdg, "meowsystem", *partes)
 
 
 def _gravar_escolha(caminho, chave, linha, separador):
@@ -1942,10 +1494,7 @@ def _dominada_por(chave):
     valor = _valor_vivo(regra["chave"])
     if not regra["quando"](valor):
         return None
-    # O TÍTULO VAI JUNTO, e é o que a página mostra. O aviso dizia "Quem manda é
-    # «LOGO_MODO»" — o nome da variável, que quem lê a tela não precisa saber e
-    # que não aparece em lugar nenhum do menu para ela procurar. Agora diz "Quem
-    # manda é «Como o gato é escolhido»", que é o cartão ao lado.
+    # O TÍTULO VAI JUNTO, e é o que a página mostra.
     return {"chave": regra["chave"], "titulo": _titulo_de(regra["chave"]),
             "valor": valor, "porque": regra["porque"]}
 
@@ -1974,31 +1523,14 @@ def _opcoes_fechadas(chave, ajuda, inline, padrao):
         return lista if cerca else []
     opcoes = _opcoes_finais(chave, ajuda, inline, padrao)
 
-    # UMA LISTA DE DURAÇÕES É EXEMPLO, NÃO CERCA — e isso é regressão medida.
-    #   `WALLPAPER_INTERVALO` traz `# 30s | 5m | 2h`, e a validação nova passou a
-    #   recusar `10m`, `1h` e `45s`. Mas o `bin/meow` aceita qualquer duração
-    #   (ele converte com `segundos_de`), e o `meow.conf` VIVO dela já tem
-    #   `WALLPAPER_INTERVALO="5m"` ao lado de outras chaves com valores fora da
-    #   lista. Três números com unidade não são um `case` do shell: são exemplos
-    #   de escala. Um revisor pegou isto por HTTP, com 400 na cara.
-    #   A regra é da FORMA: se TODOS os tokens são duração, a lista sugere e não
-    #   proíbe — quem confere o valor é a forma de duração, logo abaixo.
     if opcoes and all(RE_DURACAO.match(o) for o in opcoes):
         return []
     return opcoes
 
 
-# A FORMA DO NÚMERO, DECLARADA PELO PRÓPRIO VALOR DE FÁBRICA
-# ─────────────────────────────────────────────────────────────────────────────
 # Nenhuma chave deste arquivo diz "sou um inteiro". O que ela diz é `="40"`,
 # `="0.85"`, `="1d"` — e isso já é a declaração inteira, escrita no lugar onde
-# ninguém esquece de atualizá-la. É a mesma regra do `sim`/`nao` de
-# `_opcoes_finais`, aplicada a número em vez de a booleano.
-#
-# Serve para duas coisas: dizer à página que controle desenhar, e dar ao
-# `/api/definir` uma cerca (ver `validar_valor`) — porque até 01/09/2026 a
-# palavra `abc` entrava em `BACKUPS_MANTIDOS` sem uma queixa, e quem descobria
-# era o `meow doctor --consertar` das 05:00, todo dia, longe da tela.
+# ninguém esquece de atualizá-la.
 FORMAS_NUMERO = (
     ("inteiro", re.compile(r"^\d+$"), "um número inteiro (0, 12, 40)"),
     ("decimal", re.compile(r"^\d*[.,]\d+$"), "um número com ponto decimal (0.85)"),
@@ -2049,11 +1581,10 @@ def _faixa(ajuda, inline):
     """
     paragrafos = _paragrafos(ajuda)
     # A ORDEM DA BUSCA É O COMENTÁRIO DE LINHA, DEPOIS O ÚLTIMO PARÁGRAFO,
-    # DEPOIS O PRIMEIRO — e ela sai de como este arquivo é escrito, não de gosto:
-    # `LEITURA_TEMPERATURA` declara `1000–6500 K` no comentário de linha,
-    # `MIDIA_LARGURA` declara `80..900` na última linha antes da chave, e o resto
-    # abre o bloco com a definição. O miolo é onde mora a prosa de medição, e é
-    # de lá que vinham todos os falsos positivos.
+    # DEPOIS O PRIMEIRO — e ela sai de como este arquivo é escrito, não de
+    # gosto: `LEITURA_TEMPERATURA` declara `1000–6500 K` no comentário de linha,
+    # `MIDIA_LARGURA` declara `80..900` na última linha antes da chave, e o
+    # resto abre o bloco com a definição.
     candidatos = [inline]
     if paragrafos:
         candidatos.append(paragrafos[-1])
@@ -2070,9 +1601,9 @@ def _faixa(ajuda, inline):
         if hi <= lo:
             continue
         fracionario = "." in a or "." in b
-        # Uma faixa de dois dígitos costuma ser um horário ou uma data no meio da
-        # prosa ("de 10/08 a 11/08"), não um controle. O piso de amplitude tira o
-        # falso positivo sem precisar de lista de exceção.
+        # Uma faixa de dois dígitos costuma ser um horário ou uma data no meio
+        # da prosa, não um controle. O piso de amplitude tira o falso positivo
+        # sem precisar de lista de exceção.
         if not fracionario and hi - lo < 10:
             continue
         passo = 0.01 if fracionario else 1
@@ -2111,15 +1642,8 @@ def _faixa_confere(faixa, padrao):
     try:
         valor = float(padrao.replace(",", "."))
     except ValueError:
-        # UMA PALAVRA COMO PADRÃO NÃO MATA A FAIXA QUANDO A PALAVRA É UMA DAS
-        # OPÇÕES DECLARADAS — 02/09/2026.
-        #   `MIDIA_FONTE` nasce `auto` e o arquivo crava, com todas as letras,
-        #   "A UNIDADE É PIXEL, E A FAIXA VAI DE 6 A 48". Como `auto` não é
-        #   número, a faixa era descartada, e a chave virava campo de texto sem
-        #   cerca nenhuma: a validação mediu um `999` entrando calado.
-        #   A guarda que existia continua valendo (o `sim` do `JANELAS_TILING`
-        #   segue matando a faixa), porque ali a palavra NÃO é uma opção
-        #   declarada — é só o valor de um interruptor.
+        # `MIDIA_FONTE` nasce `auto` e o arquivo crava, com todas as letras, "A
+        # UNIDADE É PIXEL, E A FAIXA VAI DE 6 A 48".
         return faixa if padrao in _PALAVRAS_COM_FAIXA else None
     return faixa if faixa[0] <= valor <= faixa[1] else None
 
@@ -2190,17 +1714,8 @@ def _frase_curta(ajuda, inline):
     um clique de distância na página, então ninguém fica sem a explicação longa.
     """
     # A lista de opções sai ANTES de os parágrafos serem montados: ela costuma
-    # estar colada na última linha do bloco, sem branco antes, e entraria no meio
-    # da frase se fosse filtrada depois.
-    #
-    # O QUE ESTÁ NO PARÊNTESE FICA, E É O CASO DO `MODO`
-    #   A linha dele é `# escuro | claro | auto   (auto alterna Mocha/Latte por
-    #   horário)`, e o `MODO` não tem outra linha de comentário — jogá-la fora
-    #   inteira deixaria o cartão sem uma palavra de explicação. Jogar a linha
-    #   inteira NA frase era o outro extremo, e é o que estava na tela: três
-    #   botões `escuro` `claro` `auto` e, logo abaixo, o texto "escuro | claro |
-    #   auto" repetindo-os. O aparte entre parênteses é a única parte da linha
-    #   que o controle não desenha — então é ela que sobrevive.
+    # estar colada na última linha do bloco, sem branco antes, e entraria no
+    # meio da frase se fosse filtrada depois.
     limpas = []
     for l in ajuda.splitlines():
         if not _e_linha_de_opcoes(l):
@@ -2214,9 +1729,8 @@ def _frase_curta(ajuda, inline):
         if not texto or len(texto) < 12:
             continue
         # Um título que tenha frase colada depois (`A TEXTURA DE PAPEL: 0.0 é
-        # nenhuma...`) não é descartado: só se descarta o parágrafo cuja PRIMEIRA
-        # oração inteira é grito. Senão perderíamos a ajuda de meia dúzia de
-        # chaves cuja única explicação vem logo depois dos dois-pontos.
+        # nenhuma...`) não é descartado: só se descarta o parágrafo cuja
+        # PRIMEIRA oração inteira é grito.
         primeira = re.split(r"(?<=[.:!?])\s", texto, 1)[0]
         if _e_titulo(primeira) and len(primeira) > 20:
             resto = texto[len(primeira):].strip()
@@ -2230,10 +1744,7 @@ def _frase_curta(ajuda, inline):
         corte = texto.rfind(". ", 0, 200)
         return texto[:corte + 1] if corte > 90 else texto[:197].rstrip() + "…"
     # O comentário de linha é o último recurso — mas não quando ele é a própria
-    # lista de opções. O `WALLPAPER_ORDEM` só tem `# aleatoria | alfabetica`, e
-    # repeti-lo como frase embaixo dos dois botões `aleatoria` `alfabetica` é
-    # dizer duas vezes a mesma coisa. Sem frase, o cartão fica com o nome, o
-    # controle e o padrão, que já é a informação inteira.
+    # lista de opções.
     return "" if _e_linha_de_opcoes(inline) else inline
 
 
@@ -2291,24 +1802,10 @@ def ler_esquema():
             nome = linha[len("# --- "):].split("-", 1)[0].strip()
             colada = False
             if nome:
-                # DUAS ALTURAS DE TÍTULO, E O ARQUIVO JÁ AS DISTINGUE SOZINHO
-                #   Os seis títulos de assunto estão em Capitulares (`Aparência`,
-                #   `Ícones`, `Wallpaper`, `Apps`, `Automação`, `Terminal`); os
-                #   outros treze estão em CAIXA ALTA (`A FORMA DO PAINEL E DO
-                #   DOCK`). A convenção é do arquivo, não minha — e é o que
-                #   permite uma navegação de seis itens em vez de dezenove.
-                #
-                #   O `wiz_ler_esquema` do bin/meow não faz esta distinção, e não
-                #   precisa: o wizard é uma pergunta por vez, em fila, e um
-                #   cabeçalho a mais na tela não atrapalha ninguém. Uma página
-                #   tem de decidir onde a chave MORA, e aí a diferença conta.
-                #
-                #   Herdar a seção anterior quando só o subtítulo muda é o que faz
-                #   `FORMA_*` continuar em "Wallpaper": o `# --- Wallpaper` está
-                #   no arquivo ANTES do bloco da forma, e as chaves de wallpaper
-                #   de verdade vêm bem depois. É a ordem do arquivo que está
-                #   torta, não a leitura — e o subtítulo, que a página mostra,
-                #   diz de qual assunto a chave é de fato.
+                # Os seis títulos de assunto estão em Capitulares (`Aparência`,
+                # `Ícones`, `Wallpaper`, `Apps`, `Automação`, `Terminal`); os
+                # outros treze estão em CAIXA ALTA (`A FORMA DO PAINEL E DO
+                # DOCK`).
                 if _e_titulo(nome):
                     subsecao = nome
                 else:
@@ -2330,17 +1827,6 @@ def ler_esquema():
             continue
         chave = achado.group(1)
 
-        # AS DUAS MARCAS SAEM DO BLOCO ANTES DE QUALQUER OUTRA COISA — 06/09/2026
-        #   `# @ ` é o título do controle e `# > ` é a frase de baixo. As duas
-        #   são texto escrito, não derivado, e o porquê está no cabeçalho do
-        #   `meow.conf.exemplo`.
-        #
-        #   ELAS TÊM DE SAIR ANTES DO `colada`, e isso não é ordem por acaso: a
-        #   herança de comentário entre irmãs (`NOITE_INICIO`/`NOITE_FIM`, as
-        #   dezoito `FORMA_*`) exige bloco VAZIO. Com as marcas dentro, o bloco
-        #   nunca é vazio, a herança nunca dispara, e as irmãs perdem a
-        #   explicação longa que dividem — a lacuna que 01/09/2026 fechou
-        #   voltaria com outro nome.
         titulo_escrito = frase_escrita = ""
         resto = []
         for l in bloco:
@@ -2354,7 +1840,6 @@ def ler_esquema():
         ajuda = "\n".join(bloco)
         inline = _comentario_da_linha(linha)
 
-        # CHAVE IRMÃ HERDA O COMENTÁRIO DA PRIMEIRA — 01/09/2026
         #   Dezoito das 95 chaves ficavam sem UMA palavra de ajuda, e não é
         #   descuido do arquivo: ele escreve os pares e as famílias sob um
         #   comentário só, coladas, sem linha em branco no meio —
@@ -2363,28 +1848,16 @@ def ler_esquema():
         #   e as oito `FORMA_*`, e as duas `VIDRO_OPACIDADE_*`, e o
         #   `MIDIA_COR_TITULO`/`MIDIA_COR_ARTISTA`. O bloco explica as duas (ou as
         #   oito) de uma vez, porque é uma decisão só.
-        #
-        #   O wizard do `bin/meow` tem a mesma lacuna e ela custa pouco lá: as
-        #   perguntas vêm em fila, e quem acabou de ler a ajuda da irmã ainda a
-        #   tem na tela. Numa página as chaves aparecem lado a lado e cada cartão
-        #   se explica sozinho — ou não se explica.
-        #
-        #   "Colada" é literal: só herda a chave que vem IMEDIATAMENTE depois de
-        #   outra, sem branco e sem comentário entre elas. Uma linha em branco no
-        #   meio quebra a herança, que é exatamente o que o arquivo quer dizer
-        #   quando põe uma.
         herdada = False
         ajuda_de = ""
         if not bloco and colada and itens:
             ajuda = itens[-1]["ajuda"]
             herdada = True
-            # DE QUEM É O BLOCO — 07/09/2026. Saber que a explicação é herdada
-            # não basta: o balão `?` mostrava o texto inteiro sem uma palavra
-            # dizendo de onde ele vinha, e em "Dia e noite" isso dá QUATRO
-            # balões repetindo blocos alheios — o de `WALLPAPER_NOITE_FIM`
-            # abre com um parágrafo sobre uma captura de 23:57 e o carrossel.
-            # A herança ENCADEIA (`WALLPAPER_NOITE` -> `_INICIO` -> `_FIM`),
-            # então a dona é a primeira da fila, não a vizinha de cima.
+            # Saber que a explicação é herdada não basta: o balão `?` mostrava
+            # o texto inteiro sem uma palavra dizendo de onde ele vinha, e em
+            # "Dia e noite" isso dá QUATRO balões repetindo blocos alheios — o
+            # de `WALLPAPER_NOITE_FIM` abre com um parágrafo sobre uma captura
+            # de 23:57 e o carrossel.
             ajuda_de = itens[-1]["ajuda_de"] or itens[-1]["chave"]
         colada = True
         item = {
@@ -2412,19 +1885,14 @@ def ler_esquema():
             "faixa": _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
             # O QUE O VAZIO VALE, quando o arquivo o diz — ver `_vazio_vale`.
             "vazio_vale": _vazio_vale(inline),
-            # A HORA CHEIA — 10/10/2026, P80 (item 4). As duas horas do tema
-            #   claro são um número de 0 a 23 (o `modo_desejado` do `bin/meow`
-            #   compara horas inteiras), e a página as desenhava num deslizante
-            #   pontilhado ao lado das outras duas linhas de «Dia e noite», que
-            #   são seletor de hora. O arquivo declara «hora cheia» na linha, e a
-            #   página dá o mesmo seletor, sem minutos; o valor gravado continua
-            #   sendo o número.
+            # As duas horas do tema claro são um número de 0 a 23 (o
+            # `modo_desejado` do `bin/meow` compara horas inteiras), e a página
+            # as desenhava num deslizante pontilhado ao lado das outras duas
+            # linhas de «Dia e noite», que são seletor de hora.
             "hora_cheia": bool(re.search(r"\bhora cheia\b", inline or "")),
             # A forma do número, quando há uma. Sai do VALOR DE FÁBRICA, que é
             # onde o arquivo já a declara sem precisar de uma palavra a mais —
-            # ver `FORMAS_NUMERO`. É o que permite à página desenhar um campo
-            # numérico em vez de um campo de texto, e ao `/api/definir` recusar
-            # `abc` numa chave que conta backups.
+            # ver `FORMAS_NUMERO`.
             "tipo_numero": _forma_de_numero(_valor_da_linha(linha)),
             # Que prévia visual esta chave merece. Deduzido do conteúdo dela —
             # ver `_tipo_de_previa`, que explica por que não há lista aqui.
@@ -2433,22 +1901,12 @@ def ler_esquema():
                 _opcoes_finais(chave, ajuda, inline, _valor_da_linha(linha), herdada),
                 _faixa_confere(_faixa(ajuda, inline), _valor_da_linha(linha)),
                 _valor_da_linha(linha)),
-            # QUAL CHAVE ESTÁ ANULANDO ESTA, se alguma — 02/09/2026.
-            #   A validação achou dois interruptores vivos e inertes:
-            #   `LOGO_ROTACAO` (que só vale com `LOGO_MODO` vazio) e `LOGO`
-            #   (que em `LOGO_MODO="hora"` perde para `LOGO_DIA`/`LOGO_NOITE`).
-            #   A página não tinha como saber: quem lê a conf dela é este
-            #   arquivo. O campo diz a chave que manda, o valor que ela tem
-            #   HOJE, e a frase que explica — a página só desenha.
+            # QUAL CHAVE ESTÁ ANULANDO ESTA, se alguma. A página não tinha como
+            # saber: quem lê a conf dela é este arquivo.
             "dominada_por": _dominada_por(chave),
             # O valor cita um pack que já não é o adotado? Ver _vestigio_de_pack.
             "vestigio_de_pack": _vestigio_de_pack(chave),
             # O QUE ESTÁ VALENDO AGORA, quando não é o conf que manda.
-            #   As chaves `LEITURA_*` são o padrão de FÁBRICA: quem decide o
-            #   quanto é o que o applet guardou quando ela soltou o slider —
-            #   está escrito no próprio meow.conf.exemplo, e o cartão mostrava
-            #   o número do arquivo como se ele mandasse. A validação mediu:
-            #   conf diz 3500, a máquina está em 4700.
             "valendo_agora": _valendo_agora(chave),
             # E QUANDO A MÁQUINA DIZ "DESLIGADO" — ver `_leitura_desligada`.
             "desligado_agora": chave in _LEITURA_ZERO_DESLIGA and _leitura_desligada(
@@ -2460,61 +1918,34 @@ def ler_esquema():
             # quem não tem `# @ ` escrito.
             "ajuda_de": ajuda_de,
             "essencial": "[essencial]" in ajuda,
-            # O AJUSTE TÉCNICO SAI DA FRENTE — 09/10/2026, P77 (achado 10, S2).
-            #   A marca `[avancado]` estava no arquivo desde a P10 e ninguém a
-            #   lia: o commit fixado e o repositório do acervo do Dracula (um
-            #   hash de 40 caracteres, uma conta do GitHub) apareciam em «Cor e
-            #   tela» como se fossem escolha de quem usa. A página os recolhe
-            #   num «⋯» no fim da página; o controle continua lá, gravando a
-            #   mesma chave.
+            # A página os recolhe num «⋯» no fim da página; o controle continua
+            # lá, gravando a mesma chave.
             "avancado": "[avancado]" in ajuda,
-            # SÓ COM O PROGRAMA NA MÁQUINA — 09/10/2026, P77 (achado 12, S2).
-            #   `[so-com-app id1 id2]` diz que o ajuste só faz sentido onde um
-            #   destes `.desktop` existe — a logo própria do Hefesto era um
-            #   cartão de fábrica para todo mundo, e só quem tem o Hefesto tem
-            #   o que trocar. Quem decide se o programa está aqui é o
-            #   `_dados_esquema`, com os mesmos `_desktops` da aba de ícones.
+            # `[so-com-app id1 id2]` diz que o ajuste só faz sentido onde um
+            # destes `.desktop` existe — a logo própria do Hefesto era um
+            # cartão de fábrica para todo mundo, e só quem tem o Hefesto tem o
+            # que trocar.
             "so_com_app": _so_com_app(ajuda),
-            # Lista separada por vírgula: a regra é o que o comentário DIZ, não uma
-            # lista de nomes de chave. `APPS_ATIVOS` e `AUTOSTART_BLOQUEADOS` dizem
-            # "vírgula-separado"/"separada por vírgula"; a
-            # `WALLPAPER_FONTES_PERMITIDAS` diz "separados por `:`", e por isso ela
-            # não cai aqui — o separador dela é outro, e tratá-los como um só
-            # corromperia caminho com vírgula.
+            # Lista separada por vírgula: a regra é o que o comentário DIZ, não
+            # uma lista de nomes de chave.
             "lista": bool(re.search(r"separad[ao]s? por v[ií]rgula|v[ií]rgula[- ]separad", ajuda, re.I)),
             "lista_pathsep": bool(re.search(r"separados por `?:`?", ajuda)),
             # Lista de IDs de `.desktop`: as fichas ganham o nome e o ícone do
-            # programa no `_dados_esquema` (P54, achado 41). A mesma regra das
-            # duas de cima — o que o comentário DIZ, e não um nome de chave.
+            # programa no `_dados_esquema`. A mesma regra das duas de cima — o
+            # que o comentário DIZ, e não um nome de chave.
             "ids_de_desktop": bool(re.search(r"\bIDs? d[oe] `\.desktop`", ajuda)),
             # Horário: o comentário declara `HH:MM`, OU o valor já é um horário.
-            # As duas metades são precisas: `LEITURA_HORARIO_INICIO` diz `HH:MM`
-            # no comentário e a `NOITE_INICIO` não diz (ela fala em "18:00-07:00"
-            # no meio da prosa) — sem o teste do VALOR, aquelas duas nasceriam
-            # como campo de texto livre e a página perderia justamente o controle
-            # que evita ela digitar `18h`.
             "horario": ("HH:MM" in (ajuda + inline)
                         or bool(re.fullmatch(r"\d{1,2}:\d{2}", _valor_da_linha(linha)))
-                        # Chave que nasce VAZIA e cujo comentário cita um horário
-                        # literal LOGO NA ABERTURA: são a NOITE_INICIO e a
-                        # NOITE_FIM, que falam em "18:00-07:00" no meio da frase e
-                        # nunca escrevem `HH:MM`.
-                        #
-                        # O "logo na abertura" é o mesmo corte da faixa numérica, e
-                        # pelo mesmo motivo medido: varrendo o bloco inteiro, as
-                        # oito `FORMA_*` viravam campo de horário — o comentário
-                        # delas conta que "o `meow doctor --consertar` roda sozinho
-                        # às 05:00", e `05:00` é um horário como qualquer outro para
-                        # uma expressão regular. Horário que é o VALOR da chave se
-                        # anuncia na primeira frase; horário citado numa medição
-                        # mora no meio do texto.
+                        # Chave que nasce VAZIA e cujo comentário cita um
+                        # horário literal LOGO NA ABERTURA: são a NOITE_INICIO e
+                        # a NOITE_FIM, que falam em "18:00-07:00" no meio da
+                        # frase e nunca escrevem `HH:MM`.
                         or (_valor_da_linha(linha) == ""
                             and bool(re.search(r"\b\d{1,2}:\d{2}\b",
                                                (_paragrafos(ajuda) or [""])[0])))),
             # "vazio = não toca" é um TERCEIRO estado, e o arquivo o declara com
-            # todas as letras em nove blocos. Sem reconhecê-lo, a página ofereceria
-            # sim/não onde existe sim/não/não-mexa — e apagar essa terceira opção
-            # é exatamente como a opacidade do painel virou briga de três meses.
+            # todas as letras em nove blocos.
             "aceita_vazio": bool(
                 re.search(r"[Vv]azio\s*\(?\s*=|[Vv]azio\s+significa|nascem vazias|nasce vazia"
                           r"|VAZIO\s*=|não toca", ajuda + inline)
@@ -2574,16 +2005,8 @@ def _capturas():
     return [n for n in _capturas_no_disco() if n != "original"]
 
 
-# O QUE O CARTÃO DA COR DE DESTAQUE PRECISA — 24/09/2026, sprint P48 (achado 31)
-#   O aviso do FLAVOR × ACCENT só conhecia as capturas FOTOGRAFADAS, e com o
-#   Dracula isso é uma: o `dracula-mauve`. Desde a P48 um acento sem fotografia
-#   se deriva da captura do mesmo flavor (`scripts/derivar_acento.py`), e a
-#   pergunta do cartão passou a ser outra — "este acento APLICA com este
-#   flavor?". Quem responde é o próprio derivador, pela mesma conta que o
-#   instalador faz, e por um processo filho: ele põe `scripts/` no `sys.path`,
-#   e este processo não (ver `modulo_pack`).
-#   A conta custa uns décimos de segundo e só muda quando muda o pack no ar, a
-#   paleta, ou uma captura. É isso que a chave do cache olha.
+# O aviso do FLAVOR × ACCENT só conhecia as capturas FOTOGRAFADAS, e com o
+# Dracula isso é uma: o `dracula-mauve`.
 _APLICAM_CACHE = {}
 
 
@@ -2615,8 +2038,8 @@ def _acentos_que_aplicam(esquema):
             resposta = json.loads(r.stdout) if r.returncode == 0 else {}
         except (OSError, ValueError, subprocess.SubprocessError):
             return {}
-        # A RESPOSTA VOLTA PELA VARIÁVEL, E NÃO PELO DICIONÁRIO — P77: desde
-        # que o `_aquecer` (no `main`) faz esta conta numa thread ao subir, o
+        # A RESPOSTA VOLTA PELA VARIÁVEL, E NÃO PELO DICIONÁRIO: desde que o
+        # `_aquecer` (no `main`) faz esta conta numa thread ao subir, o
         # primeiro `/api/esquema` pode fazê-la ao mesmo tempo; reler do
         # dicionário depois do `clear()` da outra thread daria `KeyError`.
         _APLICAM_CACHE.clear()
@@ -2628,23 +2051,11 @@ def _acentos_que_aplicam(esquema):
 # --- 3b. os acervos que moram no DISCO, e não no texto -----------------------
 #
 # O `_gatos()` acima é o modelo: a lista não está escrita em lugar nenhum, ela É
-# a pasta. Os quatro provedores abaixo respondem à mesma pergunta para os temas
-# de ícones, os ponteiros e as duas pastas de papel de parede — e nasceram
-# porque a auditoria de 01/09/2026 mediu o preço de não os ter:
-#
-#   · `ICONES_BASE` era CAMPO DE TEXTO. Digitar `Nao-Existe-Nenhum` era aceito
-#     sem uma palavra, e o `construir_pastas.sh:135` só reclamava depois, saindo
-#     com SEM_DEPENDENCIA — longe da tela onde o erro foi cometido.
-#   · `CURSOR` oferecia QUATRO ponteiros e três deles gravavam um valor que o
-#     `scripts/cursor.sh` não resolve (medido abaixo, em `_temas_de_cursor`).
-#   · os 46 botões "Banir" e os 255 "Devolver" da galeria chamavam ações que não
-#     existiam, porque sem provedor não há como validar o argumento — e a
-#     fronteira deste arquivo é justamente "argumento vem do disco, nunca do
-#     navegador".
+# a pasta.
 #
 # A ORDEM É A DA BUSCA DO XDG, e ela não é decoração: `~/.local/share/icons`
 # vence `/usr/share/icons` para o mesmo nome, que é o que faz um tema instalado
-# por ela mascarar o do sistema. Quem lista tem de enxergar o mesmo que quem usa.
+# por ela mascarar o do sistema.
 RAIZES_ICONES = ("~/.local/share/icons", "~/.icons", "/usr/share/icons")
 
 # As duas linhas do `index.theme` que a especificação de ícones do freedesktop
@@ -2740,62 +2151,13 @@ def _temas_de_icones():
 SUFIXO_CURSOR = "-cursors"
 
 
-# UMA REGRA, DUAS LEITORAS — 21/09/2026
-#   A pergunta "que pasta este valor abre?" estava escrita DUAS vezes neste
-#   arquivo, e as duas cópias envelheceram em datas diferentes:
-#   `_temas_de_cursor` aprendeu em 15/09 que o nome EXATO vence a convenção
-#   (foi o que trouxe o `Dracula-Cursor` para a lista) e `_prev_cursores`
-#   continuou montando `<valor>-cursors` sempre. O preço apareceu na tela:
-#   QUATRO ponteiros para escolher e UMA miniatura desenhada. É a segunda vez
-#   que o mesmo defeito acontece neste par de funções — a primeira está contada
-#   no docstring de `_temas_de_cursor`, com estas palavras: "A lista não
-#   acompanhou". Com uma função só, não há como uma acompanhar e a outra não.
+# A pergunta "que pasta este valor abre?" estava escrita DUAS vezes neste
+# arquivo, e as duas cópias envelheceram em datas diferentes: `_temas_de_cursor`
+# aprendeu que o nome EXATO vence a convenção (foi o que trouxe o
+# `Dracula-Cursor` para a lista) e `_prev_cursores` continuou montando
+# `<valor>-cursors` sempre.
 #
-# O ESPELHO É O PAR `_cursor_nome_tema` + `_cursor_instalado` — 21/09/2026,
-# DEPOIS DE RODAR AS FUNÇÕES DO PRÓPRIO SCRIPT
-#   A primeira versão desta função, escrita horas antes, dizia espelhar o
-#   `cursor.sh:220-230` (`_cursor_dir_exato` e `_cursor_dir_tema`) e procurar a
-#   convenção "nas mesmas três raízes". Não era verdade duas vezes, e as duas
-#   custaram caro:
-#
-#     - `_cursor_dir_tema` (cursor.sh:227) monta a convenção SÓ em
-#       `$CURSOR_ICONES` — quem percorre as três raízes é o `_cursor_instalado`
-#       (cursor.sh:302), que é outra função;
-#     - ela dava o diretório de nome exato por bom com um `isdir` seco, e o
-#       `_cursor_instalado` EXIGE `<nome>/cursors` dentro. Ou seja: este
-#       arquivo desenhava por uma regra MAIS FROUXA que a do script que aplica,
-#       que é o risco escrito na sprint com todas as letras.
-#
-#   A ordem, agora, é a do script, e nesta sequência:
-#     1. `_cursor_nome_tema` (cursor.sh:231): se ALGUMA das três raízes tem
-#        diretório com o nome EXATO — `isdir` seco, sem exigir nada dentro —, o
-#        nome do tema é o próprio valor; senão é `<valor>-cursors`.
-#     2. `_cursor_instalado` (cursor.sh:302): das três raízes valem as que têm
-#        `<nome>/cursors`. Nenhuma, e o `aplicar` sai BAIXANDO um zip da rede.
-#
-#   O passo 1 usar `isdir` seco não é descuido do script — é o que faz um tema
-#   de ÍCONES de nome parecido SEQUESTRAR o valor. Medido em 21/09 com as
-#   funções do cursor.sh à mão: com `Dracula/` (tema de ícones, sem `cursors/`)
-#   ao lado de `Dracula-cursors/cursors/left_ptr`, o `_cursor_instalado`
-#   responde NÃO INSTALADO. Por isso esse valor tem de sumir da LISTA, e não
-#   ganhar uma prévia tirada da pasta vizinha: prévia de ponteiro que quebra ao
-#   ser clicado é pior que prévia nenhuma.
-#
-#   E devolve TODAS as raízes que servem, não a primeira. O `_cursor_instalado`
-#   percorre as três, e a prévia precisa da que tem `left_ptr` de verdade: com
-#   `~/.local/share/icons/X-cursors/cursors/` vazio e o ponteiro em
-#   `/usr/share/icons/X-cursors/cursors/left_ptr`, perguntar uma vez e desistir
-#   apagava a miniatura de um tema que o `aplicar` instala sem tocar a rede.
-#
-# A TERCEIRA LINHA, E ELA MUDOU NOS DOIS LADOS NO MESMO COMMIT — 23/09/2026, P12
-#   Um pack pode trazer o próprio ponteiro (`origens.cursores.proprio`), e o
-#   `cursor.sh` o instala do pack, sem rede, quando a chave CURSOR o nomeia.
-#   Então "o que o script resolve sem baixar" ganhou uma linha: 3. o pack traz
-#   `<valor>` — e só quando a linha 1 não sequestra o nome, porque aí as duas
-#   alavancas apontariam para o diretório de nome exato, e não para o do pack.
-#   O `_cursor_do_pack` do `cursor.sh` faz a mesma conta, com a mesma condição.
-#   O pack vem por ÚLTIMO na lista: já instalado, o que a prévia desenha é o que
-#   está no disco, que é o que o compositor lê.
+# Não era verdade duas vezes, e as duas custaram caro:
 def _cursor_pastas_do_valor(valor, do_pack=None):
     """As pastas que o `cursor.sh` aceita para este valor, na ordem do XDG.
 
@@ -2937,31 +2299,17 @@ def _temas_de_cursor():
     """
     fora = set()
     do_pack = _ponteiro_do_pack()
-    # O PONTEIRO DO PACK PROPÕE O VALOR DELE, ANTES DE ESTAR NO DISCO — P12,
-    # 23/09/2026. Ele não está em diretório de ícone nenhum até a primeira
-    # instalação, e a varredura abaixo nunca o veria. A peneira é a mesma.
+    # O PONTEIRO DO PACK PROPÕE O VALOR DELE, ANTES DE ESTAR NO DISCO. Ele
+    # não está em diretório de ícone nenhum até a primeira instalação, e a
+    # varredura abaixo nunca o veria. A peneira é a mesma.
     if do_pack and _cursor_pastas_do_valor(do_pack["valor"], do_pack):
         fora.add(do_pack["valor"])
     for nome, caminho in _dirs_de_icones():
         if not os.path.isdir(os.path.join(caminho, "cursors")):
             continue
-        # O DIRETÓRIO PROPÕE UM VALOR; QUEM DECIDE É A REGRA ÚNICA — 21/09/2026
-        #   Convenção do Catppuccin: a pasta `<x>-cursors` propõe o valor `<x>`
-        #   (o `aplicar` acrescenta o sufixo de volta). Pasta sem sufixo propõe
-        #   o próprio nome, desde 15/09.
-        #
-        #   Havia aqui dois ramos, e o do nome exato era uma decisão de
-        #   mentira: a guarda escrita mais cedo em 21/09 perguntava ao
-        #   `_cursor_pasta_do_valor` e NUNCA era falsa — medido, 0 de 32
-        #   diretórios desta máquina —, porque um diretório que existe sempre
-        #   resolvia por nome exato. Virou uma peneira só, e ela trabalha: o
-        #   ramo que pode falhar é o do SUFIXO. Com `Dracula/` (tema de ícones,
-        #   sem `cursors/`) ao lado de `Dracula-cursors/cursors/left_ptr`, a
-        #   pasta propõe `Dracula`, mas o `_cursor_nome_tema` do script escolhe
-        #   o nome exato e o `_cursor_instalado` não acha `Dracula/cursors`:
-        #   clicar nesse botão sairia baixando da rede. Ele não é opção — e é
-        #   por isso que a peneira fica aqui, na LISTA, e não na prévia: tirar
-        #   só a miniatura deixaria o botão quebrado na tela.
+        # Convenção do Catppuccin: a pasta `<x>-cursors` propõe o valor `<x>`
+        # (o `aplicar` acrescenta o sufixo de volta). Pasta sem sufixo propõe o
+        # próprio nome,.
         valor = nome[: -len(SUFIXO_CURSOR)] if nome.endswith(SUFIXO_CURSOR) else nome
         if _cursor_pastas_do_valor(valor, do_pack):
             fora.add(valor)
@@ -3016,14 +2364,9 @@ def _paredes_banidas():
             and os.path.isfile(os.path.join(base, n))]
 
 
-# O NOME ANTIGO DE UMA CHAVE — 24/09/2026, P52 (achado 13)
-#   A tabela é a do `scripts/migrar_conf.py` (`RENOMEADAS`), lida de lá por
-#   caminho, pelo mesmo motivo e do mesmo jeito que o `modulo_pack`: uma
-#   segunda tabela aqui discordaria da primeira no dia da segunda troca. A
-#   regra também é a de lá, e é uma só: o nome novo vence quando está no
-#   arquivo, mesmo vazio; o antigo só vale quando o novo não está. É ela que
-#   faz o painel mostrar pelo nome novo o valor de quem ainda não passou pelo
-#   `install.sh` que renomeia a linha.
+# A tabela é a do `scripts/migrar_conf.py` (`RENOMEADAS`), lida de lá por
+# caminho, pelo mesmo motivo e do mesmo jeito que o `modulo_pack`: uma
+# segunda tabela aqui discordaria da primeira no dia da segunda troca.
 _MIGRAR_MOD = None
 
 
@@ -3101,7 +2444,7 @@ def valores_efetivos(chaves):
     if not chaves:
         return {}
     # O nome antigo vai junto na pergunta, e a resposta dele volta pelo novo —
-    # mesma regra do `valores_brutos` (P52).
+    # mesma regra do `valores_brutos`.
     antigos = {n: a for n, a in _nome_antigo_valendo().items() if n in chaves}
     programa = (
         'set -a\n'
@@ -3200,19 +2543,7 @@ def conf_exportada(fonte=None):
                     nomes.append(achado.group(1))
     except OSError:
         return None
-    # O FLAVOR VAZIO É O `flavor_padrao` DO PACK NO AR, e não o `mocha` — a linha
-    # gêmea do `carregar_conf` do bin/meow, que conta a medição (24/09/2026, na
-    # revisão da P56, achado 4). O `$2` é a RAIZ.
-    #   [25/09/2026, P65: a pergunta era a linha `flavor_padrao=` da `adocao`,
-    #   escrita aqui, com o `mocha` de reserva — a cópia da regra que a P61 não
-    #   alcançou. Medido com o molde de fábrica no conf e um pack sem
-    #   `paleta.flavor_padrao`: o painel dava FLAVOR=mocha, que a paleta dele não
-    #   tem, e ICONES_PASTAS=cat--mauve em todo pack. Agora é o `meow_flavor` do
-    #   lib/comum.sh — a mesma regra do shell, sem reserva: sem resposta, vazio —,
-    #   e o molde é completado como no `carregar_conf`. Por isso o `lib/comum.sh`
-    #   é carregado antes do FLAVOR, e não depois.]
-    #   [P66, 25/09/2026: «como no `carregar_conf`» é pela MESMA função, o
-    #   `meow_pastas_do_molde` do lib/comum.sh — a linha estava escrita aqui e lá.]
+    # O `$2` é a RAIZ.
     programa = (
         'set -a\n'
         '. "$1" || exit 2\n'
@@ -3254,32 +2585,17 @@ def conf_exportada(fonte=None):
 
 # --- A CERCA CONTRA SUBSTITUIÇÃO DE COMANDO [2026-09-18] ---------------------
 #
-# O QUE ESTAVA ABERTO, e foi medido numa auditoria de QA
-#   A peneira de gravação recusava só aspas, `#` e quebra de linha. Deixava
-#   passar `$( )`, crase e `${ }`. E o meow.conf é SOURCEADO com `set -a; . conf`
-#   por install.sh:145 e bin/meow:174 — então um valor gravado assim:
+# Deixava passar `$( )`, crase e `${ }`. E o meow.conf é SOURCEADO com `set -a;
+# . conf` por install.sh:145 e bin/meow:174 — então um valor gravado assim:
 #
-#       FASTFETCH_TITULO="$(comando)"
+# não é texto: é comando que roda no próximo `meow ativar`, no `install.sh` que
+# o próprio botão «Salvar e aplicar» dispara, ou no doctor das 05:00.
 #
-#   não é texto: é comando que roda no próximo `meow ativar`, no `install.sh` que
-#   o próprio botão «Salvar e aplicar» dispara, ou no doctor das 05:00. Dentro de
-#   aspas duplas, `$(...)` e `` `...` `` executam — as aspas não protegem nada.
-#
-#   O caminho de entrada não precisa nem de token: basta a pessoa importar um
-#   meow.conf de terceiro pela própria página e clicar em salvar.
-#
-# POR QUE NÃO BASTA RECUSAR `$`
 #   A expansão de variável é FEATURE DECLARADA, e o projeto pede que ela seja
 #   usada. meow.conf.exemplo:478 diz, na ajuda que a pessoa lê na tela:
 #       "Deixe escrito com ${FLAVOR} e ${ACCENT} para acompanhar o tema sozinho."
 #   e a linha 945 tem WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem".
 #   Recusar `$` quebraria as duas e tiraria uma funcionalidade documentada.
-#
-# ENTÃO A CERCA SEPARA AS DUAS COISAS
-#   passa   : $NOME  ${NOME}          (expansão de variável, que é o que se quer)
-#   recusa  : $( )  ` `  $(( ))  ${!x}  ${x[...]}  ${x:-$(cmd)}  e $ solto
-#   A regra é positiva: só o que casa exatamente com um nome de variável passa.
-#   Tudo que não casa é recusado — inclusive o que este comentário não previu.
 _VAR_SIMPLES = re.compile(r"\$(?:\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)")
 
 
@@ -3301,33 +2617,11 @@ def expansao_perigosa(valor):
     return None
 
 
-# ============================================================================
-# O TETO DO RAIO QUE VALE AGORA — 24/09/2026, sprint P50 (achado 36)
-# ============================================================================
-# Medido no painel de verdade: «Canto arredondado — dock» ia de 0 a 32 no
-# deslizante, 16 foi gravado como `FORMA_RAIO_DOCK="16"`, o instalador RECUSOU
-# aplicar (com razão: no compositor desta sessão, sem o patch do raio, qualquer
-# canto acima de 0 derruba painel e dock juntos — `lib/painel.sh`, medido em
-# 11/09) e só avisou com `!!`; o COSMIC ficou com `border_radius` 0, e a tela
-# disse «MEXEU E APLICOU». O 32 da régua é o teto de quando o compositor ainda
-# media pela caixa do frame anterior (`altura/2`), e não o de hoje.
+# O 32 da régua é o teto de quando o compositor ainda media pela caixa do frame
+# anterior (`altura/2`), e não o de hoje.
 #
 # O TETO É UMA CONTA SÓ, E ELA MORA NO `lib/painel.sh`: é a que o `forma.sh`
-# usa para cortar. O painel pergunta a ela — as mesmas três funções, pelo
-# mesmo `bash -c` com que o `definir_varias` chama o `meow_conf_definir` —, e
-# não refaz a conta em Python: dois tetos que discordam foi o que a data de
-# 26/08 existiu para acabar. Guardado por 30 s, como a ponte: `pgrep` e um
-# `grep -a` no binário do compositor não são de graça, e o esquema é lido a
-# cada pintura.
-#
-# O QUE SAI DAQUI
-#   · a página desenha o deslizante até o teto, e diz o teto e o porquê;
-#   · o `validar_valor` recusa acima dele, então o valor que o instalador
-#     cortaria não chega ao meow.conf como se valesse — e o «Salvar e aplicar»
-#     não roda para depois dizer que aplicou.
-# Com o compositor que corta o excesso sozinho (o patch em execução) não há
-# teto, e a frase diz isso. Com `FORMA_RAIO_EXPERIMENTAL=sim` o `forma.sh`
-# deixa passar, e aqui também: a frase avisa e ninguém trava.
+# usa para cortar.
 _TETO_CACHE = {"quando": 0.0, "valor": None}
 _BARRA_DO_RAIO = {"FORMA_RAIO_PAINEL": "Panel", "FORMA_RAIO_DOCK": "Dock"}
 
@@ -3402,8 +2696,8 @@ def teto_da_chave(chave):
     else:
         porque = ("o compositor desta sessão não tem o patch do raio, e %s "
                   "derruba painel e dock juntos" % acima)
-    # O `estado` é para a página escolher o selo sem ler a frase (QA da P77):
-    # a frase vira balão curto, e o porquê inteiro continua aqui e na recusa.
+    # O `estado` é para a página escolher o selo sem ler a frase: a frase
+    # vira balão curto, e o porquê inteiro continua aqui e na recusa.
     return {"valor": t, "trava": True, "motivo": porque, "estado": medida["compositor"]}
 
 
@@ -3442,14 +2736,9 @@ def validar_valor(item, valor):
 
     fechadas = _opcoes_fechadas(item["chave"], item["ajuda"], item["inline"],
                                 item["padrao"])
-    # A «VARIANTE DO TEMA» CERCA PELOS PACKS DO DISCO, e não pela linha do
-    # exemplo — P31. A página passou a oferecer o alucard com o Dracula no ar, e
-    # esta cerca o recusava ("FLAVOR aceita mocha | ... | dracula"): a página
-    # propondo o que a escrita nega, que é o desencontro que a regra do topo
-    # desta função existe para não ter. Ver `_flavors_dos_packs`.
     if item["chave"] == "FLAVOR" and fechadas:
         fechadas = _flavors_dos_packs() or fechadas
-    # O «THEME PACK» CERCA PELOS PACKS DO DISCO — P53: é o que a página passou a
+    # O «THEME PACK» CERCA PELOS PACKS DO DISCO: é o que a página passou a
     # oferecer (bloco 5 do `_com_o_vocabulario_do_pack`). Um id que não existe
     # não é recusado por ninguém lá adiante: o `adocao` veste o padrão, calado.
     if item["chave"] == "PACK":
@@ -3471,24 +2760,9 @@ def validar_valor(item, valor):
 
     if item["faixa"]:
         lo, hi, _passo = item["faixa"]
-        # A PALAVRA QUE CONVIVE COM A FAIXA TAMBÉM É UM VALOR — 06/09/2026
-        #   Medido do jeito mais direto que existe: exportei o `meow.conf` DELA
-        #   pela própria página e reimportei o MESMO arquivo. 95 chaves voltaram
-        #   idênticas e UMA foi recusada — `MIDIA_FONTE="auto"`, o valor que
-        #   está no conf dela agora e que a aba Automação oferece como botão
-        #   "Auto", ao lado de "Usar número". A página propunha o que este
-        #   validador respondia com 400.
-        #   A causa é uma decisão só, vista de dois lados. O `_faixa_confere`
-        #   GUARDA a faixa quando o padrão é uma das `_PALAVRAS_COM_FAIXA` —
-        #   sem isso `MIDIA_FONTE` viraria campo de texto livre e `999` entraria
-        #   calado, que foi o defeito curado em 02/09. O controle de faixa do
-        #   `app.js` desenha o botão dessa palavra a partir do valor de fábrica,
-        #   porque é ali que o arquivo a diz. Faltava a outra metade: quem aceita
-        #   a faixa POR CAUSA da palavra tem de aceitar a palavra.
-        #   E só ela, de propósito: a comparação é com o padrão DESTA chave, não
-        #   com a lista inteira. `LEITURA_TEMPERATURA` (1000–6500 K, padrão
-        #   numérico) continua recusando `auto`, porque a tela dele não desenha
-        #   esse botão — a cerca segue sendo exatamente o que a página oferece.
+        # Medido do jeito mais direto que existe: exportei o `meow.conf` DELA
+        # pela própria página e reimportei o MESMO arquivo. A página propunha o
+        # que este validador respondia com 400.
         if valor == item["padrao"] and valor in _PALAVRAS_COM_FAIXA:
             return None
         try:
@@ -3497,10 +2771,7 @@ def validar_valor(item, valor):
             return "%s é um número entre %s e %s" % (item["chave"], lo, hi)
         if not (lo <= n <= hi):
             return "%s vai de %s a %s — %s está fora" % (item["chave"], lo, hi, valor)
-        # O TETO DE AGORA É CERCA TAMBÉM — P50, achado 36. A régua do exemplo
-        # diz até onde a chave pode ir numa máquina qualquer; o `teto_da_chave`
-        # diz até onde o instalador aplica NESTA sessão, e acima disso ele
-        # corta. Gravar o que vai ser cortado é gravar como se valesse.
+        # Gravar o que vai ser cortado é gravar como se valesse.
         teto = teto_da_chave(item["chave"])
         if teto and teto["trava"] and n > teto["valor"]:
             return "o teto agora é %d px: %s" % (teto["valor"], teto["motivo"])
@@ -3508,8 +2779,7 @@ def validar_valor(item, valor):
 
     # A cerca contra substituição de comando vale para TODA chave, e fica aqui
     # de propósito: `/api/definir`, `/api/salvar` e `importar_conf` passam por
-    # `validar_valor`, então uma cerca só cobre as três portas. Ver o bloco
-    # "A CERCA CONTRA SUBSTITUIÇÃO DE COMANDO" acima.
+    # `validar_valor`, então uma cerca só cobre as três portas.
     perigo = expansao_perigosa(valor)
     if perigo:
         return "%s: %s" % (item["chave"], perigo)
@@ -3524,25 +2794,25 @@ def validar_valor(item, valor):
     return None
 
 
-# O PAINEL NÃO ENSAIA — 13/09/2026
-#   Pedido dela: "eu tinha pedido pra tirar o app do modo sandbox". Até aqui a
-#   página mandava `seco` e este arquivo punha `MEOW_DRY_RUN=1` no ambiente de
-#   quem grava e de quem roda. O ensaio saiu da tela e sai daqui: um
-#   `MEOW_DRY_RUN` herdado do terminal que subiu o painel é arrancado do
-#   ambiente, para nada que o painel rode voltar a fingir que gravou.
-#
-# E O ENSAIO VOLTOU — 22/09/2026, sprint P8. O QUE ELE NÃO DESFAZ:
-#   A queixa que o trouxe de volta é a outra ponta da mesma frase: "nada da
-#   interface é aplicado em sandbox. Tudo é aplicado na máquina da pessoa". O
-#   que ela pediu em 13/09 era não ter um INTERRUPTOR GLOBAL de sandbox, que
-#   fazia todo clique fingir; o que falta desde então é poder ver UM gesto
-#   antes de mandá-lo valer.
-#
-#   Por isso o `pop` continua onde está, e a linha nova vem DEPOIS dele: o
-#   `MEOW_DRY_RUN` que o terminal deixou no ambiente do servidor continua sendo
-#   arrancado — o modo de uma execução nunca é herdado, ele é PEDIDO, um pedido
-#   por vez, pelo corpo do POST. Ler esta função é ler as duas decisões na
-#   ordem em que elas acontecem, e nenhuma cancela a outra.
+# Até aqui a página mandava `seco` e este arquivo punha `MEOW_DRY_RUN=1` no
+# ambiente de quem grava e de quem roda.
+PONTAS_DA_NOITE = ("NOITE_INICIO", "NOITE_FIM")
+
+
+def pontas_da_noite_soltas(escolhas, brutos=None):
+    """A queixa (uma por ponta escrita) quando `escolhas` deixa a noite com uma
+    ponta só; lista vazia quando ela fica com as duas ou com nenhuma."""
+    if not any(c in escolhas for c in PONTAS_DA_NOITE):
+        return []
+    final = dict(valores_brutos() if brutos is None else brutos)
+    final.update(escolhas)
+    cheias = [c for c in PONTAS_DA_NOITE if str(final.get(c, "")).strip()]
+    if len(cheias) != 1:
+        return []
+    return [{"chave": cheias[0],
+             "erro": "a noite pede as duas pontas, começo e fim, ou nenhuma"}]
+
+
 def _ambiente_do_painel(seco=False):
     ambiente = dict(os.environ, MEOW_RAIZ=RAIZ)
     ambiente.pop("MEOW_DRY_RUN", None)
@@ -3603,21 +2873,11 @@ def definir_varias(pares, conf=None):
     ambiente = _ambiente_do_painel()
     if conf:
         ambiente["MEOW_CONF"] = conf
-        # E O ESTADO VAI JUNTO — 22/09/2026, e sem isto o ENSAIO ESCREVE.
-        #   `conf` só existe no caminho do ensaio: é a cópia descartável de
-        #   `_conf_de_ensaio`. Mas gravar nela passa por `meow_escrever`, que
-        #   registra CAMINHO e sha256 no manifesto — e o manifesto continuava
-        #   sendo o REAL, em `~/.local/state/meowsystem/`.
+        # `conf` só existe no caminho do ensaio: é a cópia descartável de
+        # `_conf_de_ensaio`.
         #
-        #   Medido: onze linhas `/tmp/meow-ensaio-*/meow.conf` entraram no
-        #   manifesto dela entre 17:41 e 18:06 de 22/09, uma por clique no
-        #   «Ver o que faria», todas apontando para um `/tmp` já apagado.
-        #   Nenhuma rede pegava: a conferência da sprint e o `tests/seco.sh`
-        #   medem só a janela do `install.sh`, e o vazamento é do painel.
-        #
-        #   A sprint que este botão serve abre dizendo "um ensaio que escreve é
-        #   pior que nenhum ensaio". Era o caso, e a cura é esta linha: o estado
-        #   vai para a MESMA pasta descartável, e morre com ela.
+        # Era o caso, e a cura é esta linha: o estado vai para a MESMA pasta
+        # descartável, e morre com ela.
         ambiente["MEOW_ESTADO"] = os.path.dirname(conf)
     try:
         proc = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -3643,47 +2903,13 @@ def definir(chave, valor):
     return (rc, saida)
 
 
-# ============================================================================
-# O MEOW.CONF DESCARTÁVEL DO ENSAIO — 22/09/2026, sprint P8
-# ============================================================================
-# O ENSAIO POR AMBIENTE NÃO FUNCIONAVA, E ISTO FOI MEDIDO (22/09/2026)
-#   A primeira versão desta sprint mandava as escolhas pendentes como AMBIENTE
-#   (um `extras` que entrava no `env` do trabalho) e um comentário jurava que
-#   era "por cima do conf do disco, do mesmo jeito que o `install.sh` já lê toda
-#   chave". Falso, e o contrário do que acontece. A primeira coisa que o
-#   `install.sh` faz é `etapa_conf_ler` (install.sh:142), que é `set -a;
-#   . "$fonte"` sobre o meow.conf — e o meow.conf usa atribuição CRUA
-#   (`FLAVOR="mocha"`, meow.conf.exemplo:84), não `${FLAVOR:-mocha}`. O `source`
-#   SOBRESCREVE o ambiente:
+# `MEOW_CONF` é o override de sempre, e ele já é respeitado em todo lugar que
+# importa: `install.sh:70`, `lib/comum.sh:608` (e por tabela todo script de
+# `scripts/` que sourceia a lib), `bin/meow:116` e o `scripts/gerar_temas.py`.
 #
-#       $ printf 'FLAVOR="mocha"\n' > c.conf
-#       $ FLAVOR=frappe bash -c 'set -a; . c.conf; echo "$FLAVOR"'
-#       mocha
-#
-#   Medido no install.sh de verdade também, num HOME de brinquedo com
-#   `FLAVOR=frappe` no ambiente: zero ocorrência de `frappe` nas 428 linhas do
-#   ensaio, e `aplicaria o tema 'mocha-mauve'` na linha 11. Todo `extras` era
-#   engolido, e não em parte: o `migrar_conf.py` (install.sh:334) mantém o conf
-#   dela COMPLETO contra o exemplo, então não há chave de esquema que escape.
-#   A pessoa lia a faixa "ENSAIO · nada foi escrito", aprovava, e recebia outra
-#   coisa — a resposta errada vendida como a certa, que é pior que a ausência de
-#   resposta que esta sprint veio curar.
-#
-# O QUE FUNCIONA É DAR AO INSTALADOR OUTRO ARQUIVO PARA LER
-#   `MEOW_CONF` é o override de sempre, e ele já é respeitado em todo lugar que
-#   importa: `install.sh:70`, `lib/comum.sh:608` (e por tabela todo script de
-#   `scripts/` que sourceia a lib), `bin/meow:116` e o `scripts/gerar_temas.py`.
-#   Então o ensaio ganha uma CÓPIA descartável do conf dela, com as escolhas
-#   pendentes gravadas dentro pela MESMA `meow_conf_definir` que o Salvar de
-#   verdade vai chamar depois, e o `install.sh` lê essa cópia. O arquivo dela
-#   não é aberto para escrita uma única vez — que é a promessa inteira da
-#   palavra "ensaio".
-#
-#   A CÓPIA MORA NUM DIRETÓRIO 0700, e é o DIRETÓRIO que a protege: o
-#   `shutil.copyfile` copia conteúdo, não modo, e o arquivo nasce 0644 pelo
-#   umask (medido: dir 0o700, cópia 0o644). O meow.conf é o retrato da máquina
-#   dela — um `/tmp/xxx.conf` legível por qualquer conta seria um vazamento novo
-#   criado por um botão que promete não escrever nada.
+# O meow.conf é o retrato da máquina dela — um `/tmp/xxx.conf` legível por
+# qualquer conta seria um vazamento novo criado por um botão que promete não
+# escrever nada.
 def _conf_de_ensaio(pares):
     """Uma cópia descartável do meow.conf com `pares` dentro. Devolve (dir, erro).
 
@@ -3706,14 +2932,10 @@ def _conf_de_ensaio(pares):
 
 # --- 4. a paleta vira CSS ----------------------------------------------------
 # NENHUM HEX VIVE DENTRO DE SCRIPT — é a regra do README, e ela vale para uma
-# folha de estilo tanto quanto para um `.sh`. O `estilo.css` desta página não tem
-# uma única cor escrita: ele consome `var(--base)`, `var(--accent)` e companhia,
-# e quem as define é este endpoint, lendo a paleta DO PACK ATIVO no flavor que o
-# meow.conf dela manda. Trocar `FLAVOR="latte"` e recarregar veste a página
-# inteira de claro, sem uma linha de CSS a mais.
+# folha de estilo tanto quanto para um `.sh`.
 #
-# O caminho não é nomeado aqui desde 22/09/2026: quem responde é
-# `paleta_canonica()`, e o cabeçalho dela conta por quê.
+# O caminho não é nomeado aqui: quem responde é `paleta_canonica()`, e o
+# cabeçalho dela conta por quê.
 _PALETA_CACHE = {}
 
 
@@ -3741,13 +2963,8 @@ def logo_do_painel(flavor, accent):
     erro: a página inteira funciona sem a marca."""
     dados = _paleta_dados()
     flavors = dados.get("flavors", {})
-    # A QUEDA É O PADRÃO DO PACK NO AR, E NÃO O MOCHA — 23/09/2026, P31
-    #   Era `flavors.get("mocha")`: um flavor do Catppuccin cravado na queda de
-    #   uma função que lê a paleta do pack no ar. Com o Dracula no ar e um
-    #   FLAVOR que ele não tem, a busca não achava nada nas cores DESTE pack e
-    #   caía em `{}` — a marca saía sem tinta. O `flavor_padrao` que o pack
-    #   declara é o flavor que ele garante ter; sem a declaração, o primeiro da
-    #   paleta, como o `vocabulario` faz.
+    # Era `flavors.get("mocha")`: um flavor do Catppuccin cravado na queda de
+    # uma função que lê a paleta do pack no ar.
     mod = modulo_pack()
     no_ar = _pack_no_ar()
     padrao = ((mod.campo(no_ar, "paleta.flavor_padrao") if mod and no_ar else "")
@@ -3757,32 +2974,14 @@ def logo_do_painel(flavor, accent):
         accent = "mauve" if "mauve" in cores else next(iter(cores), "")
     tinta = cores.get(accent) or ""
 
-    # A MARCA MUDOU DE CASA EM 22/09/2026 — ELA É DO PACK
-    #   Eram dois `os.path.join(RAIZ, "assets", "icones", "autorais", ...)`
-    #   cravados. A P27 desceu os 55 desenhos autorais para dentro dos packs
-    #   (44 do Catppuccin, 11 do Dracula), porque `autorais` era um nome que
-    #   dizia "do projeto" e não dizia DE QUEM — e quem trocava de pack levava
-    #   os dois montes junto.
+    # Eram dois `os.path.join(RAIZ, "assets", "icones", "autorais", ...)`
+    # cravados.
     #
-    #   Quem resolve é o `acervo` do scripts/pack.py, pela mesma porta que a
-    #   etiqueta de pack desta página já usa (ver `modulo_pack`): ele sobe pack
-    #   -> herança -> motor e enxerga as três raízes. Montar o caminho aqui
-    #   seria a segunda verdade sobre onde mora a marca, e ela sumiria da página
-    #   calada no dia em que um pack declarasse outro diretório.
+    # Quem resolve é o `acervo` do scripts/pack.py, pela mesma porta que a
+    # etiqueta de pack desta página já usa (ver `modulo_pack`): ele sobe pack ->
+    # herança -> motor e enxerga as três raízes.
     #
-    # A QUEDA PARA O MOCHA CONTINUA, E O PORQUÊ MUDOU DE TAMANHO
-    #   Antes ela cobria o flavor sem desenho dentro de um acervo só. Agora ela
-    #   cobre também o pack cujo `icones/autorais/` não tem a marca: o Dracula
-    #   entrega `meowsystem-painel-dracula.svg` e `-alucard.svg`, e uma página
-    #   pedida em `mocha` com o pack Dracula ativo não acha nenhum dos dois. Cair
-    #   no mocha do acervo HERDADO é o que mantém a marca na tela — e é o que o
-    #   `acervo` já faz sozinho ao subir a herança.
-    #
-    #   O MOCHA SAIU DO CÓDIGO NA P31, E A COBERTURA FICOU. A queda passou a ser
-    #   o `padrao` do pack no ar (acima), e depois o `flavor_padrao` do pack
-    #   PADRÃO, perguntado ao scripts/pack.py — que hoje é o mesmo mocha, só que
-    #   dito por quem o declara. O terceiro degrau é o de antes com outro nome:
-    #   um pack cujos autorais não trazem a marca continua herdando a do padrão.
+    # Antes ela cobria o flavor sem desenho dentro de um acervo só.
     def _marca(nome_flavor):
         if not mod or not nome_flavor:
             return ""
@@ -3798,9 +2997,7 @@ def logo_do_painel(flavor, accent):
     if not tinta:
         return bruto.encode("utf-8")
     # SÓ O ATRIBUTO `stroke` COM VALOR HEXADECIMAL, e nada mais: o desenho é de
-    # traço (`fill="none"`), então o stroke é a cor inteira dele. Uma troca
-    # ampla — qualquer `#RRGGBB` do arquivo — pegaria também um eventual
-    # `stop-color` de gradiente e mudaria o desenho, não a cor dele.
+    # traço (`fill="none"`), então o stroke é a cor inteira dele.
     return re.sub(r'stroke="#[0-9A-Fa-f]{3,8}"',
                   'stroke="%s"' % tinta, bruto).encode("utf-8")
 
@@ -3841,16 +3038,14 @@ def paleta_css(flavor, accent):
         return "/* paleta ilegível — a página cai no tema do navegador */\n"
     # SEM FLAVOR CONHECIDO, O PRIMEIRO DO PACK NO AR — e não o "mocha", que é
     # nome de flavor do Catppuccin: com o Dracula no ar ele não existe, e a
-    # página saía sem cor nenhuma. [23/09/2026, P10]
+    # página saía sem cor nenhuma.
     cores = flavors.get(flavor) or next(iter(flavors.values()), {})
     if accent not in cores:
         accent = "mauve" if "mauve" in cores else next(iter(cores), "")
     claro = flavor in dados.get("claros", [])
     linhas = [
-        # O CSS diz de ONDE a cor veio. Com a paleta trocável, cravar o nome aqui faria
-        # o arquivo gerado mentir sobre a própria procedência. [2026-09-17]
-        # `paleta_canonica()` não é '' aqui: o `return` de "paleta ilegível",
-        # três linhas acima, já cobriu o caso em que ela não resolveu.
+        # O CSS diz de ONDE a cor veio. Com a paleta trocável, cravar o nome
+        # aqui faria o arquivo gerado mentir sobre a própria procedência.
         f"/* Gerado por app/servidor.py a partir de "
         f"{os.path.relpath(paleta_canonica(), RAIZ)}.",
         "   Não edite: a fonte é a paleta, e ela é a única verdade de cor. */",
@@ -3861,42 +3056,15 @@ def paleta_css(flavor, accent):
         linhas.append(f"  --{nome}: {hexa};")
     linhas.append(f"  --accent: var(--{accent});")
     # OS QUATRO FUNDOS DE TESTE, e eles não são decoração: são os quatro fundos
-    # REAIS sobre os quais um ícone aparece nesta máquina. As folhas visuais de
-    # 08/2026 comparam ícone sobre exatamente estes quatro, e a razão está
-    # escrita nelas — a dock é translúcida e o papel de parede gira, então o
-    # fundo por trás de um ícone oscila SOZINHO entre o vidro escuro e o claro.
-    # Um ícone que some num deles não está resolvido.
+    # REAIS sobre os quais um ícone aparece nesta máquina.
     #
-    # Os dois primeiros saem direto da paleta. Os dois de vidro são DERIVADOS
-    # dela, e não hex digitado: o escuro é a base puxada 17% para o texto, o que
-    # reproduz o valor medido nas folhas com erro de 2/255; o claro é uma
-    # aproximação da dock sobre papel de parede claro, e está declarado como
-    # aproximação porque é isso que ele é.
+    # Os dois primeiros saem direto da paleta.
     #
-    # O ESCURO E O CLARO SÃO DO PACK NO AR, E TÊM NOME DE FUNÇÃO — 23/09/2026, P10
-    #   Eram `--fundo-mocha` e `--fundo-latte`, lidos por NOME de flavor. Com o
-    #   Dracula no ar a paleta não tem nem um nem outro: os dois saíam vazios, e
-    #   a barra «Fundo» da aba Ícones oferecia "Mocha" e "Latte" — botões com o
-    #   vocabulário de outro pack, pintando o fundo de nada.
+    # Eram `--fundo-mocha` e `--fundo-latte`, lidos por NOME de flavor.
     #
-    #   A REGRA É A QUE OS DOIS NOMES JÁ CUMPRIAM NO CATPPUCCIN, dita sem nome: o
-    #   `base` do escuro mais escuro e o do claro mais claro que o pack declara,
-    #   medidos pela luminância que o `pack.py` já usa no contraste. Fixos, e não
-    #   o flavor salvo — é o que o `previas-tela.js` espera deles ("o escuro mais
-    #   escuro e o claro mais claro da paleta, independentes do que está
-    #   salvo"). No Catppuccin isso dá mocha e latte, os mesmos hex de antes; no
-    #   Dracula, dracula e alucard.
+    # PACK SEM CLARO AINDA TEM FUNDO CLARO: o `text` do escuro.
     #
-    #   PACK SEM CLARO AINDA TEM FUNDO CLARO: o `text` do escuro. Quem testa um
-    #   ícone contra fundo claro quer saber se ele some no papel de parede claro
-    #   da dock — pergunta que existe mesmo para o pack que não desenhou um
-    #   flavor claro, e o `text` é a cor mais clara que ele declara.
-    #
-    #   OS DOIS NOMES ANTIGOS FICAM, COMO APELIDO. O `previas-tela.js` lê
-    #   `--fundo-mocha`/`--fundo-latte` para montar os degraus de claridade dos
-    #   desenhos, e ele não é arquivo desta sprint; sem os apelidos, os desenhos
-    #   cairiam no `crust`/`surface2` de reserva e mudariam de tom sem ninguém
-    #   ter pedido. Quem os renomear lá apaga as duas linhas aqui.
+    # Quem os renomear lá apaga as duas linhas aqui.
     mod = modulo_pack()
     luz = (lambda h: mod._luminancia(h)) if mod and hasattr(mod, "_luminancia") else (lambda h: 0.0)
     claros_do_pack = [f for f in (dados.get("claros", []) or []) if f in flavors]
@@ -3977,18 +3145,9 @@ def _lados_do_pack():
             for f in (_paleta_dados().get("flavors") or {})}
 
 
-# A VARIANTE SEM TEMA NÃO VESTE A PÁGINA — 25/09/2026, sprint P59
-#   Depois da P59 todo flavor dos dois packs de fábrica tem tema (fotografado ou
-#   derivado). Um pack de terceiro ainda pode ter um que não se deriva — sem foto
-#   de lado nenhum, ou com a base que não se reproduz —, e aí o instalador pula
-#   a etapa do tema e o COSMIC fica como estava. A página não se veste sozinha
-#   com ele: veste o que a tela mostra agora, e o cartão da variante já avisa
-#   («Não há tema para …», o `avisoDeCombinacao` do app.js, que pergunta à mesma
-#   conta pelo `acentos_que_aplicam`).
-#   A pergunta é a do `derivar_acento.py --conferir`, por processo filho como a
-#   do `_acentos_que_aplicam`, e só quando o par não tem captura no disco: um par
-#   que aplicou tem a dele (fotografada, ou a derivada que o instalador gravou),
-#   e aí não custa nada.
+# Um pack de terceiro ainda pode ter um que não se deriva — sem foto de lado
+# nenhum, ou com a base que não se reproduz —, e aí o instalador pula a etapa do
+# tema e o COSMIC fica como estava.
 _SEM_TEMA_CACHE = {}
 
 
@@ -4099,22 +3258,13 @@ def _acento_da_pagina(flavor, valores):
 
 
 # --- 5. as ações -------------------------------------------------------------
-# UMA LISTA FECHADA, E ELA É A FRONTEIRA DE SEGURANÇA DESTE ARQUIVO.
 # A página manda um `id`; o `id` é chave deste dicionário; o que roda é o `argv`
-# daqui. Não existe caminho por onde texto do navegador vire comando — nem com
-# `shell=True`, que não aparece uma vez neste arquivo.
+# daqui.
 #
 # `arg` nomeia um PROVEDOR de valores válidos, e o valor que a página mandar é
-# conferido contra a lista que o provedor monta DO DISCO. Um `id` de captura que
-# não existe é recusado antes de qualquer processo nascer.
-#
-# ELE É TAMBÉM O CATÁLOGO DE OPÇÕES DA PÁGINA — 01/09/2026
-#   O mesmo dicionário alimenta duas coisas que sempre foram a mesma pergunta
-#   ("que valores existem AGORA no disco?"): o argumento de uma ação e as opções
-#   de uma chave (ver `FONTES_DO_DISCO`). Tê-los em tabelas separadas seria
-#   convidar a divergência entre o que a página OFERECE e o que o servidor
-#   ACEITA — e a página oferecendo o que o servidor recusa é exatamente o
-#   defeito que a auditoria mediu no `CURSOR`.
+# conferido contra a lista que o provedor monta DO DISCO.
+# É a fronteira de segurança do arquivo: texto do navegador nunca vira comando
+# (não há `shell=True` aqui), e `id` desconhecido é recusado antes de qualquer processo.
 PROVEDORES = {
     "capturas": _capturas,
     "gatos": _gatos,
@@ -4127,20 +3277,20 @@ PROVEDORES = {
     "paredes_favoritas": lambda: _paredes_favoritas(),
     # Os theme packs do disco — o argumento do «Usar este» da Home. A varredura
     # é a mesma do `/api/packs`, então o cartão só oferece o que esta cerca
-    # aceita. [P10]
+    # aceita.
     "packs": lambda: sorted(_packs_no_disco()),
     # O argumento do «Remover»: só o que a `remocao` deixa sair. É a mesma
-    # conta que acende o botão no cartão. [P53]
+    # conta que acende o botão no cartão.
     "packs_removiveis": _packs_removiveis,
     # O argumento dos dois botões da pendência de tema de terceiro: os apps que
-    # têm essa pendência na Home agora. [P53] Ver `SUFIXO_TEMA_DE_TERCEIRO`.
+    # têm essa pendência na Home agora. Ver `SUFIXO_TEMA_DE_TERCEIRO`.
     "apps_de_terceiro": lambda: sorted({_app_da_pendencia(p["id"]) for p in pendencias()} - {""}),
     # O argumento do «Instalar <extensão>» da pendência do VS Code: as extensões
-    # que o pack IMPORTADO no ar pede (decisão 9, P79). Pack do repositório dá
-    # lista vazia, e com ela nenhum botão e nenhum argumento aceito.
+    # que o pack IMPORTADO no ar pede. Pack do repositório dá lista vazia, e com
+    # ela nenhum botão e nenhum argumento aceito.
     "extensoes_de_terceiro": lambda: _extensoes_de_terceiro(),
-    # O argumento do «Era escolha minha»: o caminho que o `wallpaper.sh` devolveu
-    # e deixou na pendência (P80, item 8). Ver `PENDENCIA_PAREDE`.
+    # O argumento do «Era escolha minha»: o caminho que o `wallpaper.sh`
+    # devolveu e deixou na pendência. Ver `PENDENCIA_PAREDE`.
     "fontes_revertidas": lambda: _fontes_revertidas(),
 }
 
@@ -4149,29 +3299,9 @@ def _meow(*args):
     return [os.path.join(RAIZ, "bin", "meow"), *args]
 
 
-# ============================================================================
-# O QUE A TELA MOSTRA NÃO TRAZ NOME NEM CASA DE NINGUÉM — 24/09/2026, P52
-# ============================================================================
 # A caixa de confirmar, o «ver comando» e o topo da gaveta imprimiam o `argv`
 # com o caminho absoluto do clone na frente: «Usar este pack» mostrava
-# `/home/<usuário>/Desenvolvimento/MeowSystem/bin/meow pack usar catppuccin`
-# (achado 10). Medido com o painel no ar, as 14 abas: 55 de 55 ações com o
-# caminho absoluto na caixa, e 46 linhas do «ver comando» com ele. O produto
-# vai para qualquer pessoa, e o que ela copia tem de colar em qualquer máquina
-# com o meow instalado — não só nesta, nesta pasta.
-#
-# AS TROCAS SAEM DE `RAIZ` E DA CASA DE QUEM RODA, e nunca de uma expressão
-# sobre `/home/`: um clone em `/opt` ou uma casa em `/var/home` (Silverblue)
-# continuam cobertos, e é por isso que o teste sobre `/home/` não serve.
-#   1. `<raiz>/bin/meow` vira `meow` — é o que o `install.sh` põe no PATH, e é
-#      como o README escreve.
-#   2. `<raiz>/um/script.sh` vira `./um/script.sh` — o script que não tem
-#      verbo no meow roda de dentro do clone, que é como o README manda rodar o
-#      `./install.sh`. O caminho do clone é da máquina, não do comando.
-#   3. o que mora na casa vira `~/…` — um argumento que é caminho, como a
-#      imagem que o «Tirar» da galeria manda banir.
-# O `argv` de verdade não muda: quem RODA continua sendo o caminho absoluto
-# (ver `iniciar`). Isto é o texto da tela, e só ele.
+# `/home/<usuário>/Desenvolvimento/MeowSystem/bin/meow pack usar catppuccin`.
 def _casas():
     """A casa de quem roda, como o ambiente a diz e como o disco a resolve.
 
@@ -4287,35 +3417,17 @@ def sem_casa_nem_raiz(valor, outras=()):
     return valor
 
 
-# ============================================================================
-# O QUE CADA SEÇÃO É, EM UMA LINHA — 02/09/2026
-# ============================================================================
-# Pedido dela: "deixar mais obvio o que é aquela seção". O título sozinho não
-# conta nada — "Automação" não diz a ninguém que ali moram os vigias e os
-# relógios que reaplicam o tema.
+# O título sozinho não conta nada — "Automação" não diz a ninguém que ali moram
+# os vigias e os relógios que reaplicam o tema.
 #
-# ISTO ANDA CONTRA UMA REGRA DELA, E A FOLHA PERGUNTOU ANTES
-#   Em 01/09 ela pediu "menos palavras na interface como um todo. a página fala
-#   por si". A `docs/folhas/folha-menu-do-painel.html` pôs a contradição na mesa
-#   e ela aprovou: são nove linhas curtas, e o problema que elas resolvem é
-#   exatamente o que ela levantou. A regra continua valendo para o resto —
-#   nenhuma dessas frases passa de uma linha, e nenhuma explica o óbvio.
-#
-# A CHAVE É O NOME DA SEÇÃO, e não um id: quem nomeia as seções é o
-# `meow.conf.exemplo`, e inventar um segundo identificador aqui seria a segunda
-# lista que discorda da primeira quando alguém renomear um título lá.
+# A `docs/folhas/folha-menu-do-painel.html` pôs a contradição na mesa e ela
+# aprovou: são nove linhas curtas, e o problema que elas resolvem é exatamente o
+# que ela levantou.
 DESCRICAO_SECAO = {
-    # UMA ENTRADA POR ASSUNTO — 06/09/2026
     #   Eram nove frases para dezenove abas, e as subabas herdavam a do pai:
     #   três abas abriam com a mesma linha. Com o menu num nível só e uma página
     #   por assunto, a lista passa a ter uma frase por página, e o
     #   `|| d[g.secaoPai]` que o `app.js` usava para tapar o buraco saiu.
-    #
-    #   A chave é o NOME DO ASSUNTO, e não um id: quem nomeia os assuntos é o
-    #   `meow.conf.exemplo`, e inventar um segundo identificador aqui seria a
-    #   segunda lista, a que discorda da primeira quando alguém renomear lá.
-    # "do pack", e não "do Catppuccin" — 23/09/2026, P10: com o Dracula no ar,
-    # a primeira linha da aba chamava de Catppuccin a variante de outro pack.
     "Cor e tela": "A variante do pack, a cor de destaque, o lado a lado e o ponteiro.",
     "Áreas de trabalho": "O nome e a ordem das áreas, e o encaixe de janelas em cada uma.",
     "Logo do sistema": "A logo que aparece no menu de lançamento, na dock e no terminal.",
@@ -4334,24 +3446,11 @@ DESCRICAO_SECAO = {
 }
 
 
-# O MENU TEM DOIS BLOCOS, E QUEM DECIDE ISSO É ESTA TABELA — 06/09/2026
-#   Pedido dela: "No menu, Assuntos vira Tópicos, A Máquina vira Sistema. E aqui
-#   dentro temos Manutenção, Instalação (antigo instalar e conferir),
-#   Idempotência (antigo atualizar o sistema)". Em 07/09/2026 ela decidiu o
-#   contrário: "Atualização" — era a única aba cujo nome não dizia o conteúdo,
-#   e a palavra idempotência ficou no corpo da página, onde o desenho a ensina.
+# Antes, o `app.js` decidia sozinho por uma pergunta que PARECIA equivalente:
+# "esta seção tem chave do meow.conf?". Sim virava "Assuntos", não virava
+# máquina.
 #
-#   Antes, o `app.js` decidia sozinho por uma pergunta que PARECIA equivalente:
-#   "esta seção tem chave do meow.conf?". Sim virava "Assuntos", não virava
-#   máquina. A pergunta funcionava por coincidência, e a coincidência acabou
-#   agora: a **Manutenção tem nove chaves** e mesmo assim é Sistema, porque o
-#   que ela ajusta não é a aparência da tela dela — é o que o computador faz
-#   sozinho enquanto ninguém olha. Heurística que erra num caso é heurística
-#   errada; virou decisão escrita, e mora do lado do servidor porque é aqui que
-#   as seções são nomeadas.
-#
-#   Ausente da tabela = "Tópicos". O padrão é o caso comum, e uma seção nova
-#   nasce onde a esmagadora maioria mora, sem precisar de linha nenhuma aqui.
+# Ausente da tabela = "Tópicos".
 BLOCO_DA_SECAO = {
     "Manutenção": "Sistema",
     "Instalação": "Sistema",
@@ -4359,18 +3458,12 @@ BLOCO_DA_SECAO = {
 }
 
 
-# ============================================================================
-# A PONTE ROOT, DO LADO DO PAINEL — 08/09/2026
-# ============================================================================
 # `/usr/local/lib/meowsystem/ponte_root.sh` é o braço root do projeto, liberado
 # sem senha por `/etc/sudoers.d/49-meowsystem-ponte`. O painel não a chama: quem
-# chama são os scripts. O que ele precisa saber é UMA coisa — se ela está no ar
-# —, para não prometer um prompt de senha que não vai existir, e para não
-# esconder o que ainda vai pedir.
+# chama são os scripts.
 #
-# A RESPOSTA É MEDIDA, E É CACHEADA POR POUCO TEMPO. `sudo -n` é barato mas não
-# é de graça, e o esquema é lido a cada pintura da página. Trinta segundos é
-# menos que qualquer sessão de uso e mais que uma rajada de cliques.
+# `sudo -n` é barato mas não é de graça, e o esquema é lido a cada pintura da
+# página.
 _PELA_PONTE = frozenset({"sistema_atualizar", "sistema_limpar"})
 _PONTE_CAMINHO = "/usr/local/lib/meowsystem/ponte_root.sh"
 _ponte_cache = {"quando": 0.0, "vale": False}
@@ -4392,38 +3485,14 @@ def _ponte_viva():
     return vale
 
 
-# ============================================================================
-# O FIM DE UMA AÇÃO DIZ O QUE ELA FEZ — 24/09/2026, sprint P50 (achado 17)
-# ============================================================================
 # Até aqui a pastilha do fim da gaveta saía SÓ do código de saída, com uma
 # ressalva de quem escreve: 0 era "já estava certo" (ou "mexeu e aplicou" com
-# linha `~~`), 1 era "mexeu e consertou". Medido no painel de verdade, em
-# 24/09: «Recarregar o painel» reciclou (o PID mudou) e disse «JÁ ESTAVA
-# CERTO»; «Próxima imagem», uma troca pedida, disse «MEXEU E CONSERTOU»;
-# «Consertar» disse «MEXEU E APLICOU» sem mudar nada; «Ouvir o som» disse «JÁ
-# ESTAVA CERTO». E o instalador que a P48 fez sair 1 com o tema que não chegou
-# ao COSMIC ganhava a pastilha verde de conserto.
+# linha `~~`), 1 era "mexeu e consertou".
 #
-# O CÓDIGO NÃO SABE O QUE A AÇÃO É, E QUEM SABE É A AÇÃO
-#   O 1 do projeto é "divergia e consertei" para um conserto, "troquei" para
-#   uma troca pedida, e "o que você pediu e a tela divergem" para o instalador
-#   da P48. Então cada ação da tabela `ACOES` DECLARA a sua `natureza` (a
-#   linha logo abaixo do `grupo`), como declara `escreve` e `rede` — o mesmo
-#   gesto de declarar, e não adivinhar, que aqueles dois campos já fazem —, e a
-#   frase sai da natureza mais o código, nesta tabela e só nela. Botão nenhum
-#   tem rótulo de fim escrito à mão.
-#
-# A CHAVE `0~` É O 0 COM LINHA `~~` NA SAÍDA: o `install.sh` sai 0 tendo
-#   escrito (conta nas linhas `~~ mexeu:`), e o `meow pack remover` também
-#   (`~~ removido:`). Onde a natureza não a declara, o 0 é o 0.
+# Botão nenhum tem rótulo de fim escrito à mão.
 #
 # O ENSAIO É UMA NATUREZA DA EXECUÇÃO, E NÃO DA AÇÃO: um `seco` de qualquer
-#   ação não escreveu nada, e o fim dele fala do que MUDARIA. Quem troca uma
-#   pela outra é o `fim_da_acao`, e não a página.
-#
-# 3 e 4 são "pulado" em toda natureza (falta dependência; escolha sua). O resto
-# — 2, e o negativo de quem foi interrompido — é "saiu N", e quem o escreve é a
-# página: não há natureza em que um erro seja outra coisa.
+# ação não escreveu nada, e o fim dele fala do que MUDARIA.
 NATUREZAS = {
     # só lê: `meow status`, `meow log`, a lista de temas prontos
     "mostrar":   {"0": ("ok", "mostrou"),
@@ -4441,9 +3510,7 @@ NATUREZAS = {
     "aplicar":   {"0": ("ok", "já estava certo"),
                   "0~": ("ok", "mexeu e aplicou"),
                   "1": ("ok", "mexeu e aplicou")},
-    # O INSTALADOR INTEIRO, E O 1 DELE NÃO É VERDE: desde a P48 ele sai 1 quando
-    # o tema pedido não chegou ao COSMIC (o par sem captura que não se deriva),
-    # com a frase e a pendência na Início. Aplicou o resto, e não aplicou tudo.
+    # Aplicou o resto, e não aplicou tudo.
     "instalar":  {"0": ("ok", "já estava certo"),
                   "0~": ("ok", "mexeu e aplicou"),
                   "1": ("correndo", "aplicou, com pendência")},
@@ -4488,25 +3555,10 @@ def fim_da_acao(acao_id, seco=False):
     return {k: list(v) for k, v in dict(_FIM_PULADO, **NATUREZAS[natureza]).items()}
 
 
-# ============================================================================
-# O BOTÃO QUE NÃO TERIA EFEITO SE APAGA, E DIZ POR QUÊ — 24/09/2026, P50
-# ============================================================================
-# Achado 33: «Pôr um gato no dock» com a Coquinha, no modo Hora, respondeu «JÁ
-# ESTAVA CERTO — logo já no lugar: morcego-dia», e o dock ficou igual (medido).
-# No modo `hora` quem põe o gato é o relógio, e o `logo.sh` devolve o da fase
-# na mesma passada. Achado 32: «Gravar as áreas» sem área fixada sai PULADO,
-# porque herda o monitor de uma área que não existe — e quem a cria é outro
-# botão da mesma aba, «Criar a primeira área».
+# «Pôr um gato no dock» com a Coquinha, no modo Hora, respondeu «JÁ ESTAVA
+# CERTO — logo já no lugar: morcego-dia», e o dock ficou igual (medido).
 #
-# É O MESMO REMÉDIO DO «Tirar uma área» SEM ÁREA (P46): o botão que só pode
-# não fazer nada não é oferecido, fica apagado, e o cartão diz por quê. A
-# condição é DECLARADA pela ação, no campo `indisponivel` dela — uma função
-# que mede a máquina agora e devolve o motivo, ou None. O motivo sai em DADO, e
-# não em frase: quem escreve a frase é a página, com o nome que o cartão do
-# ajuste tem na tela e o rótulo que o botão da outra ação tem na tela (achado
-# 47 — nome de tela escrito à mão é o que envelhece primeiro). E o servidor
-# recusa rodar a ação apagada, pelo mesmo motivo de o `confirma` ser tranca e
-# não costume: um POST direto não passa por botão nenhum.
+# É O MESMO REMÉDIO DO «Tirar uma área»
 @_uma_vez_por_leitura
 def _modo_do_gato():
     """O modo EFETIVO do gato do dock (`hora`, `rotacao`, `fixo`), ou "".
@@ -4621,6 +3673,22 @@ def _areas_ja_alfinetadas():
             "porque": "há área fixada nesta máquina"}
 
 
+def _starship_ja_instalado():
+    """«Instalar o starship» com ele já instalado: o botão não tem o que fazer.
+
+    15/10/2026, P82 (item 2; decisão 14). O botão ficava aceso com o starship
+    em `~/.cargo/bin`, que é onde o `cargo install starship` o põe. Os lugares
+    são os do `_prompt_onde_starship` (scripts/prompt.sh): o PATH, o
+    `~/.local/bin` (onde o nosso botão o põe) e o `~/.cargo/bin`."""
+    casa = os.path.expanduser("~")
+    for lugar in (shutil.which("starship"),
+                  os.path.join(casa, ".local", "bin", "starship"),
+                  os.path.join(casa, ".cargo", "bin", "starship")):
+        if lugar and os.path.isfile(lugar) and os.access(lugar, os.X_OK):
+            return {"porque": "o starship já está instalado"}
+    return None
+
+
 def indisponivel(acao_id):
     """O motivo de a ação não ter efeito agora (um dicionário), ou None."""
     medir = ACOES[acao_id].get("indisponivel")
@@ -4629,16 +3697,11 @@ def indisponivel(acao_id):
 
 ACOES = {
     # --- o ciclo de vida -----------------------------------------------------
-    # TROCAR DE PACK — 23/09/2026, sprint P10
-    #   O «Usar este» dos cartões da Home. É o `meow pack usar`, e não um
-    #   `/api/definir` de PACK e FLAVOR seguido do instalador, por dois motivos:
-    #   quem decide o flavor e recusa um pack que não valida é o `pack.py`, e o
-    #   ensaio precisa ser o da TROCA — o verbo grava as duas chaves numa cópia do
-    #   conf quando roda seco (ver o `usar` do bin/meow).
-    #
-    #   `oculta` porque não é cartão na aba de ações: o argumento é um pack, e
-    #   escolher pack é o que o cartão da Home já faz com logo, paleta e nome. Os
-    #   outros campos são os do `instalar`, porque é ele que roda depois de gravar.
+    # É o `meow pack usar`, e não um `/api/definir` de PACK e FLAVOR seguido do
+    # instalador, por dois motivos: quem decide o flavor e recusa um pack que
+    # não valida é o `pack.py`, e o ensaio precisa ser o da TROCA — o verbo
+    # grava as duas chaves numa cópia do conf quando roda seco (ver o `usar` do
+    # bin/meow).
     "pack_usar": {
         "rotulo": "Usar este pack",
         "grupo": "Instalação",
@@ -4649,13 +3712,9 @@ ACOES = {
         "ajuda": "Grava o pack e a variante dele no meow.conf e roda o "
                  "instalador: a máquina inteira troca de tema.",
     },
-    # TIRAR UM PACK IMPORTADO — 24/09/2026, sprint P53 (achado 8)
-    #   O «Remover» dos cartões da Início. É o `meow pack remover`, e quem decide
-    #   o que pode sair é a `remocao` do scripts/pack.py — a mesma conta que
-    #   acende o botão no cartão e que cerca o argumento (`packs_removiveis`).
-    #   `destrutivo` porque o pack sai do disco, e é isso que põe o «Ver o que
-    #   faria» na caixa. `oculta` pelo motivo do `pack_usar`: o argumento é um
-    #   pack, e quem o escolhe é o cartão.
+    # É o `meow pack remover`, e quem decide o que pode sair é a `remocao` do
+    # scripts/pack.py — a mesma conta que acende o botão no cartão e que cerca o
+    # argumento (`packs_removiveis`).
     "pack_remover": {
         "rotulo": "Remover este pack",
         "grupo": "Instalação",
@@ -4677,8 +3736,7 @@ ACOES = {
     },
     # --- som ----------------------------------------------------------------
     # Duas ações, e a de OUVIR é a que importa na tela: escolher um timbre sem
-    # poder ouvi-lo é escolher no escuro. Ela não escreve nada — só toca o que
-    # já está instalado, ou o de fábrica se não houver nosso.
+    # poder ouvi-lo é escolher no escuro.
     "som_ouvir": {
         "rotulo": "Ouvir o som",
         "grupo": "Manutenção",
@@ -4694,11 +3752,8 @@ ACOES = {
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "som.sh"), "aplicar"],
         "escreve": True, "sudo": False, "confirma": False,
-        # A ÚNICA AJUDA DESTE ARQUIVO ACIMA DE 220 CARACTERES — 22/09/2026.
         # Medidas as 50 frases fixas daqui, esta era a só que passava (230). As
-        # duas palavras que saíram não carregavam nada: «do SEU meow.conf» (o
-        # arquivo é dela em toda a página) e «tira o nosso som E devolve o de
-        # fábrica», que são a mesma troca dita duas vezes. Fica em 211.
+        # duas palavras que saíram não carregavam nada: «do SEU meow.conf»
         "ajuda": "Gera o som de novo a partir do timbre do pack ativo e do "
                  "meow.conf. Vale na próxima mudança de volume — nada a reiniciar. "
                  "Com «Som ao mudar o volume» em não, este botão faz o contrário: "
@@ -4710,10 +3765,8 @@ ACOES = {
         "natureza": "conferir",
         "argv": _meow("doctor"),
         "escreve": False, "sudo": False, "confirma": False,
-        # O CONSERTO NASCE NA PRÓPRIA GAVETA — QA da P77, 10/10/2026. Com
-        # divergência o doctor termina em «rode: meow doctor --consertar»: um
-        # comando para quem está diante de um botão. A gaveta oferece o botão
-        # desta ação quando o conferir sai 1 («há divergências»).
+        # Com divergência o doctor termina em «rode: meow doctor
+        # --consertar»: um comando para quem está diante de um botão.
         "conserta_com": "doctor_consertar",
         "ajuda": "Faz {as_conferencias} e lista o que está fora do lugar. "
                  "Não escreve nada.",
@@ -4723,17 +3776,8 @@ ACOES = {
         "grupo": "Instalação",
         "natureza": "consertar",
         "argv": _meow("doctor", "--consertar"),
-        # BAIXA DA INTERNET, E DIZ — decisão 7 da leva G, 09/10/2026 (P78)
-        #   Desde a P75 e a P76 o `doctor --consertar` clona o papirus-folders
-        #   e o now-playing, baixa a fonte e o `Cargo.lock` do painel e roda o
-        #   `cargo build`: tudo pinado, mas é rede. A ação dizia `rede: False`,
-        #   e o gate reprovava 10 vezes («tentou baixar sem declarar rede»).
-        #   Declarar a verdade acende o selo «baixa da internet» no cartão e
-        #   no botão da Início. E SEM caixa de pergunta (`confirma: False`): o
-        #   reparo é pedido por quem usa ("o doctor não tem que avisar nada.
-        #   Tem que corrigir.", 09/10). A pergunta da P46 fica para a ação que
-        #   baixa E é opcional; o gate confere o selo aqui, e não a pergunta
-        #   (`reparo_que_baixa`, tests/app-completo.py).
+        # A ação dizia `rede: False`, e o gate reprovava 10 vezes («tentou
+        # baixar sem declarar rede»).
         "escreve": True, "sudo": False, "confirma": False, "rede": True,
         "ajuda": "Confere e aplica só o que falhou — o mesmo que o "
                  "agendamento faz sozinho.",
@@ -4751,10 +3795,8 @@ ACOES = {
         "grupo": "Instalação",
         "natureza": "tirar",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall"],
-        # "sudo": True desde 18/09/2026 — ela SEMPRE atravessou sudo (o hook de
-        # apt do lançador), e passou a atravessar também na remoção da ponte
-        # root. Declarar false fazia o painel prometer que o botão não pede
-        # senha, e a pessoa via o pedido aparecer sem entender de onde veio.
+        # `sudo` verdadeiro: a remoção atravessa sudo (o hook de apt do lançador e a
+        # ponte root), e declarar falso faria o painel prometer que não pede senha.
         "escreve": True, "sudo": True, "confirma": True, "destrutivo": True,
         "ajuda": "Tira o tema, os ícones e os agendamentos. Não apaga "
                  "backups nem a coleção de imagens.",
@@ -4769,17 +3811,9 @@ ACOES = {
     },
 
     # --- a nova versão da máquina --------------------------------------------
-    # PEDIDO DELA EM 06/09/2026: *"unificar o Instalar e Conferir com o Ver o
-    # Estado e, no lugar de Ver o Estado, criarmos uma aba para buildarmos a
-    # nova versão do SO… conferir a idempotência do app como um todo, se
-    # sobreviveríamos a um [apt full-upgrade && topgrade && …], que é a ideia do
-    # projeto também"*.
     #
     # O comando dela já existia e é uma linha; o que faltava era a SEGUNDA
-    # METADE. Um `full-upgrade` troca o cosmic-comp, o cosmic-panel, o fastfetch
-    # e o papirus — e cada troca dessas desfaz alguma coisa que este projeto
-    # escreveu. O `scripts/atualizar_sistema.sh` gruda as duas: atualiza, e em
-    # seguida roda o `doctor` para dizer o que a atualização desfez.
+    # METADE.
     "sistema_ver": {
         "rotulo": "O que a atualização mudaria",
         "grupo": "Atualização",
@@ -4787,15 +3821,10 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
         "escreve": False, "sudo": False, "confirma": False,
-        # "CAIXAS DE RUST" SAIU — 09/09/2026. Era `crates` traduzido ao pé da
-        # letra, e a tradução é pior que o original: quem não programa lê
-        # "caixas" e procura uma caixa. O que o `cargo` lista são PROGRAMAS
-        # escritos em Rust instalados nesta máquina, e é isso que a linha diz.
-        # "NÃO ESCREVE, NÃO ESCREVE" — 22/09/2026. A frase dizia duas vezes a
-        # mesma coisa e deixava de dizer a outra: o par que interessa a quem lê
-        # é «não escreve» E «não pede senha», que são os dois campos declarados
-        # logo acima (`escreve` e `sudo`). O duplicado veio de uma edição que
-        # trocou metade da frase e esqueceu a outra metade no lugar.
+        # O par «ver / aplicar»: ver o `par` do `jogos_heroic`.
+        "par": "sistema_atualizar",
+        # Era `crates` traduzido ao pé da letra, e a tradução é pior que o
+        # original: quem não programa lê "caixas" e procura uma caixa.
         "ajuda": "Os pacotes com versão nova e os programas em Rust "
                  "desatualizados. Não escreve e não pede senha, mas consulta "
                  "o índice do crates.io para saber o que está velho.",
@@ -4807,15 +3836,9 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "aplicar"],
         "escreve": True, "sudo": True, "confirma": True, "rede": True,
-        # "O DOCTOR" SAIU DA FRASE — 09/09/2026. `doctor` é o nome do subcomando
-        # no terminal; na tela essa mesma coisa já se chama "Conferir a máquina",
-        # e ter dois nomes para um botão é a tela pedindo desconfiança. `apt`,
-        # `flatpak` e `cargo` FICAM: são os nomes próprios dos três programas que
-        # baixam, e trocá-los por paráfrase esconderia o que está sendo rodado.
-        # COMEÇAVA EM MINÚSCULA, e era a única ajuda daqui que fazia isso —
-        # 22/09/2026. «Apt» com maiúscula estaria errado (é o nome do programa,
-        # e ele se escreve em minúscula), então quem abre a frase passa a ser o
-        # verbo, que é como as outras 49 ajudas deste arquivo abrem.
+        # `doctor` é o nome do subcomando no terminal; na tela essa mesma coisa
+        # já se chama "Conferir a máquina", e ter dois nomes para um botão é a
+        # tela pedindo desconfiança.
         "ajuda": "Atualiza apt, flatpak e cargo, e logo depois faz a conferência "
                  "— que diz o que a atualização desfez do MeowSystem. Demora, e o "
                  "apt mantém os arquivos de configuração que já estão no disco.",
@@ -4827,9 +3850,9 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "limpar"],
         "escreve": True, "sudo": True, "confirma": True,
-        # "CACHE DE DOWNLOAD" -> "os pacotes que o apt já baixou" — 09/09/2026.
-        # Cache é palavra de quem programa; o que sai do disco é um monte de
-        # arquivo baixado, e dizer isso é mais curto E mais claro.
+        # "CACHE DE DOWNLOAD" -> "os pacotes que o apt já baixou". Cache é
+        # palavra de quem programa; o que sai do disco é um monte de arquivo
+        # baixado, e dizer isso é mais curto E mais claro.
         "ajuda": "Pacotes órfãos e os pacotes que o apt já baixou. Diz quantos "
                  "megabytes saíram.",
     },
@@ -4840,11 +3863,8 @@ ACOES = {
         "natureza": "mostrar",
         "argv": _meow("tema"),
         "escreve": False, "sudo": False, "confirma": False,
-        # "TEMA ALVO" E "CAPTURA" SAÍRAM — 09/09/2026. "Alvo" é palavra de quem
-        # escreveu o instalador (o alvo de uma etapa); quem lê a tela escolheu
-        # um tema. E "captura" já significa OUTRA coisa na mesma página — a
-        # legenda de todo desenho diz "não é a sua tela" —, então o mesmo termo
-        # nomeava dois conceitos. O rótulo do botão já diz "Temas prontos".
+        # "Alvo" é palavra de quem escreveu o instalador (o alvo de uma etapa);
+        # quem lê a tela escolheu um tema.
         "ajuda": "O tema que você escolheu, o que está mesmo aplicado, e os "
                  "temas prontos que existem.",
     },
@@ -4853,9 +3873,12 @@ ACOES = {
         "grupo": "Cor e tela",
         "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "capturas",
+        # «⋯» de ações técnicas: a moldura do tema, logo acima, já é o
+        # gesto de trocar.
+        "tecnica": True,
         "escreve": True, "sudo": False, "confirma": False,
         # "POR CÓPIA DE ARQUIVO" era o COMO, e o como não muda nenhuma decisão
-        # dela; "captura" saiu pelo motivo da linha de cima. — 09/09/2026
+        # dela; "captura" saiu pelo motivo da linha de cima.
         "ajuda": "Aplica o tema escolhido, guardando o anterior antes.",
     },
     "tema_modo": {
@@ -4863,6 +3886,9 @@ ACOES = {
         "grupo": "Cor e tela",
         "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "modos",
+        # «⋯» de ações técnicas: a moldura do tema, logo acima, já é o
+        # gesto de trocar.
+        "tecnica": True,
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
                  "pisca a interface.",
@@ -4899,31 +3925,23 @@ ACOES = {
     },
     # O `icones_reconstruir` acima roda `construir_icones.sh` e
     # `construir_pastas.sh` — e NENHUM dos dois toca em `48x48/apps`, que é o
-    # diretório dos desenhos em traço. Medido: depois de salvar um desenho pela
-    # interface, "Reconstruir o tema de ícones" não punha nada na tela, e o
-    # botão parecia mentir. Quem é dono daquele diretório é este script, e ele
-    # ganha um botão próprio em vez de virar uma linha escondida em outro.
+    # diretório dos desenhos em traço.
     "icones_traco": {
         "rotulo": "Pôr os desenhos em traço na tela",
         "grupo": "Ícones",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "icones_apps_arcticons.sh")],
         "escreve": True, "sudo": False, "confirma": False,
-        # O CAMINHO `48x48/apps` SAIU DA TELA — 09/09/2026. É a pasta interna do
-        # tema de ícones (a convenção hicolor), e saber o nome dela não muda
-        # nada para quem clica; o comentário do código, logo acima, continua
-        # dizendo qual diretório este script é dono, que é onde a informação
-        # serve. A frase passa a dizer o efeito, que é o que a decidiu.
+        # É a pasta interna do tema de ícones (a convenção hicolor), e saber o
+        # nome dela não muda nada para quem clica; o comentário do código, logo
+        # acima, continua dizendo qual diretório este script é dono, que é onde
+        # a informação serve.
         "ajuda": "Põe no tema os desenhos que os dois acervos de traço trazem "
                  "— é o passo que faz um desenho salvo aqui aparecer.",
     },
-    # O IRMÃO DO `icones_traco` PARA O PACK — 25/09/2026, sprint P60. O «Usar
-    # este ícone» com um desenho do pack grava a linha no `apps.map` do pack no
-    # ar, e quem põe aquele mapa no tema é o `icones_apps_dracula.sh`, e não o
-    # script do traço. Sem uma ação própria, o clique gravaria e esperaria a
-    # instalação seguinte. `oculta` porque não é cartão: quem a dispara é a
-    # ficha, logo depois de gravar. O script obedece ao `ICONES_DRACULA` do
-    # meow.conf, que vem junto no ambiente, como na etapa do instalador.
+    # O «Usar este ícone» com um desenho do pack grava a linha no `apps.map` do
+    # pack no ar, e quem põe aquele mapa no tema é o `icones_apps_dracula.sh`,
+    # e não o script do traço.
     "icones_pack": {
         "rotulo": "Pôr os desenhos do pack na tela",
         "grupo": "Ícones",
@@ -4947,23 +3965,14 @@ ACOES = {
         "natureza": "trocar",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
         "escreve": True, "sudo": False, "confirma": False,
-        # SÓ O MODO FIXO — e a rotação saiu da lista na revisão da P50. Nela o
-        # `logo.sh` guarda o gato do acervo que já está no ar (senão cada
-        # `install.sh` desfaria o giro), e o `LOGO` é só o ponto de partida,
-        # como o meow.conf.exemplo diz: medido numa casa de brinquedo, com o
-        # botão aceso, `rotacao, LOGO=mimir` respondeu «logo já no lugar:
-        # morcego-dia», rc 0. O `fixo` só passou a ler o `LOGO` com o conserto
-        # do mesmo dia no `logo.sh`; antes dele, o motivo mandava a pessoa a um
-        # modo em que o botão acendia e continuava sem efeito.
+        # Nela o `logo.sh` guarda o gato do acervo que já está no ar (senão
+        # cada `install.sh` desfaria o giro), e o `LOGO` é só o ponto de
+        # partida, como o meow.conf.exemplo diz: medido numa casa de brinquedo,
+        # com o botão aceso, `rotacao, LOGO=mimir` respondeu «logo já no lugar:
+        # morcego-dia», rc 0.
         "indisponivel": _gato_so_nos_modos(("fixo",), "fixo"),
-        # A AJUDA PROMETIA UMA VIRADA QUE NÃO ACONTECE — 24/09/2026, P50 (achado
-        # 33). Dizia que, por horário, "o relógio devolve o gato dele na virada
-        # seguinte". Medido no painel de verdade com a Coquinha no modo Hora: o
-        # relógio não espera virada nenhuma, o `logo.sh` põe na hora o gato da
-        # fase, e o botão respondia «já estava certo» com o dock igual. Agora o
-        # botão se apaga nesse modo e no que gira (o `indisponivel`, logo
-        # acima), e o cartão diz onde se muda — pelo nome que o cartão daquele
-        # ajuste tem na tela.
+        # Dizia que, por horário, "o relógio devolve o gato dele na virada
+        # seguinte".
         "ajuda": "Põe no dock o gato escolhido, e ele fica. Quando o gato segue "
                  "o relógio ou gira sozinho, este botão fica apagado e diz onde "
                  "mudar.",
@@ -4974,10 +3983,7 @@ ACOES = {
         "natureza": "trocar",
         "argv": _meow("logo", "girar"),
         "escreve": True, "sudo": False, "confirma": False,
-        # O MESMO APAGAR DO «Pôr um gato no dock» — P50. Fora do modo que gira,
-        # o `logo.sh girar` diz "o gato não gira" e sai 0, e o fim da gaveta
-        # não tinha como distinguir isso de um giro: é a ação que não teria
-        # efeito, e ela se apaga pelo mesmo campo.
+        # O MESMO APAGAR DO «Pôr um gato no dock».
         "indisponivel": _gato_so_nos_modos(("rotacao",), "rotacao"),
         "ajuda": "Só tem efeito quando o gato está girando; fora disso o "
                  "botão fica apagado e diz onde mudar.",
@@ -4998,11 +4004,8 @@ ACOES = {
         "natureza": "trocar",
         "argv": _meow("wallpaper", "proximo"),
         "escreve": True, "sudo": False, "confirma": False,
-        # 85 -> 76 CARACTERES — 21/09/2026, o teto de 80 do balão da P6. Esta
-        # ação é uma das quatro que o cabeçalho da Início oferece como botão, e
-        # ali a ajuda vira balão. O que saiu foi "definido em", que só liga uma
-        # metade da frase à outra; o nome do ajuste, que é o que se procura,
-        # ficou. O cartão da ação mostra a mesma frase, e lucra igual.
+        # Esta ação é uma das quatro que o cabeçalho da Início oferece como
+        # botão, e ali a ajuda vira balão.
         "ajuda": "Avança e fixa a imagem pelo tempo de "
                  "\"Quanto tempo dura a imagem escolhida\".",
     },
@@ -5031,24 +4034,11 @@ ACOES = {
         "ajuda": "Reescreve o estado do papel de parede a partir dos "
                  "ajustes.",
     },
-    # AS DUAS AÇÕES DA GALERIA, QUE FALTAVAM — 01/09/2026
-    #
-    # A auditoria contou, no navegador, 46 botões "Banir" e 255 "Devolver" que
-    # não chamavam NADA: o `rodarNaGaleria` do `app.js` procura a ação por id,
-    # não acha, e devolve calado (`if (!acao) return`). É o caso de uso mais
-    # visual da página inteira — ver a foto e recusá-la — e ele morria em
-    # silêncio, sem torrada, sem erro, sem nada.
+    # É o caso de uso mais visual da página inteira — ver a foto e recusá-la — e
+    # ele morria em silêncio, sem torrada, sem erro, sem nada.
     #
     # `oculta` porque elas NÃO SÃO CARTÃO na aba "Fazer": o argumento delas é
-    # uma imagem, e escolher imagem é o que a galeria já faz com miniatura. Um
-    # cartão com um `<select>` de 255 nomes de arquivo seria a pior forma
-    # possível de perguntar "qual foto?" numa página que sabe desenhá-las.
-    #
-    # E `confirma` fica FALSO nas duas, de propósito: banir MOVE para `banidos/`
-    # e o `desbanir` desfaz — o script diz isso na cara ("está em banidos/, não
-    # foi apagada"). Uma pergunta de confirmação a cada miniatura, num gesto
-    # reversível que ela vai repetir dezenas de vezes seguidas, é ruído; a
-    # tranca aqui é o fato de o inverso existir e estar na tela.
+    # uma imagem, e escolher imagem é o que a galeria já faz com miniatura.
     "wallpaper_banir": {
         "rotulo": "Tirar esta imagem do carrossel",
         "grupo": "Papel de parede",
@@ -5059,43 +4049,26 @@ ACOES = {
         "ajuda": "Ela sai da pasta que gira e vai para a de banidas. Nada é "
                  "apagado. O “Devolver” da lista de recusadas desfaz.",
     },
-    # DE QUE LADO ESTA IMAGEM FICA — 06/09/2026
-    #   Pedido dela, com a galeria na frente: "quando eu colocar o mouse em cima
-    #   da imagem temos que ter as opções de Dia e a opção Noite, não apenas a
-    #   Tirar".
+    # Até aqui não HAVIA como discordar: `ativos-dia/` e `ativos-noite/` eram
+    # separadas só pela luminância medida (`-colorspace Gray` + `%[fx:mean]`
+    # contra `WALLPAPER_LIMIAR_LUZ`).
     #
-    #   Até aqui não HAVIA como discordar: `ativos-dia/` e `ativos-noite/` eram
-    #   separadas só pela luminância medida (`-colorspace Gray` + `%[fx:mean]`
-    #   contra `WALLPAPER_LIMIAR_LUZ`). A medição acerta na maioria e erra em
-    #   alguns — uma foto clara que ela quer de madrugada, um gráfico escuro que
-    #   ela quer de dia —, e não existia porta nenhuma para dizer isso.
-    #
-    #   São TRÊS ações e não uma com três opções: cada uma é um botão na ficha
-    #   da imagem, e a ficha não tem espaço para um seletor. `auto` devolve a
-    #   imagem à medição — é o desfazer, e é ele que impede o registro de virar
-    #   uma segunda verdade que ninguém sabe apagar.
+    # São TRÊS ações e não uma com três opções: cada uma é um botão na ficha da
+    # imagem, e a ficha não tem espaço para um seletor.
     "wallpaper_usar": {
         "rotulo": "Usar esta imagem agora",
         "grupo": "Papel de parede",
         "natureza": "trocar",
         "argv": _meow("wallpaper", "usar", "@ARG@"), "arg": "paredes_ativas",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        # O BOTÃO CITADO NÃO EXISTE COM ESSE NOME — medido em 09/09/2026 na
-        # varredura da página: a ação `wallpaper_carrossel` se chama "Voltar a
-        # girar" desde que ganhou rótulo, e esta frase mandava procurar um
-        # "Soltar o carrossel" que a tela nunca escreveu. Referência a botão só
-        # ajuda se o botão se chamar assim.
+        # Referência a botão só ajuda se o botão se chamar assim.
         "ajuda": "Fixa esta imagem como o papel de parede de agora. Quanto tempo "
                  "dura é «Quanto tempo dura a imagem escolhida» — com 0, até "
                  "«Voltar a girar».",
     },
-    # FAVORITAR — 10/10/2026, P79 (QA da P77). A galeria tinha a aba
-    #   «Favoritos» e nenhuma imagem oferecia o gesto. `oculta` pelo motivo das
-    #   outras desta ficha: o argumento é uma imagem, e quem a escolhe é a
-    #   galeria. Sem pergunta: guardar uma cópia se desfaz com o outro botão.
-    # O «ERA ESCOLHA MINHA» DO PAPEL DE PAREDE DEVOLVIDO — P80 (item 8). Ver
-    #   `PENDENCIA_PAREDE`. `oculta` pelo motivo das de cima: o argumento é um
-    #   caminho, e quem o escolhe é a pendência.
+    # A galeria tinha a aba «Favoritos» e nenhuma imagem oferecia o gesto.
+    # `oculta` pelo motivo das outras desta ficha: o argumento é uma imagem, e
+    # quem a escolhe é a galeria.
     "wallpaper_permitir": {
         "rotulo": "Manter a imagem que eu pus",
         "grupo": "Papel de parede",
@@ -5103,6 +4076,17 @@ ACOES = {
         "argv": _meow("wallpaper", "permitir", "@ARG@"), "arg": "fontes_revertidas",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Autoriza a imagem que você pôs: o carrossel para de devolvê-la.",
+    },
+    # O «DEIXAR ASSIM». A outra resposta da mesma pendência: tira o cartão
+    # sem autorizar a imagem. `oculta` pelo mesmo motivo do «Era escolha
+    # minha»: quem o oferece é a pendência.
+    "wallpaper_dispensar": {
+        "rotulo": "Deixar assim",
+        "grupo": "Papel de parede",
+        "natureza": "gravar",
+        "argv": _meow("wallpaper", "dispensar"),
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "A imagem devolvida fica como está, e o aviso sai da Início.",
     },
     "wallpaper_favoritar": {
         "rotulo": "Guardar nas favoritas",
@@ -5144,30 +4128,20 @@ ACOES = {
         "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "auto"), "arg": "paredes_ativas",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        # "LUMINÂNCIA" SAIU — 09/09/2026. É o nome exato da grandeza e ninguém
-        # precisa dele para entender: o que o projeto mede é o quanto a imagem
-        # é clara, e as outras três fichas desta mesma figura já dizem "a
-        # medição a ache escura/clara". Uma palavra por conceito.
+        # Uma palavra por conceito.
         "ajuda": "Tira a escolha e deixa o brilho medido da imagem decidir.",
     },
-    # AS ÁREAS DE TRABALHO — 07/09/2026
-    #   Pedido dela: "não temos a seção pra setar os dois ambientes de trabalho
-    #   tipo o Meow e o OS". São dois, e o terceiro ("III") saiu em 25/08 e não
-    #   volta — decisão dela, confirmada em 07/09.
-    #
-    #   NENHUMA DELAS ENTRA NO `doctor`. Renomear área de trabalho é decisão de
-    #   quem usa, e um `--consertar` por timer renomearia a área de quem instalou
-    #   o projeto. Por isso são botões, e por isso `areas` não está no
-    #   `VERIFICAVEIS` do `bin/meow`.
+    # São dois, e o terceiro ("III") saiu e não volta — decisão dela,
+    # confirmada.
     "areas_ver": {
         "rotulo": "As áreas de agora",
         "grupo": "Áreas de trabalho",
         "natureza": "mostrar",
         "argv": _meow("areas", "estado"),
         "escreve": False, "sudo": False, "confirma": False,
-        # O `id` SAIU DA FRASE — 09/09/2026. Ele continua na SAÍDA do comando,
-        # que é onde serve para alguma coisa; prometê-lo no rótulo obrigava a
-        # saber o que é um id de área para entender o que o botão mostra.
+        # O `id` SAIU DA FRASE. Ele continua na SAÍDA do comando, que é onde
+        # serve para alguma coisa; prometê-lo no rótulo obrigava a saber o que
+        # é um id de área para entender o que o botão mostra.
         "ajuda": "Nome, ordem e encaixe de cada área. Não escreve nada.",
     },
     "areas_aplicar": {
@@ -5177,20 +4151,17 @@ ACOES = {
         "argv": _meow("areas", "aplicar"),
         "escreve": True, "sudo": False, "confirma": False,
         # Sem área fixada ele sai PULADO e manda a um «Resolver» que não está
-        # nesta aba (achado 32). A ordem passa a ser da tela: apagado, com o
-        # nome do botão que vem antes. Ver `_areas_sem_alfinete`.
+        # nesta aba. A ordem passa a ser da tela: apagado, com o nome do
+        # botão que vem antes. Ver `_areas_sem_alfinete`.
         "indisponivel": _areas_sem_alfinete,
-        # A CAIXA ALTA SAIU — 09/09/2026. Nenhum outro texto desta página grita,
-        # e o aviso não fica mais fraco em caixa baixa: quem o lê está com o
-        # dedo no botão. `cosmic-comp` FICA — é o nome do programa que lê o
-        # arquivo, e trocá-lo por "o sistema" apagaria a única pista de onde
-        # procurar quando isto não acontecer.
+        # Nenhum outro texto desta página grita, e o aviso não fica mais fraco
+        # em caixa baixa: quem o lê está com o dedo no botão.
         "ajuda": "Vale no próximo início de sessão: o cosmic-comp lê esse arquivo "
                  "uma vez, ao iniciar. Nada muda no painel agora, e isso não é defeito.",
     },
-    # O PRIMEIRO ALFINETE — 22/09/2026, sprint P2. É a ação para onde a
-    # pendência `areas-sem-alfinete` aponta: sem nenhuma área fixada o
-    # `Gravar as áreas` não tinha de onde herdar o monitor e parava.
+    # O PRIMEIRO ALFINETE É a ação para onde a pendência
+    # `areas-sem-alfinete` aponta: sem nenhuma área fixada o `Gravar as
+    # áreas` não tinha de onde herdar o monitor e parava.
     "areas_alfinetar_primeira": {
         "rotulo": "Criar a primeira área",
         "grupo": "Áreas de trabalho",
@@ -5215,11 +4186,9 @@ ACOES = {
         "natureza": "tirar",
         "argv": _meow("areas", "desalfinetar", "@ARG@"), "arg": "areas",
         "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
-        # O ALFINETE É O QUE SEGURA A ÁREA: sem ele o cosmic-comp a destrói assim
-        # que ela esvazia. Não é "esconder", é apagar — daí `destrutivo` e a
-        # confirmação. O `MEOW_SIM` só entra porque a página já perguntou.
-        # Caixa baixa, 09/09/2026: quem marca esta ação como perigosa é a
-        # pastilha vermelha ao lado, não o grito no meio da frase.
+        # O ALFINETE É O QUE SEGURA A ÁREA: sem ele o cosmic-comp a destrói
+        # assim que ela esvazia. Não é "esconder", é apagar — daí `destrutivo` e
+        # a confirmação.
         "ajuda": "Apaga a área: o nome some e o COSMIC a destrói quando ela esvaziar.",
         "ambiente": {"MEOW_SIM": "1"},
     },
@@ -5243,10 +4212,8 @@ ACOES = {
     },
     # --- painel, janelas, leitura --------------------------------------------
     "painel_estado": {
-        # "DIAGNÓSTICO" SAIU, E O DOIS-PONTOS JUNTO — 09/09/2026. O rótulo
-        # repetia o nome da aba em que ele já está ("Painel e dock:") e gastava
-        # a metade que sobrava numa palavra de oficina. O que o botão faz é
-        # responder "como estão os dois?", e é isso que ele passa a dizer.
+        # O rótulo repetia o nome da aba em que ele já está ("Painel e dock:")
+        # e gastava a metade que sobrava numa palavra de oficina.
         "rotulo": "Como estão o painel e a dock",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
@@ -5260,9 +4227,9 @@ ACOES = {
         "natureza": "mostrar",
         "argv": _meow("painel", "teto"),
         "escreve": False, "sudo": False, "confirma": False,
-        # "TETO DERIVADO" SAIU — 09/09/2026. "Derivado" só diz alguma coisa a
-        # quem já sabe que o teto sai de uma conta; escrito por extenso, a
-        # frase ensina a conta em vez de nomeá-la.
+        # "TETO DERIVADO" SAIU. "Derivado" só diz alguma coisa a quem já sabe
+        # que o teto sai de uma conta; escrito por extenso, a frase ensina a
+        # conta em vez de nomeá-la.
         "ajuda": "A conta inteira: a altura de verdade, o teto que sai dela, e "
                  "se o compositor corta o excesso em vez de derrubar o painel.",
     },
@@ -5272,26 +4239,20 @@ ACOES = {
         "natureza": "reciclar",
         "argv": _meow("painel", "reciclar"),
         "escreve": True, "sudo": False, "confirma": False,
-        # 86 -> 66 CARACTERES — 21/09/2026, o mesmo teto e o mesmo motivo do
-        # "wallpaper_proximo" acima: esta ação também é botão do cabeçalho.
         # "sem esperar o próximo login" virou "na hora" — a espera que se evita
         # é a do login, mas quem lê o balão quer saber é quando vê o gato.
         "ajuda": "O painel pisca uns 2 s. É o que faz um gato novo "
                  "aparecer na hora.",
     },
-    # O STARSHIP — 22/09/2026, sprint P2. A receita `curl | sh` que o
-    # `scripts/prompt.sh` imprimia virou este botão. `rede` está ligado porque
-    # ele BAIXA DA INTERNET, e é esse campo que põe o rótulo na confirmação.
-    # NA PÁGINA DO TERMINAL — 10/10/2026, P77 (achado 21). O starship desenha
-    # o prompt do zsh, que é um ajuste de «Terminal» («Prompt do zsh»); a
-    # ação de instalá-lo morava em «Manutenção», longe do cartão que ela
-    # destrava.
+    # A receita `curl | sh` que o `scripts/prompt.sh` imprimia virou este
+    # botão.
     "prompt_instalar_starship": {
         "rotulo": "Instalar o starship",
         "grupo": "Terminal",
         "natureza": "baixar",
         "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "indisponivel": _starship_ja_instalado,
         "ajuda": "Baixa o starship de starship.rs para ~/.local/bin, sem sudo. "
                  "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
     },
@@ -5328,11 +4289,10 @@ ACOES = {
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Os dois itens de papel de parede no botão direito.",
     },
-    # CONSTRUIR O MENU À MÃO — 22/09/2026, sprint P2. É para onde aponta a
-    # pendência `files-menu-build` quando o auto-build esgota as tentativas ou
-    # a última falha: antes disso a linha só carrega o estado (`construindo`) e
-    # não tem botão, porque não há o que clicar enquanto a unit trabalha.
-    # `rede` está ligado porque o `apt-get source` baixa o fonte inteiro.
+    # É para onde aponta a pendência `files-menu-build` quando o auto-build
+    # esgota as tentativas ou a última falha: antes disso a linha só carrega o
+    # estado (`construindo`) e não tem botão, porque não há o que clicar
+    # enquanto a unit trabalha.
     "files_menu_build": {
         "rotulo": "Construir o menu da área de trabalho",
         "grupo": "Papel de parede",
@@ -5344,10 +4304,8 @@ ACOES = {
     },
     # --- aplicativos ---------------------------------------------------------
     "apps": {
-        # "MÓDULO" SAIU — 09/09/2026. Módulo é como o `bin/meow` organiza o
-        # próprio código; na tela ele nomeava uma coluna que quem lê não tem
-        # como interpretar. O rótulo perdeu o dois-pontos pelo mesmo motivo do
-        # "Como estão o painel e a dock": ele repetia a aba onde já está.
+        # Módulo é como o `bin/meow` organiza o próprio código; na tela ele
+        # nomeava uma coluna que quem lê não tem como interpretar.
         "rotulo": "Quais programas estão vestidos",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
@@ -5365,17 +4323,7 @@ ACOES = {
                  "instalados. Programa ausente fica pendente, e nunca "
                  "derruba o resto.",
     },
-    # A ESCOLHA DO TEMA DE TERCEIRO — 24/09/2026, sprint P53 (achados 3 e 4)
-    #   Os dois botões da pendência `<app>-tema-de-terceiro`. O argv é o verbo
-    #   que já existia (`apps aplicar <app>`, como o do Spotify logo abaixo), e a
-    #   resposta vai no ambiente: é ela que o `meow_app_tema_no_ar` (lib/comum.sh)
-    #   lê no lugar da pergunta do terminal. Uma rota nova para escrever tema de
-    #   programa seria a segunda estrada que o `resolverPendencia` do app.js
-    #   existe para não ter. O «Trocar» pergunta antes, e é `destrutivo`: ele
-    #   escreve por cima do tema que a pessoa escolheu à mão, e é isso que põe o
-    #   «Ver o que faria» na caixa — o ensaio da troca, que o
-    #   `meow_app_tema_no_ar` deixa o módulo dizer. O «Manter» só grava a
-    #   decisão, e não mexe no programa.
+    # Os dois botões da pendência `<app>-tema-de-terceiro`.
     "apps_tema_do_pack": {
         "rotulo": "Trocar pelo tema do pack",
         "grupo": "Lançadores e jogos",
@@ -5396,13 +4344,8 @@ ACOES = {
         "ajuda": "O tema de agora fica, e o MeowSystem para de perguntar "
                  "enquanto o programa estiver nele.",
     },
-    # A EXTENSÃO DO VS CODE DE PACK IMPORTADO — decisão 9 (10/10/2026, P79)
-    #   Só o pack do `packs/` do repositório instala extensão sozinho; o
-    #   importado pede, e o módulo deixa a pendência
-    #   `vscode-extensao-de-terceiro`. Este é o gesto explícito NAQUELA
-    #   extensão: o argumento é uma das que o pack no ar pede
-    #   (`extensoes_de_terceiro`), e ele chega ao módulo pelo ambiente — o verbo
-    #   é o de sempre, `apps aplicar vscode`, como o do Spotify.
+    # Só o pack do `packs/` do repositório instala extensão sozinho; o importado
+    # pede, e o módulo deixa a pendência `vscode-extensao-de-terceiro`.
     "vscode_instalar_extensao": {
         "rotulo": "Instalar a extensão do VS Code",
         "grupo": "Lançadores e jogos",
@@ -5415,12 +4358,7 @@ ACOES = {
                  "que o pack importado pede. Extensão é código que roda a cada "
                  "abertura do editor.",
     },
-    # O TEMA DO SPOTIFY — 22/09/2026, sprint P2. É a ação para onde a pendência
-    # `spicetify-tema-ausente` aponta. O argv é o verbo que já existia (`apps
-    # aplicar <nome>`) e não um verbo novo: quem baixa o tema é o
-    # `meow_app_aplicar` do módulo, e uma segunda porta para o mesmo passo é
-    # como se ganha duas verdades sobre o mesmo botão. `rede` está ligado
-    # porque ele BAIXA DA INTERNET, e é esse campo que põe o rótulo na tela.
+    # É a ação para onde a pendência `spicetify-tema-ausente` aponta.
     "spotify_baixar_tema": {
         "rotulo": "Baixar o tema do Spotify",
         "grupo": "Lançadores e jogos",
@@ -5432,16 +4370,7 @@ ACOES = {
     },
     # --- os jogos da Steam ---------------------------------------------------
     # `confirma` é True no aplicar porque uma linha `apagar` no mapa manda o
-    # script remover os arquivos do jogo. A página grava a receita sem perguntar
-    # nada — escrever num mapa se desfaz com um clique —, mas EXECUTAR é o
-    # momento em que gigabytes saem do disco, e é aí que a pergunta cabe.
-    # AS DUAS SÃO `oculta`, E O MOTIVO É NÃO TER DUAS ENTRADAS COM O MESMO NOME
-    #   "Jogos da Steam" já é uma seção de "Ver e escolher" — a grade com as
-    #   capas. Um grupo de ação com o mesmo nome poria dois botões idênticos no
-    #   menu, e o `ABA` (que casa por nome) não saberia qual dos dois abrir. Como
-    #   os papéis de parede já fazem: a ação mora DENTRO da tela a que pertence,
-    #   e o menu tem uma linha só. O `montarGrupos` pula grupo em que toda ação é
-    #   oculta, então nenhuma seção vazia sobra.
+    # script remover os arquivos do jogo.
     "jogos": {
         "rotulo": "Ver o que mudaria nos jogos",
         "grupo": "Lançadores e jogos",
@@ -5465,15 +4394,16 @@ ACOES = {
     # --- os jogos do Heroic --------------------------------------------------
     # Estas DUAS aparecem no menu, ao contrário das da Steam: não há uma tela
     # "Jogos do Heroic" com a grade de capas, então não há nome repetido a
-    # evitar. E nenhuma é `destrutivo`: este módulo nunca encosta nos arquivos
-    # do jogo — o que ele escreve é atalho e ícone, e o que ele remove é o
-    # atalho do jogo que saiu da biblioteca.
+    # evitar.
     "jogos_heroic": {
         "rotulo": "Ver o que mudaria nos jogos do Heroic",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--conferir"],
         "escreve": False, "sudo": False, "confirma": False,
+        # O ver ficava aberto e o aplicar ia para o «⋯» de ações técnicas: dois
+        # lugares para uma decisão só.
+        "par": "jogos_heroic_aplicar",
         "ajuda": "Lista atalho a criar e atalho a remover. Não escreve nada.",
     },
     "jogos_heroic_aplicar": {
@@ -5490,43 +4420,13 @@ ACOES = {
 
 # --- 5b. AS PRÉVIAS: ver o efeito antes de escolher --------------------------
 #
-# O PEDIDO DELA, EM 01/09/2026, E POR QUE ELE MUDA O DESENHO DA PÁGINA
-#   "o que pega na página, precisamos ter imagens disponíveis pra cada
-#    feature. pra facilitar a escolha. afinal é um app de modificação visual.
-#    Sem as imagens fica difícil."
+# Sem as imagens fica difícil."
 #
-#   Está certa, e a primeira versão desta página estava errada: ela listava 95
-#   chaves com o nome, o valor e uma frase de texto. Para uma chave como
-#   `LOG_NIVEL` isso basta; para `LOGO_DIA`, `FLAVOR` ou um papel de parede, é
-#   pedir que ela decida no escuro e descubra o efeito DEPOIS de aplicar. Num
-#   projeto cuja única razão de existir é a aparência da tela, texto não é
-#   documentação da escolha — é a ausência dela.
+# Para uma chave como `LOG_NIVEL` isso basta; para `LOGO_DIA`, `FLAVOR` ou um
+# papel de parede, é pedir que ela decida no escuro e descubra o efeito DEPOIS
+# de aplicar.
 #
-# DUAS REGRAS QUE VALEM PARA TODA PRÉVIA DAQUI
-#
-#   1. NADA DE IMAGEM CHUMBADA NO REPOSITÓRIO. Um print de "como fica o mocha"
-#      guardado em `docs/` é uma verdade com data de validade: no dia em que a
-#      arte mudar, ele continua ali dizendo a coisa antiga, e ninguém percebe —
-#      é o mesmo defeito que este repositório já pagou com o README dizendo que
-#      um patch estava no binário quando não estava (e depois o contrário). Toda
-#      prévia aqui é gerada do ARQUIVO QUE ESTÁ INSTALADO AGORA, e a chave do
-#      cache carrega o `mtime` e o tamanho da origem. Trocou o desenho do gato?
-#      A miniatura antiga deixa de ser encontrada e uma nova nasce. Ninguém
-#      precisa lembrar de nada.
-#
-#   2. A PÁGINA NÃO ESPERA CONVERSÃO. `assets/papeis-de-parede/ativos/` tem 46
-#      imagens somando 134 MB nesta máquina — a maior tem 7,1 MB. Mandar o
-#      original para o navegador seria absurdo, e converter as 46 antes de
-#      desenhar a primeira faria a tela ficar branca por segundos. Então
-#      `/api/previas` responde NA HORA com a lista e o que já está pronto,
-#      enfileira o que falta para três operários em segundo plano, e a página
-#      mostra um lugar-marcado e volta a perguntar. Medido em 01/09/2026:
-#      `convert -auto-orient -thumbnail 320x -quality 82` leva 0,17 s e
-#      transforma 7,1 MB em 5,0 KB — mil e quatrocentas vezes menor.
-#
-# O QUE NÃO TEM PRÉVIA HONESTA DIZ ISSO NA TELA, em uma linha, em vez de deixar
-# um retângulo vazio. É a mesma disciplina do `meow logo girar`, que anuncia não
-# ter efeito em vez de fingir que girou.
+# imagens somando 134 MB nesta máquina — a maior tem 7,1 MB.
 CACHE = os.path.join(
     os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"),
     "meowsystem", "painel",
@@ -5534,9 +4434,7 @@ CACHE = os.path.join(
 
 # `svg` é servido COMO ESTÁ, sem conversão nenhuma, e isso não é preguiça: o
 # navegador desenha SVG melhor do que o `rsvg-convert` desenharia para ele, em
-# qualquer tamanho, e sem gerar arquivo. Dentro de um `<img>` o SVG é inerte —
-# script não roda em contexto de imagem —, então servir o desenho do tema
-# instalado é seguro.
+# qualquer tamanho, e sem gerar arquivo.
 EXT_DIRETAS = {".svg"}
 EXT_RASTER = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".avif"}
 
@@ -5632,60 +4530,19 @@ def _wallpaper_base():
     return base or os.path.expanduser("~/.local/share/backgrounds/meowsystem")
 
 
-# Os cinco grupos do acervo e a pasta de cada um. Fica aqui fora porque as
-# CONTAGENS precisam da lista mesmo quando a pasta está vazia: a sub-aba
-# "Favoritos" não tem um arquivo nesta máquina, e sem isto ela ficava sem número
-# nenhum na tela — indistinguível de uma aba que ainda não foi contada.
+# Os cinco grupos do acervo e a pasta de cada um.
 GRUPOS_PAREDE = (("ativos", "ativos"), ("noite", "ativos-noite"),
                  ("dia", "ativos-dia"), ("favoritos", "favoritos"),
                  ("banidos", "banidos"))
 
 
-# O LADO ESCRITO, PARA A FICHA SABER O QUE JÁ FOI DECIDIDO — 06/09/2026
-#   O `lado.tsv` guarda a ESCOLHA: quem não está lá é separado pela
-#   luminância. O arquivo nem existe enquanto ninguém escolheu
-#   nada — "sem escolha" e "sem arquivo" são o mesmo estado, de propósito, para
-#   o registro não virar uma segunda verdade que ninguém sabe apagar.
+# O `lado.tsv` guarda a ESCOLHA: quem não está lá é separado pela luminância.
 #
-#   DIZIA "guarda SÓ a discordância", E ISSO ERA IMPRECISO — 07/09/2026. Ela
-#   clicou "Noite" numa imagem que a medição já mandava para a noite, e o
-#   registro gravou — como devia. O `wallpaper.sh` é quem tem a frase exata, na
-#   hora de gravar: "escolha sua, a medição não decide mais por ela". É um
-#   ALFINETE, e um alfinete que concorda com a medição de hoje continua
-#   valendo no dia em que a imagem ou o limiar mudarem. Discordância é o caso
-#   comum, não a condição.
-#
-#   A ficha precisa disto por uma razão só: o botão que devolve a imagem à
-#   medição não pode aparecer numa imagem que nunca foi escolhida. Ele seria um
-#   botão que não faz nada em quase todos os casos, e um botão assim ensina a
-#   não confiar nos outros.
-#
-#   O cache é pelo mtime e não por tempo: a galeria pede as cinco sub-abas em
-#   sequência, e reler o arquivo cinco vezes por passagem seria trabalho à toa —
-#   mas um `lado` gravado agora tem de aparecer na próxima leitura, não no
-#   próximo minuto.
+# Ele seria um botão que não faz nada em quase todos os casos, e um botão assim
+# ensina a não confiar nos outros.
 _LADO_CACHE = {"mapa": {}, "marca": None}
 
 
-# O ARQUIVO SAIU DO REPOSITÓRIO EM 21/09/2026, E A LEITURA AQUI É SÓ LEITURA
-#   Ele era `assets/papeis-de-parede/lado.tsv`, versionado, e os botões
-#   "Dia"/"Noite" desta mesma página o reescreviam dentro do clone: `-3` linhas
-#   de diff pendente às 17h10 daquele dia, e conflito de merge entre os dois
-#   usuários reais a cada `git pull`. A escolha viva mora agora em
-#   `$MEOW_ESTADO/papeis-de-parede/lado.tsv`, semeada do `.padrao` versionado.
-#
-#   A FONTE CANÔNICA DO CONTRATO É `meow_estado_com_padrao` (`lib/comum.sh`) —
-#   é a mesma regra da paleta lá em cima: o shell tem o contrato, o Python
-#   repete a resolução porque não sourceia shell. O que ele NÃO repete é a
-#   semeadura: quem semeia é quem escreve (o `wallpaper.sh`, pelo botão), e uma
-#   rota GET que materializasse estado como efeito colateral criaria o arquivo
-#   por abrir a galeria. Aqui, sem estado, lê-se o `.padrao` — que é o que um
-#   clone recém-instalado tem para mostrar.
-#
-#   O marcador de "já semeei" é o DIRETÓRIO, e não o arquivo, pelo motivo que o
-#   `comum.sh` documenta: o `gravar_lado` APAGA o arquivo de estado quando ela
-#   desfaz a última escolha, e cair no `.padrao` nesse instante ressuscitaria as
-#   escolhas de fábrica na tela.
 def _lado_caminho():
     estado = os.path.join(
         os.environ.get("MEOW_ESTADO")
@@ -5745,24 +4602,12 @@ def _prev_paredes():
             # O id carrega o grupo porque o MESMO nome existe em `ativos/` e em
             # `ativos-noite/` — são link duro para o mesmo arquivo, e sem o
             # prefixo um id apontaria para dois lugares.
-            #
-            # E É POR ISSO QUE `banir` VEM SEPARADO DE `origem` — 01/09/2026
-            #   Banir é `mv`, e `mv` move O CAMINHO que recebe: banir pelo link
-            #   duro de `ativos-noite/` tira a imagem da pasta da noite e deixa a
-            #   de `ativos/` girando o dia inteiro — um banimento pela metade, e
-            #   mudo. As sub-abas Noite e Dia são justamente onde ela repara que
-            #   a imagem está clara demais, então o botão precisa existir lá; o
-            #   que ele manda é o caminho canônico, o de `ativos/`.
-            #   Vazio quando não há canônico (as recusadas, e um favorito que não
-            #   esteja em `ativos/`): aí não há o que banir, e a página não deve
-            #   desenhar o botão.
             canonico = os.path.join(base, "ativos", nome)
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
                          "origem": arq, "grupo": grupo,
                          # `""` quando a medição é que decide — é o caso comum,
                          # e é o que faz o botão de desfazer não aparecer.
                          "lado": escolhas.get(nome, ""),
-                         # [P79: a ficha mostra a estrela acesa na favorita.]
                          "favorito": os.path.isfile(os.path.join(base, "favoritos", nome)),
                          "banir": canonico if os.path.isfile(canonico) else ""})
     return fora
@@ -5841,14 +4686,8 @@ def _prev_cursores():
     do_pack = _ponteiro_do_pack()
     for valor in _temas_de_cursor():
         alvo = None
-        # AS TRÊS RAÍZES, ATÉ ACHAR — 21/09/2026
-        #   Não basta a PRIMEIRA raiz que tem `<nome>/cursors`: ela pode ter a
-        #   pasta e não ter ponteiro decodificável dentro. Medido em 21/09 com
-        #   `~/.local/share/icons/X-cursors/cursors/` vazio e o `left_ptr` em
-        #   `/usr/share/icons/X-cursors/cursors/`: perguntar uma vez e desistir
-        #   apagava a miniatura de um tema que o `_cursor_instalado` dá por
-        #   INSTALADO e o `aplicar` resolve sem tocar a rede. O script percorre
-        #   as três raízes; esta função também percorre.
+        # Não basta a PRIMEIRA raiz que tem `<nome>/cursors`: ela pode ter a
+        # pasta e não ter ponteiro decodificável dentro.
         for pasta_tema in _cursor_pastas_do_valor(valor, do_pack):
             # `default` é o nome canônico e `left_ptr` o histórico; um costuma
             # ser link simbólico para o outro, e qualquer um serve.
@@ -5916,33 +4755,15 @@ def _tipo_de_previa(chave, opcoes, faixa, padrao):
         return "cor"
     if chave.startswith("FORMA_") or chave.startswith("VIDRO_"):
         return "barra"
-    # UM SIM/NÃO POR ÁREA, E NÃO UM CAMPO ONDE ELA DIGITA O NOME — 07/09/2026
-    #   `AREAS_FOLGA` é a lista das áreas que ganham o espaço-figura. Como campo
-    #   de texto livre ela tinha de escrever o nome da área EXATAMENTE como está
-    #   em `AREAS_NOMES`, e um nome errado era gravado sem uma palavra de recusa
-    #   — o `areas.sh` simplesmente não achava a área e não fazia nada. O único
-    #   sinal era o desenho da barra continuar igual, calado.
-    #   As áreas são conhecidas: estão na chave de cima. Quem sabe a resposta
-    #   não deve pedir que ela a digite.
+    # `AREAS_FOLGA` é a lista das áreas que ganham o espaço-figura.
     if chave == "AREAS_FOLGA":
         return "areas"
-    # A SIMULAÇÃO É DO MODO DE LEITURA, E ELA SE DIZ PELO NOME DA CHAVE — 07/09/2026
-    #   Era decidida pela FAIXA: "1000 a 6500" virava kelvin, "0.0 a 1.0" virava
-    #   textura. A faixa é a coisa errada para perguntar, e a conferência de uso
-    #   mostrou o resultado na tela: o cartão "Onde separa imagem clara de
-    #   escura" (`WALLPAPER_LIMIAR_LUZ`, que declara `0.0 a 1.0`) aparecia com o
-    #   desenho do papel envelhecido e a legenda "simulação — 3500K, textura
-    #   0.35", que é o estado de OUTRA aba. Arrastar o deslizante não mexia em
-    #   nada — e não tinha como mexer: o desenho não é sobre aquela chave.
+    # Era decidida pela FAIXA: "1000 a 6500" virava kelvin, "0.0 a 1.0" virava
+    # textura.
     #
-    #   Contadas hoje, QUATRO chaves declaram uma dessas duas faixas, e só duas
-    #   são do modo de leitura; as outras são a opacidade do vidro do painel e da
-    #   dock, que herdariam o mesmo desenho errado assim que ganhassem um valor.
-    #   Isto é a mesma armadilha do `p-rede` adivinhado pela prosa da ação: um
-    #   marcador deduzido da forma acaba afirmando o que a chave não diz.
-    #
-    #   Quem sabe que a temperatura e a textura são do modo de leitura é o nome
-    #   `LEITURA_*`, e ele não se parece com nenhum outro por acaso.
+    # Contadas hoje, QUATRO chaves declaram uma dessas duas faixas, e só duas
+    # são do modo de leitura; as outras são a opacidade do vidro do painel e da
+    # dock, que herdariam o mesmo desenho errado assim que ganhassem um valor.
     if chave.startswith("LEITURA_") and faixa:
         lo, hi = faixa[0], faixa[1]
         if lo <= 2000 and 5000 <= hi <= 10000:
@@ -5964,8 +4785,7 @@ PREVIA_FONTES = {
 }
 # Os grupos que um tipo TEM, mesmo os vazios. Só o papel de parede se divide em
 # grupos fixos (as cinco pastas do acervo); os outros descobrem o grupo item a
-# item. Serve às contagens de `previas()`, para uma pasta vazia mostrar 0 em vez
-# de sumir da conta — ver o comentário lá.
+# item.
 PREVIA_GRUPOS = {"parede": [g for g, _pasta in GRUPOS_PAREDE]}
 # A largura da miniatura, por tipo. O papel de parede é o único que precisa ser
 # grande o bastante para ela reconhecer a foto; o resto é ícone e cabe pequeno.
@@ -6045,7 +4865,6 @@ def _gerar_previa(item, tipo):
 # TRÊS, e o número tem motivo: o `convert` é limitado por CPU e a máquina tem
 # núcleos de sobra, mas subir isso a dez faria a conversão das 46 miniaturas
 # disputar CPU com o `./install.sh` que ela pode ter disparado na mesma página.
-# Três enche a fila do navegador (que abre ~6 conexões) sem tomar a máquina.
 PREVIA_FILA = queue.Queue()
 PREVIA_ANDANDO = set()
 PREVIA_TRAVA = threading.Lock()
@@ -6079,33 +4898,8 @@ def previas(tipo, grupo=None):
     if fonte is None:
         return None
     itens = fonte()
-    # A RECUSADA QUE VOLTOU NÃO É MAIS RECUSADA — 24/09/2026, sprint P46
-    #   O `desbanir` COPIA a imagem de volta para `ativos/` e deixa a de
-    #   `banidos/` (o `banir` jamais apaga, e o desfazer segue a regra). A lista
-    #   lia só a pasta, e a imagem devolvida continuava nas «Recusadas», com um
-    #   «Devolver» que respondia "nada a fazer" — medido pelo
-    #   `tests/app-completo.py`: Tirar, Devolver, e a conta das Recusadas parada
-    #   em 1. O `banir` MOVE a imagem para fora de `ativos/`; estar nas duas
-    #   pastas é, por construção, ter voltado — e o `banir` do item já diz isso
-    #   (é o caminho em `ativos/`, quando ele existe).
-    #   O corte é AQUI, na lista que a página desenha, e não no `_prev_paredes`:
-    #   a miniatura continua servida pelo `previa_bytes`, porque uma ficha que a
-    #   página desenhou um instante antes de devolver ainda a pede — e cortada
-    #   na fonte ela virava 404, medido na corrida seguinte.
     if tipo == "parede":
         itens = [i for i in itens if not (i["grupo"] == "banidos" and i["banir"])]
-    # AS CONTAGENS SAEM ANTES DO FILTRO, E É DE PROPÓSITO — 01/09/2026
-    #   As cinco sub-abas da galeria nasciam sem número: só ganhavam a conta
-    #   depois de serem ABERTAS uma vez, porque a página só sabia o tamanho do
-    #   grupo que tinha pedido. Ficava na tela "No carrossel 46 · Noite · Dia ·
-    #   Favoritos · Recusadas" — quatro rótulos mudos ao lado de um com número,
-    #   e nenhuma pista de que "Recusadas" guarda 255 imagens.
-    #   Esta função já lê as cinco pastas em uma passada (o `fonte()` acima);
-    #   contá-las custa um laço e responde a pergunta inteira de uma vez.
-    #   Os grupos conhecidos entram ZERADOS antes da conta: uma pasta vazia tem
-    #   de dizer "0", e não sumir. Sem isto, "Favoritos" — que não tem um
-    #   arquivo nesta máquina — ficava sem número, exatamente igual a uma aba
-    #   que ainda não tinha sido aberta.
     contagens = {g: 0 for g in PREVIA_GRUPOS.get(tipo, ())}
     for i in itens:
         contagens[i["grupo"]] = contagens.get(i["grupo"], 0) + 1
@@ -6123,23 +4917,14 @@ def previas(tipo, grupo=None):
             "pronta": pronta, "origem": item["origem"],
             "url": "/previa?tipo=%s&id=%s" % (tipo, quote(item["id"], safe="")),
         }
-        # O CAMPO EXTRA É COPIADO POR PRESENÇA, E AGORA É VERDADE — 07/09/2026
-        #   O comentário aqui já prometia isso ("a próxima fonte que precisar de
-        #   um campo próprio o ganha sem ninguém vir aqui") e a linha abaixo dele
-        #   nomeava `banir`, um campo só. Então a promessa valia para zero
-        #   fontes: o `lado` do papel de parede nasce em `_prev_paredes`, chega
-        #   até aqui e morre nesta linha.
+        # O comentário aqui já prometia isso ("a próxima fonte que precisar de
+        # um campo próprio o ganha sem ninguém vir aqui") e a linha abaixo dele
+        # nomeava `banir`, um campo só.
         #
-        #   O preço foi o desfazer. A página já sabia desenhar o botão "Medir"
-        #   quando `imagem.lado` viesse preenchido — o comentário dela em
-        #   `app.js` diz, com todas as letras, "quando vier, esta linha é a única
-        #   coisa que precisa acontecer". Sem o campo, marcar uma imagem como Dia
-        #   ou Noite era uma porta de mão única: dava para escrever a escolha e
-        #   não dava para voltar à medição, pelo painel.
+        # O preço foi o desfazer.
         #
-        #   O contrato de saída são estes cinco campos; tudo que a fonte
-        #   acrescentar além deles é dela e passa. É a mesma regra escrita, agora
-        #   sem a lista de um nome só no meio do caminho.
+        # O contrato de saída são estes cinco campos; tudo que a fonte
+        # acrescentar além deles é dela e passa.
         for extra, quanto in item.items():
             if extra not in ("id", "rotulo", "origem", "grupo", "url"):
                 saida[extra] = quanto
@@ -6173,32 +4958,12 @@ def previa_bytes(tipo, ident):
         return None
 
 
-# ============================================================================
-# 5b. LEVAR EMBORA, E TRAZER DE VOLTA
-# ============================================================================
-# Pedido dela em 06/09/2026: um botão de exportar ao lado do "Modo seco" (que
-# saiu da barra em 13/09), com duas saídas — as configurações, e "o html standalone, mostrando todas as abas,
-# com o menu lateral, de forma que eu pudesse mandar pra quem vai me ajudar a
-# melhorar o layout" — e um de importar, que só traz as configurações de volta.
+# O `.html` é uma FOTOGRAFIA da página — ele sai para ser redesenhado lá fora, e
+# o que volta de lá é desenho, não configuração.
 #
-# POR QUE SÃO DUAS SAÍDAS E UMA ENTRADA, E NÃO DUAS DE CADA
-#   O `.conf` é dado dela: sai e volta, e voltar é o que faz o backup valer.
-#   O `.html` é uma FOTOGRAFIA da página — ele sai para ser redesenhado lá fora,
-#   e o que volta de lá é desenho, não configuração. Um "importar página" que
-#   sobrescrevesse o `app.js` com HTML de procedência desconhecida seria a
-#   maior porta deste servidor, e ela não precisa existir: quem traduz o
-#   desenho de volta lê o arquivo e mexe no código, com o diff na frente.
-#
-# O FORMATO DO `.conf` É O ARQUIVO DELA, E NÃO UM FORMATO NOVO
-#   Exportar JSON seria mais fácil de escrever e pior de usar: o `meow.conf` é o
-#   que ela já sabe ler, o que o `meow configurar` escreve e o que o `. conf` do
-#   shell carrega. Um segundo formato para a mesma verdade é a armadilha nº 3
-#   deste repositório de novo, com outra roupa.
-#
-#   Então a exportação é o arquivo dela, byte a byte, com um cabeçalho de
-#   comentário na frente dizendo quando saiu e de onde. O cabeçalho é comentário
-#   de shell: o arquivo continua sendo um `meow.conf` válido, e reimportá-lo
-#   (ou copiá-lo por cima do original) funciona sem tirar nada.
+# Exportar JSON seria mais fácil de escrever e pior de usar: o `meow.conf` é o
+# que ela já sabe ler, o que o `meow configurar` escreve e o que o `. conf` do
+# shell carrega.
 
 def _carimbo():
     """AAAAMMDD-HHMM, o mesmo formato de nome que os backups do projeto usam."""
@@ -6225,11 +4990,7 @@ def exportar_conf():
     try:
         with open(CONF, "r", encoding="utf-8") as fh:
             corpo = fh.read()
-        # A ORIGEM SAI COM `~` — 24/09/2026, P52 (achado 21). O arquivo é feito
-        # para ir a outra máquina, e a primeira linha útil dele era
-        # `# Origem: /home/<usuário>/.config/meow/meow.conf`: o nome de usuário
-        # viajando junto, a mesma classe que a P30 fechou no pack exportado. O
-        # corpo continua byte a byte — ele é o arquivo da pessoa, e o que ela
+        # O corpo continua byte a byte — ele é o arquivo da pessoa, e o que ela
         # escreveu nele é dela para levar.
         linhas_cabecalho.append("# Origem: %s" % texto_na_tela(CONF))
     except OSError:
@@ -6287,10 +5048,7 @@ def importar_conf(texto):
     brutos = valores_brutos()
     relatorio = {"mudam": [], "iguais": [], "recusadas": [], "desconhecidas": []}
 
-    # A ÚLTIMA ATRIBUIÇÃO VENCE, como no `.` do shell. Um arquivo com a mesma
-    # chave duas vezes tem de trazer o que o shell obedeceria, e não a primeira
-    # linha que apareceu — é a divergência que o cabeçalho de `lib/comum.sh`
-    # conta ter custado uma tarde.
+    # A ÚLTIMA ATRIBUIÇÃO VENCE, como no `.` do shell.
     pares = {}
     for linha in texto.split("\n"):
         crua = linha.strip()
@@ -6299,9 +5057,9 @@ def importar_conf(texto):
         achado = RE_CHAVE.match(crua)
         if achado:
             pares[achado.group(1)] = _valor_da_linha(crua)
-    # UM .conf EXPORTADO ANTES DE UMA TROCA DE NOME traz a chave pelo nome
+    # UM.conf EXPORTADO ANTES DE UMA TROCA DE NOME traz a chave pelo nome
     # antigo, e ela entra pelo novo — sem isso ela cairia em "desconhecidas" e o
-    # valor ficaria para trás. Com os dois no arquivo, o novo vence (P52).
+    # valor ficaria para trás. Com os dois no arquivo, o novo vence.
     for antigo, novo in chaves_renomeadas().items():
         if antigo in pares:
             valor = pares.pop(antigo)
@@ -6332,52 +5090,10 @@ def importar_conf(texto):
     return relatorio
 
 
-# --- 5b. a oficina de desenho: as réguas, os presets, o cache ----------------
-# 09/09/2026. Ela, em 08/09: *"o nosso gerador de ícones é fraco, não gera
-# variações nem é tão bonito quanto o original, além de ficar pixelado e não ser
-# intuitivo e fácil de usar."* Quatro queixas; três são desta frente.
-#
-# QUATRO RÉGUAS DE GOSTO, UMA TABELA SÓ. «Cores», «Fusão» e «Aparo» são o
-# vocabulário do conversor, não o dela — números que só quem leu o
-# `converter_icone.py` sabe mexer. Aqui entram palavras que descrevem o
-# RESULTADO (Detalhe, Suavidade, Linhas fracas, Traço mínimo) e uma função as
-# traduz. A tradução mora num lugar só de propósito: os presets da folha, a
-# régua que o cliente arrasta e a conferência de "isto é regenerável?" do
-# `salvar` têm de dar a MESMA string, senão a linha gravada no mapa não reproduz
-# o desenho gravado ao lado dela.
-#
-# AS DUAS ÚLTIMAS SÃO DE 09/09/2026, E NASCEM EM 0 = DESLIGADO
-#   Não é timidez, é a regra que o próprio conversor escreve no `--peso-fronteira`:
-#   *"a arte convertida que está na tela dela foi aprovada numa folha (11/08/2026,
-#   'tão todos muito bons'). Uma chave nova que mudasse a saída padrão trocaria
-#   arte aprovada em silêncio"*. Com as duas em 0 nenhuma bandeira nova entra no
-#   `argv` e a saída é BYTE A BYTE a de ontem — medido com `cmp` em 25 conversões
-#   (os 5 presets de ícone × 5 origens: Brave, Discord, Calculadora, GIMP,
-#   Telegram), 25/25 idênticas, contra a função recortada do git de ontem. O
-#   sexto preset («Da capa») ficou de fora porque precisa de um jogo da Steam.
-#
-#   `Linhas fracas`  -> `--peso-fronteira`, o limiar de contraste RGB abaixo do
-#       qual duas classes viram uma e a fronteira entre elas não vira traço.
-#       Medido hoje no padrão do conversor: o Brave cai de 10 traços para 3 e o
-#       Discord de 9 para 4, sem tocar em Calculadora, Telegram, VLC, GIMP,
-#       Chrome nem Obsidian. O TETO DA RÉGUA É 70, e o número é medido, não
-#       escolhido: o `converter_icone.py` lista o contraste de todas as
-#       fronteiras internas do acervo e há um vale VAZIO entre 64,6 e 77,1. Ir
-#       além de 70 alcança quem já sai bem — conferido aqui: com 82 o Telegram
-#       cai de 4 traços para 2 e o Foliate de 11 para 4, e ela mandou não piorar
-#       o Telegram. O teto é a cerca; a régua não tem como pular por cima dele.
-#   `Traço mínimo`   -> `--min-traco`, o comprimento (em px de 48) abaixo do qual
-#       a polilinha é cisco e não desenho. O padrão do conversor é 3,2 e a régua
-#       só SOBE a partir dele: 0 é "não mexer", e mandar um número menor que 3,2
-#       devolveria traço que hoje já não existe — a régua andaria para trás na
-#       primeira parada. Medido em 17 ícones: nenhum some, e os que respondem
-#       respondem de leve (Discord 9→8→6→4, Chrome 8→5→4, Foliate 11→8).
-#
-# O CAMPO 4 DO MAPA EXISTE DESDE SEMPRE E NINGUÉM O USA — 0 de 33 linhas, e o
-# cabeçalho do `construir_convertidos.sh` admite ("hoje TODOS estão vazios").
-# Estas réguas são o jeito de girar essa válvula sem ninguém decorar bandeira:
-# medido hoje, `--k 8 --funde 25` devolve o Thunderbird COM a aba do envelope,
-# que o padrão perde. O que a oficina grava ali é exatamente esta string.
+# «Cores», «Fusão» e «Aparo» são o vocabulário do conversor, não o dela —
+# números que só quem leu o `converter_icone.py` sabe mexer.
+# O número é preso ANTES da conta (0…10 dá `--k` de 2 a 12): um `--k 900` de um
+# POST forjado seria um processo de minutos dentro do servidor.
 def _parametros_de(detalhe, suavidade, cheia=False, fracas=0, minimo=0):
     """(argv para o subprocess, string canônica para o campo 4 do mapa)."""
     def _regua(v, padrao):
@@ -6394,9 +5110,7 @@ def _parametros_de(detalhe, suavidade, cheia=False, fracas=0, minimo=0):
     tol = round(0.4 + 0.3 * s, 1)    # 0,4 … 3,4
     argv = ["--k", str(k), "--funde", str(funde), "--tol", "%g" % tol]
     # A ORDEM DAS BANDEIRAS É PARTE DO CONTRATO: a string tem de casar com o
-    # `_RE_PARAMETROS_DESENHO` abaixo, que lê UMA forma só. Zero não vira
-    # `--peso-fronteira 0`: vira AUSÊNCIA, e é isso que faz a régua em 0 devolver
-    # o argv de ontem sem um byte a mais.
+    # `_RE_PARAMETROS_DESENHO` abaixo, que lê UMA forma só.
     if f:
         argv += ["--peso-fronteira", str(40 + 3 * f)]      # 43 … 70
     if m:
@@ -6407,25 +5121,9 @@ def _parametros_de(detalhe, suavidade, cheia=False, fracas=0, minimo=0):
 
 
 # A CERCA DAS RÉGUAS É MAIS APERTADA QUE A DOS TRÊS NÚMEROS, e é de propósito.
-#   O caminho antigo (`k`, `funde`, `tol` soltos) continua com a faixa de 08/09
-#   — `--k` de 3 a 16 — porque um `--k 900` vindo de um POST forjado é um
-#   processo de minutos dentro de um servidor. O caminho das réguas nem precisa
-#   dessa conferência: `_parametros_de` prende o número ANTES de fazer conta, e
-#   0…10 dá `--k` de 2 a 12, que cabe inteiro dentro do que era permitido.
 #
-#   MEDIDO em 09/09/2026, e o contrato desta sprint errava aqui: `Silhueta` é
-#   `detalhe 0`, que dá `--k 2` — UM ABAIXO do piso de 3 do caminho antigo. Se
-#   os presets passassem pela mesma conferência, o cartão mais simples da folha
-#   seria o único que nunca desenharia. `--k 2` é mais barato que `--k 3`, não
-#   mais caro: o piso guardava contra o teto, e prendeu o chão sem querer.
-#
-#   AS DUAS BANDEIRAS NOVAS ENTRAM COMO GRUPO OPCIONAL — 09/09/2026, e a forma
-#   antiga continua casando. As 33 linhas do `apps-convertidos.map` e tudo que
-#   a oficina gravou até ontem estão na forma de três parâmetros; se a cerca
-#   passasse a exigir as cinco, cada uma dessas linhas viraria "não reconheço",
-#   o `salvar` gravaria `mao`, e a arte que ELA já aprovou perderia o histórico
-#   de como foi feita. Conferido: `--k 8 --funde 52 --tol 1` continua sendo
-#   relido, com e sem `--cheia`.
+# `--k 2` é mais barato que `--k 3`, não mais caro: o piso guardava contra o
+# teto, e prendeu o chão sem querer.
 _RE_PARAMETROS_DESENHO = re.compile(
     r"^--k (\d{1,2}) --funde (\d{1,3}) --tol (\d{1,2}(?:\.\d)?)"
     r"(?: --peso-fronteira (\d{1,3}))?"
@@ -6479,11 +5177,7 @@ def _parametros_relidos(texto):
 
 # id, rótulo, detalhe, suavidade, cheia, fonte, linhas fracas, traço mínimo
 #
-# AS DUAS COLUNAS NOVAS SÃO ZERO NOS SEIS CARTÕES, E ISSO É ESCOLHA — 09/09/2026
-#   A folha é a arte que ela olhou e aprovou. Ligar `--peso-fronteira` no «Limpo»
-#   seria tentador (é literalmente o que a chave faz) e trocaria, sem ela pedir,
-#   o desenho que o cartão «Limpo» mostra desde ontem. As réguas novas existem
-#   para ela girar; os presets ficam onde estavam.
+# A folha é a arte que ela olhou e aprovou.
 PRESETS_DESENHO = (
     ("fiel", "Fiel", 6, 2, False, "icone", 0, 0),
     ("limpo", "Limpo", 2, 6, False, "icone", 0, 0),
@@ -6503,44 +5197,22 @@ _CACHE_DESENHO_TRAVA = threading.Lock()
 _CONVERSOR_CHEIA = None
 _CONVERSOR_CHEIA_TRAVA = threading.Lock()
 
-# --- o editor de fora: onde o arquivo mora, e quem o abre --------------------
-# 09/09/2026. Ela, olhando o «Editar o SVG»: *"o botão svg deveria abrir o svg no
-# app que eu tiver se eu editar lá. ele já é reconhecido pelo nosso app."*
-#
-# O CAMINHO É DO SERVIDOR, NUNCA DO CLIENTE — e é a mesma regra que já rege esta
-# rota inteira: *"nenhum comando vem da página como texto"* (`app/LEIA-ME.md`).
 # A página manda `acao: "editor"` e o desenho; QUEM decide em que arquivo isso
 # cai é o servidor, a partir do `.desktop`, com o nome já preso ao
 # `^[A-Za-z0-9._+-]{1,120}$` do `_nome_do_icone`.
 #
-# ELE NÃO CAI DENTRO DO REPOSITÓRIO, E ISSO É DE PROPÓSITO
-#   `~/.local/state/meowsystem/oficina/` é rascunho: o que ela abre no Boxy SVG
-#   pode voltar com `<defs>`, com metadado do editor, com hex — coisas que o
-#   `_conferir_dialeto` recusa. Um rascunho assim dentro de `assets/icones/`
-#   seria o `construir_convertidos.sh` achando arte que ninguém mandou entrar,
-#   e o repositório é PÚBLICO desde 06/09. O que entra no repositório continua
-#   entrando por um lugar só: o «Usar».
+# `~/.local/state/meowsystem/oficina/` é rascunho: o que ela abre no Boxy SVG
+# pode voltar com `<defs>`, com metadado do editor, com hex — coisas que o
+# `_conferir_dialeto` recusa.
 _OFICINA_RASCUNHO = os.path.join(ESTADO, "oficina")
 
-# O ÍCONE QUE UM `.desktop` DECLARA POR CAMINHO — 24/09/2026, sprint P46
-#   O `_icone_na_tela` devolve o `Icon=` absoluto de um `.desktop` como o ícone
-# do aplicativo (é o que a Steam e os instaladores de `/opt` fazem), e a cerca
-# do `/previa?tipo=arquivo` só conhece as pastas de arte. Medido pelo
-# `tests/app-completo.py` nesta máquina: o «Elden Ring Tracker» declara
-# `/opt/elden-ring-tracker/assets/icons/icon.png`, a grade de Lançadores pedia
-# esse arquivo a cada pintura, e a cerca respondia 404 — ícone quebrado e erro
-# no console, em toda visita à aba.
-#   A cerca NÃO ganha uma pasta: ganha os ARQUIVOS que o próprio servidor mandou
-# a página mostrar, um por um, e só com extensão de imagem. Quem planta um
-# caminho aqui é um `.desktop` instalado na máquina dela, e o pedido continua
-# exigindo o token da sessão — a sonda de existência que a cerca veio fechar
-# segue fechada para quem não tem o token.
+# O `_icone_na_tela` devolve o `Icon=` absoluto de um `.desktop` como o ícone do
+# aplicativo (é o que a Steam e os instaladores de `/opt` fazem), e a cerca do
+# `/previa?tipo=arquivo` só conhece as pastas de arte.
 _ICONES_DECLARADOS = set()
 
-# O LANÇADOR TAMBÉM É DICIONÁRIO FECHADO. Não há "o comando que abre" vindo de
-# lugar nenhum: são estes dois, nesta ordem, e o `shutil.which` escolhe o
-# primeiro que existe. `xdg-open` é o padrão da freedesktop; o `gio open` é a
-# rede de segurança de quem tem GLib e não tem xdg-utils.
+# Não há "o comando que abre" vindo de lugar nenhum: são estes dois, nesta
+# ordem, e o `shutil.which` escolhe o primeiro que existe.
 _LANCADORES_SVG = (("xdg-open",), ("gio", "open"))
 _EDITOR_SVG = None
 _EDITOR_SVG_TRAVA = threading.Lock()
@@ -6740,9 +5412,7 @@ class Trabalho:
         self.rotulo = rotulo
         self.argv = argv
         # O que fazer quando o processo morrer, de qualquer jeito — fim normal,
-        # `#parar`, ou o pai morrendo junto. Existe por causa do meow.conf
-        # descartável do ensaio (ver `_conf_de_ensaio`): quem o criou não pode
-        # apagá-lo, porque o trabalho ainda vai lê-lo por 18 segundos.
+        # `#parar`, ou o pai morrendo junto.
         self._ao_terminar = ao_terminar
         self.linhas = []
         self.rc = None
@@ -6763,7 +5433,12 @@ class Trabalho:
         )
         threading.Thread(target=self._ler, daemon=True).start()
 
-    def _ler(self):
+    # O `fim` nascia quando o stdout fechava, e um neto que herde o stdout (o
+    # `&` de um script) segura o cano aberto: o pai morria e o trabalho ficava
+    # vivo para sempre.
+    PRAZO_DO_CANO = 2.0
+
+    def _bombear(self):
         try:
             for bruta in self.proc.stdout:
                 linha = bruta.decode("utf-8", "replace").rstrip("\n")
@@ -6771,7 +5446,13 @@ class Trabalho:
                     self.linhas.append(linha)
         except (OSError, ValueError):
             pass
-        self.rc = self.proc.wait()
+
+    def _ler(self):
+        leitor = threading.Thread(target=self._bombear, daemon=True)
+        leitor.start()
+        rc = self.proc.wait()
+        leitor.join(self.PRAZO_DO_CANO)
+        self.rc = rc
         self.fim = time.time()
         # DEPOIS do `rc` e do `fim`: a página pergunta "acabou?" pelo `vivo()`, e
         # a limpeza não pode atrasar a resposta nem falhar a ponto de o trabalho
@@ -6786,14 +5467,8 @@ class Trabalho:
         with self._lock:
             return list(self.linhas[n:]), len(self.linhas)
 
-    # VIVO É «AINDA SEM DESFECHO» — 10/10/2026, P80 (item 6). Era o
-    #   `proc.poll()`, e o `rc` e o `fim` só são gravados depois, pela thread
-    #   `_ler`. A página que perguntava nesse intervalo recebia `vivo: false`
-    #   com `rc: null`, e a gaveta de uma ação rápida terminava em «saiu null ·
-    #   0s» — o gate ficava intermitente (P79, integração da onda 2). Quem diz
-    #   que acabou é o desfecho gravado: o `fim` nasce depois do `rc`, então
-    #   `vivo()` falso traz sempre o código de saída. O `tests/trabalho-vivo.sh`
-    #   abre a janela de propósito.
+    # `proc.poll()`, e o `rc` e o `fim` só são gravados depois, pela thread
+    # `_ler`.
     def vivo(self):
         return self.fim is None
 
@@ -6834,75 +5509,50 @@ def escreve(acao):
 
 
 
-# ============================================================================
-# AS PENDÊNCIAS ACIONÁVEIS — 22/09/2026, sprint P2
-# ============================================================================
 # O `lib/comum.sh` ganhou o verbo `meow_pendencia_acionavel`: toda etapa que
 # descobre um problema e sabe o conserto registra uma linha em
 # `$MEOW_ESTADO/pendencias.tsv` em vez de imprimir uma receita de terminal.
-# Esta é a ponta que lê aquele arquivo.
 #
-# O COMANDO DO TSV NÃO É EXECUTADO, E ISSO É O DESENHO
-#   A linha guarda o comando como TEXTO, para a pessoa ver o que vai rodar. O
-#   que o botão "Resolver" dispara é uma AÇÃO da tabela `ACOES`, casada pelo
-#   `id` da pendência na tabela abaixo. Executar a string do arquivo seria abrir
-#   uma porta de shell no painel — e o arquivo é escrito por scripts, não pela
-#   pessoa, então nem sequer haveria ganho.
-#
-#   Pendência sem entrada aqui é pendência SEM BOTÃO, e é assim que as três
-#   saídas da sprint convivem na mesma tela: a que tem conserto ganha botão, a
-#   que depende de decisão dela ganha a decisão escrita, e a que não tem
-#   conserto neste projeto ganha a frase e mais nada.
+# A linha guarda o comando como TEXTO, para a pessoa ver o que vai rodar.
 ACAO_DA_PENDENCIA = {
     "areas-sem-alfinete": "areas_alfinetar_primeira",
     "starship-ausente": "prompt_instalar_starship",
     "spicetify-tema-ausente": "spotify_baixar_tema",
     "files-menu-build": "files_menu_build",
-    # P79 (item 5, «nada manda digitar»): o rodapé do instalador mandava
-    # digitar «sudo -v && ./install.sh», e o applet de leitura «LEITURA_COMPILAR=1
-    # …/leitura_build.sh». Viraram pendência, e o botão é o de quem faz.
+    # o rodapé do instalador mandava digitar «sudo -v &&./install.sh», e o
+    # applet de leitura «LEITURA_COMPILAR=1 …/leitura_build.sh». Viraram
+    # pendência, e o botão é o de quem faz.
     "instalar-com-root": "instalar",
     "leitura-applet": "doctor_consertar",
 }
 
-# AS PENDÊNCIAS QUE ACEITAM "NÃO, OBRIGADO"
-#   A sprint pede, para o starship: "a tela pergunta UMA vez; a recusa fica
-#   gravada e não volta a perguntar". Quem grava é o próprio script, por um
-#   verbo dele — o painel não escreve arquivo de estado de outro módulo.
+# Quem grava é o próprio script, por um verbo dele — o painel não escreve
+# arquivo de estado de outro módulo.
 RECUSA_DA_PENDENCIA = {
     "starship-ausente": [os.path.join(RAIZ, "scripts", "prompt.sh"),
                          "nao-quero-starship"],
 }
 
-# A ESCOLHA DO TEMA DE TERCEIRO — 24/09/2026, sprint P53 (achados 3 e 4)
-#   O `meow_app_tema_no_ar` (lib/comum.sh) registra `<app>-tema-de-terceiro`
-#   quando um programa está num tema que não veio do MeowSystem, e a linha
-#   mandava decidir "rodando o aplicar deste app de um terminal" — medido no
-#   painel de verdade com o OnlyOffice. A decisão tem dois lados, e cada um
-#   vira um botão, pela rota de qualquer botão: as ações `apps_tema_do_pack` e
-#   `apps_manter_o_meu`, com o app de argumento.
+# A decisão tem dois lados, e cada um vira um botão, pela rota de qualquer
+# botão: as ações `apps_tema_do_pack` e `apps_manter_o_meu`, com o app de
+# argumento.
 #
-#   PELO SUFIXO, E NÃO UMA LINHA POR APP NO `ACAO_DA_PENDENCIA`: o id nasce
-#   assim para todo módulo que chama aquela função — sete hoje —, e o próximo
-#   ganha os botões sem vir aqui. O app só vale se for um id e tiver módulo.
-#   A regra das duas pontas continua: sem `comando` na linha, não há botão.
+# PELO SUFIXO, E NÃO UMA LINHA POR APP NO `ACAO_DA_PENDENCIA`: o id nasce
+# assim para todo módulo que chama aquela função — sete hoje —, e o próximo
+# ganha os botões sem vir aqui.
 SUFIXO_TEMA_DE_TERCEIRO = "-tema-de-terceiro"
 ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar pelo tema do pack"),
                             ("apps_manter_o_meu", "Manter o meu"))
 
 
-# A EXTENSÃO DO VS CODE DE PACK IMPORTADO — decisão 9 (10/10/2026, P79). O id
-#   é o que o `assets/temas-de-apps/vscode/manifesto.sh` registra; as extensões
-#   saem do pack no ar, e só quando ele NÃO mora no `packs/` do repositório —
-#   a mesma régua do módulo, com os links resolvidos.
+# O id é o que o `assets/temas-de-apps/vscode/manifesto.sh` registra; as
+# extensões saem do pack no ar, e só quando ele NÃO mora no `packs/` do
+# repositório — a mesma régua do módulo, com os links resolvidos.
 PENDENCIA_EXTENSAO = "vscode-extensao-de-terceiro"
 
-# O PAPEL DE PAREDE DEVOLVIDO — 10/10/2026, P80 (item 8). O `wallpaper.sh`
-#   devolve ao carrossel a saída que aponta para fora dele, e terminava
-#   mandando digitar `meow wallpaper permitir "<caminho>"` se a imagem era
-#   escolha de quem usa. Virou esta pendência, com o comando na linha; o
-#   botão «Era escolha minha» roda o mesmo `permitir`, com o caminho que o
-#   servidor tira do comando — e só ele (`fontes_revertidas`).
+# Virou esta pendência, com o comando na linha; o botão «Era escolha
+# minha» roda o mesmo `permitir`, com o caminho que o servidor tira do
+# comando — e só ele (`fontes_revertidas`).
 PENDENCIA_PAREDE = "wallpaper-fonte-revertida"
 PREFIXO_PERMITIR = "meow wallpaper permitir "
 
@@ -6952,43 +5602,13 @@ def _app_da_pendencia(ident):
     return app if os.path.isfile(modulo) else ""
 
 
-# ONDE UM BOTÃO MORA NA TELA, DITO PELA TABELA QUE O DEFINE — 24/09/2026, P50
-#   Achado 47: depois de «Atualizar a máquina inteira», a conferência mandava
-#   consertar «pelo painel, em "Instalar e conferir"» — a aba que se chama
-#   «Instalação» desde 06/09. E o achado 32: o `meow_pendencia_acionavel`
-#   dizia «ou o botão «Resolver» no painel» na gaveta de uma aba sem
-#   «Resolver» nenhum. As duas eram nomes de tela escritos à mão num script, e
-#   nome escrito à mão é o que envelhece no primeiro renome.
-#   Quem define o nome do botão e a aba em que ele mora é a tabela `ACOES` — o
-#   `rotulo` e o `grupo`, que é a página do menu. Os scripts perguntam aqui,
-#   por `python3 app/servidor.py --onde <ação ou pendência>`, e a porta deles
-#   é o `meow_onde_no_painel` do `lib/comum.sh`.
-#   Ação `oculta` não tem cartão em aba nenhuma, e pendência sem ação não tem
-#   botão: nos dois casos a resposta é vazia, e a frase que a usaria não sai.
+# As duas eram nomes de tela escritos à mão num script, e nome escrito à mão é o
+# que envelhece no primeiro renome.
 #
-# E TAMBÉM CARTÕES E ABAS — 24/09/2026, sprint P57 (item 4)
-#   O `install.sh` ainda citava por extenso o cartão «Arrumar o lançador» e a
-#   «aba Início» — a classe do achado 47, que o `--onde` de ações não
-#   alcançava. Um cartão se pergunta pela CHAVE, e a resposta sai do mesmo
-#   lugar de onde a página tira o cartão: o título escrito no
-#   `meow.conf.exemplo` (o `# @`), com a troca que o pack no ar faz
-#   (`_com_o_vocabulario_do_pack`), e a seção, que é a aba. Chave sem título
-#   escrito não tem nome certo para citar (o da página é derivado lá), e a
-#   resposta é vazia. A aba que abre o painel se pergunta por `inicio`.
-#
-# A INÍCIO ERA A ÚNICA ABA NOMEADA SÓ NA PÁGINA — as outras saem da seção do
-#   `meow.conf.exemplo` ou do `grupo` de uma ação, ambos lidos aqui. O nome
-#   passa a morar neste arquivo, e a página o lê do esquema (`aba_inicio`, no
-#   `montarGrupos` do app.js): um dono só, e o `--onde` diz o que a tela mostra.
-#
-# E OS DOIS BOTÕES DO TEMA DE TERCEIRO — 25/09/2026, sprint P62 (item 2)
-#   «Vestir os programas agora» terminava com «resolve: meow apps aplicar
-#   onlyoffice», e a Início tinha os dois botões da decisão. A pendência
-#   `<app>-tema-de-terceiro` casa pelo sufixo (`SUFIXO_TEMA_DE_TERCEIRO`), e
-#   não pelo `ACAO_DA_PENDENCIA`: o `--onde` não a achava, respondia vazio, e o
-#   `meow_pendencia_acionavel` ficava só com o terminal. Os botões são os da
-#   `ESCOLHA_TEMA_DE_TERCEIRO`, que o bloco de pendências da Início desenha, e
-#   os nomes saem de lá — os dois, porque a decisão tem dois lados.
+# Um cartão se pergunta pela CHAVE, e a resposta sai do mesmo lugar de onde a
+# página tira o cartão: o título escrito no `meow.conf.exemplo` (o `# @`), com a
+# troca que o pack no ar faz (`_com_o_vocabulario_do_pack`), e a seção, que é a
+# aba.
 ABA_INICIO = "Início"
 
 
@@ -7043,47 +5663,40 @@ def pendencias():
                 if len(campos) != 5 or not campos[0]:
                     continue
                 ident, etapa, frase, comando, quando = campos
-                # O BOTÃO PRECISA DAS DUAS PONTAS — 22/09/2026
-                #   A tabela acima diz o que o "Resolver" dispara; o campo
-                #   `comando` da LINHA diz se aquela passagem tinha conserto.
-                #   Quem manda é a linha, porque um mesmo id pode ser gravado
-                #   com comando ou sem ele conforme o estado: o
-                #   `files-menu-build` nasce sem comando enquanto a unit
-                #   compila (não há o que clicar) e com comando quando ela
-                #   falha. Lendo só a tabela, a Home poria um "Resolver" que
-                #   dispararia um segundo build em cima do primeiro.
+                # A tabela acima diz o que o "Resolver" dispara; o campo
+                # `comando` da LINHA diz se aquela passagem tinha conserto.
                 acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
-                # A PENDÊNCIA QUE A MÁQUINA JÁ RESOLVEU NÃO É MOSTRADA — QA de
-                #   uso real da P80. Quando o conserto dela se declara «já
-                #   feito» (o `feito` do `indisponivel`: «Criar a primeira área»
-                #   com área fixada), a linha ficou velha — a pessoa fixou a
-                #   área pelo COSMIC depois de o instalador anotar a falta — e
-                #   o «Resolver» só ouviria a recusa do servidor. O arquivo não
-                #   é reescrito aqui: quem tira a linha é o próprio verbo, ao
-                #   rodar (`meow_pendencia_resolvida`); a página só não a mostra.
+                # Quando o conserto dela se declara «já feito»
                 if acao and (indisponivel(acao) or {}).get("feito"):
                     continue
                 app = _app_da_pendencia(ident) if comando else ""
                 escolha = [{"acao": a, "argumento": app, "rotulo": r}
                            for a, r in ESCOLHA_TEMA_DE_TERCEIRO] if app else []
                 nome = ""
-                # Um botão por extensão que o pack importado pede (decisão 9,
-                # P79), com o selo de rede da ação; a lista vazia (o pack já é
-                # do repositório) não desenha botão nenhum.
+                # Um botão por extensão que o pack importado pede, com o selo
+                # de rede da ação; a lista vazia (o pack já é do repositório)
+                # não desenha botão nenhum.
                 if ident == PENDENCIA_PAREDE and comando.startswith(PREFIXO_PERMITIR):
                     escolha = [{"acao": "wallpaper_permitir", "rotulo": "Era escolha minha",
-                                "argumento": comando[len(PREFIXO_PERMITIR):]}]
+                                "argumento": comando[len(PREFIXO_PERMITIR):]},
+                               {"acao": "wallpaper_dispensar", "rotulo": "Deixar assim",
+                                "argumento": ""}]
                     nome = "Papel de parede devolvido"
                 if ident == PENDENCIA_EXTENSAO and comando:
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
                     nome = "VS Code: extensão de pack importado"
+                # O `files-menu-build` nasce sem comando enquanto a unidade
+                # compila, e sem `acao` a Início caía no nome da etapa:
+                # «Files_menu.sh», o nome de um arquivo.
+                if not nome and not acao:
+                    nome = ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""), {}).get("rotulo", "")
                 rede = any(ACOES.get(a, {}).get("rede") for a in [acao] + [e["acao"] for e in escolha])
                 fora.append({
                     "id": ident, "etapa": etapa, "frase": frase,
                     "comando": comando, "quando": quando,
                     "acao": acao,
-                    # Os dois lados da decisão, na ordem da frase. [P53]
+                    # Os dois lados da decisão, na ordem da frase.
                     "escolha": escolha,
                     "nome": nome,
                     "recusavel": ident in RECUSA_DA_PENDENCIA,
@@ -7095,6 +5708,27 @@ def pendencias():
     except OSError:
         return []
     return fora
+
+# ponto único do que a máquina não conserta sozinha: a sentinela do apt e o
+# patch obrigatório que não entra gravam por `meow_precisa_de_gente`, e a Início
+# desenha UM cartão.
+PRECISA_DE_GENTE = os.path.join(ESTADO, "precisa-de-gente.tsv")
+
+
+def precisa_de_gente():
+    """As linhas do precisa-de-gente.tsv: [{id, nome, desde, porque}]. Ausente é lista vazia."""
+    fora = []
+    try:
+        with open(PRECISA_DE_GENTE, "r", encoding="utf-8") as fh:
+            for linha in fh:
+                campos = linha.rstrip("\n").split("\t")
+                if len(campos) != 4 or not campos[0] or not campos[1]:
+                    continue
+                fora.append(dict(zip(("id", "nome", "desde", "porque"), campos)))
+    except OSError:
+        return []
+    return fora
+
 
 def _trabalho_json(trabalho, acao_id, seco=False):
     """O que a página precisa para abrir a gaveta de um trabalho que começou.
@@ -7118,10 +5752,7 @@ def _trabalho_json(trabalho, acao_id, seco=False):
       que o `fim_da_acao` escolhe. A bandeja continua dependendo.)
     """
     # O topo da gaveta mostra o comando como a pessoa o digitaria, e não o
-    # `argv` cru com o caminho do clone — ver `comando_na_tela` (P52).
-    # `fim` é a frase do fim DESTA execução, pela natureza da ação — ver
-    # `NATUREZAS` (P50). `escreve` continua indo pelo que a docstring diz: a
-    # releitura e a bandeja, e não o rótulo.
+    # `argv` cru com o caminho do clone — ver `comando_na_tela`.
     return {"id": trabalho.id, "rotulo": trabalho.rotulo,
             "comando": comando_na_tela(trabalho.argv),
             "escreve": escreve(ACOES[acao_id]),
@@ -7191,25 +5822,21 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
     if acao is None:
         return (None, "ação desconhecida")
 
-    # O BOTÃO APAGADO TAMBÉM É TRANCA DO SERVIDOR — P50. A página não o
-    # oferece; um POST direto (ou uma página lida antes de a máquina mudar)
-    # ouve o motivo, que o cartão diz com as palavras da tela.
+    # O BOTÃO APAGADO TAMBÉM É TRANCA DO SERVIDOR. A página não o oferece;
+    # um POST direto (ou uma página lida antes de a máquina mudar) ouve o
+    # motivo, que o cartão diz com as palavras da tela.
     if indisponivel(acao_id):
         return (None, "«%s» não teria efeito agora — o cartão diz por quê"
                       % acao["rotulo"])
 
-    # A CONFIRMAÇÃO É UMA TRANCA DO SERVIDOR, E NÃO UM COSTUME DA PÁGINA
-    #   O campo `confirma` existe desde o primeiro dia e era só uma DICA: a
-    #   página perguntava se quisesse, e um POST direto (ou um botão que
-    #   esquecesse de perguntar) disparava `./install.sh` ou o `desfazer` na
-    #   mesma linha. A auditoria de 01/09/2026 mediu a versão prática do
-    #   problema — "o modo seco nasce desligado e treze ações que escrevem no
-    #   sistema disparam de primeira" —, e a resposta certa não é a página
-    #   lembrar de perguntar: é o servidor não obedecer sem a resposta.
+    # O campo `confirma` existe desde o primeiro dia e era só uma DICA: a
+    # página perguntava se quisesse, e um POST direto (ou um botão que
+    # esquecesse de perguntar) disparava `./install.sh` ou o `desfazer` na
+    # mesma linha.
     #
-    #   O erro sai como DICIONÁRIO (e não frase) porque a página tem de poder
-    #   distinguir "preciso perguntar" de "deu errado" sem ler texto: um é uma
-    #   pergunta a fazer, o outro é uma torrada vermelha.
+    # O erro sai como DICIONÁRIO (e não frase) porque a página tem de poder
+    # distinguir "preciso perguntar" de "deu errado" sem ler texto: um é uma
+    # pergunta a fazer, o outro é uma torrada vermelha.
     if acao.get("confirma") and not confirmado:
         return (None, {
             "erro": "esta ação escreve na máquina e precisa de confirmação",
@@ -7224,9 +5851,9 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
         })
 
     argv = list(acao["argv"])
-    # O ARGUMENTO PODE IR PELO AMBIENTE (P79): o gesto da extensão do VS Code
-    # roda o verbo de sempre e diz QUAL extensão numa variável. A cerca é a
-    # mesma — a lista do provedor —, e só o lugar do `@ARG@` muda.
+    # O ARGUMENTO PODE IR PELO AMBIENTE: o gesto da extensão do VS Code roda
+    # o verbo de sempre e diz QUAL extensão numa variável. A cerca é a mesma
+    # — a lista do provedor —, e só o lugar do `@ARG@` muda.
     amb_acao = dict(acao.get("ambiente", {}))
     if "@ARG@" in argv or "@ARG@" in amb_acao.values():
         permitidos = PROVEDORES[acao["arg"]]()
@@ -7237,14 +5864,8 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
     elif argumento:
         return (None, "esta ação não recebe argumento")
 
-    # A CONF VAI JUNTO COM O TRABALHO — ver `conf_exportada`. Sem ela, a ação
-    # que chama um script de `scripts/` direto roda com cada chave no padrão.
-    #
-    # No ensaio das escolhas quem é lido é a CÓPIA, e não o arquivo dela: tem de
-    # ser o mesmo arquivo que o `install.sh` vai sourcear (`MEOW_CONF`, abaixo),
-    # senão a ponte resolveria a paleta pelo PACK/FLAVOR do disco enquanto o
-    # instalador lê os da cópia — o par incoerente que o bloco "A PONTE VEM
-    # JUNTO" do `conf_exportada` descreve, entrando pela porta do ensaio.
+    # Sem ela, a ação que chama um script de `scripts/` direto roda com cada
+    # chave no padrão.
     conf_do_ensaio = os.path.join(pasta_de_ensaio, "meow.conf") if pasta_de_ensaio else None
     conf = conf_exportada(conf_do_ensaio)
     if conf is None:
@@ -7254,37 +5875,23 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
     ambiente.update(conf)
     ambiente.update(amb_acao)
     # DEPOIS do `ambiente` da ação, e de propósito: `MEOW_CONF` não é uma chave
-    # do conf, é o ENDEREÇO dele. Quem o lê é o `CONF=` do `install.sh` (linha
-    # 70), que o `etapa_conf_ler` sourceia com `set -a`, e o
-    # `MEOW_CONF_ARQUIVO` do `lib/comum.sh` (linha 608), que todo script de
-    # `scripts/` herda. Deixá-lo antes seria deixar uma ação futura apontar o
-    # ensaio para outro arquivo sem querer.
+    # do conf, é o ENDEREÇO dele.
     if conf_do_ensaio:
         ambiente["MEOW_CONF"] = conf_do_ensaio
-        # AS ESCOLHAS DE ÍCONE MORAM AO LADO DO CONF DELA, E NÃO DA CÓPIA — QA
-        #   da P77, 10/10/2026. O `pack.py` e o `icones_apps_arcticons.sh`
-        #   acham os dois mapas de quem usa pela PASTA do `MEOW_CONF`; com ele
-        #   apontando para a cópia, a pasta do ensaio não tem mapa nenhum, e o
-        #   «Ver o que faria» anunciava «apagaria .../<app>.svg (desenho
-        #   que saiu do mapa do pack no ar)» logo depois de um «Usar este ícone»
-        #   para aquele app — medido no navegador, com o «Salvar e aplicar» de
-        #   verdade lendo o mapa certo. O ensaio passa a ler os mesmos mapas.
+        # O ensaio passa a ler os mesmos mapas.
         pasta_dela = os.path.dirname(CONF)
         ambiente.setdefault("MEOW_ICONES_ESCOLHAS",
                             _mapa_de_escolhas_do_usuario())
         ambiente.setdefault("MEOW_ICONES_TRACO",
                             os.path.join(pasta_dela, "icones-traco.map"))
         # E O MAPA DOS JOGOS, quando o ensaio é de uma decisão de jogo ainda não
-        # gravada (P54, `_ensaio_dos_jogos`): o `jogos_steam.sh` lê o mapa por
-        # esta variável, e a cópia com a decisão dentro mora na mesma pasta.
+        # gravada: o `jogos_steam.sh` lê o mapa por esta variável, e a cópia com
+        # a decisão dentro mora na mesma pasta.
         mapa_do_ensaio = os.path.join(pasta_de_ensaio, "jogos-fora.map")
         if os.path.isfile(mapa_do_ensaio):
             ambiente["MEOW_JOGOS_FORA"] = mapa_do_ensaio
     # O `install.sh` cala o progresso quando NÃO há terminal (`[ ! -t 1 ]`), e é
-    # a decisão certa lá — quase 600 linhas num journal não têm leitor. Aqui há
-    # leitora, e ela está olhando: sem esta linha a página mostraria um retângulo
-    # quase vazio durante uma instalação inteira. Quem já escolheu `debug` no
-    # meow.conf continua com `debug`; o resto sobe para `info`.
+    # a decisão certa lá — quase 600 linhas num journal não têm leitor.
     if ambiente.get("LOG_NIVEL", "") != "debug":
         ambiente["LOG_NIVEL"] = "info"
     # Cor de terminal não tem sentido em HTML, e os scripts já a desligam sozinhos
@@ -7297,9 +5904,7 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
             return (None, "já há um trabalho correndo: %s" % TRABALHO_ATUAL.rotulo)
         try:
             # A CÓPIA DO ENSAIO MORRE COM O TRABALHO, e não aqui: ele acabou de
-            # nascer e vai sourcear aquele arquivo pelos próximos segundos. Nos
-            # caminhos em que trabalho nenhum nasce, quem apaga é quem criou a
-            # pasta — ver o `/api/salvar`.
+            # nascer e vai sourcear aquele arquivo pelos próximos segundos.
             trabalho = Trabalho(
                 acao_id, argv, ambiente, acao["rotulo"],
                 ao_terminar=(lambda: shutil.rmtree(pasta_de_ensaio, ignore_errors=True))
@@ -7321,22 +5926,12 @@ TIPOS = {
 }
 
 
-# O ENDEREÇO DO REPOSITÓRIO SAI DO `git remote`, E ISSO NÃO É ELEGÂNCIA
-#   A primeira versão escreveu `https://github.com/<usuária>/MeowSystem` aqui, e
-#   o hook de commit trocou o nome dela por uma redação — o link foi para o ar
-#   apontando para uma URL morta. Medido no primeiro commit que tentou.
+# A decisão de ler do remoto FICA assim mesmo, porque o motivo dela nunca foi o
+# sanitizador — é o parágrafo abaixo.
 #
-#   ERRATA DE 21/09/2026, medida no sanitizador, não suposta: ele hoje POUPA a
-#   conta quando ela aparece como `github.com/<conta>/...`, e só nessa forma
-#   (o `git@github.com:<conta>/...` e a menção solta continuam sendo redigidos).
-#   Ou seja, cravar a URL aqui sobreviveria ao commit. A decisão de ler do
-#   remoto FICA assim mesmo, porque o motivo dela nunca foi o sanitizador — é o
-#   parágrafo abaixo.
-#
-#   Ler do remoto é mais certo, e não só mais seguro: num fork o item do menu
-#   passa a apontar para o fork de quem clonou, que é o repositório de quem
-#   está olhando a tela. Sem remoto, a função devolve vazio e o menu não desenha
-#   o item — melhor um item a menos que um link que não abre.
+# Ler do remoto é mais certo, e não só mais seguro: num fork o item do menu
+# passa a apontar para o fork de quem clonou, que é o repositório de quem está
+# olhando a tela.
 _medidas_cache = {"carimbo": None, "valor": None}
 
 
@@ -7504,10 +6099,10 @@ def _repositorio_no_ar():
     url = proc.stdout.decode("utf-8", "replace").strip()
     if not url:
         return ""
-    # `git@github.com-pessoal:dona/Projeto.git` -> `https://github.com/dona/Projeto`
-    #   O sufixo depois do host é apelido de `~/.ssh/config`, e não host de
-    #   verdade: esta máquina usa um para separar duas contas. Levá-lo para a
-    #   URL daria um endereço que só resolve dentro do ssh dela.
+    # `git@github.com-pessoal:dona/Projeto.git` ->
+    # `https://github.com/dona/Projeto` O sufixo depois do host é apelido de
+    # `~/.ssh/config`, e não host de verdade: esta máquina usa um para separar
+    # duas contas.
     m = re.match(r"^(?:git@|ssh://git@)([^:/]+)[:/](.+?)(?:\.git)?/?$", url)
     if m:
         host = m.group(1).split("-", 1)[0] if "." in m.group(1) else m.group(1)
@@ -7582,28 +6177,14 @@ class Manipulador(BaseHTTPRequestHandler):
         porta = self.server.server_address[1]
         return origem in ("http://127.0.0.1:%d" % porta, "http://localhost:%d" % porta)
 
-    # AS TRÊS PORTAS DO TOKEN, E POR QUE PRECISAM SER TRÊS — 01/09/2026
-    #   A primeira versão aceitava só o cabeçalho `X-Meow-Token` e o `?t=` da
-    #   URL, e a página nasceu QUEBRADA: sem estilo e parada em "carregando…".
-    #   Vi na tela, não no código. O motivo é elementar depois de visto — um
-    #   `<link rel="stylesheet" href="/estilo.css">` e um `<script src="/app.js">`
-    #   são pedidos que o NAVEGADOR faz sozinho, e ele não tem como pôr um
-    #   cabeçalho nosso neles. Os três subrecursos tomavam 403, calados.
+    # O token entra por três portas: o cabeçalho `X-Meow-Token`, o `?t=` da URL e o
+    # cookie. Folha e script são pedidos que o navegador faz sozinho, sem cabeçalho
+    # nosso; sem o cookie eles tomavam 403, calados.
     #
-    #   Havia um segundo defeito escondido atrás do primeiro, e pior: o `app.js`
-    #   apaga o `?t=` da barra de endereço no primeiro instante (um token no
-    #   histórico do navegador sobreviveria à sessão que o criou). Com a URL
-    #   limpa, um F5 daria 403 na própria página — o painel funcionaria uma vez
-    #   e morreria no primeiro recarregamento.
-    #
-    #   O COOKIE resolve os dois de uma vez, e é o que ele existe para fazer:
-    #   o navegador o manda em TODO pedido a esta origem, inclusive nos que
-    #   ele mesmo inventa. `HttpOnly` (nem o nosso JS o lê), `SameSite=Strict`
-    #   (nenhum pedido vindo de outro site o carrega, que é a defesa de CSRF) e
-    #   sem `Expires` (morre quando o navegador fecha, como o processo).
-    #
-    #   O `?t=` continua valendo porque é como o cookie NASCE: o `run.sh` abre o
-    #   navegador na URL com o token, e é essa primeira visita que o planta.
+    # Havia um segundo defeito escondido atrás do primeiro, e pior: o `app.js`
+    # apaga o `?t=` da barra de endereço no primeiro instante (um token no
+    # histórico do navegador sobreviveria à sessão que o criou). O cookie
+    # `SameSite=Strict` cobre o F5, e pedido de outro site não o carrega (CSRF).
     def _token_confere(self, consulta):
         for dado in (self.headers.get("X-Meow-Token") or "",
                      consulta.get("t", [""])[0],
@@ -7639,8 +6220,8 @@ class Manipulador(BaseHTTPRequestHandler):
         if plantar_cookie:
             # Sem `Expires`/`Max-Age`: é cookie de SESSÃO, e morre quando o
             # navegador fecha — que é mais ou menos quando este processo morre.
-            # `Secure` fica de fora de propósito: a origem é `http://127.0.0.1`,
-            # e um cookie `Secure` simplesmente não seria gravado ali.
+            # Sem `Secure` de propósito: a origem é `http://127.0.0.1`, e um cookie
+            # `Secure` não seria gravado ali.
             self.send_header(
                 "Set-Cookie",
                 "meow_token=%s; Path=/; SameSite=Strict; HttpOnly" % TOKEN,
@@ -7653,25 +6234,11 @@ class Manipulador(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         # Os cabeçalhos que só uma resposta precisa — hoje, o
-        # `Content-Disposition` dos dois botões de exportar. Eles entram AQUI,
-        # e não numa função de resposta paralela, porque as quatro guardas
-        # acima têm de valer para toda resposta deste servidor: a segunda
-        # rotina de resposta seria a segunda lista de cabeçalhos, e a primeira
-        # coisa que ela esqueceria é justamente uma dessas quatro.
+        # `Content-Disposition` dos dois botões de exportar.
         #
-        # TODA IMAGEM SAI COMO DOCUMENTO QUE NÃO RODA NADA — P78, 09/10/2026
-        #   Um SVG é um documento: aberto DIRETO pela URL (e não por `<img>`),
-        #   o `<script>` e o `onload=` dele rodam na origem do painel, com o
-        #   cookie do token, e chamam qualquer `/api/` como se fossem a página.
-        #   E os SVG daqui vêm de pack, que pode ser de terceiro (a ficha de
-        #   ícone serve o acervo de todo pack instalado pela `/previa`). A CSP
-        #   com `sandbox` põe a resposta numa origem opaca e sem script, e o
-        #   `default-src 'none'` corta toda busca de dentro dela; o
-        #   `style-src 'unsafe-inline'` é o `<style>` que desenho de verdade tem.
-        #   Num `<img>` nada disso muda o que se vê: imagem nunca rodou script.
-        #   Vale para TODA resposta `image/*` deste servidor, por estar aqui —
-        #   a mesma razão das quatro guardas acima: uma rota nova de imagem não
-        #   tem como esquecer.
+        # Um SVG é um documento: aberto DIRETO pela URL (e não por `<img>`), o
+        # `<script>` e o `onload=` dele rodam na origem do painel, com o cookie
+        # do token, e chamam qualquer `/api/` como se fossem a página.
         extras = dict(extras or {})
         if tipo.startswith("image/"):
             extras["Content-Security-Policy"] = CSP_DE_IMAGEM
@@ -7708,8 +6275,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 self.wfile.flush()
                 # O `select` é quem enxerga a janela fechar. Um socket cujo
                 # outro lado foi embora fica LEGÍVEL, e o `recv` devolve vazio:
-                # é o fim-de-arquivo do TCP. Enquanto ninguém fecha nada, ele
-                # dorme os quinze segundos e não gasta nada.
+                # é o fim-de-arquivo do TCP.
                 pronto, _, _ = select.select([self.connection], [], [], PULSO_BATIDA)
                 if pronto and not self.connection.recv(1):
                     break
@@ -7752,15 +6318,10 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/folha":
             # A rota mora AQUI, e não em `_api_get`: `/folha` não começa com
             # `/api/`, então lá ela nunca era alcançada — o roteador respondia
-            # "não existe aqui" antes. Pego ao abrir a primeira folha no teste.
+            # "não existe aqui" antes.
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
             # AS FOLHAS SÃO PARA ABRIR, e não para copiar caminho.
-            #   A auditoria mediu: "as 18 folhas são texto morto: nada é
-            #   clicável, nada abre, e o caminho absoluto que a frase manda usar
-            #   não é clicável". Servi-las daqui é o que torna a aba útil — e a
-            #   cerca é a mesma dos outros arquivos: só o que está dentro de
-            #   `docs/folhas/`, e só `.html`.
             nome_folha = os.path.basename(consulta.get("id", [""])[0] or "")
             alvo_folha = os.path.realpath(os.path.join(FOLHAS, nome_folha))
             if (not alvo_folha.startswith(os.path.realpath(FOLHAS) + os.sep)
@@ -7776,15 +6337,8 @@ class Manipulador(BaseHTTPRequestHandler):
             # `text/html` com CSP fechada: a folha é arquivo NOSSO, mas ela vem
             # de fora do fluxo normal da página e não tem por que rodar script.
             self.send_header("Content-Type", "text/html; charset=utf-8")
-            # A CSP PRECISA DEIXAR A FOLHA DESENHAR.
-            #   A primeira versão não declarava `script-src`, então o inline
-            #   caía no `default-src 'none'` e TRÊS das dezoito folhas abriam em
-            #   branco — as que desenham em canvas. Um revisor mediu e apontou.
-            #   O que fica de fora é o que importa: nada de rede (`connect-src`
-            #   ausente herda `none`), nada de iframe, nada de formulário. São
-            #   arquivos do próprio repositório, servidos só para 127.0.0.1 com
-            #   token de sessão — o risco que a CSP cobre aqui é a folha buscar
-            #   algo fora, e isso continua barrado.
+            # O que fica de fora é o que importa: nada de rede (`connect-src`
+            # ausente herda `none`), nada de iframe, nada de formulário.
             self.send_header(
                 "Content-Security-Policy",
                 "default-src 'none'; img-src data: blob:; "
@@ -7797,39 +6351,13 @@ class Manipulador(BaseHTTPRequestHandler):
 
 
 
-        # O GATO DO CABEÇALHO É O GATO DE VERDADE, LIDO DO ACERVO
-        #   A primeira versão punha um emoji de gato preto no HTML, e na tela dela saiu
-        #   meia-boca: é uma sequência ZWJ (gato + junção + quadrado preto) que a
-        #   fonte desta máquina não compõe, então aparecia um glifo genérico.
+        # Ter o gato dela ali é melhor de qualquer forma, e é de graça: o acervo
+        # `assets/gatos/` já é a configuração deste projeto, e a chave `LOGO`
+        # diz qual está no ar.
         #
-        #   Ter o gato dela ali é melhor de qualquer forma, e é de graça: o acervo
-        #   `assets/gatos/` já é a configuração deste projeto, e a chave `LOGO`
-        #   diz qual está no ar. Soltou um `.svg` novo lá e recarregou a página —
-        #   o cabeçalho segue, como todo o resto do MeowSystem segue.
-        #
-        #   `os.path.basename` sobre o nome vindo da CONF (não do pedido) é
-        #   paranoia barata: um `LOGO="../../etc/passwd"` no meow.conf dela não
-        #   passa daqui, e a extensão é cravada em `.svg`.
         # A MARCA DO APLICATIVO NÃO É UM GATO DELA — é o ícone do `.desktop`.
-        #   Pedido dela em 06/09/2026: "a logo do .desktop deve ser usada para
-        #   ser a logo oficial do banner do app ao invés da coquinha e do
-        #   mimir". A razão é de produto: o painel deixou de ser a interface do
-        #   meow.conf DELA e virou um programa que outra pessoa instala. A
-        #   Coquinha e a Mimir não saem do projeto — continuam sendo o que vem
-        #   de fábrica na aba "Logo do sistema", que é onde gato É o assunto.
         #
         # O `stroke` É TROCADO AQUI, e não no gerador.
-        #   Os quatro SVG de `icones/autorais/` do pack cravam o mauve de cada
-        #   sabor, porque é isso que o ícone do `.desktop` tem de ser: o
-        #   lançador não lê o meow.conf e não tem paleta para seguir. A PÁGINA
-        #   tem. Medido: com `ACCENT="peach"` o banner seria a única coisa roxa
-        #   numa tela pêssego. Então a rota lê o arquivo do sabor e reescreve o
-        #   valor do `stroke` com a MESMA cor que o `/paleta.css` calcula —
-        #   `_paleta_dados()`, e não uma segunda tabela de hex escrita à mão.
-        #
-        #   `MODO="claro"` força o Latte pelo mesmo motivo que já força em
-        #   `/paleta.css`: o que ela vê é o tema claro, e uma marca escura no
-        #   meio disso seria a única coisa fora do lugar.
         if caminho == "/logo.svg":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
@@ -7851,18 +6379,12 @@ class Manipulador(BaseHTTPRequestHandler):
             with open(arquivo, "rb") as fh:
                 return self._responder(fh.read(), tipo=TIPOS[".svg"])
 
-        # A CAPA E AS CAPTURAS DE UM PACK — 23/09/2026, sprint P15
-        #   Quem resolve o arquivo é `arte_da_vitrine`: o pedido nomeia o pack e
-        #   "capa" ou um número, nunca um caminho. 404 igual para "não existe" e
-        #   "não é seu", pela mesma razão da `/previa`: resposta diferente vira
-        #   sonda de existência de arquivo.
+        # 404 igual para "não existe" e "não é seu", pela mesma razão da
+        # `/previa`: resposta diferente vira sonda de existência de arquivo.
         #
-        #   A CSP É PARA O SVG DE TERCEIRO. Dentro de um `<img>` o navegador não
-        #   roda script de SVG; aberto direto, na aba, rodaria — e na MESMA
-        #   origem do painel, com o cookie do token. `default-src 'none'` corta
-        #   script, rede e iframe e deixa o desenho desenhar. A capa sai do
-        #   `logo()`, que recusa `<script>` (P25); esta linha é o cinto das
-        #   capturas em SVG, que não passam por conferência de conteúdo nenhuma.
+        # Dentro de um `<img>` o navegador não roda script de SVG; aberto
+        # direto, na aba, rodaria — e na MESMA origem do painel, com o cookie do
+        # token.
         if caminho == "/pack-vitrine":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
@@ -7871,38 +6393,17 @@ class Manipulador(BaseHTTPRequestHandler):
             if achado is None:
                 return self._recusar(404, "não achei")
             corpo, tipo_mime = achado
-            # [P78: a CSP desta rota passou a ser a de toda imagem, posta pelo
-            #   `_responder` — com o `sandbox` que faltava aqui.]
             return self._responder(corpo, tipo=tipo_mime)
 
         if caminho == "/previa" and consulta.get("tipo", [""])[0] == "arquivo":
-            # O TOKEN FALTAVA AQUI, e só aqui. [2026-09-18]
-            #   Este era o único dos dezoito caminhos servidos que não conferia o
-            #   token — os vizinhos /logo.svg (:4252), /gato.svg, /previa comum
-            #   (:4366) e /paleta.css todos abrem com estas duas linhas. Medido
-            #   numa auditoria de QA: um GET sem token nenhum devolvia HTTP 200 e
-            #   31.484 bytes de PNG.
-            #   A cerca de pasta e de extensão abaixo continuava valendo, então
-            #   não era leitura de /etc — mas era uma sonda de existência de
-            #   arquivo de imagem aberta a qualquer processo local e a qualquer
-            #   <img> de página aberta no navegador (requisição no-cors não manda
-            #   Origin, e o Host bate porque é 127.0.0.1:porta mesmo).
-            #   O comentário do topo deste arquivo afirma que "todo pedido carrega
-            #   um token de sessão". Agora carrega.
+            # O TOKEN FALTAVA AQUI, e só aqui.
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
-            # SERVIR UM ARQUIVO POR CAMINHO É UMA PORTA, e ela tem cerca.
-            #   Sem a cerca, um GET forjado leria QUALQUER arquivo do disco
-            #   (`/previa?tipo=arquivo&id=/etc/shadow`). Então: caminho real
-            #   (resolvido, sem `..`), dentro de uma das duas árvores de arte
-            #   que esta página tem motivo para mostrar, e só extensão de
-            #   imagem. Fora disso é 404 — nem uma mensagem diferente, para não
-            #   virar sonda de existência de arquivo.
-            # A cerca acompanha a busca do `_icone_na_tela`: são as pastas de
-            # ARTE da máquina, e nada mais. `/usr/share/pixmaps` entra porque é
-            # de lá que vem o ícone de vários aplicativos antigos.
+            # SERVIR UM ARQUIVO POR CAMINHO É UMA PORTA, e ela tem cerca. Sem a
+            # cerca, um GET forjado leria QUALQUER arquivo do disco
+            # (`/previa?tipo=arquivo&id=/etc/shadow`).
             permitidos = set()
-            for x in (os.path.join(RAIZ, "assets", "icones"),
+            for x in (os.path.join(RAIZ, "packs"),
                       os.path.expanduser("~/.local/share/icons"),
                       os.path.expanduser("~/.local/share/flatpak/exports/share/icons"),
                       "/usr/share/icons",
@@ -7913,59 +6414,26 @@ class Manipulador(BaseHTTPRequestHandler):
                 if os.path.isdir(x):
                     permitidos.add(os.path.normpath(x))
                     permitidos.add(os.path.realpath(x))
-            # O CAMINHO PEDIDO E O CAMINHO RESOLVIDO SÃO DUAS PERGUNTAS, e até
-            # 09/09/2026 só a segunda era feita — o que fazia a oficina mostrar
-            # um ícone quebrado onde deveria estar o ORIGINAL, que é a metade da
-            # tela que responde à queixa dela de "não é tão bonito quanto o
-            # original". Medido: o flatpak de usuária exporta a arte como link
-            # simbólico, e
-            #   ~/.local/share/flatpak/exports/share/icons/hicolor/.../X.svg
-            # resolve para
-            #   ~/.local/share/flatpak/app/X/x86_64/stable/<hash>/export/...
-            # que está FORA de toda raiz permitida. Metade dos aplicativos desta
-            # máquina cai nesse caso.
+            # Metade dos aplicativos desta máquina cai nesse caso.
             #
-            # A lista NÃO cresce: o que passa a valer é o caminho como foi
-            # PEDIDO, depois de `normpath` — e é o `normpath` que mata o
-            # `..`, tanto quanto o `realpath` matava (`/usr/share/icons/../../
-            # etc/shadow` vira `/etc/shadow` e nenhuma raiz o cobre). O que se
-            # aceita a mais é um link que o próprio sistema pôs DENTRO de uma
-            # raiz permitida; plantar um lá exige já ser dono de `/usr/share` ou
-            # da pasta de flatpak dela, e a peneira de extensão continua de pé.
+            # O que se aceita a mais é um link que o próprio sistema pôs DENTRO
+            # de uma raiz permitida; plantar um lá exige já ser dono de
+            # `/usr/share` ou da pasta de flatpak dela, e a peneira de extensão
+            # continua de pé.
+            #
+            # A lista de raízes não cresce: o `normpath` do caminho pedido mata o `..`
+            # (`/usr/share/icons/../../etc/shadow` vira `/etc/shadow`, que raiz nenhuma cobre).
             pedido = os.path.normpath(consulta.get("id", [""])[0] or "")
             alvo_arq = os.path.realpath(pedido)
             ok_pasta = any(pedido.startswith(p + os.sep) or alvo_arq.startswith(p + os.sep)
                            for p in permitidos) or pedido in _ICONES_DECLARADOS
-            # A EXTENSÃO É CONFERIDA NOS DOIS CAMINHOS, E A MEDIÇÃO EXIGIU ISSO
-            #   Aceitar o caminho PEDIDO curou o «Original» da oficina, que
-            #   aparecia quebrado porque a arte de metade dos aplicativos é um
-            #   link do flatpak para fora das raízes. Só que, conferida no
-            #   pedido, a peneira de extensão passou a olhar o NOME e não o
-            #   arquivo: um link `.svg` plantado dentro de uma raiz permitida
-            #   servia qualquer coisa que a usuária lê. Medido em 09/09/2026 com
-            #   um link em `~/.local/share/icons` apontando para um `.txt` fora
-            #   de toda raiz: 200, e o conteúdo na resposta.
-            #
-            #   Não é escalada de privilégio — plantar o link exige escrita numa
-            #   das raízes, e quem a tem já lê os arquivos dela. Mas UMA das
-            #   raízes é `assets/icones`, do repositório, que é PÚBLICO: um link
-            #   simbólico numa contribuição viraria leitura de arquivo na máquina
-            #   de quem rodasse o painel. É estreito e é evitável.
-            #
-            #   O conserto não desfaz a cura: o link do flatpak preserva a
-            #   extensão do outro lado (medido nos 3 primeiros: `.svg` → `.svg`),
-            #   então exigir que as duas batam deixa passar o caso real e barra o
-            #   link que troca de tipo. `isfile` recusa link quebrado, diretório
-            #   e dispositivo — a rota lê o arquivo inteiro na memória.
             ext_arq = os.path.splitext(pedido)[1].lower()
             ext_alvo = os.path.splitext(alvo_arq)[1].lower()
             if ext_alvo != ext_arq or not os.path.isfile(alvo_arq):
                 return self._recusar(404, "não achei")
-            # O `.jpg` entrou em 02/09/2026 com a seção "Jogos da Steam": a arte
-            # do `appcache/librarycache` é JPEG, e sem ele a grade de jogos
-            # abriria com 22 quadrados vazios. A cerca NÃO muda — `~/.steam` já
-            # estava na lista de pastas permitidas; o que muda é aceitar o
-            # formato em que a Steam guarda a capa.
+            # O `.jpg` entrou com a seção "Jogos da Steam": a arte do
+            # `appcache/librarycache` é JPEG, e sem ele a grade de jogos abriria
+            # com 22 quadrados vazios.
             if not ok_pasta or ext_arq not in (".svg", ".png", ".jpg", ".jpeg"):
                 return self._recusar(404, "não achei")
             try:
@@ -7975,23 +6443,13 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._recusar(404, "não achei")
             tipo_mime = {".svg": "image/svg+xml", ".png": "image/png",
                          ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext_arq]
-            # O ARQUIVO DIZ O QUE ELE É, E NÃO SÓ O NOME — QA de uso real da
-            #   P80, 10/10/2026. O `feitos-a-mao/obsidian.png` do pack Dracula é
-            #   um SVG com nome de PNG (veio assim do Dracula_OS-Theme, ver o
-            #   PROCEDENCIA.md), e a ficha de ícone o mostrava quebrado: o
-            #   navegador recebia `image/png` e não achava PNG nenhum. O tema
-            #   de ícones não tropeça nisso (o carregador do GTK lê o começo do
-            #   arquivo), então a página passa a fazer o mesmo: um `.png` ou
-            #   `.jpg` que começa como XML de SVG sai como SVG. A cerca acima
-            #   não muda (extensão de imagem nas duas pontas, pasta de arte), e
-            #   o SVG sai com a CSP de imagem do `_responder`, que não roda nada.
+            # O `feitos-a-mao/obsidian.png` do pack Dracula é um SVG com nome de
+            # PNG (veio assim do Dracula_OS-Theme, ver o PROCEDENCIA.md), e a
+            # ficha de ícone o mostrava quebrado: o navegador recebia
+            # `image/png` e não achava PNG nenhum.
             if ext_arq != ".svg" and comeca_como_svg(dados_arq):
                 tipo_mime = "image/svg+xml"
-            # Pela porta única em vez de cinco send_header à mão. [2026-09-18]
-            #   O `_responder` já põe Cache-Control: no-store, X-Content-Type-
-            #   Options e X-Frame-Options; esta resposta artesanal punha só o
-            #   primeiro. Uma segunda rotina de resposta é uma segunda lista de
-            #   cabeçalhos para manter — e esta era a prova disso.
+            # Pela porta única em vez de cinco send_header à mão.
             return self._responder(dados_arq, tipo=tipo_mime)
 
         if caminho == "/previa":
@@ -8011,13 +6469,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._recusar(403, "token de sessão ausente ou errado")
             valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
             flavor = _flavor_do_conf(valores)
-            # MODO="claro" veste a página de Latte mesmo com FLAVOR escuro: o que
-            # ela vê na tela é o tema CLARO, e um painel escuro no meio disso
-            # seria a única janela fora do lugar.
-            #   O CLARO É O DO PACK NO AR — 23/09/2026, P10. Era "latte" cravado:
-            #   com o Dracula no ar e o modo claro, o painel pedia um flavor que
-            #   a paleta dele não tem e saía sem cor. O primeiro claro que o
-            #   pack declara é o que o COSMIC veste nesse modo.
+            # O primeiro claro que o pack declara é o que o COSMIC veste nesse
+            # modo.
             flavor = _flavor_da_pagina(flavor, valores)
             return self._responder(paleta_css(flavor, _acento_da_pagina(flavor, valores)),
                                    tipo="text/css; charset=utf-8")
@@ -8035,26 +6488,18 @@ class Manipulador(BaseHTTPRequestHandler):
                     return self._responder(fh.read(), tipo=TIPOS[raiz_ext])
         return self._recusar(404, "não existe aqui")
 
-    # ========================================================================
-    # ACRESCENTAR AO ACERVO DO REPOSITÓRIO — 01/09/2026
-    # ========================================================================
-    # Pedido dela, primeiro para os gatos e logo depois generalizado com as
-    # palavras "é esse tipo de solução pra toda aba viu?", e antes disso:
-    # "ela tem que integrar e atuar diretamente no repo local do user".
-    #
     # A página deixa de ser só um editor de texto do `meow.conf` e passa a
     # ALIMENTAR o repositório: o desenho novo, o papel de parede novo, o ícone
     # novo entram pela página e caem na pasta que já é a configuração deste
     # projeto ("soltou o arquivo, entrou").
     #
-    # O DESTINO NÃO É ESCOLHIDO PELO NAVEGADOR. A página manda um `tipo`
-    # (`gato`, `parede`, `icone`) e o servidor resolve a pasta — se o caminho
-    # viesse no corpo, um POST forjado escreveria em qualquer lugar do disco.
-    # O nome é saneado até virar `[A-Za-z0-9._-]`, e `..` some junto.
+    # O destino não é escolhido pelo navegador: a página manda um `tipo` e o
+    # servidor resolve a pasta (caminho no corpo deixaria um POST forjado escrever
+    # em qualquer lugar). O nome é saneado até `[A-Za-z0-9._-]`, e `..` some junto.
     #
-    # SVG PASSA PELO `normalizar_svg.py` ANTES DE ENCOSTAR NO ACERVO. É o mesmo
-    # conserto que o `logo.sh` faz: um desenho salvo no Boxy com
-    # `transform-origin` entra e não aparece na tela, e o defeito é mudo.
+    # SVG passa pelo `normalizar_svg.py` antes do acervo. É o mesmo conserto que o
+    # `logo.sh` faz: um desenho salvo no Boxy com `transform-origin` entra e não
+    # aparece na tela, e o defeito é mudo.
     ACERVOS = {
         "gato": {
             "pasta": ("assets", "gatos"),
@@ -8069,22 +6514,16 @@ class Manipulador(BaseHTTPRequestHandler):
             "depois": "o carrossel passa a sortear a imagem nova",
         },
         "icone": {
-            "pasta": ("assets", "icones", "overrides"),
+            "casa": "pasta_de_enviados",
             "extensoes": (".svg",),
             "normaliza": True,
-            "depois": "vale depois de \"Reconstruir o tema de ícones\"",
+            "depois": "o desenho aparece na ficha de ícone, na pasta «enviados»",
         },
-        # OS TRÊS QUE NÃO MORAM NO REPOSITÓRIO — 06/09/2026
-        #   Os três acima são ACERVO: o arquivo fica em `assets/`, versionado,
-        #   e é dali que o instalador o leva para a máquina. Estes três não são
-        #   arte do projeto — são pacotes de terceiros que a pessoa quer ter
-        #   instalados. Guardá-los em `assets/` engordaria o repositório com
-        #   coisa que não é nossa e que tem licença própria.
+        # Os três acima são ACERVO: o arquivo fica em `assets/`, versionado, e é
+        # dali que o instalador o leva para a máquina.
         #
-        #   Então o arquivo enviado vai para um temporário e quem instala é o
-        #   COMANDO DA CLI, o mesmo que ela rodaria no terminal. A página
-        #   continua sem mover nem apagar nada por conta própria, e a capacidade
-        #   não nasce presa ao navegador.
+        # A página continua sem mover nem apagar nada por conta própria, e a
+        # capacidade não nasce presa ao navegador.
         "cursor": {
             "comando": ("cursor", "adicionar"),
             "extensoes": (".zip",),
@@ -8117,10 +6556,8 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "conteúdo não é base64"}, 400)
         if not dados:
             return self._json({"erro": "arquivo vazio"}, 400)
-        # O TETO AQUI É MAIOR QUE O DOS OUTROS ACERVOS, e por medição: um pacote
-        # de Nerd Font passa de 12 MB com folga, e um tema de ícones completo
-        # também. O teto do `_api_acervo` foi escolhido para UM desenho; um
-        # pacote inteiro é outra ordem de grandeza.
+        # O teto do `_api_acervo` foi escolhido para UM desenho; um pacote
+        # inteiro é outra ordem de grandeza.
         if len(dados) > 64 << 20:
             return self._json({"erro": "arquivo maior que 64 MB"}, 413)
 
@@ -8138,18 +6575,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": "não consegui rodar: %s" % e}, 500)
 
         # A saída do comando vai para uma torrada, que é tela: a casa sai como
-        # `~`, pela mesma porta da gaveta — ver `texto_na_tela` (P52).
-        # E O CLONE SAI TAMBÉM, PORQUE A TORRADA NÃO É A GAVETA — 24/09/2026,
-        # revisão da P57. Na gaveta vale só a casa (um clone em `/opt` não diz
-        # o nome de ninguém); fora dela, nem a casa nem o clone, que é a régua
-        # do `tests/app-completo.py`. A última linha do `meow fontes adicionar`
-        # é «o acervo é <clone>/assets/fontes/locais», e o vazamento é antigo:
-        # com o esquema lento a torrada (2,6 s de vida) morria antes da conta do
-        # fim da aba, e com o da P57 o gesto caiu de 4,8–5,4 s para 3,3–3,5 s e
-        # ela ainda estava na tela — o gate reprovou a aba Terminal. O que mora
-        # no clone vira `./…`, como o `comando_na_tela` escreve um script dele;
-        # e vira ANTES da casa, porque o clone costuma morar nela, e trocada a
-        # casa primeiro ele sobraria como `~/…`.
+        # `~`, pela mesma porta da gaveta — ver `texto_na_tela`.
         bruta = ((r.stdout or "") + (r.stderr or "")).strip()
         bruta = re.sub(r"(?<![\w/.~-])" + re.escape(RAIZ) + r"(?![\w.-])", ".", bruta)
         saida = texto_na_tela(bruta)
@@ -8184,8 +6610,8 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if "comando" in conf:
             return self._acervo_por_comando(conf, nome, corpo)
-        # A ARMADILHA DO NOME, que o `logo.sh` documenta desde 05/08: o applet do
-        # painel achata em uma cor só qualquer arquivo cujo caminho contenha
+        # A ARMADILHA DO NOME, que o `logo.sh` documenta: o applet do painel
+        # achata em uma cor só qualquer arquivo cujo caminho contenha
         # `-symbolic.svg`. Um gato com esse sufixo viraria silhueta.
         if nome.endswith("-symbolic.svg"):
             return self._json({"erro": "nome terminado em -symbolic.svg vira silhueta"}, 400)
@@ -8201,7 +6627,13 @@ class Manipulador(BaseHTTPRequestHandler):
         if ext == ".svg" and b"<svg" not in dados[:4096].lower():
             return self._json({"erro": "isso não parece um SVG"}, 400)
 
-        destino_dir = os.path.join(RAIZ, *conf["pasta"])
+        if "casa" in conf:
+            mod = modulo_pack()
+            if not mod:
+                return self._json({"erro": "não achei o scripts/pack.py"}, 500)
+            destino_dir = getattr(mod, conf["casa"])()
+        else:
+            destino_dir = os.path.join(RAIZ, *conf["pasta"])
         try:
             os.makedirs(destino_dir, exist_ok=True)
         except OSError as e:
@@ -8234,18 +6666,12 @@ class Manipulador(BaseHTTPRequestHandler):
                 except Exception:
                     normalizado = ""
 
-        # DE DIA OU DE NOITE? A RESPOSTA VAI NA HORA, E NÃO NA PRÓXIMA PASSAGEM.
-        #   Pedido dela em 06/09/2026: *"como adicionamos os wallpapers pelo html
-        #   e eles vão pra pasta correta"*. Iam — mas em silêncio e só depois:
-        #   quem separa `ativos-dia/` de `ativos-noite/` é o `wallpaper.sh`, pela
-        #   luminância, na próxima vez que o carrossel reaplica. Entre soltar o
-        #   arquivo e descobrir de que lado ele caiu podiam passar cinco minutos,
-        #   e nada na tela dizia qual lado seria.
+        # Iam — mas em silêncio e só depois: quem separa `ativos-dia/` de
+        # `ativos-noite/` é o `wallpaper.sh`, pela luminância, na próxima vez
+        # que o carrossel reaplica.
         #
-        #   A medida aqui é a MESMA do `wallpaper.sh` — `-colorspace Gray` antes
-        #   do `%[fx:mean]`, que é Rec.709 sobre a imagem inteira. O atalho
-        #   `%[fx:luminance]` mede o pixel (0,0), e o cabeçalho daquele arquivo
-        #   registra a medição em que os dois discordaram em 0,16.
+        # A medida aqui é a MESMA do `wallpaper.sh` — `-colorspace Gray` antes
+        # do `%[fx:mean]`, que é Rec.709 sobre a imagem inteira.
         grupo = self._grupo_de_luz(destino) if tipo == "parede" else None
 
         return self._json({
@@ -8285,30 +6711,16 @@ class Manipulador(BaseHTTPRequestHandler):
         return {"lado": "dia" if luz >= corte else "noite",
                 "luz": round(luz, 3), "corte": corte}
 
-    # ========================================================================
-    # OS APLICATIVOS, E O ÍCONE DE CADA UM — 01/09/2026
-    # ========================================================================
-    # Ela, olhando a aba de ícones: "naquela página de icones, cara, um dos html
-    # antigas permitia escolher o icon pra substituir tal
-    # programa. Aqui não temos isso. Ali tá travadasso. Todo e qualquer programa
-    # com .desktop tinha que tá ali." E o princípio, logo depois: "permitir
-    # facilidade do user. pra não depender de ajuda sempre."
+    # Aqui não temos isso.
     #
-    # É o pedido mais importante desta página inteira. Trocar o ícone de um
-    # aplicativo hoje exige editar `assets/icones/apps-arcticons.map` à mão,
-    # saber que o glifo tem de existir em `assets/icones/arcticons-apps/`, e
-    # rodar o construtor. Nada disso é conhecimento que ela deveria precisar ter
-    # para dizer "quero outro desenho no Telegram".
-    #
-    # O QUE ESTA ROTA DEVOLVE: todo `.desktop` da máquina, com o ícone que está
-    # NA TELA agora (o do tema instalado, não o do repositório) e a linha do
-    # mapa quando existe. A escolha dela é gravada no MAPA DO REPOSITÓRIO — é o
-    # que faz a decisão sobreviver a uma reinstalação, que é a regra desta casa:
-    # a imagem não vai para o git, a receita vai.
+    # Trocar o ícone de um aplicativo hoje exige editar
+    # `packs/meowsystem/icones/apps-arcticons.map` à mão, saber que o glifo tem
+    # de existir em `packs/meowsystem/icones/apps/arcticons/`, e rodar o
+    # construtor.
     DIRS_DESKTOP = (
         ("/usr/share/applications", "sistema"),
         ("/usr/local/share/applications", "local"),
-        ("~/.local/share/applications", "usuária"),
+        ("~/.local/share/applications", "pessoal"),
         ("/var/lib/flatpak/exports/share/applications", "flatpak"),
         ("~/.local/share/flatpak/exports/share/applications", "flatpak"),
         ("/var/lib/snapd/desktop/applications", "snap"),
@@ -8361,7 +6773,7 @@ class Manipulador(BaseHTTPRequestHandler):
                             elif linha.startswith("Categories="):
                                 dados["categorias"] = linha[11:].strip()
                             elif linha.startswith("MimeType="):
-                                # Para o `_e_jogo` saber quem é loja (P77).
+                                # Para o `_e_jogo` saber quem é loja.
                                 dados["mime"] = linha[9:].strip()
                             elif linha.startswith(("NoDisplay=", "Hidden=")):
                                 if linha.split("=", 1)[1].strip().lower() == "true":
@@ -8395,18 +6807,19 @@ class Manipulador(BaseHTTPRequestHandler):
         um desenho em `retoques/`, e é essa que "Abrir o que já está salvo"
         encontra. As outras 25 têm origem chapada e podem ser revetorizadas."""
         fora = {}
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                for linha in fh:
-                    corte = linha.strip()
-                    if not corte or corte.startswith("#"):
-                        continue
-                    campos = [c.strip() for c in corte.split(":")]
-                    if len(campos) >= 3:
-                        fora[campos[0]] = {"cor": campos[2], "mao": campos[1] == "mao"}
-        except OSError:
-            pass
+        for caminho, meu in ((os.path.join(ICONES_DO_MOTOR, "apps-convertidos.map"), False),
+                             (_mapa_de_convertidos_do_usuario(), True)):
+            try:
+                with open(caminho, "r", encoding="utf-8") as fh:
+                    for linha in fh:
+                        corte = linha.strip()
+                        if not corte or corte.startswith("#"):
+                            continue
+                        campos = [c.strip() for c in corte.split(":")]
+                        if len(campos) >= 3:
+                            fora[campos[0]] = {"cor": campos[2], "mao": campos[1] == "mao", "meu": meu}
+            except OSError:
+                pass
         return fora
 
     def _mapa_dracula(self):
@@ -8421,50 +6834,15 @@ class Manipulador(BaseHTTPRequestHandler):
           está NA TELA, não o que está num mapa.
         """
         fora = set()
-        # O mapa mudou de lugar quando o Dracula virou theme pack (docs/PACKS.md).
+        # O mapa mudou de lugar quando o Dracula virou theme pack
+        # (docs/PACKS.md).
         #
-        # ADOÇÃO POR CONVENÇÃO, a mesma de meow_pack_dir() em lib/comum.sh: sem a
-        # chave PACK, um FLAVOR que nomeie um pack existente adota esse pack. O
-        # meow.conf desta casa tem FLAVOR="dracula" e nenhuma linha PACK — foi
-        # escrito antes de o formato existir — e sem esta regra o painel pararia
-        # de etiquetar os ícones do pack, sem erro nenhum na tela.
+        # ADOÇÃO POR CONVENÇÃO, a mesma de meow_pack_dir() em lib/comum.sh: sem
+        # a chave PACK, um FLAVOR que nomeie um pack existente adota esse pack.
         #
-        # O VALOR VEM DE `valores_efetivos`, NÃO DO AMBIENTE. Medido em
-        # 17/09/2026: o processo do servidor NÃO tem FLAVOR nem PACK no
-        # `environ` — quem o sobe é o `app/run.sh`, que não exporta o conf. Ler
-        # `os.environ` aqui devolvia string vazia e o pack sumia da etiqueta,
-        # calado. `valores_efetivos` roda o mesmo `set -a; . conf` que o
-        # `carregar_conf` do bin/meow usa, e é a única fonte de verdade sobre o
-        # valor de uma chave.
-        #
-        # [25/09/2026, P66: a conta é o `_pack_adotado`, a `adocao` do pack.py —
-        #   a mesma do `icones_apps_dracula.sh` e do `_o_que_fica`. Aqui ela era
-        #   `PACK or FLAVOR`, e o FLAVOR cru só é nome de pack quando o flavor se
-        #   chama como ele. Medido numa casa de brinquedo com `PACK=""` e
-        #   `FLAVOR="alucard"` (o claro do Dracula): a adoção dava o Dracula, o
-        #   script via os 203 nomes do mapa dele, e esta função, com
-        #   `acervo(ref='alucard')` devolvendo None, dava 0 — a grade sem a
-        #   etiqueta do pack que está na tela.]
+        # Ler `os.environ` aqui devolvia string vazia e o pack sumia da
+        # etiqueta, calado.
         _pack = _pack_adotado()
-        # A RESOLUÇÃO SAIU DAQUI EM 21/09/2026, E ELA ERA A PIOR DAS CINCO
-        #   Estas linhas montavam `RAIZ/packs/<pack>/icones/apps.map` à mão. Era
-        #   a QUINTA cópia da lista de raízes e a única que conhecia UMA só: um
-        #   pack instalado em `~/.local/share/meowsystem/packs` ou apontado por
-        #   `$MEOW_PACKS` não existia para esta página, sem erro nenhum na tela.
-        #   Quem resolve agora é o `acervo` do scripts/pack.py, que sobe pack ->
-        #   herança -> motor e enxerga as três raízes (ver `modulo_pack`).
-        #
-        #   A QUEDA PARA `assets/icones/apps-dracula.map` CONTINUA — E O ARQUIVO
-        #   NÃO EXISTE MAIS. Conferido em 22/09/2026: ele nasceu em 75a7b25 e
-        #   saiu da árvore em e0243c4 (18/09), quando o acervo do Dracula virou
-        #   `packs/dracula/icones/apps.map`. Ela fica porque é o MESMO par que a
-        #   linha `MAPA=` do `scripts/icones_apps_dracula.sh` passa ao
-        #   `meow_pack_arquivo`, e duas resoluções da mesma coisa com quedas
-        #   diferentes é como elas passam a discordar — mas ela é um caminho
-        #   morto, não um contrato vivo: hoje não há ninguém "que ainda não
-        #   migrou". A regra da casa é apontar o código morto, não apagá-lo;
-        #   quando o `packs/catppuccin/` nascer (P13), o `motor` deixa de ter
-        #   razão de ser e sai junto.
         caminho = ""
         mod = modulo_pack()
         if mod:
@@ -8486,29 +6864,13 @@ class Manipulador(BaseHTTPRequestHandler):
             pass
         return fora
 
-    # ========================================================================
-    # O ACERVO DO PACK É UMA ORIGEM NA OFICINA — 23/09/2026, sprint P26
-    # ========================================================================
-    # Ele, 21/09: *"você viu que os ícones do Dracula, todos os SVGs meus, não
-    # aparecem lá, né?"* Os 18 desenhos de `packs/dracula/icones/apps/` estavam
-    # instalados — 18 de 18 no tema — e nenhum aparecia na oficina. Aberta a do
-    # Warehouse, que tem desenho feito à mão no pack, a tela oferecia converter
-    # e gerar em traço e dizia "já tem desenho convertido do projeto". Ela não
-    # sabia que o pack existia: o `_mapa_dracula` acima só serve à ETIQUETA da
-    # grade, e só para o pack no ar.
+    # Aberta a do Warehouse, que tem desenho feito à mão no pack, a tela
+    # oferecia converter e gerar em traço e dizia "já tem desenho convertido do
+    # projeto".
     #
-    # POR QUE TODO PACK DO DISCO, E NÃO SÓ O ATIVO
-    #   A oficina é onde se escolhe entre origens, e um desenho do Dracula é uma
-    #   origem para o Warehouse mesmo numa máquina vestida de Catppuccin — é a
-    #   pergunta "existe um desenho feito para este programa?". O cartão diz de
-    #   que pack ele é e se esse pack está no ar; a tela decide o que dizer.
-    #
-    # O QUE CASA É O QUE O PACK DECLARA, EM DUAS FORMAS
-    #   o nome do arquivo em `icones.apps.desenhos` (o `Warehouse` veste
-    #   `io.github.flattool.Warehouse.svg`), e cada linha do `icones.apps.mapa`,
-    #   resolvida pelo `resolver_alvo` do pack.py — é o que põe o `guvcview.svg`
-    #   na Câmera, e o `motor:` no acervo do motor sem cópia. O índice é montado
-    #   uma vez por pedido: a grade inteira são ~60 perguntas a ele.
+    # A oficina é onde se escolhe entre origens, e um desenho do Dracula é uma
+    # origem para o Warehouse mesmo numa máquina vestida de Catppuccin — é a
+    # pergunta "existe um desenho feito para este programa?".
     def _desenhos_de_pack(self):
         """nome-de-ícone -> [{pack, nome_pack, arquivo, ativo}] de todo pack no disco."""
         mod = modulo_pack()
@@ -8652,10 +7014,9 @@ class Manipulador(BaseHTTPRequestHandler):
           A mesma regra, escrita do mesmo jeito, e só ela: repinta o que já
           está aqui, nunca acrescenta um nome que este mapa não conhece."""
         fora = {}
-        # O DE QUEM USA É LIDO DEPOIS, E VENCE — P73 (I3): é a ordem do
-        # `_ler_mapa` do `icones_apps_arcticons.sh`. O `meu` diz que a linha é
-        # escolha do painel, e é o que acende o «Desfazer a escolha no traço».
-        for caminho, meu in ((os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map"), False),
+        # O `meu` diz que a linha é escolha do painel, e é o que acende o
+        # «Desfazer a escolha no traço».
+        for caminho, meu in ((os.path.join(ICONES_DO_MOTOR, "apps-arcticons.map"), False),
                              (_mapa_de_traco_do_usuario(), True)):
             try:
                 with open(caminho, "r", encoding="utf-8") as fh:
@@ -8665,6 +7026,11 @@ class Manipulador(BaseHTTPRequestHandler):
                             continue
                         campos = [c.strip() for c in corte.split(":")]
                         if len(campos) >= 3:
+                            # O caminho de antes das três pastas vale pelo de
+                            # hoje.
+                            mod = modulo_pack() if "/" in campos[1] else None
+                            if mod and hasattr(mod, "caminho_de_hoje"):
+                                campos[1] = mod.caminho_de_hoje(campos[1])
                             fora[campos[0]] = {"glifo": campos[1], "cor": campos[2],
                                                "alias": len(campos) > 3 and campos[3] == "alias",
                                                "meu": meu}
@@ -8672,7 +7038,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 pass
 
         if _valor_vivo("ICONES_COR_MARCA") == "sim":
-            marca = os.path.join(RAIZ, "assets", "icones", "apps-marca.map")
+            marca = os.path.join(ICONES_DO_MOTOR, "apps-marca.map")
             try:
                 with open(marca, "r", encoding="utf-8") as fh:
                     for linha in fh:
@@ -8687,11 +7053,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 pass
         return fora
 
-    # A ORDEM DE BUSCA É A MESMA QUE O LANÇADOR USA, e ela tem de ir até o fim:
-    # a primeira versão só olhava o NOSSO tema, então os 24 jogos da Steam e
-    # todo aplicativo que o MeowSystem ainda não veste apareciam como quadrado
-    # vazio — como se não tivessem ícone, quando têm. Um quadrado vazio numa
-    # grade de 65 diz "está quebrado", e não "este ainda não é nosso".
+    # Um quadrado vazio numa grade de 65 diz "está quebrado", e não "este ainda
+    # não é nosso".
     TEMAS_DE_ICONE = ("", "hicolor", "Papirus-Dark", "Papirus", "Adwaita")
     TAMANHOS = ("scalable", "256x256", "128x128", "64x64", "48x48", "32x32", "24x24", "22x22")
 
@@ -8731,41 +7094,16 @@ class Manipulador(BaseHTTPRequestHandler):
         return self._json(self._dados_apps(consulta))
 
     # A LISTA E A RESPOSTA SÃO COISAS DIFERENTES, desde que a página inteira
-    # pode ser exportada num arquivo só. Quem monta a resposta HTTP é o método
-    # acima; este devolve o DADO, e é ele que o `exportar_pagina` congela.
-    # UM ÍCONE DE JOGO NÃO MORA NA ABA DE ÍCONES — 06/09/2026
-    #   Pedido dela: "na parte de ícones, os ícones que forem de jogos, coloca
-    #   pra serem selecionados na aba Lançadores e Jogos".
+    # pode ser exportada num arquivo só.
     #
-    #   A razão é de uso, não de arrumação: a aba de ícones existe para vestir
-    #   os PROGRAMAS com o traço do projeto, e um jogo da Steam não se veste —
-    #   ele tem capa própria, vem e vai com a licença, e o que ela quer decidir
-    #   sobre ele é outra coisa (aparece no lançador? ocupa disco à toa?). Eram
-    #   duas perguntas diferentes na mesma página, e a de jogo era a que não
-    #   tinha resposta ali.
+    # Eram duas perguntas diferentes na mesma página, e a de jogo era a que não
+    # tinha resposta ali.
     #
-    #   O CRITÉRIO É O DO PRÓPRIO ARQUIVO, e não uma lista nossa. `Categories`
-    #   com `Game` é o padrão freedesktop que os instaladores já escrevem, e o
-    #   `steam_app_<id>` cobre o que a Steam gera sem categoria. Uma lista de
-    #   nomes escrita à mão aqui seria a segunda verdade, e envelheceria a cada
-    #   jogo novo.
-    #   O padrão MEDIDO nesta máquina é `meow-steam-<appid>` — é o nome que o
-    #   `jogos_steam.sh` escreve. `steam_app_<id>` é o que a própria Steam gera
-    #   quando cria o atalho, e os dois convivem. Ambos entram; o `Categories`
-    #   pega o resto (24 dos 64 `.desktop` visíveis, medido em 06/09/2026).
+    # O CRITÉRIO É O DO PRÓPRIO ARQUIVO, e não uma lista nossa.
     _RE_STEAM = re.compile(r"^(meow-steam-|steam_app_)\d+$")
 
-    # A LOJA NÃO É JOGO — 10/10/2026, P77 (achado 19 do uso real, L1). A aba
-    #   dizia «Nenhum jogo instalado na Steam» e, logo abaixo, «2 jogos têm
-    #   atalho», com a própria Steam na grade como um dos dois. A Steam se
-    #   declara `Categories=Network;FileTransfer;Game;` — é programa da
-    #   categoria jogo, e não um jogo. O critério continua sendo o do PRÓPRIO
-    #   ARQUIVO, sem lista nossa (o parágrafo de cima): quem abre outros jogos
-    #   diz isso no `.desktop` de dois jeitos que jogo nenhum diz — registra um
-    #   esquema de endereço (`MimeType=x-scheme-handler/steam`, `heroic`,
-    #   `lutris`: é por ele que a loja recebe o «jogar» do navegador) ou se
-    #   declara `Emulator`. Esses voltam à aba Ícones como programa, que é o
-    #   que são — e a conta das duas abas passa a falar da mesma coisa.
+    # dizia «Nenhum jogo instalado na Steam» e, logo abaixo, «2 jogos têm
+    # atalho», com a própria Steam na grade como um dos dois.
     def _e_jogo(self, d):
         if self._RE_STEAM.match(d.get("id", "")):
             return True
@@ -8794,11 +7132,11 @@ class Manipulador(BaseHTTPRequestHandler):
         # Os desenhos de TODO pack, por nome de ícone — é o que deixa a trava
         # dizer quem veste o aplicativo e que o pack é uma das alternativas.
         indice_pack = self._desenhos_de_pack()
-        # Os nomes que outro dono do `scalable/apps` decide (P60), lidos uma
-        # vez para a grade inteira — ver `_donos_do_scalable`.
+        # Os nomes que outro dono do `scalable/apps` decide, lidos uma vez
+        # para a grade inteira — ver `_donos_do_scalable`.
         donos_scalable = self._donos_do_scalable()
-        # As escolhas de desenho do painel (P73, I3), por nome de ícone: o selo
-        # «escolhido por você» da grade (achado 24 de 09/10).
+        # As escolhas de desenho do painel, por nome de ícone: o selo
+        # «escolhido por você» da grade.
         mod = modulo_pack()
         escolhidos = ({n for _num, n, _a in mod.escolhas_do_painel()}
                       if mod and hasattr(mod, "escolhas_do_painel") else set())
@@ -8807,9 +7145,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 continue
             if self._e_jogo(d):
                 # Ele não some do painel: some DAQUI, e reaparece inteiro na aba
-                # "Lançadores e jogos". A contagem viaja junto para que a tela
-                # possa dizer para onde ele foi — sumir sem explicação é pior do
-                # que ficar no lugar errado.
+                # "Lançadores e jogos".
                 jogos += 1
                 continue
             if busca and busca not in d["nome"].lower() and busca not in d["id"].lower():
@@ -8826,59 +7162,36 @@ class Manipulador(BaseHTTPRequestHandler):
                 "id": d["id"], "nome": d["nome"], "icone": d["icone"],
                 "origem": d["origem"], "nosso": nosso,
                 "url": ("/previa?tipo=arquivo&id=" + quote(atual, safe="")) if atual else "",
-                # VENCE OS OUTROS DOIS NA ETIQUETA PORQUE VENCE NA TELA.
-                #   `scalable/apps` ganha do `48x48/apps` no resolvedor; dizer a
-                #   cor do Arcticons debaixo de um desenho do Dracula seria a
-                #   página descrevendo um arquivo que ninguém está vendo.
+                # `scalable/apps` ganha do `48x48/apps` no resolvedor; dizer a
+                # cor do Arcticons debaixo de um desenho do Dracula seria a
+                # página descrevendo um arquivo que ninguém está vendo.
                 "dracula": bool(
                     atual and os.path.dirname(atual) == dir_pack
                     and (d["icone"] or d["id"]) in pack_dracula),
                 "mapa": mapa.get(d["id"]) or mapa.get(d["icone"]) or None,
-                # A ESCOLHA DE DESENHO DE QUEM USA ESTÁ NA TELA (P73): o nome
-                # tem linha no `icones-escolhidos.map` e o arquivo na tela é o
-                # do `scalable/apps`, onde o passo do pack a pôs.
                 "escolhido": bool(
                     atual and os.path.dirname(atual) == dir_pack
                     and ((d["icone"] or "") in escolhidos or d["id"] in escolhidos)),
-                # O SEGUNDO ACERVO DE TRAÇO, num campo PRÓPRIO — 08/09/2026.
-                # 33 aplicativos são vestidos por ele, e a página não sabia:
-                # todos apareciam como "nosso" sem cor, e a oficina de desenho
-                # abria em `rosewater` (a primeira da paleta) em vez da cor que
-                # o aplicativo já tem. Medido com o Flatseal, `lavender` desde
-                # 11/08.
+                # O SEGUNDO ACERVO DE TRAÇO, num campo PRÓPRIO.
                 "traco": traco.get(d["id"]) or traco.get(d["icone"]) or None,
                 # A frase de por que um glifo do Arcticons não valeria aqui, ou
-                # None — ver `_travas_do_arcticons`. Desde 23/09/2026 ela sabe
-                # quem está na tela e que desenhos de pack existem para o app.
+                # None — ver `_travas_do_arcticons`.
                 "trava": self._motivo_da_trava(
                     travas, [d["id"], d["icone"]], d["nome"], vigor,
                     ["o desenho do pack «%s»" % c["nome_pack"]
                      for c in do_pack if not c["em_vigor"]]),
                 # A frase de por que um desenho do PACK não valeria aqui, ou
-                # None (P60): outro dono do `scalable/apps`, ou um `Icon=` por
-                # caminho. O traço pode valer onde o pack não vale — o
-                # «Arquivos» —, e por isso é um campo à parte da `trava`.
-                # [Revisão da P64: o intocável e a curadoria travam os dois, e a
-                # frase vem nos dois campos — ver `_trava_do_pack`.]
+                # None: outro dono do `scalable/apps`, ou um `Icon=` por
+                # caminho.
                 "trava_pack": self._trava_do_pack(d, d["nome"], donos_scalable, travas),
             })
         return {"apps": fora, "total": len(fora), "jogos": jogos}
 
-    # ========================================================================
-    # OS JOGOS DA STEAM — 02/09/2026
-    # ========================================================================
     # Ela, depois de descobrir que o cartão do Mad King continuava no lançador
     # com o jogo sem licença: "veja se está integrado ao app meowsystem." Não
-    # estava. Tirar um jogo da tela — ou apagar 2,4 G de sobra — exigia editar
-    # `assets/icones/jogos-fora.map` num editor de texto.
+    # estava.
     #
-    # O DESENHO É O MESMO DO ÍCONE POR APLICATIVO, E DE PROPÓSITO
-    #   A página NÃO apaga nada. Ela grava a RECEITA no mapa do repositório, e
-    #   quem age é o `scripts/jogos_steam.sh` na passagem seguinte. É a regra
-    #   desta casa — a imagem não vai para o git, a receita vai — e tem um
-    #   segundo efeito que importa mais: nenhum `rm -rf` mora dentro de um
-    #   servidor HTTP. O botão que executa é o mesmo "Arrumar os jogos" da
-    #   coluna de ações, que já passa pelo confirmar e pela gaveta de saída.
+    # A página NÃO apaga nada.
 
     def _steam_bibliotecas(self):
         """As pastas `steamapps` declaradas no `libraryfolders.vdf`, sem repetir.
@@ -8986,23 +7299,8 @@ class Manipulador(BaseHTTPRequestHandler):
             pass
         return vistos
 
-    # O NOME DE UM JOGO QUE JÁ NÃO TEM MANIFESTO — 24/09/2026, sprint P54
-    # (achado 44)
-    #   «Decisões já executadas» mostrava «appid 4046520». O nome de um jogo vem
-    #   do `appmanifest_<appid>.acf`, e é exatamente o que some quando a decisão
-    #   `apagar` dispara: o manifesto sai junto com a pasta. O registro
-    #   `jogos-apagados` guarda o nome desde 02/09 — mas a linha do 4046520 é de
-    #   antes dele e está com o nome vazio (medido: `4046520 2026-09-11 `), e uma
-    #   decisão `esconder` cujo jogo a Steam desinstalou nunca passou pelo
-    #   registro.
-    #   Quem ainda sabe o nome é a própria Steam: o `appcache/appinfo.vdf` é o
-    #   cache dela de TODO app que a conta já viu, instalado ou não — medido
-    #   nesta máquina, ele dá «Mad King Redemption Demo» para o 4046520. É
-    #   binário (o KeyValues da Valve, com a tabela de nomes de chave desde a
-    #   versão 29), e este leitor só vai atrás de `appinfo › common › name` do
-    #   appid pedido: pula as outras entradas pelo tamanho, sem abrir nenhuma.
-    #   Formato que ele não conhece, arquivo cortado ou appid ausente dão "", e
-    #   a linha continua dizendo o número — nunca uma exceção na aba.
+    # O nome de um jogo vem do `appmanifest_<appid>.acf`, e é exatamente o que
+    # some quando a decisão `apagar` dispara: o manifesto sai junto com a pasta.
     _APPINFO = os.path.expanduser("~/.steam/steam/appcache/appinfo.vdf")
     _NOMES_DA_STEAM = {}
 
@@ -9061,17 +7359,9 @@ class Manipulador(BaseHTTPRequestHandler):
                 except OSError:
                     pass
 
-                # JOGO x FERRAMENTA PELA CAPA **VERTICAL**, e o "vertical" é o
-                # que separa os dois — medido em 02/09/2026, na primeira versão
-                # desta rota.
-                #   O `_capa_do_jogo` cai para `header.jpg` e `logo.png` quando
-                #   não há capa vertical, e é isso que faz a grade ter arte para
-                #   todo mundo. Só que as nove ferramentas (Proton, runtimes)
-                #   TÊM header e logo — então usar "tem alguma arte" como teste
-                #   devolvia 31 itens onde o lançador mostra 22. O critério do
-                #   `jogos_steam.sh` é estrito: `library_capsule.jpg` ou
-                #   `library_600x900.jpg`, que 21 de 21 jogos têm e 0 de 9
-                #   ferramentas tem.
+                # O `_capa_do_jogo` cai para `header.jpg` e `logo.png` quando
+                # não há capa vertical, e é isso que faz a grade ter arte para
+                # todo mundo.
                 capa = self._capa_do_jogo(appid)
                 if not self._capa_do_jogo(appid, vertical=True):
                     continue
@@ -9093,14 +7383,8 @@ class Manipulador(BaseHTTPRequestHandler):
                     "apagado_em": (gastos.get(appid) or {}).get("data", ""),
                     "no_disco": bool(instalado_em),
                 })
-        # AS LINHAS SEM MANIFESTO TAMBÉM APARECEM — senão a decisão dela some
-        # da tela justamente depois de dar certo.
-        #   O Mad King é o caso: a linha `apagar` disparou, o manifesto foi
-        #   embora com os arquivos, e o laço acima — que corre sobre manifestos
-        #   — deixaria de vê-lo. A linha continuaria no mapa, sem nenhum lugar na
-        #   página onde ela pudesse lê-la ou tirá-la. Entram no fim da lista,
-        #   marcadas, porque não são jogos que ela tem: são decisões que ela
-        #   tomou.
+        # AS LINHAS SEM MANIFESTO TAMBÉM APARECEM — senão a decisão dela some da
+        # tela justamente depois de dar certo.
         conhecidos = {j["appid"] for j in fora}
         orfas = []
         for appid, linha in mapa.items():
@@ -9112,8 +7396,8 @@ class Manipulador(BaseHTTPRequestHandler):
             orfas.append({
                 "appid": appid,
                 # O registro primeiro (é o nome do manifesto, guardado antes de
-                # apagá-lo); depois o cache da Steam (P54, ver `_nome_na_steam`);
-                # o número só quando ninguém mais sabe.
+                # apagá-lo); depois o cache da Steam; o número só quando ninguém
+                # mais sabe.
                 "nome": (registro.get("nome") or self._nome_na_steam(appid)
                          or "appid %s" % appid),
                 "url": "", "cartao": False,
@@ -9125,33 +7409,23 @@ class Manipulador(BaseHTTPRequestHandler):
         orfas.sort(key=lambda j: j["appid"])
         fora.extend(orfas)
 
-        # OS ÍCONES DELES VÊM JUNTO — 06/09/2026
-        #   A aba de ícones passou a devolver só programa (ver `_e_jogo`), e o
-        #   que ela tirou de lá tinha de chegar aqui inteiro, com a mesma forma:
-        #   o `app.js` reaproveita o painel de escolha de ícone sem saber que
-        #   está numa página diferente. Sumir de um lado sem aparecer no outro
-        #   seria perder a capacidade, não movê-la.
+        # Sumir de um lado sem aparecer no outro seria perder a capacidade, não
+        # movê-la.
         tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
         base_tema = os.path.expanduser("~/.local/share/icons/%s" % tema)
         arcticons = self._mapa_arcticons()
         # O acervo de traço vale aqui pelo mesmo motivo que vale na aba de
-        # ícones: os seis lançadores e emuladores de 08/09/2026 moram nele, e
-        # sem esta linha a grade os mostraria como "nosso", sem cor, e a oficina
-        # abriria na primeira cor da paleta em vez de `mauve`.
+        # ícones: os seis lançadores e emuladores moram nele, e sem esta linha a
+        # grade os mostraria como "nosso", sem cor, e a oficina abriria na
+        # primeira cor da paleta em vez de `mauve`.
         convertidos = self._mapa_convertidos()
-        # A TRAVA VAI JUNTO — 24/09/2026, sprint P46. A grade de Aplicativos já a
-        # mandava (`_dados_apps`); esta não, e a página oferecia o «Usar este
-        # ícone» que o `_api_app_icone` recusa com 409 para o mesmo aplicativo.
-        # É a mesma conta do POST, com os mesmos três argumentos: a tela e a
-        # recusa não podem discordar. Medido pelo `tests/app-completo.py` no
-        # «Elden Ring Tracker».
+        # A grade de Aplicativos já a mandava (`_dados_apps`); esta não, e a
+        # página oferecia o «Usar este ícone» que o `_api_app_icone` recusa com
+        # 409 para o mesmo aplicativo.
         travas = self._travas_do_arcticons()
-        # E A TRAVA DO PACK TAMBÉM — 25/09/2026, revisão da P60. É o mesmo
-        # defeito da P46 com o campo novo: a ficha esconde o grupo do pack
-        # quando lê `trava_pack`, e esta grade só mandava a `trava`. Um jogo
-        # com o `Icon=` por caminho recebia o Dracula na ficha, e o «Usar este
-        # ícone» ouvia 409 (medido pela revisão numa casa de brinquedo). É a
-        # mesma conta do `_dados_apps` e do POST, e os donos são lidos uma vez.
+        # Um jogo com o `Icon=` por caminho recebia o Dracula na ficha, e o
+        # «Usar este ícone» ouvia 409 (medido pela revisão numa casa de
+        # brinquedo).
         donos_scalable = self._donos_do_scalable()
         icones = []
         for d in self._desktops():
@@ -9200,9 +7474,7 @@ class Manipulador(BaseHTTPRequestHandler):
         if not remover and acao not in ("esconder", "apagar"):
             return self._json({"erro": "ação tem de ser esconder ou apagar"}, 400)
         # O motivo entra num arquivo cujo separador é `:` e cujo comentário é
-        # `#`. Deixar os dois passarem faria a própria linha dela virar outra
-        # coisa na leitura seguinte — a página não pode escrever um arquivo que
-        # ela mesma não conseguiria reler.
+        # `#`.
         motivo = motivo.replace(":", " ").replace("#", " ").strip()
         if not motivo:
             motivo = "escolha feita no painel em %s" % datetime.date.today().isoformat()
@@ -9219,10 +7491,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 return None
             return corte.split(":")[0].strip()
 
-        # O ARQUIVO INTEIRO SOBREVIVE — só a linha do jogo muda. O cabeçalho
-        # deste mapa tem cinquenta linhas explicando cada decisão; reescrevê-lo
-        # filtrando linhas seria apagar o motivo junto com a regra. Mesma
-        # disciplina do `_api_app_icone`.
+        # O ARQUIVO INTEIRO SOBREVIVE — só a linha do jogo muda.
         novas = list(linhas)
         indice = next((i for i, l in enumerate(novas) if id_da_linha(l) == appid), None)
         so_pergunta = bool(corpo.get("previa") or corpo.get("seco"))
@@ -9278,50 +7547,13 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json(erro if isinstance(erro, dict) else {"erro": erro}, 409)
         return self._json(_trabalho_json(trabalho, "jogos_aplicar", seco=True))
 
-    # ========================================================================
-    # OS DESENHOS DO PACK NO AR NA FICHA DE ÍCONE — 25/09/2026, sprint P60
-    # ========================================================================
-    # A pergunta que abriu a sprint: «Nosso pack de 300 icons aparece pro user
-    # pra que ele possa escolher um deles pra substituir algum atual?» Não
-    # aparecia. A busca da ficha (`_api_glifos`, logo abaixo) varria quatro
-    # pastas do motor, e os 396 desenhos do Dracula — 72 em `apps/`, 295 na
-    # biblioteca, 22 autorais e 7 pastas — ficavam todos de fora. Medido no dia:
-    # o `apps.map` liga 22 desenhos distintos da biblioteca (em 51 linhas; o
-    # `pack.py info` conta 263 sem app ligado, por conteúdo), e nenhum dos 396
-    # era escolhível. Na ficha do Chrome, «chrome» dava uma opção só, o traço do
-    # Arcticons — e o desenho do Dracula que estava na tela, não.
+    # A busca da ficha (`_api_glifos`, logo abaixo) varria quatro pastas do
+    # motor, e os 396 desenhos do Dracula — 72 em `apps/`, 295 na biblioteca, 22
+    # autorais e 7 pastas — ficavam todos de fora.
     #
-    # O QUE ENTRA É O QUE O PACK NO AR TEM, LIDO DELE
-    #   `icones.apps.desenhos` (o que foi desenhado para um programa), a
-    #   biblioteca (`PASTA_BIBLIOTECA` do scripts/pack.py: é convenção, sem
-    #   campo) e `icones.autorais.desenhos`, só os do flavor em vigor, que são
-    #   os que o tema teria. Só o do PRÓPRIO pack — a herança não sobe —,
-    #   porque o acervo de um pack que não está no ar não entra. Era o que o
-    #   grupo «Catppuccin» fazia, cravado na busca para qualquer pack no ar.
-    #
-    # ONDE A ESCOLHA MORA: NA LINHA DO PROGRAMA, NO `apps.map` DO PACK NO AR
-    #   O molde é o do traço: o «Usar este ícone» grava a linha no
-    #   `apps-arcticons.map`, que é o mapa que o `icones_apps_arcticons.sh` lê,
-    #   e o resto do arquivo sobrevive. O mapa que o `icones_apps_dracula.sh`
-    #   lê é o `icones.apps.mapa` do pack, e a escolha é a linha daquele nome de
-    #   ícone, trocada ou acrescentada.
-    #   · VENCE o `apps.map` porque É a linha dele. Um nome tem uma linha só (o
-    #     `validar` recusa a repetição), e a escolha toma o lugar da anterior
-    #     em vez de disputar com ela. Um arquivo de escolhas ao lado teria de
-    #     ser ensinado ao instalador, ao `fontes` do pack.py (o `meow icones
-    #     fonte` e o `tests/fonte-unica.sh`), à etiqueta da grade
-    #     (`_mapa_dracula`), à oficina (`_desenhos_de_pack`) e à conta do
-    #     `meow pack info` — e o leitor que esquecesse diria um desenho
-    #     diferente do que está no tema.
-    #   · NÃO VAZA porque o mapa é do pack. Com o Catppuccin no ar ninguém lê o
-    #     mapa do Dracula, e o `icones_apps_dracula.sh` tira do tema o que um
-    #     pack fora do ar tinha posto lá (o `_dracula_sobras` dele). É a regra
-    #     do docs/PACKS.md, "o mapa é do pack; o acervo pode ser do motor", e é
-    #     por ela que a escolha não mora em `assets/`, como a do traço.
-    #   · PACK SEM MAPA PRÓPRIO NÃO GANHA GRUPO. O Catppuccin não declara
-    #     `icones.apps`, e um pack que herda o mapa de outro gravaria dentro do
-    #     outro. Oferecer o que não tem onde gravar seria o botão que não pode
-    #     valer (13/09/2026, no `montarEscolhaDeIcone` do app.js).
+    # O molde é o do traço: o «Usar este ícone» grava a linha no
+    # `apps-arcticons.map`, que é o mapa que o `icones_apps_arcticons.sh` lê, e
+    # o resto do arquivo sobrevive.
     def _desenhos_do_pack_no_ar(self):
         """(pack, desenhos, aviso): o que a ficha de ícone oferece do pack no ar.
 
@@ -9377,10 +7609,9 @@ class Manipulador(BaseHTTPRequestHandler):
                 desenhos.append({"glifo": arq[:-len(fim)], "desenho": desenho,
                                  "caminho": caminho})
         aviso = ""
-        # O PADRÃO DA CHAVE É O LIGADO desde a P74 (09/10/2026), como no script
-        # e no instalador: só o "nao" tira o mapa do tema. O título é o que o cartão tem na tela (o
-        # `_com_o_vocabulario_do_pack` o reescreve), e o tests/seletor-do-pack.sh
-        # confere que os dois não se separam.
+        # O título é o que o cartão tem na tela (o `_com_o_vocabulario_do_pack`
+        # o reescreve), e o tests/seletor-do-pack.sh confere que os dois não se
+        # separam.
         if (vals.get("ICONES_DRACULA") or "sim") == "nao":
             aviso = ("Os desenhos do pack «%s» aparecem nesta busca com «Ícones do pack "
                      "nos aplicativos» ligado." % pack["nome"])
@@ -9430,37 +7661,21 @@ class Manipulador(BaseHTTPRequestHandler):
     def _trava_do_pack(self, d, rotulo, donos=None, travas=None):
         """A frase de por que um desenho do pack não valeria neste app, ou None."""
         icone = (d.get("icone") or "").strip()
-        # DOIS DOS TRÊS CASOS DA TRAVA DO TRAÇO TRAVAM O PACK — 25/09/2026,
-        # revisão da P64.
-        #   A P64 tirou a trava do traço inteira do caminho do pack, com a razão
-        #   de que o que ela impede mora no `48x48/apps`. Vale para o convertido,
-        #   e só para ele. O intocável é pedido dela («estes ficam como estão,
-        #   venha o que vier»), e a curadoria é a arte que ela escolheu à mão,
-        #   que o `importar_icones.sh` põe no MESMO `scalable/apps` do pack. O
-        #   `icones_apps.sh` e o `icones_apps_arcticons.sh` cedem aos dois (tiram
-        #   o nome do mapa lido); o `icones_apps_dracula.sh` não cede a nenhum
-        #   dos dois, e escreve por cima do que estiver lá.
-        #   Medido numa casa de brinquedo, com o código da P64: um jogo de
-        #   `Icon=steam_icon_12345` e um programa com linha no `curadoria.map` e
-        #   a arte dela no tema. A ficha mostrava a frase da trava logo acima do
-        #   «Usar este ícone» com os desenhos do Dracula, o POST saía 200, e
-        #   depois do `icones_pack` o arquivo dos dois no tema era o alien — a
-        #   arte dela, apagada.
-        #   A frase é a da trava do traço, com a mesma lista lida do script: a
-        #   ficha mostra a `trava`, e o 409 do POST diz a mesma coisa.
+        # Vale para o convertido, e só para ele.
         intocaveis, prefixos, curados, _convertidos = (
             self._travas_do_arcticons() if travas is None else travas)
         motivo = self._motivo_da_trava((intocaveis, prefixos, curados, ()),
                                        [d.get("id"), icone], rotulo)
         if motivo:
             return motivo
+        # Elas vão para o balão do desenho na ficha, cujo teto é 80, e saíam
+        # cortadas (com o nome do app dentro, passavam de 130). A ficha já é a
+        # do app: o nome saiu da frase.
         if icone.startswith("/"):
-            return ("O lançador de %s aponta o ícone por caminho de arquivo, e o tema "
-                    "de ícones não é consultado para ele." % rotulo)
+            return "O lançador aponta o ícone por caminho de arquivo: o tema não vale aqui"
         donos = self._donos_do_scalable() if donos is None else donos
         if any(n in donos for n in (icone, d.get("id")) if n):
-            return ("O ícone de %s no tema é decidido por outro passo do MeowSystem, e "
-                    "um desenho do pack não duraria até a instalação seguinte." % rotulo)
+            return "O ícone deste app é de outro passo do MeowSystem; o do pack não duraria"
         return None
 
     def _escolher_do_pack(self, app, corpo):
@@ -9468,10 +7683,6 @@ class Manipulador(BaseHTTPRequestHandler):
         pedido = str(corpo.get("pack", "")).strip()
         desenho = str(corpo.get("desenho", "")).strip()
         pack, desenhos, aviso = self._desenhos_do_pack_no_ar()
-        # O PACK DO PEDIDO TEM DE SER O DO AR. Uma página aberta antes de uma
-        # troca de pack mandaria gravar no mapa de um pack fora do ar, e a
-        # escolha passaria a valer para outro pack — o vazamento que a P60
-        # proíbe.
         if not pack:
             return self._json({"erro": "o pack no ar não tem mapa de aplicativos: não há "
                                        "onde gravar um desenho dele"}, 409)
@@ -9490,12 +7701,6 @@ class Manipulador(BaseHTTPRequestHandler):
         rotulo = d.get("nome") or app
         # A página não oferece o pack a quem tem outro dono; um POST direto ouve
         # o mesmo motivo.
-        # O CONVERTIDO NÃO TRAVA O PACK — 25/09/2026, P64 e a revisão dela. A
-        # trava do traço tem três casos, e só o convertido mora no `48x48/apps`,
-        # que o desenho do pack, no `scalable/apps`, vence: recusar por ele era
-        # recusar a Calculadora, cujo ícone na tela já é o desenho do Dracula.
-        # O intocável e a curadoria travam o pack também, e é a `_trava_do_pack`
-        # que os diz — a mesma conta das duas grades, que a ficha lê.
         motivo = self._trava_do_pack(d, rotulo)
         if motivo:
             return self._json({"erro": motivo}, 409)
@@ -9509,24 +7714,20 @@ class Manipulador(BaseHTTPRequestHandler):
         except OSError as e:
             return self._json({"erro": "não consegui ler o mapa do pack: %s" % e}, 500)
         numero = next((num for num, n, _alvo in ativas if n == nome), None)
-        # A LINHA TROCADA VAI JUNTO (P64, ver `_MARCA_DO_PAINEL`): a do pack, ou
-        # a que uma escolha anterior do painel já carregava.
+        # A LINHA TROCADA VAI JUNTO: a do pack, ou a que uma escolha anterior do
+        # painel já carregava.
         antes = ""
         if numero is not None:
             antes = self._escolha_do_painel(linhas[numero - 1])
             if antes is None:
                 antes = linhas[numero - 1]
         # O COMENTÁRIO É A PROCEDÊNCIA, como em toda linha do mapa: quem o abrir
-        # sabe que esta não veio do tema de origem. O `;` sai do nome junto com o
-        # `#` (P64): é ele que abre o "; antes: ", e um `Name=` de `.desktop`
-        # não pode escrever o que o desfazer devolve.
+        # sabe que esta não veio do tema de origem.
         linha = "%s : %s   # %s — escolhido no painel%s" % (
             nome, desenho, re.sub(r"[\x00-\x1f#;]+", " ", rotulo).strip(),
             "; antes: " + antes if antes else "")
         # O ARQUIVO INTEIRO SOBREVIVE, como no `apps-arcticons.map`: o mapa do
-        # Dracula tem 206 linhas de comentário (medido em 25/09), no cabeçalho e
-        # nos blocos. A linha nova entra depois da última ativa, e não no fim do
-        # arquivo, que é um bloco comentado.
+        # Dracula tem 206 linhas de comentário, no cabeçalho e nos blocos.
         if numero is not None:
             linhas[numero - 1] = linha
         elif ativas:
@@ -9543,33 +7744,14 @@ class Manipulador(BaseHTTPRequestHandler):
                            "desenho": desenho,
                            "depois": "vale depois de «%s»" % ACOES["icones_pack"]["rotulo"]})
 
-    # ========================================================================
-    # A ESCOLHA DO PAINEL LEVA A LINHA QUE ELA TROCOU — 25/09/2026, sprint P64
-    # ========================================================================
     # Até aqui a escolha tomava o lugar da linha do pack e a linha sumia: não
     # havia o que devolver, e a escolha de um desenho do pack não tinha
-    # desfazer. O «Desfazer a escolha no traço» ao lado só mexe no mapa do
-    # traço — e com o Chrome, que está nos dois mapas, a torrada dele dizia
-    # «voltou para o ícone de fábrica» com o desenho do Dracula na tela. [Até a
-    # P67 este comentário chamava o botão pelo nome de antes da P64.]
+    # desfazer.
     #
-    # A linha trocada vai INTEIRA no comentário da escolha, depois de "; antes:":
+    # A linha trocada vai INTEIRA no comentário da escolha, depois de ";
+    # antes:":
     #
     #   google-chrome : biblioteca/alien.svg   # Chrome — escolhido no painel; antes: google-chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
-    #
-    #   · NA MESMA LINHA, e não num comentário ao lado: a troca continua mexendo
-    #     numa linha só (o diff de uma escolha é uma linha), e não sobra
-    #     comentário órfão quando alguém apaga a escolha à mão. Todo leitor do
-    #     mapa corta no primeiro `#` (o `ler_mapa` do pack.py, o awk do
-    #     `icones_apps_dracula.sh`, o `_mapa_dracula`), e o segundo `#` — o da
-    #     procedência antiga — é comentário dentro do comentário.
-    #   · A LINHA INTEIRA, e não só o caminho: a procedência (`[alias-heuristico]`)
-    #     é parte do que o pack diz, e desfazer devolve o arquivo byte a byte.
-    #   · A LINHA DO PACK VIAJA DE UMA ESCOLHA PARA A OUTRA: escolher duas vezes e
-    #     desfazer volta ao que o PACK dava, e não à primeira escolha.
-    #   · ESCOLHA SEM "antes" é a de um nome que o pack não conhecia: desfazer tira
-    #     a linha, e o arquivo volta ao que era.
-    # A linha que não é do painel nunca sai por aqui: quem a pôs foi o pack.
     _MARCA_DO_PAINEL = re.compile(r"^[^#]*#.*? — escolhido no painel(?:; antes: (.*))?$")
 
     def _escolha_do_painel(self, linha):
@@ -9645,12 +7827,6 @@ class Manipulador(BaseHTTPRequestHandler):
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa do pack: %s" % e}, 500)
         fica = self._o_que_fica(app)
-        # [Até a P66 (25/09/2026) havia aqui a frase `sobra`: sem "antes", a linha
-        #   sai do mapa, e o `_dracula_sobras` do `icones_apps_dracula.sh` não
-        #   tirava do tema o nome que o mapa NO AR deixou de ter. Ele passou a
-        #   tirar — pelo registro do que o passo pôs no tema —, e o passo do pack
-        #   que a ficha roda logo depois leva o desenho: o que fica é o que o
-        #   `_o_que_fica` diz.]
         return self._json({"ok": True, "removido": True, "app": app, "pack": pack["id"],
                            "nome_pack": pack["nome"], "fica": fica})
 
@@ -9689,7 +7865,7 @@ class Manipulador(BaseHTTPRequestHandler):
         `_pack_adotado` também, e os três concordam.]"""
         d = next((x for x in self._desktops() if x["id"] == app), None) or {}
         mod = modulo_pack()
-        # A ESCOLHA DO PAINEL VENCE TUDO (P73): é a primeira pergunta.
+        # A ESCOLHA DO PAINEL VENCE TUDO: é a primeira pergunta.
         minha = self._minha_escolha(app)
         if minha:
             return {"tipo": "escolha", "frase": "o desenho «%s» que você escolheu" % minha["glifo"]}
@@ -9713,36 +7889,54 @@ class Manipulador(BaseHTTPRequestHandler):
             return {"tipo": "conversao", "frase": "a conversão em traço do projeto"}
         return {"tipo": "fabrica", "frase": "o ícone de fábrica"}
 
-    # ========================================================================
-    # A FICHA MOSTRA O ACERVO INTEIRO, EM PASTAS — 09/10/2026, sprint P73 (T1)
-    # ========================================================================
-    # O pedido de quem usa, 09/10: «Era pra aparecerem todos os Drácula feitos
-    # e todos os do MeowSystem feitos, numa pasta cada. Independente do app que
-    # eu escolher, eu deveria acessar todas as imagens disponíveis, não só as
-    # que mapeamos à mão.»
+    def _o_que_veste(self, app):
+        """O arquivo que veste o aplicativo agora, como a ficha o escreve, ou None.
+
+        15/10/2026, P82 (item 6). O `_escolha_no_pack` só responde quando a
+        linha do mapa é uma escolha do painel: o Waterfox abria a ficha com o
+        desenho do pack no ar sem marca nenhuma. A ordem é a do `_o_que_fica`,
+        que é a do tema: a escolha de quem usa, a linha do mapa do pack no ar
+        (com a camada ligada), e o traço (o glifo do Arcticons, depois a
+        conversão). Arquivo que não existe não veste nada."""
+        mod = modulo_pack()
+        minha = self._minha_escolha(app)
+        if minha:
+            return minha["arquivo"]
+        nome = self._nome_do_icone(app)
+        ident = _pack_adotado() if mod else ""
+        if ident and (valores_efetivos(["ICONES_DRACULA"]).get("ICONES_DRACULA") or "sim") != "nao":
+            mapa = mod.acervo("icones.apps.mapa", ref=ident) or ""
+            for _num, n, alvo in (mod.ler_mapa(mapa) if os.path.isfile(mapa) else ()):
+                if n != nome:
+                    continue
+                try:
+                    arq = mod.resolver_alvo(alvo, os.path.dirname(mapa))
+                except mod.Recusa:
+                    arq = ""
+                if arq and os.path.isfile(arq):
+                    return self._arquivo_na_ficha(arq)
+        d = next((x for x in self._desktops() if x["id"] == app), None) or {}
+        icones = ICONES_DO_MOTOR
+        marca = self._mapa_arcticons().get(app) or self._mapa_arcticons().get(d.get("icone") or "")
+        if marca:
+            glifo = marca["glifo"]
+            arq = (glifo if os.path.isabs(glifo) else os.path.join(RAIZ, glifo)) if "/" in glifo \
+                else os.path.join(icones, "apps", "arcticons", glifo + ".svg")
+            if os.path.isfile(arq):
+                return self._arquivo_na_ficha(arq)
+        conv = self._mapa_convertidos()
+        if conv.get(app) or conv.get(d.get("icone") or ""):
+            arq = os.path.join(icones, "apps", "convertidos", nome + ".svg")
+            if os.path.isfile(arq):
+                return self._arquivo_na_ficha(arq)
+        return None
+
+    # Independente do app que eu escolher, eu deveria acessar todas as imagens
+    # disponíveis, não só as que mapeamos à mão.»
     #
-    # O QUE ESCONDIA, MEDIDO NA AUDITORIA DE 09/10
-    #   (docs/pesquisas/2026-10-09-paridade-de-icones.md, seção 2)
-    #   · um teto de 60 por lado (`limite = 60`), sem página seguinte: a busca
-    #     vazia enchia os 60 do pack só com `apps/`, e os 295 da biblioteca
-    #     nunca apareciam sem busca. A página guardava o `limitado` e ninguém o
-    #     lia;
-    #   · a ficha abria com a busca pela 1ª palavra do nome do app («google»,
-    #     «microsoft»): o palpite virava filtro, e 18 de 38 apps abriam com zero
-    #     opções.
-    #   Dos 591 desenhos versionados distintos, 146 nunca podiam aparecer.
-    #
-    # A CURA: A ROTA DEVOLVE O ÍNDICE INTEIRO, AGRUPADO POR PASTA
-    #   Sem teto. São perto de mil desenhos, só com metadados (nome, grupo,
-    #   miniatura por URL): a página desenha cada grupo recolhido, e a
-    #   miniatura só desce quando o grupo abre (`loading=lazy`). Cada grupo traz
-    #   o `total` da pasta e os `achados` da busca, e é a conta que o
-    #   tests/acervo-da-ficha.sh confere contra o disco.
-    #   O NOME DO APP VIRA DESTAQUE, NÃO FILTRO: o item que casa com o nome, o
-    #   id ou o `Icon=` do app sai marcado `sugerido`, e a página o repete numa
-    #   faixa no alto. O resto continua lá, na pasta dele.
-    #   O PACK NO AR VEM PRIMEIRO, como desde a P60: é a arte do tema que está
-    #   na tela.
+    # (docs/pesquisas/2026-10-09-paridade-de-icones.md, seção 2) · um teto de 60
+    # por lado (`limite = 60`), sem página seguinte: a busca vazia enchia os 60
+    # do pack só com `apps/`, e os 295 da biblioteca nunca apareciam sem busca.
     @staticmethod
     def _sem_acento(texto):
         """O texto sem acento e em minúsculas — a régua da busca da ficha.
@@ -9766,25 +7960,17 @@ class Manipulador(BaseHTTPRequestHandler):
         mod = modulo_pack()
         if not mod:
             return grupos, itens
-        # A LISTA DE PASTAS É A DO `pack.py acervos_de_icone` (P73, T2): todos
-        # os packs, cada um na sua pasta, e as do motor — ver o bloco "O ACERVO
-        # DA FICHA DE ÍCONE, DECLARADO NUM LUGAR SÓ" de lá. Esta rota não sabe
-        # mais de pasta nenhuma.
-        # O QUE O PACK NO AR PODE GRAVAR NO MAPA DELE continua sendo o que o
-        # `_desenhos_do_pack_no_ar` diz (P60): é a lista do «Levar para o pack».
+        # A LISTA DE PASTAS É A DO `pack.py acervos_de_icone`: todos os packs,
+        # cada um na sua pasta, e as do motor — ver o bloco "O ACERVO DA FICHA
+        # DE ÍCONE, DECLARADO NUM LUGAR SÓ" de lá.
         pack, desenhos, _aviso = self._desenhos_do_pack_no_ar()
         do_mapa = {os.path.normpath(d["caminho"]): d for d in desenhos}
         textos, rotulos, do_nome = self._textos_da_busca(mod)
         nomes_de_app = self._nomes_de_app()
-        # O MESMO DESENHO, O MESMO NOME — conferência da P80 (item 1). O
-        #   `org.telegram.desktop` era «Telegram» na pasta do pack, que tem a
-        #   linha do apps.map, e «Desktop» nas três do motor, onde só sobrava o
-        #   nome do arquivo sem o domínio (o último pedaço de um id invertido é
-        #   muitas vezes genérico: `Client`, `Desktop`, `Browser`). O nome de
-        #   app que a linha de um mapa dá vale para o arquivo de mesmo nome nas
-        #   outras pastas, antes do recurso ao nome do arquivo. Só o do mapa: a
-        #   descrição do catálogo diz o que AQUELE desenho é, e espalhada dava
-        #   «Rato» ao `mouse` de traço, que é o do computador.
+        # O `org.telegram.desktop` era «Telegram» na pasta do pack, que tem a
+        # linha do apps.map, e «Desktop» nas três do motor, onde só sobrava o
+        # nome do arquivo sem o domínio (o último pedaço de um id invertido é
+        # muitas vezes genérico: `Client`, `Desktop`, `Browser`).
         for g in mod.acervos_de_icone(_pack_adotado()):
             arquivos = g.pop("arquivos")
             g["total"] = len(arquivos)
@@ -9792,9 +7978,9 @@ class Manipulador(BaseHTTPRequestHandler):
             for caminho in arquivos:
                 nome = os.path.basename(caminho)
                 glifo = os.path.splitext(nome)[0]
-                # O RÓTULO É O QUE A PESSOA LÊ — P80, item 1. Ver "O RÓTULO DA
-                # FICHA", logo abaixo: o catálogo, o mapa, o `.desktop` e, sem
-                # nenhum, o próprio nome sem número nem domínio.
+                # O RÓTULO É O QUE A PESSOA LÊ. Ver "O RÓTULO DA FICHA", logo
+                # abaixo: o catálogo, o mapa, o `.desktop` e, sem nenhum, o
+                # próprio nome sem número nem domínio.
                 rotulo = (rotulos.get(os.path.normpath(caminho))
                           or nomes_de_app.get(glifo.lower()) or do_nome.get(glifo.lower())
                           or self._rotulo_do_nome(glifo))
@@ -9802,14 +7988,10 @@ class Manipulador(BaseHTTPRequestHandler):
                         "caminho": caminho,
                         "_texto": self._sem_acento(" ".join(
                             [glifo, rotulo] + textos.get(os.path.normpath(caminho), [])))}
-                # O PNG FEITO À MÃO APARECE, MAS AINDA NÃO SE ESCOLHE — P73. Raster
-                # não é fonte (o `meow_icones_derivados` do lib/icones.sh recusa:
-                # de um PNG não sai vetor, flavor nem tamanho maior), e a decisão
-                # 2 de 09/10 é que ele entre no pack agora e vire vetor num lote
-                # conferido por RMSE. Até lá ele é visto, com o porquê na dica.
-                # [P80, item 3: a frase passava do teto do balão e saía cortada,
-                #   com «decisão de 09/10» e «RMSE» no meio — conversa nossa, e
-                #   não o porquê de quem usa. O lote continua sendo o da decisão 2.]
+                # Raster não é fonte (o `meow_icones_derivados` do lib/icones.sh
+                # recusa: de um PNG não sai vetor, flavor nem tamanho maior), e
+                # a decisão 2 é que ele entre no pack agora e vire vetor num
+                # lote conferido por RMSE.
                 if g["tipo"] == "png":
                     item["trava"] = "Feito à mão em PNG: vale no tema quando ganhar a versão em vetor"
                 no_mapa = do_mapa.get(os.path.normpath(caminho)) if pack else None
@@ -9818,42 +8000,16 @@ class Manipulador(BaseHTTPRequestHandler):
                 itens.append(item)
         return grupos, itens
 
-    # A BUSCA ACHA PELO NOME DO APP E PELO SIGNIFICADO — 09/10/2026, P73 (T3)
-    #   Medido em 09/10: «firefox» não achava o `apps/net.waterfox.waterfox.svg`
-    #   (o Firefox-Dracula, que o Waterfox veste) e «alienígena» não achava o
-    #   `biblioteca/alien.svg`. A busca casava só o NOME DO ARQUIVO, e o nome do
-    #   arquivo é o nome de ícone em inglês — só ajuda quem já sabe a resposta.
-    #   Duas fontes que já existiam passam a contar:
-    #   · a LINHA DO MAPA de cada pack (`icones.apps.mapa`): o nome de ícone que
-    #     ela veste e o comentário dela, que é o nome do app na tela («Waterfox —
-    #     o Firefox do dracula-icons»). Vale para o desenho que a linha aponta,
-    #     inclusive o do motor por `motor:`;
-    #   · o CATÁLOGO da pasta (`catalog.json`, ao lado dos desenhos), com a
-    #     descrição em português e as etiquetas — o do Dracula_OS-Theme veio
-    #     para a biblioteca do Dracula nesta sprint, com a linha no
-    #     PROCEDENCIA.md.
-    # O RÓTULO DA FICHA — 10/10/2026, P80 (item 1)
-    #   Medido no uso real de 10/10 (prints 05 e 06 de `.playwright-mcp/
-    #   ux-final/`): embaixo de cada desenho vinha o nome do arquivo, cortado —
-    #   `net.waterfo…`, `org.gnome.…`, `005-potion`. É o nome de ícone em
-    #   inglês, e ele só ajuda quem já sabe a resposta. O rótulo passa a sair
-    #   das mesmas fontes que a busca já lia, nesta ordem:
-    #   · a DESCRIÇÃO pt-BR do `catalog.json` («alienígena»), para a biblioteca;
-    #   · o NOME DO APP no comentário da linha do mapa («Waterfox — o Firefox
-    #     do dracula-icons» dá «Waterfox»), sem as marcas entre colchetes;
-    #   · o nome do `.desktop` cujo ícone é o desenho (o traço `firefox` dá o
-    #     «Firefox» do lançador), ou o de quem a linha do mapa veste;
-    #   · e, sem nenhum dos três, o próprio nome sem o número da frente e sem o
-    #     domínio invertido (`005-potion` dá «Potion»).
-    #   O nome do arquivo e a pasta continuam na dica de cada desenho.
+    # A busca casava só o NOME DO ARQUIVO, e o nome do arquivo é o nome de ícone
+    # em inglês — só ajuda quem já sabe a resposta. É o nome de ícone em inglês,
+    # e ele só ajuda quem já sabe a resposta.
     @staticmethod
     def _rotulo_do_nome(glifo):
         """O nome do arquivo sem número na frente nem domínio invertido."""
-        # O ATALHO DE APP DO NAVEGADOR — QA de uso real da P80. O ícone de um
-        #   app instalado pelo Chrome se chama `chrome-<id>-<perfil>`, com o id
-        #   de 32 letras da extensão, e a biblioteca do Dracula traz dois deles
-        #   sem descrição no catálogo: o rótulo saía «Chrome ieicmdpib…
-        #   Default». O id não diz nada a quem lê; o navegador diz.
+        # O ícone de um app instalado pelo Chrome se chama
+        # `chrome-<id>-<perfil>`, com o id de 32 letras da extensão, e a
+        # biblioteca do Dracula traz dois deles sem descrição no catálogo: o
+        # rótulo saía «Chrome ieicmdpib…
         app_web = re.match(r"^(chrome|chromium|brave|msedge)-[a-p]{32}-\w+$", glifo, re.I)
         if app_web:
             return "App do " + {"msedge": "Edge"}.get(app_web.group(1).lower(),
@@ -9909,21 +8065,46 @@ class Manipulador(BaseHTTPRequestHandler):
                 mapa = mod.acervo("icones.apps.mapa", ref=dir_pack) or ""
                 if mapa and os.path.isfile(mapa):
                     mapas.add(os.path.realpath(mapa))
-                bib = os.path.join(dir_pack, mod.PASTA_BIBLIOTECA)
-                try:
-                    with open(os.path.join(bib, "catalog.json"), encoding="utf-8") as fh:
-                        catalogo = json.load(fh)
-                except (OSError, ValueError):
-                    catalogo = {}
-                for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
-                    if isinstance(ficha, dict):
-                        etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
-                        descricao = str(ficha.get("descricao") or "").strip()
-                        junta(os.path.join(bib, str(arq)), descricao,
-                              *[str(t).replace("_", " ") for t in etiquetas])
-                        if descricao:
-                            rotulos[os.path.normpath(os.path.join(bib, str(arq)))] = (
-                                descricao[:1].upper() + descricao[1:])
+        # O `catalog.json` ao lado dos desenhos dá o texto da busca (descrição
+        # em português e etiquetas).
+        vistas = set()
+        for g in mod.acervos_de_icone() if hasattr(mod, "acervos_de_icone") else ():
+            pasta_cat = os.path.normpath(g.get("pasta") or "")
+            if not pasta_cat or pasta_cat in vistas:
+                continue
+            vistas.add(pasta_cat)
+            com_rotulo = ":biblioteca" in g.get("id", "") or g.get("id", "").endswith(":feitos-a-mao")
+            try:
+                with open(os.path.join(pasta_cat, "catalog.json"), encoding="utf-8") as fh:
+                    catalogo = json.load(fh)
+            except (OSError, ValueError):
+                continue
+            for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
+                if isinstance(ficha, dict):
+                    etiquetas = ficha.get("tags") if isinstance(ficha.get("tags"), list) else []
+                    descricao = str(ficha.get("descricao") or "").strip()
+                    junta(os.path.join(pasta_cat, str(arq)), descricao,
+                          *[str(t).replace("_", " ") for t in etiquetas])
+                    if com_rotulo and descricao:
+                        rotulos[os.path.normpath(os.path.join(pasta_cat, str(arq)))] = (
+                            descricao[:1].upper() + descricao[1:])
+        # O `apps-convertidos.map` não tem comentário no fim da linha (os
+        # leitores dele cortam nos `:`), e o nome vem na linha de cima,
+        # `# app: OBS Studio`.
+        conv = os.path.join(ICONES_DO_MOTOR, "apps-convertidos.map")
+        try:
+            with open(conv, encoding="utf-8") as fh:
+                linhas_conv = fh.read().split("\n")
+        except OSError:
+            linhas_conv = []
+        for anterior, linha in zip([""] + linhas_conv, linhas_conv):
+            nome_app = anterior[len("# app:"):].strip() if anterior.startswith("# app:") else ""
+            nome = linha.split(":", 1)[0].strip()
+            if nome_app and nome and not linha.startswith("#"):
+                caminho = os.path.join(ICONES_DO_MOTOR, "apps", "convertidos", nome + ".svg")
+                junta(caminho, nome_app)
+                rotulos.setdefault(os.path.normpath(caminho), nome_app)
+                do_nome.setdefault(nome.lower(), nome_app)
         for mapa in sorted(mapas):
             try:
                 with open(mapa, encoding="utf-8") as fh:
@@ -9984,12 +8165,12 @@ class Manipulador(BaseHTTPRequestHandler):
             achados[it["grupo"]] = achados.get(it["grupo"], 0) + 1
             # A MINIATURA DO PACK VEM PELA CERCA DO `/previa`, que não conhece
             # `packs/`: o arquivo entra no `_ICONES_DECLARADOS`, a porta dos
-            # arquivos que o próprio servidor mandou a página mostrar (P46).
+            # arquivos que o próprio servidor mandou a página mostrar.
             _ICONES_DECLARADOS.add(os.path.normpath(it["caminho"]))
             saida = {k: v for k, v in it.items() if not k.startswith("_") and k != "caminho"}
             saida["url"] = "/previa?tipo=arquivo&id=" + quote(it["caminho"], safe="")
-            # O ARQUIVO É A IDENTIDADE DA ESCOLHA (P73): é o que o «Usar este
-            # ícone» manda de volta, e o que o `icones-escolhidos.map` guarda.
+            # O ARQUIVO É A IDENTIDADE DA ESCOLHA: é o que o «Usar este ícone»
+            # manda de volta, e o que o `icones-escolhidos.map` guarda.
             saida["arquivo"] = self._arquivo_na_ficha(it["caminho"])
             saida["sugerido"] = any(p in it["_texto"] for p in palpites)
             glifos.append(saida)
@@ -9997,17 +8178,16 @@ class Manipulador(BaseHTTPRequestHandler):
             g["achados"] = achados.get(g["id"], 0)
             g.pop("pasta", None)
         pack, _desenhos, aviso = self._desenhos_do_pack_no_ar()
-        # A FICHA PERGUNTA POR APLICATIVO — 25/09/2026, P64. O `pack` é o pack
-        # que a ficha pode oferecer, e a `escolha` é a do painel para ESTE
-        # aplicativo no mapa do pack, que acende o «Desfazer a escolha no pack».
+        # A FICHA PERGUNTA POR APLICATIVO. O `pack` é o pack que a ficha pode
+        # oferecer, e a `escolha` é a do painel para ESTE aplicativo no mapa do
+        # pack, que acende o «Desfazer a escolha no pack».
         app_ok = bool(re.match(r"^[A-Za-z0-9._+-]{1,120}$", app))
         extra = {"aviso": aviso,
                  "pack": {"id": pack["id"], "nome": pack["nome"]} if pack and not aviso else None,
                  "escolha": (self._escolha_no_pack(pack, app) if pack and app_ok else None),
-                 # A escolha do painel para ESTE app, no estado de quem usa (P73):
-                 # acende o «Desfazer» e, se o desenho é do pack no ar, o «Levar
-                 # para o pack».
-                 "minha": self._minha_escolha(app) if app_ok else None}
+                 "minha": self._minha_escolha(app) if app_ok else None,
+                 # O que veste o app agora: a ficha o marca.
+                 "veste": self._o_que_veste(app) if app_ok else None}
         # `limitado` fica, sempre falso: é o campo que dizia «a lista foi
         # cortada», e nenhuma resposta corta mais.
         return self._json(dict({"grupos": grupos, "glifos": glifos, "limitado": False}, **extra))
@@ -10054,7 +8234,7 @@ class Manipulador(BaseHTTPRequestHandler):
         d = next((x for x in self._desktops() if x["id"] == app), None) or {"id": app}
         rotulo = d.get("nome") or app
         # A TRAVA DO PACK VALE PARA TODO DESENHO QUE VAI AO `scalable/apps`: é o
-        # mesmo arquivo, de onde quer que o desenho venha (P60, P64).
+        # mesmo arquivo, de onde quer que o desenho venha.
         motivo = self._trava_do_pack(d, rotulo)
         if motivo:
             return self._json({"erro": motivo}, 409)
@@ -10092,9 +8272,6 @@ class Manipulador(BaseHTTPRequestHandler):
         if not app or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
             return self._json({"erro": "aplicativo inválido"}, 400)
 
-        # LEVAR PARA O PACK — o gesto explícito da P21. Feito, a escolha deixa de
-        # morar com quem usa: a linha do pack é ela, e duas fontes para o mesmo
-        # nome seria o empate que a P28 proíbe.
         if corpo.get("pack") and not remover:
             pack, _desenhos, _aviso = self._desenhos_do_pack_no_ar()
             resposta = self._escolher_do_pack(app, corpo)
@@ -10106,11 +8283,11 @@ class Manipulador(BaseHTTPRequestHandler):
                 except OSError:
                     pass
             return resposta
-        # E O DESFAZER DELA — P64.
+        # E O DESFAZER DELA.
         if corpo.get("pack"):
             return self._desfazer_do_pack(app, corpo)
 
-        # DESFAZER A MINHA ESCOLHA DE DESENHO — P73.
+        # DESFAZER A MINHA ESCOLHA DE DESENHO.
         if remover and corpo.get("escolha"):
             try:
                 havia = _gravar_escolha(_mapa_de_escolhas_do_usuario(),
@@ -10129,10 +8306,9 @@ class Manipulador(BaseHTTPRequestHandler):
             if item.get("tipo") != "traco":
                 return self._escolher_desenho(app, item)
 
-        # A TRANCA DO BOTÃO QUE NÃO PODE VALER — ver `_travas_do_arcticons`. A
-        # página já não o oferece; o servidor recusa mesmo assim, porque um POST
-        # direto gravaria a linha, e num app do acervo convertido ela pararia o
-        # passo dos ícones de todo mundo. Tirar a linha continua sempre valendo.
+        # A página já não o oferece; o servidor recusa mesmo assim, porque um
+        # POST direto gravaria a linha, e num app do acervo convertido ela
+        # pararia o passo dos ícones de todo mundo.
         if not remover:
             d = next((x for x in self._desktops() if x["id"] == app), None) or {}
             motivo = self._motivo_da_trava(self._travas_do_arcticons(),
@@ -10142,7 +8318,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         caminho = _mapa_de_traco_do_usuario()
         # O `fica` é o ícone que sobra, para a torrada não dizer «de fábrica»
-        # com o desenho do pack na tela (P64, `_o_que_fica`).
+        # com o desenho do pack na tela.
         if remover:
             try:
                 havia = _gravar_escolha(caminho, app, None, ":")
@@ -10151,19 +8327,17 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"ok": True, "removido": havia, "app": app,
                                "fica": self._o_que_fica(app)})
 
-        # O GLIFO É O NOME EM `arcticons-apps/`, OU O CAMINHO DE OUTRA PASTA DE
-        # TRAÇO DA FICHA — P73. Até aqui um glifo fora de `arcticons-apps/` era
-        # COPIADO do `upstream/` para lá: o repositório ganhava arquivo a cada
-        # escolha. A ficha só oferece o que já está no repositório, e o
-        # `icones_apps_arcticons.sh` lê o caminho direto da pasta dele.
-        trazer = os.path.join(RAIZ, "assets", "icones", "arcticons-apps")
+        # Até aqui um glifo fora de `arcticons-apps/` era COPIADO do
+        # `upstream/` para lá: o repositório ganhava arquivo a cada escolha.
+        trazer = os.path.join(ICONES_DO_MOTOR, "apps", "arcticons")
         if item:
             if os.path.dirname(os.path.normpath(item["caminho"])) == trazer:
                 glifo = item["glifo"]
             else:
                 glifo = self._arquivo_na_ficha(item["caminho"])
         if not re.match(r"^[a-z0-9._-]{1,60}$", glifo) and not (
-                item and re.match(r"^assets/icones/[A-Za-z0-9._+/-]{1,200}\.svg$", glifo)
+                item and re.match(r"^(assets/icones|packs/[a-z0-9][a-z0-9-]*/icones)/"
+                                  r"[A-Za-z0-9._+/-]{1,200}\.svg$", glifo)
                 and "/../" not in "/" + glifo + "/"):
             return self._json({"erro": "glifo inválido"}, 400)
         cores = set((_paleta_dados().get("ordem") or []))
@@ -10173,9 +8347,7 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "não achei o desenho '%s' no acervo" % glifo}, 404)
 
         # REPETIR GLIFO OU COR FAZ O GERADOR ESTOURAR, a menos que a linha diga
-        # `alias` — está no cabeçalho do mapa. A página não pode deixar ela cair
-        # nessa armadilha, então detecta a repetição e grava o `alias` sozinha,
-        # dizendo que fez isso.
+        # `alias` — está no cabeçalho do mapa.
         mapa = self._mapa_arcticons()
         repetido = any(m["glifo"] == glifo or m["cor"] == cor
                        for chave, m in mapa.items() if chave != app)
@@ -10184,12 +8356,8 @@ class Manipulador(BaseHTTPRequestHandler):
             _gravar_escolha(caminho, app, linha, ":")
         except OSError as e:
             return self._json({"erro": "não consegui guardar a escolha: %s" % e}, 500)
-        # O TRAÇO ESCOLHIDO DEPOIS DE UM DESENHO TIRA O DESENHO — conferência da
-        #   P73. A escolha de desenho mora no `scalable/apps`, que vence o
-        #   `48x48/apps` do traço: com as duas linhas no estado de quem usa, este
-        #   «Usar» respondia ok e a tela continuava com o desenho. A última
-        #   escolha é a que vale. O `tirou_escolha` avisa a página de que o passo
-        #   do pack também precisa rodar, para o desenho sair do tema.
+        # A última escolha é a que vale. O `tirou_escolha` avisa a página de que
+        # o passo do pack também precisa rodar, para o desenho sair do tema.
         mod = modulo_pack()
         nome = self._nome_do_icone(app)
         tirou = bool(mod and hasattr(mod, "escolhas_do_painel")
@@ -10205,27 +8373,12 @@ class Manipulador(BaseHTTPRequestHandler):
                            "tirou_escolha": tirou,
                            "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
 
-    # ========================================================================
-    # DESENHAR O ÍCONE DO PRÓPRIO APLICATIVO, PELA INTERFACE — 08/09/2026
-    # ========================================================================
-    # Pedido dela, literal: *"gostaria muito que o estilo de criação svg em
-    # alguma parte fosse automático e sugerisse dentro do meowsystem um icon svg
-    # já vetorizado pra cada app. já criando o que já fazemos mas permitindo pelo
-    # fato de ser svg que o user pudesse modificar ele depois."* — e, logo em
-    # seguida: *"tudo via interface."*
+    # O `scripts/converter_icone.py` traça a arte chapada, e o
+    # `construir_convertidos.sh` a instala.
     #
-    # O QUE JÁ EXISTIA, E POR QUE NÃO BASTAVA
-    #   O `scripts/converter_icone.py` traça a arte chapada desde 11/08, e o
-    #   `construir_convertidos.sh` a instala. Só que os dois só respondem a um
-    #   MAPA no repositório: para vestir um aplicativo novo era preciso abrir um
-    #   arquivo de texto, escrever o caminho da arte de origem, rodar dois
-    #   scripts e olhar o resultado num terminal. Nada disso é "via interface".
+    # O `/api/app-icone` ao lado cobre o outro caminho — ESCOLHER um desenho
+    # pronto do acervo Arcticons.
     #
-    #   O `/api/app-icone` ao lado cobre o outro caminho — ESCOLHER um desenho
-    #   pronto do acervo Arcticons. É escolha entre 14.996 desenhos de outra
-    #   gente; este aqui é o desenho DO aplicativo, e são coisas diferentes.
-    #
-    # TRÊS VERBOS, UMA PORTA
     #   `vetorizar`  roda o conversor na arte de fábrica e DEVOLVE o SVG. Não
     #                escreve um byte — é uma sugestão, e ela pode recusar.
     #   `ler`        devolve o retoque que já existe, para ela editar de novo em
@@ -10233,23 +8386,8 @@ class Manipulador(BaseHTTPRequestHandler):
     #   `salvar`     grava o texto que ela aprovou em `retoques/<app>.svg` e a
     #                linha `<app>:mao:<cor>` no `apps-convertidos.map`.
     #
-    # POR QUE O SALVAR ESCREVE OS DOIS ARQUIVOS DO ACERVO
-    #   `construir_convertidos.sh` leva 4,4 s (medido: ele reconverte os 33 para
-    #   comparar), e um servidor HTTP que trava quatro segundos numa rota é um
-    #   servidor que parece morto. Para uma linha `mao` o que aquele script faz é
-    #   exatamente `cat retoques/<nome>.svg` — está escrito no `_desejado_de`
-    #   dele. Então a rota escreve o construído junto, no MESMO formato
-    #   (`meow_escrever` grava com `printf '%s'`, sem o `\n` final — daí o
-    #   `rstrip`), e o construtor continua sendo a autoridade: rodá-lo depois é
-    #   uma passagem que não muda nada.
-    #
-    # O DIALETO É CONFERIDO NA ENTRADA, e as duas AUSÊNCIAS são o coração dele.
-    #   `retoques/LEIA-ME.txt` diz: sem `stroke-width` e sem cor. A espessura vem
-    #   do `TRACO` do `icones_apps_arcticons.sh` e a cor vem da paleta pelo campo
-    #   3 do mapa. Gravar qualquer um dos dois aqui criaria um segundo dono da
-    #   mesma decisão — e o `stroke-width` duplicado é XML inválido, que o
-    #   rasterizador recusa calado. Por isso a recusa é do SERVIDOR: é aqui que a
-    #   escrita mora, e é aqui que ela tem de valer contra um POST forjado.
+    # A recusa do SVG é do servidor: é aqui que a escrita mora, e é aqui que ela
+    # tem de valer contra um POST forjado.
     _SVG_PROIBIDO = re.compile(
         r"<\s*(script|style|image|foreignObject|iframe|use)\b"
         r"|xlink:|href\s*=|\bon[a-z]+\s*=|url\s*\(|@import",
@@ -10298,27 +8436,13 @@ class Manipulador(BaseHTTPRequestHandler):
         candidatos.sort()
         return candidatos[0][3]
 
-    # ========================================================================
-    # O NOME DO ARQUIVO É O DO `Icon=`, NUNCA O DO `.desktop` — 08/09/2026
-    # ========================================================================
-    # Achado ao atender o pedido dela de usar a oficina nos jogos da Steam. O
-    # `.desktop` de um jogo se chama `meow-steam-1715980` e o `Icon=` dele diz
+    # O `.desktop` de um jogo se chama `meow-steam-1715980` e o `Icon=` dele diz
     # `steam_icon_1715980` — dois nomes, e só o SEGUNDO é procurado pelo tema.
     #
     # Gravar sob o id produzia `48x48/apps/meow-steam-1715980.svg`: um arquivo
-    # correto, no diretório certo, que NINGUÉM procura. O desenho dela ficaria no
-    # disco sem nunca aparecer na tela — o pior desfecho possível, porque parece
-    # que funcionou. É o mesmo modo de falha que o `icones_apps_arcticons.sh`
-    # documenta sobre a curadoria: "a escolha dela ficaria no disco sem nunca
-    # aparecer na tela".
+    # correto, no diretório certo, que NINGUÉM procura.
     #
-    # Nos aplicativos comuns os dois nomes são iguais e nada muda. O
-    # `apps-convertidos.map` já era chaveado assim, aliás: `vscode` (o `.desktop`
-    # é `code.desktop`) e `meow-whatsapp` são nomes de ÍCONE, não de arquivo.
-    #
-    # E ele é resolvido no SERVIDOR, a partir do `.desktop`, não recebido do
-    # cliente: um nome escolhido pelo navegador seria um nome livre escrevendo
-    # num diretório do repositório.
+    # Nos aplicativos comuns os dois nomes são iguais e nada muda.
     def _nome_do_icone(self, app):
         d = next((x for x in self._desktops() if x["id"] == app), None)
         nome = ((d or {}).get("icone") or app).strip()
@@ -10330,8 +8454,12 @@ class Manipulador(BaseHTTPRequestHandler):
         return nome
 
     def _caminho_retoque(self, app):
-        return os.path.join(RAIZ, "assets", "icones", "convertidos-apps",
-                            "retoques", app + ".svg")
+        """O retoque de quem usa (P82, item 5): é onde a oficina grava."""
+        return _oficina_do_usuario("retoques", app + ".svg")
+
+    def _retoque_do_projeto(self, app):
+        """O retoque que veio com o clone (o do Gradia, por exemplo)."""
+        return os.path.join(ICONES_DO_MOTOR, "apps", "convertidos", "retoques", app + ".svg")
 
     def _vizinhos_do_dock(self):
         """Os dois vizinhos da tira: a PRIMEIRA e a ÚLTIMA linha de dados do
@@ -10342,7 +8470,7 @@ class Manipulador(BaseHTTPRequestHandler):
         trocasse o primeiro ícone do acervo. Hoje saem `btop` (maroon) e
         `dev.edfloreshz.CosmicTweaks` (lavender).
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
+        caminho = os.path.join(ICONES_DO_MOTOR, "apps-arcticons.map")
         linhas = []
         try:
             with open(caminho, "r", encoding="utf-8") as fh:
@@ -10357,7 +8485,7 @@ class Manipulador(BaseHTTPRequestHandler):
             campos = [c.strip() for c in corte.split(":")]
             if len(campos) < 3 or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", campos[1]):
                 continue
-            arte = os.path.join(RAIZ, "assets", "icones", "arcticons-apps",
+            arte = os.path.join(ICONES_DO_MOTOR, "apps", "arcticons",
                                 campos[1] + ".svg")
             try:
                 with open(arte, "r", encoding="utf-8") as fh:
@@ -10373,19 +8501,20 @@ class Manipulador(BaseHTTPRequestHandler):
         `retoques/`", e qualquer outra coisa é um caminho de arte chapada, isto
         é, uma linha que o `construir_convertidos.sh` sabe refazer sozinho.
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                for linha in fh:
-                    corte = linha.strip()
-                    if not corte or corte.startswith("#"):
-                        continue
-                    campos = [c.strip() for c in corte.split(":", 2)]
-                    if campos[0] != nome or len(campos) < 2:
-                        continue
-                    return "mao" if campos[1] == "mao" else "conversao"
-        except OSError:
-            return ""
+        for caminho in (_mapa_de_convertidos_do_usuario(),
+                        os.path.join(ICONES_DO_MOTOR, "apps-convertidos.map")):
+            try:
+                with open(caminho, "r", encoding="utf-8") as fh:
+                    for linha in fh:
+                        corte = linha.strip()
+                        if not corte or corte.startswith("#"):
+                            continue
+                        campos = [c.strip() for c in corte.split(":", 2)]
+                        if campos[0] != nome or len(campos) < 2:
+                            continue
+                        return "mao" if campos[1] == "mao" else "conversao"
+            except OSError:
+                continue
         return ""
 
     def _salvo_do_app(self, nome):
@@ -10396,8 +8525,10 @@ class Manipulador(BaseHTTPRequestHandler):
         conversor. Mostrar o construído havendo retoque seria mostrar a versão
         que perde.
         """
-        conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        conv = os.path.join(ICONES_DO_MOTOR, "apps", "convertidos")
         for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
+                                 (_oficina_do_usuario("convertidos-apps", nome + ".svg"), "conversao"),
+                                 (self._retoque_do_projeto(nome), "mao"),
                                  (os.path.join(conv, nome + ".svg"), "conversao")):
             try:
                 with open(caminho, "r", encoding="utf-8") as fh:
@@ -10423,8 +8554,7 @@ class Manipulador(BaseHTTPRequestHandler):
         recebido do cliente), e o alvo real tem de cair dentro da pasta
         `retoques/` depois do `realpath`.
         """
-        pasta = os.path.realpath(os.path.join(RAIZ, "assets", "icones",
-                                              "convertidos-apps", "retoques"))
+        pasta = os.path.realpath(_oficina_do_usuario("retoques"))
         alvo = os.path.realpath(self._caminho_retoque(nome))
         if not alvo.startswith(pasta + os.sep) or not os.path.isfile(alvo):
             return False
@@ -10474,16 +8604,9 @@ class Manipulador(BaseHTTPRequestHandler):
                     alvo = ""
             if not alvo or not alvo.endswith(".desktop") or "/" in alvo:
                 return _EDITOR_SVG
-            # O NOME É O DO LANÇADOR, E QUEM O LÊ É O `_desktops` — 24/09/2026,
-            # revisão da P57. Aqui morava um leitor próprio do `Name=` cru, com
-            # este porquê: "pegar a primeira [chave] que casasse daria o nome
-            # traduzido de um aplicativo e o original de outro na mesma tela". A
-            # P57 inverteu a conta: a grade de Ícones, na mesma tela, passou a
-            # dizer o `Name[…]` da sessão, e era este botão que misturava. Com o
-            # leitor da grade o nome é o mesmo dos dois lados, e o `.desktop`
-            # também: o daqui parava no PRIMEIRO achado na ordem do
-            # `DIRS_DESKTOP` (o do sistema), e o `_desktops` deixa o de depois
-            # vencer (o da usuária), como o lançador.
+            # Aqui morava um leitor próprio do `Name=` cru, com este porquê:
+            # "pegar a primeira [chave] que casasse daria o nome traduzido de um
+            # aplicativo e o original de outro na mesma tela".
             ident = alvo[:-len(".desktop")]
             d = next((x for x in self._desktops() if x["id"] == ident), None)
             _EDITOR_SVG = {"tem": True, "nome": (d or {}).get("nome") or ident}
@@ -10517,6 +8640,8 @@ class Manipulador(BaseHTTPRequestHandler):
         if acao == "ler":
             alvo = self._caminho_retoque(nome)
             if not os.path.isfile(alvo):
+                alvo = self._retoque_do_projeto(nome)
+            if not os.path.isfile(alvo):
                 return self._json({"ok": True, "svg": "", "tem": False})
             try:
                 with open(alvo, "r", encoding="utf-8") as fh:
@@ -10525,18 +8650,12 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": "não consegui ler o desenho: %s" % e}, 500)
 
         # ---------------------------------------------------------- o editor dela
-        # 09/09/2026, pedido dela: *"o botão svg deveria abrir o svg no app que eu
-        # tiver se eu editar lá."*
         #
-        # SÃO DUAS AÇÕES E NÃO UMA, PORQUE O CAMINHO DE VOLTA É O QUE IMPORTA
-        #   `editor` grava o rascunho e chama o handler; `editor-ler` é a
-        #   pergunta "mudou?" que a página repete enquanto ela desenha lá fora.
-        #   Sem a segunda, o recurso é via de mão única: ela salva no Boxy SVG, o
-        #   painel continua mostrando o desenho de antes, e a conclusão honesta
-        #   de quem olha é "não funcionou".
+        # `editor` grava o rascunho e chama o handler; `editor-ler` é a pergunta
+        # "mudou?" que a página repete enquanto ela desenha lá fora.
         #
-        #   A pergunta é o `mtime`, não o conteúdo: `os.stat` custa nada e a
-        #   resposta só carrega o SVG no ciclo em que ele mudou de verdade.
+        # A pergunta é o `mtime`, não o conteúdo: `os.stat` custa nada e a
+        # resposta só carrega o SVG no ciclo em que ele mudou de verdade.
         if acao in ("editor", "editor-ler"):
             alvo = self._caminho_rascunho(nome)
             if not alvo:
@@ -10551,10 +8670,7 @@ class Manipulador(BaseHTTPRequestHandler):
                     visto = float(corpo.get("mtime") or 0)
                 except (TypeError, ValueError):
                     visto = 0.0
-                # A COMPARAÇÃO É `!=`, E NÃO `>`. Um editor que grava por
-                # arquivo temporário e `rename` pode devolver um `mtime` MENOR
-                # que o que o painel acabou de escrever (o temporário nasceu
-                # antes). Com `>` a volta se perderia justamente no editor mais
+                # Com `>` a volta se perderia justamente no editor mais
                 # cuidadoso.
                 if abs(mtime - visto) < 0.0005:
                     return self._json({"ok": True, "tem": True, "mudou": False, "mtime": mtime})
@@ -10563,11 +8679,7 @@ class Manipulador(BaseHTTPRequestHandler):
                         texto = fh.read(200000)
                 except OSError as e:
                     return self._json({"erro": "não consegui reler o rascunho: %s" % e}, 500)
-                # O AVISO VEM JUNTO, e não no «Usar». Boxy SVG e Inkscape gravam
-                # o que o formato deles pede — `<defs>`, metadado, às vezes cor
-                # chapada — e o `_conferir_dialeto` recusa. Dizer isso agora, na
-                # volta, é uma linha; descobrir no «Usar» é ela achar que perdeu
-                # o trabalho.
+                # O AVISO VEM JUNTO, e não no «Usar».
                 return self._json({"ok": True, "tem": True, "mudou": True,
                                    "mtime": mtime, "svg": texto,
                                    "aviso": self._conferir_dialeto(texto)})
@@ -10580,8 +8692,7 @@ class Manipulador(BaseHTTPRequestHandler):
             if erro:
                 # A RECUSA NA IDA É A MESMA DO «USAR», e é de propósito: o que
                 # sai daqui para um programa de fora é o mesmo texto que sairia
-                # para o disco. Duas cercas diferentes para o mesmo desenho
-                # seriam duas verdades sobre o que este painel aceita.
+                # para o disco.
                 return self._json({"erro": erro}, 400)
             try:
                 os.makedirs(_OFICINA_RASCUNHO, exist_ok=True)
@@ -10591,13 +8702,9 @@ class Manipulador(BaseHTTPRequestHandler):
             except OSError as e:
                 return self._json({"erro": "não consegui gravar o rascunho: %s" % e}, 500)
 
-            # SEM JANELA QUANDO O PAINEL SUBIU SEM JANELA — 13/09/2026
-            #   Era o ensaio que parava aqui, depois de gravar o rascunho e antes
-            #   de abrir o editor, e era isso que deixava a suíte do navegador
-            #   passar por esta rota sem pôr um Inkscape na tela dela. O ensaio
-            #   saiu; quem diz agora que não há ninguém olhando é o `run.sh
-            #   --sem-abrir`, com `MEOW_APP_SEM_JANELA=1`. O rascunho é gravado
-            #   do mesmo jeito: ele mora fora do repositório.
+            # Era o ensaio que parava aqui, depois de gravar o rascunho e antes
+            # de abrir o editor, e era isso que deixava a suíte do navegador
+            # passar por esta rota sem pôr um Inkscape na tela dela.
             if os.environ.get("MEOW_APP_SEM_JANELA") == "1":
                 return self._json({"ok": True, "sem_janela": True, "caminho": alvo,
                                    "mtime": mtime, "editor": editor,
@@ -10608,10 +8715,10 @@ class Manipulador(BaseHTTPRequestHandler):
             if not lancador:
                 return self._json({"erro": "esta máquina não tem quem abra um SVG"}, 404)
             try:
-                # SEM `shell=True` E SEM ESPERAR. O `argv` é lista, o único
-                # pedaço que não é constante é o caminho que ESTE arquivo
-                # montou, e o processo é solto: um editor demora minutos, e
-                # esperar por ele travaria a rota (e, com ela, a página).
+                # O `argv` é lista, o único pedaço que não é constante é o
+                # caminho que ESTE arquivo montou, e o processo é solto: um
+                # editor demora minutos, e esperar por ele travaria a rota
+                # (e, com ela, a página).
                 subprocess.Popen(lancador + [alvo],
                                  stdin=subprocess.DEVNULL,
                                  stdout=subprocess.DEVNULL,
@@ -10623,16 +8730,13 @@ class Manipulador(BaseHTTPRequestHandler):
                                "editor": editor})
 
         # ------------------------------------------------------------ variações
-        # A FOLHA INTEIRA NUMA CHAMADA — 09/09/2026, e é a resposta à primeira
-        # queixa dela: *"não gera variações"*. Até ontem eram um clique, um
-        # desenho, e para ver outro era mexer num número e clicar de novo — quem
-        # não sabe o que o número faz não mexe, e a oficina virava um botão só.
+        # Até ontem eram um clique, um desenho, e para ver outro era mexer num
+        # número e clicar de novo — quem não sabe o que o número faz não mexe, e
+        # a oficina virava um botão só.
         #
         # As conversões vão para um `ThreadPoolExecutor`: em série foram 1,42 s
         # medidos para as seis do ícone, e a mais cara de todas é a capa de um
-        # jogo da Steam, 2,38 s sozinha (460x215 de ilustração, 105 traços). Em
-        # paralelo a folha custa a MAIS LENTA, não a soma — e o cache faz a
-        # segunda visita à mesma ficha não converter nada.
+        # jogo da Steam, 2,38 s sozinha (460x215 de ilustração, 105 traços).
         if acao == "variacoes":
             d = next((x for x in self._desktops() if x["id"] == app), None)
             if not d:
@@ -10642,8 +8746,6 @@ class Manipulador(BaseHTTPRequestHandler):
             tem_cheia = _conversor_tem_cheia()
             tarefas = []
             for pid, rotulo, det, sua, chei, fonte, frac, mini in PRESETS_DESENHO:
-                # Sem `--cheia` no conversor de hoje o cartão não é oferecido —
-                # a oficina não espera a Sprint Q para funcionar.
                 if chei and not tem_cheia:
                     continue
                 arte = capa if fonte == "capa" else origem
@@ -10677,16 +8779,6 @@ class Manipulador(BaseHTTPRequestHandler):
                             cartao["svg"] = svg
                             cartao["nota"] = nota
                         variacoes.append(cartao)
-            # O DESENHO DO PACK É UMA ORIGEM, E VEM ANTES DAS CONVERSÕES
-            #   — 23/09/2026, sprint P26. Ver `_desenhos_de_pack`. O SVG vai no
-            #   cartão, inteiro: é arte acabada, de 6 a 10 cores, e a página a
-            #   desenha como IMAGEM, nunca pelo `desenhar()` do traço, que
-            #   poria `stroke-width` e `currentColor` por cima dela.
-            #
-            #   `em_vigor` é o que a oficina precisa para não trocar calada: ela
-            #   marca o cartão do pack ao abrir, e quando ele NÃO é o que está
-            #   na tela, diz quem está (`em_vigor`, abaixo) antes de qualquer
-            #   clique. Escolher continua não gravando nada.
             tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
             atual, nosso = self._icone_na_tela(
                 d, os.path.expanduser("~/.local/share/icons/%s" % tema))
@@ -10716,13 +8808,10 @@ class Manipulador(BaseHTTPRequestHandler):
             d = next((x for x in self._desktops() if x["id"] == app), None)
             if not d:
                 return self._json({"erro": "não achei o .desktop de %s" % app}, 404)
-            # A CAPA COMO SEGUNDA FONTE — 08/09/2026
-            #   Um jogo da Steam tem DUAS artes, e elas dizem coisas diferentes:
-            #   o `steam_icon_<appid>.png` (o ícone, 256 px, uma marca) e a
-            #   `library_capsule.jpg` (a capa, ilustração inteira com o título
-            #   escrito). A capa dá desenho mais rico e quase sempre ilegível a
-            #   48 px — mas isso é para ela ver e decidir, que é a razão de a
-            #   oficina mostrar os dois tamanhos lado a lado.
+            # Um jogo da Steam tem DUAS artes, e elas dizem coisas diferentes: o
+            # `steam_icon_<appid>.png` (o ícone, 256 px, uma marca) e a
+            # `library_capsule.jpg` (a capa, ilustração inteira com o título
+            # escrito).
             fonte = str(corpo.get("fonte", "icone")).strip()
             if fonte == "capa":
                 origem = self._arte_da_capa(app)
@@ -10741,17 +8830,9 @@ class Manipulador(BaseHTTPRequestHandler):
                     "erro": "não achei arte de fábrica para %s — este é o caso "
                             "de desenhar do zero na caixa abaixo" % app}, 404)
 
-            # DOIS CAMINHOS, DUAS CERCAS. As réguas (`detalhe`/`suavidade`/
-            # `fracas`/`minimo`) são o caminho da tela e a cerca delas é o
-            # `_parametros_de`, que prende em 0…10 antes de fazer conta. Os três
-            # números soltos continuam valendo para quem chama a porta de fora,
-            # com a faixa de 08/09.
-            #
-            # O GATILHO CONTINUA SENDO `detalhe`/`suavidade`, e não as quatro:
-            # as duas réguas novas nascem em 0, e um corpo que mandasse só
-            # `fracas: 0` cairia no caminho dos três números soltos com nenhum
-            # deles preenchido — ou seja, converteria com o padrão do conversor
-            # em vez do preset. As duas velhas são as que a tela sempre manda.
+            # As réguas (`detalhe`/`suavidade`/ `fracas`/`minimo`) são o caminho
+            # da tela e a cerca delas é o `_parametros_de`, que prende em 0…10
+            # antes de fazer conta.
             if corpo.get("detalhe") not in (None, "") or corpo.get("suavidade") not in (None, ""):
                 argv_extra, texto = _parametros_de(corpo.get("detalhe", 6),
                                                    corpo.get("suavidade", 2),
@@ -10795,34 +8876,23 @@ class Manipulador(BaseHTTPRequestHandler):
         if erro:
             return self._json({"erro": erro}, 400)
 
-        # O MODO É DECIDIDO PELA MEDIDA, NÃO PELO QUE O CLIENTE DIZ — 09/09/2026
-        #   Uma linha `<nome>:<origem>:<cor>:<parâmetros>` é uma PROMESSA: o
-        #   `construir_convertidos.sh` vai refazer aquele desenho a partir da
-        #   origem, com aqueles botões, e esperar o mesmo arquivo. Se ela tirou
-        #   um traço com um clique na lupa, a promessa é falsa, e o construtor
-        #   passa a gritar "divergente" para sempre. Então o servidor reconverte
-        #   e COMPARA: igual vira linha regenerável; qualquer diferença — ou a
-        #   capa, cujo caminho na Steam tem um hash que muda — vira retoque à
-        #   mão, que é a forma de gravar que nunca mente.
+        # Uma linha `<nome>:<origem>:<cor>:<parâmetros>` é uma PROMESSA: o
+        # `construir_convertidos.sh` vai refazer aquele desenho a partir da
+        # origem, com aqueles botões, e esperar o mesmo arquivo.
         d = next((x for x in self._desktops() if x["id"] == app), None)
         fonte = str(corpo.get("fonte", "icone")).strip()
         argv_conv = _parametros_relidos(corpo.get("parametros"))
         texto_param = " ".join(argv_conv) if argv_conv else ""
         origem_arte = self._arte_de_fabrica(d) if d else ""
-        # UMA ORIGEM DENTRO DA CASA DELA NÃO VIRA LINHA DE MAPA — 09/09/2026
-        #   Medido ao exercitar a rota: o GIMP daqui não vem do Papirus, vem do
-        #   flatpak de usuária, em `/home/<usuário>/.local/share/flatpak/...`.
-        #   Gravar isso no `apps-convertidos.map` faria duas coisas erradas de
-        #   uma vez. O repositório é PÚBLICO desde 06/09, e o campo levaria o
-        #   nome dela para dentro de um arquivo versionado — é exatamente o que a
-        #   varredura de segurança procura. E o `_ler_mapa` do
-        #   `construir_convertidos.sh` não expande `~`: numa segunda máquina a
-        #   linha vira aviso de origem que não existe, e o ícone some da conta.
-        #   Nenhuma das 33 linhas de hoje tem `/home/` — e não é acaso.
+        # Medido ao exercitar a rota: o GIMP daqui não vem do Papirus, vem do
+        # flatpak de usuária, em `/home/<usuário>/.local/share/flatpak/...`.
         #
-        #   O desenho é gravado do mesmo jeito; o que muda é a ESPÉCIE: retoque à
-        #   mão, que não promete nada a ninguém, em vez de uma linha regenerável
-        #   que só se regenera nesta casa.
+        # O desenho é gravado do mesmo jeito; o que muda é a ESPÉCIE: retoque à
+        # mão, que não promete nada a ninguém, em vez de uma linha regenerável
+        # que só se regenera nesta casa.
+        #
+        # Origem dentro da casa não vira linha de mapa: o repositório é público (o caminho
+        # levaria o nome de usuário) e o `_ler_mapa` não expande `~`.
         casa = os.path.realpath(os.path.expanduser("~")) + os.sep
         da_casa = bool(origem_arte) and os.path.realpath(origem_arte).startswith(casa)
         modo = "mao"
@@ -10833,10 +8903,11 @@ class Manipulador(BaseHTTPRequestHandler):
             if not erro_conv and feito.rstrip() == svg.rstrip():
                 modo = "conversao"
 
-        conv = os.path.join(RAIZ, "assets", "icones", "convertidos-apps")
+        conv = _oficina_do_usuario("convertidos-apps")
         tirou_retoque = False
         try:
-            os.makedirs(os.path.join(conv, "retoques"), exist_ok=True)
+            os.makedirs(conv, exist_ok=True)
+            os.makedirs(_oficina_do_usuario("retoques"), exist_ok=True)
             if modo == "mao":
                 with open(self._caminho_retoque(nome), "w", encoding="utf-8") as fh:
                     fh.write(svg if svg.endswith("\n") else svg + "\n")
@@ -10874,10 +8945,8 @@ class Manipulador(BaseHTTPRequestHandler):
             return ("tire o stroke-width: a espessura vem do TRACO do "
                     "icones_apps_arcticons.sh, e duplicá-la é XML inválido")
         if re.search(r"#[0-9A-Fa-f]{3,8}\b|rgba?\s*\(|hsla?\s*\(", texto):
-            # «ABAIXO» DEIXOU DE SER VERDADE EM 09/09/2026: a única fileira de
-            # cor era a do acervo, embaixo da oficina; agora a oficina tem a
-            # dela, ACIMA da caixa de texto. A frase passa a nomear o controle
-            # em vez de apontar para um lado da tela.
+            # A frase passa a nomear o controle em vez de apontar para um lado
+            # da tela.
             return "tire a cor: ela vem da paleta, pelo campo «Cor»"
         if 'stroke="currentColor"' not in texto:
             return 'falta stroke="currentColor" — é assim que a cor entra'
@@ -10900,12 +8969,14 @@ class Manipulador(BaseHTTPRequestHandler):
         diferença entre um ícone que acompanha uma atualização do Papirus e um
         que congela no dia em que foi salvo.
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-convertidos.map")
+        caminho = _mapa_de_convertidos_do_usuario()
         try:
             with open(caminho, "r", encoding="utf-8") as fh:
                 linhas = fh.read().split("\n")
+        except FileNotFoundError:
+            linhas = ["# os desenhos da oficina do painel — o mesmo formato do apps-convertidos.map", ""]
         except OSError as e:
-            return "não achei o mapa dos convertidos: %s" % e
+            return "não consegui ler o mapa dos convertidos: %s" % e
         linha = "%s:%s:%s" % (app, origem or "mao", cor)
         if extra:
             linha += ":" + extra
@@ -10927,36 +8998,19 @@ class Manipulador(BaseHTTPRequestHandler):
             ultima = max((i for i, l in enumerate(linhas) if id_da_linha(l)), default=None)
             linhas.insert(ultima + 1 if ultima is not None else len(linhas), linha)
         try:
+            os.makedirs(os.path.dirname(caminho), exist_ok=True)
             with open(caminho, "w", encoding="utf-8") as fh:
                 fh.write("\n".join(linhas))
         except OSError as e:
             return "não consegui gravar o mapa: %s" % e
         return ""
 
-    # ========================================================================
-    # A OFICINA DE AUTORAL: O GERADOR QUE JÁ EXISTE, COM TELA — 23/09/2026
-    # ========================================================================
-    # Sprint P26, item 5: *"escolher os papéis, ver a prévia nos quatro fundos,
-    # salvar no pack. É o gerador que já existe, com tela."*
+    # Ler, conferir e desenhar uma declaração é do `scripts/pack.py`
+    # (`ler_autoral`, `desenhar_autoral`, `autorais`), e é a mesma porta que o
+    # `gerar_icones_autorais.py` usa — a prévia desta tela e o arquivo que o
+    # gerador escreve saem da mesma função, e por isso não podem discordar.
     #
-    # O FORMATO NÃO MORA AQUI. Ler, conferir e desenhar uma declaração é do
-    # `scripts/pack.py` (`ler_autoral`, `desenhar_autoral`, `autorais`), e é a
-    # mesma porta que o `gerar_icones_autorais.py` usa — a prévia desta tela e o
-    # arquivo que o gerador escreve saem da mesma função, e por isso não podem
-    # discordar.
-    #
-    # O PACK É O QUE ESTÁ NO AR (`_pack_adotado`). Ele alcança as declarações
-    # dele e as que herda — o Dracula mostra o FogStripper e o Hefesto do
-    # Catppuccin —, e SALVAR ESCREVE SEMPRE NELE: uma declaração herdada vira
-    # uma cópia no pack ativo, que dali em diante vence a de origem. É a regra
-    # do `onde`/`dir_acervo`: herdar é ler do vizinho; escrever é em casa.
-    #
-    # SALVAR É GESTO, E É O ÚNICO QUE ESCREVE. Escolher um papel repinta a
-    # prévia e não grava nada. A P21 já separou "o que o uso suja" de "o desenho
-    # que a pessoa adota, que vai para o pack dela por gesto explícito" — este
-    # botão é o segundo caso. O `.json` é gravado e o gerador roda para o pack,
-    # na paleta dele. Se o ícone chega à tela, a resposta diz MEDINDO — ver o
-    # `na_tela`, no fim.
+    # Escolher um papel repinta a prévia e não grava nada.
     def _api_autorais(self, corpo):
         mod = modulo_pack()
         if not mod:
@@ -11018,11 +9072,6 @@ class Manipulador(BaseHTTPRequestHandler):
             decl = dict(decl, papeis=novos)
 
         if acao == "previa":
-            # OS QUATRO FUNDOS SÃO DA PALETA DE CADA FLAVOR, e não uma cor
-            # escrita aqui: `crust` e `base` são o lançador, `overlay0` o
-            # meio-tom — o pior caso que o cabeçalho do gerador mediu — e
-            # `text` a claridade de um papel de parede claro, que foi onde o
-            # Gestor de Arquivos sumiu na tela dela.
             previas = []
             for flavor, cores in (paleta.get("flavors") or {}).items():
                 try:
@@ -11062,10 +9111,9 @@ class Manipulador(BaseHTTPRequestHandler):
         except OSError as e:
             return self._json({"erro": "não consegui gravar no pack: %s" % e}, 500)
 
-        # O GERADOR RODA PARA O PACK, NA PALETA DELE — como o `pack construir`.
-        #   `MEOW_PACK_DIR` é o que faz ele desenhar em Dracula e escrever em
-        #   `packs/dracula/`; `MEOW_PALETA` sai porque é o passo 1 da
-        #   precedência e venceria o pack. Sem `shell`, argv em lista.
+        # `MEOW_PACK_DIR` é o que faz ele desenhar em Dracula e escrever em
+        # `packs/dracula/`; `MEOW_PALETA` sai porque é o passo 1 da precedência
+        # e venceria o pack.
         ambiente = dict(os.environ)
         ambiente["MEOW_PACK_DIR"] = dir_pack
         ambiente.pop("MEOW_PALETA", None)
@@ -11079,22 +9127,12 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "gravei o desenho, e o gerador recusou: %s"
                                        % (r.stderr or r.stdout).strip()[-400:]}, 500)
 
-        # A TELA É MEDIDA, E NÃO PROMETIDA — 23/09/2026, revisão da P26
-        #   A torrada dizia sempre "chega à tela na próxima passagem dos
-        #   ícones", e nesta máquina isso só era verdade para o FogStripper. O
-        #   Hefesto veste a logo que ela desenhou (`__LOGO_DELA__` no
-        #   `completar_icones.sh`; o `hefesto.json` conta por quê), e um
-        #   desenho declarado sem linha na tabela `AUTORAL` de lá nasce no pack
-        #   e não veste ícone nenhum. Copiar aquela tabela para cá seria a
-        #   segunda verdade sobre ela; o que esta rota pode é MEDIR o tema.
+        # O Hefesto veste a logo que ela desenhou (`__LOGO_DELA__` no
+        # `completar_icones.sh`; o `hefesto.json` conta por quê), e um desenho
+        # declarado sem linha na tabela `AUTORAL` de lá nasce no pack e não
+        # veste ícone nenhum.
         #
-        #   A pergunta é "algum SVG do tema tem a FORMA deste desenho?". Cor e
-        #   <title> saem da comparação: cor é justamente o que salvar muda, e o
-        #   título carrega o flavor de quem gerou — o que está na tela pode ser
-        #   de outro acento, de um salvar anterior ou do pack de antes, e
-        #   continua sendo este desenho. Achou: a próxima passagem troca aquele
-        #   arquivo pelo novo. Não achou: o pack mudou e a tela não, e a página
-        #   diz isso em vez de prometer.
+        # A pergunta é "algum SVG do tema tem a FORMA deste desenho?".
         def _forma(texto):
             texto = re.sub(r"<title>.*?</title>", "", texto, flags=re.S)
             return re.sub(r"#[0-9A-Fa-f]{3,8}\b", "#", texto).strip()
@@ -11191,11 +9229,9 @@ class Manipulador(BaseHTTPRequestHandler):
         intocaveis, prefixos, curados, convertidos = travas
         nomes = [n for n in nomes if n]
         if any(n in intocaveis or (prefixos and n.startswith(prefixos)) for n in nomes):
-            return ("%s fica como está, por pedido seu. Só um desenho feito na "
-                    "oficina «Gerar ícone», acima, troca o dele." % rotulo)
+            return "Fica como está, por pedido seu; só a oficina «Gerar ícone» o troca"
         if any(n in curados for n in nomes):
-            return ("%s usa a arte que você escolheu na curadoria, e ela vence "
-                    "este acervo." % rotulo)
+            return "Usa a arte da sua curadoria, que vence este acervo"
         if any(n in convertidos for n in nomes):
             if not vigor:
                 return ("%s já tem desenho convertido do projeto. O traço dele se "
@@ -11218,24 +9254,20 @@ class Manipulador(BaseHTTPRequestHandler):
         morre em vez de escolher um vencedor calado. Quem desenhou à mão decidiu
         — o Arcticons sai, e o `48x48/apps` órfão some na varredura da mesma
         passagem, porque aquele script é dono único do diretório.
+
+        [P82, 15/10/2026 (item 5): era o `apps-arcticons.map` do clone que
+        perdia a linha. Agora o desenho da oficina mora no
+        `icones-convertidos.map` de quem usa, que o script lê por último e que
+        vence a linha do projeto; o que sai é a escolha de traço de quem usa
+        (`icones-traco.map`), que é a outra escolha dela para o mesmo app.]
         """
-        caminho = os.path.join(RAIZ, "assets", "icones", "apps-arcticons.map")
-        try:
-            with open(caminho, "r", encoding="utf-8") as fh:
-                linhas = fh.read().split("\n")
-        except OSError:
-            return False
-        fora = [l for l in linhas
-                if not (l.strip() and not l.strip().startswith("#")
-                        and l.strip().split(":")[0].strip() == app)]
-        if len(fora) == len(linhas):
+        caminho = _mapa_de_traco_do_usuario()
+        if not os.path.isfile(caminho):
             return False
         try:
-            with open(caminho, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(fora))
+            return bool(_gravar_escolha(caminho, app, None, ":"))
         except OSError:
             return False
-        return True
 
     def do_POST(self):
         alvo = urlparse(self.path)
@@ -11247,25 +9279,12 @@ class Manipulador(BaseHTTPRequestHandler):
         if not self._token_confere(consulta):
             return self._recusar(403, "token de sessão ausente ou errado")
         tamanho = int(self.headers.get("Content-Length") or 0)
-        # 1 MB bastava enquanto o POST só carregava chave e valor. Desde que a
-        # página envia ARQUIVO para o acervo (um papel de parede tem 2 a 8 MB, e
-        # base64 cresce um terço), o teto sobe — mas só para essa rota. As
-        # outras continuam recusando corpo grande, que é o que impede um POST
-        # forjado de encher a memória do servidor.
+        # 1 MB bastava enquanto o POST só carregava chave e valor.
         #
-        # 96 MB DESDE 06/09/2026, e o número saiu de uma medição, não de um
-        # arredondamento: os acervos que INSTALAM na máquina (fonte, tema de
-        # ponteiro, tema de ícones) recebem pacote de terceiro, e um Nerd Font
-        # completo passa dos 30 MB. Com o um terço que o base64 acrescenta, 20
-        # MB de teto recusavam metade do que ela tentaria enviar. O limite de
-        # DADOS continua menor e mora em cada acervo — este aqui só impede que o
-        # servidor leia da rede mais do que jamais aceitaria.
+        # Com o um terço que o base64 acrescenta, 20 MB de teto recusavam metade
+        # do que ela tentaria enviar.
         #
-        # 64 MB PARA O `.meowpack` — 23/09/2026, sprint P11. O maior pack daqui,
-        # o catppuccin inteiro, sai em 338 KB; o teto é para o pack que traz
-        # capturas de tela, que são raster e não comprimem. O limite do que o
-        # arquivo pode ABRIR mora no `scripts/pack.py` (TETO_MEOWPACK), que é
-        # quem abre.
+        # 64 MB PARA O `.meowpack`
         teto = {"/api/acervo": 96 << 20,
                 "/api/pack-importar": 64 << 20}.get(alvo.path, 1 << 20)
         if tamanho > teto:
@@ -11287,9 +9306,7 @@ class Manipulador(BaseHTTPRequestHandler):
         except OSError:
             return self._recusar(500, "não achei app/pagina/index.html")
         # O token entra na página UMA vez, aqui, e daí em diante vive só na
-        # memória do JavaScript. Ele não vai para localStorage (sobreviveria à
-        # sessão, e o token não deve) nem fica na barra de endereço depois do
-        # primeiro carregamento — o `app.js` o apaga da URL com `replaceState`.
+        # memória do JavaScript.
         texto = texto.replace("@TOKEN@", html.escape(TOKEN, quote=True))
         return self._responder(texto, tipo=TIPOS[".html"], plantar_cookie=True)
 
@@ -11300,7 +9317,10 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/pendencias":
             return self._json({"pendencias": pendencias()})
 
-        # Os packs com a vitrine — ver `packs_com_vitrine`. [23/09/2026, P15]
+        if caminho == "/api/precisa-de-gente":
+            return self._json({"itens": precisa_de_gente()})
+
+        # Os packs com a vitrine — ver `packs_com_vitrine`.
         if caminho == "/api/packs":
             return self._json({"packs": packs_com_vitrine()})
 
@@ -11329,15 +9349,10 @@ class Manipulador(BaseHTTPRequestHandler):
             except (KeyError, ValueError):
                 return self._json({"erro": "trabalho desconhecido"}, 404)
             linhas, total = trabalho.desde(inicio)
-            # A CASA SAI DA GAVETA NA IDA PARA A PÁGINA — 24/09/2026, P52
-            #   Os scripts imprimem o caminho expandido, e alguns imprimem
-            #   COMANDO para colar ("rode: LEITURA_COMPILAR=1 /home/<usuário>/
-            #   …/leitura_build.sh", "meow wallpaper permitir /home/<usuário>/
-            #   …"). A troca é aqui, e não nas dezenas de `meow_info` que
-            #   imprimem caminho: é o único cano entre a saída e a tela. As
-            #   linhas guardadas no trabalho seguem cruas — quem as lê é só
-            #   esta rota, e o terminal e o `meow log` continuam com o caminho
-            #   inteiro, que lá é da própria máquina.
+            # Os scripts imprimem o caminho expandido, e alguns imprimem
+            # COMANDO para colar ("rode: LEITURA_COMPILAR=1 /home/<usuário>/
+            # …/leitura_build.sh", "meow wallpaper permitir /home/<usuário>/
+            # …").
             linhas = [texto_na_tela(l) for l in linhas]
             return self._json({
                 "id": trabalho.id, "rotulo": trabalho.rotulo,
@@ -11347,9 +9362,6 @@ class Manipulador(BaseHTTPRequestHandler):
             })
 
         # LEVAR EMBORA — as duas saídas do botão "Exportar".
-        #   `.conf` é o arquivo dela, para guardar ou levar para outra máquina;
-        #   `.html` é esta página inteira num arquivo só, para quem for
-        #   redesenhar o layout poder mexer nela sem ter o projeto instalado.
         if caminho == "/api/exportar/conf":
             texto, nome = exportar_conf()
             return self._baixar(texto, nome, "text/plain; charset=utf-8")
@@ -11358,50 +9370,16 @@ class Manipulador(BaseHTTPRequestHandler):
             texto, nome = self._exportar_pagina()
             return self._baixar(texto, nome, TIPOS[".html"])
 
-        # O PACK QUE VIAJA — ver `_api_pack_exportar`. [23/09/2026, P11]
+        # O PACK QUE VIAJA — ver `_api_pack_exportar`.
         if caminho == "/api/pack-exportar":
             return self._api_pack_exportar(consulta)
 
         return self._recusar(404, "não existe aqui")
 
-    # O PACK QUE VIAJA — 23/09/2026, sprint P11
+    # O PACK QUE VIAJA
     #
     # QUEM EMPACOTA E QUEM INSTALA É O COMANDO DA CLI, pela regra do
-    #   `_acervo_por_comando`: "a capacidade não nasce presa ao navegador". Estas
-    #   rotas levam o arquivo de um lado para o outro e devolvem o que o `meow
-    #   pack` disse; a conferência, as recusas e o "importar não aplica" moram
-    #   no `scripts/pack.py`, num lugar só. Ler o tarball aqui seria a segunda
-    #   porta — e é pela porta que ninguém conferiu que o `.sh` entra.
-    #
-    # O CONTRATO É O QUE OS BOTÕES DA P10 ESPERAM — e ele foi fechado depois de
-    #   a revisão de 23/09/2026 medir as duas metades falando línguas
-    #   diferentes: a página mandava `confirmado` e esperava `precisa_confirmar`,
-    #   esta rota lia `confirmar` e devolvia outra coisa, e o primeiro clique
-    #   terminava em "entrou" sem ter instalado nada. `confirmado` é a palavra
-    #   que o `/api/rodar` já usa para "perguntei e ela disse sim".
-    #     GET  /api/pack-exportar?id=<id>        o .meowpack, para baixar; se
-    #                                            o exportar recusa, JSON com
-    #                                            `erro` e 400 — a página baixa
-    #                                            por `fetch` e diz o erro, em
-    #                                            vez de salvar o JSON como pack
-    #              &imagens=nao                  sem as imagens raster
-    #              &medir=1                      sem arquivo: o tamanho e as
-    #                                            imagens, em JSON, DEPOIS do
-    #                                            ensaio do exportar — a pergunta
-    #                                            "as imagens vão junto? são X
-    #                                            MB" não vem para um pack que
-    #                                            seria recusado
-    #     POST /api/pack-importar  {nome, conteudo: base64, confirmado?: true}
-    #              sem `confirmado` é o ensaio: confere, valida num temporário e
-    #              devolve `precisa_confirmar`, o `titulo`, o `resumo` em uma
-    #              frase e o `pack` (a paleta, os ícones, o ponteiro, os papéis
-    #              de parede, o som) — é o que a tela de confirmar desenha. Com
-    #              `confirmado: true`, instala e devolve `instalado` e a
-    #              `frase`. Nas duas, nada é aplicado.
-    #              Um `nome` terminado em `.csv` é um CSV de cores (P16): o
-    #              contrato é o mesmo, e o `pack` traz também a `regua` de
-    #              contraste. Os `derivados` — o claro que ninguém desenhou —
-    #              vêm no `pack` dos dois.
+    # `_acervo_por_comando`: "a capacidade não nasce presa ao navegador".
     def _api_pack_exportar(self, consulta):
         ident = consulta.get("id", [""])[0]
         mod = modulo_pack()
@@ -11417,9 +9395,7 @@ class Manipulador(BaseHTTPRequestHandler):
             try:
                 # `stdin` fechado: sem terminal do outro lado, o `exportar` não
                 # pergunta — quem pergunta é a tela, pelo `medir`, e manda a
-                # resposta no `imagens`. O `medir` é o MESMO comando em ensaio:
-                # a licença, o CREDITOS.md e o `validar` são conferidos antes
-                # de a tela perguntar qualquer coisa.
+                # resposta no `imagens`.
                 r = subprocess.run(_meow("pack", "exportar", ident, saida, *extra),
                                    capture_output=True, text=True, timeout=120,
                                    stdin=subprocess.DEVNULL,
@@ -11436,13 +9412,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 m.update(tamanho=mod._mb(m["bytes"]),
                          tamanho_imagens=mod._mb(m["bytes_imagens"]),
                          tamanho_sem_imagens=mod._mb(m["bytes"] - m["bytes_imagens"]))
-                # O QUE O TERMINAL AVISA, A TELA AVISA [P34, 23/09/2026]. O
-                #   `exportar` diz, com `!!`, que o pack herda de um pack que não
-                #   vem com o MeowSystem — quem importar precisa tê-lo. No
-                #   terminal a pessoa lia; pela tela a linha morria neste
-                #   stderr, e o pack saía para ser recusado do outro lado. As
-                #   palavras são as do comando, e não uma segunda frase daqui:
-                #   é ele quem sabe o que confere, pelo cabeçalho destas rotas.
+                # O `exportar` diz, com `!!`, que o pack herda de um pack que
+                # não vem com o MeowSystem — quem importar precisa tê-lo.
                 m["avisos"] = [linha.strip()[2:].strip()
                                for linha in (r.stderr or "").splitlines()
                                if linha.strip().startswith("!!")]
@@ -11462,27 +9433,15 @@ class Manipulador(BaseHTTPRequestHandler):
         if not dados:
             return self._json({"erro": "o arquivo veio vazio"}, 400)
         confirmado = corpo.get("confirmado") is True
-        # O `.csv` SOLTO — 23/09/2026, sprint P16, item 5. "O 'Importar um pack'
-        #   aceita um .csv solto, não só um .meowpack." A extensão do `nome`
-        #   decide, como decidiu para quem o escolheu no seletor. Daqui para
-        #   baixo é a MESMA rota: o mesmo `meow pack importar`, que monta o pack
-        #   pelo `montar_novo` do `novo --de-csv` — nenhuma segunda leitura do
-        #   CSV aqui, pelo motivo do cabeçalho destas rotas.
+        # "O 'Importar um pack' aceita um .csv solto, não só um .meowpack." A
+        # extensão do `nome` decide, como decidiu para quem o escolheu no
+        # seletor.
         envio = os.path.basename(str(corpo.get("nome") or ""))
         de_csv = envio.lower().endswith(".csv")
         with tempfile.TemporaryDirectory(prefix="meow-importa-") as pasta:
-            # O NOME É NOSSO, E NÃO O DO ENVIO: o id do pack sai de dentro do
-            # tarball, conferido, e o nome do arquivo não decide nada — o
-            # `nome` do pedido só existe para a página, que o mostra.
-            #   MENOS NO CSV, que não tem onde trazer o id: ele sai do nome do
-            #   arquivo, pela `id_do_csv` do pack.py — a mesma que o `importar`
-            #   aplica. Por isso o temporário leva o nome DELA: é dele que o
-            #   `importar` tira o id, e é ele que as recusas citam com a linha
-            #   ("Minha Tinta.csv:5: slot desconhecido"). Com o id na frente, a
-            #   mensagem citaria um arquivo que ela nunca viu. O `basename` já
-            #   tirou as barras, e um nome terminado em `.csv` não é `.` nem
-            #   `..`: ele não sai da pasta. O id é conferido aqui antes, para a
-            #   recusa do nome não custar um processo.
+            # MENOS NO CSV, que não tem onde trazer o id: ele sai do nome do
+            # arquivo, pela `id_do_csv` do pack.py — a mesma que o `importar`
+            # aplica.
             if de_csv:
                 try:
                     mod.id_do_csv(envio)
@@ -11512,27 +9471,21 @@ class Manipulador(BaseHTTPRequestHandler):
                 # A recusa é o stderr: o stdout tem o `ok` da validação, e a
                 # torrada que leva os dois diz "ok" e "recusado" na mesma frase.
                 texto = (r.stderr or "").strip() or (r.stdout or "").strip()
-                # O ARQUIVO DELA, E NÃO O NOSSO [P34, 23/09/2026]. As recusas do
-                #   `importar` citam o caminho que ele recebeu, e esse caminho é
-                #   o temporário daqui: a torrada dizia
-                #   "/tmp/meow-importa-xrbbubgv/envio.meowpack: não é um
-                #   .meowpack", um nome que ela nunca viu e uma pasta que já
-                #   não existe quando ela lê. O nome é o que ela escolheu no
-                #   seletor — o mesmo que a caixa de confirmar mostra.
+                # As recusas do `importar` citam o caminho que ele recebeu, e
+                # esse caminho é o temporário daqui: a torrada dizia
+                # "/tmp/meow-importa-xrbbubgv/envio.meowpack: não é
+                # um.meowpack", um nome que ela nunca viu e uma pasta que já não
+                # existe quando ela lê.
                 texto = texto.replace(caminho, envio or "o arquivo enviado")
                 return self._json({"erro": texto or "o importar falhou", "rc": r.returncode}, 400)
-            # Depois do `importar` ter validado, e não antes: o `pack` confia no
-            # que acabou de passar pela conferência inteira.
             pack = mod.resumo_csv(caminho) if de_csv else mod.resumo_meowpack(caminho)
         nome = pack["nome"]
         if not confirmado:
             # O `resumo` é a frase de cima da caixa; o que o pack traz, item a
             # item, a página desenha do `pack` — a paleta não cabe numa frase.
             if de_csv:
-                # O CSV traz só a paleta, e a frase diz de onde vem o resto — é o
-                # risco que a P16 escreveu: "a pessoa acha que ganhou menos do
-                # que ganhou". O id vai junto porque saiu do nome do arquivo, e
-                # é por ele que o pack aparece no meow.conf.
+                # O id vai junto porque saiu do nome do arquivo, e é por ele que
+                # o pack aparece no meow.conf.
                 resumo = ("Um pack novo, «%s», feito de %s: a paleta é a do CSV, e o resto "
                           "vem do %s pela herança. Ele entra como opção entre os packs — "
                           "nada do seu tema muda até você escolher usá-lo."
@@ -11543,10 +9496,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 resumo = ("%s%s arquivo(s), %s. Ele entra como opção entre os packs — "
                           "nada do seu tema muda até você escolher usá-lo."
                           % (por, quantos, mod._mb(pack["bytes"])))
-            # «O PACK», E O NOME ENTRE ASPAS — P53, achado 9. Era «Importar o
-            # Tinta De Teste?»: o nome solto depois do artigo lia-se como frase,
-            # e o «De» maiúsculo vinha do id. O nome agora sai do arquivo como
-            # ela o escreveu (`montar_novo`), e as aspas dizem onde ele começa.
+            # Era «Importar o Tinta De Teste?»: o nome solto depois do artigo
+            # lia-se como frase, e o «De» maiúsculo vinha do id.
             return self._json({
                 "precisa_confirmar": True,
                 "titulo": "Importar o pack «%s»?" % nome,
@@ -11577,33 +9528,13 @@ class Manipulador(BaseHTTPRequestHandler):
             extras={"Content-Disposition":
                     'attachment; filename="%s"' % nome.replace('"', "")})
 
-    # ========================================================================
-    # A PÁGINA INTEIRA NUM ARQUIVO SÓ
-    # ========================================================================
     # O que sai daqui abre com dois cliques em qualquer máquina, sem Python,
     # sem servidor e sem o projeto instalado: as vinte e quatro abas, o menu
     # lateral, os cartões com os valores que estão no meow.conf dela agora, e
     # uma amostra das imagens de verdade (papéis de parede, ícones, capas).
     #
-    # COMO ELE FUNCIONA, EM UMA FRASE
-    #   É o `app.js` DE VERDADE — o mesmo arquivo, sem uma linha diferente —
-    #   rodando contra dados congelados. O que muda é um prelúdio de trinta
-    #   linhas que troca o `fetch` por uma leitura do JSON embutido e o `src`
-    #   das imagens pelo `data:` correspondente. Reescrever uma segunda versão
-    #   da página para exportar seria criar a terceira cópia da mesma tela, e
-    #   ela envelheceria em uma semana.
-    #
-    # O QUE ELE NÃO FAZ, E DIZ QUE NÃO FAZ
-    #   Nada nele grava, roda ou apaga: sem servidor não há para onde mandar.
-    #   Clicar em "Rodar" mostra o aviso em vez de fingir que rodou: a tela diz
-    #   o que não aconteceu, em vez de deixar parecer que aconteceu.
-    #
-    # AS IMAGENS SÃO AMOSTRA, E O ARQUIVO DIZ ISSO
-    #   O acervo tem 46 papéis no carrossel, 255 banidos, 64 ícones e 23 capas.
-    #   Embutir tudo daria dezenas de megabytes num arquivo feito para ser
-    #   mandado por mensagem. Entram as primeiras de cada tipo, com teto por
-    #   imagem e teto total; o que não coube fica com o quadro vazado, que é
-    #   informação e não defeito — o layout precisa saber desenhar a ausência.
+    # É o `app.js` DE VERDADE — o mesmo arquivo, sem uma linha diferente —
+    # rodando contra dados congelados.
     AMOSTRA_POR_TIPO = {"parede": 30, "icone": 0, "cursor": 0, "gato": 0}
     AMOSTRA_APPS = 36
     AMOSTRA_JOGOS = 12
@@ -11646,11 +9577,7 @@ class Manipulador(BaseHTTPRequestHandler):
         mapa, gasto = {}, 0
 
         # A MARCA DO CABEÇALHO: ela não é prévia, é o rosto da página, e entra
-        # sempre porque é pequena. Desde 06/09/2026 é a logo autoral do painel,
-        # não o gato dela — e por isso ela não sai de um arquivo do acervo, mas
-        # da rota `/logo.svg`, que já pinta o traço com o acento em vigor.
-        # Embutir o arquivo cru daria uma marca mauve numa página pêssego, que é
-        # exatamente o que a rota existe para não deixar acontecer.
+        # sempre porque é pequena.
         corpo_logo = self._logo_do_painel()
         if corpo_logo:
             mapa["/logo.svg"] = "data:image/svg+xml;base64," + base64.b64encode(
@@ -11732,19 +9659,8 @@ class Manipulador(BaseHTTPRequestHandler):
         if "<body" in corpo:
             corpo = corpo[corpo.index("<body"):]
         corpo = corpo.replace('data-token="@TOKEN@"', 'data-token="" data-standalone="1"')
-        # OS SCRIPTS SAEM TODOS, E A LISTA SAI DO PRÓPRIO index.html — 07/09/2026
-        #   Este `re.sub` nomeava o `app.js` e só ele. Quando os dois arquivos de
-        #   prévia entraram no `index.html`, no dia seguinte ao do exportador, as
-        #   duas tags sobreviveram ao recorte e foram parar no arquivo solto
-        #   apontando para `/previas-tela.js` — um caminho que só existe enquanto
-        #   o servidor está de pé. Resultado medido: a página exportada abre
-        #   inteira, bonita, e com ZERO desenhos, porque o `app.js` lê
-        #   `window.MEOW_PREVIAS || {}` e um mapa vazio não dá erro nenhum.
-        #
-        #   Agora a lista de scripts é LIDA do `index.html`, na ordem em que ele
-        #   os declara, e é a mesma lista que volta embutida lá embaixo. Um
-        #   script novo na página entra no arquivo exportado no mesmo dia, sem
-        #   ninguém vir aqui — que era o que este trecho já deveria fazer.
+        # Agora a lista de scripts é LIDA do `index.html`, na ordem em que ele
+        # os declara, e é a mesma lista que volta embutida lá embaixo.
         scripts_da_pagina = re.findall(r'<script src="/([A-Za-z0-9_.-]+\.js)"></script>', corpo)
         corpo = re.sub(r'<script src="/[A-Za-z0-9_.-]+\.js"></script>', "", corpo)
         corpo = corpo.replace("</body>", "").replace("</html>", "")
@@ -11757,38 +9673,8 @@ class Manipulador(BaseHTTPRequestHandler):
                         "modo": valores.get("MODO") or ""},
             "amostra": {"imagens": len(imagens), "bytes": gasto},
         }
-        # A CHAVE QUE GUARDA CAMINHO SAI COM O VALOR DE FÁBRICA — 24/09/2026,
-        # revisão da P52 (achado 22).
-        #   O `sem_casa_nem_raiz` logo abaixo só sabe da casa e do clone, e o
-        #   valor de uma chave com caminho aponta para onde a pessoa quiser.
-        #   Medido numa casa falsa com `WALLPAPER_FONTES_PERMITIDAS=
-        #   "$HOME/Imagens/Parede_papel:/run/media/fulana/HD/fotos"`: a página
-        #   exportada levava `fulana` duas vezes, no `valor` e no `efetivo`. Um
-        #   disco externo em `/media/<usuário>` ou `/run/media/<usuário>` é o
-        #   lugar comum de uma fonte de papel de parede, e o nome de usuário é
-        #   justamente o que a P52 veio tirar. A sprint pede a página sem caminho
-        #   absoluto e sem o valor efetivo dessas chaves, então os dois saem
-        #   juntos: o `valor` vira o de fábrica — que é do exemplo do
-        #   repositório, e não de ninguém —, e o `efetivo` some, levando junto a
-        #   linha «Vale como» do cartão.
-        #   QUAL CHAVE É "COM CAMINHO" SAI DO VALOR, e não de uma lista de nomes:
-        #   um pedaço (depois de `:`, espaço, `=` ou `,`) que começa em `/`, em
-        #   `~` ou em `$HOME`. O `dono/nome` de um repositório e o `//` de uma URL
-        #   não contam.
-        #   O QUE SE PERDE: a página não mostra as fontes nem a pasta-mãe de quem
-        #   a exportou — e é esse o ponto, porque ela é feita para ir a outra
-        #   pessoa.
-        # A PASTA QUE A CHAVE APONTA TAMBÉM SAI DO RESTO DA PÁGINA — 24/09/2026,
-        # reconferência da P52.
-        #   Zerar a chave não bastava: o mesmo caminho voltava pelas prévias. Com
-        #   `WALLPAPER_BASE` num disco em `/run/media/<usuário>/…`, cada foto do
-        #   acervo levava a pasta inteira em `origem` e em `banir` — e a galeria
-        #   mostra a `origem` no balão da foto. As pastas saem do valor efetivo
-        #   das próprias chaves com caminho (as que moram fora da casa e do
-        #   clone; as de dentro o `sem_casa_nem_raiz` já cobre), e cada uma vira
-        #   `$CHAVE` onde aparecer: `$WALLPAPER_BASE/ativos/x.jpg` ainda diz o
-        #   que é, sem dizer de quem. A troca vale nos dois lados do mapa
-        #   `imagens`, como a da casa, e a foto continua achando a sua URL.
+        # O `sem_casa_nem_raiz` logo abaixo só sabe da casa e do clone, e o
+        # valor de uma chave com caminho aponta para onde a pessoa quiser.
         outras = []
         for item in esquema.get("chaves", []):
             if any(re.search(r"(?:^|[\s:=,])(?:/(?!/)|~(?:/|$)|\$\{?HOME\b)",
@@ -11808,7 +9694,7 @@ class Manipulador(BaseHTTPRequestHandler):
         # A mais longa primeiro: uma pasta dentro de outra não pode ser comida
         # pela de fora antes de ter a vez.
         outras.sort(key=lambda par: -len(par[0]))
-        # Sem a casa e sem o caminho do clone — ver `sem_casa_nem_raiz` (P52).
+        # Sem a casa e sem o caminho do clone — ver `sem_casa_nem_raiz`.
         dados = sem_casa_nem_raiz(dados, outras)
 
         partes = [
@@ -11848,9 +9734,7 @@ class Manipulador(BaseHTTPRequestHandler):
             "</head>",
             corpo,
             # O `</` escapado: um `</script>` dentro do JSON fecharia a tag aqui
-            # e derrubaria a página inteira. É o único escape que este bloco
-            # precisa, e ele não muda o dado — `<\/` e `</` são a mesma string
-            # depois do `JSON.parse`.
+            # e derrubaria a página inteira.
             '<script id="meow-dados" type="application/json">%s</script>'
             % json.dumps(dados, ensure_ascii=False).replace("</", "<\\/"),
             "<script>\n%s\n</script>" % ler("standalone.js"),
@@ -11875,53 +9759,31 @@ class Manipulador(BaseHTTPRequestHandler):
         for item in esquema:
             item["valor"] = brutos.get(item["chave"], "")
             item["efetivo"] = efetivos.get(item["chave"], "")
-            # UMA FONTE DE VERDADE NO MODO DE LEITURA — 10/10/2026, P77 (achado
-            #   26). Quando o applet guarda a chave, é o valor DELE que a máquina
-            #   usa (o meow.conf é o padrão de fábrica, `_leitura_resolver_alvo`),
-            #   e é ele que o cartão mostra como o valor da chave. O do arquivo
-            #   fica em `valor_no_arquivo`. Escolher no painel grava os dois
-            #   lugares (o `leitura.sh adotar`, chamado pelo «Salvar e
-            #   aplicar»), então o que a tela diz é o que vale, nos dois sentidos.
+            # Quando o applet guarda a chave, é o valor DELE que a máquina usa
+            # (o meow.conf é o padrão de fábrica, `_leitura_resolver_alvo`), e é
+            # ele que o cartão mostra como o valor da chave.
             if item["chave"] in _LEITURA_NO_APPLET and item.get("valendo_agora") is not None:
                 item["valor_no_arquivo"] = item["valor"]
                 item["valor"] = item["valendo_agora"]
                 item["fonte"] = "applet"
-        # O VOCABULÁRIO DO PACK NO AR — P10. Depois dos valores, porque a
+        # O VOCABULÁRIO DO PACK NO AR. Depois dos valores, porque a
         # «Variante dos ícones de arquivo» mostra o de agora quando ele está
         # fora do que o pack oferece.
         vocab = vocabulario_do_pack()
         _com_o_vocabulario_do_pack(esquema, vocab, efetivos)
         # E o que cada flavor veste em cada lado, para a prévia de «Cor e tela»
         # desenhar o que a página vai vestir — o COSMIC nem sempre veste o
-        # mesmo (P59, `_lados_do_pack`).
+        # mesmo.
         if isinstance(vocab, dict):
             vocab["lados"] = _lados_do_pack()
-        # O teto do raio que vale NESTA sessão, nos dois cartões de raio — ver
-        # `teto_da_chave` (P50, achado 36).
         for item in esquema:
             teto = teto_da_chave(item["chave"])
             if teto:
                 item["teto"] = teto
-        # AS FICHAS DE PROGRAMA DIZEM O PROGRAMA — 24/09/2026, sprint P54
-        # (achado 41). «Quais programas o lançador esconde» mostrava 32 ids
-        # crus — `org.gnome.Evince`, `org.gnome.baobab`,
-        # `gnome-language-selector` —, e a pergunta da chave é «quais
-        # PROGRAMAS»: quem lê um id reverso de domínio não sabe que é o leitor
-        # de PDF. Cada id que o valor ou o padrão cita ganha o nome e o ícone
-        # do `.desktop` dele, pelos MESMOS `_desktops` e `_icone_na_tela` da
-        # aba de ícones: o nome é o do lançador, e o desenho é o que está na
-        # tela agora. Desde a P57 o nome é o `Name[…]` da cadeia de idioma da
-        # sessão, e o `Name=` só quando nenhum casa (`idiomas_da_sessao`):
-        # medido, o nm-connection-editor sai «Configuração avançada de rede», e
-        # não «Advanced Network Configuration». Id sem `.desktop` nesta máquina
-        # fica de fora do mapa, e a ficha continua dizendo o id — é o caso do
-        # programa que não está instalado, e o comentário da chave diz que ele
-        # é pulado.
-        #   Só os ids citados, e não a máquina inteira: o esquema é lido a cada
-        # carga da página, e o ícone de cada programa custa uma busca no disco.
-        # O AJUSTE DE UM PROGRAMA QUE ESTA MÁQUINA NÃO TEM NÃO SE MOSTRA (P77,
-        # achado 12). O valor continua no arquivo e na linha de comando; a
-        # página só não oferece um cartão sem objeto.
+        # «Quais programas o lançador esconde» mostrava 32 ids crus —
+        # `org.gnome.Evince`, `org.gnome.baobab`, `gnome-language-selector` —,
+        # e a pergunta da chave é «quais PROGRAMAS»: quem lê um id reverso de
+        # domínio não sabe que é o leitor de PDF.
         so_com = [i for i in esquema if i.get("so_com_app")]
         if so_com:
             desktops = {d["id"] for d in self._desktops()}
@@ -11949,7 +9811,7 @@ class Manipulador(BaseHTTPRequestHandler):
         medidas = dict(_medidas_do_projeto(), **_medidas_da_tela())
         return {
             # `~/.config/meow/meow.conf`, e não o caminho com o nome de usuário:
-            # a página só o mostra, no balão do resumo do topo (P52).
+            # a página só o mostra, no balão do resumo do topo.
             "conf": texto_na_tela(CONF),
             # A casa, para a página trocá-la por `~` nos balões de caminho — o
             # `comTil` do `app.js`. Na página exportada ela já sai como `~`
@@ -11970,37 +9832,14 @@ class Manipulador(BaseHTTPRequestHandler):
             # Quais combinações de FLAVOR × ACCENT existem de verdade: a
             # página avisa ANTES de ela salvar uma que o instalador recusa.
             "capturas": _capturas_no_disco(),
-            # E quais APLICAM, contando as que se derivam (P48): é esta que o
+            # E quais APLICAM, contando as que se derivam: é esta que o
             # cartão da cor de destaque consulta. Ver `_acentos_que_aplicam`.
             "acentos_que_aplicam": _acentos_que_aplicam(esquema),
-            # `escreve` é DERIVADO (ver a função de mesmo nome), nunca
-            # digitado por ação. E as opções da ação `oculta` não vão: o
-            # argumento dela é uma imagem escolhida na galeria, e mandar os
-            # 255 nomes de `banidos/` em toda leitura do esquema seria peso
-            # puro numa lista que ninguém vai ler como lista.
-            # A PASTILHA "PEDE SENHA" TEM DE DIZER A VERDADE DE HOJE — 08/09/2026
-            #   Com a ponte root no ar, `sistema_atualizar` e `sistema_limpar`
-            #   passam por ela e NÃO pedem senha nenhuma; a pastilha continuar
-            #   ali seria a página avisando de um custo que não existe mais, e
-            #   avisar do que não vai acontecer gasta a confiança do aviso que
-            #   importa. `instalar` mantém a pastilha em qualquer caso: é ele
-            #   que escreve em `/etc/sudoers.d`, e essa é a senha que existe.
+            # `escreve` é DERIVADO (ver a função de mesmo nome), nunca digitado
+            # por ação.
             #
-            #   E SUMIR NÃO É A MESMA COISA QUE DIZER — 21/09/2026
-            #     A ausência da pastilha é indistinguível, para quem olha, da
-            #     ausência de uma ação que nunca pediu senha: o cartão fica
-            #     igual ao «Conferir (doctor)», que é quieto por natureza.
-            #     Quem acabou de ligar a ponte não tem, na tela, nenhuma prova
-            #     de que ligá-la serviu para alguma coisa. `pela_ponte` é esse
-            #     fato dito em voz alta — "esta ação pediria senha, e não vai
-            #     pedir porque existe um perfil registrado" —, e é o campo que
-            #     a pastilha verde do `app.js` lê. Ele é o COMPLEMENTO exato de
-            #     `sudo` acima: quando um é verdadeiro o outro é falso, e os
-            #     dois só podem nascer das mesmas duas condições, aqui.
-            # OS NÚMEROS QUE A PÁGINA DIZ EM VOZ ALTA SÃO CONTADOS AQUI —
-            # 09/09/2026. Ver `_medidas_do_projeto`: eles iam para o desenho da
-            # aba «Instalação» e para a ajuda de dois botões, e estavam escritos
-            # à mão em cinco lugares que já discordavam entre si.
+            # Quem acabou de ligar a ponte não tem, na tela, nenhuma prova de
+            # que ligá-la serviu para alguma coisa.
             "medidas": medidas,
             "acoes": [
                 dict(v, id=k,
@@ -12008,8 +9847,7 @@ class Manipulador(BaseHTTPRequestHandler):
                                         medidas),
                      # O comando da TELA, e não o que roda: a página só o
                      # mostra (a linha do cartão, o «ver comando», a caixa de
-                     # confirmar) e pede a ação pelo `id`. Ver
-                     # `comando_na_tela` — P52, achado 10.
+                     # confirmar) e pede a ação pelo `id`.
                      argv=comando_na_tela(v["argv"]),
                      escreve=escreve(v),
                      sudo=bool(v.get("sudo")) and not (
@@ -12017,7 +9855,7 @@ class Manipulador(BaseHTTPRequestHandler):
                      pela_ponte=bool(v.get("sudo")) and (
                          k in _PELA_PONTE and _ponte_viva()),
                      # O MOTIVO, e não a função que o mede: a medida roda
-                     # aqui, a cada leitura, e a página só o diz. P50.
+                     # aqui, a cada leitura, e a página só o diz.
                      indisponivel=indisponivel(k),
                      opcoes=([] if v.get("oculta")
                              else PROVEDORES[v["arg"]]() if "arg" in v else []))
@@ -12026,13 +9864,13 @@ class Manipulador(BaseHTTPRequestHandler):
             "ponte": _ponte_viva(),
             # O pack no ar, com as palavras dele: os flavors e os nomes que a
             # barra «Fundo» e os seletores da aba Ícones usam. Ver
-            # `vocabulario_do_pack`. [P10]
+            # `vocabulario_do_pack`.
             "pack": vocab,
             "folhas": self._folhas(),
             "descricoes": DESCRICAO_SECAO,
             "blocos": BLOCO_DA_SECAO,
             # O nome da aba que abre o painel, dito num lugar só: é o mesmo que
-            # o `--onde inicio` dá aos scripts (P57, ver `ABA_INICIO`).
+            # o `--onde inicio` dá aos scripts.
             "aba_inicio": ABA_INICIO,
             # A paleta inteira vai junto: as amostras de flavor e de cor são
             # desenhadas com ela, e uma segunda viagem ao servidor para 4x26
@@ -12060,25 +9898,20 @@ class Manipulador(BaseHTTPRequestHandler):
             queixa = validar_valor(item, valor)
             if queixa:
                 return self._json({"erro": queixa, "chave": chave, "valor": valor}, 400)
+            # A ponta solta da noite é 409: o valor cabe na chave, e o que não
+            # cabe é o par que ficaria no arquivo.
+            soltas = pontas_da_noite_soltas({chave: valor})
+            if soltas:
+                return self._json({"erro": soltas[0]["erro"], "chave": chave,
+                                   "valor": valor, "recusadas": soltas}, 409)
             rc, saida = definir(chave, valor)
-            # A frase do `meow_conf_definir` vira torrada: a casa sai como `~` (P52).
+            # A frase do `meow_conf_definir` vira torrada: a casa sai como `~`.
             return self._json({"rc": rc, "saida": texto_na_tela(saida),
                                "chave": chave, "valor": valor})
 
-        # SALVAR E APLICAR, NUMA ROTA SÓ — 13/09/2026
-        #   Pedido dela: "removeu o botão Salvar, que salva e aplica" e "antes
-        #   aplicava ao clicar em tudo". A página fazia duas viagens com uma
-        #   pergunta no meio: gravava chave a chave pelo `/api/definir` e depois
-        #   pedia o `instalar`, cuja tranca (`confirma`) abria a caixa de "Rodar
-        #   de verdade". Fechar a caixa deixava tudo gravado e nada aplicado. A
-        #   tranca existe para o botão "Instalar tudo" de uma máquina crua; para
-        #   quem escolheu e apertou Salvar, o clique já é a resposta.
-        #
-        #   O que não muda: a peneira inteira vem ANTES de qualquer escrita (uma
-        #   escolha recusada = nada gravado, nada aplicado), e quem aplica é o
-        #   instalador INTEIRO — quais etapas rodam é decisão do meow.conf, e o
-        #   `install.sh` recusa que alguém escolha por ele. Numa máquina já
-        #   pronta ele passa em ~18 s sem reescrever o que já está certo.
+        # Fechar a caixa deixava tudo gravado e nada aplicado. A tranca existe
+        # para o botão "Instalar tudo" de uma máquina crua; para quem escolheu e
+        # apertou Salvar, o clique já é a resposta.
         if caminho == "/api/salvar":
             mudancas = corpo.get("mudancas") or {}
             if not isinstance(mudancas, dict):
@@ -12096,34 +9929,17 @@ class Manipulador(BaseHTTPRequestHandler):
                     pares.append((chave, valor))
             if recusadas:
                 return self._json({"recusadas": recusadas}, 400)
+            # O par da noite, sobre o arquivo como ficaria.
+            soltas = pontas_da_noite_soltas(dict(pares))
+            if soltas:
+                return self._json({"recusadas": soltas}, 409)
 
-            # O ENSAIO DO «SALVAR E APLICAR» — 22/09/2026, sprint P8
-            #   A sprint: "Com 17 escolhas pendentes, «ver o que isto vai
-            #   fazer» é a pergunta óbvia, e hoje ela não tem resposta".
+            # Mandar a página chamar `rodar: instalar, seco` responderia sobre o
+            # meow.conf do DISCO, que é justamente o que ainda não tem as 17
+            # escolhas dentro: um ensaio que responde outra pergunta.
             #
-            #   ELE SAI DAQUI, E NÃO DO `/api/rodar`, porque a pergunta é sobre
-            #   AS ESCOLHAS — e elas só existem neste pedido. Mandar a página
-            #   chamar `rodar: instalar, seco` responderia sobre o meow.conf do
-            #   DISCO, que é justamente o que ainda não tem as 17 escolhas
-            #   dentro: um ensaio que responde outra pergunta.
-            #
-            #   E ELE NÃO TOCA NO ARQUIVO DELA, nem "só para ensaiar e desfazer
-            #   depois": as escolhas são gravadas numa CÓPIA descartável do
-            #   meow.conf e o instalador lê essa cópia, pelo `MEOW_CONF` — que é
-            #   o override de sempre, o mesmo que o `install.sh:70` e o
-            #   `lib/comum.sh:608` já respeitam. A promessa inteira da palavra
-            #   "ensaio" é essa, e ela vale byte a byte: o `tests/seco.sh` e a
-            #   conferência da sprint medem o arquivo dela antes e depois.
-            #
-            #   POR QUE NÃO POR AMBIENTE, QUE FOI A PRIMEIRA VERSÃO DESTA SPRINT
-            #   Porque não funciona, e o cabeçalho do `_conf_de_ensaio` traz a
-            #   medição: o `install.sh` SOURCEIA o meow.conf (`set -a; . "$fonte"`)
-            #   como primeira coisa que faz, e atribuição crua de arquivo
-            #   sourceado sobrescreve o ambiente. Todo `extras` era engolido, e
-            #   a pessoa aprovava um ensaio do conf ANTIGO.
-            #
-            #   A peneira acima vale igual: uma escolha recusada derruba o
-            #   ensaio antes daqui, como derruba a gravação.
+            # "$fonte"`) como primeira coisa que faz, e atribuição crua de
+            # arquivo sourceado sobrescreve o ambiente.
             if corpo.get("seco"):
                 pasta, queixa = _conf_de_ensaio(pares)
                 if queixa:
@@ -12131,10 +9947,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 trabalho, erro = iniciar("instalar", "", confirmado=True,
                                          seco=True, pasta_de_ensaio=pasta)
                 if erro:
-                    # Trabalho nenhum nasceu, então ninguém vai apagar a cópia
-                    # depois: quem criou limpa. Um «já há um trabalho correndo»
-                    # a cada clique deixaria um retrato do meow.conf dela em
-                    # `/tmp` por clique.
+                    # Um «já há um trabalho correndo» a cada clique deixaria um
+                    # retrato do meow.conf dela em `/tmp` por clique.
                     shutil.rmtree(pasta, ignore_errors=True)
                     return self._json(
                         {"erro": erro["erro"] if isinstance(erro, dict) else erro}, 409)
@@ -12156,12 +9970,8 @@ class Manipulador(BaseHTTPRequestHandler):
                                    "erro": "nem tudo foi gravado, e nada foi aplicado"}, 500)
 
             resposta = {"gravadas": gravadas, "iguais": iguais}
-            # O APPLET PASSA A GUARDAR O QUE O PAINEL ESCOLHEU — P77 (achado 26).
-            #   Todas as escolhas de modo de leitura do pedido, e não só as que
-            #   mudaram o arquivo: com o applet em 6300 e o conf em 3500,
-            #   escolher 3500 aqui é «igual» para o meow.conf e é justamente a
-            #   escolha que tem de chegar ao applet. Falhar aqui não derruba o
-            #   salvar (o conf já está gravado): a frase vai junto da resposta.
+            # Falhar aqui não derruba o salvar (o conf já está gravado): a frase
+            # vai junto da resposta.
             leitura = [c for c, _v in pares if c in _LEITURA_NO_APPLET]
             if leitura:
                 try:
@@ -12200,15 +10010,7 @@ class Manipulador(BaseHTTPRequestHandler):
             acao = str(corpo.get("acao", ""))
             argumento = str(corpo.get("argumento", "") or "")
             # `confirmado` é a resposta à pergunta que o servidor recusou fazer
-            # sozinho. Ele não vem de um cabeçalho nem de um parâmetro de URL,
-            # e sim do corpo do POST: é a página que tem de dizer, com todas as
-            # letras, que perguntou e ouviu sim.
-            # `seco` É O ENSAIO DE UM GESTO SÓ — 22/09/2026, sprint P8.
-            #   Ele vem no corpo do POST pelo mesmo motivo do `confirmado`: é
-            #   uma decisão DESTE clique, e não um estado guardado em lugar
-            #   nenhum. Não existe "o painel está em modo seco" — existe "esta
-            #   execução foi pedida como ensaio", e a resposta devolve isso
-            #   para a página poder dizê-lo na tela.
+            # sozinho.
             seco = bool(corpo.get("seco"))
             trabalho, erro = iniciar(acao, argumento,
                                      confirmado=bool(corpo.get("confirmado")),
@@ -12217,20 +10019,14 @@ class Manipulador(BaseHTTPRequestHandler):
                 # O erro estruturado (a confirmação que falta) passa inteiro; o
                 # erro de sempre continua sendo uma frase, como a página espera.
                 return self._json(erro if isinstance(erro, dict) else {"erro": erro}, 409)
-            # O CÓDIGO 1 QUER DIZER MAIS DE UMA COISA — visto na tela em
-            # 01/09/2026, quando um `meow status` (que só lê) terminou com a
-            # pastilha "mexeu e consertou". O contrato do projeto é "1 = divergia
-            # e consertei" para quem ESCREVE; para quem só olha — `status`,
-            # `doctor` sem `--consertar`, `tema`, `apps`, `leitura` — o mesmo 1
-            # quer dizer "há divergências", e nada foi consertado. Até a P50 a
-            # página separava os dois pelo `escreve` desta resposta; desde
-            # 24/09/2026 a frase vai pronta no `fim`, pela natureza da ação (ver
-            # `NATUREZAS`), e o `escreve` fica só para a releitura e a bandeja.
+            # O CÓDIGO 1 QUER DIZER MAIS DE UMA COISA — visto na tela, quando um
+            # `meow status` (que só lê) terminou com a pastilha "mexeu e
+            # consertou".
             return self._json(_trabalho_json(trabalho, acao, seco=seco))
 
-        # O `.meowpack` — ver `_api_pack_exportar`. [23/09/2026, P11] Fora do
-        # "trazer de volta" logo abaixo, e é de propósito: aquele só analisa, e
-        # este, com `confirmado: true`, instala.
+        # O `.meowpack` — ver `_api_pack_exportar`. Fora do "trazer de volta"
+        # logo abaixo, e é de propósito: aquele só analisa, e este, com
+        # `confirmado: true`, instala.
         if caminho == "/api/pack-importar":
             return self._api_pack_importar(corpo)
 
@@ -12242,13 +10038,10 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": "o arquivo veio vazio"}, 400)
             return self._json(importar_conf(texto))
 
-        # A RECUSA, e ela é a outra metade da pergunta — 22/09/2026, sprint P2.
-        #   Sem ela o "não quero" não existiria na tela, e a pendência voltaria
-        #   amanhã: a notificação que volta todo dia é a que se aprende a
-        #   ignorar. O painel NÃO escreve o arquivo de estado — ele chama o
-        #   verbo do módulo dono, que é quem sabe onde a recusa mora e o que ela
-        #   significa. A tabela `RECUSA_DA_PENDENCIA` é a cerca: id que não está
-        #   nela não tem recusa, e um POST forjado não vira execução de nada.
+        # A RECUSA é a outra metade da pergunta: sem ela o "não quero" não
+        # existiria na tela, e a pendência voltaria amanhã. A tabela
+        # `RECUSA_DA_PENDENCIA` é a cerca: id fora dela não tem recusa, e um POST
+        # forjado não vira execução de nada.
         if caminho == "/api/pendencia-recusar":
             ident = str(corpo.get("id", ""))
             argv = RECUSA_DA_PENDENCIA.get(ident)
@@ -12256,8 +10049,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": "esta pendência não aceita recusa"}, 404)
             # Sem o `meow.conf` de propósito: gravar a recusa não lê chave
             # nenhuma, só escreve um arquivo em `MEOW_ESTADO` — que já vem no
-            # ambiente do painel. Carregar a conf aqui daria ao verbo mais
-            # poder do que ele precisa para o que faz.
+            # ambiente do painel.
             try:
                 fim = subprocess.run(argv, capture_output=True, timeout=30,
                                      env=_ambiente_do_painel())
@@ -12282,54 +10074,15 @@ class Manipulador(BaseHTTPRequestHandler):
         return [{"arquivo": n, "caminho": os.path.join(FOLHAS, n)} for n in nomes]
 
 
-# ============================================================================
-# O PAINEL MORRE COM A JANELA QUE O ABRIU — 02/09/2026
-# ============================================================================
-# Pedido dela, olhando o ícone do lançador não fazer o que devia: "era pra ele
-# abrir o chrome e quando eu fechar ele via navegador ele ser finalizado".
-#
-# O QUE HAVIA ANTES, E POR QUE FALHAVA NESTA MÁQUINA
-#   O `.desktop` nascia com `Terminal=true` de propósito: a janela do terminal
-#   era o interruptor, e fechá-la derrubava o servidor. O journal de 02/09/2026
-#   mostra no que isso deu — dois cliques dela, às 03:22:28 e às 03:22:44, e nos
-#   dois a mesma linha:
+# O `.desktop` nascia com `Terminal=true` de propósito: a janela do terminal era
+# o interruptor, e fechá-la derrubava o servidor.
 #
 #       app-cosmic-com.meowsystem.Painel-44306.scope: PID 44306 vanished before
 #       we could move it to target cgroup … Failed with result 'resources'
 #
-#   O terminal do COSMIC é instância única: o processo que o lançador criou
-#   conversou com a instância já aberta e saiu no mesmo instante — daí o
-#   "vanished" — e o painel foi parar numa ABA do terminal DELA. O `app.pid`
-#   gravado às 03:22:44.587, três décimos depois do clique, prova que o servidor
-#   chegou a subir; ele morreu junto quando aquela aba fechou. Um interruptor
-#   que ela não vê não é interruptor.
+# A saída óbvia era a página pingar `/api/vivo` de tantos em tantos segundos.
 #
-# O SINAL É UMA CONEXÃO ABERTA, E NÃO UMA BATIDA POR TEMPORIZADOR
-#   A saída óbvia era a página pingar `/api/vivo` de tantos em tantos segundos.
-#   Ela quebra justamente no navegador dela: o Chrome limita o temporizador de
-#   uma aba oculta a uma vez por minuto e depois congela a aba inteira — trocar
-#   de aba mataria o painel, e isso é pior que o defeito que estamos curando.
-#
-#   Então o sinal é uma conexão que fica ABERTA (`/api/pulso`, um
-#   `text/event-stream` que só manda comentário). Ela não depende de
-#   temporizador nenhum: some no instante em que a janela fecha, porque o socket
-#   fecha com ela.
-#
-#   O `EventSource` reconecta sozinho, e é isso que faz o F5 não matar o painel:
-#   a página recarrega, o pulso volta em menos de um segundo, e a CARÊNCIA
-#   abaixo cobre o intervalo. Pelo mesmo motivo ela cobre a troca de papel de
-#   parede que recarrega a página inteira.
-#
-# TRABALHO RODANDO ADIA A SAÍDA
-#   Fechar a janela no meio de um `./install.sh` não pode virar meia instalação.
-#   Enquanto houver trabalho vivo o servidor fica de pé, e sai quando ele
-#   terminar — o `finally` do `main()` continua sendo a rede de baixo.
-#
-# NADA DISSO VALE QUANDO O PAINEL FOI SUBIDO PARA TESTE
-#   O vigia só liga com `MEOW_APP_VIGIA=1`, que é o `run.sh` no modo normal quem
-#   passa. O `--sem-abrir` de `tests/app-navegador.py` sobe um servidor SEM
-#   página nenhuma e o derruba pelo terminal: com o vigia ligado, ele se mataria
-#   sozinho no meio do teste.
+# Fechar a janela no meio de um `./install.sh` não pode virar meia instalação.
 VIGIA_LIGADO = os.environ.get("MEOW_APP_VIGIA") == "1"
 # Quanto tempo sem NENHUM pulso antes de sair. Oito segundos é folga larga para
 # um F5 (que volta em menos de um) e curto o bastante para a porta não ficar
@@ -12338,11 +10091,7 @@ VIGIA_CARENCIA = float(os.environ.get("MEOW_APP_CARENCIA") or 8)
 # E se a página nunca abrir — navegador que não subiu, clique que se perdeu — o
 # servidor não pode ficar de pé para sempre esperando ninguém.
 VIGIA_ESPERA = float(os.environ.get("MEOW_APP_ESPERA") or 120)
-# De quanto em quanto tempo o pulso escreve. A escrita é a rede de baixo: quem
-# descobre a janela fechada NA HORA é o `select` sobre o mesmo socket — fechada
-# a aba, ele fica legível com fim-de-arquivo, e o pulso cai no mesmo segundo.
-# Sem o `select`, a saída dependia da escrita seguinte e chegava a demorar os
-# quinze segundos inteiros (medido em 02/09/2026, antes desta linha existir).
+# De quanto em quanto tempo o pulso escreve.
 PULSO_BATIDA = 15.0
 
 _PULSOS = {"abertos": 0, "houve": False, "zerou_em": None}
@@ -12442,12 +10191,7 @@ def main():
         for trabalho in TRABALHOS.values():
             if trabalho.vivo():
                 trabalho.parar()
-        # O `app.pid` é do `run.sh`, e quem o apaga é o `--parar` dele. Só que
-        # desde 02/09/2026 o caminho normal de saída é ESTE — a janela fecha e o
-        # servidor sai sozinho —, e um pid de processo morto ali faria o
-        # `meow abrir --estado` responder pela última vez que alguém usou o
-        # `--parar`. Apagar só se o número for o NOSSO: dois painéis abertos ao
-        # mesmo tempo não podem se apagar um ao outro.
+        # O `app.pid` é do `run.sh`, e quem o apaga é o `--parar` dele.
         try:
             arquivo_pid = os.path.join(ESTADO, "app.pid")
             with open(arquivo_pid, "r", encoding="utf-8") as fh:
@@ -12455,8 +10199,6 @@ def main():
                     os.unlink(arquivo_pid)
         except (OSError, ValueError):
             pass
-        # Desde a P75 (09/10/2026) cada painel solto tem o registro dele, com
-        # o próprio pid no nome (ver `run.sh`): apagar o nosso é apagar só ele.
         try:
             os.unlink(os.path.join(ESTADO, "paineis", "%d.pid" % os.getpid()))
         except OSError:
@@ -12465,13 +10207,9 @@ def main():
 
 
 if __name__ == "__main__":
-    # `--onde` não sobe servidor nenhum: responde e sai — ver `onde_na_tela`.
-    # A linha de URL do `main` é a interface com o `run.sh`, e esta porta não
+    # `--onde` não sobe servidor nenhum: responde e sai — ver `onde_na_tela`. A
+    # linha de URL do `main` é a interface com o `run.sh`, e esta porta não
     # passa perto dela.
-    # COM O NÚMERO ERRADO DE ARGUMENTOS ELA TAMBÉM NÃO SOBE — revisão da P50. A
-    # condição exigia os três de uma vez, e `--onde` sem o id (ou com dois)
-    # caía no `main()`: medido, subiu o painel de verdade na casa real e
-    # imprimiu a URL. Quem pergunta onde fica um botão não pediu servidor.
     if len(sys.argv) > 1 and sys.argv[1] == "--onde":
         if len(sys.argv) != 3:
             sys.stderr.write("uso: servidor.py --onde <ação, pendência, chave ou inicio>\n")

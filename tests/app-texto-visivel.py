@@ -79,7 +79,11 @@ MEDIR_JS = r"""
       .map((c) => c.textContent).join(' ').replace(/\s+/g, ' ').trim();
     if (proprio.length >= 60) { frases++; if (longas.length < 3) longas.push(proprio.slice(0, 90)); }
   }
-  return { caracteres, frases, comando, exemplos: longas };
+  /* UM NOME POR VALOR (P82, item 29; decisão 27): o vazio do `<select>` é o
+   * mesmo do botão «Não tocar» ao lado, e se chama igual. */
+  const comoEsta = [...raiz.querySelectorAll('select option')]
+    .filter((o) => /como está/i.test(o.textContent)).length;
+  return { caracteres, frases, comando, exemplos: longas, como_esta: comoEsta };
 }
 """
 
@@ -148,6 +152,13 @@ def main():
         with open(SAIDA_JSON, "w", encoding="utf-8") as fh:
             json.dump({"rotulo": ROTULO, "paginas": resultado, "total": total},
                       fh, ensure_ascii=False, indent=2)
+    # A ÚNICA REPROVA DA RÉGUA: o vazio de um `<select>` com outro nome que
+    # o do «Não tocar» ao lado. Dois nomes para um valor.
+    com_dois_nomes = [m["pagina"] for m in resultado if m.get("como_esta")]
+    if com_dois_nomes:
+        print("FALHOU: «como está» num <select>, ao lado do «Não tocar»: "
+              + ", ".join(com_dois_nomes))
+        return 1
     return 0
 
 
