@@ -22,7 +22,9 @@ export HOME="$T/casa" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 
 R="$T/repo"
-git clone -q --shared --no-checkout "$RAIZ" "$R" 2>/dev/null
+# --template= vazio: um modelo com links para os ganchos globais faria o
+# .git/hooks/pre-commit abaixo escrever no gancho de verdade.
+git clone -q --shared --no-checkout --template= "$RAIZ" "$R" 2>/dev/null
 git -C "$R" checkout -q "$(git -C "$RAIZ" rev-parse HEAD)" 2>/dev/null
 # O que está sendo testado vem da árvore de trabalho, e não só do último commit.
 COPIA=(scripts/higiene.sh scripts/comentarios.py tests/numeros.sh tests/frases-velhas.sh
@@ -32,6 +34,7 @@ g() { git -C "$R" -c user.name=teste -c user.email=teste@exemplo.invalid "$@"; }
 g add -- "${COPIA[@]}" >/dev/null
 g commit -qm base >/dev/null 2>&1
 # Sem configuração global, o clone usa o próprio .git/hooks: o gancho entra depois da base.
+mkdir -p "$R/.git/hooks"
 printf '#!/bin/sh\nexec bash scripts/higiene.sh\n' > "$R/.git/hooks/pre-commit"
 chmod +x "$R/.git/hooks/pre-commit"
 com_gancho() { g commit -qm "$1" >"$T/saida" 2>&1; }
