@@ -41,3 +41,5 @@ escreve); decisão 6 e a guarda da GPU (Migração-OS, é do PC, fica fora do pr
 - inventário reproduzível (`scripts/vizinhos.sh --inventario` sai igual em duas rodadas);
 - depois da limpeza: `meow doctor` verde, e nenhuma responsabilidade com dois donos ativos (o próprio
   `vizinhos.sh` confere e o doctor passa a avisar duplicata nova — como estado, sem mandar digitar).
+
+**Nota de quem usa (17/10):** «nada deveria estar no Migração-OS»: o que for operacional lá (scripts, unidades, ganchos) é tratado como vizinho a migrar — do PC → Spellbook-OS/aurora; do produto → MeowSystem. A guarda da GPU já foi movida para a Aurora (aurora-gpu-compositor); não mexa nela.
