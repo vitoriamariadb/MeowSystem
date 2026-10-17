@@ -1859,6 +1859,15 @@ imprimir_check() {
   # 11, e não 10, desde 11/08/2026: `convertidos` é o primeiro nome de
   # verificador com 11 caracteres, e com 10 a coluna da direita saía uma casa
   # fora do prumo só naquela linha.
+  # O verificador que pula calado (a camada que não vale para o pack no ar) não
+  # deixa a linha da tabela vazia: ela diz o estado.
+  if [ -z "$linha" ]; then
+    case "${CHK_RC[$i]}" in
+      0) linha="confere" ;;
+      3|4) linha="não se aplica com o que está no ar" ;;
+      *) linha="saiu ${CHK_RC[$i]}, sem detalhe" ;;
+    esac
+  fi
   printf '  %s %s %s\n' "$rotulo" "$(pad "${CHK_NOME[$i]}" 11)" "$linha"
   if [ "$detalhar" = "1" ] && { [ "${CHK_RC[$i]}" != "0" ] || [ "$aviso" = "1" ]; }; then
     printf '%s\n' "$saida" | tail -n +2 | while IFS= read -r l; do

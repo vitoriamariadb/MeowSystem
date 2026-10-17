@@ -3,8 +3,8 @@
 #
 #   1. `meow compositor` que compilou e guardou o build sai 0: sucesso que
 #      escreveu é sucesso (o 1 virava «falhou» na tela de quem rodou).
-#   2. a linha `iconesapps` do doctor nunca sai vazia: com um pack que não usa
-#      o acervo Catppuccin de aplicativos, o verificador diz isso.
+#   2. nenhuma linha do doctor sai sem texto: com o Dracula no ar, a camada
+#      Catppuccin de aplicativos pula calada (decisão 22), e a linha diz o estado.
 #
 # HOME, cache e fonte de brinquedo; dpkg-query, make, cargo e patch falsos (o
 # make só cria o binário dentro do brinquedo); sudo recusa. Nada vai à rede.
@@ -47,14 +47,24 @@ else
   printf 'ok: compilou, guardou e saiu 0\n'
 fi
 
-printf 'PACK="dracula"\n' > "$TMP/casa/.config/meow/meow.conf"
-saida="$(env -i PATH="$TMP/falso:$PATH" HOME="$TMP/casa" NO_COLOR=1 \
-  MEOW_CONF="$TMP/casa/.config/meow/meow.conf" ICONES_TEMA=MeowSystem-Icons FLAVOR=dracula \
-  bash "$RAIZ/scripts/icones_apps.sh" --conferir 2>&1)"; rc=$?
-if [ -z "$(printf '%s' "$saida" | tr -d '[:space:]')" ]; then
-  reclamar "com o Dracula no ar o verificador dos aplicativos Catppuccin saiu $rc sem uma palavra (a linha vazia do doctor)"
+# O doctor inteiro, só lendo, com o Dracula no ar: nenhuma linha da tabela sem
+# texto. `kill`, `pkill` e `killall` viram funções que recusam, como no
+# tests/doctor-so-le.sh: o sinal não sai da casa de brinquedo.
+cp "$RAIZ/meow.conf.exemplo" "$TMP/casa/.config/meow/meow.conf"
+sed -i 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/' "$TMP/casa/.config/meow/meow.conf"
+kill() { [ "${1:-}" = "-0" ] && { builtin kill "$@"; return; }; return 1; }
+pkill() { return 1; }
+killall() { return 1; }
+export -f kill pkill killall
+saida="$(env -u DBUS_SESSION_BUS_ADDRESS PATH="$TMP/falso:$PATH" HOME="$TMP/casa" NO_COLOR=1 \
+  MEOW_RAIZ="$RAIZ" MEOW_PONTE="$TMP/sem-ponte" bash "$RAIZ/bin/meow" doctor 2>&1)"
+vazias="$(printf '%s\n' "$saida" | grep -E '^  (ok|~~|--|!!|erro) +[a-z0-9_]+ *$')"
+if ! printf '%s\n' "$saida" | grep -qE '^  [^ ]+ +iconesapps '; then
+  reclamar "o doctor não chegou à linha iconesapps (o teste não prova nada)\n$(printf '%s\n' "$saida" | tail -5)"
+elif [ -n "$vazias" ]; then
+  reclamar "linha do doctor sem texto:\n$vazias"
 else
-  printf 'ok: o verificador diz por que não confere: %s\n' "$(printf '%s' "$saida" | tail -1 | sed 's/^ *//')"
+  printf 'ok: nenhuma linha do doctor sai vazia: %s\n' "$(printf '%s\n' "$saida" | grep -E '^  [^ ]+ +iconesapps ' | sed 's/^ *//')"
 fi
 
 [ "$falhas" = "0" ] || exit 1
