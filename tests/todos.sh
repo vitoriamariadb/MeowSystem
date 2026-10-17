@@ -76,6 +76,7 @@ PORTATIL=(
   reler-uma-vez.sh       # a lib com getent, pgrep e painel.sh falsos numa raiz e HOME de brinquedo; um reler por passada, e o passo de traço de verdade; bash e python3
   derivados.sh           # alterou o desenho, o tema se atualiza: cópia da árvore e HOME de brinquedo, sem systemd; bash, git e python3
   tres-pastas.sh         # o formato de três pastas: os três packs, a quarta pasta, o.meowpack de antes convertido, packs e HOME de brinquedo; bash, python3 e zstd
+  vizinhos.sh            # o inventário dos vizinhos e o desligar com volta, numa casa de brinquedo com zsh, systemd, apt e repositório falsos; só bash
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
