@@ -46,7 +46,7 @@ async function api(rota, opcoes = {}) {
   let dados;
   try { dados = JSON.parse(texto); } catch { dados = { erro: texto }; }
   if (resposta.status === 409 && !dados.erro) {
-    dados.erro = "Já há um trabalho rodando. Espere ele terminar (ou pare-o na gaveta).";
+    dados.erro = "Já há um trabalho rodando. Espere ele terminar (ou pare-o na janela dele).";
   }
   if (!resposta.ok && !dados.erro) dados.erro = "HTTP " + resposta.status;
   return dados;
