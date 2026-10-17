@@ -36,7 +36,8 @@ case "$FLAVOR_ICONES" in
   latte) VARIANTE="latte" ;;
   macchiato|'') VARIANTE="macchiato" ;;
   frappe|mocha) VARIANTE="macchiato"; APROXIMOU="$FLAVOR_ICONES" ;;
-  *) exit "$MEOW_SEM_DEPENDENCIA" ;;
+  *) meow_pula "o pack no ar ($FLAVOR_ICONES) não usa o acervo Catppuccin de aplicativos"
+     exit "$MEOW_SEM_DEPENDENCIA" ;;
 esac
 
 ORIGEM="$RAIZ/assets/icones/catppuccin-apps/$VARIANTE"
