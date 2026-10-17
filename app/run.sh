@@ -129,10 +129,11 @@ FIM
   *) meow_erro "opção desconhecida: $1"; meow_info "veja: ./app/run.sh --help"; exit 2 ;;
 esac
 
-# ROOT NÃO — a mesma guarda do install.sh e do bin/meow, e pelo mesmo motivo.
+# ROOT NÃO: sob sudo o painel gravaria o meow.conf e chamaria o install.sh com
+# HOME de root, ou encheria o dela de arquivo de dono root.
 if [ "$(id -u)" = "0" ]; then
-  meow_erro "não me rode com sudo."
-  meow_info "  rode como o seu usuário normal:  ./app/run.sh"
+  meow_erro "com sudo, não: os arquivos de ~/.config ficariam de dono root — nada foi feito."
+  meow_info "  o painel roda como o seu usuário, na sua sessão"
   exit 2
 fi
 
@@ -208,7 +209,7 @@ trap limpar EXIT INT TERM HUP
 URL=""
 if ! read -r -t 15 URL < "$TUBO"; then
   meow_erro "o backend não respondeu em 15 s"
-  meow_info "  rode à mão para ver o erro:  python3 $SERVIDOR"
+  meow_info "  o erro do servidor saiu logo acima (sem terminal, em $PAINEL_LOG)"
   exit "$MEOW_ERRO"
 fi
 [ -n "$URL" ] || { meow_erro "o backend subiu sem dizer a URL"; exit "$MEOW_ERRO"; }
