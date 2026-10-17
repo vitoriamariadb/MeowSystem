@@ -44,6 +44,8 @@ case "$NOME" in
   ''|*/*|.*) echo "ERRO: nome inválido: '$NOME'" >&2; exit 2 ;;
 esac
 
+# `original` é o tema de fábrica, e recapturá-lo é via de mão única: daí em diante o
+# `desfazer` restauraria o tema que estava na tela, sem erro nenhum.
 # É o que `meow desfazer` restaura (bin/meow, `cmd_desfazer`) e o molde de que o
 # `gerar_tema_v1.py` deriva a v1 — e AQUELE script já recusa escrever nela, pelo
 # mesmo motivo (`MOLDE = "original"`).

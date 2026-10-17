@@ -3795,6 +3795,8 @@ ACOES = {
         "grupo": "Instalação",
         "natureza": "tirar",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall"],
+        # `sudo` verdadeiro: a remoção atravessa sudo (o hook de apt do lançador e a
+        # ponte root), e declarar falso faria o painel prometer que não pede senha.
         "escreve": True, "sudo": True, "confirma": True, "destrutivo": True,
         "ajuda": "Tira o tema, os ícones e os agendamentos. Não apaga "
                  "backups nem a coleção de imagens.",
