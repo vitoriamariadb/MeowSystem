@@ -1027,8 +1027,6 @@ select { flex: 1 1 auto; }
 .acao > * { order: 2; }
 .acao h3 { order: 0; margin: 0; font-size: var(--t-titulo); font-weight: 600; color: var(--text); letter-spacing: -.005em; }
 .acao p { order: 1; margin: 0; font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
-/* A LINHA `code.cmd` SOBRE O RODAPÉ SAIU DA TELA: o comando mora só no «ver
- * comando». */
 .acao .rodape {
   order: 4;
   display: flex;
@@ -1040,19 +1038,10 @@ select { flex: 1 1 auto; }
 }
 /* As etiquetas à esquerda, o gatilho à direita: lê-se o risco entrando no botão. */
 .acao .rodape .btn { margin-left: auto; }
-/* Com o «ver comando» na fileira são dois `.btn`, e dois `margin-left: auto`
- * dividem a folga entre si: os botões nasciam separados por meia largura de
- * cartão, como se fossem de assuntos diferentes. */
+/* Executar e Restaurar juntos, à direita. */
 .acao .rodape .btn ~ .btn { margin-left: 0; }
-/* O PAR «CONFERIR / APLICAR»: as etiquetas e o «ver comando» na primeira
- * linha, e os dois botões juntos na segunda, à direita. */
-.acao .rodape .par-quebra { order: 1; flex-basis: 100%; height: 0; }
-.acao .rodape .par-conferir, .acao .rodape .par-aplicar { order: 2; }
-.acao .rodape .btn.par-conferir { margin-left: auto; }
-.acao .rodape:has(.par-quebra) > .selo { order: -1; }
 /* Ela pertence ao fim, depois do rodapé, porque é o que se lê depois de decidir
  * olhar. */
-.acao > .comandos { order: 5; padding-top: .15rem; }
 
 /* A raiz é uma linha só: `align-items: start` na `.grade`, acima. */
 .grade > .acao,
@@ -1143,7 +1132,7 @@ select { flex: 1 1 auto; }
 .p-correndo { color: var(--yellow); }
 /* O estado do trabalho ao vivo é a exceção: aí a pílula diz "isto está
  * acontecendo agora", e o contorno é o que a separa de um rótulo estático. */
-#gaveta-estado {
+#resultado-estado {
   border: 1px solid currentColor;
   border-radius: var(--r-max);
   padding: .1rem .55rem;
@@ -1185,81 +1174,42 @@ select { flex: 1 1 auto; }
 .aviso-sudo:not([hidden]) { display: flex; align-items: center; gap: .5rem; }
 .aviso-sudo strong { font-weight: 600; }
 
-/* --- gaveta de saída ------------------------------------------------------ */
-/* ELA MUDOU DE PAI, e é isso que explica cada linha daqui.
- *
- * O `flex: 0 0 auto` saiu junto com a mudança de pai: ele só valia enquanto ela
- * era filha do `<body>`, que é uma coluna flex. */
-.gaveta {
-  position: sticky;
-  bottom: 0;
-  /* O desenho grudado do conteúdo (`.previa-bloco`) está em 3, e o que rola tem
-   * de passar por BAIXO da gaveta — senão a saída ao vivo fica atrás da prévia
-   * na metade das abas. */
-  z-index: 4;
-  /* O recheio lateral do `main` é cancelado de propósito: a gaveta é a borda
-   * de baixo da coluna do conteúdo, e não um cartão dentro dela. */
-  margin: 1rem -1.6rem 0;
-  max-height: 25vh;
-  min-height: 120px;
+/* --- a janela de resultado ------------------------------------------------ */
+/* Larga e alta o bastante para ler o log sem rolar a cada linha; o fundo
+ * escurecido é o `::backdrop` de todo diálogo. */
+dialog.resultado {
+  width: min(52rem, calc(100vw - 2rem));
+  max-width: none;
+  padding: 0;
+  display: none;
+  flex-direction: column;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  background: var(--crust);
-  border-top: 1px solid var(--surface1);
 }
-/* São 4rem de respiro no fim da coluna, e eles são do CONTEÚDO. */
-/* É o que acontece na aba curta, onde `scrollHeight == clientHeight`: a gaveta
- * fica no fluxo logo depois do conteúdo e sobra uma tira de `--base` debaixo de
- * um painel `--crust`.
- *
- * Os dois casos, um mecanismo cada. */
-main:has(> .gaveta:not([hidden])) {
-  padding-bottom: 0;
-  display: flex;
-  flex-direction: column;
-}
-main:has(> .gaveta:not([hidden])) > * { flex: 0 0 auto; }
-main:has(> .gaveta:not([hidden])) > #conteudo { flex: 1 0 auto; }
-main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
-/* Enquanto o arrasto dura, quem manda é o `height` que o `app.js` escreve no
- * `style` do elemento — e um `max-height: 25vh` o cortaria no primeiro pixel.
- *
- * O SELETOR ERA `[style*="height"]`, E ISSO É UMA BUSCA DE SUBSTRING: ele casa
- * com `min-height`, `max-height` e `line-height`. */
-.gaveta[data-esticada] { max-height: 60vh; }
-/* A faixa de 9 px logo abaixo da borda de cima: é ela que a pessoa arrasta, e o
- * `pointerdown` mora no `app.js`. */
-.gaveta-alca {
-  flex: 0 0 auto;
-  height: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: ns-resize;
-  touch-action: none;
-}
-.gaveta-alca::before {
-  content: "";
-  width: 34px;
-  height: 2px;
-  border-radius: var(--r-max);
-  background: var(--surface1);
-}
-.gaveta-alca:hover::before { background: var(--overlay1); }
-@media (max-width: 860px) {
-  .gaveta { margin-inline: -1rem; }
-}
-.gaveta-topo {
+dialog.resultado[open] { display: flex; }
+.resultado-topo {
   display: flex;
   align-items: center;
   gap: .8rem;
-  padding: .45rem .9rem;
+  padding: 1rem 1.2rem .8rem;
   border-bottom: 1px solid var(--surface0);
 }
-.gaveta-topo strong { font-size: .82rem; color: var(--text); }
-.gaveta-topo code { display: block; font: .68rem var(--mono); color: var(--overlay1); }
-.gaveta-botoes { margin-left: auto; display: flex; align-items: center; gap: .45rem; }
+.resultado-topo h2 { margin: 0; font-size: 1.05rem; }
+.resultado-topo .pastilha { margin-left: auto; }
+.resultado #saida {
+  height: min(56vh, 30rem);
+  background: var(--crust);
+}
+.resultado-botoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: .8rem 1.2rem 1rem;
+  border-top: 1px solid var(--surface0);
+}
+.resultado-botoes #resultado-guardado { margin-right: auto; }
+#resultado-ok { min-width: 5rem; }
 
 /* A FAIXA DO ENSAIO
  *
@@ -1318,7 +1268,7 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
 #mais-abaixo {
   position: absolute;
   left: 50%;
-  bottom: .55rem;
+  bottom: 4.2rem;
   transform: translateX(-50%);
   z-index: 1;
 }
@@ -1440,36 +1390,6 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
   border-left-color: var(--surface1);
 }
 
-/* --- o comando, fora do balão --------------------------------------------- */
-/* A lista que o «ver comando» abre: uma linha por comando, cada uma com o seu
- * Copiar. */
-.comandos { display: flex; flex-direction: column; gap: .25rem; }
-.galeria .comandos { background: var(--surface0); padding: 0 .4rem .45rem; }
-.comando {
-  display: flex;
-  align-items: center;
-  gap: .3rem;
-  background: color-mix(in srgb, var(--crust) 70%, transparent);
-  border-radius: var(--r-2);
-  padding: .15rem .25rem;
-}
-/* De qual botão é esta linha. Não encolhe: são quatro rótulos de uma palavra
-   ("Usar", "Dia", "Noite", "Tirar"), e é o que separa duas linhas que o
-   `<code>` cortado mostra iguais. */
-.comando-de {
-  flex: 0 0 auto;
-  font-size: var(--t-legenda);
-  color: var(--subtext0);
-}
-.comando code {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-  white-space: nowrap;
-  font: 400 var(--t-legenda)/1.5 var(--mono);
-  color: var(--subtext1);
-}
-
 /* --- diálogo -------------------------------------------------------------- */
 dialog {
   background: var(--mantle);
@@ -1484,15 +1404,6 @@ dialog::backdrop { background: color-mix(in srgb, var(--crust) 65%, transparent)
 dialog h2 { margin: 0 0 .5rem; font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
 dialog p { margin: .35rem 0; font-size: var(--t-frase); line-height: 1.55; color: var(--subtext0); }
 dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2rem 0 0; padding: 0; }
-.comando-previa code {
-  display: block;
-  background: var(--crust);
-  border-radius: var(--r-2);
-  padding: .5rem .6rem;
-  font: .74rem var(--mono);
-  color: var(--subtext1);
-  overflow-x: auto;
-}
 
 /* VER E ESCOLHER — a moldura sai, a imagem fica
  *
@@ -1585,15 +1496,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 }
 .galeria figure:hover figcaption,
 .galeria figure:focus-within figcaption { opacity: 1; pointer-events: auto; }
-/* Com a lista aberta a legenda sai do véu e entra na coluna: a ficha passa a
- * ser imagem + legenda + comandos, e quem ganha altura é a LINHA DA GRADE. */
 .galeria { align-items: start; }
-.galeria figure:has(.comandos:not([hidden])) figcaption {
-  position: static;
-  opacity: 1;
-  pointer-events: auto;
-  background: var(--surface0);
-}
 .galeria .nome {
   flex: 1 1 auto;
   min-width: 0;
@@ -1611,9 +1514,6 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   font-size: var(--t-legenda);
   min-height: 28px;
 }
-/* O «ver comando» é o último da fileira e não disputa com os verbos: ele
-   mostra, não faz. Encostado à direita, na cor do texto apagado. */
-.galeria .acoes .ver-comando { margin-left: auto; color: var(--subtext0); }
 /* Fora do hover o vermelho não existe; no hover ele volta a valer. */
 .galeria .acoes .btn-perigo { border-color: transparent; background: color-mix(in srgb, var(--surface1) 70%, transparent); color: var(--subtext1); }
 .galeria .acoes .btn-perigo:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, transparent); background: color-mix(in srgb, var(--red) 18%, transparent); }
@@ -2676,7 +2576,6 @@ a.folha:hover b { color: var(--text); }
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent);
 }
 .pastas-molde .frase { margin: 0; }
-.pastas-cru { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; }
 
 /* --- a noite ------------------------------------------------------------- */
 /* A home dizia como a máquina está vestida AGORA e não dizia a única coisa que

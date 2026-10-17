@@ -547,63 +547,6 @@ function ligarBalao() {
   for (const el of document.querySelectorAll("[title]")) porBalao(el, el.getAttribute("title"));
 }
 
-/* --- o comando, fora do balão --------------------------------------------- */
-async function copiarComando(texto) {
-  try {
-    await navigator.clipboard.writeText(texto);
-    torrada("Comando copiado.", "ok");
-  } catch (e) {
-    /* Sem permissão de área de transferência não há segundo caminho que não
-     * seja pior: o truque do `<textarea>` escondido rouba o foco e é obsoleto. */
-    torrada("O navegador não deixou copiar. O comando está na tela.", "erro");
-  }
-}
-
-/* Recolhe os comandos que o `partirAjuda` tirou dos balões de uma fileira de
- * botões e devolve o par «ver comando» + a linha que ele abre. Devolve `null`
- * quando não há comando nenhum — um botão que não abre nada é ruído. */
-function verComando(acoes) {
-  const donos = [...acoes.children].filter((b) => b.dataset && b.dataset.comando);
-  if (!donos.length) return null;
-  const bloco = elemento("div", { class: "comandos", hidden: true });
-  /* Cada `<code>` fica preso ao BOTÃO dono, e não a uma cópia do texto. */
-  const repintar = [];
-  for (const dono of donos) {
-    const rotulo = (dono.textContent || "").trim();
-    const linha = elemento("code", { texto: dono.dataset.comando });
-    repintar.push(() => { linha.textContent = dono.dataset.comando; });
-    bloco.append(elemento("div", { class: "comando" }, [
-      /* Duas linhas iguais numa lista leem-se como defeito, e o Copiar certo
-       * passa a ser adivinhação. */
-      rotulo && donos.length > 1
-        ? elemento("span", { class: "comando-de", texto: rotulo }) : null,
-      linha,
-      elemento("button", {
-        type: "button", class: "btn btn-mini",
-        texto: "Copiar",
-        "aria-label": rotulo ? `Copiar o comando de ${rotulo}` : "Copiar o comando",
-        onclick: () => copiarComando(dono.dataset.comando),
-      }),
-    ]));
-  }
-  /* Repintar só ao ABRIR fechava metade da porta que o comentário lá em cima
-   * mandou fechar: com a lista JÁ aberta ninguém tornava a abri-la, e o
-   * `<code>` envelhecia na tela do mesmo jeito. */
-  const repintarTudo = () => { for (const f of repintar) f(); };
-  const botao = elemento("button", {
-    type: "button", class: "btn btn-mini ver-comando",
-    texto: "ver comando",
-    "aria-expanded": "false",
-    onclick: () => {
-      /* Repinta ao ABRIR, que é o instante em que alguém começa a ler. */
-      if (bloco.hidden) repintarTudo();
-      bloco.hidden = !bloco.hidden;
-      botao.setAttribute("aria-expanded", String(!bloco.hidden));
-    },
-  });
-  return { botao, bloco, repintar: repintarTudo };
-}
-
 function torrada(texto, classe = "") {
   if (classe && !["ok", "igual", "erro"].includes(classe)) classe = "erro";
   /* Quem repete a frase não está dizendo mais; está gritando. Enquanto uma
@@ -890,8 +833,7 @@ async function descartarEscolhas() {
 async function salvarEscolhas(seco = false) {
   if (TRABALHO && TRABALHO.timer !== null) {
     torrada(`Espere «${TRABALHO.rotulo || "o trabalho"}» terminar`, "igual");
-    $("#gaveta").hidden = false;
-    pastilhaDeTrabalho(false);
+    abrirJanela();
     return;
   }
   const quantas = MUDANCAS.size;
@@ -921,7 +863,7 @@ async function salvarEscolhas(seco = false) {
     torrada(quantas
       ? `Ensaio de ${quantas === 1 ? "1 escolha" : `${quantas} escolhas`} — nada será escrito`
       : "Ensaio do que já está salvo — nada será escrito", "igual");
-    abrirGaveta(r.trabalho, () => salvarEscolhas(false));
+    abrirResultado(r.trabalho, () => salvarEscolhas(false));
     return;
   }
   if (!r.gravadas) { torrada(r.erro || "Não consegui salvar", "erro"); return; }
@@ -950,7 +892,7 @@ async function salvarEscolhas(seco = false) {
   torrada(quantas
     ? `${quantas === 1 ? "1 escolha gravada" : `${quantas} escolhas gravadas`} — aplicando`
     : "Aplicando o que está salvo", "ok");
-  abrirGaveta(r.trabalho);
+  abrirResultado(r.trabalho);
 }
 
 /* O MODELO NÃO MUDOU — clicar guarda, salvar grava. O botão só existe enquanto
@@ -966,8 +908,7 @@ async function aplicarCartao(item, botao) {
    * servidor recusa, e a resposta certa é mostrar o trabalho que já corre. */
   if (TRABALHO && TRABALHO.timer !== null) {
     torrada(`Espere «${TRABALHO.rotulo || "o trabalho"}» terminar`, "igual");
-    $("#gaveta").hidden = false;
-    pastilhaDeTrabalho(false);
+    abrirJanela();
     return;
   }
   botao.disabled = true;
@@ -1007,7 +948,7 @@ async function aplicarCartao(item, botao) {
     return;
   }
   torrada(`«${nomeVisivel(item.chave)}» gravado — aplicando`, "ok");
-  abrirGaveta(r.trabalho);
+  abrirResultado(r.trabalho);
 }
 
 /* Ele lê o arquivo, manda o texto para o servidor conferir chave a chave, e o
@@ -1189,18 +1130,9 @@ function controlePastas(item, aplica) {
    * duas é de tom, não de cor. O desenho em cima diz o resto. */
   const amostra = elemento("span", { class: "pastas-amostra", "aria-hidden": "true" });
   const nota = elemento("div", { class: "selos" });
-  /* O «ver comando» mostra a LINHA do meow.conf, que é o texto cru que saiu da
-   * tela. A fonte dela é um elemento só, e o `dataset.comando` é reescrito a
-   * cada troca — o mesmo contrato do cartão de ação (ver `verComando`). */
-  const fonte = elemento("div", { hidden: true }, [
-    elemento("span", { "data-comando": `ICONES_PASTAS="${valor}"`, texto: "Linha do meow.conf" }),
-  ]);
-  const cmd = verComando(fonte);
   const atualizar = () => {
     const cor = selCor.value;
     amostra.style.background = cor === "${ACCENT}" ? "var(--accent)" : `var(--${cor})`;
-    fonte.firstChild.dataset.comando = `ICONES_PASTAS="cat-${selVariante.value}-${cor}"`;
-    if (cmd) cmd.repintar();
     nota.replaceChildren();
     if (molde.sem_upstream) {
       nota.append(selo("rede", { texto: "papirus-folders",
@@ -1221,7 +1153,6 @@ function controlePastas(item, aplica) {
       elemento("label", {}, [elemento("span", { texto: "Cor" }), selCor, amostra]),
     ]),
     nota,
-    cmd ? elemento("div", { class: "pastas-cru" }, [cmd.botao, cmd.bloco]) : null,
   ]);
 }
 
@@ -1763,6 +1694,7 @@ async function recarregarEsquema() {
   const novo = await api("/api/esquema");
   if (novo && !novo.erro && novo.chaves) {
     ESQUEMA = novo;
+    lerRestauros();
     pintarResumo();
     /* Uma etapa nova no install.sh no meio da sessão dela muda o desenho da
      * aba «Instalação» na releitura seguinte, sem F5. */
@@ -4278,7 +4210,7 @@ async function definirJogo(appid, acao, motivo, remover) {
     body: JSON.stringify({ acao: "jogos_aplicar", argumento: "", confirmado: true }),
   });
   if (t.erro) torrada(t.erro, "erro");
-  else abrirGaveta(t);
+  else abrirResultado(t);
   await carregarJogos();
 }
 
@@ -4342,7 +4274,7 @@ async function confirmarJogo(j, acao, motivo, remover, rotulos = {}) {
   if (escolha !== "seco") return;
   const t = await api("/api/jogo-fora", { method: "POST", body: JSON.stringify({ ...pedido, seco: true }) });
   if (t.erro) { torrada(t.erro, "erro"); return; }
-  abrirGaveta(t, () => definirJogo(j.appid, acao, motivo, remover));
+  abrirResultado(t, () => definirJogo(j.appid, acao, motivo, remover));
 }
 
 function etiquetaDoJogo(j) {
@@ -4562,9 +4494,6 @@ function montarEscolhaDeJogo(j) {
           texto: "A pasta do jogo e o manifesto saem do disco agora — com a Steam "
                + "aberta, na próxima passagem. Dispara uma vez só: se você "
                + "reinstalar depois, nada é apagado.",
-          /* Nos outros diálogos ali vai o comando que VAI RODAR, e aqui não
-           * roda comando nenhum: o clique anota uma decisão. */
-          comando: `${j.nome} → marcado para apagar`,
           ok: "Marcar para apagar", perigo: true,
         });
         if (sim) definirJogo(j.appid, "apagar", motivo.value);
@@ -4647,8 +4576,7 @@ function botoesDeLado(imagem) {
   return botoes.map(([id, rotulo, ajuda]) => elemento("button", {
     type: "button", class: "btn btn-mini",
     texto: rotulo,
-    title: `${ajuda} (meow wallpaper lado ${imagem.rotulo} `
-         + `${id === "wallpaper_lado_auto" ? "auto" : rotulo.toLowerCase()})`,
+    title: ajuda,
     onclick: () => rodarNaGaleria(id, alvo),
   }));
 }
@@ -4760,7 +4688,7 @@ function montarGaleria() {
       acoes.append(elemento("button", {
         type: "button", class: "btn btn-mini btn-accent",
         texto: "Usar",
-        title: `Passa a valer agora. (meow wallpaper usar ${i.rotulo})`,
+        title: "Passa a valer agora.",
         onclick: () => rodarNaGaleria("wallpaper_usar", i.banir || i.origem),
       }));
       acoes.append(...botoesDeLado(i));
@@ -4774,24 +4702,14 @@ function montarGaleria() {
         /* "banidos/" É O NOME DA PASTA NO DISCO. A aba ao lado já se chama
          * "Recusadas" e é para lá que a imagem vai; citar o diretório
          * obrigava a saber que os dois nomes são a mesma coisa. */
-        title: `Sai do carrossel e vai para as recusadas. Nunca é apagada. (meow wallpaper banir ${i.rotulo})`,
+        title: "Sai do carrossel e vai para as recusadas. Nunca é apagada.",
         onclick: () => rodarNaGaleria("wallpaper_banir", i.banir || i.origem),
       }));
     }
-    /* Os quatro balões desta ficha carregavam um `(meow wallpaper …)` cru
-     * dentro dos parênteses — 119 na aba inteira, e era a metade comprida do
-     * texto que cobria os botões vizinhos. */
-    const cmds = verComando(acoes);
-    if (cmds) acoes.append(cmds.botao);
     fig.append(elemento("figcaption", {}, [
       elemento("span", { class: "nome", texto: i.rotulo }),
       acoes.children.length ? acoes : null,
     ]));
-    /* A LISTA DE COMANDOS FICA FORA DA LEGENDA, e isso é medida, não gosto: a
-     * legenda é um véu ancorado no pé da imagem, e os quatro comandos desta
-     * ficha não cabem nos 132 px do cartão — dentro dela a lista nascia
-     * cortada pela moldura. */
-    if (cmds) fig.append(cmds.bloco);
     grade.append(fig);
   }
   caixa.append(pulaGrade("apos-galeria", "Pular a galeria"));
@@ -4831,7 +4749,7 @@ async function rodarDaSecao(acaoId, invalidar) {
     body: JSON.stringify({ acao: acaoId, argumento: "", confirmado: true, seco }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirGaveta(r, seco ? () => rodarDeVerdade(acao, "") : null);
+  abrirResultado(r, seco ? () => rodarDeVerdade(acao, "") : null);
   const esperar = setInterval(() => {
     if (TRABALHO) return;
     clearInterval(esperar);
@@ -4851,7 +4769,7 @@ async function rodarNaGaleria(acaoId, argumento) {
     body: JSON.stringify({ acao: acaoId, argumento }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirGaveta(r);
+  abrirResultado(r);
   /* A lista muda por baixo: a imagem sai de `ativos/` e entra em `banidos/`.
    * Quem a relê no fim é o `puxar`, como a de todo trabalho que escreve — e
    * as seis ações da galeria escrevem. */
@@ -5417,8 +5335,6 @@ function montarAcao(acao) {
    * As pastilhas que ficam são as que de fato distinguem uma ação da vizinha —
    * pede senha, desfaz o que foi feito, baixa da internet. */
 
-  /* O `pintarCmd`, logo abaixo, é quem o mantém em dia quando o `<select>`
-   * muda o argumento. */
   const executar = elemento("button", {
     type: "button",
     class: "btn " + (acao.destrutivo ? "btn-perigo" : "btn-accent"),
@@ -5426,25 +5342,13 @@ function montarAcao(acao) {
     onclick: () => rodar(acao, escolha ? escolha.value : ""),
   });
   rodape.append(executar);
-  /* A ação que mostra o que mudaria (`par`, declarado pelo servidor) leva no
-   * mesmo cartão a que aplica, no molde do «Conferir» e do «Arrumar» da Steam:
-   * o primeiro botão passa a ser «Conferir», o segundo é o rótulo do aplicar,
-   * com os selos de risco dele. */
-  const par = acao.par && (ESQUEMA.acoes || []).find((a) => a.id === acao.par);
-  if (par) {
-    executar.textContent = "Conferir";
-    executar.className = "btn par-conferir";
-    rodape.append(elemento("span", { class: "par-quebra", "aria-hidden": "true" }));
-    if (par.sudo) rodape.append(selo("sudo", { balao: "Pede a senha do sudo" }));
-    else if (par.pela_ponte) rodape.append(selo("ponte", {
-      balao: "Sem senha: o perfil do sudo está registrado" }));
-    if (par.destrutivo) rodape.append(selo("desfaz", { balao: "Desfaz o que foi feito" }));
-    if (par.rede) rodape.append(selo("rede", { balao: "Baixa da internet" }));
+  /* O Restaurar desfaz a ÚLTIMA execução desta ação, e só existe quando há o
+   * que desfazer: a ação que só lê nunca o mostra. */
+  if (acao.escreve && RESTAUROS.has(acao.id)) {
     rodape.append(elemento("button", {
-      type: "button",
-      class: "btn par-aplicar " + (par.destrutivo ? "btn-perigo" : "btn-accent"),
-      texto: par.rotulo,
-      onclick: () => rodar(par, ""),
+      type: "button", class: "btn restaurar",
+      texto: "Restaurar",
+      onclick: () => restaurarAcao(acao.id),
     }));
   }
   /* Uma ação que recebe argumento (`arg`, o `@ARG@` do comando) e cuja lista
@@ -5469,38 +5373,6 @@ function montarAcao(acao) {
   if (explica.length) topo.append(...gatilhoDeDica("dica-acao-" + idDeAba(acao.id || acao.rotulo),
                                                    `O que faz ${acao.rotulo}`, explica));
   bloco.append(rodape);
-  /* `@ARG@` é sintaxe do `servidor.py`, e a linha embaixo do cartão existe
-   * justamente para que ela possa LER o que vai acontecer antes de apertar. */
-  /* Ela imprimia o `argv` inteiro, com `/home/<usuário>/…` na frente: 42 das
-   * 43 tarjas de caminho que a página mostrava. */
-  /* Ela mostrava o mesmo comando que o «ver comando» abre dois centímetros
-   * abaixo. */
-  const pintarCmd = () => {
-    const texto = acao.argv.replace("@ARG@", escolha ? escolha.value : "");
-    executar.dataset.comando = texto;
-    /* Eram 42 na página: o balão imprimia, sob o cursor, o comando que a linha
-     * já mostra por extenso dois centímetros acima. */
-  };
-  pintarCmd();
-  if (escolha) escolha.addEventListener("change", pintarCmd);
-  /* O «ver comando» nasce DEPOIS do `pintarCmd`, porque é o `dataset.comando`
-   * que ele procura na fileira. */
-  const cmds = verComando(rodape);
-  if (cmds) {
-    /* ANTES DO «EXECUTAR», e não depois: o `.rodape` põe as etiquetas de risco
-     * à esquerda e o gatilho à direita justamente para que a última coisa lida
-     * antes de apertar seja o risco (ver o `estilo.css`). */
-    rodape.insertBefore(cmds.botao, executar);
-    /* A linha do «ver comando» é agora A linha de comando do cartão, e leva a
-     * classe que a linha de cima levava: é por ela que quem confere a ação
-     * acha o comando que vai rodar. */
-    for (const linha of cmds.bloco.querySelectorAll("code")) linha.classList.add("cmd");
-    bloco.append(cmds.bloco);
-    /* O «Copiar» estava certo (lê o `dataset.comando` na hora da cópia); quem
-     * mentia era o TEXTO, que é justamente o que esta lista existe para
-     * mostrar. */
-    if (escolha) escolha.addEventListener("change", cmds.repintar);
-  }
   return bloco;
 }
 
@@ -5529,7 +5401,7 @@ async function rodar(acao, argumento) {
     });
   }
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirGaveta(r, seco ? () => rodarDeVerdade(acao, argumento) : null);
+  abrirResultado(r, seco ? () => rodarDeVerdade(acao, argumento) : null);
 }
 
 /* Reabri-la aqui seria pedir a mesma autorização duas vezes — o defeito que o
@@ -5540,7 +5412,7 @@ async function rodarDeVerdade(acao, argumento) {
     body: JSON.stringify({ acao: acao.id, argumento, confirmado: true, seco: false }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirGaveta(r);
+  abrirResultado(r);
 }
 
 /* A seção "Jogos da Steam" precisava perguntar antes de marcar um jogo para
@@ -5601,7 +5473,7 @@ function caixaDoSudo() {
         + "pulam sozinhas e aparecem como «pulado:»." })]));
 }
 
-function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
+function perguntar({ titulo, texto, ok = "Sim", sudo = false,
                      perigo = false, neutro = false, ensaio = false, corpo = null }) {
   const dlg = $("#confirmar");
   $("#confirmar-titulo").textContent = titulo;
@@ -5611,10 +5483,6 @@ function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
   lugar.hidden = !corpo;
   if (sudo) caixaDoSudo();
   $("#confirmar-sudo").hidden = !sudo;
-  $("#confirmar-comando").textContent = comando;
-  /* Esconder o <code> deixaria o <p> que o embrulha ocupando espaço vazio — o
-   * que vira um buraco no meio da caixa quando a pergunta não tem comando. */
-  $("#confirmar-comando").closest("p").hidden = !comando;
   $("#confirmar-ok").textContent = ok;
   /* Três pesos, e o do meio existe: descartar escolhas não escreve nada, e
    * pintar aquele botão com a cor de acento o faria parecer a ação principal. */
@@ -5639,7 +5507,6 @@ async function confirmar(acao, argumento) {
   const r = await perguntar({
     titulo: acao.rotulo,
     texto: acao.ajuda,
-    comando: acao.argv.replace("@ARG@", argumento),
     /* O "de verdade" só volta lá na gaveta, depois do ensaio, onde não há outra
      * frase segurando o sentido. */
     ok: "Rodar",
@@ -5677,7 +5544,7 @@ function faixaDeEnsaio(ligada) {
   const velha = document.getElementById("faixa-ensaio");
   if (velha) velha.remove();
   if (!ligada) return;
-  $(".gaveta-topo").after(elemento("div", { class: "faixa-ensaio", id: "faixa-ensaio" }, [
+  $(".resultado-topo").after(elemento("div", { class: "faixa-ensaio", id: "faixa-ensaio" }, [
     elemento("strong", { texto: "ENSAIO · nada foi escrito" }),
     elemento("span", { texto: "Cada linha «~~» é uma mudança que ficou só na tela." }),
   ]));
@@ -5688,17 +5555,17 @@ function faixaDeEnsaio(ligada) {
  * botão, dois cartões ao lado. */
 function oferecerConserto(id) {
   const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
-  if (!acao || document.getElementById("gaveta-consertar")) return;
+  if (!acao || document.getElementById("resultado-consertar")) return;
   const selo = acao.rede
-    ? elemento("span", { class: "pastilha p-rede", id: "gaveta-consertar-rede", texto: "baixa da internet" })
+    ? elemento("span", { class: "pastilha p-rede", id: "resultado-consertar-rede", texto: "baixa da internet" })
     : null;
   const botao = elemento("button", {
-    type: "button", class: "btn btn-accent", id: "gaveta-consertar",
+    type: "button", class: "btn", id: "resultado-consertar",
     texto: acao.rotulo,
     onclick: (ev) => { ev.currentTarget.remove(); if (selo) selo.remove(); rodar(acao, ""); },
   });
-  $("#fechar-gaveta").before(botao);
-  if (selo) botao.after(selo);
+  if (selo) $("#resultado-guardar").before(selo);
+  $("#resultado-guardar").before(botao);
 }
 
 /* O BOTÃO QUE FECHA O FLUXO: vejo, aprovo, rodo. Ele só aparece quando o ensaio
@@ -5710,7 +5577,7 @@ function oferecerRodarDeVerdade(aplicar) {
   faixa.append(elemento("button", {
     type: "button", class: "btn btn-accent", id: "ensaio-rodar",
     texto: "Rodar de verdade",
-    title: "Roda o mesmo comando escrevendo na máquina",
+    title: "Roda de novo, agora escrevendo na máquina",
     /* É o mesmo remédio que o `salvarEscolhas` já usa: o botão se desabilita
      * entre o clique e a resposta. */
     onclick: async (ev) => {
@@ -5728,30 +5595,38 @@ function oferecerRodarDeVerdade(aplicar) {
   }));
 }
 
-function abrirGaveta(trabalho, aplicar = null) {
+function abrirJanela() {
+  const d = $("#resultado");
+  if (!d.open) d.showModal();
+  pastilhaDeTrabalho(false);
+  marcarLinhasAbaixo();
+}
+
+function abrirResultado(trabalho, aplicar = null) {
   if (TRABALHO?.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve,
-               rotulo: trabalho.rotulo, mudou: false,
+               rotulo: trabalho.rotulo, mudou: false, acao: trabalho.acao || null,
                seco: !!trabalho.seco, fim: trabalho.fim || {}, aplicar,
                conserta: trabalho.conserta_com || null };
-  for (const velho of ["gaveta-consertar", "gaveta-consertar-rede"]) {
+  /* O Guardar vale depois do fim, quando o `TRABALHO` já foi esquecido. */
+  ULTIMO_TRABALHO = { id: trabalho.id, acao: trabalho.acao || null };
+  for (const velho of ["resultado-consertar", "resultado-consertar-rede"]) {
     const no = document.getElementById(velho);
     if (no) no.remove();
   }
-  const gaveta = $("#gaveta");
-  gaveta.hidden = false;
   faixaDeEnsaio(!!trabalho.seco);
-  gaveta.style.removeProperty("height");
-  gaveta.removeAttribute("data-esticada");
-  pastilhaDeTrabalho(false);
-  $("#gaveta-titulo").textContent = trabalho.rotulo;
-  $("#gaveta-comando").textContent = trabalho.comando;
+  $("#resultado-titulo").textContent = trabalho.rotulo;
   $("#saida").replaceChildren();
+  $("#parar").hidden = false;
   $("#parar").disabled = false;
+  $("#resultado-restaurar").hidden = true;
+  $("#resultado-guardado").hidden = true;
   marcarEstado("correndo", "correndo…");
+  abrirJanela();
   TRABALHO.timer = setInterval(puxar, 400);
   puxar();
 }
+let ULTIMO_TRABALHO = null;
 
 /* O que não está na tabela é erro, e a frase diz o código — é o mesmo "saiu N"
  * de antes, e é ele que o «Parar» mostra (o SIGTERM volta como -15).
@@ -5764,7 +5639,7 @@ function linhaDoFim(fim, rc, mudou) {
 }
 
 function marcarEstado(classe, texto) {
-  const el = $("#gaveta-estado");
+  const el = $("#resultado-estado");
   el.className = "pastilha p-" + classe;
   el.textContent = texto;
 }
@@ -5792,7 +5667,7 @@ function marcarLinhasAbaixo() {
   const saida = $("#saida");
   /* O `fim` da busca binária vira 0, o primeiro filho já o alcança, e a conta
    * devolve TODAS as linhas. */
-  if (saida.offsetParent === null) return;
+  if (!$("#resultado").open) return;
   let aviso = document.getElementById("mais-abaixo");
   if (!aviso) {
     /* Nasce do JavaScript, e não do `index.html`: enquanto não há linha
@@ -5808,7 +5683,7 @@ function marcarLinhasAbaixo() {
       "aria-live": "off",
       onclick: () => { saida.scrollTop = saida.scrollHeight; marcarLinhasAbaixo(); },
     });
-    $("#gaveta").append(aviso);
+    $("#resultado").append(aviso);
   }
   const n = linhasAbaixo(saida);
   aviso.hidden = n === 0;
@@ -5840,7 +5715,11 @@ async function puxar() {
 
   if (!r.vivo) {
     clearInterval(TRABALHO.timer);
-    $("#parar").disabled = true;
+    $("#parar").hidden = true;
+    /* Há o que desfazer: o Restaurar repõe o estado de antes desta execução. */
+    $("#resultado-restaurar").hidden = !(r.restauravel && TRABALHO.acao && !TRABALHO.seco);
+    if (r.restauravel && TRABALHO.acao) RESTAUROS.add(TRABALHO.acao);
+    if (TRABALHO.acao === "restaurar" && (r.rc === 0 || r.rc === 1)) RESTAUROS.delete(TRABALHO.restaura);
     /* Até ali o `escreveu` também escolhia a frase: falso, o código 1 era
      * traduzido como "há divergências" em vez de "mexeu e consertou". */
     const escreveu = TRABALHO.escreve && !TRABALHO.seco;
@@ -5901,11 +5780,11 @@ async function puxar() {
         render();
       });
     }
-    if ($("#gaveta").hidden) {
+    if (!$("#resultado").open) {
       /* O desfecho não pode depender de a gaveta estar à vista: quem fechou
        * continua tendo direito de saber como acabou. A frase é a mesma da
        * pastilha de estado, com o nome do trabalho na frente. */
-      const fim = $("#gaveta-estado").textContent;
+      const fim = $("#resultado-estado").textContent;
       /* A cor da torrada é a da pastilha: o 1 do instalador que não aplicou
        * tudo e o «há divergências» de quem só confere não são o verde de
        * «ok», nem o vermelho de erro. */
@@ -7402,9 +7281,8 @@ function render() {
       /* Ação `oculta` não é cartão: o argumento dela é uma imagem, e a galeria
        * já a oferece no lugar certo (o botão embaixo de cada foto). */
       if (g.tipo === "acoes" && item.oculta) continue;
-      /* O aplicar de um par mora no cartão do ver dele. Na busca ele
-       * aparece sozinho: o resultado é o que casou. */
-      if (g.tipo === "acoes" && !busca && (ESQUEMA.acoes || []).some((a) => a.par === item.id)) continue;
+      /* Do par «ver / aplicar» fica o aplicar: o ver é o «Ver o que faria» dele. */
+      if (g.tipo === "acoes" && !busca && item.par) continue;
       /* E a que mora na moldura de um modo. */
       if (g.tipo === "acoes" && !busca && ACOES_EM_MOLDURA.has(item.id)) continue;
       if (g.tipo === "acoes") {
@@ -8864,10 +8742,6 @@ function montarHome() {
    * confiança no resto. */
   explicaSemana.push(elemento("p", { class: "resumo",
     texto: "Estes rodam na hora — ação não espera o Salvar." }));
-  /* Uma linha resolve; um manual aqui não é o lugar (o trilho já teve um botão
-   * "Manual" e ela o tirou). */
-  explicaSemana.push(elemento("p", { class: "motivo",
-    texto: "No terminal, isto aqui é o comando meow — meow doctor confere, meow ativar aplica." }));
   semana.append(elemento("div", { class: "home-semana-topo com-dica" }, [
     elemento("h3", { texto: "Toda semana" }),
     ...gatilhoDeDica("dica-home-semana", "Sobre as ações da semana", explicaSemana),
@@ -8971,43 +8845,43 @@ $("#busca").addEventListener("input", render);
 /* Subir no meio de um trabalho tem de acender o «mais N linhas abaixo» NA HORA,
  * e não no puxão seguinte, 400 ms depois: quem rolou está olhando para a tela. */
 $("#saida").addEventListener("scroll", marcarLinhasAbaixo);
-/* Quem cresce a gaveta passa a ser este arrasto, na faixa que o `index.html`
- * chama de alça.
- *
- * A gaveta cresce PARA CIMA porque está presa no rodapé: subir a borda de cima
- * é somar o que o ponteiro subiu. */
-$("#gaveta-alca").addEventListener("pointerdown", (ev) => {
-  const gaveta = $("#gaveta");
-  const alca = ev.currentTarget;
-  const y0 = ev.clientY;
-  const h0 = gaveta.getBoundingClientRect().height;
-  /* Sem isto o gesto vira seleção do texto do cabeçalho da gaveta. */
-  ev.preventDefault();
-  alca.setPointerCapture(ev.pointerId);
-  const arrastar = (e) => {
-    /* A marca só nasce no primeiro movimento: um clique seco na alça não é
-     * arrasto, e não deveria destravar os 60vh. */
-    gaveta.dataset.esticada = "";
-    gaveta.style.height = Math.round(h0 + (y0 - e.clientY)) + "px";
-  };
-  const soltar = () => {
-    alca.removeEventListener("pointermove", arrastar);
-    alca.removeEventListener("pointerup", soltar);
-    alca.removeEventListener("pointercancel", soltar);
-  };
-  alca.addEventListener("pointermove", arrastar);
-  alca.addEventListener("pointerup", soltar);
-  alca.addEventListener("pointercancel", soltar);
+/* A janela de resultado. Fechar não para nada: com trabalho vivo, a pastilha do
+ * cabeçalho a reabre, e o desfecho chega como torrada. */
+function aoFecharJanela() {
+  if (TRABALHO && TRABALHO.timer !== null) pastilhaDeTrabalho(true);
+}
+$("#resultado").addEventListener("close", aoFecharJanela);
+$("#resultado-ok").addEventListener("click", () => $("#resultado").close());
+$("#resultado-guardar").addEventListener("click", async () => {
+  if (!ULTIMO_TRABALHO) return;
+  const r = await api("/api/guardar-log", { method: "POST",
+    body: JSON.stringify({ id: ULTIMO_TRABALHO.id }) });
+  if (r.erro) { torrada(r.erro, "erro"); return; }
+  const selo = $("#resultado-guardado");
+  const partes = r.caminho.split("/");
+  selo.textContent = partes.slice(-2).join("/");
+  porBalao(selo, r.caminho);
+  selo.hidden = false;
 });
-$("#fechar-gaveta").addEventListener("click", () => {
-  $("#gaveta").hidden = true;
-  /* Agora fechar com trabalho vivo deixa o puxar() de pé (400 ms num servidor
-   * local é barato) e pendura uma pastilha no cabeçalho; ela reabre a gaveta,
-   * e o desfecho de um trabalho fechado vira torrada em vez de silêncio. */
-  if (TRABALHO && TRABALHO.timer !== null) {
-    pastilhaDeTrabalho(true);
-  }
+$("#resultado-restaurar").addEventListener("click", () => {
+  if (ULTIMO_TRABALHO && ULTIMO_TRABALHO.acao) restaurarAcao(ULTIMO_TRABALHO.acao);
 });
+
+/* As ações cuja última execução se desfaz. Nasce do esquema e acompanha cada
+ * fim de trabalho, sem esperar a releitura. */
+const RESTAUROS = new Set();
+function lerRestauros() {
+  RESTAUROS.clear();
+  for (const a of (ESQUEMA && ESQUEMA.acoes) || []) if (a.restauro) RESTAUROS.add(a.id);
+}
+
+async function restaurarAcao(id) {
+  const r = await api("/api/rodar", { method: "POST",
+    body: JSON.stringify({ acao: "restaurar", argumento: id, confirmado: true }) });
+  if (r.erro) { torrada(r.erro, "erro"); return; }
+  abrirResultado(r);
+  TRABALHO.restaura = id;
+}
 
 function pastilhaDeTrabalho(mostrar) {
   let p = document.getElementById("pastilha-trabalho");
@@ -9021,11 +8895,7 @@ function pastilhaDeTrabalho(mostrar) {
     /* O `marcarLinhasAbaixo` na reabertura não é zelo: de portas fechadas a
      * pastilha não pôde ser medida (ver a guarda lá em cima), então o número
      * que está nela é o do instante em que a gaveta sumiu. */
-    onclick: () => {
-      $("#gaveta").hidden = false;
-      pastilhaDeTrabalho(false);
-      marcarLinhasAbaixo();
-    },
+    onclick: () => abrirJanela(),
   });
   $("#barra-salvar").before(p);
 }
@@ -9182,6 +9052,7 @@ async function iniciar() {
    * primeira pintura esperava a soma das três. */
   const [esquema] = await Promise.all([api("/api/esquema"), recarregarPendencias(), recarregarPacks()]);
   ESQUEMA = esquema;
+  lerRestauros();
   publicarMedidas();
   if (ESQUEMA.erro) {
     /* O esqueleto sai também no erro: ele promete uma página que não vem. */
