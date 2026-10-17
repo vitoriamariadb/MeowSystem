@@ -145,7 +145,7 @@ fi
 if [ -z "$AUTORAIS" ]; then
   meow_erro "não sei onde mora o acervo autoral do pack ativo"
   meow_info "  quem responde esse endereço é 'scripts/pack.py onde', e ele precisa de python3"
-  meow_info "  (ou o pack recusou: rode 'meow pack validar' para ver o motivo)"
+  meow_info "  (ou o pack no ar não valida: o motivo está no cartão dele, na Início)"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
@@ -215,7 +215,7 @@ for nome in "${!AUTORAL[@]}"; do
       # pergunta de quem um dia der ao resolvedor uma porta que não precise de
       # python3.
       meow_erro "falta $fonte e não há python3 para desenhá-lo"
-      meow_info "  instale python3 ou rode com um FLAVOR já versionado no acervo do pack"
+      meow_info "  sem python3, só os flavors já versionados no acervo do pack têm desenho"
       exit "$MEOW_SEM_DEPENDENCIA"
     fi
     meow_erro "falta $fonte — o gerador não produziu o flavor '$FLAVOR'"
@@ -336,7 +336,7 @@ fi
 TK="$(meow_cosmic_dir)/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme"
 if [ -f "$TK" ] && ! grep -q "\"$TEMA_NOME\"" "$TK"; then
   meow_aviso "'$TEMA_NOME' NÃO é o tema de ícones selecionado — nada disto vai aparecer"
-  meow_info "  rode: scripts/construir_icones.sh"
+  meow_info "  o «Reconstruir o tema de ícones» o põe no ar"
   avisos=1
 fi
 

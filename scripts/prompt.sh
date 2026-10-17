@@ -172,7 +172,7 @@ cmd_aplicar() {
   # etapa se pula, e o `install.sh` a mostra em "pulado" em vez de "mexeu".
   if ! _prompt_tem_starship; then
     _prompt_dizer_falta_starship
-    meow_info "depois de instalar, rode de novo: meow doctor --consertar"
+    meow_info "o preset entra assim que o starship estiver instalado"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -257,7 +257,7 @@ cmd_instalar_starship() {
   meow_muda "starship instalado em $HOME/.local/bin"
   meow_pendencia_resolvida starship-ausente
   meow_registrar "prompt.sh instalar-starship"
-  meow_info "agora rode:  meow doctor --consertar  — é ele que escreve o preset"
+  cmd_aplicar || true
   return "$MEOW_DIVERGENTE"
 }
 

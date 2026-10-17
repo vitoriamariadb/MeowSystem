@@ -263,7 +263,7 @@ fi
 
 if [ "$pendente_sudo" -gt 0 ]; then
   if [ "$SEM_SUDO" = 1 ]; then
-    meow_pula "$pendente_sudo nome(s) em /usr/share esperam root — rode: meow ativar"
+    meow_pula "$pendente_sudo nome(s) em /usr/share esperam root: entram no próximo «Instalar tudo»"
   else
     meow_aviso "$pendente_sudo nome(s) precisam de sudo para encurtar"
   fi

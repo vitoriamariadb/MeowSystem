@@ -472,7 +472,7 @@ def main() -> int:
             print(f"  gerado      {destino.name}")
 
     if args.conferir and divergentes:
-        print(f"\n{len(divergentes)} arquivo(s) fora do esperado. Rode sem --conferir para regerar.")
+        print(f"\n{len(divergentes)} arquivo(s) fora do esperado; a próxima passada que aplica os regera.")
         return 1
     return 0
 

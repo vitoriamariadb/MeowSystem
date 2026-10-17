@@ -139,7 +139,7 @@ for linha in "${TROCAR[@]}"; do
     # funciona. Um `Icon=` que não resolve dá ícone genérico — pior que o velho.
     if ! _resolve "$nome"; then
       meow_aviso "'$nome' ainda não resolve no tema $TEMA — '$id' fica com o caminho absoluto"
-      meow_info "  rode o icones_apps_arcticons.sh primeiro (a linha está em packs/meowsystem/icones/apps-arcticons.map)"
+      meow_info "  o traço dele entra antes, pela linha de packs/meowsystem/icones/apps-arcticons.map; a próxima passada troca"
       sem_icone=$((sem_icone + 1))
       continue
     fi
@@ -197,7 +197,7 @@ fi
 
 if [ "$pendente_sudo" -gt 0 ]; then
   if [ "$SEM_SUDO" = 1 ]; then
-    meow_pula "$pendente_sudo Icon= em /usr/share espera root — rode: meow ativar"
+    meow_pula "$pendente_sudo Icon= em /usr/share espera root: entra no próximo «Instalar tudo»"
   else
     meow_aviso "$pendente_sudo Icon= precisa(m) de sudo para trocar"
   fi

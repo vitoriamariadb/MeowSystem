@@ -2269,7 +2269,7 @@ etapa_leitura() {
       #   texto é escolha dela, não minha. Está relatado.
       if [ "$aplicavel" = "0" ]; then
         meow_info "  o degrau que estiver no disco fica: esvazie LEITURA_AGENDA se o modo de"
-        meow_info "  leitura é só seu, ou rode 'meow leitura remover' para zerar os dois números"
+        meow_info "  leitura é só seu, ou «Desligar o modo de leitura» zera os dois números"
       fi
       return "$MEOW_DIVERGENTE"
     fi
@@ -2649,7 +2649,7 @@ etapa_autoreparo() {
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
     meow_aviso "não há systemd --user nesta sessão — o auto-reparo fica de fora"
-    meow_info "  rode 'meow doctor --consertar' na mão quando quiser"
+    meow_info "  o «Conferir e consertar» faz o mesmo quando quiser"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -3563,11 +3563,11 @@ main() {
   #                            de tema descrita no cabeçalho deste arquivo, e o
   #                            conserto é um chown -R.
   if [ "$(id -u)" = "0" ]; then
-    meow_erro "não me rode com sudo."
+    meow_erro "com sudo, não: os arquivos de ~/.config ficariam de dono root — nada foi feito."
     if [ -n "${SUDO_USER:-}" ]; then
-      meow_info "  rode como $SUDO_USER, na sessão gráfica dele:  ./install.sh"
+      meow_info "  o instalador roda como $SUDO_USER, na sessão gráfica dele"
     else
-      meow_info "  rode como o seu usuário normal:  ./install.sh"
+      meow_info "  o instalador roda como o seu usuário, na sua sessão"
     fi
     meow_info "  o sudo é pedido por dentro, só onde precisa, e diz o que vai rodar antes."
     meow_info "  instalar em nome de outra pessoa não funciona por sudo -u: as etapas"

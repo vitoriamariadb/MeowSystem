@@ -29,7 +29,7 @@ ID="${1:-}"
 # RE_FLAVOR_CONF), para uma aspa ou um `$(` não virar código ao carregar.
 case "$ID" in ''|-*|*[!a-z0-9-]*) meow_erro "'$ID' não é um id de pack (minúsculas, dígitos e hífen)"; exit "$MEOW_ERRO" ;; esac
 if ! python3 "$RAIZ/scripts/pack.py" validar "$ID" >/dev/null 2>&1; then
-  meow_erro "o pack '$ID' não valida — rode: meow pack validar $ID"
+  meow_erro "o pack '$ID' não valida — nada foi exportado"
   exit "$MEOW_ERRO"
 fi
 FLAVOR_PEDIDO="${2:-}"

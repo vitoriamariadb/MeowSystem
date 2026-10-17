@@ -1151,7 +1151,7 @@ cmd_conferir() {
 # Imprime o arquivo como ele é. Sem `cat -v`, sem tradução: é o teste honesto de
 # que os bytes que o fastfetch vai ler desenham a Coquinha.
 cmd_ver() {
-  [ -f "$FFL_ALVO" ] || { meow_erro "não há logo gerado — rode 'aplicar' antes"; return "$MEOW_DIVERGENTE"; }
+  [ -f "$FFL_ALVO" ] || { meow_erro "não há logo gerado: ele nasce na próxima passada do doctor"; return "$MEOW_DIVERGENTE"; }
   printf '\n'
   cat "$FFL_ALVO"
   printf '\n'

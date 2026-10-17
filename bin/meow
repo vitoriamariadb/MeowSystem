@@ -1114,7 +1114,7 @@ chk_autoreparo() {
   fi
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
-    echo "não há systemd --user nesta sessão — rode 'meow doctor --consertar' na mão"
+    echo "não há systemd --user nesta sessão — o conserto diário fica de fora; o «Conferir e consertar» faz o mesmo"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -1696,12 +1696,12 @@ fi
 #   pinado, e a regra dela é a do doctor que corrige; as razões do `cursor` e
 #   das `fontes` saíram com eles.]
 declare -A SEM_CONSERTO_RAZAO=(
-  [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — rode: ./install.sh"
-  [ocultar]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
-  [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
-  [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
+  [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — entra no «Instalar tudo»"
+  [ocultar]="o conserto usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [absolutos]="o conserto usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — a oficina de ícones reconverte o que você escolher"
   [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
-  [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
+  [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — entra no «Instalar tudo»"
   [pacotes]="sem a ponte root, instalar pacote pede a sua senha, e o auto-reparo não tem a quem pedir — o ./install.sh pede uma vez e instala a ponte"
 )
 
@@ -3523,7 +3523,7 @@ cmd_desfazer() {
   #   não "não me pergunte". Nenhum caminho automático a digita por engano.
   guarda_original "meow desfazer" \
     "o ponto de volta DESTA máquina nasce na primeira passagem do" \
-    "./install.sh (etapa 'backup_tema') — rode-o uma vez e tente de novo." \
+    "«Instalar tudo» (etapa 'backup_tema'); antes dela não há tema de antes." \
     || return "$MEOW_SEM_DEPENDENCIA"
   # Pergunta só quando há alguém para responder. Em automação (`| meow`, timer,
   # hook) segue sem perguntar — é a regra "zero pergunta em modo automático".
@@ -3666,7 +3666,7 @@ menu_numerado() {
   # Sem terminal não há escolha a fazer: listar e sair 0 é melhor do que
   # pendurar um hook ou um timer esperando um ENTER que nunca vem.
   if [ ! -t 0 ]; then
-    meow_info "sem terminal interativo — rode 'meow <comando>' direto"
+    meow_info "sem terminal interativo: o menu fica de fora, e os verbos acima valem direto"
     return 0
   fi
   printf '  %sescolha (ENTER cancela):%s ' "$C_MAUVE" "$C_ZERO"
@@ -4508,8 +4508,8 @@ despachar() {
 # install.sh, e `sudo meow tema X` escreve em ~/.config/cosmic com dono root —
 # a GUI de tema passa a falhar EM SILÊNCIO e o conserto é um chown -R.
 if [ "$(id -u)" = "0" ]; then
-  meow_erro "não me rode com sudo."
-  meow_info "  rode como o seu usuário normal:  meow ${1:-status}"
+  meow_erro "com sudo, não: os arquivos de ~/.config ficariam de dono root — nada foi feito."
+  meow_info "  o meow roda como o seu usuário, e pede o sudo por dentro onde precisa"
   exit 2
 fi
 

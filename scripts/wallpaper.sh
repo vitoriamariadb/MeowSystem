@@ -1620,7 +1620,7 @@ cmd_estado() {
       if [ -d "$alvo" ]; then
         echo "rotação:   $alvo"
       else
-        echo "rotação:   $ATIVOS (as pastas derivadas ainda não existem — rode: meow wallpaper aplicar)"
+        echo "rotação:   $ATIVOS (as pastas derivadas nascem na próxima passada do carrossel)"
         alvo="$ATIVOS"
       fi
       ;;
@@ -2317,7 +2317,7 @@ semear_da_curadoria() {
       rm -f "$tmp"; falhas=$((falhas + 1))
     fi
   done <<< "$validas"
-  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) da curadoria não baixaram — rode de novo"
+  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) da curadoria não baixaram — a próxima passada tenta de novo"
   return 0
 }
 
@@ -2523,7 +2523,7 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
 
   # Falha de download não pode continuar sendo invisível: era o que escondia as
   # três imagens de nome com espaço.
-  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) não baixaram — rode de novo para tentar outra vez"
+  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) não baixaram — a próxima passada tenta de novo"
 
   semear_da_curadoria
   if [ "$CURADORIA_N" -gt 0 ]; then

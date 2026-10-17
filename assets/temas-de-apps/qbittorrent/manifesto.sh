@@ -936,7 +936,7 @@ meow_app_reverter() {
   if [ -f "$destino" ]; then
     if grep -qxF "General\\CustomUIThemePath=$destino" "$conf_dir/qBittorrent.conf" 2>/dev/null; then
       meow_aviso "o conf ainda aponta para $destino — o Aurora adiou a gravação (download em andamento?)"
-      meow_aviso "o .qbtheme fica onde está; rode de novo com o app ocioso"
+      meow_aviso "o .qbtheme fica onde está; a próxima passada com o app ocioso troca"
     elif rm -f "$destino"; then
       mudou=1; meow_muda "tema removido de $destino"
     fi

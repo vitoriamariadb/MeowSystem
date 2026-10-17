@@ -5,6 +5,7 @@
 #   1. Nenhuma mensagem (`meow_info`, `meow_pula`, `meow_aviso`, `meow_muda`,
 #      `meow_ok`, `meow_erro`) de `scripts/`, `lib/`, `bin/meow` ou do
 #      `install.sh` carrega as quatro receitas.
+#   1c. Nem o terminal: nenhuma saída diz «rode …» (P90, item 10).
 #   2. As pendências novas têm botão no painel: `instalar-com-root` roda o
 #      «Instalar tudo», e `leitura-applet` o «Consertar o que estiver fora».
 #   3. Os dois scripts de ícone relêem a tela pela porta única, e não dizem
@@ -61,6 +62,19 @@ else
   falha "sem cargo, o applet de mídia não tentou instalar o rust" "rede: $(cat "$CASA1B/rede.log" 2>/dev/null)"
 fi
 rm -rf "$CASA1B"
+
+printf '\n--- 1c. o terminal também não manda rodar (P90, item 10) ---\n'
+#   Nenhuma linha de código fora de comentário diz «rode …» a quem lê: a
+#   mensagem diz o que foi feito, o estado, ou o botão que faz. A linha de uso
+#   de um verbo (`uso: …`) responde a quem já está digitando, e fica.
+achados="$(cd "$RAIZ" && grep -nE '\b[Rr]ode(-o)?\b' scripts/*.sh scripts/*.py lib/*.sh bin/meow install.sh \
+             assets/temas-de-apps/*/manifesto.sh 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' \
+             | grep -vE 'uso: ')"
+if [ -z "$achados" ]; then
+  ok "nenhuma saída do terminal manda rodar: diz o feito, o estado ou o botão"
+else
+  falha "saídas do terminal que mandam rodar" "$achados"
+fi
 
 printf '\n--- 2. as pendências novas têm botão ---\n'
 CASA2="$(mktemp -d)" || exit 2

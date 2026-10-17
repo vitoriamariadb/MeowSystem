@@ -306,7 +306,7 @@ laco() {
     if [ "$tentativas" -ge "$COTA" ]; then
       echo "DESISTI: $COTA reposições em ${JANELA}s. Algo mata o painel em laço — reiniciar mais só piora."
       meow_notificar "O painel não para de cair" \
-        "Reiniciei $COTA vezes em $(( JANELA / 60 )) min e ele morreu de novo. O motivo está no journal: 'corner radius too large' é o suspeito nº 1. Rode: meow painel estado"
+        "Reiniciei $COTA vezes em $(( JANELA / 60 )) min e ele morreu de novo. O motivo está no journal: 'corner radius too large' é o suspeito nº 1; «Como estão o painel e a dock» mostra o resto."
       return 1   # Restart=on-failure + StartLimitBurst deixam a unidade em failed, e ela PARA
     fi
     tentativas=$(( tentativas + 1 ))

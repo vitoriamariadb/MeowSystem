@@ -446,7 +446,7 @@ done
 
 _notas_finais() {
   [ "$sem_arte" -gt 0 ] &&
-    meow_info "$sem_arte jogo(s) ficaram com o ícone do Heroic: a capa ainda não está no disco — abra a biblioteca dele uma vez e rode de novo"
+    meow_info "$sem_arte jogo(s) ficaram com o ícone do Heroic: a capa ainda não está no disco — ela entra na próxima passada depois de o Heroic baixá-la"
   return 0
 }
 [ "$sem_arte" -gt 0 ] && trap _notas_finais EXIT

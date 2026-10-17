@@ -77,7 +77,7 @@ meow_desinstalar() {
       # Sem sudo não apagamos escondido nem falhamos calados — mesma conduta da
       # completion no passo 6.
       meow_aviso "sem sudo para remover o hook de apt do lançador"
-      meow_info "  rode: sudo rm -f $hook $wrapper"
+      meow_info "  ficaram, por serem do root: $hook e $wrapper"
     fi
   fi
 
@@ -92,7 +92,7 @@ meow_desinstalar() {
       meow_ok "completion do zsh removida de $comp_sistema"
     else
       meow_aviso "sem sudo para remover a completion do zsh"
-      meow_info "  rode: sudo rm -f $comp_sistema"
+      meow_info "  ficou, por ser do root: $comp_sistema"
     fi
   fi
 
@@ -113,7 +113,7 @@ meow_desinstalar() {
       # falhamos calados. E aqui o aviso pesa mais, porque o que fica é
       # privilégio, não configuração.
       meow_aviso "sem sudo para remover a ponte root — a regra de sudo sem senha FICOU"
-      meow_info "  rode: sudo rm -f $regra_ponte && sudo rm -rf $braco_ponte"
+      meow_info "  ficaram, por serem do root: $regra_ponte e $braco_ponte"
     fi
   fi
 
@@ -359,7 +359,7 @@ meow_desinstalar() {
   if [ -d "$MEOW_ESTADO/papeis-de-parede" ]; then
     meow_info "  menos $MEOW_ESTADO/papeis-de-parede/ — é a sua curadoria de papel de parede"
   fi
-  meow_info "se LANCADOR_SISTEMA era \"sim\": rode antes  meow desfazer --lancador"
+  meow_info "os .desktop do sistema que o lançador escondia voltam com o «Voltar ao tema de antes»"
   return 0
 }
 

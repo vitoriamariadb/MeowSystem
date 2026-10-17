@@ -829,7 +829,7 @@ cmd_alfinetar_primeira() {
   primeiro="$(_areas_partir "$AREAS_NOMES" | head -1)"
   if [ -z "$primeiro" ]; then
     meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"
-    meow_info "diga o nome da primeira no meow.conf (ou no painel) e rode de novo"
+    meow_info "falta o nome da primeira área (no painel, «Nomes das áreas de trabalho»)"
     return "$MEOW_OK"
   fi
   _areas_nome_seguro "$primeiro" || return "$MEOW_ERRO"

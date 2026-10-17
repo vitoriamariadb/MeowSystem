@@ -942,7 +942,7 @@ meow_app_aplicar() {
   vb="$(_spot_ini_ler version)"; vi="$(_spot_versao)"
   if [ -n "$vb" ] && [ -n "$vi" ] && [ "$vb" != "$vi" ]; then
     meow_aviso "o Spotify atualizou ($vb -> $vi) e o backup do spicetify é da versão velha"
-    meow_info "não conserto sozinho: leia assets/temas-de-apps/spotify/RECUPERACAO.md e rode na mão"
+    meow_info "o tema do Spotify fica como está até o backup novo; o passo a passo está em assets/temas-de-apps/spotify/RECUPERACAO.md"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -971,8 +971,10 @@ meow_app_aplicar() {
   # spicetify tocar também o `login.spa` — ver item 2.
   "$cli" config inject_css 1 inject_theme_js 1 replace_colors 1 overwrite_assets 1 >/dev/null 2>&1
 
-  if ! "$cli" apply >/dev/null 2>&1; then
-    meow_erro "o 'spicetify apply' falhou — rode na mão para ver o motivo: $cli apply"
+  local _saida
+  if ! _saida="$("$cli" apply 2>&1)"; then
+    meow_erro "o 'spicetify apply' falhou — o Spotify segue com o tema de antes"
+    printf '%s\n' "$_saida" | tail -n 4 | sed 's/^/        /' >&2
     return "$MEOW_ERRO"
   fi
 
@@ -1012,14 +1014,16 @@ meow_app_reverter() {
       meow_info "carimbo de versão corrigido ($vb -> $vi) — o backup é do app de agora, dá para restaurar"
     else
       meow_erro "o backup do spicetify é da versão $vb e o Spotify é a $vi — restaurar daria janela em branco"
-      meow_info "leia assets/temas-de-apps/spotify/RECUPERACAO.md; a volta limpa é 'flatpak install --user --reinstall flathub com.spotify.Client'"
+      meow_info "a volta limpa é reinstalar o Spotify do flathub; o passo a passo está em assets/temas-de-apps/spotify/RECUPERACAO.md"
       return "$MEOW_ERRO"
     fi
   fi
 
   local cli; cli="$(_spot_cli)"
-  if ! "$cli" restore >/dev/null 2>&1; then
-    meow_erro "o 'spicetify restore' falhou — rode na mão para ver o motivo: $cli restore"
+  local _saida
+  if ! _saida="$("$cli" restore 2>&1)"; then
+    meow_erro "o 'spicetify restore' falhou — o Spotify segue com o tema do MeowSystem"
+    printf '%s\n' "$_saida" | tail -n 4 | sed 's/^/        /' >&2
     return "$MEOW_ERRO"
   fi
 
