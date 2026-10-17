@@ -93,6 +93,21 @@ fi
 #
 # `%20` e `%C3%AA` são o badge do shields.io no topo do README, onde o espaço e
 # o "ê" vão percent-encoded.
+# Com MEOW_NUMEROS_CORRIGIR=1 (o scripts/higiene.sh), o número errado é trocado
+# pelo contado no primeiro trecho que casa o padrão.
+corrige() {   # $1 = arquivo · $2 = regex · $3 = número certo
+  python3 - "$@" <<'PY'
+import re, sys
+caminho, padrao, certo = sys.argv[1:]
+texto = open(caminho, encoding="utf-8").read()
+m = re.search(padrao, texto)
+if not m:
+    sys.exit(1)
+trecho = re.sub(r"[0-9]+", certo, m.group(0), count=1)
+open(caminho, "w", encoding="utf-8").write(texto[:m.start()] + trecho + texto[m.end():])
+PY
+}
+
 confere() {   # $1 = arquivo · $2 = regex com UM grupo (o número) · $3 = esperado · $4 = o que é
   local arq="$RAIZ/$1" achado
   [ -f "$arq" ] || { falhou "$1 não existe"; return; }
@@ -100,7 +115,11 @@ confere() {   # $1 = arquivo · $2 = regex com UM grupo (o número) · $3 = espe
   if [ -z "$achado" ]; then
     falhou "$1: não achei a afirmação sobre $4 (o texto mudou de forma?)"
   elif [ "$achado" != "$3" ]; then
-    falhou "$1 diz $achado $4; são $3"
+    if [ "${MEOW_NUMEROS_CORRIGIR:-0}" = "1" ] && corrige "$arq" "$2" "$3"; then
+      passou "$1: $4 corrigido de $achado para $3"
+    else
+      falhou "$1 diz $achado $4; são $3"
+    fi
   else
     passou "$1: $4 = $3"
   fi
