@@ -62,6 +62,15 @@ ela de novo, integramos e pushamos pra dev». Sequência depois da P90:
    `git log --all -S<senha>` vazio, e só então `git push fork dev`.
 3. PR para `vitoriamariadb/MeowSystem` a partir do dev reescrito.
 
+## Fim combinado de novo (17/10): DESLIGAR no fim
+
+Quem usa: «merge das duas, ./install.sh, reescrever o histórico para tirar a senha, push do dev e a PR
+para a Vitória. Faz isso e desliga o PC». Ordem: P90 e P91 integradas → merge no dev → `./install.sh` →
+`meow doctor` → `git filter-repo --replace-text` (senha → ***) em todas as branches → conferir
+`git log --all -S` vazio → `git push fork dev` → PR para vitoriamariadb/MeowSystem → `~/LEIA-AO-LIGAR.md`
+→ `sudo systemctl poweroff`. Se algo quebrar: não faz merge do quebrado, escreve onde parou no
+LEIA-AO-LIGAR e desliga do mesmo jeito.
+
 ## Registrada para depois (NÃO executar sem quem usa mandar)
 
 - P91 vizinhos e duplicatas — EM EXECUÇÃO desde 17/10, a pedido de quem usa.
