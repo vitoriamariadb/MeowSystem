@@ -187,6 +187,9 @@ if [ "$TEM_PY" -eq 1 ]; then
 fi
 printf '\n'
 
+# Com `NOPASSWD: ALL` na máquina, um teste que chama `sudo` não falha: ESCREVE
+# em /usr e em /etc.
+#
 # Cada teste se protegia por conta própria (o `doctor-so-le.sh`, o
 # `previa-cerca.sh`), e um que esquecesse escrevia no sistema de verdade — já
 # custou restauração à mão duas vezes.
