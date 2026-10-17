@@ -369,7 +369,7 @@ FRAGMENTOS = [
     re.compile(rf"\s*\((?:[^()]{{0,240}}?)(?:{ROTULO})(?:[^()]{{0,240}}?)\)", re.I),
     re.compile(rf"\s*\[(?:[^\[\]]{{0,400}}?)(?:{ROTULO})(?:[^\[\]]{{0,400}}?)\]", re.I),
     # P99 — 15/10/2026: no começo
-    re.compile(rf"^\s*(?:{ROTULO}[\s,;]*)+(?:[:—–-]+\s*)", re.I),
+    re.compile(rf"^\s*(?:{ROTULO}\s*[,;—–-]?\s*)*{ROTULO}\s*[:—–-]+\s*", re.I),
     # — 24/09/2026, P51 antes de pontuação ou no fim
     re.compile(rf"\s*[—–]\s*(?:{ROTULO}[\s,;]*)+(?=[:.;]|$)", re.I),
     # em 22/09/2026, desde 01/09
