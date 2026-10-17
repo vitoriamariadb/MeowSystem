@@ -49,7 +49,7 @@ Prints em `.playwright-mcp/ux-final-i/` do checkout principal.
   autorais), `biblioteca/` 670 (474 + 39 feitos à mão + 13 projetos + 144 versões, os 20 PNG com a
   trava de raster), Catppuccin 36 autorais, MeowSystem 39 traços + 50 convertidos. Tudo bate.
 - **Busca:** «spotify» acha 7 desenhos, os mesmos 7 do disco.
-- **Trocar um ícone:** agente ganhou o Spotify resgatado; a escolha entrou só no
+- **Trocar um ícone:** um programa sem desenho (o de fábrica) ganhou o Spotify resgatado; a escolha entrou só no
   `icones-escolhidos.map` da casa temporária, e o tema dela ficou com o desenho.
 - **«Conferir a máquina»:** 268 linhas, nenhuma manda digitar; termina em «há divergências — o
   conserto do doctor as acerta», com o botão ao lado.
