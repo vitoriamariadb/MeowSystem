@@ -2284,20 +2284,8 @@ button.lado-botao:focus-visible { outline-offset: 1px; }
 .por-area .nome-area { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .por-area .estados { display: flex; gap: .3rem; flex: 0 0 auto; }
 
-.lista-orfas { display: flex; flex-direction: column; gap: .4rem; max-width: var(--medida); }
-.linha-orfa {
-  display: flex;
-  align-items: center;
-  gap: .7rem;
-  padding: .45rem .7rem;
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  background: var(--mantle);
-}
-.linha-orfa .orfa-nome { color: var(--subtext0); }
-.linha-orfa .orfa-nota { color: var(--overlay0); font-size: var(--t-frase); margin-right: auto; }
-
 .grade-jogos {
+  margin-top: var(--vao-grade);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(152px, 100%), 1fr));
   gap: 12px;
@@ -2305,48 +2293,67 @@ button.lado-botao:focus-visible { outline-offset: 1px; }
 .grade-jogos .jogo {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   gap: .45rem;
+  min-width: 0;
+  color: var(--subtext1);
+  font-size: .76rem;
+  line-height: 1.35;
+}
+.jogo-capa {
+  display: block;
   padding: 0;
   border: 0;
   border-radius: var(--r-2);
   background: transparent;
-  color: var(--subtext1);
-  font: inherit;
-  font-size: .76rem;
-  line-height: 1.35;
-  text-align: center;
   cursor: pointer;
-  min-width: 0;
 }
-.grade-jogos .jogo:hover { color: var(--text); }
-.grade-jogos .jogo img {
+.grade-jogos .jogo img:not(.jogo-icone) {
+  display: block;
   width: 100%;
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: var(--r-2);
   background: var(--crust);
 }
-.grade-jogos .jogo:hover img { outline: 2px solid var(--surface2); }
-.grade-jogos .jogo.aberto { color: var(--text); }
-.grade-jogos .jogo.aberto img { outline: 2px solid var(--accent); outline-offset: 0; }
-/* O jogo com decisão tomada não some da grade — ela precisa poder revê-lo e
- * desfazer. O que muda é o peso. */
-.grade-jogos .jogo.marcado { opacity: .5; }
-.grade-jogos .jogo.marcado:hover, .grade-jogos .jogo.aberto { opacity: 1; }
-/* Sem capa é sem manifesto: a linha do mapa que sobreviveu ao jogo. O retângulo
- * tracejado com o appid diz "isto é uma decisão, não um jogo". */
+.jogo-capa:hover img { outline: 2px solid var(--surface2); }
+.grade-jogos .jogo.aberto .jogo-capa img { outline: 2px solid var(--accent); }
+/* Fora do lançador, a capa fica apagada: o interruptor diz o resto. */
+.grade-jogos .jogo.marcado .jogo-capa { opacity: .45; }
+.jogo-pe { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.jogo-pe .app-nome { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.jogo-icone { width: 20px; height: 20px; flex: none; }
 .jogo-sem-capa {
   width: 100%;
   aspect-ratio: 2 / 3;
-  display: grid;
-  place-items: center;
   border: 1px dashed var(--surface2);
   border-radius: var(--r-2);
   background: var(--crust);
-  color: var(--overlay0);
-  font-size: var(--t-legenda);
 }
+/* O interruptor: trilho e botão, o ligado no acento. */
+.interruptor {
+  flex: none;
+  position: relative;
+  width: 34px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--surface2);
+  border-radius: var(--r-max);
+  background: var(--surface0);
+  cursor: pointer;
+}
+.interruptor-botao {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--overlay1);
+  transition: transform .12s ease-out;
+}
+.interruptor[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.interruptor[aria-checked="true"] .interruptor-botao { transform: translateX(14px); background: var(--crust); }
+.interruptor:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .jogo-fora { color: var(--peach); }
 .jogo-apagar { color: var(--red); }
 .jogo-gasto { color: var(--overlay0); }

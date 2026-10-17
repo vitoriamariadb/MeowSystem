@@ -3294,6 +3294,8 @@ PROVEDORES = {
     "fontes_revertidas": lambda: _fontes_revertidas(),
     # O argumento do «Restaurar»: as ações cuja última execução se desfaz.
     "restauros": lambda: sorted(restauros()),
+    # O argumento do interruptor de um jogo do Heroic: os instalados agora.
+    "jogos_heroic": lambda: sorted(j["id"] for j in jogos_do_heroic()),
 }
 
 
@@ -4429,8 +4431,30 @@ ACOES = {
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
         "escreve": True, "sudo": False, "confirma": False,
+        # O cartão mora na seção dos jogos, ao lado das capas.
+        "oculta": True,
         "ajuda": "Um atalho por jogo instalado no Heroic, com a capa que ele "
                  "já baixou. Some o do jogo desinstalado.",
+    },
+    # Os dois lados do interruptor «no lançador» de um jogo do Heroic: o script
+    # grava a lista e arruma o lançador na mesma passada.
+    "jogos_heroic_tirar": {
+        "rotulo": "Tirar o jogo do Heroic do lançador",
+        "grupo": "Lançadores e jogos",
+        "natureza": "tirar",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
+        "arg": "jogos_heroic", "ambiente": {"MEOW_HEROIC_TIRAR": "@ARG@"},
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "O cartão do jogo sai do lançador; o jogo continua no Heroic.",
+    },
+    "jogos_heroic_por": {
+        "rotulo": "Pôr o jogo do Heroic no lançador",
+        "grupo": "Lançadores e jogos",
+        "natureza": "aplicar",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
+        "arg": "jogos_heroic", "ambiente": {"MEOW_HEROIC_POR": "@ARG@"},
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "O cartão do jogo volta ao lançador.",
     },
 }
 
@@ -5900,7 +5924,47 @@ def _previa_dos_jogos(mapa):
     return saida
 
 
-def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None):
+def jogos_do_heroic():
+    """Os jogos instalados no Heroic: [{id, nome, url, no_lancador}]. Quem lê a
+    biblioteca é o `jogos_heroic.sh --listar`; sem Heroic, lista vazia."""
+    try:
+        r = subprocess.run([os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--listar"],
+                           capture_output=True, timeout=30, env=_ambiente_do_painel(seco=True))
+    except (OSError, subprocess.SubprocessError):
+        return []
+    fora = []
+    capas = os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps")
+    for linha in r.stdout.decode("utf-8", "replace").splitlines():
+        campos = linha.split("\t")
+        if len(campos) != 4 or not campos[0].startswith("meow-heroic-"):
+            continue
+        capa = os.path.join(capas, campos[0] + ".png")
+        fora.append({"id": campos[0], "nome": campos[1],
+                     "url": ("/previa?tipo=arquivo&id=" + quote(capa, safe=""))
+                            if os.path.isfile(capa) else "",
+                     "no_lancador": campos[3] == "sim"})
+    return fora
+
+
+def _guardar_antes_py(pasta, caminho, conteudo):
+    """O `meow_guardar_antes` para o que o servidor escreve antes do trabalho:
+    `conteudo` é o arquivo como era (None: não existia)."""
+    alvo = os.path.realpath(caminho)
+    os.makedirs(pasta, exist_ok=True)
+    if conteudo is None:
+        linha = "%s\tnovo\n" % alvo
+    else:
+        copia = pasta + "/antes" + alvo
+        os.makedirs(os.path.dirname(copia), exist_ok=True)
+        with open(copia, "wb") as fh:
+            fh.write(conteudo)
+        linha = "%s\texistia\n" % alvo
+    with open(os.path.join(pasta, "tocados.tsv"), "a", encoding="utf-8") as fh:
+        fh.write(linha)
+
+
+def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
+            antes=None):
     """Começa uma ação. Devolve (trabalho, erro) — o erro pode ser um dicionário.
 
     `seco` roda com `MEOW_DRY_RUN=1` (ver `_ambiente_do_painel`): o motor já
@@ -6009,6 +6073,11 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
         pasta_restauro = os.path.join(RESTAUROS, "%s-%s-%s" % (
             time.strftime("%Y%m%dT%H%M%S"), acao_id, secrets.token_hex(3)))
         ambiente["MEOW_BACKUPS"] = pasta_restauro
+        for caminho, conteudo in (antes or {}).items():
+            try:
+                _guardar_antes_py(pasta_restauro, caminho, conteudo)
+            except OSError:
+                pass
     vivo = {}
 
     def ao_terminar():
@@ -6025,10 +6094,14 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
 
     with TRABALHO_TRAVA:
         if TRABALHO_ATUAL is not None and TRABALHO_ATUAL.vivo():
+            if acao_id != "restaurar" and pasta_restauro:
+                shutil.rmtree(pasta_restauro, ignore_errors=True)
             return (None, "já há um trabalho correndo: %s" % TRABALHO_ATUAL.rotulo)
         try:
             trabalho = Trabalho(acao_id, argv, ambiente, rotulo, ao_terminar=ao_terminar)
         except OSError as erro:
+            if acao_id != "restaurar" and pasta_restauro:
+                shutil.rmtree(pasta_restauro, ignore_errors=True)
             return (None, str(erro))
         vivo["t"] = trabalho
         trabalho.pasta_restauro = pasta_restauro if acao_id != "restaurar" else None
@@ -7529,6 +7602,7 @@ class Manipulador(BaseHTTPRequestHandler):
         fora.sort(key=lambda j: j["nome"].lower())
         orfas.sort(key=lambda j: j["appid"])
         fora.extend(orfas)
+        heroic = [] if busca else jogos_do_heroic()
 
         # Sumir de um lado sem aparecer no outro seria perder a capacidade, não
         # movê-la.
@@ -7565,7 +7639,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "trava_pack": self._trava_do_pack(d, d["nome"], donos_scalable, travas),
             })
         return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS,
-                "apps": icones, "total_apps": len(icones)}
+                "heroic": heroic, "apps": icones, "total_apps": len(icones)}
 
     def _api_jogo_fora(self, corpo):
         """Grava (ou tira) a linha de um jogo no `jogos-fora.map`.
@@ -10080,6 +10154,13 @@ class Manipulador(BaseHTTPRequestHandler):
                         {"erro": erro["erro"] if isinstance(erro, dict) else erro}, 409)
                 return self._json({"trabalho": _trabalho_json(trabalho, "instalar", seco=True)})
 
+            # O meow.conf de antes vai para o ponto de restauro do instalador: o
+            # Restaurar desta passada devolve também as escolhas.
+            try:
+                with open(CONF, "rb") as fh:
+                    conf_antes = fh.read()
+            except OSError:
+                conf_antes = None
             gravadas, iguais, falhas = [], [], []
             for chave, rc, saida in definir_varias(pares):
                 if rc == 0:
@@ -10110,7 +10191,8 @@ class Manipulador(BaseHTTPRequestHandler):
                             + feito.stderr.decode("utf-8", "replace")).strip()
                 except (OSError, subprocess.SubprocessError) as e:
                     resposta["aviso"] = "o controle do modo de leitura não foi atualizado: %s" % e
-            trabalho, erro = iniciar("instalar", "", confirmado=True)
+            trabalho, erro = iniciar("instalar", "", confirmado=True,
+                                     antes={CONF: conf_antes} if gravadas else None)
             if erro:
                 resposta["erro"] = erro["erro"] if isinstance(erro, dict) else erro
                 return self._json(resposta, 409)

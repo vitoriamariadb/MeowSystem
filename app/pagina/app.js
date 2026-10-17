@@ -4182,7 +4182,6 @@ function oficinaAutoral() {
 /* Aqui ela escolhe; quem age é o `scripts/jogos_steam.sh` no botão "Arrumar os
  * jogos no lançador", que já passa pelo confirmar e pela gaveta de saída. */
 let JOGOS = null;
-let JOGOS_BUSCA = "";
 let JOGO_ABERTO = null;
 
 async function carregarJogos() {
@@ -4277,253 +4276,112 @@ async function confirmarJogo(j, acao, motivo, remover, rotulos = {}) {
   abrirResultado(t, () => definirJogo(j.appid, acao, motivo, remover));
 }
 
-function etiquetaDoJogo(j) {
-  if (j.gasto) return { texto: "apagado", classe: "jogo-gasto" };
-  if (j.acao === "apagar") return { texto: "apagar", classe: "jogo-apagar" };
-  if (j.acao === "esconder") return { texto: "fora", classe: "jogo-fora" };
-  return { texto: "no lançador", classe: "app-fabrica" };
+/* O ícone que o lançador mostra para o jogo, da lista de atalhos. */
+function iconeDoJogo(j) {
+  const apps = JOGOS.apps || [];
+  if (j.heroic) return apps.find((a) => a.id === j.id) || null;
+  return apps.find((a) => a.id === `steam_app_${j.appid}` || a.id === `meow-steam-${j.appid}`) || null;
+}
+
+/* O interruptor «no lançador»: na Steam a decisão vai para o mapa e a passagem
+ * arruma o lançador (pergunta antes: ela aplica toda marca esperando); no
+ * Heroic o script grava a lista e arruma na mesma passada. */
+function trocarNoLancador(j, ligar) {
+  if (j.heroic) {
+    const acao = ESQUEMA.acoes.find((a) => a.id === (ligar ? "jogos_heroic_por" : "jogos_heroic_tirar"));
+    if (acao) rodar(acao, j.id);
+    return;
+  }
+  if (ligar) {
+    confirmarJogo(j, "", "", true, { titulo: `Pôr ${j.nome} no lançador?`, ok: "Pôr no lançador" });
+  } else {
+    confirmarJogo(j, "esconder", "", false);
+  }
+}
+
+function interruptor(ligado, rotulo, aoTrocar) {
+  return elemento("button", {
+    type: "button", role: "switch", class: "interruptor",
+    "aria-checked": String(!!ligado), "aria-label": rotulo, title: rotulo,
+    onclick: (ev) => { ev.stopPropagation(); aoTrocar(!ligado); },
+  }, [elemento("span", { class: "interruptor-botao", "aria-hidden": "true" })]);
 }
 
 function montarJogos() {
   const caixa = elemento("div");
   if (!JOGOS) {
     carregarJogos();
-    caixa.append(elemento("p", { class: "sem-previa", texto: "Lendo a biblioteca da Steam…" }));
+    caixa.append(elemento("p", { class: "sem-previa", texto: "Lendo os jogos…" }));
     return caixa;
   }
-
-  /* Conta o que tem manifesto, que é o que a grade desenha. */
-  const instalados = (JOGOS.jogos || []).filter((j) => !j.sem_manifesto).length;
-  caixa.append(elemento("div", { class: "linha-filtro" }, [
-    elemento("input", {
-      type: "search", class: "busca-apps", value: JOGOS_BUSCA, "data-foco": "jogos",
-      placeholder: "Filtrar jogo…", "aria-label": "Filtrar jogo",
-      oninput: (e) => { JOGOS_BUSCA = e.target.value; render(); },
-    }),
-    elemento("div", { class: "selos" }, [
-      selo("jogo", { texto: String(instalados),
-        balao: instalados === 0 ? "Nenhum jogo da Steam. O Proton e os runtimes são ferramentas"
-          : instalados === 1 ? "1 jogo instalado na Steam" : `${instalados} jogos instalados na Steam` }),
-    ]),
-  ]));
-
-  /* OS DOIS BOTÕES MORAM AQUI, e não numa aba "Fazer" separada. É o que a
-   * galeria já faz com banir e devolver: a ação fica ao lado da coisa em que
-   * ela age. */
-  const linhaAcoes = elemento("div", { class: "linha-botoes acoes-da-secao" });
-  linhaAcoes.append(elemento("button", {
-    type: "button", class: "btn",
-    texto: "Conferir",
-    title: "Lista o que mudaria. Não escreve nada.",
-    onclick: () => rodarDaSecao("jogos", () => { JOGOS = null; }),
-  }));
-  linhaAcoes.append(elemento("button", {
-    type: "button", class: "btn btn-accent",
-    texto: "Arrumar os jogos no lançador",
-    title: "Aplica as escolhas: cria e remove cartões, e apaga o que estiver marcado.",
-    onclick: () => rodarDaSecao("jogos_aplicar", () => { JOGOS = null; }),
-  }));
-  caixa.append(linhaAcoes);
-
-  const termo = semAcento(JOGOS_BUSCA.trim());
-  const lista = (JOGOS.jogos || []).filter((j) =>
-    !termo || semAcento(j.nome).includes(termo) || j.appid.includes(termo));
-
-  /* Ela continua tendo de aparecer: sem manifesto, o laço do servidor não a
-   * encontra, e tirá-la da tela seria esconder a única coisa que ainda existe
-   * sobre aquela decisão. */
-  const orfas = lista.filter((j) => j.sem_manifesto);
-  const comJogo = lista.filter((j) => !j.sem_manifesto);
-
-  /* Uma grade vazia e uma grade que ainda está carregando são a mesma tela, e
-   * quem digitou não sabe se errou o nome, se o jogo saiu, ou se a página
-   * quebrou. */
-  if (termo && !lista.length) {
-    caixa.append(elemento("p", {
-      class: "sem-previa",
-      texto: `Nenhum jogo casa com “${JOGOS_BUSCA.trim()}”.`,
-    }));
-    return caixa;
+  /* As ações da Steam e do Heroic, em cartão como as outras: Executar e
+   * Restaurar. */
+  const acoes = elemento("div", { class: "grade" });
+  for (const id of ["jogos_aplicar", "jogos_heroic_aplicar"]) {
+    const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
+    if (acao) acoes.append(montarAcao(acao));
   }
+  caixa.append(acoes);
 
-  /* Sem jogo instalado ela nascia como um retângulo sem nada, com o «Pular os
-   * jogos» apontando para ele; agora é uma frase. */
-
+  /* Uma capa por jogo instalado (Steam e Heroic), e o jogo que saiu com a
+   * decisão ainda no mapa: o interruptor dele fica desligado. */
+  const capas = [
+    ...(JOGOS.jogos || []).map((j) => ({ ...j, chave: "steam-" + j.appid,
+      ligado: !j.sem_manifesto && !j.acao && !j.gasto })),
+    ...(JOGOS.heroic || []).map((j) => ({ ...j, heroic: true, chave: j.id, ligado: j.no_lancador })),
+  ].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  if (!capas.length) return caixa;
   const grade = elemento("div", { class: "grade-jogos" });
-  for (const j of comJogo) {
-    const marca = etiquetaDoJogo(j);
+  for (const j of capas) {
+    const icone = iconeDoJogo(j);
     const capa = j.url
       ? elemento("img", { src: j.url, alt: "", loading: "lazy" })
-      /* Jogo sem capa é jogo sem manifesto: a decisão que sobreviveu ao jogo.
-       * O retângulo com o número da Steam diz isso sem precisar de frase. */
-      : elemento("div", { class: "jogo-sem-capa", texto: j.appid });
-    grade.append(elemento("button", {
-      type: "button",
-      class: "jogo" + (JOGO_ABERTO === j.appid ? " aberto" : "")
-             + (j.acao || j.gasto ? " marcado" : ""),
-      /* Quem passa o rato numa capa quer saber que número é aquele, não como
-       * a Steam chama o campo dela. */
-      title: `Número deste jogo na Steam: ${j.appid}`,
-      onclick: () => { JOGO_ABERTO = JOGO_ABERTO === j.appid ? null : j.appid; render(); },
+      : elemento("div", { class: "jogo-sem-capa", "aria-hidden": "true" });
+    grade.append(elemento("div", {
+      class: "jogo" + (JOGO_ABERTO === j.chave ? " aberto" : "") + (j.ligado ? "" : " marcado"),
+      "data-jogo": j.chave,
     }, [
-      capa,
-      elemento("span", { class: "app-nome", texto: j.nome }),
-      elemento("span", { class: "app-marca " + marca.classe, texto: marca.texto }),
-    ]));
-    if (JOGO_ABERTO === j.appid) grade.append(montarEscolhaDeJogo(j));
-  }
-  if (comJogo.length) {
-    caixa.append(pulaGrade("apos-jogos", "Pular os jogos"));
-    caixa.append(grade);
-    caixa.append(alvoDoPulo("apos-jogos"));
-  }
-
-  if (orfas.length) {
-    caixa.append(elemento("h3", { class: "subsecao-titulo com-dica" }, [
-      elemento("span", { texto: "Decisões já executadas" }),
-      ...gatilhoDeDica("dica-jogos-orfas", "Sobre as decisões já executadas", [
-        elemento("p", { texto: orfas.length === 1
-          ? "Este jogo não está mais na máquina. A linha fica aqui só para você "
-            + "poder tirá-la: ela não traz o jogo de volta, e não apaga mais nada."
-          : `Estes ${orfas.length} jogos não estão mais na máquina. As linhas ficam `
-            + "aqui só para você poder tirá-las: elas não trazem os jogos de volta, "
-            + "e não apagam mais nada." }),
+      elemento("button", {
+        type: "button", class: "jogo-capa", "aria-label": `Abrir ${j.nome}`,
+        "aria-expanded": String(JOGO_ABERTO === j.chave),
+        onclick: () => { JOGO_ABERTO = JOGO_ABERTO === j.chave ? null : j.chave; APP_ABERTO = null; render(); },
+      }, [capa]),
+      elemento("div", { class: "jogo-pe" }, [
+        icone && icone.url ? elemento("img", { class: "jogo-icone", src: icone.url, alt: "" }) : null,
+        elemento("span", { class: "app-nome", texto: j.nome }),
+        interruptor(j.ligado, `${j.nome} no lançador`, (ligar) => trocarNoLancador(j, ligar)),
       ]),
     ]));
-    const cxOrfas = elemento("div", { class: "lista-orfas" });
-    for (const j of orfas) {
-      cxOrfas.append(elemento("div", { class: "linha-orfa" }, [
-        elemento("span", { class: "orfa-nome", texto: j.nome }),
-        elemento("span", { class: "orfa-nota",
-          /* É o nome do campo na Steam, e numa linha que já traz o NOME do
-           * jogo ele não distingue nada: quem lê "Mad King Redemption Demo"
-           * não precisa do número para saber de qual jogo se trata. */
-          title: `Número deste jogo na Steam: ${j.appid}`,
-          texto: j.apagado_em
-            ? `arquivos apagados em ${j.apagado_em}`
-            : "ainda na lista" }),
-        elemento("button", {
-          type: "button", class: "btn btn-mini",
-          texto: "Tirar da lista",
-          /* 96 -> 49 caracteres, pelo teto do balão. A segunda metade dizia
-           * duas vezes a mesma coisa: se nenhum arquivo é tocado, o jogo que
-           * não está no disco continua não estando. */
-          title: "Tira a decisão da lista. Pergunta antes de arrumar.",
-          onclick: () => confirmarJogo(j, "", "", true),
-        }),
-      ]));
-    }
-    caixa.append(cxOrfas);
+    if (JOGO_ABERTO === j.chave) grade.append(montarEscolhaDeJogo(j, icone));
   }
-
-  /* A razão é de uso, e não de arrumação: a aba de ícones existe para vestir os
-   * PROGRAMAS com o traço do projeto, e um jogo não se veste — ele tem capa
-   * própria, vem e vai com a licença, e o que ela decide sobre ele é outra
-   * coisa.
-   *
-   * Os que não casam são a própria Steam e o ProtonUp-Qt (que se declaram
-   * `Categories=Game`) e um jogo cujo cartão ainda não foi escrito. */
-  if ((JOGOS.apps || []).length) {
-    const comAtalho = JOGOS.total_apps ?? JOGOS.apps.length;
-    caixa.append(elemento("h3", { class: "subsecao-titulo com-dica" }, [
-      elemento("span", { texto: "O ícone de cada jogo" }),
-      selo("jogo", { texto: String(comAtalho),
-        balao: `${comAtalho} ${comAtalho === 1 ? "jogo tem" : "jogos têm"} atalho nesta máquina` }),
-      ...gatilhoDeDica("dica-icone-dos-jogos", "Sobre o ícone de cada jogo", [
-        elemento("p", { texto: "A capa acima decide se o jogo aparece no lançador; aqui se "
-                             + "escolhe o desenho com que ele aparece." }),
-      ]),
-    ]));
-    caixa.append(pulaGrade("apos-apps-jogos", "Pular a lista"));
-  caixa.append(gradeDeApps(JOGOS.apps, JOGOS_BUSCA, carregarJogos));
-  caixa.append(alvoDoPulo("apos-apps-jogos"));
-  }
+  caixa.append(pulaGrade("apos-jogos", "Pular os jogos"));
+  caixa.append(grade);
+  caixa.append(alvoDoPulo("apos-jogos"));
   return caixa;
 }
 
-function montarEscolhaDeJogo(j) {
+/* Aberta pela capa: o ícone com que o jogo aparece e, na Steam, o apagar. */
+function montarEscolhaDeJogo(j, icone) {
   const painel = elemento("div", { class: "escolha-jogo" });
   painel.append(elemento("h3", { class: "titulo-cartao", texto: j.nome }));
-
-  /* O ESTADO ATUAL EM UMA FRASE, ANTES DAS ESCOLHAS. Sem isto o painel abre com
-   * três botões e nenhuma dica de onde aquele jogo está agora. */
-  let onde = j.cartao ? "Tem cartão no lançador." : "Sem cartão no lançador.";
-  if (j.gasto) {
-    onde = `Arquivos apagados em ${j.apagado_em || "uma passagem anterior"}. `
-         + "A linha está gasta: não apaga de novo, nem se você reinstalar.";
-  } else if (j.acao === "apagar") {
-    onde = "Marcado para apagar — os arquivos saem na próxima passagem.";
-  } else if (j.acao === "esconder") {
-    onde = "Fora do lançador a pedido. Os arquivos continuam no disco.";
-  }
-  painel.append(elemento("p", { class: "frase", texto: onde }));
-  if (j.motivo) painel.append(elemento("p", { class: "frase nota-secao", texto: j.motivo }));
-
-  const motivo = elemento("input", {
-    type: "text", class: "motivo-jogo", "data-foco": "motivo-jogo",
-    placeholder: "Por quê? (fica anotado junto com a decisão)",
-    "aria-label": "Por que este jogo sai do lançador",
-  });
-  painel.append(motivo);
-
-  const linha = elemento("div", { class: "linha-botoes" });
-
-  if (j.acao !== "esconder") {
-    linha.append(elemento("button", {
-      type: "button", class: "btn",
-      texto: "Tirar do lançador",
-      title: "Some da lista de aplicativos. Pergunta antes de arrumar.",
-      onclick: () => confirmarJogo(j, "esconder", motivo.value, false),
-    }));
-  }
-
-  /* O "apagar" só aparece quando há o que apagar. Numa linha já gasta ele seria
-   * um botão que promete uma ação que o script vai recusar — e um botão que não
-   * faz nada é pior que um botão a menos. */
-  if (!j.gasto && j.no_disco) {
-    linha.append(elemento("button", {
+  if (!j.heroic && !j.gasto && j.no_disco) {
+    painel.append(elemento("div", { class: "linha-botoes" }, [elemento("button", {
       type: "button", class: "btn btn-perigo",
       texto: "Apagar os arquivos",
       title: "Tira do lançador e remove a pasta do jogo e o manifesto, uma vez só.",
       onclick: async () => {
-        /* A PERGUNTA É AQUI, e não só no botão que executa. A anotação se
-         * desfaz com um clique, mas ela precisa saber, ANTES de escolher, que
-         * esta é a opção que leva gigabytes embora. */
         const sim = await perguntar({
           titulo: `Apagar os arquivos de ${j.nome}?`,
-          texto: "A pasta do jogo e o manifesto saem do disco agora — com a Steam "
+          texto: "A pasta do jogo e o manifesto saem do disco — com a Steam "
                + "aberta, na próxima passagem. Dispara uma vez só: se você "
                + "reinstalar depois, nada é apagado.",
           ok: "Marcar para apagar", perigo: true,
         });
-        if (sim) definirJogo(j.appid, "apagar", motivo.value);
+        if (sim) definirJogo(j.appid, "apagar", "");
       },
-    }));
+    })]));
   }
-
-  if (j.acao || j.gasto) {
-    /* A decisão nomeia a CLASSE («as ações de jogos que aplicam todas as marcas
-     * pendentes»), e não dois botões: este também grava a linha e roda a
-     * passagem inteira, e um «Marcar para apagar» de outro jogo, esperando a
-     * Steam fechar, saía no clique daqui sem caixa nenhuma. */
-    const rotulo = j.gasto ? "Tirar a linha gasta" : "Voltar ao normal";
-    linha.append(elemento("button", {
-      type: "button", class: "btn",
-      texto: rotulo,
-      title: "Tira esta decisão da lista. O cartão volta na próxima passagem.",
-      onclick: () => confirmarJogo(j, "", "", true, {
-        titulo: j.gasto ? `Tirar a linha gasta de ${j.nome}?` : `Voltar ${j.nome} ao normal?`,
-        ok: rotulo,
-      }),
-    }));
-  }
-
-  painel.append(linha);
-  /* "O MAPA" e "jogos-fora.map" SAÍRAM DOS QUATRO TEXTOS DESTA OFICINA. */
-  painel.append(elemento("p", { class: "frase nota-secao",
-    /* "SÓ ANOTA" DEIXOU DE SER VERDADE: cada botão acima grava a decisão e
-     * arruma o lançador na mesma hora (ver `definirJogo`). */
-    texto: "Cada escolha já arruma o lançador. Arquivo de jogo só sai com a Steam fechada." }));
+  if (icone) painel.append(montarEscolhaDeIcone(icone, carregarJogos));
   return painel;
 }
 
