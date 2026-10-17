@@ -7252,6 +7252,8 @@ function grudarPrevias() {
     OBSERVADOR_PREVIA.disconnect();
   }
   for (const faixa of document.querySelectorAll("#conteudo .previa-bloco")) {
+    /* A figura que mora na grade é uma célula dela, e não gruda. */
+    if (faixa.parentElement.matches(".grade")) continue;
     let sentinela = faixa.previousElementSibling;
     if (!sentinela || !sentinela.classList.contains("sentinela-previa")) {
       sentinela = elemento("div", { class: "sentinela-previa", "aria-hidden": "true" });

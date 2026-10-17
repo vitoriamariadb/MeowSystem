@@ -724,6 +724,9 @@ def casos_da_p82(pag):
         pag.get_by_role("button", name="Usar este ícone", exact=True).click()
         pag.wait_for_function("() => typeof TRABALHO !== 'undefined' && TRABALHO !== null", timeout=20000)
         pag.wait_for_function("() => TRABALHO === null", timeout=120000)
+        # O resultado abre na janela (P90); o OK a fecha e devolve a página.
+        if pag.locator("#resultado[open]").count():
+            pag.locator("#resultado-ok").click()
         assentar(pag)
         vista = pag.evaluate("""(nome) => {
           const m = document.querySelector('#principal').getBoundingClientRect();
