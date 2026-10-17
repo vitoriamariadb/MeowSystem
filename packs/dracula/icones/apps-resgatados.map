@@ -42,9 +42,7 @@
 # --- os projetos dela ---------------------------------------------------------
 luna                         : ~/.local/share/icons/hicolor/64x64/apps/luna.png                          : dela
 sigilo                       : ~/.local/share/icons/hicolor/512x512/apps/sigilo.png                      : dela
-protocolo-ouroboros          : ~/.local/share/icons/hicolor/512x512/apps/protocolo-ouroboros.png         : dela
 org.andrebfarias.Crononauta  : ~/.local/share/icons/hicolor/256x256/apps/org.andrebfarias.Crononauta.png : dela
-com.beholder.app             : ~/.local/share/icons/hicolor/512x512/apps/com.beholder.app.png            : dela
 pdfforge                     : ~/.local/share/icons/hicolor/512x512/apps/pdfforge.png                    : dela
 qrcode-void-generator        : ~/.local/share/icons/Dracula-Icones/scalable/apps/qrcode-void-generator.png : dela
 extase-em-4r73               : ~/.local/share/icons/Dracula-Icones/scalable/apps/extase-em-4r73.png      : dela
@@ -72,11 +70,8 @@ Ubuntu-selfservice           : ~/.local/share/icons/Dracula-Icones/scalable/apps
 # — mas o nosso tema vem antes deles na busca, então o SVG daqui é o que aparece.
 # `guvcview` nem sequer está numa árvore de tema: `/usr/share/pixmaps` é o último
 # lugar onde o resolvedor procura, e é lá que o PNG dele está sozinho.
-# `elden-ring-tracker` aponta para /opt e o `.desktop` dele traz o caminho
-# ABSOLUTO do PNG (`Icon=/opt/...`), e não um nome de ícone. Um `Icon=` absoluto
-# PULA o tema inteiro: o SVG resgatado só aparece depois que o `.desktop` passar
-# a dizer `Icon=elden-ring-tracker`. O `icones_resgatados.sh` faz essa troca, e
-# o cabeçalho dele explica por que ela é reversível.
+# Beholder, Elden Ring Tracker e Protocolo Ouroboros são projetos pessoais: o
+# desenho mora no pack de quem usa, fora do repositório (regra de 23/09).
 scrcpy                       : /usr/share/icons/hicolor/256x256/apps/scrcpy.png                          : sistema
 # O NOME AQUI É `setup-mozc`, E NÃO `mozc`
 #   O PNG se chama `product_icon_32bpp-128.png` e mora em `/usr/share/icons/mozc/`,
@@ -87,5 +82,4 @@ scrcpy                       : /usr/share/icons/hicolor/256x256/apps/scrcpy.png 
 #   entra só porque custa um arquivo e cobre quem peça o ícone por nome.
 setup-mozc                   : /usr/share/icons/mozc/product_icon_32bpp-128.png                          : sistema
 guvcview                     : /usr/share/pixmaps/guvcview/guvcview.png                                  : sistema
-elden-ring-tracker           : /opt/elden-ring-tracker/assets/icons/icon.png                             : sistema
 org.mozilla.thunderbird_esr  : ~/.local/share/flatpak/exports/share/icons/hicolor/128x128/apps/org.mozilla.thunderbird_esr.png : sistema

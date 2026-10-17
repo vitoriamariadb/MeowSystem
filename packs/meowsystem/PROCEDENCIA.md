@@ -361,7 +361,7 @@ customizou** (paleta Dracula, morcego, casa assombrada): o PNG desta máquina n�
 é o logo oficial, e foi a versão dela que foi resgatada. `sistema` é ícone de
 pacote que nunca passou pela mão dela, e entra só porque borrava igual.
 
-**Os três `Icon=` absolutos.** `elden-ring-tracker`, `guvcview` e `setup-mozc`
+**Os dois `Icon=` absolutos.** `guvcview` e `setup-mozc`
 trazem o *caminho* do PNG na chave `Icon=`, em vez de um nome de ícone — e um
 `Icon=` absoluto **pula a busca no tema inteira**. Para esses não basta instalar
 o SVG: o `icones_resgatados.sh` põe uma cópia do `.desktop` em
