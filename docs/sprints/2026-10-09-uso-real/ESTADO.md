@@ -64,7 +64,12 @@ ela de novo, integramos e pushamos pra dev». Sequência depois da P90:
 
 ## Registrada para depois (NÃO executar sem quem usa mandar)
 
-- P91 vizinhos e duplicatas — EM EXECUÇÃO desde 17/10, a pedido de quem usa.
+- P91 vizinhos e duplicatas — EXECUTADA em 17/10 na `sprint/p91`, espera o merge. Desativados nesta
+  máquina: cinco scripts do `Dracula_OS-Theme` (commit `f41ee47a` lá). Depois do merge e do install:
+  `scripts/vizinhos.sh --desativar caches-icones-casa` e um commit só disso no Spellbook. Para desfazer
+  tudo: `scripts/vizinhos.sh --restaurar todos`. Relatório: `docs/pesquisas/2026-10-17-vizinhos.md`.
+- P92 doutor do menu, P93 `ocultar` alcança tudo, P94 vizinhos de fora — registradas pela P91, NÃO
+  executar sem quem usa mandar.
 
 ## Fim combinado com quem usa (15/10, antes de dormir)
 
