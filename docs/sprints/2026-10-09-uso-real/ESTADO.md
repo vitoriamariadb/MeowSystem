@@ -62,6 +62,10 @@ ela de novo, integramos e pushamos pra dev». Sequência depois da P90:
    `git log --all -S<senha>` vazio, e só então `git push fork dev`.
 3. PR para `vitoriamariadb/MeowSystem` a partir do dev reescrito.
 
+## Registrada para depois (NÃO executar sem quem usa mandar)
+
+- P91 vizinhos e duplicatas (`docs/sprints/2026-10-15-fechamento/P91-vizinhos-e-duplicatas.md`).
+
 ## Fim combinado com quem usa (15/10, antes de dormir)
 
 1. merge da integracao/leva-h no dev; `./install.sh`; `meow compositor` (4d14528, com `just`);

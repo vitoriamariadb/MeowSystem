@@ -1,6 +1,8 @@
 # P91 — Quem mais manda na máquina: conflitos e duplicatas com o MeowSystem
 
-**Branch:** `sprint/p91` (depois da P90) · **Pedido de quem usa (17/10):** «procurar se tem algo no zsh ou
+**Status: REGISTRADA — não executar sem quem usa mandar (17/10: «não executa, só registra pra eu executar depois»).**
+
+**Branch:** `sprint/p91` · **Pedido de quem usa (17/10):** «procurar se tem algo no zsh ou
 no Dracula theme ou qualquer outro repo local que entre em conflito com o MeowSystem, e se temos dois
 scripts em cantos diferentes pra mesma coisa. Pra limparmos o meu PC e o da Vitória de forma que o
 MeowSystem cuide de tudo, e isso sirva até pra apontar falhas de produtos nossos que estejam sendo
