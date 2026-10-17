@@ -688,12 +688,12 @@ no máximo** (decisão 14, 15/10/2026). Vale para o Dracula, o Catppuccin, o
 pack-base `meowsystem` e todo pack futuro, e revoga a fronteira de 21/09
 («o acervo pode ser do motor»).
 
-### Versões e projetos dela
+### Versões e projetos da autora
 
 Duas outras subpastas da biblioteca do Dracula, etiqueta e nada mais, nasceram
 em 16/10/2026 (P87, «joga tudo pro pack»): `icones/biblioteca/versoes/` guarda
 cada versão e cada rascunho de um desenho, com o nome `<desenho>-<sha8>`, e
-`icones/biblioteca/projetos/` o desenho de cada projeto dela fora da lista de
+`icones/biblioteca/projetos/` (no seletor, «projetos dela») o desenho de cada projeto da autora fora da lista de
 exclusão da regra de 23/09 (Beholder, Elden Ring Tracker, Nyx, Protocolo
 Ouroboros e Caldeirão não ganham desenho novo no pack). Nenhuma das duas veste um programa sozinha: quem veste é
 uma linha do `apps.map`, e o desenho ligado é o que vence a régua do BRIEFING
@@ -769,7 +769,7 @@ resgatados ou pela escolha do painel) não ganha o traço de 48 px, que antes o
 encobria naquele tamanho — eram 17 no Dracula. Fica o traço que quem usa
 escolheu (a linha dele no `icones-traco.map`).
 
-Os **resgatados** (os desenhos dela que só existiam em PNG, de cor Dracula fixa)
+Os **resgatados** (os desenhos da autora que só existiam em PNG, de cor Dracula fixa)
 **não** estão no pack-base: no `meowsystem` o Catppuccin os herdaria (decisão
 16). Moram em `packs/dracula/icones/apps/resgatados/`, com o mapa
 `apps-resgatados.map` ao lado do `apps.map`, declarados como
