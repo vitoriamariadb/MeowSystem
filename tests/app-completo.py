@@ -29,7 +29,7 @@ O QUE ELE FAZ
      passa.
   5. ACIONA cada um, pelo papel que ele tem (`Percurso.acionador`), e cobra um
      efeito que se vê: o DOM mudou, a API respondeu 2xx, a casa de brinquedo
-     mudou — ou, no «Ver o que faria», NÃO mudou. O que o gesto REVELA (a caixa
+     mudou — ou, no «Ver sem mudar», NÃO mudou. O que o gesto REVELA (a caixa
      de pergunta, a gaveta, o «Copiar», o painel de um aplicativo) também está
      no inventário (`REVELADOS`), e também é acionado.
   6. Em toda a aba: nenhum erro no console, nenhuma resposta 4xx/5xx que o
@@ -1170,7 +1170,7 @@ class Percurso:
                    f"a caixa de «{titulo}» mostra o comando sem a casa nem o "
                    f"caminho do clone ({cmd.strip()[:60]!r})")
         self.checa(oferece == (acao["sudo"] or acao["destrutivo"]),
-                   f"a caixa de «{titulo}» oferece o «Ver o que faria» "
+                   f"a caixa de «{titulo}» oferece o «Ver sem mudar» "
                    "exatamente quando a ação pede senha ou desfaz algo")
         vistas = self.acoes_vistas.setdefault(ident, set())
         if acao["sudo"]:
@@ -1193,7 +1193,7 @@ class Percurso:
         self.checa(not mudou, f"Cancelar em «{titulo}» não muda a casa — mudou {mudou[:4]}")
         vistas.add("cancelar")
 
-        # 2. Ver o que faria
+        # 2. Ver sem mudar
         rodou = False
         if oferece:
             n1, reg1, antes1 = len(self.posts), len(registro()), retrato()
@@ -1204,7 +1204,7 @@ class Percurso:
             self.acionados.add("caixa · #confirmar-ensaio")
             post = self.esperar_post(n1)
             self.checa(post and post[1].get("seco") is True,
-                       f"«Ver o que faria» em «{titulo}» pede o ensaio ao servidor")
+                       f"«Ver sem mudar» em «{titulo}» pede o ensaio ao servidor")
             self.conferir_trabalho(acao, True, antes1, reg1)
             vistas.add("ensaio")
             if ident not in EXCECOES and self.pag.locator("#ensaio-rodar").count():
@@ -2281,7 +2281,7 @@ class Percurso:
         """A decisão de jogo que arruma o lançador pergunta antes (P54, a decisão
         dos jogos de 24/09): a caixa diz o que sai e o que entra, e dá as três
         respostas. A conferência que enche a caixa é o `jogo-fora` com
-        `previa`, que não grava; o «Ver o que faria» é o mesmo pedido com
+        `previa`, que não grava; o «Ver sem mudar» é o mesmo pedido com
         `seco`, e roda a passagem em ensaio na gaveta; só o «sim» grava."""
         acao = self.acoes().get("jogos_aplicar")
         antes, n0 = retrato(), len(self.posts)
@@ -2308,7 +2308,7 @@ class Percurso:
         reabrir()
         n1, reg1, antes1 = len(self.posts), len(registro()), retrato()
         clicar()
-        if self.checa(self.caixa_aberta(), f"{frase} pergunta de novo, e oferece o «Ver o que faria»"):
+        if self.checa(self.caixa_aberta(), f"{frase} pergunta de novo, e oferece o «Ver sem mudar»"):
             self.pag.locator("#confirmar-ensaio").click()
             self.acionados.add("caixa · #confirmar-ensaio")
             fim = time.time() + 10
@@ -2316,7 +2316,7 @@ class Percurso:
                    and time.time() < fim):
                 self.pag.wait_for_timeout(50)
             self.checa(any(d == "jogo-fora" and c.get("seco") is True for d, c in self.posts[n1:]),
-                       f"«Ver o que faria» em {frase} pede o ensaio ao servidor")
+                       f"«Ver sem mudar» em {frase} pede o ensaio ao servidor")
             if acao:
                 self.conferir_trabalho(acao, True, antes1, reg1)
 
@@ -2438,14 +2438,14 @@ class Percurso:
         self.desfazer()
 
     def h_ensaiar_salvar(self, nome):
-        """«Ver o que faria» do banner: o instalador inteiro em ensaio."""
+        """«Ver sem mudar» do banner: o instalador inteiro em ensaio."""
         atual = valor_de("LOG_NIVEL")
         self.escolher_por_busca("LOG_NIVEL", "debug" if atual != "debug" else "info")
         antes, reg0, n0 = retrato(), len(registro()), len(self.posts)
         self.achar(nome).click()
         post = self.esperar_post(n0, teto=10)
         self.checa(post and post[0] == "salvar" and post[1].get("seco") is True,
-                   "«Ver o que faria» pede ao servidor o ensaio das escolhas")
+                   "«Ver sem mudar» pede ao servidor o ensaio das escolhas")
         self.conferir_trabalho(self.acoes()["instalar"], True, antes, reg0)
         self.checa(valor_de("LOG_NIVEL") == atual, "o ensaio não grava a escolha no meow.conf")
         self.checa(self.pag.locator("#ensaio-rodar").count(),

@@ -1400,7 +1400,7 @@ cartões da Home do painel chama.
    pede, e o ponteiro do pack novo desce da rede se precisar, com o selo de quem
    baixa no painel (decisão 12 de 09/10/2026).
 
-**O ensaio ensaia a troca.** Com `MEOW_DRY_RUN=1` (ou o «Ver o que faria» do
+**O ensaio ensaia a troca.** Com `MEOW_DRY_RUN=1` (ou o «Ver sem mudar» do
 painel), o `meow.conf` não é tocado: as duas chaves vão para uma cópia
 descartável, e o instalador seco lê a cópia. Um ensaio que lesse o conf do disco
 mostraria o pack que **já** está no ar, com cara de ensaio da troca.
@@ -1409,7 +1409,7 @@ mostraria o pack que **já** está no ar, com cara de ensaio da troca.
 embaixo, o que ele traz de próprio e o que herda de quem —, e o que está no ar
 tem o anel de acento. Com escolhas ainda não salvas na página, **Usar este**
 pergunta antes: elas foram feitas olhando o pack de agora, e são descartadas
-quando a troca de verdade começa — um «Ver o que faria» não troca nada, e as
+quando a troca de verdade começa — um «Ver sem mudar» não troca nada, e as
 deixa como estavam até o «Rodar de verdade» da gaveta. E a aba Ícones passa a falar com as palavras do pack no ar:
 a «Variante dos ícones de arquivo» de um pack que herda o acervo de mimetype
 oferece o flavor que **ele** escolheu em `icones.mimetypes.flavor`, com o nome
@@ -2520,7 +2520,7 @@ pergunta pelo `cmd_remover`, e o painel pela mesma função — é ela que acend
 **Remover** no cartão da Início, e que cerca o argumento da ação `pack_remover`.
 O cartão de um pack que não pode sair não ganha o botão: diz o motivo na linha
 de baixo, com as palavras da tabela acima. O **Remover** passa pela caixa de
-confirmar de todo gesto que desfaz alguma coisa, com o «Ver o que faria», que é
+confirmar de todo gesto que desfaz alguma coisa, com o «Ver sem mudar», que é
 o `--seco`.
 
 ### No painel

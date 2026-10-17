@@ -182,7 +182,7 @@ meow_app_tema_no_ar() {
   meow_aviso "$app: está em '$no_ar', que não veio daqui"
   meow_info  "o pack$fonte traz '$do_pack'"
 
-  # ANTES DO SECO, de propósito: o «Ver o que faria» do «Trocar pelo tema do
+  # ANTES DO SECO, de propósito: o «Ver sem mudar» do «Trocar pelo tema do
   # pack» tem de ensaiar a TROCA, e quem diz o que ela escreveria é o módulo,
   # daqui para baixo, com o seco dele.
   case "$do_painel" in

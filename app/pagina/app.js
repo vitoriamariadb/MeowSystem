@@ -4224,7 +4224,7 @@ async function definirJogo(appid, acao, motivo, remover) {
 function pintarEfeitoDosJogos(caixa, r) {
   if (r.erro) {
     caixa.replaceChildren(elemento("p", {
-      texto: `Não deu para conferir antes: ${r.erro}. O «Ver o que faria» mostra a passagem inteira.`,
+      texto: `Não deu para conferir antes: ${r.erro}. O «Ver sem mudar» mostra a passagem inteira.`,
     }));
     return;
   }
@@ -5428,7 +5428,7 @@ function botaoDeEnsaio() {
   if (!b) {
     b = elemento("button", {
       value: "seco", class: "btn btn-ensaio", id: "confirmar-ensaio",
-      texto: "Ver o que faria",
+      texto: "Ver sem mudar",
       title: "Roda em ensaio (MEOW_DRY_RUN=1): mostra tudo e não escreve nada",
     });
     /* ANTES do gatilho, e não depois: a ordem de leitura da caixa termina no
@@ -5454,7 +5454,7 @@ function lugarDoCorpo() {
   return lugar;
 }
 
-/* `ensaio: true` acende o botão «Ver o que faria» */
+/* `ensaio: true` acende o botão «Ver sem mudar» */
 /* «Sem texto na interface, máximo vira dica»: o que vai ser feito com root fica
  * na linha, e o porquê (nada aqui pede senha; a máquina a lembra por uma hora;
  * sem ela, as etapas se pulam) vai para o `?`. */
@@ -7281,7 +7281,7 @@ function render() {
       /* Ação `oculta` não é cartão: o argumento dela é uma imagem, e a galeria
        * já a oferece no lugar certo (o botão embaixo de cada foto). */
       if (g.tipo === "acoes" && item.oculta) continue;
-      /* Do par «ver / aplicar» fica o aplicar: o ver é o «Ver o que faria» dele. */
+      /* Do par «ver / aplicar» fica o aplicar: o ver é o «Ver sem mudar» dele. */
       if (g.tipo === "acoes" && !busca && item.par) continue;
       /* E a que mora na moldura de um modo. */
       if (g.tipo === "acoes" && !busca && ACOES_EM_MOLDURA.has(item.id)) continue;
@@ -9084,7 +9084,7 @@ async function iniciar() {
    * leitura de quem ainda não decidiu — vejo, depois aplico. */
   $("#botao-salvar").before(elemento("button", {
     type: "button", class: "btn btn-ensaio", id: "botao-ensaiar",
-    texto: "Ver o que faria",
+    texto: "Ver sem mudar",
     title: "Ensaia as escolhas sem gravar: o meow.conf não é tocado",
     onclick: () => salvarEscolhas(true),
   }));

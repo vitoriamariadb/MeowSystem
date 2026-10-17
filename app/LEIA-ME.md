@@ -136,7 +136,7 @@ Até 13/09/2026 havia um interruptor **Ensaiar sem gravar** no topo, que punha
 interruptor saiu da página e do servidor: um `MEOW_DRY_RUN` herdado do terminal que
 subiu o painel é arrancado do ambiente de tudo que ele roda.
 
-Desde 22/09/2026 (P8) o ensaio voltou, de outro jeito: **Ver o que faria** mostra
+Desde 22/09/2026 (P8) o ensaio voltou, de outro jeito: **Ver sem mudar** mostra
 um gesto antes de ele valer, na gaveta de saída, e **Rodar de verdade** o manda
 valer. Não existe mais interruptor global. No terminal, o modo seco continua:
 `./install.sh --dry-run`, ou `MEOW_DRY_RUN=1` na frente de qualquer script.

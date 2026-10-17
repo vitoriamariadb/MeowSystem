@@ -2915,7 +2915,7 @@ def _conf_de_ensaio(pares):
 
     Quem apaga o diretório é o `Trabalho` quando o ensaio termina (o
     `ao_terminar` do `iniciar`) — deixá-lo para o fim do processo faria o painel
-    acumular um retrato da máquina dela por clique em «Ver o que faria»."""
+    acumular um retrato da máquina dela por clique em «Ver sem mudar»."""
     fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
     try:
         pasta = tempfile.mkdtemp(prefix="meow-ensaio-")
@@ -7578,7 +7578,7 @@ class Manipulador(BaseHTTPRequestHandler):
             (`_previa_dos_jogos`): quais atalhos entram, quais saem, e que
             pasta seria apagada. É o que a caixa de confirmar mostra;
           · `seco: true` roda a passagem inteira em ensaio sobre a mesma cópia
-            e devolve o trabalho, para a gaveta — o «Ver o que faria».
+            e devolve o trabalho, para a gaveta — o «Ver sem mudar».
         Montar a linha num lugar e a cópia noutro faria a caixa prometer um
         mapa e o botão gravar outro.
         """
@@ -7644,7 +7644,7 @@ class Manipulador(BaseHTTPRequestHandler):
                            "depois": "vale depois de \"Arrumar os jogos no lançador\""})
 
     def _ensaio_dos_jogos(self, mapa):
-        """O «Ver o que faria» da caixa dos jogos: a passagem, seca, sobre `mapa`.
+        """O «Ver sem mudar» da caixa dos jogos: a passagem, seca, sobre `mapa`.
 
         A cópia do mapa mora na pasta descartável do ensaio (`_conf_de_ensaio`,
         a mesma do «Salvar e aplicar»), e o `iniciar` a entrega ao script pelo

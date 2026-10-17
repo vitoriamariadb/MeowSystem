@@ -44,7 +44,7 @@ meow ativar               # every other run
 ```
 
 63 steps. On a machine already set up, running it again **writes nothing** and says so. To
-rehearse first: `MEOW_DRY_RUN=1 ./install.sh`, or **Ver o que faria** (see what it would do) in
+rehearse first: `MEOW_DRY_RUN=1 ./install.sh`, or **Ver sem mudar** (see what it would do) in
 the panel.
 
 The sudo password is asked **once**, to register the root bridge: a closed set of verbs (system
@@ -113,7 +113,7 @@ will be). "Como está" undoes only that block.
 Every variable the installer reads has a control here, and a test enforces it.
 
 Clicking never changes the machine: choices pile up and **Salvar e aplicar** (save and apply)
-writes them and runs the installer. **Ver o que faria** rehearses without writing. **Restaurar ao
+writes them and runs the installer. **Ver sem mudar** rehearses without writing. **Restaurar ao
 padrão** (restore default) goes back to the factory value. Actions that download wear a network
 badge.
 

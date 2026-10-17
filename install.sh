@@ -3930,7 +3930,7 @@ main() {
 
   if [ ${#FALHOS[@]} -gt 0 ]; then
     # NUM ENSAIO NADA É APLICADO — 24/09/2026, sprint P50 (achado 11). O
-    # rodapé dizia "o resto foi aplicado" também no «Ver o que faria», com a
+    # rodapé dizia "o resto foi aplicado" também no «Ver sem mudar», com a
     # faixa da gaveta dizendo «nada foi escrito» no alto da mesma saída. Ensaio
     # não deixa nada pela metade porque não começa nada: a frase diz isso.
     if meow_seco; then

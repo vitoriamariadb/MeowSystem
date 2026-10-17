@@ -44,7 +44,7 @@ meow ativar               # todas as outras
 ```
 
 São 63 etapas. Numa máquina já pronta, rodar de novo **não escreve um byte** e diz isso. Para
-ensaiar antes: `MEOW_DRY_RUN=1 ./install.sh`, ou **Ver o que faria** no painel.
+ensaiar antes: `MEOW_DRY_RUN=1 ./install.sh`, ou **Ver sem mudar** no painel.
 
 A senha do sudo é pedida **uma vez**, para registrar a ponte root: um conjunto fechado de verbos
 (`.desktop` do sistema, tela de login, hook do apt, dependências) que depois roda sem senha.
@@ -110,7 +110,7 @@ só aquele bloco.
 Toda variável que o instalador lê tem um controle aqui, e um teste cobra isso.
 
 Clicar não muda a máquina: as escolhas se acumulam e **Salvar e aplicar** grava e roda o
-instalador. **Ver o que faria** ensaia sem escrever. **Restaurar ao padrão** volta ao valor de
+instalador. **Ver sem mudar** ensaia sem escrever. **Restaurar ao padrão** volta ao valor de
 fábrica. Ação que baixa da internet leva o selo de rede.
 
 <img src="docs/capturas/painel-forma.png" width="920" alt="A aba Painel e dock, com o desenho do painel e da dock acima dos controles">
