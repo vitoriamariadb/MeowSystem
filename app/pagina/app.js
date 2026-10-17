@@ -8678,8 +8678,7 @@ function montarHome() {
   ]));
   const linha = elemento("div", { class: "linha-botoes" });
   for (const [id, rotulo, principal] of [
-    ["doctor", "Conferir a máquina", true],
-    ["doctor_consertar", "Consertar o que estiver fora", false],
+    ["doctor_consertar", "Conferir e consertar", true],
     ["wallpaper_proximo", "Próxima imagem", false],
     ["painel_reciclar", "Recarregar o painel", false],
   ]) {

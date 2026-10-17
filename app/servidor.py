@@ -3767,6 +3767,9 @@ ACOES = {
         "natureza": "conferir",
         "argv": _meow("doctor"),
         "escreve": False, "sudo": False, "confirma": False,
+        # A Instalação tem um botão só, o que confere e conserta (o doctor
+        # corrige); este fica para quem pergunta pelo id.
+        "oculta": True,
         # Com divergência o doctor termina em «rode: meow doctor
         # --consertar»: um comando para quem está diante de um botão.
         "conserta_com": "doctor_consertar",
@@ -3774,7 +3777,7 @@ ACOES = {
                  "Não escreve nada.",
     },
     "doctor_consertar": {
-        "rotulo": "Consertar o que estiver fora",
+        "rotulo": "Conferir e consertar",
         "grupo": "Instalação",
         "natureza": "consertar",
         "argv": _meow("doctor", "--consertar"),
@@ -3789,7 +3792,7 @@ ACOES = {
         "grupo": "Instalação",
         "natureza": "mostrar",
         "argv": _meow("status"),
-        "escreve": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
     },
     "desinstalar": {
@@ -3808,7 +3811,7 @@ ACOES = {
         "grupo": "Instalação",
         "natureza": "mostrar",
         "argv": _meow("log"),
-        "escreve": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "O que este projeto escreveu, e quando.",
     },
 
