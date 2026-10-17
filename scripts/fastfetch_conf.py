@@ -15,6 +15,7 @@
 #   "title"                                   a forma curta, que era a dela
 #   { "type": "title", "format": "…" }        a forma longa, com o formato
 
+# Nenhuma função daqui cria chave no arquivo de ninguém: só ajusta as que já existem.
 import json
 import os
 import re

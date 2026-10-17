@@ -14,6 +14,9 @@
 #      O código do osd é `xdg::BaseDirectories::with_prefix("sounds")
 #      .find_data_file("freedesktop/stereo/audio-volume-change.oga")`, e o
 #      `find_data_file` consulta o XDG_DATA_HOME antes do XDG_DATA_DIRS.
+# O osd procura o nome `freedesktop` cravado: o som entra num `freedesktop` do
+# usuário, sem `index.theme` (sequestraria o tema). Nada de copiar os `.oga` do
+# sistema (CC-BY-SA-3.0 não casa com a GPL-3.0), e o blip fica curto: sons longos empilham.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -462,6 +465,7 @@ cmd_remover() {
   meow_guardar_antes "$SOM_ALVO"; meow_guardar_antes "$SOM_LICENCAS"
   rm -f "$SOM_ALVO" "$SOM_LICENCAS"
   # rmdir só apaga diretório vazio: se ela puser outros sons ali, ficam.
+  # O `~/.local/share/sounds` não entra: é pasta XDG que não criamos.
   rmdir "$SOM_BASE" "$SOM_RAIZ/$SOM_TEMA" 2>/dev/null
   meow_muda "som de volume devolvido ao de fábrica"
   meow_registrar "som.sh remover"

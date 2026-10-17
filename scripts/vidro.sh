@@ -45,6 +45,9 @@ VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}"
 #   "a opacidade de fundo da dock do painel precisam ser de acordo com o que eu
 #   setar aqui nas configs do próprio cosmic. isso pq agora tá completamente
 #   ilegível os icones e afins."
+# O slider «Opacidade do fundo» da GUI escreve esta mesma chave: o valor é dela, e
+# vazio é «não toca». O nosso é o `keep_style_on_maximize`, sem o qual o slider dela
+# não vale com janela maximizada.
 VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-${VIDRO_OPACIDADE:-}}"
 VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-${VIDRO_OPACIDADE:-}}"
 

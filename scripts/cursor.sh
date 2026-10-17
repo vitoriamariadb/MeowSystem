@@ -11,6 +11,9 @@
 #   B. `~/.icons/default/index.theme` com `Inherits=<tema>` — pega o
 #      `cosmic-comp`, e só VALE NO PRÓXIMO LOGIN, porque o compositor carrega o
 #      tema de cursor uma vez, na subida.
+# Dois cursores, dois donos: o `gsettings` muda só o das janelas GTK, e o do desktop
+# (o `cosmic-comp`) vem do `~/.icons/default`. O `remover` faz `gsettings reset`, e
+# não `set 'Pop'`: o Pop é padrão de esquema, nunca valor gravado.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -571,6 +574,7 @@ cmd_aplicar() {
   elif meow_seco; then
     meow_muda "gsettings cursor-theme: '$atual' -> '$nome'"; mudou=1
   else
+    # Confere depois de escrever: sem barramento o `gsettings set` sai 0 sem gravar nada.
     if ! gsettings set "$CURSOR_CHAVE" cursor-theme "$nome" 2>/dev/null; then
       meow_erro "gsettings recusou escrever cursor-theme"; return "$MEOW_ERRO"
     fi

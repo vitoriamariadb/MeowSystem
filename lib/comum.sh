@@ -686,6 +686,8 @@ meow_escrever() {
   #       // Skip any .atomicwrite temporary files
   #       if key.starts_with(".atomicwrite") { continue }
   #   ), porque é assim que ele mesmo escreve.
+  # Com outro nome o painel recebia quatro eventos por chave e relia a entrada inteira
+  # a cada um, alimentando a corrida do raio que apaga topbar e dock.
   tmp="$(mktemp -p "$dir" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
   printf '%s' "$conteudo" > "$tmp" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   chmod "$modo" "$tmp"
@@ -715,6 +717,8 @@ MEOW_CONF_PADRAO="${MEOW_CONF_PADRAO:-$MEOW_RAIZ/meow.conf.exemplo}"
 #   comentário e devolve `MODO="claro"# escuro | claro | auto`, colado. ERE não
 #   tem quantificador preguiçoso para consertar isso. Aqui a linha é partida no
 #   primeiro `#` e os espaços de antes dele são preservados como estavam.
+# Troca TODAS as ocorrências: o shell obedece à última atribuição, e trocar só a
+# primeira gravaria um valor e deixaria outro valendo, calado.
 meow_conf_texto_definir() {
   local texto="$1" chave="$2" valor="$3" novo="" linha resto antes espacos comentario achou=0
   while IFS= read -r linha; do

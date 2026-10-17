@@ -182,6 +182,8 @@ modo_desejado() {
   esac
 }
 
+# O doctor nunca usa sudo, e sem `--consertar` não escreve configuração: confere
+# chamando os mesmos scripts do install.sh com `MEOW_DRY_RUN=1`.
 is_dark_atual() { cat "$IS_DARK" 2>/dev/null || printf '?'; }
 
 # O ACERVO É A LISTA — não há mais variante do gato do projeto.

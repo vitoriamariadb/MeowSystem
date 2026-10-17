@@ -13,6 +13,8 @@
 #     <nome>-Base-<n> as camadas de trás dela, quando o pack as declara.
 #   Os recibos de instalação (`.meow-origem`, `.meow-somas.sha256`) e a cache
 #   não vão: são desta máquina, e quem instala refaz a cache.
+# O tema é montado numa casa de brinquedo, do pack e do exemplo: nenhuma escolha do
+# meow.conf de quem exporta viaja junto.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

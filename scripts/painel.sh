@@ -15,6 +15,8 @@
 #     - 1 chance em 10 do sorteio dar ZERO — daí as linhas "sleeping for 0ms" e
 #       a barra às vezes voltar na hora mesmo com o contador alto. Não é perdão:
 #       é o bilhete bom.
+# Não sinaliza painel de outra casa (o `reciclar` mira só o deste usuário e deste
+# HOME) e não reinicia a sessão: o `Restart` do cosmic-session fecha todos os apps dela.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

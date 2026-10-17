@@ -13,6 +13,8 @@
 #     `com.system76.CosmicPanelAppButton` / `com.system76.CosmicAppLibrary`.
 #   - A logo do painel NÃO passa por tema de ícones: o applet LogoMenu guarda um
 #     CAMINHO DE ARQUIVO em `custom_logo_path`. Por isso ela é tratada à parte.
+# O arquivo da logo não pode terminar em `-symbolic.svg`: o applet o achataria numa
+# cor só.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

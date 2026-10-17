@@ -12,6 +12,9 @@
 #
 # A URL carrega o token e não vai para log, `meow_registrar` nem arquivo: um
 # token gravado em disco sobreviveria à sessão que o criou.
+# Um servidor que sobrevive à janela que o abriu é porta aberta esquecida, e esta
+# roda `./install.sh`: quem o encerra é a própria página (`MEOW_APP_VIGIA`), e o
+# `trap` cobre EXIT, INT, TERM e HUP para o Python não ficar órfão.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"

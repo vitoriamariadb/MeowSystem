@@ -10,6 +10,9 @@
 # desenhou TRÊS itens.
 #
 # A GUARDA QUE IMPEDE O SEQUESTRO — o pior risco desta etapa
+# Uma ponte com o `StartupWMClass` de um app que já casa sequestraria o dono (o
+# Chrome acelerado de `/usr/local`): antes de escrever, o casador é perguntado sem
+# as nossas pontes, e sem casador a etapa sai 3 sem escrever (falha fechada).
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

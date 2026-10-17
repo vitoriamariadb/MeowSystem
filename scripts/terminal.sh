@@ -150,6 +150,8 @@ esac
 #   gerar <flavor> <nome> <cursor_hex|-->   imprime a entrada pronta
 #   por   <arquivo> <nome>                  põe/substitui a nossa (ENTRADA=...)
 #   tirar <arquivo>                         tira as nossas (NOSSOS=...)
+# O parser devolve cru o que não é nosso; o que ele não entende vira erro, e ninguém
+# escreve. O `background` nunca entra (o fundo é o do tema dela, com a opacidade).
 _py() {
   PALETA="$PALETA" python3 -I - "$@" <<'PY'
 import json, os, re, sys

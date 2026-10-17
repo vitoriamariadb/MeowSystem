@@ -14,6 +14,9 @@
 #      `adicionar` força a releitura no fim, com o `forcar_releitura` abaixo.
 #
 # --- DIA E NOITE: POR QUE UMA PASTA A MAIS, E NÃO UM FILTRO ------------------
+# `banidos/` recebe por `mv`, nunca apaga. Escrever a configuração reinicia a
+# rotação, e conteúdo idêntico não relê nada. Sem medir luz, a rotação volta a
+# `ativos/`: um papel claro é gosto; tela preta é defeito.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

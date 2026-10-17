@@ -286,6 +286,8 @@ else
   ok "modelo.py recusa o papel que a paleta não tem, em vez de deixá-lo no tema"
 fi
 
+# Casa, XDG, estado, packs e flatpak de brinquedo; o `env -i` tira o D-Bus da sessão,
+# e nem um `dconf` de verdade alcançaria o banco de quem roda.
 CASA="$T/casa8"
 BIN="$T/bin8"
 mkdir -p "$CASA" "$BIN" "$T/packs8"
@@ -762,6 +764,8 @@ saida="$(mod gnome-terminal aplicar)"; rc=$?
   && ok "gnome-terminal: um perfil padrão com cores próprias fica, e vira pendência (rc=3)" \
   || falha "gnome-terminal: trocou o perfil padrão dela (rc=$rc)" "$saida"
 
+# O mapa de nomes é vazio: um nome encurtado chamaria o `meow_lancador_reler`, que
+# derruba o lançador da sessão de quem roda.
 AP="$T/casa9/.local/share/applications"
 mkdir -p "$AP"
 for n in seiscentos seiscentos-e-quarenta-e-quatro setecentos; do

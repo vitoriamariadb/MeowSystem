@@ -20,6 +20,8 @@ _forma_teto_raio() { # $1 = Panel|Dock
   local t
   t="$(meow_painel_teto "$BASE/com.system76.CosmicPanel.$1/$(meow_cosmic_v "com.system76.CosmicPanel.$1")" 2>/dev/null)" && { printf '%s' "$t"; return 0; }
   # Sem conseguir derivar (size/padding ilegíveis), o único valor seguro.
+  # Um fallback alto aqui apagaria a barra entrando pelo «não consegui medir»: o
+  # compositor compara o raio novo com o frame anterior, e sem o patch o teto é zero.
   printf '0'
 }
 

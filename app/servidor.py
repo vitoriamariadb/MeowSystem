@@ -22,6 +22,10 @@
 # efêmera; todo pedido traz o token da sessão (`hmac.compare_digest`); `Host` e
 # `Origin` são conferidos (DNS rebinding e site de fora); e nenhum comando vem
 # da página como texto, só `id` de um dicionário fechado.
+#
+# O cache global do sudo (acima) deixa um clique rodar o install.sh com root sem
+# perguntar. Por isso a ação que atravessa sudo é marcada, avisada antes e
+# pede confirmação; nenhuma senha é pedida, lida ou guardada aqui.
 """Backend local do painel de configuração visual do MeowSystem."""
 
 import base64
@@ -1394,6 +1398,8 @@ def _declarado_pelo_pack(adotado, alvo):
     return False
 
 
+# As escolhas de ícone do painel moram com quem usa, ao lado do meow.conf: usar o
+# programa não suja o repositório, e levar para o pack é gesto explícito.
 def _mapa_de_escolhas_do_usuario():
     mod = modulo_pack()
     if mod and hasattr(mod, "arquivo_de_escolhas"):
@@ -4643,6 +4649,8 @@ def _prev_paredes():
             # O id carrega o grupo porque o MESMO nome existe em `ativos/` e em
             # `ativos-noite/` — são link duro para o mesmo arquivo, e sem o
             # prefixo um id apontaria para dois lugares.
+            # Banir é `mv` do caminho recebido: pelo link duro de `ativos-noite/` sairia só o
+            # link, e a imagem de `ativos/` seguiria girando. Por isso `banir` é o canônico.
             canonico = os.path.join(base, "ativos", nome)
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
                          "origem": arq, "grupo": grupo,
@@ -8583,6 +8591,8 @@ class Manipulador(BaseHTTPRequestHandler):
     #
     # A recusa do SVG é do servidor: é aqui que a escrita mora, e é aqui que ela
     # tem de valer contra um POST forjado.
+    # A recusa é do servidor, porque é aqui que a escrita mora e vale contra um POST
+    # forjado: sem script, estilo nem referência externa, e sem `stroke-width` nem cor.
     _SVG_PROIBIDO = re.compile(
         r"<\s*(script|style|image|foreignObject|iframe|use)\b"
         r"|xlink:|href\s*=|\bon[a-z]+\s*=|url\s*\(|@import",
@@ -10430,6 +10440,8 @@ if __name__ == "__main__":
     # `--onde` não sobe servidor nenhum: responde e sai — ver `onde_na_tela`. A
     # linha de URL do `main` é a interface com o `run.sh`, e esta porta não
     # passa perto dela.
+    # Com o número errado de argumentos também não sobe: quem pergunta onde fica um
+    # botão não pediu servidor na casa real.
     if len(sys.argv) > 1 and sys.argv[1] == "--onde":
         if len(sys.argv) != 3:
             sys.stderr.write("uso: servidor.py --onde <ação, pendência, chave ou inicio>\n")

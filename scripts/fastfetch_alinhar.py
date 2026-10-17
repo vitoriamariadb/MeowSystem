@@ -17,6 +17,8 @@
 #   --conferir  não imprime a composição: sai 0 se dá para compor (o .ansi está
 #               lá e é legível) e 4 se não dá. É o que o `doctor` usa.
 
+# Nunca falha com pilha de erro: um `gato.ansi` ausente ou ilegível deixa a saída do
+# fastfetch passar intacta — o terminal não pode deixar de abrir por um enfeite.
 import argparse
 import os
 import re

@@ -15,6 +15,9 @@
 #     JetBrainsMonoNFM-Regular  mono=true
 #     JetBrainsMonoNF-Regular   mono=false
 #     JetBrainsMonoNFP-Regular  mono=false
+# Nunca `/usr/share` (é do apt); não toca no `font_size`, na opacidade nem nos atalhos
+# do terminal (são dela); e não mata o `cosmic-term` para recarregar: fecharia os
+# terminais abertos dela — ele relê a fonte sozinho.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

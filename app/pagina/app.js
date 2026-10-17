@@ -1821,6 +1821,8 @@ function controleImagem(item, tipo, aplica) {
       onclick: async () => { if (await aplica(deFabrica)) pintar(deFabrica); },
     }));
   }
+  /* O Restaurar grava o valor de fábrica (decisão 10); o «Não tocar» devolve o vazio
+   * à chave que o aceita, como o `CURSOR`. */
   const naoToca = botaoNaoTocar(item, emVigor, aplica, "vazio", pintar);
   if (naoToca) caixa.append(naoToca);
   const herda = emVigor === "" && /herda\s+([A-Z][A-Z0-9_]+)/.exec(item.inline || "");
@@ -2160,6 +2162,8 @@ function controlePorArea(item, aplica) {
   const nomesItem = ESQUEMA.chaves.find((k) => k.chave === "AREAS_NOMES");
   const nomes = String(nomesItem ? valorEmVigor(nomesItem) : "")
     .split(",").map((x) => x.trim()).filter(Boolean);
+  /* Sem áreas com nome o cartão é trava, e não campo livre: o `areas.sh` se pula com a
+   * lista vazia, e o que se escrevesse ali não valeria. */
   if (!nomes.length) return elemento("div", { class: "por-area" });
 
   const marcadas = new Set(String(valorEmVigor(item))
@@ -3211,6 +3215,7 @@ function montarEscolhaDeIcone(app, recarregar) {
       appAVista(app.id);
     },
   }));
+  /* Só a escolha de quem usa se desfaz daqui: a linha do mapa do projeto é curadoria do repositório. */
   if (app.mapa && app.mapa.meu) {
     acoes.append(elemento("button", {
       /* "MAPA" ERA O NOME DO ARQUIVO (apps-arcticons.map), não do que o botão
@@ -4413,6 +4418,8 @@ const GRUPOS_PAREDE = [
     balao: "Fora do carrossel. Nunca são apagadas" },
 ];
 
+/* A página não move arquivo: o botão chama o `wallpaper.sh`, que guarda o link duro
+ * entre `ativos/` e `ativos-<lado>/` e o banimento que sobrevive. */
 function botoesDeLado(imagem) {
   /* PELO CAMINHO CANÔNICO, e não pelo que está sendo mostrado: `ativos-dia/` e
    * `ativos-noite/` são LINK DURO do mesmo arquivo, e agir pelo link mexeria só
@@ -5414,6 +5421,7 @@ function faixaDeEnsaio(ligada) {
 function oferecerConserto(id) {
   const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
   if (!acao || document.getElementById("resultado-consertar")) return;
+  /* Toda porta de uma ação que declara `rede` mostra o selo «baixa da internet» (decisão 7). */
   const selo = acao.rede
     ? elemento("span", { class: "pastilha p-rede", id: "resultado-consertar-rede", texto: "baixa da internet" })
     : null;
@@ -6916,6 +6924,7 @@ const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
                                             "Áreas de trabalho", "Lançadores e jogos",
                                             "Manutenção", "Instalação"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
+/* A ação que o servidor declara `tecnica` vai para o «⋯» em qualquer página. */
 function acaoTecnica(assunto, acao) {
   return (PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza))
     || !!acao.tecnica;
@@ -7652,6 +7661,8 @@ function selosDeOrigem(p, origem) {
 
 /* Nada do texto do pack vira HTML: só título, lista, negrito, código e link viram
  * nó, com o texto por `textContent`; o link só ganha `href` com `https://`. */
+/* A história de um pack é texto de terceiro: nada dela vira HTML. Cada forma
+ * reconhecida vira nó com `textContent`, o resto sai como texto, e link só com https://. */
 function trechosDaLinha(linha) {
   const nos = [];
   const forma = /\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\(([^)\s]+)\)/g;

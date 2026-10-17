@@ -28,6 +28,8 @@ HICOLOR="$HOME/.local/share/icons/hicolor"
 ICONE_PADRAO="com.heroicgameslauncher.hgl"
 
 # --- o mesmo verbo dos outros módulos, e a mesma armadilha do seco ------------
+# `MEOW_SECO` é congelado no `source` do comum.sh: o `--conferir` o liga aqui, direto,
+# ou apagaria arquivo dizendo que era conferência.
 LISTAR=0
 case "${1:-}" in
   --conferir) MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;

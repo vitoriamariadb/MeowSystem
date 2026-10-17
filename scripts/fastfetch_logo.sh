@@ -15,6 +15,9 @@
 #      `*`, com `\e[36m`/`\e[37m`) — pior que o meio-bloco truecolor que o
 #      conversor daqui escreve. Um `apt install` para piorar o resultado seria
 #      dependência nova em troca de nada.
+# O `config.jsonc` do fastfetch é território da Aurora: este script escreve só o
+# `.ansi` em `~/.local/share/meowsystem/` e lê o config; sem apontar, sai 4 (e não
+# 1), para o doctor não anunciar um conserto que não pode fazer.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

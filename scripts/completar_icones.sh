@@ -58,6 +58,7 @@ AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
 #
 # O terceiro nome, `com.vitoriamaria.HefestoDualsense4Unix-symbolic`, fica FORA:
 # simbólico é monocromático por contrato e seria achatado numa cor só.
+# A logo do Hefesto é obra dela e vence o tema; o arquivo mora no projeto dela.
 LOGO_HEFESTO_DELA="${ICONES_LOGO_HEFESTO:-}"
 
 declare -A AUTORAL=(
@@ -310,6 +311,8 @@ else
 fi
 
 # --- 3b. a cache do tema, que engole ícone novo em silêncio -------------------
+# Com a cache dentro do tema o GTK ignora o disco. Reindexa, e não apaga (quem a
+# criou queria a cache), e só com ícone mais novo que ela: a segunda passada não escreve.
 CACHE="$TEMA_DIR/icon-theme.cache"
 if [ -f "$CACHE" ] && [ -n "$(find "$ALVO" -name '*.svg' -newer "$CACHE" -print -quit 2>/dev/null)" ]; then
   if meow_seco; then
