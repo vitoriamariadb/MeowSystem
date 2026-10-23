@@ -141,6 +141,10 @@ desktop "$FLAT/applications/org.example.Flat.desktop" 'Type=Application' 'Name=F
 _oc --aplicar >/dev/null 2>&1
 saida="$(OC_LIGADO=nao _oc --conferir 2>&1)"; rc=$?
 confere "com LANCADOR_SISTEMA=nao, o que é nosso aparece para sair" '[ "$rc" = 1 ] && printf "%s" "$saida" | grep -q "devolveria"'
+antes="$(foto)"
+saida="$(_oc --reverter MEOW_DRY_RUN=1 2>&1)"; rc=$?
+confere "o reverter em ensaio (o --uninstall seco) diz o que tiraria e não escreve" \
+  '[ "$rc" = 1 ] && printf "%s" "$saida" | grep -q "devolveria" && [ "$antes" = "$(foto)" ]'
 _oc --reverter >/dev/null 2>&1; rc=$?
 confere "o reverter tira a sombra e devolve o do home byte a byte" \
   '[ "$rc" = 1 ] && [ ! -e "$S" ] && cmp -s "$APPS/do-home.desktop" "$T/do-home-original.desktop"'

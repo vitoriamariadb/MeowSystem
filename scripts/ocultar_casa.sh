@@ -104,9 +104,9 @@ fi
 mudou=0; sombras=0; marcados=0; ausentes=0
 
 PENDENTES=()
-_vai() { # $1 o que faria: no conferir só anota, e a ação não roda
+_vai() { # $1 o que faria: no conferir e no ensaio só anota, e a ação não roda
   mudou=1
-  [ "$MODO" = "conferir" ] && { PENDENTES+=("$1"); return 1; }
+  { [ "$MODO" = "conferir" ] || meow_seco; } && { PENDENTES+=("$1"); return 1; }
   return 0
 }
 
@@ -160,7 +160,7 @@ if [ "$mudou" = 0 ]; then
   meow_ok "fora de /usr/share, já escondidos: $sombras por sombra, $marcados no próprio home ($ausentes não instalados)"
   exit "$MEOW_OK"
 fi
-if [ "$MODO" = "conferir" ]; then
+if [ "$MODO" = "conferir" ] || meow_seco; then
   meow_muda "${#PENDENTES[@]} aplicativo(s) fora de /usr/share a esconder ou devolver ao lançador"
   for l in "${PENDENTES[@]}"; do meow_info "  $l"; done
   exit "$MEOW_DIVERGENTE"
