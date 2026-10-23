@@ -22,6 +22,21 @@ com o mapa das páginas de hoje para as novas).
   opção vira **dica ao passar o mouse** (e ao focar pelo teclado), curta. Estado mostra-se com cor, ícone ou
   a prévia, não com frase. O mockup da P97 é a referência de layout e de visual, NÃO de texto: onde ele tem
   frase, a P98 tira.
+- **Letra maiúscula no começo de todo texto da tela**: botão, rótulo, título, item de lista, dica, estado
+  (quem usa, 23/10: «muita frase, botão ou palavra que inicia sem a letra capitular: "Tudo em ordem /
+  conferido hoje, 07:00"»). Teste que varre os nós de texto visíveis e as dicas e reprova minúscula inicial
+  (fora nome próprio de programa que é minúsculo de fato, numa lista curta e explícita).
+- **A interface não se descreve; não é página de vendas** (quem usa, 23/10, sobre a tela «Mandar» do
+  mockup). Saem, por exemplo: a árvore «O que vai no arquivo», o bloco «Quem ainda não tem o MeowSystem» com
+  o `git clone`, a frase «Quem recebe abre o arquivo em…», a lista de conferência com contagens
+  («Créditos e licenças junto 3»), o subtítulo «um tema para MeowSystem · por Vitória», o rodapé com licença e
+  autoria e os links de rodapé («Estados da tela», «O que veio de onde»). Créditos e licença moram num
+  único item de menu, não em toda tela. Regra: se o elemento explica o app em vez de ser usado, sai.
+- **Alinhamento**: uma grade só por página; botões de uma mesma fila com a mesma altura e o mesmo estilo de
+  família (nada de um botão cheio, um contornado e um só texto lado a lado sem hierarquia clara); cartões,
+  faixas e controles alinhados à mesma borda (no mockup, a tira de cores solta à direita do cartão e o
+  «Vestir este computador» como texto solto quebram isso). Prova: prints de toda tela em 1829x1029
+  conferidos contra a grade.
 
 ## Nada se perde
 Cada chave do esquema do painel de hoje e cada uma das ações tem um lugar no painel novo. A prova é uma
