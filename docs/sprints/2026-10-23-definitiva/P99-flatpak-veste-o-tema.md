@@ -69,3 +69,22 @@ desinstalador devolve os pacotes, e sem a ponte só avisa onde a lista ficou. Ta
 **Fica de fora:** desativar os dois scripts no NitroKit (precisa do install rodado, para o `requer` passar).
 Os pacotes do LibreOffice desta máquina só saem quando o install rodar: nada de apt de verdade aqui. O
 desinstalador não tira o OnlyOffice que o install trouxe, porque é o escritório em uso.
+
+### Conferência (23/10)
+
+Conferido contra a tarefa: o override é `--user` e sem senha; troca com o pack (a troca de pack roda o
+`install.sh`, e a etapa lê o pack no ar); a segunda passada não escreve; o desinstalador devolve o de antes; o
+global antigo só aparece como estado e sai pela ponte; nada esconde o LibreOffice (nem `startcenter`, nem
+`LANCADOR_OCULTAR`). O nome LibreOffice ficou só onde o código o tira e o devolve (`escritorio.sh`, a ponte,
+o par do doctor, a etapa, o desinstalador e o verbo no `docs/FRONTEIRA.md`). Três defeitos achados e corrigidos:
+
+| defeito | prova | correção |
+|---|---|---|
+| a guarda do `libreoffice-remover` lia `Remv`, e a simulação de um `purge` escreve `Purg`: a guarda nunca disparava. Nesta máquina o `apt-get -s purge` dos 31 `libreoffice*` leva junto o `python3-uno`, e o falso do teste escrevia `Remv` e tratava o `python3-uno` como vizinho que fica | `apt-get -s purge` real (só simula) | `29cad02`: a guarda lê `Purg` e `Remv`; o que sai junto só passa se for do LibreOffice (a ponte UNO: `python3-uno`, `ure`, `libuno-*`…), senão recusa inteiro; o stdout da ponte é a lista do que saiu, e o `devolver` aceita a mesma família |
+| o atalho `libreoffice-startcenter.desktop` com `NoDisplay` que outro programa pôs na casa seguia na lista de ocultos do painel depois do `purge`, que é o sintoma do pedido | o painel lê todo `.desktop` da casa | `a35a9db`: sem pacote do LibreOffice, os `libreoffice*.desktop` da casa saem, com cópia em `libreoffice-atalhos/`, e o reverter os devolve; a volta guarda também o que a ponte disse que saiu |
+| o instalador de brinquedo (`convergencia.sh` e afins) chamava o `flatpak` de verdade: `flatpak install --user flathub org.onlyoffice.desktopeditors` a cada rodada da suíte, baixando da internet | log de um `flatpak` falso à frente do PATH | `131e9c9`: o `tests/todos.sh` põe um `flatpak` que só lê e só deixa passar o override `--user`, que cai na casa de brinquedo |
+
+**Suíte, duas rodadas inteiras:** ver as linhas abaixo. Os vermelhos não são da P99: `portabilidade.sh` e
+`higiene.sh` acusam o home de pessoa em `P96-reorganizacao.md:20` (arquivo do bloco P96), e o
+`app-completo.py` quebra no gesto «Lançadores e jogos › jogo · abrir» também na base sem a P99
+(`suite-base.log` e `base-completo.log` da mesma sessão).
