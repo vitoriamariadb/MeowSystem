@@ -56,7 +56,8 @@
 #     09/10/2026) instala só nomes de uma lista LITERAL aqui dentro — ver o
 #     bloco dele;
 #   · não apaga nada fora dos dois caminhos do hook de apt e do da completion
-#     do zsh (este desde a P47, 24/09/2026).
+#     do zsh (este desde a P47, 24/09/2026), e das três chaves de tema do
+#     override global do Flatpak que apontam para tema que não existe.
 #
 # O QUE ELA CUSTA, DITO SEM ENFEITE: quem puder rodar comando como a dona da
 # máquina passa a poder, sem senha, marcar `.desktop` de sistema, atualizar os
@@ -93,6 +94,8 @@ PERFIL=/usr/local/lib/meowsystem/perfil
 COMPLETION=/usr/local/share/zsh/site-functions/_meow
 REGRA=/etc/sudoers.d/49-meowsystem-ponte
 PONTE=/usr/local/lib/meowsystem/ponte_root.sh
+FLATPAK_GLOBAL=/var/lib/flatpak/overrides/global
+USR_SHARE=/usr/share
 
 morrer() { printf 'ponte_root: %s\n' "$1" >&2; exit "${2:-2}"; }
 
@@ -291,6 +294,49 @@ completion-remover)
   anotar "completion-remover"
   ;;
 
+# --- o override global do Flatpak --------------------------------------------
+# O NitroKit pôs `ICON_THEME`, `GTK_THEME` e `XCURSOR_THEME` no override do
+# SISTEMA, apontando para temas que a máquina pode já não ter. O dado entra por
+# stdin, `CHAVE=valor` por linha, e só passa a chave das três com o valor que o
+# arquivo tem de fato e cujo tema não existe em /usr/share nem no lar do perfil:
+# o tema que existe fica. Só essas linhas saem; o resto do arquivo é preservado.
+flatpak-global-limpar)
+  [ -f "$FLATPAK_GLOBAL" ] || exit 0
+  lar=""
+  [ -r "$PERFIL" ] && lar="$(sed -n 's/^lar=//p' "$PERFIL" | head -n1)"
+  case "$lar" in ''|/*) ;; *) morrer "lar inválido no perfil" ;; esac
+  tmp="$(mktemp)"; pedidos="$(mktemp)"; trap 'rm -f "$tmp" "$pedidos"' EXIT
+  while IFS= read -r linha || [ -n "${linha:-}" ]; do
+    [ -n "$linha" ] || continue
+    chave="${linha%%=*}"; valor="${linha#*=}"
+    case "$chave" in ICON_THEME|XCURSOR_THEME|GTK_THEME) ;; *) morrer "chave fora da lista desta ponte: $chave" ;; esac
+    case "$valor" in ''|.*|*[!A-Za-z0-9._+-]*) morrer "nome de tema inválido" ;; esac
+    [ "${#valor}" -le 128 ] || morrer "nome de tema comprido demais"
+    grep -qxF -- "$chave=$valor" "$FLATPAK_GLOBAL" || continue
+    existe=0
+    for raiz in "$USR_SHARE/icons" "$USR_SHARE/themes" \
+                ${lar:+"$lar/.local/share/icons" "$lar/.local/share/themes" "$lar/.icons" "$lar/.themes"}; do
+      [ -d "$raiz/$valor" ] && existe=1
+    done
+    [ "$existe" = "1" ] || printf '%s=%s\n' "$chave" "$valor" >> "$pedidos"
+  done
+  [ -s "$pedidos" ] || exit 0
+  # O grupo que ficou sem chave sai junto: um `[Environment]` vazio é lixo.
+  { grep -vxF -f "$pedidos" "$FLATPAK_GLOBAL" || true; } | awk '
+    function solta() { if (cab != "" && n > 0) printf "%s", buf; cab = ""; buf = ""; n = 0 }
+    /^\[/ { solta(); cab = $0; buf = $0 "\n"; next }
+    cab == "" { print; next }
+    NF { buf = buf $0 "\n"; n++; next }
+    { buf = buf "\n" }
+    END { solta() }' > "$tmp"
+  if grep -q . "$tmp"; then
+    install -m 644 -o root -g root "$tmp" "$FLATPAK_GLOBAL" || morrer "não consegui escrever $FLATPAK_GLOBAL"
+  else
+    rm -f "$FLATPAK_GLOBAL"
+  fi
+  anotar "flatpak-global-limpar $(tr '\n' ' ' < "$pedidos")"
+  ;;
+
 # --- a máquina em dia ------------------------------------------------------
 # `full-upgrade` dos repositórios JÁ configurados. Esta ponte não acrescenta
 # repositório, não instala pacote por nome e não roda `.deb`.
@@ -404,6 +450,7 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE apt-hook-remover, \\
     $PONTE completion-instalar, \\
     $PONTE completion-remover, \\
+    $PONTE flatpak-global-limpar, \\
     $PONTE atualizar, \\
     $PONTE pacotes, \\
     $PONTE limpar, \\
@@ -417,7 +464,8 @@ REGRA_FIM
   sed -n '2,60p' "$0"
   printf '\nverbos: desktop · desktop-banco · greeter-ver · greeter-aplicar ·\n'
   printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
-  printf '        completion-remover · atualizar · pacotes · limpar · estado ·\n'
+  printf '        completion-remover · flatpak-global-limpar · atualizar · pacotes ·\n'
+  printf '        limpar · estado ·\n'
   printf '        regra-sudo\n'
   ;;
 

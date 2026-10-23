@@ -784,13 +784,15 @@ sudo -n .../ponte_root.sh rm          -> "uma senha é necessária"   (verbo for
 sudo -n .../ponte_root.sh desktop x   -> "uma senha é necessária"   (a regra não tem curinga)
 ```
 
-### Os onze verbos, e o que cada um alcança
+### Os doze verbos, e o que cada um alcança
 
 `desktop` e `desktop-banco` (marcar `.desktop` em `/usr/share/applications`, e só os que
 **já existem** — ela edita, não cria) · `greeter-ver` e `greeter-aplicar` (a tela de
 login) · `apt-hook-instalar` e `apt-hook-remover` · `completion-instalar` e
 `completion-remover` (a completion do `meow` para o zsh, lida uma vez para um temporário
-e conferida antes de instalar) · `atualizar` e `limpar` (`full-upgrade` dos repositórios
+e conferida antes de instalar) · `flatpak-global-limpar` (tira do override global do Flatpak só as chaves `ICON_THEME`,
+`XCURSOR_THEME` e `GTK_THEME` que apontam para tema que não existe; o dado entra por stdin e
+o resto do arquivo fica) · `atualizar` e `limpar` (`full-upgrade` dos repositórios
 **já configurados**; a ponte não acrescenta fonte e não roda `.deb`) · `pacotes` (desde
 09/10/2026, P75: instala os pacotes de que o projeto depende, pelo nome que entra por
 stdin, e só os da lista **literal** que mora dentro da ponte instalada — `librsvg2-bin`,
