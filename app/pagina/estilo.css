@@ -174,6 +174,7 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .seg button:hover { color: var(--tinta); background: var(--cartao-2); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--sobre-accent); font-weight: 600; }
 .seg button:disabled { opacity: .45; cursor: not-allowed; }
+.seg:has(img) { border-radius: var(--raio-md); }
 .seg.mini button { height: 28px; padding: 0 10px; font-size: var(--t-xs); }
 
 .faixa { display: grid; grid-template-columns: minmax(120px, 220px) 72px; align-items: center; gap: var(--e-3); }
@@ -354,7 +355,7 @@ select.campo { padding-right: var(--e-8); }
 .escolha svg.ponteiro { width: 48px; height: 48px; margin: 12px; }
 
 /* ── 9. Tema ────────────────────────────────────────────────────────────── */
-.grade-tema { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--e-6); }
+.grade-tema { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e-6); }
 .pack { display: grid; grid-template-rows: auto 1fr; border-radius: var(--raio-xl); background: var(--cartao); border: 1px solid var(--linha); overflow: hidden; min-width: 0; }
 .pack:hover { border-color: var(--accent-linha); }
 .pack.no-ar { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
@@ -467,11 +468,11 @@ select.campo { padding-right: var(--e-8); }
 .liga-programas .programa { display: flex; align-items: center; justify-content: space-between; gap: var(--e-3); height: 52px; padding: 0 var(--e-3) 0 var(--e-4); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); font-weight: 600; min-width: 0; }
 .liga-programas .programa span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .grade-jogos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--e-3); padding: var(--e-5) var(--e-6); }
-.jogo { display: grid; gap: var(--e-2); padding: 6px; border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); min-width: 0; }
+.jogo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-2); padding: 6px; border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); min-width: 0; }
 .jogo .capa { padding: 0; border: 0; background: none; border-radius: var(--raio-sm); overflow: hidden; }
 .jogo .capa img, .jogo .capa .lugar { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; background: var(--cartao-2); display: block; }
 .jogo .fila { justify-content: space-between; flex-wrap: nowrap; padding: 0 var(--e-1); }
-.jogo .fila span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-sm); font-weight: 500; }
+.jogo .fila span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-sm); font-weight: 500; }
 .jogo.fora { opacity: .6; }
 .escolha-jogo { grid-column: 1 / -1; }
 
@@ -566,6 +567,7 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
   .aplicar .conta { display: none; }
   .pagina { padding: var(--e-6) var(--e-4) var(--e-10); }
   .oficina, .grade-tema { grid-template-columns: minmax(0, 1fr); }
+  .grade-tema > * { grid-column: auto !important; }
   .oficina .palco, .oficina > .pilha { grid-column: auto; }
   .trilho { position: static; display: flex; overflow-x: auto; }
   .linha, .linha.dupla { grid-template-columns: minmax(0, 1fr); gap: var(--e-2); padding: var(--e-3) var(--e-4); }

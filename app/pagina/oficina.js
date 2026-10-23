@@ -506,11 +506,9 @@ async function rodarNaGaleria(id, argumento) {
 }
 function montarGaleria() {
   const abas = elemento("div", { class: "seg", role: "group", "aria-label": "Grupo" });
-  const cheia = PREVIAS.get("parede/" + ABA_GALERIA);
   for (const g of GRUPOS_PAREDE) {
-    const n = cheia && cheia.contagens ? cheia.contagens[g.id] : undefined;
     abas.append(elemento("button", { type: "button", "aria-pressed": String(g.id === ABA_GALERIA), controle: "galeria:" + g.id,
-      onclick: () => { ABA_GALERIA = g.id; LIMITE_GALERIA = 24; render(); } }, [g.rotulo + (n !== undefined ? ` · ${n}` : "")]));
+      onclick: () => { ABA_GALERIA = g.id; LIMITE_GALERIA = 24; render(); } }, [g.rotulo]));
   }
   const listaParede = previasDe("parede", ABA_GALERIA);
   const grade = elemento("div", { class: "galeria", "aria-busy": listaParede ? null : "true" });

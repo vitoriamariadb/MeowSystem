@@ -172,7 +172,7 @@ function pilulaDeSaude() {
 }
 
 function paginaTema() {
-  const grade = elemento("div", { class: "grade-tema", style: "grid-template-columns:repeat(4,minmax(0,1fr))" });
+  const grade = elemento("div", { class: "grade-tema" });
   const packs = PACKS.length ? PACKS : [];
   for (const p of packs) {
     const c = cartaoDePack(p);
