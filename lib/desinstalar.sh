@@ -167,6 +167,12 @@ meow_desinstalar() {
     "$MEOW_RAIZ/scripts/fastfetch_logo.sh" reverter || true
   fi
 
+  # O override do Flatpak do usuário é arquivo do flatpak, e o manifesto não o
+  # alcança: o reverter devolve só as chaves que o MeowSystem mexeu.
+  if [ -x "$MEOW_RAIZ/scripts/flatpak_tema.sh" ]; then
+    "$MEOW_RAIZ/scripts/flatpak_tema.sh" reverter || true
+  fi
+
   meow_passo "3/6 Tema do COSMIC"
   # O alvo é o PRIMEIRO backup de tema — o COSMIC de antes do MeowSystem NESTA
   # máquina. A captura `assets/temas/capturados/original` NÃO serve para isto: ela foi tirada

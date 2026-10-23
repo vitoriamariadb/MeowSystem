@@ -5652,6 +5652,7 @@ ACAO_DA_PENDENCIA = {
     # applet de leitura «LEITURA_COMPILAR=1 …/leitura_build.sh». Viraram
     # pendência, e o botão é o de quem faz.
     "instalar-com-root": "instalar",
+    "flatpak-global-sistema": "instalar",
     "leitura-applet": "doctor_consertar",
 }
 

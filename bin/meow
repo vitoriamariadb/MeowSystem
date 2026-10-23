@@ -1001,6 +1001,19 @@ chk_cursor() {
     "$RAIZ/scripts/cursor.sh" conferir 2>&1
 }
 
+# Sem tema do MeowSystem no disco o conferir pula; o que ele acusa é override
+# do Flatpak sem o tema, ou com o do pack que já saiu do ar.
+chk_flatpaktema() {
+  MEOW_DRY_RUN=1 CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/flatpak_tema.sh" conferir usuario 2>&1
+}
+
+# O override global do sistema com tema que não existe: só se lê aqui, e quem o
+# limpa é a ponte root.
+chk_flatpakglobal() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir global 2>&1
+}
+
 # Sem starship, o `conferir` passa pelo `_prompt_dizer_falta_starship`, que
 # chama o `meow_pendencia_acionavel` e grava a linha `starship-ausente` em
 # `pendencias.tsv`.
@@ -1506,6 +1519,9 @@ fix_svg()       { local pastas=() p
 fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1; }
 fix_cursor()    { CURSOR="${CURSOR:-}" CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}" \
                     "$RAIZ/scripts/cursor.sh" aplicar 2>&1; }
+fix_flatpaktema() { CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/flatpak_tema.sh" aplicar usuario 2>&1; }
+fix_flatpakglobal() { "$RAIZ/scripts/flatpak_tema.sh" aplicar global 2>&1; }
 fix_prompt()    { PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
                     "$RAIZ/scripts/prompt.sh" aplicar 2>&1; }
 fix_fzf()       { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/fzf.sh" aplicar 2>&1; }
@@ -1655,7 +1671,7 @@ fix_autoreparo() {
 #   que dependem deles, e a passada terminava com os dois pulados por "falta
 #   dependência" que ela mesma tinha acabado de instalar. Logo depois da
 #   ponte, que é por onde o `pacotes` passa.
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho autoreparo cli escala fontes vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho autoreparo cli escala fontes vizinhos logo indice flatpaktema flatpakglobal)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
@@ -1687,7 +1703,7 @@ VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel jan
 #   em «rode: meow compositor».
 SEM_CONSERTO=" ponte convertidos heroictema "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema pacotes "
+  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal "
 fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -1712,6 +1728,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — a oficina de ícones reconverte o que você escolher"
   [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [flatpakglobal]="limpar o override do sistema usa root, e o doctor não usa — entra no «Instalar tudo»"
   [pacotes]="sem a ponte root, instalar pacote pede a sua senha, e o auto-reparo não tem a quem pedir — o ./install.sh pede uma vez e instala a ponte"
 )
 
