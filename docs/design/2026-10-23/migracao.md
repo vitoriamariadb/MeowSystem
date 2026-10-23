@@ -54,35 +54,35 @@ Gerada por `tests/migracao-do-painel.py` a partir do código: as chaves e as aç
 | `FORMA_ALA_FINAL_PAINEL` | Painel e dock | Ajustes › Painel e dock › Tamanho dos ícones | Ponta direita |
 | `FORMA_ALA_INICIAL_DOCK` | Painel e dock | Ajustes › Painel e dock › Tamanho dos ícones | Ponta esquerda |
 | `FORMA_ALA_FINAL_DOCK` | Painel e dock | Ajustes › Painel e dock › Tamanho dos ícones | Ponta direita |
-| `VIDRO_AO_MAXIMIZAR` | Painel e dock | Ajustes › Painel e dock › Na barra de cima | Vidro com janela grande |
+| `VIDRO_AO_MAXIMIZAR` | Painel e dock | Ajustes › Painel e dock › Barra de cima | Vidro ao maximizar |
 | `VIDRO_OPACIDADE_PAINEL` | Painel e dock | Ajustes › Painel e dock › Forma | Vidro |
 | `VIDRO_OPACIDADE_DOCK` | Painel e dock | Ajustes › Painel e dock › Forma | Vidro |
-| `RELOGIO_SEGUNDOS` | Painel e dock | Ajustes › Painel e dock › Na barra de cima | Segundos no relógio |
-| `MIDIA` | Painel e dock | Ajustes › Painel e dock › Na barra de cima | Música tocando |
+| `RELOGIO_SEGUNDOS` | Painel e dock | Ajustes › Painel e dock › Barra de cima | Segundos no relógio |
+| `MIDIA` | Painel e dock | Ajustes › Painel e dock › Barra de cima | Música tocando |
 | `MIDIA_LARGURA` | Painel e dock | Ajustes › Painel e dock › Mais ajustes | Largura da música |
 | `MIDIA_COR_ALBUM` | Painel e dock | Ajustes › Painel e dock › Mais ajustes | Cor da capa |
-| `MIDIA_CAPA` | Painel e dock | Ajustes › Painel e dock › Na barra de cima | Capa do disco |
+| `MIDIA_CAPA` | Painel e dock | Ajustes › Painel e dock › Barra de cima | Capa do disco |
 | `MIDIA_FONTE` | Painel e dock | Ajustes › Painel e dock › Mais ajustes | Letra da música |
-| `MIDIA_COR_TITULO` | Painel e dock | Ajustes › Painel e dock › Na barra de cima | Cor da música |
-| `MIDIA_COR_ARTISTA` | Painel e dock | Ajustes › Painel e dock › Na barra de cima | Cor da banda |
-| `MIDIA_CONTROLES` | Painel e dock | Ajustes › Painel e dock › Na barra de cima | Tocar e pular |
+| `MIDIA_COR_TITULO` | Painel e dock | Ajustes › Painel e dock › Barra de cima | Cor da música |
+| `MIDIA_COR_ARTISTA` | Painel e dock | Ajustes › Painel e dock › Barra de cima | Cor da banda |
+| `MIDIA_CONTROLES` | Painel e dock | Ajustes › Painel e dock › Barra de cima | Tocar e pular |
 | `WALLPAPER_BASE` | Papel de parede | Ajustes › Papel de parede › Mais ajustes | Pasta do carrossel |
 | `WALLPAPER_INTERVALO` | Papel de parede | Ajustes › Papel de parede › Troca | A cada |
 | `WALLPAPER_FIXO_TTL` | Papel de parede | Ajustes › Papel de parede › Mais ajustes | Escolhida dura |
 | `WALLPAPER_ORDEM` | Papel de parede | Ajustes › Papel de parede › Troca | Ordem |
-| `WALLPAPER_AJUSTE` | Papel de parede | Ajustes › Papel de parede › Troca | Como ocupa a tela |
+| `WALLPAPER_AJUSTE` | Papel de parede | Ajustes › Papel de parede › Troca | Encaixe |
 | `WALLPAPER_FONTES_PERMITIDAS` | Papel de parede | Ajustes › Papel de parede › Mais ajustes | Pastas suas |
 | `WALLPAPER_NOTIFICAR` | Papel de parede | Ajustes › Papel de parede › Troca | Avisar a troca |
-| `FILES_MENU` | Papel de parede | Ajustes › Papel de parede › Troca | Menu do botão direito |
+| `FILES_MENU` | Papel de parede | Ajustes › Papel de parede › Troca | Botão direito |
 | `FILES_MENU_AUTOBUILD` | Papel de parede | Ajustes › Papel de parede › Mais ajustes | Menu se reconstrói |
 | `NOITE_INICIO` | Dia e noite | Ajustes › Dia e noite › Noite | Começa |
 | `NOITE_FIM` | Dia e noite | Ajustes › Dia e noite › Noite | Termina |
 | `MODO_AUTO_CLARO_DE` | Dia e noite | Ajustes › Dia e noite › Claro e escuro | Escuro termina |
 | `MODO_AUTO_CLARO_ATE` | Dia e noite | Ajustes › Dia e noite › Claro e escuro | Escuro começa |
-| `WALLPAPER_NOITE` | Dia e noite | Ajustes › Dia e noite › Papel de parede de noite | Imagens escuras |
-| `WALLPAPER_NOITE_INICIO` | Dia e noite | Ajustes › Dia e noite › Papel de parede de noite | Começa |
-| `WALLPAPER_NOITE_FIM` | Dia e noite | Ajustes › Dia e noite › Papel de parede de noite | Termina |
-| `WALLPAPER_LIMIAR_LUZ` | Dia e noite | Ajustes › Dia e noite › Papel de parede de noite | O que é escura |
+| `WALLPAPER_NOITE` | Dia e noite | Ajustes › Dia e noite › Papel da noite | Imagens escuras |
+| `WALLPAPER_NOITE_INICIO` | Dia e noite | Ajustes › Dia e noite › Papel da noite | Começa |
+| `WALLPAPER_NOITE_FIM` | Dia e noite | Ajustes › Dia e noite › Papel da noite | Termina |
+| `WALLPAPER_LIMIAR_LUZ` | Dia e noite | Ajustes › Dia e noite › Papel da noite | Quão escura |
 | `LEITURA_AGENDA` | Modo de leitura | Ajustes › Dia e noite › Tela quente | Tela quente |
 | `LEITURA_HORARIO_INICIO` | Modo de leitura | Ajustes › Dia e noite › Tela quente | Começa |
 | `LEITURA_HORARIO_FIM` | Modo de leitura | Ajustes › Dia e noite › Tela quente | Termina |
@@ -93,7 +93,7 @@ Gerada por `tests/migracao-do-painel.py` a partir do código: as chaves e as aç
 | `TERMINAL_ESQUEMA` | Terminal | Ajustes › Terminal › Cores | Cores do tema |
 | `TERMINAL_CURSOR` | Terminal | Ajustes › Terminal › Cores | Cor do cursor |
 | `PROMPT_STARSHIP` | Terminal | Ajustes › Terminal › Linha de comando | Linha colorida |
-| `FASTFETCH_LOGO` | Logo do sistema | Ajustes › Mascote › No terminal | Ao abrir o terminal |
+| `FASTFETCH_LOGO` | Logo do sistema | Ajustes › Mascote › No terminal | Ao abrir |
 | `FASTFETCH_LOGO_GATO` | Logo do sistema | Ajustes › Mascote › No terminal | Fixo |
 | `FASTFETCH_LOGO_MODO` | Logo do sistema | Ajustes › Mascote › No terminal | Qual |
 | `FASTFETCH_LOGO_DIA` | Logo do sistema | Ajustes › Mascote › No terminal | De dia |
@@ -111,16 +111,16 @@ Gerada por `tests/migracao-do-painel.py` a partir do código: as chaves e as aç
 | `SPOTIFY_MARKETPLACE` | Lançadores e jogos | Ajustes › Programas › Lançador | Loja do Spotify |
 | `LANCADOR_SISTEMA` | Lançadores e jogos | Ajustes › Programas › Lançador | Arrumar o lançador |
 | `LANCADOR_OCULTAR` | Lançadores e jogos | Ajustes › Programas › Lançador | Escondidos |
-| `AUTOSTART_BLOQUEADOS` | Lançadores e jogos | Ajustes › Programas › Ao ligar o computador | Não abrem sozinhos |
+| `AUTOSTART_BLOQUEADOS` | Lançadores e jogos | Ajustes › Programas › Ao ligar | Não abrem sozinhos |
 | `PONTE_ROOT` | Manutenção | Cuidar › Sozinho | Consertos de sistema |
 | `AUTO_REPARO` | Manutenção | Cuidar › Sozinho | Conferir todo dia |
 | `AUTO_REPARO_NOTIFICAR` | Manutenção | Cuidar › Sozinho | Avisar o conserto |
 | `ASSETS_VIGIA` | Manutenção | Cuidar › Sozinho | Mascote novo entra |
 | `ASSETS_VIGIA_NOTIFICAR` | Manutenção | Cuidar › Sozinho | Avisar o mascote |
-| `FLATPAK_VIGIA` | Manutenção | Cuidar › Sozinho | Ícones depois de atualizar |
+| `FLATPAK_VIGIA` | Manutenção | Cuidar › Sozinho | Ícones após atualizar |
 | `FLATPAK_VIGIA_NOTIFICAR` | Manutenção | Cuidar › Sozinho | Avisar os ícones |
 | `STEAM_VIGIA` | Manutenção | Cuidar › Sozinho | Jogo desinstalado sai |
-| `HEROIC_VIGIA` | Manutenção | Cuidar › Sozinho | Jogo do Heroic entra |
+| `HEROIC_VIGIA` | Manutenção | Cuidar › Sozinho | Jogo do Heroic |
 | `BACKUPS_MANTIDOS` | Manutenção | Cuidar › Registro | Cópias guardadas |
 | `LOG_NIVEL` | Manutenção | Cuidar › Registro | Quanto fala |
 | `SOM` | Manutenção | Criar tema › Sons | Som do volume |
@@ -149,7 +149,7 @@ Gerada por `tests/migracao-do-painel.py` a partir do código: as chaves e as aç
 | `sistema_limpar` | Atualização · «Limpar o que sobrou» | Cuidar › Atualizar | Limpar |
 | `tema` | Cor e tela · «Temas prontos nesta máquina» | Tema › Mais ajustes | Temas prontos |
 | `tema_aplicar` | Cor e tela · «Trocar de tema» | Tema › Mais ajustes | Tema pronto |
-| `tema_modo` | Cor e tela · «Passar para claro ou escuro» | Tema › Mais ajustes | Claro ou escuro agora |
+| `tema_modo` | Cor e tela · «Passar para claro ou escuro» | Tema › Mais ajustes | Modo agora |
 | `restaurar` | Instalação · «Restaurar» | Cuidar › Mais ajustes | Restaurar |
 | `desfazer` | Instalação · «Voltar ao tema de antes» | Cuidar › Zona de perigo | Tema de antes |
 | `icones` | Ícones · «Tema de ícones instalado» | Criar tema › Ícones › Mais ajustes | Tema instalado |
@@ -180,7 +180,7 @@ Gerada por `tests/migracao-do-painel.py` a partir do código: as chaves e as aç
 | `areas_desalfinetar` | Áreas de trabalho · «Tirar uma área» | Ajustes › Janelas e tela › Áreas de trabalho | Tirar uma área |
 | `wallpaper_desbanir` | Papel de parede · «Devolver uma imagem tirada» | Criar tema › Papel de parede | Devolver ao carrossel |
 | `wallpaper_semear` | Papel de parede · «Baixar a coleção curada» | Ajustes › Papel de parede › Imagens | Coleção do tema |
-| `painel_estado` | Painel e dock · «Como estão o painel e a dock» | Ajustes › Painel e dock › Mais ajustes | Painel e dock agora |
+| `painel_estado` | Painel e dock · «Como estão o painel e a dock» | Ajustes › Painel e dock › Mais ajustes | Estado atual |
 | `painel_teto` | Painel e dock · «Até quanto o canto pode arredondar» | Ajustes › Painel e dock › Mais ajustes | Teto dos cantos |
 | `painel_reciclar` | Painel e dock · «Recarregar o painel» | Ajustes › Painel e dock | Recarregar o painel |
 | `prompt_instalar_starship` | Terminal · «Instalar o starship» | Ajustes › Terminal › Linha de comando | Starship |
@@ -195,12 +195,12 @@ Gerada por `tests/migracao-do-painel.py` a partir do código: as chaves e as aç
 | `apps_manter_o_meu` | Lançadores e jogos · «Manter o meu tema» | Cuidar › Pendências | Tema de um programa |
 | `vscode_instalar_extensao` | Lançadores e jogos · «Instalar a extensão do VS Code» | Cuidar › Pendências | Extensão do VS Code |
 | `spotify_baixar_tema` | Lançadores e jogos · «Baixar o tema do Spotify» | Ajustes › Programas › Lançador | Tema do Spotify |
-| `jogos` | Lançadores e jogos · «Ver o que mudaria nos jogos» | Ajustes › Programas › Mais ajustes | Jogos: o que muda |
+| `jogos` | Lançadores e jogos · «Ver o que mudaria nos jogos» | Ajustes › Programas › Mais ajustes | Conferir jogos |
 | `jogos_aplicar` | Lançadores e jogos · «Arrumar os jogos no lançador» | Ajustes › Programas › Jogos | Arrumar os jogos |
-| `jogos_heroic` | Lançadores e jogos · «Ver o que mudaria nos jogos do Heroic» | Ajustes › Programas › Mais ajustes | Heroic: o que muda |
+| `jogos_heroic` | Lançadores e jogos · «Ver o que mudaria nos jogos do Heroic» | Ajustes › Programas › Mais ajustes | Conferir Heroic |
 | `jogos_heroic_aplicar` | Lançadores e jogos · «Pôr os jogos do Heroic no lançador» | Ajustes › Programas › Jogos | Jogos do Heroic |
-| `jogos_heroic_tirar` | Lançadores e jogos · «Tirar o jogo do Heroic do lançador» | Ajustes › Programas › Jogos | Tirar um jogo do Heroic |
-| `jogos_heroic_por` | Lançadores e jogos · «Pôr o jogo do Heroic no lançador» | Ajustes › Programas › Jogos | Pôr um jogo do Heroic |
+| `jogos_heroic_tirar` | Lançadores e jogos · «Tirar o jogo do Heroic do lançador» | Ajustes › Programas › Jogos | Tirar um jogo |
+| `jogos_heroic_por` | Lançadores e jogos · «Pôr o jogo do Heroic no lançador» | Ajustes › Programas › Jogos | Pôr um jogo |
 
 ## Gestos da página (26)
 

@@ -34,7 +34,7 @@ const LUGAR_TEMA = {
   ],
   mais: [
     { a: "tema_aplicar", r: "Tema pronto", b: "Trocar" },
-    { a: "tema_modo", r: "Claro ou escuro agora", b: "Trocar" },
+    { a: "tema_modo", r: "Modo agora", b: "Trocar" },
     { a: "tema", r: "Temas prontos", b: "Ver" },
     { a: "status", r: "No ar agora", b: "Ver" },
   ],
@@ -120,9 +120,9 @@ const AJUSTES = [
         { c: ["FORMA_CENTRO_PAINEL", "FORMA_CENTRO_DOCK"], r: "Meio" },
         { c: ["FORMA_ALA_FINAL_PAINEL", "FORMA_ALA_FINAL_DOCK"], r: "Ponta direita" },
       ] },
-      { titulo: "Na barra de cima", linhas: [
+      { titulo: "Barra de cima", linhas: [
         { c: "RELOGIO_SEGUNDOS", r: "Segundos no relógio" },
-        { c: "VIDRO_AO_MAXIMIZAR", r: "Vidro com janela grande" },
+        { c: "VIDRO_AO_MAXIMIZAR", r: "Vidro ao maximizar" },
         { c: "MIDIA", r: "Música tocando" },
         { c: "MIDIA_COR_TITULO", r: "Cor da música", sub: true },
         { c: "MIDIA_COR_ARTISTA", r: "Cor da banda", sub: true },
@@ -135,7 +135,7 @@ const AJUSTES = [
       { c: "MIDIA_LARGURA", r: "Largura da música" },
       { c: "MIDIA_FONTE", r: "Letra da música" },
       { c: "MIDIA_COR_ALBUM", r: "Cor da capa" },
-      { a: "painel_estado", r: "Painel e dock agora", b: "Ver" },
+      { a: "painel_estado", r: "Estado atual", b: "Ver" },
       { a: "painel_teto", r: "Teto dos cantos", b: "Ver" },
     ] },
   { id: "janelas", nome: "Janelas e tela", icone: "janelas",
@@ -174,9 +174,9 @@ const AJUSTES = [
       { titulo: "Troca", linhas: [
         { c: "WALLPAPER_INTERVALO", r: "A cada" },
         { c: "WALLPAPER_ORDEM", r: "Ordem" },
-        { c: "WALLPAPER_AJUSTE", r: "Como ocupa a tela" },
+        { c: "WALLPAPER_AJUSTE", r: "Encaixe" },
         { c: "WALLPAPER_NOTIFICAR", r: "Avisar a troca" },
-        { c: "FILES_MENU", r: "Menu do botão direito" },
+        { c: "FILES_MENU", r: "Botão direito" },
       ] },
     ],
     mais: [
@@ -205,7 +205,7 @@ const AJUSTES = [
         { a: "logo_girar", r: "Próximo mascote", b: "Girar" },
       ] },
       { titulo: "No terminal", linhas: [
-        { c: "FASTFETCH_LOGO", r: "Ao abrir o terminal" },
+        { c: "FASTFETCH_LOGO", r: "Ao abrir" },
         { c: "FASTFETCH_LOGO_MODO", r: "Qual", sub: true },
         { c: "FASTFETCH_LOGO_GATO", r: "Fixo", sub: true },
         { c: "FASTFETCH_LOGO_DIA", r: "De dia", sub: true },
@@ -246,9 +246,9 @@ const AJUSTES = [
         { a: "leitura_aplicar", r: "Esquentar agora", b: "Aplicar" },
         { a: "leitura_remover", r: "Desligar agora", b: "Desligar" },
       ] },
-      { titulo: "Papel de parede de noite", linhas: [
+      { titulo: "Papel da noite", linhas: [
         { c: "WALLPAPER_NOITE", r: "Imagens escuras" },
-        { c: "WALLPAPER_LIMIAR_LUZ", r: "O que é escura", sub: true },
+        { c: "WALLPAPER_LIMIAR_LUZ", r: "Quão escura", sub: true },
         { c: "WALLPAPER_NOITE_INICIO", r: "Começa", sub: true },
         { c: "WALLPAPER_NOITE_FIM", r: "Termina", sub: true },
       ] },
@@ -284,16 +284,16 @@ const AJUSTES = [
         { g: "jogo-fora", r: "No lançador" },
         { a: "jogos_aplicar", r: "Arrumar os jogos", b: "Arrumar" },
         { a: "jogos_heroic_aplicar", r: "Jogos do Heroic", b: "Pôr" },
-        { a: "jogos_heroic_por", r: "Pôr um jogo do Heroic", b: "Pôr" },
-        { a: "jogos_heroic_tirar", r: "Tirar um jogo do Heroic", b: "Tirar" },
+        { a: "jogos_heroic_por", r: "Pôr um jogo", b: "Pôr" },
+        { a: "jogos_heroic_tirar", r: "Tirar um jogo", b: "Tirar" },
       ] },
-      { titulo: "Ao ligar o computador", linhas: [
+      { titulo: "Ao ligar", linhas: [
         { c: "AUTOSTART_BLOQUEADOS", r: "Não abrem sozinhos", larga: true },
       ] },
     ],
     mais: [
-      { a: "jogos", r: "Jogos: o que muda", b: "Ver" },
-      { a: "jogos_heroic", r: "Heroic: o que muda", b: "Ver" },
+      { a: "jogos", r: "Conferir jogos", b: "Ver" },
+      { a: "jogos_heroic", r: "Conferir Heroic", b: "Ver" },
     ] },
 ];
 
@@ -331,10 +331,10 @@ const LUGAR_CUIDAR = {
       { c: "AUTO_REPARO_NOTIFICAR", r: "Avisar o conserto", sub: true },
       { c: "ASSETS_VIGIA", r: "Mascote novo entra" },
       { c: "ASSETS_VIGIA_NOTIFICAR", r: "Avisar o mascote", sub: true },
-      { c: "FLATPAK_VIGIA", r: "Ícones depois de atualizar" },
+      { c: "FLATPAK_VIGIA", r: "Ícones após atualizar" },
       { c: "FLATPAK_VIGIA_NOTIFICAR", r: "Avisar os ícones", sub: true },
       { c: "STEAM_VIGIA", r: "Jogo desinstalado sai" },
-      { c: "HEROIC_VIGIA", r: "Jogo do Heroic entra" },
+      { c: "HEROIC_VIGIA", r: "Jogo do Heroic" },
       { c: "PONTE_ROOT", r: "Consertos de sistema" },
     ] },
     { titulo: "Registro", linhas: [
