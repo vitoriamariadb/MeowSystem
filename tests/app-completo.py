@@ -916,9 +916,18 @@ class Percurso:
         return None
 
     def escolher_arquivo(self, nome, caminho):
-        with self.pag.expect_file_chooser(timeout=5000) as escolha:
-            self.clicar(nome)
-        escolha.value.set_files(caminho)
+        """O seletor de arquivo abre com o clique; com a página ocupada (a grade
+        de aplicativos repinta), o clique pode cair numa repintura: tenta de novo."""
+        for vez in range(3):
+            try:
+                with self.pag.expect_file_chooser(timeout=15000) as escolha:
+                    self.clicar(nome)
+                escolha.value.set_files(caminho)
+                return
+            except Exception:
+                if vez == 2:
+                    raise
+                self.assentar(quieto=500)
 
     def h_acervo(self, nome):
         tipo = nome.split(":", 1)[1]
