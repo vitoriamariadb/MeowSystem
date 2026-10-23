@@ -58,7 +58,8 @@
 #   · não apaga nada fora dos dois caminhos do hook de apt e do da completion
 #     do zsh (este desde a P47, 24/09/2026), das três chaves de tema do
 #     override global do Flatpak que apontam para tema que não existe, e dos
-#     pacotes `libreoffice*` que o dpkg diz estarem instalados.
+#     pacotes `libreoffice*` que o dpkg diz estarem instalados (com a ponte UNO
+#     que sai junto com eles).
 #
 # O QUE ELA CUSTA, DITO SEM ENFEITE: quem puder rodar comando como a dona da
 # máquina passa a poder, sem senha, marcar `.desktop` de sistema, atualizar os
@@ -121,6 +122,16 @@ conferir_desktop() {
   esac
   [ "${#nome}" -le 128 ] || morrer "nome comprido demais"
   [ -f "$APLICATIVOS/$nome" ] || morrer "$APLICATIVOS/$nome não existe — esta ponte edita, não cria" 3
+}
+
+# O que é do LibreOffice e não começa por `libreoffice`: a ponte UNO, que depende
+# do `libreoffice-core` e sai com ele. É a lista que o `purge` pode levar junto e
+# que a volta aceita.
+do_libreoffice() {
+  case "$1" in
+    libreoffice*|python3-uno|ure|ure-java|uno-libs-private|libuno-*|libunoloader-java) return 0 ;;
+  esac
+  return 1
 }
 
 # Os `libreoffice*` instalados (ou só com a configuração que sobrou), um por linha.
@@ -346,32 +357,32 @@ flatpak-global-limpar)
 
 # --- o LibreOffice sai (o escritório é o OnlyOffice) --------------------------
 # `libreoffice-remover` não recebe nada: a lista é a que o dpkg dá para
-# `libreoffice*` AGORA, e só nomes que começam por `libreoffice` passam. Antes do
-# `purge` o apt simula, e se a remoção levaria junto qualquer pacote que não seja
-# do LibreOffice o verbo recusa inteiro: tirar o LibreOffice não derruba o resto.
+# `libreoffice*` AGORA. Antes do `purge` o apt simula (no purge a linha é `Purg`,
+# não `Remv`), e se levaria junto o que não é do LibreOffice o verbo recusa
+# inteiro. O stdout é a lista do que sai, para a volta; a fala do apt vai ao stderr.
 libreoffice-remover)
   mapfile -t pacotes < <(libreoffice_instalados)
   [ "${#pacotes[@]}" -gt 0 ] || exit 0
   export DEBIAN_FRONTEND=noninteractive
   simulado="$(apt-get -s purge "${pacotes[@]}" 2>/dev/null)" || morrer "o apt não simulou a remoção"
-  outros="$(printf '%s\n' "$simulado" | awk '/^Remv/ && $2 !~ /^libreoffice/ { printf "%s ", $2 }')"
+  mapfile -t saem < <(printf '%s\n' "$simulado" | awk '/^(Purg|Remv) / { sub(/:.*/, "", $2); print $2 }')
+  outros=""
+  for p in "${saem[@]}"; do do_libreoffice "$p" || outros+="$p "; done
   [ -z "$outros" ] || morrer "o apt tiraria junto o que não é do LibreOffice ($outros): não toco em nada"
-  anotar "libreoffice-remover ${#pacotes[@]} pacotes"
-  apt-get purge -y "${pacotes[@]}" || exit 2
+  anotar "libreoffice-remover ${#saem[@]} pacotes"
+  printf '%s\n' "${pacotes[@]}" "${saem[@]}" | sort -u
+  apt-get purge -y "${pacotes[@]}" >&2 || exit 2
   ;;
 
 # `libreoffice-devolver` é a volta, para o desinstalador: os nomes entram por
-# stdin, um por linha, e só passa quem começa por `libreoffice` com os
-# caracteres de um nome de pacote. Um nome fora derruba o verbo antes do apt.
+# stdin, um por linha, e só passa o que é do LibreOffice com os caracteres de
+# um nome de pacote. Um nome fora derruba o verbo antes do apt.
 libreoffice-devolver)
   pedidos=()
   while IFS= read -r nome || [ -n "${nome:-}" ]; do
     [ -n "$nome" ] || continue
-    case "$nome" in
-      libreoffice*) ;;
-      *) morrer "pacote fora do LibreOffice: $nome" ;;
-    esac
     case "$nome" in *[!a-z0-9.+-]*) morrer "nome de pacote inválido" ;; esac
+    do_libreoffice "$nome" || morrer "pacote fora do LibreOffice: $nome"
     pedidos+=("$nome")
   done
   [ "${#pedidos[@]}" -gt 0 ] || morrer "stdin vazio"
