@@ -19,7 +19,8 @@ Mockup final em `docs/design/2026-10-23/final/` (16 telas, 4 portas: Tema, Criar
 publicado para quem usa ver. O `LEIA-ME.md` ao lado diz o que veio do mockup A, do B e da síntese.
 
 ## Decisões de quem usa sobre o mockup (23/10)
-1. **Clicar num tema já veste a máquina**, e pede a senha na hora (não há «Aplicar» separado para tema).
+1. **Clicar num tema já veste a máquina**, sem «Aplicar» separado. **Nenhuma tela pede senha**: a senha é
+   pedida uma vez só, no install, que instala a ponte root (quem usa, 23/10).
 2. Os ajustes avançados (faixa «Fundo», ícones resgatados, cor da marca, pastas XDG) ficam num
    **«Mais ajustes» recolhido** no fim de cada página.
 3. **Dia e noite fica dentro de Ajustes**: são 4 portas.
