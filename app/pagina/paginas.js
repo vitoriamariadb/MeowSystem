@@ -255,7 +255,7 @@ function contraste(a, b) {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
 function idDoNome(nome) {
-  return String(nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+  return String(nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "meu-tema";
 }
 
@@ -273,7 +273,10 @@ async function guardarTema() {
   const resp = await api("/api/pack-importar", { method: "POST",
     body: JSON.stringify({ nome: id + ".csv", conteudo, confirmado: true }) });
   if (b) delete b.dataset.estado;
-  if (resp.erro || !resp.instalado) { torrada(resp.erro || "Não guardou", "erro"); return; }
+  if (resp.erro || !resp.instalado) {
+    torrada(/contraste/.test(resp.erro || "") ? "Pouco contraste entre texto e fundo" : primeiraFrase(resp.erro || "Não guardou"), "erro");
+    return;
+  }
   r.pack = resp.id || id;
   guardarRascunho();
   torrada(`${r.nome}: guardado`, "ok");
@@ -428,8 +431,14 @@ function paginaCriar(sub) {
     i > 0 ? elemento("a", { class: "bt", href: "#criar/" + PASSOS[i - 1].id, controle: "criar:voltar" },
       [icone("voltar"), elemento("span", { texto: "Voltar" })]) : elemento("span"),
     elemento("div", { class: "fila" }, [
-      sub === "cores" ? botao("Guardar", { class: "bt principal", controle: "criar:guardar",
-        dica: "Grava o tema entre os seus", onclick: guardarTema }) : null,
+      sub === "cores" ? (() => {
+        /* O motor recusa texto sem contraste com o fundo: o botão já diz antes. */
+        const m = vinteSeis();
+        const pouco = contraste(m.text, m.base) < 4.5;
+        return botao("Guardar", { class: "bt principal", controle: "criar:guardar", disabled: pouco,
+          "aria-disabled": pouco ? "true" : null,
+          dica: pouco ? "Pouco contraste entre texto e fundo" : "Grava o tema entre os seus", onclick: guardarTema });
+      })() : null,
       i < PASSOS.length - 1 ? elemento("a", { class: "bt", href: "#criar/" + PASSOS[i + 1].id, controle: "criar:proximo" },
         [elemento("span", { texto: PASSOS[i + 1].nome }), icone("seta")]) : null,
     ]),

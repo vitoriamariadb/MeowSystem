@@ -70,10 +70,13 @@ function primeiraFrase(txt) {
   const t = String(txt || "").replace(/\s+/g, " ").trim();
   if (!t) return "";
   const m = /^(.{12,}?[.!?])(\s|$)/.exec(t);
-  return maiuscula(m ? m[1] : t);
+  let f = m ? m[1] : t;
+  /* A dica é curta: passando de 110, corta na palavra. */
+  if (f.length > 110) f = f.slice(0, 110).replace(/[\s,;:—-]+\S*$/, "") + "…";
+  return maiuscula(f);
 }
 function semAcento(t) {
-  return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 const ROTULO_DE_VALOR = {
@@ -175,8 +178,7 @@ function torrada(texto, classe = "") {
   }
   const el = elemento("div", { class: "torrada " + classe, texto, role: classe === "erro" ? "alert" : null });
   $("#torradas").append(el);
-  el.addEventListener("mouseenter", () => clearTimeout(el._t));
-  el.addEventListener("mouseleave", () => { el._t = setTimeout(() => el.remove(), 1500); });
+  /* A torrada não segura clique (pointer-events: none): ela some sozinha. */
   el._t = setTimeout(() => el.remove(), classe === "erro" ? 7000 : 3000);
 }
 
@@ -826,8 +828,7 @@ const deRoot = (a) => !!(a && (a.sudo || a.pela_ponte));
 /* A ponte: sem ela, a ação de root não roda — o painel oferece o conserto, e
  * nunca uma caixa de senha. */
 async function semPonte() {
-  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Conferir e consertar",
-    corpo: elemento("div", { class: "fila" }, [icone("ponte"), icone("alerta")]) });
+  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Conferir e consertar" });
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
 }
 
@@ -1108,6 +1109,15 @@ function ligarBusca() {
     }
   });
 }
+/* A linha a que a busca levou fica acesa um instante, mesmo se a página se
+ * repintar (as listas chegam da rede logo depois). */
+let CHEGADA = null;
+function reacenderChegada() {
+  if (!CHEGADA || Date.now() > CHEGADA.ate) { CHEGADA = null; return; }
+  const alvo = [...document.querySelectorAll("#conteudo [data-linha]")]
+    .find((el) => el.dataset.linha.split(" ").includes(CHEGADA.id));
+  if (alvo) alvo.classList.add("chegou");
+}
 /* Ir até a linha de um ajuste: abre a página, abre o «Mais ajustes» se for lá, e
  * acende a linha. */
 function irPara(l) {
@@ -1123,6 +1133,7 @@ function irPara(l) {
       .find((el) => el.dataset.linha.split(" ").includes(l.id));
     if (!alvo) return;
     alvo.scrollIntoView({ block: "center" });
+    CHEGADA = { id: l.id, ate: Date.now() + 2600 };
     alvo.classList.add("chegou");
     const foco = alvo.querySelector("button, input, select");
     if (foco) foco.focus({ preventScroll: true });
@@ -1166,6 +1177,7 @@ function render() {
     : ROTA.porta === "cuidar" ? paginaCuidar() : paginaTema();
   $("#conteudo").replaceChildren(...[].concat(pagina).filter(Boolean));
   $("#conteudo").removeAttribute("aria-busy");
+  reacenderChegada();
   document.title = "MeowSystem · " + (PORTAS.find((p) => p.id === ROTA.porta) || PORTAS[0]).nome;
   if (foco) {
     const alvo = [...document.querySelectorAll("#conteudo [data-controle]")].find((el) => el.dataset.controle === foco);
@@ -1189,6 +1201,8 @@ async function iniciar() {
   ligarDicas();
   ligarBusca();
   desenharMenu();
+  /* O «Pular para o conteúdo» só leva o foco: o endereço é a página aberta. */
+  $(".pular").addEventListener("click", (ev) => { ev.preventDefault(); $("#principal").focus(); });
   $("#desfazer").addEventListener("click", () => {
     MUDANCAS.clear(); guardarBandeja(); atualizarAplicar(); render();
   });
