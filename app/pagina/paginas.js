@@ -119,8 +119,9 @@ function cartaoDePack(p) {
   }
   const variantes = elemento("div", { class: "variantes", role: "group", "aria-label": "Variantes do " + p.nome });
   for (const f of p.flavors || []) {
+    const derivado = f.derivado || (p.claros_derivados || []).includes(f.id);
     variantes.append(elemento("button", {
-      type: "button", controle: "pack:" + p.id + ":variante=" + f.id,
+      type: "button", controle: "pack:" + p.id + ":variante=" + f.id, dica: derivado ? "Claro derivado" : null,
       "aria-pressed": String(!!p.no_ar && f.id === flavorEmVigor()),
       onclick: () => vestir(p, f.id),
     }, [amostraDeVariante(f.cores || []), maiuscula(f.nome)]));
@@ -136,7 +137,7 @@ function cartaoDePack(p) {
   ]);
 }
 
-async function abrirTema(arquivo) {
+async function importarPack(arquivo) {
   if (!arquivo) return;
   let pedido;
   try { pedido = { nome: arquivo.name, conteudo: await lerComoBase64(arquivo) }; }
@@ -157,7 +158,7 @@ async function abrirTema(arquivo) {
 }
 function botaoAbrirTema() {
   const campo = elemento("input", { type: "file", accept: ".meowpack,.csv", hidden: true });
-  campo.addEventListener("change", () => { const a = campo.files && campo.files[0]; campo.value = ""; abrirTema(a); });
+  campo.addEventListener("change", () => { const a = campo.files && campo.files[0]; campo.value = ""; importarPack(a); });
   return elemento("span", { style: "display:contents" }, [
     botao("Abrir um tema", { class: "bt", icone: "subir", controle: "tema:abrir",
       dica: "Um .meowpack ou um .csv de cores", onclick: () => campo.click() }),
@@ -280,10 +281,25 @@ async function guardarTema() {
   render();
 }
 
-async function baixarPack(id) {
+/* Exportar: mede antes; com imagens no pack, pergunta se elas vão junto. */
+async function exportarPack(id) {
   const rota = `/api/pack-exportar?id=${encodeURIComponent(id)}`;
+  const m = await api(rota + "&medir=1");
+  if (m.erro) { torrada(m.erro, "erro"); return; }
+  const avisos = (m.avisos || []).map((a) => maiuscula(a));
+  let semImagens = false;
+  if (m.imagens || avisos.length) {
+    const levar = elemento("input", { type: "checkbox", checked: true, "aria-label": "Imagens", controle: "exportar:imagens" });
+    const corpo = elemento("div", { class: "pilha", style: "gap:8px" }, [
+      ...avisos.map((a) => elemento("div", { class: "fila" }, [icone("alerta"), elemento("span", { texto: a })])),
+      m.imagens ? elemento("label", { class: "fila", dica: `${m.tamanho} · ${m.tamanho_sem_imagens} sem as imagens` },
+        [levar, elemento("span", { texto: "Imagens" })]) : null,
+    ]);
+    if (!await perguntar({ titulo: `Baixar o ${id}?`, ok: "Baixar", corpo })) return;
+    semImagens = !!m.imagens && !levar.checked;
+  }
   let resposta;
-  try { resposta = await fetch(rota, { headers: { "X-Meow-Token": TOKEN } }); }
+  try { resposta = await fetch(rota + (semImagens ? "&imagens=nao" : ""), { headers: { "X-Meow-Token": TOKEN } }); }
   catch { faixaSemServidor(true); return; }
   if (!resposta.ok) {
     let erro = "";
@@ -388,7 +404,7 @@ function passoMandar() {
     elemento("div", { class: "corpo fila" }, [
       botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
         disabled: sem, "aria-disabled": sem ? "true" : null, dica: sem ? "Guarde o tema em Cores" : "Um .meowpack para mandar",
-        onclick: () => baixarPack(r.pack) }),
+        onclick: () => exportarPack(r.pack) }),
       botao("Vestir", { class: "bt", icone: "tema", controle: "criar:vestir",
         disabled: sem, "aria-disabled": sem ? "true" : null, dica: sem ? "Guarde o tema em Cores" : null,
         onclick: () => vestir(pack, null) }),
@@ -563,9 +579,18 @@ function linhaDePendencia(p) {
     elemento("div", { class: "ctl" }, botoes),
   ]);
 }
+/* O dia em que o item passou a esperar uma pessoa, curto (dd/mm). */
+function desdeCurto(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+}
+/* Precisa de gente: o nome na linha; o porquê e o desde quando, na dica. */
 function linhaDeGente(g) {
+  const desde = desdeCurto(g.desde);
+  const dica = [primeiraFrase(g.porque), desde ? `Desde ${desde}` : ""].filter(Boolean).join(" · ");
   return elemento("li", { class: "linha", "data-linha": "gente:" + g.id }, [
-    elemento("div", { class: "rot" }, [icone("alerta"), elemento("span", { texto: maiuscula(g.nome), dica: primeiraFrase(g.porque) })]),
+    elemento("div", { class: "rot" }, [icone("alerta"), elemento("span", { texto: maiuscula(g.nome), dica })]),
     elemento("div", { class: "ctl" }, []),
   ]);
 }

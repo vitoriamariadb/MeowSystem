@@ -315,7 +315,8 @@ function restaurarBandeja() {
 /* --- «Voltar ao padrão» (decisão 10): grava o de fábrica, e só aparece quando
  *     o valor difere dele. ------------------------------------------------- */
 function padraoDe(item) {
-  return item.padrao ?? "";
+  if (item.padrao_do_pack != null) return String(item.padrao_do_pack);
+  return item.padrao == null ? "" : String(item.padrao);
 }
 function temOQueRestaurar(item, valor) {
   return String(valor) !== String(padraoDe(item));
@@ -328,6 +329,16 @@ function botaoPadrao(item, aplica) {
     dica: fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item),
     onclick: () => aplica(fabrica),
   }, [icone("desfazer")]);
+}
+
+/* «Deixar o sistema decidir» é outro gesto, com outro ícone: grava o vazio, e
+ * só existe onde a chave aceita vazio e o de fábrica não é o vazio. */
+function botaoAutomatico(item, valor, aplica) {
+  if (!item.aceita_vazio || padraoDe(item) === "" || valor === "") return null;
+  return elemento("button", {
+    type: "button", class: "padrao", controle: "automatico:" + item.chave,
+    "aria-label": "O sistema decide", dica: "O sistema decide", onclick: () => aplica(""),
+  }, [icone("girar")]);
 }
 
 /* --- os controles, um por tipo de chave ------------------------------------ */
@@ -636,7 +647,10 @@ function linhaDeChave(l) {
     elemento("span", { texto: l.r, dica: presa || primeiraFrase(um.frase) || null }),
   ]);
   for (const it of itens) {
-    if (temOQueRestaurar(it, valorEmVigor(it))) rot.append(botaoPadrao(it, (v) => escolher(it.chave, v)));
+    const aplica = (v) => escolher(it.chave, v);
+    if (temOQueRestaurar(it, valorEmVigor(it))) rot.append(botaoPadrao(it, aplica));
+    const auto = botaoAutomatico(it, valorEmVigor(it), aplica);
+    if (auto) rot.append(auto);
   }
   const li = elemento("li", { class: classe, "data-linha": chaves.join(" ") }, [rot]);
   if (dupla) {
