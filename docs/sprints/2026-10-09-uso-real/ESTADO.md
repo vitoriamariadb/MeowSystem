@@ -82,7 +82,11 @@ Sequência:
    apagar localmente o Dracula_OS-Theme e o Migração-OS. REGISTRADA em 23/10; quem usa disse «aguarda»:
    não executar até a palavra dela/dele.
 
-Em voo: bloco A no workflow `wf_efb436e1-89c` (worktree `.wt-meow/p92`).
+Em voo (23/10):
+- bloco A (P92+P93), workflow `wf_efb436e1-89c`, worktree `.wt-meow/p92`, 2 Opus;
+- P96 reorganização (`docs/sprints/2026-10-23-definitiva/`), worktree `.wt-meow/p96`: 2 Opus, fase 1 = perguntas
+  para quem usa; fase 2 = o script, aplicado DEPOIS do bloco A entrar no dev;
+- P97 interface, workflow `wf_17e7371f-4d3`, worktree `.wt-meow/p97`, 3 Opus: mockups em `docs/design/2026-10-23/`.
 
 ## Registrada para depois (NÃO executar sem quem usa mandar)
 
