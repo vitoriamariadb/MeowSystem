@@ -13,7 +13,15 @@ com o mapa das páginas de hoje para as novas).
   ponte não estiver instalada, o painel mostra o estado e o botão «Conferir e consertar» (que a repõe),
   nunca um pedido de senha. Isso revoga a decisão 11 (caixa do sudo de uma linha), com o sim de 23/10.
 - Os ajustes que o mockup deixou fora da tela entram num **«Mais ajustes» recolhido** no fim de cada página.
-- Show, don't tell: uma frase curta, o porquê atrás do `?`, nenhum nome de máquina na tela.
+- **Nenhum texto explicativo na tela, em nenhuma aba** (quem usa, 23/10, sobre o mockup: «"pode baixar",
+  "Outro computador — Leve suas escolhas num arquivo e vista a máquina nova igual a esta", fora o resto dos
+  textões: a interface não tem isso. No máximo dica quando o mouse estiver sobre alguma opção. Moderno,
+  minimalista, show don't tell»). Na tela ficam só: o nome curto da opção (uma a três palavras), o ícone, o
+  controle e a prévia. Saem: subtítulos de página, parágrafos de cartão, frases sob títulos, selos de texto
+  («pode baixar», «pede senha»), legendas de prévia, contagens explicativas e os botões «?». O porquê de cada
+  opção vira **dica ao passar o mouse** (e ao focar pelo teclado), curta. Estado mostra-se com cor, ícone ou
+  a prévia, não com frase. O mockup da P97 é a referência de layout e de visual, NÃO de texto: onde ele tem
+  frase, a P98 tira.
 
 ## Nada se perde
 Cada chave do esquema do painel de hoje e cada uma das ações tem um lugar no painel novo. A prova é uma
