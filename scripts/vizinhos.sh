@@ -23,6 +23,7 @@ REVISADOS="$ESTADO/vizinhos-revisados.tsv"
 COPIAS="$ESTADO/vizinhos"
 ETC="${VIZINHOS_ETC:-/etc}"
 DESENV="${VIZINHOS_DESENV:-$HOME/Desenvolvimento}"
+APPS_CASA="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 CONTRATO="${VIZINHOS_CONTRATO:-$RAIZ/contratos/vizinhos.tsv}"
 export LC_ALL=C
 
@@ -476,12 +477,13 @@ cmd_conferir() {
 # Saem com `|` entre as colunas, e não tab: o `read` juntaria as colunas vazias.
 _catalogo() {
   [ -r "$CONTRATO" ] || return 0
-  awk -F'\t' -v desenv="$DESENV" -v zd="$ZD" '
+  awk -F'\t' -v desenv="$DESENV" -v zd="$ZD" -v apps="$APPS_CASA" '
     $1 != "item" { next }
     {
       arq = $4
       if (index(arq, "$DESENV/") == 1) arq = desenv substr(arq, 8)
       else if (index(arq, "$ZD/") == 1) arq = zd substr(arq, 4)
+      else if (index(arq, "$APPS/") == 1) arq = apps substr(arq, 6)
       linha = $2 "|" $3 "|" arq
       for (i = 5; i <= 8; i++) linha = linha "|" ($i == "-" ? "" : $i)
       print linha
@@ -493,10 +495,19 @@ _item() { _catalogo | awk -F'|' -v i="$1" '$1 == i'; }
 _marca_saida() { printf '#vizinhos+:%s#' "$1"; }
 _marca_bloco() { printf '#vizinhos:%s# ' "$1"; }
 
+# A última linha do registro para o item: ação<TAB>cópia.
+_ultimo() {
+  [ -r "$REGISTRO" ] || return 0
+  awk -F'\t' -v i="$1" 'NR > 1 && $2 == i { a = $6; c = $5 } END { if (a != "") print a "\t" c }' "$REGISTRO"
+}
+
 _desativado() { # $1 tipo · $2 arquivo · $3 item
   case "$1" in
     saida) grep -qF -- "$(_marca_saida "$3")" "$2" 2>/dev/null ;;
     bloco) grep -qF -- "$(_marca_bloco "$3")" "$2" 2>/dev/null ;;
+    # Movido: o arquivo saiu do lugar e a cópia do registro está de pé.
+    mover) local u; u="$(_ultimo "$3")"
+           [ ! -e "$2" ] && [ "${u%%$'\t'*}" = "desativado" ] && [ -e "${u#*$'\t'}" ] ;;
     *) return 1 ;;
   esac
 }
@@ -505,8 +516,8 @@ cmd_listar() {
   local item tipo arq ini fim req motivo est
   printf 'item\testado\tarquivo\n'
   while IFS='|' read -r item tipo arq ini fim req motivo; do
-    if [ ! -f "$arq" ]; then est="não existe nesta casa"
-    elif _desativado "$tipo" "$arq" "$item"; then est="desativado"
+    if _desativado "$tipo" "$arq" "$item"; then est="desativado"
+    elif [ ! -f "$arq" ]; then est="não existe nesta casa"
     elif [ -n "$req" ] && ! grep -qF -- "${req#*:}" "$MEOW_LIDO/${req%%:*}" 2>/dev/null; then est="espera o MeowSystem instalado cuidar disto"
     else est="ativo"
     fi
@@ -531,11 +542,19 @@ cmd_desativar() {
   [ -n "$alvo" ] || { meow_erro "qual item? (os nomes estão no --listar)"; return "$MEOW_ERRO"; }
   IFS='|' read -r item tipo arq ini fim req motivo < <(_item "$alvo")
   [ -n "${item:-}" ] || { meow_erro "não conheço o item '$alvo'"; return "$MEOW_ERRO"; }
-  if [ ! -f "$arq" ]; then meow_pula "$item: $(_curto "$arq") não existe nesta casa — nada a desativar"; return "$MEOW_OK"; fi
   if _desativado "$tipo" "$arq" "$item"; then meow_ok "$item já estava desativado"; return "$MEOW_OK"; fi
+  if [ ! -f "$arq" ]; then meow_pula "$item: $(_curto "$arq") não existe nesta casa — nada a desativar"; return "$MEOW_OK"; fi
   if [ -n "$req" ] && ! grep -qF -- "${req#*:}" "$MEOW_LIDO/${req%%:*}" 2>/dev/null; then
     meow_pula "$item espera: o MeowSystem instalado ainda não cuida disto sozinho, e o de fora continua"
     return "$MEOW_OK"
+  fi
+  if [ "$tipo" = "mover" ]; then
+    copia="$COPIAS/$item/$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$copia" && mv -- "$arq" "$copia/" || { meow_erro "não consegui mover $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; }
+    copia="$copia/$(basename "$arq")"
+    _registrar "$item" "$tipo" "$arq" "$copia" "desativado"
+    meow_muda "$item: $(_curto "$arq") saiu do lugar (guardado em $(_curto "$copia"))"
+    return "$MEOW_DIVERGENTE"
   fi
   [ -w "$arq" ] || { meow_erro "sem permissão de escrita em $(_curto "$arq")"; return "$MEOW_ERRO"; }
   copia="$(_guardar "$item" "$arq")" || { meow_erro "a cópia de antes falhou — nada foi mudado"; return "$MEOW_ERRO"; }
@@ -565,6 +584,18 @@ _restaurar_um() {
   local alvo="$1" item tipo arq ini fim req motivo tmp marca
   IFS='|' read -r item tipo arq ini fim req motivo < <(_item "$alvo")
   [ -n "${item:-}" ] || { meow_erro "não conheço o item '$alvo'"; return "$MEOW_ERRO"; }
+  if [ "$tipo" = "mover" ]; then
+    local u; u="$(_ultimo "$item")"
+    [ "${u%%$'\t'*}" = "desativado" ] || { meow_ok "$item já estava ativo"; return "$MEOW_OK"; }
+    if [ -e "$arq" ]; then
+      meow_aviso "$item: $(_curto "$arq") voltou a existir — a cópia fica em $(_curto "${u#*$'\t'}")"
+      return "$MEOW_OK"
+    fi
+    mkdir -p "$(dirname "$arq")" && mv -- "${u#*$'\t'}" "$arq" || { meow_erro "não consegui devolver $(_curto "$arq")"; return "$MEOW_ERRO"; }
+    _registrar "$item" "$tipo" "$arq" "" "restaurado"
+    meow_muda "$item restaurado em $(_curto "$arq")"
+    return "$MEOW_DIVERGENTE"
+  fi
   if [ ! -f "$arq" ] || ! _desativado "$tipo" "$arq" "$item"; then meow_ok "$item já estava ativo"; return "$MEOW_OK"; fi
   tmp="$(mktemp "$arq.vizinhos.XXXXXX")" || return "$MEOW_ERRO"
   case "$tipo" in
