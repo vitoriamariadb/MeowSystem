@@ -65,14 +65,16 @@ desktop "$APPS/flatpak-vivo.desktop" 'Type=Application' 'Name=Flatpak Vivo' 'Exe
 desktop "$APPS/embrulhado.desktop" 'Type=Application' 'Name=Embrulhado' 'Exec=env FOO=1 /nao/existe/outro'
 desktop "$APPS/vivo.desktop" 'Type=Application' 'Name=Vivo' 'Exec=sh -c "cd /nao/existe && ./x"'
 desktop "$APPS/nosso.desktop" 'Type=Application' 'Name=Nosso' 'Exec=/nao/existe/jogo' 'X-MeowSystem=jogo-steam'
+mkdir -p "$T/meu app"; printf '#!/bin/sh\n' > "$T/meu app/run"; chmod 755 "$T/meu app/run"
+desktop "$APPS/espaco.desktop" 'Type=Application' 'Name=Com Espaço' "Exec=\"$T/meu app/run\" %U"
 cp -a "$APPS/morto.desktop" "$T/morto-original.desktop"
 printf '[MIME Cache]\n' > "$APPS/mimeinfo.cache"; touch -d '2 days ago' "$APPS/mimeinfo.cache"
 antes="$(foto)"
 saida="$(rodar lancador.sh --conferir 2>&1)"; rc=$?
 confere "o conferir vê os três órfãos, na cabeça da saída, e não escreve" \
   '[ "$rc" = 1 ] && printf "%s\n" "$saida" | head -1 | grep -q "3 lançador" && [ "$antes" = "$(foto)" ]'
-confere "o vivo, o embrulho de shell e o que é do MeowSystem não são órfãos" \
-  '! printf "%s" "$saida" | grep -qE "Flatpak Vivo|  Vivo|Nosso"'
+confere "o vivo, o embrulho de shell, o caminho com espaço entre aspas e o que é do MeowSystem não são órfãos" \
+  '! printf "%s" "$saida" | grep -qE "Flatpak Vivo|  Vivo|Nosso|Com Espaço"'
 rodar lancador.sh --aplicar >/dev/null 2>&1; rc=$?
 Q="$ESTADO/lancador-quarentena"
 confere "o aplicar leva os três para a quarentena, fora de applications/" \

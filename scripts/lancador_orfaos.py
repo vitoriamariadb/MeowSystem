@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -85,7 +86,11 @@ def alvo_existe(c: dict[str, str]) -> bool:
     linha = c.get("Exec", "")
     if not linha:
         return True
-    toks = [t for t in linha.split() if not t.startswith("%")]
+    # As aspas do Exec seguem as do shell: `"/opt/Meu App/run"` é um caminho só.
+    try:
+        toks = [t for t in shlex.split(linha) if not t.startswith("%")]
+    except ValueError:
+        return True
     # Quem manda é sempre o primeiro comando da linha; o `--` só se lê depois dele.
     while toks:
         cabeca = Path(toks[0].strip("\"'")).name
