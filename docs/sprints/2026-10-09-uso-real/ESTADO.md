@@ -78,6 +78,11 @@ Sequência:
    ícones de pasta — ficam guardadas em `.wt-meow/dev-solto-23-10.patch` e voltam soltas depois), install.
 4. Bloco B (fora: Spellbook, Dracula_OS-Theme, NitroKit; desativações pós-install). Workflow de 2.
 5. filter-repo, push, PR.
+6. [P95](../2026-10-15-fechamento/P95-vizinhos-saem-da-casa.md) — corrigir os vizinhos que se metem e
+   apagar localmente o Dracula_OS-Theme e o Migração-OS. REGISTRADA em 23/10; quem usa disse «aguarda»:
+   não executar até a palavra dela/dele.
+
+Em voo: bloco A no workflow `wf_efb436e1-89c` (worktree `.wt-meow/p92`).
 
 ## Registrada para depois (NÃO executar sem quem usa mandar)
 
