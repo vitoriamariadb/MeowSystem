@@ -250,6 +250,13 @@ _so_leitura systemctl '" is-active "|" is-enabled "|" is-failed "|" is-system-ru
 _so_leitura gsettings '" get "|" list-schemas "|" list-relocatable-schemas "|" list-keys "|" list-children "|" list-recursively "|" range "|" describe "|" writable "|" help "'
 _so_leitura dconf '" read "|" list "|" dump "|" help "'
 _so_leitura busctl '" list "|" status "|" tree "|" introspect "|" get-property "|" help "'
+# O instalador numa casa de brinquedo pedia ao flatpak de verdade o OnlyOffice
+# do Flathub (centenas de MB por rodada). Só a leitura passa, e o override
+# do usuário, que cai na casa de brinquedo.
+_so_leitura flatpak '" list "|" info "|" remotes "|" remote-ls "|" ps "|" --version "'
+_flatpak_real="$(command -v flatpak 2>/dev/null)" || _flatpak_real=""
+sed -i "2a case \" \$* \" in *\" override\"*\" --user \"*|*\" --user\"*\" override \"*) [ -n \"$_flatpak_real\" ] \&\& exec \"$_flatpak_real\" \"\$@\"; exit 1 ;; esac" \
+  "$SUITE_TMP/falso/flatpak"
 unset DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR WAYLAND_DISPLAY DISPLAY
 [ -d "$CASA_REAL/.cache/ms-playwright" ] && \
   export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$CASA_REAL/.cache/ms-playwright}"
