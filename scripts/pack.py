@@ -2187,8 +2187,8 @@ def paleta_de_csv(caminho):
     """
     import csv
     nome = os.path.basename(caminho)
-    # `utf-8-sig` porque é assim que planilha exporta: o Excel e o LibreOffice
-    # põem um BOM no início, e sem isto o cabeçalho lido é "﻿slot" — um
+    # `utf-8-sig` porque é assim que planilha exporta: o Excel
+    # põe um BOM no início, e sem isto o cabeçalho lido é "﻿slot" — um
     # CSV certo recusado por um caractere que ninguém vê.
     try:
         with open(caminho, encoding="utf-8-sig", newline="") as fh:
