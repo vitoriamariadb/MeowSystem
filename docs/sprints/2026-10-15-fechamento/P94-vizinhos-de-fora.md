@@ -40,7 +40,7 @@ apagado desta máquina pela P95, então não se mexe nele. Nada foi empurrado (`
 
 | item | repositório | commit | situação |
 |---|---|---|---|
-| 1 | Spellbook (`~/.config/zsh`) | `acfd59e` | feito |
+| 1 | Spellbook (`~/.config/zsh`) | `acfd59e` + `cfd568b` (conferência) | feito |
 | 3 | NitroKit | — | **nenhum commit**: nenhum dos três scripts é coberto por inteiro |
 | 4 | Spellbook (`~/.config/zsh`) | `bdf1236` | feito |
 
@@ -55,8 +55,8 @@ script de painel trocado por um falso, rodou a casca em três casos: meow falso 
 `FALSO meow painel reciclar | quem=Alt+F2 (aurora-reiniciar-casca)`; sem meow imprimiu
 `FALSO script de hoje`; meow só em `~/.local/bin` voltou a usar o meow. Os três saíram 0. O reciclar
 de verdade não foi rodado. **Falta:** a cópia em `/usr/local/bin` só troca quando o
-`aurora-cosmic-apply.sh` reinstalar a casca (próximo apt); o `vizinhos.sh --inventario` só deixa de
-mostrar o `aurora-reiniciar-painel.sh` depois disso.
+`aurora-cosmic-apply.sh` reinstalar a casca (próximo apt). O `vizinhos.sh --inventario` **não**
+deixa de mostrar o `aurora-reiniciar-painel.sh` nem depois disso (ver a conferência abaixo).
 
 ### Item 4 — `medir-compositor.sh` no Spellbook (`bdf1236`)
 Copiado (modo preservado) de `Migração-OS/scripts/` para `aurora/medir-compositor.sh`, ao lado da
@@ -99,3 +99,43 @@ assim os dois primeiros, porque são do tempo do GNOME e rodam à mão (a volta 
 `NoDisplay` do LibreOffice para o MeowSystem, e então desativar o unificador por inteiro. O
 `reparo_completo_sistema.sh` é perigoso nesta máquina (COSMIC, sem GNOME) e fica por ser o único que
 repara pacote; vale tirá-lo da mão, mas isso é do NitroKit, não do MeowSystem.
+
+### Conferência (23/10) — APROVADO COM RESSALVAS
+
+Conferido commit a commit (`git show`): `acfd59e` e `bdf1236` tocam só a casca e o
+`medir-compositor.sh`; as mudanças soltas do Spellbook (`.githooks/`, `gka/`, `acer-ucsi/` e o resto)
+e a do NitroKit (`.github/`) ficaram fora. No NitroKit não há commit novo (o último é de 05/05), e por
+isso nenhuma desativação precisa de linha do doctor. O `medir-compositor.sh` difere da cópia do
+Migração-OS só no bloco COMO USAR. As alegações do item 3 sobre o Flatpak foram refeitas e batem:
+o override de hoje é `Dracula`/`Dracula-Icones`/`Dracula-Cursor`, e no MeowSystem só a coleta cita
+`flatpak override`.
+
+**Provas da conferência.** `bash -n` limpo nos dois scripts; `zsh -n` limpo no `.zshrc`, no
+`env.zsh` e em todo `*.zsh` versionado; um zsh novo com `ZDOTDIR` numa cópia do `HEAD` (`git
+archive`) abre e carrega as funções. O aviso `[functions.zsh] WARN: falha em .../cdb.zsh` aparece
+igual no commit de antes da P94 (`7d46b31`), então não é desta rodada. A casca rodou num HOME
+descartável, com `pgrep`/`pkill`/`notify-send` falsos e o script de painel trocado por um falso, em
+cinco casos: meow no PATH, meow só em `~/.local/bin`, sem meow, meow recusando e `AURORA_CASCA_DRY=1`.
+O `--restaurar` foi provado numa cópia (`MEOW_ESTADO`, `VIZINHOS_DESENV` e `ZDOTDIR` em pasta
+descartável): os cinco itens do Dracula voltaram byte a byte iguais à cópia de antes de cada um, e o
+real não mudou. O `caches-icones-casa` ficou em «espera» (o `requer` não casa no instalado), então a
+volta dele não pôde ser exercida. `vizinhos.sh --conferir` saiu 0, com 5 escritas, todas revisadas;
+o `--inventario` saiu 0.
+
+**Corrigido: `cfd568b` (Spellbook).** Quando o `meow painel reciclar` recusava, a casca ignorava o
+código de saída e notificava «Interface reiniciada» com o painel intocado. Agora a recusa entra como
+pendência: a notificação é «Casca reiniciada com pendência», e a saída é 1.
+
+**Ressalvas.**
+1. A segunda prova do item 1 não se cumpre como está escrita. Com a casca nova como alvo do Alt+F2
+   (simulado por `MEOW_COSMIC_DIR`), o `--inventario` continua listando o
+   `aurora-reiniciar-painel.sh` como escritor do painel, por «atalho de teclado». Isso acontece
+   porque o fallback combinado ainda o cita. A tabela está certa, porque sem o meow ele ainda
+   escreve. Para essa linha sair, o fallback teria de sair, e isso é decisão de quem usa: a outra
+   máquina pode não ter o meow.
+2. Pela porta única, a casca não espera o PID novo do painel, como o script antigo esperava. Quem
+   repõe a barra é o laço ou o cosmic-session.
+3. O Alt+F2 de verdade e o `journalctl --user -u meow-painel` só valem depois do próximo apt, quando
+   a cópia do `/usr/local/bin` for reinstalada. Isso se confere com a mão.
+4. O override do Flatpak de hoje aponta `ICON_THEME=Dracula-Icones`. Se a P95 apagar esse tema, os
+   apps Flatpak perdem o ícone. Isso fica anotado para a P95, não para este bloco.
