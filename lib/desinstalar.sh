@@ -141,6 +141,18 @@ meow_desinstalar() {
     "$MEOW_RAIZ/scripts/midia.sh" --reverter || true
   fi
 
+  # A marca do `ocultar` no próprio .desktop do home e a quarentena do lançador
+  # não são arquivos do manifesto; as sombras e as pontes saem junto.
+  if [ -x "$MEOW_RAIZ/scripts/ocultar_casa.sh" ]; then
+    "$MEOW_RAIZ/scripts/ocultar_casa.sh" --reverter || true
+  fi
+  if [ -x "$MEOW_RAIZ/scripts/appid_dock.sh" ]; then
+    "$MEOW_RAIZ/scripts/appid_dock.sh" --reverter || true
+  fi
+  if [ -x "$MEOW_RAIZ/scripts/lancador.sh" ]; then
+    "$MEOW_RAIZ/scripts/lancador.sh" --reverter || true
+  fi
+
   # `leitura_build.sh --reverter` remove a SOMBRA, depois o binário, depois a
   # árvore de build — e a ordem mora lá dentro pelo motivo do parágrafo acima: o
   # `cosmic-panel` casa o applet pelo basename do `.desktop` e consome o slot no

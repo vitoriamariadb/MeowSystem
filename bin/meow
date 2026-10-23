@@ -814,6 +814,28 @@ chk_ocultar() {
   MEOW_DRY_RUN=1 "$RAIZ/scripts/ocultar_apps.sh" 2>&1
 }
 
+# O que a lista do `ocultar` nomeia e não mora em /usr/share (flatpak, home):
+# sombra no home, sem sudo, então o doctor conserta sozinho.
+chk_ocultarcasa() {
+  MEOW_DRY_RUN=1 LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+    "$RAIZ/scripts/ocultar_casa.sh" --conferir 2>&1
+}
+
+# A janela que a dock não casa com o lançador (o app_id do mapa). A linha do
+# resumo é a última do conferidor e vem para a cabeça, que é o que a tabela mostra.
+chk_janeladock() {
+  local saida rc
+  saida="$(MEOW_DRY_RUN=1 "$RAIZ/scripts/appid_dock.sh" --conferir 2>&1)"; rc=$?
+  printf '%s\n' "$saida" | tail -n 1
+  printf '%s\n' "$saida" | sed '$d'
+  return "$rc"
+}
+
+# O lançador de programa removido e o mimeinfo.cache velho do home.
+chk_lancador() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/lancador.sh" --conferir 2>&1
+}
+
 # O gatilho que reaplica o `ocultar` depois de todo apt.
 chk_ponte() {
   local ponte=/usr/local/lib/meowsystem/ponte_root.sh
@@ -1460,6 +1482,10 @@ fix_ocultar()   { LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
                     "$RAIZ/scripts/ocultar_apps.sh" 2>&1; }
 fix_absolutos() { LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
                     "$RAIZ/scripts/icones_absolutos.sh" 2>&1; }
+fix_ocultarcasa(){ LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+                    "$RAIZ/scripts/ocultar_casa.sh" --aplicar 2>&1; }
+fix_janeladock() { "$RAIZ/scripts/appid_dock.sh" --aplicar 2>&1; }
+fix_lancador()  { "$RAIZ/scripts/lancador.sh" --aplicar 2>&1; }
 fix_lancadorapt() {
   if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
     # A MESMA CERCA DA ETAPA DO INSTALADOR: remover arquivo de /etc pede decisão
@@ -1655,7 +1681,7 @@ fix_autoreparo() {
 #   que dependem deles, e a passada terminava com os dois pulados por "falta
 #   dependência" que ela mesma tinha acabado de instalar. Logo depois da
 #   ponte, que é por onde o `pacotes` passa.
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho autoreparo cli escala fontes vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes vizinhos logo indice)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
