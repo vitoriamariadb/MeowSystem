@@ -184,7 +184,7 @@ confere "a etapa está na lista do instalador" 'sed -n "/local etapas=(/,/)/p" "
 confere "o doctor tem o par chk_/fix_ dos dois itens" \
   'for n in flatpaktema flatpakglobal; do grep -q "^chk_$n()" "$RAIZ/bin/meow" && grep -q "^fix_$n()" "$RAIZ/bin/meow" && grep -q "^VERIFICAVEIS=.* $n" "$RAIZ/bin/meow" || exit 1; done'
 confere "sem ponte, o doctor não promete consertar o global" 'grep -q "SEM_CONSERTO=\".* flatpakglobal " "$RAIZ/bin/meow"'
-confere "o MeowSystem não cita o LibreOffice (a decisão de 23/10)" '! grep -rqiE "libreoffice|startcenter" "$RAIZ/meow.conf.exemplo" "$RAIZ/scripts" "$RAIZ/lib" "$RAIZ/bin" "$RAIZ/install.sh" "$RAIZ/app" "$RAIZ/contratos" "$RAIZ/docs/PACKS.md"'
+confere "o LibreOffice não está escondido nem no lançador nem no pack (a decisão de 23/10)" '! grep -rqiE "startcenter" "$RAIZ/meow.conf.exemplo" "$RAIZ/scripts" "$RAIZ/lib" "$RAIZ/bin" "$RAIZ/install.sh" "$RAIZ/app" "$RAIZ/contratos" "$RAIZ/docs/PACKS.md" && ! grep -qi libreoffice "$RAIZ/meow.conf.exemplo" "$RAIZ/scripts/pack.py" "$RAIZ/docs/PACKS.md" "$RAIZ/scripts/ocultar_apps.sh"'
 
 printf '\n10. os dois scripts do NitroKit saem pelo vizinhos.sh, quando o instalado cuida\n'
 DESENV="$CASA/Desenvolvimento"; mkdir -p "$DESENV/NitroKit/src" "$T/vbin"

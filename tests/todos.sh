@@ -80,6 +80,7 @@ PORTATIL=(
   tres-pastas.sh         # o formato de três pastas: os três packs, a quarta pasta, o.meowpack de antes convertido, packs e HOME de brinquedo; bash, python3 e zstd
   vizinhos.sh            # o inventário dos vizinhos e o desligar com volta, numa casa de brinquedo com zsh, systemd, apt e repositório falsos; só bash
   flatpak-tema.sh        # o override do Flatpak do usuário, o global do sistema pela cópia da ponte e os dois scripts do NitroKit, com flatpak, sudo e gsettings falsos, casa de brinquedo; bash e python3
+  escritorio.sh          # o OnlyOffice do Flathub no lugar do LibreOffice, a ponte root de brinquedo e o desinstalador que devolve, com flatpak, dpkg-query, apt-get e sudo falsos, casa de brinquedo; só bash
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
