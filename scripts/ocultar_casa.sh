@@ -74,6 +74,7 @@ _sombra() { # $1 original -> o texto da sombra
 _marcar_no_lugar() { # $1 arquivo; escrita direta: o arquivo não é nosso, não vai ao manifesto
   local tmp
   meow_destino_permitido "$1" || return "$MEOW_ERRO"
+  meow_guardar_antes "$1"
   tmp="$(mktemp "$1.meow.XXXXXX")" || return "$MEOW_ERRO"
   M="$MARCA_LUGAR" awk 'BEGIN { m = ENVIRON["M"] }
     $0 == "[Desktop Entry]" && !feito { print; print "NoDisplay=true"; print m; feito = 1; next } { print }' "$1" > "$tmp"
@@ -83,6 +84,7 @@ _marcar_no_lugar() { # $1 arquivo; escrita direta: o arquivo não é nosso, não
 
 _desmarcar() { # $1 arquivo marcado no lugar: tira as duas linhas que pusemos
   local tmp
+  meow_guardar_antes "$1"
   tmp="$(mktemp "$1.meow.XXXXXX")" || return "$MEOW_ERRO"
   M="$MARCA_LUGAR" awk 'BEGIN { m = ENVIRON["M"] }
     { l[NR] = $0 } END { for (i = 1; i <= NR; i++) { if (l[i] == "NoDisplay=true" && l[i+1] == m) { i++; continue } print l[i] } }' "$1" > "$tmp"
@@ -114,7 +116,7 @@ for id in "${!QUER[@]}"; do
   orig="$(_original "$id")" || orig=""
   if [ -f "$casa" ] && grep -qxF "$MARCA" "$casa"; then
     if [ -z "$orig" ]; then
-      _vai "tiraria a sombra de $id (o aplicativo saiu)" && rm -f "$casa"
+      _vai "tiraria a sombra de $id (o aplicativo saiu)" && meow_guardar_antes "$casa" && rm -f "$casa"
       continue
     fi
     sombras=$((sombras + 1))
@@ -141,7 +143,7 @@ if [ -d "$APPS" ]; then
     [ -n "${QUER[$id]:-}" ] && [ ! -f "$SISTEMA/$id.desktop" ] && continue
     if grep -qxF "$MARCA" "$arq"; then
       devolvidos=$((devolvidos + 1))
-      _vai "devolveria $id ao lançador" && rm -f "$arq"
+      _vai "devolveria $id ao lançador" && meow_guardar_antes "$arq" && rm -f "$arq"
     elif grep -qxF "$MARCA_LUGAR" "$arq"; then
       devolvidos=$((devolvidos + 1))
       _vai "devolveria $id ao lançador" && _desmarcar "$arq"
@@ -163,6 +165,7 @@ if [ "$MODO" = "conferir" ]; then
   for l in "${PENDENTES[@]}"; do meow_info "  $l"; done
   exit "$MEOW_DIVERGENTE"
 fi
+meow_guardar_antes "$APPS/mimeinfo.cache"
 meow_desktop_banco "$APPS"
 meow_ok "lançador do home conforme ($devolvidos devolvido(s))"
 exit "$MEOW_DIVERGENTE"

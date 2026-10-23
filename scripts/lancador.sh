@@ -44,6 +44,7 @@ _refazer_cache() {
     meow_pula "sem update-desktop-database — o mimeinfo.cache do home fica como está"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  meow_guardar_antes "$CACHE"
   update-desktop-database "$APPS" 2>/dev/null
 }
 
@@ -60,9 +61,10 @@ _reverter() {
       continue
     fi
     if meow_seco; then meow_muda "devolveria $(basename "$origem")"; n=$((n + 1)); continue; fi
+    meow_guardar_antes "$destino"; meow_guardar_antes "$origem"
     mkdir -p "$(dirname "$origem")" && mv -f "$destino" "$origem" && n=$((n + 1))
   done < "$REGISTRO"
-  meow_seco || mv -f "$resto" "$REGISTRO"
+  meow_seco || { meow_guardar_antes "$REGISTRO"; mv -f "$resto" "$REGISTRO"; }
   rm -f "$resto"
   [ "$n" = 0 ] && { meow_ok "nada a devolver da quarentena do lançador"; return "$MEOW_OK"; }
   meow_seco || _refazer_cache
@@ -102,9 +104,11 @@ fi
 while IFS=$'\t' read -r arq nome alvo; do
   [ -n "$arq" ] || continue
   meow_destino_permitido "$arq" || exit "$MEOW_ERRO"
+  meow_guardar_pasta "$QUARENTENA"
   mkdir -p "$QUARENTENA" || exit "$MEOW_ERRO"
   destino="$QUARENTENA/$(basename "$arq")"
   { [ -e "$destino" ] || [ -L "$destino" ]; } && destino="$QUARENTENA/$(basename "$arq" .desktop).$(date +%s).desktop"
+  meow_guardar_antes "$arq"; meow_guardar_antes "$REGISTRO"
   mv -f "$arq" "$destino" || { meow_erro "não consegui mover $arq"; exit "$MEOW_ERRO"; }
   printf '%s\t%s\n' "$arq" "$destino" >> "$REGISTRO"
   meow_info "$nome foi para a quarentena ($destino)"
