@@ -88,7 +88,8 @@ Em voo (23/10):
   para quem usa; fase 2 = o script, aplicado DEPOIS do bloco A entrar no dev;
 - P97 interface: CONCLUÍDA (`sprint/p97`, commit do mockup final, 1,1 MB; prints e mockups A/B fora do repo em
   `.wt-meow/p97-design-fora-do-repo/`). Decisões: clicar no tema já veste; «Mais ajustes» recolhido; 4 portas.
-  Próximo: P98 implementa o painel novo DEPOIS da P96 no dev.
+  P98 (painel novo com tudo do antigo) EM VOO desde 23/10: workflow `wf_7e107a34-1e0`, worktree `.wt-meow/p98`,
+  2 Opus; mexe só no front, a P96 mexe nos caminhos; integra depois da P96.
 - Escolha dos ícones: 78 grupos respondidos por quem usa (`.wt-meow/p96-duvidas/escolhas-resolvidas.tsv`);
   o Citrix veste o do manuais-final (sim de 23/10, desfaz a decisão 16).
 
