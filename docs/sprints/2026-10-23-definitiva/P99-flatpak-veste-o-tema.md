@@ -16,7 +16,10 @@ ficam sem o tema, e se o tema Dracula antigo sumir (P95) eles ficam sem ícone.
   devolve o de antes (cópia guardada, como as outras escritas).
 - O override global antigo (do sistema) é lido e, se apontar para tema que não existe, o doctor mostra o
   estado (sem mandar digitar); a correção dele passa pela ponte root, nunca por caixa de senha.
-- O `libreoffice-startcenter.desktop` entra no `LANCADOR_OCULTAR` (o mecanismo da P93).
+- **LibreOffice sai de tudo** (quem usa, 23/10: «não vamos usar isso. usamos apenas o OnlyOffice. é bom
+  retirarmos de tudo quanto é canto»). Nada de escondê-lo: o MeowSystem não o cita mais (`scripts/pack.py`,
+  `docs/PACKS.md` e afins; o histórico em `docs/historico/` fica). Remover os pacotes da máquina é outra
+  tarefa, decidida à parte.
 - Depois do install: `unificador_temas_dracula.sh` e `ritual_de_harmonia.sh` do NitroKit saem pelo
   `scripts/vizinhos.sh --desativar` (itens novos no contrato), commit só disso lá. O
   `reparo_completo_sistema.sh` fica.
