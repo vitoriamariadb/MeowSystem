@@ -80,7 +80,7 @@ Sequência:
 5. filter-repo, push, PR.
 6. [P95](../2026-10-15-fechamento/P95-vizinhos-saem-da-casa.md) — corrigir os vizinhos que se metem e
    apagar localmente o Dracula_OS-Theme e o Migração-OS. REGISTRADA em 23/10; quem usa disse «aguarda»:
-   não executar até a palavra dela/dele.
+   preparação feita em 23/10 (push do Dracula, pacotes em ~/Backups); apaga DEPOIS do install.
 
 Em voo (23/10):
 - bloco A (P92+P93), workflow `wf_efb436e1-89c`, worktree `.wt-meow/p92`, 2 Opus;

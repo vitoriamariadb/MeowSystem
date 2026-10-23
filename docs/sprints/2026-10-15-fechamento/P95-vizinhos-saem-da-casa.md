@@ -35,3 +35,20 @@ Migração OS.»
 - `grep -r` no Spellbook sem `Dracula_OS-Theme` nem `Migração-OS` (fora de histórico e changelog);
 - terminal novo abre sem erro; `meow doctor` igual ao de antes (nada a consertar);
 - `git -C` no GitHub do Dracula mostra os 2 commits; o `.tar.zst` do Migração-OS abre.
+
+## Decisões de quem usa (23/10)
+- Executar: prepara agora, **apaga só depois do install do MeowSystem novo dar certo**.
+- Dracula_OS-Theme: commit + push de tudo antes de apagar.
+- Migração-OS: pacote em `~/Backups/`.
+
+## Feito em 23/10 (preparação)
+- Dracula_OS-Theme: o commit `75d7d2d7` (fontes de design com Zrnic) e o `f41ee47a` estão no `origin/main`.
+  O `.otf` da Zrnic (sem arquivo de licença, e o repositório é público) e o `reverso-dns` (só linhas «1»,
+  saída solta) não foram ao GitHub: estão em `~/Backups/Dracula_OS-Theme-soltos-2026-10-23.tar.zst`.
+- Migração-OS: `~/Backups/Migracao-OS-2026-10-23.tar.zst` (582 entradas, as mesmas da pasta).
+
+## Falta (depois do install)
+1. P94 entrega o `medir-compositor.sh` no Spellbook `aurora/`.
+2. O Spellbook deixa de citar os dois (caminho do MeowSystem instalado, ou sai), commit só disso. Esperar a
+   P94 terminar, porque ela também commita no Spellbook.
+3. Apagar as duas pastas; terminal novo abre limpo; `meow doctor` igual.
