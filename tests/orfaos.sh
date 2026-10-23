@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
 # orfaos.sh — CÓDIGO QUE NINGUÉM CHAMA APARECE NA TELA, E NÃO É APAGADO AQUI.
 #
-# `scripts/appid_dock.sh` ESCREVE (a ponte de `app_id` que a dock não casa) e
-# não é chamado por ninguém: nem pelo `bin/meow`, nem pelo `install.sh`, nem por
-# unidade do systemd. São dois arquivos que se citam e que nada mais alcança.
-#
-# Com essa pergunta o `appid_sonda.py` some do relatório: o
-# `scripts/appid_dock.sh:159` tem `SONDA=".../appid_sonda.py"`, que é código e
-# não comentário — então a sonda conta como chamada POR UM ÓRFÃO.
+# Citação feita por um órfão não conta como chamada: dois arquivos que só se
+# citam um ao outro caem juntos, pelo ponto fixo mais abaixo.
 #
 # A regra desta casa é mencionar, não deletar.
 set -uo pipefail
@@ -46,8 +41,6 @@ ISENTOS=(
 CONHECIDOS=(
   derivar_claro.py   # gerador de tiro único: a saída já está em packs/dracula/paleta.json (commit 045b82b)
   folha_barra.py     # folha dos ícones da barra; só o sistema.map a cita, em comentário
-  appid_dock.sh      # escreve a ponte de app_id e ninguém o chama: nem bin/meow, nem install.sh, nem unidade
-  appid_sonda.py     # só o appid_dock.sh a alcança; cai junto com ele, pelo ciclo de duas pontas
 )
 
 na_lista() {

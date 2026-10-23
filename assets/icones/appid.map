@@ -81,6 +81,9 @@
 # ATENÇÃO: um bump de Electron pode trocar esse app_id EM SILÊNCIO. O `--conferir`
 # é quem acusa, cruzando a sonda com o casador a cada rodada.
 boxy-svg-boxy-svg-linux:com.boxy_svg.BoxySVG
+# O mesmo Boxy lido no tooltip da dock numa versão seguinte, sem o `-linux`. As
+# duas pontes ficam: a que não casar com janela nenhuma é inofensiva.
+boxy-svg-boxy-svg:com.boxy_svg.BoxySVG:alias
 
 # O Hefesto, o app DELA — `python3 -m`, e o app_id é o nome do MÓDULO.
 #   app_id medido .... __main__.py   (título da janela: "A minha mesa")
