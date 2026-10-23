@@ -96,6 +96,12 @@ meow_desinstalar() {
     fi
   fi
 
+  # Os pacotes do LibreOffice que a troca pelo OnlyOffice tirou voltam pelo apt,
+  # e voltam pela ponte, que ainda está de pé aqui.
+  if [ -x "$MEOW_RAIZ/scripts/escritorio.sh" ]; then
+    "$MEOW_RAIZ/scripts/escritorio.sh" reverter || true
+  fi
+
   # Até aqui o `--uninstall` deixava para trás as duas peças com privilégio: a
   # regra `/etc/sudoers.d/49-meowsystem-ponte` e o braço
   # `/usr/local/lib/meowsystem/ponte_root.sh`.

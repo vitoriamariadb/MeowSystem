@@ -5653,6 +5653,7 @@ ACAO_DA_PENDENCIA = {
     # pendência, e o botão é o de quem faz.
     "instalar-com-root": "instalar",
     "flatpak-global-sistema": "instalar",
+    "libreoffice-sistema": "instalar",
     "leitura-applet": "doctor_consertar",
 }
 
