@@ -93,3 +93,37 @@ no Spellbook: o real só foi lido (`--conferir` com `MEOW_DRY_RUN=1`, `--listar`
 - **`aurora-desktop-guards-apply.sh` sem item**: o que sobra nele é do PC (o Exec do PhotoGIMP, a
   máscara do tracker e a chamada do doctor da Aurora, que segue cuidando do `mimeapps.list`).
 - A desativação de tudo isso é do bloco seguinte, depois do merge e do install.
+
+### Conferência (23/10)
+Lido o diff `9c9ae7e..sprint/p92` contra a tarefa e as specs P92/P93, item por item. Itens 1, 2 e 4
+conferem; o item 3 segue para o fecho (abaixo). Dois defeitos corrigidos, cada um com o teste que o
+pegava vermelho antes da cura:
+- `6cba6c9` — o `ocultar_casa.sh --reverter` ignorava o ensaio: o `--uninstall` com `MEOW_DRY_RUN=1`
+  apagava as sombras e desfazia as marcas. Agora em ensaio ele só diz o que tiraria.
+- `79f6d57` — o `lancador_orfaos.py` cortava o `Exec` por espaço: `Exec="/opt/Meu App/run"` virava
+  `/opt/Meu`, alvo inexistente, e o doctor (que roda sozinho pelo timer) levava um lançador vivo para a
+  quarentena. Agora as aspas valem como no shell; `Exec` mal fechado é «não sei», e fica.
+
+Provas rodadas: `tests/lancador-do-meow.sh` (35 afirmações), `vizinhos.sh`, `portabilidade.sh`,
+`decisoes.sh` e `orfaos.sh` verdes; `nada-manda-digitar.sh` verde. No real, só leitura: nenhum órfão,
+cache em dia, 3 pontes a criar, os 31 itens do `--listar` em «espera» ou «ativo», nenhum registro novo
+em `vizinhos-desativados.tsv`, nenhuma marca `#vizinhos` no `aurora-menu-doctor.py` nem no Dracula
+(`aplicar_overrides.sh`, `install.sh`), as 25 cópias no lugar. Os limites dos três blocos novos batem
+com os arquivos reais de hoje. `git merge-tree` com a `integracao/leva-h` atual: sem conflito.
+`tests/todos.sh` duas vezes seguidas, depois das curas:
+`== todos os 74 · 72 verde(s), 1 pulado(s), 1 vermelho(s) ==` nas duas. O vermelho é o
+`app-completo.py`, com a reprovação fixa `[Lançadores e jogos › jogo · abrir] Locator.click: Timeout`
+(a aba de jogos do painel, que este bloco não toca); a base `5ec4a4c` e esta ponta, rodadas à parte numa cópia da árvore, do mesmo jeito:
+a base reprovou o `jogo · abrir` numa de duas rodadas, a ponta na única; é intermitente e vem de
+antes (a cópia sem remoto soma, nas duas, o «menu · link externo», que na worktree passa).
+
+Ressalvas para o fecho e o bloco seguinte:
+- **O item 3 fica para o fecho**: a linha do `meow.conf` (acima) é escrita no HOME real. Oito dos onze
+  já se escondem hoje pelo `lancador.ocultar` do pack Dracula; só `Ubuntu`, `mnemo` e
+  `elden-ring-tracker` dependem dela.
+- **Ordem no bloco seguinte**: o `dracula-copia-elden-ring-tracker` só sai depois da linha do
+  `meow.conf`; o `requer` confere o MeowSystem instalado, não a lista, e sem ela o Elden Ring Tracker
+  volta ao lançador.
+- **O ZapZap muda de ícone ao sair a cópia**: a do home diz `Icon=whatsapp-linux-app` (a arte do pack);
+  o módulo grava `Icon=meow-whatsapp` no export do flatpak. Quem usa escolhe antes do `--desativar`.
+- O `docs/FRONTEIRA.md` (#667) segue velho, como o executor disse.
