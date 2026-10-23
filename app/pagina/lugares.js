@@ -1,0 +1,402 @@
+/* app/pagina/lugares.js — onde cada chave do meow.conf e cada ação mora no painel.
+ *
+ * É DADO, e é a fonte da tabela de migração (tests/migracao-do-painel.py lê este
+ * arquivo no node e gera docs/design/2026-10-23/migracao.md). Uma chave ou ação
+ * do servidor sem lugar aqui reprova o teste: nada se perde.
+ *
+ * Linha:  { c: "CHAVE", r: "Rótulo" }              uma chave
+ *         { c: ["CHAVE_PAINEL", "CHAVE_DOCK"], r }  duas colunas (Barra de cima | Dock)
+ *         { a: "acao", r: "Rótulo", b: "Botão" }    uma ação
+ *         { g: "gesto", r, b }                      um gesto da página (rota da API)
+ *         { e: "especial", ... }                    um molde com dado (galeria, jogos…)
+ * `sub: true` recua a linha (ela depende da de cima). */
+"use strict";
+
+const PORTAS = [
+  { id: "tema", nome: "Tema", icone: "tema" },
+  { id: "criar", nome: "Criar tema", icone: "criar" },
+  { id: "ajustes", nome: "Ajustes", icone: "ajustes" },
+  { id: "cuidar", nome: "Cuidar", icone: "cuidar" },
+];
+
+/* Tema: os cartões dos packs, o destaque e o claro ou escuro. */
+const LUGAR_TEMA = {
+  packs: [
+    { c: "PACK", r: "Tema" },
+    { c: "FLAVOR", r: "Variante" },
+    { a: "pack_usar", r: "Vestir", b: "Vestir" },
+    { a: "pack_remover", r: "Remover", b: "Remover" },
+    { g: "pack-importar", r: "Abrir um tema", b: "Abrir um tema" },
+  ],
+  blocos: [
+    { titulo: "Cor de destaque", linhas: [{ c: "ACCENT", r: "Cor de destaque" }] },
+    { titulo: "Claro ou escuro", linhas: [{ c: "MODO", r: "Claro ou escuro" }] },
+  ],
+  mais: [
+    { a: "tema_aplicar", r: "Tema pronto", b: "Trocar" },
+    { a: "tema_modo", r: "Claro ou escuro agora", b: "Trocar" },
+    { a: "tema", r: "Temas prontos", b: "Ver" },
+    { a: "status", r: "No ar agora", b: "Ver" },
+  ],
+};
+
+/* Criar tema: cinco passos. */
+const PASSOS = [
+  { id: "cores", nome: "Cores",
+    linhas: [{ g: "tema-criar", r: "Guardar o tema", b: "Guardar" }] },
+  { id: "icones", nome: "Ícones",
+    linhas: [
+      { e: "apps", r: "Aplicativos" },
+      { g: "app-icone", r: "Ícone do aplicativo", b: "Usar" },
+      { g: "app-desenho", r: "Gerar ícone", b: "Usar" },
+      { g: "glifos", r: "Desenhos do acervo" },
+      { g: "acervo:icone", r: "Trazer .svg", b: "Trazer .svg" },
+      { c: "ICONES_PASTAS", r: "Cor das pastas" },
+    ],
+    mais: [
+      { c: "ICONES_FLAVOR", r: "Variante dos ícones" },
+      { c: "ICONES_DRACULA", r: "Desenhos do pack" },
+      { c: "ICONES_RESGATADOS", r: "Ícones resgatados" },
+      { c: "ICONES_COR_MARCA", r: "Cor da marca" },
+      { c: "PASTAS_XDG", r: "Pastas especiais" },
+      { c: "NOME_TEMA_ICONES", r: "Nome do tema" },
+      { c: "ICONES_LOGO_HEFESTO", r: "Logo do Hefesto" },
+      { e: "autorais", r: "Desenhos do pack" },
+      { g: "autorais", r: "Desenhos autorais", b: "Salvar" },
+      { g: "acervo:tema-icones", r: "Tema de ícones", b: "Trazer .zip" },
+      { a: "icones", r: "Tema instalado", b: "Ver" },
+      { a: "icones_reconstruir", r: "Reconstruir os ícones", b: "Reconstruir" },
+      { a: "icones_traco", r: "Desenhos em traço", b: "Aplicar" },
+      { a: "icones_pack", r: "Desenhos do pack", b: "Aplicar" },
+    ] },
+  { id: "papel", nome: "Papel de parede",
+    linhas: [
+      { e: "galeria", r: "Imagens" },
+      { g: "acervo:parede", r: "Trazer imagens", b: "Trazer imagens" },
+      { a: "wallpaper_usar", r: "Usar agora", b: "Usar" },
+      { a: "wallpaper_favoritar", r: "Favorita", b: "Favorita" },
+      { a: "wallpaper_desfavoritar", r: "Tirar das favoritas", b: "Favorita" },
+      { a: "wallpaper_dia", r: "De dia", b: "Dia" },
+      { a: "wallpaper_noite", r: "De noite", b: "Noite" },
+      { a: "wallpaper_lado_auto", r: "Medir a luz", b: "Medir" },
+      { a: "wallpaper_banir", r: "Tirar do carrossel", b: "Tirar" },
+      { a: "wallpaper_desbanir", r: "Devolver ao carrossel", b: "Devolver" },
+    ] },
+  { id: "sons", nome: "Sons",
+    linhas: [
+      { c: "SOM", r: "Som do volume" },
+      { c: "SOM_FUNDAMENTAL", r: "Primeira nota" },
+      { c: "SOM_HARMONICO", r: "Segunda nota" },
+      { c: "SOM_DECAIMENTO", r: "Duração" },
+      { a: "som_ouvir", r: "Ouvir o instalado", b: "Ouvir" },
+      { a: "som_aplicar", r: "Regravar o som", b: "Regravar" },
+    ],
+    mais: [
+      { c: "SOM_PESO_FUNDAMENTAL", r: "Peso da primeira" },
+      { c: "SOM_PESO_HARMONICO", r: "Peso da segunda" },
+    ] },
+  { id: "mandar", nome: "Mandar",
+    linhas: [
+      { g: "pack-exportar", r: "Baixar o tema", b: "Baixar o tema" },
+      { a: "pack_usar", r: "Vestir", b: "Vestir" },
+    ] },
+];
+
+/* Ajustes: sete páginas, cada uma com a prévia e as linhas. */
+const AJUSTES = [
+  { id: "painel", nome: "Painel e dock", icone: "painel",
+    cabeca: [{ a: "painel_reciclar", r: "Recarregar o painel", b: "Recarregar o painel" }],
+    blocos: [
+      { titulo: "Forma", colunas: ["Barra de cima", "Dock"], linhas: [
+        { c: ["FORMA_PAINEL_SOLTO", "FORMA_DOCK_SOLTO"], r: "Solta da borda" },
+        { c: ["FORMA_PAINEL_ILHA", "FORMA_DOCK_ILHA"], r: "Em pastilha" },
+        { c: ["FORMA_MARGEM_PAINEL", "FORMA_MARGEM_DOCK"], r: "Distância da borda" },
+        { c: ["FORMA_RAIO_PAINEL", "FORMA_RAIO_DOCK"], r: "Cantos" },
+        { c: ["FORMA_ESPACO_PAINEL", "FORMA_ESPACO_DOCK"], r: "Espaço entre ícones" },
+        { c: ["VIDRO_OPACIDADE_PAINEL", "VIDRO_OPACIDADE_DOCK"], r: "Vidro" },
+      ] },
+      { titulo: "Tamanho dos ícones", colunas: ["Barra de cima", "Dock"], linhas: [
+        { c: ["FORMA_ALA_INICIAL_PAINEL", "FORMA_ALA_INICIAL_DOCK"], r: "Ponta esquerda" },
+        { c: ["FORMA_CENTRO_PAINEL", "FORMA_CENTRO_DOCK"], r: "Meio" },
+        { c: ["FORMA_ALA_FINAL_PAINEL", "FORMA_ALA_FINAL_DOCK"], r: "Ponta direita" },
+      ] },
+      { titulo: "Na barra de cima", linhas: [
+        { c: "RELOGIO_SEGUNDOS", r: "Segundos no relógio" },
+        { c: "VIDRO_AO_MAXIMIZAR", r: "Vidro com janela grande" },
+        { c: "MIDIA", r: "Música tocando" },
+        { c: "MIDIA_COR_TITULO", r: "Cor da música", sub: true },
+        { c: "MIDIA_COR_ARTISTA", r: "Cor da banda", sub: true },
+        { c: "MIDIA_CAPA", r: "Capa do disco", sub: true },
+        { c: "MIDIA_CONTROLES", r: "Tocar e pular", sub: true },
+      ] },
+    ],
+    mais: [
+      { c: ["FORMA_RECHEIO_PAINEL", "FORMA_RECHEIO_DOCK"], r: "Folga interna" },
+      { c: "MIDIA_LARGURA", r: "Largura da música" },
+      { c: "MIDIA_FONTE", r: "Letra da música" },
+      { c: "MIDIA_COR_ALBUM", r: "Cor da capa" },
+      { a: "painel_estado", r: "Painel e dock agora", b: "Ver" },
+      { a: "painel_teto", r: "Teto dos cantos", b: "Ver" },
+    ] },
+  { id: "janelas", nome: "Janelas e tela", icone: "janelas",
+    blocos: [
+      { titulo: "Janelas", linhas: [
+        { c: "JANELAS_TILING", r: "Lado a lado" },
+        { c: "JANELAS_TILING_ESCOPO", r: "Vale para", sub: true },
+      ] },
+      { titulo: "Tela", linhas: [
+        { c: "ESCALA_TELA", r: "Tamanho de tudo" },
+        { c: "CURSOR", r: "Ponteiro", larga: true },
+        { g: "acervo:cursor", r: "Trazer ponteiro", b: "Trazer .zip" },
+      ] },
+      { titulo: "Áreas de trabalho", linhas: [
+        { c: "AREAS_NOMES", r: "Nomes", larga: true },
+        { c: "AREAS_ENCAIXE", r: "Encaixe por área", larga: true },
+        { a: "areas_aplicar", r: "Gravar as áreas", b: "Gravar" },
+        { a: "areas_alfinetar_primeira", r: "Primeira área", b: "Criar" },
+        { a: "areas_desalfinetar", r: "Tirar uma área", b: "Tirar" },
+        { a: "areas_reverter", r: "Áreas de antes", b: "Voltar" },
+      ] },
+    ],
+    mais: [
+      { c: "CURSOR_VERSAO", r: "Versão do ponteiro" },
+      { c: "AREAS_FOLGA", r: "Folga no nome" },
+      { a: "areas_ver", r: "Áreas agora", b: "Ver" },
+    ] },
+  { id: "papel", nome: "Papel de parede", icone: "imagem",
+    cabeca: [{ a: "wallpaper_proximo", r: "Próxima imagem", b: "Próxima imagem" }],
+    blocos: [
+      { titulo: "Imagens", linhas: [
+        { a: "wallpaper_anterior", r: "Imagem anterior", b: "Anterior" },
+        { a: "wallpaper_carrossel", r: "Voltar a girar", b: "Girar" },
+        { a: "wallpaper_semear", r: "Coleção do tema", b: "Baixar" },
+      ] },
+      { titulo: "Troca", linhas: [
+        { c: "WALLPAPER_INTERVALO", r: "A cada" },
+        { c: "WALLPAPER_ORDEM", r: "Ordem" },
+        { c: "WALLPAPER_AJUSTE", r: "Como ocupa a tela" },
+        { c: "WALLPAPER_NOTIFICAR", r: "Avisar a troca" },
+        { c: "FILES_MENU", r: "Menu do botão direito" },
+      ] },
+    ],
+    mais: [
+      { c: "WALLPAPER_FIXO_TTL", r: "Escolhida dura" },
+      { c: "WALLPAPER_FONTES_PERMITIDAS", r: "Pastas suas" },
+      { c: "WALLPAPER_BASE", r: "Pasta do carrossel" },
+      { c: "FILES_MENU_AUTOBUILD", r: "Menu se reconstrói" },
+      { c: "WALLPAPER_DRACULA_REPO", r: "Acervo do Dracula" },
+      { c: "WALLPAPER_DRACULA_COMMIT", r: "Versão do acervo" },
+      { a: "wallpaper", r: "Carrossel agora", b: "Ver" },
+      { a: "wallpaper_aplicar", r: "Regras do carrossel", b: "Reaplicar" },
+      { a: "files_menu", r: "Menu agora", b: "Ver" },
+      { a: "files_menu_build", r: "Construir o menu", b: "Construir" },
+    ] },
+  { id: "mascote", nome: "Mascote", icone: "gato",
+    blocos: [
+      { titulo: "Na dock", linhas: [
+        { c: "LOGO", r: "Mascote", larga: true },
+        { g: "acervo:gato", r: "Trazer .svg", b: "Trazer .svg" },
+        { c: "LOGO_MODO", r: "Como escolhe" },
+        { c: "LOGO_DIA", r: "De dia", sub: true },
+        { c: "LOGO_NOITE", r: "De noite", sub: true },
+        { c: "LOGO_INTERVALO", r: "Gira a cada", sub: true },
+        { c: "LOGO_ROTACAO", r: "Girar sozinho", sub: true },
+        { a: "logo_trocar", r: "Pôr agora", b: "Pôr" },
+        { a: "logo_girar", r: "Próximo mascote", b: "Girar" },
+      ] },
+      { titulo: "No terminal", linhas: [
+        { c: "FASTFETCH_LOGO", r: "Ao abrir o terminal" },
+        { c: "FASTFETCH_LOGO_MODO", r: "Qual", sub: true },
+        { c: "FASTFETCH_LOGO_GATO", r: "Fixo", sub: true },
+        { c: "FASTFETCH_LOGO_DIA", r: "De dia", sub: true },
+        { c: "FASTFETCH_LOGO_NOITE", r: "De noite", sub: true },
+        { c: "FASTFETCH_LOGO_COLUNAS", r: "Tamanho", sub: true },
+      ] },
+    ],
+    mais: [
+      { c: "LOGO_RECICLAR", r: "Recarregar na virada" },
+      { c: "FASTFETCH_LOGO_LINHAS", r: "Altura do desenho" },
+      { c: "FASTFETCH_LOGO_QUEBRAS", r: "Linhas antes" },
+      { c: "FASTFETCH_LOGO_ALINHAR", r: "Texto ao lado" },
+      { c: "FASTFETCH_TITULO", r: "Linha de cima" },
+      { c: "FASTFETCH_LOGO_RECUO", r: "Espaço ao lado" },
+      { c: "FASTFETCH_LOGO_CELULA", r: "Proporção da letra" },
+      { c: "FASTFETCH_LOGO_BLOCOS", r: "Detalhe" },
+      { c: "FASTFETCH_LOGO_CONF", r: "Corrigir o Fastfetch" },
+      { a: "logo_listar", r: "Mascote agora", b: "Ver" },
+    ] },
+  { id: "dia-e-noite", nome: "Dia e noite", icone: "lua",
+    blocos: [
+      { titulo: "Noite", noite: true, linhas: [
+        { c: "NOITE_INICIO", r: "Começa" },
+        { c: "NOITE_FIM", r: "Termina" },
+      ] },
+      { titulo: "Claro e escuro", linhas: [
+        { c: "MODO_AUTO_CLARO_ATE", r: "Escuro começa" },
+        { c: "MODO_AUTO_CLARO_DE", r: "Escuro termina" },
+      ] },
+      { titulo: "Tela quente", linhas: [
+        { c: "LEITURA_AGENDA", r: "Tela quente" },
+        { c: "LEITURA_TEMPERATURA", r: "Quão quente", sub: true },
+        { c: "LEITURA_TEXTURA", r: "Textura de papel", sub: true },
+        { c: "LEITURA_RAMPA_MIN", r: "Entrar devagar", sub: true },
+        { c: "LEITURA_HORARIO_INICIO", r: "Começa", sub: true },
+        { c: "LEITURA_HORARIO_FIM", r: "Termina", sub: true },
+        { c: "LEITURA_APPLET", r: "Botão na barra" },
+        { a: "leitura_aplicar", r: "Esquentar agora", b: "Aplicar" },
+        { a: "leitura_remover", r: "Desligar agora", b: "Desligar" },
+      ] },
+      { titulo: "Papel de parede de noite", linhas: [
+        { c: "WALLPAPER_NOITE", r: "Imagens escuras" },
+        { c: "WALLPAPER_LIMIAR_LUZ", r: "O que é escura", sub: true },
+        { c: "WALLPAPER_NOITE_INICIO", r: "Começa", sub: true },
+        { c: "WALLPAPER_NOITE_FIM", r: "Termina", sub: true },
+      ] },
+    ],
+    mais: [{ a: "leitura", r: "Tela quente agora", b: "Ver" }] },
+  { id: "terminal", nome: "Terminal", icone: "terminal",
+    blocos: [
+      { titulo: "Cores", linhas: [
+        { c: "TERMINAL_ESQUEMA", r: "Cores do tema" },
+        { c: "TERMINAL_CURSOR", r: "Cor do cursor" },
+      ] },
+      { titulo: "Linha de comando", linhas: [
+        { c: "PROMPT_STARSHIP", r: "Linha colorida" },
+        { a: "prompt_instalar_starship", r: "Starship", b: "Instalar" },
+      ] },
+    ],
+    mais: [{ g: "acervo:fonte", r: "Fonte do terminal", b: "Trazer fonte" }] },
+  { id: "programas", nome: "Programas", icone: "grade",
+    blocos: [
+      { titulo: "Recebem o tema", programas: true, linhas: [
+        { c: "APPS_ATIVOS", r: "Programas" },
+        { a: "apps_aplicar", r: "Vestir agora", b: "Vestir" },
+        { a: "apps", r: "Conferir", b: "Conferir" },
+      ] },
+      { titulo: "Lançador", linhas: [
+        { c: "LANCADOR_SISTEMA", r: "Arrumar o lançador" },
+        { c: "LANCADOR_OCULTAR", r: "Escondidos", larga: true },
+        { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify" },
+        { a: "spotify_baixar_tema", r: "Tema do Spotify", b: "Baixar" },
+      ] },
+      { titulo: "Jogos", jogos: true, linhas: [
+        { e: "jogos", r: "Jogos" },
+        { g: "jogo-fora", r: "No lançador" },
+        { a: "jogos_aplicar", r: "Arrumar os jogos", b: "Arrumar" },
+        { a: "jogos_heroic_aplicar", r: "Jogos do Heroic", b: "Pôr" },
+        { a: "jogos_heroic_por", r: "Pôr um jogo do Heroic", b: "Pôr" },
+        { a: "jogos_heroic_tirar", r: "Tirar um jogo do Heroic", b: "Tirar" },
+      ] },
+      { titulo: "Ao ligar o computador", linhas: [
+        { c: "AUTOSTART_BLOQUEADOS", r: "Não abrem sozinhos", larga: true },
+      ] },
+    ],
+    mais: [
+      { a: "jogos", r: "Jogos: o que muda", b: "Ver" },
+      { a: "jogos_heroic", r: "Heroic: o que muda", b: "Ver" },
+    ] },
+];
+
+/* Cuidar: o estado, as pendências, as três ações grandes, o que roda sozinho. */
+const LUGAR_CUIDAR = {
+  estado: [
+    { a: "doctor_consertar", r: "Conferir e consertar", b: "Conferir e consertar" },
+    { a: "doctor", r: "Conferir", b: "Conferir" },
+  ],
+  pendencias: [
+    { g: "pendencia-recusar", r: "Não perguntar mais", b: "Não, obrigado" },
+    { a: "wallpaper_permitir", r: "Imagem que você pôs", b: "Manter" },
+    { a: "wallpaper_dispensar", r: "Imagem que você pôs", b: "Deixar assim" },
+    { a: "apps_tema_do_pack", r: "Tema de um programa", b: "Trocar" },
+    { a: "apps_manter_o_meu", r: "Tema de um programa", b: "Manter" },
+    { a: "vscode_instalar_extensao", r: "Extensão do VS Code", b: "Instalar" },
+  ],
+  cartoes: [
+    { id: "outro", titulo: "Outro computador", icone: "computador", linhas: [
+      { g: "exportar-conf", r: "Guardar ajustes", b: "Guardar ajustes" },
+      { g: "importar", r: "Trazer ajustes", b: "Trazer ajustes" },
+    ] },
+    { id: "atualizar", titulo: "Atualizar", icone: "girar", linhas: [
+      { a: "sistema_atualizar", r: "Atualizar a máquina", b: "Atualizar" },
+      { a: "sistema_ver", r: "O que muda", b: "Ver" },
+      { a: "sistema_limpar", r: "Limpar", b: "Limpar" },
+    ] },
+    { id: "instalar", titulo: "Instalar de novo", icone: "baixar", linhas: [
+      { a: "instalar", r: "Instalar tudo", b: "Instalar" },
+    ] },
+  ],
+  blocos: [
+    { titulo: "Sozinho", linhas: [
+      { c: "AUTO_REPARO", r: "Conferir todo dia" },
+      { c: "AUTO_REPARO_NOTIFICAR", r: "Avisar o conserto", sub: true },
+      { c: "ASSETS_VIGIA", r: "Mascote novo entra" },
+      { c: "ASSETS_VIGIA_NOTIFICAR", r: "Avisar o mascote", sub: true },
+      { c: "FLATPAK_VIGIA", r: "Ícones depois de atualizar" },
+      { c: "FLATPAK_VIGIA_NOTIFICAR", r: "Avisar os ícones", sub: true },
+      { c: "STEAM_VIGIA", r: "Jogo desinstalado sai" },
+      { c: "HEROIC_VIGIA", r: "Jogo do Heroic entra" },
+      { c: "PONTE_ROOT", r: "Consertos de sistema" },
+    ] },
+    { titulo: "Registro", linhas: [
+      { c: "LOG_NIVEL", r: "Quanto fala" },
+      { c: "BACKUPS_MANTIDOS", r: "Cópias guardadas" },
+      { a: "log", r: "Registro", b: "Ver" },
+    ] },
+  ],
+  perigo: [
+    { a: "desfazer", r: "Tema de antes", b: "Voltar" },
+    { a: "desinstalar", r: "Desinstalar", b: "Desinstalar" },
+  ],
+  mais: [{ a: "restaurar", r: "Restaurar", b: "Restaurar" }],
+};
+
+/* A barra de cima (e o menu dela, com os créditos) e a janela do trabalho. */
+const LUGAR_TOPO = [
+  { g: "salvar", r: "Aplicar" },
+  { g: "descartar", r: "Desfazer" },
+  { g: "ensaio", r: "Ver sem mudar" },
+  { g: "busca", r: "Procurar um ajuste" },
+  { g: "creditos", r: "Créditos" },
+  { g: "exportar-pagina", r: "Esta tela num arquivo" },
+];
+const LUGAR_JANELA = [
+  { g: "parar", r: "Parar" },
+  { g: "guardar-log", r: "Guardar" },
+  { g: "ensaio-rodar", r: "Rodar de verdade" },
+];
+
+/* A tabela inteira, plana: o que a migração e a busca leem. */
+function inventarioDoPainel() {
+  const saida = [];
+  const pus = (l, porta, pagina, bloco, mais) => {
+    const base = { porta, pagina, bloco, mais: !!mais, rotulo: l.r };
+    if (l.c) for (const c of [].concat(l.c)) saida.push({ ...base, tipo: "chave", id: c });
+    else if (l.a) saida.push({ ...base, tipo: "acao", id: l.a });
+    else if (l.g) saida.push({ ...base, tipo: "gesto", id: l.g });
+  };
+  for (const l of LUGAR_TEMA.packs) pus(l, "tema", "Tema", "Temas");
+  for (const b of LUGAR_TEMA.blocos) for (const l of b.linhas) pus(l, "tema", "Tema", b.titulo);
+  for (const l of LUGAR_TEMA.mais) pus(l, "tema", "Tema", "Mais ajustes", true);
+  for (const p of PASSOS) {
+    for (const l of p.linhas) pus(l, "criar", p.nome, p.nome);
+    for (const l of p.mais || []) pus(l, "criar", p.nome, "Mais ajustes", true);
+  }
+  for (const p of AJUSTES) {
+    for (const l of p.cabeca || []) pus(l, "ajustes", p.nome, p.nome);
+    for (const b of p.blocos) for (const l of b.linhas) pus(l, "ajustes", p.nome, b.titulo);
+    for (const l of p.mais || []) pus(l, "ajustes", p.nome, "Mais ajustes", true);
+  }
+  for (const l of LUGAR_CUIDAR.estado) pus(l, "cuidar", "Cuidar", "Estado");
+  for (const l of LUGAR_CUIDAR.pendencias) pus(l, "cuidar", "Cuidar", "Pendências");
+  for (const c of LUGAR_CUIDAR.cartoes) for (const l of c.linhas) pus(l, "cuidar", "Cuidar", c.titulo);
+  for (const b of LUGAR_CUIDAR.blocos) for (const l of b.linhas) pus(l, "cuidar", "Cuidar", b.titulo);
+  for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Cuidar", "Zona de perigo");
+  for (const l of LUGAR_CUIDAR.mais) pus(l, "cuidar", "Cuidar", "Mais ajustes", true);
+  for (const l of LUGAR_TOPO) pus(l, "topo", "Barra de cima", "Barra de cima");
+  for (const l of LUGAR_JANELA) pus(l, "janela", "Janela do trabalho", "Janela do trabalho");
+  return saida;
+}
+
+if (typeof module !== "undefined") {
+  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_TOPO, LUGAR_JANELA, inventarioDoPainel };
+}
