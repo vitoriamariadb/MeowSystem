@@ -27,3 +27,28 @@ ficam sem o tema, e se o tema Dracula antigo sumir (P95) eles ficam sem ícone.
 ## Como se prova
 Teste em casa de brinquedo com `flatpak` falso: o doctor vê, o `--consertar` aplica, a segunda passada não
 escreve, trocar de pack troca o override, o desinstalador devolve. `tests/todos.sh` verde duas vezes.
+
+## Execução (23/10)
+
+Feito tudo menos o último item da cura (desativar os dois scripts no NitroKit), que é pós-install.
+
+| item da cura | onde | situação |
+|---|---|---|
+| override do Flatpak do usuário veste o tema | `scripts/flatpak_tema.sh`, etapa `flatpak_tema` do `install.sh` | feito |
+| par `chk_`/`fix_` no doctor | `flatpaktema` (usuário) e `flatpakglobal` (sistema) no `bin/meow` | feito |
+| troca junto com o pack | lê `NOME_TEMA_ICONES`, `CURSOR` e o `gtk-theme` do que está no ar a cada passada | feito |
+| o desinstalador devolve o de antes | `reverter` guarda e devolve só as chaves e pastas que ele mexeu (`flatpak-tema-antes.tsv`) | feito |
+| override global do sistema | lido; só o que aponta para tema que não existe sai, pela ponte root (verbo `flatpak-global-limpar`); sem a ponte vira a pendência `flatpak-global-sistema`, com botão | feito |
+| LibreOffice sai de tudo | fora de `LANCADOR_OCULTAR`, de `ocultar_apps.sh`, do `pack.py` e do `docs/PACKS.md`; `docs/historico/` e as medições antigas ficam | feito |
+| NitroKit: itens no contrato | `nitrokit-unificador-temas` e `nitrokit-ritual-harmonia`, com `requer` em `scripts/flatpak_tema.sh:flatpak override --user` | feito |
+| NitroKit: desativar | `scripts/vizinhos.sh --desativar` depois do install | **fica para depois do install** |
+
+**Prova:** `tests/flatpak-tema.sh`, em casa de brinquedo, com `flatpak`, `sudo` e `gsettings` falsos e uma
+cópia da ponte com os destinos trocados: o doctor vê sem escrever, o `--consertar` aplica, a segunda passada
+não escreve, trocar de pack troca o override, o global só perde o que aponta para o vazio, a ponte recusa
+chave e valor que não são dela, o desinstalador devolve o arquivo byte a byte, e os dois itens do NitroKit
+esperam o MeowSystem instalado que cuida do Flatpak. Também prova que o MeowSystem não cita o LibreOffice.
+Está no `tests/todos.sh`.
+
+**Fica de fora:** desativar os dois scripts no NitroKit (precisa do install rodado, para o `requer` passar);
+remover os pacotes do LibreOffice da máquina (outra tarefa, decidida à parte).
