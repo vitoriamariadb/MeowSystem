@@ -46,6 +46,10 @@ Feito tudo menos o último item da cura (desativar os dois scripts no NitroKit),
 | o desinstalador devolve o de antes | `reverter` guarda e devolve só as chaves e pastas que ele mexeu (`flatpak-tema-antes.tsv`) | feito |
 | override global do sistema | lido; só o que aponta para tema que não existe sai, pela ponte root (verbo `flatpak-global-limpar`); sem a ponte vira a pendência `flatpak-global-sistema`, com botão | feito |
 | LibreOffice sai de tudo | fora de `LANCADOR_OCULTAR`, de `ocultar_apps.sh`, do `pack.py` e do `docs/PACKS.md`; `docs/historico/` e as medições antigas ficam | feito |
+| o install troca o LibreOffice pelo OnlyOffice | `scripts/escritorio.sh`, etapa `escritorio` do `install.sh` (antes da `apps`, que veste o OnlyOffice); o OnlyOffice vem do Flathub com `flatpak install --user` quando falta, e o `purge` dos `libreoffice*` só roda com ele instalado | feito |
+| a ponte root tira e devolve | verbos `libreoffice-remover` (sem argumento; recusa inteiro se o apt levasse junto o que não é do LibreOffice) e `libreoffice-devolver` (stdin, só nomes `libreoffice*`) | feito |
+| doctor do escritório | `onlyoffice` (usuário, com rede) e `libreoffice` (root) no `bin/meow`, ambos antes de `apps`; sem a ponte, `libreoffice` entra no `SEM_CONSERTO` e vira a pendência `libreoffice-sistema`, com botão | feito |
+| o desinstalador devolve o LibreOffice | `escritorio.sh reverter`, antes de a ponte sair, com a lista guardada em `libreoffice-antes.tsv`; o OnlyOffice instalado fica | feito |
 | NitroKit: itens no contrato | `nitrokit-unificador-temas` e `nitrokit-ritual-harmonia`, com `requer` em `scripts/flatpak_tema.sh:flatpak override --user` | feito |
 | NitroKit: desativar | `scripts/vizinhos.sh --desativar` depois do install | **fica para depois do install** |
 
@@ -53,8 +57,15 @@ Feito tudo menos o último item da cura (desativar os dois scripts no NitroKit),
 cópia da ponte com os destinos trocados: o doctor vê sem escrever, o `--consertar` aplica, a segunda passada
 não escreve, trocar de pack troca o override, o global só perde o que aponta para o vazio, a ponte recusa
 chave e valor que não são dela, o desinstalador devolve o arquivo byte a byte, e os dois itens do NitroKit
-esperam o MeowSystem instalado que cuida do Flatpak. Também prova que o MeowSystem não cita o LibreOffice.
+esperam o MeowSystem instalado que cuida do Flatpak. Também prova que o LibreOffice não está escondido em lugar nenhum (nem `startcenter`, nem no `meow.conf.exemplo`, `pack.py` e `docs/PACKS.md`).
 Está no `tests/todos.sh`.
 
-**Fica de fora:** desativar os dois scripts no NitroKit (precisa do install rodado, para o `requer` passar);
-remover os pacotes do LibreOffice da máquina (outra tarefa, decidida à parte).
+`tests/escritorio.sh`, com `flatpak`, `dpkg-query`, `apt-get` e `sudo` falsos e a cópia da ponte: o doctor vê sem
+escrever; o LibreOffice só sai com o OnlyOffice no lugar (sem rede, ele fica); sem a ponte vira pendência com
+botão e não pede senha; com a ponte saem só os `libreoffice*` (o de configuração sobrada também) e o vizinho
+fica; a segunda passada não escreve; a ponte recusa o que o apt levaria junto, nome de fora e de shell; o
+desinstalador devolve os pacotes, e sem a ponte só avisa onde a lista ficou. Também no `tests/todos.sh`.
+
+**Fica de fora:** desativar os dois scripts no NitroKit (precisa do install rodado, para o `requer` passar).
+Os pacotes do LibreOffice desta máquina só saem quando o install rodar: nada de apt de verdade aqui. O
+desinstalador não tira o OnlyOffice que o install trouxe, porque é o escritório em uso.
