@@ -56,8 +56,9 @@
 #     09/10/2026) instala só nomes de uma lista LITERAL aqui dentro — ver o
 #     bloco dele;
 #   · não apaga nada fora dos dois caminhos do hook de apt e do da completion
-#     do zsh (este desde a P47, 24/09/2026), e das três chaves de tema do
-#     override global do Flatpak que apontam para tema que não existe.
+#     do zsh (este desde a P47, 24/09/2026), das três chaves de tema do
+#     override global do Flatpak que apontam para tema que não existe, e dos
+#     pacotes `libreoffice*` que o dpkg diz estarem instalados.
 #
 # O QUE ELA CUSTA, DITO SEM ENFEITE: quem puder rodar comando como a dona da
 # máquina passa a poder, sem senha, marcar `.desktop` de sistema, atualizar os
@@ -120,6 +121,12 @@ conferir_desktop() {
   esac
   [ "${#nome}" -le 128 ] || morrer "nome comprido demais"
   [ -f "$APLICATIVOS/$nome" ] || morrer "$APLICATIVOS/$nome não existe — esta ponte edita, não cria" 3
+}
+
+# Os `libreoffice*` instalados (ou só com a configuração que sobrou), um por linha.
+libreoffice_instalados() {
+  dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'libreoffice*' 2>/dev/null \
+    | awk '$1 ~ /^.[ic]/ && $2 ~ /^libreoffice/ { print $2 }'
 }
 
 verbo="${1:-}"
@@ -337,6 +344,42 @@ flatpak-global-limpar)
   anotar "flatpak-global-limpar $(tr '\n' ' ' < "$pedidos")"
   ;;
 
+# --- o LibreOffice sai (o escritório é o OnlyOffice) --------------------------
+# `libreoffice-remover` não recebe nada: a lista é a que o dpkg dá para
+# `libreoffice*` AGORA, e só nomes que começam por `libreoffice` passam. Antes do
+# `purge` o apt simula, e se a remoção levaria junto qualquer pacote que não seja
+# do LibreOffice o verbo recusa inteiro: tirar o LibreOffice não derruba o resto.
+libreoffice-remover)
+  mapfile -t pacotes < <(libreoffice_instalados)
+  [ "${#pacotes[@]}" -gt 0 ] || exit 0
+  export DEBIAN_FRONTEND=noninteractive
+  simulado="$(apt-get -s purge "${pacotes[@]}" 2>/dev/null)" || morrer "o apt não simulou a remoção"
+  outros="$(printf '%s\n' "$simulado" | awk '/^Remv/ && $2 !~ /^libreoffice/ { printf "%s ", $2 }')"
+  [ -z "$outros" ] || morrer "o apt tiraria junto o que não é do LibreOffice ($outros): não toco em nada"
+  anotar "libreoffice-remover ${#pacotes[@]} pacotes"
+  apt-get purge -y "${pacotes[@]}" || exit 2
+  ;;
+
+# `libreoffice-devolver` é a volta, para o desinstalador: os nomes entram por
+# stdin, um por linha, e só passa quem começa por `libreoffice` com os
+# caracteres de um nome de pacote. Um nome fora derruba o verbo antes do apt.
+libreoffice-devolver)
+  pedidos=()
+  while IFS= read -r nome || [ -n "${nome:-}" ]; do
+    [ -n "$nome" ] || continue
+    case "$nome" in
+      libreoffice*) ;;
+      *) morrer "pacote fora do LibreOffice: $nome" ;;
+    esac
+    case "$nome" in *[!a-z0-9.+-]*) morrer "nome de pacote inválido" ;; esac
+    pedidos+=("$nome")
+  done
+  [ "${#pedidos[@]}" -gt 0 ] || morrer "stdin vazio"
+  export DEBIAN_FRONTEND=noninteractive
+  anotar "libreoffice-devolver ${#pedidos[@]} pacotes"
+  apt-get install -y --no-install-recommends "${pedidos[@]}" || exit 2
+  ;;
+
 # --- a máquina em dia ------------------------------------------------------
 # `full-upgrade` dos repositórios JÁ configurados. Esta ponte não acrescenta
 # repositório, não instala pacote por nome e não roda `.deb`.
@@ -451,6 +494,8 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE completion-instalar, \\
     $PONTE completion-remover, \\
     $PONTE flatpak-global-limpar, \\
+    $PONTE libreoffice-remover, \\
+    $PONTE libreoffice-devolver, \\
     $PONTE atualizar, \\
     $PONTE pacotes, \\
     $PONTE limpar, \\
@@ -464,8 +509,8 @@ REGRA_FIM
   sed -n '2,60p' "$0"
   printf '\nverbos: desktop · desktop-banco · greeter-ver · greeter-aplicar ·\n'
   printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
-  printf '        completion-remover · flatpak-global-limpar · atualizar · pacotes ·\n'
-  printf '        limpar · estado ·\n'
+  printf '        completion-remover · flatpak-global-limpar · libreoffice-remover ·\n'
+  printf '        libreoffice-devolver · atualizar · pacotes · limpar · estado ·\n'
   printf '        regra-sudo\n'
   ;;
 
