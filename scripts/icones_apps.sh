@@ -117,6 +117,8 @@ _ler_alheios() {
   return 0
 }
 
+# A proteção é por CAMINHO: o arquivo que ela escolheu fica, e os meus degraus do
+# mesmo nome saem — protegido o nome, o resolvedor pegaria o meu e não o dela.
 _nao_e_meu() {
   local arq="$1" nome="$2"
   [ -n "${ALHEIO_ARQ[${arq#"$BASE_TEMA/"}]:-}" ] && return 0

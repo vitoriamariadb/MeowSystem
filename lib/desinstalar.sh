@@ -45,6 +45,9 @@ meow_desinstalar() {
     # A LISTA NOMEADA ACIMA NÃO É REDUNDANTE COM ESTE `find`, e quem acrescentar
     # unidade nova precisa saber: o `find` APAGA o arquivo, o `disable --now` é
     # que PARA a unidade viva e tira os links.
+    while IFS= read -r -d '' u; do meow_guardar_antes "$u"; done < <(
+      find "$HOME/.config/systemd/user" -maxdepth 2 -name 'meow-*' \
+        \( -name '*.service' -o -name '*.timer' -o -name '*.path' \) -print0 2>/dev/null)
     find "$HOME/.config/systemd/user" -maxdepth 1 -name 'meow-*' \
       \( -name '*.service' -o -name '*.timer' -o -name '*.path' \) -delete 2>/dev/null || true
     # O CINTO DOS LINKS, e ele não é redundância da lista acima: é o caso em que
@@ -74,7 +77,7 @@ meow_desinstalar() {
       # Sem sudo não apagamos escondido nem falhamos calados — mesma conduta da
       # completion no passo 6.
       meow_aviso "sem sudo para remover o hook de apt do lançador"
-      meow_info "  rode: sudo rm -f $hook $wrapper"
+      meow_info "  ficaram, por serem do root: $hook e $wrapper"
     fi
   fi
 
@@ -89,7 +92,7 @@ meow_desinstalar() {
       meow_ok "completion do zsh removida de $comp_sistema"
     else
       meow_aviso "sem sudo para remover a completion do zsh"
-      meow_info "  rode: sudo rm -f $comp_sistema"
+      meow_info "  ficou, por ser do root: $comp_sistema"
     fi
   fi
 
@@ -110,7 +113,7 @@ meow_desinstalar() {
       # falhamos calados. E aqui o aviso pesa mais, porque o que fica é
       # privilégio, não configuração.
       meow_aviso "sem sudo para remover a ponte root — a regra de sudo sem senha FICOU"
-      meow_info "  rode: sudo rm -f $regra_ponte && sudo rm -rf $braco_ponte"
+      meow_info "  ficaram, por serem do root: $regra_ponte e $braco_ponte"
     fi
   fi
 
@@ -216,7 +219,7 @@ meow_desinstalar() {
         meow_pula "mudou depois que escrevemos, fica: $alvo"
         continue
       fi
-      if meow_seco; then meow_muda "removeria $alvo"; else rm -f "$alvo"; fi
+      if meow_seco; then meow_muda "removeria $alvo"; else meow_guardar_antes "$alvo"; rm -f "$alvo"; fi
       n=$((n+1))
     done < "$MEOW_MANIFESTO"
     meow_seco || meow_ok "$n arquivo(s) removidos pelo manifesto"
@@ -238,7 +241,10 @@ meow_desinstalar() {
              "$HOME/.local/state/meowsystem/midia" \
              "$HOME/.local/state/meowsystem/leitura"; do
     [ -d "$dir" ] || continue
-    if meow_seco; then meow_muda "removeria $dir/"; else rm -rf "$dir"; meow_ok "removido $dir/"; fi
+    if meow_seco; then meow_muda "removeria $dir/"; continue; fi
+    # As árvores de build se refazem sozinhas; as outras voltam com o Restaurar.
+    case "$dir" in */meowsystem/midia|*/meowsystem/leitura) ;; *) meow_guardar_pasta "$dir" ;; esac
+    rm -rf "$dir"; meow_ok "removido $dir/"
   done
 
   # A MARCA DE DONO É A MESMA DO CONSTRUTOR: só sai o diretório com o
@@ -303,7 +309,7 @@ meow_desinstalar() {
   for derivada in "$acervo/ativos-noite" "$acervo/ativos-dia"; do
     [ -d "$derivada" ] || continue
     if meow_seco; then meow_muda "removeria $derivada/ (derivada, link duro)"
-    else rm -rf "$derivada"; meow_ok "removido $derivada/ (derivada, link duro)"; fi
+    else meow_guardar_pasta "$derivada"; rm -rf "$derivada"; meow_ok "removido $derivada/ (derivada, link duro)"; fi
   done
   if ! meow_seco; then
     meow_tem gtk-update-icon-cache && gtk-update-icon-cache -f "$HOME/.local/share/icons" 2>/dev/null
@@ -314,18 +320,21 @@ meow_desinstalar() {
   if meow_seco; then
     meow_muda "removeria ~/.local/bin/meow e a completion do zsh"
   else
+    meow_guardar_antes "$HOME/.local/bin/meow"
     rm -f "$HOME/.local/bin/meow"
     # Quem apontou o MEOW_COMPLETIONS_DIR para um diretório do root continua
     # ouvindo o comando em vez de ver uma falha calada.
     COMP_MEOW="${MEOW_COMPLETIONS_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions}/_meow"
     if [ -e "$COMP_MEOW" ]; then
       if [ -w "$(dirname "$COMP_MEOW")" ]; then
+        meow_guardar_antes "$COMP_MEOW"
         rm -f "$COMP_MEOW"
       else
         meow_info "a completion é do root: sudo rm -f $COMP_MEOW"
       fi
     fi
     unset COMP_MEOW
+    meow_guardar_antes "$MEOW_ESTADO/raiz"
     rm -f "$MEOW_ESTADO/raiz"
     meow_ok "CLI removida"
   fi
@@ -339,7 +348,7 @@ meow_desinstalar() {
     if meow_seco; then
       meow_muda "removeria $temas_gerados/ (.ron gerados, regeráveis pela paleta)"
     else
-      rm -rf "$temas_gerados"; meow_ok "removido $temas_gerados/ (.ron gerados)"
+      meow_guardar_pasta "$temas_gerados"; rm -rf "$temas_gerados"; meow_ok "removido $temas_gerados/ (.ron gerados)"
     fi
   fi
 
@@ -350,7 +359,7 @@ meow_desinstalar() {
   if [ -d "$MEOW_ESTADO/papeis-de-parede" ]; then
     meow_info "  menos $MEOW_ESTADO/papeis-de-parede/ — é a sua curadoria de papel de parede"
   fi
-  meow_info "se LANCADOR_SISTEMA era \"sim\": rode antes  meow desfazer --lancador"
+  meow_info "os .desktop do sistema que o lançador escondia voltam com o «Voltar ao tema de antes»"
   return 0
 }
 
@@ -367,7 +376,7 @@ meow_desinstalar_bases_de_icones() {
     elif meow_seco; then
       meow_muda "removeria $dir/"
     else
-      rm -rf "$dir"; meow_ok "removido $dir/"
+      meow_guardar_pasta "$dir"; rm -rf "$dir"; meow_ok "removido $dir/"
     fi
   done
 }

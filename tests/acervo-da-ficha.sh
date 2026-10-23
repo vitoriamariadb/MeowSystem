@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # acervo-da-ficha.sh — a ficha de ícone oferece o acervo inteiro, em pastas.
+# Não escreve nada: as rotas rodam no processo, com HOME de brinquedo.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 

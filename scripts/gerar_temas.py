@@ -281,7 +281,7 @@ def main() -> int:
         print(f"  gerado  {destino.name}  ({flavor} / {accent})")
 
     if args.conferir and divergentes:
-        print(f"\n{len(divergentes)} arquivo(s) fora do esperado. Rode sem --conferir para regerar.")
+        print(f"\n{len(divergentes)} arquivo(s) fora do esperado; a próxima passada que aplica os regera.")
         return 1
     if args.conferir and ausentes:
         # 3 é o `MEOW_SEM_DEPENDENCIA` do projeto: "não dá para conferir, falta

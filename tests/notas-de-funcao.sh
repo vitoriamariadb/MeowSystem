@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # notas-de-funcao.sh — as notas de função que as revisões da leva D2 deixaram.
 # `sudo` falso na frente do PATH: com `NOPASSWD`, o de verdade escreveria no sistema.
+# Tudo de brinquedo, `env -i`, ponte apontando para o vazio e `sudo` falso; no fim
+# o teste confere que o repositório não mudou.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0

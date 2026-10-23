@@ -9,6 +9,9 @@
 #   ./files_menu.sh remover     tira o nosso e devolve o do pacote
 #
 # 1. QUEM DESENHA A ÁREA DE TRABALHO NÃO É O `cosmic-files`
+# Os binários vão para `~/.local/bin`, que vem antes de `/usr/bin` no PATH: sem sudo
+# e fora do que o apt sobrescreve. Sem artefato da versão nova do pacote, os nossos
+# saem e vale o do apt — nunca um binário velho na frente do novo.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # leitura-fonte-unica.sh — o modo de leitura tem UMA fonte de verdade. `sudo`
 # falso na frente do PATH: com `NOPASSWD`, o de verdade escreveria no sistema.
+# `env -i`, HOME temporário com o COSMIC dentro e um `sudo` falso no PATH.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 

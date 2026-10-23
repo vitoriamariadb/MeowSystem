@@ -2205,7 +2205,7 @@ def paleta_de_csv(caminho):
     # O Excel em português salva "CSV" com ';', porque a vírgula é o decimal
     # daqui — é o CSV mais provável de chegar.
     dica = ("\n    O separador é a vírgula, e este arquivo usa ';' — é como o Excel em\n"
-            "    português salva. Troque os ';' por ',' e rode de novo."
+            "    português salva; o formato pede ','."
             if len(cab) == 1 and ";" in cab[0] else "")
     _exigir(tuple(c.lower() for c in cab) == COLUNAS_CSV,
             f"{nome}:{n_cab}: a primeira linha tem de ser o cabeçalho "
@@ -3850,7 +3850,7 @@ def cmd_info(ref):
             try:
                 b = base_de_icones(ref)
             except Recusa:
-                b, conta = None, "a origem declarada não valida — rode o `validar`"
+                b, conta = None, "a origem declarada não valida"
             else:
                 if b:
                     conta = f"{_url_curta(b['url'])}, sha256 {b['sha256'][:12]}…, do pack {b['pack']}"
@@ -3892,7 +3892,7 @@ def cmd_info(ref):
                 conta = (f"{len(lista)} fonte(s), do pack {quem_f}" if quem_f
                          else "" if tipo == "motor" else "a cadeia não traz fonte")
             except Recusa:
-                conta = "a lista herdada não valida — rode o `validar` do pack base"
+                conta = "a lista herdada não valida no pack base"
         # DE ONDE O PAPEL DE PAREDE SAI, como nas fixas do motor. A segunda
         # metade é o porquê de o bloco declarado não mudar a linha: ver "OS
         # PAPÉIS DE PAREDE SÃO DO MOTOR", no `origens`.
@@ -3948,7 +3948,7 @@ def plano_de_uso(ref, flavor=None, flavor_atual=None):
             f"o pack em {dir_pack} não é o que o id {ident!r} encontra.\n"
             f"    O meow.conf nomeia pack por id, procurado nesta ordem:\n      "
             + "\n      ".join(raizes())
-            + f"\n    Ponha o diretório em {os.path.join(raizes()[-2], ident)}/ e rode de novo.")
+            + f"\n    O pack vale a partir de {os.path.join(raizes()[-2], ident)}/.")
     flavors = list(dados["flavors"])
     if flavor:
         _exigir(flavor in dados["flavors"],
@@ -5379,8 +5379,8 @@ def montar_novo(ident, csv=None):
         sobre_paleta += "\n\n"
         autorais = (f"## Os ícones autorais\n\n"
                     f"`icones/apps/autorais/` foi desenhado pelo `meow pack construir`, nas cores "
-                    f"desta paleta: os desenhos são os do MeowSystem. Mudou a paleta? Rode-o "
-                    f"de novo.\n\n")
+                    f"desta paleta: os desenhos são os do MeowSystem, e se refazem quando a "
+                    f"paleta muda.\n\n")
     else:
         origem = ", ".join(x for x in (f"autor {pf['autor']}" if pf.get("autor") else "",
                                        f"licença {pf['licenca']}" if pf.get("licenca") else "",

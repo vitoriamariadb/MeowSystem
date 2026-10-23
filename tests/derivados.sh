@@ -10,6 +10,7 @@
 #   · o desenho apagado leva junto a cópia dele no tema;
 #   · o doctor (`--conferir`) vê o que o vigia perdeu, e só lê;
 #   · a unidade `.path` vigia cada pasta das três, e não outra coisa.
+# Cópia da árvore, HOME temporário, sem barramento e falsos que recusam escrita.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0

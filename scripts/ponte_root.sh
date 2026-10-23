@@ -208,7 +208,7 @@ greeter-aplicar)
 # A origem NÃO vem do chamador: vem do arquivo que o instalador gravou como
 # root. Ver o comentário do `PERFIL`.
 apt-hook-instalar)
-  [ -r "$PERFIL" ] || morrer "o perfil não foi registrado — rode ./install.sh" 3
+  [ -r "$PERFIL" ] || morrer "o perfil não foi registrado: o «Instalar tudo» o registra" 3
   raiz=""; usuaria=""; lar=""
   # `|| [ -n "$chave" ]` NÃO É DEFENSIVA À TOA: um arquivo sem `\n` na última
   # linha faz o `read` devolver 1 no fim, e o `while` descarta a linha que ele
@@ -270,7 +270,7 @@ apt-hook-remover)
 #   esta ponte não cria diretório de sistema: sem ele, 3.
 completion-instalar)
   [ -d "${COMPLETION%/*}" ] || morrer "${COMPLETION%/*} não existe" 3
-  [ -r "$PERFIL" ] || morrer "o perfil não foi registrado — rode ./install.sh" 3
+  [ -r "$PERFIL" ] || morrer "o perfil não foi registrado: o «Instalar tudo» o registra" 3
   raiz="$(sed -n 's/^raiz=//p' "$PERFIL" | head -n1)"
   case "$raiz" in /*) ;; *) morrer "raiz inválida no perfil" ;; esac
   fonte="$raiz/assets/zsh/_meow"

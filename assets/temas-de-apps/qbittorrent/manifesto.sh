@@ -299,6 +299,7 @@ _meow_qbt_receita() {
 # Backup obrigatório antes de sobrescrever qualquer arquivo dela.
 _meow_qbt_backup() {
   local alvo="$1" dir base
+  meow_guardar_antes "$1"
   [ -e "$alvo" ] || return 0
   base="$(basename "$alvo")"
   # Carimbo ISO com `-` no lugar do `:` — é o formato que os outros módulos já
@@ -935,7 +936,7 @@ meow_app_reverter() {
   if [ -f "$destino" ]; then
     if grep -qxF "General\\CustomUIThemePath=$destino" "$conf_dir/qBittorrent.conf" 2>/dev/null; then
       meow_aviso "o conf ainda aponta para $destino — o Aurora adiou a gravação (download em andamento?)"
-      meow_aviso "o .qbtheme fica onde está; rode de novo com o app ocioso"
+      meow_aviso "o .qbtheme fica onde está; a próxima passada com o app ocioso troca"
     elif rm -f "$destino"; then
       mudou=1; meow_muda "tema removido de $destino"
     fi

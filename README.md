@@ -44,7 +44,7 @@ meow ativar               # todas as outras
 ```
 
 São 63 etapas. Numa máquina já pronta, rodar de novo **não escreve um byte** e diz isso. Para
-ensaiar antes: `MEOW_DRY_RUN=1 ./install.sh`, ou **Ver o que faria** no painel.
+ensaiar antes: `MEOW_DRY_RUN=1 ./install.sh`, ou **Ver sem mudar** no painel.
 
 A senha do sudo é pedida **uma vez**, para registrar a ponte root: um conjunto fechado de verbos
 (`.desktop` do sistema, tela de login, hook do apt, dependências) que depois roda sem senha.
@@ -76,7 +76,7 @@ areia. Extensão do VS Code pedida por pack importado só se instala por um gest
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-122 ajustes e 64 ações em catorze páginas: a Início e treze de assunto. O menu tem dois blocos:
+122 ajustes e 67 ações em catorze páginas: a Início e treze de assunto. O menu tem dois blocos:
 **Tópicos** (a sua tela) e **Sistema** (o que a máquina faz sozinha).
 
 ### A interface mostra, em vez de explicar
@@ -110,7 +110,7 @@ só aquele bloco.
 Toda variável que o instalador lê tem um controle aqui, e um teste cobra isso.
 
 Clicar não muda a máquina: as escolhas se acumulam e **Salvar e aplicar** grava e roda o
-instalador. **Ver o que faria** ensaia sem escrever. **Restaurar ao padrão** volta ao valor de
+instalador. **Ver sem mudar** ensaia sem escrever. **Restaurar ao padrão** volta ao valor de
 fábrica. Ação que baixa da internet leva o selo de rede.
 
 <img src="docs/capturas/painel-forma.png" width="920" alt="A aba Painel e dock, com o desenho do painel e da dock acima dos controles">

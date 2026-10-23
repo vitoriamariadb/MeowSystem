@@ -461,6 +461,7 @@ PY
 # Code, que documenta a medição).
 _heroic_backup() {
   local origem="$1" carimbo destino rel
+  meow_guardar_antes "$1"
   [ -f "$origem" ] || return 0
   carimbo="${MEOW_CARIMBO:-$(date +%Y-%m-%dT%H-%M-%S)}"
   destino="$MEOW_ESTADO/backups/$carimbo"
@@ -583,7 +584,7 @@ meow_app_aplicar() {
   }
 
   if _heroic_rodando; then
-    meow_pula "o Heroic está aberto — ele reescreve a configuração ao sair; feche e rode de novo"
+    meow_pula "o Heroic está aberto — ele reescreve a configuração ao sair; a próxima passada com ele fechado aplica"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -662,7 +663,7 @@ meow_app_reverter() {
   pasta="$dir/themes"
 
   if _heroic_rodando; then
-    meow_pula "o Heroic está aberto — feche e rode de novo"
+    meow_pula "o Heroic está aberto — a próxima passada com ele fechado aplica"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 

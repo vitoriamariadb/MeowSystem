@@ -3,6 +3,8 @@
 #
 #   ./jogos_heroic.sh              escreve, limpa e converge
 #   ./jogos_heroic.sh --conferir   não escreve nem apaga; 1 se algo divergir
+#   ./jogos_heroic.sh --listar     os jogos instalados, um por linha: id, título,
+#                                  arte e se está no lançador (sim|nao); só lê
 #
 # Ligar as duas chaves DELE seria o contorno óbvio e é o errado: o Heroic só
 # escreve o atalho no momento da instalação (`addShortcuts` é chamado no fim do
@@ -26,11 +28,30 @@ HICOLOR="$HOME/.local/share/icons/hicolor"
 ICONE_PADRAO="com.heroicgameslauncher.hgl"
 
 # --- o mesmo verbo dos outros módulos, e a mesma armadilha do seco ------------
+# `MEOW_SECO` é congelado no `source` do comum.sh: o `--conferir` o liga aqui, direto,
+# ou apagaria arquivo dizendo que era conferência.
+LISTAR=0
 case "${1:-}" in
   --conferir) MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
+  --listar) LISTAR=1; MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
   ''|--aplicar) ;;
-  *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar|--listar]"; exit "$MEOW_ERRO" ;;
 esac
+
+# Os jogos que ela tirou do lançador pelo interruptor do painel: um id por linha.
+HEROIC_FORA="${MEOW_HEROIC_FORA:-$HOME/.config/meow/jogos-heroic-fora.list}"
+heroic_fora() { [ -f "$HEROIC_FORA" ] && grep -qxF -- "$1" "$HEROIC_FORA"; }
+
+# O interruptor do painel: tira ou devolve um id na lista, antes da passada.
+_heroic_lista_trocar() {
+  local tirar="${MEOW_HEROIC_TIRAR:-}" por="${MEOW_HEROIC_POR:-}" atual novo
+  [ -n "$tirar$por" ] || return 0
+  atual="$(cat "$HEROIC_FORA" 2>/dev/null)"
+  novo="$(printf '%s\n' "$atual" | grep -vxF -e "${por:-\x00}" -e "${tirar:-\x00}" | sed '/^$/d')"
+  [ -n "$tirar" ] && novo="$(printf '%s\n%s' "$novo" "$tirar" | sed '/^$/d')"
+  meow_escrever "$HEROIC_FORA" "$novo" 644
+  [ $? -le 1 ] || { meow_erro "não consegui gravar $HEROIC_FORA"; exit "$MEOW_ERRO"; }
+}
 
 meow_tem python3 || {
   meow_pula "sem python3 — não dá para ler a biblioteca do Heroic (é JSON)"
@@ -264,6 +285,7 @@ plantar_icone() {
     fi
     if meow_seco; then rm -f "$tmp"; mudou_algum=1; continue; fi
     chmod 644 "$tmp"
+    meow_guardar_antes "$destino"
     mv -f "$tmp" "$destino" || { rm -f "$tmp"; return 1; }
     mudou_algum=1
   done <<EOF_ESCADA
@@ -276,6 +298,8 @@ EOF_ESCADA
 
 # --- 1. os jogos, da biblioteca do Heroic para o lançador --------------------
 
+[ "$LISTAR" = "1" ] || _heroic_lista_trocar
+
 biblioteca="$(_heroic_motor)"; rc_motor=$?
 if [ "$rc_motor" = "2" ]; then
   # Não conseguimos LER a biblioteca.
@@ -285,9 +309,23 @@ fi
 
 mudou=0; jogos=0; escritos=0; sem_arte=0; vivos=""
 
+if [ "$LISTAR" = "1" ]; then
+  while IFS=$'\t' read -r runner app titulo arte; do
+    [ -n "$runner" ] && [ -n "$app" ] || continue
+    id="$(id_do_jogo "$runner" "$app")"
+    heroic_fora "$id" && no=nao || no=sim
+    printf '%s\t%s\t%s\t%s\n' "$id" "$titulo" "$arte" "$no"
+  done <<EOF_LISTA
+$biblioteca
+EOF_LISTA
+  exit "$MEOW_OK"
+fi
+
 while IFS=$'\t' read -r runner app titulo arte; do
   [ -n "$runner" ] && [ -n "$app" ] || continue
   id="$(id_do_jogo "$runner" "$app")"
+  # Fora do lançador a pedido: não entra em `vivos`, e a limpeza tira o cartão.
+  heroic_fora "$id" && continue
   jogos=$((jogos + 1))
   vivos="$vivos$id"$'\n'
 
@@ -346,6 +384,7 @@ for f in "$APPS"/meow-heroic-*.desktop; do
   else
     # Remove de TODO degrau — inclusive dos que saíram da escada quando a escala
     # da tela mudou; por isso o glob, e não a lista.
+    for g in "$f" "$HICOLOR"/*/apps/"$orfao".png; do [ -e "$g" ] && meow_guardar_antes "$g"; done
     rm -f "$f" "$HICOLOR"/*/apps/"$orfao".png
   fi
   mudou=1; removidos=$((removidos + 1))
@@ -365,6 +404,7 @@ for f in "$HICOLOR"/*/apps/meow-heroic-*.png; do
     meow_muda "removeria $f (degrau $degrau fora da escada desta tela)"
   else
     meow_destino_permitido "$f" || continue
+    meow_guardar_antes "$f"
     rm -f "$f"
   fi
   mudou=1; degraus_removidos=$((degraus_removidos + 1))
@@ -397,6 +437,7 @@ for f in "$APPS"/*.desktop; do
       meow_aviso "sem backup para $(basename "$f") — não removo o que não consigo guardar"
       continue
     }
+    meow_guardar_antes "$f"
     rm -f -- "$f"
     meow_muda "cartão duplicado removido: $(basename "$f") (cópia em $bkp)"
   fi
@@ -407,7 +448,7 @@ done
 
 _notas_finais() {
   [ "$sem_arte" -gt 0 ] &&
-    meow_info "$sem_arte jogo(s) ficaram com o ícone do Heroic: a capa ainda não está no disco — abra a biblioteca dele uma vez e rode de novo"
+    meow_info "$sem_arte jogo(s) ficaram com o ícone do Heroic: a capa ainda não está no disco — ela entra na próxima passada depois de o Heroic baixá-la"
   return 0
 }
 [ "$sem_arte" -gt 0 ] && trap _notas_finais EXIT

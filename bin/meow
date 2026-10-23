@@ -182,6 +182,8 @@ modo_desejado() {
   esac
 }
 
+# O doctor nunca usa sudo, e sem `--consertar` não escreve configuração: confere
+# chamando os mesmos scripts do install.sh com `MEOW_DRY_RUN=1`.
 is_dark_atual() { cat "$IS_DARK" 2>/dev/null || printf '?'; }
 
 # O ACERVO É A LISTA — não há mais variante do gato do projeto.
@@ -1114,7 +1116,7 @@ chk_autoreparo() {
   fi
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
-    echo "não há systemd --user nesta sessão — rode 'meow doctor --consertar' na mão"
+    echo "não há systemd --user nesta sessão — o conserto diário fica de fora; o «Conferir e consertar» faz o mesmo"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -1696,12 +1698,12 @@ fi
 #   pinado, e a regra dela é a do doctor que corrige; as razões do `cursor` e
 #   das `fontes` saíram com eles.]
 declare -A SEM_CONSERTO_RAZAO=(
-  [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — rode: ./install.sh"
-  [ocultar]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
-  [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
-  [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
+  [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — entra no «Instalar tudo»"
+  [ocultar]="o conserto usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [absolutos]="o conserto usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — a oficina de ícones reconverte o que você escolher"
   [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
-  [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
+  [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — entra no «Instalar tudo»"
   [pacotes]="sem a ponte root, instalar pacote pede a sua senha, e o auto-reparo não tem a quem pedir — o ./install.sh pede uma vez e instala a ponte"
 )
 
@@ -1857,6 +1859,15 @@ imprimir_check() {
   # 11, e não 10, desde 11/08/2026: `convertidos` é o primeiro nome de
   # verificador com 11 caracteres, e com 10 a coluna da direita saía uma casa
   # fora do prumo só naquela linha.
+  # O verificador que pula calado (a camada que não vale para o pack no ar) não
+  # deixa a linha da tabela vazia: ela diz o estado.
+  if [ -z "$linha" ]; then
+    case "${CHK_RC[$i]}" in
+      0) linha="confere" ;;
+      3|4) linha="não se aplica com o que está no ar" ;;
+      *) linha="saiu ${CHK_RC[$i]}, sem detalhe" ;;
+    esac
+  fi
   printf '  %s %s %s\n' "$rotulo" "$(pad "${CHK_NOME[$i]}" 11)" "$linha"
   if [ "$detalhar" = "1" ] && { [ "${CHK_RC[$i]}" != "0" ] || [ "$aviso" = "1" ]; }; then
     printf '%s\n' "$saida" | tail -n +2 | while IFS= read -r l; do
@@ -3489,6 +3500,11 @@ cmd_desfazer() {
       meow_muda "copiaria $primeiro/com.system76.CosmicTheme.* para $COSMIC/"
       return "$MEOW_DIVERGENTE"
     fi
+    if [ -n "${MEOW_BACKUPS:-}" ]; then
+      while IFS= read -r -d '' f; do
+        meow_guardar_antes "$COSMIC/${f#"$primeiro"/}"
+      done < <(find "$primeiro" -path "$primeiro/com.system76.CosmicTheme.*" -type f -print0)
+    fi
     cp -a "$primeiro"/com.system76.CosmicTheme.* "$COSMIC/" || return "$MEOW_ERRO"
     registrar "desfazer -> $primeiro"
     notificar "MeowSystem" "Tema devolvido ao estado de antes da instalação."
@@ -3518,7 +3534,7 @@ cmd_desfazer() {
   #   não "não me pergunte". Nenhum caminho automático a digita por engano.
   guarda_original "meow desfazer" \
     "o ponto de volta DESTA máquina nasce na primeira passagem do" \
-    "./install.sh (etapa 'backup_tema') — rode-o uma vez e tente de novo." \
+    "«Instalar tudo» (etapa 'backup_tema'); antes dela não há tema de antes." \
     || return "$MEOW_SEM_DEPENDENCIA"
   # Pergunta só quando há alguém para responder. Em automação (`| meow`, timer,
   # hook) segue sem perguntar — é a regra "zero pergunta em modo automático".
@@ -3536,6 +3552,55 @@ cmd_desfazer() {
     notificar "MeowSystem" "Tema devolvido para a captura original."
   fi
   return "$rc"
+}
+
+# Repõe o estado de antes de UMA execução: a pasta que o `MEOW_BACKUPS` dela
+# encheu (lib/restauro.sh). O que existia volta byte a byte; o que a execução
+# criou sai. De trás para a frente: a cópia mais antiga de um caminho é a que
+# vale. O painel recicla se um arquivo dele voltou; o tema o COSMIC relê sozinho.
+cmd_restaurar() {
+  local pasta="${1:-}" alvo estado painel=0 n=0 falhou=0 tmp
+  [ -n "$pasta" ] && [ -f "$pasta/tocados.tsv" ] || { meow_ok "nada a restaurar"; return "$MEOW_OK"; }
+  meow_travar || return "$MEOW_ERRO"
+  while IFS=$'\t' read -r alvo estado; do
+    case "$alvo" in /*) ;; *) continue ;; esac
+    meow_destino_permitido "$alvo" || { falhou=1; continue; }
+    if meow_seco; then meow_muda "devolveria $alvo"; n=$((n + 1)); continue; fi
+    case "$estado" in
+      existia)
+        mkdir -p "$(dirname "$alvo")" || { falhou=1; continue; }
+        tmp="$(mktemp -p "$(dirname "$alvo")" ".atomicwrite.meow.XXXXXX")" || { falhou=1; continue; }
+        rm -f -- "$tmp"
+        if cp -a -- "$pasta/antes$alvo" "$tmp" && mv -fT -- "$tmp" "$alvo"; then
+          meow_muda "voltou: ${alvo/#$HOME/\~}"
+          meow_manifesto_registrar "$alvo"
+        else
+          rm -f -- "$tmp"; falhou=1; continue
+        fi ;;
+      novo)
+        [ -e "$alvo" ] || [ -L "$alvo" ] || continue
+        rm -f -- "$alvo" || { falhou=1; continue; }
+        meow_muda "saiu: ${alvo/#$HOME/\~}" ;;
+      pasta)
+        rm -rf -- "$alvo" && mkdir -p "$(dirname "$alvo")" \
+          && cp -a -- "$pasta/antes$alvo" "$alvo" || { falhou=1; continue; }
+        meow_muda "voltou: ${alvo/#$HOME/\~}/" ;;
+      pasta-nova)
+        [ -e "$alvo" ] || continue
+        rm -rf -- "$alvo" || { falhou=1; continue; }
+        meow_muda "saiu: ${alvo/#$HOME/\~}/" ;;
+      *) continue ;;
+    esac
+    n=$((n + 1))
+    case "$alvo" in */com.system76.CosmicPanel*) painel=1 ;; esac
+  done < <(tac "$pasta/tocados.tsv")
+  if [ "$painel" = "1" ] && ! meow_seco; then
+    MEOW_QUEM_RECICLA="meow restaurar" "$RAIZ/scripts/painel.sh" reciclar || true
+  fi
+  [ "$falhou" = "1" ] && { meow_erro "parte do estado de antes não voltou"; return "$MEOW_ERRO"; }
+  [ "$n" -gt 0 ] && { registrar "restaurar -> $(basename "$pasta")"; meow_ok "o estado de antes voltou ($n arquivo(s))"; return "$MEOW_DIVERGENTE"; }
+  meow_ok "já estava como antes"
+  return "$MEOW_OK"
 }
 
 cmd_log() {
@@ -3612,7 +3677,7 @@ menu_numerado() {
   # Sem terminal não há escolha a fazer: listar e sair 0 é melhor do que
   # pendurar um hook ou um timer esperando um ENTER que nunca vem.
   if [ ! -t 0 ]; then
-    meow_info "sem terminal interativo — rode 'meow <comando>' direto"
+    meow_info "sem terminal interativo: o menu fica de fora, e os verbos acima valem direto"
     return 0
   fi
   printf '  %sescolha (ENTER cancela):%s ' "$C_MAUVE" "$C_ZERO"
@@ -4441,6 +4506,7 @@ despachar() {
     abrir|app)        shift; exec "$RAIZ/app/run.sh" "$@" ;;
     aplicar|ativar)   shift; cmd_aplicar "$@" ;;
     desfazer)         shift; cmd_desfazer "$@" ;;
+    restaurar)        shift; cmd_restaurar "$@" ;;
     log)              shift; cmd_log "$@" ;;
     ajuda|-h|--help|help) cmd_ajuda ;;
     *) meow_erro "comando desconhecido: $1"
@@ -4453,8 +4519,8 @@ despachar() {
 # install.sh, e `sudo meow tema X` escreve em ~/.config/cosmic com dono root —
 # a GUI de tema passa a falhar EM SILÊNCIO e o conserto é um chown -R.
 if [ "$(id -u)" = "0" ]; then
-  meow_erro "não me rode com sudo."
-  meow_info "  rode como o seu usuário normal:  meow ${1:-status}"
+  meow_erro "com sudo, não: os arquivos de ~/.config ficariam de dono root — nada foi feito."
+  meow_info "  o meow roda como o seu usuário, e pede o sudo por dentro onde precisa"
   exit 2
 fi
 

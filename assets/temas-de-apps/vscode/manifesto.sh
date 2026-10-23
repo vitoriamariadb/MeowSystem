@@ -593,6 +593,7 @@ PYFIM
 #   outros módulos primeiro, por ordenação e não por idade.
 _meow_vscode_backup() {
   local origem="$1" carimbo destino rel
+  meow_guardar_antes "$1"
   if [ ! -f "$origem" ]; then return 0; fi
   carimbo="${MEOW_CARIMBO:-$(date +%Y-%m-%dT%H-%M-%S)}"
   destino="$MEOW_ESTADO/backups/$carimbo"

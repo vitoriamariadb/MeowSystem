@@ -522,6 +522,7 @@ for tam in "${TAMANHOS[@]}"; do
   origem="$FONTE/src/$tam/places"
   destino="$TEMA_DIR/$tam/places"
   [ -d "$origem" ] || continue
+  meow_guardar_pasta "$destino"
   # O `meow_seco ||` NÃO É ENFEITE, e a falta dele era um defeito real: o
   # `meow doctor` roda este script com `MEOW_DRY_RUN=1` todo dia às 5h, e um
   # `mkdir -p` sem guarda CRIAVA diretório numa conferência que promete não
@@ -705,6 +706,7 @@ if [ -f "$IND" ] && ! grep -q '48x48/places' "$IND"; then
   if meow_seco; then
     meow_muda "acrescentaria os places ao Directories="
   else
+    meow_guardar_antes "$IND"
     sed -i "s|^Directories=.*|Directories=$linha|" "$IND"
     for tam in "${TAMANHOS[@]}"; do
       grep -q "^\[$tam/places\]" "$IND" || cat >> "$IND" <<FIM

@@ -10,6 +10,8 @@
 #
 # O QUE NÃO PRECISA DE RECICLO NENHUM: o `fastfetch`, que lê o arquivo do logo a
 # cada execução.
+# A porta do reciclo é o `painel.sh reciclar`, nunca um `pkill` daqui: ele recusa
+# quando o supervisor demoraria a repor a barra. Matar só o applet deixa buraco no dock.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

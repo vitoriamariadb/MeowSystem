@@ -942,7 +942,8 @@ cmd_compilar() {
 
   meow_registrar "compositor_patches.sh compilar $ver"
   meow_info "vale no PRÓXIMO LOGIN — a sessão de agora segura o binário antigo até lá"
-  return "$MEOW_DIVERGENTE"
+  # Compilou e guardou: é sucesso, e sai 0 como o pós-apt (o 1 lia «falhou»).
+  return "$MEOW_OK"
 }
 
 # `validar` — O PASSO QUE PÕE UMA VERSÃO NOVA EM `patches/versao` Baixa o

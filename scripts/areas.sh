@@ -609,6 +609,7 @@ _areas_guardar() {
   if [ ! -f "$AREAS_ANTES/pinned_workspaces.antes" ]; then
     mkdir -p "$AREAS_ANTES" 2>/dev/null \
       || { meow_erro "não consegui criar $AREAS_ANTES"; return "$MEOW_ERRO"; }
+    meow_guardar_antes "$AREAS_ANTES/pinned_workspaces.antes"
     cp -a "$AREAS_ALVO" "$AREAS_ANTES/pinned_workspaces.antes" 2>/dev/null \
       || { meow_erro "não consegui guardar o estado de antes — não vou escrever"; return "$MEOW_ERRO"; }
   fi
@@ -828,7 +829,7 @@ cmd_alfinetar_primeira() {
   primeiro="$(_areas_partir "$AREAS_NOMES" | head -1)"
   if [ -z "$primeiro" ]; then
     meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"
-    meow_info "diga o nome da primeira no meow.conf (ou no painel) e rode de novo"
+    meow_info "falta o nome da primeira área (no painel, «Nomes das áreas de trabalho»)"
     return "$MEOW_OK"
   fi
   _areas_nome_seguro "$primeiro" || return "$MEOW_ERRO"

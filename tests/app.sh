@@ -272,7 +272,7 @@ else:
 #   *"eu tinha pedido pra tirar o app do modo sandbox"*. A outra metade da
 #   mesma queixa dela é *"nada da interface é aplicado em sandbox; tudo é
 #   aplicado na máquina da pessoa"*, e o meio que faltava entre os dois
-#   extremos é o que a P8 entregou: um botão «Ver o que faria» por gesto.
+#   extremos é o que a P8 entregou: um botão «Ver sem mudar» por gesto.
 #
 #   O QUE ELA PEDIU PARA TIRAR CONTINUA PROIBIDO, e é isso que esta trava
 #   guarda agora — o INTERRUPTOR. Um estado guardado que fazia todo clique
@@ -337,7 +337,7 @@ if _faltam:
           file=sys.stderr)
     falhou = 1
 else:
-    print("ok: o «Ver o que faria» está no diálogo, na barra e na gaveta")
+    print("ok: o «Ver sem mudar» está no diálogo, na barra e na janela de resultado")
 
 #   9d. E O ENSAIO TEM DE RESPONDER SOBRE AS ESCOLHAS, SEM TOCAR NO ARQUIVO
 #       DELA. As duas metades da mesma pergunta, e a checagem de texto acima não
@@ -388,7 +388,7 @@ else:
 #   9e. E OS MAPAS DE ÍCONE DELA VÃO JUNTO COM A CÓPIA — QA da P77, 10/10/2026.
 #       O `pack.py` e o `icones_apps_arcticons.sh` acham o `icones-escolhidos.map`
 #       e o `icones-traco.map` pela pasta do `MEOW_CONF`; no ensaio ela é a da
-#       cópia, sem mapa, e o «Ver o que faria» anunciava apagar o ícone que o
+#       cópia, sem mapa, e o «Ver sem mudar» anunciava apagar o ícone que o
 #       «Usar este ícone» acabara de pôr. O `iniciar` passa os dois endereços.
 import inspect as _inspect9
 _ini9 = _inspect9.getsource(servidor.iniciar)

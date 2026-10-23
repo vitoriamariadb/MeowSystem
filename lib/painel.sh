@@ -97,6 +97,8 @@ meow_painel_altura() { # $1 = dir v1 ; imprime a altura em lógicos
   printf '%s' $(( 2 * padding + maior ))
 }
 
+# Sem o patch o teto é ZERO: o compositor mede pelo `configure` que o cliente ainda
+# não reconheceu, e qualquer raio > 0 vira `post_error` fatal — a barra não desenha.
 meow_painel_teto() { # $1 = dir v1 ; imprime o maior raio que a barra aguenta
   local h
   h="$(meow_painel_altura "$1")" || return 1

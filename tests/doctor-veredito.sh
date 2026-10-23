@@ -4,6 +4,8 @@
 #   0 = passou · 1 = falhou · 2 = erro deste teste
 # `sudo`, `pkill` e `kill` são falsos que registram e recusam: com `NOPASSWD: ALL`,
 # um teste que chama sudo ESCREVE no sistema.
+# `sudo`, `pkill` e `kill` são falsos que registram e recusam: com `NOPASSWD` na
+# máquina, um teste que chama sudo não falha, escreve.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 

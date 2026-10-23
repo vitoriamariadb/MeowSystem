@@ -15,6 +15,8 @@
 #    (`T::parse(&f)` = `f32::from_str`), que é a versão que o `Cargo.lock` do
 #    `cosmic-comp` pina. Mesmo assim este script escreve SEMPRE com casa decimal
 #    (`0.00`, `0.35`): custa nada e tira uma ambiguidade do caminho.
+# Com o «Agendar» desligado no applet este script não escreve NADA, nem 0: zerar
+# desfaria a temperatura que ela acabou de arrastar. A rampa vai DEPOIS da hora.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -227,6 +229,7 @@ _leitura_alvo_agora() {
   case "$x" in ""|*[!0-9.]*) x=0 ;; esac
   case "$n" in ""|*[!0-9]*)  n=0 ;; esac
 
+  # `LC_ALL=C`: em pt_BR o awk gravaria `0,35`, e o cosmic-config devolve 0 calado.
   saida="$(LC_ALL=C awk -v ini="$LEITURA_INI" -v fim="$LEITURA_FIM" -v n="$n" \
                -v agora="$LEITURA_AGORA" -v alvo_t="$t" -v alvo_x="$x" \
                -v neutro="$LEITURA_NEUTRO" -v piso="$LEITURA_PISO" 'BEGIN{

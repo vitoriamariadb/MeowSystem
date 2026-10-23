@@ -30,6 +30,10 @@
    * grades de Ajustar e de Fazer, e NÃO vale para as grades de imagem — ali,
    * quanto mais couber na tela, melhor. */
   --medida: 1240px;
+
+  /* Os dois vãos da página: entre cartões, e entre seções. */
+  --vao-grade: 1rem;
+  --vao-secao: 2.2rem;
 }
 
 /* --- o esqueleto ---------------------------------------------------------- */
@@ -491,14 +495,16 @@ main:focus-visible { outline: none; }
 
 /* Com uma página por assunto, uma tela pode ter quatro grupos (a coleção, dois
  * blocos de ajuste, as ações) sob um título só. */
+/* O fio da seção vai de ponta a ponta: é ele, e só ele, que divide a página. */
 .subsecao-titulo {
-  margin: 1.7rem 0 .1rem;
+  margin: var(--vao-secao) 0 var(--vao-grade);
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--surface0);
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -.01em;
   color: var(--subtext1);
 }
-.subsecao-titulo:first-of-type { margin-top: .7rem; }
 
 /* A nota que substituiu as repetições dentro dos cartões. */
 .nota-secao {
@@ -522,13 +528,16 @@ main:focus-visible { outline: none; }
  * `minmax(0, …)` no filho continua obrigatório: com `1fr` puro, um nome de
  * arquivo longo empurra a coluna e desalinha a linha inteira. */
 /* O TETO VAI NO CARTÃO, E NÃO NA COLUNA — e a primeira tentativa errou nisto. */
+/* Linhas alinhadas: cada cartão estica até a altura da linha, e o vão é o
+ * mesmo nos dois sentidos e em toda página. */
 .grade {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
-  gap: 1.15rem 1.9rem;
-  align-items: start;
+  gap: var(--vao-grade);
+  align-items: stretch;
   justify-content: start;
 }
+.grade + .grade, .grade + .ajustes-tecnicos, .secao-com-previa + .grade { margin-top: var(--vao-grade); }
 /* O `auto-fit` acima conta quantas colunas de 320 px cabem, e na tela dela —
  * 1918 px, mais larga do que a que eu vinha medindo — davam QUATRO.
  *
@@ -538,12 +547,8 @@ main:focus-visible { outline: none; }
 @media (min-width: 1100px) {
   .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-.grade > * { min-width: 0; max-width: 640px; }
-/* A ALVENARIA: linhas finas, sem vão entre elas (o vão entra na conta de cada
- * item), e cada item na própria altura — esticado, ele voltaria a mostrar o
- * vão por dentro. */
-.grade.alvenaria { grid-auto-rows: 4px; row-gap: 0; }
-.grade.alvenaria > * { align-self: start !important; }
+.grade > * { min-width: 0; }
+.grade > :is(.decisao, .escolha-icone, .escolha-jogo, .pack.aberto) { grid-column: 1 / -1; }
 /* A figura de uma página só de ações, dentro da grade: ela é um item como
  * os cartões, e não a faixa grudada do alto. */
 .grade > .previa-bloco { position: static; box-shadow: none; border-bottom: 0; margin: 0; }
@@ -562,11 +567,10 @@ main:focus-visible { outline: none; }
   /* A âncora da dica. Sem ela o balão se penduraria no `<main>` e escorregaria
    * do cartão que o abriu na primeira rolagem. */
   position: relative;
-  background: transparent;
-  border: 0;
-  border-top: 1px solid var(--surface0);
-  border-radius: 0;
-  padding: .9rem .9rem 1.1rem;
+  background: var(--mantle);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  padding: 1rem 1.05rem 1.05rem;
   display: grid;
   /* Com `minmax(0, 1fr)` o título (`auto`) crescia até o fim do cartão sempre
    * que quebrava em duas linhas, a segunda coluna ficava com 0 px e o `?` de
@@ -581,12 +585,6 @@ main:focus-visible { outline: none; }
   grid-template-rows: auto;
   gap: .6rem .45rem;
   min-height: 0;
-}
-.cartao:has(.amostras, .opcoes-imagem, .cores-grade, .previa-grade, .simul, .mock) {
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  padding: 1rem 1.05rem 1.05rem;
 }
 
 /* `.cartao > *` põe todo mundo em 3 e atravessando as duas colunas, senão um
@@ -744,12 +742,10 @@ button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
  * `inset box-shadow` no lugar de `border-left`: não desloca o texto, e as duas
  * regras podem coexistir sem somar 3px de recuo. "Sem prévia" devolveu a aresta
  * e diz o que tem para dizer na frase que já existe. */
-.cartao.mexeu { box-shadow: inset 3px 0 0 var(--peach); }
-.cartao.nao-salvo {
-  background: color-mix(in srgb, var(--accent) 7%, var(--mantle));
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-.cartao[data-sem-previa] { border-left: 0; }
+/* A aresta lateral é uma só e diz uma coisa só: mudado por você. O «ainda não
+ * salvo» é o fundo tingido, na mesma aresta. */
+.cartao.mexeu, .cartao.nao-salvo { box-shadow: inset 3px 0 0 var(--peach); }
+.cartao.nao-salvo { background: color-mix(in srgb, var(--accent) 7%, var(--mantle)); }
 /* Um contorno de acento que se apaga sozinho: é o "está aqui" de quem acabou de
  * chegar rolando, e não um estado — por isso contorno, que não mexe no layout
  * nem briga com a aresta de «mexeu» e «não salvo». */
@@ -1000,25 +996,15 @@ select { flex: 1 1 auto; }
  *                             erro" nesta folha (`.p-sudo`, `.aviso-sudo`,
  *                             `.cartao.mexeu`).
  *   desfaz coisas ........... caixa e fio vermelho, e o botão continua vermelho. */
+/* A mesma caixa do cartão de ajuste; o risco mora nos selos e no botão. */
 .acao {
-  background: transparent;
-  border: 0;
-  border-top: 1px solid var(--surface0);
-  border-radius: 0;
-  padding: .9rem .9rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: .4rem;
-}
-.acao:has(.p-sudo), .acao:has(.p-perigo) {
   background: var(--mantle);
   border: 1px solid var(--surface0);
   border-radius: var(--r-3);
-}
-.acao:has(.p-sudo) { box-shadow: inset 3px 0 0 var(--peach); }
-.acao:has(.p-perigo) {
-  border-color: color-mix(in srgb, var(--red) 32%, var(--surface0));
-  box-shadow: inset 3px 0 0 var(--red);
+  padding: 1rem 1.05rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
 }
 
 /* A ordem: nome, o que faz, o comando exato, e só então as etiquetas de risco
@@ -1027,8 +1013,6 @@ select { flex: 1 1 auto; }
 .acao > * { order: 2; }
 .acao h3 { order: 0; margin: 0; font-size: var(--t-titulo); font-weight: 600; color: var(--text); letter-spacing: -.005em; }
 .acao p { order: 1; margin: 0; font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
-/* A LINHA `code.cmd` SOBRE O RODAPÉ SAIU DA TELA: o comando mora só no «ver
- * comando». */
 .acao .rodape {
   order: 4;
   display: flex;
@@ -1040,24 +1024,14 @@ select { flex: 1 1 auto; }
 }
 /* As etiquetas à esquerda, o gatilho à direita: lê-se o risco entrando no botão. */
 .acao .rodape .btn { margin-left: auto; }
-/* Com o «ver comando» na fileira são dois `.btn`, e dois `margin-left: auto`
- * dividem a folga entre si: os botões nasciam separados por meia largura de
- * cartão, como se fossem de assuntos diferentes. */
+/* Executar e Restaurar juntos, à direita. */
 .acao .rodape .btn ~ .btn { margin-left: 0; }
-/* O PAR «CONFERIR / APLICAR»: as etiquetas e o «ver comando» na primeira
- * linha, e os dois botões juntos na segunda, à direita. */
-.acao .rodape .par-quebra { order: 1; flex-basis: 100%; height: 0; }
-.acao .rodape .par-conferir, .acao .rodape .par-aplicar { order: 2; }
-.acao .rodape .btn.par-conferir { margin-left: auto; }
-.acao .rodape:has(.par-quebra) > .selo { order: -1; }
 /* Ela pertence ao fim, depois do rodapé, porque é o que se lê depois de decidir
  * olhar. */
-.acao > .comandos { order: 5; padding-top: .15rem; }
 
 /* A raiz é uma linha só: `align-items: start` na `.grade`, acima. */
-.grade > .acao,
-.grade > .cartao { align-self: stretch; }
-.grade > .cartao { align-content: start; }
+.cartao { align-content: start; }
+.cartao .btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
 /* --- botões --------------------------------------------------------------- */
 .btn {
@@ -1143,7 +1117,7 @@ select { flex: 1 1 auto; }
 .p-correndo { color: var(--yellow); }
 /* O estado do trabalho ao vivo é a exceção: aí a pílula diz "isto está
  * acontecendo agora", e o contorno é o que a separa de um rótulo estático. */
-#gaveta-estado {
+#resultado-estado {
   border: 1px solid currentColor;
   border-radius: var(--r-max);
   padding: .1rem .55rem;
@@ -1185,81 +1159,42 @@ select { flex: 1 1 auto; }
 .aviso-sudo:not([hidden]) { display: flex; align-items: center; gap: .5rem; }
 .aviso-sudo strong { font-weight: 600; }
 
-/* --- gaveta de saída ------------------------------------------------------ */
-/* ELA MUDOU DE PAI, e é isso que explica cada linha daqui.
- *
- * O `flex: 0 0 auto` saiu junto com a mudança de pai: ele só valia enquanto ela
- * era filha do `<body>`, que é uma coluna flex. */
-.gaveta {
-  position: sticky;
-  bottom: 0;
-  /* O desenho grudado do conteúdo (`.previa-bloco`) está em 3, e o que rola tem
-   * de passar por BAIXO da gaveta — senão a saída ao vivo fica atrás da prévia
-   * na metade das abas. */
-  z-index: 4;
-  /* O recheio lateral do `main` é cancelado de propósito: a gaveta é a borda
-   * de baixo da coluna do conteúdo, e não um cartão dentro dela. */
-  margin: 1rem -1.6rem 0;
-  max-height: 25vh;
-  min-height: 120px;
+/* --- a janela de resultado ------------------------------------------------ */
+/* Larga e alta o bastante para ler o log sem rolar a cada linha; o fundo
+ * escurecido é o `::backdrop` de todo diálogo. */
+dialog.resultado {
+  width: min(52rem, calc(100vw - 2rem));
+  max-width: none;
+  padding: 0;
+  display: none;
+  flex-direction: column;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  background: var(--crust);
-  border-top: 1px solid var(--surface1);
 }
-/* São 4rem de respiro no fim da coluna, e eles são do CONTEÚDO. */
-/* É o que acontece na aba curta, onde `scrollHeight == clientHeight`: a gaveta
- * fica no fluxo logo depois do conteúdo e sobra uma tira de `--base` debaixo de
- * um painel `--crust`.
- *
- * Os dois casos, um mecanismo cada. */
-main:has(> .gaveta:not([hidden])) {
-  padding-bottom: 0;
-  display: flex;
-  flex-direction: column;
-}
-main:has(> .gaveta:not([hidden])) > * { flex: 0 0 auto; }
-main:has(> .gaveta:not([hidden])) > #conteudo { flex: 1 0 auto; }
-main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
-/* Enquanto o arrasto dura, quem manda é o `height` que o `app.js` escreve no
- * `style` do elemento — e um `max-height: 25vh` o cortaria no primeiro pixel.
- *
- * O SELETOR ERA `[style*="height"]`, E ISSO É UMA BUSCA DE SUBSTRING: ele casa
- * com `min-height`, `max-height` e `line-height`. */
-.gaveta[data-esticada] { max-height: 60vh; }
-/* A faixa de 9 px logo abaixo da borda de cima: é ela que a pessoa arrasta, e o
- * `pointerdown` mora no `app.js`. */
-.gaveta-alca {
-  flex: 0 0 auto;
-  height: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: ns-resize;
-  touch-action: none;
-}
-.gaveta-alca::before {
-  content: "";
-  width: 34px;
-  height: 2px;
-  border-radius: var(--r-max);
-  background: var(--surface1);
-}
-.gaveta-alca:hover::before { background: var(--overlay1); }
-@media (max-width: 860px) {
-  .gaveta { margin-inline: -1rem; }
-}
-.gaveta-topo {
+dialog.resultado[open] { display: flex; }
+.resultado-topo {
   display: flex;
   align-items: center;
   gap: .8rem;
-  padding: .45rem .9rem;
+  padding: 1rem 1.2rem .8rem;
   border-bottom: 1px solid var(--surface0);
 }
-.gaveta-topo strong { font-size: .82rem; color: var(--text); }
-.gaveta-topo code { display: block; font: .68rem var(--mono); color: var(--overlay1); }
-.gaveta-botoes { margin-left: auto; display: flex; align-items: center; gap: .45rem; }
+.resultado-topo h2 { margin: 0; font-size: 1.05rem; }
+.resultado-topo .pastilha { margin-left: auto; }
+.resultado #saida {
+  height: min(56vh, 30rem);
+  background: var(--crust);
+}
+.resultado-botoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: .8rem 1.2rem 1rem;
+  border-top: 1px solid var(--surface0);
+}
+.resultado-botoes #resultado-guardado { margin-right: auto; }
+#resultado-ok { min-width: 5rem; }
 
 /* A FAIXA DO ENSAIO
  *
@@ -1318,7 +1253,7 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
 #mais-abaixo {
   position: absolute;
   left: 50%;
-  bottom: .55rem;
+  bottom: 4.2rem;
   transform: translateX(-50%);
   z-index: 1;
 }
@@ -1440,36 +1375,6 @@ main:has(> .gaveta:not([hidden])) > #aviso-aplicar { margin-bottom: 0; }
   border-left-color: var(--surface1);
 }
 
-/* --- o comando, fora do balão --------------------------------------------- */
-/* A lista que o «ver comando» abre: uma linha por comando, cada uma com o seu
- * Copiar. */
-.comandos { display: flex; flex-direction: column; gap: .25rem; }
-.galeria .comandos { background: var(--surface0); padding: 0 .4rem .45rem; }
-.comando {
-  display: flex;
-  align-items: center;
-  gap: .3rem;
-  background: color-mix(in srgb, var(--crust) 70%, transparent);
-  border-radius: var(--r-2);
-  padding: .15rem .25rem;
-}
-/* De qual botão é esta linha. Não encolhe: são quatro rótulos de uma palavra
-   ("Usar", "Dia", "Noite", "Tirar"), e é o que separa duas linhas que o
-   `<code>` cortado mostra iguais. */
-.comando-de {
-  flex: 0 0 auto;
-  font-size: var(--t-legenda);
-  color: var(--subtext0);
-}
-.comando code {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-  white-space: nowrap;
-  font: 400 var(--t-legenda)/1.5 var(--mono);
-  color: var(--subtext1);
-}
-
 /* --- diálogo -------------------------------------------------------------- */
 dialog {
   background: var(--mantle);
@@ -1484,15 +1389,6 @@ dialog::backdrop { background: color-mix(in srgb, var(--crust) 65%, transparent)
 dialog h2 { margin: 0 0 .5rem; font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
 dialog p { margin: .35rem 0; font-size: var(--t-frase); line-height: 1.55; color: var(--subtext0); }
 dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2rem 0 0; padding: 0; }
-.comando-previa code {
-  display: block;
-  background: var(--crust);
-  border-radius: var(--r-2);
-  padding: .5rem .6rem;
-  font: .74rem var(--mono);
-  color: var(--subtext1);
-  overflow-x: auto;
-}
 
 /* VER E ESCOLHER — a moldura sai, a imagem fica
  *
@@ -1585,15 +1481,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
 }
 .galeria figure:hover figcaption,
 .galeria figure:focus-within figcaption { opacity: 1; pointer-events: auto; }
-/* Com a lista aberta a legenda sai do véu e entra na coluna: a ficha passa a
- * ser imagem + legenda + comandos, e quem ganha altura é a LINHA DA GRADE. */
 .galeria { align-items: start; }
-.galeria figure:has(.comandos:not([hidden])) figcaption {
-  position: static;
-  opacity: 1;
-  pointer-events: auto;
-  background: var(--surface0);
-}
 .galeria .nome {
   flex: 1 1 auto;
   min-width: 0;
@@ -1611,9 +1499,6 @@ dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2r
   font-size: var(--t-legenda);
   min-height: 28px;
 }
-/* O «ver comando» é o último da fileira e não disputa com os verbos: ele
-   mostra, não faz. Encostado à direita, na cor do texto apagado. */
-.galeria .acoes .ver-comando { margin-left: auto; color: var(--subtext0); }
 /* Fora do hover o vermelho não existe; no hover ele volta a valer. */
 .galeria .acoes .btn-perigo { border-color: transparent; background: color-mix(in srgb, var(--surface1) 70%, transparent); color: var(--subtext1); }
 .galeria .acoes .btn-perigo:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, transparent); background: color-mix(in srgb, var(--red) 18%, transparent); }
@@ -2399,20 +2284,8 @@ button.lado-botao:focus-visible { outline-offset: 1px; }
 .por-area .nome-area { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .por-area .estados { display: flex; gap: .3rem; flex: 0 0 auto; }
 
-.lista-orfas { display: flex; flex-direction: column; gap: .4rem; max-width: var(--medida); }
-.linha-orfa {
-  display: flex;
-  align-items: center;
-  gap: .7rem;
-  padding: .45rem .7rem;
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  background: var(--mantle);
-}
-.linha-orfa .orfa-nome { color: var(--subtext0); }
-.linha-orfa .orfa-nota { color: var(--overlay0); font-size: var(--t-frase); margin-right: auto; }
-
 .grade-jogos {
+  margin-top: var(--vao-grade);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(152px, 100%), 1fr));
   gap: 12px;
@@ -2420,48 +2293,67 @@ button.lado-botao:focus-visible { outline-offset: 1px; }
 .grade-jogos .jogo {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   gap: .45rem;
+  min-width: 0;
+  color: var(--subtext1);
+  font-size: .76rem;
+  line-height: 1.35;
+}
+.jogo-capa {
+  display: block;
   padding: 0;
   border: 0;
   border-radius: var(--r-2);
   background: transparent;
-  color: var(--subtext1);
-  font: inherit;
-  font-size: .76rem;
-  line-height: 1.35;
-  text-align: center;
   cursor: pointer;
-  min-width: 0;
 }
-.grade-jogos .jogo:hover { color: var(--text); }
-.grade-jogos .jogo img {
+.grade-jogos .jogo img:not(.jogo-icone) {
+  display: block;
   width: 100%;
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: var(--r-2);
   background: var(--crust);
 }
-.grade-jogos .jogo:hover img { outline: 2px solid var(--surface2); }
-.grade-jogos .jogo.aberto { color: var(--text); }
-.grade-jogos .jogo.aberto img { outline: 2px solid var(--accent); outline-offset: 0; }
-/* O jogo com decisão tomada não some da grade — ela precisa poder revê-lo e
- * desfazer. O que muda é o peso. */
-.grade-jogos .jogo.marcado { opacity: .5; }
-.grade-jogos .jogo.marcado:hover, .grade-jogos .jogo.aberto { opacity: 1; }
-/* Sem capa é sem manifesto: a linha do mapa que sobreviveu ao jogo. O retângulo
- * tracejado com o appid diz "isto é uma decisão, não um jogo". */
+.jogo-capa:hover img { outline: 2px solid var(--surface2); }
+.grade-jogos .jogo.aberto .jogo-capa img { outline: 2px solid var(--accent); }
+/* Fora do lançador, a capa fica apagada: o interruptor diz o resto. */
+.grade-jogos .jogo.marcado .jogo-capa { opacity: .45; }
+.jogo-pe { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.jogo-pe .app-nome { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.jogo-icone { width: 20px; height: 20px; flex: none; }
 .jogo-sem-capa {
   width: 100%;
   aspect-ratio: 2 / 3;
-  display: grid;
-  place-items: center;
   border: 1px dashed var(--surface2);
   border-radius: var(--r-2);
   background: var(--crust);
-  color: var(--overlay0);
-  font-size: var(--t-legenda);
 }
+/* O interruptor: trilho e botão, o ligado no acento. */
+.interruptor {
+  flex: none;
+  position: relative;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--surface2);
+  border-radius: var(--r-max);
+  background: var(--surface0);
+  cursor: pointer;
+}
+.interruptor-botao {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--overlay1);
+  transition: transform .12s ease-out;
+}
+.interruptor[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.interruptor[aria-checked="true"] .interruptor-botao { transform: translateX(18px); background: var(--crust); }
+.interruptor:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .jogo-fora { color: var(--peach); }
 .jogo-apagar { color: var(--red); }
 .jogo-gasto { color: var(--overlay0); }
@@ -2676,7 +2568,6 @@ a.folha:hover b { color: var(--text); }
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent);
 }
 .pastas-molde .frase { margin: 0; }
-.pastas-cru { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; }
 
 /* --- a noite ------------------------------------------------------------- */
 /* A home dizia como a máquina está vestida AGORA e não dizia a única coisa que
@@ -2765,15 +2656,10 @@ a.folha:hover b { color: var(--text); }
   gap: .55rem;
   min-width: 0;
   padding: .9rem 1.05rem;
-  border-left: 3px solid var(--yellow);
-  border-radius: 0 var(--r-2) var(--r-2) 0;
-  background: color-mix(in srgb, var(--yellow) 9%, transparent);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  background: var(--mantle);
 }
-.home-gente {
-  border-left-color: var(--peach);
-  background: color-mix(in srgb, var(--peach) 9%, transparent);
-}
-.home-gente .pendencia + .pendencia { border-top-color: color-mix(in srgb, var(--peach) 22%, transparent); }
 .home-pendencias h3 {
   margin: 0;
   display: flex;
@@ -2803,7 +2689,7 @@ a.folha:hover b { color: var(--text); }
 }
 .pendencia + .pendencia {
   padding-top: .55rem;
-  border-top: 1px solid color-mix(in srgb, var(--yellow) 22%, transparent);
+  border-top: 1px solid var(--surface0);
 }
 .pendencia-frase {
   margin: 0;
@@ -2912,14 +2798,11 @@ a.folha:hover b { color: var(--text); }
   flex-direction: column;
   gap: .45rem;
   padding: .9rem 1.05rem;
-  border-left: 3px solid var(--surface1);
-  border-radius: 0 var(--r-2) var(--r-2) 0;
-  background: color-mix(in srgb, var(--surface0) 45%, transparent);
+  border: 1px solid var(--surface0);
+  border-radius: var(--r-3);
+  background: var(--mantle);
 }
-.home-atencao[data-esperando] {
-  border-left-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 9%, transparent);
-}
+.home-atencao[data-esperando] { background: color-mix(in srgb, var(--accent) 7%, var(--mantle)); }
 .home-atencao p {
   margin: 0;
   font-size: var(--t-frase);
@@ -3318,33 +3201,14 @@ a.folha:hover b { color: var(--text); }
 /* A MOLDURA ATRAVESSA A GRADE: pack, variante e claro ou escuro lado a lado,
  * na ordem da escolha, dentro de uma caixa só. Os cartões de dentro perdem a
  * própria caixa (a moldura é a caixa) e ficam separados por um fio vertical. */
+/* A MOLDURA É UMA FILEIRA DA GRADE: os cartões da decisão caem nas mesmas
+ * colunas dos outros (subgrade), lado a lado e na ordem da escolha. */
 .grade > .decisao {
   grid-column: 1 / -1;
-  max-width: none;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
-  align-items: start;
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-}
-.decisao > .cartao,
-.decisao > .cartao:has(.amostras, .opcoes-imagem, .cores-grade, .previa-grade, .simul, .mock) {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 1rem 1.05rem 1.1rem;
-  align-self: stretch;
-  /* Esticado para os fios verticais irem até o fim da moldura, mas com o
-   * conteúdo no alto: sem isto a fileira de botões crescia até a altura da
-   * lista de variantes. */
-  align-content: start;
-}
-.decisao > .cartao + .cartao { border-left: 1px solid var(--surface0); }
-.decisao > .cartao.nao-salvo { background: color-mix(in srgb, var(--accent) 7%, transparent); }
-@media (max-width: 900px) {
-  .grade > .decisao { grid-template-columns: minmax(0, 1fr); }
-  .decisao > .cartao + .cartao { border-left: 0; border-top: 1px solid var(--surface0); }
+  grid-template-columns: subgrid;
+  gap: var(--vao-grade);
+  align-items: stretch;
 }
 
 /* O «⋯» DOS AJUSTES TÉCNICOS: um alvo de 32 px no fim do bloco, sem palavra
@@ -3500,18 +3364,6 @@ a.folha:hover b { color: var(--text); }
  * ao fluxo, onde está (`.pular-grade:focus`, lá em cima). */
 .pular-grade:not(:focus) { position: absolute; }
 
-/* LOGO DO SISTEMA: o seletor de gato numa moldura só. O modo é estreito (três
- * segmentos), e os cartões que ele mostra dividem o resto da linha; em tela
- * estreita eles descem um por linha, como a moldura do tema. */
-.grade > .decisao[data-decisao^="gato-"] { display: flex; flex-wrap: wrap; }
-.decisao[data-decisao^="gato-"] > .cartao { flex: 1 1 17rem; min-width: 0; }
-.decisao[data-decisao="gato-dock"] > .cartao[data-chave="LOGO_MODO"],
-.decisao[data-decisao="gato-terminal"] > .cartao[data-chave="FASTFETCH_LOGO_MODO"] { flex: 0 1 15rem; }
-@media (max-width: 900px) {
-  .decisao[data-decisao^="gato-"] > .cartao { flex-basis: 100%; }
-}
-/* O cartão do par de desenhos não cresce além do que o desenho preenche. */
-.decisao[data-decisao^="gato-"] > .cartao { max-width: 36rem; }
 
 /* ===========================================================================
  * =========================================================================== */
@@ -3542,7 +3394,6 @@ a.folha:hover b { color: var(--text); }
   grid-column: 2;
   display: grid; place-items: center;
   padding: 0 .35rem 0 .9rem;
-  border-left: 1px solid var(--surface0);
 }
 .linha-noite-icone > svg {
   width: 20px; height: 20px;
@@ -3554,11 +3405,6 @@ a.folha:hover b { color: var(--text); }
 .decisao-relogio > [data-linha="3"] { grid-row: 3; }
 .decisao-relogio > .cartao[data-ponta="ini"] { grid-column: 3; }
 .decisao-relogio > .cartao[data-ponta="fim"] { grid-column: 4; }
-/* Os fios: entre as linhas, horizontais; a primeira coluna de cartões não
- * herda o fio vertical da moldura comum (o ícone já separa). */
-.decisao-relogio > .cartao + .cartao { border-left: 0; }
-.decisao-relogio > .cartao[data-ponta="fim"] { border-left: 1px solid var(--surface0); }
-.decisao-relogio > :is(.cartao, .linha-noite-icone):not([data-linha="1"]) { border-top: 1px solid var(--surface0); }
 /* O campo de hora que herda: a traço e apagado, como o «como está» do
  * deslizante. Escolher uma hora o devolve ao desenho de sempre. */
 input[type="time"].hora-herdada {
@@ -3569,8 +3415,8 @@ input[type="time"].hora-herdada {
 @media (max-width: 900px) {
   .grade > .decisao.decisao-relogio { grid-template-columns: auto minmax(0, 1fr); }
   .decisao-relogio > .relogio-noite { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
-  .decisao-relogio > .linha-noite-icone { grid-column: 1; border-left: 0; padding: 0 .4rem 0 .8rem; }
-  .decisao-relogio > .cartao[data-ponta] { grid-column: 2; border-left: 0; }
+  .decisao-relogio > .linha-noite-icone { grid-column: 1; padding: 0 .4rem 0 .8rem; }
+  .decisao-relogio > .cartao[data-ponta] { grid-column: 2; }
   .decisao-relogio > .linha-noite-icone[data-linha="1"] { grid-row: 2 / span 2; }
   .decisao-relogio > .cartao[data-linha="1"][data-ponta="ini"] { grid-row: 2; }
   .decisao-relogio > .cartao[data-linha="1"][data-ponta="fim"] { grid-row: 3; }
@@ -3580,7 +3426,7 @@ input[type="time"].hora-herdada {
   .decisao-relogio > .linha-noite-icone[data-linha="3"] { grid-row: 6 / span 2; }
   .decisao-relogio > .cartao[data-linha="3"][data-ponta="ini"] { grid-row: 6; }
   .decisao-relogio > .cartao[data-linha="3"][data-ponta="fim"] { grid-row: 7; }
-  .decisao-relogio > :is(.cartao, .linha-noite-icone) { border-top: 1px solid var(--surface0); }
+
 }
 
 /* ===========================================================================

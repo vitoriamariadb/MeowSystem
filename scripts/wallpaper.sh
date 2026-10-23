@@ -14,6 +14,9 @@
 #      `adicionar` força a releitura no fim, com o `forcar_releitura` abaixo.
 #
 # --- DIA E NOITE: POR QUE UMA PASTA A MAIS, E NÃO UM FILTRO ------------------
+# `banidos/` recebe por `mv`, nunca apaga. Escrever a configuração reinicia a
+# rotação, e conteúdo idêntico não relê nada. Sem medir luz, a rotação volta a
+# `ativos/`: um papel claro é gosto; tela preta é defeito.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -1620,7 +1623,7 @@ cmd_estado() {
       if [ -d "$alvo" ]; then
         echo "rotação:   $alvo"
       else
-        echo "rotação:   $ATIVOS (as pastas derivadas ainda não existem — rode: meow wallpaper aplicar)"
+        echo "rotação:   $ATIVOS (as pastas derivadas nascem na próxima passada do carrossel)"
         alvo="$ATIVOS"
       fi
       ;;
@@ -2317,7 +2320,7 @@ semear_da_curadoria() {
       rm -f "$tmp"; falhas=$((falhas + 1))
     fi
   done <<< "$validas"
-  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) da curadoria não baixaram — rode de novo"
+  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) da curadoria não baixaram — a próxima passada tenta de novo"
   return 0
 }
 
@@ -2523,7 +2526,7 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
 
   # Falha de download não pode continuar sendo invisível: era o que escondia as
   # três imagens de nome com espaço.
-  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) não baixaram — rode de novo para tentar outra vez"
+  [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) não baixaram — a próxima passada tenta de novo"
 
   semear_da_curadoria
   if [ "$CURADORIA_N" -gt 0 ]; then

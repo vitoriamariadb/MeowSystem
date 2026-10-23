@@ -16,11 +16,11 @@ meow_preflight() {
   # 1. ROOT NÃO. A guarda também está no main(), que é onde ela recusa mais
   #    cedo; aqui ela fica porque o pré-voo é chamado por outros caminhos.
   if [ "$(id -u)" = "0" ]; then
-    meow_erro "não me rode como root: os arquivos de ~/.config ficariam de dono root"
+    meow_erro "como root, não: os arquivos de ~/.config ficariam de dono root — nada foi feito"
     if [ -n "${SUDO_USER:-}" ]; then
-      meow_info "  rode assim:  ./install.sh        (como $SUDO_USER)"
+      meow_info "  o instalador roda como $SUDO_USER, na sessão dele"
     else
-      meow_info "  rode como o seu usuário normal:  ./install.sh"
+      meow_info "  o instalador roda como o seu usuário, na sua sessão"
     fi
     meow_info "  o sudo é pedido por dentro, e ele diz o que vai rodar antes de rodar"
     return 2

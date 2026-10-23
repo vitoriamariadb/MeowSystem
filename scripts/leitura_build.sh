@@ -16,6 +16,8 @@
 #     remover    sombra primeiro, binário depois
 #     consertar  binário sumiu  ->  a sombra é REMOVIDA
 #     repor      sombra sumiu   ->  reescrita SEM cargo (ver `_sem_cargo`)
+# `plugins_wings` é da Aurora e está no `must_recreate` do painel: escrevê-lo recria
+# a topbar na hora. Nenhum script daqui o toca — só confere e avisa.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"

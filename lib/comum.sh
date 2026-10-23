@@ -182,7 +182,7 @@ meow_app_tema_no_ar() {
   meow_aviso "$app: está em '$no_ar', que não veio daqui"
   meow_info  "o pack$fonte traz '$do_pack'"
 
-  # ANTES DO SECO, de propósito: o «Ver o que faria» do «Trocar pelo tema do
+  # ANTES DO SECO, de propósito: o «Ver sem mudar» do «Trocar pelo tema do
   # pack» tem de ensaiar a TROCA, e quem diz o que ela escreveria é o módulo,
   # daqui para baixo, com o seco dele.
   case "$do_painel" in
@@ -662,6 +662,10 @@ meow_mesmo_conteudo() {
   [ -f "$1" ] && [ -f "$2" ] && [ "$(cat "$1" 2>/dev/null)" = "$(cat "$2" 2>/dev/null)" ]
 }
 
+# O estado de antes de cada escrita, para o Restaurar do painel.
+# shellcheck source=restauro.sh
+. "$(dirname "${BASH_SOURCE[0]}")/restauro.sh"
+
 meow_escrever() {
   local destino="$1" conteudo="$2" modo="${3:-644}" tmp dir
   meow_destino_permitido "$destino" || return "$MEOW_ERRO"
@@ -674,6 +678,7 @@ meow_escrever() {
     meow_muda "mudaria $destino"
     return "$MEOW_DIVERGENTE"
   fi
+  meow_guardar_antes "$destino"
   mkdir -p "$dir" || return "$MEOW_ERRO"
   #   O `cosmic-config` do libcosmic IGNORA de propósito os temporários cujo nome
   #   começa com `.atomicwrite`, ao traduzir eventos de inotify em mudanças de
@@ -681,6 +686,8 @@ meow_escrever() {
   #       // Skip any .atomicwrite temporary files
   #       if key.starts_with(".atomicwrite") { continue }
   #   ), porque é assim que ele mesmo escreve.
+  # Com outro nome o painel recebia quatro eventos por chave e relia a entrada inteira
+  # a cada um, alimentando a corrida do raio que apaga topbar e dock.
   tmp="$(mktemp -p "$dir" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
   printf '%s' "$conteudo" > "$tmp" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   chmod "$modo" "$tmp"
@@ -710,6 +717,8 @@ MEOW_CONF_PADRAO="${MEOW_CONF_PADRAO:-$MEOW_RAIZ/meow.conf.exemplo}"
 #   comentário e devolve `MODO="claro"# escuro | claro | auto`, colado. ERE não
 #   tem quantificador preguiçoso para consertar isso. Aqui a linha é partida no
 #   primeiro `#` e os espaços de antes dele são preservados como estavam.
+# Troca TODAS as ocorrências: o shell obedece à última atribuição, e trocar só a
+# primeira gravaria um valor e deixaria outro valendo, calado.
 meow_conf_texto_definir() {
   local texto="$1" chave="$2" valor="$3" novo="" linha resto antes espacos comentario achou=0
   while IFS= read -r linha; do

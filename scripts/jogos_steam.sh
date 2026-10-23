@@ -399,7 +399,7 @@ else
     [ "$f" = "$APPS/meow-steam-$id.desktop" ] && continue
     # A caixa dos jogos conta também os cartões que saem sem ser nossos:
     # sem esta linha ela dizia «nenhum atalho sai» com um duplicado saindo,
-    # e só o «Ver o que faria» o mostrava.
+    # e só o «Ver sem mudar» o mostrava.
     resumo_jogo repete "$id" "$(awk -F= '$1 == "Name" { sub(/^Name=/, ""); print; exit }' "$f")"
     if meow_seco; then
       meow_muda "removeria o cartão duplicado do appid $id: $(basename "$f") (aponta para o jogo e não é nosso)"

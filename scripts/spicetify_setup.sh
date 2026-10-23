@@ -16,6 +16,9 @@
 #       O manifesto já o instala, pinado por TAG DE RELEASE
 #       (`_spot_mp_instalar`, `_SPOT_MP_RELEASES`), e só quando
 #       `_spot_mp_quer` diz que ela o quer.
+# Sem `spicetify backup` (fotografaria o tema aplicado como se fosse o de fábrica),
+# sem o instalador oficial (mexeria no `.zshrc` da Aurora e instalaria o Marketplace
+# sem pedir) e sem sudo: tudo mora em `~/.spicetify`.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

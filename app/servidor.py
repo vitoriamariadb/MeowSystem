@@ -22,6 +22,10 @@
 # efêmera; todo pedido traz o token da sessão (`hmac.compare_digest`); `Host` e
 # `Origin` são conferidos (DNS rebinding e site de fora); e nenhum comando vem
 # da página como texto, só `id` de um dicionário fechado.
+#
+# O cache global do sudo (acima) deixa um clique rodar o install.sh com root sem
+# perguntar. Por isso a ação que atravessa sudo é marcada, avisada antes e
+# pede confirmação; nenhuma senha é pedida, lida ou guardada aqui.
 """Backend local do painel de configuração visual do MeowSystem."""
 
 import base64
@@ -1394,6 +1398,8 @@ def _declarado_pelo_pack(adotado, alvo):
     return False
 
 
+# As escolhas de ícone do painel moram com quem usa, ao lado do meow.conf: usar o
+# programa não suja o repositório, e levar para o pack é gesto explícito.
 def _mapa_de_escolhas_do_usuario():
     mod = modulo_pack()
     if mod and hasattr(mod, "arquivo_de_escolhas"):
@@ -2915,7 +2921,7 @@ def _conf_de_ensaio(pares):
 
     Quem apaga o diretório é o `Trabalho` quando o ensaio termina (o
     `ao_terminar` do `iniciar`) — deixá-lo para o fim do processo faria o painel
-    acumular um retrato da máquina dela por clique em «Ver o que faria»."""
+    acumular um retrato da máquina dela por clique em «Ver sem mudar»."""
     fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
     try:
         pasta = tempfile.mkdtemp(prefix="meow-ensaio-")
@@ -3292,6 +3298,10 @@ PROVEDORES = {
     # O argumento do «Era escolha minha»: o caminho que o `wallpaper.sh`
     # devolveu e deixou na pendência. Ver `PENDENCIA_PAREDE`.
     "fontes_revertidas": lambda: _fontes_revertidas(),
+    # O argumento do «Restaurar»: as ações cuja última execução se desfaz.
+    "restauros": lambda: sorted(restauros()),
+    # O argumento do interruptor de um jogo do Heroic: os instalados agora.
+    "jogos_heroic": lambda: sorted(j["id"] for j in jogos_do_heroic()),
 }
 
 
@@ -3765,6 +3775,9 @@ ACOES = {
         "natureza": "conferir",
         "argv": _meow("doctor"),
         "escreve": False, "sudo": False, "confirma": False,
+        # A Instalação tem um botão só, o que confere e conserta (o doctor
+        # corrige); este fica para quem pergunta pelo id.
+        "oculta": True,
         # Com divergência o doctor termina em «rode: meow doctor
         # --consertar»: um comando para quem está diante de um botão.
         "conserta_com": "doctor_consertar",
@@ -3772,7 +3785,7 @@ ACOES = {
                  "Não escreve nada.",
     },
     "doctor_consertar": {
-        "rotulo": "Consertar o que estiver fora",
+        "rotulo": "Conferir e consertar",
         "grupo": "Instalação",
         "natureza": "consertar",
         "argv": _meow("doctor", "--consertar"),
@@ -3787,7 +3800,7 @@ ACOES = {
         "grupo": "Instalação",
         "natureza": "mostrar",
         "argv": _meow("status"),
-        "escreve": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
     },
     "desinstalar": {
@@ -3806,7 +3819,7 @@ ACOES = {
         "grupo": "Instalação",
         "natureza": "mostrar",
         "argv": _meow("log"),
-        "escreve": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "O que este projeto escreveu, e quando.",
     },
 
@@ -3892,6 +3905,18 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
                  "pisca a interface.",
+    },
+    # O «Restaurar» de toda ação que escreve: repõe o estado de antes da última
+    # execução dela (`restauros`). O argumento é o id da ação; a pasta, o
+    # `iniciar` acha.
+    "restaurar": {
+        "rotulo": "Restaurar",
+        "grupo": "Instalação",
+        "natureza": "devolver",
+        "argv": _meow("restaurar", "@ARG@"), "arg": "restauros",
+        "escreve": True, "sudo": False, "confirma": False,
+        "oculta": True,
+        "ajuda": "Volta ao estado de antes da última vez que esta ação rodou.",
     },
     "desfazer": {
         "rotulo": "Voltar ao tema de antes",
@@ -4412,8 +4437,30 @@ ACOES = {
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
         "escreve": True, "sudo": False, "confirma": False,
+        # O cartão mora na seção dos jogos, ao lado das capas.
+        "oculta": True,
         "ajuda": "Um atalho por jogo instalado no Heroic, com a capa que ele "
                  "já baixou. Some o do jogo desinstalado.",
+    },
+    # Os dois lados do interruptor «no lançador» de um jogo do Heroic: o script
+    # grava a lista e arruma o lançador na mesma passada.
+    "jogos_heroic_tirar": {
+        "rotulo": "Tirar o jogo do Heroic do lançador",
+        "grupo": "Lançadores e jogos",
+        "natureza": "tirar",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
+        "arg": "jogos_heroic", "ambiente": {"MEOW_HEROIC_TIRAR": "@ARG@"},
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "O cartão do jogo sai do lançador; o jogo continua no Heroic.",
+    },
+    "jogos_heroic_por": {
+        "rotulo": "Pôr o jogo do Heroic no lançador",
+        "grupo": "Lançadores e jogos",
+        "natureza": "aplicar",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
+        "arg": "jogos_heroic", "ambiente": {"MEOW_HEROIC_POR": "@ARG@"},
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "O cartão do jogo volta ao lançador.",
     },
 }
 
@@ -4602,6 +4649,8 @@ def _prev_paredes():
             # O id carrega o grupo porque o MESMO nome existe em `ativos/` e em
             # `ativos-noite/` — são link duro para o mesmo arquivo, e sem o
             # prefixo um id apontaria para dois lugares.
+            # Banir é `mv` do caminho recebido: pelo link duro de `ativos-noite/` sairia só o
+            # link, e a imagem de `ativos/` seguiria girando. Por isso `banir` é o canônico.
             canonico = os.path.join(base, "ativos", nome)
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
                          "origem": arq, "grupo": grupo,
@@ -5453,15 +5502,14 @@ class Trabalho:
         rc = self.proc.wait()
         leitor.join(self.PRAZO_DO_CANO)
         self.rc = rc
-        self.fim = time.time()
-        # DEPOIS do `rc` e do `fim`: a página pergunta "acabou?" pelo `vivo()`, e
-        # a limpeza não pode atrasar a resposta nem falhar a ponto de o trabalho
-        # ficar eternamente sem desfecho.
+        # ANTES do `fim`: quando a página ouve «acabou», o ponto de restauro desta
+        # execução já está registrado. A falha dele não segura o desfecho.
         if self._ao_terminar is not None:
             try:
                 self._ao_terminar()
             except Exception:
                 pass
+        self.fim = time.time()
 
     def desde(self, n):
         with self._lock:
@@ -5485,6 +5533,87 @@ class Trabalho:
 TRABALHOS = {}
 TRABALHO_ATUAL = None
 TRABALHO_TRAVA = threading.Lock()
+
+# O RESTAURAR: toda execução que escreve ganha uma pasta (`MEOW_BACKUPS`, ver
+# lib/restauro.sh) com o estado de antes, e a última de cada ação fica para o
+# «Restaurar» do cartão. Uma por ação: a de antes sai quando a nova chega.
+RESTAUROS = os.path.join(ESTADO, "restauros")
+_RESTAUROS_TRAVA = threading.Lock()
+
+
+def _tem_tocados(pasta):
+    try:
+        return os.path.getsize(os.path.join(pasta, "tocados.tsv")) > 0
+    except OSError:
+        return False
+
+
+def restauros():
+    """{acao_id: pasta} das execuções que ainda se podem desfazer."""
+    try:
+        with open(os.path.join(RESTAUROS, "ultimos.json"), "r", encoding="utf-8") as fh:
+            dados = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(dados, dict):
+        return {}
+    # A pasta tem de ser filha de `RESTAUROS`: o arquivo é texto no disco, e o
+    # caminho dele vira argumento do `meow restaurar`.
+    return {a: p for a, p in dados.items()
+            if a in ACOES and isinstance(p, str)
+            and os.path.dirname(os.path.realpath(p)) == os.path.realpath(RESTAUROS)
+            and _tem_tocados(p)}
+
+
+def _gravar_restauros(dados):
+    os.makedirs(RESTAUROS, exist_ok=True)
+    tmp = os.path.join(RESTAUROS, ".ultimos.json.tmp")
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(dados, fh, ensure_ascii=False, indent=1)
+    os.replace(tmp, os.path.join(RESTAUROS, "ultimos.json"))
+
+
+def _guardar_restauro(acao_id, pasta):
+    with _RESTAUROS_TRAVA:
+        dados = restauros()
+        if not _tem_tocados(pasta):
+            shutil.rmtree(pasta, ignore_errors=True)
+            return
+        velha = dados.get(acao_id)
+        dados[acao_id] = pasta
+        _gravar_restauros(dados)
+        if velha and velha != pasta:
+            shutil.rmtree(velha, ignore_errors=True)
+
+
+def _esquecer_restauro(acao_id, pasta):
+    with _RESTAUROS_TRAVA:
+        dados = restauros()
+        if dados.get(acao_id) == pasta:
+            del dados[acao_id]
+            _gravar_restauros(dados)
+        shutil.rmtree(pasta, ignore_errors=True)
+
+
+def _nome_de_arquivo(texto):
+    """«Tirar uma área» -> `tirar-uma-area`: o nome do log guardado."""
+    import unicodedata
+    plano = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", plano.lower()).strip("-") or "acao"
+
+
+def guardar_log(trabalho):
+    """Grava a saída inteira de um trabalho em `logs/`; devolve o caminho."""
+    pasta = os.path.join(ESTADO, "logs")
+    os.makedirs(pasta, exist_ok=True)
+    nome = "%s-%s.log" % (time.strftime("%Y-%m-%d-%H%M%S", time.localtime(trabalho.comeco)),
+                          _nome_de_arquivo(trabalho.rotulo))
+    linhas, _ = trabalho.desde(0)
+    caminho = os.path.join(pasta, nome)
+    with open(caminho, "w", encoding="utf-8") as fh:
+        fh.write("# %s\n# %s\n# saiu %s\n\n" % (trabalho.rotulo, comando_na_tela(trabalho.argv), trabalho.rc))
+        fh.write("\n".join(linhas) + "\n")
+    return caminho
 
 
 def escreve(acao):
@@ -5753,8 +5882,7 @@ def _trabalho_json(trabalho, acao_id, seco=False):
     """
     # O topo da gaveta mostra o comando como a pessoa o digitaria, e não o
     # `argv` cru com o caminho do clone — ver `comando_na_tela`.
-    return {"id": trabalho.id, "rotulo": trabalho.rotulo,
-            "comando": comando_na_tela(trabalho.argv),
+    return {"id": trabalho.id, "rotulo": trabalho.rotulo, "acao": acao_id,
             "escreve": escreve(ACOES[acao_id]),
             "seco": bool(seco),
             "conserta_com": ACOES[acao_id].get("conserta_com"),
@@ -5804,7 +5932,47 @@ def _previa_dos_jogos(mapa):
     return saida
 
 
-def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None):
+def jogos_do_heroic():
+    """Os jogos instalados no Heroic: [{id, nome, url, no_lancador}]. Quem lê a
+    biblioteca é o `jogos_heroic.sh --listar`; sem Heroic, lista vazia."""
+    try:
+        r = subprocess.run([os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--listar"],
+                           capture_output=True, timeout=30, env=_ambiente_do_painel(seco=True))
+    except (OSError, subprocess.SubprocessError):
+        return []
+    fora = []
+    capas = os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps")
+    for linha in r.stdout.decode("utf-8", "replace").splitlines():
+        campos = linha.split("\t")
+        if len(campos) != 4 or not campos[0].startswith("meow-heroic-"):
+            continue
+        capa = os.path.join(capas, campos[0] + ".png")
+        fora.append({"id": campos[0], "nome": campos[1],
+                     "url": ("/previa?tipo=arquivo&id=" + quote(capa, safe=""))
+                            if os.path.isfile(capa) else "",
+                     "no_lancador": campos[3] == "sim"})
+    return fora
+
+
+def _guardar_antes_py(pasta, caminho, conteudo):
+    """O `meow_guardar_antes` para o que o servidor escreve antes do trabalho:
+    `conteudo` é o arquivo como era (None: não existia)."""
+    alvo = os.path.realpath(caminho)
+    os.makedirs(pasta, exist_ok=True)
+    if conteudo is None:
+        linha = "%s\tnovo\n" % alvo
+    else:
+        copia = pasta + "/antes" + alvo
+        os.makedirs(os.path.dirname(copia), exist_ok=True)
+        with open(copia, "wb") as fh:
+            fh.write(conteudo)
+        linha = "%s\texistia\n" % alvo
+    with open(os.path.join(pasta, "tocados.tsv"), "a", encoding="utf-8") as fh:
+        fh.write(linha)
+
+
+def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
+            antes=None):
     """Começa uma ação. Devolve (trabalho, erro) — o erro pode ser um dicionário.
 
     `seco` roda com `MEOW_DRY_RUN=1` (ver `_ambiente_do_painel`): o motor já
@@ -5863,6 +6031,14 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
         amb_acao = {k: (argumento if v == "@ARG@" else v) for k, v in amb_acao.items()}
     elif argumento:
         return (None, "esta ação não recebe argumento")
+    rotulo = acao["rotulo"]
+    pasta_restauro = None
+    if acao_id == "restaurar":
+        pasta_restauro = restauros().get(argumento)
+        if not pasta_restauro:
+            return (None, "não há o que restaurar nessa ação")
+        argv = [pasta_restauro if p == argumento else p for p in argv]
+        rotulo = "Restaurar «%s»" % ACOES[argumento]["rotulo"]
 
     # Sem ela, a ação que chama um script de `scripts/` direto roda com cada
     # chave no padrão.
@@ -5899,18 +6075,44 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
     # um script de terceiro no meio do caminho pode não fazer esse teste.
     ambiente["NO_COLOR"] = "1"
 
+    # O estado de antes vai para uma pasta desta execução; o «Restaurar» não
+    # guarda o próprio antes (desfazer o desfazer é rodar a ação de novo).
+    if escreve(acao) and not seco and acao_id != "restaurar":
+        pasta_restauro = os.path.join(RESTAUROS, "%s-%s-%s" % (
+            time.strftime("%Y%m%dT%H%M%S"), acao_id, secrets.token_hex(3)))
+        ambiente["MEOW_BACKUPS"] = pasta_restauro
+        for caminho, conteudo in (antes or {}).items():
+            try:
+                _guardar_antes_py(pasta_restauro, caminho, conteudo)
+            except OSError:
+                pass
+    vivo = {}
+
+    def ao_terminar():
+        # A CÓPIA DO ENSAIO MORRE COM O TRABALHO, e não aqui: ele acabou de
+        # nascer e vai sourcear aquele arquivo pelos próximos segundos.
+        if pasta_de_ensaio:
+            shutil.rmtree(pasta_de_ensaio, ignore_errors=True)
+        t = vivo.get("t")
+        if acao_id == "restaurar":
+            if t is not None and t.rc in (0, 1):
+                _esquecer_restauro(argumento, pasta_restauro)
+        elif pasta_restauro:
+            _guardar_restauro(acao_id, pasta_restauro)
+
     with TRABALHO_TRAVA:
         if TRABALHO_ATUAL is not None and TRABALHO_ATUAL.vivo():
+            if acao_id != "restaurar" and pasta_restauro:
+                shutil.rmtree(pasta_restauro, ignore_errors=True)
             return (None, "já há um trabalho correndo: %s" % TRABALHO_ATUAL.rotulo)
         try:
-            # A CÓPIA DO ENSAIO MORRE COM O TRABALHO, e não aqui: ele acabou de
-            # nascer e vai sourcear aquele arquivo pelos próximos segundos.
-            trabalho = Trabalho(
-                acao_id, argv, ambiente, acao["rotulo"],
-                ao_terminar=(lambda: shutil.rmtree(pasta_de_ensaio, ignore_errors=True))
-                if pasta_de_ensaio else None)
+            trabalho = Trabalho(acao_id, argv, ambiente, rotulo, ao_terminar=ao_terminar)
         except OSError as erro:
+            if acao_id != "restaurar" and pasta_restauro:
+                shutil.rmtree(pasta_restauro, ignore_errors=True)
             return (None, str(erro))
+        vivo["t"] = trabalho
+        trabalho.pasta_restauro = pasta_restauro if acao_id != "restaurar" else None
         TRABALHOS[trabalho.id] = trabalho
         TRABALHO_ATUAL = trabalho
     return (trabalho, None)
@@ -7408,6 +7610,7 @@ class Manipulador(BaseHTTPRequestHandler):
         fora.sort(key=lambda j: j["nome"].lower())
         orfas.sort(key=lambda j: j["appid"])
         fora.extend(orfas)
+        heroic = [] if busca else jogos_do_heroic()
 
         # Sumir de um lado sem aparecer no outro seria perder a capacidade, não
         # movê-la.
@@ -7444,7 +7647,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "trava_pack": self._trava_do_pack(d, d["nome"], donos_scalable, travas),
             })
         return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS,
-                "apps": icones, "total_apps": len(icones)}
+                "heroic": heroic, "apps": icones, "total_apps": len(icones)}
 
     def _api_jogo_fora(self, corpo):
         """Grava (ou tira) a linha de um jogo no `jogos-fora.map`.
@@ -7460,7 +7663,7 @@ class Manipulador(BaseHTTPRequestHandler):
             (`_previa_dos_jogos`): quais atalhos entram, quais saem, e que
             pasta seria apagada. É o que a caixa de confirmar mostra;
           · `seco: true` roda a passagem inteira em ensaio sobre a mesma cópia
-            e devolve o trabalho, para a gaveta — o «Ver o que faria».
+            e devolve o trabalho, para a gaveta — o «Ver sem mudar».
         Montar a linha num lugar e a cópia noutro faria a caixa prometer um
         mapa e o botão gravar outro.
         """
@@ -7526,7 +7729,7 @@ class Manipulador(BaseHTTPRequestHandler):
                            "depois": "vale depois de \"Arrumar os jogos no lançador\""})
 
     def _ensaio_dos_jogos(self, mapa):
-        """O «Ver o que faria» da caixa dos jogos: a passagem, seca, sobre `mapa`.
+        """O «Ver sem mudar» da caixa dos jogos: a passagem, seca, sobre `mapa`.
 
         A cópia do mapa mora na pasta descartável do ensaio (`_conf_de_ensaio`,
         a mesma do «Salvar e aplicar»), e o `iniciar` a entrega ao script pelo
@@ -8388,6 +8591,8 @@ class Manipulador(BaseHTTPRequestHandler):
     #
     # A recusa do SVG é do servidor: é aqui que a escrita mora, e é aqui que ela
     # tem de valer contra um POST forjado.
+    # A recusa é do servidor, porque é aqui que a escrita mora e vale contra um POST
+    # forjado: sem script, estilo nem referência externa, e sem `stroke-width` nem cor.
     _SVG_PROIBIDO = re.compile(
         r"<\s*(script|style|image|foreignObject|iframe|use)\b"
         r"|xlink:|href\s*=|\bon[a-z]+\s*=|url\s*\(|@import",
@@ -9354,11 +9559,14 @@ class Manipulador(BaseHTTPRequestHandler):
             # …/leitura_build.sh", "meow wallpaper permitir /home/<usuário>/
             # …").
             linhas = [texto_na_tela(l) for l in linhas]
+            pasta = getattr(trabalho, "pasta_restauro", None)
             return self._json({
                 "id": trabalho.id, "rotulo": trabalho.rotulo,
                 "linhas": linhas, "proximo": total,
                 "vivo": trabalho.vivo(), "rc": trabalho.rc,
                 "segundos": round((trabalho.fim or time.time()) - trabalho.comeco, 1),
+                # Há o que desfazer desta execução: a janela mostra o «Restaurar».
+                "restauravel": bool(pasta) and not trabalho.vivo() and _tem_tocados(pasta),
             })
 
         # LEVAR EMBORA — as duas saídas do botão "Exportar".
@@ -9809,6 +10017,7 @@ class Manipulador(BaseHTTPRequestHandler):
                     }
                 item["programas"] = programas
         medidas = dict(_medidas_do_projeto(), **_medidas_da_tela())
+        restauros_agora = restauros()
         return {
             # `~/.config/meow/meow.conf`, e não o caminho com o nome de usuário:
             # a página só o mostra, no balão do resumo do topo.
@@ -9842,14 +10051,15 @@ class Manipulador(BaseHTTPRequestHandler):
             # que ligá-la serviu para alguma coisa.
             "medidas": medidas,
             "acoes": [
-                dict(v, id=k,
+                dict({c: x for c, x in v.items() if not callable(x)}, id=k,
                      ajuda=_com_medidas(_ajuda_do_pack(k) or v.get("ajuda", ""),
                                         medidas),
                      # O comando da TELA, e não o que roda: a página só o
                      # mostra (a linha do cartão, o «ver comando», a caixa de
                      # confirmar) e pede a ação pelo `id`.
-                     argv=comando_na_tela(v["argv"]),
+                     argv=None,
                      escreve=escreve(v),
+                     restauro=k in restauros_agora,
                      sudo=bool(v.get("sudo")) and not (
                          k in _PELA_PONTE and _ponte_viva()),
                      pela_ponte=bool(v.get("sudo")) and (
@@ -9954,6 +10164,13 @@ class Manipulador(BaseHTTPRequestHandler):
                         {"erro": erro["erro"] if isinstance(erro, dict) else erro}, 409)
                 return self._json({"trabalho": _trabalho_json(trabalho, "instalar", seco=True)})
 
+            # O meow.conf de antes vai para o ponto de restauro do instalador: o
+            # Restaurar desta passada devolve também as escolhas.
+            try:
+                with open(CONF, "rb") as fh:
+                    conf_antes = fh.read()
+            except OSError:
+                conf_antes = None
             gravadas, iguais, falhas = [], [], []
             for chave, rc, saida in definir_varias(pares):
                 if rc == 0:
@@ -9984,7 +10201,8 @@ class Manipulador(BaseHTTPRequestHandler):
                             + feito.stderr.decode("utf-8", "replace")).strip()
                 except (OSError, subprocess.SubprocessError) as e:
                     resposta["aviso"] = "o controle do modo de leitura não foi atualizado: %s" % e
-            trabalho, erro = iniciar("instalar", "", confirmado=True)
+            trabalho, erro = iniciar("instalar", "", confirmado=True,
+                                     antes={CONF: conf_antes} if gravadas else None)
             if erro:
                 resposta["erro"] = erro["erro"] if isinstance(erro, dict) else erro
                 return self._json(resposta, 409)
@@ -10063,6 +10281,18 @@ class Manipulador(BaseHTTPRequestHandler):
             except (KeyError, ValueError, TypeError):
                 return self._json({"erro": "trabalho desconhecido"}, 404)
             return self._json({"parado": trabalho.parar()})
+
+        # O «Guardar» da janela de resultado: o log inteiro vai para `logs/`.
+        if caminho == "/api/guardar-log":
+            try:
+                trabalho = TRABALHOS[int(corpo.get("id", -1))]
+            except (KeyError, ValueError, TypeError):
+                return self._json({"erro": "trabalho desconhecido"}, 404)
+            try:
+                caminho_log = guardar_log(trabalho)
+            except OSError as erro:
+                return self._json({"erro": "não consegui guardar o log: %s" % erro}, 500)
+            return self._json({"caminho": texto_na_tela(caminho_log)})
         return self._recusar(404, "não existe aqui")
 
     def _folhas(self):
@@ -10210,6 +10440,8 @@ if __name__ == "__main__":
     # `--onde` não sobe servidor nenhum: responde e sai — ver `onde_na_tela`. A
     # linha de URL do `main` é a interface com o `run.sh`, e esta porta não
     # passa perto dela.
+    # Com o número errado de argumentos também não sobe: quem pergunta onde fica um
+    # botão não pediu servidor na casa real.
     if len(sys.argv) > 1 and sys.argv[1] == "--onde":
         if len(sys.argv) != 3:
             sys.stderr.write("uso: servidor.py --onde <ação, pendência, chave ou inicio>\n")

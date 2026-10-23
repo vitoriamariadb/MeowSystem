@@ -46,7 +46,7 @@ async function api(rota, opcoes = {}) {
   let dados;
   try { dados = JSON.parse(texto); } catch { dados = { erro: texto }; }
   if (resposta.status === 409 && !dados.erro) {
-    dados.erro = "Já há um trabalho rodando. Espere ele terminar (ou pare-o na gaveta).";
+    dados.erro = "Já há um trabalho rodando. Espere ele terminar (ou pare-o na janela dele).";
   }
   if (!resposta.ok && !dados.erro) dados.erro = "HTTP " + resposta.status;
   return dados;
@@ -547,63 +547,6 @@ function ligarBalao() {
   for (const el of document.querySelectorAll("[title]")) porBalao(el, el.getAttribute("title"));
 }
 
-/* --- o comando, fora do balão --------------------------------------------- */
-async function copiarComando(texto) {
-  try {
-    await navigator.clipboard.writeText(texto);
-    torrada("Comando copiado.", "ok");
-  } catch (e) {
-    /* Sem permissão de área de transferência não há segundo caminho que não
-     * seja pior: o truque do `<textarea>` escondido rouba o foco e é obsoleto. */
-    torrada("O navegador não deixou copiar. O comando está na tela.", "erro");
-  }
-}
-
-/* Recolhe os comandos que o `partirAjuda` tirou dos balões de uma fileira de
- * botões e devolve o par «ver comando» + a linha que ele abre. Devolve `null`
- * quando não há comando nenhum — um botão que não abre nada é ruído. */
-function verComando(acoes) {
-  const donos = [...acoes.children].filter((b) => b.dataset && b.dataset.comando);
-  if (!donos.length) return null;
-  const bloco = elemento("div", { class: "comandos", hidden: true });
-  /* Cada `<code>` fica preso ao BOTÃO dono, e não a uma cópia do texto. */
-  const repintar = [];
-  for (const dono of donos) {
-    const rotulo = (dono.textContent || "").trim();
-    const linha = elemento("code", { texto: dono.dataset.comando });
-    repintar.push(() => { linha.textContent = dono.dataset.comando; });
-    bloco.append(elemento("div", { class: "comando" }, [
-      /* Duas linhas iguais numa lista leem-se como defeito, e o Copiar certo
-       * passa a ser adivinhação. */
-      rotulo && donos.length > 1
-        ? elemento("span", { class: "comando-de", texto: rotulo }) : null,
-      linha,
-      elemento("button", {
-        type: "button", class: "btn btn-mini",
-        texto: "Copiar",
-        "aria-label": rotulo ? `Copiar o comando de ${rotulo}` : "Copiar o comando",
-        onclick: () => copiarComando(dono.dataset.comando),
-      }),
-    ]));
-  }
-  /* Repintar só ao ABRIR fechava metade da porta que o comentário lá em cima
-   * mandou fechar: com a lista JÁ aberta ninguém tornava a abri-la, e o
-   * `<code>` envelhecia na tela do mesmo jeito. */
-  const repintarTudo = () => { for (const f of repintar) f(); };
-  const botao = elemento("button", {
-    type: "button", class: "btn btn-mini ver-comando",
-    texto: "ver comando",
-    "aria-expanded": "false",
-    onclick: () => {
-      /* Repinta ao ABRIR, que é o instante em que alguém começa a ler. */
-      if (bloco.hidden) repintarTudo();
-      bloco.hidden = !bloco.hidden;
-      botao.setAttribute("aria-expanded", String(!bloco.hidden));
-    },
-  });
-  return { botao, bloco, repintar: repintarTudo };
-}
-
 function torrada(texto, classe = "") {
   if (classe && !["ok", "igual", "erro"].includes(classe)) classe = "erro";
   /* Quem repete a frase não está dizendo mais; está gritando. Enquanto uma
@@ -890,8 +833,7 @@ async function descartarEscolhas() {
 async function salvarEscolhas(seco = false) {
   if (TRABALHO && TRABALHO.timer !== null) {
     torrada(`Espere «${TRABALHO.rotulo || "o trabalho"}» terminar`, "igual");
-    $("#gaveta").hidden = false;
-    pastilhaDeTrabalho(false);
+    abrirJanela();
     return;
   }
   const quantas = MUDANCAS.size;
@@ -921,7 +863,7 @@ async function salvarEscolhas(seco = false) {
     torrada(quantas
       ? `Ensaio de ${quantas === 1 ? "1 escolha" : `${quantas} escolhas`} — nada será escrito`
       : "Ensaio do que já está salvo — nada será escrito", "igual");
-    abrirGaveta(r.trabalho, () => salvarEscolhas(false));
+    abrirResultado(r.trabalho, () => salvarEscolhas(false));
     return;
   }
   if (!r.gravadas) { torrada(r.erro || "Não consegui salvar", "erro"); return; }
@@ -950,7 +892,7 @@ async function salvarEscolhas(seco = false) {
   torrada(quantas
     ? `${quantas === 1 ? "1 escolha gravada" : `${quantas} escolhas gravadas`} — aplicando`
     : "Aplicando o que está salvo", "ok");
-  abrirGaveta(r.trabalho);
+  abrirResultado(r.trabalho);
 }
 
 /* O MODELO NÃO MUDOU — clicar guarda, salvar grava. O botão só existe enquanto
@@ -966,8 +908,7 @@ async function aplicarCartao(item, botao) {
    * servidor recusa, e a resposta certa é mostrar o trabalho que já corre. */
   if (TRABALHO && TRABALHO.timer !== null) {
     torrada(`Espere «${TRABALHO.rotulo || "o trabalho"}» terminar`, "igual");
-    $("#gaveta").hidden = false;
-    pastilhaDeTrabalho(false);
+    abrirJanela();
     return;
   }
   botao.disabled = true;
@@ -1007,7 +948,7 @@ async function aplicarCartao(item, botao) {
     return;
   }
   torrada(`«${nomeVisivel(item.chave)}» gravado — aplicando`, "ok");
-  abrirGaveta(r.trabalho);
+  abrirResultado(r.trabalho);
 }
 
 /* Ele lê o arquivo, manda o texto para o servidor conferir chave a chave, e o
@@ -1189,18 +1130,9 @@ function controlePastas(item, aplica) {
    * duas é de tom, não de cor. O desenho em cima diz o resto. */
   const amostra = elemento("span", { class: "pastas-amostra", "aria-hidden": "true" });
   const nota = elemento("div", { class: "selos" });
-  /* O «ver comando» mostra a LINHA do meow.conf, que é o texto cru que saiu da
-   * tela. A fonte dela é um elemento só, e o `dataset.comando` é reescrito a
-   * cada troca — o mesmo contrato do cartão de ação (ver `verComando`). */
-  const fonte = elemento("div", { hidden: true }, [
-    elemento("span", { "data-comando": `ICONES_PASTAS="${valor}"`, texto: "Linha do meow.conf" }),
-  ]);
-  const cmd = verComando(fonte);
   const atualizar = () => {
     const cor = selCor.value;
     amostra.style.background = cor === "${ACCENT}" ? "var(--accent)" : `var(--${cor})`;
-    fonte.firstChild.dataset.comando = `ICONES_PASTAS="cat-${selVariante.value}-${cor}"`;
-    if (cmd) cmd.repintar();
     nota.replaceChildren();
     if (molde.sem_upstream) {
       nota.append(selo("rede", { texto: "papirus-folders",
@@ -1221,7 +1153,6 @@ function controlePastas(item, aplica) {
       elemento("label", {}, [elemento("span", { texto: "Cor" }), selCor, amostra]),
     ]),
     nota,
-    cmd ? elemento("div", { class: "pastas-cru" }, [cmd.botao, cmd.bloco]) : null,
   ]);
 }
 
@@ -1763,6 +1694,7 @@ async function recarregarEsquema() {
   const novo = await api("/api/esquema");
   if (novo && !novo.erro && novo.chaves) {
     ESQUEMA = novo;
+    lerRestauros();
     pintarResumo();
     /* Uma etapa nova no install.sh no meio da sessão dela muda o desenho da
      * aba «Instalação» na releitura seguinte, sem F5. */
@@ -1889,6 +1821,8 @@ function controleImagem(item, tipo, aplica) {
       onclick: async () => { if (await aplica(deFabrica)) pintar(deFabrica); },
     }));
   }
+  /* O Restaurar grava o valor de fábrica (decisão 10); o «Não tocar» devolve o vazio
+   * à chave que o aceita, como o `CURSOR`. */
   const naoToca = botaoNaoTocar(item, emVigor, aplica, "vazio", pintar);
   if (naoToca) caixa.append(naoToca);
   const herda = emVigor === "" && /herda\s+([A-Z][A-Z0-9_]+)/.exec(item.inline || "");
@@ -2228,6 +2162,8 @@ function controlePorArea(item, aplica) {
   const nomesItem = ESQUEMA.chaves.find((k) => k.chave === "AREAS_NOMES");
   const nomes = String(nomesItem ? valorEmVigor(nomesItem) : "")
     .split(",").map((x) => x.trim()).filter(Boolean);
+  /* Sem áreas com nome o cartão é trava, e não campo livre: o `areas.sh` se pula com a
+   * lista vazia, e o que se escrevesse ali não valeria. */
   if (!nomes.length) return elemento("div", { class: "por-area" });
 
   const marcadas = new Set(String(valorEmVigor(item))
@@ -3279,6 +3215,7 @@ function montarEscolhaDeIcone(app, recarregar) {
       appAVista(app.id);
     },
   }));
+  /* Só a escolha de quem usa se desfaz daqui: a linha do mapa do projeto é curadoria do repositório. */
   if (app.mapa && app.mapa.meu) {
     acoes.append(elemento("button", {
       /* "MAPA" ERA O NOME DO ARQUIVO (apps-arcticons.map), não do que o botão
@@ -4250,7 +4187,6 @@ function oficinaAutoral() {
 /* Aqui ela escolhe; quem age é o `scripts/jogos_steam.sh` no botão "Arrumar os
  * jogos no lançador", que já passa pelo confirmar e pela gaveta de saída. */
 let JOGOS = null;
-let JOGOS_BUSCA = "";
 let JOGO_ABERTO = null;
 
 async function carregarJogos() {
@@ -4278,7 +4214,7 @@ async function definirJogo(appid, acao, motivo, remover) {
     body: JSON.stringify({ acao: "jogos_aplicar", argumento: "", confirmado: true }),
   });
   if (t.erro) torrada(t.erro, "erro");
-  else abrirGaveta(t);
+  else abrirResultado(t);
   await carregarJogos();
 }
 
@@ -4292,7 +4228,7 @@ async function definirJogo(appid, acao, motivo, remover) {
 function pintarEfeitoDosJogos(caixa, r) {
   if (r.erro) {
     caixa.replaceChildren(elemento("p", {
-      texto: `Não deu para conferir antes: ${r.erro}. O «Ver o que faria» mostra a passagem inteira.`,
+      texto: `Não deu para conferir antes: ${r.erro}. O «Ver sem mudar» mostra a passagem inteira.`,
     }));
     return;
   }
@@ -4342,259 +4278,115 @@ async function confirmarJogo(j, acao, motivo, remover, rotulos = {}) {
   if (escolha !== "seco") return;
   const t = await api("/api/jogo-fora", { method: "POST", body: JSON.stringify({ ...pedido, seco: true }) });
   if (t.erro) { torrada(t.erro, "erro"); return; }
-  abrirGaveta(t, () => definirJogo(j.appid, acao, motivo, remover));
+  abrirResultado(t, () => definirJogo(j.appid, acao, motivo, remover));
 }
 
-function etiquetaDoJogo(j) {
-  if (j.gasto) return { texto: "apagado", classe: "jogo-gasto" };
-  if (j.acao === "apagar") return { texto: "apagar", classe: "jogo-apagar" };
-  if (j.acao === "esconder") return { texto: "fora", classe: "jogo-fora" };
-  return { texto: "no lançador", classe: "app-fabrica" };
+/* O ícone que o lançador mostra para o jogo, da lista de atalhos. */
+function iconeDoJogo(j) {
+  const apps = JOGOS.apps || [];
+  if (j.heroic) return apps.find((a) => a.id === j.id) || null;
+  return apps.find((a) => a.id === `steam_app_${j.appid}` || a.id === `meow-steam-${j.appid}`) || null;
+}
+
+/* O interruptor «no lançador»: na Steam a decisão vai para o mapa e a passagem
+ * arruma o lançador (pergunta antes: ela aplica toda marca esperando); no
+ * Heroic o script grava a lista e arruma na mesma passada. */
+function trocarNoLancador(j, ligar) {
+  if (j.heroic) {
+    const acao = ESQUEMA.acoes.find((a) => a.id === (ligar ? "jogos_heroic_por" : "jogos_heroic_tirar"));
+    if (acao) rodar(acao, j.id);
+    return;
+  }
+  if (ligar) {
+    confirmarJogo(j, "", "", true, { titulo: `Pôr ${j.nome} no lançador?`, ok: "Pôr no lançador" });
+  } else {
+    confirmarJogo(j, "esconder", "", false);
+  }
+}
+
+function interruptor(ligado, rotulo, aoTrocar) {
+  return elemento("button", {
+    type: "button", role: "switch", class: "interruptor",
+    "aria-checked": String(!!ligado), "aria-label": rotulo, title: rotulo,
+    onclick: (ev) => { ev.stopPropagation(); aoTrocar(!ligado); },
+  }, [elemento("span", { class: "interruptor-botao", "aria-hidden": "true" })]);
 }
 
 function montarJogos() {
   const caixa = elemento("div");
   if (!JOGOS) {
     carregarJogos();
-    caixa.append(elemento("p", { class: "sem-previa", texto: "Lendo a biblioteca da Steam…" }));
+    caixa.append(elemento("p", { class: "sem-previa", texto: "Lendo os jogos…" }));
     return caixa;
   }
-
-  /* Conta o que tem manifesto, que é o que a grade desenha. */
-  const instalados = (JOGOS.jogos || []).filter((j) => !j.sem_manifesto).length;
-  caixa.append(elemento("div", { class: "linha-filtro" }, [
-    elemento("input", {
-      type: "search", class: "busca-apps", value: JOGOS_BUSCA, "data-foco": "jogos",
-      placeholder: "Filtrar jogo…", "aria-label": "Filtrar jogo",
-      oninput: (e) => { JOGOS_BUSCA = e.target.value; render(); },
-    }),
-    elemento("div", { class: "selos" }, [
-      selo("jogo", { texto: String(instalados),
-        balao: instalados === 0 ? "Nenhum jogo da Steam. O Proton e os runtimes são ferramentas"
-          : instalados === 1 ? "1 jogo instalado na Steam" : `${instalados} jogos instalados na Steam` }),
-    ]),
-  ]));
-
-  /* OS DOIS BOTÕES MORAM AQUI, e não numa aba "Fazer" separada. É o que a
-   * galeria já faz com banir e devolver: a ação fica ao lado da coisa em que
-   * ela age. */
-  const linhaAcoes = elemento("div", { class: "linha-botoes acoes-da-secao" });
-  linhaAcoes.append(elemento("button", {
-    type: "button", class: "btn",
-    texto: "Conferir",
-    title: "Lista o que mudaria. Não escreve nada.",
-    onclick: () => rodarDaSecao("jogos", () => { JOGOS = null; }),
-  }));
-  linhaAcoes.append(elemento("button", {
-    type: "button", class: "btn btn-accent",
-    texto: "Arrumar os jogos no lançador",
-    title: "Aplica as escolhas: cria e remove cartões, e apaga o que estiver marcado.",
-    onclick: () => rodarDaSecao("jogos_aplicar", () => { JOGOS = null; }),
-  }));
-  caixa.append(linhaAcoes);
-
-  const termo = semAcento(JOGOS_BUSCA.trim());
-  const lista = (JOGOS.jogos || []).filter((j) =>
-    !termo || semAcento(j.nome).includes(termo) || j.appid.includes(termo));
-
-  /* Ela continua tendo de aparecer: sem manifesto, o laço do servidor não a
-   * encontra, e tirá-la da tela seria esconder a única coisa que ainda existe
-   * sobre aquela decisão. */
-  const orfas = lista.filter((j) => j.sem_manifesto);
-  const comJogo = lista.filter((j) => !j.sem_manifesto);
-
-  /* Uma grade vazia e uma grade que ainda está carregando são a mesma tela, e
-   * quem digitou não sabe se errou o nome, se o jogo saiu, ou se a página
-   * quebrou. */
-  if (termo && !lista.length) {
-    caixa.append(elemento("p", {
-      class: "sem-previa",
-      texto: `Nenhum jogo casa com “${JOGOS_BUSCA.trim()}”.`,
-    }));
-    return caixa;
+  /* As ações da Steam e do Heroic, em cartão como as outras: Executar e
+   * Restaurar. */
+  const acoes = elemento("div", { class: "grade" });
+  for (const id of ["jogos_aplicar", "jogos_heroic_aplicar"]) {
+    const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
+    if (acao) acoes.append(montarAcao(acao));
   }
+  caixa.append(acoes);
 
-  /* Sem jogo instalado ela nascia como um retângulo sem nada, com o «Pular os
-   * jogos» apontando para ele; agora é uma frase. */
-
+  /* Uma capa por jogo instalado (Steam e Heroic), e o jogo que saiu com a
+   * decisão ainda no mapa: o interruptor dele fica desligado. */
+  const capas = [
+    ...(JOGOS.jogos || []).map((j) => ({ ...j, chave: "steam-" + j.appid,
+      ligado: !j.sem_manifesto && !j.acao && !j.gasto })),
+    ...(JOGOS.heroic || []).map((j) => ({ ...j, heroic: true, chave: j.id, ligado: j.no_lancador })),
+  ].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  if (!capas.length) return caixa;
   const grade = elemento("div", { class: "grade-jogos" });
-  for (const j of comJogo) {
-    const marca = etiquetaDoJogo(j);
+  for (const j of capas) {
+    const icone = iconeDoJogo(j);
     const capa = j.url
       ? elemento("img", { src: j.url, alt: "", loading: "lazy" })
-      /* Jogo sem capa é jogo sem manifesto: a decisão que sobreviveu ao jogo.
-       * O retângulo com o número da Steam diz isso sem precisar de frase. */
-      : elemento("div", { class: "jogo-sem-capa", texto: j.appid });
-    grade.append(elemento("button", {
-      type: "button",
-      class: "jogo" + (JOGO_ABERTO === j.appid ? " aberto" : "")
-             + (j.acao || j.gasto ? " marcado" : ""),
-      /* Quem passa o rato numa capa quer saber que número é aquele, não como
-       * a Steam chama o campo dela. */
-      title: `Número deste jogo na Steam: ${j.appid}`,
-      onclick: () => { JOGO_ABERTO = JOGO_ABERTO === j.appid ? null : j.appid; render(); },
+      : elemento("div", { class: "jogo-sem-capa", "aria-hidden": "true" });
+    grade.append(elemento("div", {
+      class: "jogo" + (JOGO_ABERTO === j.chave ? " aberto" : "") + (j.ligado ? "" : " marcado"),
+      "data-jogo": j.chave,
     }, [
-      capa,
-      elemento("span", { class: "app-nome", texto: j.nome }),
-      elemento("span", { class: "app-marca " + marca.classe, texto: marca.texto }),
-    ]));
-    if (JOGO_ABERTO === j.appid) grade.append(montarEscolhaDeJogo(j));
-  }
-  if (comJogo.length) {
-    caixa.append(pulaGrade("apos-jogos", "Pular os jogos"));
-    caixa.append(grade);
-    caixa.append(alvoDoPulo("apos-jogos"));
-  }
-
-  if (orfas.length) {
-    caixa.append(elemento("h3", { class: "subsecao-titulo com-dica" }, [
-      elemento("span", { texto: "Decisões já executadas" }),
-      ...gatilhoDeDica("dica-jogos-orfas", "Sobre as decisões já executadas", [
-        elemento("p", { texto: orfas.length === 1
-          ? "Este jogo não está mais na máquina. A linha fica aqui só para você "
-            + "poder tirá-la: ela não traz o jogo de volta, e não apaga mais nada."
-          : `Estes ${orfas.length} jogos não estão mais na máquina. As linhas ficam `
-            + "aqui só para você poder tirá-las: elas não trazem os jogos de volta, "
-            + "e não apagam mais nada." }),
+      elemento("button", {
+        type: "button", class: "jogo-capa", "aria-label": `Abrir ${j.nome}`,
+        "aria-expanded": String(JOGO_ABERTO === j.chave),
+        onclick: () => { JOGO_ABERTO = JOGO_ABERTO === j.chave ? null : j.chave; APP_ABERTO = null; render(); },
+      }, [capa]),
+      elemento("div", { class: "jogo-pe" }, [
+        icone && icone.url ? elemento("img", { class: "jogo-icone", src: icone.url, alt: "" }) : null,
+        elemento("span", { class: "app-nome", texto: j.nome }),
+        interruptor(j.ligado, `${j.nome} no lançador`, (ligar) => trocarNoLancador(j, ligar)),
       ]),
     ]));
-    const cxOrfas = elemento("div", { class: "lista-orfas" });
-    for (const j of orfas) {
-      cxOrfas.append(elemento("div", { class: "linha-orfa" }, [
-        elemento("span", { class: "orfa-nome", texto: j.nome }),
-        elemento("span", { class: "orfa-nota",
-          /* É o nome do campo na Steam, e numa linha que já traz o NOME do
-           * jogo ele não distingue nada: quem lê "Mad King Redemption Demo"
-           * não precisa do número para saber de qual jogo se trata. */
-          title: `Número deste jogo na Steam: ${j.appid}`,
-          texto: j.apagado_em
-            ? `arquivos apagados em ${j.apagado_em}`
-            : "ainda na lista" }),
-        elemento("button", {
-          type: "button", class: "btn btn-mini",
-          texto: "Tirar da lista",
-          /* 96 -> 49 caracteres, pelo teto do balão. A segunda metade dizia
-           * duas vezes a mesma coisa: se nenhum arquivo é tocado, o jogo que
-           * não está no disco continua não estando. */
-          title: "Tira a decisão da lista. Pergunta antes de arrumar.",
-          onclick: () => confirmarJogo(j, "", "", true),
-        }),
-      ]));
-    }
-    caixa.append(cxOrfas);
+    if (JOGO_ABERTO === j.chave) grade.append(montarEscolhaDeJogo(j, icone));
   }
-
-  /* A razão é de uso, e não de arrumação: a aba de ícones existe para vestir os
-   * PROGRAMAS com o traço do projeto, e um jogo não se veste — ele tem capa
-   * própria, vem e vai com a licença, e o que ela decide sobre ele é outra
-   * coisa.
-   *
-   * Os que não casam são a própria Steam e o ProtonUp-Qt (que se declaram
-   * `Categories=Game`) e um jogo cujo cartão ainda não foi escrito. */
-  if ((JOGOS.apps || []).length) {
-    const comAtalho = JOGOS.total_apps ?? JOGOS.apps.length;
-    caixa.append(elemento("h3", { class: "subsecao-titulo com-dica" }, [
-      elemento("span", { texto: "O ícone de cada jogo" }),
-      selo("jogo", { texto: String(comAtalho),
-        balao: `${comAtalho} ${comAtalho === 1 ? "jogo tem" : "jogos têm"} atalho nesta máquina` }),
-      ...gatilhoDeDica("dica-icone-dos-jogos", "Sobre o ícone de cada jogo", [
-        elemento("p", { texto: "A capa acima decide se o jogo aparece no lançador; aqui se "
-                             + "escolhe o desenho com que ele aparece." }),
-      ]),
-    ]));
-    caixa.append(pulaGrade("apos-apps-jogos", "Pular a lista"));
-  caixa.append(gradeDeApps(JOGOS.apps, JOGOS_BUSCA, carregarJogos));
-  caixa.append(alvoDoPulo("apos-apps-jogos"));
-  }
+  caixa.append(pulaGrade("apos-jogos", "Pular os jogos"));
+  caixa.append(grade);
+  caixa.append(alvoDoPulo("apos-jogos"));
   return caixa;
 }
 
-function montarEscolhaDeJogo(j) {
+/* Aberta pela capa: o ícone com que o jogo aparece e, na Steam, o apagar. */
+function montarEscolhaDeJogo(j, icone) {
   const painel = elemento("div", { class: "escolha-jogo" });
   painel.append(elemento("h3", { class: "titulo-cartao", texto: j.nome }));
-
-  /* O ESTADO ATUAL EM UMA FRASE, ANTES DAS ESCOLHAS. Sem isto o painel abre com
-   * três botões e nenhuma dica de onde aquele jogo está agora. */
-  let onde = j.cartao ? "Tem cartão no lançador." : "Sem cartão no lançador.";
-  if (j.gasto) {
-    onde = `Arquivos apagados em ${j.apagado_em || "uma passagem anterior"}. `
-         + "A linha está gasta: não apaga de novo, nem se você reinstalar.";
-  } else if (j.acao === "apagar") {
-    onde = "Marcado para apagar — os arquivos saem na próxima passagem.";
-  } else if (j.acao === "esconder") {
-    onde = "Fora do lançador a pedido. Os arquivos continuam no disco.";
-  }
-  painel.append(elemento("p", { class: "frase", texto: onde }));
-  if (j.motivo) painel.append(elemento("p", { class: "frase nota-secao", texto: j.motivo }));
-
-  const motivo = elemento("input", {
-    type: "text", class: "motivo-jogo", "data-foco": "motivo-jogo",
-    placeholder: "Por quê? (fica anotado junto com a decisão)",
-    "aria-label": "Por que este jogo sai do lançador",
-  });
-  painel.append(motivo);
-
-  const linha = elemento("div", { class: "linha-botoes" });
-
-  if (j.acao !== "esconder") {
-    linha.append(elemento("button", {
-      type: "button", class: "btn",
-      texto: "Tirar do lançador",
-      title: "Some da lista de aplicativos. Pergunta antes de arrumar.",
-      onclick: () => confirmarJogo(j, "esconder", motivo.value, false),
-    }));
-  }
-
-  /* O "apagar" só aparece quando há o que apagar. Numa linha já gasta ele seria
-   * um botão que promete uma ação que o script vai recusar — e um botão que não
-   * faz nada é pior que um botão a menos. */
-  if (!j.gasto && j.no_disco) {
-    linha.append(elemento("button", {
+  if (!j.heroic && !j.gasto && j.no_disco) {
+    painel.append(elemento("div", { class: "linha-botoes" }, [elemento("button", {
       type: "button", class: "btn btn-perigo",
       texto: "Apagar os arquivos",
       title: "Tira do lançador e remove a pasta do jogo e o manifesto, uma vez só.",
       onclick: async () => {
-        /* A PERGUNTA É AQUI, e não só no botão que executa. A anotação se
-         * desfaz com um clique, mas ela precisa saber, ANTES de escolher, que
-         * esta é a opção que leva gigabytes embora. */
         const sim = await perguntar({
           titulo: `Apagar os arquivos de ${j.nome}?`,
-          texto: "A pasta do jogo e o manifesto saem do disco agora — com a Steam "
+          texto: "A pasta do jogo e o manifesto saem do disco — com a Steam "
                + "aberta, na próxima passagem. Dispara uma vez só: se você "
                + "reinstalar depois, nada é apagado.",
-          /* Nos outros diálogos ali vai o comando que VAI RODAR, e aqui não
-           * roda comando nenhum: o clique anota uma decisão. */
-          comando: `${j.nome} → marcado para apagar`,
           ok: "Marcar para apagar", perigo: true,
         });
-        if (sim) definirJogo(j.appid, "apagar", motivo.value);
+        if (sim) definirJogo(j.appid, "apagar", "");
       },
-    }));
+    })]));
   }
-
-  if (j.acao || j.gasto) {
-    /* A decisão nomeia a CLASSE («as ações de jogos que aplicam todas as marcas
-     * pendentes»), e não dois botões: este também grava a linha e roda a
-     * passagem inteira, e um «Marcar para apagar» de outro jogo, esperando a
-     * Steam fechar, saía no clique daqui sem caixa nenhuma. */
-    const rotulo = j.gasto ? "Tirar a linha gasta" : "Voltar ao normal";
-    linha.append(elemento("button", {
-      type: "button", class: "btn",
-      texto: rotulo,
-      title: "Tira esta decisão da lista. O cartão volta na próxima passagem.",
-      onclick: () => confirmarJogo(j, "", "", true, {
-        titulo: j.gasto ? `Tirar a linha gasta de ${j.nome}?` : `Voltar ${j.nome} ao normal?`,
-        ok: rotulo,
-      }),
-    }));
-  }
-
-  painel.append(linha);
-  /* "O MAPA" e "jogos-fora.map" SAÍRAM DOS QUATRO TEXTOS DESTA OFICINA. */
-  painel.append(elemento("p", { class: "frase nota-secao",
-    /* "SÓ ANOTA" DEIXOU DE SER VERDADE: cada botão acima grava a decisão e
-     * arruma o lançador na mesma hora (ver `definirJogo`). */
-    texto: "Cada escolha já arruma o lançador. Arquivo de jogo só sai com a Steam fechada." }));
+  if (icone) painel.append(montarEscolhaDeIcone(icone, carregarJogos));
   return painel;
 }
 
@@ -4626,6 +4418,8 @@ const GRUPOS_PAREDE = [
     balao: "Fora do carrossel. Nunca são apagadas" },
 ];
 
+/* A página não move arquivo: o botão chama o `wallpaper.sh`, que guarda o link duro
+ * entre `ativos/` e `ativos-<lado>/` e o banimento que sobrevive. */
 function botoesDeLado(imagem) {
   /* PELO CAMINHO CANÔNICO, e não pelo que está sendo mostrado: `ativos-dia/` e
    * `ativos-noite/` são LINK DURO do mesmo arquivo, e agir pelo link mexeria só
@@ -4647,8 +4441,7 @@ function botoesDeLado(imagem) {
   return botoes.map(([id, rotulo, ajuda]) => elemento("button", {
     type: "button", class: "btn btn-mini",
     texto: rotulo,
-    title: `${ajuda} (meow wallpaper lado ${imagem.rotulo} `
-         + `${id === "wallpaper_lado_auto" ? "auto" : rotulo.toLowerCase()})`,
+    title: ajuda,
     onclick: () => rodarNaGaleria(id, alvo),
   }));
 }
@@ -4760,7 +4553,7 @@ function montarGaleria() {
       acoes.append(elemento("button", {
         type: "button", class: "btn btn-mini btn-accent",
         texto: "Usar",
-        title: `Passa a valer agora. (meow wallpaper usar ${i.rotulo})`,
+        title: "Passa a valer agora.",
         onclick: () => rodarNaGaleria("wallpaper_usar", i.banir || i.origem),
       }));
       acoes.append(...botoesDeLado(i));
@@ -4774,24 +4567,14 @@ function montarGaleria() {
         /* "banidos/" É O NOME DA PASTA NO DISCO. A aba ao lado já se chama
          * "Recusadas" e é para lá que a imagem vai; citar o diretório
          * obrigava a saber que os dois nomes são a mesma coisa. */
-        title: `Sai do carrossel e vai para as recusadas. Nunca é apagada. (meow wallpaper banir ${i.rotulo})`,
+        title: "Sai do carrossel e vai para as recusadas. Nunca é apagada.",
         onclick: () => rodarNaGaleria("wallpaper_banir", i.banir || i.origem),
       }));
     }
-    /* Os quatro balões desta ficha carregavam um `(meow wallpaper …)` cru
-     * dentro dos parênteses — 119 na aba inteira, e era a metade comprida do
-     * texto que cobria os botões vizinhos. */
-    const cmds = verComando(acoes);
-    if (cmds) acoes.append(cmds.botao);
     fig.append(elemento("figcaption", {}, [
       elemento("span", { class: "nome", texto: i.rotulo }),
       acoes.children.length ? acoes : null,
     ]));
-    /* A LISTA DE COMANDOS FICA FORA DA LEGENDA, e isso é medida, não gosto: a
-     * legenda é um véu ancorado no pé da imagem, e os quatro comandos desta
-     * ficha não cabem nos 132 px do cartão — dentro dela a lista nascia
-     * cortada pela moldura. */
-    if (cmds) fig.append(cmds.bloco);
     grade.append(fig);
   }
   caixa.append(pulaGrade("apos-galeria", "Pular a galeria"));
@@ -4831,7 +4614,7 @@ async function rodarDaSecao(acaoId, invalidar) {
     body: JSON.stringify({ acao: acaoId, argumento: "", confirmado: true, seco }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirGaveta(r, seco ? () => rodarDeVerdade(acao, "") : null);
+  abrirResultado(r, seco ? () => rodarDeVerdade(acao, "") : null);
   const esperar = setInterval(() => {
     if (TRABALHO) return;
     clearInterval(esperar);
@@ -4851,7 +4634,7 @@ async function rodarNaGaleria(acaoId, argumento) {
     body: JSON.stringify({ acao: acaoId, argumento }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirGaveta(r);
+  abrirResultado(r);
   /* A lista muda por baixo: a imagem sai de `ativos/` e entra em `banidos/`.
    * Quem a relê no fim é o `puxar`, como a de todo trabalho que escreve — e
    * as seis ações da galeria escrevem. */
@@ -5417,8 +5200,6 @@ function montarAcao(acao) {
    * As pastilhas que ficam são as que de fato distinguem uma ação da vizinha —
    * pede senha, desfaz o que foi feito, baixa da internet. */
 
-  /* O `pintarCmd`, logo abaixo, é quem o mantém em dia quando o `<select>`
-   * muda o argumento. */
   const executar = elemento("button", {
     type: "button",
     class: "btn " + (acao.destrutivo ? "btn-perigo" : "btn-accent"),
@@ -5426,25 +5207,13 @@ function montarAcao(acao) {
     onclick: () => rodar(acao, escolha ? escolha.value : ""),
   });
   rodape.append(executar);
-  /* A ação que mostra o que mudaria (`par`, declarado pelo servidor) leva no
-   * mesmo cartão a que aplica, no molde do «Conferir» e do «Arrumar» da Steam:
-   * o primeiro botão passa a ser «Conferir», o segundo é o rótulo do aplicar,
-   * com os selos de risco dele. */
-  const par = acao.par && (ESQUEMA.acoes || []).find((a) => a.id === acao.par);
-  if (par) {
-    executar.textContent = "Conferir";
-    executar.className = "btn par-conferir";
-    rodape.append(elemento("span", { class: "par-quebra", "aria-hidden": "true" }));
-    if (par.sudo) rodape.append(selo("sudo", { balao: "Pede a senha do sudo" }));
-    else if (par.pela_ponte) rodape.append(selo("ponte", {
-      balao: "Sem senha: o perfil do sudo está registrado" }));
-    if (par.destrutivo) rodape.append(selo("desfaz", { balao: "Desfaz o que foi feito" }));
-    if (par.rede) rodape.append(selo("rede", { balao: "Baixa da internet" }));
+  /* O Restaurar desfaz a ÚLTIMA execução desta ação, e só existe quando há o
+   * que desfazer: a ação que só lê nunca o mostra. */
+  if (acao.escreve && RESTAUROS.has(acao.id)) {
     rodape.append(elemento("button", {
-      type: "button",
-      class: "btn par-aplicar " + (par.destrutivo ? "btn-perigo" : "btn-accent"),
-      texto: par.rotulo,
-      onclick: () => rodar(par, ""),
+      type: "button", class: "btn restaurar",
+      texto: "Restaurar",
+      onclick: () => restaurarAcao(acao.id),
     }));
   }
   /* Uma ação que recebe argumento (`arg`, o `@ARG@` do comando) e cuja lista
@@ -5469,38 +5238,6 @@ function montarAcao(acao) {
   if (explica.length) topo.append(...gatilhoDeDica("dica-acao-" + idDeAba(acao.id || acao.rotulo),
                                                    `O que faz ${acao.rotulo}`, explica));
   bloco.append(rodape);
-  /* `@ARG@` é sintaxe do `servidor.py`, e a linha embaixo do cartão existe
-   * justamente para que ela possa LER o que vai acontecer antes de apertar. */
-  /* Ela imprimia o `argv` inteiro, com `/home/<usuário>/…` na frente: 42 das
-   * 43 tarjas de caminho que a página mostrava. */
-  /* Ela mostrava o mesmo comando que o «ver comando» abre dois centímetros
-   * abaixo. */
-  const pintarCmd = () => {
-    const texto = acao.argv.replace("@ARG@", escolha ? escolha.value : "");
-    executar.dataset.comando = texto;
-    /* Eram 42 na página: o balão imprimia, sob o cursor, o comando que a linha
-     * já mostra por extenso dois centímetros acima. */
-  };
-  pintarCmd();
-  if (escolha) escolha.addEventListener("change", pintarCmd);
-  /* O «ver comando» nasce DEPOIS do `pintarCmd`, porque é o `dataset.comando`
-   * que ele procura na fileira. */
-  const cmds = verComando(rodape);
-  if (cmds) {
-    /* ANTES DO «EXECUTAR», e não depois: o `.rodape` põe as etiquetas de risco
-     * à esquerda e o gatilho à direita justamente para que a última coisa lida
-     * antes de apertar seja o risco (ver o `estilo.css`). */
-    rodape.insertBefore(cmds.botao, executar);
-    /* A linha do «ver comando» é agora A linha de comando do cartão, e leva a
-     * classe que a linha de cima levava: é por ela que quem confere a ação
-     * acha o comando que vai rodar. */
-    for (const linha of cmds.bloco.querySelectorAll("code")) linha.classList.add("cmd");
-    bloco.append(cmds.bloco);
-    /* O «Copiar» estava certo (lê o `dataset.comando` na hora da cópia); quem
-     * mentia era o TEXTO, que é justamente o que esta lista existe para
-     * mostrar. */
-    if (escolha) escolha.addEventListener("change", cmds.repintar);
-  }
   return bloco;
 }
 
@@ -5529,7 +5266,7 @@ async function rodar(acao, argumento) {
     });
   }
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirGaveta(r, seco ? () => rodarDeVerdade(acao, argumento) : null);
+  abrirResultado(r, seco ? () => rodarDeVerdade(acao, argumento) : null);
 }
 
 /* Reabri-la aqui seria pedir a mesma autorização duas vezes — o defeito que o
@@ -5540,7 +5277,7 @@ async function rodarDeVerdade(acao, argumento) {
     body: JSON.stringify({ acao: acao.id, argumento, confirmado: true, seco: false }),
   });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirGaveta(r);
+  abrirResultado(r);
 }
 
 /* A seção "Jogos da Steam" precisava perguntar antes de marcar um jogo para
@@ -5556,7 +5293,7 @@ function botaoDeEnsaio() {
   if (!b) {
     b = elemento("button", {
       value: "seco", class: "btn btn-ensaio", id: "confirmar-ensaio",
-      texto: "Ver o que faria",
+      texto: "Ver sem mudar",
       title: "Roda em ensaio (MEOW_DRY_RUN=1): mostra tudo e não escreve nada",
     });
     /* ANTES do gatilho, e não depois: a ordem de leitura da caixa termina no
@@ -5582,7 +5319,7 @@ function lugarDoCorpo() {
   return lugar;
 }
 
-/* `ensaio: true` acende o botão «Ver o que faria» */
+/* `ensaio: true` acende o botão «Ver sem mudar» */
 /* «Sem texto na interface, máximo vira dica»: o que vai ser feito com root fica
  * na linha, e o porquê (nada aqui pede senha; a máquina a lembra por uma hora;
  * sem ela, as etapas se pulam) vai para o `?`. */
@@ -5601,7 +5338,7 @@ function caixaDoSudo() {
         + "pulam sozinhas e aparecem como «pulado:»." })]));
 }
 
-function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
+function perguntar({ titulo, texto, ok = "Sim", sudo = false,
                      perigo = false, neutro = false, ensaio = false, corpo = null }) {
   const dlg = $("#confirmar");
   $("#confirmar-titulo").textContent = titulo;
@@ -5611,10 +5348,6 @@ function perguntar({ titulo, texto, comando = "", ok = "Sim", sudo = false,
   lugar.hidden = !corpo;
   if (sudo) caixaDoSudo();
   $("#confirmar-sudo").hidden = !sudo;
-  $("#confirmar-comando").textContent = comando;
-  /* Esconder o <code> deixaria o <p> que o embrulha ocupando espaço vazio — o
-   * que vira um buraco no meio da caixa quando a pergunta não tem comando. */
-  $("#confirmar-comando").closest("p").hidden = !comando;
   $("#confirmar-ok").textContent = ok;
   /* Três pesos, e o do meio existe: descartar escolhas não escreve nada, e
    * pintar aquele botão com a cor de acento o faria parecer a ação principal. */
@@ -5639,7 +5372,6 @@ async function confirmar(acao, argumento) {
   const r = await perguntar({
     titulo: acao.rotulo,
     texto: acao.ajuda,
-    comando: acao.argv.replace("@ARG@", argumento),
     /* O "de verdade" só volta lá na gaveta, depois do ensaio, onde não há outra
      * frase segurando o sentido. */
     ok: "Rodar",
@@ -5677,7 +5409,7 @@ function faixaDeEnsaio(ligada) {
   const velha = document.getElementById("faixa-ensaio");
   if (velha) velha.remove();
   if (!ligada) return;
-  $(".gaveta-topo").after(elemento("div", { class: "faixa-ensaio", id: "faixa-ensaio" }, [
+  $(".resultado-topo").after(elemento("div", { class: "faixa-ensaio", id: "faixa-ensaio" }, [
     elemento("strong", { texto: "ENSAIO · nada foi escrito" }),
     elemento("span", { texto: "Cada linha «~~» é uma mudança que ficou só na tela." }),
   ]));
@@ -5688,17 +5420,18 @@ function faixaDeEnsaio(ligada) {
  * botão, dois cartões ao lado. */
 function oferecerConserto(id) {
   const acao = (ESQUEMA.acoes || []).find((a) => a.id === id);
-  if (!acao || document.getElementById("gaveta-consertar")) return;
+  if (!acao || document.getElementById("resultado-consertar")) return;
+  /* Toda porta de uma ação que declara `rede` mostra o selo «baixa da internet» (decisão 7). */
   const selo = acao.rede
-    ? elemento("span", { class: "pastilha p-rede", id: "gaveta-consertar-rede", texto: "baixa da internet" })
+    ? elemento("span", { class: "pastilha p-rede", id: "resultado-consertar-rede", texto: "baixa da internet" })
     : null;
   const botao = elemento("button", {
-    type: "button", class: "btn btn-accent", id: "gaveta-consertar",
+    type: "button", class: "btn", id: "resultado-consertar",
     texto: acao.rotulo,
     onclick: (ev) => { ev.currentTarget.remove(); if (selo) selo.remove(); rodar(acao, ""); },
   });
-  $("#fechar-gaveta").before(botao);
-  if (selo) botao.after(selo);
+  if (selo) $("#resultado-guardar").before(selo);
+  $("#resultado-guardar").before(botao);
 }
 
 /* O BOTÃO QUE FECHA O FLUXO: vejo, aprovo, rodo. Ele só aparece quando o ensaio
@@ -5710,7 +5443,7 @@ function oferecerRodarDeVerdade(aplicar) {
   faixa.append(elemento("button", {
     type: "button", class: "btn btn-accent", id: "ensaio-rodar",
     texto: "Rodar de verdade",
-    title: "Roda o mesmo comando escrevendo na máquina",
+    title: "Roda de novo, agora escrevendo na máquina",
     /* É o mesmo remédio que o `salvarEscolhas` já usa: o botão se desabilita
      * entre o clique e a resposta. */
     onclick: async (ev) => {
@@ -5728,30 +5461,38 @@ function oferecerRodarDeVerdade(aplicar) {
   }));
 }
 
-function abrirGaveta(trabalho, aplicar = null) {
+function abrirJanela() {
+  const d = $("#resultado");
+  if (!d.open) d.showModal();
+  pastilhaDeTrabalho(false);
+  marcarLinhasAbaixo();
+}
+
+function abrirResultado(trabalho, aplicar = null) {
   if (TRABALHO?.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve,
-               rotulo: trabalho.rotulo, mudou: false,
+               rotulo: trabalho.rotulo, mudou: false, acao: trabalho.acao || null,
                seco: !!trabalho.seco, fim: trabalho.fim || {}, aplicar,
                conserta: trabalho.conserta_com || null };
-  for (const velho of ["gaveta-consertar", "gaveta-consertar-rede"]) {
+  /* O Guardar vale depois do fim, quando o `TRABALHO` já foi esquecido. */
+  ULTIMO_TRABALHO = { id: trabalho.id, acao: trabalho.acao || null };
+  for (const velho of ["resultado-consertar", "resultado-consertar-rede"]) {
     const no = document.getElementById(velho);
     if (no) no.remove();
   }
-  const gaveta = $("#gaveta");
-  gaveta.hidden = false;
   faixaDeEnsaio(!!trabalho.seco);
-  gaveta.style.removeProperty("height");
-  gaveta.removeAttribute("data-esticada");
-  pastilhaDeTrabalho(false);
-  $("#gaveta-titulo").textContent = trabalho.rotulo;
-  $("#gaveta-comando").textContent = trabalho.comando;
+  $("#resultado-titulo").textContent = trabalho.rotulo;
   $("#saida").replaceChildren();
+  $("#parar").hidden = false;
   $("#parar").disabled = false;
+  $("#resultado-restaurar").hidden = true;
+  $("#resultado-guardado").hidden = true;
   marcarEstado("correndo", "correndo…");
+  abrirJanela();
   TRABALHO.timer = setInterval(puxar, 400);
   puxar();
 }
+let ULTIMO_TRABALHO = null;
 
 /* O que não está na tabela é erro, e a frase diz o código — é o mesmo "saiu N"
  * de antes, e é ele que o «Parar» mostra (o SIGTERM volta como -15).
@@ -5764,7 +5505,7 @@ function linhaDoFim(fim, rc, mudou) {
 }
 
 function marcarEstado(classe, texto) {
-  const el = $("#gaveta-estado");
+  const el = $("#resultado-estado");
   el.className = "pastilha p-" + classe;
   el.textContent = texto;
 }
@@ -5792,7 +5533,7 @@ function marcarLinhasAbaixo() {
   const saida = $("#saida");
   /* O `fim` da busca binária vira 0, o primeiro filho já o alcança, e a conta
    * devolve TODAS as linhas. */
-  if (saida.offsetParent === null) return;
+  if (!$("#resultado").open) return;
   let aviso = document.getElementById("mais-abaixo");
   if (!aviso) {
     /* Nasce do JavaScript, e não do `index.html`: enquanto não há linha
@@ -5808,7 +5549,7 @@ function marcarLinhasAbaixo() {
       "aria-live": "off",
       onclick: () => { saida.scrollTop = saida.scrollHeight; marcarLinhasAbaixo(); },
     });
-    $("#gaveta").append(aviso);
+    $("#resultado").append(aviso);
   }
   const n = linhasAbaixo(saida);
   aviso.hidden = n === 0;
@@ -5840,7 +5581,11 @@ async function puxar() {
 
   if (!r.vivo) {
     clearInterval(TRABALHO.timer);
-    $("#parar").disabled = true;
+    $("#parar").hidden = true;
+    /* Há o que desfazer: o Restaurar repõe o estado de antes desta execução. */
+    $("#resultado-restaurar").hidden = !(r.restauravel && TRABALHO.acao && !TRABALHO.seco);
+    if (r.restauravel && TRABALHO.acao) RESTAUROS.add(TRABALHO.acao);
+    if (TRABALHO.acao === "restaurar" && (r.rc === 0 || r.rc === 1)) RESTAUROS.delete(TRABALHO.restaura);
     /* Até ali o `escreveu` também escolhia a frase: falso, o código 1 era
      * traduzido como "há divergências" em vez de "mexeu e consertou". */
     const escreveu = TRABALHO.escreve && !TRABALHO.seco;
@@ -5901,11 +5646,11 @@ async function puxar() {
         render();
       });
     }
-    if ($("#gaveta").hidden) {
+    if (!$("#resultado").open) {
       /* O desfecho não pode depender de a gaveta estar à vista: quem fechou
        * continua tendo direito de saber como acabou. A frase é a mesma da
        * pastilha de estado, com o nome do trabalho na frente. */
-      const fim = $("#gaveta-estado").textContent;
+      const fim = $("#resultado-estado").textContent;
       /* A cor da torrada é a da pastilha: o 1 do instalador que não aplicou
        * tudo e o «há divergências» de quem só confere não são o verde de
        * «ok», nem o vermelho de erro. */
@@ -7179,6 +6924,7 @@ const PAGINAS_COM_ACOES_TECNICAS = new Set(["Painel e dock", "Papel de parede",
                                             "Áreas de trabalho", "Lançadores e jogos",
                                             "Manutenção", "Instalação"]);
 const NATUREZAS_TECNICAS = new Set(["mostrar", "aplicar", "reciclar", "baixar"]);
+/* A ação que o servidor declara `tecnica` vai para o «⋯» em qualquer página. */
 function acaoTecnica(assunto, acao) {
   return (PAGINAS_COM_ACOES_TECNICAS.has(assunto) && NATUREZAS_TECNICAS.has(acao.natureza))
     || !!acao.tecnica;
@@ -7402,9 +7148,8 @@ function render() {
       /* Ação `oculta` não é cartão: o argumento dela é uma imagem, e a galeria
        * já a oferece no lugar certo (o botão embaixo de cada foto). */
       if (g.tipo === "acoes" && item.oculta) continue;
-      /* O aplicar de um par mora no cartão do ver dele. Na busca ele
-       * aparece sozinho: o resultado é o que casou. */
-      if (g.tipo === "acoes" && !busca && (ESQUEMA.acoes || []).some((a) => a.par === item.id)) continue;
+      /* Do par «ver / aplicar» fica o aplicar: o ver é o «Ver sem mudar» dele. */
+      if (g.tipo === "acoes" && !busca && item.par) continue;
       /* E a que mora na moldura de um modo. */
       if (g.tipo === "acoes" && !busca && ACOES_EM_MOLDURA.has(item.id)) continue;
       if (g.tipo === "acoes") {
@@ -7480,84 +7225,14 @@ function render() {
   }
 }
 
-/* A cura é na grade de todas as páginas, e não numa página: com mais de uma
- * coluna, a grade vira ALVENARIA. */
-const ALVENARIA_PASSO = 4;
-const ALVENARIA_EMPATE = 64;
-let OBSERVADOR_GRADES = null;
-/* O QUE ESTÁ À VISTA FICA À VISTA: a alvenaria refeita depois da pintura (um
- * desenho que chegou, a janela que mudou) muda os cartões de lugar, e o
- * cartão a que a Início levou (`.chegou`), ou o que tem o foco, saía da
- * janela. */
-function assentarComAncora() {
-  const m = $("#principal");
-  const foco = document.activeElement;
-  const ancora = document.querySelector("#conteudo .grade > .chegou")
-    || (foco && foco.closest && foco.closest("#conteudo .grade > *"));
-  const antes = ancora ? ancora.getBoundingClientRect().top : null;
-  assentarGrades();
-  if (m && ancora && ancora.isConnected) m.scrollTop += ancora.getBoundingClientRect().top - antes;
-}
+/* A grade é a do CSS (linhas alinhadas, P90); aqui só sai o que uma pintura
+ * antiga tenha deixado no `style` de um cartão. */
 function assentarGrades() {
-  if (typeof ResizeObserver === "function" && !OBSERVADOR_GRADES) {
-    let pedido = 0;
-    OBSERVADOR_GRADES = new ResizeObserver(() => {
-      cancelAnimationFrame(pedido);
-      pedido = requestAnimationFrame(assentarComAncora);
-    });
-    addEventListener("resize", assentarComAncora);
-  }
   for (const g of document.querySelectorAll("#conteudo .grade")) {
-    const filhos = [...g.children];
-    for (const c of filhos) { c.style.gridColumn = ""; c.style.gridRow = ""; c.style.minHeight = ""; }
-    const colunas = getComputedStyle(g).gridTemplateColumns.split(" ").filter(Boolean).length;
-    g.classList.toggle("alvenaria", colunas > 1);
-    if (colunas < 2) continue;
-    const vao = parseFloat(getComputedStyle(g).columnGap) * .6 || 18;
-    const fundo = new Array(colunas).fill(1);
-    const postos = [];
-    for (const c of filhos) {
-      if (OBSERVADOR_GRADES) OBSERVADOR_GRADES.observe(c);
-      const alto = c.getBoundingClientRect().height;
-      if (!alto) continue;
-      const linhas = Math.max(1, Math.ceil((alto + vao) / ALVENARIA_PASSO));
-      const largo = getComputedStyle(c).gridColumnEnd === "-1"
-        || c.matches(".decisao, .escolha-icone, .escolha-jogo, .pack.aberto");
-      if (largo) {
-        const de = Math.max(...fundo);
-        c.style.gridColumn = "1 / -1";
-        c.style.gridRow = `${de} / span ${linhas}`;
-        fundo.fill(de + linhas);
-        continue;
-      }
-      let k = 0;
-      for (let i = 1; i < colunas; i++) if (fundo[i] < fundo[k]) k = i;
-      const p = { c, k, de: fundo[k], linhas, alto, natural: linhas };
-      postos.push(p);
-      /* A fileira: os já postos que começam na mesma linha, com nada embaixo,
-       * em grupos de quase empate, do mais baixo para o mais alto. */
-      const fileira = c.matches(".acao") ? postos.filter((o) => o !== p && o.de === p.de
-        && o.c.matches(".acao") && fundo[o.k] === o.de + o.linhas) : [];
-      fileira.push(p);
-      fileira.sort((a, b) => a.alto - b.alto);
-      for (let i = 0; i < fileira.length;) {
-        let j = i;
-        while (j + 1 < fileira.length && fileira[j + 1].alto - fileira[i].alto <= ALVENARIA_EMPATE) j++;
-        const maior = fileira[j];
-        for (const o of fileira.slice(i, j + 1)) {
-          o.linhas = maior.natural;
-          o.c.style.minHeight = o === maior ? "" : `${maior.alto}px`;
-          o.c.style.gridRow = `${o.de} / span ${o.linhas}`;
-          fundo[o.k] = o.de + o.linhas;
-        }
-        i = j + 1;
-      }
-      c.style.gridColumn = String(k + 1);
-      c.style.gridRow = `${p.de} / span ${p.linhas}`;
-      fundo[k] = p.de + p.linhas;
-    }
+    for (const c of g.children) { c.style.gridColumn = ""; c.style.gridRow = ""; c.style.minHeight = ""; }
   }
 }
+function assentarComAncora() { assentarGrades(); }
 
 /* Parada no alto da página ela é o desenho inteiro, com legenda — é ali que ela
  * é lida.
@@ -7586,6 +7261,8 @@ function grudarPrevias() {
     OBSERVADOR_PREVIA.disconnect();
   }
   for (const faixa of document.querySelectorAll("#conteudo .previa-bloco")) {
+    /* A figura que mora na grade é uma célula dela, e não gruda. */
+    if (faixa.parentElement.matches(".grade")) continue;
     let sentinela = faixa.previousElementSibling;
     if (!sentinela || !sentinela.classList.contains("sentinela-previa")) {
       sentinela = elemento("div", { class: "sentinela-previa", "aria-hidden": "true" });
@@ -7984,6 +7661,8 @@ function selosDeOrigem(p, origem) {
 
 /* Nada do texto do pack vira HTML: só título, lista, negrito, código e link viram
  * nó, com o texto por `textContent`; o link só ganha `href` com `https://`. */
+/* A história de um pack é texto de terceiro: nada dela vira HTML. Cada forma
+ * reconhecida vira nó com `textContent`, o resto sai como texto, e link só com https://. */
 function trechosDaLinha(linha) {
   const nos = [];
   const forma = /\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\(([^)\s]+)\)/g;
@@ -8864,18 +8543,13 @@ function montarHome() {
    * confiança no resto. */
   explicaSemana.push(elemento("p", { class: "resumo",
     texto: "Estes rodam na hora — ação não espera o Salvar." }));
-  /* Uma linha resolve; um manual aqui não é o lugar (o trilho já teve um botão
-   * "Manual" e ela o tirou). */
-  explicaSemana.push(elemento("p", { class: "motivo",
-    texto: "No terminal, isto aqui é o comando meow — meow doctor confere, meow ativar aplica." }));
   semana.append(elemento("div", { class: "home-semana-topo com-dica" }, [
     elemento("h3", { texto: "Toda semana" }),
     ...gatilhoDeDica("dica-home-semana", "Sobre as ações da semana", explicaSemana),
   ]));
   const linha = elemento("div", { class: "linha-botoes" });
   for (const [id, rotulo, principal] of [
-    ["doctor", "Conferir a máquina", true],
-    ["doctor_consertar", "Consertar o que estiver fora", false],
+    ["doctor_consertar", "Conferir e consertar", true],
     ["wallpaper_proximo", "Próxima imagem", false],
     ["painel_reciclar", "Recarregar o painel", false],
   ]) {
@@ -8971,43 +8645,43 @@ $("#busca").addEventListener("input", render);
 /* Subir no meio de um trabalho tem de acender o «mais N linhas abaixo» NA HORA,
  * e não no puxão seguinte, 400 ms depois: quem rolou está olhando para a tela. */
 $("#saida").addEventListener("scroll", marcarLinhasAbaixo);
-/* Quem cresce a gaveta passa a ser este arrasto, na faixa que o `index.html`
- * chama de alça.
- *
- * A gaveta cresce PARA CIMA porque está presa no rodapé: subir a borda de cima
- * é somar o que o ponteiro subiu. */
-$("#gaveta-alca").addEventListener("pointerdown", (ev) => {
-  const gaveta = $("#gaveta");
-  const alca = ev.currentTarget;
-  const y0 = ev.clientY;
-  const h0 = gaveta.getBoundingClientRect().height;
-  /* Sem isto o gesto vira seleção do texto do cabeçalho da gaveta. */
-  ev.preventDefault();
-  alca.setPointerCapture(ev.pointerId);
-  const arrastar = (e) => {
-    /* A marca só nasce no primeiro movimento: um clique seco na alça não é
-     * arrasto, e não deveria destravar os 60vh. */
-    gaveta.dataset.esticada = "";
-    gaveta.style.height = Math.round(h0 + (y0 - e.clientY)) + "px";
-  };
-  const soltar = () => {
-    alca.removeEventListener("pointermove", arrastar);
-    alca.removeEventListener("pointerup", soltar);
-    alca.removeEventListener("pointercancel", soltar);
-  };
-  alca.addEventListener("pointermove", arrastar);
-  alca.addEventListener("pointerup", soltar);
-  alca.addEventListener("pointercancel", soltar);
+/* A janela de resultado. Fechar não para nada: com trabalho vivo, a pastilha do
+ * cabeçalho a reabre, e o desfecho chega como torrada. */
+function aoFecharJanela() {
+  if (TRABALHO && TRABALHO.timer !== null) pastilhaDeTrabalho(true);
+}
+$("#resultado").addEventListener("close", aoFecharJanela);
+$("#resultado-ok").addEventListener("click", () => $("#resultado").close());
+$("#resultado-guardar").addEventListener("click", async () => {
+  if (!ULTIMO_TRABALHO) return;
+  const r = await api("/api/guardar-log", { method: "POST",
+    body: JSON.stringify({ id: ULTIMO_TRABALHO.id }) });
+  if (r.erro) { torrada(r.erro, "erro"); return; }
+  const selo = $("#resultado-guardado");
+  const partes = r.caminho.split("/");
+  selo.textContent = partes.slice(-2).join("/");
+  porBalao(selo, r.caminho);
+  selo.hidden = false;
 });
-$("#fechar-gaveta").addEventListener("click", () => {
-  $("#gaveta").hidden = true;
-  /* Agora fechar com trabalho vivo deixa o puxar() de pé (400 ms num servidor
-   * local é barato) e pendura uma pastilha no cabeçalho; ela reabre a gaveta,
-   * e o desfecho de um trabalho fechado vira torrada em vez de silêncio. */
-  if (TRABALHO && TRABALHO.timer !== null) {
-    pastilhaDeTrabalho(true);
-  }
+$("#resultado-restaurar").addEventListener("click", () => {
+  if (ULTIMO_TRABALHO && ULTIMO_TRABALHO.acao) restaurarAcao(ULTIMO_TRABALHO.acao);
 });
+
+/* As ações cuja última execução se desfaz. Nasce do esquema e acompanha cada
+ * fim de trabalho, sem esperar a releitura. */
+const RESTAUROS = new Set();
+function lerRestauros() {
+  RESTAUROS.clear();
+  for (const a of (ESQUEMA && ESQUEMA.acoes) || []) if (a.restauro) RESTAUROS.add(a.id);
+}
+
+async function restaurarAcao(id) {
+  const r = await api("/api/rodar", { method: "POST",
+    body: JSON.stringify({ acao: "restaurar", argumento: id, confirmado: true }) });
+  if (r.erro) { torrada(r.erro, "erro"); return; }
+  abrirResultado(r);
+  TRABALHO.restaura = id;
+}
 
 function pastilhaDeTrabalho(mostrar) {
   let p = document.getElementById("pastilha-trabalho");
@@ -9021,11 +8695,7 @@ function pastilhaDeTrabalho(mostrar) {
     /* O `marcarLinhasAbaixo` na reabertura não é zelo: de portas fechadas a
      * pastilha não pôde ser medida (ver a guarda lá em cima), então o número
      * que está nela é o do instante em que a gaveta sumiu. */
-    onclick: () => {
-      $("#gaveta").hidden = false;
-      pastilhaDeTrabalho(false);
-      marcarLinhasAbaixo();
-    },
+    onclick: () => abrirJanela(),
   });
   $("#barra-salvar").before(p);
 }
@@ -9182,6 +8852,7 @@ async function iniciar() {
    * primeira pintura esperava a soma das três. */
   const [esquema] = await Promise.all([api("/api/esquema"), recarregarPendencias(), recarregarPacks()]);
   ESQUEMA = esquema;
+  lerRestauros();
   publicarMedidas();
   if (ESQUEMA.erro) {
     /* O esqueleto sai também no erro: ele promete uma página que não vem. */
@@ -9213,7 +8884,7 @@ async function iniciar() {
    * leitura de quem ainda não decidiu — vejo, depois aplico. */
   $("#botao-salvar").before(elemento("button", {
     type: "button", class: "btn btn-ensaio", id: "botao-ensaiar",
-    texto: "Ver o que faria",
+    texto: "Ver sem mudar",
     title: "Ensaia as escolhas sem gravar: o meow.conf não é tocado",
     onclick: () => salvarEscolhas(true),
   }));

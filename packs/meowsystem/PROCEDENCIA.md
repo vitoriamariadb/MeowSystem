@@ -361,7 +361,7 @@ customizou** (paleta Dracula, morcego, casa assombrada): o PNG desta máquina n�
 é o logo oficial, e foi a versão dela que foi resgatada. `sistema` é ícone de
 pacote que nunca passou pela mão dela, e entra só porque borrava igual.
 
-**Os três `Icon=` absolutos.** `elden-ring-tracker`, `guvcview` e `setup-mozc`
+**Os dois `Icon=` absolutos.** `guvcview` e `setup-mozc`
 trazem o *caminho* do PNG na chave `Icon=`, em vez de um nome de ícone — e um
 `Icon=` absoluto **pula a busca no tema inteira**. Para esses não basta instalar
 o SVG: o `icones_resgatados.sh` põe uma cópia do `.desktop` em
@@ -380,8 +380,11 @@ aparece na tela, não sobre apagar o desenho.
 gerado por `scripts/resgatados_folha.sh` a partir do mesmo mapa — se um ícone
 entrar ou sair do resgate, a folha refeita acompanha sozinha.
 
-**A folha de hoje é de 25/09/2026, sprint P67, e é a do `resgatados_folha.sh`
-com uma costura, dita aqui.** O script pede o PNG de origem no caminho que o
+**A folha de hoje é de 17/10/2026: é a de 25/09/2026 sem os três pares que
+saíram do mapa, cada um dos outros recortado dela e remontado na ordem do mapa;
+o `resgatados_folha.sh` a confere pixel a pixel e não a regrava.** A de
+25/09/2026, sprint P67, é a do `resgatados_folha.sh` com uma costura, dita
+aqui. O script pede o PNG de origem no caminho que o
 mapa guarda, e 12 dos 21 não estão mais nesta máquina: os nove do
 `Dracula-Icones`, que saiu do disco, o do `scrcpy`, o do `guvcview` e o do
 Thunderbird do flatpak. Rodado hoje, ele sai com doze molduras «sem o PNG» e

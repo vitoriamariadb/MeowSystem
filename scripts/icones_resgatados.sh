@@ -62,7 +62,6 @@ fi
 # Os `.desktop` cujo `Icon=` é caminho absoluto, e o nome de ícone que cada um
 # passa a usar. A chave é o ARQUIVO, porque é ele que a cópia local sombreia.
 declare -A DESKTOP_ABSOLUTO=(
-  [elden-ring-tracker.desktop]="elden-ring-tracker"
   [guvcview.desktop]="guvcview"
 )
 

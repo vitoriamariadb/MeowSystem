@@ -12,6 +12,9 @@
 #                     simplesmente NÃO EXISTIR — ver a remedição abaixo.
 #     IconName        o nome. Com `IconPixmap` ausente e `IconThemePath` VAZIO,
 #                     quem resolve é o tema de ícones — e aí nós alcançamos.
+# O `hefesto-dualsense4unix-symbolic` é desenho dela e fica nos intocáveis. Dono
+# único de `20x20/status`. E nada reinicia o painel: derrubá-lo para adiantar um
+# ícone já a deixou sem painel e sem dock.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

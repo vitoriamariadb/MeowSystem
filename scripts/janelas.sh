@@ -12,6 +12,8 @@
 #      A janela nova entra sempre depois (:2929-2934), desenhada em baixo/à
 #      direita (:3098-3118). Isso é exatamente `dwindle` + `force_split = 2` do
 #      Hyprland. `force_split` não existe aqui e não faz falta.
+# Escreve TRÊS coisas: `autotile` sozinho não faz nada com `PerWorkspace`, e o
+# `pinned_workspaces` decide o login — sem ele o lado a lado morre no reboot.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -69,6 +71,8 @@ _janelas_no_disco() {
 # Formato: uma lista RON de entradas, cada uma com uma linha `tiling_enabled:`.
 
 # Quantas entradas estão FORA do valor pedido. 0 = conforme; vazio = sem arquivo.
+# Só a linha `tiling_enabled`, por regex ancorado: o arquivo traz o EDID, o id e o
+# nome de cada área, e reescrevê-lo inteiro disputaria o dono.
 _janelas_pin_divergentes() {
   [ -f "$JANELAS_ALVO_PIN" ] || { printf ''; return 0; }
   local oposto; [ "$1" = "true" ] && oposto="false" || oposto="true"

@@ -16,6 +16,8 @@ set -euo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COSMIC="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 SECO="${MEOW_DRY_RUN:-0}"
+# shellcheck source=../lib/restauro.sh
+. "$RAIZ/lib/restauro.sh"
 
 # Os três pares em que o alpha do `base:` é território da Aurora.
 declare -a CHAVES_ALPHA_AURORA=(background primary secondary)
@@ -344,6 +346,7 @@ while IFS= read -r -d '' arq; do
   fi
 
   garantir_backup
+  meow_guardar_antes "$destino"
   mkdir -p "$(dirname "$destino")"
   # Temporário no diretório de DESTINO: /mnt/Apate e /home são sistemas de
   # arquivos diferentes, e mv entre eles não é atômico.
@@ -385,6 +388,7 @@ for arvore in "$ORIGEM"/com.system76.CosmicTheme.*; do
       continue
     fi
     garantir_backup
+    meow_guardar_antes "$vivo"
     rm -f "$vivo"
   done < <(find "$COSMIC/$nome_arvore" -type f -print0)
 done

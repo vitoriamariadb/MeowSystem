@@ -9,6 +9,9 @@
 #                              `packs/meowsystem/icones/apps-convertidos.map`. Quem gera é o
 #                              `scripts/construir_convertidos.sh`; aqui ela
 #                              chega pronta e commitada.
+# Dono único de `48x48/apps`: em `scalable/apps` escrevem três, e remover órfão lá
+# apagaria arquivo dos outros. O Arcticons é apoio, não o tema (decisão dela), e
+# `stroke-width` duplicado é XML que o rasterizador recusa calado.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

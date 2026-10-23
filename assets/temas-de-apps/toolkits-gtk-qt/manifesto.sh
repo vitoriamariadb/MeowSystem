@@ -309,6 +309,7 @@ _meow_tk_ini_definir() {
 # a variável que os módulos vizinhos usam para caírem todos na mesma pasta.
 _meow_tk_backup() {
   local origem="${1:-}" rel="" destino=""
+  meow_guardar_antes "$1"
   # `-L` junto com `-e` para que um symlink QUEBRADO também seja preservado.
   [ -e "$origem" ] || [ -L "$origem" ] || return 0
   meow_seco && return 0
