@@ -27,3 +27,69 @@ Worktree `.wt-meow/p92`, branch `sprint/p92`, nascida da `integracao/leva-h` com
   segunda passada não escreve, o `--reverter`/`--restaurar` devolve; entram no `tests/todos.sh`;
 - `tests/todos.sh` inteiro duas vezes seguidas, sem vermelho novo; `tests/decisoes.sh` verde;
 - os números (`tests/numeros.sh`: contagem de conferências do doctor, README) acompanham.
+
+## Execução (23/10)
+
+Branch `sprint/p92`, oito commits (`a9464bc` a este). Nada foi escrito no HOME real nem no Dracula ou
+no Spellbook: o real só foi lido (`--conferir` com `MEOW_DRY_RUN=1`, `--listar`, `cmp`).
+
+### O que entrou
+1. **P92 F1, um mapa só.** O `assets/icones/wmclass.map` saiu; o valor dele (`boxy-svg-boxy-svg`) virou
+   linha `:alias` do `appid.map`, ao lado do `boxy-svg-boxy-svg-linux` medido pela sonda. As duas pontes
+   ficam porque o Boxy não estava aberto para medir de novo (o real hoje: 3 pontes a criar, Boxy ×2 e
+   Hefesto). O `appid_dock.sh` deixou de ser órfão: `chk_janeladock`/`fix_janeladock` no doctor,
+   `etapa_janela_dock` no `install.sh`, `--reverter` no desinstalador; saiu da dívida do `tests/orfaos.sh`.
+   A cópia do Boxy no home (`StartupWMClass=boxy-svg-boxy-svg;Boxy SVG;`) nunca casou: o casamento é a
+   string inteira.
+2. **P92 F2.** `scripts/lancador.sh` + `scripts/lancador_orfaos.py` (a régua de wrapper, namespace,
+   `sh -c` e flatpak do `aurora-menu-doctor.py`; o que leva `X-MeowSystem` ou roda `~/.local/bin/meow*`
+   é julgado pelo passo dono). Órfão vai para `~/.local/state/meowsystem/lancador-quarentena/` com
+   registro e `--reverter`; o `mimeinfo.cache` do home se refaz quando um `.desktop` é mais novo.
+   `chk_lancador`/`fix_lancador`, `etapa_lancador` (depois de toda etapa que escreve no home). No real
+   hoje: nenhum órfão, cache em dia — o mesmo que o `aurora-menu-doctor.py --json` diz.
+3. **P93.** `scripts/ocultar_casa.sh`: para o que a lista do `ocultar` nomeia e não está em
+   `/usr/share/applications`, sombra de mesmo basename no home (só `Type Name Exec TryExec Icon
+   StartupWMClass MimeType`, `NoDisplay=true`, `X-MeowSystem=ocultar` e a origem), refeita quando o
+   original muda e tirada quando o app sai; o `.desktop` que só existe no home é marcado no lugar
+   (`X-MeowSystem=ocultar-no-lugar`, desfeito linha a linha). Mesma chave (`LANCADOR_SISTEMA`), mesma
+   lista (`ocultar_apps.sh --lista`). Medido no fonte instalado (cosmic-app-library `3651caf`, libcosmic
+   `430f3d4`, `desktop_entries_with_precedence`): o lançador deduplica pelo id antes de filtrar o
+   NoDisplay, com o home primeiro — a sombra esconde. O `docs/FRONTEIRA.md` (#667, «não deduplica») está
+   velho nesse ponto e não foi mexido.
+4. **Item 3 (os 11 no `LANCADOR_OCULTAR`)**: não entrou no código — a lista é a do `meow.conf` dela, no
+   HOME real. A linha pronta está em «O que ficou de fora».
+5. **Vizinhos.** Tipo `mover` (cópia datada, `--restaurar` devolve; se o arquivo voltou a existir, avisa e
+   não sobrescreve) e o prefixo `$APPS/`. Itens novos no contrato: `dracula-aplicar-overrides` (saída),
+   23 `dracula-copia-*` (mover; requerem a sombra da P93 instalada, o do Boxy a `etapa_janela_dock`, o do
+   ZapZap nada), `aurora-menu-orfaos` e `aurora-menu-cache` (bloco no `aurora-menu-doctor.py`, requerem
+   o `lancador.sh` instalado) e `dracula-ativar-gsettings` (bloco no `install.sh` do Dracula). Nada
+   desativado. Provado numa cópia dos arquivos reais: os três blocos aplicam, o Python compila, o bash
+   lê, o `--check` do doctor da Aurora roda, e o `--restaurar todos` volta byte a byte.
+6. Toda escrita das três etapas guarda o estado de antes (`meow_guardar_antes`): o `restaurar.sh
+   pack_usar` acusou a cache refeita sem cópia e passou a voltar byte a byte.
+
+### Números
+66 etapas (+3), 69 conferências (+3), 74 testes (+1: `tests/lancador-do-meow.sh`, 34 afirmações);
+`tests/vizinhos.sh` com 50 (+8). README, README.en e SPRINTS acompanham (`tests/numeros.sh` verde).
+
+### Provas rodadas
+- `tests/lancador-do-meow.sh`: a ponte, o órfão, a cache e o ocultar (flatpak, /usr/local, home) — o
+  conferir vê sem escrever, o aplicar cura, a segunda passada não escreve, o reverter devolve.
+- O `bin/meow doctor` numa casa de brinquedo: as três linhas em `~~`; depois dos três consertos, em `ok`.
+- `tests/todos.sh` inteiro duas vezes seguidas, mesma resposta:
+  `== todos os 74 · 72 verde(s), 1 pulado(s), 1 vermelho(s) ==`. O pulado é o `conversor.sh` (pula
+  sem o Papirus de referência, como na base). O vermelho é o `app-completo.py`: a reprovação fixa é
+  `[Lançadores e jogos › jogo · abrir] Locator.click: Timeout`, e ela acontece igual na base `5ec4a4c`
+  (rodada à parte numa cópia da árvore); as outras reprovações de tempo mudam de rodada para rodada,
+  com outro `app-completo.py` rodando ao mesmo tempo na worktree p98.
+  `decisoes.sh`, `doctor-so-le.sh`, `seco.sh`, `convergencia.sh`, `restaurar.sh` e `orfaos.sh` verdes.
+
+### O que ficou de fora
+- **A linha do `meow.conf` dela** (item 3), no fecho, com o HOME real:
+  `LANCADOR_OCULTAR` ganha `org.keepassxc.KeePassXC,org.gnome.gThumb,org.gnome.gThumb.Import,org.gnome.FileRoller,com.system76.CosmicMonitor,com.system76.CosmicScreenshot,gnome-online-accounts-gtk,setup-mozc,Ubuntu,mnemo,elden-ring-tracker`.
+  Medido com o `--conferir`: 9 deles moram em `/usr/share` (o `ocultar_apps.sh` marca), Ubuntu e mnemo
+  só no home e já escondidos.
+- **mnemo e Ubuntu fora do `mover`**: a cópia é o único lançador do app; tirá-la apagaria o programa.
+- **`aurora-desktop-guards-apply.sh` sem item**: o que sobra nele é do PC (o Exec do PhotoGIMP, a
+  máscara do tracker e a chamada do doctor da Aurora, que segue cuidando do `mimeapps.list`).
+- A desativação de tudo isso é do bloco seguinte, depois do merge e do install.
