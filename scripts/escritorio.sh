@@ -23,6 +23,10 @@ ES_ID="org.onlyoffice.desktopeditors"
 ES_FLATHUB="https://dl.flathub.org/repo/flathub.flatpakrepo"
 # Os pacotes que o MeowSystem tirou, um por linha: o reverter os devolve.
 ES_ANTES="$MEOW_ESTADO/libreoffice-antes.tsv"
+# Os atalhos do LibreOffice na casa (o `NoDisplay` que outro programa pôs) só
+# sobram na lista de ocultos do painel depois que o pacote sai: saem com cópia aqui.
+ES_CASA_APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+ES_ATALHOS="$MEOW_ESTADO/libreoffice-atalhos"
 
 ACAO="${1:-aplicar}"
 ALVO="${2:-tudo}"
@@ -83,11 +87,37 @@ _es_guardar_antes() { # $1 lista de pacotes -> soma ao que já estava guardado, 
   meow_escrever "$ES_ANTES" "$texto" 644 >/dev/null
 }
 
+_es_atalhos() { # $1 modo -> 0 = nenhum na casa · 1 = tirou (ou tiraria)
+  local modo="$1" f achados=()
+  for f in "$ES_CASA_APPS"/libreoffice*.desktop; do [ -f "$f" ] && achados+=("$f"); done
+  [ "${#achados[@]}" -gt 0 ] || return 0
+  if [ "$modo" = "conferir" ] || meow_seco; then
+    meow_muda "sobram ${#achados[@]} atalhos do LibreOffice na casa — sairiam"
+    return 1
+  fi
+  mkdir -p "$ES_ATALHOS"
+  for f in "${achados[@]}"; do
+    meow_guardar_antes "$f"
+    [ -e "$ES_ATALHOS/${f##*/}" ] || cp -p "$f" "$ES_ATALHOS/"
+    rm -f "$f"
+  done
+  meow_desktop_banco "$ES_CASA_APPS"
+  meow_muda "${#achados[@]} atalhos do LibreOffice saíram da casa"
+  meow_registrar "escritorio.sh atalhos do LibreOffice fora da casa: ${achados[*]##*/}"
+  return 1
+}
+
 cmd_libreoffice() {
-  local modo="$1" lista n
+  local modo="$1" lista n saiu
+  # Sem o dpkg não se sabe se o LibreOffice saiu, e o atalho da casa fica.
+  if ! meow_tem dpkg-query; then
+    meow_pula "sem dpkg — o LibreOffice não vem do apt aqui"
+    return "$MEOW_OK"
+  fi
   lista="$(_es_libre)"
   if [ -z "$lista" ]; then
     meow_pendencia_resolvida libreoffice-sistema
+    _es_atalhos "$modo" || return "$MEOW_DIVERGENTE"
     meow_ok "sem pacotes do LibreOffice no apt"
     return "$MEOW_OK"
   fi
@@ -106,15 +136,18 @@ cmd_libreoffice() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   _es_guardar_antes "$lista"
-  if ! meow_ponte libreoffice-remover </dev/null >/dev/null 2>&1; then
+  # A ponte diz o que saiu de fato (a ponte UNO vai junto): a volta devolve tudo.
+  if ! saiu="$(meow_ponte libreoffice-remover </dev/null 2>/dev/null)"; then
     meow_erro "a ponte root não tirou o LibreOffice"
     return "$MEOW_ERRO"
   fi
+  _es_guardar_antes "$(printf '%s\n' "$saiu" | grep -E '^[a-z0-9][a-z0-9.+-]*$')"
   if [ -n "$(_es_libre)" ]; then
     meow_erro "a ponte root rodou e ainda há pacotes do LibreOffice"
     return "$MEOW_ERRO"
   fi
   meow_pendencia_resolvida libreoffice-sistema
+  _es_atalhos "$modo"
   meow_muda "LibreOffice fora da máquina ($n pacotes)"
   meow_registrar "escritorio.sh LibreOffice removido pelo apt ($n pacotes)"
   return "$MEOW_DIVERGENTE"
@@ -136,8 +169,20 @@ cmd_tudo() {
 }
 
 # --- reverter: o desinstalador devolve o LibreOffice --------------------------
+_es_devolver_atalhos() {
+  local f
+  [ -d "$ES_ATALHOS" ] || return 0
+  mkdir -p "$ES_CASA_APPS"
+  for f in "$ES_ATALHOS"/*.desktop; do
+    [ -f "$f" ] || continue
+    [ -e "$ES_CASA_APPS/${f##*/}" ] || cp -p "$f" "$ES_CASA_APPS/"
+  done
+  rm -rf "$ES_ATALHOS"
+  meow_ok "atalhos do LibreOffice de volta na casa"
+}
+
 cmd_reverter() {
-  if [ ! -f "$ES_ANTES" ]; then
+  if [ ! -f "$ES_ANTES" ] && [ ! -d "$ES_ATALHOS" ]; then
     meow_pula "o MeowSystem não tirou o LibreOffice — nada a devolver"
     return "$MEOW_OK"
   fi
@@ -145,6 +190,8 @@ cmd_reverter() {
     meow_muda "devolveria o LibreOffice pelo apt, pela ponte root"
     return "$MEOW_DIVERGENTE"
   fi
+  _es_devolver_atalhos
+  [ -f "$ES_ANTES" ] || return "$MEOW_OK"
   if ! meow_ponte_viva; then
     meow_aviso "sem a ponte root, o LibreOffice não voltou; a lista dele fica em $ES_ANTES"
     return "$MEOW_OK"

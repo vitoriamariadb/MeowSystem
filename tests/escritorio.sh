@@ -18,9 +18,14 @@ PONTE_DIR="$T/ponte"; DPKG="$T/dpkg"; APT_LOG="$T/apt.log"; FLATPAK_LOG="$T/flat
 OO="$FLATPAK/app/org.onlyoffice.desktopeditors"
 mkdir -p "$T/bin" "$CASA" "$ESTADO" "$PONTE_DIR" "$T/etc-flatpak" "$T/sistema-flatpak"
 : > "$APT_LOG"; : > "$FLATPAK_LOG"; : > "$SUDO_LOG"
-# Quatro do LibreOffice (um só com a configuração que sobrou), um que já saiu, e um vizinho.
-printf '%s\n' 'ii  libreoffice-core' 'ii  libreoffice-writer' 'rc  libreoffice-calc' 'un  libreoffice-velho' 'ii  python3-uno' > "$DPKG"
+# Quatro do LibreOffice (um só com a configuração que sobrou), um que já saiu, a
+# ponte UNO (depende do libreoffice-core e sai com ele, como no apt de verdade) e
+# um vizinho. Na casa, o atalho com NoDisplay que outro programa pôs.
+printf '%s\n' 'ii  libreoffice-core' 'ii  libreoffice-writer' 'rc  libreoffice-calc' 'un  libreoffice-velho' 'ii  python3-uno' 'ii  vim' > "$DPKG"
 cp "$DPKG" "$T/dpkg-original"
+ATALHO="$CASA/.local/share/applications/libreoffice-startcenter.desktop"
+mkdir -p "${ATALHO%/*}"; printf '[Desktop Entry]\nName=LibreOffice\nNoDisplay=true\n' > "$ATALHO"
+cp "$ATALHO" "$T/atalho-original"
 
 cat > "$T/bin/dpkg-query" <<'FIM'
 #!/bin/sh
@@ -32,14 +37,17 @@ FIM
 cat > "$T/bin/apt-get" <<'FIM'
 #!/bin/sh
 echo "apt-get $*" >> "$APT_LOG"
+# No purge o apt simula com `Purg`, e leva junto quem depende do libreoffice-core.
 if [ "$1" = "-s" ]; then
   shift 2
-  for p in "$@"; do echo "Remv $p [1:24.2]"; done
-  [ -f "$APT_DEPENDENTE" ] && echo "Remv unoconv [0.9]"
+  for p in "$@"; do echo "Purg $p [1:24.2]"; done
+  case " $* " in *" libreoffice-core "*) grep -q "^ii  python3-uno$" "$DPKG_FALSO" && echo "Purg python3-uno [1:24.2]" ;; esac
+  [ -f "$APT_DEPENDENTE" ] && echo "Purg unoconv [0.9]"
   exit 0
 fi
 acao="$1"; shift; [ "$acao" = install ] && while [ "${1#-}" != "$1" ]; do shift; done
 [ "$acao" = purge ] && while [ "${1#-}" != "$1" ]; do shift; done
+[ "$acao" = purge ] && case " $* " in *" libreoffice-core "*) set -- "$@" python3-uno ;; esac
 for p in "$@"; do
   grep -v " $p\$" "$DPKG_FALSO" > "$DPKG_FALSO.n"; mv "$DPKG_FALSO.n" "$DPKG_FALSO"
   [ "$acao" = install ] && echo "ii  $p" >> "$DPKG_FALSO"
@@ -119,10 +127,12 @@ printf '\n5. com a ponte, o apt tira só o LibreOffice\n'
 : > "$T/ponte-ligada"
 saida="$(rodar aplicar libreoffice)"; rc=$?
 confere "aplicar sai 1" '[ "$rc" = 1 ]'
-confere "saem os três pacotes (o de configuração sobrada também) e o python3-uno fica" \
-  '[ -z "$(libre)" ] && grep -q "python3-uno" "$DPKG" && grep -q "^apt-get purge -y libreoffice-core libreoffice-writer libreoffice-calc$" "$APT_LOG"'
-confere "os nomes ficam guardados para a volta" \
-  '[ "$(cat "$ESTADO/libreoffice-antes.tsv")" = "$(printf "libreoffice-calc\nlibreoffice-core\nlibreoffice-writer")" ]'
+confere "saem os três pacotes (o de configuração sobrada também), a ponte UNO vai junto e o vizinho fica" \
+  '[ -z "$(libre)" ] && ! grep -q "python3-uno" "$DPKG" && grep -q "^ii  vim$" "$DPKG" && grep -q "^apt-get purge -y libreoffice-core libreoffice-writer libreoffice-calc$" "$APT_LOG"'
+confere "os nomes ficam guardados para a volta, com o que o apt levou junto" \
+  '[ "$(cat "$ESTADO/libreoffice-antes.tsv")" = "$(printf "libreoffice-calc\nlibreoffice-core\nlibreoffice-writer\npython3-uno")" ]'
+confere "o atalho da casa sai da lista de ocultos, com cópia" \
+  '[ ! -e "$ATALHO" ] && cmp -s "$ESTADO/libreoffice-atalhos/libreoffice-startcenter.desktop" "$T/atalho-original"'
 confere "a pendência sai" '! grep -q "^libreoffice-sistema	" "$ESTADO/pendencias.tsv"'
 cp "$DPKG" "$T/dpkg-limpo"; n="$(chamadas_apt)"; m="$(md5sum < "$ESTADO/libreoffice-antes.tsv")"
 rodar aplicar >/dev/null; rc=$?
@@ -133,8 +143,12 @@ confere "conferido, o doctor fica verde" 'rodar conferir >/dev/null'
 printf '\n6. a ponte recusa o que não é dela\n'
 cp "$T/dpkg-original" "$DPKG"; : > "$APT_LOG"; touch "$T/dependente"
 ponte libreoffice-remover >/dev/null 2>&1; rc=$?
-confere "se o apt levasse outro pacote junto, recusa inteiro e não purga" '[ "$rc" != 0 ] && ! grep -q "^apt-get purge" "$APT_LOG" && cmp -s "$DPKG" "$T/dpkg-original"'
+confere "se o apt levasse outro pacote junto (a linha Purg da simulação), recusa inteiro e não purga" '[ "$rc" != 0 ] && ! grep -q "^apt-get purge" "$APT_LOG" && cmp -s "$DPKG" "$T/dpkg-original"'
 rm -f "$T/dependente"
+saida="$(ponte libreoffice-remover 2>/dev/null)"; rc=$?
+confere "o stdout da ponte é só a lista do que saiu" \
+  '[ "$rc" = 0 ] && [ "$saida" = "$(printf "libreoffice-calc\nlibreoffice-core\nlibreoffice-writer\npython3-uno")" ]'
+cp "$T/dpkg-limpo" "$DPKG"; : > "$APT_LOG"
 printf 'vim\n' | ponte libreoffice-devolver >/dev/null 2>&1; rc=$?
 confere "devolver recusa pacote que não é do LibreOffice" '[ "$rc" != 0 ] && ! grep -q "^apt-get install" "$APT_LOG"'
 printf 'libreoffice-core\nlibreoffice;x\n' | ponte libreoffice-devolver >/dev/null 2>&1; rc=$?
@@ -149,10 +163,11 @@ printf '\n7. o desinstalador devolve o LibreOffice\n'
 cp "$T/dpkg-limpo" "$DPKG"; : > "$APT_LOG"; rm -f "$T/ponte-ligada"
 saida="$(rodar reverter 2>&1)"; rc=$?
 confere "sem ponte: sai 0, avisa onde a lista ficou e não pede senha" '[ "$rc" = 0 ] && [ -f "$ESTADO/libreoffice-antes.tsv" ] && grep -q libreoffice-antes <<< "$saida" && [ "$(chamadas_apt)" = 0 ]'
+confere "o atalho da casa volta byte a byte, mesmo sem ponte" 'cmp -s "$ATALHO" "$T/atalho-original" && [ ! -e "$ESTADO/libreoffice-atalhos" ]'
 : > "$T/ponte-ligada"
 saida="$(rodar reverter)"; rc=$?
-confere "com a ponte: os três voltam, a guarda sai" \
-  '[ "$rc" = 0 ] && [ "$(libre)" = "libreoffice-calc libreoffice-core libreoffice-writer " ] && [ ! -e "$ESTADO/libreoffice-antes.tsv" ]'
+confere "com a ponte: os três e a ponte UNO voltam, a guarda sai" \
+  '[ "$rc" = 0 ] && [ "$(libre)" = "libreoffice-calc libreoffice-core libreoffice-writer " ] && grep -q "^ii  python3-uno$" "$DPKG" && [ ! -e "$ESTADO/libreoffice-antes.tsv" ]'
 n="$(chamadas_apt)"
 rodar reverter >/dev/null; rc=$?
 confere "reverter de novo não faz nada" '[ "$rc" = 0 ] && [ "$(chamadas_apt)" = "$n" ]'
