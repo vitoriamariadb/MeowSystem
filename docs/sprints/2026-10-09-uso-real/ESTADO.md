@@ -83,6 +83,10 @@ Sequência:
    preparação feita em 23/10 (push do Dracula, pacotes em ~/Backups); apaga DEPOIS do install.
 
 Em voo (23/10):
+- P94 CONCLUÍDA e integrada (Alt+F2 pela porta única com plano B; medir-compositor no Spellbook aurora/;
+  NitroKit: nada desativado ainda, vira a P99). Commits no Spellbook: acfd59e, bdf1236, cfd568b (sem push).
+- P99 Flatpak veste o tema, workflow `wf_eb745c26-c60`, worktree `.wt-meow/p99`, Sonnet + Opus. Depois do
+  install: desativar unificador e ritual do NitroKit pelo vizinhos.sh.
 - bloco A (P92+P93), workflow `wf_efb436e1-89c`, worktree `.wt-meow/p92`, 2 Opus;
 - P96 reorganização (`docs/sprints/2026-10-23-definitiva/`), worktree `.wt-meow/p96`: 2 Opus, fase 1 = perguntas
   para quem usa; fase 2 = o script, aplicado DEPOIS do bloco A entrar no dev;
