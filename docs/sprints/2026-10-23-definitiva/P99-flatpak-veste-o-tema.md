@@ -18,8 +18,14 @@ ficam sem o tema, e se o tema Dracula antigo sumir (P95) eles ficam sem ícone.
   estado (sem mandar digitar); a correção dele passa pela ponte root, nunca por caixa de senha.
 - **LibreOffice sai de tudo** (quem usa, 23/10: «não vamos usar isso. usamos apenas o OnlyOffice. é bom
   retirarmos de tudo quanto é canto»). Nada de escondê-lo: o MeowSystem não o cita mais (`scripts/pack.py`,
-  `docs/PACKS.md` e afins; o histórico em `docs/historico/` fica). Remover os pacotes da máquina é outra
-  tarefa, decidida à parte.
+  `docs/PACKS.md` e afins; o histórico em `docs/historico/` fica).
+- **O install troca o LibreOffice pelo OnlyOffice** (quem usa, 23/10: «MeowSystem remove no install»): etapa
+  nova coberta pela senha única do install — `apt purge` dos pacotes `libreoffice*` (30 nesta máquina; o
+  Pop!_OS recém-formatado também os traz) e o OnlyOffice do Flathub (`org.onlyoffice.desktopeditors`,
+  `--user`) quando faltar, com o tema de app dele aplicado. Idempotente (sem LibreOffice e com OnlyOffice, não
+  escreve nada); o doctor mostra o estado e o `--consertar` repõe pela ponte root, sem caixa de senha; o
+  desinstalador registra o que saiu e, ao desinstalar, devolve o LibreOffice pelo apt. Teste com `apt`,
+  `dpkg` e `flatpak` falsos; nada de apt de verdade.
 - Depois do install: `unificador_temas_dracula.sh` e `ritual_de_harmonia.sh` do NitroKit saem pelo
   `scripts/vizinhos.sh --desativar` (itens novos no contrato), commit só disso lá. O
   `reparo_completo_sistema.sh` fica.
