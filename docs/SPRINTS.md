@@ -32,8 +32,8 @@ depois de cada merge, e o `dev` recebe a leva inteira de uma vez.
 
 | | |
 |---|---|
-| `install.sh` | 64 etapas; rodar de novo não escreve um byte |
-| `meow doctor` | **68** conferências; o `--consertar` repara o que estiver fora, sem mandar ninguém digitar |
+| `install.sh` | 65 etapas; rodar de novo não escreve um byte |
+| `meow doctor` | **70** conferências; o `--consertar` repara o que estiver fora, sem mandar ninguém digitar |
 | painel | 122 chaves · 64 ações · 14 páginas (a Início e treze de assunto) |
 | packs | dois, versionados: Catppuccin (o padrão; latte, frappé, macchiato e mocha) e Dracula (dracula e o claro alucard) |
 | suíte | `./tests/todos.sh`. O placar não é copiado para cá de propósito: quadro de placar copiado à mão foi o que mentiu por três dias (P23). Cada integração registra o dela, na pasta da leva |
