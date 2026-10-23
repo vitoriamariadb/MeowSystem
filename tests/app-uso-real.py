@@ -5,7 +5,8 @@ O `tests/app-completo.py` aperta todo controle e cobra que cada um faça alguma
 coisa. Este arquivo cobra a FORMA, com as regras que quem usa deu em 23/10:
 
   1. TELA VAZIA NA PRIMEIRA CARGA: no `DOMContentLoaded` já há forma.
-  2. NENHUM TEXTO EXPLICATIVO: nenhum `<p>` visível no conteúdo; nenhum bloco de
+  2. NENHUM TEXTO EXPLICATIVO: nenhum `<p>` visível no conteúdo; nome de opção,
+     de bloco e de botão em até três palavras; nenhum bloco de
      texto corrido com mais de 48 caracteres fora de dica, de registro e de
      valor de dado; e o teto antigo continua valendo para tudo (texto corrido
      com mais de 140 caracteres na tela, nunca).
@@ -87,6 +88,13 @@ OLHAR_JS = r"""
   }
   for (const i of document.querySelectorAll('#conteudo input[placeholder], #topo input[placeholder]')) {
     if (visivel(i) && !comeca(i.placeholder)) defeitos.push(['maiúscula', `campo «${i.placeholder}»`]);
+  }
+  // o nome de uma opção, de um bloco ou de um botão cabe em três palavras; o
+  // texto que vem do servidor numa pendência é dado, e fica de fora
+  for (const el of document.querySelectorAll('#conteudo h1, #conteudo h2, #conteudo .rot > span, #conteudo .bt, dialog[open] .bt')) {
+    if (!visivel(el) || dado(el) || el.closest('[data-linha^="pendencia:"], [data-linha^="gente:"]')) continue;
+    const t = limpo(el.textContent);
+    if (t.split(' ').length > 3) defeitos.push(['nome longo', `«${t}» passa de três palavras`]);
   }
   for (const p of document.querySelectorAll('#conteudo p')) {
     if (visivel(p)) defeitos.push(['parágrafo', `<p> na tela: «${limpo(p.textContent).slice(0, 60)}»`]);
