@@ -62,6 +62,23 @@ ela de novo, integramos e pushamos pra dev». Sequência depois da P90:
    `git log --all -S<senha>` vazio, e só então `git push fork dev`.
 3. PR para `vitoriamariadb/MeowSystem` a partir do dev reescrito.
 
+## 23/10 — as sprints que faltavam: P92, P93, P94 e o fim de 17/10
+
+Quem usa (23/10): «faz as sprints que estão faltando». Respostas dela/dele no mesmo dia:
+- P93: os 11 apps que só o Dracula escondia ENTRAM no `LANCADOR_OCULTAR` (inclusive os dois pessoais).
+- P94: tudo, inclusive o `install.sh --activate` do Dracula (commit só do bloco, sem tocar na frente de fontes).
+- Fim: merge no dev, `./install.sh`, `meow doctor`, `git filter-repo` (senha → ***), `git log --all -S` vazio,
+  `git push fork dev`, PR para vitoriamariadb/MeowSystem. NÃO desligar.
+
+Sequência:
+1. P90 e P91 integradas na `integracao/leva-h` (23/10; a spec da P90 é a de 50 linhas + o apêndice 8–12).
+2. Bloco A (MeowSystem, worktree `.wt-meow/p92`, branch `sprint/p92`): P92 + P93 + o tipo `bloco` do
+   `vizinhos.sh` para a P94 item 2. Workflow de 2 Opus (implementa; confere e corrige).
+3. Integração, suíte, merge no dev (as mudanças soltas do dev de 18/10 e 21/10 — `scripts/painel.sh` e
+   ícones de pasta — ficam guardadas em `.wt-meow/dev-solto-23-10.patch` e voltam soltas depois), install.
+4. Bloco B (fora: Spellbook, Dracula_OS-Theme, NitroKit; desativações pós-install). Workflow de 2.
+5. filter-repo, push, PR.
+
 ## Registrada para depois (NÃO executar sem quem usa mandar)
 
 - P91 vizinhos e duplicatas — EXECUTADA em 17/10 na `sprint/p91`, espera o merge. Desativados nesta
