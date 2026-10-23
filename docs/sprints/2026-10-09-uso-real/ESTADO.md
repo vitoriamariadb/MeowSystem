@@ -86,7 +86,11 @@ Em voo (23/10):
 - bloco A (P92+P93), workflow `wf_efb436e1-89c`, worktree `.wt-meow/p92`, 2 Opus;
 - P96 reorganização (`docs/sprints/2026-10-23-definitiva/`), worktree `.wt-meow/p96`: 2 Opus, fase 1 = perguntas
   para quem usa; fase 2 = o script, aplicado DEPOIS do bloco A entrar no dev;
-- P97 interface, workflow `wf_17e7371f-4d3`, worktree `.wt-meow/p97`, 3 Opus: mockups em `docs/design/2026-10-23/`.
+- P97 interface: CONCLUÍDA (`sprint/p97`, commit do mockup final, 1,1 MB; prints e mockups A/B fora do repo em
+  `.wt-meow/p97-design-fora-do-repo/`). Decisões: clicar no tema já veste; «Mais ajustes» recolhido; 4 portas.
+  Próximo: P98 implementa o painel novo DEPOIS da P96 no dev.
+- Escolha dos ícones: 78 grupos respondidos por quem usa (`.wt-meow/p96-duvidas/escolhas-resolvidas.tsv`);
+  o Citrix veste o do manuais-final (sim de 23/10, desfaz a decisão 16).
 
 ## Registrada para depois (NÃO executar sem quem usa mandar)
 
