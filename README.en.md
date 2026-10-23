@@ -14,7 +14,7 @@
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 
 [![installer](https://img.shields.io/badge/installer-63%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-65%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![doctor](https://img.shields.io/badge/doctor-66%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 [![browser suite](https://img.shields.io/badge/browser-123%2F123-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Theme, icons, panel, dock, terminal, login screen, wallpaper and the themes inside your programs,
@@ -150,7 +150,7 @@ badge.
 ## The doctor fixes
 
 ```bash
-meow doctor                            # 65 checks. Writes nothing.
+meow doctor                            # 66 checks. Writes nothing.
 meow doctor --consertar                # fixes whatever is out of place
 meow desfazer                          # restores this machine's previous theme
 ./install.sh --uninstall               # removes theme, icons and timers

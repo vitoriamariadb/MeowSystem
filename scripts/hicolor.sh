@@ -113,7 +113,27 @@ gerar_index() {
 
 NOVO="$(gerar_index)"
 
+# Outros programas plantam ícone no hicolor da casa (a Steam, o Heroic, apps
+# do home) sem reindexar, e o GTK confia na cache velha. `-mindepth 1` porque o
+# próprio gtk-update-icon-cache mexe no mtime da raiz ao gravar.
+_hicolor_cache_velha() {
+  [ -f "$BASE/icon-theme.cache" ] \
+    && [ -n "$(find "$BASE" -mindepth 1 -newer "$BASE/icon-theme.cache" -print -quit 2>/dev/null)" ]
+}
+
 if [ -f "$INDEX" ] && [ "$NOVO" = "$(cat "$INDEX" 2>/dev/null)" ]; then
+  if _hicolor_cache_velha; then
+    if meow_seco; then
+      meow_muda "reindexaria a cache do hicolor do usuário (ela é mais velha que algum ícone dele)"
+      exit "$MEOW_DIVERGENTE"
+    fi
+    if meow_tem gtk-update-icon-cache && gtk-update-icon-cache -q -f "$BASE" 2>/dev/null; then
+      meow_muda "cache do hicolor do usuário reindexada (algum programa plantou ícone sem reindexar)"
+      exit "$MEOW_DIVERGENTE"
+    fi
+    meow_aviso "a cache do hicolor do usuário está velha e não consegui reindexá-la"
+    exit "$MEOW_ERRO"
+  fi
   meow_ok "hicolor do usuário já declara as ${#PARES[@]} pastas que tem"
   exit "$MEOW_OK"
 fi

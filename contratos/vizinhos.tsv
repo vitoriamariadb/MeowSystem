@@ -1,0 +1,29 @@
+# contratos/vizinhos.tsv — os vizinhos que o `scripts/vizinhos.sh` conhece nesta família de máquinas.
+#
+# Dado, e não código: o MeowSystem não depende de nenhum destes projetos, e numa
+# casa sem eles cada linha só diz «não existe nesta casa». A regra de 23/09 é
+# esta: o que conflita com o MeowSystem migra para ele e é desativado no outro;
+# o que é só daquele PC fica.
+#
+# FORMATO: colunas separadas por TAB; `#` comenta; `-` é coluna vazia.
+#   repo  <padrão de pasta dentro da pasta dos projetos>   varrido à mão pelo --inventario
+#   item  <nome> <tipo> <arquivo> <início> <fim> <requer> <motivo>
+#     saida  põe `exit 0`, com o motivo na tela, logo abaixo do shebang
+#     bloco  comenta as linhas de <início> (texto literal) até a primeira <fim> (regex) depois dele
+#     requer <arquivo do MeowSystem>:<texto> que o MeowSystem INSTALADO precisa ter para o
+#            item poder sair; `-` = o instalado de hoje já cuida sozinho
+#   `$DESENV` (a pasta dos projetos) e `$ZD` (o ZDOTDIR) no começo de <arquivo> são
+#   trocados; nada mais é expandido, e o motivo não leva aspas nem `$`.
+
+repo	Dracula_*
+repo	NitroKit
+repo	Migração-OS
+repo	hefesto-*
+repo	Andromeda*
+
+item	dracula-reaplicar-tema	saida	$DESENV/Dracula_OS-Theme/scripts/reaplicar_tema.sh	-	-	-	o tema, o cursor, os ícones, os sons e os lançadores são do MeowSystem, e o meow doctor confere todo dia
+item	dracula-gancho-apt	saida	$DESENV/Dracula_OS-Theme/scripts/instalar_apt_hook.sh	-	-	-	quem reaplica depois do apt é o MeowSystem (99-meow-lancador e meow-pos-apt)
+item	dracula-hicolor	saida	$DESENV/Dracula_OS-Theme/scripts/reparar_hicolor_index.sh	-	-	-	o index.theme do hicolor do usuário é do MeowSystem (hicolor.sh, conferido pelo meow doctor)
+item	dracula-icones-absolutos	saida	$DESENV/Dracula_OS-Theme/scripts/normalizar_desktops.sh	-	-	-	o Icon= de caminho absoluto é do MeowSystem (icones_absolutos.sh, conferido pelo meow doctor)
+item	dracula-spicetify	saida	$DESENV/Dracula_OS-Theme/scripts/instalar_spicetify.sh	-	-	-	o Spicetify e o tema do Spotify são do MeowSystem; as extensões seguem no spicetify_reparar
+item	caches-icones-casa	bloco	$ZD/functions/sistema.zsh	for tema_dir in "$HOME/.local/share/icons/"*/; do	^    done$	scripts/hicolor.sh:_hicolor_cache_velha	a cache dos temas de ícones da casa é do MeowSystem (índice do tema e hicolor, conferidos pelo meow doctor)

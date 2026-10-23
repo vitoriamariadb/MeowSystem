@@ -36,22 +36,46 @@ na máquina real em 10/10 (rc=0; o log em /tmp sumiu no reboot).
 20:15 o `meow-pos-apt.path` disparou sozinho o `cosmic_pos_apt.sh`, que recompila o menu do
 cosmic-files e a série do compositor em escopo de usuário. Log: `~/.local/state/meowsystem/pos-apt.log`.
 
-## Leva H — fechamento — EM VOO (workflow leva-h-fechamento, run wf_dfe39a62-0dd)
+## Leva H — CONCLUÍDA (integracao/leva-h, suíte 2x: 63 verdes, 1 pulado, 0 vermelhos)
 
-Specs em `docs/sprints/2026-10-15-fechamento/`: P81 (build sempre: pós-apt, login e doctor das 5h
-chamando a mesma função idempotente; doctor sem receita; teste da cadeia de atualização), P82 (todos
-os abertos da leva G, triados), P84 (os 39 PNG feitos à mão viram vetor, RMSE), P83 (documentação).
-Worktrees `.wt-meow/p81`, `p82`, `p84`, `integracao-h` (branch `integracao/leva-h`). 13 agentes.
-Retomar: `Workflow({scriptPath: ".../leva-h-fechamento-wf_dfe39a62-0dd.js", resumeFromRunId: "wf_dfe39a62-0dd"})`.
+P81 build sempre, P82 abertos (decisões 13–49), P83 documentação, P84 vetores, P85 série no 4d14528.
 
-Feito em 15/10 por mim: askpass ativo (decisão 5 resolvida), shim do compositor LIGADO (vale no
-próximo login; sem build válido cai no de fábrica), build real do compositor 4d14528 encadeado
-depois do pós-apt (log `~/.local/state/meowsystem/compositor-15-10.log`).
+## Leva I — CONCLUÍDA (integracao/leva-h `ae2fc7c`, suíte 2x: 69 verdes, 1 pulado, 0 vermelhos)
 
-## Próximo passo
+P88 três pastas, P86 regra da vida (GSD.md, sentinela, tests/decisoes.sh), P87 tudo pro pack,
+P89 repo enxuto + AGENTS.md + gancho. Dracula: apps/ 123, biblioteca/ 670.
 
-0. Ler `99-fechamento.md` na integracao-h; merge no dev; `./install.sh`; `meow doctor`.
-1. Ver o fim do pos-apt (o menu do cosmic-files 1.10 e a série do cosmic-comp 4d14528 aplicam?).
-2. `meow doctor` real depois dele; o que sobrar, `meow doctor --consertar`.
-3. Pendentes de quem usa: senha em arquivo (decisão 5), aplicar a GPU (decisão 6, reboot), ativar o
-   shim do compositor (`meow compositor ativar`, vale no próximo login), a frase cortada de 09/10.
+## P90 — EM VOO (workflow p90-acoes-e-divisorias, run wf_7856b717-3cd)
+
+Pedido de 16/10 pelos prints: só Executar/Restaurar, janela de resultado (OK/Guardar/Restaurar),
+«Ver sem mudar», jogos refeitos, divisórias em todas as telas; mais as pendências da leva I (projetos
+pessoais fora, porquê de volta, terminal sem «rode:», versão do folder-download guardada em
+`~/.local/state/meowsystem/guardado-16-10/`). 2 Opus.
+
+## 17/10 — levas G, H e I no dev (8d71a1d) e instaladas; P90 em voo
+
+Quem usa (17/10): «integra e roda o install agora, com tudo antes da P90; depois rodamos o install com
+ela de novo, integramos e pushamos pra dev». Sequência depois da P90:
+1. merge da P90 (integracao/leva-h) no dev; `./install.sh`; `meow doctor --consertar`; `meow doctor`.
+2. ANTES do push: reescrever a história local para tirar a senha do askpass do commit 63ed2ca
+   (`git filter-repo --replace-text` com a senha -> ***, em todas as branches), conferir
+   `git log --all -S<senha>` vazio, e só então `git push fork dev`.
+3. PR para `vitoriamariadb/MeowSystem` a partir do dev reescrito.
+
+## Registrada para depois (NÃO executar sem quem usa mandar)
+
+- P91 vizinhos e duplicatas — EXECUTADA em 17/10 na `sprint/p91`, espera o merge. Desativados nesta
+  máquina: cinco scripts do `Dracula_OS-Theme` (commit `f41ee47a` lá). Depois do merge e do install:
+  `scripts/vizinhos.sh --desativar caches-icones-casa` e um commit só disso no Spellbook. Para desfazer
+  tudo: `scripts/vizinhos.sh --restaurar todos`. Relatório: `docs/pesquisas/2026-10-17-vizinhos.md`.
+- P92 doutor do menu, P93 `ocultar` alcança tudo, P94 vizinhos de fora — registradas pela P91, NÃO
+  executar sem quem usa mandar.
+
+## Fim combinado com quem usa (15/10, antes de dormir)
+
+1. merge da integracao/leva-h no dev; `./install.sh`; `meow compositor` (4d14528, com `just`);
+   applet de leitura depois do compositor (decisão 20 da P82); `meow doctor`.
+2. PR para `vitoriamariadb/MeowSystem` a partir de uma branch com HISTÓRICO NOVO (squash): o commit
+   63ed2ca do dev local tem a senha do askpass num documento (já removida do tip; o fork não tem o dev).
+3. `~/LEIA-AO-LIGAR.md`: o que foi feito, o que conferir, como voltar (shim e GPU).
+4. NÃO desligar nem reiniciar (quem usa mudou em 16/10: «não desliga o PC ao final»). Se algo falhar, não faz merge do quebrado e escreve onde parou no LEIA-AO-LIGAR.
