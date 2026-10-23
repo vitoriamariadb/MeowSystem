@@ -116,6 +116,13 @@ if [ "${#_fora[@]}" -gt 0 ]; then
 fi
 unset _do_pack _ja _resto
 
+# A lista resolvida (fábrica, conf, pack e os `-nome`), para o `ocultar_casa.sh`
+# esconder o que não mora em /usr/share pela mesma régua.
+if [ "${1:-}" = "--lista" ]; then
+  printf '%s\n' ${OCULTAR[@]+"${OCULTAR[@]}"}
+  exit "$MEOW_OK"
+fi
+
 # Ele só desfazia uma marca pelo `-nome`. Trocar do Dracula para o Catppuccin
 # deixava os 24 do `lancador.ocultar` do pack fora do lançador, porque a lista
 # nova simplesmente não os nomeava mais.
