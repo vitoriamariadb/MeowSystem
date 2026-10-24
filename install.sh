@@ -148,6 +148,8 @@ etapa_conf_ler() {
   for v in FLAVOR ACCENT MODO LOGO; do
     [ -n "${!v:-}" ] || { meow_erro "$v não está definida em $fonte"; return "$MEOW_ERRO"; }
   done
+  # Um FLAVOR que o pack não tem vira o padrão do pack, sem reescrever o meow.conf.
+  FLAVOR="$(meow_flavor)"
   return 0
 }
 
@@ -385,6 +387,7 @@ etapa_conf() {
       return "$MEOW_ERRO"
     fi
   done
+  FLAVOR="$(meow_flavor)"
   meow_info "flavor=$FLAVOR accent=$ACCENT modo=$MODO logo=$LOGO"
   if ! meow_seco && [ "$(cat "$MEOW_ESTADO/pack-do-install" 2>/dev/null)" != "${PACK:-}"$'\t'"$FLAVOR" ]; then
     mkdir -p "$MEOW_ESTADO" && printf '%s\t%s\n' "${PACK:-}" "$FLAVOR" > "$MEOW_ESTADO/pack-do-install"

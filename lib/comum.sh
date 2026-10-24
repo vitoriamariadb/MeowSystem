@@ -343,20 +343,22 @@ meow_pack_dir() {
 # `terminal`), e o `mocha` é o padrão de UM pack.
 #
 # A REGRA É A DO docs/PACKS.md ("Quem vence"): o FLAVOR do conf vence; vazio,
-# entra o `paleta.flavor_padrao` do pack no ar.
+# entra o `paleta.flavor_padrao` do pack no ar. Um FLAVOR que o pack não tem
+# também cai no padrão, como no `meow pack usar` (`plano_de_uso`).
 meow_flavor() {
   local padrao
-  if [ -n "${FLAVOR:-}" ]; then
-    printf '%s' "$FLAVOR"
-    return 0
-  fi
-  padrao="$(python3 -I - "$MEOW_RAIZ/scripts" "${PACK:-}" <<'PYFIM' 2>/dev/null
+  padrao="$(python3 -I - "$MEOW_RAIZ/scripts" "${PACK:-}" "${FLAVOR:-}" <<'PYFIM' 2>/dev/null
 import sys
 sys.path.insert(0, sys.argv[1])
 import pack
-print(pack.vocabulario(pack.adocao(sys.argv[2], "")[0])["flavor_padrao"])
+v = pack.vocabulario(pack.adocao(sys.argv[2], sys.argv[3])[0])
+print(sys.argv[3] if sys.argv[3] in [f["id"] for f in v["flavors"]] else v["flavor_padrao"])
 PYFIM
 )"
+  if [ -z "$padrao" ] && [ -n "${FLAVOR:-}" ]; then
+    printf '%s' "$FLAVOR"
+    return 0
+  fi
   if [ -z "$padrao" ]; then
     meow_aviso "scripts/pack.py não respondeu qual é o flavor padrão do pack no ar (PACK='${PACK:-}') — o FLAVOR fica vazio"
     return 1

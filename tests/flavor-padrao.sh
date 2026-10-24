@@ -224,6 +224,47 @@ tem="$(painel dracula "$T/sem-py:$FALSO:$PATH")"
   && ok "o conf_exportada dá o FLAVOR do meow_flavor e completa o molde das pastas ($DRACULA, $PADRAO e $SEM_PADRAO); sem resposta, vazio" \
   || falha "o painel tem a regra dele para o flavor padrão:$divergem"
 
+# --- 5. o flavor fora do pack cai no padrão do pack, no install também -------
+printf '\n--- 5. o flavor que não é do pack vira o padrão dele ---\n'
+# O `FLAVOR="mocha"` do meow.conf.exemplo com `PACK="dracula"`: é a regra do
+# `meow pack usar` (o flavor que não é do pack vira o padrão dele).
+divergem=""
+for caso in "dracula|mocha|$DRACULA" "dracula|alucard|alucard" "|mocha|mocha"; do
+  IFS='|' read -r p f quer <<< "$caso"
+  tem="$(flavor_de "$p" "$f")"; rc=$?
+  [ "$rc" = 0 ] && [ "$tem" = "$quer" ] || divergem+=" PACK='$p' FLAVOR='$f': rc=$rc, veio '$tem', a regra diz '$quer';"
+done
+[ -z "$divergem" ] \
+  && ok "o meow_flavor troca o flavor que não é do pack pelo padrão dele, e deixa o que é" \
+  || falha "o meow_flavor deixa passar um flavor que o pack não tem:$divergem"
+CASA_I="$T/casa-install"; mkdir -p "$CASA_I/.config/meow"
+sed -e 's/^FLAVOR="[^"]*"/FLAVOR="mocha"/' -e 's/^PACK="[^"]*"/PACK="dracula"/' "$RAIZ/meow.conf.exemplo" \
+  > "$CASA_I/.config/meow/meow.conf"
+ETAPA_CONF="$T/etapa-conf.sh"
+sed -n '/^etapa_conf() {$/,/^}$/p' "$RAIZ/install.sh" > "$ETAPA_CONF"
+grep -q '^etapa_conf() {' "$ETAPA_CONF" || { printf 'erro: não achei a etapa_conf no install.sh\n' >&2; exit 2; }
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CASA_I" USER=t NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+           MEOW_ESTADO="$CASA_I/estado" bash -c '
+  . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1 || exit 9
+  CONF_PADRAO="$MEOW_RAIZ/meow.conf.exemplo"; CONF="$HOME/.config/meow/meow.conf"
+  passo() { :; }
+  . "$1"; etapa_conf >/dev/null 2>&1
+  printf "FLAVOR=%s\n" "$FLAVOR"
+  bash "$MEOW_RAIZ/scripts/icones_apps_arcticons.sh" --conferir 2>&1' _ "$ETAPA_CONF" 2>&1)"
+fl="$(printf '%s\n' "$saida" | sed -n 's/^FLAVOR=//p' | head -1)"
+[ "$fl" = "$DRACULA" ] && ! printf '%s\n' "$saida" | grep -q 'erro ' \
+  && ok "a etapa_conf do install, com PACK=\"dracula\" e FLAVOR=\"mocha\", veste o $DRACULA, e o traço dos aplicativos confere sem erro" \
+  || falha "a etapa_conf do install deixa o flavor que não é do pack (FLAVOR='$fl')" "$(printf '%s\n' "$saida" | head -8)"
+# O `gerar_temas.py` lê o FLAVOR do meow.conf por conta própria.
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$CASA_I" NO_COLOR=1 MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$CASA_I/estado" \
+           MEOW_PACK_DIR="$RAIZ/packs/dracula" "$PY" "$RAIZ/scripts/gerar_temas.py" --conferir 2>&1)"
+printf '%s\n' "$saida" | grep -q "meowsystem-$DRACULA-mauve.ron" && ! printf '%s\n' "$saida" | grep -q 'ERRO' \
+  && ok "o gerar_temas.py, com o mesmo meow.conf, confere o $DRACULA-mauve" \
+  || falha "o gerar_temas.py usa o flavor que o pack não tem" "$(printf '%s\n' "$saida" | head -4)"
+grep -qx 'FLAVOR="mocha"' "$CASA_I/.config/meow/meow.conf" \
+  && ok "o meow.conf não é reescrito: a linha FLAVOR continua a dela" \
+  || falha "a etapa_conf reescreveu o FLAVOR do meow.conf" "$(grep '^FLAVOR=' "$CASA_I/.config/meow/meow.conf")"
+
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2

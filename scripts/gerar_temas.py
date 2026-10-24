@@ -224,6 +224,10 @@ def _combos_do_conf(paleta: dict) -> list[str]:
                         accent = valor or None
     if not flavor or not accent:
         return ["mocha-mauve", "mocha-pink", "latte-mauve"]
+    # Um FLAVOR que o pack não tem vira o padrão do pack, como no `meow_flavor`.
+    if flavor not in paleta["flavors"]:
+        flavor = (pack.campo(str(PALETA.parent), "paleta.flavor_padrao")
+                  or next(iter(paleta["flavors"])))
     # O claro acompanha: o COSMIC alterna entre um tema escuro e um claro, e
     # gerar só o escuro deixa o modo claro com o tema de antes.
     claros = paleta.get("claros") or []
