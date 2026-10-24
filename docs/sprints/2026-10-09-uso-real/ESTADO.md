@@ -2,6 +2,26 @@
 
 Aguenta desligar o PC: o que está em voo e o próximo passo.
 
+## 24/10 — leva H FECHADA (o mais novo; o resto abaixo é histórico)
+
+1. `integracao/leva-h` no dev (`c089ee8`): P92 a P99, a reorganização em dois packs, o painel novo.
+   Conferência final: APROVADO_COM_RESSALVAS, 77/77 duas vezes, container com 1 senha por pack.
+2. `./install.sh` real: 3 passagens, 68 etapas; a linha dos 11 apps no `LANCADOR_OCULTAR`; `meow doctor` rc=0.
+3. Vizinhos desativados (Spellbook terminal, caches, Aurora menu, NitroKit, cópias do Dracula), menos a do
+   ZapZap (o `meow-whatsapp` instalado é a arte de 25/09, não a escolhida).
+4. P95 concluída: Relatório MEC foi para o Spellbook; Dracula_OS-Theme e Migração-OS apagados.
+5. `git filter-repo` (senha → ***), `git log --all -S` vazio; só `dev` e `master`; push para o
+   `master` e o `dev` do fork; PR https://github.com/vitoriamariadb/MeowSystem/pull/2.
+
+Próximo bloco (sem pedido, nada roda):
+- P100: o patch v2 da Vitória (`8906456`) contra o rebase da P85 — é o conflito da PR.
+- Ressalvas da conferência final (seção «## Execução» do `03-integracao-final.md`): FLAVOR que não
+  acompanha o pack no install, `LOGO_*` que não troca com o pack, 3 sudo fora da ponte quando ela não
+  responde, procedência com `/home/vitoriamaria`, nome «catppuccin» no `app-uso-real.py`.
+- O `meow-whatsapp` velho no tema instalado; depois dele, desativar a `dracula-copia-com.rtosta.zapzap`.
+- Seguimentos da P98: o reparo da ponte pelo «Conferir», papéis e sons no «Criar tema».
+- Spellbook: `relatorio-mec/pdf_lavar_watch` guarda o lock em `/tmp` (veio assim do Dracula_OS-Theme).
+
 ## Em voo (workflows de auditoria, só leitura)
 
 | workflow | agentes | entrega |
