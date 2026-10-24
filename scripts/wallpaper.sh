@@ -27,6 +27,8 @@ BASE="${WALLPAPER_BASE:-$HOME/.local/share/backgrounds/meowsystem}"
 ATIVOS="$BASE/ativos"
 NOITE_DIR="$BASE/ativos-noite"
 DIA_DIR="$BASE/ativos-dia"
+# A coleção do pack no ar, quando `ativos/` tem papel de outro pack (links duros).
+PACK_ATIVOS="$BASE/ativos-pack"
 BG="$(meow_cosmic_dir)/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)"
 ORDEM="${WALLPAPER_ORDEM:-aleatoria}"
 INTERVALO="${WALLPAPER_INTERVALO:-5m}"
@@ -550,6 +552,79 @@ soltar_derivadas() {
   return 0
 }
 
+# --- PAPÉIS DE PAREDE SEPARADOS POR PACK -------------------------------------
+# Só a coleção do pack no ar gira; trocar de pack troca a coleção (decisão de
+# 23/10). A coleção de OUTRO pack é a que o prefixo ou a curadoria dele nomeia
+# (`pack.py colecoes-alheias`); a imagem que não é de pack nenhum gira sempre.
+declare -A ALHEIA_NOME=()
+ALHEIOS_PREFIXOS=()
+_ALHEIAS_LIDAS=0
+_colecoes_alheias() {
+  [ "$_ALHEIAS_LIDAS" = 1 ] && return 0
+  _ALHEIAS_LIDAS=1
+  local tipo valor
+  while IFS=$'\t' read -r tipo valor; do
+    [ -n "$valor" ] || continue
+    case "$tipo" in
+      prefixo) ALHEIOS_PREFIXOS+=("$valor") ;;
+      nome)    ALHEIA_NOME["$valor"]=1 ;;
+    esac
+  done < <(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$_PACK_NO_AR" 2>/dev/null)
+}
+
+e_alheia() {
+  local p
+  [ -n "${ALHEIA_NOME[$1]:-}" ] && return 0
+  for p in ${ALHEIOS_PREFIXOS[@]+"${ALHEIOS_PREFIXOS[@]}"}; do
+    case "$1" in "$p"-*) return 0 ;; esac
+  done
+  return 1
+}
+
+# Define ROTACAO_BASE: `ativos/` quando tudo nela é do pack no ar (ou de pack
+# nenhum), senão `ativos-pack/` só com a coleção dele. Com menos de duas imagens
+# na coleção, gira `ativos/` inteira: carrossel vazio é tela preta.
+ROTACAO_BASE="$ATIVOS"
+COLECAO=()
+PACK_MUDOU=0
+base_da_rotacao() {
+  local arq base alheias=0 antes
+  COLECAO=(); ROTACAO_BASE="$ATIVOS"
+  _colecoes_alheias
+  for arq in "$ATIVOS"/*; do
+    [ -f "$arq" ] || continue
+    base="${arq##*/}"
+    if e_alheia "$base"; then alheias=$((alheias + 1)); else COLECAO+=("$base"); fi
+  done
+  if [ "$alheias" = 0 ] || [ "${#COLECAO[@]}" -lt 2 ]; then
+    [ "$alheias" = 0 ] || meow_aviso "a coleção do pack no ar tem ${#COLECAO[@]} imagem(ns) — gira ativos/ inteira"
+    COLECAO=()
+    if [ -d "$PACK_ATIVOS" ]; then
+      if meow_seco; then meow_muda "removeria $PACK_ATIVOS/"
+      else find "$PACK_ATIVOS" -maxdepth 1 \( -type f -o -type l \) -delete 2>/dev/null; rmdir "$PACK_ATIVOS" 2>/dev/null; fi
+    fi
+    return 0
+  fi
+  # A mesma pasta com outra coleção (troca de pack): o cosmic-bg tem de reler.
+  antes="$(ls -1A "$PACK_ATIVOS" 2>/dev/null | LC_ALL=C sort)"
+  if [ -d "$PACK_ATIVOS" ] && [ "$antes" != "$(printf '%s\n' "${COLECAO[@]}" | LC_ALL=C sort)" ]; then
+    PACK_MUDOU=1
+  fi
+  if meow_seco; then
+    [ -d "$PACK_ATIVOS" ] || meow_muda "criaria $PACK_ATIVOS/ com ${#COLECAO[@]} link(s) duro(s) para ativos/"
+    [ "$PACK_MUDOU" = 1 ] && meow_muda "refaria $PACK_ATIVOS/ com a coleção do pack no ar"
+    ROTACAO_BASE="$PACK_ATIVOS"
+    return 0
+  fi
+  if montar_derivada "$PACK_ATIVOS" "${COLECAO[@]}"; then
+    ROTACAO_BASE="$PACK_ATIVOS"
+  else
+    COLECAO=()
+    meow_aviso "não consegui montar $PACK_ATIVOS/ — gira ativos/ inteira"
+  fi
+  return 0
+}
+
 # =============================================================================
 # O REGISTRO DE LADO — A ESCOLHA DELA VENCE A MEDIÇÃO (06/09/2026)
 # =============================================================================
@@ -812,7 +887,8 @@ resolver_rotacao() {
 }
 
 _resolver_grupo() {
-  ROTACAO="$ATIVOS"; GRUPO=""; NOITE_N=0; DIA_N=0
+  base_da_rotacao
+  ROTACAO="$ROTACAO_BASE"; GRUPO=""; NOITE_N=0; DIA_N=0
 
   [ "$NOITE" = "sim" ] || return 0   # o `sim_ou_nao` já avisou de valor estranho
 
@@ -849,11 +925,16 @@ _resolver_grupo() {
   #   inteira para `ativos/` como sempre voltou. Montar os grupos só com as duas
   #   ou três escolhas escritas tiraria as outras 44 imagens da rotação dela para
   #   obedecer a uma preferência — o oposto do que ela pediu.
-  local -A universo=()
-  for base in "${!LUZ[@]}"; do universo["$base"]=1; done
+  local -A universo=() da_colecao=()
+  for base in ${COLECAO[@]+"${COLECAO[@]}"}; do da_colecao["$base"]=1; done
+  for base in "${!LUZ[@]}"; do
+    [ "${#COLECAO[@]}" -gt 0 ] && [ -z "${da_colecao[$base]:-}" ] && continue
+    universo["$base"]=1
+  done
   if [ "${#LADO[@]}" -gt 0 ]; then
     for base in "${!LADO[@]}"; do
       [ -n "${universo[$base]:-}" ] && continue
+      [ "${#COLECAO[@]}" -gt 0 ] && [ -z "${da_colecao[$base]:-}" ] && continue
       [ -f "$ATIVOS/$base" ] || continue    # linha morta; a poda tira na passagem certa
       universo["$base"]=1
     done
@@ -921,7 +1002,7 @@ _resolver_grupo() {
 # do grupo errado, e o conserto é escrever a certa sem aviso nenhum.
 fonte_nossa() {
   case "$1" in
-    "$ATIVOS"|"$ATIVOS"/*|"$NOITE_DIR"|"$NOITE_DIR"/*|"$DIA_DIR"|"$DIA_DIR"/*) return 0 ;;
+    "$ATIVOS"|"$ATIVOS"/*|"$NOITE_DIR"|"$NOITE_DIR"/*|"$DIA_DIR"|"$DIA_DIR"/*|"$PACK_ATIVOS"|"$PACK_ATIVOS"/*) return 0 ;;
   esac
   return 1
 }
@@ -1495,7 +1576,7 @@ cmd_aplicar() {
         # desde 25/08/2026 — uma saída apontando para `ativos-dia/` às 23h não é
         # reversão nem escolha dela, é a nossa própria pasta do grupo errado, e
         # o conserto é escrever a certa sem aviso nenhum. Ver `fonte_nossa`.
-        "$ATIVOS"|"$ATIVOS"/*|"$NOITE_DIR"|"$NOITE_DIR"/*|"$DIA_DIR"|"$DIA_DIR"/*|"") ;;
+        "$ATIVOS"|"$ATIVOS"/*|"$NOITE_DIR"|"$NOITE_DIR"/*|"$DIA_DIR"|"$DIA_DIR"/*|"$PACK_ATIVOS"|"$PACK_ATIVOS"/*|"") ;;
         "$FABRICA"|"$FABRICA"/*) ;;                   # reset de fábrica: conserta
         *)
           if fonte_autorizada "$fonte_atual"; then
@@ -1531,6 +1612,7 @@ cmd_aplicar() {
   # sobra REAL no disco dela, que não volta sozinha: sem isto, `--conferir`
   # imprimiria "removeria …" e devolveria 0, e o auto-reparo nunca passaria ali.
   [ "$NOITE" = "sim" ] || { soltar_derivadas && mudou=1; }
+  if [ "$PACK_MUDOU" = 1 ]; then mudou=1; forcar_releitura; fi
 
   # A limpeza do estado NÃO conta como divergência — ver o cabeçalho de
   # `limpar_estado_morto`. Contá-la faria o `meow doctor` acusar diferença a cada
@@ -1541,6 +1623,7 @@ cmd_aplicar() {
 
   # O QUE ELA LÊ NO FIM TEM DE DIZER QUANTAS ESTÃO DE FATO GIRANDO. Com a noite
   # ligada, "54 imagens" seria mentira: giram 32 ou 22, conforme a hora.
+  [ "${#COLECAO[@]}" -gt 0 ] && n="${#COLECAO[@]}"
   local resumo="$n imagens"
   if [ -n "$GRUPO" ]; then
     local n_grupo="$DIA_N"
@@ -2145,7 +2228,8 @@ _semente_do_flavor() {
   # (`<repo_do_conf>`, `<commit_do_conf>`) continua vencendo: é escolha de quem o pôs lá.
   local linhas chave valor repo="" commit="" desenhos="" prefixo="" ignorar="" curadoria=""
   local repo_conf="" commit_conf=""
-  linhas="$(python3 "$RAIZ/scripts/pack.py" wallpapers "$(meow_pack_dir)" 2>/dev/null)" || linhas=""
+  _PACK_NO_AR="$(meow_pack_dir)"
+  linhas="$(python3 "$RAIZ/scripts/pack.py" wallpapers "$_PACK_NO_AR" 2>/dev/null)" || linhas=""
   while IFS='=' read -r chave valor; do
     case "$chave" in
       repo) repo="$valor" ;; commit) commit="$valor" ;; desenhos) desenhos="$valor" ;;
@@ -2570,7 +2654,7 @@ cmd_passo() {
   # redescobre aqui pelo mesmo teste de sempre.
   if   [ -d "$NOITE_DIR" ] && [ "$GRUPO" != "dia" ] && e_noite; then dir="$NOITE_DIR"
   elif [ -d "$DIA_DIR" ]   && ! e_noite;                        then dir="$DIA_DIR"
-  else dir="$ATIVOS"; fi
+  else dir="$ROTACAO_BASE"; fi
   [ -d "$dir" ] || dir="$ATIVOS"
 
   mapfile -t lista < <(lista_do_grupo "$dir")

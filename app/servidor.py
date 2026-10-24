@@ -4659,6 +4659,9 @@ def _prev_paredes():
     escolhas = _lado_escrito()
     fora = []
     for grupo, pasta in GRUPOS_PAREDE:
+        # Com papel de outro pack em `ativos/`, o que gira é a coleção do pack no ar.
+        if grupo == "ativos" and os.path.isdir(os.path.join(base, "ativos-pack")):
+            pasta = "ativos-pack"
         caminho = os.path.join(base, pasta)
         try:
             nomes = sorted(os.listdir(caminho))

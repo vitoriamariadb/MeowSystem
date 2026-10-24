@@ -138,6 +138,57 @@ else
 $s4"
 fi
 
+
+printf '\n--- 6. papéis de parede separados por pack (decisão de 23/10) ---\n'
+# `ativos/` com as duas coleções (o prefixo `tulip-` do Dracula, o `cat-` e a
+# curadoria do MeowSystem) e uma imagem que não é de pack nenhum.
+CP="$T/casa-pack"; BP="$CP/.local/share/backgrounds/meowsystem"
+mkdir -p "$BP/ativos" "$CP/.config/meow" "$CP/cosmic"
+cura="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" {print $1; exit}' "$RAIZ/packs/meowsystem/wallpapers/FONTES.tsv")"
+for n in cat-a.png cat-b.png "$cura" tulip-x.png tulip-y.png minha.png; do
+  printf 'P3\n1 1\n255\n10 20 30\n' > "$BP/ativos/$n"
+done
+wpp() { env -i PATH="$T/falso:$PATH" HOME="$CP" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_COSMIC_DIR="$CP/cosmic" \
+          WALLPAPER_NOITE=nao "$@" "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
+fonte() { grep -rhoP 'source: Path\("\K[^"]+' "$CP/cosmic" 2>/dev/null | sort -u; }
+colecao() { ls -1 "$BP/ativos-pack" 2>/dev/null | tr '\n' ' '; }
+s1="$(wpp PACK=dracula)"; r1=$?
+if [ "$r1" = 1 ] && [ "$(fonte)" = "$BP/ativos-pack" ] && [ "$(colecao)" = "minha.png tulip-x.png tulip-y.png " ] \
+   && [ "$(ls "$BP/ativos" | wc -l)" = 6 ]; then
+  ok "com o Dracula no ar gira só a coleção dele (e a imagem de pack nenhum); ativos/ fica inteira"
+else
+  falha "o Dracula no ar girou outra coleção (rc=$r1, fonte=$(fonte), coleção=$(colecao))" "$s1"
+fi
+s2="$(wpp PACK=dracula)"; r2=$?
+[ "$r2" = 0 ] && ok "a segunda passada não escreve" || falha "a segunda passada com o Dracula escreveu (rc=$r2)" "$s2"
+s3="$(wpp PACK=meowsystem MEOW_DRY_RUN=1)"; r3=$?
+[ "$r3" = 1 ] && [ "$(colecao)" = "minha.png tulip-x.png tulip-y.png " ] \
+  && ok "o ensaio da troca de pack diz que refaria a coleção, sem escrever" \
+  || falha "o ensaio da troca de pack escreveu ou calou (rc=$r3)" "$s3"
+s4="$(wpp PACK=meowsystem)"; r4=$?
+if [ "$r4" = 1 ] && [ "$(colecao)" = "cat-a.png cat-b.png $cura minha.png " ] && grep -q 'cosmic-bg avisado' <<< "$s4"; then
+  ok "trocar de pack troca a coleção: cat-, a curadoria e a de pack nenhum, e o cosmic-bg relê"
+else
+  falha "trocar de pack não trocou a coleção (rc=$r4, coleção=$(colecao))" "$s4"
+fi
+painel="$(env -i PATH="$T/falso:$PATH" HOME="$CP" MEOW_RAIZ="$RAIZ" MEOW_CONF="$CP/.config/meow/meow.conf" \
+  python3 - "$RAIZ/app" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+itens = [i for i in servidor._prev_paredes() if i["grupo"] == "ativos"]
+print(" ".join(sorted(i["rotulo"] for i in itens)))
+print(all(i["banir"].endswith("/ativos/" + i["rotulo"]) for i in itens))
+PY
+)"
+[ "$painel" = "$(printf 'cat-a.png cat-b.png %s minha.png\nTrue' "$cura")" ] \
+  && ok "o «No carrossel» do painel mostra a coleção do pack no ar, e o Tirar age em ativos/" \
+  || falha "o painel mostra outra coleção no «No carrossel»" "$painel"
+rm -f "$BP/ativos"/tulip-*
+s5="$(wpp PACK=meowsystem)"; r5=$?
+[ "$r5" = 1 ] && [ "$(fonte)" = "$BP/ativos" ] && [ ! -e "$BP/ativos-pack" ] \
+  && ok "sem papel de outro pack, gira ativos/ e a pasta da coleção sai" \
+  || falha "sem papel de outro pack a rotação não voltou a ativos/ (rc=$r5, fonte=$(fonte))" "$s5"
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: os achados técnicos da P79 estão fechados\n'

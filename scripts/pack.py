@@ -5895,6 +5895,47 @@ def origem_dos_wallpapers(ref=None):
     return saida
 
 
+def colecoes_alheias(ref=None):
+    """(prefixos, nomes) dos papéis de parede dos OUTROS packs: o prefixo que o
+    `wallpaper.sh` põe no nome e os nomes da curadoria de cada um. O pack que
+    herda a mesma origem do pack no ar não é outro."""
+    def origem(r):
+        try:
+            o = origem_dos_wallpapers(r)
+        except (Recusa, OSError, ValueError):
+            return "", ""
+        return str(o.get("prefixo") or "cat"), str(o.get("curadoria") or "")
+
+    def nomes_da_curadoria(caminho):
+        try:
+            with open(caminho, encoding="utf-8", errors="replace") as fh:
+                for linha in fh:
+                    nome = linha.split("\t", 1)[0].strip()
+                    if nome and not nome.startswith("#") and nome != "arquivo":
+                        yield nome
+        except OSError:
+            return
+
+    meu_pref, meu_cur = origem(ref or None)
+    prefixos, nomes, vistos = set(), set(), set()
+    for base in raizes():
+        try:
+            ids = sorted(os.listdir(base))
+        except OSError:
+            continue
+        for pid in ids:
+            dir_pack = os.path.join(base, pid)
+            if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+                continue
+            vistos.add(pid)
+            pref, cur = origem(dir_pack)
+            if pref and pref != meu_pref:
+                prefixos.add(pref)
+            if cur and os.path.realpath(cur) != (os.path.realpath(meu_cur) if meu_cur else ""):
+                nomes.update(nomes_da_curadoria(cur))
+    return sorted(prefixos), sorted(nomes)
+
+
 def main(argv):
     if len(argv) < 2:
         print(__doc__.strip(), file=sys.stderr)
@@ -6117,6 +6158,13 @@ def main(argv):
             if not nome:
                 return RECUSADO
             print(nome)
+            return OK
+        if verbo == "colecoes-alheias" and len(argv) == 3:
+            prefixos, nomes = colecoes_alheias(argv[2] or None)
+            for p in prefixos:
+                print(f"prefixo\t{p}")
+            for n in nomes:
+                print(f"nome\t{n}")
             return OK
         if verbo == "wallpapers" and len(argv) == 3:
             for chave, valor in sorted(origem_dos_wallpapers(argv[2]).items()):
