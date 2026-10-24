@@ -11,9 +11,9 @@ O QUE ABRIU ISTO
   `h_link_externo`, não.
 
 COMO SE MEDE
-  Uma página mínima com o menu (`#trilho`) e o link, que REPINTA o menu no
-  primeiro `pointerover` do link — a repintura chega exatamente entre o censo e
-  o clique. Roda o `h_link_externo` do próprio `tests/app-completo.py` contra
+  Uma página mínima com o menu (`#menu-corpo`, o do painel novo da P98) e o
+  link `menu:creditos`, que REPINTA o menu no primeiro `pointerover` do link — a
+  repintura chega exatamente entre achar o link e o clique. Roda o `h_link_externo` do próprio `tests/app-completo.py` contra
   ela. Com o código de antes: «Locator.click: Timeout 30000ms exceeded».
 
   0 = passou · 1 = falhou · 3 = pulado (sem Playwright)
@@ -41,15 +41,14 @@ import atexit  # noqa: E402
 import shutil  # noqa: E402
 atexit.register(shutil.rmtree, gate.BRINQUEDO, True)
 
-PAGINA = """<nav id="trilho"><a href="https://exemplo.invalid/creditos" target="_blank"
- rel="noopener">Créditos</a></nav><main id="principal"></main>
+PAGINA = """<div id="menu-corpo"><a href="https://exemplo.invalid/creditos" target="_blank"
+ rel="noopener" data-controle="menu:creditos">Créditos</a></div><main id="principal"></main>
 <script>
 let vez = 0;
 document.addEventListener('pointerover', (ev) => {
-  const a = ev.target.closest && ev.target.closest('#trilho a');
+  const a = ev.target.closest && ev.target.closest('#menu-corpo a');
   if (a && vez++ === 0)
-    document.getElementById('trilho').innerHTML =
-      a.outerHTML.replace(/ data-inventario="[^"]*"/, '');
+    document.getElementById('menu-corpo').replaceChildren(a.cloneNode(true));
 }, true);
 </script>"""
 
@@ -66,7 +65,7 @@ with sync_playwright() as pw:
     pag.set_content(PAGINA)
     p = gate.Percurso(pag)
     try:
-        p.h_link_externo("menu · link externo")
+        p.h_link_externo("menu:creditos")
         erro = None
     except Exception as e:  # noqa: BLE001 — o defeito era justamente a exceção
         erro = "%s: %s" % (type(e).__name__, str(e).splitlines()[0])

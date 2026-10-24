@@ -13,3 +13,18 @@ hoje ao lado, para quem usa escolher o que sobe. Nada do painel de verdade muda 
 - `hallmark` primeiro (regra 6 do CLAUDE.md global).
 - Show, don't tell: uma frase curta na tela, o porquê atrás do `?` (GSD, princípio 2).
 - Painel só com HOME temporário e PID próprio, nunca `--parar` (GSD, decisão 8).
+
+## Entregue (23/10)
+Mockup final em `docs/design/2026-10-23/final/` (16 telas, 4 portas: Tema, Criar tema, Ajustes, Cuidar),
+publicado para quem usa ver. O `LEIA-ME.md` ao lado diz o que veio do mockup A, do B e da síntese.
+
+## Decisões de quem usa sobre o mockup (23/10)
+1. **Clicar num tema já veste a máquina**, sem «Aplicar» separado. **Nenhuma tela pede senha**: a senha é
+   pedida uma vez só, no install, que instala a ponte root (quem usa, 23/10).
+2. Os ajustes avançados (faixa «Fundo», ícones resgatados, cor da marca, pastas XDG) ficam num
+   **«Mais ajustes» recolhido** no fim de cada página.
+3. **Dia e noite fica dentro de Ajustes**: são 4 portas.
+
+## Próximo
+A P98 implementa o painel novo, depois que a P96 (reorganização) entrar no dev, porque ela muda os caminhos
+que o painel lê.

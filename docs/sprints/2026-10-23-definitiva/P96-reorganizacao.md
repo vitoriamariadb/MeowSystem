@@ -17,7 +17,7 @@ e do jeito atual não funciona nem o MeowSystem, nem o Dracula, nem as demais fe
 7. Branches locais: ficam só `dev` e `master` (depois de tudo integrado no dev).
 
 ## Decisões de quem usa (23/10)
-- Os 47 SVG de `/home/andrefarias/Desktop/manuais-final/` são a arte do Dracula feita à mão. Os ícones de
+- Os 47 SVG de `~/Desktop/manuais-final/` são a arte do Dracula feita à mão. Os ícones de
   pasta (`folder-*`, `user-home`, `user-desktop`) vão para `packs/dracula/icones/sistema`; o resto vai para
   `packs/dracula/icones/apps`. Eles corrigem tudo o que tiver o mesmo ícone.
 - **Projetos pessoais entram no Dracula** (Beholder, Elden Ring Tracker, Protocolo Ouroboros, Luna, Mnemo,

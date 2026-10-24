@@ -128,15 +128,20 @@
     pilha.id = "pilha";
     pilha.dataset.mw = "pilha";
     pilha.replaceChildren();
-    const antes = document.querySelector('#trilho [aria-current="true"]');
-    for (const b of document.querySelectorAll("#trilho button")) {
-      b.click();
-      await new Promise((r) => setTimeout(r, 40));
+    const antes = location.hash;
+    /* Uma página por porta, por ajuste e por passo: a tabela de lugares diz quais. */
+    const rotas = [["#tema", "Tema"],
+      ...PASSOS.map((p) => ["#criar/" + p.id, "Criar tema · " + p.nome]),
+      ...AJUSTES.map((p) => ["#ajustes/" + p.id, "Ajustes · " + p.nome]),
+      ["#cuidar", "Cuidar"]];
+    for (const [hash, nome] of rotas) {
+      location.hash = hash;
+      await new Promise((r) => setTimeout(r, 60));
       const secao = document.createElement("section");
       secao.className = "pilha-aba";
       secao.dataset.mw = "pilha-aba";
       const titulo = document.createElement("h2");
-      titulo.textContent = b.querySelector("span").textContent;
+      titulo.textContent = nome;
       titulo.dataset.mw = "pilha-aba-titulo";
       /* `cloneNode` copia o `id="conteudo"`, e a regra que esconde o conteúdo
        * no modo empilhado (`body.empilhado #conteudo`) passava a valer para os
@@ -149,14 +154,14 @@
       pilha.append(secao);
     }
     document.getElementById("principal").append(pilha);
-    if (antes) antes.click();
+    location.hash = antes || "#tema";
   }
 
-  /* O `iniciar()` do `app.js` é assíncrono e monta o trilho só depois de
+  /* O `iniciar()` do `app.js` é assíncrono e monta as portas só depois de
    * "buscar" o esquema. Esperar o primeiro botão nascer é mais barato — e mais
    * honesto — que adivinhar um tempo. */
   const espia = new MutationObserver(() => {
-    if (document.querySelector("#trilho button")) {
+    if (document.querySelector("#portas a")) {
       espia.disconnect();
       montarBarra();
     }

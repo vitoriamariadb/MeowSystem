@@ -1,3526 +1,589 @@
-/* app/pagina/estilo.css — a folha de estilo da página de configuração.
+/* Hallmark · macrostructure: Workbench (app shell) · tone: utilitário caloroso · anchor hue: o destaque do pack no ar
+ * theme: studied-DNA (fonte: docs/design/2026-10-23/final, a paleta vem de /paleta.css) · nav: barra de portas
+ * Hallmark · pre-emit critique: P4 H5 E4 S5 R5 V4
  *
- * Nada ali exigiu uma linha de HTML nova: tudo o que mudou de posição no cartão
- * e no cartão de ação mudou por `order` de flex, e tudo o que mudou de peso
- * mudou por `:has()`.
- *
- * O cartão tinha seis camadas e passa a ter três (ver o comentário do CARTÃO DE
- * CHAVE, mais abaixo).
- *
- * Toda cor sai de `/paleta.css` — a folha que o `app/servidor.py` gera do pack
- * ativo, no flavor que o meow.conf manda — pelas variáveis que o `<style
- * id="paleta-do-painel">` define. */
+ * app/pagina/estilo.css — o painel novo (P98), desenhado pelo mockup final da P97.
+ * Nenhuma cor mora aqui: as 26 vêm de /paleta.css (o pack no ar, no flavor do
+ * meow.conf) e o --accent também. Uma grade por página; os botões de uma fila têm
+ * a mesma altura e a mesma família. */
 
-/* --- as medidas ----------------------------------------------------------- */
-/* Só forma: raio, espaço e tamanho de letra. Cor nenhuma mora aqui. */
+/* ── 1. papéis: o que a interface usa ───────────────────────────────────── */
 :root {
-  --r-1: 4px;
-  --r-2: 8px;
-  --r-3: 12px;
-  --r-max: 999px;
+  --fundo: var(--base);
+  --barra: var(--mantle);
+  --cartao: color-mix(in oklab, var(--surface0) 42%, var(--base));
+  --cartao-2: var(--surface0);
+  --linha: color-mix(in oklab, var(--surface1) 75%, var(--base));
+  --linha-forte: var(--surface2);
+  --tinta: var(--text);
+  --tinta-2: var(--subtext1);
+  --tinta-3: var(--subtext0);
+  --sobre-accent: var(--crust);
+  --accent-suave: color-mix(in oklab, var(--accent) 15%, var(--fundo));
+  --accent-linha: color-mix(in oklab, var(--accent) 55%, var(--fundo));
+  --ok: var(--green);
+  --alerta: var(--peach);
+  --perigo: var(--red);
+  --perigo-suave: color-mix(in oklab, var(--red) 12%, var(--fundo));
+  --ok-suave: color-mix(in oklab, var(--green) 14%, var(--fundo));
+  --alerta-suave: color-mix(in oklab, var(--peach) 14%, var(--fundo));
+  --foco: var(--accent);
+  --sombra: color-mix(in oklab, var(--crust) 70%, transparent);
+  --veu: color-mix(in oklab, var(--crust) 72%, transparent);
 
-  --t-secao: 1.45rem;   /* 23,2 px */
-  --t-titulo: .875rem;  /* 14 px   */
-  --t-frase: .8rem;     /* 12,8 px */
-  --t-legenda: .66rem;  /* 10,5 px */
+  --f-corpo: "Fira Sans", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "Fira Mono", ui-monospace, monospace;
 
-  --mono: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
+  --t-xs: .75rem; --t-sm: .8125rem; --t-md: .9375rem; --t-lg: 1.125rem;
+  --t-xl: 1.5rem; --t-2xl: 2rem;
 
-  /* A largura em que uma coluna de texto e controle ainda se lê. Vale para as
-   * grades de Ajustar e de Fazer, e NÃO vale para as grades de imagem — ali,
-   * quanto mais couber na tela, melhor. */
-  --medida: 1240px;
+  --e-1: 4px; --e-2: 8px; --e-3: 12px; --e-4: 16px; --e-5: 20px; --e-6: 24px;
+  --e-8: 32px; --e-10: 40px; --e-12: 48px; --e-14: 56px;
 
-  /* Os dois vãos da página: entre cartões, e entre seções. */
-  --vao-grade: 1rem;
-  --vao-secao: 2.2rem;
+  --raio-sm: 8px; --raio-md: 12px; --raio-lg: 16px; --raio-xl: 22px; --raio-pilula: 999px;
+
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-in: cubic-bezier(.5, 0, .9, .4);
+  --dur-rapida: 120ms; --dur-media: 220ms;
+
+  /* a altura das famílias de controle: uma fila só usa uma */
+  --h-bt: 40px; --h-pequeno: 32px;
+}
+/* Nas variantes claras o texto sobre o destaque vira claro e o cartão clareia. */
+html[data-claro] {
+  --sobre-accent: var(--base);
+  --sombra: color-mix(in oklab, var(--overlay2) 30%, transparent);
+  --veu: color-mix(in oklab, var(--overlay2) 45%, transparent);
+  --cartao: color-mix(in oklab, var(--mantle) 50%, var(--base));
 }
 
-/* --- o esqueleto ---------------------------------------------------------- */
-* { box-sizing: border-box; }
-
-/* `hidden` TEM DE VENCER, E ELE NÃO VENCIA — visto na tela O atributo `hidden`
- * é `display: none` na folha do NAVEGADOR, que perde para qualquer regra de
- * autor. */
-[hidden] { display: none !important; }
-
-html, body {
-  height: 100%;
-  margin: 0;
-  overflow-x: clip;   /* `clip` e não `hidden`: `hidden` quebra `sticky` nos filhos */
-}
-
+/* ── 2. base ────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
 body {
-  background: var(--base);
-  color: var(--text);
-  font: .875rem/1.5 "Inter", "Cantarell", system-ui, -apple-system, sans-serif;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;               /* quem rola é a coluna do meio, não a página */
+  margin: 0; background: var(--fundo); color: var(--tinta);
+  font: 400 var(--t-md)/1.5 var(--f-corpo);
+  -webkit-font-smoothing: antialiased;
 }
+h1, h2, h3 { margin: 0; font-weight: 600; line-height: 1.15; letter-spacing: -.01em; font-style: normal; overflow-wrap: anywhere; min-width: 0; }
+h1 { font-size: var(--t-2xl); }
+h2 { font-size: var(--t-lg); }
+h3 { font-size: var(--t-md); }
+p { margin: 0; }
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pular { position: absolute; left: -999px; top: 8px; z-index: 50; padding: var(--e-2) var(--e-4); background: var(--accent); color: var(--sobre-accent); border-radius: var(--raio-sm); }
+.pular:focus { left: 8px; }
 
-a { color: var(--accent); text-decoration: none; }
-a:hover { color: var(--accent); text-decoration: underline; }
-
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-/* O link que só aparece no teclado. Uma página com trilho lateral obriga quem
- * navega por Tab a atravessar 20 itens antes do primeiro controle. */
-.pular {
-  position: absolute;
-  left: -999px;
-  z-index: 100;
-  background: var(--accent);
-  color: var(--crust);
-  padding: .6rem 1rem;
-  border-radius: 0 0 var(--r-2) 0;
-  font-weight: 600;
-}
-.pular:focus { left: 0; top: 0; }
-/* O pula-grade herda o mecanismo e muda só o ancoradouro: dentro do fluxo da
- * página, ele aparece ONDE ESTÁ (logo antes da grade) em vez de saltar para o
- * canto da tela — quem navega por Tab está olhando para ali. */
-.pular-grade { position: relative; left: -9999px; display: inline-block; }
-.pular-grade:focus { left: 0; top: auto; margin: .2rem 0 .5rem; }
-
-/* --- topo ----------------------------------------------------------------- */
+/* ── 3. barra de cima ───────────────────────────────────────────────────── */
 .topo {
-  display: flex;
-  align-items: center;
-  gap: .8rem;
-  padding: .65rem 1.1rem;
-  background: var(--mantle);
-  border-bottom: 1px solid var(--surface0);
-  flex: 0 0 auto;
+  position: sticky; top: 0; z-index: 20; height: 64px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: var(--e-4);
+  padding: 0 var(--e-8); background: var(--barra); border-bottom: 1px solid var(--linha);
 }
-
-.marca { display: flex; align-items: center; gap: .6rem; min-width: 0; }
-.marca > div { min-width: 0; }
-/* `flex: 0 0 auto` porque um SVG dentro de um flex encolhe até sumir quando a
- * janela aperta. */
-.marca .gato { width: 30px; height: 30px; flex: 0 0 auto; }
-/* O NOME DO PRODUTO NÃO ESTÁ "ACESO". Ele era a única coisa em accent no alto
- * da tela e competia com a barra de pendências, que é o que de fato pisca. */
-.marca h1 {
-  margin: 0;
-  font-size: .95rem;
-  font-weight: 650;
-  letter-spacing: -.01em;
-  color: var(--text);
+.marca { display: inline-flex; align-items: center; gap: var(--e-3); text-decoration: none; font-weight: 600; font-size: var(--t-lg); white-space: nowrap; }
+.marca img { width: 30px; height: 30px; }
+.portas { display: flex; gap: var(--e-1); margin: 0 0 0 var(--e-4); padding: 0; list-style: none; min-width: 0; }
+.portas a {
+  display: inline-flex; align-items: center; gap: var(--e-2); height: var(--h-bt); padding: 0 var(--e-4);
+  border-radius: var(--raio-pilula); text-decoration: none; font-weight: 500; color: var(--tinta-2); white-space: nowrap;
+  transition: background-color var(--dur-rapida) var(--ease-out), color var(--dur-rapida) var(--ease-out);
 }
-.sub {
-  margin: 0;
-  font-size: var(--t-legenda);
-  line-height: 1.35;
-  color: var(--overlay2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
-}
+.portas a:hover { background: var(--cartao-2); color: var(--tinta); }
+.portas a[aria-current="page"] { background: var(--accent-suave); color: var(--tinta); box-shadow: inset 0 0 0 1px var(--accent-linha); }
+.portas a[aria-current="page"] svg { color: var(--accent); }
+.busca { position: relative; width: 320px; }
+.busca input { width: 100%; height: var(--h-bt); padding: 0 44px 0 40px; border-radius: var(--raio-pilula); background: var(--fundo); border: 1px solid var(--linha); }
+.busca input::placeholder { color: var(--tinta-3); }
+.busca input:hover { border-color: var(--linha-forte); }
+.busca input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-suave); }
+.busca > svg { position: absolute; left: 14px; top: 11px; color: var(--tinta-3); }
+.busca kbd { position: absolute; right: 12px; top: 9px; font: 500 var(--t-xs)/20px var(--f-mono); padding: 0 6px; border: 1px solid var(--linha-forte); border-radius: 6px; color: var(--tinta-3); }
+.achados { position: absolute; top: 48px; right: 0; width: 420px; max-width: calc(100vw - 32px); display: none; padding: var(--e-2); background: var(--cartao-2); border: 1px solid var(--linha-forte); border-radius: var(--raio-lg); box-shadow: 0 16px 40px var(--sombra); }
+.busca.aberta .achados { display: block; }
+.achados button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--e-3); width: 100%; padding: var(--e-2) var(--e-3); border: 0; border-radius: var(--raio-sm); background: none; text-align: left; }
+.achados button:hover, .achados button:focus-visible, .achados button.vez { background: var(--accent-suave); outline: none; }
+.achados small { color: var(--tinta-3); white-space: nowrap; }
+.achados .nada { padding: var(--e-3); color: var(--tinta-2); }
 
-/* A busca fica ENCOSTADA na marca, não centrada. Centrada, numa tela de 27
- * polegadas ela vira uma caixa de 460px flutuando com um metro de nada dos dois
- * lados — o mesmo oceano de vazio das abas de dois cartões. */
-.busca-caixa { flex: 1 1 auto; display: flex; justify-content: flex-start; min-width: 0; }
-#busca {
-  width: min(320px, 100%);
-  padding: .4rem .75rem;
-  border-radius: var(--r-max);
-  border: 1px solid var(--surface1);
-  background: var(--surface0);
-  color: var(--text);
-  font: inherit;
-  font-size: .82rem;
-}
-#busca::placeholder { color: var(--overlay1); }
-#busca:focus-visible { border-color: transparent; }
+.aplicar { display: inline-flex; align-items: center; gap: var(--e-1); height: 44px; padding: var(--e-1); border-radius: var(--raio-pilula); border: 1px solid var(--linha); background: var(--fundo); }
+.aplicar .conta { display: inline-flex; align-items: center; gap: var(--e-2); padding: 0 var(--e-3); color: var(--tinta-2); font-size: var(--t-sm); font-weight: 500; white-space: nowrap; }
+.aplicar .conta::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--linha-forte); }
+.aplicar:not([data-n="0"]) { border-color: var(--accent-linha); }
+.aplicar:not([data-n="0"]) .conta { color: var(--tinta); }
+.aplicar:not([data-n="0"]) .conta::before { background: var(--accent); }
+.aplicar[data-n="0"] .conta { display: none; }
+.aplicar[data-n="0"] .desfazer { display: none; }
+.aplicar .bt { height: 34px; }
 
-/* A regra saiu junto com o botão: estilo de um controle que não existe é
- * convite para alguém desenhá-lo de volta.
- *
- * O que existe hoje é o `.btn-ensaio`, junto dos outros botões — ver o bloco
- * dele, ao lado do `.btn-perigo`. */
-
-/* --- levar embora e trazer de volta ---------------------------------------
- * O menu é um `<details>`: o navegador já abre, fecha, faz o Enter e o Espaço
- * funcionarem e prende o foco no lugar certo. */
 .menu { position: relative; }
-.menu > summary { list-style: none; cursor: pointer; }
+.menu > summary { list-style: none; }
 .menu > summary::-webkit-details-marker { display: none; }
-.menu[open] > summary { border-color: var(--overlay0); }
+.menu-corpo { position: absolute; right: 0; top: 48px; z-index: 30; min-width: 220px; display: grid; gap: 2px; padding: var(--e-2); background: var(--cartao-2); border: 1px solid var(--linha-forte); border-radius: var(--raio-lg); box-shadow: 0 16px 40px var(--sombra); }
+.menu-corpo a, .menu-corpo button { display: flex; align-items: center; gap: var(--e-3); height: var(--h-bt); padding: 0 var(--e-3); border: 0; border-radius: var(--raio-sm); background: none; text-decoration: none; text-align: left; white-space: nowrap; }
+.menu-corpo a:hover, .menu-corpo button:hover { background: var(--accent-suave); }
 
-.menu-corpo {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 50;
-  width: min(21rem, 80vw);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px;
-  border-radius: var(--r-3);
-  border: 1px solid var(--surface1);
-  background: var(--mantle);
-  /* Uma das três sombras desta folha — e as três são a mesma coisa: superfície
-   * que FLUTUA por cima do conteúdo (este menu, o diálogo e a dica do cartão).
-   * Sem ela as duas superfícies escuras encostam sem fronteira. */
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
+/* ── 4. botões: oito estados, duas famílias de altura ────────────────────── */
+.bt {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--e-2);
+  height: var(--h-bt); padding: 0 var(--e-5); border-radius: var(--raio-pilula); white-space: nowrap;
+  border: 1px solid var(--linha-forte); background: var(--cartao-2); color: var(--tinta);
+  font-weight: 500; text-decoration: none; cursor: pointer;
+  transition: background-color var(--dur-rapida) var(--ease-out), border-color var(--dur-rapida) var(--ease-out), transform var(--dur-rapida) var(--ease-out);
 }
-.menu-item {
-  display: block;
-  padding: .55rem .7rem;
-  border-radius: var(--r-2);
-  color: var(--text);
-  text-decoration: none;
-}
-.menu-item:hover, .menu-item:focus-visible { background: var(--surface0); text-decoration: none; }
-.menu-item strong { display: block; font-size: .84rem; font-weight: 600; }
+.bt:hover { border-color: var(--accent-linha); background: color-mix(in oklab, var(--cartao-2) 82%, var(--accent)); }
+.bt:active { transform: translateY(1px); }
+.bt:disabled, .bt[aria-disabled="true"] { opacity: .5; cursor: not-allowed; transform: none; background: var(--cartao-2); border-color: var(--linha); }
+.bt[data-estado="carregando"] { pointer-events: none; color: var(--tinta-2); }
+.bt[data-estado="carregando"]::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: gira 800ms linear infinite; }
+.bt[data-estado="erro"] { border-color: var(--perigo); color: var(--perigo); background: var(--perigo-suave); }
+.bt[data-estado="feito"] { border-color: var(--ok); color: var(--ok); background: var(--ok-suave); }
+.bt.principal { background: var(--accent); border-color: var(--accent); color: var(--sobre-accent); font-weight: 600; }
+.bt.principal:hover { background: color-mix(in oklab, var(--accent) 86%, var(--text)); }
+.bt.principal:disabled { background: var(--cartao-2); border-color: var(--linha); color: var(--tinta-3); opacity: 1; }
+.bt.leve { background: transparent; border-color: transparent; color: var(--tinta-2); }
+.bt.leve:hover { color: var(--tinta); background: var(--cartao-2); border-color: transparent; }
+.bt.perigo { background: transparent; border-color: color-mix(in oklab, var(--perigo) 60%, var(--fundo)); color: var(--perigo); }
+.bt.perigo:hover { background: var(--perigo-suave); border-color: var(--perigo); }
+.bt.pequeno { height: var(--h-pequeno); padding: 0 var(--e-4); font-size: var(--t-sm); }
+.bt.so-icone { width: var(--h-bt); padding: 0; }
+.bt.so-icone.pequeno { width: var(--h-pequeno); }
+@keyframes gira { to { transform: rotate(360deg); } }
 
-/* O Importar é um `<label>` com o `<input type=file>` escondido dentro. Sem o
- * `align-items`, o rótulo fica um fio mais alto que os vizinhos. */
-#rotulo-importar { display: inline-flex; align-items: center; cursor: pointer; }
+/* «Voltar ao padrão»: um ícone ao lado do nome, só quando o valor difere */
+.padrao { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--tinta-3); }
+.padrao:hover { color: var(--accent); background: var(--accent-suave); }
+.padrao svg.i { width: 15px; height: 15px; }
 
-/* A BARRA DAS ESCOLHAS — o que ela mexeu e ainda não salvou.
- * É o único lugar da barra de cima que usa accent, e é o certo: pendência é
- * estado aceso, e "Salvar e aplicar" é a ação principal da página. */
-.barra-salvar {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  flex: 0 0 auto;
-  padding: .28rem .3rem .28rem .7rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--surface0));
-  border-radius: var(--r-max);
-  background: color-mix(in srgb, var(--accent) 12%, var(--mantle));
-}
-.barra-salvar strong { font-size: .8rem; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
-/* Ela ficou sempre à vista (ver o `index.html`), e o aceso de cima só existia
- * porque ela só aparecia com pendência. */
-.barra-salvar.vazia {
-  padding: 0;
-  border-color: transparent;
-  background: transparent;
-}
-/* O contador é clicável: abre a lista do que espera. O sublinhado pontilhado é
- * o convite — sem ele, "14 escolhas" parece um rótulo e ninguém clica em
- * rótulo. */
-#salvar-conta { cursor: pointer; text-decoration: underline dotted var(--overlay0); text-underline-offset: 3px; }
-#salvar-conta:hover { text-decoration-color: var(--accent); }
+/* ── 5. controles ──────────────────────────────────────────────────────── */
+.chave { position: relative; width: 46px; height: 26px; flex: none; padding: 0; border-radius: var(--raio-pilula); border: 1px solid var(--linha-forte); background: var(--cartao-2); transition: background-color var(--dur-rapida) var(--ease-out); }
+.chave::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--tinta-3); transition: transform var(--dur-media) var(--ease-out); }
+.chave[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.chave[aria-checked="true"]::after { transform: translateX(20px); background: var(--sobre-accent); }
+.chave:hover { border-color: var(--accent-linha); }
+.chave:disabled { opacity: .45; cursor: not-allowed; }
 
-/* A LISTA DO QUE ESPERA. Ancorada na própria barra, cai como um balão abaixo
- * dela. Cada linha é um botão que leva ao cartão da chave. */
-.barra-salvar { position: relative; }
-#lista-pendentes {
-  position: absolute;
-  top: calc(100% + .45rem);
-  right: 0;
-  z-index: 40;
-  min-width: 24rem;
-  max-width: 34rem;
-  max-height: 60vh;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  padding: .35rem;
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-3);
-  background: var(--mantle);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
-}
-.linha-pendente {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: .1rem .8rem;
-  align-items: baseline;
-  padding: .4rem .55rem;
-  border: 0;
-  border-radius: var(--r-2);
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  color: var(--text);
-}
-.linha-pendente:hover { background: var(--surface0); }
-.linha-pendente .p-nome { font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.linha-pendente .p-troca { font-size: .74rem; color: var(--subtext0); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.linha-pendente .p-aba { grid-column: 1 / -1; font-size: var(--t-legenda); color: var(--overlay1); }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--raio-pilula); background: var(--fundo); border: 1px solid var(--linha); flex-wrap: wrap; }
+.seg button { height: 32px; padding: 0 var(--e-4); border: 0; border-radius: var(--raio-pilula); background: transparent; color: var(--tinta-2); font-weight: 500; font-size: var(--t-sm); white-space: nowrap; }
+.seg button:hover { color: var(--tinta); background: var(--cartao-2); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--sobre-accent); font-weight: 600; }
+.seg button:disabled { opacity: .45; cursor: not-allowed; }
+.seg:has(img) { border-radius: var(--raio-md); }
+.seg.mini button { height: 28px; padding: 0 10px; font-size: var(--t-xs); }
 
-/* O ponto de pendência no trilho: no canto do ícone, SEM ocupar coluna — o
- * botão é uma grade de três colunas (ícone · nome · crachá), e um quarto filho
- * no fluxo abria uma segunda linha: na primeira captura o "11" de Cor e tela
- * caiu para baixo do nome. */
-.trilho .ponto-pendente {
-  position: absolute;
-  left: 1.35rem;
-  top: .32rem;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 2px var(--base);
-}
-.lista-chaves {
-  font: .68rem/1.4 var(--mono);
-  color: var(--subtext0);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 44ch;
-}
-.barra-salvar-botoes { display: flex; gap: .4rem; flex: 0 0 auto; }
+.faixa { display: grid; grid-template-columns: minmax(120px, 220px) 72px; align-items: center; gap: var(--e-3); }
+.faixa output { font: 500 var(--t-sm) var(--f-mono); color: var(--tinta); text-align: right; white-space: nowrap; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; margin: 0; min-width: 0; }
+input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--accent) var(--p, 50%), var(--linha-forte) var(--p, 50%)); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%; background: var(--text); border: 3px solid var(--accent); }
+input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--linha-forte); }
+input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--text); border: 3px solid var(--accent); }
 
-/* --- corpo ---------------------------------------------------------------- */
-.corpo { display: flex; flex: 1 1 auto; min-height: 0; }
+.campo { height: var(--h-bt); padding: 0 var(--e-3); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); color: var(--tinta); min-width: 0; }
+.campo:hover { border-color: var(--linha-forte); }
+.campo:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-suave); }
+textarea.campo { height: auto; min-height: 96px; padding: var(--e-2) var(--e-3); font: var(--t-sm)/1.5 var(--f-mono); width: 100%; }
+select.campo { padding-right: var(--e-8); }
+.campo.hora { width: 112px; font-family: var(--f-mono); text-align: center; }
+.campo.largo { width: min(320px, 100%); }
+.campo.numero { width: 96px; font-family: var(--f-mono); }
 
-/* O TRILHO — vinte itens, uma linha cada
- *
- * Era um paredão: cada item de nível de cima carregava uma frase de descrição
- * de duas a três linhas, sempre visível, vinte vezes.
- *
- * Com ela fora, o trilho encolheu de ~62 px por item para 26, os três blocos do
- * produto (Ver / Ajustar / Fazer) caíram na mesma tela, e a régua horizontal
- * entre eles ficou sobrando — o rótulo do bloco já separa. */
-.trilho {
-  flex: 0 0 232px;   /* +18px: a coluna dos ícones não pode sair do rótulo */
-  overflow-y: auto;
-  padding: .5rem .5rem 3rem;
-  background: var(--mantle);
-  border-right: 1px solid var(--surface0);
-}
-.trilho .descricao-menu { display: none; }
-.trilho hr { display: none; }
+.cores { display: flex; flex-wrap: wrap; gap: 6px; }
+.cores button { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 2px solid transparent; background: var(--c); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--crust) 25%, transparent); transition: transform var(--dur-rapida) var(--ease-out); }
+.cores button:hover { transform: scale(1.08); }
+.cores button[aria-pressed="true"] { border-color: var(--fundo); box-shadow: 0 0 0 2px var(--tinta); }
+.cores.grandes button { width: 34px; height: 34px; }
+.cores.pequenas button { width: 24px; height: 24px; }
 
-/* Os três blocos são os três verbos do produto e eram as três únicas linhas do
- * menu com a coluna dos ícones vazia — um buraco justamente nas linhas que
- * dividem a lista. */
-.trilho .rotulo-grupo {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .1em;
-  color: var(--green);
-  padding: 1.5rem .55rem .5rem;
-}
-.trilho .rotulo-grupo .menu-icone { color: inherit; }
-.trilho > .rotulo-grupo:first-child { padding-top: .7rem; }
+/* fichas: as listas do meow.conf (programas escondidos, bloqueados…) */
+.fichas { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; }
+.ficha { display: inline-flex; align-items: center; gap: var(--e-2); height: var(--h-pequeno); padding: 0 6px 0 var(--e-3); border-radius: var(--raio-pilula); background: var(--cartao-2); font-size: var(--t-sm); }
+.ficha img { width: 16px; height: 16px; }
+.ficha button { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--tinta-3); }
+.ficha button:hover { color: var(--perigo); background: var(--perigo-suave); }
+.ficha-nova { height: var(--h-pequeno); width: 160px; border-radius: var(--raio-pilula); }
 
-/* Cada item é UMA linha com reticências (o nome inteiro fica no `title`, que o
- * app.js já preenche) e o número numa coluna própria, alinhado à direita. */
-/* Uma coluna própria no grid do botão (`auto 1fr auto`), no lugar do traço que
- * ficava antes da palavra. */
-.menu-icone {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 17px;
-  height: 17px;
-  flex: 0 0 auto;
-  color: var(--overlay1);
-}
-.menu-icone svg { display: block; }
-.trilho button:hover .menu-icone,
-.trilho .item-externo:hover .menu-icone { color: var(--subtext0); }
-.trilho button[aria-current="true"] .menu-icone { color: var(--accent); }
+/* ── 6. superfícies ─────────────────────────────────────────────────────── */
+.pagina { padding: var(--e-8) var(--e-14) var(--e-12); max-width: 1760px; margin: 0 auto; }
+.cabeca { display: flex; align-items: center; justify-content: space-between; gap: var(--e-6); min-height: var(--h-bt); margin-bottom: var(--e-6); flex-wrap: wrap; }
+.cabeca .fila { margin-left: auto; }
+.bloco { background: var(--cartao); border: 1px solid var(--linha); border-radius: var(--raio-lg); min-width: 0; }
+.bloco > header { display: flex; align-items: center; justify-content: space-between; gap: var(--e-4); min-height: 56px; padding: var(--e-3) var(--e-6); border-bottom: 1px solid var(--linha); }
+.bloco > header:last-child { border-bottom: 0; }
+.bloco > header h2 { display: flex; align-items: center; gap: var(--e-2); }
+.bloco > header.dupla { display: grid; grid-template-columns: minmax(140px, 1fr) 240px 240px; gap: var(--e-6); }
+.bloco > header.dupla span { color: var(--tinta-2); font-size: var(--t-sm); font-weight: 600; }
+.bloco .corpo { padding: var(--e-5) var(--e-6); }
+.bloco.tracejado { background: transparent; border-style: dashed; border-color: color-mix(in oklab, var(--perigo) 50%, var(--fundo)); }
 
-/* Agora ela atravessa o menu inteiro e o degrau de nível passa a ser o RECUO,
- * que é o que sempre disse hierarquia numa lista. Aceso, o traço é accent: é o
- * único item aberto. */
-/* O item do manual usa as MESMAS regras dos irmãos, e por isso ele entra em
-   cada seletor em vez de ganhar um bloco só seu: um bloco irmão é a folha
-   que envelhece calada no dia em que o menu mudar de recheio ou de fonte. */
-.trilho button,
-.trilho .item-externo {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: .5rem;
-  width: 100%;
-  text-align: left;
-  padding: .34rem .55rem;
-  margin-bottom: 1px;
-  border: 0;
-  border-radius: var(--r-1);
-  background: transparent;
-  color: var(--subtext1);
-  font: inherit;
-  font-size: .82rem;
-  line-height: 1.4;
-  cursor: pointer;
-}
-.trilho button > span:nth-child(2),
-.trilho .item-externo > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.trilho button:hover,
-.trilho .item-externo:hover { background: var(--surface0); color: var(--text); }
-.trilho button[aria-current="true"] {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
-  font-weight: 600;
-}
-.trilho button:focus-visible,
-.trilho .item-externo:focus-visible { outline-offset: -2px; }
-.trilho .conta {
-  font-size: var(--t-legenda);
-  color: var(--overlay1);
-  font-variant-numeric: tabular-nums;
-  min-width: 2ch;
-  text-align: right;
-}
-.trilho button[aria-current="true"] .conta { color: var(--accent); }
+.linhas { list-style: none; margin: 0; padding: 0; }
+.linha { position: relative; display: grid; grid-template-columns: minmax(150px, 1fr) auto; align-items: center; gap: var(--e-6); min-height: 58px; padding: var(--e-2) var(--e-6); border-top: 1px solid var(--linha); }
+.linha:first-child { border-top: 0; }
+.linha .rot { display: flex; align-items: center; gap: var(--e-1); min-width: 0; }
+.linha .rot > span { overflow-wrap: anywhere; }
+.linha .rot > img { width: 28px; height: 28px; border-radius: var(--raio-sm); margin-right: var(--e-2); }
+.linha .ctl { display: flex; align-items: center; gap: var(--e-3); justify-content: flex-end; flex-wrap: wrap; min-width: 0; }
+.linha.dupla { grid-template-columns: minmax(140px, 1fr) 240px 240px; }
+.linha.dupla .faixa { grid-template-columns: minmax(0, 1fr) 44px; width: 100%; }
+.linha.dupla .seg button { padding: 0 10px; }
+.linha.dupla .ctl { justify-content: flex-start; flex-wrap: nowrap; }
+.linha.sub { padding-left: var(--e-12); }
+.linha.mudou::before { content: ""; position: absolute; left: 10px; top: 50%; width: 7px; height: 7px; margin-top: -3px; border-radius: 50%; background: var(--accent); }
+.linha.dominada .rot, .linha.dominada .ctl { opacity: .55; }
+.linha.chegou { animation: chegou 1.6s var(--ease-out); }
+@keyframes chegou { from { background: var(--accent-suave); } to { background: transparent; } }
+.linha.larga { grid-template-columns: minmax(0, 1fr); }
+.linha.larga .ctl { justify-content: flex-start; }
 
-/* O item que sai da máquina. */
-/* `--mauve` e não `--accent`: o accent é a cor que marca a página ABERTA, e se
- * os dois usassem a mesma variável o Início perderia o contraste entre "esta é
- * a página" e "esta é uma das opções" no dia em que ela trocar o accent.
- *
- * Os dois andam juntos porque são a mesma categoria: nenhum dos dois é um
- * assunto do meow.conf. */
-.trilho > button.e-inicio:not([aria-current="true"]) { color: var(--mauve); }
-.trilho > button.e-inicio:not([aria-current="true"]) .menu-icone { color: inherit; }
-.trilho > button.e-inicio:not([aria-current="true"]):hover {
-  background: color-mix(in srgb, var(--mauve) 14%, transparent);
-  color: var(--mauve);
-}
+/* «Mais ajustes»: recolhido no fim da página */
+.mais { border: 1px solid var(--linha); border-radius: var(--raio-lg); background: var(--cartao); }
+.mais > summary { display: flex; align-items: center; gap: var(--e-2); min-height: 56px; padding: 0 var(--e-6); cursor: pointer; font-weight: 600; list-style: none; color: var(--tinta-2); }
+.mais > summary::-webkit-details-marker { display: none; }
+.mais > summary::before { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur-rapida) var(--ease-out); }
+.mais[open] > summary::before { transform: rotate(45deg); }
+.mais > summary:hover { color: var(--tinta); }
+.mais[open] > summary { border-bottom: 1px solid var(--linha); }
 
-.trilho .item-externo {
-  text-decoration: none;
-  color: var(--mauve);
-}
-/* Só o primeiro se afasta do último item do Sistema: os dois externos andam
-   juntos, e um vão entre eles os leria como dois blocos de um item cada. */
-.trilho .item-externo + .item-externo { margin-top: 1px; }
-.trilho .rotulo-grupo + .item-externo,
-.trilho button + .item-externo { margin-top: .8rem; }
-.trilho .item-externo .menu-icone { color: inherit; }
-.trilho .item-externo:hover { background: color-mix(in srgb, var(--mauve) 14%, transparent); color: var(--mauve); }
-.trilho .item-externo:hover .menu-icone { color: inherit; }
-.trilho .seta-externa { color: inherit; opacity: .6; font-size: var(--t-legenda); }
+.fila { display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap; }
+.pilha { display: grid; gap: var(--e-6); align-content: start; min-width: 0; }
 
-/* Era: as duas tinham peso de item clicável, desenho na coluna dos ícones e
- * filhas recuadas — três sinais de aba numa linha que não abre nada.
- *
- * Agora ela é rótulo, como o do bloco, com dois degraus de distância: caixa
- * alta menor e um degrau de recuo, que é o que a aninha debaixo do bloco.
- *
- * O verde não é o accent (que segue querendo dizer ACESO) e não é a cor de
- * nenhum item: ele diz "esta linha é um título, não um lugar para clicar". */
-.secao-menu {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  padding: 1.05rem .55rem .3rem;
-  font-size: calc(var(--t-legenda) * .96);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .085em;
-  color: var(--green);
+/* ── 7. a prévia: a mesa de trabalho em miniatura ─────────────────────────
+ * Usa só as variáveis de cor dentro dela (--p-*), para um cartão de pack
+ * mostrar as cores DELE. Nenhuma palavra: barras no lugar de texto. */
+.previa {
+  --p-acc: var(--accent); --p-base: var(--base); --p-mantle: var(--mantle); --p-crust: var(--crust);
+  --p-text: var(--text); --p-sub: var(--subtext0); --p-s0: var(--surface0); --p-s1: var(--surface1);
+  --p-blue: var(--blue); --p-red: var(--red); --p-peach: var(--peach); --p-yellow: var(--yellow);
+  --p-green: var(--green); --p-teal: var(--teal); --p-sky: var(--sky); --p-pink: var(--pink);
+  container-type: inline-size; position: relative; margin: 0; aspect-ratio: 16 / 9.4; overflow: hidden;
+  border-radius: var(--raio-xl); border: 1px solid var(--linha); color: var(--p-text);
+  background:
+    radial-gradient(110% 80% at 80% 15%, color-mix(in oklab, var(--p-acc) 40%, var(--p-base)) 0%, transparent 55%),
+    radial-gradient(90% 80% at 8% 100%, color-mix(in oklab, var(--p-blue) 32%, var(--p-base)) 0%, transparent 60%),
+    linear-gradient(160deg, var(--p-mantle), var(--p-crust));
 }
-.secao-menu .menu-icone { color: inherit; }
-/* Aberta, ela NÃO é accent: quem está aceso é o item, e dois accents empilhados
- * na mesma coluna dizem a mesma coisa duas vezes. */
-.secao-menu.aberta { color: var(--green); font-weight: 700; }
+.previa .parede { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.previa .parede.caber { object-fit: contain; }
+.previa .parede.esticar { object-fit: fill; }
+.p-barra { position: absolute; left: var(--p-margem-painel, 1.6cqi); right: var(--p-margem-painel, 1.6cqi); top: var(--p-margem-painel, 1.6cqi); height: 4.2cqi; display: flex; align-items: center; justify-content: space-between; padding: 0 1.6cqi; border-radius: var(--p-raio-painel, 1.4cqi); background: color-mix(in oklab, var(--p-mantle) var(--p-vidro-painel, 88%), transparent); }
+.p-barra .ws { display: flex; gap: .6cqi; }
+.p-barra .ws i { width: 1cqi; height: 1cqi; border-radius: 50%; background: var(--p-s1); }
+.p-barra .ws i:first-child { width: 2.6cqi; border-radius: 1cqi; background: var(--p-acc); }
+.p-barra .musica { display: flex; align-items: center; gap: .6cqi; }
+.p-barra .musica i { width: 1.8cqi; height: 1.8cqi; border-radius: .4cqi; background: linear-gradient(135deg, var(--p-pink), var(--p-peach)); }
+.p-barra .musica b { width: 8cqi; height: .9cqi; border-radius: .5cqi; background: var(--p-musica-titulo, var(--p-acc)); }
+.p-barra .musica s { width: 5cqi; height: .9cqi; border-radius: .5cqi; background: var(--p-musica-artista, var(--p-green)); }
+.p-barra .bandeja { display: flex; gap: .8cqi; align-items: center; }
+.p-barra .bandeja i { width: 1.3cqi; height: 1.3cqi; border-radius: .3cqi; background: var(--p-sub); opacity: .7; }
+.p-barra .bandeja b { width: 3.6cqi; height: 1cqi; border-radius: .5cqi; background: var(--p-text); opacity: .85; }
+.p-jan { position: absolute; border-radius: 1.2cqi; overflow: hidden; background: color-mix(in oklab, var(--p-base) 95%, transparent); border: 1px solid color-mix(in oklab, var(--p-s1) 80%, transparent); box-shadow: 0 1.5cqi 4cqi color-mix(in oklab, var(--p-crust) 60%, transparent); }
+.p-jan > header { height: 3.6cqi; display: flex; align-items: center; justify-content: space-between; padding: 0 1.3cqi; background: var(--p-mantle); }
+.p-jan > header b { width: 7cqi; height: 1cqi; border-radius: .5cqi; background: var(--p-text); opacity: .8; }
+.p-jan > header i { display: flex; gap: .5cqi; }
+.p-jan > header i::before, .p-jan > header i::after { content: ""; width: 1cqi; height: 1cqi; border-radius: 50%; background: var(--p-s1); }
+.p-arq { left: 6%; top: 15%; width: 50%; height: 56%; }
+.p-arq .corpo { display: grid; grid-template-columns: 22% 1fr; height: calc(100% - 3.6cqi); }
+.p-arq nav { background: color-mix(in oklab, var(--p-mantle) 60%, var(--p-base)); padding: 1.2cqi; display: grid; align-content: start; gap: 1cqi; }
+.p-arq nav i { height: 1cqi; border-radius: .5cqi; background: var(--p-sub); opacity: .6; }
+.p-arq nav i:first-child { background: var(--p-acc); opacity: 1; }
+.p-arq .pastas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.6cqi; padding: 2cqi; align-content: start; }
+.p-arq figure { margin: 0; display: grid; justify-items: center; gap: .6cqi; }
+.p-arq figure svg { width: 5.2cqi; height: 5.2cqi; color: var(--p-pasta, var(--p-acc)); fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.p-arq figure i { width: 4.4cqi; height: .8cqi; border-radius: .4cqi; background: var(--p-sub); opacity: .55; }
+.p-term { right: 6%; top: 24%; width: 38%; height: 42%; }
+.p-term .corpo { padding: 1.6cqi; display: grid; gap: 1cqi; align-content: start; }
+.p-term .pr { display: inline-flex; }
+.p-term .pr b { height: 1.8cqi; width: 4cqi; }
+.p-term .pr b:nth-child(1) { background: var(--p-acc); border-radius: .5cqi 0 0 .5cqi; }
+.p-term .pr b:nth-child(2) { width: 9cqi; background: var(--p-blue); }
+.p-term .pr b:nth-child(3) { background: var(--p-green); border-radius: 0 .5cqi .5cqi 0; }
+.previa[data-prompt="nao"] .p-term .pr b { background: var(--p-sub) !important; width: 3cqi; }
+.p-term .ln { display: flex; gap: .8cqi; align-items: center; }
+.p-term .ln i { height: 1cqi; border-radius: .5cqi; background: var(--p-text); opacity: .7; }
+.p-term .ln i.ok { width: 2cqi; background: var(--p-green); opacity: 1; }
+.p-term .cursor { width: .9cqi; height: 1.7cqi; background: var(--p-cursor, var(--p-acc)); }
+.p-term .tira { display: flex; gap: .5cqi; margin-top: .6cqi; }
+.p-term .tira i { width: 2.4cqi; height: 1.3cqi; border-radius: .3cqi; }
+.previa[data-esquema="nao"] .p-term .tira i { filter: grayscale(1); }
+.p-term .gato-ff { display: grid; grid-template-columns: 8cqi 1fr; gap: 1.2cqi; align-items: center; }
+.p-term .gato-ff img { width: 8cqi; height: 8cqi; }
+.p-term .gato-ff div { display: grid; gap: .8cqi; }
+.p-term .gato-ff div i { height: .9cqi; border-radius: .5cqi; background: var(--p-sub); }
+.previa[data-ff] .p-term { height: 56%; top: 20%; }
+.p-dock { position: absolute; left: 50%; bottom: var(--p-margem-dock, 2cqi); transform: translateX(-50%); display: flex; align-items: center; gap: var(--p-espaco-dock, 1cqi); padding: 1cqi 1.4cqi; border-radius: var(--p-raio-dock, 2.2cqi); background: color-mix(in oklab, var(--p-mantle) var(--p-vidro-dock, 88%), transparent); }
+.p-dock .gato { width: 4.8cqi; height: 4.8cqi; border-radius: 50%; }
+.p-dock .sep { width: 1px; height: 3.6cqi; background: var(--p-s1); }
+.p-dock .app { width: 4.4cqi; height: 4.4cqi; display: grid; place-items: center; border-radius: 1.1cqi; color: var(--p-acc); }
+.p-dock .app svg { width: 3.6cqi; height: 3.6cqi; fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+.previa .mudou-aqui { outline: 2px dashed var(--p-acc); outline-offset: .8cqi; }
+.previa .quente { position: absolute; inset: 0; background: var(--peach); mix-blend-mode: multiply; pointer-events: none; }
 
-main {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  /* Medido, quadro a quadro, rolando: o `presa` da faixa trocava de estado
-   * entre 32 e 62 vezes numa rolagem só, e o navegador mexia no `scrollTop`
-   * sozinho, subtraindo EXATAMENTE o que a faixa encolhe — 103 px em "Ícones",
-   * 104 em "Cor e tela", 60 em "Painel e dock", de 17 a 31 vezes por rolagem.
-   *
-   * `none` no ROLADOR, e não na faixa: a âncora que o navegador escolhe é o
-   * conteúdo ABAIXO dela, então excluir a faixa não muda nada. */
-  overflow-anchor: none;
-  /* Quem rola é o `main`, e um `sticky` com `top: 0` gruda no topo do PADDING
-   * BOX.
-   *
-   * A primeira tentativa foi tapar o vão com uma faixa pintada acima do
-   * desenho. */
-  padding: 0 1.6rem 4rem;
-  min-width: 0;
-}
-main:focus-visible { outline: none; }
-/* O respiro de cima do `main`, agora nos filhos — ver o comentário lá em cima.
-   Nos dois, porque quando o aviso aparece ele é o primeiro, e margens de irmãos
-   adjacentes se fundem: 1.4 e 1.2 viram 1.4, e não 2.6. */
-#aviso-aplicar { margin-top: 1.4rem; }
-#conteudo { margin-top: 1.4rem; padding-bottom: 3rem; }
+/* ── 8. Ajustes e Criar: trilho, palco e controles na mesma grade ────────── */
+.oficina { display: grid; grid-template-columns: 210px minmax(0, .92fr) minmax(0, 1.08fr); gap: var(--e-8); align-items: start; }
+.oficina.sem-trilho { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.oficina .palco { position: sticky; top: 96px; min-width: 0; display: grid; gap: var(--e-4); }
+.trilho { position: sticky; top: 96px; display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.trilho a { display: flex; align-items: center; gap: var(--e-3); height: 42px; padding: 0 var(--e-3); border-radius: var(--raio-md); text-decoration: none; color: var(--tinta-2); font-weight: 500; white-space: nowrap; }
+.trilho a:hover { background: var(--cartao-2); color: var(--tinta); }
+.trilho a[aria-current="page"] { background: var(--accent-suave); color: var(--tinta); box-shadow: inset 3px 0 0 var(--accent); }
+.trilho a[aria-current="page"] svg { color: var(--accent); }
 
-/* Formas lisas na cor das superfícies, sem palavra e sem animação (a direção
- * cortou o movimento): o menu, o título, o desenho do topo e seis cartões em
- * grade. */
-.esqueleto { display: block; background: var(--surface0); border-radius: var(--r-2); opacity: .55; }
-.esqueleto-item { height: 1.9rem; margin: .25rem .2rem; }
-.esqueleto-bloco { height: .8rem; width: 45%; margin: 1.1rem .5rem .5rem; opacity: .35; }
-.esqueleto-titulo { height: 1.7rem; width: 14rem; }
-.esqueleto-desenho { height: 9rem; margin-top: 1.4rem; opacity: .35; }
-.esqueleto-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: 1rem; margin-top: 1.4rem; }
-.esqueleto-cartao { height: 7.5rem; }
-#resumo:empty::before {
-  content: ""; display: block; width: 9rem; height: .7rem; margin-top: .25rem;
-  background: var(--surface0); border-radius: var(--r-2); opacity: .55;
+.passos { display: flex; gap: var(--e-2); margin: 0 0 var(--e-6); padding: 0; list-style: none; border-bottom: 1px solid var(--linha); flex-wrap: wrap; }
+.passos a { display: inline-flex; align-items: center; gap: var(--e-2); height: 48px; padding: 0 var(--e-4); text-decoration: none; color: var(--tinta-2); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.passos a:hover { color: var(--tinta); }
+.passos a b { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--cartao-2); font-size: var(--t-xs); }
+.passos a[aria-current="step"] { color: var(--tinta); border-bottom-color: var(--accent); }
+.passos a[aria-current="step"] b { background: var(--accent); color: var(--sobre-accent); }
+.seguir { display: flex; justify-content: space-between; align-items: center; gap: var(--e-3); }
+
+/* escolhas com imagem: mascote, ponteiro, papel */
+.escolhas { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: var(--e-3); width: 100%; }
+.escolha { display: grid; justify-items: center; align-content: start; gap: var(--e-2); padding: var(--e-3); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); color: var(--tinta-2); font-weight: 500; font-size: var(--t-sm); min-height: 128px; }
+.escolha:hover { border-color: var(--accent-linha); color: var(--tinta); }
+.escolha[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); color: var(--tinta); }
+.escolha img, .escolha .lugar { width: 72px; height: 72px; object-fit: contain; }
+.escolha .lugar { border-radius: 50%; background: var(--cartao-2); }
+.escolha.trazer { border-style: dashed; place-content: center; color: var(--tinta-2); }
+.escolha.trazer svg.i { width: 24px; height: 24px; }
+.escolha svg.ponteiro { width: 48px; height: 48px; margin: 12px; }
+
+/* ── 9. Tema ────────────────────────────────────────────────────────────── */
+.grade-tema { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e-6); }
+.pack { display: grid; grid-template-rows: auto 1fr; border-radius: var(--raio-xl); background: var(--cartao); border: 1px solid var(--linha); overflow: hidden; min-width: 0; }
+.pack:hover { border-color: var(--accent-linha); }
+.pack.no-ar { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.pack .previa { aspect-ratio: 16 / 7.6; border: 0; border-radius: 0; border-bottom: 1px solid var(--linha); cursor: pointer; }
+.pack-corpo { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: var(--e-3) var(--e-4); align-items: center; padding: var(--e-5) var(--e-6) var(--e-6); }
+.pack-corpo .logo { width: 52px; height: 52px; border-radius: var(--raio-md); object-fit: contain; }
+.pack-corpo h2 { font-size: var(--t-xl); }
+.pack-corpo .fila { justify-content: flex-end; }
+.pack .estado-no-ar { display: inline-grid; place-items: center; width: var(--h-bt); height: var(--h-bt); border-radius: 50%; background: var(--accent); color: var(--sobre-accent); }
+.variantes { grid-column: 1 / -1; display: flex; gap: var(--e-2); flex-wrap: wrap; }
+.variantes button { display: inline-flex; align-items: center; gap: var(--e-2); height: 36px; padding: 0 var(--e-3) 0 6px; border-radius: var(--raio-pilula); border: 1px solid var(--linha); background: var(--fundo); color: var(--tinta-2); font-weight: 500; font-size: var(--t-sm); }
+.variantes button:hover { border-color: var(--accent-linha); color: var(--tinta); }
+.variantes button[aria-pressed="true"] { border-color: var(--accent); color: var(--tinta); box-shadow: inset 0 0 0 1px var(--accent); }
+.variantes i { display: flex; width: 36px; height: 24px; border-radius: var(--raio-pilula); overflow: hidden; }
+.variantes i::before, .variantes i::after { content: ""; flex: 1; }
+.variantes i::before { background: var(--a); }
+.variantes i::after { background: linear-gradient(to right, var(--b) 50%, var(--c) 50%); }
+.criar-meu { display: grid; place-content: center; justify-items: center; gap: var(--e-3); min-height: 120px; border-radius: var(--raio-xl); border: 1.5px dashed var(--linha-forte); text-decoration: none; color: var(--tinta-2); font-weight: 600; font-size: var(--t-lg); }
+.criar-meu:hover { border-color: var(--accent); color: var(--tinta); }
+.criar-meu svg.i { width: 32px; height: 32px; color: var(--accent); }
+.grade-tema .mais { grid-column: 1 / -1; }
+.saude { display: inline-flex; align-items: center; gap: var(--e-2); height: var(--h-bt); padding: 0 var(--e-4) 0 var(--e-3); border-radius: var(--raio-pilula); border: 1px solid transparent; background: var(--ok-suave); text-decoration: none; font-weight: 500; }
+.saude svg.i { color: var(--ok); }
+.saude.alerta { background: var(--alerta-suave); }
+.saude.alerta svg.i { color: var(--alerta); }
+.saude:hover { border-color: var(--ok); }
+
+/* ── 10. Criar tema ─────────────────────────────────────────────────────── */
+.nome-tema { font: 600 var(--t-2xl)/1.15 var(--f-corpo); color: var(--tinta); background: transparent; border: 1px solid transparent; border-radius: var(--raio-md); padding: 2px var(--e-2); margin-left: calc(-1 * var(--e-2)); width: min(520px, 100%); }
+.nome-tema:hover { border-color: var(--linha); }
+.nome-tema:focus-visible { outline: none; border-color: var(--accent); background: var(--fundo); }
+.comeca { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+.comeca button { display: inline-flex; align-items: center; gap: var(--e-2); height: 36px; padding: 0 var(--e-3) 0 6px; border-radius: var(--raio-pilula); border: 1px solid var(--linha); background: var(--fundo); color: var(--tinta-2); font-weight: 500; font-size: var(--t-sm); }
+.comeca button:hover { border-color: var(--accent-linha); color: var(--tinta); }
+.comeca button[aria-pressed="true"] { border-color: var(--accent); color: var(--tinta); box-shadow: inset 0 0 0 1px var(--accent); }
+.comeca i { display: flex; width: 36px; height: 24px; border-radius: var(--raio-pilula); overflow: hidden; }
+.comeca i::before, .comeca i::after { content: ""; flex: 1; }
+.comeca i::before { background: var(--a); }
+.comeca i::after { background: linear-gradient(to right, var(--b) 50%, var(--c) 50%); }
+.poco { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: var(--e-4); align-items: center; padding: var(--e-3) var(--e-6); border-top: 1px solid var(--linha); min-height: 64px; }
+.poco:first-child { border-top: 0; }
+.poco label { position: relative; width: 52px; height: 40px; border-radius: var(--raio-md); background: var(--cor); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--text) 18%, transparent); cursor: pointer; }
+.poco label:hover { box-shadow: inset 0 0 0 2px var(--accent); }
+.poco label:focus-within { outline: 2px solid var(--foco); outline-offset: 2px; }
+.poco input[type="color"] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.poco b { display: block; }
+.poco code { color: var(--tinta-3); font: var(--t-xs) var(--f-mono); }
+.contraste { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--raio-pilula); background: var(--ok-suave); font: 600 var(--t-xs) var(--f-mono); }
+.contraste svg.i { width: 14px; height: 14px; color: var(--ok); }
+.contraste.ruim { background: var(--perigo-suave); }
+.contraste.ruim svg.i { color: var(--perigo); }
+.vinte-seis { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 4px; padding: var(--e-4) var(--e-6); }
+.vinte-seis i { aspect-ratio: 1; border-radius: 6px; background: var(--c); }
+.sino { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--e-5); align-items: center; padding: var(--e-5) var(--e-6); border-bottom: 1px solid var(--linha); }
+.sino .tocar { width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--accent); color: var(--sobre-accent); display: grid; place-items: center; }
+.sino .tocar svg.i { width: 26px; height: 26px; fill: currentColor; }
+
+/* aplicativos, desenhos e a oficina de ícone */
+.grade-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--e-2); }
+.grade-apps .app { position: relative; display: grid; justify-items: center; align-content: start; gap: 6px; padding: var(--e-3) var(--e-1) var(--e-2); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); font-size: var(--t-xs); color: var(--tinta-2); text-align: center; min-height: 92px; }
+.grade-apps .app:hover { border-color: var(--accent-linha); color: var(--tinta); }
+.grade-apps .app[aria-expanded="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.grade-apps .app img, .grade-apps .app .lugar { width: 40px; height: 40px; }
+.grade-apps .app .lugar { border-radius: 10px; border: 1.5px dashed var(--alerta); }
+.grade-apps .app .marca-origem { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--linha-forte); }
+.grade-apps .app .marca-origem[data-origem="escolha"] { background: var(--accent); }
+.grade-apps .app .marca-origem[data-origem="pack"] { background: var(--mauve); }
+.grade-apps .app .marca-origem[data-origem="traco"] { background: var(--teal); }
+.grade-apps .app span.nome { overflow-wrap: anywhere; }
+.escolha-icone { grid-column: 1 / -1; display: grid; gap: var(--e-4); padding: var(--e-5); border-radius: var(--raio-lg); border: 1px solid var(--accent-linha); background: var(--cartao); }
+.tira-glifos { display: grid; gap: var(--e-3); max-height: 360px; overflow: auto; }
+.pasta-acervo > summary { cursor: pointer; display: flex; gap: var(--e-2); align-items: center; font-weight: 600; color: var(--tinta-2); }
+.grade-glifos { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: var(--e-2); padding-top: var(--e-2); }
+.grade-glifos button { display: grid; justify-items: center; gap: 4px; padding: var(--e-2) 2px; border-radius: var(--raio-sm); border: 1px solid var(--linha); background: var(--fundo); font-size: var(--t-xs); color: var(--tinta-2); min-width: 0; }
+.grade-glifos button span { overflow-wrap: anywhere; }
+.grade-glifos button img { width: 36px; height: 36px; }
+.grade-glifos button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); color: var(--tinta); }
+.grade-glifos button.travado { opacity: .4; cursor: not-allowed; }
+.oficina-desenho { border: 1px solid var(--linha); border-radius: var(--raio-md); }
+.oficina-desenho > summary { display: flex; align-items: center; justify-content: space-between; gap: var(--e-3); min-height: 48px; padding: 0 var(--e-4); cursor: pointer; font-weight: 600; }
+.oficina-desenho[open] > summary { border-bottom: 1px solid var(--linha); }
+.oficina-desenho .dentro-oficina { display: grid; gap: var(--e-4); padding: var(--e-4); }
+.oficina-folha { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+.oficina-cartao { display: grid; justify-items: center; gap: 4px; padding: var(--e-2); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); font-size: var(--t-xs); color: var(--tinta-2); }
+.oficina-cartao[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); color: var(--tinta); }
+.oficina-cartao .oficina-lugar { width: 72px; height: 72px; border-radius: var(--raio-sm); background: var(--cartao-2); }
+.oficina-par { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--e-4); align-items: start; }
+.oficina-lupa { display: grid; place-items: center; width: 220px; height: 220px; border-radius: var(--raio-md); background: var(--fundo); border: 1px solid var(--linha); color: var(--tinta); }
+.oficina-lupa path { cursor: pointer; }
+.oficina-lupa path:hover { stroke: var(--perigo); }
+.oficina-lado { display: grid; gap: var(--e-3); align-content: start; }
+.oficina-regua { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: var(--e-3); align-items: center; font-size: var(--t-sm); }
+.oficina-dock { display: flex; gap: var(--e-3); align-items: center; padding: var(--e-2) var(--e-3); border-radius: var(--raio-md); background: var(--mantle); width: max-content; color: var(--accent); }
+.oficina-erro { color: var(--perigo); }
+.autoral { display: grid; gap: var(--e-4); padding: var(--e-5) var(--e-6); }
+.autoral-papeis { display: grid; grid-template-columns: minmax(0, 1fr) 160px 160px; gap: var(--e-2) var(--e-3); align-items: center; }
+.autoral-previas { display: grid; gap: var(--e-2); }
+.autoral-previas .fila span { display: grid; place-items: center; width: 64px; height: 64px; border-radius: var(--raio-sm); background: var(--f); }
+
+/* papéis de parede */
+.galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--e-3); }
+.galeria figure { margin: 0; display: grid; gap: var(--e-2); padding: 6px; border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); min-width: 0; }
+.galeria figure img, .galeria figure .lugar { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--raio-sm); background: var(--cartao-2); }
+.galeria figure .fila { gap: 4px; flex-wrap: wrap; }
+.galeria .bt.so-icone.pequeno { flex: none; }
+.galeria .estrela[aria-pressed="true"] { color: var(--yellow); }
+
+/* programas e jogos */
+.liga-programas { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--e-3); padding: var(--e-5) var(--e-6); }
+.liga-programas .programa { display: flex; align-items: center; justify-content: space-between; gap: var(--e-3); height: 52px; padding: 0 var(--e-3) 0 var(--e-4); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); font-weight: 600; min-width: 0; }
+.liga-programas .programa span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grade-jogos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--e-3); padding: var(--e-5) var(--e-6); }
+.jogo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-2); padding: 6px; border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); min-width: 0; }
+.jogo .capa { padding: 0; border: 0; background: none; border-radius: var(--raio-sm); overflow: hidden; }
+.jogo .capa img, .jogo .capa .lugar { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; background: var(--cartao-2); display: block; }
+.jogo .fila { justify-content: space-between; flex-wrap: nowrap; padding: 0 var(--e-1); }
+.jogo .fila span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-sm); font-weight: 500; }
+.jogo.fora { opacity: .6; }
+.escolha-jogo { grid-column: 1 / -1; }
+
+/* áreas de trabalho */
+.areas { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; }
+.area { display: inline-flex; align-items: center; gap: var(--e-2); height: var(--h-pequeno); padding: 0 var(--e-1) 0 var(--e-2); border-radius: var(--raio-pilula); border: 1px dashed var(--linha-forte); }
+.area b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--cartao-2); font-size: var(--t-xs); }
+.area input { width: 9ch; height: 24px; border: 0; background: none; padding: 0; }
+.area input:focus-visible { outline: none; }
+.area:focus-within { border-color: var(--accent); border-style: solid; }
+
+/* ── 11. Cuidar ─────────────────────────────────────────────────────────── */
+.grade-cuidar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--e-6); }
+.grade-cuidar > .inteiro { grid-column: 1 / -1; }
+.grade-cuidar > .terco { grid-column: span 2; }
+.grade-cuidar > .metade { grid-column: span 3; }
+.estado-maquina { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--e-5); align-items: center; padding: var(--e-5) var(--e-6); }
+.estado-maquina .selo-grande { display: grid; place-items: center; width: 56px; height: 56px; border-radius: var(--raio-lg); background: var(--ok-suave); color: var(--ok); }
+.estado-maquina.alerta .selo-grande { background: var(--alerta-suave); color: var(--alerta); }
+.estado-maquina .selo-grande svg.i { width: 28px; height: 28px; stroke-width: 2.4; }
+.estado-maquina h1 { font-size: var(--t-2xl); }
+.faixa-estado { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 1px solid var(--linha); }
+.faixa-estado a { display: grid; gap: 2px; padding: var(--e-3) var(--e-6); border-left: 1px solid var(--linha); text-decoration: none; min-width: 0; }
+.faixa-estado a:first-child { border-left: 0; }
+.faixa-estado a:hover { background: var(--accent-suave); }
+.faixa-estado b { display: flex; align-items: center; gap: var(--e-2); font-weight: 600; }
+.faixa-estado b::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.faixa-estado a[data-estado="alerta"] b::before { background: var(--alerta); }
+.faixa-estado a[data-estado="fora"] b::before { background: var(--perigo); }
+.faixa-estado span { color: var(--tinta-2); font-size: var(--t-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cartao-acao { display: grid; grid-template-rows: auto auto 1fr; gap: var(--e-4); padding: var(--e-6); align-content: start; }
+.cartao-acao .icone { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--raio-md); background: var(--accent-suave); color: var(--accent); }
+.cartao-acao .fila { align-self: end; }
+.pendencias { list-style: none; margin: 0; padding: 0; }
+
+/* ── 12. caixas sobre a tela ─────────────────────────────────────────────── */
+dialog { border: 1px solid var(--linha-forte); border-radius: var(--raio-xl); background: var(--cartao-2); color: var(--tinta); padding: 0; width: min(560px, calc(100vw - 32px)); box-shadow: 0 24px 64px var(--sombra); }
+dialog::backdrop { background: var(--veu); }
+dialog .dentro { padding: var(--e-6); display: grid; gap: var(--e-4); }
+dialog h2 { font-size: var(--t-xl); }
+dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-wrap: wrap; }
+.resultado-topo { display: flex; align-items: center; justify-content: space-between; gap: var(--e-3); }
+.estado-pilula { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: var(--raio-pilula); background: var(--fundo); font-size: var(--t-sm); font-weight: 600; white-space: nowrap; }
+.estado-pilula::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.estado-pilula[data-estado="correndo"]::before { animation: pulsa 1s var(--ease-out) infinite alternate; }
+.estado-pilula[data-estado="ok"]::before { background: var(--ok); }
+.estado-pilula[data-estado="erro"]::before { background: var(--perigo); }
+.estado-pilula[data-estado="ensaio"]::before { background: var(--sky); }
+@keyframes pulsa { to { opacity: .3; } }
+.registro > summary { cursor: pointer; color: var(--tinta-2); font-weight: 500; }
+.registro pre { margin: var(--e-2) 0 0; padding: var(--e-3); max-height: 320px; overflow: auto; border-radius: var(--raio-sm); background: var(--fundo); font: var(--t-xs)/1.6 var(--f-mono); color: var(--tinta-2); white-space: pre-wrap; }
+.registro pre .ok { color: var(--ok); }
+.registro pre .erro { color: var(--perigo); }
+.registro pre .mudou { color: var(--accent); }
+
+.torradas { position: fixed; right: var(--e-6); bottom: var(--e-6); z-index: 40; display: grid; gap: var(--e-2); max-width: min(420px, calc(100vw - 32px)); pointer-events: none; }
+.torrada { padding: var(--e-3) var(--e-4); border-radius: var(--raio-md); background: var(--cartao-2); border: 1px solid var(--linha-forte); box-shadow: 0 12px 32px var(--sombra); font-size: var(--t-sm); }
+.torrada.ok { border-color: var(--ok); }
+.torrada.erro { border-color: var(--perigo); }
+
+/* a dica: o porquê, ao passar o mouse ou ao focar */
+.dica { position: fixed; z-index: 60; max-width: 320px; padding: var(--e-2) var(--e-3); background: var(--cartao-2); border: 1px solid var(--linha-forte); border-radius: var(--raio-md); color: var(--tinta-2); font-size: var(--t-sm); line-height: 1.45; box-shadow: 0 12px 32px var(--sombra); pointer-events: none; }
+
+/* o esqueleto da primeira pintura: forma, nenhuma palavra */
+.esqueleto { display: block; border-radius: var(--raio-md); background: var(--cartao); }
+.esqueleto-titulo { width: 220px; height: 36px; margin-bottom: var(--e-6); }
+.esqueleto-grade { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-6); }
+.esqueleto-grade .esqueleto { height: 360px; border-radius: var(--raio-xl); }
+
+/* ── 13. janelas estreitas ───────────────────────────────────────────────── */
+@media (max-width: 1360px) {
+  .busca { width: 220px; }
+  .bloco > header.dupla, .linha.dupla { grid-template-columns: minmax(120px, 1fr) 200px 200px; }
 }
-/* 860 px é onde o trilho vira faixa de cima (ver o `@media` dele, mais abaixo). */
+@media (max-width: 1180px) {
+  .busca { display: none; }
+  .topo { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .oficina { grid-template-columns: 190px minmax(0, 1fr); }
+  .oficina .palco { position: static; grid-column: 2; }
+  .oficina > .pilha { grid-column: 2; }
+  .oficina.sem-trilho { grid-template-columns: minmax(0, 1fr); }
+  .oficina.sem-trilho .palco, .oficina.sem-trilho > .pilha { grid-column: auto; }
+  .pagina { padding-inline: var(--e-8); }
+  .grade-cuidar > .terco, .grade-cuidar > .metade { grid-column: span 3; }
+  .faixa-estado { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (max-width: 860px) {
-  .trilho .esqueleto-item { flex: 0 0 5.5rem; margin: 0; }
-  .trilho .esqueleto-bloco { display: none; }
+  .topo { position: static; height: auto; grid-template-columns: minmax(0, 1fr) auto auto; padding: var(--e-3) var(--e-4); row-gap: var(--e-2); }
+  .topo > nav { grid-column: 1 / -1; order: 3; min-width: 0; overflow-x: auto; }
+  .portas { margin: 0; }
+  .portas a { padding: 0 var(--e-3); font-size: var(--t-sm); }
+  .aplicar .conta { display: none; }
+  .pagina { padding: var(--e-6) var(--e-4) var(--e-10); }
+  .oficina, .grade-tema { grid-template-columns: minmax(0, 1fr); }
+  .grade-tema > * { grid-column: auto !important; }
+  .oficina .palco, .oficina > .pilha { grid-column: auto; }
+  .trilho { position: static; display: flex; overflow-x: auto; }
+  .linha, .linha.dupla { grid-template-columns: minmax(0, 1fr); gap: var(--e-2); padding: var(--e-3) var(--e-4); }
+  .linha .ctl, .linha.dupla .ctl { justify-content: flex-start; flex-wrap: wrap; }
+  .bloco > header.dupla { grid-template-columns: minmax(0, 1fr); }
+  .bloco > header.dupla span { display: none; }
+  .grade-cuidar { grid-template-columns: minmax(0, 1fr); }
+  .grade-cuidar > * { grid-column: auto !important; }
+  .faixa-estado { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .estado-maquina { grid-template-columns: auto minmax(0, 1fr); }
+  .estado-maquina > .fila { grid-column: 1 / -1; }
+  .pack-corpo { grid-template-columns: 44px minmax(0, 1fr); }
+  .pack-corpo > .fila { grid-column: 1 / -1; justify-content: flex-start; }
+  .oficina-par { grid-template-columns: minmax(0, 1fr); }
+  .faixa { grid-template-columns: minmax(0, 1fr) 64px; width: 100%; }
 }
-
-/* --- cabeçalho de seção --------------------------------------------------- */
-/* O DEGRAU COMEÇA AQUI. A seção era 15,4 px com uma régua embaixo; agora é
- * 23 px sem régua nenhuma. O tamanho separa melhor que o fio, e vinte e quatro
- * abas × um fio é vinte e quatro fios de enfeite. */
-.secao-titulo {
-  margin: .1rem 0 .3rem;
-  padding: 0;
-  border: 0;
-  display: flex;
-  align-items: baseline;
-  gap: .6rem;
-  font-size: var(--t-secao);
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -.015em;
-  color: var(--text);
-  text-wrap: pretty;
-}
-.secao-titulo::after { content: none; }
-.secao-titulo:first-child { margin-top: 0; }
-
-/* Com uma página por assunto, uma tela pode ter quatro grupos (a coleção, dois
- * blocos de ajuste, as ações) sob um título só. */
-/* O fio da seção vai de ponta a ponta: é ele, e só ele, que divide a página. */
-.subsecao-titulo {
-  margin: var(--vao-secao) 0 var(--vao-grade);
-  padding-bottom: .5rem;
-  border-bottom: 1px solid var(--surface0);
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: -.01em;
-  color: var(--subtext1);
-}
-
-/* A nota que substituiu as repetições dentro dos cartões. */
-.nota-secao {
-  margin: 0 0 1.1rem;
-  font-size: var(--t-frase);
-  line-height: 1.5;
-  color: var(--overlay2);
-  max-width: 64ch;
-  display: block;
-  -webkit-line-clamp: none;
-  line-clamp: none;
-  text-wrap: pretty;
-}
-
-/* A GRADE — uma regra só, para todas as páginas
- *
- * `align-items: start` (e não `stretch`): era o `stretch` que fazia o cartão
- * "Cor de destaque" ter 313px de altura para 100px de conteúdo, com o rodapé de
- * metadados empurrado ao chão pelo `margin-top:auto`.
- *
- * `minmax(0, …)` no filho continua obrigatório: com `1fr` puro, um nome de
- * arquivo longo empurra a coluna e desalinha a linha inteira. */
-/* O TETO VAI NO CARTÃO, E NÃO NA COLUNA — e a primeira tentativa errou nisto. */
-/* Linhas alinhadas: cada cartão estica até a altura da linha, e o vão é o
- * mesmo nos dois sentidos e em toda página. */
-.grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
-  gap: var(--vao-grade);
-  align-items: stretch;
-  justify-content: start;
-}
-.grade + .grade, .grade + .ajustes-tecnicos, .secao-com-previa + .grade { margin-top: var(--vao-grade); }
-/* O `auto-fit` acima conta quantas colunas de 320 px cabem, e na tela dela —
- * 1918 px, mais larga do que a que eu vinha medindo — davam QUATRO.
- *
- * Três é o número dela, e é bom por medida além do gosto: com 3 colunas o
- * cartão fica entre 400 e 520 px, que é onde uma frase de explicação cabe em
- * duas linhas em vez de quatro. */
-@media (min-width: 1100px) {
-  .grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-.grade > * { min-width: 0; }
-.grade > :is(.decisao, .escolha-icone, .escolha-jogo, .pack.aberto) { grid-column: 1 / -1; }
-/* A figura de uma página só de ações, dentro da grade: ela é um item como
- * os cartões, e não a faixa grudada do alto. */
-.grade > .previa-bloco { position: static; box-shadow: none; border-bottom: 0; margin: 0; }
-.grade + .secao-titulo { margin-top: 2.8rem; }
-
-/* O CARTÃO DE CHAVE — de seis camadas para três
- *
- * A PRIMEIRA PASSAGEM INVERTEU A LEITURA. `FASTFETCH_LOGO_COLUNAS`
- * (mono, 600, cor de texto) era a primeira coisa lida em cada um dos 102
- * cartões; o título — a frase que diz o que a chave FAZ — passou para a frente e
- * o identificador desceu para o pé. A pilha ficou assim:
- *   1. título · 2. aviso · 3. controle · 4. explicação
- *   5. o rodapé: nome da chave, selo de essencial, padrão de fábrica
- *   6. o "▸ Por quê" */
-.cartao {
-  /* A âncora da dica. Sem ela o balão se penduraria no `<main>` e escorregaria
-   * do cartão que o abriu na primeira rolagem. */
-  position: relative;
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  padding: 1rem 1.05rem 1.05rem;
-  display: grid;
-  /* Com `minmax(0, 1fr)` o título (`auto`) crescia até o fim do cartão sempre
-   * que quebrava em duas linhas, a segunda coluna ficava com 0 px e o `?` de
-   * 24 px saía 7 a 10 px para fora, em cima do fio da moldura vizinha (medido
-   * a 1280 px: «Como o gato do dock é escolhido», «Devolver os ícones depois
-   * de atualizar flatpak»). */
-  grid-template-columns: auto minmax(1.6rem, 1fr);
-  /* UMA linha explícita, e ela não é enfeite: a `.dica` é posicionada dentro
-   * desta linha (ver `.cartao > .dica`), e uma linha implícita não serve de
-   * área para filho absoluto — o navegador cairia na caixa inteira do cartão e o
-   * balão nasceria embaixo dele, não embaixo do título. */
-  grid-template-rows: auto;
-  gap: .6rem .45rem;
-  min-height: 0;
-}
-
-/* `.cartao > *` põe todo mundo em 3 e atravessando as duas colunas, senão um
- * `<select>` ou um `<textarea>` solto (que não tem classe) cai em `order: 0`,
- * pula para a frente e ainda por cima nasce espremido na coluna do título. */
-.cartao > * { order: 3; grid-column: 1 / -1; }
-.cartao > .titulo-cartao,
-.cartao > .titulo { order: 1; grid-column: 1; }
-/* Com só a coluna cravada, o navegador o coloca pelo cursor de encaixe, e o
- * cursor tem uma regra que morde aqui: colocado um item na coluna 2, o cursor
- * fica na 3; o item seguinte, que pede a coluna 1, força uma linha nova. */
-.cartao > button.porque { order: 1; grid-column: 2; grid-row: 1; }
-.cartao > .frase.dominada { order: 2; }
-.cartao > .frase { order: 4; }
-/* Sem título, a explicação É o título: ela toma o lugar 1 e a coluna 1, para
- * que o `?` fique ao lado dela e não sozinho numa linha só dele. */
-.cartao:not(:has(.titulo-cartao, .titulo)) > .frase { order: 2; grid-column: 1; }
-.cartao > .sem-previa { order: 5; }
-
-/* O título é o texto que ela lê para escolher. */
-.titulo-cartao,
-.cartao > .titulo {
-  margin: 0;
-  font-size: var(--t-titulo);
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--text);
-  letter-spacing: -.005em;
-  overflow-wrap: anywhere;
-  text-wrap: pretty;
-}
-
-/* O glifo é `--t-legenda` (10,5 px), que é o degrau das legendas desta folha —
- * ele não pode competir com o título de 14 px que está do lado.
- *
- * A primeira linha do título mede 19,6 px (14 px × 1.4).
- *
- * No repouso e no hover o `?` é cinza: passar o mouse não acende nada nesta
- * folha. */
-button.porque {
-  align-self: start;
-  margin-top: -2px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;    /* 24 px */
-  height: 1.5rem;
-  padding: 0;
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-max);
-  background: transparent;
-  color: var(--overlay2);
-  font: inherit;
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-}
-button.porque:hover { color: var(--subtext1); border-color: var(--overlay0); }
-button.porque[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
-
-/* O truque é não ancorar o balão no BOTÃO — que é pequeno, fica encostado na
- * direita e obrigaria a medir a janela em JavaScript — e sim no CARTÃO: `left`
- * e `right` a zero fazem o balão nascer com a largura exata do cartão, e o
- * cartão já é uma caixa que cabe na tela (`.grade > *` a limita em 640 px e a
- * grade só cria coluna que cabe). */
-.cartao > .dica {
-  position: absolute;
-  grid-column: 1 / -1;
-  grid-row: 1 / 2;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 30;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: .35rem .7rem;
-  padding: .7rem .8rem .75rem;
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-3);
-  background: var(--mantle);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
-  /* 22 rem é a mesma altura que o "▸ Por quê" já usava para o comentário
-   * inteiro do `meow.conf.exemplo` — há verbetes de seis linhas e verbetes de
-   * seis palavras, e o teto é o que impede o de seis linhas de cobrir a tela. */
-  max-height: 22rem;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-button.porque:hover:not([data-fechei]) + .dica[hidden],
-button.porque:focus-visible:not([data-fechei]) + .dica[hidden] {
-  display: flex !important;
-  pointer-events: none;
-}
-
-/* O porquê é o comentário do `meow.conf.exemplo`, que é a documentação deste
- * projeto e vem com as quebras de linha que o autor escreveu — daí o
- * `pre-wrap`. */
-/* A PROCEDÊNCIA DO TEXTO, quando ele é emprestado. Linha inteira, acima do
- * comentário, e menor que ele: é etiqueta, não leitura. */
-.dica .de-quem {
-  flex: 1 0 100%;
-  margin: 0 0 .4rem;
-  border-left: 2px solid var(--surface1);
-  padding-left: .55rem;
-  font-size: var(--t-legenda);
-  line-height: 1.4;
-  color: var(--overlay1);
-  text-wrap: pretty;
-}
-.dica .motivo {
-  flex: 1 0 100%;
-  margin: 0 0 .1rem;
-  padding-bottom: .55rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--surface0) 55%, transparent);
-  font-size: var(--t-frase);
-  line-height: 1.55;
-  color: var(--subtext0);
-  white-space: pre-wrap;
-  text-wrap: pretty;
-}
-.dica .chave {
-  font: 400 var(--t-legenda)/1.35 var(--mono);
-  color: var(--overlay2);
-  letter-spacing: .02em;
-  overflow-wrap: anywhere;
-}
-.dica .fabrica {
-  font-size: var(--t-legenda);
-  color: var(--overlay2);
-  font-variant-numeric: tabular-nums;
-  /* A irmã `.chave` já tinha isto e esta não. */
-  overflow-wrap: anywhere;
-}
-/* O selo de essencial é um ponto, e ponto não é controle. */
-.marca-essencial {
-  font-size: .85rem;
-  line-height: 1;
-  color: var(--overlay2);
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  letter-spacing: normal;
-  text-transform: none;
-}
-.marca-pendente { font-size: var(--t-legenda); font-weight: 600; color: var(--accent); letter-spacing: .01em; }
-
-/* OS DOIS ESTADOS DO CARTÃO, NA MESMA ARESTA E COM O MESMO MECANISMO.
- * Antes eram três coisas disputando a borda esquerda — "mexeu", "não salvo" e
- * "sem prévia" — duas delas em accent, e a terceira mudando o `padding` para
- * caber. Agora:
- *   pêssego = está diferente do que vem de fábrica  (metadado com atenção)
- *   accent  = está esperando o Salvar               (estado ACESO)
- * `inset box-shadow` no lugar de `border-left`: não desloca o texto, e as duas
- * regras podem coexistir sem somar 3px de recuo. "Sem prévia" devolveu a aresta
- * e diz o que tem para dizer na frase que já existe. */
-/* A aresta lateral é uma só e diz uma coisa só: mudado por você. O «ainda não
- * salvo» é o fundo tingido, na mesma aresta. */
-.cartao.mexeu, .cartao.nao-salvo { box-shadow: inset 3px 0 0 var(--peach); }
-.cartao.nao-salvo { background: color-mix(in srgb, var(--accent) 7%, var(--mantle)); }
-/* Um contorno de acento que se apaga sozinho: é o "está aqui" de quem acabou de
- * chegar rolando, e não um estado — por isso contorno, que não mexe no layout
- * nem briga com a aresta de «mexeu» e «não salvo». */
-.cartao.chegou {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: var(--r-3);
-  animation: chegou 2.6s ease-out forwards;
-}
-@keyframes chegou { 0%, 55% { outline-color: var(--accent); } 100% { outline-color: transparent; } }
-
-/* A EXPLICAÇÃO CURTA, CORTADA EM TRÊS LINHAS; o resto vive na dica, atrás do `?`.
- * Os comentários do meow.conf.exemplo variam de seis palavras a seis linhas. */
-.frase {
-  margin: 0;
-  font-size: var(--t-frase);
-  line-height: 1.5;
-  color: var(--subtext0);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-wrap: pretty;
-}
-/* `herdada` = o comentário veio de um bloco que descreve várias chaves. */
-.frase.herdada { border-left: 2px solid var(--surface1); padding-left: .55rem; }
-/* O aviso de que outra chave está mandando. Não é erro — é contexto: a escolha
- * dela continua valendo no arquivo, só não tem efeito enquanto a outra vencer.
- * Por isso amarelo de aviso, e não vermelho de recusa. */
-.frase.dominada {
-  border-left: 2px solid var(--yellow);
-  padding-left: .55rem;
-  display: block;
-  -webkit-line-clamp: none;
-  line-clamp: none;
-  color: var(--subtext1);
-}
-.frase.dominada b { color: var(--text); font-weight: 600; }
-
-/* "sem prévia honesta" — dito em uma linha, nunca um retângulo vazio. */
-.sem-previa {
-  font-size: var(--t-legenda);
-  line-height: 1.45;
-  color: var(--overlay2);
-  border-left: 2px solid var(--surface1);
-  padding-left: .5rem;
-  margin: 0;
-  text-wrap: pretty;
-}
-
-/* --- os controles --------------------------------------------------------- */
-.controle { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
-
-input[type="text"], input[type="time"], input[type="number"], select, textarea {
-  background: var(--surface0);
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-2);
-  color: var(--text);
-  font: inherit;
-  font-size: .82rem;
-  padding: .35rem .55rem;
-  min-width: 0;
-}
-input[type="text"], textarea { flex: 1 1 12ch; }
-textarea { resize: vertical; min-height: 3.2rem; font-family: var(--mono); font-size: .76rem; }
-select { flex: 1 1 auto; }
-
-/* Um segmento por valor. Abaixo de cinco opções eles cabem e são um clique;
- * acima disso o app.js desenha um <select>. Aceso É accent: é o valor
- * SELECIONADO, que é um dos três usos autorizados. */
-.segmentos { display: flex; flex-wrap: wrap; gap: .25rem; }
-.segmentos button {
-  border: 1px solid var(--surface1);
-  background: var(--surface0);
-  color: var(--subtext1);
-  border-radius: var(--r-1);
-  padding: .28rem .6rem;
-  font: inherit;
-  font-size: .8rem;
-  cursor: pointer;
-}
-.segmentos button:hover { border-color: var(--overlay0); color: var(--text); }
-.segmentos button[aria-pressed="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--crust);
-  font-weight: 600;
-}
-/* "não mexer" é o terceiro estado das chaves que nascem vazias, e não pode
- * parecer um valor como os outros: é a AUSÊNCIA de opinião nossa. Tracejado, e
- * aceso ele é cinza — nunca accent, que significa "ligado". */
-.segmentos button.vazio { border-style: dashed; }
-.segmentos button.vazio[aria-pressed="true"] {
-  background: var(--surface2);
-  border-color: var(--overlay0);
-  color: var(--text);
-  font-weight: 600;
-}
-
-/* O número do deslizante NÃO é accent: ele é a leitura de um valor, não um
- * estado ligado. Quem está aceso é o polegar da régua, pelo `accent-color`. */
-/* Os quatro disputavam a mesma linha de ~270 px: o "como está" quebrava em duas
- * linhas no meio do controle e os botões empilhavam um sobre o outro.
- *
- * `flex-wrap` mais `flex-basis: 100%` na fileira de estados: o deslizante e o
- * valor ficam em cima, os botões embaixo, sempre. */
-.faixa { display: flex; align-items: center; gap: .6rem; width: 100%; flex-wrap: wrap; }
-/* Os 24 deslizantes da página mediam 16 e 18 px de altura; o piso de 24 px
- * vale para eles como vale para os botões, e aqui ele não custa largura
- * nenhuma. */
-.faixa input[type="range"] {
-  flex: 1 1 auto;
-  accent-color: var(--accent);
-  min-width: 6rem;
-  height: 1.5rem;
-}
-/* `[disabled]` continua aqui e hoje não casa com nenhum deslizante de chave —
- * nenhum nasce travado (ver `.faixa-comoesta`, abaixo). */
-.faixa input[disabled] { opacity: .45; }
-
-.faixa input[type="range"].faixa-comoesta {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  /* 1.1rem, quando o piso de alvo de 24 px passou a valer para a alça também.
-   * A trilha e a alça não mudaram de tamanho — o `margin-top` negativo da
-   * alça é medido contra a TRILHA, não contra a caixa. */
-  height: 1.5rem;
-}
-.faixa input[type="range"].faixa-comoesta::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: var(--r-max);
-  background: repeating-linear-gradient(90deg,
-    var(--overlay0) 0 5px, transparent 5px 10px);
-}
-.faixa input[type="range"].faixa-comoesta::-moz-range-track {
-  height: 4px;
-  border-radius: var(--r-max);
-  background: repeating-linear-gradient(90deg,
-    var(--overlay0) 0 5px, transparent 5px 10px);
-}
-.faixa input[type="range"].faixa-comoesta::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  /* metade da alça menos metade da trilha: é o que a centra na linha, e sem
-     isto o `appearance: none` do webkit encosta a alça no topo. */
-  margin-top: -5px;
-  border-radius: var(--r-max);
-  background: var(--base);
-  box-shadow: inset 0 0 0 2px var(--overlay1);
-}
-.faixa input[type="range"].faixa-comoesta::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--overlay1);
-  border-radius: var(--r-max);
-  background: var(--base);
-}
-.faixa output {
-  font: 600 .82rem var(--mono);
-  color: var(--text);
-  min-width: 4.5ch;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  /* "como está" é uma palavra só para quem lê, e quebrá-la no meio do controle
-     é o que fazia a fileira parecer quebrada. */
-  white-space: nowrap;
-}
-/* O número do estado "como está" é uma LEITURA da máquina, não uma escolha
-   dela: fica apagado, e volta ao peso do texto no primeiro pixel de arrasto
-   (quem tira a classe é o `input` do deslizante, no app.js). */
-.faixa output.como-esta { color: var(--overlay2); font-weight: 500; }
-
-/* O «Aplicar» do cartão com escolha pendente. */
-.acao-cartao { display: flex; gap: .35rem; align-items: center; margin-top: .15rem; }
-/* Os estados que não moram na régua do deslizante. */
-.faixa-estados { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; flex: 0 0 100%; }
-/* Medido com o painel no ar, as 14 abas percorridas uma a uma: 176 botões
- * abaixo de 24 px de altura, 119 deles numa aba só.
- *
- * `min-height` e não `height`: o botão que já é maior continua como está.
- *
- * Onde isto apertar a grade, a grade ganha coluna — o botão não perde altura. */
-.btn-mini {
-  font-size: var(--t-legenda);
-  padding: .18rem .45rem;
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-mini[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-
-/* As listas separadas por vírgula viram fichas. Sem isso, tirar um app de
- * APPS_ATIVOS seria redigitar 23 slugs. */
-.fichas { display: flex; flex-wrap: wrap; gap: .25rem; width: 100%; }
-.ficha {
-  display: inline-flex;
-  align-items: center;
-  gap: .3rem;
-  background: var(--surface0);
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-max);
-  padding: .12rem .3rem .12rem .55rem;
-  font-size: .74rem;
-  color: var(--subtext1);
-}
-/* Eram 57 deles numa aba só ("Lançadores e jogos"), e são o único jeito de
- * tirar um app da lista. Um alvo de 13 px é um alvo que se erra, e errar
- * aqui apaga a ficha errada. */
-.ficha button {
-  border: 0;
-  background: transparent;
-  color: var(--overlay1);
-  cursor: pointer;
-  font-size: .9rem;
-  line-height: 1;
-  padding: 0 .15rem;
-  border-radius: var(--r-max);
-  min-width: 24px;
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.ficha button:hover { color: var(--red); background: color-mix(in srgb, var(--red) 18%, transparent); }
-.fichas .nova { flex: 1 1 8ch; min-width: 7rem; }
-/* A FICHA DE PROGRAMA: o ícone do `.desktop` antes do nome, no tamanho da
- * letra, e a ficha abre um pouco mais perto dele do que do texto (o desenho
- * já tem respiro próprio). */
-.ficha-programa { padding-left: .35rem; }
-.ficha-programa img { width: 16px; height: 16px; flex: none; object-fit: contain; }
-
-/* O BLOCO DO `details.porque` — o "▸ Por quê" que era a sexta camada do cartão
- * — saiu daqui. */
-
-/* FAZER — as 34 ações, em três graus de risco
- *
- * O grau já estava escrito no HTML — nas pastilhas que cada ação carrega.
- *
- *   nenhuma pastilha ........ só lê. Linha rasa, sem caixa. (Conferir, Ver a
- *                             tabela, Listar.) A ação mais segura da página é
- *                             a mais quieta.
- *   pode usar sudo .......... caixa e fio pêssego. Pêssego já é "atenção sem
- *                             erro" nesta folha (`.p-sudo`, `.aviso-sudo`,
- *                             `.cartao.mexeu`).
- *   desfaz coisas ........... caixa e fio vermelho, e o botão continua vermelho. */
-/* A mesma caixa do cartão de ajuste; o risco mora nos selos e no botão. */
-.acao {
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  padding: 1rem 1.05rem 1.05rem;
-  display: flex;
-  flex-direction: column;
-  gap: .4rem;
-}
-
-/* A ordem: nome, o que faz, o comando exato, e só então as etiquetas de risco
- * com o botão. O comando subiu para cima do rodapé porque ele é a leitura que
- * antecede a decisão, não um rodapé de rodapé. Feito por `order`. */
-.acao > * { order: 2; }
-.acao h3 { order: 0; margin: 0; font-size: var(--t-titulo); font-weight: 600; color: var(--text); letter-spacing: -.005em; }
-.acao p { order: 1; margin: 0; font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
-.acao .rodape {
-  order: 4;
-  display: flex;
-  gap: .55rem;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: auto;
-  padding-top: .1rem;
-}
-/* As etiquetas à esquerda, o gatilho à direita: lê-se o risco entrando no botão. */
-.acao .rodape .btn { margin-left: auto; }
-/* Executar e Restaurar juntos, à direita. */
-.acao .rodape .btn ~ .btn { margin-left: 0; }
-/* Ela pertence ao fim, depois do rodapé, porque é o que se lê depois de decidir
- * olhar. */
-
-/* A raiz é uma linha só: `align-items: start` na `.grade`, acima. */
-.cartao { align-content: start; }
-.cartao .btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-
-/* --- botões --------------------------------------------------------------- */
-.btn {
-  border: 1px solid var(--surface1);
-  background: var(--surface0);
-  color: var(--text);
-  border-radius: var(--r-2);
-  padding: .36rem .7rem;
-  font: inherit;
-  font-size: .8rem;
-  cursor: pointer;
-  white-space: nowrap;
-  /* O PISO DE 24 PX (WCAG 2.2, critério 2.5.8). O porquê inteiro, com a
-   * medição das 14 abas, está no bloco "O PISO DE 24 PX" junto ao `.btn-mini`;
-   * aqui fica a regra, que é onde se procura por ela. */
-  min-height: 24px;
-}
-.btn:hover { border-color: var(--overlay0); background: var(--surface1); }
-.btn-accent { background: var(--accent); border-color: var(--accent); color: var(--crust); font-weight: 600; }
-.btn-accent:hover { filter: brightness(1.08); background: var(--accent); }
-.btn-perigo {
-  background: transparent;
-  border-color: color-mix(in srgb, var(--red) 38%, var(--surface1));
-  color: var(--red);
-}
-.btn-perigo:hover { background: color-mix(in srgb, var(--red) 15%, transparent); border-color: var(--red); }
-/* Os dois falam do MESMO gesto, e o que muda entre eles é só a cor — vermelho
- * para "isto apaga", amarelo para "isto só mostra".
- *
- * O AMARELO É O DO PROJETO, E NÃO UMA COR NOVA: `--yellow` é o que o
- * `lib/comum.sh` usa no glifo `~~` («mudaria»), que é exatamente o que este
- * botão produz na tela. */
-.btn-ensaio {
-  background: transparent;
-  border-color: color-mix(in srgb, var(--yellow) 38%, var(--surface1));
-  color: var(--yellow);
-}
-.btn-ensaio:hover {
-  background: color-mix(in srgb, var(--yellow) 15%, transparent);
-  border-color: var(--yellow);
-}
-.btn:disabled {
-  /* Cores explícitas em vez de `opacity`. */
-  background: var(--surface0);
-  border-color: var(--surface1);
-  color: var(--subtext0);
-  cursor: not-allowed;
-}
-.btn:disabled:hover { background: var(--surface0); border-color: var(--surface1); }
-
-/* `--accent` marca LIGADO, SELECIONADO ou AÇÃO PRINCIPAL, e a ação principal
- * desta página é uma: "Salvar e aplicar". */
-.grade > .acao .btn-accent {
-  background: var(--surface1);
-  border-color: var(--surface2);
-  color: var(--text);
-  font-weight: 600;
-}
-.grade > .acao .btn-accent:hover { background: var(--surface2); border-color: var(--overlay0); filter: none; }
-
-/* Três pílulas de contorno em fila, vezes 34 ações, é textura: o vermelho de
- * "desfaz coisas" ficava igual ao azul de "usa rede". */
-.pastilha {
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  color: var(--subtext0);
-  white-space: nowrap;
-}
-.p-sudo   { color: var(--peach); }
-.p-perigo { color: var(--red); }
-.p-rede   { color: var(--sky); }
-.p-ok     { color: var(--green); }
-.p-erro   { color: var(--red); }
-/* A pastilha de «pulado» não tinha cor: herdava a do corpo e ficava igual
- * a um estado normal. O tom certo já existe e já é usado para o mesmo
- * sentido — `#saida .l-pula` pinta o glifo `--` do terminal. [2026-09-18] */
-.p-pula { color: var(--overlay1); }
-.p-correndo { color: var(--yellow); }
-/* O estado do trabalho ao vivo é a exceção: aí a pílula diz "isto está
- * acontecendo agora", e o contorno é o que a separa de um rótulo estático. */
-#resultado-estado {
-  border: 1px solid currentColor;
-  border-radius: var(--r-max);
-  padding: .1rem .55rem;
-}
-
-.linha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
-.botao-com-selo { display: inline-flex; flex-wrap: nowrap; gap: .5rem; align-items: center; }
-/* Os botões que agem sobre a própria seção ficam colados no filtro, antes da
- * grade: é o passo seguinte natural de quem acabou de marcar alguma coisa. */
-.acoes-da-secao { margin: -.4rem 0 1.4rem; }
-
-/* --- aviso ---------------------------------------------------------------- */
-.aviso {
-  display: flex;
-  align-items: center;
-  gap: .8rem;
-  background: color-mix(in srgb, var(--yellow) 12%, var(--mantle));
-  border: 1px solid color-mix(in srgb, var(--yellow) 45%, transparent);
-  border-radius: var(--r-2);
-  padding: .6rem .8rem;
-  margin-bottom: 1.2rem;
-  max-width: var(--medida);
-  font-size: var(--t-frase);
-  color: var(--yellow);
-}
-.aviso button { margin-left: auto; }
-
-.aviso-sudo {
-  display: block;
-  background: color-mix(in srgb, var(--peach) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--peach) 40%, transparent);
-  border-radius: var(--r-2);
-  padding: .6rem .75rem;
-  font-size: var(--t-frase);
-  line-height: 1.55;
-  color: var(--peach);
-  margin: .7rem 0;
-}
-.aviso-sudo:not([hidden]) { display: flex; align-items: center; gap: .5rem; }
-.aviso-sudo strong { font-weight: 600; }
-
-/* --- a janela de resultado ------------------------------------------------ */
-/* Larga e alta o bastante para ler o log sem rolar a cada linha; o fundo
- * escurecido é o `::backdrop` de todo diálogo. */
-dialog.resultado {
-  width: min(52rem, calc(100vw - 2rem));
-  max-width: none;
-  padding: 0;
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-}
-dialog.resultado[open] { display: flex; }
-.resultado-topo {
-  display: flex;
-  align-items: center;
-  gap: .8rem;
-  padding: 1rem 1.2rem .8rem;
-  border-bottom: 1px solid var(--surface0);
-}
-.resultado-topo h2 { margin: 0; font-size: 1.05rem; }
-.resultado-topo .pastilha { margin-left: auto; }
-.resultado #saida {
-  height: min(56vh, 30rem);
-  background: var(--crust);
-}
-.resultado-botoes {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: .5rem;
-  padding: .8rem 1.2rem 1rem;
-  border-top: 1px solid var(--surface0);
-}
-.resultado-botoes #resultado-guardado { margin-right: auto; }
-#resultado-ok { min-width: 5rem; }
-
-/* A FAIXA DO ENSAIO
- *
- * "ENSAIO · nada foi escrito", e ela existe porque as duas saídas da gaveta são
- * o MESMO texto do mesmo instalador: a diferença entre "mudei isto" e "mudaria
- * isto" são os verbos no meio de centenas de linhas.
- *
- * ELA FICA ENTRE O TOPO E A SAÍDA, e não dentro do `.gaveta-topo`: o topo é a
- * linha do título, do comando e dos botões, e tem largura disputada. */
-.faixa-ensaio {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .4rem .9rem;
-  background: color-mix(in srgb, var(--yellow) 12%, var(--crust));
-  border-bottom: 1px solid color-mix(in srgb, var(--yellow) 35%, transparent);
-}
-.faixa-ensaio strong {
-  font-size: .76rem;
-  letter-spacing: .06em;
-  color: var(--yellow);
-  white-space: nowrap;
-}
-/* A frase explica a faixa e cede a vez: some na tela estreita, onde a disputa
- * é com o botão que AGE. A faixa em amarelo e a palavra ENSAIO ficam — elas são
- * o aviso; a frase é o comentário do aviso. */
-.faixa-ensaio span { font-size: .72rem; color: var(--subtext0); }
-#ensaio-rodar { margin-left: auto; }
-@media (max-width: 860px) {
-  .faixa-ensaio span { display: none; }
-}
-
-#saida {
-  margin: 0;
-  padding: .7rem 1rem 1.2rem;
-  overflow: auto;
-  font: .74rem/1.6 var(--mono);
-  color: var(--subtext1);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-/* As cores do log do projeto, relidas do texto. O `lib/comum.sh` marca cada
- * linha com um glifo justamente porque a cor do terminal não sobrevive a um
- * cano — aqui a cor volta a partir do glifo. */
-#saida .l-ok   { color: var(--green); }
-#saida .l-muda { color: var(--yellow); }
-#saida .l-pula { color: var(--overlay1); }
-#saida .l-erro { color: var(--red); }
-#saida .l-info { color: var(--blue); }
-#saida .l-tit  { color: var(--text); font-weight: 700; }
-
-/* Fora do fluxo de propósito — uma linha a mais no rodapé empurraria a saída
- * para cima toda vez que a pessoa rolasse. Ela só existe quando há o que
- * dizer: o `app.js` a esconde com `hidden`. */
-#mais-abaixo {
-  position: absolute;
-  left: 50%;
-  bottom: 4.2rem;
-  transform: translateX(-50%);
-  z-index: 1;
-}
-
-/* --- torradas ------------------------------------------------------------- */
-/* Sem sombra: no latte ela seria um halo claro sobre fundo claro, e a borda já
- * faz o trabalho nos dois sabores. */
-/* A linha que explica um resultado de busca cujo casamento não está à vista:
- * cinza, pequena, e só no modo filtrado. */
-.cartao .casa-por {
-  order: 6;
-  margin: 0;
-  font-size: var(--t-legenda);
-  color: var(--overlay1);
-  font-style: italic;
-}
-
-/* Vermelha e FIXA: diferente da torrada, ela relata um estado, não um evento —
- * e o estado dura até o `api()` ouvir o servidor de novo. Mora logo sob o
- * cabeçalho, empurrando o conteúdo em vez de tapá-lo. */
-#faixa-sem-servidor {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  flex-wrap: wrap;
-  padding: .55rem 1.6rem;
-  background: color-mix(in srgb, var(--red) 14%, var(--mantle));
-  border-bottom: 1px solid color-mix(in srgb, var(--red) 45%, var(--surface0));
-  font-size: .85rem;
-  color: var(--text);
-}
-#faixa-sem-servidor strong { color: var(--red); }
-#faixa-sem-servidor a.btn { text-decoration: none; }
-
-.torradas {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: .4rem;
-  z-index: 50;
-  pointer-events: none;
-}
-.torrada {
-  background: var(--surface0);
-  border: 1px solid var(--surface1);
-  border-left: 3px solid var(--overlay0);
-  border-radius: var(--r-2);
-  padding: .45rem .75rem;
-  font-size: .8rem;
-  color: var(--text);
-  animation: entra .18s ease-out;
-  /* Medido com o servidor fora: a frase de erro esticava a torrada a ~1490
-   * px, uma tarja atravessando a tela. */
-  max-width: 28rem;
-  pointer-events: auto;
-  user-select: text;
-}
-.torrada.ok    { border-left-color: var(--green); }
-.torrada.igual { border-left-color: var(--overlay0); color: var(--subtext0); }
-.torrada.erro  { border-left-color: var(--red); color: var(--red); }
-@keyframes entra { from { opacity: 0; transform: translateY(6px); } }
-
-/* --- o balão -------------------------------------------------------------- */
-/* Aqui ficam as quatro medidas que o nativo não deixava escolher, e que são a
- * razão de ele ter saído:
- *
- * O nativo tem a largura do texto: 154 caracteres davam perto de 600 px, uma
- * tarja atravessando três cartões. lugar .... */
-.balao {
-  position: fixed;
-  z-index: 60;
-  max-width: 28rem;
-  padding: .4rem .6rem;
-  background: var(--mantle);
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-2);
-  color: var(--text);
-  font-size: .78rem;
-  line-height: 1.4;
-  /* A MESMA SOMBRA DO DIÁLOGO E DO MENU, e pela mesma razão: `--crust` é a
-     cor mais escura do sabor no mocha e a mais clara no latte, então a sombra
-     acompanha o tema em vez de ser um borrão preto sobre fundo claro. */
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--crust) 45%, transparent);
-  pointer-events: none;
-  animation: entra .12s ease-out;
-}
-.balao[hidden] { display: none; }
-/* A seta aponta para o cartão: para baixo quando o balão está acima dele,
-   para cima quando não coube e ele desceu. */
-.balao::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 14px;
-  border: 5px solid transparent;
-  border-top-color: var(--surface1);
-}
-.balao.abaixo::after {
-  top: auto;
-  bottom: 100%;
-  border-top-color: transparent;
-  border-bottom-color: var(--surface1);
-}
-/* Ao lado: a seta sai da borda que encosta no dono, na altura do meio dele. */
-.balao.ao-lado::after {
-  top: 50%;
-  left: auto;
-  right: 100%;
-  margin-top: -5px;
-  border-top-color: transparent;
-  border-right-color: var(--surface1);
-}
-.balao.ao-lado.a-esquerda::after {
-  right: auto;
-  left: 100%;
-  border-right-color: transparent;
-  border-left-color: var(--surface1);
-}
-
-/* --- diálogo -------------------------------------------------------------- */
-dialog {
-  background: var(--mantle);
-  color: var(--text);
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-3);
-  padding: 1.2rem 1.3rem;
-  max-width: 34rem;
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--crust) 50%, transparent);
-}
-dialog::backdrop { background: color-mix(in srgb, var(--crust) 65%, transparent); }
-dialog h2 { margin: 0 0 .5rem; font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
-dialog p { margin: .35rem 0; font-size: var(--t-frase); line-height: 1.55; color: var(--subtext0); }
-dialog menu { display: flex; justify-content: flex-end; gap: .5rem; margin: 1.2rem 0 0; padding: 0; }
-
-/* VER E ESCOLHER — a moldura sai, a imagem fica
- *
- * São as três telas em que ela passa mais tempo (46 papéis, 64 ícones, 23
- * capas) e eram as menos desenhadas: cada imagem morava dentro de um cartão com
- * borda, fundo e legenda permanente, e a grade tinha o mesmo respiro da grade
- * de texto.
- *
- * Aqui a imagem É o objeto. */
-
-/* --- os quatro fundos de teste ------------------------------------------- */
-/* A dock é translúcida e o papel de parede gira, então o fundo por trás de um
- * ícone oscila SOZINHO entre o vidro escuro e o claro. Um ícone que some num
- * deles não está resolvido. */
-.fundos { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin: 0 0 1.4rem; }
-.fundos b { font-size: var(--t-legenda); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--overlay2); margin-right: .2rem; }
-.fundos button {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  border-radius: var(--r-max);
-  padding: .18rem .6rem .18rem .28rem;
-  font: inherit;
-  font-size: .76rem;
-  background: var(--surface0);
-  border: 1px solid var(--surface1);
-  color: var(--subtext1);
-  cursor: pointer;
-}
-.fundos button:hover { border-color: var(--overlay0); color: var(--text); }
-.fundos button i {
-  width: 14px; height: 14px; border-radius: 50%;
-  /* O contorno interno existe para a bolinha do Latte não sumir sobre o painel
-   * escuro — é o mesmo truque do swatch da `folha-cursor.html`. */
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent);
-}
-.fundos button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-
-/* --- a galeria dos 46 papéis de parede ------------------------------------
- * Agora a legenda e a ação aparecem sobre a imagem no `:hover` e no
- * `:focus-within` — o teclado chega a elas do mesmo jeito, porque focar o botão
- * acende a legenda. */
-.galeria {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
-  gap: 10px;
-}
-.galeria figure {
-  position: relative;
-  margin: 0;
-  background: transparent;
-  border: 0;
-  border-radius: var(--r-2);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.galeria .lugar,
-.galeria img {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
-  display: block;
-  background: var(--surface0);
-  border-radius: var(--r-2);
-}
-/* O lugar-marcado: um brilho que atravessa, para dizer "está vindo" sem
- * prometer quando. Some sozinho quando a miniatura chega. */
-.galeria .lugar {
-  background: linear-gradient(100deg, var(--surface0) 38%, var(--surface1) 50%, var(--surface0) 62%);
-  background-size: 260% 100%;
-  animation: brilho 1.5s linear infinite;
-}
-@keyframes brilho { from { background-position: 130% 0; } to { background-position: -30% 0; } }
-.galeria figure:hover, .galeria figure:focus-within { outline: 2px solid var(--surface2); outline-offset: 0; }
-/* Um nome cortado no quinto caractere não distingue imagem nenhuma, que é a
- * única coisa que ele existe para fazer. Em coluna o nome tem a largura
- * inteira da miniatura. */
-.galeria figcaption {
-  position: absolute;
-  inset: auto 0 0 0;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: .25rem;
-  padding: .35rem .4rem;
-  background: color-mix(in srgb, var(--crust) 80%, transparent);
-  opacity: 0;
-  pointer-events: none;
-}
-.galeria figure:hover figcaption,
-.galeria figure:focus-within figcaption { opacity: 1; pointer-events: auto; }
-.galeria { align-items: start; }
-.galeria .nome {
-  flex: 1 1 auto;
-  min-width: 0;
-  font: .68rem/1.3 var(--mono);
-  color: var(--subtext0);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.galeria .acoes { display: flex; gap: .3rem; flex: 0 0 auto; flex-wrap: wrap; }
-/* 28 e não 24 porque aqui o alvo está sobre uma foto, onde a borda do botão
- * compete com o que estiver embaixo dela. */
-.galeria .acoes .btn {
-  padding: .2rem .5rem;
-  font-size: var(--t-legenda);
-  min-height: 28px;
-}
-/* Fora do hover o vermelho não existe; no hover ele volta a valer. */
-.galeria .acoes .btn-perigo { border-color: transparent; background: color-mix(in srgb, var(--surface1) 70%, transparent); color: var(--subtext1); }
-.galeria .acoes .btn-perigo:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, transparent); background: color-mix(in srgb, var(--red) 18%, transparent); }
-
-/* As pastilhas de recorte do acervo (No carrossel / Noite / Dia / …).
- * Aceso é accent: é filtro SELECIONADO. */
-.abas { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 1.1rem; }
-.abas button {
-  border-radius: var(--r-max);
-  padding: .24rem .7rem;
-  font: inherit;
-  font-size: .78rem;
-  background: var(--surface0);
-  border: 1px solid var(--surface1);
-  color: var(--subtext1);
-  cursor: pointer;
-}
-.abas button:hover { border-color: var(--overlay0); color: var(--text); }
-.abas button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--crust); font-weight: 600; }
-.abas .conta { opacity: .7; font-variant-numeric: tabular-nums; margin-left: .35rem; }
-
-/* --- os 64 aplicativos e seus ícones -------------------------------------
- * Grade densa e SEM CAIXA: são 64, e a pergunta é sempre comparativa — "o que
- * entrou aqui e ainda está sem ícone". */
-.linha-filtro {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.2rem;
-}
-.busca-apps {
-  flex: 0 1 280px;
-  padding: .45rem .7rem;
-  border-radius: var(--r-2);
-  border: 1px solid var(--surface1);
-  background: var(--surface0);
-  color: var(--text);
-  font: inherit;
-  font-size: .82rem;
-}
-.busca-apps::placeholder { color: var(--overlay1); }
-
-.grade-apps {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(116px, 100%), 1fr));
-  gap: 2px;
-}
-.grade-apps .app {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: .35rem;
-  padding: .75rem .4rem .65rem;
-  border: 1px solid transparent;
-  border-radius: var(--r-2);
-  background: transparent;
-  color: var(--subtext1);
-  font: inherit;
-  font-size: .76rem;
-  cursor: pointer;
-  min-width: 0;
-}
-.grade-apps .app:hover { background: var(--surface0); color: var(--text); }
-.grade-apps .app.aberto {
-  border-color: var(--accent);
-  background: var(--mantle);
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-.grade-apps .app img { width: 40px; height: 40px; }
-.app-nome { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* A etiqueta é o único diferenciador entre 64 cartões, então ela fica — só
- * pequena. "de fábrica" é a ausência de decisão e por isso é a mais apagada. */
-.app-marca { font-size: var(--t-legenda); color: var(--overlay2); }
-.app-fabrica { color: var(--overlay2); }
-/* O pack autoral Dracula não tem UMA cor para a etiqueta usar — cada desenho
- * traz de 6 a 10 cores próprias. Então a etiqueta é o NOME do acervo, e o
- * mauve a separa das outras, que são todas nome de cor da paleta. */
-.app-dracula { color: var(--mauve); }
-/* A palavra saiu da grade e virou forma; o nome vai para a dica (`title`, pelo
- * balão). */
-.app-marca.selo { display: inline-block; width: .7rem; height: .7rem; margin-top: .15rem; }
-.app-marca.selo-escolha { border-radius: 50%; border: 3px solid var(--accent); background: var(--base); }
-.app-marca.selo-pack { background: var(--accent); transform: rotate(45deg) scale(.85); border-radius: 2px; }
-.app-marca.selo-traco { border-radius: 50%; background: var(--cor-do-selo, var(--overlay2)); }
-.app-marca.selo-nosso { background: var(--subtext0); border-radius: 1px; }
-.app-marca.selo-fabrica { border-radius: 50%; border: 1.5px solid var(--overlay2); }
-
-/* O painel de escolha nasce embaixo do aplicativo clicado, ocupando a linha
- * inteira — assim o contexto não se perde. */
-.escolha-icone, .escolha-jogo {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  gap: .7rem;
-  margin: .5rem 0 1.2rem;
-  padding: 1.1rem;
-  border: 1px solid var(--accent);
-  border-radius: var(--r-3);
-  background: var(--mantle);
-}
-/* Varridos os treze assuntos, este é o único campo que caía nisso. */
-.escolha-icone input[type="search"], .motivo-jogo {
-  flex: 0 0 auto;
-  padding: .45rem .7rem;
-  border-radius: var(--r-2);
-  border: 1px solid var(--surface1);
-  background: var(--base);
-  color: var(--text);
-  font: inherit;
-  font-size: .82rem;
-}
-
-/* `align-content: start` é o que impede o grid de espremer as linhas para
- * caber; a altura mínima garante o nome. */
-.tira-glifos {
-  display: flex;
-  flex-direction: column;
-  gap: .35rem;
-  max-height: 28rem;
-  overflow-y: auto;
-  padding: .2rem;
-}
-/* A grade de cada pasta é a de antes; a rolagem é da pilha, para a pasta
- * aberta não esconder as de baixo. */
-.pasta-acervo { border: 1px solid var(--surface0); border-radius: var(--r-2); background: var(--base); }
-.pasta-acervo > summary {
-  display: flex;
-  align-items: baseline;
-  gap: .5rem;
-  padding: .4rem .6rem;
-  cursor: pointer;
-  font-size: var(--t-legenda);
-  color: var(--subtext0);
-}
-.pasta-acervo > summary .dono { font-weight: 700; color: var(--text); }
-.pasta-acervo > summary .conta { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--overlay2); }
-.pasta-acervo[open] > summary { border-bottom: 1px solid var(--surface0); }
-/* O desenho que não valeria neste app fica na pasta, apagado e sem resposta
- * ao clique; a dica diz o dono do ícone. A pasta inteira travada ganha o
- * selo de trava (sem palavra). */
-.tira-glifos button.travado { opacity: .38; cursor: not-allowed; }
-.tira-glifos button.travado:hover { border-color: var(--surface0); }
-.pasta-acervo > summary .selo { align-self: center; }
-/* O `overflow-wrap: anywhere` do rótulo fica como último recurso, para o
- * nome que nem assim caiba. */
-.grade-glifos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-  align-content: start;
-  gap: .4rem;
-  padding: .4rem;
-}
-.tira-glifos button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: .3rem;
-  min-height: 5rem;
-  padding: .5rem .3rem;
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-2);
-  background: var(--base);
-  color: var(--subtext0);
-  font: inherit;
-  font-size: var(--t-legenda);
-  cursor: pointer;
-  overflow: hidden;
-}
-/* OS GLIFOS SÃO TRAÇO PRETO, E `invert(1)` CRAVADO É UMA SUPOSIÇÃO DE FUNDO
- * ESCURO — no latte ele deixava desenho claro sobre painel claro, invisível. */
-.tira-glifos button img { width: 34px; height: 34px; filter: invert(1) opacity(.85); }
-@supports (color: light-dark(black, white)) {
-  .tira-glifos button img { filter: invert(light-dark(0, 1)) opacity(.85); }
-}
-.tira-glifos button:hover { border-color: var(--surface2); color: var(--text); }
-/* O RÓTULO QUEBRA EM DUAS LINHAS. Era uma linha só, com reticências: o nome
- * amigável («Mesa de air hockey») cabe em duas, e cortar em uma era o
- * defeito. A terceira linha, se houver, vira reticências. */
-.tira-glifos button span {
-  max-width: 100%;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  text-align: center;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-.tira-glifos button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
-/* A inversão acima é para o traço preto do acervo. */
-.tira-glifos button.do-pack img { filter: none; }
-/* O rótulo do grupo (o nome do pack, e o do traço) ocupa a linha inteira da
- * grade, e não uma célula entre os desenhos. */
-.tira-glifos .rotulo-da-tira { grid-column: 1 / -1; margin-top: .2rem; }
-
-.rotulo-mini { font-size: var(--t-legenda); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--overlay2); }
-
-/* --- a oficina de desenho ------------------------------------------------- */
-/* Ela,: "o nosso gerador de ícones é fraco, não gera variações nem é tão bonito
- * quanto o original, além de ficar pixelado e não ser intuitivo e fácil de
- * usar".
- *
- *   · não gera variações  -> uma FOLHA de cartões, todos desenhados de uma vez
- *   · não é tão bonito quanto o original -> o original entra na folha, ao lado,
- *     como régua: até ontem ele nunca aparecia, e comparar era memória
- *   · não é intuitivo     -> "Cores/Fusão/Aparo" era o vocabulário do conversor;
- *     agora são duas réguas de gosto, e editar é CLICAR num traço, não escrever
- *     XML — o textarea continua existindo, dobrado */
-.oficina { margin: .2rem 0 1rem; }
-/* Agora abre o painel, ao lado do acervo, e o `Usar` mora nele — o único verbo
- * desta tela que escreve. */
-.oficina > summary {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .4rem;
-  padding: .4rem .6rem;
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-2);
-  background: var(--mantle);
-  font-weight: 600;
-  color: var(--text);
-}
-.oficina > summary:hover, .oficina[open] > summary { border-color: var(--accent); }
-.oficina[open] > summary { margin-bottom: .6rem; }
-/* O marcador do `details` some quando o summary é flex em alguns motores; o
-   `list-item` devolve o triângulo, que é o que diz "isto abre". */
-.oficina > summary::marker { color: var(--overlay1); }
-/* O triângulo é o mesmo do «Editar o SVG» logo abaixo, e gira quando a oficina
- * abre. */
-.oficina > summary { list-style: none; }
-.oficina > summary::-webkit-details-marker { display: none; }
-.oficina > summary::before {
-  content: "";
-  flex: none;
-  border-left: .4rem solid var(--overlay1);
-  border-block: .3rem solid transparent;
-  transition: transform .15s ease;
-}
-.oficina[open] > summary::before { transform: rotate(90deg); }
-.oficina > summary > span { flex: 1; }
-
-/* --- a folha de variações -------------------------------------------------- */
-.oficina-folha { display: flex; flex-wrap: wrap; gap: .6rem; margin: .4rem 0 .8rem; }
-.oficina-cartao {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  gap: .3rem;
-  /* 104 px de piso porque "Área cheia" é o rótulo mais largo da folha e, sem o
-     piso, ele quebrava em duas linhas e só aquele cartão ficava mais alto. */
-  min-width: 104px;
-  padding: .5rem .6rem .4rem;
-  margin: 0;
-  background: var(--fundo-teste, var(--mantle));
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-2);
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
-}
-.oficina-cartao:hover { border-color: var(--overlay1); }
-.oficina-cartao[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.oficina-cartao:disabled { cursor: default; opacity: .55; }
-.oficina-cartao:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-/* O ORIGINAL É RÉGUA, NÃO OPÇÃO: `figure`, não `button`, e a borda tracejada diz
-   isso antes de ela tentar clicar. Ele é a resposta à queixa "não é tão bonito
-   quanto o original" — a comparação tem de estar na mesma linha de visão. */
-.oficina-original { cursor: default; border-style: dashed; }
-.oficina-cartao svg, .oficina-cartao img { display: block; }
-.oficina-rotulo { font-size: var(--t-legenda); color: var(--subtext0); }
-.oficina-erro { color: var(--red); }
-.oficina-lugar {
-  display: block;
-  border-radius: var(--r-1);
-  background: var(--surface0);
-}
-
-/* --- a tira do dock -------------------------------------------------------- */
-.oficina-dock-caixa { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin: .4rem 0 .8rem; }
-.oficina-legenda { font-size: var(--t-legenda); color: var(--subtext0); }
-/* O VIDRO DA DOCK, E POR QUE ELE TEM DUAS RECEITAS No escuro o vidro já existe
- * e tem nome: `--fundo-vidro-escuro`, que o `paleta_css` deriva como `--base`
- * puxada 17% para o `--text` e cujo valor reproduz o medido nas folhas visuais
- * com erro de 2/255. */
-.oficina-dock {
-  display: inline-flex;
-  align-items: center;
-  gap: 1rem;
-  padding: .5rem .9rem;
-  background: light-dark(color-mix(in srgb, var(--base) 76%, var(--text)),
-                         var(--fundo-vidro-escuro));
-  border-radius: var(--r-3);
-}
-.oficina-dock-eu { display: inline-flex; }
-.oficina-dock svg { display: block; }
-
-/* --- a lupa, que é o editor ------------------------------------------------ */
-/* Com `1fr` as duas réguas comiam os 950 px que sobram numa tela de 1240: um
- * deslizante daquele comprimento tem onze paradas espalhadas por meio metro
- * de tela, e mirar o valor 6 vira pontaria. */
-.oficina-par { display: grid; grid-template-columns: minmax(216px, 232px) minmax(0, 26rem); gap: .8rem; }
-/* Numa tela estreita as duas colunas viram uma: a lupa espremida não serve de
-   juízo, e a régua a 110 px não se arrasta. */
-@media (max-width: 760px) { .oficina-par { grid-template-columns: 1fr; } }
-.oficina-lupa {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  min-height: 216px;
-  background: var(--fundo-teste, var(--mantle));
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-2);
-  color: var(--text);
-}
-.oficina-lupa svg { display: block; }
-/* Com `stroke`, o alvo passa a ser a linha desenhada, que é exatamente o que
- * ela mira. */
-.oficina-lupa svg path { pointer-events: stroke; cursor: pointer; }
-.oficina-lupa svg path:hover { stroke: var(--red); }
-.oficina-lupa-dica { font-size: var(--t-legenda); color: var(--overlay1); text-align: center; margin: 0; }
-.oficina-lado { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
-.oficina-regua { display: flex; align-items: center; gap: .6rem; font-size: var(--t-frase); color: var(--subtext0); }
-/* 6,6rem E NÃO 5,5rem. As réguas eram «Detalhe» e «Suavidade»; com «Linhas
- * fracas» e «Traço mínimo» */
-.oficina-regua span { min-width: 6.6rem; white-space: nowrap; }
-.oficina-regua input { flex: 1; min-width: 0; }
-/* A fileira de cor dentro da oficina é a mesma `.cores-grade` do acervo — o
- * mesmo tamanho de amostra e a mesma marca de escolhida, porque as duas
- * escrevem no MESMO campo do mapa e pareceriam controles diferentes se
- * tivessem desenhos diferentes. */
-.oficina-lado > .rotulo-mini { margin-top: .2rem; }
-.oficina-edicao > summary { font-size: var(--t-frase); color: var(--subtext0); cursor: pointer; }
-/* Os dois botões do editor de fora ficam ENTRE o resumo e a caixa de texto: a
-   ordem é a da decisão — «abro lá fora» vem antes de «escrevo aqui», e quem não
-   tem editor nem vê a fileira, que nasce vazia. */
-.oficina-editor { margin-top: .5rem; }
-/* Monoespaçada porque o conteúdo é um caminho SVG: alinhar número com número é
- * o que torna possível mexer numa coordenada sem contar caracteres. */
-.oficina-fonte {
-  width: 100%;
-  min-height: 12rem;
-  margin-top: .4rem;
-  resize: vertical;
-  padding: .5rem .6rem;
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-2);
-  background: var(--base);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: .78rem;
-  line-height: 1.45;
-  tab-size: 2;
-}
-.oficina-fonte:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-.escolha-botoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
-.acervo-add { display: inline-flex; }
-.com-acervo { display: flex; flex-direction: column; gap: .6rem; align-items: flex-start; }
-
-/* --- a prévia dos ícones do tema ----------------------------------------- */
-.previa-grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 8px;
-  background: var(--fundo-teste, var(--mantle));
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  padding: 12px;
-}
-.previa-grade figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.previa-grade .caixa {
-  width: 64px; height: 64px;        /* caixa 64 para ícone 48 — dá respiro */
-  border-radius: var(--r-2);
-  display: flex; align-items: center; justify-content: center;
-}
-.previa-grade img { width: 48px; height: 48px; object-fit: contain; }
-.previa-grade figcaption {
-  font: .64rem/1.3 var(--mono);
-  color: var(--overlay2);
-  text-align: center;
-  overflow-wrap: anywhere;
-  max-width: 84px;
-}
-
-/* --- opções que são IMAGEM (gatos, cursores) ----------------------------- */
-.opcoes-imagem { display: flex; flex-wrap: wrap; gap: .4rem; width: 100%; }
-.opcoes-imagem button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: .25rem;
-  padding: .35rem .4rem .3rem;
-  border-radius: var(--r-2);
-  border: 1px solid var(--surface1);
-  background: var(--fundo-teste, var(--surface0));
-  color: var(--subtext1);
-  font: inherit;
-  font-size: var(--t-legenda);
-  cursor: pointer;
-}
-.opcoes-imagem button img { width: 48px; height: 48px; object-fit: contain; display: block; }
-.opcoes-imagem button:hover { border-color: var(--overlay0); }
-.opcoes-imagem button[aria-pressed="true"] {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-  color: var(--accent);
-  font-weight: 600;
-}
-/* O terceiro estado, aqui como nos segmentos: tracejado, e aceso ele é CINZA —
- * nunca accent, que nesta folha quer dizer "escolhido por nós". */
-.opcoes-imagem button.vazio {
-  border-style: dashed;
-  justify-content: center;
-  min-height: 76px;
-  padding-inline: .7rem;
-}
-.opcoes-imagem button.vazio[aria-pressed="true"] {
-  border-color: var(--overlay0);
-  box-shadow: none;
-  background: var(--surface2);
-  color: var(--text);
-}
-
-/* --- amostras de flavor --------------------------------------------------- */
-/* Cada flavor aparece como a TIRA de cores que ele é: base, superfície, texto e
- * os acentos. É mais honesto que um nome — "macchiato" não diz nada; a tira diz. */
-.amostras { display: flex; flex-direction: column; gap: .3rem; width: 100%; }
-.amostras button {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .3rem .45rem;
-  border-radius: var(--r-2);
-  border: 1px solid var(--surface1);
-  background: var(--surface0);
-  color: var(--subtext1);
-  font: inherit;
-  font-size: .78rem;
-  cursor: pointer;
-  text-align: left;
-}
-.amostras button:hover { border-color: var(--overlay0); color: var(--text); }
-.amostras button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-.amostras .tira { display: flex; border-radius: var(--r-1); overflow: hidden; flex: 1 1 auto; height: 20px; }
-.amostras .tira span { flex: 1 1 auto; }
-.amostras .nome { min-width: 8ch; }
-
-/* --- bolinhas de cor ------------------------------------------------------ */
-.cores-grade { display: flex; flex-wrap: wrap; gap: .3rem; width: 100%; }
-.cores-grade button {
-  width: 28px; height: 28px;
-  border-radius: var(--r-2);
-  border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
-  cursor: pointer;
-  padding: 0;
-}
-.cores-grade button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--base), 0 0 0 4px var(--accent); }
-
-/* --- a barra desenhada ao vivo -------------------------------------------- */
-/* Um print da barra envelheceria; este desenho acompanha o controle deslizante
- * no mesmo quadro. Ele NÃO é a barra de verdade e a legenda diz isso. */
-.mock {
-  width: 100%;
-  background: color-mix(in srgb, var(--surface2) 55%, var(--crust));
-  border-radius: var(--r-3);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 92px;
-  justify-content: space-between;
-}
-/* Enquanto o desenho era uma fileira só, as seis chaves de tamanho por segmento
- * não tinham onde aparecer, e ela clicava nos botões sem que nada mudasse. */
-.mock .barra {
-  height: var(--altura, 22px);
-  background: color-mix(in srgb, var(--base) calc(var(--op, .8) * 100%), transparent);
-  border-radius: var(--raio, 8px);
-  /* No cosmic-panel a `margin` só existe por causa do `anchor_gap`
-   * (`get_effective_anchor_gap()` é `if self.anchor_gap { self.margin } else {
-   * 0 }`, `forma.sh:20-25`), e o que ela afasta é a borda da TELA a que a barra
-   * se prende — o alto, no caso do painel.
-   *
-   * Continuava saindo "margem 20" na legenda, sobre um desenho que não a
-   * mostrava. */
-  margin-top: var(--margem, 6px);
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  padding: 0 var(--recheio, 5px);
-}
-.mock .barra .seg { display: flex; align-items: center; gap: var(--espaco, 4px); }
-.mock .barra .seg:nth-child(1) { justify-self: start; }
-.mock .barra .seg:nth-child(3) { justify-self: end; }
-/* A PASTILHA: `expand_to_edges=false` encolhe a barra até o conteúdo e o
- * cosmic-panel FUNDE os três segmentos num bloco único centralizado
- * (`space/layout.rs:197-206`). */
-.mock .barra.ilha {
-  display: flex;
-  gap: var(--espaco, 4px);
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-}
-.mock .barra span {
-  width: var(--sq, 14px);
-  height: var(--sq, 14px);
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--text) 55%, transparent);
-}
-/* O primeiro quadrado da ala inicial é o acento: no dock desta máquina ele é o
-   gato que abre o lançador, e é o único applet que tem cor própria. */
-.mock .barra .seg:first-child span:first-child { background: var(--accent); }
-.mock .rodape { height: 26px; }
-
-/* O par de barras no topo da seção de forma: lado a lado onde couber. */
-/* Um SVG de proporção fixa não estica: ele se centraliza e deixa o resto vazio.
- *
- * A coluna aqui é do tamanho do desenho (340 px comporta os 317 que a altura de
- * 190 pede, na proporção 100×60 dos dois arquivos de prévia). */
-.par-previa {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 340px));
-  gap: 1rem 1.4rem;
-  justify-content: start;
-  margin-bottom: 0.5rem;
-}
-.par-previa svg { display: block; width: 100%; height: auto; }
-/* O lado que não é botão ganha a mesma caixa, com a borda transparente. */
-.par-previa > div {
-  border: 1px solid transparent;
-  border-radius: var(--r-3);
-  padding: 0.5rem 0.6rem 0.55rem;
-}
-/* Com par, os dois dividem a largura e 340 px cada é o que cabe lado a lado num
- * conteúdo de 1300; sem par, 340 px deixavam dois terços da linha vazios e o
- * desenho parecia perdido na página. */
-.par-previa:has(> :only-child) {
-  grid-template-columns: minmax(min(280px, 100%), 480px);
-}
-
-/* Ler a pergunta e a resposta exigia rolar para cima e para baixo a cada cartão
- * — que é exatamente o gesto que o desenho veio abolir.
- *
- * `sticky` e não `fixed`: ele gruda no alto ENQUANTO a seção dele está na tela
- * e sai junto com ela, em vez de pairar sobre a página inteira. */
-.previa-bloco {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  background: var(--base);
-  padding: .55rem 0 .7rem;
-  margin-bottom: .2rem;
-  border-radius: 0 0 var(--r-3) var(--r-3);
-  /* A borda inferior e a sombra curta dizem "há mais coisa embaixo", que é a
-   * verdade. */
-  border-bottom: 1px solid var(--surface0);
-  box-shadow: 0 10px 12px -10px var(--crust);
-}
-/* Um desenho de 250 px preso no alto come um quarto da tela, e nesse tamanho
- * ele deixa de ser referência para virar o assunto — que é o oposto do que ele
- * faz ali. */
-/* Era essa a "faixa vazia ao lado do desenho": não a linha sobrando à
- * direita, e sim o desenho recuado no meio de uma caixa maior que ele.
- *
- * Com a altura fixa e a largura em `auto`, a caixa passa a medir o que o
- * desenho mede, e ele encosta na margem do texto — que é o que o
- * `justify-content: start` da `.par-previa` sempre quis. */
-.previa-bloco .par-previa svg {
-  height: 150px;
-  width: auto;
-  max-width: 100%;
-  /* Medidos os 16 desenhos da faixa: 13 cabem inteiros no `viewBox`; o de
-   * "Painel e dock" tem um `<rect>` de fundo em `x=-12 w=124` — a tela que
-   * continua além do quadro, desenhada assim de propósito — e o de "Dia e
-   * noite" começa o rótulo `18:00` em `x=-1.8`. */
-  overflow: visible;
-}
-
-/* A SENTINELA: altura zero, logo antes da faixa. Enquanto ela está à vista, a
-   faixa ainda não encostou no teto. Quem a observa é o `grudarPrevias` do
-   `app.js`; aqui ela só precisa não ocupar lugar nenhum e não aparecer. */
-.sentinela-previa { height: 0; margin: 0; padding: 0; pointer-events: none; }
-
-/* Encolher a faixa encolhe a PÁGINA junto: a faixa está no fluxo, e o que ela
- * devolve de altura sai do `scrollHeight`.
- *
- * A vaga é um nó vazio NO FIM DO CONTEÚDO que engorda exatamente o que a faixa
- * emagrece.
- *
- * No fim, e não ao lado da faixa: ver o comentário `A VAGA VAI PARA O FIM DO
- * CONTEÚDO` no `app.js`. */
-.vaga-previa {
-  height: 0;
-  margin: 0;
-  padding: 0;
-  pointer-events: none;
-  /* Parecia certo animar a vaga no mesmo compasso do encolhimento; medido, era
-   * o defeito de volta. */
-}
-
-/* O encolhimento tem transição, e `offsetHeight` no meio dela devolve o valor
- * do quadro, não o de chegada. */
-.previa-bloco.medindo,
-.previa-bloco.medindo * { transition: none !important; }
-
-/* Parada, a faixa é o desenho inteiro com a legenda; encostada no teto, ela é
- * referência e não leitura, então a legenda sai e a figura encolhe. A
- * transição existe para o encolhimento não parecer um salto de renderização. */
-.previa-bloco {
-  transition: padding .14s ease-out;
-}
-.previa-bloco .par-previa svg,
-.previa-bloco .rotulo-mini,
-.previa-bloco .sem-previa { transition: max-height .14s ease-out, opacity .12s ease-out; }
-
-.previa-bloco.presa { padding: .3rem 0 .35rem; }
-.previa-bloco.presa .par-previa { margin-bottom: 0; gap: .5rem .9rem; }
-.previa-bloco.presa .par-previa svg { height: 78px; }
-.previa-bloco.presa .par-previa > div,
-.previa-bloco.presa .par-previa > button.lado-previa { padding: .25rem .3rem .3rem; }
-/* A legenda sai da tira, e sai por ALTURA — `display: none` faria a faixa
-   pular de tamanho de uma vez, e o que se quer é ela encolher. */
-.previa-bloco.presa .sem-previa {
-  max-height: 0;
-  margin: 0;
-  opacity: 0;
-  overflow: hidden;
-}
-/* O mock da FORMA é HTML e não SVG: ele encolhe pela própria caixa. */
-.previa-bloco.presa .mock { min-height: 0; }
-.previa-bloco.presa .mock .rodape { height: 12px; }
-
-/* O desfazer da FORMA mora acima do par, e ocupa a linha inteira da grade:
-   os dois mocks são as duas colunas, e um botão espremido entre eles leria como
-   pertencente a um só. */
-.par-desfazivel { position: relative; }
-.par-desfazivel > .desfazer-forma { grid-column: 1 / -1; justify-self: start; margin-bottom: .1rem; }
-
-/* A borda é a única coisa que diferencia um desenho que se olha de um desenho
- * que se aperta, e ela só aparece quando há de fato o que escolher: sem escolha
- * pendente o "Como está" volta a ser um `div`, e este seletor não o alcança.
- *
- * O `aria-pressed` faz o trabalho de sempre — o "Como fica" nasce marcado
- * porque ele É a escolha em vigor na bandeja. */
-button.lado-previa {
-  appearance: none;
-  display: block;
-  width: 100%;
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  background: transparent;
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-3);
-  padding: 0.5rem 0.6rem 0.55rem;
-  transition: border-color .12s, background-color .12s;
-}
-button.lado-previa:hover,
-button.lado-previa:focus-visible {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-/* O irmão marcado ganha o traço de acento sem virar botão: ele é o estado, não
-   a saída. Sem isto os dois lados pesam igual e o par não diz qual está valendo. */
-.par-previa > div:has(+ *) ~ div .rotulo-mini,
-.par-previa > *:last-child .rotulo-mini { color: var(--accent); }
-.par-previa > button.lado-previa .rotulo-mini { color: var(--overlay1); }
-
-.grade-barras {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
-  gap: 1.15rem 1.9rem;
-  margin-bottom: 1.6rem;
-  max-width: var(--medida);
-}
-/* DENTRO DA CAIXA GRUDADA ELA NÃO PRECISA DA MARGEM: a caixa já tem o recheio
- * de baixo, e a margem só empurraria o primeiro cartão para longe. */
-.previa-bloco > .grade-barras { margin-bottom: 0; }
-
-/* --- simulação do modo de leitura ----------------------------------------- */
-.simul { position: relative; width: 100%; border-radius: var(--r-3); overflow: hidden; min-height: 88px; background: var(--surface0); }
-.simul img { width: 100%; height: 108px; object-fit: cover; display: block; }
-.simul .veu { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: multiply; }
-.simul .papel { position: absolute; inset: 0; pointer-events: none; }
-.simul .legenda {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  font-size: var(--t-legenda); padding: .25rem .45rem;
-  background: color-mix(in srgb, var(--crust) 78%, transparent);
-  color: var(--subtext0);
-}
-
-/* --- os 23 jogos da Steam ------------------------------------------------
- * A capa É a identidade do jogo — foi por isso que este projeto decidiu não
- * tematizá-la. Então ela não fica dentro de um cartão: a capa é o cartão. */
-/* A LINHA DE UMA DECISÃO EXECUTADA. Discreta de propósito: ela não é conteúdo,
-   é o resto de uma escolha, e a única coisa que se faz com ela é tirá-la. */
-/* A borda é o que diferencia um desenho que se olha de um desenho que se
- * aperta, e aqui os DOIS se apertam: cada um é uma escolha que ela ainda não
- * fez.
- *
- * Duas colunas iguais, sempre: os dois lados têm de MEDIR igual, senão a
- * diferença de tamanho compete com a diferença que o par existe para mostrar. */
-.par-botoes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .5rem;
-  align-items: stretch;
-}
-.par-botoes .linha-inteira { grid-column: 1 / -1; justify-self: start; }
-/* A aparência do botão vazio estava escrita em `.segmentos button.vazio`
- * (acima), e este botão nasce dentro de `.par-botoes` — outro ancestral,
- * seletor não pega. */
-.par-botoes button.vazio {
-  appearance: none;
-  font: inherit;
-  font-size: .8rem;
-  padding: .28rem .6rem;
-  color: var(--subtext1);
-  background: var(--surface0);
-  border: 1px dashed var(--surface1);
-  border-radius: var(--r-1);
-  cursor: pointer;
-  transition: border-color .12s, background-color .12s, color .12s;
-}
-.par-botoes button.vazio:hover { border-color: var(--overlay0); color: var(--text); }
-.par-botoes button.vazio[aria-pressed="true"] {
-  background: var(--surface2);
-  border-color: var(--overlay0);
-  color: var(--text);
-  font-weight: 600;
-}
-button.lado-botao {
-  appearance: none;
-  display: flex;
-  flex-direction: column;
-  gap: .3rem;
-  width: 100%;
-  padding: .4rem .45rem .35rem;
-  font: inherit;
-  color: var(--subtext1);
-  background: transparent;
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-3);
-  cursor: pointer;
-  transition: border-color .12s, background-color .12s, color .12s;
-}
-button.lado-botao:hover { border-color: var(--overlay0); color: var(--text); }
-/* O ESCOLHIDO GANHA A BORDA DE ACENTO E O FUNDO, e não só a cor da letra: num
-   par de desenhos a letra é a menor parte do botão, e quem olha de relance está
-   olhando a figura. */
-button.lado-botao[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--text);
-}
-button.lado-botao:focus-visible { outline-offset: 1px; }
-.par-botoes .desenho-botao { display: block; }
-.par-botoes .desenho-botao svg { display: block; width: 100%; height: auto; max-height: 96px; }
-.par-botoes .desenho-botao .mock { min-height: 0; padding: 6px; gap: 4px; }
-.par-botoes .desenho-botao .mock .rodape { height: 14px; }
-.par-botoes .rotulo-lado { font-size: var(--t-legenda); text-align: left; }
-
-/* O MEDIDOR: fora da tela, mas COM LAYOUT. `display: none` daria caixa zero em
- * tudo, e é a caixa que se quer medir. */
-#medidor-de-desenho {
-  position: absolute;
-  left: -99999px;
-  top: 0;
-  pointer-events: none;
-}
-
-/* UM SIM/NÃO POR ÁREA. O nome à esquerda e o par à direita, uma linha por área:
-   é a mesma leitura de uma tabela de duas colunas, que é o que a chave é. */
-.por-area { display: flex; flex-direction: column; gap: .35rem; }
-.por-area .linha-area { display: flex; align-items: center; gap: .6rem; }
-.por-area .nome-area { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.por-area .estados { display: flex; gap: .3rem; flex: 0 0 auto; }
-
-.grade-jogos {
-  margin-top: var(--vao-grade);
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(152px, 100%), 1fr));
-  gap: 12px;
-}
-.grade-jogos .jogo {
-  display: flex;
-  flex-direction: column;
-  gap: .45rem;
-  min-width: 0;
-  color: var(--subtext1);
-  font-size: .76rem;
-  line-height: 1.35;
-}
-.jogo-capa {
-  display: block;
-  padding: 0;
-  border: 0;
-  border-radius: var(--r-2);
-  background: transparent;
-  cursor: pointer;
-}
-.grade-jogos .jogo img:not(.jogo-icone) {
-  display: block;
-  width: 100%;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
-  border-radius: var(--r-2);
-  background: var(--crust);
-}
-.jogo-capa:hover img { outline: 2px solid var(--surface2); }
-.grade-jogos .jogo.aberto .jogo-capa img { outline: 2px solid var(--accent); }
-/* Fora do lançador, a capa fica apagada: o interruptor diz o resto. */
-.grade-jogos .jogo.marcado .jogo-capa { opacity: .45; }
-.jogo-pe { display: flex; align-items: center; gap: .4rem; min-width: 0; }
-.jogo-pe .app-nome { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
-.jogo-icone { width: 20px; height: 20px; flex: none; }
-.jogo-sem-capa {
-  width: 100%;
-  aspect-ratio: 2 / 3;
-  border: 1px dashed var(--surface2);
-  border-radius: var(--r-2);
-  background: var(--crust);
-}
-/* O interruptor: trilho e botão, o ligado no acento. */
-.interruptor {
-  flex: none;
-  position: relative;
-  width: 42px;
-  height: 24px;
-  padding: 0;
-  border: 1px solid var(--surface2);
-  border-radius: var(--r-max);
-  background: var(--surface0);
-  cursor: pointer;
-}
-.interruptor-botao {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--overlay1);
-  transition: transform .12s ease-out;
-}
-.interruptor[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
-.interruptor[aria-checked="true"] .interruptor-botao { transform: translateX(18px); background: var(--crust); }
-.interruptor:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.jogo-fora { color: var(--peach); }
-.jogo-apagar { color: var(--red); }
-.jogo-gasto { color: var(--overlay0); }
-
-/* --- as 19 folhas visuais ------------------------------------------------- */
-.grade-folhas {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
-  gap: 2px;
-  max-width: var(--medida);
-}
-.folha, a.folha {
-  display: flex;
-  flex-direction: column;
-  gap: .15rem;
-  padding: .6rem .7rem;
-  border: 1px solid transparent;
-  border-radius: var(--r-2);
-  background: transparent;
-  color: var(--text);
-  text-decoration: none;
-  margin: 0;
-}
-.folha b { font-size: .82rem; color: var(--text); font-weight: 600; }
-.folha .data { font-size: var(--t-legenda); color: var(--overlay1); font-variant-numeric: tabular-nums; }
-.folha .oque { font: .68rem var(--mono); color: var(--overlay2); }
-a.folha:hover { background: var(--surface0); border-color: var(--surface1); text-decoration: none; }
-a.folha:hover b { color: var(--text); }
-
-.vazio-msg { color: var(--overlay1); font-size: .85rem; padding: 2.5rem 0; text-align: center; }
-
-/* Ela não repete a linguagem das outras abas — ela a apresenta. Um retrato do
- * que está no ar, uma frase do que espera por você, três portas, e as quatro
- * ações da semana.
- *
- * Largura da mesma medida das grades de texto: a home é para ler, não para
- * comparar imagem. */
-/* DUAS COLUNAS: o retrato e as portas à esquerda, o que espera por você à
- * direita. */
-.home {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 21rem);
-  /* "O pack é o centro": o bloco ganha área nomeada e vem antes do retrato,
-   * atravessando as duas colunas. */
-  grid-template-areas: "packs packs" "retrato lado" "portas lado" "noite lado" ". lado";
-  /* Uma linha a mais, `1fr` e vazia à esquerda, fica com a sobra inteira —
-   * as três de cima voltam à altura do que têm dentro. */
-  grid-template-rows: auto auto auto auto 1fr;
-  align-content: start;
-  align-items: start;
-  gap: 1.1rem;
-  max-width: var(--medida);
-}
-.home-retrato { grid-area: retrato; }
-.home-portas { grid-area: portas; }
-.home-noite { grid-area: noite; }
-.home-packs { grid-area: packs; }
-
-/* --- os theme packs ------------------------------
- * Nenhuma cor nova: o anel do pack no ar é o accent (o mesmo "aceso" do resto
- * da página), o estado "no ar" é o verde do `ok`, e o problema é o amarelo do
- * aviso. */
-.home-packs { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
-.home-packs-topo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: .5rem .9rem;
-}
-.home-packs-topo h2 { margin: 0; }
-.home-packs-acoes { display: flex; flex-wrap: wrap; gap: .4rem; }
-/* O «Exportar o meu» é um `<a download>`, como os do menu Exportar: sem o
- * sublinhado de link, ele se lê como o botão que é. */
-.home-packs-acoes a.btn { text-decoration: none; display: inline-flex; align-items: center; }
-.packs {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
-  gap: .9rem;
-}
-.pack {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-}
-.pack.no-ar { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-/* O logo sobre o `crust`, que é o fundo mais fundo da paleta no ar: o desenho
- * traz o fundo dele mesmo (o `base` do pack), e o contraste entre os dois é o
- * que recorta o quadrado. */
-.pack-capa {
-  display: grid;
-  place-items: center;
-  min-height: 6.5rem;
-  padding: 1rem 0;
-  background: var(--crust);
-}
-.pack-capa img { width: 64px; height: 64px; display: block; }
-.pack-amostra { display: flex; height: 5px; min-width: 0; }
-.pack-amostra span { flex: 1 1 auto; min-width: 0; }
-.pack-corpo {
-  display: flex;
-  flex-direction: column;
-  gap: .45rem;
-  padding: .8rem .95rem .95rem;
-  min-width: 0;
-}
-.pack-nome { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
-.pack-nome b { font-size: 1.05rem; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
-.pack-estado {
-  font: var(--t-legenda) var(--mono);
-  color: var(--overlay2);
-  white-space: nowrap;
-}
-.pack.no-ar .pack-estado { color: var(--green); font-weight: 600; }
-.pack-autor, .pack-herda { margin: 0; font-size: var(--t-legenda); color: var(--overlay2); }
-.pack-herda { font-family: var(--mono); line-height: 1.5; overflow-wrap: anywhere; }
-.pack-desc { margin: 0; font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
-.pack-problema { margin: 0; font-size: var(--t-legenda); color: var(--yellow); overflow-wrap: anywhere; }
-.pack-tags { display: flex; flex-wrap: wrap; gap: .25rem; margin: 0; padding: 0; list-style: none; }
-.pack-tags li {
-  font-size: var(--t-legenda);
-  color: var(--subtext1);
-  background: var(--surface0);
-  border-radius: var(--r-max);
-  padding: .08rem .5rem;
-}
-.pack-mais summary {
-  cursor: pointer;
-  font-size: var(--t-legenda);
-  color: var(--overlay2);
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-}
-.pack-mais summary:hover { color: var(--text); }
-.pack-mais[open] { display: flex; flex-direction: column; gap: .55rem; }
-.pack-mais a { display: inline-flex; align-items: center; min-height: 24px; }
-/* Quebra de linha e rolagem ficam aqui para ela nunca empurrar o cartão de
- * lado. */
-.pack-historia {
-  margin: 0;
-  /* O fio embaixo é o fim da caixa que rola: sem ele, a linha cortada pela
-   * altura máxima encostava na lista de categorias e parecia sobreposta. */
-  padding-bottom: .5rem;
-  border-bottom: 1px solid var(--surface0);
-  overflow-wrap: anywhere;
-  max-height: 16rem;
-  overflow: auto;
-  font-size: var(--t-frase);
-  line-height: 1.5;
-  color: var(--subtext0);
-}
-/* O mono fica só no código, que é onde ele diz alguma coisa. Os títulos são
- * pequenos de propósito: estão dentro de um cartão, e o maior dele é o nome
- * do pack. */
-.pack-historia h4, .pack-historia h5 {
-  margin: .6rem 0 .2rem;
-  font-size: var(--t-frase);
-  font-weight: 700;
-  color: var(--text);
-}
-.pack-historia h4:first-child, .pack-historia h5:first-child { margin-top: 0; }
-.pack-historia h5 { color: var(--subtext1); }
-.pack-historia p { margin: 0 0 .45rem; }
-.pack-historia ul, .pack-historia ol { margin: 0 0 .45rem; padding-left: 1.2rem; }
-.pack-historia li + li { margin-top: .15rem; }
-.pack-historia strong { color: var(--subtext1); font-weight: 600; }
-.pack-historia code { font-family: var(--mono); font-size: .92em; color: var(--subtext1); }
-/* O `meow pack info`, virado tela: categoria à esquerda, de onde vem à
- * direita, em duas colunas que não empurram a largura do cartão. */
-.pack-categorias {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  gap: .15rem .7rem;
-  margin: 0;
-  font-size: var(--t-legenda);
-}
-.pack-categorias dt { color: var(--subtext1); }
-.pack-categorias dd { margin: 0; color: var(--overlay2); font-family: var(--mono); overflow-wrap: anywhere; }
-.pack-flavor { display: flex; flex-direction: column; gap: .2rem; font-size: var(--t-legenda); color: var(--subtext1); }
-.pack-flavor .pack-amostra { height: 12px; border-radius: var(--r-1); overflow: hidden; }
-.pack-acoes { display: flex; justify-content: flex-end; gap: .4rem; margin-top: .2rem; }
-/* Por que o pack da casa dela não sai agora: prosa, e não a linha de
- * origem em mono logo acima. */
-.pack-fica { margin: 0; font-size: var(--t-legenda); color: var(--overlay2); }
-
-/* --- a cor das pastas em dois seletores ------------------------------
- * O molde `cat-${FLAVOR}-${ACCENT}` saiu da tela: variante e cor, lado a lado,
- * com a amostra da cor ao lado do seletor dela. */
-.pastas-molde { display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
-/* Um seletor por linha: lado a lado, num cartão de terço de tela, os dois
- * cortavam o próprio texto («Acompanha o ter»), medido a 1600px. */
-.pastas-seletores { display: flex; flex-direction: column; gap: .4rem; }
-.pastas-seletores label {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  min-width: 0;
-  font-size: var(--t-legenda);
-  color: var(--overlay2);
-}
-.pastas-seletores label > span:first-child { flex: 0 0 4.2rem; }
-.pastas-amostra {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--r-1);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent);
-}
-.pastas-molde .frase { margin: 0; }
-
-/* --- a noite ------------------------------------------------------------- */
-/* A home dizia como a máquina está vestida AGORA e não dizia a única coisa que
- * ela faz sozinha: virar de noite. */
-.home-noite {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: .5rem;
-  min-width: 0;
-}
-.home-noite h3 {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: .45rem;
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .1em;
-  color: var(--subtext0);
-}
-.home-noite h3 .menu-icone { color: inherit; }
-.home-lado {
-  grid-area: lado;
-  display: flex;
-  flex-direction: column;
-  gap: 1.4rem;
-  min-width: 0;
-}
-
-/* --- onde você mexeu ----------------------------------------------------- */
-/* O "12 fora do padrão" era um parágrafo cinza que salvar não atualizava. Aqui
- * ele é a LISTA, e cada nome leva ao cartão: doze fatos em vez de um adjetivo.
- * Pêssego porque é a mesma cor do traço que marca esses cartões. */
-.home-mexeu { display: flex; flex-direction: column; gap: .55rem; min-width: 0; }
-.home-mexeu h3 {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  gap: .35rem;
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .09em;
-  color: var(--overlay2);
-}
-.home-mexeu h3 strong {
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: -.01em;
-  text-transform: none;
-  color: var(--peach);
-  font-variant-numeric: tabular-nums;
-}
-.home-fichas { display: flex; flex-wrap: wrap; gap: .3rem; }
-.home-ficha {
-  max-width: 100%;
-  padding: .18rem .55rem;
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-max);
-  background: var(--surface0);
-  color: var(--subtext1);
-  font: inherit;
-  font-size: var(--t-frase);
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.home-ficha:hover { border-color: var(--peach); color: var(--text); }
-.home-nota { margin: 0; font-size: var(--t-frase); color: var(--overlay2); }
-
-/* --- as pendências acionáveis -------------------------------------------- */
-/* Uma linha por coisa que o programa sabe consertar, com o botão que conserta.
- * Ele mora acima do "Nada esperando" porque conserto NOSSO vem antes de escolha
- * DELA.
- *
- * NADA NOVO NA LINGUAGEM DA PÁGINA, de propósito.
- *
- * SEM PENDÊNCIA NÃO HÁ REGRA QUE VALHA: o `montarPendencias()` devolve `null` e
- * o elemento nem nasce. */
-.home-pendencias {
-  display: flex;
-  flex-direction: column;
-  gap: .55rem;
-  min-width: 0;
-  padding: .9rem 1.05rem;
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  background: var(--mantle);
-}
-.home-pendencias h3 {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  gap: .35rem;
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .09em;
-  color: var(--overlay2);
-}
-.home-pendencias h3 strong {
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: -.01em;
-  text-transform: none;
-  color: var(--yellow);
-  font-variant-numeric: tabular-nums;
-}
-/* A frase em cima, os botões embaixo: a coluna da direita é estreita, e pôr o
- * botão ao lado de uma frase de duas linhas espremeria as duas. */
-.pendencia {
-  display: flex;
-  flex-direction: column;
-  gap: .35rem;
-  min-width: 0;
-}
-.pendencia + .pendencia {
-  padding-top: .55rem;
-  border-top: 1px solid var(--surface0);
-}
-.pendencia-frase {
-  margin: 0;
-  font-size: var(--t-frase);
-  line-height: 1.55;
-  color: var(--subtext0);
-  text-wrap: pretty;
-  /* A frase vem do log de um script e pode trazer um caminho longo sem espaço.
-   * Sem isto, ele empurra a coluna e a página ganha rolagem horizontal. */
-  overflow-wrap: anywhere;
-}
-.pendencia-botoes { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
-/* A origem, onde não há botão: a etapa que registrou. Fica discreta — é
- * endereço, não recado. */
-.pendencia-origem {
-  font-size: var(--t-legenda);
-  color: var(--overlay2);
-  font-family: var(--mono);
-}
-
-/* --- o retrato ----------------------------------------------------------- */
-.home-retrato {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: 1.1rem 1.3rem;
-  padding: 1.2rem 1.3rem 1.3rem;
-  background: var(--mantle);
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-}
-.home-gato { width: 56px; height: 56px; display: block; }
-.home-id { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
-.home-rotulo {
-  margin: 0;
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .09em;
-  color: var(--overlay2);
-}
-.home-titulo {
-  margin: 0;
-  font-size: 1.6rem;
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -.02em;
-  color: var(--text);
-}
-/* A TIRA É O FLAVOR, DESENHADO. As cores vêm da paleta pelo `style` inline que
- * o app.js escreve — é a mesma via da `.amostras .tira`, e a única honesta:
- * uma folha de estilo não pode conhecer as 26 cores de quatro variantes. */
-.home-tira {
-  display: flex;
-  height: 26px;
-  border-radius: var(--r-1);
-  overflow: hidden;
-  max-width: 34rem;
-  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
-  /* O CONTORNO NÃO É ENFEITE. As três últimas cores da ordem do Catppuccin são
-   * base, mantle e crust — e mantle É o fundo deste cartão. Sem o fio, um terço
-   * da tira desaparece e ela parece acabar no meio. */
-}
-.home-tira span { flex: 1 1 auto; min-width: 0; }
-/* O acento é a única cor da tira que significa algo. */
-.home-tira span[data-acento] {
-  flex: 0 0 auto;
-  width: 34px;
-  border-radius: var(--r-1);
-  box-shadow: inset 0 0 0 2px var(--mantle), inset 0 0 0 4px var(--accent);
-}
-.home-linha {
-  margin: 0;
-  font-size: var(--t-frase);
-  line-height: 1.5;
-  color: var(--subtext0);
-  text-wrap: pretty;
-}
-.home-fotos {
-  grid-column: 2;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-.home-fotos img {
-  width: 66px;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
-  border-radius: var(--r-1);
-  background: var(--surface0);
-  display: block;
-}
-.home-fotos-conta {
-  font-size: var(--t-legenda);
-  color: var(--overlay2);
-  font-variant-numeric: tabular-nums;
-  margin-left: .3rem;
-}
-
-/* --- o que espera por você ----------------------------------------------- */
-/* A distinção central do produto — clicar guarda, Salvar grava — só aparecia
- * depois do primeiro clique arriscado, na barra que nasce escondida. */
-.home-atencao {
-  display: flex;
-  flex-direction: column;
-  gap: .45rem;
-  padding: .9rem 1.05rem;
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  background: var(--mantle);
-}
-.home-atencao[data-esperando] { background: color-mix(in srgb, var(--accent) 7%, var(--mantle)); }
-.home-atencao p {
-  margin: 0;
-  font-size: var(--t-frase);
-  line-height: 1.55;
-  color: var(--subtext0);
-  text-wrap: pretty;
-}
-.home-atencao strong { color: var(--text); font-weight: 600; }
-.home-atencao[data-esperando] strong { color: var(--accent); }
-/* O número que só este painel poderia ter. Pêssego é a cor do traço que marca
- * o cartão mexido — é o mesmo fato, dito duas vezes na mesma cor. */
-.home-mexidas strong {
-  color: var(--peach);
-  font-variant-numeric: tabular-nums;
-  font-size: .95rem;
-}
-
-/* --- as três portas ------------------------------------------------------ */
-.home-portas {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
-  gap: .9rem;
-}
-.porta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: .3rem;
-  padding: 1.05rem 1.1rem 1.15rem;
-  border: 1px solid var(--surface0);
-  border-radius: var(--r-3);
-  background: var(--mantle);
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.porta:hover { border-color: var(--overlay0); background: var(--surface0); }
-.porta b { font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; }
-.porta-conta {
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: var(--overlay2);
-  font-variant-numeric: tabular-nums;
-}
-.porta-frase { font-size: var(--t-frase); line-height: 1.5; color: var(--subtext0); text-wrap: pretty; }
-
-/* --- a semana ------------------------------------------------------------ */
-.home-semana { display: flex; flex-direction: column; gap: .7rem; }
-.home-semana h3 {
-  margin: 0;
-  font-size: var(--t-legenda);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .09em;
-  color: var(--overlay2);
-}
-
-@media (max-width: 1200px) {
-  .home {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "packs" "retrato" "portas" "noite" "lado";
-    gap: 1.6rem;
-  }
-  .home-lado { max-width: var(--medida); }
-}
-@media (max-width: 620px) {
-  .home-retrato { grid-template-columns: minmax(0, 1fr); }
-  .home-fotos { grid-column: 1; }
-  .home-titulo { font-size: 1.5rem; }
-}
-
-/* --- telas estreitas ------------------------------------------------------ */
-/* A PÁGINA NÃO ROLA DE LADO — medido com o navegador em 320, 375,
- * 414, 768 e 1024px. Eram duas causas, e nenhuma aparece lendo o CSS:
- *   1. o bloco do título dentro de `.marca` é filho de um flex e não tinha
- *      `min-width: 0` — então o caminho do meow.conf impunha a própria largura
- *      ao cabeçalho inteiro;
- *   2. o trilho vira barra horizontal aqui embaixo, e sem `min-width: 0` o
- *      `overflow-x: auto` dele não segura nada. */
-@media (max-width: 860px) {
-  .corpo { flex-direction: column; }
-  .trilho {
-    flex: 0 0 auto;
-    display: flex;
-    gap: .3rem;
-    overflow-x: auto;
-    min-width: 0;
-    max-width: 100%;
-    border-right: 0;
-    border-bottom: 1px solid var(--surface0);
-    padding: .5rem;
-  }
-  .trilho button { width: auto; white-space: nowrap; display: inline-flex; }
-  .trilho .rotulo-grupo, .trilho .conta, .trilho .secao-menu { display: none; }
-  .trilho button, .trilho button.filho { padding-left: .55rem; }
-  .topo { flex-wrap: wrap; }
-  .busca-caixa { order: 3; flex-basis: 100%; }
-  #busca { width: 100%; }
-  main { padding: 1.1rem 1rem 4rem; }
-  .lista-chaves { display: none; }
-}
-
-/* Os componentes comuns da direção: a dica de qualquer dono (`.com-dica`), o
- * cabeçalho de página, o selo de estado, o cartão de ação de duas camadas e o
- * `?` do desenho. */
-
-/* --- a dica de qualquer dono --------------------------------------------- */
-/* O balão é o MESMO do cartão (`.cartao > .dica`, lá em cima): a mesma caixa,
- * a mesma sombra, o mesmo teto de 22 rem. */
-.com-dica { position: relative; }
-.com-dica > .dica {
-  position: absolute;
-  top: calc(100% + .35rem);
-  left: 0;
-  width: min(36rem, 100%);
-  z-index: 30;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: .35rem .7rem;
-  padding: .7rem .8rem .75rem;
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-3);
-  background: var(--mantle);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--crust) 45%, transparent);
-  max-height: 22rem;
-  overflow: auto;
-  overscroll-behavior: contain;
-  text-align: left;
-}
-/* Todas de largura inteira: o balão é uma coluna de leitura, e só a chave e o
- * «de fábrica» dividem linha. */
-.dica .resumo,
-.dica .frase,
-.dica .legenda-desenho,
-.dica .vale-como {
-  flex: 1 0 100%;
-  margin: 0;
-  font-size: var(--t-frase);
-  line-height: 1.55;
-  color: var(--subtext1);
-  text-wrap: pretty;
-}
-.dica .resumo, .dica .legenda-desenho { color: var(--text); }
-/* A `.frase` dentro da dica não corta em três linhas: lá fora o corte segurava
- * o cartão; aqui o balão rola, e cortar esconderia justamente o porquê. */
-.dica .frase { display: block; -webkit-line-clamp: none; line-clamp: none; overflow: visible; }
-.dica .frase.dominada { border-left: 2px solid var(--yellow); padding-left: .55rem; }
-.dica .resumo.herdada { border-left: 2px solid var(--surface1); padding-left: .55rem; }
-.dica .vale-como { color: var(--overlay2); font-size: var(--t-legenda); }
-
-/* --- o cabeçalho de página ----------------------------------------------- */
-/* UMA linha: título, `?`, e à direita os selos de resumo e o botão de acervo.
- * O espaço embaixo é o mesmo que o subtítulo deixava (1.4 rem), para a primeira
- * coisa da página não colar no título. */
-.cabecalho-pagina { margin: 0 0 1.4rem; }
-.grade + .cabecalho-pagina { margin-top: 2.8rem; }
-.cabecalho-linha {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .45rem .6rem;
-}
-.cabecalho-linha > .secao-titulo { margin: 0; }
-.cabecalho-linha > button.porque { align-self: center; margin-top: 0; }
-.cabecalho-selos { margin-left: auto; }
-.cabecalho-acoes { margin-left: auto; }
-.cabecalho-selos + .cabecalho-acoes { margin-left: .4rem; }
-
-/* --- o selo de estado ---------------------------------------------------- */
-/* Ícone de traço de 14 px na cor do estado e, no máximo, um valor curto ao
- * lado. */
-.selos {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .25rem .75rem;
-}
-.selo {
-  display: inline-flex;
-  align-items: center;
-  gap: .25rem;
-  color: var(--overlay2);
-  line-height: 1;
-  white-space: nowrap;
-  cursor: default;
-}
-.selo svg {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.selo-valor {
-  font-size: var(--t-legenda);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--subtext1);
-}
-.selo-sudo     { color: var(--peach); }
-.selo-gente    { color: var(--peach); }
-.selo-ponte    { color: var(--green); }
-.selo-rede     { color: var(--sky); }
-.selo-desfaz   { color: var(--red); }
-.selo-maquina  { color: var(--blue); }
-.selo-anulado  { color: var(--yellow); }
-.selo-pack     { color: var(--mauve); }
-.selo-mexeu    { color: var(--peach); }
-.selo-pendente { color: var(--accent); }
-
-/* --- o cartão de ajuste -------------------------------------------------- */
-/* Os selos moram logo abaixo do título, antes do controle: é o estado do que
- * se vai mexer, lido no caminho do olho até o controle. */
-.cartao > .selos { order: 2; }
-/* ANULADO SE VÊ: tudo o que não é título, `?`, dica e selos fica apagado. Não
- * desligado — a escolha continua valendo no arquivo e pode ser feita —, só
- * recuado, para dizer sem frase que outro ajuste manda neste agora. */
-.cartao.anulado > :not(.titulo-cartao, .titulo, button.porque, .dica, .selos) { opacity: .55; }
-.cartao.anulado > :not(.titulo-cartao, .titulo, button.porque, .dica, .selos):hover,
-.cartao.anulado > :not(.titulo-cartao, .titulo, button.porque, .dica, .selos):focus-within { opacity: 1; }
-
-/* --- o cartão de ação ---------------------------------------------------- */
-/* Duas camadas: o título com o `?` e o rodapé (selos à esquerda, «ver comando»
- * e «Executar» à direita). O `?` encosta no título, como no cartão de ajuste. */
-.acao { position: relative; }
-.acao-topo {
-  order: 0;
-  display: flex;
-  align-items: flex-start;
-  gap: .45rem;
-}
-.acao-topo > .dica { left: 0; right: 0; width: auto; }
-/* O `.acao p` antigo (margem zero, tom de nota) alcança os parágrafos da dica;
- * a regra da dica, acima, decide o tom deles. */
-.acao .dica p { order: 0; }
-
-/* --- o `?` do desenho ---------------------------------------------------- */
-/* Do lado de fora da caixa do desenho da direita, encostado no canto de cima:
- * dentro dela ele cairia por cima do traço, e longe dela não se leria como
- * dele. */
-/* A borda desta caixa é transparente (só o «Como está» botão tem borda),
- * então encolhê-la não muda nada que se veja além do lugar do `?`. */
-.par-previa > .com-dica { justify-self: start; width: fit-content; max-width: 100%; }
-.par-previa > .com-dica > button.porque {
-  position: absolute;
-  top: .4rem;
-  right: -2rem;
-  margin: 0;
-}
-.par-previa > .com-dica > .dica {
-  top: 2.4rem;
-  width: 34rem;
-  max-width: calc(100vw - 4rem);
-}
-/* Na barra da FORMA (painel e dock) o desenho ocupa a coluna inteira; o `?`
- * vai para o canto de baixo, sobre a "tela" vazia sob a barra, onde não cobre
- * nenhum segmento desenhado. */
-.grade-barras .com-dica > button.porque {
-  position: absolute;
-  bottom: .45rem;
-  right: .45rem;
-  margin: 0;
-  background: var(--mantle);
-}
-.grade-barras .com-dica > .dica { top: calc(100% + .35rem); }
-
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+  *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
 }
-
-/* Texto que só o leitor de tela ouve: o nome do `<summary>` do cartão do pack,
- * que na tela é uma seta. */
-.so-leitor {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* O selo com imagem real (o gato do dock): 18 px, do tamanho do traço com a
- * folga que um desenho colorido pede para ser lido. */
-.selo-img { width: 18px; height: 18px; display: block; flex: none; object-fit: contain; }
-.selo-proprio  { color: var(--green); }
-.selo-herdado  { color: var(--peach); }
-.selo-motor    { color: var(--overlay2); }
-.selo-icones, .selo-ponteiro, .selo-relogio, .selo-gira,
-.selo-foto, .selo-lua, .selo-terminal { color: var(--subtext0); }
-.selo-calor    { color: var(--peach); }
-.selo-textura, .selo-rampa { color: var(--overlay2); }
-
-/* --- o cartão do pack: inteiro clicável, e o detalhe na largura da página --- */
-.pack { position: relative; }
-.pack.abre { cursor: pointer; }
-.pack.abre:hover { border-color: var(--overlay0); }
-.pack.no-ar.abre:hover { border-color: var(--accent); }
-.pack-origem { gap: .25rem .7rem; }
-/* A seta é o `<summary>`: alvo de 28 px no canto de cima, sobre a capa, onde
- * não cobre nada (a capa é o logo centrado num campo liso). */
-.pack-mais > summary {
-  position: absolute;
-  top: .45rem;
-  right: .45rem;
-  width: 28px;
-  height: 28px;
-  min-height: 0;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-max);
-  color: var(--overlay2);
-  list-style: none;
-  cursor: pointer;
-}
-.pack-mais > summary::-webkit-details-marker { display: none; }
-.pack-mais > summary:hover { color: var(--text); background: var(--surface0); }
-.pack-mais > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.pack-seta {
-  width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6;
-  stroke-linecap: round; stroke-linejoin: round;
-}
-.pack-mais[open] .pack-seta { transform: rotate(180deg); }
-/* ABERTO, O CARTÃO TOMA A LINHA: capa, tira e corpo na coluna da esquerda, o
- * detalhe numa coluna larga à direita — a história de um lado, a ficha
- * (categorias e variantes) do outro, cada um na largura de leitura. */
-.pack.aberto {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
-  grid-template-rows: auto auto 1fr;
-  cursor: default;
-}
-.pack.aberto > .pack-capa, .pack.aberto > .pack-amostra, .pack.aberto > .pack-corpo { grid-column: 1; }
-.pack.aberto > .pack-mais {
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  display: block;
-  padding: 1.1rem 3rem 1.2rem 1.4rem;
-  border-left: 1px solid var(--surface0);
-}
-.pack-detalhe {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  align-items: start;
-  gap: 1rem 1.6rem;
-}
-.pack-ler, .pack-ficha { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
-.pack.aberto .pack-historia { max-height: 26rem; border-bottom: 0; padding-bottom: 0; }
-.pack-ficha .pack-categorias dd { font-family: inherit; }
-.pack-ficha .pack-categorias dd[data-origem="próprio"] { color: var(--green); }
-.pack-ficha .pack-categorias dd[data-origem="herdado"] { color: var(--peach); }
-@media (max-width: 900px) {
-  .pack.aberto { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
-  .pack-detalhe { grid-template-columns: minmax(0, 1fr); }
-  .pack.aberto > .pack-mais {
-    grid-column: 1; grid-row: auto;
-    padding: 1rem .95rem 1.1rem;
-    border-left: 0;
-    border-top: 1px solid var(--surface0);
-  }
-}
-
-/* --- o retrato, a noite e a caixa de estado: selos em fileira --- */
-.home-pecas { gap: .35rem 1rem; }
-.home-pecas .selo-valor, .home-estado .selo-valor { font-size: var(--t-frase); font-weight: 500; color: var(--subtext1); }
-.home-fotos-conta { margin-left: .5rem; gap: .25rem .8rem; }
-.home-atencao { flex-direction: row; align-items: center; justify-content: space-between; gap: .6rem; }
-.home-atencao > button.porque { align-self: center; margin-top: 0; flex: none; }
-.home-atencao > .dica { left: 0; right: 0; width: auto; }
-.home-estado { gap: .4rem 1rem; }
-
-/* --- as pendências: o nome e o `?` na mesma linha --- */
-.pendencia-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
-.pendencia-topo > button.porque { flex: none; margin-top: 0; }
-.pendencia-topo > .dica { left: 0; right: 0; width: auto; }
-.pendencia-frase { color: var(--text); font-weight: 500; }
-
-/* --- a semana: o título com o `?` --- */
-.home-semana-topo { display: flex; align-items: center; gap: .5rem; }
-.home-semana-topo > .dica { left: 0; right: 0; width: auto; }
-
-/* --- onde você mexeu: uma linha por página, aberta pelo desenho do menu --- */
-.home-mexeu-linhas { display: flex; flex-direction: column; gap: .5rem; }
-.home-mexeu-linha { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: .5rem; align-items: start; }
-.home-mexeu-linha > .menu-icone { margin-top: .2rem; color: var(--overlay2); }
-
-/* ===========================================================================
- * =========================================================================== */
-/* A MOLDURA ATRAVESSA A GRADE: pack, variante e claro ou escuro lado a lado,
- * na ordem da escolha, dentro de uma caixa só. Os cartões de dentro perdem a
- * própria caixa (a moldura é a caixa) e ficam separados por um fio vertical. */
-/* A MOLDURA É UMA FILEIRA DA GRADE: os cartões da decisão caem nas mesmas
- * colunas dos outros (subgrade), lado a lado e na ordem da escolha. */
-.grade > .decisao {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-  gap: var(--vao-grade);
-  align-items: stretch;
-}
-
-/* O «⋯» DOS AJUSTES TÉCNICOS: um alvo de 32 px no fim do bloco, sem palavra
- * (o nome vai no balão e no leitor de tela). Aberto, a grade de dentro é a
- * mesma das outras. */
-.ajustes-tecnicos { margin: .6rem 0 0; }
-/* O `.so-leitor` de dentro é `position: absolute`, e sem ancestral
- * posicionado o bloco dele era a janela, e não o `#principal`: o pedacinho
- * de 1 px ficava lá embaixo, onde o «⋯» mora na página, e esticava a PÁGINA
- * INTEIRA. */
-.ajustes-tecnicos > summary {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--surface1);
-  border-radius: var(--r-max);
-  color: var(--overlay2);
-  list-style: none;
-  cursor: pointer;
-}
-.ajustes-tecnicos > summary::-webkit-details-marker { display: none; }
-.ajustes-tecnicos > summary:hover { color: var(--text); border-color: var(--overlay0); }
-.ajustes-tecnicos > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.ajustes-tecnicos[open] > summary { color: var(--accent); border-color: var(--accent); }
-.tecnicos-glifo { font-size: 1.1rem; line-height: 1; letter-spacing: .05em; }
-/* O desenho do que o «⋯» guarda: a pílula alarga para os dois. */
-.ajustes-tecnicos > summary:has(.tecnicos-icone) {
-  display: inline-flex; align-items: center; gap: .3rem;
-  width: auto; padding: 0 .65rem;
-}
-.tecnicos-icone { display: inline-flex; }
-.ajustes-tecnicos > .grade { margin-top: .8rem; }
-
-/* ===========================================================================
- * =========================================================================== */
-/* A seção que leva a faixa grudada e a grade do bloco: o `sticky` da faixa
- * fica preso a ela (ver `render`). Sem caixa própria: é só o limite. */
-.secao-com-previa { display: block; }
-.selo-jogo { color: var(--subtext0); }
-.linha-filtro > .selos { gap: .25rem 1rem; }
-.linha-filtro > .selos .selo-valor { font-size: var(--t-frase); font-weight: 500; }
-.oficina-topo { display: flex; align-items: center; gap: .5rem; }
-.oficina-topo > .dica { left: 0; right: 0; width: auto; }
-.oficina-topo > button.porque { margin-top: 0; }
-
-/* Aqui ele entra no canto de cima da caixa, com fundo, sobre a margem do
- * desenho. */
-@media (max-width: 620px) {
-  .par-previa > .com-dica > button.porque { right: .3rem; background: var(--mantle); }
-}
-/* Dentro do canto da caixa ele ficava por cima do traço quando o desenho
- * chega até ali (medido a 375 px em «Manutenção», sobre os «jogos», e em «Cor
- * e tela»). */
-@media (max-width: 620px) {
-  .par-previa > .com-dica { padding-right: 2.1rem; box-sizing: border-box; }
-  .par-previa > .com-dica > button.porque { right: 0; }
-}
-/* A PRÉVIA NÃO GRUDA NA TELA DE CELULAR. Grudada no alto, ela levava um terço
- * do que sobra embaixo do cabeçalho a 375 px, e os cartões passavam por baixo
- * dela. Ali ela rola com a página, como o resto. */
-@media (max-width: 620px) {
-  .previa-bloco { position: static; box-shadow: none; }
-}
-
-/* NUM SEGMENTO OU NUMA MINIATURA: com a chave vazia, o valor que a máquina tem
- * (ou o gato herdado) ganha o mesmo traço da trilha do deslizante no terceiro
- * estado. */
-.segmentos button.como-esta,
-.opcoes-imagem button.como-esta,
-.par-botoes button.como-esta {
-  border-style: dashed;
-  border-color: var(--overlay1);
-  color: var(--text);
-}
-
-/* A TELA DA FORMA: o painel no alto, a dock embaixo, sobre uma imagem do
- * carrossel. A lavada neutra fica de reserva para quando não há foto. */
-.par-forma {
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 520px));
-  justify-content: start;
-}
-.par-forma > div,
-.par-forma > button.lado-previa { position: relative; min-width: 0; }
-.par-forma > div { border: 1px solid transparent; border-radius: var(--r-3); padding: .5rem .6rem .55rem; }
-.tela-forma {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 150px;
-  border-radius: var(--r-2);
-  overflow: hidden;
-  background: color-mix(in srgb, var(--surface2) 55%, var(--crust)) center / cover no-repeat;
-}
-.tela-forma .mock { background: transparent; min-height: 0; padding: 0; border-radius: 0; }
-.tela-forma .mock .rodape { display: none; }
-.tela-forma .mock.dock .barra { margin-top: 0; margin-bottom: var(--margem, 8px); }
-.tela-forma .barra .gato-da-dock {
-  width: var(--sq, 14px);
-  height: var(--sq, 14px);
-  object-fit: contain;
-  display: block;
-}
-/* O `?` da tela fica no meio da borda direita, sobre a foto, onde não há
- * barra nenhuma — no canto ele cobriria a ponta direita do painel ou da dock. */
-.grade-barras.par-forma .com-dica > button.porque {
-  top: 50%;
-  bottom: auto;
-  right: .9rem;
-  transform: translateY(-50%);
-}
-.previa-bloco.presa .tela-forma { height: 78px; }
-/* A DOCK MORA EMBAIXO, também nos desenhos do Sim/Não: a barra desce para o pé
- * da caixa e a margem passa a ser o vão até a borda de baixo. */
-.mock.dock { flex-direction: column-reverse; }
-.mock.dock .barra { margin-top: 0; margin-bottom: var(--margem, 8px); }
-/* Com `minmax(0, 1fr)` o desenho encolhe dentro do botão em vez de empurrá-lo. */
-.par-botoes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-.par-botoes button.lado-botao { min-width: 0; overflow: hidden; }
-
-/* PAPEL DE PAREDE: o número em minutos com a unidade ao lado, e as abas da
- * coleção arranjadas pelo que são (ver `GRUPOS_PAREDE`). */
-.controle-minutos { display: flex; align-items: center; gap: .45rem; }
-.controle-minutos input { width: 7rem; font-variant-numeric: tabular-nums; }
-.controle-minutos .unidade { color: var(--subtext0); font-size: var(--t-frase); }
-
-.abas-galeria { align-items: center; gap: .5rem .9rem; }
-.abas-bloco { display: flex; flex-wrap: wrap; gap: .3rem; }
-/* O carrossel e os dois lados dele numa peça só: as pílulas grudam, e só as
- * pontas da peça são redondas. */
-.abas-bloco[data-bloco="carrossel"] { gap: 0; }
-.abas-bloco[data-bloco="carrossel"] > button { border-radius: 0; }
-.abas-bloco[data-bloco="carrossel"] > button + button { border-left-width: 0; }
-.abas-bloco[data-bloco="carrossel"] > button:first-child { border-radius: var(--r-max) 0 0 var(--r-max); }
-.abas-bloco[data-bloco="carrossel"] > button:last-child { border-radius: 0 var(--r-max) var(--r-max) 0; }
-/* Os glifos vão por escape: o sanitizador do commit tira o sol e a lua crus
- * do arquivo (são contados como emoji). */
-.abas-galeria button[data-grupo-parede="noite"]::before { content: "\263E  "; }
-.abas-galeria button[data-grupo-parede="dia"]::before { content: "\2600  "; }
-.abas-galeria button[data-grupo-parede="favoritos"]::before { content: "★ "; }
-/* As recusadas no fim da linha, tracejadas e apagadas: é o que ficou de fora. */
-.abas-bloco[data-bloco="fora"] { margin-left: auto; }
-.abas-galeria button[data-grupo-parede="banidos"] { border-style: dashed; background: transparent; color: var(--overlay1); }
-.abas-galeria button[data-grupo-parede="banidos"]::before { content: "⊘ "; }
-.abas-galeria button[data-grupo-parede="banidos"][aria-pressed="true"] {
-  background: var(--surface2); border-color: var(--overlay0); color: var(--text);
-}
-.abas-galeria > .acervo-add { margin: 0; }
-/* O «Pular a galeria» fora de foco não ocupa lugar: deslocado para a esquerda
- * ele continuava reservando 40 px entre as abas e as fotos. No foco ele volta
- * ao fluxo, onde está (`.pular-grade:focus`, lá em cima). */
-.pular-grade:not(:focus) { position: absolute; }
-
-
-/* ===========================================================================
- * =========================================================================== */
-/* O relógio à esquerda ocupa as três linhas; cada linha é o ícone na cor do
- * anel, o começo da noite e o fim dela. */
-.grade > .decisao.decisao-relogio {
-  grid-template-columns: auto auto minmax(0, 1fr) minmax(0, 1fr);
-  align-items: stretch;
-}
-.decisao-relogio > .relogio-noite {
-  grid-column: 1; grid-row: 1 / span 3;
-  align-self: center;
-  width: 14rem; padding: 1rem 1.8rem 1rem 1.1rem;
-  position: relative;
-}
-.decisao-relogio > .relogio-noite > button.porque { position: absolute; top: .6rem; right: 0; }
-.relogio-noite-svg { display: block; width: 100%; height: auto; overflow: visible; }
-.relogio-noite-svg .anel { fill: none; stroke-width: 7; }
-.relogio-noite-svg .trilha { stroke: var(--surface0); }
-.relogio-noite-svg .arco { stroke: currentColor; stroke-linecap: round; }
-.relogio-noite-svg .herdado .arco { stroke-dasharray: 2.2 2.6; stroke-linecap: butt; }
-.relogio-noite-svg .parado .arco { opacity: .45; }
-.relogio-noite-svg .hora-marca { fill: var(--overlay1); font-size: 8px; text-anchor: middle; font-family: var(--mono); }
-.relogio-noite-svg .ponteiro { stroke: var(--text); stroke-width: 1.4; stroke-linecap: round; opacity: .75; }
-.relogio-noite-svg .eixo { fill: var(--text); }
-
-.decisao-relogio > .linha-noite-icone {
-  grid-column: 2;
-  display: grid; place-items: center;
-  padding: 0 .35rem 0 .9rem;
-}
-.linha-noite-icone > svg {
-  width: 20px; height: 20px;
-  fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round;
-}
-.linha-noite-icone.parado { opacity: .4; }
-.decisao-relogio > [data-linha="1"] { grid-row: 1; }
-.decisao-relogio > [data-linha="2"] { grid-row: 2; }
-.decisao-relogio > [data-linha="3"] { grid-row: 3; }
-.decisao-relogio > .cartao[data-ponta="ini"] { grid-column: 3; }
-.decisao-relogio > .cartao[data-ponta="fim"] { grid-column: 4; }
-/* O campo de hora que herda: a traço e apagado, como o «como está» do
- * deslizante. Escolher uma hora o devolve ao desenho de sempre. */
-input[type="time"].hora-herdada {
-  border-style: dashed; color: var(--overlay2); background: transparent;
-}
-.controle:has(> .selo) { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-
-@media (max-width: 900px) {
-  .grade > .decisao.decisao-relogio { grid-template-columns: auto minmax(0, 1fr); }
-  .decisao-relogio > .relogio-noite { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
-  .decisao-relogio > .linha-noite-icone { grid-column: 1; padding: 0 .4rem 0 .8rem; }
-  .decisao-relogio > .cartao[data-ponta] { grid-column: 2; }
-  .decisao-relogio > .linha-noite-icone[data-linha="1"] { grid-row: 2 / span 2; }
-  .decisao-relogio > .cartao[data-linha="1"][data-ponta="ini"] { grid-row: 2; }
-  .decisao-relogio > .cartao[data-linha="1"][data-ponta="fim"] { grid-row: 3; }
-  .decisao-relogio > .linha-noite-icone[data-linha="2"] { grid-row: 4 / span 2; }
-  .decisao-relogio > .cartao[data-linha="2"][data-ponta="ini"] { grid-row: 4; }
-  .decisao-relogio > .cartao[data-linha="2"][data-ponta="fim"] { grid-row: 5; }
-  .decisao-relogio > .linha-noite-icone[data-linha="3"] { grid-row: 6 / span 2; }
-  .decisao-relogio > .cartao[data-linha="3"][data-ponta="ini"] { grid-row: 6; }
-  .decisao-relogio > .cartao[data-linha="3"][data-ponta="fim"] { grid-row: 7; }
-
-}
-
-/* ===========================================================================
- * =========================================================================== */
-/* As duas molduras (quando, quanto) em fileira flexível, como o seletor de
- * gato: o «quando» tem um cartão ou quatro, conforme a agenda. */
-.grade > .decisao[data-decisao^="leitura-"] { display: flex; flex-wrap: wrap; }
-.decisao[data-decisao^="leitura-"] > .cartao { flex: 1 1 15rem; min-width: 0; }
-.decisao[data-decisao="leitura-quando"] > .cartao[data-chave="LEITURA_AGENDA"] { flex: 0 1 19rem; }
-@media (max-width: 900px) {
-  .decisao[data-decisao^="leitura-"] > .cartao { flex-basis: 100%; }
-  .decisao[data-decisao^="leitura-"] > .cartao + .cartao { border-left: 0; border-top: 1px solid var(--surface0); }
-}
-/* A tela da prévia: a imagem cortada ao meio, o fio do corte, e a régua das
- * 24 horas embaixo com a noite na cor que ela põe na tela. */
-.leitura-real { display: grid; gap: .35rem; width: min(100%, 20rem); }
-.leitura-real-imagem {
-  display: block; width: 100%; height: auto; aspect-ratio: 320 / 150;
-  border-radius: var(--r-2); border: 1px solid var(--surface1); background: var(--surface0);
-}
-.leitura-real-regua {
-  position: relative; height: .55rem; border-radius: var(--r-max);
-  background: var(--surface0); overflow: hidden;
-}
-.leitura-real-regua.sem-agenda { background: transparent; border: 1px dashed var(--surface2); }
-.leitura-real-noite { position: absolute; top: 0; bottom: 0; }
-/* As duas horas sob as pontas da noite, cada uma no seu lugar da régua. */
-.leitura-real-horas {
-  position: relative; height: 1rem;
-  font: 500 var(--t-legenda) / 1 var(--mono); color: var(--overlay2);
-}
-.leitura-real-horas > span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
-/* O «quando» com a agenda desligada é um cartão só: a moldura encolhe até
- * ele, em vez de atravessar a página vazia. */
-.grade > .decisao[data-decisao="leitura-quando"]:has(> .cartao:only-child) { justify-self: start; }
-/* Presa no alto, a prévia de pixel encolhe como os desenhos (78 px de altura)
- * e a régua das horas sai: a tira é referência, não leitura. */
-.previa-bloco.presa .leitura-real { width: calc(78px * 320 / 150); }
-.previa-bloco.presa .leitura-real-horas { display: none; }
-
-/* ===========================================================================
- * =========================================================================== */
-.areas-pilulas { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; width: 100%; }
-.area-pilula {
-  display: inline-flex; align-items: center; gap: .2rem;
-  background: var(--surface0); border: 1px solid var(--surface1);
-  border-radius: var(--r-max); padding: .1rem .55rem .1rem .3rem;
-  cursor: grab;
-}
-.area-pilula.arrastando { opacity: .45; cursor: grabbing; }
-.area-pilula.soltar-antes { box-shadow: -3px 0 0 var(--accent); }
-.area-pilula.soltar-depois { box-shadow: 3px 0 0 var(--accent); }
-.area-alca { display: inline-grid; color: var(--overlay1); }
-.area-alca svg { width: 8px; height: 14px; fill: currentColor; }
-.areas-pilulas input[type="text"] {
-  border: 0; background: transparent; padding: .2rem .1rem; width: auto; min-width: 3ch;
-  field-sizing: content;   /* a pastilha tem a largura do nome, e cresce com ele */
-  font-weight: 600; color: var(--text);
-}
-.areas-pilulas input[type="text"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: var(--r-1); }
-.areas-pilulas input.area-nova {
-  border: 1px dashed var(--surface2); border-radius: var(--r-max);
-  padding: .3rem .6rem; text-align: center; font-weight: 500; min-width: 2.6rem;
-}
-.areas-pilulas > input.area-nova:placeholder-shown { width: 2.8rem; flex: none; }
-/* As áreas do COSMIC, antes de qualquer escolha: a traço e apagadas, como o
- * «como está» dos outros controles. */
-.areas-pilulas.como-esta .area-pilula { background: transparent; border-style: dashed; }
-.areas-pilulas.como-esta input[type="text"] { color: var(--overlay2); font-weight: 500; }
-
-/* A barra do painel com o applet de áreas: pastilhas como as da topbar. */
-.areas-tela { padding: .5rem; background: var(--crust); border: 1px solid var(--surface1); border-radius: var(--r-2); }
-.areas-barra {
-  display: flex; gap: .3rem; align-items: center; justify-content: center;
-  padding: .3rem .5rem; background: var(--mantle); border-radius: var(--r-max);
-  min-width: 12rem;
-}
-.areas-barra-area {
-  position: relative; min-width: 1.9rem; padding: .18rem .45rem; text-align: center;
-  border-radius: var(--r-max); font: 600 var(--t-legenda) / 1.2 var(--fonte, inherit);
-  color: var(--subtext0); background: var(--surface0);
-}
-.areas-barra-area.acesa { background: var(--accent); color: var(--crust); }
-.areas-barra-area.com-folga { padding-inline: .9rem; }
-/* O encaixe: um traço de duas janelas lado a lado sob a pastilha. */
-.areas-barra-area.encaixa::after {
-  content: ""; position: absolute; left: 50%; bottom: -.42rem; width: .9rem; height: .22rem;
-  transform: translateX(-50%);
-  background: linear-gradient(90deg, var(--overlay2) 45%, transparent 45% 55%, var(--overlay2) 55%);
-  border-radius: 1px;
-}
-.areas-barra-area.vazia { background: transparent; color: var(--overlay1); }
-
-/* ===========================================================================
- * =========================================================================== */
-.subsecao-titulo.com-dica { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-.subsecao-titulo.com-dica > .selo { font-weight: 500; }

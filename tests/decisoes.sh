@@ -214,18 +214,18 @@ const pega = (nome) => {
   }
 };
 const gravados = [];
-const ctx = { gravados, rotuloDeValor: (v) => v,
+const ctx = { gravados, rotuloDeValor: (v) => v, icone: () => null,
   elemento: (_t, atrib) => atrib };
 vm.createContext(ctx);
-for (const f of ["padraoDe", "temOQueRestaurar", "rotuloVazio", "tituloDoRestaurar", "botaoVazio"])
-  vm.runInContext(pega(f), ctx);
-const item = { aceita_vazio: true, padrao: "nao" };
+for (const f of ["padraoDe", "temOQueRestaurar", "botaoPadrao"]) vm.runInContext(pega(f), ctx);
+const item = { chave: "X", aceita_vazio: true, padrao: "nao" };
 const t = (c) => vm.runInContext(c, Object.assign(ctx, { item }));
 console.log("nasce_diferente=" + t('temOQueRestaurar(item, "sim")'));
 console.log("nao_nasce_no_padrao=" + !t('temOQueRestaurar(item, "nao")'));
 console.log("nasce_vazio_com_fabrica_preenchida=" + t('temOQueRestaurar(item, "")'));
-const botao = t('botaoVazio(item, () => {}, async (v) => { gravados.push(v); return true; })');
-botao.onclick().then(() => console.log("grava=" + gravados.join("|")));
+const b = t('botaoPadrao(item, (v) => { gravados.push(v); return true; })');
+b.onclick();
+console.log("grava=" + gravados.join("|"));
 JS
 )"
   { grep -qx 'nasce_diferente=true' <<< "$r" && grep -qx 'nao_nasce_no_padrao=true' <<< "$r" \
@@ -236,20 +236,26 @@ else
   pula "sem node: a regra do botão não roda aqui"
 fi
 
-echo "== D11. a caixa do sudo tem uma linha; o porquê fica na dica"
-r="$(python3 - "$RAIZ/app/pagina/app.js" <<'PY' 2>&1
-import re, sys
-src = open(sys.argv[1], encoding="utf-8").read()
-m = re.search(r"function caixaDoSudo\(\) \{(.*?)\n\}\n", src, re.S)
-corpo = m.group(1) if m else ""
-fortes = re.findall(r'elemento\("strong", \{ texto: "([^"]+)" \}\)', corpo)
-print("linha=%s" % (len(fortes) == 1 and len(fortes[0]) <= 60))
-print("porque_na_dica=%s" % ("gatilhoDeDica(" in corpo))
-print("sem_paragrafo_solto=%s" % (len(re.findall(r'elemento\("p"', corpo)) == 1))
+echo "== D11. a interface nunca pede senha (revoga a caixa do sudo de uma linha, sim de 23/10)"
+registro 11 'a interface nunca pede senha' && ok "11: o registro diz a revogação, com o sim" || falha "a decisão 11 não diz a revogação no registro"
+r="$(python3 - "$RAIZ/app/pagina" <<'PY' 2>&1
+import glob, os, re, sys
+texto = "\n".join(open(f, encoding="utf-8").read() for f in sorted(glob.glob(os.path.join(sys.argv[1], "*")))
+                  if f.endswith((".js", ".html")))
+texto = re.sub(r"/\*.*?\*/|<!--.*?-->", "", texto, flags=re.S)   # o comentário pode falar da regra
+print("campo_de_senha=%s" % bool(re.search(r"""type[=:]\s*["']password""", texto)))
+print("pkexec=%s" % ("pkexec" in texto))
+print("selo_pede_senha=%s" % bool(re.search(r"pede senha", texto, re.I)))
+app = open(os.path.join(sys.argv[1], "app.js"), encoding="utf-8").read()
+m = re.search(r"async function semPonte\(\) \{(.*?)\n\}\n", app, re.S)
+print("sem_ponte_conserta=%s" % bool(m and 'doctor_consertar' in m.group(1)))
+print("root_sem_ponte=%s" % bool(re.search(r"deRoot\(acao\) && !ESQUEMA\.ponte", app)))
 PY
 )"
-{ grep -qx 'linha=True' <<< "$r" && grep -qx 'porque_na_dica=True' <<< "$r" && grep -qx 'sem_paragrafo_solto=True' <<< "$r"; } \
-  && ok "uma linha curta na caixa e o parágrafo só dentro da dica" || falha "a caixa do sudo mudou: $r"
+{ grep -qx 'campo_de_senha=False' <<< "$r" && grep -qx 'pkexec=False' <<< "$r" && grep -qx 'selo_pede_senha=False' <<< "$r" \
+  && grep -qx 'sem_ponte_conserta=True' <<< "$r" && grep -qx 'root_sem_ponte=True' <<< "$r"; } \
+  && ok "nenhum campo de senha, pkexec ou selo «pede senha»; sem a ponte, o painel oferece o conserto" \
+  || falha "a interface voltou a pedir senha: $r"
 
 echo "== D12. trocar de pack leva o ponteiro do pack"
 conf() { # $1 arquivo; $2.. CHAVE=valor

@@ -719,22 +719,18 @@ info="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1)"
 $info"
 por_vitrine "$VIT_BOA"
 
-# Um `html:` ou um `innerHTML` no caminho da história é o Markdown de terceiro
-# virando HTML numa página com token de sessão.
-corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-historia="$(sed -n '/^function historiaDoPack(/,/^}/p;/^function trechosDaLinha(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-if [ -z "$corpo" ] || [ -z "$historia" ]; then
-  falha "não achei cartaoDePack, historiaDoPack e trechosDaLinha em app/pagina/app.js"
-elif printf '%s\n%s\n' "$corpo" "$historia" | grep -vE '^\s*(\*|/\*|//)' \
-     | grep -qE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser'; then
-  falha "o cartão de pack interpreta HTML — a história se monta nó a nó, por texto" \
-        "$(printf '%s\n%s\n' "$corpo" "$historia" | grep -nE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser')"
-elif printf '%s\n' "$corpo" | grep -q 'historiaDoPack(p.descricao)' \
-     && printf '%s\n' "$historia" | grep -q 'startsWith("https://")' \
-     && [ "$(printf '%s\n' "$historia" | grep -c 'href:')" = "1" ]; then
-  ok "a história do pack se monta nó a nó por texto, e só link https vira href"
+# O CARTÃO DE PACK NÃO INTERPRETA HTML (P98). A história do pack (o Markdown
+# de terceiro) saiu da tela com o «nenhum texto explicativo»; o cartão monta
+# nome, capa e variantes nó a nó, por texto, e nunca lê a `descricao`.
+corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+if [ -z "$corpo" ]; then
+  falha "não achei cartaoDePack em app/pagina/paginas.js"
+elif printf '%s\n' "$corpo" | grep -vE '^\s*(\*|/\*|//)' \
+     | grep -qE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser|p\.descricao'; then
+  falha "o cartão de pack interpreta HTML ou desenha a história de terceiro" \
+        "$(printf '%s\n' "$corpo" | grep -nE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser|p\.descricao')"
 else
-  falha "o cartão de pack deixou de montar a história pelo historiaDoPack, ou o href escapou do https"
+  ok "o cartão de pack se monta nó a nó por texto, sem a história de terceiro"
 fi
 
 # --- 19. trocar de pack e voltar, conferindo o tema no disco
@@ -1212,18 +1208,18 @@ saida="$(viaja python3 "$T/contrato.py" "$T/$NOVO.meowpack" "$DA_PESSOA/$NOVO" "
   || falha "as rotas do .meowpack não falam o contrato da página" "$saida"
 rm -rf "${DA_PESSOA:?}/$NOVO"
 
-corpo="$(sed -n '/^async function importarPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-packs="$(sed -n '/^function montarPacks(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+corpo="$(sed -n '/^async function importarPack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+packs="$(sed -n '/^function passoMandar(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
 faltam=""
-for palavra in "confirmado: true" "r.precisa_confirmar" "corpo: r.pack ? telaDoPack(r.pack)" "!r.instalado"; do
+for palavra in "confirmado: true" "r.precisa_confirmar" "!r.instalado"; do
   [[ "$corpo" == *"$palavra"* ]] || faltam+=" importarPack:'$palavra'"
 done
 for palavra in '"&medir=1"' '"&imagens=nao"' "resposta.ok" "perguntar("; do
   [[ "$exporta" == *"$palavra"* ]] || faltam+=" exportarPack:'$palavra'"
 done
-[[ "$packs" == *"exportarPack(noAr)"* && "$packs" != *'href: `/api/pack-exportar'* ]] \
-  || faltam+=" montarPacks: o exportar voltou a ser um link"
+[[ "$packs" == *"exportarPack(r.pack)"* && "$packs" != *'href: `/api/pack-exportar'* ]] \
+  || faltam+=" passoMandar: o exportar voltou a ser um link"
 [ -z "$faltam" ] \
   && ok "a página manda confirmado, desenha o pack, só diz 'entrou' com instalado, e pergunta antes de baixar" \
   || falha "a página deixou de falar o contrato das rotas:$faltam"
@@ -1754,21 +1750,10 @@ PY
   || falha "claros: null derrubou o /api/packs (rc=$rc)" "$saida"
 cp "$T/paleta-boa.json" "$CSV_DIR/paleta.json"
 
-corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-printf '%s\n' "$corpo" | grep -q 'p.claros_derivados' \
-  && ok "o cartão de pack desenha a linha do claro derivado" \
+corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+printf '%s\n' "$corpo" | grep -q 'p.claros_derivados' && printf '%s\n' "$corpo" | grep -q 'dica: derivado ? "Claro derivado"' \
+  && ok "o cartão de pack marca a variante clara derivada, com a dica" \
   || falha "o cartão de pack não lê claros_derivados"
-# "Traga as 26 linhas no CSV" não dizia para onde. Até a segunda metade da
-# P16 a tela não tinha onde, e o cartão mandava ao terminal (`meow pack
-# de-csv`); agora o «Importar um pack» aceita o .csv, e a frase aponta para ele.
-#   Desde a P53 (achado 8) o outro nome é só para o pack que não pode sair: o
-# que pode manda tirar este com o «Remover», e o mesmo nome volta a servir —
-# o outro nome fazia um segundo pack, e nenhum dos dois saía.
-printf '%s\n' "$corpo" | grep -q '«Importar um pack», com outro nome de arquivo' \
-  && printf '%s\n' "$corpo" | grep -q '«Importar um pack», depois de tirar este com o «Remover»' \
-  && ok "o cartão diz onde trocar o claro derivado: o «Importar um pack» da tela, e o «Remover» antes quando pode" \
-  || falha "o cartão manda trocar o claro sem apontar o importar da tela, ou sem o «Remover»"
-
 # O `.csv` PELA PORTA DO IMPORTAR — P16, item 5. No terminal primeiro: o id
 # sai do nome do arquivo, o pack vai para a raiz da pessoa, o meow.conf não
 # muda, e o mesmo nome de novo é recusado dizendo por quê.
@@ -1922,15 +1907,11 @@ saida="$(viaja python3 "$T/contrato-csv.py" "$T/cores.csv" "$DA_PESSOA/minha-tin
   && ok "a rota do importar aceita o .csv com o contrato da tela, e não aplica" \
   || falha "a rota do importar não fala o contrato para o .csv, ou mexeu no meow.conf" "$saida"
 rm -rf "${DA_PESSOA:?}/minha-tinta"
-packs_js="$(sed -n '/^function montarPacks(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-tela_js="$(sed -n '/^function telaDoPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+packs_js="$(sed -n '/^function botaoAbrirTema(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
 faltam=""
-[[ "$packs_js" == *'accept: ".meowpack,.csv"'* ]] || faltam+=" montarPacks:'accept .csv'"
-for palavra in "pack.derivados" "pack.regua"; do
-  [[ "$tela_js" == *"$palavra"* ]] || faltam+=" telaDoPack:'$palavra'"
-done
+[[ "$packs_js" == *'accept: ".meowpack,.csv"'* ]] || faltam+=" botaoAbrirTema:'accept .csv'"
 [ -z "$faltam" ] \
-  && ok "a página aceita o .csv no seletor, e a caixa de confirmar lê o derivado e a régua" \
+  && ok "a página aceita o .csv no «Abrir um tema»" \
   || falha "a página não fala o .csv:$faltam"
 
 # Com o claro trazido no CSV, nada se deriva: a medida (base mais luminoso que
@@ -2378,25 +2359,14 @@ PY
   && ok "o claro da página sai de uma função só, e ela responde o que as três cópias respondiam" \
   || falha "o claro da página voltou a ser copiado, ou a função mudou de resposta" "$saida"
 
-# O CARTÃO E O «MAIS SOBRE» DIZEM O PACK PELO NOME (P10). O cartão imprimia o
-#   `p.origem` do pack.py, montado pelo id ("herdado de catppuccin"), e o «Mais
-#   sobre», logo abaixo, "herdado do Catppuccin". A frase mora no `deOndeVem`,
-#   e as duas linhas a chamam; o `p.origem` cru não volta ao cartão. E o
-#   «Ver sobre Escuro» dos botões de fundo perde a maiúscula no meio da frase.
-cartao="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-linha="$(sed -n '/^function linhaDeOrigem(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-fundos="$(sed -n '/^function barraDeFundos(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-n_frase="$(grep -c 'herdado d[eo] ${' "$RAIZ/app/pagina/app.js")"
+# O CARTÃO NÃO IMPRIME O p.origem CRU (P10, P98). A linha de herança saiu
+#   da tela com o «nenhum texto explicativo»; o que não pode voltar é a frase
+#   montada pelo id («herdado de catppuccin») no cartão.
+cartao="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
 faltam=""
-[ "$n_frase" = "1" ] || faltam+=" a frase 'herdado do' está em $n_frase lugares, e é uma só;"
-[[ "$cartao" == *"linhaDeOrigem(p)"* && "$cartao" != *"maiuscula(p.origem)"* ]] \
-  || faltam+=" o cartão imprime o p.origem cru;"
-[[ "$cartao" == *"deOndeVem(c)"* && "$linha" == *"deOndeVem(c)"* ]] \
-  || faltam+=" o cartão e o «Mais sobre» não perguntam ao deOndeVem;"
-[[ "$fundos" == *'toLocaleLowerCase'* && "$fundos" != *'Ver sobre ${f.rotulo}`'* ]] \
-  || faltam+=" o «Ver sobre» mantém a maiúscula no meio da frase;"
+[[ -n "$cartao" && "$cartao" != *"p.origem"* && "$cartao" != *"herdado d"* ]] || faltam+=" o cartão imprime a herança crua;"
 [ -z "$faltam" ] \
-  && ok "o cartão e o «Mais sobre» dizem o pack pelo nome, da mesma frase, e o «Ver sobre» é minúsculo" \
+  && ok "o cartão não imprime a herança crua do pack" \
   || falha "o rótulo de herança voltou a ter duas formas:$faltam"
 
 # O IMPORTAR DIZ O ARQUIVO DELA, E O EXPORTAR AVISA NA TELA (P11). As recusas
@@ -2444,8 +2414,8 @@ PY
     && ok "o importar recusa dizendo o arquivo dela, e o aviso do exportar chega à tela como no terminal" \
     || falha "o importar cita o temporário do servidor, ou o aviso do exportar não chega à tela" \
              "$saida$exportou"
-  exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-  [[ "$exporta" == *"m.avisos"* && "$exporta" == *"m.imagens || avisos"* ]] \
+  exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+  [[ "$exporta" == *"m.avisos"* && "$exporta" == *"m.imagens || avisos.length"* ]] \
     && ok "a caixa do exportar mostra o aviso, e aparece por ele mesmo sem imagens" \
     || falha "a página não mostra o aviso do exportar"
 fi
@@ -2665,7 +2635,7 @@ done
 
 # O BALÃO DA TIRA E A QUEDA DA MARCA NÃO NOMEIAM MAIS UM PACK NO CÓDIGO. Só o
 # código conta: os comentários contam a história, e ela cita o que saiu.
-tira="$(grep -c 'class: "home-tira", title: "[^"]*Catppuccin' "$RAIZ/app/pagina/app.js")"
+tira="$(cat "$RAIZ"/app/pagina/*.js | grep -v '^[[:space:]]*\(\*\|//\|/\*\)' | grep -c 'Catppuccin')"
 queda="$(sed -n '/^def logo_do_painel(/,/^def /p' "$RAIZ/app/servidor.py" \
          | grep -v '^[[:space:]]*#' | grep -c '"mocha"')"
 [ "$tira" = "0" ] && [ "$queda" = "0" ] \
@@ -3428,9 +3398,8 @@ print("\n".join(erros))
 sys.exit(1 if erros else 0)
 PY
 )"; rc=$?
-cartao="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-[ "$rc" = "0" ] && [[ "$cartao" == *'c.nota'* ]] \
-  && ok "as pastas dizem o que o desenho do pack veste, no info e no «Mais sobre» do cartão" \
+[ "$rc" = "0" ] \
+  && ok "as pastas dizem o que o desenho do pack veste, no info" \
   || falha "a tabela ainda diz «pastas: próprio» sem dizer o que o desenho veste" "$saida"
 
 printf 'PACK="%s"\nFLAVOR=""\nACCENT="mauve"\nMODO="escuro"\n' "$ID" > "$T/vazio-p56.conf"

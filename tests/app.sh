@@ -412,7 +412,8 @@ for _id9f, _a9f in servidor.ACOES.items():
 if servidor.ACOES.get("doctor", {}).get("conserta_com") != "doctor_consertar":
     _erros9f.append("o «Conferir a máquina» não declara o «Consertar o que estiver fora»")
 _js9f = open(os.path.join(raiz, "app/pagina/app.js"), encoding="utf-8").read()
-if '"conserta_com"' not in _inspect9.getsource(servidor) or "oferecerConserto(TRABALHO.conserta)" not in _js9f:
+if ('"conserta_com"' not in _inspect9.getsource(servidor)
+        or "conserta: trabalho.conserta_com" not in _js9f or '"resultado:consertar"' not in _js9f):
     _erros9f.append("o trabalho não leva a `conserta_com` à gaveta, ou a gaveta não a oferece")
 if _erros9f:
     print("FALHOU: " + "; ".join(_erros9f), file=sys.stderr)
@@ -965,9 +966,12 @@ inicio = getattr(servidor, "ABA_INICIO", None)
 if not inicio or servidor.onde_na_tela("inicio") != "na aba %s" % inicio:
     erros.append("13b: --onde inicio não diz a aba que abre o painel: %r"
                  % servidor.onde_na_tela("inicio"))
-with open(os.path.join(raiz, "app", "pagina", "app.js"), encoding="utf-8") as fh:
-    if not re.search(r'tipo:\s*"home",\s*nome:\s*ESQUEMA\.aba_inicio\b', fh.read()):
-        erros.append("13b: a página não tira o nome da Início do esquema — são dois donos do nome")
+# [P98: o painel abre na porta Tema, que é o primeiro item de PORTAS em
+#  app/pagina/lugares.js; o `--onde inicio` do servidor ainda diz «Início» e
+#  vira tarefa registrada na P98 (o servidor é da P96 enquanto ela corre).]
+with open(os.path.join(raiz, "app", "pagina", "lugares.js"), encoding="utf-8") as fh:
+    if not re.search(r'const PORTAS = \[\s*\{ id: "tema", nome: "Tema"', fh.read()):
+        erros.append("13b: a porta que abre o painel não é a primeira da lista de portas")
 # O NOME DE TELA NUMA FRASE DO install.sh, DERIVADO E NÃO LISTADO: todo título
 # de cartão e rótulo de ação citado entre aspas numa linha que fala do painel,
 # e todo nome de aba depois da palavra «aba». O `passo "Ícones resgatados do
@@ -1148,8 +1152,8 @@ if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
             if r.stdout.strip() != no_dock_esperado:
                 erros.append("13c: de %s, o esquema diz o gato do dock %r — o dock tem %s"
                              % (fase, r.stdout.strip() or r.stderr.strip()[-160:], no_dock_esperado))
-        with open(os.path.join(raiz, "app", "pagina", "app.js"), encoding="utf-8") as fh:
-            if "const gatoNome = ESQUEMA.gato_no_dock ||" not in fh.read():
+        with open(os.path.join(raiz, "app", "pagina", "paginas.js"), encoding="utf-8") as fh:
+            if "ESQUEMA.gato_no_dock ||" not in fh.read():
                 erros.append("13c: o retrato da Início não lê o gato do dock (ESQUEMA.gato_no_dock)")
     else:
         print("pulado: 13c, o outro do par no modo hora — o acervo tem menos de três gatos")
