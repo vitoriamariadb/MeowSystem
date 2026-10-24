@@ -202,6 +202,41 @@ $(cat "$BG/all")"
   fi
 done
 
+
+printf '\n--- 5. instalar com PACK=dracula já no conf leva o ponteiro (decisão 12) ---\n'
+# Um install.sh só com a etapa da configuração, numa raiz de links para o resto.
+RZ="$TMP/raiz-conf"; mkdir -p "$RZ"
+for i in "$RAIZ"/*; do [ "$(basename "$i")" = install.sh ] || ln -s "$i" "$RZ/"; done
+awk '/local etapas=\(/ && !t { print "  local etapas=(etapa_conf)"; t=1; p=1 }
+     p { if ($0 ~ /\)[ \t]*$/) p=0; next } { print }' "$RAIZ/install.sh" > "$RZ/install.sh"
+chmod +x "$RZ/install.sh"
+inst() {  # <casa> [VAR=valor ...]
+  local casa="$1"; shift
+  env -i PATH="$FALSO:$PATH" HOME="$casa" USER="${USER:-t}" MEOW_IGNORA_DESKTOP=1 NO_COLOR=1 \
+    MEOW_PONTE=/nao/existe "$@" bash "$RZ/install.sh" --uma-passagem 2>&1
+}
+CASA5="$TMP/casa5"; mkdir -p "$CASA5/.config/meow"; C5="$CASA5/.config/meow/meow.conf"
+conf_com "$C5" 'PACK="dracula"' 'FLAVOR="dracula"'
+ensaio="$(inst "$CASA5" MEOW_DRY_RUN=1)"
+[ "$(linha_de "$C5" CURSOR)" = 'CURSOR="catppuccin-mocha-light"' ] && grep -q 'CURSOR' <<< "$ensaio" \
+  && ok "o ensaio diz que o ponteiro do Catppuccin iria embora, sem escrever" \
+  || falha "o ensaio do install não viu o ponteiro do Catppuccin, ou escreveu" "$ensaio"
+saida="$(inst "$CASA5")"
+[ "$(linha_de "$C5" CURSOR)" = 'CURSOR="Dracula-Cursor"' ] \
+  && [ "$(cat "$CASA5/.local/state/meowsystem/pack-do-install")" = "$(printf 'dracula\tdracula')" ] \
+  && ok "o install com PACK=dracula no conf troca o ponteiro de fábrica pelo do Dracula" \
+  || falha "o install deixou o ponteiro do Catppuccin com o Dracula no ar" "$saida
+$(linha_de "$C5" CURSOR)"
+conf_com "$C5" 'PACK="dracula"' 'FLAVOR="dracula"' 'CURSOR="catppuccin-mocha-light"'
+inst "$CASA5" >/dev/null
+[ "$(linha_de "$C5" CURSOR)" = 'CURSOR="catppuccin-mocha-light"' ] \
+  && ok "o ponteiro que quem usa escolhe depois, com o mesmo pack, fica" \
+  || falha "o install trocou o ponteiro escolhido com o pack de sempre" "$(linha_de "$C5" CURSOR)"
+CASA6="$TMP/casa6"; mkdir -p "$CASA6/.config/meow"; C6="$CASA6/.config/meow/meow.conf"
+cp "$EXEMPLO" "$C6"
+inst "$CASA6" >/dev/null
+cmp -s "$C6" "$EXEMPLO" && ok "com o pack padrão, o conf de fábrica fica byte a byte" \
+  || falha "o install mexeu no conf de fábrica" "$(diff "$EXEMPLO" "$C6" | head -5)"
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2

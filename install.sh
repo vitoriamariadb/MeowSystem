@@ -335,7 +335,12 @@ etapa_conf() {
     # avisava. O sintoma era ela abrir o meow.conf para mexer numa coisa e não
     # achar a linha.
     if meow_tem python3; then
-      local migrar=("$MEOW_RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO")
+      # O pack que o último install vestiu (vazio: o padrão). Se o conf nomeia
+      # outro, o ponteiro do pack de antes vira o do pack no ar (decisão 12).
+      local antes_pack="" antes_flavor=""
+      [ -f "$MEOW_ESTADO/pack-do-install" ] && IFS=$'\t' read -r antes_pack antes_flavor < "$MEOW_ESTADO/pack-do-install"
+      local migrar=("$MEOW_RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO"
+                    --pack-de-antes "$antes_pack" "$antes_flavor")
       if meow_seco; then
         local pendente
         if pendente="$(python3 "${migrar[@]}" --conferir 2>/dev/null)"; then :; else
@@ -381,6 +386,9 @@ etapa_conf() {
     fi
   done
   meow_info "flavor=$FLAVOR accent=$ACCENT modo=$MODO logo=$LOGO"
+  if ! meow_seco && [ "$(cat "$MEOW_ESTADO/pack-do-install" 2>/dev/null)" != "${PACK:-}"$'\t'"$FLAVOR" ]; then
+    mkdir -p "$MEOW_ESTADO" && printf '%s\t%s\n' "${PACK:-}" "$FLAVOR" > "$MEOW_ESTADO/pack-do-install"
+  fi
 
   # O VIZINHOS.CONF DEIXOU DE NASCER AQUI EM 24/09/2026 (P39). Este bloco o
   # criava sozinho quando achava um repositório git em `~/.config/zsh`, com
