@@ -112,6 +112,9 @@ BLOCOS_APOSENTADOS = {
 # — os dois são o mesmo texto no arquivo —, e por isso o doctor não mexe nele.
 VESTIGIOS = ("ICONES_FLAVOR", "ICONES_PASTAS")
 _VALOR = r'("(?:[^"\\]|\\.)*"|\'[^\']*\'|[^\s#]*)'
+# O que vem do pack (ponteiro, mascote) só entra no meow.conf, que o bash lê com
+# `source`, se for nome: aspas, `$(` e crase seriam código.
+RE_NOME = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]*$")
 
 
 def _valor_cru(texto: str, chave: str) -> str | None:
@@ -182,9 +185,37 @@ def vestigios(texto: str, exemplo: str, antes: tuple[str, str] | None = None) ->
             era, vai = decide(de_antes), decide(ident)
         except Exception:
             era = vai = ""
-        if de_antes != ident and era and vai and cursor == era and era != vai:
+        if de_antes != ident and era and vai and cursor == era and era != vai and RE_NOME.match(vai):
             texto = _trocar_valor(texto, "CURSOR", vai)
             feitas.append(f"CURSOR ({cursor} -> {vai})")
+    if antes is not None:
+        texto, feitas = _mascote_junto(pack, texto, antes, ident, feitas)
+    return texto, feitas
+
+
+# O mascote de fábrica do pack de antes vira o do pack novo, fase a fase; o que
+# ela escolheu fica.
+MASCOTE = (("LOGO_DIA", ("dia",)), ("LOGO_NOITE", ("noite",)),
+           ("FASTFETCH_LOGO_GATO", ("dia", "noite")))
+
+
+def _mascote_junto(pack, texto, antes, ident, feitas):
+    try:
+        de_antes = pack.adocao(*antes)[0]
+        if de_antes == ident:
+            return texto, feitas
+        padroes = {f: (pack.mascote_padrao(f, de_antes), pack.mascote_padrao(f, ident))
+                   for f in ("dia", "noite")}
+    except Exception:
+        return texto, feitas
+    for chave, fases in MASCOTE:
+        atual = _valor_cru(texto, chave)
+        for fase in fases:
+            era, vai = padroes[fase]
+            if atual and era and vai and atual == era and era != vai and RE_NOME.match(vai):
+                texto = _trocar_valor(texto, chave, vai)
+                feitas.append(f"{chave} ({atual} -> {vai})")
+                break
     return texto, feitas
 
 
@@ -282,8 +313,8 @@ def main() -> int:
     p.add_argument("--so-vestigios", action="store_true",
                    help="só os vestígios de pack (a troca de pack, P79)")
     p.add_argument("--pack-de-antes", nargs=2, metavar=("PACK", "FLAVOR"),
-                   help="o PACK e o FLAVOR de antes da troca: o CURSOR que era o "
-                        "ponteiro daquele pack vira o do pack no ar")
+                   help="o PACK e o FLAVOR de antes da troca: o CURSOR e o mascote "
+                        "de fábrica daquele pack viram os do pack no ar")
     args = p.parse_args()
 
     if not args.exemplo.is_file():

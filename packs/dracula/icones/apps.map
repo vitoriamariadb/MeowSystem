@@ -439,6 +439,7 @@ org.gnome.Nautilus : apps/org.gnome.Nautilus.svg   # Arquivos — o desenho esco
 com.github.rafostar.Clapper : apps/com.github.rafostar.Clapper.svg   # Clapper — o desenho escolhido por quem usa em 23/10 (P96)
 com.microsoft.Edge : apps/com.microsoft.Edge.svg   # Microsoft Edge — vence a régua o vetor da P84 (0,073, contra 0,092)
 whatsapp-linux-app : apps/whatsapp-linux-app.svg   # WhatsApp — o desenho escolhido por quem usa em 23/10 (P96)
+meow-whatsapp : apps/whatsapp-linux-app.svg   # ZapZap (o Icon= que o módulo zapzap grava) — o mesmo desenho
 Ubuntu-selfservice : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
 citrix : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
 Ubuntu-configmgr : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)

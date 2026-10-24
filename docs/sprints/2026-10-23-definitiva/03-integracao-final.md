@@ -105,7 +105,7 @@ O gancho não trocou nenhuma palavra em nenhum dos sete commits; conferi a árvo
 3. Há sudo fora da ponte em três caminhos de exceção, quando a ponte não responde: `meow_desktop_escrever`
    cai em `sudo install` sem `-n`, o `meow_desktop_pode` usa `sudo -n true` e o avatar do `greeter.sh` usa
    `sudo -n md5sum`. Nenhum deles rodou no container.
-4. `assets/temas/capturados/original/captura.txt` guarda `origem: /home/vitoriamaria/...`. É procedência que o
+4. `assets/temas/capturados/original/captura.txt` guarda `origem: /home/<usuário>/...`. É procedência que o
    `bin/meow` lê.
 5. O `tests/app-uso-real.py` chama a primeira volta de «catppuccin», mas ela é o pack meowsystem.
 

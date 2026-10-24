@@ -343,20 +343,27 @@ meow_pack_dir() {
 # `terminal`), e o `mocha` é o padrão de UM pack.
 #
 # A REGRA É A DO docs/PACKS.md ("Quem vence"): o FLAVOR do conf vence; vazio,
-# entra o `paleta.flavor_padrao` do pack no ar.
+# entra o `paleta.flavor_padrao` do pack no ar. Um FLAVOR que o pack não tem
+# também cai no padrão, como no `meow pack usar` (`plano_de_uso`).
 meow_flavor() {
   local padrao
-  if [ -n "${FLAVOR:-}" ]; then
+  padrao="$(python3 -I - "$MEOW_RAIZ/scripts" "${PACK:-}" "${FLAVOR:-}" <<'PYFIM' 2>/dev/null
+import sys
+sys.path.insert(0, sys.argv[1])
+import json, os, pack
+v = pack.vocabulario(pack.adocao(sys.argv[2], sys.argv[3])[0])
+# A paleta escolhida à mão (MEOW_PALETA que não é a da ponte) vence o pack.
+pal = os.environ.get("MEOW_PALETA", "")
+if pal == os.environ.get("MEOW_PALETA_DA_PONTE", ""):
+    pal = ""
+nomes = list(json.load(open(pal, encoding="utf-8"))["flavors"]) if pal else [f["id"] for f in v["flavors"]]
+print(sys.argv[3] if sys.argv[3] in nomes else v["flavor_padrao"])
+PYFIM
+)"
+  if [ -z "$padrao" ] && [ -n "${FLAVOR:-}" ]; then
     printf '%s' "$FLAVOR"
     return 0
   fi
-  padrao="$(python3 -I - "$MEOW_RAIZ/scripts" "${PACK:-}" <<'PYFIM' 2>/dev/null
-import sys
-sys.path.insert(0, sys.argv[1])
-import pack
-print(pack.vocabulario(pack.adocao(sys.argv[2], "")[0])["flavor_padrao"])
-PYFIM
-)"
   if [ -z "$padrao" ]; then
     meow_aviso "scripts/pack.py não respondeu qual é o flavor padrão do pack no ar (PACK='${PACK:-}') — o FLAVOR fica vazio"
     return 1
@@ -1607,8 +1614,8 @@ meow_ponte_viva() {
 #
 # Devolve 127 quando a ponte não está no ar, e esse número é escolhido: ele não
 # colide com nenhum código de saída do projeto (0, 1, 2, 3), então quem chama
-# consegue distinguir "a ponte recusou" de "não há ponte" e cair no caminho
-# antigo — o `sudo` que pede senha — em vez de tratar as duas como erro.
+# consegue distinguir "a ponte recusou" de "não há ponte" (uma pendência, sem
+# `sudo` fora da ponte) em vez de tratar as duas como erro.
 meow_ponte() {
   meow_ponte_viva || return 127
   sudo -n "$MEOW_PONTE" "$1"
@@ -1626,18 +1633,14 @@ meow_ponte() {
 # A ORDEM É DELIBERADA:
 #   1. o arquivo é MEU        -> escrevo direto, sem elevar nada
 #   2. a ponte está no ar     -> pela ponte, sem senha (o caso normal)
-#   3. o sudo está em cache   -> `sudo install`, como sempre foi
-#   4. nada disso             -> 127, e quem chamou conta ao usuário
+#   3. nada disso             -> 127, e quem chamou conta como pendência
 #
-# O 3 continua existindo por causa da máquina que ainda não instalou a ponte —
-# e do `PONTE_ROOT="nao"`, que é escolha dela. Tirar o caminho antigo faria a
-# ponte deixar de ser conforto e virar requisito.
+# Sem `sudo` fora da ponte: a senha é só do install (decisão 11).
 
 # "Dá para escrever neste `.desktop` de sistema?" — sem escrever nada.
 meow_desktop_pode() {
   [ -w "$1" ] && return 0
-  meow_ponte_viva && return 0
-  sudo -n true 2>/dev/null
+  meow_ponte_viva
 }
 
 # meow_desktop_escrever <arquivo-alvo> <arquivo-com-o-conteudo>
@@ -1652,7 +1655,7 @@ meow_desktop_escrever() {
   if meow_ponte_viva; then
     { printf '%s\n' "$nome"; cat "$fonte"; } | meow_ponte desktop 2>/dev/null && return 0
   fi
-  sudo install -m 644 "$fonte" "$alvo" 2>/dev/null
+  return 127
 }
 
 # O banco de dados do lançador, pelo caminho que estiver disponível.
@@ -1666,6 +1669,5 @@ meow_desktop_banco() {
   if [ "$dir" = "/usr/share/applications" ] && meow_ponte_viva; then
     meow_ponte desktop-banco 2>/dev/null && return 0
   fi
-  sudo -n update-desktop-database "$dir" 2>/dev/null || true
   return 0
 }

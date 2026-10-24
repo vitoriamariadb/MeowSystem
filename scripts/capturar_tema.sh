@@ -109,10 +109,11 @@ fi
 # Esta linha gravava o `$COSMIC` expandido, e com ele o nome de usuário de quem
 # capturou.
 #
-# Ali o caminho absoluto É a identidade da máquina: com `~`, expandir no leitor
-# faria a guarda passar em toda máquina, e não expandir faria o `desfazer`
-# recusar na própria máquina que capturou.
+# Na `original` a origem é a identidade da máquina, que a `guarda_original` do
+# bin/meow confere: um resumo do caminho do COSMIC, sem o caminho no arquivo.
+origem_da_maquina() { printf 'máquina %s' "$(printf '%s' "$1" | sha256sum | cut -c1-16)"; }
 ORIGEM="$COSMIC"
+[ "$NOME" = "original" ] && ORIGEM="$(origem_da_maquina "$COSMIC")"
 if [ "$NOME" != "original" ] && [ -n "${HOME:-}" ]; then
   # shellcheck disable=SC2088  # o "~" é o DADO que se grava, não caminho a expandir
   case "$COSMIC" in "$HOME"/*) ORIGEM="~/${COSMIC#"$HOME"/}" ;; esac

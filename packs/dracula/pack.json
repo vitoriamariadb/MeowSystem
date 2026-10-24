@@ -179,7 +179,7 @@
       "esquema": "dracula",
       "_nota": "O Heroic JÁ TRAZ um tema Dracula, e é ele: `dracula` está no `defaultThemes` do `ThemeSelector` do Heroic na v2.15.0, na v2.22.1 e na v2.22.3 (lido no código-fonte das três tags em 24/09/2026). Sem `.css`, o módulo não instala arquivo nem mexe no `customThemesPath`: grava só a chave `theme`, e o Heroic pula o `getThemeCSS` para os temas que ele traz. Até a P55 o módulo compunha os 56 CSS do Catppuccin com a paleta daqui e parava em erro — os flavors desta paleta não são os daquele acervo."
     },
-    "_nota_zapzap": "O ZapZap NÃO tem bloco, e não falta: o módulo dele troca o nome para «WhatsApp» e aponta o `Icon=` para `meow-whatsapp`, e esse ícone é desenhado pelo tema de ícones, com o `sky` da paleta do pack no ar. Medido em 24/09/2026 nesta máquina: `#8BE9FD`, o ciano do Dracula, no `48x48/apps/meow-whatsapp.svg`. O que dizia «ícone Catppuccin» era a frase do módulo, e ela passou a dizer o pack no ar."
+    "_nota_zapzap": "O ZapZap NÃO tem bloco, e não falta: o módulo dele troca o nome para «WhatsApp» e aponta o `Icon=` para `meow-whatsapp`, e o `icones/apps.map` deste pack veste esse nome com o desenho escolhido (`apps/whatsapp-linux-app.svg`)."
   },
   "lancador": {
     "ocultar": [

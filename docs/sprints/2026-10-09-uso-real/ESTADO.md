@@ -17,7 +17,7 @@ Próximo bloco (sem pedido, nada roda):
 - P100: o patch v2 da Vitória (`8906456`) contra o rebase da P85 — é o conflito da PR.
 - Ressalvas da conferência final (seção «## Execução» do `03-integracao-final.md`): FLAVOR que não
   acompanha o pack no install, `LOGO_*` que não troca com o pack, 3 sudo fora da ponte quando ela não
-  responde, procedência com `/home/vitoriamaria`, nome «catppuccin» no `app-uso-real.py`.
+  responde, procedência com `/home/<usuário>`, nome «catppuccin» no `app-uso-real.py`.
 - O `meow-whatsapp` velho no tema instalado; depois dele, desativar a `dracula-copia-com.rtosta.zapzap`.
 - Seguimentos da P98: o reparo da ponte pelo «Conferir», papéis e sons no «Criar tema».
 - Spellbook: `relatorio-mec/pdf_lavar_watch` guarda o lock em `/tmp` (veio assim do Dracula_OS-Theme).

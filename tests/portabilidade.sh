@@ -54,11 +54,6 @@ ISENTAS=(
   'tema="$T/home/tema"'
 )
 
-# --- regra 1: A ÚNICA ISENÇÃO POR ARQUIVO, e ela é guarda, não descuido -----
-# A linha `origem:` da captura `original` guarda o caminho ABSOLUTO de onde o
-# tema de fábrica foi tirado, e de propósito.
-ORIGEM_DE_FABRICA="assets/temas/capturados/original/captura.txt"
-
 # O ARQUIVO DE REGISTRO, que não é receita de ninguém
 #
 # Cobrar portabilidade de um arquivo cujo trabalho é transcrever o defeito
@@ -71,10 +66,7 @@ _arquivo_de_registro() {
 }
 
 isenta() {
-  local linha="$1" arquivo="$2" t
-  if [ "$arquivo" = "$ORIGEM_DE_FABRICA" ]; then
-    case "$linha" in 'origem: /home/'*'/.config/cosmic') return 0 ;; esac
-  fi
+  local linha="$1" t
   for t in "${ISENTAS[@]}"; do
     case "$linha" in *"$t"*) return 0 ;; esac
   done

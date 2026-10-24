@@ -23,7 +23,7 @@ coisa. Este arquivo cobra a FORMA, com as regras que quem usa deu em 23/10:
   7. PRÉVIA VAZIA: toda `.previa` tem desenho.
   8. ERRO NO CONSOLE, em qualquer página.
 
-Com `--fotos DIR`, guarda cada página em 1829x1029 nos dois packs (Catppuccin e
+Com `--fotos DIR`, guarda cada página em 1829x1029 nos dois packs (MeowSystem e
 Dracula) — os prints da P98, fora do repositório.
 
 A casa é a do `tests/app-completo.py` (HOME temporário, falsos que recusam).
@@ -49,6 +49,8 @@ FOTOS = casa._arg("--fotos")
 # Mais que isto é parágrafo; e o nome de uma opção cabe muito antes.
 TETO_PARAGRAFO = 140
 TETO_FRASE = 48
+# As duas voltas, pelo id do pack: é o nome que vai nas reprovas.
+VOLTAS = (("meowsystem", "mocha", ""), ("dracula", "dracula", "-dracula"))
 
 OLHAR_JS = r"""
 ([tetoFrase, tetoParagrafo, minusculos]) => {
@@ -210,6 +212,10 @@ def trocar_pack(pack, flavor):
 
 
 def main():
+    sem_pack = [p for p, _f, _s in VOLTAS if not os.path.isfile(os.path.join(casa.RAIZ, "packs", p, "pack.json"))]
+    if sem_pack:
+        print("ERRO: volta com nome de pack que não existe: " + ", ".join(sem_pack))
+        return 2
     ambiente = casa.montar_casa()
     proc, url = casa.sobe_servidor(ambiente)
     if not url:
@@ -234,7 +240,7 @@ def main():
                 reprovas.append(("carga", "tela vazia na primeira carga"))
             esperar(pag, 800)
 
-            for pack, flavor, sufixo in (("catppuccin", "mocha", ""), ("dracula", "dracula", "-dracula")):
+            for pack, flavor, sufixo in VOLTAS:
                 if sufixo:
                     trocar_pack(pack, flavor)
                     pag.reload()

@@ -212,6 +212,42 @@ env -i PATH="$GT/bin:$PATH" HOME="$GT/casa" USER=gata MEOW_RAIZ="$RAIZ" MEOW_PON
   && ok "sem cosmic-greeter, a ponte diz que não há e o greeter.sh não chama sudo fora dela" \
   || falha "o greeter.sh chamou sudo fora da ponte, ou não pulou (rc=$rg)" "$(cat "$GT/fora.log" "$GT/saida.log")"
 
+printf '\n--- 10. sem a ponte, nenhum sudo: o caminho vira pendência ---\n'
+# A senha é só do install (decisão 11): sem ponte, o .desktop do sistema, o banco
+# do lançador, o avatar e a tela de login ficam pendentes, sem `sudo`.
+SP="$T/sem-ponte"; mkdir -p "$SP/bin" "$SP/casa" "$SP/sistema" "$SP/greeter" "$SP/contas"
+cat > "$SP/bin/sudo" <<SUDO
+#!/bin/sh
+printf '%s\\n' "\$*" >> "$SP/sudo.log"; exit 1
+SUDO
+printf '#!/bin/sh\nexit 0\n' > "$SP/bin/update-desktop-database"
+printf '[Desktop Entry]\nName=X\n' > "$SP/sistema/x.desktop"; cp "$SP/sistema/x.desktop" "$SP/novo.desktop"; chmod 444 "$SP/sistema/x.desktop"
+printf 'nao-legivel\n' > "$SP/contas/gata"; chmod 000 "$SP/contas/gata"
+cat > "$SP/bin/busctl" <<BUS
+#!/bin/sh
+case "\$*" in
+  *FindUserByName*) echo 'o "/org/freedesktop/Accounts/User1000"' ;;
+  *IconFile*) echo 's "$SP/contas/gata"' ;;
+esac
+exit 0
+BUS
+chmod 755 "$SP/bin/"*; chmod 555 "$SP/sistema"; : > "$SP/sudo.log"
+sp_amb() {
+  env -i PATH="$SP/bin:$PATH" HOME="$SP/casa" USER=gata MEOW_RAIZ="$RAIZ" MEOW_PONTE=/nao/existe \
+    GREETER_HOME="$SP/greeter" NO_COLOR=1 FLAVOR=dracula PACK=dracula "$@"
+}
+sp_amb bash -c '. "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1 || exit 9
+  meow_desktop_pode "$1/sistema/x.desktop"; echo "pode=$?"
+  meow_desktop_escrever "$1/sistema/x.desktop" "$1/novo.desktop"; echo "escrever=$?"
+  meow_desktop_banco "$1/sistema"; echo "banco=$?"' _ "$SP" > "$SP/lib.log" 2>&1
+sp_amb bash "$RAIZ/scripts/greeter.sh" > "$SP/greeter.log" 2>&1; rg=$?
+chmod 755 "$SP/sistema"; chmod 644 "$SP/contas/gata"
+grep -qx 'pode=1' "$SP/lib.log" && ! grep -qx 'escrever=0' "$SP/lib.log" && [ "$rg" != 0 ] \
+  && [ ! -s "$SP/sudo.log" ] \
+  && ok "sem a ponte, o .desktop do sistema, o banco, o avatar e a tela de login ficam pendentes, com zero sudo" \
+  || falha "sem a ponte, houve sudo fora dela, ou algo foi dado por feito (rc greeter=$rg)" \
+       "$(cat "$SP/sudo.log" "$SP/lib.log"; tail -4 "$SP/greeter.log")"
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: os achados técnicos da P79 estão fechados\n'

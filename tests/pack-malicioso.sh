@@ -545,6 +545,61 @@ for caso in vazio xdg; do
   fi
 done
 
+# --- 7b. o mascote e o ponteiro do pack não viram código no meow.conf -----------
+#   A troca de pack grava no meow.conf (que o bash lê com `source`) o mascote de
+#   fábrica e o ponteiro do pack novo, entre aspas duplas.
+MARCA_M="$T/mascote-executou"
+MAL_MASC="$RAIZ_DELA/mal-mascote"
+mkdir -p "$MAL_MASC"
+cp "$RAIZ/packs/dracula/paleta.json" "$MAL_MASC/"
+printf '{"formato": 1, "id": "mal-mascote", "nome": "Mal mascote", "versao": "1.0.0", "autor": "x",\n "licenca": "MIT", "heranca": "dracula",\n "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},\n "mascote": {"dia": "$(touch %s)", "noite": "a\\"b"}}\n' \
+  "$MARCA_M" > "$MAL_MASC/pack.json"
+MAL_PONT="$RAIZ_DELA/mal-ponteiro"
+mkdir -p "$MAL_PONT/cursores/a\"b/cursors"
+cp "$RAIZ/packs/dracula/paleta.json" "$MAL_PONT/"
+: > "$MAL_PONT/cursores/a\"b/cursors/default"
+printf '{"formato": 1, "id": "mal-ponteiro", "nome": "Mal ponteiro", "versao": "1.0.0", "autor": "x",\n "licenca": "MIT", "heranca": "dracula",\n "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},\n "origens": {"cursores": {"proprio": "cursores/a\\"b/"}}}\n' \
+  > "$MAL_PONT/pack.json"
+aceitos=""
+for p in mal-mascote mal-ponteiro; do
+  [ "$(amb python3 "$RAIZ/scripts/pack.py" adocao "$p" "" 2>/dev/null | sed -n 's/^recusado=//p')" = "$p" ] \
+    || aceitos="$aceitos $p"
+done
+[ -z "$aceitos" ] && ok "o validar recusa o pack com mascote ou ponteiro que não é nome, e a adoção não o veste" \
+  || falha "o validar aceitou mascote ou ponteiro que não é nome:$aceitos"
+
+CONF_M="$T/mascote.conf"
+sed -e 's/^PACK="[^"]*"/PACK="mal-mascote"/' -e 's/^FLAVOR="[^"]*"/FLAVOR="dracula"/' \
+  "$RAIZ/meow.conf.exemplo" > "$CONF_M"
+amb python3 "$RAIZ/scripts/migrar_conf.py" "$CONF_M" "$RAIZ/meow.conf.exemplo" \
+  --so-vestigios --pack-de-antes "" "" >/dev/null 2>&1
+# O ralo: um pack que chegasse à troca sem o `validar` (a cadeia de herança, um
+# leitor novo) também não grava. O pack.py fica de verdade; só o que ele diz muda.
+amb python3 -I - "$RAIZ/scripts" "$RAIZ/meow.conf.exemplo" "$T/ralo.conf" "$MARCA_M" <<'PY' 2>/dev/null
+import sys
+sys.path.insert(0, sys.argv[1])
+import migrar_conf as m
+pack = m._pack()
+mascote, ponteiro = pack.mascote_padrao, pack.ponteiro
+pack.mascote_padrao = lambda f, ref=None: f"$(touch {sys.argv[4]})" if ref == "dracula" else mascote(f, ref)
+pack.ponteiro = lambda ref=None: {"valor": 'a"b'} if ref == "dracula" else ponteiro(ref)
+m._pack = lambda: pack
+exemplo = open(sys.argv[2], encoding="utf-8").read()
+conf = exemplo.replace('PACK=""', 'PACK="dracula"', 1)
+texto, _feitas = m.vestigios(conf, exemplo, ("", ""))
+open(sys.argv[3], "w", encoding="utf-8").write(texto)
+PY
+gravado=""
+for c in "$CONF_M" "$T/ralo.conf"; do
+  [ -s "$c" ] || { gravado="$gravado $(basename "$c"): vazio;"; continue; }
+  grep -nE '^(LOGO_DIA|LOGO_NOITE|FASTFETCH_LOGO_GATO|CURSOR)=.*(\$\(|a"b)' "$c" >/dev/null \
+    && gravado="$gravado $(basename "$c"): $(grep -cE '\$\(touch|a"b' "$c") linha(s);"
+  bash -c '. "$1"' _ "$c" >/dev/null 2>&1
+done
+[ -z "$gravado" ] && [ ! -e "$MARCA_M" ] \
+  && ok "o mascote e o ponteiro de um pack não viram código no meow.conf: nada gravado, nada criado" \
+  || falha "o meow.conf recebeu mascote ou ponteiro que não é nome" "${gravado:-o source do meow.conf criou $MARCA_M}"
+
 # --- 8. o desfecho, no disco inteiro do teste ---------------------------------------
 evil="$(find "$T" -name 'mal-evil*' 2>/dev/null)"
 [ -z "$evil" ] && ok "nenhum arquivo com nome de fora (mal-evil*) nasceu em lugar nenhum" \
