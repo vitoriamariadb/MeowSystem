@@ -8,6 +8,18 @@ pra eu pegar um PC virgem e usar tudo lá.» Respostas no mesmo dia:
 - o `meow.conf` dela/dele **vira um perfil no repositório**, que o install usa;
 - as fontes proprietárias (Arial local, Zrnic) **entram no repositório**.
 
+Quem usa, logo depois: «Se tiver questão legal, deixa tudo privado na minha main. Só eu vou usar mesmo.»
+O GitHub não deixa um fork de repositório público virar privado, e a PR #2 da Vitória sai do `master` do fork.
+Então:
+- **`AndreBFarias/MeowSystem-privado`** (repositório novo, PRIVADO, não é fork): o `master` dele tem tudo, fotos,
+  fontes e perfil. É o que o PC virgem clona.
+- O fork público e a PR recebem só o `dev` limpo: nenhum commit desta P102 que traga foto de terceiros, fonte
+  proprietária ou perfil vai para lá.
+- Na máquina, dois branches: `dev` (público) e `master` = `dev` + os commits privados desta P102, por cima.
+  Daqui em diante: trabalho no `dev`, e o `master` recebe o `dev` por merge.
+- O código que sabe ler fotos do pack, perfil e fontes locais é genérico e pode ir no `dev`; os ARQUIVOS (as
+  fotos, as fontes, `perfis/andre/`) e a liberação no `.gitignore` vão só no `master`.
+
 ## O que se mediu (24/10)
 - Ícones, sons, mascotes, temas capturados e as 13 artes SVG do Dracula já estão no git.
 - **Fotos do Dracula**: 17 em `~/.local/share/backgrounds/meowsystem/ativos-pack/` (9,3 MB), do repositório
