@@ -550,7 +550,7 @@ hexadecimais, e a tela que escolhe um pack não tinha o que desenhar. O bloco
 ```json fragmento
 "vitrine": {
   "capa": "logo.svg",
-  "descricao_curta": "O roxo do Dracula, com o mascote do MeowSystem.",
+  "descricao_curta": "O roxo do Dracula, com os morcegos de mascote.",
   "descricao": "LEIA-ME.md",
   "tags": ["escuro", "claro", "roxo", "alto contraste"],
   "capturas": ["capturas/area-de-trabalho.png"],
@@ -608,7 +608,7 @@ No terminal, a vitrine é o alto do `meow pack info`:
 $ meow pack info dracula | head -6
 Dracula  [dracula]  versão 1.0.0 · formato 1
   autor     : MeowSystem · licença GPL-3.0-or-later
-  descrição : O roxo do Dracula, com o mascote do MeowSystem.
+  descrição : O roxo do Dracula, com os morcegos de mascote.
   tags      : escuro, claro, roxo, alto contraste
   origem    : próprio: paleta, ícones de aplicativo, pastas, … · herdado de catppuccin: …
   diretório : …
