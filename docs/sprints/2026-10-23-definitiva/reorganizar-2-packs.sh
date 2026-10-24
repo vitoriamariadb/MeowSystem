@@ -1847,16 +1847,6 @@ if APLICAR:
 "depois": "    # [P96, 23/10/2026: as pastas do pack são planas; a lista do traço diz quais são os glifos do Arcticons.]\n    icones_base = os.path.join(RAIZ, \"packs\", \"meowsystem\", \"icones\")\n    with open(os.path.join(icones_base, \"arcticons.lista\"), encoding=\"utf-8\") as fh:\n        lista = [l.strip() for l in fh if l.strip() and not l.startswith(\"#\")]\n    for nome in sorted(lista):\n        for pasta in (\"apps\", \"biblioteca\", \"sistema\"):\n            origem = os.path.join(icones_base, pasta, nome)\n            if os.path.isfile(origem):\n                shutil.copyfile(origem, os.path.join(tema, nome))\n                break\n"
 },
 {
-"arquivo": "tests/app-navegador.py",
-"antes": "    glifos = os.path.join(RAIZ, \"packs\", \"meowsystem\", \"icones\", \"apps\", \"arcticons\")\n    for nome in sorted(os.listdir(glifos)):\n        if nome.endswith(\".svg\"):\n            shutil.copyfile(os.path.join(glifos, nome), os.path.join(tema, nome))\n",
-"depois": "    # [P96, 23/10/2026: as pastas do pack são planas; a lista do traço diz quais são os glifos do Arcticons.]\n    icones_base = os.path.join(RAIZ, \"packs\", \"meowsystem\", \"icones\")\n    with open(os.path.join(icones_base, \"arcticons.lista\"), encoding=\"utf-8\") as fh:\n        lista = [l.strip() for l in fh if l.strip() and not l.startswith(\"#\")]\n    for nome in sorted(lista):\n        for pasta in (\"apps\", \"biblioteca\", \"sistema\"):\n            origem = os.path.join(icones_base, pasta, nome)\n            if os.path.isfile(origem):\n                shutil.copyfile(origem, os.path.join(tema, nome))\n                break\n"
-},
-{
-"arquivo": "tests/app-uso-real.py",
-"antes": "   *   que a trava continua sendo cobrada.] */\n  const pastas = [...ficha.querySelectorAll('.pasta-acervo')];\n  const vetores = pastas.find((d) => /[:/]feitos-a-mao$/.test(d.dataset.grupo || ''));\n",
-"depois": "   *   que a trava continua sendo cobrada.\n   * [P96, 23/10/2026: a biblioteca é plana; os feitos à mão moram nela, e é a\n   *   pasta dela que se cobra.] */\n  const pastas = [...ficha.querySelectorAll('.pasta-acervo')];\n  const vetores = pastas.find((d) => /[:/](feitos-a-mao|biblioteca)$/.test(d.dataset.grupo || ''));\n"
-},
-{
 "arquivo": "tests/app.sh",
 "antes": "svg_png = open(os.path.join(raiz, \"packs\", \"dracula\", \"icones\", \"biblioteca\", \"feitos-a-mao\",\n                            \"obsidian.svg\"), \"rb\").read()\n",
 "depois": "# [P96, 23/10/2026: a biblioteca é plana e uma versão por ícone; o logo do pack é o SVG estável.]\nsvg_png = open(os.path.join(raiz, \"packs\", \"dracula\", \"logo.svg\"), \"rb\").read()\n"
@@ -2358,8 +2348,8 @@ if APLICAR:
 },
 {
 "arquivo": "tests/restos-do-painel.sh",
-"antes": "                arquivo: \"packs/meowsystem/icones/apps/arcticons/google-chrome.svg\", url: \"/previa?y\" };\n",
-"depois": "                arquivo: \"packs/meowsystem/icones/apps/google-chrome.svg\", url: \"/previa?y\" };\n"
+"antes": "arquivo: \"packs/meowsystem/icones/apps/arcticons/google-chrome.svg\", url: \"/previa?y\" };\n",
+"depois": "arquivo: \"packs/meowsystem/icones/apps/google-chrome.svg\", url: \"/previa?y\" };\n"
 },
 {
 "arquivo": "tests/seletor-do-pack.sh",
