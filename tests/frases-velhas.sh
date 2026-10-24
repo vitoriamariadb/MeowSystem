@@ -9,7 +9,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 command -v python3 >/dev/null 2>&1 || { printf 'FALHOU: sem python3\n' >&2; exit 2; }
 
-printf 'as frases velhas: cinco classes, no repositório inteiro\n\n'
+printf 'as frases velhas: sete classes, no repositório inteiro\n\n'
 
 python3 - "$RAIZ" <<'PY'
 import os
@@ -78,6 +78,13 @@ CLASSES = [
      "cita": True, "onde": ("assets/icones/", "packs/meowsystem/", "packs/dracula/icones/"),
      "gatilho": ("ficaram entre",),
      "padroes": [re.compile(r"\bficaram\s+entre\s+\**\d+,\d+\**\s+e\s+\**\d+,\d+", I)]},
+    {"num": 6, "nome": "a subpasta dentro das três pastas como regra (planas desde a P96)",
+     "cita": True, "onde": None, "gatilho": ("etiqueta", "sufixo ou subpasta"),
+     "padroes": [re.compile(r"\bsubpasta\s+[ée]\s+(?:s[óo]\s+)?etiqueta\b", I),
+                 re.compile(r"\bsufixo\s+ou\s+subpasta\b", I)]},
+    {"num": 7, "nome": "o lançador do COSMIC que não deduplica (medido o contrário na P93)",
+     "cita": True, "onde": ("docs/",), "gatilho": ("deduplica",),
+     "padroes": [re.compile(r"\bn[ãa]o\s+deduplica\b", I)]},
 ]
 
 # ---------------------------------------------------------------------------

@@ -3562,9 +3562,9 @@ EXT_DA_BIBLIOTECA = (".svg", ".png")
 # `tests/acervo-da-ficha.sh` conta o disco contra ESTA função, e o servidor
 # pergunta a ela.
 PASTA_FEITOS_A_MAO = "icones/biblioteca/feitos-a-mao/"
-# Num pack de formato 2 os grupos são as árvores `apps/` e `biblioteca/`, cada
-# subpasta um grupo (a subpasta é etiqueta), e o PNG da mesma pasta num grupo à
-# parte.
+# Num pack de formato 2 os grupos são `apps/` e `biblioteca/` (planas; a subpasta
+# que um pack de antes da P96 ainda tenha vira um grupo), e o PNG da mesma pasta
+# num grupo à parte.
 PASTAS_DA_FICHA = ("icones/apps/", PASTA_BIBLIOTECA)
 ROTULO_DA_PASTA = {"icones/apps": "feitos para apps", "icones/biblioteca": "biblioteca",
                    "arcticons": "traço", "feitos-a-mao": "feitos à mão",
@@ -5652,7 +5652,7 @@ def montar_novo(ident, csv=None):
         f"Moram em três pastas, e só nelas: `icones/apps/` (o desenho ligado a um "
         f"programa, pelo `icones/apps.map`), `icones/sistema/` (pastas, tipos de "
         f"arquivo, status) e `icones/biblioteca/` (o resto, para escolher no painel; "
-        f"subpasta é só etiqueta). O que o pack não traz vem do pack-base do "
+        f"sem subpasta: o flavor vai no nome). O que o pack não traz vem do pack-base do "
         f"MeowSystem.\n\n"
         + f"## O resto\n\n"
         f"Tudo o que o `pack.json` não declara vem do `{pf['id']}`, pela herança, e "
