@@ -371,6 +371,7 @@ for k in 'NOPASSWD' 'HOME temporário' 'troca palavras' '/tmp' 'Senha nunca'; do
   && ok "19: cada pack tem o seu mascote, e o de fábrica do Dracula é o morcego" \
   || falha "19: o mascote não mora no pack, ou o Dracula não tem o morcego de fábrica"
 [ -x "$RAIZ/scripts/terminal_bloco.sh" ] && grep -q 'etapa_bloco_terminal' "$RAIZ/install.sh" \
+  && grep -q '^_excecao_do_zshrc' "$RAIZ/scripts/terminal_bloco.sh" && grep -q 'MEOW_EXCECOES_LOCAIS' "$RAIZ/lib/comum.sh" \
   && grep -q 'terminal_bloco.sh" remover' "$RAIZ/lib/desinstalar.sh" \
   && [ "$(grep -c '^item	spellbook-terminal-' "$RAIZ/assets/contratos/vizinhos.tsv")" = 3 ] \
   && ok "20: o bloco do terminal é do MeowSystem, e o do Spellbook sai pelo vizinhos.tsv" \
@@ -392,6 +393,12 @@ python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["or
   && ! grep -rqs 'catppuccin-apps' "$RAIZ/install.sh" "$RAIZ/bin/meow" "$RAIZ/scripts" \
   && ok "24: as folhas, a pesquisa bruta e a etapa morta saíram" \
   || falha "24: voltou folha, pesquisa bruta ou a etapa do catppuccin-apps"
+printf '%s\n' "$(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$RAIZ/packs/dracula")" | grep -qx "prefixo	cat" \
+  && grep -q 'PACK_ATIVOS=' "$RAIZ/scripts/wallpaper.sh" \
+  && ok "25: o papel de parede de outro pack não gira (o Catppuccin é alheio com o Dracula no ar)" \
+  || falha "25: o wallpaper.sh não separa a coleção do pack no ar"
+grep -q '"$MEOW_RAIZ/scripts/prompt.sh" instalar$' "$RAIZ/install.sh" \
+  && ok "26: o starship desce com o install" || falha "26: a etapa do prompt não instala o starship"
 
 echo
 if [ "$falhas" = 0 ]; then echo "decisoes: tudo certo"; exit 0; fi
