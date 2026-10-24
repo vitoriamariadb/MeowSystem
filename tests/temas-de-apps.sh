@@ -175,7 +175,7 @@ else
   falha "pack: 'app dracula apps.qbittorrent.arquivo' não respondeu pelo dracula" "$saida"
 fi
 saida="$(python3 "$RAIZ/scripts/pack.py" app dracula apps.vscode-icones.esquema 2>&1)"
-if printf '%s' "$saida" | grep -qx 'pack=catppuccin'; then
+if printf '%s' "$saida" | grep -qx 'pack=meowsystem'; then
   ok "pack: o vscode-icones do Dracula é herdado, e o log diz de quem"
 else
   falha "pack: a herança de apps.vscode-icones não apontou para o catppuccin" "$saida"
@@ -255,9 +255,10 @@ fi
 # Um hex escrito num modelo é o flavor `dracula` cravado — o `alucard` sairia
 # com uma cor escura no meio, e nada acusaria.
 MODELO_PY="$RAIZ/scripts/temas-de-apps/modelo.py"
-mapfile -t MODELOS < <(find "$RAIZ/packs" -path '*/apps/*.modelo.*' -type f | sort)
+# [P96, 23/10/2026: o modelo que a paleta preenche inteiro mora no motor, scripts/temas-de-apps/<app>/.]
+mapfile -t MODELOS < <(find "$RAIZ/scripts/temas-de-apps" -name '*.modelo.*' -type f | sort)
 if [ "${#MODELOS[@]}" -eq 0 ]; then
-  falha "nenhum modelo em packs/*/apps/ — os temas de aplicativo da P42 sumiram"
+  falha "nenhum modelo em scripts/temas-de-apps/ — os temas de aplicativo da P42 sumiram"
 fi
 for m in "${MODELOS[@]}"; do
   rel="${m#"$RAIZ"/}"
@@ -267,8 +268,9 @@ for m in "${MODELOS[@]}"; do
   else
     ok "$rel: nenhum hex escrito"
   fi
-  pal="$(dirname "$(dirname "$m")")/paleta.json"
-  pack_id="$(basename "$(dirname "$(dirname "$m")")")"
+  # O modelo é do motor e serve a qualquer pack; o que o declara hoje é o Dracula.
+  pal="$RAIZ/packs/dracula/paleta.json"
+  pack_id="dracula"
   for flavor in $(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["flavors"]))' "$pal"); do
     saida="$(python3 "$MODELO_PY" "$m" "$pal" "$flavor" "$pack_id" 2>&1)"; rc=$?
     if [ "$rc" = 0 ] && ! printf '%s' "$saida" | grep -q '{{'; then
@@ -648,7 +650,7 @@ escrito_ok=0
 grep -qxF 'General\UseCustomUITheme=true' "$QB/qBittorrent.conf" \
   && grep -qxF "General\\CustomUIThemePath=$alvo_qb" "$QB/qBittorrent.conf" \
   && grep -qxF 'General\Locale=pt_BR' "$QB/qBittorrent.conf" && grep -qxF 'Session\Port=6881' "$QB/qBittorrent.conf" \
-  && cmp -s "$alvo_qb" "$RAIZ/packs/dracula/apps/dracula.qbtheme" && escrito_ok=1
+  && cmp -s "$alvo_qb" "$RAIZ/packs/dracula/temas-de-apps/qbittorrent/dracula.qbtheme" && escrito_ok=1
 saida="$saida$(mod qbittorrent aplicar)"; rc1b=$?
 printf '[Preferences]\nGeneral\\CustomUIThemePath=%s/.themes/dela.qbtheme\nGeneral\\UseCustomUITheme=true\n' \
   "$CASA" > "$QB/qBittorrent.conf"
@@ -1157,7 +1159,7 @@ saida="$(mod10 heroic aplicar catppuccin mocha)"; rc=$?
   || faltam+=" heroic (rc=$rc: $saida);"
 mod10 zapzap aplicar catppuccin mocha >/dev/null
 saida="$(mod10 zapzap conferir catppuccin mocha)"; rc=$?
-[ "$rc" = 0 ] && printf '%s' "$saida" | grep -q "como 'WhatsApp' com o ícone Catppuccin" \
+[ "$rc" = 0 ] && printf '%s' "$saida" | grep -q "como 'WhatsApp' com o ícone MeowSystem" \
   || faltam+=" zapzap (rc=$rc: $saida);"
 [ -z "$faltam" ] \
   && ok "P55: com o Catppuccin no ar os quatro vestem o de sempre, e a tela diz o de sempre" \

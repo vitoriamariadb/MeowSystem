@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Dá — e a primeira coisa que o acervo deles serve é de RÉGUA. Os 39 glifos em
-# `packs/meowsystem/icones/apps/arcticons/` foram desenhados à mão por gente, no
+# `packs/meowsystem/icones/apps/` foram desenhados à mão por gente, no
 # MESMO dialeto (grade de 48, `fill:none`, traço, pontas redondas), e estão
 # versionados aqui.
 #
@@ -16,9 +16,8 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONV="$RAIZ/scripts/converter_icone.py"
 ESTILO="$RAIZ/scripts/estilo_icone.py"
-ACERVO="$RAIZ/packs/meowsystem/icones/apps/arcticons"
+ACERVO="$RAIZ/packs/meowsystem/icones/arcticons.lista"   # P96: as pastas são planas; a lista diz o que é Arcticons
 MAPA="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"
-RETOQUES="$RAIZ/packs/meowsystem/icones/apps/convertidos/retoques"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 falhas=0
 ok()   { printf 'ok: %s\n' "$1"; }
@@ -95,7 +94,7 @@ ok "nenhum caminho de namespace do COSMIC crava o v1 — todos passam pelo meow_
 
 command -v python3 >/dev/null || { printf 'pulado: falta python3\n'; exit 0; }
 python3 -c 'import numpy' 2>/dev/null || { printf 'pulado: falta numpy\n'; exit 0; }
-[ -d "$ACERVO" ] || { printf 'pulado: o acervo Arcticons não está aqui\n'; exit 0; }
+[ -f "$ACERVO" ] || { printf 'pulado: o acervo Arcticons não está aqui\n'; exit 0; }
 
 # ---------------------------------------------------------------- a faixa
 python3 "$ESTILO" --faixa "$ACERVO" --json > "$T/faixa.json" 2>"$T/err" \
@@ -113,7 +112,7 @@ alcanca=0
 while IFS=: read -r nome origem cor resto; do
   case "$nome" in ''|\#*) continue;; esac
   [ "$origem" = "mao" ] && continue
-  [ -f "$RETOQUES/$nome.svg" ] && continue
+  case " $resto " in *" retoque "*) continue ;; esac   # P96: o retoque é dito no mapa
   [ -f "$origem" ] || continue
   python3 "$CONV" "$origem" "$T/$nome.svg" >/dev/null 2>&1 || continue
   alcanca=$((alcanca+1))

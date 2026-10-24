@@ -86,7 +86,7 @@ def main():
     # Este script deriva UM flavor claro a partir de outro escuro, e a régua de
     # saturação e luminância é o Latte do Catppuccin — é o que o bloco "A
     # CALIBRAÇÃO VEM DO LATTE" abaixo explica.
-    cat = json.load(open(f"{RAIZ}/packs/catppuccin/paleta.json"))
+    cat = json.load(open(f"{RAIZ}/packs/meowsystem/paleta.json"))
     pack = json.load(open(f"{RAIZ}/packs/dracula/paleta.json"))
     escuro = pack["flavors"]["dracula"]
     latte = cat["flavors"]["latte"]

@@ -333,13 +333,20 @@ def raizes():
 
 
 # O PACK PADRÃO, E ELE É UM PACK COMO OS OUTROS
-PACK_PADRAO = "catppuccin"
+PACK_PADRAO = "meowsystem"
+
+# O Catppuccin entrou no pack `meowsystem` em 23/10/2026 (P96). Um conf, um
+# pack de terceiro (`heranca`) ou uma linha de mapa (`pack:catppuccin:`) escritos
+# antes disso continuam achando o pack, pelo nome de antes.
+APELIDOS = {"catppuccin": "meowsystem"}
 
 
 def achar(ref):
     """Aceita um id ou um caminho. Devolve o diretório do pack, ou None."""
     if os.path.isdir(ref) and os.path.isfile(os.path.join(ref, "pack.json")):
         return os.path.abspath(ref)
+    if ref in APELIDOS and not any(os.path.isfile(os.path.join(b, ref, "pack.json")) for b in raizes()):
+        ref = APELIDOS[ref]
     for base in raizes():
         cand = os.path.join(base, ref)
         if os.path.isfile(os.path.join(cand, "pack.json")):
@@ -650,20 +657,20 @@ MOTOR = "motor:"
 PACK_BASE = "meowsystem"
 ACERVO_DO_MOTOR = os.path.join("packs", PACK_BASE, "icones")
 PASTAS_DE_ANTES = {
-    "arcticons-apps": "apps/arcticons",
-    "convertidos-apps": "apps/convertidos",
-    "arcticons": "sistema/arcticons",
-    "autorais/leitura": "sistema/leitura",
+    "arcticons-apps": "apps",
+    "convertidos-apps": "apps",
+    "arcticons": "sistema",
+    "autorais/leitura": "sistema",
 }
 
 # Uma escolha do painel ou uma linha do `icones-traco.map` gravada antes das
 # três pastas guarda o caminho de então (`assets/icones/resgatados/x.svg`).
 CAMINHOS_DE_ANTES = (
-    ("assets/icones/arcticons-apps/", "packs/meowsystem/icones/apps/arcticons/"),
-    ("assets/icones/convertidos-apps/", "packs/meowsystem/icones/apps/convertidos/"),
+    ("assets/icones/arcticons-apps/", "packs/meowsystem/icones/apps/"),
+    ("assets/icones/convertidos-apps/", "packs/meowsystem/icones/apps/"),
     ("assets/icones/arcticons/", "packs/meowsystem/icones/sistema/arcticons/"),
-    ("assets/icones/autorais/leitura/", "packs/meowsystem/icones/sistema/leitura/"),
-    ("assets/icones/resgatados/", "packs/dracula/icones/apps/resgatados/"),
+    ("assets/icones/autorais/leitura/", "packs/meowsystem/icones/sistema/"),
+    ("assets/icones/resgatados/", "packs/dracula/icones/apps/"),
     ("packs/*/icones/autorais/", "packs/*/icones/apps/autorais/"),
     ("packs/*/icones/feitos-a-mao/", "packs/*/icones/biblioteca/feitos-a-mao/"),
     ("packs/*/icones/pastas/", "packs/*/icones/sistema/pastas/"),
@@ -674,7 +681,7 @@ CAMINHOS_DE_ANTES = (
 # O PADRÃO DE UM PACK DE ANTES. Um pack `formato` 1 que não declara a pasta
 # dos autorais a tem em `icones/autorais/`; o de formato 2, dentro de
 # `apps/`. Quem chama passa o padrão de hoje, e o pack velho recebe o dele.
-PADROES_DE_ANTES = {"icones/apps/autorais/": "icones/autorais/",
+PADROES_DE_ANTES = {"icones/apps/": "icones/autorais/",
                     "icones/biblioteca/feitos-a-mao/": "icones/feitos-a-mao/"}
 
 
@@ -686,8 +693,52 @@ def padrao_do_formato(ref, padrao):
     return padrao
 
 
+TABELA_DE_ANTES = os.path.join(RAIZ, "packs", "CAMINHOS-DE-ANTES.tsv")
+
+
+def _tabela_de_antes():
+    """{caminho de antes da P96: caminho de hoje} — a tabela que o reorganizar-2-packs.sh escreveu."""
+    saida = {}
+    try:
+        with open(TABELA_DE_ANTES, encoding="utf-8") as fh:
+            for linha in fh:
+                if linha.startswith("#") or "\t" not in linha:
+                    continue
+                antes, agora = linha.rstrip("\n").split("\t", 1)
+                saida[antes] = agora
+    except OSError:
+        pass
+    return saida
+
+
 def caminho_de_hoje(caminho):
-    """O caminho de um desenho que mudou de pasta na P88, ou ele mesmo."""
+    """O caminho de um desenho que mudou de pasta (P88, P96), ou ele mesmo."""
+    cheio = caminho if os.path.isabs(caminho) else os.path.join(RAIZ, caminho)
+    if os.path.exists(cheio):
+        return caminho
+    rel = os.path.relpath(cheio, RAIZ) if cheio.startswith(RAIZ + os.sep) else None
+    if rel is None:
+        return caminho
+    for _volta in range(3):
+        rel_p88 = rel
+        for antes, agora in CAMINHOS_DE_ANTES:
+            padrao = "^" + re.escape(antes).replace(r"\*", "([a-z0-9][a-z0-9-]*)")
+            achou = re.match(padrao, rel)
+            if achou:
+                rel = (agora.replace("*", achou.group(1)) if achou.groups() else agora) + rel[achou.end():]
+                break
+        novo = _tabela_de_antes().get(rel)
+        if novo:
+            return novo if not os.path.isabs(caminho) else os.path.join(RAIZ, novo)
+        if rel == rel_p88:
+            break
+    if os.path.exists(os.path.join(RAIZ, rel)):
+        return rel if not os.path.isabs(caminho) else os.path.join(RAIZ, rel)
+    return caminho
+
+
+def _caminho_de_hoje_p88(caminho):
+    """A regra da P88 sozinha (o que o `caminho_de_hoje` fazia até a P96)."""
     cheio = caminho if os.path.isabs(caminho) else os.path.join(RAIZ, caminho)
     if os.path.exists(cheio):
         return caminho
@@ -765,9 +816,27 @@ def resolver_alvo(valor, base):
     # O `_dentro` diz "sai de dentro do pack", que é a frase certa para ele: os
     # cinco campos que ele guarda no `validar` são todos do pack.json.
     try:
-        return _dentro(raiz, resto, "alvo")
+        cheio = _dentro(raiz, resto, "alvo")
     except Recusa:
         raise Recusa(f"{valor!r} sai de {raiz}") from None
+    if not os.path.exists(cheio) and "/" in resto.strip("/"):
+        # P96: as três pastas são planas; `apps/arcticons/x.svg` de um mapa de antes
+        # é o `x.svg` de uma das três, hoje.
+        partes = resto.strip("/").split("/")
+        nome = partes[-1]
+        for pasta in PASTAS_DO_FORMATO:
+            cand = os.path.join(raiz, pasta, nome)
+            if os.path.isfile(cand):
+                try:
+                    return _dentro(raiz, os.path.join(pasta, nome), "alvo")
+                except Recusa:
+                    break
+        if len(partes) > 2 and partes[0] in PASTAS_DO_FORMATO:
+            try:
+                return _dentro(raiz, os.path.join(partes[0], nome), "alvo")   # ausente, no lugar plano
+            except Recusa:
+                pass
+    return cheio
 
 
 def cmd_alvo(base):
@@ -1163,7 +1232,10 @@ MARCA_ACCENT = "<accent>"
 # Para esse pack o `dir_acervo` do gerador e do «Salvar no pack» cai no padrão e
 # ESCREVE em `icones/autorais/`, e o `autorais()` lia só a pasta DECLARADA —
 # então não lia nada ali.
-PASTA_AUTORAIS = "icones/apps/autorais/"
+PASTA_AUTORAIS = "icones/apps/"
+# O rótulo do seletor mora no `catalog.json` de cada uma das três pastas; desde a P96
+# os autorais moram em `apps/`, e o catálogo não é declaração de desenho.
+CATALOGO = "catalog.json"
 LACUNAS_DO_GERADOR = ("titulo",)
 RE_PAPEL = re.compile(r"^[a-z][a-z0-9_]*$")
 RE_LACUNA = re.compile(r"\{([^{}]*)\}")
@@ -1292,7 +1364,7 @@ def autorais(ref=None):
             pasta = ""
         if pasta and os.path.isdir(pasta):
             for arq in sorted(os.listdir(pasta)):
-                if arq.endswith(".json"):
+                if arq.endswith(".json") and arq != CATALOGO:
                     achados.setdefault(arq[:-len(".json")],
                                        (os.path.join(pasta, arq), os.path.basename(dir_pack)))
         ref = campo(ref, "icones.autorais.herda") or campo(ref, "heranca")
@@ -1519,6 +1591,17 @@ def tema_de_app(categoria, ref=None):
                     valor = None
                     break
                 valor = valor[parte]
+            if valor is None and chave == ["arquivo"]:
+                # P96 (23/10/2026): o modelo que a paleta preenche inteiro não é do pack, é do
+                # motor — `scripts/temas-de-apps/<app>/<app>.modelo.*`. O pack declara o
+                # aplicativo (o bloco existe) e o modelo vem daqui.
+                pasta = os.path.join(RAIZ, "scripts", "temas-de-apps", alvo)
+                try:
+                    modelos = sorted(f for f in os.listdir(pasta) if f.startswith(alvo + ".modelo."))
+                except OSError:
+                    modelos = []
+                if modelos:
+                    return quem, os.path.join(pasta, modelos[0])
             if valor is None:
                 return None, None
             if chave == ["arquivo"]:
@@ -1911,6 +1994,8 @@ def tema_de_icones(ref=None, flavor=""):
     nome = str(campo(ref, "nome", ident) or ident) if dir_pack else ident
     flavor = (flavor or (campo(ref, "paleta.flavor_padrao", "") if dir_pack else "") or "").strip()
     partes = ["MeowSystem", _so_letras(nome) or _so_letras(ident) or "Pack"]
+    if partes[1].lower() == "meowsystem":
+        partes = ["MeowSystem"]          # o pack padrão leva o nome do produto (P96): sem «MeowSystem-MeowSystem»
     if flavor and flavor.lower() != ident.lower() and _so_letras(flavor):
         partes.append(_so_letras(flavor)[:1].upper() + _so_letras(flavor)[1:])
     frase = str(campo(ref, "vitrine.descricao_curta", "") or "").strip() if dir_pack else ""
@@ -3091,7 +3176,7 @@ def validar(ref, silencioso=False):
     pasta_aut = dir_acervo("icones.autorais.desenhos", ref=dir_pack, padrao=PASTA_AUTORAIS)
     if os.path.isdir(pasta_aut):
         for arq in sorted(os.listdir(pasta_aut)):
-            if arq.endswith(".json"):
+            if arq.endswith(".json") and arq != CATALOGO:
                 ler_autoral(os.path.join(pasta_aut, arq))
 
     if (p.get("cosmic") or {}).get("mapa"):
@@ -3357,6 +3442,15 @@ def _tres_pastas(p, dir_pack):
             f"icones/: {', '.join(a_mais)} — no formato {p['formato']} o ícone mora em\n"
             f"    apps/ (ligado a um programa), sistema/ (pasta, tipo de arquivo, status)\n"
             f"    ou biblioteca/ (o resto, para escolher). Mova a pasta para dentro de uma delas.")
+    # P96 (23/10/2026): as três são planas. Flavor e origem são sufixo no nome e linha no
+    # PROCEDENCIA.md, nunca subpasta.
+    dentro = sorted(f"{t}/{d}" for t in PASTAS_DO_FORMATO if os.path.isdir(os.path.join(pasta, t))
+                    for d in os.listdir(os.path.join(pasta, t))
+                    if os.path.isdir(os.path.join(pasta, t, d)))
+    _exigir(not dentro,
+            f"icones/: {', '.join(dentro)} — as três pastas não têm subpasta. O flavor vai no\n"
+            f"    nome (`desenho-mocha.svg`) e a origem no PROCEDENCIA.md; ponha os arquivos direto\n"
+            f"    em apps/, sistema/ ou biblioteca/.")
 
 
 def _validar_base(p, dir_pack, silencioso):
@@ -3405,7 +3499,29 @@ def _contar_acervo(ref, categoria, flavors):
         return "", ""
     svgs = []
     for base, _dirs, arquivos in os.walk(dir_acv):
-        svgs += [a for a in arquivos if a.endswith(".svg")]
+        svgs += [os.path.join(base, a) for a in arquivos if a.endswith(".svg")]
+    # P96: as três pastas são planas e as categorias dividem a pasta; cada uma conta o que é dela.
+    cat = categoria.rsplit(".", 1)[-1]
+    if cat == "mimetypes":
+        def do_molde(c):
+            try:
+                with open(c, encoding="utf-8") as fh:
+                    return bool(RE_VAR_CTP.search(fh.read()))
+            except (OSError, UnicodeDecodeError):
+                return False
+        svgs = [c for c in svgs if do_molde(c)]
+    elif cat == "autorais":
+        svgs = [c for c in svgs if any(os.path.basename(c).endswith(f"-{f}.svg") for f in flavors)]
+    elif cat == "pastas":
+        mapa = acervo(categoria + ".mapa", ref=ref)
+        if mapa and os.path.isfile(mapa):
+            glifos = set()
+            for linha in open(mapa, encoding="utf-8"):
+                linha = linha.split("#", 1)[0].strip()
+                if ":" in linha:
+                    glifos.add(linha.split(":", 1)[1].strip() + ".svg")
+            svgs = [c for c in svgs if os.path.basename(c) in glifos]
+    svgs = [os.path.basename(c) for c in svgs]
     # Os autorais nascem como `<nome>-<flavor>.svg`.
     achados = {f for f in flavors for a in svgs if a.endswith(f"-{f}.svg")}
     quantos = f"{len(svgs):,} desenho(s)".replace(",", ".")
@@ -3517,6 +3633,8 @@ def acervos_de_icone(no_ar=""):
                 flavor = next((f for f in flavors if miolo.endswith("-" + f)), "")
                 por_flavor.setdefault(flavor, []).append(arq)
             for flavor in sorted(por_flavor):
+                if not flavor and os.path.realpath(pasta_aut) == os.path.realpath(os.path.join(dir_pack, "icones", "apps")):
+                    continue        # P96: em apps/ plana, autoral é só o que tem o flavor no nome
                 grupo("pack:%s:autorais:%s" % (pid, flavor or "-"), nome_pack,
                       "autorais · %s" % flavor if flavor else "autorais", pid, "desenho",
                       pasta_aut, por_flavor[flavor])
@@ -3583,7 +3701,13 @@ def _grupos_das_tres_pastas(grupo, pid, nome_pack, dir_pack, aut):
                 or ROTULO_DA_PASTA.get(os.path.dirname(rel_raiz), rel_raiz)
             gid = "pack:%s:%s" % (pid, "/".join(rel.split(os.sep)[1:]))
             tipo = "traco" if traco and rel_raiz == "icones/apps/" else "desenho"
-            grupo(gid, nome_pack, nome, pid, tipo, dirpath, _arquivos_da_pasta(dirpath, ".svg"))
+            svgs = _arquivos_da_pasta(dirpath, ".svg")
+            if real_aut and os.path.realpath(dirpath) == os.path.realpath(real_aut):
+                # P96: os autorais moram em apps/ (plana); eles têm o grupo deles, por flavor
+                flavors = _flavors_do_pack(dir_pack)
+                svgs = [a for a in svgs
+                        if not any(os.path.basename(a)[:-4].endswith("-" + f) for f in flavors)]
+            grupo(gid, nome_pack, nome, pid, tipo, dirpath, svgs)
             # O PNG que ainda não virou vetor é visto e travado, num grupo à
             # parte da mesma pasta (raster não é fonte; ver o `feitos-a-mao-png`).
             grupo(gid + ":png", nome_pack, nome + " (PNG)", pid, "png", dirpath,
@@ -3782,6 +3906,10 @@ def resumo_de_origem(p):
     for cat, tipo, quem in origens(p):
         if tipo == "fixo":
             continue
+        # O molde dos tipos de arquivo é desenho do motor (P96): a forma vem do pack-base e a cor da
+        # paleta do pack — dizê-lo «do motor» é o certo, e a linha do Dracula cabe nos 220.
+        if tipo == "herdado" and quem == PACK_BASE and cat == "icones.mimetypes":
+            tipo = "motor"
         chave = {"próprio": "próprio", "herdado": f"herdado de {quem}",
                  "motor": "do motor, ou ausente"}[tipo]
         grupos.setdefault(chave, []).append(ROTULO_DA_CATEGORIA[cat])
@@ -4009,19 +4137,95 @@ def _mimetypes_de(ident, p, dados):
     base = acervo("icones.mimetypes.desenhos", ref=ident)
     if not base or not os.path.isdir(base):
         return None
-    dono = _pack_de(base)
-    if dono == ident:
-        p_dono, dados_dono = p, dados
-    else:
-        p_dono, dados_dono, _d = validar(dono, silencioso=True)
+    # P96 (23/10/2026): o acervo é UM molde (`var(--vscode-ctp-<papel>)`), e a instalação o
+    # pinta com a paleta do pack no ar. Todo flavor da paleta dele existe, então; o dono das
+    # cores é o próprio pack.
     return {
         "base": base,
-        "dono": dono,
-        "p_dono": p_dono,
-        "dados_dono": dados_dono,
-        "existem": [f for f in dados_dono["flavors"] if os.path.isdir(os.path.join(base, f))],
-        "escolhido": campo(ident, "icones.mimetypes.flavor") if dono != ident else None,
+        "dono": ident,
+        "p_dono": p,
+        "dados_dono": dados,
+        "existem": list(dados["flavors"]),
+        "escolhido": None,
     }
+
+
+def _cores_do_flavor(ref, flavor):
+    """As 26 cores de `flavor`: da paleta do pack, ou da primeira da herança que o tem."""
+    vistos, r = set(), ref
+    while r and r not in vistos:
+        vistos.add(r)
+        try:
+            _p, dados, _d = validar(r, silencioso=True)
+        except Recusa:
+            break
+        if flavor in dados["flavors"]:
+            return dados["flavors"][flavor]
+        r = campo(r, "icones.mimetypes.herda") or campo(r, "heranca")
+    if ref != PACK_BASE:
+        try:
+            _p, dados, _d = validar(PACK_BASE, silencioso=True)
+            return dados["flavors"].get(flavor)
+        except Recusa:
+            return None
+    return None
+
+
+def dir_de_pintados(ident, flavor):
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    return os.path.join(base, "meowsystem", "pintados", f"{ident}-{flavor}")
+
+
+def pintar_mimetypes(ref, flavor, temporario=False):
+    """O molde de mimetype pintado no `flavor`: o diretório, refeito do pack a cada chamada.
+
+    O molde mora no pack (é a fonte); o pintado é derivado e mora no cache, como o tema
+    instalado. Só se escreve o arquivo cujo conteúdo mudou, e sai o que deixou o molde.
+    Levanta Recusa quando o flavor não existe em paleta nenhuma da cadeia.
+    """
+    import tempfile
+    p, _dados, dir_pack = validar(_ref_ativa(ref), silencioso=True)
+    ident = p.get("id", os.path.basename(dir_pack))
+    if not RE_FLAVOR_CONF.match(str(flavor or "")):
+        raise Recusa(f"o flavor {flavor!r} não é um nome aceito")
+    molde = acervo("icones.mimetypes.desenhos", ref=dir_pack)
+    if not molde or not os.path.isdir(molde):
+        raise Recusa("a cadeia deste pack não tem molde de tipo de arquivo")
+    cores = _cores_do_flavor(dir_pack, flavor)
+    if not cores:
+        raise Recusa(f"nenhuma paleta da cadeia tem o flavor {flavor!r}")
+    dentro = os.path.realpath(molde) + os.sep
+    desenhos = sorted(f for f in os.listdir(molde) if f.endswith(".svg")
+                      and os.path.isfile(os.path.join(molde, f)) and not os.path.islink(os.path.join(molde, f))
+                      and os.path.realpath(os.path.join(molde, f)).startswith(dentro))
+    destino = tempfile.mkdtemp(prefix="meow-pintados-") if temporario else dir_de_pintados(ident, flavor)
+    os.makedirs(destino, exist_ok=True)
+    for nome in desenhos:
+        with open(os.path.join(molde, nome), encoding="utf-8") as fh:
+            texto = fh.read()
+        if not RE_VAR_CTP.search(texto):
+            continue                     # não é desenho do molde (um glifo de traço, uma pasta)
+        faltou = sorted({m for m in RE_VAR_CTP.findall(texto) if m not in cores})
+        if faltou:
+            raise Recusa(f"{nome}: a paleta {flavor!r} não tem {', '.join(faltou)}")
+        novo = RE_VAR_CTP.sub(lambda m: cores[m.group(1)].lower(), texto)
+        alvo = os.path.join(destino, nome)
+        try:
+            with open(alvo, encoding="utf-8") as fh:
+                if fh.read() == novo:
+                    continue
+        except OSError:
+            pass
+        fd, tmp = tempfile.mkstemp(dir=destino, prefix=".meow-")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(novo)
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, alvo)
+    vivos = set(desenhos)
+    for nome in os.listdir(destino):
+        if nome.endswith(".svg") and nome not in vivos:
+            os.remove(os.path.join(destino, nome))
+    return destino
 
 
 def flavor_de_icones(ref, pedido, flavor):
@@ -4207,7 +4411,8 @@ def cmd_construir(ref, seco=False):
     # Os ícones de arquivo derivados vêm antes dos autorais: não dependem de
     # gerador de fora, e um pack pode declarar só eles.
     if derivar:
-        derivar_mimetypes(ident, seco=seco)
+        # P96: o pintado não mora mais no pack; a instalação pinta do molde (`pintar_mimetypes`)
+        print(f"  --   {ident}: icones.mimetypes.derivar não escreve mais no pack — a instalação pinta o molde")
     if not gerar:
         print(f"  ok   {ident}: construído")
         return OK
@@ -4806,9 +5011,11 @@ def ler_meowpack(caminho):
 # Um `.meowpack` de formato 1 traz as pastas que cada pack inventava
 # (`autorais/`, `pastas/`, `feitos-a-mao/`…). A arte não muda um byte.
 PASTAS_DO_FORMATO = ("apps", "sistema", "biblioteca")
-PASTA_DE_ANTES_POR_NOME = {"autorais": "apps/autorais", "resgatados": "apps/resgatados",
-                           "feitos-a-mao": "biblioteca/feitos-a-mao",
-                           "pastas": "sistema/pastas", "mimetypes": "sistema/mimetypes"}
+# P96 (23/10/2026): as três pastas são planas — o que vinha de uma pasta de antes cai direto
+# na pasta dela, sem subpasta (o flavor de um acervo de tipo de arquivo vira sufixo no nome).
+PASTA_DE_ANTES_POR_NOME = {"autorais": "apps", "resgatados": "apps",
+                           "feitos-a-mao": "biblioteca",
+                           "pastas": "sistema", "mimetypes": "sistema"}
 PASTA_DA_CATEGORIA = {"apps": "apps", "autorais": "apps", "resgatados": "apps",
                       "pastas": "sistema", "mimetypes": "sistema"}
 
@@ -4819,7 +5026,11 @@ def para_tres_pastas(ident, membros):
         p = json.loads(membros.get("pack.json", b"{}").decode("utf-8"))
     except (UnicodeDecodeError, ValueError):
         return membros          # o `validar` diz o porquê, com a linha
-    if not isinstance(p, dict) or not isinstance(p.get("formato"), int) or p["formato"] >= 2:
+    if not isinstance(p, dict) or not isinstance(p.get("formato"), int):
+        return membros
+    com_subpasta = any(len(r.split("/")) > 3 and r.split("/")[0] == "icones" and r.split("/")[1] in PASTAS_DO_FORMATO
+                       for r in membros)
+    if p["formato"] >= 2 and not com_subpasta:
         return membros
     ic = p.get("icones") if isinstance(p.get("icones"), dict) else {}
     declarada = {}
@@ -4834,13 +5045,27 @@ def para_tres_pastas(ident, membros):
         if len(partes) > 2 and partes[0] == "icones" and partes[1] not in PASTAS_DO_FORMATO:
             d = partes[1]
             troca[d] = PASTA_DE_ANTES_POR_NOME.get(d) or (
-                "%s/%s" % (PASTA_DA_CATEGORIA[declarada[d]], d)
-                if declarada.get(d) in PASTA_DA_CATEGORIA else "biblioteca/%s" % d)
+                PASTA_DA_CATEGORIA[declarada[d]] if declarada.get(d) in PASTA_DA_CATEGORIA else "biblioteca")
+
+    # a subpasta DENTRO de uma das três (um pack da P88: apps/autorais, sistema/pastas…) também some
+    for t in PASTAS_DO_FORMATO:
+        troca.setdefault(t, t)
 
     def novo(caminho, prefixo="icones/"):
+        """O caminho de hoje: a pasta de antes vira uma das três, PLANA (o arquivo direto nela)."""
         for d, para in troca.items():
-            if caminho == prefixo + d or caminho.startswith(prefixo + d + "/"):
-                return prefixo + para + caminho[len(prefixo + d):]
+            if caminho == prefixo + d or caminho.rstrip("/") == prefixo + d:
+                return prefixo + para + ("/" if caminho.endswith("/") else "")
+            if caminho.startswith(prefixo + d + "/"):
+                resto = caminho[len(prefixo + d) + 1:]
+                if not resto or resto.endswith("/"):
+                    return prefixo + para + "/"
+                miolo = resto.split("/")
+                nome = miolo[-1]
+                if len(miolo) > 1 and miolo[-2] != "css-variables" and (d == "mimetypes" or "mimetypes" in miolo[:-1]):
+                    base, ext = os.path.splitext(nome)
+                    nome = "%s-%s%s" % (base, miolo[-2], ext)   # o flavor do tipo de arquivo vira sufixo
+                return prefixo + para + "/" + nome
         return caminho
 
     saida = {novo(rel): dado for rel, dado in membros.items()}
@@ -5828,6 +6053,11 @@ def main(argv):
             if not achado:
                 return RECUSADO
             print(achado)
+            return OK
+        if verbo == "pintados" and len(argv) in (4, 5):
+            # `--temporario`: pinta numa pasta nova do TMPDIR (quem só confere não escreve na casa)
+            temporario = len(argv) == 5 and argv[4] == "--temporario"
+            print(pintar_mimetypes(argv[2] or None, argv[3], temporario=temporario))
             return OK
         if verbo == "construir" and len(argv) in (3, 4):
             # O `--seco` é a mesma promessa do `MEOW_DRY_RUN` do lado shell: diz

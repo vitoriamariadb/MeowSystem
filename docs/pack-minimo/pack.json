@@ -22,7 +22,7 @@
     },
     "pastas": {
       "mapa": "icones/pastas.map",
-      "desenhos": "icones/sistema/pastas/"
+      "desenhos": "icones/sistema/"
     }
   }
 }

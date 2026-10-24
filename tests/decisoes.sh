@@ -42,6 +42,8 @@ sys.path.insert(0, sys.argv[1])
 import pack
 caso = sys.argv[2]
 grupos = lambda no_ar="": pack.acervos_de_icone(no_ar)
+_tab = os.path.join(os.path.dirname(sys.argv[1]), "packs", "CAMINHOS-DE-ANTES.tsv")
+antes_png = [l.split("\t", 1)[0] for l in open(_tab, encoding="utf-8")] if os.path.exists(_tab) else []
 def stems(pid):
     return {os.path.basename(a) for g in grupos() if g["pack"] == pid for a in g["arquivos"]}
 if caso == "base":
@@ -50,18 +52,30 @@ if caso == "base":
     print("atras=%s" % (len(b.get("por_tras", [])) == 1 and "de2a8edd" in b["por_tras"][0]["url"]))
 elif caso == "vetores":
     tem = stems("dracula")
+    # P96 (23/10/2026): uma versão por ícone. O vetor feito à mão que quem usa trocou por outra
+    # versão (a do manuais-final) saiu POR ESCOLHA, e a tabela de antes diz isso; sumir sem linha
+    # na tabela é o que esta conta caça.
+    antes = {}
+    tab = os.path.join(os.path.dirname(sys.argv[1]), "packs", "CAMINHOS-DE-ANTES.tsv")
+    if os.path.exists(tab):
+        for l in open(tab, encoding="utf-8"):
+            if "\t" in l and not l.startswith("#"):
+                k, v = l.rstrip("\n").split("\t", 1)
+                antes[k] = v
     for n in sys.argv[3:]:
-        if n + ".svg" not in tem:
+        if n + ".svg" not in tem and "packs/dracula/icones/biblioteca/feitos-a-mao/%s.svg" % n not in antes:
             print("falta=" + n)
     sem_vetor = sorted(os.path.splitext(os.path.basename(a))[0] for g in grupos()
                        if g["pack"] == "dracula" and g["tipo"] == "png"
-                       # versoes/ e projetos/ guardam todas as versões, PNG inclusive (decisão 13 do 02-decisoes.md)
-                       and not g["id"].startswith(("pack:dracula:biblioteca/versoes", "pack:dracula:biblioteca/projetos"))
                        for a in g["arquivos"]
-                       if os.path.splitext(os.path.basename(a))[0] + ".svg" not in tem)
+                       if os.path.splitext(os.path.basename(a))[0] + ".svg" not in tem
+                       # o PNG que quem usa escolheu guardar (projeto dela, versão) não é feito à mão à espera
+                       # do vetor: a origem dele está na tabela de antes (P96)
+                       and not any(k.endswith("/" + os.path.basename(a)) and ("/projetos/" in k or "/versoes/" in k)
+                                   for k in antes_png))
     print("png_sem_vetor=" + ",".join(sem_vetor))
 elif caso == "seletor":
-    for no_ar in ("dracula", "catppuccin"):
+    for no_ar in ("dracula", "meowsystem"):
         g = grupos(no_ar)
         print("%s:packs=%s" % (no_ar, ",".join(sorted({x["pack"] for x in g if x["pack"]}))))
         print("%s:primeiro=%s:%s" % (no_ar, g[0]["pack"], g[0]["no_ar"]))
@@ -95,8 +109,8 @@ grep -q '^falta=' <<< "$r" && falha "vetor dos feitos à mão que sumiu do pack 
 echo "== D3. o seletor mostra o acervo de todos os packs, o pack no ar primeiro"
 r="$(resolvedor seletor 2>&1)"
 bom=1
-for no_ar in dracula catppuccin; do
-  grep -qx "$no_ar:packs=catppuccin,dracula,meowsystem" <<< "$r" || bom=0
+for no_ar in dracula meowsystem; do
+  grep -qx "$no_ar:packs=dracula,meowsystem" <<< "$r" || bom=0
   grep -qx "$no_ar:primeiro=$no_ar:True" <<< "$r" || bom=0
   grep -qx "$no_ar:motor=True" <<< "$r" || bom=0
 done
@@ -276,7 +290,7 @@ PY
 C12="$CASA/.config/meow/meow.conf"
 conf "$C12" 'PACK="dracula"' 'FLAVOR="dracula"' 'CURSOR="Dracula-Cursor"'
 env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 XDG_CONFIG_HOME="$CASA/.config" \
-    XDG_STATE_HOME="$CASA/.local/state" "$RAIZ/bin/meow" pack usar catppuccin --sem-aplicar >/dev/null 2>&1
+    XDG_STATE_HOME="$CASA/.local/state" "$RAIZ/bin/meow" pack usar meowsystem --sem-aplicar >/dev/null 2>&1
 [ "$(grep -E '^CURSOR=' "$C12" | tail -n1)" = 'CURSOR="catppuccin-mocha-light"' ] \
   && ok "Dracula -> Catppuccin: o ponteiro vira o do pack novo" || falha "o ponteiro não acompanhou o pack: $(grep -E '^CURSOR=' "$C12" | tail -n1)"
 
@@ -285,6 +299,23 @@ registro 13 'Joga tudo pro pack' && registro 13 'Tudo entra no pack' && ok "13: 
 registro 14 'Três pastas por pack' && ok "14: três pastas por pack" || falha "a decisão 14 saiu do registro"
 registro 15 'se atualiza sozinho' && ok "15: o derivado se atualiza sozinho" || falha "a decisão 15 saiu do registro"
 registro 16 'Os achados da varredura' && ok "16: os achados da varredura" || falha "a decisão 16 saiu do registro"
+# P96 (23/10/2026): as linhas trocadas com o sim de quem usa, e o código que as lê
+registro 13 'Os projetos pessoais entram no Dracula' && registro 13 'Uma versão por ícone' \
+  && ok "13: uma versão por ícone, e os projetos pessoais entram no Dracula (sim de 23/10)" \
+  || falha "a decisão 13 não diz a troca de 23/10"
+registro 16 'sim explícito de 23/10' \
+  && ok "16 (3): o Citrix veste o desenho escolhido em 23/10, com o sim citado" \
+  || falha "a decisão 16 (3) não diz o sim de 23/10 sobre o Citrix"
+for n in Ubuntu-selfservice Ubuntu-wfica Ubuntu-receiver; do
+  a="$(python3 "$RAIZ/scripts/pack.py" fonte "$n" dracula 2>/dev/null | cut -f2)"
+  [ -n "$a" ] && [ -f "$RAIZ/$a" ] && cmp -s "$RAIZ/$a" "$RAIZ/packs/dracula/icones/apps/Ubuntu-selfservice.svg" \
+    || { falha "16 (3): $n não veste o desenho do Citrix escolhido em 23/10 ($a)"; continue; }
+done
+ok "16 (3): os nomes do Citrix vestem o mesmo desenho, o escolhido em 23/10"
+for n in com.beholder.app elden-ring-tracker protocolo-ouroboros; do
+  python3 "$RAIZ/scripts/pack.py" fonte "$n" dracula >/dev/null 2>&1 \
+    && ok "13: $n veste o desenho dele no Dracula" || falha "13: $n não veste desenho no Dracula"
+done
 registro 17 'AGENTS.md' && ok "17: o AGENTS.md é exceção do sanitizador" || falha "a decisão 17 saiu do registro"
 r="$(resolvedor autorais 2>&1)"
 [ "$r" = "proibidos=" ] && ok "P82·16: hefesto e fogstripper fora dos autorais dos packs" || falha "projeto pessoal nos autorais: $r"

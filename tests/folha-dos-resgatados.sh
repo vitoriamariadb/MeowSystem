@@ -20,8 +20,8 @@ raiz() {   # raiz <dir> — o script, o lib/ e um acervo com os SVG de três par
   mkdir -p "$1/scripts" "$1/packs/dracula/icones/apps/resgatados"
   cp "$RAIZ/scripts/resgatados_folha.sh" "$1/scripts/"
   cp -a "$RAIZ/lib" "$1/"
-  for n in luna sigilo discord; do
-    cp "$RAIZ/packs/dracula/icones/apps/resgatados/$n.svg" "$1/packs/dracula/icones/apps/resgatados/" || exit 2
+  for n in luna sigilo pdfforge; do
+    cp "$RAIZ/packs/dracula/icones/apps/$n.svg" "$1/packs/dracula/icones/apps/" || exit 2
   done
 }
 mapa() {   # mapa <dir> <nome>... — o mapa com os pares nesta ordem, PNG em $T/png
@@ -44,8 +44,8 @@ iguais() {   # iguais <a> <b> — o mesmo tamanho e os mesmos pixels
 }
 
 mkdir -p "$T/png" "$T/casa"
-png luna "#FF5555"; png sigilo "#50FA7B"; png discord "#8BE9FD"
-R="$T/raiz"; raiz "$R"; mapa "$R" luna sigilo discord
+png luna "#FF5555"; png sigilo "#50FA7B"; png pdfforge "#8BE9FD"
+R="$T/raiz"; raiz "$R"; mapa "$R" luna sigilo pdfforge
 F="$T/folha.png"
 
 # --- 1. com os três PNG, a folha nasce --------------------------------------
@@ -56,7 +56,7 @@ folha "$R" "$F"
 cp "$F" "$T/completa.png"
 
 # --- 2. sem dois PNG, a folha continua a mesma ------------------------------
-mkdir -p "$T/png-fora"; mv "$T/png/luna.png" "$T/png/discord.png" "$T/png-fora/"
+mkdir -p "$T/png-fora"; mv "$T/png/luna.png" "$T/png/pdfforge.png" "$T/png-fora/"
 folha "$R" "$F"
 if [ "$(rc)" = "0" ] && cmp -s "$F" "$T/completa.png" && grep -q 'a folha já é esta' "$T/tela"; then
   ok "sem o PNG de dois pares, a folha refeita é a mesma, pixel a pixel, e não é regravada"
@@ -67,14 +67,14 @@ else
 fi
 
 # --- 3. o desenho de um par sem PNG muda: a direita anda, a esquerda fica ---
-cp "$RAIZ/packs/dracula/icones/apps/resgatados/extase-em-4r73.svg" "$R/packs/dracula/icones/apps/resgatados/luna.svg"
+cp "$RAIZ/packs/dracula/icones/apps/extase-em-4r73.svg" "$R/packs/dracula/icones/apps/luna.svg"
 folha "$R" "$F"
 #   A régua: a folha que o script monta com os PNG no disco e o desenho novo.
-R2="$T/raiz2"; raiz "$R2"; mapa "$R2" luna sigilo discord
-cp "$R/packs/dracula/icones/apps/resgatados/luna.svg" "$R2/packs/dracula/icones/apps/resgatados/"
+R2="$T/raiz2"; raiz "$R2"; mapa "$R2" luna sigilo pdfforge
+cp "$R/packs/dracula/icones/apps/luna.svg" "$R2/packs/dracula/icones/apps/"
 cp "$T/png-fora/"*.png "$T/png/"
 folha "$R2" "$T/regua.png"
-mv "$T/png/luna.png" "$T/png/discord.png" "$T/png-fora/"
+mv "$T/png/luna.png" "$T/png/pdfforge.png" "$T/png-fora/"
 if ! iguais "$T/completa.png" "$F" && iguais "$F" "$T/regua.png"; then
   ok "com o desenho de um par sem PNG trocado, a direita dele muda e a esquerda fica a da folha de antes"
 else
@@ -84,13 +84,13 @@ fi
 
 # --- 4. a folha muda de forma com PNG faltando: não escreve, e diz ----------
 cp "$F" "$T/antes-da-ordem.png"
-mapa "$R" discord sigilo luna
+mapa "$R" pdfforge sigilo luna
 folha "$R" "$F"
 [ "$(rc)" = "3" ] && cmp -s "$F" "$T/antes-da-ordem.png" \
-  && grep -q 'a folha fica a de antes' "$T/tela" && grep -q 'discord' "$T/tela" && grep -q 'luna' "$T/tela" \
+  && grep -q 'a folha fica a de antes' "$T/tela" && grep -q 'pdfforge' "$T/tela" && grep -q 'luna' "$T/tela" \
   && ok "com o mapa em outra ordem e PNG faltando, o script sai 3, não escreve, e diz quais pares" \
   || falha "o script refez uma folha que ele não sabia costurar (rc=$(rc))" "$(cat "$T/tela")"
-mapa "$R" luna sigilo discord
+mapa "$R" luna sigilo pdfforge
 
 # --- 5. sem folha no caminho, a moldura vazia vale --------------------------
 folha "$R" "$T/nova.png"

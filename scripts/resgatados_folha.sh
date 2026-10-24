@@ -17,7 +17,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ACERVO="$RAIZ/packs/dracula/icones/apps/resgatados"
+ACERVO="$RAIZ/packs/dracula/icones/apps"
 MAPA="$RAIZ/packs/dracula/icones/apps-resgatados.map"
 SAIDA="${1:-$RAIZ/assets/icones/resgatados-antes-e-depois.png}"
 

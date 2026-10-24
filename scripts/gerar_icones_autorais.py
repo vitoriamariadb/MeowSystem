@@ -122,7 +122,7 @@ PALETA = Path(pack.paleta_do_pack_ativo())
 # paleta do Dracula declara os dois — mas ninguém rodava o gerador com a paleta
 # do Dracula porque o destino era o mesmo monte para todo mundo.
 DESTINO = Path(pack.dir_acervo("icones.autorais.desenhos",
-                               padrao="icones/apps/autorais/"))
+                               padrao="icones/apps/"))
 
 # Papel -> (nome Catppuccin em flavor escuro, nome em flavor claro).
 #

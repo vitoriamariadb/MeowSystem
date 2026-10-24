@@ -82,16 +82,22 @@ saida="$(guarda "$T/up-torto")"
 # As sete desenham a pasta em dois tons, as costas e a frente — os dois
 # primeiros `<path>` de cada uma, a mesma silhueta nas sete —, e eles eram
 # #433F4D e #534B62, fora da paleta do Dracula.
-achado="$(python3 - "$RAIZ/packs/dracula" "$RAIZ/packs/dracula/icones/apps/resgatados/org.gnome.Nautilus.svg" <<'PY'
+achado="$(python3 - "$RAIZ/packs/dracula" "$RAIZ/packs/dracula/icones/apps/org.gnome.Nautilus.svg" <<'PY'
 import glob, json, os, re, sys
 pack, resgate = sys.argv[1], sys.argv[2]
 with open(os.path.join(pack, "paleta.json"), encoding="utf-8") as fh:
     dra = json.load(fh)["flavors"]["dracula"]
 quer = [dra["surface0"].upper(), dra["surface1"].upper()]
 erros, vistos = [], 0
-for svg in sorted(glob.glob(os.path.join(pack, "icones", "sistema", "pastas", "*.svg"))) + [resgate]:
+# [P96, 23/10/2026: o `folder.svg` e o Nautilus são a arte do manuais-final, que quem usa mandou
+#  vestir como veio («eles corrigem tudo»): o corpo deles é o que ela desenhou, e a régua da paleta
+#  vale para as outras oito.]
+DO_MANUAIS = {"folder.svg", "org.gnome.Nautilus.svg"}
+for svg in sorted(glob.glob(os.path.join(pack, "icones", "sistema", "*.svg"))) + [resgate]:
     vistos += 1
     nome = os.path.basename(svg)
+    if nome in DO_MANUAIS:
+        continue
     with open(svg, encoding="utf-8") as fh:
         texto = fh.read()
     # O `fill` dos dois primeiros `<path>`, na ordem do arquivo. Por texto, e
@@ -109,7 +115,7 @@ if vistos != 11:
     erros.append("eram dez desenhos em icones/pastas/ e o resgate, e são %d" % vistos)
 with open(os.path.join(pack, "PROCEDENCIA.md"), encoding="utf-8") as fh:
     proc = fh.read()
-linha = next((l for l in proc.splitlines() if l.startswith("| `icones/sistema/pastas/*.svg`")), "")
+linha = next((l for l in proc.splitlines() if l.startswith("| `icones/sistema/*.svg`")), "")
 if "aberturas do castelo" not in linha:
     erros.append("o PROCEDENCIA.md não conta as aberturas do castelo, que mudaram com a frente: %r" % linha[-160:])
 if "resgatados/org.gnome.Nautilus.svg" not in proc:
@@ -134,11 +140,11 @@ mkdir -p "$LUGAR"
 for n in documents download music pictures publicshare templates videos; do
   printf '<svg><path style="fill:#CAD3F5"/></svg>' > "$LUGAR/folder-$n.svg"
 done
-N_PASTAS="$(find "$RAIZ/packs/dracula/icones/sistema/pastas" -maxdepth 1 -name '*.svg' | wc -l)"
+N_PASTAS="$(find "$RAIZ/packs/dracula/icones/sistema" -maxdepth 1 -name '*.svg' | wc -l)"
 aplicou="$(xdg "$T/casa-xdg" dracula dracula --aplicar)"
 conferiu="$(xdg "$T/casa-xdg" dracula dracula --conferir)"; rc=$?
 postos=0
-for d in "$RAIZ/packs/dracula/icones/sistema/pastas/"*.svg; do
+for d in "$RAIZ/packs/dracula/icones/sistema/"*.svg; do
   [ "$(cat "$d")" = "$(cat "$LUGAR/$(basename "$d")" 2>/dev/null)" ] && postos=$((postos + 1))
 done
 if [ "$postos" = "$N_PASTAS" ] && [ "$N_PASTAS" = 10 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
@@ -257,7 +263,7 @@ achado="$(python3 - "$RAIZ" "$UP" "$T" "$CASA_CAT" <<'PY'
 import json, os, re, sys
 raiz, up, t, casa_mocha = sys.argv[1:5]
 HEX = re.compile(r"#[0-9A-Fa-f]{6}")
-with open(os.path.join(raiz, "packs", "catppuccin", "paleta.json"), encoding="utf-8") as fh:
+with open(os.path.join(raiz, "packs", "meowsystem", "paleta.json"), encoding="utf-8") as fh:
     cat = json.load(fh)["flavors"]
 erros, tons = [], {}
 for fl in ("latte", "frappe", "macchiato", "mocha"):
@@ -319,7 +325,7 @@ def paleta(pack):
         return json.load(fh)["flavors"]
 
 
-cat, dra = paleta("catppuccin"), paleta("dracula")["dracula"]
+cat, dra = paleta("meowsystem"), paleta("dracula")["dracula"]
 # Os hex do Catppuccin: os 26 slots dos quatro flavors e as 56 sombras do
 # upstream, lidas do disco (o hex de cada combinação que não é slot dela).
 proibidos = {h.upper() for f in cat.values() for h in f.values()}
@@ -405,7 +411,7 @@ def rgb(h):
     return [int(h[i:i + 2], 16) for i in (1, 3, 5)]
 
 
-latte, alu = paleta("catppuccin")["latte"], paleta("dracula")["alucard"]
+latte, alu = paleta("meowsystem")["latte"], paleta("dracula")["alucard"]
 slot = {v.upper(): s for s, v in latte.items()}
 erros = []
 for tam in ("22x22", "24x24", "32x32", "48x48", "64x64"):
@@ -444,7 +450,7 @@ fi
 sed -n '/^_derivar_py() {/,/^}/p' "$RAIZ/scripts/construir_pastas.sh" > "$T/derivar.sh"
 # shellcheck source=/dev/null
 . "$T/derivar.sh"
-PAL_CAT="$RAIZ/packs/catppuccin/paleta.json"
+PAL_CAT="$RAIZ/packs/meowsystem/paleta.json"
 parados="" origens=""
 for fl in latte frappe macchiato mocha; do
   for ac in rosewater flamingo pink mauve red maroon peach yellow green teal sky sapphire blue lavender; do

@@ -195,8 +195,8 @@ r = {}
 m._json = lambda d, c=200: r.update(d=d, c=c)
 falhou = 0
 for corpo in ({"app": "um-navegador", "arquivo": "packs/dracula/icones/biblioteca/alien.svg"},
-              {"app": "um-chat", "arquivo": "packs/dracula/icones/apps/resgatados/discord.svg"},
-              {"app": "um-editor", "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg",
+              {"app": "um-chat", "arquivo": "packs/dracula/icones/apps/steam.svg"},
+              {"app": "um-editor", "arquivo": "packs/meowsystem/icones/apps/firefox.svg",
                "glifo": "firefox", "cor": "mauve"}):
     r.clear()
     m._api_app_icone(corpo)
@@ -285,7 +285,7 @@ else
 fi
 # O que a versão de antes gravava no clone volta ao que era (o teste não deixa resto).
 git -C "$RAIZ" checkout -q -- packs/meowsystem/icones/apps-convertidos.map 2>/dev/null
-rm -f "$RAIZ/packs/meowsystem/icones/apps/convertidos/um-desenho.svg" "$RAIZ/packs/meowsystem/icones/apps/convertidos/retoques/um-desenho.svg"
+rm -f "$RAIZ/packs/meowsystem/icones/apps/um-desenho.svg" "$RAIZ/packs/meowsystem/icones/apps/um-desenho.svg"
 
 # As seções 1 a 3 exercitam UM caminho de escrita: o `wallpaper.sh`. O
 # `tests/seletor-do-pack.sh` cobra essa mesma rota, mas numa CÓPIA da árvore —

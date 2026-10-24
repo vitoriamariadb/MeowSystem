@@ -58,20 +58,22 @@ _passos_de() {
   case "$1" in
     */logo.svg)                                printf 'completar\n' ;;
     */icones/apps.map)                         printf 'dracula\napps\narcticons\n' ;;
-    */icones/apps-resgatados.map|*/icones/apps/resgatados/*) printf 'resgatados\narcticons\n' ;;
-    */icones/apps-arcticons.map|*/icones/apps-convertidos.map|*/icones/apps-marca.map \
-      |*/icones/apps/arcticons/*|*/icones/apps/convertidos/*) printf 'arcticons\n' ;;
+    */icones/apps-resgatados.map)              printf 'resgatados\narcticons\n' ;;
+    */icones/apps-arcticons.map|*/icones/apps-convertidos.map|*/icones/apps-marca.map) printf 'arcticons\n' ;;
     */icones/apps-hicolor.map)                 printf 'completar\n' ;;
-    */icones/apps/autorais/*)                  printf 'completar\n' ;;
     */icones/sistema.map)                      printf 'sistema\n' ;;
     */icones/bandeja.map)                      printf 'bandeja\n' ;;
-    */icones/sistema/arcticons/*)              printf 'sistema\nbandeja\narcticons\n' ;;
-    */icones/pastas.map|*/icones/sistema/pastas/*) printf 'pastas\n' ;;
-    */icones/mimetypes.map|*/icones/sistema/mimetypes/*) printf 'mimetypes\n' ;;
-    */icones/sistema/leitura/*)                : ;;
+    */icones/pastas.map)                       printf 'pastas\n' ;;
+    */icones/mimetypes.map)                    printf 'mimetypes\n' ;;
+    # P96: as três pastas são planas, e um arquivo de `apps/` pode ser desenho de app, resgate,
+    # traço, convertido ou autoral; um de `sistema/`, molde de tipo de arquivo, pasta ou glifo.
+    # Refazer os passos da pasta inteira custa uma passada; errar o passo deixa o tema velho.
+    */icones/sistema/leitura-*)                : ;;
+    */icones/apps/*)                           printf 'dracula\nresgatados\narcticons\ncompletar\n' ;;
+    */icones/sistema/*)                        printf 'sistema\nbandeja\npastas\nmimetypes\n' ;;
     # Uma linha do `apps.map` pode apontar para a biblioteca, e a escolha do
     # painel para qualquer desenho de `apps/` ou dela.
-    */icones/apps/*|*/icones/biblioteca/*)     printf 'dracula\narcticons\n' ;;
+    */icones/biblioteca/*)                     printf 'dracula\narcticons\n' ;;
   esac
 }
 

@@ -1,11 +1,581 @@
 {
-  "net.waterfox.waterfox.svg": {
-    "descricao": "Firefox do dracula-icons (circle) — Firefox/Waterfox",
-    "nome": "net.waterfox.waterfox",
+  "bag.svg": {
+    "cores_dominantes": [
+      "#fff",
+      "#ef7064",
+      "#e0554a",
+      "#7c49a8",
+      "#282942"
+    ],
+    "descricao": "bolsa",
+    "nome": "bag",
     "tags": [
-      "navegador",
-      "firefox",
-      "waterfox"
+      "objetos_ferramentas"
+    ],
+    "tamanho_bytes": 4922
+  },
+  "broom.svg": {
+    "cores_dominantes": [
+      "#e2bd55",
+      "#6a6577",
+      "#393a59",
+      "#f9d368",
+      "#e0554a"
+    ],
+    "descricao": "vassoura",
+    "nome": "broom",
+    "tags": [
+      "objetos_ferramentas"
+    ],
+    "tamanho_bytes": 4531
+  },
+  "cat.svg": {
+    "cores_dominantes": [
+      "#012d4e",
+      "#607882",
+      "#f57e00",
+      "#fda800",
+      "#463b83"
+    ],
+    "descricao": "gato",
+    "nome": "cat",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 8234
+  },
+  "com.spotify.Client.svg": {
+    "descricao": "logo do Spotify",
+    "nome": "com.spotify.Client",
+    "tags": [
+      "musica",
+      "spotify"
+    ]
+  },
+  "com.system76.Popsicle.svg": {
+    "cores_dominantes": [
+      "#fff5f5",
+      "#463b83",
+      "#804ba1",
+      "#b0dde9",
+      "#85be7f"
+    ],
+    "descricao": "pirulito",
+    "nome": "com.system76.Popsicle",
+    "tags": [
+      "halloween_doces"
+    ],
+    "tamanho_bytes": 5352
+  },
+  "extase-em-4r73.svg": {
+    "descricao": "Êxtase · extase-em-4r73 (15/09/2026)",
+    "nome": "extase-em-4r73",
+    "tags": [
+      "projeto",
+      "extase",
+      "dela"
+    ]
+  },
+  "eye-ball.svg": {
+    "cores_dominantes": [
+      "#e41e7f",
+      "#fd3581",
+      "#fff",
+      "#f9f3f1",
+      "#dff6fd"
+    ],
+    "descricao": "globo ocular",
+    "nome": "eye-ball",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 4492
+  },
+  "foundryvtt.svg": {
+    "cores_dominantes": [
+      "#574d70",
+      "#d6dfe8",
+      "#b6c5d3",
+      "#eaf1f9",
+      "#3ac184"
+    ],
+    "descricao": "dados",
+    "nome": "foundryvtt",
+    "tags": [
+      "jogos"
+    ],
+    "tamanho_bytes": 5315
+  },
+  "full-moon.svg": {
+    "cores_dominantes": [
+      "#012d4e",
+      "#463b83",
+      "#3691bb",
+      "#b0dde9",
+      "#fded32"
+    ],
+    "descricao": "lua cheia",
+    "nome": "full-moon",
+    "tags": [
+      "espaco_scifi"
+    ],
+    "tamanho_bytes": 3476
+  },
+  "gate.svg": {
+    "cores_dominantes": [
+      "#ff9518",
+      "#231f20",
+      "#1a2b63",
+      "#ffc987",
+      "#efb06c"
+    ],
+    "descricao": "portão",
+    "nome": "gate",
+    "tags": [
+      "objetos_ferramentas"
+    ],
+    "tamanho_bytes": 12344
+  },
+  "gerenciador-de-extensoes.svg": {
+    "descricao": "Gerenciador de extensões",
+    "tags": [
+      "extensões",
+      "gnome"
+    ]
+  },
+  "graveyard-variant.svg": {
+    "cores_dominantes": [
+      "#7f4223",
+      "#665364",
+      "#bec8f7",
+      "#543e5b",
+      "#b5b5b5"
+    ],
+    "descricao": "cemitério (variação)",
+    "nome": "graveyard-variant",
+    "tags": [
+      "gotico"
+    ],
+    "tamanho_bytes": 9948
+  },
+  "guvcview.svg": {
+    "cores_dominantes": [
+      "#393a59",
+      "#26a6af",
+      "#9ce2ae",
+      "#33b5c6",
+      "#4fcae0"
+    ],
+    "descricao": "webcam (guvcview)",
+    "nome": "guvcview",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 5428
+  },
+  "halloween.svg": {
+    "cores_dominantes": [
+      "#ffd00d",
+      "#ffaf10",
+      "#db722c",
+      "#333031",
+      "#fff"
+    ],
+    "descricao": "halloween",
+    "nome": "halloween",
+    "tags": [
+      "halloween_doces"
+    ],
+    "tamanho_bytes": 10335
+  },
+  "haunted-house.svg": {
+    "cores_dominantes": [
+      "#012d4e",
+      "#f5c02c",
+      "#e659a9",
+      "#fded32",
+      "#463b83"
+    ],
+    "descricao": "casa mal-assombrada",
+    "nome": "haunted-house",
+    "tags": [
+      "gotico"
+    ],
+    "tamanho_bytes": 7489
+  },
+  "hourglass.svg": {
+    "cores_dominantes": [
+      "#964f32",
+      "#ba623e",
+      "#804096",
+      "#632e6e",
+      "#d27347"
+    ],
+    "descricao": "ampulheta",
+    "nome": "hourglass",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 2959
+  },
+  "io.github.cosmic_utils.camera.svg": {
+    "descricao": "câmera do COSMIC",
+    "nome": "io.github.cosmic_utils.camera",
+    "tags": [
+      "camera",
+      "foto",
+      "webcam"
+    ]
+  },
+  "io.github.dvlv.boxbuddyrs.svg": {
+    "cores_dominantes": [
+      "#e6a0fa",
+      "#ba623e",
+      "#964f32",
+      "#ffe473",
+      "#ffcd61"
+    ],
+    "descricao": "baú (variação)",
+    "nome": "io.github.dvlv.boxbuddyrs",
+    "tags": [
+      "objetos_ferramentas"
+    ],
+    "tamanho_bytes": 2699
+  },
+  "io.github.flattool.Warehouse.svg": {
+    "cores_dominantes": [
+      "#3ac184",
+      "#31af7d",
+      "#574d70",
+      "#3fc0dd",
+      "#ed55a9"
+    ],
+    "descricao": "edifício",
+    "nome": "io.github.flattool.Warehouse",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 3637
+  },
+  "io.gitlab.theevilskeleton.Upscaler.svg": {
+    "cores_dominantes": [
+      "#b9e9fd",
+      "#e0f9fe",
+      "#83d3fc",
+      "#5294e5",
+      "#61b6ff"
+    ],
+    "descricao": "telescópio",
+    "nome": "io.gitlab.theevilskeleton.Upscaler",
+    "tags": [
+      "espaco_scifi"
+    ],
+    "tamanho_bytes": 9302
+  },
+  "key.svg": {
+    "cores_dominantes": [
+      "#ba623e",
+      "#ffef87",
+      "#edc555",
+      "#964f32",
+      "#783823"
+    ],
+    "descricao": "chave",
+    "nome": "key",
+    "tags": [
+      "objetos_ferramentas"
+    ],
+    "tamanho_bytes": 5882
+  },
+  "laurel.svg": {
+    "cores_dominantes": [
+      "#69d173",
+      "#7cdd83",
+      "#55b160",
+      "#603256",
+      "#49a552"
+    ],
+    "descricao": "coroa de louros",
+    "nome": "laurel",
+    "tags": [
+      "mitologia"
+    ],
+    "tamanho_bytes": 13805
+  },
+  "magician-hat.svg": {
+    "cores_dominantes": [
+      "#52c3a3",
+      "#daf0f6",
+      "#bee5eb",
+      "#abd6dc",
+      "#384e64"
+    ],
+    "descricao": "cartola mágica",
+    "nome": "magician-hat",
+    "tags": [
+      "fantasia_magia"
+    ],
+    "tamanho_bytes": 2743
+  },
+  "md.obsidian.Obsidian.svg": {
+    "cores_dominantes": [
+      "#804096",
+      "#ad61c8",
+      "#d587eb"
+    ],
+    "descricao": "círculo",
+    "nome": "md.obsidian.Obsidian",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 3880
+  },
+  "menulibre.svg": {
+    "cores_dominantes": [
+      "#c9993f",
+      "#e3b64b",
+      "#ffe473",
+      "#ba623e",
+      "#bc8835"
+    ],
+    "descricao": "pergaminho",
+    "nome": "menulibre",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 3172
+  },
+  "mnemo.svg": {
+    "descricao": "Mnemo · vetor (21/09/2026)",
+    "nome": "mnemo",
+    "tags": [
+      "projeto",
+      "mnemo",
+      "dela"
+    ]
+  },
+  "opera.svg": {
+    "descricao": "opera · versão de 15/10/2026",
+    "nome": "opera",
+    "tags": [
+      "versão",
+      "antiga",
+      "opera"
+    ]
+  },
+  "org.kde.krita.svg": {
+    "cores_dominantes": [
+      "#384e64",
+      "#ff8f50",
+      "#ffc37d",
+      "#f5d869",
+      "#ffef87"
+    ],
+    "descricao": "varinha (variação)",
+    "nome": "org.kde.krita",
+    "tags": [
+      "fantasia_magia"
+    ],
+    "tamanho_bytes": 3855
+  },
+  "org.onlyoffice.desktopeditors.svg": {
+    "cores_dominantes": [
+      "#abd6dc",
+      "#fa877a",
+      "#964f32",
+      "#783823",
+      "#edc555"
+    ],
+    "descricao": "livro",
+    "nome": "org.onlyoffice.desktopeditors",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 3169
+  },
+  "org.qbittorrent.qBittorrent.svg": {
+    "cores_dominantes": [
+      "#fff",
+      "#ffc987",
+      "#c6c4c6",
+      "#b7092b",
+      "#a00026"
+    ],
+    "descricao": "pirata",
+    "nome": "org.qbittorrent.qBittorrent",
+    "tags": [
+      "utilitarios_conceitos"
+    ],
+    "tamanho_bytes": 12551
+  },
+  "photogimp.svg": {
+    "descricao": "photogimp · rascunho da oficina de 15/09/2026",
+    "nome": "photogimp",
+    "tags": [
+      "versão",
+      "antiga",
+      "photogimp",
+      "gimp"
+    ]
+  },
+  "rlogo_icon.svg": {
+    "cores_dominantes": [
+      "#964f32",
+      "#ba623e",
+      "#ffe473",
+      "#daf0f6",
+      "#d27347"
+    ],
+    "descricao": "livro de feitiços",
+    "nome": "rlogo_icon",
+    "tags": [
+      "fantasia_magia"
+    ],
+    "tamanho_bytes": 2547
+  },
+  "saw.svg": {
+    "cores_dominantes": [
+      "#c174dc",
+      "#ad61c8",
+      "#daf0f6",
+      "#d587eb",
+      "#40718c"
+    ],
+    "descricao": "serra",
+    "nome": "saw",
+    "tags": [
+      "objetos_ferramentas"
+    ],
+    "tamanho_bytes": 3898
+  },
+  "setup-mozc.svg": {
+    "cores_dominantes": [
+      "#632e6e",
+      "#daf0f6",
+      "#804096",
+      "#bee5eb",
+      "#d587eb"
+    ],
+    "descricao": "tarô",
+    "nome": "setup-mozc",
+    "tags": [
+      "fantasia_magia"
+    ],
+    "tamanho_bytes": 3116
+  },
+  "spell.svg": {
+    "cores_dominantes": [
+      "#ff8f50",
+      "#964f32",
+      "#ffc37d",
+      "#ff9f5a",
+      "#fff9c8"
+    ],
+    "descricao": "feitiço",
+    "nome": "spell",
+    "tags": [
+      "fantasia_magia"
+    ],
+    "tamanho_bytes": 7735
+  },
+  "spellbook.svg": {
+    "cores_dominantes": [
+      "#ef7064",
+      "#393a59",
+      "#f9d368",
+      "#ededed",
+      "#33b5c6"
+    ],
+    "descricao": "grimório",
+    "nome": "spellbook",
+    "tags": [
+      "fantasia_magia"
+    ],
+    "tamanho_bytes": 3692
+  },
+  "spider-web.svg": {
+    "cores_dominantes": [
+      "#393a59",
+      "#8adeef",
+      "#f9d368",
+      "#33b5c6",
+      "#ededed"
+    ],
+    "descricao": "teia de aranha",
+    "nome": "spider-web",
+    "tags": [
+      "gotico"
+    ],
+    "tamanho_bytes": 7563
+  },
+  "sun.svg": {
+    "cores_dominantes": [
+      "#fbb362",
+      "#fc9949",
+      "#fadda0",
+      "#00c82f",
+      "#b9e9fd"
+    ],
+    "descricao": "sol",
+    "nome": "sun",
+    "tags": [
+      "espaco_scifi"
+    ],
+    "tamanho_bytes": 10556
+  },
+  "syncthing-candidato-v4.svg": {
+    "descricao": "syncthing-candidato-v4 · última gravação de 16/09/2026",
+    "nome": "syncthing-candidato-v4",
+    "tags": [
+      "versão",
+      "antiga",
+      "syncthing-candidato-v4"
+    ]
+  },
+  "toolbox.svg": {
+    "cores_dominantes": [
+      "#bee5eb",
+      "#daf0f6",
+      "#b1dce0",
+      "#484e55",
+      "#40718c"
+    ],
+    "descricao": "caixa de ferramentas",
+    "nome": "toolbox",
+    "tags": [
+      "objetos_ferramentas"
+    ],
+    "tamanho_bytes": 2817
+  },
+  "treasure-chest.svg": {
+    "cores_dominantes": [
+      "#ffcd61",
+      "#ffe473",
+      "#ba623e",
+      "#f4be53",
+      "#484e55"
+    ],
+    "descricao": "baú de tesouro",
+    "nome": "treasure-chest",
+    "tags": [
+      "objetos_ferramentas"
+    ],
+    "tamanho_bytes": 3005
+  },
+  "visualizador-de-imagens.svg": {
+    "descricao": "Visualizador de imagens",
+    "tags": [
+      "imagens",
+      "fotos"
+    ]
+  },
+  "weylus.svg": {
+    "descricao": "weylus · última gravação de 16/10/2026",
+    "nome": "weylus",
+    "tags": [
+      "versão",
+      "antiga",
+      "weylus"
     ]
   }
 }

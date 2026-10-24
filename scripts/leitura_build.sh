@@ -107,10 +107,10 @@ EOF
 # Um campo só para os quatro: o sha dos shas, na ordem do `ARTE` abaixo, que é a
 # mesma ordem em que o `main.rs` os embute.
 ARTE=(
-  "$RAIZ/packs/meowsystem/icones/sistema/leitura/r2.svg"
-  "$RAIZ/packs/meowsystem/icones/sistema/leitura/s3.svg"
-  "$RAIZ/packs/meowsystem/icones/sistema/leitura/r1.svg"
-  "$RAIZ/packs/meowsystem/icones/sistema/leitura/r6.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura-r2.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura-s3.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura-r1.svg"
+  "$RAIZ/packs/meowsystem/icones/sistema/leitura-r6.svg"
 )
 
 _sha_arte() {

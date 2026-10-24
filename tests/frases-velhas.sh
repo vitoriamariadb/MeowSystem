@@ -344,7 +344,7 @@ else:
             hoje = nomes_do_mapa(fh.read())
         mudaram = sorted(antes ^ hoje)
         for nome in sorted(antes & hoje):
-            svg = "packs/dracula/icones/apps/resgatados/%s.svg" % nome
+            svg = "packs/dracula/icones/apps/%s.svg" % nome
             era = (git("rev-parse", "--verify", "-q", "%s:%s" % (commit, svg)).stdout.strip()
                    or git("rev-parse", "--verify", "-q",
                           "%s:assets/icones/resgatados/%s.svg" % (commit, nome)).stdout.strip())

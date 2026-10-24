@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # construir_convertidos.sh — GERA o acervo
-# `packs/meowsystem/icones/apps/convertidos/`: os ícones do lançador que nós
+# `packs/meowsystem/icones/apps/`: os ícones do lançador que nós
 # convertemos de CHAPADO para TRAÇO, no dialeto do Arcticons.
 #
 # Ele NÃO instala nada.
@@ -16,8 +16,11 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 CONVERSOR="$RAIZ/scripts/converter_icone.py"
 MAPA="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"
-DESTINO="$RAIZ/packs/meowsystem/icones/apps/convertidos"
-RETOQUES="$DESTINO/retoques"
+# P96 (23/10/2026): as três pastas do pack são planas. O convertido e o retoque moram juntos em
+# `apps/`; quem diz que um nome é retoque (desenho à mão, que o conversor nunca sobrescreve) é a
+# palavra `retoque` no 4º campo do mapa, ou a origem `mao`.
+DESTINO="$RAIZ/packs/meowsystem/icones/apps"
+RETOQUES="$DESTINO"
 MAPA_USUARIO="${MEOW_ICONES_CONVERTIDOS:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-convertidos.map}"
 DESTINO_USUARIO="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/convertidos-apps"
 RETOQUES_USUARIO="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/retoques"
@@ -27,6 +30,7 @@ declare -A DO_PROJETO=() # nome -> 1 para toda linha do mapa do projeto (a varre
 declare -A ORIGEM=()     # nome do .desktop -> arquivo chapado de origem
 declare -A ARGS=()       # nome -> parâmetros extras do conversor (ou vazio)
 declare -A MAO=()        # nome -> 1 quando a linha declara `mao` (sem origem)
+declare -A RETOQUE=()    # nome -> 1 quando o 4º campo traz a palavra `retoque` (P96)
 
 # Um registro separado, com a pergunta certa, e o modo de falha não volta.
 declare -A CONHECIDO=()  # nome -> 1 para toda linha do mapa, com origem ou sem
@@ -57,6 +61,10 @@ _ler_mapa() {
     CONHECIDO["$nome"]=1
     ORIGEM["$nome"]="$origem"
     ARGS["$nome"]="${extra:-}"
+    case " ${extra:-} " in
+      *" retoque "*) RETOQUE["$nome"]=1
+                     ARGS["$nome"]="$(printf '%s' " ${extra:-} " | sed -e 's/ retoque / /g' -e 's/^ *//' -e 's/ *$//')" ;;
+    esac
     if [ "${dono:-}" = usuario ]; then
       DO_USUARIO["$nome"]=1
       # A linha de quem usa troca a do projeto inteira: um `mao` de lá não
@@ -107,7 +115,7 @@ _desejado_de() {
   local nome="$1" saida
   local origem="${ORIGEM[$nome]}" retoques
   retoques="$(_retoques_de "$nome")"
-  if [ -f "$retoques/$nome.svg" ]; then
+  if [ -f "$retoques/$nome.svg" ] && { [ -n "${DO_USUARIO[$nome]:-}" ] || [ -n "${RETOQUE[$nome]:-}" ] || [ -n "${MAO[$nome]:-}" ]; }; then
     cat "$retoques/$nome.svg"
     return "$MEOW_OK"
   fi
@@ -172,15 +180,9 @@ _conferir() {
     fi
   done
 
-  # O órfão é contado por dono (P82): o do projeto saiu do mapa do projeto, o
-  # de quem usa saiu do dela.
-  if [ -d "$DESTINO" ]; then
-    for arq in "$DESTINO"/*.svg; do
-      [ -e "$arq" ] || continue
-      nome="$(basename "$arq" .svg)"
-      [ -n "${DO_PROJETO[$nome]:-}" ] || { orfaos=$((orfaos + 1)); n_orfaos+=("$nome"); }
-    done
-  fi
+  # O órfão é contado por dono (P82): o de quem usa saiu do mapa dela. A `apps/`
+  # do pack é plana e guarda também o traço e os autorais, que não são deste
+  # mapa: ela não tem órfão a contar, como o `_aplicar` não tem a varrer (P96).
   if [ -d "$DESTINO_USUARIO" ]; then
     for arq in "$DESTINO_USUARIO"/*.svg; do
       [ -e "$arq" ] || continue
@@ -251,13 +253,15 @@ _aplicar() {
   done
 
   # Órfão: estava no mapa ontem, não está hoje. Removível porque o dono é único —
-  # `packs/meowsystem/icones/apps/convertidos/` nasce aqui e nenhum outro script escreve nele.
+  # `packs/meowsystem/icones/apps/` nasce aqui e nenhum outro script escreve nele.
   # O subdiretório `retoques/` NÃO é varrido: é escrito à mão, e o glob `*.svg`
   # não desce em subdiretório.
   # [P82: por dono — o do projeto contra o mapa do projeto, o de quem usa
   #   contra o dela.]
   local pasta conhecidos
-  for pasta in "$DESTINO" "$DESTINO_USUARIO"; do
+  # A varredura de órfão é só na casa: a `apps/` do pack é plana e guarda também o traço e os
+  # autorais, que não são deste mapa (P96).
+  for pasta in "$DESTINO_USUARIO"; do
     [ "$SO_MAO" != "1" ] && [ -d "$pasta" ] || continue
     for arq in "$pasta"/*.svg; do
       [ -e "$arq" ] || continue

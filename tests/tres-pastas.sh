@@ -26,31 +26,38 @@ amb() {
 pack_py() { amb python3 "$RAIZ/scripts/pack.py" "$@"; }
 
 # --- 1. os três packs do repositório ----------------------------------------
-for id in meowsystem dracula catppuccin; do
+# [P96, 23/10/2026: dois packs, `meowsystem` (o padrão, com o Catppuccin dentro) e `dracula`; as
+#  três pastas são planas.]
+for id in meowsystem dracula; do
   saida="$(pack_py validar "$id" 2>&1)"; rc=$?
   dirs="$(find "$RAIZ/packs/$id/icones" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | paste -sd,)"
-  if [ "$rc" = "0" ] && [[ "$saida" == *"formato 2"* ]] \
+  sub="$(find "$RAIZ/packs/$id/icones" -mindepth 2 -type d | head -3)"
+  if [ "$rc" = "0" ] && [[ "$saida" == *"formato 2"* ]] && [ -z "$sub" ] \
      && [[ "$dirs" =~ ^(apps|biblioteca|sistema)(,(apps|biblioteca|sistema))*$ ]]; then
-    ok "o pack $id valida no formato 2, e o icones/ dele tem só $dirs"
+    ok "o pack $id valida no formato 2, e o icones/ dele tem só $dirs, sem subpasta"
   else
-    falha "o pack $id não está no formato de três pastas (rc=$rc, pastas: $dirs)" "$saida"
+    falha "o pack $id não está no formato de três pastas planas (rc=$rc, pastas: $dirs, subpastas: $sub)" "$saida"
   fi
 done
-# Pelo git, e não pelo disco: o `upstream/` baixado mora ali, fora do índice.
+[ ! -e "$RAIZ/packs/catppuccin" ] && [ "$(find "$RAIZ/packs" -mindepth 1 -maxdepth 1 -type d | wc -l)" = 2 ] \
+  && ok "packs/ tem dois packs, e o Catppuccin mora no meowsystem" \
+  || falha "packs/ não tem só os dois packs" "$(ls "$RAIZ/packs")"
 sobra="$(git -C "$RAIZ" ls-files assets/icones 2>/dev/null | grep '\.svg$' | grep -v '/previa-arcticons/')"
 [ -z "$sobra" ] \
   && ok "assets/icones/ não guarda mais desenho do motor (só a prévia das folhas e os originais de fábrica)" \
   || falha "sobrou desenho do motor em assets/icones/" "$(head <<<"$sobra")"
 
-# --- 2. o pack-base não se veste ----------------------------------------------
+# O PACK PADRÃO SE VESTE (P96): ele é o meowsystem, com a paleta do Catppuccin, e o nome de antes
+#   ainda o acha — um conf ou uma herança escritos antes de 23/10 não perdem o pack.
 saida="$(pack_py caminho meowsystem id 2>&1)"; rc=$?
-[ "$rc" != "0" ] && [[ "$saida" == *"pack-base"* ]] \
-  && ok "a porta do motor recusa o pack-base, e diz por quê" \
-  || falha "o pack-base passou pela porta do motor (rc=$rc)" "$saida"
-saida="$(pack_py adocao meowsystem "" 2>&1)"
-[[ "$saida" == *"pack=catppuccin"* && "$saida" == *"recusado=meowsystem"* ]] \
-  && ok "PACK=meowsystem veste o padrão: o pack-base não é tema" \
-  || falha "o pack-base foi adotado como tema" "$saida"
+[ "$rc" = "0" ] && ok "a porta do motor aceita o meowsystem, que é o pack padrão" \
+  || falha "o pack padrão não passa pela porta do motor (rc=$rc)" "$saida"
+saida="$(pack_py adocao "" "" 2>&1)"
+[[ "$saida" == *"pack=meowsystem"* ]] && ok "sem PACK no conf, veste o meowsystem" || falha "o padrão não é o meowsystem" "$saida"
+saida="$(pack_py adocao catppuccin "" 2>&1)"
+[[ "$saida" == *"pack=meowsystem"* && "$saida" != *"recusado=catppuccin"* ]] \
+  && ok "PACK=catppuccin, o nome de antes, veste o meowsystem" \
+  || falha "o nome de antes do pack padrão não acha o meowsystem" "$saida"
 cartoes="$(amb python3 - "$RAIZ" <<'PY'
 import os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "app"))
@@ -58,11 +65,10 @@ import servidor
 print(",".join(sorted(servidor._packs_no_disco())))
 PY
 )"
-[[ ",$cartoes," != *",meowsystem,"* && ",$cartoes," == *",dracula,"* ]] \
-  && ok "o painel não faz cartão do pack-base ($cartoes)" \
-  || falha "o pack-base virou cartão no painel" "$cartoes"
+[[ ",$cartoes," == *",meowsystem,"* && ",$cartoes," == *",dracula,"* && ",$cartoes," != *",catppuccin,"* ]] \
+  && ok "o painel faz um cartão para cada um dos dois packs ($cartoes)" \
+  || falha "os cartões do painel não são os dois packs" "$cartoes"
 
-# --- 3. a quarta pasta é recusada no formato 2 ---------------------------------
 cp -r "$RAIZ/packs/dracula" "$T/packs/quarta"
 python3 - "$T/packs/quarta/pack.json" <<'PY'
 import json, sys
@@ -91,30 +97,29 @@ if ! command -v zstd >/dev/null 2>&1; then
 else
 V="$T/velhos"; mkdir -p "$V"
 cp -r "$RAIZ/packs/dracula" "$V/velho"
-( cd "$V/velho/icones" \
-  && mv apps/autorais autorais && mv sistema/mimetypes mimetypes && mv sistema/pastas pastas \
-  && mv biblioteca/feitos-a-mao feitos-a-mao && rmdir sistema )
+# O pack de antes (formato 1): os autorais em icones/autorais/, as pastas em icones/pastas/ e um
+# feito à mão em icones/feitos-a-mao/ — montado a partir do de hoje, que é plano.
+( cd "$V/velho/icones" && mkdir -p autorais pastas feitos-a-mao \
+  && for f in apps/*-dracula.svg apps/*-alucard.svg; do mv "$f" autorais/; done \
+  && mv sistema/*.svg pastas/ && mv biblioteca/alien.svg feitos-a-mao/ && rmdir sistema )
 python3 - "$V/velho" <<'PY'
 import json, os, re, sys
 d = sys.argv[1]
 f = os.path.join(d, "pack.json")
 p = json.load(open(f, encoding="utf-8"))
 p["id"], p["formato"] = "velho", 1
-volta = {"icones/apps/autorais/": "icones/autorais/", "icones/sistema/mimetypes/": "icones/mimetypes/",
-         "icones/sistema/pastas/": "icones/pastas/"}
-for bloco in p["icones"].values():
-    if isinstance(bloco, dict) and bloco.get("desenhos") in volta:
-        bloco["desenhos"] = volta[bloco["desenhos"]]
+ic = p["icones"]
+ic["autorais"]["desenhos"] = "icones/autorais/"
+ic["pastas"]["desenhos"] = "icones/pastas/"
 json.dump(p, open(f, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 m = os.path.join(d, "icones", "apps.map")
 t = open(m, encoding="utf-8").read()
-# Uma linha que aponta para a pasta de antes, como um pack velho escreveria.
-t += "\ncom.exemplo.Velho : feitos-a-mao/opera.svg   # aponta para a pasta de antes\n"
+t += "\ncom.exemplo.Velho : feitos-a-mao/alien.svg   # aponta para a pasta de antes\n"
 open(m, "w", encoding="utf-8").write(t)
 pr = os.path.join(d, "PROCEDENCIA.md")
 t = open(pr, encoding="utf-8").read()
-t = re.sub(r"^\| `icones/biblioteca/feitos-a-mao/", "| `icones/feitos-a-mao/", t, flags=re.M)
-t = re.sub(r"^\| `icones/sistema/pastas/", "| `icones/pastas/", t, flags=re.M)
+t = t.replace("| `icones/biblioteca/alien.svg` |", "| `icones/feitos-a-mao/alien.svg` |")
+t = re.sub(r"^\| `icones/sistema/", "| `icones/pastas/", t, flags=re.M)
 open(pr, "w", encoding="utf-8").write(t)
 PY
 antes="$(cd "$V/velho" && find icones -type f \( -name '*.svg' -o -name '*.png' \) -exec sha256sum {} + | cut -d' ' -f1 | sort | sha256sum)"
@@ -131,11 +136,11 @@ dirs="$(find "$NOVO/icones" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/de
 depois="$(cd "$NOVO" 2>/dev/null && find icones -type f \( -name '*.svg' -o -name '*.png' \) -exec sha256sum {} + | cut -d' ' -f1 | sort | sha256sum)"
 formato="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["formato"])' "$NOVO/pack.json" 2>/dev/null)"
 if [ "$rc" = "0" ] && [ "$dirs" = "apps,biblioteca,sistema" ] && [ "$formato" = "2" ] && [ "$antes" = "$depois" ] \
-   && [ -f "$NOVO/icones/apps/autorais/cosmic-term-dracula.svg" ] \
-   && [ -f "$NOVO/icones/sistema/pastas/folder.svg" ] \
-   && [ -f "$NOVO/icones/biblioteca/feitos-a-mao/opera.svg" ] \
-   && grep -q '^com.exemplo.Velho : biblioteca/feitos-a-mao/opera.svg' "$NOVO/icones/apps.map"; then
-  ok "o .meowpack de formato 1 é importado no formato 2: três pastas, os mesmos bytes, o mapa e o pack.json no caminho novo"
+   && [ -f "$NOVO/icones/apps/cosmic-term-dracula.svg" ] \
+   && [ -f "$NOVO/icones/sistema/folder.svg" ] \
+   && [ -f "$NOVO/icones/biblioteca/alien.svg" ] && [ -z "$(find "$NOVO/icones" -mindepth 2 -type d)" ] \
+   && grep -q '^com.exemplo.Velho : biblioteca/alien.svg' "$NOVO/icones/apps.map"; then
+  ok "o .meowpack de formato 1 é importado no formato 2: três pastas planas, os mesmos bytes, o mapa e o pack.json no caminho novo"
 else
   falha "o .meowpack de antes não chegou convertido (rc=$rc, pastas: $dirs, formato: $formato)" "$saida"
 fi
@@ -150,9 +155,9 @@ saida="$(pack_py sincronizar velho 2>&1)"; rc=$?
 fi
 
 # --- 5. o caminho de antes, no estado de quem usa ---------------------------
-for par in "assets/icones/resgatados/luna.svg:packs/dracula/icones/apps/resgatados/luna.svg" \
-           "assets/icones/arcticons-apps/firefox.svg:packs/meowsystem/icones/apps/arcticons/firefox.svg" \
-           "packs/dracula/icones/feitos-a-mao/opera.svg:packs/dracula/icones/biblioteca/feitos-a-mao/opera.svg" \
+for par in "assets/icones/resgatados/luna.svg:packs/dracula/icones/apps/luna.svg" \
+           "assets/icones/arcticons-apps/firefox.svg:packs/meowsystem/icones/apps/firefox.svg" \
+           "packs/dracula/icones/feitos-a-mao/opera.svg:$(awk -F'\t' '$1 == "packs/dracula/icones/biblioteca/feitos-a-mao/opera.svg" {print $2}' "$RAIZ/packs/CAMINHOS-DE-ANTES.tsv")" \
            "packs/dracula/icones/apps/steam.svg:packs/dracula/icones/apps/steam.svg"; do
   de="${par%%:*}"; para="${par#*:}"
   visto="$(pack_py hoje "$de" 2>&1)"
@@ -162,7 +167,7 @@ for par in "assets/icones/resgatados/luna.svg:packs/dracula/icones/apps/resgatad
 done
 printf 'com.exemplo.Escolhido : assets/icones/resgatados/luna.svg\n' > "$T/escolhas.map"
 saida="$(amb env MEOW_ICONES_ESCOLHAS="$T/escolhas.map" python3 "$RAIZ/scripts/pack.py" escolhas 2>&1)"
-[[ "$saida" == "com.exemplo.Escolhido	$RAIZ/packs/dracula/icones/apps/resgatados/luna.svg" ]] \
+[[ "$saida" == "com.exemplo.Escolhido	$RAIZ/packs/dracula/icones/apps/luna.svg" ]] \
   && ok "a escolha do painel gravada com o caminho de antes continua valendo" \
   || falha "a escolha do painel com o caminho de antes foi perdida" "$saida"
 
@@ -215,7 +220,7 @@ DRAC7=nao icones7 dracula dracula
   && [ ! -e "$TEMA7/scalable/apps/steam.svg" ] \
   && ok "com ICONES_DRACULA=nao o desenho do pack sai, e o traço volta a 48 px" \
   || falha "com ICONES_DRACULA=nao o nome ficou sem o desenho do pack e sem o traço"
-icones7 catppuccin mocha
+icones7 meowsystem mocha
 [ -f "$TEMA7/48x48/apps/steam.svg" ] && [ -f "$TEMA7/48x48/apps/com.spotify.Client.svg" ] \
   && ok "com o Catppuccin no ar (sem desenho de pack para eles), o traço volta" \
   || falha "sem desenho de pack, o traço não voltou"
@@ -233,7 +238,7 @@ PY
 printf '<svg xmlns="http://www.w3.org/2000/svg"><!-- SEGREDO-P88 --></svg>\n' > "$T/segredo.svg"
 mkdir -p "$T/casa8/.local/share/icons/MeowSystem-Icons/scalable/apps"
 cp "$T/segredo.svg" "$T/casa8/vitima.svg"
-ln -s "$T/segredo.svg" "$T/packs/malresg/icones/apps/resgatados/elo.svg"
+ln -s "$T/segredo.svg" "$T/packs/malresg/icones/apps/elo.svg"
 printf '../../../../../../vitima : a : b\nelo : a : b\n' >> "$T/packs/malresg/icones/apps-resgatados.map"
 saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa8" USER="${USER:-t}" LANG=C.UTF-8 NO_COLOR=1 \
   MEOW_RAIZ="$RAIZ" MEOW_PACKS="$T/packs" XDG_DATA_HOME="$T/xdg8" MEOW_ESTADO="$T/casa8/estado" \
@@ -247,6 +252,16 @@ if [ "$vazou" = 0 ] && [ -f "$T/casa8/vitima.svg" ] && [ "$fontes" = 0 ] \
   ok "o mapa dos resgatados de um pack de terceiro não escreve fora do tema nem lê link para fora, e veste o resto"
 else
   falha "o mapa dos resgatados alcançou fora do pack (vazou=$vazou, fontes=$fontes)" "$saida"
+fi
+
+# A `apps/` plana do MeowSystem guarda o convertido junto do traço e dos autorais: o conferir dos
+# convertidos não conta os outros como órfãos (o container de 23/10 dizia «52 a remover»).
+mkdir -p "$T/casa-conv"
+saida="$(env -i PATH="$PATH" HOME="$T/casa-conv" NO_COLOR=1 bash "$RAIZ/scripts/construir_convertidos.sh" --conferir 2>&1)"
+if [[ "$saida" == *"convertido(s) em dia"* ]] && [[ "$saida" != *"a remover"* ]]; then
+  ok "o conferir dos convertidos olha só o mapa deles, e não o resto da apps/ plana"
+else
+  falha "o conferir dos convertidos acusa o resto da apps/ plana" "$saida"
 fi
 
 if [ "$falhas" -gt 0 ]; then

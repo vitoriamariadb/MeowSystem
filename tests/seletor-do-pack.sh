@@ -213,7 +213,7 @@ r = glifos("chrome")
 print("  «chrome»: %d opção(ões) — %s" % (len(r.get("glifos", [])), ", ".join(
     "%s (%s)" % (g["glifo"], g["grupo"]) for g in r.get("glifos", []))))
 grupos = {g["grupo"] for g in r.get("glifos", []) if g["glifo"] == "google-chrome"}
-checa({"pack:dracula:apps", "pack:meowsystem:apps/arcticons"} <= grupos,
+checa({"pack:dracula:apps", "pack:meowsystem:apps"} <= grupos,
       "«chrome» oferece o google-chrome do Dracula e o do Arcticons, cada um na sua pasta",
       repr(sorted(grupos)))
 
@@ -232,9 +232,9 @@ checa(not vazia.get("limitado") and vazia.get("grupos")
 # [Até a P73 este bloco cobrava o contrário: nenhum grupo de pack fora do ar.]
 ordem = [gr["id"] for gr in vazia.get("grupos", [])]
 do_ar = [i for i, gid in enumerate(ordem) if gid.startswith("pack:dracula:")]
-de_fora = [i for i, gid in enumerate(ordem) if gid.startswith("pack:catppuccin:")]
+de_fora = [i for i, gid in enumerate(ordem) if gid.startswith("pack:meowsystem:")]
 checa(do_ar and de_fora and max(do_ar) < min(de_fora),
-      "com o Dracula no ar, o Catppuccin aparece na pasta dele, depois das do Dracula", repr(ordem))
+      "com o Dracula no ar, o pack padrão aparece na pasta dele, depois das do Dracula", repr(ordem))
 checa({"pack:dracula:autorais:dracula", "pack:dracula:autorais:alucard"} <= set(ordem),
       "os autorais do pack vêm nos dois flavors, cada um na sua pasta", repr(ordem))
 # Só o que é do mapa do pack no ar traz `pack`/`desenho` (o «Levar para o pack»).
@@ -339,14 +339,14 @@ conf_com(ICONES_DRACULA="sim")
 # --- 5. trocar para o Catppuccin não carrega a escolha ------------------------
 catppuccin = os.path.join(raiz, "packs", "catppuccin")
 antes_c = arvore(catppuccin)
-conf_com(PACK="catppuccin", FLAVOR="mocha")
+conf_com(PACK="meowsystem", FLAVOR="mocha")
 r = glifos("alien")
 checa([g for g in r.get("glifos", []) if g["glifo"] == "alien" and not g.get("pack")]
       and not [g for g in r.get("glifos", []) if g.get("pack")],
       "com o Catppuccin no ar, «alien» ainda acha o do Dracula (decisão 3), sem o "
       "«Levar para o pack» — o pack no ar não tem mapa", repr(r.get("glifos")))
 r = glifos("chrome")
-checa(r.get("grupos") and r["grupos"][0]["id"].startswith("pack:catppuccin:"),
+checa(r.get("grupos") and r["grupos"][0]["id"].startswith("pack:meowsystem:"),
       "e o pack no ar passa a ser o primeiro da ficha",
       repr([gr["id"] for gr in r.get("grupos", [])][:3]))
 codigo, dados = escolher("google-chrome", "biblioteca/alien.svg")
@@ -511,7 +511,7 @@ rc, saida = passo_do_pack()
 checa(codigo == 200 and texto(os.path.join(tema, "programa-de-brinquedo.svg")) == texto(alien),
       "o programa veste o alien escolhido como desenho (rc=%s)" % rc, repr(dados) + saida[-400:])
 codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
-                                          "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg"})
+                                          "arquivo": "packs/meowsystem/icones/apps/firefox.svg"})
 with open(escolhas, encoding="utf-8") as fh:
     sobrou = [l for l in fh if l.startswith("programa-de-brinquedo ")]
 checa(codigo == 200 and dados.get("tirou_escolha") is True and not sobrou
@@ -523,7 +523,7 @@ checa(not os.path.exists(os.path.join(tema, "programa-de-brinquedo.svg")),
       "e o passo do pack tira o desenho do `scalable/apps`, para o traço aparecer (rc=%s)" % rc,
       saida[-400:])
 codigo, dados = chamar(m._api_app_icone, {"app": "programa-de-brinquedo", "cor": "mauve",
-                                          "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg"})
+                                          "arquivo": "packs/meowsystem/icones/apps/firefox.svg"})
 checa(codigo == 200 and dados.get("tirou_escolha") is False,
       "sem escolha de desenho, o traço não diz que tirou nada", repr(dados))
 

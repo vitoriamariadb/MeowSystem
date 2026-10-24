@@ -768,8 +768,8 @@ if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinet
 # [P84, 15/10/2026: o `obsidian.png` saiu do pack, trocado pelo vetor dele. Os
 #   bytes de um SVG de verdade continuam sendo o caso, agora os do `obsidian.svg`.]
 import time as _t
-svg_png = open(os.path.join(raiz, "packs", "dracula", "icones", "biblioteca", "feitos-a-mao",
-                            "obsidian.svg"), "rb").read()
+# [P96, 23/10/2026: a biblioteca é plana e uma versão por ícone; o logo do pack é o SVG estável.]
+svg_png = open(os.path.join(raiz, "packs", "dracula", "logo.svg"), "rb").read()
 casos = ((svg_png, True), (b"\x89PNG\r\n\x1a\n", False),
          (b'\xef\xbb\xbf<?xml version="1.0"?>\n<!-- a -->\n<!DOCTYPE svg>\n<svg xmlns="x"/>', True),
          (b"<svgx/>", False), (b"<!--" * 1000, False), (b"<!--a-->" * 500 + b"<x", False))

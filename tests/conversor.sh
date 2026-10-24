@@ -28,7 +28,7 @@ done
 #
 # O `[ -f ]` de cada laço já pula o que não existir.
 ORIGENS=(
-  "$RAIZ/packs/catppuccin/icones/apps/autorais/cosmic-edit-mocha.svg"          # autoral, já tem contorno (a fita colapsa)
+  "$RAIZ/packs/meowsystem/icones/apps/cosmic-edit-mocha.svg"          # autoral, já tem contorno (a fita colapsa)
   "/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg"       # Papirus, orgânico, com gradiente e sombra
 )
 
@@ -81,7 +81,7 @@ done
 # --------------------------------------------------------------------------
 # A RÉGUA DOS DOIS NÚMEROS — o `>_` do terminal e o `B` do btop
 # --------------------------------------------------------------------------
-TERM="$RAIZ/packs/catppuccin/icones/apps/autorais/cosmic-term-mocha.svg"
+TERM="$RAIZ/packs/meowsystem/icones/apps/cosmic-term-mocha.svg"
 if [ -f "$TERM" ]; then
   python3 "$CONV" "$TERM" "$T/t.svg" --json >"$T/t.json" 2>/dev/null
   cantos=$(metrica "$T/t.json" cantos)
@@ -132,7 +132,7 @@ fi
 
 # `retoques/org.gimp.GIMP.svg` é uma conversão com UMA curva desenhada à mão
 # (a boca do Wilber).
-RET="$RAIZ/packs/meowsystem/icones/apps/convertidos/retoques/org.gimp.GIMP.svg"
+RET="$RAIZ/packs/meowsystem/icones/apps/org.gimp.GIMP.svg"
 if [ -f "$GIMP" ] && [ -f "$RET" ]; then
   python3 "$CONV" "$GIMP" "$T/poli.svg" --polilinha >/dev/null 2>&1
   if python3 - "$T/poli.svg" "$RET" <<'PY'
@@ -180,8 +180,8 @@ TRAVA=(
   # o derrubou: o `argsort` estável escolhe outras cores nos empates, e com
   # elas o `--peso-fronteira` passa a fundir uma fronteira dele.
   "/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg"       # fiel, mín. 281,3
-  "$RAIZ/packs/catppuccin/icones/apps/autorais/cosmic-edit-mocha.svg"             # canário: a folha em branco
-  "$RAIZ/packs/catppuccin/icones/apps/autorais/cosmic-term-mocha.svg"             # canário: o quadrado
+  "$RAIZ/packs/meowsystem/icones/apps/cosmic-edit-mocha.svg"             # canário: a folha em branco
+  "$RAIZ/packs/meowsystem/icones/apps/cosmic-term-mocha.svg"             # canário: o quadrado
 )
 for origem in "${TRAVA[@]}"; do
   [ -f "$origem" ] || { printf 'pulado: %s não existe\n' "$origem"; continue; }

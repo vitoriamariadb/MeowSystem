@@ -334,8 +334,10 @@ if origem is not None:
 print("pack=" + ident)
 print("nome=" + " ".join(str(nome).splitlines()))
 print("exibe=" + " ".join(str(exibe).splitlines()))
-print("outros=" + regua(validos - {ident}))
-print("packs=" + regua(validos | {ident}))
+# O nome de antes do pack no ar (o `catppuccin` do `meowsystem`, P96) é dele, e não de outro.
+meus = {ident} | {a for a, d in getattr(pack, "APELIDOS", {}).items() if d == ident}
+print("outros=" + regua(validos - meus))
+print("packs=" + regua(validos | meus))
 print("url=" + url)
 print("sha256=" + sha)
 print("pasta=" + pasta)

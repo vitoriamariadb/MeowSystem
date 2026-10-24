@@ -1209,7 +1209,7 @@ etapa_svg() {
   passo "Desenhos (SVG normalizados)"
   meow_tem python3 || { meow_pula "python3 não está aqui"; return 0; }
   local pastas=() p
-  for p in packs/meowsystem/mascote/ packs/dracula/mascote/ packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
+  for p in packs/meowsystem/mascote/ packs/dracula/mascote/ assets/icones/overrides; do
     [ -d "$MEOW_RAIZ/$p" ] && pastas+=("$MEOW_RAIZ/$p")
   done
   # OS AUTORAIS DE CADA PACK ENTRAM JUNTO — 22/09/2026
@@ -1230,9 +1230,21 @@ etapa_svg() {
   #   `icones/apps/` do Dracula é arte de upstream — os dois caem na mesma regra
   #   que o parágrafo acima já dá ao `arcticons/`: ninguém os edita aqui, e
   #   varrê-los seria segundos por rodada para conferir o que não muda.
-  for p in "$MEOW_RAIZ"/packs/*/icones/apps/autorais; do
-    [ -d "$p" ] && pastas+=("$p")
-  done
+  # P96: as pastas dos packs são planas — os desenhos do modo de leitura (`leitura-*.svg`) e os
+  # autorais (`<nome>-<flavor>.svg` em `apps/`, um flavor da paleta do pack) entram arquivo a arquivo.
+  for p in "$MEOW_RAIZ"/packs/meowsystem/icones/sistema/leitura-*.svg; do [ -f "$p" ] && pastas+=("$p"); done
+  while IFS= read -r p; do [ -n "$p" ] && pastas+=("$p"); done < <(python3 -I - "$MEOW_RAIZ" <<'PYAUT' 2>/dev/null
+import glob, json, os, sys
+for d in sorted(glob.glob(os.path.join(sys.argv[1], "packs", "*"))):
+    try:
+        fl = json.load(open(os.path.join(d, "paleta.json"), encoding="utf-8"))["flavors"]
+    except Exception:
+        continue
+    for f in sorted(glob.glob(os.path.join(d, "icones", "apps", "*.svg"))):
+        if any(f.endswith("-%s.svg" % x) for x in fl):
+            print(f)
+PYAUT
+  )
   [ "${#pastas[@]}" -gt 0 ] || return 0
   local rc
   if meow_seco; then

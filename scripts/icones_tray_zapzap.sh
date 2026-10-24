@@ -18,7 +18,13 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 . "$RAIZ/lib/comum.sh"
 
 APP_ID="${MEOW_TRAY_ZAPZAP_APP:-com.rtosta.zapzap}"
-GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-$RAIZ/packs/meowsystem/icones/sistema/arcticons/whatsapp.svg}"
+# P96: o glifo mora numa das três pastas planas do pack-base (uma cópia só, onde caiu)
+GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-}"
+if [ -z "$GLIFO" ]; then
+  for _p in sistema apps biblioteca; do
+    GLIFO="$RAIZ/packs/meowsystem/icones/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break
+  done
+fi
 TRACO="${MEOW_TRAY_ZAPZAP_TRACO:-4}"
 GUARDA="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/zapzap"
 

@@ -46,7 +46,7 @@ preferences-region-and-language-symbolic:translate
 preferences-time-and-language-symbolic:clock
 preferences-system-time-symbolic:clock:alias
 preferences-sound-symbolic:volume
-preferences-startup-applications-symbolic:rocket
+preferences-startup-applications-symbolic:rocket-traco
 preferences-vpn-symbolic:shield
 preferences-window-management-symbolic:layout
 preferences-workspaces-symbolic:tile
@@ -55,7 +55,7 @@ preferences-X11-applications-symbolic:box
 # --- os únicos que aparecem nas Configurações, e não têm estado -------------
 display-symbolic:tv:alias
 system-users-symbolic:contacts
-connection-secure-symbolic:lock
+connection-secure-symbolic:lock-traco
 speaker-symbolic:speaker
 input-keyboard-symbolic:keyboard:alias
 input-mouse-symbolic:mouse

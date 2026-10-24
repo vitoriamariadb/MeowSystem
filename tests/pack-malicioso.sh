@@ -328,7 +328,8 @@ else
   printf '%s' "$glifos" | grep -q 'apps/bom.svg' \
     && ok "a ficha do painel responde com um pack de NUL e um que não é UTF-8 instalados ao lado" \
     || falha "a /api/glifos não respondeu (ou não trouxe o pack 'mal')" "$(tail -5 "$T/painel.log")"
-  if printf '%s' "$glifos" | grep -q "biblioteca/folder.svg\|feitos-a-mao/folder.svg\|$FORA"; then
+  # [P96: o pack-base também tem um `biblioteca/folder.svg` (o glifo do Arcticons); a busca é do pack `mal`.]
+  if printf '%s' "$glifos" | grep -q "mal/icones/biblioteca/folder.svg\|mal/icones/feitos-a-mao/folder.svg\|$FORA"; then
     falha "a ficha do painel lista desenho de pasta que é symlink para fora do pack"
   else
     ok "a ficha do painel não lista a biblioteca nem os feitos à mão que são symlink para fora"

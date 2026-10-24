@@ -21,7 +21,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ORIGEM="${MEOW_BANDEJA_ORIGEM:-$RAIZ/packs/meowsystem/icones/sistema/arcticons}"
+ORIGEM="${MEOW_BANDEJA_ORIGEM:-$RAIZ/packs/meowsystem/icones/sistema}"
 MAPA="${MEOW_BANDEJA_MAPA:-$RAIZ/packs/meowsystem/icones/bandeja.map}"
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
 BASE="$HOME/.local/share/icons/$TEMA"
@@ -101,7 +101,7 @@ _conferir_gemeos() {
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Arcticons não está em packs/meowsystem/icones/sistema/arcticons — nada a vestir"
+    meow_pula "o acervo Arcticons não está em packs/meowsystem/icones/sistema — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
@@ -144,8 +144,8 @@ _avisar_faltantes() {
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
     [ -f "$ORIGEM/$glifo.svg" ] && continue
-    meow_aviso "o glifo '$glifo' não está em packs/meowsystem/icones/sistema/arcticons — '$nome' fica como está"
-    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o packs/meowsystem/icones/sistema/arcticons/$glifo.svg"
+    meow_aviso "o glifo '$glifo' não está em packs/meowsystem/icones/sistema — '$nome' fica como está"
+    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o packs/meowsystem/icones/sistema/$glifo.svg"
   done
   return 0
 }
@@ -159,7 +159,7 @@ _frase_nada_a_fazer() {
   if [ "${#MAPA_LIDO[@]}" = 0 ]; then
     printf 'a bandeja não tem alvo hoje (0 linha ativa no mapa) — ver packs/meowsystem/icones/bandeja.map'
   elif [ "$total" = 0 ]; then
-    printf '%s linha(s) no mapa e nenhum glifo em packs/meowsystem/icones/sistema/arcticons — nada a vestir' "${#MAPA_LIDO[@]}"
+    printf '%s linha(s) no mapa e nenhum glifo em packs/meowsystem/icones/sistema — nada a vestir' "${#MAPA_LIDO[@]}"
   else
     printf '%s ícone(s) da bandeja já vestidos de Arcticons' "$total"
   fi

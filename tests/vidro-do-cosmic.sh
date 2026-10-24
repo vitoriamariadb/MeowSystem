@@ -21,7 +21,7 @@ T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
 CASA="$T/casa"; ESTADO="$T/estado"; PACKS="$T/packs"; TMPV="$T/tmp"
 mkdir -p "$CASA" "$ESTADO" "$PACKS" "$TMPV"
-cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
+cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
 CAP="$PACKS/dracula/temas/capturados/dracula-mauve"
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null)"
 
@@ -291,7 +291,7 @@ saida="$(aplicar "$C2" dracula-mauve --conferir)"; rc=$?
 #   o vidro ao maximizar, o modo): não há vidro a derivar, e a troca é a cópia
 #   de sempre, árvore por árvore, sem linha de vidro.
 C5="$T/cosmic5"; mkdir -p "$C5"
-cp -a "$PACKS/catppuccin/temas/capturados/mocha-pink"/com.system76.CosmicTheme.* "$C5/"
+cp -a "$PACKS/meowsystem/temas/capturados/mocha-pink"/com.system76.CosmicTheme.* "$C5/"
 while IFS= read -r -d '' a; do
   rel="${a#"$CAP"/}"
   case "$rel" in com.system76.CosmicTheme.Mode/v1/is_dark|com.system76.CosmicTheme.Mode/v1/auto_switch) cp "$a" "$C5/$rel" ;; esac
@@ -317,7 +317,7 @@ fi
 C3="$T/cosmic3"; mkdir -p "$C3"
 mapa_novo_em "$C3"
 for arv in Dark Light; do printf 'VeryHigh2' > "$C3/com.system76.CosmicTheme.$arv.Builder/v2/frosted"; done
-saida="$(amb "$C3" catppuccin bash "$RAIZ/scripts/aplicar_tema.sh" mocha-pink 2>&1)"; rc=$?
+saida="$(amb "$C3" meowsystem bash "$RAIZ/scripts/aplicar_tema.sh" mocha-pink 2>&1)"; rc=$?
 on="$(valor "$C3/com.system76.CosmicTheme.Dark/v2/background" on)"
 tb="$(valor "$C3/com.system76.CosmicTheme.Dark/v2/transparent_background" base)"
 v1_on="$(awk '/^    on: \(/{f=1;next} f&&/red:/{print $2; exit}' "$C3/com.system76.CosmicTheme.Dark/v1/background")"

@@ -86,6 +86,15 @@ PAGINA = os.path.join(RAIZ, "app", "pagina")
 # O mapa dos jogos que ficam fora do lançador.
 MAPA_JOGOS = os.path.join(RAIZ, "assets", "apps", "jogos-fora.map")
 ICONES_DO_MOTOR = os.path.join(RAIZ, "packs", "meowsystem", "icones")
+
+
+def _glifo_do_motor(nome):
+    """O glifo de traço do pack-base: `apps/` ou `biblioteca/` (as três pastas são planas desde a P96)."""
+    for pasta in ("apps", "biblioteca", "sistema"):
+        cand = os.path.join(ICONES_DO_MOTOR, pasta, nome + ".svg")
+        if os.path.isfile(cand):
+            return cand
+    return os.path.join(ICONES_DO_MOTOR, "apps", nome + ".svg")
 CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.conf.exemplo")
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
 _PALETA = None
@@ -1314,7 +1323,13 @@ def _vestigio_de_pack(chave):
     for pack in packs:
         if pack == adotado:
             continue
-        if pack in alvo:
+        # O pack padrão leva o nome do produto (P96): «meowsystem» num caminho ou num nome
+        # de tema é o MeowSystem, não um vestígio do pack. O que denuncia o valor dele é o
+        # nome de antes, «catppuccin» (os apelidos do pack.py).
+        mod_p = modulo_pack()
+        apelidos = [a for a, d in (getattr(mod_p, "APELIDOS", {}) or {}).items() if d == pack]
+        nomes = apelidos if pack == getattr(mod_p, "PACK_BASE", "meowsystem") else [pack] + apelidos
+        if any(n in alvo for n in nomes):
             # Mandar a pessoa desconfiar do valor certo, e prometer tela
             # misturada onde não há mistura, é pior que não avisar nada.
             if _declarado_pelo_pack(adotado, alvo):
@@ -6928,7 +6943,7 @@ class Manipulador(BaseHTTPRequestHandler):
     #
     # Trocar o ícone de um aplicativo hoje exige editar
     # `packs/meowsystem/icones/apps-arcticons.map` à mão, saber que o glifo tem
-    # de existir em `packs/meowsystem/icones/apps/arcticons/`, e rodar o
+    # de existir em `packs/meowsystem/icones/apps/`, e rodar o
     # construtor.
     DIRS_DESKTOP = (
         ("/usr/share/applications", "sistema"),
@@ -8135,12 +8150,12 @@ class Manipulador(BaseHTTPRequestHandler):
         if marca:
             glifo = marca["glifo"]
             arq = (glifo if os.path.isabs(glifo) else os.path.join(RAIZ, glifo)) if "/" in glifo \
-                else os.path.join(icones, "apps", "arcticons", glifo + ".svg")
+                else _glifo_do_motor(glifo)
             if os.path.isfile(arq):
                 return self._arquivo_na_ficha(arq)
         conv = self._mapa_convertidos()
         if conv.get(app) or conv.get(d.get("icone") or ""):
-            arq = os.path.join(icones, "apps", "convertidos", nome + ".svg")
+            arq = os.path.join(icones, "apps", nome + ".svg")
             if os.path.isfile(arq):
                 return self._arquivo_na_ficha(arq)
         return None
@@ -8315,7 +8330,7 @@ class Manipulador(BaseHTTPRequestHandler):
             nome_app = anterior[len("# app:"):].strip() if anterior.startswith("# app:") else ""
             nome = linha.split(":", 1)[0].strip()
             if nome_app and nome and not linha.startswith("#"):
-                caminho = os.path.join(ICONES_DO_MOTOR, "apps", "convertidos", nome + ".svg")
+                caminho = os.path.join(ICONES_DO_MOTOR, "apps", nome + ".svg")
                 junta(caminho, nome_app)
                 rotulos.setdefault(os.path.normpath(caminho), nome_app)
                 do_nome.setdefault(nome.lower(), nome_app)
@@ -8543,7 +8558,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         # Até aqui um glifo fora de `arcticons-apps/` era COPIADO do
         # `upstream/` para lá: o repositório ganhava arquivo a cada escolha.
-        trazer = os.path.join(ICONES_DO_MOTOR, "apps", "arcticons")
+        trazer = os.path.join(ICONES_DO_MOTOR, "apps")
         if item:
             if os.path.dirname(os.path.normpath(item["caminho"])) == trazer:
                 glifo = item["glifo"]
@@ -8675,7 +8690,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
     def _retoque_do_projeto(self, app):
         """O retoque que veio com o clone (o do Gradia, por exemplo)."""
-        return os.path.join(ICONES_DO_MOTOR, "apps", "convertidos", "retoques", app + ".svg")
+        return os.path.join(ICONES_DO_MOTOR, "apps", app + ".svg")
 
     def _vizinhos_do_dock(self):
         """Os dois vizinhos da tira: a PRIMEIRA e a ÚLTIMA linha de dados do
@@ -8701,8 +8716,7 @@ class Manipulador(BaseHTTPRequestHandler):
             campos = [c.strip() for c in corte.split(":")]
             if len(campos) < 3 or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", campos[1]):
                 continue
-            arte = os.path.join(ICONES_DO_MOTOR, "apps", "arcticons",
-                                campos[1] + ".svg")
+            arte = _glifo_do_motor(campos[1])
             try:
                 with open(arte, "r", encoding="utf-8") as fh:
                     saida.append({"nome": campos[0], "cor": campos[2], "svg": fh.read()})
@@ -8741,7 +8755,7 @@ class Manipulador(BaseHTTPRequestHandler):
         conversor. Mostrar o construído havendo retoque seria mostrar a versão
         que perde.
         """
-        conv = os.path.join(ICONES_DO_MOTOR, "apps", "convertidos")
+        conv = os.path.join(ICONES_DO_MOTOR, "apps")
         for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
                                  (_oficina_do_usuario("convertidos-apps", nome + ".svg"), "conversao"),
                                  (self._retoque_do_projeto(nome), "mao"),

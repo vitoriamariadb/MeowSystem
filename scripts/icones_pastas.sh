@@ -37,15 +37,27 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 FLAVOR_ICONES="$(python3 "$RAIZ/scripts/pack.py" flavor-icones "$_pack_ref")" || FLAVOR_ICONES=""
-ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
-            icones.mimetypes.desenhos "$FLAVOR_ICONES")" || ORIGEM=""
+# P96 (23/10/2026): o acervo de tipo de arquivo é um molde só, pintado aqui com a paleta do
+# pack no ar (o `pintados` refaz do molde a cada passada e devolve a pasta pintada).
+# Quem só confere (ou roda a seco) pinta numa pasta temporária: conferir não escreve na casa.
+_pintar_onde=""
+{ [ "${1:-}" = "--conferir" ] || meow_seco; } && _pintar_onde="--temporario"
+ORIGEM="$( [ -n "$FLAVOR_ICONES" ] && python3 "$RAIZ/scripts/pack.py" pintados "$_pack_ref" "$FLAVOR_ICONES" $_pintar_onde)" || ORIGEM=""
+# A pasta temporária vai num nome próprio: o ORIGEM pode mudar logo abaixo (as pastas do pack), e
+# o trap leria o valor de então — apagaria o acervo do pack.
+_pintado_temporario=""
+case "$ORIGEM" in */meow-pintados-*) _pintado_temporario="$ORIGEM"; trap 'rm -rf "$_pintado_temporario"' EXIT ;; esac
 # Sem flavor, sem origem — a pasta-mãe do acervo não é flavor nenhum. Ver o
 # bloco gêmeo em icones_mimetypes.sh.
 [ -n "$FLAVOR_ICONES" ] || ORIGEM=""
 # [2026-09-17] Era `if [ "${FLAVOR:-}" = "dracula" ]` — um NOME de tema cravado
 # no código, que um terceiro pack nunca satisfaria.
-_pastas_do_pack="$(meow_pack_arquivo icones/sistema/pastas)"
-[ -n "$_pastas_do_pack" ] || _pastas_do_pack="$(meow_pack_arquivo icones/pastas assets/icones/pastas-dracula)"
+# As pastas desenhadas pelo pack (o Dracula) moram em `icones/sistema/`, plana; quando a pasta
+# declarada é o próprio molde (o pack-base), a origem é o molde pintado, acima.
+_pastas_decl="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.pastas.desenhos 2>/dev/null)" || _pastas_decl=""
+_molde="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.mimetypes.desenhos 2>/dev/null)" || _molde=""
+_pastas_do_pack=""
+[ -n "$_pastas_decl" ] && [ "${_pastas_decl%/}" != "${_molde%/}" ] && _pastas_do_pack="${_pastas_decl%/}"
 if [ -n "$_pastas_do_pack" ] && [ -d "$_pastas_do_pack" ]; then
   ORIGEM="$_pastas_do_pack"
 fi

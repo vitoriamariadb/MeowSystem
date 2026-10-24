@@ -21,8 +21,8 @@ trap 'rm -rf "$T"' EXIT
 CASA="$T/casa"; COSMIC="$T/cosmic"; PACKS="$T/packs"; ESTADO="$T/estado"
 CONF="$CASA/.config/meow/meow.conf"
 mkdir -p "$(dirname "$CONF")" "$COSMIC" "$PACKS" "$ESTADO"
-cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
-CAT="$PACKS/catppuccin/temas/capturados"; DRA="$PACKS/dracula/temas/capturados"
+cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
+CAT="$PACKS/meowsystem/temas/capturados"; DRA="$PACKS/dracula/temas/capturados"
 
 # COM `--ignored` NOS PACKS: a captura derivada se esconde do git sozinha (o
 # `.gitignore` dela), e um `status` comum não veria um frappe nascido no clone.
@@ -208,7 +208,7 @@ import json, os, sys
 sys.path.insert(0, sys.argv[1] + "/scripts")
 erros = []
 for pack_id, pares in (("dracula", {"dracula-pink": "dracula-mauve"}),
-                       ("catppuccin", {"mocha-green": "mocha-pink", "latte-pink": "latte-mauve"})):
+                       ("meowsystem", {"mocha-green": "mocha-pink", "latte-pink": "latte-mauve"})):
     os.environ["MEOW_PACK_DIR"] = os.path.join(sys.argv[2], pack_id)
     os.environ["MEOW_PALETA"] = os.path.join(sys.argv[2], pack_id, "paleta.json")
     import derivar_acento as da
@@ -231,7 +231,7 @@ PY
 # --- 7. a regra do lado é uma só: o servidor e o derivador respondem igual --
 # O painel se veste pelo `_flavor_no_modo` (app/servidor.py), e a captura de um
 # flavor claro leva no escuro o `par_do_outro_lado` (scripts/derivar_flavor.py).
-for pack_id in dracula catppuccin; do
+for pack_id in dracula meowsystem; do
   saida="$(amb env MEOW_PACK_DIR="$PACKS/$pack_id" MEOW_PALETA="$PACKS/$pack_id/paleta.json" \
     python3 - "$RAIZ" "$pack_id" <<'PY' 2>&1
 import json, os, sys
@@ -249,7 +249,7 @@ for f in paleta["flavors"]:
         erros.append(f"{f} no modo {lado}: a página veste {pagina}, a captura traz {captura}")
     if servidor._flavor_no_modo(f, "claro" if lado == "escuro" else "escuro") != f:
         erros.append(f"{f} no próprio lado não veste ele mesmo")
-esperado = {"dracula": ("alucard", "dracula"), "catppuccin": ("latte", "mocha")}[sys.argv[2]]
+esperado = {"dracula": ("alucard", "dracula"), "meowsystem": ("latte", "mocha")}[sys.argv[2]]
 if servidor._flavor_no_modo(esperado[0], "escuro") != esperado[1]:
     erros.append(f"{esperado[0]} com MODO=escuro não veste o {esperado[1]}")
 print("\n".join(erros) or " ".join(f"{f}->{servidor._flavor_no_modo(f, 'escuro')}" for f in paleta["flavors"]))
@@ -266,7 +266,7 @@ done
 #   A etapa deixa `falta` para o fim do `main` (a tela de login se pula pela
 #   captura, e não por root); no ensaio de um par que se deriva, `deriva`.
 SEM="$T/packs-sem-escuro"; mkdir -p "$SEM"
-cp -a "$RAIZ/packs/catppuccin" "$SEM/"; rm -rf "$SEM"/catppuccin/temas/capturados/mocha-*
+cp -a "$RAIZ/packs/meowsystem" "$SEM/"; rm -rf "$SEM"/meowsystem/temas/capturados/mocha-*
 conf frappe pink catppuccin escuro
 saida_t="$(etapa tema MEOW_PACKS="$SEM")"; rc_t="$(rc)"; sem="$(cat "$T/sem_captura")"
 [ "$rc_t" = "3" ] && [ "$sem" = "falta" ] && [[ "$saida_t" == *"nem de outro flavor escuro"* ]] \
@@ -285,7 +285,7 @@ conf macchiato pink catppuccin escuro
 etapa gerar >/dev/null
 conf frappe green catppuccin escuro
 cp -a "$CAT/macchiato-pink"/com.system76.CosmicTheme.* "$COSMIC/"
-saida="$(amb env MEOW_PACKS="$SEM" MEOW_PACK_DIR="$SEM/catppuccin" MEOW_PALETA="$SEM/catppuccin/paleta.json" \
+saida="$(amb env MEOW_PACKS="$SEM" MEOW_PACK_DIR="$SEM/meowsystem" MEOW_PALETA="$SEM/meowsystem/paleta.json" \
   python3 - "$RAIZ" <<'PY' 2>&1
 import json, os, re, sys
 sys.path.insert(0, sys.argv[1] + "/app")

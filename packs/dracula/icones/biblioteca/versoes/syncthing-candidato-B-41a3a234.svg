@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Syncthing">
-  <title>Syncthing — cand B: tres nos em triangulo, centro vazio</title>
-  <path d="M24 10L36.99 32.5L11.01 32.5Z" fill="none" stroke="#7FE9DE" stroke-width="4.6" stroke-linejoin="round"/>
-  <g fill="#F8F8F2">
-    <circle cx="24" cy="10" r="6.3"/>
-    <circle cx="36.99" cy="32.5" r="6.3"/>
-    <circle cx="11.01" cy="32.5" r="6.3"/>
-  </g>
-</svg>

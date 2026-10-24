@@ -966,15 +966,27 @@ chk_atalho() {
 chk_svg() {
   meow_tem python3 || { echo "python3 não está aqui — nada a conferir"; return 0; }
   local pastas=() p
-  for p in packs/meowsystem/mascote/ packs/dracula/mascote/ packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
+  for p in packs/meowsystem/mascote/ packs/dracula/mascote/ assets/icones/overrides; do
     [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
   done
   # Sem estas linhas o vigia continuaria verde conferindo só os oito de
   # `autorais/leitura/` que sobraram — e o `transform-origin` achatado que ele
   # existe para caçar passaria despercebido justamente nos desenhos dela.
-  for p in "$RAIZ"/packs/*/icones/apps/autorais; do
-    [ -d "$p" ] && pastas+=("$p")
-  done
+  # P96: as pastas dos packs são planas — os desenhos do modo de leitura (`leitura-*.svg`) e os
+  # autorais (`<nome>-<flavor>.svg` em `apps/`, um flavor da paleta do pack) entram arquivo a arquivo.
+  for p in "$RAIZ"/packs/meowsystem/icones/sistema/leitura-*.svg; do [ -f "$p" ] && pastas+=("$p"); done
+  while IFS= read -r p; do [ -n "$p" ] && pastas+=("$p"); done < <(python3 -I - "$RAIZ" <<'PYAUT' 2>/dev/null
+import glob, json, os, sys
+for d in sorted(glob.glob(os.path.join(sys.argv[1], "packs", "*"))):
+    try:
+        fl = json.load(open(os.path.join(d, "paleta.json"), encoding="utf-8"))["flavors"]
+    except Exception:
+        continue
+    for f in sorted(glob.glob(os.path.join(d, "icones", "apps", "*.svg"))):
+        if any(f.endswith("-%s.svg" % x) for x in fl):
+            print(f)
+PYAUT
+  )
   [ "${#pastas[@]}" -gt 0 ] || return 0
   local saida rc
   saida="$(python3 "$RAIZ/scripts/normalizar_svg.py" --conferir "${pastas[@]}" 2>&1)"; rc=$?
@@ -1548,15 +1560,27 @@ fix_atalho()    { "$RAIZ/scripts/atalho.sh" --aplicar 2>&1; }
 # de estragar o desenho dela.
 fix_svg()       { local pastas=() p
                   meow_tem python3 || return 0
-                  for p in packs/meowsystem/mascote/ packs/dracula/mascote/ packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
+                  for p in packs/meowsystem/mascote/ packs/dracula/mascote/ assets/icones/overrides; do
                     [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
                   done
                   # Os autorais de cada pack, como no `chk_svg` — o conserto
                   # tem de alcançar tudo o que a conferência alcança, ou o
                   # doctor aponta um defeito que o `--consertar` não conserta.
-                  for p in "$RAIZ"/packs/*/icones/apps/autorais; do
-                    [ -d "$p" ] && pastas+=("$p")
-                  done
+                  # P96: as pastas dos packs são planas — os desenhos do modo de leitura (`leitura-*.svg`) e os
+                  # autorais (`<nome>-<flavor>.svg` em `apps/`, um flavor da paleta do pack) entram arquivo a arquivo.
+                  for p in "$RAIZ"/packs/meowsystem/icones/sistema/leitura-*.svg; do [ -f "$p" ] && pastas+=("$p"); done
+                  while IFS= read -r p; do [ -n "$p" ] && pastas+=("$p"); done < <(python3 -I - "$RAIZ" <<'PYAUT' 2>/dev/null
+import glob, json, os, sys
+for d in sorted(glob.glob(os.path.join(sys.argv[1], "packs", "*"))):
+    try:
+        fl = json.load(open(os.path.join(d, "paleta.json"), encoding="utf-8"))["flavors"]
+    except Exception:
+        continue
+    for f in sorted(glob.glob(os.path.join(d, "icones", "apps", "*.svg"))):
+        if any(f.endswith("-%s.svg" % x) for x in fl):
+            print(f)
+PYAUT
+                  )
                   [ "${#pastas[@]}" -gt 0 ] || return 0
                   python3 "$RAIZ/scripts/normalizar_svg.py" "${pastas[@]}" 2>&1; }
 fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1; }

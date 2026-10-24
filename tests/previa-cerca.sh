@@ -104,7 +104,7 @@ comum="$(ls /usr/share/icons/Papirus/64x64/apps/*.svg 2>/dev/null | head -1)"
 serve "$ELO" "link do flatpak — é o «Original» da oficina"
 serve "$CAPA" "capa JPEG da Steam"
 
-nosso="$(ls "$RAIZ"/packs/meowsystem/icones/apps/convertidos/*.svg 2>/dev/null | head -1)"
+nosso="$(ls "$RAIZ"/packs/meowsystem/icones/apps/*.svg 2>/dev/null | head -1)"
 [ -n "$nosso" ] && serve "$nosso" "arte do próprio repositório" \
   || printf 'pulado: sem acervo convertido\n'
 

@@ -50,7 +50,10 @@ _prompt_tem_starship() { _prompt_onde_starship >/dev/null; }
 # `meow_escrever` grava com `printf '%s'` e come o `\n` final do arquivo.
 _PROMPT_PACK="$(meow_pack_dir)"
 [ -n "$_PROMPT_PACK" ] || _PROMPT_PACK="$(meow_pack_padrao_dir 2>/dev/null || true)"
-_PROMPT_PACK="$(basename "${_PROMPT_PACK:-catppuccin}")"
+_PROMPT_PACK="$(basename "${_PROMPT_PACK:-meowsystem}")"
+# O pack padrão (P96) é o Catppuccin dentro do meowsystem: a paleta do starship continua com o
+# nome da família, `catppuccin_<flavor>`, que é o do preset de `assets/prompt/starship.toml`.
+[ "$_PROMPT_PACK" = "meowsystem" ] && _PROMPT_PACK="catppuccin"
 
 _prompt_desejado() {
   python3 -I - "$PROMPT_FONTE" "$(meow_paleta)" "$(meow_flavor)" "$_PROMPT_PACK" <<'PY'

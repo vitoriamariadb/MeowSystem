@@ -257,10 +257,16 @@ def montar_casa():
     xcursor_liso(os.path.join(ponteiro, "left_ptr"))
     tema = os.path.join(icones, valor_de("NOME_TEMA_ICONES"), "scalable", "apps")
     os.makedirs(tema)
-    glifos = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
-    for nome in sorted(os.listdir(glifos)):
-        if nome.endswith(".svg"):
-            shutil.copyfile(os.path.join(glifos, nome), os.path.join(tema, nome))
+    # [P96, 23/10/2026: as pastas do pack são planas; a lista do traço diz quais são os glifos do Arcticons.]
+    icones_base = os.path.join(RAIZ, "packs", "meowsystem", "icones")
+    with open(os.path.join(icones_base, "arcticons.lista"), encoding="utf-8") as fh:
+        lista = [l.strip() for l in fh if l.strip() and not l.startswith("#")]
+    for nome in sorted(lista):
+        for pasta in ("apps", "biblioteca", "sistema"):
+            origem = os.path.join(icones_base, pasta, nome)
+            if os.path.isfile(origem):
+                shutil.copyfile(origem, os.path.join(tema, nome))
+                break
     # O carrossel separa dia e noite pela luz de cada imagem, e só monta o
     # grupo da HORA (`e_noite`) se ele tiver duas ou mais — senão tudo fica em
     # `ativos/` e as abas Dia e Noite da galeria nascem vazias.

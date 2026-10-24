@@ -2,7 +2,7 @@
 # lib/comum.sh — a base de todo módulo do MeowSystem: cores, log, códigos de
 # saída e as duas travas que impedem o instalador de estragar a máquina dela.
 #
-# São os mesmos hex de `packs/catppuccin/paleta.json`, convertidos para o
+# São os mesmos hex de `packs/meowsystem/paleta.json`, convertidos para o
 # truecolor do terminal.
 #
 # 0 = certo · 1 = divergente · 2 = erro de execução · 3 = falta dependência.
@@ -429,6 +429,11 @@ for base in pack.raizes():
         except Exception:
             continue
         validos.add(n)
+# O nome de antes de um pack (o `catppuccin`, que entrou no `meowsystem` na P96) ainda nomeia
+# o que é dele: um snippet, um tema, um vestígio.
+for antes, hoje in getattr(pack, "APELIDOS", {}).items():
+    if hoje in validos:
+        validos.add(antes)
 for n in sorted(validos):
     print(n)
 PYFIM
