@@ -175,7 +175,7 @@ meow_app_tema_no_ar() {
   if [ -z "$do_painel" ] && _meow_tema_mantido "$app" "$no_ar" \
      && ! { [ "$pode_perguntar" = "pergunte" ] && [ -t 0 ] && [ -t 1 ] && ! meow_seco; }; then
     meow_pendencia_resolvida "$id"
-    meow_ok "$app: fica no '$no_ar', como você escolheu («Manter o meu»)"
+    meow_ok "$app: fica no '$no_ar', como você escolheu («Manter»)"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 

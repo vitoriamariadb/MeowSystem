@@ -3451,47 +3451,6 @@ def sem_casa_nem_raiz(valor, outras=()):
     return valor
 
 
-# O título sozinho não conta nada — "Automação" não diz a ninguém que ali moram
-# os vigias e os relógios que reaplicam o tema.
-#
-# A `docs/folhas/folha-menu-do-painel.html` pôs a contradição na mesa e ela
-# aprovou: são nove linhas curtas, e o problema que elas resolvem é exatamente o
-# que ela levantou.
-DESCRICAO_SECAO = {
-    #   Eram nove frases para dezenove abas, e as subabas herdavam a do pai:
-    #   três abas abriam com a mesma linha. Com o menu num nível só e uma página
-    #   por assunto, a lista passa a ter uma frase por página, e o
-    #   `|| d[g.secaoPai]` que o `app.js` usava para tapar o buraco saiu.
-    "Cor e tela": "A variante do pack, a cor de destaque, o lado a lado e o ponteiro.",
-    "Áreas de trabalho": "O nome e a ordem das áreas, e o encaixe de janelas em cada uma.",
-    "Logo do sistema": "A logo que aparece no menu de lançamento, na dock e no terminal.",
-    "Ícones": "O tema de ícones que o projeto constrói, e o desenho de cada programa.",
-    "Painel e dock": "Forma, tamanho, vidro e a música que aparece no painel.",
-    "Papel de parede": "A coleção, a pasta que gira, e como a imagem ocupa a tela.",
-    "Dia e noite": "A que horas a noite começa, e o que ela troca sozinha.",
-    "Modo de leitura": "A tela quente à noite: a temperatura, a textura e o horário.",
-    "Terminal": "A paleta do terminal, a cor do cursor, e o prompt do zsh.",
-    "Lançadores e jogos": "Quais programas o projeto veste, e quais jogos aparecem.",
-    "Manutenção": "O que se reaplica sozinho, quantos backups ficam, e quanto ele fala.",
-    # As duas páginas sem chave do meow.conf. Elas e a Manutenção formam o bloco
-    # "Sistema", e quem decide isso é o `BLOCO_DA_SECAO`, logo abaixo.
-    "Instalação": "Instalar, conferir, consertar, desfazer, e ver o que está no ar.",
-    "Atualização": "O Pop!_OS em dia, e o que a atualização desfez do MeowSystem.",
-}
-
-
-# Antes, o `app.js` decidia sozinho por uma pergunta que PARECIA equivalente:
-# "esta seção tem chave do meow.conf?". Sim virava "Assuntos", não virava
-# máquina.
-#
-# Ausente da tabela = "Tópicos".
-BLOCO_DA_SECAO = {
-    "Manutenção": "Sistema",
-    "Instalação": "Sistema",
-    "Atualização": "Sistema",
-}
-
-
 # `/usr/local/lib/meowsystem/ponte_root.sh` é o braço root do projeto, liberado
 # sem senha por `/etc/sudoers.d/49-meowsystem-ponte`. O painel não a chama: quem
 # chama são os scripts.
@@ -3820,7 +3779,7 @@ ACOES = {
                  "agendamento faz sozinho.",
     },
     "status": {
-        "rotulo": "O que está no ar agora",
+        "rotulo": "No ar agora",
         "grupo": "Instalação",
         "natureza": "mostrar",
         "argv": _meow("status"),
@@ -3839,7 +3798,7 @@ ACOES = {
                  "backups nem a coleção de imagens.",
     },
     "log": {
-        "rotulo": "As últimas 50 linhas do registro",
+        "rotulo": "Ver o registro",
         "grupo": "Instalação",
         "natureza": "mostrar",
         "argv": _meow("log"),
@@ -3852,7 +3811,7 @@ ACOES = {
     # O comando dela já existia e é uma linha; o que faltava era a SEGUNDA
     # METADE.
     "sistema_ver": {
-        "rotulo": "O que a atualização mudaria",
+        "rotulo": "O que muda",
         "grupo": "Atualização",
         "natureza": "mostrar",
         "bloco": "Sistema",
@@ -3867,7 +3826,7 @@ ACOES = {
                  "o índice do crates.io para saber o que está velho.",
     },
     "sistema_atualizar": {
-        "rotulo": "Atualizar a máquina inteira",
+        "rotulo": "Atualizar a máquina",
         "grupo": "Atualização",
         "natureza": "atualizar",
         "bloco": "Sistema",
@@ -3881,7 +3840,7 @@ ACOES = {
                  "apt mantém os arquivos de configuração que já estão no disco.",
     },
     "sistema_limpar": {
-        "rotulo": "Limpar o que sobrou",
+        "rotulo": "Limpar as sobras",
         "grupo": "Atualização",
         "natureza": "tirar",
         "bloco": "Sistema",
@@ -3895,7 +3854,7 @@ ACOES = {
     },
     # --- tema ----------------------------------------------------------------
     "tema": {
-        "rotulo": "Temas prontos nesta máquina",
+        "rotulo": "Temas prontos",
         "grupo": "Cor e tela",
         "natureza": "mostrar",
         "argv": _meow("tema"),
@@ -3919,7 +3878,7 @@ ACOES = {
         "ajuda": "Aplica o tema escolhido, guardando o anterior antes.",
     },
     "tema_modo": {
-        "rotulo": "Passar para claro ou escuro",
+        "rotulo": "Trocar o modo",
         "grupo": "Cor e tela",
         "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "modos",
@@ -3943,7 +3902,7 @@ ACOES = {
         "ajuda": "Volta ao estado de antes da última vez que esta ação rodou.",
     },
     "desfazer": {
-        "rotulo": "Voltar ao tema de antes",
+        "rotulo": "Tema de antes",
         "grupo": "Instalação",
         "natureza": "devolver",
         "argv": _meow("desfazer"),
@@ -3956,7 +3915,7 @@ ACOES = {
     },
     # --- ícones e gato -------------------------------------------------------
     "icones": {
-        "rotulo": "Tema de ícones instalado",
+        "rotulo": "Tema de ícones",
         "grupo": "Ícones",
         "natureza": "mostrar",
         "argv": _meow("icones"),
@@ -3964,7 +3923,7 @@ ACOES = {
         "ajuda": "Qual está selecionado e quantos arquivos ele tem.",
     },
     "icones_reconstruir": {
-        "rotulo": "Reconstruir o tema de ícones",
+        "rotulo": "Reconstruir os ícones",
         "grupo": "Ícones",
         "natureza": "aplicar",
         "argv": _meow("icones", "reconstruir"),
@@ -3976,7 +3935,7 @@ ACOES = {
     # `construir_pastas.sh` — e NENHUM dos dois toca em `48x48/apps`, que é o
     # diretório dos desenhos em traço.
     "icones_traco": {
-        "rotulo": "Pôr os desenhos em traço na tela",
+        "rotulo": "Desenhos em traço",
         "grupo": "Ícones",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "icones_apps_arcticons.sh")],
@@ -3992,7 +3951,7 @@ ACOES = {
     # pack no ar, e quem põe aquele mapa no tema é o `icones_apps_dracula.sh`,
     # e não o script do traço.
     "icones_pack": {
-        "rotulo": "Pôr os desenhos do pack na tela",
+        "rotulo": "Desenhos do pack",
         "grupo": "Ícones",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "icones_apps_dracula.sh")],
@@ -4001,7 +3960,7 @@ ACOES = {
                  "passo que faz um desenho do pack escolhido aqui aparecer.",
     },
     "logo_listar": {
-        "rotulo": "Qual mascote está no ar, e por quê",
+        "rotulo": "Mascote agora",
         "grupo": "Logo do sistema",
         "natureza": "mostrar",
         "argv": _meow("logo", "listar"),
@@ -4009,7 +3968,7 @@ ACOES = {
         "ajuda": "A lista, o mascote em vigor, e qual regra o escolheu.",
     },
     "logo_trocar": {
-        "rotulo": "Pôr um mascote no dock",
+        "rotulo": "Pôr o mascote",
         "grupo": "Logo do sistema",
         "natureza": "trocar",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
@@ -4027,7 +3986,7 @@ ACOES = {
                  "mudar.",
     },
     "logo_girar": {
-        "rotulo": "Passar ao próximo mascote",
+        "rotulo": "Próximo mascote",
         "grupo": "Logo do sistema",
         "natureza": "trocar",
         "argv": _meow("logo", "girar"),
@@ -4075,7 +4034,7 @@ ACOES = {
         "ajuda": "Solta a imagem fixada agora, sem esperar o tempo acabar.",
     },
     "wallpaper_aplicar": {
-        "rotulo": "Reaplicar as regras do carrossel",
+        "rotulo": "Regras do carrossel",
         "grupo": "Papel de parede",
         "natureza": "aplicar",
         "argv": _meow("wallpaper", "aplicar"),
@@ -4089,7 +4048,7 @@ ACOES = {
     # `oculta` porque elas NÃO SÃO CARTÃO na aba "Fazer": o argumento delas é
     # uma imagem, e escolher imagem é o que a galeria já faz com miniatura.
     "wallpaper_banir": {
-        "rotulo": "Tirar esta imagem do carrossel",
+        "rotulo": "Tirar do carrossel",
         "grupo": "Papel de parede",
         "natureza": "tirar",
         "argv": _meow("wallpaper", "banir", "@ARG@"), "arg": "paredes_ativas",
@@ -4105,7 +4064,7 @@ ACOES = {
     # São TRÊS ações e não uma com três opções: cada uma é um botão na ficha da
     # imagem, e a ficha não tem espaço para um seletor.
     "wallpaper_usar": {
-        "rotulo": "Usar esta imagem agora",
+        "rotulo": "Usar agora",
         "grupo": "Papel de parede",
         "natureza": "trocar",
         "argv": _meow("wallpaper", "usar", "@ARG@"), "arg": "paredes_ativas",
@@ -4119,7 +4078,7 @@ ACOES = {
     # `oculta` pelo motivo das outras desta ficha: o argumento é uma imagem, e
     # quem a escolhe é a galeria.
     "wallpaper_permitir": {
-        "rotulo": "Manter a imagem que eu pus",
+        "rotulo": "Manter a imagem",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "permitir", "@ARG@"), "arg": "fontes_revertidas",
@@ -4154,7 +4113,7 @@ ACOES = {
         "ajuda": "Tira a cópia das favoritas; a imagem do carrossel fica.",
     },
     "wallpaper_dia": {
-        "rotulo": "Guardar esta imagem para o dia",
+        "rotulo": "Imagem de dia",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "dia"), "arg": "paredes_ativas",
@@ -4163,7 +4122,7 @@ ACOES = {
                  "O “Deixar a medição decidir” desfaz.",
     },
     "wallpaper_noite": {
-        "rotulo": "Guardar esta imagem para a noite",
+        "rotulo": "Imagem de noite",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "noite"), "arg": "paredes_ativas",
@@ -4172,7 +4131,7 @@ ACOES = {
                  "O “Deixar a medição decidir” desfaz.",
     },
     "wallpaper_lado_auto": {
-        "rotulo": "Deixar a medição decidir",
+        "rotulo": "Medir a luz",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "auto"), "arg": "paredes_ativas",
@@ -4183,7 +4142,7 @@ ACOES = {
     # São dois, e o terceiro ("III") saiu e não volta — decisão dela,
     # confirmada.
     "areas_ver": {
-        "rotulo": "As áreas de agora",
+        "rotulo": "Áreas agora",
         "grupo": "Áreas de trabalho",
         "natureza": "mostrar",
         "argv": _meow("areas", "estado"),
@@ -4212,7 +4171,7 @@ ACOES = {
     # `areas-sem-alfinete` aponta: sem nenhuma área fixada o `Gravar as
     # áreas` não tinha de onde herdar o monitor e parava.
     "areas_alfinetar_primeira": {
-        "rotulo": "Criar a primeira área",
+        "rotulo": "Primeira área",
         "grupo": "Áreas de trabalho",
         "natureza": "gravar",
         "argv": _meow("areas", "alfinetar-primeira"),
@@ -4222,7 +4181,7 @@ ACOES = {
                  "com o primeiro nome da sua lista. Vale no próximo início de sessão.",
     },
     "areas_reverter": {
-        "rotulo": "Voltar as áreas de antes",
+        "rotulo": "Áreas de antes",
         "grupo": "Áreas de trabalho",
         "natureza": "devolver",
         "argv": _meow("areas", "reverter"),
@@ -4242,7 +4201,7 @@ ACOES = {
         "ambiente": {"MEOW_SIM": "1"},
     },
     "wallpaper_desbanir": {
-        "rotulo": "Devolver uma imagem tirada",
+        "rotulo": "Devolver ao carrossel",
         "grupo": "Papel de parede",
         "natureza": "devolver",
         "argv": _meow("wallpaper", "desbanir", "@ARG@"), "arg": "paredes_banidas",
@@ -4251,7 +4210,7 @@ ACOES = {
                  "duas metades.",
     },
     "wallpaper_semear": {
-        "rotulo": "Baixar a coleção curada",
+        "rotulo": "Baixar a coleção",
         "grupo": "Papel de parede",
         "natureza": "baixar",
         "argv": _meow("wallpaper", "semear"),
@@ -4263,7 +4222,7 @@ ACOES = {
     "painel_estado": {
         # O rótulo repetia o nome da aba em que ele já está ("Painel e dock:")
         # e gastava a metade que sobrava numa palavra de oficina.
-        "rotulo": "Como estão o painel e a dock",
+        "rotulo": "Painel agora",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
         "argv": _meow("painel", "estado"),
@@ -4271,7 +4230,7 @@ ACOES = {
         "ajuda": "O estado do painel, da dock e do serviço que cuida dos dois.",
     },
     "painel_teto": {
-        "rotulo": "Até quanto o canto pode arredondar",
+        "rotulo": "Teto dos cantos",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
         "argv": _meow("painel", "teto"),
@@ -4306,7 +4265,7 @@ ACOES = {
                  "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
     },
     "leitura": {
-        "rotulo": "Modo de leitura agora",
+        "rotulo": "Tela quente agora",
         "grupo": "Modo de leitura",
         "natureza": "mostrar",
         "argv": _meow("leitura"),
@@ -4315,7 +4274,7 @@ ACOES = {
                  "compositor sabe ler os dois números.",
     },
     "leitura_aplicar": {
-        "rotulo": "Aplicar o degrau desta hora",
+        "rotulo": "Esquentar agora",
         "grupo": "Modo de leitura",
         "natureza": "aplicar",
         "argv": _meow("leitura", "aplicar"),
@@ -4323,7 +4282,7 @@ ACOES = {
         "ajuda": "Põe agora o que o agendamento poria sozinho.",
     },
     "leitura_remover": {
-        "rotulo": "Desligar o modo de leitura",
+        "rotulo": "Desligar agora",
         "grupo": "Modo de leitura",
         "natureza": "tirar",
         "argv": _meow("leitura", "remover"),
@@ -4331,7 +4290,7 @@ ACOES = {
         "ajuda": "Zera temperatura e textura, e desarma o agendamento.",
     },
     "files_menu": {
-        "rotulo": "Menu da área de trabalho",
+        "rotulo": "Menu agora",
         "grupo": "Papel de parede",
         "natureza": "mostrar",
         "argv": _meow("files-menu"),
@@ -4343,7 +4302,7 @@ ACOES = {
     # estado (`construindo`) e não tem botão, porque não há o que clicar
     # enquanto a unit trabalha.
     "files_menu_build": {
-        "rotulo": "Construir o menu da área de trabalho",
+        "rotulo": "Construir o menu",
         "grupo": "Papel de parede",
         "natureza": "baixar",
         "argv": _meow("files-menu", "build"),
@@ -4355,7 +4314,7 @@ ACOES = {
     "apps": {
         # Módulo é como o `bin/meow` organiza o próprio código; na tela ele
         # nomeava uma coluna que quem lê não tem como interpretar.
-        "rotulo": "Quais programas estão vestidos",
+        "rotulo": "Programas vestidos",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
         "argv": _meow("apps"),
@@ -4363,7 +4322,7 @@ ACOES = {
         "ajuda": "Um por linha: se está instalado, e se o tema já foi aplicado.",
     },
     "apps_aplicar": {
-        "rotulo": "Vestir os programas agora",
+        "rotulo": "Vestir os programas",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": _meow("apps", "aplicar"),
@@ -4374,7 +4333,7 @@ ACOES = {
     },
     # Os dois botões da pendência `<app>-tema-de-terceiro`.
     "apps_tema_do_pack": {
-        "rotulo": "Trocar pelo tema do pack",
+        "rotulo": "Trocar o tema",
         "grupo": "Lançadores e jogos",
         "natureza": "trocar",
         "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
@@ -4384,7 +4343,7 @@ ACOES = {
         "ajuda": "Troca o tema que o programa tem agora pelo do pack no ar.",
     },
     "apps_manter_o_meu": {
-        "rotulo": "Manter o meu tema",
+        "rotulo": "Manter o tema",
         "grupo": "Lançadores e jogos",
         "natureza": "gravar",
         "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
@@ -4396,7 +4355,7 @@ ACOES = {
     # Só o pack do `packs/` do repositório instala extensão sozinho; o importado
     # pede, e o módulo deixa a pendência `vscode-extensao-de-terceiro`.
     "vscode_instalar_extensao": {
-        "rotulo": "Instalar a extensão do VS Code",
+        "rotulo": "Instalar a extensão",
         "grupo": "Lançadores e jogos",
         "natureza": "baixar",
         "argv": _meow("apps", "aplicar", "vscode"), "arg": "extensoes_de_terceiro",
@@ -4409,7 +4368,7 @@ ACOES = {
     },
     # É a ação para onde a pendência `spicetify-tema-ausente` aponta.
     "spotify_baixar_tema": {
-        "rotulo": "Baixar o tema do Spotify",
+        "rotulo": "Tema do Spotify",
         "grupo": "Lançadores e jogos",
         "natureza": "baixar",
         "argv": _meow("apps", "aplicar", "spotify"),
@@ -4421,7 +4380,7 @@ ACOES = {
     # `confirma` é True no aplicar porque uma linha `apagar` no mapa manda o
     # script remover os arquivos do jogo.
     "jogos": {
-        "rotulo": "Ver o que mudaria nos jogos",
+        "rotulo": "Conferir os jogos",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh"), "--conferir"],
@@ -4430,7 +4389,7 @@ ACOES = {
                  "Não escreve nada.",
     },
     "jogos_aplicar": {
-        "rotulo": "Arrumar os jogos no lançador",
+        "rotulo": "Arrumar os jogos",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh")],
@@ -4445,7 +4404,7 @@ ACOES = {
     # "Jogos do Heroic" com a grade de capas, então não há nome repetido a
     # evitar.
     "jogos_heroic": {
-        "rotulo": "Ver o que mudaria nos jogos do Heroic",
+        "rotulo": "Conferir o Heroic",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--conferir"],
@@ -4456,7 +4415,7 @@ ACOES = {
         "ajuda": "Lista atalho a criar e atalho a remover. Não escreve nada.",
     },
     "jogos_heroic_aplicar": {
-        "rotulo": "Pôr os jogos do Heroic no lançador",
+        "rotulo": "Jogos do Heroic",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
@@ -4469,7 +4428,7 @@ ACOES = {
     # Os dois lados do interruptor «no lançador» de um jogo do Heroic: o script
     # grava a lista e arruma o lançador na mesma passada.
     "jogos_heroic_tirar": {
-        "rotulo": "Tirar o jogo do Heroic do lançador",
+        "rotulo": "Tirar um jogo",
         "grupo": "Lançadores e jogos",
         "natureza": "tirar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
@@ -4478,7 +4437,7 @@ ACOES = {
         "ajuda": "O cartão do jogo sai do lançador; o jogo continua no Heroic.",
     },
     "jogos_heroic_por": {
-        "rotulo": "Pôr o jogo do Heroic no lançador",
+        "rotulo": "Pôr um jogo",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
@@ -5699,8 +5658,8 @@ RECUSA_DA_PENDENCIA = {
 # assim para todo módulo que chama aquela função — sete hoje —, e o próximo
 # ganha os botões sem vir aqui.
 SUFIXO_TEMA_DE_TERCEIRO = "-tema-de-terceiro"
-ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar pelo tema do pack"),
-                            ("apps_manter_o_meu", "Manter o meu"))
+ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar"),
+                            ("apps_manter_o_meu", "Manter"))
 
 
 # O id é o que o `scripts/temas-de-apps/vscode/manifesto.sh` registra; as
@@ -5760,43 +5719,149 @@ def _app_da_pendencia(ident):
     return app if os.path.isfile(modulo) else ""
 
 
-# As duas eram nomes de tela escritos à mão num script, e nome escrito à mão é o
-# que envelhece no primeiro renome.
-#
-# Um cartão se pergunta pela CHAVE, e a resposta sai do mesmo lugar de onde a
-# página tira o cartão: o título escrito no `meow.conf.exemplo` (o `# @`), com a
-# troca que o pack no ar faz (`_com_o_vocabulario_do_pack`), e a seção, que é a
-# aba.
-ABA_INICIO = "Início"
+# Onde cada chave, ação e gesto mora no painel é dado da página
+# (`app/pagina/lugares.js`); o `--onde` lê a mesma tabela, e o
+# `tests/migracao-do-painel.py` confere que esta leitura e a do node dão o mesmo.
+PORTA_DAS_PENDENCIAS = "Cuidar"
+_NOME_DA_PORTA = {"tema": "Tema", "criar": "Criar tema", "ajustes": "Ajustes", "cuidar": "Cuidar",
+                  "topo": "Barra de cima", "janela": "Janela do trabalho"}
+_LUGARES = {}
+
+
+def _js_para_json(texto):
+    """O literal de objeto do lugares.js em JSON: chave sem aspas, vírgula no fim, comentário."""
+    saida, i, n = [], 0, len(texto)
+    while i < n:
+        c = texto[i]
+        if c == '"':
+            j = i + 1
+            while texto[j] != '"':
+                j += 2 if texto[j] == "\\" else 1
+            saida.append(texto[i:j + 1])
+            i = j + 1
+        elif texto.startswith("/*", i):
+            i = texto.index("*/", i) + 2
+        elif texto.startswith("//", i):
+            i = texto.find("\n", i) if "\n" in texto[i:] else n
+        elif c.isalpha() or c == "_":
+            j = i
+            while j < n and (texto[j].isalnum() or texto[j] == "_"):
+                j += 1
+            k = j
+            while k < n and texto[k] in " \t\n":
+                k += 1
+            palavra = texto[i:j]
+            saida.append('"%s"' % palavra if k < n and texto[k] == ":" else palavra)
+            i = j
+        else:
+            saida.append(c)
+            i += 1
+    return re.sub(r",(\s*[}\]])", r"\1", "".join(saida))
+
+
+def inventario_do_painel():
+    """A tabela plana do `inventarioDoPainel()` do lugares.js, lida sem node."""
+    caminho = os.path.join(RAIZ, "app", "pagina", "lugares.js")
+    try:
+        marca = os.path.getmtime(caminho)
+        if _LUGARES.get("marca") == marca:
+            return _LUGARES["tabela"]
+        with open(caminho, encoding="utf-8") as fh:
+            fonte = fh.read()
+        c = {m.group(1): json.loads(_js_para_json(m.group(2)))
+             for m in re.finditer(r"(?ms)^const (\w+) = (.*?^[\]}]);", fonte)}
+    except (OSError, ValueError):
+        return []
+    saida = []
+
+    def pus(l, porta, pagina, bloco, mais=False):
+        base = {"porta": porta, "pagina": pagina, "bloco": bloco, "mais": mais,
+                "rotulo": l.get("r"), "botao": l.get("b")}
+        for tipo, campo in (("chave", "c"), ("acao", "a"), ("gesto", "g")):
+            if campo in l:
+                for ident in (l[campo] if isinstance(l[campo], list) else [l[campo]]):
+                    saida.append(dict(base, tipo=tipo, id=ident))
+                break
+
+    tema, cuidar = c["LUGAR_TEMA"], c["LUGAR_CUIDAR"]
+    for l in tema["packs"]:
+        pus(l, "tema", "Tema", "Temas")
+    for b in tema["blocos"]:
+        for l in b["linhas"]:
+            pus(l, "tema", "Tema", b["titulo"])
+    for l in tema["mais"]:
+        pus(l, "tema", "Tema", "Mais ajustes", True)
+    for p in c["PASSOS"]:
+        for l in p["linhas"]:
+            pus(l, "criar", p["nome"], p["nome"])
+        for l in p.get("mais", []):
+            pus(l, "criar", p["nome"], "Mais ajustes", True)
+    for p in c["AJUSTES"]:
+        for l in p.get("cabeca", []):
+            pus(l, "ajustes", p["nome"], p["nome"])
+        for b in p["blocos"]:
+            for l in b["linhas"]:
+                pus(l, "ajustes", p["nome"], b["titulo"])
+        for l in p.get("mais", []):
+            pus(l, "ajustes", p["nome"], "Mais ajustes", True)
+    for l in cuidar["estado"]:
+        pus(l, "cuidar", "Cuidar", "Estado")
+    for l in cuidar["pendencias"]:
+        pus(l, "cuidar", "Cuidar", "Pendências")
+    for cartao in cuidar["cartoes"]:
+        for l in cartao["linhas"]:
+            pus(l, "cuidar", "Cuidar", cartao["titulo"])
+    for b in cuidar["blocos"]:
+        for l in b["linhas"]:
+            pus(l, "cuidar", "Cuidar", b["titulo"])
+    for l in cuidar["perigo"]:
+        pus(l, "cuidar", "Cuidar", "Zona de perigo")
+    for l in cuidar["mais"]:
+        pus(l, "cuidar", "Cuidar", "Mais ajustes", True)
+    for l in c["LUGAR_TOPO"]:
+        pus(l, "topo", "Barra de cima", "Barra de cima")
+    for l in c["LUGAR_JANELA"]:
+        pus(l, "janela", "Janela do trabalho", "Janela do trabalho")
+    _LUGARES.update(marca=marca, tabela=saida)
+    return saida
+
+
+def _caminho_na_tela(l):
+    """`Porta › Página › Bloco`, como a busca da página escreve."""
+    porta = _NOME_DA_PORTA[l["porta"]]
+    base = porta if l["porta"] in ("tema", "cuidar", "topo", "janela") else "%s › %s" % (porta, l["pagina"])
+    if l["mais"]:
+        return base + " › Mais ajustes"
+    if l["bloco"] and l["bloco"] not in (l["pagina"], base):
+        return base + " › " + l["bloco"]
+    return base
 
 
 def onde_na_tela(ident):
-    """Onde um lugar do painel mora, pela tabela que o define, ou "":
+    """Onde um lugar do painel mora, pela tabela da página (lugares.js), ou "":
 
-    «rótulo», na aba Grupo — de uma ação, ou da ação de uma pendência;
-    «um» ou «outro», na aba Início — dos botões da pendência de tema de terceiro;
-    «título», na aba Seção — do cartão de uma chave do meow.conf;
-    na aba Início — para `inicio`, a aba que abre o painel."""
-    acao = ACOES.get(ident) or ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""))
-    if acao:
-        return "" if acao.get("oculta") else "«%s», na aba %s" % (acao["rotulo"], acao["grupo"])
+    «botão», em Porta › Página — de uma ação;
+    «Resolver», em Cuidar — de uma pendência com ação, e os botões dela quando são dois;
+    «nome», em Porta › Página — de uma chave do meow.conf;
+    em Cuidar — para `inicio`, onde as pendências moram."""
+    if ident in ACAO_DA_PENDENCIA:
+        return "«Resolver», em %s" % PORTA_DAS_PENDENCIAS
     if _app_da_pendencia(ident):
-        return "%s, na aba %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_TEMA_DE_TERCEIRO),
-                                  ABA_INICIO)
+        return "%s, em %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_TEMA_DE_TERCEIRO),
+                              PORTA_DAS_PENDENCIAS)
     if ident == PENDENCIA_EXTENSAO:
-        return "«Instalar», na aba %s" % ABA_INICIO
+        return "«Instalar», em %s" % PORTA_DAS_PENDENCIAS
     if ident == PENDENCIA_PAREDE:
-        return "«Era escolha minha», na aba %s" % ABA_INICIO
+        return "«Era escolha minha», em %s" % PORTA_DAS_PENDENCIAS
     if ident == "inicio":
-        return "na aba %s" % ABA_INICIO
-    esquema = ler_esquema()
-    item = next((i for i in esquema if i["chave"] == ident), None)
-    if not item:
+        return "em %s" % PORTA_DAS_PENDENCIAS
+    if (ACOES.get(ident) or {}).get("oculta"):
         return ""
-    _com_o_vocabulario_do_pack(esquema, vocabulario_do_pack(), {})
-    if not item.get("titulo") or not item.get("secao"):
+    l = next((l for l in inventario_do_painel() if l["id"] == ident and l["tipo"] in ("acao", "chave")), None)
+    if not l:
         return ""
-    return "«%s», na aba %s" % (item["titulo"], item["secao"])
+    nome = l["botao"] if l["tipo"] == "acao" and l["botao"] else l["rotulo"]
+    return "«%s», em %s" % (nome, _caminho_na_tela(l))
 
 
 PENDENCIAS = os.path.join(ESTADO, "pendencias.tsv")
@@ -5839,11 +5904,11 @@ def pendencias():
                                 "argumento": comando[len(PREFIXO_PERMITIR):]},
                                {"acao": "wallpaper_dispensar", "rotulo": "Deixar assim",
                                 "argumento": ""}]
-                    nome = "Papel de parede devolvido"
+                    nome = "Papel devolvido"
                 if ident == PENDENCIA_EXTENSAO and comando:
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
-                    nome = "VS Code: extensão de pack importado"
+                    nome = "Extensão do pack"
                 # O `files-menu-build` nasce sem comando enquanto a unidade
                 # compila, e sem `acao` a Início caía no nome da etapa:
                 # «Files_menu.sh», o nome de um arquivo.
@@ -10105,11 +10170,6 @@ class Manipulador(BaseHTTPRequestHandler):
             # `vocabulario_do_pack`.
             "pack": vocab,
             "folhas": self._folhas(),
-            "descricoes": DESCRICAO_SECAO,
-            "blocos": BLOCO_DA_SECAO,
-            # O nome da aba que abre o painel, dito num lugar só: é o mesmo que
-            # o `--onde inicio` dá aos scripts.
-            "aba_inicio": ABA_INICIO,
             # A paleta inteira vai junto: as amostras de flavor e de cor são
             # desenhadas com ela, e uma segunda viagem ao servidor para 4x26
             # valores seria viagem à toa.

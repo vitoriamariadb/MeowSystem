@@ -98,7 +98,8 @@ def servidor():
             "import json, sys; sys.path.insert(0, sys.argv[1]); import servidor as s\n"
             "e = s.ler_esquema()\n"
             "print(json.dumps({'chaves': [[i['chave'], i.get('secao') or '', i.get('titulo') or ''] for i in e],\n"
-            "  'acoes': [[k, v.get('grupo') or '', v.get('rotulo') or ''] for k, v in s.ACOES.items()]}))\n")
+            "  'acoes': [[k, v.get('grupo') or '', v.get('rotulo') or ''] for k, v in s.ACOES.items()],\n"
+            "  'inventario': s.inventario_do_painel()}))\n")
         amb = {"PATH": os.environ.get("PATH", ""), "HOME": casa, "LANG": "C.UTF-8",
                "MEOW_CONF": conf, "MEOW_ESTADO": os.path.join(casa, "estado"),
                "MEOW_PONTE": os.path.join(casa, "sem-ponte")}
@@ -162,6 +163,12 @@ def gerar():
         agora = "; ".join(sorted({onde(l) for l in lugares})) or "**SEM DESTINO**"
         nome = "; ".join(sorted({l["rotulo"] for l in lugares}))
         linhas.append("| %s | %s | %s | %s |" % (rota, antes, agora, nome))
+
+    # O `--onde` do servidor lê o lugares.js sem node: a leitura dele tem de ser a do node.
+    lido = [{k: v for k, v in l.items() if k != "botao"} for l in srv["inventario"]]
+    if lido != inv:
+        falhas.append("o inventario_do_painel do servidor não lê o lugares.js como o node (%d contra %d linhas)"
+                      % (len(lido), len(inv)))
 
     # O caminho inverso: lugar que aponta para o que não existe é lixo na tela.
     ids_chave = {c[0] for c in chaves}

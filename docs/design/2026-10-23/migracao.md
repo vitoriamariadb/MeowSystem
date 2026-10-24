@@ -141,66 +141,66 @@ Gerada por `tests/migracao-do-painel.py` a partir do código: as chaves e as aç
 | `som_aplicar` | Manutenção · «Regravar o som» | Criar tema › Sons | Regravar o som |
 | `doctor` | Instalação · «Conferir a máquina» | Cuidar › Estado | Conferir |
 | `doctor_consertar` | Instalação · «Conferir e consertar» | Cuidar › Estado | Conferir e consertar |
-| `status` | Instalação · «O que está no ar agora» | Tema › Mais ajustes | No ar agora |
+| `status` | Instalação · «No ar agora» | Tema › Mais ajustes | No ar agora |
 | `desinstalar` | Instalação · «Desinstalar o MeowSystem» | Cuidar › Zona de perigo | Desinstalar |
-| `log` | Instalação · «As últimas 50 linhas do registro» | Cuidar › Registro | Registro |
-| `sistema_ver` | Atualização · «O que a atualização mudaria» | Cuidar › Atualizar | O que muda |
-| `sistema_atualizar` | Atualização · «Atualizar a máquina inteira» | Cuidar › Atualizar | Atualizar a máquina |
-| `sistema_limpar` | Atualização · «Limpar o que sobrou» | Cuidar › Atualizar | Limpar |
-| `tema` | Cor e tela · «Temas prontos nesta máquina» | Tema › Mais ajustes | Temas prontos |
+| `log` | Instalação · «Ver o registro» | Cuidar › Registro | Registro |
+| `sistema_ver` | Atualização · «O que muda» | Cuidar › Atualizar | O que muda |
+| `sistema_atualizar` | Atualização · «Atualizar a máquina» | Cuidar › Atualizar | Atualizar a máquina |
+| `sistema_limpar` | Atualização · «Limpar as sobras» | Cuidar › Atualizar | Limpar |
+| `tema` | Cor e tela · «Temas prontos» | Tema › Mais ajustes | Temas prontos |
 | `tema_aplicar` | Cor e tela · «Trocar de tema» | Tema › Mais ajustes | Tema pronto |
-| `tema_modo` | Cor e tela · «Passar para claro ou escuro» | Tema › Mais ajustes | Modo agora |
+| `tema_modo` | Cor e tela · «Trocar o modo» | Tema › Mais ajustes | Modo agora |
 | `restaurar` | Instalação · «Restaurar» | Cuidar › Mais ajustes | Restaurar |
-| `desfazer` | Instalação · «Voltar ao tema de antes» | Cuidar › Zona de perigo | Tema de antes |
-| `icones` | Ícones · «Tema de ícones instalado» | Criar tema › Ícones › Mais ajustes | Tema instalado |
-| `icones_reconstruir` | Ícones · «Reconstruir o tema de ícones» | Criar tema › Ícones › Mais ajustes | Reconstruir os ícones |
-| `icones_traco` | Ícones · «Pôr os desenhos em traço na tela» | Criar tema › Ícones › Mais ajustes | Desenhos em traço |
-| `icones_pack` | Ícones · «Pôr os desenhos do pack na tela» | Criar tema › Ícones › Mais ajustes | Desenhos do pack |
-| `logo_listar` | Logo do sistema · «Qual mascote está no ar, e por quê» | Ajustes › Mascote › Mais ajustes | Mascote agora |
-| `logo_trocar` | Logo do sistema · «Pôr um mascote no dock» | Ajustes › Mascote › Na dock | Pôr agora |
-| `logo_girar` | Logo do sistema · «Passar ao próximo mascote» | Ajustes › Mascote › Na dock | Próximo mascote |
+| `desfazer` | Instalação · «Tema de antes» | Cuidar › Zona de perigo | Tema de antes |
+| `icones` | Ícones · «Tema de ícones» | Criar tema › Ícones › Mais ajustes | Tema instalado |
+| `icones_reconstruir` | Ícones · «Reconstruir os ícones» | Criar tema › Ícones › Mais ajustes | Reconstruir os ícones |
+| `icones_traco` | Ícones · «Desenhos em traço» | Criar tema › Ícones › Mais ajustes | Desenhos em traço |
+| `icones_pack` | Ícones · «Desenhos do pack» | Criar tema › Ícones › Mais ajustes | Desenhos do pack |
+| `logo_listar` | Logo do sistema · «Mascote agora» | Ajustes › Mascote › Mais ajustes | Mascote agora |
+| `logo_trocar` | Logo do sistema · «Pôr o mascote» | Ajustes › Mascote › Na dock | Pôr agora |
+| `logo_girar` | Logo do sistema · «Próximo mascote» | Ajustes › Mascote › Na dock | Próximo mascote |
 | `wallpaper` | Papel de parede · «O carrossel agora» | Ajustes › Papel de parede › Mais ajustes | Carrossel agora |
 | `wallpaper_proximo` | Papel de parede · «Próxima imagem» | Ajustes › Papel de parede | Próxima imagem |
 | `wallpaper_anterior` | Papel de parede · «Imagem anterior» | Ajustes › Papel de parede › Imagens | Imagem anterior |
 | `wallpaper_carrossel` | Papel de parede · «Voltar a girar» | Ajustes › Papel de parede › Imagens | Voltar a girar |
-| `wallpaper_aplicar` | Papel de parede · «Reaplicar as regras do carrossel» | Ajustes › Papel de parede › Mais ajustes | Regras do carrossel |
-| `wallpaper_banir` | Papel de parede · «Tirar esta imagem do carrossel» | Criar tema › Papel de parede | Tirar do carrossel |
-| `wallpaper_usar` | Papel de parede · «Usar esta imagem agora» | Criar tema › Papel de parede | Usar agora |
-| `wallpaper_permitir` | Papel de parede · «Manter a imagem que eu pus» | Cuidar › Pendências | Imagem que você pôs |
+| `wallpaper_aplicar` | Papel de parede · «Regras do carrossel» | Ajustes › Papel de parede › Mais ajustes | Regras do carrossel |
+| `wallpaper_banir` | Papel de parede · «Tirar do carrossel» | Criar tema › Papel de parede | Tirar do carrossel |
+| `wallpaper_usar` | Papel de parede · «Usar agora» | Criar tema › Papel de parede | Usar agora |
+| `wallpaper_permitir` | Papel de parede · «Manter a imagem» | Cuidar › Pendências | Imagem que você pôs |
 | `wallpaper_dispensar` | Papel de parede · «Deixar assim» | Cuidar › Pendências | Imagem que você pôs |
 | `wallpaper_favoritar` | Papel de parede · «Guardar nas favoritas» | Criar tema › Papel de parede | Favorita |
 | `wallpaper_desfavoritar` | Papel de parede · «Tirar das favoritas» | Criar tema › Papel de parede | Tirar das favoritas |
-| `wallpaper_dia` | Papel de parede · «Guardar esta imagem para o dia» | Criar tema › Papel de parede | De dia |
-| `wallpaper_noite` | Papel de parede · «Guardar esta imagem para a noite» | Criar tema › Papel de parede | De noite |
-| `wallpaper_lado_auto` | Papel de parede · «Deixar a medição decidir» | Criar tema › Papel de parede | Medir a luz |
-| `areas_ver` | Áreas de trabalho · «As áreas de agora» | Ajustes › Janelas e tela › Mais ajustes | Áreas agora |
+| `wallpaper_dia` | Papel de parede · «Imagem de dia» | Criar tema › Papel de parede | De dia |
+| `wallpaper_noite` | Papel de parede · «Imagem de noite» | Criar tema › Papel de parede | De noite |
+| `wallpaper_lado_auto` | Papel de parede · «Medir a luz» | Criar tema › Papel de parede | Medir a luz |
+| `areas_ver` | Áreas de trabalho · «Áreas agora» | Ajustes › Janelas e tela › Mais ajustes | Áreas agora |
 | `areas_aplicar` | Áreas de trabalho · «Gravar as áreas» | Ajustes › Janelas e tela › Áreas de trabalho | Gravar as áreas |
-| `areas_alfinetar_primeira` | Áreas de trabalho · «Criar a primeira área» | Ajustes › Janelas e tela › Áreas de trabalho | Primeira área |
-| `areas_reverter` | Áreas de trabalho · «Voltar as áreas de antes» | Ajustes › Janelas e tela › Áreas de trabalho | Áreas de antes |
+| `areas_alfinetar_primeira` | Áreas de trabalho · «Primeira área» | Ajustes › Janelas e tela › Áreas de trabalho | Primeira área |
+| `areas_reverter` | Áreas de trabalho · «Áreas de antes» | Ajustes › Janelas e tela › Áreas de trabalho | Áreas de antes |
 | `areas_desalfinetar` | Áreas de trabalho · «Tirar uma área» | Ajustes › Janelas e tela › Áreas de trabalho | Tirar uma área |
-| `wallpaper_desbanir` | Papel de parede · «Devolver uma imagem tirada» | Criar tema › Papel de parede | Devolver ao carrossel |
-| `wallpaper_semear` | Papel de parede · «Baixar a coleção curada» | Ajustes › Papel de parede › Imagens | Coleção do tema |
-| `painel_estado` | Painel e dock · «Como estão o painel e a dock» | Ajustes › Painel e dock › Mais ajustes | Estado atual |
-| `painel_teto` | Painel e dock · «Até quanto o canto pode arredondar» | Ajustes › Painel e dock › Mais ajustes | Teto dos cantos |
+| `wallpaper_desbanir` | Papel de parede · «Devolver ao carrossel» | Criar tema › Papel de parede | Devolver ao carrossel |
+| `wallpaper_semear` | Papel de parede · «Baixar a coleção» | Ajustes › Papel de parede › Imagens | Coleção do tema |
+| `painel_estado` | Painel e dock · «Painel agora» | Ajustes › Painel e dock › Mais ajustes | Estado atual |
+| `painel_teto` | Painel e dock · «Teto dos cantos» | Ajustes › Painel e dock › Mais ajustes | Teto dos cantos |
 | `painel_reciclar` | Painel e dock · «Recarregar o painel» | Ajustes › Painel e dock | Recarregar o painel |
 | `prompt_instalar_starship` | Terminal · «Instalar o starship» | Ajustes › Terminal › Linha de comando | Starship |
-| `leitura` | Modo de leitura · «Modo de leitura agora» | Ajustes › Dia e noite › Mais ajustes | Tela quente agora |
-| `leitura_aplicar` | Modo de leitura · «Aplicar o degrau desta hora» | Ajustes › Dia e noite › Tela quente | Esquentar agora |
-| `leitura_remover` | Modo de leitura · «Desligar o modo de leitura» | Ajustes › Dia e noite › Tela quente | Desligar agora |
-| `files_menu` | Papel de parede · «Menu da área de trabalho» | Ajustes › Papel de parede › Mais ajustes | Menu agora |
-| `files_menu_build` | Papel de parede · «Construir o menu da área de trabalho» | Ajustes › Papel de parede › Mais ajustes | Construir o menu |
-| `apps` | Lançadores e jogos · «Quais programas estão vestidos» | Ajustes › Programas › Recebem o tema | Conferir |
-| `apps_aplicar` | Lançadores e jogos · «Vestir os programas agora» | Ajustes › Programas › Recebem o tema | Vestir agora |
-| `apps_tema_do_pack` | Lançadores e jogos · «Trocar pelo tema do pack» | Cuidar › Pendências | Tema de um programa |
-| `apps_manter_o_meu` | Lançadores e jogos · «Manter o meu tema» | Cuidar › Pendências | Tema de um programa |
-| `vscode_instalar_extensao` | Lançadores e jogos · «Instalar a extensão do VS Code» | Cuidar › Pendências | Extensão do VS Code |
-| `spotify_baixar_tema` | Lançadores e jogos · «Baixar o tema do Spotify» | Ajustes › Programas › Lançador | Tema do Spotify |
-| `jogos` | Lançadores e jogos · «Ver o que mudaria nos jogos» | Ajustes › Programas › Mais ajustes | Conferir jogos |
-| `jogos_aplicar` | Lançadores e jogos · «Arrumar os jogos no lançador» | Ajustes › Programas › Jogos | Arrumar os jogos |
-| `jogos_heroic` | Lançadores e jogos · «Ver o que mudaria nos jogos do Heroic» | Ajustes › Programas › Mais ajustes | Conferir Heroic |
-| `jogos_heroic_aplicar` | Lançadores e jogos · «Pôr os jogos do Heroic no lançador» | Ajustes › Programas › Jogos | Jogos do Heroic |
-| `jogos_heroic_tirar` | Lançadores e jogos · «Tirar o jogo do Heroic do lançador» | Ajustes › Programas › Jogos | Tirar um jogo |
-| `jogos_heroic_por` | Lançadores e jogos · «Pôr o jogo do Heroic no lançador» | Ajustes › Programas › Jogos | Pôr um jogo |
+| `leitura` | Modo de leitura · «Tela quente agora» | Ajustes › Dia e noite › Mais ajustes | Tela quente agora |
+| `leitura_aplicar` | Modo de leitura · «Esquentar agora» | Ajustes › Dia e noite › Tela quente | Esquentar agora |
+| `leitura_remover` | Modo de leitura · «Desligar agora» | Ajustes › Dia e noite › Tela quente | Desligar agora |
+| `files_menu` | Papel de parede · «Menu agora» | Ajustes › Papel de parede › Mais ajustes | Menu agora |
+| `files_menu_build` | Papel de parede · «Construir o menu» | Ajustes › Papel de parede › Mais ajustes | Construir o menu |
+| `apps` | Lançadores e jogos · «Programas vestidos» | Ajustes › Programas › Recebem o tema | Conferir |
+| `apps_aplicar` | Lançadores e jogos · «Vestir os programas» | Ajustes › Programas › Recebem o tema | Vestir agora |
+| `apps_tema_do_pack` | Lançadores e jogos · «Trocar o tema» | Cuidar › Pendências | Tema de um programa |
+| `apps_manter_o_meu` | Lançadores e jogos · «Manter o tema» | Cuidar › Pendências | Tema de um programa |
+| `vscode_instalar_extensao` | Lançadores e jogos · «Instalar a extensão» | Cuidar › Pendências | Extensão do VS Code |
+| `spotify_baixar_tema` | Lançadores e jogos · «Tema do Spotify» | Ajustes › Programas › Lançador | Tema do Spotify |
+| `jogos` | Lançadores e jogos · «Conferir os jogos» | Ajustes › Programas › Mais ajustes | Conferir jogos |
+| `jogos_aplicar` | Lançadores e jogos · «Arrumar os jogos» | Ajustes › Programas › Jogos | Arrumar os jogos |
+| `jogos_heroic` | Lançadores e jogos · «Conferir o Heroic» | Ajustes › Programas › Mais ajustes | Conferir Heroic |
+| `jogos_heroic_aplicar` | Lançadores e jogos · «Jogos do Heroic» | Ajustes › Programas › Jogos | Jogos do Heroic |
+| `jogos_heroic_tirar` | Lançadores e jogos · «Tirar um jogo» | Ajustes › Programas › Jogos | Tirar um jogo |
+| `jogos_heroic_por` | Lançadores e jogos · «Pôr um jogo» | Ajustes › Programas › Jogos | Pôr um jogo |
 
 ## Gestos da página (26)
 

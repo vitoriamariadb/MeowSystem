@@ -385,7 +385,7 @@ meow_desinstalar() {
   if [ -d "$MEOW_ESTADO/papeis-de-parede" ]; then
     meow_info "  menos $MEOW_ESTADO/papeis-de-parede/ — é a sua curadoria de papel de parede"
   fi
-  meow_info "os .desktop do sistema que o lançador escondia voltam com o «Voltar ao tema de antes»"
+  meow_info "os .desktop do sistema que o lançador escondia voltam com o «Tema de antes»"
   return 0
 }
 

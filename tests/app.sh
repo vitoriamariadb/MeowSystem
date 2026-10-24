@@ -621,28 +621,48 @@ if not erros:
                 erros.append("o ensaio de %s diz %r — num ensaio nada foi feito" % (ident, frase))
                 break
 
-# 12b. o nome que um script cita sai da tabela
-acao = servidor.ACOES["doctor_consertar"]
-esperado = "«%s», na aba %s" % (acao["rotulo"], acao["grupo"])
+# 12b. o nome que um script cita sai da tabela da página (app/pagina/lugares.js)
+esperado = "«Conferir e consertar», em Cuidar › Estado"
 if servidor.onde_na_tela("doctor_consertar") != esperado:
     erros.append("--onde doctor_consertar diz %r, e não %r"
                  % (servidor.onde_na_tela("doctor_consertar"), esperado))
-alvo = servidor.ACOES[servidor.ACAO_DA_PENDENCIA["areas-sem-alfinete"]]
-if servidor.onde_na_tela("areas-sem-alfinete") != "«%s», na aba %s" % (alvo["rotulo"], alvo["grupo"]):
-    erros.append("--onde de uma pendência não diz a ação dela")
+if servidor.onde_na_tela("areas-sem-alfinete") != "«Resolver», em %s" % servidor.PORTA_DAS_PENDENCIAS:
+    erros.append("--onde de uma pendência não diz o «Resolver» da lista dela")
 oculta = next(k for k, a in servidor.ACOES.items() if a.get("oculta"))
 if servidor.onde_na_tela(oculta) or servidor.onde_na_tela("nao-existe"):
     erros.append("--onde cita um botão que não tem cartão (%s) ou que não existe" % oculta)
-# A pendência do tema de terceiro (P62): os DOIS botões que a Início desenha
+# A pendência do tema de terceiro (P62): os DOIS botões que a lista desenha
 # para ela, lidos da tabela da escolha — de um app com módulo, e de nenhum outro.
 modulos = os.path.join(raiz, "scripts", "temas-de-apps")
 com_modulo = next(n for n in sorted(os.listdir(modulos))
                   if os.path.isfile(os.path.join(modulos, n, "manifesto.sh")))
 onde = servidor.onde_na_tela(com_modulo + servidor.SUFIXO_TEMA_DE_TERCEIRO)
 if not all("«%s»" % r in onde for _a, r in servidor.ESCOLHA_TEMA_DE_TERCEIRO) \
-        or not onde.endswith("na aba %s" % servidor.ABA_INICIO):
-    erros.append("--onde da pendência de tema de terceiro de %s não cita os botões da Início: %r"
+        or not onde.endswith("em %s" % servidor.PORTA_DAS_PENDENCIAS):
+    erros.append("--onde da pendência de tema de terceiro de %s não cita os botões da lista: %r"
                  % (com_modulo, onde))
+# 12c. nome e botão que o servidor manda à tela: até três palavras, maiúscula no começo
+def curto(t):
+    return bool(t) and len(t.split()) <= 3 and t[0].isupper()
+longos = ["%s: %r" % (k, a["rotulo"]) for k, a in servidor.ACOES.items() if not curto(a["rotulo"])]
+assert servidor.PENDENCIAS.startswith(casa), servidor.PENDENCIAS
+os.makedirs(os.path.dirname(servidor.PENDENCIAS), exist_ok=True)
+with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
+    fh.write("%s\twallpaper.sh\tA saída voltou\t%s/x/y.png\t2026-10-23T00:00:00-03:00\n"
+             % (servidor.PENDENCIA_PAREDE, servidor.PREFIXO_PERMITIR.strip()))
+    fh.write("%s\tvscode\tExtensão\tmeow apps aplicar vscode\t2026-10-23T00:00:00-03:00\n"
+             % servidor.PENDENCIA_EXTENSAO)
+    fh.write("files-menu-build\tfiles_menu.sh\tO menu compila\t\t2026-10-23T00:00:00-03:00\n")
+    fh.write("%s%s\tlib\tTema de fora\tmeow apps aplicar %s\t2026-10-23T00:00:00-03:00\n"
+             % (com_modulo, servidor.SUFIXO_TEMA_DE_TERCEIRO, com_modulo))
+for p in servidor.pendencias():
+    if p["nome"] and not curto(p["nome"]):
+        longos.append("pendência %s: %r" % (p["id"], p["nome"]))
+    longos += ["botão de %s: %r" % (p["id"], e["rotulo"]) for e in p["escolha"]
+               if not curto(e["rotulo"]) and not e["rotulo"].startswith("Instalar ")]
+os.remove(servidor.PENDENCIAS)
+if longos:
+    erros.append("12c: nome ou botão com mais de três palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
 if servidor.onde_na_tela("sem-modulo-nenhum" + servidor.SUFIXO_TEMA_DE_TERCEIRO):
     erros.append("--onde cita os botões do tema de terceiro para um app sem módulo")
 porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel doctor_consertar',
@@ -948,39 +968,33 @@ if editor != {"tem": True, "nome": "Editor de vetores"}:
     erros.append("13a: o botão do editor de SVG diz %r, e a grade diria «Editor de vetores»"
                  % (editor,))
 
-# 13b. o --onde e as frases do install.sh
-esquema = servidor.ler_esquema()
-lanc = next(i for i in esquema if i["chave"] == "LANCADOR_SISTEMA")
-quer = "«%s», na aba %s" % (lanc["titulo"], lanc["secao"])
+# 13b. o --onde e as frases do install.sh: o cartão é a linha da página
+quer = "«Arrumar o lançador», em Ajustes › Programas › Lançador"
 if servidor.onde_na_tela("LANCADOR_SISTEMA") != quer:
-    erros.append("13b: --onde LANCADOR_SISTEMA diz %r, e o cartão é %s"
+    erros.append("13b: --onde LANCADOR_SISTEMA diz %r, e a linha é %s"
                  % (servidor.onde_na_tela("LANCADOR_SISTEMA"), quer))
 porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel LANCADOR_SISTEMA',
                         "_", raiz], capture_output=True, text=True, env=dict(os.environ))
 if porta.stdout.strip() != quer:
     erros.append("13b: o meow_onde_no_painel de um cartão diz %r" % porta.stdout.strip())
-sem_titulo = next((i["chave"] for i in esquema if not i.get("titulo")), None)
-if sem_titulo and servidor.onde_na_tela(sem_titulo):
-    erros.append("13b: --onde inventa um cartão para %s, que não tem título escrito" % sem_titulo)
-inicio = getattr(servidor, "ABA_INICIO", None)
-if not inicio or servidor.onde_na_tela("inicio") != "na aba %s" % inicio:
-    erros.append("13b: --onde inicio não diz a aba que abre o painel: %r"
-                 % servidor.onde_na_tela("inicio"))
-# [P98: o painel abre na porta Tema, que é o primeiro item de PORTAS em
-#  app/pagina/lugares.js; o `--onde inicio` do servidor ainda diz «Início» e
-#  vira tarefa registrada na P98 (o servidor é da P96 enquanto ela corre).]
-with open(os.path.join(raiz, "app", "pagina", "lugares.js"), encoding="utf-8") as fh:
-    if not re.search(r'const PORTAS = \[\s*\{ id: "tema", nome: "Tema"', fh.read()):
-        erros.append("13b: a porta que abre o painel não é a primeira da lista de portas")
+if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Ajustes › Papel de parede › Mais ajustes":
+    erros.append("13b: --onde de uma chave do «Mais ajustes» diz %r" % servidor.onde_na_tela("WALLPAPER_DRACULA_REPO"))
+if servidor.onde_na_tela("inicio") != "em Cuidar":
+    erros.append("13b: --onde inicio não diz onde as pendências moram: %r" % servidor.onde_na_tela("inicio"))
+velhas = [f for f in (servidor.onde_na_tela(k) for k in list(servidor.ACOES) + ["inicio", "PACK", "CURSOR"])
+          if "na aba" in f]
+if velhas:
+    erros.append("13b: o --onde ainda fala de aba: %r" % velhas[:3])
 # O NOME DE TELA NUMA FRASE DO install.sh, DERIVADO E NÃO LISTADO: todo título
 # de cartão e rótulo de ação citado entre aspas numa linha que fala do painel,
 # e todo nome de aba depois da palavra «aba». O `passo "Ícones resgatados do
 # PNG"` não conta: é o nome da etapa, e a linha não fala do painel.
+esquema = servidor.ler_esquema()
 nomes = ({i["titulo"] for i in esquema if i.get("titulo")}
          | {a["rotulo"] for a in servidor.ACOES.values() if not a.get("oculta")})
 abas = ({i["secao"] for i in esquema if i.get("secao")}
         | {a["grupo"] for a in servidor.ACOES.values() if not a.get("oculta")}
-        | {inicio or "Início"})
+        | {"Início", servidor.PORTA_DAS_PENDENCIAS})
 with open(os.path.join(raiz, "install.sh"), encoding="utf-8") as fh:
     instalador = fh.read()
 for n, linha in enumerate(instalador.splitlines(), 1):
@@ -1198,8 +1212,8 @@ repetidas = sorted((n, " ".join(str(x) for x in k).replace("\n", " ")[:90])
 if repetidas:
     erros.append("13d: uma leitura do esquema repetiu %d pergunta(s) — a pior %d vezes: %s"
                  % (len(repetidas), repetidas[-1][0], repetidas[-1][1]))
-if dados.get("aba_inicio") != inicio or not inicio:
-    erros.append("13b: o esquema não manda à página o nome da Início (%r)" % dados.get("aba_inicio"))
+if {"descricoes", "blocos", "aba_inicio"} & set(dados):
+    erros.append("13b: o esquema ainda manda à página o texto das abas de antes")
 ficha = next((i for i in dados["chaves"] if i["chave"] == "LANCADOR_OCULTAR"), {})
 nome = ((ficha.get("programas") or {}).get("nm-connection-editor") or {}).get("nome")
 if nome != "Configuração avançada de rede":

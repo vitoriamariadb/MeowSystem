@@ -2366,7 +2366,7 @@ etapa_leitura() {
       #   texto é escolha dela, não minha. Está relatado.
       if [ "$aplicavel" = "0" ]; then
         meow_info "  o degrau que estiver no disco fica: esvazie LEITURA_AGENDA se o modo de"
-        meow_info "  leitura é só seu, ou «Desligar o modo de leitura» zera os dois números"
+        meow_info "  leitura é só seu, ou «Desligar agora» zera os dois números"
       fi
       return "$MEOW_DIVERGENTE"
     fi

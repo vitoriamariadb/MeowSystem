@@ -339,7 +339,7 @@ fi
 TK="$(meow_cosmic_dir)/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme"
 if [ -f "$TK" ] && ! grep -q "\"$TEMA_NOME\"" "$TK"; then
   meow_aviso "'$TEMA_NOME' NÃO é o tema de ícones selecionado — nada disto vai aparecer"
-  meow_info "  o «Reconstruir o tema de ícones» o põe no ar"
+  meow_info "  o «Reconstruir os ícones» o põe no ar"
   avisos=1
 fi
 
