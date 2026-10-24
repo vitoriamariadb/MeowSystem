@@ -650,6 +650,9 @@ meow_cosmic_comp_disco() {
 # diretório inteiro.
 MEOW_PROIBIDOS_SISTEMA=(/usr/share /usr/local/share /usr/bin /usr/lib)
 MEOW_PROIBIDOS_LOCAIS=()
+# `!caminho` no vizinhos.conf é a exceção por arquivo: aquele arquivo exato, dentro
+# de uma pasta de outro projeto, o MeowSystem escreve (o bloco do terminal no .zshrc).
+MEOW_EXCECOES_LOCAIS=()
 MEOW_VIZINHOS="${MEOW_VIZINHOS:-$HOME/.config/meow/vizinhos.conf}"
 if [ -f "$MEOW_VIZINHOS" ]; then
   while IFS= read -r _l || [ -n "$_l" ]; do
@@ -659,7 +662,11 @@ if [ -f "$MEOW_VIZINHOS" ]; then
     # SEM `eval`: a única expansão que este arquivo precisa é $HOME, e passar as
     # linhas por eval transformaria um arquivo de configuração em execução de
     # código — `$(rm -rf ~)` numa linha bastaria.
-    MEOW_PROIBIDOS_LOCAIS+=("${_l//\$HOME/$HOME}")
+    case "$_l" in
+      '!'*) _l="${_l#!}"; _l="${_l//\$HOME/$HOME}"
+            case "$_l" in /*) MEOW_EXCECOES_LOCAIS+=("$(readlink -m -- "$_l")") ;; esac ;;
+      *)    MEOW_PROIBIDOS_LOCAIS+=("${_l//\$HOME/$HOME}") ;;
+    esac
   done < "$MEOW_VIZINHOS"
   unset _l
 fi
@@ -672,6 +679,9 @@ meow_destino_permitido() {
       meow_erro "recusado: '$alvo' é território do sistema e do gerenciador de pacotes"
       return 1 ;;
     esac
+  done
+  for p in ${MEOW_EXCECOES_LOCAIS[@]+"${MEOW_EXCECOES_LOCAIS[@]}"}; do
+    [ "$real" = "$p" ] && return 0
   done
   # Casa o caminho exato e tudo abaixo dele. Escreva CAMINHO ABSOLUTO no
   # vizinhos.conf: um nome solto de componente não é casado no meio do caminho,

@@ -225,6 +225,33 @@ confere "o conserto reindexa" '[ "$rc" = 1 ] && [ -s "$T/gtk.log" ]'
 saida="$(hc 2>&1)"; rc=$?
 confere "a segunda passada não escreve" '[ "$rc" = 0 ] && printf "%s" "$saida" | grep -q "já declara"'
 
+printf '\n7. o bloco do terminal no .zshrc que o vizinho guarda\n'
+C2="$T/casa2"; Z2="$C2/.config/zsh"
+mkdir -p "$Z2" "$C2/.config/meow"
+printf 'export ZDOTDIR="$HOME/.config/zsh"\n' > "$C2/.zshenv"
+printf 'alias x=y\n' > "$Z2/.zshrc"; printf 'export A=1\n' > "$Z2/env.zsh"
+printf '$HOME/.config/zsh   # o Spellbook\n' > "$C2/.config/meow/vizinhos.conf"
+tb() { env -i PATH="$T/bin:/usr/bin:/bin" HOME="$C2" SHELL=/bin/zsh MEOW_ESTADO="$C2/.local/state/meowsystem" NO_COLOR=1 \
+         bash "$RAIZ/scripts/terminal_bloco.sh" "$@"; }
+pode() { env -i PATH=/usr/bin:/bin HOME="$C2" bash -c '. "$1/lib/comum.sh" >/dev/null 2>&1; meow_destino_permitido "$2" 2>/dev/null' _ "$RAIZ" "$1"; }
+confere "sem a exceção, o .zshrc do vizinho é recusado" '! pode "$Z2/.zshrc"'
+tb >/dev/null 2>&1; rc=$?
+confere "o bloco entra no .zshrc do ZDOTDIR, abaixo do que já estava" \
+  '[ "$rc" = 1 ] && [ "$(head -n1 "$Z2/.zshrc")" = "alias x=y" ] && grep -qxF "# >>> MeowSystem — o meow põe e tira este bloco >>>" "$Z2/.zshrc"'
+confere "o vizinhos.conf ganha a exceção daquele arquivo, com \$HOME escrito" \
+  'grep -qxF "!\$HOME/.config/zsh/.zshrc" "$C2/.config/meow/vizinhos.conf" && grep -qxF "\$HOME/.config/zsh   # o Spellbook" "$C2/.config/meow/vizinhos.conf"'
+confere "o resto da pasta segue do vizinho" 'pode "$Z2/.zshrc" && ! pode "$Z2/env.zsh" && ! pode "$Z2/outro.zsh" && [ "$(cat "$Z2/env.zsh")" = "export A=1" ]'
+antes="$(md5sum "$Z2/.zshrc" "$C2/.config/meow/vizinhos.conf")"
+tb >/dev/null 2>&1; rc=$?
+confere "a segunda passada não escreve" '[ "$rc" = 0 ] && [ "$antes" = "$(md5sum "$Z2/.zshrc" "$C2/.config/meow/vizinhos.conf")" ]'
+tb remover >/dev/null 2>&1
+confere "remover tira o bloco do .zshrc do vizinho" '[ "$(cat "$Z2/.zshrc")" = "alias x=y" ]'
+C3="$T/casa3"; mkdir -p "$C3"; printf 'alias y=z\n' > "$C3/.bashrc"
+env -i PATH="$T/bin:/usr/bin:/bin" HOME="$C3" SHELL=/bin/bash MEOW_ESTADO="$C3/estado" NO_COLOR=1 \
+  bash "$RAIZ/scripts/terminal_bloco.sh" >/dev/null 2>&1
+confere "no PC sem Spellbook, o bloco vai ao .bashrc de sempre, sem vizinhos.conf" \
+  'grep -q "^# >>> MeowSystem" "$C3/.bashrc" && [ ! -e "$C3/.config/meow/vizinhos.conf" ]'
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'vizinhos: tudo verde\n'; exit 0; fi
 printf 'vizinhos: %s falha(s)\n' "$falhas"; exit 1

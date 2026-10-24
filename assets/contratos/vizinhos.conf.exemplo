@@ -13,7 +13,12 @@
 # executado. `#` comenta o resto da linha. Vazio é o normal: numa máquina sem
 # vizinhos, este arquivo não precisa existir.
 #
+# `!` no começo é a exceção por arquivo: aquele arquivo exato, dentro de uma
+# pasta acima, o MeowSystem escreve. É como o bloco do terminal entra no .zshrc
+# do ZDOTDIR; o `terminal_bloco.sh` acrescenta essa linha sozinho.
+#
 # Copie para ~/.config/meow/vizinhos.conf e descomente o que for seu.
 
 #$HOME/.config/zsh                                            # repo com auto-commit
+#!$HOME/.config/zsh/.zshrc                                    # o bloco marcado do terminal
 #$HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts   # atalhos de outro projeto

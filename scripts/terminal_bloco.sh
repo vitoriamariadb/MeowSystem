@@ -8,7 +8,9 @@
 # O bloco é uma linha que carrega ~/.config/meowsystem/terminal.sh: o prompt
 # (starship), as cores do fzf, o mascote do fastfetch e a completion do `meow`.
 # Ele mora entre duas marcas, e só o que está entre elas é do MeowSystem. Um
-# arquivo de terminal que outro projeto guarda (vizinhos.conf) não é escrito.
+# arquivo de terminal que outro projeto guarda (vizinhos.conf) não é escrito, salvo
+# o .zshrc do ZDOTDIR: a pasta segue do vizinho, e o vizinhos.conf ganha a
+# exceção `!` daquele arquivo (decisão de 23/10).
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -111,7 +113,23 @@ if [ "$ACAO" = "remover" ]; then
   exit "$rc"
 fi
 
+# O .zshrc do ZDOTDIR que o vizinhos.conf guarda (o do Spellbook) recebe o bloco:
+# a exceção daquele arquivo vai para o vizinhos.conf, e o resto da pasta segue dele.
+_excecao_do_zshrc() {
+  local z linha
+  z="$(_zdotdir)/.zshrc"
+  [ -f "$MEOW_VIZINHOS" ] || return 0
+  meow_destino_permitido "$z" 2>/dev/null && return 0
+  case "$(readlink -m -- "$z")" in /usr/*) return 0 ;; esac
+  linha="!${z/#"$HOME"/\$HOME}"
+  meow_escrever "$MEOW_VIZINHOS" "$(cat "$MEOW_VIZINHOS")
+$linha" "$(stat -c %a "$MEOW_VIZINHOS" 2>/dev/null || echo 644)"; _marcar $?
+  meow_seco || meow_muda "exceção do $z no vizinhos.conf"
+  MEOW_EXCECOES_LOCAIS+=("$(readlink -m -- "$z")")
+}
+
 meow_escrever "$CARREGADO" "$(_texto_carregado)" 644; _marcar $?
+_excecao_do_zshrc
 postos=() guardados=()
 while IFS= read -r alvo; do
   if ! meow_destino_permitido "$alvo" 2>/dev/null; then
