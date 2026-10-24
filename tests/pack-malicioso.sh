@@ -449,30 +449,37 @@ J
   printf 'mal-evil-http.png\tx\thttp://exemplo.invalido/6.png\t1x1\n'
   printf 'mal-evil-file.png\tx\tfile:///etc/passwd\t1x1\n'
   printf 'bom.png\tx\thttps://exemplo.invalido/7.png\t1x1\n'
+  printf 'doistabs.png\t\thttps://exemplo.invalido/8.png\tfile:///etc/passwd\n'
+  printf 'opcao.png\t\thttps://exemplo.invalido/9.png\t-o\n'
 } > "$PAPEL/wallpapers/FONTES.tsv"
 cat > "$T/curl/curl" <<CURL
 #!/bin/sh
+printf '%s\n' "\$*" >> "$T/curl-args.log"
 saida=""; url=""
 while [ "\$#" -gt 0 ]; do
-  case "\$1" in -o) saida="\$2"; shift ;; --max-time) shift ;; -*) ;; *) url="\$1" ;; esac
+  case "\$1" in
+    -o) saida="\$2"; shift ;; --max-time|--proto|--proto-redir) shift ;; --) url="\$2"; shift ;;
+    -*) ;; *) url="\$1" ;;
+  esac
   shift
 done
 printf '%s\n' "\$url" >> "$T/curl.log"
 [ -n "\$saida" ] && printf 'png' > "\$saida"
 exit 0
 CURL
-chmod 755 "$T/curl/curl"; : > "$T/curl.log"
+chmod 755 "$T/curl/curl"; : > "$T/curl.log"; : > "$T/curl-args.log"
 [ -z "$(adotado mal-papel)" ] \
   || falha "o pack mal-papel não validou; a sonda da curadoria não prova nada"
 amb PATH="$T/curl:$T/falso:$PATH" PACK=mal-papel WALLPAPER_BASE="$T/papel-2" \
   bash "$RAIZ/scripts/wallpaper.sh" semear > "$T/papel-2.log" 2>&1
 fora_papel="$(find "$T" -name 'mal-evil*' -not -path "$RAIZ_DELA/*" 2>/dev/null)"
 if [ -f "$T/papel-2/ativos/bom.png" ] && [ -z "$fora_papel" ] && [ ! -e "$MARCA" ] \
-   && [ "$(grep -c . "$T/curl.log")" = 1 ] && grep -qx 'https://exemplo.invalido/7.png' "$T/curl.log"; then
-  ok "a curadoria do pack baixa só nome simples por https, dentro de ativos/ (7 linhas más recusadas)"
+   && [ "$(LC_ALL=C sort "$T/curl.log" | tr '\n' ' ')" = 'https://exemplo.invalido/7.png https://exemplo.invalido/8.png https://exemplo.invalido/9.png ' ] \
+   && [ "$(grep -c -- "--proto =https --proto-redir =https -o .* -- https://" "$T/curl-args.log")" = 3 ]; then
+  ok "a curadoria do pack baixa só nome simples por https, dentro de ativos/ (7 linhas más recusadas; dois tabs seguidos não trocam a URL validada)"
 else
   falha "a curadoria do pack escreveu fora, baixou por outro esquema ou rodou comando" \
-    "$(cat "$T/curl.log"; printf '%s\n' "$fora_papel"; tail -3 "$T/papel-2.log")"
+    "$(cat "$T/curl-args.log"; printf '%s\n' "$fora_papel"; tail -3 "$T/papel-2.log")"
 fi
 
 # --- 6. o .meowpack com script ---------------------------------------------------

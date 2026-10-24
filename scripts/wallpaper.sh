@@ -2340,18 +2340,19 @@ semear_da_curadoria() {
   #   O awk conta campo de verdade (NF), exige que a URL PAREÇA uma URL, e o
   #   here-string abaixo garante o newline final.
   # A curadoria pode vir de um pack de terceiro: o nome é só de arquivo, com
-  # caracteres estritos, e a URL só https.
+  # caracteres estritos, e a URL só https. O awk imprime só os dois campos que
+  # validou, separados por \x1f, que o `read` não colapsa como colapsa o tab.
   local validas descartadas
-  validas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && NF >= 3 && $3 ~ /^https:\/\// && $1 ~ /^[A-Za-z0-9][A-Za-z0-9._+-]*$/ && $1 !~ /\.\./ {print}' "$FONTES_TSV")"
+  validas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && NF >= 3 && $3 ~ /^https:\/\// && $1 ~ /^[A-Za-z0-9][A-Za-z0-9._+-]*$/ && $1 !~ /\.\./ {print $1 "\037" $3}' "$FONTES_TSV")"
   descartadas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && !(NF >= 3 && $3 ~ /^https:\/\// && $1 ~ /^[A-Za-z0-9][A-Za-z0-9._+-]*$/ && $1 !~ /\.\./) {n++} END {print n+0}' "$FONTES_TSV")"
   if [ "$descartadas" -gt 0 ]; then
     meow_aviso "$descartadas linha(s) de $(basename "$FONTES_TSV") com nome ou URL fora da regra — ignoradas"
   fi
   [ -n "$validas" ] || return 0
 
-  local falhas=0 nome categoria url resolucao
-  while IFS=$'\t' read -r nome categoria url resolucao; do
-    [ -n "$nome" ] || continue
+  local falhas=0 nome url
+  while IFS=$'\037' read -r nome url; do
+    [ -n "$nome" ] && [[ $url == https://* ]] || continue
     local destino="$ATIVOS/$nome"
     [ "$(realpath -m -- "$destino")" = "$(realpath -m -- "$ATIVOS")/$nome" ] || continue
     [ -e "$destino" ] && continue
@@ -2360,7 +2361,7 @@ semear_da_curadoria() {
       meow_muda "baixaria $nome (curadoria)"; CURADORIA_N=$((CURADORIA_N + 1)); continue
     fi
     local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
-    if curl -sSL --max-time 90 -o "$tmp" "$url" 2>/dev/null && [ -s "$tmp" ]; then
+    if curl -sSL --max-time 90 --proto '=https' --proto-redir '=https' -o "$tmp" -- "$url" 2>/dev/null && [ -s "$tmp" ]; then
       meow_guardar_antes "$destino"; mv -f "$tmp" "$destino"; CURADORIA_N=$((CURADORIA_N + 1))
     else
       rm -f "$tmp"; falhas=$((falhas + 1))
