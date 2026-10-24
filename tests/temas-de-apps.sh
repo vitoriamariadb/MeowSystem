@@ -1595,6 +1595,39 @@ saida="$(mod10 obsidian aplicar dracula dracula)"; rc=$?
   && ok "P61: o Obsidian sem rede não deixa pasta vazia, o desfazer leva a de antes, e a descida leva as sobras" \
   || falha "P61: a pasta do que desce:$faltam"
 
+# --- O ÍCONE DO ZAPZAP É A ARTE DO PACK -------------------------------------
+# Com o Dracula no ar, o nome que o export grava em `Icon=` resolve para um
+# arquivo idêntico ao desenho escolhido no pack, e o traço de 48 px não sobra.
+ZZ="$T/zapzap-icone"; ZC="$ZZ/casa"; mkdir -p "$ZZ/bin" "$ZC"
+printf '#!/bin/sh\nexit 1\n' > "$ZZ/bin/sudo"; printf '#!/bin/sh\nexit 0\n' > "$ZZ/bin/flatpak"; chmod 755 "$ZZ/bin/"*
+zz_app="$ZC/.local/share/flatpak/app/com.rtosta.zapzap"
+mkdir -p "$zz_app/x86_64/stable/0123abcd/export/share/applications" "$ZC/.local/share/flatpak/exports/share/applications"
+ln -sfn 0123abcd "$zz_app/x86_64/stable/active"; ln -sfn x86_64/stable "$zz_app/current"
+printf '[Desktop Entry]\nName=ZapZap\nIcon=com.rtosta.zapzap\nExec=flatpak run com.rtosta.zapzap\n' \
+  > "$zz_app/x86_64/stable/0123abcd/export/share/applications/com.rtosta.zapzap.desktop"
+ZZ_EXPORT="$ZC/.local/share/flatpak/exports/share/applications/com.rtosta.zapzap.desktop"
+ln -s "$zz_app/current/active/export/share/applications/com.rtosta.zapzap.desktop" "$ZZ_EXPORT"
+zz_amb() {
+  env -i PATH="$ZZ/bin:$PATH" HOME="$ZC" NO_COLOR=1 MEOW_RAIZ="$RAIZ" PACK=dracula FLAVOR=dracula \
+    ACCENT=mauve MEOW_PONTE=/nao/existe ICONES_DRACULA=sim "$@" 2>&1
+}
+zz_modulo() { zz_amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/scripts/temas-de-apps/zapzap/manifesto.sh"; meow_app_$0' "$1"; }
+for _ in 1 2; do
+  zz_modulo aplicar >/dev/null
+  zz_amb bash "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar >/dev/null
+  zz_amb bash "$RAIZ/scripts/icones_apps_arcticons.sh" >/dev/null
+done
+zz_nome="$(sed -n 's/^Icon=//p' "$ZZ_EXPORT" | head -1)"
+zz_tema="$ZC/.local/share/icons/MeowSystem-Icons"
+zz_achados="$(find "$zz_tema" -name "$zz_nome.svg" -o -name "$zz_nome.png" | sed "s|$zz_tema/||" | sort | tr '\n' ' ')"
+zz_rc_mod="$(zz_modulo conferir >/dev/null; echo $?)"
+zz_rc_pack="$(zz_amb bash "$RAIZ/scripts/icones_apps_dracula.sh" --conferir >/dev/null; echo $?)"
+[ -n "$zz_nome" ] && [ "$zz_achados" = "scalable/apps/$zz_nome.svg " ] \
+  && cmp -s "$zz_tema/scalable/apps/$zz_nome.svg" "$RAIZ/packs/dracula/icones/apps/whatsapp-linux-app.svg" \
+  && [ "$zz_rc_mod" = 0 ] && [ "$zz_rc_pack" = 0 ] \
+  && ok "com o Dracula no ar, o Icon=$zz_nome do ZapZap é o desenho do pack, sem traço de 48 px, e os passos convergem" \
+  || falha "o ícone do ZapZap não é a arte do pack (Icon=$zz_nome, no tema: $zz_achados; conferir rc=$zz_rc_mod e $zz_rc_pack)"
+
 # ---------------------------------------------------------------------------
 printf '\n'
 if [ "$falhas" -gt 0 ]; then

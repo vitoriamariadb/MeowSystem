@@ -137,6 +137,13 @@ _zz_icone_velho() {
   printf '%s' "$(_zz_tema_dir)/scalable/apps/$_ZZ_ICONE.svg"
 }
 
+# O pack no ar veste `meow-whatsapp` com um desenho dele (o `icones/apps.map`):
+# aí o arquivo de `scalable/apps` é a arte do pack, e não o balão de antes.
+_zz_do_pack() {
+  MEOW_PACK_DIR="$(meow_pack_dir)" python3 "$MEOW_RAIZ/scripts/pack.py" fontes 2>/dev/null \
+    | awk -F'\t' -v n="$_ZZ_ICONE" '$1 == n { achou = 1 } END { exit !achou }'
+}
+
 # --- O ÍCONE DA BANDEJA É OUTRO CAMINHO, E O TEMA NÃO ALCANÇA ELE -----------
 # Sintoma dela, 05/08/2026: "wpp em baixo e lá em cima é zapzap ainda". No dock o
 # ícone é o nosso; na barra de cima continua o logo verde-limão do projeto.
@@ -242,7 +249,7 @@ meow_app_conferir() {
   # A pós-condição do ícone virou de sinal em 11/08/2026: o certo agora é o
   # arquivo NÃO existir em `scalable/apps`, para o glifo de traço de
   # `48x48/apps` poder vencer. Ver o cabeçalho.
-  [ ! -f "$(_zz_icone_velho)" ] || return "$MEOW_DIVERGENTE"
+  [ ! -f "$(_zz_icone_velho)" ] || _zz_do_pack || return "$MEOW_DIVERGENTE"
 
   # O ícone da bandeja só é conferido se o conf existir: num ZapZap recém
   # instalado, que nunca abriu, não há arquivo — e cobrar uma chave de um arquivo
@@ -277,7 +284,7 @@ meow_app_aplicar() {
   # O balão verde cheio de antes de 11/08/2026. Enquanto ele estiver aqui, o
   # glifo de traço que ela aprovou não chega à tela — o resolvedor pede
   # `scalable` antes de `48x48`.
-  if [ -f "$icone" ]; then
+  if [ -f "$icone" ] && ! _zz_do_pack; then
     if meow_seco; then
       meow_muda "removeria $icone (o glifo de traço do Arcticons é o que vale)"
       mudou=1
