@@ -1,10 +1,6 @@
-# Upstreams baixados: Papirus, cosmic-icons, wallpapers da comunidade. São grandes
-# e reproduzíveis — o repo guarda o script que baixa, com commit pinado, não o conteúdo.
-assets/icones/upstream/
-assets/papeis-de-parede/baixados/
-# O tarball da Nerd Font tem 6,4 MB; a receita (versão pinada + os SHA-256 de
-# cada face) está em scripts/instalar_fontes.sh, que é o que importa versionar.
-assets/fontes/upstream/
+# Upstreams baixados (papirus-folders, o tarball da Nerd Font) moram em
+# ~/.cache/meowsystem, fora do repositório; o repo guarda o script que baixa.
+packs/meowsystem/wallpapers/baixados/
 
 # As fontes que ela solta em `assets/fontes/locais/` — o BINÁRIO fica de fora, o
 # LEIA-ME entra. Duas razões, e as duas valem sozinhas:
@@ -51,12 +47,12 @@ assets/fontes/locais/*.[tT][tT][cC]
 # Imagens nunca vão para o git (o Andromeda ficou 18h com o auto-sync mudo por um
 # arquivo >100MB; aqui a regra é preventiva).
 #
-# É esta regra que mantém `assets/papeis-de-parede/` fora do git. Foram 242 arquivos de
+# É esta regra que mantém `packs/meowsystem/wallpapers/` fora do git. Foram 242 arquivos de
 # zhichaoh/catppuccin-wallpapers (193 MB, baixados em 05/08/2026); depois da
 # curadoria de 24/08/2026 são 54 — 11 daquele acervo e 43 buscadas na internet.
 # Eles ficam no disco, dentro do repositório, e o git não os enxerga. O que
 # reproduz a pasta é o `scripts/wallpaper.sh semear`, lendo o commit pinado
-# mais `assets/papeis-de-parede/FONTES.tsv` e `assets/papeis-de-parede/BANIDOS.txt.padrao` — que são texto
+# mais `packs/meowsystem/wallpapers/FONTES.tsv` e `packs/meowsystem/wallpapers/BANIDOS.txt.padrao` — que são texto
 # e VÃO para o git: sem eles a curadoria dela não sobrevive a uma reinstalação.
 # (O `.padrao` é a lista de FÁBRICA. A lista viva saiu do git em 21/09/2026 e
 # mora em `~/.local/state/meowsystem/`; o bloco lá embaixo conta por quê.)
@@ -164,12 +160,12 @@ src/applets/leitura/target/
 # O que FICA versionado nesta pasta são as três receitas — `FONTES.tsv`,
 # `BANIDOS.txt.padrao` e `LICENSE` —, e é por isso que elas estão no mesmo nível
 # e não dentro de `ativos/`. São elas que reproduzem o acervo num disco novo.
-assets/papeis-de-parede/ativos/
-assets/papeis-de-parede/ativos-dia/
-assets/papeis-de-parede/ativos-noite/
-assets/papeis-de-parede/banidos/
-assets/papeis-de-parede/favoritos/
-assets/papeis-de-parede/originais/
+packs/meowsystem/wallpapers/ativos/
+packs/meowsystem/wallpapers/ativos-dia/
+packs/meowsystem/wallpapers/ativos-noite/
+packs/meowsystem/wallpapers/banidos/
+packs/meowsystem/wallpapers/favoritos/
+packs/meowsystem/wallpapers/originais/
 
 # --- USAR O PROGRAMA NÃO PODE SUJAR O REPOSITÓRIO — 21/09/2026 --------------
 # `BANIDOS.txt` e `lado.tsv` eram VERSIONADOS aqui, e o painel os reescrevia
@@ -221,19 +217,8 @@ assets/papeis-de-parede/originais/
 # `meow_estado_com_padrao` copia o arquivo antigo enquanto ele existe — ou o
 # `.padrao` já ter recebido as linhas pelo merge. As duas coisas estão escritas
 # em `lib/comum.sh`.
-assets/papeis-de-parede/BANIDOS.txt
-assets/papeis-de-parede/lado.tsv
-
-# O ÚNICO ACERVO COM LICENÇA NÃO DECLARADA — 06/09/2026
-#   `Daveedmee/catppuccin-icons` não diz sob que licença está, e desde que o
-#   repositório é público isso deixou de ser uma nota de cuidado: republicar o
-#   que não se pode republicar é o erro que não dá para desfazer, porque o
-#   histórico fica. Ele já estava fora do git, mas por acidente — os 292
-#   arquivos são PNG, e o `*.png` acima os pegava. Um SVG dali entraria sem
-#   nada avisar. Agora a exclusão é pelo NOME.
-#   O instalador não perde nada: o que ele usa daqui é gerado na máquina.
-#   Ver assets/icones/PROCEDENCIA.md.
-assets/icones/catppuccin-apps/
+packs/meowsystem/wallpapers/BANIDOS.txt
+packs/meowsystem/wallpapers/lado.tsv
 
 # Symlink local para diretrizes (não vai pro repo)
 CLAUDE.md

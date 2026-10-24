@@ -2,26 +2,31 @@
 # icones_apps_arcticons.sh — os aplicativos do LANÇADOR vestidos em TRAÇO de
 # linha, recolorido na paleta. DOIS acervos entram aqui, e um instalador só sai.
 #
-#   `packs/meowsystem/icones/apps/arcticons/`    glifos do pack Arcticons, desenhados à mão por
+#   `packs/meowsystem/icones/apps/`    glifos do pack Arcticons, desenhados à mão por
 #                              terceiros. Mapa: `packs/meowsystem/icones/apps-arcticons.map`.
-#   `packs/meowsystem/icones/apps/convertidos/`  a arte do PRÓPRIO aplicativo, convertida de
+#   `packs/meowsystem/icones/apps/`  a arte do PRÓPRIO aplicativo, convertida de
 #                              chapado para traço por nós. Mapa:
 #                              `packs/meowsystem/icones/apps-convertidos.map`. Quem gera é o
 #                              `scripts/construir_convertidos.sh`; aqui ela
 #                              chega pronta e commitada.
+# Dono único de `48x48/apps`: em `scalable/apps` escrevem três, e remover órfão lá
+# apagaria arquivo dos outros. O Arcticons é apoio, não o tema (decisão dela), e
+# `stroke-width` duplicado é XML que o rasterizador recusa calado.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ORIGEM="$RAIZ/packs/meowsystem/icones/apps/arcticons"
+ORIGEM="$RAIZ/packs/meowsystem/icones/apps"
+# P96: o glifo que nenhum mapa do pack-base pede mora na biblioteca (a escolha de traço de quem usa o alcança)
+ORIGEM_BIBLIOTECA="$RAIZ/packs/meowsystem/icones/biblioteca"
 MAPA="$RAIZ/packs/meowsystem/icones/apps-arcticons.map"
 # O «Usar este ícone» com um glifo de traço gravava a linha no mapa acima,
 # dentro do clone, e copiava o glifo para `arcticons-apps/`: usar o programa
 # sujava o repositório.
 MAPA_USUARIO="${MEOW_ICONES_TRACO:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-traco.map}"
-ORIGEM_CONV="$RAIZ/packs/meowsystem/icones/apps/convertidos"
+ORIGEM_CONV="$RAIZ/packs/meowsystem/icones/apps"
 MAPA_CONV="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"
 # O «Usar» da oficina do painel grava a linha no `icones-convertidos.map` ao
 # lado do meow.conf (o formato deste mapa) e o construído na casa.
@@ -120,6 +125,7 @@ _ler_mapa() {
     fi
     GLIFO["$nome"]="$glifo"
     ARTE["$nome"]="$ORIGEM/$glifo.svg"
+    [ -f "${ARTE[$nome]}" ] || [ ! -f "$ORIGEM_BIBLIOTECA/$glifo.svg" ] || ARTE["$nome"]="$ORIGEM_BIBLIOTECA/$glifo.svg"
     # O caminho gravado antes das três pastas (P88) é lido no endereço de hoje.
     case "$glifo" in
       */*) [ -e "$RAIZ/$glifo" ] || glifo="$(python3 "$RAIZ/scripts/pack.py" hoje "$glifo" 2>/dev/null || printf '%s' "$glifo")"
@@ -402,7 +408,7 @@ _conferir_gemeos() {
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Arcticons de aplicativo não está em packs/meowsystem/icones/apps/arcticons"
+    meow_pula "o acervo Arcticons de aplicativo não está em packs/meowsystem/icones/apps"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
@@ -463,8 +469,8 @@ _avisar_faltantes() {
       continue
     fi
     glifo="${GLIFO[$nome]}"
-    meow_aviso "o glifo '$glifo' não está em packs/meowsystem/icones/apps/arcticons — '$nome' fica no Papirus"
-    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o packs/meowsystem/icones/apps/arcticons/$glifo.svg"
+    meow_aviso "o glifo '$glifo' não está em packs/meowsystem/icones/apps — '$nome' fica no Papirus"
+    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o packs/meowsystem/icones/apps/$glifo.svg"
   done
   return 0
 }

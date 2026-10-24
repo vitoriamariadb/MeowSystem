@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # notas-de-funcao.sh — as notas de função que as revisões da leva D2 deixaram.
 # `sudo` falso na frente do PATH: com `NOPASSWD`, o de verdade escreveria no sistema.
+# Tudo de brinquedo, `env -i`, ponte apontando para o vazio e `sudo` falso; no fim
+# o teste confere que o repositório não mudou.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -19,14 +21,14 @@ CAMINHO="$FALSO:$PATH"
 CASA="$T/casa"; COSMIC="$T/cosmic"; PACKS="$T/packs"; ESTADO="$T/estado"
 CONF="$CASA/.config/meow/meow.conf"
 mkdir -p "$(dirname "$CONF")" "$COSMIC" "$PACKS" "$ESTADO"
-cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
+cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
 # As derivadas que esta máquina já tenha nos packs copiados saem: cada seção
 # parte das fotos, e o que ela precisar deriva de novo (a marca é a do
 # `captura.txt`, e não um nome).
 for cap in "$PACKS"/*/temas/capturados/*/; do
   grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
 done
-CAT="$PACKS/catppuccin/temas/capturados"
+CAT="$PACKS/meowsystem/temas/capturados"
 
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null; git -C "$RAIZ" status --porcelain --ignored -- packs 2>/dev/null)"
 
@@ -72,8 +74,8 @@ veste() {   # veste <Dark|Light> — nome, acento da receita e os focos da árvo
 printf -- '--- 1. o acento do lado do par ---\n'
 #   O ponto de partida é o Catppuccin aplicado pela foto do latte-mauve.
 cp -a "$CAT/latte-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
-azul="$(cor catppuccin mocha blue)"; verde="$(cor catppuccin latte green)"
-conf latte blue catppuccin escuro
+azul="$(cor meowsystem mocha blue)"; verde="$(cor meowsystem latte green)"
+conf latte blue meowsystem escuro
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
 saida_t="$(etapa tema)"; rc_t="$(rc)"
 etapa modo >/dev/null
@@ -95,7 +97,7 @@ saida_g2="$(etapa gerar)"; rc_g2="$(rc)"; saida_t2="$(etapa tema)"; rc_t2="$(rc)
   || falha "a segunda passagem ainda escreve (gerar=$rc_g2 tema=$rc_t2)" "$saida_g2
 $saida_t2"
 
-conf mocha green catppuccin claro
+conf mocha green meowsystem claro
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
 saida_t="$(etapa tema)"; rc_t="$(rc)"
 etapa modo >/dev/null
@@ -107,8 +109,8 @@ $saida_g
 $saida_t"
 
 # A FOTO mocha-pink NO CLARO
-rosa="$(cor catppuccin latte pink)"
-conf mocha pink catppuccin claro
+rosa="$(cor meowsystem latte pink)"
+conf mocha pink meowsystem claro
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
 saida_t="$(etapa tema)"; rc_t="$(rc)"
 etapa modo >/dev/null
@@ -144,7 +146,7 @@ from pathlib import Path
 raiz, packs = sys.argv[1], Path(sys.argv[2])
 sys.path.insert(0, raiz + "/scripts")
 soma, erros, pares, lados = hashlib.sha256(), [], 0, 0
-for pack_id in ("dracula", "catppuccin"):
+for pack_id in ("dracula", "meowsystem"):
     os.environ["MEOW_PACK_DIR"] = str(packs / pack_id)
     os.environ["MEOW_PALETA"] = str(packs / pack_id / "paleta.json")
     import derivar_acento as da
@@ -202,15 +204,15 @@ PY
 
 # O lado do par que não se deriva fica o da base, e a variante continua
 # aplicando.
-P1="$T/packs1"; mkdir -p "$P1"; cp -a "$RAIZ/packs/catppuccin" "$P1/" || exit 2
+P1="$T/packs1"; mkdir -p "$P1"; cp -a "$RAIZ/packs/meowsystem" "$P1/" || exit 2
 for cap in "$P1"/*/temas/capturados/*/; do
   grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
 done
-ROSA="$P1/catppuccin/temas/capturados/mocha-pink"
+ROSA="$P1/meowsystem/temas/capturados/mocha-pink"
 sed -i 's/hover: "#CE72B9FF"/hover: "#CE72B8FF"/' "$ROSA/com.system76.CosmicTheme.Light/v2/accent"
 grep -q 'hover: "#CE72B8FF"' "$ROSA/com.system76.CosmicTheme.Light/v2/accent" \
   || { printf 'erro: não consegui mexer na Light da mocha-pink de brinquedo\n' >&2; exit 2; }
-saida="$(amb env MEOW_PACK_DIR="$P1/catppuccin" MEOW_PALETA="$P1/catppuccin/paleta.json" \
+saida="$(amb env MEOW_PACK_DIR="$P1/meowsystem" MEOW_PALETA="$P1/meowsystem/paleta.json" \
   python3 - "$RAIZ" "$ROSA" <<'PY' 2>&1
 import json, os, shutil, sys
 from pathlib import Path
@@ -262,7 +264,7 @@ dracula_sh() {   # dracula_sh <verbo> — o passo do pack, com o Dracula no ar e
     bash "$RAIZ/scripts/icones_apps_dracula.sh" "$1" 2>&1
 }
 arcade="$P2/dracula/icones/biblioteca/arcade.svg"
-painel="$P2/dracula/icones/apps/autorais/meowsystem-painel-dracula.svg"
+painel="$P2/dracula/icones/apps/meowsystem-painel-dracula.svg"
 mesmo() { [ -f "$1" ] && [ -f "$2" ] && [ "$(cat "$1")" = "$(cat "$2")" ]; }
 # O outro dono: o `completar_icones.sh` põe o autoral do painel com os bytes do
 # desenho do pack, sem linha em mapa nenhum.
@@ -344,7 +346,7 @@ PY
 # --- 5. o --conferir das pastas especiais não fala como quem faz -----------
 printf -- '--- 5. o --conferir das pastas especiais ---\n'
 LUGARES="$CASA/.local/share/icons/MeowSystem-Icons/scalable/places"; mkdir -p "$LUGARES"
-cp "$RAIZ/packs/dracula/icones/sistema/pastas/folder-documents.svg" "$LUGARES/"
+cp "$RAIZ/packs/dracula/icones/sistema/folder-documents.svg" "$LUGARES/"
 pastas() {   # pastas <verbo> — sem PASTAS_XDG, que é o desligado de fábrica
   env -i PATH="$CAMINHO" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$ESTADO" \
     LANG=C.UTF-8 NO_COLOR=1 PACK=dracula FLAVOR=dracula \
@@ -371,7 +373,7 @@ grep -q 'conteudo = da.montar(cand, ' "$RAIZ/scripts/derivar_flavor.py" \
 R6="$T/raiz6"; P6="$T/packs6"; C6="$T/cosmic6"; E6="$T/estado6"
 mkdir -p "$R6" "$P6" "$C6" "$E6" "$T/tmp6"
 cp -a "$RAIZ/scripts" "$RAIZ/lib" "$R6/"; ln -s "$RAIZ/assets" "$R6/assets"
-cp -a "$RAIZ/packs/catppuccin" "$P6/"
+cp -a "$RAIZ/packs/meowsystem" "$P6/"
 for cap in "$P6"/*/temas/capturados/*/; do
   grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
 done
@@ -379,9 +381,9 @@ sed -i 's/^FICHAS = ("manifesto.sha256", "captura.txt", ".gitignore")$/FICHAS = 
   "$R6/scripts/derivar_acento.py"
 grep -q '"LEIA-ME.md")$' "$R6/scripts/derivar_acento.py" \
   || { printf 'erro: não consegui pôr uma ficha a mais no FICHAS da cópia\n' >&2; exit 2; }
-printf 'uma ficha que não é do COSMIC\n' > "$P6/catppuccin/temas/capturados/latte-mauve/LEIA-ME.md"
+printf 'uma ficha que não é do COSMIC\n' > "$P6/meowsystem/temas/capturados/latte-mauve/LEIA-ME.md"
 saida="$(env -i PATH="$CAMINHO" HOME="$CASA" MEOW_RAIZ="$R6" MEOW_ESTADO="$E6" MEOW_COSMIC_DIR="$C6" \
-           MEOW_PACK_DIR="$P6/catppuccin" MEOW_PACKS="$P6" TMPDIR="$T/tmp6" LANG=C.UTF-8 NO_COLOR=1 \
+           MEOW_PACK_DIR="$P6/meowsystem" MEOW_PACKS="$P6" TMPDIR="$T/tmp6" LANG=C.UTF-8 NO_COLOR=1 \
            bash "$R6/scripts/aplicar_tema.sh" latte-mauve 2>&1)"; r=$?
 [ "$r" = "0" ] && [ -f "$C6/com.system76.CosmicTheme.Light/v2/accent" ] \
   && [ ! -e "$C6/LEIA-ME.md" ] && [ ! -e "$C6/manifesto.sha256" ] && [ ! -e "$C6/captura.txt" ] \

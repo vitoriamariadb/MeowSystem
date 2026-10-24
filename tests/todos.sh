@@ -71,11 +71,18 @@ PORTATIL=(
   pack-malicioso.sh      # pack de terceiro com '..', absoluto, symlink e script; painel num HOME de brinquedo; bash, python3 e curl
   casa-real.sh           # o migrar_conf, o doctor e a troca de pack num HOME e COSMIC de brinquedo, sudo falso; bash e python3
   nada-manda-digitar.sh  # grep nas mensagens versionadas e a tabela de pendências do painel; bash e python3
-  achados-tecnicos.sh    # mapa CRLF, BOM, vidro, modo do gato e favoritas num HOME, COSMIC e packs de brinquedo; bash e python3
+  achados-tecnicos.sh    # mapa CRLF, BOM, vidro, modo do mascote e favoritas num HOME, COSMIC e packs de brinquedo; bash e python3
+  miudos-do-install.sh   # o compositor que compilou sai 0, e a linha dos aplicativos do doctor nunca sai vazia; HOME, cache e fonte de brinquedo, make e dpkg-query falsos; só bash
+  restaurar.sh           # cada ação do painel que escreve, e o Restaurar dela, numa árvore e HOME de brinquedo com falsos que recusam; bash e python3
   trabalho-vivo.sh       # o Trabalho do painel com a janela entre a morte e o desfecho aberta à força, HOME de brinquedo; bash e python3
   reler-uma-vez.sh       # a lib com getent, pgrep e painel.sh falsos numa raiz e HOME de brinquedo; um reler por passada, e o passo de traço de verdade; bash e python3
   derivados.sh           # alterou o desenho, o tema se atualiza: cópia da árvore e HOME de brinquedo, sem systemd; bash, git e python3
   tres-pastas.sh         # o formato de três pastas: os três packs, a quarta pasta, o.meowpack de antes convertido, packs e HOME de brinquedo; bash, python3 e zstd
+  migracao-do-painel.py  # cada chave, ação e gesto do painel de antes tem lugar no novo (lugares.js no node, o esquema do servidor numa casa de brinquedo)
+  vizinhos.sh            # o inventário dos vizinhos e o desligar com volta, numa casa de brinquedo com zsh, systemd, apt e repositório falsos; só bash
+  lancador-do-meow.sh    # pontes de app_id, lançador órfão, mimeinfo.cache e o ocultar fora de /usr/share, numa casa de brinquedo com flatpak e update-desktop-database falsos; bash e python3
+  flatpak-tema.sh        # o override do Flatpak do usuário, o global do sistema pela cópia da ponte e os dois scripts do NitroKit, com flatpak, sudo e gsettings falsos, casa de brinquedo; bash e python3
+  escritorio.sh          # o OnlyOffice do Flathub no lugar do LibreOffice, a ponte root de brinquedo e o desinstalador que devolve, com flatpak, dpkg-query, apt-get e sudo falsos, casa de brinquedo; só bash
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
@@ -245,6 +252,13 @@ _so_leitura systemctl '" is-active "|" is-enabled "|" is-failed "|" is-system-ru
 _so_leitura gsettings '" get "|" list-schemas "|" list-relocatable-schemas "|" list-keys "|" list-children "|" list-recursively "|" range "|" describe "|" writable "|" help "'
 _so_leitura dconf '" read "|" list "|" dump "|" help "'
 _so_leitura busctl '" list "|" status "|" tree "|" introspect "|" get-property "|" help "'
+# O instalador numa casa de brinquedo pedia ao flatpak de verdade o OnlyOffice
+# do Flathub (centenas de MB por rodada). Só a leitura passa, e o override
+# do usuário, que cai na casa de brinquedo.
+_so_leitura flatpak '" list "|" info "|" remotes "|" remote-ls "|" ps "|" --version "'
+_flatpak_real="$(command -v flatpak 2>/dev/null)" || _flatpak_real=""
+sed -i "2a case \" \$* \" in *\" override\"*\" --user \"*|*\" --user\"*\" override \"*) [ -n \"$_flatpak_real\" ] \&\& exec \"$_flatpak_real\" \"\$@\"; exit 1 ;; esac" \
+  "$SUITE_TMP/falso/flatpak"
 unset DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR WAYLAND_DISPLAY DISPLAY
 [ -d "$CASA_REAL/.cache/ms-playwright" ] && \
   export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$CASA_REAL/.cache/ms-playwright}"

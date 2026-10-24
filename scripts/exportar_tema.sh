@@ -13,6 +13,8 @@
 #     <nome>-Base-<n> as camadas de trás dela, quando o pack as declara.
 #   Os recibos de instalação (`.meow-origem`, `.meow-somas.sha256`) e a cache
 #   não vão: são desta máquina, e quem instala refaz a cache.
+# O tema é montado numa casa de brinquedo, do pack e do exemplo: nenhuma escolha do
+# meow.conf de quem exporta viaja junto.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -29,7 +31,7 @@ ID="${1:-}"
 # RE_FLAVOR_CONF), para uma aspa ou um `$(` não virar código ao carregar.
 case "$ID" in ''|-*|*[!a-z0-9-]*) meow_erro "'$ID' não é um id de pack (minúsculas, dígitos e hífen)"; exit "$MEOW_ERRO" ;; esac
 if ! python3 "$RAIZ/scripts/pack.py" validar "$ID" >/dev/null 2>&1; then
-  meow_erro "o pack '$ID' não valida — rode: meow pack validar $ID"
+  meow_erro "o pack '$ID' não valida — nada foi exportado"
   exit "$MEOW_ERRO"
 fi
 FLAVOR_PEDIDO="${2:-}"
@@ -116,7 +118,6 @@ etapa pastas_xdg 'PASTAS_XDG="${PASTAS_XDG:-nao}" ICONES_FLAVOR="${ICONES_FLAVOR
 etapa pastas     'ICONES_PASTAS="${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}" "$MEOW_RAIZ/scripts/construir_pastas.sh"'
 etapa completar  'FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$MEOW_RAIZ/scripts/completar_icones.sh"'
 etapa mimetypes  'ICONES_FLAVOR="${ICONES_FLAVOR:-}" ICONES_TEMA="$NOME_TEMA_ICONES" "$MEOW_RAIZ/scripts/icones_mimetypes.sh"'
-etapa apps       'ICONES_FLAVOR="${ICONES_FLAVOR:-}" ICONES_TEMA="$NOME_TEMA_ICONES" "$MEOW_RAIZ/scripts/icones_apps.sh"'
 etapa resgatados 'ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" "$MEOW_RAIZ/scripts/icones_resgatados.sh" --aplicar'
 etapa arcticons  'FLAVOR="${FLAVOR:-}" ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao}" ICONES_TEMA="$NOME_TEMA_ICONES" "$MEOW_RAIZ/scripts/icones_apps_arcticons.sh"'
 etapa dracula    'ICONES_DRACULA="${ICONES_DRACULA:-sim}" "$MEOW_RAIZ/scripts/icones_apps_dracula.sh" --aplicar'

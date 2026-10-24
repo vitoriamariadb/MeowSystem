@@ -8,9 +8,9 @@ licença**, com o link para o lugar de onde veio.
 A regra do projeto é antiga e não tem exceção: **nenhum acervo de terceiro entra
 sem licença registrada.** A auditoria fina de cada família mora ao lado do próprio
 acervo — [`packs/meowsystem/PROCEDENCIA.md`](../packs/meowsystem/PROCEDENCIA.md),
-[`assets/cursores/CREDITOS.md`](../assets/cursores/CREDITOS.md),
-[`assets/sons/CREDITOS.md`](../assets/sons/CREDITOS.md) e os `PROCEDENCIA.md` de
-`assets/temas-de-apps/`. Esta página é o índice delas.
+[`packs/meowsystem/licencas/cursores.md`](../packs/meowsystem/licencas/cursores.md),
+[`docs/SONS.md`](../docs/SONS.md) e os `PROCEDENCIA.md` de
+`scripts/temas-de-apps/`. Esta página é o índice delas.
 
 ---
 
@@ -18,7 +18,7 @@ acervo — [`packs/meowsystem/PROCEDENCIA.md`](../packs/meowsystem/PROCEDENCIA.m
 
 | projeto | o que dá | licença |
 |---|---|---|
-| [catppuccin/catppuccin](https://github.com/catppuccin/catppuccin) | as quatro flavors e os 14 accents do pack padrão — **toda** cor que este repositório desenha sai de uma paleta, e a de fábrica é `packs/catppuccin/paleta.json` | MIT |
+| [catppuccin/catppuccin](https://github.com/catppuccin/catppuccin) | as quatro flavors e os 14 accents do pack padrão — **toda** cor que este repositório desenha sai de uma paleta, e a de fábrica é `packs/meowsystem/paleta.json` | MIT |
 
 Não existe cor inventada no MeowSystem. Quando um desenho precisa de um tom, ele
 pede o nome (`mauve`, `peach`, `sky`) e a paleta responde com o hex daquela
@@ -28,25 +28,25 @@ flavor. É o que permite trocar Mocha por Latte sem reescrever um arquivo.
 
 | projeto | o que dá | licença | onde |
 |---|---|---|---|
-| [Arcticons](https://github.com/Donnnno/Arcticons) — Donno e colaboradores | **78** glifos de traço (39 de sistema + 39 de aplicativo), recoloridos pela paleta | **CC BY-SA 4.0** | `packs/meowsystem/icones/sistema/arcticons/`, `packs/meowsystem/icones/apps/arcticons/` |
-| [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) | a base sobre a qual o tema é montado, e a arte de origem dos **33** SVGs convertidos para traço | GPL-3.0 | pacote do sistema, `packs/meowsystem/icones/apps/convertidos/` |
-| [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) | as pastas na cor do acento, com o símbolo interno de cada uma — pinado em `f83671d1` | GPL-3.0 | `assets/icones/upstream/papirus-folders/` |
-| [catppuccin/vscode-icons](https://github.com/catppuccin/vscode-icons) | glifos de arquivo do editor (recurso desligado — ver a procedência) | MIT | `packs/catppuccin/icones/mimetypes/` |
+| [Arcticons](https://github.com/Donnnno/Arcticons) — Donno e colaboradores | **78** glifos de traço (39 de sistema + 39 de aplicativo), recoloridos pela paleta | **CC BY-SA 4.0** | `packs/meowsystem/icones/` (`apps/`, `sistema/` e `biblioteca/`; a lista em `arcticons.lista`) |
+| [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) | a base sobre a qual o tema é montado, e a arte de origem dos **33** SVGs convertidos para traço | GPL-3.0 | pacote do sistema, `packs/meowsystem/icones/apps/` (o mapa em `apps-convertidos.map`) |
+| [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) | as pastas na cor do acento, com o símbolo interno de cada uma — pinado em `f83671d1` | GPL-3.0 | `~/.cache/meowsystem/upstream/papirus-folders/`, baixado pelo install |
+| [catppuccin/vscode-icons](https://github.com/catppuccin/vscode-icons) | glifos de arquivo do editor (recurso desligado — ver a procedência) | MIT | `packs/meowsystem/icones/sistema/` |
 
 O **Arcticons é o que define o estilo do tema**, e a obrigação da CC BY-SA 4.0 é
 levada a sério aqui porque o repositório é público: atribuição (esta página, e a
 tabela da procedência) e *share-alike* — os derivados dele saem sob a mesma
 licença.
 
-Os **52 desenhos autorais** de `assets/icones/autorais/` e os **19 retoques à
-mão** de `packs/meowsystem/icones/apps/convertidos/retoques/` são deste projeto, no dialeto
-do Arcticons mas sem copiar traço nenhum dele. A folha que descreve o dialeto está
-em [`docs/folhas/`](folhas/).
+Os **52 desenhos autorais** de `packs/meowsystem/icones/apps/` e os **19 retoques à
+mão** (ali e em `biblioteca/`) são deste projeto, no dialeto
+do Arcticons mas sem copiar traço nenhum dele. A folha que descrevia o dialeto
+saiu do repositório em 23/10/2026; o git a guarda.
 
 ## Os papéis de parede
 
 **As imagens não estão neste repositório, e isso é de propósito.** O que vai para
-o git é a receita: [`assets/papeis-de-parede/FONTES.tsv`](../assets/papeis-de-parede/FONTES.tsv),
+o git é a receita: [`packs/meowsystem/wallpapers/FONTES.tsv`](../packs/meowsystem/wallpapers/FONTES.tsv),
 uma linha por imagem, com a URL de origem e a resolução. `scripts/wallpaper.sh
 semear` baixa a coleção de novo a partir dela.
 
@@ -68,7 +68,7 @@ material Catppuccin que já esteve ali, **não** as imagens do wallhaven.
 Autoria, como o `AUTHORS` do pacote declara: **Alexey Varfolomeev** (`varlesh`) e
 **Kylie** (`covkie`) nos cursores, **`elkrien`** na recoloração. Também não vão
 para o git — o instalador baixa do release oficial. Detalhes e a medição de
-luminância de cada flavor: [`assets/cursores/CREDITOS.md`](../assets/cursores/CREDITOS.md).
+luminância de cada flavor: [`packs/meowsystem/licencas/cursores.md`](../packs/meowsystem/licencas/cursores.md).
 
 ## As fontes
 
@@ -107,8 +107,8 @@ autorais, os **19** retoques à mão, o som de volume — sintetizado, não baix
 liberado em **CC0-1.0** — e a documentação em `docs/`. Tudo sob **GPL-3.0**, como
 o repositório.
 
-Os dois gatos do painel são a **Coquinha** e o **Mimir**, que existem de verdade e
-foram desenhados a partir de fotos deles ([`assets/gatos/`](../assets/gatos/)).
+Os dois mascotes do painel são a **Coquinha** e o **Mimir**, que existem de verdade e
+foram desenhados a partir de fotos deles ([`packs/meowsystem/mascote/`](../packs/meowsystem/mascote/)).
 
 ## O que foi recusado, e por quê
 

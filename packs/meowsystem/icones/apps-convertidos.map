@@ -227,22 +227,21 @@ meow-whatsapp:/usr/share/icons/Papirus/64x64/apps/whatsapp.svg:sky
 # app: qBittorrent
 org.qbittorrent.qBittorrent:/usr/share/icons/Papirus/64x64/apps/org.qbittorrent.qBittorrent.svg:sky
 # app: Telegram
-org.telegram.desktop:/usr/share/icons/Papirus/64x64/apps/org.telegram.desktop.svg:sky
+org.telegram.desktop:/usr/share/icons/Papirus/64x64/apps/org.telegram.desktop.svg:sky:retoque
 
 # --- mídia, captura e jogos --------------------------------------------------
 # app: OBS Studio
-com.obsproject.Studio:/usr/share/icons/Papirus/64x64/apps/com.obsproject.Studio.svg:green
+com.obsproject.Studio:/usr/share/icons/Papirus/64x64/apps/com.obsproject.Studio.svg:green:retoque
 # app: Editor de Texto do COSMIC
 com.system76.CosmicEdit:mao:pink
 # app: Player do COSMIC
 com.system76.CosmicPlayer:mao:green
 # app: Spotify
-com.spotify.Client:/usr/share/icons/Papirus/64x64/apps/com.spotify.Client.svg:green
+com.spotify.Client:/usr/share/icons/Papirus/64x64/apps/com.spotify.Client.svg:green:retoque
 # app: Câmera (Snapshot)
-org.gnome.Snapshot:/usr/share/icons/Papirus/64x64/apps/org.gnome.Snapshot.svg:green
+org.gnome.Snapshot:/usr/share/icons/Papirus/64x64/apps/org.gnome.Snapshot.svg:green:retoque
 # app: VLC
 org.videolan.VLC:/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg:green
-steam:/usr/share/icons/Papirus/64x64/apps/steam.svg:green
 
 # --- criação e código --------------------------------------------------------
 # app: Gradia
@@ -250,7 +249,7 @@ be.alexandervanhee.gradia:mao:pink
 # app: GitHub Desktop
 io.github.shiftey.Desktop:/usr/share/icons/Papirus/64x64/apps/io.github.shiftey.Desktop.svg:pink
 # app: GIMP
-org.gimp.GIMP:/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg:pink
+org.gimp.GIMP:/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg:pink:retoque
 # app: Apostrophe
 org.gnome.gitlab.somas.Apostrophe:/usr/share/icons/Papirus/64x64/apps/org.gnome.gitlab.somas.Apostrophe.svg:pink
 vscode:/usr/share/icons/Papirus/64x64/apps/vscode.svg:pink
@@ -261,9 +260,9 @@ com.github.johnfactotum.Foliate:/usr/share/icons/Papirus/64x64/apps/com.github.j
 
 # --- utilitários do sistema --------------------------------------------------
 # app: Flatseal
-com.github.tchx84.Flatseal:/usr/share/icons/Papirus/64x64/apps/com.github.tchx84.Flatseal.svg:lavender
+com.github.tchx84.Flatseal:/usr/share/icons/Papirus/64x64/apps/com.github.tchx84.Flatseal.svg:lavender:retoque
 # app: Warehouse
-io.github.flattool.Warehouse:/usr/share/icons/Papirus/64x64/apps/io.github.flattool.Warehouse.svg:lavender
+io.github.flattool.Warehouse:/usr/share/icons/Papirus/64x64/apps/io.github.flattool.Warehouse.svg:lavender:retoque
 # app: ProtonUp-Qt
 net.davidotek.pupgui2:/usr/share/icons/Papirus/64x64/apps/net.davidotek.pupgui2.svg:lavender
 # app: BleachBit

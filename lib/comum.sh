@@ -2,7 +2,7 @@
 # lib/comum.sh — a base de todo módulo do MeowSystem: cores, log, códigos de
 # saída e as duas travas que impedem o instalador de estragar a máquina dela.
 #
-# São os mesmos hex de `packs/catppuccin/paleta.json`, convertidos para o
+# São os mesmos hex de `packs/meowsystem/paleta.json`, convertidos para o
 # truecolor do terminal.
 #
 # 0 = certo · 1 = divergente · 2 = erro de execução · 3 = falta dependência.
@@ -175,14 +175,14 @@ meow_app_tema_no_ar() {
   if [ -z "$do_painel" ] && _meow_tema_mantido "$app" "$no_ar" \
      && ! { [ "$pode_perguntar" = "pergunte" ] && [ -t 0 ] && [ -t 1 ] && ! meow_seco; }; then
     meow_pendencia_resolvida "$id"
-    meow_ok "$app: fica no '$no_ar', como você escolheu («Manter o meu»)"
+    meow_ok "$app: fica no '$no_ar', como você escolheu («Manter»)"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
   meow_aviso "$app: está em '$no_ar', que não veio daqui"
   meow_info  "o pack$fonte traz '$do_pack'"
 
-  # ANTES DO SECO, de propósito: o «Ver o que faria» do «Trocar pelo tema do
+  # ANTES DO SECO, de propósito: o «Ver sem mudar» do «Trocar pelo tema do
   # pack» tem de ensaiar a TROCA, e quem diz o que ela escreveria é o módulo,
   # daqui para baixo, com o seco dele.
   case "$do_painel" in
@@ -429,6 +429,11 @@ for base in pack.raizes():
         except Exception:
             continue
         validos.add(n)
+# O nome de antes de um pack (o `catppuccin`, que entrou no `meowsystem` na P96) ainda nomeia
+# o que é dele: um snippet, um tema, um vestígio.
+for antes, hoje in getattr(pack, "APELIDOS", {}).items():
+    if hoje in validos:
+        validos.add(antes)
 for n in sorted(validos):
     print(n)
 PYFIM
@@ -439,6 +444,36 @@ PYFIM
 # primeiro que existir, nessa ordem.
 # O caminho passa pelo `meow_dentro`: uma pasta do pack que seja link para fora
 # não vira acervo.
+# O motivo de um `cargo build` que falhou, lido do registro dele: a falta de
+# compilador ou de biblioteca do sistema vem antes de qualquer suspeita do código.
+meow_motivo_do_cargo() {
+  local log="$1" lib
+  if grep -q 'linker `cc` not found' "$log" 2>/dev/null; then
+    printf 'falta o compilador C (pacote build-essential)'
+  elif lib="$(grep -o 'The system library `[^`]*`' "$log" 2>/dev/null | head -n1)" && [ -n "$lib" ]; then
+    lib="${lib#*\`}"
+    printf 'falta a biblioteca %s do sistema (o pacote -dev dela)' "${lib%\`}"
+  elif grep -q 'Could not run `"pkg-config"\|pkg-config: not found\|failed to run.*pkg-config' "$log" 2>/dev/null; then
+    printf 'falta o pkg-config'
+  else
+    printf 'o cargo não compilou'
+  fi
+}
+
+# Os pacotes de que a compilação dos applets precisa, um por linha:
+# `<arquivo que prova a presença>|<pacote>`.
+MEOW_DEPS_DOS_APPLETS="/usr/bin/cc|build-essential
+/usr/bin/pkg-config|pkg-config
+/usr/include/xkbcommon/xkbcommon.h|libxkbcommon-dev
+/usr/include/wayland-client.h|libwayland-dev
+/usr/include/dbus-1.0/dbus/dbus.h|libdbus-1-dev"
+
+# A pasta do mascote do pack no ar (pela herança); sem nenhuma, a do pack-base.
+meow_mascote_dir() {
+  python3 "$MEOW_RAIZ/scripts/pack.py" mascote "$(meow_pack_dir)" 2>/dev/null \
+    || printf '%s' "$MEOW_RAIZ/packs/meowsystem/mascote"
+}
+
 meow_pack_arquivo() {
   local no_pack="$1" no_nucleo="${2:-}" dir real
   dir="$(meow_pack_dir)"
@@ -615,6 +650,9 @@ meow_cosmic_comp_disco() {
 # diretório inteiro.
 MEOW_PROIBIDOS_SISTEMA=(/usr/share /usr/local/share /usr/bin /usr/lib)
 MEOW_PROIBIDOS_LOCAIS=()
+# `!caminho` no vizinhos.conf é a exceção por arquivo: aquele arquivo exato, dentro
+# de uma pasta de outro projeto, o MeowSystem escreve (o bloco do terminal no .zshrc).
+MEOW_EXCECOES_LOCAIS=()
 MEOW_VIZINHOS="${MEOW_VIZINHOS:-$HOME/.config/meow/vizinhos.conf}"
 if [ -f "$MEOW_VIZINHOS" ]; then
   while IFS= read -r _l || [ -n "$_l" ]; do
@@ -624,7 +662,11 @@ if [ -f "$MEOW_VIZINHOS" ]; then
     # SEM `eval`: a única expansão que este arquivo precisa é $HOME, e passar as
     # linhas por eval transformaria um arquivo de configuração em execução de
     # código — `$(rm -rf ~)` numa linha bastaria.
-    MEOW_PROIBIDOS_LOCAIS+=("${_l//\$HOME/$HOME}")
+    case "$_l" in
+      '!'*) _l="${_l#!}"; _l="${_l//\$HOME/$HOME}"
+            case "$_l" in /*) MEOW_EXCECOES_LOCAIS+=("$(readlink -m -- "$_l")") ;; esac ;;
+      *)    MEOW_PROIBIDOS_LOCAIS+=("${_l//\$HOME/$HOME}") ;;
+    esac
   done < "$MEOW_VIZINHOS"
   unset _l
 fi
@@ -637,6 +679,9 @@ meow_destino_permitido() {
       meow_erro "recusado: '$alvo' é território do sistema e do gerenciador de pacotes"
       return 1 ;;
     esac
+  done
+  for p in ${MEOW_EXCECOES_LOCAIS[@]+"${MEOW_EXCECOES_LOCAIS[@]}"}; do
+    [ "$real" = "$p" ] && return 0
   done
   # Casa o caminho exato e tudo abaixo dele. Escreva CAMINHO ABSOLUTO no
   # vizinhos.conf: um nome solto de componente não é casado no meio do caminho,
@@ -662,6 +707,10 @@ meow_mesmo_conteudo() {
   [ -f "$1" ] && [ -f "$2" ] && [ "$(cat "$1" 2>/dev/null)" = "$(cat "$2" 2>/dev/null)" ]
 }
 
+# O estado de antes de cada escrita, para o Restaurar do painel.
+# shellcheck source=restauro.sh
+. "$(dirname "${BASH_SOURCE[0]}")/restauro.sh"
+
 meow_escrever() {
   local destino="$1" conteudo="$2" modo="${3:-644}" tmp dir
   meow_destino_permitido "$destino" || return "$MEOW_ERRO"
@@ -674,6 +723,7 @@ meow_escrever() {
     meow_muda "mudaria $destino"
     return "$MEOW_DIVERGENTE"
   fi
+  meow_guardar_antes "$destino"
   mkdir -p "$dir" || return "$MEOW_ERRO"
   #   O `cosmic-config` do libcosmic IGNORA de propósito os temporários cujo nome
   #   começa com `.atomicwrite`, ao traduzir eventos de inotify em mudanças de
@@ -681,6 +731,8 @@ meow_escrever() {
   #       // Skip any .atomicwrite temporary files
   #       if key.starts_with(".atomicwrite") { continue }
   #   ), porque é assim que ele mesmo escreve.
+  # Com outro nome o painel recebia quatro eventos por chave e relia a entrada inteira
+  # a cada um, alimentando a corrida do raio que apaga topbar e dock.
   tmp="$(mktemp -p "$dir" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
   printf '%s' "$conteudo" > "$tmp" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   chmod "$modo" "$tmp"
@@ -710,6 +762,8 @@ MEOW_CONF_PADRAO="${MEOW_CONF_PADRAO:-$MEOW_RAIZ/meow.conf.exemplo}"
 #   comentário e devolve `MODO="claro"# escuro | claro | auto`, colado. ERE não
 #   tem quantificador preguiçoso para consertar isso. Aqui a linha é partida no
 #   primeiro `#` e os espaços de antes dele são preservados como estavam.
+# Troca TODAS as ocorrências: o shell obedece à última atribuição, e trocar só a
+# primeira gravaria um valor e deixaria outro valendo, calado.
 meow_conf_texto_definir() {
   local texto="$1" chave="$2" valor="$3" novo="" linha resto antes espacos comentario achou=0
   while IFS= read -r linha; do
@@ -820,11 +874,13 @@ meow_conf_definir() {
 
 # --- lock: o timer pode disparar enquanto ela roda na mão (regra 10) --------
 MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
+# O que se baixa (papirus-folders, o tarball da Nerd Font) mora fora do repositório.
+MEOW_CACHE="${MEOW_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem}"
 
 # --- O ESTADO DO USUÁRIO SAI DO REPOSITÓRIO, E O `.padrao` FICA — 21/09/2026 -
 #
 # Até hoje a CURADORIA dela era gravada DENTRO do clone: `BANIDOS.txt` e
-# `lado.tsv` moravam em `assets/papeis-de-parede/` e eram versionados. Usar o
+# `lado.tsv` moravam em `packs/meowsystem/wallpapers/` e eram versionados. Usar o
 # painel virava commit pendente. Está medido no `git status` daquele dia: `+47`
 # linhas em `BANIDOS.txt` e `-3` em `lado.tsv`, gravadas às 17h09 por ela clicar
 # em "Tirar" e em "Dia"/"Noite". Ninguém programou nada.
@@ -936,6 +992,8 @@ MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 # Uso:  caminho="$(meow_estado_com_padrao papeis-de-parede BANIDOS.txt)"
 meow_estado_com_padrao() {
   local pasta="$1" arquivo="$2" origem="$MEOW_RAIZ/assets/$1" dir="$MEOW_ESTADO/$1"
+  # A semente dos papéis de parede é a curadoria do pack-base.
+  [ "$pasta" = "papeis-de-parede" ] && origem="$MEOW_RAIZ/packs/meowsystem/wallpapers"
   local padrao semente
   if [ "${MEOW_ESTADO_SO_LE:-0}" = "1" ] && [ ! -f "$dir/$arquivo" ]; then
     if [ -f "$origem/$arquivo" ]; then printf '%s' "$origem/$arquivo"

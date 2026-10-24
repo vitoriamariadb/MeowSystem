@@ -64,7 +64,7 @@ else
 fi
 le="$(MEOW_ESTADO="$TMP/estado" MEOW_ESTADO_SO_LE=1 MEOW_RAIZ="$RAIZ" bash -c \
       '. "$MEOW_RAIZ/lib/comum.sh"; meow_estado_com_padrao papeis-de-parede lado.tsv' 2>/dev/null)"
-if [ "$le" = "$RAIZ/assets/papeis-de-parede/lado.tsv.padrao" ] && [ ! -e "$TMP/estado/papeis-de-parede" ]; then
+if [ "$le" = "$RAIZ/packs/meowsystem/wallpapers/lado.tsv.padrao" ] && [ ! -e "$TMP/estado/papeis-de-parede" ]; then
   ok "sem estado, a leitura devolve a semente do clone"
 else
   falha "sem estado, a leitura devolveu «$le»"
@@ -118,7 +118,7 @@ printf '\n--- 2/4 os dois arquivos de curadoria fora do índice ---\n'
 # DOIS, E NÃO CINCO: este título dizia "os cinco arquivos" e conferia dois. O
 # adiamento está declarado na mensagem do commit, e o bloco de PENDENTE lá
 # embaixo o conta na tela toda vez, para a suíte nunca dizer mais do que mede.
-for alvo in assets/papeis-de-parede/BANIDOS.txt assets/papeis-de-parede/lado.tsv; do
+for alvo in packs/meowsystem/wallpapers/BANIDOS.txt packs/meowsystem/wallpapers/lado.tsv; do
   if git -C "$RAIZ" ls-files --error-unmatch "$alvo" >/dev/null 2>&1; then
     falha "$alvo ainda está no índice do git"
   else
@@ -195,8 +195,8 @@ r = {}
 m._json = lambda d, c=200: r.update(d=d, c=c)
 falhou = 0
 for corpo in ({"app": "um-navegador", "arquivo": "packs/dracula/icones/biblioteca/alien.svg"},
-              {"app": "um-chat", "arquivo": "packs/dracula/icones/apps/resgatados/discord.svg"},
-              {"app": "um-editor", "arquivo": "packs/meowsystem/icones/apps/arcticons/firefox.svg",
+              {"app": "um-chat", "arquivo": "packs/dracula/icones/apps/steam.svg"},
+              {"app": "um-editor", "arquivo": "packs/meowsystem/icones/apps/firefox.svg",
                "glifo": "firefox", "cor": "mauve"}):
     r.clear()
     m._api_app_icone(corpo)
@@ -285,7 +285,7 @@ else
 fi
 # O que a versão de antes gravava no clone volta ao que era (o teste não deixa resto).
 git -C "$RAIZ" checkout -q -- packs/meowsystem/icones/apps-convertidos.map 2>/dev/null
-rm -f "$RAIZ/packs/meowsystem/icones/apps/convertidos/um-desenho.svg" "$RAIZ/packs/meowsystem/icones/apps/convertidos/retoques/um-desenho.svg"
+rm -f "$RAIZ/packs/meowsystem/icones/apps/um-desenho.svg" "$RAIZ/packs/meowsystem/icones/apps/um-desenho.svg"
 
 # As seções 1 a 3 exercitam UM caminho de escrita: o `wallpaper.sh`. O
 # `tests/seletor-do-pack.sh` cobra essa mesma rota, mas numa CÓPIA da árvore —
@@ -385,11 +385,11 @@ fi
 
 # Enquanto isso for verdade, um veredito final dizendo "usar o programa não suja
 # o repositório" seria mentira da suíte inteira: o botão de tirar jogo do
-# carrossel (`servidor.py`, `MAPA_JOGOS`) e o de adicionar gato escrevem dentro
+# carrossel (`servidor.py`, `MAPA_JOGOS`) e o de adicionar mascote escrevem dentro
 # do clone AGORA.
 printf '\n--- pendente: o que a P21 promete e esta passagem não entregou ---\n'
 PENDENTES=0
-for alvo in assets/icones/jogos-fora.map assets/gatos; do
+for alvo in assets/apps/jogos-fora.map packs/meowsystem/mascote/; do
   n_alvo="$(git -C "$RAIZ" ls-files -- "$alvo" | wc -l)"
   [ "$n_alvo" -gt 0 ] || continue
   PENDENTES=$((PENDENTES + n_alvo))

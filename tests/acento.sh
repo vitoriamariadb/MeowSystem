@@ -220,7 +220,7 @@ grep -q "^origem: derivada de dracula-mauve" "$CAPS/dracula-pink/captura.txt" \
 # --- 6. a GUARDA: uma captura que não se reproduz não serve de base --------
 #   O mocha-mauve desta árvore não fecha a conta com a receita que ele traz (o
 #   `accent_button.on` dele é de um COSMIC anterior); a base do mocha é o pink.
-saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/catppuccin" MEOW_PALETA="$RAIZ/packs/catppuccin/paleta.json" \
+saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/meowsystem" MEOW_PALETA="$RAIZ/packs/meowsystem/paleta.json" \
   python3 "$RAIZ/scripts/derivar_acento.py" --conferir mocha-green 2>&1)"; r=$?
 [ "$r" = "1" ] && [[ "$saida" == *"derivaria de mocha-pink"* ]] \
   && ok "o mocha deriva do mocha-pink, porque o mocha-mauve não se reproduz" \
@@ -230,9 +230,9 @@ saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/catppuccin" MEOW_PALETA="$RAIZ/packs
 # O que não aplica agora é o flavor sem base NENHUMA do mesmo lado — e é esse o
 # caso que esta seção continua cobrando: um Catppuccin de brinquedo sem as duas
 # fotos escuras.
-cp -a "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
-rm -rf "$PACKS"/catppuccin/temas/capturados/mocha-*
-conf frappe pink catppuccin
+cp -a "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
+rm -rf "$PACKS"/meowsystem/temas/capturados/mocha-*
+conf frappe pink meowsystem
 saida_t="$(etapa tema)"; rc_t="$(rc)"
 if [ "$rc_t" = "3" ] && grep -q "^tema-sem-captura	.*não há tema capturado do frappe" "$ESTADO/pendencias.tsv" 2>/dev/null; then
   ok "frappe-pink não aplica: a etapa se pula e a Início ganha a pendência, com o porquê"

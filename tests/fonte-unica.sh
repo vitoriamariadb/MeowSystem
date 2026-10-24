@@ -92,7 +92,7 @@ for nome in guvcview setup-mozc; do
     && ok "$nome com o Dracula no ar e a camada ligada: uma fonte, a do pack, e o resgate dito como atrás" \
     || falha "$nome com o Dracula no ar não tem o pack como fonte única (rc=$rc)" "$saida$(cat "$T/erro")"
   saida="$(ICONES_DRACULA=nao pack_py fonte "$nome" dracula 2>"$T/erro")"; rc=$?
-  [ "$rc" = "0" ] && [ "$saida" = "$nome	packs/dracula/icones/apps/resgatados/$nome.svg	resgatados" ] \
+  [ "$rc" = "0" ] && [ "$saida" = "$nome	packs/dracula/icones/apps/$nome.svg	resgatados" ] \
     && grep -q '(pack:dracula) fica atrás' "$T/erro" && grep -qF 'ICONES_DRACULA="nao"' "$T/erro" \
     && ok "$nome com o Dracula no ar e a camada desligada: a fonte é o resgate, e o pack dito como atrás" \
     || falha "$nome com a camada desligada não tem o resgate como fonte única (rc=$rc)" "$saida$(cat "$T/erro")"
@@ -108,8 +108,9 @@ done
 #   [P87, decisão 16 (3): a linha passou à raposa do motor, que vence a régua;
 #   o Firefox-Dracula copiado na P28 fica em `apps/`, com a procedência dele.]
 saida="$(pack_py fonte net.waterfox.waterfox dracula 2>&1)"; rc=$?
-[ "$rc" = "0" ] && [ "$saida" = "net.waterfox.waterfox	packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg	pack:dracula" ] \
-  && ok "o Waterfox tem uma fonte só, e ela é packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg" \
+# [P96, 23/10/2026: quem usa escolheu o lobo e a lua do manuais-final, corrigido (viewBox e traço).]
+[ "$rc" = "0" ] && [ "$saida" = "net.waterfox.waterfox	packs/dracula/icones/apps/firefox.svg	pack:dracula" ] \
+  && ok "o Waterfox tem uma fonte só, e ela é packs/dracula/icones/apps/firefox.svg" \
   || falha "a fonte do Waterfox não é a do pack (rc=$rc)" "$saida"
 
 # A linha que saiu do motor não pode voltar calada: com ela, o resgate e o pack
@@ -120,7 +121,7 @@ else
   ok "o apps-resgatados.map não nomeia mais o Waterfox"
 fi
 
-grep -q '^| `icones/apps/net.waterfox.waterfox.svg` |' "$RAIZ/packs/dracula/PROCEDENCIA.md" \
+grep -q '^| `icones/apps/firefox.svg` |' "$RAIZ/packs/dracula/PROCEDENCIA.md" \
   && ok "o Waterfox copiado tem linha de procedência no pack" \
   || falha "packs/dracula/PROCEDENCIA.md não tem a linha do Waterfox — arte copiada sem origem"
 
@@ -138,7 +139,7 @@ for mapa in "$RAIZ"/assets/icones/*.map "$RAIZ"/packs/*/icones/*.map; do
     case "$mapa" in
       */packs/dracula/icones/apps-resgatados.map)
         nome="$(printf '%s' "$linha" | cut -d: -f1 | tr -d '[:space:]')"
-        [ -f "$RAIZ/packs/dracula/icones/apps/resgatados/$nome.svg" ] || fora="$fora${mapa#"$RAIZ"/}: $linha
+        [ -f "$RAIZ/packs/dracula/icones/apps/$nome.svg" ] || fora="$fora${mapa#"$RAIZ"/}: $linha
 " ;;
       *) fora="$fora${mapa#"$RAIZ"/}: $linha
 " ;;
@@ -206,11 +207,11 @@ import json, sys
 p = json.load(open(sys.argv[1])); p["heranca"] = "dracula"
 json.dump(p, open(sys.argv[1], "w"))
 PY
-cp "$RAIZ/packs/dracula/icones/apps/resgatados/luna.svg" "$d/icones/apps/luna.svg"
+cp "$RAIZ/packs/dracula/icones/apps/luna.svg" "$d/icones/apps/luna.svg"
 printf 'luna : apps/luna.svg\n' > "$d/icones/apps.map"
 saida="$(ICONES_DRACULA=sim pack_py fonte luna herdeira 2>"$T/erro")"; rc=$?
 [ "$rc" = "0" ] && [ "$saida" = "luna	$d/icones/apps/luna.svg	pack:herdeira" ] \
-  && grep -q 'packs/dracula/icones/apps/resgatados/luna.svg (resgatados) fica atrás' "$T/erro" \
+  && grep -q 'packs/dracula/icones/apps/luna.svg (resgatados) fica atrás' "$T/erro" \
   && ok "pack x resgate: o pack no ar vence, e o 'fonte' diz o resgate que ficou atrás" \
   || falha "o 'fonte' não aplicou a precedência pack x motor (rc=$rc)" "$saida$(cat "$T/erro")"
 
@@ -235,7 +236,7 @@ py_pares="$(ICONES_DRACULA=sim pack_py fontes dracula 2>/dev/null | awk -F'\t' -
 # --- 7. o que deriva de uma fonte, e o instalador escreve exatamente isso -----
 tema="$T/home/tema"
 plano="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
-  meow_icones_derivados "$1" net.waterfox.waterfox "$2"' _ "$RAIZ/packs/dracula/icones/apps/net.waterfox.waterfox.svg" "$tema")"
+  meow_icones_derivados "$1" net.waterfox.waterfox "$2"' _ "$RAIZ/packs/dracula/icones/apps/firefox.svg" "$tema")"
 [ "$plano" = "scalable	$tema/scalable/apps/net.waterfox.waterfox.svg" ] \
   && ok "uma fonte SVG deriva o vetor em scalable/apps" \
   || falha "o plano de derivados não é o esperado" "$plano"
@@ -245,9 +246,9 @@ amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
   && ok "raster não é fonte: um PNG é recusado com 2" \
   || falha "o derivar aceitou um PNG como fonte"
 r1="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
-  meow_icones_derivar "$1" net.waterfox.waterfox "$2"; printf %s $?' _ "$RAIZ/packs/dracula/icones/apps/net.waterfox.waterfox.svg" "$tema" 2>/dev/null | tail -c1)"
+  meow_icones_derivar "$1" net.waterfox.waterfox "$2"; printf %s $?' _ "$RAIZ/packs/dracula/icones/apps/firefox.svg" "$tema" 2>/dev/null | tail -c1)"
 r2="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
-  meow_icones_derivar "$1" net.waterfox.waterfox "$2"; printf %s $?' _ "$RAIZ/packs/dracula/icones/apps/net.waterfox.waterfox.svg" "$tema" 2>/dev/null | tail -c1)"
+  meow_icones_derivar "$1" net.waterfox.waterfox "$2"; printf %s $?' _ "$RAIZ/packs/dracula/icones/apps/firefox.svg" "$tema" 2>/dev/null | tail -c1)"
 [ "$r1" = "1" ] && [ "$r2" = "0" ] && [ -f "$tema/scalable/apps/net.waterfox.waterfox.svg" ] \
   && ok "o derivar escreve na primeira vez e não reescreve na segunda (1, depois 0)" \
   || falha "o derivar não é idempotente (primeira=$r1 segunda=$r2)"
@@ -256,7 +257,7 @@ r2="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
 printf 'FLAVOR="dracula"\nACCENT="mauve"\nICONES_DRACULA="sim"\n' > "$T/meow.conf"
 saida="$(amb env MEOW_CONF="$T/meow.conf" "$RAIZ/bin/meow" icones fonte net.waterfox.waterfox 2>&1)"; rc=$?
 [ "$rc" = "0" ] \
-  && [ "$(printf '%s\n' "$saida" | sed -n 1p)" = "fonte: packs/dracula/icones/apps/resgatados/net.waterfox.waterfox.svg" ] \
+  && [ "$(printf '%s\n' "$saida" | sed -n 1p)" = "fonte: packs/dracula/icones/apps/firefox.svg" ] \
   && [ "$(printf '%s\n' "$saida" | sed -n 2p)" = "deriva: scalable" ] \
   && ok "meow icones fonte diz a fonte do Waterfox e o que deriva dela" \
   || falha "meow icones fonte não respondeu como a P28 pede (rc=$rc)" "$saida"
@@ -345,12 +346,15 @@ veste() {   # veste <casa> <nome> <fonte> -> 0 se o tema tem exatamente aquela f
   [ -f "$f" ] && [ "$(cat "$f")" = "$(cat "$RAIZ/$3")" ]
 }
 DRACULA=(PACK=dracula FLAVOR=dracula ICONES_DRACULA=sim)
-CATPPUCCIN=(PACK=catppuccin FLAVOR=mocha ICONES_DRACULA=sim)
+CATPPUCCIN=(PACK=meowsystem FLAVOR=mocha ICONES_DRACULA=sim)
 DESLIGADO=(PACK=dracula FLAVOR=dracula ICONES_DRACULA=nao)
-DO_PACK_G="packs/dracula/icones/apps/guvcview-lente.svg"
-DO_PACK_M="packs/dracula/icones/biblioteca/tarot.svg"
-RESG_G="packs/dracula/icones/apps/resgatados/guvcview.svg"
-RESG_M="packs/dracula/icones/apps/resgatados/setup-mozc.svg"
+# [P96, 23/10/2026: uma versão por ícone. O mapa do pack e o resgate apontam o MESMO desenho, o
+#  que quem usa escolheu — o pote com olho no guvcview e o tarô no setup-mozc —, e a precedência
+#  continua provada: nenhum instalador troca o do outro, em ordem nenhuma.]
+DO_PACK_G="packs/dracula/icones/apps/guvcview.svg"
+DO_PACK_M="packs/dracula/icones/apps/setup-mozc.svg"
+RESG_G="packs/dracula/icones/apps/guvcview.svg"
+RESG_M="packs/dracula/icones/apps/setup-mozc.svg"
 
 # A ordem do install.sh: o resgate primeiro, o Dracula depois.
 casa_a="$T/casa-dracula"; mkdir -p "$casa_a"
@@ -406,7 +410,7 @@ veste "$casa_c" guvcview "$RESG_G" && veste "$casa_c" setup-mozc "$RESG_M" && [ 
   || falha "Dracula desligado: o resgate não é a escolha (conferir=$r1)"
 # [P87: o uad-ng está nos dois mapas, apontando para o MESMO arquivo. Com a camada
 #   desligada o remover do pack achava os bytes dele e o apagava do tema.]
-veste "$casa_c" uad-ng "packs/dracula/icones/apps/resgatados/uad-ng.svg" \
+veste "$casa_c" uad-ng "packs/dracula/icones/apps/uad-ng.svg" \
   && ok "Dracula desligado: o uad-ng, que os dois mapas dão com os mesmos bytes, fica no tema" \
   || falha "Dracula desligado: o remover tirou o uad-ng, que é do resgate"
 

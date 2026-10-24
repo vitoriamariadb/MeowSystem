@@ -15,6 +15,8 @@
 #     - 1 chance em 10 do sorteio dar ZERO — daí as linhas "sleeping for 0ms" e
 #       a barra às vezes voltar na hora mesmo com o contador alto. Não é perdão:
 #       é o bilhete bom.
+# Não sinaliza painel de outra casa (o `reciclar` mira só o deste usuário e deste
+# HOME) e não reinicia a sessão: o `Restart` do cosmic-session fecha todos os apps dela.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -184,6 +186,14 @@ reciclar() {
   # ele que a gaveta do painel lê para dizer «recarregou» em vez de «nada a
   # recarregar» — antes ela dizia «já estava certo» com o PID do painel novo.
   meow_muda "SIGTERM no cosmic-panel — ele volta em uns 2 s"
+  # Os applets ANTES do painel (18/10/2026). Com o painel caindo primeiro, cada
+  # applet perdia o Wayland, abortava e deixava um coredump — ~8 por reciclo,
+  # 32 por dia no coredumpctl. Com SIGTERM direto eles saem limpos, sem core; o
+  # painel novo sobe todos de novo (o velho não repõe applet que saiu sem erro).
+  local filhos="" _p
+  for _p in $alvos; do filhos="$filhos $(pgrep -P "$_p" | tr '\n' ' ')"; done
+  # shellcheck disable=SC2086  # um PID por palavra, de propósito
+  [ -n "${filhos// /}" ] && kill -TERM $filhos 2>/dev/null
   # shellcheck disable=SC2086  # um PID por palavra, de propósito
   kill -TERM $alvos 2>/dev/null
   return "$MEOW_OK"
@@ -306,7 +316,7 @@ laco() {
     if [ "$tentativas" -ge "$COTA" ]; then
       echo "DESISTI: $COTA reposições em ${JANELA}s. Algo mata o painel em laço — reiniciar mais só piora."
       meow_notificar "O painel não para de cair" \
-        "Reiniciei $COTA vezes em $(( JANELA / 60 )) min e ele morreu de novo. O motivo está no journal: 'corner radius too large' é o suspeito nº 1. Rode: meow painel estado"
+        "Reiniciei $COTA vezes em $(( JANELA / 60 )) min e ele morreu de novo. O motivo está no journal: 'corner radius too large' é o suspeito nº 1; «Como estão o painel e a dock» mostra o resto."
       return 1   # Restart=on-failure + StartLimitBurst deixam a unidade em failed, e ela PARA
     fi
     tentativas=$(( tentativas + 1 ))

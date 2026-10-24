@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# fastfetch_alinhar.py — o texto do fastfetch abraçando o contorno do gato.
+# fastfetch_alinhar.py — o texto do fastfetch abraçando o contorno do mascote.
 #
 # As setas apontavam para lugares DIFERENTES em cada linha — curtas em cima
-# (onde o círculo do gato ainda é estreito), longas no meio (onde ele é largo).
+# (onde o círculo do mascote ainda é estreito), longas no meio (onde ele é largo).
 # Ou seja: o começo de cada linha de informação deveria seguir o CONTORNO do
 # desenho, e não uma coluna fixa.
 #
@@ -17,6 +17,8 @@
 #   --conferir  não imprime a composição: sai 0 se dá para compor (o .ansi está
 #               lá e é legível) e 4 se não dá. É o que o `doctor` usa.
 
+# Nunca falha com pilha de erro: um `gato.ansi` ausente ou ilegível deixa a saída do
+# fastfetch passar intacta — o terminal não pode deixar de abrir por um enfeite.
 import argparse
 import os
 import re
@@ -71,7 +73,7 @@ def _cortar(linha, colunas):
 def _ler_gato(caminho):
     """As linhas do desenho, ou [] quando não há desenho utilizável.
 
-    Devolver [] em vez de estourar é a decisão do cabeçalho: sem gato, a saída
+    Devolver [] em vez de estourar é a decisão do cabeçalho: sem mascote, a saída
     do fastfetch passa como está.
     """
     try:
@@ -184,18 +186,18 @@ def _centralizar(gato, texto):
     ficarem centrados um no outro.
 
     É o `--topo auto`, e ele existe porque ela mediu na tela em 06/09/2026: com
-    o gato em 32 linhas e o texto em 25, sobrava UMA linha de gato acima da
+    o mascote em 32 linhas e o texto em 25, sobrava UMA linha de mascote acima da
     primeira informação e OITO abaixo da última — o desenho parecia escorregado
     para baixo.
 
     A CONTA É PELO CONTEÚDO VISÍVEL, E NÃO PELO NÚMERO DE LINHAS, e essa é a
     parte que a primeira versão errou. A saída do fastfetch termina com o
     `break` e os dois blocos de cor, e antes deles vem uma linha em branco:
-    contando linhas cruas, texto e gato deram 32 e 32, a sobra deu ZERO e nada
+    contando linhas cruas, texto e mascote deram 32 e 32, a sobra deu ZERO e nada
     se moveu — enquanto o olho via o bloco de informação acabar cinco linhas
-    antes do gato. Alinhar os CENTROS do que se vê resolve os dois casos de uma
+    antes do mascote. Alinhar os CENTROS do que se vê resolve os dois casos de uma
     vez, e continua valendo quando ela acrescenta um módulo ou muda a altura do
-    gato.
+    mascote.
     """
     gi, gf = _extremos(gato)
     ti, tf = _extremos(texto)
@@ -205,8 +207,8 @@ def _centralizar(gato, texto):
     # jogar tudo meio caractere para cima em toda composição.
     desvio = ((gi + gf) - (ti + tf)) // 2
     if desvio > 0:
-        return 0, desvio            # o texto desce, o gato começa no topo
-    return -desvio, 0               # o gato desce, o texto começa no topo
+        return 0, desvio            # o texto desce, o mascote começa no topo
+    return -desvio, 0               # o mascote desce, o texto começa no topo
 
 
 def colunas(desenho, texto, recuo, modo, passo):
@@ -216,12 +218,12 @@ def colunas(desenho, texto, recuo, modo, passo):
     entre eles é só estética — por isso a escolha é dela, e por isso eles moram
     aqui juntos em vez de haver um só cravado no código:
 
-      contorno   a coluna é o fim do desenho naquela linha. Cola no gato, e é o
+      contorno   a coluna é o fim do desenho naquela linha. Cola no mascote, e é o
                  que ela pediu desenhando setas. Num desenho redondo e alto a
                  borda esquerda do texto vira uma escada de um em um caractere.
       degraus    o mesmo, arredondado para cima ao múltiplo de `passo`. Os
                  degraus passam a parecer decisão em vez de tremor.
-      crescente  a coluna nunca DIMINUI: o texto acompanha o gato enquanto ele
+      crescente  a coluna nunca DIMINUI: o texto acompanha o mascote enquanto ele
                  engorda e não volta quando ele afina. Tira a onda da metade de
                  baixo, que é onde o serrilhado mais aparece.
       reto       todas as linhas na mesma coluna — a maior que o desenho pede.
@@ -346,7 +348,7 @@ def main():
         return 0
 
     texto = bruto.rstrip("\n").split("\n")
-    # Um terminal sem gato é um contratempo; um terminal em branco com um
+    # Um terminal sem mascote é um contratempo; um terminal em branco com um
     # rastreamento é um defeito na cara dela.
     try:
         saida = "\n".join(compor(texto, gato, recuo, topo, args.modo, passo)) + "\n"

@@ -13,8 +13,8 @@
 [![languages](https://img.shields.io/badge/bash%204.3+-python%203%20stdlib%20only-A6E3A1?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 
-[![installer](https://img.shields.io/badge/installer-63%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-65%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![installer](https://img.shields.io/badge/installer-68%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-73%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 [![browser suite](https://img.shields.io/badge/browser-123%2F123-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Theme, icons, panel, dock, terminal, login screen, wallpaper and the themes inside your programs,
@@ -37,14 +37,14 @@ thing came from. The format is in **[docs/PACKS.md](docs/PACKS.md)** (in Portugu
 ## Install
 
 ```bash
-git clone https://github.com/vitoriamariadb/MeowSystem.git
+git clone https://github.com/AndreBFarias/MeowSystem.git
 cd MeowSystem
 ./install.sh --wizard     # first run: asks five questions, then installs
 meow ativar               # every other run
 ```
 
-63 steps. On a machine already set up, running it again **writes nothing** and says so. To
-rehearse first: `MEOW_DRY_RUN=1 ./install.sh`, or **Ver o que faria** (see what it would do) in
+68 steps. On a machine already set up, running it again **writes nothing** and says so. To
+rehearse first: `MEOW_DRY_RUN=1 ./install.sh`, or **Ver sem mudar** (see what it would do) in
 the panel.
 
 The sudo password is asked **once**, to register the root bridge: a closed set of verbs (system
@@ -78,7 +78,7 @@ sandbox. A VS Code extension asked for by an imported pack only installs on a ge
 meow abrir                # or the MeowSystem icon in the launcher
 ```
 
-122 settings and 64 actions across fourteen pages: Início and thirteen subject pages. The menu
+122 settings and 67 actions across fourteen pages: Início and thirteen subject pages. The menu
 has two blocks: **Tópicos** (your screen) and **Sistema** (what the machine does on its own).
 
 ### The interface shows instead of explaining
@@ -113,7 +113,7 @@ will be). "Como está" undoes only that block.
 Every variable the installer reads has a control here, and a test enforces it.
 
 Clicking never changes the machine: choices pile up and **Salvar e aplicar** (save and apply)
-writes them and runs the installer. **Ver o que faria** rehearses without writing. **Restaurar ao
+writes them and runs the installer. **Ver sem mudar** rehearses without writing. **Restaurar ao
 padrão** (restore default) goes back to the factory value. Actions that download wear a network
 badge.
 
@@ -150,7 +150,7 @@ badge.
 ## The doctor fixes
 
 ```bash
-meow doctor                            # 65 checks. Writes nothing.
+meow doctor                            # 73 checks. Writes nothing.
 meow doctor --consertar                # fixes whatever is out of place
 meow desfazer                          # restores this machine's previous theme
 ./install.sh --uninstall               # removes theme, icons and timers

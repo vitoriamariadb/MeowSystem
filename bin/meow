@@ -182,12 +182,14 @@ modo_desejado() {
   esac
 }
 
+# O doctor nunca usa sudo, e sem `--consertar` não escreve configuração: confere
+# chamando os mesmos scripts do install.sh com `MEOW_DRY_RUN=1`.
 is_dark_atual() { cat "$IS_DARK" 2>/dev/null || printf '?'; }
 
-# O ACERVO É A LISTA — não há mais variante do gato do projeto.
+# O ACERVO É A LISTA — não há mais variante do mascote do projeto.
 logos_disponiveis() {
   local f n
-  for f in "$RAIZ"/assets/gatos/*.svg; do
+  for f in "$(meow_mascote_dir)"/*.svg; do
     [ -f "$f" ] || continue
     n="$(basename "$f" .svg)"
     case "$n" in *-symbolic) continue ;; esac
@@ -215,8 +217,8 @@ chk_conf() {
   return 0
 }
 
-# Só os temas: o gerador de gatos saiu, junto com os SVG do projeto. Enquanto
-# ele estivesse aqui, o `--consertar` das 5h regeraria os gatos excluídos toda
+# Só os temas: o gerador de mascotes saiu, junto com os SVG do projeto. Enquanto
+# ele estivesse aqui, o `--consertar` das 5h regeraria os mascotes excluídos toda
 # madrugada.
 chk_gerar() {
   local rc=0 msg="" rc_ron=0
@@ -319,13 +321,22 @@ chk_pastas() {
 # `${NOVO-${ANTIGO:-}}` — o novo vence quando existe, mesmo vazio. A regra
 # inteira está no `scripts/wallpaper.sh`, no `FONTES_PERMITIDAS`.
 chk_wallpaper() {
-  MEOW_DRY_RUN=1 WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+  local semeia rc_s saida rc
+  semeia="$(MEOW_DRY_RUN=1 "$RAIZ/scripts/wallpaper.sh" semear-se-faltar 2>&1)"; rc_s=$?
+  saida="$(MEOW_DRY_RUN=1 WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
     WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
     WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
     WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
     WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
-    "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1
+    "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1)"; rc=$?
+  # A semeadura que falta vem primeiro só quando o carrossel não tem outra divergência.
+  if [ "$rc_s" = "$MEOW_DIVERGENTE" ] && [ "$rc" != "$MEOW_DIVERGENTE" ]; then
+    printf '%s\n%s\n' "$semeia" "$saida"; return "$MEOW_DIVERGENTE"
+  fi
+  printf '%s\n' "$saida"
+  [ "$rc_s" = "$MEOW_DIVERGENTE" ] && printf '%s\n' "$semeia"
+  return "$rc"
 }
 
 # O `wallpaper` logo acima confere a CONFIG do carrossel; este confere o GATILHO
@@ -589,7 +600,7 @@ chk_apps() {
     SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir 2>&1
 }
 
-# O módulo do Heroic (`assets/temas-de-apps/heroic/manifesto.sh`) grava em
+# O módulo do Heroic (`scripts/temas-de-apps/heroic/manifesto.sh`) grava em
 # `store/config.json` o NOME DO ARQUIVO do tema, com a extensão.
 #
 # Este verificador relê o handler a cada passagem.
@@ -621,7 +632,7 @@ chk_heroictema() {
   local pesa="o módulo grava 'theme' COM o .css por causa dessa linha; confira o handler antes de confiar na tela"
   nome="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null | sed -n 's/^nome=//p')"
   saida="$(exec 2>/dev/null
-           . "$RAIZ/assets/temas-de-apps/heroic/manifesto.sh" || exit "$MEOW_ERRO"
+           . "$RAIZ/scripts/temas-de-apps/heroic/manifesto.sh" || exit "$MEOW_ERRO"
            _heroic_do_pack
            printf 'tema=%s\nembutido=%s\nmotivo=%s\n' "$_HEROIC_TEMA" "$_HEROIC_EMBUTIDO" "$_HEROIC_MOTIVO")"
   tema="$(printf '%s\n' "$saida" | sed -n 's/^tema=//p')"
@@ -727,17 +738,7 @@ chk_convertidos() {
   MEOW_DRY_RUN=1 "$RAIZ/scripts/construir_convertidos.sh" --conferir 2>&1
 }
 
-# O PNG do lançador NÃO TINHA VERIFICADOR NENHUM — `chk_apps` é o
-# `aplicar_apps.sh`, que é outra coisa (tema DENTRO do aplicativo). Se um dos 16
-# ícones do acervo Catppuccin sumisse ou divergisse, nada acusava.
-chk_iconesapps() {
-  ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
-    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
-    "$RAIZ/scripts/icones_apps.sh" --conferir 2>&1
-}
-
-# OS RESGATADOS PRECISAM DE VERIFICADOR PELA MESMA RAZÃO QUE O `chk_iconesapps`
-# precisava: eles são vinte arquivos em `scalable/apps` que NINGUÉM MAIS
+# OS RESGATADOS PRECISAM DE VERIFICADOR: eles são vinte arquivos em `scalable/apps` que NINGUÉM MAIS
 # escreve, e um `meow icones reconstruir` que apagasse o diretório os levaria
 # junto, sem nada acusando.
 chk_resgatados() {
@@ -788,6 +789,7 @@ chk_trayzapzap() {
 # do `ocultar`: o conserto escreve em /usr/share com sudo, e o doctor nunca usa
 # sudo.
 chk_absolutos() {
+  _lancador_do_sistema || return "$MEOW_SEM_DEPENDENCIA"
   MEOW_DRY_RUN=1 ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$RAIZ/scripts/icones_absolutos.sh" 2>&1
 }
@@ -809,7 +811,37 @@ chk_jogosheroic() {
 # ENTROU AQUI PORQUE SE PERDIA CALADO, como o vidro ao maximizar e a tela de
 # login.
 chk_ocultar() {
+  _lancador_do_sistema || return "$MEOW_SEM_DEPENDENCIA"
   MEOW_DRY_RUN=1 "$RAIZ/scripts/ocultar_apps.sh" 2>&1
+}
+
+# O opt-in do install vale no doctor: sem LANCADOR_SISTEMA="sim", nada em /usr/share.
+_lancador_do_sistema() {
+  [ "${LANCADOR_SISTEMA:-nao}" = "sim" ] && return 0
+  meow_pula 'LANCADOR_SISTEMA não é "sim" — o lançador do sistema fica como está'
+  return 1
+}
+
+# O que a lista do `ocultar` nomeia e não mora em /usr/share (flatpak, home):
+# sombra no home, sem sudo, então o doctor conserta sozinho.
+chk_ocultarcasa() {
+  MEOW_DRY_RUN=1 LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+    "$RAIZ/scripts/ocultar_casa.sh" --conferir 2>&1
+}
+
+# A janela que a dock não casa com o lançador (o app_id do mapa). A linha do
+# resumo é a última do conferidor e vem para a cabeça, que é o que a tabela mostra.
+chk_janeladock() {
+  local saida rc
+  saida="$(MEOW_DRY_RUN=1 "$RAIZ/scripts/appid_dock.sh" --conferir 2>&1)"; rc=$?
+  printf '%s\n' "$saida" | tail -n 1
+  printf '%s\n' "$saida" | sed '$d'
+  return "$rc"
+}
+
+# O lançador de programa removido e o mimeinfo.cache velho do home.
+chk_lancador() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/lancador.sh" --conferir 2>&1
 }
 
 # O gatilho que reaplica o `ocultar` depois de todo apt.
@@ -901,7 +933,7 @@ chk_nomes() {
   "$RAIZ/scripts/nomes_apps.sh" --conferir 2>&1
 }
 
-# O vigia de `assets/gatos/` — as unidades `meow-assets.path`/`.service`.
+# O vigia de `packs/meowsystem/mascote/` — as unidades `meow-assets.path`/`.service`.
 # Confere o TEXTO da unidade (com o `@ACERVO@` já substituído, como o instalador
 # grava) e se o gatilho está ligado e não-falho.
 chk_assets() {
@@ -943,15 +975,27 @@ chk_atalho() {
 chk_svg() {
   meow_tem python3 || { echo "python3 não está aqui — nada a conferir"; return 0; }
   local pastas=() p
-  for p in assets/gatos packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
+  for p in packs/meowsystem/mascote/ packs/dracula/mascote/ assets/icones/overrides; do
     [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
   done
   # Sem estas linhas o vigia continuaria verde conferindo só os oito de
   # `autorais/leitura/` que sobraram — e o `transform-origin` achatado que ele
   # existe para caçar passaria despercebido justamente nos desenhos dela.
-  for p in "$RAIZ"/packs/*/icones/apps/autorais; do
-    [ -d "$p" ] && pastas+=("$p")
-  done
+  # P96: as pastas dos packs são planas — os desenhos do modo de leitura (`leitura-*.svg`) e os
+  # autorais (`<nome>-<flavor>.svg` em `apps/`, um flavor da paleta do pack) entram arquivo a arquivo.
+  for p in "$RAIZ"/packs/meowsystem/icones/sistema/leitura-*.svg; do [ -f "$p" ] && pastas+=("$p"); done
+  while IFS= read -r p; do [ -n "$p" ] && pastas+=("$p"); done < <(python3 -I - "$RAIZ" <<'PYAUT' 2>/dev/null
+import glob, json, os, sys
+for d in sorted(glob.glob(os.path.join(sys.argv[1], "packs", "*"))):
+    try:
+        fl = json.load(open(os.path.join(d, "paleta.json"), encoding="utf-8"))["flavors"]
+    except Exception:
+        continue
+    for f in sorted(glob.glob(os.path.join(d, "icones", "apps", "*.svg"))):
+        if any(f.endswith("-%s.svg" % x) for x in fl):
+            print(f)
+PYAUT
+  )
   [ "${#pastas[@]}" -gt 0 ] || return 0
   local saida rc
   saida="$(python3 "$RAIZ/scripts/normalizar_svg.py" --conferir "${pastas[@]}" 2>&1)"; rc=$?
@@ -997,6 +1041,29 @@ chk_greeter() {
 chk_cursor() {
   MEOW_DRY_RUN=1 CURSOR="${CURSOR:-}" CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}" \
     "$RAIZ/scripts/cursor.sh" conferir 2>&1
+}
+
+# Sem tema do MeowSystem no disco o conferir pula; o que ele acusa é override
+# do Flatpak sem o tema, ou com o do pack que já saiu do ar.
+chk_flatpaktema() {
+  MEOW_DRY_RUN=1 CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/flatpak_tema.sh" conferir usuario 2>&1
+}
+
+# O override global do sistema com tema que não existe: só se lê aqui, e quem o
+# limpa é a ponte root.
+chk_flatpakglobal() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir global 2>&1
+}
+
+# O OnlyOffice vem do Flathub do usuário; o LibreOffice só sai pela ponte root e
+# só com o OnlyOffice instalado.
+chk_onlyoffice() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/escritorio.sh" conferir onlyoffice 2>&1
+}
+
+chk_libreoffice() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/escritorio.sh" conferir libreoffice 2>&1
 }
 
 # Sem starship, o `conferir` passa pelo `_prompt_dizer_falta_starship`, que
@@ -1092,6 +1159,17 @@ chk_autostart() {
   AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" "$RAIZ/scripts/autostart.sh" conferir 2>&1
 }
 
+# Outro programa que escreve sozinho onde o MeowSystem escreve. Só mostra: desligar
+# o de fora é decisão dela (4), e a duplicata já revisada não volta a aparecer.
+chk_bloco() { "$RAIZ/scripts/terminal_bloco.sh" --conferir 2>&1; }
+fix_bloco() { "$RAIZ/scripts/terminal_bloco.sh" aplicar 2>&1; }
+
+chk_vizinhos() {
+  local rc
+  "$RAIZ/scripts/vizinhos.sh" --conferir 2>&1; rc=$?
+  case "$rc" in 0|4) return "$rc" ;; *) return 3 ;; esac
+}
+
 
 # É ele que põe o `meow-doctor.timer` de pé, e é o timer que faz o resto desta
 # tabela convergir sozinho às 5h.
@@ -1114,7 +1192,7 @@ chk_autoreparo() {
   fi
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
-    echo "não há systemd --user nesta sessão — rode 'meow doctor --consertar' na mão"
+    echo "não há systemd --user nesta sessão — o conserto diário fica de fora; o «Conferir e consertar» faz o mesmo"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -1208,6 +1286,13 @@ _pacotes_faltando() {
   # O mesmo `pop-fonts` do `etapa_pacotes`, com a mesma guarda.
   [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
     || faltam+=(pop-fonts)
+  # Os mesmos do compilar dos applets do `etapa_pacotes` (lista no lib/comum.sh).
+  local prova pacote
+  if [ "${MIDIA:-sim}" = "sim" ] || [ "${LEITURA_APPLET:-sim}" = "sim" ]; then
+    while IFS='|' read -r prova pacote; do
+      [ -e "$prova" ] || faltam+=("$pacote")
+    done <<< "$MEOW_DEPS_DOS_APPLETS"
+  fi
   [ "${#faltam[@]}" -eq 0 ] || printf '%s\n' "${faltam[@]}"
   return 0
 }
@@ -1267,7 +1352,7 @@ chk_fontes() {
   return "$rc"
 }
 
-# O gato do painel. O `--conferir` do `logo.sh` responde pelo gato que está no ar
+# O mascote do painel. O `--conferir` do `logo.sh` responde pelo mascote que está no ar
 # e pelo acervo — que é o que muda todo dia.
 #
 # O QUE ESTA LINHA NÃO CONFERE, e é melhor dizer do que prometer: a unidade
@@ -1283,13 +1368,13 @@ chk_fontes() {
 #   é o `meow_seco`, e o seco só nasce do `MEOW_DRY_RUN`. Sem ele, "conferir"
 #   era o `aplicar` inteiro. Medido com `HOME=$(mktemp -d) meow doctor`, pkill
 #   e kill trocados por registradores: 13 arquivos gravados na casa de
-#   brinquedo (os cinco gatos, os dois botões do dock, o `.ansi`, o
+#   brinquedo (os cinco mascotes, os dois botões do dock, o `.ansi`, o
 #   `meow-fetch`, estado e manifesto) e um `pkill -x cosmic-panel` — o
 #   `painel.sh reciclar` via "gato do dock trocado" e mirava o painel de
 #   VERDADE, que não é daquela casa. Na casa de verdade, pelo mesmo código, o
 #   caminho abre sempre que o dock está atrás da hora — entre a virada da fase
 #   e o tique seguinte do `meow-gato.timer`: um doctor sem `--consertar` nessa
-#   janela trocava o gato e piscava a barra.
+#   janela trocava o mascote e piscava a barra.
 #   Com o seco, o `logo.sh` diz "mudaria" e sai 1; quem escreve e recicla é o
 #   `fix_logo`, que é o lugar disso.
 chk_logo() {
@@ -1353,7 +1438,8 @@ fix_pastas()    { ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
                     ICONES_PASTAS="${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}" \
                     NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/construir_pastas.sh" 2>&1; }
-fix_wallpaper() { WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+fix_wallpaper() { "$RAIZ/scripts/wallpaper.sh" semear-se-faltar 2>&1
+                  WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
                     WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
                     WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
                     WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
@@ -1407,9 +1493,6 @@ fix_mimetypes() { ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
 fix_arcticons() { FLAVOR="${FLAVOR:-}" ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao}" \
                     ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/icones_apps_arcticons.sh" --aplicar 2>&1; }
-fix_iconesapps(){ ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
-                    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
-                    "$RAIZ/scripts/icones_apps.sh" --aplicar 2>&1; }
 # Os desenhos dela que só existiam em PNG, agora em vetor. `ICONES_RESGATADOS`
 # vai junto porque é ele que decide entre instalar e RETIRAR: sem a chave no
 # ambiente, o script cairia no padrão `sim` e o "nao" dela não seria obedecido
@@ -1446,10 +1529,16 @@ fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
 #   O `ocultar` roda INTEIRO (ele já sabe pular o que não consegue) e o
 #   `absolutos` idem; o `lancadorapt` chama a ponte direto, porque instalar o
 #   hook é um verbo dela e não tem script intermediário.
-fix_ocultar()   { LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+fix_ocultar()   { _lancador_do_sistema 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
+                  LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
                     "$RAIZ/scripts/ocultar_apps.sh" 2>&1; }
-fix_absolutos() { LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+fix_absolutos() { _lancador_do_sistema 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
+                  LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
                     "$RAIZ/scripts/icones_absolutos.sh" 2>&1; }
+fix_ocultarcasa(){ LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+                    "$RAIZ/scripts/ocultar_casa.sh" --aplicar 2>&1; }
+fix_janeladock() { "$RAIZ/scripts/appid_dock.sh" --aplicar 2>&1; }
+fix_lancador()  { "$RAIZ/scripts/lancador.sh" --aplicar 2>&1; }
 fix_lancadorapt() {
   if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
     # A MESMA CERCA DA ETAPA DO INSTALADOR: remover arquivo de /etc pede decisão
@@ -1482,20 +1571,37 @@ fix_atalho()    { "$RAIZ/scripts/atalho.sh" --aplicar 2>&1; }
 # de estragar o desenho dela.
 fix_svg()       { local pastas=() p
                   meow_tem python3 || return 0
-                  for p in assets/gatos packs/meowsystem/icones/sistema/leitura assets/icones/overrides; do
+                  for p in packs/meowsystem/mascote/ packs/dracula/mascote/ assets/icones/overrides; do
                     [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
                   done
                   # Os autorais de cada pack, como no `chk_svg` — o conserto
                   # tem de alcançar tudo o que a conferência alcança, ou o
                   # doctor aponta um defeito que o `--consertar` não conserta.
-                  for p in "$RAIZ"/packs/*/icones/apps/autorais; do
-                    [ -d "$p" ] && pastas+=("$p")
-                  done
+                  # P96: as pastas dos packs são planas — os desenhos do modo de leitura (`leitura-*.svg`) e os
+                  # autorais (`<nome>-<flavor>.svg` em `apps/`, um flavor da paleta do pack) entram arquivo a arquivo.
+                  for p in "$RAIZ"/packs/meowsystem/icones/sistema/leitura-*.svg; do [ -f "$p" ] && pastas+=("$p"); done
+                  while IFS= read -r p; do [ -n "$p" ] && pastas+=("$p"); done < <(python3 -I - "$RAIZ" <<'PYAUT' 2>/dev/null
+import glob, json, os, sys
+for d in sorted(glob.glob(os.path.join(sys.argv[1], "packs", "*"))):
+    try:
+        fl = json.load(open(os.path.join(d, "paleta.json"), encoding="utf-8"))["flavors"]
+    except Exception:
+        continue
+    for f in sorted(glob.glob(os.path.join(d, "icones", "apps", "*.svg"))):
+        if any(f.endswith("-%s.svg" % x) for x in fl):
+            print(f)
+PYAUT
+                  )
                   [ "${#pastas[@]}" -gt 0 ] || return 0
                   python3 "$RAIZ/scripts/normalizar_svg.py" "${pastas[@]}" 2>&1; }
 fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1; }
 fix_cursor()    { CURSOR="${CURSOR:-}" CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}" \
                     "$RAIZ/scripts/cursor.sh" aplicar 2>&1; }
+fix_flatpaktema() { CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/flatpak_tema.sh" aplicar usuario 2>&1; }
+fix_flatpakglobal() { "$RAIZ/scripts/flatpak_tema.sh" aplicar global 2>&1; }
+fix_onlyoffice() { "$RAIZ/scripts/escritorio.sh" aplicar onlyoffice 2>&1; }
+fix_libreoffice() { "$RAIZ/scripts/escritorio.sh" aplicar libreoffice 2>&1; }
 fix_prompt()    { PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
                     "$RAIZ/scripts/prompt.sh" aplicar 2>&1; }
 fix_fzf()       { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/fzf.sh" aplicar 2>&1; }
@@ -1645,7 +1751,7 @@ fix_autoreparo() {
 #   que dependem deles, e a passada terminava com os dois pulados por "falta
 #   dependência" que ela mesma tinha acabado de instalar. Logo depois da
 #   ponte, que é por onde o `pacotes` passa.
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor prompt fzf terminal som fastfetch files_menu icones completar hicolor mimetypes iconesapps resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes lancadorapt pastasxdg pastas wallpaper fundo apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho autoreparo cli escala fontes logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor flatpaktema flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas wallpaper fundo onlyoffice libreoffice apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes vizinhos logo indice)
 # A PONTE MOVE TRÊS ITENS DAQUI — 08/09/2026
 #   `ocultar`, `absolutos` e `lancadorapt` recusavam conserto pela MESMA razão:
 #   "o conserto usa sudo, e o doctor não usa". Com a ponte root instalada isso
@@ -1677,7 +1783,7 @@ VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel jan
 #   em «rode: meow compositor».
 SEM_CONSERTO=" ponte convertidos heroictema "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema pacotes "
+  SEM_CONSERTO=" ponte ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal libreoffice "
 fi
 
 # A razão é POR NOME. Enquanto `conf` era o único item sem conserto, a frase
@@ -1696,12 +1802,14 @@ fi
 #   pinado, e a regra dela é a do doctor que corrige; as razões do `cursor` e
 #   das `fontes` saíram com eles.]
 declare -A SEM_CONSERTO_RAZAO=(
-  [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — rode: ./install.sh"
-  [ocultar]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
-  [absolutos]="o conserto usa sudo, e o doctor não usa — rode: meow ativar"
-  [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — rode: ./scripts/construir_convertidos.sh"
-  [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste assets/temas-de-apps/heroic/manifesto.sh"
-  [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — rode: meow ativar"
+  [ponte]="escrever em /etc/sudoers.d é decisão sua, com a senha na mão — entra no «Instalar tudo»"
+  [ocultar]="o conserto usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [absolutos]="o conserto usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — a oficina de ícones reconverte o que você escolher"
+  [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste scripts/temas-de-apps/heroic/manifesto.sh"
+  [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [flatpakglobal]="limpar o override do sistema usa root, e o doctor não usa — entra no «Instalar tudo»"
+  [libreoffice]="tirar o LibreOffice do apt usa root, e o doctor não usa — entra no «Instalar tudo»"
   [pacotes]="sem a ponte root, instalar pacote pede a sua senha, e o auto-reparo não tem a quem pedir — o ./install.sh pede uma vez e instala a ponte"
 )
 
@@ -1857,6 +1965,15 @@ imprimir_check() {
   # 11, e não 10, desde 11/08/2026: `convertidos` é o primeiro nome de
   # verificador com 11 caracteres, e com 10 a coluna da direita saía uma casa
   # fora do prumo só naquela linha.
+  # O verificador que pula calado (a camada que não vale para o pack no ar) não
+  # deixa a linha da tabela vazia: ela diz o estado.
+  if [ -z "$linha" ]; then
+    case "${CHK_RC[$i]}" in
+      0) linha="confere" ;;
+      3|4) linha="não se aplica com o que está no ar" ;;
+      *) linha="saiu ${CHK_RC[$i]}, sem detalhe" ;;
+    esac
+  fi
   printf '  %s %s %s\n' "$rotulo" "$(pad "${CHK_NOME[$i]}" 11)" "$linha"
   if [ "$detalhar" = "1" ] && { [ "${CHK_RC[$i]}" != "0" ] || [ "$aviso" = "1" ]; }; then
     printf '%s\n' "$saida" | tail -n +2 | while IFS= read -r l; do
@@ -1975,7 +2092,7 @@ cmd_status() {
                 \( -type f -o -type l \) 2>/dev/null | wc -l)"
   campo "tema"     "$tema_icones"
   campo "arquivos" "$n_icones em ~/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
-  # O GATO QUE ESTÁ NO DOCK, E NÃO A CHAVE `LOGO` — 24/09/2026, sprint P54
+  # O MASCOTE QUE ESTÁ NO DOCK, E NÃO A CHAVE `LOGO` — 24/09/2026, sprint P54
   # (achado 46)
   #   A linha era `$LOGO  ->  <custom_logo_path do applet>`, e as duas metades
   #   falavam de outra coisa. Medido no painel de verdade, com o modo `hora`:
@@ -1984,8 +2101,8 @@ cmd_status() {
   #   fixo; e o applet Logo Menu está fora do projeto desde 24/08/2026, então a
   #   chave dele não existe nesta máquina.
   #   O que ela VÊ é o botão do dock, e a pergunta é a do `meow logo listar`:
-  #   qual gato do acervo tem o MESMO conteúdo do ícone do botão. As duas
-  #   respostas saem do próprio `logo.sh` — o gato pelo `no-dock`, o modo pelo
+  #   qual mascote do acervo tem o MESMO conteúdo do ícone do botão. As duas
+  #   respostas saem do próprio `logo.sh` — o mascote pelo `no-dock`, o modo pelo
   #   `modo` —, que existem para ninguém reescrever as regras dele. (A primeira
   #   versão desta linha comparava o botão aqui mesmo, só com as cópias de
   #   ~/.config/cosmic/logos, e já divergia do `listar`, que cai no `.svg` cru
@@ -1996,7 +2113,7 @@ cmd_status() {
                "$RAIZ/scripts/logo.sh" no-dock 2>/dev/null)" || no_dock=""
   modo_logo="$(LOGO_MODO="${LOGO_MODO:-}" LOGO_ROTACAO="${LOGO_ROTACAO:-}" \
                  "$RAIZ/scripts/logo.sh" modo 2>/dev/null)"
-  campo "logo"     "${no_dock:-nenhum gato do acervo} no dock  (modo ${modo_logo:-desconhecido})"
+  campo "logo"     "${no_dock:-nenhum mascote do acervo} no dock  (modo ${modo_logo:-desconhecido})"
   [ -n "$logo_path" ] && campo "applet"   "$logo_path"
 
   meow_passo "Papéis de parede"
@@ -2379,9 +2496,9 @@ cmd_logo() {
   carregar_conf || return "$MEOW_ERRO"
   local arg="${1:-}"
 
-  # `girar` e `listar` são do ACERVO (assets/gatos/ + o gato do flavor), não das
+  # `girar` e `listar` são do ACERVO (packs/meowsystem/mascote/ + o mascote do flavor), não das
   # variantes de `assets/meow-*-painel.svg` que o resto deste comando conhece.
-  # São coisas diferentes de propósito: a variante é o DESENHO do gato do
+  # São coisas diferentes de propósito: a variante é o DESENHO do mascote do
   # projeto; o acervo é a coleção dela, e girar troca só a chave — o único
   # caminho que vale na hora, sem reiniciar o painel (§3 do COSMIC-THEMING).
   case "$arg" in
@@ -2408,11 +2525,11 @@ cmd_logo() {
     campo "em uso" "$LOGO"
     # A chave do applet INSTALADO, pelo `logo.sh applet` (revisão da P57).
     campo "arquivo" "$(MEOW_DRY_RUN=1 "$RAIZ/scripts/logo.sh" applet 2>/dev/null || printf '(nenhuma)')"
-    printf '\n  %sgatos do acervo (assets/gatos/)%s\n' "$C_DIM" "$C_ZERO"
+    printf '\n  %smascotes do pack (%s)%s\n' "$C_DIM" "$(meow_mascote_dir)" "$C_ZERO"
     logos_disponiveis | sed 's/^/    /'
-    printf '\n  %ssolte um .svg em assets/gatos/ e ele entra na hora — a pasta é a lista%s\n' \
-           "$C_DIM" "$C_ZERO"
-    printf '  %smeow logo listar diz qual gato está no ar, e POR QUÊ (a fase e a janela)%s\n' "$C_DIM" "$C_ZERO"
+    printf '\n  %ssolte um .svg em %s e ele entra na hora — a pasta é a lista%s\n' \
+           "$C_DIM" "$(meow_mascote_dir)" "$C_ZERO"
+    printf '  %smeow logo listar diz qual mascote está no ar, e POR QUÊ (a fase e a janela)%s\n' "$C_DIM" "$C_ZERO"
     printf '  %sno modo hora quem manda é o relógio: LOGO_DIA / LOGO_NOITE no meow.conf%s\n\n' "$C_DIM" "$C_ZERO"
     return 0
   fi
@@ -2422,7 +2539,7 @@ cmd_logo() {
   # recusaria um nome que ele mesmo acabou de listar como disponível.
   local disponiveis; disponiveis="$(logos_disponiveis)"
   if ! grep -qx -- "$arg" <<< "$disponiveis"; then
-    meow_erro "não existe o gato '$arg' em assets/gatos/"
+    meow_erro "não existe o mascote '$arg' em $(meow_mascote_dir)"
     meow_info "disponíveis: $(logos_disponiveis | em_linha)"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
@@ -2432,7 +2549,7 @@ cmd_logo() {
   [ "$rc_conf" -ge 2 ] && { meow_erro "não consegui gravar LOGO em $CONF"; return "$MEOW_ERRO"; }
   meow_travar || return "$MEOW_ERRO"
   # A LOGO NOVA SÓ APARECE NO PRÓXIMO LOGIN, E ISSO PRECISA SER DITO
-  #   O applet LogoMenu troca de gato NA HORA quando a CHAVE `custom_logo_path`
+  #   O applet LogoMenu troca de mascote NA HORA quando a CHAVE `custom_logo_path`
   #   aponta para outro arquivo — mas não quando o CONTEÚDO do arquivo apontado
   #   muda, porque ele cacheou a imagem no carregamento (docs/COSMIC-THEMING.md
   #   §3). E o destino que o construir_icones.sh escreve tem o nome do FLAVOR,
@@ -2441,11 +2558,11 @@ cmd_logo() {
   #   isso — derrubar custou a tela dela duas vezes. Então o certo é avisar.
   meow_info "a logo nova aparece no próximo login (o applet cacheia a imagem)"
   # QUEM APLICA É O logo.sh, NÃO O fix_icones — e a diferença passou a importar
-  # em 08/08/2026. Enquanto a logo era variante do gato gerado, quem a escrevia
+  # em 08/08/2026. Enquanto a logo era variante do mascote gerado, quem a escrevia
   # era o `construir_icones.sh`, e chamar a reconstrução dos ícones fazia
-  # sentido. Agora o gato sai do acervo e o dono único da chave, dos arquivos em
+  # sentido. Agora o mascote sai do acervo e o dono único da chave, dos arquivos em
   # `~/.config/cosmic/logos/` e dos dois botões do dock é o `logo.sh`. Chamar o
-  # `fix_icones` aqui não trocaria gato nenhum — só reconstruiria o índice.
+  # `fix_icones` aqui não trocaria mascote nenhum — só reconstruiria o índice.
   FLAVOR="$FLAVOR" LOGO="$arg" "$RAIZ/scripts/logo.sh" aplicar; local rc=$?
   [ "$rc" = "1" ] && { registrar "logo $arg"; notificar "MeowSystem" "Logo $arg."; }
   return "$rc"
@@ -3005,7 +3122,7 @@ wiz_comentario_da_linha() {
 wiz_opcoes() {
   local chave="$1" ajuda="$2" inline="$3" l tok saida=""
   # LOGO é a única lida do DISCO: as variantes são arquivos, e uma lista escrita
-  # aqui ficaria velha no dia em que alguém desenhasse outro gato de painel.
+  # aqui ficaria velha no dia em que alguém desenhasse outro mascote de painel.
   if [ "$chave" = "LOGO" ]; then logos_disponiveis; return 0; fi
   while IFS= read -r l; do
     case "$l" in *'|'*) ;; *) continue ;; esac
@@ -3037,7 +3154,7 @@ wiz_opcoes() {
   #
   #   A GUARDA É O VALOR DE FÁBRICA. Duas chaves logo abaixo de uma tabela
   #   herdam o comentário do bloco (`FASTFETCH_LOGO_DIA` e `_NOITE`, que querem
-  #   um NOME DE GATO) — e ganhariam três botões de modo. Se o valor de fábrica
+  #   um NOME DE MASCOTE) — e ganhariam três botões de modo. Se o valor de fábrica
   #   da chave não está na tabela, a tabela não é dela. O `app/servidor.py` usa
   #   exatamente este critério, e o `tests/app.sh` compara os dois.
   #   `grep -P` e não `awk`: o `match($0, //, m)` com terceiro argumento é
@@ -3489,6 +3606,11 @@ cmd_desfazer() {
       meow_muda "copiaria $primeiro/com.system76.CosmicTheme.* para $COSMIC/"
       return "$MEOW_DIVERGENTE"
     fi
+    if [ -n "${MEOW_BACKUPS:-}" ]; then
+      while IFS= read -r -d '' f; do
+        meow_guardar_antes "$COSMIC/${f#"$primeiro"/}"
+      done < <(find "$primeiro" -path "$primeiro/com.system76.CosmicTheme.*" -type f -print0)
+    fi
     cp -a "$primeiro"/com.system76.CosmicTheme.* "$COSMIC/" || return "$MEOW_ERRO"
     registrar "desfazer -> $primeiro"
     notificar "MeowSystem" "Tema devolvido ao estado de antes da instalação."
@@ -3518,7 +3640,7 @@ cmd_desfazer() {
   #   não "não me pergunte". Nenhum caminho automático a digita por engano.
   guarda_original "meow desfazer" \
     "o ponto de volta DESTA máquina nasce na primeira passagem do" \
-    "./install.sh (etapa 'backup_tema') — rode-o uma vez e tente de novo." \
+    "«Instalar tudo» (etapa 'backup_tema'); antes dela não há tema de antes." \
     || return "$MEOW_SEM_DEPENDENCIA"
   # Pergunta só quando há alguém para responder. Em automação (`| meow`, timer,
   # hook) segue sem perguntar — é a regra "zero pergunta em modo automático".
@@ -3536,6 +3658,55 @@ cmd_desfazer() {
     notificar "MeowSystem" "Tema devolvido para a captura original."
   fi
   return "$rc"
+}
+
+# Repõe o estado de antes de UMA execução: a pasta que o `MEOW_BACKUPS` dela
+# encheu (lib/restauro.sh). O que existia volta byte a byte; o que a execução
+# criou sai. De trás para a frente: a cópia mais antiga de um caminho é a que
+# vale. O painel recicla se um arquivo dele voltou; o tema o COSMIC relê sozinho.
+cmd_restaurar() {
+  local pasta="${1:-}" alvo estado painel=0 n=0 falhou=0 tmp
+  [ -n "$pasta" ] && [ -f "$pasta/tocados.tsv" ] || { meow_ok "nada a restaurar"; return "$MEOW_OK"; }
+  meow_travar || return "$MEOW_ERRO"
+  while IFS=$'\t' read -r alvo estado; do
+    case "$alvo" in /*) ;; *) continue ;; esac
+    meow_destino_permitido "$alvo" || { falhou=1; continue; }
+    if meow_seco; then meow_muda "devolveria $alvo"; n=$((n + 1)); continue; fi
+    case "$estado" in
+      existia)
+        mkdir -p "$(dirname "$alvo")" || { falhou=1; continue; }
+        tmp="$(mktemp -p "$(dirname "$alvo")" ".atomicwrite.meow.XXXXXX")" || { falhou=1; continue; }
+        rm -f -- "$tmp"
+        if cp -a -- "$pasta/antes$alvo" "$tmp" && mv -fT -- "$tmp" "$alvo"; then
+          meow_muda "voltou: ${alvo/#$HOME/\~}"
+          meow_manifesto_registrar "$alvo"
+        else
+          rm -f -- "$tmp"; falhou=1; continue
+        fi ;;
+      novo)
+        [ -e "$alvo" ] || [ -L "$alvo" ] || continue
+        rm -f -- "$alvo" || { falhou=1; continue; }
+        meow_muda "saiu: ${alvo/#$HOME/\~}" ;;
+      pasta)
+        rm -rf -- "$alvo" && mkdir -p "$(dirname "$alvo")" \
+          && cp -a -- "$pasta/antes$alvo" "$alvo" || { falhou=1; continue; }
+        meow_muda "voltou: ${alvo/#$HOME/\~}/" ;;
+      pasta-nova)
+        [ -e "$alvo" ] || continue
+        rm -rf -- "$alvo" || { falhou=1; continue; }
+        meow_muda "saiu: ${alvo/#$HOME/\~}/" ;;
+      *) continue ;;
+    esac
+    n=$((n + 1))
+    case "$alvo" in */com.system76.CosmicPanel*) painel=1 ;; esac
+  done < <(tac "$pasta/tocados.tsv")
+  if [ "$painel" = "1" ] && ! meow_seco; then
+    MEOW_QUEM_RECICLA="meow restaurar" "$RAIZ/scripts/painel.sh" reciclar || true
+  fi
+  [ "$falhou" = "1" ] && { meow_erro "parte do estado de antes não voltou"; return "$MEOW_ERRO"; }
+  [ "$n" -gt 0 ] && { registrar "restaurar -> $(basename "$pasta")"; meow_ok "o estado de antes voltou ($n arquivo(s))"; return "$MEOW_DIVERGENTE"; }
+  meow_ok "já estava como antes"
+  return "$MEOW_OK"
 }
 
 cmd_log() {
@@ -3612,7 +3783,7 @@ menu_numerado() {
   # Sem terminal não há escolha a fazer: listar e sair 0 é melhor do que
   # pendurar um hook ou um timer esperando um ENTER que nunca vem.
   if [ ! -t 0 ]; then
-    meow_info "sem terminal interativo — rode 'meow <comando>' direto"
+    meow_info "sem terminal interativo: o menu fica de fora, e os verbos acima valem direto"
     return 0
   fi
   printf '  %sescolha (ENTER cancela):%s ' "$C_MAUVE" "$C_ZERO"
@@ -3700,7 +3871,7 @@ cmd_ajuda() {
   meow logo                    variantes de logo do painel
   meow logo <variante>         troca a logo do painel e o botão do dock
   meow logo listar             o acervo, quem está no ar e POR QUÊ (fase e janela)
-  meow logo girar              passa ao próximo gato — só no modo LOGO_MODO="rotacao";
+  meow logo girar              passa ao próximo mascote — só no modo LOGO_MODO="rotacao";
                                no padrão ("hora") quem manda é o relógio, e o
                                comando diz isso em vez de fingir efeito
 
@@ -3718,7 +3889,7 @@ cmd_ajuda() {
   meow wallpaper adicionar <alvo>   copia imagem ou pasta para ativos/
   meow wallpaper banir <img>   move para banidos/ (nunca apaga)
   meow wallpaper desbanir <nome>  devolve de banidos/ para ativos/ E tira do BANIDOS.txt
-  meow wallpaper semear        baixa a coleção Catppuccin (commit pinado; usa rede)
+  meow wallpaper semear        baixa a coleção do pack no ar (commit pinado; usa rede)
 
   meow apps                    tabela: módulo, instalado, tema
   meow apps aplicar [slug]     tematiza um app, ou todos
@@ -4441,6 +4612,7 @@ despachar() {
     abrir|app)        shift; exec "$RAIZ/app/run.sh" "$@" ;;
     aplicar|ativar)   shift; cmd_aplicar "$@" ;;
     desfazer)         shift; cmd_desfazer "$@" ;;
+    restaurar)        shift; cmd_restaurar "$@" ;;
     log)              shift; cmd_log "$@" ;;
     ajuda|-h|--help|help) cmd_ajuda ;;
     *) meow_erro "comando desconhecido: $1"
@@ -4453,8 +4625,8 @@ despachar() {
 # install.sh, e `sudo meow tema X` escreve em ~/.config/cosmic com dono root —
 # a GUI de tema passa a falhar EM SILÊNCIO e o conserto é um chown -R.
 if [ "$(id -u)" = "0" ]; then
-  meow_erro "não me rode com sudo."
-  meow_info "  rode como o seu usuário normal:  meow ${1:-status}"
+  meow_erro "com sudo, não: os arquivos de ~/.config ficariam de dono root — nada foi feito."
+  meow_info "  o meow roda como o seu usuário, e pede o sudo por dentro onde precisa"
   exit 2
 fi
 

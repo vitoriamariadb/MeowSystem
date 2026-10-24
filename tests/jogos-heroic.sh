@@ -63,6 +63,7 @@ instalados "
 
 correr() {
   env -i PATH="$PATH" HOME="$H" USER="${USER:-t}" NO_COLOR=1 HEROIC_CONF="$CONF" \
+    MEOW_HEROIC_TIRAR="${MEOW_HEROIC_TIRAR:-}" MEOW_HEROIC_POR="${MEOW_HEROIC_POR:-}" \
     bash "$RAIZ/scripts/jogos_heroic.sh" "$@" 2>&1
   return "$?"
 }
@@ -149,6 +150,24 @@ saida="$(correr)"; rc=$?
 if find "$H/.local/share/icons/hicolor" -name "$ID.png" 2>/dev/null | grep -q .; then
   reclamar "sobrou ícone do jogo desinstalado no hicolor"
 fi
+
+# --- o interruptor do painel: fora do lançador e de volta ---------------------
+# O jogo continua instalado; tirar grava a lista e leva o cartão, pôr o devolve.
+biblioteca true
+instalados "
+  \"$JOGO\": { \"app_name\": \"$JOGO\", \"title\": \"Marvel's Guardians of the Galaxy\", \"is_dlc\": false }"
+correr >/dev/null 2>&1
+lista="$(correr --listar)"
+printf '%s\n' "$lista" | grep -q "^$ID	.*	sim$" || reclamar "--listar não mostrou o jogo no lançador\n$lista"
+MEOW_HEROIC_TIRAR="$ID" correr >/dev/null 2>&1
+[ -e "$APPS/$ID.desktop" ] && reclamar "o interruptor desligado não tirou o cartão do lançador"
+grep -qxF "$ID" "$H/.config/meow/jogos-heroic-fora.list" 2>/dev/null || reclamar "o interruptor não gravou a lista"
+correr --listar | grep -q "^$ID	.*	nao$" || reclamar "--listar não mostrou o jogo fora do lançador"
+correr >/dev/null 2>&1
+[ -e "$APPS/$ID.desktop" ] && reclamar "a passada seguinte devolveu o jogo que ela tirou"
+MEOW_HEROIC_POR="$ID" correr >/dev/null 2>&1
+[ -f "$APPS/$ID.desktop" ] || reclamar "o interruptor ligado não devolveu o cartão"
+grep -qxF "$ID" "$H/.config/meow/jogos-heroic-fora.list" 2>/dev/null && reclamar "o jogo devolvido continua na lista"
 
 # --- biblioteca ilegível NÃO é biblioteca vazia -------------------------------
 # O caso que apagaria o lançador dela por causa de um arquivo pela metade.

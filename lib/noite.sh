@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib/noite.sh — "é noite AGORA?", uma vez só, para o gato do dock e o do
+# lib/noite.sh — "é noite AGORA?", uma vez só, para o mascote do dock e o do
 # terminal.
 #
 #     scripts/wallpaper.sh:637   `e_noite()`, em bash

@@ -20,8 +20,8 @@ trap 'rm -rf "$T"' EXIT
 CASA="$T/casa"; COSMIC="$T/cosmic"; PACKS="$T/packs"; ESTADO="$T/estado"
 CONF="$CASA/.config/meow/meow.conf"
 mkdir -p "$(dirname "$CONF")" "$COSMIC" "$PACKS" "$ESTADO"
-cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/catppuccin" "$PACKS/" || exit 2
-CAT="$PACKS/catppuccin/temas/capturados"; DRA="$PACKS/dracula/temas/capturados"
+cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
+CAT="$PACKS/meowsystem/temas/capturados"; DRA="$PACKS/dracula/temas/capturados"
 FOTO="$RAIZ/packs/dracula/temas/capturados/dracula-mauve"
 
 # COM `--ignored` NOS PACKS: a derivada se esconde do git sozinha (o
@@ -69,7 +69,7 @@ sem_latte() {   # sem_latte <dir>: os hex das duas árvores Light que são do La
 import json, re, sys
 from pathlib import Path
 d, packs = Path(sys.argv[1]), Path(sys.argv[2])
-latte = {v.upper() for v in json.load(open(packs / "catppuccin/paleta.json"))["flavors"]["latte"].values()}
+latte = {v.upper() for v in json.load(open(packs / "meowsystem/paleta.json"))["flavors"]["latte"].values()}
 alucard = {v.upper() for v in json.load(open(packs / "dracula/paleta.json"))["flavors"]["alucard"].values()}
 txt = "".join(p.read_text(encoding="utf-8") for p in sorted(d.glob("com.system76.CosmicTheme.Light*/v*/*"))
               if p.is_file())
@@ -207,7 +207,7 @@ $saida_t2"
 # --- 8. o Catppuccin não muda: o claro dele tem foto ------------------------
 # A regra vale quando o par do outro lado NUNCA foi fotografado. O latte tem
 # foto, e a derivada de acento do mocha continua levando a Light da base.
-saida="$(amb env MEOW_PACK_DIR="$PACKS/catppuccin" MEOW_PALETA="$PACKS/catppuccin/paleta.json" \
+saida="$(amb env MEOW_PACK_DIR="$PACKS/meowsystem" MEOW_PALETA="$PACKS/meowsystem/paleta.json" \
   python3 - "$RAIZ" <<'PY' 2>&1
 import json, os, sys
 sys.path.insert(0, sys.argv[1] + "/scripts")
@@ -229,7 +229,7 @@ PY
 [ "$r" = "0" ] \
   && ok "no Catppuccin a derivada de acento continua levando a Light da base (o latte tem foto)" \
   || falha "a regra do claro vazou para o Catppuccin" "$saida"
-saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/catppuccin" MEOW_PACKS= \
+saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/meowsystem" MEOW_PACKS= \
   python3 "$RAIZ/scripts/derivar_flavor.py" --conferir mocha-pink 2>&1)"; r=$?
 [ "$r" = "3" ] && [[ "$saida" == *"o outro lado fica o da foto"* ]] \
   && ok "o derivar_flavor.py não mexe na foto mocha-pink, e diz por quê" \

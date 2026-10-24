@@ -6,13 +6,15 @@
 #                                644 em ~/.local/share/applications
 #   ./nomes_apps.sh --so-sistema aplica só em /usr/share e /var/lib (é o gatilho do apt;
 #                                não toca a permissão do home)
+# Só a linha `Name=` da seção `[Desktop Entry]`: um `sed` cego renomearia também o
+# item do menu de contexto. Não cria, não apaga, não mexe em `Exec=` nem em `Icon=`.
 set -uo pipefail
 
 MEOW_NOMES_RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_NOMES_RAIZ/lib/comum.sh"
 
-MEOW_NOMES_MAPA="${MEOW_NOMES_MAPA:-$MEOW_NOMES_RAIZ/assets/icones/apps-nomes.map}"
+MEOW_NOMES_MAPA="${MEOW_NOMES_MAPA:-$MEOW_NOMES_RAIZ/assets/apps/apps-nomes.map}"
 
 # Os diretórios que o lançador varre, na ordem dele. Todos entram: o mesmo id
 # pode existir em mais de um, e cada cópia visível é um item na tela.
@@ -80,6 +82,8 @@ CONFERIR=0
 SEM_SUDO=0
 # Restringe o trabalho a UMA classe de caminho (ver `_classe`, logo abaixo).
 # Vazio = todas, que é o modo do `install.sh` e do doctor.
+# `--so-sistema` é o gatilho do apt, que roda como root: sem o filtro, o
+# `meow_escrever` gravaria os `.desktop` do home dela com dono root.
 SO_CLASSE=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -263,7 +267,7 @@ fi
 
 if [ "$pendente_sudo" -gt 0 ]; then
   if [ "$SEM_SUDO" = 1 ]; then
-    meow_pula "$pendente_sudo nome(s) em /usr/share esperam root — rode: meow ativar"
+    meow_pula "$pendente_sudo nome(s) em /usr/share esperam root: entram no próximo «Instalar tudo»"
   else
     meow_aviso "$pendente_sudo nome(s) precisam de sudo para encurtar"
   fi

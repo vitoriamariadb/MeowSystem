@@ -12,6 +12,8 @@
 #      02:11:13  `show_seconds` = true   -> a topbar mostrava "25 de ago., 02:11:13"
 #      02:11:37  gravado `false`         -> 6 s depois a topbar mostrava "25 de ago., 02:11"
 #      02:13:06  gravado `true` de volta -> 2 s depois a topbar mostrava "02:13:08"
+# Não reinicia o painel (derrubaria topbar e dock juntas), o `remover` escreve `true`
+# em vez de apagar, e `plugins_wings` é da Aurora: este arquivo não o abre.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

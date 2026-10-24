@@ -10,6 +10,7 @@
 #   · o desenho apagado leva junto a cópia dele no tema;
 #   · o doctor (`--conferir`) vê o que o vigia perdeu, e só lê;
 #   · a unidade `.path` vigia cada pasta das três, e não outra coisa.
+# Cópia da árvore, HOME temporário, sem barramento e falsos que recusam escrita.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -134,11 +135,12 @@ saida="$(amb bash "$R/scripts/derivados.sh" --aplicar 2>&1)"; rc=$?
 
 # --- 6. o que a unidade .path vigia -------------------------------------------
 pastas="$(amb bash "$R/scripts/derivados.sh" --pastas 2>/dev/null)"
+# [P96, 23/10/2026: as três pastas são planas, e o Catppuccin mora no meowsystem.]
 esperadas="$R/packs/dracula/icones/apps
-$R/packs/dracula/icones/sistema/pastas
-$R/packs/dracula/icones/biblioteca/feitos-a-mao
-$R/packs/catppuccin/icones/apps/autorais
-$R/packs/meowsystem/icones/apps/arcticons
+$R/packs/dracula/icones/sistema
+$R/packs/dracula/icones/biblioteca
+$R/packs/meowsystem/icones/apps
+$R/packs/meowsystem/icones/sistema
 $R/packs/meowsystem/icones"
 faltam="$(grep -vxF -f <(printf '%s\n' "$pastas") <<<"$esperadas")"
 fora="$(grep -v -e "^$R/packs/[a-z0-9-]*\$" -e "^$R/packs/[a-z0-9-]*/icones\(/\(apps\|sistema\|biblioteca\)\(/.*\)\?\)\?\$" <<<"$pastas")"
@@ -166,6 +168,30 @@ saida="$(amb bash "$R/scripts/vigia_derivados.sh" --conferir 2>&1)"; rc=$?
   && [ ! -e "$CASA/.config/systemd/user/meow-derivados.path" ] \
   && ok "o --conferir do vigia diz o que falta e não escreve unidade nenhuma" \
   || falha "o --conferir do vigia escreveu, ou não disse o que falta (rc=$rc)" "$saida"
+
+# --- 7. o molde do tipo de arquivo: editou no pack, o tema pinta de novo — P96 ---
+#   Desde 23/10/2026 o pack guarda UM molde (`var(--vscode-ctp-<papel>)`) e a instalação o
+#   pinta com a paleta do pack no ar. Quem usa edita o molde; o vigia refaz o pintado e o tema.
+MOLDE="$R/packs/meowsystem/icones/sistema/json.svg"
+NO_TEMA_MT="$TEMA/scalable/mimetypes/application-json.svg"
+amb bash "$R/scripts/icones_mimetypes.sh" --aplicar >/dev/null 2>&1
+amb bash "$R/scripts/derivados.sh" --registrar >/dev/null 2>&1
+vermelho="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["flavors"]["dracula"]["red"].lower())' "$R/packs/dracula/paleta.json")"
+if [ -f "$NO_TEMA_MT" ] && grep -q 'vscode-ctp-yellow' "$MOLDE"; then
+  sed -i 's/vscode-ctp-yellow/vscode-ctp-red/g' "$MOLDE"
+  sleep 1.1
+  saida="$(amb bash "$R/scripts/derivados.sh" --aplicar 2>&1)"; rc=$?
+  [ "$rc" = "1" ] && grep -qi "$vermelho" "$NO_TEMA_MT" && ! grep -q 'var(--' "$NO_TEMA_MT" \
+    && ok "o molde editado no pack chegou ao tema, pintado com a paleta do Dracula ($vermelho)" \
+    || falha "o molde editado não chegou ao tema pintado (rc=$rc)" "$saida$(head -c 300 "$NO_TEMA_MT" 2>/dev/null)"
+  antes="$(stat -c %Y.%N "$NO_TEMA_MT" "$TABELA" 2>/dev/null)"
+  saida="$(amb bash "$R/scripts/derivados.sh" --aplicar 2>&1)"; rc=$?
+  [ "$rc" = "0" ] && [ "$antes" = "$(stat -c %Y.%N "$NO_TEMA_MT" "$TABELA" 2>/dev/null)" ] \
+    && ok "a segunda passada depois do molde não escreve nada" \
+    || falha "a segunda passada depois do molde escreveu (rc=$rc)" "$saida"
+else
+  falha "o tipo de arquivo do JSON não ficou no tema de partida, ou o molde mudou de papel" "$(ls "$TEMA/scalable/mimetypes" 2>&1 | head -3)"
+fi
 
 if [ "$falhas" -gt 0 ]; then
   printf '\nFALHOU: %s achado(s)\n' "$falhas" >&2

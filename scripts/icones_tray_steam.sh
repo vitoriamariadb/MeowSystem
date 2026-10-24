@@ -15,10 +15,16 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-GLIFO="${MEOW_TRAY_STEAM_GLIFO:-$RAIZ/packs/meowsystem/icones/sistema/arcticons/steam.svg}"
+# P96: o glifo mora numa das três pastas planas do pack-base (uma cópia só, onde caiu)
+GLIFO="${MEOW_TRAY_STEAM_GLIFO:-}"
+if [ -z "$GLIFO" ]; then
+  for _p in sistema apps biblioteca; do
+    GLIFO="$RAIZ/packs/meowsystem/icones/$_p/steam.svg"; [ -f "$GLIFO" ] && break
+  done
+fi
 TRACO="${MEOW_TRAY_STEAM_TRACO:-4}"
 COR="${MEOW_TRAY_STEAM_COR:-#DEDEDE}"
-FABRICA="$RAIZ/assets/icones/tray-terceiros/steam_tray_mono.png.original"
+FABRICA="$RAIZ/assets/apps/tray-terceiros/steam_tray_mono.png.original"
 
 RELATIVO="public/steam_tray_mono.png"
 INVENTARIO="package/steam_client_ubuntu12.installed"
@@ -41,7 +47,7 @@ _raiz_steam() {
 # Devolve "tam mtime crc". A fonte boa é o inventário do cliente, que traz os
 # três campos de uma vez.
 #
-# `assets/icones/tray-terceiros/steam_tray_mono.png.original` tem o CONTEÚDO de
+# `assets/apps/tray-terceiros/steam_tray_mono.png.original` tem o CONTEÚDO de
 # fábrica mas foi copiado sem `-p`: o `mtime` dele é 2026-08-10 23:31:54, não
 # 2014-08-06 22:56:20.
 _esperado() {
@@ -143,7 +149,7 @@ PY
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -f "$GLIFO" ]; then
-    meow_pula "sem o glifo steam em packs/meowsystem/icones/sistema/arcticons — nada a vestir"
+    meow_pula "sem o glifo steam em packs/meowsystem/icones — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   RAIZ_STEAM="$(_raiz_steam)" || {

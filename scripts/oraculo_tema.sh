@@ -5,7 +5,7 @@
 # revisão c003a58. Três revisões do libcosmic leem o mesmo tema ao mesmo tempo,
 # e a do cosmic-settings 1.10 (5a8bd94) já muda uma cor.
 #
-# QUANDO SE COMPILA, e por que quase nunca O contrato (`contratos/cosmic.tsv`,
+# QUANDO SE COMPILA, e por que quase nunca O contrato (`assets/contratos/cosmic.tsv`,
 # linhas `tema`) guarda o hash dos três arquivos da derivação na revisão que o
 # Python copia.
 #
@@ -19,7 +19,7 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 OT_MOLDE="$MEOW_RAIZ/src/oraculo-tema"
 OT_CASA="${OT_CASA:-$HOME/.local/libexec/meow/oraculo-tema}"
 OT_TRABALHO="${OT_TRABALHO:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem/oraculo-tema}"
-OT_CONTRATO="${OT_CONTRATO:-$MEOW_RAIZ/contratos/cosmic.tsv}"
+OT_CONTRATO="${OT_CONTRATO:-$MEOW_RAIZ/assets/contratos/cosmic.tsv}"
 
 _ot_revisao() {
   local v

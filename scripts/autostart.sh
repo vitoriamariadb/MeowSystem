@@ -12,6 +12,9 @@
 #   "Application launched by COSMIC", `.scope` e não `.service`, com o PID no
 #   nome. Um mask em `…@autostart.service` não alcança nenhum deles: são nomes
 #   diferentes, criados na hora pela API do systemd.
+# `~/.config/autostart/` é da Aurora: este script não o abre, nem para apagar;
+# só mascara por `systemctl --user`. O `remover` só desmascara o que NÓS
+# mascaramos — o mask que ela fez à mão fica.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

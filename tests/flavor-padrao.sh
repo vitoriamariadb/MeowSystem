@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # flavor-padrao.sh — o flavor padrão é uma regra só. `sudo` falso na frente do
 # PATH: com `NOPASSWD`, o de verdade escreveria no sistema.
+# `env -i`, HOME temporário e um `sudo` falso na frente do PATH: nada sai da casa
+# de brinquedo, nem numa máquina com `NOPASSWD`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -42,7 +44,7 @@ printf '\n--- 1. nenhum script tem o flavor padrão dele ---\n'
 # padrão de flavor; o que se caça é um NOME depois do `:-`.
 cravados() {
   grep -nE '\$\{FLAVOR:-[^}$]' "$RAIZ"/scripts/*.sh "$RAIZ/bin/meow" \
-       "$RAIZ"/assets/temas-de-apps/*/manifesto.sh "$RAIZ/app/servidor.py" \
+       "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh "$RAIZ/app/servidor.py" \
     | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#'
 }
 if cravados >/dev/null; then
@@ -110,7 +112,7 @@ for caso in "btop-bat|_bb_flavor" "spotify|printf %s \"\$_SPOT_FLAVOR\""; do
     tem="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa" NO_COLOR=1 MEOW_RAIZ="$RAIZ" MEOW_PACKS="$PACKS" \
              MEOW_ESTADO="$T/estado" PACK="${par%%|*}" FLAVOR= \
              bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 9
-                      . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" >/dev/null || exit 9
+                      . "$MEOW_RAIZ/scripts/temas-de-apps/$0/manifesto.sh" >/dev/null || exit 9
                       eval "$1"' "$modulo" "$pergunta" 2>&1)"
     [ "$tem" = "${par#*|}" ] || divergem+=" $modulo com PACK='${par%%|*}': veio '$tem', a regra diz '${par#*|}';"
   done

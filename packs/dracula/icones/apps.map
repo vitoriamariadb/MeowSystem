@@ -75,7 +75,7 @@
 
 io.gitlab.theevilskeleton.Upscaler : apps/io.gitlab.theevilskeleton.Upscaler.svg   # Ampliar — telescópio
 io.github.dvlv.boxbuddyrs : apps/io.github.dvlv.boxbuddyrs.svg   # BoxBuddy — baú (variação)
-org.gnome.Calculator : apps/org.gnome.Calculator.svg   # Calculator [upstream]
+org.gnome.Calculator : apps/calculadora.svg   # Calculator — o desenho escolhido por quem usa em 23/10 (P96)
 foundryvtt : apps/foundryvtt.svg   # Foundry VTT — dados
 google-chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
 com.system76.Popsicle : apps/com.system76.Popsicle.svg   # Gravador USB Popsicle — pirulito
@@ -97,7 +97,7 @@ io.github.flattool.Warehouse : apps/io.github.flattool.Warehouse.svg   # Warehou
 #   "a camera tem que ter o guvcview.svg". O guvcview saiu da máquina na
 #   limpeza de 15/09; o desenho resgatado dele ficou, sem app para vestir. A
 #   Camera do COSMIC estava de fábrica. Um desenho órfão e um app sem desenho.
-io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do guvcview
+io.github.cosmic_utils.camera : apps/io.github.cosmic_utils.camera.svg   # Câmera — o desenho escolhido por quem usa em 23/10 (P96)
 #   ^ COPIADO de assets/icones/resgatados/guvcview.svg em 17/09/2026. A entrada
 #     apontava para o acervo 'resgatados' do núcleo, de fora do pack — o que
 #     funcionava enquanto o Dracula morava dentro do repositório e deixa de
@@ -120,7 +120,7 @@ io.github.cosmic_utils.camera : apps/guvcview.svg   # Câmera — o desenho do g
 #   e no Waterfox vence a raposa do motor (0,048 contra o `firefox.png`, 0,069
 #   da P84). O Firefox-Dracula fica em `apps/` como alternativa, achado na
 #   busca pelo `catalog.json` da pasta.]
-net.waterfox.waterfox : apps/resgatados/net.waterfox.waterfox.svg   # Waterfox — a raposa roxa do motor, vence a régua
+net.waterfox.waterfox : apps/firefox.svg   # Waterfox — o desenho escolhido por quem usa em 23/10 (P96)
 
 # OS TRÊS RESGATADOS APROVADOS — 09/10/2026, P73 (I8)
 #   Pedido dela, 16/09: «Syncthing eu ia pedir pra refazer…» e, sobre a leva
@@ -132,12 +132,12 @@ net.waterfox.waterfox : apps/resgatados/net.waterfox.waterfox.svg   # Waterfox �
 #   e por isso eles nunca podiam entrar pelo `apps-resgatados.map`, que instala
 #   pelo nome do arquivo. Foram COPIADOS para `apps/` com o nome do ícone, como
 #   o guvcview em 17/09 (um pack é autocontido), com a linha no PROCEDENCIA.md.
-com.discordapp.Discord : apps/com.discordapp.Discord.svg   # Discord — o resgatado aprovado em 16/09
+com.discordapp.Discord : apps/discord-b.svg   # Discord — o desenho escolhido por quem usa em 23/10 (P96)
 com.spotify.Client : apps/com.spotify.Client.svg   # Spotify — o resgatado aprovado em 16/09
-syncthing : apps/syncthing.svg   # Syncthing Web UI — o resgatado aprovado em 16/09
+syncthing : apps/syncthing-candidato-v4.svg   # Syncthing Web UI — o desenho escolhido por quem usa em 23/10 (P96)
 # O VESKTOP — 15/10/2026, P82 (decisão 18). É um cliente do Discord, e sem linha
 #   ele caía no ícone do flatpak, que destoa do pack. Veste o mesmo desenho.
-dev.vencord.Vesktop : apps/com.discordapp.Discord.svg   # Vesktop — o desenho do Discord
+dev.vencord.Vesktop : apps/discord-b.svg   # Vesktop — o desenho escolhido por quem usa em 23/10 (P96)
 
 # A BIBLIOTECA INTEIRA DO DRACULA_OS-THEME — 23/09/2026, P36
 #   A queixa: "vc tinha achado mais de 300 [SVGs] do tema dracula mas eles não
@@ -199,19 +199,19 @@ dev.vencord.Vesktop : apps/com.discordapp.Discord.svg   # Vesktop — o desenho 
 #   `preferences-desktop-apps-symbolic`. Um símbolo é pintado pelo tema como
 #   máscara de uma cor só; o desenho pode aparecer como silhueta.
 bauh : apps/bauh.svg   # bauh [upstream]
-best.ellie.StartupConfiguration : biblioteca/sun.svg   # Startup Configuration [override-novo]
-startup-configuration : biblioteca/sun.svg   # Startup Configuration [override-novo]
+best.ellie.StartupConfiguration : apps/sun.svg   # Startup Configuration [override-novo]
+startup-configuration : apps/sun.svg   # Startup Configuration [override-novo]
 bluetooth-sendto : apps/bluetooth.svg   # Bluetooth Transfer [upstream]
 bluetooth : apps/bluetooth.svg   # Bluetooth Transfer [upstream]
-com.freerdp.FreeRDP : biblioteca/gate.svg   # FreeRDP [override-novo]
-freerdp : biblioteca/gate.svg   # FreeRDP [override-novo]
+com.freerdp.FreeRDP : apps/gate.svg   # FreeRDP [override-novo]
+freerdp : apps/gate.svg   # FreeRDP [override-novo]
 com.github.donadigo.eddy : apps/com.github.donadigo.eddy.svg   # Eddy [upstream]
 com.google.Chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
 chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
-com.jwestall.Forecast : biblioteca/full-moon.svg   # Meteorologia [override-novo]
-forecast : biblioteca/full-moon.svg   # Meteorologia [override-novo]
-com.mattjakeman.ExtensionManager : biblioteca/toolbox.svg   # Extension Manager [override-novo]
-extension-manager : biblioteca/toolbox.svg   # Extension Manager [override-novo]
+com.jwestall.Forecast : apps/full-moon.svg   # Meteorologia [override-novo]
+forecast : apps/full-moon.svg   # Meteorologia [override-novo]
+com.mattjakeman.ExtensionManager : apps/toolbox.svg   # Extension Manager [override-novo]
+extension-manager : apps/toolbox.svg   # Extension Manager [override-novo]
 popsicle : apps/com.system76.Popsicle.svg   # Popsicle USB Flasher [override-novo]
 foundry-vtt : apps/foundryvtt.svg   # Foundry VTT [override-novo]
 gcr-prompter : apps/security-medium.svg   # Access Prompt [upstream]
@@ -270,15 +270,15 @@ printer : apps/printer.svg   # Printers [upstream]
 gnome-region-panel : apps/preferences-desktop-locale.svg   # Region & Language [upstream]
 gnome-removable-media-panel : apps/media-removable.svg   # Removable Media [current-nome]
 media-removable : apps/media-removable.svg   # Removable Media [current-nome]
-gnome-session-properties : biblioteca/sun.svg   # Aplicativos iniciais de sessão [override-novo]
-session-properties : biblioteca/sun.svg   # Aplicativos iniciais de sessão [override-novo]
+gnome-session-properties : apps/sun.svg   # Aplicativos iniciais de sessão [override-novo]
+session-properties : apps/sun.svg   # Aplicativos iniciais de sessão [override-novo]
 gnome-sharing-panel : apps/preferences-system-sharing.svg   # Sharing [upstream]
 preferences-system-sharing : apps/preferences-system-sharing.svg   # Sharing [upstream]
 gnome-sound-panel : apps/multimedia-volume-control.svg   # Sound [current-nome]
 multimedia-volume-control : apps/multimedia-volume-control.svg   # Sound [current-nome]
-gnome-system-monitor : biblioteca/hourglass.svg   # System Monitor [override-novo]
-org.gnome.SystemMonitor : biblioteca/hourglass.svg   # System Monitor [override-novo]
-gnome-system-monitor-kde : biblioteca/hourglass.svg   # GNOME System Monitor [override-novo]
+gnome-system-monitor : apps/hourglass.svg   # System Monitor [override-novo]
+org.gnome.SystemMonitor : apps/hourglass.svg   # System Monitor [override-novo]
+gnome-system-monitor-kde : apps/hourglass.svg   # GNOME System Monitor [override-novo]
 gnome-thunderbolt-panel : apps/thunderbolt.svg   # Thunderbolt [upstream]
 thunderbolt : apps/thunderbolt.svg   # Thunderbolt [upstream]
 gnome-universal-access-panel : apps/preferences-desktop-accessibility.svg   # Accessibility [upstream]
@@ -291,31 +291,31 @@ gnome-wacom-panel : apps/input-tablet.svg   # Wacom Tablet [upstream]
 input-tablet : apps/input-tablet.svg   # Wacom Tablet [upstream]
 gnome-wwan-panel : apps/network-cellular-signal-excellent.svg   # Mobile Network [current-nome]
 network-cellular-signal-excellent : apps/network-cellular-signal-excellent.svg   # Mobile Network [current-nome]
-gparted : biblioteca/saw.svg   # GParted [override-novo]
+gparted : apps/saw.svg   # GParted [override-novo]
 gucharmap : apps/accessories-character-map.svg   # Mapa de caracteres [upstream]
 accessories-character-map : apps/accessories-character-map.svg   # Mapa de caracteres [upstream]
 ibus-setup-chewing : apps/ibus-setup-chewing.svg   # IBus Chewing Preferences [upstream]
 im-config : apps/input-keyboard.svg   # Input Method [upstream]
-io.elementary.appcenter : biblioteca/haunted-house.svg   # Pop!_Shop — o desenho que o tema antigo vestia
-pop-shop : biblioteca/bag.svg   # Pop!_Shop [override-novo]
-appcenter : biblioteca/bag.svg   # Pop!_Shop [override-novo]
-io.elementary.appcenter-daemon : biblioteca/haunted-house.svg   # Pop!_Shop Daemon [alias-heuristico]
+io.elementary.appcenter : apps/haunted-house.svg   # Pop!_Shop — o desenho que o tema antigo vestia
+pop-shop : apps/bag.svg   # Pop!_Shop [override-novo]
+appcenter : apps/bag.svg   # Pop!_Shop [override-novo]
+io.elementary.appcenter-daemon : apps/haunted-house.svg   # Pop!_Shop Daemon [alias-heuristico]
 boxbuddy : apps/io.github.dvlv.boxbuddyrs.svg   # BoxBuddy [override-novo]
-io.github.electronstudio.WeylusCommunityEdition : biblioteca/wand.svg   # Weylus [override-novo]
-weylus : biblioteca/wand.svg   # Weylus [override-novo]
+io.github.electronstudio.WeylusCommunityEdition : apps/weylus.svg   # Weylus — o desenho escolhido por quem usa em 23/10 (P96)
+weylus : apps/weylus.svg   # Weylus — o desenho escolhido por quem usa em 23/10 (P96)
 warehouse : apps/io.github.flattool.Warehouse.svg   # Warehouse [override-novo]
-io.github.vikdevelop.SaveDesktop : biblioteca/treasure-chest.svg   # Save Desktop [override-novo]
-save-desktop : biblioteca/treasure-chest.svg   # Save Desktop [override-novo]
+io.github.vikdevelop.SaveDesktop : apps/treasure-chest.svg   # Save Desktop [override-novo]
+save-desktop : apps/treasure-chest.svg   # Save Desktop [override-novo]
 upscaler : apps/io.gitlab.theevilskeleton.Upscaler.svg   # Upscaler [override-novo]
-kitty : biblioteca/cat.svg   # kitty [override-novo]
-LinuxToys : biblioteca/toolbox.svg   # LinuxToys [override-novo]
-linuxtoys : biblioteca/toolbox.svg   # LinuxToys [override-novo]
+kitty : apps/cat.svg   # kitty [override-novo]
+LinuxToys : apps/toolbox.svg   # LinuxToys [override-novo]
+linuxtoys : apps/toolbox.svg   # LinuxToys [override-novo]
 obsidian : apps/md.obsidian.Obsidian.svg   # Obsidian [alias-heuristico]
 menu-editor : apps/menulibre.svg   # Menu Editor [override-novo]
 nm-applet : apps/nm-device-wireless.svg   # Network [current-nome]
 nm-device-wireless : apps/nm-device-wireless.svg   # Network [current-nome]
-nm-connection-editor : biblioteca/spider-web.svg   # Advanced Network Configuration [override-novo]
-preferences-system-network : biblioteca/spider-web.svg   # Advanced Network Configuration [override-novo]
+nm-connection-editor : apps/spider-web.svg   # Advanced Network Configuration [override-novo]
+preferences-system-network : apps/spider-web.svg   # Advanced Network Configuration [override-novo]
 nvidia-settings : apps/nvidia-settings.svg   # NVIDIA X Server Settings [alias-heuristico]
 org.freedesktop.IBus.Panel.Emojier : apps/ibus-setup-chewing.svg   # Emoji Choice [upstream]
 ibus : apps/ibus-setup-chewing.svg   # Emoji Choice [upstream]
@@ -323,35 +323,35 @@ org.freedesktop.IBus.Panel.Extension.Gtk3 : apps/ibus-setup-chewing.svg   # Emoj
 org.freedesktop.IBus.Setup : apps/ibus-setup-chewing.svg   # IBus Preferences [upstream]
 ibus-setup : apps/ibus-setup-chewing.svg   # IBus Preferences [upstream]
 org.gnome.baobab : apps/org.gnome.baobab.svg   # Disk Usage Analyzer [upstream]
-org.gnome.Calendar : biblioteca/halloween.svg   # Calendário [alias-heuristico]
-calendar : biblioteca/halloween.svg   # Calendário [alias-heuristico]
-gnome-calendar : biblioteca/halloween.svg   # Calendário [alias-heuristico]
+org.gnome.Calendar : apps/halloween.svg   # Calendário [alias-heuristico]
+calendar : apps/halloween.svg   # Calendário [alias-heuristico]
+gnome-calendar : apps/halloween.svg   # Calendário [alias-heuristico]
 org.gnome.ChromeGnomeShell : apps/org.gnome.ChromeGnomeShell.svg   # GNOME Shell integration [upstream]
-org.gnome.DiskUtility : biblioteca/treasure-chest.svg   # Disks [override-novo]
-org.gnome.eog : apps/org.gnome.eog.svg   # Image Viewer [upstream]
+org.gnome.DiskUtility : apps/treasure-chest.svg   # Disks [override-novo]
+org.gnome.eog : apps/visualizador-de-imagens.svg   # Image Viewer — o desenho escolhido por quem usa em 23/10 (P96)
 org.gnome.Evince : apps/org.gnome.Evince.svg   # Document Viewer [upstream]
 org.gnome.Evince-previewer : apps/document-print-preview.svg   # Print Preview [upstream]
 document-print-preview : apps/document-print-preview.svg   # Print Preview [upstream]
 org.gnome.Evolution-alarm-notify : apps/preferences-system-notifications.svg   # Evolution Alarm Notify [upstream]
 appointment-soon : apps/preferences-system-notifications.svg   # Evolution Alarm Notify [upstream]
-org.gnome.font-viewer : biblioteca/scroll.svg   # Fonts [override-novo]
+org.gnome.font-viewer : apps/menulibre.svg   # Fonts [override-novo]
 org.gnome.gedit : apps/org.gnome.gedit.svg   # Editor de texto [alias-heuristico]
 gedit : apps/org.gnome.gedit.svg   # Editor de texto [alias-heuristico]
 text-editor : apps/org.gnome.gedit.svg   # Editor de texto [alias-heuristico]
 org.gnome.gThumb : apps/org.gnome.gThumb.Import.svg   # gThumb — o desenho que o tema antigo vestia
-gthumb : biblioteca/eye-ball.svg   # gThumb [override-novo]
+gthumb : apps/eye-ball.svg   # gThumb [override-novo]
 org.gnome.gThumb.Import : apps/org.gnome.gThumb.Import.svg   # Import with gThumb [upstream]
 org.gnome.PowerStats : apps/gnome-power-manager.svg   # Estatísticas de energia [upstream]
-org.gnome.seahorse.Application : biblioteca/key.svg   # Passwords and Keys [override-novo]
-seahorse : biblioteca/key.svg   # Passwords and Keys [override-novo]
-passwords-and-keys : biblioteca/key.svg   # Passwords and Keys [override-novo]
-org.gnome.Shell.Extensions : apps/org.gnome.Shell.Extensions.svg   # Extensions [upstream]
+org.gnome.seahorse.Application : apps/key.svg   # Passwords and Keys [override-novo]
+seahorse : apps/key.svg   # Passwords and Keys [override-novo]
+passwords-and-keys : apps/key.svg   # Passwords and Keys [override-novo]
+org.gnome.Shell.Extensions : apps/gerenciador-de-extensoes.svg   # Extensions — o desenho escolhido por quem usa em 23/10 (P96)
 org.gnome.Shell.PortalHelper : apps/network-workgroup.svg   # Network Login [current-nome]
-org.gnome.Terminal : biblioteca/graveyard-variant.svg   # Terminal [alias-heuristico]
-gnome-terminal : biblioteca/graveyard-variant.svg   # Terminal [alias-heuristico]
-org.gnome.tweaks : biblioteca/laurel.svg   # Tweaks [override-novo]
-tweaks : biblioteca/laurel.svg   # Tweaks [override-novo]
-gnome-tweaks : biblioteca/laurel.svg   # Tweaks [override-novo]
+org.gnome.Terminal : apps/graveyard-variant.svg   # Terminal [alias-heuristico]
+gnome-terminal : apps/graveyard-variant.svg   # Terminal [alias-heuristico]
+org.gnome.tweaks : apps/laurel.svg   # Tweaks [override-novo]
+tweaks : apps/laurel.svg   # Tweaks [override-novo]
+gnome-tweaks : apps/laurel.svg   # Tweaks [override-novo]
 org.gnome.Weather : apps/org.gnome.Weather.svg   # Weather [current-nome]
 krita : apps/org.kde.krita.svg   # Krita [override-novo]
 onlyoffice : apps/org.onlyoffice.desktopeditors.svg   # ONLYOFFICE [override-novo]
@@ -366,8 +366,8 @@ simple-scan : apps/org.gnome.SimpleScan.svg   # Scanner de documentos [current-n
 org.gnome.SimpleScan : apps/org.gnome.SimpleScan.svg   # Scanner de documentos [current-nome]
 stacer : apps/stacer.svg   # Stacer [alias-heuristico]
 system-config-printer : apps/printer.svg   # Printers [upstream]
-ulauncher : biblioteca/magician-hat.svg   # Ulauncher [override-novo]
-vlc : biblioteca/cat.svg   # VLC media player [override-novo]
+ulauncher : apps/magician-hat.svg   # Ulauncher [override-novo]
+vlc : apps/cat.svg   # VLC media player [override-novo]
 yelp : apps/org.gnome.Yelp.svg   # Ajuda [upstream]
 org.gnome.Yelp : apps/org.gnome.Yelp.svg   # Ajuda [upstream]
 
@@ -400,19 +400,19 @@ org.gnome.Yelp : apps/org.gnome.Yelp.svg   # Ajuda [upstream]
 #   `guvcview.svg` de `current/` virou `guvcview-lente.svg`, porque
 #   `apps/guvcview.svg` é o resgate que a Câmera veste — escolha de 16/09, que
 #   não muda. Os outros quatro desenhos já estavam na biblioteca.
-com.github.tchx84.Flatseal : biblioteca/chest.svg   # Flatseal [override-novo]
-flatseal : biblioteca/chest.svg   # Flatseal [override-novo]
-org.bleachbit.BleachBit : biblioteca/broom.svg   # BleachBit [override-novo]
-bleachbit : biblioteca/broom.svg   # BleachBit [override-novo]
-org.gnome.FileRoller : biblioteca/chest.svg   # Archive Manager [override-novo]
-org.gnome.ArchiveManager : biblioteca/chest.svg   # Archive Manager [override-novo]
+com.github.tchx84.Flatseal : apps/flatseal.svg   # Flatseal — o desenho escolhido por quem usa em 23/10 (P96)
+flatseal : apps/flatseal.svg   # Flatseal — o desenho escolhido por quem usa em 23/10 (P96)
+org.bleachbit.BleachBit : apps/broom.svg   # BleachBit [override-novo]
+bleachbit : apps/broom.svg   # BleachBit [override-novo]
+org.gnome.FileRoller : apps/flatseal.svg   # Archive Manager — o desenho escolhido por quem usa em 23/10 (P96)
+org.gnome.ArchiveManager : apps/flatseal.svg   # Archive Manager — o desenho escolhido por quem usa em 23/10 (P96)
 org.gnome.gitlab.somas.Apostrophe : apps/org.gnome.gitlab.somas.Apostrophe.svg   # Apostrophe [alias-heuristico]
 apostrophe : apps/org.gnome.gitlab.somas.Apostrophe.svg   # Apostrophe [alias-heuristico]
 ghostwriter : apps/org.gnome.gitlab.somas.Apostrophe.svg   # Apostrophe [alias-heuristico]
 org.mozilla.Thunderbird : apps/org.mozilla.Thunderbird.svg   # Thunderbird [alias-heuristico]
 thunderbird : apps/org.mozilla.Thunderbird.svg   # Thunderbird [alias-heuristico]
-guvcview : apps/guvcview-lente.svg   # Visualizador de vídeo GTK UVC [current-nome]
-setup-mozc : biblioteca/tarot.svg   # Mozc Setup [override-novo]
+guvcview : apps/guvcview.svg   # Visualizador de vídeo GTK UVC — o desenho escolhido por quem usa em 23/10 (P96)
+setup-mozc : apps/setup-mozc.svg   # Mozc Setup [override-novo]
 
 # OS DESENHOS QUE FALTAVAM VOLTAM A VESTIR — 16/10/2026, P87 (decisões 13 e 16)
 #   A varredura de 15/10 achou o que ficou sem linha quando a P37 aposentou o
@@ -430,48 +430,48 @@ setup-mozc : biblioteca/tarot.svg   # Mozc Setup [override-novo]
 #   · 13 tipos de arquivo (shell, markdown e `.desktop`) vestiam três desenhos da
 #     biblioteca (`mimetypes` do `build.sh` do Dracula_OS-Theme). Aqui o `apps/`
 #     vem antes do `mimetypes/` na ordem de busca do tema (`construir_icones.sh`).
-uad-ng : apps/resgatados/uad-ng.svg   # Universal Android Debloater — o pedido de 15/09
-Ubuntu : apps/resgatados/Ubuntu.svg   # Ubuntu (contêiner) — a maleta de terminal, pedido de 15/09
-org.mozilla.thunderbird_esr : apps/resgatados/org.mozilla.thunderbird_esr.svg   # Thunderbird ESR
-scrcpy : apps/resgatados/scrcpy.svg   # scrcpy
-photogimp : apps/resgatados/photogimp.svg   # PhotoGIMP — vence a régua (0,042, contra 0,079 da P84)
-org.gnome.Nautilus : apps/resgatados/org.gnome.Nautilus.svg   # Arquivos — empate com a P84 (0,031, contra 0,028)
-com.github.rafostar.Clapper : apps/resgatados/com.github.rafostar.Clapper.svg   # Clapper — vence a régua (0,019, contra 0,052 da P84)
-com.microsoft.Edge : biblioteca/feitos-a-mao/edge.svg   # Microsoft Edge — vence a régua o vetor da P84 (0,073, contra 0,092)
-whatsapp-linux-app : biblioteca/feitos-a-mao/whatsapp.svg   # WhatsApp — vence a régua o vetor da P84 (0,049, contra 0,083)
-Ubuntu-selfservice : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-citrix : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-Ubuntu-configmgr : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-Ubuntu-conncenter : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-Ubuntu-fido2_llt : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-Ubuntu-logmgr : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-Ubuntu-nfcui : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-Ubuntu-receiver : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-Ubuntu-receiver_fido2 : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-Ubuntu-sendfeedback : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-Ubuntu-wfica : apps/citrix.svg   # Citrix Workspace — o vetor de 12/09
-discord : biblioteca/feitos-a-mao/discord.svg   # Discord — o vetor da P84 (0,013, contra 0,015)
+uad-ng : apps/uad-ng.svg   # Universal Android Debloater — o pedido de 15/09
+Ubuntu : apps/Ubuntu.svg   # Ubuntu (contêiner) — a maleta de terminal, pedido de 15/09
+org.mozilla.thunderbird_esr : apps/org.mozilla.thunderbird_esr.svg   # Thunderbird ESR
+scrcpy : apps/scrcpy.svg   # scrcpy
+photogimp : apps/photogimp.svg   # PhotoGIMP — o desenho escolhido por quem usa em 23/10 (P96)
+org.gnome.Nautilus : apps/org.gnome.Nautilus.svg   # Arquivos — o desenho escolhido por quem usa em 23/10 (P96)
+com.github.rafostar.Clapper : apps/com.github.rafostar.Clapper.svg   # Clapper — o desenho escolhido por quem usa em 23/10 (P96)
+com.microsoft.Edge : apps/com.microsoft.Edge.svg   # Microsoft Edge — vence a régua o vetor da P84 (0,073, contra 0,092)
+whatsapp-linux-app : apps/whatsapp-linux-app.svg   # WhatsApp — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-selfservice : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+citrix : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-configmgr : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-conncenter : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-fido2_llt : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-logmgr : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-nfcui : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-receiver : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-receiver_fido2 : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-sendfeedback : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+Ubuntu-wfica : apps/Ubuntu-selfservice.svg   # Citrix Workspace — o desenho escolhido por quem usa em 23/10 (P96)
+discord : apps/discord-b.svg   # Discord — o desenho escolhido por quem usa em 23/10 (P96)
 spotify : apps/com.spotify.Client.svg   # Spotify — o aprovado de 16/09
-opera : biblioteca/feitos-a-mao/opera.svg   # Opera — o vetor da P84
-com.opera.Opera : biblioteca/feitos-a-mao/opera.svg   # Opera — o vetor da P84
-gradia : biblioteca/feitos-a-mao/gradia.svg   # Gradia — o vetor da P84
-be.alexandervanhee.gradia : biblioteca/feitos-a-mao/gradia.svg   # Gradia — o vetor da P84
-extensions : biblioteca/feitos-a-mao/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
-org.gnome.Extensions : biblioteca/feitos-a-mao/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
-gnome-extensions : biblioteca/feitos-a-mao/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
-application-x-sh : biblioteca/spell.svg   # Script de shell
-application-x-shellscript : biblioteca/spell.svg   # Script de shell
-gnome-mime-application-x-shellscript : biblioteca/spell.svg   # Script de shell
-shellscript : biblioteca/spell.svg   # Script de shell
-text-x-script : biblioteca/spell.svg   # Script de shell
-text-x-sh : biblioteca/spell.svg   # Script de shell
-application-x-markdown : biblioteca/spellbook.svg   # Markdown
-text-markdown : biblioteca/spellbook.svg   # Markdown
-text-md : biblioteca/spellbook.svg   # Markdown
-text-plain+markdown : biblioteca/spellbook.svg   # Markdown
-text-x-markdown : biblioteca/spellbook.svg   # Markdown
-application-x-desktop : biblioteca/gate.svg   # Atalho de aplicativo (.desktop)
-gnome-mime-application-x-desktop : biblioteca/gate.svg   # Atalho de aplicativo (.desktop)
+opera : apps/opera.svg   # Opera — o desenho escolhido por quem usa em 23/10 (P96)
+com.opera.Opera : apps/opera.svg   # Opera — o desenho escolhido por quem usa em 23/10 (P96)
+gradia : apps/gradia.svg   # Gradia — o vetor da P84
+be.alexandervanhee.gradia : apps/gradia.svg   # Gradia — o vetor da P84
+extensions : apps/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
+org.gnome.Extensions : apps/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
+gnome-extensions : apps/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
+application-x-sh : apps/spell.svg   # Script de shell
+application-x-shellscript : apps/spell.svg   # Script de shell
+gnome-mime-application-x-shellscript : apps/spell.svg   # Script de shell
+shellscript : apps/spell.svg   # Script de shell
+text-x-script : apps/spell.svg   # Script de shell
+text-x-sh : apps/spell.svg   # Script de shell
+application-x-markdown : apps/spellbook.svg   # Markdown
+text-markdown : apps/spellbook.svg   # Markdown
+text-md : apps/spellbook.svg   # Markdown
+text-plain+markdown : apps/spellbook.svg   # Markdown
+text-x-markdown : apps/spellbook.svg   # Markdown
+application-x-desktop : apps/gate.svg   # Atalho de aplicativo (.desktop)
+gnome-mime-application-x-desktop : apps/gate.svg   # Atalho de aplicativo (.desktop)
 
 # --- já têm arte autoral no MeowSystem (não entram) -----------------------
 # com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
@@ -484,3 +484,12 @@ gnome-mime-application-x-desktop : biblioteca/gate.svg   # Atalho de aplicativo 
 # com.boxy_svg.BoxySVG : ?   # Boxy SVG
 # com.meowsystem.Painel : ?   # MeowSystem
 # com.obsproject.Studio : ?   # OBS Studio
+
+# --- P96 (23/10/2026) ---
+com.beholder.app             : apps/com.beholder.app.svg   # projeto pessoal — entra no Dracula (P96, 23/10/2026)
+elden-ring-tracker           : apps/elden-ring-tracker.svg   # projeto pessoal — entra no Dracula (P96, 23/10/2026)
+protocolo-ouroboros          : apps/protocolo-ouroboros.svg   # projeto pessoal — entra no Dracula (P96, 23/10/2026)
+io.github.andrebfarias.Mnemo : apps/mnemo.svg   # projeto pessoal — entra no Dracula (P96, 23/10/2026)
+code                         : apps/vscode.svg   # o desenho do manuais-final, escolhido por quem usa (P96, 23/10/2026)
+vscode                       : apps/vscode.svg   # o desenho do manuais-final, escolhido por quem usa (P96, 23/10/2026)
+com.visualstudio.code        : apps/vscode.svg   # o desenho do manuais-final, escolhido por quem usa (P96, 23/10/2026)

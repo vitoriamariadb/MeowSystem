@@ -5,7 +5,7 @@ A REGRA, EM UMA LINHA
     `~/.local/share/fonts/MeowSystem/locais/` na próxima passagem do
     `scripts/instalar_fontes.sh`. Apagou daqui -> some de lá.
 
-    É a mesma interface de `assets/gatos/`: quem manda é a PASTA, não uma lista
+    É a mesma interface de `packs/meowsystem/mascote/`: quem manda é a PASTA, não uma lista
     dentro de script. Uma lista fixa envelheceria no dia em que ela baixasse
     outra fonte, e o sintoma seria "coloquei o arquivo e não aconteceu nada".
 

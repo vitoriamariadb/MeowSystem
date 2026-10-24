@@ -15,7 +15,7 @@ propósito, o que ainda está aberto, e como ele se mantém. Escrito em 16/10/20
 | **Instalador** | `./install.sh` veste a máquina inteira, converge (a segunda passada não escreve nada), guarda cópia antes de escrever, e recusa por caminho escrever fora do que conhece. `--wizard` pergunta só as cinco chaves essenciais; `MEOW_DRY_RUN=1` ensaia | [README](../README.md) |
 | **Theme packs** | as cores, os ícones, a base de ícones, o ponteiro, o som, os papéis de parede, os temas de dentro dos programas e o que se esconde do lançador vêm de um pack, que é dado e nunca código. Catppuccin (o padrão) e Dracula (completo, com o claro Alucard) vêm com o projeto. Usar, importar, exportar, exportar o tema de ícones montado e remover | [PACKS](PACKS.md) |
 | **Segurança de pack** | todo caminho cai dentro do pack, link para fora e script são recusados, nome de flavor tem forma fixa, desenho de pack chega ao painel numa caixa de areia, e extensão do VS Code de pack importado só se instala por gesto | [PACKS, «O que um pack não pode fazer»](PACKS.md#o-que-um-pack-não-pode-fazer) |
-| **Painel** | `meow abrir`: uma página por assunto e a Início com os packs. A interface mostra em vez de explicar: só fica na tela o que nomeia ou mede, o porquê mora atrás do **?**, e a prévia é a explicação. **Salvar e aplicar**, **Ver o que faria**, **Restaurar ao padrão**, e o selo em toda ação que baixa da internet | [app/LEIA-ME](../app/LEIA-ME.md) |
+| **Painel** | `meow abrir`: uma página por assunto e a Início com os packs. A interface mostra em vez de explicar: só fica na tela o que nomeia ou mede, o porquê mora atrás do **?**, e a prévia é a explicação. **Salvar e aplicar**, **Ver sem mudar**, **Restaurar ao padrão**, e o selo em toda ação que baixa da internet | [app/LEIA-ME](../app/LEIA-ME.md) |
 | **Seletor de ícone** | um ícone por programa, trocável um a um, com o acervo inteiro em pastas: os desenhos de cada pack, a biblioteca, os feitos à mão (em vetor), o traço, os resgatados e os enviados. A escolha mora com quem usa, nunca no repositório | [PACKS, «O seletor de ícone»](PACKS.md#o-seletor-de-ícone-o-acervo-inteiro-em-pastas) |
 | **Doctor** | `meow doctor` confere e não escreve; `meow doctor --consertar` conserta o que estiver fora, sem mandar ninguém digitar. Roda sozinho às 5h, e o **Consertar** do painel é o mesmo gesto | [README](../README.md) |
 | **Ponte root** | a senha do sudo uma vez, no instalador; depois, um conjunto fechado de verbos (`.desktop` do sistema, tela de login, hook do apt, completion, atualizar, os pacotes da lista) roda sem senha e sem terminal | [FRONTEIRA, «A ponte root»](FRONTEIRA.md) |
@@ -34,7 +34,7 @@ Nada do que é escolha de quem usa mora no repositório. Usar o produto não vir
 | a escolha de ícone por programa | `~/.config/meow/icones-escolhidos.map`, `icones-traco.map` e `icones-convertidos.map`, ao lado do `meow.conf` | o seletor e a oficina do painel |
 | os desenhos enviados e os retoques da oficina | `~/.local/share/meowsystem/icones-enviados/`, `retoques/` e `convertidos-apps/` | o painel |
 | os packs de quem usa | `~/.local/share/meowsystem/packs/<id>/` | `meow pack novo`, `meow pack importar` |
-| os vizinhos (outros projetos que mandam em pedaços do home) | `~/.config/meow/vizinhos.conf` (o modelo é o `vizinhos.conf.exemplo`) | à mão; vazio é o normal |
+| os vizinhos (outros projetos que mandam em pedaços do home) | `~/.config/meow/vizinhos.conf` (o modelo é o `assets/contratos/vizinhos.conf.exemplo`) | à mão; vazio é o normal |
 | o que a máquina gerou (logs, a matriz dos builds, o estado do pós-apt) | `~/.local/state/meowsystem/` | o próprio MeowSystem |
 
 **As decisões tomadas em nome de quem usa** têm o registro, com a pergunta, a decisão e a base
@@ -64,7 +64,7 @@ Cada linha tem dono e porquê; nenhuma é esquecimento.
 | os leitores `${ICONES_BASE:-Papirus-Dark}` | é variável interna, com o mesmo padrão em todo lugar, e nenhum defeito medido | decisão 43 (P82) |
 | projetos pessoais nos packs (os desenhos e as logos deles) | o pack é produto público; o que é de uma máquina mora no conf dela | regra de 23/09/2026; decisão 4 (09/10) e 16 (P82) |
 | portar para GNOME ou KDE | o veredito de 21/09/2026 foi «não»: o produto é o COSMIC | [packs-modulares](sprints/2026-09-21-packs-modulares.md) |
-| prompt, fastfetch, gatos e o traço do gerador de ícone como campo de pack | continuam do motor, iguais para todo pack, até um leitor perguntar ao pack | [PACKS, «O que ainda não é do pack»](PACKS.md#o-que-ainda-não-é-do-pack) |
+| prompt, fastfetch, mascotes e o traço do gerador de ícone como campo de pack | continuam do motor, iguais para todo pack, até um leitor perguntar ao pack | [PACKS, «O que ainda não é do pack»](PACKS.md#o-que-ainda-não-é-do-pack) |
 | o patch binário de luz noturna do vizinho | não é da série, não tem marcador, e o modo de leitura o substituiu | [FRONTEIRA](FRONTEIRA.md) |
 
 ---
@@ -101,10 +101,10 @@ Escrito para não ser lido como pronto.
 | uma vez por login | o build que falta para a versão instalada (pega o apt feito pelo TTY ou com a sessão fechada) | `meow-builds-login.service` |
 | todo apt, como root | o lançador: marca de novo os `.desktop` do sistema que o pacote reescreveu, e toca o carimbo do pós-apt | `/etc/apt/apt.conf.d/99-meow-lancador` |
 | a cada minuto | o modo de leitura no degrau que o relógio pede | `meow-leitura.timer` |
-| a cada 5 minutos | o gato da hora (dia e noite) | `meow-gato.timer` |
+| a cada 5 minutos | o mascote da hora (dia e noite) | `meow-gato.timer` |
 | 3 min depois do boot, e a cada 15 | o carrossel de papéis de parede volta se foi resetado | `meow-wallpaper.timer` |
 | quando o painel do COSMIC cai, ou fica vivo sem desenhar | repõe o painel | `meow-painel.service` |
-| quando um arquivo vigiado muda | o gato novo do acervo, o papel de parede apagado, o fundo que a janela de papel de parede reseta, o raio que não cabe na barra, o tema de ícones do Qt, a bandeja depois de um flatpak, os jogos da Steam e do Heroic no lançador | `meow-assets.path`, `meow-ativos.path`, `meow-fundo.path`, `meow-painel-raio.path`, `meow-qt.path`, `meow-flatpak.path`, `meow-steam.path`, `meow-heroic.path` |
+| quando um arquivo vigiado muda | o mascote novo do acervo, o papel de parede apagado, o fundo que a janela de papel de parede reseta, o raio que não cabe na barra, o tema de ícones do Qt, a bandeja depois de um flatpak, os jogos da Steam e do Heroic no lançador | `meow-assets.path`, `meow-ativos.path`, `meow-fundo.path`, `meow-painel-raio.path`, `meow-qt.path`, `meow-flatpak.path`, `meow-steam.path`, `meow-heroic.path` |
 
 `AUTO_REPARO="nao"` no `meow.conf` desliga o doctor das 5h, o pós-apt e o build do login.
 

@@ -1,4 +1,4 @@
-# meow-gato.service — põe na tela o gato que a HORA pede: a Coquinha de dia, o
+# meow-gato.service — põe na tela o mascote que a HORA pede: a Coquinha de dia, o
 # Mimir de noite. Dois lugares de uma vez: o botão do dock e o logo do fastfetch.
 #
 # O PEDIDO DELA, 01/09/2026
@@ -6,10 +6,10 @@
 #    disso eu gostaria que o mesmo ocorresse com o terminal no nosso fastfetch"
 #
 # É O MESMO `logo.sh` QUE O `meow-assets.path` E O `install.sh` CHAMAM
-#   Um script, três gatilhos, e nenhuma cópia da regra: quem decide o gato é o
+#   Um script, três gatilhos, e nenhuma cópia da regra: quem decide o mascote é o
 #   `LOGO_MODO` do `meow.conf` lido lá dentro, não esta unidade. Se ela puser
 #   `LOGO_MODO="rotacao"`, este relógio continua batendo e o `logo.sh` continua
-#   respondendo "o modo é rotacao — o gato não gira pelo relógio", sem escrever
+#   respondendo "o modo é rotacao — o mascote não gira pelo relógio", sem escrever
 #   nada. Unidade que sabe demais sobre a regra é o segundo dono que este projeto
 #   persegue.
 #
@@ -37,11 +37,11 @@
 # `NOME_TEMA_ICONES`) e mais as da janela de noite lidas pelo `lib/noite.sh`
 # (`NOITE_*`, `WALLPAPER_NOITE_*`). Uma lista aqui envelheceria calada na próxima
 # chave nova — foi exatamente o defeito nº 3 do `meow-logo.service`, que gravava
-# o gato numa árvore de tema que ninguém lia porque `NOME_TEMA_ICONES` chegava
+# o mascote numa árvore de tema que ninguém lia porque `NOME_TEMA_ICONES` chegava
 # vazia.
 
 [Unit]
-Description=MeowSystem — o gato da hora (Coquinha de dia, Mimir de noite)
+Description=MeowSystem — o mascote da hora (Coquinha de dia, Mimir de noite)
 Documentation=file:%h/.local/state/meowsystem/raiz
 ConditionPathExists=%h/.local/state/meowsystem/raiz
 ConditionEnvironment=WAYLAND_DISPLAY
@@ -57,7 +57,7 @@ Type=oneshot
 ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
 ExecStart=/usr/bin/flock -n -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/logo.sh" ] || exit 0; LOG_NIVEL=silencioso exec "$R/scripts/logo.sh"'
 
-# 1 = "estava divergente e eu consertei", que é o que uma troca de gato devolve.
+# 1 = "estava divergente e eu consertei", que é o que uma troca de mascote devolve.
 # 3 = falta dependência (o acervo está vazio) — não é falha, é etapa que não se
 #     aplica. [Até 25/09/2026, P62, dizia também «o applet dev.cappsy não está
 #     nesta máquina»: desde 16/09 a falta do applet de logo não para o
@@ -69,7 +69,7 @@ SuccessExitStatus=1 3
 #   `Type=oneshot` NÃO herda o `DefaultTimeoutStartSec` (o padrão dele é
 #   `infinity`), e sem teto um `logo.sh` travado ficaria em `activating (start)`
 #   para sempre — e o systemd não dispara de novo uma unidade cujo job ainda
-#   roda. O gato pararia de virar, calado.
+#   roda. O mascote pararia de virar, calado.
 #
 #   A régua dos irmãos é "menor que o período do gatilho", e aqui o período é
 #   300s: 120s cabe com folga. O teto é maior que os 30s do `meow-leitura`

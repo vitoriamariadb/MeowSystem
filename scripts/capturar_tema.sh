@@ -126,6 +126,8 @@ fi
   [ ${#ausentes[@]} -gt 0 ] && echo "ausentes: ${ausentes[*]}"
 } > "$TMP/captura.txt"
 
+# Guarda antes de destruir: este era o único `rm -rf` sem rede embaixo. O sufixo
+# `-captura-` fica fora da poda do `aplicar_tema.sh`, que só colhe `-tema-`.
 if [ -d "$DESTINO" ]; then
   BK="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/backups/$(date +%Y-%m-%dT%H-%M-%S)-captura-$NOME"
   if mkdir -p "$BK" && cp -a "$DESTINO/." "$BK/"; then

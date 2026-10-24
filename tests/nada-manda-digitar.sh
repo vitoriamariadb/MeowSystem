@@ -5,6 +5,7 @@
 #   1. Nenhuma mensagem (`meow_info`, `meow_pula`, `meow_aviso`, `meow_muda`,
 #      `meow_ok`, `meow_erro`) de `scripts/`, `lib/`, `bin/meow` ou do
 #      `install.sh` carrega as quatro receitas.
+#   1c. Nem o terminal: nenhuma saída diz «rode …» (P90, item 10).
 #   2. As pendências novas têm botão no painel: `instalar-com-root` roda o
 #      «Instalar tudo», e `leitura-applet` o «Consertar o que estiver fora».
 #   3. Os dois scripts de ícone relêem a tela pela porta única, e não dizem
@@ -32,7 +33,7 @@ printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
 # Isenta, pelo nome: a linha de uso de um verbo (`uso: meow …`, que responde a
 # quem já está digitando).
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
-FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com ')"
+FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com '|acrescente .*à mão|tire a linha à mão|faça uma vez, à mão)"
 achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
              | grep -vE '"uso: meow ')"
 if [ -z "$achados" ]; then
@@ -61,6 +62,19 @@ else
   falha "sem cargo, o applet de mídia não tentou instalar o rust" "rede: $(cat "$CASA1B/rede.log" 2>/dev/null)"
 fi
 rm -rf "$CASA1B"
+
+printf '\n--- 1c. o terminal também não manda rodar (P90, item 10) ---\n'
+#   Nenhuma linha de código fora de comentário diz «rode …» a quem lê: a
+#   mensagem diz o que foi feito, o estado, ou o botão que faz. A linha de uso
+#   de um verbo (`uso: …`) responde a quem já está digitando, e fica.
+achados="$(cd "$RAIZ" && grep -nE '\b[Rr]ode(-o)?\b' scripts/*.sh scripts/*.py lib/*.sh bin/meow install.sh app/run.sh \
+             scripts/temas-de-apps/*/manifesto.sh 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' \
+             | grep -vE 'uso: ')"
+if [ -z "$achados" ]; then
+  ok "nenhuma saída do terminal manda rodar: diz o feito, o estado ou o botão"
+else
+  falha "saídas do terminal que mandam rodar" "$achados"
+fi
 
 printf '\n--- 2. as pendências novas têm botão ---\n'
 CASA2="$(mktemp -d)" || exit 2
@@ -118,8 +132,8 @@ fi
 printf '\n--- 5. a pendência aponta o botão que resolve, e não o comando ---\n'
 saida="$(env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
   bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_pendencia_acionavel starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship"' 2>&1)"
-if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Instalar o starship»' <<< "$saida"; then
-  ok "a linha «resolve:» diz o botão («Instalar o starship»), sem o comando"
+if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Resolver», em Cuidar' <<< "$saida"; then
+  ok "a linha «resolve:» diz o botão («Resolver», em Cuidar), sem o comando"
 else
   falha "a pendência ainda manda digitar o comando" "$saida"
 fi

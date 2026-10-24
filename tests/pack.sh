@@ -275,7 +275,7 @@ printf '%s\n%s\n' "$MEOW_PALETA" "$MEOW_PACK_DIR"
 FILHO
 chmod +x "$T/filho.sh"
 saida="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"
-  PACK=catppuccin FLAVOR=mocha meow_ponte_python >/dev/null 2>&1 || exit 9
+  PACK=meowsystem FLAVOR=mocha meow_ponte_python >/dev/null 2>&1 || exit 9
   export PACK="$ID" FLAVOR="$ID"
   exec "'"$T"'/filho.sh"')"; rc=$?
 if [ "$rc" != "0" ]; then
@@ -297,7 +297,7 @@ fi
 # Se ele passasse a jogar fora os dois casos, `MEOW_PALETA=... ./install.sh`
 # deixaria de valer — e esse é o jeito de testar uma paleta sem editar o
 # meow.conf.
-embutida="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; PACK=catppuccin meow_paleta')"
+embutida="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; PACK=meowsystem meow_paleta')"
 saida="$(amb bash -c 'export MEOW_PALETA="'"$embutida"'"
   . "$MEOW_RAIZ/lib/comum.sh"
   PACK="$ID" FLAVOR="$ID" meow_ponte_python >/dev/null 2>&1 || exit 9
@@ -348,7 +348,7 @@ done
 
 # --- 15. o pack PADRÃO é um pack, e não uma exceção no código ---------------
 # Até ela, `PACK_PADRAO` chamava-se `PACK_EMBUTIDO`, não havia
-# `packs/catppuccin/`, e `pack.py validar catppuccin` estourava um
+# `packs/catppuccin/`, e `pack.py validar meowsystem` estourava um
 # FileNotFoundError em `RAIZ/pack.json` — porque o `achar` devolvia a RAIZ para
 # ele, e lá não há `pack.json`.
 padrao="$(amb python3 "$RAIZ/scripts/pack.py" padrao 2>/dev/null)"
@@ -492,8 +492,8 @@ base_mapa="$PACK_DIR/icones"
 saida="$(printf 'apps/x.svg\nmotor:arcticons/y.svg\nmotor:apps/arcticons/z.svg\n' \
            | amb python3 "$RAIZ/scripts/pack.py" alvo "$base_mapa" 2>/dev/null)"
 esperado="$base_mapa/apps/x.svg
-$RAIZ/packs/meowsystem/icones/sistema/arcticons/y.svg
-$RAIZ/packs/meowsystem/icones/apps/arcticons/z.svg"
+$RAIZ/packs/meowsystem/icones/sistema/y.svg
+$RAIZ/packs/meowsystem/icones/apps/z.svg"
 [ "$saida" = "$esperado" ] \
   && ok "'motor:' resolve no pack-base, a pasta de antes pela de hoje, e o resto cai dentro do pack" \
   || falha "o prefixo motor: não resolveu como o contrato manda" "$saida"
@@ -533,7 +533,7 @@ pares="$(MAPA="$mapa_t" ICONES_BASE_MAPA="$base_mapa" RAIZ="$RAIZ" bash -c '
   # [P73: o parser do shell é o `_dracula_pares_do_mapa`; ver o tests/fonte-unica.sh.]
   eval "$(sed -n "/^_dracula_pares_do_mapa() {\$/,/^}\$/p" "$RAIZ/scripts/icones_apps_dracula.sh")"
   _dracula_pares_do_mapa' 2>/dev/null)"
-esperado_p="um.motor	$RAIZ/packs/meowsystem/icones/sistema/arcticons/telegram.svg
+esperado_p="um.motor	$RAIZ/packs/meowsystem/icones/biblioteca/telegram.svg
 dois.pack	$base_mapa/apps/Warehouse.svg
 tres.comentario	$base_mapa/apps/Warehouse.svg"
 [ "$pares" = "$esperado_p" ] \
@@ -693,6 +693,31 @@ PY
   && ok "o /api/packs leva a história crua, e a rota de arte só serve o que o pack declarou" \
   || falha "o painel não honra a vitrine" "$saida"
 
+# O CARTÃO DE CADA PACK MOSTRA O MASCOTE DELE (decisão 19): a rota de arte
+# serve o `mascote.dia` do pack, e a prévia do cartão fora do ar usa essa URL.
+saida="$(amb python3 - "$RAIZ" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+erros = []
+cartoes = {p["id"]: p for p in servidor.packs_com_vitrine()}
+for ident, arquivo in (("dracula", "morcego-dia.svg"), ("meowsystem", "mimir.svg")):
+    arte = servidor.arte_da_vitrine(ident, "mascote")
+    with open(os.path.join(sys.argv[1], "packs", ident, "mascote", arquivo), "rb") as fh:
+        esperado = fh.read()
+    if not arte or arte[0] != esperado or arte[1] != "image/svg+xml":
+        erros.append("a rota de arte não serviu o mascote de %s (%s)" % (ident, arquivo))
+    if not cartoes.get(ident, {}).get("mascote", "").endswith("&arte=mascote"):
+        erros.append("o cartão de %s não leva a URL do mascote dele" % ident)
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+[ "$rc" = "0" ] && grep -q 'p.no_ar || !p.mascote ? urlDoGato(.*) : p.mascote' <<< "$corpo" \
+  && ok "o cartão de cada pack mostra o mascote dele, e não o do pack no ar" \
+  || falha "a prévia do cartão mostra o mascote do pack no ar em todos os cartões" "$saida"
+
 # A CAPA COM SCRIPT NÃO CHEGA AO PAINEL, e o cartão diz por quê. O `info`
 # também tem de dizer o motivo, em vez de listar a capa como boa enquanto o
 # `validar` a recusa.
@@ -719,22 +744,18 @@ info="$(amb python3 "$RAIZ/scripts/pack.py" info "$ID" 2>&1)"
 $info"
 por_vitrine "$VIT_BOA"
 
-# Um `html:` ou um `innerHTML` no caminho da história é o Markdown de terceiro
-# virando HTML numa página com token de sessão.
-corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-historia="$(sed -n '/^function historiaDoPack(/,/^}/p;/^function trechosDaLinha(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-if [ -z "$corpo" ] || [ -z "$historia" ]; then
-  falha "não achei cartaoDePack, historiaDoPack e trechosDaLinha em app/pagina/app.js"
-elif printf '%s\n%s\n' "$corpo" "$historia" | grep -vE '^\s*(\*|/\*|//)' \
-     | grep -qE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser'; then
-  falha "o cartão de pack interpreta HTML — a história se monta nó a nó, por texto" \
-        "$(printf '%s\n%s\n' "$corpo" "$historia" | grep -nE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser')"
-elif printf '%s\n' "$corpo" | grep -q 'historiaDoPack(p.descricao)' \
-     && printf '%s\n' "$historia" | grep -q 'startsWith("https://")' \
-     && [ "$(printf '%s\n' "$historia" | grep -c 'href:')" = "1" ]; then
-  ok "a história do pack se monta nó a nó por texto, e só link https vira href"
+# O CARTÃO DE PACK NÃO INTERPRETA HTML (P98). A história do pack (o Markdown
+# de terceiro) saiu da tela com o «nenhum texto explicativo»; o cartão monta
+# nome, capa e variantes nó a nó, por texto, e nunca lê a `descricao`.
+corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+if [ -z "$corpo" ]; then
+  falha "não achei cartaoDePack em app/pagina/paginas.js"
+elif printf '%s\n' "$corpo" | grep -vE '^\s*(\*|/\*|//)' \
+     | grep -qE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser|p\.descricao'; then
+  falha "o cartão de pack interpreta HTML ou desenha a história de terceiro" \
+        "$(printf '%s\n' "$corpo" | grep -nE '\bhtml:|innerHTML|insertAdjacentHTML|outerHTML|DOMParser|p\.descricao')"
 else
-  falha "o cartão de pack deixou de montar a história pelo historiaDoPack, ou o href escapou do https"
+  ok "o cartão de pack se monta nó a nó por texto, sem a história de terceiro"
 fi
 
 # --- 19. trocar de pack e voltar, conferindo o tema no disco
@@ -778,10 +799,10 @@ ida="$(tema_do_conf)"
   && ok "depois da troca, o tema no disco é o do Dracula ($ida)" \
   || falha "o tema no disco não é o do pack escolhido" "esperava 'dracula dracula-mauve 0', veio '$ida'"
 
-saida="$(usar_amb "$RAIZ/bin/meow" pack usar catppuccin --sem-aplicar 2>&1)"; rc=$?
+saida="$(usar_amb "$RAIZ/bin/meow" pack usar meowsystem --sem-aplicar 2>&1)"; rc=$?
 volta="$(tema_do_conf)"
-if [ "$rc" = "0" ] && grep -qx 'PACK="catppuccin"' "$T/usar.conf" \
-   && [ "$volta" = "catppuccin mocha-mauve 0" ]; then
+if [ "$rc" = "0" ] && grep -qx 'PACK="meowsystem"' "$T/usar.conf" \
+   && [ "$volta" = "meowsystem mocha-mauve 0" ]; then
   ok "e a volta: o flavor que não é do pack cai no padrão dele, e o tema no disco acompanha ($volta)"
 else
   falha "a volta ao Catppuccin não levou o tema junto (rc=$rc, veio '$volta')" "$saida"
@@ -838,7 +859,7 @@ vest_caso() {   # $1 rótulo · $2 pack a usar · $3 a chave que o caso exige ("
   fi
 }
 vest_caso "Catppuccin -> Dracula: o CURSOR que o Dracula receita não é vestígio" \
-  dracula "" 's/^PACK=.*/PACK="catppuccin"/'
+  dracula "" 's/^PACK=.*/PACK="meowsystem"/'
 # [P75, 09/10/2026: o veículo deste caso era a `ICONES_BASE="Dracula-Icones"`,
 #   e a chave foi aposentada — saiu do exemplo e do painel. O que se mede é o
 #   mesmo com o ponteiro do Dracula, que o Catppuccin não receita.]
@@ -850,7 +871,7 @@ vest_caso "sabor sem PACK -> Dracula: o CURSOR do Latte é vestígio, e o termin
   dracula CURSOR 's/^FLAVOR=.*/FLAVOR="latte"/; s/^CURSOR=.*/CURSOR="catppuccin-latte-dark"/'
 
 # A CHAVE QUE SOBRAVA NÃO QUEBRA A ETAPA APPS — 24/09/2026, P49
-#   Achado 12 da validação no painel de verdade: `meow pack usar catppuccin`
+#   Achado 12 da validação no painel de verdade: `meow pack usar meowsystem`
 #   com `MEOW_FAMILIA_PALETA="dracula"` no conf, e o `btop-bat` foi procurar
 #   «Dracula Mocha.tmTheme» — `falharam: btop-bat`, e a etapa apps saía
 #   `falhou`. A chave deixou de ser lida (a família sai do tema vendorizado para
@@ -874,7 +895,7 @@ if ! command -v bat >/dev/null 2>&1 && ! command -v batcat >/dev/null 2>&1 \
    && ! command -v btop >/dev/null 2>&1; then
   printf 'pulado: nem bat nem btop nesta máquina — a etapa apps não chega a procurar o tema\n'
 else
-  for alvo in dracula catppuccin "$ID"; do
+  for alvo in dracula meowsystem "$ID"; do
     troca=""
     [ "$alvo" = dracula ] || troca="$(fam_amb "$RAIZ/bin/meow" pack usar "$alvo" --sem-aplicar 2>&1)"
     saida="$(etapa_apps_bb)"; rc=$?
@@ -1212,18 +1233,18 @@ saida="$(viaja python3 "$T/contrato.py" "$T/$NOVO.meowpack" "$DA_PESSOA/$NOVO" "
   || falha "as rotas do .meowpack não falam o contrato da página" "$saida"
 rm -rf "${DA_PESSOA:?}/$NOVO"
 
-corpo="$(sed -n '/^async function importarPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-packs="$(sed -n '/^function montarPacks(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+corpo="$(sed -n '/^async function importarPack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+packs="$(sed -n '/^function passoMandar(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
 faltam=""
-for palavra in "confirmado: true" "r.precisa_confirmar" "corpo: r.pack ? telaDoPack(r.pack)" "!r.instalado"; do
+for palavra in "confirmado: true" "r.precisa_confirmar" "!r.instalado"; do
   [[ "$corpo" == *"$palavra"* ]] || faltam+=" importarPack:'$palavra'"
 done
 for palavra in '"&medir=1"' '"&imagens=nao"' "resposta.ok" "perguntar("; do
   [[ "$exporta" == *"$palavra"* ]] || faltam+=" exportarPack:'$palavra'"
 done
-[[ "$packs" == *"exportarPack(noAr)"* && "$packs" != *'href: `/api/pack-exportar'* ]] \
-  || faltam+=" montarPacks: o exportar voltou a ser um link"
+[[ "$packs" == *"exportarPack(r.pack)"* && "$packs" != *'href: `/api/pack-exportar'* ]] \
+  || faltam+=" passoMandar: o exportar voltou a ser um link"
 [ -z "$faltam" ] \
   && ok "a página manda confirmado, desenha o pack, só diz 'entrou' com instalado, e pergunta antes de baixar" \
   || falha "a página deixou de falar o contrato das rotas:$faltam"
@@ -1234,7 +1255,7 @@ done
 #   23/09/2026: são QUINZE linhas no `info`, e onze delas são declaráveis —
 #   paleta, mapa do COSMIC, quatro de ícone, ponteiro, papéis de parede, temas
 #   de aplicativo, som e fontes. As outras quatro (o traço do gerador, prompt,
-#   fastfetch, gatos) não têm campo no formato, e o `info` tem de dizer isso
+#   fastfetch, mascotes) não têm campo no formato, e o `info` tem de dizer isso
 #   em vez de sumir com elas. Então: as declaráveis PRÓPRIAS (menos uma, dita
 #   logo abaixo), as quatro ditas "não declarável", e nenhuma a mais nem a menos.
 #
@@ -1310,14 +1331,14 @@ done
 printf '%s\n' "$tabela" | grep -qE '^  wallpapers +DO MOTOR, ou inexistente +scripts/wallpaper\.sh' \
   && ok "wallpapers declarado sai DO MOTOR, e diz de onde — o info não diz PRÓPRIO sem leitor" \
   || falha "o info voltou a classificar wallpapers pelo bloco que ninguém lê" "$tabela"
-n_fixas="$(printf '%s\n' "$tabela" | grep -cE '^  (gerador|prompt|fastfetch|gatos) +DO MOTOR — não declarável')"
+n_fixas="$(printf '%s\n' "$tabela" | grep -cE '^  (gerador|prompt|fastfetch) +DO MOTOR — não declarável')"
 n_linhas="$(printf '%s\n' "$tabela" | grep -c .)"
 # DEZESSEIS DESDE A P41 (24/09/2026): a base de ícones (`icones.base`) virou
 # categoria. Este pack não a declara nem herda, e ela sai DO MOTOR — a conta
 # das dez PRÓPRIAS acima não muda.
-[ "$n_fixas" = "4" ] && [ "$n_linhas" = "16" ] \
-  && ok "gerador, prompt, fastfetch e gatos aparecem como não declaráveis, e a tabela tem as 16 linhas" \
-  || falha "a tabela do info não tem as 16 linhas, ou as 4 fixas no motor (linhas=$n_linhas, fixas=$n_fixas)" "$tabela"
+[ "$n_fixas" = "3" ] && [ "$n_linhas" = "16" ] \
+  && ok "gerador, prompt e fastfetch aparecem como não declaráveis, o mascote é do pack, e a tabela tem as 16 linhas" \
+  || falha "a tabela do info não tem as 16 linhas, ou as 3 fixas no motor (linhas=$n_linhas, fixas=$n_fixas)" "$tabela"
 case "$tabela" in
   *"CURSOR=\"$ID-roxo\", do pack $ID"*"1 fonte(s), do pack $ID"*)
     ok "o info diz o valor de CURSOR e quantas fontes, e de quem" ;;
@@ -1754,21 +1775,10 @@ PY
   || falha "claros: null derrubou o /api/packs (rc=$rc)" "$saida"
 cp "$T/paleta-boa.json" "$CSV_DIR/paleta.json"
 
-corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-printf '%s\n' "$corpo" | grep -q 'p.claros_derivados' \
-  && ok "o cartão de pack desenha a linha do claro derivado" \
+corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+printf '%s\n' "$corpo" | grep -q 'p.claros_derivados' && printf '%s\n' "$corpo" | grep -q 'dica: derivado ? "Claro derivado"' \
+  && ok "o cartão de pack marca a variante clara derivada, com a dica" \
   || falha "o cartão de pack não lê claros_derivados"
-# "Traga as 26 linhas no CSV" não dizia para onde. Até a segunda metade da
-# P16 a tela não tinha onde, e o cartão mandava ao terminal (`meow pack
-# de-csv`); agora o «Importar um pack» aceita o .csv, e a frase aponta para ele.
-#   Desde a P53 (achado 8) o outro nome é só para o pack que não pode sair: o
-# que pode manda tirar este com o «Remover», e o mesmo nome volta a servir —
-# o outro nome fazia um segundo pack, e nenhum dos dois saía.
-printf '%s\n' "$corpo" | grep -q '«Importar um pack», com outro nome de arquivo' \
-  && printf '%s\n' "$corpo" | grep -q '«Importar um pack», depois de tirar este com o «Remover»' \
-  && ok "o cartão diz onde trocar o claro derivado: o «Importar um pack» da tela, e o «Remover» antes quando pode" \
-  || falha "o cartão manda trocar o claro sem apontar o importar da tela, ou sem o «Remover»"
-
 # O `.csv` PELA PORTA DO IMPORTAR — P16, item 5. No terminal primeiro: o id
 # sai do nome do arquivo, o pack vai para a raiz da pessoa, o meow.conf não
 # muda, e o mesmo nome de novo é recusado dizendo por quê.
@@ -1780,7 +1790,7 @@ if [ "$rc" != "0" ] || [ ! -d "$DA_PESSOA/minha-tinta" ]; then
 else
   ok "meow pack importar aceita um .csv solto, e o id sai do nome do arquivo"
   saida="$(viaja "$RAIZ/bin/meow" pack validar minha-tinta 2>&1)"; rc=$?
-  n_autorais="$(find "$DA_PESSOA/minha-tinta/icones/apps/autorais" -name '*.svg' | wc -l)"
+  n_autorais="$(find "$DA_PESSOA/minha-tinta/icones/apps" -name '*.svg' | wc -l)"
   # Igual MENOS o `_comentario`, que diz o nome do CSV de onde a paleta saiu —
   # e aqui o CSV se chama outra coisa, de propósito, porque é ele que faz o id.
   mesma="$(python3 -c 'import json, sys
@@ -1922,15 +1932,11 @@ saida="$(viaja python3 "$T/contrato-csv.py" "$T/cores.csv" "$DA_PESSOA/minha-tin
   && ok "a rota do importar aceita o .csv com o contrato da tela, e não aplica" \
   || falha "a rota do importar não fala o contrato para o .csv, ou mexeu no meow.conf" "$saida"
 rm -rf "${DA_PESSOA:?}/minha-tinta"
-packs_js="$(sed -n '/^function montarPacks(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-tela_js="$(sed -n '/^function telaDoPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
+packs_js="$(sed -n '/^function botaoAbrirTema(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
 faltam=""
-[[ "$packs_js" == *'accept: ".meowpack,.csv"'* ]] || faltam+=" montarPacks:'accept .csv'"
-for palavra in "pack.derivados" "pack.regua"; do
-  [[ "$tela_js" == *"$palavra"* ]] || faltam+=" telaDoPack:'$palavra'"
-done
+[[ "$packs_js" == *'accept: ".meowpack,.csv"'* ]] || faltam+=" botaoAbrirTema:'accept .csv'"
 [ -z "$faltam" ] \
-  && ok "a página aceita o .csv no seletor, e a caixa de confirmar lê o derivado e a régua" \
+  && ok "a página aceita o .csv no «Abrir um tema»" \
   || falha "a página não fala o .csv:$faltam"
 
 # Com o claro trazido no CSV, nada se deriva: a medida (base mais luminoso que
@@ -2028,7 +2034,7 @@ CASA_ALHEIA="/home/fulano"
 MAC_ALHEIO="/Users/fulano"
 
 # Os dois packs do repositório passam na régua — é o "depois: 0" da sprint.
-for p in catppuccin dracula; do
+for p in meowsystem dracula; do
   saida="$(viaja "$RAIZ/bin/meow" pack validar "$RAIZ/packs/$p" 2>&1)"; rc=$?
   [ "$rc" = "0" ] \
     && ok "o pack $p do repositório valida com a régua do nome de usuário (rc=0)" \
@@ -2378,25 +2384,14 @@ PY
   && ok "o claro da página sai de uma função só, e ela responde o que as três cópias respondiam" \
   || falha "o claro da página voltou a ser copiado, ou a função mudou de resposta" "$saida"
 
-# O CARTÃO E O «MAIS SOBRE» DIZEM O PACK PELO NOME (P10). O cartão imprimia o
-#   `p.origem` do pack.py, montado pelo id ("herdado de catppuccin"), e o «Mais
-#   sobre», logo abaixo, "herdado do Catppuccin". A frase mora no `deOndeVem`,
-#   e as duas linhas a chamam; o `p.origem` cru não volta ao cartão. E o
-#   «Ver sobre Escuro» dos botões de fundo perde a maiúscula no meio da frase.
-cartao="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-linha="$(sed -n '/^function linhaDeOrigem(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-fundos="$(sed -n '/^function barraDeFundos(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-n_frase="$(grep -c 'herdado d[eo] ${' "$RAIZ/app/pagina/app.js")"
+# O CARTÃO NÃO IMPRIME O p.origem CRU (P10, P98). A linha de herança saiu
+#   da tela com o «nenhum texto explicativo»; o que não pode voltar é a frase
+#   montada pelo id («herdado de catppuccin») no cartão.
+cartao="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
 faltam=""
-[ "$n_frase" = "1" ] || faltam+=" a frase 'herdado do' está em $n_frase lugares, e é uma só;"
-[[ "$cartao" == *"linhaDeOrigem(p)"* && "$cartao" != *"maiuscula(p.origem)"* ]] \
-  || faltam+=" o cartão imprime o p.origem cru;"
-[[ "$cartao" == *"deOndeVem(c)"* && "$linha" == *"deOndeVem(c)"* ]] \
-  || faltam+=" o cartão e o «Mais sobre» não perguntam ao deOndeVem;"
-[[ "$fundos" == *'toLocaleLowerCase'* && "$fundos" != *'Ver sobre ${f.rotulo}`'* ]] \
-  || faltam+=" o «Ver sobre» mantém a maiúscula no meio da frase;"
+[[ -n "$cartao" && "$cartao" != *"p.origem"* && "$cartao" != *"herdado d"* ]] || faltam+=" o cartão imprime a herança crua;"
 [ -z "$faltam" ] \
-  && ok "o cartão e o «Mais sobre» dizem o pack pelo nome, da mesma frase, e o «Ver sobre» é minúsculo" \
+  && ok "o cartão não imprime a herança crua do pack" \
   || falha "o rótulo de herança voltou a ter duas formas:$faltam"
 
 # O IMPORTAR DIZ O ARQUIVO DELA, E O EXPORTAR AVISA NA TELA (P11). As recusas
@@ -2444,8 +2439,8 @@ PY
     && ok "o importar recusa dizendo o arquivo dela, e o aviso do exportar chega à tela como no terminal" \
     || falha "o importar cita o temporário do servidor, ou o aviso do exportar não chega à tela" \
              "$saida$exportou"
-  exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-  [[ "$exporta" == *"m.avisos"* && "$exporta" == *"m.imagens || avisos"* ]] \
+  exporta="$(sed -n '/^async function exportarPack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+  [[ "$exporta" == *"m.avisos"* && "$exporta" == *"m.imagens || avisos.length"* ]] \
     && ok "a caixa do exportar mostra o aviso, e aparece por ele mesmo sem imagens" \
     || falha "a página não mostra o aviso do exportar"
 fi
@@ -2565,7 +2560,7 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
   local painel script saida visto apps divergiu="" proprias=""
   painel="$(p31_amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_ponte_python >/dev/null 2>&1 || exit 9
     exec python3 "$1"' _ "$T/p31painel.py" 2>/dev/null | tail -1)"
-  for script in icones_mimetypes icones_pastas icones_apps; do
+  for script in icones_mimetypes icones_pastas; do
     saida="$(p31_amb bash -c 'set -a; . "$MEOW_CONF"; set +a
       PASTAS_XDG=sim MEOW_DRY_RUN=1 "$MEOW_RAIZ/scripts/$1.sh" --aplicar 2>&1' _ "$script")"
     visto="$(p31_flavor_do_script <<< "$saida")"
@@ -2577,7 +2572,7 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
     case "$apps" in latte) ;; frappe|macchiato|mocha) apps="macchiato" ;; *) apps="" ;; esac
     if [ "$script" = "icones_apps" ]; then
       [ "$visto" = "$apps" ] || divergiu+=" $script='$visto' (esperava $apps)"
-    elif [ "$script" = "icones_pastas" ] && [ -d "$RAIZ/packs/$2/icones/sistema/pastas" ]; then
+    elif [ "$script" = "icones_pastas" ] && [ -f "$RAIZ/packs/$2/icones/sistema/folder-documents.svg" ]; then
       # AS PASTAS PRÓPRIAS DO PACK NÃO TÊM FLAVOR — 24/09/2026, na revisão da
       # P56. As sete do Dracula são desenho dele, e a frase diz o pack; até ali
       # o script não as achava, não escrevia nada e dizia «Catppuccin
@@ -2604,11 +2599,11 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
 p31_caso "Dracula no ar, conf de fábrica: o dracula do próprio pack" \
   dracula dracula "" dracula
 p31_caso "Catppuccin no Latte, conf de fábrica: o latte do próprio tema" \
-  catppuccin latte "" latte
+  meowsystem latte "" latte
 p31_caso "Dracula no ar, ICONES_FLAVOR=\"latte\" escrito à mão: o conf vence" \
   dracula dracula 'ICONES_FLAVOR="latte"' latte
 p31_caso "Catppuccin no Latte, ICONES_FLAVOR vazio: vazio acompanha o tema" \
-  catppuccin latte 'ICONES_FLAVOR=""' latte
+  meowsystem latte 'ICONES_FLAVOR=""' latte
 
 # O VERBO É O QUE A CONFERÊNCIA DA SPRINT RODA À MÃO, e ele sai 1 — e não uma
 # linha vazia — quando não há resposta: `acervo ... ""` devolve a pasta-mãe do
@@ -2616,7 +2611,7 @@ p31_caso "Catppuccin no Latte, ICONES_FLAVOR vazio: vazio acompanha o tema" \
 saida="$(env -u MEOW_PACK_DIR MEOW_RAIZ="$RAIZ" PACK=dracula FLAVOR=dracula ICONES_FLAVOR=dracula \
          python3 "$RAIZ/scripts/pack.py" flavor-icones dracula 2>&1)"; rc=$?
 env -u MEOW_PACK_DIR MEOW_RAIZ="$RAIZ" FLAVOR= ICONES_FLAVOR= \
-  python3 "$RAIZ/scripts/pack.py" flavor-icones catppuccin >/dev/null 2>&1; rc_vazio=$?
+  python3 "$RAIZ/scripts/pack.py" flavor-icones meowsystem >/dev/null 2>&1; rc_vazio=$?
 [ "$rc" = "0" ] && [ "$saida" = "dracula" ] && [ "$rc_vazio" = "1" ] \
   && ok "pack.py flavor-icones dracula responde dracula (o acervo é dele desde a P74), e sem conf nenhum sai 1" \
   || falha "o verbo flavor-icones não responde como a regra (rc=$rc/$rc_vazio)" "$saida"
@@ -2665,7 +2660,7 @@ done
 
 # O BALÃO DA TIRA E A QUEDA DA MARCA NÃO NOMEIAM MAIS UM PACK NO CÓDIGO. Só o
 # código conta: os comentários contam a história, e ela cita o que saiu.
-tira="$(grep -c 'class: "home-tira", title: "[^"]*Catppuccin' "$RAIZ/app/pagina/app.js")"
+tira="$(cat "$RAIZ"/app/pagina/*.js | grep -v '^[[:space:]]*\(\*\|//\|/\*\)' | grep -c 'Catppuccin')"
 queda="$(sed -n '/^def logo_do_painel(/,/^def /p' "$RAIZ/app/servidor.py" \
          | grep -v '^[[:space:]]*#' | grep -c '"mocha"')"
 [ "$tira" = "0" ] && [ "$queda" = "0" ] \
@@ -2699,15 +2694,27 @@ def shas(d):
         return {}
     return {hashlib.sha256(open(os.path.join(d, a), "rb").read()).hexdigest(): a
             for a in sorted(os.listdir(d)) if a.endswith(".svg")}
-origem, pack = shas(sys.argv[1]), shas(sys.argv[2])
-faltam = sorted(a for s, a in origem.items() if s not in pack)
+origem = shas(sys.argv[1])
+# P96 (23/10/2026): o desenho ligado a um app mora em apps/, e quem usa escolheu uma versão por
+# ícone — o que saiu por escolha dela está na tabela de antes, com o destino vazio.
+pack = {**shas(sys.argv[2]), **shas(os.path.join(os.path.dirname(sys.argv[2]), "apps"))}
+tabela = os.path.join(os.path.dirname(sys.argv[2]), "..", "..", "CAMINHOS-DE-ANTES.tsv")
+saiu = set()
+if os.path.exists(tabela):
+    for l in open(tabela, encoding="utf-8"):
+        if "\t" in l and not l.startswith("#"):
+            k, v = l.rstrip("\n").split("\t", 1)
+            if not v and k.startswith("packs/dracula/icones/biblioteca/") and k.count("/") == 4:
+                saiu.add(os.path.basename(k))
+faltam = sorted(a for s, a in origem.items() if s not in pack and a not in saiu)
+origem = {s: a for s, a in origem.items() if a not in saiu}
 print(f"{len(origem) - len(faltam)} {len(origem)}")
 print("\n".join(faltam))
 PY
 )"
   achados="$(printf '%s\n' "$conta" | sed -n 1p)"
   [ -n "$achados" ] && [ "${achados% *}" = "${achados#* }" ] && [ "${achados#* }" != "0" ] \
-    && ok "por sha256, a biblioteca do Dracula_OS-Theme está no pack: ${achados% *} de ${achados#* }" \
+    && ok "por sha256, a biblioteca do Dracula_OS-Theme está no pack (apps/ e biblioteca/, menos o que quem usa tirou): ${achados% *} de ${achados#* }" \
     || falha "a biblioteca do pack não tem todos os desenhos da origem (${achados% *} de ${achados#* })" \
              "$(printf '%s\n' "$conta" | tail -n +2 | head -20)"
 else
@@ -3129,20 +3136,22 @@ fi
 for app in kitty gnome-terminal telegram discord onlyoffice; do
   saida="$(amb python3 "$RAIZ/scripts/pack.py" app dracula "apps.$app.arquivo" 2>&1)"; rc=$?
   valor="$(printf '%s\n' "$saida" | sed -n 's/^valor=//p')"
+  # P96 (23/10/2026): o modelo é preenchido inteiro pela paleta, e mora no motor
+  # (`scripts/temas-de-apps/<app>/`); o pack declara o aplicativo, e a resposta é do pack.
   if [ "$rc" = 0 ] && printf '%s\n' "$saida" | grep -qx 'pack=dracula' \
-     && [ -f "$valor" ] && [ "${valor#"$RAIZ/packs/dracula/apps/"}" != "$valor" ]; then
-    ok "o Dracula declara o tema do $app, e ele mora no pack ($(basename "$valor"))"
+     && [ -f "$valor" ] && [ "${valor#"$RAIZ/scripts/temas-de-apps/$app/"}" != "$valor" ]; then
+    ok "o Dracula declara o tema do $app, e o modelo mora no motor ($(basename "$valor"))"
   else
-    falha "apps.$app.arquivo do Dracula não resolveu para um arquivo do pack (rc=$rc)" "$saida"
+    falha "apps.$app.arquivo do Dracula não resolveu para o modelo do motor (rc=$rc)" "$saida"
   fi
-  grep -qF "| \`apps/$(basename "$valor")\` |" "$RAIZ/packs/dracula/PROCEDENCIA.md" \
-    && ok "o modelo do $app tem a linha dele no PROCEDENCIA.md" \
-    || falha "o modelo do $app está no pack sem procedência escrita"
+  [ ! -e "$RAIZ/packs/dracula/apps" ] && [ ! -e "$RAIZ/packs/dracula/temas-de-apps/$app" ] \
+    && ok "o modelo do $app não tem cópia dentro do pack" \
+    || falha "o modelo do $app tem cópia dentro do pack"
 done
 # A HERANÇA NÃO LEVA O TEMA ESCURO PARA QUEM NÃO O PEDIU. O Dracula herda do
 #   Catppuccin, e não o contrário: um Catppuccin no ar não tem tema de kitty, e
 #   o módulo sai pendente em vez de vestir o terminal de roxo.
-if amb python3 "$RAIZ/scripts/pack.py" app catppuccin apps.kitty.arquivo >/dev/null 2>&1; then
+if amb python3 "$RAIZ/scripts/pack.py" app meowsystem apps.kitty.arquivo >/dev/null 2>&1; then
   falha "o pack padrão respondeu por um tema de kitty que ele não declara"
 else
   ok "o pack padrão não declara os temas de aplicativo da P42 — ausência, e não empréstimo"
@@ -3161,9 +3170,9 @@ fi
 app55() { so_repo python3 "$RAIZ/scripts/pack.py" app "$1" "apps.$2" 2>&1; }
 valor55() { app55 "$1" "$2" | sed -n 's/^valor=//p'; }
 faltam=""
-for par in "catppuccin obsidian.esquema Catppuccin" "catppuccin vscode.esquema Catppuccin Mocha" \
-           "catppuccin vscode.origem.extensao Catppuccin.catppuccin-vsc" \
-           "catppuccin vscode-icones.esquema catppuccin-mocha" \
+for par in "meowsystem obsidian.esquema Catppuccin" "meowsystem vscode.esquema Catppuccin Mocha" \
+           "meowsystem vscode.origem.extensao Catppuccin.catppuccin-vsc" \
+           "meowsystem vscode-icones.esquema catppuccin-mocha" \
            "dracula obsidian.esquema Dracula Official" "dracula vscode.esquema Dracula Theme" \
            "dracula vscode.origem.extensao dracula-theme.theme-dracula" "dracula heroic.esquema dracula"; do
   read -r p trilha esperado <<< "$par"
@@ -3172,7 +3181,7 @@ for par in "catppuccin obsidian.esquema Catppuccin" "catppuccin vscode.esquema C
     || faltam+=" $p/$trilha ($saida);"
 done
 # O `<flavor>` do Heroic do Catppuccin sai com o FLAVOR da máquina.
-[ "$(so_repo env FLAVOR=latte python3 "$RAIZ/scripts/pack.py" app catppuccin apps.heroic.esquema | sed -n 's/^valor=//p')" \
+[ "$(so_repo env FLAVOR=latte python3 "$RAIZ/scripts/pack.py" app meowsystem apps.heroic.esquema | sed -n 's/^valor=//p')" \
   = "catppuccin-latte-<accent>.css" ] || faltam+=" heroic do catppuccin com FLAVOR=latte;"
 [ -z "$faltam" ] \
   && ok "os dois packs declaram o tema do Obsidian, do VS Code e do Heroic, e cada um responde pelo dele" \
@@ -3200,10 +3209,10 @@ pasta="$(valor55 dracula obsidian.origem.pasta)"
 #   responde pelo Catppuccin, e é o módulo que recusa o herdado (o teste de lá).
 #   E nenhum campo novo é campo morto — nos dois packs.
 saida="$(app55 dracula vscode-icones.esquema)"
-printf '%s\n' "$saida" | grep -qx 'pack=catppuccin' \
+printf '%s\n' "$saida" | grep -qx 'pack=meowsystem' \
   && ok "os ícones de VS Code do Dracula sobem ao Catppuccin pela herança — e o módulo os recusa (temas-de-apps.sh)" \
   || falha "apps.vscode-icones do Dracula não subiu ao Catppuccin, e o teste do módulo deixou de provar a recusa" "$saida"
-mortos="$(so_repo python3 "$RAIZ/scripts/pack.py" validar dracula 2>&1; so_repo python3 "$RAIZ/scripts/pack.py" validar catppuccin 2>&1)"
+mortos="$(so_repo python3 "$RAIZ/scripts/pack.py" validar dracula 2>&1; so_repo python3 "$RAIZ/scripts/pack.py" validar meowsystem 2>&1)"
 if printf '%s\n' "$mortos" | grep -qE '^ +apps\.'; then
   falha "um campo do bloco apps da P55 caiu no aviso de campo morto" "$mortos"
 else
@@ -3343,7 +3352,7 @@ sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor
 mod = servidor.modulo_pack()
 erros = []
-for pack, flavor in (("dracula", "dracula"), ("dracula", "alucard"), ("catppuccin", "latte")):
+for pack, flavor in (("dracula", "dracula"), ("dracula", "alucard"), ("meowsystem", "latte")):
     esquema = servidor.ler_esquema()
     vocab = mod.vocabulario(pack)
     servidor._com_o_vocabulario_do_pack(esquema, vocab, {
@@ -3428,9 +3437,8 @@ print("\n".join(erros))
 sys.exit(1 if erros else 0)
 PY
 )"; rc=$?
-cartao="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/app.js")"
-[ "$rc" = "0" ] && [[ "$cartao" == *'c.nota'* ]] \
-  && ok "as pastas dizem o que o desenho do pack veste, no info e no «Mais sobre» do cartão" \
+[ "$rc" = "0" ] \
+  && ok "as pastas dizem o que o desenho do pack veste, no info" \
   || falha "a tabela ainda diz «pastas: próprio» sem dizer o que o desenho veste" "$saida"
 
 printf 'PACK="%s"\nFLAVOR=""\nACCENT="mauve"\nMODO="escuro"\n' "$ID" > "$T/vazio-p56.conf"

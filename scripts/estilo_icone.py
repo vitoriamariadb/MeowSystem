@@ -2,7 +2,7 @@
 """estilo_icone.py — mede a CANETA de um SVG do acervo, não o desenho.
 
     ./scripts/estilo_icone.py arquivo.svg [...]        uma linha por arquivo
-    ./scripts/estilo_icone.py --faixa packs/meowsystem/icones/apps/arcticons
+    ./scripts/estilo_icone.py --faixa packs/meowsystem/icones/apps
     ./scripts/estilo_icone.py --json arquivo.svg
 
     0 = mediu · 2 = erro · 3 = falta dependência
@@ -183,8 +183,15 @@ def faixa(raiz):
     esquecer. Se um glifo entrar ou sair de `arcticons-apps/`, a faixa anda
     sozinha, e o teste continua medindo o acervo que existe.
     """
-    arqs = sorted(os.path.join(b, f)
-                  for b, _, fs in os.walk(raiz) for f in fs if f.endswith(".svg"))
+    if os.path.isfile(raiz) and raiz.endswith(".lista"):
+        # P96: as três pastas do pack são planas; a lista diz quais arquivos são do acervo
+        base = os.path.dirname(raiz)
+        nomes = [l.strip() for l in open(raiz, encoding="utf-8") if l.strip() and not l.startswith("#")]
+        arqs = sorted(c for n in nomes for c in (os.path.join(base, p, n) for p in ("apps", "sistema", "biblioteca"))
+                      if os.path.isfile(c))
+    else:
+        arqs = sorted(os.path.join(b, f)
+                      for b, _, fs in os.walk(raiz) for f in fs if f.endswith(".svg"))
     linhas = [m for m in (medir(a) for a in arqs) if m]
     if not linhas:
         return None

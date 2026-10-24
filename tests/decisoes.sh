@@ -42,6 +42,8 @@ sys.path.insert(0, sys.argv[1])
 import pack
 caso = sys.argv[2]
 grupos = lambda no_ar="": pack.acervos_de_icone(no_ar)
+_tab = os.path.join(os.path.dirname(sys.argv[1]), "packs", "CAMINHOS-DE-ANTES.tsv")
+antes_png = [l.split("\t", 1)[0] for l in open(_tab, encoding="utf-8")] if os.path.exists(_tab) else []
 def stems(pid):
     return {os.path.basename(a) for g in grupos() if g["pack"] == pid for a in g["arquivos"]}
 if caso == "base":
@@ -50,18 +52,30 @@ if caso == "base":
     print("atras=%s" % (len(b.get("por_tras", [])) == 1 and "de2a8edd" in b["por_tras"][0]["url"]))
 elif caso == "vetores":
     tem = stems("dracula")
+    # P96 (23/10/2026): uma versão por ícone. O vetor feito à mão que quem usa trocou por outra
+    # versão (a do manuais-final) saiu POR ESCOLHA, e a tabela de antes diz isso; sumir sem linha
+    # na tabela é o que esta conta caça.
+    antes = {}
+    tab = os.path.join(os.path.dirname(sys.argv[1]), "packs", "CAMINHOS-DE-ANTES.tsv")
+    if os.path.exists(tab):
+        for l in open(tab, encoding="utf-8"):
+            if "\t" in l and not l.startswith("#"):
+                k, v = l.rstrip("\n").split("\t", 1)
+                antes[k] = v
     for n in sys.argv[3:]:
-        if n + ".svg" not in tem:
+        if n + ".svg" not in tem and "packs/dracula/icones/biblioteca/feitos-a-mao/%s.svg" % n not in antes:
             print("falta=" + n)
     sem_vetor = sorted(os.path.splitext(os.path.basename(a))[0] for g in grupos()
                        if g["pack"] == "dracula" and g["tipo"] == "png"
-                       # versoes/ e projetos/ guardam todas as versões, PNG inclusive (decisão 13 do 02-decisoes.md)
-                       and not g["id"].startswith(("pack:dracula:biblioteca/versoes", "pack:dracula:biblioteca/projetos"))
                        for a in g["arquivos"]
-                       if os.path.splitext(os.path.basename(a))[0] + ".svg" not in tem)
+                       if os.path.splitext(os.path.basename(a))[0] + ".svg" not in tem
+                       # o PNG que quem usa escolheu guardar (projeto dela, versão) não é feito à mão à espera
+                       # do vetor: a origem dele está na tabela de antes (P96)
+                       and not any(k.endswith("/" + os.path.basename(a)) and ("/projetos/" in k or "/versoes/" in k)
+                                   for k in antes_png))
     print("png_sem_vetor=" + ",".join(sem_vetor))
 elif caso == "seletor":
-    for no_ar in ("dracula", "catppuccin"):
+    for no_ar in ("dracula", "meowsystem"):
         g = grupos(no_ar)
         print("%s:packs=%s" % (no_ar, ",".join(sorted({x["pack"] for x in g if x["pack"]}))))
         print("%s:primeiro=%s:%s" % (no_ar, g[0]["pack"], g[0]["no_ar"]))
@@ -95,8 +109,8 @@ grep -q '^falta=' <<< "$r" && falha "vetor dos feitos à mão que sumiu do pack 
 echo "== D3. o seletor mostra o acervo de todos os packs, o pack no ar primeiro"
 r="$(resolvedor seletor 2>&1)"
 bom=1
-for no_ar in dracula catppuccin; do
-  grep -qx "$no_ar:packs=catppuccin,dracula,meowsystem" <<< "$r" || bom=0
+for no_ar in dracula meowsystem; do
+  grep -qx "$no_ar:packs=dracula,meowsystem" <<< "$r" || bom=0
   grep -qx "$no_ar:primeiro=$no_ar:True" <<< "$r" || bom=0
   grep -qx "$no_ar:motor=True" <<< "$r" || bom=0
 done
@@ -214,18 +228,18 @@ const pega = (nome) => {
   }
 };
 const gravados = [];
-const ctx = { gravados, rotuloDeValor: (v) => v,
+const ctx = { gravados, rotuloDeValor: (v) => v, icone: () => null,
   elemento: (_t, atrib) => atrib };
 vm.createContext(ctx);
-for (const f of ["padraoDe", "temOQueRestaurar", "rotuloVazio", "tituloDoRestaurar", "botaoVazio"])
-  vm.runInContext(pega(f), ctx);
-const item = { aceita_vazio: true, padrao: "nao" };
+for (const f of ["padraoDe", "temOQueRestaurar", "botaoPadrao"]) vm.runInContext(pega(f), ctx);
+const item = { chave: "X", aceita_vazio: true, padrao: "nao" };
 const t = (c) => vm.runInContext(c, Object.assign(ctx, { item }));
 console.log("nasce_diferente=" + t('temOQueRestaurar(item, "sim")'));
 console.log("nao_nasce_no_padrao=" + !t('temOQueRestaurar(item, "nao")'));
 console.log("nasce_vazio_com_fabrica_preenchida=" + t('temOQueRestaurar(item, "")'));
-const botao = t('botaoVazio(item, () => {}, async (v) => { gravados.push(v); return true; })');
-botao.onclick().then(() => console.log("grava=" + gravados.join("|")));
+const b = t('botaoPadrao(item, (v) => { gravados.push(v); return true; })');
+b.onclick();
+console.log("grava=" + gravados.join("|"));
 JS
 )"
   { grep -qx 'nasce_diferente=true' <<< "$r" && grep -qx 'nao_nasce_no_padrao=true' <<< "$r" \
@@ -236,20 +250,26 @@ else
   pula "sem node: a regra do botão não roda aqui"
 fi
 
-echo "== D11. a caixa do sudo tem uma linha; o porquê fica na dica"
-r="$(python3 - "$RAIZ/app/pagina/app.js" <<'PY' 2>&1
-import re, sys
-src = open(sys.argv[1], encoding="utf-8").read()
-m = re.search(r"function caixaDoSudo\(\) \{(.*?)\n\}\n", src, re.S)
-corpo = m.group(1) if m else ""
-fortes = re.findall(r'elemento\("strong", \{ texto: "([^"]+)" \}\)', corpo)
-print("linha=%s" % (len(fortes) == 1 and len(fortes[0]) <= 60))
-print("porque_na_dica=%s" % ("gatilhoDeDica(" in corpo))
-print("sem_paragrafo_solto=%s" % (len(re.findall(r'elemento\("p"', corpo)) == 1))
+echo "== D11. a interface nunca pede senha (revoga a caixa do sudo de uma linha, sim de 23/10)"
+registro 11 'a interface nunca pede senha' && ok "11: o registro diz a revogação, com o sim" || falha "a decisão 11 não diz a revogação no registro"
+r="$(python3 - "$RAIZ/app/pagina" <<'PY' 2>&1
+import glob, os, re, sys
+texto = "\n".join(open(f, encoding="utf-8").read() for f in sorted(glob.glob(os.path.join(sys.argv[1], "*")))
+                  if f.endswith((".js", ".html")))
+texto = re.sub(r"/\*.*?\*/|<!--.*?-->", "", texto, flags=re.S)   # o comentário pode falar da regra
+print("campo_de_senha=%s" % bool(re.search(r"""type[=:]\s*["']password""", texto)))
+print("pkexec=%s" % ("pkexec" in texto))
+print("selo_pede_senha=%s" % bool(re.search(r"pede senha", texto, re.I)))
+app = open(os.path.join(sys.argv[1], "app.js"), encoding="utf-8").read()
+m = re.search(r"async function semPonte\(\) \{(.*?)\n\}\n", app, re.S)
+print("sem_ponte_conserta=%s" % bool(m and 'doctor_consertar' in m.group(1)))
+print("root_sem_ponte=%s" % bool(re.search(r"deRoot\(acao\) && !ESQUEMA\.ponte", app)))
 PY
 )"
-{ grep -qx 'linha=True' <<< "$r" && grep -qx 'porque_na_dica=True' <<< "$r" && grep -qx 'sem_paragrafo_solto=True' <<< "$r"; } \
-  && ok "uma linha curta na caixa e o parágrafo só dentro da dica" || falha "a caixa do sudo mudou: $r"
+{ grep -qx 'campo_de_senha=False' <<< "$r" && grep -qx 'pkexec=False' <<< "$r" && grep -qx 'selo_pede_senha=False' <<< "$r" \
+  && grep -qx 'sem_ponte_conserta=True' <<< "$r" && grep -qx 'root_sem_ponte=True' <<< "$r"; } \
+  && ok "nenhum campo de senha, pkexec ou selo «pede senha»; sem a ponte, o painel oferece o conserto" \
+  || falha "a interface voltou a pedir senha: $r"
 
 echo "== D12. trocar de pack leva o ponteiro do pack"
 conf() { # $1 arquivo; $2.. CHAVE=valor
@@ -270,7 +290,7 @@ PY
 C12="$CASA/.config/meow/meow.conf"
 conf "$C12" 'PACK="dracula"' 'FLAVOR="dracula"' 'CURSOR="Dracula-Cursor"'
 env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 XDG_CONFIG_HOME="$CASA/.config" \
-    XDG_STATE_HOME="$CASA/.local/state" "$RAIZ/bin/meow" pack usar catppuccin --sem-aplicar >/dev/null 2>&1
+    XDG_STATE_HOME="$CASA/.local/state" "$RAIZ/bin/meow" pack usar meowsystem --sem-aplicar >/dev/null 2>&1
 [ "$(grep -E '^CURSOR=' "$C12" | tail -n1)" = 'CURSOR="catppuccin-mocha-light"' ] \
   && ok "Dracula -> Catppuccin: o ponteiro vira o do pack novo" || falha "o ponteiro não acompanhou o pack: $(grep -E '^CURSOR=' "$C12" | tail -n1)"
 
@@ -279,6 +299,23 @@ registro 13 'Joga tudo pro pack' && registro 13 'Tudo entra no pack' && ok "13: 
 registro 14 'Três pastas por pack' && ok "14: três pastas por pack" || falha "a decisão 14 saiu do registro"
 registro 15 'se atualiza sozinho' && ok "15: o derivado se atualiza sozinho" || falha "a decisão 15 saiu do registro"
 registro 16 'Os achados da varredura' && ok "16: os achados da varredura" || falha "a decisão 16 saiu do registro"
+# P96 (23/10/2026): as linhas trocadas com o sim de quem usa, e o código que as lê
+registro 13 'Os projetos pessoais entram no Dracula' && registro 13 'Uma versão por ícone' \
+  && ok "13: uma versão por ícone, e os projetos pessoais entram no Dracula (sim de 23/10)" \
+  || falha "a decisão 13 não diz a troca de 23/10"
+registro 16 'sim explícito de 23/10' \
+  && ok "16 (3): o Citrix veste o desenho escolhido em 23/10, com o sim citado" \
+  || falha "a decisão 16 (3) não diz o sim de 23/10 sobre o Citrix"
+for n in Ubuntu-selfservice Ubuntu-wfica Ubuntu-receiver; do
+  a="$(python3 "$RAIZ/scripts/pack.py" fonte "$n" dracula 2>/dev/null | cut -f2)"
+  [ -n "$a" ] && [ -f "$RAIZ/$a" ] && cmp -s "$RAIZ/$a" "$RAIZ/packs/dracula/icones/apps/Ubuntu-selfservice.svg" \
+    || { falha "16 (3): $n não veste o desenho do Citrix escolhido em 23/10 ($a)"; continue; }
+done
+ok "16 (3): os nomes do Citrix vestem o mesmo desenho, o escolhido em 23/10"
+for n in com.beholder.app elden-ring-tracker protocolo-ouroboros; do
+  python3 "$RAIZ/scripts/pack.py" fonte "$n" dracula >/dev/null 2>&1 \
+    && ok "13: $n veste o desenho dele no Dracula" || falha "13: $n não veste desenho no Dracula"
+done
 registro 17 'AGENTS.md' && ok "17: o AGENTS.md é exceção do sanitizador" || falha "a decisão 17 saiu do registro"
 r="$(resolvedor autorais 2>&1)"
 [ "$r" = "proibidos=" ] && ok "P82·16: hefesto e fogstripper fora dos autorais dos packs" || falha "projeto pessoal nos autorais: $r"
@@ -326,6 +363,42 @@ done
 faltam=""
 for k in 'NOPASSWD' 'HOME temporário' 'troca palavras' '/tmp' 'Senha nunca'; do tem "$k" || faltam+=" «$k»"; done
 [ -z "$faltam" ] && ok "as armadilhas estão no GSD.md" || falha "o GSD.md perdeu a armadilha:$faltam"
+
+# --- decisões 19 a 24 de 02-decisoes.md (23/10, P96) --------------------------
+[ -f "$RAIZ/packs/meowsystem/mascote/coquinha.svg" ] && [ -f "$RAIZ/packs/meowsystem/mascote/mimir.svg" ] \
+  && [ "$(ls "$RAIZ"/packs/dracula/mascote/morcego*.svg 2>/dev/null | wc -l)" = 3 ] && ! ls -d "$RAIZ"/assets/gat[o]s >/dev/null 2>&1 \
+  && [ "$(python3 "$RAIZ/scripts/pack.py" mascote-padrao dracula dia)" = morcego-dia ] \
+  && ok "19: cada pack tem o seu mascote, e o de fábrica do Dracula é o morcego" \
+  || falha "19: o mascote não mora no pack, ou o Dracula não tem o morcego de fábrica"
+[ -x "$RAIZ/scripts/terminal_bloco.sh" ] && grep -q 'etapa_bloco_terminal' "$RAIZ/install.sh" \
+  && grep -q '^_excecao_do_zshrc' "$RAIZ/scripts/terminal_bloco.sh" && grep -q 'MEOW_EXCECOES_LOCAIS' "$RAIZ/lib/comum.sh" \
+  && grep -q 'terminal_bloco.sh" remover' "$RAIZ/lib/desinstalar.sh" \
+  && [ "$(grep -c '^item	spellbook-terminal-' "$RAIZ/assets/contratos/vizinhos.tsv")" = 3 ] \
+  && ok "20: o bloco do terminal é do MeowSystem, e o do Spellbook sai pelo vizinhos.tsv" \
+  || falha "20: falta o bloco do terminal, a remoção dele ou os itens do Spellbook"
+faltam=""
+for p in build-essential pkg-config libxkbcommon-dev libwayland-dev libdbus-1-dev; do
+  grep -qE "\\|$p\"?\$" <(sed -n '/^MEOW_DEPS_DOS_APPLETS=/,/"$/p' "$RAIZ/lib/comum.sh") || faltam+=" $p"
+done
+[ -z "$faltam" ] && grep -q 'ppa:zhangsongcui3371/fastfetch' "$RAIZ/install.sh" \
+  && ok "21: o instalador declara o que os applets compilam e o PPA do fastfetch" \
+  || falha "21: falta dependência declarada:${faltam:- o PPA do fastfetch}"
+grep -q 'git clone https://github.com/AndreBFarias/MeowSystem.git' "$RAIZ/README.md" \
+  && ok "22: o README manda baixar do fork" || falha "22: o README não aponta para AndreBFarias/MeowSystem"
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["origens"]["wallpapers"].get("repo") else 1)' \
+    "$RAIZ/packs/meowsystem/pack.json" 2>/dev/null && ! grep -q 'meow wallpaper semear  ' "$RAIZ/install.sh" \
+  && ok "23: a origem dos papéis de parede é do pack, e o install não manda digitar" \
+  || falha "23: o pack não declara a origem dos papéis de parede, ou o install manda semear"
+[ ! -e "$RAIZ/docs/folhas" ] && [ ! -e "$RAIZ/docs/pesquisas" ] && [ ! -e "$RAIZ/scripts/icones_apps.sh" ] \
+  && ! grep -rqs 'catppuccin-apps' "$RAIZ/install.sh" "$RAIZ/bin/meow" "$RAIZ/scripts" \
+  && ok "24: as folhas, a pesquisa bruta e a etapa morta saíram" \
+  || falha "24: voltou folha, pesquisa bruta ou a etapa do catppuccin-apps"
+printf '%s\n' "$(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$RAIZ/packs/dracula")" | grep -qx "prefixo	cat" \
+  && grep -q 'PACK_ATIVOS=' "$RAIZ/scripts/wallpaper.sh" \
+  && ok "25: o papel de parede de outro pack não gira (o Catppuccin é alheio com o Dracula no ar)" \
+  || falha "25: o wallpaper.sh não separa a coleção do pack no ar"
+grep -q '"$MEOW_RAIZ/scripts/prompt.sh" instalar$' "$RAIZ/install.sh" \
+  && ok "26: o starship desce com o install" || falha "26: a etapa do prompt não instala o starship"
 
 echo
 if [ "$falhas" = 0 ]; then echo "decisoes: tudo certo"; exit 0; fi

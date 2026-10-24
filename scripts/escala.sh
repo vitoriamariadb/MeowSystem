@@ -11,6 +11,9 @@
 # GUI e depois rodar o install de novo, o valor do meow.conf volta.
 #
 #   0 já estava certo · 1 divergia e foi aplicado · 2 erro · 3 falta dependência
+# Escreve pelo `cosmic-randr`, e não no `outputs.ron` (estado do compositor, que ele
+# sobrescreve). O `--test` dele APLICA de verdade. E a escala é controle dela: esta
+# etapa não entra no doctor.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

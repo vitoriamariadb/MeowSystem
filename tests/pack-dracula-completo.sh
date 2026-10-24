@@ -62,11 +62,11 @@ saida="$(amb env MEOW_PACKS="$T/packs" python3 "$RAIZ/scripts/pack.py" validar t
 # --- item 4: o tema exportado tem o nome e o comentário do pack ---------------
 # O nome é do pack e do flavor (o flavor some quando é o próprio pack), e o
 # `Comment=` não diz Catppuccin com o Dracula.
-nomes="$(for par in "dracula" "dracula alucard" "catppuccin mocha"; do
+nomes="$(for par in "dracula" "dracula alucard" "meowsystem mocha"; do
   # shellcheck disable=SC2086
   amb python3 "$RAIZ/scripts/pack.py" tema-icones $par 2>&1 | sed -n 's/^nome=//p'
 done | paste -sd' ')"
-[ "$nomes" = "MeowSystem-Dracula-Icons MeowSystem-Dracula-Alucard-Icons MeowSystem-Catppuccin-Mocha-Icons" ] \
+[ "$nomes" = "MeowSystem-Dracula-Icons MeowSystem-Dracula-Alucard-Icons MeowSystem-Mocha-Icons" ] \
   && ok "o tema exportado se chama pelo pack e pelo flavor: $nomes" \
   || falha "o nome do tema exportado não é o do pack e do flavor" "$nomes"
 com="$(amb python3 "$RAIZ/scripts/pack.py" tema-icones dracula alucard 2>&1 | sed -n 's/^comentario=//p')"
@@ -108,7 +108,7 @@ $s2"
 fi
 ordem="$(sed -n '/local etapas=(/,/)/p' "$RAIZ/install.sh" | grep -oE '\betapa_[a-z_0-9]+\b' | tr '\n' ' ')"
 [[ "$ordem" == *"etapa_logo etapa_icones_indice "* ]] \
-  && ok "no install.sh a etapa do índice vem logo depois da dos gatos, a última que escreve no tema" \
+  && ok "no install.sh a etapa do índice vem logo depois da dos mascotes, a última que escreve no tema" \
   || falha "a etapa do índice não está depois da última que escreve no tema" "$ordem"
 [[ "$(sed -n 's/^VERIFICAVEIS=(\(.*\))$/\1/p' "$RAIZ/bin/meow")" == *" logo indice" ]] \
   && ok "no doctor o índice é a última conferência" \
@@ -119,26 +119,33 @@ ordem="$(sed -n '/local etapas=(/,/)/p' "$RAIZ/install.sh" | grep -oE '\betapa_[
 # do Catppuccin pela paleta do Dracula: nenhum hex do macchiato sobra, o
 # `construir` no seco não tem nada a escrever (o versionado é o que ele produz),
 # e o `info` diz PRÓPRIO.
+# [P96, 23/10/2026: o pack guarda UM molde (no meowsystem), e a instalação o pinta com a paleta
+#  do pack no ar — o Dracula herda o molde e não guarda pintado nenhum.]
 linha="$(amb python3 "$RAIZ/scripts/pack.py" info dracula 2>&1 | grep -E '^  icones\.mimetypes ')"
-[[ "$linha" == *"PRÓPRIO"*"1.312 desenho(s)"* ]] \
-  && ok "icones.mimetypes do Dracula é PRÓPRIO: 656 por flavor, nos dois flavors" \
-  || falha "o info não diz os ícones de arquivo do Dracula como próprios" "$linha"
-macc="$(python3 -c 'import json,sys;print("|".join(v.lower() for v in json.load(open(sys.argv[1]))["flavors"]["macchiato"].values()))' "$RAIZ/packs/catppuccin/paleta.json")"
-com_macc="$(grep -liE "$macc" "$RAIZ"/packs/dracula/icones/sistema/mimetypes/*/*.svg | wc -l)"
-total="$(find "$RAIZ/packs/dracula/icones/sistema/mimetypes" -name '*.svg' | wc -l)"
+[[ "$linha" == *"HERDADO de meowsystem"*"656 desenho(s)"* ]] \
+  && ok "icones.mimetypes do Dracula vem do molde do meowsystem: 656 desenhos" \
+  || falha "o info não diz os ícones de arquivo do Dracula como o molde herdado" "$linha"
+macc="$(python3 -c 'import json,sys;print("|".join(v.lower() for v in json.load(open(sys.argv[1]))["flavors"]["macchiato"].values()))' "$RAIZ/packs/meowsystem/paleta.json")"
+total=0; com_macc=0
+for fl in dracula alucard; do
+  pint="$(amb python3 "$RAIZ/scripts/pack.py" pintados dracula "$fl" --temporario 2>/dev/null)"
+  [ -d "$pint" ] || continue
+  total=$((total + $(find "$pint" -name '*.svg' | wc -l)))
+  com_macc=$((com_macc + $(grep -liE "$macc" "$pint"/*.svg | wc -l)))
+  rm -rf "$pint"
+done
 [ "$total" = 1312 ] && [ "$com_macc" = 0 ] \
-  && ok "nenhum dos $total ícones de arquivo do Dracula tem cor do macchiato" \
+  && ok "o molde pintado com a paleta do Dracula dá $total ícones de arquivo, nenhum com cor do macchiato" \
   || falha "ícones de arquivo do Dracula com cor do Catppuccin, ou contagem errada" "total=$total com_macchiato=$com_macc"
-seco="$(amb python3 "$RAIZ/scripts/pack.py" construir dracula --seco 2>&1 | grep 'ícones de arquivo')"
-[[ "$seco" == *"escreveria 0, tirou 0"* ]] \
-  && ok "o construir não tem ícone de arquivo a escrever: o versionado é o que a paleta dá" \
-  || falha "os ícones de arquivo versionados não são os que a paleta do Dracula dá" "$seco"
+[ ! -e "$RAIZ/packs/dracula/icones/sistema/mimetypes" ] && ! grep -rlq 'vscode-ctp' "$RAIZ/packs/dracula/icones" \
+  && ok "o pack Dracula não guarda tipo de arquivo pintado nem cópia do molde" \
+  || falha "o pack Dracula guarda tipo de arquivo que a instalação devia pintar"
 mapa="$(amb python3 "$RAIZ/scripts/pack.py" acervo dracula icones.pastas.mapa 2>&1)"
 nomes="$(grep -v '^#' "$mapa" 2>/dev/null | grep -c ':')"
 faltam=""
 while IFS=: read -r n g; do
   case "$n" in ''|'#'*) continue ;; esac
-  [ -f "$RAIZ/packs/dracula/icones/sistema/pastas/$g.svg" ] || faltam="$faltam $g"
+  [ -f "$RAIZ/packs/dracula/icones/sistema/$g.svg" ] || faltam="$faltam $g"
 done < "$mapa"
 [ "$nomes" = 10 ] && [ -z "$faltam" ] && grep -q 'acervo "$_pack_ref" icones.pastas.mapa' "$RAIZ/scripts/construir_pastas.sh" \
   && ok "o mapa de pastas do Dracula veste dez nomes (folder, user-home e user-desktop inclusive), e quem cede lê o mesmo mapa" \
@@ -153,7 +160,7 @@ prompt() {   # $1 = PACK · $2 = FLAVOR · $3 = destino
     bash "$RAIZ/scripts/prompt.sh" aplicar >/dev/null 2>&1
 }
 prompt dracula dracula "$T/st-dracula.toml"
-prompt catppuccin mocha "$T/st-mocha.toml"
+prompt meowsystem mocha "$T/st-mocha.toml"
 dra_mauve="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["flavors"]["dracula"]["mauve"].lower())' "$RAIZ/packs/dracula/paleta.json")"
 if grep -qx "palette = 'dracula_dracula'" "$T/st-dracula.toml" 2>/dev/null \
    && grep -qx "mauve = \"$dra_mauve\"" "$T/st-dracula.toml" \
@@ -194,7 +201,7 @@ if command -v git >/dev/null 2>&1; then
       export PATH="$C/bin:$FALSO:$PATH" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
       unset MEOW_OBSIDIAN_VAULT PACK FLAVOR MEOW_PACK_DIR MEOW_PALETA
       . "$RAIZ/lib/comum.sh" || exit 2
-      . "$RAIZ/assets/temas-de-apps/obsidian/manifesto.sh" || exit 2
+      . "$RAIZ/scripts/temas-de-apps/obsidian/manifesto.sh" || exit 2
       "meow_app_$1" 2>&1; printf 'rc=%s\n' "$?" )
   }
   s1="$(obs aplicar)"
@@ -244,7 +251,11 @@ if [ "$tabela" = "alucard dracula dracula dracula latte mocha " ] \
 else
   falha "o flavor do lado vestido não é o que a tela veste, ou o traço e as pastas não o perguntam" "$tabela"
 fi
-UPF="$RAIZ/assets/icones/upstream/papirus-folders"
+UPF="${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem/upstream/papirus-folders"
+if [ ! -d "$UPF/src" ]; then
+  env -i PATH="$PATH" HOME="$T" MEOW_CACHE="$T/cache" NO_COLOR=1 bash "$RAIZ/scripts/baixar_upstream.sh" >/dev/null 2>&1
+  UPF="$T/cache/upstream/papirus-folders"
+fi
 if [ -d "$UPF/src" ] && [ -d /usr/share/icons/Papirus-Dark ]; then
   s="$(amb PACK=dracula FLAVOR=dracula ACCENT=mauve MODO=claro ICONES_PASTAS=cat-dracula-mauve \
         MEOW_DRY_RUN=1 MEOW_CAT_FOLDERS="$UPF" bash "$RAIZ/scripts/construir_pastas.sh" 2>&1)"
@@ -282,7 +293,7 @@ unidade_ok=0
   && [ "$(cat "$CS/.config/systemd/user/meow-som.service")" = "$(cat "$RAIZ/systemd/meow-som.service")" ] && unidade_ok=1
 som dracula dracula vigiar
 tocou="$(cat "$CS/tocou.log" 2>/dev/null)"
-som catppuccin mocha aplicar; r4=$?
+som meowsystem mocha aplicar; r4=$?
 if [ "$r1" = 1 ] && [ "$r2" = 0 ] && [ "$r3" = 0 ] && [ "$n_oga" = 25 ] && [ "$unidade_ok" = 1 ] \
    && [ "$(printf '%s\n' "$tocou" | grep -c .)" = 1 ] && [[ "$tocou" == *"/MeowSystem-Sons/stereo/notification/message-new-instant.oga" ]] \
    && [ "$r4" = 1 ] && [ ! -e "$CS/.local/share/sounds/MeowSystem-Sons" ] && [ ! -e "$CS/.config/systemd/user/meow-som.service" ] \
@@ -349,7 +360,7 @@ if command -v rsvg-convert >/dev/null 2>&1; then
   n_png="$(find "$AT" -name 'tulip-*.png' 2>/dev/null | wc -l)"
   n_4k="$(for f in "$AT"/tulip-*.png; do python3 -c 'import struct,sys;d=open(sys.argv[1],"rb").read(24);print(*struct.unpack(">II",d[16:24]))' "$f"; done 2>/dev/null | grep -c '^3840 2160$')"
   n_cat="$(find "$AT" -name 'cat-*' 2>/dev/null | wc -l)"
-  esperado="$(find "$RAIZ/packs/dracula/wallpapers" -name '*.svg' | while read -r s; do r="${s#"$RAIZ"/packs/dracula/wallpapers/}"; n="tulip-${r//\//-}"; n="${n%.svg}.png"; grep -qxF "$n" "$RAIZ/assets/papeis-de-parede/BANIDOS.txt.padrao" 2>/dev/null || echo "$n"; done | wc -l)"
+  esperado="$(find "$RAIZ/packs/dracula/wallpapers" -name '*.svg' | while read -r s; do r="${s#"$RAIZ"/packs/dracula/wallpapers/}"; n="tulip-${r//\//-}"; n="${n%.svg}.png"; grep -qxF "$n" "$RAIZ/packs/meowsystem/wallpapers/BANIDOS.txt.padrao" 2>/dev/null || echo "$n"; done | wc -l)"
   if [ "$n_png" -gt 0 ] && [ "$n_png" = "$esperado" ] && [ "$n_4k" = "$n_png" ] && [ "$n_cat" = 0 ] \
      && [[ "$s2" == *"já semeada"* ]]; then
     ok "numa casa nova, o Dracula semeia em PNG 4K os $n_png SVG do pack que não estão recusados, sem nada do Catppuccin, e a 2ª passada não faz nada"
@@ -366,14 +377,14 @@ fi
 TM="$T/mal"; HM="$TM/casa"; FM="$TM/falso"; PM="$TM/packs/mal"
 mkdir -p "$TM/packs" "$FM" "$TM/alvo-fora/scalable/apps" "$TM/tar" \
          "$HM/.local/share/icons/MeowSystem-Icons/scalable/apps" "$HM/.config/meow"
-cp -r "$RAIZ/packs/dracula" "$PM"; cp -r "$RAIZ/packs/catppuccin" "$TM/packs/malsrc"
+cp -r "$RAIZ/packs/dracula" "$PM"; cp -r "$RAIZ/packs/meowsystem" "$TM/packs/malsrc"
 SEGREDO='<svg xmlns="http://www.w3.org/2000/svg"><!-- SEGREDO --></svg>'
 printf '%s\n' "$SEGREDO" > "$TM/segredo.svg"; cp "$TM/segredo.svg" "$TM/segredo.oga"
 printf '[Icon Theme]\nName=Fora\nDirectories=scalable/apps\n[scalable/apps]\nSize=16\n' > "$TM/alvo-fora/index.theme"
 ln -s "$TM/alvo-fora" "$TM/tar/tema"; tar -czf "$TM/base.tar.gz" -C "$TM/tar" tema
 printf '#!/bin/sh\nwhile [ $# -gt 0 ]; do [ "$1" = "-o" ] && { cp "%s" "$2"; exit 0; }; shift; done; exit 1\n' \
   "$TM/base.tar.gz" > "$FM/curl"; chmod +x "$FM/curl"
-G="$(grep -v '^#' "$RAIZ/packs/catppuccin/icones/mimetypes.map" | grep -v '^$' | head -1 | cut -d: -f2)"
+G="$(grep -v '^#' "$RAIZ/packs/meowsystem/icones/mimetypes.map" | grep -v '^$' | head -1 | cut -d: -f2)"
 D="$(sed -e 's/#.*//' "$PM/icones/apps.map" | awk -F: 'NF>=2 { gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2; exit }')"
 python3 - "$PM/pack.json" "$TM/packs/malsrc/pack.json" "$(sha256sum "$TM/base.tar.gz" | cut -d' ' -f1)" <<'PY'
 import json, sys
@@ -381,8 +392,8 @@ a, b, sha = sys.argv[1:4]
 p = json.load(open(a, encoding="utf-8")); p["id"] = "mal"
 p["icones"]["base"]["origem"] = {"url": "https://exemplo.invalid/base.tar.gz", "sha256": sha, "pasta": "tema"}
 p["icones"]["base"].pop("por_tras", None)
-p["icones"]["mimetypes"]["mapa"] = "icones/mimetypes.map"
-p["icones"]["mimetypes"]["derivar"]["de"] = "malsrc"
+# [P96: o mal traz o molde dele (com um link para fora no meio) em vez de derivar de outro pack.]
+p["icones"]["mimetypes"] = {"desenhos": "icones/sistema/", "mapa": "icones/mimetypes.map"}
 json.dump(p, open(a, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 q = json.load(open(b, encoding="utf-8")); q["id"] = "malsrc"
 json.dump(q, open(b, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
@@ -403,12 +414,13 @@ d["flavors"]["dracula"]["evil"] = evil
 json.dump(d, open(f + ".nl", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 PY
 printf '../../../../../../escapou : %s\n' "$D" >> "$PM/icones/apps.map"
-cp "$RAIZ/packs/catppuccin/icones/mimetypes.map" "$PM/icones/mimetypes.map"
+cp "$RAIZ/packs/meowsystem/icones/mimetypes.map" "$PM/icones/mimetypes.map"
 printf '../../../../../../escapou2:%s\n' "$G" >> "$PM/icones/mimetypes.map"
 ln -s "$TM/segredo.oga" "$PM/sons/stereo/notification/vazou.oga"
 ln -s "$TM/segredo.svg" "$PM/wallpapers/catedral/vazou.svg"
-rm -f "$PM/icones/sistema/mimetypes/dracula/$G.svg"; ln -s "$TM/segredo.svg" "$PM/icones/sistema/mimetypes/dracula/$G.svg"
-ln -s "$TM/segredo.svg" "$TM/packs/malsrc/icones/sistema/mimetypes/css-variables/zz_vazou.svg"
+cp "$RAIZ/packs/meowsystem/icones/sistema/"*.svg "$PM/icones/sistema/" 2>/dev/null
+rm -f "$PM/icones/sistema/$G.svg"; ln -s "$TM/segredo.svg" "$PM/icones/sistema/$G.svg"
+ln -s "$TM/segredo.svg" "$PM/icones/sistema/zz_vazou.svg"
 printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n' > "$HM/.local/share/icons/MeowSystem-Icons/index.theme"
 sed -e 's/^PACK=.*/PACK="mal"/' -e 's/^FLAVOR=.*/FLAVOR="dracula"/' "$RAIZ/meow.conf.exemplo" > "$HM/.config/meow/meow.conf"
 : > "$TM/fontes-vazio.tsv"
@@ -428,12 +440,12 @@ if [ "$(amb env MEOW_PACKS="$TM/packs" python3 "$RAIZ/scripts/pack.py" validar m
   injetado="$(grep -c '^\[custom' "$TM/starship.toml" 2>/dev/null)"
   escapou="$(find "$TM" -name 'escapou*' | wc -l)"
   no_alvo="$(find "$TM/alvo-fora" -name '.meow-*' | wc -l)"
-  vazou="$(grep -rlF 'SEGREDO' "$HM" "$PM/icones/sistema/mimetypes" 2>/dev/null | wc -l)"
+  vazou="$(grep -rlF 'SEGREDO' "$HM" 2>/dev/null | wc -l)"
   intacto=0; [ "$(cat "$TM/segredo.svg")" = "$SEGREDO" ] && [ "$(cat "$TM/segredo.oga")" = "$SEGREDO" ] && intacto=1
   if [ "$rc_base" = 2 ] && [ "$no_alvo" = 0 ] && [ ! -L "$HM/.local/share/icons/MeowSystem-Icons-Base" ] \
      && [ "$escapou" = 0 ] && [ "$vazou" = 0 ] && [ "$intacto" = 1 ] \
      && [ -f "$TM/starship.toml" ] && [ "$injetado" = 0 ] \
-     && [ ! -L "$PM/icones/sistema/mimetypes/dracula/$G.svg" ] \
+     && [ -L "$PM/icones/sistema/$G.svg" ] \
      && grep -q 'linha(s) com nome fora' "$TM/log-apps.txt" && grep -q 'link ou saem' "$TM/log-som.txt" \
      && [ "$(find "$HM/.local/share/icons/MeowSystem-Icons/scalable/apps" -name '*.svg' | wc -l)" -gt 100 ]; then
     ok "segurança: o pack «mal» não lê nem escreve fora da raiz (base com pasta-link, ../ nos mapas, links no som, no papel, nos ícones de arquivo e no destino da derivação), nem injeta módulo no starship pela paleta"
@@ -465,7 +477,9 @@ grep -qx 'firefox:firefox:peach' "$RAIZ/packs/meowsystem/icones/apps-arcticons.m
   && ok "o traço do Firefox é peach" \
   || falha "o traço do Firefox não é peach" "$(grep '^firefox:' "$RAIZ/packs/meowsystem/icones/apps-arcticons.map")"
 v="$(amb python3 "$RAIZ/scripts/pack.py" fonte dev.vencord.Vesktop 2>&1 | head -3)"
-grep -qE '^dev\.vencord\.Vesktop[[:space:]]*:[[:space:]]*apps/com\.discordapp\.Discord\.svg' "$RAIZ/packs/dracula/icones/apps.map" \
+# [P96: o desenho do Discord é o que quem usa escolheu em 23/10; o Vesktop veste o MESMO arquivo.]
+alvo_discord="$(sed -n 's/^com\.discordapp\.Discord[[:space:]]*:[[:space:]]*\([^[:space:]#]*\).*/\1/p' "$RAIZ/packs/dracula/icones/apps.map" | head -1)"
+[ -n "$alvo_discord" ] && grep -qE "^dev\.vencord\.Vesktop[[:space:]]*:[[:space:]]*${alvo_discord//./\\.}([[:space:]]|$)" "$RAIZ/packs/dracula/icones/apps.map" \
   && ok "o Vesktop veste o Discord do pack Dracula" \
   || falha "o Vesktop não tem linha no mapa do pack Dracula" "$v"
 pessoais="$(find "$RAIZ/packs" -iname '*hefesto*' -o -iname '*fogstripper*')"
@@ -499,22 +513,6 @@ else
   falha "o completar avisa a falta do Hefesto, ou deixou o desenho gerado" "$(grep -iE 'chegaram|hefesto' <<< "$saida" | head -3)"
 fi
 
-# --- P82, item 10 (decisão 22): a camada de apps do Catppuccin só roda com ele
-#   Com o Dracula no ar, o `icones_apps.sh` mandava o flavor `dracula` para o
-#   `macchiato` e dizia «o acervo Catppuccin de aplicativos não está em …».
-CA="$T/casa-apps"; mkdir -p "$CA"
-saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
-           PACK=dracula FLAVOR=dracula ICONES_FLAVOR=dracula "$RAIZ/scripts/icones_apps.sh" 2>&1)"; rc=$?
-if [ -z "$saida" ] && [ "$rc" != 1 ] && [ "$rc" != 2 ] && [ -z "$(find "$CA" -type f)" ]; then
-  ok "com o Dracula no ar, a camada de apps do Catppuccin não diz nada e não escreve (rc=$rc)"
-else
-  falha "com o Dracula no ar, a camada de apps do Catppuccin falou ou escreveu (rc=$rc)" "$saida"
-fi
-saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
-           PACK=catppuccin FLAVOR=mocha ICONES_FLAVOR=mocha "$RAIZ/scripts/icones_apps.sh" 2>&1)"
-[ -n "$saida" ] && ok "com o Catppuccin, a camada segue o caminho de sempre" \
-  || falha "com o Catppuccin, a camada de apps não respondeu"
-
 # --- P82, item 11 (decisões 17 e 21): trocar de pack devolve o que o pack escondia
 #   O `ocultar_apps.sh` só desfazia uma marca pelo `-nome`: trocar do Dracula
 #   para o Catppuccin deixava os 24 do `lancador.ocultar` do pack fora do
@@ -532,9 +530,9 @@ ocultar() {   # $1 = pack · $2 = flavor
 }
 marcados() { grep -l '^NoDisplay=true' "$APPS"/*.desktop 2>/dev/null | wc -l; }
 ocultar dracula dracula > /dev/null; com_dracula="$(marcados)"
-ocultar catppuccin mocha > /dev/null; com_catppuccin="$(marcados)"
+ocultar meowsystem mocha > /dev/null; com_catppuccin="$(marcados)"
 antes="$(cat "$APPS"/*.desktop | sha256sum)"
-saida="$(ocultar catppuccin mocha)"; rc=$?
+saida="$(ocultar meowsystem mocha)"; rc=$?
 depois="$(cat "$APPS"/*.desktop | sha256sum)"
 if [ "$com_dracula" = 25 ] && [ "$com_catppuccin" = 1 ] && grep -q '^NoDisplay=true' "$APPS/vim.desktop" \
    && [ "$rc" = 0 ] && [ "$antes" = "$depois" ]; then

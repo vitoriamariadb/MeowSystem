@@ -62,18 +62,49 @@ ela de novo, integramos e pushamos pra dev». Sequência depois da P90:
    `git log --all -S<senha>` vazio, e só então `git push fork dev`.
 3. PR para `vitoriamariadb/MeowSystem` a partir do dev reescrito.
 
-## Fim combinado de novo (17/10): DESLIGAR no fim
+## 23/10 — as sprints que faltavam: P92, P93, P94 e o fim de 17/10
 
-Quem usa: «merge das duas, ./install.sh, reescrever o histórico para tirar a senha, push do dev e a PR
-para a Vitória. Faz isso e desliga o PC». Ordem: P90 e P91 integradas → merge no dev → `./install.sh` →
-`meow doctor` → `git filter-repo --replace-text` (senha → ***) em todas as branches → conferir
-`git log --all -S` vazio → `git push fork dev` → PR para vitoriamariadb/MeowSystem → `~/LEIA-AO-LIGAR.md`
-→ `sudo systemctl poweroff`. Se algo quebrar: não faz merge do quebrado, escreve onde parou no
-LEIA-AO-LIGAR e desliga do mesmo jeito.
+Quem usa (23/10): «faz as sprints que estão faltando». Respostas dela/dele no mesmo dia:
+- P93: os 11 apps que só o Dracula escondia ENTRAM no `LANCADOR_OCULTAR` (inclusive os dois pessoais).
+- P94: tudo, inclusive o `install.sh --activate` do Dracula (commit só do bloco, sem tocar na frente de fontes).
+- Fim: merge no dev, `./install.sh`, `meow doctor`, `git filter-repo` (senha → ***), `git log --all -S` vazio,
+  `git push fork dev`, PR para vitoriamariadb/MeowSystem. NÃO desligar.
+
+Sequência:
+1. P90 e P91 integradas na `integracao/leva-h` (23/10; a spec da P90 é a de 50 linhas + o apêndice 8–12).
+2. Bloco A (MeowSystem, worktree `.wt-meow/p92`, branch `sprint/p92`): P92 + P93 + o tipo `bloco` do
+   `vizinhos.sh` para a P94 item 2. Workflow de 2 Opus (implementa; confere e corrige).
+3. Integração, suíte, merge no dev (as mudanças soltas do dev de 18/10 e 21/10 — `scripts/painel.sh` e
+   ícones de pasta — ficam guardadas em `.wt-meow/dev-solto-23-10.patch` e voltam soltas depois), install.
+4. Bloco B (fora: Spellbook, Dracula_OS-Theme, NitroKit; desativações pós-install). Workflow de 2.
+5. filter-repo, push, PR.
+6. [P95](../2026-10-15-fechamento/P95-vizinhos-saem-da-casa.md) — corrigir os vizinhos que se metem e
+   apagar localmente o Dracula_OS-Theme e o Migração-OS. REGISTRADA em 23/10; quem usa disse «aguarda»:
+   preparação feita em 23/10 (push do Dracula, pacotes em ~/Backups); apaga DEPOIS do install.
+
+Em voo (23/10):
+- P94 CONCLUÍDA e integrada (Alt+F2 pela porta única com plano B; medir-compositor no Spellbook aurora/;
+  NitroKit: nada desativado ainda, vira a P99). Commits no Spellbook: acfd59e, bdf1236, cfd568b (sem push).
+- P99 Flatpak veste o tema, workflow `wf_eb745c26-c60`, worktree `.wt-meow/p99`, Sonnet + Opus. Depois do
+  install: desativar unificador e ritual do NitroKit pelo vizinhos.sh.
+- bloco A (P92+P93), workflow `wf_efb436e1-89c`, worktree `.wt-meow/p92`, 2 Opus;
+- P96 reorganização (`docs/sprints/2026-10-23-definitiva/`), worktree `.wt-meow/p96`: 2 Opus, fase 1 = perguntas
+  para quem usa; fase 2 = o script, aplicado DEPOIS do bloco A entrar no dev;
+- P97 interface: CONCLUÍDA (`sprint/p97`, commit do mockup final, 1,1 MB; prints e mockups A/B fora do repo em
+  `.wt-meow/p97-design-fora-do-repo/`). Decisões: clicar no tema já veste; «Mais ajustes» recolhido; 4 portas.
+  P98 (painel novo com tudo do antigo) EM VOO desde 23/10: workflow `wf_7e107a34-1e0`, worktree `.wt-meow/p98`,
+  2 Opus; mexe só no front, a P96 mexe nos caminhos; integra depois da P96.
+- Escolha dos ícones: 78 grupos respondidos por quem usa (`.wt-meow/p96-duvidas/escolhas-resolvidas.tsv`);
+  o Citrix veste o do manuais-final (sim de 23/10, desfaz a decisão 16).
 
 ## Registrada para depois (NÃO executar sem quem usa mandar)
 
-- P91 vizinhos e duplicatas — EM EXECUÇÃO desde 17/10, a pedido de quem usa.
+- P91 vizinhos e duplicatas — EXECUTADA em 17/10 na `sprint/p91`, espera o merge. Desativados nesta
+  máquina: cinco scripts do `Dracula_OS-Theme` (commit `f41ee47a` lá). Depois do merge e do install:
+  `scripts/vizinhos.sh --desativar caches-icones-casa` e um commit só disso no Spellbook. Para desfazer
+  tudo: `scripts/vizinhos.sh --restaurar todos`. Relatório: `docs/pesquisas/2026-10-17-vizinhos.md`.
+- P92 doutor do menu, P93 `ocultar` alcança tudo, P94 vizinhos de fora — registradas pela P91, NÃO
+  executar sem quem usa mandar.
 
 ## Fim combinado com quem usa (15/10, antes de dormir)
 

@@ -4,7 +4,7 @@ Duas máquinas de manutenção rodam neste computador e as duas escrevem sozinha
 **Ritual da Aurora** (`~/.config/zsh`, self-heal como root de hora em hora, no boot e
 depois de todo `apt`) cuida do **sistema**: pacotes, energia, hardware, atalhos,
 workspaces, wrappers em `/usr/local/bin`, patches de binário. O **MeowSystem** cuida da
-**aparência**: tema, ícones, papel de parede, gato do dock, vidro do painel, nome e
+**aparência**: tema, ícones, papel de parede, mascote do dock, vidro do painel, nome e
 visibilidade de aplicativo no lançador.
 
 A regra é uma frase: **onde os dois querem mandar no mesmo arquivo, o visual é do
@@ -18,7 +18,10 @@ A TRAVA 1 do `lib/comum.sh` é essa regra em código: o `meow_escrever` recusa
 `/usr/share`, `/usr/local/share`, `/usr/bin` e `/usr/lib`, sempre, e os caminhos que o
 `~/.config/meow/vizinhos.conf` declara de outro projeto — nesta máquina, o
 `~/.config/zsh` (repositório de quem usa, com auto-commit a cada 10 min) e os atalhos de
-teclado. Numa máquina sem vizinhos o arquivo não existe, e a lista é só a do sistema.
+teclado. Uma linha `!caminho` é a exceção por arquivo: o `.zshrc` do ZDOTDIR recebe o
+bloco marcado do terminal (decisão de 23/10), e o `scripts/terminal_bloco.sh` acrescenta
+essa linha sozinho; o resto da pasta segue do vizinho. Numa máquina sem vizinhos o arquivo
+não existe, e a lista é só a do sistema.
 
 **Este documento é sobre a máquina de origem.** O Ritual da Aurora é um projeto vizinho
 que só existe nela; o MeowSystem não depende dele e não o lê em execução (P37, P39 e
@@ -69,11 +72,12 @@ tempo de quem procura a regra:
 
 **Desde 15/10/2026 (decisão 14, P88) todo desenho de ícone é `packs/`.** O
 acervo que era do motor em `assets/icones/` é o pack-base `packs/meowsystem/`,
-nas três pastas (`apps/`, `sistema/`, `biblioteca/`), e todo pack o herda; os
+nas três pastas planas (`apps/`, `sistema/`, `biblioteca/`, sem subpasta desde a
+P96), e todo pack o herda; os
 resgatados, de cor Dracula fixa, foram para `packs/dracula/`. A frase de
 21/09/2026, «o mapa é do pack, o acervo pode ser do motor», está **revogada**.
-Em `assets/icones/` sobrou só ferramenta: os mapas técnicos de aplicativo, a
-prévia das folhas, os originais de fábrica da bandeja e a folha dos resgatados.
+Em `assets/icones/` sobrou só a folha de antes e depois dos resgatados; os mapas
+técnicos de aplicativo moram em `assets/apps/`.
 
 Ela responde "de quem é este arquivo" e não "quem escreve nesta chave". Mora em
 **`docs/PACKS.md`, seções «A fronteira: `assets/` contra `packs/`» e «O acervo
@@ -354,9 +358,13 @@ arquivo de `/usr/share`.
 
 1. O COSMIC **não honra `$XDG_DATA_HOME`** — é o `pop-os/cosmic-applets#667` que este
    repo mediu em 04/08 para esconder app. Vale para o `Exec=` do mesmo jeito.
-2. O `cosmic-app-library` **não deduplica por desktop-id** — mostra as duas cópias com
+2. O `cosmic-app-library` **não deduplicava por desktop-id** — mostrava as duas cópias com
    "(Local)" e "(Sistema)". Então manter o arquivo no home *e* uma cópia em outro
-   diretório dá duas entradas de Chrome no lançador.
+   diretório dava duas entradas de Chrome no lançador. **Mudou, medido na P93
+   (15/10/2026)** no fonte instalado (cosmic-app-library `3651caf`, libcosmic `430f3d4`,
+   `desktop_entries_with_precedence`): o lançador deduplica pelo id antes de filtrar o
+   `NoDisplay`, com o home primeiro. Uma sombra de mesmo basename no home, com
+   `NoDisplay=true`, esconde o app — é o que o `scripts/ocultar_casa.sh` faz.
 
 **A saída.** `XDG_DATA_DIRS` é honrado, e nele `/usr/local/share` vem **antes** de
 `/usr/share`:
@@ -370,15 +378,15 @@ Chrome e não encosta em `/usr/share` — que continua sendo do Meow. O Aurora r
 cópia antiga do home, com guarda por `cmp` para não apagar edição feita à mão.
 
 **O que isso muda para o `ocultar_apps.sh`:** nada no mecanismo. Ele segue marcando
-`NoDisplay=true` no arquivo de `/usr/share`, que segue sendo a única coisa que esconde
-app. O que muda é a legenda de `OCULTAR_DUPLICATA`: a cópia boa não está mais "no home",
+`NoDisplay=true` no arquivo de `/usr/share` (pela ponte root); desde a P93 a sombra do
+home (`ocultar_casa.sh`) também esconde, para o que não está em `/usr/share`. O que muda é a legenda de `OCULTAR_DUPLICATA`: a cópia boa não está mais "no home",
 está em `/usr/local/share`.
 
 ---
 
 ## As três decisões que mudaram a tabela (10/08/2026)
 
-**O ícone do botão "iniciar" voltou a ser do tema.** O Aurora plantava um gato Drácula em
+**O ícone do botão "iniciar" voltou a ser do tema.** O Aurora plantava um mascote Drácula em
 `/usr/share/icons/hicolor/scalable/apps/com.system76.CosmicAppLibrary.svg` porque a v3.45
 concluiu que "o `cosmic-panel-button` não enxerga `~/.local/share/icons`". A conclusão
 estava errada: o laço EXTERNO da resolução é o **nome do tema**, e o `hicolor` é o último
@@ -683,7 +691,7 @@ saía **4** imprimindo o patch para quem usa colar à mão.
 1. O pedido foi que tudo fosse *"idempotente e autoajustável de forma que sobreviva
    sempre"* — e depois, explicitamente: *"pode alterar tudo a nível de sistema,
    incluindo no aurora"*.
-2. O gato do fastfetch passou a seguir o relógio. Sem a troca da linha, o
+2. O mascote do fastfetch passou a seguir o relógio. Sem a troca da linha, o
    terminal ficaria com a Coquinha das 18h às 7h **todo dia, para sempre**, e o
    script diria "gerei o Mimir" enquanto a tela mostra a Coquinha. Aviso que se
    repete todo dia é aviso que se aprende a ignorar.
@@ -784,13 +792,17 @@ sudo -n .../ponte_root.sh rm          -> "uma senha é necessária"   (verbo for
 sudo -n .../ponte_root.sh desktop x   -> "uma senha é necessária"   (a regra não tem curinga)
 ```
 
-### Os onze verbos, e o que cada um alcança
+### Os catorze verbos, e o que cada um alcança
 
 `desktop` e `desktop-banco` (marcar `.desktop` em `/usr/share/applications`, e só os que
 **já existem** — ela edita, não cria) · `greeter-ver` e `greeter-aplicar` (a tela de
 login) · `apt-hook-instalar` e `apt-hook-remover` · `completion-instalar` e
 `completion-remover` (a completion do `meow` para o zsh, lida uma vez para um temporário
-e conferida antes de instalar) · `atualizar` e `limpar` (`full-upgrade` dos repositórios
+e conferida antes de instalar) · `flatpak-global-limpar` (tira do override global do Flatpak só as chaves `ICON_THEME`,
+`XCURSOR_THEME` e `GTK_THEME` que apontam para tema que não existe; o dado entra por stdin e
+o resto do arquivo fica) · `libreoffice-remover` e `libreoffice-devolver` (a troca pelo OnlyOffice: o
+`purge` dos pacotes `libreoffice*` que o dpkg diz instalados, com a ponte UNO que sai junto, recusado
+inteiro se o apt levasse junto o que não é do LibreOffice, e a volta, só por nomes do LibreOffice) · `atualizar` e `limpar` (`full-upgrade` dos repositórios
 **já configurados**; a ponte não acrescenta fonte e não roda `.deb`) · `pacotes` (desde
 09/10/2026, P75: instala os pacotes de que o projeto depende, pelo nome que entra por
 stdin, e só os da lista **literal** que mora dentro da ponte instalada — `librsvg2-bin`,
@@ -919,10 +931,10 @@ forma: **diagnóstico certo, conserto conhecido, nenhum botão.**
 | onde | o que dizia |
 |---|---|
 | `scripts/areas.sh:1001` | *"alfinete uma área pelo COSMIC (visão geral, botão direito) e rode de novo"* |
-| `assets/temas-de-apps/spotify/manifesto.sh` | um `curl \| sh` e um `git clone` dentro de dois `meow_info` |
+| `scripts/temas-de-apps/spotify/manifesto.sh` | um `curl \| sh` e um `git clone` dentro de dois `meow_info` |
 | `scripts/prompt.sh` (o bloco do starship) | *"instalar é decisão sua. Sem sudo, em ~/.local/bin: …"* |
-| `assets/temas-de-apps/qbittorrent/manifesto.sh` | *"sem `~/.config/zsh/scripts/aurora-qbittorrent-config.sh` não há quem escreva o qBittorrent.conf"* |
-| `scripts/fastfetch_logo.sh` | *"o gato vai sair 68% fora da proporção … use 37 linhas para 95 colunas"* — a conta já feita, o conserto por fazer |
+| `scripts/temas-de-apps/qbittorrent/manifesto.sh` | *"sem `~/.config/zsh/scripts/aurora-qbittorrent-config.sh` não há quem escreva o qBittorrent.conf"* |
+| `scripts/fastfetch_logo.sh` | *"o mascote vai sair 68% fora da proporção … use 37 linhas para 95 colunas"* — a conta já feita, o conserto por fazer |
 | `install.sh:2930` | *"Rode mais uma vez, até a tela dizer «nenhuma etapa precisou escrever nada»"* (é a P1, e ela já foi) |
 
 Um engenheiro lê isso como cortesia. Um designer leigo lê como **"o programa
@@ -1002,7 +1014,7 @@ outro lado da casa.
 
 ### O cobrador
 
-`tests/sem-receita-no-log.sh` varre `scripts/`, `lib/` e `assets/temas-de-apps/`
+`tests/sem-receita-no-log.sh` varre `scripts/`, `lib/` e `scripts/temas-de-apps/`
 atrás de `meow_info`/`meow_aviso` com `curl | sh`, `git clone` ou
 `apt[-get] install`
 dentro. As isenções casam pelo **conteúdo** da linha, nunca pelo número — mesma
@@ -1108,7 +1120,7 @@ sprint pedia: ele **sabe** voltar ao binário do pacote
 
 ### A dependência fantasma do qBittorrent
 
-`assets/temas-de-apps/qbittorrent/manifesto.sh` exigia
+`scripts/temas-de-apps/qbittorrent/manifesto.sh` exigia
 `~/.config/zsh/scripts/aurora-qbittorrent-config.sh`. A P29 foi buscá-lo para
 trazê-lo e mediu, em 22/09/2026, que **ele não existe lá**: um
 `find ~/.config/zsh -name '*qbittorrent*'` devolve zero linha. Não era "está no
@@ -1252,9 +1264,9 @@ retenção falada é das **10 últimas** passagens, e a poda é de quem enxerga 
 fila inteira (o runner, o `meow desfazer`) — nunca do módulo, que só enxerga a
 própria pasta e apagaria o histórico dos vizinhos.
 
-> `assets/temas-de-apps/toolkits-gtk-qt/manifesto.sh:295,568` ·
-> `assets/temas-de-apps/vscode/manifesto.sh:481,514` ·
-> `assets/temas-de-apps/zapzap/manifesto.sh:243`
+> `scripts/temas-de-apps/toolkits-gtk-qt/manifesto.sh:295,568` ·
+> `scripts/temas-de-apps/vscode/manifesto.sh:481,514` ·
+> `scripts/temas-de-apps/zapzap/manifesto.sh:243`
 
 ### 5. Idempotência por CONTEÚDO, não por existência
 
@@ -1267,8 +1279,8 @@ README de que rodar de novo numa máquina pronta não escreve um byte.
 > `scripts/greeter.sh:219` · `scripts/som.sh:285` · `scripts/ocultar_apps.sh:147` ·
 > `scripts/fastfetch_logo.sh:729` · `scripts/importar_icones.sh:166` ·
 > `scripts/construir_icones.sh:114` · `scripts/ponte_root.sh:130` ·
-> `assets/temas-de-apps/obsidian/manifesto.sh:174` ·
-> `assets/temas-de-apps/heroic/manifesto.sh:448,505`
+> `scripts/temas-de-apps/obsidian/manifesto.sh:174` ·
+> `scripts/temas-de-apps/heroic/manifesto.sh:448,505`
 
 ### 6. — vaga
 

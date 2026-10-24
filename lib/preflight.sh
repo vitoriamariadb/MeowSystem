@@ -16,11 +16,11 @@ meow_preflight() {
   # 1. ROOT NÃO. A guarda também está no main(), que é onde ela recusa mais
   #    cedo; aqui ela fica porque o pré-voo é chamado por outros caminhos.
   if [ "$(id -u)" = "0" ]; then
-    meow_erro "não me rode como root: os arquivos de ~/.config ficariam de dono root"
+    meow_erro "como root, não: os arquivos de ~/.config ficariam de dono root — nada foi feito"
     if [ -n "${SUDO_USER:-}" ]; then
-      meow_info "  rode assim:  ./install.sh        (como $SUDO_USER)"
+      meow_info "  o instalador roda como $SUDO_USER, na sessão dele"
     else
-      meow_info "  rode como o seu usuário normal:  ./install.sh"
+      meow_info "  o instalador roda como o seu usuário, na sua sessão"
     fi
     meow_info "  o sudo é pedido por dentro, e ele diz o que vai rodar antes de rodar"
     return 2
@@ -55,7 +55,7 @@ meow_preflight() {
   #    ser dito ANTES de copiar mais de cem arquivos por cima dele.
   #
   # A lista agora é comparada INTEIRA contra a do contrato
-  # (`contratos/cosmic.tsv`, a linha `esquema` do `CosmicTheme.Dark`).
+  # (`assets/contratos/cosmic.tsv`, a linha `esquema` do `CosmicTheme.Dark`).
   local esquemas="" _v cobertos
   for _v in "$(meow_cosmic_dir)/com.system76.CosmicTheme.Dark/"v*; do
     [ -d "$_v" ] && esquemas="$esquemas${_v##*/} "
@@ -63,7 +63,7 @@ meow_preflight() {
   esquemas="$(printf '%s' "$esquemas" | tr ' ' '\n' | sed '/^$/d' | sort -V | tr '\n' ' ')"
   esquemas="${esquemas% }"
   cobertos="$(awk -F'\t' '$1=="esquema" && $2=="com.system76.CosmicTheme.Dark" {print $3; exit}' \
-              "$MEOW_RAIZ/contratos/cosmic.tsv" 2>/dev/null)"
+              "$MEOW_RAIZ/assets/contratos/cosmic.tsv" 2>/dev/null)"
   cobertos="${cobertos:-v1 v2}"
   case " $esquemas " in
     "  ") meow_pula "o COSMIC ainda não escreveu tema neste usuário — a captura vai criar" ;;
@@ -72,7 +72,7 @@ meow_preflight() {
     # código chamava metade disso de "desconhecido".
     " v1 ") meow_ok "esquema de tema: ${esquemas% } — COSMIC anterior ao v2; a captura cobre e a v2 fica inerte" ;;
     *) meow_aviso "esquema de tema desconhecido aqui: ${esquemas% }"
-       meow_info "  as capturas deste repositório cobrem $cobertos (contratos/cosmic.tsv)"
+       meow_info "  as capturas deste repositório cobrem $cobertos (assets/contratos/cosmic.tsv)"
        avisos=$((avisos+1)) ;;
   esac
 
@@ -118,7 +118,7 @@ meow_preflight() {
     "diff|etapa|diffutils|o que a tela mostra antes de escrever"
     "gsettings|etapa|libglib2.0-bin|as chaves de tema que o COSMIC ainda lê do GTK"
     "busctl|etapa|systemd|falar com o cosmic-settings-daemon"
-    "systemctl|etapa|systemd|os relógios e gatilhos do carrossel e do gato"
+    "systemctl|etapa|systemd|os relógios e gatilhos do carrossel e do mascote"
     "systemd-escape|etapa|systemd|o nome das unidades de caminho"
     "systemd-run|etapa|systemd|as tarefas que não podem morrer com o terminal"
     "pgrep|etapa|procps|saber se o cosmic-comp está vivo"
@@ -127,12 +127,12 @@ meow_preflight() {
     "notify-send|etapa|libnotify-bin|as notificações de fim de etapa"
     "sudo|etapa|sudo|a ponte root e os .desktop de /usr/share"
     "flatpak|extra|flatpak|o applet de mídia e a vigia dos flatpaks"
-    "fastfetch|extra|fastfetch|o gato no lugar do logo, no terminal"
+    "fastfetch|extra|fastfetch|o mascote no lugar do logo, no terminal"
     "fzf|extra|fzf|a busca do Ritual no terminal"
     "btop|extra|btop|monitor vestido pelo tema"
     "batcat|extra|bat|o cat colorido vestido pelo tema"
     "pw-play|extra|pipewire-bin|o som de fim de instalação"
-    "starship|extra|-|o prompt do terminal (instala-se pelo site do projeto)"
+    "starship|extra|-|o prompt do terminal (a etapa do prompt o instala)"
     "cosmic-randr|extra|-|as telas e a escala (vem com o COSMIC)"
     "cosmic-term|extra|-|o terminal que este projeto veste (vem com o COSMIC)"
   )

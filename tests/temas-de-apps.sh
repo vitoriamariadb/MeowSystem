@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# temas-de-apps.sh — os módulos de `assets/temas-de-apps/` obedecem ao PACK.
+# temas-de-apps.sh — os módulos de `scripts/temas-de-apps/` obedecem ao PACK.
 #
 # Zero é o destino, e para spotify e qbittorrent ele já vale HOJE.
 #
@@ -9,7 +9,7 @@
 # Linha cujo primeiro caractere não-branco NÃO é `#`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-ACERVO="$RAIZ/assets/temas-de-apps"
+ACERVO="$RAIZ/scripts/temas-de-apps"
 falhas=0
 ok()    { printf 'ok: %s\n' "$1"; }
 falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" >&2; falhas=$((falhas+1)); }
@@ -175,7 +175,7 @@ else
   falha "pack: 'app dracula apps.qbittorrent.arquivo' não respondeu pelo dracula" "$saida"
 fi
 saida="$(python3 "$RAIZ/scripts/pack.py" app dracula apps.vscode-icones.esquema 2>&1)"
-if printf '%s' "$saida" | grep -qx 'pack=catppuccin'; then
+if printf '%s' "$saida" | grep -qx 'pack=meowsystem'; then
   ok "pack: o vscode-icones do Dracula é herdado, e o log diz de quem"
 else
   falha "pack: a herança de apps.vscode-icones não apontou para o catppuccin" "$saida"
@@ -254,10 +254,11 @@ fi
 
 # Um hex escrito num modelo é o flavor `dracula` cravado — o `alucard` sairia
 # com uma cor escura no meio, e nada acusaria.
-MODELO_PY="$RAIZ/assets/temas-de-apps/modelo.py"
-mapfile -t MODELOS < <(find "$RAIZ/packs" -path '*/apps/*.modelo.*' -type f | sort)
+MODELO_PY="$RAIZ/scripts/temas-de-apps/modelo.py"
+# [P96, 23/10/2026: o modelo que a paleta preenche inteiro mora no motor, scripts/temas-de-apps/<app>/.]
+mapfile -t MODELOS < <(find "$RAIZ/scripts/temas-de-apps" -name '*.modelo.*' -type f | sort)
 if [ "${#MODELOS[@]}" -eq 0 ]; then
-  falha "nenhum modelo em packs/*/apps/ — os temas de aplicativo da P42 sumiram"
+  falha "nenhum modelo em scripts/temas-de-apps/ — os temas de aplicativo da P42 sumiram"
 fi
 for m in "${MODELOS[@]}"; do
   rel="${m#"$RAIZ"/}"
@@ -267,8 +268,9 @@ for m in "${MODELOS[@]}"; do
   else
     ok "$rel: nenhum hex escrito"
   fi
-  pal="$(dirname "$(dirname "$m")")/paleta.json"
-  pack_id="$(basename "$(dirname "$(dirname "$m")")")"
+  # O modelo é do motor e serve a qualquer pack; o que o declara hoje é o Dracula.
+  pal="$RAIZ/packs/dracula/paleta.json"
+  pack_id="dracula"
   for flavor in $(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["flavors"]))' "$pal"); do
     saida="$(python3 "$MODELO_PY" "$m" "$pal" "$flavor" "$pack_id" 2>&1)"; rc=$?
     if [ "$rc" = 0 ] && ! printf '%s' "$saida" | grep -q '{{'; then
@@ -286,6 +288,8 @@ else
   ok "modelo.py recusa o papel que a paleta não tem, em vez de deixá-lo no tema"
 fi
 
+# Casa, XDG, estado, packs e flatpak de brinquedo; o `env -i` tira o D-Bus da sessão,
+# e nem um `dconf` de verdade alcançaria o banco de quem roda.
 CASA="$T/casa8"
 BIN="$T/bin8"
 mkdir -p "$CASA" "$BIN" "$T/packs8"
@@ -296,7 +300,7 @@ mod() {  # <módulo> <verbo> [VAR=valor ...]
       MEOW_ESTADO="$T/estado8" PACK=dracula FLAVOR=dracula NO_COLOR=1 \
       FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" "$@" \
       bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
-               . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" || exit 2
+               . "$MEOW_RAIZ/scripts/temas-de-apps/$0/manifesto.sh" || exit 2
                meow_app_$1' "$m" "$v" </dev/null 2>&1
 }
 falso() { printf '#!/bin/sh\nexit %s\n' "${2:-0}" > "$BIN/$1"; chmod +x "$BIN/$1"; }
@@ -646,7 +650,7 @@ escrito_ok=0
 grep -qxF 'General\UseCustomUITheme=true' "$QB/qBittorrent.conf" \
   && grep -qxF "General\\CustomUIThemePath=$alvo_qb" "$QB/qBittorrent.conf" \
   && grep -qxF 'General\Locale=pt_BR' "$QB/qBittorrent.conf" && grep -qxF 'Session\Port=6881' "$QB/qBittorrent.conf" \
-  && cmp -s "$alvo_qb" "$RAIZ/packs/dracula/apps/dracula.qbtheme" && escrito_ok=1
+  && cmp -s "$alvo_qb" "$RAIZ/packs/dracula/temas-de-apps/qbittorrent/dracula.qbtheme" && escrito_ok=1
 saida="$saida$(mod qbittorrent aplicar)"; rc1b=$?
 printf '[Preferences]\nGeneral\\CustomUIThemePath=%s/.themes/dela.qbtheme\nGeneral\\UseCustomUITheme=true\n' \
   "$CASA" > "$QB/qBittorrent.conf"
@@ -762,6 +766,8 @@ saida="$(mod gnome-terminal aplicar)"; rc=$?
   && ok "gnome-terminal: um perfil padrão com cores próprias fica, e vira pendência (rc=3)" \
   || falha "gnome-terminal: trocou o perfil padrão dela (rc=$rc)" "$saida"
 
+# O mapa de nomes é vazio: um nome encurtado chamaria o `meow_lancador_reler`, que
+# derruba o lançador da sessão de quem roda.
 AP="$T/casa9/.local/share/applications"
 mkdir -p "$AP"
 for n in seiscentos seiscentos-e-quarenta-e-quatro setecentos; do
@@ -925,7 +931,7 @@ spot_registrado() {  # <valor do custom_apps>
   printf '[AdditionalOptions]\ncustom_apps           = %s\n' "$1" > "$CASA9/.config/spicetify/config-xpui.ini"
   env -i PATH="$PATH" HOME="$CASA9" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado9" NO_COLOR=1 \
     bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
-             . "$MEOW_RAIZ/assets/temas-de-apps/spotify/manifesto.sh" >/dev/null 2>&1 || exit 2
+             . "$MEOW_RAIZ/scripts/temas-de-apps/spotify/manifesto.sh" >/dev/null 2>&1 || exit 2
              _spot_mp_registrado' </dev/null >/dev/null 2>&1
 }
 f9=""
@@ -1110,7 +1116,7 @@ mod10() {  # <módulo> <verbo> <PACK> <FLAVOR> [VAR=valor ...]
       MEOW_ESTADO="$T10/estado" REDE="$REDE10" MERCADO="$MERCADO10" TMPDIR="$T10/tmp" \
       PACK="$p" FLAVOR="$f" ACCENT=mauve NO_COLOR=1 "$@" \
       bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
-               . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" || exit 2
+               . "$MEOW_RAIZ/scripts/temas-de-apps/$0/manifesto.sh" || exit 2
                meow_app_$1' "$m" "$v" </dev/null 2>&1
 }
 chamadas10() { if [ -s "$REDE10/.chamadas" ]; then grep -c . "$REDE10/.chamadas"; else printf '0'; fi; }
@@ -1135,7 +1141,7 @@ semear10
 faltam=""
 saida="$(mod10 obsidian aplicar catppuccin mocha)"; rc=$?
 [ "$rc" = 1 ] && [ "$(aparencia10)" = "Catppuccin | catppuccin_realce,fonte" ] \
-  && [ "$(cat "$COFRE10/.obsidian/themes/Catppuccin/theme.css")" = "$(cat "$ACERVO/obsidian/vendor/Catppuccin/theme.css")" ] \
+  && [ "$(cat "$COFRE10/.obsidian/themes/Catppuccin/theme.css")" = "$(cat "$RAIZ/packs/meowsystem/temas-de-apps/obsidian/vendor/Catppuccin/theme.css")" ] \
   || faltam+=" obsidian (rc=$rc, $(aparencia10));"
 saida="$(mod10 obsidian conferir catppuccin mocha)"; rc=$?
 [ "$rc" = 0 ] && printf '%s' "$saida" | grep -q 'obsidian: Catppuccin Mocha já aplicado' \
@@ -1153,7 +1159,7 @@ saida="$(mod10 heroic aplicar catppuccin mocha)"; rc=$?
   || faltam+=" heroic (rc=$rc: $saida);"
 mod10 zapzap aplicar catppuccin mocha >/dev/null
 saida="$(mod10 zapzap conferir catppuccin mocha)"; rc=$?
-[ "$rc" = 0 ] && printf '%s' "$saida" | grep -q "como 'WhatsApp' com o ícone Catppuccin" \
+[ "$rc" = 0 ] && printf '%s' "$saida" | grep -q "como 'WhatsApp' com o ícone MeowSystem" \
   || faltam+=" zapzap (rc=$rc: $saida);"
 [ -z "$faltam" ] \
   && ok "P55: com o Catppuccin no ar os quatro vestem o de sempre, e a tela diz o de sempre" \

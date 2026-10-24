@@ -1,72 +1,35 @@
 #!/usr/bin/env python3
-"""app-completo.py — o painel inteiro, aba por aba e botão por botão.
+"""app-completo.py — o painel novo inteiro, porta por porta e controle por controle (P98).
 
-    tests/app-completo.py               todas as abas; é o que o gate roda
-    tests/app-completo.py --aba Ícones  uma aba só (e o cabeçalho), para depurar
-    tests/app-completo.py --fotos DIR   guarda a captura de cada aba em DIR
+    tests/app-completo.py                   todas as páginas; é o que o gate roda
+    tests/app-completo.py --aba ajustes     só as páginas cujo endereço começa assim
+    tests/app-completo.py --fotos DIR       guarda a captura de cada página em DIR
 
-ESCRITO POR CAUSA DESTE PEDIDO (24/09/2026, sprint P46)
-  "abrir cada aba como user. E vai aba a aba. Botão a botão, usa todos os
-   menus, todas as configs, tudo certinho [...] e valida cada feature. Se tiver
-   um teste completo pra isso e colocar como gate já ajudaria muito. Importante
-   ser via navegador tudo."
-
-  O `tests/app-navegador.py` (145 conferências) e o `tests/app-acessibilidade.py`
-  percorrem caminhos escolhidos a dedo. Nenhum dos dois garante que TODO
-  controle da tela foi exercitado: um botão novo entrava no painel sem teste
-  nenhum, e a suíte continuava verde. Este arquivo fecha essa porta.
+O pedido continua o da P46 («abrir cada aba como user. E vai aba a aba. Botão a
+botão... Importante ser via navegador tudo»), agora no painel de quatro portas
+da P98 (Tema, Criar tema, Ajustes, Cuidar).
 
 O QUE ELE FAZ
-  1. Sobe o painel numa CASA DE BRINQUEDO (ver `montar_casa`) e abre a página
-     no Chromium do Playwright, sem janela na tela.
-  2. Abre cada aba como uma pessoa abriria — clique no menu lateral, e não URL.
-  3. ENUMERA os controles da aba no DOM (`CENSO_JS`) e dá a cada um um nome
-     estável: `data-chave` do cartão, `id`, `aria-label`; o rótulo visível só
-     quando não há outro.
-  4. Confere o censo contra o INVENTÁRIO escrito aqui. Controle na tela que não
-     está no inventário REPROVA ("o controle X da aba Y não tem teste"), e
-     controle do inventário que sumiu da tela também. Botão novo sem teste não
-     passa.
-  5. ACIONA cada um, pelo papel que ele tem (`Percurso.acionador`), e cobra um
-     efeito que se vê: o DOM mudou, a API respondeu 2xx, a casa de brinquedo
-     mudou — ou, no «Ver o que faria», NÃO mudou. O que o gesto REVELA (a caixa
-     de pergunta, a gaveta, o «Copiar», o painel de um aplicativo) também está
-     no inventário (`REVELADOS`), e também é acionado.
-  6. Em toda a aba: nenhum erro no console, nenhuma resposta 4xx/5xx que o
-     passo não esperava, nenhum `undefined`, `NaN`, `[object`, `${` ou `null`
-     solto na tela. E uma captura por aba, em /tmp/meow-app-completo/, para
-     quem revisar.
+  1. Sobe o painel numa CASA DE BRINQUEDO (`montar_casa`) e o abre no Chromium
+     do Playwright, sem janela.
+  2. Visita cada página clicando como uma pessoa: as portas da barra de cima, o
+     trilho de Ajustes, os passos de Criar tema. Abre o «Mais ajustes».
+  3. O CENSO: todo controle visível tem nome (`data-controle`). Controle sem nome
+     reprova. O nome vira molde (o que nasce de dado — um por pack, por programa,
+     por cor — vira `*`).
+  4. O INVENTÁRIO sai de `app/pagina/lugares.js` (cada chave e ação da página) e
+     dos moldes escritos aqui (`EXTRAS`). Controle na tela fora do inventário
+     reprova («sem teste»); chave ou ação da página sem controle reprova.
+  5. ACIONA cada molde uma vez, pelo papel que ele tem, e cobra um efeito que se
+     vê: a página mudou, a API respondeu, a caixa abriu, a casa mudou. Ação de
+     root sem a ponte tem de mostrar «Falta a ponte» com o «Conferir e
+     consertar» — nunca um campo de senha. Ação que pergunta é rodada em ensaio
+     («Ver sem mudar»).
+  6. Em toda página: nenhum erro de JavaScript ou de console, nenhuma resposta
+     4xx/5xx que o gesto não pediu, nenhum `undefined`, `NaN`, `[object` ou
+     `null` solto, nenhum campo de senha.
 
-OS MOLDES
-  Controle que nasce de DADO — um cartão por pack, uma ficha por papel de
-  parede, um botão por aplicativo, uma opção por valor aceito — entra no
-  inventário pelo MOLDE, e não um a um: o que se cobra é que o molde tenha ao
-  menos um exemplar na tela e que o exemplar funcione. A casa de brinquedo
-  planta o dado que cada molde precisa para existir (ver `montar_casa`).
-
-AS EXCEÇÕES TÊM NOME E MOTIVO
-  O que não se aciona de verdade nem na casa de brinquedo está em `EXCECOES`,
-  com a frase do porquê. O teste confere que cada uma existe na tela e está
-  PROTEGIDA: pede confirmação, mostra o comando e, quando há o «Ver o que
-  faria», roda o ensaio e confere que a casa não mudou. E a lista não pode
-  ficar velha: ela é conferida contra o que o próprio servidor declara de cada
-  ação (`sudo`, `rede`) — uma ação nova que peça senha e não esteja nela
-  reprova, e uma exceção que deixou de pedir também.
-
-  O que o percurso acha QUEBRADO fora do território dele (um script, a CLI)
-  fica em `DEFEITOS_CONHECIDOS`, pela frase exata e com o endereço do conserto
-  — impresso em toda corrida, e reprovando no dia em que parar de acontecer.
-
-DEPENDÊNCIA, E POR QUE AQUI ELA É VERMELHA
-  Os outros dois testes de navegador saem "pulado" sem Playwright. Este não:
-  ele é o gate de merge (ver `docs/SPRINTS.md`), e gate que se pula sozinho
-  não é gate. Sem Playwright, ou sem o Chromium dele, sai 1 com a receita:
-
-      python3 -m venv ~/.local/share/meowsystem/venv-testes
-      ~/.local/share/meowsystem/venv-testes/bin/pip install playwright
-      ~/.local/share/meowsystem/venv-testes/bin/playwright install chromium
-
-  0 = passou · 1 = falhou · 2 = erro deste teste
+  0 = passou · 1 = falhou · 2 = erro deste teste. Sem Playwright sai 1: é gate.
 """
 import hashlib
 import json
@@ -78,6 +41,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
 import zlib
 from urllib.parse import quote
 
@@ -293,10 +257,16 @@ def montar_casa():
     xcursor_liso(os.path.join(ponteiro, "left_ptr"))
     tema = os.path.join(icones, valor_de("NOME_TEMA_ICONES"), "scalable", "apps")
     os.makedirs(tema)
-    glifos = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
-    for nome in sorted(os.listdir(glifos)):
-        if nome.endswith(".svg"):
-            shutil.copyfile(os.path.join(glifos, nome), os.path.join(tema, nome))
+    # [P96, 23/10/2026: as pastas do pack são planas; a lista do traço diz quais são os glifos do Arcticons.]
+    icones_base = os.path.join(RAIZ, "packs", "meowsystem", "icones")
+    with open(os.path.join(icones_base, "arcticons.lista"), encoding="utf-8") as fh:
+        lista = [l.strip() for l in fh if l.strip() and not l.startswith("#")]
+    for nome in sorted(lista):
+        for pasta in ("apps", "biblioteca", "sistema"):
+            origem = os.path.join(icones_base, pasta, nome)
+            if os.path.isfile(origem):
+                shutil.copyfile(origem, os.path.join(tema, nome))
+                break
     # O carrossel separa dia e noite pela luz de cada imagem, e só monta o
     # grupo da HORA (`e_noite`) se ele tiver duas ou mais — senão tudo fica em
     # `ativos/` e as abas Dia e Noite da galeria nascem vazias.
@@ -322,7 +292,7 @@ def montar_casa():
     for no in arvore.body:
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "SUFIXO_TEMA_DE_TERCEIRO" for a in no.targets)):
-            modulos = os.path.join(RAIZ, "assets", "temas-de-apps")
+            modulos = os.path.join(RAIZ, "scripts", "temas-de-apps")
             for app in sorted(os.listdir(modulos)):
                 try:
                     with open(os.path.join(modulos, app, "manifesto.sh"), encoding="utf-8") as fh:
@@ -382,7 +352,7 @@ def montar_casa():
     # A DECISÃO SEM MANIFESTO GANHA NOME NO CACHE DA STEAM. As linhas do mapa
     # da raiz de brinquedo cujo jogo não está aqui são as «Decisões já
     # executadas»; o nome da primeira mora só no `appinfo.vdf`.
-    with open(os.path.join(RAIZ_B, "assets", "icones", "jogos-fora.map"),
+    with open(os.path.join(RAIZ_B, "assets", "apps", "jogos-fora.map"),
               encoding="utf-8") as fh:
         orfas = [l.split(":")[0].strip() for l in fh
                  if l.strip() and not l.lstrip().startswith("#")
@@ -454,7 +424,7 @@ def montar_casa():
 def encerrar_a_casa():
     """Todo processo que ainda carregue o ambiente da casa recebe TERM, e o
     que resistir, KILL. O `app/run.sh` já derruba o servidor que subiu; este é
-    o cinto para o que um trabalho da gaveta tenha deixado em segundo plano —
+    o cinto para o que um trabalho da janela tenha deixado em segundo plano —
     um teste que sai deixando processo de pé na máquina de quem roda é o
     contrário do que a casa de brinquedo promete."""
     import signal
@@ -499,155 +469,6 @@ def sobe_servidor(ambiente):
             break
     return proc, url
 
-
-# O CENSO: todo controle da tela, com um nome estável
-#
-# O nome é `contexto · papel`.
-#
-# O censo MARCA cada elemento com `data-inventario="<nome>"`: é por essa marca
-# que o acionador o acha logo depois, sem uma segunda regra de localização que
-# pudesse discordar desta.
-CENSO_JS = r"""
-() => {
-  const SEL = 'button, a[href], input, select, textarea, summary, [role=button],'
-            + ' [role=switch], [role=checkbox], [role=tab], [role=menuitem],'
-            + ' [contenteditable=""], [contenteditable=true],'
-            + ' [tabindex]:not([tabindex="-1"])';
-  /* O `checkVisibility` e não só a caixa: o conteúdo de um `<details>`
-     fechado continua com caixa no Chromium e não recebe clique — o link do
-     «Mais sobre este pack» era contado na tela estando fechado. */
-  const visivel = (el) => {
-    if (el.type === 'file') return false;
-    const r = el.getBoundingClientRect();
-    if (r.width === 0 && r.height === 0) return false;
-    if (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true }))
-      return false;
-    const cs = getComputedStyle(el);
-    return cs.display !== 'none' && cs.visibility !== 'hidden';
-  };
-  const limpo = (t) => (t || '').replace(/\s+/g, ' ').trim();
-  const semConta = (t) => limpo(t).replace(/\s*\d+$/, '').slice(0, 60);
-  const titulo = (el, sel) => limpo((el.querySelector(sel) || {}).textContent);
-  /* OS LUGARES: recipiente que não nasce de dado e dá nome ao que tem dentro.
-     Aninham — um deslizante da oficina é «ícone do aplicativo › oficina». */
-  const LUGARES = [
-    ['article.cartao[data-chave]', (e) => 'ajuste ' + e.dataset.chave],
-    ['article.acao', (e) => 'ação «' + titulo(e, 'h3') + '»'],
-    ['.escolha-icone', () => 'ícone do aplicativo'],
-    ['details.oficina', () => 'oficina'],
-    ['details.oficina-edicao', () => 'edição do SVG'],
-    ['.oficina-autoral', () => 'desenhos autorais'],
-    ['.escolha-jogo', () => 'decisão do jogo'],
-    ['#lista-pendentes', () => 'lista de escolhas'],
-  ];
-  /* OS MOLDES: recipiente de controle que nasce de DADO — um por pack, por
-     papel de parede, por aplicativo, por cor da paleta. O de dentro ganha, e o
-     papel do controle ali é o que ele FAZ, não o dado que ele carrega. */
-  const MOLDES = [
-    ['.ficha', 'ficha da lista', (el) => el.tagName === 'BUTTON' ? 'tirar' : null],
-    ['.comandos .comando', 'linha de comando', () => 'Copiar'],
-    ['.linha-pendente', 'escolha pendente', () => 'ir ao cartão'],
-    ['.galeria figure', 'papel de parede', null],
-    ['.grade-apps .app', 'aplicativo', () => 'abrir'],
-    ['.grade-jogos .jogo', 'jogo da Steam', () => 'abrir'],
-    ['.home-fichas .home-ficha', 'ajuste mudado', () => 'ir ao cartão'],
-    ['.linha-orfa', 'jogo órfão', null],
-    ['article.pack', 'cartão de pack', null],
-    ['.pendencia', 'pendência', null],
-    /* [P73: o desenho que não vale no app fica na pasta, apagado, com o porquê
-       na dica — é outro papel, e o gesto dele é não fazer nada.] */
-    ['.tira-glifos button.travado', 'desenho travado', () => 'dica'],
-    ['.tira-glifos button', 'desenho do acervo', () => 'escolher'],
-    ['.cores-grade button[data-cor]', 'cor', () => 'escolher'],
-    ['.oficina-folha button', 'variação', () => 'escolher'],
-    ['.oficina-autoral [role=group][aria-label="Desenho"] button', 'desenho autoral',
-     () => 'escolher'],
-    ['.oficina-autoral [role=group][aria-label="Papéis"] select', 'papel do desenho',
-     () => 'seletor'],
-  ];
-  const zona = (el) => el.closest('#trilho') ? 'menu'
-    : el.closest('header.topo') ? 'topo'
-    : el.closest('#gaveta') ? 'gaveta'
-    : el.closest('dialog') ? 'caixa'
-    : el.closest('#torradas') ? 'torrada'
-    : el.closest('#aviso-aplicar') ? 'aviso'
-    : el.closest('#principal') ? 'aba' : 'página';
-  const contexto = (el) => {
-    const partes = [];
-    for (const [sel, nome] of LUGARES) {
-      const r = el.closest(sel);
-      if (r) partes.push([r, nome(r)]);
-    }
-    /* De fora para dentro: quem contém vem antes. */
-    partes.sort((a, b) => (a[0].contains(b[0]) ? -1 : b[0].contains(a[0]) ? 1 : 0));
-    const nomes = partes.map((p) => p[1]);
-    let papelDoMolde = null;
-    for (const [sel, nome, papelDele] of MOLDES) {
-      if (el.closest(sel)) { nomes.push(nome); papelDoMolde = papelDele; break; }
-    }
-    const z = zona(el);
-    if (z !== 'aba') nomes.unshift(z);
-    return { ctx: nomes.length ? nomes.join(' › ') : 'aba', papelDoMolde };
-  };
-  const papel = (el, ctx) => {
-    const tag = el.tagName.toLowerCase();
-    const rotulo = semConta(el.getAttribute('aria-label') || '');
-    const noCartao = ctx.startsWith('ajuste ');
-    if (el.id) return '#' + el.id;
-    if (tag === 'input') {
-      const t = (el.type || 'text').toLowerCase();
-      if (t === 'range') return noCartao ? 'deslizante' : 'deslizante «' + rotulo + '»';
-      if (t === 'time') return 'hora';
-      if (t === 'search') return 'filtro «' + rotulo + '»';
-      if (t === 'checkbox' || t === 'radio') return 'marca «' + rotulo + '»';
-      if (el.classList.contains('nova')) return 'nova ficha';
-      return noCartao ? 'campo' : 'campo «' + rotulo + '»';
-    }
-    if (tag === 'textarea') return 'texto «' + rotulo + '»';
-    if (tag === 'select') return noCartao || ctx.startsWith('ação ') ? 'seletor'
-                                                                   : 'seletor «' + rotulo + '»';
-    /* O texto do `<summary>` sem o botão que mora nele (a oficina põe o «Usar»
-       ali dentro): o nome é o do que abre, e não a soma dos dois. */
-    if (tag === 'summary') return 'abre «' + semConta([...el.childNodes]
-      .filter((n) => !(n.nodeType === 1 && n.matches('button, a, input, select')))
-      .map((n) => n.textContent).join(' ')) + '»';
-    if (el.closest('#trilho') && el.dataset.grupo) return el.dataset.grupo;
-    if (tag === 'a') {
-      const href = el.getAttribute('href') || '';
-      if (href.startsWith('#')) return 'âncora «' + semConta(el.textContent) + '»';
-      if (el.hasAttribute('download')) return 'baixa «' + semConta(el.textContent) + '»';
-      return 'link externo';
-    }
-    if (el.classList.contains('porque')) return '?';
-    if (el.classList.contains('lado-previa')) return 'Como está (desfaz o bloco)';
-    if (el.classList.contains('desfazer-forma')) return 'Desfazer as escolhas da forma';
-    /* O editor de SVG é o que a máquina tem («Abrir no gThumb» aqui, «Abrir
-       no Boxy SVG» noutra): o papel é abrir no editor, qualquer que seja. */
-    if (/^Abrir no /.test(limpo(el.textContent)) && ctx.includes('edição do SVG'))
-      return 'Abrir no editor';
-    if (el.dataset.acaoRapida) return 'ação rápida ' + el.dataset.acaoRapida;
-    if ('valor' in el.dataset) return el.dataset.valor === '' ? 'deixar vazio' : 'opção';
-    return rotulo || semConta(el.textContent) || tag;
-  };
-  const achados = {};
-  for (const el of document.querySelectorAll(SEL)) {
-    el.removeAttribute('data-inventario');
-    if (!visivel(el)) continue;
-    const { ctx, papelDoMolde } = contexto(el);
-    const p = (papelDoMolde && papelDoMolde(el)) || papel(el, ctx);
-    const nome = ctx + ' · ' + p;
-    el.setAttribute('data-inventario', nome);
-    const a = achados[nome] || (achados[nome] = { nome, zona: zona(el), n: 0,
-      amostra: limpo(el.getAttribute('aria-label') || el.textContent).slice(0, 50) });
-    a.n++;
-  }
-  return { aba: typeof ABA === 'undefined' ? '' : ABA,
-           busca: (document.getElementById('busca') || {}).value || '',
-           itens: Object.values(achados) };
-}
-"""
-
-
 # A casa ANTES e DEPOIS de um gesto: caminho, tamanho e data de cada arquivo da
 # casa e da raiz de brinquedo.
 FORA_DO_RETRATO = re.compile(
@@ -679,126 +500,141 @@ def diferenca(antes, depois):
     return sorted(mudou + sumiu)
 
 
-# A pastilha do fim era escolhida só pelo código de saída, e o percurso a
-# anotava na tabela sem cobrar nada: «Recarregar o painel» dizia «já estava
-# certo» depois de reciclar, e passava.
-_NATUREZAS = {}
 
+# ===========================================================================
+# O PERCURSO DO PAINEL NOVO (P98)
+# ===========================================================================
+import fnmatch  # noqa: E402
 
-def frases_do_fim(natureza):
-    if not _NATUREZAS:
-        codigo = ("import json, sys; sys.path.insert(0, sys.argv[1]); import servidor; "
-                  "print(json.dumps({n: sorted({f for _c, f in t.values()}) "
-                  "for n, t in servidor.NATUREZAS.items()}))")
-        ambiente = dict(os.environ, MEOW_RAIZ=RAIZ_B, HOME=CASA, MEOW_CONF=CONF)
-        r = subprocess.run([sys.executable, "-c", codigo, os.path.join(RAIZ_B, "app")],
-                           capture_output=True, text=True, env=ambiente)
-        _NATUREZAS.update(json.loads(r.stdout or "{}"))
-    return set(_NATUREZAS.get(natureza, [])) | {"pulado"}
+# O que a página tentou buscar fora de 127.0.0.1 — a rota do contexto recusa e
+# anota. É por aqui que o link externo prova para onde iria.
+PEDIDOS_DE_FORA = []
 
-
-# Um sinal fora da casa é defeito em QUALQUER gesto: é o painel da sessão de
-# verdade.
-SINAL_FORA = re.compile(r"^(pkill|killall|kill\(fora da casa\))")
-PERGUNTA = re.compile(r"^sudo -n ")
-REDE = re.compile(r"^(curl|wget) |^git (clone|fetch|pull|ls-remote|submodule)"
-                  r"|^cargo (build|install|fetch) ")
-
-# O QUE NA TELA É DEFEITO, E NÃO DADO. `null` e `undefined` sozinhos num nó de
-# texto são a forma exata de um `append(null)` — o cartão que perdeu o
-# controle e ganhou a palavra no lugar dele.
-TEXTO_RUIM_JS = r"""
+# Todo controle visível: o nome estável é o `data-controle` que a página põe.
+CENSO_JS = r"""
 () => {
-  const achados = [];
-  const raizes = ['header.topo', '#trilho', '#conteudo', 'dialog[open]', '#torradas',
-                  '#gaveta .gaveta-topo', '#aviso-aplicar'];
-  for (const sel of raizes) {
-    for (const raiz of document.querySelectorAll(sel)) {
-      const andar = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
-      let n;
-      while ((n = andar.nextNode())) {
-        const t = n.textContent;
-        const pai = n.parentElement;
-        if (!pai || pai.closest('script, style, template, .dica, code')) continue;
-        if (pai.offsetParent === null && getComputedStyle(pai).position !== 'fixed') continue;
-        const so = t.trim();
-        if (so === 'null' || /\bundefined\b|\bNaN\b|\[object |\$\{/.test(t))
-          achados.push(so.slice(0, 80) + '  (em ' + pai.tagName.toLowerCase()
-                       + (pai.className ? '.' + String(pai.className).split(' ')[0] : '') + ')');
-      }
-    }
-  }
-  return achados;
-}
-"""
-
-# A varredura das 14 abas achou o caminho absoluto na caixa de confirmar, no
-# «ver comando», no topo da gaveta e em três balões de ícone.
-CAMINHO_JS = r"""
-([casa, raiz]) => {
-  const achados = [];
-  const olhar = (texto, onde, soCasa) => {
-    if (!texto) return;
-    if (texto.includes(casa) || (!soCasa && texto.includes(raiz)))
-      achados.push(texto.trim().slice(0, 80) + '  (em ' + onde + ')');
+  const SEL = 'button, a[href], input, select, textarea, summary, [role=button], [role=switch],'
+            + ' [tabindex]:not([tabindex="-1"])';
+  const aberto = [...document.querySelectorAll('dialog')].find((d) => d.open && d.matches(':modal'));
+  const visivel = (el) => {
+    if (el.type === 'file' || el.type === 'hidden') return false;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return false;
+    if (r.right <= 0 || r.left >= innerWidth) return false;
+    if (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true })) return false;
+    const cs = getComputedStyle(el);
+    return cs.display !== 'none' && cs.visibility !== 'hidden';
   };
-  const andar = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  let n;
-  while ((n = andar.nextNode())) {
-    const pai = n.parentElement;
-    if (!pai || pai.closest('script, style, template')) continue;
-    olhar(n.textContent, pai.tagName.toLowerCase() + (pai.id ? '#' + pai.id : ''),
-          !!pai.closest('#saida'));
+  const itens = [];
+  for (const el of document.querySelectorAll(SEL)) {
+    if (!visivel(el)) continue;
+    if (aberto && !aberto.contains(el)) continue;
+    const zona = el.closest('dialog') ? 'dialogo' : el.closest('#topo') ? 'topo' : 'pagina';
+    itens.push({
+      nome: el.dataset.controle || null, tag: el.tagName.toLowerCase(), papel: el.getAttribute('role') || '',
+      tipo: (el.getAttribute('type') || '').toLowerCase(), zona,
+      desabilitado: !!(el.disabled || el.getAttribute('aria-disabled') === 'true'),
+      pressionado: el.getAttribute('aria-pressed') || el.getAttribute('aria-checked') || '',
+      dica: el.dataset.dica || '',
+      texto: (el.getAttribute('aria-label') || el.textContent || el.value || '').replace(/\s+/g, ' ').trim().slice(0, 60),
+      html: el.outerHTML.slice(0, 160),
+    });
   }
-  const nomes = ['title', 'aria-label', 'data-comando', 'placeholder'];
-  for (const el of document.querySelectorAll('[title], [aria-label], [data-comando], [placeholder]'))
-    for (const a of nomes) olhar(el.getAttribute(a), el.tagName.toLowerCase() + '[' + a + ']', false);
-  return achados;
+  return itens;
 }
 """
 
-# AS TORRADAS QUE NASCEM A PARTIR DE AGORA, com a classe e o texto — ver o
-# `h_acervo`, que é quem precisa delas: a torrada some antes de a página parar.
-TORRADAS_VISTAS_JS = r"""
-() => {
-  window.__torradasVistas = [];
-  if (window.__torradasVigia) window.__torradasVigia.disconnect();
-  window.__torradasVigia = new MutationObserver((ms) => {
-    for (const m of ms) for (const n of m.addedNodes) {
-      if (!n.classList || !n.classList.contains('torrada')) continue;
-      const classe = ['ok', 'igual', 'erro'].find((c) => n.classList.contains(c)) || '';
-      window.__torradasVistas.push({ classe, texto: n.textContent || '' });
-    }
-  });
-  window.__torradasVigia.observe(document.getElementById('torradas'), { childList: true });
-}
+# O retrato do que a tela mostra: muda quando o gesto teve efeito.
+ESTADO_JS = r"""
+() => JSON.stringify({
+  hash: location.hash,
+  n: (document.getElementById('aplicar') || { dataset: {} }).dataset.n,
+  conteudo: (document.getElementById('conteudo') || {}).innerHTML || '',
+  topo: (document.getElementById('topo') || {}).innerHTML || '',
+  dialogos: [...document.querySelectorAll('dialog')].map((d) => d.open),
+  torradas: (document.getElementById('torradas') || {}).innerHTML || '',
+})
 """
 
-# A PÁGINA PARADA: nenhuma mutação por `quieto` ms (a marca do censo não
-# conta), com um teto — a gaveta de um trabalho vivo muda a cada 400 ms e
-# nunca para sozinha.
+# Espera o DOM parar de mudar.
 ASSENTAR_JS = r"""
 ([quieto, teto]) => new Promise((pronto) => {
   let t = null;
   const fim = () => { obs.disconnect(); clearTimeout(t); clearTimeout(limite); pronto(); };
-  const obs = new MutationObserver((ms) => {
-    if (ms.every((m) => m.type === 'attributes' && m.attributeName === 'data-inventario')) return;
-    clearTimeout(t); t = setTimeout(fim, quieto);
-  });
+  const obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(fim, quieto); });
   obs.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
   t = setTimeout(fim, quieto);
   const limite = setTimeout(fim, teto);
 })
 """
 
-# O relógio da recarga das miniaturas está armado? (`agendarRecarga` do app.js;
-# ver o `assentar`.) A página sem o relógio responde que não.
-RECARGA_ARMADA_JS = "() => typeof RELOGIO_PREVIA !== 'undefined' && !!RELOGIO_PREVIA"
+TEXTO_RUIM_JS = r"""
+() => {
+  const ruins = [];
+  const anda = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  while (anda.nextNode()) {
+    const no = anda.currentNode, pai = no.parentElement;
+    if (!pai || pai.closest('script, style, pre')) continue;
+    if (pai.checkVisibility && !pai.checkVisibility({ visibilityProperty: true })) continue;
+    const t = no.textContent;
+    if (/\bundefined\b|\bNaN\b|\[object |\bnull\b|\$\{/.test(t)) ruins.push(t.trim().slice(0, 80));
+  }
+  const senha = document.querySelectorAll('input[type=password]').length;
+  return { ruins, senha };
+}
+"""
+
+# O nome vira molde: o que nasce de dado (um por pack, por programa, por cor)
+# conta uma vez.
+def molde(nome):
+    n = re.sub(r"=.*$", "=*", nome)
+    n = re.sub(r"^pack:[^:]+:", "pack:*:", n)
+    n = re.sub(r"^(programa|pendente|estado):.*$", r"\1:*", n)
+    return n
 
 
-# O que a página tentou buscar fora de 127.0.0.1 — a rota do contexto recusa
-# e anota. É por aqui que o link externo prova para onde iria.
-PEDIDOS_DE_FORA = []
+# O controle de uma chave que não se chama `chave:X`.
+CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "APPS_ATIVOS": "programa:"}
+# O controle de uma ação que não se chama `acao:X`, e a ação que só aparece com
+# dado da máquina (uma pendência, um jogo do Heroic, uma imagem na galeria).
+CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
+ACAO_COM_DADO = {
+    "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
+    "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
+    "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
+}
+# O que a página tem além das linhas de lugares.js, por página (glob no endereço).
+EXTRAS = {
+    "tema": ["tema:saude", "tema:abrir", "tema:criar", "pack:*:*", "chave:ACCENT=*", "chave:MODO=*"],
+    "criar/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
+    "criar/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
+    "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "autoral:*", "acervo:icone"],
+    "criar/papel": ["galeria:*", "papel:*", "acervo:parede"],
+    "criar/sons": ["criar:sino"],
+    "criar/mandar": ["criar:baixar", "criar:vestir"],
+    "ajustes/*": ["ajuste:*"],
+    "ajustes/programas": ["programa:*", "jogo:*", "icone:*", "oficina:*"],
+    "cuidar": ["estado:*", "cuidar:exportar", "cuidar:importar", "pendencia:*"],
+}
+GLOBAIS = ["marca", "porta:*", "busca", "achado", "pendentes", "pendente:*", "desfazer", "ensaiar",
+           "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*", "exportar:imagens",
+           "mais:*", "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
+# Os que o percurso aciona no fim, num fluxo de quem usa (e não um a um).
+NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "busca", "achado", "pendentes", "pendente:*",
+          "desfazer", "ensaiar", "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*",
+          "mais:*", "exportar:imagens", "criar:voltar", "criar:proximo"]
+# Têm de ter sido acionados ao fim do percurso inteiro.
+OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "busca", "achado",
+                "pendentes", "pendente:*", "desfazer", "ensaiar", "aplicar", "menu", "menu:creditos",
+                "menu:pagina", "trabalho", "resultado:ok", "resultado:guardar", "resultado:parar",
+                "resultado:registro", "resultado:de-verdade", "pergunta:nao", "pergunta:sim",
+                "pergunta:ensaio", "criar:voltar", "criar:proximo"]
+
+ROTAS = ["tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
+         "ajustes/painel", "ajustes/janelas", "ajustes/papel", "ajustes/mascote", "ajustes/dia-e-noite",
+         "ajustes/terminal", "ajustes/programas", "cuidar"]
+ACERVO = {"gato": "Adicionar logo", "icone": "Adicionar ícone", "parede": "Adicionar imagem",
+          "cursor": "Adicionar tema", "fonte": "Adicionar fonte", "tema-icones": "Adicionar tema de ícones"}
 
 
 def css_attr(valor):
@@ -806,33 +642,19 @@ def css_attr(valor):
 
 
 class Percurso:
-    """A visita. Guarda o que foi conferido, o que falhou e o que foi acionado."""
+    """A visita: o que foi conferido, o que falhou e o que foi acionado."""
 
     def __init__(self, pag):
         self.pag = pag
-        self.aba = "(abrindo)"
-        self.gesto = ""
+        self.rota = "(abrindo)"
         self.falhas = []
         self.conferidas = 0
-        self.acionados = set()
-        self.esperadas = []          # [(status, trecho de url)] que o gesto pediu
+        self.acionados = set()       # moldes acionados no percurso inteiro
+        self.vistos = set()          # moldes vistos em qualquer página
+        self.posts = []
+        self.esperadas = []
         self.pedidos_vivos = 0
-        self.nascidos = 0            # todo pedido que nasceu (o `assentar` compara)
-        self.posts = []              # (url, corpo) de todo POST de ação
-        self.acoes_vistas = {}       # id de ação -> como o percurso a exerceu
-        self.tempos = {}             # aba -> segundos
-        self.resultados = []         # (aba, ação, como, estado da gaveta, cauda)
-        self.vistos = {}             # aba -> {nome: censo} de tudo o que apareceu
-        self.url = ""
-        self.base = {}               # aba -> censo da aba ao abrir
-        self.rodadas = set()         # (ação, ensaio?) que já rodaram inteiras
-        self.duracoes = {}           # nome -> segundos do gesto
-        self.app_aberto = ""         # o aplicativo cujo painel o percurso abriu
-        self.conhecidos_vistos = set()
-        # As escolhas que revelaram o controle sendo acionado: o `desfazer`
-        # de dentro de um revelado não as tira da bandeja, senão o controle
-        # some no meio do próprio gesto (ver `acionar_revelados`).
-        self.preservar = None
+        self.tempos = {}
         pag.on("request", self._pedido)
         pag.on("requestfinished", self._fim_pedido)
         pag.on("requestfailed", self._pedido_falhou)
@@ -842,14 +664,14 @@ class Percurso:
 
     # --- o placar ----------------------------------------------------------
     def falha(self, frase):
-        onde = self.aba + (f" › {self.gesto}" if self.gesto else "")
-        for padrao in DEFEITOS_CONHECIDOS:
-            if re.search(padrao, frase):
-                self.conhecidos_vistos.add(padrao)
-                print(f"  ~~ [{onde}] conhecido, fora desta sprint: {frase}")
-                return
-        self.falhas.append((onde, frase))
-        print(f"  XX [{onde}] {frase}")
+        self.falhas.append((self.rota, frase))
+        print(f"  XX [{self.rota}] {frase}")
+        if FOTOS:
+            try:
+                os.makedirs(os.path.join(FOTOS, "falhas"), exist_ok=True)
+                self.pag.screenshot(path=os.path.join(FOTOS, "falhas", "%02d-%s.png" % (len(self.falhas), self.rota.replace("/", "-"))))
+            except Exception:  # noqa: BLE001 — a foto é para quem depura; a falha já foi anotada
+                pass
 
     def checa(self, cond, frase):
         self.conferidas += 1
@@ -860,17 +682,16 @@ class Percurso:
     # --- a rede ------------------------------------------------------------
     @staticmethod
     def _conta(req):
-        return "/api/pulso" not in req.url and req.url.startswith("http://127.0.0.1")
+        # As miniaturas chegam aos poucos e não mudam o que o gesto fez: o
+        # `assentar` espera a API, não a centena de imagens da grade.
+        return (req.url.startswith("http://127.0.0.1") and "/api/pulso" not in req.url
+                and not re.search(r"/(previa|pack-vitrine|gato\.svg|logo\.svg)\b", req.url))
 
     def _pedido(self, req):
         if not self._conta(req):
             return
         self.pedidos_vivos += 1
-        self.nascidos += 1
-        if req.method == "POST" and re.search(r"/api/(rodar|salvar|acervo|pack-importar|"
-                                              r"importar|pendencia-recusar|jogo-fora|"
-                                              r"app-icone|app-desenho|autorais|definir)",
-                                              req.url):
+        if req.method == "POST":
             try:
                 corpo = json.loads(req.post_data or "{}")
             except ValueError:
@@ -884,13 +705,10 @@ class Percurso:
     def _pedido_falhou(self, req):
         if self._conta(req):
             self.pedidos_vivos = max(0, self.pedidos_vivos - 1)
-            # Um `<img>` que a repintura descartou é abortado pelo próprio
-            # navegador; isso é a página trocando de ideia, e não defeito.
             if "ERR_ABORTED" not in (req.failure or ""):
                 self.falha(f"pedido falhou na rede: {req.url[:90]} ({req.failure})")
 
     def esperar_status(self, status, trecho):
-        """O gesto seguinte vai provocar este 4xx de propósito."""
         self.esperadas.append((status, trecho))
 
     def _resposta(self, resp):
@@ -900,92 +718,47 @@ class Percurso:
             if st == resp.status and trecho in resp.url:
                 del self.esperadas[i]
                 return
-        self.falha(f"resposta {resp.status} que ninguém pediu: {resp.url.split('?')[0][-60:]}"
-                   + (f"?{resp.url.split('?', 1)[1][:70]}" if "?" in resp.url else ""))
+        self.falha(f"resposta {resp.status} que ninguém pediu: {resp.url.split('?')[0][-60:]}")
 
     def _console(self, msg):
-        if msg.type != "error":
-            return
-        # O `Failed to load resource` é o eco, no console, de uma resposta 4xx/5xx:
-        # quem a julga é o `_resposta`, que sabe se ela foi pedida pelo gesto.
-        if "Failed to load resource" in msg.text:
+        if msg.type != "error" or "Failed to load resource" in msg.text:
             return
         self.falha(f"erro no console: {msg.text[:160]}")
 
     # --- a página ----------------------------------------------------------
-    def assentar(self, quieto=250, teto=8000):
-        """Espera a rede (menos o pulso) e o DOM pararem.
+    def js(self, codigo, arg=None):
+        return self.pag.evaluate(codigo, arg)
 
-        O PEDIDO QUE NASCE DEPOIS DO GESTO — 15/10/2026, P82 (item 37). A cura
-        da integração da P80 (`e34845c`) valeu só para o `/api/pack-importar`:
-        todo gesto cujo pedido nasce num salto assíncrono (o `close` de uma
-        caixa) tinha a mesma janela. O pedido nascia enquanto o DOM assentava,
-        e a espera de depois era de 3 s cravados; um servidor mais lento que
-        isso deixava o gate conferir a tela antes da resposta. Agora o
-        `assentar` conta os pedidos que NASCEM enquanto o DOM assenta (a
-        janela é o próprio `quieto`), espera cada um deles pelo mesmo `teto`
-        do gesto, e assenta o DOM de novo, porque a resposta repinta a tela.
-        A volta tem limite: uma página que pergunta em laço não prende o gate.
-        """
+    def assentar(self, quieto=250, teto=8000):
         fim = time.time() + teto / 1000
         while self.pedidos_vivos and time.time() < fim:
             self.pag.wait_for_timeout(40)
-        esperou_recarga = False
-        for _volta in range(4):
-            antes = self.nascidos
-            self.pag.evaluate(ASSENTAR_JS, [quieto, max(300, int((fim - time.time()) * 1000))])
-            # Um relógio armado é uma volta a mais: espera ele disparar (uma vez
-            # só, para uma miniatura que nunca fica pronta não prender o gate).
-            if not esperou_recarga and self.pag.evaluate(RECARGA_ARMADA_JS):
-                esperou_recarga = True
-                limite = time.time() + 1.5
-                while self.pag.evaluate(RECARGA_ARMADA_JS) and time.time() < limite:
-                    self.pag.wait_for_timeout(40)
-            elif self.nascidos == antes and not self.pedidos_vivos:
-                break
-            fim = max(fim, time.time() + teto / 1000)
-            while self.pedidos_vivos and time.time() < fim:
-                self.pag.wait_for_timeout(40)
+        self.pag.evaluate(ASSENTAR_JS, [quieto, max(300, int((fim - time.time()) * 1000))])
+        while self.pedidos_vivos and time.time() < fim:
+            self.pag.wait_for_timeout(40)
+
+    def estado(self):
+        return self.js(ESTADO_JS)
 
     def censo(self):
-        """O censo de agora. Tudo o que ele vê fica anotado: o que aparece no
-        meio de um gesto (a caixa, o «Copiar», o painel de um aplicativo) é
-        conferido contra o inventário no fim, junto com o que estava na tela."""
-        c = self.pag.evaluate(CENSO_JS)
-        achados = {a["nome"]: a for a in c["itens"]}
-        # O que é da aba conta na aba que a PÁGINA mostra (um gesto pode ter
-        # levado a outra); com a busca preenchida, a tela mistura as abas.
-        lugar = "(busca)" if c["busca"] else c["aba"]
-        for nome, a in achados.items():
-            chave = lugar if a["zona"] == "aba" else "topo"
-            self.vistos.setdefault(chave, {}).setdefault(nome, a)
-        return achados
+        itens = self.js(CENSO_JS)
+        for it in itens:
+            if it["nome"]:
+                self.vistos.add(molde(it["nome"]))
+        return itens
 
-    def achar(self, nome, i=0):
-        """O i-ésimo elemento com este nome, com o censo refeito agora."""
-        self.censo()
-        loc = self.pag.locator(f'[data-inventario="{css_attr(nome)}"]')
-        return loc.nth(i) if loc.count() > i else None
-
-    def clicar_nome(self, nome, i=0):
-        """Clica no i-ésimo elemento com este nome. Uma repintura entre o censo
-        e o clique apaga a marca (é o que a página faz quando uma lista chega
-        pela rede), e aí o censo é refeito e o clique tentado de novo — é o
-        que uma pessoa faria com o botão que piscou."""
-        for tentativa in range(4):
-            el = self.esperar_nome(nome, teto=4.0) if i == 0 else self.achar(nome, i)
-            if el is None:
-                break
+    def achar(self, nome, so_livre=False):
+        loc = self.pag.locator(f'[data-controle="{css_attr(nome)}"]')
+        for i in range(loc.count()):
+            el = loc.nth(i)
             try:
-                el.click(timeout=2500)
-                return
+                if el.is_visible() and (not so_livre or el.get_attribute("aria-pressed") != "true"):
+                    return el
             except Exception:
-                self.pag.wait_for_timeout(200)
-        raise RuntimeError(f"não consegui clicar em «{nome}»")
+                continue
+        return None
 
     def esperar_nome(self, nome, teto=8.0):
-        """O elemento, esperando a lista que o traz chegar da rede — depois de
-        um trabalho a página relê a grade, e no meio dela mostra "lendo…"."""
         fim = time.time() + teto
         while True:
             el = self.achar(nome)
@@ -993,1066 +766,285 @@ class Percurso:
                 return el
             self.pag.wait_for_timeout(150)
 
-    def quantos(self, nome):
-        self.censo()
-        return self.pag.locator(f'[data-inventario="{css_attr(nome)}"]').count()
-
-    def js(self, codigo, arg=None):
-        return self.pag.evaluate(codigo, arg)
-
-    def abrir_aba(self, grupo):
-        """Pelo menu lateral, como uma pessoa abriria."""
-        self.pag.locator(f'#trilho button[data-grupo="{css_attr(grupo)}"]').click()
-        self.assentar(quieto=350)
-
-    def aba_atual(self):
-        return self.js("() => ABA")
-
-    def voltar(self):
-        """Deixa a página como a aba começou: sem caixa aberta, sem trabalho
-        correndo, sem escolha pendente, sem busca, na aba certa."""
-        if self.js("() => !!document.querySelector('dialog[open]')"):
-            self.pag.keyboard.press("Escape")
-            self.assentar()
-        self.esperar_trabalho()
-        if self.js("() => MUDANCAS.size") > 0:
-            self.descartar()
-        if self.pag.locator("#busca").input_value():
-            self.pag.fill("#busca", "")
-            self.assentar()
-        if self.js("() => !!document.getElementById('lista-pendentes')"):
-            self.pag.keyboard.press("Escape")
-        if self.aba not in ("topo",) and self.aba_atual() != self.aba:
-            self.abrir_aba(self.aba)
-
-    def descartar(self):
-        """O Descartar do banner, e a pergunta que ele faz com 2+ escolhas."""
-        self.censo()
-        self.acionados.add("topo · #botao-descartar")
-        self.pag.locator("#botao-descartar").click()
-        self.assentar()
-        if self.pag.locator("#confirmar[open]").count():
-            self.pag.locator("#confirmar-ok").click()
-            self.assentar()
-
-    def esperar_trabalho(self, teto=240):
-        """Espera o trabalho da gaveta acabar e devolve (estado, saída)."""
-        if self.js("() => TRABALHO !== null"):
+    def clicar(self, nome, so_livre=False):
+        for _vez in range(4):
+            el = self.esperar_nome(nome, teto=4.0)
+            if so_livre:
+                el = self.achar(nome, so_livre=True) or el
+            if el is None:
+                break
             try:
-                self.pag.wait_for_function("() => TRABALHO === null", timeout=teto * 1000)
-            except Exception:
-                self.falha(f"o trabalho não acabou em {teto} s")
-                return None
-            self.assentar()
-        return (self.pag.locator("#gaveta-estado").inner_text(),
-                self.pag.locator("#saida").inner_text())
-
-    def texto_ruim(self):
-        for achado in self.js(TEXTO_RUIM_JS):
-            self.falha(f"texto de defeito na tela: {achado!r}")
-        for achado in self.js(CAMINHO_JS, [CASA, RAIZ_B]):
-            self.falha(f"a casa ou o caminho do clone na tela: {achado!r}")
-
-    # AS AÇÕES: o protocolo das três respostas
-    #
-    # Todo controle que roda uma ação do servidor passa por aqui, e o controle
-    # não precisa dizer QUAL ação roda: o protocolo descobre pelo que o clique
-    # faz — a caixa que abre (o título dela é o rótulo da ação) ou o POST que
-    # sai.
-    ACOES_JS = r"""
-    () => (ESQUEMA.acoes || []).map((a) => ({
-      id: a.id, rotulo: a.rotulo, escreve: !!a.escreve, sudo: !!a.sudo,
-      confirma: !!a.confirma, destrutivo: !!a.destrutivo, rede: !!a.rede,
-      natureza: a.natureza || "" }))
-    """
-
-    # O selo da rede à vista na porta da ação: o botão rápido da Início (selo
-    # logo depois dele) ou o cartão da ação (selo no rodapé).
-    SELO_DA_REDE_JS = r"""
-    (a) => {
-      const visivel = (e) => !!e && e.offsetParent !== null;
-      const rapido = document.querySelector(`[data-acao-rapida="${a.id}"]`);
-      if (visivel(rapido) && rapido.nextElementSibling
-          && rapido.nextElementSibling.matches(".p-rede")) return true;
-      return [...document.querySelectorAll("article.acao")]
-        .some((c) => visivel(c) && c.textContent.includes(a.rotulo) && visivel(c.querySelector(".p-rede")));
-    }
-    """
-
-    def acoes(self):
-        return {a["id"]: a for a in self.js(self.ACOES_JS)}
-
-    def acao_por_rotulo(self, rotulo):
-        return next((a for a in self.acoes().values() if a["rotulo"] == rotulo), None)
-
-    def caixa_aberta(self, teto=4.0):
-        fim = time.time() + teto
-        while time.time() < fim:
-            if self.pag.locator("#confirmar[open]").count():
-                self.censo()
+                el.click(timeout=5000)
+                self.acionados.add(molde(nome))
                 return True
-            self.pag.wait_for_timeout(50)
+            except Exception:
+                self.pag.wait_for_timeout(200)
+                # A janela de um trabalho que o gesto anterior abriu depois de a
+                # página assentar (máquina ocupada) cobre o botão: ela se resolve
+                # como as outras, e o clique tenta de novo.
+                if not nome.startswith(("resultado:", "pergunta:")) and self.aberto("resultado"):
+                    self.limpar()
+                # O botão que some com o próprio clique (o Desfazer, que só
+                # existe com mudança esperando) já fez o que devia.
+                if nome in ("desfazer",) and self.achar(nome) is None:
+                    self.acionados.add(molde(nome))
+                    return True
+        estado = self.js("() => ({ n: document.getElementById('aplicar').dataset.n, mudancas: MUDANCAS.size,"
+                         " caixas: [...document.querySelectorAll('dialog')].filter((d) => d.open).map((d) => d.id) })")
+        self.falha(f"não consegui clicar em «{nome}» ({estado})")
         return False
 
-    def esperar_post(self, n0, teto=4.0):
+    def aberto(self, ident):
+        return bool(self.js(f"() => document.getElementById('{ident}').open"))
+
+    def ir(self, rota):
+        """Chega à página como quem clica: a porta, e o trilho ou o passo."""
+        porta, _, sub = rota.partition("/")
+        self.clicar("porta:" + porta)
+        self.assentar()
+        if sub:
+            self.clicar(("ajuste:" if porta == "ajustes" else "passo:") + sub)
+            self.assentar()
+        self.checa(self.js("() => location.hash") == "#" + rota, f"o clique leva a #{rota}")
+
+    # --- os trabalhos ------------------------------------------------------
+    def esperar_trabalho(self, teto=240, parar=False):
+        """Espera a janela do trabalho chegar ao fim; com `parar`, aperta Parar."""
         fim = time.time() + teto
+        parou = False
         while time.time() < fim:
-            if len(self.posts) > n0:
-                return self.posts[n0]
-            if self.pag.locator("#confirmar[open]").count():
+            correndo = self.js("() => document.getElementById('resultado-estado').dataset.estado === 'correndo'"
+                               " && !document.getElementById('parar').hidden")
+            if not correndo:
+                break
+            if parar and not parou and self.achar("resultado:parar"):
+                self.clicar("resultado:parar")
+                parou = True
+            self.pag.wait_for_timeout(300)
+        else:
+            if self.achar("resultado:parar"):
+                self.clicar("resultado:parar")
+                self.pag.wait_for_timeout(2000)
+            self.falha("o trabalho passou do teto de %ds" % teto)
+        estado = self.js("() => document.getElementById('resultado-estado').textContent")
+        self.checa(estado and estado[0].isupper(), f"a janela diz o fim com maiúscula ({estado!r})")
+        return estado
+
+    def fechar_resultado(self):
+        """O «OK» fecha a janela. Com a máquina ocupada, a janela pode fechar
+        entre o «está aberta» e o clique: fechada é o que se queria, não falha."""
+        for _vez in range(4):
+            if not self.aberto("resultado"):
+                break
+            el = self.esperar_nome("resultado:ok", teto=4.0)
+            try:
+                if el is not None:
+                    el.click(timeout=5000)
+                    self.acionados.add(molde("resultado:ok"))
+            except Exception:
+                self.pag.wait_for_timeout(300)
+        else:
+            if self.aberto("resultado"):
+                self.falha("o «OK» não fecha a janela do trabalho")
+        self.assentar()
+
+    def fechar_pergunta(self):
+        if self.aberto("pergunta"):
+            self.clicar("pergunta:nao")
+            self.assentar()
+
+    def limpar(self):
+        """Nenhuma caixa aberta antes do próximo gesto: um trabalho que um gesto
+        disparou depois de voltar (a oficina encadeia dois) é esperado e fechado."""
+        for _vez in range(3):
+            if self.aberto("pergunta"):
+                self.fechar_pergunta()
+            if self.aberto("resultado"):
+                longo = self.js("() => !!TRABALHO && TRABALHO.acao === 'instalar'")
+                self.esperar_trabalho(parar=longo)
+                self.fechar_resultado()
+            if not self.js("() => !!TRABALHO && !!TRABALHO.timer"):
+                break
+            self.pag.wait_for_timeout(500)
+
+    def depois_do_gesto(self, nome):
+        """O que o gesto abriu se resolve aqui: a pergunta, a janela do trabalho."""
+        self.assentar(quieto=300)
+        if self.aberto("pergunta"):
+            titulo = self.js("() => document.getElementById('pergunta-titulo').textContent")
+            self.checa(titulo[:1].isupper(), f"a pergunta de «{nome}» começa com maiúscula ({titulo!r})")
+            self.checa(self.js(TEXTO_RUIM_JS)["senha"] == 0, f"a pergunta de «{nome}» não tem campo de senha")
+            if titulo == "Falta a ponte":
+                self.fechar_pergunta()
+                return "ponte"
+            if self.achar("pergunta:ensaio"):
+                self.clicar("pergunta:ensaio")
+                self.assentar()
+                if self.checa(self.aberto("resultado"), f"o «Ver sem mudar» de «{nome}» abre a janela"):
+                    self.checa(self.js("() => !document.getElementById('faixa-ensaio').hidden"),
+                               f"a janela do ensaio de «{nome}» diz que é ensaio")
+                    self.esperar_trabalho()
+                    self.fechar_resultado()
+                return "ensaio"
+            self.clicar("pergunta:sim")
+            self.assentar()
+        if self.aberto("resultado"):
+            # O instalador inteiro (o Aplicar, e o tema que veste na hora) é
+            # parado: o que se confere é que ele começou, e o Parar.
+            longo = self.js("() => !!TRABALHO && TRABALHO.acao === 'instalar'")
+            self.esperar_trabalho(parar=longo)
+            self.fechar_resultado()
+            return "trabalho"
+        return ""
+
+    # --- os acionadores ------------------------------------------------------
+    def arquivo_de_teste(self, tipo):
+        import zipfile
+        pasta = os.path.join(BRINQUEDO, "envios")
+        os.makedirs(pasta, exist_ok=True)
+        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">'
+               '<circle cx="24" cy="24" r="18" fill="none" stroke="#cba6f7" stroke-width="3"/></svg>')
+        if tipo in ("gato", "icone"):
+            nome = os.path.join(pasta, "brinquedo-desenho-%s.svg" % tipo)
+            with open(nome, "w", encoding="utf-8") as fh:
+                fh.write(svg)
+            return nome
+        if tipo == "parede":
+            nome = os.path.join(pasta, "brinquedo-nova.png")
+            png_liso(nome, (0xF5, 0xC2, 0xE7))
+            return nome
+        if tipo == "cursor":
+            nome = os.path.join(pasta, "brinquedo-ponteiro.zip")
+            cur = os.path.join(pasta, "left_ptr")
+            xcursor_liso(cur)
+            with zipfile.ZipFile(nome, "w") as z:
+                z.write(cur, "Brinquedo-Ponteiro/cursors/left_ptr")
+                z.writestr("Brinquedo-Ponteiro/index.theme", "[Icon Theme]\nName=Brinquedo-Ponteiro\n")
+            return nome
+        if tipo == "tema-icones":
+            nome = os.path.join(pasta, "brinquedo-icones.zip")
+            with zipfile.ZipFile(nome, "w") as z:
+                z.writestr("Brinquedo-Icones/index.theme",
+                           "[Icon Theme]\nName=Brinquedo-Icones\nDirectories=scalable/apps\n\n"
+                           "[scalable/apps]\nSize=48\nType=Scalable\n")
+                z.writestr("Brinquedo-Icones/scalable/apps/brinquedo.svg", svg)
+            return nome
+        if tipo == "fonte":
+            achada = subprocess.run(["fc-match", "-f", "%{file}", "sans:fontformat=TrueType"],
+                                    capture_output=True, text=True).stdout.strip()
+            if not achada.endswith(".ttf"):
                 return None
-            self.pag.wait_for_timeout(50)
+            nome = os.path.join(pasta, "brinquedo-fonte.ttf")
+            shutil.copyfile(achada, nome)
+            return nome
         return None
 
-    def gesto_de_acao(self, clicar, rotulo=""):
-        """Clica, descobre a ação e dá as respostas que ela aceita."""
-        antes, reg0, n0 = retrato(), len(registro()), len(self.posts)
-        clicar()
-        post = self.esperar_post(n0)
-        if self.caixa_aberta(0.3 if post else 4.0):
-            return self._com_caixa(clicar, antes, reg0, n0)
-        if not post:
-            self.falha(f"o clique em «{rotulo}» não abriu caixa nem pediu nada ao servidor")
-            return
-        destino, corpo = post
-        ident = corpo.get("acao") or ("instalar" if destino == "salvar" else "")
-        acao = self.acoes().get(ident)
-        if not self.checa(acao, f"o POST /api/{destino} pediu a ação {ident!r}, que o "
-                                "servidor não declara"):
-            return
-        self.acoes_vistas.setdefault(ident, set()).add("sem caixa")
-        # Pedir senha ou baixar da internet SEM PERGUNTAR é o que as exceções
-        # existem para impedir: se isso roda direto, a exceção não protege nada.
-        if reparo_que_baixa(acao):
-            self.checa(self.js(self.SELO_DA_REDE_JS, acao),
-                       f"«{acao['rotulo']}» baixa da internet sem pergunta (é reparo), "
-                       f"e a porta dele mostra o selo «baixa da internet»")
-        else:
-            self.checa(not (acao["sudo"] or acao["rede"]),
-                       f"«{acao['rotulo']}» rodou sem caixa de pergunta, e declara "
-                       f"{'pedir senha' if acao['sudo'] else 'baixar da internet'}")
-        self.conferir_trabalho(acao, bool(corpo.get("seco")), antes, reg0)
-        # O conferir que sai 1 deixa o botão da ação que conserta ao lado do
-        # «Fechar» (`conserta_com`, servidor); ele é um gesto de ação como outro
-        # qualquer.
-        botao = self.pag.locator("#gaveta-consertar")
-        if botao.count() and botao.is_visible():
-            self.censo()             # o botão entra no que apareceu, antes de sumir no clique
-            self.acionados.add("gaveta · #gaveta-consertar")
-            # [Integração da onda 2: a porta da gaveta também mostra o selo da
-            # rede quando a ação que conserta baixa. Conferido ANTES do clique,
-            # porque o botão e o selo somem nele.]
-            conserto = self.acao_por_rotulo(botao.inner_text().strip())
-            if conserto and reparo_que_baixa(conserto):
-                self.checa(self.js("""() => {
-                    const b = document.querySelector('#gaveta-consertar');
-                    const s = b && b.nextElementSibling;
-                    return !!s && s.matches('.p-rede') && s.offsetParent !== null; }"""),
-                           f"«{conserto['rotulo']}» na gaveta mostra o selo «baixa da "
-                           f"internet» logo depois do botão")
-            self.gesto_de_acao(lambda: botao.click(), botao.inner_text().strip())
-
-    def _com_caixa(self, clicar, antes, reg0, n0):
-        titulo = self.pag.locator("#confirmar-titulo").inner_text().strip()
-        acao = self.acao_por_rotulo(titulo)
-        if acao is None:
-            # Caixa de pergunta que não é de ação do servidor (o «Não
-            # perguntar de novo?» da pendência): quem a chamou cuida dela.
-            return titulo
-        ident = acao["id"]
-        oferece = self.pag.locator("#confirmar-ensaio").is_visible()
-        self.checa(self.pag.locator("#confirmar-comando").inner_text().strip(),
-                   f"a caixa de «{titulo}» mostra o comando que vai rodar")
-        # O COMANDO DA CAIXA COLA EM QUALQUER MÁQUINA. Sem a casa e sem o
-        # caminho do clone: `meow …`, `./script.sh …` ou `~/…`.
-        cmd = self.pag.locator("#confirmar-comando").inner_text()
-        self.checa(CASA not in cmd and RAIZ_B not in cmd,
-                   f"a caixa de «{titulo}» mostra o comando sem a casa nem o "
-                   f"caminho do clone ({cmd.strip()[:60]!r})")
-        self.checa(oferece == (acao["sudo"] or acao["destrutivo"]),
-                   f"a caixa de «{titulo}» oferece o «Ver o que faria» "
-                   "exatamente quando a ação pede senha ou desfaz algo")
-        vistas = self.acoes_vistas.setdefault(ident, set())
-        if acao["sudo"]:
-            sudo = self.pag.locator("#confirmar-sudo")
-            self.checa(sudo.is_visible() and "\n" not in sudo.locator("strong").inner_text().strip(),
-                       f"a caixa de «{titulo}» diz o sudo em uma linha")
-            if self.achar("caixa · ?") is not None:
-                self.h_porque("caixa · ?")
-                self.acionados.add("caixa · ?")
-
-        # 1. Cancelar
-        self.pag.locator("#confirmar button[value=nao]").click()
-        self.acionados.add("caixa · Cancelar")
-        self.assentar(quieto=150)
-        self.checa(len(self.posts) == n0,
-                   f"Cancelar em «{titulo}» não pede nada ao servidor"
-                   + (f" — pediu {self.posts[n0:]}" if len(self.posts) > n0 else ""))
-        self.esperar_trabalho()
-        mudou = diferenca(antes, retrato())
-        self.checa(not mudou, f"Cancelar em «{titulo}» não muda a casa — mudou {mudou[:4]}")
-        vistas.add("cancelar")
-
-        # 2. Ver o que faria
-        rodou = False
-        if oferece:
-            n1, reg1, antes1 = len(self.posts), len(registro()), retrato()
-            clicar()
-            if not self.checa(self.caixa_aberta(), f"«{titulo}» pergunta de novo no segundo clique"):
-                return titulo
-            self.pag.locator("#confirmar-ensaio").click()
-            self.acionados.add("caixa · #confirmar-ensaio")
-            post = self.esperar_post(n1)
-            self.checa(post and post[1].get("seco") is True,
-                       f"«Ver o que faria» em «{titulo}» pede o ensaio ao servidor")
-            self.conferir_trabalho(acao, True, antes1, reg1)
-            vistas.add("ensaio")
-            if ident not in EXCECOES and self.pag.locator("#ensaio-rodar").count():
-                n2, reg2, antes2 = len(self.posts), len(registro()), retrato()
-                self.pag.locator("#ensaio-rodar").click()
-                self.acionados.add("gaveta · #ensaio-rodar")
-                post = self.esperar_post(n2)
-                self.checa(post and post[1].get("seco") is False,
-                           f"«Rodar de verdade» depois do ensaio de «{titulo}» roda sem ensaio")
-                self.conferir_trabalho(acao, False, antes2, reg2)
-                vistas.add("rodar")
-                rodou = True
-
-        # 3. Rodar
-        if ident in EXCECOES:
-            vistas.add("protegida")
-            return titulo
-        if not rodou:
-            n3, reg3, antes3 = len(self.posts), len(registro()), retrato()
-            clicar()
-            if not self.checa(self.caixa_aberta(), f"«{titulo}» pergunta de novo no último clique"):
-                return titulo
-            self.pag.locator("#confirmar-ok").click()
-            self.acionados.add("caixa · #confirmar-ok")
-            post = self.esperar_post(n3)
-            self.checa(post and not post[1].get("seco"),
-                       f"«Rodar» em «{titulo}» pede ao servidor a execução de verdade")
-            self.conferir_trabalho(acao, False, antes3, reg3)
-            vistas.add("rodar")
-        return titulo
-
-    # A casa de brinquedo não tem sessão, rede nem senha, e muita ação honesta
-    # responde "não achei" ou sai 2 lá dentro — isso é a ação dizendo a
-    # verdade sobre a casa.
-    QUEBRA = re.compile(r"Traceback \(most recent call last\)|unbound variable|"
-                        r"command not found|comando não encontrado|syntax error|"
-                        r"erro de sintaxe|: line \d+: |: linha \d+: ")
-
-    def conferir_trabalho(self, acao, seco, antes, reg0):
-        rot = acao["rotulo"]
-        # A resposta do POST é quem abre a gaveta: primeiro ela chega.
-        self.assentar(quieto=100)
-        if not self.checa(self.js("() => !document.getElementById('gaveta').hidden"),
-                          f"«{rot}» abriu a gaveta"):
-            return
-        # A MESMA AÇÃO POR OUTRA PORTA — o «Conferir a máquina» da Início e o
-        # da aba Instalação são dois botões para o mesmo `doctor`. Aqui o
-        # «Parar» ganha a vez, que é também onde ele é conferido.
-        chave = (acao["id"], seco)
-        if (chave in self.rodadas and (seco or not acao["escreve"])
-                and self.js("() => TRABALHO !== null")):
-            parar = self.pag.locator("#parar")
+    def escolher_arquivo(self, nome, caminho):
+        """O seletor de arquivo abre com o clique; com a página ocupada (a grade
+        de aplicativos repinta), o clique pode cair numa repintura: tenta de novo."""
+        for vez in range(3):
             try:
-                # O trabalho pode acabar entre a pergunta e o clique — aí o
-                # «Parar» se apaga, e esperar por ele seria esperar por nada.
-                if parar.is_enabled():
-                    parar.click(timeout=1500)
-                    self.acionados.add("gaveta · #parar")
+                with self.pag.expect_file_chooser(timeout=15000) as escolha:
+                    self.clicar(nome)
+                escolha.value.set_files(caminho)
+                return
             except Exception:
-                pass
-            # Um trabalho de décimos de segundo acaba antes do clique chegar:
-            # aí não há o que interromper, e o «Parar» é conferido de verdade
-            # no ensaio do instalador (ver `h_salvar`).
-            fim = self.esperar_trabalho(teto=60)
-            if fim:
-                self.resultados.append((self.aba, rot, "por outra porta", fim[0], ""))
+                if vez == 2:
+                    raise
+                self.assentar(quieto=500)
+
+    def h_acervo(self, nome):
+        tipo = nome.split(":", 1)[1]
+        arquivo = self.arquivo_de_teste(tipo)
+        if not self.checa(arquivo, f"há um arquivo de teste para «{ACERVO.get(tipo, tipo)}»"):
             return
-        self.rodadas.add(chave)
-        fim = self.esperar_trabalho(teto=300)
-        if fim is None:
-            return
-        estado, saida = fim
-        self.acionados.add("gaveta · #gaveta-estado")
-        self.checa(saida.strip(), f"«{rot}» mostrou a saída na gaveta")
-        # A GAVETA NÃO TRAZ A CASA DE NINGUÉM. O comando do topo sai como a
-        # pessoa o digitaria, e as linhas trocam a casa por `~`.
-        topo = self.pag.locator("#gaveta-comando").inner_text()
-        self.checa(CASA not in topo and RAIZ_B not in topo,
-                   f"a gaveta de «{rot}» mostra o comando sem a casa nem o caminho "
-                   f"do clone ({topo.strip()[:60]!r})")
-        self.checa(CASA not in saida,
-                   f"a saída de «{rot}» na gaveta troca a casa por ~")
-        for linha in saida.splitlines():
-            if self.QUEBRA.search(linha):
-                self.falha(f"«{rot}» quebrou: {linha.strip()[:140]}")
-                break
-        if seco:
-            self.checa(self.pag.locator("#faixa-ensaio").count(),
-                       f"o ensaio de «{rot}» ganha a faixa «ENSAIO · nada foi escrito»")
-        novas = registro()[reg0:]
-        for linha in novas:
-            if SINAL_FORA.match(linha):
-                self.falha(f"«{rot}» mandou sinal para fora da casa: {linha[:120]}")
-            elif REDE.match(linha) and not acao["rede"]:
-                self.falha(f"«{rot}» tentou baixar sem declarar rede: {linha[:120]}")
-            elif seco and not PERGUNTA.match(linha):
-                self.falha(f"o ensaio de «{rot}» tentou escrever: {linha[:120]}")
-        if seco or not acao["escreve"]:
-            mudou = diferenca(antes, retrato())
-            self.checa(not mudou, f"«{rot}» {'em ensaio ' if seco else ''}não muda a casa"
-                                  f" — mudou {len(mudou)}: {mudou[:4]}")
-        # O ESTADO DA GAVETA É INFORMAÇÃO, E NÃO VEREDITO: na casa de brinquedo
-        # não há sessão, rede nem senha, e uma ação honesta sai 2 dizendo isso
-        # ("não consegui armar o timer").
-        frase = estado.split(" · ")[0].strip().lower()
-        natureza = "ensaio" if seco else acao.get("natureza", "")
-        self.checa(frase in frases_do_fim(natureza) or re.match(r"saiu -?\d+$", frase),
-                   f"o fim de «{rot}» ({estado.strip()}) é uma frase da natureza "
-                   f"«{natureza}», e não só do código de saída")
-        cauda = ""
-        if re.match(r"saiu ", frase):
-            cauda = " / ".join(l.strip() for l in saida.splitlines() if l.strip())[-160:]
-        self.resultados.append((self.aba, rot, "ensaio" if seco else "de verdade", estado, cauda))
+        antes, n0 = retrato(), len(self.posts)
+        self.escolher_arquivo(nome, arquivo)
+        fim = time.time() + 120
+        while len(self.posts) == n0 and time.time() < fim:
+            self.pag.wait_for_timeout(100)
+        self.assentar(quieto=400, teto=120000)
+        erro = self.pag.locator("#torradas .torrada.erro")
+        self.checa(not erro.count(), f"o acervo «{tipo}» aceita {os.path.basename(arquivo)}"
+                   + (f" — disse {erro.first.inner_text()[:100]!r}" if erro.count() else ""))
+        self.checa(diferenca(antes, retrato()), f"o acervo «{tipo}» escreveu na casa de brinquedo")
 
-    # OS AJUSTES: cada forma de controle de um cartão
-    #
-    # O efeito cobrado é o que a pessoa vê e o que o Salvar leva: a marca no
-    # botão e a escolha na bandeja (`MUDANCAS`, que é o que o «1 escolha» do
-    # banner conta).
-    CARTAO_JS = r"""
-    (k) => {
-      const c = document.querySelector(`#conteudo article.cartao[data-chave="${k}"]`);
-      if (!c) return null;
-      const x = c.cloneNode(true);
-      x.querySelectorAll('[data-inventario]').forEach((e) => e.removeAttribute('data-inventario'));
-      const item = ESQUEMA.chaves.find((i) => i.chave === k) || {};
-      return { html: x.outerHTML, pendente: MUDANCAS.has(k),
-               escolha: MUDANCAS.has(k) ? MUDANCAS.get(k) : null,
-               disco: item.valor ?? '' };
-    }
-    """
+    def h_download(self, nome):
+        with self.pag.expect_download(timeout=60000) as baixa:
+            self.clicar(nome)
+            self.pag.wait_for_timeout(300)
+            if self.aberto("pergunta"):
+                if self.achar("exportar:imagens"):
+                    self.clicar("exportar:imagens")
+                self.clicar("pergunta:sim")
+        caminho = baixa.value.path()
+        self.checa(os.path.getsize(caminho) > 100,
+                   f"«{nome}» baixa {baixa.value.suggested_filename} ({os.path.getsize(caminho)} bytes)")
+        if nome == "criar:baixar":
+            with open(caminho, "rb") as fh:
+                self.checa(fh.read(4) == bytes([0x28, 0xB5, 0x2F, 0xFD]), "o tema baixado é um .meowpack (zstd)")
 
-    def cartao(self, chave):
-        return self.js(self.CARTAO_JS, chave) or {"html": "", "pendente": False,
-                                                  "escolha": None, "disco": ""}
+    def h_abrir_tema(self, nome):
+        """Um CSV das 26 cores, pela porta «Abrir um tema»: vira um pack novo."""
+        ordem = self.js("() => ESQUEMA.paleta.ordem")
+        cores = self.js("() => ESQUEMA.paleta.flavors[flavorEmVigor()]")
+        caminho = os.path.join(BRINQUEDO, "envios", "cores-de-brinquedo.csv")
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        with open(caminho, "w", encoding="utf-8") as fh:
+            fh.write("slot,flavor,hex\n" + "".join(f"{n},brinquedo,{cores[n]}\n" for n in ordem))
+        self.escolher_arquivo(nome, caminho)
+        self.assentar(quieto=400, teto=60000)
+        if self.checa(self.aberto("pergunta"), "abrir um .csv pergunta antes de instalar"):
+            self.clicar("pergunta:sim")
+            self.assentar(quieto=400, teto=60000)
+        self.checa(self.pag.locator('article.pack[data-pack="cores-de-brinquedo"]').count() == 1,
+                   "o tema aberto aparece entre os temas")
 
-    @staticmethod
-    def chave_de(nome):
-        return re.match(r"ajuste (\S+)", nome).group(1)
+    def h_importar_conf(self, nome):
+        caminho = os.path.join(BRINQUEDO, "envios", "meus-ajustes.conf")
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        atual = valor_de("RELOGIO_SEGUNDOS") or "nao"
+        with open(caminho, "w", encoding="utf-8") as fh:
+            fh.write('RELOGIO_SEGUNDOS="%s"\n' % ("sim" if atual != "sim" else "nao"))
+        n0 = self.js("() => MUDANCAS.size")
+        self.escolher_arquivo(nome, caminho)
+        self.assentar(quieto=400)
+        self.checa(self.js("() => MUDANCAS.size") == n0 + 1, "trazer ajustes vira uma mudança esperando o Aplicar")
 
-    # OS DESFAZERES DO BLOCO — «Como está» (o lado de antes da prévia, quando
-    # há escolha pendente no bloco) e «Desfazer N escolhas»
-    DESFAZERES = (("#conteudo button.desfazer-forma", "aba · Desfazer as escolhas da forma"),
-                  ("#conteudo button.lado-previa", "aba · Como está (desfaz o bloco)"))
-
-    def desfazer(self):
-        if self.preservar:
-            # Dentro de um revelado: desfaz só o que o gesto de dentro escolheu.
-            self.js("(manter) => { for (const k of [...MUDANCAS.keys()])"
-                    " if (!manter.includes(k)) MUDANCAS.delete(k);"
-                    " atualizarBarraSalvar(); render(); }", sorted(self.preservar))
-            self.assentar(quieto=80, teto=3000)
-            return
-        for sel, nome in self.DESFAZERES:
-            n = self.js("() => MUDANCAS.size")
-            botao = self.pag.locator(sel)
-            if n and botao.count() and botao.first.is_visible():
-                self.censo()
-                botao.first.click()
-                self.assentar(quieto=80, teto=3000)
-                self.checa(self.js("() => MUDANCAS.size") < n,
-                           f"«{nome.split(' · ')[-1]}» tira da bandeja as escolhas do bloco")
-                self.acionados.add(nome)
-        if self.js("() => MUDANCAS.size") > 0:
-            self.descartar()
-
-    def h_porque(self, nome):
-        el = self.achar(nome)
-        dica = el.get_attribute("aria-controls")
-        el.click()
-        self.checa(el.get_attribute("aria-expanded") == "true"
-                   and self.pag.locator(f"#{dica}").is_visible(),
-                   "o «?» abre o balão da explicação")
-        el.click()
-        self.checa(el.get_attribute("aria-expanded") == "false"
-                   and not self.js(f"() => !document.getElementById('{dica}').hidden"),
-                   "e o segundo clique o fecha")
-
-    def h_opcoes(self, nome):
-        chave = self.chave_de(nome)
-        antes = set(self.censo())
-        for i in range(self.quantos(nome)):
-            el = self.achar(nome, i)
-            if el is None:
-                self.falha(f"a opção {i + 1} sumiu depois do clique na anterior")
-                break
-            if el.is_disabled():
-                continue
-            valor = el.get_attribute("data-valor")
-            self.clicar_nome(nome, i)
-            self.assentar(quieto=80, teto=3000)
-            c = self.cartao(chave)
-            # No controle por área (Sim/Não por área, `controlePorArea`) o
-            # botão «Não» de uma área grava vazio numa hora e uma lista na
-            # outra, e a fileira de «opções» muda de tamanho entre um clique e
-            # o seguinte: a opção de índice i depois do clique já não era a
-            # clicada.
-            seguro = (valor or "").replace("\\", "\\\\").replace('"', '\\"')
-            marcado = self.pag.locator(
-                f'#conteudo article.cartao[data-chave="{chave}"] '
-                f'button[data-valor="{seguro}"][aria-pressed="true"]').count() > 0
-            self.checa(marcado, f"{chave}: clicar em {valor!r} marca {valor!r}")
-            self.checa(c["pendente"] == (valor != c["disco"]),
-                       f"{chave}: {valor!r} {'entra' if valor != c['disco'] else 'não entra'}"
-                       " na bandeja do Salvar")
-            self.acionar_revelados(antes)
-        self.desfazer()
-
-    def h_pack_opcao(self, nome):
-        """O PACK SE ESCOLHE POR UM GESTO SÓ — P82, item 24 (decisão 23). Em «Cor
-        e tela» a opção de outro pack é o mesmo pedido do «Usar este» da Início:
-        a ação `pack_usar`, com o id do pack, pela mesma caixa — e nada entra na
-        bandeja do Salvar. A opção do pack no ar não faz nada."""
-        for i in range(self.quantos(nome)):
-            el = self.achar(nome, i)
-            if el is None or el.is_disabled() or el.get_attribute("aria-pressed") == "true":
-                continue
-            valor = el.get_attribute("data-valor") or ""
-            if not valor:
-                continue
-            n0 = len(self.posts)
-            self.gesto_de_acao(lambda i=i: self.clicar_nome(nome, i), f"pack {valor}")
-            pedidos = [c for d, c in self.posts[n0:] if d == "rodar"]
-            self.checa(pedidos and all(c.get("acao") == "pack_usar" and c.get("argumento") == valor
-                                       for c in pedidos),
-                       f"PACK: escolher {valor!r} em «Cor e tela» manda o mesmo pedido do «Usar "
-                       f"este» ({[(c.get('acao'), c.get('argumento')) for c in pedidos]})")
-            self.checa(not self.cartao("PACK")["pendente"],
-                       f"PACK: escolher {valor!r} não deixa nada na bandeja do Salvar")
-            return
-        self.falha("PACK: nenhuma opção de outro pack para escolher")
-
-    def mexer_no_cartao(self, chave):
-        """Um gesto qualquer que mude o cartão — para provar que um botão de
-        voltar (Restaurar, Automático, vazio) desfaz alguma coisa."""
-        base = f'#conteudo article.cartao[data-chave="{chave}"]'
-        faixa = self.pag.locator(f"{base} input[type=range]")
-        if faixa.count():
-            faixa.first.focus()
-            no_fim = faixa.first.input_value() == faixa.first.get_attribute("max")
-            self.pag.keyboard.press("Home" if no_fim else "End")
-            return True
-        opc = self.pag.locator(f'{base} button[data-valor]:not([data-valor=""])'
-                               ':not([aria-pressed=true])')
-        if opc.count():
-            opc.first.click()
-            return True
-        campo = self.pag.locator(f"{base} input[type=time]")
-        if campo.count():
-            campo.first.fill("21:47")
-            return True
-        return False
-
-    def h_botao_do_cartao(self, nome):
-        """«Restaurar ao padrão», «Automático», o vazio: mudam o cartão."""
-        chave = self.chave_de(nome)
-        el = self.achar(nome)
-        h0 = self.cartao(chave)["html"]
-        el.click()
-        self.assentar(quieto=80, teto=3000)
-        h1 = self.cartao(chave)["html"]
-        if h1 == h0:
-            # Já estava no valor que o botão devolve: move antes, e o botão
-            # tem de desfazer o movimento.
-            self.checa(self.mexer_no_cartao(chave), f"{chave}: há um controle para mover")
-            self.assentar(quieto=80, teto=3000)
-            h2 = self.cartao(chave)["html"]
-            el = self.achar(nome)
-            if self.checa(el is not None, f"{chave}: «{nome.split(' · ')[-1]}» continua lá"):
-                el.click()
-                self.assentar(quieto=80, teto=3000)
-                self.checa(self.cartao(chave)["html"] != h2,
-                           f"{chave}: «{nome.split(' · ')[-1]}» muda o cartão")
-        self.desfazer()
-
-    def h_deslizante(self, nome):
-        chave = self.chave_de(nome)
-        antes = set(self.censo())
-        el = self.achar(nome)
-        if not self.checa(not el.is_disabled(), f"{chave}: o deslizante nasce livre"):
-            return
-        v0 = el.input_value()
-        el.focus()
-        self.pag.keyboard.press("Home" if v0 == el.get_attribute("max") else "End")
-        self.assentar(quieto=80, teto=3000)
-        c = self.cartao(chave)
-        el = self.achar(nome)
-        self.checa(el is not None and el.input_value() != v0 and c["pendente"],
-                   f"{chave}: a tecla move o deslizante e a escolha entra na bandeja")
-        self.acionar_revelados(antes)
-        self.desfazer()
-
-    def acionar_revelados(self, antes):
-        """Aciona o que a escolha pendente revelou em OUTRO cartão — o nome de
-        uma área em «Nomes das áreas» acende o Sim/Não da «Folga invisível».
-
-        [P77, 10/10/2026: e o cartão que um MODO revela (Logo do sistema). A
-        escolha que revelou fica na bandeja enquanto os de dentro são
-        acionados: o `desfazer` deles só tira o que eles mesmos escolheram.]"""
-        anterior = self.preservar
-        self.preservar = set(self.js("() => [...MUDANCAS.keys()]") or []) | (anterior or set())
-        try:
-            for n in sorted(set(self.censo()) - antes):
-                if (((n.startswith("ajuste ") and not n.endswith(" · Aplicar"))
-                     or n.startswith("ação "))
-                        and n not in self.acionados and self.acionador(n)):
-                    self.acionar(n, limpar=False, esperar=False)
-        finally:
-            self.preservar = anterior
-
-    def h_campo(self, nome):
-        chave = self.chave_de(nome)
-        antes = set(self.censo())
-        el = self.achar(nome)
-        v0 = el.input_value()
-        h0 = self.cartao(chave)["html"]
-        n_torradas = self.pag.locator("#torradas .torrada").count()
-        el.fill((v0 + "1") if v0 else "1")
-        el.press("Enter")
-        self.assentar(quieto=120, teto=3000)
-        c = self.cartao(chave)
-        recusou = self.pag.locator("#torradas .torrada.erro").count() > 0 or \
-            self.pag.locator("#torradas .torrada").count() > n_torradas
-        self.checa(c["pendente"] or recusou or c["html"] != h0,
-                   f"{chave}: escrever no campo e dar Enter entra na bandeja, ou a "
-                   "página diz por que não")
-        if c["pendente"]:
-            self.acionar_revelados(antes)
-            c = self.cartao(chave)
-        if not c["pendente"]:
-            el = self.achar(nome)
-            if el is not None:
-                el.fill(v0)
-                el.press("Enter")
-        self.desfazer()
-
-    def h_hora(self, nome):
-        chave = self.chave_de(nome)
-        antes = set(self.censo())
-        el = self.achar(nome)
-        v0 = el.input_value()
-        # O `fill` de um campo de hora já dispara o `change`, e o `change`
-        # repinta a aba: o elemento de antes deixa de existir.
-        el.fill("21:47" if v0 != "21:47" else "06:13")
-        self.assentar(quieto=80, teto=3000)
-        self.checa(self.cartao(chave)["pendente"], f"{chave}: a hora nova entra na bandeja")
-        self.acionar_revelados(antes)
-        self.desfazer()
-
-    def h_nova_ficha(self, nome):
-        chave = self.chave_de(nome)
-        novo = "zzz-completo"
-        base = f'#conteudo article.cartao[data-chave="{chave}"]'
-        el = self.achar(nome)
-        el.fill(novo)
-        el.press("Enter")
-        self.assentar(quieto=100, teto=3000)
-        fichas = self.pag.locator(f"{base} .fichas")
-        self.checa(novo in (fichas.inner_text() if fichas.count() else "")
-                   and self.cartao(chave)["pendente"],
-                   f"{chave}: o Enter desenha a ficha nova e a põe na bandeja")
-        tirar = self.pag.locator(f'{base} .ficha button[aria-label="Tirar {novo}"]')
-        if self.checa(tirar.count(), f"{chave}: a ficha nova tem o × dela"):
-            tirar.first.click()
-            self.assentar(quieto=100, teto=3000)
-            self.checa(novo not in self.pag.locator(f"{base} .fichas").inner_text()
-                       and not self.cartao(chave)["pendente"],
-                       f"{chave}: o × tira a ficha, e a lista volta a ser a do disco")
-            self.acionados.add(f"ajuste {chave} › ficha da lista · tirar")
-        self.desfazer()
-
-    # A FICHA DE PROGRAMA DIZ O PROGRAMA: o nome e o ícone do `.desktop`, e o
-    # id no balão. Lido da tela, contra o que a casa plantou.
-    FICHA_PROGRAMA_JS = r"""
-    ([k, id]) => {
-      const c = document.querySelector(`#conteudo article.cartao[data-chave="${k}"]`);
-      if (!c) return null;
-      const fichas = [...c.querySelectorAll('.ficha')];
-      const f = fichas.find((x) => x.getAttribute('data-balao') === id);
-      return { rotulos: fichas.map((x) => (x.querySelector(':scope > span') || {}).textContent),
-               achou: !!f, texto: f ? f.querySelector(':scope > span').textContent : '',
-               icone: !!(f && f.querySelector('img')) };
-    }
-    """
-
-    def h_tirar_ficha(self, nome):
-        chave = self.chave_de(nome)
-        if chave == "LANCADOR_OCULTAR":
-            f = self.js(self.FICHA_PROGRAMA_JS, [chave, PROGRAMA[0]]) or {}
-            self.checa(f.get("achou") and f.get("texto") == PROGRAMA[1] and f.get("icone"),
-                       f"{chave}: a ficha de {PROGRAMA[0]} mostra «{PROGRAMA[1]}» e o "
-                       f"ícone do .desktop, com o id no balão ({f})")
-            self.checa(PROGRAMA[0] not in (f.get("rotulos") or []),
-                       f"{chave}: o id cru {PROGRAMA[0]} não aparece como rótulo de ficha")
-        n0 = self.quantos(nome)
-        self.achar(nome).click()
-        self.assentar(quieto=100, teto=3000)
-        self.checa(self.quantos(nome) == n0 - 1 and self.cartao(chave)["pendente"],
-                   f"{chave}: o × tira uma ficha ({n0} → {self.quantos(nome)}) e a "
-                   "lista nova entra na bandeja")
-        self.desfazer()
-
-    def h_seletor_ajuste(self, nome):
-        chave = self.chave_de(nome)
-        for i in range(self.quantos(nome)):
-            el = self.achar(nome, i)
-            atual = el.input_value()
-            outros = [o for o in el.locator("option").evaluate_all(
-                "(os) => os.map((o) => o.value)") if o != atual]
-            if not outros:
-                # Uma opção só nesta casa (a variante de pastas do único tema de
-                # pastas instalado): nada a trocar, e ela está escolhida.
-                self.checa(atual, f"{chave}: o seletor {i + 1} mostra a única opção")
-                continue
-            h0 = self.cartao(chave)["html"]
-            el.select_option(outros[0])
-            self.assentar(quieto=100, teto=3000)
-            c = self.cartao(chave)
-            self.checa(c["pendente"] or c["html"] != h0,
-                       f"{chave}: trocar o seletor {i + 1} muda o cartão")
-            self.desfazer()
-
-    # ======================================================================
-    # AS AÇÕES DA ABA
-    # ======================================================================
-    def h_executar(self, nome):
-        rotulo = re.match(r"ação «(.*)» ·", nome).group(1)
-        el = self.achar(nome)
-        if el is not None and el.is_disabled():
-            self.conferir_apagado(el, rotulo)
-            return
-        self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
-
-    def h_par(self, nome):
-        """O segundo botão do par «ver / aplicar» (P82, item 22): é o aplicar,
-        e o gesto é o de qualquer ação — a caixa, se houver, e o trabalho."""
-        rotulo = nome.split(" · ", 1)[1]
-        self.gesto_de_acao(lambda: self.clicar_nome(nome), rotulo)
-
-    # «Pôr um gato no dock» com o gato por horário e «Gravar as áreas» sem área
-    # fixada rodavam e não faziam nada.
-    MOTIVO_JS = r"""
-    (id) => {
-      const a = (ESQUEMA.acoes || []).find((x) => x.id === id);
-      if (!a || !a.indisponivel) return null;
-      const m = a.indisponivel;
-      /* `feito` (QA da P80): a ação já feita aponta a seguinte pelo rótulo dela. */
-      const ref = m.antes || m.feito;
-      const antes = ref ? (ESQUEMA.acoes.find((x) => x.id === ref) || {}).rotulo : null;
-      return { antes, chave: m.chave ? nomeVisivel(m.chave) : null,
-               vale: m.vale ? rotuloDeValor(m.vale) : null,
-               pede: m.pede ? rotuloDeValor(m.pede) : null, porque: m.porque || null };
-    }
-    """
-
-    def conferir_apagado(self, el, rotulo):
-        acao = self.acao_por_rotulo(rotulo)
-        if not self.checa(acao, f"o «Executar» apagado é de uma ação que o servidor declara ({rotulo})"):
-            return
-        cartao = el.locator("xpath=ancestor::article[1]")
-        frase = cartao.locator("p.frase").all_inner_texts()
-        motivo = self.js(self.MOTIVO_JS, acao["id"])
-        if motivo is None:
-            # O apagado de antes: lista vazia. Continua dizendo por quê.
-            self.checa(any(f.strip() for f in frase),
-                       f"«{rotulo}» apagado diz por quê no cartão")
-            return
-        texto = " ".join(frase)
-        nomes = [n for n in (motivo["antes"], motivo["chave"], motivo["vale"], motivo["pede"]) if n]
-        if not nomes and motivo.get("porque"):
-            self.checa(motivo["porque"].lower() in texto.lower(),
-                       f"«{rotulo}» apagado diz por quê: {texto[:160]!r}")
-        else:
-            self.checa(nomes and all(f"«{n}»" in texto for n in nomes),
-                       f"«{rotulo}» apagado diz por quê com os nomes da tela {nomes}: {texto[:160]!r}")
-        self.esperar_status(409, "/api/rodar")
-        sel = cartao.locator("select")
-        arg = sel.input_value() if sel.count() else ""
-        resposta = self.js("(c) => api('/api/rodar', {method: 'POST', body: JSON.stringify(c)})",
-                           {"acao": acao["id"], "argumento": arg, "confirmado": True})
-        self.checa(resposta and resposta.get("erro") and self.js("() => TRABALHO === null"),
-                   f"o servidor recusa rodar «{rotulo}» apagado ({(resposta or {}).get('erro')!r})")
-        self.acoes_vistas.setdefault(acao["id"], set()).add("apagada")
-
-    def h_clique_de_acao(self, nome):
-        """Ação rápida, «Usar este», «Conferir»: um botão que roda uma ação."""
-        self.gesto_de_acao(lambda: self.clicar_nome(nome), nome.split(" · ")[-1])
-
-    def h_resolver(self, nome):
-        """Uma pendência por vez, pelo balão (que é o rótulo da ação dela)."""
-        baloes = [self.achar(nome, i).get_attribute("data-balao")
-                  for i in range(self.quantos(nome))]
-        for balao in baloes:
-            def clicar(b=balao):
-                self.censo()
-                self.pag.locator(f'[data-inventario="{css_attr(nome)}"]'
-                                 f'[data-balao="{css_attr(b)}"]').first.click()
-            self.gesto_de_acao(clicar, f"Resolver: {balao}")
-            self.voltar()
-
-    def h_seletor_acao(self, nome):
-        el = self.achar(nome)
-        atual = el.input_value()
-        linha = el.locator("xpath=ancestor::article[1]").locator("code.cmd")
-        c0 = linha.inner_text()
-        opcoes = el.locator("option").evaluate_all("(os) => os.map((o) => o.value)")
-        if nome.startswith("ação «Trocar de tema» "):
-            self.conferir_temas_prontos(opcoes, atual)
-        outros = [o for o in opcoes if o != atual]
-        if not outros:
-            # Uma opção só: não há o que trocar, e o que se confere é o
-            # comando dizer essa opção.
-            self.checa(atual in c0, f"o comando na tela leva a única opção ({c0!r})")
-            return
-        el.select_option(outros[0])
-        self.checa(linha.inner_text() != c0,
-                   f"trocar o seletor reescreve o comando na tela ({c0!r} → "
-                   f"{linha.inner_text()!r})")
-        el.select_option(atual)
-
-    # Este percurso não via nada disso: o seletor de uma opção só caía no ramo
-    # "não há o que trocar" do `h_seletor_acao`, e passava.
-    def conferir_temas_prontos(self, opcoes, atual):
-        ambiente = {k: v for k, v in os.environ.items() if not k.startswith("MEOW_")}
-        ambiente["HOME"] = CASA
-        r = subprocess.run([sys.executable, os.path.join(RAIZ_B, "scripts", "pack.py"),
-                            "capturas"], env=ambiente, capture_output=True, text=True)
-        regua = [n for n in r.stdout.split() if n != "original"]
-        par = f"{valor_de('FLAVOR')}-{valor_de('ACCENT')}"
-        if not self.checa(r.returncode == 0 and par in regua,
-                          f"a régua dos temas prontos (pack.py capturas) traz {par}: "
-                          f"rc={r.returncode} {r.stdout.split()}"):
-            return
-        self.checa(opcoes == regua,
-                   f"«Trocar de tema» oferece os temas prontos dos packs ({regua}), "
-                   f"e oferece {opcoes}")
-        self.checa("original" not in opcoes and atual != "original",
-                   f"«Trocar de tema» não oferece a `original`, o tema de fábrica de "
-                   f"outra máquina (oferece {opcoes}, escolhida {atual!r})")
-
-    def h_ver_comando(self, nome):
-        el = self.achar(nome)
-        el.focus()
-        el.click()
-        lista = el.locator("xpath=ancestor::*[.//div[contains(@class,'comandos')]][1]") \
-                  .locator(".comandos").first
-        self.checa(el.get_attribute("aria-expanded") == "true" and lista.is_visible(),
-                   "«ver comando» abre a lista de comandos")
-        copiar = lista.locator("button")
-        if self.checa(copiar.count(), "a lista traz um «Copiar»"):
-            codigo = lista.locator("code").first.inner_text()
-            copiar.first.focus()
-            copiar.first.click()
-            self.assentar(quieto=100, teto=2000)
-            copiado = self.js("() => navigator.clipboard.readText()")
-            self.checa(copiado and codigo.strip() and
-                       (copiado.strip() == codigo.strip() or copiado.strip().endswith(
-                           codigo.strip().split(" ", 1)[-1])),
-                       f"«Copiar» põe o comando na área de transferência ({copiado[:50]!r})")
-            self.checa(self.pag.locator("#torradas .torrada", has_text="copiado").count(),
-                       "e diz que copiou")
-            self.acionados.add(nome.rsplit(" · ", 1)[0] + " › linha de comando · Copiar")
-        el = self.achar(nome)
-        if el is not None and el.get_attribute("aria-expanded") == "true":
-            el.click()
-            self.checa(el.get_attribute("aria-expanded") == "false", "e o segundo clique fecha")
-
-    # ======================================================================
-    # O RESTO DA ABA
-    # ======================================================================
-    def h_fundo(self, nome):
-        """As pílulas de fundo das prévias: a marca vai para quem foi clicado."""
-        original = self.pag.locator(".fundos button[aria-pressed=true]").inner_text().strip()
-        el = self.achar(nome)
-        el.click()
-        self.assentar(quieto=100, teto=3000)
-        el = self.achar(nome)
-        self.checa(el is not None and el.get_attribute("aria-pressed") == "true",
-                   "a pílula de fundo clicada fica marcada")
-        self.pag.locator(".fundos button", has_text=original).first.click()
-        self.assentar(quieto=100, teto=3000)
-
-    def h_aba_galeria(self, nome):
-        el = self.achar(nome)
-        el.click()
-        self.assentar(quieto=200)
-        el = self.achar(nome)
-        self.checa(el is not None and el.get_attribute("aria-pressed") == "true"
-                   and self.pag.locator("#conteudo .galeria figure, #conteudo .sem-previa")
-                   .count(), "a aba da galeria fica marcada e mostra o que tem")
-        self.pag.locator("#conteudo .abas button").first.click()
-        self.assentar(quieto=200)
-
-    def contagem_galeria(self):
-        """{"No carrossel": 6, "Noite": 0, ...}, lido dos botões das abas."""
-        conta = {}
-        for t in self.pag.locator("#conteudo .abas button").all_inner_texts():
-            m = re.match(r"\s*(.*?)\s*(\d*)\s*$", t)
-            conta[m.group(1)] = int(m.group(2) or 0)
-        return conta
-
-    def clicar_na_ficha(self, nome, i=0):
-        """Os botões da ficha de imagem só recebem o ponteiro com a ficha sob o
-        rato ou com o foco dentro dela (`:focus-within`, no estilo.css). O foco
-        é o caminho que não depende de onde o rato está: o botão o recebe, a
-        legenda acorda, e o clique chega a ele."""
-        el = self.achar(nome, i)
-        el.focus()
-        el.click()
-
-    def h_galeria(self, nome):
-        """O primeiro papel de parede: Usar, Dia, Noite, Tirar — e o Medir e o
-        Devolver que eles revelam."""
-        papel = nome.split(" · ")[-1]
-        c0 = self.contagem_galeria()
-        imagem = self.achar(nome).locator("xpath=ancestor::figure[1]").locator(".nome") \
-                     .inner_text().strip()
-        antes = retrato()
-        # A demora só aparece sob carga; a galeria vazia no meio aparece em toda
-        # corrida, e é ela que o vigia cobra: do clique até a releitura
-        # assentar, nenhuma pintura do #conteudo sem ficha ou com o «lendo».
-        self.js("""() => {
-          window.__galeriaSumiu = [];
-          window.__vigiaGaleria = new MutationObserver(() => {
-            const fichas = document.querySelectorAll('#conteudo .galeria figure').length;
-            const lendo = [...document.querySelectorAll('#conteudo .sem-previa')]
-              .some((e) => e.textContent.includes('lendo o acervo'));
-            if (!fichas || lendo) window.__galeriaSumiu.push({ fichas, lendo });
-          });
-          window.__vigiaGaleria.observe(document.getElementById('conteudo'),
-                                        { childList: true, subtree: true });
-        }""")
-        self.gesto_de_acao(lambda: self.clicar_na_ficha(nome), f"papel de parede: {papel}")
-        self.assentar(quieto=300)
-        sumiu = self.js("() => { window.__vigiaGaleria.disconnect(); return window.__galeriaSumiu; }")
-        self.checa(not sumiu, f"a galeria não some na releitura depois de «{papel}»: "
-                              f"{len(sumiu)} pintura(s) sem ficha ou com «lendo o acervo…»")
-        c1 = self.contagem_galeria()
-        if papel in ("Dia", "Noite"):
-            # A contagem pode não mudar (a imagem escura já contava na Noite
-            # pela medição): quem prova é o lado gravado e o «Medir» aceso.
-            self.checa(any(c.endswith("lado.tsv") for c in diferenca(antes, retrato())),
-                       f"«{papel}» grava o lado de {imagem}")
-            self.pag.locator("#conteudo .abas button", has_text=papel).first.click()
-            self.assentar(quieto=300)
-            medir = "papel de parede · Medir"
-            if self.checa(self.esperar_nome(medir) is not None,
-                          f"na aba {papel}, {imagem} ganha o «Medir»"):
-                antes = retrato()
-                self.gesto_de_acao(lambda: self.clicar_na_ficha(medir), "Medir")
-                self.assentar(quieto=300)
-                self.checa(any(c.endswith("lado.tsv") for c in diferenca(antes, retrato())),
-                           "«Medir» devolve a escolha ao brilho medido")
-                self.acionados.add(medir)
-        elif papel == "Tirar":
-            self.checa(c1.get("Recusadas", 0) == c0.get("Recusadas", 0) + 1
-                       and c1.get("No carrossel", 0) == c0.get("No carrossel", 0) - 1,
-                       f"«Tirar» manda {imagem} para as Recusadas ({c0} → {c1})")
-            self.pag.locator("#conteudo .abas button", has_text="Recusadas").first.click()
-            self.assentar(quieto=300)
-            devolver = "papel de parede · Devolver"
-            if self.checa(self.esperar_nome(devolver) is not None,
-                          "nas Recusadas a imagem tem «Devolver»"):
-                self.gesto_de_acao(lambda: self.clicar_na_ficha(devolver), "Devolver")
-                self.assentar(quieto=300)
-                c2 = self.contagem_galeria()
-                self.checa(c2.get("No carrossel") == c0.get("No carrossel")
-                           and c2.get("Recusadas") == c0.get("Recusadas"),
-                           f"«Devolver» põe a imagem de volta no carrossel ({c2})")
-                self.acionados.add(devolver)
-        elif papel == "Usar":
-            self.checa(diferenca(antes, retrato()), f"«Usar» muda a imagem da casa ({imagem})")
-        self.pag.locator("#conteudo .abas button").first.click()
-        self.assentar(quieto=200)
-
-    def h_favoritar(self, nome):
-        """A estrela da primeira imagem (P79): guarda nas favoritas, a aba
-        «Favoritos» conta uma a mais, e a estrela acesa a tira de volta."""
-        c0 = self.contagem_galeria()
-        self.gesto_de_acao(lambda: self.clicar_na_ficha(nome), "Guardar nas favoritas")
-        self.assentar(quieto=300)
-        c1 = self.contagem_galeria()
-        self.checa(c1.get("Favoritos", 0) == c0.get("Favoritos", 0) + 1
-                   and c1.get("No carrossel") == c0.get("No carrossel"),
-                   f"a estrela guarda a imagem nas favoritas e ela segue girando ({c0} → {c1})")
-        tirar = "papel de parede · Tirar das favoritas"
-        if self.checa(self.esperar_nome(tirar) is not None, "a favorita tem a estrela acesa"):
-            self.gesto_de_acao(lambda: self.clicar_na_ficha(tirar), "Tirar das favoritas")
-            self.assentar(quieto=300)
-            c2 = self.contagem_galeria()
-            self.checa(c2.get("Favoritos", 0) == c0.get("Favoritos", 0),
-                       f"a estrela acesa tira a imagem das favoritas ({c2})")
-            self.acionados.add(tirar)
-        self.pag.locator("#conteudo .abas button").first.click()
-        self.assentar(quieto=200)
-
-    def h_filtro(self, nome):
-        """O filtro de uma grade: pelo nome do primeiro item, e depois limpo.
-
-        A grade é a DO FILTRO — o «Filtrar jogo» filtra os jogos da Steam, e o
-        «Filtrar aplicativo», a grade de aplicativos; quem diz qual é o
-        `data-foco` dele."""
-        el = self.achar(nome)
-        foco = el.get_attribute("data-foco")
-        sel = {"jogos": "#conteudo .grade-jogos .jogo"}.get(foco, "#conteudo .grade-apps .app")
-        grade = self.pag.locator(sel)
-        n0 = grade.count()
-        if not self.checa(n0, f"o filtro tem o que filtrar ({sel})"):
-            return
-        palavra = re.split(r"\s+", grade.first.locator(".app-nome").inner_text().strip())[0][:5]
-        try:
-            el.fill(palavra)
-            self.assentar(quieto=150)
-            n1 = grade.count()
-            self.checa(1 <= n1 <= n0, f"filtrar por {palavra!r} deixa {n1} de {n0}")
-            self.achar(nome).fill("zzzz-nada-casa")
-            self.assentar(quieto=150)
-            self.checa(grade.count() == 0, "um filtro sem resultado esvazia a grade")
-        finally:
-            el = self.achar(nome)
-            if el is not None:
-                el.fill("")
-                self.assentar(quieto=150)
-        self.checa(grade.count() == n0, "e limpar o filtro devolve a grade inteira")
-
-    def h_pular(self, nome):
-        el = self.achar(nome)
-        alvo = (el.get_attribute("href") or "")[1:]
-        if not self.checa(alvo and self.js(f"() => !!document.getElementById({json.dumps(alvo)})"),
-                          f"o salto aponta para um lugar que existe (#{alvo})"):
-            return
-        el.focus()
-        self.pag.keyboard.press("Enter")
-        self.assentar(quieto=100, teto=2000)
-        self.checa(self.js(f"""() => {{
-            const a = document.getElementById({json.dumps(alvo)});
-            const r = a.getBoundingClientRect();
-            return document.activeElement === a || (r.top >= 0 && r.top < innerHeight);
-        }}"""), f"o Enter no salto leva o foco ou a tela até #{alvo}")
-
-    def h_details(self, nome):
-        """Abre, aciona o que ele revela (o link do pack, os dois «baixar» do
-        Exportar), e fecha.
-
-        NUM MOLDE, O EXEMPLAR QUE REVELA: o «Mais sobre este pack» do pack que
-        veio de um CSV não tem site, e o pack importado no gesto anterior
-        passa a ser o primeiro da fila — medido na quarta corrida. Os
-        exemplares são abertos em ordem até um revelar alguma coisa."""
-        if nome.startswith("cartão de pack"):
-            # TODOS os cartões, e antes do laço: ele para no primeiro exemplar
-            # que revela alguma coisa, e o da história plantada pode não ser
-            # esse. O `open` é posto e tirado direto — o clique é o do laço.
-            self.historia_conferida = False
-            for i in range(self.quantos(nome)):
-                d = self.achar(nome, i).locator("xpath=..")
-                d.evaluate("(d) => { d.open = true; }")
-                self.conferir_historia(d)
-                d.evaluate("(d) => { d.open = false; }")
-            self.checa(self.historia_conferida,
-                       "a história com Markdown hostil, plantada no pack padrão, foi "
-                       "conferida no cartão dele")
-            # O CARTÃO INTEIRO ABRE: um clique na capa abre o detalhe e o
-            # cartão toma a linha da grade; o segundo fecha.
-            d = self.achar(nome, 0).locator("xpath=..")
-            capa = d.locator("xpath=..").locator(".pack-capa")
-            capa.click()
-            # O `toggle` do `<details>` chega numa tarefa depois do clique.
-            self.pag.wait_for_timeout(200)
-            aberto = d.evaluate("(d) => d.open && d.parentElement.classList.contains('aberto')")
-            capa.click()
-            self.pag.wait_for_timeout(200)
-            self.checa(aberto and not d.evaluate("(d) => d.open"),
-                       "um clique na capa do pack abre o detalhe na linha inteira, e outro fecha")
-        for i in range(min(3, self.quantos(nome))):
-            estava = False
-            if nome.startswith("ícone do aplicativo · abre"):
-                el = self.achar(nome, i)
-                estava = bool(el.locator("xpath=..").evaluate("(d) => d.open"))
-                if estava:
-                    el.click()
-            self.assentar(quieto=300)
-            antes = set(self.censo())
-            el = self.achar(nome, i)
-            el.click()
-            self.checa(el.locator("xpath=..").evaluate("(d) => d.open"),
-                       f"«{nome.split('«')[-1][:-1]}» abre")
-            novos = sorted(set(self.censo()) - antes)
-            # A oficina e a edição do SVG têm percurso próprio, com ordem (ver
-            # `h_aplicativo`); os `<details>` simples acionam aqui o que revelam.
-            if not nome.startswith("ícone do aplicativo"):
-                for n in novos:
-                    if self.acionador(n) and n not in self.acionados:
-                        alvo = self.achar(nome, i)
-                        if alvo is not None and not alvo.locator("xpath=..").evaluate(
-                                "(d) => d.open"):
-                            alvo.click()
-                        self.acionar(n, limpar=False, esperar=False)
-            el = self.achar(nome, i)
-            if el is not None and el.locator("xpath=..").evaluate("(d) => d.open"):
-                el.click()
-            el = self.achar(nome, i)
-            self.checa(el is not None and not el.locator("xpath=..").evaluate("(d) => d.open"),
-                       "e fecha no segundo clique")
-            if estava and el is not None:
-                el.click()
-            if novos and "⋯" not in nome:
-                break
-
-    # O `montar_casa` pôs no LEIA-ME do pack padrão uma tag, um `javascript:`
-    # e um negrito.
-    HISTORIA_JS = r"""
-    (d) => {
-      const h = d.querySelector('.pack-historia');
-      if (!h) return null;
-      const PERMITIDOS = new Set(['H4', 'H5', 'P', 'UL', 'OL', 'LI', 'STRONG', 'CODE', 'A']);
-      return {
-        estranhos: [...h.querySelectorAll('*')].map((e) => e.tagName)
-                     .filter((t) => !PERMITIDOS.has(t)),
-        hrefs: [...h.querySelectorAll('a')].map((a) => a.getAttribute('href') || '')
-                 .filter((u) => !u.startsWith('https://')),
-        rodou: window.__meow_xss !== undefined,
-        plantado: h.textContent.includes('Teste da casa de brinquedo'),
-        tag_como_texto: h.textContent.includes(HOSTIL),
-        negrito: [...h.querySelectorAll('strong')].some((b) => b.textContent === 'negrito de brinquedo'),
-      };
-    }
-    """
-
-    def conferir_historia(self, details):
-        r = details.evaluate(self.HISTORIA_JS.replace("HOSTIL", json.dumps(HOSTIL)))
-        if r is None:
-            return
-        self.checa(not r["estranhos"] and not r["hrefs"] and not r["rodou"],
-                   f"a história do pack não vira HTML (elementos {r['estranhos'][:3]}, "
-                   f"hrefs {r['hrefs'][:2]}, rodou={r['rodou']})")
-        if r["plantado"]:
-            self.historia_conferida = True
-            self.checa(r["tag_como_texto"] and r["negrito"],
-                       "a tag da história sai como texto, e o **negrito** vira negrito")
+    def h_guardar(self, nome):
+        # As cores que o percurso mexeu podem ter tirado o contraste (o botão se
+        # apaga com a dica); começar de um flavor de novo devolve as seis.
+        if self.achar(nome) and self.achar(nome).get_attribute("aria-disabled") == "true":
+            self.checa(self.achar(nome).get_attribute("data-dica"), "«Guardar» apagado diz o porquê")
+            primeiro = self.js("() => document.querySelector('[data-controle^=\"criar:comeca=\"]').dataset.controle")
+            self.clicar(primeiro)
+            self.assentar()
+        campo = self.achar("criar:nome")
+        campo.fill("Tema de Brinquedo")
+        campo.press("Tab")
+        self.assentar()
+        self.clicar(nome)
+        self.assentar(quieto=400, teto=60000)
+        pasta = os.path.join(CASA, ".local", "share", "meowsystem", "packs", "tema-de-brinquedo")
+        self.checa(os.path.isfile(os.path.join(pasta, "pack.json"))
+                   and os.path.isfile(os.path.join(pasta, "paleta.json")),
+                   "«Guardar» grava o pack em ~/.local/share/meowsystem/packs/tema-de-brinquedo")
+        icones = os.path.join(pasta, "icones")
+        dirs = sorted(os.listdir(icones)) if os.path.isdir(icones) else []
+        self.checa(dirs == ["apps", "biblioteca", "sistema"], f"o pack tem as três pastas planas de ícone ({dirs})")
+        ok = subprocess.run([sys.executable, os.path.join(RAIZ_B, "scripts", "pack.py"), "validar", "tema-de-brinquedo"],
+                            capture_output=True, text=True,
+                            env=dict(os.environ, HOME=CASA, MEOW_RAIZ=RAIZ_B))
+        self.checa(ok.returncode == 0 and "formato 2" in ok.stdout + ok.stderr,
+                   "e o pack guardado valida no formato de três pastas: " + (ok.stdout + ok.stderr).strip()[-160:])
 
     def h_link_externo(self, nome):
         """Não sai para a internet: o pedido de fora é recusado pela rota do
         contexto, e o que se confere é que o clique abre uma aba NOVA no
-        endereço certo, sem levar esta página junto."""
-        # A marca `data-inventario` mora no elemento, e uma repintura do menu no
-        # meio do gesto (a página relê o que chega pela rede) a apaga: o `click`
-        # ficava esperando um elemento que não existe mais até o teto.
+        endereço certo, sem levar esta página junto. Uma repintura do menu no
+        meio do gesto pede outro clique, como faria uma pessoa."""
         nova = None
+        href = rel = ""
         n0 = len(PEDIDOS_DE_FORA)
         for _tentativa in range(4):
             el = self.esperar_nome(nome, teto=4.0)
@@ -2064,6 +1056,7 @@ class Percurso:
                 with self.pag.context.expect_page(timeout=5000) as aberta:
                     el.click(timeout=2500)
                 nova = aberta
+                self.acionados.add(molde(nome))
                 break
             except Exception:
                 self.pag.wait_for_timeout(200)
@@ -2078,1969 +1071,383 @@ class Percurso:
                    f"o clique abre {href[:50]} numa aba nova (pediu {pedidos[:2]})")
         nova.value.close()
 
-    def h_porta(self, nome):
-        rotulo = nome.split(" · ")[-1]
-        antes = self.aba_atual()
-        self.achar(nome).click()
-        self.assentar(quieto=200)
-        agora = self.aba_atual()
-        esperado = rotulo[len("Abrir "):] if rotulo.startswith("Abrir ") else None
-        self.checa(agora != antes and (esperado is None or agora == esperado),
-                   f"«{rotulo}» leva a {esperado or 'outra aba'} (foi a {agora})")
-        self.abrir_aba(self.aba)
-
-    # ======================================================================
-    # O QUE ENTRA POR ARQUIVO
-    # ======================================================================
-    def arquivo_de_teste(self, tipo):
-        """Um arquivo VÁLIDO de cada acervo: a porta é conferida aceitando, e
-        não só recusando. Tudo nasce aqui, sem depender de nada da máquina —
-        menos a fonte, que ninguém escreve à mão: ela vem do `fc-match`."""
-        import zipfile
-        pasta = os.path.join(BRINQUEDO, "envios")
-        os.makedirs(pasta, exist_ok=True)
-        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">'
-               '<circle cx="24" cy="24" r="18" fill="none" stroke="#cba6f7" '
-               'stroke-width="3"/></svg>')
-        if tipo in ("Adicionar logo", "Adicionar ícone"):
-            nome = os.path.join(pasta, "brinquedo-desenho.svg")
-            with open(nome, "w", encoding="utf-8") as fh:
-                fh.write(svg)
-            return nome
-        if tipo == "Adicionar imagem":
-            nome = os.path.join(pasta, "brinquedo-nova.png")
-            png_liso(nome, (0xF5, 0xC2, 0xE7))
-            return nome
-        if tipo == "Adicionar tema":
-            nome = os.path.join(pasta, "brinquedo-ponteiro.zip")
-            cur = os.path.join(pasta, "left_ptr")
-            xcursor_liso(cur)
-            with zipfile.ZipFile(nome, "w") as z:
-                z.write(cur, "Brinquedo-Ponteiro/cursors/left_ptr")
-                z.writestr("Brinquedo-Ponteiro/index.theme",
-                           "[Icon Theme]\nName=Brinquedo-Ponteiro\n")
-            return nome
-        if tipo == "Adicionar tema de ícones":
-            nome = os.path.join(pasta, "brinquedo-icones.zip")
-            with zipfile.ZipFile(nome, "w") as z:
-                z.writestr("Brinquedo-Icones/index.theme",
-                           "[Icon Theme]\nName=Brinquedo-Icones\nDirectories=scalable/apps\n\n"
-                           "[scalable/apps]\nSize=48\nType=Scalable\n")
-                z.writestr("Brinquedo-Icones/scalable/apps/brinquedo.svg", svg)
-            return nome
-        if tipo == "Adicionar fonte":
-            achada = subprocess.run(["fc-match", "-f", "%{file}", "sans:fontformat=TrueType"],
-                                    capture_output=True, text=True).stdout.strip()
-            if not achada.endswith(".ttf"):
-                return None
-            nome = os.path.join(pasta, "brinquedo-fonte.ttf")
-            shutil.copyfile(achada, nome)
-            return nome
-        return None
-
-    def h_acervo(self, nome):
-        rotulo = nome.split(" · ")[-1]
-        arquivo = self.arquivo_de_teste(rotulo)
-        if not self.checa(arquivo, f"há um arquivo de teste para «{rotulo}»"):
-            return
-        antes, n0 = retrato(), len(self.posts)
-        # Ela vive 2,6 s (`torrada()`, no app.js), e depois de um «Adicionar» a
-        # página repinta por uns 2,5 s.
-        self.js(TORRADAS_VISTAS_JS)
-        with self.pag.expect_file_chooser(timeout=5000) as escolha:
-            self.achar(nome).click()
-        escolha.value.set_files(arquivo)
-        fim = time.time() + 120
-        while len(self.posts) == n0 and time.time() < fim:
-            self.pag.wait_for_timeout(100)
-        self.assentar(quieto=300, teto=120000)
-        self.esperar_trabalho()
-        vistas = self.js("() => window.__torradasVistas || []")
-        ok = (self.pag.locator("#torradas .torrada.ok, #torradas .torrada.igual").count()
-              or any(v["classe"] in ("ok", "igual") for v in vistas))
-        erro = self.pag.locator("#torradas .torrada.erro")
-        disse = ([erro.first.inner_text()] if erro.count() else []) + \
-            [v["texto"] for v in vistas if v["classe"] == "erro"]
-        self.checa(ok and not disse,
-                   f"«{rotulo}» aceita {os.path.basename(arquivo)} e diz que entrou"
-                   + (f" — disse {disse[0][:120]!r}" if disse else ""))
-        self.checa(diferenca(antes, retrato()), f"«{rotulo}» escreveu na casa de brinquedo")
-
-    def h_exportar_pack(self, nome):
-        with self.pag.expect_download(timeout=30000) as baixa:
-            self.achar(nome).click()
-        caminho = baixa.value.path()
-        # O `.meowpack` é um tar comprimido com zstd (`scripts/pack.py`): a
-        # assinatura dos quatro primeiros bytes é o que se confere.
-        with open(caminho, "rb") as fh:
-            cabeca = fh.read(4)
-        self.checa(baixa.value.suggested_filename.endswith(".meowpack")
-                   and os.path.getsize(caminho) > 1000
-                   and cabeca == bytes([0x28, 0xB5, 0x2F, 0xFD]),
-                   f"«Exportar o meu» baixa um .meowpack de verdade "
-                   f"({baixa.value.suggested_filename}, {os.path.getsize(caminho)} bytes)")
-
-    def h_importar_pack(self, nome):
-        """Um CSV das 26 cores, pela porta da P16: vira um pack novo."""
-        import csv as _csv
-        pasta = os.path.join(BRINQUEDO, "envios")
-        os.makedirs(pasta, exist_ok=True)
-        arquivo = os.path.join(pasta, "brinquedo.csv")
-        paleta = self.js("() => { const f = ESQUEMA.paleta.flavors || {};"
-                         " const n = Object.keys(f).find((k) => k !== 'latte') ||"
-                         " Object.keys(f)[0]; return f[n] || {}; }")
-        with open(arquivo, "w", encoding="utf-8", newline="") as fh:
-            w = _csv.writer(fh)
-            w.writerow(["slot", "flavor", "hex"])
-            for slot in self.js("() => ESQUEMA.paleta.ordem || []"):
-                w.writerow([slot, "noite", paleta.get(slot, "#000000")])
-        packs0 = self.pag.locator("#conteudo article.pack").count()
-        with self.pag.expect_file_chooser(timeout=5000) as escolha:
-            self.achar(nome).click()
-        escolha.value.set_files(arquivo)
-        if not self.checa(self.caixa_aberta(20), "importar mostra a caixa com o que o pack traz"):
-            return
-        self.checa(self.pag.locator("#confirmar-corpo").is_visible(),
-                   "e a caixa desenha o pack antes de perguntar")
-        self.pag.locator("#confirmar button[value=nao]").click()
-        self.assentar()
-        self.checa(self.pag.locator("#conteudo article.pack").count() == packs0,
-                   "Cancelar não instala o pack")
-        with self.pag.expect_file_chooser(timeout=5000) as escolha:
-            self.achar(nome).click()
-        escolha.value.set_files(arquivo)
-        if self.caixa_aberta(20):
-            # Na segunda rodada seguida da suíte, com a máquina carregada, a
-            # instalação passou da janela de 3 s do fim do `assentar` e o gate
-            # saiu vermelho com o pack instalado (um `sleep 4` na rota reproduz
-            # sem depender da carga).
-            with self.pag.expect_response(
-                    lambda r: "/api/pack-importar" in r.url and r.request.method == "POST",
-                    timeout=130000):
-                self.pag.locator("#confirmar-ok").click()
-            self.acionados.add("caixa · #confirmar-ok")
-            self.assentar(quieto=400, teto=30000)
-            if self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 + 1,
-                          "confirmar instala o pack, e ele ganha cartão na Início"):
-                # O AVESSO, NO MESMO GESTO. O pack que acabou de entrar é o
-                # único da casa de brinquedo que mora na casa da pessoa, e é o
-                # único cartão que ganha o «Remover».
-                self.acionar("cartão de pack · Remover", limpar=False)
-
-    def h_remover_pack(self, nome):
-        """O «Remover» do pack importado: a caixa, o ensaio que não apaga e o
-        de verdade, pelo protocolo das três respostas — e no fim o cartão sai
-        da Início e a pasta sai da casa, inteira, sem o oculto da troca."""
-        packs0 = self.pag.locator("#conteudo article.pack").count()
-        da_pessoa = os.path.join(CASA, ".local", "share", "meowsystem", "packs")
-        antes = sorted(os.listdir(da_pessoa)) if os.path.isdir(da_pessoa) else []
-        self.checa(self.quantos(nome) == 1,
-                   f"só o pack importado ganha o «Remover» ({self.quantos(nome)} na tela)")
-        self.gesto_de_acao(lambda: self.clicar_nome(nome), "Remover")
-        self.assentar(quieto=400, teto=30000)
-        depois = sorted(os.listdir(da_pessoa)) if os.path.isdir(da_pessoa) else []
-        self.checa(self.pag.locator("#conteudo article.pack").count() == packs0 - 1,
-                   "«Remover» tira o cartão do pack da Início")
-        self.checa(len(depois) == len(antes) - 1,
-                   f"e tira a pasta dele da casa, sem deixar resto ({antes} → {depois})")
-
-    # ======================================================================
-    # PENDÊNCIAS, JOGOS, DESENHOS
-    # ======================================================================
-    def h_recusar(self, nome):
-        n_pend = self.pag.locator("#conteudo .pendencia").count()
-        antes, n0 = retrato(), len(self.posts)
-        self.achar(nome).click()
-        if not self.checa(self.caixa_aberta(), "«Não, obrigado» pergunta antes"):
-            return
-        self.pag.locator("#confirmar button[value=nao]").click()
-        self.assentar()
-        self.checa(len(self.posts) == n0 and not diferenca(antes, retrato()),
-                   "Cancelar não grava a recusa")
-        self.achar(nome).click()
-        if self.caixa_aberta():
-            self.pag.locator("#confirmar-ok").click()
-            self.assentar(quieto=300)
-            self.checa(self.pag.locator("#conteudo .pendencia").count() == n_pend - 1,
-                       "confirmar a recusa tira a pendência da tela")
-            self.checa(diferenca(antes, retrato()), "e grava a recusa no estado")
-
-    def decisao_de_jogo(self, clicar, frase):
-        """A rota `jogo-fora` grava a decisão e, em seguida, a página roda o
-        `jogos_aplicar` (o `definirJogo` do app.js)."""
-        antes, n0 = retrato(), len(self.posts)
-        clicar()
-        post = self.esperar_post(n0, teto=10)
-        self.checa(post and post[0] == "jogo-fora", f"{frase} grava a decisão")
-        self.assentar(quieto=300)
-        self.esperar_trabalho()
-        self.checa(any(c.endswith("jogos-fora.map") for c in diferenca(antes, retrato())),
-                   f"{frase} muda o mapa de jogos (de brinquedo)")
-
-    def decisao_com_caixa(self, clicar, frase, reabrir=lambda: None):
-        """A decisão de jogo que arruma o lançador pergunta antes (P54, a decisão
-        dos jogos de 24/09): a caixa diz o que sai e o que entra, e dá as três
-        respostas. A conferência que enche a caixa é o `jogo-fora` com
-        `previa`, que não grava; o «Ver o que faria» é o mesmo pedido com
-        `seco`, e roda a passagem em ensaio na gaveta; só o «sim» grava."""
-        acao = self.acoes().get("jogos_aplicar")
-        antes, n0 = retrato(), len(self.posts)
-        clicar()
-        if not self.checa(self.caixa_aberta(), f"{frase} pergunta antes de arrumar o lançador"):
-            return
-        # A caixa fala a língua do botão clicado: o «Voltar ao normal» numa
-        # caixa «Tirar da lista» leria como tirar o jogo do lançador.
-        ok = (self.pag.locator("#confirmar-ok").text_content() or "").strip()
-        self.checa(ok == frase.strip("«»"), f"a caixa de {frase} confirma com o mesmo nome ({ok!r})")
-        efeito = self.pag.locator("#confirmar .efeito-jogos [data-efeito]")
-        fim = time.time() + 60
-        while not efeito.count() and time.time() < fim:
-            self.pag.wait_for_timeout(100)
-        self.checa(efeito.count(), f"a caixa de {frase} diz o que sai e o que entra no lançador")
-        self.checa(all(d != "jogo-fora" or c.get("previa") for d, c in self.posts[n0:]),
-                   f"a conferência da caixa de {frase} não grava nada")
-        self.pag.locator("#confirmar button[value=nao]").click()
-        self.acionados.add("caixa · Cancelar")
-        self.assentar(quieto=150)
-        mudou = diferenca(antes, retrato())
-        self.checa(not mudou, f"Cancelar em {frase} não muda a casa — mudou {mudou[:4]}")
-
-        reabrir()
-        n1, reg1, antes1 = len(self.posts), len(registro()), retrato()
-        clicar()
-        if self.checa(self.caixa_aberta(), f"{frase} pergunta de novo, e oferece o «Ver o que faria»"):
-            self.pag.locator("#confirmar-ensaio").click()
-            self.acionados.add("caixa · #confirmar-ensaio")
-            fim = time.time() + 10
-            while (not any(c.get("seco") for _, c in self.posts[n1:])
-                   and time.time() < fim):
-                self.pag.wait_for_timeout(50)
-            self.checa(any(d == "jogo-fora" and c.get("seco") is True for d, c in self.posts[n1:]),
-                       f"«Ver o que faria» em {frase} pede o ensaio ao servidor")
-            if acao:
-                self.conferir_trabalho(acao, True, antes1, reg1)
-
-        reabrir()
-        clicar()
-        if not self.checa(self.caixa_aberta(), f"{frase} pergunta de novo no último clique"):
-            return
-        n3 = len(self.posts)
-        antes3 = retrato()
-        self.pag.locator("#confirmar-ok").click()
-        self.acionados.add("caixa · #confirmar-ok")
-        fim = time.time() + 10
-        while (not any(d == "jogo-fora" and not c.get("previa") and not c.get("seco")
-                       for d, c in self.posts[n3:]) and time.time() < fim):
-            self.pag.wait_for_timeout(50)
-        self.checa(any(d == "jogo-fora" and not c.get("previa") and not c.get("seco")
-                       for d, c in self.posts[n3:]), f"o «sim» de {frase} grava a decisão")
-        self.assentar(quieto=300)
-        self.esperar_trabalho()
-        self.checa(any(c.endswith("jogos-fora.map") for c in diferenca(antes3, retrato())),
-                   f"{frase} muda o mapa de jogos (de brinquedo)")
-
-    def h_orfa(self, nome):
-        n0 = self.quantos(nome)
-        # A DECISÃO SEM MANIFESTO DIZ O NOME DO JOGO: o da casa só existe
-        # no `appinfo.vdf` de brinquedo, e não o número.
-        linhas = self.pag.locator("#conteudo .linha-orfa .orfa-nome").all_inner_texts()
-        self.checa(NOME_NA_STEAM in linhas,
-                   f"a decisão sem manifesto mostra o nome do cache da Steam ({linhas})")
-        self.decisao_com_caixa(lambda: self.achar(nome).click(), "«Tirar da lista»")
-        self.assentar(quieto=300)
-        self.checa(self.quantos(nome) == n0 - 1, "e o órfão sai da lista")
-
-    def h_escolher(self, nome):
-        """Um exemplar do molde: a marca vai para ele."""
+    def h_campo(self, nome, item):
         el = self.achar(nome)
-        el.click()
-        self.assentar(quieto=150, teto=4000)
-        el = self.achar(nome)
-        self.checa(el is not None and el.get_attribute("aria-pressed") == "true",
-                   f"«{nome.split(' › ')[-1]}»: o escolhido fica marcado")
-
-    def h_seletor_solto(self, nome):
-        el = self.achar(nome)
-        atual = el.input_value()
-        outros = [o for o in el.locator("option").evaluate_all(
-            "(os) => os.map((o) => o.value)") if o != atual]
-        if not self.checa(outros, "o seletor tem mais de uma opção"):
-            return
-        antes = self.js("() => document.getElementById('conteudo').innerHTML.length")
-        el.select_option(outros[0])
-        self.assentar(quieto=200, teto=4000)
-        self.checa(self.js("() => document.getElementById('conteudo').innerHTML.length") != antes
-                   or self.achar(nome).input_value() == outros[0],
-                   "trocar o seletor fica valendo")
-
-    # ======================================================================
-    # O TOPO DA PÁGINA, QUE VALE PARA TODA ABA
-    # ======================================================================
-    def escolher_por_busca(self, chave, valor):
-        """Uma escolha pendente, pelo caminho mais curto que ela usaria."""
-        self.pag.fill("#busca", chave)
-        self.assentar(quieto=200)
-        self.pag.locator(f'#conteudo article.cartao[data-chave="{chave}"] '
-                         f'button[data-valor="{css_attr(valor)}"]').first.click()
-        self.assentar(quieto=150)
-        self.pag.fill("#busca", "")
-        self.assentar(quieto=200)
-
-    def h_busca(self, nome):
-        el = self.achar(nome)
-        el.fill("gato")
-        self.assentar(quieto=250)
-        self.checa(self.pag.locator("#conteudo .cartao, #conteudo .acao").count() > 1,
-                   "buscar «gato» traz cartões de mais de uma aba")
-        el.fill("zzzz-nada-casa")
-        self.assentar(quieto=250)
-        self.checa(self.pag.locator("#conteudo .vazio-msg").is_visible(),
-                   "uma busca sem resultado diz que nada casa")
-        el.fill("")
-        self.assentar(quieto=250)
-        self.checa(not self.pag.locator("#conteudo .vazio-msg").count(),
-                   "e limpar a busca devolve a aba")
-
-    def h_baixa(self, nome):
-        marca = {"#baixar-conf": "FLAVOR=", "#baixar-pagina": "<html"}[nome.split(" · ")[-1]]
-        menu = self.pag.locator("#menu-exportar")
-        if not menu.evaluate("(d) => d.open"):
-            menu.locator("summary").click()
-        with self.pag.expect_download(timeout=30000) as baixa:
-            self.clicar_nome(nome)
-        with open(baixa.value.path(), encoding="utf-8", errors="replace") as fh:
-            corpo = fh.read()
-        self.checa(marca in corpo,
-                   f"«{nome.split(' · ')[-1]}» baixa {baixa.value.suggested_filename} com "
-                   f"{marca!r} dentro ({len(corpo)} caracteres)")
-        # Do `.conf` só o CABEÇALHO: o corpo é o arquivo da pessoa, byte a
-        # byte, e um caminho que ela mesma escreveu nele é dela para levar.
-        rotulo = nome.split(" · ")[-1]
-        olhado = corpo.split("\n\n", 1)[0] if rotulo == "#baixar-conf" else corpo
-        vazou = [c for c in (CASA, RAIZ_B, quote(CASA, safe=""), quote(RAIZ_B, safe=""))
-                 if c in olhado]
-        self.checa(not vazou, f"«{rotulo}» não leva a casa nem o caminho do clone"
-                   + (f" — achei {len(vazou)} forma(s)" if vazou else ""))
-
-    def h_importar_conf(self, nome):
-        arquivo = os.path.join(BRINQUEDO, "envios", "meus-ajustes.conf")
-        os.makedirs(os.path.dirname(arquivo), exist_ok=True)
-        novo = "debug" if valor_de("LOG_NIVEL") != "debug" else "info"
-        with open(arquivo, "w", encoding="utf-8") as fh:
-            fh.write(f'LOG_NIVEL="{novo}"\n')
-        with self.pag.expect_file_chooser(timeout=5000) as escolha:
-            self.achar(nome).click()
-        escolha.value.set_files(arquivo)
-        self.assentar(quieto=300)
-        self.checa(self.js("() => MUDANCAS.get('LOG_NIVEL')") == novo,
-                   "importar um .conf põe as escolhas dele na bandeja do Salvar")
-        self.checa(valor_de("LOG_NIVEL") != novo, "e não grava nada antes do Salvar")
-        self.desfazer()
-
-    def h_ensaiar_salvar(self, nome):
-        """«Ver o que faria» do banner: o instalador inteiro em ensaio."""
-        atual = valor_de("LOG_NIVEL")
-        self.escolher_por_busca("LOG_NIVEL", "debug" if atual != "debug" else "info")
-        antes, reg0, n0 = retrato(), len(registro()), len(self.posts)
-        self.achar(nome).click()
-        post = self.esperar_post(n0, teto=10)
-        self.checa(post and post[0] == "salvar" and post[1].get("seco") is True,
-                   "«Ver o que faria» pede ao servidor o ensaio das escolhas")
-        self.conferir_trabalho(self.acoes()["instalar"], True, antes, reg0)
-        self.checa(valor_de("LOG_NIVEL") == atual, "o ensaio não grava a escolha no meow.conf")
-        self.checa(self.pag.locator("#ensaio-rodar").count(),
-                   "e oferece «Rodar de verdade» — que aqui é o instalador, e fica sem clique")
-        self.censo()
-        self.acoes_vistas.setdefault("instalar", set()).add("ensaio do banner")
-        self.h_mais_abaixo()
-        self.h_saida()
-        self.h_fechar_gaveta()
-        self.desfazer()
-
-    def h_mais_abaixo(self):
-        """Rolar a saída para cima acende o «mais N linhas abaixo»."""
-        self.js("() => { const s = document.getElementById('saida'); s.scrollTop = 0;"
-                " s.dispatchEvent(new Event('scroll')); }")
-        self.assentar(quieto=100, teto=2000)
-        nome = "gaveta · #mais-abaixo"
-        el = self.achar(nome)
-        if not self.checa(el is not None, "rolar a saída para cima acende o «mais linhas abaixo»"):
-            return
-        el.click()
-        self.assentar(quieto=100, teto=2000)
-        self.checa(self.js("() => { const s = document.getElementById('saida');"
-                           " return s.scrollTop + s.clientHeight >= s.scrollHeight - 30; }"),
-                   "e clicar nele desce até o fim da saída")
-        self.acionados.add(nome)
-
-    def h_saida(self):
-        nome = "gaveta · #saida"
-        el = self.achar(nome)
-        if self.checa(el is not None, "a saída da gaveta está na tela"):
-            el.focus()
-            self.checa(self.js("() => document.activeElement.id === 'saida'"),
-                       "a saída recebe o foco do teclado, para ler rolando")
-            self.acionados.add(nome)
-
-    def h_fechar_gaveta(self):
-        nome = "gaveta · #fechar-gaveta"
-        el = self.achar(nome)
-        if self.checa(el is not None, "a gaveta tem o Fechar"):
+        tipo = item["tipo"]
+        antes = self.estado()
+        if item["tag"] == "select":
+            opcoes = el.evaluate("(s) => [...s.options].map((o) => o.value)")
+            atual = el.evaluate("(s) => s.value")
+            outra = next((o for o in opcoes if o != atual), None)
+            if outra is None:
+                self.checa(len(opcoes) >= 1, f"o seletor «{nome}» tem opção")
+                return
+            el.select_option(outra)
+        elif tipo == "range":
+            el.evaluate("(r) => { const lo = Number(r.min), hi = Number(r.max);"
+                        " r.value = String(lo + (hi - lo) / 2 + (Number(r.value) === lo + (hi - lo) / 2 ? Number(r.step || 1) : 0));"
+                        " r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); }")
+        elif tipo == "color":
+            el.evaluate("(c) => { c.value = '#3a5f8c'; c.dispatchEvent(new Event('change', { bubbles: true })); }")
+        elif tipo == "checkbox":
             el.click()
-            self.checa(self.js("() => document.getElementById('gaveta').hidden"),
-                       "Fechar esconde a gaveta")
-            self.acionados.add(nome)
-
-    def h_salvar(self, nome):
-        """O Salvar DE VERDADE, sem rodar o instalador.
-
-        Clicar em «Salvar e aplicar» grava e começa o instalador, que é
-        exceção (ver `EXCECOES`). Mas o servidor grava ANTES de começar, e
-        recusa o instalador quando outro trabalho corre — é o caminho de quem
-        salva com o painel aberto em duas janelas. O teste o percorre assim:
-        as escolhas ficam prontas, uma segunda aba começa o ensaio do
-        instalador, e esta salva — o «Aplicar» de um cartão (uma chave só) e o
-        «Salvar e aplicar» (o resto). O disco muda de verdade, o instalador não
-        roda, e a página diz as duas coisas. No fim, o «Parar» da outra aba
-        encerra o ensaio."""
-        chave = "WALLPAPER_ORDEM"
-        self.escolher_por_busca("LOG_NIVEL", "debug" if valor_de("LOG_NIVEL") != "debug"
-                                else "info")
-        self.pag.fill("#busca", chave)
-        self.assentar(quieto=200)
-        cartao = f'#conteudo article.cartao[data-chave="{chave}"]'
-        self.pag.locator(f"{cartao} button[data-valor]:not([aria-pressed=true])"
-                         ':not([data-valor=""])').first.click()
-        self.assentar(quieto=150)
-        esperado = dict(self.js("() => [...MUDANCAS.entries()]"))
-        aplicar = f"ajuste {chave} · Aplicar"
-        if not self.checa(self.achar(aplicar) is not None,
-                          "a escolha pendente acende o «Aplicar» do cartão"):
-            return
-
-        # O TRABALHO DA OUTRA ABA É O MAIS LONGO QUE SÓ LÊ: o «O que está no ar
-        # agora» (o `meow status`), uns dez segundos na casa de brinquedo.
-        outra = self.pag.context.new_page()
-        outra.goto(self.url, wait_until="domcontentloaded")
-        outra.wait_for_selector("#trilho button")
-        outra.locator('#trilho button[data-grupo="Instalação"]').click()
-        # O `has` é procurado DENTRO do `<details>`: sem o `#conteudo` na
-        # frente.
-        acao = outra.locator("article.acao", has_text="O que está no ar agora")
-        outra.locator("#conteudo details.ajustes-tecnicos", has=acao).locator("summary").click()
-        acao.get_by_role("button", name="Executar", exact=True).click()
-        outra.wait_for_function("() => TRABALHO !== null && TRABALHO.timer !== null",
-                                timeout=15000)
-
-        self.esperar_status(409, "/api/salvar")
-        self.achar(aplicar).click()
-        self.assentar(quieto=200)
-        self.acionados.add("ajuste * · Aplicar")
-        self.checa(valor_de(chave) == esperado[chave],
-                   f"o «Aplicar» do cartão grava a chave dele ({chave}={esperado[chave]})")
-        self.checa(valor_de("LOG_NIVEL") != esperado["LOG_NIVEL"],
-                   "e só ela: a outra escolha continua esperando")
-
-        self.esperar_status(409, "/api/salvar")
-        self.achar(nome).click()
-        self.assentar(quieto=200)
-        self.checa(valor_de("LOG_NIVEL") == esperado["LOG_NIVEL"],
-                   f"«Salvar e aplicar» grava a escolha no meow.conf "
-                   f"(LOG_NIVEL={esperado['LOG_NIVEL']})")
-        aviso = self.achar("aviso · #aviso-aplicar-botao")
-        if self.checa(aviso is not None,
-                      "com o instalador ocupado, o aviso diz que ficou gravado e falta aplicar"):
-            # O «Aplicar» do aviso roda o instalador, que é exceção: ele é
-            # conferido na tela e pelo que diz, e fica sem clique.
-            self.checa("Aplicar" in aviso.inner_text(), "e oferece o «Aplicar»")
-            self.acionados.add("aviso · #aviso-aplicar-botao")
-        self.acoes_vistas.setdefault("instalar", set()).add("aviso sem clique")
-
-        parar = outra.locator("#parar")
-        if self.checa(parar.is_enabled(),
-                      "a outra aba tem o «Parar» aceso enquanto o trabalho corre"):
-            parar.click()
-            try:
-                outra.wait_for_function("() => TRABALHO === null", timeout=30000)
-                estado = outra.locator("#gaveta-estado").inner_text()
-                self.checa(re.search(r"saiu -|interromp|parad", estado, re.I),
-                           f"«Parar» encerra o trabalho, e a gaveta diz ({estado})")
-            except Exception:
-                self.falha("«Parar» não encerrou o trabalho em 30 s")
-            self.acionados.add("gaveta · #parar")
-        outra.close()
-        self.pag.fill("#busca", "")
-        self.assentar()
-
-    def h_salvar_conta(self, nome):
-        """O contador abre a lista, e a linha leva ao cartão."""
-        self.escolher_por_busca("LOG_NIVEL", "debug" if valor_de("LOG_NIVEL") != "debug"
-                                else "info")
-        self.escolher_por_busca("WALLPAPER_ORDEM", self.js(
-            "() => { const i = ESQUEMA.chaves.find((k) => k.chave === 'WALLPAPER_ORDEM');"
-            " return i.opcoes.find((o) => o !== (i.valor ?? '')); }"))
-        el = self.achar(nome)
-        if not self.checa(el is not None, "com escolha pendente, o contador está na tela "
-                          "como controle (alcançável pelo teclado)"):
-            return
-        # PELO TECLADO PRIMEIRO: o contador era um `<strong>` com clique, fora
-        # da fila do Tab — ver o conserto no app.js.
-        el.focus()
-        self.pag.keyboard.press("Enter")
-        self.assentar(quieto=150)
-        self.checa(self.pag.locator("#lista-pendentes").count(),
-                   "o Enter no contador abre a lista das escolhas")
-        if not self.pag.locator("#lista-pendentes").count():
-            self.achar(nome).click()
-            self.assentar(quieto=150)
-        linha = "topo › lista de escolhas › escolha pendente · ir ao cartão"
-        n = self.quantos(linha)
-        self.checa(n == 2, f"o contador abre a lista das {n} escolhas")
-        if n:
-            self.achar(linha).click()
-            self.assentar(quieto=300)
-            self.checa(self.aba_atual() in ("Manutenção", "Papel de parede"),
-                       f"a linha leva à aba do cartão ({self.aba_atual()})")
-            self.acionados.add(linha)
-        # Descartar com duas escolhas pergunta antes.
-        self.pag.locator("#botao-descartar").click()
-        self.checa(self.caixa_aberta(), "Descartar duas escolhas pergunta antes")
-        self.pag.locator("#confirmar button[value=nao]").click()
-        self.checa(self.js("() => MUDANCAS.size") == 2, "Cancelar mantém as duas")
-        self.descartar()
-        self.checa(self.js("() => MUDANCAS.size") == 0, "e confirmar descarta as duas")
-        self.acionados.add("topo · #botao-descartar")
-
-    # ======================================================================
-    # O ÍCONE DE UM APLICATIVO: o painel que o clique na grade abre
-    # ======================================================================
-    def h_aplicativo(self, nome):
-        """Abre o primeiro aplicativo e aciona o painel inteiro dele.
-
-        A ORDEM IMPORTA, e é a de quem usa: primeiro o que só mexe no desenho
-        (escolher, colorir, a oficina, a busca), depois o que grava. «Usar este
-        ícone» e «Desfazer a escolha no traço» fecham o painel quando terminam,
-        e por isso vêm por último, cada um com o painel reaberto."""
-        antes = set(self.censo())
-        self.app_aberto = self.achar(nome).locator(".app-nome").inner_text().strip()
-        self.abrir_painel(nome)
-        novos = sorted(n for n in self.censo() if n not in antes)
-        if not self.checa(novos, "clicar no aplicativo abre o painel do ícone dele"):
-            return
-        # A oficina fechada esconde a régua, a cor e o SVG; aberta, eles contam.
-        oficina = next((n for n in novos if " › oficina · abre «" in n
-                        or n.startswith("ícone do aplicativo › oficina · abre")), None)
-        if oficina:
-            # O acionador do `<details>` abre e fecha; depois ele é aberto de
-            # novo, pelo mesmo clique, para o que mora dentro contar.
-            self.acionar(oficina, limpar=False)
-            self.achar(oficina).click()
-            self.assentar(quieto=400, teto=15000)
-            edicao = next((n for n in self.censo() if "edição do SVG · abre" in n), None)
-            if edicao:
-                self.acionar(edicao, limpar=False)
-                self.achar(edicao).click()
-                self.assentar(quieto=200)
-            novos = sorted(n for n in self.censo() if n not in antes)
-        gravam = ("ícone do aplicativo · Adicionar ícone",
-                  "ícone do aplicativo · Desfazer a escolha no traço",
-                  "ícone do aplicativo · Usar este ícone",
-                  "ícone do aplicativo › oficina · Usar")
-        for n in novos:
-            if n in self.acionados or n in gravam or not self.acionador(n):
-                continue
-            self.abrir_painel(nome)
-            if "› oficina" in n:
-                self.garantir_aberto("oficina")
-            if "edição do SVG" in n and "· abre «" not in n:
-                self.garantir_aberto("edição do SVG")
-            self.acionar(n, limpar=False)
-        escolher = "ícone do aplicativo › desenho do acervo · escolher"
-        if escolher not in self.acionados:
-            self.abrir_painel(nome)
-            pasta = self.pag.locator("#conteudo details.pasta-acervo:has(button:not(.travado))")
-            if pasta.count() and not pasta.first.evaluate("(d) => d.open"):
-                pasta.first.locator(":scope > summary").click()
-                self.assentar(quieto=300, teto=8000)
-            if self.achar(escolher) is not None:
-                self.acionar(escolher, limpar=False)
-        for n in gravam[:3]:
-            self.abrir_painel(nome)
-            if n == gravam[2]:
-                pasta = self.pag.locator("#conteudo details.pasta-acervo:has(button:not(.travado))")
-                if pasta.count() and not pasta.first.evaluate("(d) => d.open"):
-                    pasta.first.locator(":scope > summary").click()
-                    self.assentar(quieto=300, teto=8000)
-            if self.achar(n) is not None:
-                self.acionar(n, limpar=False)
-        # O «Desfazer» só existe quando o aplicativo tem desenho gravado — o que
-        # o «Usar este ícone» acabou de fazer.
-        if gravam[2] in novos:
-            self.abrir_painel(nome)
-            desfazer = next((n for n in ("ícone do aplicativo · Desfazer a escolha no traço",
-                                         "ícone do aplicativo · Desfazer a minha escolha")
-                             if self.achar(n) is not None), None)
-            if self.checa(desfazer is not None,
-                          "depois do «Usar este ícone», o painel oferece o «Desfazer» dela"):
-                self.acionar(desfazer, limpar=False)
-        self.abrir_painel(nome)
-        self.garantir_aberto("oficina")
-        if self.achar(gravam[3]) is not None:
-            self.acionar(gravam[3], limpar=False)
-        self.fechar_painel_do_aplicativo(nome)
-
-    def garantir_aberto(self, qual):
-        """Reabre, pelo clique no `<summary>`, a oficina ou a edição do SVG que
-        uma repintura fechou."""
-        sel = {"oficina": "#conteudo details.oficina",
-               "edição do SVG": "#conteudo details.oficina-edicao"}[qual]
-        if qual == "edição do SVG":
-            self.garantir_aberto("oficina")
-        det = self.pag.locator(sel)
-        if det.count() and not det.first.evaluate("(d) => d.open"):
-            det.first.locator(":scope > summary > span, :scope > summary").first.click()
-            self.assentar(quieto=300, teto=15000)
-
-    def cartao_do_aplicativo(self, nome):
-        """O cartão do aplicativo aberto, pronto para o clique.
-
-        A GRADE SOME ENQUANTO O ESQUEMA SE RELÊ — 24/09/2026, depois da leva B.
-        Um trabalho que escreve esquece a lista de aplicativos (P46) e a relê
-        depois do esquema, que leva de 2 a 4 s; com a máquina carregada, a grade
-        voltava depois dos 8 s do clique, e o gate reprovava «aplicativo ·
-        abrir» sem defeito novo na página (medido: nenhum botão da grade no DOM
-        no instante da reprovação). E o cartão que já estava na tela podia
-        estar debaixo do desenho preso no topo da aba (`.previa-bloco.presa`),
-        que tomava o clique. A grade é esperada como uma pessoa esperaria, e o
-        cartão vai para o meio da tela antes do clique. A demora em si é da P57."""
-        cartao = self.pag.locator(f'[data-inventario="{css_attr(nome)}"]',
-                                  has_text=self.app_aberto).first
-        cartao.wait_for(state="attached", timeout=30000)
-        cartao.evaluate("e => e.scrollIntoView({block: 'center'})")
-        return cartao
-
-    def abrir_painel(self, nome):
-        if not self.pag.locator("#conteudo .escolha-icone").count():
-            self.censo()
-            self.cartao_do_aplicativo(nome).click()
-            self.assentar(quieto=400, teto=15000)
-
-    def fechar_painel_do_aplicativo(self, nome):
-        if self.pag.locator("#conteudo .escolha-icone").count():
-            self.censo()
-            self.cartao_do_aplicativo(nome).click()
-            self.assentar(quieto=200)
-
-    # ======================================================================
-    # UM JOGO DA STEAM: o painel da decisão
-    # ======================================================================
-    def h_jogo(self, nome):
-        """Tirar do lançador, voltar ao normal, apagar os arquivos — as três
-        decisões, cada uma com o jogo reaberto, na pasta de brinquedo."""
-        def abrir():
-            if not self.pag.locator("#conteudo .escolha-jogo").count():
-                self.esperar_nome(nome).click()
-                self.assentar(quieto=300)
-        abrir()
-        if not self.checa(self.pag.locator("#conteudo .escolha-jogo").count(),
-                          "clicar no jogo abre a decisão dele"):
-            return
-        # TODA CONTAGEM DA ABA CONCORDA COM O NÚMERO.
-        self.js("() => { JOGOS.total_apps = 1; render(); }")
-        texto = self.pag.locator("#conteudo").inner_text() + "\n" + self.js(
-            "() => [...document.querySelectorAll('#conteudo [aria-label]')]"
-            ".map((e) => e.getAttribute('aria-label')).join('\\n')")
-        self.js("() => carregarJogos()")
-        self.assentar(quieto=300)
-        loja = self.js("() => (JOGOS.apps || []).some((a) => a.id === 'steam')")
-        self.checa(not loja, "a loja (a Steam, que se declara Game) não conta como jogo")
-        solto = re.findall(r"\b1 jogos\b[^.]*", texto)
-        self.checa(not solto and "1 jogo tem atalho" in texto,
-                   f"a aba não diz «1 jogos», e diz «1 jogo tem atalho» ({solto})")
-        motivo = self.achar("decisão do jogo · campo «Por que este jogo sai do lançador»")
-        if self.checa(motivo is not None, "a decisão tem o campo do motivo"):
-            motivo.fill("teste do percurso")
-            self.acionados.add("decisão do jogo · campo «Por que este jogo sai do lançador»")
-        for rotulo in ("Tirar do lançador", "Voltar ao normal"):
-            abrir()
-            botao = f"decisão do jogo · {rotulo}"
-            if self.checa(self.achar(botao) is not None, f"a decisão oferece «{rotulo}»"):
-                self.decisao_com_caixa(lambda b=botao: self.achar(b).click(),
-                                       f"«{rotulo}»", abrir)
-                self.acionados.add(botao)
-        abrir()
-        apagar = "decisão do jogo · Apagar os arquivos"
-        if self.checa(self.achar(apagar) is not None, "a decisão oferece «Apagar os arquivos»"):
-            n0 = len(self.posts)
-            self.achar(apagar).click()
-            if self.checa(self.caixa_aberta(), "«Apagar os arquivos» pergunta antes"):
-                self.pag.locator("#confirmar button[value=nao]").click()
-                self.assentar()
-                self.checa(len(self.posts) == n0, "Cancelar não marca nada")
-            abrir()
-            pasta = os.path.join(CASA, ".steam", "steam", "steamapps", "common", "JogoDeBrinquedo")
-
-            def confirmar_apagar():
-                self.achar(apagar).click()
-                if self.caixa_aberta():
-                    self.pag.locator("#confirmar-ok").click()
-            self.decisao_de_jogo(confirmar_apagar, "«Apagar os arquivos»")
-            self.checa(not os.path.exists(pasta),
-                       "e a pasta do jogo (de brinquedo) sai do disco")
-            self.acionados.add(apagar)
-            # O jogo apagado leva o manifesto junto: ele sai da grade e passa às
-            # «Decisões já executadas», com a data — é onde ela o vê depois.
-            self.assentar(quieto=300)
-            orfa = self.pag.locator("#conteudo .linha-orfa", has_text="Jogo de Brinquedo")
-            self.checa(orfa.count() and "apagados" in orfa.first.inner_text(),
-                       "e o jogo passa às «Decisões já executadas», com os arquivos apagados")
-
-    # O CARTÃO A QUE A FICHA LEVOU: existe, está na janela e está aceso.
-    CHEGADA_JS = r"""
-    (k) => {
-      const c = document.querySelector(`#conteudo article.cartao[data-chave="${k}"]`);
-      if (!c) return null;
-      const r = c.getBoundingClientRect();
-      return { visivel: r.top >= 0 && r.bottom <= innerHeight + 1,
-               aceso: c.classList.contains('chegou') };
-    }
-    """
-
-    def h_ficha_mudada(self, nome):
-        """A ficha de ajuste mudado da Início leva ao CARTÃO, e não só à aba: a
-        aba troca, a página rola até ele, e ele fica aceso (P54, achado 18).
-        O aceso dura segundos, então ele é conferido assim que o cartão nasce,
-        antes do `assentar` — que numa aba de prévias pode passar do prazo."""
-        el = self.achar(nome)
-        chave = el.get_attribute("data-leva")
-        el.click()
-        onde, fim = None, time.time() + 2.2
-        while time.time() < fim:
-            onde = self.js(self.CHEGADA_JS, chave)
-            if onde and onde["visivel"] and onde["aceso"]:
-                break
-            self.pag.wait_for_timeout(50)
-        self.checa(self.aba_atual() != "Início", f"a ficha leva à aba do ajuste ({self.aba_atual()})")
-        self.checa(onde and onde["visivel"],
-                   f"a ficha rola até o cartão {chave}, e ele fica inteiro na janela")
-        self.checa(onde and onde["aceso"], f"e o cartão {chave} chega aceso")
-        self.assentar(quieto=200)
-        self.abrir_aba(self.aba)
-
-    def h_usar_icone(self, nome):
-        """«Usar este ícone»: grava a escolha no estado da casa, e não na raiz.
-
-        [P73, 09/10/2026 (I3): até aqui a prova era «o mapa de ícones do
-        projeto muda» — e era a regressão. Usar o programa não pode sujar o
-        repositório: a escolha vai para `~/.config/meow/icones-*.map`.]"""
-        # Sem desenho escolhido a página só diz "escolha um desenho primeiro":
-        # o gesto dela é escolher e depois usar — um que valha (sem trava), e
-        # visível (numa pasta aberta). O traço primeiro, como sempre foi.
-        if not self.pag.locator("#conteudo .tira-glifos button[aria-pressed=true]").count():
-            vale = self.pag.locator("#conteudo .tira-glifos button:not(.travado):not(.do-pack):visible")
-            if not vale.count():
-                vale = self.pag.locator("#conteudo .tira-glifos button:not(.travado):visible")
-            vale.first.click()
-        antes, n0 = retrato(), len(self.posts)
-        self.achar(nome).click()
-        post = self.esperar_post(n0, teto=10)
-        self.checa(post and post[0] == "app-icone" and (post[1].get("glifo") or post[1].get("arquivo")),
-                   "«Usar este ícone» grava o desenho escolhido")
-        self.assentar(quieto=300, teto=20000)
-        self.esperar_trabalho()
-        mudou = diferenca(antes, retrato())
-        self.checa(any(c.startswith("casa/.config/meow/icones-") for c in mudou),
-                   "e a escolha vai para o estado da casa (~/.config/meow/icones-*.map)")
-        self.checa(not any(c.startswith(("raiz/assets/icones/", "raiz/packs/")) for c in mudou),
-                   "e a raiz (de brinquedo) não muda: " + ", ".join(
-                       c for c in mudou if c.startswith("raiz/"))[:200])
-
-    def h_travado(self, nome):
-        """O desenho travado não responde ao clique, e diz que não vale (P73)."""
-        el = self.achar(nome)
-        n0 = len(self.posts)
-        # O Playwright não clica no que tem `aria-disabled` (é o que o diz
-        # inativo); o clique vai pelo evento, como o de uma pessoa insistindo.
-        el.dispatch_event("click")
-        self.assentar(quieto=150, teto=4000)
-        el = self.achar(nome)
-        self.checa(el is not None and el.get_attribute("aria-disabled") == "true"
-                   and el.get_attribute("aria-pressed") != "true" and len(self.posts) == n0,
-                   "o desenho travado não fica marcado, nem grava nada, e diz que não vale")
-
-    def h_voltar_icone(self, nome):
-        antes, n0 = retrato(), len(self.posts)
-        self.achar(nome).click()
-        post = self.esperar_post(n0, teto=10)
-        self.checa(post and post[1].get("remover") is True,
-                   f"«{nome.split(' · ')[-1]}» pede para tirar o desenho")
-        self.assentar(quieto=300, teto=20000)
-        self.esperar_trabalho()
-        self.checa(diferenca(antes, retrato()), "e o mapa volta ao que era")
-
-    def h_oficina_regua(self, nome):
-        """A régua move, e a oficina pede ao servidor o desenho com o valor novo.
-
-        A PROVA É O PEDIDO, E NÃO A LUPA: numa arte simples o conversor devolve
-        o MESMO desenho com a suavidade em 2 e em 9 (medido na P33, e de novo
-        aqui no «Arquivos»), e cobrar a lupa mudada reprovaria a régua por uma
-        coisa que é da arte."""
-        rotulo = nome.split("«")[-1][:-1]
-        el = self.achar(nome)
-        campo = el.get_attribute("name")
-        v0 = el.input_value()
-        n0 = len(self.posts)
-        el.focus()
-        self.pag.keyboard.press("Home" if v0 == el.get_attribute("max") else "End")
-        self.assentar(quieto=400, teto=20000)
-        el = self.achar(nome)
-        novo = el.input_value() if el is not None else v0
-        self.checa(novo != v0, f"«{rotulo}» se move com o teclado ({v0} → {novo})")
-        pedidos = [c for d, c in self.posts[n0:] if d == "app-desenho"]
-        self.checa(pedidos and str(pedidos[-1].get(campo)) == novo,
-                   f"e a oficina pede o desenho com {campo}={novo}")
-
-    def h_editor_svg(self, nome):
-        """«Abrir no <editor>»: grava o rascunho no estado (de brinquedo). Com o
-        painel sem janela (`--sem-abrir`), o servidor NÃO abre programa nenhum
-        e diz isso — é o caminho que ele tem para teste, e o que se confere é
-        que ele o tomou."""
-        antes, n0 = retrato(), len(self.posts)
-        self.achar(nome).click()
-        post = self.esperar_post(n0, teto=10)
-        self.assentar(quieto=200)
-        self.checa(post and post[1].get("acao") == "editor",
-                   "«Abrir no editor» manda o desenho ao servidor")
-        self.checa(any("/meowsystem/oficina/" in c for c in diferenca(antes, retrato())),
-                   "e o rascunho nasce no estado da casa")
-        self.checa(not any(l.startswith("xdg-open") for l in registro()),
-                   "e nenhum programa é aberto na sessão")
-
-    def h_reler_svg(self, nome):
-        n0 = len(self.posts)
-        self.achar(nome).click()
-        post = self.esperar_post(n0, teto=10)
-        self.assentar(quieto=200)
-        self.checa(post and post[1].get("acao") == "editor-ler",
-                   "«Reler» pergunta ao servidor pelo rascunho")
-
-    def h_usar_oficina(self, nome):
-        """O «Usar» da oficina grava o desenho no mapa e o põe na tela."""
-        el = self.achar(nome)
-        if el.is_disabled():
-            variacao = self.pag.locator("#conteudo .oficina-folha button")
-            if variacao.count():
-                variacao.first.click()
-                self.assentar(quieto=400, teto=15000)
-            el = self.achar(nome)
-        if not self.checa(el is not None and el.is_enabled(),
-                          "escolher uma variação acende o «Usar» da oficina"):
-            return
-        antes, n0 = retrato(), len(self.posts)
-        el.click()
-        post = self.esperar_post(n0, teto=10)
-        self.assentar(quieto=300, teto=20000)
-        self.esperar_trabalho()
-        self.checa(post and post[0] == "app-desenho", "«Usar» grava o desenho da oficina")
-        mudou = diferenca(antes, retrato())
-        self.checa(any(c.endswith(".config/meow/icones-convertidos.map") for c in mudou),
-                   "e o mapa de convertidos de quem usa (de brinquedo) muda")
-        self.checa(not any(c.startswith("raiz/assets/icones/") for c in mudou),
-                   "e o repositório (de brinquedo) não muda")
-
-    def h_texto_svg(self, nome):
-        el = self.achar(nome)
-        v0 = el.input_value()
-        el.fill(v0.replace("</svg>", '<circle cx="4" cy="4" r="2"/></svg>') if v0 else
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">'
-                '<circle cx="24" cy="24" r="9"/></svg>')
-        self.assentar(quieto=200)
-        desf = self.pag.locator("details.oficina button", has_text="Desfazer")
-        self.checa(desf.count() and desf.first.is_enabled(),
-                   "editar o SVG à mão acende o Desfazer")
-
-    def h_desfazer_oficina(self, nome):
-        """O Desfazer nasce apagado; a edição do SVG à mão é o que o acende."""
-        el = self.achar(nome)
-        if el.is_disabled():
-            self.garantir_aberto("edição do SVG")
-            area = self.pag.locator("#conteudo details.oficina textarea")
-            area.fill(area.input_value().replace("</svg>", '<circle cx="4" cy="4" r="2"/></svg>'))
-            self.assentar(quieto=200)
-            el = self.achar(nome)
-        if not self.checa(el is not None and el.is_enabled(),
-                          "editar o SVG acende o Desfazer"):
-            return
-        area = self.pag.locator("#conteudo details.oficina textarea")
-        v0 = area.input_value() if area.count() else ""
-        el.click()
-        self.assentar(quieto=300, teto=15000)
-        self.checa(area.count() and area.input_value() != v0,
-                   "Desfazer devolve o desenho anterior")
-
-    # Pelo PAPEL do controle, e não pelo nome dele: um cartão novo com um
-    # deslizante já nasce com acionador.
-    def acionador(self, nome):
-        tabela = [
-            (r" · \?$", self.h_porque),
-            (r"^ajuste PACK · opção$", self.h_pack_opcao),
-            (r"^ajuste \S+ · opção$", self.h_opcoes),
-            (r"^ajuste \S+ · (deixar vazio|Restaurar ao padrão( \(.*\))?|Automático)$",
-             self.h_botao_do_cartao),
-            (r"^ajuste \S+ · deslizante$", self.h_deslizante),
-            (r"^ajuste \S+ · campo$", self.h_campo),
-            (r"^ajuste \S+ · hora$", self.h_hora),
-            (r"^ajuste \S+ · nova ficha$", self.h_nova_ficha),
-            (r"^ajuste \S+ › ficha da lista · tirar$", self.h_tirar_ficha),
-            (r"^ajuste \S+ · seletor$", self.h_seletor_ajuste),
-            (r" · ver comando$", self.h_ver_comando),
-            (r"^ação «.*» · Executar$", self.h_executar),
-            (r"^ação «.*» · Conferir$", self.h_executar),
-            (r"^ação «(Ver o que mudaria nos jogos do Heroic|O que a atualização mudaria)» · ", self.h_par),
-            (r"^ação «.*» · seletor$", self.h_seletor_acao),
-            (r" · Adicionar (tema|logo|imagem|fonte|tema de ícones|ícone)$", self.h_acervo),
-            (r"^aba · (Escuro|Vidro escuro|Vidro claro|Claro)$", self.h_fundo),
-            (r"^aba · (No carrossel|Noite|Dia|Favoritos|Recusadas)$", self.h_aba_galeria),
-            (r"^papel de parede · (Usar|Dia|Noite|Tirar)$", self.h_galeria),
-            (r"^papel de parede · Guardar nas favoritas$", self.h_favoritar),
-            (r"^aba · filtro «", self.h_filtro),
-            (r"âncora «Pular", self.h_pular),
-            (r"^aplicativo · abrir$", self.h_aplicativo),
-            (r"^jogo da Steam · abrir$", self.h_jogo),
-            (r"^ajuste mudado · ir ao cartão$", self.h_ficha_mudada),
-            (r" · abre «", self.h_details),
-            (r" · link externo$", self.h_link_externo),
-            (r"^cartão de pack · Usar este$", self.h_clique_de_acao),
-            (r"^aba · ação rápida ", self.h_clique_de_acao),
-            (r"^pendência · Resolver$", self.h_resolver),
-            (r"^pendência · Não, obrigado$", self.h_recusar),
-            (r"^pendência · (Trocar pelo tema do pack|Manter o meu)$", self.h_clique_de_acao),
-            (r"^cartão de pack · Remover$", self.h_remover_pack),
-            (r"^aba · (Tópicos|Sistema|Abrir .+)$", self.h_porta),
-            (r"^aba · Exportar o meu$", self.h_exportar_pack),
-            (r"^aba · Importar um pack$", self.h_importar_pack),
-            (r"^aba · (Conferir|Arrumar os jogos no lançador)$", self.h_clique_de_acao),
-            (r"^jogo órfão · Tirar da lista$", self.h_orfa),
-            (r" › (desenho do acervo|cor|variação|desenho autoral) · escolher$", self.h_escolher),
-            (r" › papel do desenho · seletor$", self.h_seletor_solto),
-            (r"^ícone do aplicativo · filtro «", self.h_filtro_glifos),
-            (r"^ícone do aplicativo · Usar este ícone$", self.h_usar_icone),
-            (r"^ícone do aplicativo · Desfazer a (escolha no traço|minha escolha)$",
-             self.h_voltar_icone),
-            (r"› desenho travado · dica$", self.h_travado),
-            (r"oficina · deslizante «", self.h_oficina_regua),
-            (r"edição do SVG · texto «", self.h_texto_svg),
-            (r"edição do SVG · Abrir no editor$", self.h_editor_svg),
-            (r"edição do SVG · Reler$", self.h_reler_svg),
-            (r"› oficina · Usar$", self.h_usar_oficina),
-            (r"oficina · Desfazer$", self.h_desfazer_oficina),
-            (r"^desenhos autorais · Salvar no pack$", self.h_salvar_autoral),
-            (r"^topo · #busca$", self.h_busca),
-            (r"^topo · #baixar-\w+$", self.h_baixa),
-            (r"^topo · #rotulo-importar$", self.h_importar_conf),
-            (r"^topo · #botao-ensaiar$", self.h_ensaiar_salvar),
-            (r"^topo · #botao-salvar$", self.h_salvar),
-            (r"^topo · #salvar-conta$", self.h_salvar_conta),
-        ]
-        for padrao, funcao in tabela:
-            if re.search(padrao, nome):
-                return funcao
-        return None
-
-    def acionar(self, nome, limpar=True, esperar=True):
-        funcao = self.acionador(nome)
-        t0 = time.time()
-        gesto_antes = self.gesto
-        self.gesto = nome
-        if funcao is None:
-            self.falha("o controle não tem acionador neste teste — um papel novo "
-                       "precisa de uma linha em `Percurso.acionador`")
-        elif esperar and self.esperar_nome(nome) is None:
-            self.falha("o controle sumiu da aba antes do gesto (a lista que o traz "
-                       "não voltou em 8 s)")
+        elif tipo == "time":
+            el.fill("21:00")
+            el.dispatch_event("change")
+        elif tipo == "number":
+            el.fill("17")
+            el.dispatch_event("change")
+        elif nome.endswith(":nova"):
+            el.fill("brinquedo-ficha")
+            el.press("Enter")
+        elif nome == "criar:nome":
+            el.fill("Nome de Brinquedo")
+            el.press("Tab")
+        elif nome in ("apps:filtro", "icone:busca"):
+            el.fill("a")
+            el.dispatch_event("change")
+        elif nome == "chave:AREAS_NOMES:area":
+            el.fill((el.input_value() or "Area") + "x")
+            el.dispatch_event("change")
         else:
-            try:
-                funcao(nome)
-            except Exception as e:
-                self.falha(f"o gesto quebrou: {type(e).__name__}: {str(e).splitlines()[0][:160]}")
-                self.foto(f"quebra-{len(self.falhas)}")
-        self.acionados.add(nome)
-        self.duracoes[nome] = self.duracoes.get(nome, 0) + (time.time() - t0)
-        if limpar:
-            try:
-                self.voltar()
-            except Exception as e:
-                self.falha(f"não consegui voltar ao começo da aba: {type(e).__name__}: "
-                           f"{str(e).splitlines()[0][:120]}")
-        self.gesto = gesto_antes
+            el.fill("Brinquedo")
+            el.dispatch_event("change")
+        self.acionados.add(molde(nome))
+        self.depois_do_gesto(nome)
+        self.checa(self.estado() != antes or self.posts, f"mexer em «{nome}» muda a tela")
 
-    def foto(self, nome):
-        pasta = FOTOS or os.path.join(tempfile.gettempdir(), "meow-app-completo")
-        os.makedirs(pasta, exist_ok=True)
-        caminho = os.path.join(pasta, re.sub(r"[^\w.-]+", "-", nome) + ".png")
-        try:
-            self.pag.screenshot(path=caminho, full_page=True)
-        except Exception:
-            return None
-        return caminho
+    def h_clique(self, nome, item):
+        antes, n0 = self.estado(), len(self.posts)
+        if not self.clicar(nome, so_livre="=" in nome):
+            return
+        como = self.depois_do_gesto(nome)
+        self.checa(como or self.estado() != antes or len(self.posts) > n0, f"o clique em «{nome}» tem efeito")
 
-    def h_filtro_glifos(self, nome):
-        tira = self.pag.locator("#conteudo .tira-glifos button")
-        n0 = tira.count()
-        primeiro = (tira.first.get_attribute("data-glifo") or "") if n0 else ""
-        termo = primeiro[:4]
-        if not self.checa(termo, "a tira tem desenhos para buscar"):
+    def h_acao(self, nome, item):
+        if item["desabilitado"]:
+            self.checa(bool(item["dica"]) and item["dica"][0].isupper(),
+                       f"a ação apagada «{nome}» diz o porquê na dica, com maiúscula ({item['dica']!r})")
+            self.acionados.add(molde(nome))
             return
-        self.achar(nome).fill(termo)
-        self.assentar(quieto=400, teto=10000)
-        achados = tira.evaluate_all("(bs) => bs.map((b) => b.dataset.glifo)")
-        self.checa(achados and len(achados) < n0 and primeiro in achados
-                   and sum(termo in g.lower() for g in achados) * 2 >= len(achados),
-                   f"buscar {termo!r} filtra a tira e acha {primeiro!r} "
-                   f"({len(achados)} de {n0})")
-        el = self.achar(nome)
-        if el is not None:
-            el.fill("")
-            self.assentar(quieto=400, teto=10000)
+        acao = self.js("(id) => { const a = ACAO.get(id); return a && { sudo: !!(a.sudo || a.pela_ponte),"
+                       " confirma: !!a.confirma, escreve: !!a.escreve }; }", nome.split(":", 1)[1].split(":")[0])
+        n0 = len(self.posts)
+        antes = self.estado()
+        if not self.clicar(nome):
+            return
+        como = self.depois_do_gesto(nome)
+        ponte = self.js("() => ESQUEMA.ponte")
+        if acao and acao["sudo"] and not ponte:
+            self.checa(como == "ponte", f"«{nome}» é de root e, sem a ponte, mostra «Falta a ponte» ({como!r})")
+        elif acao and acao["confirma"]:
+            self.checa(como in ("ensaio", "trabalho"), f"«{nome}» pergunta e roda ({como!r})")
+        else:
+            self.checa(como == "trabalho" or len(self.posts) > n0 or self.estado() != antes,
+                       f"«{nome}» roda ({como!r})")
 
-    def h_salvar_autoral(self, nome):
-        """Escolher um desenho, trocar uma cor, e só então o Salvar acende."""
-        escolher = "desenhos autorais › desenho autoral · escolher"
-        el = self.achar(escolher)
-        if not self.checa(el is not None, "há um desenho autoral para escolher"):
+    def acionar(self, nome, item):
+        m = molde(nome)
+        if item["desabilitado"] and not nome.startswith("acao:") and nome != "criar:guardar":
+            self.checa(bool(item["dica"]) and item["dica"][0].isupper(),
+                       f"o controle apagado «{nome}» diz o porquê na dica ({item['dica']!r})")
+            self.acionados.add(m)
             return
-        el.click()
-        self.assentar(quieto=300, teto=10000)
-        seletor = "desenhos autorais › papel do desenho · seletor"
-        sel = self.achar(seletor)
-        if not self.checa(sel is not None, "escolher o desenho mostra os papéis de cor"):
+        if nome == "criar:sino":
+            # O sino toca no navegador: o que se confere é que tocar não quebra.
+            n0 = len(self.falhas)
+            self.clicar(nome)
+            self.pag.wait_for_timeout(400)
+            self.checa(len(self.falhas) == n0, "o sino toca sem erro")
             return
-        atual = sel.input_value()
-        outro = next(o for o in sel.locator("option").evaluate_all(
-            "(os) => os.map((o) => o.value)") if o != atual)
-        sel.select_option(outro)
-        self.assentar(quieto=300, teto=10000)
-        self.acionados.add(seletor)
-        botao = self.achar(nome)
-        if not self.checa(botao is not None and botao.is_enabled(),
-                          "trocar uma cor acende o «Salvar no pack»"):
+        if nome.startswith("acervo:"):
+            return self.h_acervo(nome)
+        if nome == "tema:abrir":
+            return self.h_abrir_tema(nome)
+        if nome == "cuidar:importar":
+            return self.h_importar_conf(nome)
+        if nome in ("cuidar:exportar", "criar:baixar"):
+            return self.h_download(nome)
+        if nome == "criar:guardar":
+            return self.h_guardar(nome)
+        if nome.startswith("acao:") and item["tag"] == "button":
+            return self.h_acao(nome, item)
+        if item["tag"] in ("input", "select", "textarea"):
+            return self.h_campo(nome, item)
+        if item["tag"] == "summary":
+            antes = self.js(f"() => document.querySelector('[data-controle=\"{css_attr(nome)}\"]').parentElement.open")
+            self.clicar(nome)
+            self.assentar()
+            self.checa(self.js(f"() => document.querySelector('[data-controle=\"{css_attr(nome)}\"]').parentElement.open") != antes,
+                       f"«{nome}» abre e fecha")
             return
-        antes, n0 = retrato(), len(self.posts)
-        botao.click()
-        post = self.esperar_post(n0, teto=10)
-        self.assentar(quieto=300, teto=20000)
-        self.checa(post and post[0] == "autorais", "«Salvar no pack» grava o desenho")
-        self.checa(any(c.startswith("raiz/packs/") for c in diferenca(antes, retrato())),
-                   "e o pack (de brinquedo) muda no disco")
+        if item["tag"] == "a" and "#" in (item["html"].split('href="', 1)[-1][:2] or ""):
+            antes = self.js("() => location.hash")
+            self.clicar(nome)
+            self.assentar()
+            self.checa(self.js("() => location.hash") != antes or m in ("tema:saude",),
+                       f"o link «{nome}» leva a outra página")
+            return
+        if item["desabilitado"]:
+            self.checa(bool(item["dica"]), f"o controle apagado «{nome}» diz o porquê na dica")
+            self.acionados.add(m)
+            return
+        return self.h_clique(nome, item)
 
-    # ======================================================================
-    # A ABA
-    # ======================================================================
-    def percorrer_aba(self, grupo):
-        self.aba, self.gesto = grupo, ""
-        t0 = time.time()
-        self.abrir_aba(grupo)
-        self.acionados.add(f"menu · {grupo}")
-        self.checa(self.aba_atual() == grupo, f"o menu abre «{grupo}»")
-        print(f"\n== {grupo}")
-        foto = self.foto(f"aba-{grupo}")
-        self.texto_ruim()
-        base = {n: a for n, a in self.censo().items() if a["zona"] == "aba"}
-        self.base[grupo] = base
-        self.conferir_inventario(grupo, base)
-        print(f"   {sum(a['n'] for a in base.values())} controles, {len(base)} nomes"
-              + (f" · captura em {foto}" if foto else ""))
-        for nome in sorted(base):
-            if nome in self.acionados and (nome.startswith("papel de parede")
-                                           or nome.startswith("aplicativo")):
+    # --- uma página --------------------------------------------------------
+    def esperado(self, rota):
+        """O que lugares.js põe nesta página: [(prefixo do controle, o quê)]."""
+        porta, _, sub = rota.partition("/")
+        lista = self.js("""([porta, sub]) => {
+          const nome = porta === 'ajustes' ? (AJUSTES.find((p) => p.id === sub) || {}).nome
+                     : porta === 'criar' ? (PASSOS.find((p) => p.id === sub) || {}).nome : null;
+          return inventarioDoPainel().filter((l) => l.porta === porta && (!nome || l.pagina === nome))
+            .map((l) => ({ tipo: l.tipo, id: l.id,
+              existe: l.tipo === 'chave' ? CHAVE.has(l.id) && !CHAVE.get(l.id).sem_programa
+                    : l.tipo === 'acao' ? ACAO.has(l.id) : true }));
+        }""", [porta, sub])
+        saida = []
+        for l in lista:
+            if not l["existe"]:
                 continue
-            self.acionar(nome)
-        self.texto_ruim()
-        self.tempos[grupo] = time.time() - t0
-        print(f"   {self.tempos[grupo]:.0f} s")
+            if l["tipo"] == "chave":
+                saida.append((CONTROLE_DA_CHAVE.get(l["id"], "chave:" + l["id"]), "chave " + l["id"]))
+            elif l["tipo"] == "acao" and l["id"] not in ACAO_COM_DADO:
+                saida.append((CONTROLE_DA_ACAO.get(l["id"], "acao:" + l["id"]), "ação " + l["id"]))
+            elif l["tipo"] == "gesto" and l["id"].startswith("acervo:"):
+                saida.append((l["id"], "gesto " + l["id"]))
+        if rota == "criar/mandar":
+            saida = [(p if p != "pack:" else "criar:vestir", o) for p, o in saida]
+        return saida
 
-    def percorrer_topo(self):
-        """Menu, banner e o salto de teclado: a moldura de toda aba."""
-        self.aba, self.gesto = "topo", ""
-        t0 = time.time()
-        self.abrir_aba("Início")
-        self.aba = "topo"
-        print("\n== topo (menu, banner, gaveta e caixa)")
-        base = {n: a for n, a in self.censo().items() if a["zona"] != "aba"}
-        self.base["topo"] = base
-        self.conferir_inventario("topo", base)
-        for nome in sorted(base):
-            if nome.startswith("menu · ") and nome != "menu · link externo":
-                # Cada aba é aberta pelo menu no percurso dela; com `--aba
-                # topo` o menu é clicado aqui, para o topo prestar contas só.
-                if SO_ABA == "topo":
-                    self.abrir_aba(nome.split(" · ", 1)[1])
-                    self.acionados.add(nome)
-                    self.abrir_aba("Início")
+    def permitido(self, rota, nome, esperado):
+        if any(nome.startswith(p) for p, _o in esperado):
+            return True
+        padroes = list(GLOBAIS)
+        for chave, extras in EXTRAS.items():
+            if fnmatch.fnmatch(rota, chave):
+                padroes += extras
+        return any(fnmatch.fnmatch(nome, p) or fnmatch.fnmatch(molde(nome), p) for p in padroes)
+
+    def visitar(self, rota):
+        self.rota = rota
+        inicio = time.time()
+        self.ir(rota)
+        for s in self.pag.locator("details.mais > summary").all():
+            if not s.evaluate("(x) => x.parentElement.open"):
+                nome = s.get_attribute("data-controle")
+                self.clicar(nome)
+                self.assentar()
+        self.assentar(quieto=500, teto=15000)
+        itens = self.censo()
+        sem_nome = [i["html"] for i in itens if not i["nome"]]
+        self.checa(not sem_nome, f"todo controle tem nome (sem: {sem_nome[:3]})")
+        esperado = self.esperado(rota)
+        nomes = [i["nome"] for i in itens if i["nome"]]
+        for prefixo, oque in esperado:
+            self.checa(any(n.startswith(prefixo) for n in nomes), f"a {oque} tem controle na página")
+        for n in sorted(set(nomes)):
+            self.checa(self.permitido(rota, n, esperado), f"o controle «{n}» não está no inventário (sem teste)")
+        ruim = self.js(TEXTO_RUIM_JS)
+        self.checa(not ruim["ruins"], f"texto quebrado na tela: {ruim['ruins'][:3]}")
+        self.checa(ruim["senha"] == 0, "nenhum campo de senha")
+        if FOTOS:
+            os.makedirs(FOTOS, exist_ok=True)
+            self.pag.screenshot(path=os.path.join(FOTOS, rota.replace("/", "-") + ".png"), full_page=True)
+        feitos = set()
+        for item in itens:
+            nome = item["nome"]
+            if not nome or nome.startswith(("porta:", "ajuste:", "passo:")):
                 continue
-            self.acionar(nome)
-            if self.aba_atual() != "Início":
-                self.abrir_aba("Início")
-        # O CONTADOR DE ESCOLHAS SÓ EXISTE COM ESCOLHA PENDENTE: o gesto que o
-        # revela (duas escolhas) mora no acionador dele, que o chama pelo nome.
-        self.acionar("topo · #salvar-conta", esperar=False)
-        self.tempos["topo"] = time.time() - t0
+            m = molde(nome)
+            if m in feitos or any(fnmatch.fnmatch(m, p) for p in NO_FIM):
+                continue
+            self.limpar()
+            if self.js("() => location.hash") != "#" + rota:
+                self.ir(rota)
+                for s in self.pag.locator("details.mais > summary").all():
+                    if not s.evaluate("(x) => x.parentElement.open"):
+                        s.click()
+                self.assentar()
+            agora = self.censo()
+            vivo = next((i for i in agora if i["nome"] == nome), None)
+            if vivo is None:
+                continue
+            # No que nasce de dado (as cores, as variantes), o gesto vai num que
+            # ainda não está escolhido: clicar no escolhido não muda nada.
+            if vivo["pressionado"] == "true" and ("=" in nome or nome.startswith("galeria:")):
+                familia = (lambda n: molde(n)) if "=" in nome else (lambda n: n.split(":")[0])
+                livre = next((i for i in agora if i["nome"] and familia(i["nome"]) == familia(nome)
+                              and i["pressionado"] != "true" and not i["desabilitado"]), None)
+                if livre:
+                    nome, vivo = livre["nome"], livre
+            feitos.add(m)
+            t0 = time.time()
+            try:
+                self.acionar(nome, vivo)
+            except Exception as e:  # noqa: BLE001 — o gesto que quebra é achado, e o percurso segue
+                self.falha(f"o gesto em «{nome}» quebrou: {type(e).__name__}: {str(e).splitlines()[0][:160]}")
+                self.fechar_pergunta()
+                self.fechar_resultado()
+            self.acionados.add(m)
+            if time.time() - t0 > 20:
+                print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
+        self.limpar()
+        self.assentar()
+        if self.js("() => MUDANCAS.size"):
+            self.clicar("desfazer")
+            self.assentar()
+            self.checa(self.js("() => MUDANCAS.size") == 0, "o Desfazer limpa o que a página deixou esperando")
+        self.tempos[rota] = round(time.time() - inicio, 1)
 
-    # ======================================================================
-    # O INVENTÁRIO É O GATE
-    # ======================================================================
-    def conferir_inventario(self, grupo, base):
-        conhecidos = INVENTARIO.get(grupo)
-        if conhecidos is None:
-            self.falha(f"a aba «{grupo}» não tem inventário — aba nova precisa de uma "
-                       "entrada em INVENTARIO")
-            conhecidos = set()
-        for nome in sorted(set(base) - conhecidos):
-            self.falha(f"o controle «{nome}» da aba «{grupo}» não tem teste: ele não está "
-                       "no inventário")
-        for nome in sorted(conhecidos - set(base)):
-            self.falha(f"o controle «{nome}» do inventário sumiu da aba «{grupo}»")
-
-    def fechar_contas(self):
-        """O que apareceu no meio de um gesto e o que ficou sem clique."""
-        self.gesto = ""
-        todo_inventario = set().union(*INVENTARIO.values()) if INVENTARIO else set()
-        for grupo, vistos in self.vistos.items():
-            self.aba = grupo
-            permitidos = INVENTARIO.get(grupo, set()) | INVENTARIO.get("topo", set())
-            if grupo == "(busca)":
-                # A busca junta cartões de todas as abas: vale o que alguma
-                # aba conhece.
-                permitidos = todo_inventario
-            for nome in sorted(vistos):
-                if nome in permitidos or casa_revelado(nome, grupo) or \
-                   (grupo == "(busca)" and any(casa_revelado(nome, g) for g in REVELADOS)):
-                    continue
-                self.falha(f"o controle «{nome}» apareceu em «{grupo}» e não tem teste: "
-                           "ele não está em REVELADOS")
-        self.aba = "(fim)"
-        # Com `--aba`, só a aba pedida presta contas: o topo e o que se revela
-        # em toda aba dependem do percurso inteiro, que é o que o gate roda.
-        def conta(grupo):
-            return not SO_ABA or grupo == SO_ABA
-        todos_vistos = {n for v in self.vistos.values() for n in v}
-        for grupo, padroes in REVELADOS.items():
-            for padrao in sorted(padroes) if conta(grupo) else ():
-                if not any(casa(padrao, n) for n in todos_vistos):
-                    self.falha(f"o controle revelado «{padrao}» ({grupo}) nunca apareceu")
-                elif not any(casa(padrao, a) or casa(a, padrao) for a in self.acionados):
-                    self.falha(f"o controle revelado «{padrao}» ({grupo}) apareceu e "
-                               "não foi acionado")
-        for grupo, nomes in INVENTARIO.items():
-            for nome in sorted(nomes) if conta(grupo) else ():
-                if not any(casa(nome, a) or casa(a, nome) for a in self.acionados):
-                    self.falha(f"o controle «{nome}» ({grupo}) não foi acionado")
-
-
-def casa(padrao, nome):
-    """`*` no inventário é "qualquer coisa": `ajuste * · Aplicar`."""
-    if "*" not in padrao:
-        return padrao == nome
-    return re.fullmatch(".*".join(re.escape(p) for p in padrao.split("*")), nome) is not None
-
-
-def casa_revelado(nome, grupo):
-    return any(casa(p, nome) for p in REVELADOS.get(grupo, set()) | REVELADOS["(toda aba)"])
-
-
-# AS EXCEÇÕES: o que nem a casa de brinquedo roda de verdade
-#
-# Pela AÇÃO do servidor, e não pelo botão: a mesma ação tem mais de uma porta
-# na página (o «Instalar tudo», o «Salvar e aplicar», o «Aplicar» do aviso), e
-# a razão de não rodar é dela, não da porta.
-def reparo_que_baixa(acao):
-    return bool(acao["rede"]) and not acao["sudo"] and acao.get("natureza") == "consertar"
-
-
-EXCECOES = {
-    "instalar": "roda o instalador inteiro: pede senha, baixa fontes e compila os "
-                "applets. Na casa de brinquedo leva um minuto e sai 2 por falta de "
-                "rede e de sessão — o ensaio prova o que ele faria, e o Salvar é "
-                "provado gravando com o instalador ocupado",
-    "desinstalar": "desfaz a instalação e pede senha; na casa de brinquedo não há o que "
-                   "desfazer além do que o próprio teste pôs, e o ensaio mostra o plano",
-    "pack_usar": "troca o pack e roda o instalador inteiro (senha e rede)",
-    "sistema_atualizar": "atualiza o Pop!_OS inteiro com senha e rede",
-    "sistema_limpar": "apaga pacote do sistema com senha",
-    "wallpaper_semear": "baixa a coleção curada da internet",
-    "prompt_instalar_starship": "baixa e instala o starship da internet",
-    "files_menu_build": "baixa e compila o cosmic-files (dezenas de minutos)",
-    "spotify_baixar_tema": "baixa o tema do spicetify da internet",
-    "vscode_instalar_extensao": "baixa e instala no VS Code a extensão que o pack importado pede",
-}
-
-
-# O percurso conserta o que acha dentro de `app/`. Cada entrada: padrão da
-# reprovação -> (endereço do conserto, se ele aparece em TODA corrida).
-DEFEITOS_CONHECIDOS = {
-}
-
-
-# Um nome por linha, no formato que o censo escreve (`contexto · papel`).
-def _linhas(texto):
-    return {l.strip() for l in texto.strip().splitlines() if l.strip()}
-
-
-# cada aba ganhou o `?` do cabeçalho e o do desenho («aba ·?»), e cada cartão de
-# ação o `?` da ajuda («ação «X» ·?»). Os nomes entraram aqui com o mesmo
-# acionador de todo `?` (`h_porque`).
-INVENTARIO = {
-    "topo": _linhas("""
-        menu · Atualização
-        menu · Cor e tela
-        menu · Dia e noite
-        menu · Instalação
-        menu · Início
-        menu · Lançadores e jogos
-        menu · Logo do sistema
-        menu · Manutenção
-        menu · Modo de leitura
-        menu · Painel e dock
-        menu · Papel de parede
-        menu · Terminal
-        menu · link externo
-        menu · Áreas de trabalho
-        menu · Ícones
-        página · âncora «Pular para o conteúdo»
-        topo · #botao-ensaiar
-        topo · #botao-salvar
-        topo · #busca
-        topo · #rotulo-importar
-        topo · abre «Exportar»
-    """),
-    "Início": _linhas("""
-        aba · ?
-        aba · Abrir Dia e noite
-        aba · Abrir Modo de leitura
-        aba · Exportar o meu
-        aba · Importar um pack
-        aba · Sistema
-        aba · Tópicos
-        aba · ação rápida doctor
-        aba · ação rápida doctor_consertar
-        aba · ação rápida painel_reciclar
-        aba · ação rápida wallpaper_proximo
-        ajuste mudado · ir ao cartão
-        cartão de pack · Usar este
-        cartão de pack · abre «Detalhes do pack»
-        pendência · ?
-        pendência · Manter o meu
-        pendência · Não, obrigado
-        pendência · Resolver
-        pendência · Trocar pelo tema do pack
-    """),
-    "Cor e tela": _linhas("""
-        aba · ?
-        aba · abre «⋯ Ajustes técnicos»
-        aba · abre «⋯ Ações técnicas»
-        aba · Claro
-        aba · Escuro
-        aba · Vidro claro
-        aba · Vidro escuro
-        ajuste ACCENT · ?
-        ajuste ACCENT · opção
-        ajuste CURSOR · ?
-        ajuste CURSOR · Adicionar tema
-        ajuste CURSOR · deixar vazio
-        ajuste CURSOR · opção
-        ajuste ESCALA_TELA · ?
-        ajuste ESCALA_TELA · deixar vazio
-        ajuste ESCALA_TELA · opção
-        ajuste FLAVOR · ?
-        ajuste FLAVOR · opção
-        ajuste JANELAS_TILING · ?
-        ajuste JANELAS_TILING · deixar vazio
-        ajuste JANELAS_TILING · opção
-        ajuste JANELAS_TILING_ESCOPO · ?
-        ajuste JANELAS_TILING_ESCOPO · opção
-        ajuste MODO · ?
-        ajuste MODO · opção
-        ajuste PACK · ?
-        ajuste PACK · opção
-        ação «Temas prontos nesta máquina» · ?
-        ação «Temas prontos nesta máquina» · Executar
-        ação «Temas prontos nesta máquina» · ver comando
-    """),
-    "Áreas de trabalho": _linhas("""
-        aba · ?
-        aba · abre «⋯ Ações técnicas»
-        ajuste AREAS_ENCAIXE · ?
-        ajuste AREAS_ENCAIXE · nova ficha
-        ajuste AREAS_FOLGA · ?
-        ajuste AREAS_NOMES · ?
-        ajuste AREAS_NOMES · campo
-        ação «Criar a primeira área» · ?
-        ação «Criar a primeira área» · Executar
-        ação «Criar a primeira área» · ver comando
-        ação «Gravar as áreas» · ?
-        ação «Gravar as áreas» · Executar
-        ação «Gravar as áreas» · ver comando
-        ação «Tirar uma área» · ?
-        ação «Tirar uma área» · Executar
-        ação «Tirar uma área» · seletor
-        ação «Tirar uma área» · ver comando
-        ação «Voltar as áreas de antes» · ?
-        ação «Voltar as áreas de antes» · Executar
-        ação «Voltar as áreas de antes» · ver comando
-    """),
-    "Logo do sistema": _linhas("""
-        aba · ?
-        aba · Adicionar logo
-        aba · abre «⋯ Ajustes técnicos»
-        aba · abre «⋯ Ações técnicas»
-        ajuste FASTFETCH_LOGO · ?
-        ajuste FASTFETCH_LOGO · opção
-        ajuste FASTFETCH_LOGO_ALINHAR · ?
-        ajuste FASTFETCH_LOGO_ALINHAR · opção
-        ajuste FASTFETCH_LOGO_COLUNAS · ?
-        ajuste FASTFETCH_LOGO_COLUNAS · deslizante
-        ajuste FASTFETCH_LOGO_LINHAS · ?
-        ajuste FASTFETCH_LOGO_LINHAS · deslizante
-        ajuste FASTFETCH_LOGO_MODO · ?
-        ajuste FASTFETCH_LOGO_MODO · opção
-        ajuste FASTFETCH_LOGO_QUEBRAS · ?
-        ajuste FASTFETCH_LOGO_QUEBRAS · deslizante
-        ajuste FASTFETCH_LOGO_RECUO · ?
-        ajuste FASTFETCH_LOGO_RECUO · deslizante
-        ajuste FASTFETCH_TITULO · ?
-        ajuste FASTFETCH_TITULO · campo
-        ajuste FASTFETCH_TITULO · Restaurar ao padrão ({full-user-name} @ {host-name-colored})
-        ajuste LOGO_DIA · ?
-        ajuste LOGO_DIA · opção
-        ajuste LOGO_MODO · ?
-        ajuste LOGO_MODO · opção
-        ajuste LOGO_NOITE · ?
-        ajuste LOGO_NOITE · opção
-    """),
-    "Ícones": _linhas("""
-        aba · ?
-        aba · abre «⋯ Ajustes técnicos»
-        aba · Adicionar tema de ícones
-        aba · filtro «Filtrar aplicativo»
-        aba · âncora «Pular a lista de aplicativos»
-        ajuste ICONES_COR_MARCA · ?
-        ajuste ICONES_COR_MARCA · opção
-        ajuste ICONES_DRACULA · ?
-        ajuste ICONES_DRACULA · opção
-        ajuste ICONES_FLAVOR · ?
-        ajuste ICONES_FLAVOR · opção
-        ajuste ICONES_PASTAS · ?
-        ajuste ICONES_PASTAS · seletor
-        ajuste ICONES_PASTAS · ver comando
-        ajuste ICONES_RESGATADOS · ?
-        ajuste ICONES_RESGATADOS · opção
-        ajuste NOME_TEMA_ICONES · ?
-        ajuste NOME_TEMA_ICONES · campo
-        ajuste PASTAS_XDG · ?
-        ajuste PASTAS_XDG · opção
-        aplicativo · abrir
-        ação «Pôr os desenhos em traço na tela» · ?
-        ação «Pôr os desenhos em traço na tela» · Executar
-        ação «Pôr os desenhos em traço na tela» · ver comando
-        ação «Reconstruir o tema de ícones» · ?
-        ação «Reconstruir o tema de ícones» · Executar
-        ação «Reconstruir o tema de ícones» · ver comando
-        ação «Tema de ícones instalado» · ?
-        ação «Tema de ícones instalado» · Executar
-        ação «Tema de ícones instalado» · ver comando
-    """),
-    "Painel e dock": _linhas("""
-        aba · ?
-        aba · abre «⋯ Ações técnicas»
-        ajuste FORMA_ALA_FINAL_DOCK · ?
-        ajuste FORMA_ALA_FINAL_DOCK · deixar vazio
-        ajuste FORMA_ALA_FINAL_DOCK · opção
-        ajuste FORMA_ALA_FINAL_PAINEL · ?
-        ajuste FORMA_ALA_FINAL_PAINEL · deixar vazio
-        ajuste FORMA_ALA_FINAL_PAINEL · opção
-        ajuste FORMA_ALA_INICIAL_DOCK · ?
-        ajuste FORMA_ALA_INICIAL_DOCK · deixar vazio
-        ajuste FORMA_ALA_INICIAL_DOCK · opção
-        ajuste FORMA_ALA_INICIAL_PAINEL · ?
-        ajuste FORMA_ALA_INICIAL_PAINEL · deixar vazio
-        ajuste FORMA_ALA_INICIAL_PAINEL · opção
-        ajuste FORMA_CENTRO_DOCK · ?
-        ajuste FORMA_CENTRO_DOCK · deixar vazio
-        ajuste FORMA_CENTRO_DOCK · opção
-        ajuste FORMA_CENTRO_PAINEL · ?
-        ajuste FORMA_CENTRO_PAINEL · deixar vazio
-        ajuste FORMA_CENTRO_PAINEL · opção
-        ajuste FORMA_DOCK_ILHA · ?
-        ajuste FORMA_DOCK_ILHA · opção
-        ajuste FORMA_DOCK_SOLTO · ?
-        ajuste FORMA_DOCK_SOLTO · opção
-        ajuste FORMA_ESPACO_DOCK · ?
-        ajuste FORMA_ESPACO_DOCK · deslizante
-        ajuste FORMA_ESPACO_PAINEL · ?
-        ajuste FORMA_ESPACO_PAINEL · deslizante
-        ajuste FORMA_MARGEM_DOCK · ?
-        ajuste FORMA_MARGEM_DOCK · deslizante
-        ajuste FORMA_MARGEM_PAINEL · ?
-        ajuste FORMA_MARGEM_PAINEL · deslizante
-        ajuste FORMA_PAINEL_ILHA · ?
-        ajuste FORMA_PAINEL_ILHA · opção
-        ajuste FORMA_PAINEL_SOLTO · ?
-        ajuste FORMA_PAINEL_SOLTO · opção
-        ajuste FORMA_RAIO_DOCK · ?
-        ajuste FORMA_RAIO_DOCK · deslizante
-        ajuste FORMA_RAIO_PAINEL · ?
-        ajuste FORMA_RAIO_PAINEL · deslizante
-        ajuste FORMA_RECHEIO_DOCK · ?
-        ajuste FORMA_RECHEIO_DOCK · deslizante
-        ajuste FORMA_RECHEIO_PAINEL · ?
-        ajuste FORMA_RECHEIO_PAINEL · deslizante
-        ajuste MIDIA · ?
-        ajuste MIDIA · opção
-        ajuste MIDIA_CAPA · ?
-        ajuste MIDIA_CAPA · opção
-        ajuste MIDIA_CONTROLES · ?
-        ajuste MIDIA_CONTROLES · opção
-        ajuste MIDIA_COR_ALBUM · ?
-        ajuste MIDIA_COR_ALBUM · opção
-        ajuste MIDIA_COR_ARTISTA · ?
-        ajuste MIDIA_COR_ARTISTA · opção
-        ajuste MIDIA_COR_TITULO · ?
-        ajuste MIDIA_COR_TITULO · opção
-        ajuste MIDIA_FONTE · ?
-        ajuste MIDIA_FONTE · deslizante
-        ajuste MIDIA_LARGURA · ?
-        ajuste MIDIA_LARGURA · deslizante
-        ajuste RELOGIO_SEGUNDOS · ?
-        ajuste RELOGIO_SEGUNDOS · deixar vazio
-        ajuste RELOGIO_SEGUNDOS · opção
-        ajuste VIDRO_AO_MAXIMIZAR · ?
-        ajuste VIDRO_AO_MAXIMIZAR · opção
-        ajuste VIDRO_OPACIDADE_DOCK · ?
-        ajuste VIDRO_OPACIDADE_DOCK · deslizante
-        ajuste VIDRO_OPACIDADE_PAINEL · ?
-        ajuste VIDRO_OPACIDADE_PAINEL · deslizante
-    """),
-    "Papel de parede": _linhas("""
-        aba · ?
-        aba · Adicionar imagem
-        aba · Dia
-        aba · Favoritos
-        aba · No carrossel
-        aba · Noite
-        aba · Recusadas
-        aba · abre «⋯ Ajustes técnicos»
-        aba · abre «⋯ Ações técnicas»
-        aba · âncora «Pular a galeria»
-        ajuste FILES_MENU · ?
-        ajuste FILES_MENU · opção
-        ajuste WALLPAPER_AJUSTE · ?
-        ajuste WALLPAPER_AJUSTE · opção
-        ajuste WALLPAPER_FIXO_TTL · ?
-        ajuste WALLPAPER_FIXO_TTL · campo
-        ajuste WALLPAPER_FONTES_PERMITIDAS · ?
-        ajuste WALLPAPER_FONTES_PERMITIDAS · nova ficha
-        ajuste WALLPAPER_INTERVALO · ?
-        ajuste WALLPAPER_INTERVALO · opção
-        ajuste WALLPAPER_NOTIFICAR · ?
-        ajuste WALLPAPER_NOTIFICAR · opção
-        ajuste WALLPAPER_ORDEM · ?
-        ajuste WALLPAPER_ORDEM · opção
-        ação «Imagem anterior» · ?
-        ação «Imagem anterior» · Executar
-        ação «Imagem anterior» · ver comando
-        ação «Próxima imagem» · ?
-        ação «Próxima imagem» · Executar
-        ação «Próxima imagem» · ver comando
-        ação «Voltar a girar» · ?
-        ação «Voltar a girar» · Executar
-        ação «Voltar a girar» · ver comando
-        papel de parede · Dia
-        papel de parede · Guardar nas favoritas
-        papel de parede · Noite
-        papel de parede · Tirar
-        papel de parede · Usar
-        papel de parede · ver comando
-    """),
-    "Dia e noite": _linhas("""
-        aba · ?
-        ajuste MODO_AUTO_CLARO_ATE · ?
-        ajuste MODO_AUTO_CLARO_ATE · hora
-        ajuste MODO_AUTO_CLARO_DE · ?
-        ajuste MODO_AUTO_CLARO_DE · hora
-        ajuste NOITE_FIM · ?
-        ajuste NOITE_FIM · hora
-        ajuste NOITE_INICIO · ?
-        ajuste NOITE_INICIO · hora
-        ajuste WALLPAPER_LIMIAR_LUZ · ?
-        ajuste WALLPAPER_LIMIAR_LUZ · deslizante
-        ajuste WALLPAPER_NOITE · ?
-        ajuste WALLPAPER_NOITE · opção
-        ajuste WALLPAPER_NOITE_FIM · ?
-        ajuste WALLPAPER_NOITE_FIM · hora
-        ajuste WALLPAPER_NOITE_INICIO · ?
-        ajuste WALLPAPER_NOITE_INICIO · hora
-    """),
-    "Modo de leitura": _linhas("""
-        aba · ?
-        aba · abre «⋯ Ações técnicas»
-        ajuste LEITURA_AGENDA · ?
-        ajuste LEITURA_AGENDA · deixar vazio
-        ajuste LEITURA_AGENDA · opção
-        ajuste LEITURA_APPLET · ?
-        ajuste LEITURA_APPLET · opção
-        ajuste LEITURA_HORARIO_FIM · ?
-        ajuste LEITURA_HORARIO_FIM · hora
-        ajuste LEITURA_HORARIO_INICIO · ?
-        ajuste LEITURA_HORARIO_INICIO · hora
-        ajuste LEITURA_RAMPA_MIN · ?
-        ajuste LEITURA_RAMPA_MIN · deslizante
-        ajuste LEITURA_TEMPERATURA · ?
-        ajuste LEITURA_TEMPERATURA · deslizante
-        ajuste LEITURA_TEXTURA · ?
-        ajuste LEITURA_TEXTURA · deslizante
-        ação «Desligar o modo de leitura» · ?
-        ação «Desligar o modo de leitura» · Executar
-        ação «Desligar o modo de leitura» · ver comando
-    """),
-    "Terminal": _linhas("""
-        aba · ?
-        aba · Adicionar fonte
-        ajuste PROMPT_STARSHIP · ?
-        ajuste PROMPT_STARSHIP · opção
-        ajuste TERMINAL_CURSOR · ?
-        ajuste TERMINAL_CURSOR · opção
-        ajuste TERMINAL_ESQUEMA · ?
-        ajuste TERMINAL_ESQUEMA · opção
-        ação «Instalar o starship» · ?
-        ação «Instalar o starship» · Executar
-        ação «Instalar o starship» · ver comando
-    """),
-    "Lançadores e jogos": _linhas("""
-        aba · ?
-        aba · Arrumar os jogos no lançador
-        aba · Conferir
-        aba · abre «⋯ Ações técnicas»
-        aba · filtro «Filtrar jogo»
-        aba · âncora «Pular a lista»
-        aba · âncora «Pular os jogos»
-        ajuste APPS_ATIVOS · ?
-        ajuste APPS_ATIVOS · nova ficha
-        ajuste APPS_ATIVOS › ficha da lista · tirar
-        ajuste AUTOSTART_BLOQUEADOS · ?
-        ajuste AUTOSTART_BLOQUEADOS · nova ficha
-        ajuste LANCADOR_OCULTAR · ?
-        ajuste LANCADOR_OCULTAR · nova ficha
-        ajuste LANCADOR_OCULTAR › ficha da lista · tirar
-        ajuste LANCADOR_SISTEMA · ?
-        ajuste LANCADOR_SISTEMA · opção
-        ajuste SPOTIFY_MARKETPLACE · ?
-        ajuste SPOTIFY_MARKETPLACE · opção
-        aplicativo · abrir
-        ação «Quais programas estão vestidos» · ?
-        ação «Quais programas estão vestidos» · Executar
-        ação «Quais programas estão vestidos» · ver comando
-        ação «Ver o que mudaria nos jogos do Heroic» · ?
-        ação «Ver o que mudaria nos jogos do Heroic» · Conferir
-        ação «Ver o que mudaria nos jogos do Heroic» · Pôr os jogos do Heroic no lançador
-        ação «Ver o que mudaria nos jogos do Heroic» · ver comando
-        jogo da Steam · abrir
-        jogo órfão · Tirar da lista
-    """),
-    "Manutenção": _linhas("""
-        aba · ?
-        aba · abre «⋯ Ajustes técnicos»
-        aba · abre «⋯ Ações técnicas»
-        ajuste ASSETS_VIGIA · ?
-        ajuste ASSETS_VIGIA · opção
-        ajuste ASSETS_VIGIA_NOTIFICAR · ?
-        ajuste ASSETS_VIGIA_NOTIFICAR · opção
-        ajuste AUTO_REPARO · ?
-        ajuste AUTO_REPARO · opção
-        ajuste AUTO_REPARO_NOTIFICAR · ?
-        ajuste AUTO_REPARO_NOTIFICAR · opção
-        ajuste BACKUPS_MANTIDOS · ?
-        ajuste BACKUPS_MANTIDOS · deslizante
-        ajuste FLATPAK_VIGIA · ?
-        ajuste FLATPAK_VIGIA · opção
-        ajuste FLATPAK_VIGIA_NOTIFICAR · ?
-        ajuste FLATPAK_VIGIA_NOTIFICAR · opção
-        ajuste HEROIC_VIGIA · ?
-        ajuste HEROIC_VIGIA · opção
-        ajuste LOG_NIVEL · ?
-        ajuste LOG_NIVEL · opção
-        ajuste PONTE_ROOT · ?
-        ajuste PONTE_ROOT · opção
-        ajuste SOM · ?
-        ajuste SOM · opção
-        ajuste STEAM_VIGIA · ?
-        ajuste STEAM_VIGIA · opção
-        ação «Ouvir o som» · ?
-        ação «Ouvir o som» · Executar
-        ação «Ouvir o som» · ver comando
-    """),
-    "Instalação": _linhas("""
-        aba · ?
-        aba · abre «⋯ Ações técnicas»
-        ação «Conferir a máquina» · ?
-        ação «Conferir a máquina» · Executar
-        ação «Conferir a máquina» · ver comando
-        ação «Consertar o que estiver fora» · ?
-        ação «Consertar o que estiver fora» · Executar
-        ação «Consertar o que estiver fora» · ver comando
-        ação «Desinstalar o MeowSystem» · ?
-        ação «Desinstalar o MeowSystem» · Executar
-        ação «Desinstalar o MeowSystem» · ver comando
-        ação «Instalar tudo» · ?
-        ação «Instalar tudo» · Executar
-        ação «Instalar tudo» · ver comando
-        ação «Voltar ao tema de antes» · ?
-        ação «Voltar ao tema de antes» · Executar
-        ação «Voltar ao tema de antes» · ver comando
-    """),
-    "Atualização": _linhas("""
-        aba · ?
-        ação «Limpar o que sobrou» · ?
-        ação «Limpar o que sobrou» · Executar
-        ação «Limpar o que sobrou» · ver comando
-        ação «O que a atualização mudaria» · ?
-        ação «O que a atualização mudaria» · Conferir
-        ação «O que a atualização mudaria» · Atualizar a máquina inteira
-        ação «O que a atualização mudaria» · ver comando
-    """),
-}
-
-# O QUE SÓ APARECE DEPOIS DE UM GESTO: a caixa de pergunta, a gaveta, o
-# «Copiar» do «ver comando», o «Aplicar» do cartão com escolha pendente, o
-# conteúdo de um `<details>`, o painel de um aplicativo.
-PAINEL_DO_APLICATIVO = _linhas("""
-    ícone do aplicativo · Adicionar ícone
-    ícone do aplicativo · Usar este ícone
-    ícone do aplicativo · Desfazer a *
-    ícone do aplicativo · abre «*»
-    ícone do aplicativo › desenho travado · dica
-    ícone do aplicativo · filtro «Buscar desenho»
-    ícone do aplicativo › cor · escolher
-    ícone do aplicativo › desenho do acervo · escolher
-    ícone do aplicativo › oficina · Desfazer
-    ícone do aplicativo › oficina · Usar
-    ícone do aplicativo › oficina · abre «Gerar ícone — MeowSystem»
-    ícone do aplicativo › oficina · deslizante «Detalhe»
-    ícone do aplicativo › oficina · deslizante «Linhas fracas»
-    ícone do aplicativo › oficina · deslizante «Suavidade»
-    ícone do aplicativo › oficina · deslizante «Traço mínimo»
-    ícone do aplicativo › oficina › cor · escolher
-    ícone do aplicativo › oficina › edição do SVG · Abrir no editor
-    ícone do aplicativo › oficina › edição do SVG · Reler
-    ícone do aplicativo › oficina › edição do SVG · abre «Editar o SVG»
-    ícone do aplicativo › oficina › edição do SVG · texto «O SVG do desenho»
-    ícone do aplicativo › oficina › variação · escolher
-""")
-
-REVELADOS = {
-    "(toda aba)": _linhas("""
-        caixa · Cancelar
-        caixa · #confirmar-ok
-        caixa · #confirmar-ensaio
-        caixa · ?
-        gaveta · #parar
-        gaveta · #fechar-gaveta
-        gaveta · #saida
-        gaveta · #mais-abaixo
-        gaveta · #ensaio-rodar
-        gaveta · #gaveta-consertar
-        topo · #botao-descartar
-        topo · #salvar-conta
-        topo › lista de escolhas › escolha pendente · ir ao cartão
-        aviso · #aviso-aplicar-botao
-        ajuste * · Aplicar
-        *linha de comando · Copiar
-        aba · Como está (desfaz o bloco)
-        ajuste * · Restaurar ao padrão
-        ajuste * · Restaurar ao padrão (*)
-        ajuste * · Automático
-        ajuste * · deixar vazio
-    """),
-    "topo": _linhas("""
-        topo · #baixar-conf
-        topo · #baixar-pagina
-    """),
-    "Início": _linhas("""
-        cartão de pack · link externo
-        cartão de pack · Remover
-    """),
-    "Cor e tela": _linhas("""
-        ação «Passar para claro ou escuro» · ?
-        ação «Passar para claro ou escuro» · Executar
-        ação «Passar para claro ou escuro» · seletor
-        ação «Passar para claro ou escuro» · ver comando
-        ação «Trocar de tema» · ?
-        ação «Trocar de tema» · Executar
-        ação «Trocar de tema» · seletor
-        ação «Trocar de tema» · ver comando
-        ajuste CURSOR_VERSAO · ?
-        ajuste CURSOR_VERSAO · campo
-        ajuste WALLPAPER_DRACULA_COMMIT · ?
-        ajuste WALLPAPER_DRACULA_COMMIT · campo
-        ajuste WALLPAPER_DRACULA_REPO · ?
-        ajuste WALLPAPER_DRACULA_REPO · campo
-    """),
-    "Áreas de trabalho": _linhas("""
-        ajuste AREAS_FOLGA · deixar vazio
-        ajuste AREAS_FOLGA · opção
-        ação «As áreas de agora» · ?
-        ação «As áreas de agora» · Executar
-        ação «As áreas de agora» · ver comando
-    """),
-    "Ícones": PAINEL_DO_APLICATIVO | _linhas("""
-        ajuste ICONES_LOGO_HEFESTO · ?
-        ajuste ICONES_LOGO_HEFESTO · campo
-    """),
-    "Papel de parede": _linhas("""
-        ajuste FILES_MENU_AUTOBUILD · ?
-        ajuste FILES_MENU_AUTOBUILD · opção
-        ajuste WALLPAPER_BASE · ?
-        ajuste WALLPAPER_BASE · campo
-        ação «Baixar a coleção curada» · ?
-        ação «Baixar a coleção curada» · Executar
-        ação «Baixar a coleção curada» · ver comando
-        ação «Construir o menu da área de trabalho» · ?
-        ação «Construir o menu da área de trabalho» · Executar
-        ação «Construir o menu da área de trabalho» · ver comando
-        ação «Menu da área de trabalho» · ?
-        ação «Menu da área de trabalho» · Executar
-        ação «Menu da área de trabalho» · ver comando
-        ação «O carrossel agora» · ?
-        ação «O carrossel agora» · Executar
-        ação «O carrossel agora» · ver comando
-        ação «Reaplicar as regras do carrossel» · ?
-        ação «Reaplicar as regras do carrossel» · Executar
-        ação «Reaplicar as regras do carrossel» · ver comando
-        papel de parede · Devolver
-        papel de parede · Medir
-        papel de parede · Tirar das favoritas
-    """),
-    "Lançadores e jogos": PAINEL_DO_APLICATIVO | _linhas("""
-        ação «Baixar o tema do Spotify» · ?
-        ação «Baixar o tema do Spotify» · Executar
-        ação «Baixar o tema do Spotify» · ver comando
-        ação «Vestir os programas agora» · ?
-        ação «Vestir os programas agora» · Executar
-        ação «Vestir os programas agora» · ver comando
-        decisão do jogo · Apagar os arquivos
-        decisão do jogo · Tirar do lançador
-        decisão do jogo · Voltar ao normal
-        decisão do jogo · campo «Por que este jogo sai do lançador»
-    """),
-    "Painel e dock": _linhas("""
-        ação «Até quanto o canto pode arredondar» · ?
-        ação «Até quanto o canto pode arredondar» · Executar
-        ação «Até quanto o canto pode arredondar» · ver comando
-        ação «Como estão o painel e a dock» · ?
-        ação «Como estão o painel e a dock» · Executar
-        ação «Como estão o painel e a dock» · ver comando
-        ação «Recarregar o painel» · ?
-        ação «Recarregar o painel» · Executar
-        ação «Recarregar o painel» · ver comando
-    """),
-    "Logo do sistema": _linhas("""
-        ação «Passar ao próximo gato» · ?
-        ação «Passar ao próximo gato» · Executar
-        ação «Passar ao próximo gato» · ver comando
-        ação «Pôr um gato no dock» · ?
-        ação «Pôr um gato no dock» · Executar
-        ação «Pôr um gato no dock» · seletor
-        ação «Pôr um gato no dock» · ver comando
-        ajuste FASTFETCH_LOGO_BLOCOS · ?
-        ajuste FASTFETCH_LOGO_BLOCOS · opção
-        ajuste FASTFETCH_LOGO_CELULA · ?
-        ajuste FASTFETCH_LOGO_CELULA · deslizante
-        ajuste FASTFETCH_LOGO_CONF · ?
-        ajuste FASTFETCH_LOGO_CONF · opção
-        ajuste FASTFETCH_LOGO_DIA · ?
-        ajuste FASTFETCH_LOGO_DIA · opção
-        ajuste FASTFETCH_LOGO_GATO · ?
-        ajuste FASTFETCH_LOGO_GATO · opção
-        ajuste FASTFETCH_LOGO_NOITE · ?
-        ajuste FASTFETCH_LOGO_NOITE · opção
-        ajuste LOGO · ?
-        ajuste LOGO · opção
-        ajuste LOGO_INTERVALO · ?
-        ajuste LOGO_INTERVALO · opção
-        ajuste LOGO_RECICLAR · ?
-        ajuste LOGO_RECICLAR · opção
-        ajuste LOGO_ROTACAO · ?
-        ajuste LOGO_ROTACAO · opção
-        ação «Qual gato está no ar, e por quê» · ?
-        ação «Qual gato está no ar, e por quê» · Executar
-        ação «Qual gato está no ar, e por quê» · ver comando
-    """),
-    "Instalação": _linhas("""
-        ação «As últimas 50 linhas do registro» · ?
-        ação «As últimas 50 linhas do registro» · Executar
-        ação «As últimas 50 linhas do registro» · ver comando
-        ação «O que está no ar agora» · ?
-        ação «O que está no ar agora» · Executar
-        ação «O que está no ar agora» · ver comando
-    """),
-    # (natureza `aplicar`) moram nos dois «⋯» do fim da página.]
-    "Manutenção": _linhas("""
-        ajuste SOM_DECAIMENTO · ?
-        ajuste SOM_DECAIMENTO · deslizante
-        ajuste SOM_FUNDAMENTAL · ?
-        ajuste SOM_FUNDAMENTAL · deslizante
-        ajuste SOM_HARMONICO · ?
-        ajuste SOM_HARMONICO · deslizante
-        ajuste SOM_PESO_FUNDAMENTAL · ?
-        ajuste SOM_PESO_FUNDAMENTAL · deslizante
-        ajuste SOM_PESO_HARMONICO · ?
-        ajuste SOM_PESO_HARMONICO · deslizante
-        ação «Regravar o som» · ?
-        ação «Regravar o som» · Executar
-        ação «Regravar o som» · ver comando
-    """),
-    "Modo de leitura": _linhas("""
-        ação «Aplicar o degrau desta hora» · ?
-        ação «Aplicar o degrau desta hora» · Executar
-        ação «Aplicar o degrau desta hora» · ver comando
-        ação «Modo de leitura agora» · ?
-        ação «Modo de leitura agora» · Executar
-        ação «Modo de leitura agora» · ver comando
-    """),
-}
+    # --- os fluxos do fim: a barra de cima e as caixas ---------------------
+    def fluxos(self):
+        self.rota = "barra de cima"
+        self.ir("tema")
+        # a busca leva à linha
+        campo = self.achar("busca")
+        campo.click()
+        self.acionados.add("busca")
+        campo.fill("vidro")
+        self.assentar()
+        if self.checa(self.achar("achado"), "a busca acha «vidro»"):
+            self.clicar("achado")
+            self.assentar()
+            self.checa(self.js("() => location.hash.startsWith('#ajustes/')"), "o achado leva à página de Ajustes")
+            self.checa(self.pag.locator("#conteudo .chegou").count() == 1, "e acende a linha do ajuste")
+        # a lista do que espera, e o Desfazer
+        self.ir("ajustes/painel")
+        self.clicar("chave:RELOGIO_SEGUNDOS")
+        self.assentar()
+        self.checa(self.js("() => MUDANCAS.size") == 1, "um clique num ajuste vira uma mudança esperando")
+        self.clicar("pendentes")
+        self.assentar()
+        if self.checa(self.achar("pendente:RELOGIO_SEGUNDOS"), "a conta abre a lista do que espera"):
+            self.clicar("pendente:RELOGIO_SEGUNDOS")
+            self.assentar()
+        self.clicar("desfazer")
+        self.assentar()
+        self.checa(self.js("() => MUDANCAS.size") == 0, "o Desfazer tira as mudanças que esperavam")
+        # o ensaio, o rodar de verdade, a pastilha, o parar, o guardar e o registro
+        self.clicar("chave:RELOGIO_SEGUNDOS")
+        self.assentar()
+        self.clicar("ensaiar")
+        self.assentar()
+        if self.checa(self.aberto("resultado"), "«Ver sem mudar» abre a janela do ensaio"):
+            self.checa(self.js("() => !document.getElementById('faixa-ensaio').hidden"), "e ela diz que é ensaio")
+            self.esperar_trabalho()
+            self.checa(valor_de("RELOGIO_SEGUNDOS") == "nao", "o ensaio não grava o meow.conf")
+            self.clicar("resultado:registro")
+            if self.checa(self.achar("resultado:de-verdade"), "depois do ensaio, «Rodar de verdade»"):
+                self.clicar("resultado:de-verdade")
+                self.assentar()
+                self.checa(self.aberto("resultado"), "«Rodar de verdade» abre o trabalho")
+                self.checa(valor_de("RELOGIO_SEGUNDOS") == "sim", "e grava o meow.conf")
+                if self.js("() => !!TRABALHO && !!TRABALHO.timer"):
+                    self.pag.keyboard.press("Escape")
+                    self.assentar()
+                    if self.checa(self.achar("trabalho"), "fechar a janela com o trabalho correndo deixa a pastilha"):
+                        self.clicar("trabalho")
+                        self.assentar()
+                self.esperar_trabalho(parar=True)
+                self.clicar("resultado:guardar")
+                self.assentar()
+                self.fechar_resultado()
+        # o Aplicar sem mudança aplica o que está salvo
+        self.clicar("aplicar")
+        self.assentar()
+        if self.checa(self.aberto("resultado"), "«Aplicar» abre o trabalho"):
+            self.esperar_trabalho(parar=True)
+            self.fechar_resultado()
+        # a ponte: sem ela, o painel oferece o conserto, e o conserto roda
+        self.ir("cuidar")
+        acao = self.js("() => ['instalar', 'sistema_atualizar'].find((id) => ACAO.get(id) && !ESQUEMA.ponte) || ''")
+        if acao:
+            self.clicar("acao:" + acao)
+            self.assentar()
+            titulo = self.js("() => document.getElementById('pergunta-titulo').textContent")
+            if self.checa(self.aberto("pergunta") and titulo == "Falta a ponte",
+                          f"sem a ponte, «{acao}» mostra «Falta a ponte» ({titulo!r})"):
+                self.checa(self.js("() => document.getElementById('pergunta-sim').textContent") == "Conferir e consertar",
+                           "e o botão é «Conferir e consertar»")
+                self.clicar("pergunta:sim")
+                self.assentar()
+                if self.checa(self.aberto("resultado"), "«Conferir e consertar» roda"):
+                    self.esperar_trabalho(teto=300)
+                    self.fechar_resultado()
+        # o menu: os créditos e a página num arquivo
+        self.clicar("menu")
+        self.assentar()
+        self.h_link_externo("menu:creditos")
+        if not self.js("() => document.getElementById('menu').open"):
+            self.clicar("menu")
+        self.h_download("menu:pagina")
+        self.clicar("marca")
+        self.assentar()
+        self.checa(self.js("() => location.hash") == "#tema", "a marca leva ao Tema")
+        # Criar tema: Voltar e Próximo
+        self.ir("criar/sons")
+        passos = self.js("() => PASSOS.map((p) => '#criar/' + p.id)")
+        antes = self.js("() => location.hash")
+        self.clicar("criar:voltar")
+        self.assentar()
+        self.checa(self.js("() => location.hash") == passos[passos.index(antes) - 1], "«Voltar» leva ao passo de antes")
+        antes = self.js("() => location.hash")
+        self.clicar("criar:proximo")
+        self.assentar()
+        self.checa(self.js("() => location.hash") == passos[passos.index(antes) + 1], "o próximo leva ao passo seguinte")
 
 
-# ===========================================================================
 def main():
-    # Linha a linha: quem roda o gate acompanha a aba em que ele está.
-    sys.stdout.reconfigure(line_buffering=True)
-    print("casa de brinquedo em", BRINQUEDO)
     ambiente = montar_casa()
-    md5_real = hashlib.md5(open(os.path.join(RAIZ, "meow.conf.exemplo"), "rb").read()).hexdigest()
     proc, url = sobe_servidor(ambiente)
     if not url:
-        print("FALHOU: o app/run.sh não imprimiu a URL")
-        proc.terminate()
+        print("FALHOU: o painel não subiu na casa de brinquedo")
         return 2
     inicio = time.time()
-    try:
-        with sync_playwright() as p:
+    with sync_playwright() as pw:
+        navegador = pw.chromium.launch()
+        contexto = navegador.new_context(viewport={"width": 1829, "height": 1029}, accept_downloads=True)
+
+        def rota_de_fora(r):
+            PEDIDOS_DE_FORA.append(r.request.url)
+            r.abort()
+
+        contexto.route(re.compile(r"^https?://(?!127\.0\.0\.1)"), rota_de_fora)
+        pag = contexto.new_page()
+        p = Percurso(pag)
+        pag.goto(url)
+        p.assentar(quieto=600, teto=30000)
+        rotas = [r for r in ROTAS if not SO_ABA or r.startswith(SO_ABA)]
+        for rota in rotas:
+            print(f"== {rota}")
             try:
-                nav = p.chromium.launch()
-            except Exception as e:
-                print("FALHOU: o Chromium do Playwright não abriu — "
-                      f"{str(e).splitlines()[0][:120]}")
-                print("  instale com: <python do teste> -m playwright install chromium")
-                return 1
-            contexto = nav.new_context(viewport={"width": 1500, "height": 1000},
-                                       accept_downloads=True)
-            origem = re.match(r"http://[^/]+", url).group(0)
-            contexto.grant_permissions(["clipboard-read", "clipboard-write"], origin=origem)
-            # Nada sai para a internet: o link externo é conferido pela aba
-            # que ele abre, e não pela página do outro lado.
-            def fora(rota):
-                PEDIDOS_DE_FORA.append(rota.request.url)
-                rota.abort()
-            contexto.route(lambda u: not u.startswith(origem), fora)
-            contexto.set_default_timeout(8000)
-            pag = contexto.new_page()
-            v = Percurso(pag)
-            v.url = url
-            pag.goto(url, wait_until="domcontentloaded")
-            pag.wait_for_selector("#trilho button")
-            v.assentar(quieto=400)
-
-            exc = set(EXCECOES)
-            # O reparo que baixa não é exceção: roda de verdade na casa de
-            # brinquedo, sem pergunta e com o selo.
-            declaradas = {i for i, a in v.acoes().items()
-                          if a["sudo"] or (a["rede"] and not reparo_que_baixa(a))}
-            v.aba = "exceções"
-            for i in sorted(declaradas - exc):
-                v.falha(f"a ação {i!r} pede senha ou baixa da internet e não está em "
-                        "EXCECOES — o teste a rodaria de verdade")
-            for i in sorted(exc - declaradas):
-                v.falha(f"a exceção {i!r} não pede senha nem baixa mais: ela sai da lista")
-
-            grupos = pag.evaluate(
-                "() => [...document.querySelectorAll('#trilho button[data-grupo]')]"
-                ".map((b) => b.dataset.grupo)")
-            if not SO_ABA or SO_ABA == "topo":
-                v.percorrer_topo()
-            for g in grupos:
-                if SO_ABA and g != SO_ABA:
-                    continue
-                v.percorrer_aba(g)
-            v.fechar_contas()
-            v.aba = "(fim)"
-            if not SO_ABA:
-                for padrao in sorted(set(DEFEITOS_CONHECIDOS) - v.conhecidos_vistos):
-                    if DEFEITOS_CONHECIDOS[padrao][1]:
-                        v.falha(f"o defeito conhecido {padrao!r} não apareceu nesta "
-                                "corrida: se foi consertado, ele sai de DEFEITOS_CONHECIDOS")
-
-            v.aba = "exceções"
-            # : os botões são um por extensão que o pack importado pede, e a
-            # casa de brinquedo veste o pack do repositório.
-            if not SO_ABA and "vscode_instalar_extensao" in exc:
-                v.esperar_status(409, "/api/rodar")
-                r = v.js("(c) => api('/api/rodar', {method: 'POST', body: JSON.stringify(c)})",
-                         {"acao": "vscode_instalar_extensao",
-                          "argumento": "Catppuccin.catppuccin-vsc", "confirmado": True})
-                if v.checa(r and "fora da lista" in str(r.get("erro", "")),
-                           f"sem pack importado, o servidor recusa o gesto da extensão ({r!r})"):
-                    v.acoes_vistas.setdefault("vscode_instalar_extensao", set()).add("recusada")
-            if not SO_ABA:
-                for i in sorted(exc):
-                    vistas = v.acoes_vistas.get(i, set())
-                    v.checa(vistas, f"a exceção {i!r} não apareceu em aba nenhuma")
-                    v.checa("rodar" not in vistas and "sem caixa" not in vistas,
-                            f"a exceção {i!r} rodou de verdade ({sorted(vistas)})")
-            nav.close()
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-        encerrar_a_casa()
-
-    total = time.time() - inicio
-    print("\n== o que rodou, e como a gaveta terminou")
-    for aba, rot, como, estado, cauda in v.resultados:
-        print(f"   {aba[:18]:18s} {rot[:44]:44s} {como:15s} {estado}")
-        if cauda:
-            print(f"   {'':18s} … {cauda}")
-    if v.conhecidos_vistos:
-        print("\n== defeitos conhecidos que apareceram, e onde se consertam")
-        for padrao in sorted(v.conhecidos_vistos):
-            print(f"   ~~ {DEFEITOS_CONHECIDOS[padrao][0]}")
-    print("\n== os dez gestos mais demorados")
-    for nome, t in sorted(v.duracoes.items(), key=lambda x: -x[1])[:10]:
-        print(f"   {t:5.1f} s  {nome}")
-    print("\n== tempo por aba")
-    for g, t in v.tempos.items():
-        print(f"   {g:22s} {t:5.0f} s")
-    n_controles = sum(sum(a["n"] for a in b.values()) for b in v.base.values())
-    n_nomes = sum(len(b) for b in v.base.values())
-    n_abas = len([g for g in v.base if g != "topo"])
-    n_revelados = sum(len(r) for r in REVELADOS.values())
-    print(f"\n{n_abas} abas e o topo: {n_controles} controles na tela ao abrir, "
-          f"{n_nomes} nomes no inventário e {n_revelados} revelados por gesto; "
-          f"{len(v.acionados)} acionados; {v.conferidas} conferências; {total:.0f} s.")
-    if md5_real != hashlib.md5(open(os.path.join(RAIZ, "meow.conf.exemplo"), "rb").read()).hexdigest():
-        v.falhas.append(("(fim)", "o meow.conf.exemplo do repositório mudou durante o teste"))
-    if v.falhas:
-        print(f"\nFALHOU: {len(v.falhas)} reprovações")
-        for onde, frase in v.falhas:
-            print(f"  - [{onde}] {frase}")
+                p.visitar(rota)
+            except Exception as e:  # noqa: BLE001
+                p.falha(f"a página quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
+        if not SO_ABA:
+            print("== a barra de cima e as caixas")
+            try:
+                p.fluxos()
+            except Exception as e:  # noqa: BLE001
+                p.falha(f"os fluxos quebraram: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
+            for o in OBRIGATORIOS:
+                p.checa(any(fnmatch.fnmatch(a, o) or a == o for a in p.acionados), f"«{o}» foi acionado")
+        navegador.close()
+    proc.terminate()
+    fora = [l for l in registro() if "fora da casa" in l]
+    p.checa(not fora, f"nenhum sinal fora da casa ({fora[:3]})")
+    print(f"\n{p.conferidas} conferências, {len(p.acionados)} moldes acionados, "
+          f"{len(p.vistos)} vistos, {round(time.time() - inicio)}s")
+    for rota, s in p.tempos.items():
+        print(f"   {rota}: {s}s")
+    if p.falhas:
+        print(f"FALHOU: {len(p.falhas)} achado(s)")
         return 1
-    print("ok: todas as abas, todos os controles acionados, console limpo.")
+    print("ok: o painel inteiro, porta por porta e controle por controle")
     return 0
 
 
 if __name__ == "__main__":
-    # O brinquedo sai sempre, inclusive quando o teste morre no meio: ele é uma
-    # casa inteira e uma cópia do repositório em /tmp, com falsos dentro.
     import signal
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     signal.signal(signal.SIGHUP, lambda *_: sys.exit(129))

@@ -53,14 +53,14 @@ else
   falha "o migrar não devolveu os vestígios (conferir=$rc_c, migrar=$rc, depois=$rc_d)" \
     "$(cat "$TMP/s1" "$TMP/s1b"; linha_de "$TMP/c1" ICONES_FLAVOR; linha_de "$TMP/c1" ICONES_PASTAS)"
 fi
-conf_com "$TMP/c1c" 'PACK="catppuccin"' 'FLAVOR="mocha"' 'ICONES_PASTAS="cat-dracula-${ACCENT}"'
+conf_com "$TMP/c1c" 'PACK="meowsystem"' 'FLAVOR="mocha"' 'ICONES_PASTAS="cat-dracula-${ACCENT}"'
 migrar "$TMP/c1c" "$EXEMPLO" > "$TMP/s1c" 2>&1; rc=$?
 if [ "$rc" = 0 ] && [ "$(linha_de "$TMP/c1c" ICONES_PASTAS | sed 's/ *#.*//')" = 'ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"' ]; then
   ok "com o Catppuccin no ar, as pastas cat-dracula voltam a seguir o pack"
 else
   falha "o migrar deixou as pastas do Dracula com o Catppuccin no ar (rc=$rc)" "$(cat "$TMP/s1c"; linha_de "$TMP/c1c" ICONES_PASTAS)"
 fi
-conf_com "$TMP/c2" 'PACK="catppuccin"' 'FLAVOR="mocha"' 'ICONES_FLAVOR="macchiato"' 'ICONES_PASTAS="cat-frappe-blue"'
+conf_com "$TMP/c2" 'PACK="meowsystem"' 'FLAVOR="mocha"' 'ICONES_FLAVOR="macchiato"' 'ICONES_PASTAS="cat-frappe-blue"'
 cp "$TMP/c2" "$TMP/c2.antes"
 migrar "$TMP/c2" "$EXEMPLO" --conferir > "$TMP/s2" 2>&1; rc_c=$?
 migrar "$TMP/c2" "$EXEMPLO" > /dev/null 2>&1
@@ -108,7 +108,7 @@ if ! grep -qE 'continuam valendo.*(CURSOR|ICONES_PASTAS)' <<< "$ensaio" \
    && grep -q 'CURSOR' <<< "$ensaio" \
    && [ "$rc" = 0 ] && [ "$(linha_de "$C3" CURSOR)" = 'CURSOR="catppuccin-mocha-light"' ] \
    && [ "$(linha_de "$C3" ICONES_PASTAS | sed 's/ *#.*//')" = 'ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"' ] \
-   && [ "$(linha_de "$C3" PACK)" = 'PACK="catppuccin"' ]; then
+   && [ "$(linha_de "$C3" PACK)" = 'PACK="meowsystem"' ]; then
   ok "Dracula -> Catppuccin: o ensaio diz o que vai junto, e a troca leva o ponteiro e as pastas"
 else
   falha "a troca deixou o ponteiro ou as pastas do Dracula (ensaio=$rc_e, troca=$rc)" "$ensaio
@@ -144,7 +144,7 @@ print("pack=%s" % (item.get("padrao_do_pack") or ""))
 PY
 }
 conf_com "$TMP/p-dr" 'PACK="dracula"' 'FLAVOR="dracula"'
-conf_com "$TMP/p-cat" 'PACK="catppuccin"' 'FLAVOR="mocha"'
+conf_com "$TMP/p-cat" 'PACK="meowsystem"' 'FLAVOR="mocha"'
 s_dr="$(padrao_do_ponteiro "$TMP/p-dr")"; s_cat="$(padrao_do_ponteiro "$TMP/p-cat")"
 if grep -qx 'pack=Dracula-Cursor' <<< "$s_dr" && grep -qx 'pack=' <<< "$s_cat"; then
   ok "o de fábrica do ponteiro no painel é o do pack no ar (Dracula-Cursor), e sem ponteiro no pack é o do exemplo"
@@ -163,7 +163,7 @@ CASA3B="$TMP/casa3b"; mkdir -p "$CASA3B/.config/meow"
 conf_com "$CASA3B/.config/meow/meow.conf" 'PACK="dracula"' 'FLAVOR="dracula"'
 for espera in 0.3 1 2; do
   setsid env -i PATH="$FALSO:$PATH" HOME="$CASA3B" MEOW_RAIZ="$RAIZ" NO_COLOR=1 TMPDIR="$SOBRA" \
-    MEOW_DRY_RUN=1 "$RAIZ/bin/meow" pack usar catppuccin > /dev/null 2>&1 &
+    MEOW_DRY_RUN=1 "$RAIZ/bin/meow" pack usar meowsystem > /dev/null 2>&1 &
   pid=$!
   sleep "$espera"
   kill -TERM -- "-$pid" 2>/dev/null
@@ -202,6 +202,41 @@ $(cat "$BG/all")"
   fi
 done
 
+
+printf '\n--- 5. instalar com PACK=dracula já no conf leva o ponteiro (decisão 12) ---\n'
+# Um install.sh só com a etapa da configuração, numa raiz de links para o resto.
+RZ="$TMP/raiz-conf"; mkdir -p "$RZ"
+for i in "$RAIZ"/*; do [ "$(basename "$i")" = install.sh ] || ln -s "$i" "$RZ/"; done
+awk '/local etapas=\(/ && !t { print "  local etapas=(etapa_conf)"; t=1; p=1 }
+     p { if ($0 ~ /\)[ \t]*$/) p=0; next } { print }' "$RAIZ/install.sh" > "$RZ/install.sh"
+chmod +x "$RZ/install.sh"
+inst() {  # <casa> [VAR=valor ...]
+  local casa="$1"; shift
+  env -i PATH="$FALSO:$PATH" HOME="$casa" USER="${USER:-t}" MEOW_IGNORA_DESKTOP=1 NO_COLOR=1 \
+    MEOW_PONTE=/nao/existe "$@" bash "$RZ/install.sh" --uma-passagem 2>&1
+}
+CASA5="$TMP/casa5"; mkdir -p "$CASA5/.config/meow"; C5="$CASA5/.config/meow/meow.conf"
+conf_com "$C5" 'PACK="dracula"' 'FLAVOR="dracula"'
+ensaio="$(inst "$CASA5" MEOW_DRY_RUN=1)"
+[ "$(linha_de "$C5" CURSOR)" = 'CURSOR="catppuccin-mocha-light"' ] && grep -q 'CURSOR' <<< "$ensaio" \
+  && ok "o ensaio diz que o ponteiro do Catppuccin iria embora, sem escrever" \
+  || falha "o ensaio do install não viu o ponteiro do Catppuccin, ou escreveu" "$ensaio"
+saida="$(inst "$CASA5")"
+[ "$(linha_de "$C5" CURSOR)" = 'CURSOR="Dracula-Cursor"' ] \
+  && [ "$(cat "$CASA5/.local/state/meowsystem/pack-do-install")" = "$(printf 'dracula\tdracula')" ] \
+  && ok "o install com PACK=dracula no conf troca o ponteiro de fábrica pelo do Dracula" \
+  || falha "o install deixou o ponteiro do Catppuccin com o Dracula no ar" "$saida
+$(linha_de "$C5" CURSOR)"
+conf_com "$C5" 'PACK="dracula"' 'FLAVOR="dracula"' 'CURSOR="catppuccin-mocha-light"'
+inst "$CASA5" >/dev/null
+[ "$(linha_de "$C5" CURSOR)" = 'CURSOR="catppuccin-mocha-light"' ] \
+  && ok "o ponteiro que quem usa escolhe depois, com o mesmo pack, fica" \
+  || falha "o install trocou o ponteiro escolhido com o pack de sempre" "$(linha_de "$C5" CURSOR)"
+CASA6="$TMP/casa6"; mkdir -p "$CASA6/.config/meow"; C6="$CASA6/.config/meow/meow.conf"
+cp "$EXEMPLO" "$C6"
+inst "$CASA6" >/dev/null
+cmp -s "$C6" "$EXEMPLO" && ok "com o pack padrão, o conf de fábrica fica byte a byte" \
+  || falha "o install mexeu no conf de fábrica" "$(diff "$EXEMPLO" "$C6" | head -5)"
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2

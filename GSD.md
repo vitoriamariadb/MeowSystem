@@ -13,7 +13,7 @@ Todo agente lê este arquivo antes de tocar no repositório. Cada regra abaixo t
 ## 2. Princípios
 
 - O doctor corrige. Nenhuma saída manda digitar.
-- Interface sem texto: show, don't tell. Uma frase curta na tela, o porquê atrás do `?`.
+- Interface sem texto: show, don't tell. Na tela, só nome curto, ícone, controle e prévia; o porquê vira dica ao passar o mouse e ao focar.
 - Definitivo, modular, independente, idempotente: a segunda passada não escreve nada.
 - Pack é dado, nunca código. Extensão de pack importado só se instala por gesto.
 - A arte mora no pack. O mapa de ícone é do pack. Chave `ICONES_BASE` não volta.
@@ -38,7 +38,7 @@ decisões 1 a 17. As decisões 13 a 49 da leva H estão em
 | 8 | QA do painel só com HOME temporário |
 | 9 | só pack do repositório instala extensão do VS Code; pack importado pede o gesto |
 | 10 | «Restaurar ao padrão» grava o valor de fábrica e só aparece quando o valor difere |
-| 11 | a caixa do sudo tem uma linha; o porquê fica na dica |
+| 11 | a interface nunca pede senha: a senha é só do install, e o root passa pela ponte (revoga a caixa do sudo de uma linha, sim de 23/10) |
 | 12 | trocar de pack leva o ponteiro do pack |
 | 13 a 17 | tudo para o pack, três pastas por pack, derivados que se atualizam, achados da varredura, repositório enxuto: guardados no registro; o código entra com a P87, a P88 e a P89 |
 

@@ -48,7 +48,7 @@ ACCENT="${ACCENT:-mauve}"
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
-              icones.autorais.desenhos icones/apps/autorais/)" || AUTORAIS=""
+              icones.autorais.desenhos icones/apps/)" || AUTORAIS=""
 
 # --- os dois aplicativos dela: nome pedido pelo .desktop -> desenho autoral ----
 # O Hefesto aparece com DOIS nomes de ícone na máquina, e os dois precisam do
@@ -58,6 +58,7 @@ AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
 #
 # O terceiro nome, `com.vitoriamaria.HefestoDualsense4Unix-symbolic`, fica FORA:
 # simbólico é monocromático por contrato e seria achatado numa cor só.
+# A logo do Hefesto é obra dela e vence o tema; o arquivo mora no projeto dela.
 LOGO_HEFESTO_DELA="${ICONES_LOGO_HEFESTO:-}"
 
 declare -A AUTORAL=(
@@ -145,7 +146,7 @@ fi
 if [ -z "$AUTORAIS" ]; then
   meow_erro "não sei onde mora o acervo autoral do pack ativo"
   meow_info "  quem responde esse endereço é 'scripts/pack.py onde', e ele precisa de python3"
-  meow_info "  (ou o pack recusou: rode 'meow pack validar' para ver o motivo)"
+  meow_info "  (ou o pack no ar não valida: o motivo está no cartão dele, na Início)"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
@@ -215,7 +216,7 @@ for nome in "${!AUTORAL[@]}"; do
       # pergunta de quem um dia der ao resolvedor uma porta que não precise de
       # python3.
       meow_erro "falta $fonte e não há python3 para desenhá-lo"
-      meow_info "  instale python3 ou rode com um FLAVOR já versionado no acervo do pack"
+      meow_info "  sem python3, só os flavors já versionados no acervo do pack têm desenho"
       exit "$MEOW_SEM_DEPENDENCIA"
     fi
     meow_erro "falta $fonte — o gerador não produziu o flavor '$FLAVOR'"
@@ -310,6 +311,8 @@ else
 fi
 
 # --- 3b. a cache do tema, que engole ícone novo em silêncio -------------------
+# Com a cache dentro do tema o GTK ignora o disco. Reindexa, e não apaga (quem a
+# criou queria a cache), e só com ícone mais novo que ela: a segunda passada não escreve.
 CACHE="$TEMA_DIR/icon-theme.cache"
 if [ -f "$CACHE" ] && [ -n "$(find "$ALVO" -name '*.svg' -newer "$CACHE" -print -quit 2>/dev/null)" ]; then
   if meow_seco; then
@@ -336,7 +339,7 @@ fi
 TK="$(meow_cosmic_dir)/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme"
 if [ -f "$TK" ] && ! grep -q "\"$TEMA_NOME\"" "$TK"; then
   meow_aviso "'$TEMA_NOME' NÃO é o tema de ícones selecionado — nada disto vai aparecer"
-  meow_info "  rode: scripts/construir_icones.sh"
+  meow_info "  o «Reconstruir os ícones» o põe no ar"
   avisos=1
 fi
 

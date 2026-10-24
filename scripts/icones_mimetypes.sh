@@ -34,8 +34,16 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 _pack_ref="$(meow_pack_dir)"
 [ -n "$_pack_ref" ] || _pack_ref="$(meow_pack_padrao_dir || true)"
 FLAVOR_ICONES="$(python3 "$RAIZ/scripts/pack.py" flavor-icones "$_pack_ref")" || FLAVOR_ICONES=""
-ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
-            icones.mimetypes.desenhos "$FLAVOR_ICONES")" || ORIGEM=""
+# P96 (23/10/2026): um molde só no pack, pintado aqui com a paleta do pack no ar. O
+# `pintados` refaz do molde a cada passada (só escreve o que mudou) e devolve a pasta.
+# Quem só confere (ou roda a seco) pinta numa pasta temporária: conferir não escreve na casa.
+_pintar_onde=""
+{ [ "${1:-}" = "--conferir" ] || meow_seco; } && _pintar_onde="--temporario"
+ORIGEM="$( [ -n "$FLAVOR_ICONES" ] && python3 "$RAIZ/scripts/pack.py" pintados "$_pack_ref" "$FLAVOR_ICONES" $_pintar_onde)" || ORIGEM=""
+# A pasta temporária vai num nome próprio: o ORIGEM pode mudar logo abaixo (as pastas do pack), e
+# o trap leria o valor de então — apagaria o acervo do pack.
+_pintado_temporario=""
+case "$ORIGEM" in */meow-pintados-*) _pintado_temporario="$ORIGEM"; trap 'rm -rf "$_pintado_temporario"' EXIT ;; esac
 # SEM FLAVOR, SEM ORIGEM: `acervo ... ""` devolve a pasta-mãe do acervo (a que
 # guarda um diretório por flavor), e o `_pronto` a aceitaria — o `--conferir`
 # diria "0 já vestidos" com nada vestido.
@@ -43,12 +51,11 @@ ORIGEM="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
 # A frase dizia «vestidos de Catppuccin <flavor>» com qualquer pack: o doctor
 # desta máquina, com o Dracula no ar, dizia «123 tipos de arquivo já vestidos de
 # Catppuccin macchiato».
-DONO_ACERVO="$( [ -n "$ORIGEM" ] && python3 -I - "$RAIZ/scripts" "$ORIGEM" <<'PY' 2>/dev/null
+DONO_ACERVO="$( [ -n "$ORIGEM" ] && python3 -I - "$RAIZ/scripts" "$_pack_ref" <<'PY' 2>/dev/null
 import sys
 sys.path.insert(0, sys.argv[1])
 import pack
-dono = pack._pack_de(sys.argv[2])
-print(pack.campo(dono, "nome", dono) or "")
+print(pack.campo(sys.argv[2], "nome", "") or "")
 PY
 )"
 [ -n "$DONO_ACERVO" ] || DONO_ACERVO="Catppuccin"

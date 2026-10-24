@@ -22,6 +22,10 @@
 # efêmera; todo pedido traz o token da sessão (`hmac.compare_digest`); `Host` e
 # `Origin` são conferidos (DNS rebinding e site de fora); e nenhum comando vem
 # da página como texto, só `id` de um dicionário fechado.
+#
+# O cache global do sudo (acima) deixa um clique rodar o install.sh com root sem
+# perguntar. Por isso a ação que atravessa sudo é marcada, avisada antes e
+# pede confirmação; nenhuma senha é pedida, lida ou guardada aqui.
 """Backend local do painel de configuração visual do MeowSystem."""
 
 import base64
@@ -80,8 +84,17 @@ if RAIZ is None:
 
 PAGINA = os.path.join(RAIZ, "app", "pagina")
 # O mapa dos jogos que ficam fora do lançador.
-MAPA_JOGOS = os.path.join(RAIZ, "assets", "icones", "jogos-fora.map")
+MAPA_JOGOS = os.path.join(RAIZ, "assets", "apps", "jogos-fora.map")
 ICONES_DO_MOTOR = os.path.join(RAIZ, "packs", "meowsystem", "icones")
+
+
+def _glifo_do_motor(nome):
+    """O glifo de traço do pack-base: `apps/` ou `biblioteca/` (as três pastas são planas desde a P96)."""
+    for pasta in ("apps", "biblioteca", "sistema"):
+        cand = os.path.join(ICONES_DO_MOTOR, pasta, nome + ".svg")
+        if os.path.isfile(cand):
+            return cand
+    return os.path.join(ICONES_DO_MOTOR, "apps", nome + ".svg")
 CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.conf.exemplo")
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
 _PALETA = None
@@ -302,7 +315,7 @@ def _opcoes(chave, ajuda, inline):
         ÚNICA lista fixa de chaves do arquivo, e o `tests/app.sh` carregava a
         exceção correspondente para as mesmas quatro. Ela saiu porque a regra
         que a substituiu é derivada do CONTEÚDO (o comentário cita
-        `assets/gatos/`) e por isso pega sozinha a quinta chave que nascer assim
+        `packs/meowsystem/mascote/`) e por isso pega sozinha a quinta chave que nascer assim
         — que é a armadilha nº 3 deste projeto, e ela já cobrou duas vezes.
     """
     for linha in (ajuda.splitlines() + [inline]):
@@ -384,7 +397,7 @@ def _e_tabela(chave, ajuda, inline):
 # A GUARDA É O VALOR DE FÁBRICA, e é ela que faz uma regra de texto largo não
 # atropelar as vizinhas.
 FONTES_DO_DISCO = (
-    (re.compile(r"assets/gatos/"), "gatos", False),
+    (re.compile(r"packs/\w+/mascote/"), "gatos", False),
     (re.compile(r"[íi]cones?\b", re.I), "temas_icones", True),
     (re.compile(r"ponteiro|cursor", re.I), "cursores", True),
 )
@@ -472,13 +485,13 @@ DOMINIOS = {
     "LOGO_ROTACAO": {
         "chave": "LOGO_MODO",
         "quando": lambda v: bool(v) and v != "rotacao",
-        "porque": "Ela só liga a rotação quando o gato é escolhido girando — "
+        "porque": "Ela só liga a rotação quando o mascote é escolhido girando — "
                   "hoje não tem efeito nenhum.",
     },
     "LOGO": {
         "chave": "LOGO_MODO",
         "quando": lambda v: v == "hora",
-        "porque": "Por horário quem escolhe são os gatos de dia e de noite; "
+        "porque": "Por horário quem escolhe são os mascotes de dia e de noite; "
                   "esta só entra quando um daqueles dois não está na lista.",
     },
     # A MARGEM QUE O COMPOSITOR JOGA FORA.
@@ -499,8 +512,8 @@ DOMINIOS = {
         "quando": lambda v: bool(v) and v != "fixo",
         # A ajuda afirmava o contrário do comportamento de fábrica.
         "porque": "Ela só vale com a escolha em \u201cfixo\u201d. Em "
-                  "\u201chora\u201d o terminal segue o gato do dock; em "
-                  "\u201cespelho\u201d ele mostra o OUTRO gato.",
+                  "\u201chora\u201d o terminal segue o mascote do dock; em "
+                  "\u201cespelho\u201d ele mostra o OUTRO.",
     },
     # O `CURSOR_VERSAO` é o release que o `cursor.sh` pede no ÚLTIMO degrau
     # dele, quando baixa o tema pelo nome (`_cursor_url`).
@@ -909,6 +922,8 @@ def packs_com_vitrine():
             "nome": p.get("nome") or ident,
             "autor": p.get("autor") or "",
             "capa": (base_url + "&arte=capa") if vit["capa"] else "",
+            # A prévia do cartão mostra o mascote DESTE pack, e não o do pack no ar.
+            "mascote": (base_url + "&arte=mascote") if _mascote_do_pack(mod, ident) else "",
             "descricao_curta": vit["descricao_curta"],
             "descricao": texto,
             "tags": vit["tags"],
@@ -931,6 +946,19 @@ def packs_com_vitrine():
             "remover": _remocao_do_cartao(mod, ident, conf),
         })
     return saida
+
+
+def _mascote_do_pack(mod, ident):
+    """O SVG do mascote de dia que o pack declara, dentro da pasta dele, ou ""."""
+    try:
+        pasta = os.path.realpath(mod.pasta_do_mascote(ident))
+        nome = mod.mascote_padrao("dia", ident)
+    except Exception:
+        return ""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", nome or ""):
+        return ""
+    alvo = os.path.realpath(os.path.join(pasta, nome + ".svg"))
+    return alvo if os.path.dirname(alvo) == pasta and os.path.isfile(alvo) else ""
 
 
 def arte_da_vitrine(ident, arte):
@@ -962,6 +990,8 @@ def arte_da_vitrine(ident, arte):
             return mod.logo(ident, flavor).encode("utf-8"), "image/svg+xml"
         except Exception:
             return None
+    elif arte == "mascote":
+        alvo = _mascote_do_pack(mod, ident)
     elif re.fullmatch(r"[0-9]+", arte or "") and int(arte) < len(vit["capturas"]):
         alvo = vit["capturas"][int(arte)]
     else:
@@ -987,7 +1017,8 @@ def arte_da_vitrine(ident, arte):
 # `MEOW_CAT_FOLDERS` por cima. As duas pontas leem o mesmo diretório; o que a
 # página oferece é o que aquele script vai achar.
 _PAPIRUS_FOLDERS = os.environ.get("MEOW_CAT_FOLDERS") or os.path.join(
-    RAIZ, "assets", "icones", "upstream", "papirus-folders")
+    os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"),
+    "meowsystem", "upstream", "papirus-folders")
 _RE_COR_DE_PASTA = re.compile(r"^folder-cat-([a-z0-9]+)-([a-z0-9]+)-documents\.svg$")
 
 
@@ -1309,7 +1340,13 @@ def _vestigio_de_pack(chave):
     for pack in packs:
         if pack == adotado:
             continue
-        if pack in alvo:
+        # O pack padrão leva o nome do produto (P96): «meowsystem» num caminho ou num nome
+        # de tema é o MeowSystem, não um vestígio do pack. O que denuncia o valor dele é o
+        # nome de antes, «catppuccin» (os apelidos do pack.py).
+        mod_p = modulo_pack()
+        apelidos = [a for a, d in (getattr(mod_p, "APELIDOS", {}) or {}).items() if d == pack]
+        nomes = apelidos if pack == getattr(mod_p, "PACK_BASE", "meowsystem") else [pack] + apelidos
+        if any(n in alvo for n in nomes):
             # Mandar a pessoa desconfiar do valor certo, e prometer tela
             # misturada onde não há mistura, é pior que não avisar nada.
             if _declarado_pelo_pack(adotado, alvo):
@@ -1394,6 +1431,8 @@ def _declarado_pelo_pack(adotado, alvo):
     return False
 
 
+# As escolhas de ícone do painel moram com quem usa, ao lado do meow.conf: usar o
+# programa não suja o repositório, e levar para o pack é gesto explícito.
 def _mapa_de_escolhas_do_usuario():
     mod = modulo_pack()
     if mod and hasattr(mod, "arquivo_de_escolhas"):
@@ -1967,9 +2006,17 @@ def ler_esquema():
 
 
 # --- 3. os valores dela ------------------------------------------------------
+def _pasta_do_mascote():
+    """A pasta `mascote/` do pack no ar (pela herança), ou a do pack-base."""
+    mod = modulo_pack()
+    if mod and hasattr(mod, "pasta_do_mascote"):
+        return mod.pasta_do_mascote(_pack_adotado() or None)
+    return os.path.join(RAIZ, "packs", "meowsystem", "mascote")
+
+
 def _gatos():
-    """O acervo `assets/gatos/`, que é a configuração — soltou um .svg, entrou."""
-    pasta = os.path.join(RAIZ, "assets", "gatos")
+    """O acervo `mascote/` do pack no ar, que é a configuração — soltou um .svg, entrou."""
+    pasta = _pasta_do_mascote()
     try:
         nomes = sorted(
             os.path.splitext(f)[0] for f in os.listdir(pasta)
@@ -2915,7 +2962,7 @@ def _conf_de_ensaio(pares):
 
     Quem apaga o diretório é o `Trabalho` quando o ensaio termina (o
     `ao_terminar` do `iniciar`) — deixá-lo para o fim do processo faria o painel
-    acumular um retrato da máquina dela por clique em «Ver o que faria»."""
+    acumular um retrato da máquina dela por clique em «Ver sem mudar»."""
     fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
     try:
         pasta = tempfile.mkdtemp(prefix="meow-ensaio-")
@@ -3292,6 +3339,10 @@ PROVEDORES = {
     # O argumento do «Era escolha minha»: o caminho que o `wallpaper.sh`
     # devolveu e deixou na pendência. Ver `PENDENCIA_PAREDE`.
     "fontes_revertidas": lambda: _fontes_revertidas(),
+    # O argumento do «Restaurar»: as ações cuja última execução se desfaz.
+    "restauros": lambda: sorted(restauros()),
+    # O argumento do interruptor de um jogo do Heroic: os instalados agora.
+    "jogos_heroic": lambda: sorted(j["id"] for j in jogos_do_heroic()),
 }
 
 
@@ -3415,47 +3466,6 @@ def sem_casa_nem_raiz(valor, outras=()):
             valor = re.sub(r"(?<![\w/.~-])" + re.escape(forma(caminho)) + r"(?![\w.-])",
                            lambda _m, r=forma(rotulo): r, valor)
     return valor
-
-
-# O título sozinho não conta nada — "Automação" não diz a ninguém que ali moram
-# os vigias e os relógios que reaplicam o tema.
-#
-# A `docs/folhas/folha-menu-do-painel.html` pôs a contradição na mesa e ela
-# aprovou: são nove linhas curtas, e o problema que elas resolvem é exatamente o
-# que ela levantou.
-DESCRICAO_SECAO = {
-    #   Eram nove frases para dezenove abas, e as subabas herdavam a do pai:
-    #   três abas abriam com a mesma linha. Com o menu num nível só e uma página
-    #   por assunto, a lista passa a ter uma frase por página, e o
-    #   `|| d[g.secaoPai]` que o `app.js` usava para tapar o buraco saiu.
-    "Cor e tela": "A variante do pack, a cor de destaque, o lado a lado e o ponteiro.",
-    "Áreas de trabalho": "O nome e a ordem das áreas, e o encaixe de janelas em cada uma.",
-    "Logo do sistema": "A logo que aparece no menu de lançamento, na dock e no terminal.",
-    "Ícones": "O tema de ícones que o projeto constrói, e o desenho de cada programa.",
-    "Painel e dock": "Forma, tamanho, vidro e a música que aparece no painel.",
-    "Papel de parede": "A coleção, a pasta que gira, e como a imagem ocupa a tela.",
-    "Dia e noite": "A que horas a noite começa, e o que ela troca sozinha.",
-    "Modo de leitura": "A tela quente à noite: a temperatura, a textura e o horário.",
-    "Terminal": "A paleta do terminal, a cor do cursor, e o prompt do zsh.",
-    "Lançadores e jogos": "Quais programas o projeto veste, e quais jogos aparecem.",
-    "Manutenção": "O que se reaplica sozinho, quantos backups ficam, e quanto ele fala.",
-    # As duas páginas sem chave do meow.conf. Elas e a Manutenção formam o bloco
-    # "Sistema", e quem decide isso é o `BLOCO_DA_SECAO`, logo abaixo.
-    "Instalação": "Instalar, conferir, consertar, desfazer, e ver o que está no ar.",
-    "Atualização": "O Pop!_OS em dia, e o que a atualização desfez do MeowSystem.",
-}
-
-
-# Antes, o `app.js` decidia sozinho por uma pergunta que PARECIA equivalente:
-# "esta seção tem chave do meow.conf?". Sim virava "Assuntos", não virava
-# máquina.
-#
-# Ausente da tabela = "Tópicos".
-BLOCO_DA_SECAO = {
-    "Manutenção": "Sistema",
-    "Instalação": "Sistema",
-    "Atualização": "Sistema",
-}
 
 
 # `/usr/local/lib/meowsystem/ponte_root.sh` é o braço root do projeto, liberado
@@ -3765,6 +3775,9 @@ ACOES = {
         "natureza": "conferir",
         "argv": _meow("doctor"),
         "escreve": False, "sudo": False, "confirma": False,
+        # A Instalação tem um botão só, o que confere e conserta (o doctor
+        # corrige); este fica para quem pergunta pelo id.
+        "oculta": True,
         # Com divergência o doctor termina em «rode: meow doctor
         # --consertar»: um comando para quem está diante de um botão.
         "conserta_com": "doctor_consertar",
@@ -3772,7 +3785,7 @@ ACOES = {
                  "Não escreve nada.",
     },
     "doctor_consertar": {
-        "rotulo": "Consertar o que estiver fora",
+        "rotulo": "Conferir e consertar",
         "grupo": "Instalação",
         "natureza": "consertar",
         "argv": _meow("doctor", "--consertar"),
@@ -3783,11 +3796,11 @@ ACOES = {
                  "agendamento faz sozinho.",
     },
     "status": {
-        "rotulo": "O que está no ar agora",
+        "rotulo": "No ar agora",
         "grupo": "Instalação",
         "natureza": "mostrar",
         "argv": _meow("status"),
-        "escreve": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
     },
     "desinstalar": {
@@ -3802,11 +3815,11 @@ ACOES = {
                  "backups nem a coleção de imagens.",
     },
     "log": {
-        "rotulo": "As últimas 50 linhas do registro",
+        "rotulo": "Ver o registro",
         "grupo": "Instalação",
         "natureza": "mostrar",
         "argv": _meow("log"),
-        "escreve": False, "sudo": False, "confirma": False,
+        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "O que este projeto escreveu, e quando.",
     },
 
@@ -3815,7 +3828,7 @@ ACOES = {
     # O comando dela já existia e é uma linha; o que faltava era a SEGUNDA
     # METADE.
     "sistema_ver": {
-        "rotulo": "O que a atualização mudaria",
+        "rotulo": "O que muda",
         "grupo": "Atualização",
         "natureza": "mostrar",
         "bloco": "Sistema",
@@ -3830,7 +3843,7 @@ ACOES = {
                  "o índice do crates.io para saber o que está velho.",
     },
     "sistema_atualizar": {
-        "rotulo": "Atualizar a máquina inteira",
+        "rotulo": "Atualizar a máquina",
         "grupo": "Atualização",
         "natureza": "atualizar",
         "bloco": "Sistema",
@@ -3844,7 +3857,7 @@ ACOES = {
                  "apt mantém os arquivos de configuração que já estão no disco.",
     },
     "sistema_limpar": {
-        "rotulo": "Limpar o que sobrou",
+        "rotulo": "Limpar as sobras",
         "grupo": "Atualização",
         "natureza": "tirar",
         "bloco": "Sistema",
@@ -3858,7 +3871,7 @@ ACOES = {
     },
     # --- tema ----------------------------------------------------------------
     "tema": {
-        "rotulo": "Temas prontos nesta máquina",
+        "rotulo": "Temas prontos",
         "grupo": "Cor e tela",
         "natureza": "mostrar",
         "argv": _meow("tema"),
@@ -3882,7 +3895,7 @@ ACOES = {
         "ajuda": "Aplica o tema escolhido, guardando o anterior antes.",
     },
     "tema_modo": {
-        "rotulo": "Passar para claro ou escuro",
+        "rotulo": "Trocar o modo",
         "grupo": "Cor e tela",
         "natureza": "trocar",
         "argv": _meow("tema", "@ARG@"), "arg": "modos",
@@ -3893,8 +3906,20 @@ ACOES = {
         "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
                  "pisca a interface.",
     },
+    # O «Restaurar» de toda ação que escreve: repõe o estado de antes da última
+    # execução dela (`restauros`). O argumento é o id da ação; a pasta, o
+    # `iniciar` acha.
+    "restaurar": {
+        "rotulo": "Restaurar",
+        "grupo": "Instalação",
+        "natureza": "devolver",
+        "argv": _meow("restaurar", "@ARG@"), "arg": "restauros",
+        "escreve": True, "sudo": False, "confirma": False,
+        "oculta": True,
+        "ajuda": "Volta ao estado de antes da última vez que esta ação rodou.",
+    },
     "desfazer": {
-        "rotulo": "Voltar ao tema de antes",
+        "rotulo": "Tema de antes",
         "grupo": "Instalação",
         "natureza": "devolver",
         "argv": _meow("desfazer"),
@@ -3907,7 +3932,7 @@ ACOES = {
     },
     # --- ícones e gato -------------------------------------------------------
     "icones": {
-        "rotulo": "Tema de ícones instalado",
+        "rotulo": "Tema de ícones",
         "grupo": "Ícones",
         "natureza": "mostrar",
         "argv": _meow("icones"),
@@ -3915,7 +3940,7 @@ ACOES = {
         "ajuda": "Qual está selecionado e quantos arquivos ele tem.",
     },
     "icones_reconstruir": {
-        "rotulo": "Reconstruir o tema de ícones",
+        "rotulo": "Reconstruir os ícones",
         "grupo": "Ícones",
         "natureza": "aplicar",
         "argv": _meow("icones", "reconstruir"),
@@ -3927,7 +3952,7 @@ ACOES = {
     # `construir_pastas.sh` — e NENHUM dos dois toca em `48x48/apps`, que é o
     # diretório dos desenhos em traço.
     "icones_traco": {
-        "rotulo": "Pôr os desenhos em traço na tela",
+        "rotulo": "Desenhos em traço",
         "grupo": "Ícones",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "icones_apps_arcticons.sh")],
@@ -3943,7 +3968,7 @@ ACOES = {
     # pack no ar, e quem põe aquele mapa no tema é o `icones_apps_dracula.sh`,
     # e não o script do traço.
     "icones_pack": {
-        "rotulo": "Pôr os desenhos do pack na tela",
+        "rotulo": "Desenhos do pack",
         "grupo": "Ícones",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "icones_apps_dracula.sh")],
@@ -3952,15 +3977,15 @@ ACOES = {
                  "passo que faz um desenho do pack escolhido aqui aparecer.",
     },
     "logo_listar": {
-        "rotulo": "Qual gato está no ar, e por quê",
+        "rotulo": "Mascote agora",
         "grupo": "Logo do sistema",
         "natureza": "mostrar",
         "argv": _meow("logo", "listar"),
         "escreve": False, "sudo": False, "confirma": False,
-        "ajuda": "A lista, o gato em vigor, e qual regra o escolheu.",
+        "ajuda": "A lista, o mascote em vigor, e qual regra o escolheu.",
     },
     "logo_trocar": {
-        "rotulo": "Pôr um gato no dock",
+        "rotulo": "Pôr o mascote",
         "grupo": "Logo do sistema",
         "natureza": "trocar",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
@@ -3973,19 +3998,19 @@ ACOES = {
         "indisponivel": _gato_so_nos_modos(("fixo",), "fixo"),
         # Dizia que, por horário, "o relógio devolve o gato dele na virada
         # seguinte".
-        "ajuda": "Põe no dock o gato escolhido, e ele fica. Quando o gato segue "
+        "ajuda": "Põe no dock o mascote escolhido, e ele fica. Quando o mascote segue "
                  "o relógio ou gira sozinho, este botão fica apagado e diz onde "
                  "mudar.",
     },
     "logo_girar": {
-        "rotulo": "Passar ao próximo gato",
+        "rotulo": "Próximo mascote",
         "grupo": "Logo do sistema",
         "natureza": "trocar",
         "argv": _meow("logo", "girar"),
         "escreve": True, "sudo": False, "confirma": False,
         # O MESMO APAGAR DO «Pôr um gato no dock».
         "indisponivel": _gato_so_nos_modos(("rotacao",), "rotacao"),
-        "ajuda": "Só tem efeito quando o gato está girando; fora disso o "
+        "ajuda": "Só tem efeito quando o mascote está girando; fora disso o "
                  "botão fica apagado e diz onde mudar.",
     },
     # --- papel de parede -----------------------------------------------------
@@ -4026,7 +4051,7 @@ ACOES = {
         "ajuda": "Solta a imagem fixada agora, sem esperar o tempo acabar.",
     },
     "wallpaper_aplicar": {
-        "rotulo": "Reaplicar as regras do carrossel",
+        "rotulo": "Regras do carrossel",
         "grupo": "Papel de parede",
         "natureza": "aplicar",
         "argv": _meow("wallpaper", "aplicar"),
@@ -4040,7 +4065,7 @@ ACOES = {
     # `oculta` porque elas NÃO SÃO CARTÃO na aba "Fazer": o argumento delas é
     # uma imagem, e escolher imagem é o que a galeria já faz com miniatura.
     "wallpaper_banir": {
-        "rotulo": "Tirar esta imagem do carrossel",
+        "rotulo": "Tirar do carrossel",
         "grupo": "Papel de parede",
         "natureza": "tirar",
         "argv": _meow("wallpaper", "banir", "@ARG@"), "arg": "paredes_ativas",
@@ -4056,7 +4081,7 @@ ACOES = {
     # São TRÊS ações e não uma com três opções: cada uma é um botão na ficha da
     # imagem, e a ficha não tem espaço para um seletor.
     "wallpaper_usar": {
-        "rotulo": "Usar esta imagem agora",
+        "rotulo": "Usar agora",
         "grupo": "Papel de parede",
         "natureza": "trocar",
         "argv": _meow("wallpaper", "usar", "@ARG@"), "arg": "paredes_ativas",
@@ -4070,7 +4095,7 @@ ACOES = {
     # `oculta` pelo motivo das outras desta ficha: o argumento é uma imagem, e
     # quem a escolhe é a galeria.
     "wallpaper_permitir": {
-        "rotulo": "Manter a imagem que eu pus",
+        "rotulo": "Manter a imagem",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "permitir", "@ARG@"), "arg": "fontes_revertidas",
@@ -4105,7 +4130,7 @@ ACOES = {
         "ajuda": "Tira a cópia das favoritas; a imagem do carrossel fica.",
     },
     "wallpaper_dia": {
-        "rotulo": "Guardar esta imagem para o dia",
+        "rotulo": "Imagem de dia",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "dia"), "arg": "paredes_ativas",
@@ -4114,7 +4139,7 @@ ACOES = {
                  "O “Deixar a medição decidir” desfaz.",
     },
     "wallpaper_noite": {
-        "rotulo": "Guardar esta imagem para a noite",
+        "rotulo": "Imagem de noite",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "noite"), "arg": "paredes_ativas",
@@ -4123,7 +4148,7 @@ ACOES = {
                  "O “Deixar a medição decidir” desfaz.",
     },
     "wallpaper_lado_auto": {
-        "rotulo": "Deixar a medição decidir",
+        "rotulo": "Medir a luz",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "auto"), "arg": "paredes_ativas",
@@ -4134,7 +4159,7 @@ ACOES = {
     # São dois, e o terceiro ("III") saiu e não volta — decisão dela,
     # confirmada.
     "areas_ver": {
-        "rotulo": "As áreas de agora",
+        "rotulo": "Áreas agora",
         "grupo": "Áreas de trabalho",
         "natureza": "mostrar",
         "argv": _meow("areas", "estado"),
@@ -4163,7 +4188,7 @@ ACOES = {
     # `areas-sem-alfinete` aponta: sem nenhuma área fixada o `Gravar as
     # áreas` não tinha de onde herdar o monitor e parava.
     "areas_alfinetar_primeira": {
-        "rotulo": "Criar a primeira área",
+        "rotulo": "Primeira área",
         "grupo": "Áreas de trabalho",
         "natureza": "gravar",
         "argv": _meow("areas", "alfinetar-primeira"),
@@ -4173,7 +4198,7 @@ ACOES = {
                  "com o primeiro nome da sua lista. Vale no próximo início de sessão.",
     },
     "areas_reverter": {
-        "rotulo": "Voltar as áreas de antes",
+        "rotulo": "Áreas de antes",
         "grupo": "Áreas de trabalho",
         "natureza": "devolver",
         "argv": _meow("areas", "reverter"),
@@ -4193,7 +4218,7 @@ ACOES = {
         "ambiente": {"MEOW_SIM": "1"},
     },
     "wallpaper_desbanir": {
-        "rotulo": "Devolver uma imagem tirada",
+        "rotulo": "Devolver ao carrossel",
         "grupo": "Papel de parede",
         "natureza": "devolver",
         "argv": _meow("wallpaper", "desbanir", "@ARG@"), "arg": "paredes_banidas",
@@ -4202,7 +4227,7 @@ ACOES = {
                  "duas metades.",
     },
     "wallpaper_semear": {
-        "rotulo": "Baixar a coleção curada",
+        "rotulo": "Baixar a coleção",
         "grupo": "Papel de parede",
         "natureza": "baixar",
         "argv": _meow("wallpaper", "semear"),
@@ -4214,7 +4239,7 @@ ACOES = {
     "painel_estado": {
         # O rótulo repetia o nome da aba em que ele já está ("Painel e dock:")
         # e gastava a metade que sobrava numa palavra de oficina.
-        "rotulo": "Como estão o painel e a dock",
+        "rotulo": "Painel agora",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
         "argv": _meow("painel", "estado"),
@@ -4222,7 +4247,7 @@ ACOES = {
         "ajuda": "O estado do painel, da dock e do serviço que cuida dos dois.",
     },
     "painel_teto": {
-        "rotulo": "Até quanto o canto pode arredondar",
+        "rotulo": "Teto dos cantos",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
         "argv": _meow("painel", "teto"),
@@ -4241,7 +4266,7 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False,
         # "sem esperar o próximo login" virou "na hora" — a espera que se evita
         # é a do login, mas quem lê o balão quer saber é quando vê o gato.
-        "ajuda": "O painel pisca uns 2 s. É o que faz um gato novo "
+        "ajuda": "O painel pisca uns 2 s. É o que faz um mascote novo "
                  "aparecer na hora.",
     },
     # A receita `curl | sh` que o `scripts/prompt.sh` imprimia virou este
@@ -4257,7 +4282,7 @@ ACOES = {
                  "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
     },
     "leitura": {
-        "rotulo": "Modo de leitura agora",
+        "rotulo": "Tela quente agora",
         "grupo": "Modo de leitura",
         "natureza": "mostrar",
         "argv": _meow("leitura"),
@@ -4266,7 +4291,7 @@ ACOES = {
                  "compositor sabe ler os dois números.",
     },
     "leitura_aplicar": {
-        "rotulo": "Aplicar o degrau desta hora",
+        "rotulo": "Esquentar agora",
         "grupo": "Modo de leitura",
         "natureza": "aplicar",
         "argv": _meow("leitura", "aplicar"),
@@ -4274,7 +4299,7 @@ ACOES = {
         "ajuda": "Põe agora o que o agendamento poria sozinho.",
     },
     "leitura_remover": {
-        "rotulo": "Desligar o modo de leitura",
+        "rotulo": "Desligar agora",
         "grupo": "Modo de leitura",
         "natureza": "tirar",
         "argv": _meow("leitura", "remover"),
@@ -4282,7 +4307,7 @@ ACOES = {
         "ajuda": "Zera temperatura e textura, e desarma o agendamento.",
     },
     "files_menu": {
-        "rotulo": "Menu da área de trabalho",
+        "rotulo": "Menu agora",
         "grupo": "Papel de parede",
         "natureza": "mostrar",
         "argv": _meow("files-menu"),
@@ -4294,7 +4319,7 @@ ACOES = {
     # estado (`construindo`) e não tem botão, porque não há o que clicar
     # enquanto a unit trabalha.
     "files_menu_build": {
-        "rotulo": "Construir o menu da área de trabalho",
+        "rotulo": "Construir o menu",
         "grupo": "Papel de parede",
         "natureza": "baixar",
         "argv": _meow("files-menu", "build"),
@@ -4306,7 +4331,7 @@ ACOES = {
     "apps": {
         # Módulo é como o `bin/meow` organiza o próprio código; na tela ele
         # nomeava uma coluna que quem lê não tem como interpretar.
-        "rotulo": "Quais programas estão vestidos",
+        "rotulo": "Programas vestidos",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
         "argv": _meow("apps"),
@@ -4314,7 +4339,7 @@ ACOES = {
         "ajuda": "Um por linha: se está instalado, e se o tema já foi aplicado.",
     },
     "apps_aplicar": {
-        "rotulo": "Vestir os programas agora",
+        "rotulo": "Vestir os programas",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": _meow("apps", "aplicar"),
@@ -4325,7 +4350,7 @@ ACOES = {
     },
     # Os dois botões da pendência `<app>-tema-de-terceiro`.
     "apps_tema_do_pack": {
-        "rotulo": "Trocar pelo tema do pack",
+        "rotulo": "Trocar o tema",
         "grupo": "Lançadores e jogos",
         "natureza": "trocar",
         "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
@@ -4335,7 +4360,7 @@ ACOES = {
         "ajuda": "Troca o tema que o programa tem agora pelo do pack no ar.",
     },
     "apps_manter_o_meu": {
-        "rotulo": "Manter o meu tema",
+        "rotulo": "Manter o tema",
         "grupo": "Lançadores e jogos",
         "natureza": "gravar",
         "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
@@ -4347,7 +4372,7 @@ ACOES = {
     # Só o pack do `packs/` do repositório instala extensão sozinho; o importado
     # pede, e o módulo deixa a pendência `vscode-extensao-de-terceiro`.
     "vscode_instalar_extensao": {
-        "rotulo": "Instalar a extensão do VS Code",
+        "rotulo": "Instalar a extensão",
         "grupo": "Lançadores e jogos",
         "natureza": "baixar",
         "argv": _meow("apps", "aplicar", "vscode"), "arg": "extensoes_de_terceiro",
@@ -4360,7 +4385,7 @@ ACOES = {
     },
     # É a ação para onde a pendência `spicetify-tema-ausente` aponta.
     "spotify_baixar_tema": {
-        "rotulo": "Baixar o tema do Spotify",
+        "rotulo": "Tema do Spotify",
         "grupo": "Lançadores e jogos",
         "natureza": "baixar",
         "argv": _meow("apps", "aplicar", "spotify"),
@@ -4372,7 +4397,7 @@ ACOES = {
     # `confirma` é True no aplicar porque uma linha `apagar` no mapa manda o
     # script remover os arquivos do jogo.
     "jogos": {
-        "rotulo": "Ver o que mudaria nos jogos",
+        "rotulo": "Conferir os jogos",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh"), "--conferir"],
@@ -4381,7 +4406,7 @@ ACOES = {
                  "Não escreve nada.",
     },
     "jogos_aplicar": {
-        "rotulo": "Arrumar os jogos no lançador",
+        "rotulo": "Arrumar os jogos",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh")],
@@ -4396,7 +4421,7 @@ ACOES = {
     # "Jogos do Heroic" com a grade de capas, então não há nome repetido a
     # evitar.
     "jogos_heroic": {
-        "rotulo": "Ver o que mudaria nos jogos do Heroic",
+        "rotulo": "Conferir o Heroic",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--conferir"],
@@ -4407,13 +4432,35 @@ ACOES = {
         "ajuda": "Lista atalho a criar e atalho a remover. Não escreve nada.",
     },
     "jogos_heroic_aplicar": {
-        "rotulo": "Pôr os jogos do Heroic no lançador",
+        "rotulo": "Jogos do Heroic",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
         "escreve": True, "sudo": False, "confirma": False,
+        # O cartão mora na seção dos jogos, ao lado das capas.
+        "oculta": True,
         "ajuda": "Um atalho por jogo instalado no Heroic, com a capa que ele "
                  "já baixou. Some o do jogo desinstalado.",
+    },
+    # Os dois lados do interruptor «no lançador» de um jogo do Heroic: o script
+    # grava a lista e arruma o lançador na mesma passada.
+    "jogos_heroic_tirar": {
+        "rotulo": "Tirar um jogo",
+        "grupo": "Lançadores e jogos",
+        "natureza": "tirar",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
+        "arg": "jogos_heroic", "ambiente": {"MEOW_HEROIC_TIRAR": "@ARG@"},
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "O cartão do jogo sai do lançador; o jogo continua no Heroic.",
+    },
+    "jogos_heroic_por": {
+        "rotulo": "Pôr um jogo",
+        "grupo": "Lançadores e jogos",
+        "natureza": "aplicar",
+        "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
+        "arg": "jogos_heroic", "ambiente": {"MEOW_HEROIC_POR": "@ARG@"},
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "O cartão do jogo volta ao lançador.",
     },
 }
 
@@ -4516,7 +4563,7 @@ def _cursor_para_rgba(caminho, tamanho_alvo=48):
 
 # --- os provedores: cada um lista o que existe NO DISCO agora ----------------
 def _prev_gatos():
-    pasta = os.path.join(RAIZ, "assets", "gatos")
+    pasta = _pasta_do_mascote()
     fora = []
     for nome in _gatos():
         caminho = os.path.join(pasta, nome + ".svg")
@@ -4550,7 +4597,7 @@ def _lado_caminho():
         "papeis-de-parede")
     if os.path.isdir(estado):
         return os.path.join(estado, "lado.tsv")
-    return os.path.join(RAIZ, "assets", "papeis-de-parede", "lado.tsv.padrao")
+    return os.path.join(RAIZ, "packs", "meowsystem", "wallpapers", "lado.tsv.padrao")
 
 
 def _lado_escrito():
@@ -4588,6 +4635,9 @@ def _prev_paredes():
     escolhas = _lado_escrito()
     fora = []
     for grupo, pasta in GRUPOS_PAREDE:
+        # Com papel de outro pack em `ativos/`, o que gira é a coleção do pack no ar.
+        if grupo == "ativos" and os.path.isdir(os.path.join(base, "ativos-pack")):
+            pasta = "ativos-pack"
         caminho = os.path.join(base, pasta)
         try:
             nomes = sorted(os.listdir(caminho))
@@ -4602,6 +4652,8 @@ def _prev_paredes():
             # O id carrega o grupo porque o MESMO nome existe em `ativos/` e em
             # `ativos-noite/` — são link duro para o mesmo arquivo, e sem o
             # prefixo um id apontaria para dois lugares.
+            # Banir é `mv` do caminho recebido: pelo link duro de `ativos-noite/` sairia só o
+            # link, e a imagem de `ativos/` seguiria girando. Por isso `banir` é o canônico.
             canonico = os.path.join(base, "ativos", nome)
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
                          "origem": arq, "grupo": grupo,
@@ -4715,7 +4767,7 @@ def _tipo_de_previa(chave, opcoes, faixa, padrao):
 
     Então a pergunta é feita ao CONTEÚDO da chave, não ao nome dela:
 
-      - as opções são os gatos que existem em `assets/gatos/`?  -> desenho do gato
+      - as opções são os gatos que existem em `packs/meowsystem/mascote/`?  -> desenho do gato
       - as opções são os flavors da paleta?                     -> amostra do flavor
       - as opções são nomes de cor do Catppuccin?               -> bolinha da cor
       - o valor é um tema de cursor que está instalado?         -> o ponteiro de verdade
@@ -5453,15 +5505,14 @@ class Trabalho:
         rc = self.proc.wait()
         leitor.join(self.PRAZO_DO_CANO)
         self.rc = rc
-        self.fim = time.time()
-        # DEPOIS do `rc` e do `fim`: a página pergunta "acabou?" pelo `vivo()`, e
-        # a limpeza não pode atrasar a resposta nem falhar a ponto de o trabalho
-        # ficar eternamente sem desfecho.
+        # ANTES do `fim`: quando a página ouve «acabou», o ponto de restauro desta
+        # execução já está registrado. A falha dele não segura o desfecho.
         if self._ao_terminar is not None:
             try:
                 self._ao_terminar()
             except Exception:
                 pass
+        self.fim = time.time()
 
     def desde(self, n):
         with self._lock:
@@ -5485,6 +5536,87 @@ class Trabalho:
 TRABALHOS = {}
 TRABALHO_ATUAL = None
 TRABALHO_TRAVA = threading.Lock()
+
+# O RESTAURAR: toda execução que escreve ganha uma pasta (`MEOW_BACKUPS`, ver
+# lib/restauro.sh) com o estado de antes, e a última de cada ação fica para o
+# «Restaurar» do cartão. Uma por ação: a de antes sai quando a nova chega.
+RESTAUROS = os.path.join(ESTADO, "restauros")
+_RESTAUROS_TRAVA = threading.Lock()
+
+
+def _tem_tocados(pasta):
+    try:
+        return os.path.getsize(os.path.join(pasta, "tocados.tsv")) > 0
+    except OSError:
+        return False
+
+
+def restauros():
+    """{acao_id: pasta} das execuções que ainda se podem desfazer."""
+    try:
+        with open(os.path.join(RESTAUROS, "ultimos.json"), "r", encoding="utf-8") as fh:
+            dados = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(dados, dict):
+        return {}
+    # A pasta tem de ser filha de `RESTAUROS`: o arquivo é texto no disco, e o
+    # caminho dele vira argumento do `meow restaurar`.
+    return {a: p for a, p in dados.items()
+            if a in ACOES and isinstance(p, str)
+            and os.path.dirname(os.path.realpath(p)) == os.path.realpath(RESTAUROS)
+            and _tem_tocados(p)}
+
+
+def _gravar_restauros(dados):
+    os.makedirs(RESTAUROS, exist_ok=True)
+    tmp = os.path.join(RESTAUROS, ".ultimos.json.tmp")
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(dados, fh, ensure_ascii=False, indent=1)
+    os.replace(tmp, os.path.join(RESTAUROS, "ultimos.json"))
+
+
+def _guardar_restauro(acao_id, pasta):
+    with _RESTAUROS_TRAVA:
+        dados = restauros()
+        if not _tem_tocados(pasta):
+            shutil.rmtree(pasta, ignore_errors=True)
+            return
+        velha = dados.get(acao_id)
+        dados[acao_id] = pasta
+        _gravar_restauros(dados)
+        if velha and velha != pasta:
+            shutil.rmtree(velha, ignore_errors=True)
+
+
+def _esquecer_restauro(acao_id, pasta):
+    with _RESTAUROS_TRAVA:
+        dados = restauros()
+        if dados.get(acao_id) == pasta:
+            del dados[acao_id]
+            _gravar_restauros(dados)
+        shutil.rmtree(pasta, ignore_errors=True)
+
+
+def _nome_de_arquivo(texto):
+    """«Tirar uma área» -> `tirar-uma-area`: o nome do log guardado."""
+    import unicodedata
+    plano = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", plano.lower()).strip("-") or "acao"
+
+
+def guardar_log(trabalho):
+    """Grava a saída inteira de um trabalho em `logs/`; devolve o caminho."""
+    pasta = os.path.join(ESTADO, "logs")
+    os.makedirs(pasta, exist_ok=True)
+    nome = "%s-%s.log" % (time.strftime("%Y-%m-%d-%H%M%S", time.localtime(trabalho.comeco)),
+                          _nome_de_arquivo(trabalho.rotulo))
+    linhas, _ = trabalho.desde(0)
+    caminho = os.path.join(pasta, nome)
+    with open(caminho, "w", encoding="utf-8") as fh:
+        fh.write("# %s\n# %s\n# saiu %s\n\n" % (trabalho.rotulo, comando_na_tela(trabalho.argv), trabalho.rc))
+        fh.write("\n".join(linhas) + "\n")
+    return caminho
 
 
 def escreve(acao):
@@ -5523,6 +5655,8 @@ ACAO_DA_PENDENCIA = {
     # applet de leitura «LEITURA_COMPILAR=1 …/leitura_build.sh». Viraram
     # pendência, e o botão é o de quem faz.
     "instalar-com-root": "instalar",
+    "flatpak-global-sistema": "instalar",
+    "libreoffice-sistema": "instalar",
     "leitura-applet": "doctor_consertar",
 }
 
@@ -5541,11 +5675,11 @@ RECUSA_DA_PENDENCIA = {
 # assim para todo módulo que chama aquela função — sete hoje —, e o próximo
 # ganha os botões sem vir aqui.
 SUFIXO_TEMA_DE_TERCEIRO = "-tema-de-terceiro"
-ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar pelo tema do pack"),
-                            ("apps_manter_o_meu", "Manter o meu"))
+ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar"),
+                            ("apps_manter_o_meu", "Manter"))
 
 
-# O id é o que o `assets/temas-de-apps/vscode/manifesto.sh` registra; as
+# O id é o que o `scripts/temas-de-apps/vscode/manifesto.sh` registra; as
 # extensões saem do pack no ar, e só quando ele NÃO mora no `packs/` do
 # repositório — a mesma régua do módulo, com os links resolvidos.
 PENDENCIA_EXTENSAO = "vscode-extensao-de-terceiro"
@@ -5598,47 +5732,153 @@ def _app_da_pendencia(ident):
     app = ident[:-len(SUFIXO_TEMA_DE_TERCEIRO)]
     if not re.match(r"^[a-z0-9][a-z0-9-]*$", app):
         return ""
-    modulo = os.path.join(RAIZ, "assets", "temas-de-apps", app, "manifesto.sh")
+    modulo = os.path.join(RAIZ, "scripts", "temas-de-apps", app, "manifesto.sh")
     return app if os.path.isfile(modulo) else ""
 
 
-# As duas eram nomes de tela escritos à mão num script, e nome escrito à mão é o
-# que envelhece no primeiro renome.
-#
-# Um cartão se pergunta pela CHAVE, e a resposta sai do mesmo lugar de onde a
-# página tira o cartão: o título escrito no `meow.conf.exemplo` (o `# @`), com a
-# troca que o pack no ar faz (`_com_o_vocabulario_do_pack`), e a seção, que é a
-# aba.
-ABA_INICIO = "Início"
+# Onde cada chave, ação e gesto mora no painel é dado da página
+# (`app/pagina/lugares.js`); o `--onde` lê a mesma tabela, e o
+# `tests/migracao-do-painel.py` confere que esta leitura e a do node dão o mesmo.
+PORTA_DAS_PENDENCIAS = "Cuidar"
+_NOME_DA_PORTA = {"tema": "Tema", "criar": "Criar tema", "ajustes": "Ajustes", "cuidar": "Cuidar",
+                  "topo": "Barra de cima", "janela": "Janela do trabalho"}
+_LUGARES = {}
+
+
+def _js_para_json(texto):
+    """O literal de objeto do lugares.js em JSON: chave sem aspas, vírgula no fim, comentário."""
+    saida, i, n = [], 0, len(texto)
+    while i < n:
+        c = texto[i]
+        if c == '"':
+            j = i + 1
+            while texto[j] != '"':
+                j += 2 if texto[j] == "\\" else 1
+            saida.append(texto[i:j + 1])
+            i = j + 1
+        elif texto.startswith("/*", i):
+            i = texto.index("*/", i) + 2
+        elif texto.startswith("//", i):
+            i = texto.find("\n", i) if "\n" in texto[i:] else n
+        elif c.isalpha() or c == "_":
+            j = i
+            while j < n and (texto[j].isalnum() or texto[j] == "_"):
+                j += 1
+            k = j
+            while k < n and texto[k] in " \t\n":
+                k += 1
+            palavra = texto[i:j]
+            saida.append('"%s"' % palavra if k < n and texto[k] == ":" else palavra)
+            i = j
+        else:
+            saida.append(c)
+            i += 1
+    return re.sub(r",(\s*[}\]])", r"\1", "".join(saida))
+
+
+def inventario_do_painel():
+    """A tabela plana do `inventarioDoPainel()` do lugares.js, lida sem node."""
+    caminho = os.path.join(RAIZ, "app", "pagina", "lugares.js")
+    try:
+        marca = os.path.getmtime(caminho)
+        if _LUGARES.get("marca") == marca:
+            return _LUGARES["tabela"]
+        with open(caminho, encoding="utf-8") as fh:
+            fonte = fh.read()
+        c = {m.group(1): json.loads(_js_para_json(m.group(2)))
+             for m in re.finditer(r"(?ms)^const (\w+) = (.*?^[\]}]);", fonte)}
+    except (OSError, ValueError):
+        return []
+    saida = []
+
+    def pus(l, porta, pagina, bloco, mais=False):
+        base = {"porta": porta, "pagina": pagina, "bloco": bloco, "mais": mais,
+                "rotulo": l.get("r"), "botao": l.get("b")}
+        for tipo, campo in (("chave", "c"), ("acao", "a"), ("gesto", "g")):
+            if campo in l:
+                for ident in (l[campo] if isinstance(l[campo], list) else [l[campo]]):
+                    saida.append(dict(base, tipo=tipo, id=ident))
+                break
+
+    tema, cuidar = c["LUGAR_TEMA"], c["LUGAR_CUIDAR"]
+    for l in tema["packs"]:
+        pus(l, "tema", "Tema", "Temas")
+    for b in tema["blocos"]:
+        for l in b["linhas"]:
+            pus(l, "tema", "Tema", b["titulo"])
+    for l in tema["mais"]:
+        pus(l, "tema", "Tema", "Mais ajustes", True)
+    for p in c["PASSOS"]:
+        for l in p["linhas"]:
+            pus(l, "criar", p["nome"], p["nome"])
+        for l in p.get("mais", []):
+            pus(l, "criar", p["nome"], "Mais ajustes", True)
+    for p in c["AJUSTES"]:
+        for l in p.get("cabeca", []):
+            pus(l, "ajustes", p["nome"], p["nome"])
+        for b in p["blocos"]:
+            for l in b["linhas"]:
+                pus(l, "ajustes", p["nome"], b["titulo"])
+        for l in p.get("mais", []):
+            pus(l, "ajustes", p["nome"], "Mais ajustes", True)
+    for l in cuidar["estado"]:
+        pus(l, "cuidar", "Cuidar", "Estado")
+    for l in cuidar["pendencias"]:
+        pus(l, "cuidar", "Cuidar", "Pendências")
+    for cartao in cuidar["cartoes"]:
+        for l in cartao["linhas"]:
+            pus(l, "cuidar", "Cuidar", cartao["titulo"])
+    for b in cuidar["blocos"]:
+        for l in b["linhas"]:
+            pus(l, "cuidar", "Cuidar", b["titulo"])
+    for l in cuidar["perigo"]:
+        pus(l, "cuidar", "Cuidar", "Zona de perigo")
+    for l in cuidar["mais"]:
+        pus(l, "cuidar", "Cuidar", "Mais ajustes", True)
+    for l in c["LUGAR_TOPO"]:
+        pus(l, "topo", "Barra de cima", "Barra de cima")
+    for l in c["LUGAR_JANELA"]:
+        pus(l, "janela", "Janela do trabalho", "Janela do trabalho")
+    _LUGARES.update(marca=marca, tabela=saida)
+    return saida
+
+
+def _caminho_na_tela(l):
+    """`Porta › Página › Bloco`, como a busca da página escreve."""
+    porta = _NOME_DA_PORTA[l["porta"]]
+    base = porta if l["porta"] in ("tema", "cuidar", "topo", "janela") else "%s › %s" % (porta, l["pagina"])
+    if l["mais"]:
+        return base + " › Mais ajustes"
+    if l["bloco"] and l["bloco"] not in (l["pagina"], base):
+        return base + " › " + l["bloco"]
+    return base
 
 
 def onde_na_tela(ident):
-    """Onde um lugar do painel mora, pela tabela que o define, ou "":
+    """Onde um lugar do painel mora, pela tabela da página (lugares.js), ou "":
 
-    «rótulo», na aba Grupo — de uma ação, ou da ação de uma pendência;
-    «um» ou «outro», na aba Início — dos botões da pendência de tema de terceiro;
-    «título», na aba Seção — do cartão de uma chave do meow.conf;
-    na aba Início — para `inicio`, a aba que abre o painel."""
-    acao = ACOES.get(ident) or ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""))
-    if acao:
-        return "" if acao.get("oculta") else "«%s», na aba %s" % (acao["rotulo"], acao["grupo"])
+    «botão», em Porta › Página — de uma ação;
+    «Resolver», em Cuidar — de uma pendência com ação, e os botões dela quando são dois;
+    «nome», em Porta › Página — de uma chave do meow.conf;
+    em Cuidar — para `inicio`, onde as pendências moram."""
+    if ident in ACAO_DA_PENDENCIA:
+        return "«Resolver», em %s" % PORTA_DAS_PENDENCIAS
     if _app_da_pendencia(ident):
-        return "%s, na aba %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_TEMA_DE_TERCEIRO),
-                                  ABA_INICIO)
+        return "%s, em %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_TEMA_DE_TERCEIRO),
+                              PORTA_DAS_PENDENCIAS)
     if ident == PENDENCIA_EXTENSAO:
-        return "«Instalar», na aba %s" % ABA_INICIO
+        return "«Instalar», em %s" % PORTA_DAS_PENDENCIAS
     if ident == PENDENCIA_PAREDE:
-        return "«Era escolha minha», na aba %s" % ABA_INICIO
+        return "«Era escolha minha», em %s" % PORTA_DAS_PENDENCIAS
     if ident == "inicio":
-        return "na aba %s" % ABA_INICIO
-    esquema = ler_esquema()
-    item = next((i for i in esquema if i["chave"] == ident), None)
-    if not item:
+        return "em %s" % PORTA_DAS_PENDENCIAS
+    if (ACOES.get(ident) or {}).get("oculta"):
         return ""
-    _com_o_vocabulario_do_pack(esquema, vocabulario_do_pack(), {})
-    if not item.get("titulo") or not item.get("secao"):
+    l = next((l for l in inventario_do_painel() if l["id"] == ident and l["tipo"] in ("acao", "chave")), None)
+    if not l:
         return ""
-    return "«%s», na aba %s" % (item["titulo"], item["secao"])
+    nome = l["botao"] if l["tipo"] == "acao" and l["botao"] else l["rotulo"]
+    return "«%s», em %s" % (nome, _caminho_na_tela(l))
 
 
 PENDENCIAS = os.path.join(ESTADO, "pendencias.tsv")
@@ -5681,11 +5921,11 @@ def pendencias():
                                 "argumento": comando[len(PREFIXO_PERMITIR):]},
                                {"acao": "wallpaper_dispensar", "rotulo": "Deixar assim",
                                 "argumento": ""}]
-                    nome = "Papel de parede devolvido"
+                    nome = "Papel devolvido"
                 if ident == PENDENCIA_EXTENSAO and comando:
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
-                    nome = "VS Code: extensão de pack importado"
+                    nome = "Extensão do pack"
                 # O `files-menu-build` nasce sem comando enquanto a unidade
                 # compila, e sem `acao` a Início caía no nome da etapa:
                 # «Files_menu.sh», o nome de um arquivo.
@@ -5753,8 +5993,7 @@ def _trabalho_json(trabalho, acao_id, seco=False):
     """
     # O topo da gaveta mostra o comando como a pessoa o digitaria, e não o
     # `argv` cru com o caminho do clone — ver `comando_na_tela`.
-    return {"id": trabalho.id, "rotulo": trabalho.rotulo,
-            "comando": comando_na_tela(trabalho.argv),
+    return {"id": trabalho.id, "rotulo": trabalho.rotulo, "acao": acao_id,
             "escreve": escreve(ACOES[acao_id]),
             "seco": bool(seco),
             "conserta_com": ACOES[acao_id].get("conserta_com"),
@@ -5804,7 +6043,47 @@ def _previa_dos_jogos(mapa):
     return saida
 
 
-def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None):
+def jogos_do_heroic():
+    """Os jogos instalados no Heroic: [{id, nome, url, no_lancador}]. Quem lê a
+    biblioteca é o `jogos_heroic.sh --listar`; sem Heroic, lista vazia."""
+    try:
+        r = subprocess.run([os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--listar"],
+                           capture_output=True, timeout=30, env=_ambiente_do_painel(seco=True))
+    except (OSError, subprocess.SubprocessError):
+        return []
+    fora = []
+    capas = os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps")
+    for linha in r.stdout.decode("utf-8", "replace").splitlines():
+        campos = linha.split("\t")
+        if len(campos) != 4 or not campos[0].startswith("meow-heroic-"):
+            continue
+        capa = os.path.join(capas, campos[0] + ".png")
+        fora.append({"id": campos[0], "nome": campos[1],
+                     "url": ("/previa?tipo=arquivo&id=" + quote(capa, safe=""))
+                            if os.path.isfile(capa) else "",
+                     "no_lancador": campos[3] == "sim"})
+    return fora
+
+
+def _guardar_antes_py(pasta, caminho, conteudo):
+    """O `meow_guardar_antes` para o que o servidor escreve antes do trabalho:
+    `conteudo` é o arquivo como era (None: não existia)."""
+    alvo = os.path.realpath(caminho)
+    os.makedirs(pasta, exist_ok=True)
+    if conteudo is None:
+        linha = "%s\tnovo\n" % alvo
+    else:
+        copia = pasta + "/antes" + alvo
+        os.makedirs(os.path.dirname(copia), exist_ok=True)
+        with open(copia, "wb") as fh:
+            fh.write(conteudo)
+        linha = "%s\texistia\n" % alvo
+    with open(os.path.join(pasta, "tocados.tsv"), "a", encoding="utf-8") as fh:
+        fh.write(linha)
+
+
+def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
+            antes=None):
     """Começa uma ação. Devolve (trabalho, erro) — o erro pode ser um dicionário.
 
     `seco` roda com `MEOW_DRY_RUN=1` (ver `_ambiente_do_painel`): o motor já
@@ -5863,6 +6142,14 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
         amb_acao = {k: (argumento if v == "@ARG@" else v) for k, v in amb_acao.items()}
     elif argumento:
         return (None, "esta ação não recebe argumento")
+    rotulo = acao["rotulo"]
+    pasta_restauro = None
+    if acao_id == "restaurar":
+        pasta_restauro = restauros().get(argumento)
+        if not pasta_restauro:
+            return (None, "não há o que restaurar nessa ação")
+        argv = [pasta_restauro if p == argumento else p for p in argv]
+        rotulo = "Restaurar «%s»" % ACOES[argumento]["rotulo"]
 
     # Sem ela, a ação que chama um script de `scripts/` direto roda com cada
     # chave no padrão.
@@ -5899,18 +6186,44 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
     # um script de terceiro no meio do caminho pode não fazer esse teste.
     ambiente["NO_COLOR"] = "1"
 
+    # O estado de antes vai para uma pasta desta execução; o «Restaurar» não
+    # guarda o próprio antes (desfazer o desfazer é rodar a ação de novo).
+    if escreve(acao) and not seco and acao_id != "restaurar":
+        pasta_restauro = os.path.join(RESTAUROS, "%s-%s-%s" % (
+            time.strftime("%Y%m%dT%H%M%S"), acao_id, secrets.token_hex(3)))
+        ambiente["MEOW_BACKUPS"] = pasta_restauro
+        for caminho, conteudo in (antes or {}).items():
+            try:
+                _guardar_antes_py(pasta_restauro, caminho, conteudo)
+            except OSError:
+                pass
+    vivo = {}
+
+    def ao_terminar():
+        # A CÓPIA DO ENSAIO MORRE COM O TRABALHO, e não aqui: ele acabou de
+        # nascer e vai sourcear aquele arquivo pelos próximos segundos.
+        if pasta_de_ensaio:
+            shutil.rmtree(pasta_de_ensaio, ignore_errors=True)
+        t = vivo.get("t")
+        if acao_id == "restaurar":
+            if t is not None and t.rc in (0, 1):
+                _esquecer_restauro(argumento, pasta_restauro)
+        elif pasta_restauro:
+            _guardar_restauro(acao_id, pasta_restauro)
+
     with TRABALHO_TRAVA:
         if TRABALHO_ATUAL is not None and TRABALHO_ATUAL.vivo():
+            if acao_id != "restaurar" and pasta_restauro:
+                shutil.rmtree(pasta_restauro, ignore_errors=True)
             return (None, "já há um trabalho correndo: %s" % TRABALHO_ATUAL.rotulo)
         try:
-            # A CÓPIA DO ENSAIO MORRE COM O TRABALHO, e não aqui: ele acabou de
-            # nascer e vai sourcear aquele arquivo pelos próximos segundos.
-            trabalho = Trabalho(
-                acao_id, argv, ambiente, acao["rotulo"],
-                ao_terminar=(lambda: shutil.rmtree(pasta_de_ensaio, ignore_errors=True))
-                if pasta_de_ensaio else None)
+            trabalho = Trabalho(acao_id, argv, ambiente, rotulo, ao_terminar=ao_terminar)
         except OSError as erro:
+            if acao_id != "restaurar" and pasta_restauro:
+                shutil.rmtree(pasta_restauro, ignore_errors=True)
             return (None, str(erro))
+        vivo["t"] = trabalho
+        trabalho.pasta_restauro = pasta_restauro if acao_id != "restaurar" else None
         TRABALHOS[trabalho.id] = trabalho
         TRABALHO_ATUAL = trabalho
     return (trabalho, None)
@@ -6352,7 +6665,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
 
         # Ter o gato dela ali é melhor de qualquer forma, e é de graça: o acervo
-        # `assets/gatos/` já é a configuração deste projeto, e a chave `LOGO`
+        # `packs/meowsystem/mascote/` já é a configuração deste projeto, e a chave `LOGO`
         # diz qual está no ar.
         #
         # A MARCA DO APLICATIVO NÃO É UM GATO DELA — é o ícone do `.desktop`.
@@ -6370,12 +6683,12 @@ class Manipulador(BaseHTTPRequestHandler):
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
             nome = os.path.basename(valores_efetivos(["LOGO"]).get("LOGO") or "coquinha")
-            arquivo = os.path.join(RAIZ, "assets", "gatos", nome + ".svg")
+            arquivo = os.path.join(_pasta_do_mascote(), nome + ".svg")
             if not os.path.isfile(arquivo):
                 gatos = _gatos()
                 if not gatos:
-                    return self._recusar(404, "não há gato no acervo")
-                arquivo = os.path.join(RAIZ, "assets", "gatos", gatos[0] + ".svg")
+                    return self._recusar(404, "não há mascote no acervo")
+                arquivo = os.path.join(_pasta_do_mascote(), gatos[0] + ".svg")
             with open(arquivo, "rb") as fh:
                 return self._responder(fh.read(), tipo=TIPOS[".svg"])
 
@@ -6502,13 +6815,13 @@ class Manipulador(BaseHTTPRequestHandler):
     # aparece na tela, e o defeito é mudo.
     ACERVOS = {
         "gato": {
-            "pasta": ("assets", "gatos"),
+            "casa": "pasta_do_mascote",
             "extensoes": (".svg",),
             "normaliza": True,
-            "depois": "o vigia põe o gato novo no acervo em segundos",
+            "depois": "o vigia põe o mascote novo no acervo em segundos",
         },
         "parede": {
-            "pasta": ("assets", "papeis-de-parede", "ativos"),
+            "pasta": ("packs", "meowsystem", "wallpapers", "ativos"),
             "extensoes": (".jpg", ".jpeg", ".png", ".webp"),
             "normaliza": False,
             "depois": "o carrossel passa a sortear a imagem nova",
@@ -6715,7 +7028,7 @@ class Manipulador(BaseHTTPRequestHandler):
     #
     # Trocar o ícone de um aplicativo hoje exige editar
     # `packs/meowsystem/icones/apps-arcticons.map` à mão, saber que o glifo tem
-    # de existir em `packs/meowsystem/icones/apps/arcticons/`, e rodar o
+    # de existir em `packs/meowsystem/icones/apps/`, e rodar o
     # construtor.
     DIRS_DESKTOP = (
         ("/usr/share/applications", "sistema"),
@@ -7408,6 +7721,7 @@ class Manipulador(BaseHTTPRequestHandler):
         fora.sort(key=lambda j: j["nome"].lower())
         orfas.sort(key=lambda j: j["appid"])
         fora.extend(orfas)
+        heroic = [] if busca else jogos_do_heroic()
 
         # Sumir de um lado sem aparecer no outro seria perder a capacidade, não
         # movê-la.
@@ -7444,7 +7758,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "trava_pack": self._trava_do_pack(d, d["nome"], donos_scalable, travas),
             })
         return {"jogos": fora, "total": len(fora), "mapa": MAPA_JOGOS,
-                "apps": icones, "total_apps": len(icones)}
+                "heroic": heroic, "apps": icones, "total_apps": len(icones)}
 
     def _api_jogo_fora(self, corpo):
         """Grava (ou tira) a linha de um jogo no `jogos-fora.map`.
@@ -7460,7 +7774,7 @@ class Manipulador(BaseHTTPRequestHandler):
             (`_previa_dos_jogos`): quais atalhos entram, quais saem, e que
             pasta seria apagada. É o que a caixa de confirmar mostra;
           · `seco: true` roda a passagem inteira em ensaio sobre a mesma cópia
-            e devolve o trabalho, para a gaveta — o «Ver o que faria».
+            e devolve o trabalho, para a gaveta — o «Ver sem mudar».
         Montar a linha num lugar e a cópia noutro faria a caixa prometer um
         mapa e o botão gravar outro.
         """
@@ -7526,7 +7840,7 @@ class Manipulador(BaseHTTPRequestHandler):
                            "depois": "vale depois de \"Arrumar os jogos no lançador\""})
 
     def _ensaio_dos_jogos(self, mapa):
-        """O «Ver o que faria» da caixa dos jogos: a passagem, seca, sobre `mapa`.
+        """O «Ver sem mudar» da caixa dos jogos: a passagem, seca, sobre `mapa`.
 
         A cópia do mapa mora na pasta descartável do ensaio (`_conf_de_ensaio`,
         a mesma do «Salvar e aplicar»), e o `iniciar` a entrega ao script pelo
@@ -7921,12 +8235,12 @@ class Manipulador(BaseHTTPRequestHandler):
         if marca:
             glifo = marca["glifo"]
             arq = (glifo if os.path.isabs(glifo) else os.path.join(RAIZ, glifo)) if "/" in glifo \
-                else os.path.join(icones, "apps", "arcticons", glifo + ".svg")
+                else _glifo_do_motor(glifo)
             if os.path.isfile(arq):
                 return self._arquivo_na_ficha(arq)
         conv = self._mapa_convertidos()
         if conv.get(app) or conv.get(d.get("icone") or ""):
-            arq = os.path.join(icones, "apps", "convertidos", nome + ".svg")
+            arq = os.path.join(icones, "apps", nome + ".svg")
             if os.path.isfile(arq):
                 return self._arquivo_na_ficha(arq)
         return None
@@ -8101,7 +8415,7 @@ class Manipulador(BaseHTTPRequestHandler):
             nome_app = anterior[len("# app:"):].strip() if anterior.startswith("# app:") else ""
             nome = linha.split(":", 1)[0].strip()
             if nome_app and nome and not linha.startswith("#"):
-                caminho = os.path.join(ICONES_DO_MOTOR, "apps", "convertidos", nome + ".svg")
+                caminho = os.path.join(ICONES_DO_MOTOR, "apps", nome + ".svg")
                 junta(caminho, nome_app)
                 rotulos.setdefault(os.path.normpath(caminho), nome_app)
                 do_nome.setdefault(nome.lower(), nome_app)
@@ -8329,7 +8643,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         # Até aqui um glifo fora de `arcticons-apps/` era COPIADO do
         # `upstream/` para lá: o repositório ganhava arquivo a cada escolha.
-        trazer = os.path.join(ICONES_DO_MOTOR, "apps", "arcticons")
+        trazer = os.path.join(ICONES_DO_MOTOR, "apps")
         if item:
             if os.path.dirname(os.path.normpath(item["caminho"])) == trazer:
                 glifo = item["glifo"]
@@ -8388,6 +8702,8 @@ class Manipulador(BaseHTTPRequestHandler):
     #
     # A recusa do SVG é do servidor: é aqui que a escrita mora, e é aqui que ela
     # tem de valer contra um POST forjado.
+    # A recusa é do servidor, porque é aqui que a escrita mora e vale contra um POST
+    # forjado: sem script, estilo nem referência externa, e sem `stroke-width` nem cor.
     _SVG_PROIBIDO = re.compile(
         r"<\s*(script|style|image|foreignObject|iframe|use)\b"
         r"|xlink:|href\s*=|\bon[a-z]+\s*=|url\s*\(|@import",
@@ -8459,7 +8775,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
     def _retoque_do_projeto(self, app):
         """O retoque que veio com o clone (o do Gradia, por exemplo)."""
-        return os.path.join(ICONES_DO_MOTOR, "apps", "convertidos", "retoques", app + ".svg")
+        return os.path.join(ICONES_DO_MOTOR, "apps", app + ".svg")
 
     def _vizinhos_do_dock(self):
         """Os dois vizinhos da tira: a PRIMEIRA e a ÚLTIMA linha de dados do
@@ -8485,8 +8801,7 @@ class Manipulador(BaseHTTPRequestHandler):
             campos = [c.strip() for c in corte.split(":")]
             if len(campos) < 3 or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", campos[1]):
                 continue
-            arte = os.path.join(ICONES_DO_MOTOR, "apps", "arcticons",
-                                campos[1] + ".svg")
+            arte = _glifo_do_motor(campos[1])
             try:
                 with open(arte, "r", encoding="utf-8") as fh:
                     saida.append({"nome": campos[0], "cor": campos[2], "svg": fh.read()})
@@ -8525,7 +8840,7 @@ class Manipulador(BaseHTTPRequestHandler):
         conversor. Mostrar o construído havendo retoque seria mostrar a versão
         que perde.
         """
-        conv = os.path.join(ICONES_DO_MOTOR, "apps", "convertidos")
+        conv = os.path.join(ICONES_DO_MOTOR, "apps")
         for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
                                  (_oficina_do_usuario("convertidos-apps", nome + ".svg"), "conversao"),
                                  (self._retoque_do_projeto(nome), "mao"),
@@ -9354,11 +9669,14 @@ class Manipulador(BaseHTTPRequestHandler):
             # …/leitura_build.sh", "meow wallpaper permitir /home/<usuário>/
             # …").
             linhas = [texto_na_tela(l) for l in linhas]
+            pasta = getattr(trabalho, "pasta_restauro", None)
             return self._json({
                 "id": trabalho.id, "rotulo": trabalho.rotulo,
                 "linhas": linhas, "proximo": total,
                 "vivo": trabalho.vivo(), "rc": trabalho.rc,
                 "segundos": round((trabalho.fim or time.time()) - trabalho.comeco, 1),
+                # Há o que desfazer desta execução: a janela mostra o «Restaurar».
+                "restauravel": bool(pasta) and not trabalho.vivo() and _tem_tocados(pasta),
             })
 
         # LEVAR EMBORA — as duas saídas do botão "Exportar".
@@ -9809,6 +10127,7 @@ class Manipulador(BaseHTTPRequestHandler):
                     }
                 item["programas"] = programas
         medidas = dict(_medidas_do_projeto(), **_medidas_da_tela())
+        restauros_agora = restauros()
         return {
             # `~/.config/meow/meow.conf`, e não o caminho com o nome de usuário:
             # a página só o mostra, no balão do resumo do topo.
@@ -9842,14 +10161,15 @@ class Manipulador(BaseHTTPRequestHandler):
             # que ligá-la serviu para alguma coisa.
             "medidas": medidas,
             "acoes": [
-                dict(v, id=k,
+                dict({c: x for c, x in v.items() if not callable(x)}, id=k,
                      ajuda=_com_medidas(_ajuda_do_pack(k) or v.get("ajuda", ""),
                                         medidas),
                      # O comando da TELA, e não o que roda: a página só o
                      # mostra (a linha do cartão, o «ver comando», a caixa de
                      # confirmar) e pede a ação pelo `id`.
-                     argv=comando_na_tela(v["argv"]),
+                     argv=None,
                      escreve=escreve(v),
+                     restauro=k in restauros_agora,
                      sudo=bool(v.get("sudo")) and not (
                          k in _PELA_PONTE and _ponte_viva()),
                      pela_ponte=bool(v.get("sudo")) and (
@@ -9867,11 +10187,6 @@ class Manipulador(BaseHTTPRequestHandler):
             # `vocabulario_do_pack`.
             "pack": vocab,
             "folhas": self._folhas(),
-            "descricoes": DESCRICAO_SECAO,
-            "blocos": BLOCO_DA_SECAO,
-            # O nome da aba que abre o painel, dito num lugar só: é o mesmo que
-            # o `--onde inicio` dá aos scripts.
-            "aba_inicio": ABA_INICIO,
             # A paleta inteira vai junto: as amostras de flavor e de cor são
             # desenhadas com ela, e uma segunda viagem ao servidor para 4x26
             # valores seria viagem à toa.
@@ -9954,6 +10269,13 @@ class Manipulador(BaseHTTPRequestHandler):
                         {"erro": erro["erro"] if isinstance(erro, dict) else erro}, 409)
                 return self._json({"trabalho": _trabalho_json(trabalho, "instalar", seco=True)})
 
+            # O meow.conf de antes vai para o ponto de restauro do instalador: o
+            # Restaurar desta passada devolve também as escolhas.
+            try:
+                with open(CONF, "rb") as fh:
+                    conf_antes = fh.read()
+            except OSError:
+                conf_antes = None
             gravadas, iguais, falhas = [], [], []
             for chave, rc, saida in definir_varias(pares):
                 if rc == 0:
@@ -9984,7 +10306,8 @@ class Manipulador(BaseHTTPRequestHandler):
                             + feito.stderr.decode("utf-8", "replace")).strip()
                 except (OSError, subprocess.SubprocessError) as e:
                     resposta["aviso"] = "o controle do modo de leitura não foi atualizado: %s" % e
-            trabalho, erro = iniciar("instalar", "", confirmado=True)
+            trabalho, erro = iniciar("instalar", "", confirmado=True,
+                                     antes={CONF: conf_antes} if gravadas else None)
             if erro:
                 resposta["erro"] = erro["erro"] if isinstance(erro, dict) else erro
                 return self._json(resposta, 409)
@@ -10063,6 +10386,18 @@ class Manipulador(BaseHTTPRequestHandler):
             except (KeyError, ValueError, TypeError):
                 return self._json({"erro": "trabalho desconhecido"}, 404)
             return self._json({"parado": trabalho.parar()})
+
+        # O «Guardar» da janela de resultado: o log inteiro vai para `logs/`.
+        if caminho == "/api/guardar-log":
+            try:
+                trabalho = TRABALHOS[int(corpo.get("id", -1))]
+            except (KeyError, ValueError, TypeError):
+                return self._json({"erro": "trabalho desconhecido"}, 404)
+            try:
+                caminho_log = guardar_log(trabalho)
+            except OSError as erro:
+                return self._json({"erro": "não consegui guardar o log: %s" % erro}, 500)
+            return self._json({"caminho": texto_na_tela(caminho_log)})
         return self._recusar(404, "não existe aqui")
 
     def _folhas(self):
@@ -10210,6 +10545,8 @@ if __name__ == "__main__":
     # `--onde` não sobe servidor nenhum: responde e sai — ver `onde_na_tela`. A
     # linha de URL do `main` é a interface com o `run.sh`, e esta porta não
     # passa perto dela.
+    # Com o número errado de argumentos também não sobe: quem pergunta onde fica um
+    # botão não pediu servidor na casa real.
     if len(sys.argv) > 1 and sys.argv[1] == "--onde":
         if len(sys.argv) != 3:
             sys.stderr.write("uso: servidor.py --onde <ação, pendência, chave ou inicio>\n")

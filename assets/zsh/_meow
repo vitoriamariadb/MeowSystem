@@ -56,8 +56,8 @@ _meow_logos() {
   raiz="$(_meow_raiz)" || return 1
   local -a nomes
   local f
-  # O acervo dela é a lista — os gatos do projeto foram excluídos em 08/08/2026.
-  for f in "$raiz"/assets/gatos/*.svg(N); do
+  # O acervo dela é a lista — os mascotes do projeto foram excluídos em 08/08/2026.
+  for f in "$raiz"/packs/*/mascote/*.svg(N); do
     f="${f:t:r}"
     [[ "$f" == *-symbolic ]] && continue
     nomes+=("$f")

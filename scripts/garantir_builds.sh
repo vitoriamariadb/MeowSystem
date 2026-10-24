@@ -9,6 +9,8 @@
 #   0 = tudo pronto (já estava, acabou de ficar, ou pulado por regra)
 #   1 = (só no --seco e no --fundo) havia o que compilar
 #   2 = um build falhou — o próximo gatilho tenta de novo · 3 = sem dpkg
+# O build marcado `ruim` (duas quedas, pela guarda do shim) não se refaz: o mesmo
+# fonte daria o mesmo binário e apagaria a guarda que tirou a sessão do laço.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

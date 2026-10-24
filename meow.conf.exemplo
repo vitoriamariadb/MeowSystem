@@ -385,41 +385,41 @@ AREAS_ENCAIXE=""
 
 # --- Logo do sistema --------------------------------------------------------
 
-# O NOME DIZIA DE QUEM É O GATO, NÃO O QUE A SEÇÃO FAZ — 06/09/2026
-#   São 21 chaves aqui, e só QUATRO trazem o nome de um gato no valor de
+# O NOME DIZIA DE QUEM É O MASCOTE, NÃO O QUE A SEÇÃO FAZ — 06/09/2026
+#   São 21 chaves aqui, e só QUATRO trazem o nome de um mascote no valor de
 #   fábrica: `LOGO`, `LOGO_DIA`, `LOGO_NOITE` e `FASTFETCH_LOGO_GATO`. As
-#   outras dezessete não nomeiam gato nenhum: falam de horário, de tamanho, de
+#   outras dezessete não nomeiam mascote nenhum: falam de horário, de tamanho, de
 #   alinhamento, de título e de quando recarregar o painel.
 #   A Coquinha e o Mimir continuam sendo o que vem de fábrica, e continuam
-#   sendo os gatos da casa. O que muda é o título: quem chega a este arquivo sem
-#   ter os dois gatos lê `Logo do sistema` e sabe do que se trata.
+#   sendo os mascotes da casa. O que muda é o título: quem chega a este arquivo sem
+#   ter os dois mascotes lê `Logo do sistema` e sabe do que se trata.
 
 # --- NO DOCK ----------------------------------------------------------------
 
-# @ Qual gato fica no dock
-# > Solte um .svg na pasta de gatos e ele entra na lista; apague e ele sai.
-# Qual gato do acervo fica no ar. O acervo é a pasta `assets/gatos/`: soltou um
+# @ Qual mascote fica no dock
+# > Solte um .svg na pasta de mascotes e ele entra na lista; apague e ele sai.
+# Qual mascote do acervo fica no ar. O acervo é a pasta `packs/meowsystem/mascote/`: soltou um
 # .svg lá, ele entra; apagou, sai. `meow logo` lista os que existem.
 # Com LOGO_ROTACAO="sim" esta chave é só o ponto de partida — quem manda depois
-# é o relógio. Os gatos desenhados pelo projeto foram excluídos em 08/08/2026,
-# a pedido: ficaram a Coquinha e o Mimir, gatos de verdade da casa onde o
+# é o relógio. Os mascotes desenhados pelo projeto foram excluídos em 08/08/2026,
+# a pedido: ficaram a Coquinha e o Mimir, mascotes de verdade da casa onde o
 # projeto nasceu.
 LOGO="coquinha"
 
-# @ O gato troca sozinho
+# @ O mascote troca sozinho
 # > Gira pela lista em vez de ficar num só.
-# [avancado] O gato do painel troca sozinho, girando pelo acervo?
-# O ACERVO É A PASTA: tudo que estiver em assets/gatos/*.svg entra na rotação,
-# junto com o gato gerado do flavor. Soltou um SVG lá, ele entra; apagou, sai.
+# [avancado] O mascote do painel troca sozinho, girando pelo acervo?
+# O ACERVO É A PASTA: tudo que estiver em packs/meowsystem/mascote/*.svg entra na rotação,
+# junto com o mascote gerado do flavor. Soltou um SVG lá, ele entra; apagou, sai.
 # Nada de lista dentro de script — ela envelheceria no dia em que você
-# desenhasse outro gato, e o sintoma seria "coloquei o arquivo e não aconteceu".
+# desenhasse outro mascote, e o sintoma seria "coloquei o arquivo e não aconteceu".
 # `meow logo listar` mostra o acervo e quem está no ar; `meow logo girar` passa
 # ao próximo na hora, sem reiniciar nada.
 LOGO_ROTACAO="nao"
 
-# @ Como o gato do dock é escolhido
+# @ Como o mascote do dock é escolhido
 # > Fixo, por horário (um de dia, outro de noite), ou girando.
-# Como o gato do dock e o do terminal são escolhidos:
+# Como o mascote do dock e o do terminal são escolhidos:
 #
 #   hora     (padrão) LOGO_NOITE de noite, LOGO_DIA de dia. A janela de noite é
 #            a MESMA do resto da máquina — ver NOITE_INICIO/NOITE_FIM abaixo.
@@ -428,40 +428,40 @@ LOGO_ROTACAO="nao"
 #   fixo     LOGO= vence sempre; nada gira, nada segue relógio.
 LOGO_MODO="hora"
 
-# @ Gato de dia no dock
+# @ Mascote de dia no dock
 # > Vale quando a escolha é por horário.
-# Os dois rostos. Os nomes saem do acervo (assets/gatos/<nome>.svg).
+# Os dois rostos. Os nomes saem do acervo (packs/meowsystem/mascote/<nome>.svg).
 LOGO_DIA="mimir"       # o dock de dia
-# @ Gato de noite no dock
+# @ Mascote de noite no dock
 # > Vale quando a escolha é por horário.
 LOGO_NOITE="coquinha"  # o dock de noite
 
 # @ Recarregar o painel na virada
-# > Sem isto o gato novo só aparece no próximo login. Custa uns 2 s de pisca, duas vezes por dia.
-# [avancado] Na virada, o gato do dock só aparece depois de o painel reciclar (~2 s de
+# > Sem isto o mascote novo só aparece no próximo login. Custa uns 2 s de pisca, duas vezes por dia.
+# [avancado] Na virada, o mascote do dock só aparece depois de o painel reciclar (~2 s de
 # pisca, duas vezes por dia). MEDIDO em 01/09/2026: reescrever o SVG sem
 # reciclar não muda um pixel — o cosmic-panel-button resolve o ícone no arranque
-# e guarda. Com "nao" o arquivo troca do mesmo jeito e o gato novo aparece no
+# e guarda. Com "nao" o arquivo troca do mesmo jeito e o mascote novo aparece no
 # próximo login; o do fastfetch troca na hora de qualquer forma, porque o
 # fastfetch relê o arquivo a cada execução.
 LOGO_RECICLAR="sim"
 
-# @ De quanto em quanto o gato gira
-# > Só vale quando o gato está girando.
-# UM GATO POR DIA — e o número aqui não é escolha estética, é consequência
-#   O pedido original era o gato trocar junto com o papel de parede, a cada 5
+# @ De quanto em quanto o mascote gira
+# > Só vale quando o mascote está girando.
+# UM MASCOTE POR DIA — e o número aqui não é escolha estética, é consequência
+#   O pedido original era o mascote trocar junto com o papel de parede, a cada 5
 #   minutos. Medido em 05/08/2026, e isso derruba a ideia: o `cosmic-panel` tem
 #   SEIS watches de inotify — as três configs de painel e as três de tema — e
-#   NENHUM sobre arquivo de ícone. Ele carrega o gato do dock uma vez, ao
+#   NENHUM sobre arquivo de ícone. Ele carrega o mascote do dock uma vez, ao
 #   iniciar a sessão, e não relê. Trocar o arquivo a cada 5 min seriam 288
 #   escritas por dia para um efeito que só aparece no login seguinte.
 #
 #   O applet "Logo Menu" resolveria isso ao vivo, mas foi recusado com razão: ele
-#   nasce AO LADO do botão do dock, e ficariam dois gatos iguais na barra.
+#   nasce AO LADO do botão do dock, e ficariam dois mascotes iguais na barra.
 #
-#   Então o desenho é o que foi pedido depois: "não me importo de trocar o gato
-#   por dia. Tipo a ideia é essa." Um dia de intervalo, e o gato novo aparece no
-#   próximo login. Diminuir este número não faz o gato trocar mais rápido na
+#   Então o desenho é o que foi pedido depois: "não me importo de trocar o mascote
+#   por dia. Tipo a ideia é essa." Um dia de intervalo, e o mascote novo aparece no
+#   próximo login. Diminuir este número não faz o mascote trocar mais rápido na
 #   tela — só escreve mais no disco.
 # Duração: número e unidade. A lista abaixo é EXEMPLO de escala, não cerca — o
 # `segundos_de` aceita qualquer uma, e a página confere só a forma.
@@ -711,10 +711,10 @@ PASTAS_XDG="nao"
 # (inicial, central, final) num bloco único centralizado. Está no fonte dele
 # (`space/layout.rs`), não é defeito nosso. Ou seja: com a ilha ligada, arrumar
 # os miniaplicativos por segmento na GUI de Configurações não tem efeito nenhum
-# — foi o que levou à pergunta, em 11/08, de por que o gato aparecia colado nos
+# — foi o que levou à pergunta, em 11/08, de por que o mascote aparecia colado nos
 # aplicativos mesmo estando no "Segmento inicial".
 #
-# Por isso o dock nasce com ILHA="nao": o pedido foi o gato à esquerda, os
+# Por isso o dock nasce com ILHA="nao": o pedido foi o mascote à esquerda, os
 # aplicativos no centro e nada à direita, e esse layout só existe com
 # `expand_to_edges=true`. Para voltar à pastilha (e aceitar a fusão), é uma
 # palavra: FORMA_DOCK_ILHA="sim".
@@ -832,14 +832,14 @@ FORMA_RECHEIO_DOCK=""             # 0 a 16 px  (folga interna; cada px sobe a ba
 #   uma lista em minúsculas daria botões que gravam valor recusado.
 #
 # O QUE CADA SEGMENTO HOSPEDA no dock desta máquina:
-#   ala inicial  o Botão da Biblioteca — o gato que abre o lançador
+#   ala inicial  o Botão da Biblioteca — o mascote que abre o lançador
 #   centro       os aplicativos abertos e fixados (`CosmicAppList`)
 #   ala final    bandeja, rede, área de transferência, bluetooth, desligar
 #
 # O PREÇO DE SUBIR UM SEGMENTO É A BARRA INTEIRA FICAR MAIS ALTA
 #   `altura_barra = 2*padding + o MAIOR applet que ela hospeda` (lib/painel.sh),
 #   e o applet mede XS=32 · S=40 · M=56 · L=64 · XL=80 unidades lógicas. Ou
-#   seja: pôr `L` na ala inicial para o gato crescer sobe o dock de 64 para 72,
+#   seja: pôr `L` na ala inicial para o mascote crescer sobe o dock de 64 para 72,
 #   mesmo que só um botão tenha mudado. O teto do raio sobe junto (é metade da
 #   altura), então isso nunca aperta o `border_radius` — só afrouxa.
 #
@@ -858,7 +858,7 @@ FORMA_ALA_INICIAL_PAINEL=""       # XS | S | M | L | XL   (a ponta esquerda do p
 FORMA_ALA_FINAL_PAINEL=""         # XS | S | M | L | XL   (a ponta direita do painel)
 # @ Ponta esquerda — dock
 # > Vazio deixa o segmento herdar o tamanho geral.
-FORMA_ALA_INICIAL_DOCK=""         # XS | S | M | L | XL   (a ponta esquerda da dock: o gato)
+FORMA_ALA_INICIAL_DOCK=""         # XS | S | M | L | XL   (a ponta esquerda da dock: o mascote)
 # @ Ponta direita — dock
 # > Vazio deixa o segmento herdar o tamanho geral.
 FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: bandeja, rede, desligar)
@@ -1189,9 +1189,9 @@ FILES_MENU_AUTOBUILD="sim"
 # --- Dia e noite ------------------------------------------------------------
 
 # @ A noite começa às
-# > A hora em que o gato do dock e o do terminal trocam para a noite. O papel de parede e o modo de leitura têm hora própria.
+# > A hora em que o mascote do dock e o do terminal trocam para a noite. O papel de parede e o modo de leitura têm hora própria.
 # Vazio = herda WALLPAPER_NOITE_INICIO/FIM (ou 18:00-07:00). Preenchido, manda
-# no que pergunta "é noite?" pelo `lib/noite.sh`: o gato do dock e o do
+# no que pergunta "é noite?" pelo `lib/noite.sh`: o mascote do dock e o do
 # terminal. A regra é a de sempre —
 # inicio > fim atravessa a meia-noite; inicio == fim é noite o dia inteiro.
 #
@@ -1207,7 +1207,7 @@ FILES_MENU_AUTOBUILD="sim"
 # 18:00-07:00. `meow logo listar` diz qual delas está valendo agora.
 NOITE_INICIO=""
 # @ A noite termina às
-# > A hora em que o gato do dock e o do terminal trocam para o dia. O papel de parede e o modo de leitura têm hora própria.
+# > A hora em que o mascote do dock e o do terminal trocam para o dia. O papel de parede e o modo de leitura têm hora própria.
 NOITE_FIM=""
 
 # @ O tema escuro termina às
@@ -1218,7 +1218,7 @@ NOITE_FIM=""
 # 8 tinha de LER O CÓDIGO para descobrir que a chave existe. A conferência de
 # tarefas tropeçou na consequência: a página "Dia e noite" parecia não ter nada
 # a ver com o tema, e tem — só que as horas do TEMA são estas, separadas da
-# noite da máquina (NOITE_INICIO/FIM manda no gato do dock e no do terminal;
+# noite da máquina (NOITE_INICIO/FIM manda no mascote do dock e no do terminal;
 # estas duas mandam só no claro/escuro quando MODO="auto").
 # São horas cheias (7, 18), sem minutos — é assim que o `modo_desejado`
 # compara. (E esta frase evita soletrar o formato de relógio por extenso:
@@ -1226,7 +1226,7 @@ NOITE_FIM=""
 # horário — foi medido nesta mesma rodada, nesta mesma chave.)
 #
 # OS TÍTULOS FALAM DA NOITE, COMO OS DAS OUTRAS DUAS LINHAS — 10/10/2026, P80.
-# Na página "Dia e noite" as três linhas (o gato, o tema, a imagem) dizem cada
+# Na página "Dia e noite" as três linhas (o mascote, o tema, a imagem) dizem cada
 # uma quando a noite DELA começa e termina, e esta lia ao contrário: «O tema
 # claro termina às» à esquerda, embaixo de «A noite começa às». O escuro começa
 # quando o claro termina, então as chaves não mudaram — só o título, que agora
@@ -1290,7 +1290,7 @@ WALLPAPER_LIMIAR_LUZ="0.37"       # 0.0 a 1.0 (0 = preto, 1 = branco)
 
 # SETE DAS TREZE CHAVES DE `Dia e noite` FALAVAM DE OUTRA COISA — 06/09/2026
 #   `Dia e noite` respondia duas perguntas ao mesmo tempo: QUANDO é noite (o
-#   gato, o carrossel de papel de parede) e O QUE a tela faz quando é. As sete
+#   mascote, o carrossel de papel de parede) e O QUE a tela faz quando é. As sete
 #   `LEITURA_*` eram a maioria da seção — sete de treze — e o efeito delas é o
 #   único que o COMPOSITOR pinta: quem escreve `leitura_temperatura` e
 #   `leitura_textura` em `com.system76.CosmicComp/v1` é o `scripts/leitura.sh`,
@@ -1552,12 +1552,12 @@ PROMPT_STARSHIP="sim"
 
 # --- NO TERMINAL ------------------------------------------------------------
 
-# @ Gato no lugar do logo
-# > Troca o logo do Pop!_OS pelo gato, desenhado em letras.
+# @ Mascote no lugar do logo
+# > Troca o logo do Pop!_OS pelo mascote, desenhado em letras.
 # O logo do fastfetch: a Coquinha em ANSI no lugar do Pop!_OS.
 #
 # O DESENHO É NOSSO, A CHAVE NÃO É. O arquivo nasce em
-# ~/.local/share/meowsystem/fastfetch/<gato>.ansi, que é território do
+# ~/.local/share/meowsystem/fastfetch/<mascote>.ansi, que é território do
 # MeowSystem. Quem manda o fastfetch usá-lo é `logo.source`, no config.jsonc de
 # ~/.config/fastfetch — que é o seu arquivo do fastfetch, e não nosso.
 # Com FASTFETCH_LOGO_CONF="sim" o módulo troca ali as chaves do logo; com "nao"
@@ -1565,44 +1565,44 @@ PROMPT_STARSHIP="sim"
 # `scripts/fastfetch_logo.sh patch`. Enquanto ninguém colar, o `meow doctor`
 # mostra a pendência e NÃO notifica.
 #
-# A arte sai do SVG da Coquinha (assets/gatos/), não de foto e não de desenho
+# A arte sai do SVG da Coquinha (packs/meowsystem/mascote/), não de foto e não de desenho
 # meu — não existe foto dela nesta máquina, e desenho autoral já foi reprovado
 # em 05/08/2026.
 FASTFETCH_LOGO="sim"              # sim | nao
 
-# @ Qual gato
+# @ Qual mascote
 # > Um nome da lista, ou o caminho de um .svg seu.
-# Qual gato. `coquinha` e `mimir` saem de assets/gatos/; qualquer outro valor é
+# Qual mascote. `coquinha` e `mimir` saem de packs/meowsystem/mascote/; qualquer outro valor é
 # tratado como caminho de um SVG seu.
 FASTFETCH_LOGO_GATO="coquinha"
 
-# @ Como o gato do terminal é escolhido
+# @ Como o mascote do terminal é escolhido
 # > Espelhando o do dock, por horário, ou fixo.
-# Como o gato do TERMINAL é escolhido:
+# Como o mascote do TERMINAL é escolhido:
 #
-#   espelho  (padrão) mostra o gato que o dock NÃO está mostrando. É o que faz
-#            os DOIS gatos estarem sempre na tela ao mesmo tempo: de dia o Mimir
+#   espelho  (padrão) mostra o mascote que o dock NÃO está mostrando. É o que faz
+#            os DOIS mascotes estarem sempre na tela ao mesmo tempo: de dia o Mimir
 #            no dock e a Coquinha no terminal; de noite, invertido. A regra se
 #            mantém sozinha — trocar LOGO_DIA acima basta, o terminal segue.
-#   hora     segue o relógio igual ao dock (os dois mostram o mesmo gato).
+#   hora     segue o relógio igual ao dock (os dois mostram o mesmo mascote).
 #   fixo     FASTFETCH_LOGO_GATO vence sempre.
 #
 # FASTFETCH_LOGO_DIA/NOITE só são lidas nos modos `hora` e no fallback do
 # `espelho` (primeira instalação, quando o botão do dock ainda não existe).
 #
 # O arquivo gerado se chama `gato.ansi`, e não `<nome>.ansi`: um arquivo cujo
-# conteúdo muda duas vezes por dia não pode ter o nome de um gato só.
+# conteúdo muda duas vezes por dia não pode ter o nome de um mascote só.
 FASTFETCH_LOGO_MODO="espelho"
-# @ Gato de dia no terminal
+# @ Mascote de dia no terminal
 # > Vale quando a escolha é por horário.
 FASTFETCH_LOGO_DIA=""             # vazio = herda LOGO_DIA
-# @ Gato de noite no terminal
+# @ Mascote de noite no terminal
 # > Vale quando a escolha é por horário.
 FASTFETCH_LOGO_NOITE=""           # vazio = herda LOGO_NOITE
 
 # @ Largura do desenho
 # > Em colunas de texto. 40 é a largura do logo que ele substitui.
-# O TAMANHO DO GATO NO TERMINAL, EM CÉLULAS.
+# O TAMANHO DO MASCOTE NO TERMINAL, EM CÉLULAS.
 #
 # Largura em COLUNAS. 40 é a largura do logo `pop` que ele substitui, então o
 # bloco de texto continua começando na mesma coluna. Mexer aqui é seguro, e é a
@@ -1618,24 +1618,24 @@ FASTFETCH_LOGO_COLUNAS="40"
 #
 # ATÉ 06/09/2026 ESTA CHAVE NÃO EXISTIA, e o arquivo dizia "A ALTURA NÃO SE
 # CONFIGURA". Era verdade sobre o desenho e mentira sobre o pedido: o
-# terminal medido tem 27 polegadas e sobra altura, e o gato podia ser maior sem
+# terminal medido tem 27 polegadas e sobra altura, e o mascote podia ser maior sem
 # empurrar nada. O que continua valendo é o AVISO — sair da proporção da célula
-# deforma o gato, e o `aplicar` diz isso em voz alta quando acontece, em vez de
+# deforma o mascote, e o `aplicar` diz isso em voz alta quando acontece, em vez de
 # entregar uma elipse calada.
 # Faixa: de 8 a 60 linhas.
 FASTFETCH_LOGO_LINHAS=""
 
 # @ Linhas em branco antes
 # > Empurra o desenho para baixo.
-# Quantas LINHAS EM BRANCO antes do gato — o `padding.top` do config.jsonc.
+# Quantas LINHAS EM BRANCO antes do mascote — o `padding.top` do config.jsonc.
 #
 #   auto  (padrão) centra os dois blocos um no outro: a sobra entre a altura do
-#         gato e a altura do texto é dividida em duas metades, e a maior vai
+#         mascote e a altura do texto é dividida em duas metades, e a maior vai
 #         para baixo. O problema foi medido na tela, em 06/09/2026: com
-#         o gato em 32 linhas e o texto em 25, sobrava UMA linha de gato acima
+#         o mascote em 32 linhas e o texto em 25, sobrava UMA linha de mascote acima
 #         da primeira informação e OITO abaixo da última — o desenho parecia
 #         escorregado para baixo. Com `auto` a conta se refaz sozinha sempre
-#         que você muda a altura do gato ou acrescenta um módulo no fastfetch.
+#         que você muda a altura do mascote ou acrescenta um módulo no fastfetch.
 #   0-24  o número, quando você quiser mandar.
 FASTFETCH_LOGO_QUEBRAS="auto"
 
@@ -1644,21 +1644,21 @@ FASTFETCH_LOGO_QUEBRAS="auto"
 # Onde cada linha de informação COMEÇA. Os quatro últimos são a mesma medida
 # vista de quatro jeitos, e a diferença entre eles é só estética:
 #
-#   tabular    (padrão) todas na mesma coluna, logo depois da largura do gato.
+#   tabular    (padrão) todas na mesma coluna, logo depois da largura do mascote.
 #              É o único alinhamento que o fastfetch sabe fazer sozinho.
 #   contorno   cada linha começa logo depois do fim do DESENHO naquela linha —
 #              o texto abraça a silhueta, e as linhas de cima (onde o círculo
-#              ainda é estreito, ou onde nem há gato) começam à esquerda.
-#   degraus    o contorno arredondado para múltiplos de 4 colunas. Num gato
+#              ainda é estreito, ou onde nem há mascote) começam à esquerda.
+#   degraus    o contorno arredondado para múltiplos de 4 colunas. Num mascote
 #              redondo e alto o contorno puro faz a borda esquerda do texto
 #              subir de um em um caractere, e uma escada de um caractere parece
 #              tremor; de quatro em quatro, parece decisão.
-#   crescente  o contorno que nunca VOLTA: o texto acompanha o gato enquanto
+#   crescente  o contorno que nunca VOLTA: o texto acompanha o mascote enquanto
 #              ele engorda e fica onde está quando ele afina. Tira a onda da
 #              metade de baixo, que é onde o serrilhado mais aparece.
 #   reto       todas na mesma coluna, como o tabular — mas medida pelo trecho
 #              que o texto de fato ocupa, e não pela largura total do desenho.
-#              Num gato mais alto que o texto, isso cola o bloco no gato.
+#              Num mascote mais alto que o texto, isso cola o bloco no mascote.
 #
 # O `contorno` NÃO é uma chave do fastfetch: medido na versão 2.61.0, ele
 # imprime o logo, sobe o cursor e emite o MESMO avanço de coluna para toda
@@ -1688,24 +1688,24 @@ FASTFETCH_TITULO="{full-user-name} @ {host-name-colored}"
 # > Em colunas.
 # Quantas COLUNAS entre o fim do desenho e o começo do texto. Vale nos dois
 # alinhamentos: no tabular é o `padding.right` do config.jsonc, no contorno é o
-# respiro que separa o traço do gato da primeira letra.
+# respiro que separa o traço do mascote da primeira letra.
 # O 0 vale 0 de verdade desde 06/09/2026: o compositor forçava uma coluna de
 # respiro contra um risco que não se mede, e a chave mentia por uma coluna.
 # Faixa: de 0 a 12 colunas.
 FASTFETCH_LOGO_RECUO="3"
 
 # @ Proporção da célula do terminal
-# > Altura dividida pela largura, na sua fonte. É o que impede o gato de achatar.
+# > Altura dividida pela largura, na sua fonte. É o que impede o mascote de achatar.
 # [avancado] PROPORÇÃO ALTURA/LARGURA DA CÉLULA do terminal — 23,00 / 9,00 px, medido no
 # cosmic-term com a JetBrainsMono Nerd Font Mono de 16 px. É o que converte
 # colunas em linhas quando `FASTFETCH_LOGO_LINHAS` está vazio. Quem trocar de
-# fonte muda este número uma vez, e o gato volta a sair redondo.
+# fonte muda este número uma vez, e o mascote volta a sair redondo.
 # Faixa: de 1.0 a 4.0.
 #
 # NASCE VAZIO PORQUE 2.556 É DE UMA FONTE E DE UM TAMANHO — 21/09/2026
 #   23,00 / 9,00 px é a célula do cosmic-term DESTA casa, com a JetBrainsMono
 #   Nerd Font Mono em 16 px. Se você instala tudo deste projeto, cai nessa mesma
-#   fonte e o número serve; se mantém a sua fonte, tem outra célula, e o gato
+#   fonte e o número serve; se mantém a sua fonte, tem outra célula, e o mascote
 #   sai achatado sem nada acusar.
 #   Vazio NÃO muda nada hoje: `scripts/fastfetch_logo.sh:231` já tem
 #   `${FASTFETCH_LOGO_CELULA:-2.556}`, o mesmo número. O que muda é o convite a
@@ -1725,7 +1725,7 @@ FASTFETCH_LOGO_CELULA=""          # 1.0 a 4.0
 #
 # MEDIDO NESTA MÁQUINA: a JetBrainsMono Nerd Font Mono NÃO tem os sextantes, e
 # nenhuma fonte instalada aqui tem — por isso o `auto` cai em quadrante hoje. O
-# código dos sextantes existe para o dia em que você trocar de fonte: o gato
+# código dos sextantes existe para o dia em que você trocar de fonte: o mascote
 # ganha o detalhe sozinho, sem ninguém lembrar de vir aqui.
 FASTFETCH_LOGO_BLOCOS="auto"
 
@@ -1748,7 +1748,7 @@ FASTFETCH_LOGO_CONF="sim"
 #
 #   E `jogos` no título nunca foi chave deste arquivo: medido em 06/09/2026, o
 #   `scripts/jogos_steam.sh` não lê UMA linha daqui — ele lê o mapa
-#   `assets/icones/jogos-fora.map` e a pasta `steamapps/`. Os jogos chegam à
+#   `assets/apps/jogos-fora.map` e a pasta `steamapps/`. Os jogos chegam à
 #   aba pelas fichas que o painel serve, não por uma chave.
 
 # @ Programas que o MeowSystem veste
@@ -1758,7 +1758,7 @@ FASTFETCH_LOGO_CONF="sim"
 # ESTA LISTA FICA, E O MOTIVO FOI MEDIDO — 21/09/2026
 #   Ela parece "os 24 programas DESTA casa", e a sprint P24 a tratava assim.
 #   Medido antes de mexer: dos 24 slugs, só 11 têm módulo em
-#   `assets/temas-de-apps/` (são 8 pastas: btop-bat, heroic, obsidian,
+#   `scripts/temas-de-apps/` (são 8 pastas: btop-bat, heroic, obsidian,
 #   qbittorrent, spotify, toolkits-gtk-qt, vscode, zapzap). Os outros 13 caem
 #   no `return 4` do `rodar_modulo` (`scripts/aplicar_apps.sh`) — "não temos
 #   módulo para esse app ainda" —, e os que têm módulo mas não estão
@@ -1769,7 +1769,7 @@ FASTFETCH_LOGO_CONF="sim"
 #
 # E GANHA OS TRÊS MÓDULOS QUE A P42 TROUXE — decisão de 24/09/2026, sprint P45
 #   `kitty`, `gnome-terminal` e `onlyoffice` têm módulo em
-#   `assets/temas-de-apps/` desde a P42, e nenhum estava aqui: numa instalação
+#   `scripts/temas-de-apps/` desde a P42, e nenhum estava aqui: numa instalação
 #   nova eles nunca rodavam. Entram pelo mesmo motivo do parágrafo acima — cada
 #   módulo se pula sozinho quando o programa não existe. O seu `meow.conf`, se
 #   você já instalou, não muda: este arquivo é o de FÁBRICA, e o seu conf é seu.
@@ -1783,7 +1783,7 @@ APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,
 # O Marketplace do spicetify: a página DENTRO do Spotify de onde se instalam
 # extensões, snippets e outros CustomApps. Ele não vem no binário do spicetify e
 # o instalador oficial dele é um `curl | sh` que não é idempotente — aqui quem
-# baixa, registra e repõe é o módulo `assets/temas-de-apps/spotify`, no mesmo ciclo do
+# baixa, registra e repõe é o módulo `scripts/temas-de-apps/spotify`, no mesmo ciclo do
 # doctor. Nasce ligado; "nao" só deixa de instalar (não desinstala o que já foi).
 #
 # Ele NUNCA troca o `current_theme`: o Catppuccin continua vindo daqui, do
@@ -1910,22 +1910,22 @@ AUTO_REPARO="sim"                 # timer diário: meow doctor --consertar às 5
 # > Uma notificação só quando houver conserto.
 AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
 
-# @ Gato novo entra na hora
+# @ Mascote novo entra na hora
 # > Sem esperar o relógio: solte o .svg na pasta e ele aparece.
-# O gato solto em `assets/gatos/` entra NA HORA, sem esperar o relógio?
+# O mascote solto em `packs/meowsystem/mascote/` entra NA HORA, sem esperar o relógio?
 #   Com "sim", o par `meow-assets.path`/`meow-assets.service` vigia a pasta por
 #   inotify: soltou um SVG, ele vai para o disco e entra na rotação; apagou, sai.
 #   Sem isso, a mudança só chega na volta seguinte do `meow-logo.timer` — que
 #   com LOGO_INTERVALO="1d" é um dia inteiro de espera para descobrir se o
 #   arquivo entrou.
 #
-#   O vigia NÃO gira o gato: acrescentar um arquivo não muda qual está no ar. Quem
+#   O vigia NÃO gira o mascote: acrescentar um arquivo não muda qual está no ar. Quem
 #   gira é o relógio, um por dia, que é a escolha de fábrica.
 #
 #   E ele é do MeowSystem, não do self-heal do Ritual da Aurora: aquele é de outro
 #   projeto e pode ser desligado, e o recurso morreria junto sem dizer por quê.
 ASSETS_VIGIA="sim"
-# @ Avisar quando um gato entrar
+# @ Avisar quando um mascote entrar
 # > Uma notificação com o nome do arquivo.
 ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho
 

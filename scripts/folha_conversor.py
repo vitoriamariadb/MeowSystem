@@ -25,12 +25,25 @@ HOME = os.path.expanduser("~")
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONV = os.path.join(RAIZ, "scripts", "converter_icone.py")
 MAPA = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps-convertidos.map")
-RETOQUES = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "convertidos", "retoques")
-ARCTICONS = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
+RETOQUES = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps")
+ARCTICONS = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps")   # P96: glifo em apps/ ou na biblioteca
 # Para essas nove, a coluna "o traço de hoje" desenhada a partir da origem
 # mostra arte que ela nunca viu — o Chrome do acervo tem UM subcaminho
 # desenhado à mão, e a conversão tem oito.
-ACERVO = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "convertidos")
+ACERVO = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps")
+
+
+def _e_retoque(nome):
+    """P96: o retoque mora em apps/ como o convertido; quem diz que é à mão é o mapa (`mao` ou `retoque`)."""
+    try:
+        with open(MAPA, encoding="utf-8") as fh:
+            for linha in fh:
+                p = linha.split("#", 1)[0].rstrip("\n").split(":")
+                if len(p) >= 3 and p[0].strip() == nome:
+                    return p[1].strip() == "mao" or "retoque" in (p[3].split() if len(p) > 3 else [])
+    except OSError:
+        pass
+    return False
 
 # A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
 import pack  # noqa: E402  — vizinho de arquivo, e o RAIZ acima precede
@@ -627,6 +640,8 @@ def glifo_de(nome):
         return None
     arq = os.path.join(ARCTICONS, g + ".svg")
     if not os.path.exists(arq):
+        arq = os.path.join(os.path.dirname(ARCTICONS), "biblioteca", g + ".svg")
+    if not os.path.exists(arq):
         return None
     with open(arq, encoding="utf-8") as fh:
         texto = fh.read()
@@ -676,7 +691,7 @@ def linha_de(nome, origem, cor, extra, colunas, motivo=""):
                 continue
             with open(arq, encoding="utf-8") as fh:
                 texto = fh.read()
-            if os.path.exists(os.path.join(RETOQUES, nome + ".svg")):
+            if _e_retoque(nome):
                 # A FIGURA É O RETOQUE E OS NÚMEROS SÃO DA CONVERSÃO — dizer
                 # isso é obrigatório.
                 params = "(desenho à mão — o conversor nem chega a ser chamado)"

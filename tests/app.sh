@@ -39,7 +39,7 @@ esquema_bash="$(
     . "'"$RAIZ"'/lib/comum.sh"
     RAIZ="'"$RAIZ"'"
     CONF_PADRAO="'"$EXEMPLO"'"
-    logos_disponiveis() { :; }   # o painel lê os gatos do disco; aqui não importa
+    logos_disponiveis() { :; }   # o painel lê os mascotes do disco; aqui não importa
     # AS DECLARAÇÕES VÊM ANTES, E SEM ELAS O TESTE MORRE COM UM ERRO ENIGMÁTICO
     #   No `bin/meow` estes arrays são declarados FORA das funções, e o recorte
     #   abaixo pega só as funções. Sem o `declare -A`, `WIZ_AJUDA[$chave]="..."`
@@ -74,8 +74,8 @@ raiz = sys.argv[1]
 sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor
 for i in servidor.ler_esquema():
-    # O LOGO e os gatos saem do DISCO nos dois lados; comparar a lista deles aqui
-    # testaria o acervo de `assets/gatos/`, não a leitura do exemplo.
+    # O LOGO e os mascotes saem do DISCO nos dois lados; comparar a lista deles aqui
+    # testaria o acervo de `packs/meowsystem/mascote/`, não a leitura do exemplo.
     if i["chave"] in ("LOGO", "LOGO_DIA", "LOGO_NOITE", "FASTFETCH_LOGO_GATO"):
         opc = ""
     else:
@@ -272,7 +272,7 @@ else:
 #   *"eu tinha pedido pra tirar o app do modo sandbox"*. A outra metade da
 #   mesma queixa dela é *"nada da interface é aplicado em sandbox; tudo é
 #   aplicado na máquina da pessoa"*, e o meio que faltava entre os dois
-#   extremos é o que a P8 entregou: um botão «Ver o que faria» por gesto.
+#   extremos é o que a P8 entregou: um botão «Ver sem mudar» por gesto.
 #
 #   O QUE ELA PEDIU PARA TIRAR CONTINUA PROIBIDO, e é isso que esta trava
 #   guarda agora — o INTERRUPTOR. Um estado guardado que fazia todo clique
@@ -337,7 +337,7 @@ if _faltam:
           file=sys.stderr)
     falhou = 1
 else:
-    print("ok: o «Ver o que faria» está no diálogo, na barra e na gaveta")
+    print("ok: o «Ver sem mudar» está no diálogo, na barra e na janela de resultado")
 
 #   9d. E O ENSAIO TEM DE RESPONDER SOBRE AS ESCOLHAS, SEM TOCAR NO ARQUIVO
 #       DELA. As duas metades da mesma pergunta, e a checagem de texto acima não
@@ -388,7 +388,7 @@ else:
 #   9e. E OS MAPAS DE ÍCONE DELA VÃO JUNTO COM A CÓPIA — QA da P77, 10/10/2026.
 #       O `pack.py` e o `icones_apps_arcticons.sh` acham o `icones-escolhidos.map`
 #       e o `icones-traco.map` pela pasta do `MEOW_CONF`; no ensaio ela é a da
-#       cópia, sem mapa, e o «Ver o que faria» anunciava apagar o ícone que o
+#       cópia, sem mapa, e o «Ver sem mudar» anunciava apagar o ícone que o
 #       «Usar este ícone» acabara de pôr. O `iniciar` passa os dois endereços.
 import inspect as _inspect9
 _ini9 = _inspect9.getsource(servidor.iniciar)
@@ -412,7 +412,8 @@ for _id9f, _a9f in servidor.ACOES.items():
 if servidor.ACOES.get("doctor", {}).get("conserta_com") != "doctor_consertar":
     _erros9f.append("o «Conferir a máquina» não declara o «Consertar o que estiver fora»")
 _js9f = open(os.path.join(raiz, "app/pagina/app.js"), encoding="utf-8").read()
-if '"conserta_com"' not in _inspect9.getsource(servidor) or "oferecerConserto(TRABALHO.conserta)" not in _js9f:
+if ('"conserta_com"' not in _inspect9.getsource(servidor)
+        or "conserta: trabalho.conserta_com" not in _js9f or '"resultado:consertar"' not in _js9f):
     _erros9f.append("o trabalho não leva a `conserta_com` à gaveta, ou a gaveta não a oferece")
 if _erros9f:
     print("FALHOU: " + "; ".join(_erros9f), file=sys.stderr)
@@ -620,28 +621,48 @@ if not erros:
                 erros.append("o ensaio de %s diz %r — num ensaio nada foi feito" % (ident, frase))
                 break
 
-# 12b. o nome que um script cita sai da tabela
-acao = servidor.ACOES["doctor_consertar"]
-esperado = "«%s», na aba %s" % (acao["rotulo"], acao["grupo"])
+# 12b. o nome que um script cita sai da tabela da página (app/pagina/lugares.js)
+esperado = "«Conferir e consertar», em Cuidar › Estado"
 if servidor.onde_na_tela("doctor_consertar") != esperado:
     erros.append("--onde doctor_consertar diz %r, e não %r"
                  % (servidor.onde_na_tela("doctor_consertar"), esperado))
-alvo = servidor.ACOES[servidor.ACAO_DA_PENDENCIA["areas-sem-alfinete"]]
-if servidor.onde_na_tela("areas-sem-alfinete") != "«%s», na aba %s" % (alvo["rotulo"], alvo["grupo"]):
-    erros.append("--onde de uma pendência não diz a ação dela")
+if servidor.onde_na_tela("areas-sem-alfinete") != "«Resolver», em %s" % servidor.PORTA_DAS_PENDENCIAS:
+    erros.append("--onde de uma pendência não diz o «Resolver» da lista dela")
 oculta = next(k for k, a in servidor.ACOES.items() if a.get("oculta"))
 if servidor.onde_na_tela(oculta) or servidor.onde_na_tela("nao-existe"):
     erros.append("--onde cita um botão que não tem cartão (%s) ou que não existe" % oculta)
-# A pendência do tema de terceiro (P62): os DOIS botões que a Início desenha
+# A pendência do tema de terceiro (P62): os DOIS botões que a lista desenha
 # para ela, lidos da tabela da escolha — de um app com módulo, e de nenhum outro.
-modulos = os.path.join(raiz, "assets", "temas-de-apps")
+modulos = os.path.join(raiz, "scripts", "temas-de-apps")
 com_modulo = next(n for n in sorted(os.listdir(modulos))
                   if os.path.isfile(os.path.join(modulos, n, "manifesto.sh")))
 onde = servidor.onde_na_tela(com_modulo + servidor.SUFIXO_TEMA_DE_TERCEIRO)
 if not all("«%s»" % r in onde for _a, r in servidor.ESCOLHA_TEMA_DE_TERCEIRO) \
-        or not onde.endswith("na aba %s" % servidor.ABA_INICIO):
-    erros.append("--onde da pendência de tema de terceiro de %s não cita os botões da Início: %r"
+        or not onde.endswith("em %s" % servidor.PORTA_DAS_PENDENCIAS):
+    erros.append("--onde da pendência de tema de terceiro de %s não cita os botões da lista: %r"
                  % (com_modulo, onde))
+# 12c. nome e botão que o servidor manda à tela: até três palavras, maiúscula no começo
+def curto(t):
+    return bool(t) and len(t.split()) <= 3 and t[0].isupper()
+longos = ["%s: %r" % (k, a["rotulo"]) for k, a in servidor.ACOES.items() if not curto(a["rotulo"])]
+assert servidor.PENDENCIAS.startswith(casa), servidor.PENDENCIAS
+os.makedirs(os.path.dirname(servidor.PENDENCIAS), exist_ok=True)
+with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
+    fh.write("%s\twallpaper.sh\tA saída voltou\t%s/x/y.png\t2026-10-23T00:00:00-03:00\n"
+             % (servidor.PENDENCIA_PAREDE, servidor.PREFIXO_PERMITIR.strip()))
+    fh.write("%s\tvscode\tExtensão\tmeow apps aplicar vscode\t2026-10-23T00:00:00-03:00\n"
+             % servidor.PENDENCIA_EXTENSAO)
+    fh.write("files-menu-build\tfiles_menu.sh\tO menu compila\t\t2026-10-23T00:00:00-03:00\n")
+    fh.write("%s%s\tlib\tTema de fora\tmeow apps aplicar %s\t2026-10-23T00:00:00-03:00\n"
+             % (com_modulo, servidor.SUFIXO_TEMA_DE_TERCEIRO, com_modulo))
+for p in servidor.pendencias():
+    if p["nome"] and not curto(p["nome"]):
+        longos.append("pendência %s: %r" % (p["id"], p["nome"]))
+    longos += ["botão de %s: %r" % (p["id"], e["rotulo"]) for e in p["escolha"]
+               if not curto(e["rotulo"]) and not e["rotulo"].startswith("Instalar ")]
+os.remove(servidor.PENDENCIAS)
+if longos:
+    erros.append("12c: nome ou botão com mais de três palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
 if servidor.onde_na_tela("sem-modulo-nenhum" + servidor.SUFIXO_TEMA_DE_TERCEIRO):
     erros.append("--onde cita os botões do tema de terceiro para um app sem módulo")
 porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel doctor_consertar',
@@ -679,19 +700,19 @@ for rel in ("scripts", "bin", "lib", "install.sh"):
 conf_com(LOGO_MODO="hora")
 trocar, girar = servidor.indisponivel("logo_trocar"), servidor.indisponivel("logo_girar")
 if trocar != {"chave": "LOGO_MODO", "vale": "hora", "pede": "fixo"}:
-    erros.append("com o gato por horário, «Pôr um gato no dock» não se apaga: %r" % (trocar,))
+    erros.append("com o mascote por horário, «Pôr um mascote no dock» não se apaga: %r" % (trocar,))
 if not girar or girar.get("pede") != "rotacao":
-    erros.append("com o gato por horário, «Passar ao próximo gato» não se apaga: %r" % (girar,))
+    erros.append("com o mascote por horário, «Passar ao próximo mascote» não se apaga: %r" % (girar,))
 trabalho, erro = servidor.iniciar("logo_trocar", "coquinha")
 if trabalho is not None or not erro:
     if trabalho is not None:
         trabalho.parar()
-    erros.append("o servidor rodou «Pôr um gato no dock» apagado")
+    erros.append("o servidor rodou «Pôr um mascote no dock» apagado")
 conf_com(LOGO_MODO="fixo")
 if servidor.indisponivel("logo_trocar") or not servidor.indisponivel("logo_girar"):
-    erros.append("com o gato fixo, o «Pôr» tem de acender e o «Passar ao próximo» não")
+    erros.append("com o mascote fixo, o «Pôr» tem de acender e o «Passar ao próximo» não")
 # NA ROTAÇÃO O «PÔR» TAMBÉM SE APAGA — revisão da P50. Lá o `logo.sh` guarda o
-# gato do acervo que já está no ar, e o `LOGO` é só o ponto de partida.
+# mascote do acervo que já está no ar, e o `LOGO` é só o ponto de partida.
 conf_com(LOGO_MODO="", LOGO_ROTACAO="sim")
 trocar, girar = servidor.indisponivel("logo_trocar"), servidor.indisponivel("logo_girar")
 if trocar != {"chave": "LOGO_MODO", "vale": "rotacao", "pede": "fixo"} or girar:
@@ -700,7 +721,7 @@ if trocar != {"chave": "LOGO_MODO", "vale": "rotacao", "pede": "fixo"} or girar:
                  "deu %r e %r" % (trocar, girar))
 # ACESO É TER EFEITO, E NÃO SÓ `indisponivel() is None` — revisão da P50.
 #   A primeira versão desta seção cobrava só que o botão acendia no `fixo`, e
-#   o `logo.sh` desse modo guardava o gato que já estava no ar: o motivo
+#   o `logo.sh` desse modo guardava o mascote que já estava no ar: o motivo
 #   mandava a pessoa a um modo em que o botão continuava sem efeito. Aqui se
 #   faz o caminho que o cartão ensina, na casa de brinquedo: o relógio põe o
 #   mimir, a pessoa passa a «Fixo», e o «Pôr» roda o comando dele com a
@@ -749,12 +770,12 @@ def no_dock(caminho):
 if no_dock(coquinha) or not no_dock(os.path.join(cosmic, "logos", "meow-mimir.svg")):
     erros.append("a casa de brinquedo não começou com o mimir no dock")
 elif servidor.indisponivel("logo_trocar"):
-    erros.append("com o gato fixo, «Pôr um gato no dock» não acendeu")
+    erros.append("com o mascote fixo, «Pôr um mascote no dock» não acendeu")
 else:
     argv = [a.replace("@ARG@", "coquinha") for a in servidor.ACOES["logo_trocar"]["argv"]]
     r = subprocess.run(argv, capture_output=True, text=True, env=ambiente, timeout=120)
     if r.returncode != 1 or not no_dock(coquinha):
-        erros.append("no modo fixo, «Pôr um gato no dock» com a Coquinha não a pôs no dock "
+        erros.append("no modo fixo, «Pôr um mascote no dock» com a Coquinha não a pôs no dock "
                      "(rc=%s): %s" % (r.returncode, (r.stdout + r.stderr).strip()[-160:]))
     elif servidor.fim_da_acao("logo_trocar")["1"][1] != "trocou":
         erros.append("o fim do «Pôr» que trocou não diz «trocou»")
@@ -767,8 +788,8 @@ if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinet
 # [P84, 15/10/2026: o `obsidian.png` saiu do pack, trocado pelo vetor dele. Os
 #   bytes de um SVG de verdade continuam sendo o caso, agora os do `obsidian.svg`.]
 import time as _t
-svg_png = open(os.path.join(raiz, "packs", "dracula", "icones", "biblioteca", "feitos-a-mao",
-                            "obsidian.svg"), "rb").read()
+# [P96, 23/10/2026: a biblioteca é plana e uma versão por ícone; o logo do pack é o SVG estável.]
+svg_png = open(os.path.join(raiz, "packs", "dracula", "logo.svg"), "rb").read()
 casos = ((svg_png, True), (b"\x89PNG\r\n\x1a\n", False),
          (b'\xef\xbb\xbf<?xml version="1.0"?>\n<!-- a -->\n<!DOCTYPE svg>\n<svg xmlns="x"/>', True),
          (b"<svgx/>", False), (b"<!--" * 1000, False), (b"<!--a-->" * 500 + b"<x", False))
@@ -947,36 +968,33 @@ if editor != {"tem": True, "nome": "Editor de vetores"}:
     erros.append("13a: o botão do editor de SVG diz %r, e a grade diria «Editor de vetores»"
                  % (editor,))
 
-# 13b. o --onde e as frases do install.sh
-esquema = servidor.ler_esquema()
-lanc = next(i for i in esquema if i["chave"] == "LANCADOR_SISTEMA")
-quer = "«%s», na aba %s" % (lanc["titulo"], lanc["secao"])
+# 13b. o --onde e as frases do install.sh: o cartão é a linha da página
+quer = "«Arrumar o lançador», em Ajustes › Programas › Lançador"
 if servidor.onde_na_tela("LANCADOR_SISTEMA") != quer:
-    erros.append("13b: --onde LANCADOR_SISTEMA diz %r, e o cartão é %s"
+    erros.append("13b: --onde LANCADOR_SISTEMA diz %r, e a linha é %s"
                  % (servidor.onde_na_tela("LANCADOR_SISTEMA"), quer))
 porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel LANCADOR_SISTEMA',
                         "_", raiz], capture_output=True, text=True, env=dict(os.environ))
 if porta.stdout.strip() != quer:
     erros.append("13b: o meow_onde_no_painel de um cartão diz %r" % porta.stdout.strip())
-sem_titulo = next((i["chave"] for i in esquema if not i.get("titulo")), None)
-if sem_titulo and servidor.onde_na_tela(sem_titulo):
-    erros.append("13b: --onde inventa um cartão para %s, que não tem título escrito" % sem_titulo)
-inicio = getattr(servidor, "ABA_INICIO", None)
-if not inicio or servidor.onde_na_tela("inicio") != "na aba %s" % inicio:
-    erros.append("13b: --onde inicio não diz a aba que abre o painel: %r"
-                 % servidor.onde_na_tela("inicio"))
-with open(os.path.join(raiz, "app", "pagina", "app.js"), encoding="utf-8") as fh:
-    if not re.search(r'tipo:\s*"home",\s*nome:\s*ESQUEMA\.aba_inicio\b', fh.read()):
-        erros.append("13b: a página não tira o nome da Início do esquema — são dois donos do nome")
+if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Ajustes › Papel de parede › Mais ajustes":
+    erros.append("13b: --onde de uma chave do «Mais ajustes» diz %r" % servidor.onde_na_tela("WALLPAPER_DRACULA_REPO"))
+if servidor.onde_na_tela("inicio") != "em Cuidar":
+    erros.append("13b: --onde inicio não diz onde as pendências moram: %r" % servidor.onde_na_tela("inicio"))
+velhas = [f for f in (servidor.onde_na_tela(k) for k in list(servidor.ACOES) + ["inicio", "PACK", "CURSOR"])
+          if "na aba" in f]
+if velhas:
+    erros.append("13b: o --onde ainda fala de aba: %r" % velhas[:3])
 # O NOME DE TELA NUMA FRASE DO install.sh, DERIVADO E NÃO LISTADO: todo título
 # de cartão e rótulo de ação citado entre aspas numa linha que fala do painel,
 # e todo nome de aba depois da palavra «aba». O `passo "Ícones resgatados do
 # PNG"` não conta: é o nome da etapa, e a linha não fala do painel.
+esquema = servidor.ler_esquema()
 nomes = ({i["titulo"] for i in esquema if i.get("titulo")}
          | {a["rotulo"] for a in servidor.ACOES.values() if not a.get("oculta")})
 abas = ({i["secao"] for i in esquema if i.get("secao")}
         | {a["grupo"] for a in servidor.ACOES.values() if not a.get("oculta")}
-        | {inicio or "Início"})
+        | {"Início", servidor.PORTA_DAS_PENDENCIAS})
 with open(os.path.join(raiz, "install.sh"), encoding="utf-8") as fh:
     instalador = fh.read()
 for n, linha in enumerate(instalador.splitlines(), 1):
@@ -1047,28 +1065,28 @@ with open(sobra, "w", encoding="utf-8") as fh:
 logo(LOGO_MODO="hora", LOGO_DIA="mimir", LOGO_NOITE="mimir", LOGO="mimir")
 saida = logo(LOGO_MODO="fixo", LOGO="gato-de-fora")
 if no_dock() != "mimir":
-    erros.append("13c: no modo fixo, um LOGO fora do acervo trocou o gato do dock por %s — "
+    erros.append("13c: no modo fixo, um LOGO fora do acervo trocou o mascote do dock por %s — "
                  "o aviso promete que fica o que está no ar" % no_dock())
 aviso = next((l for l in saida.splitlines() if 'LOGO="gato-de-fora"' in l), "")
 if "mimir" not in aviso:
-    erros.append("13c: o aviso do LOGO fora do acervo não diz o gato que ficou: %r" % aviso)
+    erros.append("13c: o aviso do LOGO fora do acervo não diz o mascote que ficou: %r" % aviso)
 if ler(sobra) != de_outro:
     erros.append("13c: o logo.sh escreveu na configuração de um applet que não está instalado")
 # O APPLET INSTALADO é o que o COSMIC acha como applet: um `.desktop` com
-# `X-CosmicApplet=true`. É a pasta DELE que recebe o gato, e a sobra do outro
+# `X-CosmicApplet=true`. É a pasta DELE que recebe o mascote, e a sobra do outro
 # nome, sem nada instalado, fica como está.
 desktop("co.uk.cappsy.CosmicAppletLogoMenu", "Name=Logo Menu\nNoDisplay=true\nX-CosmicApplet=true\n")
 dev = os.path.join(cosmic, "dev.cappsy.CosmicExtAppletLogoMenu", "v1")
 os.makedirs(dev)
 logo(LOGO_MODO="fixo", LOGO="coquinha")
 if ler(sobra) != '"%s"' % os.path.join(logos, "meow-coquinha.svg"):
-    erros.append("13c: com o co.uk.cappsy instalado, o gato não foi para a chave dele: %r"
+    erros.append("13c: com o co.uk.cappsy instalado, o mascote não foi para a chave dele: %r"
                  % ler(sobra))
 if os.path.exists(os.path.join(dev, "custom_logo_path")):
     erros.append("13c: o logo.sh escreveu na pasta do dev.cappsy, que não está instalado")
 # E QUEM MOSTRA A CHAVE PERGUNTA AO `logo.sh` — revisão da P57. O `meow logo`
 # e o `meow status` liam a do `dev.cappsy` pelo nome. Com o co.uk.cappsy
-# instalado e o gato na chave dele, e uma chave velha sobrando na pasta do
+# instalado e o mascote na chave dele, e uma chave velha sobrando na pasta do
 # dev.cappsy, o «arquivo» do `meow logo` é a do instalado.
 with open(os.path.join(dev, "custom_logo_path"), "w", encoding="utf-8") as fh:
     fh.write('"%s"' % os.path.join(logos, "de-outro.svg"))
@@ -1077,67 +1095,71 @@ r = subprocess.run([os.path.join(raiz, "bin", "meow"), "logo"], capture_output=T
 linha = next((l for l in r.stdout.splitlines() if "arquivo" in l), "")
 if "meow-coquinha.svg" not in linha:
     erros.append("13c: o «arquivo» do `meow logo` não é a chave do applet instalado: %r" % linha)
-# O GATO DO TERMINAL VAI JUNTO NO MODO FIXO: com `FASTFETCH_LOGO_MODO=espelho`
+# O MASCOTE DO TERMINAL VAI JUNTO NO MODO FIXO: com `FASTFETCH_LOGO_MODO=espelho`
 # (o de fábrica) ele é o seguinte do acervo depois do que está no dock. A
 # conversão para o terminal precisa do rsvg-convert e do ImageMagick.
 if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
     # A ORDEM É A DO `_ffl_o_outro`: o `sort` em C do nome COM o `.svg` — o
     # `-` vem antes do `.`, e o `morcego.svg` fica depois dos outros dois
     # morcegos (revisão da P57; sem a extensão ele vinha antes).
-    nomes_gatos = [n[:-len(".svg")] for n in sorted(
-        os.path.basename(p) for p in glob.glob(os.path.join(raiz, "assets", "gatos", "*.svg"))
-        if not p.endswith("-symbolic.svg"))]
+    def _mascotes_de(pack):
+        return [n[:-len(".svg")] for n in sorted(
+            os.path.basename(p) for p in glob.glob(os.path.join(raiz, "packs", pack, "mascote", "*.svg"))
+            if not p.endswith("-symbolic.svg"))]
+    nomes_gatos = _mascotes_de("meowsystem")
+    # Os três morcegos (com quebra de linha no fim) são do pack Dracula.
+    morcegos = _mascotes_de("dracula")
     espelho = nomes_gatos[(nomes_gatos.index("coquinha") + 1) % len(nomes_gatos)]
     carimbo = (ler(os.path.join(casa, ".local", "share", "meowsystem", "fastfetch", ".gato-atual"))
                or "").split(" ")[0]
     if no_dock() != "coquinha" or carimbo != espelho:
         erros.append("13c: no modo fixo, o dock foi para %s e o terminal ficou com %r — o "
                      "espelho pede %s" % (no_dock(), carimbo, espelho))
-    # E COM UM GATO CUJO SVG TERMINA EM QUEBRA DE LINHA — revisão da P57. O
+    # E COM UM MASCOTE CUJO SVG TERMINA EM QUEBRA DE LINHA — revisão da P57. O
     # botão do dock é a cópia que o `logo.sh` grava, sem a quebra do fim, e o
-    # espelho que comparava o botão com o `.svg` cru não achava gato nenhum no
+    # espelho que comparava o botão com o `.svg` cru não achava mascote nenhum no
     # dock: caía na fase. Os três morcegos do acervo são assim, e a coquinha
-    # de cima não é. O gato sai do acervo, e não de um nome escrito aqui; o
+    # de cima não é. O mascote sai do acervo, e não de um nome escrito aqui; o
     # `LOGO_DIA` e o `LOGO_NOITE` são ele mesmo, para que cair na fase dê o
-    # gato do dock no terminal a qualquer hora.
+    # mascote do dock no terminal a qualquer hora.
     com_quebra = []
-    for n in nomes_gatos:
-        with open(os.path.join(raiz, "assets", "gatos", n + ".svg"), "rb") as fh:
+    for n in morcegos:
+        with open(os.path.join(raiz, "packs", "dracula", "mascote", n + ".svg"), "rb") as fh:
             if fh.read().endswith(b"\n"):
                 com_quebra.append(n)
     if com_quebra:
         gato = com_quebra[0]
-        logo(LOGO_MODO="fixo", LOGO=gato, LOGO_DIA=gato, LOGO_NOITE=gato)
-        espelho = nomes_gatos[(nomes_gatos.index(gato) + 1) % len(nomes_gatos)]
+        logo(LOGO_MODO="fixo", LOGO=gato, LOGO_DIA=gato, LOGO_NOITE=gato, PACK="dracula", FLAVOR="dracula")
+        espelho = morcegos[(morcegos.index(gato) + 1) % len(morcegos)]
         carimbo = (ler(os.path.join(casa, ".local", "share", "meowsystem", "fastfetch",
                                     ".gato-atual")) or "").split(" ")[0]
         if no_dock() != gato or carimbo != espelho:
             erros.append("13c: com %s (o SVG termina em quebra de linha) no dock, o terminal "
                          "ficou com %r — o espelho pede %s" % (no_dock(), carimbo, espelho))
     else:
-        print("pulado: 13c, o gato cujo SVG termina em quebra de linha — nenhum no acervo")
+        print("pulado: 13c, o mascote cujo SVG termina em quebra de linha — nenhum no acervo")
     # E NO MODO HORA, O OUTRO DO PAR — 25/09/2026, decisão depois da P57. Com o
-    # dock no `LOGO_DIA` ou no `LOGO_NOITE`, o terminal mostra o outro gato do
+    # dock no `LOGO_DIA` ou no `LOGO_NOITE`, o terminal mostra o outro mascote do
     # par, e não o seguinte do acervo. O par sai do acervo, escolhido para que
-    # o seguinte do gato da noite NÃO seja o do dia: senão as duas regras dariam
-    # o mesmo gato e o teste não separaria uma da outra. A noite é o dia inteiro
+    # o seguinte do mascote da noite NÃO seja o do dia: senão as duas regras dariam
+    # o mesmo mascote e o teste não separaria uma da outra. A noite é o dia inteiro
     # (início igual ao fim); o dia é uma janela de noite que começa daqui a 2 h.
-    if len(nomes_gatos) >= 3:
+    if len(morcegos) >= 3:
         import datetime
-        dia, noite = nomes_gatos[0], nomes_gatos[1]
+        dia, noite = morcegos[0], morcegos[1]
         agora = datetime.datetime.now()
         longe = [(agora + datetime.timedelta(hours=h)).strftime("%H:%M") for h in (2, 3)]
         for fase, janela, no_dock_esperado, no_terminal in (
                 ("noite", ("00:00", "00:00"), noite, dia),
                 ("dia", tuple(longe), dia, noite)):
             logo(LOGO_MODO="hora", LOGO_DIA=dia, LOGO_NOITE=noite,
-                 NOITE_INICIO=janela[0], NOITE_FIM=janela[1])
+                 NOITE_INICIO=janela[0], NOITE_FIM=janela[1], PACK="dracula", FLAVOR="dracula")
             carimbo = (ler(os.path.join(casa, ".local", "share", "meowsystem", "fastfetch",
                                         ".gato-atual")) or "").split(" ")[0]
             if no_dock() != no_dock_esperado or carimbo != no_terminal:
                 erros.append("13c: no modo hora, de %s, o dock ficou com %s e o terminal com %r "
                              "— o outro do par é %s" % (fase, no_dock(), carimbo, no_terminal))
-            # E O RETRATO DA INÍCIO DIZ O GATO DO DOCK, e não a `LOGO` (25/09/2026,
+            # E O RETRATO DA INÍCIO DIZ O MASCOTE DO DOCK, e não a `LOGO` (25/09/2026,
             # validação final: «Logo Coquinha» com o morcego-noite no dock). O
             # servidor é importado num processo à parte, com esta casa e este conf.
             r = subprocess.run([sys.executable, "-c",
@@ -1146,15 +1168,15 @@ if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
                                 os.path.join(raiz, "app")],
                                capture_output=True, text=True, env=ambiente, timeout=60)
             if r.stdout.strip() != no_dock_esperado:
-                erros.append("13c: de %s, o esquema diz o gato do dock %r — o dock tem %s"
+                erros.append("13c: de %s, o esquema diz o mascote do dock %r — o dock tem %s"
                              % (fase, r.stdout.strip() or r.stderr.strip()[-160:], no_dock_esperado))
-        with open(os.path.join(raiz, "app", "pagina", "app.js"), encoding="utf-8") as fh:
-            if "const gatoNome = ESQUEMA.gato_no_dock ||" not in fh.read():
-                erros.append("13c: o retrato da Início não lê o gato do dock (ESQUEMA.gato_no_dock)")
+        with open(os.path.join(raiz, "app", "pagina", "paginas.js"), encoding="utf-8") as fh:
+            if "ESQUEMA.gato_no_dock ||" not in fh.read():
+                erros.append("13c: o retrato da Início não lê o mascote do dock (ESQUEMA.gato_no_dock)")
     else:
         print("pulado: 13c, o outro do par no modo hora — o acervo tem menos de três gatos")
 else:
-    print("pulado: 13c, o gato do terminal — falta rsvg-convert ou o convert do ImageMagick")
+    print("pulado: 13c, o mascote do terminal — falta rsvg-convert ou o convert do ImageMagick")
 
 # 13d. uma leitura do esquema mede cada fato uma vez
 #   Medido em 24/09/2026, numa casa de brinquedo: 2,2 s por leitura, e 69
@@ -1190,8 +1212,8 @@ repetidas = sorted((n, " ".join(str(x) for x in k).replace("\n", " ")[:90])
 if repetidas:
     erros.append("13d: uma leitura do esquema repetiu %d pergunta(s) — a pior %d vezes: %s"
                  % (len(repetidas), repetidas[-1][0], repetidas[-1][1]))
-if dados.get("aba_inicio") != inicio or not inicio:
-    erros.append("13b: o esquema não manda à página o nome da Início (%r)" % dados.get("aba_inicio"))
+if {"descricoes", "blocos", "aba_inicio"} & set(dados):
+    erros.append("13b: o esquema ainda manda à página o texto das abas de antes")
 ficha = next((i for i in dados["chaves"] if i["chave"] == "LANCADOR_OCULTAR"), {})
 nome = ((ficha.get("programas") or {}).get("nm-connection-editor") or {}).get("nome")
 if nome != "Configuração avançada de rede":

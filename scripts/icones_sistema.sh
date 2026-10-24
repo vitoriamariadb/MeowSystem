@@ -19,7 +19,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ORIGEM="$RAIZ/packs/meowsystem/icones/sistema/arcticons"
+ORIGEM="$RAIZ/packs/meowsystem/icones/sistema"
 MAPA="$RAIZ/packs/meowsystem/icones/sistema.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 BASE="$HOME/.local/share/icons/$TEMA"
@@ -82,7 +82,7 @@ _conferir_gemeos() {
 # --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Arcticons não está em packs/meowsystem/icones/sistema/arcticons — nada a vestir"
+    meow_pula "o acervo Arcticons não está em packs/meowsystem/icones/sistema — nada a vestir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then

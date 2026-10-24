@@ -1,31 +1,16 @@
 <!DOCTYPE html>
 <!--
-  app/pagina/index.html — a página de configuração do MeowSystem.
-
-  O ESQUELETO É PROPOSITALMENTE VAZIO. Não há um único nome de chave escrito
-  aqui: tudo o que aparece na tela é montado pelo `app.js` a partir do que o
-  `app/servidor.py` devolve em `/api/esquema`, que por sua vez lê o
-  `meow.conf.exemplo`. Escrever "FLAVOR" neste arquivo seria a terceira cópia da
-  lista de chaves do projeto, e o cabeçalho do servidor conta o que as duas
-  primeiras já custaram.
-
-  O `@TOKEN@` é substituído pelo servidor no momento de servir. Ele não vai para
-  o localStorage nem fica na barra de endereço: o `app.js` o lê deste atributo e
-  limpa a URL no primeiro instante.
+  app/pagina/index.html — o esqueleto do painel. Quatro portas (Tema, Criar tema,
+  Ajustes, Cuidar); o conteúdo é montado pelo app.js a partir de /api/esquema.
+  O @TOKEN@ é trocado pelo servidor ao servir e sai da barra de endereço no
+  primeiro instante (app.js).
 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MeowSystem</title>
-<!-- O ÍCONE DA ABA É A MARCA DO BANNER — 24/09/2026, sprint P53 (achado 1).
-     Sem esta linha o navegador pedia `/favicon.ico` sozinho, a rota não
-     existe, e toda abertura deixava um 404 no console (medido no painel de
-     verdade). Não é um arquivo novo: é a mesma `/logo.svg` do `<img>` do
-     banner, com o acento em vigor, pela razão que o comentário dele conta. -->
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
-<!-- A paleta vem do servidor, gerada da paleta do PACK ATIVO no flavor
-     que o meow.conf dela manda. Nenhum hex vive no CSS. -->
 <link rel="stylesheet" href="/paleta.css">
 <link rel="stylesheet" href="/estilo.css">
 </head>
@@ -33,297 +18,87 @@
 
 <a class="pular" href="#principal">Pular para o conteúdo</a>
 
-<header class="topo">
-  <div class="marca">
-    <!-- A LOGO DO BANNER É A MARCA DO PRODUTO, NÃO UM GATO DELA — 06/09/2026.
-         Pedido dela, literal: "a logo do .desktop deve ser usada para ser a
-         logo oficial do banner do app ao invés da coquinha e do mimir".
-
-         O desenho é o mesmo que o `.desktop` pede por nome
-         (`Icon=com.meowsystem.Painel`, ver `scripts/atalho.sh`): o gato de
-         traço, viewBox 0 0 48 48, com o stroke no accent do sabor. Ele nasce
-         em `scripts/gerar_icones_autorais.py`, mora em
-         `assets/icones/autorais/meowsystem-painel-<sabor>.svg` e é instalado
-         no tema por `scripts/completar_icones.sh`. A partir daqui, o ícone da
-         janela na barra de tarefas e a marca no alto da página são o MESMO
-         desenho — que é a definição de marca de produto.
-
-         A COQUINHA E A MIMIR NÃO SAÍRAM DO PROJETO. `assets/gatos/` continua
-         sendo o acervo de fábrica da aba "Logo do sistema", e a chave `LOGO`
-         continua escolhendo qual deles veste o sistema. O que mudou é de quem
-         é a marca: o aplicativo deixou de se apresentar com um gato dela.
-
-         POR QUE `src="/logo.svg"`, E NÃO O `<svg>` COLADO AQUI DENTRO
-           Colar o desenho neste arquivo seria uma segunda cópia de uma coisa
-           DERIVADA — o `gerar_icones_autorais.py` reescreve os quatro sabores,
-           e a cópia colada aqui não seria reescrita junto: o banner ficaria
-           com a logo de ontem, em silêncio. É a mesma razão que mantém este
-           esqueleto vazio de nomes de chave, logo no cabeçalho do arquivo.
-           E apontar direto para o arquivo também não serve: o `src` teria de
-           trazer o caminho absoluto da máquina de quem instalou E o sabor
-           cravado, e os dois só se sabem em tempo de execução, lendo o
-           `meow.conf`.
-
-         A ROTA EXISTE — conferida em 06/09/2026 com o painel de pé:
-         `GET /logo.svg` devolve `200 image/svg+xml`. Ela vive em
-         `app/servidor.py`, irmã do `if caminho == "/gato.svg"`, resolve o sabor
-         pelo `FLAVOR`/`MODO` do meow.conf e substitui o `stroke` pela cor de
-         `--accent` já calculada — senão a marca seria a única coisa roxa numa
-         página pêssego, porque os quatro SVG autorais trazem o mauve cravado.
-
-         A CLASSE CONTINUA `gato` DE PROPÓSITO. Ela é o gancho de
-         `.marca .gato` no `estilo.css`, e o que essa regra carrega não é
-         enfeite: o `flex: 0 0 auto` é o que impede o banner de espremer a logo
-         até ela sumir quando a janela aperta. Renomear a classe é da frente
-         que escreve a folha de estilo, não desta.
-
-         O `alt` fica vazio porque "MeowSystem" está escrito ao lado, no `<h1>`:
-         um leitor de tela que anunciasse os dois leria o nome duas vezes. -->
-    <img class="gato" src="/logo.svg" alt="" width="34" height="34">
-    <div>
-      <h1>MeowSystem</h1>
-      <!-- Vazio até o esquema chegar: o `#resumo:empty` do estilo desenha a
-           tira do esqueleto no lugar do «carregando…» (P77, achado 22). -->
-      <p class="sub" id="resumo"></p>
-    </div>
+<header class="topo" id="topo">
+  <a class="marca" href="#tema" data-controle="marca">
+    <img src="/logo.svg" alt="" width="30" height="30">
+    <span>MeowSystem</span>
+  </a>
+  <nav aria-label="Portas"><ul class="portas" id="portas"></ul></nav>
+  <div class="busca" role="search">
+    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="busca" type="search" placeholder="Procurar um ajuste" aria-label="Procurar um ajuste"
+           autocomplete="off" data-controle="busca" aria-controls="achados" aria-expanded="false">
+    <kbd aria-hidden="true">/</kbd>
+    <div class="achados" id="achados" role="listbox" aria-label="Achados"></div>
   </div>
-
-  <div class="busca-caixa">
-    <!-- "chave" era o nome da variável, e quem lê a tela nunca precisa
-         saber o nome da variável — ele continua no pé do cartão, para
-         procurar no meow.conf, mas deixou de ser a primeira palavra. -->
-    <input id="busca" type="search" placeholder="Buscar um ajuste ou uma ação    /"
-           autocomplete="off" aria-label="Buscar um ajuste ou uma ação">
+  <div class="aplicar" id="aplicar" data-n="0">
+    <span class="conta" id="conta" role="status"></span>
+    <button class="bt leve pequeno desfazer" id="desfazer" type="button" data-controle="desfazer">Desfazer</button>
+    <button class="bt leve pequeno desfazer" id="botao-ensaiar" type="button" data-controle="ensaiar"
+            data-dica="Mostra o que mudaria, sem gravar nada">Ver sem mudar</button>
+    <button class="bt principal pequeno" id="bt-aplicar" type="button" data-controle="aplicar">Aplicar</button>
   </div>
-
-  <!-- O ENSAIO SAIU DA BARRA — 13/09/2026. Pedido dela: "eu tinha pedido pra
-       tirar o app do modo sandbox". O botão «Ensaiar sem gravar» ficava aqui,
-       e ligado ele fazia cada clique só simular — que é, palavra por palavra, o
-       que ela descreveu: "nada tá aplicando de verdade". O painel passa a
-       escrever e aplicar sempre. O modo seco continua na CLI
-       (`MEOW_DRY_RUN=1`, `./install.sh --dry-run`), que é onde auditar antes de
-       rodar faz sentido. -->
-
-  <!-- LEVAR EMBORA E TRAZER DE VOLTA — pedido dela em 06/09/2026.
-       As duas saídas do "Exportar" são coisas diferentes e por isso são duas
-       linhas, e não um botão que adivinha: o `.conf` é dado dela, e o `.html`
-       é a página fotografada para alguém redesenhar longe daqui.
-
-       Os dois são `<a download>` e não botões com JavaScript: o cookie de
-       sessão que o servidor planta ao servir a página já autentica a
-       navegação, então não é preciso repor o token na URL — que é justamente
-       o que o `app.js` apaga da barra de endereço no primeiro instante.
-
-       O `<details>` fecha sozinho ao clicar fora (o `app.js` cuida) e não
-       precisa de uma linha de posicionamento em JavaScript. -->
-  <details class="menu" id="menu-exportar">
-    <summary class="btn" title="Levar as configurações, ou a página, para fora daqui">Exportar</summary>
-    <div class="menu-corpo">
-      <!-- A FRASE DE CADA SAÍDA VIROU BALÃO — 10/10/2026, P77. O menu aberto
-           tinha duas frases embaixo dos nomes, a segunda com cem caracteres:
-           «sem texto na interface; no máximo vira dica». O nome fica, o que
-           ele leva vai para o balão (o `ligarBalao` adota o `title`). -->
-      <a class="menu-item" id="baixar-conf" href="/api/exportar/conf" download
-         title="Um .conf para guardar, ou levar para outra máquina">
-        <strong>Meus ajustes</strong>
-      </a>
-      <a class="menu-item" id="baixar-pagina" href="/api/exportar/pagina" download
-         title="Um .html desta tela, que abre sem servidor e não grava nada">
-        <strong>Esta tela num arquivo</strong>
-      </a>
-    </div>
+  <details class="menu" id="menu">
+    <summary class="bt leve pequeno so-icone" aria-label="Mais" data-controle="menu" data-dica="Mais">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
+    </summary>
+    <div class="menu-corpo" id="menu-corpo" role="menu"></div>
   </details>
-
-  <!-- "Importar ajustes" virou "Importar" em 06/09/2026, pedido dela literal:
-       "aí temos Importar Ajustes, podemos deixar só importar". Ele fica colado
-       no "Exportar" e o par se explica sozinho — a segunda palavra era a
-       repetição do que o botão vizinho já diz. O QUE entra continua dito em
-       dois lugares que não custam espaço na barra: o `title`, e o seletor de
-       arquivo, que só aceita `.conf`. -->
-  <!-- BOTÃO, E NÃO LABEL — 07/09/2026. A conferência de teclado percorreu o
-       ciclo inteiro de Tab e Shift+Tab: o Importar aparecia ZERO vezes. Uma
-       <label> não entra na fila do foco e o input está hidden — quem usa só
-       teclado não conseguia importar um .conf de jeito nenhum, e é a única
-       porta de entrada de configuração. O <button> entra na fila como o
-       irmão Exportar; quem abre o seletor é o click() no input. -->
-  <button type="button" class="btn" id="rotulo-importar"
-          title="Ler um arquivo exportado e trazer as escolhas para a tela">
-    Importar
-  </button>
-  <input type="file" id="arquivo-importar" accept=".conf,text/plain" hidden>
-
-  <!-- SALVAR MORA NO BANNER, É UM SÓ, E NÃO SOME.
-       Pedido dela em 01/09/2026: "salvar aplicar e descartar não devem viver
-       dentro de cada página mas só um no banner que vale pra todos". Faz
-       sentido além da estética: as escolhas atravessam as abas, então o botão
-       que as confirma não pode pertencer a uma delas.
-
-       SEMPRE À VISTA — 13/09/2026. A barra nascia `hidden` e só aparecia com
-       escolha pendente, e ela leu isso como o botão arrancado da tela:
-       "removeu o botão Salvar, que salva e aplica". Agora o botão fica: com
-       escolhas, grava todas e aplica; sem nenhuma, aplica o que já está salvo.
-       O contador e o Descartar só aparecem quando há o que contar e descartar
-       — é o `app.js` que os acende. -->
-  <div id="barra-salvar" class="barra-salvar vazia">
-    <strong id="salvar-conta" hidden></strong>
-    <button type="button" class="btn" id="botao-descartar" hidden>Descartar</button>
-    <button type="button" class="btn" id="botao-salvar">Salvar e aplicar</button>
-  </div>
 </header>
 
-<div class="corpo">
-  <!-- O ESQUELETO NASCE COM A PÁGINA — 10/10/2026, P77 (achado 22).
-       Medido no uso real de 09/10: com o servidor frio, 7,5 s de tela vazia
-       com «carregando…» antes da primeira pintura, porque tudo o que se vê sai
-       do `/api/esquema` e o esquema frio custa (a conta dos acentos que
-       aplicam roda um processo filho). O esqueleto é HTML puro, desenhado no
-       primeiro quadro, antes de qualquer JavaScript: a forma do menu e de uma
-       página de cartões, sem uma palavra. Quem o troca pelo conteúdo é o
-       próprio `render()` (o `replaceChildren` do trilho e do `#conteudo`), e
-       o `aria-busy` diz ao leitor de tela que a página ainda está chegando. -->
-  <nav class="trilho" id="trilho" aria-label="Seções" aria-busy="true">
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-bloco" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-bloco" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-    <span class="esqueleto esqueleto-item" aria-hidden="true"></span>
-  </nav>
-
-  <main id="principal" tabindex="-1">
-    <!-- O botão deste aviso é o mesmo Salvar do banner: quando ajustes foram
-         gravados e não chegaram à tela (um trabalho já corria na hora), aplicar
-         é rodar o instalador — e não o conserto parcial que ele chamava antes. -->
-    <div id="aviso-aplicar" class="aviso" hidden>
-      <span id="aviso-texto"></span>
-      <button type="button" class="btn btn-accent" id="aviso-aplicar-botao">
-        Aplicar
-      </button>
+<main id="principal" class="pagina" tabindex="-1">
+  <div id="conteudo" aria-busy="true">
+    <div class="esqueleto-pagina" aria-hidden="true">
+      <span class="esqueleto esqueleto-titulo"></span>
+      <div class="esqueleto-grade"><span class="esqueleto"></span><span class="esqueleto"></span></div>
     </div>
-    <div id="conteudo" aria-busy="true">
-      <div class="esqueleto-pagina" aria-hidden="true">
-        <span class="esqueleto esqueleto-titulo"></span>
-        <span class="esqueleto esqueleto-desenho"></span>
-        <div class="esqueleto-grade">
-          <span class="esqueleto esqueleto-cartao"></span>
-          <span class="esqueleto esqueleto-cartao"></span>
-          <span class="esqueleto esqueleto-cartao"></span>
-          <span class="esqueleto esqueleto-cartao"></span>
-          <span class="esqueleto esqueleto-cartao"></span>
-          <span class="esqueleto esqueleto-cartao"></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- A gaveta de saída ao vivo. Nasce fechada e sobe quando um trabalho começa.
-
-         FILHA DO #principal, E NÃO IRMÃ DO .corpo — 21/09/2026
-         Queixa dela: *"a tela do terminal, quando clicamos em aplicar ou salvar,
-         toma até a tela do menu e cresce mais verticalmente"*. Enquanto esta
-         seção era irmã do `.corpo`, solta no `<body>`, ela crescia roubando
-         altura de QUEM ESTAVA AO LADO: medido em janela de 900 px, 414 px de
-         gaveta (46% da tela) e o menu lateral caindo de 841 px para 427.
-
-         O menu não tem nada a ver com o trabalho que está correndo. Dentro do
-         `#principal` a gaveta só pode comer a coluna do conteúdo, e o trilho
-         fica inteiro POR CONSTRUÇÃO — não por um número no CSS, que a próxima
-         mudança de layout voltaria a furar. -->
-    <section class="gaveta" id="gaveta" hidden aria-live="polite">
-      <!-- A ALÇA DO ARRASTO, E ELA É A BORDA DE CIMA — 21/09/2026
-           O item 3 da sprint pede que a pessoa cresça a gaveta *"arrastando a
-           borda de cima"*. O `resize: vertical` do CSS, que estava aqui antes,
-           desenha a alça do canto INFERIOR DIREITO — e com a gaveta presa no
-           rodapé da coluna esse canto é o último canto da janela. Medido em
-           1500x1000: a caixa ia de 750 a 1000, puxar o canto de baixo crescia,
-           e puxar a borda de cima não fazia nada. Então a borda de cima passa a
-           ser esta faixa, e quem a arrasta é o `app.js`.
-
-           `aria-hidden`: é uma pega de ponteiro, e não conteúdo. O leitor de
-           tela não ganha nada em anunciar uma faixa de 9 px — e o `resize`
-           nativo que ela substitui também nunca foi operável pelo teclado. -->
-      <div class="gaveta-alca" id="gaveta-alca" aria-hidden="true"></div>
-      <div class="gaveta-topo">
-        <div>
-          <strong id="gaveta-titulo"></strong>
-          <code id="gaveta-comando"></code>
-        </div>
-        <div class="gaveta-botoes">
-          <span id="gaveta-estado" class="pastilha"></span>
-          <button type="button" class="btn btn-perigo" id="parar">Parar</button>
-          <button type="button" class="btn" id="fechar-gaveta">Fechar</button>
-        </div>
-      </div>
-      <pre id="saida" tabindex="0"></pre>
-    </section>
-  </main>
-</div>
+  </div>
+</main>
 
 <div id="torradas" class="torradas" aria-live="polite"></div>
+<div id="dica" class="dica" role="tooltip" hidden></div>
 
-<!-- O diálogo de confirmação das ações que escrevem fundo. É `<dialog>` nativo:
-     ele já traz o foco preso, o Esc e o fundo inerte, que seriam trinta linhas
-     de JavaScript para reimplementar pior. -->
-<dialog id="confirmar">
-  <form method="dialog">
-    <h2 id="confirmar-titulo"></h2>
-    <p id="confirmar-texto"></p>
-    <!-- O AVISO PERDEU A LINHA DE CONFIGURAÇÃO DO SUDO — 09/09/2026.
-         Ele citava `timestamp_type=global` e "60 min de cache" para explicar um
-         fato que cabe numa frase: esta máquina lembra da senha por uma hora,
-         valendo em qualquer terminal. Quem sabe o que é `timestamp_type` não
-         precisava do aviso, e quem não sabe parava de ler ali. As três palavras
-         que sobraram são a decisão dela: vai pedir senha, ou não vai.
+<dialog id="resultado" class="resultado" aria-labelledby="resultado-titulo">
+  <div class="dentro">
+    <header class="resultado-topo">
+      <h2 id="resultado-titulo"></h2>
+      <span class="fila">
+        <span id="faixa-ensaio" class="estado-pilula" data-estado="ensaio" hidden>Ensaio</span>
+        <span id="resultado-estado" class="estado-pilula"></span>
+      </span>
+    </header>
+    <details class="registro" id="registro">
+      <summary data-controle="resultado:registro">Registro</summary>
+      <pre id="saida" tabindex="0" aria-live="polite"></pre>
+    </details>
+    <div class="acoes">
+      <button type="button" class="bt perigo" id="parar" data-controle="resultado:parar">Parar</button>
+      <button type="button" class="bt" id="resultado-restaurar" data-controle="resultado:restaurar" hidden>Restaurar</button>
+      <button type="button" class="bt" id="resultado-guardar" data-controle="resultado:guardar"
+              data-dica="Guarda o registro num arquivo">Guardar</button>
+      <button type="button" class="bt" id="ensaio-rodar" data-controle="resultado:de-verdade" hidden>Rodar de verdade</button>
+      <button type="button" class="bt principal" id="resultado-ok" data-controle="resultado:ok">OK</button>
+    </div>
+  </div>
+</dialog>
 
-         "ETAPAS PRIVILEGIADAS" também saiu — é como o instalador chama as
-         etapas por dentro, e na tela só dizia "as difíceis". O que importa é o
-         que elas são: as que precisam da senha.
-
-         `sudo` FICA. É o nome do comando que ela digita no terminal, está no
-         rótulo em negrito e é a única palavra por onde procurar o assunto.
-
-         E A CAIXA VIROU UMA LINHA — 10/10/2026, P79 (decisão 11). O parágrafo
-         de quatro linhas («Nada aqui pede, lê ou guarda senha…») foi para a
-         dica do `?`, e quem monta os dois é o `caixaDoSudo` do app.js, porque
-         o `?` é o mesmo componente do resto da página. -->
-    <div id="confirmar-sudo" class="aviso-sudo" hidden></div>
-    <p class="comando-previa"><code id="confirmar-comando"></code></p>
-    <menu>
-      <button value="nao" class="btn">Cancelar</button>
-      <button value="sim" class="btn btn-accent" id="confirmar-ok">Rodar</button>
-    </menu>
+<dialog id="pergunta" aria-labelledby="pergunta-titulo">
+  <form method="dialog" class="dentro">
+    <h2 id="pergunta-titulo"></h2>
+    <div id="pergunta-corpo"></div>
+    <div class="acoes">
+      <button value="nao" class="bt" id="pergunta-nao" data-controle="pergunta:nao">Cancelar</button>
+      <button value="seco" class="bt" id="confirmar-ensaio" data-controle="pergunta:ensaio" hidden
+              data-dica="Mostra o que mudaria, sem gravar nada">Ver sem mudar</button>
+      <button value="sim" class="bt principal" id="pergunta-sim" data-controle="pergunta:sim">OK</button>
+    </div>
   </form>
 </dialog>
 
-<!-- UM DESENHO POR BLOCO — os dois arquivos de prévia, ANTES do app.js.
-
-     A ordem não é gosto: cada um deles faz
-     `window.MEOW_PREVIAS = Object.assign(window.MEOW_PREVIAS || {}, {…})`, e o
-     `app.js` lê esse mapa ao desenhar cada bloco. Carregados depois, os
-     desenhos existiriam no objeto mas a primeira pintura da página já teria
-     acontecido sem eles — e como só um clique redesenha, a tela abriria sem
-     nenhum desenho e ganharia todos ao primeiro toque. `<script>` sem `defer`
-     bloqueia e executa na ordem em que aparece, que é exatamente o que se quer
-     aqui.
-
-     São dois porque são duas frentes: `previas-tela.js` cobre o que se vê na
-     tela (cor, logo, ícones, terminal) e `previas-sistema.js` o que a máquina
-     faz (barra, papel de parede, noite, leitura, lançador, manutenção). O
-     `app.js` não sabe qual arquivo trouxe qual desenho, e não deve saber: ele
-     pergunta ao mapa pela chave "Seção :: BLOCO" e desenha o que vier.
-
-     SE UM DELES NÃO EXISTIR, A PÁGINA CONTINUA DE PÉ. Um `<script>` que dá 404
-     falha em silêncio, e o `app.js` lê `window.MEOW_PREVIAS || {}` — o bloco
-     sem desenho fica como sempre foi, sem erro no console e sem buraco na
-     tela. É o que permitiu esta linha entrar antes de os dois arquivos
-     estarem prontos. -->
-<script src="/previas-tela.js"></script>
-<script src="/previas-sistema.js"></script>
+<script src="/lugares.js"></script>
+<script src="/mesa.js"></script>
+<script src="/oficina.js"></script>
+<script src="/paginas.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

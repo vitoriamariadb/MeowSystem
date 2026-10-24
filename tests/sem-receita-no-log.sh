@@ -82,7 +82,7 @@ while IFS= read -r -d '' arq; do
     fi
     acusa "${arq#./}" "$num" "$aparada" "$motivo"
   done < "$arq"
-done < <(find ./scripts ./lib ./assets/temas-de-apps \
+done < <(find ./scripts ./lib ./scripts/temas-de-apps \
               -type f \( -name '*.sh' -o -name '*.bash' \) -print0 2>/dev/null)
 
 printf '\n'

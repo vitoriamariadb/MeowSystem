@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="scrcpy">
+  <title>scrcpy — resgatado do PNG</title>
+  <defs>
+    <clipPath id="scrcpy-clip-body">
+      <rect x="3.94" y="4.88" width="40.13" height="32.16" rx="2.06" ry="2.06"/>
+    </clipPath>
+    <clipPath id="scrcpy-clip-stand">
+      <path d="M14.71,35.5 L12.03,41.1 Q11.7,43.03 13.5,43.03 L34.5,43.03 Q36.3,43.03 35.97,41.1 L33.29,35.5 Z"/>
+    </clipPath>
+    <mask id="scrcpy-mask-droid" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+      <path d="M8.07,33 A15.84,16.13 0 0 1 39.75,33 Z" fill="#fff"/>
+      <path d="M11.25,15.19 L16.5,22.5 M36.56,15.19 L31.31,22.5" fill="none" stroke="#fff" stroke-width="2.81" stroke-linecap="round"/>
+    </mask>
+    <linearGradient id="scrcpy-grad-stand" x1="0" y1="36.6" x2="0" y2="38.3" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a3a3a3"/>
+      <stop offset="0.55" stop-color="#a3a3a3"/>
+      <stop offset="1" stop-color="#cccccc"/>
+    </linearGradient>
+  </defs>
+
+  <g fill="#000000" opacity="0.2" transform="translate(0,1.03)">
+    <path d="M14.71,35.5 L12.03,41.1 Q11.7,43.03 13.5,43.03 L34.5,43.03 Q36.3,43.03 35.97,41.1 L33.29,35.5 Z"/>
+    <rect x="3.94" y="4.88" width="40.13" height="32.16" rx="2.06" ry="2.06"/>
+  </g>
+
+  <path d="M14.71,35.5 L12.03,41.1 Q11.7,43.03 13.5,43.03 L34.5,43.03 Q36.3,43.03 35.97,41.1 L33.29,35.5 Z" fill="#cccccc"/>
+  <g clip-path="url(#scrcpy-clip-stand)">
+    <rect x="10" y="36.6" width="28" height="1.7" fill="url(#scrcpy-grad-stand)"/>
+  </g>
+
+  <g clip-path="url(#scrcpy-clip-body)">
+    <rect x="3.94" y="4.88" width="40.13" height="32.16" fill="#076f63"/>
+    <rect x="3.94" y="4.88" width="40.13" height="1.13" fill="#1f7e72"/>
+
+    <g mask="url(#scrcpy-mask-droid)">
+      <rect x="0" y="0" width="48" height="48" fill="#59e49a"/>
+      <g transform="translate(0,1.03)">
+        <path d="M8.07,33 A15.84,16.13 0 0 1 39.75,33 Z" fill="#30dd81"/>
+        <path d="M11.25,15.19 L16.5,22.5 M36.56,15.19 L31.31,22.5" fill="none" stroke="#30dd81" stroke-width="2.81" stroke-linecap="round"/>
+      </g>
+    </g>
+
+    <circle cx="15.94" cy="26.91" r="1.97" fill="#26b167"/>
+    <circle cx="31.88" cy="26.91" r="1.97" fill="#26b167"/>
+    <circle cx="15.94" cy="25.88" r="1.97" fill="#ffffff"/>
+    <circle cx="31.88" cy="25.88" r="1.97" fill="#ffffff"/>
+
+    <rect x="3.94" y="33" width="40.13" height="4.04" fill="#e4e4e4"/>
+    <rect x="8.07" y="33" width="31.68" height="1.06" fill="#cecece"/>
+  </g>
+</svg>

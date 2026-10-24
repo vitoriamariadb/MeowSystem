@@ -19,16 +19,16 @@ lado da regra.
 
 | acervo | onde | licença | pode modificar? | pode redistribuir? |
 |---|---|---|---|---|
-| `catppuccin/vscode-icons` | `packs/catppuccin/icones/sistema/mimetypes/<flavor>/` | MIT | sim | sim, com o aviso de copyright |
+| `catppuccin/vscode-icons` | `packs/meowsystem/icones/sistema/` — o molde, pintado na instalação | MIT | sim | sim, com o aviso de copyright |
 | `Daveedmee/catppuccin-icons` | `assets/icones/catppuccin-apps/<flavor>/` | **não declarada** | indefinido | **não** — uso local apenas |
-| Arcticons (sistema) | `packs/meowsystem/icones/sistema/arcticons/` — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
-| Arcticons (aplicativo) | `packs/meowsystem/icones/apps/arcticons/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
-| **convertido do Papirus** | `packs/meowsystem/icones/apps/convertidos/` — **22** SVGs **gerados** | **GPL-3.0** (obra derivada) | sim | sim, **sob GPL** |
-| **desenho à mão do traço** | `packs/meowsystem/icones/apps/convertidos/retoques/` — **3** desenhos + **2** variantes do GIMP | deste projeto (a do GIMP é derivada, GPL-3.0) | — | — |
+| Arcticons (sistema) | `packs/meowsystem/icones/sistema/` e `biblioteca/` (a lista em `icones/arcticons.lista`) — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| Arcticons (aplicativo) | `packs/meowsystem/icones/apps/` e `biblioteca/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| **convertido do Papirus** | `packs/meowsystem/icones/apps/` (o mapa em `icones/apps-convertidos.map`) — **22** SVGs **gerados** | **GPL-3.0** (obra derivada) | sim | sim, **sob GPL** |
+| **desenho à mão do traço** | `packs/meowsystem/icones/apps/` e `biblioteca/` — **3** desenhos + **2** variantes do GIMP | deste projeto (a do GIMP é derivada, GPL-3.0) | — | — |
 | marca de fábrica | `packs/meowsystem/icones/apps-hicolor.map` — **1** nome, copiado do `hicolor` do sistema | a do próprio programa | **não** — cópia literal | não |
 | Papirus / Papirus-Dark | pacote `papirus-icon-theme` do sistema | GPL-3.0 | sim | sim, sob GPL |
-| `catppuccin/papirus-folders` | `assets/icones/upstream/papirus-folders/` | GPL-3.0 | sim | sim, sob GPL |
-| desenho autoral | `packs/<id>/icones/apps/autorais/` e `packs/meowsystem/icones/sistema/leitura/` | deste projeto | — | — |
+| `catppuccin/papirus-folders` | `~/.cache/meowsystem/upstream/papirus-folders/` | GPL-3.0 | sim | sim, sob GPL |
+| desenho autoral | `packs/<id>/icones/apps/` e os `leitura-*.svg` de `packs/meowsystem/icones/sistema/` | deste projeto | — | — |
 
 ## Dois acervos com nome parecido, e cada um veste uma coisa
 
@@ -37,7 +37,7 @@ Já confundiram uma análise inteira. A diferença não é de organização, é 
 *script* (`scripts/construir_pastas.sh`) em vez de apontar para o acervo, o que
 ajudava a confusão. Corrigido em 10/08/2026.
 
-| | `packs/catppuccin/icones/sistema/mimetypes/<flavor>/` | `assets/icones/upstream/papirus-folders/` |
+| | `packs/meowsystem/icones/sistema/` (o molde) | `~/.cache/meowsystem/upstream/papirus-folders/` |
 |---|---|---|
 | upstream | `catppuccin/vscode-icons` | `catppuccin/papirus-folders` |
 | forma | `fill="none"` + `stroke`, `viewBox="0 0 16 16"` — **traço** de árvore de arquivos do VS Code | pasta **cheia**, com dobra, sombra e símbolo interno, 22..64 px |
@@ -361,7 +361,7 @@ customizou** (paleta Dracula, morcego, casa assombrada): o PNG desta máquina n�
 é o logo oficial, e foi a versão dela que foi resgatada. `sistema` é ícone de
 pacote que nunca passou pela mão dela, e entra só porque borrava igual.
 
-**Os três `Icon=` absolutos.** `elden-ring-tracker`, `guvcview` e `setup-mozc`
+**Os dois `Icon=` absolutos.** `guvcview` e `setup-mozc`
 trazem o *caminho* do PNG na chave `Icon=`, em vez de um nome de ícone — e um
 `Icon=` absoluto **pula a busca no tema inteira**. Para esses não basta instalar
 o SVG: o `icones_resgatados.sh` põe uma cópia do `.desktop` em
@@ -380,8 +380,11 @@ aparece na tela, não sobre apagar o desenho.
 gerado por `scripts/resgatados_folha.sh` a partir do mesmo mapa — se um ícone
 entrar ou sair do resgate, a folha refeita acompanha sozinha.
 
-**A folha de hoje é de 25/09/2026, sprint P67, e é a do `resgatados_folha.sh`
-com uma costura, dita aqui.** O script pede o PNG de origem no caminho que o
+**A folha de hoje é de 17/10/2026: é a de 25/09/2026 sem os três pares que
+saíram do mapa, cada um dos outros recortado dela e remontado na ordem do mapa;
+o `resgatados_folha.sh` a confere pixel a pixel e não a regrava.** A de
+25/09/2026, sprint P67, é a do `resgatados_folha.sh` com uma costura, dita
+aqui. O script pede o PNG de origem no caminho que o
 mapa guarda, e 12 dos 21 não estão mais nesta máquina: os nove do
 `Dracula-Icones`, que saiu do disco, o do `scrcpy`, o do `guvcview` e o do
 Thunderbird do flatpak. Rodado hoje, ele sai com doze molduras «sem o PNG» e
@@ -430,6 +433,22 @@ terceiro já customizada por ela: a marca continua de quem é, e o uso aqui é o
 mesmo de sempre neste repositório — tema pessoal, não publicado. Os `sistema`
 derivam de ícone de pacote e herdam a licença do pacote de origem, registrada na
 coluna do meio do mapa.
+
+#### Os resgatados que mudaram na P96 (23/10/2026)
+
+Quem usa escolheu uma versão por ícone (a página de escolha de 23/10); estes vestem agora
+outro desenho que o da folha. A tabela vale até a folha ser refeita.
+
+| resgatado — depois da folha de 17/10/2026 | o que mudou |
+|---|---|
+| `extase-em-4r73` | o desenho escolhido em 23/10 |
+| `com.microsoft.Edge` | o desenho escolhido em 23/10 |
+| `whatsapp-linux-app` | o desenho escolhido em 23/10 |
+| `org.gnome.Nautilus` | o desenho escolhido em 23/10 |
+| `photogimp` | o desenho escolhido em 23/10 |
+| `com.github.rafostar.Clapper` | o desenho escolhido em 23/10 |
+| `setup-mozc` | o desenho escolhido em 23/10 |
+| `guvcview` | o desenho escolhido em 23/10 |
 
 ## O que não se toca, por pedido expresso dela
 
@@ -484,3 +503,45 @@ sozinho na passagem seguinte.
 **Licença.** Os desenhos vêm de `dracula-icons-circle`/`dracula-icons-main`
 (upstream do Dracula theme) e de arte própria dele. O uso aqui é o mesmo de
 sempre neste repositório — tema pessoal, não publicado.
+
+
+## O que entrou na P96 (23/10/2026)
+
+| arquivo | de onde | lido de | licença | copiado em | sha256 |
+|---|---|---|---|---|---|
+| `icones/biblioteca/bluetooth.svg` | antes em `icones/sistema/arcticons/bluetooth.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `a21e9c731d8d378a53cb20ecd888c97f05e4e9656b16768822d522cb35c1acbc` |
+| `icones/biblioteca/books.svg` | antes em `icones/apps/arcticons/books.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `98eb2de75dc35d458053d043a79ea2fec26a3ce6ce62a7e3a24858107a7ada32` |
+| `icones/biblioteca/brave.svg` | antes em `icones/apps/arcticons/brave.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `0abe5067dc7550d51a7e170cd5eb1ef52a2519e668cbdf7923760812932358ba` |
+| `icones/biblioteca/browser.svg` | antes em `icones/sistema/arcticons/browser.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `c05dd791c94d2a7079238fde1ce390a73911e691306918ca120ec4d4a2ed7677` |
+| `icones/biblioteca/calculator.svg` | antes em `icones/apps/arcticons/calculator.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `9df7b5c00334f5b8acee8b8436d2dbf7b0793a1f07ac9eae413bdccb674cbb6c` |
+| `icones/biblioteca/camera.svg` | antes em `icones/apps/arcticons/camera.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `832f397101336bf8cc5efddd71509e56a4c2572ba1ee656c1c1c5d58d5d7e3b5` |
+| `icones/biblioteca/cleaner.svg` | antes em `icones/apps/arcticons/cleaner.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `ac7de4eca35b96c3b105a743d2126464acf09a7677af1bdfdde06356949fc256` |
+| `icones/biblioteca/code-editor.svg` | antes em `icones/apps/arcticons/code-editor.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `d4d7a3b6fe4ca3ab661721b5b0c49910b1300be970719f928011c269e80347f9` |
+| `icones/biblioteca/compressor.svg` | antes em `icones/apps/arcticons/compressor.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `c481734343fa254d62ed7acb4ca8bf4cfb001e4d3842d0456c81175cbfaea39a` |
+| `icones/biblioteca/discord.svg` | antes em `icones/apps/arcticons/discord.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `bb4389d637de2721d02574420282627b1ddd580b114087dbc74b62314ae1ba63` |
+| `icones/biblioteca/earth.svg` | antes em `icones/sistema/arcticons/earth.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `f987be65dfe100f7b42ed19f58657fa5fd1f949a799a62989a4bb5b0b563ad76` |
+| `icones/biblioteca/editor.svg` | antes em `icones/apps/arcticons/editor.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `4595db52f0a9c0c6b191c5e7127e0d0bb0bca75708977412e0871706b1bbe441` |
+| `icones/biblioteca/folder.svg` | antes em `icones/sistema/arcticons/folder.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `fd8555d676e867588b2988ebac28b3de05b9935171030626bd070862fd847cb5` |
+| `icones/biblioteca/github.svg` | antes em `icones/apps/arcticons/github.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `9193a1b424de33868ee221bd424a7113765c92822e4dbee716c5c7efe27ed60d` |
+| `icones/biblioteca/google-chrome.svg` | antes em `icones/apps/convertidos/retoques/google-chrome.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `ef37970e34a6e5d68db13d4fd69fb9b16b3833fd4fab823ad03c1a4fd3a41f74` |
+| `icones/biblioteca/key.svg` | antes em `icones/sistema/arcticons/key.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `815c2b54fcfff240a9e1e904a36dd4e75436f83cf3030b668ed8c25c8a0c3015` |
+| `icones/biblioteca/libretorrent.svg` | antes em `icones/apps/arcticons/libretorrent.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `5fbb41e795c1cad88928deead57c949d0a188c5a55f59ee5e77409842269040b` |
+| `icones/biblioteca/moon.svg` | antes em `icones/sistema/arcticons/moon.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `5cb3332370a8257f3fb128b09801404ad82330111ddcbeedd3f95e232cc0a66d` |
+| `icones/biblioteca/music.svg` | antes em `icones/sistema/arcticons/music.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `32b1db0447fb69f9315512509b05060fa57d3c4c54d839285c9137ec80eae0d5` |
+| `icones/biblioteca/network.svg` | antes em `icones/sistema/arcticons/network.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `7bd1e5eb9c01d37188d5a4a0623295f94d610b8ba103c6faa3d1a2531142c362` |
+| `icones/biblioteca/notifications.svg` | antes em `icones/sistema/arcticons/notifications.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `ddd824ede2a3ac9dc8040215ddcc598682290e9be6401931db56e71d39fb3e5b` |
+| `icones/biblioteca/onlyoffice-documents.svg` | antes em `icones/apps/arcticons/onlyoffice-documents.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `368f2c76528ef2468db0959f24ca7e6d72a369702d202a9f8c27b74c14471a93` |
+| `icones/biblioteca/org.gimp.GIMP-discreta.svg` | antes em `icones/apps/convertidos/retoques/org.gimp.GIMP-discreta.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `818a7bc7455a1fa3b646114edc43e915e8db8b0c666693f44c8a851be8d9263b` |
+| `icones/biblioteca/photo-editor.svg` | antes em `icones/apps/arcticons/photo-editor.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `0f988533dc5df0c232011b1f80417f5e04fceb1afc50ea6dea0f7127d581d25b` |
+| `icones/biblioteca/player.svg` | antes em `icones/apps/arcticons/player.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `809369cbd23f23e4c21bd76d8af5b5100d5b274301ea126aea4e19fbe992da27` |
+| `icones/biblioteca/power.svg` | antes em `icones/sistema/arcticons/power.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `a62e8e5e4ebff08d274f7a8e89762b1a53cb4ef1be20c57558735e9df76660e3` |
+| `icones/biblioteca/proton.svg` | antes em `icones/apps/arcticons/proton.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `8601046adaec5aec6d944c35bf154abfbad88cb8b4caa837ddaf8bafe6c9c20e` |
+| `icones/biblioteca/screen-recorder.svg` | antes em `icones/apps/arcticons/screen-recorder.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `f4fab3043667657bb5cf7e2b8ec37c05a4ced740ed4349cbb7f850c96d7dadfa` |
+| `icones/biblioteca/shield.svg` | antes em `icones/sistema/arcticons/shield.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `6c7359d1ae019003443c03c24c3376aeff9e3862a4d82a053ac9db9ec9b1bdc2` |
+| `icones/biblioteca/spotify.svg` | antes em `icones/apps/arcticons/spotify.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `63d7c204c4d48192006d50c8c0c1c4fc48751849b83d1705aa7917c015215320` |
+| `icones/biblioteca/steam.svg` | antes em `icones/apps/convertidos/retoques/steam.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `a8c23f272f46ddb5daaf446e4a8f790096cd55b9c83c744be24b3d13a614afba` |
+| `icones/biblioteca/telegram.svg` | antes em `icones/apps/arcticons/telegram.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `6ea0b23c959e604013fe542d700ffbee60c4f374ecbc5f62fb42380d8c4a7a28` |
+| `icones/biblioteca/vlc.svg` | antes em `icones/apps/arcticons/vlc.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `fb590085ea829b6e85fd8e8c1d0fec95c7fe7444d3c96fd04a34868544015f7e` |
+| `icones/biblioteca/whatsapp.svg` | antes em `icones/sistema/arcticons/whatsapp.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `cf868a8b7c78a0166c1e99a662e1325f6110cf9ea33bbfeee917956be1c4bbdc` |
+| `icones/biblioteca/writer.svg` | antes em `icones/apps/arcticons/writer.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `08531f8d373113f1e10f280b97d655c73336cc7c46421fc5696c82ac45c19964` |
+| `icones/biblioteca/zip.svg` | antes em `icones/apps/arcticons/zip.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `003b7b15f3c39c79f3402b690c9a702d60ed7eabf121fdea40e072193b99ac39` |

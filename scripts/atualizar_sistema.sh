@@ -97,11 +97,11 @@ cmd_aplicar() {
       sudo apt update || { meow_erro "apt update falhou"; return "$MEOW_ERRO"; }
       sudo apt full-upgrade "${APT_OPCOES[@]}" \
         || { meow_erro "apt full-upgrade falhou — a máquina não ficou pela metade,"
-             meow_erro "  o apt desfaz o que não conseguiu; rode 'sudo apt -f install'"
+             meow_erro "  o apt desfez o que não conseguiu; a próxima atualização retoma daí"
              return "$MEOW_ERRO"; }
     else
       meow_erro "a atualização falhou — a máquina não ficou pela metade,"
-      meow_erro "  o apt desfaz o que não conseguiu; rode 'sudo apt -f install'"
+      meow_erro "  o apt desfez o que não conseguiu; a próxima atualização retoma daí"
       return "$MEOW_ERRO"
     fi
     meow_ok "pacotes do sistema em dia"
@@ -130,7 +130,7 @@ cmd_aplicar() {
   # --- E AQUI COMEÇA A PARTE QUE SÓ ESTE PROJETO FAZ ------------------------
   meow_passo "4/4 O que a atualização desfez"
   meow_info "cada troca de pacote pode ter desfeito uma etapa nossa: o tema, os"
-  meow_info "  ícones, o applet da barra, o gato do terminal. O doctor diz quais."
+  meow_info "  ícones, o applet da barra, o mascote do terminal. O doctor diz quais."
   printf '\n'
   MEOW_DRY_RUN=1 "$MEOW_RAIZ/bin/meow" doctor
   local rcd=$?

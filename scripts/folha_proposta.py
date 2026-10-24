@@ -44,7 +44,8 @@ except (ImportError, ValueError) as erro:
 
 HOME = os.path.expanduser('~')
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PREVIA_DIR = os.path.join(RAIZ, 'assets', 'icones', 'previa-arcticons')
+# Os mesmos bytes que a prévia guardava: o traço Arcticons do pack-base.
+PREVIA_DIR = os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps', 'arcticons')
 CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme')
 
 # A cor sai da paleta do PACK ATIVO, nunca de um hex escrito aqui — é a regra
@@ -304,7 +305,7 @@ def main():
     </ul>
     <h3>Quando você aprovar</h3>
     <p class="porque" style="margin:0">
-      Os 35 glifos vão para <code>packs/meowsystem/icones/apps/arcticons/</code> com a cor aplicada, as 35
+      Os 35 glifos vão para <code>packs/meowsystem/icones/apps/</code> com a cor aplicada, as 35
       linhas entram em <code>packs/meowsystem/icones/apps-arcticons.map</code>, e
       <code>meow icones reconstruir</code> monta o tema. Reverter é apagar as linhas do
       mapa e rodar de novo — o acervo Catppuccin continua no repo, intacto.
@@ -317,7 +318,7 @@ def main():
         fh.write(doc)
     print(saida)
     if faltando:
-        print('SEM ARQUIVO em assets/icones/previa-arcticons/: ' + ', '.join(faltando),
+        print('SEM ARQUIVO em ' + os.path.relpath(PREVIA_DIR, RAIZ) + '/: ' + ', '.join(faltando),
               file=sys.stderr)
         return 1
     print(f'{n_marca} marca · {n_interp} escolha minha')

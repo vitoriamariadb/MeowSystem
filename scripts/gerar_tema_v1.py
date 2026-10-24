@@ -550,7 +550,7 @@ def main() -> int:
     if conferir:
         if divergentes:
             print(f"\n{divergentes} arquivo(s) de v1 com campo divergente "
-                  f"({iguais} conferem). Rode sem --conferir para gerar.")
+                  f"({iguais} conferem); a próxima passada que aplica os gera.")
             return 1
         if rc_acento == 1:
             return 1

@@ -20,6 +20,8 @@ _forma_teto_raio() { # $1 = Panel|Dock
   local t
   t="$(meow_painel_teto "$BASE/com.system76.CosmicPanel.$1/$(meow_cosmic_v "com.system76.CosmicPanel.$1")" 2>/dev/null)" && { printf '%s' "$t"; return 0; }
   # Sem conseguir derivar (size/padding ilegíveis), o único valor seguro.
+  # Um fallback alto aqui apagaria a barra entrando pelo «não consegui medir»: o
+  # compositor compara o raio novo com o frame anterior, e sem o patch o teto é zero.
   printf '0'
 }
 
@@ -304,7 +306,7 @@ for barra in Panel Dock; do
   [ -f "$arq" ] || continue
   [ "$(cat "$arq")" = "true" ] && continue
   meow_aviso "keep_style_on_maximize=false no $barra: a forma se desfaz ao maximizar"
-  meow_info "conserto: VIDRO_AO_MAXIMIZAR=\"sim\" no meow.conf e rode scripts/vidro.sh"
+  meow_info "com «Manter o vidro com janela maximizada» em sim, o vidro fica"
 done
 
 _forma_raio_dito() { # $1 = Panel|Dock  $2 = valor do meow.conf (pode ser vazio)

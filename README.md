@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/logo.svg" width="128" alt="A logo do MeowSystem: um gato de traço lilás dentro de um círculo">
+<img src="docs/logo.svg" width="128" alt="A logo do MeowSystem: um mascote de traço lilás dentro de um círculo">
 
 # MeowSystem
 
@@ -13,8 +13,8 @@
 [![linguagens](https://img.shields.io/badge/bash%204.3+-python%203%20s%C3%B3%20stdlib-A6E3A1?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 ![versão](https://img.shields.io/badge/vers%C3%A3o-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 
-[![instalador](https://img.shields.io/badge/instalador-63%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-65%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![instalador](https://img.shields.io/badge/instalador-68%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-73%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 [![conferência do navegador](https://img.shields.io/badge/navegador-123%2F123-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Tema, ícones, painel, dock, terminal, tela de login, papel de parede e os temas de dentro dos
@@ -37,14 +37,14 @@ formato está em **[docs/PACKS.md](docs/PACKS.md)**.
 ## Instalar
 
 ```bash
-git clone https://github.com/vitoriamariadb/MeowSystem.git
+git clone https://github.com/AndreBFarias/MeowSystem.git
 cd MeowSystem
 ./install.sh --wizard     # a primeira vez: pergunta cinco coisas e instala
 meow ativar               # todas as outras
 ```
 
-São 63 etapas. Numa máquina já pronta, rodar de novo **não escreve um byte** e diz isso. Para
-ensaiar antes: `MEOW_DRY_RUN=1 ./install.sh`, ou **Ver o que faria** no painel.
+São 68 etapas. Numa máquina já pronta, rodar de novo **não escreve um byte** e diz isso. Para
+ensaiar antes: `MEOW_DRY_RUN=1 ./install.sh`, ou **Ver sem mudar** no painel.
 
 A senha do sudo é pedida **uma vez**, para registrar a ponte root: um conjunto fechado de verbos
 (`.desktop` do sistema, tela de login, hook do apt, dependências) que depois roda sem senha.
@@ -76,7 +76,7 @@ areia. Extensão do VS Code pedida por pack importado só se instala por um gest
 meow abrir                # ou o ícone MeowSystem no lançador
 ```
 
-122 ajustes e 64 ações em catorze páginas: a Início e treze de assunto. O menu tem dois blocos:
+122 ajustes e 67 ações em catorze páginas: a Início e treze de assunto. O menu tem dois blocos:
 **Tópicos** (a sua tela) e **Sistema** (o que a máquina faz sozinha).
 
 ### A interface mostra, em vez de explicar
@@ -84,7 +84,7 @@ meow abrir                # ou o ícone MeowSystem no lançador
 <img src="docs/capturas/painel-leitura.png" width="920" alt="A aba Modo de leitura: o desenho mostra a mesma página fria à esquerda e quente à direita">
 
 Na tela fica só título, rótulo e valor. O porquê mora atrás do **?**. Cada bloco abre com uma
-prévia desenhada com os valores de verdade (o papel de parede, o gato, o ícone instalado), que
+prévia desenhada com os valores de verdade (o papel de parede, o mascote, o ícone instalado), que
 **repinta enquanto você arrasta o deslizante**.
 
 Com uma escolha pendente, a prévia vira duas: **Como está** e **Como fica**. «Como está» desfaz
@@ -101,7 +101,7 @@ só aquele bloco.
   e **Dia** e **Noite** o mudam de lado.
 - **Áreas de trabalho**: nome, **ordem** e encaixe de janelas de cada uma.
 - **Modo de leitura**: temperatura, textura, horário e rampa da tela quente da noite.
-- **Instalar pelo painel**: tema de ponteiro (`.zip`), fonte, tema de ícones, gato, papel de
+- **Instalar pelo painel**: tema de ponteiro (`.zip`), fonte, tema de ícones, mascote, papel de
   parede, ícone. O enviado mora em `~/.local/share/meowsystem/`, nunca no repositório.
 - E **Cor e tela**, **Logo do sistema**, **Painel e dock**, **Dia e noite**, **Terminal**,
   **Lançadores e jogos**, **Manutenção**, **Instalação** e **Atualização** (`apt`, `flatpak` e
@@ -110,7 +110,7 @@ só aquele bloco.
 Toda variável que o instalador lê tem um controle aqui, e um teste cobra isso.
 
 Clicar não muda a máquina: as escolhas se acumulam e **Salvar e aplicar** grava e roda o
-instalador. **Ver o que faria** ensaia sem escrever. **Restaurar ao padrão** volta ao valor de
+instalador. **Ver sem mudar** ensaia sem escrever. **Restaurar ao padrão** volta ao valor de
 fábrica. Ação que baixa da internet leva o selo de rede.
 
 <img src="docs/capturas/painel-forma.png" width="920" alt="A aba Painel e dock, com o desenho do painel e da dock acima dos controles">
@@ -125,9 +125,9 @@ fábrica. Ação que baixa da internet leva o selo de rede.
 | **Painel e dock** | Forma, raio, margem, espaço e recheio de cada segmento; o vidro que segue o COSMIC instalado, **na barra e na janela**; os segundos no relógio; e a música tocando ao lado dele, com capa e controles. E um vigia que repõe a barra quando ela cai **ou quando fica viva sem desenhar**. |
 | **As áreas de trabalho** | Nome, ordem e encaixe de cada uma. A ordem da lista é a ordem da barra. |
 | **Os ícones** | A base vem do pack (o Papirus no Catppuccin; os `dracula-icons` no Dracula, o ramo `circle` por cima do `main`), as pastas e os tipos de arquivo na paleta do pack, e um desenho por programa — trocável um a um, pelo painel. |
-| **O terminal** | As dezesseis cores, o prompt do `starship`, as cores do `fzf`, e o gato no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |
+| **O terminal** | As dezesseis cores, o prompt do `starship`, as cores do `fzf`, e o mascote no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |
 | **O papel de parede** | Um carrossel com pastas de dia e de noite separadas por luminosidade, avançar e voltar no botão direito, e favoritos. O pack pode trazer os dele. |
-| **Dia e noite** | À noite o gato do dock e o do terminal trocam de rosto, a imagem de fundo passa às escuras e o modo de leitura esquenta a tela e lhe dá textura de papel, em rampa — cada um com o seu horário, todos das 18:00 às 07:00 de fábrica. |
+| **Dia e noite** | À noite o mascote do dock e o do terminal trocam de rosto, a imagem de fundo passa às escuras e o modo de leitura esquenta a tela e lhe dá textura de papel, em rampa — cada um com o seu horário, todos das 18:00 às 07:00 de fábrica. |
 | **Os programas** | Spotify, VS Code, Obsidian, qBittorrent, Heroic, Telegram, Discord (Vesktop e Vencord), OnlyOffice, kitty, GNOME Terminal, ZapZap, btop e bat no tema do pack no ar; os jogos da Steam e os do Heroic com um atalho por jogo no lançador, com a capa, e o atalho saindo junto com o jogo. |
 
 ## A máquina
@@ -138,7 +138,7 @@ fábrica. Ação que baixa da internet leva o selo de rede.
 <td width="50%"><img src="docs/capturas/desktop-claro.png" alt="A mesma área de trabalho no tema claro"></td>
 </tr>
 <tr>
-<td><img src="docs/capturas/fastfetch.png" alt="O fastfetch com o gato desenhado em caracteres"></td>
+<td><img src="docs/capturas/fastfetch.png" alt="O fastfetch com o mascote desenhado em caracteres"></td>
 <td><img src="docs/capturas/lancador.jpg" alt="O lançador com os ícones do Arcticons"></td>
 </tr>
 </table>
@@ -146,7 +146,7 @@ fábrica. Ação que baixa da internet leva o selo de rede.
 ## O doctor conserta
 
 ```bash
-meow doctor                            # 65 conferências. Não escreve nada.
+meow doctor                            # 73 conferências. Não escreve nada.
 meow doctor --consertar                # conserta o que estiver fora do lugar
 meow desfazer                          # devolve o tema de antes desta máquina
 ./install.sh --uninstall               # tira tema, ícones e agendamentos

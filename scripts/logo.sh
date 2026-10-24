@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# logo.sh — o gato do dock e do painel: de dia a Coquinha, de noite o Mimir.
+# logo.sh — o mascote do dock e do painel: de dia a Coquinha, de noite o Mimir.
 #
-#   ./logo.sh              põe no ar o gato que a HORA pede (e instala o acervo)
-#   ./logo.sh girar        passa para o próximo gato (só no modo `rotacao`)
+#   ./logo.sh              põe no ar o mascote que a HORA pede (e instala o acervo)
+#   ./logo.sh girar        passa para o próximo mascote (só no modo `rotacao`)
 #   ./logo.sh --conferir   não escreve; 1 se algo divergir
 #   ./logo.sh listar       mostra o acervo, quem está no ar e por quê
-#   ./logo.sh no-dock      imprime o gato que está no botão do dock (1 = nenhum)
+#   ./logo.sh no-dock      imprime o mascote que está no botão do dock (1 = nenhum)
 #   ./logo.sh applet       imprime a chave do applet de logo instalado (1 = nenhum)
 #
 # O QUE NÃO PRECISA DE RECICLO NENHUM: o `fastfetch`, que lê o arquivo do logo a
 # cada execução.
+# A porta do reciclo é o `painel.sh reciclar`, nunca um `pkill` daqui: ele recusa
+# quando o supervisor demoraria a repor a barra. Matar só o applet deixa buraco no dock.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -18,7 +20,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/noite.sh
 . "$RAIZ/lib/noite.sh"
 
-ACERVO="$RAIZ/assets/gatos"
+ACERVO="$(meow_mascote_dir)/"
 COSMIC="$(meow_cosmic_dir)"
 LOGOS_DIR="$COSMIC/logos"
 
@@ -45,7 +47,7 @@ ESTADO="$MEOW_ESTADO/logo-atual"
 FLAVOR="$(meow_flavor)"
 LOGO="${LOGO:-$FLAVOR}"
 
-# --- AS TRÊS MANEIRAS DE ESCOLHER O GATO ------------------------------------
+# --- AS TRÊS MANEIRAS DE ESCOLHER O MASCOTE ------------------------------------
 #
 # Chave velha não vira inerte: quem tem `LOGO_ROTACAO="sim"` e não escreveu
 # `LOGO_MODO` continua no modo `rotacao`.
@@ -57,12 +59,12 @@ else
   LOGO_MODO="hora"
 fi
 
-# Os nomes saem do acervo (`assets/gatos/<nome>.svg`). Um nome que não exista
-# não é erro fatal: o script avisa e cai no `LOGO`, porque um gato errado na
+# Os nomes saem do acervo (`packs/meowsystem/mascote/<nome>.svg`). Um nome que não exista
+# não é erro fatal: o script avisa e cai no `LOGO`, porque um mascote errado na
 # tela é melhor que um instalador que aborta por causa de um enfeite.
 LOGO_DIA="${LOGO_DIA:-mimir}"
 LOGO_NOITE="${LOGO_NOITE:-coquinha}"
-# `nao` troca o arquivo e NÃO recicla o painel: o gato novo passa a valer no
+# `nao` troca o arquivo e NÃO recicla o painel: o mascote novo passa a valer no
 # próximo login. Existe para quem não quer o pisca de ~2s, e para o dia em que
 # ela estiver gravando a tela.
 LOGO_RECICLAR="${LOGO_RECICLAR:-sim}"
@@ -85,7 +87,7 @@ case "${1:-}" in
   # A regra é o `_esta_no_dock`, lá embaixo, que o `listar` também usa.
   no-dock)       ACAO="no-dock" ;;
   # Com o `co.uk.cappsy` instalado, o `meow logo` diria «(nenhuma)» com o
-  # gato já na chave dele; com a pasta do `dev.cappsy` sobrando, o `status`
+  # mascote já na chave dele; com a pasta do `dev.cappsy` sobrando, o `status`
   # mostraria a chave de um applet que já saiu.
   applet)
     [ -n "$APPLET_ID" ] && [ -f "$APPLET/custom_logo_path" ] || exit "$MEOW_DIVERGENTE"
@@ -123,12 +125,12 @@ _giro_venceu() {
   [ "$((agora - ultimo))" -ge "$intervalo" ]
 }
 
-# No modo `hora` o gato é função do relógio: um `girar` que trocasse o arquivo
+# No modo `hora` o mascote é função do relógio: um `girar` que trocasse o arquivo
 # seria desfeito no tique seguinte do `meow-gato.timer`, no máximo cinco minutos
 # depois.
 if [ "$ACAO" = "girar" ] || [ "$ACAO" = "girar-vencido" ]; then
   if [ "$LOGO_MODO" != "rotacao" ]; then
-    meow_pula "o modo é \`$LOGO_MODO\` — o gato não gira, ele segue o relógio"
+    meow_pula "o modo é \`$LOGO_MODO\` — o mascote não gira, ele segue o relógio"
     meow_info "  para girar: LOGO_MODO=\"rotacao\" no ~/.config/meow/meow.conf"
     exit "$MEOW_OK"
   fi
@@ -138,7 +140,7 @@ if [ "$ACAO" = "girar-vencido" ]; then
   if _giro_venceu; then
     ACAO="girar"
   else
-    meow_info "o gato ainda não venceu (${LOGO_INTERVALO:-1d}) — nada a girar"
+    meow_info "o mascote ainda não venceu (${LOGO_INTERVALO:-1d}) — nada a girar"
     exit "$MEOW_OK"
   fi
 fi
@@ -164,7 +166,7 @@ if [ "$ACAO" != "no-dock" ] && [ -d "$ACERVO" ] && meow_tem python3 \
       case "$_svg_saida" in
         *"não vai aparecer"*|*"não sei"*)
           meow_notificar "MeowSystem" \
-            "Um gato do acervo tem desenho que o painel não sabe mostrar — meow doctor conta qual." 2>/dev/null || true ;;
+            "Um mascote do acervo tem desenho que o painel não sabe mostrar — meow doctor conta qual." 2>/dev/null || true ;;
       esac
     fi
     unset _svg_saida
@@ -182,7 +184,7 @@ if [ -d "$ACERVO" ]; then
 fi
 
 if [ "${#POOL[@]}" -eq 0 ]; then
-  meow_pula "não há gato nenhum em $ACERVO — solte um .svg lá e ele entra"
+  meow_pula "não há mascote nenhum em $ACERVO — solte um .svg lá e ele entra"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
@@ -193,7 +195,7 @@ destino_de() { printf '%s/meow-%s.svg' "$LOGOS_DIR" "$1"; }
 _tema="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
 _no_dock="$HOME/.local/share/icons/$_tema/scalable/apps/com.system76.CosmicPanelAppButton.svg"
 
-# 0 = o gato de índice $1 é o do botão do dock. Comparar com o cru só casava
+# 0 = o mascote de índice $1 é o do botão do dock. Comparar com o cru só casava
 # enquanto quem escrevia o botão era o `construir_icones.sh`, que copiava o
 # asset direto.
 _esta_no_dock() {
@@ -247,7 +249,7 @@ fi
 TEM_APPLET=1
 if [ -z "$APPLET_ID" ]; then
   TEM_APPLET=0
-  meow_pula "nenhum applet de logo do painel instalado — o gato do dock e o do terminal seguem"
+  meow_pula "nenhum applet de logo do painel instalado — o mascote do dock e o do terminal seguem"
 fi
 
 # TER A CONFIGURAÇÃO NÃO É ESTAR NA BARRA — e a diferença é invisível de outro
@@ -276,7 +278,7 @@ fi
 mudou=0
 
 # --- 1. o acervo inteiro vai para o disco -----------------------------------
-# TODOS os gatos, não só o da vez: girar depois é só trocar a chave, e a troca
+# TODOS os mascotes, não só o da vez: girar depois é só trocar a chave, e a troca
 # tem de encontrar o arquivo já lá.
 for i in "${!POOL[@]}"; do
   meow_escrever "$(destino_de "${NOMES[$i]}")" "$(cat "${POOL[$i]}")" 644
@@ -315,7 +317,7 @@ for i in "${!NOMES[@]}"; do
   [ "$(destino_de "${NOMES[$i]}")" = "$atual" ] && { indice=$i; break; }
 done
 # O `indice` saía só da chave, e numa máquina sem applet ele era sempre -1: o
-# modo fixo com um `LOGO` fora do acervo prometia «fica o gato que está no ar»
+# modo fixo com um `LOGO` fora do acervo prometia «fica o mascote que está no ar»
 # e punha o primeiro da ordem alfabética no dock (medido numa casa de
 # brinquedo: mimir no dock, coquinha depois); a rotação voltava ao `LOGO` a
 # cada passagem e girava sempre para o mesmo.
@@ -351,8 +353,15 @@ elif [ "$LOGO_MODO" = "hora" ]; then
 
   proximo="$(_indice_de "$_quer")"
   if [ "$proximo" -lt 0 ]; then
+    # O nome do conf é de outro pack (o Mimir com o Dracula no ar): vale o
+    # mascote de fábrica do pack no ar para esta fase.
+    _padrao="$(python3 "$RAIZ/scripts/pack.py" mascote-padrao "$(meow_pack_dir)" "$FASE" 2>/dev/null)"
+    proximo="$(_indice_de "${_padrao:-}")"
+    unset _padrao
+  fi
+  if [ "$proximo" -lt 0 ]; then
     # O acervo é a interface: um nome que não está lá é engano de digitação no
-    # conf, ou um gato que ela apagou.
+    # conf, ou um mascote que ela apagou.
     meow_aviso "LOGO_${FASE^^}=\"$_quer\" não está em $ACERVO — caindo em \"$LOGO\""
     proximo="$(_indice_de "$LOGO")"
     [ "$proximo" -lt 0 ] && proximo=0
@@ -360,32 +369,32 @@ elif [ "$LOGO_MODO" = "hora" ]; then
   unset _j _ini _fim _quer
 elif [ "$LOGO_MODO" = "fixo" ]; then
   # --- O MODO FIXO: O `LOGO` VENCE, COMO O CABEÇALHO SEMPRE PROMETEU ---------
-  # Até aqui o `fixo` caía no ramo de baixo, que é o da rotação: com um gato do
+  # Até aqui o `fixo` caía no ramo de baixo, que é o da rotação: com um mascote do
   # acervo já na chave, ele ficava, e o `LOGO` não era lido.
   proximo="$(_indice_de "$LOGO")"
   if [ "$proximo" -lt 0 ]; then
     # O mesmo aviso do modo `hora` para um nome fora do acervo. Ela dizia «fica
-    # o gato que está no ar» também quando nenhum estava (sem applet, o
+    # o mascote que está no ar» também quando nenhum estava (sem applet, o
     # `indice` era sempre -1) e o dock ia para o primeiro do acervo.
     if [ "$indice" -ge 0 ]; then
       proximo="$indice"
-      meow_aviso "LOGO=\"$LOGO\" não está em $ACERVO — fica o gato que está no ar, ${NOMES[$proximo]}"
+      meow_aviso "LOGO=\"$LOGO\" não está em $ACERVO — fica o mascote que está no ar, ${NOMES[$proximo]}"
     else
       proximo=0
-      meow_aviso "LOGO=\"$LOGO\" não está em $ACERVO, e nenhum gato do acervo está no ar — vai o primeiro, ${NOMES[0]}"
+      meow_aviso "LOGO=\"$LOGO\" não está em $ACERVO, e nenhum mascote do acervo está no ar — vai o primeiro, ${NOMES[0]}"
     fi
   fi
 else
   # Só garante que o que está no ar — a chave do applet ou, sem ela, o dock —
-  # é ALGUM gato do acervo.
+  # é ALGUM mascote do acervo.
   if [ "$indice" -ge 0 ]; then
     proximo="$indice"
   else
-    # `LOGO` do meow.conf nomeia o gato PREFERIDO do acervo — é o ponto de
-    # partida da rotação, quando nenhum gato do acervo está no ar (a máquina
+    # `LOGO` do meow.conf nomeia o mascote PREFERIDO do acervo — é o ponto de
+    # partida da rotação, quando nenhum mascote do acervo está no ar (a máquina
     # nova).
     #
-    # Só vale quando o que está no ar NÃO é gato do acervo: se apontasse para
+    # Só vale quando o que está no ar NÃO é mascote do acervo: se apontasse para
     # um, sobrescrever aqui desfaria a rotação a cada `install.sh` — o mesmo
     # defeito dos dois donos, agora numa linha só.
     proximo=0
@@ -408,7 +417,7 @@ if [ "$alvo" != "$atual" ]; then
   meow_seco || meow_escrever "$ESTADO" "${NOMES[$proximo]}" 644 >/dev/null || true
 fi
 
-# Fora do `if` acima porque um giro que caia no mesmo gato (acervo de um só)
+# Fora do `if` acima porque um giro que caia no mesmo mascote (acervo de um só)
 # ainda é um giro — sem isto ele tentaria de novo a cada encerramento.
 if [ "$ACAO" = "girar" ] && ! meow_seco; then
   # Mesmo motivo do estado acima: `mv` no lugar de O_TRUNC. Aqui a fresta tem
@@ -424,9 +433,9 @@ if [ "$TEM_APPLET" = "1" ]; then
   case $? in 1) mudou=1 ;; esac
 fi
 
-# --- O GATO DO DOCK, QUE É O ÚNICO QUE ELA DE FATO VÊ ------------------------
+# --- O MASCOTE DO DOCK, QUE É O ÚNICO QUE ELA DE FATO VÊ ------------------------
 #
-# Ela apontou o gato do canto do dock e perguntou por que a Coquinha não estava
+# Ela apontou o mascote do canto do dock e perguntou por que a Coquinha não estava
 # lá. Ele nunca consultou o acervo.
 #
 # Enquanto isso, toda a rotação construída neste projeto mirava em
@@ -454,14 +463,14 @@ fi
 #
 # A PORTA É ÚNICA, E NÃO É UM `pkill` DAQUI. Ver o cabeçalho: o
 # `scripts/painel.sh reciclar` recusa quando o supervisor dormiria minutos, e
-# essa recusa é a única coisa entre um gato e uma barra sumida. `|| true`
+# essa recusa é a única coisa entre um mascote e uma barra sumida. `|| true`
 # porque a recusa dele é decisão correta, não falha desta etapa — e o arquivo já
-# está no disco de qualquer jeito, então o gato certo aparece no próximo login.
+# está no disco de qualquer jeito, então o mascote certo aparece no próximo login.
 if [ "$dock_mudou" = "1" ] && ! meow_seco; then
   if [ "$LOGO_RECICLAR" != "sim" ]; then
-    meow_info "gato do dock trocado; LOGO_RECICLAR=\"$LOGO_RECICLAR\" — vale no próximo login"
+    meow_info "mascote do dock trocado; LOGO_RECICLAR=\"$LOGO_RECICLAR\" — vale no próximo login"
   elif [ -x "$RAIZ/scripts/painel.sh" ]; then
-    meow_info "gato do dock trocado — reciclando o painel para ele aparecer"
+    meow_info "mascote do dock trocado — reciclando o painel para ele aparecer"
     # O `com.system76.CosmicAppLibrary` que acabamos de vestir é o ícone da
     # GRADE — reciclar o painel repõe o botão do dock e não toca no
     # `cosmic-app-library`, que resolveu o ícone quando subiu.
@@ -469,7 +478,7 @@ if [ "$dock_mudou" = "1" ] && ! meow_seco; then
   fi
 fi
 
-# --- O GATO DO TERMINAL VAI JUNTO -------------------------------------------
+# --- O MASCOTE DO TERMINAL VAI JUNTO -------------------------------------------
 # O `fastfetch` lê o arquivo do logo a CADA execução: não há cache, não há
 # reciclo, não há pisca.
 #
@@ -502,8 +511,8 @@ fi
 
 meow_seco && exit "$MEOW_DIVERGENTE"
 if [ "$ACAO" = "girar" ]; then
-  meow_ok "o gato do painel agora é ${NOMES[$proximo]} — já valendo, sem reiniciar"
+  meow_ok "o mascote do painel agora é ${NOMES[$proximo]} — já valendo, sem reiniciar"
 else
-  meow_ok "acervo de ${#POOL[@]} gato(s) instalado; no ar: ${NOMES[$proximo]}$PORQUE"
+  meow_ok "acervo de ${#POOL[@]} mascote(s) instalado; no ar: ${NOMES[$proximo]}$PORQUE"
 fi
 exit "$MEOW_DIVERGENTE"

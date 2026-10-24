@@ -92,9 +92,9 @@ except ImportError:                                    # pragma: no cover
     sys.exit(3)
 
 CONVERSOR = os.path.join(RAIZ, "scripts", "converter_icone.py")
-ACERVO = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "arcticons")
+ACERVO = os.path.join(RAIZ, "packs", "meowsystem", "icones", "arcticons.lista")   # P96: a lista do traço
 MAPA = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps-convertidos.map")
-RETOQUES = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps", "convertidos", "retoques")
+RETOQUES = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps")
 
 # AS MEDIDAS QUE ENTRAM NA NOTA, e `seg_min` fica DE FORA por medida: o acervo
 # tem o idioma do pingo (`v 0.1` para um ponto), então o mínimo dele vai a zero
@@ -164,7 +164,8 @@ def _alvos():
             if len(p) < 3:
                 continue
             nome, origem = p[0], p[1]
-            if origem == "mao" or os.path.exists(os.path.join(RETOQUES, nome + ".svg")):
+            # P96: retoque é a palavra `retoque` no 4º campo (o arquivo mora em apps/, plano, como todos)
+            if origem == "mao" or "retoque" in (p[3].split() if len(p) > 3 else []):
                 continue
             if not origem.startswith("/"):
                 origem = os.path.join(RAIZ, origem)

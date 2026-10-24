@@ -50,7 +50,10 @@ _prompt_tem_starship() { _prompt_onde_starship >/dev/null; }
 # `meow_escrever` grava com `printf '%s'` e come o `\n` final do arquivo.
 _PROMPT_PACK="$(meow_pack_dir)"
 [ -n "$_PROMPT_PACK" ] || _PROMPT_PACK="$(meow_pack_padrao_dir 2>/dev/null || true)"
-_PROMPT_PACK="$(basename "${_PROMPT_PACK:-catppuccin}")"
+_PROMPT_PACK="$(basename "${_PROMPT_PACK:-meowsystem}")"
+# O pack padrão (P96) é o Catppuccin dentro do meowsystem: a paleta do starship continua com o
+# nome da família, `catppuccin_<flavor>`, que é o do preset de `assets/prompt/starship.toml`.
+[ "$_PROMPT_PACK" = "meowsystem" ] && _PROMPT_PACK="catppuccin"
 
 _prompt_desejado() {
   python3 -I - "$PROMPT_FONTE" "$(meow_paleta)" "$(meow_flavor)" "$_PROMPT_PACK" <<'PY'
@@ -119,10 +122,7 @@ _prompt_dizer_falta_starship() {
 # O zsh vem primeiro porque é o shell que este projeto conhece; o bash,
 # porque é o padrão do Pop!_OS.
 _prompt_dizer_ligacao() {
-  meow_info "para o prompt aparecer, o seu shell precisa iniciar o starship — é uma linha sua:"
-  meow_info "  zsh  (no seu .zshrc):   eval \"\$(starship init zsh)\""
-  meow_info "  bash (no seu .bashrc):  eval \"\$(starship init bash)\""
-  meow_info "o MeowSystem não lê nem escreve arquivo de shell"
+  meow_info "o terminal liga o starship pelo bloco do MeowSystem (scripts/terminal_bloco.sh)"
 }
 
 # --- conferir ---------------------------------------------------------------
@@ -172,7 +172,7 @@ cmd_aplicar() {
   # etapa se pula, e o `install.sh` a mostra em "pulado" em vez de "mexeu".
   if ! _prompt_tem_starship; then
     _prompt_dizer_falta_starship
-    meow_info "depois de instalar, rode de novo: meow doctor --consertar"
+    meow_info "o preset entra assim que o starship estiver instalado"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -198,7 +198,7 @@ cmd_aplicar() {
 
 # --- mostrar ----------------------------------------------------------------
 cmd_mostrar() {
-  meow_titulo "A linha que liga o starship — o MeowSystem NÃO a escreve"
+  meow_titulo "O que liga o starship"
   printf '\n'
   _prompt_dizer_ligacao
   meow_info "o preset que ela desenha é o nosso: $PROMPT_ALVO"
@@ -257,8 +257,19 @@ cmd_instalar_starship() {
   meow_muda "starship instalado em $HOME/.local/bin"
   meow_pendencia_resolvida starship-ausente
   meow_registrar "prompt.sh instalar-starship"
-  meow_info "agora rode:  meow doctor --consertar  — é ele que escreve o preset"
+  cmd_aplicar || true
   return "$MEOW_DIVERGENTE"
+}
+
+# --- instalar ----------------------------------------------------------------
+# A etapa do install: o starship desce com ele, como o fastfetch, salvo a recusa
+# gravada; depois, o preset.
+cmd_instalar() {
+  if [ "$PROMPT_STARSHIP" = "sim" ] && ! _prompt_tem_starship && [ ! -f "$PROMPT_RECUSA" ]; then
+    cmd_instalar_starship
+    return $?
+  fi
+  cmd_aplicar
 }
 
 # --- nao-quero-starship -----------------------------------------------------
@@ -281,6 +292,7 @@ FIM
 
 case "${1:-aplicar}" in
   aplicar)          cmd_aplicar ;;
+  instalar)         cmd_instalar ;;
   conferir)         cmd_conferir ;;
   mostrar|patch)    cmd_mostrar ;;
   remover)          cmd_remover ;;
@@ -291,5 +303,5 @@ case "${1:-aplicar}" in
   # numa passagem com o PATH do systemd o pré-voo dizia «sem starship» na mesma
   # rodada em que esta etapa dizia «conforme».
   onde-starship)      _prompt_onde_starship ;;
-  *) meow_erro "uso: prompt.sh {aplicar|conferir|mostrar|remover|instalar-starship|nao-quero-starship|onde-starship}"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: prompt.sh {aplicar|instalar|conferir|mostrar|remover|instalar-starship|nao-quero-starship|onde-starship}"; exit "$MEOW_ERRO" ;;
 esac

@@ -18,7 +18,13 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 . "$RAIZ/lib/comum.sh"
 
 APP_ID="${MEOW_TRAY_ZAPZAP_APP:-com.rtosta.zapzap}"
-GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-$RAIZ/packs/meowsystem/icones/sistema/arcticons/whatsapp.svg}"
+# P96: o glifo mora numa das três pastas planas do pack-base (uma cópia só, onde caiu)
+GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-}"
+if [ -z "$GLIFO" ]; then
+  for _p in sistema apps biblioteca; do
+    GLIFO="$RAIZ/packs/meowsystem/icones/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break
+  done
+fi
 TRACO="${MEOW_TRAY_ZAPZAP_TRACO:-4}"
 GUARDA="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/zapzap"
 
@@ -235,7 +241,7 @@ _conferir() {
       return "$MEOW_DIVERGENTE" ;;
     DESCONHECIDO)
       meow_aviso "o tray_icon.py do ZapZap mudou de forma: $motivo"
-      meow_info "  compare com assets/icones/tray-terceiros/zapzap-tray_icon.py.original antes de repetir a manobra"
+      meow_info "  compare com assets/apps/tray-terceiros/zapzap-tray_icon.py.original antes de repetir a manobra"
       return "$MEOW_SEM_DEPENDENCIA" ;;
     *)
       meow_erro "${motivo:-não consegui inspecionar $alvo}"
@@ -272,7 +278,7 @@ _aplicar() {
     DESCONHECIDO)
       meow_aviso "o tray_icon.py do ZapZap mudou de forma: $motivo"
       meow_info "  nada foi escrito — é código Python, e vestir às cegas quebraria o app"
-      meow_info "  compare com assets/icones/tray-terceiros/zapzap-tray_icon.py.original"
+      meow_info "  compare com assets/apps/tray-terceiros/zapzap-tray_icon.py.original"
       return "$MEOW_SEM_DEPENDENCIA" ;;
     *)
       meow_erro "${motivo:-não consegui vestir $alvo}"

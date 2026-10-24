@@ -46,7 +46,7 @@ avatar_nosso() {
   # Só o acervo: os `assets/meow-*.svg` foram excluídos e os globs não casariam
   # nada. O md5 guardado, logo abaixo, é o que ainda reconhece um avatar posto
   # por uma versão anterior deste script.
-  for f in "$RAIZ"/assets/gatos/*.svg; do
+  for f in "$RAIZ"/packs/*/mascote/*.svg; do
     [ -f "$f" ] || continue
     [ "$(md5sum < "$f" | cut -d' ' -f1)" = "$md5" ] && return 0
   done
@@ -64,13 +64,13 @@ fase_avatar() {
             | sed -n 's/^o "\(.*\)"$/\1/p')"
   [ -n "$objeto" ] || { meow_pula "AccountsService não respondeu — avatar como está"; return 0; }
 
-  # Poderia ser o gato que está no ar, mas aí o avatar da tela de login trocaria
+  # Poderia ser o mascote que está no ar, mas aí o avatar da tela de login trocaria
   # junto com a rotação diária, e cada troca é uma escrita no AccountsService
   # via D-Bus.
-  desejado="$(find "$RAIZ/assets/gatos" -maxdepth 1 -name '*.svg' \
+  desejado="$(find "$(meow_mascote_dir)/" -maxdepth 1 -name '*.svg' \
                 ! -name '*-symbolic.svg' 2>/dev/null | sort | head -n1)"
   [ -n "$desejado" ] && [ -f "$desejado" ] \
-    || { meow_pula "não há gato em assets/gatos/ para o avatar"; return 0; }
+    || { meow_pula "não há mascote em $(meow_mascote_dir) para o avatar"; return 0; }
   md5_novo="$(md5sum < "$desejado" | cut -d' ' -f1)"
 
   atual_arq="$(busctl get-property org.freedesktop.Accounts "$objeto" \
@@ -86,7 +86,7 @@ fase_avatar() {
   fi
 
   if [ "$md5_atual" = "$md5_novo" ]; then
-    meow_ok "avatar da tela de login já é o gato $(basename "${desejado%.svg}")"
+    meow_ok "avatar da tela de login já é o mascote $(basename "${desejado%.svg}")"
     return 0
   fi
 
@@ -96,7 +96,7 @@ fase_avatar() {
   fi
 
   if meow_seco; then
-    meow_muda "poria o gato $(basename "${desejado%.svg}") como avatar da tela de login"
+    meow_muda "poria o mascote $(basename "${desejado%.svg}") como avatar da tela de login"
     return 1
   fi
 
@@ -110,7 +110,7 @@ fase_avatar() {
     # `>` trunca antes de escrever, e quem lê no meio (linha 98, a comparação
     # que evita a chamada ao Accounts) veria md5 vazio e refaria o trabalho.
     meow_escrever "$MEOW_ESTADO/greeter-avatar.md5" "$md5_novo" 644 >/dev/null || true
-    meow_ok "avatar da tela de login: gato $(basename "${desejado%.svg}")"
+    meow_ok "avatar da tela de login: mascote $(basename "${desejado%.svg}")"
     return 1
   fi
   rm -f "$tmp"
@@ -131,11 +131,16 @@ fase_avatar; [ $? = 1 ] && mudou_avatar=1
 declare -A GREETER_MD5=()
 GREETER_VISTO=0
 if meow_ponte_viva; then
-  if _saida="$(meow_ponte greeter-ver 2>/dev/null)"; then
+  _saida="$(meow_ponte greeter-ver 2>/dev/null)"; _rc=$?
+  if [ "$_rc" = 0 ]; then
     GREETER_VISTO=1
     while read -r _md5 _rel; do
       [ -n "${_rel:-}" ] && GREETER_MD5["$_rel"]="$_md5"
     done <<<"$_saida"
+  elif [ "$_rc" = 3 ]; then
+    # A ponte respondeu que a pasta não existe: nenhum sudo fora dela para confirmar.
+    meow_pula "não há cosmic-greeter nesta máquina ($DESTINO)"
+    exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_OK")"
   fi
 fi
 

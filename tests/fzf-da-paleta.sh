@@ -74,7 +74,7 @@ fi
 
 # --- 3. os dois packs do repositório ------------------------------------------
 printf '\n--- 3. o pack no ar decide ---\n'
-for par in "dracula:$RAIZ/packs/dracula/paleta.json" "mocha:$RAIZ/packs/catppuccin/paleta.json"; do
+for par in "dracula:$RAIZ/packs/dracula/paleta.json" "mocha:$RAIZ/packs/meowsystem/paleta.json"; do
   flavor="${par%%:*}"; paleta="${par#*:}"
   [ -f "$paleta" ] || { falha "falta $paleta"; continue; }
   casa="$TMP/casa-$flavor"; mkdir -p "$casa"

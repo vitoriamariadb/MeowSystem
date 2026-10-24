@@ -19,7 +19,7 @@ fi
 # --- 2. todo módulo sabe desfazer -------------------------------------------
 # `MEOW_IGNORA_DESKTOP=1` e o `lib/comum.sh` antes: os módulos são escritos para
 # serem `source` DEPOIS dele (usam meow_ok, MEOW_OK, meow_seco).
-for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
+for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
   if ! (
         set +u
@@ -73,7 +73,7 @@ fi
 # migrado, NENHUMA saída-3 do `detectar` pode escapar do `meow_app_sem` — é ele
 # que guarda o motivo, e sair por outra porta é sair mudo.
 migrados=0
-for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
+for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
   grep -q 'meow_app_sem' "$mod" || continue
   migrados=$((migrados + 1))
@@ -123,7 +123,7 @@ done
 
 # --- 5. "instalado" é uma regra só, e o `detectar` a chama -----------------
 instalados=0
-for mod in "$RAIZ"/assets/temas-de-apps/*/manifesto.sh; do
+for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
   usos="$(grep -v '^[[:space:]]*#' "$mod" | grep -c 'meow_app_instalado')"
   if [ "$usos" -lt 2 ]; then
@@ -175,7 +175,7 @@ esac
 
 [ "$falhou" = "0" ] || exit 1
 printf 'ok: o --uninstall desfaz os %s módulos de aplicativo\n' \
-  "$(find "$RAIZ/assets/temas-de-apps" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+  "$(find "$RAIZ/scripts/temas-de-apps" -mindepth 1 -maxdepth 1 -type d | wc -l)"
 printf 'ok: os %s módulos migrados declaram o motivo em toda saída de pendência\n' "$migrados"
 printf 'ok: os %s módulos dizem se o programa está instalado pela mesma regra que o detectar chama\n' "$instalados"
 printf 'ok: as %s unidades de systemd/ estão nas duas listas do desinstalador\n' \
