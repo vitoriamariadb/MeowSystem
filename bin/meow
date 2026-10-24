@@ -3549,9 +3549,11 @@ desfazer_lancador() {
 #   $1 = o comando que a pessoa digitaria; $2 e $3 = o caminho de volta DESTA
 #   máquina, que cada porta conhece do seu jeito. 0 = pode seguir.
 guarda_original() {
-  local origem_cap
+  local origem_cap aqui
   origem_cap="$(sed -n 's/^origem: //p' "$RAIZ/assets/temas/capturados/original/captura.txt" 2>/dev/null | head -n1)"
-  if [ -n "$origem_cap" ] && [ "$origem_cap" != "$COSMIC" ] \
+  # A conta do `origem_da_maquina` (scripts/capturar_tema.sh); o caminho cru é o formato de antes.
+  aqui="máquina $(printf '%s' "$COSMIC" | sha256sum | cut -c1-16)"
+  if [ -n "$origem_cap" ] && [ "$origem_cap" != "$aqui" ] && [ "$origem_cap" != "$COSMIC" ] \
      && [ "${MEOW_TEMA_DE_OUTRA_MAQUINA:-0}" != "1" ]; then
     meow_erro "a captura 'original' foi tirada de OUTRA máquina ($origem_cap)"
     meow_info "  aplicá-la aqui instalaria o tema de fábrica de outra pessoa e"

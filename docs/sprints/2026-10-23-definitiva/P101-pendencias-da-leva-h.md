@@ -28,7 +28,7 @@ Cada item: teste vermelho antes, verde depois, um commit por item, diff conferid
 - Prova: teste com a ponte ausente e o falso de `sudo` contando chamadas: zero.
 
 ## 4. Procedência sem caminho de outra máquina
-- Medido (Ressalvas 4): `assets/temas/capturados/original/captura.txt` guarda `origem: /home/vitoriamaria/...`, e
+- Medido (Ressalvas 4): `assets/temas/capturados/original/captura.txt` guarda `origem: /home/<usuário>/...`, e
   o `bin/meow` lê esse campo.
 - Cura: a procedência diz o que é sem caminho absoluto de máquina; o leitor do `bin/meow` continua funcionando.
   Confira se o arquivo deveria estar num pack (P96: tudo de tema mora no pack) e só mova se o resto do código

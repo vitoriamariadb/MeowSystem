@@ -269,6 +269,29 @@ saida="$(amb env MEOW_ESTADO="$ESTADO_LIMPO" "$RAIZ/bin/meow" desfazer 2>&1)"; r
   && ok "e o meow desfazer continua recusando pela mesma guarda" \
   || falha "o meow desfazer perdeu a guarda (rc=$r)" "$saida"
 
+# A `origem:` da `original` não guarda caminho de máquina, e a guarda ainda
+# reconhece a máquina de onde a captura saiu.
+grep -q '^origem: /' "$RAIZ/assets/temas/capturados/original/captura.txt" \
+  && falha "a captura 'original' guarda o caminho absoluto da máquina de onde saiu" \
+  || ok "a captura 'original' não guarda caminho absoluto de máquina"
+GO="$T/guarda"; mkdir -p "$GO/assets/temas/capturados/original"
+# A origem como o capturar_tema.sh a escreve, com a função dele.
+origem_de() { bash -c "$(grep -m1 '^origem_da_maquina()' "$RAIZ/scripts/capturar_tema.sh")"'
+  origem_da_maquina "$0"' "$1"; }
+printf 'captura: original\norigem: %s\n' "$(origem_de "$T/casa-dela/.config/cosmic")" \
+  > "$GO/assets/temas/capturados/original/captura.txt"
+guarda() {   # guarda <COSMIC>: o rc da guarda_original do bin/meow
+  RAIZ="$GO" COSMIC="$1" NO_COLOR=1 bash -c '
+    meow_erro() { :; }; meow_info() { :; }
+    eval "$(sed -n "/^guarda_original() {\$/,/^}\$/p" "$0")"
+    guarda_original "meow desfazer" "" ""' "$RAIZ/bin/meow"
+}
+guarda "$T/casa-dela/.config/cosmic"; g1=$?
+guarda "$T/outra-casa/.config/cosmic"; g2=$?
+[ "$g1" = 0 ] && [ "$g2" = 1 ] \
+  && ok "a guarda deixa passar na máquina de onde a captura saiu e recusa nas outras" \
+  || falha "a guarda não lê a origem nova (mesma máquina rc=$g1, outra rc=$g2)"
+
 # --- 9. o repositório não mudou --------------------------------------------
 [ "$(git -C "$RAIZ" status --porcelain 2>/dev/null)" = "$git_antes" ] \
   && ok "o repositório saiu como entrou" \
