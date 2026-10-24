@@ -88,3 +88,9 @@ o par do doctor, a etapa, o desinstalador e o verbo no `docs/FRONTEIRA.md`). Tr�
 `higiene.sh` acusam o home de pessoa em `P96-reorganizacao.md:20` (arquivo do bloco P96), e o
 `app-completo.py` quebra no gesto «Lançadores e jogos › jogo · abrir» também na base sem a P99
 (`suite-base.log` e `base-completo.log` da mesma sessão).
+
+```
+rodada 1: == todos os 75 · 71 verde(s), 1 pulado(s), 3 vermelho(s) ==   (portabilidade.sh higiene.sh app-completo.py)
+rodada 2: == todos os 75 · 71 verde(s), 1 pulado(s), 3 vermelho(s) ==   (portabilidade.sh higiene.sh app-completo.py)
+```
+O pulado é o `conversor.sh`. `flatpak-tema.sh` e `escritorio.sh` verdes nas duas.
