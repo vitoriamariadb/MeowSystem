@@ -485,13 +485,13 @@ DOMINIOS = {
     "LOGO_ROTACAO": {
         "chave": "LOGO_MODO",
         "quando": lambda v: bool(v) and v != "rotacao",
-        "porque": "Ela só liga a rotação quando o gato é escolhido girando — "
+        "porque": "Ela só liga a rotação quando o mascote é escolhido girando — "
                   "hoje não tem efeito nenhum.",
     },
     "LOGO": {
         "chave": "LOGO_MODO",
         "quando": lambda v: v == "hora",
-        "porque": "Por horário quem escolhe são os gatos de dia e de noite; "
+        "porque": "Por horário quem escolhe são os mascotes de dia e de noite; "
                   "esta só entra quando um daqueles dois não está na lista.",
     },
     # A MARGEM QUE O COMPOSITOR JOGA FORA.
@@ -512,8 +512,8 @@ DOMINIOS = {
         "quando": lambda v: bool(v) and v != "fixo",
         # A ajuda afirmava o contrário do comportamento de fábrica.
         "porque": "Ela só vale com a escolha em \u201cfixo\u201d. Em "
-                  "\u201chora\u201d o terminal segue o gato do dock; em "
-                  "\u201cespelho\u201d ele mostra o OUTRO gato.",
+                  "\u201chora\u201d o terminal segue o mascote do dock; em "
+                  "\u201cespelho\u201d ele mostra o OUTRO mascote.",
     },
     # O `CURSOR_VERSAO` é o release que o `cursor.sh` pede no ÚLTIMO degrau
     # dele, quando baixa o tema pelo nome (`_cursor_url`).
@@ -4001,15 +4001,15 @@ ACOES = {
                  "passo que faz um desenho do pack escolhido aqui aparecer.",
     },
     "logo_listar": {
-        "rotulo": "Qual gato está no ar, e por quê",
+        "rotulo": "Qual mascote está no ar, e por quê",
         "grupo": "Logo do sistema",
         "natureza": "mostrar",
         "argv": _meow("logo", "listar"),
         "escreve": False, "sudo": False, "confirma": False,
-        "ajuda": "A lista, o gato em vigor, e qual regra o escolheu.",
+        "ajuda": "A lista, o mascote em vigor, e qual regra o escolheu.",
     },
     "logo_trocar": {
-        "rotulo": "Pôr um gato no dock",
+        "rotulo": "Pôr um mascote no dock",
         "grupo": "Logo do sistema",
         "natureza": "trocar",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
@@ -4022,19 +4022,19 @@ ACOES = {
         "indisponivel": _gato_so_nos_modos(("fixo",), "fixo"),
         # Dizia que, por horário, "o relógio devolve o gato dele na virada
         # seguinte".
-        "ajuda": "Põe no dock o gato escolhido, e ele fica. Quando o gato segue "
+        "ajuda": "Põe no dock o mascote escolhido, e ele fica. Quando o mascote segue "
                  "o relógio ou gira sozinho, este botão fica apagado e diz onde "
                  "mudar.",
     },
     "logo_girar": {
-        "rotulo": "Passar ao próximo gato",
+        "rotulo": "Passar ao próximo mascote",
         "grupo": "Logo do sistema",
         "natureza": "trocar",
         "argv": _meow("logo", "girar"),
         "escreve": True, "sudo": False, "confirma": False,
         # O MESMO APAGAR DO «Pôr um gato no dock».
         "indisponivel": _gato_so_nos_modos(("rotacao",), "rotacao"),
-        "ajuda": "Só tem efeito quando o gato está girando; fora disso o "
+        "ajuda": "Só tem efeito quando o mascote está girando; fora disso o "
                  "botão fica apagado e diz onde mudar.",
     },
     # --- papel de parede -----------------------------------------------------
@@ -4290,7 +4290,7 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False,
         # "sem esperar o próximo login" virou "na hora" — a espera que se evita
         # é a do login, mas quem lê o balão quer saber é quando vê o gato.
-        "ajuda": "O painel pisca uns 2 s. É o que faz um gato novo "
+        "ajuda": "O painel pisca uns 2 s. É o que faz um mascote novo "
                  "aparecer na hora.",
     },
     # A receita `curl | sh` que o `scripts/prompt.sh` imprimia virou este
@@ -6602,7 +6602,7 @@ class Manipulador(BaseHTTPRequestHandler):
             if not os.path.isfile(arquivo):
                 gatos = _gatos()
                 if not gatos:
-                    return self._recusar(404, "não há gato no acervo")
+                    return self._recusar(404, "não há mascote no acervo")
                 arquivo = os.path.join(_pasta_do_mascote(), gatos[0] + ".svg")
             with open(arquivo, "rb") as fh:
                 return self._responder(fh.read(), tipo=TIPOS[".svg"])
@@ -6733,7 +6733,7 @@ class Manipulador(BaseHTTPRequestHandler):
             "casa": "pasta_do_mascote",
             "extensoes": (".svg",),
             "normaliza": True,
-            "depois": "o vigia põe o gato novo no acervo em segundos",
+            "depois": "o vigia põe o mascote novo no acervo em segundos",
         },
         "parede": {
             "pasta": ("packs", "meowsystem", "wallpapers", "ativos"),
