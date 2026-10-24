@@ -922,6 +922,8 @@ def packs_com_vitrine():
             "nome": p.get("nome") or ident,
             "autor": p.get("autor") or "",
             "capa": (base_url + "&arte=capa") if vit["capa"] else "",
+            # A prévia do cartão mostra o mascote DESTE pack, e não o do pack no ar.
+            "mascote": (base_url + "&arte=mascote") if _mascote_do_pack(mod, ident) else "",
             "descricao_curta": vit["descricao_curta"],
             "descricao": texto,
             "tags": vit["tags"],
@@ -944,6 +946,19 @@ def packs_com_vitrine():
             "remover": _remocao_do_cartao(mod, ident, conf),
         })
     return saida
+
+
+def _mascote_do_pack(mod, ident):
+    """O SVG do mascote de dia que o pack declara, dentro da pasta dele, ou ""."""
+    try:
+        pasta = os.path.realpath(mod.pasta_do_mascote(ident))
+        nome = mod.mascote_padrao("dia", ident)
+    except Exception:
+        return ""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", nome or ""):
+        return ""
+    alvo = os.path.realpath(os.path.join(pasta, nome + ".svg"))
+    return alvo if os.path.dirname(alvo) == pasta and os.path.isfile(alvo) else ""
 
 
 def arte_da_vitrine(ident, arte):
@@ -975,6 +990,8 @@ def arte_da_vitrine(ident, arte):
             return mod.logo(ident, flavor).encode("utf-8"), "image/svg+xml"
         except Exception:
             return None
+    elif arte == "mascote":
+        alvo = _mascote_do_pack(mod, ident)
     elif re.fullmatch(r"[0-9]+", arte or "") and int(arte) < len(vit["capturas"]):
         alvo = vit["capturas"][int(arte)]
     else:

@@ -99,7 +99,8 @@ function cartaoDePack(p) {
   const flavor = p.no_ar ? flavorEmVigor() : ((p.flavors || []).find((f) => !f.claro) || (p.flavors || [])[0] || {}).id;
   const previa = MESA.mesa({
     cores: MESA.estiloDeCores(coresDoFlavor(p, flavor), ordem, p.no_ar ? vale("ACCENT") : "mauve"),
-    gato: urlDoGato(ESQUEMA.gato_no_dock || vale("LOGO")), rotulo: "Prévia do " + p.nome,
+    gato: p.no_ar || !p.mascote ? urlDoGato(ESQUEMA.gato_no_dock || vale("LOGO")) : p.mascote,
+    rotulo: "Prévia do " + p.nome,
     sem: new Set(p.no_ar ? [] : ["musica"]),
   });
   previa.dataset.controle = "pack:" + p.id + ":previa";

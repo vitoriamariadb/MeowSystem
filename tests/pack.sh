@@ -693,6 +693,31 @@ PY
   && ok "o /api/packs leva a história crua, e a rota de arte só serve o que o pack declarou" \
   || falha "o painel não honra a vitrine" "$saida"
 
+# O CARTÃO DE CADA PACK MOSTRA O MASCOTE DELE (decisão 19): a rota de arte
+# serve o `mascote.dia` do pack, e a prévia do cartão fora do ar usa essa URL.
+saida="$(amb python3 - "$RAIZ" <<'PY' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+erros = []
+cartoes = {p["id"]: p for p in servidor.packs_com_vitrine()}
+for ident, arquivo in (("dracula", "morcego-dia.svg"), ("meowsystem", "mimir.svg")):
+    arte = servidor.arte_da_vitrine(ident, "mascote")
+    with open(os.path.join(sys.argv[1], "packs", ident, "mascote", arquivo), "rb") as fh:
+        esperado = fh.read()
+    if not arte or arte[0] != esperado or arte[1] != "image/svg+xml":
+        erros.append("a rota de arte não serviu o mascote de %s (%s)" % (ident, arquivo))
+    if not cartoes.get(ident, {}).get("mascote", "").endswith("&arte=mascote"):
+        erros.append("o cartão de %s não leva a URL do mascote dele" % ident)
+print("\n".join(erros))
+sys.exit(1 if erros else 0)
+PY
+)"; rc=$?
+corpo="$(sed -n '/^function cartaoDePack(/,/^}/p' "$RAIZ/app/pagina/paginas.js")"
+[ "$rc" = "0" ] && grep -q 'p.no_ar || !p.mascote ? urlDoGato(.*) : p.mascote' <<< "$corpo" \
+  && ok "o cartão de cada pack mostra o mascote dele, e não o do pack no ar" \
+  || falha "a prévia do cartão mostra o mascote do pack no ar em todos os cartões" "$saida"
+
 # A CAPA COM SCRIPT NÃO CHEGA AO PAINEL, e o cartão diz por quê. O `info`
 # também tem de dizer o motivo, em vez de listar a capa como boa enquanto o
 # `validar` a recusa.
