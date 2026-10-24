@@ -77,12 +77,10 @@ fase_avatar() {
                  org.freedesktop.Accounts.User IconFile 2>/dev/null \
                | sed -n 's/^s "\(.*\)"$/\1/p')"
 
-  # Ler o arquivo apontado pode exigir root (é 0644 mas o diretório é do root);
-  # `sudo -n` sem senha é opcional aqui — sem ele, cai no md5 guardado por nós.
+  # Sem `sudo` fora da ponte (decisão 11): o arquivo é 0644 e se lê daqui.
   md5_atual=""
   if [ -n "$atual_arq" ]; then
     md5_atual="$(md5sum < "$atual_arq" 2>/dev/null | cut -d' ' -f1)"
-    [ -z "$md5_atual" ] && md5_atual="$(sudo -n md5sum < "$atual_arq" 2>/dev/null | cut -d' ' -f1)"
   fi
 
   if [ "$md5_atual" = "$md5_novo" ]; then
@@ -126,8 +124,8 @@ fase_avatar; [ $? = 1 ] && mudou_avatar=1
   exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 }
 
-# TUDO que olha para dentro do home do greeter passa por sudo, INCLUSIVE o teste
-# de existência.
+# TUDO que olha para dentro do home do greeter passa pela ponte, INCLUSIVE o
+# teste de existência.
 declare -A GREETER_MD5=()
 GREETER_VISTO=0
 if meow_ponte_viva; then
@@ -144,12 +142,9 @@ if meow_ponte_viva; then
   fi
 fi
 
-if [ "$GREETER_VISTO" = "0" ] && ! sudo -n test -d "$DESTINO" 2>/dev/null; then
-  if sudo -n true 2>/dev/null; then
-    meow_pula "não há cosmic-greeter nesta máquina ($DESTINO)"
-    exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_OK")"
-  fi
-  meow_aviso "não consigo olhar $DESTINO sem sudo — tela de login não conferida"
+# Sem a ponte, a tela de login fica pendente: nenhum `sudo` fora dela (decisão 11).
+if [ "$GREETER_VISTO" = "0" ]; then
+  meow_aviso "não consigo olhar $DESTINO sem a ponte — tela de login pendente"
   exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 fi
 
@@ -159,10 +154,8 @@ id "$DONO" >/dev/null 2>&1 || {
 }
 
 # --- o que mudaria ----------------------------------------------------------
-# Compara por CONTEÚDO (regra 5). `sudo cat` por arquivo é caro, então a leitura
-# do lado do greeter passa por um `find` só, e a comparação é feita por md5 dos
-# dois lados. Numa árvore de ~190 arquivos isso é a diferença entre uma dúzia de
-# chamadas de sudo e duzentas.
+# Compara por CONTEÚDO (regra 5): o lado do greeter vem num `greeter-ver` só da
+# ponte, e a comparação é feita por md5 dos dois lados.
 pendentes=()
 for arvore in "${ARVORES[@]}"; do
   [ -d "$CAPTURA/$arvore" ] || continue
@@ -175,18 +168,8 @@ for arvore in "${ARVORES[@]}"; do
   # `-mindepth 1` para o caminho relativo nunca ser "."
   while IFS= read -r rel; do
     fonte="$CAPTURA/$arvore/$rel"
-    dest="$DESTINO/$arvore/$rel"
-    if [ "$GREETER_VISTO" = "1" ]; then
-      # A árvore já foi lida inteira; aqui é só comparar dois md5.
-      if [ "${GREETER_MD5["$arvore/$rel"]:-}" != "$(md5sum < "$fonte" | cut -d' ' -f1)" ]; then
-        pendentes+=("$arvore/$rel")
-      fi
-      continue
-    fi
-    if ! sudo -n test -f "$dest" 2>/dev/null; then
-      pendentes+=("$arvore/$rel"); continue
-    fi
-    if ! sudo -n cmp -s "$fonte" "$dest" 2>/dev/null; then
+    # A árvore já foi lida inteira pela ponte; aqui é só comparar dois md5.
+    if [ "${GREETER_MD5["$arvore/$rel"]:-}" != "$(md5sum < "$fonte" | cut -d' ' -f1)" ]; then
       pendentes+=("$arvore/$rel")
     fi
   done < <(cd "$CAPTURA/$arvore" && find . -mindepth 1 -type f -printf '%P\n' | sort)
@@ -210,7 +193,7 @@ fi
 # da ponte ia para o `/dev/null`, e a única frase na tela era "a ponte recusou":
 # a ponte recusava TODA chamada (uma opção de tar que não existe, ver o bloco do
 # `greeter-aplicar` em scripts/ponte_root.sh) e ninguém tinha como ver. Agora o
-# que a ponte e o sudo disseram vem junto, na mesma linha.
+# que a ponte disse vem junto, na mesma linha.
 if meow_ponte_viva; then
   if motivo="$( { tar -c -C "$CAPTURA" -f - "${pendentes[@]}" | meow_ponte greeter-aplicar >/dev/null; } 2>&1 )"; then
     meow_muda "tela de login vestida com '$ALVO' (${#pendentes[@]} arquivo(s), pela ponte)"
@@ -218,29 +201,9 @@ if meow_ponte_viva; then
     exit "$MEOW_DIVERGENTE"
   fi
   motivo="$(printf '%s' "$motivo" | sed 's/^ponte_root: //' | paste -sd';' - | sed 's/;/; /g')"
-  meow_aviso "a ponte recusou vestir a tela de login (${motivo:-ela não disse por quê}) — tentando pelo caminho antigo"
+  meow_aviso "a ponte recusou vestir a tela de login (${motivo:-ela não disse por quê})"
+  exit "$MEOW_ERRO"
 fi
 
-if ! sudo -n true 2>/dev/null; then
-  meow_aviso "a tela de login precisa de sudo (${#pendentes[@]} arquivo(s) pendentes)"
-  exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
-fi
-
-# --- escrever ---------------------------------------------------------------
-# `install -D` cria o diretório-pai, escreve e ajusta dono e modo numa chamada só;
-# sem ele seriam três, e um `chown` esquecido deixa o greeter sem poder LER a
-# própria configuração — que falha silenciosa, de novo com o tema de fábrica.
-erros=0
-for rel in "${pendentes[@]}"; do
-  if ! sudo install -D -o "$DONO" -g "$DONO" -m 644 \
-        "$CAPTURA/$rel" "$DESTINO/$rel" 2>/dev/null; then
-    meow_erro "não consegui escrever $DESTINO/$rel"
-    erros=$((erros + 1))
-  fi
-done
-
-[ "$erros" -eq 0 ] || exit "$MEOW_ERRO"
-
-meow_ok "tela de login vestida com '$ALVO' (${#pendentes[@]} arquivo(s))"
-meow_info "aparece no próximo logout — o greeter lê a configuração ao subir"
-exit "$MEOW_DIVERGENTE"
+meow_aviso "a tela de login espera a ponte (${#pendentes[@]} arquivo(s) pendentes)"
+exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
