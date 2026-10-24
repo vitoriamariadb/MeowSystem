@@ -1612,6 +1612,9 @@ zz_amb() {
     ACCENT=mauve MEOW_PONTE=/nao/existe ICONES_DRACULA=sim "$@" 2>&1
 }
 zz_modulo() { zz_amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/scripts/temas-de-apps/zapzap/manifesto.sh"; meow_app_$0' "$1"; }
+# O traço de 48 px de antes (o de 25/09 da máquina real) não pode sobrar.
+mkdir -p "$ZC/.local/share/icons/MeowSystem-Icons/48x48/apps"
+printf '<svg xmlns="http://www.w3.org/2000/svg"/>\n' > "$ZC/.local/share/icons/MeowSystem-Icons/48x48/apps/meow-whatsapp.svg"
 for _ in 1 2; do
   zz_modulo aplicar >/dev/null
   zz_amb bash "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar >/dev/null
