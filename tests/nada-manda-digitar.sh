@@ -132,8 +132,8 @@ fi
 printf '\n--- 5. a pendência aponta o botão que resolve, e não o comando ---\n'
 saida="$(env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
   bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_pendencia_acionavel starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship"' 2>&1)"
-if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Instalar o starship»' <<< "$saida"; then
-  ok "a linha «resolve:» diz o botão («Instalar o starship»), sem o comando"
+if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Resolver», em Cuidar' <<< "$saida"; then
+  ok "a linha «resolve:» diz o botão («Resolver», em Cuidar), sem o comando"
 else
   falha "a pendência ainda manda digitar o comando" "$saida"
 fi
