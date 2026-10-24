@@ -96,6 +96,12 @@ meow_desinstalar() {
     fi
   fi
 
+  # Os pacotes do LibreOffice que a troca pelo OnlyOffice tirou voltam pelo apt,
+  # e voltam pela ponte, que ainda está de pé aqui.
+  if [ -x "$MEOW_RAIZ/scripts/escritorio.sh" ]; then
+    "$MEOW_RAIZ/scripts/escritorio.sh" reverter || true
+  fi
+
   # Até aqui o `--uninstall` deixava para trás as duas peças com privilégio: a
   # regra `/etc/sudoers.d/49-meowsystem-ponte` e o braço
   # `/usr/local/lib/meowsystem/ponte_root.sh`.
@@ -177,6 +183,12 @@ meow_desinstalar() {
   # ARQUIVOS, e esta é uma LINHA dentro de um arquivo que nem nosso é.
   if [ -x "$MEOW_RAIZ/scripts/fastfetch_logo.sh" ]; then
     "$MEOW_RAIZ/scripts/fastfetch_logo.sh" reverter || true
+  fi
+
+  # O override do Flatpak do usuário é arquivo do flatpak, e o manifesto não o
+  # alcança: o reverter devolve só as chaves que o MeowSystem mexeu.
+  if [ -x "$MEOW_RAIZ/scripts/flatpak_tema.sh" ]; then
+    "$MEOW_RAIZ/scripts/flatpak_tema.sh" reverter || true
   fi
 
   meow_passo "3/6 Tema do COSMIC"

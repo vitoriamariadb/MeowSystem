@@ -1824,6 +1824,25 @@ etapa_cursor() {
   return $?
 }
 
+# Os apps Flatpak não leem o tema do COSMIC: o override do usuário aponta para o
+# tema de ícones, o cursor e o GTK de cima. O global do sistema com tema perdido
+# só sai pela ponte root; sem ela, a etapa se pula como as do `/usr/share`.
+etapa_flatpak_tema() {
+  passo "Flatpak veste o tema"
+  CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$MEOW_RAIZ/scripts/flatpak_tema.sh" aplicar
+  return $?
+}
+
+# O escritório é o OnlyOffice: ele vem do Flathub do usuário quando falta, e só
+# então o apt tira o LibreOffice pela ponte root (a senha única do install). Vai
+# antes da etapa dos apps, que veste o OnlyOffice com o tema do pack.
+etapa_escritorio() {
+  passo "Escritório: OnlyOffice no lugar do LibreOffice"
+  "$MEOW_RAIZ/scripts/escritorio.sh" aplicar
+  return $?
+}
+
 etapa_som() {
   passo "Som de evento"
   "$MEOW_RAIZ/scripts/som.sh" aplicar
@@ -3735,7 +3754,7 @@ main() {
                 etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_ocultar_casa etapa_janela_dock
-                etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
+                etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_flatpak_tema etapa_escritorio etapa_apps
                 etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
                 etapa_midia_build etapa_midia etapa_leitura_applet etapa_lancador etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
@@ -3858,7 +3877,7 @@ main() {
         if [ "$p" = "greeter" ] && [ -n "${TEMA_SEM_CAPTURA:-}" ]; then
           sem_captura="$TEMA_SEM_CAPTURA"; continue
         fi
-        case "$p" in greeter|ocultar|nomes|absolutos) por_root=1; de_root="${de_root:+$de_root }$p" ;; esac
+        case "$p" in greeter|ocultar|nomes|absolutos|flatpak_tema|escritorio) por_root=1; de_root="${de_root:+$de_root }$p" ;; esac
       done
       # A RECEITA DO SUDO VIROU PENDÊNCIA — 10/10/2026, P79 (item 5). A frase
       #   terminava em «Para completá-las:  sudo -v && ./install.sh», e dentro

@@ -74,7 +74,7 @@ mauve,meutema,#BD93F9
 
 - **As colunas são fixas**, separadas por vírgula, e a primeira linha é esse
   cabeçalho. Uma linha por cor; os 26 nomes de `slot` são os da seção abaixo,
-  em minúsculas. Um CSV exportado com BOM (o Excel e o LibreOffice fazem isso)
+  em minúsculas. Um CSV exportado com BOM (o Excel faz isso)
   é lido igual. O Excel em português salva com `;`: o erro avisa, e é trocar
   os `;` por `,`.
 - **O `flavor` é uma palavra só, em minúsculas, de letras `a-z` e dígitos** —

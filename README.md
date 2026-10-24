@@ -13,8 +13,8 @@
 [![linguagens](https://img.shields.io/badge/bash%204.3+-python%203%20s%C3%B3%20stdlib-A6E3A1?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 ![versão](https://img.shields.io/badge/vers%C3%A3o-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 
-[![instalador](https://img.shields.io/badge/instalador-66%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-69%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![instalador](https://img.shields.io/badge/instalador-68%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-73%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 [![conferência do navegador](https://img.shields.io/badge/navegador-123%2F123-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Tema, ícones, painel, dock, terminal, tela de login, papel de parede e os temas de dentro dos
@@ -43,7 +43,7 @@ cd MeowSystem
 meow ativar               # todas as outras
 ```
 
-São 66 etapas. Numa máquina já pronta, rodar de novo **não escreve um byte** e diz isso. Para
+São 68 etapas. Numa máquina já pronta, rodar de novo **não escreve um byte** e diz isso. Para
 ensaiar antes: `MEOW_DRY_RUN=1 ./install.sh`, ou **Ver sem mudar** no painel.
 
 A senha do sudo é pedida **uma vez**, para registrar a ponte root: um conjunto fechado de verbos
@@ -146,7 +146,7 @@ fábrica. Ação que baixa da internet leva o selo de rede.
 ## O doctor conserta
 
 ```bash
-meow doctor                            # 69 conferências. Não escreve nada.
+meow doctor                            # 73 conferências. Não escreve nada.
 meow doctor --consertar                # conserta o que estiver fora do lugar
 meow desfazer                          # devolve o tema de antes desta máquina
 ./install.sh --uninstall               # tira tema, ícones e agendamentos

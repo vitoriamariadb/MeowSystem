@@ -13,8 +13,8 @@
 [![languages](https://img.shields.io/badge/bash%204.3+-python%203%20stdlib%20only-A6E3A1?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 
-[![installer](https://img.shields.io/badge/installer-66%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-69%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![installer](https://img.shields.io/badge/installer-68%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-73%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 [![browser suite](https://img.shields.io/badge/browser-123%2F123-F5C2E7?style=for-the-badge&labelColor=1E1E2E)](tests/app-navegador.py)
 
 Theme, icons, panel, dock, terminal, login screen, wallpaper and the themes inside your programs,
@@ -43,7 +43,7 @@ cd MeowSystem
 meow ativar               # every other run
 ```
 
-66 steps. On a machine already set up, running it again **writes nothing** and says so. To
+68 steps. On a machine already set up, running it again **writes nothing** and says so. To
 rehearse first: `MEOW_DRY_RUN=1 ./install.sh`, or **Ver sem mudar** (see what it would do) in
 the panel.
 
@@ -150,7 +150,7 @@ badge.
 ## The doctor fixes
 
 ```bash
-meow doctor                            # 69 checks. Writes nothing.
+meow doctor                            # 73 checks. Writes nothing.
 meow doctor --consertar                # fixes whatever is out of place
 meow desfazer                          # restores this machine's previous theme
 ./install.sh --uninstall               # removes theme, icons and timers

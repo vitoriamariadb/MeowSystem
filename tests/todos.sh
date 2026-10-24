@@ -80,6 +80,8 @@ PORTATIL=(
   tres-pastas.sh         # o formato de três pastas: os três packs, a quarta pasta, o.meowpack de antes convertido, packs e HOME de brinquedo; bash, python3 e zstd
   vizinhos.sh            # o inventário dos vizinhos e o desligar com volta, numa casa de brinquedo com zsh, systemd, apt e repositório falsos; só bash
   lancador-do-meow.sh    # pontes de app_id, lançador órfão, mimeinfo.cache e o ocultar fora de /usr/share, numa casa de brinquedo com flatpak e update-desktop-database falsos; bash e python3
+  flatpak-tema.sh        # o override do Flatpak do usuário, o global do sistema pela cópia da ponte e os dois scripts do NitroKit, com flatpak, sudo e gsettings falsos, casa de brinquedo; bash e python3
+  escritorio.sh          # o OnlyOffice do Flathub no lugar do LibreOffice, a ponte root de brinquedo e o desinstalador que devolve, com flatpak, dpkg-query, apt-get e sudo falsos, casa de brinquedo; só bash
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por
@@ -249,6 +251,13 @@ _so_leitura systemctl '" is-active "|" is-enabled "|" is-failed "|" is-system-ru
 _so_leitura gsettings '" get "|" list-schemas "|" list-relocatable-schemas "|" list-keys "|" list-children "|" list-recursively "|" range "|" describe "|" writable "|" help "'
 _so_leitura dconf '" read "|" list "|" dump "|" help "'
 _so_leitura busctl '" list "|" status "|" tree "|" introspect "|" get-property "|" help "'
+# O instalador numa casa de brinquedo pedia ao flatpak de verdade o OnlyOffice
+# do Flathub (centenas de MB por rodada). Só a leitura passa, e o override
+# do usuário, que cai na casa de brinquedo.
+_so_leitura flatpak '" list "|" info "|" remotes "|" remote-ls "|" ps "|" --version "'
+_flatpak_real="$(command -v flatpak 2>/dev/null)" || _flatpak_real=""
+sed -i "2a case \" \$* \" in *\" override\"*\" --user \"*|*\" --user\"*\" override \"*) [ -n \"$_flatpak_real\" ] \&\& exec \"$_flatpak_real\" \"\$@\"; exit 1 ;; esac" \
+  "$SUITE_TMP/falso/flatpak"
 unset DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR WAYLAND_DISPLAY DISPLAY
 [ -d "$CASA_REAL/.cache/ms-playwright" ] && \
   export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$CASA_REAL/.cache/ms-playwright}"

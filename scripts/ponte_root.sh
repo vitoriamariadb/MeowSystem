@@ -56,7 +56,10 @@
 #     09/10/2026) instala só nomes de uma lista LITERAL aqui dentro — ver o
 #     bloco dele;
 #   · não apaga nada fora dos dois caminhos do hook de apt e do da completion
-#     do zsh (este desde a P47, 24/09/2026).
+#     do zsh (este desde a P47, 24/09/2026), das três chaves de tema do
+#     override global do Flatpak que apontam para tema que não existe, e dos
+#     pacotes `libreoffice*` que o dpkg diz estarem instalados (com a ponte UNO
+#     que sai junto com eles).
 #
 # O QUE ELA CUSTA, DITO SEM ENFEITE: quem puder rodar comando como a dona da
 # máquina passa a poder, sem senha, marcar `.desktop` de sistema, atualizar os
@@ -93,6 +96,8 @@ PERFIL=/usr/local/lib/meowsystem/perfil
 COMPLETION=/usr/local/share/zsh/site-functions/_meow
 REGRA=/etc/sudoers.d/49-meowsystem-ponte
 PONTE=/usr/local/lib/meowsystem/ponte_root.sh
+FLATPAK_GLOBAL=/var/lib/flatpak/overrides/global
+USR_SHARE=/usr/share
 
 morrer() { printf 'ponte_root: %s\n' "$1" >&2; exit "${2:-2}"; }
 
@@ -117,6 +122,22 @@ conferir_desktop() {
   esac
   [ "${#nome}" -le 128 ] || morrer "nome comprido demais"
   [ -f "$APLICATIVOS/$nome" ] || morrer "$APLICATIVOS/$nome não existe — esta ponte edita, não cria" 3
+}
+
+# O que é do LibreOffice e não começa por `libreoffice`: a ponte UNO, que depende
+# do `libreoffice-core` e sai com ele. É a lista que o `purge` pode levar junto e
+# que a volta aceita.
+do_libreoffice() {
+  case "$1" in
+    libreoffice*|python3-uno|ure|ure-java|uno-libs-private|libuno-*|libunoloader-java) return 0 ;;
+  esac
+  return 1
+}
+
+# Os `libreoffice*` instalados (ou só com a configuração que sobrou), um por linha.
+libreoffice_instalados() {
+  dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'libreoffice*' 2>/dev/null \
+    | awk '$1 ~ /^.[ic]/ && $2 ~ /^libreoffice/ { print $2 }'
 }
 
 verbo="${1:-}"
@@ -291,6 +312,85 @@ completion-remover)
   anotar "completion-remover"
   ;;
 
+# --- o override global do Flatpak --------------------------------------------
+# O NitroKit pôs `ICON_THEME`, `GTK_THEME` e `XCURSOR_THEME` no override do
+# SISTEMA, apontando para temas que a máquina pode já não ter. O dado entra por
+# stdin, `CHAVE=valor` por linha, e só passa a chave das três com o valor que o
+# arquivo tem de fato e cujo tema não existe em /usr/share nem no lar do perfil:
+# o tema que existe fica. Só essas linhas saem; o resto do arquivo é preservado.
+flatpak-global-limpar)
+  [ -f "$FLATPAK_GLOBAL" ] || exit 0
+  lar=""
+  [ -r "$PERFIL" ] && lar="$(sed -n 's/^lar=//p' "$PERFIL" | head -n1)"
+  case "$lar" in ''|/*) ;; *) morrer "lar inválido no perfil" ;; esac
+  tmp="$(mktemp)"; pedidos="$(mktemp)"; trap 'rm -f "$tmp" "$pedidos"' EXIT
+  while IFS= read -r linha || [ -n "${linha:-}" ]; do
+    [ -n "$linha" ] || continue
+    chave="${linha%%=*}"; valor="${linha#*=}"
+    case "$chave" in ICON_THEME|XCURSOR_THEME|GTK_THEME) ;; *) morrer "chave fora da lista desta ponte: $chave" ;; esac
+    case "$valor" in ''|.*|*[!A-Za-z0-9._+-]*) morrer "nome de tema inválido" ;; esac
+    [ "${#valor}" -le 128 ] || morrer "nome de tema comprido demais"
+    grep -qxF -- "$chave=$valor" "$FLATPAK_GLOBAL" || continue
+    existe=0
+    for raiz in "$USR_SHARE/icons" "$USR_SHARE/themes" \
+                ${lar:+"$lar/.local/share/icons" "$lar/.local/share/themes" "$lar/.icons" "$lar/.themes"}; do
+      [ -d "$raiz/$valor" ] && existe=1
+    done
+    [ "$existe" = "1" ] || printf '%s=%s\n' "$chave" "$valor" >> "$pedidos"
+  done
+  [ -s "$pedidos" ] || exit 0
+  # O grupo que ficou sem chave sai junto: um `[Environment]` vazio é lixo.
+  { grep -vxF -f "$pedidos" "$FLATPAK_GLOBAL" || true; } | awk '
+    function solta() { if (cab != "" && n > 0) printf "%s", buf; cab = ""; buf = ""; n = 0 }
+    /^\[/ { solta(); cab = $0; buf = $0 "\n"; next }
+    cab == "" { print; next }
+    NF { buf = buf $0 "\n"; n++; next }
+    { buf = buf "\n" }
+    END { solta() }' > "$tmp"
+  if grep -q . "$tmp"; then
+    install -m 644 -o root -g root "$tmp" "$FLATPAK_GLOBAL" || morrer "não consegui escrever $FLATPAK_GLOBAL"
+  else
+    rm -f "$FLATPAK_GLOBAL"
+  fi
+  anotar "flatpak-global-limpar $(tr '\n' ' ' < "$pedidos")"
+  ;;
+
+# --- o LibreOffice sai (o escritório é o OnlyOffice) --------------------------
+# `libreoffice-remover` não recebe nada: a lista é a que o dpkg dá para
+# `libreoffice*` AGORA. Antes do `purge` o apt simula (no purge a linha é `Purg`,
+# não `Remv`), e se levaria junto o que não é do LibreOffice o verbo recusa
+# inteiro. O stdout é a lista do que sai, para a volta; a fala do apt vai ao stderr.
+libreoffice-remover)
+  mapfile -t pacotes < <(libreoffice_instalados)
+  [ "${#pacotes[@]}" -gt 0 ] || exit 0
+  export DEBIAN_FRONTEND=noninteractive
+  simulado="$(apt-get -s purge "${pacotes[@]}" 2>/dev/null)" || morrer "o apt não simulou a remoção"
+  mapfile -t saem < <(printf '%s\n' "$simulado" | awk '/^(Purg|Remv) / { sub(/:.*/, "", $2); print $2 }')
+  outros=""
+  for p in "${saem[@]}"; do do_libreoffice "$p" || outros+="$p "; done
+  [ -z "$outros" ] || morrer "o apt tiraria junto o que não é do LibreOffice ($outros): não toco em nada"
+  anotar "libreoffice-remover ${#saem[@]} pacotes"
+  printf '%s\n' "${pacotes[@]}" "${saem[@]}" | sort -u
+  apt-get purge -y "${pacotes[@]}" >&2 || exit 2
+  ;;
+
+# `libreoffice-devolver` é a volta, para o desinstalador: os nomes entram por
+# stdin, um por linha, e só passa o que é do LibreOffice com os caracteres de
+# um nome de pacote. Um nome fora derruba o verbo antes do apt.
+libreoffice-devolver)
+  pedidos=()
+  while IFS= read -r nome || [ -n "${nome:-}" ]; do
+    [ -n "$nome" ] || continue
+    case "$nome" in *[!a-z0-9.+-]*) morrer "nome de pacote inválido" ;; esac
+    do_libreoffice "$nome" || morrer "pacote fora do LibreOffice: $nome"
+    pedidos+=("$nome")
+  done
+  [ "${#pedidos[@]}" -gt 0 ] || morrer "stdin vazio"
+  export DEBIAN_FRONTEND=noninteractive
+  anotar "libreoffice-devolver ${#pedidos[@]} pacotes"
+  apt-get install -y --no-install-recommends "${pedidos[@]}" || exit 2
+  ;;
+
 # --- a máquina em dia ------------------------------------------------------
 # `full-upgrade` dos repositórios JÁ configurados. Esta ponte não acrescenta
 # repositório, não instala pacote por nome e não roda `.deb`.
@@ -404,6 +504,9 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE apt-hook-remover, \\
     $PONTE completion-instalar, \\
     $PONTE completion-remover, \\
+    $PONTE flatpak-global-limpar, \\
+    $PONTE libreoffice-remover, \\
+    $PONTE libreoffice-devolver, \\
     $PONTE atualizar, \\
     $PONTE pacotes, \\
     $PONTE limpar, \\
@@ -417,7 +520,8 @@ REGRA_FIM
   sed -n '2,60p' "$0"
   printf '\nverbos: desktop · desktop-banco · greeter-ver · greeter-aplicar ·\n'
   printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
-  printf '        completion-remover · atualizar · pacotes · limpar · estado ·\n'
+  printf '        completion-remover · flatpak-global-limpar · libreoffice-remover ·\n'
+  printf '        libreoffice-devolver · atualizar · pacotes · limpar · estado ·\n'
   printf '        regra-sudo\n'
   ;;
 
