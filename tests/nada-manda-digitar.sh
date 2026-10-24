@@ -33,7 +33,7 @@ printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
 # Isenta, pelo nome: a linha de uso de um verbo (`uso: meow …`, que responde a
 # quem já está digitando).
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
-FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com ')"
+FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com '|acrescente .*à mão|tire a linha à mão|faça uma vez, à mão)"
 achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
              | grep -vE '"uso: meow ')"
 if [ -z "$achados" ]; then

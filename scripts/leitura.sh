@@ -648,7 +648,7 @@ cmd_estado() {
   elif grep -qs "\"$LEITURA_APPLET_ID\"" "$LEITURA_APPLET_MEIO"; then
     meow_ok "$(_leitura_col "applet: na topbar")citado no plugins_center"
   else
-    meow_pula "$(_leitura_col "applet: na topbar")NÃO citado nem nas asas nem no meio — acrescente \"$LEITURA_APPLET_ID\" à mão"
+    meow_pula "$(_leitura_col "applet: na topbar")fora das asas e do meio (a ordem dos applets é de quem usa)"
   fi
 
   # AS DUAS PERGUNTAS QUE NINGUÉM VÊ HOJE, E QUE SÃO DIFERENTES: o binário do

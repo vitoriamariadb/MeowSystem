@@ -193,13 +193,11 @@ _conferir() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  # (2) A asa é AVISO, nunca divergência: o arquivo é da Aurora e nenhum script
+  # (2) A asa é informação, nunca divergência: o arquivo é de quem usa e nenhum script
   # nosso escreve nele. Um `--consertar` que não pode consertar é uma linha
   # amarela eterna, e linha amarela eterna se aprende a ignorar.
   if ! _asa_cita; then
-    meow_aviso "o applet está instalado, mas a topbar não o cita — acrescente \"$APP_ID\" à mão em:"
-    meow_aviso "  $ASA (as asas) ou $MEIO (o meio)"
-    meow_aviso "  (o painel recria a topbar na hora; o shader é que espera o logout)"
+    meow_info "o applet está instalado, e a topbar não o cita (a ordem dos applets é de quem usa)"
   fi
 
   meow_ok "applet do modo de leitura $(_sha "$BINARIO" | cut -c1-8) já é o do repositório"
@@ -379,12 +377,8 @@ _aplicar() {
   meow_ok "applet do modo de leitura compilado e instalado ($(_sha "$BINARIO" | cut -c1-8))"
   meow_pendencia_resolvida leitura-applet
   if ! _asa_cita; then
-    meow_aviso "falta a última peça, e ela é à mão: acrescente \"$APP_ID\" a"
-    meow_aviso "  $ASA"
-    # A frase dizia "arquivo da Aurora" até a P44 (24/09/2026). É a ordem dos
-    # applets da topbar, do COSMIC e de quem usa — nome de outro projeto na
-    # tela não diz a ninguém de quem é o arquivo.
-    meow_aviso "  (é a sua ordem de applets: escrever nele RECRIA a topbar na hora — faça uma vez, à mão)"
+    # A ordem dos applets da topbar é de quem usa: o MeowSystem não escreve nela.
+    meow_info "a topbar não cita o applet ainda (a ordem dos applets é de quem usa)"
   else
     meow_info "a topbar já cita o applet — ele sobe junto com o painel"
   fi
@@ -423,8 +417,7 @@ _reverter() {
     return "$MEOW_OK"
   fi
   if _asa_cita; then
-    meow_aviso "a topbar ainda cita \"$APP_ID\" — tire a linha à mão de $ASA"
-    meow_aviso "  (inofensivo: sem a sombra o painel apenas ignora o nome)"
+    meow_info "a topbar ainda cita \"$APP_ID\", e sem a sombra o painel ignora o nome"
   fi
   meow_ok "applet do modo de leitura removido — a topbar volta sem ele no próximo login"
   return "$MEOW_DIVERGENTE"
