@@ -189,6 +189,29 @@ s5="$(wpp PACK=meowsystem)"; r5=$?
 [ "$r5" = 1 ] && [ "$(fonte)" = "$BP/ativos" ] && [ ! -e "$BP/ativos-pack" ] \
   && ok "sem papel de outro pack, gira ativos/ e a pasta da coleção sai" \
   || falha "sem papel de outro pack a rotação não voltou a ativos/ (rc=$r5, fonte=$(fonte))" "$s5"
+printf '\n--- 9. sem cosmic-greeter, a ponte responde e nenhum sudo sai dela ---\n'
+GT="$T/greeter"; mkdir -p "$GT/bin" "$GT/ponte" "$GT/casa"
+cat > "$GT/ponte/ponte_root.sh" <<'PONTE'
+#!/bin/sh
+case "$1" in estado) exit 0 ;; greeter-ver) exit 3 ;; *) exit 1 ;; esac
+PONTE
+chmod 755 "$GT/ponte/ponte_root.sh"
+printf 'lar=%s\n' "$GT/casa" > "$GT/ponte/perfil"
+cat > "$GT/bin/sudo" <<SUDO
+#!/bin/sh
+[ "\$1" = -n ] && shift
+[ "\$1" = "$GT/ponte/ponte_root.sh" ] && exec "\$@"
+printf '%s\\n' "\$*" >> "$GT/fora.log"; exit 1
+SUDO
+chmod 755 "$GT/bin/sudo"; : > "$GT/fora.log"
+for c in busctl gsettings pkexec; do ln -sf "$T/falso/$c" "$GT/bin/$c"; done
+env -i PATH="$GT/bin:$PATH" HOME="$GT/casa" USER=gata MEOW_RAIZ="$RAIZ" MEOW_PONTE="$GT/ponte/ponte_root.sh" \
+    GREETER_HOME="$GT/sem-greeter" NO_COLOR=1 FLAVOR=dracula PACK=dracula \
+    bash "$RAIZ/scripts/greeter.sh" > "$GT/saida.log" 2>&1; rg=$?
+[ ! -s "$GT/fora.log" ] && [ "$rg" = 0 ] && grep -q 'não há cosmic-greeter' "$GT/saida.log" \
+  && ok "sem cosmic-greeter, a ponte diz que não há e o greeter.sh não chama sudo fora dela" \
+  || falha "o greeter.sh chamou sudo fora da ponte, ou não pulou (rc=$rg)" "$(cat "$GT/fora.log" "$GT/saida.log")"
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: os achados técnicos da P79 estão fechados\n'
