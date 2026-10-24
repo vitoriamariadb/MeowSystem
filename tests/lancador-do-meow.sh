@@ -92,6 +92,20 @@ confere "o reverter devolve os três byte a byte" \
   '[ "$rc" = 1 ] && cmp -s "$APPS/morto.desktop" "$T/morto-original.desktop" && [ -f "$APPS/flatpak-morto.desktop" ] && [ -f "$APPS/embrulhado.desktop" ] && [ ! -e "$Q/morto.desktop" ]'
 rm -f "$APPS"/*.desktop "$APPS/mimeinfo.cache"; rm -rf "$Q"
 
+printf '\n2b. sem update-desktop-database, a cache que ninguém refaz não vira «mexeu» a cada passada\n'
+mkdir -p "$T/semudd"
+for f in /usr/bin/* /bin/*; do
+  [ "${f##*/}" = update-desktop-database ] || ln -sf "$f" "$T/semudd/${f##*/}" 2>/dev/null
+done
+for f in sudo pkexec flatpak; do ln -sf "$T/bin/$f" "$T/semudd/$f"; done
+desktop "$APPS/vivo.desktop" 'Type=Application' 'Name=Vivo' 'Exec=true'
+antes="$(foto)"
+rc1="$(env -i PATH="$T/semudd" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 XDG_DATA_DIRS="$FLAT:$LOCAL:$T/sistema" \
+  MEOW_APLICATIVOS_SISTEMA="$SIS" MEOW_APLICATIVOS_FLATPAK="$T/vazio" bash "$RAIZ/scripts/lancador.sh" --aplicar >/dev/null 2>&1; echo $?)"
+confere "sem quem refaça a cache e sem órfão, o aplicar não diz que mexeu nem escreve" \
+  '[ "$rc1" != 1 ] && [ "$antes" = "$(foto)" ]'
+rm -f "$APPS/vivo.desktop"
+
 printf '\n3. o ocultar alcança flatpak, /usr/local e o home\n'
 desktop "$SIS/do-apt.desktop" 'Type=Application' 'Name=Do Apt' 'Exec=true'
 desktop "$FLAT/applications/org.example.Flat.desktop" 'Type=Application' 'Name=Flat' 'Name[pt_BR]=Chato' \

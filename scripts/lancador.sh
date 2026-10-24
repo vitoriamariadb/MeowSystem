@@ -83,7 +83,8 @@ orfaos="$(python3 "$RAIZ/scripts/lancador_orfaos.py")" || {
 
 n="$(printf '%s' "$orfaos" | grep -c .)"
 velha=0
-_cache_velha && velha=1
+# Sem o update-desktop-database ninguém refaz a cache: velha não é divergência.
+meow_tem update-desktop-database && _cache_velha && velha=1
 
 if [ "$n" = 0 ] && [ "$velha" = 0 ]; then
   meow_ok "lançador do home sem órfão, e o mimeinfo.cache em dia"
@@ -114,6 +115,9 @@ while IFS=$'\t' read -r arq nome alvo; do
   meow_info "$nome foi para a quarentena ($destino)"
 done <<< "$orfaos"
 
-_refazer_cache
-meow_ok "lançador do home conforme: $n na quarentena, mimeinfo.cache refeito"
+if _refazer_cache; then
+  meow_ok "lançador do home conforme: $n na quarentena, mimeinfo.cache refeito"
+else
+  meow_ok "lançador do home conforme: $n na quarentena"
+fi
 exit "$MEOW_DIVERGENTE"
