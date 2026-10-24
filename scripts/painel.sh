@@ -186,6 +186,14 @@ reciclar() {
   # ele que a gaveta do painel lê para dizer «recarregou» em vez de «nada a
   # recarregar» — antes ela dizia «já estava certo» com o PID do painel novo.
   meow_muda "SIGTERM no cosmic-panel — ele volta em uns 2 s"
+  # Os applets ANTES do painel (18/10/2026). Com o painel caindo primeiro, cada
+  # applet perdia o Wayland, abortava e deixava um coredump — ~8 por reciclo,
+  # 32 por dia no coredumpctl. Com SIGTERM direto eles saem limpos, sem core; o
+  # painel novo sobe todos de novo (o velho não repõe applet que saiu sem erro).
+  local filhos="" _p
+  for _p in $alvos; do filhos="$filhos $(pgrep -P "$_p" | tr '\n' ' ')"; done
+  # shellcheck disable=SC2086  # um PID por palavra, de propósito
+  [ -n "${filhos// /}" ] && kill -TERM $filhos 2>/dev/null
   # shellcheck disable=SC2086  # um PID por palavra, de propósito
   kill -TERM $alvos 2>/dev/null
   return "$MEOW_OK"
