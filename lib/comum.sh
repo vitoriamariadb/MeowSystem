@@ -350,9 +350,14 @@ meow_flavor() {
   padrao="$(python3 -I - "$MEOW_RAIZ/scripts" "${PACK:-}" "${FLAVOR:-}" <<'PYFIM' 2>/dev/null
 import sys
 sys.path.insert(0, sys.argv[1])
-import pack
+import json, os, pack
 v = pack.vocabulario(pack.adocao(sys.argv[2], sys.argv[3])[0])
-print(sys.argv[3] if sys.argv[3] in [f["id"] for f in v["flavors"]] else v["flavor_padrao"])
+# A paleta escolhida à mão (MEOW_PALETA que não é a da ponte) vence o pack.
+pal = os.environ.get("MEOW_PALETA", "")
+if pal == os.environ.get("MEOW_PALETA_DA_PONTE", ""):
+    pal = ""
+nomes = list(json.load(open(pal, encoding="utf-8"))["flavors"]) if pal else [f["id"] for f in v["flavors"]]
+print(sys.argv[3] if sys.argv[3] in nomes else v["flavor_padrao"])
 PYFIM
 )"
   if [ -z "$padrao" ] && [ -n "${FLAVOR:-}" ]; then
