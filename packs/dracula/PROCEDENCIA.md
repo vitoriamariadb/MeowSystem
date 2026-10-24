@@ -995,7 +995,9 @@ pacote — ver `assets/icones/PROCEDENCIA.md`, seção dos resgatados.
 `icones/sistema/mimetypes/dracula/` e `icones/sistema/mimetypes/alucard/` (656 desenhos cada)
 **não foram copiados nem desenhados aqui**: são derivados, pelo `meow pack
 construir dracula`, do `css-variables/` do acervo do pack Catppuccin
-(`packs/catppuccin/icones/sistema/mimetypes/`, o catppuccin/vscode-icons, MIT). Cada
+(`packs/catppuccin/icones/sistema/mimetypes/`, o catppuccin/vscode-icons, MIT).
+Desde a P96 (23/10/2026) os dois diretórios saíram do pack: o molde mora uma vez só
+em `packs/meowsystem/icones/sistema/`, e a instalação o pinta com esta paleta. Cada
 `var(--vscode-ctp-<papel>)` vira o hex do papel na `packs/meowsystem/paleta.json` deste pack, no
 flavor do diretório. O `LICENSE` da origem vai junto, em
 `icones/sistema/mimetypes/LICENSE`. A conta foi conferida contra a origem no mesmo dia:

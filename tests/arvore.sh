@@ -140,6 +140,31 @@ else
   fi
 fi
 
+# --- 6. O QUE O CREDITOS.md, O PACKS.md E O PROCEDENCIA.md APONTAM EXISTE ----
+#
+# A coluna «onde» do CREDITOS.md e a saída medida do `captura-destino` no
+# PACKS.md ficaram nas pastas de antes da P96 (`packs/catppuccin/`, as
+# subpastas `arcticons/` e `convertidos/`). Um caminho entre crases que começa
+# em `packs/` ou `assets/` ali é do git de hoje.
+sumidos=""
+while IFS= read -r c; do
+  [ -n "$(versionados "$c")" ] || sumidos+="docs/CREDITOS.md: $c"$'\n'
+done < <(grep -oE '`(packs|assets)/[^`<>*{} :]+`' "$RAIZ/docs/CREDITOS.md" | tr -d '`' | sort -u)
+# A coluna «onde» da tabela de acervos do PROCEDENCIA.md do pack-base, idem.
+while IFS= read -r c; do
+  [ -n "$(versionados "$c")" ] || sumidos+="packs/meowsystem/PROCEDENCIA.md: $c"$'\n'
+done < <(awk -F'|' '/^\| acervo \| onde /{t=1; next} t && !/^\|/{t=0} t{print $3}' \
+           "$RAIZ/packs/meowsystem/PROCEDENCIA.md" | grep -oE '`(packs|assets)/[^`<>*{} :]+`' | tr -d '`' | sort -u)
+while IFS= read -r id; do
+  [ -d "$RAIZ/packs/$id" ] || sumidos+="docs/PACKS.md: <clone>/packs/$id/"$'\n'
+done < <(grep -oE '<clone>/packs/[a-z0-9-]+/' "$RAIZ/docs/PACKS.md" | sed 's#<clone>/packs/##; s#/$##' | sort -u)
+if [ -z "$sumidos" ]; then
+  ok "o CREDITOS.md, o PACKS.md e o PROCEDENCIA.md do pack-base só apontam para o que está no git"
+else
+  falha "caminho que não existe mais no CREDITOS.md, no PACKS.md ou no PROCEDENCIA.md do pack-base"
+  printf '%s' "$sumidos" | amostra
+fi
+
 printf '\n'
 if [ "$ACHADOS" = "0" ]; then
   printf 'ok: a fronteira está de pé — o motor em assets/, o tema em packs/\n'

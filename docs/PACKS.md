@@ -1181,7 +1181,7 @@ Cada cópia ganha uma linha no `packs/<id>/PROCEDENCIA.md`:
 | arquivo | de onde | lido de | licença | copiado em | sha256 |
 |---|---|---|---|---|---|
 | `icones/apps/net.waterfox.waterfox.svg` | `m4thewz/dracula-icons`, ramo `circle` — … |  | GPL-3.0 | 2026-09-23 | `a13118bd…` |
-| `icones/apps/guvcview.svg` | este repositório — `assets/icones/resgatados/guvcview.svg` | `pack:dracula:apps/resgatados/guvcview.svg` | a do pacote `guvcview` | 2026-09-17 | `085829f8…` |
+| `icones/biblioteca/guvcview.svg` | este repositório — `assets/icones/resgatados/guvcview.svg` | `pack:dracula:biblioteca/guvcview.svg` | a do pacote `guvcview` | 2026-09-17 | `085829f8…` |
 ```
 
 `lido de` aceita `~/…`, `motor:…`, `pack:<id>:…` ou caminho absoluto, e é só **lido**. Para
@@ -1510,13 +1510,13 @@ ele nasce em `~/.local/state/meowsystem/temas/`.
 `capturar_tema.sh` **não** carrega o `lib/comum.sh` — de propósito, está escrito
 no cabeçalho dele — e fala direto com o `pack.py`, que só conhece
 `MEOW_PACK_DIR`. Uma receita com `PACK=` na frente **não erra: ela acerta o
-alvo errado**, grava a sua foto dentro de `packs/catppuccin/` do clone, e é
+alvo errado**, grava a sua foto dentro de `packs/meowsystem/` do clone, e é
 exatamente o *"pôr a foto do Dracula dentro do pack do Catppuccin"* que o
-`pack.py` passou a impedir. Medido em 22/09/2026:
+`pack.py` passou a impedir (hoje, dentro do pack-base). Medido em 24/10/2026:
 
 ```
 $ env -u MEOW_PACK_DIR PACK=dracula python3 scripts/pack.py captura-destino meu-tema-mauve
-<clone>/packs/catppuccin/temas/capturados/meu-tema-mauve
+<clone>/packs/meowsystem/temas/capturados/meu-tema-mauve
 ```
 
 **Com o pack já ativo no `meow.conf`** (`PACK=meu-tema`, ou um `FLAVOR` com o

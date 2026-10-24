@@ -19,16 +19,16 @@ lado da regra.
 
 | acervo | onde | licença | pode modificar? | pode redistribuir? |
 |---|---|---|---|---|
-| `catppuccin/vscode-icons` | `packs/catppuccin/icones/sistema/mimetypes/<flavor>/` | MIT | sim | sim, com o aviso de copyright |
+| `catppuccin/vscode-icons` | `packs/meowsystem/icones/sistema/` — o molde, pintado na instalação | MIT | sim | sim, com o aviso de copyright |
 | `Daveedmee/catppuccin-icons` | `assets/icones/catppuccin-apps/<flavor>/` | **não declarada** | indefinido | **não** — uso local apenas |
-| Arcticons (sistema) | `packs/meowsystem/icones/sistema/arcticons/` — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
-| Arcticons (aplicativo) | `packs/meowsystem/icones/apps/arcticons/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
-| **convertido do Papirus** | `packs/meowsystem/icones/apps/convertidos/` — **22** SVGs **gerados** | **GPL-3.0** (obra derivada) | sim | sim, **sob GPL** |
-| **desenho à mão do traço** | `packs/meowsystem/icones/apps/convertidos/retoques/` — **3** desenhos + **2** variantes do GIMP | deste projeto (a do GIMP é derivada, GPL-3.0) | — | — |
+| Arcticons (sistema) | `packs/meowsystem/icones/sistema/` e `biblioteca/` (a lista em `icones/arcticons.lista`) — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| Arcticons (aplicativo) | `packs/meowsystem/icones/apps/` e `biblioteca/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| **convertido do Papirus** | `packs/meowsystem/icones/apps/` (o mapa em `icones/apps-convertidos.map`) — **22** SVGs **gerados** | **GPL-3.0** (obra derivada) | sim | sim, **sob GPL** |
+| **desenho à mão do traço** | `packs/meowsystem/icones/apps/` e `biblioteca/` — **3** desenhos + **2** variantes do GIMP | deste projeto (a do GIMP é derivada, GPL-3.0) | — | — |
 | marca de fábrica | `packs/meowsystem/icones/apps-hicolor.map` — **1** nome, copiado do `hicolor` do sistema | a do próprio programa | **não** — cópia literal | não |
 | Papirus / Papirus-Dark | pacote `papirus-icon-theme` do sistema | GPL-3.0 | sim | sim, sob GPL |
-| `catppuccin/papirus-folders` | `assets/icones/upstream/papirus-folders/` | GPL-3.0 | sim | sim, sob GPL |
-| desenho autoral | `packs/<id>/icones/apps/autorais/` e `packs/meowsystem/icones/sistema/leitura/` | deste projeto | — | — |
+| `catppuccin/papirus-folders` | `~/.cache/meowsystem/upstream/papirus-folders/` | GPL-3.0 | sim | sim, sob GPL |
+| desenho autoral | `packs/<id>/icones/apps/` e os `leitura-*.svg` de `packs/meowsystem/icones/sistema/` | deste projeto | — | — |
 
 ## Dois acervos com nome parecido, e cada um veste uma coisa
 
@@ -37,7 +37,7 @@ Já confundiram uma análise inteira. A diferença não é de organização, é 
 *script* (`scripts/construir_pastas.sh`) em vez de apontar para o acervo, o que
 ajudava a confusão. Corrigido em 10/08/2026.
 
-| | `packs/catppuccin/icones/sistema/mimetypes/<flavor>/` | `assets/icones/upstream/papirus-folders/` |
+| | `packs/meowsystem/icones/sistema/` (o molde) | `~/.cache/meowsystem/upstream/papirus-folders/` |
 |---|---|---|
 | upstream | `catppuccin/vscode-icons` | `catppuccin/papirus-folders` |
 | forma | `fill="none"` + `stroke`, `viewBox="0 0 16 16"` — **traço** de árvore de arquivos do VS Code | pasta **cheia**, com dobra, sombra e símbolo interno, 22..64 px |

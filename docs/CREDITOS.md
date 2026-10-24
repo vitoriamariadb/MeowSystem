@@ -18,7 +18,7 @@ acervo — [`packs/meowsystem/PROCEDENCIA.md`](../packs/meowsystem/PROCEDENCIA.m
 
 | projeto | o que dá | licença |
 |---|---|---|
-| [catppuccin/catppuccin](https://github.com/catppuccin/catppuccin) | as quatro flavors e os 14 accents do pack padrão — **toda** cor que este repositório desenha sai de uma paleta, e a de fábrica é `packs/catppuccin/paleta.json` | MIT |
+| [catppuccin/catppuccin](https://github.com/catppuccin/catppuccin) | as quatro flavors e os 14 accents do pack padrão — **toda** cor que este repositório desenha sai de uma paleta, e a de fábrica é `packs/meowsystem/paleta.json` | MIT |
 
 Não existe cor inventada no MeowSystem. Quando um desenho precisa de um tom, ele
 pede o nome (`mauve`, `peach`, `sky`) e a paleta responde com o hex daquela
@@ -28,18 +28,18 @@ flavor. É o que permite trocar Mocha por Latte sem reescrever um arquivo.
 
 | projeto | o que dá | licença | onde |
 |---|---|---|---|
-| [Arcticons](https://github.com/Donnnno/Arcticons) — Donno e colaboradores | **78** glifos de traço (39 de sistema + 39 de aplicativo), recoloridos pela paleta | **CC BY-SA 4.0** | `packs/meowsystem/icones/sistema/arcticons/`, `packs/meowsystem/icones/apps/arcticons/` |
-| [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) | a base sobre a qual o tema é montado, e a arte de origem dos **33** SVGs convertidos para traço | GPL-3.0 | pacote do sistema, `packs/meowsystem/icones/apps/convertidos/` |
-| [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) | as pastas na cor do acento, com o símbolo interno de cada uma — pinado em `f83671d1` | GPL-3.0 | `assets/icones/upstream/papirus-folders/` |
-| [catppuccin/vscode-icons](https://github.com/catppuccin/vscode-icons) | glifos de arquivo do editor (recurso desligado — ver a procedência) | MIT | `packs/catppuccin/icones/mimetypes/` |
+| [Arcticons](https://github.com/Donnnno/Arcticons) — Donno e colaboradores | **78** glifos de traço (39 de sistema + 39 de aplicativo), recoloridos pela paleta | **CC BY-SA 4.0** | `packs/meowsystem/icones/` (`apps/`, `sistema/` e `biblioteca/`; a lista em `arcticons.lista`) |
+| [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) | a base sobre a qual o tema é montado, e a arte de origem dos **33** SVGs convertidos para traço | GPL-3.0 | pacote do sistema, `packs/meowsystem/icones/apps/` (o mapa em `apps-convertidos.map`) |
+| [catppuccin/papirus-folders](https://github.com/catppuccin/papirus-folders) | as pastas na cor do acento, com o símbolo interno de cada uma — pinado em `f83671d1` | GPL-3.0 | `~/.cache/meowsystem/upstream/papirus-folders/`, baixado pelo install |
+| [catppuccin/vscode-icons](https://github.com/catppuccin/vscode-icons) | glifos de arquivo do editor (recurso desligado — ver a procedência) | MIT | `packs/meowsystem/icones/sistema/` |
 
 O **Arcticons é o que define o estilo do tema**, e a obrigação da CC BY-SA 4.0 é
 levada a sério aqui porque o repositório é público: atribuição (esta página, e a
 tabela da procedência) e *share-alike* — os derivados dele saem sob a mesma
 licença.
 
-Os **52 desenhos autorais** de `assets/icones/autorais/` e os **19 retoques à
-mão** de `packs/meowsystem/icones/apps/convertidos/retoques/` são deste projeto, no dialeto
+Os **52 desenhos autorais** de `packs/meowsystem/icones/apps/` e os **19 retoques à
+mão** (ali e em `biblioteca/`) são deste projeto, no dialeto
 do Arcticons mas sem copiar traço nenhum dele. A folha que descrevia o dialeto
 saiu do repositório em 23/10/2026; o git a guarda.
 
