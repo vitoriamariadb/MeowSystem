@@ -246,6 +246,10 @@ tb >/dev/null 2>&1; rc=$?
 confere "a segunda passada não escreve" '[ "$rc" = 0 ] && [ "$antes" = "$(md5sum "$Z2/.zshrc" "$C2/.config/meow/vizinhos.conf")" ]'
 tb remover >/dev/null 2>&1
 confere "remover tira o bloco do .zshrc do vizinho" '[ "$(cat "$Z2/.zshrc")" = "alias x=y" ]'
+printf '$HOME/.config/zsh/.zshrc\n' > "$C2/.config/meow/vizinhos.conf"; cp "$Z2/.zshrc" "$T/zshrc-antes"
+tb >/dev/null 2>&1
+confere "o .zshrc guardado pelo nome, e não pela pasta, fica intocado e sem exceção" \
+  'cmp -s "$Z2/.zshrc" "$T/zshrc-antes" && ! grep -q "^!" "$C2/.config/meow/vizinhos.conf"'
 C3="$T/casa3"; mkdir -p "$C3"; printf 'alias y=z\n' > "$C3/.bashrc"
 env -i PATH="$T/bin:/usr/bin:/bin" HOME="$C3" SHELL=/bin/bash MEOW_ESTADO="$C3/estado" NO_COLOR=1 \
   bash "$RAIZ/scripts/terminal_bloco.sh" >/dev/null 2>&1

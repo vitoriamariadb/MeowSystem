@@ -121,6 +121,10 @@ _excecao_do_zshrc() {
   [ -f "$MEOW_VIZINHOS" ] || return 0
   meow_destino_permitido "$z" 2>/dev/null && return 0
   case "$(readlink -m -- "$z")" in /usr/*) return 0 ;; esac
+  # O arquivo guardado por nome, e não pela pasta, é escolha de quem escreveu.
+  for linha in ${MEOW_PROIBIDOS_LOCAIS[@]+"${MEOW_PROIBIDOS_LOCAIS[@]}"}; do
+    [ "$(readlink -m -- "$z")" = "$linha" ] && return 0
+  done
   linha="!${z/#"$HOME"/\$HOME}"
   meow_escrever "$MEOW_VIZINHOS" "$(cat "$MEOW_VIZINHOS")
 $linha" "$(stat -c %a "$MEOW_VIZINHOS" 2>/dev/null || echo 644)"; _marcar $?
