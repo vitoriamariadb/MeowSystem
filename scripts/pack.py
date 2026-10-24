@@ -1635,6 +1635,7 @@ def tema_de_app(categoria, ref=None):
 CATEGORIA_PONTEIRO = "origens.cursores.proprio"
 SUFIXO_PONTEIRO = "-cursors"
 RE_NOME_PONTEIRO = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,79}$")
+RE_NOME_MASCOTE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,79}$")
 # `default` é o nome canônico do ponteiro de repouso, `left_ptr` o histórico. Um
 # tema sem nenhum dos dois não tem o ponteiro que aparece primeiro na tela, e o
 # painel não tem de onde tirar a prévia (`_prev_cursores` procura os mesmos).
@@ -3262,6 +3263,14 @@ def validar(ref, silencioso=False):
                 "origens.cursores: `origem` vem sozinha. Ou o pack baixa o ponteiro, ou o\n"
                 "    traz dentro dele (`proprio`), ou herda o de outro (`herda`).")
         origem_pinada(cur["origem"], "origens.cursores.origem", com_nome=True)
+    # O mascote de fábrica vira `LOGO_DIA=`/`LOGO_NOITE=` no meow.conf, que o
+    # bash lê com `source`: só nome, sem aspas nem `$(`.
+    masc = p.get("mascote")
+    for fase in ("dia", "noite"):
+        if isinstance(masc, dict) and fase in masc:
+            _exigir(isinstance(masc[fase], str) and RE_NOME_MASCOTE.match(masc[fase]),
+                    f"mascote.{fase}: {masc[fase]!r} não é nome de mascote.\n"
+                    f"    Use o nome do .svg sem a extensão: letras, algarismos, '.', '_' e '-'.")
     base = ic.get("base")
     if base is not None:
         _exigir(isinstance(base, dict),
