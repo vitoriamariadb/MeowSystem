@@ -362,6 +362,39 @@ else
   falha "o «Instalar o starship» não segue o starship instalado (sem: $sem · com: $com)"
 fi
 
+
+printf '\n--- 9. o starship desce com o install (decisão de 23/10) ---\n'
+# Um curl falso entrega um instalador que põe um starship em ~/.local/bin.
+CASA_I="$TMP/casa-install"; mkdir -p "$CASA_I/.config/meow" "$TMP/curl-starship"
+cp "$RAIZ/meow.conf.exemplo" "$CASA_I/.config/meow/meow.conf"
+cat > "$TMP/curl-starship/curl" <<CURL
+#!/bin/sh
+echo "\$*" >> "$TMP/curl-starship.log"
+printf '%s\n' 'while [ "\$#" -gt 0 ]; do [ "\$1" = --bin-dir ] && d="\$2"; shift; done' \
+  'mkdir -p "\$d" && printf "#!/bin/sh\nexit 0\n" > "\$d/starship" && chmod 755 "\$d/starship"'
+CURL
+chmod 755 "$TMP/curl-starship/curl"; : > "$TMP/curl-starship.log"
+instalar() { env -i PATH="$TMP/curl-starship:$FALSO:$SEM_STARSHIP" HOME="$CASA_I" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+               PROMPT_STARSHIP=sim "$RAIZ/scripts/prompt.sh" instalar 2>&1; }
+mkdir -p "$CASA_I/.local/state/meowsystem"; : > "$CASA_I/.local/state/meowsystem/starship-recusado"
+saida="$(instalar)"; rc=$?
+[ "$rc" = 3 ] && [ ! -s "$TMP/curl-starship.log" ] \
+  && ok "com a recusa gravada, o install não baixa o starship" \
+  || falha "o install baixou o starship recusado (rc=$rc)"
+rm -f "$CASA_I/.local/state/meowsystem/starship-recusado"
+saida="$(instalar)"; rc=$?
+if [ "$rc" = 1 ] && [ -x "$CASA_I/.local/bin/starship" ] && [ -f "$CASA_I/.config/starship.toml" ] \
+   && grep -q 'starship.rs/install.sh' "$TMP/curl-starship.log"; then
+  ok "sem starship, o install o baixa para ~/.local/bin e põe o preset"
+else
+  falha "o install não instalou o starship (rc=$rc): $(tail -2 <<< "$saida" | tr '\n' ' ')"
+fi
+n="$(grep -c . "$TMP/curl-starship.log")"
+saida="$(instalar)"; rc=$?
+[ "$rc" = 0 ] && [ "$(grep -c . "$TMP/curl-starship.log")" = "$n" ] \
+  && ok "a segunda passada não baixa nem escreve" || falha "a segunda passada baixou ou escreveu (rc=$rc)"
+grep -q '"$MEOW_RAIZ/scripts/prompt.sh" instalar$' "$RAIZ/install.sh" \
+  && ok "a etapa do prompt do install chama o instalar" || falha "a etapa do prompt do install não instala o starship"
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2

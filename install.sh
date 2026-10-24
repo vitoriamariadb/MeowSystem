@@ -1887,13 +1887,12 @@ etapa_som() {
   return $?
 }
 
-# O PROMPT, E A ÚNICA ETAPA QUE TERMINA COM UM COMANDO NA MÃO DELA.
+# O PROMPT.
 #
-#   O preset do starship é nosso e vai para `~/.config/starship.toml`. A linha
-#   que LIGA o starship mora no arquivo de inicialização do shell de quem usa,
-#   que não é deste projeto: o `prompt.sh aplicar` instala o nosso arquivo e
-#   DIZ a linha, sem procurá-la nem escrevê-la. Sai 0, 1, 2 ou 3; o 3 (falta o
-#   starship) cai no "pulado" do `concluir` acima.
+#   O `prompt.sh instalar` baixa o starship para ~/.local/bin quando falta (salvo
+#   a recusa gravada) e põe o preset nosso em `~/.config/starship.toml`; quem o
+#   liga é o bloco do terminal. Sai 0, 1, 2 ou 3; o 3 (recusado) cai no
+#   "pulado" do `concluir` acima.
 #
 #   ATÉ 24/09/2026 (P39) a outra metade saía como `assets/prompt/aurora.patch`,
 #   para o `env.zsh` do Spellbook, e a etapa devolvia 4 quando o nosso lado
@@ -1909,7 +1908,7 @@ etapa_som() {
 etapa_prompt() {
   passo "Prompt do terminal (starship)"
   PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
-    "$MEOW_RAIZ/scripts/prompt.sh" aplicar
+    "$MEOW_RAIZ/scripts/prompt.sh" instalar
   return $?
 }
 

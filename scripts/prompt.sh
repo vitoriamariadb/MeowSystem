@@ -261,6 +261,17 @@ cmd_instalar_starship() {
   return "$MEOW_DIVERGENTE"
 }
 
+# --- instalar ----------------------------------------------------------------
+# A etapa do install: o starship desce com ele, como o fastfetch, salvo a recusa
+# gravada; depois, o preset.
+cmd_instalar() {
+  if [ "$PROMPT_STARSHIP" = "sim" ] && ! _prompt_tem_starship && [ ! -f "$PROMPT_RECUSA" ]; then
+    cmd_instalar_starship
+    return $?
+  fi
+  cmd_aplicar
+}
+
 # --- nao-quero-starship -----------------------------------------------------
 # A OUTRA RESPOSTA, e ela precisa existir para a pergunta ser uma pergunta.
 cmd_recusar_starship() {
@@ -281,6 +292,7 @@ FIM
 
 case "${1:-aplicar}" in
   aplicar)          cmd_aplicar ;;
+  instalar)         cmd_instalar ;;
   conferir)         cmd_conferir ;;
   mostrar|patch)    cmd_mostrar ;;
   remover)          cmd_remover ;;
@@ -291,5 +303,5 @@ case "${1:-aplicar}" in
   # numa passagem com o PATH do systemd o pré-voo dizia «sem starship» na mesma
   # rodada em que esta etapa dizia «conforme».
   onde-starship)      _prompt_onde_starship ;;
-  *) meow_erro "uso: prompt.sh {aplicar|conferir|mostrar|remover|instalar-starship|nao-quero-starship|onde-starship}"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: prompt.sh {aplicar|instalar|conferir|mostrar|remover|instalar-starship|nao-quero-starship|onde-starship}"; exit "$MEOW_ERRO" ;;
 esac

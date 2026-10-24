@@ -132,7 +132,7 @@ meow_preflight() {
     "btop|extra|btop|monitor vestido pelo tema"
     "batcat|extra|bat|o cat colorido vestido pelo tema"
     "pw-play|extra|pipewire-bin|o som de fim de instalação"
-    "starship|extra|-|o prompt do terminal (instala-se pelo site do projeto)"
+    "starship|extra|-|o prompt do terminal (a etapa do prompt o instala)"
     "cosmic-randr|extra|-|as telas e a escala (vem com o COSMIC)"
     "cosmic-term|extra|-|o terminal que este projeto veste (vem com o COSMIC)"
   )
