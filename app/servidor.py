@@ -513,7 +513,7 @@ DOMINIOS = {
         # A ajuda afirmava o contrário do comportamento de fábrica.
         "porque": "Ela só vale com a escolha em \u201cfixo\u201d. Em "
                   "\u201chora\u201d o terminal segue o mascote do dock; em "
-                  "\u201cespelho\u201d ele mostra o OUTRO mascote.",
+                  "\u201cespelho\u201d ele mostra o OUTRO.",
     },
     # O `CURSOR_VERSAO` é o release que o `cursor.sh` pede no ÚLTIMO degrau
     # dele, quando baixa o tema pelo nome (`_cursor_url`).
