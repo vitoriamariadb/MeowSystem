@@ -217,7 +217,7 @@ Gerada por `tests/migracao-do-painel.py` a partir do código: as chaves e as aç
 | POST /api/pack-importar | Início: Importar um pack | Tema › Temas | Abrir um tema |
 | POST /api/pack-importar (CSV) | Início: pack de um .csv | Criar tema › Cores | Guardar o tema |
 | GET /api/pack-exportar | Início: Exportar o pack | Criar tema › Mandar | Baixar o tema |
-| POST /api/acervo tipo mascote | Logo do sistema: Adicionar logo | Ajustes › Mascote › Na dock | Trazer .svg |
+| POST /api/acervo tipo gato | Logo do sistema: Adicionar logo | Ajustes › Mascote › Na dock | Trazer .svg |
 | POST /api/acervo tipo parede | Papel de parede: Adicionar imagem | Criar tema › Papel de parede | Trazer imagens |
 | POST /api/acervo tipo icone | Ícones: Adicionar ícone | Criar tema › Ícones | Trazer .svg |
 | POST /api/acervo tipo cursor | Cor e tela: Adicionar tema de ponteiro | Ajustes › Janelas e tela › Tela | Trazer ponteiro |
