@@ -1,6 +1,6 @@
 # P95 — Os vizinhos que se metem saem da casa
 
-**Status: REGISTRADA em 23/10, dentro do bloco P92–P94 — espera a palavra de quem usa para executar.**
+**Status: CONCLUÍDA em 24/10, depois do install do MeowSystem novo.**
 
 ## Pedido de quem usa (23/10)
 «Corrigir os outros repos que se metem aqui localmente. Apagar localmente o Dracula OS Theme e o
@@ -52,3 +52,17 @@ Migração OS.»
 2. O Spellbook deixa de citar os dois (caminho do MeowSystem instalado, ou sai), commit só disso. Esperar a
    P94 terminar, porque ela também commita no Spellbook.
 3. Apagar as duas pastas; terminal novo abre limpo; `meow doctor` igual.
+
+## Feito em 24/10
+- O pipeline do Relatório MEC (`relatorio check`/`instalar`) tinha a fonte no Dracula_OS-Theme
+  (`src/relatorio-mec` e `scripts/instalar_relatorio_mec.sh`): foi para o Spellbook, `relatorio-mec/`
+  (commit `e1f28bb` lá, sem push). `relatorio check` roda de lá com tudo «já em dia».
+- `/etc/apt/apt.conf.d/99-relatorio-mec` aponta para `~/.config/zsh/relatorio-mec/instalar.sh` (cópia de antes
+  em `/root/99-relatorio-mec.antes-p95-20261024`).
+- `rebuild_dracula_theme` já estava desativada desde 23/09 (só avisa); o resto das citações no Spellbook é
+  comentário ou histórico.
+- As duas pastas foram apagadas. Depois: `vizinhos.sh --conferir` limpo, terminal novo sem erro,
+  `meow doctor` rc=0.
+- Ficam ativos no `--listar` os dois itens do Dracula_OS-Theme (o arquivo não existe mais) e a
+  `dracula-copia-com.rtosta.zapzap`: o `meow-whatsapp` instalado é a arte de 25/09, não a escolhida
+  (`whatsapp-linux-app.svg`); tirar a cópia agora regride o ícone do ZapZap.
