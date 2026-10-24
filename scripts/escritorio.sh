@@ -196,7 +196,7 @@ cmd_reverter() {
     meow_aviso "sem a ponte root, o LibreOffice não voltou; a lista dele fica em $ES_ANTES"
     return "$MEOW_OK"
   fi
-  if ! meow_ponte libreoffice-devolver < "$ES_ANTES" >/dev/null 2>&1; then
+  if ! meow_ponte libreoffice-devolver </dev/null >/dev/null 2>&1; then
     meow_aviso "a ponte root não devolveu o LibreOffice; a lista dele fica em $ES_ANTES"
     return "$MEOW_OK"
   fi

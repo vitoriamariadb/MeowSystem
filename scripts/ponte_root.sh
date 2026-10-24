@@ -97,6 +97,9 @@ COMPLETION=/usr/local/share/zsh/site-functions/_meow
 REGRA=/etc/sudoers.d/49-meowsystem-ponte
 PONTE=/usr/local/lib/meowsystem/ponte_root.sh
 FLATPAK_GLOBAL=/var/lib/flatpak/overrides/global
+# A lista do que o `libreoffice-remover` tirou, gravada como root: é a única
+# fonte do `libreoffice-devolver`, que não recebe nome de quem chama.
+LIBRE_REMOVIDOS=/var/lib/meowsystem/libreoffice-removidos
 USR_SHARE=/usr/share
 
 morrer() { printf 'ponte_root: %s\n' "$1" >&2; exit "${2:-2}"; }
@@ -357,38 +360,52 @@ flatpak-global-limpar)
 
 # --- o LibreOffice sai (o escritório é o OnlyOffice) --------------------------
 # `libreoffice-remover` não recebe nada: a lista é a que o dpkg dá para
-# `libreoffice*` AGORA. Antes do `purge` o apt simula (no purge a linha é `Purg`,
-# não `Remv`), e se levaria junto o que não é do LibreOffice o verbo recusa
-# inteiro. O stdout é a lista do que sai, para a volta; a fala do apt vai ao stderr.
+# `libreoffice*` AGORA. Antes do `purge` o apt simula, e o plano tem de tirar
+# cada pacote pedido (`Purg` ou `Remv`) e nada fora do LibreOffice e da ponte
+# UNO; senão o verbo recusa inteiro. O que sai fica gravado como root em
+# $LIBRE_REMOVIDOS, para a volta; o stdout repete a lista, e a fala do apt vai ao stderr.
 libreoffice-remover)
   mapfile -t pacotes < <(libreoffice_instalados)
   [ "${#pacotes[@]}" -gt 0 ] || exit 0
   export DEBIAN_FRONTEND=noninteractive
   simulado="$(apt-get -s purge "${pacotes[@]}" 2>/dev/null)" || morrer "o apt não simulou a remoção"
   mapfile -t saem < <(printf '%s\n' "$simulado" | awk '/^(Purg|Remv) / { sub(/:.*/, "", $2); print $2 }')
+  faltam=""
+  for p in "${pacotes[@]}"; do
+    printf '%s\n' "${saem[@]}" | grep -qxF -- "$p" || faltam+="$p "
+  done
+  [ -z "$faltam" ] || morrer "o plano do apt não tira $faltam: não toco em nada"
   outros=""
   for p in "${saem[@]}"; do do_libreoffice "$p" || outros+="$p "; done
   [ -z "$outros" ] || morrer "o apt tiraria junto o que não é do LibreOffice ($outros): não toco em nada"
+  lista="$(printf '%s\n' "${pacotes[@]}" "${saem[@]}" | sort -u)"
+  [ -f "$LIBRE_REMOVIDOS" ] && lista="$(printf '%s\n%s\n' "$lista" "$(cat "$LIBRE_REMOVIDOS")" | grep . | sort -u)"
+  tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+  printf '%s\n' "$lista" > "$tmp"
+  install -d -m 755 -o root -g root "${LIBRE_REMOVIDOS%/*}" || morrer "não consegui criar ${LIBRE_REMOVIDOS%/*}"
+  install -m 644 -o root -g root "$tmp" "$LIBRE_REMOVIDOS" || morrer "não consegui gravar $LIBRE_REMOVIDOS"
   anotar "libreoffice-remover ${#saem[@]} pacotes"
   printf '%s\n' "${pacotes[@]}" "${saem[@]}" | sort -u
   apt-get purge -y "${pacotes[@]}" >&2 || exit 2
   ;;
 
-# `libreoffice-devolver` é a volta, para o desinstalador: os nomes entram por
-# stdin, um por linha, e só passa o que é do LibreOffice com os caracteres de
-# um nome de pacote. Um nome fora derruba o verbo antes do apt.
+# `libreoffice-devolver` é a volta, para o desinstalador. Não lê o stdin: os
+# nomes vêm só de $LIBRE_REMOVIDOS, que só o `libreoffice-remover` grava, e
+# cada um ainda passa pela régua do nome e do LibreOffice antes do apt.
 libreoffice-devolver)
+  [ -f "$LIBRE_REMOVIDOS" ] && [ ! -L "$LIBRE_REMOVIDOS" ] || morrer "nada removido pelo MeowSystem a devolver" 3
   pedidos=()
   while IFS= read -r nome || [ -n "${nome:-}" ]; do
     [ -n "$nome" ] || continue
     case "$nome" in *[!a-z0-9.+-]*) morrer "nome de pacote inválido" ;; esac
     do_libreoffice "$nome" || morrer "pacote fora do LibreOffice: $nome"
     pedidos+=("$nome")
-  done
-  [ "${#pedidos[@]}" -gt 0 ] || morrer "stdin vazio"
+  done < "$LIBRE_REMOVIDOS"
+  [ "${#pedidos[@]}" -gt 0 ] || morrer "a lista do que saiu está vazia"
   export DEBIAN_FRONTEND=noninteractive
   anotar "libreoffice-devolver ${#pedidos[@]} pacotes"
   apt-get install -y --no-install-recommends "${pedidos[@]}" || exit 2
+  rm -f "$LIBRE_REMOVIDOS"
   ;;
 
 # --- a máquina em dia ------------------------------------------------------

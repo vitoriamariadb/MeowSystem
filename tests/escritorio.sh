@@ -40,7 +40,7 @@ echo "apt-get $*" >> "$APT_LOG"
 # No purge o apt simula com `Purg`, e leva junto quem depende do libreoffice-core.
 if [ "$1" = "-s" ]; then
   shift 2
-  for p in "$@"; do echo "Purg $p [1:24.2]"; done
+  for p in "$@"; do [ "$p" = "${APT_SEM:-}" ] || echo "${APT_VERBO:-Purg} $p [1:24.2]"; done
   case " $* " in *" libreoffice-core "*) grep -q "^ii  python3-uno$" "$DPKG_FALSO" && echo "Purg python3-uno [1:24.2]" ;; esac
   [ -f "$APT_DEPENDENTE" ] && echo "Purg unoconv [0.9]"
   exit 0
@@ -72,7 +72,8 @@ FIM
 chmod 755 "$T/bin/"*
 # A cópia da ponte: o PATH solto, sem dono root, sem logger; o resto é o código de verdade.
 sed -e 's#^export PATH=.*#:#' -e 's#-o root -g root##' -e 's#^anotar() {#anotar() { return 0#' \
-    -e "s#^PERFIL=.*#PERFIL=\"$PONTE_DIR/perfil\"#" "$RAIZ/scripts/ponte_root.sh" > "$PONTE_DIR/ponte_root.sh"
+    -e "s#^PERFIL=.*#PERFIL=\"$PONTE_DIR/perfil\"#" -e "s#^LIBRE_REMOVIDOS=.*#LIBRE_REMOVIDOS=\"$PONTE_DIR/var/removidos\"#" \
+    "$RAIZ/scripts/ponte_root.sh" > "$PONTE_DIR/ponte_root.sh"
 chmod 755 "$PONTE_DIR/ponte_root.sh"
 printf 'lar=%s\n' "$CASA" > "$PONTE_DIR/perfil"
 
@@ -84,6 +85,7 @@ rodar() { # $1.. = argumentos do escritorio.sh
 }
 ponte() { # $1 verbo · stdin
   env -i PATH="$T/bin:/usr/bin:/bin" DPKG_FALSO="$DPKG" APT_LOG="$APT_LOG" APT_DEPENDENTE="$T/dependente" \
+      APT_SEM="${APT_SEM:-}" APT_VERBO="${APT_VERBO:-}" \
       bash "$PONTE_DIR/ponte_root.sh" "$1"
 }
 libre() { sed -n 's/^[a-z][ic]  \(libreoffice.*\)$/\1/p' "$DPKG" | tr '\n' ' '; }
@@ -131,6 +133,8 @@ confere "saem os três pacotes (o de configuração sobrada também), a ponte UN
   '[ -z "$(libre)" ] && ! grep -q "python3-uno" "$DPKG" && grep -q "^ii  vim$" "$DPKG" && grep -q "^apt-get purge -y libreoffice-core libreoffice-writer libreoffice-calc$" "$APT_LOG"'
 confere "os nomes ficam guardados para a volta, com o que o apt levou junto" \
   '[ "$(cat "$ESTADO/libreoffice-antes.tsv")" = "$(printf "libreoffice-calc\nlibreoffice-core\nlibreoffice-writer\npython3-uno")" ]'
+confere "a ponte grava, do lado dela, a mesma lista para a volta" \
+  '[ "$(cat "$PONTE_DIR/var/removidos")" = "$(printf "libreoffice-calc\nlibreoffice-core\nlibreoffice-writer\npython3-uno")" ]'
 confere "o atalho da casa sai da lista de ocultos, com cópia" \
   '[ ! -e "$ATALHO" ] && cmp -s "$ESTADO/libreoffice-atalhos/libreoffice-startcenter.desktop" "$T/atalho-original"'
 confere "a pendência sai" '! grep -q "^libreoffice-sistema	" "$ESTADO/pendencias.tsv"'
@@ -148,13 +152,31 @@ rm -f "$T/dependente"
 saida="$(ponte libreoffice-remover 2>/dev/null)"; rc=$?
 confere "o stdout da ponte é só a lista do que saiu" \
   '[ "$rc" = 0 ] && [ "$saida" = "$(printf "libreoffice-calc\nlibreoffice-core\nlibreoffice-writer\npython3-uno")" ]'
-cp "$T/dpkg-limpo" "$DPKG"; : > "$APT_LOG"
+cp "$T/dpkg-original" "$DPKG"; : > "$APT_LOG"
+APT_VERBO=Remv ponte libreoffice-remover >/dev/null 2>&1; rc=$?
+confere "a simulação que diz Remv (e não Purg) também vale" '[ "$rc" = 0 ] && grep -q "^apt-get purge -y" "$APT_LOG"'
+cp "$T/dpkg-original" "$DPKG"; : > "$APT_LOG"
+APT_SEM=libreoffice-writer ponte libreoffice-remover >/dev/null 2>&1; rc=$?
+confere "se o plano do apt não tira um pacote pedido, recusa inteiro e não purga" \
+  '[ "$rc" != 0 ] && ! grep -q "^apt-get purge" "$APT_LOG" && cmp -s "$DPKG" "$T/dpkg-original"'
+cp "$T/dpkg-limpo" "$DPKG"; : > "$APT_LOG"; cp "$PONTE_DIR/var/removidos" "$T/removidos-bom"
 printf 'vim\n' | ponte libreoffice-devolver >/dev/null 2>&1; rc=$?
-confere "devolver recusa pacote que não é do LibreOffice" '[ "$rc" != 0 ] && ! grep -q "^apt-get install" "$APT_LOG"'
-printf 'libreoffice-core\nlibreoffice;x\n' | ponte libreoffice-devolver >/dev/null 2>&1; rc=$?
-confere "devolver recusa nome com caractere de shell, antes de qualquer apt" '[ "$rc" != 0 ] && ! grep -q "^apt-get install" "$APT_LOG"'
+confere "devolver não lê nome de quem chama: o vim pedido no stdin não entra" \
+  '[ "$rc" = 0 ] && ! grep -q "vim" "$APT_LOG" && grep -q "^apt-get install -y --no-install-recommends libreoffice-calc libreoffice-core libreoffice-writer python3-uno$" "$APT_LOG"'
+confere "a lista da ponte sai depois da volta" '[ ! -e "$PONTE_DIR/var/removidos" ]'
+cp "$T/dpkg-limpo" "$DPKG"; : > "$APT_LOG"
+printf 'libreoffice-core\n' | ponte libreoffice-devolver >/dev/null 2>&1; rc=$?
+confere "devolver sem a lista da ponte recusa, mesmo com nome bom no stdin" '[ "$rc" != 0 ] && [ "$(chamadas_apt)" = 0 ]'
+printf 'libreoffice-core\nvim\n' > "$PONTE_DIR/var/removidos"
 ponte libreoffice-devolver </dev/null >/dev/null 2>&1; rc=$?
-confere "devolver sem nada no stdin recusa" '[ "$rc" != 0 ]'
+confere "devolver recusa a lista com pacote que não é do LibreOffice" '[ "$rc" != 0 ] && ! grep -q "^apt-get install" "$APT_LOG"'
+printf 'libreoffice-core\nlibreoffice;x\n' > "$PONTE_DIR/var/removidos"
+ponte libreoffice-devolver </dev/null >/dev/null 2>&1; rc=$?
+confere "devolver recusa nome com caractere de shell, antes de qualquer apt" '[ "$rc" != 0 ] && ! grep -q "^apt-get install" "$APT_LOG"'
+: > "$PONTE_DIR/var/removidos"
+ponte libreoffice-devolver </dev/null >/dev/null 2>&1; rc=$?
+confere "devolver com a lista vazia recusa" '[ "$rc" != 0 ] && ! grep -q "^apt-get install" "$APT_LOG"'
+cp "$T/removidos-bom" "$PONTE_DIR/var/removidos"
 confere "a regra de sudo nomeia os dois verbos, sem curinga" \
   'r="$(SUDO_USER=alguem bash "$RAIZ/scripts/ponte_root.sh" regra-sudo)"; grep -q "ponte_root.sh libreoffice-remover, " <<< "$r" && grep -q "ponte_root.sh libreoffice-devolver, " <<< "$r" && ! grep -q "libreoffice-[a-z]* \*" <<< "$r"'
 confere "a ponte não aceita argumento" '! bash "$PONTE_DIR/ponte_root.sh" libreoffice-remover x >/dev/null 2>&1'
