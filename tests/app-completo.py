@@ -820,9 +820,22 @@ class Percurso:
         return estado
 
     def fechar_resultado(self):
-        if self.aberto("resultado"):
-            self.clicar("resultado:ok")
-            self.assentar()
+        """O «OK» fecha a janela. Com a máquina ocupada, a janela pode fechar
+        entre o «está aberta» e o clique: fechada é o que se queria, não falha."""
+        for _vez in range(4):
+            if not self.aberto("resultado"):
+                break
+            el = self.esperar_nome("resultado:ok", teto=4.0)
+            try:
+                if el is not None:
+                    el.click(timeout=5000)
+                    self.acionados.add(molde("resultado:ok"))
+            except Exception:
+                self.pag.wait_for_timeout(300)
+        else:
+            if self.aberto("resultado"):
+                self.falha("o «OK» não fecha a janela do trabalho")
+        self.assentar()
 
     def fechar_pergunta(self):
         if self.aberto("pergunta"):
