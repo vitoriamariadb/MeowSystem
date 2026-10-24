@@ -195,6 +195,10 @@ SLOTS = [
 RE_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RE_HEX = re.compile(r"^#[0-9A-Fa-f]{6}$")
 RE_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+# As chaves do meow.conf que `origens.wallpapers` pode nomear: o `wallpaper.sh`
+# as lê por expansão indireta, e um nome livre ali (`a[$(cmd)]`) roda comando.
+RE_CONF_PAPEL = {"repo_do_conf": re.compile(r"^WALLPAPER_[A-Z0-9_]*_REPO$"),
+                 "commit_do_conf": re.compile(r"^WALLPAPER_[A-Z0-9_]*_COMMIT$")}
 
 OK, RECUSADO, ERRO_USO = 0, 1, 2
 
@@ -3234,6 +3238,7 @@ def validar(ref, silencioso=False):
     # `apps.*.arquivo` pelo motivo que aqueles dois já contam: o pack que
     # promete e não entrega só falharia dentro do instalador, na máquina de quem
     # instalou.
+    _conferir_papeis(p)
     cur = (p.get("origens") or {}).get("cursores")
     if isinstance(cur, dict) and "proprio" in cur:
         prop = cur["proprio"]
@@ -3453,6 +3458,18 @@ def _tres_pastas(p, dir_pack):
             f"    em apps/, sistema/ ou biblioteca/.")
 
 
+def _conferir_papeis(p):
+    """`origens.wallpapers.*_do_conf` só nomeia chave `WALLPAPER_*_REPO`/`_COMMIT`."""
+    wp = (p.get("origens") or {}).get("wallpapers")
+    if not isinstance(wp, dict):
+        return
+    for chave, regra in RE_CONF_PAPEL.items():
+        if chave in wp:
+            _exigir(isinstance(wp[chave], str) and regra.match(wp[chave]),
+                    f"origens.wallpapers.{chave}: {wp[chave]!r} não é uma chave "
+                    f"{regra.pattern[1:-1].replace('[A-Z0-9_]*', '*')} do meow.conf")
+
+
 def _validar_base(p, dir_pack, silencioso):
     _exigir(p["papel"] == PAPEL_BASE,
             f"pack.json: papel {p['papel']!r} — o único que existe é {PAPEL_BASE!r}")
@@ -3474,6 +3491,7 @@ def _validar_base(p, dir_pack, silencioso):
         _exigir(os.path.isfile(_dentro(dir_pack, p["creditos"], "creditos")),
                 f"creditos: {p['creditos']!r} está declarado e NÃO existe no pack")
     _tres_pastas(p, dir_pack)
+    _conferir_papeis(p)
     casas = nomes_de_usuario(dir_pack)
     _exigir(not casas,
             f"{len(casas)} linha(s) com a casa de alguém escrita por extenso:\n      "
@@ -5871,6 +5889,8 @@ def origem_dos_wallpapers(ref=None):
             valor = alvo
         elif chave == "ignorar":
             valor = " ".join(valor)
+        elif chave in RE_CONF_PAPEL and not (isinstance(valor, str) and RE_CONF_PAPEL[chave].match(valor)):
+            continue
         saida[chave] = valor
     return saida
 

@@ -386,6 +386,95 @@ else
   falha "o modelo de app de um pack levou linha que não é cor" "kitty: $k"$'\n'"gnome-terminal: $g"
 fi
 
+# --- 5c. o papel de parede do pack ------------------------------------------------
+#   `origens.wallpapers.repo_do_conf` vira `${!valor}` no wallpaper.sh, e a
+#   curadoria (FONTES.tsv) dá o nome do arquivo e a URL que o curl baixa.
+PAPEL_CONF="$RAIZ_DELA/mal-papel-conf"
+mkdir -p "$PAPEL_CONF/wallpapers"
+cp "$RAIZ/packs/dracula/paleta.json" "$PAPEL_CONF/"
+cat > "$PAPEL_CONF/pack.json" <<J
+{"formato": 1, "id": "mal-papel-conf", "nome": "Mal papel", "versao": "1.0.0", "autor": "x",
+ "licenca": "MIT", "heranca": "dracula",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},
+ "origens": {"wallpapers": {"repo_do_conf": "a[\$(touch $MARCA)]", "commit_do_conf": "HOME"}}}
+J
+adotado() { amb python3 "$RAIZ/scripts/pack.py" adocao "$1" "" 2>/dev/null | sed -n 's/^recusado=//p'; }
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar mal-papel-conf 2>&1)"; rc=$?
+[ "$rc" != 0 ] && grep -q 'repo_do_conf' <<< "$saida" && [ "$(adotado mal-papel-conf)" = mal-papel-conf ] \
+  && ok "o validar recusa repo_do_conf que não é chave WALLPAPER_*_REPO" \
+  || falha "o validar aceitou repo_do_conf com comando (rc=$rc)" "$saida"
+sed -i 's/"repo_do_conf": "[^"]*"/"repo_do_conf": "WALLPAPER_X_REPO"/' "$PAPEL_CONF/pack.json"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar mal-papel-conf 2>&1)"; rc=$?
+[ "$rc" != 0 ] && grep -q 'commit_do_conf' <<< "$saida" && [ "$(adotado mal-papel-conf)" = mal-papel-conf ] \
+  && ok "o validar recusa commit_do_conf fora da lista (HOME)" \
+  || falha "o validar aceitou commit_do_conf=HOME (rc=$rc)" "$saida"
+sed -i 's/"commit_do_conf": "HOME"/"commit_do_conf": "WALLPAPER_X_COMMIT"/' "$PAPEL_CONF/pack.json"
+[ -z "$(adotado mal-papel-conf)" ] \
+  && ok "o validar aceita as chaves da lista (WALLPAPER_X_REPO, WALLPAPER_X_COMMIT)" \
+  || falha "o validar recusou as chaves certas"
+# A guarda do próprio wallpaper.sh, se o pack.py deixasse passar: um python3
+# que responde ao verbo `wallpapers` com a chave plantada.
+PY_REAL="$(command -v python3)"
+mkdir -p "$T/py-mal"
+cat > "$T/py-mal/python3" <<PYF
+#!/bin/sh
+if [ "\$2" = wallpapers ]; then
+  printf 'repo_do_conf=a[\$(touch %s)]\ncommit_do_conf=b[\$(touch %s)]\n' "$MARCA" "$MARCA"; exit 0
+fi
+exec "$PY_REAL" "\$@"
+PYF
+chmod 755 "$T/py-mal/python3"
+amb PATH="$T/py-mal:$T/falso:$PATH" PACK=dracula WALLPAPER_BASE="$T/papel-1" \
+  bash "$RAIZ/scripts/wallpaper.sh" estado > "$T/papel-1.log" 2>&1
+[ ! -e "$MARCA" ] && ok "o wallpaper.sh não expande nome de chave fora de WALLPAPER_*_REPO/_COMMIT" \
+  || { falha "o repo_do_conf do pack executou comando no wallpaper.sh" "$(tail -3 "$T/papel-1.log")"; rm -f "$MARCA"; }
+
+PAPEL="$RAIZ_DELA/mal-papel"
+mkdir -p "$PAPEL/wallpapers/desenhos" "$T/curl"
+cp "$RAIZ/packs/dracula/paleta.json" "$PAPEL/"
+cat > "$PAPEL/pack.json" <<'J'
+{"formato": 1, "id": "mal-papel", "nome": "Mal papel", "versao": "1.0.0", "autor": "x",
+ "licenca": "MIT", "heranca": "dracula",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},
+ "origens": {"wallpapers": {"desenhos": "wallpapers/desenhos/", "curadoria": "wallpapers/FONTES.tsv",
+                            "prefixo": "mal"}}}
+J
+{
+  printf 'arquivo\tcategoria\turl\tresolucao\n'
+  printf '../../../mal-evil-sobe.png\tx\thttps://exemplo.invalido/1.png\t1x1\n'
+  printf '%s/mal-evil-absoluto.png\tx\thttps://exemplo.invalido/2.png\t1x1\n' "$FORA"
+  printf '.mal-evil-escondido.png\tx\thttps://exemplo.invalido/3.png\t1x1\n'
+  printf 'mal-evil..ponto.png\tx\thttps://exemplo.invalido/4.png\t1x1\n'
+  printf 'mal-evil$(touch %s).png\tx\thttps://exemplo.invalido/5.png\t1x1\n' "$MARCA"
+  printf 'mal-evil-http.png\tx\thttp://exemplo.invalido/6.png\t1x1\n'
+  printf 'mal-evil-file.png\tx\tfile:///etc/passwd\t1x1\n'
+  printf 'bom.png\tx\thttps://exemplo.invalido/7.png\t1x1\n'
+} > "$PAPEL/wallpapers/FONTES.tsv"
+cat > "$T/curl/curl" <<CURL
+#!/bin/sh
+saida=""; url=""
+while [ "\$#" -gt 0 ]; do
+  case "\$1" in -o) saida="\$2"; shift ;; --max-time) shift ;; -*) ;; *) url="\$1" ;; esac
+  shift
+done
+printf '%s\n' "\$url" >> "$T/curl.log"
+[ -n "\$saida" ] && printf 'png' > "\$saida"
+exit 0
+CURL
+chmod 755 "$T/curl/curl"; : > "$T/curl.log"
+[ -z "$(adotado mal-papel)" ] \
+  || falha "o pack mal-papel não validou; a sonda da curadoria não prova nada"
+amb PATH="$T/curl:$T/falso:$PATH" PACK=mal-papel WALLPAPER_BASE="$T/papel-2" \
+  bash "$RAIZ/scripts/wallpaper.sh" semear > "$T/papel-2.log" 2>&1
+fora_papel="$(find "$T" -name 'mal-evil*' -not -path "$RAIZ_DELA/*" 2>/dev/null)"
+if [ -f "$T/papel-2/ativos/bom.png" ] && [ -z "$fora_papel" ] && [ ! -e "$MARCA" ] \
+   && [ "$(grep -c . "$T/curl.log")" = 1 ] && grep -qx 'https://exemplo.invalido/7.png' "$T/curl.log"; then
+  ok "a curadoria do pack baixa só nome simples por https, dentro de ativos/ (7 linhas más recusadas)"
+else
+  falha "a curadoria do pack escreveu fora, baixou por outro esquema ou rodou comando" \
+    "$(cat "$T/curl.log"; printf '%s\n' "$fora_papel"; tail -3 "$T/papel-2.log")"
+fi
+
 # --- 6. o .meowpack com script ---------------------------------------------------
 if command -v zstd >/dev/null 2>&1; then
   MP="$T/mp"; mkdir -p "$MP/trazido"

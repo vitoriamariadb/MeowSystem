@@ -2150,7 +2150,9 @@ _semente_do_flavor() {
     case "$chave" in
       repo) repo="$valor" ;; commit) commit="$valor" ;; desenhos) desenhos="$valor" ;;
       prefixo) prefixo="$valor" ;; ignorar) ignorar="$valor" ;; curadoria) curadoria="$valor" ;;
-      repo_do_conf) repo_conf="${!valor:-}" ;; commit_do_conf) commit_conf="${!valor:-}" ;;
+      # Expansão indireta só com nome de chave da lista: `a[$(cmd)]` rodaria comando.
+      repo_do_conf)   [[ "$valor" =~ ^WALLPAPER_[A-Z0-9_]*_REPO$ ]] && repo_conf="${!valor:-}" ;;
+      commit_do_conf) [[ "$valor" =~ ^WALLPAPER_[A-Z0-9_]*_COMMIT$ ]] && commit_conf="${!valor:-}" ;;
     esac
   done <<< "$linhas"
   SEMENTE_PREFIXO_PADRAO="${prefixo:-cat}"
@@ -2253,11 +2255,13 @@ semear_da_curadoria() {
   #      consertar rede quando o defeito está no dado.
   #   O awk conta campo de verdade (NF), exige que a URL PAREÇA uma URL, e o
   #   here-string abaixo garante o newline final.
+  # A curadoria pode vir de um pack de terceiro: o nome é só de arquivo, com
+  # caracteres estritos, e a URL só https.
   local validas descartadas
-  validas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && NF >= 3 && $3 ~ /^https?:\/\// {print}' "$FONTES_TSV")"
-  descartadas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && !(NF >= 3 && $3 ~ /^https?:\/\//) {n++} END {print n+0}' "$FONTES_TSV")"
+  validas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && NF >= 3 && $3 ~ /^https:\/\// && $1 ~ /^[A-Za-z0-9][A-Za-z0-9._+-]*$/ && $1 !~ /\.\./ {print}' "$FONTES_TSV")"
+  descartadas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && !(NF >= 3 && $3 ~ /^https:\/\// && $1 ~ /^[A-Za-z0-9][A-Za-z0-9._+-]*$/ && $1 !~ /\.\./) {n++} END {print n+0}' "$FONTES_TSV")"
   if [ "$descartadas" -gt 0 ]; then
-    meow_aviso "$descartadas linha(s) de $(basename "$FONTES_TSV") sem URL utilizável — ignoradas"
+    meow_aviso "$descartadas linha(s) de $(basename "$FONTES_TSV") com nome ou URL fora da regra — ignoradas"
   fi
   [ -n "$validas" ] || return 0
 
@@ -2265,6 +2269,7 @@ semear_da_curadoria() {
   while IFS=$'\t' read -r nome categoria url resolucao; do
     [ -n "$nome" ] || continue
     local destino="$ATIVOS/$nome"
+    [ "$(realpath -m -- "$destino")" = "$(realpath -m -- "$ATIVOS")/$nome" ] || continue
     [ -e "$destino" ] && continue
     esta_banida "$nome" && continue   # o que ela tirou, fica tirado
     if meow_seco; then
