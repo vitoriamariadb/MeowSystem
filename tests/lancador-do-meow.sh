@@ -106,6 +106,19 @@ confere "sem quem refaça a cache e sem órfão, o aplicar não diz que mexeu ne
   '[ "$rc1" != 1 ] && [ "$antes" = "$(foto)" ]'
 rm -f "$APPS/vivo.desktop"
 
+printf '\n2c. sem LANCADOR_SISTEMA="sim", o doctor não oculta nada do sistema (o opt-in do install)\n'
+ALVO="$(env -i PATH="/usr/bin:/bin" HOME="$CASA" bash "$RAIZ/scripts/ocultar_apps.sh" --lista 2>/dev/null | head -1)"
+desktop "$SIS/$ALVO.desktop" 'Type=Application' "Name=$ALVO" 'Exec=true'
+cp -a "$SIS/$ALVO.desktop" "$T/alvo-original.desktop"
+FUNCS="$(sed -n -e '/^_lancador_do_sistema()/,/^}/p' -e '/^chk_ocultar()/,/^}/p' -e '/^chk_absolutos()/,/^}/p' \
+  -e '/^fix_ocultar()/,/; }$/p' -e '/^fix_absolutos()/,/; }$/p' "$RAIZ/bin/meow")"
+doc_oc="$(env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 RAIZ="$RAIZ" \
+  MEOW_APLICATIVOS_SISTEMA="$SIS" FUNCS="$FUNCS" bash -c '. "$RAIZ/lib/comum.sh"; eval "$FUNCS"
+  chk_ocultar; echo "chk=$?"; fix_ocultar; echo "fix=$?"' 2>&1)"
+confere "o chk_ocultar e o fix_ocultar pulam, e o .desktop do sistema fica igual" \
+  'printf "%s" "$doc_oc" | grep -q "chk=3" && printf "%s" "$doc_oc" | grep -q "fix=3" && cmp -s "$SIS/$ALVO.desktop" "$T/alvo-original.desktop"'
+rm -f "$SIS/$ALVO.desktop"
+
 printf '\n3. o ocultar alcança flatpak, /usr/local e o home\n'
 desktop "$SIS/do-apt.desktop" 'Type=Application' 'Name=Do Apt' 'Exec=true'
 desktop "$FLAT/applications/org.example.Flat.desktop" 'Type=Application' 'Name=Flat' 'Name[pt_BR]=Chato' \

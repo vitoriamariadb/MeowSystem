@@ -789,6 +789,7 @@ chk_trayzapzap() {
 # do `ocultar`: o conserto escreve em /usr/share com sudo, e o doctor nunca usa
 # sudo.
 chk_absolutos() {
+  _lancador_do_sistema || return "$MEOW_SEM_DEPENDENCIA"
   MEOW_DRY_RUN=1 ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$RAIZ/scripts/icones_absolutos.sh" 2>&1
 }
@@ -810,7 +811,15 @@ chk_jogosheroic() {
 # ENTROU AQUI PORQUE SE PERDIA CALADO, como o vidro ao maximizar e a tela de
 # login.
 chk_ocultar() {
+  _lancador_do_sistema || return "$MEOW_SEM_DEPENDENCIA"
   MEOW_DRY_RUN=1 "$RAIZ/scripts/ocultar_apps.sh" 2>&1
+}
+
+# O opt-in do install vale no doctor: sem LANCADOR_SISTEMA="sim", nada em /usr/share.
+_lancador_do_sistema() {
+  [ "${LANCADOR_SISTEMA:-nao}" = "sim" ] && return 0
+  meow_pula 'LANCADOR_SISTEMA não é "sim" — o lançador do sistema fica como está'
+  return 1
 }
 
 # O que a lista do `ocultar` nomeia e não mora em /usr/share (flatpak, home):
@@ -1520,9 +1529,11 @@ fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
 #   O `ocultar` roda INTEIRO (ele já sabe pular o que não consegue) e o
 #   `absolutos` idem; o `lancadorapt` chama a ponte direto, porque instalar o
 #   hook é um verbo dela e não tem script intermediário.
-fix_ocultar()   { LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+fix_ocultar()   { _lancador_do_sistema 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
+                  LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
                     "$RAIZ/scripts/ocultar_apps.sh" 2>&1; }
-fix_absolutos() { LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+fix_absolutos() { _lancador_do_sistema 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
+                  LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
                     "$RAIZ/scripts/icones_absolutos.sh" 2>&1; }
 fix_ocultarcasa(){ LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
                     "$RAIZ/scripts/ocultar_casa.sh" --aplicar 2>&1; }
