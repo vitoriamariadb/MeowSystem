@@ -29,3 +29,11 @@ e do jeito atual não funciona nem o MeowSystem, nem o Dracula, nem as demais fe
 - instalação limpa numa casa de brinquedo (o `tests/convergencia.sh` e o `install.sh` com HOME temporário)
   com o pack `meowsystem` e com o `dracula`;
 - `find . -type d -empty` vazio; nenhuma pasta de ícone com subpasta; nenhum caminho velho no código.
+
+## Regra de quem usa (23/10): o SVG do pack é a fonte única
+«Se eu editar um dos SVGs do theme pack, o resto do projeto se adapta e usa o novo SVG alterado.»
+Nenhuma cópia de arte fora do pack. Tudo o que deriva dela (o tema de ícones instalado, os mimetypes
+pintados a partir do molde, os PNG, as prévias do painel, o mascote do dock e do fastfetch) se refaz a partir
+do arquivo do pack quando ele muda, sozinho, pelo vigia que já existe, sem comando e sem reinstalar.
+**Prova:** numa casa de brinquedo, editar um SVG em `packs/<id>/icones/apps/` faz o derivado mudar, e a
+segunda passada não escreve nada.
