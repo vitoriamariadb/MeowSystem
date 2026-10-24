@@ -137,3 +137,33 @@ todas as telas nos dois packs, comparados com o mockup, guardados FORA do reposi
    `icones/apps`, e a cor das pastas). Não foram desenhados para não fingir na tela.
 5. **Saíram por serem texto que explica o app**: a história do pack (o `LEIA-ME` de vitrine), a linha de
    herança e as contagens do cartão, as folhas de `docs/folhas/` e a tela «Estados da tela».
+
+### A conferência (23/10)
+- **Nada se perde**: as rotas da API que o `app.js` de antes chamava (`integracao/leva-h`) são as mesmas 25 do
+  painel novo; as chaves e as ações saem do servidor, sem lista à mão. A tabela continua com 0 sem destino.
+- **Decisões**: nenhum campo, selo ou pedido de senha e nenhum `pkexec` em `app/pagina/`; o servidor não mudou
+  na P98. Clicar na variante e no «Vestir» veste sem pergunta; «Mais ajustes» nasce recolhido; 4 portas; Mascote.
+- **Corrigido**:
+  1. Os cartões de jogo passavam da borda do próprio cartão (a capa saía 20 px para fora). Agora cabem.
+  2. A porta Tema, a 375 px, ficava presa em quatro colunas porque a grade estava escrita no próprio elemento.
+     Agora vira uma coluna só.
+  3. A escolha com desenho do Mascote quebrava em duas linhas dentro de uma pílula. Agora fica num cartão
+     de canto arredondado.
+  4. As abas do papel de parede tinham contagem («No carrossel · 6»). Agora só têm o nome.
+  5. Dezesseis nomes passavam de três palavras e foram encurtados (ex.: «Vidro com janela grande» → «Vidro ao
+     maximizar», «Papel de parede de noite» → «Papel da noite»).
+- **A régua nova**: o `app-uso-real.py` reprova nome de opção, de bloco ou de botão com mais de três palavras.
+  Pendências, programas e a grade de aplicativos são dado e ficam de fora.
+- **O gate**: numa corrida, o gate reprovou na hora de fechar a janela do trabalho, porque ela já tinha fechado
+  sozinha antes do «OK». Agora janela fechada conta como fechada. Isso aconteceu com outras três suítes rodando
+  na máquina ao mesmo tempo.
+- **Suíte inteira**, duas vezes seguidas depois do último commit de código: as duas deram
+  `== todos os 74 · 73 verde(s), 1 pulado(s), 0 vermelho(s) ==` (o pulado é o mesmo `conversor.sh`).
+- **Prints da conferência**: ficam em `.wt-meow/p98-prints/conf/`, com `antes/`, `aberto/`, `depois/` e
+  `dialogos/`, mais os recortes de 375 px, dos jogos e do Mascote.
+- **Ressalvas**:
+  1. Alguns textos que vêm do servidor ainda passam de três palavras: o nome de pendência («Construir o menu
+     da área de trabalho») e o botão de escolha («Trocar pelo tema do pack»). Mudá-los é mexer no
+     `app/servidor.py`, então ficam para depois da P96.
+  2. Deslizante e tamanho de ícone sem valor no conf mostram «Auto» com a alça no começo.
+  3. A régua da noite não tem as horas escritas.
