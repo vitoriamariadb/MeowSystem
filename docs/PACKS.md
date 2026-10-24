@@ -314,7 +314,7 @@ formato de três pastas, e todo pack o herda. A frase de 21/09/2026, «o mapa é
 pack, o acervo pode ser do motor», está revogada. Em `assets/icones/` ficou só o
 que é ferramenta: a prévia das folhas, os originais de fábrica da bandeja, a
 folha de antes e depois dos resgatados e os mapas técnicos de aplicativo
-(`appid.map`, `wmclass.map`, `apps-nomes.map`, `jogos-fora.map`), que são fato
+(`appid.map`, `apps-nomes.map`, `jogos-fora.map`), que são fato
 da máquina e não arte.
 
 **A pergunta que separa as duas primeiras:** *este arquivo continuaria fazendo
@@ -1046,7 +1046,7 @@ Arte de ícone vai sempre para um pack. Fica no motor o que não é desenho:
 | fica em `assets/` | por quê |
 |---|---|
 | `gatos/` | a marca MeowSystem. O seu pack pode trazer os dele; estes são os de casa |
-| `icones/appid.map`, `wmclass.map`, `apps-nomes.map`, `jogos-fora.map` | identidade técnica de aplicativo e decisão da máquina. Não é gosto, é fato |
+| `icones/appid.map`, `apps-nomes.map`, `jogos-fora.map` | identidade técnica de aplicativo e decisão da máquina. Não é gosto, é fato |
 | `icones/previa-arcticons/` | a prévia que as folhas de proposta comparam (os mesmos bytes de desenhos que já estão no pack-base) |
 | `icones/tray-terceiros/` | os originais de fábrica da bandeja da Steam e do ZapZap, para desfazer |
 | `icones/resgatados-antes-e-depois.png` | a folha que prova os resgates (`meow icones resgatados folha`) |

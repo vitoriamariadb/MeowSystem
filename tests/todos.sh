@@ -79,6 +79,7 @@ PORTATIL=(
   derivados.sh           # alterou o desenho, o tema se atualiza: cópia da árvore e HOME de brinquedo, sem systemd; bash, git e python3
   tres-pastas.sh         # o formato de três pastas: os três packs, a quarta pasta, o.meowpack de antes convertido, packs e HOME de brinquedo; bash, python3 e zstd
   vizinhos.sh            # o inventário dos vizinhos e o desligar com volta, numa casa de brinquedo com zsh, systemd, apt e repositório falsos; só bash
+  lancador-do-meow.sh    # pontes de app_id, lançador órfão, mimeinfo.cache e o ocultar fora de /usr/share, numa casa de brinquedo com flatpak e update-desktop-database falsos; bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

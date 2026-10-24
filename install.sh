@@ -1407,6 +1407,32 @@ etapa_absolutos() {
   return $?
 }
 
+# O que a lista do `ocultar` nomeia e não mora em /usr/share: sombra de mesmo
+# basename no home (flatpak, /usr/local) ou a marca no próprio .desktop do home.
+# Sem sudo; a mesma chave liga, e desligada ela devolve o que é nosso.
+etapa_ocultar_casa() {
+  passo "Aplicativos ocultos fora de /usr/share"
+  "$MEOW_RAIZ/scripts/ocultar_casa.sh"
+  local rc=$?
+  [ "$rc" = "$MEOW_SEM_DEPENDENCIA" ] && [ "${LANCADOR_SISTEMA:-nao}" != "sim" ] && PULADOS_OPTIN+=(ocultar_casa)
+  return "$rc"
+}
+
+# A janela cujo app_id não casa com nenhum lançador: a ponte do assets/icones/appid.map.
+etapa_janela_dock() {
+  passo "Janelas que a dock casa pelo app_id"
+  "$MEOW_RAIZ/scripts/appid_dock.sh" --aplicar
+  return $?
+}
+
+# O lançador de programa removido vai para a quarentena, e o mimeinfo.cache do
+# home se refaz. Vem depois de toda etapa que escreve .desktop no home.
+etapa_lancador() {
+  passo "Lançadores órfãos e o banco de tipos do home"
+  "$MEOW_RAIZ/scripts/lancador.sh" --aplicar
+  return $?
+}
+
 etapa_mimetypes() {
   passo "Ícones de tipo de arquivo"
   ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
@@ -3708,10 +3734,10 @@ main() {
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_apps etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
-                etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos
+                etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_ocultar_casa etapa_janela_dock
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_files_menu etapa_cursor etapa_apps
                 etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
-                etapa_midia_build etapa_midia etapa_leitura_applet etapa_autostart etapa_autoreparo)
+                etapa_midia_build etapa_midia etapa_leitura_applet etapa_lancador etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
   # ---------------------------------------------------------------------------

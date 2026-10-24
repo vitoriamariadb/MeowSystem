@@ -181,7 +181,35 @@ rodar --restaurar todos >/dev/null
 confere "restaurar todos devolve os dois arquivos byte a byte" \
   'cmp -s "$ZD/functions/sistema.zsh" "$T/sistema-original.zsh" && cmp -s "$arq" "$T/hicolor-original.sh"'
 
-printf '\n5. a cache do hicolor da casa (o que o MeowSystem passa a cuidar)\n'
+printf '\n5. desativar e restaurar (arquivo movido para a cópia datada)\n'
+APPS="$CASA/.local/share/applications"; mkdir -p "$APPS"
+COP="$APPS/org.keepassxc.KeePassXC.desktop"
+printf '[Desktop Entry]\nType=Application\nName=KeePassXC\nExec=keepassxc\nNoDisplay=true\n' > "$COP"
+cp -a "$COP" "$T/copia-original.desktop"
+printf '%s\n' "$FALSA" > "$ESTADO/raiz"
+saida="$(rodar --desativar dracula-copia-org.keepassxc.KeePassXC)"; rc=$?
+confere "sem a sombra do ocultar no MeowSystem instalado, a cópia espera e fica" \
+  '[ "$rc" = 0 ] && printf "%s" "$saida" | grep -q "espera" && cmp -s "$COP" "$T/copia-original.desktop"'
+printf '%s\n' "$RAIZ" > "$ESTADO/raiz"
+rodar --desativar dracula-copia-org.keepassxc.KeePassXC >/dev/null; rc=$?
+confere "desativar tira o arquivo do lugar (sai 1)" '[ "$rc" = 1 ] && [ ! -e "$COP" ]'
+confere "a cópia datada é o arquivo de antes" \
+  'cmp -s "$(ls "$ESTADO"/vizinhos/dracula-copia-org.keepassxc.KeePassXC/*/org.keepassxc.KeePassXC.desktop)" "$T/copia-original.desktop"'
+confere "o --listar diz desativado" 'rodar --listar | grep -q "^dracula-copia-org.keepassxc.KeePassXC	desativado	~/.local/share/applications/"'
+rodar --desativar dracula-copia-org.keepassxc.KeePassXC >/dev/null; rc=$?
+confere "desativar de novo não muda nada" \
+  '[ "$rc" = 0 ] && [ "$(grep -c "dracula-copia-org.keepassxc.KeePassXC" "$ESTADO/vizinhos-desativados.tsv")" = 1 ]'
+rodar --restaurar dracula-copia-org.keepassxc.KeePassXC >/dev/null; rc=$?
+confere "restaurar devolve o arquivo byte a byte" '[ "$rc" = 1 ] && cmp -s "$COP" "$T/copia-original.desktop"'
+confere "o registro diz restaurado" 'tail -1 "$ESTADO/vizinhos-desativados.tsv" | grep -q "	dracula-copia-org.keepassxc.KeePassXC	mover	.*	restaurado$"'
+rodar --desativar dracula-copia-org.keepassxc.KeePassXC >/dev/null
+printf '[Desktop Entry]\nName=Outro\n' > "$COP"
+saida="$(rodar --restaurar todos 2>&1)"
+confere "o arquivo voltou a existir: o restaurar não o sobrescreve e a cópia fica" \
+  'grep -qx "Name=Outro" "$COP" && printf "%s" "$saida" | grep -q "voltou a existir" && ls "$ESTADO"/vizinhos/dracula-copia-org.keepassxc.KeePassXC/*/org.keepassxc.KeePassXC.desktop >/dev/null'
+rm -f "$COP"
+
+printf '\n6. a cache do hicolor da casa (o que o MeowSystem passa a cuidar)\n'
 H="$CASA/.local/share/icons/hicolor"
 printf '<svg/>' > "$H/48x48/apps/a.svg"
 printf '#!/bin/sh\nfor a; do d="$a"; done; : > "$d/icon-theme.cache"; echo "$*" >> "%s/gtk.log"\n' "$T" > "$T/bin/gtk-update-icon-cache"

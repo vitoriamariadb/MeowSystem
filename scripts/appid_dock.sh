@@ -342,6 +342,7 @@ _aplicar() {
       meow_muda "removeria a ponte de '$id' ($(basename "$arq"))"
     else
       meow_destino_permitido "$arq" || return "$MEOW_ERRO"
+      meow_guardar_antes "$arq"
       rm -f "$arq"
       meow_info "ponte de '$id' removida (saiu do mapa ou o alvo sumiu)"
     fi
@@ -379,6 +380,7 @@ _reverter() {
       meow_muda "removeria $arq"
     else
       meow_destino_permitido "$arq" || return "$MEOW_ERRO"
+      meow_guardar_antes "$arq"
       rm -f "$arq"
     fi
     n=$((n + 1))

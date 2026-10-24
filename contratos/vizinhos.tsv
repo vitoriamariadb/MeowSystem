@@ -10,10 +10,11 @@
 #   item  <nome> <tipo> <arquivo> <início> <fim> <requer> <motivo>
 #     saida  põe `exit 0`, com o motivo na tela, logo abaixo do shebang
 #     bloco  comenta as linhas de <início> (texto literal) até a primeira <fim> (regex) depois dele
+#     mover  tira o arquivo do lugar para a cópia datada; o --restaurar o põe de volta
 #     requer <arquivo do MeowSystem>:<texto> que o MeowSystem INSTALADO precisa ter para o
 #            item poder sair; `-` = o instalado de hoje já cuida sozinho
-#   `$DESENV` (a pasta dos projetos) e `$ZD` (o ZDOTDIR) no começo de <arquivo> são
-#   trocados; nada mais é expandido, e o motivo não leva aspas nem `$`.
+#   `$DESENV` (a pasta dos projetos), `$ZD` (o ZDOTDIR) e `$APPS` (o applications/ do
+#   home) no começo de <arquivo> são trocados; nada mais é expandido, e o motivo não leva aspas nem `$`.
 
 repo	Dracula_*
 repo	NitroKit
@@ -27,3 +28,39 @@ item	dracula-hicolor	saida	$DESENV/Dracula_OS-Theme/scripts/reparar_hicolor_inde
 item	dracula-icones-absolutos	saida	$DESENV/Dracula_OS-Theme/scripts/normalizar_desktops.sh	-	-	-	o Icon= de caminho absoluto é do MeowSystem (icones_absolutos.sh, conferido pelo meow doctor)
 item	dracula-spicetify	saida	$DESENV/Dracula_OS-Theme/scripts/instalar_spicetify.sh	-	-	-	o Spicetify e o tema do Spotify são do MeowSystem; as extensões seguem no spicetify_reparar
 item	caches-icones-casa	bloco	$ZD/functions/sistema.zsh	for tema_dir in "$HOME/.local/share/icons/"*/; do	^    done$	scripts/hicolor.sh:_hicolor_cache_velha	a cache dos temas de ícones da casa é do MeowSystem (índice do tema e hicolor, conferidos pelo meow doctor)
+
+# As cópias que o aplicar_overrides.sh do Dracula_OS-Theme pôs no lançador do home.
+# O mnemo e o Ubuntu ficam fora: lá a cópia é o único lançador do app, e tirá-la
+# apagaria o programa do sistema em vez de escondê-lo (o ocultar_casa.sh já os vê escondidos).
+item	dracula-aplicar-overrides	saida	$DESENV/Dracula_OS-Theme/scripts/aplicar_overrides.sh	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	os lançadores escondidos e renomeados são do MeowSystem (ocultar, nomes, pontes de app_id), sem cópia que congela o original
+item	dracula-copia-com.system76.CosmicMonitor	mover	$APPS/com.system76.CosmicMonitor.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-com.system76.CosmicScreenshot	mover	$APPS/com.system76.CosmicScreenshot.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-elden-ring-tracker	mover	$APPS/elden-ring-tracker.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-gnome-online-accounts-gtk	mover	$APPS/gnome-online-accounts-gtk.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-gparted	mover	$APPS/gparted.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-nm-connection-editor	mover	$APPS/nm-connection-editor.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-nvidia-settings	mover	$APPS/nvidia-settings.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-org.freedesktop.IBus.Setup	mover	$APPS/org.freedesktop.IBus.Setup.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-org.gnome.baobab	mover	$APPS/org.gnome.baobab.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-org.gnome.DiskUtility	mover	$APPS/org.gnome.DiskUtility.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-org.gnome.FileRoller	mover	$APPS/org.gnome.FileRoller.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-org.gnome.font-viewer	mover	$APPS/org.gnome.font-viewer.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-org.gnome.gThumb	mover	$APPS/org.gnome.gThumb.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-org.gnome.gThumb.Import	mover	$APPS/org.gnome.gThumb.Import.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-org.gnome.seahorse.Application	mover	$APPS/org.gnome.seahorse.Application.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-org.keepassxc.KeePassXC	mover	$APPS/org.keepassxc.KeePassXC.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-qt5ct	mover	$APPS/qt5ct.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-qt6ct	mover	$APPS/qt6ct.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-setup-mozc	mover	$APPS/setup-mozc.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-syncthing-start	mover	$APPS/syncthing-start.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-system-config-printer	mover	$APPS/system-config-printer.desktop	-	-	scripts/ocultar_casa.sh:X-MeowSystem=ocultar	cópia inteira do .desktop que congela o original; quem esconde é o ocultar do MeowSystem (sombra no home, marca em /usr/share)
+item	dracula-copia-com.boxy_svg.BoxySVG	mover	$APPS/com.boxy_svg.BoxySVG.desktop	-	-	install.sh:etapa_janela_dock	cópia que só trocava o StartupWMClass; a janela casa pela ponte de app_id do MeowSystem
+item	dracula-copia-com.rtosta.zapzap	mover	$APPS/com.rtosta.zapzap.desktop	-	-	-	cópia que renomeava o ZapZap; o nome e o ícone são do módulo do zapzap do MeowSystem
+
+# O lançador órfão e o mimeinfo.cache do home são do MeowSystem (lancador.sh); a
+# associação de tipo e o editor padrão ficam no aurora-menu-doctor.py, do PC.
+item	aurora-menu-orfaos	bloco	$ZD/aurora/aurora-menu-doctor.py	            if not alvo_existe(c):	meu_territorio\)$	scripts/lancador.sh:lancador_orfaos.py	o lançador de programa removido vai para a quarentena pelo meow doctor (lancador.sh)
+item	aurora-menu-cache	bloco	$ZD/aurora/aurora-menu-doctor.py	    cache = meu / "mimeinfo.cache"	mais antigo que os lançadores", True\)$	scripts/lancador.sh:lancador_orfaos.py	o mimeinfo.cache do home se refaz pelo meow doctor (lancador.sh)
+
+# O ativar do install.sh do Dracula: o cursor é do MeowSystem; o resto é chave do GNOME.
+item	dracula-ativar-gsettings	bloco	$DESENV/Dracula_OS-Theme/install.sh	if [[ $ATIVAR -eq 1 && "$MODO" == "user" ]]; then	^fi$	-	o cursor é do MeowSystem, e as chaves de tema do GNOME não valem no COSMIC
