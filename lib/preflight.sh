@@ -118,7 +118,7 @@ meow_preflight() {
     "diff|etapa|diffutils|o que a tela mostra antes de escrever"
     "gsettings|etapa|libglib2.0-bin|as chaves de tema que o COSMIC ainda lê do GTK"
     "busctl|etapa|systemd|falar com o cosmic-settings-daemon"
-    "systemctl|etapa|systemd|os relógios e gatilhos do carrossel e do gato"
+    "systemctl|etapa|systemd|os relógios e gatilhos do carrossel e do mascote"
     "systemd-escape|etapa|systemd|o nome das unidades de caminho"
     "systemd-run|etapa|systemd|as tarefas que não podem morrer com o terminal"
     "pgrep|etapa|procps|saber se o cosmic-comp está vivo"

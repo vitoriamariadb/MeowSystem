@@ -3860,7 +3860,7 @@ cmd_ajuda() {
   meow logo                    variantes de logo do painel
   meow logo <variante>         troca a logo do painel e o botão do dock
   meow logo listar             o acervo, quem está no ar e POR QUÊ (fase e janela)
-  meow logo girar              passa ao próximo gato — só no modo LOGO_MODO="rotacao";
+  meow logo girar              passa ao próximo mascote — só no modo LOGO_MODO="rotacao";
                                no padrão ("hora") quem manda é o relógio, e o
                                comando diz isso em vez de fingir efeito
 

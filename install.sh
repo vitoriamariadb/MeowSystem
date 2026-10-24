@@ -2962,7 +2962,7 @@ _logo_relogio() {
        [ "$(systemctl --user is-active  meow-gato.timer 2>/dev/null)" != "active" ]; then
       armaria=1
     fi
-    [ "$mudou"   = "1" ] && meow_muda "instalaria/atualizaria as unidades do relógio do gato"
+    [ "$mudou"   = "1" ] && meow_muda "instalaria/atualizaria as unidades do relógio do mascote"
     [ "$armaria" = "1" ] && meow_muda "armaria o relógio do mascote (meow-gato.timer, tique de 5 min)"
     { [ "$mudou" = "1" ] || [ "$armaria" = "1" ]; } && return "$MEOW_DIVERGENTE"
     return 0

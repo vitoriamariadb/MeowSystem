@@ -468,9 +468,9 @@ fi
 # está no disco de qualquer jeito, então o mascote certo aparece no próximo login.
 if [ "$dock_mudou" = "1" ] && ! meow_seco; then
   if [ "$LOGO_RECICLAR" != "sim" ]; then
-    meow_info "gato do dock trocado; LOGO_RECICLAR=\"$LOGO_RECICLAR\" — vale no próximo login"
+    meow_info "mascote do dock trocado; LOGO_RECICLAR=\"$LOGO_RECICLAR\" — vale no próximo login"
   elif [ -x "$RAIZ/scripts/painel.sh" ]; then
-    meow_info "gato do dock trocado — reciclando o painel para ele aparecer"
+    meow_info "mascote do dock trocado — reciclando o painel para ele aparecer"
     # O `com.system76.CosmicAppLibrary` que acabamos de vestir é o ícone da
     # GRADE — reciclar o painel repõe o botão do dock e não toca no
     # `cosmic-app-library`, que resolveu o ícone quando subiu.
