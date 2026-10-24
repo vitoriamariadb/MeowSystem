@@ -203,7 +203,7 @@ _aplicar() {
   #   agora fica num registro, e a tela diz onde.]
   if [ "$compilou" = 0 ] && ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
         --manifest-path "$ARVORE/Cargo.toml" >"$ESTADO/compilar.log" 2>&1; then
-    meow_erro "o cargo falhou — provável deriva do libcosmic (o Cargo.toml o aponta sem rev)"
+    meow_erro "o cargo falhou — $(meow_motivo_do_cargo "$ESTADO/compilar.log")"
     meow_info "  o registro está em $ESTADO/compilar.log"
     meow_info "  o binário anterior segue instalado e funcionando; nada foi trocado"
     return "$MEOW_ERRO"

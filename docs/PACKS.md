@@ -303,7 +303,7 @@ em três linhas:
 
 | diretório | o que guarda | exemplo |
 |---|---|---|
-| `assets/` | **o que o MeowSystem É** — o motor, menos a arte de ícone | `assets/paleta/cosmic-map.json`, `assets/gatos/`, `assets/icones/appid.map` |
+| `assets/` | **o que o MeowSystem É** — o motor, menos a arte de ícone | `assets/paleta/cosmic-map.json`, `packs/meowsystem/mascote/`, `assets/apps/appid.map` |
 | `packs/` | **o que ele VESTE** — o tema, e **todo** desenho de ícone | `packs/dracula/paleta.json`, `packs/catppuccin/icones/sistema/mimetypes/`, `packs/meowsystem/icones/` |
 | `~/.local/state/meowsystem/` | **o que a máquina GEROU** — e não volta para o git | os `.ron` do COSMIC, os backups, o log |
 
@@ -334,7 +334,7 @@ quando ele tem **zero** arquivos no git.
 
 ### As duas exceções, e elas são escritas
 
-**`assets/temas-de-apps/`** tem nome de flavor dentro e **fica**: são os temas
+**`scripts/temas-de-apps/`** tem nome de flavor dentro e **fica**: são os temas
 que os *outros* aplicativos publicam — o `dracula.css` do Heroic, o
 `catppuccin-mocha.theme` do btop —, baixados do upstream deles e conferidos por
 SHA256. O nome do tema está no arquivo do terceiro, não num arquivo nosso. É
@@ -541,7 +541,7 @@ hexadecimais, e a tela que escolhe um pack não tinha o que desenhar. O bloco
 ```json fragmento
 "vitrine": {
   "capa": "logo.svg",
-  "descricao_curta": "O roxo do Dracula, com o gato do MeowSystem.",
+  "descricao_curta": "O roxo do Dracula, com o mascote do MeowSystem.",
   "descricao": "LEIA-ME.md",
   "tags": ["escuro", "claro", "roxo", "alto contraste"],
   "capturas": ["capturas/area-de-trabalho.png"],
@@ -599,7 +599,7 @@ No terminal, a vitrine é o alto do `meow pack info`:
 $ meow pack info dracula | head -6
 Dracula  [dracula]  versão 1.0.0 · formato 1
   autor     : MeowSystem · licença GPL-3.0-or-later
-  descrição : O roxo do Dracula, com o gato do MeowSystem.
+  descrição : O roxo do Dracula, com o mascote do MeowSystem.
   tags      : escuro, claro, roxo, alto contraste
   origem    : próprio: paleta, ícones de aplicativo, pastas, … · herdado de catppuccin: …
   diretório : …
@@ -1045,11 +1045,15 @@ Arte de ícone vai sempre para um pack. Fica no motor o que não é desenho:
 
 | fica em `assets/` | por quê |
 |---|---|
-| `gatos/` | a marca MeowSystem. O seu pack pode trazer os dele; estes são os de casa |
-| `icones/appid.map`, `apps-nomes.map`, `jogos-fora.map` | identidade técnica de aplicativo e decisão da máquina. Não é gosto, é fato |
-| `icones/previa-arcticons/` | a prévia que as folhas de proposta comparam (os mesmos bytes de desenhos que já estão no pack-base) |
-| `icones/tray-terceiros/` | os originais de fábrica da bandeja da Steam e do ZapZap, para desfazer |
-| `icones/resgatados-antes-e-depois.png` | a folha que prova os resgates (`meow icones resgatados folha`) |
+| `apps/appid.map`, `apps-nomes.map`, `wmclass.map`, `jogos-fora.map` | identidade técnica de aplicativo e decisão da máquina. Não é gosto, é fato |
+| `apps/tray-terceiros/` | os originais de fábrica da bandeja da Steam e do ZapZap, para desfazer |
+| `prompt/`, `fastfetch/`, `paleta/cosmic-map.json` | modelos que a paleta do pack no ar preenche: servem a todo pack |
+| `contratos/` | o que o programa sabe do COSMIC e dos vizinhos |
+
+O mascote mora no pack (`mascote/`, com `mascote.dia` e `mascote.noite` no
+`pack.json`), como os papéis de parede (`wallpapers/` e `origens.wallpapers`) e
+os temas de aplicativo (`temas-de-apps/<app>/`). O código de cada aplicativo é
+do programa: `scripts/temas-de-apps/<app>/`.
 
 ---
 
@@ -1230,7 +1234,7 @@ qBittorrent, o tema do Obsidian.
 
 ### Por que este bloco existe
 
-`assets/temas-de-apps/` é **anterior** ao formato de pack e nunca soube que ele
+`scripts/temas-de-apps/` é **anterior** ao formato de pack e nunca soube que ele
 existe. Contado em 21/09/2026: **446 citações** da palavra `catppuccin` em oito
 módulos, e **zero** consultas ao pack ativo. Na prática, os oito eram aplicadores
 de um tema só.
@@ -1885,14 +1889,14 @@ python3 scripts/pack.py tipografia meu-tema
 Quatro coisas continuam do **motor**, iguais para todo pack, e o formato **não
 tem campo** para elas. Estão escritas aqui porque uma lista que omite o que
 falta é lida como pronta — e a nota de herança do Dracula dizia, até
-23/09/2026, que prompt, fastfetch e gatos "vêm do pack base".
+23/09/2026, que prompt, fastfetch e mascotes "vêm do pack base".
 
 | categoria | de onde sai | quem teria de perguntar ao pack |
 |---|---|---|
 | **traço do gerador de ícone** | `scripts/converter_icone.py` e as réguas da oficina | ver abaixo |
 | **prompt** | `assets/prompt/` | `scripts/prompt.sh` |
 | **fastfetch** | `assets/fastfetch/` | `scripts/fastfetch_logo.sh` |
-| **gatos** | `assets/gatos/` | seis leitores da pasta: `greeter.sh`, `logo.sh`, `construir_icones.sh`, `fastfetch_logo.sh`, `vigia_assets.sh` e o `bin/meow` (contados em 23/09/2026) |
+| **mascotes** | `packs/meowsystem/mascote/` | seis leitores da pasta: `greeter.sh`, `logo.sh`, `construir_icones.sh`, `fastfetch_logo.sh`, `vigia_assets.sh` e o `bin/meow` (contados em 23/09/2026) |
 
 **Declarar sem leitor não serve.** Um `"prompt": {"proprio": …}` que nenhum
 script lê é o campo morto que o `validar` avisa em voz alta: o pack prometeria
@@ -2144,7 +2148,7 @@ de quem mostra.
   um nome de tema, pelos motivos escritos lá), e quem instala o ícone com esse
   nome é o `scripts/completar_icones.sh`, a partir do autoral
   `meowsystem-painel-<flavor>.svg`. Os dois ficaram fora da sprint, que nomeava o
-  `scripts/logo.sh` — e esse é dono dos gatos do dock, não do `.desktop`. Quando o
+  `scripts/logo.sh` — e esse é dono dos mascotes do dock, não do `.desktop`. Quando o
   passo vier, a porta é o verbo `logo`, e ele vem com o `meow_lancador_reler`: o
   lançador do COSMIC cacheia ícone (`lancador-cosmic-cacheia-icones`, 11/08), e
   trocar só o arquivo faz parecer que a troca de pack não funcionou.
@@ -2164,7 +2168,7 @@ Um pack é **dado**. Nunca é código.
 
 - **Nenhum arquivo executável é lido de um pack.** Não existe `ganchos.sh`, não
   existe script de instalação. O único subsistema do MeowSystem que aceita shell
-  de terceiro é `assets/temas-de-apps/*/manifesto.sh`, e ele tem contrato
+  de terceiro é `scripts/temas-de-apps/*/manifesto.sh`, e ele tem contrato
   próprio, é carregado em subshell e é coberto por `tests/reversao.sh`. Um pack
   que precise de comportamento entra por ali, não por aqui.
 - **Todo caminho declarado é resolvido com `realpath` e precisa cair dentro do

@@ -52,7 +52,7 @@ botão **Aplicar**, que mostra quantas mudanças faltam aplicar e traz o Desfaze
 - **Ajuste vira linha, objeto vira cartão.** O rótulo fica à esquerda e o controle à direita, separados por uma linha fina. Acabou o cartão vazio.
 - **Criar tema em passos** (o Estúdio do B), com a prévia grande ao vivo e o checklist, mais a árvore do arquivo em "Mandar".
 - **Seis cores** fazem o tema, e as 26 saem delas. O contraste é medido no navegador: Dracula dá 13,4:1 no texto e 5,9:1 no destaque.
-- **A faixa de estado no Cuidar** mostra Tema, Ícones, Painel e dock, Gato, Som e Atalho. Cada item leva à tela dele.
+- **A faixa de estado no Cuidar** mostra Tema, Ícones, Painel e dock, Mascote, Som e Atalho. Cada item leva à tela dele.
 - **Um só Aplicar** no topo, com contador e Desfazer.
 - Ação perigosa vira botão vermelho vazado. O que pede senha leva o selo "pede senha" escrito por extenso.
 - O sino toca com os números do `pack.json`: 784 + 932,3 Hz no Dracula e 880 + 1320 Hz no MeowSystem.
@@ -62,7 +62,7 @@ botão **Aplicar**, que mostra quantas mudanças faltam aplicar e traz o Desfaze
 1. **Quatro portas, não cinco (A) nem catorze (B).** "Rotina" entrou em Ajustes como Dia e noite, porque é ajuste desta máquina e não tema. Começo, Temas e Estúdio, do B, viraram uma tela só (Tema) e uma porta (Criar tema). Assim acabou o "trocar tema" em dois lugares.
 2. **A faixa "painel vestido de" do B saiu.** Era um controle só do mockup, posto no meio do produto. A troca de roupa agora acontece de verdade, ao escolher o tema.
 3. **As telas que os dois deixaram sem desenho foram desenhadas:**
-   - Janelas e tela, Papel de parede, Gato, Terminal e Programas;
+   - Janelas e tela, Papel de parede, Mascote, Terminal e Programas;
    - a busca com resultados;
    - a caixa de senha, uma linha só e o porquê no "?";
    - a saída de ação ao vivo, com "O que ele escreveu" recolhido;
@@ -88,7 +88,7 @@ botão **Aplicar**, que mostra quantas mudanças faltam aplicar e traz o Desfaze
 | Cor e tela: escala, ponteiro, lado a lado | Ajustes › Janelas e tela |
 | Cor e tela: faixa "Fundo" escuro/vidro/claro | sai (pergunta 2) |
 | Áreas de trabalho | Ajustes › Janelas e tela |
-| Logo do sistema | Ajustes › Gato (o horário do gato aparece também em Dia e noite) |
+| Logo do sistema | Ajustes › Mascote (o horário do mascote aparece também em Dia e noite) |
 | Ícones: desenho de cada app, cor das pastas | Criar tema › Ícones |
 | Ícones: variante dos ícones | sai (segue o tema escolhido em Tema) |
 | Ícones: resgatados, cor da marca, pastas XDG | não desenhadas (pergunta 2) |
@@ -98,7 +98,7 @@ botão **Aplicar**, que mostra quantas mudanças faltam aplicar e traz o Desfaze
 | Papel de parede: repositório e commit do Dracula | sai da tela (é dado do pack) |
 | Dia e noite | Ajustes › Dia e noite |
 | Modo de leitura | Ajustes › Dia e noite › Tela quente |
-| Terminal | Ajustes › Terminal (o gato do terminal fica em Gato) |
+| Terminal | Ajustes › Terminal (o mascote do terminal fica em Mascote) |
 | Lançadores e jogos | Ajustes › Programas |
 | Manutenção | Cuidar (Conferir e consertar, Sozinho, Registro) |
 | Instalação | Cuidar › Instalar de novo e Desinstalar |

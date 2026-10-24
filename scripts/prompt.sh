@@ -119,10 +119,7 @@ _prompt_dizer_falta_starship() {
 # O zsh vem primeiro porque é o shell que este projeto conhece; o bash,
 # porque é o padrão do Pop!_OS.
 _prompt_dizer_ligacao() {
-  meow_info "para o prompt aparecer, o seu shell precisa iniciar o starship — é uma linha sua:"
-  meow_info "  zsh  (no seu .zshrc):   eval \"\$(starship init zsh)\""
-  meow_info "  bash (no seu .bashrc):  eval \"\$(starship init bash)\""
-  meow_info "o MeowSystem não lê nem escreve arquivo de shell"
+  meow_info "o terminal liga o starship pelo bloco do MeowSystem (scripts/terminal_bloco.sh)"
 }
 
 # --- conferir ---------------------------------------------------------------
@@ -198,7 +195,7 @@ cmd_aplicar() {
 
 # --- mostrar ----------------------------------------------------------------
 cmd_mostrar() {
-  meow_titulo "A linha que liga o starship — o MeowSystem NÃO a escreve"
+  meow_titulo "O que liga o starship"
   printf '\n'
   _prompt_dizer_ligacao
   meow_info "o preset que ela desenha é o nosso: $PROMPT_ALVO"

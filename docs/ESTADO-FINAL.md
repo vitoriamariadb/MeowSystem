@@ -34,7 +34,7 @@ Nada do que é escolha de quem usa mora no repositório. Usar o produto não vir
 | a escolha de ícone por programa | `~/.config/meow/icones-escolhidos.map`, `icones-traco.map` e `icones-convertidos.map`, ao lado do `meow.conf` | o seletor e a oficina do painel |
 | os desenhos enviados e os retoques da oficina | `~/.local/share/meowsystem/icones-enviados/`, `retoques/` e `convertidos-apps/` | o painel |
 | os packs de quem usa | `~/.local/share/meowsystem/packs/<id>/` | `meow pack novo`, `meow pack importar` |
-| os vizinhos (outros projetos que mandam em pedaços do home) | `~/.config/meow/vizinhos.conf` (o modelo é o `vizinhos.conf.exemplo`) | à mão; vazio é o normal |
+| os vizinhos (outros projetos que mandam em pedaços do home) | `~/.config/meow/vizinhos.conf` (o modelo é o `assets/contratos/vizinhos.conf.exemplo`) | à mão; vazio é o normal |
 | o que a máquina gerou (logs, a matriz dos builds, o estado do pós-apt) | `~/.local/state/meowsystem/` | o próprio MeowSystem |
 
 **As decisões tomadas em nome de quem usa** têm o registro, com a pergunta, a decisão e a base
@@ -64,7 +64,7 @@ Cada linha tem dono e porquê; nenhuma é esquecimento.
 | os leitores `${ICONES_BASE:-Papirus-Dark}` | é variável interna, com o mesmo padrão em todo lugar, e nenhum defeito medido | decisão 43 (P82) |
 | projetos pessoais nos packs (os desenhos e as logos deles) | o pack é produto público; o que é de uma máquina mora no conf dela | regra de 23/09/2026; decisão 4 (09/10) e 16 (P82) |
 | portar para GNOME ou KDE | o veredito de 21/09/2026 foi «não»: o produto é o COSMIC | [packs-modulares](sprints/2026-09-21-packs-modulares.md) |
-| prompt, fastfetch, gatos e o traço do gerador de ícone como campo de pack | continuam do motor, iguais para todo pack, até um leitor perguntar ao pack | [PACKS, «O que ainda não é do pack»](PACKS.md#o-que-ainda-não-é-do-pack) |
+| prompt, fastfetch, mascotes e o traço do gerador de ícone como campo de pack | continuam do motor, iguais para todo pack, até um leitor perguntar ao pack | [PACKS, «O que ainda não é do pack»](PACKS.md#o-que-ainda-não-é-do-pack) |
 | o patch binário de luz noturna do vizinho | não é da série, não tem marcador, e o modo de leitura o substituiu | [FRONTEIRA](FRONTEIRA.md) |
 
 ---
@@ -101,10 +101,10 @@ Escrito para não ser lido como pronto.
 | uma vez por login | o build que falta para a versão instalada (pega o apt feito pelo TTY ou com a sessão fechada) | `meow-builds-login.service` |
 | todo apt, como root | o lançador: marca de novo os `.desktop` do sistema que o pacote reescreveu, e toca o carimbo do pós-apt | `/etc/apt/apt.conf.d/99-meow-lancador` |
 | a cada minuto | o modo de leitura no degrau que o relógio pede | `meow-leitura.timer` |
-| a cada 5 minutos | o gato da hora (dia e noite) | `meow-gato.timer` |
+| a cada 5 minutos | o mascote da hora (dia e noite) | `meow-gato.timer` |
 | 3 min depois do boot, e a cada 15 | o carrossel de papéis de parede volta se foi resetado | `meow-wallpaper.timer` |
 | quando o painel do COSMIC cai, ou fica vivo sem desenhar | repõe o painel | `meow-painel.service` |
-| quando um arquivo vigiado muda | o gato novo do acervo, o papel de parede apagado, o fundo que a janela de papel de parede reseta, o raio que não cabe na barra, o tema de ícones do Qt, a bandeja depois de um flatpak, os jogos da Steam e do Heroic no lançador | `meow-assets.path`, `meow-ativos.path`, `meow-fundo.path`, `meow-painel-raio.path`, `meow-qt.path`, `meow-flatpak.path`, `meow-steam.path`, `meow-heroic.path` |
+| quando um arquivo vigiado muda | o mascote novo do acervo, o papel de parede apagado, o fundo que a janela de papel de parede reseta, o raio que não cabe na barra, o tema de ícones do Qt, a bandeja depois de um flatpak, os jogos da Steam e do Heroic no lançador | `meow-assets.path`, `meow-ativos.path`, `meow-fundo.path`, `meow-painel-raio.path`, `meow-qt.path`, `meow-flatpak.path`, `meow-steam.path`, `meow-heroic.path` |
 
 `AUTO_REPARO="nao"` no `meow.conf` desliga o doctor das 5h, o pós-apt e o build do login.
 

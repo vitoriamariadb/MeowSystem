@@ -23,18 +23,14 @@ for f in rsvg-convert compare python3; do
   command -v "$f" >/dev/null || { printf 'pulado: falta %s nesta máquina\n' "$f"; exit 0; }
 done
 
-# As três origens são de procedências diferentes DE PROPÓSITO: o que decide a
+# As duas origens são de procedências diferentes DE PROPÓSITO: o que decide a
 # conversão não é PNG contra SVG, é o desenho ser geométrico ou orgânico.
 #
 # O `[ -f ]` de cada laço já pula o que não existir.
 ORIGENS=(
   "$RAIZ/packs/catppuccin/icones/apps/autorais/cosmic-edit-mocha.svg"          # autoral, já tem contorno (a fita colapsa)
   "/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg"       # Papirus, orgânico, com gradiente e sombra
-  "$RAIZ/assets/icones/catppuccin-apps/macchiato/spotify.png"   # PNG chapado do acervo Catppuccin
 )
-# O acervo Catppuccin tem `latte` e `macchiato`, NÃO tem `mocha`: o tema mocha
-# dela é vestido com os PNG do macchiato, e está escrito assim no
-# `folha_icones.py`. Apontar para `mocha/` daria um "pulado" silencioso.
 
 for origem in "${ORIGENS[@]}"; do
   [ -f "$origem" ] || { printf 'pulado: %s não existe nesta máquina\n' "$origem"; continue; }

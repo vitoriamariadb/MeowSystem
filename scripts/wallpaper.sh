@@ -283,7 +283,7 @@ semear_das_dela() {
     #   sozinha na primeira vez que `ativos/` esvaziasse. Medido em 24/08/2026:
     #   era o caso de uma imagem que ela já tinha banido antes desta sessão.
     esta_banida "$nome_dela" && continue
-    meow_seco || cp -n "$img" "$destino" 2>/dev/null || continue
+    meow_seco || { meow_guardar_antes "$destino"; cp -n "$img" "$destino" 2>/dev/null; } || continue
     n=$((n + 1))
   done < <(find "$origem" -maxdepth 1 -type f \
              \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) 2>/dev/null)
@@ -448,6 +448,7 @@ medir_acervo() {
   tmp="$(mktemp -p "$dir" ".meow.XXXXXX" 2>/dev/null)" || return 0
   printf '%s' "$conteudo" > "$tmp" 2>/dev/null \
     && chmod 644 "$tmp" 2>/dev/null \
+    && meow_guardar_antes "$LUZ_TSV" \
     && mv -f "$tmp" "$LUZ_TSV" 2>/dev/null \
     || rm -f "$tmp"
   return 0
@@ -513,11 +514,13 @@ montar_derivada() {
     [ -e "$arq" ] || [ -L "$arq" ] || continue
     base="${arq##*/}"
     [ -n "${quer[$base]:-}" ] && [ "$arq" -ef "$ATIVOS/$base" ] && continue
+    meow_guardar_antes "$arq"
     rm -f -- "$arq"
   done
 
   for base in "$@"; do
     [ -e "$dir/$base" ] && continue
+    meow_guardar_antes "$dir/$base"
     ln -f -- "$ATIVOS/$base" "$dir/$base" 2>/dev/null && continue
     # Outro sistema de arquivos, ou um `ln` que recusou. O simbólico é pior (o
     # cabeçalho diz por quê) mas é melhor que a pasta ficar sem a imagem.
@@ -659,6 +662,7 @@ gravar_lado() {
 
   if [ "${#LADO[@]}" -eq 0 ]; then
     [ -f "$LADO_TSV" ] || return 0
+    meow_guardar_antes "$LADO_TSV"
     rm -f -- "$LADO_TSV" 2>/dev/null || return 1
     return 0
   fi
@@ -1131,7 +1135,7 @@ FIM
 # ============================================================================
 # O QUE ELA DESCOBRIU, E TINHA RAZÃO
 #   Ela apagou papéis de parede feios e nada aconteceu — porque apagou da pasta
-#   ERRADA (`assets/papeis-de-parede/`, que era 145 MB de cópia inerte que
+#   ERRADA (`packs/meowsystem/wallpapers/`, que era 145 MB de cópia inerte que
 #   nenhum script lia; as imagens saíram do repositório no mesmo dia). Mas ao
 #   perguntar "essa pasta então não é usada?" ela expôs um buraco de verdade no
 #   lado CERTO:
@@ -1143,7 +1147,7 @@ FIM
 #
 #   Duas ações que parecem a mesma coisa e não são. E o README promete o
 #   contrário desde sempre: *"a pasta é a configuração: soltou o arquivo,
-#   entrou; apagou, saiu"* — verdade para `assets/gatos/`, mentira aqui.
+#   entrou; apagou, saiu"* — verdade para `packs/meowsystem/mascote/`, mentira aqui.
 #
 # O QUE ESTA FUNÇÃO FAZ
 #   Guarda a lista de nomes que estavam em `ativos/` na passagem anterior. Na
@@ -1295,7 +1299,7 @@ reconciliar_banidos_pasta() {
     # capricho: o ADR-011 dela proibe emoji nos arquivos versionados, e o
     # `universal-sanitizer.py` do pre-commit REMOVE o caractere em vez de
     # recusar o commit. Medido em 01/09/2026, ao commitar: a linha
-    # "Cyberpunk Neon Cat Wallpaper _ Synthwave Vibe <gato><coracao>.jpeg" virou
+    # "Cyberpunk Neon Cat Wallpaper _ Synthwave Vibe <mascote><coracao>.jpeg" virou
     # a mesma frase SEM os dois emojis — e um nome sem os emojis nao casa com
     # arquivo nenhum, entao a linha deixava de banir o que dizia banir, calada.
     #
@@ -1794,6 +1798,7 @@ cmd_banir() {
   # `mv -n` recusa sobrescrever — e uma imagem JÁ banida antes deixaria o arquivo
   # parado em ativos/, com o script dizendo "banida". Se a cópia em banidos/ já
   # existe e é idêntica, o banimento anterior valeu: basta tirar daqui.
+  meow_guardar_antes "$img"; meow_guardar_antes "$BASE/banidos/$nome"
   if [ -e "$BASE/banidos/$nome" ] && cmp -s "$img" "$BASE/banidos/$nome"; then
     rm -f "$img"
   else
@@ -1852,6 +1857,7 @@ _adicionar_uma() {
   #   Foi o teste do terceiro cenário que pegou; o primeiro conserto tinha
   #   trocado um defeito calado por outro.
   [ -e "$ATIVOS/$(basename "$img")" ] && return 1
+  meow_guardar_antes "$ATIVOS/$(basename "$img")"
   cp -n "$img" "$ATIVOS/" 2>/dev/null || return 1
   return 0
 }
@@ -1918,6 +1924,7 @@ cmd_desbanir() {
   if [ "$na_lista" = "1" ]; then
     local tmp; tmp="$(mktemp -p "$(dirname "$BANIDOS_TXT")" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
     grep -vxF -- "$nome" "$BANIDOS_TXT" > "$tmp" 2>/dev/null
+    meow_guardar_antes "$BANIDOS_TXT"
     mv -f "$tmp" "$BANIDOS_TXT" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   fi
 
@@ -2132,89 +2139,39 @@ cmd_adicionar() {
 #   O `dracula)` que sobra é o id do PACK, e continua escrito porque as chaves
 #   do conf que ele lê levam o nome do pack (`WALLPAPER_DRACULA_*`).
 _semente_do_flavor() {
-  local dono
-  dono="$(meow_pack_dir)"
-  dono="${dono%/}"
-  case "${dono##*/}" in
-    dracula)
-      # ACERVO AUTORAL, GERADO EM CÓDIGO — 15/09/2026
-      #   Treze desenhos em PNG 4K (3840x2160), rasterizados do SVG que o gerador
-      #   da casa (tulip-orchid) produz. Cada cena é função pura: recebe largura,
-      #   altura e semente, devolve o SVG inteiro. Não há bitmap de origem nem
-      #   material de terceiro embutido.
-      #
-      #   Isto SUBSTITUI `helpotters/dracula-wallpapers`, que era provisório por
-      #   duas razões que aqui deixam de valer: aquele repositório não declara
-      #   licença (créditos apontavam Freepik, que exige atribuição e não
-      #   autoriza sublicenciar) e entregava 3440x1440, não 4K. Este é MIT e do
-      #   próprio dono — as imagens podem, enfim, ser publicadas com o tema.
-      #
-      #   `svg/` fica de fora do rodízio: o semear já ignora a extensão, mas a
-      #   pasta contaria como uma categoria que não existe e desequilibraria o
-      #   sorteio entre catedral, cemiterio, noite e ornamento.
-      #   O DONO DO ACERVO NÃO MORA NO CÓDIGO — e a primeira versão disto
-      #   morava. O sanitizer de identidade do Spellbook redige qualquer
-      #   ocorrência do `user.name` do git nos arquivos que entram num commit, e
-      #   está certo: este é repositório de DUAS pessoas, e cravar o usuário do
-      #   GitHub de uma delas aqui é exatamente o que ele existe para impedir.
-      #   Cravado, virou `[REDACTED]/tulip-orchid-wallpapers` e a semeadura
-      #   passou a responder "não consegui falar com o GitHub".
-      #
-      #   O `dono/repo` vem do conf (`WALLPAPER_DRACULA_REPO`), que não é
-      #   versionado. Sem ele configurado, o flavor cai no acervo comum em vez
-      #   de quebrar: quem instala o tema sem ter um acervo próprio continua
-      #   tendo papel de parede.
-      #   O PACK TRAZ OS VETORES — 09/10/2026, P74 item 9 (T7). Sem o repositório
-      #   no conf (o caso de toda instalação nova: o exemplo vem vazio, e o
-      #   `dono/repo` não pode morar no código), o Dracula caía no acervo do
-      #   CATPPUCCIN — «ao resetar o PC terei tudo conforme o tema dracula?»
-      #   (26/09), e não teria. Os treze SVG do tulip-orchid moram agora em
-      #   `packs/dracula/wallpapers/` (445 KB, MIT, a procedência no
-      #   PROCEDENCIA.md do pack), e o `_semear_de_pasta` os rasteriza em PNG
-      #   4K, o formato que o `cosmic-bg` lê. Medido no dia: o PNG que sai do
-      #   `rsvg-convert -w 3840 -h 2160` é o do repositório pixel a pixel (RMSE
-      #   0 contra o `tulip-catedral-agulhas.png` desta máquina), e com o mesmo
-      #   nome — a casa que já os tem não ganha cópia nenhuma. O repositório no
-      #   conf continua vencendo: é a escolha de quem o pôs lá.
-      local do_pack=""
-      do_pack="$(python3 "$RAIZ/scripts/pack.py" acervo "$dono" origens.wallpapers.desenhos 2>/dev/null)" || do_pack=""
-      if [ -n "${WALLPAPER_DRACULA_REPO:-}" ]; then
-        SEMENTE_REPO_PADRAO="$WALLPAPER_DRACULA_REPO"
-        SEMENTE_COMMIT_PADRAO="${WALLPAPER_DRACULA_COMMIT:-}"
-        SEMENTE_IGNORAR_PADRAO="${WALLPAPER_DRACULA_IGNORAR:-svg}"
-        SEMENTE_PREFIXO_PADRAO="${WALLPAPER_DRACULA_PREFIXO:-tulip}"
-        if [ -z "$SEMENTE_COMMIT_PADRAO" ] && ! _semente_e_pasta "$SEMENTE_REPO_PADRAO"; then
-          meow_aviso "WALLPAPER_DRACULA_REPO sem WALLPAPER_DRACULA_COMMIT — sem pino não há receita"
-        fi
-      elif [ -n "$do_pack" ] && [ -d "$do_pack" ]; then
-        SEMENTE_REPO_PADRAO="${do_pack%/}"
-        SEMENTE_COMMIT_PADRAO=""
-        SEMENTE_IGNORAR_PADRAO=""
-        SEMENTE_PREFIXO_PADRAO="${WALLPAPER_DRACULA_PREFIXO:-tulip}"
-      else
-        SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"
-        SEMENTE_COMMIT_PADRAO="1023077979591cdeca76aae94e0359da1707a60e"
-        SEMENTE_IGNORAR_PADRAO=""
-        SEMENTE_PREFIXO_PADRAO="cat"
-      fi
-      ;;
-    *)
-      SEMENTE_REPO_PADRAO="zhichaoh/catppuccin-wallpapers"
-      SEMENTE_COMMIT_PADRAO="1023077979591cdeca76aae94e0359da1707a60e"
-      SEMENTE_IGNORAR_PADRAO=""
-      SEMENTE_PREFIXO_PADRAO="cat"
-      ;;
-  esac
+  # A ORIGEM É DO PACK: `origens.wallpapers` no pack.json do pack no ar (ou da
+  # herança) diz de onde a coleção desce — a pasta `desenhos` do próprio pack ou
+  # um `repo` com `commit` pinado — e a `curadoria` dele. O repositório no conf
+  # (`<repo_do_conf>`, `<commit_do_conf>`) continua vencendo: é escolha de quem o pôs lá.
+  local linhas chave valor repo="" commit="" desenhos="" prefixo="" ignorar="" curadoria=""
+  local repo_conf="" commit_conf=""
+  linhas="$(python3 "$RAIZ/scripts/pack.py" wallpapers "$(meow_pack_dir)" 2>/dev/null)" || linhas=""
+  while IFS='=' read -r chave valor; do
+    case "$chave" in
+      repo) repo="$valor" ;; commit) commit="$valor" ;; desenhos) desenhos="$valor" ;;
+      prefixo) prefixo="$valor" ;; ignorar) ignorar="$valor" ;; curadoria) curadoria="$valor" ;;
+      repo_do_conf) repo_conf="${!valor:-}" ;; commit_do_conf) commit_conf="${!valor:-}" ;;
+    esac
+  done <<< "$linhas"
+  SEMENTE_PREFIXO_PADRAO="${prefixo:-cat}"
+  SEMENTE_IGNORAR_PADRAO=""
+  SEMENTE_CURADORIA_PADRAO="$curadoria"
+  if [ -n "$repo_conf" ]; then
+    SEMENTE_REPO_PADRAO="$repo_conf"
+    SEMENTE_COMMIT_PADRAO="$commit_conf"
+    SEMENTE_IGNORAR_PADRAO="$ignorar"
+    if [ -z "$SEMENTE_COMMIT_PADRAO" ] && ! _semente_e_pasta "$SEMENTE_REPO_PADRAO"; then
+      meow_aviso "o repositório de papel de parede do conf está sem commit — sem pino não há receita"
+    fi
+  elif [ -n "$desenhos" ] && [ -d "$desenhos" ]; then
+    SEMENTE_REPO_PADRAO="${desenhos%/}"
+    SEMENTE_COMMIT_PADRAO=""
+  else
+    SEMENTE_REPO_PADRAO="$repo"
+    SEMENTE_COMMIT_PADRAO="$commit"
+  fi
 }
 
-# `/`, `~` ou `./` no começo: é caminho, não `dono/repo`.
-# MORA ANTES DA CHAMADA DE BAIXO, E NÃO AO LADO DO `_semear_de_pasta` — 24/09/2026,
-# sprint P45. O `_semente_do_flavor` roda no carregamento do script, e o ramo
-# `dracula)` dele pergunta a esta função; o bash só conhece a função depois de
-# ler a definição. Ela morava 120 linhas abaixo: medido numa casa de brinquedo,
-# `WALLPAPER_DRACULA_REPO` apontando para uma pasta e sem COMMIT imprimia
-# `_semente_e_pasta: command not found` e o aviso "sem pino não há receita",
-# que para pasta é falso — pasta não tem commit para pinar.
 _semente_e_pasta() {
   case "$1" in
     /*|'~'/*|./*|../*) return 0 ;;
@@ -2245,7 +2202,7 @@ SEMENTE_QUANTAS="${WALLPAPER_SEMENTE_QUANTAS:-0}"
 # juntos os dois reproduzem a escolha dela em qualquer máquina.
 #
 # O QUE VAI PARA O GIT É O `.padrao`, E NÃO ESTE ARQUIVO — 21/09/2026
-#   Ele era versionado em `assets/papeis-de-parede/BANIDOS.txt`, e este script
+#   Ele era versionado em `packs/meowsystem/wallpapers/BANIDOS.txt`, e este script
 #   acrescentava linha nele a cada "Tirar". Medido no clone dele naquele dia:
 #   `+47` linhas de diff pendente às 17h09, ninguém tendo programado nada — e,
 #   entre os dois usuários reais, conflito de merge a cada `git pull` num
@@ -2272,12 +2229,12 @@ esta_banida() {
 # e o que buscamos na internet naquele dia, imagem por imagem.
 #
 # Mesma regra do resto do repositório: a imagem não vai para o git, a RECEITA
-# vai. `assets/papeis-de-parede/FONTES.tsv` é a receita — uma linha por imagem, com a URL de
+# vai. `packs/meowsystem/wallpapers/FONTES.tsv` é a receita — uma linha por imagem, com a URL de
 # onde ela veio. Sem este arquivo, uma máquina reformatada voltaria só com o que
 # sobrou da coleção de terceiro e NENHUMA das escolhas dela; sem o `BANIDOS.txt`
 # do bloco acima, voltaria com as 242 do upstream inteiras. Os dois juntos são a
 # curadoria — um diz o que ela quer, o outro o que ela não quer.
-FONTES_TSV="${WALLPAPER_FONTES:-$RAIZ/assets/papeis-de-parede/FONTES.tsv}"
+FONTES_TSV="${WALLPAPER_FONTES:-$SEMENTE_CURADORIA_PADRAO}"
 CURADORIA_N=0
 
 semear_da_curadoria() {
@@ -2315,7 +2272,7 @@ semear_da_curadoria() {
     fi
     local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
     if curl -sSL --max-time 90 -o "$tmp" "$url" 2>/dev/null && [ -s "$tmp" ]; then
-      mv -f "$tmp" "$destino"; CURADORIA_N=$((CURADORIA_N + 1))
+      meow_guardar_antes "$destino"; mv -f "$tmp" "$destino"; CURADORIA_N=$((CURADORIA_N + 1))
     else
       rm -f "$tmp"; falhas=$((falhas + 1))
     fi
@@ -2359,7 +2316,8 @@ _semear_de_pasta() {
     nome="${SEMENTE_PREFIXO}-${rel//\//-}"
     [ "$vetor" = 1 ] && nome="${nome%.*}.png"
     destino="$ATIVOS/$nome"
-    [ -e "$destino" ] && continue
+    # O desenho do pack mudou depois da cópia: refaz (decisão 15, o derivado segue a fonte).
+    [ -e "$destino" ] && [ ! "$arq" -nt "$destino" ] && continue
     esta_banida "$nome" && continue
     if meow_seco; then
       if [ "$vetor" = 1 ]; then meow_muda "rasterizaria $nome em 4K"; else meow_muda "copiaria $nome"; fi
@@ -2370,7 +2328,7 @@ _semear_de_pasta() {
     local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
     if [ "$vetor" = 1 ]; then
       if rsvg-convert -w 3840 -h 2160 -f png -o "$tmp" -- "$arq" 2>/dev/null && [ -s "$tmp" ]; then
-        mv -f "$tmp" "$destino"; n=$((n + 1))
+        meow_guardar_antes "$destino"; mv -f "$tmp" "$destino"; n=$((n + 1))
       else
         rm -f "$tmp"
         meow_aviso "não consegui rasterizar $rel"
@@ -2378,7 +2336,7 @@ _semear_de_pasta() {
       continue
     fi
     if cp -- "$arq" "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
-      mv -f "$tmp" "$destino"; n=$((n + 1))
+      meow_guardar_antes "$destino"; mv -f "$tmp" "$destino"; n=$((n + 1))
     else
       rm -f "$tmp"
       meow_aviso "não consegui copiar $rel"
@@ -2397,9 +2355,9 @@ _semear_de_pasta() {
   semear_da_curadoria
   if [ "$CURADORIA_N" -gt 0 ]; then
     if meow_seco; then
-      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria (assets/papeis-de-parede/FONTES.tsv)"
+      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria (packs/meowsystem/wallpapers/FONTES.tsv)"
     else
-      meow_ok "$CURADORIA_N imagem(ns) da curadoria reproduzidas (assets/papeis-de-parede/FONTES.tsv)"
+      meow_ok "$CURADORIA_N imagem(ns) da curadoria reproduzidas (packs/meowsystem/wallpapers/FONTES.tsv)"
     fi
     n=$((n + CURADORIA_N))
   fi
@@ -2416,9 +2374,33 @@ _semear_de_pasta() {
   return "$MEOW_OK"
 }
 
+# O acervo sem nenhuma imagem do pack no ar (casa nova, ou troca de pack) se
+# semeia da origem dele (precisa de rede). Uma tentativa por origem (a marca
+# guarda qual); com menos de duas imagens tenta sempre. Quem chama é o install
+# e o conserto do doctor, não o relógio do carrossel.
+cmd_semear_se_faltar() {
+  local n marca="$MEOW_ESTADO/wallpaper-semeado" rc
+  [ -n "$SEMENTE_REPO" ] || return "$MEOW_OK"
+  compgen -G "$ATIVOS/${SEMENTE_PREFIXO}-*" >/dev/null && return "$MEOW_OK"
+  n="$(quantas 2>/dev/null)"; n="${n:-0}"
+  [ "$n" -lt 2 ] || [ "$(cat "$marca" 2>/dev/null)" != "$SEMENTE_REPO" ] || return "$MEOW_OK"
+  if meow_seco; then
+    meow_muda "semearia os papéis de parede do pack no ar (precisa de rede)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  cmd_semear; rc=$?
+  mkdir -p "$MEOW_ESTADO" && printf '%s\n' "$SEMENTE_REPO" > "$marca"
+  return "$rc"
+}
+
 cmd_semear() {
   meow_tem python3 || { meow_erro "python3 não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
   criar_pastas
+
+  if [ -z "$SEMENTE_REPO" ]; then
+    meow_pula "o pack no ar não declara de onde descem os papéis de parede"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
 
   # UMA PASTA TAMBÉM É SEMENTE — 15/09/2026
   #   Nem toda origem é um repositório público que o `raw.githubusercontent.com`
@@ -2518,7 +2500,7 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
     # pela metade entraria na rotação e apareceria cortada na tela dela.
     local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
     if curl -sSL --max-time 60 -o "$tmp" "$base/$caminho_url" 2>/dev/null && [ -s "$tmp" ]; then
-      mv -f "$tmp" "$destino"; n=$((n+1))
+      meow_guardar_antes "$destino"; mv -f "$tmp" "$destino"; n=$((n+1))
     else
       rm -f "$tmp"; falhas=$((falhas + 1))
     fi
@@ -2534,9 +2516,9 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
     # passado, é a mesma mentira que este arquivo já documenta duas linhas abaixo
     # — e que a auditoria de 24/08/2026 pegou nesta função, recém-escrita.
     if meow_seco; then
-      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria (assets/papeis-de-parede/FONTES.tsv)"
+      meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria (packs/meowsystem/wallpapers/FONTES.tsv)"
     else
-      meow_ok "$CURADORIA_N imagem(ns) da curadoria reproduzidas (assets/papeis-de-parede/FONTES.tsv)"
+      meow_ok "$CURADORIA_N imagem(ns) da curadoria reproduzidas (packs/meowsystem/wallpapers/FONTES.tsv)"
     fi
     n=$((n + CURADORIA_N))
   fi
@@ -2637,7 +2619,7 @@ cmd_passo() {
 # "QUERO ESTA, AGORA" — 07/09/2026
 # A conferência de tarefas mediu o buraco: a jornada "fixar UMA imagem para
 # sempre" não tinha verbo — a ficha da imagem oferecia Dia, Noite e Tirar, e a
-# busca por "fixar" devolvia um gato. Toda a maquinaria já existia (o menu do
+# busca por "fixar" devolvia um mascote. Toda a maquinaria já existia (o menu do
 # botão direito fixa a PRÓXIMA via `gravar_fixo`); o que faltava era poder
 # apontar QUAL. A duração é a mesma regra de sempre: `WALLPAPER_FIXO_TTL`
 # manda, e com 0 a fixação dura até `meow wallpaper carrossel`.
@@ -2696,6 +2678,7 @@ cmd_favoritar() {
     return "$MEOW_DIVERGENTE"
   fi
   criar_pastas || return "$MEOW_ERRO"
+  meow_guardar_antes "$BASE/favoritos/$nome"
   cp -f -- "$img" "$BASE/favoritos/$nome" || return "$MEOW_ERRO"
   meow_ok "favorita: $nome — a cópia está em favoritos/, e ela segue girando"
   return "$MEOW_DIVERGENTE"
@@ -2714,6 +2697,7 @@ cmd_desfavoritar() {
     meow_muda "tiraria $nome das favoritas (a imagem de ativos/ fica)"
     return "$MEOW_DIVERGENTE"
   fi
+  meow_guardar_antes "$BASE/favoritos/$nome"
   rm -f -- "$BASE/favoritos/$nome" || return "$MEOW_ERRO"
   meow_ok "$nome saiu das favoritas; a imagem de ativos/ fica"
   return "$MEOW_DIVERGENTE"
@@ -2734,6 +2718,7 @@ case "${1:-aplicar}" in
   --conferir|conferir) MEOW_SECO=1; cmd_aplicar ;;
   estado)    cmd_estado ;;
   semear)    cmd_semear ;;
+  semear-se-faltar) cmd_semear_se_faltar ;;
   banir)     shift; cmd_banir "${1:-}" ;;
   desbanir)  shift; cmd_desbanir "${1:-}" ;;
   adicionar) shift; cmd_adicionar "${1:-}" ;;

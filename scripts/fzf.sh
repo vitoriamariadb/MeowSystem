@@ -151,8 +151,7 @@ case "$rc" in
        meow_muda "escreveria as cores do fzf a partir da paleta ($_FLAVOR, acento $_ACCENT)"
      else
        meow_ok "cores do fzf de $_FLAVOR escritas em $FZF_ALVO"
-       meow_info "valem em todo shell que carregar o arquivo — a linha, se ainda não estiver no seu:"
-       meow_info "  $(_fzf_linha)"
+       meow_info "valem no próximo terminal (o bloco do MeowSystem carrega o arquivo)"
      fi
      exit "$MEOW_DIVERGENTE" ;;
   *) meow_erro "não consegui escrever $FZF_ALVO"

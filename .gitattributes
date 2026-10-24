@@ -1,4 +1,4 @@
-assets/papeis-de-parede/BANIDOS.txt merge=ours
+packs/meowsystem/wallpapers/BANIDOS.txt merge=ours
 
 # As capturas de tema são FOTOGRAFIA byte a byte do que o COSMIC escreve, e o
 # COSMIC escreve sem a newline final. O auto-fix de whitespace do pre-commit a

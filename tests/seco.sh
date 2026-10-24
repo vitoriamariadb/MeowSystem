@@ -41,8 +41,11 @@ _plantar_unidades() {   # $1 = o HOME de brinquedo
     nome="$(basename "$u")"
     # O `@V_PANEL@`/`@V_DOCK@` é o esquema que o pacote traz, como o
     # `meow_cosmic_v` do lib/comum.sh o lê: o maior `v<n>`, ou `v1`.
+    if [ "$nome" = "meow-assets.path" ]; then
+      HOME="$1" bash "$RAIZ/scripts/vigia_assets.sh" --unidade "$nome" > "$destino/$nome"
+      chmod 644 "$destino/$nome"; continue
+    fi
     sed -e "s|@ATIVOS@|$1/.local/share/backgrounds/meowsystem/ativos|g" \
-        -e "s|@ACERVO@|$RAIZ/assets/gatos|g" \
         -e "s|@V_PANEL@|$(_v_do_pacote com.system76.CosmicPanel.Panel)|g" \
         -e "s|@V_DOCK@|$(_v_do_pacote com.system76.CosmicPanel.Dock)|g" "$u" > "$destino/$nome"
     chmod 644 "$destino/$nome"

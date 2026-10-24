@@ -130,6 +130,8 @@ meow_desinstalar() {
     "$MEOW_RAIZ/scripts/icones_tray_zapzap.sh" --desfazer || true
   fi
 
+  "$MEOW_RAIZ/scripts/terminal_bloco.sh" remover || true
+
   meow_passo "2/6 Temas por aplicativo"
   # A LISTA VEM DA CONF DELA, e um APPS_ATIVOS vazio significa "ela nunca ligou
   # nenhum" — não há o que desfazer, e chamar o runner com lista vazia só

@@ -18,7 +18,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/icones.sh
 . "$RAIZ/lib/icones.sh"
 # `meow_nome_do_mapa`: o encurtamento do rótulo mora no `nomes_apps.sh`, com a
-# lista em `assets/icones/apps-nomes.map`.
+# lista em `assets/apps/apps-nomes.map`.
 . "$RAIZ/scripts/nomes_apps.sh"
 
 APPS="$HOME/.local/share/applications"
@@ -26,7 +26,7 @@ HICOLOR="$HOME/.local/share/icons/hicolor"
 # A lista de appids que ficam fora do lançador mesmo tendo manifesto. O porquê
 # de ela existir — e por que não dá para deduzir o caso dela — está no cabeçalho
 # do próprio mapa.
-MEOW_JOGOS_FORA="${MEOW_JOGOS_FORA:-$RAIZ/assets/icones/jogos-fora.map}"
+MEOW_JOGOS_FORA="${MEOW_JOGOS_FORA:-$RAIZ/assets/apps/jogos-fora.map}"
 STEAM="$HOME/.steam/steam"
 CACHE="$STEAM/appcache/librarycache"
 LIBVDF="$STEAM/steamapps/libraryfolders.vdf"
@@ -641,7 +641,7 @@ _notas_finais() {
   [ "$ferramentas" -gt 0 ] &&
     meow_info "$ferramentas ferramenta(s) da Steam (Proton, runtimes) fora do lançador, de propósito"
   if [ "$fora" -gt 0 ]; then
-    meow_info "$fora jogo(s) fora do lançador pelo assets/icones/jogos-fora.map:"
+    meow_info "$fora jogo(s) fora do lançador pelo assets/apps/jogos-fora.map:"
     printf '%s\n' "$fora_notas" | while IFS= read -r n; do
       [ -n "$n" ] && meow_info "  $n"
     done
@@ -651,12 +651,12 @@ _notas_finais() {
     printf '%s\n' "$voltou_notas" | while IFS= read -r n; do
       [ -n "$n" ] && meow_info "  $n"
     done
-    meow_info "  a linha deles no assets/icones/jogos-fora.map está gasta e pode sair — deixá-la também não faz mal"
+    meow_info "  a linha deles no assets/apps/jogos-fora.map está gasta e pode sair — deixá-la também não faz mal"
   fi
   if [ -n "$sem_licenca" ]; then
     meow_aviso "a Steam recusou licença (AppError_5) para: $sem_licenca"
     meow_info "  o cartão continua na tela porque o manifesto diz 'instalado' — pode ser só sessão caída ou modo offline"
-    meow_info "  se for definitivo (demo retirada da loja), ponha no assets/icones/jogos-fora.map:"
+    meow_info "  se for definitivo (demo retirada da loja), ponha no assets/apps/jogos-fora.map:"
     meow_info "    <appid>:apagar:<o motivo, com a data>   — tira da tela E limpa o disco"
   fi
   return 0

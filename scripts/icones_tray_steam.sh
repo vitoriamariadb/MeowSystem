@@ -18,7 +18,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GLIFO="${MEOW_TRAY_STEAM_GLIFO:-$RAIZ/packs/meowsystem/icones/sistema/arcticons/steam.svg}"
 TRACO="${MEOW_TRAY_STEAM_TRACO:-4}"
 COR="${MEOW_TRAY_STEAM_COR:-#DEDEDE}"
-FABRICA="$RAIZ/assets/icones/tray-terceiros/steam_tray_mono.png.original"
+FABRICA="$RAIZ/assets/apps/tray-terceiros/steam_tray_mono.png.original"
 
 RELATIVO="public/steam_tray_mono.png"
 INVENTARIO="package/steam_client_ubuntu12.installed"
@@ -41,7 +41,7 @@ _raiz_steam() {
 # Devolve "tam mtime crc". A fonte boa é o inventário do cliente, que traz os
 # três campos de uma vez.
 #
-# `assets/icones/tray-terceiros/steam_tray_mono.png.original` tem o CONTEÚDO de
+# `assets/apps/tray-terceiros/steam_tray_mono.png.original` tem o CONTEÚDO de
 # fábrica mas foi copiado sem `-p`: o `mtime` dele é 2026-08-10 23:31:54, não
 # 2014-08-06 22:56:20.
 _esperado() {

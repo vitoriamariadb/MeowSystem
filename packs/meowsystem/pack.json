@@ -6,6 +6,21 @@
   "papel": "base",
   "autor": "vitoriamariadb",
   "licenca": "GPL-3.0-or-later",
+  "mascote": {
+    "desenhos": "mascote/",
+    "dia": "mimir",
+    "noite": "coquinha",
+    "_nota": "O mascote do dock e do fastfetch. Um .svg solto em `mascote/` entra na lista; `dia` e `noite` são os de fábrica do modo `hora` quando o LOGO_DIA/LOGO_NOITE do meow.conf não está nesta pasta."
+  },
+  "origens": {
+    "wallpapers": {
+      "repo": "zhichaoh/catppuccin-wallpapers",
+      "commit": "1023077979591cdeca76aae94e0359da1707a60e",
+      "prefixo": "cat",
+      "curadoria": "wallpapers/FONTES.tsv",
+      "_nota": "O instalador semeia sozinho: a coleção pinada do repo e a curadoria (uma linha por imagem, com a URL). As imagens não vão para o git; a receita vai."
+    }
+  },
   "icones": {
     "apps": {
       "recolorir": true,

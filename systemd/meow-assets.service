@@ -1,14 +1,14 @@
-# meow-assets.service — o gato que ela acabou de soltar em `assets/gatos/` entra
+# meow-assets.service — o mascote que ela acabou de soltar em `packs/meowsystem/mascote/` entra
 # na rotação, disparado pelo `meow-assets.path` irmão.
 #
 # O QUE ELE RODA, E POR QUE NÃO É `girar`
 #   `logo.sh` sem argumento = "aplicar": põe o acervo INTEIRO no disco
 #   (`~/.config/cosmic/logos/meow-<nome>.svg`), remove de lá o que ela tirou da
-#   pasta, e garante que a chave do applet aponta para algum gato do acervo — SEM
+#   pasta, e garante que a chave do applet aponta para algum mascote do acervo — SEM
 #   avançar a rotação. É exatamente o pedido: "soltou o arquivo, ele ENTRA na
-#   rotação". Girar aqui seria outra coisa, e uma coisa ruim: acrescentar um gato
-#   passaria a mexer em QUAL gato está no ar, escolhendo o próximo da fila (que
-#   nem é o que ela acabou de desenhar). Quem gira é o relógio — um gato por dia,
+#   rotação". Girar aqui seria outra coisa, e uma coisa ruim: acrescentar um mascote
+#   passaria a mexer em QUAL mascote está no ar, escolhendo o próximo da fila (que
+#   nem é o que ela acabou de desenhar). Quem gira é o relógio — um mascote por dia,
 #   decisão dela.
 #
 # ─────────────────────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 #   Um serviço disparado por mudança que escreve DENTRO do diretório vigiado se
 #   redispara para sempre. Medido que a armadilha é real: escrever ou apagar um
-#   arquivo em `assets/gatos/` dispara a unidade.
+#   arquivo em `packs/meowsystem/mascote/` dispara a unidade.
 #
 #   UMA ESCRITA PASSOU A CAIR DENTRO, EM 01/09/2026, E ELA É DE PROPÓSITO
 #   O `logo.sh` normaliza o acervo antes de lê-lo: um SVG salvo pelo Boxy com
@@ -71,7 +71,7 @@
 #   pior, e o porquê está no cabeçalho daquele arquivo.
 
 [Unit]
-Description=MeowSystem — o gato novo do acervo entra na rotação
+Description=MeowSystem — o que sai do pack (mascote, papel de parede, temas de apps) se refaz
 Documentation=file:%h/.local/state/meowsystem/raiz
 ConditionPathExists=%h/.local/state/meowsystem/raiz
 
@@ -81,7 +81,7 @@ ConditionPathExists=%h/.local/state/meowsystem/raiz
 #   passa a girar sozinho, gastando CPU sem nada na tela para denunciar. Com o
 #   limite, o vigia PARA e fica vermelho no `systemctl --user status` — o
 #   `meow doctor` acusa e o `--consertar` faz o `reset-failed` antes de religar.
-#   Vinte em um minuto é folga larga para ela arrastar um punhado de gatos de uma
+#   Vinte em um minuto é folga larga para ela arrastar um punhado de mascotes de uma
 #   vez (medido: um arquivo solto = 1 a 2 disparos) e apertado para um laço, que
 #   queima a cota em menos de um segundo.
 StartLimitIntervalSec=60s
@@ -98,13 +98,13 @@ Type=oneshot
 ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${ASSETS_VIGIA:-sim}" = "sim" ]'
 
 # O DEBOUNCE DE 3 SEGUNDOS — O DIRETÓRIO VIGIADO É VERSIONADO NO GIT
-#   `assets/gatos/` está sob controle de versão (`git ls-files assets/gatos`
+#   `packs/meowsystem/mascote/` está sob controle de versão (`git ls-files packs/meowsystem/mascote/`
 #   devolve os três arquivos), então um `git checkout`/`stash`/`rebase` remove e
 #   recria os SVG um a um, e o `PathModified` do irmão vê CADA passo. O serviço
 #   rodaria com o acervo pela metade — passa pela guarda de acervo vazio (a do
-#   «não há gato nenhum», no `logo.sh`) e cai direto no `rm -f` de órfão (o
+#   «não há mascote nenhum», no `logo.sh`) e cai direto no `rm -f` de órfão (o
 #   bloco "1b" de lá, que tira do disco o que saiu do acervo), apagando do dock
-#   o gato que só sumiu porque o git estava no meio da troca. [Os dois lugares
+#   o mascote que só sumiu porque o git estava no meio da troca. [Os dois lugares
 #   eram citados por número de linha até 25/09/2026, P62, e os números já
 #   apontavam para outra coisa.]
 #   Pela systemd.path(5) a unidade NÃO redispara enquanto este serviço está
@@ -115,7 +115,7 @@ ExecStartPre=-/usr/bin/sleep 3
 
 # O MESMO LOCK DO `bin/meow` (o `meow_travar` do lib/comum.sh), pelo `flock(1)`, que usa o
 # mesmo `flock(2)` sobre o mesmo arquivo. Aqui é `-w 60` e não `-n`: um disparo
-# perdido é um gato que ela soltou na pasta e não entrou, e a `.path` pode não
+# perdido é um mascote que ela soltou na pasta e não entrou, e a `.path` pode não
 # disparar de novo — então esperamos a vez até um minuto. E `-E 0` porque o
 # `ExecStopPost` abaixo fala em `EXIT_STATUS=1`: sem ele, ceder a vez ao lock
 # faria o `flock` sair 1 e ela receberia na tela o aviso de "o acervo mudou"
@@ -123,19 +123,19 @@ ExecStartPre=-/usr/bin/sleep 3
 # A LISTA `export FLAVOR LOGO` ERA A ARMADILHA Nº 3, IGUAL À DO meow-logo.service
 #   O `scripts/logo.sh` lê `NOME_TEMA_ICONES` (o tema do botão do dock), e ela ficava de fora
 #   deste export: chegava vazia, o script caía no padrão `MeowSystem-Icons` e o
-#   gato novo era gravado numa árvore de tema que, com `NOME_TEMA_ICONES`
+#   mascote novo era gravado numa árvore de tema que, com `NOME_TEMA_ICONES`
 #   customizado, ninguém lê. Sem erro e sem log — o `.path` dispara, o serviço
-#   diz "Finished", e o gato não aparece.
+#   diz "Finished", e o mascote não aparece.
 #
 #   O `[ -f "$C" ]` também é conserto: o `. %h/.config/meow/meow.conf` estava
 #   NU. No dash, um `.` sobre arquivo inexistente ABORTA o shell, então numa
 #   máquina onde o `install.sh` ainda não passou este serviço falhava em vez de
 #   sair calado — que é o contrato de todas as outras unidades daqui.
-ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; exec "$R/scripts/logo.sh"'
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; exec "$R/scripts/vigia_assets.sh" --disparo'
 
 # 1 é "estava divergente e eu consertei" — o código que o `logo.sh` devolve
 # quando o acervo mudou, que é justamente o caso normal aqui. 3 é "o acervo está
-# vazio". Sem esta linha, TODA entrada de gato novo apareceria como serviço
+# vazio". Sem esta linha, TODA entrada de mascote novo apareceria como serviço
 # falho. [Até 25/09/2026, P62, o 3 era "o applet dev.cappsy não está nesta
 # máquina": desde 16/09 a falta do applet não para o `logo.sh`, e desde a P57
 # o applet é o que está instalado, e não um id escrito.]
@@ -144,7 +144,7 @@ SuccessExitStatus=1 3
 # O AVISO, E SÓ QUANDO ALGO DE FATO ENTROU
 #   Mesmo mecanismo do `meow-doctor.service`: o systemd entrega `EXIT_STATUS` ao
 #   ExecStopPost mesmo quando o código está no `SuccessExitStatus`. Só o 1 fala.
-#   Sem isto, o recurso seria invisível: ela solta o arquivo, nada pisca (o gato
+#   Sem isto, o recurso seria invisível: ela solta o arquivo, nada pisca (o mascote
 #   do dock só é relido no login seguinte — o cosmic-panel não tem watch de
 #   inotify sobre arquivo de ícone) e ela não teria como saber se funcionou.
 #   O prefixo `-` existe porque uma máquina sem servidor de notificação faria o
@@ -156,7 +156,7 @@ SuccessExitStatus=1 3
 #   string do corpo. Conferido com `systemctl --user show -p ExecStopPost`: o
 #   corpo se partia em três argumentos, e o `notify-send` recusa o excesso. Aspa
 #   simples também não serve (o systemd já usou as dela). Texto sem aspas resolve.
-ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${ASSETS_VIGIA_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O acervo de gatos mudou e já está no ar — dock, terminal e menu de lançamento. meow logo listar mostra quem está desenhado."'
+ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${ASSETS_VIGIA_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O pack mudou e já está no ar — mascote, papel de parede e temas de apps."'
 
 # Um vigia travado seguraria o disparo seguinte. Isto aqui lê uma pasta e escreve
 # meia dúzia de SVG pequenos; um minuto seria folga de sobra para o trabalho.

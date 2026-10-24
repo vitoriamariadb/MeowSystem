@@ -61,7 +61,7 @@ _passos_de() {
     */icones/apps-resgatados.map|*/icones/apps/resgatados/*) printf 'resgatados\narcticons\n' ;;
     */icones/apps-arcticons.map|*/icones/apps-convertidos.map|*/icones/apps-marca.map \
       |*/icones/apps/arcticons/*|*/icones/apps/convertidos/*) printf 'arcticons\n' ;;
-    */icones/apps-hicolor.map)                 printf 'completar\napps\n' ;;
+    */icones/apps-hicolor.map)                 printf 'completar\n' ;;
     */icones/apps/autorais/*)                  printf 'completar\n' ;;
     */icones/sistema.map)                      printf 'sistema\n' ;;
     */icones/bandeja.map)                      printf 'bandeja\n' ;;
@@ -86,7 +86,6 @@ _rodar() {
     arcticons)  "$RAIZ/scripts/construir_convertidos.sh" --so-mao
                 FLAVOR="${FLAVOR:-}" ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao}" ICONES_TEMA="$tema" \
                   "$RAIZ/scripts/icones_apps_arcticons.sh" ;;
-    apps)       ICONES_FLAVOR="${ICONES_FLAVOR:-}" ICONES_TEMA="$tema" "$RAIZ/scripts/icones_apps.sh" ;;
     completar)  FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" NOME_TEMA_ICONES="$tema" \
                   "$RAIZ/scripts/completar_icones.sh" ;;
     sistema)    ICONES_TEMA="$tema" "$RAIZ/scripts/icones_sistema.sh" ;;
@@ -187,7 +186,7 @@ _passada() {   # $1 = conferir | aplicar | registrar
   done <<<"$diferencas"
   MEOW_RELER_NO_FIM="$(mktemp "${TMPDIR:-/tmp}/meow-reler.XXXXXX" 2>/dev/null)" && export MEOW_RELER_NO_FIM
   local feitos=()
-  for passo in completar mimetypes apps resgatados arcticons dracula sistema bandeja pastas; do
+  for passo in completar mimetypes resgatados arcticons dracula sistema bandeja pastas; do
     [ -n "${pedir[$passo]:-}" ] || continue
     feitos+=("$passo")
     _rodar "$passo" >>"$tmp/passos.log" 2>&1

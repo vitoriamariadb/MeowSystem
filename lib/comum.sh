@@ -439,6 +439,36 @@ PYFIM
 # primeiro que existir, nessa ordem.
 # O caminho passa pelo `meow_dentro`: uma pasta do pack que seja link para fora
 # não vira acervo.
+# O motivo de um `cargo build` que falhou, lido do registro dele: a falta de
+# compilador ou de biblioteca do sistema vem antes de qualquer suspeita do código.
+meow_motivo_do_cargo() {
+  local log="$1" lib
+  if grep -q 'linker `cc` not found' "$log" 2>/dev/null; then
+    printf 'falta o compilador C (pacote build-essential)'
+  elif lib="$(grep -o 'The system library `[^`]*`' "$log" 2>/dev/null | head -n1)" && [ -n "$lib" ]; then
+    lib="${lib#*\`}"
+    printf 'falta a biblioteca %s do sistema (o pacote -dev dela)' "${lib%\`}"
+  elif grep -q 'Could not run `"pkg-config"\|pkg-config: not found\|failed to run.*pkg-config' "$log" 2>/dev/null; then
+    printf 'falta o pkg-config'
+  else
+    printf 'o cargo não compilou'
+  fi
+}
+
+# Os pacotes de que a compilação dos applets precisa, um por linha:
+# `<arquivo que prova a presença>|<pacote>`.
+MEOW_DEPS_DOS_APPLETS="/usr/bin/cc|build-essential
+/usr/bin/pkg-config|pkg-config
+/usr/include/xkbcommon/xkbcommon.h|libxkbcommon-dev
+/usr/include/wayland-client.h|libwayland-dev
+/usr/include/dbus-1.0/dbus/dbus.h|libdbus-1-dev"
+
+# A pasta do mascote do pack no ar (pela herança); sem nenhuma, a do pack-base.
+meow_mascote_dir() {
+  python3 "$MEOW_RAIZ/scripts/pack.py" mascote "$(meow_pack_dir)" 2>/dev/null \
+    || printf '%s' "$MEOW_RAIZ/packs/meowsystem/mascote"
+}
+
 meow_pack_arquivo() {
   local no_pack="$1" no_nucleo="${2:-}" dir real
   dir="$(meow_pack_dir)"
@@ -829,11 +859,13 @@ meow_conf_definir() {
 
 # --- lock: o timer pode disparar enquanto ela roda na mão (regra 10) --------
 MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
+# O que se baixa (papirus-folders, o tarball da Nerd Font) mora fora do repositório.
+MEOW_CACHE="${MEOW_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem}"
 
 # --- O ESTADO DO USUÁRIO SAI DO REPOSITÓRIO, E O `.padrao` FICA — 21/09/2026 -
 #
 # Até hoje a CURADORIA dela era gravada DENTRO do clone: `BANIDOS.txt` e
-# `lado.tsv` moravam em `assets/papeis-de-parede/` e eram versionados. Usar o
+# `lado.tsv` moravam em `packs/meowsystem/wallpapers/` e eram versionados. Usar o
 # painel virava commit pendente. Está medido no `git status` daquele dia: `+47`
 # linhas em `BANIDOS.txt` e `-3` em `lado.tsv`, gravadas às 17h09 por ela clicar
 # em "Tirar" e em "Dia"/"Noite". Ninguém programou nada.
@@ -945,6 +977,8 @@ MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 # Uso:  caminho="$(meow_estado_com_padrao papeis-de-parede BANIDOS.txt)"
 meow_estado_com_padrao() {
   local pasta="$1" arquivo="$2" origem="$MEOW_RAIZ/assets/$1" dir="$MEOW_ESTADO/$1"
+  # A semente dos papéis de parede é a curadoria do pack-base.
+  [ "$pasta" = "papeis-de-parede" ] && origem="$MEOW_RAIZ/packs/meowsystem/wallpapers"
   local padrao semente
   if [ "${MEOW_ESTADO_SO_LE:-0}" = "1" ] && [ ! -f "$dir/$arquivo" ]; then
     if [ -f "$origem/$arquivo" ]; then printf '%s' "$origem/$arquivo"

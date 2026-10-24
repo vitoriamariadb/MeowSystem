@@ -167,12 +167,12 @@
       '<span class="bandeja"><i></i><i></i><i></i>' + (sem.indexOf("musica") < 0 ? "<span>14:32</span>" : "") + "</span></div>";
     if (sem.indexOf("arq") < 0) h += '<div class="p-jan p-arq' + m("arq") + '"><header>Pessoal<i></i></header><div class="corpo"><nav><span>Pessoal</span><span>Recentes</span><span>Downloads</span><span>Projetos</span><span>Lixeira</span></nav><div class="pastas">' + pastas + "</div></div></div>";
     if (sem.indexOf("term") < 0) {
-      var ff = el.dataset.ff ? '<div class="gato-ff"><img src="assets/gatos/' + el.dataset.ff + '.svg" alt=""><div>vitoria@meow<br>SO Pop!_OS 24.04<br>Tema ' + (fam === "dracula" ? "Dracula" : "MeowSystem") + "</div></div>" : "";
+      var ff = el.dataset.ff ? '<div class="gato-ff"><img src="packs/meowsystem/mascote/' + el.dataset.ff + '.svg" alt=""><div>vitoria@meow<br>SO Pop!_OS 24.04<br>Tema ' + (fam === "dracula" ? "Dracula" : "MeowSystem") + "</div></div>" : "";
       h += '<div class="p-jan p-term' + m("term") + '"><header>Terminal<i></i></header><div class="corpo"><div class="pr"><b>meow</b><b>~/Desenvolvimento</b><b>dev</b></div><div><span class="ok">ok</span> doctor: 63 etapas, nada a consertar</div><div>&gt; <span class="cursor"></span></div>' + ff +
         '<div class="tira">' + TIRA.map(function (c) { return '<i style="background:var(--c-' + c + ')"></i>'; }).join("") + "</div></div></div>";
     }
-    if (el.dataset.aviso) h += '<div class="p-aviso"><img src="assets/gatos/' + gato + '.svg" alt=""><div><b>' + el.dataset.aviso.split("|")[0] + "</b><span>" + (el.dataset.aviso.split("|")[1] || "") + "</span></div></div>";
-    if (sem.indexOf("dock") < 0) h += '<div class="p-dock' + m("dock") + '"><img class="gato" src="assets/gatos/' + gato + '.svg" alt="Gato do dock"><span class="sep"></span>' + dock + "</div>";
+    if (el.dataset.aviso) h += '<div class="p-aviso"><img src="packs/meowsystem/mascote/' + gato + '.svg" alt=""><div><b>' + el.dataset.aviso.split("|")[0] + "</b><span>" + (el.dataset.aviso.split("|")[1] || "") + "</span></div></div>";
+    if (sem.indexOf("dock") < 0) h += '<div class="p-dock' + m("dock") + '"><img class="gato" src="packs/meowsystem/mascote/' + gato + '.svg" alt="Gato do dock"><span class="sep"></span>' + dock + "</div>";
     el.innerHTML = h;
     el.setAttribute("role", "img");
     if (!el.getAttribute("aria-label")) el.setAttribute("aria-label", "Prévia da área de trabalho");

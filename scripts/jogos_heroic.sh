@@ -18,7 +18,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 # shellcheck source=../lib/icones.sh
 . "$RAIZ/lib/icones.sh"
-# O encurtamento do rótulo: as chaves do `assets/icones/apps-nomes.map` para os
+# O encurtamento do rótulo: as chaves do `assets/apps/apps-nomes.map` para os
 # jogos daqui são `heroic-<runner>-<app_name>`, o mesmo id do arquivo sem o
 # prefixo `meow-`.
 . "$RAIZ/scripts/nomes_apps.sh"

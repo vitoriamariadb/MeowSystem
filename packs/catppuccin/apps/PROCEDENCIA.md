@@ -1,11 +1,11 @@
 # Procedência do tema qBittorrent
 
-> Este arquivo morava em `assets/temas-de-apps/qbittorrent/` até 22/09/2026
+> Este arquivo morava em `scripts/temas-de-apps/qbittorrent/` até 22/09/2026
 > (sprint P18) e veio para cá junto com o `.qbtheme` que ele descreve. A regra é
 > a da casa: a procedência viaja com a arte, e a arte agora é do pack — quem
 > publica um pack com tema de aplicativo publica a procedência dele ao lado.
 > O módulo que instala o arquivo continua sendo
-> `assets/temas-de-apps/qbittorrent/manifesto.sh`; o que mudou é que ele
+> `scripts/temas-de-apps/qbittorrent/manifesto.sh`; o que mudou é que ele
 > pergunta ao pack qual tema aplicar, em vez de saber.
 
 ## Arquivo

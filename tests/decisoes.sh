@@ -333,6 +333,35 @@ faltam=""
 for k in 'NOPASSWD' 'HOME temporário' 'troca palavras' '/tmp' 'Senha nunca'; do tem "$k" || faltam+=" «$k»"; done
 [ -z "$faltam" ] && ok "as armadilhas estão no GSD.md" || falha "o GSD.md perdeu a armadilha:$faltam"
 
+# --- decisões 19 a 24 de 02-decisoes.md (23/10, P96) --------------------------
+[ -f "$RAIZ/packs/meowsystem/mascote/coquinha.svg" ] && [ -f "$RAIZ/packs/meowsystem/mascote/mimir.svg" ] \
+  && [ "$(ls "$RAIZ"/packs/dracula/mascote/morcego*.svg 2>/dev/null | wc -l)" = 3 ] && ! ls -d "$RAIZ"/assets/gat[o]s >/dev/null 2>&1 \
+  && [ "$(python3 "$RAIZ/scripts/pack.py" mascote-padrao dracula dia)" = morcego-dia ] \
+  && ok "19: cada pack tem o seu mascote, e o de fábrica do Dracula é o morcego" \
+  || falha "19: o mascote não mora no pack, ou o Dracula não tem o morcego de fábrica"
+[ -x "$RAIZ/scripts/terminal_bloco.sh" ] && grep -q 'etapa_bloco_terminal' "$RAIZ/install.sh" \
+  && grep -q 'terminal_bloco.sh" remover' "$RAIZ/lib/desinstalar.sh" \
+  && [ "$(grep -c '^item	spellbook-terminal-' "$RAIZ/assets/contratos/vizinhos.tsv")" = 3 ] \
+  && ok "20: o bloco do terminal é do MeowSystem, e o do Spellbook sai pelo vizinhos.tsv" \
+  || falha "20: falta o bloco do terminal, a remoção dele ou os itens do Spellbook"
+faltam=""
+for p in build-essential pkg-config libxkbcommon-dev libwayland-dev libdbus-1-dev; do
+  grep -qE "\\|$p\"?\$" <(sed -n '/^MEOW_DEPS_DOS_APPLETS=/,/"$/p' "$RAIZ/lib/comum.sh") || faltam+=" $p"
+done
+[ -z "$faltam" ] && grep -q 'ppa:zhangsongcui3371/fastfetch' "$RAIZ/install.sh" \
+  && ok "21: o instalador declara o que os applets compilam e o PPA do fastfetch" \
+  || falha "21: falta dependência declarada:${faltam:- o PPA do fastfetch}"
+grep -q 'git clone https://github.com/AndreBFarias/MeowSystem.git' "$RAIZ/README.md" \
+  && ok "22: o README manda baixar do fork" || falha "22: o README não aponta para AndreBFarias/MeowSystem"
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["origens"]["wallpapers"].get("repo") else 1)' \
+    "$RAIZ/packs/meowsystem/pack.json" 2>/dev/null && ! grep -q 'meow wallpaper semear  ' "$RAIZ/install.sh" \
+  && ok "23: a origem dos papéis de parede é do pack, e o install não manda digitar" \
+  || falha "23: o pack não declara a origem dos papéis de parede, ou o install manda semear"
+[ ! -e "$RAIZ/docs/folhas" ] && [ ! -e "$RAIZ/docs/pesquisas" ] && [ ! -e "$RAIZ/scripts/icones_apps.sh" ] \
+  && ! grep -rqs 'catppuccin-apps' "$RAIZ/install.sh" "$RAIZ/bin/meow" "$RAIZ/scripts" \
+  && ok "24: as folhas, a pesquisa bruta e a etapa morta saíram" \
+  || falha "24: voltou folha, pesquisa bruta ou a etapa do catppuccin-apps"
+
 echo
 if [ "$falhas" = 0 ]; then echo "decisoes: tudo certo"; exit 0; fi
 echo "decisoes: $falhas falha(s)"; exit 1

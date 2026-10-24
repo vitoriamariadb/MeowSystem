@@ -93,7 +93,7 @@ Disso saem duas consequências:
 ### Confirmado na prática, no desktop de quem usa
 
 Montado `~/.local/share/icons/MeowSystem-Icons` com `scalable/apps/` e
-`icon_theme = "MeowSystem-Icons"`: **o botão do dock virou o gato Catppuccin na hora**,
+`icon_theme = "MeowSystem-Icons"`: **o botão do dock virou o mascote Catppuccin na hora**,
 sem `sudo`, sem `/usr/share`, sem envolver o Ritual da Aurora.
 
 **Consequência de arquitetura:** o MeowSystem entrega ícones em
@@ -149,19 +149,19 @@ Consequências práticas:
   (`#CBA6F7`), como manda um flavor claro. São a mesma cor da paleta com o mesmo
   nome, e valores diferentes de propósito.
 
-## 3. O gato do painel não passa por tema de ícones
+## 3. O mascote do painel não passa por tema de ícones
 
 > **LEIA ISTO ANTES DA SEÇÃO — medido em 05/08/2026 e ainda válido em 08/08.**
 > O applet descrito abaixo **não está montado em barra nenhuma** nesta máquina:
 > `LogoMenu` não aparece em `plugins_wings` nem em `plugins_center` do
 > `CosmicPanel.Panel` nem do `CosmicPanel.Dock`. Tudo o que esta seção descreve
 > sobre `custom_logo_path` está certo e continua funcionando — só que **ninguém
-> desenha o resultado**. O gato que se vê de fato é outro caminho: o
+> desenha o resultado**. O mascote que se vê de fato é outro caminho: o
 > `com.system76.CosmicPanelAppButton`, que vem do TEMA DE ÍCONES e é lido uma
 > vez, no login.
 >
 > Consequência prática, e é a que explica a queixa de 08/08 ("voltamos a ter o
-> ícone antigo do lançador"): **o gato só pode mudar de aparência no login**. Foi
+> ícone antigo do lançador"): **o mascote só pode mudar de aparência no login**. Foi
 > por isso que a rotação deixou de ser um relógio e passou a acontecer no
 > encerramento da sessão — ver `systemd/meow-logo.service`.
 
@@ -199,10 +199,10 @@ papéis de parede?".
 > |---|---|
 > | reescrever o SVG do botão no tema de ícones | **zero pixel muda** — o `cosmic-panel-button` resolve o ícone no arranque e guarda |
 > | `kill <pid do cosmic-panel-button>` | **buraco no dock** — o `cosmic-panel` NÃO ressuscita applet morto |
-> | `meow painel reciclar` (SIGTERM no painel, pela porta única) | **botão de volta em ~6 s, com o gato NOVO** |
+> | `meow painel reciclar` (SIGTERM no painel, pela porta única) | **botão de volta em ~6 s, com o mascote NOVO** |
 >
 > Provado com captura de tela antes e depois, nas três linhas. É isso que faz o
-> gato do dock seguir o relógio — duas trocas por dia, não uma a cada meia hora,
+> mascote do dock seguir o relógio — duas trocas por dia, não uma a cada meia hora,
 > e é a mudança de FREQUÊNCIA que tornou o pisca aceitável, não uma medição nova
 > que contradiga a de 04/08.
 >
@@ -213,7 +213,7 @@ papéis de parede?".
 O applet vigia a configuração por inotify (o processo tem 6 fds de inotify), mas não
 vigia o arquivo de imagem. Então reescrever `meow-mocha.svg` no lugar não faz efeito
 até o próximo `pkill -x cosmic-panel`; já apontar a chave para um
-`meow-mocha-pink.svg` troca o gato instantaneamente, sem piscar nada.
+`meow-mocha-pink.svg` troca o mascote instantaneamente, sem piscar nada.
 
 **Consequência:** dá para girar a logo — inclusive junto com o carrossel de papel de
 parede — mantendo **um arquivo por variante** e alternando só a chave. Nunca reescrevendo
@@ -442,7 +442,7 @@ O som de fábrica do `freedesktop` é **CC-BY-SA-3.0** (Lucas McCallister), e a 
 essa compatibilidade, e de mão única. O do tema Pop é CC-BY-SA-4.0 (Mads Rosendahl),
 redistribuível, mas alto e longo demais. Sintetizar sai mais barato que discutir
 licença: o arquivo é obra do projeto, registrado como **CC0-1.0** em
-`assets/sons/CREDITOS.md` e no `LICENCAS.txt` que o script deixa na máquina.
+`docs/SONS.md` e no `LICENCAS.txt` que o script deixa na máquina.
 
 ### O que fica INALCANÇÁVEL, e o custo de cada um
 

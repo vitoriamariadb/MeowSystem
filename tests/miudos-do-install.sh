@@ -61,12 +61,12 @@ saida="$(env -u DBUS_SESSION_BUS_ADDRESS PATH="$TMP/falso:$PATH" HOME="$TMP/casa
 vazias="$(printf '%s\n' "$saida" | grep -E '^  (ok|~~|--|!!|erro) +[a-z0-9_]+ *$')"
 # Here-string, e não pipe: com o pipefail, o `grep -q` que acha cedo fecha o
 # pipe e o printf sai 141 numa saída grande.
-if ! grep -qE '^  [^ ]+ +iconesapps ' <<< "$saida"; then
-  reclamar "o doctor não chegou à linha iconesapps (o teste não prova nada)\n$(printf '%s\n' "$saida" | tail -5)"
+if ! grep -qE '^  [^ ]+ +arcticons ' <<< "$saida"; then
+  reclamar "o doctor não chegou à linha arcticons (o teste não prova nada)\n$(printf '%s\n' "$saida" | tail -5)"
 elif [ -n "$vazias" ]; then
   reclamar "linha do doctor sem texto:\n$vazias"
 else
-  printf 'ok: nenhuma linha do doctor sai vazia: %s\n' "$(printf '%s\n' "$saida" | grep -E '^  [^ ]+ +iconesapps ' | sed 's/^ *//')"
+  printf 'ok: nenhuma linha do doctor sai vazia: %s\n' "$(printf '%s\n' "$saida" | grep -E '^  [^ ]+ +arcticons ' | sed 's/^ *//')"
 fi
 
 [ "$falhas" = "0" ] || exit 1

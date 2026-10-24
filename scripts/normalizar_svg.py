@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # normalizar_svg.py — o desenho dela sai do editor e CHEGA na tela.
 #
-#   normalizar_svg.py assets/gatos            conserta o que dá, avisa o resto
-#   normalizar_svg.py --conferir assets/gatos não escreve; 1 se algo divergir
+#   normalizar_svg.py packs/meowsystem/mascote/            conserta o que dá, avisa o resto
+#   normalizar_svg.py --conferir packs/meowsystem/mascote/ não escreve; 1 se algo divergir
 #   normalizar_svg.py --silencioso ...        só o código de saída
 #
 # Uma transformação em torno de uma origem `o` é a mesma coisa que compor três:
@@ -365,7 +365,7 @@ def normalizar_texto(texto, nome="<svg>"):
             viewbox = n
 
     # A PILHA DE MATRIZES DOS ANCESTRAIS, para o aviso de "caiu fora da tela".
-    # Ela precisa DESEMPILHAR nos `</g>`, e isso não é detalhe: os gatos abrem
+    # Ela precisa DESEMPILHAR nos `</g>`, e isso não é detalhe: os mascotes abrem
     # com `<g transform="translate(-1124)">` (o arco-íris do fundo).
     saida = []
     pos = 0

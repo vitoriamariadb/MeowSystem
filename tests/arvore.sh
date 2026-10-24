@@ -122,12 +122,10 @@ PY
 if [ -z "$flavors" ]; then
   falha "não consegui ler nenhum flavor de packs/*/paleta.json — sem isso esta conferência não mede nada"
 else
-  ISENTOS=(
-    "assets/temas-de-apps/"
-  )
+  ISENTOS=()
   soltos=$(versionados assets | grep -Ei "($flavors)" || true)
   restantes="$soltos"
-  for isento in "${ISENTOS[@]}"; do
+  for isento in ${ISENTOS[@]+"${ISENTOS[@]}"}; do
     n=$(printf '%s\n' "$restantes" | grep -c "^$isento" || true)
     if [ "$n" = "0" ]; then
       falha "a isenção '$isento' não cobre mais nada — apague-a deste teste"
@@ -135,7 +133,7 @@ else
     restantes=$(printf '%s\n' "$restantes" | grep -v "^$isento" || true)
   done
   if [ -z "$restantes" ]; then
-    ok "nenhum arquivo de tema solto em assets/ (1 isenção: os temas de aplicativo)"
+    ok "nenhum arquivo de tema solto em assets/ (os temas de aplicativo moram nos packs)"
   else
     falha "há arquivo com nome de flavor em assets/, fora das isenções — ele veste alguém, logo é de um pack"
     printf '%s\n' "$restantes" | amostra

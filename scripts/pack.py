@@ -268,7 +268,11 @@ CAMPOS_COM_LEITOR = {
     "icones.mimetypes.derivar.*",
     # Os papéis de parede do pack: o `wallpaper.sh` os semeia pelo `acervo`,
     # rasterizando o SVG.
-    "origens.wallpapers.desenhos",
+    "origens.wallpapers.desenhos", "origens.wallpapers.repo",     # `origem_dos_wallpapers`
+    "origens.wallpapers.commit", "origens.wallpapers.prefixo",
+    "origens.wallpapers.curadoria", "origens.wallpapers.ignorar",
+    "origens.wallpapers.repo_do_conf", "origens.wallpapers.commit_do_conf",
+    "mascote.desenhos", "mascote.dia", "mascote.noite",   # `pasta_do_mascote`, `mascote_padrao`
     # O que o pack esconde do lançador: o `ocultar_apps.sh` pergunta pelo verbo
     # `ocultar`.
     "lancador.ocultar",
@@ -1441,7 +1445,7 @@ def tema_de_app(categoria, ref=None):
 
     POR QUE ELA NASCEU [22/09/2026, sprint P18]
         Uma contagem mediu 446 citações da palavra `catppuccin` dentro de
-        `assets/temas-de-apps/`, espalhadas por oito módulos, e ZERO deles
+        `scripts/temas-de-apps/`, espalhadas por oito módulos, e ZERO deles
         perguntava qual era o pack ativo. Aquele acervo é anterior ao formato de
         pack e nunca soube que ele existe: os oito eram, na prática,
         "aplicadores de Catppuccin".
@@ -3641,12 +3645,12 @@ ROTULO_DA_CATEGORIA = {
     "gerador": "traço do gerador de ícone",
     "prompt": "prompt",
     "fastfetch": "fastfetch",
-    "gatos": "gatos",
+    "mascote": "mascote",
 }
 
 
 # Uma categoria que some da tela é lida como "o pack cuida disso", e a nota de
-# herança do Dracula dizia que prompt, fastfetch e gatos "vêm do pack base".
+# herança do Dracula dizia que prompt, fastfetch e mascotes "vêm do pack base".
 #
 # O traço da conversão — espessura, fusão, aparo, cantos, preenchimento —
 # continua nos padrões do `converter_icone.py` e nas réguas da oficina, e é a
@@ -3655,7 +3659,6 @@ FIXAS_NO_MOTOR = {
     "gerador": "scripts/converter_icone.py",
     "prompt": "assets/prompt/",
     "fastfetch": "assets/fastfetch/",
-    "gatos": "assets/gatos/",
 }
 
 
@@ -3707,6 +3710,7 @@ def origens(p):
                        # herda, baixada pelo que o pack declara.
                        (CATEGORIA_BASE, ic.get("base")),
                        ("cursores", org.get("cursores")), ("wallpapers", org.get("wallpapers")),
+                       ("mascote", p.get("mascote")),
                        ("apps", p.get("apps")),
                        ("som", p.get("som")), (CATEGORIA_FONTES, p.get(CATEGORIA_FONTES))] \
             + [(cat, None) for cat in FIXAS_NO_MOTOR]:
@@ -3726,7 +3730,7 @@ def origens(p):
         # `scripts/wallpaper.sh` não o abre.
         #
         # O menor passo verdadeiro é a tabela dizer de onde a imagem sai.
-        if cat == "wallpapers":
+        if cat in ("wallpapers", "mascote"):
             desenhos = bloco.get("desenhos") if isinstance(bloco, dict) else None
             proprio = isinstance(desenhos, str) and dir_pack_info and \
                 os.path.isdir(os.path.join(dir_pack_info, desenhos))
@@ -5594,6 +5598,58 @@ def cmd_caminho(ref, categoria):
     return RECUSADO
 
 
+def _na_cadeia(trilha, ref=None):
+    """O valor de `trilha` no pack ou no primeiro da herança que o declara."""
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
+    vistos = set()
+    while ref and ref not in vistos:
+        vistos.add(ref)
+        if not achar(ref):
+            break
+        valor = campo(ref, trilha)
+        if valor not in (None, ""):
+            return ref, valor
+        ref = campo(ref, "heranca")
+    valor = campo(PACK_BASE, trilha)
+    return (PACK_BASE, valor) if valor not in (None, "") else (None, None)
+
+
+def pasta_do_mascote(ref=None):
+    """A pasta `mascote/` do pack, pela herança; sem nenhuma, a do pack-base."""
+    achado = acervo("mascote.desenhos", ref=ref) if ref is None or ref else None
+    if not achado:
+        achado = acervo("mascote.desenhos", ref=PACK_BASE)
+    return (achado or os.path.join(RAIZ, "packs", PACK_BASE, "mascote")).rstrip(os.sep)
+
+
+def mascote_padrao(fase, ref=None):
+    """O mascote de fábrica do pack para a fase (`dia`/`noite`) do modo `hora`."""
+    ref = ref or None
+    return _na_cadeia("mascote." + fase, ref)[1] or ""
+
+
+def origem_dos_wallpapers(ref=None):
+    """`origens.wallpapers` do pack (ou da herança), com os caminhos já absolutos."""
+    ref = ref or None
+    dono, decl = _na_cadeia("origens.wallpapers", ref)
+    if not isinstance(decl, dict):
+        return {}
+    dir_pack = achar(dono) or ""
+    saida = {"pack": dono}
+    for chave, valor in decl.items():
+        if chave.startswith("_") or isinstance(valor, (dict, list)) and chave != "ignorar":
+            continue
+        if chave in ("desenhos", "curadoria"):
+            alvo = _dentro(dir_pack, valor, "origens.wallpapers." + chave)
+            if not os.path.exists(alvo):
+                continue
+            valor = alvo
+        elif chave == "ignorar":
+            valor = " ".join(valor)
+        saida[chave] = valor
+    return saida
+
+
 def main(argv):
     if len(argv) < 2:
         print(__doc__.strip(), file=sys.stderr)
@@ -5802,6 +5858,19 @@ def main(argv):
                 valor = "sim" if valor else "nao"
             print(f"pack={quem}")
             print(f"valor={valor}")
+            return OK
+        if verbo == "mascote" and len(argv) in (2, 3):
+            print(pasta_do_mascote(argv[2] if len(argv) == 3 else None))
+            return OK
+        if verbo == "mascote-padrao" and len(argv) == 4 and argv[3] in ("dia", "noite"):
+            nome = mascote_padrao(argv[3], argv[2])
+            if not nome:
+                return RECUSADO
+            print(nome)
+            return OK
+        if verbo == "wallpapers" and len(argv) == 3:
+            for chave, valor in sorted(origem_dos_wallpapers(argv[2]).items()):
+                print(f"{chave}={valor}")
             return OK
         if verbo == "acervo" and len(argv) in (4, 5):
             # Sem `motor` de propósito: quem chama do shell tem o

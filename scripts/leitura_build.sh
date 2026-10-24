@@ -349,7 +349,8 @@ _aplicar() {
   # [P81: a tela dava a linha do cargo para colar; o motivo fica num registro.]
   if [ "$compilou" = 0 ] && ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
         --manifest-path "$MANIFESTO" >"$ESTADO/compilar.log" 2>&1; then
-    meow_erro "o cargo falhou — o registro está em $ESTADO/compilar.log"
+    meow_erro "o cargo falhou — $(meow_motivo_do_cargo "$ESTADO/compilar.log")"
+    meow_info "  o registro está em $ESTADO/compilar.log"
     meow_info "  o binário anterior, se houver, segue instalado e funcionando; nada foi trocado"
     return "$MEOW_ERRO"
   fi

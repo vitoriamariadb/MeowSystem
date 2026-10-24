@@ -68,7 +68,7 @@ printf '\n--- 1c. o terminal também não manda rodar (P90, item 10) ---\n'
 #   mensagem diz o que foi feito, o estado, ou o botão que faz. A linha de uso
 #   de um verbo (`uso: …`) responde a quem já está digitando, e fica.
 achados="$(cd "$RAIZ" && grep -nE '\b[Rr]ode(-o)?\b' scripts/*.sh scripts/*.py lib/*.sh bin/meow install.sh app/run.sh \
-             assets/temas-de-apps/*/manifesto.sh 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' \
+             scripts/temas-de-apps/*/manifesto.sh 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' \
              | grep -vE 'uso: ')"
 if [ -z "$achados" ]; then
   ok "nenhuma saída do terminal manda rodar: diz o feito, o estado ou o botão"

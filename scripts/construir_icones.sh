@@ -803,20 +803,20 @@ esac
 meow_escrever "$TEMA_DIR/index.theme" "$(indice)" 644
 case $? in 1) mudou=1 ;; 2) meow_erro "não consegui escrever o index.theme"; exit "$MEOW_ERRO" ;; esac
 
-# --- 2. o gato do botão -----------------------------------------------------
+# --- 2. o mascote do botão -----------------------------------------------------
 #
-# Ela mandou excluir os gatos do projeto e ficar só com a Coquinha e o Mimir,
+# Ela mandou excluir os mascotes do projeto e ficar só com a Coquinha e o Mimir,
 # então o gerador e os SVG foram embora — e com eles o único caminho que este
 # script conhecia.
 #
 # Acervo vazio não é erro daqui: quem sabe dizer isso é o `logo.sh`, que já
 # avisa "solte um .svg lá e ele entra".
 GATO_PISO=""
-if [ -d "$RAIZ/assets/gatos" ]; then
-  GATO_PISO="$(find "$RAIZ/assets/gatos" -maxdepth 1 -name '*.svg' \
+if [ -d "$(meow_mascote_dir)/" ]; then
+  GATO_PISO="$(find "$(meow_mascote_dir)/" -maxdepth 1 -name '*.svg' \
                  ! -name '*-symbolic.svg' | sort | head -n1)"
 fi
-# Este laço escrevia o gato do dock a partir de um caminho FIXO
+# Este laço escrevia o mascote do dock a partir de um caminho FIXO
 # (`assets/meow-${FLAVOR}-painel.svg`), em toda rodada.
 #
 # Agora quem veste o botão é o `scripts/logo.sh`, que é o dono do acervo e de
@@ -836,7 +836,7 @@ fi
 # (que roda ANTES da de logo) devolveu tudo para `meow-mocha.svg`.
 #
 # O que havia aqui era o "piso" — garantir que `~/.config/cosmic/logos/
-# meow-<flavor>.svg` existisse, copiado do gato gerado do flavor.
+# meow-<flavor>.svg` existisse, copiado do mascote gerado do flavor.
 #
 # Agora o diretório tem dono único, e é o `logo.sh`.
 

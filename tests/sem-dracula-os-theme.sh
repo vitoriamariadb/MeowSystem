@@ -27,7 +27,7 @@ import ast, io, json, os, subprocess, sys, tokenize
 ALVO = "Dracula_OS-Theme"
 raiz = sys.argv[1]
 RODA = ("bin/", "scripts/", "lib/", "app/", "assets/", "systemd/", "src/", "packs/")
-SOLTOS = ("install.sh", "meow.conf.exemplo", "vizinhos.conf.exemplo")
+SOLTOS = ("install.sh", "meow.conf.exemplo", "assets/contratos/vizinhos.conf.exemplo")
 CERQUILHA = (".sh", ".bash", ".zsh", ".service", ".path", ".timer", ".desktop",
              ".conf", ".exemplo")
 BARRAS = (".js", ".rs", ".css")

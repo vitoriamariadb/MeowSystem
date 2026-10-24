@@ -84,7 +84,7 @@ if RAIZ is None:
 
 PAGINA = os.path.join(RAIZ, "app", "pagina")
 # O mapa dos jogos que ficam fora do lançador.
-MAPA_JOGOS = os.path.join(RAIZ, "assets", "icones", "jogos-fora.map")
+MAPA_JOGOS = os.path.join(RAIZ, "assets", "apps", "jogos-fora.map")
 ICONES_DO_MOTOR = os.path.join(RAIZ, "packs", "meowsystem", "icones")
 CONF_PADRAO = os.environ.get("MEOW_CONF_PADRAO") or os.path.join(RAIZ, "meow.conf.exemplo")
 CONF = os.environ.get("MEOW_CONF") or os.path.expanduser("~/.config/meow/meow.conf")
@@ -306,7 +306,7 @@ def _opcoes(chave, ajuda, inline):
         ÚNICA lista fixa de chaves do arquivo, e o `tests/app.sh` carregava a
         exceção correspondente para as mesmas quatro. Ela saiu porque a regra
         que a substituiu é derivada do CONTEÚDO (o comentário cita
-        `assets/gatos/`) e por isso pega sozinha a quinta chave que nascer assim
+        `packs/meowsystem/mascote/`) e por isso pega sozinha a quinta chave que nascer assim
         — que é a armadilha nº 3 deste projeto, e ela já cobrou duas vezes.
     """
     for linha in (ajuda.splitlines() + [inline]):
@@ -388,7 +388,7 @@ def _e_tabela(chave, ajuda, inline):
 # A GUARDA É O VALOR DE FÁBRICA, e é ela que faz uma regra de texto largo não
 # atropelar as vizinhas.
 FONTES_DO_DISCO = (
-    (re.compile(r"assets/gatos/"), "gatos", False),
+    (re.compile(r"packs/\w+/mascote/"), "gatos", False),
     (re.compile(r"[íi]cones?\b", re.I), "temas_icones", True),
     (re.compile(r"ponteiro|cursor", re.I), "cursores", True),
 )
@@ -991,7 +991,8 @@ def arte_da_vitrine(ident, arte):
 # `MEOW_CAT_FOLDERS` por cima. As duas pontas leem o mesmo diretório; o que a
 # página oferece é o que aquele script vai achar.
 _PAPIRUS_FOLDERS = os.environ.get("MEOW_CAT_FOLDERS") or os.path.join(
-    RAIZ, "assets", "icones", "upstream", "papirus-folders")
+    os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"),
+    "meowsystem", "upstream", "papirus-folders")
 _RE_COR_DE_PASTA = re.compile(r"^folder-cat-([a-z0-9]+)-([a-z0-9]+)-documents\.svg$")
 
 
@@ -1973,9 +1974,17 @@ def ler_esquema():
 
 
 # --- 3. os valores dela ------------------------------------------------------
+def _pasta_do_mascote():
+    """A pasta `mascote/` do pack no ar (pela herança), ou a do pack-base."""
+    mod = modulo_pack()
+    if mod and hasattr(mod, "pasta_do_mascote"):
+        return mod.pasta_do_mascote(_pack_adotado() or None)
+    return os.path.join(RAIZ, "packs", "meowsystem", "mascote")
+
+
 def _gatos():
-    """O acervo `assets/gatos/`, que é a configuração — soltou um .svg, entrou."""
-    pasta = os.path.join(RAIZ, "assets", "gatos")
+    """O acervo `mascote/` do pack no ar, que é a configuração — soltou um .svg, entrou."""
+    pasta = _pasta_do_mascote()
     try:
         nomes = sorted(
             os.path.splitext(f)[0] for f in os.listdir(pasta)
@@ -4563,7 +4572,7 @@ def _cursor_para_rgba(caminho, tamanho_alvo=48):
 
 # --- os provedores: cada um lista o que existe NO DISCO agora ----------------
 def _prev_gatos():
-    pasta = os.path.join(RAIZ, "assets", "gatos")
+    pasta = _pasta_do_mascote()
     fora = []
     for nome in _gatos():
         caminho = os.path.join(pasta, nome + ".svg")
@@ -4597,7 +4606,7 @@ def _lado_caminho():
         "papeis-de-parede")
     if os.path.isdir(estado):
         return os.path.join(estado, "lado.tsv")
-    return os.path.join(RAIZ, "assets", "papeis-de-parede", "lado.tsv.padrao")
+    return os.path.join(RAIZ, "packs", "meowsystem", "wallpapers", "lado.tsv.padrao")
 
 
 def _lado_escrito():
@@ -4764,7 +4773,7 @@ def _tipo_de_previa(chave, opcoes, faixa, padrao):
 
     Então a pergunta é feita ao CONTEÚDO da chave, não ao nome dela:
 
-      - as opções são os gatos que existem em `assets/gatos/`?  -> desenho do gato
+      - as opções são os gatos que existem em `packs/meowsystem/mascote/`?  -> desenho do gato
       - as opções são os flavors da paleta?                     -> amostra do flavor
       - as opções são nomes de cor do Catppuccin?               -> bolinha da cor
       - o valor é um tema de cursor que está instalado?         -> o ponteiro de verdade
@@ -5676,7 +5685,7 @@ ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar pelo tema do pack"),
                             ("apps_manter_o_meu", "Manter o meu"))
 
 
-# O id é o que o `assets/temas-de-apps/vscode/manifesto.sh` registra; as
+# O id é o que o `scripts/temas-de-apps/vscode/manifesto.sh` registra; as
 # extensões saem do pack no ar, e só quando ele NÃO mora no `packs/` do
 # repositório — a mesma régua do módulo, com os links resolvidos.
 PENDENCIA_EXTENSAO = "vscode-extensao-de-terceiro"
@@ -5729,7 +5738,7 @@ def _app_da_pendencia(ident):
     app = ident[:-len(SUFIXO_TEMA_DE_TERCEIRO)]
     if not re.match(r"^[a-z0-9][a-z0-9-]*$", app):
         return ""
-    modulo = os.path.join(RAIZ, "assets", "temas-de-apps", app, "manifesto.sh")
+    modulo = os.path.join(RAIZ, "scripts", "temas-de-apps", app, "manifesto.sh")
     return app if os.path.isfile(modulo) else ""
 
 
@@ -6556,7 +6565,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
 
         # Ter o gato dela ali é melhor de qualquer forma, e é de graça: o acervo
-        # `assets/gatos/` já é a configuração deste projeto, e a chave `LOGO`
+        # `packs/meowsystem/mascote/` já é a configuração deste projeto, e a chave `LOGO`
         # diz qual está no ar.
         #
         # A MARCA DO APLICATIVO NÃO É UM GATO DELA — é o ícone do `.desktop`.
@@ -6574,12 +6583,12 @@ class Manipulador(BaseHTTPRequestHandler):
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
             nome = os.path.basename(valores_efetivos(["LOGO"]).get("LOGO") or "coquinha")
-            arquivo = os.path.join(RAIZ, "assets", "gatos", nome + ".svg")
+            arquivo = os.path.join(_pasta_do_mascote(), nome + ".svg")
             if not os.path.isfile(arquivo):
                 gatos = _gatos()
                 if not gatos:
                     return self._recusar(404, "não há gato no acervo")
-                arquivo = os.path.join(RAIZ, "assets", "gatos", gatos[0] + ".svg")
+                arquivo = os.path.join(_pasta_do_mascote(), gatos[0] + ".svg")
             with open(arquivo, "rb") as fh:
                 return self._responder(fh.read(), tipo=TIPOS[".svg"])
 
@@ -6706,13 +6715,13 @@ class Manipulador(BaseHTTPRequestHandler):
     # aparece na tela, e o defeito é mudo.
     ACERVOS = {
         "gato": {
-            "pasta": ("assets", "gatos"),
+            "casa": "pasta_do_mascote",
             "extensoes": (".svg",),
             "normaliza": True,
             "depois": "o vigia põe o gato novo no acervo em segundos",
         },
         "parede": {
-            "pasta": ("assets", "papeis-de-parede", "ativos"),
+            "pasta": ("packs", "meowsystem", "wallpapers", "ativos"),
             "extensoes": (".jpg", ".jpeg", ".png", ".webp"),
             "normaliza": False,
             "depois": "o carrossel passa a sortear a imagem nova",

@@ -286,7 +286,7 @@ def montar_casa():
     for no in arvore.body:
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "SUFIXO_TEMA_DE_TERCEIRO" for a in no.targets)):
-            modulos = os.path.join(RAIZ, "assets", "temas-de-apps")
+            modulos = os.path.join(RAIZ, "scripts", "temas-de-apps")
             for app in sorted(os.listdir(modulos)):
                 try:
                     with open(os.path.join(modulos, app, "manifesto.sh"), encoding="utf-8") as fh:
@@ -346,7 +346,7 @@ def montar_casa():
     # A DECISÃO SEM MANIFESTO GANHA NOME NO CACHE DA STEAM. As linhas do mapa
     # da raiz de brinquedo cujo jogo não está aqui são as «Decisões já
     # executadas»; o nome da primeira mora só no `appinfo.vdf`.
-    with open(os.path.join(RAIZ_B, "assets", "icones", "jogos-fora.map"),
+    with open(os.path.join(RAIZ_B, "assets", "apps", "jogos-fora.map"),
               encoding="utf-8") as fh:
         orfas = [l.split(":")[0].strip() for l in fh
                  if l.strip() and not l.lstrip().startswith("#")

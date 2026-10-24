@@ -14,7 +14,7 @@ MEOW_NOMES_RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_NOMES_RAIZ/lib/comum.sh"
 
-MEOW_NOMES_MAPA="${MEOW_NOMES_MAPA:-$MEOW_NOMES_RAIZ/assets/icones/apps-nomes.map}"
+MEOW_NOMES_MAPA="${MEOW_NOMES_MAPA:-$MEOW_NOMES_RAIZ/assets/apps/apps-nomes.map}"
 
 # Os diretórios que o lançador varre, na ordem dele. Todos entram: o mesmo id
 # pode existir em mais de um, e cada cópia visível é um item na tela.

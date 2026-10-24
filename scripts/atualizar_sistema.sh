@@ -130,7 +130,7 @@ cmd_aplicar() {
   # --- E AQUI COMEÇA A PARTE QUE SÓ ESTE PROJETO FAZ ------------------------
   meow_passo "4/4 O que a atualização desfez"
   meow_info "cada troca de pacote pode ter desfeito uma etapa nossa: o tema, os"
-  meow_info "  ícones, o applet da barra, o gato do terminal. O doctor diz quais."
+  meow_info "  ícones, o applet da barra, o mascote do terminal. O doctor diz quais."
   printf '\n'
   MEOW_DRY_RUN=1 "$MEOW_RAIZ/bin/meow" doctor
   local rcd=$?

@@ -235,7 +235,7 @@ _conferir() {
       return "$MEOW_DIVERGENTE" ;;
     DESCONHECIDO)
       meow_aviso "o tray_icon.py do ZapZap mudou de forma: $motivo"
-      meow_info "  compare com assets/icones/tray-terceiros/zapzap-tray_icon.py.original antes de repetir a manobra"
+      meow_info "  compare com assets/apps/tray-terceiros/zapzap-tray_icon.py.original antes de repetir a manobra"
       return "$MEOW_SEM_DEPENDENCIA" ;;
     *)
       meow_erro "${motivo:-não consegui inspecionar $alvo}"
@@ -272,7 +272,7 @@ _aplicar() {
     DESCONHECIDO)
       meow_aviso "o tray_icon.py do ZapZap mudou de forma: $motivo"
       meow_info "  nada foi escrito — é código Python, e vestir às cegas quebraria o app"
-      meow_info "  compare com assets/icones/tray-terceiros/zapzap-tray_icon.py.original"
+      meow_info "  compare com assets/apps/tray-terceiros/zapzap-tray_icon.py.original"
       return "$MEOW_SEM_DEPENDENCIA" ;;
     *)
       meow_erro "${motivo:-não consegui vestir $alvo}"

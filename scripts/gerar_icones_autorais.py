@@ -332,7 +332,7 @@ def cosmic_screenshot(c: dict) -> str:
 
 
 def meowsystem_painel(c: dict) -> str:
-    """O painel do MeowSystem: uma cabeça de gato, e ela é DE TRAÇO.
+    """O painel do MeowSystem: uma cabeça de mascote, e ela é DE TRAÇO.
 
     O ÚNICO DESENHO DESTE ARQUIVO QUE NÃO É CHAPADO, E O MOTIVO É A FOLHA DELA
         Em 11/08/2026 ela definiu o estilo do projeto olhando o lançador — traço
@@ -350,7 +350,7 @@ def meowsystem_painel(c: dict) -> str:
           · elipse com as orelhas soltas por cima — as pontas encostam na elipse
             e o cruzamento vira um nó de dois traços no mesmo pixel;
           · a cabeça contínua, orelha-testa-orelha, e a mandíbula fechando por
-            baixo — lê como gato à primeira vista, e é esta;
+            baixo — lê como mascote à primeira vista, e é esta;
           · a mesma com um deslizador atravessando o queixo, para dizer
             "configurar" — a 48px o deslizador cortava o rosto e o ícone deixava
             de ler como qualquer uma das duas coisas.

@@ -29,7 +29,7 @@ BASE="$(printf '%s\n' "$_base" | sed -n 's/^tema=//p')"
 BASE_DIR="$(printf '%s\n' "$_base" | sed -n 's/^dir=//p')"
 unset _base
 COR="${ICONES_PASTAS:-cat-mocha-mauve}"
-FONTE="${MEOW_CAT_FOLDERS:-$RAIZ/assets/icones/upstream/papirus-folders}"
+FONTE="${MEOW_CAT_FOLDERS:-$MEOW_CACHE/upstream/papirus-folders}"
 
 # O valor padrão de `ICONES_PASTAS` é `cat-${FLAVOR}-${ACCENT}`, e o
 # papirus-folders traz só as 56 combinações do Catppuccin (4 flavors × 14

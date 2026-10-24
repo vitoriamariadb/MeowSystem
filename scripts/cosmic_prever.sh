@@ -17,7 +17,7 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-CV_CONTRATO="${CV_CONTRATO:-$MEOW_RAIZ/contratos/cosmic.tsv}"
+CV_CONTRATO="${CV_CONTRATO:-$MEOW_RAIZ/assets/contratos/cosmic.tsv}"
 CV_SERIE="${CV_SERIE:-$MEOW_RAIZ/patches/series}"
 CV_PATCHES="${CV_PATCHES:-$MEOW_RAIZ/patches}"
 CV_SAIDA="${CV_SAIDA:-$MEOW_ESTADO/cosmic-candidato.tsv}"

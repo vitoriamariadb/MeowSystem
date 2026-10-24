@@ -246,9 +246,12 @@ printf '\n--- 5. a lista da ponte é a do install.sh ---\n'
 # de root, e não no clone gravável). A cópia só não envelhece calada se alguém
 # a cobra: são os valores do `NECESSARIOS` do `etapa_pacotes` mais os dois que
 # ele acrescenta fora do array.
-do_install="$(sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh" \
+do_install="$( (sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh" \
   | grep -oE '\]=[a-zA-Z0-9_.+-]+|faltam\+=\([a-zA-Z0-9_.+-]+\)' \
-  | sed -E 's/^\]=//; s/^faltam\+=\((.*)\)$/\1/' | LC_ALL=C sort -u | paste -sd' ' -)"
+  | sed -E 's/^\]=//; s/^faltam\+=\((.*)\)$/\1/'
+  # e os do compilar dos applets, que o `etapa_pacotes` lê do lib/comum.sh
+  sed -n '/^MEOW_DEPS_DOS_APPLETS=/,/"$/p' "$RAIZ/lib/comum.sh" | grep -oE '\|[a-z0-9.+-]+' | tr -d '|' \
+  ) | LC_ALL=C sort -u | paste -sd' ' -)"
 da_ponte="$(sed -n 's/^ *PERMITIDOS=" \(.*\) "$/\1/p' "$RAIZ/scripts/ponte_root.sh" \
   | tr ' ' '\n' | LC_ALL=C sort -u | paste -sd' ' -)"
 if [ -n "$do_install" ] && [ "$do_install" = "$da_ponte" ]; then

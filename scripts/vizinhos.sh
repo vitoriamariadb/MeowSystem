@@ -24,7 +24,7 @@ COPIAS="$ESTADO/vizinhos"
 ETC="${VIZINHOS_ETC:-/etc}"
 DESENV="${VIZINHOS_DESENV:-$HOME/Desenvolvimento}"
 APPS_CASA="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
-CONTRATO="${VIZINHOS_CONTRATO:-$RAIZ/contratos/vizinhos.tsv}"
+CONTRATO="${VIZINHOS_CONTRATO:-$RAIZ/assets/contratos/vizinhos.tsv}"
 export LC_ALL=C
 
 # O ZDOTDIR da casa: o do ambiente, ou o que o ~/.zshenv exporta (é onde o zsh o

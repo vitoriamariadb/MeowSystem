@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# temas-de-apps.sh — os módulos de `assets/temas-de-apps/` obedecem ao PACK.
+# temas-de-apps.sh — os módulos de `scripts/temas-de-apps/` obedecem ao PACK.
 #
 # Zero é o destino, e para spotify e qbittorrent ele já vale HOJE.
 #
@@ -9,7 +9,7 @@
 # Linha cujo primeiro caractere não-branco NÃO é `#`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-ACERVO="$RAIZ/assets/temas-de-apps"
+ACERVO="$RAIZ/scripts/temas-de-apps"
 falhas=0
 ok()    { printf 'ok: %s\n' "$1"; }
 falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" >&2; falhas=$((falhas+1)); }
@@ -254,7 +254,7 @@ fi
 
 # Um hex escrito num modelo é o flavor `dracula` cravado — o `alucard` sairia
 # com uma cor escura no meio, e nada acusaria.
-MODELO_PY="$RAIZ/assets/temas-de-apps/modelo.py"
+MODELO_PY="$RAIZ/scripts/temas-de-apps/modelo.py"
 mapfile -t MODELOS < <(find "$RAIZ/packs" -path '*/apps/*.modelo.*' -type f | sort)
 if [ "${#MODELOS[@]}" -eq 0 ]; then
   falha "nenhum modelo em packs/*/apps/ — os temas de aplicativo da P42 sumiram"
@@ -298,7 +298,7 @@ mod() {  # <módulo> <verbo> [VAR=valor ...]
       MEOW_ESTADO="$T/estado8" PACK=dracula FLAVOR=dracula NO_COLOR=1 \
       FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" "$@" \
       bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
-               . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" || exit 2
+               . "$MEOW_RAIZ/scripts/temas-de-apps/$0/manifesto.sh" || exit 2
                meow_app_$1' "$m" "$v" </dev/null 2>&1
 }
 falso() { printf '#!/bin/sh\nexit %s\n' "${2:-0}" > "$BIN/$1"; chmod +x "$BIN/$1"; }
@@ -929,7 +929,7 @@ spot_registrado() {  # <valor do custom_apps>
   printf '[AdditionalOptions]\ncustom_apps           = %s\n' "$1" > "$CASA9/.config/spicetify/config-xpui.ini"
   env -i PATH="$PATH" HOME="$CASA9" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado9" NO_COLOR=1 \
     bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
-             . "$MEOW_RAIZ/assets/temas-de-apps/spotify/manifesto.sh" >/dev/null 2>&1 || exit 2
+             . "$MEOW_RAIZ/scripts/temas-de-apps/spotify/manifesto.sh" >/dev/null 2>&1 || exit 2
              _spot_mp_registrado' </dev/null >/dev/null 2>&1
 }
 f9=""
@@ -1114,7 +1114,7 @@ mod10() {  # <módulo> <verbo> <PACK> <FLAVOR> [VAR=valor ...]
       MEOW_ESTADO="$T10/estado" REDE="$REDE10" MERCADO="$MERCADO10" TMPDIR="$T10/tmp" \
       PACK="$p" FLAVOR="$f" ACCENT=mauve NO_COLOR=1 "$@" \
       bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
-               . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" || exit 2
+               . "$MEOW_RAIZ/scripts/temas-de-apps/$0/manifesto.sh" || exit 2
                meow_app_$1' "$m" "$v" </dev/null 2>&1
 }
 chamadas10() { if [ -s "$REDE10/.chamadas" ]; then grep -c . "$REDE10/.chamadas"; else printf '0'; fi; }
@@ -1139,7 +1139,7 @@ semear10
 faltam=""
 saida="$(mod10 obsidian aplicar catppuccin mocha)"; rc=$?
 [ "$rc" = 1 ] && [ "$(aparencia10)" = "Catppuccin | catppuccin_realce,fonte" ] \
-  && [ "$(cat "$COFRE10/.obsidian/themes/Catppuccin/theme.css")" = "$(cat "$ACERVO/obsidian/vendor/Catppuccin/theme.css")" ] \
+  && [ "$(cat "$COFRE10/.obsidian/themes/Catppuccin/theme.css")" = "$(cat "$RAIZ/packs/meowsystem/temas-de-apps/obsidian/vendor/Catppuccin/theme.css")" ] \
   || faltam+=" obsidian (rc=$rc, $(aparencia10));"
 saida="$(mod10 obsidian conferir catppuccin mocha)"; rc=$?
 [ "$rc" = 0 ] && printf '%s' "$saida" | grep -q 'obsidian: Catppuccin Mocha já aplicado' \

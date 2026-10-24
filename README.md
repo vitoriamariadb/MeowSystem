@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/logo.svg" width="128" alt="A logo do MeowSystem: um gato de traço lilás dentro de um círculo">
+<img src="docs/logo.svg" width="128" alt="A logo do MeowSystem: um mascote de traço lilás dentro de um círculo">
 
 # MeowSystem
 
@@ -37,7 +37,7 @@ formato está em **[docs/PACKS.md](docs/PACKS.md)**.
 ## Instalar
 
 ```bash
-git clone https://github.com/vitoriamariadb/MeowSystem.git
+git clone https://github.com/AndreBFarias/MeowSystem.git
 cd MeowSystem
 ./install.sh --wizard     # a primeira vez: pergunta cinco coisas e instala
 meow ativar               # todas as outras
@@ -84,7 +84,7 @@ meow abrir                # ou o ícone MeowSystem no lançador
 <img src="docs/capturas/painel-leitura.png" width="920" alt="A aba Modo de leitura: o desenho mostra a mesma página fria à esquerda e quente à direita">
 
 Na tela fica só título, rótulo e valor. O porquê mora atrás do **?**. Cada bloco abre com uma
-prévia desenhada com os valores de verdade (o papel de parede, o gato, o ícone instalado), que
+prévia desenhada com os valores de verdade (o papel de parede, o mascote, o ícone instalado), que
 **repinta enquanto você arrasta o deslizante**.
 
 Com uma escolha pendente, a prévia vira duas: **Como está** e **Como fica**. «Como está» desfaz
@@ -101,7 +101,7 @@ só aquele bloco.
   e **Dia** e **Noite** o mudam de lado.
 - **Áreas de trabalho**: nome, **ordem** e encaixe de janelas de cada uma.
 - **Modo de leitura**: temperatura, textura, horário e rampa da tela quente da noite.
-- **Instalar pelo painel**: tema de ponteiro (`.zip`), fonte, tema de ícones, gato, papel de
+- **Instalar pelo painel**: tema de ponteiro (`.zip`), fonte, tema de ícones, mascote, papel de
   parede, ícone. O enviado mora em `~/.local/share/meowsystem/`, nunca no repositório.
 - E **Cor e tela**, **Logo do sistema**, **Painel e dock**, **Dia e noite**, **Terminal**,
   **Lançadores e jogos**, **Manutenção**, **Instalação** e **Atualização** (`apt`, `flatpak` e
@@ -125,9 +125,9 @@ fábrica. Ação que baixa da internet leva o selo de rede.
 | **Painel e dock** | Forma, raio, margem, espaço e recheio de cada segmento; o vidro que segue o COSMIC instalado, **na barra e na janela**; os segundos no relógio; e a música tocando ao lado dele, com capa e controles. E um vigia que repõe a barra quando ela cai **ou quando fica viva sem desenhar**. |
 | **As áreas de trabalho** | Nome, ordem e encaixe de cada uma. A ordem da lista é a ordem da barra. |
 | **Os ícones** | A base vem do pack (o Papirus no Catppuccin; os `dracula-icons` no Dracula, o ramo `circle` por cima do `main`), as pastas e os tipos de arquivo na paleta do pack, e um desenho por programa — trocável um a um, pelo painel. |
-| **O terminal** | As dezesseis cores, o prompt do `starship`, as cores do `fzf`, e o gato no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |
+| **O terminal** | As dezesseis cores, o prompt do `starship`, as cores do `fzf`, e o mascote no lugar do logo do `fastfetch`, redesenhado em caracteres a cada geração. |
 | **O papel de parede** | Um carrossel com pastas de dia e de noite separadas por luminosidade, avançar e voltar no botão direito, e favoritos. O pack pode trazer os dele. |
-| **Dia e noite** | À noite o gato do dock e o do terminal trocam de rosto, a imagem de fundo passa às escuras e o modo de leitura esquenta a tela e lhe dá textura de papel, em rampa — cada um com o seu horário, todos das 18:00 às 07:00 de fábrica. |
+| **Dia e noite** | À noite o mascote do dock e o do terminal trocam de rosto, a imagem de fundo passa às escuras e o modo de leitura esquenta a tela e lhe dá textura de papel, em rampa — cada um com o seu horário, todos das 18:00 às 07:00 de fábrica. |
 | **Os programas** | Spotify, VS Code, Obsidian, qBittorrent, Heroic, Telegram, Discord (Vesktop e Vencord), OnlyOffice, kitty, GNOME Terminal, ZapZap, btop e bat no tema do pack no ar; os jogos da Steam e os do Heroic com um atalho por jogo no lançador, com a capa, e o atalho saindo junto com o jogo. |
 
 ## A máquina
@@ -138,7 +138,7 @@ fábrica. Ação que baixa da internet leva o selo de rede.
 <td width="50%"><img src="docs/capturas/desktop-claro.png" alt="A mesma área de trabalho no tema claro"></td>
 </tr>
 <tr>
-<td><img src="docs/capturas/fastfetch.png" alt="O fastfetch com o gato desenhado em caracteres"></td>
+<td><img src="docs/capturas/fastfetch.png" alt="O fastfetch com o mascote desenhado em caracteres"></td>
 <td><img src="docs/capturas/lancador.jpg" alt="O lançador com os ícones do Arcticons"></td>
 </tr>
 </table>

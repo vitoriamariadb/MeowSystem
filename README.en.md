@@ -37,7 +37,7 @@ thing came from. The format is in **[docs/PACKS.md](docs/PACKS.md)** (in Portugu
 ## Install
 
 ```bash
-git clone https://github.com/vitoriamariadb/MeowSystem.git
+git clone https://github.com/AndreBFarias/MeowSystem.git
 cd MeowSystem
 ./install.sh --wizard     # first run: asks five questions, then installs
 meow ativar               # every other run

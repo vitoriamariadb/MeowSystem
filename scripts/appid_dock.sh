@@ -19,7 +19,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-MAPA="$RAIZ/assets/icones/appid.map"
+MAPA="$RAIZ/assets/apps/appid.map"
 SONDA="$RAIZ/scripts/appid_sonda.py"
 APPS="$HOME/.local/share/applications"
 MARCA="X-MeowSystem=janela-dock"
@@ -106,7 +106,7 @@ _conferir_mapa() {
 # O CASADOR, esse é dependência dura — é ele que impede o sequestro.
 _pronto() {
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem assets/icones/appid.map — nenhuma ponte de janela a construir"
+    meow_pula "sem assets/apps/appid.map — nenhuma ponte de janela a construir"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! meow_tem python3 || [ ! -f "$SONDA" ]; then
@@ -161,7 +161,7 @@ _corpo() {
   local id="$1" alvo="$2"
   printf '%s\n' \
     '[Desktop Entry]' \
-    '# Gerado por MeowSystem/scripts/appid_dock.sh a partir de assets/icones/appid.map.' \
+    '# Gerado por MeowSystem/scripts/appid_dock.sh a partir de assets/apps/appid.map.' \
     '# Ponte de app_id: existe só para o cosmic-app-list achar esta janela.' \
     '# Não é o .desktop do aplicativo — o de verdade continua intacto, e é ele' \
     '# que abre os arquivos. Edições aqui são desfeitas: mude o mapa.' \
@@ -251,7 +251,7 @@ _avisar_novos() {
     cand="$(printf '%s\n' "$id" | python3 "$SONDA" --sugerir | cut -f2)"
     meow_aviso "  app_id '$id'   (janela: ${titulos[$id]:-?})"
     if [ -n "$cand" ]; then
-      meow_aviso "  se for um destes, cole em assets/icones/appid.map:"
+      meow_aviso "  se for um destes, cole em assets/apps/appid.map:"
       local c
       for c in ${cand//,/ }; do meow_aviso "      $id:$c"; done
     else

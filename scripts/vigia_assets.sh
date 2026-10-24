@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# vigia_assets.sh — liga (ou desliga) o vigia que faz `assets/gatos/` responder
+# vigia_assets.sh — liga (ou desliga) o vigia que faz `packs/meowsystem/mascote/` responder
 # na hora, em vez de esperar a volta do `meow-logo.timer`.
 #
 #   ./vigia_assets.sh              instala as unidades e liga o vigia
 #   ./vigia_assets.sh --conferir   não escreve; 1 se algo divergir
 #
-# O acervo de gatos JÁ era a interface — soltar um SVG em `assets/gatos/` o põe
+# O acervo de mascotes JÁ era a interface — soltar um SVG em `packs/meowsystem/mascote/` o põe
 # na rotação —, mas o efeito só chegava ao disco na volta seguinte do relógio,
 # que hoje é de um dia.
 #
@@ -16,7 +16,18 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ACERVO="$RAIZ/assets/gatos"
+# O que o vigia olha: o mascote, os papéis de parede e os temas de apps do
+# pack no ar e do pack-base, com as subpastas (o systemd olha uma pasta por linha).
+_pastas_vigiadas() {
+  local dir sub
+  for dir in "$(meow_pack_dir)" "$RAIZ/packs/meowsystem"; do
+    [ -n "$dir" ] && [ -d "$dir" ] || continue
+    for sub in mascote wallpapers temas-de-apps; do
+      [ -d "$dir/$sub" ] && find "$dir/$sub" -type d | LC_ALL=C sort
+    done
+  done | awk '!visto[$0]++'
+}
+ACERVO="$(meow_mascote_dir)/"
 ORIGEM="$RAIZ/systemd"
 DESTINO="$HOME/.config/systemd/user"
 UNIDADES=(meow-assets.service meow-assets.path)
@@ -27,6 +38,8 @@ VIGIA="${ASSETS_VIGIA:-sim}"
 CONFERIR=0
 case "${1:-}" in
   --conferir) CONFERIR=1 ;;
+  --unidade) ;;
+  --disparo) ;;
   ''|--aplicar) ;;
   *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; exit "$MEOW_ERRO" ;;
 esac
@@ -36,7 +49,12 @@ meow_seco && CONFERIR=1
 _texto_de() {
   local u="$1" texto
   texto="$(cat "$ORIGEM/$u" 2>/dev/null)" || return 1
-  [ "$u" = "$GATILHO" ] && texto="${texto//@ACERVO@/$ACERVO}"
+  if [ "$u" = "$GATILHO" ]; then
+    local linhas="" d
+    while IFS= read -r d; do linhas+="PathModified=$d"$'\n'; done < <(_pastas_vigiadas)
+    linhas="${linhas%$'\n'}"
+    texto="${texto//PathModified=@ACERVO@/$linhas}"
+  fi
   printf '%s' "$texto"
 }
 
@@ -81,13 +99,13 @@ _pronto() {
   done
   # Sem o acervo não há o que vigiar, e apontar o `.path` para um diretório que
   # não existe no próprio clone seria instalar um vigia sem objeto.
-  if [ ! -d "$ACERVO" ]; then
-    meow_pula "não existe $ACERVO — nada a vigiar"
+  if [ -z "$(_pastas_vigiadas)" ]; then
+    meow_pula "o pack no ar não tem mascote, papel de parede nem tema de app — nada a vigiar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! _tem_systemd; then
     meow_aviso "não há systemd --user nesta sessão — o vigia do acervo fica de fora"
-    meow_info "  o gato novo continua entrando pelo relógio (meow-logo.timer)"
+    meow_info "  o mascote novo continua entrando pelo relógio (meow-logo.timer)"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"
@@ -116,7 +134,7 @@ _conferir() {
     meow_muda "as unidades estão no lugar, mas o $GATILHO não está ligado"
     return "$MEOW_DIVERGENTE"
   fi
-  meow_ok "vigiando assets/gatos/ — gato novo entra sem esperar o relógio"
+  meow_ok "vigiando o mascote, os papéis de parede e os temas de apps do pack — a mudança entra sem esperar o relógio"
   return "$MEOW_OK"
 }
 
@@ -166,15 +184,31 @@ _aplicar() {
   fi
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "vigia do acervo já ligado sobre assets/gatos/"
+    meow_ok "vigia do pack já ligado sobre o mascote, os papéis de parede e os temas de apps"
     return "$MEOW_OK"
   fi
-  meow_ok "vigia ligado: soltou um .svg em assets/gatos/, ele entra na hora"
-  meow_info "  o gato novo aparece em segundos: dock (painel reciclado), terminal e menu"
+  meow_ok "vigia ligado: mudou um desenho do pack, o que sai dele se refaz na hora"
+  meow_info "  o mascote novo aparece em segundos: dock (painel reciclado), terminal e menu"
   return "$MEOW_DIVERGENTE"
 }
 
+# O disparo do vigia: refaz o que sai do pack. Cada um só escreve o que mudou.
+_disparo() {
+  local rc pior=0
+  "$RAIZ/scripts/logo.sh"; rc=$?; [ "$rc" = 1 ] && pior=1
+  "$RAIZ/scripts/fastfetch_logo.sh" aplicar; rc=$?; [ "$rc" = 1 ] && pior=1
+  "$RAIZ/scripts/wallpaper.sh" semear; rc=$?; [ "$rc" = 1 ] && pior=1
+  if [ -n "${APPS_ATIVOS:-}" ]; then
+    "$RAIZ/scripts/aplicar_apps.sh"; rc=$?; [ "$rc" = 1 ] && pior=1
+  fi
+  return "$pior"
+}
+
 main() {
+  case "${1:-}" in
+    --unidade) _texto_de "${2:-$GATILHO}"; return $? ;;
+    --disparo) _disparo; return $? ;;
+  esac
   [ "$VIGIA" = "sim" ] || { _desligar; return $?; }
   _pronto || return $?
   if [ "$CONFERIR" = 1 ]; then _conferir; else _aplicar; fi

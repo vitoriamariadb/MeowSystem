@@ -424,7 +424,7 @@ atualizar)
 #   [P82, 15/10/2026: `curl`, `xz-utils`, `unzip` e `pop-fonts` entraram — o
 #   `instalar_fontes.sh` os nomeava como faltando e não tinha a quem pedir.]
 pacotes)
-  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy curl xz-utils unzip pop-fonts "
+  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy curl xz-utils unzip pop-fonts build-essential pkg-config libxkbcommon-dev libwayland-dev libdbus-1-dev software-properties-common "
   pedidos=()
   while IFS= read -r nome || [ -n "${nome:-}" ]; do
     [ -n "$nome" ] || continue

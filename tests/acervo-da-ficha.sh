@@ -106,7 +106,7 @@ checa(soma == contados, "o total que cada pasta anuncia é o número de itens de
 # [P88: e o `sistema/` das três pastas — pasta, tipo de arquivo, status e
 #   simbólico não são ícone de programa.]
 FORA = {"pastas", "mimetypes", "previa-arcticons", "upstream", "tray-terceiros", "wallpapers",
-        "sistema"}
+        "sistema", "mascote"}
 versionados = subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icones"],
                              capture_output=True, text=True).stdout.split()
 sem_grupo = set()
@@ -123,7 +123,7 @@ checa(not sem_grupo, "toda pasta de desenho versionada tem a sua pasta na ficha"
 # --- 2. versionados − oferecíveis, por sha256 ----------------------------------
 oferecidos = {sha(caminho_de(it)) for it in itens}
 sobra = {}
-for rel in subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icones", "assets/gatos"],
+for rel in subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icones", "packs/meowsystem/mascote/"],
                           capture_output=True, text=True).stdout.split():
     if (not rel.lower().endswith((".svg", ".png")) or "/mimetypes/" in rel or "/temas/" in rel
             or "/wallpapers/" in rel):
@@ -133,7 +133,7 @@ for rel in subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icone
         sobra.setdefault(h, rel)
 fora_da_regra = sorted(r for r in sobra.values()
                        if not ("/icones/pastas/" in r or "/icones/sistema/" in r
-                               or r.startswith("assets/gatos/")
+                               or "/mascote/" in r
                                or r.endswith("/logo.svg") or r.endswith("resgatados-antes-e-depois.png")))
 print("  versionados únicos menos oferecíveis: %d — %s" % (
     len(sobra), ", ".join(sorted({r.rsplit("/", 1)[0] if not r.endswith("logo.svg") else "logo.svg"

@@ -2,7 +2,7 @@
 #
 # POR QUE ISTO EXISTE
 #   Pedido dela em 05/08/2026: "o comando do meow tem que disparar em automático,
-#   talvez no self heal algo assim". Soltar um gato em `assets/gatos/` já o punha
+#   talvez no self heal algo assim". Soltar um mascote em `packs/meowsystem/mascote/` já o punha
 #   na rotação — mas só na volta seguinte do `meow-logo.timer`, que hoje é de UM
 #   DIA (`LOGO_INTERVALO="1d"`). Esperar um dia para saber se o arquivo entrou é
 #   praticamente não ter resposta: o sintoma que o `logo.sh` mais teme está
@@ -11,7 +11,7 @@
 # POR QUE NÃO PENDURADO NO SELF-HEAL DO RITUAL DA AURORA
 #   O Aurora é de outro projeto, roda como root e ela pode desligá-lo. Emprestar
 #   o gatilho do vizinho significaria que, no dia em que ela desativasse o Aurora,
-#   o gato pararia de entrar sozinho e NADA diria por quê. A unidade é nossa; quem
+#   o mascote pararia de entrar sozinho e NADA diria por quê. A unidade é nossa; quem
 #   liga e desliga é o `ASSETS_VIGIA` do `meow.conf`.
 #
 # `@ACERVO@` É SUBSTITUÍDO PELO install.sh (via scripts/vigia_assets.sh)
@@ -30,7 +30,7 @@
 #     meow-assets.path: Path unit lacks path setting. Refusing.
 # Conferir de verdade é substituir antes — medido hoje, saída VAZIA e exit 0 nos
 # dois:
-#     sed "s|@ACERVO@|$PWD/assets/gatos|" systemd/meow-assets.path > /tmp/x.path
+#     sed "s|@ACERVO@|$PWD/packs/meowsystem/mascote/|" systemd/meow-assets.path > /tmp/x.path
 #     systemd-analyze verify --user /tmp/x.path
 #     systemd-analyze verify --user ~/.config/systemd/user/meow-assets.path
 # A troca é textual (`${texto//@ACERVO@/$ACERVO}`, no vigia_assets.sh), então pega
@@ -45,7 +45,7 @@
 # apontando para um diretório inexistente falha no boot". MEDIDO em 05/08/2026,
 # no systemd 255 desta máquina, e as duas metades da frase são falsas:
 #
-#   1. NÃO FALHA. Uma `.path` com `PathModified=/mnt/NAO-EXISTE/repo/assets/gatos`
+#   1. NÃO FALHA. Uma `.path` com `PathModified=/mnt/NAO-EXISTE/repo/packs/meowsystem/mascote/`
 #      subiu como `active (waiting)`, sem uma linha de erro. O systemd vigia o
 #      ancestral mais próximo que EXISTE (ali, `/mnt`) e espera o resto aparecer.
 #
@@ -66,8 +66,8 @@
 #   Medido no mesmo teste: escrever em `assets/` (um nível ACIMA do vigiado) não
 #   dispara nada. Importa porque o `gerar_gato.py` reescreve
 #   `assets/meow-<flavor>.svg` a cada `install.sh`; se o pai disparasse, toda
-#   instalação acordaria o vigia. Escrever ou APAGAR dentro de `assets/gatos/`
-#   dispara — e apagar disparar é desejável: é assim que o gato que ela tirou do
+#   instalação acordaria o vigia. Escrever ou APAGAR dentro de `packs/meowsystem/mascote/`
+#   dispara — e apagar disparar é desejável: é assim que o mascote que ela tirou do
 #   acervo sai também do disco, sem esperar o relógio.
 #
 # O `LEIA-ME.md` DO ACERVO TAMBÉM DISPARA, E TUDO BEM
@@ -84,7 +84,7 @@
 #   leitura e nenhuma escrita.
 
 [Unit]
-Description=MeowSystem — vigia assets/gatos/ e põe o gato novo na rotação
+Description=MeowSystem — vigia o mascote, os papéis de parede e os temas de apps do pack
 Documentation=man:systemd.path(5)
 
 [Path]

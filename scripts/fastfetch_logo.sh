@@ -3,7 +3,7 @@
 # fronteira que impede este script de terminar o serviço sozinho.
 #
 # O `fastfetch` abre o terminal dela com o logo do **Pop!_OS**, numa máquina que
-# se chama MeowSystem, tem gato no painel e cujo dono tem dois gatos reais.
+# se chama MeowSystem, tem mascote no painel e cujo dono tem dois mascotes reais.
 #
 # Ela reprovou desenho autoral ("sinceramente são péssimos") e estava certa.
 #
@@ -29,16 +29,16 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # configurar` perguntava, dizia "gravado", e a saída continuava idêntica.
 FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}"
 
-# O gato. `coquinha` e `mimir` saem de `assets/gatos/`; qualquer outro valor é
+# O mascote. `coquinha` e `mimir` saem de `packs/meowsystem/mascote/`; qualquer outro valor é
 # tratado como caminho de arquivo, para ela poder apontar um SVG dela mesma.
 FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}"
 
-# --- O GATO DO TERMINAL PASSA A SEGUIR O RELÓGIO ------------------
+# --- O MASCOTE DO TERMINAL PASSA A SEGUIR O RELÓGIO ------------------
 # Aqui é MUITO mais barato que lá — o `fastfetch` lê o arquivo do logo a cada
 # execução, não guarda nada, e não há painel para reciclar. Trocar o conteúdo do
 # arquivo é o recurso inteiro.
 #
-#   espelho (padrão) o terminal mostra o gato que o dock NÃO está mostrando.
+#   espelho (padrão) o terminal mostra o mascote que o dock NÃO está mostrando.
 #   hora    o terminal segue o relógio igual ao dock — os dois iguais.
 #   fixo `FASTFETCH_LOGO_GATO` vence sempre — o comportamento.
 #
@@ -69,7 +69,7 @@ FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}"
 # altura não se configura").
 #
 # Vazio (o padrão) continua sendo o comportamento de sempre: a altura sai de
-# `colunas / FASTFETCH_LOGO_CELULA`, e o gato sai redondo.
+# `colunas / FASTFETCH_LOGO_CELULA`, e o mascote sai redondo.
 #
 # Com número, ela manda ATÉ 12% fora da proporção.
 FASTFETCH_LOGO_LINHAS="${FASTFETCH_LOGO_LINHAS:-}"
@@ -79,7 +79,7 @@ FASTFETCH_LOGO_LINHAS="${FASTFETCH_LOGO_LINHAS:-}"
 # divergência eterna.
 FASTFETCH_LOGO_CELULA="${FASTFETCH_LOGO_CELULA:-2.556}"
 
-# AS DUAS MEDIDAS DO ESPAÇO EM VOLTA DO GATO, que estavam
+# AS DUAS MEDIDAS DO ESPAÇO EM VOLTA DO MASCOTE, que estavam
 # cravadas no `config.jsonc` dela e só se mudavam abrindo o arquivo:
 #   QUEBRAS  linhas em branco antes do desenho  (`padding.top`)
 #   RECUO    colunas entre o desenho e o texto  (`padding.right`, no tabular)
@@ -90,7 +90,7 @@ FASTFETCH_LOGO_RECUO="${FASTFETCH_LOGO_RECUO:-3}"
 FASTFETCH_TITULO="${FASTFETCH_TITULO:-}"
 
 # ONDE CADA LINHA DE INFORMAÇÃO COMEÇA: `tabular` (o único que o fastfetch sabe
-# fazer) ou `contorno` (o texto abraça a silhueta do gato). O `contorno` é
+# fazer) ou `contorno` (o texto abraça a silhueta do mascote). O `contorno` é
 # composto por fora — ver `_ffl_alinhamento` e `scripts/fastfetch_alinhar.py`.
 FASTFETCH_LOGO_ALINHAR="${FASTFETCH_LOGO_ALINHAR:-tabular}"
 
@@ -100,11 +100,11 @@ FFL_RASTER=2048
 
 FFL_BASE="$HOME/.local/share/meowsystem/fastfetch"
 
-# --- QUEM É O GATO DA VEZ, E ONDE ELE MORA ----------------------------------
-# No modo `hora` a janela vem do `lib/noite.sh` — a MESMA que decide o gato do
+# --- QUEM É O MASCOTE DA VEZ, E ONDE ELE MORA ----------------------------------
+# No modo `hora` a janela vem do `lib/noite.sh` — a MESMA que decide o mascote do
 # dock. Duas noites nesta máquina é o que aquele arquivo existe para impedir.
 
-# O gato que está NO BOTÃO DO DOCK agora, pelo arquivo — ou vazio se não der
+# O mascote que está NO BOTÃO DO DOCK agora, pelo arquivo — ou vazio se não der
 # para dizer.
 _ffl_gato_do_dock() {
   local nome
@@ -114,14 +114,14 @@ _ffl_gato_do_dock() {
   printf '%s\n' "$nome"
 }
 
-# O SEGUINTE no acervo, em círculo. Com dois gatos, é "o outro".
+# O SEGUINTE no acervo, em círculo. Com dois mascotes, é "o outro".
 _ffl_o_outro() {
   local atual="$1" i
   local -a nomes=()
   while IFS= read -r svg; do
     case "$(basename "$svg")" in *-symbolic.svg) continue ;; esac
     nomes+=("$(basename "${svg%.svg}")")
-  done < <(find "$MEOW_RAIZ/assets/gatos" -maxdepth 1 -name '*.svg' 2>/dev/null | LC_ALL=C sort)
+  done < <(find "$(meow_mascote_dir)/" -maxdepth 1 -name '*.svg' 2>/dev/null | LC_ALL=C sort)
   [ "${#nomes[@]}" -ge 2 ] || return 1
   for i in "${!nomes[@]}"; do
     [ "${nomes[$i]}" = "$atual" ] && { printf '%s' "${nomes[$(( (i + 1) % ${#nomes[@]} ))]}"; return 0; }
@@ -136,7 +136,7 @@ case "$FASTFETCH_LOGO_MODO" in
     _dock="$(_ffl_gato_do_dock || true)"
     _outro=""
     # Com o dock no `LOGO_DIA` ou no `LOGO_NOITE`, o terminal mostra o outro
-    # gato do par: à noite o do dia, de dia o da noite.
+    # mascote do par: à noite o do dia, de dia o da noite.
     if [ -n "$_dock" ] && [ "$("$MEOW_RAIZ/scripts/logo.sh" modo 2>/dev/null)" = "hora" ]; then
       _par_dia="${LOGO_DIA:-mimir}"; _par_noite="${LOGO_NOITE:-coquinha}"
       if [ "$_par_dia" != "$_par_noite" ]; then
@@ -153,7 +153,7 @@ case "$FASTFETCH_LOGO_MODO" in
     else
       # CAIR PARA A FASE, e não para o primeiro do acervo. Isto acontece na
       # PRIMEIRA instalação (o botão do dock ainda não existe) e num acervo de
-      # um gato só.
+      # um mascote só.
       # shellcheck source=../lib/noite.sh
       . "$MEOW_RAIZ/lib/noite.sh"
       if meow_e_noite; then FFL_FASE="noite"; FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_DIA}"
@@ -229,16 +229,23 @@ _ffl_assumir_diretorio() {
 }
 
 _ffl_svg() {
+  local dir nome
   case "$FASTFETCH_LOGO_GATO" in
-    */*|*.svg) printf '%s' "$FASTFETCH_LOGO_GATO" ;;
-    *)         printf '%s' "$MEOW_RAIZ/assets/gatos/$FASTFETCH_LOGO_GATO.svg" ;;
+    */*|*.svg) printf '%s' "$FASTFETCH_LOGO_GATO"; return ;;
   esac
+  dir="$(meow_mascote_dir)"
+  if [ ! -f "$dir/$FASTFETCH_LOGO_GATO.svg" ]; then
+    # O nome do conf é de outro pack: vale o mascote de fábrica do pack no ar.
+    nome="$(python3 "$MEOW_RAIZ/scripts/pack.py" mascote-padrao "$(meow_pack_dir)" "${FFL_FASE:-dia}" 2>/dev/null)"
+    if [ -n "$nome" ] && [ -f "$dir/$nome.svg" ]; then printf '%s' "$dir/$nome.svg"; return; fi
+  fi
+  printf '%s' "$dir/$FASTFETCH_LOGO_GATO.svg"
 }
 
 # A chave vence; vazia, a proporção da célula decide.
 #
 # TODA A ALTURA PASSA POR AQUI, e isso é o que faz o carimbo continuar honesto:
-# ele guarda `<gato> <colunas> <linhas>`, e as linhas saem desta função.
+# ele guarda `<mascote> <colunas> <linhas>`, e as linhas saem desta função.
 _ffl_linhas_da_proporcao() {
   awk -v c="$FASTFETCH_LOGO_COLUNAS" -v r="$FASTFETCH_LOGO_CELULA" \
       'BEGIN { n = int(c / r + 0.5); if (n < 1) n = 1; print n }'
@@ -259,7 +266,7 @@ _ffl_linhas_pedida() {
 # O QUE ELA É: acima do limite a altura é a da PROPORÇÃO, e o `aplicar` diz o
 # que ajustou e por quê.
 #
-# Abaixo dele, a chave manda e nada muda — um gato levemente oval por escolha
+# Abaixo dele, a chave manda e nada muda — um mascote levemente oval por escolha
 # dela continua sendo escolha.
 FASTFETCH_LOGO_DESVIO_TETO=12
 
@@ -397,8 +404,8 @@ SX, SY = (2, 3) if blocos == "sext" else (2, 2)
 #    `svg =>` do ImageMagick chama; usá-lo direto tira a dúvida de qual dos dois
 #    (MSVG interno ou librsvg) atendeu.
 # O `-a` NÃO É ENFEITE — 01/09/2026. Sem ele, `-w R -h R` estica o desenho para
-# encher o quadrado, e o viewBox dos gatos deixou de ser quadrado no dia em que
-# ela aumentou o gato dentro do quadro (1030x1079 no Mimir). Medido: o gato saía
+# encher o quadrado, e o viewBox dos mascotes deixou de ser quadrado no dia em que
+# ela aumentou o mascote dentro do quadro (1030x1079 no Mimir). Medido: o mascote saía
 # 254 px de largura por 255 de altura onde o certo é 243x255 — 4,5% mais gordo,
 # um círculo virando elipse. Com `-a` a proporção é preservada e o que sobra do
 # quadrado fica transparente, que é exatamente o que a grade de blocos ignora.
@@ -412,7 +419,7 @@ png = subprocess.run(["rsvg-convert", "-a", "-w", str(raster), "-h", str(raster)
 #    faz o disco sair redondo na tela dela.
 #
 # QUATRO PIXELS POR CÉLULA, E NÃO DOIS — 01/09/2026, pedido dela: "não
-# conseguimos melhorar a resolução dos meus gatos no terminal?". A versão
+# conseguimos melhorar a resolução dos meus mascotes no terminal?". A versão
 # anterior amostrava `colunas x (linhas*2)` = 40x32 e desenhava com `▀`/`▄`
 # (meio bloco): um subpixel de 8x8 px na tela dela, que é o serrilhado grosso
 # que ela apontou. Com os QUADRANTES do bloco Unicode (▘▝▖▗▚▞▌▐▛▜▙▟) cabem
@@ -423,7 +430,7 @@ png = subprocess.run(["rsvg-convert", "-a", "-w", str(raster), "-h", str(raster)
 # dela. `JetBrainsMonoNerdFontMono-Regular.ttf` não tem os glifos de
 # `Symbols for Legacy Computing` (U+1FB00–1FB3B) — renderizados com ela, saem
 # em branco (média de pixel 0.000, contra 0.234 do `▘` e 0.936 do `█`). Um
-# gato desenhado com caractere ausente vira uma parede de retângulos vazios.
+# mascote desenhado com caractere ausente vira uma parede de retângulos vazios.
 larg, alt = colunas * SX, linhas * SY
 txt = subprocess.run(
     ["convert", "png:-", "-alpha", "on", "-filter", "Lanczos",
@@ -555,8 +562,8 @@ PY
 #
 # AS TRÊS PORTAS QUE ATRAVESSAM A GUARDA — sem elas isto vira cache que mente:
 #   1. o `.ansi` não existe (alguém apagou, ou é a primeira vez);
-#   2. o carimbo não bate (trocou de gato, de largura ou de proporção);
-#   3. o SVG é MAIS NOVO que o `.ansi` (ela redesenhou o gato no acervo).
+#   2. o carimbo não bate (trocou de mascote, de largura ou de proporção);
+#   3. o SVG é MAIS NOVO que o `.ansi` (ela redesenhou o mascote no acervo).
 _ffl_carimbo() { printf '%s/.gato-atual' "$FFL_BASE"; }
 _ffl_ja_esta_certo() {
   local svg="$1" colunas="$2" linhas="$3" querido lido
@@ -677,7 +684,7 @@ pad = logo.get("padding") or {}
 print(logo.get("type") or "")
 print(fonte)
 print(len(chaves))
-# As duas medidas do espaço em volta do gato entraram na leitura em 06/09/2026:
+# As duas medidas do espaço em volta do mascote entraram na leitura em 06/09/2026:
 # sem elas, mudar só `FASTFETCH_LOGO_QUEBRAS` no conf não disparava escrita
 # nenhuma — a fronteira olhava para `source` e `type`, via que estavam certos, e
 # dizia "já aponta para o nosso .ansi" sobre um arquivo com o recuo velho.
@@ -797,7 +804,7 @@ _ffl_meow_fetch() { printf '%s/.local/bin/meow-fetch' "$HOME"; }
 _ffl_texto_meow_fetch() {
   cat <<'FIM'
 #!/usr/bin/env bash
-# meow-fetch — o fastfetch com o gato do MeowSystem alinhado como o meow.conf pede.
+# meow-fetch — o fastfetch com o mascote do MeowSystem alinhado como o meow.conf pede.
 #
 # NÃO É UM SUBSTITUTO DO FASTFETCH. Com FASTFETCH_LOGO_ALINHAR="tabular" (o
 # padrão) ele é um `exec fastfetch "$@"` e mais nada: mesma saída, mesmo custo,
@@ -818,7 +825,7 @@ if [ -r "$conf" ]; then
   #   `set +u`: a subshell herdava o `set -u` da linha acima, e uma linha do
   #   conf que expandisse variável não definida matava a subshell ANTES do
   #   `printf`. O `eval` recebia string vazia, o alinhamento caía no `tabular`
-  #   do padrão, e a saída ficava byte a byte igual ao fastfetch puro: sem gato
+  #   do padrão, e a saída ficava byte a byte igual ao fastfetch puro: sem mascote
   #   e sem uma palavra de aviso. Nenhum `conferir` acusava, porque ele lê o
   #   conf por outro caminho.
   #
@@ -848,7 +855,7 @@ fi
 #          Please add the flag to the JSON config instead.
 #
 # e, como ele sai com erro antes de imprimir uma linha, o compositor recebia
-# entrada vazia e o terminal abria só com o gato. Quem escreve o formato do
+# entrada vazia e o terminal abria só com o mascote. Quem escreve o formato do
 # título é o `fastfetch_logo.sh`, no `config.jsonc`, pelas mesmas quatro
 # guardas de sempre.
 case "$alinhar" in
@@ -876,7 +883,7 @@ fi
 # ZERO byte: a saudação inteira sumia numa janela nova. Aqui o fetch vai para
 # uma variável primeiro, e o alinhado só a substitui se der certo E vier com
 # conteúdo. O pior caso volta a ser o que o cabeçalho promete: o fastfetch
-# tabular, sem gato.
+# tabular, sem mascote.
 saida="$(fastfetch --logo none "$@")"
 if alinhada="$(printf '%s\n' "$saida" \
      | python3 "$alinhador" --gato "$gato" --recuo "$recuo" --topo "$topo" \
@@ -989,7 +996,7 @@ cmd_patch() {
   _ffl_patch_texto
   printf '\n'
   meow_info "o \"padding\" vem do meow.conf: FASTFETCH_LOGO_QUEBRAS=$FASTFETCH_LOGO_QUEBRAS -> $(_ffl_quebras)"
-  meow_info "  e FASTFETCH_LOGO_RECUO=$FASTFETCH_LOGO_RECUO, para um gato de $(_ffl_linhas) linhas"
+  meow_info "  e FASTFETCH_LOGO_RECUO=$FASTFETCH_LOGO_RECUO, para um mascote de $(_ffl_linhas) linhas"
   meow_info "cópia pronta no repositório: assets/fastfetch/config-logo.jsonc.sugestao"
   return "$MEOW_OK"
 }
@@ -1084,7 +1091,7 @@ cmd_aplicar() {
 
   if [ "$rcf" = "1" ]; then
     printf '\n'
-    meow_aviso "o fastfetch ainda NÃO vai mostrar o gato: falta uma troca de"
+    meow_aviso "o fastfetch ainda NÃO vai mostrar o mascote: falta uma troca de"
     meow_aviso "  duas chaves no config.jsonc do fastfetch, que é seu e não nosso."
     printf '\n'
     _ffl_patch_texto

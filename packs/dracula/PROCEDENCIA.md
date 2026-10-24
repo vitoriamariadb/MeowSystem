@@ -921,10 +921,10 @@ estão em `docs/sprints/2026-10-15-fechamento/P84-png-para-vetor.md`.
 | `icones/biblioteca/projetos/arcanetab-icon_128x128.png` | projeto dela fora da lista de exclusão (decisão 16, item 2): ~/Desenvolvimento/ArcaneTab/assets/icon_128x128.png; fonte: disco |  | GPL-3.0 (arte dela, entra pelo pedido de 15/10/2026) | 2026-10-16 | `db52e27bf6350fc03a07c7ee6064fefda986b59fa676b7a917ce246c5e794507` |
 | `icones/biblioteca/projetos/luna-favicon.svg` | projeto dela fora da lista de exclusão (decisão 16, item 2): ~/Desenvolvimento/Luna/docs/favicon.svg; fonte: disco |  | GPL-3.0 (arte dela, entra pelo pedido de 15/10/2026) | 2026-10-16 | `22b41f537862b84056154a93fb7f3f714d19bbea0fba92caee6cc4c26e605b4c` |
 | `icones/biblioteca/projetos/extase-em-4r73.svg` | projeto dela fora da lista de exclusão (decisão 16, item 2): ~/Desenvolvimento/MeowSystem/.trabalho-icones/svg/extase-em-4r73.svg; fonte: disco |  | GPL-3.0 (arte dela, entra pelo pedido de 15/10/2026) | 2026-10-16 | `75d4c4408cdf4dae58f2cee2ab5bad68ca88824c0d3c083341b6451cdec21cb8` |
-| `icones/biblioteca/morcego-dia.svg` | `assets/gatos/morcego-dia.svg` do motor (commit `5aee691`, 15/09/2026), cópia: o motor continua usando o dele como logo do COSMIC; fonte: motor |  | GPL-3.0 | 2026-10-16 | `9db7f5100ab5bfa90e29ec81df62cfcf9ea01acd1a56a2fccf1e78e89bbdab5a` |
-| `icones/biblioteca/morcego-noite.svg` | `assets/gatos/morcego-noite.svg` do motor (commit `5aee691`, 15/09/2026), cópia: o motor continua usando o dele como logo do COSMIC; fonte: motor |  | GPL-3.0 | 2026-10-16 | `8cdb449c7a082ff3f895582f4a781a991883118e9d556a3de3a186eb31234ef2` |
+| `icones/biblioteca/morcego-dia.svg` | `packs/meowsystem/mascote/morcego-dia.svg` do motor (commit `5aee691`, 15/09/2026), cópia: o motor continua usando o dele como logo do COSMIC; fonte: motor |  | GPL-3.0 | 2026-10-16 | `9db7f5100ab5bfa90e29ec81df62cfcf9ea01acd1a56a2fccf1e78e89bbdab5a` |
+| `icones/biblioteca/morcego-noite.svg` | `packs/meowsystem/mascote/morcego-noite.svg` do motor (commit `5aee691`, 15/09/2026), cópia: o motor continua usando o dele como logo do COSMIC; fonte: motor |  | GPL-3.0 | 2026-10-16 | `8cdb449c7a082ff3f895582f4a781a991883118e9d556a3de3a186eb31234ef2` |
 | `icones/biblioteca/aurora-iniciar.svg` | `uploads/aurora-icone-iniciar.svg`, commit `b178261` (04/08/2026, Vitória), que saiu do repositório junto com a pasta `uploads/`; fonte: git |  | GPL-3.0 | 2026-10-16 | `c111a96bc81a01c79d932cf7898be293cefd29fb46308d5c1cc2a065169d5ef5` |
-| `icones/biblioteca/morcego.svg` | `assets/gatos/morcego.svg` do motor (commit `5aee691`, 15/09/2026), cópia: o motor continua usando o dele como logo do COSMIC; fonte: motor |  | GPL-3.0 | 2026-10-16 | `1f0aa6a25e862c43bddf9bc748ee4070ccd088e1e31392d9574fe2478a5b31de` |
+| `icones/biblioteca/morcego.svg` | `packs/meowsystem/mascote/morcego.svg` do motor (commit `5aee691`, 15/09/2026), cópia: o motor continua usando o dele como logo do COSMIC; fonte: motor |  | GPL-3.0 | 2026-10-16 | `1f0aa6a25e862c43bddf9bc748ee4070ccd088e1e31392d9574fe2478a5b31de` |
 | `icones/apps/citrix.svg` | vetor de 12/09/2026 do Citrix, commit `8b37812`, `assets/icones/resgatados/Ubuntu-selfservice.svg`, trocado em 15/09 (`5aee691`); vence a régua do BRIEFING (RMSE 0,030 contra o PNG feito à mão, contra 0,041 da P84): é o desenho que os 11 nomes do Citrix vestem (decisão 16, itens 3 e 6); fonte: git |  | GPL-3.0 | 2026-10-16 | `010b2cf823d454f2d0fea3c3e874550abe1f9f105e363ad0d07fb9555debe862` |
 | `icones/biblioteca/obsidian-papirus.svg` | tema Papirus do sistema, `/usr/share/icons/Papirus/32x32/apps/md.obsidian.Obsidian.svg`, lido por uma sessão em 16/09/2026; fonte: transcrição; classe c (terceiro com licença conhecida) |  | GPL-3.0 (Papirus Development Team); a marca é do Obsidian | 2026-10-16 | `288714119b92fddabc2de3f33f1b5a41eb30bba1c2a82241e2b475bd6c9dff1d` |
 
@@ -951,7 +951,7 @@ oito primeiros dígitos do sha256 da origem, que nunca colidem. O que cada um é
 
 **De onde vieram.** 88 da transcrição do agente (14 deles também no photorec),
 37 só do photorec, 5 do histórico do git, 14 do disco, 3 do backup do tema
-antigo, 3 dos gatos do motor e 13 dos projetos dela (disco, git e backup). A
+antigo, 3 dos mascotes do motor e 13 dos projetos dela (disco, git e backup). A
 lixeira, a partição do Windows, o VS Code e o ext4magic não deram nada que
 entrasse: a lixeira só tinha Ouroboros e um workspace do Grok, a partição trouxe
 dois desenhos de um tema de terceiro, o VS Code voltou vazio e o ext4magic caiu
@@ -1034,7 +1034,7 @@ Cinco modelos em `apps/`, um por aplicativo, declarados no bloco `apps` do
 `pack.json`. **Não são cópias**, e por isso não estão na tabela de cima: cada
 um é o arquivo do aplicativo com o PAPEL da cor no lugar do hex (`{{base}}`,
 `{{mauve}}`), pela decisão de 23/09 de que cor de tema de aplicativo sai da
-paleta do pack. Quem põe o hex é o `assets/temas-de-apps/modelo.py`, na hora de
+paleta do pack. Quem põe o hex é o `scripts/temas-de-apps/modelo.py`, na hora de
 aplicar, no flavor da máquina — é o que faz o `alucard` sair claro nos cinco.
 
 Um modelo nunca vai ser igual, byte a byte, ao arquivo de onde o desenho veio.
@@ -1157,7 +1157,7 @@ diretório, e por isso elas **não são linhas da tabela acima**: a tabela é da
 cópias, e o `sincronizar` compara cópia com origem. O que se baixa é conferido
 pelo sha256 na instalação, e é o sha256 que diz qual versão foi escolhida.
 [Desde a P55, 24/09/2026, são quatro: o tema do Obsidian e a extensão do VS Code
-descem pelos módulos de `assets/temas-de-apps/`, pela mesma receita — ver o fim
+descem pelos módulos de `scripts/temas-de-apps/`, pela mesma receita — ver o fim
 desta seção.]
 
 | o quê | de onde | pino | licença | medido em |

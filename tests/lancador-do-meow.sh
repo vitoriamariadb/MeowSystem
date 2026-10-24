@@ -55,7 +55,7 @@ rodar appid_dock.sh --aplicar >/dev/null 2>&1; rc=$?
 confere "a segunda passada não escreve" '[ "$rc" = 0 ] && [ "$antes" = "$(foto)" ]'
 rodar appid_dock.sh --reverter >/dev/null 2>&1
 confere "o reverter tira as pontes" '[ ! -e "$p1" ] && [ ! -e "$p2" ]'
-confere "um mapa só: o wmclass.map saiu" '[ ! -e "$RAIZ/assets/icones/wmclass.map" ]'
+confere "um mapa só: o wmclass.map saiu" '[ ! -e "$RAIZ/assets/apps/wmclass.map" ]'
 rm -f "$FLAT/applications/com.boxy_svg.BoxySVG.desktop"
 
 printf '\n2. o lançador órfão e o mimeinfo.cache velho\n'

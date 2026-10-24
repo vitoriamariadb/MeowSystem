@@ -1230,7 +1230,7 @@ done
 #   23/09/2026: são QUINZE linhas no `info`, e onze delas são declaráveis —
 #   paleta, mapa do COSMIC, quatro de ícone, ponteiro, papéis de parede, temas
 #   de aplicativo, som e fontes. As outras quatro (o traço do gerador, prompt,
-#   fastfetch, gatos) não têm campo no formato, e o `info` tem de dizer isso
+#   fastfetch, mascotes) não têm campo no formato, e o `info` tem de dizer isso
 #   em vez de sumir com elas. Então: as declaráveis PRÓPRIAS (menos uma, dita
 #   logo abaixo), as quatro ditas "não declarável", e nenhuma a mais nem a menos.
 #
@@ -1306,14 +1306,14 @@ done
 printf '%s\n' "$tabela" | grep -qE '^  wallpapers +DO MOTOR, ou inexistente +scripts/wallpaper\.sh' \
   && ok "wallpapers declarado sai DO MOTOR, e diz de onde — o info não diz PRÓPRIO sem leitor" \
   || falha "o info voltou a classificar wallpapers pelo bloco que ninguém lê" "$tabela"
-n_fixas="$(printf '%s\n' "$tabela" | grep -cE '^  (gerador|prompt|fastfetch|gatos) +DO MOTOR — não declarável')"
+n_fixas="$(printf '%s\n' "$tabela" | grep -cE '^  (gerador|prompt|fastfetch) +DO MOTOR — não declarável')"
 n_linhas="$(printf '%s\n' "$tabela" | grep -c .)"
 # DEZESSEIS DESDE A P41 (24/09/2026): a base de ícones (`icones.base`) virou
 # categoria. Este pack não a declara nem herda, e ela sai DO MOTOR — a conta
 # das dez PRÓPRIAS acima não muda.
-[ "$n_fixas" = "4" ] && [ "$n_linhas" = "16" ] \
-  && ok "gerador, prompt, fastfetch e gatos aparecem como não declaráveis, e a tabela tem as 16 linhas" \
-  || falha "a tabela do info não tem as 16 linhas, ou as 4 fixas no motor (linhas=$n_linhas, fixas=$n_fixas)" "$tabela"
+[ "$n_fixas" = "3" ] && [ "$n_linhas" = "16" ] \
+  && ok "gerador, prompt e fastfetch aparecem como não declaráveis, o mascote é do pack, e a tabela tem as 16 linhas" \
+  || falha "a tabela do info não tem as 16 linhas, ou as 3 fixas no motor (linhas=$n_linhas, fixas=$n_fixas)" "$tabela"
 case "$tabela" in
   *"CURSOR=\"$ID-roxo\", do pack $ID"*"1 fonte(s), do pack $ID"*)
     ok "o info diz o valor de CURSOR e quantas fontes, e de quem" ;;
@@ -2535,7 +2535,7 @@ p31_caso() {   # $1 rótulo · $2 PACK · $3 FLAVOR · $4 linha do ICONES_FLAVOR
   local painel script saida visto apps divergiu="" proprias=""
   painel="$(p31_amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_ponte_python >/dev/null 2>&1 || exit 9
     exec python3 "$1"' _ "$T/p31painel.py" 2>/dev/null | tail -1)"
-  for script in icones_mimetypes icones_pastas icones_apps; do
+  for script in icones_mimetypes icones_pastas; do
     saida="$(p31_amb bash -c 'set -a; . "$MEOW_CONF"; set +a
       PASTAS_XDG=sim MEOW_DRY_RUN=1 "$MEOW_RAIZ/scripts/$1.sh" --aplicar 2>&1' _ "$script")"
     visto="$(p31_flavor_do_script <<< "$saida")"

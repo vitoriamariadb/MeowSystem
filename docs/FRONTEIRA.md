@@ -4,7 +4,7 @@ Duas máquinas de manutenção rodam neste computador e as duas escrevem sozinha
 **Ritual da Aurora** (`~/.config/zsh`, self-heal como root de hora em hora, no boot e
 depois de todo `apt`) cuida do **sistema**: pacotes, energia, hardware, atalhos,
 workspaces, wrappers em `/usr/local/bin`, patches de binário. O **MeowSystem** cuida da
-**aparência**: tema, ícones, papel de parede, gato do dock, vidro do painel, nome e
+**aparência**: tema, ícones, papel de parede, mascote do dock, vidro do painel, nome e
 visibilidade de aplicativo no lançador.
 
 A regra é uma frase: **onde os dois querem mandar no mesmo arquivo, o visual é do
@@ -378,7 +378,7 @@ está em `/usr/local/share`.
 
 ## As três decisões que mudaram a tabela (10/08/2026)
 
-**O ícone do botão "iniciar" voltou a ser do tema.** O Aurora plantava um gato Drácula em
+**O ícone do botão "iniciar" voltou a ser do tema.** O Aurora plantava um mascote Drácula em
 `/usr/share/icons/hicolor/scalable/apps/com.system76.CosmicAppLibrary.svg` porque a v3.45
 concluiu que "o `cosmic-panel-button` não enxerga `~/.local/share/icons`". A conclusão
 estava errada: o laço EXTERNO da resolução é o **nome do tema**, e o `hicolor` é o último
@@ -683,7 +683,7 @@ saía **4** imprimindo o patch para quem usa colar à mão.
 1. O pedido foi que tudo fosse *"idempotente e autoajustável de forma que sobreviva
    sempre"* — e depois, explicitamente: *"pode alterar tudo a nível de sistema,
    incluindo no aurora"*.
-2. O gato do fastfetch passou a seguir o relógio. Sem a troca da linha, o
+2. O mascote do fastfetch passou a seguir o relógio. Sem a troca da linha, o
    terminal ficaria com a Coquinha das 18h às 7h **todo dia, para sempre**, e o
    script diria "gerei o Mimir" enquanto a tela mostra a Coquinha. Aviso que se
    repete todo dia é aviso que se aprende a ignorar.
@@ -923,10 +923,10 @@ forma: **diagnóstico certo, conserto conhecido, nenhum botão.**
 | onde | o que dizia |
 |---|---|
 | `scripts/areas.sh:1001` | *"alfinete uma área pelo COSMIC (visão geral, botão direito) e rode de novo"* |
-| `assets/temas-de-apps/spotify/manifesto.sh` | um `curl \| sh` e um `git clone` dentro de dois `meow_info` |
+| `scripts/temas-de-apps/spotify/manifesto.sh` | um `curl \| sh` e um `git clone` dentro de dois `meow_info` |
 | `scripts/prompt.sh` (o bloco do starship) | *"instalar é decisão sua. Sem sudo, em ~/.local/bin: …"* |
-| `assets/temas-de-apps/qbittorrent/manifesto.sh` | *"sem `~/.config/zsh/scripts/aurora-qbittorrent-config.sh` não há quem escreva o qBittorrent.conf"* |
-| `scripts/fastfetch_logo.sh` | *"o gato vai sair 68% fora da proporção … use 37 linhas para 95 colunas"* — a conta já feita, o conserto por fazer |
+| `scripts/temas-de-apps/qbittorrent/manifesto.sh` | *"sem `~/.config/zsh/scripts/aurora-qbittorrent-config.sh` não há quem escreva o qBittorrent.conf"* |
+| `scripts/fastfetch_logo.sh` | *"o mascote vai sair 68% fora da proporção … use 37 linhas para 95 colunas"* — a conta já feita, o conserto por fazer |
 | `install.sh:2930` | *"Rode mais uma vez, até a tela dizer «nenhuma etapa precisou escrever nada»"* (é a P1, e ela já foi) |
 
 Um engenheiro lê isso como cortesia. Um designer leigo lê como **"o programa
@@ -1006,7 +1006,7 @@ outro lado da casa.
 
 ### O cobrador
 
-`tests/sem-receita-no-log.sh` varre `scripts/`, `lib/` e `assets/temas-de-apps/`
+`tests/sem-receita-no-log.sh` varre `scripts/`, `lib/` e `scripts/temas-de-apps/`
 atrás de `meow_info`/`meow_aviso` com `curl | sh`, `git clone` ou
 `apt[-get] install`
 dentro. As isenções casam pelo **conteúdo** da linha, nunca pelo número — mesma
@@ -1112,7 +1112,7 @@ sprint pedia: ele **sabe** voltar ao binário do pacote
 
 ### A dependência fantasma do qBittorrent
 
-`assets/temas-de-apps/qbittorrent/manifesto.sh` exigia
+`scripts/temas-de-apps/qbittorrent/manifesto.sh` exigia
 `~/.config/zsh/scripts/aurora-qbittorrent-config.sh`. A P29 foi buscá-lo para
 trazê-lo e mediu, em 22/09/2026, que **ele não existe lá**: um
 `find ~/.config/zsh -name '*qbittorrent*'` devolve zero linha. Não era "está no
@@ -1256,9 +1256,9 @@ retenção falada é das **10 últimas** passagens, e a poda é de quem enxerga 
 fila inteira (o runner, o `meow desfazer`) — nunca do módulo, que só enxerga a
 própria pasta e apagaria o histórico dos vizinhos.
 
-> `assets/temas-de-apps/toolkits-gtk-qt/manifesto.sh:295,568` ·
-> `assets/temas-de-apps/vscode/manifesto.sh:481,514` ·
-> `assets/temas-de-apps/zapzap/manifesto.sh:243`
+> `scripts/temas-de-apps/toolkits-gtk-qt/manifesto.sh:295,568` ·
+> `scripts/temas-de-apps/vscode/manifesto.sh:481,514` ·
+> `scripts/temas-de-apps/zapzap/manifesto.sh:243`
 
 ### 5. Idempotência por CONTEÚDO, não por existência
 
@@ -1271,8 +1271,8 @@ README de que rodar de novo numa máquina pronta não escreve um byte.
 > `scripts/greeter.sh:219` · `scripts/som.sh:285` · `scripts/ocultar_apps.sh:147` ·
 > `scripts/fastfetch_logo.sh:729` · `scripts/importar_icones.sh:166` ·
 > `scripts/construir_icones.sh:114` · `scripts/ponte_root.sh:130` ·
-> `assets/temas-de-apps/obsidian/manifesto.sh:174` ·
-> `assets/temas-de-apps/heroic/manifesto.sh:448,505`
+> `scripts/temas-de-apps/obsidian/manifesto.sh:174` ·
+> `scripts/temas-de-apps/heroic/manifesto.sh:448,505`
 
 ### 6. — vaga
 

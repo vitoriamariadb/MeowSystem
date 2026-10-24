@@ -170,7 +170,7 @@ garantir_backup() {
   [ -n "$BACKUP_DIR" ] && return 0            # já feito nesta execução
   # A pasta `backups/` é COMPARTILHADA por todos os módulos e todos os outros
   # usam esse formato (`MEOW_CARIMBO`, em lib/comum.sh; a razão está escrita por
-  # extenso em assets/temas-de-apps/vscode/manifesto.sh §helper 3).
+  # extenso em scripts/temas-de-apps/vscode/manifesto.sh §helper 3).
   local marca="" velho
   for velho in "$MEOW_ESTADO"/backups/*-tema-*; do
     [ -d "$velho" ] && { marca="ja-rodou"; break; }

@@ -78,9 +78,9 @@ SOMAS=(
 "2d0ebea8655d90546434441d09ed98843d98296aff76dcadb8936b7abc318e2c  JetBrainsMonoNerdFontMono-ThinItalic.ttf"
 )
 
-# O cache do tarball fica no repo e está no .gitignore: é a mesma regra do
-# baixar_upstream.sh — o git guarda a RECEITA, não os megabytes.
-CACHE="$RAIZ/assets/fontes/upstream"
+# O cache do tarball fica fora do repositório, como o do baixar_upstream.sh — o
+# git guarda a RECEITA, não os megabytes.
+CACHE="$MEOW_CACHE/fontes"
 TAR="$CACHE/$NERD_ATIVO"
 
 FONTES_BASE="$HOME/.local/share/fonts"
@@ -453,7 +453,7 @@ fi
 
 # --- 2c-bis. O ACERVO LOCAL: as fontes que ela solta ------------------------
 #
-# A PASTA É A INTERFACE, como em `assets/gatos/` Soltou um `.otf`/`.ttf` em
+# A PASTA É A INTERFACE, como em `packs/meowsystem/mascote/` Soltou um `.otf`/`.ttf` em
 # `assets/fontes/locais/`, ele entra; apagou, sai.
 #
 # O `$DESTINO` é do acervo Nerd Fonts, cuja verdade é a lista pinada por sha256

@@ -8,9 +8,9 @@ licença**, com o link para o lugar de onde veio.
 A regra do projeto é antiga e não tem exceção: **nenhum acervo de terceiro entra
 sem licença registrada.** A auditoria fina de cada família mora ao lado do próprio
 acervo — [`packs/meowsystem/PROCEDENCIA.md`](../packs/meowsystem/PROCEDENCIA.md),
-[`assets/cursores/CREDITOS.md`](../assets/cursores/CREDITOS.md),
-[`assets/sons/CREDITOS.md`](../assets/sons/CREDITOS.md) e os `PROCEDENCIA.md` de
-`assets/temas-de-apps/`. Esta página é o índice delas.
+[`packs/meowsystem/licencas/cursores.md`](../packs/meowsystem/licencas/cursores.md),
+[`docs/SONS.md`](../docs/SONS.md) e os `PROCEDENCIA.md` de
+`scripts/temas-de-apps/`. Esta página é o índice delas.
 
 ---
 
@@ -40,13 +40,13 @@ licença.
 
 Os **52 desenhos autorais** de `assets/icones/autorais/` e os **19 retoques à
 mão** de `packs/meowsystem/icones/apps/convertidos/retoques/` são deste projeto, no dialeto
-do Arcticons mas sem copiar traço nenhum dele. A folha que descreve o dialeto está
-em [`docs/folhas/`](folhas/).
+do Arcticons mas sem copiar traço nenhum dele. A folha que descrevia o dialeto
+saiu do repositório em 23/10/2026; o git a guarda.
 
 ## Os papéis de parede
 
 **As imagens não estão neste repositório, e isso é de propósito.** O que vai para
-o git é a receita: [`assets/papeis-de-parede/FONTES.tsv`](../assets/papeis-de-parede/FONTES.tsv),
+o git é a receita: [`packs/meowsystem/wallpapers/FONTES.tsv`](../packs/meowsystem/wallpapers/FONTES.tsv),
 uma linha por imagem, com a URL de origem e a resolução. `scripts/wallpaper.sh
 semear` baixa a coleção de novo a partir dela.
 
@@ -68,7 +68,7 @@ material Catppuccin que já esteve ali, **não** as imagens do wallhaven.
 Autoria, como o `AUTHORS` do pacote declara: **Alexey Varfolomeev** (`varlesh`) e
 **Kylie** (`covkie`) nos cursores, **`elkrien`** na recoloração. Também não vão
 para o git — o instalador baixa do release oficial. Detalhes e a medição de
-luminância de cada flavor: [`assets/cursores/CREDITOS.md`](../assets/cursores/CREDITOS.md).
+luminância de cada flavor: [`packs/meowsystem/licencas/cursores.md`](../packs/meowsystem/licencas/cursores.md).
 
 ## As fontes
 
@@ -107,8 +107,8 @@ autorais, os **19** retoques à mão, o som de volume — sintetizado, não baix
 liberado em **CC0-1.0** — e a documentação em `docs/`. Tudo sob **GPL-3.0**, como
 o repositório.
 
-Os dois gatos do painel são a **Coquinha** e o **Mimir**, que existem de verdade e
-foram desenhados a partir de fotos deles ([`assets/gatos/`](../assets/gatos/)).
+Os dois mascotes do painel são a **Coquinha** e o **Mimir**, que existem de verdade e
+foram desenhados a partir de fotos deles ([`packs/meowsystem/mascote/`](../packs/meowsystem/mascote/)).
 
 ## O que foi recusado, e por quê
 

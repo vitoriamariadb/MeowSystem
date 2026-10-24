@@ -15,10 +15,10 @@ confere e conserta sozinho. Bash 4.3+ e Python 3 só com a biblioteca padrão.
 | `install.sh` | o instalador: etapas idempotentes, a segunda passada não escreve nada |
 | `bin/meow` | a CLI: `doctor`, `pack`, `icones`, `compositor`, o menu |
 | `lib/` | funções comuns (`comum.sh`: log, códigos de saída, travas) |
-| `scripts/` | uma etapa por arquivo; `pack.py` resolve o pack e o acervo |
+| `scripts/` | uma etapa por arquivo; `pack.py` resolve o pack e o acervo; `temas-de-apps/` é o código de cada app |
 | `app/` | o painel local: `servidor.py` e `pagina/` (HTML, JS, CSS) |
-| `packs/` | os theme packs: só dados (JSON, SVG, mapas), nunca código |
-| `assets/` | o acervo do motor que os packs herdam |
+| `packs/` | os theme packs, só dados: `icones/`, `mascote/`, `wallpapers/`, `temas-de-apps/`, `sons/`, `temas/` |
+| `assets/` | o que o programa usa em todo pack: modelos que a paleta preenche, mapas de app, `contratos/` |
 | `patches/` | a série de patches do `cosmic-comp` (`series`, `versao`) |
 | `src/` | applets e o oráculo em Rust |
 | `systemd/` | unidades de usuário (doctor, vigias `.path`, sentinela) |
@@ -63,6 +63,5 @@ comentário não mexeu em código.
 ## Onde não ler por padrão
 
 - `docs/sprints/` e `docs/historico/`: registro de trabalho, longo. Leia só o arquivo citado.
-- `docs/pesquisas/`: pesquisa bruta.
 - `docs/SPRINTS.md`: o diário das sprints.
-- `.playwright-mcp/`, `packs/*/icones/` (milhares de SVG), `docs/capturas/`, `docs/folhas/`.
+- `packs/*/icones/` (milhares de SVG), `docs/capturas/`.

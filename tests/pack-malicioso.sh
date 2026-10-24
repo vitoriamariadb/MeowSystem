@@ -373,7 +373,7 @@ cp "$CWD/json.py" "$CWD/re.py"
 #   no perfil do GNOME Terminal são comando que roda a cada janela nova.
 filtrado() {   # <app> <modelo montado> — o texto que o módulo vai escrever
   amb MEOW_PACKS="$T/vazio" bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
-    . "$MEOW_RAIZ/assets/temas-de-apps/$0/manifesto.sh" || exit 2
+    . "$MEOW_RAIZ/scripts/temas-de-apps/$0/manifesto.sh" || exit 2
     if [ "$0" = kitty ]; then _KITTY_DE=mal; _KITTY_DESEJADO="$1"; _kitty_so_cor; printf "%s\n" "$_KITTY_DESEJADO"
     else _GT_DE=mal; _GT_DESEJADO="$1"; _gt_so_cor; printf "%s\n" "$_GT_DESEJADO"; fi' "$1" "$2" 2>/dev/null
 }

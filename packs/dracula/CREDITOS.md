@@ -80,7 +80,7 @@ que imprime a herança linha a linha, o que o pack não traz é isto:
 | tema do qBittorrent | `catppuccin` — o `dracula.qbtheme` não tem procedência, e o `_nota_qbittorrent` do `pack.json` conta por que não entrou |
 | fontes | a herança manda buscar no `catppuccin`, que não traz nenhuma: vale a Nerd Font do motor |
 | papéis de parede | um repositório nomeado pelas chaves `WALLPAPER_DRACULA_REPO` e `WALLPAPER_DRACULA_COMMIT` do `meow.conf` — nomear a conta de uma pessoa num arquivo versionado é o que se evita aqui |
-| prompt, fastfetch, gatos | o motor (`assets/`), igual para todo pack — o formato ainda não tem campo para eles |
+| prompt, fastfetch, mascotes | o motor (`assets/`), igual para todo pack — o formato ainda não tem campo para eles |
 
 ## Licença
 

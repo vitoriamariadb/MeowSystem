@@ -22,7 +22,13 @@ trap 'rm -rf "$T"' EXIT
 FALSO="$T/falso"; mkdir -p "$FALSO"
 printf '#!/bin/sh\nprintf "sudo: recusado pelo tests/pastas-do-pack.sh\\n" >&2\nexit 1\n' > "$FALSO/sudo"
 chmod 755 "$FALSO/sudo"
-UP="${MEOW_CAT_FOLDERS:-$RAIZ/assets/icones/upstream/papirus-folders}"
+UP="${MEOW_CAT_FOLDERS:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem/upstream/papirus-folders}"
+# O upstream mora no cache de quem usa, fora do repositório; numa casa de
+# brinquedo ele desce para a pasta do teste, pelo mesmo script do instalador.
+if [ -z "${MEOW_CAT_FOLDERS:-}" ] && [ ! -d "$UP/src" ]; then
+  env -i PATH="$PATH" HOME="$T" MEOW_CACHE="$T/cache" NO_COLOR=1 bash "$RAIZ/scripts/baixar_upstream.sh" >/dev/null 2>&1
+  UP="$T/cache/upstream/papirus-folders"
+fi
 
 # pastas <casa> <PACK> <FLAVOR> <ACCENT> [VAR=valor ...] — a etapa das pastas
 # como o `install.sh` a chama, e as variáveis a mais por último, que vencem.

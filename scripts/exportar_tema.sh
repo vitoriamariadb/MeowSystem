@@ -118,7 +118,6 @@ etapa pastas_xdg 'PASTAS_XDG="${PASTAS_XDG:-nao}" ICONES_FLAVOR="${ICONES_FLAVOR
 etapa pastas     'ICONES_PASTAS="${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}" "$MEOW_RAIZ/scripts/construir_pastas.sh"'
 etapa completar  'FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$MEOW_RAIZ/scripts/completar_icones.sh"'
 etapa mimetypes  'ICONES_FLAVOR="${ICONES_FLAVOR:-}" ICONES_TEMA="$NOME_TEMA_ICONES" "$MEOW_RAIZ/scripts/icones_mimetypes.sh"'
-etapa apps       'ICONES_FLAVOR="${ICONES_FLAVOR:-}" ICONES_TEMA="$NOME_TEMA_ICONES" "$MEOW_RAIZ/scripts/icones_apps.sh"'
 etapa resgatados 'ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" "$MEOW_RAIZ/scripts/icones_resgatados.sh" --aplicar'
 etapa arcticons  'FLAVOR="${FLAVOR:-}" ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao}" ICONES_TEMA="$NOME_TEMA_ICONES" "$MEOW_RAIZ/scripts/icones_apps_arcticons.sh"'
 etapa dracula    'ICONES_DRACULA="${ICONES_DRACULA:-sim}" "$MEOW_RAIZ/scripts/icones_apps_dracula.sh" --aplicar'

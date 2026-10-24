@@ -4,7 +4,7 @@
 #   O README diz, desde a primeira versão: *"Tudo que o projeto desenha vive
 #   numa pasta, e a pasta é a configuração: soltou o arquivo, entrou; apagou,
 #   saiu. Não há lista em script nenhum para editar."* Era verdade para
-#   `assets/gatos/` (o `meow-assets.path` cuida) e MENTIRA para os papéis de
+#   `packs/meowsystem/mascote/` (o `meow-assets.path` cuida) e MENTIRA para os papéis de
 #   parede: apagar um à mão o tirava da rotação agora e o `semear` o repunha
 #   depois, calado.
 #
@@ -20,7 +20,7 @@
 #   existe para pegar. É a mesma escolha do `meow-assets.path`, e lá o motivo
 #   está escrito para o caso simétrico (o arquivo que ENTRA).
 #
-# O CAMINHO É SUBSTITUÍDO NA INSTALAÇÃO (`@ATIVOS@`), como no irmão dos gatos: a
+# O CAMINHO É SUBSTITUÍDO NA INSTALAÇÃO (`@ATIVOS@`), como no irmão dos mascotes: a
 # base pode ser trocada por `WALLPAPER_BASE` no meow.conf, e uma unidade com o
 # caminho cravado apontaria para uma pasta que não existe — vigia que vigia o
 # lugar errado não dá erro, só não faz nada.

@@ -108,7 +108,7 @@ $s2"
 fi
 ordem="$(sed -n '/local etapas=(/,/)/p' "$RAIZ/install.sh" | grep -oE '\betapa_[a-z_0-9]+\b' | tr '\n' ' ')"
 [[ "$ordem" == *"etapa_logo etapa_icones_indice "* ]] \
-  && ok "no install.sh a etapa do índice vem logo depois da dos gatos, a última que escreve no tema" \
+  && ok "no install.sh a etapa do índice vem logo depois da dos mascotes, a última que escreve no tema" \
   || falha "a etapa do índice não está depois da última que escreve no tema" "$ordem"
 [[ "$(sed -n 's/^VERIFICAVEIS=(\(.*\))$/\1/p' "$RAIZ/bin/meow")" == *" logo indice" ]] \
   && ok "no doctor o índice é a última conferência" \
@@ -194,7 +194,7 @@ if command -v git >/dev/null 2>&1; then
       export PATH="$C/bin:$FALSO:$PATH" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
       unset MEOW_OBSIDIAN_VAULT PACK FLAVOR MEOW_PACK_DIR MEOW_PALETA
       . "$RAIZ/lib/comum.sh" || exit 2
-      . "$RAIZ/assets/temas-de-apps/obsidian/manifesto.sh" || exit 2
+      . "$RAIZ/scripts/temas-de-apps/obsidian/manifesto.sh" || exit 2
       "meow_app_$1" 2>&1; printf 'rc=%s\n' "$?" )
   }
   s1="$(obs aplicar)"
@@ -244,7 +244,11 @@ if [ "$tabela" = "alucard dracula dracula dracula latte mocha " ] \
 else
   falha "o flavor do lado vestido não é o que a tela veste, ou o traço e as pastas não o perguntam" "$tabela"
 fi
-UPF="$RAIZ/assets/icones/upstream/papirus-folders"
+UPF="${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem/upstream/papirus-folders"
+if [ ! -d "$UPF/src" ]; then
+  env -i PATH="$PATH" HOME="$T" MEOW_CACHE="$T/cache" NO_COLOR=1 bash "$RAIZ/scripts/baixar_upstream.sh" >/dev/null 2>&1
+  UPF="$T/cache/upstream/papirus-folders"
+fi
 if [ -d "$UPF/src" ] && [ -d /usr/share/icons/Papirus-Dark ]; then
   s="$(amb PACK=dracula FLAVOR=dracula ACCENT=mauve MODO=claro ICONES_PASTAS=cat-dracula-mauve \
         MEOW_DRY_RUN=1 MEOW_CAT_FOLDERS="$UPF" bash "$RAIZ/scripts/construir_pastas.sh" 2>&1)"
@@ -349,7 +353,7 @@ if command -v rsvg-convert >/dev/null 2>&1; then
   n_png="$(find "$AT" -name 'tulip-*.png' 2>/dev/null | wc -l)"
   n_4k="$(for f in "$AT"/tulip-*.png; do python3 -c 'import struct,sys;d=open(sys.argv[1],"rb").read(24);print(*struct.unpack(">II",d[16:24]))' "$f"; done 2>/dev/null | grep -c '^3840 2160$')"
   n_cat="$(find "$AT" -name 'cat-*' 2>/dev/null | wc -l)"
-  esperado="$(find "$RAIZ/packs/dracula/wallpapers" -name '*.svg' | while read -r s; do r="${s#"$RAIZ"/packs/dracula/wallpapers/}"; n="tulip-${r//\//-}"; n="${n%.svg}.png"; grep -qxF "$n" "$RAIZ/assets/papeis-de-parede/BANIDOS.txt.padrao" 2>/dev/null || echo "$n"; done | wc -l)"
+  esperado="$(find "$RAIZ/packs/dracula/wallpapers" -name '*.svg' | while read -r s; do r="${s#"$RAIZ"/packs/dracula/wallpapers/}"; n="tulip-${r//\//-}"; n="${n%.svg}.png"; grep -qxF "$n" "$RAIZ/packs/meowsystem/wallpapers/BANIDOS.txt.padrao" 2>/dev/null || echo "$n"; done | wc -l)"
   if [ "$n_png" -gt 0 ] && [ "$n_png" = "$esperado" ] && [ "$n_4k" = "$n_png" ] && [ "$n_cat" = 0 ] \
      && [[ "$s2" == *"já semeada"* ]]; then
     ok "numa casa nova, o Dracula semeia em PNG 4K os $n_png SVG do pack que não estão recusados, sem nada do Catppuccin, e a 2ª passada não faz nada"
@@ -498,22 +502,6 @@ if ! grep -qiE 'não chegaram ao tema:.*(hefesto|vitoriamaria)' <<< "$saida" && 
 else
   falha "o completar avisa a falta do Hefesto, ou deixou o desenho gerado" "$(grep -iE 'chegaram|hefesto' <<< "$saida" | head -3)"
 fi
-
-# --- P82, item 10 (decisão 22): a camada de apps do Catppuccin só roda com ele
-#   Com o Dracula no ar, o `icones_apps.sh` mandava o flavor `dracula` para o
-#   `macchiato` e dizia «o acervo Catppuccin de aplicativos não está em …».
-CA="$T/casa-apps"; mkdir -p "$CA"
-saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
-           PACK=dracula FLAVOR=dracula ICONES_FLAVOR=dracula "$RAIZ/scripts/icones_apps.sh" 2>&1)"; rc=$?
-if [ -z "$saida" ] && [ "$rc" != 1 ] && [ "$rc" != 2 ] && [ -z "$(find "$CA" -type f)" ]; then
-  ok "com o Dracula no ar, a camada de apps do Catppuccin não diz nada e não escreve (rc=$rc)"
-else
-  falha "com o Dracula no ar, a camada de apps do Catppuccin falou ou escreveu (rc=$rc)" "$saida"
-fi
-saida="$(env -i PATH="$FALSO:$PATH" HOME="$CA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
-           PACK=catppuccin FLAVOR=mocha ICONES_FLAVOR=mocha "$RAIZ/scripts/icones_apps.sh" 2>&1)"
-[ -n "$saida" ] && ok "com o Catppuccin, a camada segue o caminho de sempre" \
-  || falha "com o Catppuccin, a camada de apps não respondeu"
 
 # --- P82, item 11 (decisões 17 e 21): trocar de pack devolve o que o pack escondia
 #   O `ocultar_apps.sh` só desfazia uma marca pelo `-nome`: trocar do Dracula
