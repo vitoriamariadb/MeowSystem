@@ -779,6 +779,11 @@ class Percurso:
                 return True
             except Exception:
                 self.pag.wait_for_timeout(200)
+                # A janela de um trabalho que o gesto anterior abriu depois de a
+                # página assentar (máquina ocupada) cobre o botão: ela se resolve
+                # como as outras, e o clique tenta de novo.
+                if not nome.startswith(("resultado:", "pergunta:")) and self.aberto("resultado"):
+                    self.limpar()
                 # O botão que some com o próprio clique (o Desfazer, que só
                 # existe com mudança esperando) já fez o que devia.
                 if nome in ("desfazer",) and self.achar(nome) is None:
