@@ -14,7 +14,7 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 command -v python3 >/dev/null 2>&1 || { printf 'FALHOU: sem python3\n' >&2; exit 1; }
 
 # Os apps cujo tema é o modelo do motor que a paleta preenche.
-MODELOS=(kitty gnome-terminal)
+MODELOS=(kitty gnome-terminal telegram)
 PACKS=(meowsystem:mocha dracula:dracula)
 
 T="$(mktemp -d)" || exit 2
