@@ -35,3 +35,22 @@ Por ordem de quem usa, roda como terceiro bloco junto da P102 e da P103. Os arqu
   antes e depois e guarde em `.wt-meow/p106-prints/`.
 - A prova no perfil real (com as conversas) é de quem coordena, depois da conferência: `meow apps aplicar zapzap`
   na máquina e um print.
+
+## Execução (agente 1, 24/10)
+1. `74dfb90` o módulo do zapzap monta `customizations/global/css/MeowSystem.css` do modelo do motor
+   (`scripts/temas-de-apps/zapzap/zapzap.modelo.css`) com a paleta do pack no ar, e liga
+   `custom/global/css/enabled` no `ZapZap.conf` (de fábrica é false: sem ela o ZapZap não injeta nada).
+   Os dois packs declaram `apps.zapzap`. Procedência dos nomes no `packs/dracula/PROCEDENCIA.md`.
+2. `7c2a40a` `tests/temas-de-apps.sh`, seção do ZapZap.
+
+**Medido na prova visual (HOME temporário, Xvfb, `FLATPAK_USER_DIR` real só para achar o app):**
+- A tela do QR do WhatsApp Web de hoje pinta com cor escrita em classe atômica (`.xe4h88v` dá o creme
+  `rgb(252,245,235)`, `.x12peec7` o cartão branco), e não com variável. O tema por variáveis não a alcança, e é
+  melhor assim: o QR fica legível. Quem muda na abertura é a tela de carregamento (fundo `crust`, barra
+  `surface1`), medida pixel a pixel nos prints.
+- Das 71 variáveis do CSS, 63 são lidas pelas regras do próprio WhatsApp Web já na tela do QR; o tema de cor
+  dele mora em `:root` (`html.xq05bh1`), e o nosso `!important` em `:root` vence.
+- O ZapZap injeta o CSS no fim da carga da página: a abertura pisca a cor de fábrica por um quadro (~0,2 s).
+
+**Fica para quem coordena:** `meow apps aplicar zapzap` na máquina real e o print com as conversas (a tela
+logada é a que importa e não se alcança sem sessão).
