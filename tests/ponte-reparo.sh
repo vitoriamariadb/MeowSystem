@@ -183,6 +183,63 @@ mv "$T/reserva.guardada" "$BASE/reserva"
 saida="$(reparar)"; rc=$?
 confere "com a reserva de volta, tudo volta" '[ "$rc" = 0 ] && [ -f "$REGRA" ] && [ -x "$BASE/ponte_root.sh" ]' "$saida"
 
+printf '\n--- 3. sem senha: o polkit libera o start do reparo, e nada além dele ---\n'
+REGRA_PK_REPO="$RAIZ/assets/ponte/49-meowsystem-ponte-reparo.rules"
+REGRA_PK="$SIS/etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules"
+rm -f "$REGRA_PK"
+saida="$(etapa)"; rc=$?
+confere "a etapa instala a regra do polkit, 0644, igual à do repositório" \
+  '[ "$rc" = 1 ] && cmp -s "$REGRA_PK_REPO" "$REGRA_PK" && [ "$(stat -c %a "$REGRA_PK")" = 644 ]' "$saida"
+: > "$SUDO_LOG"
+saida="$(etapa)"; rc=$?
+confere "com a regra no lugar, a segunda passada não escreve nada" '[ "$rc" = 0 ] && [ ! -s "$SUDO_LOG" ]' "$saida"
+
+if command -v node >/dev/null 2>&1 && [ -f "$REGRA_PK_REPO" ]; then
+  r="$(node - "$REGRA_PK_REPO" <<'JS' 2>&1
+const fs = require("fs");
+const regras = [];
+const polkit = { Result: { YES: "yes", NO: "no", AUTH_ADMIN: "auth_admin" },
+                 addRule: (f) => regras.push(f), log: () => {} };
+new Function("polkit", fs.readFileSync(process.argv[2], "utf8"))(polkit);
+const U = "meowsystem-ponte-reparo.service", A = "org.freedesktop.systemd1.manage-units";
+const casos = [
+  ["o start do reparo, na sessão local ativa", A, U, "start", true, true, "yes"],
+  ["stop do reparo", A, U, "stop", true, true, undefined],
+  ["restart do reparo", A, U, "restart", true, true, undefined],
+  ["reload do reparo", A, U, "reload", true, true, undefined],
+  ["start de outra unidade", A, "ssh.service", "start", true, true, undefined],
+  ["start de um nome parecido", A, U + ".x", "start", true, true, undefined],
+  ["start sem sessão ativa", A, U, "start", true, false, undefined],
+  ["start de sessão remota", A, U, "start", false, true, undefined],
+  ["outra ação com a mesma unidade", "org.freedesktop.systemd1.manage-unit-files", U, "start", true, true, undefined],
+];
+const erros = [];
+if (regras.length !== 1) erros.push("regras registradas: " + regras.length);
+for (const [nome, id, unit, verb, local, active, quer] of casos) {
+  const det = { unit, verb };
+  const acao = { id, lookup: (k) => det[k] };
+  const quem = { local, active, user: "gata", isInGroup: () => true };
+  const tem = regras.map((f) => f(acao, quem)).find((x) => x !== undefined);
+  if (tem !== quer) erros.push(nome + ": " + tem);
+}
+console.log(erros.length ? erros.join("\n") : "ok");
+JS
+)"
+  confere "a regra só diz sim ao start do reparo na sessão local ativa (9 casos no node)" '[ "$r" = ok ]' "$r"
+else
+  printf 'pulado: sem node, a regra do polkit não rodou\n'
+fi
+
+printf '\n--- 3b. desligar a ponte leva o reparo junto ---\n'
+saida="$(etapa nao)"; rc=$?
+confere 'PONTE_ROOT="nao" tira a regra do polkit, a unidade, a regra de sudo e a pasta' \
+  '[ ! -e "$REGRA_PK" ] && [ ! -e "$UNIDADE" ] && [ ! -e "$REGRA" ] && [ ! -e "$BASE" ]' "$saida"
+confere "o desinstalador tira a unidade e a regra do polkit" \
+  'grep -q "/etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules" "$RAIZ/lib/desinstalar.sh" \
+   && grep -q "/etc/systemd/system/meowsystem-ponte-reparo.service" "$RAIZ/lib/desinstalar.sh"'
+saida="$(etapa)"; rc=$?
+confere "ligada de novo, tudo volta" '[ "$rc" = 1 ] && [ -f "$REGRA_PK" ] && [ -f "$UNIDADE" ] && [ -f "$BASE/reserva.sha256" ]' "$saida"
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi
 printf 'tudo ok\n'

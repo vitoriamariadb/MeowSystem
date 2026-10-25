@@ -1586,6 +1586,7 @@ etapa_nomes() {
 #   /etc/sudoers.d/49-meowsystem-ponte        libera os verbos DELA, sem senha
 #   /usr/local/lib/meowsystem/reserva/        cópia das duas, 0700, para o reparo
 #   /etc/systemd/system/meowsystem-ponte-reparo.service   o reparo, sem argumento
+#   /etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules o `start` dele, sem senha
 #
 # O desenho, e por que não é `NOPASSWD` nos comandos que o projeto usa, está no
 # cabeçalho de `scripts/ponte_root.sh`. Em uma linha: não existe regra estreita
@@ -1614,10 +1615,12 @@ etapa_ponte_root() {
   local unidade=/etc/systemd/system/meowsystem-ponte-reparo.service
   local reparo_origem="$MEOW_RAIZ/scripts/reparar_ponte.sh"
   local unidade_origem="$MEOW_RAIZ/assets/ponte/meowsystem-ponte-reparo.service"
+  local polkit=/etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules
+  local polkit_origem="$MEOW_RAIZ/assets/ponte/49-meowsystem-ponte-reparo.rules"
 
   # --- desligada: a etapa DESFAZ, e desfazer tem de ser de graça -------------
   if [ "${PONTE_ROOT:-sim}" != "sim" ]; then
-    if [ ! -e "$ponte" ] && [ ! -e "$regra" ]; then
+    if [ ! -e "$ponte" ] && [ ! -e "$regra" ] && [ ! -e "$unidade" ]; then
       meow_pula 'PONTE_ROOT="nao" — sem braço root; o sudo volta a ser pedido no terminal'
       return "$MEOW_OK"
     fi
@@ -1625,9 +1628,10 @@ etapa_ponte_root() {
     # A REGRA SAI PRIMEIRO. Na ordem inversa sobraria uma janela com a regra
     # apontando para um arquivo que não existe — inofensiva para o sudo, e
     # exatamente o estado que o `meow doctor` chama de meia-instalação.
-    sudo rm -f "$regra" 2>/dev/null
+    sudo rm -f "$regra" "$polkit" "$unidade" 2>/dev/null
     sudo rm -rf /usr/local/lib/meowsystem 2>/dev/null
-    if [ -e "$ponte" ] || [ -e "$regra" ]; then
+    sudo systemctl daemon-reload 2>/dev/null
+    if [ -e "$ponte" ] || [ -e "$regra" ] || [ -e "$unidade" ]; then
       meow_aviso "sem sudo para remover a ponte — ela continua ativa"
       return "$MEOW_SEM_DEPENDENCIA"
     fi
@@ -1636,7 +1640,7 @@ etapa_ponte_root() {
   fi
 
   local f
-  for f in "$origem" "$reparo_origem" "$unidade_origem"; do
+  for f in "$origem" "$reparo_origem" "$unidade_origem" "$polkit_origem"; do
     [ -f "$f" ] || { meow_erro "falta $f — repositório incompleto"; return "$MEOW_ERRO"; }
   done
 
@@ -1676,6 +1680,9 @@ etapa_ponte_root() {
   [ -d "$reserva" ] && [ "$(cat "$somas" 2>/dev/null)" = "$somas_quer" ] || mudou=1
   cmp -s "$reparo_origem" "$reparo" 2>/dev/null || mudou=1
   cmp -s "$unidade_origem" "$unidade" 2>/dev/null || mudou=1
+  # A pasta das regras do polkit é 0750 root:polkitd: sem ler, a etapa não
+  # adivinha, e a regra vai junto com o resto quando algo muda.
+  if [ -r "${polkit%/*}" ]; then cmp -s "$polkit_origem" "$polkit" 2>/dev/null || mudou=1; fi
 
   if [ "$mudou" = "0" ]; then
     meow_ok "ponte root instalada e liberada sem senha"
@@ -1745,6 +1752,7 @@ etapa_ponte_root() {
   # reserva (ver o cabeçalho de scripts/reparar_ponte.sh).
   if ! { sudo install -m 755 -o root -g root "$reparo_origem" "$reparo" &&
          sudo install -m 644 -o root -g root "$unidade_origem" "$unidade" &&
+         sudo install -m 644 -o root -g root "$polkit_origem" "$polkit" &&
          sudo systemctl daemon-reload; }; then
     meow_erro "não consegui instalar o reparo da ponte"; return "$MEOW_ERRO"
   fi
