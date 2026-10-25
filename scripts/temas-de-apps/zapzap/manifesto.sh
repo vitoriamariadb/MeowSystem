@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/temas-de-apps/zapzap/manifesto.sh — o ZapZap vira "WhatsApp", com o ícone nas cores do pack no ar.
+# scripts/temas-de-apps/zapzap/manifesto.sh — o ZapZap vira "WhatsApp", com o ícone nas cores do pack no ar e o WhatsApp Web no tema do pack (CSS, P106).
 #
 # ATÉ 24/09/2026 A PRIMEIRA LINHA DIZIA "com ícone Catppuccin", e a tela do
 # `conferir` também — com qualquer pack no ar. O ÍCONE nunca foi do Catppuccin:
@@ -215,6 +215,182 @@ sys.stdout.write('\n'.join(saida))
 PY
 }
 
+# --- O TEMA DO WHATSAPP: CSS PELA PALETA DO PACK (P106, 24/10/2026) ----------
+# Pedido dela (24/10): «o ZapZap permite alterar o CSS», como o Telegram e o
+# Discord. O ZapZap 7.5.1 injeta no WhatsApp Web todo `.css` da pasta
+# `customizations/global/css/` (o `customizations_manager.py` do flatpak), e só
+# quando a chave `custom/global/css/enabled` do ZapZap.conf é true — de
+# fábrica ela é false. O CSS sai do modelo do motor
+# (`zapzap.modelo.css`) com a paleta do pack no ar, pelo `modelo.py`, que só põe
+# cor que é `#hex`; o resto do arquivo é texto do modelo. O nosso arquivo é UM,
+# com a marca `meowsystem-tema:`; outro `.css` na pasta é de quem usa, e a
+# regra é a do tema de terceiro (lib/comum.sh): perguntar, nunca escrever por
+# cima. O ZapZap lê o CSS ao carregar a página: com ele aberto, vale ao reabrir.
+_ZZ_CSS_DIR="$HOME/.var/app/$_ZZ_APP/data/ZapZap/customizations/global/css"
+_ZZ_CSS="$_ZZ_CSS_DIR/MeowSystem.css"
+_ZZ_MODELO_PY="$MEOW_RAIZ/scripts/temas-de-apps/modelo.py"
+
+_zz_css_marca() {
+  sed -n 's|^ \* meowsystem-tema: \([^ ]*\).*$|\1|p' "$1" 2>/dev/null | head -n 1
+}
+
+# Os `.css` da pasta que não são o nosso (o ZapZap aceita a extensão em
+# qualquer caixa). Um arquivo com o nosso nome e sem a marca é de terceiro.
+_zz_css_de_terceiro() {
+  local f
+  for f in "$_ZZ_CSS_DIR"/*; do
+    [ -f "$f" ] || continue
+    case "${f,,}" in *.css) ;; *) continue ;; esac
+    [ "$f" = "$_ZZ_CSS" ] && [ -n "$(_zz_css_marca "$f")" ] && continue
+    printf '%s\n' "$f"
+  done
+}
+
+# 0 = o CSS global está ligado no ZapZap.conf (`[custom]`, `global\css\enabled`).
+_zz_css_ligado() {
+  [ -f "$_ZZ_CONF" ] || return 1
+  awk -F= '/^\[/{s=$0} s=="[custom]" && $1=="global\\css\\enabled"{v=$2} END{exit !(v=="true")}' "$_ZZ_CONF"
+}
+
+# ligar | tirar — a chave do CSS global; o conf inteiro sai no stdout, o resto
+# do arquivo como estava.
+_zz_conf_css() {
+  [ -f "$_ZZ_CONF" ] || return 1
+  python3 -I - "$_ZZ_CONF" "$1" <<'PY'
+import sys
+caminho, modo = sys.argv[1], sys.argv[2]
+CHAVE = 'global\\css\\enabled'
+linhas = open(caminho, encoding='utf-8').read().split('\n')
+ini = next((i for i, l in enumerate(linhas) if l.strip() == '[custom]'), None)
+if ini is None:
+    if modo == 'ligar':
+        while linhas and linhas[-1] == '':
+            linhas.pop()
+        linhas += ['', '[custom]', CHAVE + '=true', '']
+else:
+    fim = next((i for i in range(ini + 1, len(linhas)) if linhas[i].startswith('[')), len(linhas))
+    achadas = [i for i in range(ini + 1, fim) if linhas[i].split('=', 1)[0] == CHAVE]
+    if modo == 'ligar':
+        if achadas:
+            linhas[achadas[0]] = CHAVE + '=true'
+        else:
+            linhas.insert(ini + 1, CHAVE + '=true')
+    else:
+        for i in reversed(achadas):
+            del linhas[i]
+        fim -= len(achadas)
+        if all(not l.strip() for l in linhas[ini + 1:fim]):
+            del linhas[ini:fim]
+sys.stdout.write('\n'.join(linhas))
+PY
+}
+
+# O CSS que o pack no ar pede. 0 = montou · 1 = o pack não traz tema para o
+# WhatsApp · 2 = não montou (motivo em `_ZZ_CSS_ERRO`).
+_zz_css_do_pack() {
+  _ZZ_CSS_DESEJADO=""; _ZZ_CSS_QUERO=""; _ZZ_CSS_ERRO=""
+  meow_app_tema_do_pack zapzap.arquivo
+  _ZZ_CSS_DE="$MEOW_APP_TEMA_PACK"
+  [ -n "$MEOW_APP_TEMA" ] || return 1
+  _ZZ_CSS_QUERO="$_ZZ_CSS_DE/${FLAVOR:-}"
+  # Pack é dado: fora a cor, o único texto do pack que entra no CSS é a marca,
+  # e ela só leva nome.
+  [[ "$_ZZ_CSS_QUERO" =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9_-]+$ ]] \
+    || { _ZZ_CSS_ERRO="pack ou flavor com nome fora do padrão ('$_ZZ_CSS_QUERO')"; return 2; }
+  _ZZ_CSS_DESEJADO="$(python3 "$_ZZ_MODELO_PY" "$MEOW_APP_TEMA" "$(meow_paleta)" "${FLAVOR:-}" "$_ZZ_CSS_DE" 2>&1)" \
+    || { _ZZ_CSS_ERRO="$_ZZ_CSS_DESEJADO"; _ZZ_CSS_DESEJADO=""; return 2; }
+  return 0
+}
+
+# 0 = em dia · 1 = divergente · 3 = há CSS de terceiro, ou o modelo não montou.
+_zz_css_conferir() {
+  local marca rc
+  marca="$(_zz_css_marca "$_ZZ_CSS")"
+  _zz_css_do_pack; rc=$?
+  if [ "$rc" = 1 ]; then
+    [ -z "$marca" ] && return "$MEOW_OK"
+    meow_muda "ZapZap: o pack no ar não traz tema para o WhatsApp, e o do MeowSystem ('$marca') continua lá"
+    return "$MEOW_DIVERGENTE"
+  fi
+  [ "$rc" = 2 ] && { meow_aviso "ZapZap: o modelo do tema não montou — $_ZZ_CSS_ERRO"; return "$MEOW_SEM_DEPENDENCIA"; }
+  # Nunca aberto, sem conf: a mesma regra da bandeja, logo acima.
+  [ -f "$_ZZ_CONF" ] || return "$MEOW_OK"
+  if [ -z "$marca" ]; then
+    if [ -n "$(_zz_css_de_terceiro)" ]; then
+      meow_pula "ZapZap: há CSS que não veio daqui em $_ZZ_CSS_DIR — não é tocado"
+      return "$MEOW_SEM_DEPENDENCIA"
+    fi
+    meow_muda "ZapZap: o tema do pack ainda não está no WhatsApp"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if [ "$(cat "$_ZZ_CSS")" != "$_ZZ_CSS_DESEJADO" ]; then
+    meow_muda "ZapZap: o WhatsApp está em '$marca', e o de agora é '$_ZZ_CSS_QUERO' (ou o modelo mudou)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  _zz_css_ligado || { meow_muda "ZapZap: o tema está na pasta, e o CSS está desligado no ZapZap"; return "$MEOW_DIVERGENTE"; }
+  meow_ok "ZapZap: o WhatsApp está no tema do pack (do pack $_ZZ_CSS_DE) — $_ZZ_CSS_QUERO"
+  return "$MEOW_OK"
+}
+
+# Tira o NOSSO arquivo (é a marca que diz de quem ele é) e, se a pasta fica sem
+# CSS nenhum, devolve a chave ao de fábrica. Com CSS de outra pessoa lá, a chave
+# continua ligada: é ela que faz aquele valer. Escrita direta, e não por
+# `meow_escrever`, pelo motivo do «DESFAZER» lá embaixo.
+# 0 = nada nosso no disco · 1 = tirou (ou tiraria, no seco) · 2 = erro.
+_zz_css_tirar() {
+  [ -n "$(_zz_css_marca "$_ZZ_CSS")" ] || return "$MEOW_OK"
+  if meow_seco; then
+    meow_muda "ZapZap: tiraria $_ZZ_CSS"
+    return "$MEOW_DIVERGENTE"
+  fi
+  rm -f -- "$_ZZ_CSS" || { meow_erro "ZapZap: não consegui tirar $_ZZ_CSS"; return "$MEOW_ERRO"; }
+  meow_ok "ZapZap: o tema do pack saiu do WhatsApp (vale quando o ZapZap reabrir)"
+  if _zz_css_ligado && [ -z "$(_zz_css_de_terceiro)" ]; then
+    local novo
+    if ! novo="$(_zz_conf_css tirar)" || ! printf '%s' "$novo" > "$_ZZ_CONF" 2>/dev/null; then
+      meow_aviso "ZapZap: não consegui desligar o CSS no ZapZap.conf"
+    fi
+  fi
+  return "$MEOW_DIVERGENTE"
+}
+
+# 0 = nada a fazer · 1 = escreveu (ou escreveria) · 2 = erro · 3 = pendente.
+_zz_css_aplicar() {
+  local marca rc no_ar mudou=0 novo
+  _zz_css_do_pack; rc=$?
+  # Pack sem tema para o WhatsApp: o nosso, de outro pack, sai.
+  [ "$rc" = 1 ] && { _zz_css_tirar; return; }
+  [ "$rc" = 2 ] && { meow_aviso "ZapZap: o modelo do tema não montou — $_ZZ_CSS_ERRO"; return "$MEOW_SEM_DEPENDENCIA"; }
+  [ -f "$_ZZ_CONF" ] || { meow_info "ZapZap: o tema do WhatsApp entra depois que o ZapZap abrir uma vez"; return "$MEOW_OK"; }
+
+  marca="$(_zz_css_marca "$_ZZ_CSS")"
+  if [ -n "$marca" ]; then
+    [ "$marca" = "$_ZZ_CSS_QUERO" ] \
+      || meow_muda "ZapZap: o WhatsApp estava em '$marca' — passa a '$_ZZ_CSS_QUERO'"
+  else
+    no_ar="$(_zz_css_de_terceiro | head -n 1)"
+    meow_app_tema_no_ar zapzap "$no_ar" "$_ZZ_CSS_QUERO" "$_ZZ_CSS_DE" pergunte
+    [ $? = "$MEOW_DIVERGENTE" ] || return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  meow_escrever "$_ZZ_CSS" "$_ZZ_CSS_DESEJADO" 644
+  case $? in
+    1) mudou=1 ;;
+    2) meow_erro "ZapZap: falhou ao escrever $_ZZ_CSS"; return "$MEOW_ERRO" ;;
+  esac
+  if ! _zz_css_ligado; then
+    novo="$(_zz_conf_css ligar)" || { meow_erro "ZapZap: não consegui ler o ZapZap.conf"; return "$MEOW_ERRO"; }
+    meow_escrever "$_ZZ_CONF" "$novo" 644
+    case $? in
+      1) mudou=1 ;;
+      2) meow_erro "ZapZap: não consegui ligar o CSS no ZapZap.conf"; return "$MEOW_ERRO" ;;
+    esac
+  fi
+  [ "$mudou" = 1 ] || return "$MEOW_OK"
+  meow_seco || meow_ok "ZapZap: o WhatsApp veste o tema do pack (do pack $_ZZ_CSS_DE) — $_ZZ_CSS_QUERO (vale quando o ZapZap reabrir)"
+  return "$MEOW_DIVERGENTE"
+}
+
 # 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
 # a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
 # ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
@@ -257,6 +433,9 @@ meow_app_conferir() {
   if [ -f "$_ZZ_CONF" ] && [ "$(_zz_tray_atual)" != "$_ZZ_TRAY_DESEJADO" ]; then
     return "$MEOW_DIVERGENTE"
   fi
+
+  # O tema do WhatsApp (P106).
+  _zz_css_conferir || return $?
 
   meow_ok "ZapZap já aparece como '$_ZZ_NOME_NOVO' com o ícone $(_zz_pack_nome)"
   return "$MEOW_OK"
@@ -315,7 +494,21 @@ meow_app_aplicar() {
     fi
   fi
 
-  [ "$mudou" = "0" ] && return "$MEOW_OK"
+  # O tema do WhatsApp (P106). À parte do `mudou`: CSS novo não pede o
+  # lançador relido.
+  local tema=0
+  _zz_css_aplicar
+  case $? in
+    1) tema=1 ;;
+    2) return "$MEOW_ERRO" ;;
+    3) tema=3 ;;
+  esac
+
+  if [ "$mudou" = "0" ]; then
+    [ "$tema" = 1 ] && return "$MEOW_DIVERGENTE"
+    [ "$tema" = 3 ] && return "$MEOW_SEM_DEPENDENCIA"
+    return "$MEOW_OK"
+  fi
   meow_seco && return "$MEOW_DIVERGENTE"
 
   # O lançador lê o cache de .desktop; sem isto o nome novo só apareceria no
@@ -356,6 +549,11 @@ meow_app_reverter() {
   # Mesma lista de causas possíveis do `aplicar`, mesmo conserto.
   meow_app_detectar || { meow_app_pendente zapzap; return; }
 
+  # 0. o tema do WhatsApp (P106): só o nosso arquivo sai.
+  local css_mudou=0
+  _zz_css_tirar
+  case $? in 1) css_mudou=1 ;; 2) return "$MEOW_ERRO" ;; esac
+
   # Sem o original guardado não há o que devolver — e INVENTAR um `.desktop` de
   # flatpak à mão é a receita para um app que não abre. O caminho de volta existe
   # e é do flatpak; dizemos qual é.
@@ -365,7 +563,7 @@ meow_app_reverter() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  local mudou=0
+  local mudou="$css_mudou"
   local tray_atual; tray_atual="$(_zz_tray_atual)"
 
   if meow_seco; then

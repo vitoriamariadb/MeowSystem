@@ -89,6 +89,9 @@
     "heroic": {
       "esquema": "catppuccin-<flavor>-<accent>.css",
       "_nota": "O valor da chave `theme` do Heroic. Com `.css`, é um arquivo do acervo do motor (`packs/meowsystem/temas-de-apps/heroic/upstream/themes/`, os 56 do catppuccin/heroic), que o módulo instala com o remendo de variáveis; sem, é um tema que o próprio Heroic traz. O `<flavor>` o pack expande, com o FLAVOR da máquina; o `<accent>` o módulo, com o ACCENT. O par que não existir no acervo cai no flavor padrão deste pack com o acento de fábrica (`mauve`), que é o `catppuccin-mocha-mauve.css` de antes."
+    },
+    "zapzap": {
+      "_nota": "O WhatsApp Web do ZapZap na paleta deste pack (P106, 24/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/zapzap/zapzap.modelo.css`), e o bloco existir é o pack dizendo que o ZapZap veste a paleta dele, em qualquer flavor. O módulo monta o CSS com as cores daqui e põe em `customizations/global/css/MeowSystem.css` do ZapZap. As variáveis CSS e o papel de cada uma vêm do WhatsApp Web Catppuccin (catppuccin/userstyles, MIT), conferidas com o WhatsApp Web Dracula; a procedência está no cabeçalho do modelo."
     }
   },
   "mascote": {
