@@ -271,6 +271,15 @@ PY
   && ok "nenhum campo de senha, pkexec ou selo «pede senha»; sem a ponte, o painel oferece o conserto" \
   || falha "a interface voltou a pedir senha: $r"
 
+# A extensão de 24/10: o reparo da ponte também não pede senha. O polkit libera só
+# o `start` do reparo, e o conserto do doctor o dispara sem pkexec nem `sudo -v`.
+reparo="$(sed -n '/^fix_ponte() {/,/^}/p' "$RAIZ/bin/meow")"
+{ registro 11 'Não quero recolocar senha direto' \
+  && grep -qF 'action.lookup("verb") == "start"' "$RAIZ/assets/ponte/49-meowsystem-ponte-reparo.rules" \
+  && grep -q 'systemctl start --no-ask-password' <<< "$reparo" && ! grep -qE 'pkexec|sudo -v' <<< "$reparo"; } \
+  && ok "11: o reparo da ponte também não pede senha (a extensão de 24/10, com a frase)" \
+  || falha "11: o registro não diz a extensão, ou o reparo da ponte pede senha"
+
 echo "== D12. trocar de pack leva o ponteiro do pack"
 conf() { # $1 arquivo; $2.. CHAVE=valor
   local arq="$1"; shift

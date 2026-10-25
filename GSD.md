@@ -38,7 +38,7 @@ decisões 1 a 17. As decisões 13 a 49 da leva H estão em
 | 8 | QA do painel só com HOME temporário |
 | 9 | só pack do repositório instala extensão do VS Code; pack importado pede o gesto |
 | 10 | «Restaurar ao padrão» grava o valor de fábrica e só aparece quando o valor difere |
-| 11 | a interface nunca pede senha: a senha é só do install, e o root passa pela ponte (revoga a caixa do sudo de uma linha, sim de 23/10) |
+| 11 | a interface nunca pede senha: a senha é só do install, e o root passa pela ponte (revoga a caixa do sudo de uma linha, sim de 23/10). Ampliada em 24/10: o reparo da ponte também não pede, pela reserva de root e um oneshot que o polkit libera («Não quero recolocar senha direto») |
 | 12 | trocar de pack leva o ponteiro do pack |
 | 13 a 17 | tudo para o pack, três pastas por pack, derivados que se atualizam, achados da varredura, repositório enxuto: guardados no registro; o código entra com a P87, a P88 e a P89 |
 
