@@ -108,5 +108,17 @@ for leia in README.md README.en.md; do
     || falha "o $leia não fala do ./install.sh --perfil"
 done
 
+# Os perfis do repositório: o mesmo install.sh os lê, e nada neles é da máquina
+# (caminho de casa, nome de tela, escala, GPU).
+for pf in "$RAIZ"/perfis/*/; do
+  [ -f "$pf/meow.conf" ] || continue
+  nome_pf="$(basename "$pf")"
+  bash -n "$pf/meow.conf" 2>/dev/null || falha "perfis/$nome_pf/meow.conf não é shell válido"
+  da_maquina="$(grep -nE '^[[:space:]]*[A-Z_][A-Z0-9_]*=.*(/home/|\$HOME/Desenvolvimento|~/Desenvolvimento|eDP-|HDMI-|DP-[0-9])' "$pf/meow.conf"
+                grep -nE '^[[:space:]]*(ESCALA_TELA|COSMIC_RENDER_DEVICE)=["'"'"']?[^"'"'"' ]' "$pf/meow.conf")"
+  [ -z "$da_maquina" ] && ok "perfis/$nome_pf/meow.conf sem nada da máquina" \
+    || falha "perfis/$nome_pf/meow.conf traz valor da máquina" "$da_maquina"
+done
+
 [ "$falhas" = 0 ] || { printf '%d falha(s)\n' "$falhas" >&2; exit 1; }
 printf 'perfil: tudo ok\n'
