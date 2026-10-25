@@ -274,7 +274,7 @@ for f in _ponte_reparo_ha _ponte_reparo_motivo chk_ponte fix_ponte; do
   sed -n "/^$f() {/,/^}/p" "$RAIZ/bin/meow"
 done | trocar > "$DOCTOR"
 doctor() {   # $1 = chk_ponte | fix_ponte
-  env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" RAIZ="$RAIZ" MEOW_RAIZ="$RAIZ" \
+  env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" RAIZ="${RAIZ_DOCTOR:-$RAIZ}" MEOW_RAIZ="$RAIZ" \
          PONTE_ROOT=sim DOCTOR="$DOCTOR" FUNCAO="$1" bash -c '
     . "$MEOW_RAIZ/lib/comum.sh"; . "$DOCTOR"; "$FUNCAO"' 2>&1
 }
@@ -339,6 +339,37 @@ print("ok" if servidor._ponte_cache["quando"] == 0.0 else "cache=%r" % servidor.
 PYFIM
 )"
 confere "o fim de um trabalho do painel esquece a ponte lida" '[ "$(tail -n1 <<< "$r")" = ok ]' "$r"
+
+printf '\n--- 5. o limite: ponte nova no repositório e install sem reserva ficam com o install ---\n'
+# Um clone com a ponte mudada: o código que quem usa pode editar.
+CLONE="$T/clone"; mkdir -p "$CLONE/scripts"
+cp "$RAIZ/scripts/ponte_root.sh" "$CLONE/scripts/ponte_root.sh"
+printf '\n# mudou no repositório\n' >> "$CLONE/scripts/ponte_root.sh"
+saida="$(RAIZ_DOCTOR="$CLONE" doctor chk_ponte)"; rc=$?
+confere "ponte nova no repositório: pendência do install" \
+  '[ "$rc" = 1 ] && grep -q "Instalar tudo" <<< "$saida" && grep -q "repositório" <<< "$saida"' "$saida"
+: > "$SYSTEMCTL_LOG"
+saida="$(RAIZ_DOCTOR="$CLONE" doctor fix_ponte)"; rc=$?
+confere "e o conserto não dispara o reparo (sai 3, nenhum start)" \
+  '[ "$rc" = 3 ] && ! grep -q "^start" "$SYSTEMCTL_LOG" && grep -q "Instalar tudo" <<< "$saida"' "$saida
+$(cat "$SYSTEMCTL_LOG")"
+rm -f "$BASE/ponte_root.sh"
+saida="$(RAIZ_DOCTOR="$CLONE" doctor fix_ponte)"; rc=$?
+confere "sem a ponte, o reparo repõe a da reserva, nunca a do repositório" \
+  '[ "$rc" = 1 ] && cmp -s "$BASE/reserva/ponte_root.sh" "$BASE/ponte_root.sh" && ! cmp -s "$CLONE/scripts/ponte_root.sh" "$BASE/ponte_root.sh"' "$saida"
+saida="$(RAIZ_DOCTOR="$CLONE" doctor chk_ponte)"; rc=$?
+confere "e o doctor segue pedindo o install para a ponte nova" '[ "$rc" = 1 ] && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+
+mv "$BASE/reserva" "$T/reserva.antiga"; mv "$BASE/reserva.sha256" "$T/somas.antigas"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "install antigo, sem reserva: a ponte funciona e o doctor pede o install" \
+  '[ "$rc" = 1 ] && grep -q "sem reserva" <<< "$saida" && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+: > "$SYSTEMCTL_LOG"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "e o conserto não dispara nada (sai 3, nenhum start)" '[ "$rc" = 3 ] && ! grep -q "^start" "$SYSTEMCTL_LOG"' "$saida"
+mv "$T/reserva.antiga" "$BASE/reserva"; mv "$T/somas.antigas" "$BASE/reserva.sha256"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "com a reserva de volta, ok" '[ "$rc" = 0 ]' "$saida"
 
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi

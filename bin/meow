@@ -901,16 +901,23 @@ chk_ponte() {
     return "$MEOW_DIVERGENTE"
   fi
 
+  if ! sudo -n "$ponte" estado >/dev/null 2>&1; then
+    meow_muda "a regra existe e o sudo ainda pede senha para a ponte$(_ponte_reparo_motivo)"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  # Sem reserva (install antigo), nada repõe a ponte sem senha: é o install.
+  if ! _ponte_reparo_ha; then
+    meow_muda "a ponte está sem reserva — entra no «Instalar tudo»"
+    return "$MEOW_DIVERGENTE"
+  fi
+
   # O ARQUIVO INSTALADO TEM DE SER O DO REPOSITÓRIO. Uma ponte velha em
   # `/usr/local/lib` com a regra nova é o modo de falha silencioso deste
   # desenho: os verbos que a regra libera podem já não existir lá dentro.
+  # Código que mudou no repositório só vira root pelo install, nunca pelo reparo.
   cmp -s "$origem" "$ponte" 2>/dev/null ||
-    { meow_muda "$ponte diverge do repositório"; return "$MEOW_DIVERGENTE"; }
-
-  if ! sudo -n "$ponte" estado >/dev/null 2>&1; then
-    meow_muda "a regra existe e o sudo ainda pede senha para a ponte"
-    return "$MEOW_DIVERGENTE"
-  fi
+    { meow_muda "a ponte do repositório mudou — entra no «Instalar tudo»"; return "$MEOW_DIVERGENTE"; }
 
   local raiz_reg
   raiz_reg="$(sudo -n "$ponte" estado 2>/dev/null | sed -n 's/^raiz=//p')"
@@ -931,6 +938,21 @@ fix_ponte() {
     meow_pula "sem reserva — entra no «Instalar tudo»"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  # O reparo só repõe o que falta ou difere da reserva. Ponte e regra no lugar,
+  # iguais à reserva e liberadas: o que sobra (a ponte nova do repositório, o
+  # perfil) é do install.
+  local ponte=/usr/local/lib/meowsystem/ponte_root.sh
+  if [ -x "$ponte" ] && [ -f /etc/sudoers.d/49-meowsystem-ponte ] &&
+     [ "$(sha256sum < "$ponte" | cut -d' ' -f1)" = \
+       "$(sed -n 's/  ponte_root\.sh$//p' /usr/local/lib/meowsystem/reserva.sha256)" ] &&
+     sudo -n "$ponte" estado >/dev/null 2>&1; then
+    if cmp -s "$RAIZ/scripts/ponte_root.sh" "$ponte"; then
+      meow_pula "a ponte está igual à reserva — o resto entra no «Instalar tudo»"
+    else
+      meow_pula "a ponte do repositório mudou — entra no «Instalar tudo»"
+    fi
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   if meow_seco; then
     meow_muda "repor a ponte da reserva, pelo reparo do sistema"
     return "$MEOW_DIVERGENTE"
@@ -947,8 +969,7 @@ fix_ponte() {
     sleep 0.2
   done
   wait "$pid"; rc=$?
-  if [ "$rc" = 0 ] && [ -x /usr/local/lib/meowsystem/ponte_root.sh ] &&
-     [ -f /etc/sudoers.d/49-meowsystem-ponte ]; then
+  if [ "$rc" = 0 ] && [ -x "$ponte" ] && [ -f /etc/sudoers.d/49-meowsystem-ponte ]; then
     rm -f "$erro"
     meow_ok "ponte reposta da reserva, sem senha"
     return "$MEOW_DIVERGENTE"
