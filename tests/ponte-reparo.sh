@@ -37,6 +37,7 @@ case "\${1:-}" in true|-v) exit 0 ;; esac
 if [ "\$1" = "$BASE/ponte_root.sh" ]; then
   [ "\${2:-}" = estado ] && [ -x "$BASE/ponte_root.sh" ] && [ -f "$REGRA" ] || exit 1
   printf 'regra_md5=%s\n' "\$(md5sum < "$REGRA" | cut -d' ' -f1)"
+  printf 'raiz=%s\n' "$RAIZ"
   exit 0
 fi
 printf '%s\n' "\$*" >> "$SUDO_LOG"
@@ -239,6 +240,105 @@ confere "o desinstalador tira a unidade e a regra do polkit" \
    && grep -q "/etc/systemd/system/meowsystem-ponte-reparo.service" "$RAIZ/lib/desinstalar.sh"'
 saida="$(etapa)"; rc=$?
 confere "ligada de novo, tudo volta" '[ "$rc" = 1 ] && [ -f "$REGRA_PK" ] && [ -f "$UNIDADE" ] && [ -f "$BASE/reserva.sha256" ]' "$saida"
+
+printf '\n--- 4. o doctor confere a ponte contra a reserva, e o conserto dispara o reparo ---\n'
+# O systemctl do reparo: `start` roda a cópia do reparo como se fosse root (ou
+# recusa, como o polkit fora da sessão), e `show` diz o que a última rodada deixou.
+UNI=meowsystem-ponte-reparo.service
+cat > "$FALSO/systemctl" <<FIM
+#!/bin/bash
+printf '%s\n' "\$*" >> "$SYSTEMCTL_LOG"
+est="$T/unidade"
+case " \$* " in
+  *" start "*" $UNI "*)
+    [ -f "$T/polkit-nega" ] && { echo "Interactive authentication required." >&2; exit 1; }
+    echo activating > "\$est.ativo"; sleep 0.5
+    bash "$REPARO" >/dev/null 2>&1; r=\$?
+    echo "\$r" > "\$est.status"
+    if [ "\$r" = 0 ]; then echo success > "\$est.result"; echo inactive > "\$est.ativo"; exit 0; fi
+    echo exit-code > "\$est.result"; echo failed > "\$est.ativo"; exit 1 ;;
+  *" show "*" $UNI "*)
+    case " \$* " in
+      *" LoadState "*)      [ -f "$UNIDADE" ] && echo loaded || echo not-found ;;
+      *" ActiveState "*)    cat "\$est.ativo" 2>/dev/null || echo inactive ;;
+      *" Result "*)         cat "\$est.result" 2>/dev/null || echo success ;;
+      *" ExecMainStatus "*) cat "\$est.status" 2>/dev/null || echo 0 ;;
+    esac
+    exit 0 ;;
+esac
+exit 0
+FIM
+chmod 755 "$FALSO/systemctl"
+DOCTOR="$T/doctor.sh"
+for f in _ponte_reparo_ha _ponte_reparo_motivo chk_ponte fix_ponte; do
+  sed -n "/^$f() {/,/^}/p" "$RAIZ/bin/meow"
+done | trocar > "$DOCTOR"
+doctor() {   # $1 = chk_ponte | fix_ponte
+  env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" RAIZ="$RAIZ" MEOW_RAIZ="$RAIZ" \
+         PONTE_ROOT=sim DOCTOR="$DOCTOR" FUNCAO="$1" bash -c '
+    . "$MEOW_RAIZ/lib/comum.sh"; . "$DOCTOR"; "$FUNCAO"' 2>&1
+}
+saida="$(doctor chk_ponte)"; rc=$?
+confere "com a ponte no lugar, o doctor diz ok" '[ "$rc" = 0 ]' "$saida"
+
+rm -f "$REGRA"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "sem a regra: divergente, e o conserto é o reparo" \
+  '[ "$rc" = 1 ] && grep -q "49-meowsystem-ponte" <<< "$saida" && grep -q "reserva" <<< "$saida"' "$saida"
+: > "$SUDO_LOG"; : > "$SYSTEMCTL_LOG"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "o conserto dá start no reparo, sem sudo, e a regra volta" \
+  '[ "$rc" = 1 ] && grep -q "^start --no-ask-password $UNI\$" "$SYSTEMCTL_LOG" && [ ! -s "$SUDO_LOG" ] && cmp -s "$T/regra.boa" "$REGRA"' \
+  "$saida
+$(cat "$SYSTEMCTL_LOG")"
+confere "o conserto mostra o estado da unidade enquanto ela roda" 'grep -q "repondo" <<< "$saida"' "$saida"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "depois do reparo, o doctor diz ok" '[ "$rc" = 0 ]' "$saida"
+
+printf '\necho outra\n' >> "$BASE/ponte_root.sh"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "ponte instalada diferente da reserva: divergente" '[ "$rc" = 1 ] && grep -q "reserva" <<< "$saida"' "$saida"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "o reparo põe a ponte da reserva de volta" '[ "$rc" = 1 ] && cmp -s "$BASE/reserva/ponte_root.sh" "$BASE/ponte_root.sh"' "$saida"
+
+rm -f "$REGRA"
+chmod u+w "$BASE/reserva/ponte_root.sh"; printf '\necho adulterada\n' >> "$BASE/reserva/ponte_root.sh"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "reserva adulterada: o conserto falha e nada volta" '[ "$rc" = 2 ] && [ ! -e "$REGRA" ]' "$saida"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "e o doctor diz por quê: a reserva não confere" '[ "$rc" = 1 ] && grep -q "não confere" <<< "$saida"' "$saida"
+cp -f "$T/ponte.boa" "$BASE/reserva/ponte_root.sh"
+
+: > "$T/polkit-nega"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "fora da sessão local ativa, o polkit recusa, e o doctor diz isso" \
+  '[ "$rc" = 2 ] && [ ! -e "$REGRA" ] && grep -q "polkit" <<< "$saida"' "$saida"
+rm -f "$T/polkit-nega"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "na sessão, a regra volta" '[ "$rc" = 1 ] && [ -f "$REGRA" ]' "$saida"
+
+confere "a ponte saiu da lista do que o doctor não conserta" \
+  '! grep -E "^ *SEM_CONSERTO=\".* ponte " "$RAIZ/bin/meow"'
+confere "o conserto do doctor sai na hora, linha a linha (o painel mostra o progresso)" \
+  'grep -qF "\"fix_\$nome\" 2>&1 | sed -u " "$RAIZ/bin/meow"'
+confere "a ponte de volta abre, na mesma passada, os consertos que precisam dela" \
+  'grep -qF "[ \"\$nome\" = \"ponte\" ] && [ \"\$rc\" = \"1\" ] && meow_ponte_viva" "$RAIZ/bin/meow"'
+
+# O painel: a ponte lida há menos de 30 s fica em cache, e o fim de um trabalho
+# (o «Conferir e consertar») a esquece, para a tela dizer o estado de agora.
+r="$(env -i PATH="$PATH" HOME="$CASA" PYTHONDONTWRITEBYTECODE=1 python3 - "$RAIZ" <<'PYFIM' 2>&1
+import os, sys, time
+sys.path.insert(0, os.path.join(sys.argv[1], "app"))
+import servidor
+servidor._ponte_cache.update(quando=time.time(), vale=False)
+t = servidor.Trabalho("teste", ["true"], dict(os.environ), "teste")
+fim = time.time() + 10
+while t.fim is None and time.time() < fim:
+    time.sleep(0.02)
+print("ok" if servidor._ponte_cache["quando"] == 0.0 else "cache=%r" % servidor._ponte_cache)
+PYFIM
+)"
+confere "o fim de um trabalho do painel esquece a ponte lida" '[ "$(tail -n1 <<< "$r")" = ok ]' "$r"
 
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi

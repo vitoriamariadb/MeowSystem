@@ -5505,6 +5505,9 @@ class Trabalho:
         rc = self.proc.wait()
         leitor.join(self.PRAZO_DO_CANO)
         self.rc = rc
+        # O trabalho pode ter reposto a ponte (o «Conferir e consertar»): a
+        # próxima leitura do esquema pergunta de novo.
+        _ponte_cache["quando"] = 0.0
         # ANTES do `fim`: quando a página ouve «acabou», o ponto de restauro desta
         # execução já está registrado. A falha dele não segura o desfecho.
         if self._ao_terminar is not None:
