@@ -194,8 +194,8 @@ def vestigios(texto: str, exemplo: str, antes: tuple[str, str] | None = None) ->
 
 
 # O mascote de fábrica do pack de antes vira o do pack novo, fase a fase; o que
-# ela escolheu fica.
-MASCOTE = (("LOGO_DIA", ("dia",)), ("LOGO_NOITE", ("noite",)),
+# ela escolheu fica. O `LOGO` é o do modo fixo.
+MASCOTE = (("LOGO", ("dia", "noite")), ("LOGO_DIA", ("dia",)), ("LOGO_NOITE", ("noite",)),
            ("FASTFETCH_LOGO_GATO", ("dia", "noite")))
 
 

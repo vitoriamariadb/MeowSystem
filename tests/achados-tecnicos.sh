@@ -248,6 +248,52 @@ grep -qx 'pode=1' "$SP/lib.log" && ! grep -qx 'escrever=0' "$SP/lib.log" && [ "$
   || falha "sem a ponte, houve sudo fora dela, ou algo foi dado por feito (rc greeter=$rg)" \
        "$(cat "$SP/sudo.log" "$SP/lib.log"; tail -4 "$SP/greeter.log")"
 
+printf '\n--- 11. sem a ponte, o Icon= de sistema é pendência, e a saída não manda rodar sudo ---\n'
+# O tema de ícones de brinquedo faz o nome novo resolver também onde há `gi`.
+IA="$T/icon-abs"; mkdir -p "$IA/apps" "$IA/casa/.local/share/icons/Falso/scalable/apps"
+printf '[Icon Theme]\nName=Falso\nDirectories=scalable/apps\n[scalable/apps]\nSize=48\nType=Scalable\nMinSize=8\nMaxSize=512\n' \
+  > "$IA/casa/.local/share/icons/Falso/index.theme"
+printf '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"/>\n' \
+  > "$IA/casa/.local/share/icons/Falso/scalable/apps/input-remapper.svg"
+printf '[Desktop Entry]\nName=Input Remapper\nIcon=/usr/share/input-remapper/input-remapper.svg\n' \
+  > "$IA/apps/input-remapper-gtk.desktop"
+cp "$IA/apps/input-remapper-gtk.desktop" "$IA/antes.desktop"
+chmod 444 "$IA/apps/input-remapper-gtk.desktop"; chmod 555 "$IA/apps"; : > "$SP/sudo.log"
+env -i PATH="$SP/bin:$PATH" HOME="$IA/casa" MEOW_RAIZ="$RAIZ" MEOW_PONTE=/nao/existe NO_COLOR=1 \
+  MEOW_APLICATIVOS_SISTEMA="$IA/apps" ICONES_TEMA=Falso \
+  bash "$RAIZ/scripts/icones_absolutos.sh" > "$IA/saida.log" 2>&1; ri=$?
+chmod 755 "$IA/apps"
+[ "$ri" != 0 ] && cmp -s "$IA/apps/input-remapper-gtk.desktop" "$IA/antes.desktop" \
+  && grep -q '1 Icon= .*«Instalar tudo»' "$IA/saida.log" && ! grep -qi 'sudo' "$IA/saida.log" \
+  && [ ! -s "$SP/sudo.log" ] \
+  && ok "sem a ponte, o Icon= de sistema fica pendente, com a saída das outras pendências e zero sudo" \
+  || falha "sem a ponte, o icones_absolutos.sh mandou rodar sudo, escreveu ou deu por feito (rc=$ri)" \
+       "$(cat "$SP/sudo.log" "$IA/saida.log")"
+
+printf '\n--- 12. o avatar ilegível da tela de login não é trocado às cegas ---\n'
+# Sem ler o avatar atual não há como saber se ele é nosso: nada se escreve.
+AV="$T/av-ilegivel"; mkdir -p "$AV/bin" "$AV/casa" "$AV/contas"
+printf '<svg/>\n' > "$AV/contas/gata"; chmod 000 "$AV/contas/gata"
+cat > "$AV/bin/busctl" <<BUS
+#!/bin/sh
+printf '%s\n' "\$*" >> "$AV/busctl.log"
+case "\$*" in
+  *FindUserByName*) echo 'o "/org/freedesktop/Accounts/User1000"' ;;
+  *IconFile*) echo 's "$AV/contas/gata"' ;;
+esac
+exit 0
+BUS
+chmod 755 "$AV/bin/busctl"; : > "$AV/busctl.log"
+env -i PATH="$AV/bin:$SP/bin:$PATH" HOME="$AV/casa" USER=gata MEOW_RAIZ="$RAIZ" MEOW_PONTE=/nao/existe \
+  GREETER_HOME="$AV/greeter" NO_COLOR=1 FLAVOR=dracula PACK=dracula \
+  bash "$RAIZ/scripts/greeter.sh" > "$AV/saida.log" 2>&1
+chmod 644 "$AV/contas/gata"
+! grep -q 'SetIconFile' "$AV/busctl.log" && [ ! -e "$AV/casa/.local/state/meowsystem/greeter-avatar.md5" ] \
+  && grep -q 'avatar.*pendente' "$AV/saida.log" \
+  && ok "o avatar que não se lê fica como está, e a pendência aparece" \
+  || falha "o greeter.sh trocou um avatar que não conseguiu ler, ou calou a pendência" \
+       "$(cat "$AV/busctl.log"; head -6 "$AV/saida.log")"
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: os achados técnicos da P79 estão fechados\n'

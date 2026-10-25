@@ -783,13 +783,15 @@ tema_do_conf() {
     "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$par" --conferir >/dev/null 2>&1; rc=$?
     printf "%s %s %s\n" "$(basename "$MEOW_PACK_DIR")" "$par" "$rc"'
 }
-sem_as_duas() { grep -vE '^(PACK|FLAVOR|CURSOR|LOGO_DIA|LOGO_NOITE|FASTFETCH_LOGO_GATO)=' "$1"; }
+sem_as_duas() { grep -vE '^(PACK|FLAVOR|CURSOR|LOGO|LOGO_DIA|LOGO_NOITE|FASTFETCH_LOGO_GATO)=' "$1"; }
 # As três chaves do mascote, como o conf e o painel as leem.
 mascote_do_conf() {
   printf '%s|%s|%s' "$(sed -n 's/^LOGO_DIA="\([^"]*\)".*/\1/p' "$T/usar.conf" | tail -n1)" \
     "$(sed -n 's/^LOGO_NOITE="\([^"]*\)".*/\1/p' "$T/usar.conf" | tail -n1)" \
     "$(sed -n 's/^FASTFETCH_LOGO_GATO="\([^"]*\)".*/\1/p' "$T/usar.conf" | tail -n1)"
 }
+# O mascote do modo fixo, que a troca leva pela mesma regra das outras três.
+logo_do_conf() { sed -n 's/^LOGO="\([^"]*\)".*/\1/p' "$T/usar.conf" | tail -n1; }
 mascote_do_painel() {
   usar_amb python3 -I - "$RAIZ/app" <<'PY' 2>/dev/null
 import sys
@@ -800,6 +802,7 @@ print("|".join(v.get(k, "?") for k in ("LOGO_DIA", "LOGO_NOITE", "FASTFETCH_LOGO
 PY
 }
 
+sed -i 's/^LOGO_MODO="[^"]*"/LOGO_MODO="fixo"/' "$T/usar.conf"
 antes="$(sem_as_duas "$T/usar.conf")"
 saida="$(usar_amb "$RAIZ/bin/meow" pack usar dracula --sem-aplicar 2>&1)"; rc=$?
 if [ "$rc" = "0" ] && grep -qx 'PACK="dracula"' "$T/usar.conf" \
@@ -813,6 +816,10 @@ ida_mascote="$(mascote_do_conf)"
 [ "$ida_mascote" = "morcego-dia|morcego-noite|morcego-noite" ] && [ "$(mascote_do_painel)" = "$ida_mascote" ] \
   && ok "o mascote de fábrica vai junto para o do Dracula, no conf e no painel ($ida_mascote)" \
   || falha "o mascote não acompanhou o pack" "conf '$ida_mascote', painel '$(mascote_do_painel)'"
+ida_logo="$(logo_do_conf)"
+[ "$ida_logo" = "morcego-noite" ] \
+  && ok "com LOGO_MODO=fixo, o LOGO de fábrica vai junto para o do Dracula ($ida_logo)" \
+  || falha "o LOGO do modo fixo ficou no mascote do pack de antes" "veio '$ida_logo', esperava 'morcego-noite'"
 ida="$(tema_do_conf)"
 [ "$ida" = "dracula dracula-mauve 0" ] \
   && ok "depois da troca, o tema no disco é o do Dracula ($ida)" \
@@ -830,15 +837,19 @@ volta_mascote="$(mascote_do_conf)"
 [ "$volta_mascote" = "mimir|coquinha|coquinha" ] && [ "$(mascote_do_painel)" = "$volta_mascote" ] \
   && ok "e o mascote volta ao de fábrica do MeowSystem ($volta_mascote)" \
   || falha "o mascote não voltou com o pack" "conf '$volta_mascote', painel '$(mascote_do_painel)'"
+volta_logo="$(logo_do_conf)"
+[ "$volta_logo" = "coquinha" ] \
+  && ok "e o LOGO do modo fixo volta ao de fábrica do MeowSystem ($volta_logo)" \
+  || falha "o LOGO do modo fixo não voltou com o pack" "veio '$volta_logo', esperava 'coquinha'"
 # O que ela escolheu dentro do pack novo fica: só o de fábrica do pack de antes muda.
 sed -i 's/^LOGO_DIA="[^"]*"/LOGO_DIA="coquinha"/' "$T/usar.conf"
 usar_amb "$RAIZ/bin/meow" pack usar dracula --sem-aplicar >/dev/null 2>&1
-sed -i 's/^LOGO_NOITE="[^"]*"/LOGO_NOITE="morcego"/' "$T/usar.conf"
+sed -i -e 's/^LOGO_NOITE="[^"]*"/LOGO_NOITE="morcego"/' -e 's/^LOGO="[^"]*"/LOGO="morcego"/' "$T/usar.conf"
 usar_amb "$RAIZ/bin/meow" pack usar meowsystem --sem-aplicar >/dev/null 2>&1
-escolhido="$(mascote_do_conf)"
-[ "$escolhido" = "coquinha|morcego|coquinha" ] \
+escolhido="$(mascote_do_conf)|$(logo_do_conf)"
+[ "$escolhido" = "coquinha|morcego|coquinha|morcego" ] \
   && ok "o mascote que ela escolheu não é trocado ($escolhido)" \
-  || falha "a troca de pack mexeu num mascote escolhido" "veio '$escolhido', esperava 'coquinha|morcego|coquinha'"
+  || falha "a troca de pack mexeu num mascote escolhido" "veio '$escolhido', esperava 'coquinha|morcego|coquinha|morcego'"
 sed -i -e 's/^LOGO_DIA="[^"]*"/LOGO_DIA="mimir"/' -e 's/^LOGO_NOITE="[^"]*"/LOGO_NOITE="coquinha"/' "$T/usar.conf"
 residuo="$(usar_amb "$RAIZ/scripts/aplicar_tema.sh" dracula-mauve --conferir >/dev/null 2>&1; echo $?)"
 [ "$residuo" != "0" ] \
@@ -2711,23 +2722,27 @@ queda="$(sed -n '/^def logo_do_painel(/,/^def /p' "$RAIZ/app/servidor.py" \
 #   contar por nome os daria como ausentes, e contar arquivos diria "295"
 #   para uma pasta com um desenho trocado.
 #
-#   O Dracula_OS-Theme SÓ EXISTE NA MÁQUINA DE QUEM O ESCREVEU. Nada do
-#   MeowSystem o lê em execução — ele é a origem da cópia, e só. Onde ele não
-#   está, a conferência se pula dizendo por quê, e o resto desta seção (que só
-#   olha o pack) roda igual.
+#   A origem não mora nesta máquina: ela é dado no pack, o sha256 de cada SVG
+#   de lá com o commit de procedência (`icones/biblioteca-origem.sha256`), e a
+#   conta é contra essa lista. Sem a lista, vermelho: pulado não é verde.
 BIB="$RAIZ/packs/dracula/icones/biblioteca"
-# Sob o `tests/todos.sh` o HOME é de brinquedo (P75); a origem é só LIDA da
-# casa de verdade, que ele deixa em `SUITE_CASA_REAL`.
-ORIGEM_BIB="${SUITE_CASA_REAL:-$HOME}/Desenvolvimento/Dracula_OS-Theme/src/icons/new-sessao-atual"
-if [ -d "$ORIGEM_BIB" ]; then
-  conta="$(python3 - "$ORIGEM_BIB" "$BIB" <<'PY'
-import hashlib, os, sys
+LISTA_BIB="$RAIZ/packs/dracula/icones/biblioteca-origem.sha256"
+conta="$(python3 - "$LISTA_BIB" "$BIB" <<'PY'
+import hashlib, os, re, sys
 def shas(d):
     if not os.path.isdir(d):
         return {}
     return {hashlib.sha256(open(os.path.join(d, a), "rb").read()).hexdigest(): a
             for a in sorted(os.listdir(d)) if a.endswith(".svg")}
-origem = shas(sys.argv[1])
+origem, commit = {}, ""
+if os.path.isfile(sys.argv[1]):
+    for l in open(sys.argv[1], encoding="utf-8"):
+        m = re.match(r"^# commit: ([0-9a-f]{40})$", l.rstrip("\n"))
+        if m:
+            commit = m.group(1)
+        m = re.match(r"^([0-9a-f]{64})  (\S+\.svg)$", l.rstrip("\n"))
+        if m:
+            origem[m.group(1)] = m.group(2)
 # P96 (23/10/2026): o desenho ligado a um app mora em apps/, e quem usa escolheu uma versão por
 # ícone — o que saiu por escolha dela está na tabela de antes, com o destino vazio.
 pack = {**shas(sys.argv[2]), **shas(os.path.join(os.path.dirname(sys.argv[2]), "apps"))}
@@ -2741,19 +2756,16 @@ if os.path.exists(tabela):
                 saiu.add(os.path.basename(k))
 faltam = sorted(a for s, a in origem.items() if s not in pack and a not in saiu)
 origem = {s: a for s, a in origem.items() if a not in saiu}
-print(f"{len(origem) - len(faltam)} {len(origem)}")
+print(f"{len(origem) - len(faltam)} {len(origem)} {commit or '-'}")
 print("\n".join(faltam))
 PY
 )"
-  achados="$(printf '%s\n' "$conta" | sed -n 1p)"
-  [ -n "$achados" ] && [ "${achados% *}" = "${achados#* }" ] && [ "${achados#* }" != "0" ] \
-    && ok "por sha256, a biblioteca do Dracula_OS-Theme está no pack (apps/ e biblioteca/, menos o que quem usa tirou): ${achados% *} de ${achados#* }" \
-    || falha "a biblioteca do pack não tem todos os desenhos da origem (${achados% *} de ${achados#* })" \
-             "$(printf '%s\n' "$conta" | tail -n +2 | head -20)"
-else
-  printf 'pulado: a biblioteca não foi contada contra a origem — %s não existe nesta máquina, e o pack não depende dele\n' \
-    "$ORIGEM_BIB"
-fi
+achados="$(printf '%s\n' "$conta" | sed -n 1p)"
+read -r bib_tem bib_total bib_commit <<< "$achados"
+[ -n "${bib_total:-}" ] && [ "$bib_tem" = "$bib_total" ] && [ "$bib_total" != "0" ] && [ "$bib_commit" != "-" ] \
+  && ok "por sha256, a biblioteca do Dracula_OS-Theme (commit ${bib_commit:0:12}) está no pack (apps/ e biblioteca/, menos o que quem usa tirou): $bib_tem de $bib_total" \
+  || falha "a biblioteca do pack não confere com a lista da origem ($achados)" \
+           "$(printf '%s\n' "$conta" | tail -n +2 | head -20)"
 
 # TODO DESENHO DA BIBLIOTECA TEM PROCEDÊNCIA. É a regra 5 da P28 ("arte de
 #   terceiro entra por cópia, com uma linha no PROCEDENCIA.md") aplicada à
