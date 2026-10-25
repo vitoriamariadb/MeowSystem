@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # criar-tema-leva.sh — o que o «Criar tema» leva para dentro do pack que ele
-# grava: as fotos (para `wallpapers/`) e os sons (para `sons/`). Vestir o pack
+# grava: as fotos (para `wallpapers/`), os sons (para `sons/`) e os ícones de
+# sistema e da biblioteca (para `icones/sistema/` e `icones/biblioteca/`). Vestir o pack
 # põe essas fotos na rotação, sem rede, e instala o tema de sons dele. E o
 # painel (HOME de brinquedo, PID próprio) lista os sons de aviso e toca a prévia. O que vem de quem usa é validado antes de entrar: arquivo
 # comum, conteúdo que é o que diz ser, e nome que vira arquivo do lado de cá.
@@ -155,6 +156,56 @@ else
   falha "o tema de sons instalado não é o do pack" "$(diff -rq "$SONS" "$NO_AR" 2>&1 | head -5)
 $(cat "$T/som.log")"
 fi
+
+# --- 4. os ícones de sistema e da biblioteca ---------------------------------------
+DRA="$RAIZ/packs/dracula/icones"
+oferta="$(pack acervo-para-levar meu-tema sistema 2>&1)"
+if printf '%s\n' "$oferta" | grep -q "^dracula	folder-documents	$DRA/sistema/folder-documents.svg	nao$" \
+   && ! printf '%s\n' "$oferta" | grep -q "^meowsystem	"; then
+  ok "a aba Sistema oferece as pastas desenhadas dos packs (o molde que se pinta fica de fora)"
+else
+  falha "a oferta da aba Sistema não é a esperada" "$(printf '%s\n' "$oferta" | head -5)"
+fi
+BIB="$(ls "$DRA/biblioteca" | grep '\.svg$' | head -1)"
+s="$(pack levar meu-tema sistema "$DRA/sistema/folder-documents.svg" folder-documents 2>&1)"; r1=$?
+s2="$(pack levar meu-tema biblioteca "$DRA/biblioteca/$BIB" 2>&1)"; r2=$?
+if [ "$r1$r2" = 00 ] && cmp -s "$DRA/sistema/folder-documents.svg" "$DIR/icones/sistema/folder-documents.svg" \
+   && cmp -s "$DRA/biblioteca/$BIB" "$DIR/icones/biblioteca/$BIB" \
+   && pack acervo-para-levar meu-tema sistema | grep -q "	folder-documents	.*	sim$"; then
+  ok "«Levar para o tema» copia o ícone de sistema e o da biblioteca para as pastas do pack, e a oferta o marca"
+else
+  falha "os ícones não entraram no pack (rc=$r1/$r2)" "$s
+$s2"
+fi
+printf '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>\n' > "$T/mau.svg"
+printf 'não é svg\n' > "$T/falso.svg"
+pack levar meu-tema biblioteca "$T/mau.svg" >/dev/null 2>&1; r1=$?
+pack levar meu-tema biblioteca "$T/falso.svg" >/dev/null 2>&1; r2=$?
+pack levar meu-tema sistema "$DRA/sistema/folder.svg" "../../pack" >/dev/null 2>&1; r3=$?
+pack levar meu-tema apps "$DRA/sistema/folder.svg" >/dev/null 2>&1; r4=$?
+if [ "$r1$r2$r3" = 111 ] && [ "$r4" != 0 ] && [ ! -e "$DIR/icones/biblioteca/mau.svg" ] && [ ! -e "$DIR/pack.svg" ]; then
+  ok "SVG com script, arquivo que não é SVG, nome com caminho e pasta fora das duas são recusados"
+else
+  falha "o pack aceitou um ícone que devia recusar ($r1 $r2 $r3 $r4)"
+fi
+# Vestido o pack, a pasta levada é a que o tema de ícones veste; as outras seguem a herança.
+casa PACK=meu-tema FLAVOR=meutema PASTAS_XDG=sim ICONES_TEMA=Tema-Leva \
+  bash "$RAIZ/scripts/icones_pastas.sh" --aplicar >"$T/pastas.log" 2>&1
+LUGARES="$CASA/.local/share/icons/Tema-Leva/scalable/places"
+# (O tema guarda o desenho sem a quebra de linha do fim: compara-se o texto.)
+if [ "$(cat "$DRA/sistema/folder-documents.svg")" = "$(cat "$LUGARES/folder-documents.svg" 2>/dev/null)" ] \
+   && [ -f "$LUGARES/folder-music.svg" ] \
+   && [ "$(cat "$DRA/sistema/folder-music.svg")" != "$(cat "$LUGARES/folder-music.svg")" ]; then
+  ok "vestido o pack, a pasta levada é a do tema de ícones, e as outras continuam as herdadas"
+else
+  falha "a pasta levada não chegou ao tema de ícones" "$(ls "$LUGARES" 2>&1 | head -3)
+$(tail -5 "$T/pastas.log")"
+fi
+s="$(pack tirar meu-tema biblioteca "$BIB" 2>&1)"; rt=$?
+[ "$rt" = 0 ] && [ ! -e "$DIR/icones/biblioteca/$BIB" ] \
+  && ok "tirar o ícone do pack tira só ele" || falha "tirar o ícone do pack (rc=$rt)" "$s"
+v="$(pack validar meu-tema 2>&1)" && ok "o pack com os ícones continua validando" \
+  || falha "o pack com os ícones não valida" "$v"
 
 # --- 3. os sons de aviso no painel ------------------------------------------------
 mkdir -p "$CASA/.config/meow"; cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"

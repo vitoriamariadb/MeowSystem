@@ -127,7 +127,13 @@ VERBOS
                                  `sons/`, e o `som.tema` aponta para ele.
     levar  <id> som <arquivo.oga> <evento>
                                  troca o som de um evento que o tema já tem.
+    levar  <id> sistema|biblioteca <arquivo.svg> [nome]
+                                 copia o ícone para `icones/<pasta>/` do pack.
     tirar  <id> foto <nome>...   tira a foto de `wallpapers/` do pack da pessoa.
+    tirar  <id> sistema|biblioteca <nome>...
+    acervo-para-levar <id> sistema|biblioteca
+                                 o que a aba do Criar tema oferece, uma linha
+                                 por ícone: `pack<TAB>nome<TAB>arquivo<TAB>sim|nao`.
     exportar <id> [arquivo] [--sem-imagens] [--seco]
                                  o pack num `.meowpack` (um .tar.zst com um
                                  MANIFESTO de sha256). Recusa o que não valida,
@@ -5986,7 +5992,105 @@ def levar_som(ident, caminho, evento):
     return evento
 
 
+# Os ícones que o Criar tema leva: as pastas desenhadas (`icones/sistema/`, pelo
+# nome que o tema de ícones veste) e os desenhos da biblioteca. Um SVG é
+# documento, e pack é dado: script, `javascript:` e atributo de evento não entram.
+TETO_SVG = 2 << 20
+PASTAS_QUE_SE_LEVAM = ("sistema", "biblioteca")
+RE_SVG_ATIVO = re.compile(rb"<script|javascript:|\son[a-z]+\s*=", re.I)
+
+
+def _e_svg(dados):
+    return b"<svg" in dados[:4096].lower() and not RE_SVG_ATIVO.search(dados)
+
+
+def _pastas_desenhadas(dir_pack):
+    """[(nome, arquivo)] das pastas que o pack DESENHOU: o `icones.pastas` dele,
+    com mapa, e que não é o molde de tipos de arquivo (esse se pinta na hora)."""
+    decl, mapa = campo(dir_pack, "icones.pastas.desenhos"), campo(dir_pack, "icones.pastas.mapa")
+    molde = campo(dir_pack, "icones.mimetypes.desenhos")
+    if not (isinstance(decl, str) and decl and isinstance(mapa, str) and mapa):
+        return []
+    try:
+        pasta, arq_mapa = _dentro(dir_pack, decl, "icones.pastas.desenhos"), _dentro(dir_pack, mapa, "icones.pastas.mapa")
+        if isinstance(molde, str) and molde and _dentro(dir_pack, molde, "molde") == pasta:
+            return []
+        linhas = list(ler_mapa(arq_mapa))
+    except (Recusa, OSError, UnicodeDecodeError):
+        return []
+    saida = []
+    for _num, nome, glifo in linhas:
+        if not nome_de_destino(nome):
+            continue
+        for cand in (glifo, nome):
+            cheio = os.path.join(pasta, cand + ".svg")
+            if nome_de_destino(cand) and os.path.isfile(cheio) and not os.path.islink(cheio):
+                saida.append((nome, cheio))
+                break
+    return saida
+
+
+def icones_do_pack(dir_pack, pasta):
+    """Os nomes dos SVG soltos em `icones/<pasta>/` do próprio pack."""
+    return sorted(os.path.basename(a) for a in _arquivos_da_pasta(os.path.join(dir_pack, "icones", pasta), ".svg"))
+
+
+def acervo_para_levar(ident, pasta):
+    """[(pack, nome, arquivo, levado)] do que a aba `pasta` (sistema|biblioteca)
+    do Criar tema oferece: o que os OUTROS packs trazem, o pack no ar primeiro
+    pela ordem das raízes; `levado` diz se o pack `ident` já tem um de mesmo nome."""
+    _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
+    # Sem `ident` (o tema ainda não foi guardado), a oferta é a mesma, sem marca.
+    meus = set(icones_do_pack(pack_da_pessoa(ident), pasta)) if ident else set()
+    saida, vistos = [], {ident}
+    for base in raizes():
+        try:
+            ids = sorted(os.listdir(base))
+        except OSError:
+            continue
+        for pid in ids:
+            dir_pack = os.path.join(base, pid)
+            if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+                continue
+            vistos.add(pid)
+            if pasta == "sistema":
+                itens = _pastas_desenhadas(dir_pack)
+            else:
+                try:
+                    itens = [(os.path.basename(a)[:-4], a) for a in
+                             _arquivos_da_pasta(_dentro(dir_pack, PASTA_BIBLIOTECA, "biblioteca"), ".svg")]
+                except Recusa:
+                    itens = []
+            saida += [(pid, nome, arq, nome + ".svg" in meus) for nome, arq in itens]
+    return saida
+
+
+def levar_icone(ident, pasta, caminho, nome=""):
+    """Copia o SVG `caminho` para `icones/<pasta>/<nome>.svg` do pack."""
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
+    nome = (nome or os.path.basename(caminho)).removesuffix(".svg")
+    _exigir(RE_NOME_LEVADO.match(nome + ".svg") and nome_de_destino(nome),
+            f"{nome!r}: nome de ícone que não serve")
+    dados = _ler_de_quem_usa(caminho, (".svg",), TETO_SVG, _e_svg, "um SVG sem script")
+    _gravar_no_pack(dir_pack, f"icones/{pasta}/{nome}.svg", dados)
+    return nome + ".svg"
+
+
+def tirar_icone(ident, pasta, nome):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
+    nome = nome if nome.endswith(".svg") else nome + ".svg"
+    _exigir(RE_NOME_LEVADO.match(nome) and nome_de_destino(nome), f"{nome!r}: nome que não serve")
+    alvo = os.path.join(dir_pack, "icones", pasta, nome)
+    _exigir(os.path.isfile(alvo) and not os.path.islink(alvo), f"{nome}: não está no pack")
+    os.remove(alvo)
+
+
 def cmd_levar(ident, tipo, args):
+    if tipo in PASTAS_QUE_SE_LEVAM and len(args) in (1, 2):
+        print(f"  ok   {levar_icone(ident, tipo, *args)}")
+        return OK
     if tipo == "foto" and args:
         for caminho in args:
             print(f"  ok   {levar_foto(ident, caminho)}")
@@ -6003,6 +6107,11 @@ def cmd_levar(ident, tipo, args):
 
 
 def cmd_tirar(ident, tipo, args):
+    if tipo in PASTAS_QUE_SE_LEVAM and args:
+        for nome in args:
+            tirar_icone(ident, tipo, nome)
+            print(f"  ok   {nome} saiu")
+        return OK
     if tipo == "foto" and args:
         for nome in args:
             tirar_foto(ident, nome)
@@ -6430,6 +6539,10 @@ def main(argv):
             return cmd_construir(argv[2], seco=(len(argv) == 4 and argv[3] in ("--seco", "--dry-run")))
         if verbo == "novo" and len(argv) >= 3:
             return cmd_novo(argv[2], argv[3:])
+        if verbo == "acervo-para-levar" and len(argv) == 4:
+            for pid, nome, arq, levado in acervo_para_levar(argv[2], argv[3]):
+                print(f"{pid}\t{nome}\t{arq}\t{'sim' if levado else 'nao'}")
+            return OK
         if verbo == "levar" and len(argv) >= 4:
             return cmd_levar(argv[2], argv[3], argv[4:])
         if verbo == "tirar" and len(argv) >= 4:

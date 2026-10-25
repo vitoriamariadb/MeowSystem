@@ -597,3 +597,8 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
 .sons button.p { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--linha-forte); background: transparent; color: var(--tinta); display: grid; place-items: center; padding: 0; }
 .sons button.p:hover, .sons button.p[data-tocando] { border-color: var(--accent); color: var(--accent); }
 .sons button.p svg { width: 14px; height: 14px; fill: currentColor; }
+
+/* as abas Sistema e Biblioteca de Criar › Ícones: levar para o tema */
+.grade-apps.levar .app[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-suave); color: var(--tinta); box-shadow: inset 0 0 0 1px var(--accent); }
+.grade-apps.levar .app .nome { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grade-apps.levar .app:disabled { cursor: not-allowed; opacity: .7; }

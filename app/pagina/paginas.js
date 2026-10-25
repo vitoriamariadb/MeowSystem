@@ -381,10 +381,45 @@ function passoCores() {
     bloco("Cores", [pocos, tira]),
   ];
 }
+/* As abas de Criar › Ícones: os aplicativos, e as pastas Sistema e Biblioteca,
+ * cada ícone um botão de levar para o tema. Aba sem ícone nenhum não aparece. */
+let ABA_ICONES = "apps";
+let LIMITE_ICONES = 48;
+function gradeDeLevar(pasta, pack) {
+  const itens = (LEVA && !LEVA.carregando && LEVA[pasta]) || [];
+  const sem = pack ? "" : "Guarde o tema em Cores";
+  const grade = elemento("div", { class: "grade-apps levar", "aria-busy": LEVA && !LEVA.carregando ? null : "true" });
+  for (const i of itens.slice(0, LIMITE_ICONES)) {
+    grade.append(elemento("button", {
+      type: "button", class: "app", controle: "levar:" + pasta, "aria-pressed": String(!!i.levado),
+      disabled: !!sem, "aria-disabled": sem ? "true" : null,
+      dica: sem || `${i.levado ? "Tirar do tema" : "Levar para o tema"} · ${maiuscula(i.de)}`,
+      onclick: () => levarParaOTema(pasta, i.nome, !i.levado, { de: i.de }),
+    }, [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.nome })]));
+  }
+  const filhos = [grade];
+  if (itens.length > LIMITE_ICONES) {
+    filhos.push(botao("Mais ícones", { class: "bt", controle: "levar:mais", onclick: () => { LIMITE_ICONES += 96; render(); } }));
+  }
+  return elemento("div", { class: "pilha", style: "gap:16px" }, filhos);
+}
 function passoIcones() {
   const p = PASSOS.find((x) => x.id === "icones");
+  const pack = packDoRascunho();
+  const abas = [["apps", "Aplicativos"], ["sistema", "Sistema"], ["biblioteca", "Biblioteca"]]
+    .filter(([id]) => id === "apps" || !LEVA || LEVA.carregando || (LEVA[id] || []).length);
+  if (!abas.some(([id]) => id === ABA_ICONES)) ABA_ICONES = "apps";
+  const seg = elemento("div", { class: "seg", role: "group", "aria-label": "Pasta de ícones" },
+    abas.map(([id, nome]) => elemento("button", { type: "button", "aria-pressed": String(id === ABA_ICONES),
+      controle: "icones:aba=" + id, onclick: () => { ABA_ICONES = id; LIMITE_ICONES = 48; render(); } }, [nome])));
+  const cabeca = elemento("div", { class: "fila abas-icones" }, [seg]);
+  if (ABA_ICONES !== "apps") {
+    const nome = ABA_ICONES === "sistema" ? "Sistema" : "Biblioteca";
+    return [cabeca, bloco(nome, [elemento("div", { class: "corpo" }, [gradeDeLevar(ABA_ICONES, pack)])])];
+  }
   const linhas = lista(p.linhas, (l) => l.g === "acervo:icone");
   return [
+    cabeca,
     bloco("Aplicativos", [elemento("div", { class: "corpo" }, [montarApps()])],
       { direita: [botaoAcervo("icone", "Trazer .svg")] }),
     bloco("Pastas", [linhas]),
@@ -402,9 +437,9 @@ async function carregarLeva(id) {
 /* O pack guardado em Cores, com o que ele leva; null enquanto não há pack. */
 function packDoRascunho() {
   const r = rascunho();
-  const pack = r.pack && PACKS.find((x) => x.id === r.pack);
-  if (!pack) return null;
-  if (!LEVA || LEVA.id !== pack.id) carregarLeva(pack.id);
+  const pack = (r.pack && PACKS.find((x) => x.id === r.pack)) || null;
+  const id = pack ? pack.id : "";
+  if (!LEVA || LEVA.id !== id) carregarLeva(id);
   return pack;
 }
 async function levarParaOTema(tipo, nome, levar, extra = {}) {

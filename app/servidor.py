@@ -9795,6 +9795,21 @@ class Manipulador(BaseHTTPRequestHandler):
         if not mod:
             return self._json({"erro": "scripts/pack.py não carregou"}, 500)
         ident = consulta.get("id", [""])[0]
+        # As abas Sistema e Biblioteca de Criar › Ícones: o que os packs trazem,
+        # marcado quando o pack do rascunho já leva. Sem pack, só a oferta.
+        icones = {}
+        for pasta in mod.PASTAS_QUE_SE_LEVAM:
+            icones[pasta] = []
+            try:
+                oferta = mod.acervo_para_levar(ident or None, pasta)
+            except mod.Recusa:
+                oferta = []
+            for de, nome, arq, levado in oferta:
+                _ICONES_DECLARADOS.add(os.path.normpath(arq))
+                icones[pasta].append({"de": de, "nome": nome, "levado": levado,
+                                      "url": "/previa?tipo=arquivo&id=" + quote(arq, safe="")})
+        if not ident:
+            return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:
             dir_pack = mod.pack_da_pessoa(ident)
         except mod.Recusa as e:
@@ -9808,8 +9823,8 @@ class Manipulador(BaseHTTPRequestHandler):
         # nunca toca (empilha na tecla segurada), então ele não aparece.
         sons = [{"evento": e, "contexto": c} for c, e, _a in mod.sons_do_pack(dir_pack)
                 if e != "audio-volume-change"]
-        return self._json({"id": ident, "sons": sons,
-                           "fotos": [n for n in nomes if mod.nome_da_foto(ident, n) in no_pack]})
+        return self._json(dict(icones, id=ident, sons=sons,
+                               fotos=[n for n in nomes if mod.nome_da_foto(ident, n) in no_pack]))
 
     def _api_criar(self, corpo):
         mod = modulo_pack()
@@ -9830,6 +9845,18 @@ class Manipulador(BaseHTTPRequestHandler):
                 else:
                     feito = mod.nome_da_foto(ident, nome)
                     mod.tirar_foto(ident, feito)
+            elif tipo in mod.PASTAS_QUE_SE_LEVAM:
+                # O ícone sai da oferta (pack e nome); o pedido nunca traz caminho.
+                if levar:
+                    de = str(corpo.get("de", ""))
+                    arq = next((a for p_, n, a, _l in mod.acervo_para_levar(ident, tipo)
+                                if p_ == de and n == nome), None)
+                    if not arq:
+                        return self._json({"erro": "não achei esse ícone no pack «%s»" % de}, 404)
+                    feito = mod.levar_icone(ident, tipo, arq, nome)
+                else:
+                    mod.tirar_icone(ident, tipo, nome)
+                    feito = nome
             elif tipo == "som":
                 # O som de um evento, trocado pelo arquivo que veio da página.
                 try:
