@@ -92,3 +92,62 @@ A prova é o `tests/apps-em-todo-pack.sh`.
 - toolkits-gtk-qt segue o COSMIC, sem bloco no pack. ZapZap é da P106.
 - `tests/temas-de-apps.sh` falhou uma vez em três («nenhum backup guarda o appearance.json
   tematizado do A», Obsidian): o backup é por segundo, e o aplicar e o desfazer caem no mesmo.
+
+## Execução
+Veredito da conferência (25/10): **APROVADO_COM_RESSALVAS**. A matriz do relato bate. A conferência fechou
+dois buracos: o achado de segurança (§5), que a implementação não tinha curado, e a ida e volta do qBittorrent
+e do Spotify, que o teste da implementação não cobria.
+
+**A matriz, refeita do zero.** Feita numa casa de brinquedo, sem rede, com o app «instalado». Para cada app,
+pack e flavor (mocha, latte, dracula, alucard): o `aplicar` duas vezes, e o hex do `base` dos dois packs
+procurado no que o módulo escreveu.
+- **kitty, gnome-terminal, telegram, discord e onlyoffice:** vestem os 4 flavors com a cor do próprio pack.
+  O hex do outro pack aparece em zero arquivos, e a segunda passada dá 0.
+- **qbittorrent:** o `.qbtheme` de cada pack nos 4 flavors.
+- **heroic:** o catppuccin vendorado no meowsystem e o `dracula` do Heroic no Dracula, com a segunda passada 0.
+- **btop-bat:** Catppuccin e Dracula pelo flavor; o `alucard` fica sem tema (rc=3).
+- **spotify:** o Dracula põe o Sleek do pack, sem rede. O `color.ini` inteiro do Sleek traz os 18 esquemas,
+  inclusive um com o `#1E1E2E`, mas a seção `[Dracula]` tem só a cor dele. O meowsystem pede a origem
+  pinada (sem rede, rc=3).
+- **obsidian e vscode:** o Catppuccin no meowsystem. No Dracula a origem é pinada e precisa de rede (sem
+  rede, rc=3). Com rede, o Obsidian faz a ida e volta Catppuccin ↔ Dracula Official.
+
+**Procedência e pack.** Os três arquivos do Sleek batem, byte a byte, com o `spicetify/spicetify-themes`
+no commit `c432012478e1f2e2ffccca8e943e188af40d6190`: `color.ini` `4f5a883a…`, `user.css` `b5741a6e…` e
+`LICENSE` `c2fc7f09…`. A licença é MIT, de morpheusthewhite, e a pasta `Sleek/` da origem não traz licença
+própria. Os cinco modelos não são arquivo novo: a procedência deles já estava no `packs/dracula/PROCEDENCIA.md`
+(P42). O `pack.py validar` dá rc=0 nos dois packs.
+
+**O que a conferência corrigiu:**
+1. `4a775364`: o nome do tema do Spotify não vira caminho fora de `Themes/`.
+   - O buraco, medido: `spicetify_tema: ".."`, vindo pela herança de um pack que nunca passou pelo `validar`,
+     apagava `~/.config/spicetify` inteiro, com o `config-xpui.ini` junto.
+   - A cura no módulo: o nome casa `^[A-Za-z0-9_][A-Za-z0-9._-]*$`, ou vale como não declarado, com o motivo.
+     Antes de todo `rm -rf`, o alvo resolvido (`readlink -m`) tem de ser filho direto de `Themes/`, e a
+     origem que sai de dentro do tarball não vai para `Themes/` com o `mv`.
+   - A cura no `validar`: recusa o nome fora da forma, e a origem `github-arvore` com `repo`, `commit` (40 hex)
+     ou `pasta` fora da forma. O `docs/PACKS.md` ganhou a forma e o campo `arquivo` do Spotify.
+   - Os outros módulos: kitty, gnome-terminal, telegram, discord e onlyoffice escrevem em nomes fixos. O
+     Obsidian já tinha a guarda.
+   - A prova, em `tests/pack-malicioso.sh` §5d: `..` e `a/b`, pelo pai e pela herança, e a origem com `..`. Com
+     a regra do nome desligada, o `readlink` sozinho ainda impede o `rm`.
+2. `f21a39e6`: a troca de pack troca o tema que o MeowSystem pôs no qBittorrent e no Spotify.
+   - O defeito, medido: meowsystem e depois dracula deixavam o tema do meowsystem no ar, com a pendência de
+     «tema de terceiro». O tema era o que o próprio módulo tinha acabado de pôr.
+   - A cura: cada módulo guarda no estado o que pôs (`temas-de-apps/<app>/tema-nosso`). Se é ele que está no
+     ar, a troca de pack o troca sem perguntar. O tema que ela pôs à mão continua na pergunta e fica.
+   - A prova, em `tests/apps-em-todo-pack.sh`: a ida e volta dos dois e o tema dela que fica.
+
+**Suíte:** duas vezes seguidas na ponta `f21a39e6`, `== todos os 78 · 77 verde(s), 1 pulado(s), 0 vermelho(s) ==`
+nas duas.
+- **O pulado:** o `pack.sh`, que precisa do `Dracula_OS-Theme`, apagado desta máquina; pulado não é verde.
+- **Os falsos:** recusaram 6 chamadas de sudo e pararam 13 de `busctl`.
+
+**O que ficou:**
+- **A máquina real:** o qBittorrent e o Spotify foram vestidos antes de existir o `tema-nosso`. Na primeira
+  troca de pack, cada um pergunta uma vez («Trocar» ou «Manter»). O Sleek do Spotify foi posto à mão por ela,
+  e por isso a pergunta é a certa.
+- **O claro do meowsystem:** VS Code, qBittorrent e o rótulo do Obsidian ficam em Mocha no `latte`, porque
+  o pack declara `Catppuccin Mocha` e `catppuccin-mocha.qbtheme` fixos. O `alucard` segue como no Fecho.
+- **O Heroic:** copia os 56 CSS do acervo para a pasta de temas do app.
+- **Sem confirmar:** o «tests/temas-de-apps.sh instável» do Fecho não se repetiu nas rodadas desta conferência.
