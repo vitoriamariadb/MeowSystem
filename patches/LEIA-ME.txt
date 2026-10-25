@@ -347,7 +347,7 @@ NO NITRO-5 O PROCEDIMENTO ACIMA É OUTRO — MEDIDO EM 17/09/2026
     o procedimento publicado era o errado para esta metade da casa.
 
 ================================================================================
-7. O CACHE DO SMITHAY É INDEXADO POR TIPO — UM ALIAS NÃO CRIA SLOT NOVO
+8. O CACHE DO SMITHAY É INDEXADO POR TIPO — UM ALIAS NÃO CRIA SLOT NOVO
 ================================================================================
     Descoberto ao escrever o `cosmic-comp-blur-cache-textura.patch`, em
     17/09/2026, e é o tipo de erro que compila, roda, e pinta lixo na tela.
