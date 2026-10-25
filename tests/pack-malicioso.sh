@@ -482,6 +482,55 @@ else
     "$(cat "$T/curl-args.log"; printf '%s\n' "$fora_papel"; tail -3 "$T/papel-2.log")"
 fi
 
+# --- 5d. o nome do tema do Spotify não vira caminho (P107) -----------------------
+#   `spicetify_tema` monta `~/.config/spicetify/Themes/<nome>`, que leva `rm -rf`
+#   antes de o tema entrar. Com `..`, o alvo era a pasta inteira do spicetify; com
+#   `a/b`, uma pasta de dentro de outra. O pai não passa no `validar`, mas o filho
+#   que só herda dele passa, e é o nome do pai que chega ao módulo.
+for _caso in ponto:.. barra:a/b; do
+  _id="mal-spot-${_caso%%:*}"; _nome="${_caso#*:}"
+  mkdir -p "$RAIZ_DELA/$_id/temas-de-apps/spotify/x" "$RAIZ_DELA/$_id-filho"
+  cp "$RAIZ/packs/dracula/paleta.json" "$RAIZ_DELA/$_id/"
+  cp "$RAIZ/packs/dracula/paleta.json" "$RAIZ_DELA/$_id-filho/"
+  printf '[Dracula]\ntext = ffffff\n' > "$RAIZ_DELA/$_id/temas-de-apps/spotify/x/color.ini"
+  printf '{"formato": 1, "id": "%s", "nome": "Mal spot", "versao": "1.0.0", "autor": "x", "licenca": "MIT",\n "heranca": "dracula", "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},\n "apps": {"spotify": {"spicetify_tema": "%s", "esquema": "Dracula", "arquivo": "temas-de-apps/spotify/x/color.ini"}}}\n' \
+    "$_id" "$_nome" > "$RAIZ_DELA/$_id/pack.json"
+  printf '{"formato": 1, "id": "%s-filho", "nome": "Mal spot filho", "versao": "1.0.0", "autor": "x", "licenca": "MIT",\n "heranca": "%s", "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}}\n' \
+    "$_id" "$_id" > "$RAIZ_DELA/$_id-filho/pack.json"
+  saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$_id" 2>&1)"; rc=$?
+  [ "$rc" != 0 ] && grep -q 'spicetify_tema' <<< "$saida" \
+    && ok "o validar recusa o nome de tema do Spotify '$_nome'" \
+    || falha "o validar aceitou '$_nome' como nome de tema do Spotify (rc=$rc)" "$saida"
+  [ -z "$(adotado "$_id-filho")" ] \
+    || falha "o filho de $_id não validou; a sonda do módulo não prova nada"
+  SPI="$CASA/.config/spicetify"
+  rm -rf "$SPI"; mkdir -p "$SPI/Themes/a/b" "$SPI/Themes/Outro"
+  printf 'current_theme = Outro\n' > "$SPI/config-xpui.ini"
+  printf 'dela\n' > "$SPI/Themes/a/b/guardado"
+  printf '[x]\n' > "$SPI/Themes/Outro/color.ini"
+  saida="$(amb PACK="$_id-filho" FLAVOR=dracula bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
+    . "$MEOW_RAIZ/scripts/temas-de-apps/spotify/manifesto.sh" || exit 2
+    _spot_tema_baixar; printf "baixar=%s\n" "$?"; meow_app_detectar; printf "detectar=%s\n" "$?"' 2>&1)"
+  if [ -f "$SPI/config-xpui.ini" ] && [ -f "$SPI/Themes/a/b/guardado" ] && [ -f "$SPI/Themes/Outro/color.ini" ] \
+     && [ ! -e "$SPI/color.ini" ] && [ ! -e "$SPI/Themes/a/b/color.ini" ] \
+     && grep -qx 'baixar=3' <<< "$saida" && grep -qx 'detectar=3' <<< "$saida"; then
+    ok "o Spotify recusa o nome de tema '$_nome' que vem pela herança: nada apagado, nada escrito"
+  else
+    falha "o nome de tema '$_nome' do Spotify apagou ou escreveu fora de Themes/<nome>" \
+      "$(find "$SPI" | sed "s|$T|T|"; printf '%s\n' "$saida" | tail -4)"
+  fi
+done
+# A outra porta: `origem.pasta` e `origem.commit` montam o caminho que vai
+# para Themes/ com `mv`. A forma é a do `origem_pinada`.
+_id=mal-spot-origem
+mkdir -p "$RAIZ_DELA/$_id"; cp "$RAIZ/packs/dracula/paleta.json" "$RAIZ_DELA/$_id/"
+printf '{"formato": 1, "id": "%s", "nome": "Mal origem", "versao": "1.0.0", "autor": "x", "licenca": "MIT",\n "heranca": "dracula", "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},\n "apps": {"spotify": {"spicetify_tema": "Bom", "esquema": "Dracula",\n   "origem": {"tipo": "github-arvore", "repo": "a/b", "commit": "../../../fora", "pasta": "../../fora/pasta"}}}}\n' \
+  "$_id" > "$RAIZ_DELA/$_id/pack.json"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$_id" 2>&1)"; rc=$?
+[ "$rc" != 0 ] && grep -q 'apps.spotify.origem' <<< "$saida" \
+  && ok "o validar recusa a origem do tema do Spotify com '..' no commit ou na pasta" \
+  || falha "o validar aceitou a origem do Spotify com '..' (rc=$rc)" "$saida"
+
 # --- 6. o .meowpack com script ---------------------------------------------------
 if command -v zstd >/dev/null 2>&1; then
   MP="$T/mp"; mkdir -p "$MP/trazido"
