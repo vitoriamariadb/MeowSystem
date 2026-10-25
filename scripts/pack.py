@@ -5901,7 +5901,19 @@ def origem_dos_wallpapers(ref=None):
         elif chave in RE_CONF_PAPEL and not (isinstance(valor, str) and RE_CONF_PAPEL[chave].match(valor)):
             continue
         saida[chave] = valor
+    # As FOTOS prontas do pack (P102): imagens soltas em `wallpapers/`, com o
+    # nome que terão no acervo. Havendo, o `wallpaper.sh` semeia delas, sem rede.
+    fotos = os.path.join(dir_pack, "wallpapers") if dir_pack else ""
+    try:
+        if fotos and any(e.is_file(follow_symlinks=False) and e.name.lower().endswith(EXT_FOTO)
+                         for e in os.scandir(fotos)):
+            saida["fotos"] = fotos
+    except OSError:
+        pass
     return saida
+
+
+EXT_FOTO = (".png", ".jpg", ".jpeg", ".webp")
 
 
 def colecoes_alheias(ref=None):
