@@ -42,3 +42,11 @@ pedir senha, e o reparo da ponte também não pede. Registre essa extensão na d
   argumento vindo de fora. A reserva com sha256 adulterado não é instalada.
 - Container: apagar `/etc/sudoers.d/49-meowsystem-ponte`, rodar o «Conferir e consertar» como o usuário sem
   senha, e a ponte volta. Com a reserva adulterada, nada volta e o doctor diz por quê.
+
+## 6. Sobras da P103 (mesma classe: pendência que manda sudo, nome de botão)
+- `scripts/nomes_apps.sh:272` ainda diz «precisam de sudo para encurtar». A cura é a mesma do
+  `icones_absolutos.sh` na P103 (`86c49cb`).
+- No papel de parede devolvido, o botão na tela e o `--onde` dizem «Era escolha minha», mas a busca (`lugares.js`,
+  `wallpaper_permitir`) diz «Manter». Fica um nome só, curto, e o teste da P103 passa a cobrar o nome dos
+  botões das pendências.
+- O comentário do `meow_onde_no_painel` (`lib/comum.sh`) ainda fala em «na aba Seção».
