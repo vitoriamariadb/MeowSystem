@@ -84,6 +84,7 @@ PORTATIL=(
   flatpak-tema.sh        # o override do Flatpak do usuário, o global do sistema pela cópia da ponte e os dois scripts do NitroKit, com flatpak, sudo e gsettings falsos, casa de brinquedo; bash e python3
   escritorio.sh          # o OnlyOffice do Flathub no lugar do LibreOffice, a ponte root de brinquedo e o desinstalador que devolve, com flatpak, dpkg-query, apt-get e sudo falsos, casa de brinquedo; só bash
   ponte-reparo.sh        # a etapa da ponte, o reparo e o doctor em cópias com os destinos de root numa pasta de brinquedo; sudo, visudo e systemctl falsos; bash e node
+  ponte-so-reserva.sh    # a ponte, a etapa do install.sh e o doctor em cópias com os destinos de root numa pasta de brinquedo; o clone adulterado não chega a root; sudo, visudo e systemctl falsos; só bash
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

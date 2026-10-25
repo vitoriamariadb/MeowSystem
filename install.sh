@@ -1584,7 +1584,10 @@ etapa_nomes() {
 #   /usr/local/lib/meowsystem/ponte_root.sh   o braço root, verbos fechados
 #   /usr/local/lib/meowsystem/perfil          raiz, usuária e lar — só root grava
 #   /etc/sudoers.d/49-meowsystem-ponte        libera os verbos DELA, sem senha
-#   /usr/local/lib/meowsystem/reserva/        cópia das duas, 0700, para o reparo
+#   /usr/local/lib/meowsystem/reserva/        cópia das duas, 0700, para o reparo, e
+#                                             tudo o mais que a ponte põe em root: o
+#                                             wrapper do apt já preenchido, o hook e a
+#                                             completion (P108; os verbos só copiam dela)
 #   /etc/systemd/system/meowsystem-ponte-reparo.service   o reparo, sem argumento
 #   /etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules o `start` dele, sem senha
 #
@@ -1617,6 +1620,14 @@ etapa_ponte_root() {
   local unidade_origem="$MEOW_RAIZ/assets/ponte/meowsystem-ponte-reparo.service"
   local polkit=/etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules
   local polkit_origem="$MEOW_RAIZ/assets/ponte/49-meowsystem-ponte-reparo.rules"
+  # O QUE A PONTE PÕE EM ROOT MORA NA RESERVA (P108): o wrapper do apt já
+  # preenchido, o hook e a completion. Os verbos `apt-hook-instalar` e
+  # `completion-instalar` copiam só daqui, conferindo o sha256 ao lado; o clone,
+  # gravável por quem usa, só chega a root por esta etapa, com a senha.
+  local pecas=/usr/local/lib/meowsystem/reserva-pecas.sha256
+  local wrapper_origem="$MEOW_RAIZ/scripts/meow-lancador-apt.sh"
+  local hook_origem="$MEOW_RAIZ/scripts/99-meow-lancador"
+  local completion_origem="$MEOW_RAIZ/assets/zsh/_meow"
 
   # --- desligada: a etapa DESFAZ, e desfazer tem de ser de graça -------------
   if [ "${PONTE_ROOT:-sim}" != "sim" ]; then
@@ -1640,11 +1651,12 @@ etapa_ponte_root() {
   fi
 
   local f
-  for f in "$origem" "$reparo_origem" "$unidade_origem" "$polkit_origem"; do
+  for f in "$origem" "$reparo_origem" "$unidade_origem" "$polkit_origem" \
+           "$wrapper_origem" "$hook_origem" "$completion_origem"; do
     [ -f "$f" ] || { meow_erro "falta $f — repositório incompleto"; return "$MEOW_ERRO"; }
   done
 
-  local perfil_quer regra_quer somas_quer
+  local perfil_quer regra_quer somas_quer pecas_quer
   perfil_quer="$(printf 'raiz=%s\nusuaria=%s\nlar=%s\n' "$MEOW_RAIZ" "$(id -un)" "$HOME")"
 
   # Comparar por CONTEÚDO (regra 5). A regra de sudo é gerada pela PRÓPRIA
@@ -1678,6 +1690,15 @@ etapa_ponte_root() {
     "$(sha256sum < "$origem" | cut -d' ' -f1)" \
     "$(printf '%s\n' "$regra_quer" | sha256sum | cut -d' ' -f1)")"
   [ -d "$reserva" ] && [ "$(cat "$somas" 2>/dev/null)" = "$somas_quer" ] || mudou=1
+  # O wrapper é preenchido com o mesmo molde da `etapa_lancador_apt`.
+  local wrapper_quer
+  wrapper_quer="$(sed -e "s|@ACERVO@|$MEOW_RAIZ|g" -e "s|@USUARIA@|$(id -un)|g" \
+                      -e "s|@LAR@|$HOME|g" "$wrapper_origem")"
+  pecas_quer="$(printf '%s  meow-lancador-apt.sh\n%s  99-meow-lancador\n%s  _meow' \
+    "$(printf '%s\n' "$wrapper_quer" | sha256sum | cut -d' ' -f1)" \
+    "$(sha256sum < "$hook_origem" | cut -d' ' -f1)" \
+    "$(sha256sum < "$completion_origem" | cut -d' ' -f1)")"
+  [ "$(cat "$pecas" 2>/dev/null)" = "$pecas_quer" ] || mudou=1
   cmp -s "$reparo_origem" "$reparo" 2>/dev/null || mudou=1
   cmp -s "$unidade_origem" "$unidade" 2>/dev/null || mudou=1
   # A pasta das regras do polkit é 0750 root:polkitd: sem ler, a etapa não
@@ -1743,7 +1764,13 @@ etapa_ponte_root() {
          sudo install -m 755 -o root -g root "$origem" "$reserva/ponte_root.sh" &&
          sudo install -m 440 -o root -g root "$tmp" "$reserva/49-meowsystem-ponte" &&
          chmod 600 "$tmp" && printf '%s\n' "$somas_quer" > "$tmp" &&
-         sudo install -m 644 -o root -g root "$tmp" "$somas"; }; then
+         sudo install -m 644 -o root -g root "$tmp" "$somas" &&
+         printf '%s\n' "$wrapper_quer" > "$tmp" &&
+         sudo install -m 644 -o root -g root "$tmp" "$reserva/meow-lancador-apt.sh" &&
+         sudo install -m 644 -o root -g root "$hook_origem" "$reserva/99-meow-lancador" &&
+         sudo install -m 644 -o root -g root "$completion_origem" "$reserva/_meow" &&
+         printf '%s\n' "$pecas_quer" > "$tmp" &&
+         sudo install -m 644 -o root -g root "$tmp" "$pecas"; }; then
     rm -f "$tmp"; meow_erro "não consegui guardar a reserva da ponte"; return "$MEOW_ERRO"
   fi
   rm -f "$tmp"

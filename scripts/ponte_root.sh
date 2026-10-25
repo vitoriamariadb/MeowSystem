@@ -63,15 +63,16 @@
 #
 # O QUE ELA CUSTA, DITO SEM ENFEITE: quem puder rodar comando como a dona da
 # máquina passa a poder, sem senha, marcar `.desktop` de sistema, atualizar os
-# pacotes, reinstalar o hook do apt e pôr no `fpath` de fábrica do zsh a
-# completion do `meow` que estiver no clone registrado — que o zsh de QUALQUER
-# usuário carrega quando completa `meow` (P47; a conferência do verbo aceita só
-# arquivo que começa por `#compdef meow`, e o preço está escrito lá). É menos do
+# pacotes, repor o hook do apt e pôr no `fpath` de fábrica do zsh a completion
+# do `meow`. O hook e a completion vêm só da RESERVA que o install guardou com a
+# senha, nunca do clone (P108, 25/10/2026): o clone é gravável por quem usa, e
+# nada que quem usa pode editar vira root sem passar pelo install. É menos do
 # que `NOPASSWD: ALL` por uma margem larga, e é mais do que nada. Desligar é
 # `PONTE_ROOT="nao"` no `meow.conf` e `./install.sh` — a etapa então REMOVE a
 # regra e o arquivo.
 #
-# CÓDIGOS DE SAÍDA: 0 fez · 2 erro · 3 falta condição (o caminho não existe)
+# CÓDIGOS DE SAÍDA: 0 fez · 2 erro · 3 falta condição (o caminho não existe,
+#                   ou a reserva não tem a peça) · 4 a reserva não confere com o sha256
 set -euo pipefail
 umask 022
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -83,14 +84,16 @@ GREETER_DONO=cosmic-greeter
 HOOK=/etc/apt/apt.conf.d/99-meow-lancador
 WRAPPER=/usr/local/sbin/meow-lancador-apt.sh
 # O PERFIL É GRAVADO PELO INSTALADOR, COM A SENHA, E LIDO AQUI. Ele não vem por
-# argumento nem do ambiente: fosse o chamador quem escolhesse a raiz,
-# `apt-hook-instalar` viraria "instale como root o script que eu apontar".
-#
-# São três linhas `chave=valor` — `raiz`, `usuaria` e `lar` — porque o wrapper do
-# hook é um MOLDE: ele carrega `@ACERVO@`, `@USUARIA@` e `@LAR@`, e quem os
-# substitui tem de ser quem sabe a verdade. O `install.sh` sabe; o chamador sem
-# senha, não.
+# argumento nem do ambiente. São três linhas `chave=valor` — `raiz`, `usuaria` e
+# `lar` —, e quem as lê é o `estado` e o `flatpak-global-limpar`. O wrapper do
+# hook, que é um MOLDE com `@ACERVO@`, `@USUARIA@` e `@LAR@`, já não é preenchido
+# aqui: o install o guarda preenchido na reserva (P108).
 PERFIL=/usr/local/lib/meowsystem/perfil
+# A RESERVA: o que o install guardou com a senha, 0700 root. O wrapper do apt
+# (já preenchido), o hook e a completion moram nela, e o sha256 deles fica ao
+# lado. Os verbos que põem essas peças em root copiam só daqui (P108).
+RESERVA=/usr/local/lib/meowsystem/reserva
+PECAS=/usr/local/lib/meowsystem/reserva-pecas.sha256
 # O primeiro diretório do `fpath` de fábrica do zsh desta distribuição
 # (`zsh -f -c 'print -l $fpath'`, medido em 24/09/2026) — ver `completion-instalar`.
 COMPLETION=/usr/local/share/zsh/site-functions/_meow
@@ -141,6 +144,20 @@ do_libreoffice() {
 libreoffice_instalados() {
   dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'libreoffice*' 2>/dev/null \
     | awk '$1 ~ /^.[ic]/ && $2 ~ /^libreoffice/ { print $2 }'
+}
+
+# Uma peça da reserva, lida UMA vez para o temporário e conferida ali: o que se
+# conferiu é o que se instala. O sha256 nomeia as três peças e só elas; um nome a
+# mais, a menos ou repetido recusa tudo. Sem as peças (install anterior à P108),
+# 3: a reserva só se refaz no install, e o repositório nunca é a saída.
+da_reserva() {
+  local nome="$1" tmp="$2" quer
+  [ -d "$RESERVA" ] && [ -f "$PECAS" ] || morrer "a reserva não tem $nome: entra no próximo «Instalar tudo»" 3
+  [ "$(wc -l < "$PECAS")" = 3 ] || morrer "a lista da reserva não confere" 4
+  quer="$(awk -v n="$nome" 'NF == 2 && $2 == n { print $1 }' "$PECAS")"
+  [ "${#quer}" = 64 ] || morrer "a lista da reserva não confere" 4
+  cat "$RESERVA/$nome" > "$tmp" 2>/dev/null || morrer "a reserva não tem $nome" 4
+  [ "$(sha256sum < "$tmp" | cut -d' ' -f1)" = "$quer" ] || morrer "a reserva não confere com o sha256: $nome" 4
 }
 
 verbo="${1:-}"
@@ -229,41 +246,25 @@ greeter-aplicar)
   ;;
 
 # --- o hook de apt do lançador ---------------------------------------------
-# A origem NÃO vem do chamador: vem do arquivo que o instalador gravou como
-# root. Ver o comentário do `PERFIL`.
+# A ORIGEM É A RESERVA, E SÓ ELA — P108, 25/10/2026. Até aqui o verbo lia a
+# `raiz` do perfil e copiava `$raiz/scripts/meow-lancador-apt.sh` para o
+# wrapper, que roda como root em todo `apt`. O clone é gravável por quem usa:
+# editar o script e chamar o verbo, sem senha, punha código seu em root. Agora o
+# install (que tem a senha) guarda o wrapper já preenchido e o hook na reserva,
+# e o verbo só os copia de lá, conferindo o sha256. O repositório mais novo que
+# a reserva entra no próximo «Instalar tudo».
 apt-hook-instalar)
-  [ -r "$PERFIL" ] || morrer "o perfil não foi registrado: o «Instalar tudo» o registra" 3
-  raiz=""; usuaria=""; lar=""
-  # `|| [ -n "$chave" ]` NÃO É DEFENSIVA À TOA: um arquivo sem `\n` na última
-  # linha faz o `read` devolver 1 no fim, e o `while` descarta a linha que ele
-  # ACABOU de ler. Medido em 08/09/2026 — o `perfil` era gravado com
-  # `printf '%s'` (a substituição de comando come o `\n` final), o `lar` nunca
-  # era atribuído, e a ponte recusava repor o hook do apt dizendo "lar inválido".
-  # O gravador foi corrigido junto; esta linha é para o dia em que outro
-  # gravador esquecer.
-  while IFS='=' read -r chave valor || [ -n "${chave:-}" ]; do
-    case "$chave" in raiz) raiz="$valor" ;; usuaria) usuaria="$valor" ;; lar) lar="$valor" ;; esac
-    chave=""
-  done < "$PERFIL"
-  case "$raiz" in /*) ;; *) morrer "raiz inválida no perfil" ;; esac
-  case "$lar"  in /*) ;; *) morrer "lar inválido no perfil" ;; esac
-  case "$usuaria" in ''|*[!a-z0-9._-]*) morrer "usuária inválida no perfil" ;; esac
-  fonte_w="$raiz/scripts/meow-lancador-apt.sh"
-  fonte_h="$raiz/scripts/99-meow-lancador"
-  [ -f "$fonte_w" ] && [ -f "$fonte_h" ] || morrer "não achei os arquivos do hook em $raiz" 3
-  tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
-  # O MESMO MOLDE QUE O `install.sh` PREENCHE, com os mesmos três valores — e
-  # eles vêm do perfil, não do ambiente. Fazer diferente aqui produziria dois
-  # wrappers possíveis para o mesmo arquivo, e a etapa nunca convergiria.
-  sed -e "s|@ACERVO@|$raiz|g" -e "s|@USUARIA@|$usuaria|g" -e "s|@LAR@|$lar|g" \
-      "$fonte_w" > "$tmp" || morrer "não consegui preencher o molde"
-  install -m 755 -o root -g root "$tmp" "$WRAPPER" || morrer "não consegui instalar o wrapper"
+  tmp_w="$(mktemp)"; tmp_h="$(mktemp)"; trap 'rm -f "$tmp_w" "$tmp_h"' EXIT
+  da_reserva meow-lancador-apt.sh "$tmp_w"
+  da_reserva 99-meow-lancador "$tmp_h"
+  if cmp -s "$tmp_w" "$WRAPPER" && cmp -s "$tmp_h" "$HOOK"; then exit 0; fi   # regra 5
+  install -m 755 -o root -g root "$tmp_w" "$WRAPPER" || morrer "não consegui instalar o wrapper"
   # O hook vai por ÚLTIMO: enquanto ele não existe, nada chama o wrapper. Na
   # ordem inversa haveria uma janela — curta, mas real — em que um apt disparado
   # nesse instante chamaria um caminho que ainda não existe. Mesma ordem do
   # `etapa_lancador_apt`, e pelo mesmo motivo.
-  install -m 644 -o root -g root "$fonte_h" "$HOOK" || morrer "não consegui instalar o hook"
-  anotar "apt-hook-instalar de $raiz"
+  install -m 644 -o root -g root "$tmp_h" "$HOOK" || morrer "não consegui instalar o hook"
+  anotar "apt-hook-instalar da reserva"
   ;;
 
 apt-hook-remover)
@@ -280,32 +281,20 @@ apt-hook-remover)
 #   Pôr o diretório no `fpath` seria editar o `.zshrc` de alguém; pôr o arquivo
 #   onde o zsh JÁ procura é root, e root sem senha é esta ponte.
 #
-# A ORIGEM VEM DO PERFIL, como no `apt-hook-instalar`: a `raiz` que o
-#   instalador gravou como root. O chamador não escolhe arquivo nenhum.
-#
-# O QUE SE CONFERE, E POR QUE NA CÓPIA: o clone é gravável por quem chama, e o
-#   que ele contém vira código que o zsh de todo usuário carrega ao completar
-#   `meow`. A ponte não tem como julgar o código; ela garante o que dá para
-#   garantir — que o arquivo é a completion do `meow` (primeira linha
-#   `#compdef meow`, até 64 KiB; a de hoje tem 9) e que o que se conferiu é o
-#   que se instala: o arquivo é lido UMA vez, para um temporário, e tudo
-#   depois disso olha o temporário. Um symlink trocado no meio do caminho não
-#   tem como pôr outra coisa lá. O diretório de destino é do pacote do zsh, e
-#   esta ponte não cria diretório de sistema: sem ele, 3.
+# A ORIGEM É A RESERVA, como no `apt-hook-instalar` (P108, 25/10/2026). Até
+#   aqui ela era `$raiz/assets/zsh/_meow`, do clone, e a ponte só conferia a
+#   primeira linha e o tamanho: o conteúdo de quem usa entrava no `fpath` que o
+#   zsh de todo usuário carrega, root incluído. Agora o install guarda a
+#   completion na reserva, e o verbo a copia de lá, conferindo o sha256. O
+#   diretório de destino é do pacote do zsh, e esta ponte não cria diretório de
+#   sistema: sem ele, 3.
 completion-instalar)
   [ -d "${COMPLETION%/*}" ] || morrer "${COMPLETION%/*} não existe" 3
-  [ -r "$PERFIL" ] || morrer "o perfil não foi registrado: o «Instalar tudo» o registra" 3
-  raiz="$(sed -n 's/^raiz=//p' "$PERFIL" | head -n1)"
-  case "$raiz" in /*) ;; *) morrer "raiz inválida no perfil" ;; esac
-  fonte="$raiz/assets/zsh/_meow"
-  [ -f "$fonte" ] || morrer "não achei $fonte" 3
   tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
-  head -c 65537 "$fonte" > "$tmp" || morrer "não consegui ler $fonte"
-  [ "$(stat -c %s "$tmp")" -le 65536 ] || morrer "$fonte é grande demais para uma completion"
-  [ "$(head -n1 "$tmp")" = "#compdef meow" ] || morrer "$fonte não começa por #compdef meow"
+  da_reserva _meow "$tmp"
   if cmp -s "$tmp" "$COMPLETION"; then exit 0; fi   # regra 5: nada a escrever
   install -m 644 -o root -g root "$tmp" "$COMPLETION" || morrer "não consegui instalar $COMPLETION"
-  anotar "completion-instalar de $raiz"
+  anotar "completion-instalar da reserva"
   ;;
 
 # O `--uninstall` a tira, e tira pela ponte ANTES de a ponte sair — é a ordem
