@@ -138,6 +138,45 @@ for app in "${MODELOS[@]}"; do
   fi
 done
 
+# --- Spotify: o tema do spicetify desce do pack, sem rede -------------------
+# Sem o tema em ~/.config/spicetify/Themes, o pack que traz a arte a entrega da
+# própria pasta; o pack que a pina (`origem`) a baixa, e aqui não há rede.
+printf '#!/bin/sh\nexit 22\n' > "$BIN/curl"; chmod +x "$BIN/curl"
+spot() {  # <pack> <flavor> — chama o `_spot_tema_baixar` e imprime o rc no fim
+  env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" XDG_DATA_HOME="$CASA/.local/share" \
+      MEOW_PACKS="$T/packs" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado" TMPDIR="$T" \
+      PACK="$1" FLAVOR="$2" ACCENT=mauve NO_COLOR=1 \
+      bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
+               . "$MEOW_RAIZ/scripts/temas-de-apps/spotify/manifesto.sh" || exit 2
+               _spot_tema_baixar; printf "rc=%s\n" "$?"' </dev/null 2>&1
+}
+secao() {  # <color.ini> <seção> — as linhas da seção, sem o cabeçalho
+  awk -v s="[$2]" '$0 == s { d = 1; next } /^\[/ { d = 0 } d' "$1" 2>/dev/null
+}
+for par in "${PACKS[@]}"; do
+  p="${par%%:*}"; f="${par#*:}"
+  quem="$(python3 "$RAIZ/scripts/pack.py" app "$p" apps.spotify.spicetify_tema 2>/dev/null | sed -n 's/^pack=//p')"
+  [ "$quem" = "$p" ] && ok "spotify/$p: o pack responde pelo próprio tema" \
+    || falha "spotify/$p: o tema não é do pack $p (responde: '${quem:-ninguém}')"
+  fonte="$(python3 "$RAIZ/scripts/pack.py" app "$p" apps.spotify.arquivo 2>/dev/null | sed -n 's/^valor=//p')"
+  repo="$(python3 "$RAIZ/scripts/pack.py" app "$p" apps.spotify.origem.commit 2>/dev/null | sed -n 's/^valor=//p')"
+  [ -n "$fonte$repo" ] && ok "spotify/$p: o pack diz de onde o tema vem (arte no pack ou origem pinada)" \
+    || falha "spotify/$p: o pack pede um tema do spicetify e não diz de onde ele vem"
+done
+semear spotify
+saida="$(spot dracula dracula)"
+SLEEK="$CASA/.config/spicetify/Themes/Sleek"
+cores="$(secao "$SLEEK/color.ini" Dracula)"
+if printf '%s' "$saida" | grep -qx 'rc=1' && cmp -s "$SLEEK/color.ini" "$RAIZ/packs/dracula/temas-de-apps/spotify/Sleek/color.ini" \
+   && printf '%s' "$cores" | grep -qi "$(fundo dracula dracula)" && ! printf '%s' "$cores" | grep -qi "$(fundo meowsystem mocha)"; then
+  ok "spotify/dracula: sem rede, o Sleek sai da pasta do pack, e a seção Dracula tem a cor dele"
+else
+  falha "spotify/dracula: o tema do spicetify não saiu do pack" "$saida"
+fi
+saida="$(spot dracula dracula)"
+printf '%s' "$saida" | grep -qx 'rc=0' && ok "spotify/dracula: a segunda passada fica quieta" \
+  || falha "spotify/dracula: a segunda passada não ficou quieta" "$saida"
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then
   printf '%s achado(s).\n' "$falhas" >&2

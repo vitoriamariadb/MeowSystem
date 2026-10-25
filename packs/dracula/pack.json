@@ -130,8 +130,10 @@
     "spotify": {
       "spicetify_tema": "Sleek",
       "esquema": "Dracula",
+      "arquivo": "temas-de-apps/spotify/Sleek/color.ini",
+      "sha256": "4f5a883afd9e71ddf515e8c7ecf44ca55688f4824b12294f4fdcc0f90745ed68",
       "_nota": "MEDIDO nesta máquina em 21/09/2026, e não escolhido: o `~/.config/spicetify/config-xpui.ini` já dizia `current_theme = Sleek` e `color_scheme = Dracula`, com o app patchado. O tema Sleek traz dezoito esquemas de cor e um deles é o Dracula oficial (o color.ini do Sleek credita draculatheme.com na própria seção). Declarar aqui o que já está no ar é o que faz o módulo dizer 'já está no tema do pack' em vez de sobrescrever o que ela escolheu.",
-      "_nota_sem_origem": "Sem bloco `origem` DE PROPÓSITO: o Sleek não é arte deste projeto nem tem um tarball que este pack saiba pinar por commit. Se um dia ele não estiver em `~/.config/spicetify/Themes/`, o módulo diz que o pack pede um tema que não está instalado e NÃO inventa um download — é o contrário de baixar o tema do outro pack e chamar de sucesso.",
+      "_nota_sem_origem": "A arte mora no pack: `arquivo` é o color.ini do Sleek, e o módulo copia a pasta dele (color.ini, user.css e a licença MIT) quando o tema não está em `~/.config/spicetify/Themes/`. Sem `origem` porque o Sleek mora no spicetify/spicetify-themes, cujo tarball pesa ~100 MB por dois arquivos de 33 KB. A procedência está no PROCEDENCIA.md, seção das artes.",
       "_nota_sem_acento": "Sem `acento_no_color_ini` porque a seção [Dracula] do color.ini do Sleek define vinte e duas chaves e nenhuma delas se chama `mauve`: escrever o acento da casa ali só daria erro. O acento do Dracula já está na arte do próprio esquema."
     },
     "qbittorrent": {

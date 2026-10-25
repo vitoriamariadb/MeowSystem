@@ -533,11 +533,45 @@ _spot_mp_registrar() {
 #   a frase dizendo qual pack pediu o quê — e nunca um download do tema de OUTRO
 #   pack, que é exatamente o defeito que a sprint veio matar.
 #
+# O tema que o pack traz na pasta dele: só o color.ini, o user.css e a licença,
+# arquivos comuns (link não entra). 1 entregou · 2 erro.
+_spot_tema_do_pack() {
+  local ini="$1" dir tmp f
+  dir="$(dirname -- "$ini")"
+  if meow_seco; then
+    meow_muda "poria o tema '$_SPOT_TEMA_NOME' do spicetify, que vem no pack, em $_SPOT_TEMA"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_destino_permitido "$_SPOT_TEMA" || return "$MEOW_ERRO"
+  mkdir -p "$(dirname -- "$_SPOT_TEMA")" || return "$MEOW_ERRO"
+  tmp="$(mktemp -d -p "$(dirname -- "$_SPOT_TEMA")" ".meow-spot-tema.XXXXXX")" || return "$MEOW_ERRO"
+  chmod 755 "$tmp"
+  for f in color.ini user.css LICENSE; do
+    [ -f "$dir/$f" ] && [ ! -L "$dir/$f" ] || continue
+    cp -- "$dir/$f" "$tmp/$f" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
+  done
+  [ -f "$tmp/color.ini" ] || { rm -rf "$tmp"; meow_erro "o tema do pack não tem color.ini"; return "$MEOW_ERRO"; }
+  printf 'pack %s: %s\ncopiado pelo MeowSystem em %s\n' "${_SPOT_TEMA_DE:-?}" "$dir" "$(date -Iseconds)" \
+    > "$tmp/PROCEDENCIA.txt" 2>/dev/null
+  rm -rf "$_SPOT_TEMA"
+  mv -f "$tmp" "$_SPOT_TEMA" || { rm -rf "$tmp"; meow_erro "não consegui pôr o tema em $_SPOT_TEMA"; return "$MEOW_ERRO"; }
+  meow_ok "tema '$_SPOT_TEMA_NOME' do spicetify posto em $_SPOT_TEMA, do pack ${_SPOT_TEMA_DE:-ativo}"
+  return "$MEOW_DIVERGENTE"
+}
+
 #   0 já estava lá · 1 baixei · 2 erro · 3 falta dependência (ou rede, ou origem)
 _spot_tema_baixar() {
   local tmp origem repo commit pasta tar
   [ -n "$_SPOT_COLOR_INI" ] || return "$MEOW_SEM_DEPENDENCIA"
   [ -f "$_SPOT_COLOR_INI" ] && return "$MEOW_OK"
+
+  # A arte que mora no pack vence a origem: `arquivo` é o color.ini, e o tema é
+  # a pasta dele. Sai sem rede, e o `pack.py validar` confere o sha256.
+  meow_app_tema_do_pack spotify.arquivo
+  if [ -n "$MEOW_APP_TEMA" ]; then
+    _spot_tema_do_pack "$MEOW_APP_TEMA"
+    return $?
+  fi
 
   # Direto, sem `$( )`: a função responde por `MEOW_APP_TEMA`, e um subshell
   # devolveria string vazia — ver o bloco da identidade, lá em cima.
