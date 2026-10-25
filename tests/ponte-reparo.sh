@@ -277,7 +277,7 @@ for f in _ponte_reparo_ha _ponte_reparo_motivo chk_ponte fix_ponte; do
 done | trocar > "$DOCTOR"
 doctor() {   # $1 = chk_ponte | fix_ponte
   env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" RAIZ="${RAIZ_DOCTOR:-$RAIZ}" MEOW_RAIZ="$RAIZ" \
-         PONTE_ROOT=sim DOCTOR="$DOCTOR" FUNCAO="$1" bash -c '
+         PONTE_ROOT="${PONTE_ROOT_DOCTOR:-sim}" DOCTOR="$DOCTOR" FUNCAO="$1" bash -c '
     . "$MEOW_RAIZ/lib/comum.sh"; . "$DOCTOR"; "$FUNCAO"' 2>&1
 }
 saida="$(doctor chk_ponte)"; rc=$?
@@ -372,6 +372,18 @@ confere "e o conserto não dispara nada (sai 3, nenhum start)" '[ "$rc" = 3 ] &&
 mv "$T/reserva.antiga" "$BASE/reserva"; mv "$T/somas.antigas" "$BASE/reserva.sha256"
 saida="$(doctor chk_ponte)"; rc=$?
 confere "com a reserva de volta, ok" '[ "$rc" = 0 ]' "$saida"
+
+printf '\n--- 6. PONTE_ROOT="nao": o reparo nunca devolve a ponte que quem usa desligou ---\n'
+rm -f "$REGRA"
+saida="$(PONTE_ROOT_DOCTOR=nao doctor chk_ponte)"; rc=$?
+confere 'PONTE_ROOT="nao" com a ponte no disco: o doctor aponta a divergência' '[ "$rc" = 1 ]' "$saida"
+: > "$SYSTEMCTL_LOG"
+saida="$(PONTE_ROOT_DOCTOR=nao doctor fix_ponte)"; rc=$?
+confere 'e o conserto não dispara o reparo nem devolve a regra (sai 3, nenhum start)' \
+  '[ "$rc" = 3 ] && ! grep -q "^start" "$SYSTEMCTL_LOG" && [ ! -e "$REGRA" ] && grep -q "Instalar tudo" <<< "$saida"' "$saida
+$(cat "$SYSTEMCTL_LOG")"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "ligada de novo no meow.conf, o reparo volta a repor" '[ "$rc" = 1 ] && [ -f "$REGRA" ]' "$saida"
 
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi

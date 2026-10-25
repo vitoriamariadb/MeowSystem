@@ -934,6 +934,12 @@ chk_ponte() {
 # estado da unidade enquanto ela roda: o painel lê estas linhas ao vivo.
 fix_ponte() {
   local u=meowsystem-ponte-reparo.service
+  # Desligada no meow.conf: tirar a ponte é do install, e o reparo nunca a
+  # devolve contra a escolha de quem usa.
+  if [ "${PONTE_ROOT:-sim}" != "sim" ]; then
+    meow_pula 'PONTE_ROOT="nao" — tirar a ponte entra no «Instalar tudo»'
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   if ! _ponte_reparo_ha; then
     meow_pula "sem reserva — entra no «Instalar tudo»"
     return "$MEOW_SEM_DEPENDENCIA"
