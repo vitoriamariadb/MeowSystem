@@ -26,7 +26,7 @@ DIRS=(
   "$HOME/.local/share/applications"
   "$HOME/.local/share/flatpak/exports/share/applications"
   "/var/lib/flatpak/exports/share/applications"
-  "/usr/share/applications"
+  "${MEOW_APLICATIVOS_SISTEMA:-/usr/share/applications}"
   "/usr/local/share/applications"
 )
 
@@ -195,12 +195,9 @@ if [ "$falhou" = 1 ]; then
   exit "$MEOW_ERRO"
 fi
 
+# Sem a ponte é pendência como as outras: nenhuma saída manda rodar sudo.
 if [ "$pendente_sudo" -gt 0 ]; then
-  if [ "$SEM_SUDO" = 1 ]; then
-    meow_pula "$pendente_sudo Icon= em /usr/share espera root: entra no próximo «Instalar tudo»"
-  else
-    meow_aviso "$pendente_sudo Icon= precisa(m) de sudo para trocar"
-  fi
+  meow_pula "$pendente_sudo Icon= em /usr/share espera root: entra no próximo «Instalar tudo»"
 fi
 
 if [ "$mudou" = 0 ] && [ "$pendente_sudo" = 0 ]; then
