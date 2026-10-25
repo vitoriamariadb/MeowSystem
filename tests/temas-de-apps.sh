@@ -437,6 +437,27 @@ done
 [ -z "$zz_valores_fora" ] \
   && ok "zapzap: todo valor que a paleta põe no CSS é cor (#hex, mistura de #hex ou canais)" \
   || falha "zapzap: há valor no CSS que não é cor" "$zz_valores_fora"
+# O texto que não é cor e vem do pack é só o par pack/flavor, e só na marca.
+zz_marcas="$(grep -oE '\{\{[^}]*\}\}' "$ACERVO/zapzap/zapzap.modelo.css" | grep -vE '^\{\{[a-z0-9_]+(:([0-9A-Fa-f]{2}|rgb))?\}\}$|^\{\{(pack|flavor)\}\}$')"
+zz_texto="$(grep -nE '\{\{(pack|flavor|nome|tipo|tipo_inverso)\}\}' "$ACERVO/zapzap/zapzap.modelo.css")"
+[ -z "$zz_marcas" ] && ! printf '%s' "$zz_texto" | grep -qvE '^[0-9]+: \* meowsystem-tema: \{\{pack\}\}/\{\{flavor\}\}$' \
+  && ! printf '%s' "$zz_texto" | grep -qE '\{\{(nome|tipo|tipo_inverso)\}\}' \
+  && ok "zapzap: o único texto do pack que não é cor é o par pack/flavor, na linha da marca" \
+  || falha "zapzap: o modelo põe no CSS texto do pack que não é cor" "$zz_marcas$zz_texto"
+# Uma paleta que traz outra coisa no lugar da cor não chega ao CSS.
+python3 -I - "$RAIZ/packs/dracula/paleta.json" "$T/zz-paleta-ruim.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1], encoding="utf-8"))
+p["flavors"]["dracula"]["mantle"] = "#21222C } * { display: none"
+json.dump(p, open(sys.argv[2], "w", encoding="utf-8"))
+PY
+zz_antes="$(zz_sha)"
+saida="$(mod zapzap aplicar MEOW_PALETA="$T/zz-paleta-ruim.json")"; rc=$?
+saida2="$(mod zapzap conferir MEOW_PALETA="$T/zz-paleta-ruim.json")"; rc2=$?
+[ "$rc" = 3 ] && [ "$rc2" = 3 ] && [ "$(zz_sha)" = "$zz_antes" ] && ! grep -q 'display' "$ZZ_CSS" \
+  && printf '%s' "$saida" | grep -q 'não montou' \
+  && ok "zapzap: paleta com texto no lugar da cor não chega ao CSS — nada escrito, e o motivo na tela" \
+  || falha "zapzap: a paleta com texto no lugar da cor passou ou escreveu (aplicar=$rc, conferir=$rc2)" "$saida$saida2"
 printf '/* mexido */\n' >> "$ZZ_CSS"
 saida="$(mod zapzap conferir)"; rc=$?
 [ "$rc" = 1 ] && ok "zapzap: o CSS mexido à mão é divergência no conferir" \
