@@ -101,5 +101,12 @@ for nome in inexistente ../teste ""; do
   fi
 done
 
+# A flag e a página de entrada não se separam caladas.
+for leia in README.md README.en.md; do
+  grep -q './install.sh --perfil' "$RAIZ/$leia" \
+    && ok "o $leia diz como instalar com um perfil" \
+    || falha "o $leia não fala do ./install.sh --perfil"
+done
+
 [ "$falhas" = 0 ] || { printf '%d falha(s)\n' "$falhas" >&2; exit 1; }
 printf 'perfil: tudo ok\n'

@@ -43,6 +43,10 @@ cd MeowSystem
 meow ativar               # every other run
 ```
 
+On a blank PC, with the choices kept in a profile (`perfis/<name>/`: the `meow.conf` and the
+chosen-icons map), the clone and `./install.sh --perfil <name>` are enough: the profile goes to
+`~/.config/meow/`, what was there is kept beside it, and the rest comes from the repository.
+
 68 steps. On a machine already set up, running it again **writes nothing** and says so. To
 rehearse first: `MEOW_DRY_RUN=1 ./install.sh`, or **Ver sem mudar** (see what it would do) in
 the panel.
