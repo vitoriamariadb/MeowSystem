@@ -118,3 +118,16 @@ a decisão ser dela, quando destravar. Há dois caminhos, ambos já mapeados:
    tema `andromeda` do Aurora já funciona — ele aponta para
    `assets/temas/andromeda/config.json`). Descomprimir, editar o JSON e apontar para o
    diretório é o caminho sem build.
+
+## Os modelos do motor
+
+Os apps abaixo não trazem arquivo neste pack: o bloco `apps.<app>` vazio do
+`pack.json` pede o modelo do motor (`scripts/temas-de-apps/<app>/<app>.modelo.*`),
+e o `scripts/temas-de-apps/modelo.py` põe nele a paleta deste pack, no flavor da
+máquina. O modelo não traz cor escrita (o `tests/temas-de-apps.sh` cobra). De onde
+veio o desenho de cada um, e sob que licença, está na seção «Os temas de
+aplicativo» do `packs/dracula/PROCEDENCIA.md`.
+
+| app | modelo | desenho de origem | licença |
+|---|---|---|---|
+| kitty | `scripts/temas-de-apps/kitty/kitty.modelo.conf` | `dracula/kitty` | MIT |

@@ -83,6 +83,7 @@ PORTATIL=(
   lancador-do-meow.sh    # pontes de app_id, lançador órfão, mimeinfo.cache e o ocultar fora de /usr/share, numa casa de brinquedo com flatpak e update-desktop-database falsos; bash e python3
   flatpak-tema.sh        # o override do Flatpak do usuário, o global do sistema pela cópia da ponte e os dois scripts do NitroKit, com flatpak, sudo e gsettings falsos, casa de brinquedo; bash e python3
   escritorio.sh          # o OnlyOffice do Flathub no lugar do LibreOffice, a ponte root de brinquedo e o desinstalador que devolve, com flatpak, dpkg-query, apt-get e sudo falsos, casa de brinquedo; só bash
+  apps-em-todo-pack.sh   # cada app x pack numa casa de brinquedo, dconf e flatpak falsos e falsos que recusam; bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

@@ -3182,12 +3182,13 @@ for app in kitty gnome-terminal telegram discord onlyoffice; do
     || falha "o modelo do $app tem cópia dentro do pack"
 done
 # A HERANÇA NÃO LEVA O TEMA ESCURO PARA QUEM NÃO O PEDIU. O Dracula herda do
-#   Catppuccin, e não o contrário: um Catppuccin no ar não tem tema de kitty, e
-#   o módulo sai pendente em vez de vestir o terminal de roxo.
-if amb python3 "$RAIZ/scripts/pack.py" app meowsystem apps.kitty.arquivo >/dev/null 2>&1; then
-  falha "o pack padrão respondeu por um tema de kitty que ele não declara"
+#   Catppuccin, e não o contrário: o pack padrão responde pelo próprio bloco, e
+#   o modelo sai com a paleta dele (tests/apps-em-todo-pack.sh).
+saida="$(amb python3 "$RAIZ/scripts/pack.py" app meowsystem apps.kitty.arquivo 2>&1)"
+if printf '%s\n' "$saida" | grep -qx 'pack=meowsystem'; then
+  ok "o pack padrão responde pelo próprio kitty — declarado, e não empréstimo"
 else
-  ok "o pack padrão não declara os temas de aplicativo da P42 — ausência, e não empréstimo"
+  falha "o kitty do pack padrão não é dele" "$saida"
 fi
 
 # --- 29b. os aplicativos vestem o pack no ar — 24/09/2026, P55 ---------------
