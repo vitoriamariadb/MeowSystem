@@ -2846,6 +2846,110 @@ def validar_valor(item, valor):
 PONTAS_DA_NOITE = ("NOITE_INICIO", "NOITE_FIM")
 
 
+# «MESMO HORÁRIO» (Ajustes › Dia e noite): as áreas que têm horário próprio
+# gravam o da noite (NOITE_INICIO/FIM). O que cada área tinha fica guardado no
+# estado, e a existência desse arquivo é o interruptor ligado; desligado, cada
+# área volta ao seu. O claro ou escuro é de hora cheia, e grava só a hora.
+# Área sem chave no esquema não entra: sem horário próprio, não aparece.
+HORARIO_DAS_AREAS = (
+    ("Claro ou escuro", "MODO_AUTO_CLARO_ATE", "MODO_AUTO_CLARO_DE", "hora"),
+    ("Papel de parede", "WALLPAPER_NOITE_INICIO", "WALLPAPER_NOITE_FIM", "hhmm"),
+    ("Tela quente", "LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "hhmm"),
+)
+NOITE_DE_FABRICA = ("18:00", "07:00")
+
+
+def _arquivo_do_mesmo_horario():
+    return os.path.join(ESTADO, "horario-por-area.tsv")
+
+
+def horario_das_areas():
+    """As áreas de `HORARIO_DAS_AREAS` cujas duas chaves estão no esquema."""
+    no_esquema = {i["chave"] for i in ler_esquema()}
+    return [a for a in HORARIO_DAS_AREAS if a[1] in no_esquema and a[2] in no_esquema]
+
+
+def mesmo_horario_ligado():
+    return os.path.isfile(_arquivo_do_mesmo_horario())
+
+
+def _pares_da_noite(inicio, fim):
+    """Os pares (chave, valor) que põem cada área no horário `inicio`–`fim`."""
+    pares = []
+    for _area, c_ini, c_fim, forma in horario_das_areas():
+        for chave, hora in ((c_ini, inicio), (c_fim, fim)):
+            pares.append((chave, str(int(hora.split(":")[0])) if forma == "hora" else hora))
+    return pares
+
+
+def com_o_mesmo_horario(pares, brutos=None):
+    """`pares` mais as áreas, quando o interruptor está ligado e a noite muda."""
+    escolhas = dict(pares)
+    if not mesmo_horario_ligado() or not any(c in escolhas for c in PONTAS_DA_NOITE):
+        return list(pares)
+    antes = dict(valores_brutos() if brutos is None else brutos)
+    final = dict(antes, **escolhas)
+    inicio, fim = (str(final.get(c) or "").strip() for c in PONTAS_DA_NOITE)
+    if not (re.match(r"^\d{1,2}:\d{2}$", inicio) and re.match(r"^\d{1,2}:\d{2}$", fim)):
+        return list(pares)
+    # Só o que muda: cada gravação custa uma passada do `meow_conf_definir`.
+    return list(pares) + [p for p in _pares_da_noite(inicio, fim)
+                          if p[0] not in escolhas and str(antes.get(p[0]) or "") != p[1]]
+
+
+def _adotar_leitura(chaves):
+    leitura = [c for c in chaves if c in _LEITURA_NO_APPLET]
+    if leitura:
+        try:
+            subprocess.run(_meow("leitura", "adotar", *leitura), capture_output=True, timeout=20,
+                           env=_ambiente_do_painel())
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+
+def ligar_mesmo_horario(ligar):
+    """Liga ou desliga o «Mesmo horário»; devolve (gravadas, erro)."""
+    arq = _arquivo_do_mesmo_horario()
+    brutos = valores_brutos()
+    if ligar:
+        inicio = str(brutos.get("NOITE_INICIO") or "").strip()
+        fim = str(brutos.get("NOITE_FIM") or "").strip()
+        pares = []
+        if not (inicio and fim):
+            inicio, fim = NOITE_DE_FABRICA
+            pares = list(zip(PONTAS_DA_NOITE, NOITE_DE_FABRICA))
+        pares += [p for p in _pares_da_noite(inicio, fim) if str(brutos.get(p[0]) or "") != p[1]]
+        if not os.path.isfile(arq):
+            os.makedirs(ESTADO, exist_ok=True)
+            guardado = "".join("%s\t%s\n" % (c, str(brutos.get(c) or ""))
+                               for _a, ci, cf, _f in horario_das_areas() for c in (ci, cf))
+            with open(arq + ".parcial", "w", encoding="utf-8") as fh:
+                fh.write(guardado)
+            os.replace(arq + ".parcial", arq)
+    else:
+        if not os.path.isfile(arq):
+            return [], None
+        validas = {c for _a, ci, cf, _f in horario_das_areas() for c in (ci, cf)}
+        pares = []
+        with open(arq, encoding="utf-8") as fh:
+            for linha in fh:
+                chave, _sep, valor = linha.rstrip("\n").partition("\t")
+                if (chave in validas and not RE_CONTROLE_DE_TEXTO.search(valor)
+                        and str(brutos.get(chave) or "") != valor):
+                    pares.append((chave, valor))
+    feitos = definir_varias(pares) if pares else []
+    falhas = [c for c, rc, _s in feitos if rc not in (0, 1)]
+    if falhas:
+        return [], "não consegui gravar: " + ", ".join(falhas)
+    if not ligar:
+        os.remove(arq)
+    _adotar_leitura([c for c, rc, _s in feitos if rc == 1])
+    return [c for c, rc, _s in feitos if rc == 1], None
+
+
+RE_CONTROLE_DE_TEXTO = re.compile(r"[\x00-\x1f\x7f]")
+
+
 def pontas_da_noite_soltas(escolhas, brutos=None):
     """A queixa (uma por ponta escrita) quando `escolhas` deixa a noite com uma
     ponta só; lista vazia quando ela fica com as duas ou com nenhuma."""
@@ -10325,6 +10429,10 @@ class Manipulador(BaseHTTPRequestHandler):
                 for k, v in ACOES.items()
             ],
             "ponte": _ponte_viva(),
+            # O «Mesmo horário» de Ajustes › Dia e noite, e as áreas que ele leva.
+            "mesmo_horario": mesmo_horario_ligado(),
+            "horario_das_areas": [{"area": a, "chaves": [ci, cf]}
+                                  for a, ci, cf, _f in horario_das_areas()],
             # O pack no ar, com as palavras dele: os flavors e os nomes que a
             # barra «Fundo» e os seletores da aba Ícones usam. Ver
             # `vocabulario_do_pack`.
@@ -10362,7 +10470,11 @@ class Manipulador(BaseHTTPRequestHandler):
             if soltas:
                 return self._json({"erro": soltas[0]["erro"], "chave": chave,
                                    "valor": valor, "recusadas": soltas}, 409)
-            rc, saida = definir(chave, valor)
+            pares = com_o_mesmo_horario([(chave, valor)])
+            feitos = definir_varias(pares)
+            _chave, rc, saida = feitos[0]
+            if len(pares) > 1:
+                _adotar_leitura([c for c, r, _s in feitos[1:] if r == 1])
             # A frase do `meow_conf_definir` vira torrada: a casa sai como `~`.
             return self._json({"rc": rc, "saida": texto_na_tela(saida),
                                "chave": chave, "valor": valor})
@@ -10391,6 +10503,8 @@ class Manipulador(BaseHTTPRequestHandler):
             soltas = pontas_da_noite_soltas(dict(pares))
             if soltas:
                 return self._json({"recusadas": soltas}, 409)
+            # Com o «Mesmo horário» ligado, a noite leva as áreas junto.
+            pares = com_o_mesmo_horario(pares)
 
             # Mandar a página chamar `rodar: instalar, seco` responderia sobre o
             # meow.conf do DISCO, que é justamente o que ainda não tem as 17
@@ -10495,6 +10609,14 @@ class Manipulador(BaseHTTPRequestHandler):
         # `confirmado: true`, instala.
         if caminho == "/api/criar":
             return self._api_criar(corpo)
+        if caminho == "/api/mesmo-horario":
+            try:
+                gravadas, erro = ligar_mesmo_horario(corpo.get("ligar") is True)
+            except OSError as e:
+                return self._json({"erro": "não consegui guardar o horário de cada área: %s" % e}, 500)
+            if erro:
+                return self._json({"erro": erro}, 500)
+            return self._json({"ok": True, "ligado": mesmo_horario_ligado(), "gravadas": gravadas})
         if caminho == "/api/pack-importar":
             return self._api_pack_importar(corpo)
 

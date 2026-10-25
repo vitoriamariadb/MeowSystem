@@ -615,6 +615,27 @@ function reguaDaNoite() {
   return regua;
 }
 
+/* «Mesmo horário»: as áreas com horário próprio seguem a noite. */
+function linhaMesmoHorario() {
+  const areas = ESQUEMA.horario_das_areas || [];
+  if (!areas.length) return null;
+  const ligado = !!ESQUEMA.mesmo_horario;
+  const porque = `${areas.map((a, i) => (i ? a.area.toLowerCase() : a.area)).join(", ").replace(/, ([^,]*)$/, " e $1")} seguem a noite`;
+  const chave = elemento("button", { type: "button", class: "chave", role: "switch", "aria-checked": String(ligado),
+    "aria-label": "Mesmo horário", controle: "noite:mesmo-horario", dica: porque,
+    onclick: async () => {
+      chave.disabled = true;
+      const r = await api("/api/mesmo-horario", { method: "POST", body: JSON.stringify({ ligar: !ligado }) });
+      if (r.erro) torrada(maiuscula(primeiraFrase(r.erro)), "erro");
+      await recarregarEsquema();
+      render();
+    } });
+  return elemento("ul", { class: "linhas" }, [elemento("li", { class: "linha", "data-linha": "mesmo-horario" }, [
+    elemento("div", { class: "rot" }, [elemento("span", { texto: "Mesmo horário", dica: porque })]),
+    elemento("div", { class: "ctl" }, [chave]),
+  ])]);
+}
+
 /* Recebem o tema: um interruptor por programa. */
 function gradeDeProgramas() {
   const item = CHAVE.get("APPS_ATIVOS");
@@ -654,6 +675,7 @@ function paginaAjustes(sub) {
     if (b.programas) filhos.push(gradeDeProgramas());
     if (b.jogos) filhos.push(montarJogos());
     filhos.push(lista(b.linhas, sobra));
+    if (b.noite) filhos.push(linhaMesmoHorario());
     blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas }));
   }
   const mais = maisAjustes("ajustes:" + p.id, p.mais || []);

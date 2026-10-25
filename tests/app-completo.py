@@ -614,6 +614,7 @@ EXTRAS = {
     "criar/sons": ["criar:sino", "som:ouvir", "som:trocar"],
     "criar/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],
+    "ajustes/dia-e-noite": ["noite:mesmo-horario"],
     "ajustes/programas": ["programa:*", "jogo:*", "icone:*", "oficina:*"],
     "cuidar": ["estado:*", "cuidar:exportar", "cuidar:importar", "pendencia:*"],
 }

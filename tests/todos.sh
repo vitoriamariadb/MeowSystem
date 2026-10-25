@@ -86,6 +86,7 @@ PORTATIL=(
   fotos-do-pack.sh       # as fotos de um pack de brinquedo entram sem rede, com curl e sudo falsos, HOME de brinquedo; bash e python3
   perfil.sh              # o install.sh --perfil numa raiz de brinquedo com a fila trocada por uma etapa que só lê, HOME de brinquedo; bash
   criar-tema-leva.sh     # o que o Criar tema leva para o pack da pessoa, e o pack vestido, com curl, sudo e pkill falsos, HOME de brinquedo; bash e python3
+  mesmo-horario.sh       # o «Mesmo horário» de Dia e noite liga, leva as áreas com a noite e desliga, com o painel num HOME de brinquedo, sudo e pkill falsos; bash e python3
   desbanir.sh            # o desbanir em banidos/, só na lista e em lugar nenhum, com sudo e pkill falsos, HOME de brinquedo; só bash
 )
 
