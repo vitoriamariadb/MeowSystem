@@ -270,6 +270,30 @@ chmod 755 "$IA/apps"
   || falha "sem a ponte, o icones_absolutos.sh mandou rodar sudo, escreveu ou deu por feito (rc=$ri)" \
        "$(cat "$SP/sudo.log" "$IA/saida.log")"
 
+printf '\n--- 12. o avatar ilegível da tela de login não é trocado às cegas ---\n'
+# Sem ler o avatar atual não há como saber se ele é nosso: nada se escreve.
+AV="$T/av-ilegivel"; mkdir -p "$AV/bin" "$AV/casa" "$AV/contas"
+printf '<svg/>\n' > "$AV/contas/gata"; chmod 000 "$AV/contas/gata"
+cat > "$AV/bin/busctl" <<BUS
+#!/bin/sh
+printf '%s\n' "\$*" >> "$AV/busctl.log"
+case "\$*" in
+  *FindUserByName*) echo 'o "/org/freedesktop/Accounts/User1000"' ;;
+  *IconFile*) echo 's "$AV/contas/gata"' ;;
+esac
+exit 0
+BUS
+chmod 755 "$AV/bin/busctl"; : > "$AV/busctl.log"
+env -i PATH="$AV/bin:$SP/bin:$PATH" HOME="$AV/casa" USER=gata MEOW_RAIZ="$RAIZ" MEOW_PONTE=/nao/existe \
+  GREETER_HOME="$AV/greeter" NO_COLOR=1 FLAVOR=dracula PACK=dracula \
+  bash "$RAIZ/scripts/greeter.sh" > "$AV/saida.log" 2>&1
+chmod 644 "$AV/contas/gata"
+! grep -q 'SetIconFile' "$AV/busctl.log" && [ ! -e "$AV/casa/.local/state/meowsystem/greeter-avatar.md5" ] \
+  && grep -q 'avatar.*pendente' "$AV/saida.log" \
+  && ok "o avatar que não se lê fica como está, e a pendência aparece" \
+  || falha "o greeter.sh trocou um avatar que não conseguiu ler, ou calou a pendência" \
+       "$(cat "$AV/busctl.log"; head -6 "$AV/saida.log")"
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: os achados técnicos da P79 estão fechados\n'

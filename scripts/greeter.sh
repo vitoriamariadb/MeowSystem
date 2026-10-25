@@ -82,6 +82,12 @@ fase_avatar() {
   if [ -n "$atual_arq" ]; then
     md5_atual="$(md5sum < "$atual_arq" 2>/dev/null | cut -d' ' -f1)"
   fi
+  # Há avatar e ele não se lê: não dá para saber se é nosso, então não se troca.
+  if [ -n "$atual_arq" ] && [ -z "$md5_atual" ] \
+     && { [ -e "$atual_arq" ] || [ ! -x "$(dirname "$atual_arq")" ]; }; then
+    meow_aviso "não consigo ler o avatar atual da tela de login — avatar pendente"
+    return 0
+  fi
 
   if [ "$md5_atual" = "$md5_novo" ]; then
     meow_ok "avatar da tela de login já é o mascote $(basename "${desejado%.svg}")"
