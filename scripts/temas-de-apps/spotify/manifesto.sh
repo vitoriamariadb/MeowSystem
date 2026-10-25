@@ -182,6 +182,9 @@ _SPOT_ACENTO="${ACCENT:-mauve}"
 
 _SPOT_CONFIG_DIR="$HOME/.config/spicetify"
 _SPOT_INI="$_SPOT_CONFIG_DIR/config-xpui.ini"
+# O `current_theme` que este módulo pôs por último. Se é ele que está no ar, o
+# tema é nosso, de outro pack, e a troca de pack o troca sem perguntar (P107).
+_SPOT_NOSSO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/temas-de-apps/spotify/tema-nosso"
 
 # O QUE APLICAR VEM DO PACK — 22/09/2026, sprint P18
 #   Até esta linha, este arquivo sabia de cor o nome do tema
@@ -226,6 +229,14 @@ _SPOT_INI="$_SPOT_CONFIG_DIR/config-xpui.ini"
 meow_app_tema_do_pack spotify.spicetify_tema
 _SPOT_TEMA_NOME="$MEOW_APP_TEMA"
 _SPOT_TEMA_DE="$MEOW_APP_TEMA_PACK"
+# O NOME VIRA PASTA de Themes/, que leva `rm -rf` antes de o tema entrar (P107).
+# Com `..` o alvo era a pasta inteira do spicetify, e com `/` a pasta de outro
+# tema. O `validar` recusa o pack, mas o nome chega também pela herança de um
+# pack que nunca passou por ele: aqui ele vale como não declarado, com o motivo.
+_SPOT_NOME_RECUSADO=""
+if [ -n "$_SPOT_TEMA_NOME" ] && ! [[ "$_SPOT_TEMA_NOME" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*$ ]]; then
+  _SPOT_NOME_RECUSADO="$_SPOT_TEMA_NOME"; _SPOT_TEMA_NOME=""
+fi
 meow_app_tema_do_pack spotify.esquema
 _SPOT_ESQUEMA="$MEOW_APP_TEMA"
 meow_app_tema_do_pack spotify.acento_no_color_ini
@@ -533,11 +544,59 @@ _spot_mp_registrar() {
 #   a frase dizendo qual pack pediu o quê — e nunca um download do tema de OUTRO
 #   pack, que é exatamente o defeito que a sprint veio matar.
 #
+# 0 quando `_SPOT_TEMA` é filha direta de Themes/, depois de resolvidos os
+# links; senão 1, com a frase. Vem antes de todo `rm -rf` dele (P107).
+_spot_alvo_seguro() {
+  local themes alvo
+  themes="$(readlink -m -- "$_SPOT_CONFIG_DIR/Themes")"
+  alvo="$(readlink -m -- "$_SPOT_TEMA")"
+  if [ -n "$_SPOT_TEMA_NOME" ] && [ "$alvo" != "$themes" ] && [ "$(dirname -- "$alvo")" = "$themes" ]; then
+    return 0
+  fi
+  meow_erro "recusado: '$_SPOT_TEMA' não é uma pasta de $_SPOT_CONFIG_DIR/Themes"
+  return 1
+}
+
+# O tema que o pack traz na pasta dele: só o color.ini, o user.css e a licença,
+# arquivos comuns (link não entra). 1 entregou · 2 erro.
+_spot_tema_do_pack() {
+  local ini="$1" dir tmp f
+  dir="$(dirname -- "$ini")"
+  if meow_seco; then
+    meow_muda "poria o tema '$_SPOT_TEMA_NOME' do spicetify, que vem no pack, em $_SPOT_TEMA"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_destino_permitido "$_SPOT_TEMA" || return "$MEOW_ERRO"
+  _spot_alvo_seguro || return "$MEOW_ERRO"
+  mkdir -p "$(dirname -- "$_SPOT_TEMA")" || return "$MEOW_ERRO"
+  tmp="$(mktemp -d -p "$(dirname -- "$_SPOT_TEMA")" ".meow-spot-tema.XXXXXX")" || return "$MEOW_ERRO"
+  chmod 755 "$tmp"
+  for f in color.ini user.css LICENSE; do
+    [ -f "$dir/$f" ] && [ ! -L "$dir/$f" ] || continue
+    cp -- "$dir/$f" "$tmp/$f" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
+  done
+  [ -f "$tmp/color.ini" ] || { rm -rf "$tmp"; meow_erro "o tema do pack não tem color.ini"; return "$MEOW_ERRO"; }
+  printf 'pack %s: %s\ncopiado pelo MeowSystem em %s\n' "${_SPOT_TEMA_DE:-?}" "$dir" "$(date -Iseconds)" \
+    > "$tmp/PROCEDENCIA.txt" 2>/dev/null
+  rm -rf "$_SPOT_TEMA"
+  mv -f "$tmp" "$_SPOT_TEMA" || { rm -rf "$tmp"; meow_erro "não consegui pôr o tema em $_SPOT_TEMA"; return "$MEOW_ERRO"; }
+  meow_ok "tema '$_SPOT_TEMA_NOME' do spicetify posto em $_SPOT_TEMA, do pack ${_SPOT_TEMA_DE:-ativo}"
+  return "$MEOW_DIVERGENTE"
+}
+
 #   0 já estava lá · 1 baixei · 2 erro · 3 falta dependência (ou rede, ou origem)
 _spot_tema_baixar() {
   local tmp origem repo commit pasta tar
   [ -n "$_SPOT_COLOR_INI" ] || return "$MEOW_SEM_DEPENDENCIA"
   [ -f "$_SPOT_COLOR_INI" ] && return "$MEOW_OK"
+
+  # A arte que mora no pack vence a origem: `arquivo` é o color.ini, e o tema é
+  # a pasta dele. Sai sem rede, e o `pack.py validar` confere o sha256.
+  meow_app_tema_do_pack spotify.arquivo
+  if [ -n "$MEOW_APP_TEMA" ]; then
+    _spot_tema_do_pack "$MEOW_APP_TEMA"
+    return $?
+  fi
 
   # Direto, sem `$( )`: a função responde por `MEOW_APP_TEMA`, e um subshell
   # devolveria string vazia — ver o bloco da identidade, lá em cima.
@@ -560,6 +619,7 @@ _spot_tema_baixar() {
   fi
 
   meow_destino_permitido "$_SPOT_TEMA" || return "$MEOW_ERRO"
+  _spot_alvo_seguro || return "$MEOW_ERRO"
   tmp="$(mktemp -d -p "${TMPDIR:-/tmp}" ".meow-spot-tema.XXXXXX")" || return "$MEOW_ERRO"
 
   # `--fail` para que uma página de erro do GitHub (404 com corpo HTML) não vire
@@ -584,6 +644,12 @@ _spot_tema_baixar() {
   # MENSAGEM no dia em que o upstream reorganizar as pastas, em vez de instalar
   # um diretório que o `detectar` aprovaria sem ter o que aplicar.
   origem="$tmp/${repo##*/}-$commit/$pasta"
+  # O commit e a pasta vêm do pack: o que sai de dentro do tarball não vai
+  # para Themes/ com `mv` (P107).
+  case "$(readlink -m -- "$origem")" in
+    "$(readlink -m -- "$tmp")"/*) ;;
+    *) rm -rf "$tmp"; meow_erro "recusado: a origem do tema sai de dentro do tarball ($pasta)"; return "$MEOW_ERRO" ;;
+  esac
   if [ ! -f "$origem/color.ini" ]; then
     rm -rf "$tmp"
     meow_erro "o tarball do tema mudou de formato (sem $pasta/color.ini)"
@@ -650,6 +716,10 @@ meow_app_detectar() {
   #   tema para este app, e isto é AUSÊNCIA DECLARADA, não erro: a alternativa
   #   seria escolher um tema em nome dele, que é o defeito que a sprint mediu no
   #   Obsidian — aplicar o tema de outro pack e chamar de sucesso.
+  if [ -n "$_SPOT_NOME_RECUSADO" ]; then
+    meow_app_sem "Spotify: o pack ${_SPOT_TEMA_DE:-ativo} dá ao tema um nome que não serve de pasta ('$_SPOT_NOME_RECUSADO') — nada é escrito"
+    return
+  fi
   if [ -z "$_SPOT_TEMA_NOME" ] || [ -z "$_SPOT_ESQUEMA" ]; then
     meow_app_sem "Spotify: o pack ativo não declara tema para este app (apps.spotify no pack.json)"
     return
@@ -922,9 +992,17 @@ meow_app_aplicar() {
   #   não pergunta nada sem ele. É o que impede a pergunta de aparecer dentro de
   #   um `conferir`, que é leitura e não teria como cumprir o "sim" — ver o
   #   bloco do `meow_app_tema_no_ar` em lib/comum.sh.
-  meow_app_tema_no_ar spotify "$(_spot_ini_ler current_theme)" \
-                      "$_SPOT_TEMA_NOME" "$_SPOT_TEMA_DE" pergunte
-  [ $? = "$MEOW_SEM_DEPENDENCIA" ] && return "$MEOW_SEM_DEPENDENCIA"
+  #   O TEMA QUE ESTE MÓDULO PÔS PARA OUTRO PACK NÃO É «DE TERCEIRO» (P107):
+  #   medido, meowsystem e depois dracula deixavam o Spotify no catppuccin com
+  #   a pergunta. O nome guardado no `_SPOT_NOSSO` é o que nós escrevemos.
+  local no_ar; no_ar="$(_spot_ini_ler current_theme)"
+  if [ -n "$no_ar" ] && [ "$no_ar" != "$_SPOT_TEMA_NOME" ] && [ "$no_ar" = "$(cat "$_SPOT_NOSSO" 2>/dev/null)" ]; then
+    meow_pendencia_resolvida spotify-tema-de-terceiro
+    meow_info "spotify: o tema do MeowSystem estava em '$no_ar' — passa a '$_SPOT_TEMA_NOME' (do pack ${_SPOT_TEMA_DE:-ativo})"
+  else
+    meow_app_tema_no_ar spotify "$no_ar" "$_SPOT_TEMA_NOME" "$_SPOT_TEMA_DE" pergunte
+    [ $? = "$MEOW_SEM_DEPENDENCIA" ] && return "$MEOW_SEM_DEPENDENCIA"
+  fi
 
   if _spot_rodando; then
     meow_pula "Spotify está ABERTO — não mexo no app no meio do uso; tento no próximo ciclo"
@@ -978,6 +1056,7 @@ meow_app_aplicar() {
     return "$MEOW_ERRO"
   fi
 
+  mkdir -p "$(dirname -- "$_SPOT_NOSSO")" && printf '%s\n' "$_SPOT_TEMA_NOME" > "$_SPOT_NOSSO"
   meow_ok "Spotify em $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} (vale no próximo início do app)"
   return "$MEOW_DIVERGENTE"
 }

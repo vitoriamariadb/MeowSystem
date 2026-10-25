@@ -1690,6 +1690,11 @@ def conferir_ponteiro(tema, campo=CATEGORIA_PONTEIRO):
 # O `pack.py` não escreve fora do pack (ver o `plano_de_uso`).
 EXT_PACOTE = (".tar.gz", ".tgz", ".tar.xz", ".txz")
 RE_PASTA_PACOTE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]*(/[A-Za-z0-9_][A-Za-z0-9._-]*)*$")
+# O tema do spicetify (`apps.spotify`): o nome é uma pasta de Themes/, e a origem
+# `github-arvore` é um repositório e um commit do GitHub (P107).
+RE_NOME_TEMA_SPICETIFY = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]{0,79}")
+RE_REPO_GITHUB = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+RE_COMMIT = re.compile(r"[0-9a-f]{40}")
 
 
 def origem_pinada(origem, trilha, com_nome=False):
@@ -3239,6 +3244,24 @@ def validar(ref, silencioso=False):
                     f"apps.{nome_app}.sha256 não confere com o arquivo.\n"
                     f"    declarado: {soma_app}\n"
                     f"    medido   : {medido}")
+        # O NOME DO TEMA DO SPICETIFY VIRA PASTA (P107): o módulo monta
+        # `~/.config/spicetify/Themes/<nome>` e apaga esse caminho antes de pôr o
+        # tema. Com `..` era a pasta inteira do spicetify; com `/`, outra pasta.
+        if "spicetify_tema" in bloco:
+            tema_spi = bloco["spicetify_tema"]
+            _exigir(isinstance(tema_spi, str) and RE_NOME_TEMA_SPICETIFY.fullmatch(tema_spi),
+                    f"apps.{nome_app}.spicetify_tema: {tema_spi!r} não é nome de pasta de tema.\n"
+                    f"    Só letras, dígitos, '.', '_' e '-', sem começar por '.' ou '-'.")
+        # A origem do tema do spicetify (`github-arvore`) monta o caminho que o
+        # `mv` leva para Themes/: o commit e a pasta, na forma do `origem_pinada`.
+        orig_spi = bloco.get("origem") if nome_app == "spotify" else None
+        if orig_spi is not None:
+            _exigir(isinstance(orig_spi, dict)
+                    and isinstance(orig_spi.get("repo"), str) and RE_REPO_GITHUB.fullmatch(orig_spi["repo"])
+                    and isinstance(orig_spi.get("commit"), str) and RE_COMMIT.fullmatch(orig_spi["commit"])
+                    and isinstance(orig_spi.get("pasta"), str) and RE_PASTA_PACOTE.fullmatch(orig_spi["pasta"]),
+                    f"apps.{nome_app}.origem: {{\"repo\": \"<dono>/<repo>\", \"commit\": \"<40 hex>\",\n"
+                    f"    \"pasta\": \"<dentro do pacote>\"}}, sem '..' e sem barra na frente. Veio: {orig_spi!r}")
 
     # --- o ponteiro e as fontes ---------------------
     # Os dois são campos de arquivo, e entram na vizinhança do `creditos` e do

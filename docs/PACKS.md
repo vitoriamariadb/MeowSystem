@@ -1269,10 +1269,11 @@ Os campos que cada módulo entende hoje:
 
 | App | Campo | O que é |
 |---|---|---|
-| `spotify` | `spicetify_tema` | a pasta de `~/.config/spicetify/Themes` a usar |
+| `spotify` | `spicetify_tema` | a pasta de `~/.config/spicetify/Themes` a usar. Só letras, dígitos, `.`, `_` e `-`, sem começar por `.` ou `-` |
 | | `esquema` | a seção do `color.ini` daquele tema. Aceita `<flavor>` |
 | | `acento_no_color_ini` | `true` só se o tema nomear as 26 cores como chaves |
-| | `origem` | de onde o tema desce: `tipo`, `repo`, `commit`, `pasta` |
+| | `arquivo`, `sha256` | o `color.ini` de um tema que mora no pack; o módulo copia a pasta dele (`color.ini`, `user.css`, `LICENSE`) e vence a `origem` |
+| | `origem` | de onde o tema desce: `tipo`, `repo` (`dono/repo`), `commit` (40 hex), `pasta` (sem `..`) |
 | `qbittorrent` | `arquivo`, `sha256` | o `.qbtheme`, e a integridade dele |
 
 `<flavor>` é expandido com o `FLAVOR` da máquina e, na falta dele, com o

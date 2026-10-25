@@ -86,6 +86,7 @@ PORTATIL=(
   escritorio.sh          # o OnlyOffice do Flathub no lugar do LibreOffice, a ponte root de brinquedo e o desinstalador que devolve, com flatpak, dpkg-query, apt-get e sudo falsos, casa de brinquedo; só bash
   fotos-do-pack.sh       # as fotos de um pack de brinquedo entram sem rede, com curl e sudo falsos, HOME de brinquedo; bash e python3
   perfil.sh              # o install.sh --perfil numa raiz de brinquedo com a fila trocada por uma etapa que só lê, HOME de brinquedo; bash
+  apps-em-todo-pack.sh   # cada app x pack numa casa de brinquedo, dconf e flatpak falsos e falsos que recusam; bash e python3
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

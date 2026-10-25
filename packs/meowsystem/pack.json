@@ -92,7 +92,13 @@
     },
     "zapzap": {
       "_nota": "O WhatsApp Web do ZapZap na paleta deste pack (P106, 24/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/zapzap/zapzap.modelo.css`), e o bloco existir é o pack dizendo que o ZapZap veste a paleta dele, em qualquer flavor. O módulo monta o CSS com as cores daqui e põe em `customizations/global/css/MeowSystem.css` do ZapZap. As variáveis CSS e o papel de cada uma vêm do WhatsApp Web Catppuccin (catppuccin/userstyles, MIT), conferidas com o WhatsApp Web Dracula; a procedência está no cabeçalho do modelo."
-    }
+    },
+    "_nota_modelos": "Os blocos vazios abaixo usam o modelo do motor (`scripts/temas-de-apps/<app>/<app>.modelo.*`), o mesmo do pack Dracula, com a paleta deste pack no flavor da máquina. A procedência dos modelos está no PROCEDENCIA.md de `temas-de-apps/`.",
+    "kitty": {},
+    "gnome-terminal": {},
+    "telegram": {},
+    "discord": {},
+    "onlyoffice": {}
   },
   "mascote": {
     "desenhos": "mascote/",
