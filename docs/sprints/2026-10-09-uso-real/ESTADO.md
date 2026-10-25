@@ -2,6 +2,31 @@
 
 Aguenta desligar o PC: o que está em voo e o próximo passo.
 
+## 24/10, noite — v2.0.0 e v2.1.0 em voo (o mais novo)
+
+Quem usa (24/10): roda tudo sem pedir nada a ela/ele (20% da cota semanal; ~2 milhões de tokens aprovados).
+Nada aqui precisa de senha: sudo NOPASSWD, chave SSH e `gh` autenticados. A senha não vai para arquivo nenhum.
+
+Integração: branch `integracao/v2`, worktree `.wt-meow/integracao-v2`. Cada bloco entra nela quando o conferente
+volta. O `dev` só recebe no fim, de uma vez, com a suíte verde. Dois blocos ao mesmo tempo, no máximo.
+
+| espaço | agora | depois | por último |
+|---|---|---|---|
+| A | P102 PC virgem (`.wt-meow/p102`) | P100 compositor | — |
+| B | P103 pontas soltas (`.wt-meow/p103`) | P104 ponte sem senha | P105 papéis/sons no pack, mockup |
+
+- P101 está no dev (`3680c8f4`). A suíte no checkout principal deu 5 vermelhos por causa do
+  `assets/icones/upstream/papirus-folders/` solto (um repositório aninhado que o copiador do teste não sabe
+  copiar), não por código. A prova é a suíte limpa em `.wt-meow/verif-dev`.
+- P102 tem dois branches: `sprint/p102` (público) e `sprint/p102-privado` (mais fotos, fontes e
+  `perfis/andre/`). A falha de segurança do `fotos` declarado no pack é o item 6 da tarefa; confira antes do merge.
+- **v2.0.0** (P101 a P103): conferente final Opus na `integracao/v2` (suíte 2x, container do repositório
+  privado) → `./install.sh` real → desativar `dracula-copia-com.rtosta.zapzap` → `dev` vai para o fork
+  público → `master` = `dev` + commits privados → `privado` (`AndreBFarias/MeowSystem-privado`, criado vazio)
+  → release v2.0.0 no repositório privado.
+- **v2.1.0** (P100, P104, P105): o mesmo caminho.
+- De manhã, quem usa: `passwd`, sair e entrar na sessão, olhar o painel.
+
 ## 24/10 — leva H FECHADA (o mais novo; o resto abaixo é histórico)
 
 1. `integracao/leva-h` no dev (`c089ee8`): P92 a P99, a reorganização em dois packs, o painel novo.
