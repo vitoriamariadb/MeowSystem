@@ -177,6 +177,33 @@ saida="$(spot dracula dracula)"
 printf '%s' "$saida" | grep -qx 'rc=0' && ok "spotify/dracula: a segunda passada fica quieta" \
   || falha "spotify/dracula: a segunda passada não ficou quieta" "$saida"
 
+# --- Os que trazem a arte pronta: cada pack responde pelo próprio tema --------
+for trilha in qbittorrent.arquivo obsidian.esquema vscode.esquema heroic.esquema; do
+  for par in "${PACKS[@]}"; do
+    p="${par%%:*}"
+    quem="$(FLAVOR="${par#*:}" python3 "$RAIZ/scripts/pack.py" app "$p" "apps.$trilha" 2>/dev/null | sed -n 's/^pack=//p')"
+    [ "$quem" = "$p" ] && ok "${trilha%%.*}/$p: o pack responde pelo próprio tema" \
+      || falha "${trilha%%.*}/$p: o tema não é do pack $p (responde: '${quem:-ninguém}')"
+  done
+done
+
+# --- Ligado de fábrica: todo módulo tem o seu nome no APPS_ATIVOS do exemplo ---
+fabrica=",$(sed -n 's/^APPS_ATIVOS="\(.*\)"$/\1/p' "$RAIZ/meow.conf.exemplo" | tail -n 1 | tr -d ' '),"
+faltam=""
+for d in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
+  m="$(basename "$(dirname "$d")")"
+  case "$m" in
+    btop-bat) slugs="bat btop" ;;
+    toolkits-gtk-qt) slugs="qt5ct gtk qt" ;;
+    *) slugs="$m" ;;
+  esac
+  achou=0
+  for s in $slugs; do case "$fabrica" in *",$s,"*) achou=1 ;; esac; done
+  [ "$achou" = 1 ] || faltam+=" $m"
+done
+[ -z "$faltam" ] && ok "todo módulo de app vem ligado no APPS_ATIVOS de fábrica" \
+  || falha "módulos fora do APPS_ATIVOS de fábrica (meow.conf.exemplo):$faltam"
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then
   printf '%s achado(s).\n' "$falhas" >&2
