@@ -100,6 +100,11 @@ echo "req MEOW-T-1 t.patch presente" > "$CASA/$VER/estado"
 : > "$T/log"; gb
 igual "o .patch não declara versão: o build que tem a base vale" "$(compilou)" 0
 
+fazer_patch 2
+printf 'req MEOW-U-1 u.patch presente\nreq MEOW-T t.patch ausente\n' > "$CASA/$VER/estado"
+: > "$T/log"; gb
+igual "o patch ausente do build não o refaz (sairia igual)" "$(compilou)" 0
+
 echo "== 2. o compilar reextrai a árvore que tem a versão anterior"
 rm -rf "$CASA/$VER"
 fazer_patch 1
