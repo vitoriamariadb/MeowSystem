@@ -43,6 +43,10 @@ cd MeowSystem
 meow ativar               # todas as outras
 ```
 
+Num PC virgem, com as escolhas guardadas num perfil (`perfis/<nome>/`: o `meow.conf` e o mapa
+dos ícones escolhidos), basta o clone e `./install.sh --perfil <nome>`: o perfil vai para
+`~/.config/meow/`, o que havia fica ao lado, e o resto sai do repositório.
+
 São 68 etapas. Numa máquina já pronta, rodar de novo **não escreve um byte** e diz isso. Para
 ensaiar antes: `MEOW_DRY_RUN=1 ./install.sh`, ou **Ver sem mudar** no painel.
 

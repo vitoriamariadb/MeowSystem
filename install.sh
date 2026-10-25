@@ -3622,6 +3622,10 @@ install.sh — instala o MeowSystem inteiro.
   ./install.sh --wizard     roda `meow configurar` antes (pergunta as chaves do
                             meow.conf, grava lá) e então instala como sempre
   ./install.sh --uninstall  tira o MeowSystem desta máquina
+  ./install.sh --perfil <nome>
+                            copia perfis/<nome>/ (meow.conf e o mapa dos ícones
+                            escolhidos) para ~/.config/meow/, guardando o de
+                            antes ao lado, e instala com ele
   ./install.sh --help       isto aqui
 
   MEOW_DRY_RUN=1 ./install.sh   o mesmo que --dry-run, para script e timer
@@ -3633,6 +3637,49 @@ As flags acima dizem COMO esta execução se comporta. QUAIS etapas rodam é
 decisão do meow.conf — nunca da linha de comando.
 
 FIM
+}
+
+# O PERFIL — 24/10/2026, P102
+#   `perfis/<nome>/` guarda as escolhas de quem usa (o meow.conf e o
+#   `icones-escolhidos.map`), sem nada que seja da máquina. Com `--perfil
+#   <nome>`, os dois viram os de `~/.config/meow/` antes da fila: o que havia e
+#   difere fica ao lado, como `<arquivo>.antes-perfil-<data>`. Sem a flag, nada
+#   aqui roda. No ensaio nada é escrito, e a fila ensaia lendo o perfil.
+aplicar_perfil() {
+  local nome="$1" dir arq destino quando
+  case "$nome" in
+    ""|[-_]*|*[!a-z0-9_-]*)
+      meow_erro "perfil '$nome' não é um nome de perfil (letras minúsculas, números, - e _)"
+      return "$MEOW_ERRO" ;;
+  esac
+  dir="$MEOW_RAIZ/perfis/$nome"
+  if [ ! -f "$dir/meow.conf" ]; then
+    meow_erro "não existe o perfil '$nome' (perfis/$nome/meow.conf)"
+    return "$MEOW_ERRO"
+  fi
+  quando="$(date +%Y%m%d-%H%M%S)"
+  for arq in meow.conf icones-escolhidos.map; do
+    [ -f "$dir/$arq" ] || continue
+    destino="$(dirname "$CONF")/$arq"
+    cmp -s "$dir/$arq" "$destino" && continue
+    if meow_seco; then
+      meow_muda "copiaria o perfil $nome para $destino"
+      continue
+    fi
+    meow_destino_permitido "$destino" || return "$MEOW_ERRO"
+    mkdir -p "$(dirname "$destino")" || return "$MEOW_ERRO"
+    if [ -f "$destino" ]; then
+      cp -p -- "$destino" "$destino.antes-perfil-$quando" || return "$MEOW_ERRO"
+    fi
+    cp -- "$dir/$arq" "$destino.meow-perfil.tmp" && mv -f "$destino.meow-perfil.tmp" "$destino" \
+      || { rm -f "$destino.meow-perfil.tmp"; meow_erro "não consegui copiar o perfil para $destino"; return "$MEOW_ERRO"; }
+    meow_ok "perfil $nome: $destino"
+  done
+  if meow_seco; then
+    CONF="$dir/meow.conf"
+    MEOW_CONF_ARQUIVO="$CONF"
+  fi
+  return 0
 }
 
 main() {
@@ -3658,7 +3705,7 @@ main() {
     return 2
   fi
 
-  local wizard=0 desinstalar=0 uma_passagem=0
+  local wizard=0 desinstalar=0 uma_passagem=0 perfil="" com_perfil=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --wizard|-w) wizard=1 ;;
@@ -3679,10 +3726,14 @@ main() {
       # de fora, e um seco pela metade é pior que nenhum.
       --dry-run|--seco|-n)       MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
       --uninstall|--desinstalar) desinstalar=1 ;;
+      # --perfil: QUAL meow.conf, e não quais etapas — o perfil vira o conf da
+      # casa e a fila continua decidida por ele.
+      --perfil)    com_perfil=1; perfil="${2:-}"; [ $# -gt 0 ] && shift ;;
+      --perfil=*)  com_perfil=1; perfil="${1#--perfil=}" ;;
       -h|--help)   uso; return 0 ;;
       "")          ;;
       *) meow_erro "opção desconhecida: $1"
-         meow_info "o que existe: --dry-run, --uma-passagem, --wizard, --uninstall, --help."
+         meow_info "o que existe: --dry-run, --uma-passagem, --wizard, --perfil <nome>, --uninstall, --help."
          meow_info "QUAIS etapas rodam é decisão do meow.conf, não da linha de comando."
          return 2 ;;
     esac
@@ -3699,6 +3750,11 @@ main() {
   # mandando.
   if [ ! -t 1 ] && [ -z "${LOG_NIVEL:-}" ]; then
     MEOW_LOG_NIVEL=silencioso
+  fi
+
+  # Antes do cabeçalho e do wizard: os dois já leem o conf do perfil.
+  if [ "$com_perfil" = "1" ]; then
+    aplicar_perfil "$perfil" || return 2
   fi
 
   # O CABEÇALHO DIZ O PACK NO AR — 24/09/2026, P51 (achado 24)

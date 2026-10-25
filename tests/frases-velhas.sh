@@ -19,7 +19,8 @@ import sys
 
 raiz = sys.argv[1]
 EU = "tests/frases-velhas.sh"
-FORA = ("docs/sprints/", "docs/SPRINTS.md", "docs/pesquisas/", "docs/historico/", "docs/folhas/")
+# `perfis/`: o meow.conf de quem usa, com os comentários do dia em que nasceu (P102).
+FORA = ("docs/sprints/", "docs/SPRINTS.md", "docs/pesquisas/", "docs/historico/", "docs/folhas/", "perfis/")
 BINARIO = re.compile(r"\.(?:svg|png|jpe?g|webp|gif|ico|ttf|otf|woff2?|mp3|ogg|wav|gz|zip|xcf|pdf)$", re.I)
 PROSA = re.compile(r"\.(?:md|txt)$", re.I)
 

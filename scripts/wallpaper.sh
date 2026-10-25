@@ -2226,7 +2226,7 @@ _semente_do_flavor() {
   # herança) diz de onde a coleção desce — a pasta `desenhos` do próprio pack ou
   # um `repo` com `commit` pinado — e a `curadoria` dele. O repositório no conf
   # (`<repo_do_conf>`, `<commit_do_conf>`) continua vencendo: é escolha de quem o pôs lá.
-  local linhas chave valor repo="" commit="" desenhos="" prefixo="" ignorar="" curadoria=""
+  local linhas chave valor repo="" commit="" desenhos="" prefixo="" ignorar="" curadoria="" fotos=""
   local repo_conf="" commit_conf=""
   _PACK_NO_AR="$(meow_pack_dir)"
   linhas="$(python3 "$RAIZ/scripts/pack.py" wallpapers "$_PACK_NO_AR" 2>/dev/null)" || linhas=""
@@ -2234,6 +2234,7 @@ _semente_do_flavor() {
     case "$chave" in
       repo) repo="$valor" ;; commit) commit="$valor" ;; desenhos) desenhos="$valor" ;;
       prefixo) prefixo="$valor" ;; ignorar) ignorar="$valor" ;; curadoria) curadoria="$valor" ;;
+      fotos) fotos="$valor" ;;
       # Expansão indireta só com nome de chave da lista: `a[$(cmd)]` rodaria comando.
       repo_do_conf)   [[ "$valor" =~ ^WALLPAPER_[A-Z0-9_]*_REPO$ ]] && repo_conf="${!valor:-}" ;;
       commit_do_conf) [[ "$valor" =~ ^WALLPAPER_[A-Z0-9_]*_COMMIT$ ]] && commit_conf="${!valor:-}" ;;
@@ -2242,6 +2243,17 @@ _semente_do_flavor() {
   SEMENTE_PREFIXO_PADRAO="${prefixo:-cat}"
   SEMENTE_IGNORAR_PADRAO=""
   SEMENTE_CURADORIA_PADRAO="$curadoria"
+  # O cinto do pack.py: as fotos só valem na pasta `wallpapers` de um pack, sem link no caminho.
+  if [ -n "$fotos" ]; then
+    local real pai
+    real="$(realpath -e -- "$fotos" 2>/dev/null)" || real=""
+    pai="$(realpath -e -- "${fotos%/*}" 2>/dev/null)" || pai=""
+    if [ -z "$real" ] || [ "$real" != "$pai/wallpapers" ] || [ ! -f "$pai/pack.json" ]; then
+      meow_aviso "as fotos do pack não estão na pasta wallpapers/ dele — ignoradas"
+      fotos=""
+    fi
+  fi
+  SEMENTE_FOTOS_PADRAO="$fotos"
   if [ -n "$repo_conf" ]; then
     SEMENTE_REPO_PADRAO="$repo_conf"
     SEMENTE_COMMIT_PADRAO="$commit_conf"
@@ -2270,6 +2282,10 @@ SEMENTE_REPO="${WALLPAPER_SEMENTE_REPO:-$SEMENTE_REPO_PADRAO}"
 SEMENTE_COMMIT="${WALLPAPER_SEMENTE_COMMIT:-$SEMENTE_COMMIT_PADRAO}"
 # Pastas do repositório que NÃO são papel de parede, separadas por espaço.
 SEMENTE_IGNORAR="${WALLPAPER_SEMENTE_IGNORAR:-$SEMENTE_IGNORAR_PADRAO}"
+# As fotos prontas do pack (`fotos=`, P102) vencem a origem; a semente apontada
+# à mão (`WALLPAPER_SEMENTE_REPO`) vence as fotos.
+SEMENTE_FOTOS="$SEMENTE_FOTOS_PADRAO"
+[ -n "${WALLPAPER_SEMENTE_REPO:-}" ] && SEMENTE_FOTOS=""
 # O prefixo do nome do arquivo no acervo. Era `cat-` cravado no `cmd_semear`, o
 # que deixava toda imagem do Dracula chamada `cat-...` — e o nome do arquivo é a
 # única pista de origem que sobra depois que a imagem está na pasta.
@@ -2469,23 +2485,67 @@ _semear_de_pasta() {
 # guarda qual); com menos de duas imagens tenta sempre. Quem chama é o install
 # e o conserto do doctor, não o relógio do carrossel.
 cmd_semear_se_faltar() {
-  local n marca="$MEOW_ESTADO/wallpaper-semeado" rc
-  [ -n "$SEMENTE_REPO" ] || return "$MEOW_OK"
+  local n marca="$MEOW_ESTADO/wallpaper-semeado" rc origem="${SEMENTE_FOTOS:-$SEMENTE_REPO}"
+  [ -n "$origem" ] || return "$MEOW_OK"
   compgen -G "$ATIVOS/${SEMENTE_PREFIXO}-*" >/dev/null && return "$MEOW_OK"
   n="$(quantas 2>/dev/null)"; n="${n:-0}"
-  [ "$n" -lt 2 ] || [ "$(cat "$marca" 2>/dev/null)" != "$SEMENTE_REPO" ] || return "$MEOW_OK"
+  [ "$n" -lt 2 ] || [ "$(cat "$marca" 2>/dev/null)" != "$origem" ] || return "$MEOW_OK"
   if meow_seco; then
-    meow_muda "semearia os papéis de parede do pack no ar (precisa de rede)"
+    if [ -n "$SEMENTE_FOTOS" ]; then
+      meow_muda "semearia as fotos do pack no ar"
+    else
+      meow_muda "semearia os papéis de parede do pack no ar (precisa de rede)"
+    fi
     return "$MEOW_DIVERGENTE"
   fi
   cmd_semear; rc=$?
-  mkdir -p "$MEOW_ESTADO" && printf '%s\n' "$SEMENTE_REPO" > "$marca"
+  mkdir -p "$MEOW_ESTADO" && printf '%s\n' "$origem" > "$marca"
   return "$rc"
+}
+
+# AS FOTOS PRONTAS DO PACK — 24/10/2026, P102
+#   O pack que traz as imagens soltas em `wallpapers/`, com o nome que terão no
+#   acervo, semeia delas: num PC virgem a coleção sobe do clone, sem rede. A
+#   origem declarada (repo, desenhos, curadoria) fica como procedência e não é
+#   lida. Mesmas regras do ramo que baixa: só arquivo comum (link não), nome de
+#   caracteres estritos, temporário e rename, e o que ela recusou fica fora.
+_semear_fotos() {
+  local origem="$1" n=0 arq nome destino tmp
+  while IFS= read -r -d '' arq; do
+    nome="${arq##*/}"
+    [[ "$nome" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]] || continue
+    case "${nome##*.}" in png|PNG|jpg|JPG|jpeg|JPEG|webp|WEBP) ;; *) continue ;; esac
+    destino="$ATIVOS/$nome"
+    [ -e "$destino" ] && continue
+    esta_banida "$nome" && continue
+    if meow_seco; then meow_muda "copiaria $nome (foto do pack)"; n=$((n + 1)); continue; fi
+    tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")" || return "$MEOW_ERRO"
+    if cp -- "$arq" "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+      meow_guardar_antes "$destino"; mv -f "$tmp" "$destino"; n=$((n + 1))
+    else
+      rm -f "$tmp"; meow_aviso "não consegui copiar $nome"
+    fi
+  done < <(find "$origem" -maxdepth 1 -type f -print0 2>/dev/null | LC_ALL=C sort -z)
+  if [ "$n" -eq 0 ]; then
+    meow_ok "coleção do pack já semeada ($origem)"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "copiaria $n foto(s) do pack ($origem)"
+  else
+    meow_ok "$n foto(s) do pack copiadas ($origem)"
+  fi
+  return "$MEOW_DIVERGENTE"
 }
 
 cmd_semear() {
   meow_tem python3 || { meow_erro "python3 não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
   criar_pastas
+
+  if [ -n "$SEMENTE_FOTOS" ]; then
+    _semear_fotos "$SEMENTE_FOTOS"
+    return $?
+  fi
 
   if [ -z "$SEMENTE_REPO" ]; then
     meow_pula "o pack no ar não declara de onde descem os papéis de parede"
