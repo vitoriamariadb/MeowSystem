@@ -58,11 +58,16 @@ assets/fontes/locais/*.[tT][tT][cC]
 # mora em `~/.local/state/meowsystem/`; o bloco lá embaixo conta por quê.)
 # Os ÍCONES (`assets/icones/catppuccin/`, 3.280 SVGs, 13 MB) VÃO para o git: são texto,
 # comprimem bem, e é o pack inteiro que ela escolheu usar.
-*.jpg
-*.jpeg
-*.png
-*.webp
-*.mp4
+#
+# EM QUALQUER CAIXA — 24/10/2026, conferência da v2.0.0
+#   A foto de câmera vem `.JPG`, e o `wallpaper.sh` semeia as fotos do pack
+#   (P102) sem olhar caixa. Com a regra só minúscula, ela entrava num
+#   `git add -A`. A mesma classe por letra da cerca de fontes, acima.
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[pP][nN][gG]
+*.[wW][eE][bB][pP]
+*.[mM][pP]4
 !docs/spec-visual/*.png
 
 # AS CAPTURAS DO README VÃO PARA O GIT — 06/09/2026

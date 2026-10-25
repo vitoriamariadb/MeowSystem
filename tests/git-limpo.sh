@@ -167,6 +167,23 @@ else
   fi
 fi
 
+# AS FOTOS DO PACK, EM QUALQUER CAIXA — 24/10/2026, conferência da v2.0.0
+#   Desde a P102 a pasta `wallpapers/` de cada pack é onde as fotos moram, e o
+#   `wallpaper.sh` semeia `.JPG` como semeia `.jpg`. A cerca de imagem era só
+#   minúscula: a foto de câmera, que vem `.JPG`, entrava num `git add -A`.
+for pk in "$RAIZ"/packs/*/; do
+  pk="$(basename "$pk")"
+  for foto in teste.png teste.PNG teste.Jpg teste.JPEG teste.WebP; do
+    alvo="packs/$pk/wallpapers/$foto"
+    # O `-q`, e não o `-v`: o `-v` sai 0 também quando quem casa é um `!`.
+    if git -C "$RAIZ" check-ignore -q "$alvo"; then
+      ok "$alvo barrado"
+    else
+      falha "$alvo NÃO é barrado — a foto do pack entra no fork público"
+    fi
+  done
+done
+
 printf '\n--- 3b escolher três ícones no painel não muda o git status ---\n'
 ANTES_I="$TMP/antes-icones"; DEPOIS_I="$TMP/depois-icones"
 estado_git > "$ANTES_I"
