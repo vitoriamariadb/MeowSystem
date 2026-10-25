@@ -1885,12 +1885,17 @@ etapa_lancador_apt() {
   fi
 
   # PELA PONTE, QUANDO ELA EXISTE — e é o caso normal desde 08/09/2026. Ela
-  # preenche o mesmo molde com os mesmos três valores (do `perfil`, gravado por
-  # root), então o conteúdo que sai daqui e o que sai dela são o mesmo, e a
-  # comparação por conteúdo acima continua convergindo.
+  # copia o wrapper e o hook da reserva (P108), que a `etapa_ponte_root`, logo
+  # antes, preencheu com este mesmo molde. Se a reserva ficou na de antes (a
+  # etapa da ponte não teve a senha), a ponte põe a de antes, e o repositório
+  # espera a próxima instalação com a senha: nunca é promovido sem ela.
   if meow_ponte apt-hook-instalar >/dev/null 2>&1; then
-    meow_muda "hook de apt instalado pela ponte — o lançador se reaplica sozinho após cada apt"
-    return "$MEOW_DIVERGENTE"
+    if [ "$(cat "$wrapper" 2>/dev/null)" = "$texto" ] && cmp -s "$origem_hook" "$hook"; then
+      meow_muda "hook de apt instalado pela ponte — o lançador se reaplica sozinho após cada apt"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_aviso "o hook do repositório mudou — entra na próxima instalação que puder pedir a senha"
+    return "$MEOW_SEM_DEPENDENCIA"
   fi
 
   if [ ! -w /etc/apt/apt.conf.d ] && ! sudo -n true 2>/dev/null; then

@@ -989,6 +989,17 @@ fix_ponte() {
   return "$MEOW_ERRO"
 }
 
+# O hook e o wrapper instalados são os da reserva? (P108) O sha256 das peças é
+# 0644: ler não pede nada. Sem ele (install anterior à P108), não.
+_lancadorapt_igual_a_reserva() {
+  local pecas=/usr/local/lib/meowsystem/reserva-pecas.sha256
+  local hook=/etc/apt/apt.conf.d/99-meow-lancador
+  local wrapper=/usr/local/sbin/meow-lancador-apt.sh
+  [ -f "$pecas" ] && [ -f "$hook" ] && [ -f "$wrapper" ] || return 1
+  [ "$(sha256sum < "$hook" | cut -d' ' -f1)" = "$(sed -n 's/  99-meow-lancador$//p' "$pecas")" ] &&
+    [ "$(sha256sum < "$wrapper" | cut -d' ' -f1)" = "$(sed -n 's/  meow-lancador-apt\.sh$//p' "$pecas")" ]
+}
+
 chk_lancadorapt() {
   local hook=/etc/apt/apt.conf.d/99-meow-lancador
   local wrapper=/usr/local/sbin/meow-lancador-apt.sh
@@ -1010,18 +1021,28 @@ chk_lancadorapt() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  [ -f "$hook" ]    || { meow_muda "falta $hook";    return "$MEOW_DIVERGENTE"; }
-  [ -f "$wrapper" ] || { meow_muda "falta $wrapper"; return "$MEOW_DIVERGENTE"; }
+  # O que a ponte repõe sem senha é só a cópia da reserva (P108). Sem as peças
+  # na reserva (install antigo), quem repõe é o install.
+  local repoe=" — a ponte o repõe da reserva"
+  [ -f /usr/local/lib/meowsystem/reserva-pecas.sha256 ] || repoe=" — sem reserva, entra no «Instalar tudo»"
+  [ -f "$hook" ]    || { meow_muda "falta $hook$repoe";    return "$MEOW_DIVERGENTE"; }
+  [ -f "$wrapper" ] || { meow_muda "falta $wrapper$repoe"; return "$MEOW_DIVERGENTE"; }
 
-  cmp -s "$RAIZ/scripts/99-meow-lancador" "$hook" 2>/dev/null ||
-    { meow_muda "$hook diverge do repositório"; return "$MEOW_DIVERGENTE"; }
-
+  # Iguais à reserva, o que ainda difere do repositório é código que quem usa
+  # pode editar: só o install o promove a root, nunca a ponte.
   local esperado
   esperado="$(sed -e "s|@ACERVO@|$RAIZ|g" \
                   -e "s|@USUARIA@|$(id -un)|g" \
                   -e "s|@LAR@|$HOME|g" "$RAIZ/scripts/meow-lancador-apt.sh")"
-  [ "$(cat "$wrapper" 2>/dev/null)" = "$esperado" ] ||
-    { meow_muda "$wrapper diverge do repositório (o clone mudou de lugar?)"; return "$MEOW_DIVERGENTE"; }
+  if ! cmp -s "$RAIZ/scripts/99-meow-lancador" "$hook" 2>/dev/null ||
+     [ "$(cat "$wrapper" 2>/dev/null)" != "$esperado" ]; then
+    if _lancadorapt_igual_a_reserva || [ ! -f /usr/local/lib/meowsystem/reserva-pecas.sha256 ]; then
+      meow_muda "o hook do repositório mudou — entra no «Instalar tudo»"
+    else
+      meow_muda "o hook instalado difere da reserva$repoe"
+    fi
+    return "$MEOW_DIVERGENTE"
+  fi
 
   meow_ok "o lançador se reaplica sozinho após cada apt"
   return 0
@@ -1656,8 +1677,18 @@ fix_lancadorapt() {
     meow_ponte apt-hook-remover 2>&1 && meow_ok "hook de apt removido pela ponte"
     return $?
   fi
+  # A ponte só copia da reserva (P108). Sem as peças nela, ou com o instalado já
+  # igual a ela, o que sobra é do install.
+  if [ ! -f /usr/local/lib/meowsystem/reserva-pecas.sha256 ]; then
+    meow_pula "sem reserva — entra no «Instalar tudo»"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if _lancadorapt_igual_a_reserva; then
+    meow_pula "o hook do repositório mudou — entra no «Instalar tudo»"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   if meow_ponte apt-hook-instalar 2>&1; then
-    meow_ok "hook de apt reposto pela ponte"
+    meow_ok "hook de apt reposto da reserva, pela ponte"
     return "$MEOW_DIVERGENTE"
   fi
   meow_aviso "a ponte não repôs o hook de apt"

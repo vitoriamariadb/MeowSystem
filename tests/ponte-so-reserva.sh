@@ -170,6 +170,68 @@ saida="$(verbo apt-hook-instalar)"; rc=$?
 confere "com tudo no lugar, o verbo não reescreve nada" \
   '[ "$rc" = 0 ] && [ "$(stat -c %Y.%i "$WRAPPER" "$HOOK")" = "$antes" ]' "$saida"
 
+printf '\n--- 2. o repositório mais novo que a reserva entra no próximo «Instalar tudo» ---\n'
+DOCTOR="$T/doctor.sh"
+for f in _lancadorapt_igual_a_reserva chk_lancadorapt fix_lancadorapt; do
+  sed -n "/^$f() {/,/^}/p" "$RAIZ/bin/meow"
+done | trocar > "$DOCTOR"
+doctor() {   # $1 = chk_lancadorapt | fix_lancadorapt
+  env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" RAIZ="$CLONE" MEOW_RAIZ="$CLONE" \
+         MEOW_PONTE="$BASE/ponte_root.sh" LANCADOR_SISTEMA=sim LIB="$RAIZ/lib/comum.sh" \
+         DOCTOR="$DOCTOR" FUNCAO="$1" bash -c '. "$LIB"; . "$DOCTOR"; "$FUNCAO"' 2>&1
+}
+saida="$(doctor chk_lancadorapt)"; rc=$?
+confere "hook e wrapper iguais à reserva e ao repositório: ok" '[ "$rc" = 0 ]' "$saida"
+rm -f "$HOOK"
+saida="$(doctor chk_lancadorapt)"; rc=$?
+confere "sem o hook: divergente, e a ponte o repõe da reserva" '[ "$rc" = 1 ] && grep -q "reserva" <<< "$saida"' "$saida"
+: > "$PONTE_LOG"
+saida="$(doctor fix_lancadorapt)"; rc=$?
+confere "o conserto repõe o hook da reserva, pela ponte" \
+  '[ "$rc" = 1 ] && cmp -s "$RESERVA/99-meow-lancador" "$HOOK" && grep -qx apt-hook-instalar "$PONTE_LOG"' "$saida"
+
+printf '\n# mudou no repositório\n' >> "$CLONE/scripts/meow-lancador-apt.sh"
+saida="$(doctor chk_lancadorapt)"; rc=$?
+confere "o wrapper mudou no repositório: pendência do install" \
+  '[ "$rc" = 1 ] && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+: > "$PONTE_LOG"
+saida="$(doctor fix_lancadorapt)"; rc=$?
+confere "e o conserto não chama a ponte (sai 3)" \
+  '[ "$rc" = 3 ] && ! grep -q apt-hook-instalar "$PONTE_LOG" && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+rm -f "$HOOK"
+saida="$(doctor fix_lancadorapt)"; rc=$?
+confere "sem o hook, o conserto repõe o da reserva, e o wrapper novo não entra" \
+  '[ "$rc" = 1 ] && cmp -s "$RESERVA/99-meow-lancador" "$HOOK" && cmp -s "$RESERVA/meow-lancador-apt.sh" "$WRAPPER"' "$saida"
+saida="$(doctor chk_lancadorapt)"; rc=$?
+confere "e o doctor segue pedindo o install para o wrapper novo" '[ "$rc" = 1 ] && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+
+: > "$SUDO_LOG"
+saida="$(etapa etapa_lancador_apt)"; rc=$?
+confere "a etapa do hook, sem a senha da etapa da ponte, não promove o repositório (rc=3)" \
+  '[ "$rc" = 3 ] && cmp -s "$RESERVA/meow-lancador-apt.sh" "$WRAPPER" && [ ! -s "$SUDO_LOG" ]' "$saida
+$(cat "$SUDO_LOG")"
+saida="$(etapa etapa_ponte_root)"; rc=$?
+confere "com a senha, a etapa da ponte guarda o wrapper novo na reserva" \
+  '[ "$rc" = 1 ] && preenchido "$CLONE/scripts/meow-lancador-apt.sh" | cmp -s - "$RESERVA/meow-lancador-apt.sh"' "$saida"
+saida="$(etapa etapa_lancador_apt)"; rc=$?
+confere "e a etapa do hook o instala pela ponte" \
+  '[ "$rc" = 1 ] && preenchido "$CLONE/scripts/meow-lancador-apt.sh" | cmp -s - "$WRAPPER"' "$saida"
+saida="$(etapa etapa_lancador_apt)"; rc=$?
+confere "a segunda passada da etapa do hook não muda nada" '[ "$rc" = 0 ]' "$saida"
+saida="$(doctor chk_lancadorapt)"; rc=$?
+confere "e o doctor diz ok" '[ "$rc" = 0 ]' "$saida"
+
+mv "$PECAS" "$T/pecas.guardadas"
+rm -f "$HOOK"
+saida="$(doctor chk_lancadorapt)"; rc=$?
+confere "install antigo, sem as peças na reserva: o doctor pede o install" \
+  '[ "$rc" = 1 ] && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+: > "$PONTE_LOG"
+saida="$(doctor fix_lancadorapt)"; rc=$?
+confere "e o conserto não chama a ponte (sai 3)" '[ "$rc" = 3 ] && [ ! -s "$PONTE_LOG" ] && [ ! -e "$HOOK" ]' "$saida"
+mv "$T/pecas.guardadas" "$PECAS"
+clone_limpo
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi
 printf 'tudo ok\n'
