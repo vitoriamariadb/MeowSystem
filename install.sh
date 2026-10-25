@@ -1756,6 +1756,8 @@ etapa_ponte_root() {
          sudo systemctl daemon-reload; }; then
     meow_erro "não consegui instalar o reparo da ponte"; return "$MEOW_ERRO"
   fi
+  # Reserva nova, veredito novo: o doctor lê o porquê da última rodada do reparo.
+  sudo systemctl reset-failed meowsystem-ponte-reparo.service 2>/dev/null || true
 
   # A PROVA É USAR. Instalar e dizer "pronto" seria afirmar uma liberação que
   # ninguém exerceu — e o modo de falha silencioso deste projeto é exatamente

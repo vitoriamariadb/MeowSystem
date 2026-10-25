@@ -104,6 +104,8 @@ confere "a etapa instala o reparo, 0755, igual ao do repositório" \
   '[ "$rc" = 1 ] && cmp -s "$REPARO_REPO" "$BASE/reparar_ponte.sh" && [ "$(stat -c %a "$BASE/reparar_ponte.sh")" = 755 ]' "$saida"
 confere "a etapa instala a unidade, igual à do repositório, e relê o systemd" \
   'cmp -s "$UNIDADE_REPO" "$UNIDADE" && grep -qx "daemon-reload" "$SYSTEMCTL_LOG"'
+confere "a reserva nova esquece o veredito da rodada de antes do reparo" \
+  'grep -qx "reset-failed meowsystem-ponte-reparo.service" "$SYSTEMCTL_LOG"' "$(cat "$SYSTEMCTL_LOG")"
 : > "$SUDO_LOG"
 saida="$(etapa)"; rc=$?
 confere "com tudo no lugar, a segunda passada não escreve nada" '[ "$rc" = 0 ] && [ ! -s "$SUDO_LOG" ]' "$saida"
