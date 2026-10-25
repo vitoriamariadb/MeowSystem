@@ -2,7 +2,25 @@
 
 Aguenta desligar o PC: o que está em voo e o próximo passo.
 
-## 24/10, noite — v2.0.0 e v2.1.0 em voo (o mais novo)
+## 25/10 — v2.0.0 e v2.1.0 PUBLICADAS (o mais novo)
+
+- v2.1.0 = P100, P104, P105, P106, P107 e P108 sobre a v2.0.0. Público: `dev` e `master` do fork em `666c63a2`.
+  Privado: `main` em `f9b4a848` (o `main` da v2.0.0 + merge da integração, sem force push; a árvore é igual à
+  conferida), tag e release v2.1.0 em `AndreBFarias/MeowSystem-privado`.
+- Provas: suíte 86/86 (0 pulados) na integração e no privado; conferente final APROVADO_COM_RESSALVAS (container
+  virgem com systemd: 1 senha, 17 fotos sem rede, 44 fontes, doctor rc 0; ponte reposta sem senha, clone
+  adulterado não chega a root, polkit só aceita o `start` do reparo).
+- Máquina real (25/10): `./install.sh` rc 0 (2 passagens, 68 etapas); `meow doctor` rc 0; reserva, unidade do
+  reparo e regra do polkit no disco. O compositor v2 vale no próximo login (o 1º refaz em segundo plano, ~5 min).
+
+Próximo bloco (anotado, nada roda sem quem usa):
+1. A foto levada pela P105 entra duas vezes na rotação (semear do `wallpaper.sh` confere conteúdo).
+2. `perfis/andre/meow.conf` (só privado): coquinha com `PACK="dracula"`; `APPS_ATIVOS` sem kitty e gnome-terminal.
+3. `scripts/ocultar_apps.sh:238` ainda diz «precisam de sudo» (mesma classe da P104 §6).
+4. Ubuntu sem systemd/polkit: a etapa da ponte falha (no Pop!_OS não pega). «Mesmo horário» perde os minutos.
+5. Escritório sem flatpak sempre em pendência de root, com a data regravada em toda passada.
+
+## 24/10, noite — v2.0.0 e v2.1.0 em voo
 
 Quem usa (24/10): roda tudo sem pedir nada a ela/ele (20% da cota semanal; ~2 milhões de tokens aprovados).
 Nada aqui precisa de senha: sudo NOPASSWD, chave SSH e `gh` autenticados. A senha não vai para arquivo nenhum.
