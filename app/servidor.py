@@ -9805,6 +9805,12 @@ class Manipulador(BaseHTTPRequestHandler):
                 else:
                     feito = mod.nome_da_foto(ident, nome)
                     mod.tirar_foto(ident, feito)
+            elif tipo == "sons":
+                # O tema de sons de partida: o do pack de onde o rascunho começou.
+                de = str(corpo.get("de", ""))
+                if de not in _packs_no_disco():
+                    return self._json({"erro": "não conheço o pack «%s»" % de}, 404)
+                feito = mod.levar_sons_de(ident, de)
             else:
                 return self._json({"erro": "não sei levar isso"}, 400)
         except mod.Recusa as e:

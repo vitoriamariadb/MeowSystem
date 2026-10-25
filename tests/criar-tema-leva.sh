@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # criar-tema-leva.sh — o que o «Criar tema» leva para dentro do pack que ele
-# grava: as fotos (para `wallpapers/`). Vestir o pack põe essas fotos na
-# rotação, sem rede. O que vem de quem usa é validado antes de entrar: arquivo
+# grava: as fotos (para `wallpapers/`) e os sons (para `sons/`). Vestir o pack
+# põe essas fotos na rotação, sem rede, e instala o tema de sons dele. O que vem de quem usa é validado antes de entrar: arquivo
 # comum, conteúdo que é o que diz ser, e nome que vira arquivo do lado de cá.
 #
 # HOME, packs e estado de brinquedo; `curl`, `sudo`, `pkexec` e `pkill` falsos
@@ -104,6 +104,55 @@ pack levar meowsystem foto "$AT/outra.png" >/dev/null 2>&1; rm_=$?
 [ "$rm_" = 1 ] && [ -z "$(ls -A "$RAIZ/packs/meowsystem/wallpapers" 2>/dev/null | grep -F outra)" ] \
   && ok "o pack que vem com o MeowSystem não recebe nada" \
   || falha "o levar escreveu num pack do repositório (rc=$rm_)"
+
+# --- 2. os sons ----------------------------------------------------------------
+oga() { printf 'OggS%s\n' "$2" > "$1"; }
+SONS="$DIR/sons"
+s="$(pack levar meu-tema sons dracula 2>&1)"; rs=$?
+n="$(find "$SONS/stereo" -name '*.oga' 2>/dev/null | wc -l)"
+esperado="$(find "$RAIZ/packs/dracula/sons/stereo" -name '*.oga' | wc -l)"
+if [ "$rs" = 0 ] && [ -f "$SONS/index.theme" ] && [ "$n" = "$esperado" ] \
+   && cmp -s "$RAIZ/packs/dracula/sons/stereo/notification/complete.oga" "$SONS/stereo/notification/complete.oga" \
+   && python3 -c 'import json,sys; sys.exit(json.load(open(sys.argv[1]))["som"]["tema"] != "sons/")' "$DIR/pack.json"; then
+  ok "o tema de sons de partida (o do Dracula) entra em sons/ do pack, e o bloco som aponta para ele"
+else
+  falha "os sons de partida não entraram no pack (rc=$rs, $n de $esperado)" "$s"
+fi
+
+oga "$T/meu-aviso.oga" "o som de quem usa"
+s="$(pack levar meu-tema som "$T/meu-aviso.oga" message-new-instant 2>&1)"; rt=$?
+if [ "$rt" = 0 ] && cmp -s "$T/meu-aviso.oga" "$SONS/stereo/notification/message-new-instant.oga"; then
+  ok "o som escolhido para um evento troca só aquele, no lugar dele"
+else
+  falha "trocar o som de um evento não funcionou (rc=$rt)" "$s"
+fi
+
+printf 'RIFF....WAVE\n' > "$T/aviso.wav"
+printf 'não é ogg\n' > "$T/falso.oga"
+pack levar meu-tema som "$T/aviso.wav" complete >/dev/null 2>&1; r1=$?
+pack levar meu-tema som "$T/falso.oga" complete >/dev/null 2>&1; r2=$?
+pack levar meu-tema som "$T/meu-aviso.oga" "../../pack" >/dev/null 2>&1; r3=$?
+pack levar meu-tema som "$T/meu-aviso.oga" evento-que-nao-existe >/dev/null 2>&1; r4=$?
+if [ "$r1$r2$r3$r4" = 1111 ] && cmp -s "$RAIZ/packs/dracula/sons/stereo/notification/complete.oga" "$SONS/stereo/notification/complete.oga" \
+   && [ ! -e "$DIR/pack.oga" ] && [ -z "$(find "$SONS" -name 'evento-que-nao-existe*')" ]; then
+  ok "formato que o tema não toca, conteúdo que não é Ogg, nome com caminho e evento que o tema não tem são recusados"
+else
+  falha "o pack aceitou um som que devia recusar ($r1 $r2 $r3 $r4)"
+fi
+
+v="$(pack validar meu-tema 2>&1)" \
+  && ok "o pack com os sons continua validando" \
+  || falha "o pack com os sons não valida" "$v"
+
+# Vestir: a etapa de som do install, com o pack no ar.
+casa PACK=meu-tema FLAVOR=meutema SOM=sim bash "$RAIZ/scripts/som.sh" aplicar >"$T/som.log" 2>&1
+NO_AR="$CASA/.local/share/sounds/MeowSystem-Sons"
+if diff -r "$SONS" "$NO_AR" >/dev/null 2>&1; then
+  ok "vestido o pack, o tema de sons instalado é o dele, com o som escolhido"
+else
+  falha "o tema de sons instalado não é o do pack" "$(diff -rq "$SONS" "$NO_AR" 2>&1 | head -5)
+$(cat "$T/som.log")"
+fi
 
 [ "$falhas" = 0 ] || { printf '%d falha(s)\n' "$falhas" >&2; exit 1; }
 printf 'criar-tema-leva: tudo ok\n'

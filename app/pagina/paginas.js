@@ -280,6 +280,10 @@ async function guardarTema() {
   }
   r.pack = resp.id || id;
   guardarRascunho();
+  /* Os sons de aviso de partida são os do tema de onde o rascunho começou. */
+  const sons = await api("/api/criar", { method: "POST",
+    body: JSON.stringify({ id: r.pack, tipo: "sons", de: r.base.pack, levar: true }) });
+  if (sons.erro) torrada(maiuscula(primeiraFrase(sons.erro)), "erro");
   torrada(`${r.nome}: guardado`, "ok");
   await recarregarPacks();
   render();

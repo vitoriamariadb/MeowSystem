@@ -123,6 +123,10 @@ VERBOS
     levar  <id> foto <arquivo>...
                                  copia a foto para `wallpapers/` do pack da
                                  pessoa (o que o Criar tema leva). Ver `levar_foto`.
+    levar  <id> sons <pack>      copia o tema de sons que <pack> alcança para
+                                 `sons/`, e o `som.tema` aponta para ele.
+    levar  <id> som <arquivo.oga> <evento>
+                                 troca o som de um evento que o tema já tem.
     tirar  <id> foto <nome>...   tira a foto de `wallpapers/` do pack da pessoa.
     exportar <id> [arquivo] [--sem-imagens] [--seco]
                                  o pack num `.meowpack` (um .tar.zst com um
@@ -5890,12 +5894,111 @@ def tirar_foto(ident, nome):
         _mudar_pack_json(dir_pack, esquecer)
 
 
+# O tema de sons é freedesktop: `index.theme` e um `.oga` por evento em
+# `stereo/<contexto>/`. Só esse formato entra, porque é o que o `som.sh` instala
+# e o `pw-play` toca; e só os eventos que o tema já tem trocam de som.
+TETO_SOM = 4 << 20
+EXT_SOM = (".oga", ".ogg")
+CONTEXTOS_DE_SOM = ("action", "alert", "notification")
+RE_EVENTO = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+PASTA_SONS = "sons/"
+
+
+def _e_ogg(dados):
+    return dados.startswith(b"OggS")
+
+
+def sons_do_tema(pasta):
+    """[(contexto, evento, caminho)] dos sons de um tema de sons, na ordem."""
+    saida = []
+    if not pasta or os.path.islink(pasta.rstrip(os.sep)) or not os.path.isdir(pasta):
+        return saida
+    for contexto in CONTEXTOS_DE_SOM:
+        dir_ctx = os.path.join(pasta, "stereo", contexto)
+        if os.path.islink(dir_ctx) or not os.path.isdir(dir_ctx):
+            continue
+        for nome in sorted(os.listdir(dir_ctx)):
+            cheio = os.path.join(dir_ctx, nome)
+            evento = nome[:-len(".oga")]
+            if (nome.endswith(".oga") and RE_EVENTO.match(evento)
+                    and os.path.isfile(cheio) and not os.path.islink(cheio)):
+                saida.append((contexto, evento, cheio))
+    return saida
+
+
+def sons_do_pack(dir_pack):
+    """Os sons do tema PRÓPRIO do pack (o de `som.tema`), sem subir a herança."""
+    tema = (campo(dir_pack, "som.tema") or "")
+    if not isinstance(tema, str) or not tema:
+        return []
+    try:
+        return sons_do_tema(_dentro(dir_pack, tema, "som.tema"))
+    except Recusa:
+        return []
+
+
+def levar_sons_de(ident, ref):
+    """Copia o tema de sons que `ref` alcança para `sons/` do pack, e o bloco
+    `som` passa a apontar para ele. O pack que já tem tema próprio fica como
+    está (são as escolhas de quem usa); `ref` sem tema de sons não copia nada.
+    Devolve quantos sons entraram."""
+    dir_pack = pack_da_pessoa(ident)
+    if sons_do_pack(dir_pack):
+        return 0
+    origem = acervo("som.tema", ref=ref)
+    sons = sons_do_tema(origem)
+    if not sons:
+        return 0
+    origem = origem.rstrip(os.sep)
+    for contexto, evento, cheio in sons:
+        with open(cheio, "rb") as fh:
+            dados = fh.read()
+        if _e_ogg(dados) and 0 < len(dados) <= TETO_SOM:
+            _gravar_no_pack(dir_pack, f"{PASTA_SONS}stereo/{contexto}/{evento}.oga", dados)
+    nome = re.sub(r"[\x00-\x1f]", "", str(campo(dir_pack, "nome", ident) or ident))
+    indice = [f"[Sound Theme]", f"Name={nome}", "Inherits=freedesktop",
+              "Directories=" + " ".join(f"stereo/{c}" for c in CONTEXTOS_DE_SOM), ""]
+    for c in CONTEXTOS_DE_SOM:
+        indice += [f"[stereo/{c}]", f"Context={c.capitalize()}", "OutputProfile=stereo", ""]
+    _gravar_no_pack(dir_pack, PASTA_SONS + "index.theme", "\n".join(indice).encode("utf-8"))
+    # A licença dos sons vai junto: o pack que os leva leva a procedência.
+    for licenca in ("License.txt", "LICENSE"):
+        cheio = os.path.join(origem, licenca)
+        if os.path.isfile(cheio) and not os.path.islink(cheio) and os.path.getsize(cheio) < 1 << 20:
+            with open(cheio, "rb") as fh:
+                _gravar_no_pack(dir_pack, PASTA_SONS + licenca, fh.read())
+
+    def declarar(p):
+        p.setdefault("som", {})["tema"] = PASTA_SONS
+        return True
+    _mudar_pack_json(dir_pack, declarar)
+    return len(sons)
+
+
+def levar_som(ident, caminho, evento):
+    """Troca o som do `evento` no tema próprio do pack pelo arquivo `caminho`."""
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(isinstance(evento, str) and RE_EVENTO.match(evento), f"{evento!r}: evento que não serve")
+    achado = next(((c, e) for c, e, _ in sons_do_pack(dir_pack) if e == evento), None)
+    _exigir(achado, f"{evento}: o tema de sons do pack não tem esse evento")
+    dados = _ler_de_quem_usa(caminho, EXT_SOM, TETO_SOM, _e_ogg, "um som Ogg")
+    _gravar_no_pack(dir_pack, f"{PASTA_SONS}stereo/{achado[0]}/{evento}.oga", dados)
+    return evento
+
+
 def cmd_levar(ident, tipo, args):
     if tipo == "foto" and args:
         for caminho in args:
             print(f"  ok   {levar_foto(ident, caminho)}")
         return OK
-    print("  erro uso: levar <id> foto <arquivo>...", file=sys.stderr)
+    if tipo == "sons" and len(args) == 1:
+        print(f"  ok   {levar_sons_de(ident, args[0])} som(ns) de {args[0]}")
+        return OK
+    if tipo == "som" and len(args) == 2:
+        print(f"  ok   {levar_som(ident, args[0], args[1])}")
+        return OK
+    print("  erro uso: levar <id> foto <arquivo>... | sons <pack> | som <arquivo.oga> <evento>",
+          file=sys.stderr)
     return ERRO_USO
 
 
