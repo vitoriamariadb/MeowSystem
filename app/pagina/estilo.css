@@ -588,3 +588,12 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
 }
+
+/* os sons de aviso do Criar tema */
+.sons { list-style: none; margin: 0; padding: 0; }
+.sons li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--e-3); min-height: 48px; padding: 0 var(--e-5); border-top: 1px solid var(--linha); }
+.sons li:first-child { border-top: 0; }
+.sons li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sons button.p { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--linha-forte); background: transparent; color: var(--tinta); display: grid; place-items: center; padding: 0; }
+.sons button.p:hover, .sons button.p[data-tocando] { border-color: var(--accent); color: var(--accent); }
+.sons button.p svg { width: 14px; height: 14px; fill: currentColor; }

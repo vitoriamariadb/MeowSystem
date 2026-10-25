@@ -610,7 +610,7 @@ EXTRAS = {
     "criar/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
     "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "autoral:*", "acervo:icone"],
     "criar/papel": ["galeria:*", "papel:*", "acervo:parede", "levar:foto"],
-    "criar/sons": ["criar:sino"],
+    "criar/sons": ["criar:sino", "som:ouvir", "som:trocar"],
     "criar/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],
     "ajustes/programas": ["programa:*", "jogo:*", "icone:*", "oficina:*"],
@@ -1019,6 +1019,11 @@ class Percurso:
             primeiro = self.js("() => document.querySelector('[data-controle^=\"criar:comeca=\"]').dataset.controle")
             self.clicar(primeiro)
             self.assentar()
+        # Começar do Dracula: é o pack que traz tema de sons, e os sons de aviso
+        # do passo Sons são os do tema de partida.
+        if self.achar("criar:comeca=dracula:dracula"):
+            self.clicar("criar:comeca=dracula:dracula")
+            self.assentar()
         campo = self.achar("criar:nome")
         campo.fill("Tema de Brinquedo")
         campo.press("Tab")
@@ -1032,11 +1037,28 @@ class Percurso:
         icones = os.path.join(pasta, "icones")
         dirs = sorted(os.listdir(icones)) if os.path.isdir(icones) else []
         self.checa(dirs == ["apps", "biblioteca", "sistema"], f"o pack tem as três pastas planas de ícone ({dirs})")
+        self.checa(os.path.isfile(os.path.join(pasta, "sons", "index.theme")),
+                   "«Guardar» leva para o pack os sons do tema de partida")
         ok = subprocess.run([sys.executable, os.path.join(RAIZ_B, "scripts", "pack.py"), "validar", "tema-de-brinquedo"],
                             capture_output=True, text=True,
                             env=dict(os.environ, HOME=CASA, MEOW_RAIZ=RAIZ_B))
         self.checa(ok.returncode == 0 and "formato 2" in ok.stdout + ok.stderr,
                    "e o pack guardado valida no formato de três pastas: " + (ok.stdout + ok.stderr).strip()[-160:])
+
+    def h_trocar_som(self, nome):
+        """O «Trocar» de um som de aviso: um Ogg de brinquedo no lugar do som."""
+        caminho = os.path.join(BRINQUEDO, "envios", "brinquedo-aviso.oga")
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        with open(caminho, "wb") as fh:
+            fh.write("OggS".encode() + bytes(64))
+        evento = self.js("() => document.querySelector('[data-controle=\"som:trocar\"]').closest('li').dataset.som")
+        self.escolher_arquivo(nome, caminho)
+        self.assentar(quieto=400, teto=30000)
+        alvo = os.path.join(CASA, ".local", "share", "meowsystem", "packs", "tema-de-brinquedo", "sons", "stereo")
+        trocado = any(os.path.isfile(os.path.join(alvo, c, evento + ".oga"))
+                      and open(os.path.join(alvo, c, evento + ".oga"), "rb").read() == open(caminho, "rb").read()
+                      for c in ("action", "alert", "notification"))
+        self.checa(trocado, f"«Trocar» põe o som escolhido no lugar de «{evento}» no pack")
 
     def h_link_externo(self, nome):
         """Não sai para a internet: o pedido de fora é recusado pela rota do
@@ -1152,7 +1174,9 @@ class Percurso:
                        f"o controle apagado «{nome}» diz o porquê na dica ({item['dica']!r})")
             self.acionados.add(m)
             return
-        if nome == "criar:sino":
+        if nome == "som:trocar":
+            return self.h_trocar_som(nome)
+        if nome in ("criar:sino", "som:ouvir"):
             # O sino toca no navegador: o que se confere é que tocar não quebra.
             n0 = len(self.falhas)
             self.clicar(nome)

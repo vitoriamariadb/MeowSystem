@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # criar-tema-leva.sh — o que o «Criar tema» leva para dentro do pack que ele
 # grava: as fotos (para `wallpapers/`) e os sons (para `sons/`). Vestir o pack
-# põe essas fotos na rotação, sem rede, e instala o tema de sons dele. O que vem de quem usa é validado antes de entrar: arquivo
+# põe essas fotos na rotação, sem rede, e instala o tema de sons dele. E o
+# painel (HOME de brinquedo, PID próprio) lista os sons de aviso e toca a prévia. O que vem de quem usa é validado antes de entrar: arquivo
 # comum, conteúdo que é o que diz ser, e nome que vira arquivo do lado de cá.
 #
 # HOME, packs e estado de brinquedo; `curl`, `sudo`, `pkexec` e `pkill` falsos
@@ -15,7 +16,8 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; }
 
 T="$(mktemp -d)" || exit 2
-trap 'rm -rf "$T"' EXIT
+PAINEL=""
+trap '[ -n "$PAINEL" ] && kill "$PAINEL" 2>/dev/null; wait 2>/dev/null; rm -rf "$T"' EXIT
 FALSO="$T/falso"; mkdir -p "$FALSO"
 for b in sudo pkexec pkill curl wget cosmic-bg; do
   printf '#!/bin/sh\nprintf "%s: recusado pelo tests/criar-tema-leva.sh\\n" >&2\nexit 1\n' "$b" > "$FALSO/$b"
@@ -152,6 +154,65 @@ if diff -r "$SONS" "$NO_AR" >/dev/null 2>&1; then
 else
   falha "o tema de sons instalado não é o do pack" "$(diff -rq "$SONS" "$NO_AR" 2>&1 | head -5)
 $(cat "$T/som.log")"
+fi
+
+# --- 3. os sons de aviso no painel ------------------------------------------------
+mkdir -p "$CASA/.config/meow"; cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
+( exec env -i PATH="$FALSO:$PATH" HOME="$CASA" USER="${USER:-t}" LANG=C.UTF-8 MEOW_RAIZ="$RAIZ" \
+    MEOW_ESTADO="$T/estado" MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE=/nao/existe \
+    "$RAIZ/app/run.sh" --sem-abrir ) > "$T/painel.log" 2>&1 &
+PAINEL=$!
+url=""
+for _ in $(seq 1 60); do
+  url="$(grep -o 'http://127\.0\.0\.1:[0-9]*/?t=[A-Za-z0-9_-]*' "$T/painel.log" | head -1)"
+  [ -n "$url" ] && break
+  sleep 1
+done
+if [ -z "$url" ]; then
+  falha "o painel não subiu com o HOME de brinquedo" "$(tail -5 "$T/painel.log")"
+else
+  oga "$T/outro-aviso.ogg" "o segundo som de quem usa"
+  s="$(python3 - "$url" "$T/meu-aviso.oga" "$T/outro-aviso.ogg" "$SONS" <<'PY'
+import base64, json, sys, urllib.request
+url, meu, outro, sons = sys.argv[1:]
+base, tok = url.split("/?t=")
+def pedir(rota, corpo=None):
+    req = urllib.request.Request(base + rota, headers={"X-Meow-Token": tok, "Content-Type": "application/json"},
+                                 data=json.dumps(corpo).encode() if corpo is not None else None)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return r.status, r.headers.get("Content-Type", ""), r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, "", e.read()
+falhas = []
+_, _, corpo = pedir("/api/criar?id=meu-tema")
+eventos = [x["evento"] for x in json.loads(corpo).get("sons", [])]
+if "message-new-instant" not in eventos or "complete" not in eventos:
+    falhas.append(f"a lista não traz os eventos do tema: {eventos[:5]}")
+if "audio-volume-change" in eventos:
+    falhas.append("o som de volume do tema (que nunca toca) aparece na lista")
+cod, tipo, dados = pedir("/som?pack=meu-tema&evento=message-new-instant")
+if cod != 200 or not tipo.startswith("audio/ogg") or dados != open(meu, "rb").read():
+    falhas.append(f"a prévia do som não é o arquivo do pack ({cod} {tipo})")
+for rota in ("/som?pack=meu-tema&evento=../pack", "/som?pack=meowsystem&evento=complete",
+             "/som?pack=..&evento=complete"):
+    if pedir(rota)[0] != 404:
+        falhas.append(f"{rota} não respondeu 404")
+cod, _, r = pedir("/api/criar", {"id": "meu-tema", "tipo": "som", "nome": "complete", "levar": True,
+                                 "arquivo": "outro-aviso.ogg",
+                                 "conteudo": base64.b64encode(open(outro, "rb").read()).decode()})
+if cod != 200 or open(sons + "/stereo/notification/complete.oga", "rb").read() != open(outro, "rb").read():
+    falhas.append(f"o «Trocar» do painel não trocou o som ({cod} {r[:120]!r})")
+cod, _, r = pedir("/api/criar", {"id": "meu-tema", "tipo": "som", "nome": "complete", "levar": True,
+                                 "arquivo": "x.oga", "conteudo": base64.b64encode(b"nao e ogg").decode()})
+if cod != 400:
+    falhas.append(f"o painel aceitou um som que não é Ogg ({cod})")
+print("\n".join(falhas))
+sys.exit(1 if falhas else 0)
+PY
+)"
+  [ $? = 0 ] && ok "o painel lista os sons de aviso do pack, toca a prévia de cada um e troca o som pelo «Trocar»" \
+    || falha "os sons de aviso do painel" "$s"
 fi
 
 [ "$falhas" = 0 ] || { printf '%d falha(s)\n' "$falhas" >&2; exit 1; }

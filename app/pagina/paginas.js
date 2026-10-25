@@ -422,6 +422,61 @@ function passoPapel() {
   return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria(leva)])],
     { direita: [botaoAcervo("parede", "Trazer imagens")] })];
 }
+/* Os sons de aviso: um por evento do tema de sons do pack, os do desenho
+ * primeiro. O nome é o do evento quando ele não está aqui. */
+const NOMES_DE_SOM = {
+  "message-new-instant": "Mensagem nova", complete: "Tarefa pronta", "device-added": "Pendrive entrou",
+  "battery-low": "Bateria fraca", "screen-capture": "Captura de tela", "desktop-screen-lock": "Tela bloqueada",
+  "message-new-email": "E-mail novo", message: "Mensagem", "device-removed": "Pendrive saiu",
+  "battery-caution": "Bateria baixa", "battery-full": "Bateria cheia", "power-plug": "Na tomada",
+  "power-unplug": "Fora da tomada", "power-unplug-battery-low": "Bateria acabando",
+  "alarm-clock-elapsed": "Despertador", "software-update-urgent": "Atualização urgente",
+  "system-ready": "Sistema pronto", "system-shutdown": "Desligando", "theme-demo": "Amostra do tema",
+  "window-attention-inactive": "Janela pedindo atenção", bell: "Sino", "camera-focus": "Foco da câmera",
+  "camera-shutter": "Foto tirada", "count-down": "Contagem",
+};
+const ORDEM_DE_SOM = Object.keys(NOMES_DE_SOM);
+function nomeDoSom(evento) { return NOMES_DE_SOM[evento] || maiuscula(evento.replace(/-/g, " ")); }
+let SOM_TOCANDO = null;
+function ouvirSom(pack, evento, b) {
+  if (SOM_TOCANDO) SOM_TOCANDO.pause();
+  for (const x of document.querySelectorAll(".sons [data-tocando]")) delete x.dataset.tocando;
+  const audio = new Audio(`/som?pack=${encodeURIComponent(pack)}&evento=${encodeURIComponent(evento)}`);
+  SOM_TOCANDO = audio;
+  b.dataset.tocando = "";
+  audio.addEventListener("ended", () => { delete b.dataset.tocando; });
+  audio.play().catch(() => { delete b.dataset.tocando; });
+}
+function trocarSom(evento) {
+  const campo = elemento("input", { type: "file", accept: ".oga,.ogg,audio/ogg", hidden: true });
+  campo.addEventListener("change", async () => {
+    const arq = campo.files && campo.files[0];
+    if (!arq) return;
+    await levarParaOTema("som", evento, true, { arquivo: arq.name, conteudo: await lerComoBase64(arq) });
+    torrada(`${nomeDoSom(evento)}: trocado`, "ok");
+  });
+  return campo;
+}
+function sonsDeAviso() {
+  const pack = packDoRascunho();
+  const sons = pack && LEVA && !LEVA.carregando ? (LEVA.sons || []) : [];
+  if (!sons.length) return null;
+  const ordem = (e) => { const i = ORDEM_DE_SOM.indexOf(e); return i < 0 ? ORDEM_DE_SOM.length : i; };
+  const ul = elemento("ul", { class: "sons" });
+  for (const s of [...sons].sort((a, b) => ordem(a.evento) - ordem(b.evento))) {
+    const nome = nomeDoSom(s.evento);
+    const campo = trocarSom(s.evento);
+    const tocar = elemento("button", { type: "button", class: "p", "aria-label": "Ouvir " + nome.toLowerCase(),
+      dica: "Ouvir", controle: "som:ouvir" }, [icone("tocar")]);
+    tocar.addEventListener("click", () => ouvirSom(pack.id, s.evento, tocar));
+    ul.append(elemento("li", { "data-som": s.evento }, [
+      tocar, elemento("span", { texto: nome }),
+      botao("Trocar", { class: "bt pequeno", controle: "som:trocar", dica: "Um .oga no lugar deste",
+        onclick: () => campo.click() }), campo,
+    ]));
+  }
+  return bloco("Sons de aviso", [ul]);
+}
 function passoSons() {
   const p = PASSOS.find((x) => x.id === "sons");
   const sino = elemento("div", { class: "sino" }, [
@@ -429,7 +484,7 @@ function passoSons() {
       controle: "criar:sino", onclick: tocarSino }, [icone("tocar")]),
     elemento("h2", { texto: "Sino do volume" }),
   ]);
-  return [bloco(null, [sino, lista(p.linhas)]), maisAjustes("criar:sons", p.mais)];
+  return [bloco(null, [sino, lista(p.linhas)]), sonsDeAviso(), maisAjustes("criar:sons", p.mais)];
 }
 function passoMandar() {
   const r = rascunho();

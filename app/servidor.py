@@ -6730,6 +6730,26 @@ class Manipulador(BaseHTTPRequestHandler):
             corpo, tipo_mime = achado
             return self._responder(corpo, tipo=tipo_mime)
 
+        # O som de um evento do tema de sons PRÓPRIO de um pack (a prévia da
+        # lista «Sons de aviso»): o pack tem de estar na varredura, e o arquivo
+        # sai da lista que o pack.py monta — nada de caminho vindo do pedido.
+        if caminho == "/som":
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
+            mod = modulo_pack()
+            ident = consulta.get("pack", [""])[0]
+            evento = consulta.get("evento", [""])[0]
+            dir_pack = mod.achar(ident) if mod and ident in _packs_no_disco() else None
+            achado = next((a for _c, e, a in mod.sons_do_pack(dir_pack) if e == evento),
+                          None) if dir_pack else None
+            if not achado:
+                return self._recusar(404, "não achei")
+            try:
+                with open(achado, "rb") as fh:
+                    return self._responder(fh.read(), tipo="audio/ogg")
+            except OSError:
+                return self._recusar(404, "não achei")
+
         if caminho == "/previa" and consulta.get("tipo", [""])[0] == "arquivo":
             # O TOKEN FALTAVA AQUI, e só aqui.
             if not self._token_confere(consulta):
@@ -9623,7 +9643,8 @@ class Manipulador(BaseHTTPRequestHandler):
         #
         # 64 MB PARA O `.meowpack`
         teto = {"/api/acervo": 96 << 20,
-                "/api/pack-importar": 64 << 20}.get(alvo.path, 1 << 20)
+                "/api/pack-importar": 64 << 20,
+                "/api/criar": 8 << 20}.get(alvo.path, 1 << 20)
         if tamanho > teto:
             return self._recusar(413, "corpo grande demais")
         try:
@@ -9783,7 +9804,11 @@ class Manipulador(BaseHTTPRequestHandler):
             nomes = sorted(os.listdir(os.path.join(_wallpaper_base(), "ativos")))
         except OSError:
             nomes = []
-        return self._json({"id": ident,
+        # O volume é o sino (o `som` do pack, `SOM_*`): o som de volume do tema
+        # nunca toca (empilha na tecla segurada), então ele não aparece.
+        sons = [{"evento": e, "contexto": c} for c, e, _a in mod.sons_do_pack(dir_pack)
+                if e != "audio-volume-change"]
+        return self._json({"id": ident, "sons": sons,
                            "fotos": [n for n in nomes if mod.nome_da_foto(ident, n) in no_pack]})
 
     def _api_criar(self, corpo):
@@ -9805,6 +9830,18 @@ class Manipulador(BaseHTTPRequestHandler):
                 else:
                     feito = mod.nome_da_foto(ident, nome)
                     mod.tirar_foto(ident, feito)
+            elif tipo == "som":
+                # O som de um evento, trocado pelo arquivo que veio da página.
+                try:
+                    dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+                except Exception:
+                    return self._json({"erro": "conteúdo não é base64"}, 400)
+                arquivo = os.path.basename(str(corpo.get("arquivo", ""))) or "som.oga"
+                with tempfile.TemporaryDirectory(prefix="meow-som-") as pasta:
+                    caminho = os.path.join(pasta, re.sub(r"[^A-Za-z0-9._-]", "-", arquivo)[-80:])
+                    with open(caminho, "wb") as fh:
+                        fh.write(dados)
+                    feito = mod.levar_som(ident, caminho, nome)
             elif tipo == "sons":
                 # O tema de sons de partida: o do pack de onde o rascunho começou.
                 de = str(corpo.get("de", ""))
