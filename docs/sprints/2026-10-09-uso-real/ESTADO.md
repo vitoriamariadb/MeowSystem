@@ -13,7 +13,7 @@ volta. O `dev` só recebe no fim, de uma vez, com a suíte verde. Dois blocos ao
 | espaço | agora | depois | por último |
 |---|---|---|---|
 | A | P102 PC virgem (`.wt-meow/p102`) | P100 compositor | — |
-| B | P103 pontas soltas (`.wt-meow/p103`) | P104 ponte sem senha | P105 papéis/sons no pack, mockup |
+| B | ~~P103~~ integrada (`f9a3dea0`, 77/77, 0 pulados) | P104 ponte sem senha (`.wt-meow/p104`, em voo) | P105 papéis/sons no pack, mockup |
 | C (ordem de quem usa) | P106 tema CSS do ZapZap (`.wt-meow/p106`) | aplicar na máquina real e tirar print | — |
 | D (ordem de quem usa) | P107 todo app em todo pack (`.wt-meow/p107`) | — | — |
 
