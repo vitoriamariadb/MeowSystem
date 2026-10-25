@@ -49,3 +49,35 @@ Cada item: teste vermelho antes, verde depois, um commit por item, diff conferid
 ## Fora daqui
 - P100 (o patch v2 da Vitória) e o resto da P98 (a ponte pelo «Conferir», papéis e sons no formato de pack, e
   o que no mockup não tem motor) ficam para depois da P102, porque ela mexe no formato de pack.
+
+## Execução
+Veredito da conferência (24/10): **APROVADO_COM_RESSALVAS**. Os cinco itens batem com a tarefa. A conferência
+não mudou código. Cada prova foi refeita com a cura desfeita, e o teste ficou vermelho:
+
+1. `4583968` o `LOGO` do modo `fixo` entra no `MASCOTE` do `scripts/migrar_conf.py`, com as duas fases, e segue
+   a mesma regra das outras três chaves: só o valor de fábrica do pack de antes muda, e só se grava nome.
+   `tests/pack.sh`, com `LOGO_MODO="fixo"`: na ida fica `morcego-noite`, na volta `coquinha`, e o `LOGO`
+   escolhido à mão fica. Sem a cura, a ida fica vermelha. A volta passa mesmo sem a cura; quem prova é a ida.
+2. `86c49cb` sem a ponte, o `scripts/icones_absolutos.sh` sempre diz «… espera root: entra no próximo
+   «Instalar tudo»». Para o teste, `MEOW_APLICATIVOS_SISTEMA` passa a valer, como no `ocultar_apps.sh` e no
+   `ocultar_casa.sh`. `tests/achados-tecnicos.sh` §11. Mutação feita: só a frase de antes volta, e a seção fica vermelha.
+3. `7ed2689` o `scripts/greeter.sh` não escreve quando há avatar e ele não se lê (o arquivo existe, ou a pasta
+   não se atravessa). Nesse caso diz «avatar pendente». Um `IconFile` que aponta para arquivo que não existe
+   continua contando como sem avatar. `tests/achados-tecnicos.sh` §12: zero `SetIconFile`, nenhum md5 gravado.
+4. `069c7fc` `packs/dracula/icones/biblioteca-origem.sha256`: os 295 sha256, todos distintos, com o commit
+   `75d7d2d7c0c059c8a22c5443f8bcefbeda7ec05c`. A conferência recalculou a lista a partir do clone esparso e ela bateu
+   linha a linha. Com um sha trocado, `tests/pack.sh` fica vermelho (294 de 295). Não pula mais.
+5. `6eb659a` o `app/servidor.py` lê o nome das portas do `PORTAS` do `app/pagina/lugares.js`, e saem o
+   `_NOME_DA_PORTA` e o `PORTA_DAS_PENDENCIAS`. O cache cai inteiro quando o arquivo muda. A conferência pôs a
+   tabela de volta no servidor, e o `tests/migracao-do-painel.py` ficou vermelho. O resto do item já estava no
+   `b524d83`. Não sobram `ABA_INICIO` nem `DESCRICAO_SECAO`, o `install.sh` não fala de aba, e o texto é «Construir o menu».
+
+**Suíte**, duas vezes seguidas na ponta `6eb659a`:
+`== todos os 77 · 77 verde(s), 0 pulado(s), 0 vermelho(s) ==` nas duas, com rc 0. Os falsos recusaram 6
+chamadas de sudo (4 `sudo -n true` e 2 `estado` da ponte) e pararam 13 de `busctl`.
+
+**O que ficou** (anotado aqui, fora deste bloco):
+- `scripts/nomes_apps.sh:272` ainda diz «precisam de sudo para encurtar», o mesmo defeito do item 2.
+- O papel de parede devolvido: o botão na tela e o `--onde` dizem «Era escolha minha», e a busca
+  (`lugares.js`, `wallpaper_permitir`) diz «Manter». O teste novo não cobra o nome dos botões das pendências.
+- O comentário do `meow_onde_no_painel` (`lib/comum.sh`) ainda fala em «na aba Seção».
