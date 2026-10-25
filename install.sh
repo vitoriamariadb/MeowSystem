@@ -1585,6 +1585,7 @@ etapa_nomes() {
 #   /usr/local/lib/meowsystem/perfil          raiz, usuária e lar — só root grava
 #   /etc/sudoers.d/49-meowsystem-ponte        libera os verbos DELA, sem senha
 #   /usr/local/lib/meowsystem/reserva/        cópia das duas, 0700, para o reparo
+#   /etc/systemd/system/meowsystem-ponte-reparo.service   o reparo, sem argumento
 #
 # O desenho, e por que não é `NOPASSWD` nos comandos que o projeto usa, está no
 # cabeçalho de `scripts/ponte_root.sh`. Em uma linha: não existe regra estreita
@@ -1609,6 +1610,10 @@ etapa_ponte_root() {
   # legível, para a etapa e o doctor conferirem sem elevar nada.
   local reserva=/usr/local/lib/meowsystem/reserva
   local somas=/usr/local/lib/meowsystem/reserva.sha256
+  local reparo=/usr/local/lib/meowsystem/reparar_ponte.sh
+  local unidade=/etc/systemd/system/meowsystem-ponte-reparo.service
+  local reparo_origem="$MEOW_RAIZ/scripts/reparar_ponte.sh"
+  local unidade_origem="$MEOW_RAIZ/assets/ponte/meowsystem-ponte-reparo.service"
 
   # --- desligada: a etapa DESFAZ, e desfazer tem de ser de graça -------------
   if [ "${PONTE_ROOT:-sim}" != "sim" ]; then
@@ -1630,7 +1635,10 @@ etapa_ponte_root() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  [ -f "$origem" ] || { meow_erro "falta $origem — repositório incompleto"; return "$MEOW_ERRO"; }
+  local f
+  for f in "$origem" "$reparo_origem" "$unidade_origem"; do
+    [ -f "$f" ] || { meow_erro "falta $f — repositório incompleto"; return "$MEOW_ERRO"; }
+  done
 
   local perfil_quer regra_quer somas_quer
   perfil_quer="$(printf 'raiz=%s\nusuaria=%s\nlar=%s\n' "$MEOW_RAIZ" "$(id -un)" "$HOME")"
@@ -1666,6 +1674,8 @@ etapa_ponte_root() {
     "$(sha256sum < "$origem" | cut -d' ' -f1)" \
     "$(printf '%s\n' "$regra_quer" | sha256sum | cut -d' ' -f1)")"
   [ -d "$reserva" ] && [ "$(cat "$somas" 2>/dev/null)" = "$somas_quer" ] || mudou=1
+  cmp -s "$reparo_origem" "$reparo" 2>/dev/null || mudou=1
+  cmp -s "$unidade_origem" "$unidade" 2>/dev/null || mudou=1
 
   if [ "$mudou" = "0" ]; then
     meow_ok "ponte root instalada e liberada sem senha"
@@ -1730,6 +1740,14 @@ etapa_ponte_root() {
     rm -f "$tmp"; meow_erro "não consegui guardar a reserva da ponte"; return "$MEOW_ERRO"
   fi
   rm -f "$tmp"
+
+  # O reparo sem senha: um oneshot do sistema que repõe a ponte e a regra da
+  # reserva (ver o cabeçalho de scripts/reparar_ponte.sh).
+  if ! { sudo install -m 755 -o root -g root "$reparo_origem" "$reparo" &&
+         sudo install -m 644 -o root -g root "$unidade_origem" "$unidade" &&
+         sudo systemctl daemon-reload; }; then
+    meow_erro "não consegui instalar o reparo da ponte"; return "$MEOW_ERRO"
+  fi
 
   # A PROVA É USAR. Instalar e dizer "pronto" seria afirmar uma liberação que
   # ninguém exerceu — e o modo de falha silencioso deste projeto é exatamente
