@@ -1584,6 +1584,7 @@ etapa_nomes() {
 #   /usr/local/lib/meowsystem/ponte_root.sh   o braço root, verbos fechados
 #   /usr/local/lib/meowsystem/perfil          raiz, usuária e lar — só root grava
 #   /etc/sudoers.d/49-meowsystem-ponte        libera os verbos DELA, sem senha
+#   /usr/local/lib/meowsystem/reserva/        cópia das duas, 0700, para o reparo
 #
 # O desenho, e por que não é `NOPASSWD` nos comandos que o projeto usa, está no
 # cabeçalho de `scripts/ponte_root.sh`. Em uma linha: não existe regra estreita
@@ -1604,6 +1605,10 @@ etapa_ponte_root() {
   local perfil=/usr/local/lib/meowsystem/perfil
   local regra=/etc/sudoers.d/49-meowsystem-ponte
   local origem="$MEOW_RAIZ/scripts/ponte_root.sh"
+  # A reserva é a cópia que o reparo sem senha repõe; o sha256 fica fora dela,
+  # legível, para a etapa e o doctor conferirem sem elevar nada.
+  local reserva=/usr/local/lib/meowsystem/reserva
+  local somas=/usr/local/lib/meowsystem/reserva.sha256
 
   # --- desligada: a etapa DESFAZ, e desfazer tem de ser de graça -------------
   if [ "${PONTE_ROOT:-sim}" != "sim" ]; then
@@ -1627,7 +1632,7 @@ etapa_ponte_root() {
 
   [ -f "$origem" ] || { meow_erro "falta $origem — repositório incompleto"; return "$MEOW_ERRO"; }
 
-  local perfil_quer regra_quer
+  local perfil_quer regra_quer somas_quer
   perfil_quer="$(printf 'raiz=%s\nusuaria=%s\nlar=%s\n' "$MEOW_RAIZ" "$(id -un)" "$HOME")"
 
   # Comparar por CONTEÚDO (regra 5). A regra de sudo é gerada pela PRÓPRIA
@@ -1657,6 +1662,10 @@ etapa_ponte_root() {
   md5_quer="$(printf '%s\n' "$regra_quer" | md5sum | cut -d' ' -f1)"
   md5_tem="$(sudo -n "$ponte" estado 2>/dev/null | sed -n 's/^regra_md5=//p')"
   [ -n "$md5_tem" ] && [ "$md5_tem" = "$md5_quer" ] || mudou=1
+  somas_quer="$(printf '%s  ponte_root.sh\n%s  49-meowsystem-ponte' \
+    "$(sha256sum < "$origem" | cut -d' ' -f1)" \
+    "$(printf '%s\n' "$regra_quer" | sha256sum | cut -d' ' -f1)")"
+  [ -d "$reserva" ] && [ "$(cat "$somas" 2>/dev/null)" = "$somas_quer" ] || mudou=1
 
   if [ "$mudou" = "0" ]; then
     meow_ok "ponte root instalada e liberada sem senha"
@@ -1710,6 +1719,15 @@ etapa_ponte_root() {
   fi
   if ! sudo install -m 440 -o root -g root "$tmp" "$regra"; then
     rm -f "$tmp"; meow_erro "não consegui instalar $regra"; return "$MEOW_ERRO"
+  fi
+
+  # O sha256 entra por último: uma reserva pela metade nunca confere.
+  if ! { sudo install -d -m 700 -o root -g root "$reserva" &&
+         sudo install -m 755 -o root -g root "$origem" "$reserva/ponte_root.sh" &&
+         sudo install -m 440 -o root -g root "$tmp" "$reserva/49-meowsystem-ponte" &&
+         chmod 600 "$tmp" && printf '%s\n' "$somas_quer" > "$tmp" &&
+         sudo install -m 644 -o root -g root "$tmp" "$somas"; }; then
+    rm -f "$tmp"; meow_erro "não consegui guardar a reserva da ponte"; return "$MEOW_ERRO"
   fi
   rm -f "$tmp"
 
