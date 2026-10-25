@@ -19,7 +19,7 @@ command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; 
 # MIGRADOS: perguntam ao pack e não conhecem mais o nome de tema nenhum. Os
 # cinco do fim NASCERAM migrados,: são os temas que o Dracula de antes
 # aplicava, e cada um lê um MODELO do pack (seções 7 e 8).
-MIGRADOS=(spotify qbittorrent kitty gnome-terminal telegram discord onlyoffice)
+MIGRADOS=(spotify qbittorrent kitty gnome-terminal telegram discord onlyoffice zapzap)
 
 # A TABELA. Ela só desce.
 declare -A TETO=(
@@ -388,6 +388,80 @@ saida="$(mod telegram conferir)"; rc=$?
 saida="$(mod telegram reverter)"; rc=$?
 [ "$rc" = 1 ] && [ ! -e "$TG" ] && ok "telegram: desfazer tira o arquivo entregue" \
   || falha "telegram: desfazer não tirou o arquivo (rc=$rc)" "$saida"
+
+# --- ZapZap: o WhatsApp Web no tema do pack (P106) ------------------------
+# O CSS sai da paleta do pack no ar, vai para a pasta de customização do
+# ZapZap com um nome nosso, e a chave que liga o CSS global vai para o conf.
+implantar "$CASA/.local/share/flatpak" com.rtosta.zapzap
+mkdir -p "$CASA/.local/share/flatpak/exports/share/applications" "$CASA/.var/app/com.rtosta.zapzap/config/ZapZap"
+printf '[Desktop Entry]\nName=ZapZap\nIcon=com.rtosta.zapzap\nExec=flatpak run com.rtosta.zapzap\n' > "$T/zapzap.desktop"
+ln -sfn "$T/zapzap.desktop" "$CASA/.local/share/flatpak/exports/share/applications/com.rtosta.zapzap.desktop"
+ZZ_CONF="$CASA/.var/app/com.rtosta.zapzap/config/ZapZap/ZapZap.conf"
+printf '[system]\ntheme=dark\ntray_theme=symbolic_light\n' > "$ZZ_CONF"
+ZZ_PASTA="$CASA/.var/app/com.rtosta.zapzap/data/ZapZap/customizations/global/css"
+ZZ_CSS="$ZZ_PASTA/MeowSystem.css"
+zz_cor() { sed -n "s/^ *--$1: \(#[0-9A-Fa-f]*\) .*/\1/p" "$ZZ_CSS" 2>/dev/null | head -n 1; }
+zz_ligado() { awk -F= '/^\[/{s=$0} s=="[custom]" && $1=="global\\css\\enabled"{v=$2} END{exit !(v=="true")}' "$ZZ_CONF"; }
+zz_sha() { cat "$ZZ_CSS" "$ZZ_CONF" 2>/dev/null | sha256sum; }
+saida="$(mod zapzap aplicar)"; rc=$?
+[ "$rc" = 1 ] && grep -q '^ \* meowsystem-tema: dracula/dracula$' "$ZZ_CSS" 2>/dev/null \
+  && [ "$(zz_cor WDS-surface-default)" = "#21222C" ] && [ "$(zz_cor WDS-content-default)" = "#F8F8F2" ] \
+  && zz_ligado && grep -qx 'theme=dark' "$ZZ_CONF" && printf '%s' "$saida" | grep -q 'vale quando o ZapZap reabrir' \
+  && ok "zapzap: aplicar põe o CSS com a paleta do Dracula, liga o CSS global no conf e diz que vale ao reabrir" \
+  || falha "zapzap: o CSS do pack não chegou ao WhatsApp (rc=$rc)" "$saida$(cat "$ZZ_CONF")"
+zz_dracula="$(zz_sha)"
+saida="$(mod zapzap aplicar)"; rc=$?
+saida2="$(mod zapzap conferir)"; rc2=$?
+[ "$rc" = 0 ] && [ "$rc2" = 0 ] && [ "$(zz_sha)" = "$zz_dracula" ] \
+  && ok "zapzap: a segunda passada não escreve nada, e o conferir dá 0" \
+  || falha "zapzap: a segunda passada mexeu ou o conferir divergiu (aplicar=$rc, conferir=$rc2)" "$saida$saida2"
+saida="$(mod zapzap aplicar PACK=meowsystem FLAVOR=mocha)"; rc=$?
+[ "$rc" = 1 ] && grep -q '^ \* meowsystem-tema: meowsystem/mocha$' "$ZZ_CSS" \
+  && [ "$(zz_cor WDS-surface-default)" = "#181825" ] && [ "$(zz_cor WDS-content-default)" = "#CDD6F4" ] \
+  && [ "$(zz_sha)" != "$zz_dracula" ] \
+  && ok "zapzap: trocar de pack troca as cores do CSS (meowsystem/mocha)" \
+  || falha "zapzap: o CSS não acompanhou o pack meowsystem (rc=$rc)" "$saida"
+saida="$(mod zapzap conferir)"; rc=$?
+saida="$saida$(mod zapzap aplicar)"; rc2=$?
+[ "$rc" = 1 ] && [ "$rc2" = 1 ] && [ "$(zz_sha)" = "$zz_dracula" ] \
+  && ok "zapzap: na volta ao Dracula, o conferir acusa e o aplicar devolve o CSS de antes, byte a byte" \
+  || falha "zapzap: a ida e volta de pack não fechou (conferir=$rc, aplicar=$rc2)" "$saida"
+# Pack é dado: o que o pack põe no CSS é cor, e cor é `#hex` (ou a mistura de
+# duas, ou os três canais em decimal).
+zz_valores_fora=""
+for zz_par in dracula/dracula dracula/alucard meowsystem/mocha meowsystem/latte; do
+  zz_valores_fora+="$(python3 "$MODELO_PY" "$ACERVO/zapzap/zapzap.modelo.css" "$RAIZ/packs/${zz_par%/*}/paleta.json" "${zz_par#*/}" "${zz_par%/*}" \
+    | sed -n 's/^ *--[A-Za-z0-9-]*: \(.*\) !important;$/\1/p' \
+    | grep -vE '^(#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?|color-mix\(in srgb, #[0-9A-Fa-f]{6} [0-9]+%, #[0-9A-Fa-f]{6}\)|[0-9]{1,3}, [0-9]{1,3}, [0-9]{1,3})$')"
+done
+[ -z "$zz_valores_fora" ] \
+  && ok "zapzap: todo valor que a paleta põe no CSS é cor (#hex, mistura de #hex ou canais)" \
+  || falha "zapzap: há valor no CSS que não é cor" "$zz_valores_fora"
+printf '/* mexido */\n' >> "$ZZ_CSS"
+saida="$(mod zapzap conferir)"; rc=$?
+[ "$rc" = 1 ] && ok "zapzap: o CSS mexido à mão é divergência no conferir" \
+  || falha "zapzap: o conferir não viu o CSS mexido (rc=$rc)" "$saida"
+saida="$(mod zapzap reverter)"; rc=$?
+[ "$rc" = 1 ] && [ ! -e "$ZZ_CSS" ] && ! zz_ligado && grep -qx 'theme=dark' "$ZZ_CONF" && ! grep -q '^\[custom\]' "$ZZ_CONF" \
+  && ok "zapzap: desfazer tira o nosso CSS e devolve a chave ao de fábrica, e o resto do conf fica" \
+  || falha "zapzap: desfazer deixou sobra (rc=$rc)" "$saida$(cat "$ZZ_CONF")"
+# O CSS DELA: outro `.css` na pasta é tema de terceiro — pergunta, não escreve.
+# (o desfazer devolveu o `.desktop` como arquivo; o flatpak o repõe como link, e é o que se faz aqui)
+ln -sfn "$T/zapzap.desktop" "$CASA/.local/share/flatpak/exports/share/applications/com.rtosta.zapzap.desktop"
+mkdir -p "$ZZ_PASTA"; printf 'body { background: red; }\n' > "$ZZ_PASTA/meu.css"
+mod zapzap aplicar >/dev/null  # o `.desktop` volta a ser nosso; o CSS já pergunta aqui
+saida="$(mod zapzap aplicar)"; rc=$?
+saida2="$(mod zapzap conferir)"; rc2=$?
+[ "$rc" = 3 ] && [ "$rc2" = 3 ] && [ ! -e "$ZZ_CSS" ] && [ "$(cat "$ZZ_PASTA/meu.css")" = 'body { background: red; }' ] \
+  && grep -q 'zapzap-tema-de-terceiro' "$T/estado8/pendencias.tsv" 2>/dev/null \
+  && ok "zapzap: com um CSS dela na pasta, nada é escrito e a pergunta vira pendência (rc=3)" \
+  || falha "zapzap: o CSS de terceiro não foi respeitado (aplicar=$rc, conferir=$rc2)" "$saida$saida2"
+saida="$(mod zapzap aplicar MEOW_TEMA_DE_TERCEIRO=trocar)"; rc=$?
+saida="$saida$(mod zapzap reverter)"; rc2=$?
+[ "$rc" = 1 ] && [ "$rc2" = 1 ] && [ ! -e "$ZZ_CSS" ] && [ -f "$ZZ_PASTA/meu.css" ] && zz_ligado \
+  && ok "zapzap: com «trocar», o nosso entra; o desfazer tira só o nosso, e o CSS dela segue ligado" \
+  || falha "zapzap: o desfazer com o CSS dela na pasta tirou demais ou de menos (aplicar=$rc, reverter=$rc2)" "$saida"
+rm -f "$ZZ_PASTA/meu.css"
 
 # --- Discord -------------------------------------------------------------
 implantar "$CASA/.local/share/flatpak" com.discordapp.Discord
