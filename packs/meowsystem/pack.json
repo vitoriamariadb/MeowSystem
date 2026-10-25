@@ -91,7 +91,8 @@
       "_nota": "O valor da chave `theme` do Heroic. Com `.css`, é um arquivo do acervo do motor (`packs/meowsystem/temas-de-apps/heroic/upstream/themes/`, os 56 do catppuccin/heroic), que o módulo instala com o remendo de variáveis; sem, é um tema que o próprio Heroic traz. O `<flavor>` o pack expande, com o FLAVOR da máquina; o `<accent>` o módulo, com o ACCENT. O par que não existir no acervo cai no flavor padrão deste pack com o acento de fábrica (`mauve`), que é o `catppuccin-mocha-mauve.css` de antes."
     },
     "_nota_modelos": "Os blocos vazios abaixo usam o modelo do motor (`scripts/temas-de-apps/<app>/<app>.modelo.*`), o mesmo do pack Dracula, com a paleta deste pack no flavor da máquina. A procedência dos modelos está no PROCEDENCIA.md de `temas-de-apps/`.",
-    "kitty": {}
+    "kitty": {},
+    "gnome-terminal": {}
   },
   "mascote": {
     "desenhos": "mascote/",

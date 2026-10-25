@@ -131,3 +131,4 @@ aplicativo» do `packs/dracula/PROCEDENCIA.md`.
 | app | modelo | desenho de origem | licença |
 |---|---|---|---|
 | kitty | `scripts/temas-de-apps/kitty/kitty.modelo.conf` | `dracula/kitty` | MIT |
+| gnome-terminal | `scripts/temas-de-apps/gnome-terminal/gnome-terminal.modelo.dconf` | desenho deste projeto | GPL-3.0 |
