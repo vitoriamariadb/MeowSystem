@@ -109,11 +109,15 @@ meow_desinstalar() {
   # A REGRA PRIMEIRO, o braço depois.
   local regra_ponte=/etc/sudoers.d/49-meowsystem-ponte
   local braco_ponte=/usr/local/lib/meowsystem
-  if [ -f "$regra_ponte" ] || [ -d "$braco_ponte" ]; then
+  local reparo_ponte=/etc/systemd/system/meowsystem-ponte-reparo.service
+  local polkit_ponte=/etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules
+  if [ -f "$regra_ponte" ] || [ -d "$braco_ponte" ] || [ -f "$reparo_ponte" ]; then
     if meow_seco; then
-      meow_muda "removeria $regra_ponte e $braco_ponte"
-    elif sudo rm -f "$regra_ponte" 2>/dev/null && sudo rm -rf "$braco_ponte" 2>/dev/null; then
-      meow_ok "ponte root e regra de sudo removidas"
+      meow_muda "removeria $regra_ponte, $braco_ponte e o reparo da ponte"
+    elif sudo rm -f "$regra_ponte" "$polkit_ponte" "$reparo_ponte" 2>/dev/null \
+         && sudo rm -rf "$braco_ponte" 2>/dev/null; then
+      sudo systemctl daemon-reload 2>/dev/null || true
+      meow_ok "ponte root, regra de sudo e reparo removidos"
     else
       # Mesma conduta do hook acima: sem sudo não apagamos escondido nem
       # falhamos calados. E aqui o aviso pesa mais, porque o que fica é

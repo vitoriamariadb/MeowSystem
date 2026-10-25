@@ -87,6 +87,7 @@ PORTATIL=(
   fotos-do-pack.sh       # as fotos de um pack de brinquedo entram sem rede, com curl e sudo falsos, HOME de brinquedo; bash e python3
   perfil.sh              # o install.sh --perfil numa raiz de brinquedo com a fila trocada por uma etapa que só lê, HOME de brinquedo; bash
   apps-em-todo-pack.sh   # cada app x pack numa casa de brinquedo, dconf e flatpak falsos e falsos que recusam; bash e python3
+  ponte-reparo.sh        # a etapa da ponte, o reparo e o doctor em cópias com os destinos de root numa pasta de brinquedo; sudo, visudo e systemctl falsos; bash e node
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

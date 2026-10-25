@@ -1,0 +1,16 @@
+# /etc/systemd/system/meowsystem-ponte-reparo.service — instalada pelo install.sh.
+# Repõe a ponte root e a regra de sudo a partir da reserva que o install guardou.
+# Sem argumento e sem [Install]: só roda quando alguém a dispara, e quem a
+# dispara sem senha é a regra do polkit, que libera o `start` desta e de nenhuma outra.
+[Unit]
+Description=MeowSystem: repor a ponte root a partir da reserva
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/meowsystem/reparar_ponte.sh
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/sudoers.d -/usr/local/lib/meowsystem

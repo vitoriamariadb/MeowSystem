@@ -1242,18 +1242,11 @@ _meow_pendencia_tirar() {
   return 0
 }
 
-# ONDE, NO PAINEL, MORA O BOTÃO QUE FAZ ISTO — 24/09/2026, sprint P50
-#   Imprime «rótulo», na aba Grupo — de uma ação do painel, ou da ação de uma
-#   pendência —, e sai 1 (sem imprimir nada) quando não há botão com cartão.
-#   Quem sabe o nome do botão e a aba dele é a tabela `ACOES` do
-#   `app/servidor.py`, e é a ela que se pergunta: nome de tela escrito à mão
-#   num script é o que deixou a conferência mandando a uma aba «Instalar e
-#   conferir» dezoito dias depois de ela virar «Instalação» (achado 47). Sem
-#   python3 ou sem o painel no clone, a resposta é vazia, e a frase que a usaria
-#   simplesmente não cita tela nenhuma — melhor que citar a errada.
-#   DESDE A P57 (24/09/2026) ELA RESPONDE TAMBÉM CARTÃO E ABA: uma chave do
-#   meow.conf dá «título do cartão», na aba Seção, e `inicio` dá a aba que abre
-#   o painel — as duas frases que o `install.sh` ainda escrevia à mão.
+# Onde, no painel, mora o botão que faz isto: pergunta ao `onde_na_tela` do
+#   `app/servidor.py`, que lê o `lugares.js`. Imprime «botão», em Porta › Página
+#   (uma ação), «Resolver», em Cuidar (uma pendência), «nome», em Porta › Página
+#   (uma chave do meow.conf) ou em Cuidar (`inicio`), e sai 1 sem imprimir nada
+#   quando não há lugar. Sem python3 ou sem o painel, a frase não cita tela.
 meow_onde_no_painel() {
   local servidor="$MEOW_RAIZ/app/servidor.py"
   [ -f "$servidor" ] && command -v python3 >/dev/null 2>&1 || return 1
