@@ -783,13 +783,15 @@ tema_do_conf() {
     "$MEOW_RAIZ/scripts/aplicar_tema.sh" "$par" --conferir >/dev/null 2>&1; rc=$?
     printf "%s %s %s\n" "$(basename "$MEOW_PACK_DIR")" "$par" "$rc"'
 }
-sem_as_duas() { grep -vE '^(PACK|FLAVOR|CURSOR|LOGO_DIA|LOGO_NOITE|FASTFETCH_LOGO_GATO)=' "$1"; }
+sem_as_duas() { grep -vE '^(PACK|FLAVOR|CURSOR|LOGO|LOGO_DIA|LOGO_NOITE|FASTFETCH_LOGO_GATO)=' "$1"; }
 # As três chaves do mascote, como o conf e o painel as leem.
 mascote_do_conf() {
   printf '%s|%s|%s' "$(sed -n 's/^LOGO_DIA="\([^"]*\)".*/\1/p' "$T/usar.conf" | tail -n1)" \
     "$(sed -n 's/^LOGO_NOITE="\([^"]*\)".*/\1/p' "$T/usar.conf" | tail -n1)" \
     "$(sed -n 's/^FASTFETCH_LOGO_GATO="\([^"]*\)".*/\1/p' "$T/usar.conf" | tail -n1)"
 }
+# O mascote do modo fixo, que a troca leva pela mesma regra das outras três.
+logo_do_conf() { sed -n 's/^LOGO="\([^"]*\)".*/\1/p' "$T/usar.conf" | tail -n1; }
 mascote_do_painel() {
   usar_amb python3 -I - "$RAIZ/app" <<'PY' 2>/dev/null
 import sys
@@ -800,6 +802,7 @@ print("|".join(v.get(k, "?") for k in ("LOGO_DIA", "LOGO_NOITE", "FASTFETCH_LOGO
 PY
 }
 
+sed -i 's/^LOGO_MODO="[^"]*"/LOGO_MODO="fixo"/' "$T/usar.conf"
 antes="$(sem_as_duas "$T/usar.conf")"
 saida="$(usar_amb "$RAIZ/bin/meow" pack usar dracula --sem-aplicar 2>&1)"; rc=$?
 if [ "$rc" = "0" ] && grep -qx 'PACK="dracula"' "$T/usar.conf" \
@@ -813,6 +816,10 @@ ida_mascote="$(mascote_do_conf)"
 [ "$ida_mascote" = "morcego-dia|morcego-noite|morcego-noite" ] && [ "$(mascote_do_painel)" = "$ida_mascote" ] \
   && ok "o mascote de fábrica vai junto para o do Dracula, no conf e no painel ($ida_mascote)" \
   || falha "o mascote não acompanhou o pack" "conf '$ida_mascote', painel '$(mascote_do_painel)'"
+ida_logo="$(logo_do_conf)"
+[ "$ida_logo" = "morcego-noite" ] \
+  && ok "com LOGO_MODO=fixo, o LOGO de fábrica vai junto para o do Dracula ($ida_logo)" \
+  || falha "o LOGO do modo fixo ficou no mascote do pack de antes" "veio '$ida_logo', esperava 'morcego-noite'"
 ida="$(tema_do_conf)"
 [ "$ida" = "dracula dracula-mauve 0" ] \
   && ok "depois da troca, o tema no disco é o do Dracula ($ida)" \
@@ -830,15 +837,19 @@ volta_mascote="$(mascote_do_conf)"
 [ "$volta_mascote" = "mimir|coquinha|coquinha" ] && [ "$(mascote_do_painel)" = "$volta_mascote" ] \
   && ok "e o mascote volta ao de fábrica do MeowSystem ($volta_mascote)" \
   || falha "o mascote não voltou com o pack" "conf '$volta_mascote', painel '$(mascote_do_painel)'"
+volta_logo="$(logo_do_conf)"
+[ "$volta_logo" = "coquinha" ] \
+  && ok "e o LOGO do modo fixo volta ao de fábrica do MeowSystem ($volta_logo)" \
+  || falha "o LOGO do modo fixo não voltou com o pack" "veio '$volta_logo', esperava 'coquinha'"
 # O que ela escolheu dentro do pack novo fica: só o de fábrica do pack de antes muda.
 sed -i 's/^LOGO_DIA="[^"]*"/LOGO_DIA="coquinha"/' "$T/usar.conf"
 usar_amb "$RAIZ/bin/meow" pack usar dracula --sem-aplicar >/dev/null 2>&1
-sed -i 's/^LOGO_NOITE="[^"]*"/LOGO_NOITE="morcego"/' "$T/usar.conf"
+sed -i -e 's/^LOGO_NOITE="[^"]*"/LOGO_NOITE="morcego"/' -e 's/^LOGO="[^"]*"/LOGO="morcego"/' "$T/usar.conf"
 usar_amb "$RAIZ/bin/meow" pack usar meowsystem --sem-aplicar >/dev/null 2>&1
-escolhido="$(mascote_do_conf)"
-[ "$escolhido" = "coquinha|morcego|coquinha" ] \
+escolhido="$(mascote_do_conf)|$(logo_do_conf)"
+[ "$escolhido" = "coquinha|morcego|coquinha|morcego" ] \
   && ok "o mascote que ela escolheu não é trocado ($escolhido)" \
-  || falha "a troca de pack mexeu num mascote escolhido" "veio '$escolhido', esperava 'coquinha|morcego|coquinha'"
+  || falha "a troca de pack mexeu num mascote escolhido" "veio '$escolhido', esperava 'coquinha|morcego|coquinha|morcego'"
 sed -i -e 's/^LOGO_DIA="[^"]*"/LOGO_DIA="mimir"/' -e 's/^LOGO_NOITE="[^"]*"/LOGO_NOITE="coquinha"/' "$T/usar.conf"
 residuo="$(usar_amb "$RAIZ/scripts/aplicar_tema.sh" dracula-mauve --conferir >/dev/null 2>&1; echo $?)"
 [ "$residuo" != "0" ] \
