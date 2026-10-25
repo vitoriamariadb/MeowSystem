@@ -75,6 +75,19 @@ else
   falha "o pack aceitou o que não é foto, ou um link (rc=$rf/$rl)" "$(ls -1A "$DIR/wallpapers")"
 fi
 
+# Nome que, limpo, perderia a extensão: a foto entraria no pack sem ela, e nem a
+# rotação nem a lista do pack a veriam.
+png "$T/fora/-.png" "so hifen"; png "$T/fora/.png" "so extensao"
+pack levar meu-tema foto "$T/fora/-.png" >/dev/null 2>&1; rh=$?
+pack levar meu-tema foto "$T/fora/.png" >/dev/null 2>&1; rp=$?
+sem_ext="$(ls -1A "$DIR/wallpapers" | grep -viE '\.(png|jpe?g|webp)$')"
+if [ -z "$sem_ext" ] && [ "$rp" = 1 ] && { [ "$rh" = 1 ] || [ -f "$DIR/wallpapers/meu-tema-.png" ]; }; then
+  ok "foto cujo nome limpo perderia a extensão entra com ela, ou não entra"
+else
+  falha "entrou no pack uma foto sem extensão (rc=$rh/$rp)" "$(ls -1A "$DIR/wallpapers")"
+fi
+rm -f "$DIR/wallpapers/meu-tema-.png"
+
 v="$(pack validar meu-tema 2>&1)" \
   && ok "o pack com as fotos continua validando" \
   || falha "o pack com as fotos não valida" "$v"
@@ -258,6 +271,12 @@ cod, _, r = pedir("/api/criar", {"id": "meu-tema", "tipo": "som", "nome": "compl
                                  "arquivo": "x.oga", "conteudo": base64.b64encode(b"nao e ogg").decode()})
 if cod != 400:
     falhas.append(f"o painel aceitou um som que não é Ogg ({cod})")
+# O nome do arquivo vem da página: `..` não pode virar caminho do lado de cá.
+for arquivo in ("..", ".", "../../x.oga"):
+    cod, _, r = pedir("/api/criar", {"id": "meu-tema", "tipo": "som", "nome": "complete", "levar": True,
+                                     "arquivo": arquivo, "conteudo": base64.b64encode(b"OggS de quem usa").decode()})
+    if cod == 500 or b"/tmp" in r or b"meow-som" in r:
+        falhas.append(f"o arquivo {arquivo!r} virou caminho no servidor ({cod} {r[:120]!r})")
 print("\n".join(falhas))
 sys.exit(1 if falhas else 0)
 PY

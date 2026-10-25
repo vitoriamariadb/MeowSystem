@@ -9967,9 +9967,11 @@ class Manipulador(BaseHTTPRequestHandler):
                     dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
                 except Exception:
                     return self._json({"erro": "conteúdo não é base64"}, 400)
-                arquivo = os.path.basename(str(corpo.get("arquivo", ""))) or "som.oga"
+                # Do nome que veio da página só a extensão serve (o pack.py a
+                # confere): `..` ou `.` não viram caminho do lado de cá.
+                ext = os.path.splitext(os.path.basename(str(corpo.get("arquivo", ""))))[1]
                 with tempfile.TemporaryDirectory(prefix="meow-som-") as pasta:
-                    caminho = os.path.join(pasta, re.sub(r"[^A-Za-z0-9._-]", "-", arquivo)[-80:])
+                    caminho = os.path.join(pasta, "som" + re.sub(r"[^A-Za-z0-9.]", "", ext)[:8])
                     with open(caminho, "wb") as fh:
                         fh.write(dados)
                     feito = mod.levar_som(ident, caminho, nome)

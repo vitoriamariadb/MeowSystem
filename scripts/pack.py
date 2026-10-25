@@ -5843,7 +5843,9 @@ def _mudar_pack_json(dir_pack, muda):
 def nome_da_foto(ident, nome):
     """O nome que a foto `nome` tem no pack `ident`: o id na frente (é o prefixo
     que tira a foto da rotação dos outros packs), só `[A-Za-z0-9._+-]`."""
-    raiz, ext = os.path.splitext(_nome_limpo(os.path.basename(nome)))
+    # A extensão sai antes da limpeza: limpo, `-.png` virava `png`, sem ela.
+    raiz, ext = os.path.splitext(os.path.basename(nome))
+    raiz, ext = _nome_limpo(raiz), ("." + _nome_limpo(ext[1:]) if ext else "")
     if not raiz.startswith(ident + "-"):
         raiz = ident + "-" + raiz.strip("-.")
     return raiz[:120 - len(ext)] + ext.lower()
@@ -5867,7 +5869,8 @@ def levar_foto(ident, caminho):
     dir_pack = pack_da_pessoa(ident)
     dados = _ler_de_quem_usa(caminho, EXT_FOTO, TETO_FOTO, _e_foto, "uma foto PNG, JPEG ou WebP")
     nome = nome_da_foto(ident, caminho)
-    _exigir(RE_NOME_LEVADO.match(nome) and nome_de_destino(nome), f"{nome!r}: nome que não serve")
+    _exigir(RE_NOME_LEVADO.match(nome) and nome_de_destino(nome) and nome.lower().endswith(EXT_FOTO),
+            f"{nome!r}: nome que não serve")
     _gravar_no_pack(dir_pack, "wallpapers/" + nome, dados)
 
     def declarar(p):
