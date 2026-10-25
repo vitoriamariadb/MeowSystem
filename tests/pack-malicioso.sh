@@ -482,6 +482,52 @@ else
     "$(cat "$T/curl-args.log"; printf '%s\n' "$fora_papel"; tail -3 "$T/papel-2.log")"
 fi
 
+# --- 5d. as fotos do pack (P102) ---------------------------------------------------
+#   As fotos são as imagens soltas em `wallpapers/` do próprio pack, e não se
+#   declaram: um `origens.wallpapers.fotos` apontando para fora é recusado, a
+#   pasta `wallpapers` que é link não conta, e o wallpaper.sh confere o que
+#   recebe mesmo se o pack.py deixasse passar.
+FOTOS_FORA="$FORA/fotos"; mkdir -p "$FOTOS_FORA"
+printf '\x89PNG\r\n\x1a\n%s\n' "$SEGREDO" > "$FOTOS_FORA/foto-de-fora.png"
+PFOTO="$RAIZ_DELA/mal-fotos"; mkdir -p "$PFOTO"
+cp "$RAIZ/packs/dracula/paleta.json" "$PFOTO/"
+cat > "$PFOTO/pack.json" <<J
+{"formato": 1, "id": "mal-fotos", "nome": "Mal fotos", "versao": "1.0.0", "autor": "x",
+ "licenca": "MIT", "heranca": "dracula",
+ "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},
+ "origens": {"wallpapers": {"prefixo": "malf", "fotos": "$FOTOS_FORA"}}}
+J
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar mal-fotos 2>&1)"; rc=$?
+[ "$rc" != 0 ] && grep -q 'origens.wallpapers.fotos' <<< "$saida" \
+  && ok "o validar recusa origens.wallpapers.fotos declarada" \
+  || falha "o validar aceitou fotos declarada no pack (rc=$rc)" "$saida"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" wallpapers mal-fotos 2>&1)"
+grep -q '^fotos=' <<< "$saida" \
+  && falha "o pack.py repassou a fotos declarada pelo pack" "$saida" \
+  || ok "o pack.py não repassa fotos declarada: só a que ele calcula da pasta do pack"
+PLINK="$RAIZ_DELA/mal-fotos-link"; mkdir -p "$PLINK"
+cp "$RAIZ/packs/dracula/paleta.json" "$PLINK/"
+sed -e 's/"mal-fotos"/"mal-fotos-link"/' -e 's/, "fotos": "[^"]*"//' "$PFOTO/pack.json" > "$PLINK/pack.json"
+ln -s "$FOTOS_FORA" "$PLINK/wallpapers"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" wallpapers mal-fotos-link 2>&1)"
+grep -q '^fotos=' <<< "$saida" \
+  && falha "a pasta wallpapers que é link virou fotos do pack" "$saida" \
+  || ok "a pasta wallpapers que é link para fora não vira fotos do pack"
+cat > "$T/py-mal/python3" <<PYF
+#!/bin/sh
+if [ "\$2" = wallpapers ]; then printf 'prefixo=malf\nfotos=%s\n' "$FOTOS_FORA"; exit 0; fi
+exec "$PY_REAL" "\$@"
+PYF
+chmod 755 "$T/py-mal/python3"
+for p in mal-fotos mal-fotos-link dracula; do
+  caminho="$T/falso:$PATH"; [ "$p" = dracula ] && caminho="$T/py-mal:$T/falso:$PATH"
+  amb PATH="$T/curl:$caminho" PACK="$p" WALLPAPER_BASE="$T/papel-fotos-$p" \
+    bash "$RAIZ/scripts/wallpaper.sh" semear > "$T/papel-fotos-$p.log" 2>&1
+done
+achadas="$(find "$T"/papel-fotos-* -name 'foto-de-fora*' 2>/dev/null)"
+[ -z "$achadas" ] && ok "nenhuma foto de fora do pack entrou no acervo (declarada, link, ou plantada no pack.py)" \
+  || falha "uma foto de fora do pack foi semeada" "$achadas"
+
 # --- 6. o .meowpack com script ---------------------------------------------------
 if command -v zstd >/dev/null 2>&1; then
   MP="$T/mp"; mkdir -p "$MP/trazido"

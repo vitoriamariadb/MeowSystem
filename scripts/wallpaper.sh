@@ -2243,6 +2243,16 @@ _semente_do_flavor() {
   SEMENTE_PREFIXO_PADRAO="${prefixo:-cat}"
   SEMENTE_IGNORAR_PADRAO=""
   SEMENTE_CURADORIA_PADRAO="$curadoria"
+  # O cinto do pack.py: as fotos só valem na pasta `wallpapers` de um pack, sem link no caminho.
+  if [ -n "$fotos" ]; then
+    local real pai
+    real="$(realpath -e -- "$fotos" 2>/dev/null)" || real=""
+    pai="$(realpath -e -- "${fotos%/*}" 2>/dev/null)" || pai=""
+    if [ -z "$real" ] || [ "$real" != "$pai/wallpapers" ] || [ ! -f "$pai/pack.json" ]; then
+      meow_aviso "as fotos do pack não estão na pasta wallpapers/ dele — ignoradas"
+      fotos=""
+    fi
+  fi
   SEMENTE_FOTOS_PADRAO="$fotos"
   if [ -n "$repo_conf" ]; then
     SEMENTE_REPO_PADRAO="$repo_conf"

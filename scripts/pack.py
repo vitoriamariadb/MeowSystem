@@ -199,6 +199,12 @@ RE_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 # as lê por expansão indireta, e um nome livre ali (`a[$(cmd)]`) roda comando.
 RE_CONF_PAPEL = {"repo_do_conf": re.compile(r"^WALLPAPER_[A-Z0-9_]*_REPO$"),
                  "commit_do_conf": re.compile(r"^WALLPAPER_[A-Z0-9_]*_COMMIT$")}
+# As chaves de `origens.wallpapers` que o `wallpaper.sh` lê, e as duas que o
+# formato tem sem leitor (o `validar` as nomeia como campo morto). Fora disso,
+# o `validar` recusa — `fotos` inclusive: as fotos não se declaram (P102).
+CHAVES_PAPEL = ("repo", "commit", "prefixo", "ignorar", "desenhos", "curadoria",
+                "repo_do_conf", "commit_do_conf")
+CHAVES_PAPEL_SEM_LEITOR = ("tipo", "se_vazio")
 
 OK, RECUSADO, ERRO_USO = 0, 1, 2
 
@@ -3472,6 +3478,14 @@ def _conferir_papeis(p):
     wp = (p.get("origens") or {}).get("wallpapers")
     if not isinstance(wp, dict):
         return
+    for chave in wp:
+        if str(chave).startswith("_"):
+            continue
+        _exigir(chave != "fotos",
+                "origens.wallpapers.fotos: as fotos do pack não se declaram — são as imagens\n"
+                "    soltas na pasta wallpapers/ dele")
+        _exigir(chave in CHAVES_PAPEL or chave in CHAVES_PAPEL_SEM_LEITOR,
+                f"origens.wallpapers.{chave}: chave que o formato não tem")
     for chave, regra in RE_CONF_PAPEL.items():
         if chave in wp:
             _exigir(isinstance(wp[chave], str) and regra.match(wp[chave]),
@@ -5889,7 +5903,8 @@ def origem_dos_wallpapers(ref=None):
     dir_pack = achar(dono) or ""
     saida = {"pack": dono}
     for chave, valor in decl.items():
-        if chave.startswith("_") or isinstance(valor, (dict, list)) and chave != "ignorar":
+        # Lista fechada: só sai o que o `wallpaper.sh` lê (P102, achado 6).
+        if chave not in CHAVES_PAPEL or isinstance(valor, (dict, list)) and chave != "ignorar":
             continue
         if chave in ("desenhos", "curadoria"):
             alvo = _dentro(dir_pack, valor, "origens.wallpapers." + chave)
@@ -5903,10 +5918,13 @@ def origem_dos_wallpapers(ref=None):
         saida[chave] = valor
     # As FOTOS prontas do pack (P102): imagens soltas em `wallpapers/`, com o
     # nome que terão no acervo. Havendo, o `wallpaper.sh` semeia delas, sem rede.
+    # Nunca declaradas: só a pasta do próprio pack, e ela não pode ser link.
     fotos = os.path.join(dir_pack, "wallpapers") if dir_pack else ""
     try:
-        if fotos and any(e.is_file(follow_symlinks=False) and e.name.lower().endswith(EXT_FOTO)
-                         for e in os.scandir(fotos)):
+        if fotos and not os.path.islink(fotos) \
+           and os.path.realpath(fotos) == os.path.join(os.path.realpath(dir_pack), "wallpapers") \
+           and any(e.is_file(follow_symlinks=False) and e.name.lower().endswith(EXT_FOTO)
+                   for e in os.scandir(fotos)):
             saida["fotos"] = fotos
     except OSError:
         pass
