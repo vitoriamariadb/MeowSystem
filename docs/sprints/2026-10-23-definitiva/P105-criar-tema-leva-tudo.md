@@ -40,3 +40,16 @@ Cada item: teste vermelho antes, verde depois, um commit por item. QA do painel 
 ## Como se prova
 - `tests/todos.sh` duas vezes, verde. Prints do painel em 1829x1029 e 375 px nas telas tocadas
   (`tests/app-uso-real.py --fotos`).
+
+## 6. O `desbanir` com foto da curadoria de fábrica (quem coordena, 24/10)
+- Medido na máquina real: 8 fotos estavam em `ativos/` e no `BANIDOS.txt` vivo (vindas do `.padrao`), mas não
+  em `banidos/`. O `wallpaper.sh desbanir <nome>` recusava com «não achei … em banidos/». Quem coordena tirou as
+  linhas à mão (backup em `~/.local/state/meowsystem/backup-limpeza-20261024/`).
+- Cura: com a foto em `ativos/` e o nome na lista, o `desbanir` só tira a linha (o `grep -vxF` que ele já tem).
+  Sem foto em lugar nenhum, a recusa continua.
+- Prova: teste com HOME temporário cobrindo os três casos (em `banidos/`, só na lista com foto em `ativos/`,
+  nada em lugar nenhum).
+
+## Fora deste bloco
+- A P104 (ponte) e a P106/P107 (temas de app) estão em voo ou esperando integração. Não toque em
+  `scripts/ponte_root.sh` nem em `scripts/temas-de-apps/`.
