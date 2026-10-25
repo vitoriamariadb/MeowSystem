@@ -18,6 +18,7 @@ com o .md diferente do que o código gera (rode com --escrever para regravar).
 
 0 = passou · 1 = falhou · 3 = pulado (sem node)
 """
+import functools
 import json
 import os
 import shutil
@@ -62,15 +63,29 @@ GESTOS_DE_ANTES = [
     ("Rodar de verdade (depois do ensaio)", "Janela do trabalho: Rodar de verdade", "ensaio-rodar"),
 ]
 
-NOME_DA_PORTA = {"tema": "Tema", "criar": "Criar tema", "ajustes": "Ajustes", "cuidar": "Cuidar",
-                 "topo": "Barra de cima", "janela": "Janela do trabalho"}
+def _node(expr):
+    js = ("const L = require(%s); process.stdout.write(JSON.stringify(%s));"
+          % (json.dumps(os.path.join(RAIZ, "app", "pagina", "lugares.js")), expr))
+    r = subprocess.run(["node", "-e", js], capture_output=True, text=True, timeout=60)
+    if r.returncode != 0:
+        raise SystemExit("FALHOU: o node não leu lugares.js:\n" + r.stderr)
+    return json.loads(r.stdout)
+
+
+@functools.lru_cache(maxsize=None)
+def portas():
+    """O nome de cada porta, do PORTAS do lugares.js; a barra de cima e a janela pelo nome da página."""
+    return {p["id"]: p["nome"] for p in _node("L.PORTAS")}
 
 
 def onde(l):
-    if l["porta"] in ("tema", "cuidar", "topo", "janela"):
-        base = NOME_DA_PORTA[l["porta"]]
+    nomes = portas()
+    if l["porta"] in ("topo", "janela"):
+        base = l["pagina"]
+    elif l["porta"] in ("tema", "cuidar"):
+        base = nomes[l["porta"]]
     else:
-        base = "%s › %s" % (NOME_DA_PORTA[l["porta"]], l["pagina"])
+        base = "%s › %s" % (nomes[l["porta"]], l["pagina"])
     if l["mais"]:
         return base + " › Mais ajustes"
     if l["bloco"] and l["bloco"] not in (l["pagina"], base):
@@ -79,12 +94,7 @@ def onde(l):
 
 
 def inventario():
-    js = ("const L = require(%s); process.stdout.write(JSON.stringify(L.inventarioDoPainel()));"
-          % json.dumps(os.path.join(RAIZ, "app", "pagina", "lugares.js")))
-    r = subprocess.run(["node", "-e", js], capture_output=True, text=True, timeout=60)
-    if r.returncode != 0:
-        raise SystemExit("FALHOU: o node não leu lugares.js:\n" + r.stderr)
-    return json.loads(r.stdout)
+    return _node("L.inventarioDoPainel()")
 
 
 def servidor():
@@ -95,11 +105,25 @@ def servidor():
         conf = os.path.join(casa, ".config", "meowsystem", "meow.conf")
         shutil.copyfile(os.path.join(RAIZ, "meow.conf.exemplo"), conf)
         codigo = (
-            "import json, sys; sys.path.insert(0, sys.argv[1]); import servidor as s\n"
+            "import json, os, re, sys, tempfile; sys.path.insert(0, sys.argv[1]); import servidor as s\n"
             "e = s.ler_esquema()\n"
+            "srv_inv = s.inventario_do_painel()\n"
+            "pend = list(s.ACAO_DA_PENDENCIA) + [s.PENDENCIA_EXTENSAO, s.PENDENCIA_PAREDE,\n"
+            "  'onlyoffice' + s.SUFIXO_TEMA_DE_TERCEIRO, 'inicio']\n"
+            "onde = {i: s.onde_na_tela(i) for i in [c['chave'] for c in e] + list(s.ACOES) + pend}\n"
+            # O mesmo --onde com as portas renomeadas numa cópia do lugares.js: o nome vem de lá.
+            "fonte = open(os.path.join(s.RAIZ, 'app', 'pagina', 'lugares.js'), encoding='utf-8').read()\n"
+            "bloco = re.search(r'(?ms)^const PORTAS = .*?^];', fonte).group(0)\n"
+            "copia = tempfile.mkdtemp(dir=os.environ['HOME']); os.makedirs(os.path.join(copia, 'app', 'pagina'))\n"
+            "open(os.path.join(copia, 'app', 'pagina', 'lugares.js'), 'w', encoding='utf-8').write(\n"
+            "  fonte.replace(bloco, re.sub(r'nome: \"([^\"]+)\"', r'nome: \"\\1 Nova\"', bloco)))\n"
+            "s.RAIZ = copia; s._LUGARES.clear()\n"
+            "renomeado = {i: s.onde_na_tela(i) for i in ('doctor_consertar', 'LANCADOR_SISTEMA', 'inicio',\n"
+            "  'areas-sem-alfinete')}\n"
             "print(json.dumps({'chaves': [[i['chave'], i.get('secao') or '', i.get('titulo') or ''] for i in e],\n"
             "  'acoes': [[k, v.get('grupo') or '', v.get('rotulo') or ''] for k, v in s.ACOES.items()],\n"
-            "  'inventario': s.inventario_do_painel()}))\n")
+            "  'onde': onde, 'pendencias': pend, 'renomeado': renomeado,\n"
+            "  'inventario': srv_inv}))\n")
         amb = {"PATH": os.environ.get("PATH", ""), "HOME": casa, "LANG": "C.UTF-8",
                "MEOW_CONF": conf, "MEOW_ESTADO": os.path.join(casa, "estado"),
                "MEOW_PONTE": os.path.join(casa, "sem-ponte")}
@@ -169,6 +193,28 @@ def gerar():
     if lido != inv:
         falhas.append("o inventario_do_painel do servidor não lê o lugares.js como o node (%d contra %d linhas)"
                       % (len(lido), len(inv)))
+
+    # TODO DESTINO DO `--onde` EXISTE NO lugares.js: o caminho é o de uma linha dele (ou a
+    # porta das pendências), e o nome citado de uma chave ou ação é o rótulo ou o botão dela.
+    destinos = {onde(l) for l in inv} | {portas()["cuidar"]}
+    for ident, frase in srv["onde"].items():
+        if not frase:
+            continue
+        caminho = frase[3:] if frase.startswith("em ") else frase.split("», em ", 1)[-1]
+        if caminho not in destinos:
+            falhas.append("o --onde de %s aponta para %r, que não existe no lugares.js" % (ident, caminho))
+        if ident in srv["pendencias"]:
+            continue
+        nomes = {x for l in srv["inventario"] if l["id"] == ident for x in (l["rotulo"], l["botao"]) if x}
+        citado = frase.split("«", 1)[-1].split("»", 1)[0] if "«" in frase else ""
+        if citado and citado not in nomes:
+            falhas.append("o --onde de %s cita «%s», que não é rótulo nem botão no lugares.js" % (ident, citado))
+    quer = {"doctor_consertar": "«Conferir e consertar», em Cuidar Nova › Estado",
+            "LANCADOR_SISTEMA": "«Arrumar o lançador», em Ajustes Nova › Programas › Lançador",
+            "inicio": "em Cuidar Nova", "areas-sem-alfinete": "«Resolver», em Cuidar Nova"}
+    if srv["renomeado"] != quer:
+        falhas.append("o --onde não lê o nome das portas do lugares.js (segunda tabela no servidor): %r"
+                      % srv["renomeado"])
 
     # O caminho inverso: lugar que aponta para o que não existe é lixo na tela.
     ids_chave = {c[0] for c in chaves}

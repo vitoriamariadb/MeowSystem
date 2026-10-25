@@ -626,7 +626,7 @@ esperado = "«Conferir e consertar», em Cuidar › Estado"
 if servidor.onde_na_tela("doctor_consertar") != esperado:
     erros.append("--onde doctor_consertar diz %r, e não %r"
                  % (servidor.onde_na_tela("doctor_consertar"), esperado))
-if servidor.onde_na_tela("areas-sem-alfinete") != "«Resolver», em %s" % servidor.PORTA_DAS_PENDENCIAS:
+if servidor.onde_na_tela("areas-sem-alfinete") != "«Resolver», em %s" % servidor.porta_das_pendencias():
     erros.append("--onde de uma pendência não diz o «Resolver» da lista dela")
 oculta = next(k for k, a in servidor.ACOES.items() if a.get("oculta"))
 if servidor.onde_na_tela(oculta) or servidor.onde_na_tela("nao-existe"):
@@ -638,7 +638,7 @@ com_modulo = next(n for n in sorted(os.listdir(modulos))
                   if os.path.isfile(os.path.join(modulos, n, "manifesto.sh")))
 onde = servidor.onde_na_tela(com_modulo + servidor.SUFIXO_TEMA_DE_TERCEIRO)
 if not all("«%s»" % r in onde for _a, r in servidor.ESCOLHA_TEMA_DE_TERCEIRO) \
-        or not onde.endswith("em %s" % servidor.PORTA_DAS_PENDENCIAS):
+        or not onde.endswith("em %s" % servidor.porta_das_pendencias()):
     erros.append("--onde da pendência de tema de terceiro de %s não cita os botões da lista: %r"
                  % (com_modulo, onde))
 # 12c. nome e botão que o servidor manda à tela: até três palavras, maiúscula no começo
@@ -994,7 +994,7 @@ nomes = ({i["titulo"] for i in esquema if i.get("titulo")}
          | {a["rotulo"] for a in servidor.ACOES.values() if not a.get("oculta")})
 abas = ({i["secao"] for i in esquema if i.get("secao")}
         | {a["grupo"] for a in servidor.ACOES.values() if not a.get("oculta")}
-        | {"Início", servidor.PORTA_DAS_PENDENCIAS})
+        | {"Início", servidor.porta_das_pendencias()})
 with open(os.path.join(raiz, "install.sh"), encoding="utf-8") as fh:
     instalador = fh.read()
 for n, linha in enumerate(instalador.splitlines(), 1):

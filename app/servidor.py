@@ -5739,9 +5739,6 @@ def _app_da_pendencia(ident):
 # Onde cada chave, ação e gesto mora no painel é dado da página
 # (`app/pagina/lugares.js`); o `--onde` lê a mesma tabela, e o
 # `tests/migracao-do-painel.py` confere que esta leitura e a do node dão o mesmo.
-PORTA_DAS_PENDENCIAS = "Cuidar"
-_NOME_DA_PORTA = {"tema": "Tema", "criar": "Criar tema", "ajustes": "Ajustes", "cuidar": "Cuidar",
-                  "topo": "Barra de cima", "janela": "Janela do trabalho"}
 _LUGARES = {}
 
 
@@ -5776,19 +5773,40 @@ def _js_para_json(texto):
     return re.sub(r",(\s*[}\]])", r"\1", "".join(saida))
 
 
-def inventario_do_painel():
-    """A tabela plana do `inventarioDoPainel()` do lugares.js, lida sem node."""
+def _consts_do_painel():
+    """Os `const` do lugares.js, relidos quando o arquivo muda; {} sem ele."""
     caminho = os.path.join(RAIZ, "app", "pagina", "lugares.js")
     try:
-        marca = os.path.getmtime(caminho)
+        marca = (caminho, os.path.getmtime(caminho))
         if _LUGARES.get("marca") == marca:
-            return _LUGARES["tabela"]
+            return _LUGARES["consts"]
         with open(caminho, encoding="utf-8") as fh:
             fonte = fh.read()
         c = {m.group(1): json.loads(_js_para_json(m.group(2)))
              for m in re.finditer(r"(?ms)^const (\w+) = (.*?^[\]}]);", fonte)}
     except (OSError, ValueError):
+        return {}
+    _LUGARES.clear()
+    _LUGARES.update(marca=marca, consts=c)
+    return c
+
+
+def nome_da_porta(ident):
+    """O nome da porta (`tema`, `criar`, `ajustes`, `cuidar`) no PORTAS do lugares.js."""
+    return next((p["nome"] for p in _consts_do_painel().get("PORTAS", []) if p.get("id") == ident), "")
+
+
+def porta_das_pendencias():
+    return nome_da_porta("cuidar")
+
+
+def inventario_do_painel():
+    """A tabela plana do `inventarioDoPainel()` do lugares.js, lida sem node."""
+    c = _consts_do_painel()
+    if not c:
         return []
+    if "tabela" in _LUGARES:
+        return _LUGARES["tabela"]
     saida = []
 
     def pus(l, porta, pagina, bloco, mais=False):
@@ -5839,13 +5857,14 @@ def inventario_do_painel():
         pus(l, "topo", "Barra de cima", "Barra de cima")
     for l in c["LUGAR_JANELA"]:
         pus(l, "janela", "Janela do trabalho", "Janela do trabalho")
-    _LUGARES.update(marca=marca, tabela=saida)
+    _LUGARES["tabela"] = saida
     return saida
 
 
 def _caminho_na_tela(l):
     """`Porta › Página › Bloco`, como a busca da página escreve."""
-    porta = _NOME_DA_PORTA[l["porta"]]
+    # A barra de cima e a janela do trabalho não são porta: o nome é o da página.
+    porta = l["pagina"] if l["porta"] in ("topo", "janela") else nome_da_porta(l["porta"])
     base = porta if l["porta"] in ("tema", "cuidar", "topo", "janela") else "%s › %s" % (porta, l["pagina"])
     if l["mais"]:
         return base + " › Mais ajustes"
@@ -5861,17 +5880,20 @@ def onde_na_tela(ident):
     «Resolver», em Cuidar — de uma pendência com ação, e os botões dela quando são dois;
     «nome», em Porta › Página — de uma chave do meow.conf;
     em Cuidar — para `inicio`, onde as pendências moram."""
+    pendencias = porta_das_pendencias()
+    if not pendencias:
+        return ""
     if ident in ACAO_DA_PENDENCIA:
-        return "«Resolver», em %s" % PORTA_DAS_PENDENCIAS
+        return "«Resolver», em %s" % pendencias
     if _app_da_pendencia(ident):
         return "%s, em %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_TEMA_DE_TERCEIRO),
-                              PORTA_DAS_PENDENCIAS)
+                              pendencias)
     if ident == PENDENCIA_EXTENSAO:
-        return "«Instalar», em %s" % PORTA_DAS_PENDENCIAS
+        return "«Instalar», em %s" % pendencias
     if ident == PENDENCIA_PAREDE:
-        return "«Era escolha minha», em %s" % PORTA_DAS_PENDENCIAS
+        return "«Era escolha minha», em %s" % pendencias
     if ident == "inicio":
-        return "em %s" % PORTA_DAS_PENDENCIAS
+        return "em %s" % pendencias
     if (ACOES.get(ident) or {}).get("oculta"):
         return ""
     l = next((l for l in inventario_do_painel() if l["id"] == ident and l["tipo"] in ("acao", "chave")), None)
