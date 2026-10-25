@@ -98,6 +98,12 @@ _cp_marcadores() {
   grep -a -o "$base-[0-9][0-9.]*" "$arq" 2>/dev/null | sort -u
 }
 
+# O marcador COM versão que o `.patch` declara: a string do `static` que ele
+# acrescenta. Vazio quando o `.patch` não declara uma.
+_cp_marcador_declarado() { # $1 .patch, $2 base
+  sed -n "s/^+.*\"\($2-[0-9][0-9.]*\)\".*/\1/p" "$1" 2>/dev/null | head -1
+}
+
 _cp_tem() {
   local alvo="$1"; shift
   local m
@@ -509,13 +515,37 @@ _cp_alvos_do_patch() {
 }
 
 _cp_ja_aplicado() {
-  # 0 = o marcador-base já está em algum arquivo que o patch toca.
-  local fonte="$1" patch_arq="$2" base="$3" alvo
+  # 0 = o marcador já está em algum arquivo que o patch toca: o que o `.patch`
+  # declara, com a versão, ou a base quando ele não declara. Pela base só, a
+  # árvore com a v1 passava por "já aplicado" e a v2 nunca entrava (P100).
+  local fonte="$1" patch_arq="$2" base="$3" alvo marca procura
+  marca="$(_cp_marcador_declarado "$patch_arq" "$base")"
+  procura="$base"; [ -n "$marca" ] && procura="\"$marca\""
   while IFS= read -r alvo; do
     [ -n "$alvo" ] || continue
     [ -f "$fonte/$alvo" ] || continue
-    grep -q -- "$base" "$fonte/$alvo" 2>/dev/null && return 0
+    grep -qF -- "$procura" "$fonte/$alvo" 2>/dev/null && return 0
   done < <(_cp_alvos_do_patch "$patch_arq")
+  return 1
+}
+
+# 0 = a árvore carrega OUTRA versão deste patch: a base está lá e a versão que
+# o `.patch` declara não está. Por cima dela o patch novo entraria duas vezes
+# (a v2 do menu passa com -F1 sobre a v1); só a árvore reextraída o recebe.
+_cp_outra_versao() {
+  local fonte="$1" patch_arq="$2" base="$3" alvo
+  [ -n "$(_cp_marcador_declarado "$patch_arq" "$base")" ] || return 1
+  _cp_ja_aplicado "$fonte" "$patch_arq" "$base" && return 1
+  while IFS= read -r alvo; do
+    [ -n "$alvo" ] && grep -qF -- "$base" "$fonte/$alvo" 2>/dev/null && return 0
+  done < <(_cp_alvos_do_patch "$patch_arq")
+  return 1
+}
+_cp_arvore_velha() { # 0 = algum patch da série está na árvore em outra versão
+  local fonte="$1" serie="$2" _c a b
+  while IFS=$'\t' read -r _c a b; do
+    _cp_outra_versao "$fonte" "$CP_REPO/$a" "$b" && return 0
+  done < <(_cp_serie_entradas "$serie")
   return 1
 }
 
@@ -563,6 +593,8 @@ cmd_aplicar() {
       estado+=("sem-arquivo")
     elif _cp_ja_aplicado "$fonte" "$p" "${campos[2]}"; then
       estado+=("ja")
+    elif _cp_outra_versao "$fonte" "$p" "${campos[2]}"; then
+      estado+=("velho")
     elif (cd "$fonte" && patch "${_CP_PATCH_OPCOES[@]}" --dry-run < "$p") >/dev/null 2>&1; then
       estado+=("pode")
     elif (cd "$fonte" && patch "${_CP_PATCH_OPCOES_F1[@]}" --dry-run < "$p") >/dev/null 2>&1; then
@@ -593,6 +625,9 @@ cmd_aplicar() {
       pode-f1)
         meow_info "${arquivo[$i]} só entra com -F1 — o contexto mudou: degrau 2, em observação (${classe[$i]})"
         _CP_DEGRAUS+=("${arquivo[$i]}:2") ;;
+      velho)
+        meow_muda "${arquivo[$i]} está na árvore em outra versão — só um fonte reextraído recebe a que o .patch declara"
+        abortar=1 ;;
       sem-arquivo)
         meow_muda "${arquivo[$i]} está na série e não existe em $CP_REPO"
         [ "${classe[$i]}" = "req" ] && abortar=1 ;;
@@ -847,6 +882,11 @@ cmd_compilar() {
   fi
 
   _cp_baixar_fonte "$ver" || return $?
+  if _cp_arvore_velha "$fonte" "$serie"; then
+    meow_info "o fonte do cache tem a versão anterior de um patch da série: reextraindo"
+    rm -rf -- "$fonte"
+    _cp_baixar_fonte "$ver" || return $?
+  fi
   _cp_receita "$fonte"
   faltam=()
   for i in "${_CP_PEDE[@]}"; do meow_tem "$i" || faltam+=("$i"); done

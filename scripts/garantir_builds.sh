@@ -44,7 +44,22 @@ _gb_instalados() {
 }
 
 _gb_comp_valido() { # $1 versão
-  [ -x "$GB_CASA/$1/cosmic-comp" ] && grep -q '^req [^ ]* [^ ]* presente$' "$GB_CASA/$1/estado" 2>/dev/null
+  [ -x "$GB_CASA/$1/cosmic-comp" ] && grep -q '^req [^ ]* [^ ]* presente$' "$GB_CASA/$1/estado" 2>/dev/null \
+    && ! _gb_comp_velho "$1"
+}
+# 0 = um `.patch` da série declara uma versão de marcador que o `estado` do
+# build não grava: o patch subiu depois do build (a v2 dela, P100). O build
+# velho segue na sessão até o novo ficar pronto.
+_gb_comp_velho() { # $1 versão
+  local c a b m
+  while read -r c a b _; do
+    case "$c" in req|opt) ;; *) continue ;; esac
+    m="$(sed -n "s/^+.*\"\($b-[0-9][0-9.]*\)\".*/\1/p" "$GB_REPO/$a" 2>/dev/null | head -1)"
+    [ -n "$m" ] || continue
+    awk -v m="$m" -v a="$a" '$2==m && $3==a && $4=="presente" {x=1} END {exit !x}' \
+      "$GB_CASA/$1/estado" 2>/dev/null || return 0
+  done < "$GB_SERIE"
+  return 1
 }
 _gb_files_valido() { # $1 versão
   local b

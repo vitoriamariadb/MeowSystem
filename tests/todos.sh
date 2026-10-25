@@ -61,6 +61,7 @@ PORTATIL=(
   cosmic-prever.sh       # .deb e fontes de brinquedo do cosmic-comp, sem apt nem rede; bash e dpkg-deb
   pos-apt.sh             # pós-apt do COSMIC com dpkg-query e passos falsos, HOME de brinquedo; só bash
   garantir-builds.sh     # a função dos builds com dpkg-query e builds falsos, HOME de brinquedo, falsos que recusam; só bash
+  patch-que-sobe.sh      # o .patch que sobe de versão refaz o build e reextrai a árvore; HOME, cache e fonte de brinquedo, dpkg-source e make falsos, o patch de verdade; só bash
   cadeia-de-atualizacao.sh # a cadeia apt/topgrade/limpar_cache com dpkg, apt-get, make, just e cargo falsos e os scripts de verdade, HOME de brinquedo; bash, patch e tar
   volta-do-cosmic.sh     # guarda do.deb e do fonte com dpkg-query, apt e sudo falsos, HOME de brinquedo; só bash
   contrato-cosmic.sh     # /usr/share/cosmic e COSMIC de brinquedo com v2; seis escritores e o pré-voo; bash e python3
