@@ -870,6 +870,14 @@ _ponte_reparo_motivo() {
   printf ' — o reparo a repõe da reserva'
 }
 
+# A regra de sudo instalada é a da reserva? $1 é a saída do `estado` da ponte. Sem
+# a linha `regra_sha256` (ponte anterior à P108), não há como dizer: sim.
+_ponte_regra_igual_a_reserva() {
+  grep -q '^regra_sha256=' <<< "$1" || return 0
+  [ "$(sed -n 's/^regra_sha256=//p' <<< "$1")" = \
+    "$(sed -n 's/  49-meowsystem-ponte$//p' /usr/local/lib/meowsystem/reserva.sha256 2>/dev/null)" ]
+}
+
 # O gatilho que reaplica o `ocultar` depois de todo apt.
 chk_ponte() {
   local ponte=/usr/local/lib/meowsystem/ponte_root.sh
@@ -901,7 +909,8 @@ chk_ponte() {
     return "$MEOW_DIVERGENTE"
   fi
 
-  if ! sudo -n "$ponte" estado >/dev/null 2>&1; then
+  local estado
+  if ! estado="$(sudo -n "$ponte" estado 2>/dev/null)"; then
     meow_muda "a regra existe e o sudo ainda pede senha para a ponte$(_ponte_reparo_motivo)"
     return "$MEOW_DIVERGENTE"
   fi
@@ -912,6 +921,29 @@ chk_ponte() {
     return "$MEOW_DIVERGENTE"
   fi
 
+  # A REGRA INSTALADA É A DA RESERVA (P108). Ela é 0440 root, e quem diz o sha256
+  # dela é a ponte. Uma regra trocada que ainda libera a ponte passava como ok; o
+  # reparo a repõe da reserva. Uma ponte anterior à P108 não diz o sha256, e cai
+  # na pendência da ponte nova logo abaixo.
+  if ! _ponte_regra_igual_a_reserva "$estado"; then
+    meow_muda "$regra difere da reserva$(_ponte_reparo_motivo)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  # A regra do polkit, a ponte também confere (a pasta é 0750 root:polkitd). Sem
+  # ela o reparo não dispara sem senha: quem a repõe é o install.
+  if grep -q '^polkit_sha256=' <<< "$estado"; then
+    local polkit_tem
+    polkit_tem="$(sed -n 's/^polkit_sha256=//p' <<< "$estado")"
+    if [ -z "$polkit_tem" ]; then
+      meow_muda "falta a regra do polkit do reparo — entra no «Instalar tudo»"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ "$polkit_tem" != "$(sha256sum < "$RAIZ/assets/ponte/49-meowsystem-ponte-reparo.rules" 2>/dev/null | cut -d' ' -f1)" ]; then
+      meow_muda "a regra do polkit do reparo difere do repositório — entra no «Instalar tudo»"
+      return "$MEOW_DIVERGENTE"
+    fi
+  fi
+
   # O ARQUIVO INSTALADO TEM DE SER O DO REPOSITÓRIO. Uma ponte velha em
   # `/usr/local/lib` com a regra nova é o modo de falha silencioso deste
   # desenho: os verbos que a regra libera podem já não existir lá dentro.
@@ -920,7 +952,7 @@ chk_ponte() {
     { meow_muda "a ponte do repositório mudou — entra no «Instalar tudo»"; return "$MEOW_DIVERGENTE"; }
 
   local raiz_reg
-  raiz_reg="$(sudo -n "$ponte" estado 2>/dev/null | sed -n 's/^raiz=//p')"
+  raiz_reg="$(sed -n 's/^raiz=//p' <<< "$estado")"
   if [ "$raiz_reg" != "$RAIZ" ]; then
     meow_muda "o perfil da ponte aponta para '$raiz_reg', e o clone está em '$RAIZ'"
     return "$MEOW_DIVERGENTE"
@@ -946,12 +978,13 @@ fix_ponte() {
   fi
   # O reparo só repõe o que falta ou difere da reserva. Ponte e regra no lugar,
   # iguais à reserva e liberadas: o que sobra (a ponte nova do repositório, o
-  # perfil) é do install.
-  local ponte=/usr/local/lib/meowsystem/ponte_root.sh
+  # perfil, a regra do polkit) é do install.
+  local ponte=/usr/local/lib/meowsystem/ponte_root.sh estado
   if [ -x "$ponte" ] && [ -f /etc/sudoers.d/49-meowsystem-ponte ] &&
      [ "$(sha256sum < "$ponte" | cut -d' ' -f1)" = \
        "$(sed -n 's/  ponte_root\.sh$//p' /usr/local/lib/meowsystem/reserva.sha256)" ] &&
-     sudo -n "$ponte" estado >/dev/null 2>&1; then
+     estado="$(sudo -n "$ponte" estado 2>/dev/null)" &&
+     _ponte_regra_igual_a_reserva "$estado"; then
     if cmp -s "$RAIZ/scripts/ponte_root.sh" "$ponte"; then
       meow_pula "a ponte está igual à reserva — o resto entra no «Instalar tudo»"
     else

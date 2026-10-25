@@ -1684,7 +1684,9 @@ etapa_ponte_root() {
   # mesmo texto — e não há divergência eterna por causa de uma quebra de linha.
   [ "$(cat "$perfil" 2>/dev/null)" = "$perfil_quer" ] || mudou=1
   md5_quer="$(printf '%s\n' "$regra_quer" | md5sum | cut -d' ' -f1)"
-  md5_tem="$(sudo -n "$ponte" estado 2>/dev/null | sed -n 's/^regra_md5=//p')"
+  local estado
+  estado="$(sudo -n "$ponte" estado 2>/dev/null)"
+  md5_tem="$(sed -n 's/^regra_md5=//p' <<< "$estado")"
   [ -n "$md5_tem" ] && [ "$md5_tem" = "$md5_quer" ] || mudou=1
   somas_quer="$(printf '%s  ponte_root.sh\n%s  49-meowsystem-ponte' \
     "$(sha256sum < "$origem" | cut -d' ' -f1)" \
@@ -1701,9 +1703,9 @@ etapa_ponte_root() {
   [ "$(cat "$pecas" 2>/dev/null)" = "$pecas_quer" ] || mudou=1
   cmp -s "$reparo_origem" "$reparo" 2>/dev/null || mudou=1
   cmp -s "$unidade_origem" "$unidade" 2>/dev/null || mudou=1
-  # A pasta das regras do polkit é 0750 root:polkitd: sem ler, a etapa não
-  # adivinha, e a regra vai junto com o resto quando algo muda.
-  if [ -r "${polkit%/*}" ]; then cmp -s "$polkit_origem" "$polkit" 2>/dev/null || mudou=1; fi
+  # A pasta das regras do polkit é 0750 root:polkitd, e a etapa não a lê: quem
+  # diz o sha256 da regra instalada é a ponte, pelo `estado` (P108).
+  [ "$(sed -n 's/^polkit_sha256=//p' <<< "$estado")" = "$(sha256sum < "$polkit_origem" | cut -d' ' -f1)" ] || mudou=1
 
   if [ "$mudou" = "0" ]; then
     meow_ok "ponte root instalada e liberada sem senha"

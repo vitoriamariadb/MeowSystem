@@ -99,6 +99,9 @@ PECAS=/usr/local/lib/meowsystem/reserva-pecas.sha256
 COMPLETION=/usr/local/share/zsh/site-functions/_meow
 REGRA=/etc/sudoers.d/49-meowsystem-ponte
 PONTE=/usr/local/lib/meowsystem/ponte_root.sh
+# A regra do polkit que libera o reparo da ponte (P104). A pasta é 0750
+# root:polkitd: quem usa não a lê, e quem a confere é o `estado`, daqui.
+POLKIT=/etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules
 FLATPAK_GLOBAL=/var/lib/flatpak/overrides/global
 # A lista do que o `libreoffice-remover` tirou, gravada como root: é a única
 # fonte do `libreoffice-devolver`, que não recebe nome de quem chama.
@@ -468,6 +471,11 @@ estado)
   # estava pronta. Medido em 08/09/2026 rodando o instalador como o painel o
   # roda, sem terminal: "a ponte fica de fora" numa ponte instalada e correta.
   printf 'regra_md5=%s\n' "$(md5sum < "$REGRA" 2>/dev/null | cut -d' ' -f1)"
+  # O sha256 da regra e o da regra do polkit (P108): o doctor compara o primeiro
+  # com o da reserva e o segundo com o do repositório, sem ler nada de root. Vazio
+  # é «não existe».
+  printf 'regra_sha256=%s\n' "$({ sha256sum < "$REGRA"; } 2>/dev/null | cut -d' ' -f1)"
+  printf 'polkit_sha256=%s\n' "$({ sha256sum < "$POLKIT"; } 2>/dev/null | cut -d' ' -f1)"
   printf 'perfil=%s\n' "$([ -r "$PERFIL" ] && echo sim || echo nao)"
   printf 'raiz=%s\n'  "$(sed -n 's/^raiz=//p' "$PERFIL" 2>/dev/null || printf '(nenhuma)')"
   printf 'hook=%s\n'  "$([ -f "$HOOK" ] && [ -x "$WRAPPER" ] && echo sim || echo nao)"
