@@ -75,7 +75,7 @@ implantar() {  # <id> — o flatpak do usuário na forma de um de verdade
 }
 semear() {  # <app> — a casa do zero, com o app instalado e sem tema
   rm -rf "$CASA" "$T/estado"; mkdir -p "$CASA/.config"
-  rm -f "$BIN/kitty" "$BIN/gnome-terminal"
+  rm -f "$BIN/kitty" "$BIN/gnome-terminal" "$BIN/spicetify"
   case "$1" in
     kitty) falso kitty ;;
     gnome-terminal) falso gnome-terminal ;;
@@ -86,6 +86,28 @@ semear() {  # <app> — a casa do zero, com o app instalado e sem tema
       local oo="$CASA/.var/app/org.onlyoffice.desktopeditors"
       mkdir -p "$oo/config/onlyoffice" "$oo/data/onlyoffice/desktopeditors/uithemes"
       printf '[General]\nUITheme=theme-dark\n' > "$oo/config/onlyoffice/DesktopEditors.conf" ;;
+    qbittorrent)
+      implantar org.qbittorrent.qBittorrent
+      mkdir -p "$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent"
+      printf '[Preferences]\n' > "$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent/qBittorrent.conf" ;;
+    spotify)
+      # O app com o corpo patchável, o spicetify que grava o config-xpui.ini, e o
+      # tema do meowsystem já baixado (aqui não há rede para baixá-lo).
+      implantar com.spotify.Client
+      mkdir -p "$CASA/.local/share/flatpak/app/com.spotify.Client/current/active/files/extra/share/spotify/Apps/xpui" \
+               "$CASA/.config/spicetify/Themes/catppuccin"
+      printf '[mocha]\ntext = cdd6f4\nbutton-active = 9399b2\nmauve = cba6f7\nbase = 1e1e2e\n' \
+        > "$CASA/.config/spicetify/Themes/catppuccin/color.ini"
+      cat > "$BIN/spicetify" <<'SPI'
+#!/bin/sh
+ini="$HOME/.config/spicetify/config-xpui.ini"
+if [ "$1" = config ] && [ -n "$3" ]; then
+  [ -f "$ini" ] || printf '[Setting]\n' > "$ini"
+  grep -v "^$2 *=" "$ini" > "$ini.n"; printf '%s = %s\n' "$2" "$3" >> "$ini.n"; mv "$ini.n" "$ini"
+fi
+exit 0
+SPI
+      chmod +x "$BIN/spicetify" ;;
   esac
 }
 mod() {  # <app> <verbo> <pack> <flavor>
@@ -176,6 +198,51 @@ fi
 saida="$(spot dracula dracula)"
 printf '%s' "$saida" | grep -qx 'rc=0' && ok "spotify/dracula: a segunda passada fica quieta" \
   || falha "spotify/dracula: a segunda passada não ficou quieta" "$saida"
+
+# --- Ida e volta dos que trazem a arte pronta: qBittorrent e Spotify ---------
+#   O tema que o MeowSystem pôs para um pack é dele: a troca de pack o troca sem
+#   perguntar. O que ela pôs à mão continua sendo perguntado, e fica.
+QBC="$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent/qBittorrent.conf"
+SPI_INI="$CASA/.config/spicetify/config-xpui.ini"
+no_ar() {  # <app>
+  case "$1" in
+    qbittorrent) sed -n 's/^General\\CustomUIThemePath=.*\/themes\///p' "$QBC" 2>/dev/null ;;
+    spotify) sed -n 's/^current_theme *= *//p' "$SPI_INI" 2>/dev/null ;;
+  esac
+}
+quero() {  # <app> <pack> — o nome que aquele pack põe no ar
+  case "$1" in
+    qbittorrent) basename "$(python3 "$RAIZ/scripts/pack.py" app "$2" apps.qbittorrent.arquivo 2>/dev/null | sed -n 's/^valor=//p')" ;;
+    spotify) python3 "$RAIZ/scripts/pack.py" app "$2" apps.spotify.spicetify_tema 2>/dev/null | sed -n 's/^valor=//p' ;;
+  esac
+}
+for app in qbittorrent spotify; do
+  semear "$app"
+  r=""; log=""
+  for par in meowsystem:mocha dracula:dracula meowsystem:mocha; do
+    p="${par%%:*}"
+    saida="$(mod "$app" aplicar "$p" "${par#*:}")"; rc=$?
+    log+="$saida"$'\n'
+    [ "$(no_ar "$app")" = "$(quero "$app" "$p")" ] && r+=" $p:$rc" || r+=" $p:$rc:$(no_ar "$app")"
+  done
+  if [ "$r" = " meowsystem:1 dracula:1 meowsystem:1" ]; then
+    ok "$app: a ida e volta de pack troca o tema que o MeowSystem pôs, sem perguntar"
+  else
+    falha "$app: a ida e volta de pack não trocou o tema ($r )" "$(printf '%s' "$log" | tail -n 8)"
+  fi
+  case "$app" in
+    qbittorrent) printf '[Preferences]\nGeneral\\CustomUIThemePath=%s/themes/dela.qbtheme\nGeneral\\UseCustomUITheme=true\n' \
+                   "$(dirname "$QBC")" > "$QBC" ;;
+    spotify) mkdir -p "$CASA/.config/spicetify/Themes/Dela"
+             printf '[x]\n' > "$CASA/.config/spicetify/Themes/Dela/color.ini"
+             printf '[Setting]\ncurrent_theme = Dela\ncolor_scheme = x\n' > "$SPI_INI" ;;
+  esac
+  saida="$(mod "$app" aplicar dracula dracula)"; rc=$?
+  case "$app" in qbittorrent) dela=dela.qbtheme ;; *) dela=Dela ;; esac
+  [ "$rc" = 3 ] && [ "$(no_ar "$app")" = "$dela" ] \
+    && ok "$app: o tema que ela pôs à mão não é trocado pela troca de pack" \
+    || falha "$app: o tema dela foi trocado (rc=$rc, no ar: $(no_ar "$app"))" "$saida"
+done
 
 # --- Os que trazem a arte pronta: cada pack responde pelo próprio tema --------
 for trilha in qbittorrent.arquivo obsidian.esquema vscode.esquema heroic.esquema; do

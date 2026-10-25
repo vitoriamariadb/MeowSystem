@@ -412,11 +412,26 @@ _meow_qbt_alvo() {
 #   releituras do `conferir` interno caem no veredito guardado.
 MEOW_QBT_VEREDITO_AR=""
 MEOW_QBT_PODE_PERGUNTAR=""
+# O TEMA QUE O MESMO MÓDULO PÔS PARA OUTRO PACK É NOSSO (P107, 25/10/2026)
+#   Medido numa casa de brinquedo: meowsystem, depois dracula, e o qBittorrent
+#   ficava no catppuccin-mocha.qbtheme com a pendência de «tema de terceiro» — o
+#   arquivo que este módulo tinha acabado de pôr. O caminho que ele apontou no
+#   conf fica guardado; se é ele que está no ar, a troca de pack o troca sem
+#   perguntar. O que ela pôs à mão continua na pergunta.
+_MEOW_QBT_NOSSO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/temas-de-apps/qbittorrent/tema-nosso"
 _meow_qbt_ar_ok() {
+  local no_ar alvo
   if [ -z "$MEOW_QBT_VEREDITO_AR" ]; then
-    meow_app_tema_no_ar qbittorrent "$(_meow_qbt_no_ar)" "$(_meow_qbt_alvo)" \
-                        "$MEOW_QBT_NOME_AURORA" "$MEOW_QBT_PODE_PERGUNTAR"
-    MEOW_QBT_VEREDITO_AR=$?
+    no_ar="$(_meow_qbt_no_ar)"; alvo="$(_meow_qbt_alvo)"
+    if [ -n "$no_ar" ] && [ "$no_ar" != "$alvo" ] && [ "$no_ar" = "$(cat "$_MEOW_QBT_NOSSO" 2>/dev/null)" ]; then
+      meow_pendencia_resolvida qbittorrent-tema-de-terceiro
+      meow_info "qBittorrent: o tema do MeowSystem estava em '$no_ar' — passa a '$alvo'"
+      MEOW_QBT_VEREDITO_AR="$MEOW_DIVERGENTE"
+    else
+      meow_app_tema_no_ar qbittorrent "$no_ar" "$alvo" \
+                          "$MEOW_QBT_NOME_AURORA" "$MEOW_QBT_PODE_PERGUNTAR"
+      MEOW_QBT_VEREDITO_AR=$?
+    fi
   fi
   return "$MEOW_QBT_VEREDITO_AR"
 }
@@ -772,6 +787,7 @@ meow_app_aplicar() {
     esac
     meow_seco && { meow_muda "apontaria o qBittorrent.conf para $destino"; return "$MEOW_DIVERGENTE"; }
     if meow_app_conferir >/dev/null 2>&1; then
+      mkdir -p "$(dirname -- "$_MEOW_QBT_NOSSO")" && printf '%s\n' "$destino" > "$_MEOW_QBT_NOSSO"
       meow_ok "qBittorrent com o tema do pack $MEOW_QBT_NOME_AURORA aplicado"
       return "$MEOW_DIVERGENTE"
     fi

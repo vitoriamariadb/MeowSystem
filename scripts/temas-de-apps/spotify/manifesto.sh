@@ -182,6 +182,9 @@ _SPOT_ACENTO="${ACCENT:-mauve}"
 
 _SPOT_CONFIG_DIR="$HOME/.config/spicetify"
 _SPOT_INI="$_SPOT_CONFIG_DIR/config-xpui.ini"
+# O `current_theme` que este módulo pôs por último. Se é ele que está no ar, o
+# tema é nosso, de outro pack, e a troca de pack o troca sem perguntar (P107).
+_SPOT_NOSSO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/temas-de-apps/spotify/tema-nosso"
 
 # O QUE APLICAR VEM DO PACK — 22/09/2026, sprint P18
 #   Até esta linha, este arquivo sabia de cor o nome do tema
@@ -989,9 +992,17 @@ meow_app_aplicar() {
   #   não pergunta nada sem ele. É o que impede a pergunta de aparecer dentro de
   #   um `conferir`, que é leitura e não teria como cumprir o "sim" — ver o
   #   bloco do `meow_app_tema_no_ar` em lib/comum.sh.
-  meow_app_tema_no_ar spotify "$(_spot_ini_ler current_theme)" \
-                      "$_SPOT_TEMA_NOME" "$_SPOT_TEMA_DE" pergunte
-  [ $? = "$MEOW_SEM_DEPENDENCIA" ] && return "$MEOW_SEM_DEPENDENCIA"
+  #   O TEMA QUE ESTE MÓDULO PÔS PARA OUTRO PACK NÃO É «DE TERCEIRO» (P107):
+  #   medido, meowsystem e depois dracula deixavam o Spotify no catppuccin com
+  #   a pergunta. O nome guardado no `_SPOT_NOSSO` é o que nós escrevemos.
+  local no_ar; no_ar="$(_spot_ini_ler current_theme)"
+  if [ -n "$no_ar" ] && [ "$no_ar" != "$_SPOT_TEMA_NOME" ] && [ "$no_ar" = "$(cat "$_SPOT_NOSSO" 2>/dev/null)" ]; then
+    meow_pendencia_resolvida spotify-tema-de-terceiro
+    meow_info "spotify: o tema do MeowSystem estava em '$no_ar' — passa a '$_SPOT_TEMA_NOME' (do pack ${_SPOT_TEMA_DE:-ativo})"
+  else
+    meow_app_tema_no_ar spotify "$no_ar" "$_SPOT_TEMA_NOME" "$_SPOT_TEMA_DE" pergunte
+    [ $? = "$MEOW_SEM_DEPENDENCIA" ] && return "$MEOW_SEM_DEPENDENCIA"
+  fi
 
   if _spot_rodando; then
     meow_pula "Spotify está ABERTO — não mexo no app no meio do uso; tento no próximo ciclo"
@@ -1045,6 +1056,7 @@ meow_app_aplicar() {
     return "$MEOW_ERRO"
   fi
 
+  mkdir -p "$(dirname -- "$_SPOT_NOSSO")" && printf '%s\n' "$_SPOT_TEMA_NOME" > "$_SPOT_NOSSO"
   meow_ok "Spotify em $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} (vale no próximo início do app)"
   return "$MEOW_DIVERGENTE"
 }
