@@ -120,6 +120,10 @@ VERBOS
                                  quando ela existe; senão, em packs/ do projeto.
                                  Com `--de-csv`, a paleta é a do CSV e o resto
                                  vem do pack PADRÃO. Ver `montar_novo`.
+    levar  <id> foto <arquivo>...
+                                 copia a foto para `wallpapers/` do pack da
+                                 pessoa (o que o Criar tema leva). Ver `levar_foto`.
+    tirar  <id> foto <nome>...   tira a foto de `wallpapers/` do pack da pessoa.
     exportar <id> [arquivo] [--sem-imagens] [--seco]
                                  o pack num `.meowpack` (um .tar.zst com um
                                  MANIFESTO de sha256). Recusa o que não valida,
@@ -5748,6 +5752,163 @@ def _autorais_construidos(ident, arquivos):
         return saida
 
 
+# --- O QUE O «CRIAR TEMA» LEVA PARA DENTRO DO PACK --------------------------
+# O passo do Criar tema escolhe o que entra no pack que o «Guardar» gravou, e
+# isto copia para dentro dele. Só um pack da raiz da pessoa recebe: os que vêm
+# com o MeowSystem são do repositório. O arquivo vem de quem usa e é dado:
+# arquivo comum (link não), conteúdo que é o que a extensão diz, e o nome passa
+# pelo `nome_de_destino` antes de virar arquivo do pack.
+TETO_FOTO = 64 << 20
+RE_NOME_LEVADO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,119}$")
+
+
+def pack_da_pessoa(ident):
+    """O diretório do pack `ident` na raiz da pessoa, o único que o Criar tema muda."""
+    _exigir(isinstance(ident, str) and RE_ID.match(ident),
+            f"id {ident!r} — só minúsculas, dígitos e hífen")
+    d = os.path.join(raiz_da_pessoa(), ident)
+    _exigir(os.path.isfile(os.path.join(d, "pack.json")) and not os.path.islink(d),
+            f"{ident!r} não é um pack seu: só os de {raiz_da_pessoa()} recebem o que o "
+            f"Criar tema leva")
+    return d
+
+
+def _e_foto(dados):
+    return (dados.startswith(bytes([0x89]) + b"PNG\r\n" + bytes([0x1A, 0x0A]))
+            or dados.startswith(bytes([0xFF, 0xD8, 0xFF]))
+            or (dados[:4] == b"RIFF" and dados[8:12] == b"WEBP"))
+
+
+def _ler_de_quem_usa(caminho, extensoes, teto, confere, o_que):
+    """Os bytes de `caminho`, que tem de ser arquivo comum com `extensoes` e
+    conteúdo que `confere` aceita."""
+    nome = os.path.basename(caminho)
+    _exigir(os.path.isfile(caminho) and not os.path.islink(caminho),
+            f"{nome}: não é um arquivo comum")
+    _exigir(nome.lower().endswith(extensoes), f"{nome}: só {', '.join(extensoes)}")
+    tamanho = os.path.getsize(caminho)
+    _exigir(0 < tamanho <= teto, f"{nome}: vazio ou maior que {teto >> 20} MB")
+    with open(caminho, "rb") as fh:
+        dados = fh.read()
+    _exigir(confere(dados), f"{nome}: o conteúdo não é {o_que}")
+    return dados
+
+
+def _nome_limpo(nome):
+    """`nome` com só `[A-Za-z0-9._+-]`, o resto virando hífen."""
+    return re.sub(r"-{2,}", "-", re.sub(r"[^A-Za-z0-9._+-]+", "-", nome)).strip("-.")
+
+
+def _gravar_no_pack(dir_pack, rel, dados):
+    alvo = _dentro(dir_pack, rel, rel)
+    os.makedirs(os.path.dirname(alvo), exist_ok=True)
+    alvo = _dentro(dir_pack, rel, rel)
+    _exigir(not os.path.islink(alvo), f"{rel}: é link")
+    tmp = alvo + ".meow-parcial"
+    with open(tmp, "wb") as fh:
+        fh.write(dados)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, alvo)
+
+
+def _mudar_pack_json(dir_pack, muda):
+    """Aplica `muda(p)` ao pack.json e valida; o que não valida volta como estava."""
+    arq = os.path.join(dir_pack, "pack.json")
+    with open(arq, "rb") as fh:
+        antes = fh.read()
+    p = json.loads(antes)
+    if not muda(p):
+        return
+    with open(arq + ".meow-parcial", "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(p, indent=2, ensure_ascii=False) + "\n")
+    os.replace(arq + ".meow-parcial", arq)
+    try:
+        validar(dir_pack, silencioso=True)
+    except Recusa:
+        with open(arq, "wb") as fh:
+            fh.write(antes)
+        raise
+
+
+def nome_da_foto(ident, nome):
+    """O nome que a foto `nome` tem no pack `ident`: o id na frente (é o prefixo
+    que tira a foto da rotação dos outros packs), só `[A-Za-z0-9._+-]`."""
+    raiz, ext = os.path.splitext(_nome_limpo(os.path.basename(nome)))
+    if not raiz.startswith(ident + "-"):
+        raiz = ident + "-" + raiz.strip("-.")
+    return raiz[:120 - len(ext)] + ext.lower()
+
+
+def fotos_do_pack(dir_pack):
+    """Os nomes das fotos soltas em `wallpapers/` do pack."""
+    pasta = os.path.join(dir_pack, "wallpapers")
+    if os.path.islink(pasta) or not os.path.isdir(pasta):
+        return []
+    return sorted(e.name for e in os.scandir(pasta)
+                  if e.is_file(follow_symlinks=False) and e.name.lower().endswith(EXT_FOTO))
+
+
+def levar_foto(ident, caminho):
+    """Copia a foto `caminho` para `wallpapers/` do pack; devolve o nome dela lá.
+
+    O pack passa a declarar `origens.wallpapers` com o id de prefixo: é o que faz
+    o `wallpaper.sh` semear das fotos dele (e não das do pack de quem herda) e o
+    que tira estas fotos da rotação quando outro pack está no ar."""
+    dir_pack = pack_da_pessoa(ident)
+    dados = _ler_de_quem_usa(caminho, EXT_FOTO, TETO_FOTO, _e_foto, "uma foto PNG, JPEG ou WebP")
+    nome = nome_da_foto(ident, caminho)
+    _exigir(RE_NOME_LEVADO.match(nome) and nome_de_destino(nome), f"{nome!r}: nome que não serve")
+    _gravar_no_pack(dir_pack, "wallpapers/" + nome, dados)
+
+    def declarar(p):
+        org = p.setdefault("origens", {})
+        if isinstance(org.get("wallpapers"), dict):
+            return False
+        org["wallpapers"] = {"prefixo": ident}
+        return True
+    _mudar_pack_json(dir_pack, declarar)
+    return nome
+
+
+def tirar_foto(ident, nome):
+    """Tira a foto `nome` de `wallpapers/`; sem foto nenhuma, a origem que o
+    `levar_foto` declarou sai junto, e o pack volta a herdar a coleção."""
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(isinstance(nome, str) and RE_NOME_LEVADO.match(nome) and nome_de_destino(nome),
+            f"{nome!r}: nome de foto que não serve")
+    alvo = os.path.join(dir_pack, "wallpapers", nome)
+    _exigir(os.path.isfile(alvo) and not os.path.islink(alvo), f"{nome}: não está no pack")
+    os.remove(alvo)
+    if not fotos_do_pack(dir_pack):
+        def esquecer(p):
+            if (p.get("origens") or {}).get("wallpapers") != {"prefixo": ident}:
+                return False
+            del p["origens"]["wallpapers"]
+            if not p["origens"]:
+                del p["origens"]
+            return True
+        _mudar_pack_json(dir_pack, esquecer)
+
+
+def cmd_levar(ident, tipo, args):
+    if tipo == "foto" and args:
+        for caminho in args:
+            print(f"  ok   {levar_foto(ident, caminho)}")
+        return OK
+    print("  erro uso: levar <id> foto <arquivo>...", file=sys.stderr)
+    return ERRO_USO
+
+
+def cmd_tirar(ident, tipo, args):
+    if tipo == "foto" and args:
+        for nome in args:
+            tirar_foto(ident, nome)
+            print(f"  ok   {nome} saiu")
+        return OK
+    print("  erro uso: tirar <id> foto <nome>...", file=sys.stderr)
+    return ERRO_USO
+
+
 # As fontes são as três pastas e os mapas de `icones/`, e o `logo.svg` (o ícone
 # do lançador), de cada pack de onde o tema deriva: o no ar, os que ele herda e
 # o pack-base.
@@ -6166,6 +6327,10 @@ def main(argv):
             return cmd_construir(argv[2], seco=(len(argv) == 4 and argv[3] in ("--seco", "--dry-run")))
         if verbo == "novo" and len(argv) >= 3:
             return cmd_novo(argv[2], argv[3:])
+        if verbo == "levar" and len(argv) >= 4:
+            return cmd_levar(argv[2], argv[3], argv[4:])
+        if verbo == "tirar" and len(argv) >= 4:
+            return cmd_tirar(argv[2], argv[3], argv[4:])
         if verbo == "exportar" and len(argv) >= 3:
             return cmd_exportar(argv[2], argv[3:])
         if verbo == "importar" and len(argv) >= 3:

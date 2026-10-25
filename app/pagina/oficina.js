@@ -504,7 +504,9 @@ async function rodarNaGaleria(id, argumento) {
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirResultado(r);
 }
-function montarGaleria() {
+/* `leva`: o Criar tema passa {no(nome), levar(nome, sim), sem} — a foto ganha o
+ * botão de levar para o pack; `sem` é o porquê de ele estar apagado. */
+function montarGaleria(leva = null) {
   const abas = elemento("div", { class: "seg", role: "group", "aria-label": "Grupo" });
   for (const g of GRUPOS_PAREDE) {
     abas.append(elemento("button", { type: "button", "aria-pressed": String(g.id === ABA_GALERIA), controle: "galeria:" + g.id,
@@ -528,6 +530,14 @@ function montarGaleria() {
         botoes.push(mini("lua", "De noite", "wallpaper_noite", alvo));
         if (i.lado) botoes.push(mini("girar", "Medir a luz", "wallpaper_lado_auto", alvo));
         botoes.push(mini("lixo", "Tirar do carrossel", "wallpaper_banir", alvo));
+        if (leva) {
+          const no = !leva.sem && leva.no(i.rotulo);
+          botoes.push(botao("", { class: "bt pequeno so-icone levar", icone: "criar", controle: "levar:foto",
+            "aria-label": "Levar para o tema", "aria-pressed": String(no), disabled: !!leva.sem,
+            "aria-disabled": leva.sem ? "true" : null,
+            dica: leva.sem || (no ? "Tirar do tema" : "Levar para o tema"),
+            onclick: () => leva.levar(i.rotulo, !no) }));
+        }
       }
       grade.append(elemento("figure", { "data-papel": i.rotulo }, [
         i.pronta ? elemento("img", { src: i.url, alt: maiuscula(i.rotulo), loading: "lazy" }) : elemento("div", { class: "lugar" }),

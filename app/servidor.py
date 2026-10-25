@@ -9670,6 +9670,9 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/jogos":
             return self._api_jogos(consulta)
 
+        if caminho == "/api/criar":
+            return self._api_criar_ler(consulta)
+
         if caminho == "/api/previas":
             dados = previas(consulta.get("tipo", [""])[0],
                             consulta.get("grupo", [""])[0] or None)
@@ -9761,6 +9764,54 @@ class Manipulador(BaseHTTPRequestHandler):
             with open(saida, "rb") as fh:
                 corpo = fh.read()
         return self._baixar(corpo, ident + ".meowpack", "application/zstd")
+
+    # O QUE O «CRIAR TEMA» LEVA PARA O PACK QUE ELE GRAVOU. Quem copia e
+    # valida é o pack.py (`levar_foto`…); daqui só sai o caminho de origem, e
+    # ele é resolvido aqui, pelo nome, dentro do acervo: o pedido nunca traz
+    # caminho.
+    def _api_criar_ler(self, consulta):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "scripts/pack.py não carregou"}, 500)
+        ident = consulta.get("id", [""])[0]
+        try:
+            dir_pack = mod.pack_da_pessoa(ident)
+        except mod.Recusa as e:
+            return self._json({"erro": texto_na_tela(str(e))}, 404)
+        no_pack = set(mod.fotos_do_pack(dir_pack))
+        try:
+            nomes = sorted(os.listdir(os.path.join(_wallpaper_base(), "ativos")))
+        except OSError:
+            nomes = []
+        return self._json({"id": ident,
+                           "fotos": [n for n in nomes if mod.nome_da_foto(ident, n) in no_pack]})
+
+    def _api_criar(self, corpo):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "scripts/pack.py não carregou"}, 500)
+        ident = str(corpo.get("id", ""))
+        tipo = str(corpo.get("tipo", ""))
+        nome = os.path.basename(str(corpo.get("nome", "")))
+        levar = corpo.get("levar") is True
+        try:
+            if tipo == "foto":
+                if levar:
+                    pasta = os.path.realpath(os.path.join(_wallpaper_base(), "ativos"))
+                    origem = os.path.join(pasta, nome)
+                    if not nome or os.path.dirname(os.path.realpath(origem)) != pasta:
+                        return self._json({"erro": "essa foto não está no carrossel"}, 404)
+                    feito = mod.levar_foto(ident, origem)
+                else:
+                    feito = mod.nome_da_foto(ident, nome)
+                    mod.tirar_foto(ident, feito)
+            else:
+                return self._json({"erro": "não sei levar isso"}, 400)
+        except mod.Recusa as e:
+            return self._json({"erro": texto_na_tela(str(e))}, 400)
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar no pack: %s" % e}, 500)
+        return self._json({"ok": True, "tipo": tipo, "nome": feito, "levado": levar})
 
     def _api_pack_importar(self, corpo):
         mod = modulo_pack()
@@ -10372,6 +10423,8 @@ class Manipulador(BaseHTTPRequestHandler):
         # O `.meowpack` — ver `_api_pack_exportar`. Fora do "trazer de volta"
         # logo abaixo, e é de propósito: aquele só analisa, e este, com
         # `confirmado: true`, instala.
+        if caminho == "/api/criar":
+            return self._api_criar(corpo)
         if caminho == "/api/pack-importar":
             return self._api_pack_importar(corpo)
 

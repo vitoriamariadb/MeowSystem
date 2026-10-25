@@ -609,7 +609,7 @@ EXTRAS = {
     "criar/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
     "criar/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
     "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "autoral:*", "acervo:icone"],
-    "criar/papel": ["galeria:*", "papel:*", "acervo:parede"],
+    "criar/papel": ["galeria:*", "papel:*", "acervo:parede", "levar:foto"],
     "criar/sons": ["criar:sino"],
     "criar/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],

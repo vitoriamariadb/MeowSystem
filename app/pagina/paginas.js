@@ -387,8 +387,35 @@ function passoIcones() {
     maisAjustes("criar:icones", p.mais, [oficinaAutoral()].filter(Boolean)),
   ];
 }
+/* O que o pack do Criar tema já leva, lido do servidor (`/api/criar`). */
+let LEVA = null;
+async function carregarLeva(id) {
+  LEVA = { id, carregando: true, fotos: [] };
+  const r = await api(`/api/criar?id=${encodeURIComponent(id)}`);
+  LEVA = r.erro ? { id, fotos: [] } : { ...r, id };
+  render();
+}
+/* O pack guardado em Cores, com o que ele leva; null enquanto não há pack. */
+function packDoRascunho() {
+  const r = rascunho();
+  const pack = r.pack && PACKS.find((x) => x.id === r.pack);
+  if (!pack) return null;
+  if (!LEVA || LEVA.id !== pack.id) carregarLeva(pack.id);
+  return pack;
+}
+async function levarParaOTema(tipo, nome, levar, extra = {}) {
+  const id = rascunho().pack;
+  const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo, nome, levar, ...extra }) });
+  if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+  await carregarLeva(id);
+}
 function passoPapel() {
-  return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria()])],
+  const pack = packDoRascunho();
+  const pronto = pack && LEVA && !LEVA.carregando;
+  const leva = { sem: pack ? (pronto ? "" : "Carregando") : "Guarde o tema em Cores",
+    no: (nome) => !!pronto && (LEVA.fotos || []).includes(nome),
+    levar: (nome, sim) => levarParaOTema("foto", nome, sim) };
+  return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria(leva)])],
     { direita: [botaoAcervo("parede", "Trazer imagens")] })];
 }
 function passoSons() {

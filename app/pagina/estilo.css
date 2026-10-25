@@ -462,6 +462,7 @@ select.campo { padding-right: var(--e-8); }
 .galeria figure .fila { gap: 4px; flex-wrap: wrap; }
 .galeria .bt.so-icone.pequeno { flex: none; }
 .galeria .estrela[aria-pressed="true"] { color: var(--yellow); }
+.galeria .levar[aria-pressed="true"] { background: var(--accent-suave); border-color: var(--accent); color: var(--accent); }
 
 /* programas e jogos */
 .liga-programas { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--e-3); padding: var(--e-5) var(--e-6); }
