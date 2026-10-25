@@ -1,6 +1,6 @@
 # P104 — A ponte se repara sozinha, sem senha
 
-**Status: REGISTRADA em 24/10; entra quando a P102 ou a P103 voltar (máximo de dois blocos ao mesmo tempo).**
+**Status: CONFERIDA em 25/10 (APROVADO_COM_RESSALVAS), em `sprint/p104`; falta integrar.**
 Vem da P98, «ficou de fora» 2.
 
 Quem usa (24/10), sobre o «Conferir e consertar» repor a ponte: «Executar em background, não dá pra fazer um
@@ -50,3 +50,64 @@ pedir senha, e o reparo da ponte também não pede. Registre essa extensão na d
   `wallpaper_permitir`) diz «Manter». Fica um nome só, curto, e o teste da P103 passa a cobrar o nome dos
   botões das pendências.
 - O comentário do `meow_onde_no_painel` (`lib/comum.sh`) ainda fala em «na aba Seção».
+
+## Execução
+Veredito da conferência (25/10): **APROVADO_COM_RESSALVAS**. Os itens 1 a 6 batem com a tarefa, e a extensão da
+decisão 11 está registrada com a frase. A conferência achou um defeito de fronteira e o corrigiu com teste.
+
+**Commits:** `0429530` reserva · `378ef48` reparo oneshot · `ff849d5` polkit · `3c427b3` doctor e «Conferir e
+consertar» · `3b58791` o limite · `1a03804` sobras da P103 · `9cdf975` decisão 11 · `4485548` veredito velho ·
+`0b9d7f2` (conferência) `PONTE_ROOT="nao"`.
+
+**O defeito da conferência (`0b9d7f2`).** Com `PONTE_ROOT="nao"` no meow.conf e a ponte ainda no disco, o
+`chk_ponte` dá divergente e o `--consertar` chamava o `fix_ponte`, que não olhava a chave. Quem desligou a ponte e
+apagou a regra a tinha de volta no conserto seguinte, e no auto-reparo das 5h. Antes da P104 a `ponte` estava no
+`SEM_CONSERTO`, e o caso não existia. Agora o `fix_ponte` sai 3 com a chave em `nao` («tirar a ponte entra no
+«Instalar tudo»»). `tests/ponte-reparo.sh` §6, vermelho antes e verde depois. No container, o código de antes
+devolveu a regra, e o de agora a deixou fora.
+
+**Container:** `ubuntu:24.04` COM systemd (`podman run --systemd=always --privileged`, rootless, `/sbin/init`),
+systemd 255.4 e polkitd 124, as mesmas versões desta máquina. A conferência abriu uma sessão de logind de verdade
+no `seat0`, local e ativa (`systemd-run -p PAMName=login -p User=gata -E XDG_SEAT=seat0`). Assim a regra do
+repositório, com `subject.local`, foi exercida sem troca, o que fecha a ressalva da implementação.
+1. Install: a `etapa_ponte_root` de verdade, como `gata`, com um sudo temporário no papel da senha. Ela pôs a
+   reserva 0700 (`gata` não lista), o `reserva.sha256` 0644, o reparo, a unidade e a regra do polkit. A segunda
+   passada deu rc 0. Depois o sudo temporário saiu, e `sudo -n true` pediu senha.
+2. Regra apagada e `bin/meow doctor --consertar` na sessão: a regra voltou 0440 root, igual à reserva, e passou
+   no `visudo -c`. O `pacotes` foi consertado pela ponte reposta na mesma passada.
+3. Do serviço de usuário (o caminho do painel: `systemd-run --user`, `app.slice`), com a sessão viva, o `start`
+   passou e a regra voltou. O polkit cai na sessão gráfica de quem chama. Fora de sessão (`su -`, sem seat), o
+   doctor disse «o polkit recusou o reparo» e nada voltou.
+4. Verbos, com o `systemctl` real na sessão: só o `start` do reparo passa. Foram recusados `stop`, `restart`,
+   `reload`, `try-restart`, `reload-or-restart`, `set-property`, `freeze`, `clean`, `enable`, `mask`,
+   `daemon-reload` e `set-environment`. Também foram recusados o `start` do `ssh` e do `getty@tty9`,
+   `--job-mode=isolate` e o `EnqueueUnitJob restart` pelo `busctl`.
+5. Unidade transitória com o mesmo nome (`systemd-run --unit=meowsystem-ponte-reparo.service`), com a unidade
+   instalada e com o arquivo dela fora (`not-found`): recusada nos dois casos, e nada rodou como root.
+6. Reserva adulterada: o reparo saiu com 4, nada voltou, e o doctor disse «a reserva não confere com o sha256».
+   Regra da reserva que o visudo reprova, com o sha256 refeito: saiu com 5, nada voltou, e o doctor disse por quê.
+7. Ponte editada no repositório (com uma linha que gravaria em `/root`): o doctor deu a pendência do install, o
+   conserto saiu com 3, e o `InvocationID` da unidade não mudou. Com a ponte apagada, o reparo repôs a cópia da
+   reserva, e a linha editada não entrou. Com a ponte trocada, a da reserva voltou. `/root/pwned` não existe.
+8. Install antigo, sem reserva: o doctor pede o install, o conserto sai com 3, e nada é disparado.
+
+**Leitura de ataque, sem achado:** a unidade não tem argumento, `Environment`, `%` nem `@`, e roda com
+`ProtectHome`, `ProtectSystem=strict` e `PrivateTmp`. O reparo fixa o `PATH`, confere os nomes e o sha256 da
+reserva antes de cada uso, e roda o `visudo -c` numa cópia antes do `mv`. Tudo o que ele lê e grava é de root.
+
+**Suíte**, duas vezes seguidas na ponta `0b9d7f2`:
+`== todos os 78 · 78 verde(s), 0 pulado(s), 0 vermelho(s) ==` nas duas, com rc 0 (41 min e 34 min). Os
+falsos recusaram 6 chamadas de sudo (4 `sudo -n true` e 2 `estado` da ponte) e pararam 13 de `busctl`. O
+`app-completo.py`, que ficou vermelho na rodada da implementação, passou nas duas.
+
+**O que ficou** (anotado aqui, fora deste bloco):
+- O `.path` ou `.timer` opcional não foi feito, e o auto-reparo das 5h já cobre o caso. O auto-reparo só repõe
+  com uma sessão gráfica viva. Sem sessão, o polkit recusa e o doctor diz isso.
+- Apagar só a regra do polkit não é detectado. A pasta é 0750 `root:polkitd`, e ela só volta junto com outra peça.
+- O `chk_ponte` não compara a regra de sudo instalada com a da reserva (a pasta é 0750 root). Uma regra trocada
+  que ainda libera a ponte passa como ok.
+- Antes da P104: a ponte copia `$raiz/scripts/meow-lancador-apt.sh` do repositório para um hook de apt que roda
+  como root (`apt-hook-instalar`). É código que quem usa pode editar e que chega a root sem o install. Isso fica
+  fora desta tarefa e vale uma tarefa própria.
+- A transitória com o nome do reparo só está segura porque o systemd 255 não manda `unit` ao polkit no
+  `StartTransientUnit`. Se uma versão nova mandar, a regra precisa conferir mais.
