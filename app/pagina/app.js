@@ -642,7 +642,8 @@ function linhaDeChave(l) {
   const um = itens[0];
   const dupla = Array.isArray(l.c) && l.c.length === 2;
   const mudou = chaves.some((c) => MUDANCAS.has(c));
-  const presa = dominada(um);
+  const presa = dominada(um) || (ESQUEMA.mesmo_horario
+    && (ESQUEMA.horario_das_areas || []).some((a) => a.chaves.includes(um.chave)) ? "Segue o horário da noite" : null);
   const classe = "linha" + (dupla ? " dupla" : "") + (l.sub ? " sub" : "")
     + (mudou ? " mudou" : "") + (presa ? " dominada" : "") + (l.larga ? " larga" : "");
   const rot = elemento("div", { class: "rot" }, [

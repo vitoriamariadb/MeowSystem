@@ -1376,6 +1376,9 @@ reconciliar_banidos_pasta() {
   while IFS= read -r nome; do
     [ -n "$nome" ] || continue
     [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
+    # A que também está em `ativos/` foi devolvida (o `desbanir` copia e deixa o
+    # arquivo morto em `banidos/`): registrá-la desfaria a devolução.
+    [ -e "$ATIVOS/$nome" ] && continue
     # NOME COM EMOJI NAO ENTRA NO TEXTO — e isto e uma regra do repositorio, nao
     # capricho: o ADR-011 dela proibe emoji nos arquivos versionados, e o
     # `universal-sanitizer.py` do pre-commit REMOVE o caractere em vez de
@@ -1969,7 +1972,9 @@ cmd_desbanir() {
   local nome; nome="$(basename "${1:-}")"
   [ -n "$nome" ] || { meow_erro "uso: wallpaper.sh desbanir <nome-do-arquivo>"; return "$MEOW_ERRO"; }
   local origem="$BASE/banidos/$nome"
-  if [ ! -f "$origem" ]; then
+  # A foto da curadoria de fábrica (`BANIDOS.txt.padrao`) está na lista sem
+  # nunca ter passado por `banidos/`: com ela em `ativos/`, basta tirar a linha.
+  if [ ! -f "$origem" ] && [ ! -e "$ATIVOS/$nome" ]; then
     meow_erro "não achei $nome em banidos/"
     meow_info "  o nome é o do ARQUIVO, sem caminho — veja: ls \"$BASE/banidos\""
     return "$MEOW_ERRO"

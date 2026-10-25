@@ -61,6 +61,16 @@ _pastas_do_pack=""
 if [ -n "$_pastas_do_pack" ] && [ -d "$_pastas_do_pack" ]; then
   ORIGEM="$_pastas_do_pack"
 fi
+# As pastas que o Criar tema levou para o pack no ar, em `icones/sistema/` com
+# o nome que o tema veste: cada uma vence a da herança, e as outras seguem dela.
+# Só quando o pack não declara as pastas dele (aí a pasta já é a ORIGEM).
+LEVADAS=""
+if [ -n "$_pack_ref" ] && [ -d "$_pack_ref/icones/sistema" ] && [ ! -L "$_pack_ref/icones/sistema" ]; then
+  _levadas="$(cd "$_pack_ref/icones/sistema" && pwd -P)"
+  _decl_real="$( [ -n "$_pastas_decl" ] && cd "$_pastas_decl" 2>/dev/null && pwd -P)" || _decl_real=""
+  _molde_real="$( [ -n "$_molde" ] && cd "$_molde" 2>/dev/null && pwd -P)" || _molde_real=""
+  [ "$_levadas" != "$_decl_real" ] && [ "$_levadas" != "$_molde_real" ] && LEVADAS="$_levadas"
+fi
 # As frases diziam «vestidas de Catppuccin <flavor>» fosse qual fosse a origem,
 # e com o Dracula no ar a tela dizia «Catppuccin macchiato» sobre as pastas
 # DELE.
@@ -142,6 +152,11 @@ _desejado() {
   local nome glifo real fora=()
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
+    if [ -n "$LEVADAS" ] && [ -f "$LEVADAS/$nome.svg" ] && [ ! -L "$LEVADAS/$nome.svg" ] \
+       && real="$(meow_dentro "$LEVADAS" "$nome.svg")"; then
+      printf '%s\t%s\n' "$nome" "$real"
+      continue
+    fi
     # Um `folder-x.svg` que é symlink para fora do pack era copiado para o
     # tema com o conteúdo do destino do link. O `meow_dentro` devolve a forma
     # conferida, e é ela que se copia.

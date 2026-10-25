@@ -120,6 +120,20 @@ VERBOS
                                  quando ela existe; senão, em packs/ do projeto.
                                  Com `--de-csv`, a paleta é a do CSV e o resto
                                  vem do pack PADRÃO. Ver `montar_novo`.
+    levar  <id> foto <arquivo>...
+                                 copia a foto para `wallpapers/` do pack da
+                                 pessoa (o que o Criar tema leva). Ver `levar_foto`.
+    levar  <id> sons <pack>      copia o tema de sons que <pack> alcança para
+                                 `sons/`, e o `som.tema` aponta para ele.
+    levar  <id> som <arquivo.oga> <evento>
+                                 troca o som de um evento que o tema já tem.
+    levar  <id> sistema|biblioteca <arquivo.svg> [nome]
+                                 copia o ícone para `icones/<pasta>/` do pack.
+    tirar  <id> foto <nome>...   tira a foto de `wallpapers/` do pack da pessoa.
+    tirar  <id> sistema|biblioteca <nome>...
+    acervo-para-levar <id> sistema|biblioteca
+                                 o que a aba do Criar tema oferece, uma linha
+                                 por ícone: `pack<TAB>nome<TAB>arquivo<TAB>sim|nao`.
     exportar <id> [arquivo] [--sem-imagens] [--seco]
                                  o pack num `.meowpack` (um .tar.zst com um
                                  MANIFESTO de sha256). Recusa o que não valida,
@@ -5771,6 +5785,368 @@ def _autorais_construidos(ident, arquivos):
         return saida
 
 
+# --- O QUE O «CRIAR TEMA» LEVA PARA DENTRO DO PACK --------------------------
+# O passo do Criar tema escolhe o que entra no pack que o «Guardar» gravou, e
+# isto copia para dentro dele. Só um pack da raiz da pessoa recebe: os que vêm
+# com o MeowSystem são do repositório. O arquivo vem de quem usa e é dado:
+# arquivo comum (link não), conteúdo que é o que a extensão diz, e o nome passa
+# pelo `nome_de_destino` antes de virar arquivo do pack.
+TETO_FOTO = 64 << 20
+RE_NOME_LEVADO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,119}$")
+
+
+def pack_da_pessoa(ident):
+    """O diretório do pack `ident` na raiz da pessoa, o único que o Criar tema muda."""
+    _exigir(isinstance(ident, str) and RE_ID.match(ident),
+            f"id {ident!r} — só minúsculas, dígitos e hífen")
+    d = os.path.join(raiz_da_pessoa(), ident)
+    _exigir(os.path.isfile(os.path.join(d, "pack.json")) and not os.path.islink(d),
+            f"{ident!r} não é um pack seu: só os de {raiz_da_pessoa()} recebem o que o "
+            f"Criar tema leva")
+    return d
+
+
+def _e_foto(dados):
+    return (dados.startswith(bytes([0x89]) + b"PNG\r\n" + bytes([0x1A, 0x0A]))
+            or dados.startswith(bytes([0xFF, 0xD8, 0xFF]))
+            or (dados[:4] == b"RIFF" and dados[8:12] == b"WEBP"))
+
+
+def _ler_de_quem_usa(caminho, extensoes, teto, confere, o_que):
+    """Os bytes de `caminho`, que tem de ser arquivo comum com `extensoes` e
+    conteúdo que `confere` aceita."""
+    nome = os.path.basename(caminho)
+    _exigir(os.path.isfile(caminho) and not os.path.islink(caminho),
+            f"{nome}: não é um arquivo comum")
+    _exigir(nome.lower().endswith(extensoes), f"{nome}: só {', '.join(extensoes)}")
+    tamanho = os.path.getsize(caminho)
+    _exigir(0 < tamanho <= teto, f"{nome}: vazio ou maior que {teto >> 20} MB")
+    with open(caminho, "rb") as fh:
+        dados = fh.read()
+    _exigir(confere(dados), f"{nome}: o conteúdo não é {o_que}")
+    return dados
+
+
+def _nome_limpo(nome):
+    """`nome` com só `[A-Za-z0-9._+-]`, o resto virando hífen."""
+    return re.sub(r"-{2,}", "-", re.sub(r"[^A-Za-z0-9._+-]+", "-", nome)).strip("-.")
+
+
+def _gravar_no_pack(dir_pack, rel, dados):
+    alvo = _dentro(dir_pack, rel, rel)
+    os.makedirs(os.path.dirname(alvo), exist_ok=True)
+    alvo = _dentro(dir_pack, rel, rel)
+    _exigir(not os.path.islink(alvo), f"{rel}: é link")
+    tmp = alvo + ".meow-parcial"
+    with open(tmp, "wb") as fh:
+        fh.write(dados)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, alvo)
+
+
+def _mudar_pack_json(dir_pack, muda):
+    """Aplica `muda(p)` ao pack.json e valida; o que não valida volta como estava."""
+    arq = os.path.join(dir_pack, "pack.json")
+    with open(arq, "rb") as fh:
+        antes = fh.read()
+    p = json.loads(antes)
+    if not muda(p):
+        return
+    with open(arq + ".meow-parcial", "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(p, indent=2, ensure_ascii=False) + "\n")
+    os.replace(arq + ".meow-parcial", arq)
+    try:
+        validar(dir_pack, silencioso=True)
+    except Recusa:
+        with open(arq, "wb") as fh:
+            fh.write(antes)
+        raise
+
+
+def nome_da_foto(ident, nome):
+    """O nome que a foto `nome` tem no pack `ident`: o id na frente (é o prefixo
+    que tira a foto da rotação dos outros packs), só `[A-Za-z0-9._+-]`."""
+    # A extensão sai antes da limpeza: limpo, `-.png` virava `png`, sem ela.
+    raiz, ext = os.path.splitext(os.path.basename(nome))
+    raiz, ext = _nome_limpo(raiz), ("." + _nome_limpo(ext[1:]) if ext else "")
+    if not raiz.startswith(ident + "-"):
+        raiz = ident + "-" + raiz.strip("-.")
+    return raiz[:120 - len(ext)] + ext.lower()
+
+
+def fotos_do_pack(dir_pack):
+    """Os nomes das fotos soltas em `wallpapers/` do pack."""
+    pasta = os.path.join(dir_pack, "wallpapers")
+    if os.path.islink(pasta) or not os.path.isdir(pasta):
+        return []
+    return sorted(e.name for e in os.scandir(pasta)
+                  if e.is_file(follow_symlinks=False) and e.name.lower().endswith(EXT_FOTO))
+
+
+def levar_foto(ident, caminho):
+    """Copia a foto `caminho` para `wallpapers/` do pack; devolve o nome dela lá.
+
+    O pack passa a declarar `origens.wallpapers` com o id de prefixo: é o que faz
+    o `wallpaper.sh` semear das fotos dele (e não das do pack de quem herda) e o
+    que tira estas fotos da rotação quando outro pack está no ar."""
+    dir_pack = pack_da_pessoa(ident)
+    dados = _ler_de_quem_usa(caminho, EXT_FOTO, TETO_FOTO, _e_foto, "uma foto PNG, JPEG ou WebP")
+    nome = nome_da_foto(ident, caminho)
+    _exigir(RE_NOME_LEVADO.match(nome) and nome_de_destino(nome) and nome.lower().endswith(EXT_FOTO),
+            f"{nome!r}: nome que não serve")
+    _gravar_no_pack(dir_pack, "wallpapers/" + nome, dados)
+
+    def declarar(p):
+        org = p.setdefault("origens", {})
+        if isinstance(org.get("wallpapers"), dict):
+            return False
+        org["wallpapers"] = {"prefixo": ident}
+        return True
+    _mudar_pack_json(dir_pack, declarar)
+    return nome
+
+
+def tirar_foto(ident, nome):
+    """Tira a foto `nome` de `wallpapers/`; sem foto nenhuma, a origem que o
+    `levar_foto` declarou sai junto, e o pack volta a herdar a coleção."""
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(isinstance(nome, str) and RE_NOME_LEVADO.match(nome) and nome_de_destino(nome),
+            f"{nome!r}: nome de foto que não serve")
+    alvo = os.path.join(dir_pack, "wallpapers", nome)
+    _exigir(os.path.isfile(alvo) and not os.path.islink(alvo), f"{nome}: não está no pack")
+    os.remove(alvo)
+    if not fotos_do_pack(dir_pack):
+        def esquecer(p):
+            if (p.get("origens") or {}).get("wallpapers") != {"prefixo": ident}:
+                return False
+            del p["origens"]["wallpapers"]
+            if not p["origens"]:
+                del p["origens"]
+            return True
+        _mudar_pack_json(dir_pack, esquecer)
+
+
+# O tema de sons é freedesktop: `index.theme` e um `.oga` por evento em
+# `stereo/<contexto>/`. Só esse formato entra, porque é o que o `som.sh` instala
+# e o `pw-play` toca; e só os eventos que o tema já tem trocam de som.
+TETO_SOM = 4 << 20
+EXT_SOM = (".oga", ".ogg")
+CONTEXTOS_DE_SOM = ("action", "alert", "notification")
+RE_EVENTO = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+PASTA_SONS = "sons/"
+
+
+def _e_ogg(dados):
+    return dados.startswith(b"OggS")
+
+
+def sons_do_tema(pasta):
+    """[(contexto, evento, caminho)] dos sons de um tema de sons, na ordem."""
+    saida = []
+    if not pasta or os.path.islink(pasta.rstrip(os.sep)) or not os.path.isdir(pasta):
+        return saida
+    for contexto in CONTEXTOS_DE_SOM:
+        dir_ctx = os.path.join(pasta, "stereo", contexto)
+        if os.path.islink(dir_ctx) or not os.path.isdir(dir_ctx):
+            continue
+        for nome in sorted(os.listdir(dir_ctx)):
+            cheio = os.path.join(dir_ctx, nome)
+            evento = nome[:-len(".oga")]
+            if (nome.endswith(".oga") and RE_EVENTO.match(evento)
+                    and os.path.isfile(cheio) and not os.path.islink(cheio)):
+                saida.append((contexto, evento, cheio))
+    return saida
+
+
+def sons_do_pack(dir_pack):
+    """Os sons do tema PRÓPRIO do pack (o de `som.tema`), sem subir a herança."""
+    tema = (campo(dir_pack, "som.tema") or "")
+    if not isinstance(tema, str) or not tema:
+        return []
+    try:
+        return sons_do_tema(_dentro(dir_pack, tema, "som.tema"))
+    except Recusa:
+        return []
+
+
+def levar_sons_de(ident, ref):
+    """Copia o tema de sons que `ref` alcança para `sons/` do pack, e o bloco
+    `som` passa a apontar para ele. O pack que já tem tema próprio fica como
+    está (são as escolhas de quem usa); `ref` sem tema de sons não copia nada.
+    Devolve quantos sons entraram."""
+    dir_pack = pack_da_pessoa(ident)
+    if sons_do_pack(dir_pack):
+        return 0
+    origem = acervo("som.tema", ref=ref)
+    sons = sons_do_tema(origem)
+    if not sons:
+        return 0
+    origem = origem.rstrip(os.sep)
+    for contexto, evento, cheio in sons:
+        with open(cheio, "rb") as fh:
+            dados = fh.read()
+        if _e_ogg(dados) and 0 < len(dados) <= TETO_SOM:
+            _gravar_no_pack(dir_pack, f"{PASTA_SONS}stereo/{contexto}/{evento}.oga", dados)
+    nome = re.sub(r"[\x00-\x1f]", "", str(campo(dir_pack, "nome", ident) or ident))
+    indice = [f"[Sound Theme]", f"Name={nome}", "Inherits=freedesktop",
+              "Directories=" + " ".join(f"stereo/{c}" for c in CONTEXTOS_DE_SOM), ""]
+    for c in CONTEXTOS_DE_SOM:
+        indice += [f"[stereo/{c}]", f"Context={c.capitalize()}", "OutputProfile=stereo", ""]
+    _gravar_no_pack(dir_pack, PASTA_SONS + "index.theme", "\n".join(indice).encode("utf-8"))
+    # A licença dos sons vai junto: o pack que os leva leva a procedência.
+    for licenca in ("License.txt", "LICENSE"):
+        cheio = os.path.join(origem, licenca)
+        if os.path.isfile(cheio) and not os.path.islink(cheio) and os.path.getsize(cheio) < 1 << 20:
+            with open(cheio, "rb") as fh:
+                _gravar_no_pack(dir_pack, PASTA_SONS + licenca, fh.read())
+
+    def declarar(p):
+        p.setdefault("som", {})["tema"] = PASTA_SONS
+        return True
+    _mudar_pack_json(dir_pack, declarar)
+    return len(sons)
+
+
+def levar_som(ident, caminho, evento):
+    """Troca o som do `evento` no tema próprio do pack pelo arquivo `caminho`."""
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(isinstance(evento, str) and RE_EVENTO.match(evento), f"{evento!r}: evento que não serve")
+    achado = next(((c, e) for c, e, _ in sons_do_pack(dir_pack) if e == evento), None)
+    _exigir(achado, f"{evento}: o tema de sons do pack não tem esse evento")
+    dados = _ler_de_quem_usa(caminho, EXT_SOM, TETO_SOM, _e_ogg, "um som Ogg")
+    _gravar_no_pack(dir_pack, f"{PASTA_SONS}stereo/{achado[0]}/{evento}.oga", dados)
+    return evento
+
+
+# Os ícones que o Criar tema leva: as pastas desenhadas (`icones/sistema/`, pelo
+# nome que o tema de ícones veste) e os desenhos da biblioteca. Um SVG é
+# documento, e pack é dado: script, `javascript:` e atributo de evento não entram.
+TETO_SVG = 2 << 20
+PASTAS_QUE_SE_LEVAM = ("sistema", "biblioteca")
+RE_SVG_ATIVO = re.compile(rb"<script|javascript:|\son[a-z]+\s*=", re.I)
+
+
+def _e_svg(dados):
+    return b"<svg" in dados[:4096].lower() and not RE_SVG_ATIVO.search(dados)
+
+
+def _pastas_desenhadas(dir_pack):
+    """[(nome, arquivo)] das pastas que o pack DESENHOU: o `icones.pastas` dele,
+    com mapa, e que não é o molde de tipos de arquivo (esse se pinta na hora)."""
+    decl, mapa = campo(dir_pack, "icones.pastas.desenhos"), campo(dir_pack, "icones.pastas.mapa")
+    molde = campo(dir_pack, "icones.mimetypes.desenhos")
+    if not (isinstance(decl, str) and decl and isinstance(mapa, str) and mapa):
+        return []
+    try:
+        pasta, arq_mapa = _dentro(dir_pack, decl, "icones.pastas.desenhos"), _dentro(dir_pack, mapa, "icones.pastas.mapa")
+        if isinstance(molde, str) and molde and _dentro(dir_pack, molde, "molde") == pasta:
+            return []
+        linhas = list(ler_mapa(arq_mapa))
+    except (Recusa, OSError, UnicodeDecodeError):
+        return []
+    saida = []
+    for _num, nome, glifo in linhas:
+        if not nome_de_destino(nome):
+            continue
+        for cand in (glifo, nome):
+            cheio = os.path.join(pasta, cand + ".svg")
+            if nome_de_destino(cand) and os.path.isfile(cheio) and not os.path.islink(cheio):
+                saida.append((nome, cheio))
+                break
+    return saida
+
+
+def icones_do_pack(dir_pack, pasta):
+    """Os nomes dos SVG soltos em `icones/<pasta>/` do próprio pack."""
+    return sorted(os.path.basename(a) for a in _arquivos_da_pasta(os.path.join(dir_pack, "icones", pasta), ".svg"))
+
+
+def acervo_para_levar(ident, pasta):
+    """[(pack, nome, arquivo, levado)] do que a aba `pasta` (sistema|biblioteca)
+    do Criar tema oferece: o que os OUTROS packs trazem, o pack no ar primeiro
+    pela ordem das raízes; `levado` diz se o pack `ident` já tem um de mesmo nome."""
+    _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
+    # Sem `ident` (o tema ainda não foi guardado), a oferta é a mesma, sem marca.
+    meus = set(icones_do_pack(pack_da_pessoa(ident), pasta)) if ident else set()
+    saida, vistos = [], {ident}
+    for base in raizes():
+        try:
+            ids = sorted(os.listdir(base))
+        except OSError:
+            continue
+        for pid in ids:
+            dir_pack = os.path.join(base, pid)
+            if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+                continue
+            vistos.add(pid)
+            if pasta == "sistema":
+                itens = _pastas_desenhadas(dir_pack)
+            else:
+                try:
+                    itens = [(os.path.basename(a)[:-4], a) for a in
+                             _arquivos_da_pasta(_dentro(dir_pack, PASTA_BIBLIOTECA, "biblioteca"), ".svg")]
+                except Recusa:
+                    itens = []
+            saida += [(pid, nome, arq, nome + ".svg" in meus) for nome, arq in itens]
+    return saida
+
+
+def levar_icone(ident, pasta, caminho, nome=""):
+    """Copia o SVG `caminho` para `icones/<pasta>/<nome>.svg` do pack."""
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
+    nome = (nome or os.path.basename(caminho)).removesuffix(".svg")
+    _exigir(RE_NOME_LEVADO.match(nome + ".svg") and nome_de_destino(nome),
+            f"{nome!r}: nome de ícone que não serve")
+    dados = _ler_de_quem_usa(caminho, (".svg",), TETO_SVG, _e_svg, "um SVG sem script")
+    _gravar_no_pack(dir_pack, f"icones/{pasta}/{nome}.svg", dados)
+    return nome + ".svg"
+
+
+def tirar_icone(ident, pasta, nome):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
+    nome = nome if nome.endswith(".svg") else nome + ".svg"
+    _exigir(RE_NOME_LEVADO.match(nome) and nome_de_destino(nome), f"{nome!r}: nome que não serve")
+    alvo = os.path.join(dir_pack, "icones", pasta, nome)
+    _exigir(os.path.isfile(alvo) and not os.path.islink(alvo), f"{nome}: não está no pack")
+    os.remove(alvo)
+
+
+def cmd_levar(ident, tipo, args):
+    if tipo in PASTAS_QUE_SE_LEVAM and len(args) in (1, 2):
+        print(f"  ok   {levar_icone(ident, tipo, *args)}")
+        return OK
+    if tipo == "foto" and args:
+        for caminho in args:
+            print(f"  ok   {levar_foto(ident, caminho)}")
+        return OK
+    if tipo == "sons" and len(args) == 1:
+        print(f"  ok   {levar_sons_de(ident, args[0])} som(ns) de {args[0]}")
+        return OK
+    if tipo == "som" and len(args) == 2:
+        print(f"  ok   {levar_som(ident, args[0], args[1])}")
+        return OK
+    print("  erro uso: levar <id> foto <arquivo>... | sons <pack> | som <arquivo.oga> <evento>",
+          file=sys.stderr)
+    return ERRO_USO
+
+
+def cmd_tirar(ident, tipo, args):
+    if tipo in PASTAS_QUE_SE_LEVAM and args:
+        for nome in args:
+            tirar_icone(ident, tipo, nome)
+            print(f"  ok   {nome} saiu")
+        return OK
+    if tipo == "foto" and args:
+        for nome in args:
+            tirar_foto(ident, nome)
+            print(f"  ok   {nome} saiu")
+        return OK
+    print("  erro uso: tirar <id> foto <nome>...", file=sys.stderr)
+    return ERRO_USO
+
+
 # As fontes são as três pastas e os mapas de `icones/`, e o `logo.svg` (o ícone
 # do lançador), de cada pack de onde o tema deriva: o no ar, os que ele herda e
 # o pack-base.
@@ -6189,6 +6565,14 @@ def main(argv):
             return cmd_construir(argv[2], seco=(len(argv) == 4 and argv[3] in ("--seco", "--dry-run")))
         if verbo == "novo" and len(argv) >= 3:
             return cmd_novo(argv[2], argv[3:])
+        if verbo == "acervo-para-levar" and len(argv) == 4:
+            for pid, nome, arq, levado in acervo_para_levar(argv[2], argv[3]):
+                print(f"{pid}\t{nome}\t{arq}\t{'sim' if levado else 'nao'}")
+            return OK
+        if verbo == "levar" and len(argv) >= 4:
+            return cmd_levar(argv[2], argv[3], argv[4:])
+        if verbo == "tirar" and len(argv) >= 4:
+            return cmd_tirar(argv[2], argv[3], argv[4:])
         if verbo == "exportar" and len(argv) >= 3:
             return cmd_exportar(argv[2], argv[3:])
         if verbo == "importar" and len(argv) >= 3:

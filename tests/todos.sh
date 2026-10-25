@@ -89,6 +89,9 @@ PORTATIL=(
   apps-em-todo-pack.sh   # cada app x pack numa casa de brinquedo, dconf e flatpak falsos e falsos que recusam; bash e python3
   ponte-reparo.sh        # a etapa da ponte, o reparo e o doctor em cópias com os destinos de root numa pasta de brinquedo; sudo, visudo e systemctl falsos; bash e node
   ponte-so-reserva.sh    # a ponte, a etapa do install.sh e o doctor em cópias com os destinos de root numa pasta de brinquedo; o clone adulterado não chega a root; sudo, visudo e systemctl falsos; só bash
+  criar-tema-leva.sh     # o que o Criar tema leva para o pack da pessoa, e o pack vestido, com curl, sudo e pkill falsos, HOME de brinquedo; bash e python3
+  mesmo-horario.sh       # o «Mesmo horário» de Dia e noite liga, leva as áreas com a noite e desliga, com o painel num HOME de brinquedo, sudo e pkill falsos; bash e python3
+  desbanir.sh            # o desbanir em banidos/, só na lista e em lugar nenhum, com sudo e pkill falsos, HOME de brinquedo; só bash
 )
 
 # MÁQUINA: a resposta depende do que está INSTALADO nela. Fora do CI não por

@@ -2846,6 +2846,110 @@ def validar_valor(item, valor):
 PONTAS_DA_NOITE = ("NOITE_INICIO", "NOITE_FIM")
 
 
+# «MESMO HORÁRIO» (Ajustes › Dia e noite): as áreas que têm horário próprio
+# gravam o da noite (NOITE_INICIO/FIM). O que cada área tinha fica guardado no
+# estado, e a existência desse arquivo é o interruptor ligado; desligado, cada
+# área volta ao seu. O claro ou escuro é de hora cheia, e grava só a hora.
+# Área sem chave no esquema não entra: sem horário próprio, não aparece.
+HORARIO_DAS_AREAS = (
+    ("Claro ou escuro", "MODO_AUTO_CLARO_ATE", "MODO_AUTO_CLARO_DE", "hora"),
+    ("Papel de parede", "WALLPAPER_NOITE_INICIO", "WALLPAPER_NOITE_FIM", "hhmm"),
+    ("Tela quente", "LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "hhmm"),
+)
+NOITE_DE_FABRICA = ("18:00", "07:00")
+
+
+def _arquivo_do_mesmo_horario():
+    return os.path.join(ESTADO, "horario-por-area.tsv")
+
+
+def horario_das_areas():
+    """As áreas de `HORARIO_DAS_AREAS` cujas duas chaves estão no esquema."""
+    no_esquema = {i["chave"] for i in ler_esquema()}
+    return [a for a in HORARIO_DAS_AREAS if a[1] in no_esquema and a[2] in no_esquema]
+
+
+def mesmo_horario_ligado():
+    return os.path.isfile(_arquivo_do_mesmo_horario())
+
+
+def _pares_da_noite(inicio, fim):
+    """Os pares (chave, valor) que põem cada área no horário `inicio`–`fim`."""
+    pares = []
+    for _area, c_ini, c_fim, forma in horario_das_areas():
+        for chave, hora in ((c_ini, inicio), (c_fim, fim)):
+            pares.append((chave, str(int(hora.split(":")[0])) if forma == "hora" else hora))
+    return pares
+
+
+def com_o_mesmo_horario(pares, brutos=None):
+    """`pares` mais as áreas, quando o interruptor está ligado e a noite muda."""
+    escolhas = dict(pares)
+    if not mesmo_horario_ligado() or not any(c in escolhas for c in PONTAS_DA_NOITE):
+        return list(pares)
+    antes = dict(valores_brutos() if brutos is None else brutos)
+    final = dict(antes, **escolhas)
+    inicio, fim = (str(final.get(c) or "").strip() for c in PONTAS_DA_NOITE)
+    if not (re.match(r"^\d{1,2}:\d{2}$", inicio) and re.match(r"^\d{1,2}:\d{2}$", fim)):
+        return list(pares)
+    # Só o que muda: cada gravação custa uma passada do `meow_conf_definir`.
+    return list(pares) + [p for p in _pares_da_noite(inicio, fim)
+                          if p[0] not in escolhas and str(antes.get(p[0]) or "") != p[1]]
+
+
+def _adotar_leitura(chaves):
+    leitura = [c for c in chaves if c in _LEITURA_NO_APPLET]
+    if leitura:
+        try:
+            subprocess.run(_meow("leitura", "adotar", *leitura), capture_output=True, timeout=20,
+                           env=_ambiente_do_painel())
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+
+def ligar_mesmo_horario(ligar):
+    """Liga ou desliga o «Mesmo horário»; devolve (gravadas, erro)."""
+    arq = _arquivo_do_mesmo_horario()
+    brutos = valores_brutos()
+    if ligar:
+        inicio = str(brutos.get("NOITE_INICIO") or "").strip()
+        fim = str(brutos.get("NOITE_FIM") or "").strip()
+        pares = []
+        if not (inicio and fim):
+            inicio, fim = NOITE_DE_FABRICA
+            pares = list(zip(PONTAS_DA_NOITE, NOITE_DE_FABRICA))
+        pares += [p for p in _pares_da_noite(inicio, fim) if str(brutos.get(p[0]) or "") != p[1]]
+        if not os.path.isfile(arq):
+            os.makedirs(ESTADO, exist_ok=True)
+            guardado = "".join("%s\t%s\n" % (c, str(brutos.get(c) or ""))
+                               for _a, ci, cf, _f in horario_das_areas() for c in (ci, cf))
+            with open(arq + ".parcial", "w", encoding="utf-8") as fh:
+                fh.write(guardado)
+            os.replace(arq + ".parcial", arq)
+    else:
+        if not os.path.isfile(arq):
+            return [], None
+        validas = {c for _a, ci, cf, _f in horario_das_areas() for c in (ci, cf)}
+        pares = []
+        with open(arq, encoding="utf-8") as fh:
+            for linha in fh:
+                chave, _sep, valor = linha.rstrip("\n").partition("\t")
+                if (chave in validas and not RE_CONTROLE_DE_TEXTO.search(valor)
+                        and str(brutos.get(chave) or "") != valor):
+                    pares.append((chave, valor))
+    feitos = definir_varias(pares) if pares else []
+    falhas = [c for c, rc, _s in feitos if rc not in (0, 1)]
+    if falhas:
+        return [], "não consegui gravar: " + ", ".join(falhas)
+    if not ligar:
+        os.remove(arq)
+    _adotar_leitura([c for c, rc, _s in feitos if rc == 1])
+    return [c for c, rc, _s in feitos if rc == 1], None
+
+
+RE_CONTROLE_DE_TEXTO = re.compile(r"[\x00-\x1f\x7f]")
+
+
 def pontas_da_noite_soltas(escolhas, brutos=None):
     """A queixa (uma por ponta escrita) quando `escolhas` deixa a noite com uma
     ponta só; lista vazia quando ela fica com as duas ou com nenhuma."""
@@ -6737,6 +6841,26 @@ class Manipulador(BaseHTTPRequestHandler):
             corpo, tipo_mime = achado
             return self._responder(corpo, tipo=tipo_mime)
 
+        # O som de um evento do tema de sons PRÓPRIO de um pack (a prévia da
+        # lista «Sons de aviso»): o pack tem de estar na varredura, e o arquivo
+        # sai da lista que o pack.py monta — nada de caminho vindo do pedido.
+        if caminho == "/som":
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
+            mod = modulo_pack()
+            ident = consulta.get("pack", [""])[0]
+            evento = consulta.get("evento", [""])[0]
+            dir_pack = mod.achar(ident) if mod and ident in _packs_no_disco() else None
+            achado = next((a for _c, e, a in mod.sons_do_pack(dir_pack) if e == evento),
+                          None) if dir_pack else None
+            if not achado:
+                return self._recusar(404, "não achei")
+            try:
+                with open(achado, "rb") as fh:
+                    return self._responder(fh.read(), tipo="audio/ogg")
+            except OSError:
+                return self._recusar(404, "não achei")
+
         if caminho == "/previa" and consulta.get("tipo", [""])[0] == "arquivo":
             # O TOKEN FALTAVA AQUI, e só aqui.
             if not self._token_confere(consulta):
@@ -9630,7 +9754,8 @@ class Manipulador(BaseHTTPRequestHandler):
         #
         # 64 MB PARA O `.meowpack`
         teto = {"/api/acervo": 96 << 20,
-                "/api/pack-importar": 64 << 20}.get(alvo.path, 1 << 20)
+                "/api/pack-importar": 64 << 20,
+                "/api/criar": 8 << 20}.get(alvo.path, 1 << 20)
         if tamanho > teto:
             return self._recusar(413, "corpo grande demais")
         try:
@@ -9676,6 +9801,9 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/jogos":
             return self._api_jogos(consulta)
+
+        if caminho == "/api/criar":
+            return self._api_criar_ler(consulta)
 
         if caminho == "/api/previas":
             dados = previas(consulta.get("tipo", [""])[0],
@@ -9768,6 +9896,105 @@ class Manipulador(BaseHTTPRequestHandler):
             with open(saida, "rb") as fh:
                 corpo = fh.read()
         return self._baixar(corpo, ident + ".meowpack", "application/zstd")
+
+    # O QUE O «CRIAR TEMA» LEVA PARA O PACK QUE ELE GRAVOU. Quem copia e
+    # valida é o pack.py (`levar_foto`…); daqui só sai o caminho de origem, e
+    # ele é resolvido aqui, pelo nome, dentro do acervo: o pedido nunca traz
+    # caminho.
+    def _api_criar_ler(self, consulta):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "scripts/pack.py não carregou"}, 500)
+        ident = consulta.get("id", [""])[0]
+        # As abas Sistema e Biblioteca de Criar › Ícones: o que os packs trazem,
+        # marcado quando o pack do rascunho já leva. Sem pack, só a oferta.
+        icones = {}
+        for pasta in mod.PASTAS_QUE_SE_LEVAM:
+            icones[pasta] = []
+            try:
+                oferta = mod.acervo_para_levar(ident or None, pasta)
+            except mod.Recusa:
+                oferta = []
+            for de, nome, arq, levado in oferta:
+                _ICONES_DECLARADOS.add(os.path.normpath(arq))
+                icones[pasta].append({"de": de, "nome": nome, "levado": levado,
+                                      "url": "/previa?tipo=arquivo&id=" + quote(arq, safe="")})
+        if not ident:
+            return self._json(dict(icones, id="", fotos=[], sons=[]))
+        try:
+            dir_pack = mod.pack_da_pessoa(ident)
+        except mod.Recusa as e:
+            return self._json({"erro": texto_na_tela(str(e))}, 404)
+        no_pack = set(mod.fotos_do_pack(dir_pack))
+        try:
+            nomes = sorted(os.listdir(os.path.join(_wallpaper_base(), "ativos")))
+        except OSError:
+            nomes = []
+        # O volume é o sino (o `som` do pack, `SOM_*`): o som de volume do tema
+        # nunca toca (empilha na tecla segurada), então ele não aparece.
+        sons = [{"evento": e, "contexto": c} for c, e, _a in mod.sons_do_pack(dir_pack)
+                if e != "audio-volume-change"]
+        return self._json(dict(icones, id=ident, sons=sons,
+                               fotos=[n for n in nomes if mod.nome_da_foto(ident, n) in no_pack]))
+
+    def _api_criar(self, corpo):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "scripts/pack.py não carregou"}, 500)
+        ident = str(corpo.get("id", ""))
+        tipo = str(corpo.get("tipo", ""))
+        nome = os.path.basename(str(corpo.get("nome", "")))
+        levar = corpo.get("levar") is True
+        try:
+            if tipo == "foto":
+                if levar:
+                    pasta = os.path.realpath(os.path.join(_wallpaper_base(), "ativos"))
+                    origem = os.path.join(pasta, nome)
+                    if not nome or os.path.dirname(os.path.realpath(origem)) != pasta:
+                        return self._json({"erro": "essa foto não está no carrossel"}, 404)
+                    feito = mod.levar_foto(ident, origem)
+                else:
+                    feito = mod.nome_da_foto(ident, nome)
+                    mod.tirar_foto(ident, feito)
+            elif tipo in mod.PASTAS_QUE_SE_LEVAM:
+                # O ícone sai da oferta (pack e nome); o pedido nunca traz caminho.
+                if levar:
+                    de = str(corpo.get("de", ""))
+                    arq = next((a for p_, n, a, _l in mod.acervo_para_levar(ident, tipo)
+                                if p_ == de and n == nome), None)
+                    if not arq:
+                        return self._json({"erro": "não achei esse ícone no pack «%s»" % de}, 404)
+                    feito = mod.levar_icone(ident, tipo, arq, nome)
+                else:
+                    mod.tirar_icone(ident, tipo, nome)
+                    feito = nome
+            elif tipo == "som":
+                # O som de um evento, trocado pelo arquivo que veio da página.
+                try:
+                    dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+                except Exception:
+                    return self._json({"erro": "conteúdo não é base64"}, 400)
+                # Do nome que veio da página só a extensão serve (o pack.py a
+                # confere): `..` ou `.` não viram caminho do lado de cá.
+                ext = os.path.splitext(os.path.basename(str(corpo.get("arquivo", ""))))[1]
+                with tempfile.TemporaryDirectory(prefix="meow-som-") as pasta:
+                    caminho = os.path.join(pasta, "som" + re.sub(r"[^A-Za-z0-9.]", "", ext)[:8])
+                    with open(caminho, "wb") as fh:
+                        fh.write(dados)
+                    feito = mod.levar_som(ident, caminho, nome)
+            elif tipo == "sons":
+                # O tema de sons de partida: o do pack de onde o rascunho começou.
+                de = str(corpo.get("de", ""))
+                if de not in _packs_no_disco():
+                    return self._json({"erro": "não conheço o pack «%s»" % de}, 404)
+                feito = mod.levar_sons_de(ident, de)
+            else:
+                return self._json({"erro": "não sei levar isso"}, 400)
+        except mod.Recusa as e:
+            return self._json({"erro": texto_na_tela(str(e))}, 400)
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar no pack: %s" % e}, 500)
+        return self._json({"ok": True, "tipo": tipo, "nome": feito, "levado": levar})
 
     def _api_pack_importar(self, corpo):
         mod = modulo_pack()
@@ -10211,6 +10438,10 @@ class Manipulador(BaseHTTPRequestHandler):
                 for k, v in ACOES.items()
             ],
             "ponte": _ponte_viva(),
+            # O «Mesmo horário» de Ajustes › Dia e noite, e as áreas que ele leva.
+            "mesmo_horario": mesmo_horario_ligado(),
+            "horario_das_areas": [{"area": a, "chaves": [ci, cf]}
+                                  for a, ci, cf, _f in horario_das_areas()],
             # O pack no ar, com as palavras dele: os flavors e os nomes que a
             # barra «Fundo» e os seletores da aba Ícones usam. Ver
             # `vocabulario_do_pack`.
@@ -10248,7 +10479,11 @@ class Manipulador(BaseHTTPRequestHandler):
             if soltas:
                 return self._json({"erro": soltas[0]["erro"], "chave": chave,
                                    "valor": valor, "recusadas": soltas}, 409)
-            rc, saida = definir(chave, valor)
+            pares = com_o_mesmo_horario([(chave, valor)])
+            feitos = definir_varias(pares)
+            _chave, rc, saida = feitos[0]
+            if len(pares) > 1:
+                _adotar_leitura([c for c, r, _s in feitos[1:] if r == 1])
             # A frase do `meow_conf_definir` vira torrada: a casa sai como `~`.
             return self._json({"rc": rc, "saida": texto_na_tela(saida),
                                "chave": chave, "valor": valor})
@@ -10277,6 +10512,8 @@ class Manipulador(BaseHTTPRequestHandler):
             soltas = pontas_da_noite_soltas(dict(pares))
             if soltas:
                 return self._json({"recusadas": soltas}, 409)
+            # Com o «Mesmo horário» ligado, a noite leva as áreas junto.
+            pares = com_o_mesmo_horario(pares)
 
             # Mandar a página chamar `rodar: instalar, seco` responderia sobre o
             # meow.conf do DISCO, que é justamente o que ainda não tem as 17
@@ -10379,6 +10616,16 @@ class Manipulador(BaseHTTPRequestHandler):
         # O `.meowpack` — ver `_api_pack_exportar`. Fora do "trazer de volta"
         # logo abaixo, e é de propósito: aquele só analisa, e este, com
         # `confirmado: true`, instala.
+        if caminho == "/api/criar":
+            return self._api_criar(corpo)
+        if caminho == "/api/mesmo-horario":
+            try:
+                gravadas, erro = ligar_mesmo_horario(corpo.get("ligar") is True)
+            except OSError as e:
+                return self._json({"erro": "não consegui guardar o horário de cada área: %s" % e}, 500)
+            if erro:
+                return self._json({"erro": erro}, 500)
+            return self._json({"ok": True, "ligado": mesmo_horario_ligado(), "gravadas": gravadas})
         if caminho == "/api/pack-importar":
             return self._api_pack_importar(corpo)
 
