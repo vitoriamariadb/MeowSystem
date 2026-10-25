@@ -232,6 +232,45 @@ confere "e o conserto não chama a ponte (sai 3)" '[ "$rc" = 3 ] && [ ! -s "$PON
 mv "$T/pecas.guardadas" "$PECAS"
 clone_limpo
 
+printf '\n--- 3. a varredura: todo verbo que escreve em root, e de onde vem o que ele escreve ---\n'
+# A ponte que se varre (PONTE_VARRER troca, para conferir a de antes da P108).
+VARRER="${PONTE_VARRER:-$RAIZ/scripts/ponte_root.sh}"
+# O código sem comentário, com o verbo de cada linha na frente: `verbo<TAB>linha`.
+por_verbo() {
+  sed 's/#.*$//' "$VARRER" | awk '
+    /^[a-z][a-z-]*\)[ \t]*$/ { v = $0; sub(/\).*/, "", v); next }
+    /^[ \t]*;;/ { v = ""; next }
+    v != "" { print v "\t" $0 }'
+}
+# Os verbos que escrevem em destino de root, e a origem do que escrevem. Um verbo
+# novo que escreve tem de entrar aqui com a origem dele, e a origem não pode ser
+# o clone: ou é a reserva do install, ou é dado que não vira código de root.
+declare -A ORIGEM=(
+  [desktop]="stdin: o .desktop que já existe, editado; dado de aplicativo, que roda como quem o abre"
+  [greeter-aplicar]="stdin: um tar, extraído para o lar do cosmic-greeter, com o dono dele"
+  [apt-hook-instalar]="a reserva: o wrapper preenchido e o hook, com o sha256"
+  [completion-instalar]="a reserva: a completion, com o sha256"
+  [flatpak-global-limpar]="o próprio override global, menos as linhas de tema perdido"
+  [libreoffice-remover]="a lista do dpkg, gravada em /var/lib/meowsystem"
+)
+escrevem="$(por_verbo | awk -F'\t' '$2 ~ /(^|[ \t])(install -m|cp -a|mv -f|tee|dd) / { print $1 }' | sort -u | tr '\n' ' ')"
+esperados="$(printf '%s\n' "${!ORIGEM[@]}" | sort | tr '\n' ' ')"
+confere "os verbos que escrevem em root são os da tabela da varredura" \
+  '[ "$escrevem" = "$esperados" ]' "escrevem: $escrevem
+tabela:   $esperados"
+for v in "${!ORIGEM[@]}"; do printf '        %-22s %s\n' "$v" "${ORIGEM[$v]}"; done | sort
+leem_raiz="$(por_verbo | awk -F'\t' '$2 ~ /s\/\^raiz=\/\/p|raiz\) raiz=/ { print $1 }' | sort -u | tr '\n' ' ')"
+confere "a raiz do clone, só o estado a lê do perfil (e só a imprime)" '[ "$leem_raiz" = "estado " ]' "lê: $leem_raiz"
+for v in apt-hook-instalar completion-instalar; do
+  bloco="$(por_verbo | awk -F'\t' -v v="$v" '$1 == v { print $2 }')"
+  confere "$v copia da reserva, e não do perfil" \
+    'grep -q "da_reserva" <<< "$bloco" && ! grep -q "PERFIL" <<< "$bloco"'
+done
+# Toda cópia para root parte de um temporário do próprio verbo, preenchido pelo
+# stdin, pela reserva ou pelo arquivo de root que ele edita: nunca de um caminho.
+copias="$(por_verbo | awk -F'\t' '$2 ~ /(^|[ \t])(install -m|cp -a) / && $2 !~ /"\$tmp[_a-z]*(\/\.)?" "/ { print $1 ": " $2 }')"
+confere "toda cópia para root parte de um temporário do verbo" '[ -z "$copias" ]' "$copias"
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi
 printf 'tudo ok\n'
