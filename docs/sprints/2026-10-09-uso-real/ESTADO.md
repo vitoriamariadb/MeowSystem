@@ -15,6 +15,7 @@ volta. O `dev` só recebe no fim, de uma vez, com a suíte verde. Dois blocos ao
 | A | P102 PC virgem (`.wt-meow/p102`) | P100 compositor | — |
 | B | P103 pontas soltas (`.wt-meow/p103`) | P104 ponte sem senha | P105 papéis/sons no pack, mockup |
 | C (ordem de quem usa) | P106 tema CSS do ZapZap (`.wt-meow/p106`) | aplicar na máquina real e tirar print | — |
+| D (ordem de quem usa) | P107 todo app em todo pack (`.wt-meow/p107`) | — | — |
 
 - P101 instalada na máquina real em 24/10 (2 passagens, 68 etapas, `meow doctor` rc=0). O `meow-whatsapp` é
   idêntico ao `whatsapp-linux-app.svg` do pack, e a `dracula-copia-com.rtosta.zapzap` foi desativada (guardada
