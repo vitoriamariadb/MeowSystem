@@ -29,6 +29,21 @@ ALVO_NOMES="$ACERVO/scripts/nomes_apps.sh"
 ESTADO="$LAR/.local/state/meowsystem"
 LOG="$ESTADO/apt-lancador.log"
 
+# QUEM RODA O CLONE É ELA, NUNCA ROOT — P108 (conferência), 25/10/2026.
+#   O apt chama isto como root, e os dois alvos moram no clone, que ela edita sem
+#   senha: rodá-los como root punha código dela em root no apt seguinte (medido
+#   no container: uma linha no `ocultar_apps.sh` criou um arquivo em `/root`). O
+#   log e o `chown` do estado moram no lar dela, e um link no lugar do log levava
+#   a escrita e o `chown` de root a qualquer arquivo. Então root, aqui, só se
+#   troca por ela, e tudo o mais corre com o uid dela. O que precisa de root (os
+#   `.desktop` de `/usr/share/applications`) passa pela ponte, como no painel. Se
+#   a troca falha, nada do clone roda.
+if [ "$(id -u)" = 0 ]; then
+  [ -n "$USUARIA" ] && [ "$USUARIA" != root ] || exit 0
+  cd / && runuser -u "$USUARIA" -- "$0"
+  exit 0
+fi
+
 registrar() {
   [ -d "$ESTADO" ] || return 0
   printf '%s  %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG" 2>/dev/null

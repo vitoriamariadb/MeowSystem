@@ -1588,9 +1588,8 @@ MEOW_PONTE="${MEOW_PONTE:-/usr/local/lib/meowsystem/ponte_root.sh}"
 #   O `perfil` é 0644 de propósito — ele não guarda segredo nenhum, e ser
 #   legível é o que permite esta conferência sem elevar nada.
 #
-#   O hook de apt continua funcionando: o `meow-lancador-apt.sh` roda como root
-#   e a primeira coisa que ele faz é `HOME="$LAR"`, que é exatamente o `lar` do
-#   perfil.
+#   O hook de apt continua funcionando: o `meow-lancador-apt.sh` se troca por
+#   ela (P108) e faz `HOME="$LAR"`, que é exatamente o `lar` do perfil.
 meow_ponte_viva() {
   [ -x "$MEOW_PONTE" ] || return 1
   local lar

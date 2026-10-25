@@ -271,6 +271,56 @@ done
 copias="$(por_verbo | awk -F'\t' '$2 ~ /(^|[ \t])(install -m|cp -a) / && $2 !~ /"\$tmp[_a-z]*(\/\.)?" "/ { print $1 ": " $2 }')"
 confere "toda cópia para root parte de um temporário do verbo" '[ -z "$copias" ]' "$copias"
 
+printf '\n--- 4. o wrapper do apt roda o clone como quem usa, nunca como root ---\n'
+# O wrapper vem da reserva, mas os alvos dele (`ocultar_apps.sh` e
+# `nomes_apps.sh`) moram no clone, e o log e o estado, no lar. O apt o chama como
+# root. Aqui o `id` falso diz 0 até o `runuser` falso trocar de uid; o alvo do
+# clone grava o uid que vê. Nada roda como root de verdade.
+FALSO_W="$T/falso-wrapper"; CLONE_W="$T/clone-w"; CASA_W="$T/casa-w"; UIDS="$T/uids"; RUNUSER_LOG="$T/runuser.log"
+mkdir -p "$FALSO_W" "$CLONE_W/scripts" "$CASA_W/.local/state/meowsystem"
+cat > "$FALSO_W/id" <<FIM
+#!/bin/sh
+[ "\${1:-}" = -u ] && [ -z "\${TROCOU:-}" ] && { echo 0; exit 0; }
+exec /usr/bin/id "\$@"
+FIM
+cat > "$FALSO_W/runuser" <<FIM
+#!/bin/sh
+printf '%s\n' "\$*" >> "$RUNUSER_LOG"
+[ -e "$T/runuser-falha" ] && exit 1
+[ "\$1" = -u ] && [ "\$3" = -- ] || exit 1
+shift 3
+TROCOU=1 exec "\$@"
+FIM
+for alvo in ocultar_apps.sh nomes_apps.sh; do
+  printf '#!/bin/sh\nprintf "%%s %%s\\n" %s "$(id -u)" >> %s\nexit 0\n' "$alvo" "$UIDS" > "$CLONE_W/scripts/$alvo"
+done
+chmod 755 "$FALSO_W"/* "$CLONE_W/scripts/"*
+WRAP_W="$T/wrapper-w.sh"
+sed -e "s|@ACERVO@|$CLONE_W|g" -e "s|@USUARIA@|$(id -un)|g" -e "s|@LAR@|$CASA_W|g" \
+  "$RAIZ/scripts/meow-lancador-apt.sh" > "$WRAP_W"; chmod 755 "$WRAP_W"
+wrapper_como_root() { env -i PATH="$FALSO_W:/usr/bin:/bin" "$WRAP_W" 2>&1; }
+
+: > "$UIDS"; : > "$RUNUSER_LOG"
+saida="$(wrapper_como_root)"; rc=$?
+confere "chamado como root, o wrapper se troca por quem usa com o runuser" \
+  '[ "$rc" = 0 ] && grep -qx -- "-u $(id -un) -- $WRAP_W" "$RUNUSER_LOG"' "$saida
+$(cat "$RUNUSER_LOG")"
+confere "e os dois alvos do clone rodam com o uid de quem usa, nunca com 0" \
+  '[ "$(cat "$UIDS")" = "ocultar_apps.sh $(id -u)
+nomes_apps.sh $(id -u)" ]' "$(cat "$UIDS")"
+: > "$UIDS"; rm -f "$CASA_W/.local/state/meowsystem/apt-lancador.log"; touch "$T/runuser-falha"
+saida="$(wrapper_como_root)"; rc=$?
+confere "se a troca falha, nada do clone roda e nada se escreve no lar (rc=0, o apt segue)" \
+  '[ "$rc" = 0 ] && [ ! -s "$UIDS" ] && [ ! -e "$CASA_W/.local/state/meowsystem/apt-lancador.log" ]' "$saida
+$(cat "$UIDS")"
+rm -f "$T/runuser-falha"
+sed -e "s|@ACERVO@|$CLONE_W|g" -e "s|@USUARIA@|root|g" -e "s|@LAR@|$CASA_W|g" \
+  "$RAIZ/scripts/meow-lancador-apt.sh" > "$WRAP_W"
+: > "$UIDS"; : > "$RUNUSER_LOG"
+saida="$(wrapper_como_root)"; rc=$?
+confere "preenchido com root, o wrapper não roda nada do clone" \
+  '[ "$rc" = 0 ] && [ ! -s "$UIDS" ] && [ ! -s "$RUNUSER_LOG" ]' "$saida"
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi
 printf 'tudo ok\n'
