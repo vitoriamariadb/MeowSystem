@@ -2722,23 +2722,27 @@ queda="$(sed -n '/^def logo_do_painel(/,/^def /p' "$RAIZ/app/servidor.py" \
 #   contar por nome os daria como ausentes, e contar arquivos diria "295"
 #   para uma pasta com um desenho trocado.
 #
-#   O Dracula_OS-Theme SÓ EXISTE NA MÁQUINA DE QUEM O ESCREVEU. Nada do
-#   MeowSystem o lê em execução — ele é a origem da cópia, e só. Onde ele não
-#   está, a conferência se pula dizendo por quê, e o resto desta seção (que só
-#   olha o pack) roda igual.
+#   A origem não mora nesta máquina: ela é dado no pack, o sha256 de cada SVG
+#   de lá com o commit de procedência (`icones/biblioteca-origem.sha256`), e a
+#   conta é contra essa lista. Sem a lista, vermelho: pulado não é verde.
 BIB="$RAIZ/packs/dracula/icones/biblioteca"
-# Sob o `tests/todos.sh` o HOME é de brinquedo (P75); a origem é só LIDA da
-# casa de verdade, que ele deixa em `SUITE_CASA_REAL`.
-ORIGEM_BIB="${SUITE_CASA_REAL:-$HOME}/Desenvolvimento/Dracula_OS-Theme/src/icons/new-sessao-atual"
-if [ -d "$ORIGEM_BIB" ]; then
-  conta="$(python3 - "$ORIGEM_BIB" "$BIB" <<'PY'
-import hashlib, os, sys
+LISTA_BIB="$RAIZ/packs/dracula/icones/biblioteca-origem.sha256"
+conta="$(python3 - "$LISTA_BIB" "$BIB" <<'PY'
+import hashlib, os, re, sys
 def shas(d):
     if not os.path.isdir(d):
         return {}
     return {hashlib.sha256(open(os.path.join(d, a), "rb").read()).hexdigest(): a
             for a in sorted(os.listdir(d)) if a.endswith(".svg")}
-origem = shas(sys.argv[1])
+origem, commit = {}, ""
+if os.path.isfile(sys.argv[1]):
+    for l in open(sys.argv[1], encoding="utf-8"):
+        m = re.match(r"^# commit: ([0-9a-f]{40})$", l.rstrip("\n"))
+        if m:
+            commit = m.group(1)
+        m = re.match(r"^([0-9a-f]{64})  (\S+\.svg)$", l.rstrip("\n"))
+        if m:
+            origem[m.group(1)] = m.group(2)
 # P96 (23/10/2026): o desenho ligado a um app mora em apps/, e quem usa escolheu uma versão por
 # ícone — o que saiu por escolha dela está na tabela de antes, com o destino vazio.
 pack = {**shas(sys.argv[2]), **shas(os.path.join(os.path.dirname(sys.argv[2]), "apps"))}
@@ -2752,19 +2756,16 @@ if os.path.exists(tabela):
                 saiu.add(os.path.basename(k))
 faltam = sorted(a for s, a in origem.items() if s not in pack and a not in saiu)
 origem = {s: a for s, a in origem.items() if a not in saiu}
-print(f"{len(origem) - len(faltam)} {len(origem)}")
+print(f"{len(origem) - len(faltam)} {len(origem)} {commit or '-'}")
 print("\n".join(faltam))
 PY
 )"
-  achados="$(printf '%s\n' "$conta" | sed -n 1p)"
-  [ -n "$achados" ] && [ "${achados% *}" = "${achados#* }" ] && [ "${achados#* }" != "0" ] \
-    && ok "por sha256, a biblioteca do Dracula_OS-Theme está no pack (apps/ e biblioteca/, menos o que quem usa tirou): ${achados% *} de ${achados#* }" \
-    || falha "a biblioteca do pack não tem todos os desenhos da origem (${achados% *} de ${achados#* })" \
-             "$(printf '%s\n' "$conta" | tail -n +2 | head -20)"
-else
-  printf 'pulado: a biblioteca não foi contada contra a origem — %s não existe nesta máquina, e o pack não depende dele\n' \
-    "$ORIGEM_BIB"
-fi
+achados="$(printf '%s\n' "$conta" | sed -n 1p)"
+read -r bib_tem bib_total bib_commit <<< "$achados"
+[ -n "${bib_total:-}" ] && [ "$bib_tem" = "$bib_total" ] && [ "$bib_total" != "0" ] && [ "$bib_commit" != "-" ] \
+  && ok "por sha256, a biblioteca do Dracula_OS-Theme (commit ${bib_commit:0:12}) está no pack (apps/ e biblioteca/, menos o que quem usa tirou): $bib_tem de $bib_total" \
+  || falha "a biblioteca do pack não confere com a lista da origem ($achados)" \
+           "$(printf '%s\n' "$conta" | tail -n +2 | head -20)"
 
 # TODO DESENHO DA BIBLIOTECA TEM PROCEDÊNCIA. É a regra 5 da P28 ("arte de
 #   terceiro entra por cópia, com uma linha no PROCEDENCIA.md") aplicada à
