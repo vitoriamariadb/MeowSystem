@@ -224,6 +224,10 @@ greeter-aplicar)
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
   tar -x -C "$tmp" --no-same-owner -f - || morrer "tar recusado: o que chegou pelo stdin não se extrai"
   [ -z "$(find "$tmp" -mindepth 1 -type l -print -quit)" ] || morrer "link simbólico no tar"
+  # SÓ ARQUIVO E PASTA — P108 (conferência), 25/10/2026. O tar extraído por root
+  # cria nó de dispositivo e FIFO com o modo que vier nele, e o `cp -a` os leva
+  # ao lar do greeter: um `/dev/sda` 0666 ali seria o disco cru para quem o abrir.
+  [ -z "$(find "$tmp" -mindepth 1 ! -type f ! -type d -print -quit)" ] || morrer "só arquivo e pasta no tar"
   # O `..` FORA DO CANO, E O LINK DO DESTINO — 15/10/2026, P82 (item 16)
   #   A recusa de `..` morava num `| while`, e o `morrer` dali saía só do
   #   subshell do cano: o verbo seguia para a cópia. Agora é uma pergunta só,
