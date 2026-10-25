@@ -294,6 +294,22 @@ chmod 644 "$AV/contas/gata"
   || falha "o greeter.sh trocou um avatar que não conseguiu ler, ou calou a pendência" \
        "$(cat "$AV/busctl.log"; head -6 "$AV/saida.log")"
 
+printf '\n--- 13. sem a ponte, o nome de sistema é pendência, e a saída não manda rodar sudo ---\n'
+NA="$T/nomes-abs"; mkdir -p "$NA/apps" "$NA/casa"
+printf '[Desktop Entry]\nName=GNU Image Manipulation Program\nExec=gimp\n' > "$NA/apps/org.gimp.GIMP.desktop"
+cp "$NA/apps/org.gimp.GIMP.desktop" "$NA/antes.desktop"
+chmod 444 "$NA/apps/org.gimp.GIMP.desktop"; chmod 555 "$NA/apps"; : > "$SP/sudo.log"
+env -i PATH="$SP/bin:$PATH" HOME="$NA/casa" MEOW_RAIZ="$RAIZ" MEOW_PONTE=/nao/existe NO_COLOR=1 \
+  MEOW_APLICATIVOS_SISTEMA="$NA/apps" \
+  bash "$RAIZ/scripts/nomes_apps.sh" > "$NA/saida.log" 2>&1; rn=$?
+chmod 755 "$NA/apps"
+cmp -s "$NA/apps/org.gimp.GIMP.desktop" "$NA/antes.desktop" \
+  && grep -q '1 nome.*«Instalar tudo»' "$NA/saida.log" && ! grep -qi 'sudo' "$NA/saida.log" \
+  && [ ! -s "$SP/sudo.log" ] \
+  && ok "sem a ponte, o nome de sistema fica pendente, com a saída das outras pendências e zero sudo" \
+  || falha "sem a ponte, o nomes_apps.sh mandou rodar sudo, escreveu ou deu por feito (rc=$rn)" \
+       "$(cat "$SP/sudo.log" "$NA/saida.log")"
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: os achados técnicos da P79 estão fechados\n'

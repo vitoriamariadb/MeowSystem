@@ -1590,7 +1590,7 @@ cmd_aplicar() {
           # [O «AUTORIZE» VIROU BOTÃO — 10/10/2026, P80 (item 8). Eram duas
           #   linhas mandando digitar `meow wallpaper permitir "<caminho>"`.
           #   Agora é a pendência `wallpaper-fonte-revertida`, e a Início a
-          #   desenha com o botão «Era escolha minha», que roda o mesmo
+          #   desenha com o botão «Manter», que roda o mesmo
           #   `permitir` com este caminho (o servidor o tira do comando da
           #   linha). O aviso continua dizendo qual caminho saiu.]
           meow_pendencia_acionavel wallpaper-fonte-revertida \
@@ -1854,7 +1854,7 @@ cmd_permitir() {
        meow_ok "autorizado: $caminho"
        meow_info "o carrossel não mexe mais em saída que aponte para lá"
        meow_registrar "wallpaper permitir: $caminho"
-       # A pendência do «Era escolha minha» (P80) acabou: a imagem é dela.
+       # A pendência do «Manter» acabou: a imagem é dela.
        meow_pendencia_resolvida wallpaper-fonte-revertida
        return "$MEOW_DIVERGENTE" ;;
     *) meow_erro "não consegui gravar $MEOW_CONF_ARQUIVO"

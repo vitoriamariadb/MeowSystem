@@ -21,6 +21,7 @@ com o .md diferente do que o código gera (rode com --escrever para regravar).
 import functools
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -123,6 +124,7 @@ def servidor():
             "print(json.dumps({'chaves': [[i['chave'], i.get('secao') or '', i.get('titulo') or ''] for i in e],\n"
             "  'acoes': [[k, v.get('grupo') or '', v.get('rotulo') or ''] for k, v in s.ACOES.items()],\n"
             "  'onde': onde, 'pendencias': pend, 'renomeado': renomeado,\n"
+            "  'escolhas': list(s.ESCOLHA_PAREDE) + list(s.ESCOLHA_TEMA_DE_TERCEIRO),\n"
             "  'inventario': srv_inv}))\n")
         amb = {"PATH": os.environ.get("PATH", ""), "HOME": casa, "LANG": "C.UTF-8",
                "MEOW_CONF": conf, "MEOW_ESTADO": os.path.join(casa, "estado"),
@@ -204,11 +206,31 @@ def gerar():
         if caminho not in destinos:
             falhas.append("o --onde de %s aponta para %r, que não existe no lugares.js" % (ident, caminho))
         if ident in srv["pendencias"]:
+            # O botão de uma pendência é o de uma linha das pendências no lugares.js,
+            # ou o «Resolver» de toda pendência com ação.
+            botoes = {l["botao"] for l in srv["inventario"]
+                      if l["porta"] == "cuidar" and l.get("bloco") == "Pendências" and l.get("botao")}
+            for citado in [x.split("»", 1)[0] for x in frase.split("«")[1:]]:
+                if citado not in botoes | {"Resolver"}:
+                    falhas.append("o --onde da pendência %s cita «%s», que não é botão de pendência no lugares.js"
+                                  % (ident, citado))
             continue
         nomes = {x for l in srv["inventario"] if l["id"] == ident for x in (l["rotulo"], l["botao"]) if x}
         citado = frase.split("«", 1)[-1].split("»", 1)[0] if "«" in frase else ""
         if citado and citado not in nomes:
             falhas.append("o --onde de %s cita «%s», que não é rótulo nem botão no lugares.js" % (ident, citado))
+    # O comentário de quem pergunta o --onde no bash diz as formas de agora, sem as abas de antes.
+    comum = open(os.path.join(RAIZ, "lib", "comum.sh"), encoding="utf-8").read()
+    bloco = comum.split("\nmeow_onde_no_painel() {", 1)[0].rsplit("\n\n", 1)[-1]
+    if re.search(r"\babas?\b", bloco, re.I):
+        falhas.append("o comentário do meow_onde_no_painel (lib/comum.sh) ainda fala em aba")
+    # O botão que a pendência desenha tem o nome do botão daquela ação no lugares.js.
+    botao_de = {l["id"]: l.get("botao") for l in srv["inventario"]
+                if l["porta"] == "cuidar" and l.get("bloco") == "Pendências"}
+    for acao, rotulo in srv["escolhas"]:
+        if botao_de.get(acao) != rotulo:
+            falhas.append("a pendência desenha «%s» para %s, e o lugares.js diz «%s»"
+                          % (rotulo, acao, botao_de.get(acao)))
     quer = {"doctor_consertar": "«Conferir e consertar», em Cuidar Nova › Estado",
             "LANCADOR_SISTEMA": "«Arrumar o lançador», em Ajustes Nova › Programas › Lançador",
             "inicio": "em Cuidar Nova", "areas-sem-alfinete": "«Resolver», em Cuidar Nova"}

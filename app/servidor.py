@@ -3336,7 +3336,7 @@ PROVEDORES = {
     # que o pack IMPORTADO no ar pede. Pack do repositório dá lista vazia, e com
     # ela nenhum botão e nenhum argumento aceito.
     "extensoes_de_terceiro": lambda: _extensoes_de_terceiro(),
-    # O argumento do «Era escolha minha»: o caminho que o `wallpaper.sh`
+    # O argumento do «Manter»: o caminho que o `wallpaper.sh`
     # devolveu e deixou na pendência. Ver `PENDENCIA_PAREDE`.
     "fontes_revertidas": lambda: _fontes_revertidas(),
     # O argumento do «Restaurar»: as ações cuja última execução se desfaz.
@@ -4103,8 +4103,8 @@ ACOES = {
         "ajuda": "Autoriza a imagem que você pôs: o carrossel para de devolvê-la.",
     },
     # O «DEIXAR ASSIM». A outra resposta da mesma pendência: tira o cartão
-    # sem autorizar a imagem. `oculta` pelo mesmo motivo do «Era escolha
-    # minha»: quem o oferece é a pendência.
+    # sem autorizar a imagem. `oculta` pelo mesmo motivo do «Manter»: quem
+    # o oferece é a pendência.
     "wallpaper_dispensar": {
         "rotulo": "Deixar assim",
         "grupo": "Papel de parede",
@@ -5680,6 +5680,9 @@ RECUSA_DA_PENDENCIA = {
 SUFIXO_TEMA_DE_TERCEIRO = "-tema-de-terceiro"
 ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar"),
                             ("apps_manter_o_meu", "Manter"))
+# Os dois botões do papel de parede devolvido, com o nome que o lugares.js dá.
+ESCOLHA_PAREDE = (("wallpaper_permitir", "Manter"),
+                  ("wallpaper_dispensar", "Deixar assim"))
 
 
 # O id é o que o `scripts/temas-de-apps/vscode/manifesto.sh` registra; as
@@ -5687,8 +5690,8 @@ ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar"),
 # repositório — a mesma régua do módulo, com os links resolvidos.
 PENDENCIA_EXTENSAO = "vscode-extensao-de-terceiro"
 
-# Virou esta pendência, com o comando na linha; o botão «Era escolha
-# minha» roda o mesmo `permitir`, com o caminho que o servidor tira do
+# Virou esta pendência, com o comando na linha; o botão «Manter» roda o
+# mesmo `permitir`, com o caminho que o servidor tira do
 # comando — e só ele (`fontes_revertidas`).
 PENDENCIA_PAREDE = "wallpaper-fonte-revertida"
 PREFIXO_PERMITIR = "meow wallpaper permitir "
@@ -5894,7 +5897,7 @@ def onde_na_tela(ident):
     if ident == PENDENCIA_EXTENSAO:
         return "«Instalar», em %s" % pendencias
     if ident == PENDENCIA_PAREDE:
-        return "«Era escolha minha», em %s" % pendencias
+        return "%s, em %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_PAREDE), pendencias)
     if ident == "inicio":
         return "em %s" % pendencias
     if (ACOES.get(ident) or {}).get("oculta"):
@@ -5942,9 +5945,10 @@ def pendencias():
                 # de rede da ação; a lista vazia (o pack já é do repositório)
                 # não desenha botão nenhum.
                 if ident == PENDENCIA_PAREDE and comando.startswith(PREFIXO_PERMITIR):
-                    escolha = [{"acao": "wallpaper_permitir", "rotulo": "Era escolha minha",
+                    (permitir, r_permitir), (dispensar, r_dispensar) = ESCOLHA_PAREDE
+                    escolha = [{"acao": permitir, "rotulo": r_permitir,
                                 "argumento": comando[len(PREFIXO_PERMITIR):]},
-                               {"acao": "wallpaper_dispensar", "rotulo": "Deixar assim",
+                               {"acao": dispensar, "rotulo": r_dispensar,
                                 "argumento": ""}]
                     nome = "Papel devolvido"
                 if ident == PENDENCIA_EXTENSAO and comando:
