@@ -94,7 +94,8 @@
     "kitty": {},
     "gnome-terminal": {},
     "telegram": {},
-    "discord": {}
+    "discord": {},
+    "onlyoffice": {}
   },
   "mascote": {
     "desenhos": "mascote/",

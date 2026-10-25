@@ -134,3 +134,4 @@ aplicativo» do `packs/dracula/PROCEDENCIA.md`.
 | gnome-terminal | `scripts/temas-de-apps/gnome-terminal/gnome-terminal.modelo.dconf` | desenho deste projeto | GPL-3.0 |
 | telegram | `scripts/temas-de-apps/telegram/telegram.modelo.tdesktop-theme` | `dracula/telegram` v0.1.3 | MIT |
 | discord | `scripts/temas-de-apps/discord/discord.modelo.theme.css` | o Dracula do CtorW para Vesktop e Vencord, sobre o `midnight` do refact0r | MIT |
+| onlyoffice | `scripts/temas-de-apps/onlyoffice/onlyoffice.modelo.json` | os nomes das chaves de um tema de interface do OnlyOffice (todo valor é papel) | ver a nota do `packs/dracula/PROCEDENCIA.md` |
