@@ -28,17 +28,21 @@ trocar() {
       -e "s#/etc/polkit-1#$SIS/etc/polkit-1#g"
 }
 
-# O sudo falso: o `estado` da ponte responde pelo arquivo de brinquedo; o resto
-# roda como quem chamou, sem `-o`/`-g`, e fica no registro.
+# A ponte de brinquedo: a do repositório, com os destinos trocados e o PATH dos
+# falsos. O `estado` dela é o código de verdade, lendo a pasta de brinquedo.
+PONTE_TOY="$T/ponte-brinquedo.sh"
+sed -e "s#^export PATH=.*#export PATH=\"$FALSO:/usr/bin:/bin\"#" "$RAIZ/scripts/ponte_root.sh" | trocar > "$PONTE_TOY"
+
+# O sudo falso: o `estado` da ponte é o da ponte de brinquedo, e só com a ponte e
+# a regra no lugar (a regra o libera); o resto roda como quem chamou, sem
+# `-o`/`-g`, e fica no registro.
 cat > "$FALSO/sudo" <<FIM
 #!/bin/bash
 [ "\${1:-}" = -n ] && shift
 case "\${1:-}" in true|-v) exit 0 ;; esac
 if [ "\$1" = "$BASE/ponte_root.sh" ]; then
   [ "\${2:-}" = estado ] && [ -x "$BASE/ponte_root.sh" ] && [ -f "$REGRA" ] || exit 1
-  printf 'regra_md5=%s\n' "\$(md5sum < "$REGRA" | cut -d' ' -f1)"
-  printf 'raiz=%s\n' "$RAIZ"
-  exit 0
+  exec bash "$PONTE_TOY" estado
 fi
 printf '%s\n' "\$*" >> "$SUDO_LOG"
 a=(); pula=0
@@ -272,7 +276,7 @@ exit 0
 FIM
 chmod 755 "$FALSO/systemctl"
 DOCTOR="$T/doctor.sh"
-for f in _ponte_reparo_ha _ponte_reparo_motivo chk_ponte fix_ponte; do
+for f in _ponte_reparo_ha _ponte_reparo_motivo _ponte_regra_igual_a_reserva chk_ponte fix_ponte; do
   sed -n "/^$f() {/,/^}/p" "$RAIZ/bin/meow"
 done | trocar > "$DOCTOR"
 doctor() {   # $1 = chk_ponte | fix_ponte
@@ -344,8 +348,9 @@ confere "o fim de um trabalho do painel esquece a ponte lida" '[ "$(tail -n1 <<<
 
 printf '\n--- 5. o limite: ponte nova no repositório e install sem reserva ficam com o install ---\n'
 # Um clone com a ponte mudada: o código que quem usa pode editar.
-CLONE="$T/clone"; mkdir -p "$CLONE/scripts"
+CLONE="$T/clone"; mkdir -p "$CLONE/scripts" "$CLONE/assets/ponte"
 cp "$RAIZ/scripts/ponte_root.sh" "$CLONE/scripts/ponte_root.sh"
+cp "$RAIZ/assets/ponte/49-meowsystem-ponte-reparo.rules" "$CLONE/assets/ponte/"
 printf '\n# mudou no repositório\n' >> "$CLONE/scripts/ponte_root.sh"
 saida="$(RAIZ_DOCTOR="$CLONE" doctor chk_ponte)"; rc=$?
 confere "ponte nova no repositório: pendência do install" \
@@ -384,6 +389,50 @@ confere 'e o conserto não dispara o reparo nem devolve a regra (sai 3, nenhum s
 $(cat "$SYSTEMCTL_LOG")"
 saida="$(doctor fix_ponte)"; rc=$?
 confere "ligada de novo no meow.conf, o reparo volta a repor" '[ "$rc" = 1 ] && [ -f "$REGRA" ]' "$saida"
+
+printf '\n--- 7. o doctor confere a regra de sudo contra a reserva, e a ponte, a do polkit ---\n'
+etapa >/dev/null
+saida="$(etapa)"; rc=$?
+confere "com tudo no lugar, a etapa não muda nada" '[ "$rc" = 0 ]' "$saida"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "e o doctor diz ok" '[ "$rc" = 0 ]' "$saida"
+chmod u+w "$REGRA"; printf '# trocada, e ainda libera a ponte\n' >> "$REGRA"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "a regra de sudo trocada: divergente, contra a reserva" \
+  '[ "$rc" = 1 ] && grep -q "49-meowsystem-ponte difere da reserva" <<< "$saida"' "$saida"
+: > "$SYSTEMCTL_LOG"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "o conserto dispara o reparo, e a regra da reserva volta" \
+  '[ "$rc" = 1 ] && grep -q "^start --no-ask-password $UNI\$" "$SYSTEMCTL_LOG" && cmp -s "$BASE/reserva/49-meowsystem-ponte" "$REGRA"' "$saida"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "depois do reparo, ok" '[ "$rc" = 0 ]' "$saida"
+
+rm -f "$REGRA_PK"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "sem a regra do polkit: a ponte a confere, e o doctor pede o install" \
+  '[ "$rc" = 1 ] && grep -q "polkit" <<< "$saida" && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+: > "$SYSTEMCTL_LOG"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "e o conserto não dispara o reparo (sai 3, nenhum start)" \
+  '[ "$rc" = 3 ] && ! grep -q "^start" "$SYSTEMCTL_LOG"' "$saida"
+# A pasta do polkit é 0750 root:polkitd: a etapa não a lê. Quem confere é a ponte.
+chmod 300 "$SIS/etc/polkit-1/rules.d"
+saida="$(etapa)"; rc=$?
+chmod 755 "$SIS/etc/polkit-1/rules.d"
+confere "a etapa, sem ler a pasta do polkit, vê a regra que falta e a põe" \
+  '[ "$rc" = 1 ] && cmp -s "$REGRA_PK_REPO" "$REGRA_PK"' "$saida"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "com a regra do polkit de volta, ok" '[ "$rc" = 0 ]' "$saida"
+printf '// trocada\n' >> "$REGRA_PK"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "a regra do polkit trocada: divergente, e o install a repõe" \
+  '[ "$rc" = 1 ] && grep -q "polkit" <<< "$saida" && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+chmod 300 "$SIS/etc/polkit-1/rules.d"
+saida="$(etapa)"; rc=$?
+chmod 755 "$SIS/etc/polkit-1/rules.d"
+confere "e a etapa a põe de volta" '[ "$rc" = 1 ] && cmp -s "$REGRA_PK_REPO" "$REGRA_PK"' "$saida"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "e o doctor diz ok" '[ "$rc" = 0 ]' "$saida"
 
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi

@@ -82,7 +82,7 @@ CONFERIR=0
 SEM_SUDO=0
 # Restringe o trabalho a UMA classe de caminho (ver `_classe`, logo abaixo).
 # Vazio = todas, que é o modo do `install.sh` e do doctor.
-# `--so-sistema` é o gatilho do apt, que roda como root: sem o filtro, o
+# `--so-sistema` é o gatilho do apt (até a P108, como root): sem o filtro, o
 # `meow_escrever` gravaria os `.desktop` do home dela com dono root.
 SO_CLASSE=""
 while [ $# -gt 0 ]; do

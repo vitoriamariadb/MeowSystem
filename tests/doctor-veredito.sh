@@ -291,6 +291,17 @@ if [ "$rc_ponte" -eq 0 ] && [ "$(cat "$LAR_G/.config/cosmic/com.system76.CosmicT
 else
   falha "sem link no destino, o greeter-aplicar não copiou (rc=$rc_ponte): $(tail -2 "$TMP/ponte.err")"
 fi
+# Nó de dispositivo e FIFO (P108, conferência): como root o tar os cria, e o
+# `cp -a` os levaria ao lar do greeter. Só arquivo e pasta passam. O FIFO é o
+# que dá para fazer sem root; o nó de dispositivo cai na mesma régua.
+mkfifo "$TMP/tar/com.system76.CosmicTheme.Dark/v1/cano"
+( cd "$TMP/tar" && tar -cf - . ) | bash "$PONTE_COPIA" greeter-aplicar >/dev/null 2>>"$TMP/ponte.err"; rc_ponte=$?
+if [ "$rc_ponte" -ne 0 ] && [ ! -e "$DESTINO_G/cano" ]; then
+  ok "um FIFO no tar recusa o greeter-aplicar (rc=$rc_ponte), e nada chega ao destino"
+else
+  falha "o greeter-aplicar aceitou um FIFO no tar (rc=$rc_ponte)"
+fi
+rm -f "$TMP/tar/com.system76.CosmicTheme.Dark/v1/cano"
 
 printf '\n--- 7. o instalar_fontes.sh pede a ferramenta que falta pela ponte (P82, item 16) ---\n'
 # Um PATH sem `curl` (cópia por link de /usr/bin, menos ele), uma ponte de
