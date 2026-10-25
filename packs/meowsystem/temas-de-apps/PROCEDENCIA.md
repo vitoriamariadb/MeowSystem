@@ -133,3 +133,4 @@ aplicativo» do `packs/dracula/PROCEDENCIA.md`.
 | kitty | `scripts/temas-de-apps/kitty/kitty.modelo.conf` | `dracula/kitty` | MIT |
 | gnome-terminal | `scripts/temas-de-apps/gnome-terminal/gnome-terminal.modelo.dconf` | desenho deste projeto | GPL-3.0 |
 | telegram | `scripts/temas-de-apps/telegram/telegram.modelo.tdesktop-theme` | `dracula/telegram` v0.1.3 | MIT |
+| discord | `scripts/temas-de-apps/discord/discord.modelo.theme.css` | o Dracula do CtorW para Vesktop e Vencord, sobre o `midnight` do refact0r | MIT |

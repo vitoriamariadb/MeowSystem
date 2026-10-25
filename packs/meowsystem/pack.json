@@ -93,7 +93,8 @@
     "_nota_modelos": "Os blocos vazios abaixo usam o modelo do motor (`scripts/temas-de-apps/<app>/<app>.modelo.*`), o mesmo do pack Dracula, com a paleta deste pack no flavor da máquina. A procedência dos modelos está no PROCEDENCIA.md de `temas-de-apps/`.",
     "kitty": {},
     "gnome-terminal": {},
-    "telegram": {}
+    "telegram": {},
+    "discord": {}
   },
   "mascote": {
     "desenhos": "mascote/",
