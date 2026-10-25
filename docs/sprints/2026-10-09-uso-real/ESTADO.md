@@ -18,6 +18,9 @@ volta. O `dev` só recebe no fim, de uma vez, com a suíte verde. Dois blocos ao
 - P101 instalada na máquina real em 24/10 (2 passagens, 68 etapas, `meow doctor` rc=0). O `meow-whatsapp` é
   idêntico ao `whatsapp-linux-app.svg` do pack, e a `dracula-copia-com.rtosta.zapzap` foi desativada (guardada
   em `~/.local/state/meowsystem/vizinhos/`). Suíte limpa (`.wt-meow/verif-dev`): 76 verdes, 1 pulado (`pack.sh`, P103 item 4).
+- Quem usa (24/10): qBittorrent e OnlyOffice «deveria ser o nosso atual instalado». Troca feita com a
+  resposta «Trocar» do painel (`MEOW_TEMA_DE_TERCEIRO=trocar meow apps aplicar <app>`). A segunda passada não
+  mexe em nada e o doctor dá rc=0. Os temas antigos ficam guardados em `~/.local/state/meowsystem/backup-temas-terceiros-20261024/`.
 - P101 está no dev (`3680c8f4`). A suíte no checkout principal deu 5 vermelhos por causa do
   `assets/icones/upstream/papirus-folders/` solto (um repositório aninhado que o copiador do teste não sabe
   copiar), não por código. A prova é a suíte limpa em `.wt-meow/verif-dev`.
