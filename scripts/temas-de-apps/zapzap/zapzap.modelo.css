@@ -1,0 +1,107 @@
+/*
+ * meowsystem-tema: {{pack}}/{{flavor}}
+ * O WhatsApp Web do ZapZap com a paleta do pack, montado pelo MeowSystem.
+ * Este arquivo é GERADO a partir de scripts/temas-de-apps/zapzap/zapzap.modelo.css:
+ * mexer aqui dura até a próxima passada do MeowSystem.
+ *
+ * Só variáveis CSS do próprio WhatsApp Web (as `--WDS-*` do sistema de desenho
+ * dele), nenhuma classe ofuscada: a classe muda a cada versão do site, o nome
+ * da variável não. De onde vem cada nome e o papel de cada uma (dois temas MIT
+ * do WhatsApp Web, pinados por commit): a seção «Os temas de aplicativo» do
+ * packs/dracula/PROCEDENCIA.md. O acento é o verde, como no WhatsApp Web Dracula.
+ */
+
+:root,
+:root:has(> .dark),
+.color-refresh,
+.color-refresh.dark,
+.dark.color-refresh,
+.app-wrapper-web.app-wrapper-web,
+.app-wrapper-web.app-wrapper-web:root,
+.dark .app-wrapper-web.app-wrapper-web {
+  --WDS-accent: {{green}} !important;
+  --WDS-accent-RGB: {{green:rgb}} !important;
+  --WDS-accent-deemphasized: {{green:4D}} !important;
+  --WDS-accent-emphasized: {{green}} !important;
+
+  --WDS-secondary-negative: {{red}} !important;
+  --WDS-secondary-negative-deemphasized: {{red:4D}} !important;
+  --WDS-secondary-negative-emphasized: {{red}} !important;
+  --WDS-secondary-positive: {{green}} !important;
+  --WDS-secondary-positive-deemphasized: {{green:4D}} !important;
+  --WDS-secondary-warning: {{yellow}} !important;
+  --WDS-secondary-warning-deemphasized: {{yellow:4D}} !important;
+
+  --WDS-content-default: {{text}} !important;
+  --WDS-content-default-RGB: {{text:rgb}} !important;
+  --WDS-content-deemphasized: {{overlay2}} !important;
+  --WDS-content-disabled: {{text:80}} !important;
+  --WDS-content-on-accent: {{base}} !important;
+  --WDS-content-action-default: {{green}} !important;
+  --WDS-content-action-emphasized: {{green}} !important;
+  --WDS-content-external-link: {{sky}} !important;
+  --WDS-content-inverse: {{crust}} !important;
+  --WDS-content-read: {{sky}} !important;
+
+  --WDS-background-wash-inset: {{crust}} !important;
+  --WDS-background-wash-plain: {{crust}} !important;
+  --WDS-background-elevated-wash-plain: {{crust}} !important;
+  --WDS-background-elevated-wash-inset: {{mantle}} !important;
+  --WDS-modal-backdrop-solid: {{crust}} !important;
+
+  --WDS-surface-default: {{mantle}} !important;
+  --WDS-surface-default-RGB: {{mantle:rgb}} !important;
+  --WDS-surface-emphasized: {{base}} !important;
+  --WDS-surface-elevated-default: {{base}} !important;
+  --WDS-surface-elevated-emphasized: {{surface0}} !important;
+  --WDS-surface-highlight: {{text:1A}} !important;
+  --WDS-surface-inverse: {{text}} !important;
+  --WDS-surface-pressed: {{text:33}} !important;
+  --background-default: {{mantle}} !important;
+  --search-container-background: {{mantle}} !important;
+
+  --WDS-lines-divider: {{text:1A}} !important;
+  --WDS-lines-outline-default: {{overlay0}} !important;
+  --WDS-lines-outline-deemphasized: {{text:4D}} !important;
+
+  --WDS-persistent-activity-indicator: {{green}} !important;
+  --WDS-persistent-always-branded: {{green}} !important;
+
+  --WDS-systems-bubble-surface-incoming: {{base}} !important;
+  --WDS-systems-bubble-surface-outgoing: color-mix(in srgb, {{green}} 20%, {{base}}) !important;
+  --WDS-systems-bubble-content-deemphasized: {{text:80}} !important;
+  --WDS-systems-bubble-surface-overlay: {{mantle}} !important;
+  --WDS-systems-bubble-surface-system: {{mantle}} !important;
+  --WDS-systems-bubble-surface-e2e: color-mix(in srgb, {{yellow}} 20%, {{mantle}}) !important;
+  --WDS-systems-bubble-content-e2e: {{yellow}} !important;
+  --WDS-systems-bubble-surface-business: color-mix(in srgb, {{teal}} 20%, {{mantle}}) !important;
+
+  --WDS-systems-chat-surface-composer: {{base}} !important;
+  --WDS-systems-chat-background-wallpaper: {{crust}} !important;
+  --WDS-systems-chat-foreground-wallpaper: {{mantle}} !important;
+  --WDS-systems-chat-surface-tray: {{base}} !important;
+  --WDS-systems-status-seen: {{text:80}} !important;
+
+  --WDS-components-surface-nav-bar: {{base}} !important;
+  --WDS-app-wash: {{surface0}} !important;
+
+  --toast-background: {{surface1}} !important;
+  --toast-text: {{text}} !important;
+  --picker-background: {{surface1}} !important;
+  --startup-icon: {{surface1}} !important;
+  --startup-background: {{crust}} !important;
+  --progress-background: {{surface0}} !important;
+}
+
+/* A tela de abertura traz as cores no atributo `style` do elemento. */
+[style*="--splashscreen-startup-background"] {
+  --splashscreen-startup-background: {{crust}} !important;
+  --splashscreen-startup-background-plain: {{crust}} !important;
+  --splashscreen-startup-background-rgb: {{crust:rgb}} !important;
+  --splashscreen-startup-content-deemphasized: {{overlay2}} !important;
+  --splashscreen-startup-icon: {{surface0}} !important;
+  --splashscreen-primary-title: {{text}} !important;
+  --splashscreen-progress-primary: {{green}} !important;
+  --splashscreen-progress-background: {{surface1}} !important;
+  --splashscreen-secondary-lighter: {{overlay2}} !important;
+}
