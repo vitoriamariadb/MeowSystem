@@ -399,6 +399,11 @@ printf '%s\n' "$(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$RAIZ/packs/d
   || falha "25: o wallpaper.sh não separa a coleção do pack no ar"
 grep -q '"$MEOW_RAIZ/scripts/prompt.sh" instalar$' "$RAIZ/install.sh" \
   && ok "26: o starship desce com o install" || falha "26: a etapa do prompt não instala o starship"
+! grep -qE '^opt[[:space:]]' "$RAIZ/patches/series" \
+  && grep -q 'Uniform::new("leitura_atenuacao"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
+  && ! grep -q 'Uniform::new("leitura_temp"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
+  && ok "P100: a série é toda req (dela, 28/09) e o neutro do modo de leitura é o zero" \
+  || falha "P100: voltou patch opt na série, ou o uniform leitura_temp de neutro 1.0"
 
 echo
 if [ "$falhas" = 0 ]; then echo "decisoes: tudo certo"; exit 0; fi

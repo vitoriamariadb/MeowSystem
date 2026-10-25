@@ -20,16 +20,19 @@
 #        instalado — o desktop fica no binário do pacote (feio, mas de pé).
 #   opt  opcional. Se o dry-run falhar, o build segue sem aquele efeito e o
 #        registro diz qual efeito ficou de fora.
+#
+# Desde 28/09/2026 todos são `req`, decisão dela: "tudo tem que ser
+# obrigatório" (patches/LEIA-ME.txt, a seção do fim do `opt`).
 
 # classe  arquivo                                marcador-base
 req       cosmic-comp-sem-workspace-vazio.patch  AURORA-COSMIC-WS-PATCH
-opt       cosmic-comp-raio-clampado.patch        AURORA-COSMIC-RADIUS-PATCH
-opt       cosmic-comp-menu-clique-curto.patch    AURORA-COSMIC-MENU-PATCH
-opt       cosmic-comp-modo-leitura.patch         AURORA-READING-MODE
+req       cosmic-comp-raio-clampado.patch        AURORA-COSMIC-RADIUS-PATCH
+req       cosmic-comp-menu-clique-curto.patch    AURORA-COSMIC-MENU-PATCH
+req       cosmic-comp-modo-leitura.patch         AURORA-READING-MODE
 
 # Às 19:56 a sessão inteira caiu no nitro-5, com o backtrace da thread de render
 # parado em `render_blur` <- `capture_framebuffer` e um `[gfxhub] page fault` do
 # amdgpu com `Faulty UTCL2 client ID: TCP (0x8)`.
 #
 # Este binário é TAMBÉM a tela de login.
-opt       cosmic-comp-blur-cache-textura.patch   AURORA-BLUR-CACHE
+req       cosmic-comp-blur-cache-textura.patch   AURORA-BLUR-CACHE
