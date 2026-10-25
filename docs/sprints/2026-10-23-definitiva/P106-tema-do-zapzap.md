@@ -73,3 +73,9 @@ logada é a que importa e não se alcança sem sessão).
   desinstalador; se o sha não mudar até o `--uninstall`, o passo 4 apaga o conf (com cópia guardada).
 - Ida e volta no conf perde o `\n` final (o mesmo da bandeja); o QSettings não liga.
 - «Trocar» com um CSS dela desligado na pasta liga a chave, e o dela passa a valer junto com o nosso.
+
+## Prova no perfil real (quem coordena, 25/10 01h11)
+`meow apps aplicar zapzap` (da worktree p106) na máquina, com o ZapZap fechado. A segunda passada diz «já
+estavam certos». Com o ZapZap aberto e logado, os pixels medidos no print são: lista de conversas, cabeçalho e
+painel da direita em `#21222C`, e barra lateral em `#282A36`. São as cores do Dracula, não as `#161717` de fábrica.
+O acento continua verde. O backup do `ZapZap.conf` de antes está em `~/.local/state/meowsystem/backup-limpeza-20261024/`.
