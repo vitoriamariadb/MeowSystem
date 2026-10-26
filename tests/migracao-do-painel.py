@@ -9,7 +9,6 @@ import sys
 import tempfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MD = os.path.join(RAIZ, "docs", "design", "2026-10-23", "migracao.md")
 
 GESTOS_DE_ANTES = [
     ("POST /api/salvar", "Topo: Salvar e aplicar", "salvar"),
@@ -121,8 +120,7 @@ def gerar():
     linhas = []
     linhas.append("# Migração do painel: de antes (P97) para o painel novo (P98)\n")
     linhas.append("Gerada por `tests/migracao-do-painel.py` a partir do código: as chaves e as ações do "
-                  "`app/servidor.py`, e o lugar de cada uma no `app/pagina/lugares.js`. Não edite à mão; "
-                  "rode o teste com `--escrever`.\n")
+                  "`app/servidor.py`, e o lugar de cada uma no `app/pagina/lugares.js`.\n")
     chaves = srv["chaves"]
     acoes = srv["acoes"]
     sem = 0
@@ -223,11 +221,6 @@ def main():
         print("pulado: sem node")
         return 3
     texto, falhas, (nc, na, ng, sem) = gerar()
-    if "--escrever" in sys.argv:
-        os.makedirs(os.path.dirname(MD), exist_ok=True)
-        with open(MD, "w", encoding="utf-8") as fh:
-            fh.write(texto)
-        print("ok: %s regravado" % os.path.relpath(MD, RAIZ))
     for f in falhas:
         print("FALHOU: " + f, file=sys.stderr)
     if falhas:
