@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# cosmic_prever.sh — o veredito sobre o COSMIC candidato, ANTES do apt instalar.
-#
-#   ./cosmic_prever.sh                       candidatos de `apt list --upgradable`
-#   ./cosmic_prever.sh --debs D --fontes F   .deb e fontes já baixados (teste, ou medida à mão)
-#   ./cosmic_prever.sh --sem-rede            não pergunta ao GitHub (o item tema fica "não medido")
-#   ./cosmic_prever.sh ler                   imprime o último veredito gravado
-#   ./cosmic_prever.sh icones                os apps do COSMIC instalados sem desenho em mapa nenhum
-#
-# O rosto é o `meow cosmic prever`. Sai 0 sem vermelho, 1 com algum vermelho, 2
-# em erro deste script.
-#
-# O repositório do Pop guarda UMA versão por pacote.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -21,8 +9,6 @@ CV_CONTRATO="${CV_CONTRATO:-$MEOW_RAIZ/assets/contratos/cosmic.tsv}"
 CV_SERIE="${CV_SERIE:-$MEOW_RAIZ/patches/series}"
 CV_PATCHES="${CV_PATCHES:-$MEOW_RAIZ/patches}"
 CV_SAIDA="${CV_SAIDA:-$MEOW_ESTADO/cosmic-candidato.tsv}"
-# A GUARDA DO FONTE NÃO É CACHE: cache é o que se recria, e o fonte de uma
-# versão que saiu do índice do Pop não se recria mais.
 CV_GUARDA="${CV_GUARDA:-${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/fontes}"
 CV_TRABALHO="${CV_TRABALHO:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem/cosmic-prever}"
 CV_SISTEMA="${CV_SISTEMA:-/usr/share/cosmic}"
@@ -30,12 +16,9 @@ CV_REDE="${CV_REDE:-sim}"
 CV_DEBS=""
 CV_FONTES=""
 
-# --- o veredito, guardado e impresso no fim --------------------------------
 declare -a _CV_LINHAS=()
 _cv_dizer() { _CV_LINHAS+=("$1"$'\t'"$2"$'\t'"$3"); }
 
-# --- candidatos -------------------------------------------------------------
-# pacote<TAB>versão<TAB>.deb, um por linha.
 _cv_candidatos() {
   local d p v
   if [ -n "$CV_DEBS" ]; then
@@ -60,8 +43,7 @@ _cv_candidatos() {
   done
 }
 
-# A árvore do pacote candidato, extraída uma vez por versão.
-_cv_extraido() { # $1 pacote $2 versão $3 .deb
+_cv_extraido() {
   local x="$CV_TRABALHO/x/$1"
   if [ "$(cat "$x/.versao" 2>/dev/null)" != "$2" ]; then
     rm -rf "$x"; mkdir -p "$x" && dpkg-deb -x "$3" "$x" 2>/dev/null && printf '%s' "$2" > "$x/.versao" || return 1
@@ -69,11 +51,9 @@ _cv_extraido() { # $1 pacote $2 versão $3 .deb
   printf '%s' "$x"
 }
 
-# O maior `v<n>` de um diretório de namespace, ou vazio.
 _cv_maior_v() { ls -1 "$1" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1; }
 
-# --- 1. esquema -------------------------------------------------------------
-_cv_esquema() { # $1 árvore extraída $2 pacote
+_cv_esquema() {
   local ns n_cand n_hoje iguais=0
   for ns in "$1"/usr/share/cosmic/*/; do
     [ -d "$ns" ] || continue
@@ -82,16 +62,13 @@ _cv_esquema() { # $1 árvore extraída $2 pacote
     n_hoje="$(_cv_maior_v "$CV_SISTEMA/$ns")"
     [ -n "$n_cand" ] || continue
     if [ "$n_cand" = "$n_hoje" ]; then iguais=$((iguais+1)); continue; fi
-    # SUBIR DE ESQUEMA É AMARELO: os escritores seguem o `meow_cosmic_v` e
-    # passam a gravar no novo sozinhos. Só o contrato precisa ser relido.
     _cv_dizer esquema amarelo "$2: $ns passa de v${n_hoje:-?} para v$n_cand — os escritores seguem o maior v do pacote"
   done
   [ "$iguais" -gt 0 ] && _cv_dizer esquema verde "$2: $iguais namespace(s) com o mesmo v* de hoje"
   return 0
 }
 
-# --- 2. chave ---------------------------------------------------------------
-_cv_chaves() { # $1 árvore extraída $2 pacote
+_cv_chaves() {
   local tipo ns chave bin quem n bin_arq
   while IFS=$'\t' read -r tipo ns chave bin quem; do
     [ "$tipo" = "chave" ] && [ "$bin" = "$2" ] || continue
@@ -108,8 +85,7 @@ _cv_chaves() { # $1 árvore extraída $2 pacote
   done < <(grep -v '^#' "$CV_CONTRATO" 2>/dev/null)
 }
 
-# --- o fonte candidato: baixado para a guarda, extraído sem o vendor -------
-_cv_fonte() { # $1 pacote $2 versão -> caminho da árvore, ou 1
+_cv_fonte() {
   local tar="" arvore="$CV_TRABALHO/src/$1-$2" origem
   if [ -f "$arvore/.pronto" ]; then printf '%s' "$(cat "$arvore/.pronto")"; return 0; fi
   for origem in "$CV_FONTES" "$CV_GUARDA/$1"; do
@@ -124,7 +100,6 @@ _cv_fonte() { # $1 pacote $2 versão -> caminho da árvore, ou 1
   fi
   [ -n "$tar" ] || return 1
   rm -rf "$arvore"; mkdir -p "$arvore" || return 1
-  # O VENDOR FICA DE FORA: são centenas de MB que nenhum dos itens lê.
   tar -xf "$tar" -C "$arvore" --exclude='*/vendor.tar' --exclude='*/vendor/*' 2>/dev/null || return 1
   local raiz; raiz="$(dirname "$(find "$arvore" -maxdepth 2 -name Cargo.toml | head -1)")"
   [ -f "$raiz/Cargo.toml" ] || return 1
@@ -132,11 +107,9 @@ _cv_fonte() { # $1 pacote $2 versão -> caminho da árvore, ou 1
   printf '%s' "$raiz"
 }
 
-# Os arquivos que um `.patch` toca, para a cópia de trabalho ser só eles.
 _cv_alvos() { sed -n 's|^+++ [ab]/\([^[:space:]]*\).*|\1|p' "$1" 2>/dev/null | sort -u; }
 
-# --- 3. série ---------------------------------------------------------------
-_cv_serie_comp() { # $1 árvore do fonte
+_cv_serie_comp() {
   local copia="$CV_TRABALHO/serie-cosmic-comp" classe arq base p degrau
   rm -rf "$copia"; mkdir -p "$copia" || return 1
   cp -a "$1"/. "$copia"/ 2>/dev/null || return 1
@@ -165,7 +138,7 @@ _cv_serie_comp() { # $1 árvore do fonte
   done < <(grep -v '^[[:space:]]*#' "$CV_SERIE")
 }
 
-_cv_serie_files() { # $1 árvore do fonte
+_cv_serie_files() {
   local p alvo copia="$CV_TRABALHO/serie-cosmic-files"
   for p in "$CV_PATCHES"/cosmic-files-wallpaper-menu*.patch; do
     [ -f "$p" ] || continue
@@ -181,17 +154,12 @@ _cv_serie_files() { # $1 árvore do fonte
   _cv_dizer série vermelho "nenhum patch do menu de papel de parede entra no cosmic-files candidato — o menu fica de fábrica até um rebase"
 }
 
-# --- 4. toolchain -----------------------------------------------------------
-# A versão "1.93.1" vira 1093001, para comparar como número.
 _cv_num() { local a b c; IFS=. read -r a b c <<<"$1"; printf '%d' "$(( ${a:-0}*1000000 + ${b:-0}*1000 + ${c:-0} ))"; }
 
-_cv_toolchain() { # $1 árvore $2 pacote
+_cv_toolchain() {
   local rv rc
   rv="$(sed -n 's/^rust-version[[:space:]]*=[[:space:]]*"\([0-9.]*\)".*/\1/p' "$1/Cargo.toml" | head -1)"
   [ -n "$rv" ] || { _cv_dizer toolchain verde "$2: o Cargo.toml não pede rust-version"; return 0; }
-  # O RUSTC DE DENTRO DA ÁRVORE, porque é ele que o build usa: o
-  # `rust-toolchain.toml` do fonte escolhe. `RUSTUP_AUTO_INSTALL=0` impede a
-  # sonda de baixar um toolchain só para responder a pergunta.
   rc="$(cd "$1" && RUSTUP_AUTO_INSTALL=0 rustc --version 2>/dev/null | awk '{print $2}')"
   if [ -z "$rc" ]; then
     _cv_dizer toolchain amarelo "$2 pede rust $rv e o toolchain que o fonte escolhe não está instalado — o build o baixa"
@@ -209,18 +177,12 @@ _cv_toolchain() { # $1 árvore $2 pacote
   fi
 }
 
-# --- 4b. ferramenta de build -----------------------------------------------
-# A receita é a que o fonte traz, na mesma ordem do `_cp_receita` do
-# `compositor_patches.sh`: `just build-vendored`, senão `make`, senão `cargo`.
-# Sem a ferramenta o build não sai e o patch obrigatório não chega ao compositor,
-# e isso nenhum gatilho conserta. `CV_SEM` lista as que a sonda trata como
-# ausentes (teste).
-_cv_tem() { # $1 ferramenta
+_cv_tem() {
   case " ${CV_SEM:-} " in *" $1 "*) return 1 ;; esac
   meow_tem "$1"
 }
 
-_cv_ferramenta() { # $1 árvore $2 pacote
+_cv_ferramenta() {
   local pede faltam=() f
   if grep -qsE '^build-vendored([ :]|$)' "$1/justfile" "$1"/*.just; then pede="just cargo"
   elif [ -f "$1/Makefile" ]; then pede="make cargo"
@@ -233,19 +195,14 @@ _cv_ferramenta() { # $1 árvore $2 pacote
   fi
 }
 
-# --- 5. tema ----------------------------------------------------------------
-# A revisão do libcosmic que um pacote do COSMIC pina, pelo `Cargo.lock` no
-# GitHub na revisão do pacote (o sufixo do `Version`).
-# (O `meow_libcosmic_de` mora no lib/comum.sh: o oráculo e os applets também
-# perguntam.) Aqui ele devolve o SHA curto, que é como o veredito o mostra.
-cv_libcosmic_de() { # $1 repositório (cosmic-settings) $2 versão -> sha curto
+cv_libcosmic_de() {
   local rev
   [ "$CV_REDE" = "sim" ] || return 1
   rev="$(meow_libcosmic_de "$1" "$2")" || return 1
   printf '%s' "${rev:0:7}"
 }
 
-_cv_tema() { # $1 versão do cosmic-settings candidato
+_cv_tema() {
   local rev tipo arq hash ref quem atual difere=0 iguais=0
   rev="$(cv_libcosmic_de cosmic-settings "$1")"
   if [ -z "$rev" ]; then
@@ -266,8 +223,7 @@ _cv_tema() { # $1 versão do cosmic-settings candidato
   return 0
 }
 
-# --- 6. revisões que um comentário mediu ---------------------------------------
-_cv_revisao() { # $1 pacote $2 versão $3 "instalado"|"candidato"
+_cv_revisao() {
   local tipo alvo rev assunto quem atual="${2##*~}"
   while IFS=$'\t' read -r tipo alvo rev assunto quem; do
     [ "$tipo" = "revisao" ] && [ "$alvo" = "$1" ] || continue
@@ -279,18 +235,14 @@ _cv_revisao() { # $1 pacote $2 versão $3 "instalado"|"candidato"
   done < <(grep -v '^#' "$CV_CONTRATO")
 }
 
-# --- 7. ícones: o que entrou, o que saiu, e o que não tem desenho -----------
 CV_MAPAS=("$MEOW_RAIZ"/packs/*/icones/*.map "$MEOW_RAIZ"/assets/icones/*.map)
 
-# 0 = algum mapa dá desenho ao nome de ícone (o primeiro campo da linha).
 _cv_tem_arte() {
   local nome="$1"
   grep -qhE "^${nome//./\\.}([: 	]|$)" "${CV_MAPAS[@]}" 2>/dev/null
 }
 
-# Os `.desktop` visíveis de uma árvore (`/` para o instalado), um
-# "<arquivo><TAB><Icon>" por linha.
-_cv_desktops() { # $1 raiz $2.. arquivos .desktop relativos ou absolutos
+_cv_desktops() {
   local raiz="$1" d i; shift
   for d in "$@"; do
     [ -f "$raiz$d" ] || continue
@@ -300,7 +252,7 @@ _cv_desktops() { # $1 raiz $2.. arquivos .desktop relativos ou absolutos
   done
 }
 
-_cv_icones_candidato() { # $1 árvore extraída $2 pacote
+_cv_icones_candidato() {
   local -a novos=() velhos=()
   mapfile -t novos < <(cd "$1" && find usr/share/applications -maxdepth 1 -name '*.desktop' 2>/dev/null | sed 's|^|/|' | sort)
   mapfile -t velhos < <(dpkg -L "$2" 2>/dev/null | grep '^/usr/share/applications/[^/]*\.desktop$' | sort)
@@ -319,10 +271,6 @@ _cv_icones_candidato() { # $1 árvore extraída $2 pacote
   return 0
 }
 
-# Os apps visíveis do COSMIC instalado sem desenho em mapa nenhum, um
-# "<Icon><TAB><arquivo .desktop>" por linha. Uma função só, para o verbo e para
-# quem completa o tema (o `icones-lista`, que o `completar_icones.sh` lê — P82,
-# item 18). `CV_RAIZ_APPS` é a raiz da árvore (vazia = a instalada), para teste.
 _cv_sem_desenho() {
   local d i
   local -a todos=()
@@ -345,7 +293,6 @@ cmd_icones() {
   return "$MEOW_OK"
 }
 
-# --- o comando --------------------------------------------------------------
 cmd_prever() {
   local p v d x arvore n=0
   meow_tem dpkg-deb || { meow_pula "sem dpkg-deb nesta máquina — nada a prever"; return "$MEOW_SEM_DEPENDENCIA"; }
@@ -370,7 +317,6 @@ cmd_prever() {
     esac
   done < <(_cv_candidatos)
   [ "$n" -gt 0 ] || _cv_dizer cosmic verde "nenhum pacote do COSMIC na fila do apt"
-  # A revisão INSTALADA também: o comentário pode estar velho desde já.
   local alvo_r
   for alvo_r in $(awk -F'\t' '$1=="revisao" {print $2}' "$CV_CONTRATO" | sort -u); do
     v="$(dpkg-query -W -f='${Version}' "$alvo_r" 2>/dev/null)" && [ -n "$v" ] && _cv_revisao "$alvo_r" "$v" instalado
@@ -412,6 +358,5 @@ case "$acao" in
   prever) cmd_prever ;;
   ler)    cmd_ler ;;
   icones) cmd_icones ;;
-  # Só os nomes de ícone, um por linha, sem cor nem frase (P82, item 18).
   icones-lista) _cv_sem_desenho | cut -f1 ;;
 esac

@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
-# fastfetch_conf.py — lê e escreve o config.jsonc do fastfetch: o módulo `title`
-# e o bloco `logo` (fonte, tipo e padding).
-#
-# POR QUE ELE É UM ARQUIVO, E NÃO UM HEREDOC DENTRO DO `fastfetch_logo.sh`
-# Porque o heredoc me custou o arquivo dela.
-#
-# { "type": { "type": "title", "format": "…" }, "format": "…" },
-#
-# O backup que a GUARDA 2 do `fastfetch_logo.sh` tira antes de toda escrita
-# devolveu o arquivo intacto — é exatamente para isso que ela existe.
-#
-# Duas rotinas de varredura de JSONC em duas linguagens divergiriam de novo.
-#
-#   "title"                                   a forma curta, que era a dela
-#   { "type": "title", "format": "…" }        a forma longa, com o formato
 
-# Nenhuma função daqui cria chave no arquivo de ninguém: só ajusta as que já existem.
 import json
 import os
 import re
@@ -23,13 +7,7 @@ import sys
 import tempfile
 
 
-# --- a máscara ---------------------------------------------------------------
 def mascarar(bruto):
-    """Cópia do MESMO comprimento com todo comentário virado espaço.
-
-    O `\n` de um `//` fica de pé: apagá-lo juntaria duas linhas na máscara e
-    deslocaria índice nenhum, mas confundiria qualquer busca ancorada em linha.
-    """
     saida = list(bruto)
     i, n = 0, len(bruto)
     while i < n:
@@ -58,18 +36,12 @@ def mascarar(bruto):
 
 
 def _sem_comentarios(bruto):
-    """O texto pronto para o `json.loads`: comentário fora, vírgula solta fora."""
     limpo = mascarar(bruto)
     limpo = re.sub(r",(\s*[}\]])", r"\1", limpo)
     return limpo
 
 
 def jsonc_valido(texto):
-    """O resultado ainda é um JSONC que o fastfetch abre? Vale a leitura extra.
-
-    O arquivo é de outro projeto e tem commit automático: gravar sem conferir é
-    o caro. Um `{` desemparelhado dentro de um comentário já truncou este
-    arquivo uma vez — a máscara cura a causa, isto pega a próxima."""
     try:
         json.loads(_sem_comentarios(texto))
         return True
@@ -78,7 +50,6 @@ def jsonc_valido(texto):
 
 
 def _fim_da_string(texto, i):
-    """O índice da aspas que FECHA a string que abre em `i`."""
     j = i + 1
     n = len(texto)
     while j < n:
@@ -92,11 +63,6 @@ def _fim_da_string(texto, i):
 
 
 def _bloco(mascara, abre):
-    """O índice do `}` (ou `]`) que fecha o que abre em `abre`, ou None.
-
-    Devolver None quando a profundidade nunca volta a zero é a diferença entre
-    "não achei" e "vai até o fim do arquivo" — e a segunda hipótese, tomada como
-    verdade, apagava do módulo até o último byte."""
     fecha = {"{": "}", "[": "]"}[mascara[abre]]
     prof, j, n = 0, abre, len(mascara)
     while j < n:
@@ -113,28 +79,11 @@ def _bloco(mascara, abre):
     return None
 
 
-# --- o módulo `title` --------------------------------------------------------
 def acha_title(bruto):
-    """(inicio, fim, formato) do módulo `title`, ou None.
-
-    `formato` é None quando o módulo está na forma curta.
-
-    A VARREDURA CONTA CHAVES DE VERDADE, e não é frescura: o valor que se
-    escreve ali é `{full-user-name} @ {host-name-colored}` — ele TEM chaves
-    dentro. Um `\\{[^{}]*"type"\\s*:\\s*"title"[^{}]*\\}` (a primeira versão)
-    para de casar assim que o formato entra, e o conferir da passagem seguinte
-    deixa de reconhecer o que a passagem anterior escreveu: o `doctor` passaria
-    a acusar divergência todo dia sobre um arquivo que está certo.
-
-    E ela roda na MÁSCARA, não no texto cru — o porquê está no cabeçalho.
-    """
     m_texto = mascarar(bruto)
     n = len(m_texto)
     fim_mods = None
 
-    # O array `modules` delimita a busca, como sempre esteve escrito aqui e
-    # nunca esteve feito: um `"title"` solto num comentário de cabeçalho, ou uma
-    # string `"title"` dentro de outro módulo, não é o módulo dela.
     m_mods = re.search(r'"modules"\s*:\s*\[', m_texto)
     if m_mods:
         ini_mods = m_mods.end() - 1
@@ -148,8 +97,6 @@ def acha_title(bruto):
     for m in re.finditer(r'"type"\s*:\s*"title"', m_texto):
         if not dentro(m.start()):
             continue
-        # Sobe até o `{` deste objeto. Chaves dentro de string não contam, e é
-        # por isso que se anda para trás pulando strings inteiras.
         i, prof, abre = m.start() - 1, 0, None
         while i >= 0:
             c = m_texto[i]
@@ -167,9 +114,6 @@ def acha_title(bruto):
                     break
                 prof -= 1
             i -= 1
-        # TRAVA DE SANIDADE: o `{` da raiz não é um módulo. Nenhuma passagem
-        # deste código pode legitimamente trocar o arquivo inteiro, e é
-        # exatamente isso que acontecia quando a subida não achava abertura.
         if abre is None or abre == 0 or not dentro(abre):
             continue
         j = _bloco(m_texto, abre)
@@ -180,7 +124,6 @@ def acha_title(bruto):
         formato = json.loads('"%s"' % f.group(1)) if f else ""
         return (abre, j + 1, formato)
 
-    # Nenhum objeto: procura a forma curta DENTRO do array `modules`.
     trecho = m_texto[ini_mods:fim_mods + 1] if fim_mods is not None else m_texto
     curta = re.search(r'(^|[\[,\s])("title")\s*(?=,|\])', trecho)
     if not curta:
@@ -211,9 +154,6 @@ def escrever(caminho, querido):
     if formato is None and not querido:
         return 0
 
-    # `json.dumps` de uma string só: é ele que escapa aspas, barras e acentos do
-    # jeito que o JSON pede. Montar isso com `replace` seria a segunda rotina de
-    # escape deste projeto, e a primeira a errar num caso esquisito.
     novo = ('{ "type": "title", "format": %s }' % json.dumps(querido, ensure_ascii=False)) \
         if querido else '"title"'
     saida = bruto[:ini] + novo + bruto[fim:]
@@ -222,9 +162,6 @@ def escrever(caminho, querido):
     if not _gravar(caminho, saida):
         return 2
 
-    # RECONFERIR EM VEZ DE ASSUMIR — o mesmo que a `cmd_aplicar` já faz com o
-    # `logo.source`. Quem anuncia "escrevi" para a pessoa é o shell, e ele
-    # anunciava em cima do rc; o rc agora só é 1 se o disco concordar.
     de_volta = acha_title(open(caminho, encoding="utf-8").read())
     if de_volta is None or (de_volta[2] or "") != querido:
         print("escrevi e reli, e o título de volta não é o pedido", file=sys.stderr)
@@ -232,9 +169,7 @@ def escrever(caminho, querido):
     return 1
 
 
-# --- o bloco `logo` ----------------------------------------------------------
 def _acha_logo(bruto):
-    """(inicio, fim) do objeto que é o VALOR da chave `logo`, ou None."""
     m_texto = mascarar(bruto)
     for m in re.finditer(r'"logo"\s*:\s*\{', m_texto):
         abre = m.end() - 1
@@ -245,7 +180,6 @@ def _acha_logo(bruto):
 
 
 def _valor_de(m_texto, abre, fim, chave):
-    """(inicio, fim) do VALOR de `chave` no primeiro nível do objeto, ou None."""
     prof, i, n = 0, abre, min(fim + 1, len(m_texto))
     while i < n:
         c = m_texto[i]
@@ -318,8 +252,6 @@ def escrever_logo(caminho, fonte, topo, recuo):
     if pos:
         trocas.append((pos, '"file-raw"'))
 
-    # O PADDING SÓ MUDA SE JÁ EXISTIR: esta função não cria chave no arquivo de
-    # ninguém. E `auto` chega aqui como palavra — não é número, não mexe.
     m_pad = re.search(r'"padding"\s*:\s*\{', m_texto[abre:fim + 1])
     if m_pad:
         p_abre = abre + m_pad.end() - 1
@@ -332,8 +264,6 @@ def escrever_logo(caminho, fonte, topo, recuo):
                 if pos:
                     trocas.append((pos, valor))
 
-    # De trás para a frente: mexer no começo primeiro deslocaria os índices do
-    # que vem depois.
     saida = bruto
     for (ini, fim_t), novo in sorted(trocas, key=lambda t: -t[0][0]):
         saida = saida[:ini] + novo + saida[fim_t:]
@@ -344,14 +274,7 @@ def escrever_logo(caminho, fonte, topo, recuo):
     return 1
 
 
-# --- a gravação, uma só ------------------------------------------------------
 def _gravar(caminho, saida):
-    """Confere que ainda é JSONC e troca o arquivo de uma vez. False = não deu.
-
-    O temporário nasce no diretório de DESTINO, e o `os.replace` vira rename no
-    mesmo sistema de arquivos. Aqui isso vale dobrado: o destino é alvo de um
-    `git add` automático a cada dez minutos, e um arquivo pela metade seria
-    commitado quebrado."""
     if not jsonc_valido(saida):
         print("o resultado não seria JSONC válido — não vou gravar", file=sys.stderr)
         return False
@@ -370,10 +293,6 @@ def _gravar(caminho, saida):
 
 
 def main(argv):
-    # TODA EXCEÇÃO VIRA 2, e é a diferença entre um aviso certo e uma mentira: o
-    # Python que morre por conta própria sai com 1, e 1 é o código de "mudei" —
-    # o shell anunciava "escrevi no config.jsonc da Aurora" com o arquivo
-    # intacto.
     try:
         if len(argv) >= 3 and argv[1] == "ler-titulo":
             return ler(argv[2])

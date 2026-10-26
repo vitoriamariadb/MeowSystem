@@ -1,34 +1,14 @@
 #!/usr/bin/env bash
-# exportar_tema.sh — o tema de ícones MONTADO de um pack, num arquivo que se
-# instala em qualquer máquina.
-#
-#   scripts/exportar_tema.sh <id> [flavor] [arquivo.tar.gz]
-#   meow pack exportar-tema <id> [flavor] [arquivo.tar.gz]
-#
-#   Um `.tar.gz` com três pastas de tema, prontas para `~/.local/share/icons/`:
-#     <nome>          o tema, com o nome do pack e do flavor (`MeowSystem-
-#                     Dracula-Icons`; o `tema-icones` do pack.py dá o nome e o
-#                     `Comment=`), herdando SÓ do que vai junto e do `hicolor`;
-#     <nome>-Base     a base que o pack traz (a frente), e
-#     <nome>-Base-<n> as camadas de trás dela, quando o pack as declara.
-#   Os recibos de instalação (`.meow-origem`, `.meow-somas.sha256`) e a cache
-#   não vão: são desta máquina, e quem instala refaz a cache.
-# O tema é montado numa casa de brinquedo, do pack e do exemplo: nenhuma escolha do
-# meow.conf de quem exporta viaja junto.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
-# A herança do exportado e o `Hidden=true` das bases.
 # shellcheck source=../lib/icones.sh
 . "$RAIZ/lib/icones.sh"
 
 ID="${1:-}"
 [ -n "$ID" ] || { meow_erro "uso: exportar_tema.sh <id> [flavor] [arquivo.tar.gz]"; exit "$MEOW_ERRO"; }
-# O id e o flavor entram num meow.conf que a casa de brinquedo carrega com `.`
-# (o `sed` lá embaixo): só da forma que o pack.py aceita (RE_ID e
-# RE_FLAVOR_CONF), para uma aspa ou um `$(` não virar código ao carregar.
 case "$ID" in ''|-*|*[!a-z0-9-]*) meow_erro "'$ID' não é um id de pack (minúsculas, dígitos e hífen)"; exit "$MEOW_ERRO" ;; esac
 if ! python3 "$RAIZ/scripts/pack.py" validar "$ID" >/dev/null 2>&1; then
   meow_erro "o pack '$ID' não valida — nada foi exportado"
@@ -42,8 +22,6 @@ import pack
 print(pack.campo(sys.argv[2], "paleta.flavor_padrao", "") or "")
 PY
 )"
-# O flavor pela mesma régua, e depois de resolvido: o padrão vem do pack.json,
-# e um pack importado é dado não confiável.
 case "$FLAVOR_PEDIDO" in *[!a-z0-9_]*) meow_erro "'$FLAVOR_PEDIDO' não é um nome de flavor (minúsculas, dígitos e '_')"; exit "$MEOW_ERRO" ;; esac
 saida_nome="$(python3 "$RAIZ/scripts/pack.py" tema-icones "$ID" "$FLAVOR_PEDIDO")" || exit "$MEOW_ERRO"
 NOME="$(printf '%s\n' "$saida_nome" | sed -n 's/^nome=//p')"
@@ -62,14 +40,10 @@ trap 'rm -rf "$CASA"' EXIT
 ICONES="$CASA/.local/share/icons"
 mkdir -p "$CASA/.config/meow" "$ICONES" || exit "$MEOW_ERRO"
 CONF="$CASA/.config/meow/meow.conf"
-# O conf de fábrica com o pack, o flavor e o nome do tema pedidos. O
-# `ICONES_BASE` sai: o de fábrica cede à base do pack de qualquer jeito, e a
-# linha a menos impede um valor antigo do exemplo de decidir a herança.
 sed -e "s/^PACK=.*/PACK=\"$ID\"/" -e "s/^FLAVOR=.*/FLAVOR=\"$FLAVOR_PEDIDO\"/" \
     -e "s/^NOME_TEMA_ICONES=.*/NOME_TEMA_ICONES=\"$NOME\"/" \
     -e '/^ICONES_BASE=/d' "$RAIZ/meow.conf.exemplo" > "$CONF" || exit "$MEOW_ERRO"
 
-# As bases que esta máquina já tem, pelo sha256 do pino — e só elas.
 _semear_bases() {
   local saida linhas n=1 sha d alvo
   saida="$(ICONES_BASE= NOME_TEMA_ICONES="$NOME" python3 "$RAIZ/scripts/pack.py" base-icones "$ID")" || return 0
@@ -88,9 +62,6 @@ _semear_bases() {
 }
 _semear_bases
 
-# etapa <rótulo> <linha de shell> — numa casa só dela, com o conf de lá
-# carregado como o `install.sh` o carrega (`set -a`), e a ponte do pack de pé.
-# A linha é a mesma do `etapa_*` do `install.sh` que tem esse nome.
 pulados=()
 etapa() {
   local rotulo="$1" linha="$2"
@@ -128,19 +99,11 @@ etapa indice     '"$MEOW_RAIZ/scripts/construir_icones.sh" indice'
 TEMA="$ICONES/$NOME"
 [ -f "$TEMA/index.theme" ] || { meow_erro "o tema '$NOME' não saiu montado — nada foi exportado"; exit "$MEOW_ERRO"; }
 
-# --- o que vai junto, e a herança que só aponta para ele --------------------
-#   O nosso herda as camadas da base que estão na casa (na ordem do índice) e o
-#   `hicolor`; cada base herda só o `hicolor` — o `Inherits=` do upstream
-#   (`-Dark,breeze-dark,Zafiro,…`) aponta para temas que não viajam.
-#   [P82, 15/10/2026 (item 12; decisão 20): e depois o `Cosmic` e o `Adwaita`,
-#   antes do `hicolor`, e cada base vai com o `Hidden=true`. A conta mora no
-#   `meow_tema_exportado_heranca` (lib/icones.sh), que diz as camadas.]
 _camadas="$(meow_tema_exportado_heranca "$ICONES" "$NOME")" || exit "$MEOW_ERRO"
 camadas=()
 [ -n "$_camadas" ] && mapfile -t camadas <<< "$_camadas"
 find "$TEMA" "${camadas[@]/#/$ICONES/}" -maxdepth 1 -name icon-theme.cache -delete 2>/dev/null
 
-# --- nenhum link para fora do que vai no arquivo ------------------------------
 fora="$(cd "$ICONES" && find "$NOME" "${camadas[@]}" -type l -print0 \
         | xargs -0 -r realpath -m -- 2>/dev/null | grep -v "^$(realpath -m "$ICONES")/" || true)"
 if [ -n "$fora" ]; then

@@ -1,23 +1,10 @@
 #!/usr/bin/env bash
-# vigia_assets.sh — liga (ou desliga) o vigia que faz `packs/meowsystem/mascote/` responder
-# na hora, em vez de esperar a volta do `meow-logo.timer`.
-#
-#   ./vigia_assets.sh              instala as unidades e liga o vigia
-#   ./vigia_assets.sh --conferir   não escreve; 1 se algo divergir
-#
-# O acervo de mascotes JÁ era a interface — soltar um SVG em `packs/meowsystem/mascote/` o põe
-# na rotação —, mas o efeito só chegava ao disco na volta seguinte do relógio,
-# que hoje é de um dia.
-#
-# Ela sugeriu "talvez no self heal".
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-# O que o vigia olha: o mascote, os papéis de parede e os temas de apps do
-# pack no ar e do pack-base, com as subpastas (o systemd olha uma pasta por linha).
 _pastas_vigiadas() {
   local dir sub
   for dir in "$(meow_pack_dir)" "$RAIZ/packs/meowsystem"; do
@@ -45,7 +32,6 @@ case "${1:-}" in
 esac
 meow_seco && CONFERIR=1
 
-# --- o texto que cada unidade deve ter no disco ------------------------------
 _texto_de() {
   local u="$1" texto
   texto="$(cat "$ORIGEM/$u" 2>/dev/null)" || return 1
@@ -67,8 +53,6 @@ _ligado() {
   [ "$(systemctl --user is-active  "$GATILHO" 2>/dev/null)" = "active" ]
 }
 
-# --- desligado: o que existe tem de SAIR -------------------------------------
-# Deixar de instalar não é desligar.
 _desligar() {
   local u restos=0
   for u in "${UNIDADES[@]}"; do [ -f "$DESTINO/$u" ] && restos=$((restos + 1)); done
@@ -88,7 +72,6 @@ _desligar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- as dependências ---------------------------------------------------------
 _pronto() {
   local u
   for u in "${UNIDADES[@]}"; do
@@ -97,8 +80,6 @@ _pronto() {
       return "$MEOW_ERRO"
     fi
   done
-  # Sem o acervo não há o que vigiar, e apontar o `.path` para um diretório que
-  # não existe no próprio clone seria instalar um vigia sem objeto.
   if [ -z "$(_pastas_vigiadas)" ]; then
     meow_pula "o pack no ar não tem mascote, papel de parede nem tema de app — nada a vigiar"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -111,7 +92,6 @@ _pronto() {
   return "$MEOW_OK"
 }
 
-# --- conferir ----------------------------------------------------------------
 _conferir() {
   local u texto divergentes=0
   for u in "${UNIDADES[@]}"; do
@@ -138,7 +118,6 @@ _conferir() {
   return "$MEOW_OK"
 }
 
-# --- aplicar -----------------------------------------------------------------
 _aplicar() {
   local u texto mudou=0 estado="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 
@@ -158,16 +137,11 @@ _aplicar() {
 
   [ "$mudou" = 1 ] && systemctl --user daemon-reload
 
-  # Um estouro do StartLimit deixa a unidade em `failed`, e nesse estado o
-  # `enable --now` não a levanta. Limpar antes é o que faz o `--consertar` de
-  # fato consertar, em vez de dizer que consertou.
   if [ "$(systemctl --user is-failed "$GATILHO" 2>/dev/null)" = "failed" ]; then
     systemctl --user reset-failed "$GATILHO" meow-assets.service >/dev/null 2>&1
     mudou=1
   fi
 
-  # Ligar só quando precisa: um `enable --now` incondicional reescreveria o link
-  # em `default.target.wants` e reiniciaria o vigia a cada execução.
   if ! _ligado; then
     if ! systemctl --user enable --now "$GATILHO" >/dev/null 2>&1; then
       meow_erro "não consegui ligar o $GATILHO"
@@ -176,8 +150,6 @@ _aplicar() {
     mudou=1
   fi
 
-  # Aviso honesto, não falha: as unidades ficam instaladas e o vigia ligado, mas
-  # cada disparo será PULADO pelo `ConditionPathExists=` até o ponteiro existir.
   if [ ! -f "$estado/raiz" ]; then
     meow_aviso "o vigia está ligado, mas $estado/raiz ainda não existe"
     meow_info "  até ele aparecer, cada disparo é pulado (o journal diz o motivo)"
@@ -192,7 +164,6 @@ _aplicar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# O disparo do vigia: refaz o que sai do pack. Cada um só escreve o que mudou.
 _disparo() {
   local rc pior=0
   "$RAIZ/scripts/logo.sh"; rc=$?; [ "$rc" = 1 ] && pior=1

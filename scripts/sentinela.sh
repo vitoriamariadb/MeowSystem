@@ -1,49 +1,32 @@
 #!/usr/bin/env bash
-# sentinela.sh — o COSMIC da fila do apt entra, ANTES de quem usa atualizar? (P86)
-#
-#   ./sentinela.sh           mede a fila do apt, grava o estado e, se algo obrigatório
-#                            não entra, põe UM cartão em `precisa-de-gente.tsv`
-#   ./sentinela.sh ler       imprime o último estado gravado
-#   MEOW_DRY_RUN=1 ./sentinela.sh   diz o que faria, sem escrever
-#
-# 0 = nada a fazer por gente · 1 = há vermelho (o cartão foi posto) · 2 = erro ·
-# 3 = sem apt
-#
-# `apt list --upgradable` (só leitura) separa os `cosmic-*` da fila.
-#
-# A assinatura da fila (pacote=versão, ordenada) fica no estado.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# O PATH do systemd do usuário não tem o `~/.cargo/bin`, onde moram `just` e `cargo`.
 SN_CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
 case ":$PATH:" in
   *":$SN_CARGO_BIN:"*) ;;
   *) [ -d "$SN_CARGO_BIN" ] && PATH="$SN_CARGO_BIN:$PATH" && export PATH ;;
 esac
 
-# Sobrescrevíveis para o teste; nenhum vira chave do meow.conf.
 SN_SAIDA="${SN_SAIDA:-$MEOW_ESTADO/sentinela.tsv}"
 SN_PREVER="${SN_PREVER:-$MEOW_RAIZ/scripts/cosmic_prever.sh}"
 SN_VEREDITO="${CV_SAIDA:-$MEOW_ESTADO/cosmic-candidato.tsv}"
 SN_ID="sentinela-cosmic"
 SN_NOME="O COSMIC da fila não entra"
 
-# pacote=versão dos cosmic-* que o apt atualizaria, ordenados.
 _sn_fila() {
   apt list --upgradable 2>/dev/null | sed -n 's#^\(cosmic-[^/]*\)/[^ ]* \([^ ]*\) .*#\1=\2#p' | sort
 }
 
-_sn_assinatura() { # stdin: a fila
+_sn_assinatura() {
   local f; f="$(cat)"
   [ -n "$f" ] || { printf 'nada'; return 0; }
   printf '%s' "$f" | sha256sum | cut -c1-16
 }
 
-# Medida que não chegou ao fim (sem rede, .deb ou fonte que não abriu).
 _sn_incompleto() { grep -qE 'não consegui abrir o \.deb|não foi baixado|não foi medida' "$1"; }
 
 cmd_ler() {
@@ -61,7 +44,7 @@ cmd_ler() {
   return "$MEOW_OK"
 }
 
-_sn_gravar() { # $1 assinatura · $2 fila · $3 cor · $4 arquivo do veredito (ou vazio)
+_sn_gravar() {
   local tmp
   mkdir -p "${SN_SAIDA%/*}" && tmp="$(mktemp -p "${SN_SAIDA%/*}" .sentinela.XXXXXX)" || return "$MEOW_ERRO"
   { printf '# gravado por sentinela.sh em %s — NAO EDITAR A MAO\n' "$(date -Is)"
@@ -104,7 +87,6 @@ cmd_rodar() {
   if awk -F'\t' '$2 == "vermelho" {a = 1} END {exit !a}' "$SN_VEREDITO"; then cor=vermelho
   elif awk -F'\t' '$2 == "amarelo" {a = 1} END {exit !a}' "$SN_VEREDITO"; then cor=amarelo
   else cor=verde; fi
-  # A medida incompleta não vira assinatura: o próximo dia tenta de novo.
   _sn_incompleto "$SN_VEREDITO" && sig="-"
   _sn_gravar "$sig" "$fila" "$cor" "$SN_VEREDITO" || return "$MEOW_ERRO"
   meow_registrar "sentinela.sh candidato=${fila//$'\n'/,} resultado=$cor"

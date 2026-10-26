@@ -1,21 +1,4 @@
 #!/usr/bin/env python3
-# folha_proposta.py — a folha de APROVAÇÃO da unificação em Arcticons.
-#
-#   Ela viu a folha `folha_icones.py`, aceitou trocar a marca colorida pelo
-#   traço, e escolheu:
-#     escopo   TODOS, inclusive os 8 do próprio COSMIC
-#     cor      por CATEGORIA (6 cores), não uma a uma nem uma só
-#     glifos   eu proponho, ela aprova AQUI antes de tocar no sistema
-#     os 3 sem glifo honesto (Flatseal, Gradia, Warehouse) ficam no Papirus
-#
-# A `folha_icones.py` responde "unificar em quê?" e continua verdadeira depois
-# que a resposta for dada — é o retrato do que está na tela hoje.
-#
-#   uso: scripts/folha_proposta.py [saida.html]
-#        (padrão: ~/Documentos/meow-icones-proposta.html)
-
-# Medido com `python3 scripts/<este arquivo>`: rc=1 antes, rc=0 depois. A
-# referência de caminho certo é `scripts/folha_conversor.py:82-83`.
 
 import base64
 import html
@@ -23,14 +6,8 @@ import json
 import os
 import sys
 
-# A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
 import pack
 
-# PyGObject/Gtk3 não é stdlib, e o badge do README promete "python 3 só stdlib".
-#
-# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única
-# das quatro que o instalador chama e que já tratava isso: mensagem que diz o
-# que falta e código de saída próprio, em vez de traceback.
 MEOW_SEM_DEPENDENCIA = 3
 try:
     import gi
@@ -44,12 +21,9 @@ except (ImportError, ValueError) as erro:
 
 HOME = os.path.expanduser('~')
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# Os mesmos bytes que a prévia guardava: o traço Arcticons do pack-base.
 PREVIA_DIR = os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps', 'arcticons')
 CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme')
 
-# A cor sai da paleta do PACK ATIVO, nunca de um hex escrito aqui — é a regra
-# que toda paleta do projeto carrega ("nenhum hex pode ser hardcoded em script").
 CATEGORIAS = [
     ('navegador', 'blue',     'Navegadores'),
     ('rede',      'sky',      'Conversa e rede'),
@@ -59,8 +33,6 @@ CATEGORIAS = [
     ('sistema',   'lavender', 'Sistema'),
 ]
 
-# (chave do `Icon=` · glifo no Arcticons · categoria · de onde veio a escolha)
-#   'marca' = o pack tem o aplicativo pelo nome; não há interpretação minha.
 PROPOSTA = [
     ('com.brave.Browser',        'brave',          'navegador', 'marca'),
     ('google-chrome',            'google-chrome',  'navegador', 'marca'),
@@ -165,9 +137,6 @@ def main():
         if not os.path.exists(arq):
             return None
         svg = open(arq, encoding='utf-8').read()
-        # A cor entra aqui do mesmo jeito que o `icones_apps_arcticons.sh` a
-        # instala: no lugar do literal `currentColor`. Assim a folha mostra o
-        # arquivo exato que iria para o tema, e não uma aproximação.
         svg = svg.replace('currentColor', cor_hex)
         return svg.replace('width="1em" height="1em"', 'width="100%" height="100%"')
 

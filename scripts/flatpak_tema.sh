@@ -1,32 +1,15 @@
 #!/usr/bin/env bash
-# flatpak_tema.sh — os apps Flatpak vestem o tema do pack no ar: o override do
-# usuário aponta para o tema de ícones, o cursor e o GTK que o MeowSystem instala,
-# com leitura nas pastas deles. Sem senha: `flatpak override --user`.
-#
-# USO
-#   flatpak_tema.sh aplicar [usuario|global]    grava o que falta (sem alvo, os dois)
-#   flatpak_tema.sh conferir [usuario|global]   0 = no ar · 1 = divergente · 3 = falta root
-#   flatpak_tema.sh reverter                    devolve o override de antes (o desinstalador)
-#
-# O override global do sistema (/var/lib/flatpak) é lido, e só o que aponta para
-# tema que não existe sai dele, pela ponte root (`flatpak-global-limpar`).
-#
-#   0 = certo · 1 = divergente (ou escrevi) · 2 = erro · 3 = falta dependência
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# Só o teste muda onde o sistema guarda os temas; o override global segue o
-# FLATPAK_SYSTEM_DIR do próprio flatpak.
 FT_SISTEMA="${FLATPAK_TEMA_SISTEMA:-/usr/share}"
 FT_RAIZES_ICONES=("$HOME/.local/share/icons" "$HOME/.icons" "$FT_SISTEMA/icons")
 FT_RAIZES_TEMAS=("$HOME/.local/share/themes" "$HOME/.themes" "$FT_SISTEMA/themes")
 FT_USUARIO="${FLATPAK_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/flatpak}/overrides/global"
 FT_GLOBAL="${FLATPAK_SYSTEM_DIR:-/var/lib/flatpak}/overrides/global"
-# O que cada chave valia ANTES de o MeowSystem tocá-la, e as pastas que ele
-# acrescentou: só o primeiro estado de cada uma entra, é o que o reverter devolve.
 FT_ANTES="$MEOW_ESTADO/flatpak-tema-antes.tsv"
 FT_CHAVES=(ICON_THEME XCURSOR_THEME GTK_THEME)
 
@@ -45,33 +28,30 @@ case "$ACAO" in
   *) meow_erro "uso: flatpak_tema.sh [aplicar|conferir] [usuario|global] | reverter"; exit "$MEOW_ERRO" ;;
 esac
 case "$ALVO" in tudo|usuario|global) ;; *) meow_erro "alvo desconhecido: $ALVO"; exit "$MEOW_ERRO" ;; esac
-# shellcheck disable=SC2034  # quem lê MEOW_SECO é o meow_seco() do comum.sh
+# shellcheck disable=SC2034
 [ "$ACAO" = "conferir" ] && MEOW_SECO=1
 
-# --- leitura do keyfile -------------------------------------------------------
-_ft_env() { # $1 arquivo · $2 chave -> o valor no [Environment]
+_ft_env() {
   [ -f "$1" ] || return 0
   awk -v k="$2" '/^\[/ { g = $0; next }
                  g == "[Environment]" && index($0, k "=") == 1 { print substr($0, length(k) + 2); exit }' "$1"
 }
-_ft_fs() { # $1 arquivo -> as entradas do filesystems do [Context], uma por linha
+_ft_fs() {
   [ -f "$1" ] || return 0
   awk '/^\[/ { g = $0; next }
        g == "[Context]" && index($0, "filesystems=") == 1 { print substr($0, 13); exit }' "$1" | tr ';' '\n' | sed '/^$/d'
 }
-# Sem ":ro" ou com ":rw" a pasta já está liberada para leitura.
-_ft_fs_tem() { # $1 arquivo · $2 entrada com :ro
+_ft_fs_tem() {
   local base="${2%:ro}"
   _ft_fs "$1" | grep -qxF -e "$2" -e "$base" -e "$base:rw"
 }
 
-# --- o que o pack no ar manda vestir -----------------------------------------
-_ft_raiz_de() { # $1 pasta do tema · $2.. raízes -> a primeira onde ela existe
+_ft_raiz_de() {
   local nome="$1" r; shift
   for r in "$@"; do [ -d "$r/$nome" ] && { printf '%s' "$r"; return 0; }; done
   return 1
 }
-_ft_entrada_fs() { # a raiz como o --filesystem a escreve
+_ft_entrada_fs() {
   case "$1" in
     "$HOME/.local/share/icons")  printf 'xdg-data/icons:ro' ;;
     "$HOME/.local/share/themes") printf 'xdg-data/themes:ro' ;;
@@ -79,15 +59,11 @@ _ft_entrada_fs() { # a raiz como o --filesystem a escreve
     *)                           printf '%s:ro' "$1" ;;
   esac
 }
-# Sem barramento o cliente do dconf cria ~/.cache/dconf/user sozinho: a leitura
-# escreveria.
 _ft_gsettings() {
   meow_tem gsettings || return 1
   if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then DCONF_PROFILE=/dev/null gsettings "$@"; else gsettings "$@"; fi
 }
 
-# Preenche DESEJO (chave -> valor) e DESEJO_FS (entradas), só com o que existe
-# no disco: apontar para tema que falta é o defeito que isto veio tirar.
 declare -A DESEJO=()
 DESEJO_FS=()
 _ft_somar_fs() {
@@ -101,8 +77,6 @@ _ft_querer() {
   if raiz="$(_ft_raiz_de "$nome" "${FT_RAIZES_ICONES[@]}")"; then
     DESEJO[ICON_THEME]="$nome"; _ft_somar_fs "$raiz"
   fi
-  # Mesma regra do cursor.sh: a pasta de nome exato, senão `<valor>-cursors`.
-  # CURSOR vazio é «não toca», e aqui também.
   if [ -n "${CURSOR:-}" ]; then
     nome="$CURSOR"
     _ft_raiz_de "$nome" "${FT_RAIZES_ICONES[@]}" >/dev/null || nome="$CURSOR-cursors"
@@ -120,7 +94,6 @@ _ft_querer() {
   fi
 }
 
-# O que falta no override do usuário: preenche FALTA_ENV ("CHAVE=valor") e FALTA_FS.
 FALTA_ENV=(); FALTA_FS=()
 _ft_o_que_falta() {
   local k e
@@ -134,7 +107,6 @@ _ft_o_que_falta() {
   done
 }
 
-# Grava o estado de antes das chaves e pastas que este passo vai mexer, uma vez.
 _ft_guardar_antes() {
   local texto="" k par e antes
   [ -f "$FT_ANTES" ] && texto="$(cat "$FT_ANTES")"
@@ -151,7 +123,6 @@ _ft_guardar_antes() {
   meow_escrever "$FT_ANTES" "$texto" 644 >/dev/null
 }
 
-# --- o override do usuário ----------------------------------------------------
 cmd_usuario() {
   local modo="$1" par args=() e vestido=""
   meow_tem flatpak || { meow_pula "sem flatpak — nenhum app a vestir"; return "$MEOW_OK"; }
@@ -188,8 +159,6 @@ cmd_usuario() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- o override global do sistema ---------------------------------------------
-# O que aponta para tema que não existe: "CHAVE=valor", um por linha.
 _ft_global_velhos() {
   local k v
   [ -f "$FT_GLOBAL" ] || return 0
@@ -233,8 +202,6 @@ cmd_global() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- juntar os dois -----------------------------------------------------------
-# Erro vence, depois o que mudou, depois a falta de root.
 cmd_tudo() {
   local modo="$1" ru=0 rg=0
   case "$ALVO" in usuario|tudo) cmd_usuario "$modo"; ru=$? ;; esac
@@ -246,7 +213,6 @@ cmd_tudo() {
   return "$ru"
 }
 
-# --- reverter: o desinstalador devolve o de antes ------------------------------
 cmd_reverter() {
   local mudou
   if [ ! -f "$FT_ANTES" ]; then

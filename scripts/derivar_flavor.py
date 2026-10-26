@@ -1,80 +1,4 @@
 #!/usr/bin/env python3
-"""Deriva a captura de um FLAVOR sem fotografia a partir de outro do mesmo lado.
-
-O DEFEITO QUE ESTE ARQUIVO FECHA — 25/09/2026, sprint P59
-    Com o Dracula no ar, «Variante do tema» oferecia o Alucard, e escolhê-lo
-    terminava em «APLICOU, COM PENDÊNCIA»: «não há captura para
-    'alucard-mauve'». O desktop não mudou nada, o painel se vestiu de claro, e
-    a gaveta ainda mandava rodar `sudo -v && ./install.sh`. A P48 já tinha
-    medido o mesmo buraco no Catppuccin: `frappe` e `macchiato` nunca foram
-    fotografados, e o `derivar_acento.py` só sabe trocar o ACENTO de uma
-    captura do MESMO flavor — sem foto nenhuma do flavor, não havia de onde.
-
-O QUE FOI MEDIDO ANTES DE ESCREVER UMA LINHA
-    1. Toda captura traz as DUAS árvores (docs/COSMIC-THEMING.md §2b), e a
-       RECEITA de cada uma (`<Árvore>.Builder/v2`) é a paleta do flavor posta
-       pelo `assets/paleta/cosmic-map.json`: os 33 slots da `palette`, e o
-       `neutral_tint`, `bg_color`, `primary_container_bg`, `text_tint`,
-       `accent`, `success`, `warning` e `destructive` do topo. Conferido slot a
-       slot nas quatro capturas: a Light do latte-mauve, a Dark do mocha-pink e
-       as duas do dracula-mauve são EXATAMENTE a paleta pelo mapa — a Light do
-       dracula-mauve pela paleta do LATTE, e não a do alucard: a foto do
-       Dracula traz no claro o Latte do Catppuccin (`catppuccin-latte`, a
-       receita igual à do latte-mauve; visto na revisão da P59, e desfeito
-       pela P63: desde ela a Light da foto é o alucard, ver a seção 7). A única
-       exceção é a Dark do mocha-mauve, cujo `neutral_tint` é float (0.5175,
-       0.5266, 0.5907): a GUI dela o mexeu, e ele não é slot de paleta nenhuma.
-    2. O PRODUTO (`<Árvore>/v2`) não é paleta: é o que o `ThemeBuilder::build()`
-       do libcosmic DERIVA dela. Contado na Light/v2 do latte-mauve: 256 cores
-       fora o arquivo `palette`, e 180 delas não têm o RGB de slot nenhum. São
-       as neutras (a escada de 11 degraus do `neutral_tint` e a de 100 dele
-       para o `small_widget`), o texto (a escada do `text_tint`), as
-       superfícies (a escada do `bg_color` e a de cada contêiner), o vidro (o
-       alpha do `alpha_map` no nível do `frosted`, que entra nos
-       `transparent_*` e empurra o texto em degraus) e os estados dos botões
-       por composição. Trocar hex por hex no produto daria o tema híbrido que o
-       docs/COSMIC-THEMING.md proíbe: a paleta nova com as sombras da velha.
-    3. Então a derivação troca a RECEITA slot a slot — o caminho da P56 nas
-       pastas e da P48 no acento — e REFAZ o produto com o `build()` do
-       libcosmic, portado abaixo em f32, operação por operação. O oráculo da
-       P48 (o `build()` de verdade, compilado do commit c003a58 que está no
-       ~/.cargo desta máquina) conferiu a porta, e as bases dão elas mesmas. Na
-       receita trocada de cada flavor novo, nos 14 acentos, 1470 dos 1596
-       arquivos do produto saem iguais aos do oráculo byte a byte; os outros
-       126 diferem só no que a derivação deixa com a base — a quebra de linha
-       final do `corner_radii` e do `gaps`, que não são cor (42 cada), e o
-       alpha da Aurora no `base:` do `secondary` (42; ver abaixo). Recontado em
-       25/09/2026, na revisão da P59: a frase dizia «a mesma árvore, byte a
-       byte», e não era.
-
-O QUE NÃO SE DERIVA, DITO PELO NOME
-    · O OUTRO LADO. A Dark do `latte-mauve` é o Mocha do Catppuccin, e trocar
-      latte por alucard não a toca. O par escuro do alucard é o do pack no ar
-      (o `flavor_padrao`, dracula), e ela sai da captura DELE, no mesmo acento
-      — a fotografia, ou a derivada da P48. Do mesmo jeito, a Light de um
-      escuro sai da captura do primeiro `claros` do pack.
-    · O VIDRO. `frosted` e `alpha_map` não são cor: vêm da base. O alpha deles
-      no produto é o que o `build()` faz com eles, e a P58 é quem o alinha ao
-      COSMIC instalado.
-    · O ALPHA DO `base:` DE background, primary E secondary, que é da Aurora
-      (ver o `aplicar_tema.sh`): ela copia para lá o alpha do `transparent_*`.
-      A captura guarda o que a Aurora escreveu, e a derivada guarda os mesmos
-      dois dígitos da base — o vidro é o mesmo, então a Aurora escreveria os
-      mesmos.
-    · Uma base cuja receita não é a paleta pelo mapa (o `neutral_tint` do
-      mocha-mauve) não serve: a troca slot a slot não sabe para onde levar um
-      valor que não é slot, e a derivação diz qual campo parou.
-
-A REGRA DO LADO — medida no código e no pack.json, e ela decide o que se deriva
-    Quem escolhe a árvore que aparece é o `Mode/v1/is_dark`, e quem o escreve é
-    o MODO, e só ele (`etapa_modo`, `meow tema claro|escuro|auto`, a cessão do
-    `aplicar_tema.sh`). O FLAVOR escolhe a captura; a captura traz as duas
-    árvores; e o pack diz quem responde por cada lado: `claros` pelo claro
-    (docs/PACKS.md), e o `_nota_claro` do Dracula diz que o modo claro do COSMIC
-    passou a alternar para um Dracula, e não para o tema de outro pack. Por isso a
-    derivada de um flavor claro leva o escuro DO PACK no outro lado — e é por
-    isso que FLAVOR=alucard com MODO=escuro veste o dracula, e não o alucard.
-"""
 from __future__ import annotations
 
 import json
@@ -86,23 +10,18 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "scripts"))
 import pack  # noqa: E402
-import gerar_tema_v1 as v1  # noqa: E402  — o parser RON e a v1
-import derivar_acento as da  # noqa: E402  — a f32, o Oklch e as escadas da P48
+import gerar_tema_v1 as v1  # noqa: E402
+import derivar_acento as da  # noqa: E402
 
 MAPA = RAIZ / "assets" / "paleta" / "cosmic-map.json"
 
 f32 = da.f32
 
-# Os arquivos do produto que o `build()` escreve com cor, na forma de cada um.
 CONTEINERES = da.CONTAINERS
 COMPONENTES = da.COMPONENTES
-# Os três cujo `base:` raiz tem o alpha da Aurora (o `CHAVES_ALPHA_AURORA` do
-# aplicar_tema.sh). Ver o cabeçalho: os dois dígitos ficam os da base.
 DA_AURORA = ("background", "primary", "secondary")
 
 
-# O `steps()` do libcosmic devolve 100 cores, e o `build()` lê UMA ou duas de
-# cada escada.
 class Escada:
     def __init__(self, cor, n):
         _, self.croma, self.matiz = da._para_oklch(cor[:3])
@@ -124,7 +43,6 @@ class Escada:
 
 
 class Invertida:
-    """A escada ao contrário — o `control_steps_array.reverse()` do claro."""
     def __init__(self, escada):
         self.e = escada
 
@@ -147,14 +65,12 @@ def _vizinho(base, passos, n, escuro):
 
 
 def superficie(base, passos, escada, escuro, reserva):
-    """`get_surface_color` do steps.rs."""
     escuro = escuro or base < 91
     i = _vizinho(base, passos, len(escada), escuro)
     return escada[i] if i is not None else reserva
 
 
 def texto(base, escada, reserva, tinta, alfa):
-    """`get_text` do steps.rs, com a conta do alpha em f32."""
     if tinta is not None:
         escada = tinta
     extra = da._arred_rust(f32(f32(1.0 - alfa) * f32(100.0))) if alfa < 1.0 else 0
@@ -167,8 +83,6 @@ def texto(base, escada, reserva, tinta, alfa):
     return escada[i] if i < len(escada) else reserva
 
 
-# `get_small_widget_color` prende o croma do degrau em 3% do máximo do CIE LCh
-# (128, o `Lch::max_chroma()` do palette 0.7).
 _M_RGB_XYZ = tuple(f32(x) for x in (
     0.4124564, 0.3575761, 0.1804375,
     0.2126729, 0.7151522, 0.0721750,
@@ -191,7 +105,6 @@ _TRES_POR_CENTO = f32(f32(0.03) * _CROMA_MAX)
 
 
 def _mat(m, v):
-    """`multiply_3x3_and_vec3`: cada produto arredonda, e a soma é da esquerda."""
     x, y, z = v
     return (f32(f32(f32(m[0] * x) + f32(m[1] * y)) + f32(m[2] * z)),
             f32(f32(f32(m[3] * x) + f32(m[4] * y)) + f32(m[5] * z)),
@@ -235,7 +148,6 @@ def _de_lch(L, croma, matiz):
 
 
 def widget_pequeno(base, passos, escada, reserva):
-    """`get_small_widget_color` do steps.rs."""
     escuro = base <= 40 or (51 < base < 65)
     i = _vizinho(base, passos, len(escada), escuro)
     res = escada[i] if i is not None else reserva
@@ -245,9 +157,6 @@ def widget_pequeno(base, passos, escada, reserva):
     return res
 
 
-# ===========================================================================
-# 3. OS COMPONENTES — derivation.rs
-# ===========================================================================
 def _alfa(c, a):
     return (c[0], c[1], c[2], f32(a))
 
@@ -257,7 +166,6 @@ def _meio_alfa(c):
 
 
 def componente(base, acento, sobre_ele, pairar, apertar, alto_contraste, borda):
-    """`Component::component`."""
     on_20 = _alfa(sobre_ele, 0.2)
     on_65 = _alfa(on_20, 0.65)
     transparente = base[3] < 0.001
@@ -278,7 +186,6 @@ def componente(base, acento, sobre_ele, pairar, apertar, alto_contraste, borda):
 
 
 def colorido(base, neutra, acento, pairar, apertar):
-    """`Component::colored_component`."""
     base_50 = _meio_alfa(base)
     return {
         "base": base,
@@ -297,7 +204,6 @@ def colorido(base, neutra, acento, pairar, apertar):
 
 
 def botao(base, sobreposto, sobre_ele, acento, pairar, apertar):
-    """`Component::colored_button`."""
     c = colorido(base, sobreposto, acento, pairar, apertar)
     c["on"] = sobre_ele
     c["on_disabled"] = _alfa(sobre_ele, 0.5)
@@ -305,7 +211,6 @@ def botao(base, sobreposto, sobre_ele, acento, pairar, apertar):
 
 
 def conteiner(comp, base, sobre_ele, pequeno, alto_contraste):
-    """`Container::new`."""
     return {
         "base": base,
         "component": comp,
@@ -315,11 +220,7 @@ def conteiner(comp, base, sobre_ele, pequeno, alto_contraste):
     }
 
 
-# ===========================================================================
-# 4. A RECEITA, LIDA; E O `build()` INTEIRO
-# ===========================================================================
 def _snake(nome):
-    """`VeryHigh2` -> `very_high_2`: a chave do `alpha_map` para o `frosted`."""
     saida = ""
     for i, ch in enumerate(nome):
         if ch.isupper() and i:
@@ -331,9 +232,6 @@ def _snake(nome):
 
 
 def _opcao_cor(txt, opaca=False):
-    """`Some(cor)` -> rgba em f32; `None` -> None. `opaca` para os campos que o
-    `ThemeBuilder` guarda como `Srgb`, sem alpha: o que a receita escrever de
-    alpha neles não chega à conta."""
     txt = txt.strip()
     if txt.startswith("None"):
         return None
@@ -342,7 +240,6 @@ def _opcao_cor(txt, opaca=False):
 
 
 def ler_receita(receita: dict) -> dict:
-    """Os valores do `ThemeBuilder` que o `build()` usa, de {chave: texto}."""
     pal_no = v1.parse(receita["palette"])
     if pal_no[0] != "nomeado":
         raise ValueError("a palette da receita não diz se é Dark ou Light")
@@ -381,14 +278,6 @@ def _opaca(c):
 
 
 def build(r: dict, regra_do_19=False) -> dict:
-    """`ThemeBuilder::build()` do theme.rs (c003a58, com o aperto do fundo do
-    5a8bd94 — o COSMIC 1.10, P82), campo a campo.
-
-    Devolve {arquivo: {caminho: rgba}} para as cores e {arquivo: rgba|None}
-    para o `accent_text`. A ORDEM das contas é a do Rust, e ela importa: o
-    `component_hovered_overlay` é reatribuído dentro do `primary` e do
-    `secondary`, e o `background` (que vem depois do `primary` no texto) usa o
-    do primary; o `transparent_background`, o do secondary."""
     escuro, hc, pal = r["escuro"], r["alto_contraste"], r["paleta"]
     vidro = r["vidro"]
     alfa_real = vidro if r["algum_vidro"] else 1.0
@@ -416,12 +305,7 @@ def build(r: dict, regra_do_19=False) -> dict:
         return _alfa(c, 0.1), _alfa(c, 0.2)
 
     pairar_comp, apertar_comp = sobrevoo(i_bg)
-    # No libcosmic do COSMIC 1.10 (5a8bd94) o `background` ganhou um
-    # `background_pressed_overlay` derivado do `bg_index`; antes ele recebia o
-    # `component_pressed_overlay` reatribuído pelo bloco do `primary`.
     _pairar_fundo, apertar_fundo = sobrevoo(i_bg)
-    # `regra_do_19`: a conta do 1.9, que só a guarda das capturas usa (as fotos
-    # da GUI tiradas antes do 1.10 fecham por ela; ver `conferir_base`).
     fundo_botao = _alfa(controle[7], 0.25)
     pairar_botao, apertar_botao = _alfa(controle[5], 0.2), _alfa(controle[2], 0.5)
 
@@ -430,7 +314,6 @@ def build(r: dict, regra_do_19=False) -> dict:
     comp_bg_vidro = superficie(i_bg, 8, escada_vidro, escuro, pal["neutral_2"])
     on_comp_bg_vidro = texto(_indice(comp_bg_vidro), escada, controle[8], tinta, alfa_real)
 
-    # primary
     fundo = r["primary_container_bg"]
     if fundo is None:
         fundo = superficie(i_bg, 5, escada, escuro, controle[1])
@@ -444,7 +327,6 @@ def build(r: dict, regra_do_19=False) -> dict:
         fundo, texto(i_p, esc_p, controle[8], tinta, vidro),
         widget_pequeno(i_p, 5, neutras, controle[6]), hc)
 
-    # transparent_primary
     fundo = r["primary_container_bg"]
     if fundo is None:
         fundo = superficie(i_bg, 5, escada, escuro, controle[1])
@@ -459,7 +341,6 @@ def build(r: dict, regra_do_19=False) -> dict:
         fundo, texto(i_tp, escada, controle[8], tinta, alfa_real),
         widget_pequeno(i_tp, 5, neutras, controle[6]), hc)
 
-    # accent_text
     base_p = primary["base"]
     if escuro:
         fundo_txt, reserva_txt = base_p, (1.0, 1.0, 1.0, 1.0)
@@ -473,8 +354,6 @@ def build(r: dict, regra_do_19=False) -> dict:
         acento_texto = reserva_txt if da.contraste(fundo_txt, t) < 4.0 else t
 
     produto = {}
-    # background — com o sobrevoo do PRIMARY, que é o que está na variável aqui,
-    # e o aperto do próprio fundo (o 1.10; ver o `apertar_fundo` lá em cima)
     produto["background"] = conteiner(
         componente(comp_bg, acento, on_comp_bg, pairar_comp,
                    apertar_comp if regra_do_19 else apertar_fundo, hc, controle[8]),
@@ -482,7 +361,6 @@ def build(r: dict, regra_do_19=False) -> dict:
         widget_pequeno(i_bg, 5, neutras, controle[6]), hc)
     produto["primary"] = primary
 
-    # secondary
     fundo = r["secondary_container_bg"]
     if fundo is None:
         fundo = superficie(i_bg, 10, escada, escuro, controle[2])
@@ -522,7 +400,6 @@ def build(r: dict, regra_do_19=False) -> dict:
     produto["warning_button"] = botao(aviso, controle[10], controle[0], acento,
                                       pairar_botao, apertar_botao)
 
-    # transparent_background — com o sobrevoo do SECONDARY, pelo mesmo motivo
     produto["transparent_background"] = conteiner(
         componente(comp_bg_vidro, acento, on_comp_bg_vidro, pairar_comp, apertar_comp, hc, controle[8]),
         bg_vidro, texto(i_bg, escada, controle[8], tinta, alfa_real),
@@ -556,15 +433,11 @@ def build(r: dict, regra_do_19=False) -> dict:
             "shade": (0.0, 0.0, 0.0, f32(0.32)) if escuro else (0.0, 0.0, 0.0, f32(0.08))}
 
 
-# ===========================================================================
-# 5. A TROCA DA RECEITA, SLOT A SLOT — E A GUARDA
-# ===========================================================================
 def _mapa():
     return json.loads(MAPA.read_text(encoding="utf-8"))
 
 
 def _trocar_literal(texto: str, caminho: str, novo: str) -> str:
-    """Troca um literal que não é cor (o `name` da paleta) no lugar."""
     tipo, _valor, no = da._campos(texto)[caminho]
     if tipo != "lit" or no[0] != "lit":
         raise ValueError(f"o campo {caminho} não é um literal")
@@ -573,13 +446,6 @@ def _trocar_literal(texto: str, caminho: str, novo: str) -> str:
 
 
 def _trocar_paleta(texto: str, de: dict, para: dict, nome: str) -> str:
-    """A `palette` da receita (ou a do produto, que é a mesma sem o `Light(`),
-    com cada um dos slots do mapa levado do flavor de origem ao de destino.
-
-    A troca confere antes de trocar: o hex que está lá TEM de ser o do slot que
-    o mapa diz, no flavor de origem. É o que separa "slot a slot" de "hex a
-    hex" — no Dracula `blue` e `overlay0` são o mesmo #6272A4, e só o mapa
-    sabe qual dos dois um campo é."""
     campos = da._campos(texto)
     trocas = {}
     for slot, papel in _mapa()["palette"].items():
@@ -596,9 +462,6 @@ def _trocar_paleta(texto: str, de: dict, para: dict, nome: str) -> str:
 
 def trocar_receita(receita: dict, de: dict, acento_de: str, para: dict, acento_para: str,
                    nome: str) -> dict:
-    """{chave: texto novo} da `Builder/v2`, só do que muda. ValueError diz o
-    campo da base que não é o slot que o mapa manda — a "chave que não se
-    deriva"."""
     mapa = _mapa()
     novos = {"palette": _trocar_paleta(receita["palette"], de, para, nome)}
     for campo, papel in mapa["topo"].items():
@@ -612,8 +475,6 @@ def trocar_receita(receita: dict, de: dict, acento_de: str, para: dict, acento_p
         tipo, valor, _no = da._campos(txt).get(".", (None, None, None))
         if tipo != "cor" or valor.upper()[:7] != de[origem].upper():
             raise ValueError(f"{campo} é {txt.strip()[:40]}, e o {origem} do flavor de origem é {de[origem]}")
-        # O alpha fica o da base: é o do `bg_color` (o D9 do cosmic-map), que é
-        # escolha de vidro, não de paleta.
         novo = da._trocar_no_lugar(txt, {".": para[destino].upper() + valor.upper()[7:9]})
         if novo != txt:
             novos[campo] = novo
@@ -627,19 +488,7 @@ def _hex_do_build(b: dict) -> dict:
 
 
 def conferir_base(receita: dict, produto: dict, arvore: str):
-    """A GUARDA DA P48, com o `build()` inteiro: a base tem de se reproduzir.
-
-    Uma captura cujo produto não é o que o COSMIC escreve com a receita dela é
-    fotografia de outro momento (medido: a Light do dracula-mauve tinha o vidro
-    8A no produto e VeryHigh2 na receita, até a P63 a trocar pela derivada do
-    alucard; a Dark do mocha-mauve, a neutra que a GUI dela mexeu) — derivar
-    dela seria o tema híbrido. O alpha da Aurora no
-    `base:` dos três contêineres fica fora da conta, como no `--conferir` do
-    aplicar_tema.sh."""
     b = build(ler_receita(receita))
-    # O COSMIC 1.10 mudou um campo só, o aperto do `background`; uma captura da
-    # GUI tirada antes dele traz o valor do 1.9, e continua sendo a foto
-    # honesta da receita dela.
     b19 = _hex_do_build(build(ler_receita(receita), regra_do_19=True))
     nao_fecha = []
     for arq, cams in _hex_do_build(b).items():
@@ -667,11 +516,6 @@ def conferir_base(receita: dict, produto: dict, arvore: str):
 
 
 def escrever_produto(produto: dict, receita_nova: dict, b: dict) -> dict:
-    """O produto novo, no lugar, sobre o texto do produto da base.
-
-    A grafia é a que o COSMIC escreveu na base (hex continua hex), e o que não é
-    cor — o vidro, os raios, os gaps, o `is_dark` — não muda: a receita nova só
-    trocou cor."""
     saida = {}
     for arq, cams in _hex_do_build(b).items():
         txt = produto[arq]
@@ -694,8 +538,6 @@ def escrever_produto(produto: dict, receita_nova: dict, b: dict) -> dict:
     nome = da._campos(receita_nova["palette"])["name"][1]
     if "name" in produto and produto["name"].strip() != nome:
         saida["name"] = nome
-    # A `palette` do produto é a da receita sem o `Light((`/`Dark((`: a mesma
-    # troca, feita no texto do produto, sai na grafia dele.
     if "palette" in produto:
         de = {c: v for c, (t, v, _n) in da._campos(produto["palette"]).items() if t == "cor"}
         para = {c: v for c, (t, v, _n) in da._campos(receita_nova["palette"]).items() if t == "cor"}
@@ -713,8 +555,6 @@ def _ler_arvore(dir_: Path) -> dict:
 
 def derivar_lado(base: Path, arvore: str, de: dict, acento_de: str, para: dict, acento_para: str,
                  nome: str) -> dict:
-    """{caminho relativo: texto} da árvore `arvore` (produto v2 e v1, receita v2)
-    da base levada ao flavor de destino. Só o que muda; ValueError diz por quê."""
     rec_d = base / f"com.system76.CosmicTheme.{arvore}.Builder" / "v2"
     prod_d = base / f"com.system76.CosmicTheme.{arvore}" / "v2"
     receita, produto = _ler_arvore(rec_d), _ler_arvore(prod_d)
@@ -739,11 +579,7 @@ def derivar_lado(base: Path, arvore: str, de: dict, acento_de: str, para: dict, 
     return saida
 
 
-# ===========================================================================
-# 6. A CAPTURA INTEIRA: A BASE DO MESMO LADO, E O PAR DO PACK DO OUTRO
-# ===========================================================================
 def _pack_da_captura(captura: Path):
-    """O diretório do pack que contém a captura (o que tem `pack.json` acima)."""
     d = captura.resolve()
     while d != d.parent:
         if (d / "pack.json").is_file():
@@ -768,14 +604,6 @@ def _lado(flavor: str, paleta: dict) -> str:
 
 
 def par_do_outro_lado(flavor: str, paleta: dict):
-    """Quem veste o OUTRO lado quando o FLAVOR é `flavor`, pelo pack no ar.
-
-    O claro de um escuro é o primeiro `claros` da paleta — o mesmo que o
-    `_flavor_no_modo` do painel e o `terminal.sh` já usam. O escuro de um claro
-    é o `flavor_padrao` do pack, que é o que a captura fotografada de um claro
-    já traz (a Dark do `latte-mauve` é o Mocha, o padrão do Catppuccin); se o
-    padrão for claro, o primeiro escuro da paleta. None: o pack não tem o
-    outro lado."""
     flavors = paleta.get("flavors") or {}
     claros = [c for c in (paleta.get("claros") or []) if c in flavors]
     if flavor not in claros:
@@ -794,9 +622,6 @@ def _nome_da_paleta(flavor: str) -> str:
 
 
 def _outro_lado(par_do_par: str, outro: str, paleta: dict) -> dict:
-    """{rel: bytes} das duas árvores do `outro` lado, tiradas da captura do par:
-    a fotografia, ou a derivada da P48 (sem escrever nada). ValueError se o par
-    não tem captura nem se deriva do acento."""
     p = da.plano(par_do_par, paleta, _flavor=False)
     prefixos = (f"com.system76.CosmicTheme.{outro}/", f"com.system76.CosmicTheme.{outro}.Builder/")
     if p["estado"] == "fotografia":
@@ -809,11 +634,6 @@ def _outro_lado(par_do_par: str, outro: str, paleta: dict) -> dict:
 
 
 def plano(par: str, paleta: dict, _com_par: bool = True) -> dict:
-    """O que se sabe de `<flavor>-<acento>` quando o flavor NÃO tem fotografia.
-
-    Mesmo contrato do `plano` do derivar_acento.py, que é quem chama: `estado`
-    `derivavel` (com `base`, `arvore`, `acento`, `dir_base`, `arquivos` — o
-    lado derivado — e `conteudo`, a captura inteira) ou `nao` (e o `motivo`)."""
     flavor, nome_acento = da._separar(par)
     saida = {"par": par, "estado": "nao", "motivo": "", "base": None}
     cores = (paleta.get("flavors") or {}).get(flavor) or {}
@@ -854,8 +674,6 @@ def plano(par: str, paleta: dict, _com_par: bool = True) -> dict:
                                f"COSMIC não têm de onde vir")
         return saida
 
-    # O CONTEÚDO: a base inteira, menos as duas árvores do outro lado, que são
-    # as do par do pack no mesmo acento.
     parceiro = par_do_outro_lado(flavor, paleta) if _com_par else None
     como = f"o {fl_c} trocado slot a slot pelo {flavor}"
     lado_do_par = None
@@ -877,19 +695,7 @@ def plano(par: str, paleta: dict, _com_par: bool = True) -> dict:
     return saida
 
 
-# O pack diz o contrário: o claro do dracula é o alucard (`claros` da paleta, o
-# `_nota_claro` do pack.json), e a página e a prévia já o desenhavam assim.
-#
-# O lado de uma captura que não é o do flavor dela é o do PAR do pack nesse lado
-# (`par_do_outro_lado`), no MESMO acento — a regra que a seção 6 já dá à
-# derivada de um flavor sem foto (o escuro do alucard-pink é o dracula-pink).
 def lado_do_par(par: str, paleta: dict):
-    """O lado que a captura `par` (`<flavor>-<acento>`) leva do par do pack.
-
-    Devolve {"par", "arvore", "base", "conteudo"} — `conteudo` são os bytes das
-    duas árvores desse lado, produto e receita. None quando o pack não tem par
-    do outro lado, ou quando o par tem fotografia. ValueError, com o motivo em
-    português de tela, quando o par não se deriva."""
     flavor, nome_acento = da._separar(par)
     parceiro = par_do_outro_lado(flavor, paleta)
     if not parceiro:
@@ -909,19 +715,11 @@ def lado_do_par(par: str, paleta: dict):
 
 
 def linha_do_lado(lado: dict) -> str:
-    """A linha do captura.txt que diz de onde veio o lado do par. A mesma na
-    foto e na derivada de acento, e sem data: a captura tem de sair igual byte
-    a byte a cada passagem."""
     nome = "claro" if lado["arvore"] == "Light" else "escuro"
     return f"{nome}: o do {lado['par']}, derivado de {lado['base']} (scripts/derivar_flavor.py)"
 
 
-# `derivar_flavor.py dracula-mauve` escreve na FOTOGRAFIA as duas árvores do
-# lado do par, e a linha que diz de onde vieram; o resto da foto (a Dark, o
-# Mode, a data) não muda um byte.
 def refazer_foto(par: str, paleta: dict, conferir: bool = False) -> tuple[int, str]:
-    """(0, frase) já confere; (1, frase) escreveu, ou escreveria no `conferir`;
-    (3, frase) não há o que pôr, e a frase diz por quê."""
     achada = pack.captura(par)
     if not achada:
         return 3, f"{par}: não há captura com esse nome no pack no ar"

@@ -1,59 +1,4 @@
 #!/usr/bin/env python3
-"""Deriva a captura de um acento a partir da captura do mesmo flavor.
-
-O DEFEITO QUE ESTE ARQUIVO FECHA — 24/09/2026, sprint P48 (achado 31)
-    Com o Dracula no ar, «Cor de destaque» oferecia doze cores e só o mauve
-    aplicava: só existe a captura `dracula-mauve`. Escolher pink gravava o conf,
-    gerava o `.ron` e o instalador mandava importar o `.ron` na GUI e rodar
-    `meow tema capturar dracula-pink` — passo manual, que a regra do projeto
-    proíbe. Medido no desktop: o destaque continuava #BD93F9.
-
-O QUE FOI MEDIDO ANTES DE ESCREVER UMA LINHA
-    1. As duas capturas do mesmo flavor com acentos diferentes (`mocha-mauve` e
-       `mocha-pink`) NÃO diferem só no acento. Diferem também em `neutral_tint`,
-       `frosted`, `alpha_map`, `spacing`, `active_hint`, `corner_radii` e `gaps`
-       da receita — foram tiradas com três semanas de distância, e a GUI dela
-       mudou nesse meio. Comparar as duas não isola o que o acento pinta.
-    2. Quem isola é o próprio COSMIC. O `ThemeBuilder::build()` do libcosmic
-       (cosmic-theme/src/model/theme.rs, commit c003a58 de 29/08/2026, no
-       ~/.cargo desta máquina) foi compilado num oráculo de bancada e rodado
-       sobre a receita do `dracula-mauve`: com o mesmo acento ele reproduz
-       BYTE A BYTE os 45 arquivos da `Dark/v2` capturada (só o `shade` sai em
-       outra grafia, hex no lugar de floats). Com o pink, mudam exatamente os
-       campos que o código fonte diz que o acento pinta — e nenhum outro:
-         · `focus` e `selected_text` de todo componente;
-         · `accent` e `accent_button` quase inteiros (base, borda, hover,
-           pressed, selected, disabled, disabled_border, on_disabled — e, no
-           botão, o `on`, que é a cor de texto por contraste);
-         · `link_button` e `text_button`: on, divider e on_disabled;
-         · `accent_text` e a própria receita (`<Árvore>.Builder/v2/accent`).
-    3. Por isso a derivação é CIRÚRGICA: parte da captura do flavor e reescreve
-       só esses campos, no lugar, sem reserializar nada. Tudo o que não é
-       acento (o vidro, o raio, os gaps, a neutra) continua sendo o que a
-       captura fotografou — inclusive o que o projeto escreveu nela depois.
-
-A MATEMÁTICA É A DO LIBCOSMIC, EM f32, E ELA FOI CONFERIDA
-    Os campos acima são funções do acento e de coisas que JÁ ESTÃO na captura
-    (o `hovered` do botão é o `icon_button.hover`, que tem base transparente;
-    a neutra do texto é o `accent.on`). Três deles precisam da escada Oklch do
-    `steps.rs` do libcosmic: o `accent_button.on` e o `accent_text`. Ela está
-    portada abaixo, operação por operação, com arredondamento para f32 a cada
-    passo — o COSMIC faz tudo em f32, e sem isso um `.5` exato no fim da conta
-    (o `on_disabled` do accent é metade do acento) sai para o lado errado.
-    Conferido contra o oráculo, que roda o `build()` de verdade, em 24/09/2026:
-    as quatro capturas de fábrica como base e os 14 acentos da paleta em cada
-    uma. Das 42 derivações (dracula-mauve, mocha-pink e latte-mauve), nenhum
-    campo saiu diferente do que o COSMIC escreve; as 14 do mocha-mauve foram
-    recusadas pela guarda abaixo, como deviam.
-
-A GUARDA: A CAPTURA TEM DE SE REPRODUZIR ANTES DE SER DERIVADA
-    Antes de pintar o acento novo, a derivação pinta o ANTIGO por cima da
-    própria captura e confere que nada mudou. Uma captura que não passa nisso
-    é uma captura que o COSMIC não escreveria com a receita que ela diz ter —
-    e derivar dela seria o tema híbrido que o docs/COSMIC-THEMING.md proíbe.
-    Nesse caso nada se escreve, e a saída diz QUAL campo não fecha: é a
-    "chave que não se deriva" que a sprint pediu para nomear.
-"""
 from __future__ import annotations
 
 import argparse
@@ -67,22 +12,15 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "scripts"))
 import pack  # noqa: E402
-import gerar_tema_v1 as v1  # noqa: E402  — o parser RON e a geração da v1 são dele
+import gerar_tema_v1 as v1  # noqa: E402
 
-# O que marca uma captura como DERIVADA, na linha `origem:` do captura.txt.
 MARCA = "derivada de "
 
-# A captura derivada mora onde a `capturar_tema.sh` gravaria a mesma captura (o
-# `captura-destino` do pack.py), porque é lá que o `meow tema`, o instalador e
-# o painel a procuram.
 IGNORAR = "*\n"
 
 ARVORES = ("Dark", "Light")
 
 
-# ===========================================================================
-# 1. f32 — O COSMIC FAZ A CONTA EM PRECISÃO SIMPLES
-# ===========================================================================
 _F = struct.Struct("<f")
 
 
@@ -91,8 +29,6 @@ def f32(x: float) -> float:
 
 
 def _fma(a: float, b: float, c: float) -> float:
-    """`mul_add` do Rust: a*b + c com UM arredondamento. O produto de dois f32
-    cabe exato num f64, então só a soma arredonda antes da volta a f32."""
     return f32(a * b + c)
 
 
@@ -105,7 +41,6 @@ def _cbrtf(x: float) -> float:
         else f32(math.cbrt(x))
 
 
-# As constantes são `T::from_f64(c)` no palette 0.7: o f64 arredondado a f32.
 _K = {c: f32(c) for c in (
     0.04045, 1.0 / 12.92, 1.0 / 1.055, 0.055 / 1.055, 2.4,
     0.0031308, 12.92, 1.0 / 2.4, 1.055, 0.055,
@@ -122,9 +57,9 @@ _K = {c: f32(c) for c in (
     -0.0041960863, 0.7034186147, 1.7076147010,
 )}
 _PI = f32(math.pi)
-_GRAUS = f32(57.2957795130823208767981548141051703)     # f32::to_degrees
-_RADIANOS = f32(_PI / f32(180.0))                        # f32::to_radians
-_TOL = f32(0.00034526698)                                # almost::F32_TOLERANCE
+_GRAUS = f32(57.2957795130823208767981548141051703)
+_RADIANOS = f32(_PI / f32(180.0))
+_TOL = f32(0.00034526698)
 _MIN_POS = 1.17549435e-38
 
 
@@ -141,10 +76,6 @@ def _de_linear(x: float) -> float:
 
 
 def _lin3(c1, x, c2, y, c3, z, s2=1, s3=1):
-    """((c1*x) ± (c2*y)) ± (c3*z), da esquerda para a direita, como o Rust
-    avalia — cada operação arredonda. O sinal vem à parte porque o palette
-    escreve `a - k*b`, e não `a + (-k)*b`, e as duas coisas não arredondam
-    igual quando o k é constante positiva."""
     t = f32(c1 * x)
     t = f32(t + s2 * f32(c2 * y))
     return f32(t + s3 * f32(c3 * z))
@@ -164,7 +95,6 @@ def _para_oklab(rgb):
 
 
 def _de_oklab(L, A, B):
-    """Sem clamp — é o `from_color_unclamped` do palette."""
     k = _K
     l_ = f32(f32(L + f32(k[0.3963377774] * A)) + f32(k[0.2158037573] * B))
     m_ = f32(f32(L - f32(k[0.1055613458] * A)) - f32(k[0.0638541728] * B))
@@ -179,7 +109,6 @@ def _de_oklab(L, A, B):
 
 
 def _para_oklch(rgb):
-    """`Oklcha::from_color` — com o clamp do L em [0, 1] no fim."""
     L, A, B = _para_oklab(rgb)
     croma = f32(math.hypot(A, B))
     matiz = f32(f32(_PI + f32(math.atan2(-B, -A))) * _GRAUS)
@@ -209,7 +138,6 @@ def _prender(c):
 
 
 def _oklch_para_srgb_perto(L, croma, matiz):
-    """`oklch_to_srgba_nearest_chroma` do steps.rs, laço de 64 e tudo."""
     r_croma, l_croma = croma, 0.0
     novo = _de_oklch(L, croma, matiz)
     if _srgb_valido(novo):
@@ -226,19 +154,16 @@ def _oklch_para_srgb_perto(L, croma, matiz):
 
 
 def degraus(rgb, n: int):
-    """`steps()`: a mesma matiz e o mesmo croma, do L=0 ao L=1."""
     _, croma, matiz = _para_oklch(rgb)
     return [_oklch_para_srgb_perto(f32(f32(float(i)) / f32(float(n - 1))), croma, matiz)
             for i in range(n)]
 
 
 def _arred_rust(x: float) -> int:
-    """`f32::round`: metade para longe do zero (o Python arredonda para o par)."""
     return int(math.floor(x + 0.5)) if x >= 0 else -int(math.floor(-x + 0.5))
 
 
 def indice(rgb, n: int) -> int:
-    """`color_index()`: o L do Oklch, em n degraus."""
     L = _para_oklch(rgb)[0]
     return min(max(_arred_rust(f32(L * f32(float(n)))), 0), n - 1)
 
@@ -255,14 +180,6 @@ def cor_de_superficie(base, passos, degr, escuro, reserva):
 
 
 def cor_de_texto(base, degr, reserva, degr_tinta, alfa):
-    """`get_text()` do steps.rs.
-
-    O desvio é `((1. - alpha) * 100.0).round()` em f32: com 0,555, em f64 a
-    conta dá 44,4999 e arredonda para 44; em f32 dá 44,5, e o Rust vai para 45.
-    (25/09/2026, revisão da P58: aqui ela era em f64, e o `derivar_vidro.py`,
-    que passa o alpha do nível, guardava uma cópia desta função com a conta em
-    f32. O chamador deste arquivo passa 1,0, e aí o desvio é zero nos dois
-    jeitos; a conta passou a ser uma só, e a cópia saiu.)"""
     if degr_tinta is not None:
         degr = degr_tinta
     extra = _arred_rust(f32(f32(1.0 - alfa) * f32(100.0))) if alfa < 1.0 else 0
@@ -276,8 +193,6 @@ def cor_de_texto(base, degr, reserva, degr_tinta, alfa):
 
 
 def sobre(a, b):
-    """`over()` do composite.rs, com a precedência que ele tem de fato: só a
-    parcela do fundo é dividida pelo alpha resultante."""
     aa, ba = a[3], b[3]
     oa = min(max(f32(aa + f32(ba * f32(1.0 - aa))), 0.0), 1.0)
 
@@ -306,11 +221,6 @@ _1_255 = f32(1.0 / f32(255.0))
 
 
 def de_hex(h: str):
-    """`into_format::<f32>()` do palette para u8: k vezes o RECÍPROCO de 255 em
-    f32 — e não k/255. Um ulp de diferença, e é o ulp que decide: medido no
-    oráculo, 0xF9 vira 0.9764706492 (e não 0.9764705896), e a metade dele,
-    vezes 255, cai acima de 124,5 — o `link_button.on_disabled` do Dracula é
-    #5E4A7D por causa disso."""
     h = h.strip().strip('"').lstrip("#")
     if len(h) == 6:
         h += "FF"
@@ -318,15 +228,12 @@ def de_hex(h: str):
 
 
 def para_hex(c) -> str:
-    """`into_format::<u8>()` do palette: x*255 em f32, arredondado para o par."""
     def u8(x):
         v = min(f32(x * 255.0), 255.0)
         return 0 if v <= 0 else int(round(v))
     return "#" + "".join("%02X" % u8(x) for x in c)
 
 
-# Todo componente leva o acento em `focus` e `selected_text`. Os arquivos que
-# são `Container` o levam dentro de `component.`.
 COMPONENTES = (
     "accent", "accent_button", "button", "destructive", "destructive_button",
     "icon_button", "link_button", "list_button", "success", "success_button",
@@ -350,9 +257,6 @@ def _cor(campos: dict, cam: str):
 
 
 def cor_exata(txt: str):
-    """A cor de um arquivo de receita SEM passar por 8 bits: hex vira u8/255 em
-    f32, como o `into_format` do palette; float fica o float que está escrito
-    (a `neutral_tint` do mocha-mauve foi gravada assim)."""
     no = v1.parse(txt)
     while no[0] in ("Some", "nomeado"):
         no = no[1] if no[0] == "Some" else no[1][1]
@@ -366,13 +270,6 @@ def cor_exata(txt: str):
 
 
 def pintar(produto: dict, receita: dict, acento_hex: str) -> tuple[dict, dict]:
-    """Os valores novos de cada campo que o acento pinta, numa árvore.
-
-    `produto` e `receita` são {chave: texto} de `<Árvore>/v2` e
-    `<Árvore>.Builder/v2`. Devolve ({(arquivo, caminho): "#RRGGBBAA"},
-    {arquivo: texto inteiro}) — o segundo para o que muda de FORMA (o
-    `accent_text` passa de None a Some e volta) e não cabe numa troca no lugar.
-    """
     A = de_hex(acento_hex)[:3] + (1.0,)
     ler = {k: _campos(t) for k, t in produto.items() if k in COMPONENTES + CONTAINERS}
     escuro = produto.get("is_dark", "true").strip() == "true"
@@ -386,9 +283,6 @@ def pintar(produto: dict, receita: dict, acento_hex: str) -> tuple[dict, dict]:
         for cam in ("component.focus", "component.selected_text"):
             novo[(nome, cam)] = A
 
-    # O `hovered`/`pressed` dos botões e a neutra do `accent.on` são degraus da
-    # `neutral_tint` (control_steps_array no theme.rs). Com o valor da captura a
-    # conta dava #5E4A7C; o COSMIC grava #5E4A7D.
     cinza = receita.get("neutral_tint", "None").strip()
     if not cinza.startswith("Some"):
         raise ValueError("a receita não tem neutral_tint: os degraus da neutra saem da "
@@ -410,11 +304,8 @@ def pintar(produto: dict, receita: dict, acento_hex: str) -> tuple[dict, dict]:
         novo[(nome, "pressed")] = sobre(aperto, A)
         novo[(nome, "on_disabled")] = texto_sobre
 
-    # accent: `colored_component(accent, control[0], ...)`.
     colorido("accent", sobre(com_alfa(controle[0], 0.5), A))
 
-    # accent_button: o `on` é texto por contraste, na escada da `text_tint` (ou,
-    # sem ela, na da control[5]), no degrau que o L do acento pede.
     tinta = receita.get("text_tint", "None").strip()
     degr_tinta = degraus(cor_exata(tinta)[:3], 100) if tinta.startswith("Some") else None
     degr_c5 = degraus(controle[5][:3], 100)
@@ -423,7 +314,6 @@ def pintar(produto: dict, receita: dict, acento_hex: str) -> tuple[dict, dict]:
     colorido("accent_button", com_alfa(texto_botao, 0.5))
     novo[("accent_button", "on")] = texto_botao
 
-    # accent_text: só existe quando o acento não contrasta 4:1 com o fundo.
     prim = _cor(ler["primary"], "base")
     if escuro:
         fundo, reserva = prim, (1.0, 1.0, 1.0, 1.0)
@@ -442,7 +332,6 @@ def pintar(produto: dict, receita: dict, acento_hex: str) -> tuple[dict, dict]:
     for nome in ("link_button", "text_button"):
         novo[(nome, "on")] = no_texto
         novo[(nome, "divider")] = com_alfa(no_texto, 0.65 if alto_contraste else 0.2)
-    # link_button: `over(on@0.5, base)` com base transparente; text_button: on_65.
     novo[("link_button", "on_disabled")] = sobre(com_alfa(no_texto, 0.5), (0.0, 0.0, 0.0, 0.0))
     novo[("text_button", "on_disabled")] = com_alfa(no_texto, 0.65)
 
@@ -451,10 +340,6 @@ def pintar(produto: dict, receita: dict, acento_hex: str) -> tuple[dict, dict]:
 
 
 def _trocar_no_lugar(texto: str, trocas: dict) -> str:
-    """Troca, no texto RON, a cor de cada caminho — sem reserializar nada.
-
-    Hex vira hex e float vira float: a grafia do arquivo é a que o COSMIC
-    escreveu, e é ela que o `cmp` do aplicar_tema.sh compara."""
     campos = _campos(texto)
     plano = []
     for cam, hexa in trocas.items():
@@ -491,8 +376,6 @@ def _acento_da_receita(receita: dict) -> str:
 
 
 def derivar_arvore(base: Path, arvore: str, acento_hex: str) -> dict:
-    """{caminho relativo: texto novo} de uma árvore, ou ValueError dizendo qual
-    campo não se deriva. Só devolve o que muda."""
     prod_d = base / f"com.system76.CosmicTheme.{arvore}" / "v2"
     rec_d = base / f"com.system76.CosmicTheme.{arvore}.Builder" / "v2"
     produto = {p.name: p.read_text() for p in prod_d.iterdir() if p.is_file()}
@@ -501,7 +384,6 @@ def derivar_arvore(base: Path, arvore: str, acento_hex: str) -> dict:
     if faltam or "accent" not in receita:
         raise ValueError(f"a {arvore}/v2 da captura não tem {', '.join(faltam) or 'a receita do accent'}")
 
-    # A GUARDA: com o acento que ela já tem, a conta tem de dar a própria captura.
     antigo = _acento_da_receita(receita)
     mesmo, mesmo_int = pintar(produto, receita, antigo)
     nao_fecha = []
@@ -533,8 +415,6 @@ def derivar_arvore(base: Path, arvore: str, acento_hex: str) -> dict:
     if rec != receita["accent"]:
         saida[f"com.system76.CosmicTheme.{arvore}.Builder/v2/accent"] = rec
 
-    # A v1 sai da v2 NOVA pela mesma função do gerar_tema_v1.py, com a v1 da
-    # própria captura como molde: o que ela não pinta (alpha, estrutura) fica.
     v1_d = base / f"com.system76.CosmicTheme.{arvore}" / "v1"
     for chave in v1.CONJUNTO:
         molde = v1_d / chave
@@ -548,11 +428,7 @@ def derivar_arvore(base: Path, arvore: str, acento_hex: str) -> dict:
     return saida
 
 
-# ===========================================================================
-# 3. A CAPTURA INTEIRA: DE ONDE SAI, ONDE MORA, E QUANDO SE REESCREVE
-# ===========================================================================
 def base_da(captura: Path) -> str | None:
-    """De qual captura esta foi derivada — ou None, se ela é fotografia."""
     try:
         linhas = (captura / "captura.txt").read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -573,14 +449,10 @@ def _separar(par: str):
     return flavor, acento
 
 
-# Estava escrita duas vezes: no `plano` daqui e no `plano` do
-# derivar_flavor.py.
 FICHAS = ("manifesto.sha256", "captura.txt", ".gitignore")
 
 
 def montar(base: Path, arvore: str | None = None, lado: dict | None = None) -> dict:
-    """{rel: bytes} da captura `base`, sem as `FICHAS` — e, com `arvore`, com as
-    duas pastas dessa árvore (produto e receita) trocadas pelas de `lado`."""
     fora = (f"com.system76.CosmicTheme.{arvore}/",
             f"com.system76.CosmicTheme.{arvore}.Builder/") if arvore else ()
     conteudo = {}
@@ -593,12 +465,6 @@ def montar(base: Path, arvore: str | None = None, lado: dict | None = None) -> d
 
 
 def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
-    """O que se sabe de `<flavor>-<acento>` sem escrever nada.
-
-    estado: `fotografia` (captura tirada da GUI: nada a fazer), `derivavel`
-    (há base e a conta fecha), ou `nao` (e o `motivo` diz por quê, em
-    português de tela). Com `derivavel` vêm `base`, `arvore`, `acento` e
-    `arquivos` (o que muda em relação à base)."""
     paleta = paleta if paleta is not None else _paleta()
     flavor, nome_acento = _separar(par)
     saida = {"par": par, "estado": "nao", "motivo": "", "base": None}
@@ -615,7 +481,6 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
         saida["motivo"] = f"{nome_acento!r} não é uma cor do flavor {flavor}"
         return saida
     arvore = "Light" if flavor in (paleta.get("claros") or []) else "Dark"
-    # A ordem alfabética é só para ser a mesma em toda máquina.
     recusas = []
     for nome in pack.capturas():
         if nome == par or not nome.startswith(flavor + "-") or nome == "original":
@@ -629,13 +494,8 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
             recusas.append(f"{nome}: {e}")
             continue
         except OSError as e:
-            # Só o `strerror`: o texto inteiro de um OSError traz o caminho
-            # absoluto, e esta frase vai para a tela e para a Início.
             recusas.append(f"{nome}: {e.strerror or type(e).__name__}")
             continue
-        # A árvore que não é a do flavor vinha da base, copiada, e a Light do
-        # dracula-mauve era o Latte do Catppuccin: o dracula-pink no claro era o
-        # Latte, com o acento mauve.
         import derivar_flavor
         try:
             lado = derivar_flavor.lado_do_par(par, paleta)
@@ -651,8 +511,6 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
             except (ValueError, KeyError) as e:
                 sem_acento = str(e)
             except OSError as e:
-                # Sem a árvore do outro lado (uma foto só do escuro) também:
-                # não há o que pintar, e o lado escolhido não depende dela.
                 sem_acento = e.strerror or type(e).__name__
         saida.update(estado="derivavel", base=nome, arvore=arvore, acento=acento,
                      dir_base=str(cand), arquivos=arquivos)
@@ -677,8 +535,6 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
         saida["motivo"] = ("nenhuma captura do " + flavor + " se reproduz para servir de base — "
                            + " | ".join(recusas))
     elif _flavor:
-        # Era aqui que o alucard, o frappe e o macchiato paravam: «não há tema
-        # capturado».
         import derivar_flavor
         return derivar_flavor.plano(par, paleta)
     else:
@@ -688,12 +544,8 @@ def plano(par: str, paleta: dict | None = None, _flavor: bool = True) -> dict:
 
 
 def _conteudo(p: dict) -> dict:
-    """{caminho relativo: bytes} da captura derivada inteira, sem o manifesto."""
     base = Path(p["dir_base"])
     arquivos = {}
-    # A derivada de FLAVOR já chega inteira: ela junta duas capturas — a base
-    # do mesmo lado e o par do pack no outro —, e copiar a base por baixo
-    # deixaria sobrar arquivo do lado que foi trocado.
     if "conteudo" in p:
         arquivos.update(p["conteudo"])
     else:
@@ -727,9 +579,6 @@ def _no_disco(destino: Path) -> dict:
 
 
 def derivar(par: str, conferir: bool = False, paleta: dict | None = None) -> tuple[int, str]:
-    """Garante a captura de `par`. (0, frase) já está; (1, frase) escreveu, ou
-    escreveria no `conferir`; (3, frase) não se deriva, e a frase diz por quê.
-    Os códigos são os do projeto (lib/comum.sh)."""
     p = plano(par, paleta)
     if p["estado"] == "fotografia":
         return 0, f"{par}: captura tirada da GUI, nada a derivar"
@@ -743,7 +592,6 @@ def derivar(par: str, conferir: bool = False, paleta: dict | None = None) -> tup
     if _no_disco(destino) == novo:
         return 0, f"{par}: derivada de {p['base']}, já confere"
     if destino.is_dir() and not base_da(destino):
-        # Corrida com um `meow tema capturar`: a fotografia vence, sempre.
         return 0, f"{par}: captura tirada da GUI, nada a derivar"
     if conferir:
         if p.get("como"):
@@ -752,8 +600,6 @@ def derivar(par: str, conferir: bool = False, paleta: dict | None = None) -> tup
             return 1, (f"{par}: derivaria de {p['base']} ({len(p['arquivos'])} arquivo(s) do "
                        f"acento; {p['lado']})")
         return 1, f"{par}: derivaria de {p['base']} ({len(p['arquivos'])} arquivo(s) do acento)"
-    # Escrita numa pasta irmã e troca por rename: quem ler no meio (o doctor,
-    # o painel) vê a captura velha ou a nova, nunca uma pela metade.
     tmp = destino.with_name(f".{destino.name}.parcial.{os.getpid()}")
     velha = destino.with_name(f".{destino.name}.velha.{os.getpid()}")
     shutil.rmtree(tmp, ignore_errors=True)
@@ -779,12 +625,6 @@ def derivar(par: str, conferir: bool = False, paleta: dict | None = None) -> tup
 
 
 def pares_que_aplicam(flavors=None, acentos=None, paleta: dict | None = None) -> dict:
-    """{flavor: {"acentos": [...], "base": nome|None, "motivo": frase}} — o que
-    o cartão da cor de destaque precisa para oferecer só o que aplica.
-
-    Uma fotografia aplica sempre; um par sem fotografia aplica se se deriva.
-    A conta da guarda é feita UMA vez por flavor (é ela que escolhe a base) e
-    vale para todos os acentos dele: a base não depende do acento."""
     paleta = paleta if paleta is not None else _paleta()
     fl = paleta.get("flavors") or {}
     saida = {}
@@ -808,8 +648,6 @@ def pares_que_aplicam(flavors=None, acentos=None, paleta: dict | None = None) ->
 
 
 def par_ativo() -> str | None:
-    """FLAVOR-ACCENT de quem chamou: o ambiente (o install.sh e o bin/meow
-    exportam o conf com `set -a`), e, sozinho na linha de comando, o conf."""
     fl, ac = os.environ.get("FLAVOR"), os.environ.get("ACCENT")
     if not (fl and ac):
         conf = Path(os.environ.get("MEOW_CONF") or Path.home() / ".config/meow/meow.conf")
@@ -855,8 +693,6 @@ def main() -> int:
         rc, frase = derivar(par, conferir)
         print(f"  {frase}")
         codigos.append(rc)
-    # 1 vence 3: "havia o que derivar" é a notícia que o instalador precisa
-    # para rodar a geração; o 3 de um par é informação, não defeito.
     return 1 if 1 in codigos else (3 if 3 in codigos else 0)
 
 

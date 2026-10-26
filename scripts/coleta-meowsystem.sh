@@ -1,19 +1,9 @@
 #!/usr/bin/env bash
-# coleta-meowsystem.sh — inventário READ-ONLY do seu COSMIC pro ricing
-#
-#   Uso:  bash coleta-meowsystem.sh
-#         bash coleta-meowsystem.sh ~/meu-inventario.md
-#
-# Não escreve, não instala, não altera NADA do sistema.
 set -uo pipefail
 
 OUT="${1:-$HOME/meowsystem-inventario-$(date +%Y%m%d-%H%M).md}"
 : > "$OUT"
 
-# Este script é o único do repositório feito para viajar SOZINHO: o cabeçalho
-# manda rodá-lo com `bash coleta-meowsystem.sh` e anexar o .md na conversa, e
-# ele não carrega o `lib/comum.sh` de propósito — quem o recebe pode não ter
-# clone nenhum.
 COSMIC_DIR="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 
 sec()  { printf '\n\n## %s\n' "$*" >> "$OUT"; }
@@ -22,7 +12,6 @@ note() { printf '%s\n' "$*" >> "$OUT"; }
 open_fence()  { printf '\n```%s\n' "${1:-}" >> "$OUT"; }
 close_fence() { printf '```\n' >> "$OUT"; }
 
-# roda um comando com timeout, sem quebrar o script se faltar o binário
 run() {
   local label="$1"; shift
   sub "$label"
@@ -35,7 +24,6 @@ run() {
   close_fence
 }
 
-# despeja arquivos de config pequenos (path + conteúdo)
 dump_tree() {
   local root="$1" maxbytes="${2:-8192}"
   [ -d "$root" ] || { note "_(não existe: $root)_"; return; }
@@ -57,7 +45,6 @@ dump_tree() {
   done < <(find "$root" -type f 2>/dev/null | sort)
 }
 
-# lista Name= / Icon= de todos os .desktop de um diretório
 dump_desktops() {
   local dir="$1"
   [ -d "$dir" ] || { note "_(não existe: $dir)_"; return; }
@@ -74,13 +61,11 @@ dump_desktops() {
   close_fence
 }
 
-# ===========================================================================
 {
   printf '# Inventário MeowSystem — %s\n' "$(date '+%d/%m/%Y %H:%M')"
   printf '\nGerado por `coleta-meowsystem.sh` (somente leitura).\n'
 } >> "$OUT"
 
-# --- 1. Sistema -------------------------------------------------------------
 sec '1. Sistema e sessão'
 open_fence
 {
@@ -100,7 +85,6 @@ run 'os-release' cat /etc/os-release
 run 'kernel'     uname -a
 run 'monitores (cosmic-randr)' cosmic-randr list
 
-# --- 2. Versões do COSMIC ---------------------------------------------------
 sec '2. Versões do COSMIC e pacotes relacionados'
 sub 'dpkg — pacotes cosmic*'
 open_fence
@@ -116,11 +100,6 @@ run 'flatpak — apps'  flatpak list --app --columns=application,name,version,or
 run 'flatpak — overrides globais' flatpak override --show
 run 'snap' snap list
 
-# --- 3. Configuração do COSMIC (o coração) ---------------------------------
-# O título sai da MESMA variável que o `find` logo abaixo, e abrevia o HOME do
-# mesmo jeito que o `dump_tree` faz (`${f/#$HOME/~}`): com a raiz de sempre o
-# relatório continua dizendo `~/.config/cosmic`, e com `MEOW_COSMIC_DIR` setada
-# ele deixa de mentir sobre o que foi inventariado.
 sec "3. ${COSMIC_DIR/#$HOME/~} — configuração completa"
 note 'Cada arquivo é um valor RON isolado. Isto é a fonte da verdade do seu rice.'
 open_fence
@@ -138,7 +117,6 @@ open_fence
 find "$HOME/.local/state" -maxdepth 3 -iname '*cosmic*' 2>/dev/null | sort >> "$OUT"
 close_fence
 
-# --- 6. Temas / ícones / cursores ------------------------------------------
 sec '6. Temas, ícones e cursores disponíveis'
 sub 'diretórios de ícones'
 open_fence
@@ -179,14 +157,12 @@ for f in ~/.config/gtk-3.0/settings.ini ~/.config/gtk-4.0/settings.ini \
 done >> "$OUT" 2>&1
 close_fence
 
-# --- 7. Fontes -------------------------------------------------------------
 sec '7. Fontes'
 open_fence
 fc-list 2>/dev/null | grep -iE 'nerd|jetbrains|fira|noto sans mono|cascadia|maple|iosevka' \
   | sed 's/.*: //' | sort -u | head -60 >> "$OUT"
 close_fence
 
-# --- 8. Aplicativos e ícones ----------------------------------------------
 sec '8. Inventário de .desktop (Name / Icon)'
 sub '/usr/share/applications'
 dump_desktops /usr/share/applications
@@ -207,7 +183,6 @@ for d in /usr/share/applications ~/.local/share/applications; do
 done >> "$OUT" 2>&1
 close_fence
 
-# --- 10. Wallpapers --------------------------------------------------------
 sec '10. Wallpapers'
 open_fence
 for d in /usr/share/backgrounds ~/.local/share/backgrounds ~/Imagens ~/Pictures ~/Wallpapers; do
@@ -217,7 +192,6 @@ for d in /usr/share/backgrounds ~/.local/share/backgrounds ~/Imagens ~/Pictures 
 done >> "$OUT" 2>&1
 close_fence
 
-# --- 11. Terminal / shell / CLI --------------------------------------------
 sec '11. Terminal, shell e ferramentas de linha de comando'
 open_fence
 find "$HOME/.config" "$HOME/.local/share" -maxdepth 3 -iname '*cosmic-term*' 2>/dev/null >> "$OUT"
@@ -235,9 +209,7 @@ for f in ~/.config/kitty/kitty.conf ~/.config/kitty/current-theme.conf \
   [ -f "$f" ] && { echo "== ${f/#$HOME/~}"; grep -vE '^\s*(#|$)' "$f" | head -25; echo; }
 done >> "$OUT" 2>&1
 close_fence
-# A SUBSEÇÃO "paleta usada no zsh do Andromeda-OS" SAIU.
 
-# --- 12. Automação existente ----------------------------------------------
 sec '12. Automação já instalada'
 run 'systemd --user: timers' systemctl --user list-timers --all --no-pager
 run 'systemd --user: units habilitadas' bash -c 'systemctl --user list-unit-files --state=enabled --no-pager'
@@ -254,7 +226,6 @@ open_fence
 ls -1 ~/Desenvolvimento 2>/dev/null >> "$OUT"
 close_fence
 
-# --- 13. Hardware relevante -----------------------------------------------
 sec '13. Hardware / GPU (contexto de performance do blur)'
 open_fence
 {

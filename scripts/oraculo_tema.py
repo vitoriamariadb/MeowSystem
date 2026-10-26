@@ -29,10 +29,6 @@ import derivar_acento as da  # noqa: E402
 
 
 def _hex_json(v):
-    """A cor como o oráculo a serializa. Medido em 09/10/2026 na revisão
-    d77e99f: o `Theme` sai com as cores em hex (`"#383A4CD9"`), pelo mesmo
-    `ColorRepr` que escreve no disco; um `Srgba` cru do palette sairia como
-    {red, green, blue, alpha}, e os dois são aceitos."""
     if v is None:
         return None
     if isinstance(v, str):

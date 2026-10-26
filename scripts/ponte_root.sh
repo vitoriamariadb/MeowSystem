@@ -58,21 +58,6 @@
 #   · não apaga nada fora dos dois caminhos do hook de apt e do da completion
 #     do zsh (este desde a P47, 24/09/2026), das três chaves de tema do
 #     override global do Flatpak que apontam para tema que não existe, e dos
-#     pacotes `libreoffice*` que o dpkg diz estarem instalados (com a ponte UNO
-#     que sai junto com eles).
-#
-# O QUE ELA CUSTA, DITO SEM ENFEITE: quem puder rodar comando como a dona da
-# máquina passa a poder, sem senha, marcar `.desktop` de sistema, atualizar os
-# pacotes, repor o hook do apt e pôr no `fpath` de fábrica do zsh a completion
-# do `meow`. O hook e a completion vêm só da RESERVA que o install guardou com a
-# senha, nunca do clone (P108, 25/10/2026): o clone é gravável por quem usa, e
-# nada que quem usa pode editar vira root sem passar pelo install. É menos do
-# que `NOPASSWD: ALL` por uma margem larga, e é mais do que nada. Desligar é
-# `PONTE_ROOT="nao"` no `meow.conf` e `./install.sh` — a etapa então REMOVE a
-# regra e o arquivo.
-#
-# CÓDIGOS DE SAÍDA: 0 fez · 2 erro · 3 falta condição (o caminho não existe,
-#                   ou a reserva não tem a peça) · 4 a reserva não confere com o sha256
 set -euo pipefail
 umask 022
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -83,44 +68,23 @@ GREETER_CONF="$GREETER_HOME/.config/cosmic"
 GREETER_DONO=cosmic-greeter
 HOOK=/etc/apt/apt.conf.d/99-meow-lancador
 WRAPPER=/usr/local/sbin/meow-lancador-apt.sh
-# O PERFIL É GRAVADO PELO INSTALADOR, COM A SENHA, E LIDO AQUI. Ele não vem por
-# argumento nem do ambiente. São três linhas `chave=valor` — `raiz`, `usuaria` e
-# `lar` —, e quem as lê é o `estado` e o `flatpak-global-limpar`. O wrapper do
-# hook, que é um MOLDE com `@ACERVO@`, `@USUARIA@` e `@LAR@`, já não é preenchido
-# aqui: o install o guarda preenchido na reserva (P108).
 PERFIL=/usr/local/lib/meowsystem/perfil
-# A RESERVA: o que o install guardou com a senha, 0700 root. O wrapper do apt
-# (já preenchido), o hook e a completion moram nela, e o sha256 deles fica ao
-# lado. Os verbos que põem essas peças em root copiam só daqui (P108).
 RESERVA=/usr/local/lib/meowsystem/reserva
 PECAS=/usr/local/lib/meowsystem/reserva-pecas.sha256
-# O primeiro diretório do `fpath` de fábrica do zsh desta distribuição
-# (`zsh -f -c 'print -l $fpath'`, medido em 24/09/2026) — ver `completion-instalar`.
 COMPLETION=/usr/local/share/zsh/site-functions/_meow
 REGRA=/etc/sudoers.d/49-meowsystem-ponte
 PONTE=/usr/local/lib/meowsystem/ponte_root.sh
-# A regra do polkit que libera o reparo da ponte (P104). A pasta é 0750
-# root:polkitd: quem usa não a lê, e quem a confere é o `estado`, daqui.
 POLKIT=/etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules
 FLATPAK_GLOBAL=/var/lib/flatpak/overrides/global
-# A lista do que o `libreoffice-remover` tirou, gravada como root: é a única
-# fonte do `libreoffice-devolver`, que não recebe nome de quem chama.
 LIBRE_REMOVIDOS=/var/lib/meowsystem/libreoffice-removidos
 USR_SHARE=/usr/share
 
 morrer() { printf 'ponte_root: %s\n' "$1" >&2; exit "${2:-2}"; }
 
-# Todo uso privilegiado deixa rastro. Não é auditoria de verdade — é o mínimo
-# para responder "quem mexeu no .desktop do Steam?" sem adivinhação.
 anotar() {
   logger -t meowsystem-ponte -p auth.notice -- "$*" 2>/dev/null || true
 }
 
-# ---------------------------------------------------------------------------
-# O nome de um `.desktop`, conferido com a régua mais apertada que ainda serve.
-# Sem `/`, sem `..`, sem espaço, sem começar por ponto. E o alvo tem de JÁ
-# existir: esta ponte edita arquivo de pacote, nunca cria um.
-# ---------------------------------------------------------------------------
 conferir_desktop() {
   local nome="$1"
   case "$nome" in
@@ -133,9 +97,6 @@ conferir_desktop() {
   [ -f "$APLICATIVOS/$nome" ] || morrer "$APLICATIVOS/$nome não existe — esta ponte edita, não cria" 3
 }
 
-# O que é do LibreOffice e não começa por `libreoffice`: a ponte UNO, que depende
-# do `libreoffice-core` e sai com ele. É a lista que o `purge` pode levar junto e
-# que a volta aceita.
 do_libreoffice() {
   case "$1" in
     libreoffice*|python3-uno|ure|ure-java|uno-libs-private|libuno-*|libunoloader-java) return 0 ;;
@@ -143,16 +104,11 @@ do_libreoffice() {
   return 1
 }
 
-# Os `libreoffice*` instalados (ou só com a configuração que sobrou), um por linha.
 libreoffice_instalados() {
   dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'libreoffice*' 2>/dev/null \
     | awk '$1 ~ /^.[ic]/ && $2 ~ /^libreoffice/ { print $2 }'
 }
 
-# Uma peça da reserva, lida UMA vez para o temporário e conferida ali: o que se
-# conferiu é o que se instala. O sha256 nomeia as três peças e só elas; um nome a
-# mais, a menos ou repetido recusa tudo. Sem as peças (install anterior à P108),
-# 3: a reserva só se refaz no install, e o repositório nunca é a saída.
 da_reserva() {
   local nome="$1" tmp="$2" quer
   [ -d "$RESERVA" ] && [ -f "$PECAS" ] || morrer "a reserva não tem $nome: entra no próximo «Instalar tudo»" 3
@@ -168,12 +124,6 @@ verbo="${1:-}"
 
 case "$verbo" in
 
-# --- .desktop de sistema ---------------------------------------------------
-# stdin: primeira linha = o nome do arquivo; o resto = o conteúdo inteiro.
-#
-# O conteúdo é conferido antes de tocar no disco: tem de ser um Desktop Entry.
-# Sem isso, um erro do chamador transformaria um `.desktop` de pacote em lixo, e
-# o aplicativo sumiria do lançador sem uma palavra.
 desktop)
   IFS= read -r nome || morrer "stdin vazio"
   conferir_desktop "$nome"
@@ -181,7 +131,7 @@ desktop)
   cat > "$tmp"
   [ -s "$tmp" ] || morrer "conteúdo vazio"
   head -c 4096 "$tmp" | grep -q '^\[Desktop Entry\]' || morrer "isto não é um .desktop"
-  if cmp -s "$tmp" "$APLICATIVOS/$nome"; then exit 0; fi   # regra 5: nada a escrever
+  if cmp -s "$tmp" "$APLICATIVOS/$nome"; then exit 0; fi
   install -m 644 -o root -g root "$tmp" "$APLICATIVOS/$nome" || morrer "não consegui escrever"
   anotar "desktop $nome"
   ;;
@@ -191,10 +141,6 @@ desktop-banco)
   update-desktop-database "$APLICATIVOS" 2>/dev/null || true
   ;;
 
-# --- a tela de login -------------------------------------------------------
-# `greeter-ver` imprime `<md5>  <caminho relativo>` de tudo que existe hoje, numa
-# chamada só. O `greeter.sh` fazia três `sudo` POR ARQUIVO numa árvore de ~190;
-# aqui é um processo, e a comparação continua sendo por conteúdo.
 greeter-ver)
   [ -d "$GREETER_CONF" ] || exit 3
   cd "$GREETER_CONF" || exit 3
@@ -203,39 +149,13 @@ greeter-ver)
   done
   ;;
 
-# stdin: um tar. Extrai dentro do `.config/cosmic` do greeter, com o dono certo.
-# O que impede o tar de escrever fora do destino — o buraco clássico deste
-# formato — é o padrão do GNU tar (tira a `/` do começo e recusa membro com
-# `..`), a extração num temporário, a recusa de `..` e de link simbólico no que
-# saiu dele, e só então a cópia.
-#
-# O `--no-absolute-names` QUE MORAVA AQUI NÃO EXISTE — P75, 09/10/2026 (S4)
-#   O GNU tar tem `-P/--absolute-names` e não tem a forma negativa: medido com o
-#   tar 1.35 desta máquina, `tar -x --no-absolute-names` sai 64 com "opção
-#   desconhecida". Este verbo recusou TODA chamada desde que nasceu, com a
-#   frase "tar recusado", e o `greeter.sh` mandava essa frase para o
-#   `/dev/null` — a tela de login "precisava de sudo" numa máquina com a ponte
-#   no ar, e ninguém sabia por quê (01-regressoes.md, S4; P70 item 1). O que a
-#   flag pretendia, o padrão do tar já faz; o link simbólico, que ela nem
-#   cobria, passa a ser recusado abaixo.
 greeter-aplicar)
   [ -d "$GREETER_HOME" ] || exit 3
   id "$GREETER_DONO" >/dev/null 2>&1 || morrer "o usuário $GREETER_DONO não existe" 3
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
   tar -x -C "$tmp" --no-same-owner -f - || morrer "tar recusado: o que chegou pelo stdin não se extrai"
   [ -z "$(find "$tmp" -mindepth 1 -type l -print -quit)" ] || morrer "link simbólico no tar"
-  # SÓ ARQUIVO E PASTA — P108 (conferência), 25/10/2026. O tar extraído por root
-  # cria nó de dispositivo e FIFO com o modo que vier nele, e o `cp -a` os leva
-  # ao lar do greeter: um `/dev/sda` 0666 ali seria o disco cru para quem o abrir.
   [ -z "$(find "$tmp" -mindepth 1 ! -type f ! -type d -print -quit)" ] || morrer "só arquivo e pasta no tar"
-  # O `..` FORA DO CANO, E O LINK DO DESTINO — 15/10/2026, P82 (item 16)
-  #   A recusa de `..` morava num `| while`, e o `morrer` dali saía só do
-  #   subshell do cano: o verbo seguia para a cópia. Agora é uma pergunta só,
-  #   antes da cópia, na casca principal.
-  #   E o `cp -a` do GNU escreve ATRAVÉS de um link simbólico que já esteja no
-  #   destino (medido: o alvo de fora recebe o conteúdo e o `cp` sai 0). O
-  #   tar sem link não basta; um link no lar do greeter, de qualquer origem,
-  #   recusa o verbo inteiro antes de qualquer escrita.
   if ( cd "$tmp" && find . -mindepth 1 -printf '%P\n' ) | grep -qE '(^|/)\.\.(/|$)'; then
     morrer "caminho com .. no tar"
   fi
@@ -252,24 +172,12 @@ greeter-aplicar)
   anotar "greeter-aplicar"
   ;;
 
-# --- o hook de apt do lançador ---------------------------------------------
-# A ORIGEM É A RESERVA, E SÓ ELA — P108, 25/10/2026. Até aqui o verbo lia a
-# `raiz` do perfil e copiava `$raiz/scripts/meow-lancador-apt.sh` para o
-# wrapper, que roda como root em todo `apt`. O clone é gravável por quem usa:
-# editar o script e chamar o verbo, sem senha, punha código seu em root. Agora o
-# install (que tem a senha) guarda o wrapper já preenchido e o hook na reserva,
-# e o verbo só os copia de lá, conferindo o sha256. O repositório mais novo que
-# a reserva entra no próximo «Instalar tudo».
 apt-hook-instalar)
   tmp_w="$(mktemp)"; tmp_h="$(mktemp)"; trap 'rm -f "$tmp_w" "$tmp_h"' EXIT
   da_reserva meow-lancador-apt.sh "$tmp_w"
   da_reserva 99-meow-lancador "$tmp_h"
-  if cmp -s "$tmp_w" "$WRAPPER" && cmp -s "$tmp_h" "$HOOK"; then exit 0; fi   # regra 5
+  if cmp -s "$tmp_w" "$WRAPPER" && cmp -s "$tmp_h" "$HOOK"; then exit 0; fi
   install -m 755 -o root -g root "$tmp_w" "$WRAPPER" || morrer "não consegui instalar o wrapper"
-  # O hook vai por ÚLTIMO: enquanto ele não existe, nada chama o wrapper. Na
-  # ordem inversa haveria uma janela — curta, mas real — em que um apt disparado
-  # nesse instante chamaria um caminho que ainda não existe. Mesma ordem do
-  # `etapa_lancador_apt`, e pelo mesmo motivo.
   install -m 644 -o root -g root "$tmp_h" "$HOOK" || morrer "não consegui instalar o hook"
   anotar "apt-hook-instalar da reserva"
   ;;
@@ -279,44 +187,20 @@ apt-hook-remover)
   anotar "apt-hook-remover"
   ;;
 
-# --- a completion do zsh -----------------------------------------------------
-# POR QUE ELA ENTROU NA PONTE — 24/09/2026 (P47)
-#   O zsh só procura completion no `fpath`, e o de fábrica desta distribuição
-#   começa em `/usr/local/share/zsh/site-functions`. A P44 pôs o `_meow` em
-#   `~/.local/share/zsh/site-functions`, que não está nele: medido no zsh
-#   interativo dela, `whence -w _meow` respondia `none` e o TAB não completava.
-#   Pôr o diretório no `fpath` seria editar o `.zshrc` de alguém; pôr o arquivo
-#   onde o zsh JÁ procura é root, e root sem senha é esta ponte.
-#
-# A ORIGEM É A RESERVA, como no `apt-hook-instalar` (P108, 25/10/2026). Até
-#   aqui ela era `$raiz/assets/zsh/_meow`, do clone, e a ponte só conferia a
-#   primeira linha e o tamanho: o conteúdo de quem usa entrava no `fpath` que o
-#   zsh de todo usuário carrega, root incluído. Agora o install guarda a
-#   completion na reserva, e o verbo a copia de lá, conferindo o sha256. O
-#   diretório de destino é do pacote do zsh, e esta ponte não cria diretório de
-#   sistema: sem ele, 3.
 completion-instalar)
   [ -d "${COMPLETION%/*}" ] || morrer "${COMPLETION%/*} não existe" 3
   tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
   da_reserva _meow "$tmp"
-  if cmp -s "$tmp" "$COMPLETION"; then exit 0; fi   # regra 5: nada a escrever
+  if cmp -s "$tmp" "$COMPLETION"; then exit 0; fi
   install -m 644 -o root -g root "$tmp" "$COMPLETION" || morrer "não consegui instalar $COMPLETION"
   anotar "completion-instalar da reserva"
   ;;
 
-# O `--uninstall` a tira, e tira pela ponte ANTES de a ponte sair — é a ordem
-# de `lib/desinstalar.sh`. Caminho literal, como o do hook.
 completion-remover)
   rm -f "$COMPLETION"
   anotar "completion-remover"
   ;;
 
-# --- o override global do Flatpak --------------------------------------------
-# O NitroKit pôs `ICON_THEME`, `GTK_THEME` e `XCURSOR_THEME` no override do
-# SISTEMA, apontando para temas que a máquina pode já não ter. O dado entra por
-# stdin, `CHAVE=valor` por linha, e só passa a chave das três com o valor que o
-# arquivo tem de fato e cujo tema não existe em /usr/share nem no lar do perfil:
-# o tema que existe fica. Só essas linhas saem; o resto do arquivo é preservado.
 flatpak-global-limpar)
   [ -f "$FLATPAK_GLOBAL" ] || exit 0
   lar=""
@@ -338,7 +222,6 @@ flatpak-global-limpar)
     [ "$existe" = "1" ] || printf '%s=%s\n' "$chave" "$valor" >> "$pedidos"
   done
   [ -s "$pedidos" ] || exit 0
-  # O grupo que ficou sem chave sai junto: um `[Environment]` vazio é lixo.
   { grep -vxF -f "$pedidos" "$FLATPAK_GLOBAL" || true; } | awk '
     function solta() { if (cab != "" && n > 0) printf "%s", buf; cab = ""; buf = ""; n = 0 }
     /^\[/ { solta(); cab = $0; buf = $0 "\n"; next }
@@ -354,12 +237,6 @@ flatpak-global-limpar)
   anotar "flatpak-global-limpar $(tr '\n' ' ' < "$pedidos")"
   ;;
 
-# --- o LibreOffice sai (o escritório é o OnlyOffice) --------------------------
-# `libreoffice-remover` não recebe nada: a lista é a que o dpkg dá para
-# `libreoffice*` AGORA. Antes do `purge` o apt simula, e o plano tem de tirar
-# cada pacote pedido (`Purg` ou `Remv`) e nada fora do LibreOffice e da ponte
-# UNO; senão o verbo recusa inteiro. O que sai fica gravado como root em
-# $LIBRE_REMOVIDOS, para a volta; o stdout repete a lista, e a fala do apt vai ao stderr.
 libreoffice-remover)
   mapfile -t pacotes < <(libreoffice_instalados)
   [ "${#pacotes[@]}" -gt 0 ] || exit 0
@@ -385,9 +262,6 @@ libreoffice-remover)
   apt-get purge -y "${pacotes[@]}" >&2 || exit 2
   ;;
 
-# `libreoffice-devolver` é a volta, para o desinstalador. Não lê o stdin: os
-# nomes vêm só de $LIBRE_REMOVIDOS, que só o `libreoffice-remover` grava, e
-# cada um ainda passa pela régua do nome e do LibreOffice antes do apt.
 libreoffice-devolver)
   [ -f "$LIBRE_REMOVIDOS" ] && [ ! -L "$LIBRE_REMOVIDOS" ] || morrer "nada removido pelo MeowSystem a devolver" 3
   pedidos=()
@@ -404,9 +278,6 @@ libreoffice-devolver)
   rm -f "$LIBRE_REMOVIDOS"
   ;;
 
-# --- a máquina em dia ------------------------------------------------------
-# `full-upgrade` dos repositórios JÁ configurados. Esta ponte não acrescenta
-# repositório, não instala pacote por nome e não roda `.deb`.
 atualizar)
   export DEBIAN_FRONTEND=noninteractive
   anotar "atualizar"
@@ -414,28 +285,6 @@ atualizar)
   apt full-upgrade -y -o Dpkg::Options::=--force-confold || exit 2
   ;;
 
-# --- os pacotes de que o projeto depende — P75, 09/10/2026 -----------------
-# POR QUE ESTE VERBO NASCEU
-#   Ela, 21/09/2026, três vezes: «nenhuma feature pode mandar o usuário
-#   consertar à mão». O `meow doctor` sabia que faltava o Papirus, sabia o
-#   pacote, e imprimia `sudo apt install papirus-icon-theme` para ela copiar —
-#   o conserto conhecido devolvido como tarefa. O `tests/sem-receita-no-log.sh`
-#   isentava a frase com a promessa "o dia em que a ponte ganhar um verbo de
-#   pacote, estas viram botão". É hoje.
-#
-# POR QUE ISTO NÃO É `apt install` LIVRE
-#   O nome entra por STDIN, um por linha, e só passa o que estiver na lista
-#   LITERAL abaixo — que mora neste arquivo, instalado como root, e não no
-#   clone, que é gravável por quem chama. Um nome fora dela derruba o verbo
-#   inteiro antes de qualquer `apt`: nada se instala pela metade. Os nomes são
-#   os do `etapa_pacotes` do install.sh (o array `NECESSARIOS` mais os dois que
-#   moram fora dele), e o `tests/doctor-veredito.sh` cobra que as duas listas
-#   sejam a mesma: uma cópia que envelhece calada é a armadilha nº 3.
-#
-# O QUE ELE CUSTA: quem rodar como a dona da máquina instala, sem senha, um
-#   destes treze pacotes dos repositórios já configurados. Nada além deles.
-#   [P82, 15/10/2026: `curl`, `xz-utils`, `unzip` e `pop-fonts` entraram — o
-#   `instalar_fontes.sh` os nomeava como faltando e não tinha a quem pedir.]
 pacotes)
   PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy curl xz-utils unzip pop-fonts build-essential pkg-config libxkbcommon-dev libwayland-dev libdbus-1-dev software-properties-common "
   pedidos=()
@@ -460,24 +309,10 @@ limpar)
   apt clean || true
   ;;
 
-# --- diagnóstico e a própria regra -----------------------------------------
-# `estado` é o que o `meow doctor` chama. Ele não escreve nada e não é
-# privilegiado de verdade — mas mora aqui para a resposta vir de DENTRO da
-# ponte instalada, e não de uma suposição sobre ela.
 estado)
   printf 'ponte=%s\n' "$([ -x "$PONTE" ] && echo sim || echo nao)"
   printf 'regra=%s\n' "$([ -f "$REGRA" ] && echo sim || echo nao)"
-  # O md5 DA REGRA, e ele existe por um motivo prático: o `etapa_ponte_root` do
-  # instalador precisa saber se o arquivo em /etc já é o desejado, e a regra é
-  # 0440 root:root — ela não tem como ler. Sem isto a etapa comparava com
-  # `sudo -n cat`, que NÃO está na regra: com o cache do sudo frio a leitura
-  # voltava vazia, a etapa concluía "diverge" e pedia senha numa máquina que já
-  # estava pronta. Medido em 08/09/2026 rodando o instalador como o painel o
-  # roda, sem terminal: "a ponte fica de fora" numa ponte instalada e correta.
   printf 'regra_md5=%s\n' "$(md5sum < "$REGRA" 2>/dev/null | cut -d' ' -f1)"
-  # O sha256 da regra e o da regra do polkit (P108): o doctor compara o primeiro
-  # com o da reserva e o segundo com o do repositório, sem ler nada de root. Vazio
-  # é «não existe».
   printf 'regra_sha256=%s\n' "$({ sha256sum < "$REGRA"; } 2>/dev/null | cut -d' ' -f1)"
   printf 'polkit_sha256=%s\n' "$({ sha256sum < "$POLKIT"; } 2>/dev/null | cut -d' ' -f1)"
   printf 'perfil=%s\n' "$([ -r "$PERFIL" ] && echo sim || echo nao)"
@@ -486,15 +321,6 @@ estado)
   printf 'versao=%s\n' "$(md5sum < "$PONTE" 2>/dev/null | cut -d' ' -f1)"
   ;;
 
-# A REGRA É IMPRESSA AQUI E ESCRITA PELO INSTALADOR, e essa separação é o
-# ponto: quem escreve em `/etc/sudoers.d` é o `install.sh`, com a senha na mão.
-# A ponte só sabe DIZER qual é a regra dela — assim o texto mora junto do
-# programa que ele descreve, e não pode divergir dele.
-#
-# O usuário vem do ambiente (`SUDO_USER` quando isto roda por sudo, `USER`
-# quando roda direto) porque um nome vindo de argumento seria o único argumento
-# livre da ponte inteira, e ele estaria justamente na linha que decide QUEM
-# ganha a regra.
 regra-sudo)
   quem="${SUDO_USER:-${USER:-}}"
   case "$quem" in

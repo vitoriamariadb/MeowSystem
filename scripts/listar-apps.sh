@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# listar-apps.sh — tudo que tem .desktop no seu sistema (nome, id, ícone, origem)
-# Uso:  bash listar-apps.sh              -> tabela na tela
-#       bash listar-apps.sh > apps.md    -> salva
-#       bash listar-apps.sh --csv        -> csv pra planilha
 set -uo pipefail
 
 FMT="${1:-tabela}"
