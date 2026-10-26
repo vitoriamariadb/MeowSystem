@@ -1,0 +1,40 @@
+:root {
+  color-scheme: dark;
+  --rosewater: #F5E0DC;
+  --flamingo: #F2CDCD;
+  --pink: #F5C2E7;
+  --mauve: #CBA6F7;
+  --red: #F38BA8;
+  --maroon: #EBA0AC;
+  --peach: #FAB387;
+  --yellow: #F9E2AF;
+  --green: #A6E3A1;
+  --teal: #94E2D5;
+  --sky: #89DCEB;
+  --sapphire: #74C7EC;
+  --blue: #89B4FA;
+  --lavender: #B4BEFE;
+  --text: #CDD6F4;
+  --subtext1: #BAC2DE;
+  --subtext0: #A6ADC8;
+  --overlay2: #9399B2;
+  --overlay1: #7F849C;
+  --overlay0: #6C7086;
+  --surface2: #585B70;
+  --surface1: #45475A;
+  --surface0: #313244;
+  --base: #1E1E2E;
+  --mantle: #181825;
+  --crust: #11111B;
+  --accent: var(--mauve);
+}
+html:not([data-sabor="mocha"]) .so-sabor-mocha { display: none !important; }
+html:not([data-sabor="macchiato"]) .so-sabor-macchiato { display: none !important; }
+html:not([data-sabor="frappe"]) .so-sabor-frappe { display: none !important; }
+html:not([data-sabor="latte"]) .so-sabor-latte { display: none !important; }
+html:not([data-sabor="dracula"]) .so-sabor-dracula { display: none !important; }
+html:not([data-sabor="alucard"]) .so-sabor-alucard { display: none !important; }
+html[data-sabor="macchiato"][data-pack] .previa { --p-acc: #C6A0F6; --p-base: #24273A; --p-mantle: #1E2030; --p-crust: #181926; --p-text: #CAD3F5; --p-sub: #A5ADCB; --p-s0: #363A4F; --p-s1: #494D64; --p-blue: #8AADF4; --p-red: #ED8796; --p-peach: #F5A97F; --p-yellow: #EED49F; --p-green: #A6DA95; --p-teal: #8BD5CA; --p-sky: #91D7E3; --p-pink: #F5BDE6; }
+html[data-sabor="frappe"][data-pack] .previa { --p-acc: #CA9EE6; --p-base: #303446; --p-mantle: #292C3C; --p-crust: #232634; --p-text: #C6D0F5; --p-sub: #A5ADCE; --p-s0: #414559; --p-s1: #51576D; --p-blue: #8CAAEE; --p-red: #E78284; --p-peach: #EF9F76; --p-yellow: #E5C890; --p-green: #A6D189; --p-teal: #81C8BE; --p-sky: #99D1DB; --p-pink: #F4B8E4; }
+html[data-sabor="latte"][data-pack] .previa { --p-acc: #8839EF; --p-base: #EFF1F5; --p-mantle: #E6E9EF; --p-crust: #DCE0E8; --p-text: #4C4F69; --p-sub: #6C6F85; --p-s0: #CCD0DA; --p-s1: #BCC0CC; --p-blue: #1E66F5; --p-red: #D20F39; --p-peach: #FE640B; --p-yellow: #DF8E1D; --p-green: #40A02B; --p-teal: #179299; --p-sky: #04A5E5; --p-pink: #EA76CB; }
+html[data-sabor="alucard"][data-pack] .previa { --p-acc: #853AF2; --p-base: #F0F0F6; --p-mantle: #E8E9F1; --p-crust: #DEE0EA; --p-text: #4A4F67; --p-sub: #6C6F85; --p-s0: #CECFDC; --p-s1: #BDBFCD; --p-blue: #3062FC; --p-red: #D40F0F; --p-peach: #E37A0A; --p-yellow: #9CA816; --p-green: #2BA149; --p-teal: #169486; --p-sky: #04A9CC; --p-pink: #ED77BB; }
