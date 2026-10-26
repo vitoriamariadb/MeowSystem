@@ -1,25 +1,4 @@
 #!/usr/bin/env python3
-"""app-acessibilidade.py — os números da P6 e da P7 no painel novo (P98).
-
-    tests/app-acessibilidade.py             roda a conferência
-    tests/app-acessibilidade.py --detalhe   lista quem reprovou, um por linha
-
-O que ele mede, nas 14 páginas, com o «Mais ajustes» aberto:
-
-  1. ALVO DE CLIQUE ABAIXO DE 24 PX (WCAG 2.2, critério 2.5.8): todo controle
-     visível tem pelo menos 24 x 24.
-  2. NOME ACESSÍVEL: todo controle tem nome (texto, `aria-label` ou o rótulo do
-     campo); interruptor tem `role=switch` e `aria-checked`.
-  3. A DICA É CURTA E NÃO É RECEITA: no máximo 120 caracteres, sem comando
-     `meow …` cru, script `.sh` ou caminho da casa de alguém.
-  4. O TECLADO: o Tab chega às quatro portas; o foco desenha o anel; a tecla `/`
-     leva à busca; o Esc fecha a caixa aberta; o «Pular para o conteúdo» leva ao
-     conteúdo.
-
-A casa é a do `tests/app-completo.py`.
-
-  0 = passou · 1 = reprovou · 3 = pulado (sem Playwright)
-"""
 import importlib.util
 import os
 import shutil
@@ -100,7 +79,6 @@ def main():
                 for tipo, frase in pag.evaluate(MEDIR_JS):
                     reprovas.append((rota, tipo, frase))
 
-            # 4. o teclado
             pag.evaluate("() => { location.hash = '#tema'; }")
             esperar(pag)
             pag.mouse.click(5, 900)

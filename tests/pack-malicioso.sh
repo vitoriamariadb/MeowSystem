@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# pack-malicioso.sh — um pack de terceiro consegue ler, escrever ou rodar algo
-# fora da raiz dele?
-#
-# HOME, XDG_DATA_HOME e MEOW_PACKS temporários; falsos de sudo, pkexec, apt e
-# companhia à frente do PATH, que registram e recusam.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -20,11 +15,9 @@ ok()    { printf 'ok: %s\n' "$1"; }
 falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" | sed 's/^/        /' >&2
           falhas=$((falhas+1)); }
 
-# A casa numa variável, e não como `$T/home/...`: a regra 1 do
-# tests/portabilidade.sh lê `/home/<nome>/` como casa de pessoa cravada.
 CASA="$T/casa"
 XDG="$T/xdg"
-RAIZ_DELA="$XDG/meowsystem/packs"        # a raiz 2, "o seu", onde um clone cai
+RAIZ_DELA="$XDG/meowsystem/packs"
 SEGREDO="SEGREDO-P78-NAO-VAZA"
 MARCA="$T/executou"
 FORA="$T/fora"
@@ -35,16 +28,13 @@ printf '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><!-- %s --></s
   > "$FORA/arte.svg"
 cp "$FORA/arte.svg" "$FORA/pasta/folder.svg"
 
-# Os falsos: registram e recusam. Nenhuma sonda daqui precisa deles, e é por
-# isso mesmo que estão aqui — se alguma chamar, o registro diz.
 for f in sudo pkexec su apt apt-get systemd-run loginctl pkill killall notify-send \
          systemctl gsettings dconf busctl; do
   printf '#!/bin/sh\nprintf "%%s %%s\\n" "%s" "$*" >> "%s/falsos.log"\nexit 1\n' "$f" "$T" > "$T/falso/$f"
   chmod 755 "$T/falso/$f"
 done
 
-# O código plantado: cada um deixa a marca se rodar.
-plantar() {   # <arquivo>
+plantar() {
   mkdir -p "$(dirname "$1")"
   printf '#!/bin/sh\ntouch "%s"\n' "$MARCA" > "$1"
   chmod 755 "$1"
@@ -56,9 +46,6 @@ amb() {
       MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE=/nao/existe "$@"
 }
 
-# --- os packs -----------------------------------------------------------------
-# `mal` VALIDA: tudo o que ele tem de ruim é o que o `validar` não olha (nome de
-# destino no mapa, linha do mapa de pastas, symlink dentro de pasta de desenho).
 MAL="$RAIZ_DELA/mal"
 mkdir -p "$MAL/icones/apps" "$MAL/icones/pastas"
 cp "$RAIZ/packs/dracula/paleta.json" "$MAL/"
@@ -71,7 +58,6 @@ cat > "$MAL/pack.json" <<'J'
             "pastas": {"mapa": "icones/pastas.map", "desenhos": "icones/pastas/",
                        "recolorir": false}}}
 J
-# O desenho bom é o que o painel serve: `<script>` e `onload` dentro dele.
 cat > "$MAL/icones/apps/bom.svg" <<'S'
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1" onload="fetch('/api/estado')"><script>fetch('/api/estado')</script></svg>
 S
@@ -89,15 +75,11 @@ folder-documents:folder-bom
 folder-download:folder-elo
 folder-music:../../../../../../fora/pasta/folder
 M
-# A biblioteca e os feitos à mão são pastas que a ficha do painel lista sem
-# declaração no pack.json; aqui as duas são symlink para fora.
 ln -s "$FORA/pasta" "$MAL/icones/biblioteca"
 ln -s "$FORA/pasta" "$MAL/icones/feitos-a-mao"
 plantar "$MAL/manifesto.sh"
 plantar "$MAL/icones/manifesto.sh"
 
-# `mal-alvo` NÃO VALIDA: o mapa dele aponta para fora. O desfecho certo é ele
-# ser recusado inteiro (o validar já fazia isso), e a máquina vestir o padrão.
 MAL_ALVO="$RAIZ_DELA/mal-alvo"
 mkdir -p "$MAL_ALVO/icones/apps"
 cp "$RAIZ/packs/dracula/paleta.json" "$MAL_ALVO/"
@@ -111,8 +93,6 @@ cat > "$MAL_ALVO/icones/apps.map" <<M
 mal-fora : ../../../../../../fora/arte.svg
 M
 
-# `mal-campo`: os campos do pack.json apontam para fora — `..`, absoluto, e uma
-# pasta que é symlink para fora.
 MAL_CAMPO="$RAIZ_DELA/mal-campo"
 mkdir -p "$MAL_CAMPO/icones"
 cp "$RAIZ/packs/dracula/paleta.json" "$MAL_CAMPO/"
@@ -127,8 +107,6 @@ cat > "$MAL_CAMPO/pack.json" <<'J'
  "origens": {"wallpapers": {"desenhos": "icones/elo/"}}}
 J
 
-# `mal-nulo` e `mal-esc`: texto de pack que não é caminho nem nome de destino,
-# mas que chega a lugares que não o esperam.
 MAL_NULO="$RAIZ_DELA/mal-nulo"
 mkdir -p "$MAL_NULO/icones/apps"
 cp "$RAIZ/packs/dracula/paleta.json" "$MAL_NULO/"
@@ -147,18 +125,12 @@ cat > "$MAL_ESC/pack.json" <<'J'
  "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}}
 J
 ESC=$'\033'
-# `mal-utf`: o pack.json não é UTF-8 (um `\x9b`, o CSI de 8 bits, solto no
-# nome). O `json.load` levanta UnicodeDecodeError, e não JSONDecodeError: era o
-# outro jeito de derrubar a ficha de ícone com um pack só instalado.
 MAL_UTF="$RAIZ_DELA/mal-utf"
 mkdir -p "$MAL_UTF"
 cp "$RAIZ/packs/dracula/paleta.json" "$MAL_UTF/"
 printf '{"formato": 1, "id": "mal-utf", "nome": "a\x9b[2Jb", "heranca": "dracula", "paleta": {"arquivo": "paleta.json"}, "icones": {"apps": {"desenhos": "icones/"}}}\n' \
   > "$MAL_UTF/pack.json"
 
-# `mal-fl-ponto` e `mal-fl-barra`: o nome do flavor vira caminho de pasta e de
-# traço (o `meow_flavor` o devolve cru), e o `validar` só recusava o hífen. Um
-# flavor `..` e um claro `a/b` passavam.
 for _p in mal-fl-ponto:..:flavors mal-fl-barra:a/b:claros; do
   _id="${_p%%:*}"; _r="${_p#*:}"; _fl="${_r%%:*}"; _onde="${_r#*:}"
   mkdir -p "$RAIZ_DELA/$_id"
@@ -177,7 +149,7 @@ PY
 done
 
 PERMITIDAS=("$RAIZ" "$RAIZ_DELA")
-fora_da_raiz() {   # as linhas de caminho da entrada que caem fora das raízes
+fora_da_raiz() {
   local l r
   while IFS= read -r l; do
     [ -n "$l" ] || continue
@@ -188,14 +160,11 @@ fora_da_raiz() {   # as linhas de caminho da entrada que caem fora das raízes
   done
 }
 
-# --- 1. os verbos do pack.py ---------------------------------------------------
 saida="$(printf '%s\n' '../../../../../../fora/arte.svg' "$FORA/arte.svg" '~/.ssh/id_ed25519' \
            'motor:../../../../fora/arte.svg' 'pack:dracula:../../../../../fora/arte.svg' \
            'pastas/folder-elo.svg' \
          | amb python3 "$RAIZ/scripts/pack.py" alvo "$MAL/icones" 2>/dev/null > "$T/alvo.txt"
          cat "$T/alvo.txt")"
-# Pelo arquivo, e não pelo `$( )`: ele come as linhas vazias do fim, que são
-# justamente a resposta certa aqui.
 if [ "$(grep -c . "$T/alvo.txt")" = 0 ] && [ "$(wc -l < "$T/alvo.txt")" = 6 ]; then
   ok "pack.py alvo: as seis formas de sair da raiz voltam vazias, uma linha por linha"
 else
@@ -249,9 +218,6 @@ for _id in mal-fl-ponto mal-fl-barra; do
   fi
 done
 
-# A porta de saída (`meow_texto_seguro`): C1 cru que não forma UTF-8 também sai
-# (`\x9b\x9b`, `\xff\x9b`, `\xe2\x9b` truncado, `\x90`/`\x9d`/`\x9e`/`\x9f`), e o
-# `ě` (`\xc4\x9b`), que tem um `\x9b` de continuação, sobrevive.
 saida="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"
   for c in $'"'"'\x9b\x9b[2J'"'"' $'"'"'\xff\x9b[2J'"'"' $'"'"'\xe2\x9b[2J'"'"' $'"'"'a\x90b\x9dc\x9ed\x9fe'"'"' $'"'"'\e]52;c;eA==\a'"'"'; do
     meow_texto_seguro "$c"; echo; done; meow_texto_seguro "ě" ' 2>/dev/null)"
@@ -262,7 +228,6 @@ else
   falha "meow_texto_seguro deixou passar controle (ou comeu o ě)" "$(printf '%s' "$saida" | od -c | head -5)"
 fi
 
-# --- 2. as escolhas do painel ----------------------------------------------------
 BOM_DRACULA="packs/dracula/icones/apps/$(ls "$RAIZ/packs/dracula/icones/apps" | grep '\.svg$' | head -1)"
 cat > "$CASA/.config/meow/icones-escolhidos.map" <<M
 ../../../../mal-evil-escolha : $BOM_DRACULA
@@ -278,7 +243,6 @@ else
   falha "escolhas deixou passar nome com '/'/'..' ou symlink para fora" "$saida"
 fi
 
-# --- 3. os instaladores, com o pack 'mal' no ar ------------------------------------
 printf 'PACK="mal"\nFLAVOR="dracula"\nICONES_DRACULA="sim"\nPASTAS_XDG="sim"\n' \
   > "$CASA/.config/meow/meow.conf"
 TEMA="$CASA/.local/share/icons/MeowSystem-Icons"
@@ -306,7 +270,6 @@ fi
 grep -q 'pulad' "$T/pastas.log" && ok "icones_pastas.sh contou as linhas puladas no log" \
   || falha "icones_pastas.sh pulou calado" "$(cat "$T/pastas.log")"
 
-# --- 4. o painel, com o HOME de brinquedo ---------------------------------------
 ( exec env -i PATH="$T/falso:$PATH" HOME="$CASA" USER="${USER:-t}" LANG="${LANG:-C.UTF-8}" \
     XDG_DATA_HOME="$XDG" MEOW_PACKS="$T/vazio" MEOW_RAIZ="$RAIZ" \
     MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE=/nao/existe PACK=mal \
@@ -323,12 +286,9 @@ if [ -z "$url" ]; then
 else
   BASE="${url%%/\?t=*}"; TOK="${url##*t=}"
   glifos="$(curl -s -H "X-Meow-Token: $TOK" "$BASE/api/glifos")"
-  # A ficha tem de RESPONDER, e com o pack 'mal' dentro: com a rota caída (o NUL
-  # do `mal-nulo` fazia isso), o "não lista" logo abaixo passaria calado.
   printf '%s' "$glifos" | grep -q 'apps/bom.svg' \
     && ok "a ficha do painel responde com um pack de NUL e um que não é UTF-8 instalados ao lado" \
     || falha "a /api/glifos não respondeu (ou não trouxe o pack 'mal')" "$(tail -5 "$T/painel.log")"
-  # [P96: o pack-base também tem um `biblioteca/folder.svg` (o glifo do Arcticons); a busca é do pack `mal`.]
   if printf '%s' "$glifos" | grep -q "mal/icones/biblioteca/folder.svg\|mal/icones/feitos-a-mao/folder.svg\|$FORA"; then
     falha "a ficha do painel lista desenho de pasta que é symlink para fora do pack"
   else
@@ -338,8 +298,6 @@ else
               --data-urlencode tipo=arquivo --data-urlencode "id=$MAL/icones/biblioteca/folder.svg" "$BASE/previa")"
   [ "$codigo" = 404 ] && ok "a /previa recusa o arquivo de dentro da pasta-symlink (404)" \
     || falha "a /previa serviu o arquivo de fora do pack (HTTP $codigo)"
-  # O SVG com <script>: entra no `_ICONES_DECLARADOS` pela ficha acima, e é
-  # servido — como imagem que não roda nada, aberto direto ou não.
   cab="$(curl -s -D - -o "$T/bom.svg" -H "X-Meow-Token: $TOK" --get \
            --data-urlencode tipo=arquivo --data-urlencode "id=$MAL/icones/apps/bom.svg" "$BASE/previa")"
   printf '%s\n' "$cab" | sed 's/\r$//' > "$T/cabecalhos.txt"
@@ -355,10 +313,6 @@ else
   kill "$PAINEL" 2>/dev/null; wait "$PAINEL" 2>/dev/null; PAINEL=""
 fi
 
-# --- 5. código plantado no diretório de onde se chama ----------------------------
-#   `python3 -c` e `python3 -` põem o diretório corrente na frente do sys.path:
-#   um `json.py` na pasta de onde a pessoa roda o `meow` seria importado no
-#   lugar do da biblioteca padrão.
 CWD="$T/cwd"
 mkdir -p "$CWD"
 printf 'open("%s", "w").close()\nraise ImportError("plantado")\n' "$MARCA" > "$CWD/json.py"
@@ -368,11 +322,7 @@ cp "$CWD/json.py" "$CWD/re.py"
 [ -e "$MARCA" ] && { falha "um json.py/re.py no diretório corrente rodou dentro do meow"; rm -f "$MARCA"; } \
   || ok "nenhum módulo plantado no diretório corrente rodou (meow pack listar, lib/comum.sh)"
 
-# --- 5b. o tema de aplicativo só leva cor ---------------------------------------
-#   O modelo de kitty e de GNOME Terminal vai inteiro para a configuração do
-#   aplicativo: `shell`/`map … launch`/`geninclude` no kitty e `custom-command`
-#   no perfil do GNOME Terminal são comando que roda a cada janela nova.
-filtrado() {   # <app> <modelo montado> — o texto que o módulo vai escrever
+filtrado() {
   amb MEOW_PACKS="$T/vazio" bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
     . "$MEOW_RAIZ/scripts/temas-de-apps/$0/manifesto.sh" || exit 2
     if [ "$0" = kitty ]; then _KITTY_DE=mal; _KITTY_DESEJADO="$1"; _kitty_so_cor; printf "%s\n" "$_KITTY_DESEJADO"
@@ -386,9 +336,6 @@ else
   falha "o modelo de app de um pack levou linha que não é cor" "kitty: $k"$'\n'"gnome-terminal: $g"
 fi
 
-# --- 5c. o papel de parede do pack ------------------------------------------------
-#   `origens.wallpapers.repo_do_conf` vira `${!valor}` no wallpaper.sh, e a
-#   curadoria (FONTES.tsv) dá o nome do arquivo e a URL que o curl baixa.
 PAPEL_CONF="$RAIZ_DELA/mal-papel-conf"
 mkdir -p "$PAPEL_CONF/wallpapers"
 cp "$RAIZ/packs/dracula/paleta.json" "$PAPEL_CONF/"
@@ -412,8 +359,6 @@ sed -i 's/"commit_do_conf": "HOME"/"commit_do_conf": "WALLPAPER_X_COMMIT"/' "$PA
 [ -z "$(adotado mal-papel-conf)" ] \
   && ok "o validar aceita as chaves da lista (WALLPAPER_X_REPO, WALLPAPER_X_COMMIT)" \
   || falha "o validar recusou as chaves certas"
-# A guarda do próprio wallpaper.sh, se o pack.py deixasse passar: um python3
-# que responde ao verbo `wallpapers` com a chave plantada.
 PY_REAL="$(command -v python3)"
 mkdir -p "$T/py-mal"
 cat > "$T/py-mal/python3" <<PYF
@@ -482,11 +427,6 @@ else
     "$(cat "$T/curl-args.log"; printf '%s\n' "$fora_papel"; tail -3 "$T/papel-2.log")"
 fi
 
-# --- 5d. as fotos do pack (P102) ---------------------------------------------------
-#   As fotos são as imagens soltas em `wallpapers/` do próprio pack, e não se
-#   declaram: um `origens.wallpapers.fotos` apontando para fora é recusado, a
-#   pasta `wallpapers` que é link não conta, e o wallpaper.sh confere o que
-#   recebe mesmo se o pack.py deixasse passar.
 FOTOS_FORA="$FORA/fotos"; mkdir -p "$FOTOS_FORA"
 printf '\x89PNG\r\n\x1a\n%s\n' "$SEGREDO" > "$FOTOS_FORA/foto-de-fora.png"
 PFOTO="$RAIZ_DELA/mal-fotos"; mkdir -p "$PFOTO"
@@ -527,11 +467,6 @@ done
 achadas="$(find "$T"/papel-fotos-* -name 'foto-de-fora*' 2>/dev/null)"
 [ -z "$achadas" ] && ok "nenhuma foto de fora do pack entrou no acervo (declarada, link, ou plantada no pack.py)" \
   || falha "uma foto de fora do pack foi semeada" "$achadas"
-# --- 5e. o nome do tema do Spotify não vira caminho (P107) -----------------------
-#   `spicetify_tema` monta `~/.config/spicetify/Themes/<nome>`, que leva `rm -rf`
-#   antes de o tema entrar. Com `..`, o alvo era a pasta inteira do spicetify; com
-#   `a/b`, uma pasta de dentro de outra. O pai não passa no `validar`, mas o filho
-#   que só herda dele passa, e é o nome do pai que chega ao módulo.
 for _caso in ponto:.. barra:a/b; do
   _id="mal-spot-${_caso%%:*}"; _nome="${_caso#*:}"
   mkdir -p "$RAIZ_DELA/$_id/temas-de-apps/spotify/x" "$RAIZ_DELA/$_id-filho"
@@ -565,8 +500,6 @@ for _caso in ponto:.. barra:a/b; do
       "$(find "$SPI" | sed "s|$T|T|"; printf '%s\n' "$saida" | tail -4)"
   fi
 done
-# A outra porta: `origem.pasta` e `origem.commit` montam o caminho que vai
-# para Themes/ com `mv`. A forma é a do `origem_pinada`.
 _id=mal-spot-origem
 mkdir -p "$RAIZ_DELA/$_id"; cp "$RAIZ/packs/dracula/paleta.json" "$RAIZ_DELA/$_id/"
 printf '{"formato": 1, "id": "%s", "nome": "Mal origem", "versao": "1.0.0", "autor": "x", "licenca": "MIT",\n "heranca": "dracula", "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},\n "apps": {"spotify": {"spicetify_tema": "Bom", "esquema": "Dracula",\n   "origem": {"tipo": "github-arvore", "repo": "a/b", "commit": "../../../fora", "pasta": "../../fora/pasta"}}}}\n' \
@@ -576,7 +509,6 @@ saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$_id" 2>&1)"; rc=$?
   && ok "o validar recusa a origem do tema do Spotify com '..' no commit ou na pasta" \
   || falha "o validar aceitou a origem do Spotify com '..' (rc=$rc)" "$saida"
 
-# --- 6. o .meowpack com script ---------------------------------------------------
 if command -v zstd >/dev/null 2>&1; then
   MP="$T/mp"; mkdir -p "$MP/trazido"
   cp "$MAL/pack.json" "$MAL/paleta.json" "$MP/trazido/"
@@ -592,7 +524,6 @@ if command -v zstd >/dev/null 2>&1; then
   else
     falha "o .meowpack com script entrou (rc=$rc)" "$(cat "$T/importar.log")"
   fi
-  # O nome da entrada com sequência de terminal: as recusas listavam o nome cru.
   ( cd "$MP" && mkdir -p esc && cp trazido/pack.json esc/ && sed -i 's/"id": "trazido"/"id": "esc"/' esc/pack.json \
       && cp trazido/paleta.json "esc/x"$'\033'"]52;c;eA=="$'\007'".sh" \
       && printf 'meowpack 1\nformato 1\npack esc\n' > MANIFESTO \
@@ -607,10 +538,6 @@ else
   printf 'pulado: sem zstd, a sonda do .meowpack com script\n'
 fi
 
-# --- 7. o painel não sobe para QA na casa de verdade (decisão 8 da leva G) ----
-#   O `getent` falso diz que a casa da conta É a casa de brinquedo: para o
-#   `run.sh`, este HOME passa a ser o real. Assim a recusa é provada sem que o
-#   teste chegue perto da casa de quem roda.
 mkdir -p "$T/falso-getent"
 printf '#!/bin/sh\nprintf "%%s:x:1000:1000::%%s:/bin/bash\\n" "$(id -un)" "%s"\n' "$CASA" \
   > "$T/falso-getent/getent"
@@ -624,9 +551,6 @@ else
   falha "o painel subiu para QA com o HOME da conta (rc=$rc)" "$(tail -3 "$T/casa-real.log")"
 fi
 
-# As outras portas para a mesma casa: o HOME vazio (o Python do painel cairia no
-# `pwd`, a casa da conta) e, com um HOME de brinquedo, um `XDG_DATA_HOME`
-# herdado que aponta para a casa da conta.
 for caso in vazio xdg; do
   if [ "$caso" = vazio ]; then extra=(HOME=); else extra=(HOME="$T/outra" XDG_DATA_HOME="$CASA/.local/share"); fi
   timeout 20 env -i PATH="$T/falso-getent:$T/falso:$PATH" USER="${USER:-t}" \
@@ -639,9 +563,6 @@ for caso in vazio xdg; do
   fi
 done
 
-# --- 7b. o mascote e o ponteiro do pack não viram código no meow.conf -----------
-#   A troca de pack grava no meow.conf (que o bash lê com `source`) o mascote de
-#   fábrica e o ponteiro do pack novo, entre aspas duplas.
 MARCA_M="$T/mascote-executou"
 MAL_MASC="$RAIZ_DELA/mal-mascote"
 mkdir -p "$MAL_MASC"
@@ -667,8 +588,6 @@ sed -e 's/^PACK="[^"]*"/PACK="mal-mascote"/' -e 's/^FLAVOR="[^"]*"/FLAVOR="dracu
   "$RAIZ/meow.conf.exemplo" > "$CONF_M"
 amb python3 "$RAIZ/scripts/migrar_conf.py" "$CONF_M" "$RAIZ/meow.conf.exemplo" \
   --so-vestigios --pack-de-antes "" "" >/dev/null 2>&1
-# O ralo: um pack que chegasse à troca sem o `validar` (a cadeia de herança, um
-# leitor novo) também não grava. O pack.py fica de verdade; só o que ele diz muda.
 amb python3 -I - "$RAIZ/scripts" "$RAIZ/meow.conf.exemplo" "$T/ralo.conf" "$MARCA_M" <<'PY' 2>/dev/null
 import sys
 sys.path.insert(0, sys.argv[1])
@@ -694,7 +613,6 @@ done
   && ok "o mascote e o ponteiro de um pack não viram código no meow.conf: nada gravado, nada criado" \
   || falha "o meow.conf recebeu mascote ou ponteiro que não é nome" "${gravado:-o source do meow.conf criou $MARCA_M}"
 
-# --- 8. o desfecho, no disco inteiro do teste ---------------------------------------
 evil="$(find "$T" -name 'mal-evil*' 2>/dev/null)"
 [ -z "$evil" ] && ok "nenhum arquivo com nome de fora (mal-evil*) nasceu em lugar nenhum" \
   || falha "um nome do pack escreveu fora do lugar" "$evil"

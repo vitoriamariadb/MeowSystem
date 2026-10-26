@@ -1,20 +1,4 @@
 #!/usr/bin/env python3
-"""tests/app-texto-visivel.py — quanto texto cada página do painel põe na tela.
-
-NÃO É GATE, É A RÉGUA. O gate da forma é o `tests/app-uso-real.py`; este arquivo
-mede, com o mesmo critério antes e depois de uma mudança, o texto que o olho vê
-em cada uma das 14 páginas do painel novo (P98): o total de caracteres, os
-blocos de 48 ou mais (frase) e o que está em `<code>`.
-
-O QUE CONTA COMO «VISÍVEL»: cada nó de texto de `#conteudo` desenhado
-(`checkVisibility`), fora de dica, de registro (`pre`) e de prévia. A casa é a
-do `tests/app-completo.py`. Nenhum clique escreve: só se trocam páginas.
-
-USO
-  python3 tests/app-texto-visivel.py [--fotos <pasta>] [--rotulo antes|depois] [--json <arquivo>]
-
-  0 = mediu · 2 = erro deste teste
-"""
 import importlib.util
 import json
 import os

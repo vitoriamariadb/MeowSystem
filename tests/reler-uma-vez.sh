@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# reler-uma-vez.sh — a instalação relê a tela uma vez só, no fim da passada.
-#
-# A TELA É DE BRINQUEDO: o `getent` falso diz que a casa de brinquedo é a da
-# conta (a cerca do `meow_tela_reler`), o `pgrep` falso diz que há painel, e o
-# `painel.sh` é um falso que só anota — na raiz de brinquedo.
-#
-# PORTÁTIL: bash, e python3 no caso 6 (o passo de traço de verdade lê o pack).
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ACHADOS=0
@@ -20,14 +13,12 @@ cp "$RAIZ/lib/"*.sh "$RB/lib/" || exit 2
 : > "$ANOTA"
 
 printf '#!/bin/sh\nprintf "%%s:x:%%s:%%s::%%s:/bin/bash\\n" "$(id -un)" "$(id -u)" "$(id -g)" "%s"\n' "$CASA" > "$FALSO/getent"
-# Há painel (`-x cosmic-panel`); o lançador, não (o `-f` dele não acha ninguém).
 printf '#!/bin/sh\ncase " $* " in *" -x cosmic-panel "*) echo 4242; exit 0 ;; esac\nexit 1\n' > "$FALSO/pgrep"
 printf '#!/bin/sh\nexit 1\n' > "$FALSO/kill"
 printf '#!/bin/sh\nprintf "reciclar quem=%%s\\n" "${MEOW_QUEM_RECICLA:-}" >> "%s"\nexit 0\n' "$ANOTA" > "$RB/scripts/painel.sh"
 chmod 755 "$FALSO"/* "$RB/scripts/painel.sh"
 
-# Um processo filho com a lib da raiz de brinquedo, como cada script de ícone.
-passo() {  # <nome do script>
+passo() {
   env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RB" NO_COLOR=1 \
       ${MEOW_RELER_NO_FIM:+MEOW_RELER_NO_FIM="$MEOW_RELER_NO_FIM"} \
       bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_tela_reler; printf "rc=%s\n" "$?"' "$1"
@@ -89,7 +80,6 @@ else
 fi
 
 printf '\n--- 4c. nenhum passo recicla o painel por fora da porta única ---\n'
-# Só a porta (lib/comum.sh) o chama.
 achados="$(grep -rnE '^[^#]*painel\.sh"?[[:space:]]+reciclar' "$RAIZ/scripts" "$RAIZ/lib" "$RAIZ/install.sh" \
            | grep -v '^[^:]*/lib/comum\.sh:')"
 [ -z "$achados" ] && ok "só o meow_tela_reler chama o painel.sh reciclar" \
@@ -107,7 +97,6 @@ else
 fi
 
 printf '\n--- 6. o passo de ícone que adia o reler continua dizendo «mudou» ---\n'
-# O script de verdade, numa casa de brinquedo, com a marca da passada armada.
 CASA6="$T/casa6"; mkdir -p "$CASA6"; : > "$T/marca6"
 for c in sudo pkexec su; do printf '#!/bin/sh\nexit 1\n' > "$FALSO/$c"; chmod 755 "$FALSO/$c"; done
 env -i PATH="$FALSO:$PATH" HOME="$CASA6" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_RELER_NO_FIM="$T/marca6" \

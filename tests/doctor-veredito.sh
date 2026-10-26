@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# doctor-veredito.sh — o doctor corrige, e o veredito final é o pior estado.
-#
-#   0 = passou · 1 = falhou · 2 = erro deste teste
-# `sudo`, `pkill` e `kill` são falsos que registram e recusam: com `NOPASSWD: ALL`,
-# um teste que chama sudo ESCREVE no sistema.
-# `sudo`, `pkill` e `kill` são falsos que registram e recusam: com `NOPASSWD` na
-# máquina, um teste que chama sudo não falha, escreve.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -22,9 +15,7 @@ for c in sudo pkill killall notify-send systemd-run pkexec; do
   chmod 755 "$FALSO/$c"
 done
 
-# O bin/meow é lido sem a última linha (o despacho), numa casa de
-# brinquedo com o meow.conf de fábrica.
-cenario() {   # $1 = arquivo com as definições · resto = argumentos do doctor
+cenario() {
   local defs="$1"; shift
   local casa="${CASA_CENARIO:-$TMP/casa-$RANDOM}"
   mkdir -p "$casa/.config/meow"
@@ -63,11 +54,6 @@ else
   falha "o pulado de rotina virou divergência (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
 fi
 
-# A RECUSA DELA NÃO É DIVERGÊNCIA — conferência da P75 (09/10/2026). O
-# «não quero o starship» fica gravado no estado, e o `prompt.sh` o dizia com
-# `!!`: com o pulado que avisa pesando no veredito, a escolha dela virava
-# «há divergências» todo dia. Aqui é o `chk_prompt` de verdade, sem starship no
-# PATH e com a recusa gravada na casa de brinquedo.
 cat > "$TMP/c2c" <<'FIM'
 VERIFICAVEIS=(prompt)
 FIM
@@ -82,9 +68,6 @@ else
   falha "a recusa do starship pesou como divergência (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
 fi
 
-# O `meow status` lê a mesma tabela pela mesma régua: o pulado de rotina e a
-# escolha dela (4) não são divergência, e ele não manda rodar um conserto que
-# responderia "nada a consertar" (D2 de 01-regressoes.md).
 cat > "$TMP/c2b" <<'FIM'
 VERIFICAVEIS=(a b c)
 chk_a() { echo "tudo certo"; return 0; }
@@ -100,8 +83,6 @@ else
 fi
 
 printf '\n--- 2. o --consertar termina pelo depois ---\n'
-# `dep` instala o que o `b` precisa; o `b` saiu 3 na tabela e só se conserta
-# se o laço perguntar de novo depois do `dep`.
 cat > "$TMP/c3" <<'FIM'
 VERIFICAVEIS=(dep b)
 M="$HOME/marca"
@@ -121,9 +102,6 @@ else
   falha "o 3 com a dependência recém-posta não foi consertado (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
 fi
 
-# [P81, 15/10/2026: o representante do «sem conserto» era o `patches`, que
-#   ganhou conserto (`fix_patches`, a função única dos builds — um build de
-#   verdade, que este cenário dispararia). O `convertidos` continua sem.]
 cat > "$TMP/c4" <<'FIM'
 VERIFICAVEIS=(a convertidos)
 chk_a() { echo "tudo certo"; return 0; }
@@ -149,11 +127,6 @@ else
   falha "o conserto que não fez virou «consertado» (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
 fi
 
-# Conferência da P75 (09/10/2026): o conserto de uma linha desarruma outra que
-# estava no lugar (o `completar` põe arquivos no tema e o `index.theme` do
-# `icones` fica para trás). A segunda tabela confere TUDO quando algo foi
-# escrito, e não só o que estava fora antes — senão a passada diz «tudo no
-# lugar» com a linha `a` fora.
 cat > "$TMP/c5b" <<'FIM'
 VERIFICAVEIS=(a b)
 M="$HOME/marca"
@@ -169,11 +142,6 @@ else
   falha "a passada não viu a linha que o conserto desarrumou (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
 fi
 
-# O pacote que falta vai pela ponte root, sem senha. A ponte aqui é de
-# brinquedo (registra o que recebe no stdin e marca o "instalado"), e o sudo de
-# brinquedo só a executa a ELA — qualquer outro sudo segue registrado e
-# recusado. O perfil diz que a casa é esta, que é o que o `meow_ponte_viva`
-# exige antes de usar ponte nenhuma.
 PONTE_DIR="$TMP/ponte"; mkdir -p "$PONTE_DIR"
 cat > "$PONTE_DIR/ponte_root.sh" <<'FIM'
 #!/bin/sh
@@ -212,8 +180,6 @@ for s in completar_icones construir_pastas; do
   saida="$(env PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
              ICONES_BASE="Base-Que-Nao-Existe" ICONES_PASTAS="cat-mocha-mauve" \
              MEOW_CAT_FOLDERS="$TMP/sem-upstream" "$RAIZ/scripts/$s.sh" 2>&1)"; rc=$?
-  # 3 quando a base é a única coisa fora; o `completar` numa casa vazia
-  # ainda tem os autorais por pôr, e aí sai 1 — nunca 0 com o aviso por cima.
   if { [ "$rc" = "3" ] || [ "$rc" = "1" ]; } && grep -qE '^ *!! .*Base-Que-Nao-Existe' <<< "$saida" \
      && ! grep -qiE 'apt(-get)? install|instale com' <<< "$saida"; then
     ok "$s: sem a base sai $rc (não 0), com !! e sem receita"
@@ -231,9 +197,6 @@ if grep -qiE 'apt(-get)? install|instale com' "$TMP/inteira"; then
 else
   ok "nenhuma linha do doctor manda instalar à mão"
 fi
-# Nenhuma linha da tabela vazia ou cortada no dois-pontos (achado 5 de 09/10:
-# `files_menu` e `resgatados` sem texto, `escala: saídas ligadas agora:`,
-# `fontes: Fonte da interface`).
 vazias="$(grep -E '^  (ok|~~|--|!!|erro) +[a-z_]+( *| .*:)$' "$TMP/inteira")"
 if [ -n "$vazias" ]; then
   falha "linha da tabela vazia ou cortada:"; printf '%s\n' "$vazias" | sed 's/^/       /' >&2
@@ -242,14 +205,9 @@ else
 fi
 
 printf '\n--- 5. a lista da ponte é a do install.sh ---\n'
-# O verbo `pacotes` da ponte root guarda a lista LITERAL (ela mora no arquivo
-# de root, e não no clone gravável). A cópia só não envelhece calada se alguém
-# a cobra: são os valores do `NECESSARIOS` do `etapa_pacotes` mais os dois que
-# ele acrescenta fora do array.
 do_install="$( (sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh" \
   | grep -oE '\]=[a-zA-Z0-9_.+-]+|faltam\+=\([a-zA-Z0-9_.+-]+\)' \
   | sed -E 's/^\]=//; s/^faltam\+=\((.*)\)$/\1/'
-  # e os do compilar dos applets, que o `etapa_pacotes` lê do lib/comum.sh
   sed -n '/^MEOW_DEPS_DOS_APPLETS=/,/"$/p' "$RAIZ/lib/comum.sh" | grep -oE '\|[a-z0-9.+-]+' | tr -d '|' \
   ) | LC_ALL=C sort -u | paste -sd' ' -)"
 da_ponte="$(sed -n 's/^ *PERMITIDOS=" \(.*\) "$/\1/p' "$RAIZ/scripts/ponte_root.sh" \
@@ -261,18 +219,12 @@ else
 fi
 
 printf '\n--- 6. a ponte não segue link no destino do greeter (P82, item 16) ---\n'
-# Numa CÓPIA da ponte, com o lar do greeter numa pasta de brinquedo e o dono
-# sendo quem roda o teste: nenhum root, nenhum sudo. O `cp -a` do
-# `greeter-aplicar` escrevia ATRAVÉS de um link simbólico que já estivesse no
-# destino; agora um link ali recusa o verbo inteiro, antes da cópia.
 PONTE_COPIA="$TMP/ponte-copia.sh"
 LAR_G="$TMP/greeter"
 sed -e "s#^GREETER_HOME=.*#GREETER_HOME=\"$LAR_G\"#" \
     -e "s#^GREETER_DONO=.*#GREETER_DONO=\"$(id -un)\"#" \
     -e 's#^anotar() {#anotar() { return 0#' \
     "$RAIZ/scripts/ponte_root.sh" > "$PONTE_COPIA"
-# O link é de ARQUIVO: o `cp -a` do GNU escreve através dele (medido: o alvo
-# de fora recebe o conteúdo novo e sai 0).
 DESTINO_G="$LAR_G/.config/cosmic/com.system76.CosmicTheme.Dark/v1"
 mkdir -p "$DESTINO_G" "$TMP/alvo-do-elo" "$TMP/tar/com.system76.CosmicTheme.Dark/v1"
 printf 'de fora\n' > "$TMP/alvo-do-elo/segredo"
@@ -291,9 +243,6 @@ if [ "$rc_ponte" -eq 0 ] && [ "$(cat "$LAR_G/.config/cosmic/com.system76.CosmicT
 else
   falha "sem link no destino, o greeter-aplicar não copiou (rc=$rc_ponte): $(tail -2 "$TMP/ponte.err")"
 fi
-# Nó de dispositivo e FIFO (P108, conferência): como root o tar os cria, e o
-# `cp -a` os levaria ao lar do greeter. Só arquivo e pasta passam. O FIFO é o
-# que dá para fazer sem root; o nó de dispositivo cai na mesma régua.
 mkfifo "$TMP/tar/com.system76.CosmicTheme.Dark/v1/cano"
 ( cd "$TMP/tar" && tar -cf - . ) | bash "$PONTE_COPIA" greeter-aplicar >/dev/null 2>>"$TMP/ponte.err"; rc_ponte=$?
 if [ "$rc_ponte" -ne 0 ] && [ ! -e "$DESTINO_G/cano" ]; then
@@ -304,9 +253,6 @@ fi
 rm -f "$TMP/tar/com.system76.CosmicTheme.Dark/v1/cano"
 
 printf '\n--- 7. o instalar_fontes.sh pede a ferramenta que falta pela ponte (P82, item 16) ---\n'
-# Um PATH sem `curl` (cópia por link de /usr/bin, menos ele), uma ponte de
-# brinquedo que registra o stdin e "instala" um curl que sai 1 (a descarga
-# morre ali, sem rede), e o sudo de brinquedo que só a executa a ela.
 SEM_CURL="$TMP/sem-curl"; INST="$TMP/instalado"; PONTE2="$TMP/ponte2"
 mkdir -p "$SEM_CURL" "$INST" "$PONTE2" "$TMP/sudo-ponte2" "$TMP/casa-fontes/.config"
 for b in /usr/bin/*; do
@@ -338,10 +284,6 @@ else
 fi
 
 printf '\n--- 8. o starship é opcional (P82, item 2; decisão 14) ---\n'
-# Sem starship, a linha `prompt` do doctor é um pulado de ROTINA (`--`), que
-# não pesa no veredito; e o «Instalar o starship» aparece. Com um starship
-# falso em ~/.cargo/bin (onde o `cargo install` o põe), o botão vem
-# indisponível: o painel não oferece baixar o que já está lá.
 CASA_S="$TMP/casa-starship"; mkdir -p "$CASA_S/.config/meow"
 cp "$RAIZ/meow.conf.exemplo" "$CASA_S/.config/meow/meow.conf"
 SEM_STARSHIP="$TMP/sem-starship"; mkdir -p "$SEM_STARSHIP"
@@ -375,7 +317,6 @@ fi
 
 
 printf '\n--- 9. o starship desce com o install (decisão de 23/10) ---\n'
-# Um curl falso entrega um instalador que põe um starship em ~/.local/bin.
 CASA_I="$TMP/casa-install"; mkdir -p "$CASA_I/.config/meow" "$TMP/curl-starship"
 cp "$RAIZ/meow.conf.exemplo" "$CASA_I/.config/meow/meow.conf"
 cat > "$TMP/curl-starship/curl" <<CURL

@@ -1,23 +1,4 @@
 #!/usr/bin/env python3
-"""tests/migracao-do-painel.py — nada do painel de antes se perde no painel novo (P98).
-
-Gera do código a tabela de migração (docs/design/2026-10-23/migracao.md):
-
-  · cada chave do esquema do painel (o `ler_esquema` do app/servidor.py, que lê o
-    meow.conf.exemplo), com a página de antes (a seção dela) e a de agora;
-  · cada ação do servidor (`ACOES`), com o grupo de antes e a página de agora;
-  · cada gesto da página de antes que fala com o servidor sem ser ação (as rotas
-    da API que o app.js antigo chamava, mais o Exportar e os Créditos do topo).
-
-A página de agora sai de app/pagina/lugares.js, lido no node. Reprova com uma
-linha sem destino, com um lugar que aponta para chave ou ação que não existe, ou
-com o .md diferente do que o código gera (rode com --escrever para regravar).
-
-    tests/migracao-do-painel.py             confere
-    tests/migracao-do-painel.py --escrever  regrava o .md
-
-0 = passou · 1 = falhou · 3 = pulado (sem node)
-"""
 import functools
 import json
 import os
@@ -30,11 +11,6 @@ import tempfile
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MD = os.path.join(RAIZ, "docs", "design", "2026-10-23", "migracao.md")
 
-# Os gestos do painel de antes (app/pagina/app.js e index.html até a P97): cada
-# rota da API que escreve ou baixa, e o que ela fazia na tela. É a lista fechada
-# do que a página fazia além das ações do servidor; o painel novo tem de ter um
-# gesto com lugar para cada uma (a coluna da direita é o id do gesto em
-# lugares.js).
 GESTOS_DE_ANTES = [
     ("POST /api/salvar", "Topo: Salvar e aplicar", "salvar"),
     ("Descartar (só na página)", "Topo: Descartar", "descartar"),
@@ -75,7 +51,6 @@ def _node(expr):
 
 @functools.lru_cache(maxsize=None)
 def portas():
-    """O nome de cada porta, do PORTAS do lugares.js; a barra de cima e a janela pelo nome da página."""
     return {p["id"]: p["nome"] for p in _node("L.PORTAS")}
 
 
@@ -99,7 +74,6 @@ def inventario():
 
 
 def servidor():
-    """As chaves e as ações, lidas pelo próprio servidor numa casa de brinquedo."""
     casa = tempfile.mkdtemp(prefix="meow-migracao-")
     try:
         os.makedirs(os.path.join(casa, ".config", "meowsystem"))
@@ -112,7 +86,6 @@ def servidor():
             "pend = list(s.ACAO_DA_PENDENCIA) + [s.PENDENCIA_EXTENSAO, s.PENDENCIA_PAREDE,\n"
             "  'onlyoffice' + s.SUFIXO_TEMA_DE_TERCEIRO, 'inicio']\n"
             "onde = {i: s.onde_na_tela(i) for i in [c['chave'] for c in e] + list(s.ACOES) + pend}\n"
-            # O mesmo --onde com as portas renomeadas numa cópia do lugares.js: o nome vem de lá.
             "fonte = open(os.path.join(s.RAIZ, 'app', 'pagina', 'lugares.js'), encoding='utf-8').read()\n"
             "bloco = re.search(r'(?ms)^const PORTAS = .*?^];', fonte).group(0)\n"
             "copia = tempfile.mkdtemp(dir=os.environ['HOME']); os.makedirs(os.path.join(copia, 'app', 'pagina'))\n"
@@ -190,14 +163,11 @@ def gerar():
         nome = "; ".join(sorted({l["rotulo"] for l in lugares}))
         linhas.append("| %s | %s | %s | %s |" % (rota, antes, agora, nome))
 
-    # O `--onde` do servidor lê o lugares.js sem node: a leitura dele tem de ser a do node.
     lido = [{k: v for k, v in l.items() if k != "botao"} for l in srv["inventario"]]
     if lido != inv:
         falhas.append("o inventario_do_painel do servidor não lê o lugares.js como o node (%d contra %d linhas)"
                       % (len(lido), len(inv)))
 
-    # TODO DESTINO DO `--onde` EXISTE NO lugares.js: o caminho é o de uma linha dele (ou a
-    # porta das pendências), e o nome citado de uma chave ou ação é o rótulo ou o botão dela.
     destinos = {onde(l) for l in inv} | {portas()["cuidar"]}
     for ident, frase in srv["onde"].items():
         if not frase:
@@ -206,8 +176,6 @@ def gerar():
         if caminho not in destinos:
             falhas.append("o --onde de %s aponta para %r, que não existe no lugares.js" % (ident, caminho))
         if ident in srv["pendencias"]:
-            # O botão de uma pendência é o de uma linha das pendências no lugares.js,
-            # ou o «Resolver» de toda pendência com ação.
             botoes = {l["botao"] for l in srv["inventario"]
                       if l["porta"] == "cuidar" and l.get("bloco") == "Pendências" and l.get("botao")}
             for citado in [x.split("»", 1)[0] for x in frase.split("«")[1:]]:
@@ -219,12 +187,10 @@ def gerar():
         citado = frase.split("«", 1)[-1].split("»", 1)[0] if "«" in frase else ""
         if citado and citado not in nomes:
             falhas.append("o --onde de %s cita «%s», que não é rótulo nem botão no lugares.js" % (ident, citado))
-    # O comentário de quem pergunta o --onde no bash diz as formas de agora, sem as abas de antes.
     comum = open(os.path.join(RAIZ, "lib", "comum.sh"), encoding="utf-8").read()
     bloco = comum.split("\nmeow_onde_no_painel() {", 1)[0].rsplit("\n\n", 1)[-1]
     if re.search(r"\babas?\b", bloco, re.I):
         falhas.append("o comentário do meow_onde_no_painel (lib/comum.sh) ainda fala em aba")
-    # O botão que a pendência desenha tem o nome do botão daquela ação no lugares.js.
     botao_de = {l["id"]: l.get("botao") for l in srv["inventario"]
                 if l["porta"] == "cuidar" and l.get("bloco") == "Pendências"}
     for acao, rotulo in srv["escolhas"]:
@@ -238,7 +204,6 @@ def gerar():
         falhas.append("o --onde não lê o nome das portas do lugares.js (segunda tabela no servidor): %r"
                       % srv["renomeado"])
 
-    # O caminho inverso: lugar que aponta para o que não existe é lixo na tela.
     ids_chave = {c[0] for c in chaves}
     ids_acao = {a[0] for a in acoes}
     for l in inv:

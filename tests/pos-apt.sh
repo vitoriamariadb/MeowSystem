@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# pos-apt.sh — o pós-apt do COSMIC reconstrói UMA vez por versão nova, e zero
-# vezes na segunda passagem?
-#
-# o compositor e o menu do cosmic-files passam pela função única
-# (`scripts/garantir_builds.sh`), que olha o artefato e não a versão vista: o
-# shim desligado não pula o build, o passo que falhou tenta de novo na passagem
-# seguinte, e sucesso sai 0.
-# HOME, estado e casa de brinquedo; nada de apt, cargo, sudo nem rede.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -22,7 +14,7 @@ cat > "$T/bin/dpkg-query" <<FIM
 cat "$T/dpkg.tsv"
 FIM
 chmod 755 "$T/bin/dpkg-query"
-versoes() { # pares pacote=versão
+versoes() {
   : > "$T/dpkg.tsv"; local x
   for x in "$@"; do printf '%s\t%s\tinstalled\n' "${x%%=*}" "${x#*=}" >> "$T/dpkg.tsv"; done
 }
@@ -35,7 +27,6 @@ mkdir -p "$T/casa/\$v" && echo "req X y presente" > "$T/casa/\$v/estado"
 printf '#!/bin/sh\n' > "$T/casa/\$v/cosmic-comp" && chmod 755 "$T/casa/\$v/cosmic-comp"
 exit 1
 FIM
-# O menu falso deixa os dois binários com o marcador, como o build de verdade.
 cat > "$T/files" <<FIM
 #!/bin/sh
 echo "files \$*" >> "$T/log"
@@ -141,13 +132,10 @@ echo "== o seco não escreve"
 versoes cosmic-comp=0.1~e cosmic-files=1.10~e cosmic-panel=1.10~a
 h2="$(sha256sum < "$T/estado/cosmic-versoes")"
 : > "$T/log"; rodar --seco
-# O `guardar` roda no seco com MEOW_DRY_RUN=1, que só diz o que faria.
 igual "seco: nenhum passo rodou" "$(grep -v '^compositor guardar' "$T/log" | grep -c .)" 0
 igual "seco: o arquivo de versões não mudou" "$(sha256sum < "$T/estado/cosmic-versoes")" "$h2"
 
 echo "== o PATH do systemd não tem o ~/.cargo/bin: o pós-apt o põe (conferência da P76)"
-# O serviço roda com o PATH do systemd do usuário, sem o `~/.cargo/bin` do
-# rustup. O passo de build tem de achar o `cargo` do HOME mesmo assim.
 mkdir -p "$T/home/.cargo/bin"
 printf '#!/bin/sh\nexit 0\n' > "$T/home/.cargo/bin/cargo"; chmod 755 "$T/home/.cargo/bin/cargo"
 cat > "$T/files" <<FIM

@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-# restos-do-painel.sh — a ficha de ícone, a espera do trabalho, a busca da ficha
-# e os dois gestos do padrão, no motor de JavaScript e sem navegador (P98).
-#
-# · Um nome por função no topo de todos os arquivos da página: eles dividem o
-#   escopo global, e a segunda declaração venceria a primeira em silêncio.
-# · O «Usar» do ícone do pack espera o passo acabar antes de reler a lista.
-# · A busca velha, chegando depois, não pinta a lista da busca de agora.
-# · O desenho travado fica, apagado e com o porquê na dica; com as duas travas
-#   não há «Usar».
-# · «Voltar ao padrão» grava o de fábrica (o do pack, quando o pack diz); «O
-#   sistema decide» grava o vazio e só existe onde a chave aceita vazio.
-#
-# PORTÁTIL NA PRIMEIRA METADE: bash e grep.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 PAG="$RAIZ/app/pagina"

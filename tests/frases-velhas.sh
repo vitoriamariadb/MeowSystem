@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# frases-velhas.sh — as frases que envelheceram não voltam a ser ditas no presente.
-#
-# A cauda de frase velha crescia por linha.
-#
-# A tradução para os códigos do projeto é a última linha.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -19,24 +14,15 @@ import sys
 
 raiz = sys.argv[1]
 EU = "tests/frases-velhas.sh"
-# `perfis/`: o meow.conf de quem usa, com os comentários do dia em que nasceu (P102).
 FORA = ("docs/sprints/", "docs/SPRINTS.md", "docs/pesquisas/", "docs/historico/", "docs/folhas/", "perfis/")
 BINARIO = re.compile(r"\.(?:svg|png|jpe?g|webp|gif|ico|ttf|otf|woff2?|mp3|ogg|wav|gz|zip|xcf|pdf)$", re.I)
 PROSA = re.compile(r"\.(?:md|txt)$", re.I)
 
-# ---------------------------------------------------------------------------
-# As classes. `cita`: se a citação entre aspas conta como história (ver o
-# cabeçalho, e a classe 4). `onde`: prefixos de caminho, quando a classe é de
-# um lugar só. `gatilho`: minúsculas que o arquivo precisa conter para valer a
-# pena desmontá-lo em frases.
-# ---------------------------------------------------------------------------
 I = re.I
 CLASSES = [
     {"num": 1, "nome": "o flavor que nunca foi fotografado como o caso sem saída",
      "cita": True, "onde": None, "gatilho": ("flavor",),
      "padroes": [
-         # O «ainda» no meio entrou na revisão da P67: «o flavor que ainda não
-         # foi fotografado» passava.
          re.compile(r"\bflavor(?:es)?\s+(?:que\s+)?(?:ainda\s+)?(?:nunca|jamais|n[aã]o)\s+(?:foi|foram|"
                     r"tenha\s+sido|tenham\s+sido|é|são)\s+(?:fotografad|capturad)\w*", I),
          re.compile(r"\bflavor(?:es)?\s+(?:nunca|jamais)\s+(?:fotografad|capturad)\w*", I),
@@ -57,15 +43,8 @@ CLASSES = [
      "padroes": [
          re.compile(r"\b(?:continua|continuam|fica|ficam|segue|seguem|volta|voltam|devolve|devolvem)\s+"
                     r"(?:a\s+ser\s+|a\s+|ao\s+|em\s+|de\s+)?(?:o\s+)?mauve\b", I),
-         # A cor ANTES do verbo, a forma que o `bin/meow` guardava no comentário
-         # do `chk_pastasxdg` («o mauve volta sozinho») e que a varredura da P67
-         # deixou passar, porque o padrão de cima só olhava o verbo antes da cor.
-         # O `(?<![\w-])` é para o nome de tema (`cat-mocha-mauve`) não contar.
          re.compile(r"(?<![\w-])mauve\s+(?:continua|continuam|fica|ficam|segue|seguem|volta|voltam|"
                     r"devolve|devolvem)\b", I),
-         # A «PASTA MAUVE CHAPADA» é o ícone do Gestor de Arquivos de que ela
-         # reclamou em 11/08/2026 — o desenho de um aplicativo, e não a regra
-         # das pastas. Citada em três arquivos, sempre como a queixa dela.
          re.compile(r"\b(?:pastas?|apelidos?)\s+mauve\b(?!\s+chapada)", I),
          re.compile(r"\b(?:o|do|no|ao|cujo|sem\s+o|em\s+vez\s+do)\s+pastel\b", I),
          re.compile(r"\broxas\s+do\s+papirus-folders\b", I),
@@ -88,9 +67,6 @@ CLASSES = [
      "padroes": [re.compile(r"\bn[ãa]o\s+deduplica\b", I)]},
 ]
 
-# ---------------------------------------------------------------------------
-# O que faz de uma frase história
-# ---------------------------------------------------------------------------
 DATA = re.compile(r"\b(?:0?[1-9]|[12]\d|3[01])/(?:0[1-9]|1[0-2])(?:/(?:19|20)\d\d)?\b|\b20\d\d-[01]\d-[0-3]\d\b")
 MARCA = re.compile(r"\b(?:até|antes\s+d)[ao]\s+(?:revisão\s+d[ao]\s+)?P\d+\b|\brevisão\s+d[ao]\s+P\d+\b|"
                    r"\bdesfeit[oa]s?\s+(?:pela|na)\s+P\d+\b|\b(?:medid|conferid)[oa]s?\b|\bmediu\b", I)
@@ -243,33 +219,6 @@ for classe in CLASSES:
     else:
         print("  ok   classe %d — %s: nenhuma no presente" % (classe["num"], classe["nome"]))
 
-# ---------------------------------------------------------------------------
-# 5b. A FOLHA DE ANTES E DEPOIS NÃO FICA VELHA CALADA
-#   A folha (`assets/icones/resgatados-antes-e-depois.png`) sai do
-#   `scripts/resgatados_folha.sh`, que pede os PNG de origem nos caminhos do
-#   mapa — e em 25/09/2026 doze dos 21 não estavam mais no disco, então a
-#   folha daquele dia foi remontada a partir da velha, e não pelo script (o
-#   PROCEDENCIA.md conta a costura). Uma folha pode ficar mais velha que os
-#   desenhos, mas não calada, e a nota dela, no `packs/meowsystem/PROCEDENCIA.md`
-#   (do parágrafo que fala da folha até o fim daquela seção, o próximo `## `),
-#   responde por duas coisas:
-#     · a data da frase «A folha de hoje é de dd/mm/aaaa» é a do commit da
-#       folha. Refeita a folha, o commit anda, e a nota que ficou dizendo a
-#       data de antes é achado;
-#     · cada desenho que mudou depois do commit da folha, e cada linha que
-#       entrou ou saiu do mapa desde então, está na primeira coluna de uma
-#       tabela cujo cabeçalho diga «depois da folha de dd/mm/aaaa», com a data
-#       dela. A tabela, e não a nota inteira: um nome citado de passagem (os
-#       PNG que faltam, uma tabela de uma folha anterior) não é o aviso de que
-#       aquele desenho mudou.
-#   Refeita a folha, a data do commit anda e a tabela velha deixa de valer
-#   sozinha. Pergunta ao git: fora dele, ou num clone raso (em que o commit da
-#   folha pode ser só o mais velho que veio), não há como saber a idade da
-#   folha, e esta seção diz e pula.
-#   [Até a revisão da P67 (25/09/2026) bastava o nome aparecer em qualquer
-#   ponto da nota, a data dela não era cobrada, e uma folha apagada passava por
-#   «refeita nesta árvore».]
-# ---------------------------------------------------------------------------
 FOLHA = "assets/icones/resgatados-antes-e-depois.png"
 MAPA = "packs/dracula/icones/apps-resgatados.map"
 PROC = "packs/meowsystem/PROCEDENCIA.md"
@@ -304,7 +253,6 @@ def nomes_da_tabela(nota, cabeca):
 
 
 try:
-    # `--follow` e só A/M: a mudança de pasta da P88 (um `git mv`) não refaz a folha.
     r = git("log", "-1", "--follow", "--diff-filter=AM", "--format=%H %ad", "--date=short", "--", FOLHA)
 except OSError:
     r = None
@@ -342,7 +290,6 @@ else:
 
     velho = git("show", "%s:%s" % (commit, MAPA))
     if velho.returncode != 0:
-        # o endereço do mapa antes da P88, que o desceu do motor para o pack Dracula
         velho = git("show", "%s:%s" % (commit, "assets/icones/apps-resgatados.map"))
     if velho.returncode != 0:
         print("  --   classe 5 — o mapa dos resgatados não existia no commit da folha (pulado)")

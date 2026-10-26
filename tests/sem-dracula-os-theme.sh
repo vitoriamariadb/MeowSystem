@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# sem-dracula-os-theme.sh — o MeowSystem monta o Dracula sem o repositório de
-# onde a arte veio?
-#
-# O projeto é comentado em prosa densa, e a história da migração cita o
-# `Dracula_OS-Theme` em comentário e em docstring — é documentação, não leitura.
-#
-#   - `tests/`: o `tests/pack.sh` lê o `Dracula_OS-Theme` de propósito, para
-#     contar por sha256 que a biblioteca inteira chegou ao pack, e pula dizendo
-#     por quê quando ele não existe. Teste não é execução.
-#   - A PROSA do `PROCEDENCIA.md` e a coluna "de onde": são registro, e dizer
-#     de onde cada cópia veio é o trabalho daquele arquivo.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -20,7 +9,6 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 command -v git >/dev/null 2>&1     || { printf 'pulado: o git não está disponível\n'; exit 0; }
 command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; }
 
-# --- 1. nenhum código que roda nomeia o Dracula_OS-Theme ---------------------
 achados="$(python3 - "$RAIZ" <<'PY'
 import ast, io, json, os, subprocess, sys, tokenize
 
@@ -37,8 +25,6 @@ def em_python(texto):
     arvore = ast.parse(texto)
     docs = set()
     for no in ast.walk(arvore):
-        # Uma string sozinha como instrução é docstring (ou prosa solta, que
-        # dá no mesmo): ninguém a lê em execução.
         if isinstance(no, ast.Expr) and isinstance(no.value, ast.Constant) \
                 and isinstance(no.value.value, str):
             docs.add((no.value.lineno, no.value.col_offset))
@@ -52,8 +38,6 @@ def em_python(texto):
     return linhas
 
 def sem_cerquilha(linha):
-    # O `#` que abre comentário em shell está no começo ou depois de espaço; o
-    # de `${x#prefixo}` não, e continua sendo código.
     s = linha.lstrip()
     if s.startswith("#") or s.startswith(";"):
         return ""
@@ -73,7 +57,7 @@ def em_json(valor, caminho=()):
     if isinstance(valor, dict):
         for k, v in valor.items():
             if str(k).startswith("_"):
-                continue  # `_nota*`: a prosa do formato
+                continue
             yield from em_json(v, caminho + (str(k),))
     elif isinstance(valor, list):
         for v in valor:
@@ -89,7 +73,7 @@ def tem_shebang(caminho):
         return False
 
 sys.path.insert(0, os.path.join(raiz, "scripts"))
-import pack  # noqa: E402 — o leitor de PROCEDENCIA.md do próprio sincronizar
+import pack  # noqa: E402
 
 versionados = subprocess.run(["git", "-C", raiz, "ls-files", "-z"],
                              capture_output=True, check=True).stdout.decode().split("\0")
@@ -98,9 +82,6 @@ for rel in versionados:
         continue
     caminho = os.path.join(raiz, rel)
     if os.path.basename(rel) == "PROCEDENCIA.md":
-        # Só a coluna `lido de`, lida pelo MESMO leitor do `sincronizar`: uma
-        # segunda leitura da tabela aqui discordaria da dele no dia em que
-        # alguém mudasse a ordem das colunas.
         if os.path.isfile(caminho):
             for lin in pack._tabela_procedencia(caminho):
                 if ALVO in lin.get("lido de", ""):
@@ -111,7 +92,7 @@ for rel in versionados:
     try:
         texto = open(caminho, encoding="utf-8").read()
     except (UnicodeDecodeError, OSError):
-        continue  # binário: PNG, fonte, .meowpack
+        continue
     if ALVO not in texto:
         continue
     if rel.endswith(".py"):
@@ -138,7 +119,6 @@ for rel in versionados:
         for n, linha in enumerate(texto.splitlines(), 1):
             if ALVO in sem_barras(linha):
                 print(f"{rel}:{n}")
-    # .md, .svg, .html, .txt: prosa e desenho, que ninguém executa.
 PY
 )"; rc=$?
 if [ "$rc" != "0" ]; then
@@ -149,15 +129,8 @@ else
   ok "nenhum código que roda nomeia o Dracula_OS-Theme (comentário e docstring à parte)"
 fi
 
-# --- 2. a montagem lê do pack, numa casa sem o Dracula_OS-Theme ---------------
-# O ambiente é de brinquedo pela mesma razão do tests/fonte-unica.sh: sem o XDG
-# e o MEOW_PACKS de brinquedo, um pack instalado em
-# ~/.local/share/meowsystem/packs/ entraria na conta.
 T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
-# A casa numa variável, e não como `$T/home/...` escrito em cada uso: a regra 1
-# do tests/portabilidade.sh lê `/home/<nome>/` como home de pessoa cravado, e
-# acusou esta linha na primeira passada.
 CASA="$T/casa"
 mkdir -p "$CASA" "$T/xdg" "$T/packs"
 amb() {
@@ -165,9 +138,6 @@ amb() {
       PACK="dracula" FLAVOR="dracula" ICONES_DRACULA="sim" NOME_TEMA_ICONES="MeowSystem-Icons" "$@"
 }
 
-# Os pares nome -> desenho, pelo parser do próprio instalador, extraído VERBATIM
-# (como no tests/pack.sh e no tests/fonte-unica.sh): uma cópia dele aqui seria a
-# que passaria no dia em que o original quebrasse.
 pares="$(MAPA="$RAIZ/packs/dracula/icones/apps.map" ICONES_BASE_MAPA="$RAIZ/packs/dracula/icones" RAIZ="$RAIZ" \
   amb bash -c 'set -uo pipefail
   # [P73: o parser do shell é o `_dracula_pares_do_mapa`; ver o tests/fonte-unica.sh.]
@@ -187,8 +157,6 @@ tema="$CASA/.local/share/icons/MeowSystem-Icons/scalable/apps"
 postos=0; diferentes=""
 while IFS=$'\t' read -r nome origem; do
   [ -n "$nome" ] || continue
-  # `$(cat)` dos dois lados: o `meow_escrever` normaliza o newline final, e é
-  # assim que o `_dracula_remover` do instalador compara também.
   if [ -f "$tema/$nome.svg" ] && [ "$(cat "$tema/$nome.svg")" = "$(cat "$origem")" ]; then
     postos=$((postos+1))
   else
@@ -202,13 +170,6 @@ done <<< "$pares"
   || falha "a montagem do Dracula não reproduziu o pack ($postos de $total iguais, rc=$rc)" \
            "$(printf '%s' "$diferentes" | head -10; tail -5 "$T/instalar.log")"
 
-# --- 2b. sem a chave ICONES_DRACULA, o passo do pack monta o pack inteiro ----
-#   P78, aberto 4 da integração da onda 1. O passo do pack da P73 nasceu com o
-#   padrão antigo (`${ICONES_DRACULA:-nao}`), e com o conf de fábrica sem a
-#   chave ele só punha as escolhas do painel: 0 desenho do pack no tema. A
-#   integração (`10a139f`) o pôs no padrão ligado da P74, e provou com um
-#   script de rodada; esta é a prova que fica. Uma casa nova, o `aplicar` (o
-#   verbo do passo) e o ambiente sem a chave nenhuma.
 CASA2B="$T/casa-sem-chave"
 mkdir -p "$CASA2B"
 env -u ICONES_DRACULA HOME="$CASA2B" XDG_DATA_HOME="$T/xdg" MEOW_PACKS="$T/packs" MEOW_RAIZ="$RAIZ" \
@@ -220,21 +181,12 @@ postos2b="$(find "$CASA2B/.local/share/icons/MeowSystem-Icons/scalable/apps" -na
   && ok "sem a chave ICONES_DRACULA no conf, o passo do pack põe os $total desenhos do Dracula (o padrão é ligado)" \
   || falha "sem a chave ICONES_DRACULA o passo do pack pôs $postos2b de $total (rc=$rc)" "$(tail -5 "$T/sem-chave.log")"
 
-# --- 3. nem o doctor lê: o sincronizar sob um gancho de auditoria (P43) -----
-#   [P75, 09/10/2026 (D3): o doctor deixou de chamar o `sincronizar` — a
-#   decisão de 24/09 foi «Aposentar tudo». A primeira pergunta virou a
-#   contrária: a passada do doctor não compara mais nada. O gancho de
-#   auditoria abaixo segue medindo o verbo, que ficou para o `meow pack
-#   sincronizar <id>` à mão.]
 if sed -n '/^cmd_doctor()/,/^}/p' "$RAIZ/bin/meow" | grep -vE '^[[:space:]]*#' \
    | grep -qE 'pack\.py"? sincronizar'; then
   falha "o doctor voltou a chamar o 'pack.py sincronizar' — a decisão de 24/09 foi aposentar a comparação"
 else
   ok "a passada do doctor não chama o 'pack.py sincronizar' (D3, decisão de 24/09)"
 fi
-# Uma casa própria: a pergunta 2 confere que a dela nunca ganha um
-# `Dracula_OS-Theme`, e esta não precisa de nenhum para medir — o gancho vê a
-# tentativa de abrir, exista o arquivo ou não.
 CASA3="$T/casa-do-doctor"
 mkdir -p "$CASA3"
 lidos="$(env HOME="$CASA3" XDG_DATA_HOME="$T/xdg" MEOW_PACKS="$T/packs" MEOW_RAIZ="$RAIZ" \

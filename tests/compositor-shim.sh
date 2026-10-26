@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# compositor-shim.sh — o shim do compositor escolhe o binário certo? (P76)
-#
-# O shim (`scripts/compositor_shim.sh`) é o `cosmic-comp` que a sessão acha
-# pelo PATH.
-# HOME de brinquedo. Nada aqui toca `/usr/bin`, nem chama sudo.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -22,13 +17,12 @@ cat "$T/versao"
 FIM
 chmod 755 "$T/bin/dpkg-query"
 
-# O de fábrica e o build: imprimem quem são e, se pedido, ficam vivos.
 cat > "$T/fabrica" <<'FIM'
 #!/bin/sh
 echo fabrica
 FIM
 chmod 755 "$T/fabrica"
-fazer_build() { # $1 = versão
+fazer_build() {
   mkdir -p "$T/casa/$1"
   cat > "$T/casa/$1/cosmic-comp" <<'FIM'
 #!/bin/sh
@@ -65,8 +59,6 @@ igual "só dizer: o caminho do build" "$(MEOW_SHIM_SO_DIZER=1 rodar)" "$T/casa/$
 [ -e "$T/casa/$VER_INST/quedas" ] && falha "só dizer contou queda" || ok "só dizer não conta queda"
 
 echo "== a guarda de queda"
-# Três inícios de um build que morre na hora. A janela é de 1 s; esperar 2 s
-# entre eles deixa o vigia acordar e ver o PID morto.
 igual "1º início: build" "$(rodar)" build; sleep 2
 igual "2º início: build" "$(rodar)" build; sleep 2
 igual "3º início, depois de duas quedas: fábrica" "$(rodar)" fabrica
@@ -74,7 +66,6 @@ igual "3º início, depois de duas quedas: fábrica" "$(rodar)" fabrica
 igual "4º início: continua fábrica até build novo" "$(rodar)" fabrica
 
 fazer_build "$VER_INST"; rm -f "$T/casa/$VER_INST/ruim" "$T/casa/$VER_INST/quedas"
-# Um build que fica vivo mais que a janela: o vigia zera o contador.
 igual "sessão longa: build" "$(FICAR=3 rodar)" build
 sleep 1
 [ -e "$T/casa/$VER_INST/quedas" ] && falha "o contador ficou depois de uma sessão que passou da janela" \
@@ -94,8 +85,6 @@ CP desativar >/dev/null; igual "desativar escreve (1)" "$?" 1
 [ -e "$T/home/.local/bin/cosmic-comp" ] && falha "o shim ficou" || ok "o shim saiu"
 CP desativar >/dev/null; igual "desativar de novo não escreve (0)" "$?" 0
 echo "== a conferência com o shim e sem build (conferência da P76)"
-# Sem build porque a escada gravou o degrau 4 (o `req` não entra): vermelho,
-# pede gente.
 CP ativar >/dev/null
 printf '0.1~sem-build' > "$T/versao"
 CP conferir >/dev/null; igual "sem build e sem degrau 4: 1 (o conserto compila)" "$?" 1

@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
-# variante.sh — toda variante aplica: o flavor sem fotografia sai de outro do mesmo lado.
-#
-# O `build()` portado no scripts/derivar_flavor.py foi conferido contra o do
-# libcosmic compilado, árvore a árvore — ver o cabeçalho dele. Um teste que
-# precisasse do cargo e do ~/.cargo desta máquina não rodaria em CI nenhum.
-#
-# COSMIC, casa, estado e os DOIS packs são de brinquedo: a captura derivada
-# nasce dentro do pack no ar, e sem a cópia o `frappe` nasceria dentro do
-# `packs/catppuccin` do clone.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -24,11 +15,9 @@ mkdir -p "$(dirname "$CONF")" "$COSMIC" "$PACKS" "$ESTADO"
 cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
 CAT="$PACKS/meowsystem/temas/capturados"; DRA="$PACKS/dracula/temas/capturados"
 
-# COM `--ignored` NOS PACKS: a captura derivada se esconde do git sozinha (o
-# `.gitignore` dela), e um `status` comum não veria um frappe nascido no clone.
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null; git -C "$RAIZ" status --porcelain --ignored -- packs 2>/dev/null)"
 
-conf() {   # conf <flavor> <acento> <pack> <modo>
+conf() {
   printf 'FLAVOR="%s"\nACCENT="%s"\nMODO="%s"\nPACK="%s"\nLOGO="coquinha"\n' "$1" "$2" "$4" "$3" > "$CONF"
 }
 amb() {
@@ -37,16 +26,13 @@ amb() {
     MEOW_PONTE=/nao/existe LANG=C.UTF-8 NO_COLOR=1 "$@"
 }
 
-# As etapas do install.sh, pelo nome, num shell com a ponte do conf — o mesmo
-# arranjo do tests/acento.sh. O recado da etapa tema para o fim do `main` (o
-# `TEMA_SEM_CAPTURA`) fica em $T/sem_captura.
 ETAPAS="$T/etapas.sh"
 { sed -n '/^etapa_gerar() {$/,/^}$/p' "$RAIZ/install.sh"
   sed -n '/^etapa_tema() {$/,/^}$/p' "$RAIZ/install.sh"
   sed -n '/^etapa_modo() {$/,/^}$/p' "$RAIZ/install.sh"; } > "$ETAPAS"
 grep -q '^etapa_tema() {' "$ETAPAS" && grep -q '^etapa_modo() {' "$ETAPAS" \
   || { printf 'erro: não achei etapa_gerar/etapa_tema/etapa_modo no install.sh\n' >&2; exit 2; }
-etapa() {   # etapa <gerar|tema|modo> [VAR=valor...] — devolve a saída; o código fica em $T/rc
+etapa() {
   local qual="$1"; shift
   amb "$@" bash -c '
     . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1
@@ -61,15 +47,12 @@ etapa() {   # etapa <gerar|tema|modo> [VAR=valor...] — devolve a saída; o có
   printf '%s' "$?" > "$T/rc"
 }
 rc() { cat "$T/rc"; }
-arvores_iguais() {   # arvores_iguais <captura> <Dark|Light>: a do COSMIC é a da captura, byte a byte
-  # Menos as `CHAVES_DELA` do aplicar_tema.sh (o vidro que a GUI dela escolhe e
-  # o do vidro.sh): elas só se escrevem onde faltam, e o brinquedo já as tem.
+arvores_iguais() {
   local x=(-x frosted -x alpha_map -x frosted_maximized_apps)
   diff -r "${x[@]}" "$1/com.system76.CosmicTheme.$2" "$COSMIC/com.system76.CosmicTheme.$2" >/dev/null \
     && diff -r "${x[@]}" "$1/com.system76.CosmicTheme.$2.Builder" "$COSMIC/com.system76.CosmicTheme.$2.Builder" >/dev/null
 }
 
-# --- 1. a GUARDA: o build() portado reproduz as bases, e recusa as outras ---
 saida="$(amb python3 - "$RAIZ" "$CAT" "$DRA" <<'PY' 2>&1
 import sys
 from pathlib import Path
@@ -81,9 +64,6 @@ def arvore(cap, arv):
     return (ler(cap / f"com.system76.CosmicTheme.{arv}.Builder" / "v2"),
             ler(cap / f"com.system76.CosmicTheme.{arv}" / "v2"))
 erros = []
-# A Light do dracula-mauve entrou nesta lista na P63 (25/09/2026): era o Latte
-# de outro momento (o vidro 8A com a receita em VeryHigh2) e passou a ser a
-# derivada do alucard, que o build() portado escreveu — ela TEM de se reproduzir.
 for cap, arv in ((cat / "latte-mauve", "Light"), (cat / "mocha-pink", "Dark"),
                  (dra / "dracula-mauve", "Dark"), (cat / "latte-mauve", "Dark"),
                  (dra / "dracula-mauve", "Light")):
@@ -91,7 +71,6 @@ for cap, arv in ((cat / "latte-mauve", "Light"), (cat / "mocha-pink", "Dark"),
         df.conferir_base(*arvore(cap, arv), arv)
     except ValueError as e:
         erros.append(f"{cap.name} {arv} não se reproduziu: {e}")
-# A que NÃO se reproduz, medida: a neutra que a GUI mexeu.
 for cap, arv in ((cat / "mocha-mauve", "Dark"),):
     try:
         df.conferir_base(*arvore(cap, arv), arv)
@@ -107,10 +86,6 @@ PY
   && ok "o build() portado reproduz as cinco árvores que se reproduzem, e recusa a que não, dizendo o campo" \
   || falha "a guarda do build() portado não bate com as capturas" "$saida"
 
-# --- 2. FLAVOR=alucard, «Salvar e aplicar»: o tema do COSMIC muda -----------
-# Desde ela a Light do dracula-mauve é o próprio alucard-mauve, e aplicar o
-# alucard sobre ela não escreveria nada — «já aplicado», e esta seção não
-# provaria que a etapa aplica.
 cp -a "$DRA/dracula-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
 cp -a "$CAT/latte-mauve"/com.system76.CosmicTheme.Light* "$COSMIC/"
 conf alucard mauve dracula escuro
@@ -126,8 +101,6 @@ if [ "$rc_t" = "1" ] && [[ "$saida_t" == *"tema 'alucard-mauve' aplicado"* ]] &&
 else
   falha "a etapa tema não aplicou o alucard-mauve (rc=$rc_t, TEMA_SEM_CAPTURA='$sem')" "$saida_t"
 fi
-# O alucard veste a Light: o acento, o fundo e o nome são os DELE (a paleta do
-# pack: mauve #853AF2, surface0 #CECFDC), e a neutra que o COSMIC deriva também.
 [ "$(cat "$COSMIC/com.system76.CosmicTheme.Light.Builder/v2/accent")" = 'Some("#853AF2FF")' ] \
   && [ "$(cat "$COSMIC/com.system76.CosmicTheme.Light.Builder/v2/bg_color")" = 'Some("#CECFDCD9")' ] \
   && [ "$(cat "$COSMIC/com.system76.CosmicTheme.Light/v2/name")" = '"dracula-alucard"' ] \
@@ -138,8 +111,6 @@ focos="$(grep -h '^ *focus: "' "$COSMIC"/com.system76.CosmicTheme.Light/v2/* | s
 [ "$focos" = 'focus: "#853AF2FF",' ] \
   && ok "o foco de todos os componentes da Light/v2 é o mauve do alucard" \
   || falha "sobrou foco de outra cor na Light/v2" "$focos"
-# O outro lado é o do pack, e não o Mocha da latte-mauve: a Dark do COSMIC é
-# a do dracula-mauve, byte a byte.
 arvores_iguais "$DRA/dracula-mauve" Dark \
   && ok "a árvore Dark é a do dracula-mauve, byte a byte (o escuro do pack, e não o Mocha do latte)" \
   || falha "a árvore Dark do alucard não é a do Dracula"
@@ -150,13 +121,11 @@ grep -q "^origem: derivada de latte-mauve" "$DRA/alucard-mauve/captura.txt" \
 grep -q "^tema-sem-captura	" "$ESTADO/pendencias.tsv" 2>/dev/null \
   && falha "o alucard aplicou e a Início ainda tem a pendência de tema" \
   || ok "nenhuma pendência de tema na Início"
-# O MODO manda no lado: escuro continua escuro.
 saida_m="$(etapa modo)"
 [ "$(cat "$COSMIC/com.system76.CosmicTheme.Mode/v1/is_dark")" = "true" ] \
   && ok "com MODO=escuro o is_dark continua true: a tela mostra a Dark, que é o Dracula" \
   || falha "o is_dark não é o do MODO" "$saida_m"
 
-# --- 3. converge: a segunda passagem não escreve nada ----------------------
 saida_g2="$(etapa gerar)"; rc_g2="$(rc)"
 saida_t2="$(etapa tema)"; rc_t2="$(rc)"
 [ "$rc_g2" = "0" ] && [ "$rc_t2" = "0" ] \
@@ -164,7 +133,6 @@ saida_t2="$(etapa tema)"; rc_t2="$(rc)"
   || falha "a segunda passagem ainda escreve (gerar=$rc_g2 tema=$rc_t2)" "$saida_g2
 $saida_t2"
 
-# --- 4. o acento vale nos dois lados ----------------------------------------
 conf alucard pink dracula claro
 etapa gerar >/dev/null; saida_t="$(etapa tema)"; rc_t="$(rc)"
 [ "$rc_t" = "1" ] \
@@ -174,11 +142,6 @@ etapa gerar >/dev/null; saida_t="$(etapa tema)"; rc_t="$(rc)"
   || falha "o acento do alucard-pink não chegou aos dois lados (rc=$rc_t)" "$saida_t
 $(cat "$COSMIC/com.system76.CosmicTheme.Light.Builder/v2/accent" "$COSMIC/com.system76.CosmicTheme.Dark.Builder/v2/accent")"
 
-# --- 5. frappe e macchiato, com o Catppuccin no ar -------------------------
-# O brinquedo está no mocha-mauve, com o `frosted` em ExtremelyHigh2 (alpha 8A)
-# nas duas receitas, e a Light do latte-mauve foi fotografada em VeryLow2 (D9):
-# «Light 'ExtremelyHigh2' = alpha 8A do alpha_map deste COSMIC (a captura trazia
-# D9)».
 cp -a "$CAT/mocha-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
 LATTE_AQUI="$T/latte-mauve-neste-cosmic"
 vidro_latte="$(amb python3 "$RAIZ/scripts/derivar_vidro.py" "$CAT/latte-mauve" --vista "$LATTE_AQUI" 2>&1)"
@@ -202,7 +165,6 @@ $saida_t"
   fi
 done
 
-# A derivada de flavor só entra quando o flavor não tem fotografia nenhuma.
 saida="$(amb python3 - "$RAIZ" "$PACKS" <<'PY' 2>&1
 import json, os, sys
 sys.path.insert(0, sys.argv[1] + "/scripts")
@@ -228,9 +190,6 @@ PY
   && ok "dracula, mocha e latte continuam no plano da P48, e as quatro fotografias continuam fotografias" \
   || falha "um flavor fotografado passou a ser derivado por outro caminho" "$saida"
 
-# --- 7. a regra do lado é uma só: o servidor e o derivador respondem igual --
-# O painel se veste pelo `_flavor_no_modo` (app/servidor.py), e a captura de um
-# flavor claro leva no escuro o `par_do_outro_lado` (scripts/derivar_flavor.py).
 for pack_id in dracula meowsystem; do
   saida="$(amb env MEOW_PACK_DIR="$PACKS/$pack_id" MEOW_PALETA="$PACKS/$pack_id/paleta.json" \
     python3 - "$RAIZ" "$pack_id" <<'PY' 2>&1
@@ -261,10 +220,6 @@ PY
     || falha "$pack_id: o servidor e o derivador discordam sobre o outro lado" "$saida"
 done
 
-# --- 8. a variante sem tema: o recado da etapa, e a página que não se veste --
-#   Sem foto escura nenhuma no pack de brinquedo, o frappe não tem de onde vir.
-#   A etapa deixa `falta` para o fim do `main` (a tela de login se pula pela
-#   captura, e não por root); no ensaio de um par que se deriva, `deriva`.
 SEM="$T/packs-sem-escuro"; mkdir -p "$SEM"
 cp -a "$RAIZ/packs/meowsystem" "$SEM/"; rm -rf "$SEM"/meowsystem/temas/capturados/mocha-*
 conf frappe pink catppuccin escuro
@@ -277,10 +232,6 @@ saida_t="$(etapa tema MEOW_DRY_RUN=1)"; rc_t="$(rc)"; sem="$(cat "$T/sem_captura
 [ "$rc_t" = "1" ] && [ "$sem" = "deriva" ] && [ ! -e "$CAT/macchiato-green" ] \
   && ok "no ensaio, um par que se deriva deixa TEMA_SEM_CAPTURA=deriva e não escreve a captura" \
   || falha "o ensaio do macchiato-green não deu o recado certo (rc=$rc_t, TEMA_SEM_CAPTURA='$sem')" "$saida_t"
-# Esta seção conferia só o flavor (`mocha`), e a página vestia o mocha com o
-# pink do conf: `--accent: var(--pink)` com o COSMIC em `#CBA6F7`, e a prévia de
-# «Cor e tela», que pinta a variante sem tema com o `--accent` da página,
-# desenhava um destaque rosa que a tela não tem.
 conf macchiato pink catppuccin escuro
 etapa gerar >/dev/null
 conf frappe green catppuccin escuro
@@ -290,7 +241,7 @@ saida="$(amb env MEOW_PACKS="$SEM" MEOW_PACK_DIR="$SEM/meowsystem" MEOW_PALETA="
 import json, os, re, sys
 sys.path.insert(0, sys.argv[1] + "/app")
 import servidor
-def vestido(css):   # (--base, o hex a que o --accent chega)
+def vestido(css):
     var = dict(re.findall(r"--([a-z0-9-]+):\s*([^;]+);", css))
     ref = re.match(r"var\(--([a-z0-9-]+)\)$", var.get("accent", ""))
     return (var.get("base", "").upper(),
@@ -310,7 +261,7 @@ receita = open(os.path.join(os.environ["MEOW_COSMIC_DIR"],
 tela = re.search(r"#[0-9A-Fa-f]{6}", receita).group(0).upper()
 macchiato = json.load(open(os.environ["MEOW_PALETA"]))["flavors"]["macchiato"]
 erros = []
-if tela != macchiato["pink"].upper():   # sem isto, um brinquedo que caiu na queda passaria de novo
+if tela != macchiato["pink"].upper():
     erros.append(f"o COSMIC de brinquedo não está no macchiato-pink (acento {tela})")
 for onde, (base, acento) in (("/paleta.css", vestido(servido[0] if servido else "")),
                              ("a página exportada", vestido(bloco.group(1) if bloco else ""))):
@@ -328,7 +279,6 @@ PY
   && ok "com o frappe-green sem tema, a página veste o flavor e o acento que a tela mostra ($saida)" \
   || falha "a página se vestiu da variante sem tema" "$saida"
 
-# --- 9. o repositório não mudou --------------------------------------------
 [ "$(git -C "$RAIZ" status --porcelain 2>/dev/null; git -C "$RAIZ" status --porcelain --ignored -- packs 2>/dev/null)" = "$git_antes" ] \
   && ok "o repositório saiu como entrou" \
   || falha "o teste mexeu no repositório" "$(git -C "$RAIZ" status --porcelain)"

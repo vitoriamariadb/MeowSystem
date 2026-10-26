@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# fzf-da-paleta.sh — as cores do fzf saem da paleta do pack no ar, nunca de hex.
-#
-#   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -15,18 +12,14 @@ command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; 
 TMP="$(mktemp -d)" || exit 2
 trap 'rm -rf "$TMP"' EXIT
 
-# `env -i`: nada do shell de quem roda o teste (um MEOW_PALETA ou um PACK
-# exportado mudaria a resposta). PACK vazio deixa o FLAVOR adotar o pack.
-correr() {   # $1 = casa · $2 = verbo · resto = VAR=valor
+correr() {
   local casa="$1" verbo="$2"; shift 2
   env -i PATH="$PATH" HOME="$casa" NO_COLOR=1 MEOW_RAIZ="$RAIZ" PACK= "$@" \
     "$RAIZ/scripts/fzf.sh" "$verbo" 2>&1
 }
 arquivo() { printf '%s/.config/meowsystem/fzf.sh' "$1"; }
 
-# O que o arquivo DEVERIA dizer, montado aqui a partir da paleta e do mapa de
-# papéis do cabeçalho do script — sem passar por ele.
-esperado() {   # $1 = paleta · $2 = flavor · $3 = acento
+esperado() {
   python3 - "$1" "$2" "$3" <<'PY'
 import json, sys
 c = json.load(open(sys.argv[1], encoding="utf-8"))["flavors"][sys.argv[2]]
@@ -39,9 +32,6 @@ PY
 }
 opcoes_de() { sed -n 's/^export FZF_DEFAULT_OPTS="\(.*\)"$/\1/p' "$1" 2>/dev/null; }
 
-# --- 1. nenhum hex no fonte --------------------------------------------------
-# COMENTÁRIO NÃO CONTA: o cabeçalho do script cita os hex que estavam cravados
-# no `env.zsh`, e é o registro da medição. O que se caça é hex em CÓDIGO.
 printf '\n--- 1. o script não carrega cor ---\n'
 hex_no_codigo() { grep -nE '#[0-9A-Fa-f]{6}\b' "$RAIZ/scripts/fzf.sh" | grep -vE '^[0-9]+:[[:space:]]*#'; }
 if hex_no_codigo >/dev/null; then
@@ -51,7 +41,6 @@ else
   ok "scripts/fzf.sh não tem um #RRGGBB em linha de código"
 fi
 
-# --- 2. uma paleta inventada -------------------------------------------------
 printf '\n--- 2. a paleta manda: cores que nenhum pack tem ---\n'
 FALSA="$TMP/paleta-falsa.json"
 python3 - "$FALSA" <<'PY'
@@ -72,7 +61,6 @@ else
   printf '%s\n' "$saida" | tail -3 | sed 's/^/       /' >&2
 fi
 
-# --- 3. os dois packs do repositório ------------------------------------------
 printf '\n--- 3. o pack no ar decide ---\n'
 for par in "dracula:$RAIZ/packs/dracula/paleta.json" "mocha:$RAIZ/packs/meowsystem/paleta.json"; do
   flavor="${par%%:*}"; paleta="${par#*:}"

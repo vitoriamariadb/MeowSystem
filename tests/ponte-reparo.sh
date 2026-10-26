@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# ponte-reparo.sh — a ponte root se repõe da reserva, sem senha, e só da reserva.
-#
-# Nada aqui roda como root. O sistema é uma pasta de brinquedo (`$SIS`): a etapa
-# do install.sh, o reparo e o doctor rodam em cópias com os destinos trocados.
-# `sudo`, `visudo` e `systemctl` são falsos; o `sudo` só executa o que a cópia
-# pediu, sem `-o root`, e nunca o sudo de verdade.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -20,7 +14,6 @@ mkdir -p "$SIS/usr/local/lib" "$SIS/etc/sudoers.d" "$SIS/etc/systemd/system" \
          "$SIS/etc/polkit-1/rules.d" "$CASA" "$FALSO"
 : > "$SUDO_LOG"; : > "$SYSTEMCTL_LOG"
 
-# Os destinos de root, trocados pela pasta de brinquedo.
 trocar() {
   sed -e "s#/usr/local/lib/meowsystem#$SIS/usr/local/lib/meowsystem#g" \
       -e "s#/etc/sudoers.d#$SIS/etc/sudoers.d#g" \
@@ -28,14 +21,9 @@ trocar() {
       -e "s#/etc/polkit-1#$SIS/etc/polkit-1#g"
 }
 
-# A ponte de brinquedo: a do repositório, com os destinos trocados e o PATH dos
-# falsos. O `estado` dela é o código de verdade, lendo a pasta de brinquedo.
 PONTE_TOY="$T/ponte-brinquedo.sh"
 sed -e "s#^export PATH=.*#export PATH=\"$FALSO:/usr/bin:/bin\"#" "$RAIZ/scripts/ponte_root.sh" | trocar > "$PONTE_TOY"
 
-# O sudo falso: o `estado` da ponte é o da ponte de brinquedo, e só com a ponte e
-# a regra no lugar (a regra o libera); o resto roda como quem chamou, sem
-# `-o`/`-g`, e fica no registro.
 cat > "$FALSO/sudo" <<FIM
 #!/bin/bash
 [ "\${1:-}" = -n ] && shift
@@ -53,7 +41,6 @@ for x in "\$@"; do
 done
 exec "\${a[@]}"
 FIM
-# O visudo falso reprova a regra que diz QUEBRADA.
 cat > "$FALSO/visudo" <<'FIM'
 #!/bin/sh
 for a in "$@"; do f="$a"; done
@@ -70,7 +57,6 @@ chmod 755 "$FALSO"/*
 ETAPA="$T/etapa.sh"
 sed -n '/^etapa_ponte_root() {/,/^}/p' "$RAIZ/install.sh" | trocar > "$ETAPA"
 
-# A etapa do install.sh, numa casa e num sistema de brinquedo.
 etapa() {
   env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" USER="$(id -un)" MEOW_RAIZ="$RAIZ" \
          PONTE_ROOT="${1:-sim}" ETAPA="$ETAPA" bash -c '
@@ -126,14 +112,10 @@ confere "a unidade não é modelo (sem @, sem %) e não lê ambiente de fora" \
   '[ -f "$UNIDADE_REPO" ] && ! grep -q "%" "$UNIDADE_REPO" && ! grep -qE "^(Environment|EnvironmentFile|PassEnvironment|ExecStartPre|ExecStartPost)=" "$UNIDADE_REPO" \
    && case "${UNIDADE_REPO##*/}" in *@*) false ;; esac'
 confere "a unidade não enxerga o HOME" 'grep -qx "ProtectHome=yes" "$UNIDADE_REPO"'
-# O código sem os comentários e fora das funções de uma linha (o `$1` delas é
-# a mensagem do próprio script): argumento, variável de quem chama, `read`, `source`.
 de_fora() { sed 's/#.*$//' "$REPARO_REPO" | grep -vE '^[a-z_]+\(\) \{.*\}$' | grep -nE '\$[@*0-9#]|\$\{[@*0-9#]|HOME|MEOW_|USER|SUDO_|getopts|\bread\b|\bsource\b|^\s*\. '; }
 confere "o reparo não lê argumento, ambiente de quem chama, nem o repositório" \
   '[ -f "$REPARO_REPO" ] && ! de_fora >/dev/null' "$(de_fora 2>&1)"
 
-# A cópia do reparo: a raiz de brinquedo e o PATH dos falsos. O resto é o
-# código de verdade.
 REPARO="$T/reparar_ponte.sh"
 cat > "$FALSO/logger" <<'FIM'
 #!/bin/sh
@@ -248,8 +230,6 @@ saida="$(etapa)"; rc=$?
 confere "ligada de novo, tudo volta" '[ "$rc" = 1 ] && [ -f "$REGRA_PK" ] && [ -f "$UNIDADE" ] && [ -f "$BASE/reserva.sha256" ]' "$saida"
 
 printf '\n--- 4. o doctor confere a ponte contra a reserva, e o conserto dispara o reparo ---\n'
-# O systemctl do reparo: `start` roda a cópia do reparo como se fosse root (ou
-# recusa, como o polkit fora da sessão), e `show` diz o que a última rodada deixou.
 UNI=meowsystem-ponte-reparo.service
 cat > "$FALSO/systemctl" <<FIM
 #!/bin/bash
@@ -279,7 +259,7 @@ DOCTOR="$T/doctor.sh"
 for f in _ponte_reparo_ha _ponte_reparo_motivo _ponte_regra_igual_a_reserva chk_ponte fix_ponte; do
   sed -n "/^$f() {/,/^}/p" "$RAIZ/bin/meow"
 done | trocar > "$DOCTOR"
-doctor() {   # $1 = chk_ponte | fix_ponte
+doctor() {
   env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" RAIZ="${RAIZ_DOCTOR:-$RAIZ}" MEOW_RAIZ="$RAIZ" \
          PONTE_ROOT="${PONTE_ROOT_DOCTOR:-sim}" DOCTOR="$DOCTOR" FUNCAO="$1" bash -c '
     . "$MEOW_RAIZ/lib/comum.sh"; . "$DOCTOR"; "$FUNCAO"' 2>&1
@@ -330,8 +310,6 @@ confere "o conserto do doctor sai na hora, linha a linha (o painel mostra o prog
 confere "a ponte de volta abre, na mesma passada, os consertos que precisam dela" \
   'grep -qF "[ \"\$nome\" = \"ponte\" ] && [ \"\$rc\" = \"1\" ] && meow_ponte_viva" "$RAIZ/bin/meow"'
 
-# O painel: a ponte lida há menos de 30 s fica em cache, e o fim de um trabalho
-# (o «Conferir e consertar») a esquece, para a tela dizer o estado de agora.
 r="$(env -i PATH="$PATH" HOME="$CASA" PYTHONDONTWRITEBYTECODE=1 python3 - "$RAIZ" <<'PYFIM' 2>&1
 import os, sys, time
 sys.path.insert(0, os.path.join(sys.argv[1], "app"))
@@ -347,7 +325,6 @@ PYFIM
 confere "o fim de um trabalho do painel esquece a ponte lida" '[ "$(tail -n1 <<< "$r")" = ok ]' "$r"
 
 printf '\n--- 5. o limite: ponte nova no repositório e install sem reserva ficam com o install ---\n'
-# Um clone com a ponte mudada: o código que quem usa pode editar.
 CLONE="$T/clone"; mkdir -p "$CLONE/scripts" "$CLONE/assets/ponte"
 cp "$RAIZ/scripts/ponte_root.sh" "$CLONE/scripts/ponte_root.sh"
 cp "$RAIZ/assets/ponte/49-meowsystem-ponte-reparo.rules" "$CLONE/assets/ponte/"
@@ -415,7 +392,6 @@ confere "sem a regra do polkit: a ponte a confere, e o doctor pede o install" \
 saida="$(doctor fix_ponte)"; rc=$?
 confere "e o conserto não dispara o reparo (sai 3, nenhum start)" \
   '[ "$rc" = 3 ] && ! grep -q "^start" "$SYSTEMCTL_LOG"' "$saida"
-# A pasta do polkit é 0750 root:polkitd: a etapa não a lê. Quem confere é a ponte.
 chmod 300 "$SIS/etc/polkit-1/rules.d"
 saida="$(etapa)"; rc=$?
 chmod 755 "$SIS/etc/polkit-1/rules.d"

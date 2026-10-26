@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# escala-kdl.sh — o `escala.sh` lê o `cosmic-randr list --kdl` (P76).
-#
-# Um `cosmic-randr` falso devolve um KDL fixo, com o formato medido nas versões
-# 0.1.0 e 1.10: uma saída em 1.25 a 59.951 Hz, uma em 1.00 a 144 Hz, e uma
-# desligada.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
