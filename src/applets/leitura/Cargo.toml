@@ -1,15 +1,3 @@
-# meow-applet-leitura — o applet do modo de leitura na topbar do COSMIC.
-#
-# O `rev` DO libcosmic É PINADO AQUI, E O `Cargo.lock` VAI NO REPOSITÓRIO O
-# applet de mídia (src/applets/now-playing) herda o lock do upstream dele e por
-# isso pode apontar o libcosmic para o git sem `rev`.
-#
-# A versão do Cargo.toml deles não distingue nada; só o commit distingue.
-#
-# `1f6dc99` é EXATAMENTE o que o applet de mídia compilou nesta máquina (ver o
-# campo LIBCOSMIC do src/applets/now-playing/PINO).
-#
-# `default-features = false` mais `a11y`, `applet` e `wayland`.
 [package]
 name = "meow-applet-leitura"
 version = "0.1.0"
@@ -22,13 +10,6 @@ publish = false
 name = "meow-applet-leitura"
 path = "src/main.rs"
 
-# O `jiff` JÁ ESTAVA NESTA ÁRVORE — declará-lo aqui não baixa um byte Ele entra
-# pelo libcosmic, e o `Cargo.lock` ao lado o registra em 0.2.35 desde antes de
-# existir uma linha nossa que o use.
-#
-# PARA QUE ELE SERVE, EM UMA LINHA: `Zoned::now()`, o único jeito honesto de
-# saber a hora LOCAL — e a hora local é o que decide se o ícone da barra é o sol
-# ou a lua.
 [dependencies]
 jiff = "0.2.35"
 
@@ -38,8 +19,5 @@ rev = "1f6dc991eaa5115a09be2505cc8a323e5b2b0bff"
 default-features = false
 features = ["a11y", "applet", "wayland"]
 
-# Um binário de applet que só desenha não precisa de símbolo nenhum, e o
-# `midia_build.sh` já roda `strip` depois de instalar. Aqui o `strip = true` faz
-# o mesmo de graça, dentro do próprio cargo.
 [profile.release]
 strip = true
