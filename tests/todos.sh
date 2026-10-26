@@ -5,6 +5,8 @@ TESTES="$RAIZ/tests"
 
 PORTATIL=(
   numeros.sh
+  readme.sh
+  ganchos.sh
   orfaos.sh
   portabilidade.sh
   arvore.sh
