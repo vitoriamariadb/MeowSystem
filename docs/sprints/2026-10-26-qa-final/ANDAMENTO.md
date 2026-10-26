@@ -2,10 +2,12 @@
 
 ## Agora
 - QA e os 5 repos de applet: entregues (ver «Entregue»).
-- Em voo: B0 etapa 1 (zerar comentários), worktree `../MeowSystem-b0`, branch `limpeza/b0`.
-- Depois: B0 etapa 2 (arquivar, decisões enxutas, gancho do README) → etapa 3 (confere e corrige) →
-  merge no dev → seis worktrees `../MeowSystem-p109..p114` → 6 Sonnet (`00-leva.md`, P109-P114) →
-  junta em `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev.
+- Em voo: B0 etapa 1 (zerar comentários), `../MeowSystem-b0`, `limpeza/b0`.
+- Em voo: maquete do painel (`maquete/BRIEF.md`), Opus A em `../MeowSystem-maquete-a` (`maquete/a`:
+  moldura, Tema, Definir, Manter) e Opus B em `../MeowSystem-maquete-b` (`maquete/b`: Personalizar,
+  Extensões). Junta as duas, quem usa aprova, e as sprints P110-P114 passam a seguir a maquete.
+- Depois: B0 etapas 2 e 3 → merge no dev → seis worktrees `../MeowSystem-p109..p114` → 6 Sonnet →
+  `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev.
 
 ## Respostas de quem usa (26/10)
 - Repos de applet: conta `<conta>`, nome `meowsystem-*`, pasta `~/Desenvolvimento/meowsystem-*`, app id `io.github.meowsystem.*`. Vão até o push. Compilam e instalam aqui (root por `sudo -A`, o askpass); não mexem na ordem do painel nem o reiniciam sozinhos.
