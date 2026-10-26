@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeowSystem · Tema</title>
+<link rel="icon" type="image/svg+xml" href="svg/logo-meowsystem.svg">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body data-porta="tema" data-estado="normal">
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+<header class="topo" id="topo">
+  <a class="marca" href="tema.html" data-controle="marca"><img src="svg/logo-meowsystem.svg" alt="" width="30" height="30"><span>MeowSystem</span></a>
+  <nav aria-label="Portas">
+    <ul class="portas" id="portas">
+      <li><a href="tema.html" data-controle="porta:tema" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.7 5.7 0 0 0 22 9.7C22 5.4 17.5 2 12 2Z"/></svg><span>Tema</span></a></li>
+      <li><a href="personalizar.html" data-controle="porta:criar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Personalizar</span></a></li>
+      <li><a href="definir.html" data-controle="porta:ajustes"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span>Definir</span></a></li>
+      <li><a href="manter.html" data-controle="porta:cuidar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg><span>Manter</span></a></li>
+      <li><a href="extensoes.html" data-controle="porta:extensoes"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v4a2 2 0 1 0 4 0V3h2v6h-4a2 2 0 1 0 0 4h4v8h-8v-4a2 2 0 1 0-4 0v4H3v-8h4a2 2 0 1 0 0-4H3V3Z"/></svg><span>Extensões</span></a></li>
+    </ul>
+  </nav>
+  <div class="busca" id="caixa-busca" role="search">
+    <button type="button" class="bt leve so-icone abrir-busca" id="abrir-busca" aria-label="Procurar um ajuste" data-controle="busca"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="busca" type="search" placeholder="Procurar um ajuste" aria-label="Procurar um ajuste" autocomplete="off" aria-controls="achados">
+    <kbd>/</kbd>
+    <div class="achados" id="achados" role="listbox" aria-label="Achados"></div>
+  </div>
+  <div class="aplicar" id="aplicar" data-n="3">
+    <span class="gravando" id="gravando" role="status" data-estado="ok" aria-label="Gravado"><svg class="i so-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><svg class="i so-erro" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+    <button type="button" class="conta" id="conta" aria-expanded="false" aria-controls="ultimas" data-controle="mudancas">3 mudanças</button>
+    <button type="button" class="bt leve pequeno desfazer" id="desfazer" data-controle="descartar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Desfazer</button>
+    <div class="menu-corpo ultimas" id="ultimas" role="list" aria-label="Últimas mudanças" hidden>
+      <div class="ultima" role="listitem" data-indice="0">
+        <span><b>Solta da borda (dock)</b><small>Sim → Não</small></span>
+        <button type="button" class="bt leve pequeno" data-controle="desfazer-uma"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Desfazer</button>
+      </div>
+      <div class="ultima" role="listitem" data-indice="1">
+        <span><b>Cantos (barra de cima)</b><small>12 px → 16 px</small></span>
+        <button type="button" class="bt leve pequeno" data-controle="desfazer-uma"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Desfazer</button>
+      </div>
+      <div class="ultima" role="listitem" data-indice="2">
+        <span><b>Segundos no relógio</b><small>Não → Sim</small></span>
+        <button type="button" class="bt leve pequeno" data-controle="desfazer-uma"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Desfazer</button>
+      </div>
+    </div>
+  </div>
+  <details class="menu" id="menu">
+    <summary class="bt leve pequeno so-icone" aria-label="Mais" data-controle="menu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></summary>
+    <div class="menu-corpo" id="menu-corpo">
+      <button type="button" data-controle="creditos"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/></svg>Créditos</button>
+      <button type="button" data-controle="exportar-pagina"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Esta tela num arquivo</button>
+    </div>
+  </details>
+</header>
+<main id="principal" class="pagina">
+  <h1 class="sr">Tema</h1>
+  <div class="grade-tema" data-nao="carregando vazio">
+    <article class="pack no-ar" style="grid-column:span 2" data-pack="meowsystem">
+      <figure class="previa" style="--p-base:#1E1E2E;--p-mantle:#181825;--p-crust:#11111B;--p-text:#CDD6F4;--p-sub:#A6ADC8;--p-s0:#313244;--p-s1:#45475A;--p-acc:#CBA6F7;--p-blue:#89B4FA;--p-pink:#F5C2E7;--p-green:#A6E3A1;--p-peach:#FAB387" id="previa-meowsystem" data-solto-painel="sim" data-ilha-painel="nao" data-solto-dock="sim" data-ilha-dock="sim" data-segundos="sim" data-musica="sim" data-capa="sim" data-tocar="nao" role="img" aria-label="Prévia do MeowSystem">
+
+      <div class="p-barra">
+        <div class="ws"><i></i><i></i><i></i></div>
+        <div class="meio"><div class="musica"><i></i><b></b><s></s><span class="controles"><u></u><u></u><u></u></span></div></div>
+        <div class="bandeja"><i></i><i></i><span class="relogio">14:32<span class="seg-relogio">:07</span></span></div>
+      </div>
+      <div class="p-jan p-arq"><header><b></b><i></i></header><div class="corpo"><nav><i></i><i></i><i></i><i></i></nav><div class="pastas"><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure></div></div></div>
+      <div class="p-jan p-term"><header><b></b><i></i></header><div class="corpo"><div class="pr"><b></b><b></b><b></b></div><div class="ln"><i class="ok"></i><i style="width:40%"></i></div><div class="ln"><i style="width:55%"></i></div><div class="tira"><i style="background:var(--p-red)"></i><i style="background:var(--p-peach)"></i><i style="background:var(--p-yellow)"></i><i style="background:var(--p-green)"></i><i style="background:var(--p-teal)"></i><i style="background:var(--p-sky)"></i><i style="background:var(--p-blue)"></i><i style="background:var(--p-acc)"></i><i style="background:var(--p-pink)"></i></div><div class="ln"><span class="pr"><b></b><b></b><b></b></span><span class="cursor"></span></div></div></div>
+      <div class="p-dock">
+        <div class="ala-ini"><img class="gato" src="svg/coquinha.svg" alt=""></div>
+        <div class="centro"><img src="svg/app-files.svg" alt=""><img src="svg/app-firefox.svg" alt=""><img src="svg/app-terminal.svg" alt=""><img src="svg/app-vscode.svg" alt=""><img src="svg/app-obsidian.svg" alt=""><img src="svg/app-com.spotify.Client.svg" alt=""><img src="svg/app-com.discordapp.Discord.svg" alt=""><img src="svg/app-org.telegram.desktop.svg" alt=""></div>
+        <div class="ala-fim"><i></i><i></i></div>
+      </div>
+
+    </figure>
+      <div class="pack-corpo"><img class="logo" src="svg/logo-meowsystem.svg" alt=""><h2>MeowSystem</h2><div class="fila"><span class="estado-no-ar" role="img" aria-label="No ar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></div><div class="variantes" role="group" aria-label="Variante do MeowSystem"><button type="button" aria-pressed="false" data-flavor="latte" style="--a:#EFF1F5;--b:#8839EF;--c:#4C4F69"><i></i>Latte</button><button type="button" aria-pressed="false" data-flavor="frappe" style="--a:#303446;--b:#CA9EE6;--c:#C6D0F5"><i></i>Frappé</button><button type="button" aria-pressed="false" data-flavor="macchiato" style="--a:#24273A;--b:#C6A0F6;--c:#CAD3F5"><i></i>Macchiato</button><button type="button" aria-pressed="true" data-flavor="mocha" style="--a:#1E1E2E;--b:#CBA6F7;--c:#CDD6F4"><i></i>Mocha</button></div></div>
+    </article>
+    <article class="pack" style="grid-column:span 2" data-pack="dracula">
+      <figure class="previa" style="--p-base:#282A36;--p-mantle:#21222C;--p-crust:#191A21;--p-text:#F8F8F2;--p-sub:#C8C8C2;--p-s0:#383A4C;--p-s1:#44475A;--p-acc:#BD93F9;--p-blue:#6272A4;--p-pink:#FF79C6;--p-green:#50FA7B;--p-peach:#FFB86C" id="previa-dracula" data-solto-painel="sim" data-ilha-painel="nao" data-solto-dock="sim" data-ilha-dock="sim" data-segundos="sim" data-musica="sim" data-capa="sim" data-tocar="nao" role="img" aria-label="Prévia do Dracula">
+      <img class="parede" src="svg/parede-eclipse.svg" alt="">
+      <div class="p-barra">
+        <div class="ws"><i></i><i></i><i></i></div>
+        <div class="meio"><div class="musica"><i></i><b></b><s></s><span class="controles"><u></u><u></u><u></u></span></div></div>
+        <div class="bandeja"><i></i><i></i><span class="relogio">14:32<span class="seg-relogio">:07</span></span></div>
+      </div>
+      <div class="p-jan p-arq"><header><b></b><i></i></header><div class="corpo"><nav><i></i><i></i><i></i><i></i></nav><div class="pastas"><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure><figure><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg><i></i></figure></div></div></div>
+      <div class="p-jan p-term"><header><b></b><i></i></header><div class="corpo"><div class="pr"><b></b><b></b><b></b></div><div class="ln"><i class="ok"></i><i style="width:40%"></i></div><div class="ln"><i style="width:55%"></i></div><div class="tira"><i style="background:var(--p-red)"></i><i style="background:var(--p-peach)"></i><i style="background:var(--p-yellow)"></i><i style="background:var(--p-green)"></i><i style="background:var(--p-teal)"></i><i style="background:var(--p-sky)"></i><i style="background:var(--p-blue)"></i><i style="background:var(--p-acc)"></i><i style="background:var(--p-pink)"></i></div><div class="ln"><span class="pr"><b></b><b></b><b></b></span><span class="cursor"></span></div></div></div>
+      <div class="p-dock">
+        <div class="ala-ini"><img class="gato" src="svg/morcego.svg" alt=""></div>
+        <div class="centro"><img src="svg/app-files.svg" alt=""><img src="svg/app-firefox.svg" alt=""><img src="svg/app-terminal.svg" alt=""><img src="svg/app-vscode.svg" alt=""><img src="svg/app-obsidian.svg" alt=""><img src="svg/app-com.spotify.Client.svg" alt=""><img src="svg/app-com.discordapp.Discord.svg" alt=""><img src="svg/app-org.telegram.desktop.svg" alt=""></div>
+        <div class="ala-fim"><i></i><i></i></div>
+      </div>
+
+    </figure>
+      <div class="pack-corpo"><img class="logo" src="svg/logo-dracula.svg" alt=""><h2>Dracula</h2><div class="fila"><button type="button" class="bt principal" data-root data-titulo="Vestir o Dracula">Vestir</button></div><div class="variantes" role="group" aria-label="Variante do Dracula"><button type="button" aria-pressed="true" data-flavor="dracula" style="--a:#282A36;--b:#BD93F9;--c:#F8F8F2"><i></i>Dracula</button><button type="button" aria-pressed="false" data-flavor="alucard" style="--a:#F0F0F6;--b:#853AF2;--c:#4A4F67"><i></i>Alucard</button></div></div>
+    </article>
+    <section class="bloco" style="grid-column:span 2"><header><h2>Cor de destaque</h2></header><div class="corpo"><div class="cores grandes" role="group" aria-label="Cor de destaque" data-chave="ACCENT"><button type="button" style="--c:var(--rosewater)" aria-pressed="false" aria-label="rosewater" title="rosewater" data-valor="rosewater"></button><button type="button" style="--c:var(--flamingo)" aria-pressed="false" aria-label="flamingo" title="flamingo" data-valor="flamingo"></button><button type="button" style="--c:var(--pink)" aria-pressed="false" aria-label="pink" title="pink" data-valor="pink"></button><button type="button" style="--c:var(--mauve)" aria-pressed="true" aria-label="mauve" title="mauve" data-valor="mauve"></button><button type="button" style="--c:var(--red)" aria-pressed="false" aria-label="red" title="red" data-valor="red"></button><button type="button" style="--c:var(--maroon)" aria-pressed="false" aria-label="maroon" title="maroon" data-valor="maroon"></button><button type="button" style="--c:var(--peach)" aria-pressed="false" aria-label="peach" title="peach" data-valor="peach"></button><button type="button" style="--c:var(--yellow)" aria-pressed="false" aria-label="yellow" title="yellow" data-valor="yellow"></button><button type="button" style="--c:var(--green)" aria-pressed="false" aria-label="green" title="green" data-valor="green"></button><button type="button" style="--c:var(--teal)" aria-pressed="false" aria-label="teal" title="teal" data-valor="teal"></button><button type="button" style="--c:var(--sky)" aria-pressed="false" aria-label="sky" title="sky" data-valor="sky"></button><button type="button" style="--c:var(--sapphire)" aria-pressed="false" aria-label="sapphire" title="sapphire" data-valor="sapphire"></button><button type="button" style="--c:var(--blue)" aria-pressed="false" aria-label="blue" title="blue" data-valor="blue"></button><button type="button" style="--c:var(--lavender)" aria-pressed="false" aria-label="lavender" title="lavender" data-valor="lavender"></button></div></div></section>
+    <section class="bloco" style="grid-column:span 1"><header><h2>Claro ou escuro</h2></header><div class="corpo"><div class="seg" role="group" aria-label="Claro ou escuro" data-chave="MODO"><button type="button" aria-pressed="true" data-valor="escuro">Escuro</button><button type="button" aria-pressed="false" data-valor="claro">Claro</button><button type="button" aria-pressed="false" data-valor="auto">Pela hora</button></div></div></section>
+    <a class="criar-meu" href="personalizar.html" style="grid-column:span 1" data-controle="criar-meu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Criar o meu tema</span></a>
+  </div>
+  <div class="esqueleto-grade" data-so="carregando" hidden><span class="esqueleto"></span><span class="esqueleto"></span></div>
+  <div class="grade-tema" data-so="vazio" hidden>
+    <div class="vazio" style="grid-column:span 2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.7 5.7 0 0 0 22 9.7C22 5.4 17.5 2 12 2Z"/></svg><b>Nenhum tema pronto</b></div>
+    <a class="criar-meu" href="personalizar.html" style="grid-column:span 2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Criar o meu tema</span></a>
+  </div>
+</main>
+<div id="torradas" class="torradas" aria-live="polite"></div>
+<div id="dica" class="dica" hidden></div>
+<dialog id="resultado" class="resultado" aria-labelledby="resultado-titulo">
+  <div class="dentro">
+    <header class="resultado-topo">
+      <h2 id="resultado-titulo">Instalar tudo</h2>
+      <div class="fila"><span class="estado-pilula" id="resultado-estado" data-estado="correndo">Rodando</span></div>
+    </header>
+    <details class="registro" id="registro">
+      <summary>Registro</summary>
+      <pre id="saida"></pre>
+    </details>
+    <div class="acoes">
+      <button type="button" class="bt perigo" id="parar" data-controle="parar">Parar</button>
+      <button type="button" class="bt" id="resultado-restaurar" data-controle="restaurar" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Restaurar</button>
+      <button type="button" class="bt" id="resultado-guardar" data-controle="guardar-log"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Guardar</button>
+      <button type="button" class="bt principal" id="resultado-ok" data-controle="resultado:ok">OK</button>
+    </div>
+  </div>
+</dialog>
+<dialog id="pergunta" aria-labelledby="pergunta-titulo">
+  <form class="dentro" method="dialog">
+    <h2 id="pergunta-titulo">Falta a ponte</h2>
+    <div id="pergunta-corpo" hidden></div>
+    <div class="acoes">
+      <button class="bt" value="nao" id="pergunta-nao">Cancelar</button>
+      <button class="bt principal" value="sim" id="pergunta-sim"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 18h20M4 18V9M20 18V9M4 9c4 4 12 4 16 0M9 13v5M15 13v5"/></svg>Consertar a ponte</button>
+    </div>
+  </form>
+</dialog>
+<script src="demo.js"></script>
+<script src="tema.js"></script>
+</body>
+</html>
