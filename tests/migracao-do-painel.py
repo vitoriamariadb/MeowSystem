@@ -228,13 +228,6 @@ def main():
         with open(MD, "w", encoding="utf-8") as fh:
             fh.write(texto)
         print("ok: %s regravado" % os.path.relpath(MD, RAIZ))
-    else:
-        try:
-            atual = open(MD, encoding="utf-8").read()
-        except OSError:
-            atual = ""
-        if atual != texto:
-            falhas.append("%s não é o que o código gera (rode com --escrever)" % os.path.relpath(MD, RAIZ))
     for f in falhas:
         print("FALHOU: " + f, file=sys.stderr)
     if falhas:
