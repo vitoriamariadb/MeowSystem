@@ -108,7 +108,7 @@ done
 if [ -n "$faltou3" ]; then
   printf 'FALHOU: o ensaio calou sobre unidade(s) que a execução real vai armar:%s\n' \
     "$faltou3" >&2
-  printf '  é a dívida 6 do docs/SPRINTS.md voltando: ver o ramo `meow_seco` das etapas.\n' >&2
+  printf '  ver o ramo `meow_seco` das etapas.\n' >&2
   falhas=$((falhas + 1))
 else
   printf 'ok: o ensaio nomeia as quatro unidades que o real armaria\n'
