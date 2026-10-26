@@ -151,7 +151,7 @@ lugar do literal `currentColor`. O desenho não é tocado.
 ### Um TERCEIRO diretório, que não veste ninguém: `assets/icones/previa-arcticons/`
 
 13 glifos baixados em 10/08/2026, pela mesma API do Iconify e sob a mesma
-CC BY-SA 4.0, para a folha `scripts/folha_icones.py` mostrar como os ícones
+CC BY-SA 4.0, para a folha `scripts/folha_icones.py` (na branch `arquivo`) mostrar como os ícones
 FICARIAM se ela unificasse tudo no Arcticons. Estão **sem cor**, em
 `currentColor`, e **nenhum script os instala**: não há mapa que os leia, e o
 tema não os enxerga. São material de decisão, não de tema.

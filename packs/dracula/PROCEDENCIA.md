@@ -134,7 +134,7 @@ ganhou um `.svg` desenhado à mão ao lado, medido contra o PNG (RMSE de 0 a 1,
 no pior de dois fundos, `#282A36` e branco) e conferido a olho numa folha de
 contato; os 39 passaram, os PNG saíram, e a linha de cada um abaixo é a do
 vetor, com o sha256 do PNG de que ele nasceu. O critério e a tabela inteira
-estão em `docs/sprints/2026-10-15-fechamento/P84-png-para-vetor.md`.
+estão em `docs/sprints/2026-10-15-fechamento/P84-png-para-vetor.md`, na branch `arquivo`.
 
 | arquivo | de onde | lido de | licença | copiado em | sha256 |
 |---|---|---|---|---|---|
@@ -935,7 +935,7 @@ mesma do OKLCH com o matiz pesado pelo croma), medida contra os 26:
 
 **As três que fecham a família — 09/10/2026, sprint P74.** `folder`, `user-home`
 e `user-desktop` vinham do papirus-folders mesmo com as pastas especiais
-ligadas (I7 de `docs/sprints/2026-10-09-uso-real/01-regressoes.md`; o pedido de
+ligadas (I7 de `docs/sprints/2026-10-09-uso-real/01-regressoes.md`, na branch `arquivo`; o pedido de
 16/09 era «que os agentes gerem as demais variações de pastas»). Entraram como
 desenho deste projeto, com o corpo das sete path a path (as costas no
 `surface0`, a frente no `surface1`) e o símbolo na paleta do flavor `dracula`:
