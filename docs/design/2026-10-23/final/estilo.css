@@ -1,15 +1,4 @@
-/* Hallmark · macrostructure: Workbench (app shell) · tone: utilitário caloroso · anchor hue: o destaque do pack no ar
- * theme: studied-DNA (fonte: packs/<pack>/paleta.json do repositório) · nav: barra de portas · footer: linha fina
- * Hallmark · pre-emit critique: P4 H5 E4 S5 R4 V4
- *
- * Mockup FINAL do painel MeowSystem (P97, 23/10/2026). Junta o mockup A e o B.
- * Toda cor vem das 26 de packs/<pack>/paleta.json. O painel se veste do pack no ar:
- * trocar o tema em "Tema" repinta todas as telas (o mockup.js grava a escolha no navegador).
- */
-
-/* ── 1. paletas ─────────────────────────────────────────────────────────── */
 :root {
-  /* MeowSystem · Mocha (padrão) */
   --c-rosewater:#F5E0DC; --c-flamingo:#F2CDCD; --c-pink:#F5C2E7; --c-mauve:#CBA6F7;
   --c-red:#F38BA8; --c-maroon:#EBA0AC; --c-peach:#FAB387; --c-yellow:#F9E2AF;
   --c-green:#A6E3A1; --c-teal:#94E2D5; --c-sky:#89DCEB; --c-sapphire:#74C7EC;
@@ -64,8 +53,6 @@ html[data-tema="alucard"] {
   --c-mantle:#E8E9F1; --c-crust:#DEE0EA;
 }
 
-/* ── 2. papéis: o que a interface usa ─────────────────────────────────────
- * Texto nunca usa overlay*: o mínimo é subtext0, que passa 4,5:1 nas seis variantes. */
 :root {
   --accent: var(--c-mauve);
   --fundo: var(--c-base);
@@ -106,8 +93,6 @@ html[data-tema="alucard"] {
   --ease-in-out: cubic-bezier(.6, 0, .3, 1);
   --dur-rapida: 120ms; --dur-media: 220ms;
 }
-/* nas variantes claras o texto sobre o destaque vira claro, e o cartão clareia
- * (o destaque de Latte e Alucard é escuro o bastante para texto branco). */
 html[data-tema="latte"], html[data-tema="alucard"] {
   --sobre-accent: #FFFFFF;
   --sombra: color-mix(in oklab, var(--c-overlay2) 30%, transparent);
@@ -126,7 +111,6 @@ html[data-destaque="peach"]    { --accent: var(--c-peach); }
 html[data-destaque="maroon"]   { --accent: var(--c-maroon); }
 html[data-destaque="red"]      { --accent: var(--c-red); }
 
-/* ── 3. base ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { overflow-x: clip; }
 body {
@@ -148,7 +132,6 @@ code, .mono { font-family: var(--f-mono); font-size: .92em; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ── 4. barra de cima: quatro portas, a busca e o Aplicar ─────────────────── */
 .topo {
   position: sticky; top: 0; z-index: 20; height: 64px;
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: var(--e-6);
@@ -196,7 +179,6 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .aplicar:not([data-n="0"]) .conta::before { background: var(--accent); }
 .aplicar[data-n="0"] .desfazer { display: none; }
 
-/* ── 5. botões: oito estados ─────────────────────────────────────────────── */
 .bt {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--e-2);
   height: 40px; padding: 0 var(--e-5); border-radius: var(--raio-pilula); white-space: nowrap;
@@ -224,7 +206,6 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .aplicar .bt { height: 34px; }
 @keyframes gira { to { transform: rotate(360deg); } }
 
-/* o "?" — o porquê mora atrás dele */
 .q {
   display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: var(--e-1); padding: 0; flex: none;
   border-radius: 50%; border: 1px solid var(--linha-forte); background: transparent; color: var(--tinta-3);
@@ -238,7 +219,6 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 }
 .porque.aberto { display: block; }
 
-/* selos */
 .selo { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--raio-pilula); font-size: var(--t-xs); font-weight: 600; white-space: nowrap; background: var(--cartao-2); color: var(--tinta-2); }
 .selo svg.i { width: 13px; height: 13px; }
 .selo.no-ar { background: var(--accent); color: var(--sobre-accent); }
@@ -250,7 +230,6 @@ html[data-tema="latte"] .selo.senha, html[data-tema="alucard"] .selo.senha { col
 html[data-tema="latte"] .selo.rede, html[data-tema="alucard"] .selo.rede { color: color-mix(in oklab, var(--c-sky) 60%, black); }
 html[data-tema="latte"] .selo.ok, html[data-tema="alucard"] .selo.ok { color: color-mix(in oklab, var(--ok) 75%, black); }
 
-/* ── 6. controles ────────────────────────────────────────────────────────── */
 .chave {
   position: relative; width: 46px; height: 26px; flex: none; padding: 0; border-radius: var(--raio-pilula);
   border: 1px solid var(--linha-forte); background: var(--cartao-2);
@@ -295,7 +274,6 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .cores button[aria-pressed="true"] { border-color: var(--fundo); box-shadow: 0 0 0 2px var(--tinta); }
 .cores.pequenas button { width: 24px; height: 24px; }
 
-/* ── 7. superfícies ──────────────────────────────────────────────────────── */
 .pagina { padding: var(--e-8) var(--e-14) var(--e-12); max-width: 1760px; margin: 0 auto; }
 .cabeca { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--e-6); margin-bottom: var(--e-6); flex-wrap: wrap; }
 .cabeca p { color: var(--tinta-2); margin-top: var(--e-1); font-size: var(--t-lg); }
@@ -306,7 +284,6 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .bloco > header.dupla span { color: var(--tinta-2); font-size: var(--t-sm); font-weight: 600; }
 .bloco .corpo { padding: var(--e-5) var(--e-6); }
 
-/* linha de ajuste: rótulo à esquerda, controle à direita */
 .linhas { list-style: none; margin: 0; padding: 0; }
 .linha { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--e-6); min-height: 58px; padding: var(--e-2) var(--e-6); border-top: 1px solid var(--linha); }
 .linha:first-child { border-top: 0; }
@@ -320,8 +297,6 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .padrao { border: 0; background: none; padding: 0; color: var(--tinta-2); font-size: var(--t-xs); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 .padrao:hover { color: var(--accent); }
 
-/* ── 8. a prévia: a mesa de trabalho em miniatura ─────────────────────────
- * Ela usa só --c-* (e --p-acc), para que um cartão de pack mostre as cores DELE. */
 .previa {
   --p-acc: var(--accent);
   container-type: inline-size; position: relative; margin: 0; aspect-ratio: 16 / 9.4; overflow: hidden;
@@ -396,12 +371,10 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .legenda-previa { margin-top: var(--e-3); color: var(--tinta-2); font-size: var(--t-sm); display: flex; align-items: center; gap: var(--e-2); }
 .legenda-previa i { width: 22px; height: 12px; border: 2px dashed var(--accent); border-radius: 4px; flex: none; }
 
-/* ── 9. rodapé ───────────────────────────────────────────────────────────── */
 .rodape { display: flex; justify-content: space-between; gap: var(--e-4); flex-wrap: wrap; padding: var(--e-5) var(--e-14); border-top: 1px solid var(--linha); color: var(--tinta-3); font-size: var(--t-sm); }
 .rodape a { color: var(--tinta-2); text-underline-offset: 3px; }
 .rodape nav { display: flex; gap: var(--e-6); flex-wrap: wrap; }
 
-/* ── 10. caixas sobre a tela: senha e saída de ação ──────────────────────── */
 dialog { border: 1px solid var(--linha-forte); border-radius: var(--raio-xl); background: var(--cartao-2); color: var(--tinta); padding: 0; width: min(500px, calc(100vw - 32px)); box-shadow: 0 24px 64px var(--sombra); }
 dialog::backdrop { background: var(--veu); }
 dialog .dentro { padding: var(--e-6); display: grid; gap: var(--e-4); }
@@ -423,7 +396,6 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
 .saida summary { cursor: pointer; }
 .saida pre { margin: var(--e-2) 0 0; padding: var(--e-3); border-radius: var(--raio-sm); background: var(--fundo); font: var(--t-xs)/1.6 var(--f-mono); color: var(--tinta-2); white-space: pre-wrap; }
 
-/* ── 11. utilitários de layout ──────────────────────────────────────────── */
 .duas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--e-6); }
 .tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e-6); }
 .pilha { display: grid; gap: var(--e-6); align-content: start; min-width: 0; }
@@ -431,7 +403,6 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
 .calmo { color: var(--tinta-2); }
 .miudo { font-size: var(--t-sm); color: var(--tinta-3); }
 
-/* ajustes e criar: trilho local + prévia fixa + controles */
 .oficina { display: grid; grid-template-columns: 210px minmax(0, .92fr) minmax(0, 1.08fr); gap: var(--e-8); align-items: start; }
 .oficina.sem-trilho { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
 .oficina .palco { position: sticky; top: 96px; min-width: 0; }
@@ -449,7 +420,6 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
 .passos a[aria-current="step"] { color: var(--tinta); border-bottom-color: var(--accent); }
 .passos a[aria-current="step"] b { background: var(--accent); color: var(--sobre-accent); }
 
-/* ── 12. mobile e janelas estreitas ──────────────────────────────────────── */
 @media (max-width: 1360px) {
   .busca { width: 240px; }
 }
@@ -488,7 +458,6 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
   *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
 }
 
-/* ── 13. escolhas com imagem (gato, papel, ponteiro) e o que é de um pack só ── */
 html[data-familia="dracula"] .so-meow { display: none !important; }
 html:not([data-familia="dracula"]) .so-dracula { display: none !important; }
 .escolhas { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: var(--e-3); }
@@ -509,7 +478,6 @@ html:not([data-familia="dracula"]) .so-dracula { display: none !important; }
 @media (max-width: 1180px) { .largo { grid-column: 2; } }
 @media (max-width: 860px) { .largo { grid-column: auto; } }
 
-/* ── 14. Criar tema ──────────────────────────────────────────────────────── */
 .criar-cabeca { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--e-6); flex-wrap: wrap; margin-bottom: var(--e-4); }
 .nome-tema { font: 600 var(--t-2xl)/1.15 var(--f-corpo); color: var(--tinta); background: transparent; border: 1px solid transparent; border-radius: var(--raio-md); padding: 2px var(--e-2); margin-left: calc(-1 * var(--e-2)); width: min(520px, 100%); }
 .nome-tema:hover { border-color: var(--linha); }

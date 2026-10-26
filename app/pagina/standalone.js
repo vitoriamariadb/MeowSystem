@@ -1,14 +1,3 @@
-/* app/pagina/standalone.js — o que faz a página exportada funcionar sem servidor.
- *
- * Ele nunca é servido ao painel de verdade: o `servidor.py` o costura entre o
- * `<script id="meow-dados">` e o `app.js`, e é lido pelo `_exportar_pagina`.
- *
- * O `app.js` que roda aqui é o MESMO arquivo do painel, sem uma linha
- * diferente.
- *
- * A alternativa seria escrever uma segunda versão da página só para exportar.
- *
- * Sem servidor não há o que gravar, rodar ou apagar. */
 (function () {
   "use strict";
 
@@ -17,9 +6,6 @@
   const D = JSON.parse(cofre.textContent);
   const IMG = D.imagens || {};
 
-  /* O quadro vazado que aparece onde a imagem não coube na amostra. Ele usa
-   * `currentColor`, então acompanha o tema da página em vez de cravar um cinza
-   * — a regra do "nenhum hex vive dentro de script" vale aqui também. */
   const VAZADO =
     "data:image/svg+xml;charset=utf-8," +
     encodeURIComponent(
@@ -33,8 +19,6 @@
     standalone: true,
   };
 
-  /* --- o fetch que lê de dentro do arquivo ---------------------------------
-   * O `api()` do `app.js` (linha 38) faz `fetch(rota)` e lê `resposta.text()`. */
   const resposta = (corpo, status) =>
     Promise.resolve(new Response(JSON.stringify(corpo), {
       status: status || 200,
@@ -49,9 +33,6 @@
     if (caminho === "/api/esquema") return resposta(D.esquema);
     if (caminho === "/api/apps") return resposta(D.apps);
     if (caminho === "/api/jogos") return resposta(D.jogos);
-    /* Os glifos são a busca por desenho de ícone: ela pede ao servidor a cada
-     * letra digitada, e congelar isso seria congelar um acervo de milhares. A
-     * lista vazia é a resposta honesta, e a tela de escolha sabe desenhá-la. */
     if (caminho === "/api/glifos")
       return resposta({ termo: q.get("termo") || "", itens: [], congelado: true });
     if (caminho === "/api/previas") {
@@ -60,23 +41,13 @@
       const p = D.previas[grupo ? tipo + "/" + grupo : tipo];
       return resposta(p || { tipo, itens: [], faltam: 0, contagens: {}, total: 0 });
     }
-    /* 409, e não 200 com erro: é o mesmo código que o servidor usa para "não
-     * vou fazer isso agora", e o `api()` do painel já sabe traduzi-lo. */
     return resposta(SEM_SERVIDOR, 409);
   };
 
-  /* O pulso é a conexão que diz "a janela está aberta". Sem servidor ele não
-   * tem com quem falar, e um `EventSource` para um endereço morto enche o
-   * console de vermelho a cada reconexão. */
   window.EventSource = function () {
     return { close() {}, addEventListener() {}, onerror: null, onmessage: null };
   };
 
-  /* --- as imagens ----------------------------------------------------------
-   * O `elemento()` do `app.js` (linha 268) põe o `src` por `setAttribute`, e é
-   * por isso que interceptar aqui cobre TODAS as imagens da página — as da
-   * galeria, as dos ícones, as das capas e o gato do cabeçalho — sem que o
-   * `app.js` precise saber que está exportado. */
   const original = Element.prototype.setAttribute;
   Element.prototype.setAttribute = function (nome, valor) {
     if (nome === "src" && typeof valor === "string" && valor[0] === "/") {
@@ -84,14 +55,10 @@
     }
     return original.call(this, nome, valor);
   };
-  /* O `<img class="gato">` do cabeçalho nasce no HTML, antes deste script — o
-   * interceptador acima não o alcança. */
   document.querySelectorAll('img[src^="/"]').forEach((img) => {
     img.setAttribute("src", img.getAttribute("src"));
   });
 
-  /* --- a barra de instruções, e o modo "todas as abas" ---------------------
-   * Quem abre este arquivo não abriu o painel: abriu um anexo. */
   function montarBarra() {
     const barra = document.createElement("div");
     barra.className = "aviso-standalone";
@@ -120,16 +87,12 @@
     document.body.insertBefore(barra, document.body.firstChild);
   }
 
-  /* EMPILHAR É CLICAR NO MENU, e não chamar o `render()` por dentro. O
-   * `render()` é função de módulo do `app.js`; alcançá-la daqui prenderia
-   * este arquivo ao nome dela. */
   async function empilhar() {
     const pilha = document.getElementById("pilha") || document.createElement("div");
     pilha.id = "pilha";
     pilha.dataset.mw = "pilha";
     pilha.replaceChildren();
     const antes = location.hash;
-    /* Uma página por porta, por ajuste e por passo: a tabela de lugares diz quais. */
     const rotas = [["#tema", "Tema"],
       ...PASSOS.map((p) => ["#criar/" + p.id, "Criar tema · " + p.nome]),
       ...AJUSTES.map((p) => ["#ajustes/" + p.id, "Ajustes · " + p.nome]),
@@ -143,10 +106,6 @@
       const titulo = document.createElement("h2");
       titulo.textContent = nome;
       titulo.dataset.mw = "pilha-aba-titulo";
-      /* `cloneNode` copia o `id="conteudo"`, e a regra que esconde o conteúdo
-       * no modo empilhado (`body.empilhado #conteudo`) passava a valer para os
-       * vinte e quatro clones também: a pilha montava certo, com os 96 cartões
-       * dentro, e aparecia vazia na tela. */
       const copia = document.getElementById("conteudo").cloneNode(true);
       copia.removeAttribute("id");
       copia.dataset.mw = "conteudo-copiado";
@@ -157,9 +116,6 @@
     location.hash = antes || "#tema";
   }
 
-  /* O `iniciar()` do `app.js` é assíncrono e monta as portas só depois de
-   * "buscar" o esquema. Esperar o primeiro botão nascer é mais barato — e mais
-   * honesto — que adivinhar um tempo. */
   const espia = new MutationObserver(() => {
     if (document.querySelector("#portas a")) {
       espia.disconnect();

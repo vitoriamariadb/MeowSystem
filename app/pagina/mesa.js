@@ -1,9 +1,3 @@
-/* app/pagina/mesa.js — a prévia do painel: a mesa de trabalho em miniatura.
- *
- * Uma só prévia para todas as páginas: barra de cima, arquivos, terminal e dock.
- * Nenhuma palavra dentro dela (barras no lugar de texto): ela mostra, não conta.
- * Quem chama passa as cores (as do pack no ar, ou as de outro pack num cartão),
- * a imagem de fundo, o gato e o valor das chaves que mudam o desenho. */
 "use strict";
 
 window.MESA = (function () {
@@ -17,7 +11,6 @@ window.MESA = (function () {
   };
   const PASTA = '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>';
   const TIRA = ["red", "peach", "yellow", "green", "teal", "sky", "blue", "mauve", "pink"];
-  /* o nome da cor da paleta -> a variável da prévia */
   const DA_PREVIA = { base: "--p-base", mantle: "--p-mantle", crust: "--p-crust", text: "--p-text",
     subtext0: "--p-sub", surface0: "--p-s0", surface1: "--p-s1", blue: "--p-blue", red: "--p-red",
     peach: "--p-peach", yellow: "--p-yellow", green: "--p-green", teal: "--p-teal", sky: "--p-sky",
@@ -39,7 +32,6 @@ window.MESA = (function () {
   }
   const varias = (n, classe) => Array.from({ length: n }, () => no("i", classe));
 
-  /* As 26 cores de um flavor (na ordem do pack) viram as variáveis da prévia. */
   function estiloDeCores(cores, ordem, acento) {
     const s = {};
     if (!cores) return s;
@@ -57,7 +49,6 @@ window.MESA = (function () {
   };
   const sim = (v) => ["sim", "1", "true"].includes(String(v || "").toLowerCase());
 
-  /* o = { cores, val(chave), parede, ajuste, gato, ff, marca:Set, sem:Set, quente, rotulo } */
   function mesa(o = {}) {
     const val = o.val || (() => "");
     const marca = o.marca || new Set();
