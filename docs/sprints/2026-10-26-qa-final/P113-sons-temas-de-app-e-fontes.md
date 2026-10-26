@@ -3,6 +3,9 @@
 Leia `00-leva.md`. Itens: `relatorios/qa-1.md` Q1-03, Q1-04, Q1-13, Q1-18 e a pesquisa de sons do
 Pop!_OS/COSMIC (seção de sons do Q1-04); `relatorios/qa-2.md` Q2-14, Q2-15, Q2-16.
 
+## Maquete
+`maquete/b/personalizar.html#sons` e `#mandar`: sino do volume com a curva, a lista de sons com a origem (Do pack, Padrão, Trocado), o aviso da ponte, e o Mandar com o resumo; `maquete/a/definir.html#programas` para o Lançador com sugestão.
+
 ## O que quem usa pediu
 - Sons separados por pack; ela quer ver a lista dos sons do sistema (quando toca cada um) e trocar
   cada um pelo do pack. O gerador do sino do volume tem que funcionar.
