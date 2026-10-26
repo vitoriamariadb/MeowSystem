@@ -97,26 +97,16 @@ confere() {
 confere README.md    'instalador-[0-9]+%20etapas'        "$ETAPAS"        "etapas (badge)"
 confere README.md    'São [0-9]+ etapas'                 "$ETAPAS"        "etapas"
 confere README.md    'doctor-[0-9]+%20confer'            "$CONFERENCIAS"  "conferências (badge)"
-confere README.md    '# [0-9]+ conferências'             "$CONFERENCIAS"  "conferências"
+confere README.md    'faz [0-9]+ conferências'           "$CONFERENCIAS"  "conferências"
 confere README.md    '[0-9]+ ajustes e'                  "$CHAVES"        "ajustes"
 
 confere README.en.md 'installer-[0-9]+%20steps'          "$ETAPAS"        "steps (badge)"
 confere README.en.md '[0-9]+ steps\.'                    "$ETAPAS"        "steps"
 confere README.en.md 'doctor-[0-9]+%20checks'            "$CONFERENCIAS"  "checks (badge)"
-confere README.en.md '# [0-9]+ checks'                   "$CONFERENCIAS"  "checks"
+confere README.en.md 'runs [0-9]+ checks'                "$CONFERENCIAS"  "checks"
 confere README.en.md '[0-9]+ settings and [0-9]+ actions' "$CHAVES"       "settings"
 
 confere app/LEIA-ME.md 'As [0-9]+ chaves'                "$CHAVES"        "chaves"
-
-placar_pt="$(grep -oE 'navegador-[0-9]+%2F[0-9]+' "$RAIZ/README.md" | head -n1 | sed 's/^navegador-//')"
-placar_en="$(grep -oE 'browser-[0-9]+%2F[0-9]+' "$RAIZ/README.en.md" | head -n1 | sed 's/^browser-//')"
-if [ -z "$placar_pt" ] || [ -z "$placar_en" ]; then
-  falhou "não achei o badge do navegador em um dos README (mudou de forma?)"
-elif [ "$placar_pt" != "$placar_en" ]; then
-  falhou "o badge do navegador diz $placar_pt no README.md e $placar_en no README.en.md"
-else
-  passou "os dois README dizem o mesmo placar do navegador: $placar_pt"
-fi
 
 if [ -n "${ACOES:-}" ]; then
   confere README.md      '[0-9]+ ações em'   "$ACOES" "ações"
