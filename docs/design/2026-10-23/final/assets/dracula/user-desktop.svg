@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Área de trabalho">
-  <title>user-desktop — pasta Área de trabalho do tema Dracula</title>
-  <path fill="#383a4c" d="M 0.91,7.27 A 3.22,3.22 0 0 1 4.13,4.05 L 14.59,4.05 Q 15.55,4.05 16.2,4.69 L 19.84,8.29 Q 20.49,8.93 21.45,8.93 L 43.71,8.93 A 3.22,3.22 0 0 1 46.93,12.15 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z"/>
-  <path fill="#44475a" d="M 0.91,16.44 A 4.08,4.08 0 0 1 4.99,12.36 L 42.85,12.36 A 4.08,4.08 0 0 1 46.93,16.44 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z"/>
-  <rect fill="#F8F8F2" x="15.5" y="22" width="17" height="11.5" rx="1"/>
-  <rect fill="#8BE9FD" x="17" y="23.5" width="14" height="8.5" rx="0.4"/>
-  <path fill="#F8F8F2" d="M 22,33.5 L 26,33.5 L 26.8,36.2 L 21.2,36.2 Z"/>
-  <rect fill="#F8F8F2" x="19" y="36.2" width="10" height="1.4" rx="0.5"/>
-</svg>
