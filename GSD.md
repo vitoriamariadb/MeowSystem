@@ -18,6 +18,7 @@ Todo agente lê este arquivo antes de tocar no repositório. Cada regra abaixo t
 - Pack é dado, nunca código. Extensão de pack importado só se instala por gesto.
 - A arte mora no pack. O mapa de ícone é do pack. Chave `ICONES_BASE` não volta.
 - Pulado não é verde. Prova rodada para toda afirmação.
+- Zero comentário; o porquê mora no nome, no teste e no commit; informação errada se sobrescreve no lugar, nunca se acrescenta.
 
 ## 3. As decisões
 

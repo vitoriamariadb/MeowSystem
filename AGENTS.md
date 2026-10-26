@@ -55,10 +55,10 @@ Pulado não é verde. Toda afirmação precisa de prova rodada.
 
 ## Comentários
 
-Comentário diz o porquê técnico em até três linhas. História, datas e ids de sprint moram no git
-e em `docs/sprints/`. O `scripts/higiene.sh` roda no commit: tira comentário de registro e
-corrige número que os testes sabem. `scripts/comentarios.py impressao` prova que mexer em
-comentário não mexeu em código.
+Zero comentário; o porquê mora no nome, no teste e no commit; informação errada se sobrescreve
+no lugar, nunca se acrescenta. Ficam só shebang, licença, diretiva (`shellcheck`, `noqa`) e a
+ajuda que o programa imprime de si. `scripts/comentarios.py zerar` corta sem mudar a `impressao`
+do código; o `scripts/higiene.sh` zera as linhas novas do commit e corrige número que os testes sabem.
 
 ## Onde não ler por padrão
 
