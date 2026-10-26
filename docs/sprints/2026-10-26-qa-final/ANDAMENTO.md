@@ -2,7 +2,10 @@
 
 ## Agora
 - QA e os 5 repos de applet: entregues (ver «Entregue»).
-- B0 etapa 1 entregue (8 commits, 281 arquivos sem comentário, impressão igual). Em voo: B0 etapa 2 (arquivar, `docs/DECISOES.md`, gancho do README). Ganchos se instalam DEPOIS do merge (o `.git` é comum às worktrees).
+- B0 etapas 1 e 2 entregues (comentários zerados; `arquivo` com o velho; `docs/DECISOES.md`; README
+  regerado por `scripts/readme.sh`). Em voo: B0 etapa 3 (confere e corrige). Depois do merge:
+  `bash scripts/ganchos.sh instalar` (pre-commit no diretório comum; pre-push e post-merge por
+  `git config ganchos.*`, que os ganchos globais já leem desde 26/10).
 - Em voo: maquete do painel (`maquete/BRIEF.md`), Opus A em `../MeowSystem-maquete-a` (`maquete/a`:
   moldura, Tema, Definir, Manter) e Opus B em `../MeowSystem-maquete-b` (`maquete/b`: Personalizar,
   Extensões). APROVADA por quem usa (26/10) e no dev; `00-leva.md` e cada sprint apontam para ela.
