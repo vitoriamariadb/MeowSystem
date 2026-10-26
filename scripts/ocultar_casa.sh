@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# ocultar_casa.sh — esconde do lançador o que a lista do `ocultar` nomeia e não
-# mora em /usr/share/applications: app de flatpak, de /usr/local e do home.
-#
-#   ./ocultar_casa.sh --conferir   não escreve; 1 se algo divergir
-#   ./ocultar_casa.sh              põe as sombras e as marcas, tira as que sobram
-#   ./ocultar_casa.sh --reverter   tira todas
-#
-# O lançador deduplica pelo desktop-id ANTES de filtrar o NoDisplay, e o home vem
-# primeiro (`desktop_entries_with_precedence` do libcosmic): uma sombra de mesmo
-# basename em ~/.local/share/applications com NoDisplay=true some com o original.
-# O que está em /usr/share é do `ocultar_apps.sh`, e aqui não se toca.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,10 +9,7 @@ SISTEMA="${MEOW_APLICATIVOS_SISTEMA:-/usr/share/applications}"
 DADOS="${XDG_DATA_HOME:-$HOME/.local/share}"
 APPS="$DADOS/applications"
 MARCA="X-MeowSystem=ocultar"
-# O .desktop que já é do home (não tem outro embaixo) é marcado no lugar.
 MARCA_LUGAR="X-MeowSystem=ocultar-no-lugar"
-# Só o que a dock precisa para casar a janela e o que o tipo de arquivo precisa
-# para abrir: a sombra esconde, não substitui o aplicativo.
 CHAVES=(Type Name Exec TryExec Icon StartupWMClass MimeType)
 
 MODO="aplicar"
@@ -35,8 +21,6 @@ case "${1:-}" in
 esac
 meow_seco && [ "$MODO" = "aplicar" ] && MODO="conferir"
 
-# Os diretórios abaixo do home, na ordem do XDG; os exports do flatpak entram
-# mesmo fora do XDG_DATA_DIRS, que o timer do doctor herda mais pobre que a sessão.
 ABAIXO=()
 _abaixo() {
   local d dirs="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" ja
@@ -49,7 +33,7 @@ _abaixo() {
 }
 _abaixo
 
-_original() { # $1 id -> o .desktop que venceria sem o home
+_original() {
   local d
   for d in "${ABAIXO[@]}"; do
     [ -f "$d/$1.desktop" ] && { printf '%s' "$d/$1.desktop"; return 0; }
@@ -57,11 +41,11 @@ _original() { # $1 id -> o .desktop que venceria sem o home
   return 1
 }
 
-_no_grupo() { # $1 arquivo, $2 linha exata: está no [Desktop Entry]?
+_no_grupo() {
   L="$2" awk 'BEGIN { l = ENVIRON["L"] } /^\[/ { g = ($0 == "[Desktop Entry]") } g && $0 == l { achou = 1 } END { exit !achou }' "$1"
 }
 
-_sombra() { # $1 original -> o texto da sombra
+_sombra() {
   local c
   printf '[Desktop Entry]\n'
   for c in "${CHAVES[@]}"; do
@@ -71,7 +55,7 @@ _sombra() { # $1 original -> o texto da sombra
   printf 'NoDisplay=true\n%s\nX-MeowSystem-Origem=%s' "$MARCA" "$1"
 }
 
-_marcar_no_lugar() { # $1 arquivo; escrita direta: o arquivo não é nosso, não vai ao manifesto
+_marcar_no_lugar() {
   local tmp
   meow_destino_permitido "$1" || return "$MEOW_ERRO"
   meow_guardar_antes "$1"
@@ -82,7 +66,7 @@ _marcar_no_lugar() { # $1 arquivo; escrita direta: o arquivo não é nosso, não
   mv -f "$tmp" "$1" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
 }
 
-_desmarcar() { # $1 arquivo marcado no lugar: tira as duas linhas que pusemos
+_desmarcar() {
   local tmp
   meow_guardar_antes "$1"
   tmp="$(mktemp "$1.meow.XXXXXX")" || return "$MEOW_ERRO"
@@ -92,8 +76,6 @@ _desmarcar() { # $1 arquivo marcado no lugar: tira as duas linhas que pusemos
   mv -f "$tmp" "$1" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
 }
 
-# A lista que vale: a do `ocultar_apps.sh`, só com LANCADOR_SISTEMA="sim" (é a
-# chave que liga o `ocultar`). Desligada, a lista é vazia e o que é nosso sai.
 declare -A QUER=()
 if [ "$MODO" != "reverter" ] && [ "${LANCADOR_SISTEMA:-nao}" = "sim" ]; then
   while IFS= read -r id; do
@@ -104,7 +86,7 @@ fi
 mudou=0; sombras=0; marcados=0; ausentes=0
 
 PENDENTES=()
-_vai() { # $1 o que faria: no conferir e no ensaio só anota, e a ação não roda
+_vai() {
   mudou=1
   { [ "$MODO" = "conferir" ] || meow_seco; } && { PENDENTES+=("$1"); return 1; }
   return 0
@@ -134,7 +116,6 @@ for id in "${!QUER[@]}"; do
   fi
 done
 
-# O que é nosso e saiu da lista volta ao lançador.
 devolvidos=0
 if [ -d "$APPS" ]; then
   for arq in "$APPS"/*.desktop; do

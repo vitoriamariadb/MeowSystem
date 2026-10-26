@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-# derivados.sh — alterou o desenho, o resto se atualiza sozinho (P88, decisão 15).
-#
-# As fontes são as três pastas e os mapas de `icones/` (e o `logo.svg`, o ícone
-# do lançador) do pack no ar, dos que ele herda e do pack-base — quem as lista é
-# o `pack.py derivados`.
-#
-# A tabela `~/.local/state/meowsystem/derivados.tsv` guarda o sha256 de cada
-# fonte na passada anterior.
-#
-# A ESPERA (debounce): uma rajada de salvamentos vira uma passada só.
-#
-# CÓDIGOS: 0 em dia · 1 refez algo (ou, no --conferir, haveria o que refazer) ·
-# 2 erro · 3 sem o que vigiar.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -31,8 +18,6 @@ _pack_ref="$(meow_pack_dir)"
 _fontes() { python3 "$RAIZ/scripts/pack.py" derivados "$_pack_ref" fontes 2>/dev/null; }
 _pastas() { python3 "$RAIZ/scripts/pack.py" derivados "$_pack_ref" pastas 2>/dev/null; }
 
-# A foto das pastas: nome, tamanho e hora de cada arquivo. Barata, e só serve
-# para saber se alguém ainda está salvando.
 _foto() {
   local p
   while IFS= read -r p; do
@@ -53,7 +38,6 @@ _quieto() {
   done
 }
 
-# O passo de quem deriva de cada fonte, pelo caminho dela dentro do pack.
 _passos_de() {
   case "$1" in
     */logo.svg)                                printf 'completar\n' ;;
@@ -65,19 +49,13 @@ _passos_de() {
     */icones/bandeja.map)                      printf 'bandeja\n' ;;
     */icones/pastas.map)                       printf 'pastas\n' ;;
     */icones/mimetypes.map)                    printf 'mimetypes\n' ;;
-    # P96: as três pastas são planas, e um arquivo de `apps/` pode ser desenho de app, resgate,
-    # traço, convertido ou autoral; um de `sistema/`, molde de tipo de arquivo, pasta ou glifo.
-    # Refazer os passos da pasta inteira custa uma passada; errar o passo deixa o tema velho.
     */icones/sistema/leitura-*)                : ;;
     */icones/apps/*)                           printf 'dracula\nresgatados\narcticons\ncompletar\n' ;;
     */icones/sistema/*)                        printf 'sistema\nbandeja\npastas\nmimetypes\n' ;;
-    # Uma linha do `apps.map` pode apontar para a biblioteca, e a escolha do
-    # painel para qualquer desenho de `apps/` ou dela.
     */icones/biblioteca/*)                     printf 'dracula\narcticons\n' ;;
   esac
 }
 
-# Os mesmos passos, com o mesmo ambiente, que as etapas do `install.sh`.
 _rodar() {
   local tema="${NOME_TEMA_ICONES:-MeowSystem-Icons}"
   case "$1" in
@@ -101,7 +79,6 @@ _rodar() {
   esac
 }
 
-# A cache do tema, só quando há ícone mais novo que ela (a guarda dos passos).
 _cache() {
   local cache="$TEMA_DIR/icon-theme.cache"
   [ -f "$cache" ] || return 0
@@ -111,7 +88,7 @@ _cache() {
   gtk-update-icon-cache -q -f "$TEMA_DIR" 2>/dev/null
 }
 
-_comparar() {   # imprime "mudou<TAB>caminho" e "saiu<TAB>caminho<TAB>sha"
+_comparar() {
   local agora="$1"
   if [ ! -f "$TABELA" ]; then
     awk -F'\t' '{ print "mudou\t" $1 }' "$agora"
@@ -131,7 +108,7 @@ _registrar() {
   mkdir -p "$ESTADO" && cp "$agora" "$TABELA.novo" && mv -f "$TABELA.novo" "$TABELA"
 }
 
-_passada() {   # $1 = conferir | aplicar | registrar
+_passada() {
   local modo="$1" tmp agora diferencas mudou=0 rc=0 passo c tipo sha
   tmp="$(mktemp -d)" || { meow_erro "não consegui um temporário"; return "$MEOW_ERRO"; }
   agora="$tmp/agora.tsv"
@@ -167,8 +144,6 @@ _passada() {   # $1 = conferir | aplicar | registrar
     rm -rf "$tmp"; return "$MEOW_DIVERGENTE"
   fi
 
-  # As cópias das fontes que saíram, provadas pelo sha256 que elas tinham. Uma
-  # que ainda é o conteúdo de outra fonte fica: o passo dela a quer lá.
   local saiu=() vivos
   vivos="$(cut -f2 "$agora")"
   while IFS=$'\t' read -r tipo c sha; do
@@ -181,7 +156,6 @@ _passada() {   # $1 = conferir | aplicar | registrar
     done < <(python3 "$RAIZ/scripts/pack.py" derivados "$_pack_ref" copias "$TEMA_DIR" "${saiu[@]}" 2>/dev/null)
   fi
 
-  # Cada passo uma vez, na ordem do instalador; a tela relê uma vez, no fim.
   local -A pedir=()
   while IFS=$'\t' read -r tipo c _sha; do
     while IFS= read -r passo; do [ -n "$passo" ] && pedir["$passo"]=1; done < <(_passos_de "$c")
@@ -211,7 +185,6 @@ _passada() {   # $1 = conferir | aplicar | registrar
 }
 
 case "${1:---aplicar}" in
-  # No ensaio do doctor (`MEOW_SECO`), aplicar é conferir: nada se escreve.
   --aplicar)   if meow_seco; then _passada conferir; else _quieto; _passada aplicar; fi ;;
   --conferir)  _passada conferir ;;
   --registrar) _passada registrar ;;

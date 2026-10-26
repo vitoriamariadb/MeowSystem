@@ -1,38 +1,4 @@
 #!/usr/bin/env python3
-"""Gera os temas .ron do COSMIC a partir da paleta canônica.
-
-POR QUE ESTE SCRIPT EXISTE
-    Nenhum hex pode viver dentro de script (regra 1 do contrato: estado desejado é
-    declarado, não imperativo). Toda cor vem da PALETA DO PACK ATIVO — quem a
-    resolve é `pack.paleta_do_pack_ativo()`, e não um caminho escrito aqui —, e o
-    destino de cada cor vem de `assets/paleta/cosmic-map.json`. Trocar de flavor é
-    trocar uma linha do meow.conf, nunca editar um tema à mão.
-
-O QUE ELE NÃO DECIDE
-    A estrutura do tema — raios, gaps, active_hint 4, frosted e o alpha_map de 14
-    chaves — não é calculada aqui: sai inteira de `estrutura_preservada` no
-    cosmic-map.json. Só a paleta é gerada.
-
-    E ESSA ESTRUTURA NÃO É MAIS "A FOTO DE 04/08 QUE NINGUÉM TOCA"
-    Ela era descrita aqui como "raio 8, gaps (0,5), frosted VeryLow2", herdada do
-    "Estilo escuro.ron". Em 10/08/2026 esses três números foram revistos com ela:
-    raios 0/4/8/16/32/160 (o padrão da libcosmic, que é o que devolve as PILULAS
-    — com tudo em 8 não existe pilula em canto nenhum), gaps (12, 6) e frosted
-    VeryHigh2. Este último não foi escolha nossa: a máquina JÁ estava em
-    VeryHigh2 e o JSON dizia VeryLow2, então cada regeração do tema desfazia
-    calado o slider dela. Alinhar a fonte ao vivo é o que impede a regressão.
-    Quem fotografa o vivo de volta é `scripts/capturar_tema.sh`.
-
-O ALPHA_MAP É COPIADO, NUNCA CALCULADO
-    São 14 floats que o COSMIC exportou com a precisão dele (0.91999996 e não 0.92).
-    Recalcular daria números "mais bonitos" e um diff eterno contra o que a GUI
-    grava de volta. Copiar é o certo.
-
-LATTE É CLARO, E ISSO MUDA UMA COISA SÓ
-    O .ron declara `palette: Dark((...))` ou `Light((...))`. O resto do arquivo é
-    idêntico — o COSMIC deriva o contraste sozinho a partir das cores. Errar esse
-    construtor gera um tema que "não pega" sem dizer por quê.
-"""
 from __future__ import annotations
 
 import argparse
@@ -42,33 +8,15 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-# `pack.py` é vizinho de arquivo, e `scripts/` é o `sys.path[0]` de quem roda
-# este script. Ver o bloco `NOME_DA_PALETA`, mais abaixo, sobre o import direto.
-import pack  # noqa: E402  — depois do RAIZ de propósito, para ler junto
+import pack  # noqa: E402
 
-# Ele era `catppuccin.json` cravado aqui, e a docstring acima já prometia que
-# "trocar de flavor é trocar uma linha do meow.conf".
 PALETA = Path(pack.paleta_do_pack_ativo())
 MAPA = RAIZ / "assets" / "paleta" / "cosmic-map.json"
 
-# Os sete `assets/temas/meowsystem-*.ron` eram VERSIONADOS, e eles são saída
-# deste script: paleta do pack + `cosmic-map.json` entram, `.ron` sai.
-#
-# O `--conferir` do `meow doctor` passa a comparar a receita com o produto NA
-# MÁQUINA, que é a pergunta que ele sempre quis fazer.
-#
-# `MEOW_ESTADO` vem do ambiente com o MESMO padrão do `lib/comum.sh:808`, porque
-# este script roda sozinho na linha de comando e não carrega o shell.
 ESTADO = Path(os.environ.get("MEOW_ESTADO")
               or Path.home() / ".local" / "state" / "meowsystem")
 DESTINO = ESTADO / "temas"
 
-# Era o que estava gravado no disco, em `meowsystem-dracula-mauve.ron:8` — o
-# pack previu o defeito, declarou o conserto, e o conserto não tinha leitor.
-# Este é o leitor.
-#
-# QUAL PACK: o que a ponte shell->Python exportou em `MEOW_PACK_DIR` (ver
-# `meow_ponte_python`, em lib/comum.sh).
 PACK_DIR = os.environ.get("MEOW_PACK_DIR") or ""
 
 
@@ -80,9 +28,6 @@ def _nome_da_paleta():
 
 NOME_DA_PALETA = _nome_da_paleta()
 
-# A ordem em que os slots aparecem no arquivo exportado pelo COSMIC. O parser RON
-# não se importa com ordem, mas manter a do export deixa o `diff` legível contra o
-# que a GUI grava de volta — e é assim que se descobre o que ela mudou.
 ORDEM_PALETTE = [
     "name", "bright_red", "bright_green", "bright_orange", "gray_1", "gray_2",
     "neutral_0", "neutral_1", "neutral_2", "neutral_3", "neutral_4", "neutral_5",
@@ -93,7 +38,6 @@ ORDEM_PALETTE = [
     "ext_pink", "ext_indigo",
 ]
 
-# Copiado do export da Vitória. Ver docstring: não recalcular.
 ALPHA_MAP = [
     ("extremely_low", "0.91999996"), ("extremely_low_2", "0.89691997"),
     ("very_low", "0.87385"), ("very_low_2", "0.85076"),
@@ -119,7 +63,6 @@ def carregar() -> tuple[dict, dict]:
 
 
 def cor(paleta: dict, flavor: str, nome: str, alpha: str = "FF") -> str:
-    """Resolve um nome de cor Catppuccin para #RRGGBBAA."""
     try:
         return paleta["flavors"][flavor][nome] + alpha
     except KeyError:
@@ -150,8 +93,6 @@ def gerar(flavor: str, accent: str, paleta: dict, mapa: dict) -> str:
     for slot in ORDEM_PALETTE:
         nome = mapa["palette"][slot]
         if slot == "name":
-            # O `cosmic-map.json` já declarava `"name": "catppuccin-<flavor>"`
-            # desde sempre, e este script montava a string na mão, ignorando-o.
             modelo = NOME_DA_PALETA or mapa["palette"].get("name", "catppuccin-<flavor>")
             linhas.append(f'        name: "{modelo.replace("<flavor>", flavor)}",')
         else:
@@ -204,12 +145,6 @@ def gerar(flavor: str, accent: str, paleta: dict, mapa: dict) -> str:
 
 
 def _combos_do_conf(paleta: dict) -> list[str]:
-    """O conjunto padrão de temas, lido do meow.conf.
-
-    Lê só as duas chaves que interessam, com um parser bobo de `CHAVE="valor"` —
-    não vale a pena invocar um shell para isso, e o arquivo é declarativo.
-    Quando o conf não existe (máquina nova, CI), cai no par de sempre.
-    """
     conf = Path(os.environ.get("MEOW_CONF") or (Path.home() / ".config/meow/meow.conf"))
     flavor = accent = None
     if conf.is_file():
@@ -224,12 +159,9 @@ def _combos_do_conf(paleta: dict) -> list[str]:
                         accent = valor or None
     if not flavor or not accent:
         return ["mocha-mauve", "mocha-pink", "latte-mauve"]
-    # Um FLAVOR que o pack não tem vira o padrão do pack, como no `meow_flavor`.
     if flavor not in paleta["flavors"]:
         flavor = (pack.campo(str(PALETA.parent), "paleta.flavor_padrao")
                   or next(iter(paleta["flavors"])))
-    # O claro acompanha: o COSMIC alterna entre um tema escuro e um claro, e
-    # gerar só o escuro deixa o modo claro com o tema de antes.
     claros = paleta.get("claros") or []
     par_claro = [f"{c}-{accent}" for c in claros if c != flavor]
     return [f"{flavor}-{accent}"] + par_claro
@@ -245,19 +177,10 @@ def main() -> int:
     args = p.parse_args()
 
     paleta, mapa = carregar()
-    # O CONJUNTO PADRÃO VEM DO meow.conf — 2026-09-11
-    #     A lista era fixa aqui, e por isso `FLAVOR="dracula"` no meow.conf
-    #     gerava mocha e latte: o script nunca leu a chave que a docstring diz
-    #     que basta trocar. Agora, sem argumento, ele gera o combo do conf
-    #     (FLAVOR-ACCENT) mais o par claro, que é o que o COSMIC pede para
-    #     alternar entre tema claro e escuro. Passar combos na linha de comando
-    #     continua vencendo, como antes.
     combos = args.combos or _combos_do_conf(paleta)
 
     if not args.conferir:
         args.saida.mkdir(parents=True, exist_ok=True)
-    # Enquanto os `.ron` eram versionados, "ausente" só acontecia se alguém os
-    # apagasse: os dois casos podiam sair pelo mesmo rc=1.
     divergentes = []
     ausentes = []
     for combo in combos:
@@ -277,8 +200,6 @@ def main() -> int:
             print(f"  {estado:11s} {destino.name}")
             continue
 
-        # Escrita atômica no MESMO diretório de destino: /mnt/Apate e $HOME são
-        # sistemas de arquivos diferentes, e `mv` entre eles não é atômico.
         tmp = destino.with_suffix(".ron.tmp")
         tmp.write_text(conteudo)
         tmp.replace(destino)
@@ -288,9 +209,6 @@ def main() -> int:
         print(f"\n{len(divergentes)} arquivo(s) fora do esperado; a próxima passada que aplica os regera.")
         return 1
     if args.conferir and ausentes:
-        # 3 é o `MEOW_SEM_DEPENDENCIA` do projeto: "não dá para conferir, falta
-        # o produto". O `install.sh:821` faz `|| rc=1` e regenera do mesmo jeito;
-        # quem lê os três códigos separados é o `chk_gerar` do bin/meow.
         print(f"\n{len(ausentes)} arquivo(s) ainda não gerados nesta máquina.")
         return 3
     return 0

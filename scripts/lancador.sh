@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
-# lancador.sh — o lançador do home sem cartão de app removido e com o banco de
-# tipos de arquivo em dia.
-#
-#   ./lancador.sh --conferir   não escreve; 1 se algo divergir
-#   ./lancador.sh              leva o órfão para a quarentena e refaz o mimeinfo.cache
-#   ./lancador.sh --reverter   devolve o que a quarentena guardou
-#
-# A quarentena mora fora de qualquer `applications/`: o XDG varre subdiretório, e
-# um órfão guardado lá dentro continuaria registrado como handler de tipo.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,8 +19,6 @@ case "${1:-}" in
 esac
 meow_seco && [ "$MODO" = "aplicar" ] && MODO="conferir"
 
-# Velha quando um .desktop do home é mais novo que ela. Pelos arquivos, e não
-# pelo diretório: o próprio update-desktop-database renomeia dentro dele.
 _cache_velha() {
   [ -d "$APPS" ] || return 1
   if [ ! -f "$CACHE" ]; then
@@ -83,7 +72,6 @@ orfaos="$(python3 "$RAIZ/scripts/lancador_orfaos.py")" || {
 
 n="$(printf '%s' "$orfaos" | grep -c .)"
 velha=0
-# Sem o update-desktop-database ninguém refaz a cache: velha não é divergência.
 meow_tem update-desktop-database && _cache_velha && velha=1
 
 if [ "$n" = 0 ] && [ "$velha" = 0 ]; then

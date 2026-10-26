@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# icones_absolutos.sh — troca o `Icon=` de CAMINHO ABSOLUTO por um NOME, para que
-#                       o tema de ícones passe a ser consultado.
-#
-#   ./icones_absolutos.sh              aplica (o mesmo que --aplicar)
-#   ./icones_absolutos.sh --conferir   não escreve; devolve 1 se algo divergir
-#   ./icones_absolutos.sh --sem-sudo   aplica só o que não precisa de root
-#
-# Esse desenho FOI RECUSADO, e o motivo é o próprio `ocultar_apps.sh`:
-#
-# O arquivo de `/usr/share` é território do apt.
-#
-# Se o `Icon=` já for um nome, o script não toca.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,9 +7,6 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
 
-# Os diretórios que o lançador varre, na ordem dele. Todos entram: o mesmo id pode
-# existir em mais de um, e cada cópia visível é um item na tela. Mesma lista do
-# `nomes_apps.sh`, pelo mesmo motivo.
 DIRS=(
   "$HOME/.local/share/applications"
   "$HOME/.local/share/flatpak/exports/share/applications"
@@ -30,26 +15,10 @@ DIRS=(
   "/usr/local/share/applications"
 )
 
-# `id-do-desktop : nome-de-icone`, com o porquê ao lado.
-#
-#   input-remapper-gtk  Icon=/usr/share/input-remapper/input-remapper.svg, o
-#                       único caminho absoluto dos 50 visíveis. O nome novo é
-#                       `input-remapper`, que o `packs/meowsystem/icones/apps-arcticons.map` faz
-#                       existir com o glifo `keymapper` na cor `sky` — gamepad com
-#                       D-pad na frente de um teclado, que é a composição do
-#                       próprio ícone do upstream.
 TROCAR=(
   "input-remapper-gtk:input-remapper"
 )
 
-# --- o nome novo resolve no tema? -------------------------------------------
-# Sem `gi` não há como perguntar ao resolvedor real, e aí a resposta honesta é
-# "não sei": o script então CONFIA na lista e segue, em vez de recusar por não
-# conseguir medir.
-#
-# `Gtk.IconTheme.lookup_icon` NUNCA devolve vazio: para um nome que não existe
-# ele devolve um `IconPaintable` do `image-missing` embutido, e o `get_file()`
-# dele é um `GResourceFile` — objeto verdadeiro, não `None`.
 PY_SISTEMA=""
 for c in /usr/bin/python3.12 /usr/bin/python3; do
   if [ -x "$c" ] && "$c" -c 'import gi' 2>/dev/null; then PY_SISTEMA="$c"; break; fi
@@ -57,7 +26,7 @@ done
 
 _resolve() {
   local nome="$1"
-  [ -n "$PY_SISTEMA" ] || return 0     # não sei medir: não reprovo
+  [ -n "$PY_SISTEMA" ] || return 0
   "$PY_SISTEMA" - "$nome" "$TEMA" <<'PY' 2>/dev/null
 import sys, gi
 gi.require_version("Gtk", "4.0")
@@ -71,7 +40,6 @@ sys.exit(0 if t.has_icon(sys.argv[1]) else 1)
 PY
 }
 
-# --- o Icon= da seção [Desktop Entry], como ele está hoje --------------------
 _icone_atual() {
   awk '
     /^\[/ { sec = $0 }
@@ -79,7 +47,6 @@ _icone_atual() {
   ' "$1"
 }
 
-# --- o arquivo com o Icon= trocado ------------------------------------------
 _reescrito() {
   local arq="$1" novo="$2"
   awk -v novo="$novo" '
@@ -127,16 +94,11 @@ for linha in "${TROCAR[@]}"; do
 
     atual="$(_icone_atual "$arq")"
 
-    # Já é um nome? Então não é caso nosso — nem quando o nome é outro. Isto é a
-    # trava, e ela também é o que faz o script idempotente: depois de aplicar, o
-    # `Icon=` deixa de começar com `/` e a linha para de casar para sempre.
     case "$atual" in
       /*) ;;
       *)  continue ;;
     esac
 
-    # O nome novo tem de resolver ANTES de a gente jogar fora o caminho que
-    # funciona. Um `Icon=` que não resolve dá ícone genérico — pior que o velho.
     if ! _resolve "$nome"; then
       meow_aviso "'$nome' ainda não resolve no tema $TEMA — '$id' fica com o caminho absoluto"
       meow_info "  o traço dele entra antes, pela linha de packs/meowsystem/icones/apps-arcticons.map; a próxima passada troca"
@@ -169,9 +131,6 @@ for linha in "${TROCAR[@]}"; do
           pendente_sudo=$((pendente_sudo + 1))
           continue
         fi
-        # A CÓPIA VEM ANTES DA ESCRITA, SEMPRE. O arquivo é do apt, e trocar o
-        # `Icon=` sem guardar o original era uma via de mão única — `meow
-        # desfazer --lancador` é a contrapartida de mexer em /usr/share.
         if ! meow_backup_sistema "$arq"; then
           meow_aviso "não consegui guardar cópia de $arq — não vou reescrevê-lo"
           falhou=1; continue
@@ -195,7 +154,6 @@ if [ "$falhou" = 1 ]; then
   exit "$MEOW_ERRO"
 fi
 
-# Sem a ponte é pendência como as outras: nenhuma saída manda rodar sudo.
 if [ "$pendente_sudo" -gt 0 ]; then
   meow_pula "$pendente_sudo Icon= em /usr/share espera root: entra no próximo «Instalar tudo»"
 fi
@@ -210,8 +168,6 @@ if [ "$CONFERIR" = 1 ]; then
 fi
 
 if [ "$mudou" = 1 ]; then
-  # O lançador lê um cache de MIME, não a lista de aplicativos: falhar aqui não é
-  # erro, o arquivo já está no lugar certo.
   if meow_tem update-desktop-database; then
     for dir in "${!DIRS_TOCADOS[@]}"; do
       if [ -w "$dir" ]; then

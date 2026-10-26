@@ -1,38 +1,15 @@
 #!/usr/bin/env python3
-# folha_marcas.py — a folha de APROVAÇÃO da cor por MARCA.
-#
-# O traço continua traço, `fill:none` continua `fill:none`, e a paleta continua
-# sendo a DO PACK ATIVO — nenhum hex de fora entra no tema. O que muda é QUAL
-# cor da paleta cada aplicativo veste.
-#
-# Porque isto DERRUBA uma escolha que foi dela.
-#
-# POR QUE ESTA FOLHA É SEPARADA DA `folha_proposta.py` Aquela perguntou "estes
-# 35 GLIFOS servem?" e já foi respondida — os glifos estão no ar.
-#
-# O quadradinho de "marca" ao lado é a cor REAL do logo — cor de fora, posta ali
-# só para conferir a proximidade a olho.
-#
-#   uso: scripts/folha_marcas.py [saida.html]
-#        (padrão: ~/Documentos/meow-icones-marcas.html)
-
-# Medido com `python3 scripts/<este arquivo>`: rc=1 antes, rc=0 depois. A
-# referência de caminho certo é `scripts/folha_conversor.py:82-83`.
 
 import html
 import json
 import os
 import sys
 
-# A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
 import pack
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOME = os.path.expanduser('~')
 
-# AS CORES DE MARCA — medidas, e conferidas contra o hex oficial
-#
-# Estes hexes são de FORA e existem só para comparação visual nesta folha.
 MARCAS = {
     'meow-whatsapp':              ('#25D366', '#31C03E', 1.00, 'ZapZap (flatpak)'),
     'steam':                      ('#66C0F4', '#136295', 0.93, 'hicolor do pacote'),
@@ -51,7 +28,6 @@ MARCAS = {
     'google-chrome':              ('#4285F4', '#2FA34F', 0.27, 'hicolor do pacote'),
 }
 
-# (app · cor de hoje · cor proposta · justificativa de UMA linha)
 MUDAM = [
     ('meow-whatsapp', 'sky', 'green',
      'O WhatsApp é verde. O ciano de hoje não existe em lugar nenhum da marca — '
@@ -87,7 +63,6 @@ MUDAM = [
      'de 25% que eu mesmo pus. Deixe de fora sem dó se não convencer.'),
 ]
 
-# (app · cor · motivo de NÃO mudar) — a lista que prova que a mudança é cirúrgica
 FICAM = [
     ('google-chrome', 'blue', 'multicolor',
      'O azul oficial do Chrome (#4285F4) está a <b>0°</b> do blue do Catppuccin — '
@@ -112,8 +87,6 @@ FICAM = [
     ('input-remapper', 'sky', 'escolha sua', 'Cor que você escolheu à mão em 08/08/2026.'),
 ]
 
-# Os que não têm marca nenhuma e por isso mantêm a cor de CATEGORIA — contados,
-# não listados um a um: são o argumento de que a categoria continua servindo.
 SEM_MARCA = [
     ('os nove <b>com.system76.Cosmic*</b> e o Tweaks', 'lavender',
      'lavender é a cor de SISTEMA. A System76 não escolheu lavender — nós escolhemos.'),
@@ -133,7 +106,6 @@ def paleta(flavor='mocha'):
 
 
 def mapas():
-    """nome -> caminho da arte, lido dos mesmos dois mapas que o instalador lê."""
     arte = {}
     for linha in open(os.path.join(RAIZ, 'packs', 'meowsystem', 'icones', 'apps-arcticons.map'), encoding='utf-8'):
         linha = linha.strip()
@@ -151,9 +123,6 @@ def mapas():
 
 
 def vestido(caminho, hexa):
-    """O MESMO que `_vestido()` do icones_apps_arcticons.sh faz: stroke-width e
-    o literal `currentColor` trocado pelo hex. Assim a folha mostra o arquivo
-    que iria para o tema, e não um desenho parecido."""
     if not os.path.exists(caminho):
         return None
     svg = open(caminho, encoding='utf-8').read()

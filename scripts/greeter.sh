@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# greeter.sh — a TELA DE LOGIN também é dela.
-#
-# A tentação é escrever `CosmicTk/v1/icon_theme` com "MeowSystem-Icons" para
-# fechar o conjunto. Não funciona, e falha do pior jeito: nosso tema mora em
-# `~/.local/share/icons`, dentro de uma home com modo `drwx------`.
-#
-# As `.Builder` ficam de fora: são insumo da GUI de temas, que o greeter não
-# tem.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,8 +9,6 @@ GREETER_HOME="${GREETER_HOME:-/var/lib/cosmic-greeter}"
 DESTINO="$GREETER_HOME/.config/cosmic"
 DONO="cosmic-greeter"
 
-# As três árvores que o greeter de fato lê. Ordem sem importância: nenhuma
-# depende da outra.
 ARVORES=(
   com.system76.CosmicTheme.Dark
   com.system76.CosmicTheme.Light
@@ -26,26 +16,16 @@ ARVORES=(
 )
 
 alvo_tema() {
-  # Mesmo nome de captura que o resto do projeto usa: <flavor>-<accent>.
-  # Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-  # Era `${FLAVOR:-mocha}`, o padrão de um pack só.
   local flavor accent="${ACCENT:-mauve}"
   flavor="$(meow_flavor)"
   printf '%s-%s' "$flavor" "$accent"
 }
 
 ALVO="$(alvo_tema)"
-# A captura mora dentro do pack dono, e este script roda pelo hook e pelo timer
-# — sem a ponte do `meow_ponte_python`. O `meow_captura` refaz a ponte sozinho;
-# ver o cabeçalho dele em lib/comum.sh.
 CAPTURA="$(meow_captura "$ALVO")"
 
-# Se o avatar atual não for reconhecidamente nosso, este script NÃO TOCA.
 avatar_nosso() {
   local md5="$1" f
-  # Só o acervo: os `assets/meow-*.svg` foram excluídos e os globs não casariam
-  # nada. O md5 guardado, logo abaixo, é o que ainda reconhece um avatar posto
-  # por uma versão anterior deste script.
   for f in "$RAIZ"/packs/*/mascote/*.svg; do
     [ -f "$f" ] || continue
     [ "$(md5sum < "$f" | cut -d' ' -f1)" = "$md5" ] && return 0
@@ -64,9 +44,6 @@ fase_avatar() {
             | sed -n 's/^o "\(.*\)"$/\1/p')"
   [ -n "$objeto" ] || { meow_pula "AccountsService não respondeu — avatar como está"; return 0; }
 
-  # Poderia ser o mascote que está no ar, mas aí o avatar da tela de login trocaria
-  # junto com a rotação diária, e cada troca é uma escrita no AccountsService
-  # via D-Bus.
   desejado="$(find "$(meow_mascote_dir)/" -maxdepth 1 -name '*.svg' \
                 ! -name '*-symbolic.svg' 2>/dev/null | sort | head -n1)"
   [ -n "$desejado" ] && [ -f "$desejado" ] \
@@ -77,12 +54,10 @@ fase_avatar() {
                  org.freedesktop.Accounts.User IconFile 2>/dev/null \
                | sed -n 's/^s "\(.*\)"$/\1/p')"
 
-  # Sem `sudo` fora da ponte (decisão 11): o arquivo é 0644 e se lê daqui.
   md5_atual=""
   if [ -n "$atual_arq" ]; then
     md5_atual="$(md5sum < "$atual_arq" 2>/dev/null | cut -d' ' -f1)"
   fi
-  # Há avatar e ele não se lê: não dá para saber se é nosso, então não se troca.
   if [ -n "$atual_arq" ] && [ -z "$md5_atual" ] \
      && { [ -e "$atual_arq" ] || [ ! -x "$(dirname "$atual_arq")" ]; }; then
     meow_aviso "não consigo ler o avatar atual da tela de login — avatar pendente"
@@ -104,15 +79,11 @@ fase_avatar() {
     return 1
   fi
 
-  # O daemon roda como root e COPIA o arquivo para /var/lib/AccountsService/
-  # assets/icones/.
   local tmp; tmp="$(mktemp --suffix=.svg)" || return 2
   cat "$desejado" > "$tmp"; chmod 644 "$tmp"
   if busctl call org.freedesktop.Accounts "$objeto" org.freedesktop.Accounts.User \
        SetIconFile s "$tmp" >/dev/null 2>&1; then
     rm -f "$tmp"
-    # `>` trunca antes de escrever, e quem lê no meio (linha 98, a comparação
-    # que evita a chamada ao Accounts) veria md5 vazio e refaria o trabalho.
     meow_escrever "$MEOW_ESTADO/greeter-avatar.md5" "$md5_novo" 644 >/dev/null || true
     meow_ok "avatar da tela de login: mascote $(basename "${desejado%.svg}")"
     return 1
@@ -130,8 +101,6 @@ fase_avatar; [ $? = 1 ] && mudou_avatar=1
   exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 }
 
-# TUDO que olha para dentro do home do greeter passa pela ponte, INCLUSIVE o
-# teste de existência.
 declare -A GREETER_MD5=()
 GREETER_VISTO=0
 if meow_ponte_viva; then
@@ -142,13 +111,11 @@ if meow_ponte_viva; then
       [ -n "${_rel:-}" ] && GREETER_MD5["$_rel"]="$_md5"
     done <<<"$_saida"
   elif [ "$_rc" = 3 ]; then
-    # A ponte respondeu que a pasta não existe: nenhum sudo fora dela para confirmar.
     meow_pula "não há cosmic-greeter nesta máquina ($DESTINO)"
     exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_OK")"
   fi
 fi
 
-# Sem a ponte, a tela de login fica pendente: nenhum `sudo` fora dela (decisão 11).
 if [ "$GREETER_VISTO" = "0" ]; then
   meow_aviso "não consigo olhar $DESTINO sem a ponte — tela de login pendente"
   exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
@@ -159,22 +126,13 @@ id "$DONO" >/dev/null 2>&1 || {
   exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
 }
 
-# --- o que mudaria ----------------------------------------------------------
-# Compara por CONTEÚDO (regra 5): o lado do greeter vem num `greeter-ver` só da
-# ponte, e a comparação é feita por md5 dos dois lados.
 pendentes=()
 for arvore in "${ARVORES[@]}"; do
   [ -d "$CAPTURA/$arvore" ] || continue
-  # A ÁRVORE TEM DE MORAR NA CAPTURA — P78, 09/10/2026. A captura pode ser de
-  #   um pack de terceiro, e o `cd` abaixo segue symlink: uma árvore que fosse
-  #   link para fora mandaria para o greeter (pela ponte, como root) o que
-  #   estivesse no destino. O `find` já não segue link de arquivo (`-type f`).
   meow_dentro "$CAPTURA" "$arvore" >/dev/null || {
     meow_aviso "greeter: $arvore da captura é link para fora dela — pulada"; continue; }
-  # `-mindepth 1` para o caminho relativo nunca ser "."
   while IFS= read -r rel; do
     fonte="$CAPTURA/$arvore/$rel"
-    # A árvore já foi lida inteira pela ponte; aqui é só comparar dois md5.
     if [ "${GREETER_MD5["$arvore/$rel"]:-}" != "$(md5sum < "$fonte" | cut -d' ' -f1)" ]; then
       pendentes+=("$arvore/$rel")
     fi
@@ -191,15 +149,6 @@ if meow_seco; then
   exit "$MEOW_DIVERGENTE"
 fi
 
-# PELA PONTE: um tar com só os pendentes, e ela extrai com o dono certo. Assim
-# a tela de login passa a ser consertável pelo painel e pelo auto-reparo, que é
-# o que ela pediu em 08/09/2026 — antes, sem terminal, esta etapa só avisava.
-#
-# E A RECUSA DIZ O MOTIVO — P75, 09/10/2026 (S4, P70 item 1). A saída de erro
-# da ponte ia para o `/dev/null`, e a única frase na tela era "a ponte recusou":
-# a ponte recusava TODA chamada (uma opção de tar que não existe, ver o bloco do
-# `greeter-aplicar` em scripts/ponte_root.sh) e ninguém tinha como ver. Agora o
-# que a ponte disse vem junto, na mesma linha.
 if meow_ponte_viva; then
   if motivo="$( { tar -c -C "$CAPTURA" -f - "${pendentes[@]}" | meow_ponte greeter-aplicar >/dev/null; } 2>&1 )"; then
     meow_muda "tela de login vestida com '$ALVO' (${#pendentes[@]} arquivo(s), pela ponte)"

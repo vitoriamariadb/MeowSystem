@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# resgatados_folha.sh — monta a folha de ANTES E DEPOIS dos ícones resgatados.
-#
-# Porque na tela eles aparecem a 48 px, um de cada vez, no meio de outros
-# oitenta. A pergunta "o redesenho ficou fiel?" não se responde assim: ela
-# precisa do par lado a lado, no mesmo tamanho, no mesmo fundo.
-#
-# Vários desses caminhos são de pacote (`/usr/share`) ou de app (`/opt`), e
-# somem no próximo upgrade ou na próxima reinstalação.
-#
-# Um ícone com borda escura sobre fundo branco parece ter halo; o mesmo ícone
-# sobre o `#282A36` da barra parece correto.
 
 set -uo pipefail
 
@@ -21,10 +10,10 @@ ACERVO="$RAIZ/packs/dracula/icones/apps"
 MAPA="$RAIZ/packs/dracula/icones/apps-resgatados.map"
 SAIDA="${1:-$RAIZ/assets/icones/resgatados-antes-e-depois.png}"
 
-FUNDO="#1E1E2E"      # o `base` do Mocha: a folha
-CELA="#282A36"       # o `base` do Dracula: a barra, atrás do ícone
-BORDA_PNG="#44475A"  # cinza: o que era
-BORDA_SVG="#BD93F9"  # mauve, o accent dela: o que passou a ser
+FUNDO="#1E1E2E"
+CELA="#282A36"
+BORDA_PNG="#44475A"
+BORDA_SVG="#BD93F9"
 TEXTO="#F8F8F2"
 LADO=150
 
@@ -38,11 +27,8 @@ done
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# O mapa é a fonte: `nome : png-de-origem : autoria`. O `~` do caminho é expandido
-# aqui, e não no arquivo, porque um mapa com `/home/<usuário>` cravado seria um
-# mapa que só serve nesta máquina.
 pares=0; sem_png=0; sem_svg=(); larg=""
-faltou=(); pecas=()   # o índice de cada par sem PNG, e os tamanhos das peças de cada par
+faltou=(); pecas=()
 while IFS=: read -r nome origem autoria; do
   nome="$(printf '%s' "$nome" | tr -d '[:space:]')"
   [ -n "$nome" ] || continue
@@ -52,12 +38,10 @@ while IFS=: read -r nome origem autoria; do
   svg="$ACERVO/$nome.svg"
   [ -f "$svg" ] || { sem_svg+=("$nome"); continue; }
 
-  # DEPOIS: o SVG resgatado, na moldura mauve.
   rsvg-convert -w "$LADO" -h "$LADO" "$svg" -o "$TMP/b.png" 2>/dev/null || { sem_svg+=("$nome"); continue; }
   convert "$TMP/b.png" -background "$CELA" -alpha remove -alpha off \
           -bordercolor "$BORDA_SVG" -border 2 "$TMP/depois.png" 2>/dev/null
 
-  # ANTES: o PNG de origem, na moldura cinza — ou uma moldura vazia dizendo por quê.
   if [ -f "$origem" ]; then
     convert "$origem" -resize "${LADO}x${LADO}" -background "$CELA" -alpha remove -alpha off \
             -gravity center -extent "${LADO}x${LADO}" \
@@ -70,9 +54,6 @@ while IFS=: read -r nome origem autoria; do
             -bordercolor "$BORDA_PNG" -border 2 "$TMP/antes.png" 2>/dev/null
   fi
 
-  # O rótulo carrega a AUTORIA junto do nome: quem olha a folha precisa saber se
-  # está vendo obra dela ou logo de terceiro — são critérios de julgamento
-  # diferentes, e o cabeçalho do mapa explica a diferença.
   larg="$(identify -format '%w' "$TMP/antes.png")"
   larg=$(( larg * 2 + 2 ))
   convert -background "$FUNDO" -fill "$TEXTO" -pointsize 15 -gravity center \
@@ -86,8 +67,6 @@ done < <(sed -e 's/#.*//' "$MAPA" | awk -F: 'NF>=3')
 
 [ "$pares" -gt 0 ] || { meow_erro "nenhum par para montar — o acervo está vazio?"; exit "$MEOW_ERRO"; }
 
-# Duas colunas de pares (quatro ícones por linha) é o que cabe legível numa tela
-# de notebook sem obrigar a rolar de lado.
 montage "$TMP"/par_*.png -tile 2x -geometry +10+10 -background "$FUNDO" "$TMP/folha.png" 2>/dev/null
 
 convert -size "$(identify -format '%w' "$TMP/folha.png")x58" "xc:$FUNDO" -gravity center \
@@ -96,8 +75,6 @@ convert -size "$(identify -format '%w' "$TMP/folha.png")x58" "xc:$FUNDO" -gravit
         "$TMP/cabeca.png" 2>/dev/null
 convert "$TMP/cabeca.png" "$TMP/folha.png" -append "$TMP/final.png" 2>/dev/null
 
-# A máscara é o mesmo par, peça a peça, em cores chapadas: o rótulo do par k
-# em rgb(k+1,0,1), a célula da esquerda em rgb(k+1,0,2).
 nao_costura=(); costurados=0
 if [ "${#faltou[@]}" -gt 0 ] && [ -f "$SAIDA" ]; then
   for k in "${!pecas[@]}"; do

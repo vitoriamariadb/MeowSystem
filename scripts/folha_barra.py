@@ -1,29 +1,10 @@
 #!/usr/bin/env python3
-# folha_barra.py — a folha dos ícones da BARRA (applets + bandeja).
-#
-# Depois de unificar os 35 do lançador em Arcticons: "os ícones da tray e do
-# applet tão sincronizados também?" Não estavam. ZERO do nosso tema.
-#
-# O pack é de ícones de APLICATIVO Android.
-#
-#     mute    -> só `mutereminder`, que é um app
-#     bell    -> `taco-bell`, `mybell`, `bell-smart-home` — todos apps
-#     power   -> `microsoft-powerpoint`, `chargemap`, `apowermirror` — apps
-#     pause · logout · ethernet -> ZERO
-#
-#   uso: scripts/folha_barra.py [saida.html]
-#        (padrão: ~/Documentos/meow-icones-barra.html)
 
 import base64
 import html
 import os
 import sys
 
-# PyGObject/Gtk3 não é stdlib, e o badge do README promete "python 3 só stdlib".
-#
-# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única
-# das quatro que o instalador chama e que já tratava isso: mensagem que diz o
-# que falta e código de saída próprio, em vez de traceback.
 MEOW_SEM_DEPENDENCIA = 3
 try:
     import gi
@@ -38,12 +19,9 @@ except (ImportError, ValueError) as erro:
 HOME = os.path.expanduser('~')
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme')
-# Os glifos candidatos ficam FORA de `packs/meowsystem/icones/sistema/arcticons/`: nada aqui foi decidido,
-# e um acervo é o que os scripts instalam. Ver `packs/meowsystem/PROCEDENCIA.md`.
 CAND = os.path.join(os.environ.get('MEOW_PREVIA_BARRA',
                     '/tmp/meow-previa-barra'))
 
-# (família · [(ícone que o applet pede, glifo Arcticons ou None, o que é)])
 FAMILIAS = [
     ('Volume', 'O applet troca de ícone conforme o nível — e quando você muta.', [
         ('audio-volume-high-symbolic',   'volume',  'alto'),
@@ -67,9 +45,6 @@ FAMILIAS = [
         ('system-shutdown-symbolic',   'power',  'desligar'),
         ('system-lock-screen-symbolic', 'lock',  'bloquear'),
         ('system-suspend-symbolic',    'moon',   'suspender'),
-        # `arcticons/reboot` foi descartado ao ser RASTERIZADO: o desenho não é
-        # uma seta de reinício, é uma FIGURA HUMANA — a marca de algum app
-        # chamado "reboot".
         ('system-reboot-symbolic',     None,     'REINICIAR'),
         ('system-log-out-symbolic',    None,     'SAIR'),
     ]),
@@ -103,7 +78,6 @@ def main():
     t.set_custom_theme(tema)
 
     def hoje(nome):
-        # 20 px é o tamanho medido da barra (ver `scripts/icones_bandeja.sh`).
         i = t.lookup_icon(nome, 20, 0)
         f = i.get_filename() if i else None
         if not f or not os.path.exists(f):

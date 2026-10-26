@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-# atalho.sh — planta (ou tira) o `.desktop` que abre o painel de configuração.
-#
-#   ./atalho.sh              instala o atalho "MeowSystem" no lançador
-#   ./atalho.sh --conferir   não escreve; 1 se divergir, 3 se não houver o que fazer
-#   ./atalho.sh --reverter   tira o atalho e o `run.sh` copiado
-#
-# Tudo o mais que o MeowSystem instala é tema, ícone de OUTRO aplicativo, applet
-# de barra ou unidade de systemd. Este é o `.desktop` do MeowSystem ele mesmo —
-# o que ela clica no lançador para abrir a página de configuração.
-#
-# Sem o disco, ele diz o que houve.
-#
-#     app-cosmic-com.meowsystem.Painel-44306.scope: PID 44306 vanished before we
-#     could move it to target cgroup … Failed with result 'resources'
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -22,9 +8,6 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 APP_ID="com.meowsystem.Painel"
 APLICATIVOS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 DESKTOP="$APLICATIVOS/$APP_ID.desktop"
-# O nome NÃO é escolha nossa: é o `app_id` que o Chromium dá a uma janela
-# de `--app`, e o `.desktop` só é encontrado se o arquivo se chamar
-# exatamente assim.
 JANELA_ID="chrome-127.0.0.1__-Default"
 JANELA="$APLICATIVOS/$JANELA_ID.desktop"
 LANCADOR="$HOME/.local/bin/meow-painel"
@@ -38,8 +21,6 @@ case "${1:-}" in
 esac
 meow_seco && [ "$REVERTER" = 0 ] && CONFERIR=1
 
-# --- os dois textos ---------------------------------------------------------
-# O lançador que sobrevive ao Ápate desmontado.
 _texto_lancador() {
   cat <<'FIM'
 #!/usr/bin/env bash
@@ -72,12 +53,6 @@ exec "$raiz/app/run.sh" "$@"
 FIM
 }
 
-# `Keywords` em português E o nome das coisas que ela procuraria: o lançador do
-# COSMIC casa por prefixo em Name, GenericName e Keywords, e "tema" é a palavra
-# com que alguém procura isto — não "MeowSystem", que é preciso já saber.
-#
-# `DesktopSettings` é subcategoria de `Settings`, e o par sozinho não gera aviso
-# nenhum.
 _texto_desktop() {
   cat <<FIM
 [Desktop Entry]
@@ -95,12 +70,6 @@ Keywords=meow;meowsystem;tema;theme;catppuccin;icones;ícones;gato;papel de pare
 FIM
 }
 
-# "não esquece de corrigir o icon da dock também", com a captura junto: entre o
-# Terminal e os Arquivos — os dois de traço lavender — o painel aberto aparecia
-# como uma engrenagem bege chapada.
-#
-# O ícone da JANELA na dock não sai do `.desktop` que a lançou: o COSMIC o
-# procura pelo `app_id` que a janela declara.
 _texto_janela() {
   cat <<FIM
 [Desktop Entry]
@@ -115,8 +84,7 @@ StartupWMClass=$JANELA_ID
 FIM
 }
 
-# --- estado ------------------------------------------------------------------
-_confere_arquivo() {   # 0 = igual, 1 = divergente
+_confere_arquivo() {
   local alvo="$1" esperado="$2"
   [ -f "$alvo" ] || return 1
   [ "$esperado" = "$(cat "$alvo" 2>/dev/null)" ]
@@ -127,11 +95,7 @@ _conferir() {
   _confere_arquivo "$DESKTOP" "$(_texto_desktop)"   || faltando+=("$APP_ID.desktop")
   _confere_arquivo "$JANELA" "$(_texto_janela)"     || faltando+=("$JANELA_ID.desktop")
   _confere_arquivo "$LANCADOR" "$(_texto_lancador)" || faltando+=("meow-painel")
-  # O bit de execução conta como divergência: um lançador sem `+x` é um ícone
-  # que abre e fecha na mesma hora, e nada na tela explica.
   if [ -f "$LANCADOR" ] && [ ! -x "$LANCADOR" ]; then faltando+=("meow-painel sem +x"); fi
-  # A página é o que o atalho abre. Sem ela o atalho é um botão que dá 500 —
-  # e a causa (clone incompleto) merece ser dita aqui, não no navegador.
   if [ ! -f "$RAIZ/app/pagina/index.html" ] || [ ! -f "$RAIZ/app/servidor.py" ]; then
     meow_erro "o atalho existe mas app/ está incompleto neste clone"
     return "$MEOW_ERRO"
@@ -154,8 +118,6 @@ _aplicar() {
     1) mudou=1 ;;
     *) meow_erro "não consegui escrever $LANCADOR"; return "$MEOW_ERRO" ;;
   esac
-  # Mesmo cinto do `etapa_cli`: a `meow_escrever` sai ANTES do chmod quando o
-  # conteúdo já confere, então um arquivo que perdeu o bit nunca o recuperaria.
   if [ -f "$LANCADOR" ] && [ ! -x "$LANCADOR" ]; then chmod 755 "$LANCADOR"; mudou=1; fi
 
   meow_escrever "$DESKTOP" "$(_texto_desktop)" 644; rc=$?
@@ -177,9 +139,6 @@ _aplicar() {
     return "$MEOW_OK"
   fi
 
-  # O MENU DE LANÇAMENTO NÃO RELÊ SOZINHO — e é por isso que esta linha existe.
-  # `lib/comum.sh` mede o caso: o `cosmic-app-library` e o `cosmic-launcher`
-  # resolvem os `.desktop` no arranque e guardam.
   meow_lancador_reler
 
   case ":$PATH:" in

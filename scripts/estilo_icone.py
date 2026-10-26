@@ -59,12 +59,6 @@ def _percursos(texto):
 
 
 def _vertices(d):
-    """Vértices na ordem em que a caneta passa, mais a conta de curva e reta.
-
-    O `Z` VOLTA PARA O `M`, e isso não é detalhe: sem devolver o ponto inicial,
-    todo laço fechado ganha um segmento fantasma da última posição até o
-    próximo `M`, e o `seg_min` de um ícone de dois laços vira lixo.
-    """
     verts, curvas, retas, casas = [], 0, 0, []
     x = y = sx = sy = 0.0
     for cmd, resto in CMD.findall(d):
@@ -75,9 +69,6 @@ def _vertices(d):
         if c == "M":
             for i in range(0, len(n) - 1, 2):
                 x, y = (x + n[i], y + n[i + 1]) if rel else (n[i], n[i + 1])
-                # `M` com vários pares: do segundo em diante é reta implícita —
-                # é assim que o nosso conversor escreve polilinha, e ignorar
-                # isso zeraria a conta de reta do acervo inteiro.
                 if i == 0:
                     sx, sy = x, y
                 else:
@@ -110,8 +101,6 @@ def _vertices(d):
                 curvas += 1
                 verts.append((x, y))
         elif c == "Z":
-            # SÓ acrescenta o fechamento se a caneta ainda NÃO estiver no
-            # ponto inicial.
             if math.dist((x, y), (sx, sy)) > 1e-9:
                 verts.append((sx, sy))
             x, y = sx, sy
@@ -119,7 +108,6 @@ def _vertices(d):
 
 
 def _escala(texto):
-    """48 dividido pela largura do viewBox — tudo é medido na grade da dock."""
     m = re.search(r'viewBox="([^"]+)"', texto)
     if not m:
         return 1.0
@@ -128,7 +116,6 @@ def _escala(texto):
 
 
 def medir(caminho):
-    """Devolve o dicionário de medidas, ou None se não houver `<path d=`."""
     try:
         texto = open(caminho, encoding="utf-8", errors="replace").read()
     except OSError:
@@ -177,14 +164,7 @@ def _pct(valores, p):
 
 
 def faixa(raiz):
-    """A faixa DERIVADA de um acervo — nunca uma lista de números cravados.
-
-    Armadilha nº 3 do projeto: toda lista fixa é uma lista que alguém vai
-    esquecer. Se um glifo entrar ou sair de `arcticons-apps/`, a faixa anda
-    sozinha, e o teste continua medindo o acervo que existe.
-    """
     if os.path.isfile(raiz) and raiz.endswith(".lista"):
-        # P96: as três pastas do pack são planas; a lista diz quais arquivos são do acervo
         base = os.path.dirname(raiz)
         nomes = [l.strip() for l in open(raiz, encoding="utf-8") if l.strip() and not l.startswith("#")]
         arqs = sorted(c for n in nomes for c in (os.path.join(base, p, n) for p in ("apps", "sistema", "biblioteca"))
@@ -200,8 +180,6 @@ def faixa(raiz):
         v = [x[k] for x in linhas]
         fora[k] = {p: round(_pct(v, int(p[1:])), 2)
                    for p in ("p05", "p25", "p50", "p75", "p95")}
-        # O `min`/`max` NÃO é enfeite do percentil: é a asserção que o teste
-        # usa.
         fora[k]["min"] = round(min(v), 2)
         fora[k]["max"] = round(max(v), 2)
     return fora

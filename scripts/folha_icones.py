@@ -1,20 +1,4 @@
 #!/usr/bin/env python3
-# folha_icones.py — a folha que ela olha ANTES de qualquer troca de ícone.
-#
-# Unificar exige antes responder uma pergunta que é de GOSTO, não de técnica:
-# unificar em QUAL linguagem?
-#
-# Esta folha NÃO TOCA EM ÍCONE NENHUM.
-#
-# 48 px é a caixa medida da dock.
-#
-# Um ícone que sobrevive no mocha e desaparece no vidro claro não está resolvido
-# — e isso só aparece trocando o fundo debaixo dele.
-#
-# Regra dela, dita: a folha é um arquivo no disco, que abre com duplo clique,
-# sem rede e sem conta.
-#
-#   uso: scripts/folha_icones.py [saida.html]     (padrão: ~/Documentos/meow-icones-folha.html)
 
 import base64
 import configparser
@@ -24,11 +8,6 @@ import json
 import os
 import sys
 
-# PyGObject/Gtk3 não é stdlib, e o badge do README promete "python 3 só stdlib".
-#
-# O padrão abaixo é o mesmo de `scripts/icones_orfaos.py:45-52`, que é a única
-# das quatro que o instalador chama e que já tratava isso: mensagem que diz o
-# que falta e código de saída próprio, em vez de traceback.
 MEOW_SEM_DEPENDENCIA = 3
 try:
     import gi
@@ -43,7 +22,7 @@ except (ImportError, ValueError) as erro:
 HOME = os.path.expanduser('~')
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONF_TK = os.path.join(HOME, '.config/cosmic/com.system76.CosmicTk/v1/icon_theme')
-TAMANHOS = (128, 48)          # 128 = grade do lançador · 48 = dock
+TAMANHOS = (128, 48)
 FUNDOS = [
     ('mocha',       '#1e1e2e', 'o tema escuro dela'),
     ('latte',       '#eff1f5', 'o tema claro'),
@@ -51,10 +30,6 @@ FUNDOS = [
     ('vidro claro', '#826E92', 'a dock sobre papel claro'),
 ]
 
-# QUEM DESENHOU CADA UM: a procedência sai dos MAPAS do repo, não de palpite
-# Cada mapa é o contrato de um script: quem está no `apps.map` foi vestido pelo
-# `icones_apps.sh` com o acervo Catppuccin; quem está no `apps-arcticons.map`
-# foi vestido pelo `icones_apps_arcticons.sh`.
 GRAMATICAS = [
     ('catppuccin', 'Catppuccin — a marca do app na paleta pastel',
      'Acervo de terceiro, PNG. É a marca de cada aplicativo redesenhada nas cores '
@@ -77,7 +52,6 @@ GRAMATICAS = [
 
 
 def carrega_mapa(nome):
-    """`chave:destino[:cor]` — devolve só o conjunto de chaves."""
     caminho = os.path.join(RAIZ, 'icons', nome)
     chaves = set()
     if not os.path.exists(caminho):
@@ -92,7 +66,6 @@ def carrega_mapa(nome):
 
 
 def carrega_curadoria():
-    """`chave<TAB>extensão<TAB>subdiretório` — escrito pelo importar_icones.sh."""
     caminho = os.path.join(RAIZ, 'icons', 'curadoria.map')
     chaves = set()
     if not os.path.exists(caminho):
@@ -108,17 +81,8 @@ def carrega_curadoria():
 INTOCAVEIS = {'fogstripper', 'hefesto-dualsense4unix',
               'com.vitoriamaria.HefestoDualsense4Unix'}
 
-# A PRÉVIA: como ficaria unificado — e por que só UM dos dois caminhos existe
-#
-# Medido, e é este número que decide: acervo Catppuccin local...........
-#
-# Unificar em Catppuccin não é uma opção pior: é uma opção que NÃO EXISTE.
-#
-# O que ela decide olhando isto não é "qual é mais bonito no papel" — é se
-# aceita trocar a marca colorida pelo traço.
 PREVIA_DIR = os.path.join(RAIZ, 'icons', 'previa-arcticons')
 PREVIA = [
-    # chave do .desktop            glifo no Arcticons   de onde ele vem hoje
     ('google-chrome',              'google-chrome',     'catppuccin'),
     ('com.spotify.Client',         'spotify',           'catppuccin'),
     ('steam',                      'steam',             'catppuccin'),
@@ -129,15 +93,12 @@ PREVIA = [
     ('org.telegram.desktop',       'telegram',          'herdado'),
     ('org.gnome.Calculator',       'calculator',        'herdado'),
     ('thunderbird',                'thunderbird',       'herdado'),
-    # `utorrent` estava aqui e saiu: é a MARCA do µTorrent, que é outro
-    # aplicativo, de outra empresa.
     ('org.qbittorrent.qBittorrent', 'libretorrent',     'herdado'),
     ('com.github.johnfactotum.Foliate', 'books',        'herdado'),
 ]
 
 
 def apps_visiveis():
-    """Os mesmos que o lançador mostra — a regra é a do auditar_icones.sh."""
     dirs = [os.path.join(HOME, '.local/share/applications'),
             '/usr/share/applications',
             os.path.join(HOME, '.local/share/flatpak/exports/share/applications'),
@@ -184,10 +145,6 @@ def embute(caminho):
         return f'data:{tipo};base64,' + base64.b64encode(fh.read()).decode('ascii')
 
 
-# O `title` de cada cartão levava o caminho absoluto do ícone, e a folha que
-# entrou no repositório (docs/folhas/meow-icones-folha.html) carregava 29
-# vezes o home de quem a gerou: um nome de usuário gravado num arquivo que
-# qualquer pessoa abre.
 def com_til(caminho):
     if caminho and (caminho == HOME or caminho.startswith(HOME + os.sep)):
         return '~' + caminho[len(HOME):]
@@ -239,9 +196,6 @@ def main():
         else:
             gram = 'herdado'
 
-        # Um `steam_icon_*` é capa de jogo baixada da Steam: não é linguagem
-        # visual nenhuma, e listar 20 delas afogaria a folha. Ficam de fora,
-        # pelo mesmo motivo que o `icones_apps.sh` as põe nos INTOCÁVEIS.
         if icone.startswith('steam_icon_') or chave.startswith('meow-steam-'):
             continue
 
@@ -259,9 +213,6 @@ def main():
     por_chave = {i['chave']: i for i in itens}
     por_icone = {i['icone']: i for i in itens}
 
-    # O SVG do Arcticons vem em `currentColor`: aqui ele é pintado de lavender
-    # (`#b4befe`), que é a cor neutra do Catppuccin — não é a escolha final de
-    # cor, é só o que deixa o DESENHO visível para ela julgar.
     linhas_previa = []
     for chave, glifo, origem in PREVIA:
         atual = por_chave.get(chave) or por_icone.get(chave)

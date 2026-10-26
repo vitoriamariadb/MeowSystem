@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-# folha_conversor.py — o mesmo ícone traçado de vários jeitos, lado a lado.
-#
-# A causa estava medida: o conversor emitia SÓ polilinha, e a escada da grade de
-# 256 chegava inteira na tela.
-#
-# Trocar a gramática muda o desenho de 24 ícones do lançador dela.
-#
-# Este script NÃO INSTALA NADA, não escreve no repositório e não regenera o
-# acervo.
-#
-# Ela continua aqui porque `~/Documentos/meow-conversor-folha.html` ainda espera
-# o olhar dela, e uma folha que não se regenera é uma folha que envelhece sem
-# poder ser conferida.
 
 import base64
 import html
@@ -26,15 +13,11 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONV = os.path.join(RAIZ, "scripts", "converter_icone.py")
 MAPA = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps-convertidos.map")
 RETOQUES = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps")
-ARCTICONS = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps")   # P96: glifo em apps/ ou na biblioteca
-# Para essas nove, a coluna "o traço de hoje" desenhada a partir da origem
-# mostra arte que ela nunca viu — o Chrome do acervo tem UM subcaminho
-# desenhado à mão, e a conversão tem oito.
+ARCTICONS = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps")
 ACERVO = os.path.join(RAIZ, "packs", "meowsystem", "icones", "apps")
 
 
 def _e_retoque(nome):
-    """P96: o retoque mora em apps/ como o convertido; quem diz que é à mão é o mapa (`mao` ou `retoque`)."""
     try:
         with open(MAPA, encoding="utf-8") as fh:
             for linha in fh:
@@ -45,32 +28,23 @@ def _e_retoque(nome):
         pass
     return False
 
-# A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
-import pack  # noqa: E402  — vizinho de arquivo, e o RAIZ acima precede
+import pack  # noqa: E402
 
 _PALETA = pack.paleta_do_pack_ativo()
 with open(_PALETA, encoding="utf-8") as fh:
     PALETA = json.load(fh)["flavors"]["mocha"]
 
-# Os mesmos quatro do `folha_icones.py`, e pelo mesmo motivo.
 FUNDOS = [("mocha", "#1e1e2e"), ("latte", "#eff1f5"),
           ("vidro médio", "#3C3B50"), ("vidro claro", "#826E92")]
 
-# A espessura da dock. Aqui ela é GRAVADA no arquivo (`--lw`) porque a folha
-# precisa dos pesos na tela; no acervo ela nunca é gravada, e quem manda é o
-# `TRACO` do `icones_apps_arcticons.sh`.
 TRACO = "2.25"
 
-# Os cinco que foram à folha e PERDERAM. Entram aqui de novo porque a gramática
-# mudou, e a pergunta "a curva salva algum deles?" só se responde olhando. A cor
-# é `mauve` só para eles aparecerem; nenhum está no mapa.
 RECUSADOS = [("firefox", "raposa orgânica — a informação está no preenchimento"),
              ("org.kde.krita", "camaleão orgânico"),
              ("thunderbird", "passarinho orgânico"),
              ("com.boxy_svg.BoxySVG", "a flor do meio virava bolha a 48 px"),
              ("btop", "fiel, e o original é o B na placa opaca de que ela reclamou")]
 
-# O texto é o veredito medido a 150 px ao lado do original,.
 DESTAQUE = {
     "com.brave.Browser": "FALHA hoje: o leão vira um emaranhado. É o caso que o "
                          "peso de fronteira foi escrito para resolver — a fronteira "
@@ -86,9 +60,6 @@ DESTAQUE = {
                               "traços para 4, fundindo uma fronteira de 61,6.",
 }
 
-# O `apps-convertidos.map` de propósito NÃO tem campo `glifo`: lá a arte se
-# chama pelo nome do aplicativo, 1 para 1, e inventar o campo obrigaria os dois
-# leitores de verdade a ignorá-lo.
 GLIFO = {
     "com.brave.Browser": "brave",
     "google-chrome": "google-chrome",
@@ -101,32 +72,23 @@ GLIFO = {
     "io.github.shiftey.Desktop": "github",
     "md.obsidian.Obsidian": "obsidian",
     "org.onlyoffice.desktopeditors": "onlyoffice-documents",
-    "com.obsproject.Studio": "screen-recorder",     # genérico honesto
-    "vscode": "code-editor",                        # genérico honesto
-    "org.gnome.Calculator": "calculator",           # genérico honesto (PROCEDENCIA)
-    "org.gnome.Snapshot": "camera",                 # genérico honesto (PROCEDENCIA)
-    "org.gnome.FileRoller": "zip",                  # genérico honesto (PROCEDENCIA)
-    "com.github.johnfactotum.Foliate": "books",     # genérico honesto (PROCEDENCIA)
-    "com.github.tchx84.Flatseal": "shield",         # genérico honesto (PROCEDENCIA)
+    "com.obsproject.Studio": "screen-recorder",
+    "vscode": "code-editor",
+    "org.gnome.Calculator": "calculator",
+    "org.gnome.Snapshot": "camera",
+    "org.gnome.FileRoller": "zip",
+    "com.github.johnfactotum.Foliate": "books",
+    "com.github.tchx84.Flatseal": "shield",
     "firefox": "firefox",
     "org.kde.krita": "krita",
     "thunderbird": "thunderbird",
-    "btop": "osmonitor",                            # a troca que ela já aprovou
+    "btop": "osmonitor",
     "com.boxy_svg.BoxySVG": "vector",
     "com.system76.CosmicEdit": "editor",
     "com.system76.CosmicPlayer": "player",
 }
 
-# A VÁLVULA — o quarto campo do mapa, varrido pela primeira vez
-#
-# O `apps-convertidos.map` sempre teve quatro campos, e o quarto — `parametros`
-# — nunca foi usado: 0 de 33 linhas.
-#
-# Grade: `--k` ∈ {4, 6, 8, 10, 12} × `--funde` ∈ {12, 25, 35, 46, 60} ×
-# `--peso-fronteira` ∈ {desligado, 70} = 50 jogos por ícone, sobre as 24
-# origens do mapa mais os 5 recusados.
 VALVULA = {
-    # ---- os que a medição e o olho concordam em propor -------------------
     "com.github.johnfactotum.Foliate": {
         "hoje": "11 traços · 375 de comprimento · 37,1% de tinta · 5,7% sobreposto "
                 "· 25,1% das fronteiras internas · precisão 60,0%",
@@ -146,8 +108,6 @@ VALVULA = {
                     "das fronteiras internas do desenho e inventa linha (precisão "
                     "60%). É o pior número de fidelidade dos 29 medidos.",
     },
-    # Nessas quatro ele chega a menos de 1 ponto do melhor jogo de dois
-    # parâmetros que a grade de 50 achou.
     "com.brave.Browser": {
         "hoje": "10 traços · 366 de comprimento · 29,5% de tinta · 17,5% sobreposto "
                 "· 99,0% das fronteiras internas · precisão 100,0%",
@@ -236,7 +196,6 @@ VALVULA = {
         "veredito": "ganho pequeno e verdadeiro: a fita do VS Code é uma dobra, "
                     "e hoje ela não está desenhada.",
     },
-    # ---- mesma arte na tela, só menos tinta empilhada --------------------
     "net.davidotek.pupgui2": {
         "hoje": "4 traços · 308 de comprimento · 29,2% de tinta · 12,7% sobreposto "
                 "· 99,5% das fronteiras internas · precisão 100,0%",
@@ -281,7 +240,6 @@ VALVULA = {
         "veredito": "o padrão ganha — mais que o dobro de subcaminhos pelo "
                     "mesmo desenho.",
     },
-    # ---- o retoque à mão vence, e a válvula não chega lá -----------------
     "com.obsproject.Studio": {
         "hoje": "4 traços · 404 de comprimento · 35,0% de tinta · 11,7% sobreposto "
                 "· 99,7% das fronteiras internas · precisão 100,0%",
@@ -362,7 +320,6 @@ VALVULA = {
                     "escrito é que não mudavam), e mesmo assim nenhum o faz "
                     "ler. Ele já tem retoque à mão, e a válvula é inerte.",
     },
-    # ---- o padrão ganha, sem candidato ----------------------------------
     "meow-whatsapp": {
         "hoje": "2 traços · 207 de comprimento · 20,6% de tinta · 0,1% sobreposto "
                 "· 99,4% das fronteiras internas · precisão 100,0%",
@@ -417,7 +374,6 @@ VALVULA = {
                 "· 85,4% das fronteiras internas · precisão 100,0%",
         "cands": [], "veredito": "o padrão ganha.",
     },
-    # ---- os cinco recusados, fora do mapa -----------------------
     "thunderbird": {
         "hoje": "7 traços · 332 de comprimento · 27,9% de tinta · 11,4% sobreposto "
                 "· 76,8% das fronteiras internas · precisão 100,0%",
@@ -475,13 +431,6 @@ VALVULA = {
     },
 }
 
-# AS COLUNAS SÃO DADO, NÃO CÓDIGO REPETIDO — e é o que deixa as três folhas
-# saírem do mesmo laço. Cada coluna é (título, receita), e a receita é:
-#   "origem"     -> o arquivo de entrada, como está;
-#   "acervo"     -> o que está NA TELA dela hoje (o retoque, se houver);
-#   "arcticons"  -> o glifo desenhado à mão, quando existe;
-#   "cand1"/"cand2" -> o candidato N da `VALVULA` daquele ícone;
-#   [chaves]     -> roda o conversor com essas chaves.
 COLUNAS = {
     "fidelidade": [
         ("original", "origem"),
@@ -505,7 +454,6 @@ COLUNAS = {
 
 
 def ler_mapa():
-    """(nome, origem, cor, extra) por linha viva do mapa. `mao` sai à parte."""
     com_origem, na_mao = [], []
     with open(MAPA, encoding="utf-8") as fh:
         for linha in fh:
@@ -527,12 +475,6 @@ def ler_mapa():
 
 
 def converter(origem, cor, *chaves):
-    """Roda o conversor e devolve (svg_colorido, metricas, frase_do_stderr).
-
-    O `currentColor` vira hex AQUI e só aqui: a folha é um `.html` fora do
-    repositório, então cor literal é permitida — a mesma licença que a
-    `folha_icones.py` já usa. O que sai do conversor continua sem cor nenhuma.
-    """
     with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as f:
         saida = f.name
     try:
@@ -565,14 +507,6 @@ def embute_arquivo(caminho):
 
 
 def celula(uri, nota="", params=None, medida=""):
-    """Uma coluna: os quatro fundos a 48 px, a lupa de 200 px, e o rodapé.
-
-    O RODAPÉ TEM TRÊS LINHAS DE PROPÓSITO, e a ordem importa: os PARÂMETROS
-    EXATOS primeiro (é o que ela vai me mandar aplicar), a MEDIÇÃO depois (é o
-    que sustenta a proposta) e a prosa por último. Sem os parâmetros escritos
-    embaixo da figura, a folha vira "gostei do terceiro" e ninguém sabe qual
-    linha do mapa escrever.
-    """
     if uri is None:
         return '<td class="vazia">%s</td>' % html.escape(nota or "não saiu")
     fundos = "".join(
@@ -628,13 +562,6 @@ code.param { display:block; max-width:216px; margin-top:8px; padding:4px 7px;
 
 
 def glifo_de(nome):
-    """O SVG do glifo Arcticons desenhado à mão, já vestido, ou None.
-
-    A espessura é INJETADA aqui pelo mesmo motivo que no resto da folha: os 39
-    Arcticons não gravam `stroke-width` (é o dialeto), e sem o atributo o
-    navegador desenha a 1,0 — o glifo apareceria fino ao lado das conversões e a
-    comparação mentiria sobre a única coisa que ela está olhando, que é o traço.
-    """
     g = GLIFO.get(nome)
     if not g:
         return None
@@ -653,13 +580,6 @@ def glifo_de(nome):
 
 
 def linha_de(nome, origem, cor, extra, colunas, motivo=""):
-    """Uma linha da tabela, uma célula por coluna de `colunas`.
-
-    A NOTA DA COLUNA DO PESO DE FRONTEIRA DIZ "IDÊNTICO" QUANDO É IDÊNTICO, e
-    essa é a informação que ela mais usa: em 26 dos 34 ícones medidos a chave
-    não muda um byte, e ler "idêntico ao de hoje" poupa comparar duas figuras
-    iguais com a lupa. Onde muda, a nota traz os contrastes que sumiram.
-    """
     chaves_extra = extra.split() if extra else []
     dados = VALVULA.get(nome, {})
     ident = ('<td class="nome"><b>%s</b><span class="pastilha">%s</span>'
@@ -676,9 +596,6 @@ def linha_de(nome, origem, cor, extra, colunas, motivo=""):
             except OSError as e:
                 celulas.append('<td class="vazia">%s</td>' % html.escape(str(e)[:80]))
             continue
-        # Para nove dos 24, `convertidos-apps/<nome>.svg` é a CÓPIA de um
-        # retoque à mão, não a conversão — o `_desejado_de()` copia o retoque e
-        # nem chama o conversor.
         if receita == "acervo":
             arq = os.path.join(ACERVO, nome + ".svg")
             hoje = dados.get("hoje", "")
@@ -692,17 +609,12 @@ def linha_de(nome, origem, cor, extra, colunas, motivo=""):
             with open(arq, encoding="utf-8") as fh:
                 texto = fh.read()
             if _e_retoque(nome):
-                # A FIGURA É O RETOQUE E OS NÚMEROS SÃO DA CONVERSÃO — dizer
-                # isso é obrigatório.
                 params = "(desenho à mão — o conversor nem chega a ser chamado)"
                 medida = "%d subcaminho(s), desenhados à mão" % texto.count("<path")
                 marca = ("convertidos-apps/%s.svg é um RETOQUE À MÃO. As duas "
                          "colunas ao lado mostram o que a CONVERSÃO faria se "
                          "ele não existisse; hoje ela daria %s" % (nome, hoje))
             else:
-                # Medido nos 15: a 48 px o arquivo do acervo e a conversão de
-                # hoje são IDÊNTICOS pixel a pixel (0 de 2.304); a 200 px
-                # diferem de 141 a 508 de 40.000.
                 params = "(padrão — nenhum parâmetro)"
                 medida = hoje
                 marca = ("convertidos-apps/%s.svg — a 48 px é idêntico, pixel "
@@ -741,7 +653,7 @@ def linha_de(nome, origem, cor, extra, colunas, motivo=""):
             continue
         svg, m, frase = converter(origem, cor, *(receita + chaves_extra))
         if svg and base is None and not receita:
-            base = svg                       # a coluna "hoje" é a régua da nota
+            base = svg
         nota = frase
         if svg and base is not None and receita and svg == base:
             nota = "idêntico ao de hoje — a chave não achou fronteira fraca aqui"
@@ -758,11 +670,6 @@ def cabecalho(colunas, extra_th=0):
             + "<th></th>" * extra_th + "</tr>")
 
 
-# A ORDEM DAS SEÇÕES É A ORDEM DA DECISÃO DELA, e não a do mapa: primeiro os
-# seis em que a válvula MUDA o que se vê, porque são os únicos que pedem
-# escolha; depois os que mudam só a quantidade de tinta empilhada; depois os
-# que a válvula NÃO ALCANÇA, que é a coisa mais importante que a varredura
-# achou e que nenhuma folha anterior dizia.
 GRUPOS = [
     ("Volta desenho que hoje não está lá — é aqui que a escolha é sua",
      "Três ícones em que um jogo de parâmetro devolve feição que a conversão "
@@ -809,7 +716,6 @@ RECUSADOS_ORDEM = ["thunderbird", "btop", "com.boxy_svg.BoxySVG",
 
 
 def folha_valvula(colunas, com_origem, na_mao):
-    """As seções da folha da válvula, na ordem da decisão dela."""
     por_nome = {t[0]: t for t in com_origem}
     partes = [
         "<style>%s</style>" % CSS,
@@ -1049,8 +955,6 @@ def main():
     partes.append("</table>")
 
     if not escada:
-        # A BOCA DO WILBER FICA ESCRITA NA FOLHA, e não só no relato: é a única
-        # pergunta do conversor que não tem plano B, e ela é dela.
         partes.append("<h2>A boca do Wilber — e por que o peso de fronteira não a traz</h2>")
         partes.append('<p class="intro">Você pediu a boca do GIMP em 11/08, e ela '
                       'está lá como <b>retoque à mão</b>: uma curva desenhada por '
