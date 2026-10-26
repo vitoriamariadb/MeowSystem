@@ -8,6 +8,21 @@ function lerEstado() {
   document.body.dataset.estado = e;
   for (const el of $$("[data-so]")) el.hidden = !el.dataset.so.split(" ").includes(e);
   for (const el of $$("[data-nao]")) el.hidden = el.dataset.nao.split(" ").includes(e);
+  const g = $("#gravando");
+  const velha = $("#torradas .sem-servidor");
+  if (velha) velha.remove();
+  if (e === "erro") {
+    g.dataset.estado = "erro";
+    g.setAttribute("aria-label", "Não gravou");
+    const t = document.createElement("div");
+    t.className = "torrada erro sem-servidor";
+    t.setAttribute("role", "alert");
+    t.textContent = "Sem servidor";
+    $("#torradas").append(t);
+  } else if (g.dataset.estado === "erro") {
+    g.dataset.estado = "ok";
+    g.setAttribute("aria-label", "Gravado");
+  }
 }
 
 function torrada(texto, classe = "") {
