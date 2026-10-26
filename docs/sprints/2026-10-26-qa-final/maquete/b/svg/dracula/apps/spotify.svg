@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Spotify">
+  <title>spotify — resgatado do PNG</title>
+  <g id="spotify-balao" fill="#424063">
+    <circle cx="24.04" cy="24.26" r="23.12"/>
+    <path d="M 6.63 36.23 L 3.78 46.51 Q 3.81 46.85 4.58 46.64 L 12.39 43.54 Z"/>
+  </g>
+  <path id="spotify-cabinho" fill="#8BD1B5" d="M 23.35 8.36 C 23.64 6.03 24.12 4.86 26.2 3.9 Q 26.76 3.78 27.31 3.96 C 30.71 4.94 26.45 4.37 25.95 8.36 Z"/>
+  <ellipse id="spotify-abobora" cx="24.09" cy="24.43" rx="17.03" ry="16.94" fill="#F6A449"/>
+  <g id="spotify-ondas" fill="none" stroke="#424063" stroke-linecap="round">
+    <path d="M 13.44 17.39 Q 24.74 14.67 36.05 20.25" stroke-width="3.1"/>
+    <path d="M 14.48 22.95 Q 23.94 20.71 33.4 25.63" stroke-width="2.69"/>
+    <path d="M 14.95 28.47 Q 23.01 26.4 31.08 30.34" stroke-width="2.26"/>
+  </g>
+  <path id="spotify-boca" fill="#424063" d="M 12.14 29.48 C 13.59 31.41 16.11 32.48 17.34 32.89 L 18.58 35.4 L 19.39 33.35 C 23.68 34.75 28.56 33.31 28.86 33.26 L 29.64 35.4 L 30.78 32.89 C 31.54 32.63 33.93 31.84 35.86 29.91 C 34.36 34.44 30.84 36.79 28.43 37.59 L 27.44 35.06 L 26.2 38.09 C 25.7 38.21 22.54 38.25 22.05 38.21 L 20.87 34.99 L 19.82 37.53 C 13.06 35.28 12.39 30.04 12.14 29.54 Z"/>
+</svg>
