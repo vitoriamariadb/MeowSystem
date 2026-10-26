@@ -12,17 +12,17 @@ briga com o sistema: escolhe junto com o COSMIC, nunca sobrescreve o que ele ger
 ## Os applets da casa (já publicados; leia o INTEGRACAO.md de cada um)
 | repo | pasta local | app id |
 |---|---|---|
-| <conta>/meowsystem-now-playing | ~/Desenvolvimento/meowsystem-now-playing | io.github.meowsystem.NowPlaying |
-| <conta>/meowsystem-status-hub | ~/Desenvolvimento/meowsystem-status-hub | io.github.meowsystem.Bandeja |
-| <conta>/meowsystem-quick-settings | ~/Desenvolvimento/meowsystem-quick-settings | io.github.meowsystem.AjustesRapidos |
-| <conta>/meowsystem-leitura | ~/Desenvolvimento/meowsystem-leitura | io.github.meowsystem.Leitura |
-| <conta>/meowsystem-performance | ~/Desenvolvimento/meowsystem-performance | io.github.meowsystem.Performance |
+| vitoriamariadb/meowsystem-now-playing | ~/Desenvolvimento/meowsystem-now-playing | io.github.meowsystem.NowPlaying |
+| vitoriamariadb/meowsystem-status-hub | ~/Desenvolvimento/meowsystem-status-hub | io.github.meowsystem.Bandeja |
+| vitoriamariadb/meowsystem-quick-settings | ~/Desenvolvimento/meowsystem-quick-settings | io.github.meowsystem.AjustesRapidos |
+| vitoriamariadb/meowsystem-leitura | ~/Desenvolvimento/meowsystem-leitura | io.github.meowsystem.Leitura |
+| vitoriamariadb/meowsystem-performance | ~/Desenvolvimento/meowsystem-performance | io.github.meowsystem.Performance |
 
 ## Decisões que valem (ANDAMENTO.md)
 - Porta própria. Adicionar repo de qualquer URL, por gesto, com SHA pinado, compilado sem sudo, em
   `~/.local`. Os da casa instalam pelo doctor com selo de rede (decisão 7 da P82); os adicionados
   por ela, só por gesto: escreva essa exceção no registro.
-- Repositório da casa: `<conta>/MeowSystem` (a decisão 22 cai: troque a linha).
+- Repositório da casa: `vitoriamariadb/MeowSystem` (a decisão 22 cai: troque a linha).
 - A ordem dos applets no painel é de quem usa: a página instala e oferece «pôr no painel», nunca
   reordena sozinha.
 
@@ -39,7 +39,7 @@ briga com o sistema: escolhe junto com o COSMIC, nunca sobrescreve o que ele ger
    Remover, Pôr no painel), bloco «Builds» (Q2-18: compositor, menu do Arquivos, applets; estado e
    refazer), «Adicionar repositório». API no servidor; estado em `~/.local/state/meowsystem/`.
 6. Q3-09: «Créditos» do «…» com os dois autores (Vitória Maria e André Farias) e os upstreams dos
-   applets; `LICENSE` e `CREDITOS.md` com os dois nomes; links para `<conta>/MeowSystem`.
+   applets; `LICENSE` e `CREDITOS.md` com os dois nomes; links para `vitoriamariadb/MeowSystem`.
 
 ## Prova
 Testes de shell da etapa de build com um repositório git falso local (sem rede); Playwright da
