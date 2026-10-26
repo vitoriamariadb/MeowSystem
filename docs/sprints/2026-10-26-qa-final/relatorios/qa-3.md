@@ -21,7 +21,7 @@ ela responder as perguntas do fim.
 - **Passos.** Rodar «Instalar tudo» (ou «Aplicar», ou «Ver sem mudar» de qualquer ajuste: é o
   mesmo instalador) até o registro mostrar uma linha com um caminho longo. No log real de hoje
   (`~/.local/state/meowsystem/logs/2026-10-26-155910-instalar-tudo.log`) a mais longa é o caminho
-  de 108 caracteres do tema do qBittorrent (`/home/vitoriamaria/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent/themes/catppuccin-mocha.qbtheme`).
+  de 108 caracteres do tema do qBittorrent (`~/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent/themes/catppuccin-mocha.qbtheme`).
 - **Visto** (1920×1080, medido no DOM):
   - a janela tem 560 px, mas a coluna de dentro cresceu para 744 px;
   - o «Guardar» vai de x=1278 a 1375, e a janela termina em x=1240;
@@ -223,7 +223,7 @@ larguras.
 | Pendência Trocar (tema de terceiro, Discord na casa; qBittorrent na máquina dela) | pergunta com «Ver sem mudar» → «Nada mudaria», porque o Discord não está instalado na casa | ok |
 | Pendência Manter | roda direto, sem pergunta: «Já estava assim» | ok |
 | Pendência Não, obrigado | «Não perguntar de novo?» → Cancelar | ok |
-| «…» › Créditos | link `https://github.com/vitoriamariadb/MeowSystem`, `target=_blank` | **defeito**: ver Q3-09 |
+| «…» › Créditos | link `https://github.com/[REDACTED]/MeowSystem`, `target=_blank` | **defeito**: ver Q3-09 |
 
 **Defeitos achados aqui:**
 
@@ -318,7 +318,7 @@ porque a ação é a de root.
   - **Capturas antigas.** As de `docs/capturas/` (`painel.png`, `painel-leitura.png`,
     `painel-areas.png`, `painel-forma.png`) mostram o painel antigo.
   - **Clone.** Ele aponta para `github.com/AndreBFarias/MeowSystem` (`:40`). É a decisão 22, mas
-    o `fork/master` está 5 commits atrás do `dev`, e o `origin` (vitoriamariadb) está 1022 atrás
+    o `fork/master` está 5 commits atrás do `dev`, e o `origin` ([REDACTED]) está 1022 atrás
     (último push em 28/09).
   - **Autoria.** Ninguém é nomeado como autor; o `LICENSE` é o GPL-3.0 sem titular.
 - **Estrutura proposta** (uma tela antes da primeira rolagem; o resto em `docs/`):
@@ -358,7 +358,7 @@ porque a ação é a de root.
     - «Esta tela num arquivo».
   - Clicar «Créditos» abre o GitHub, não os créditos. Sem `origin` (um zip, um clone sem remoto),
     o item some.
-  - Hoje o `origin` é `vitoriamariadb/MeowSystem`, 1022 commits atrás. Quem clica cai num README
+  - Hoje o `origin` é `[REDACTED]/MeowSystem`, 1022 commits atrás. Quem clica cai num README
     de setembro.
   - `docs/CREDITOS.md` (136 linhas) lista os terceiros e «O que é deste projeto», mas não nomeia
     autora nem coautor.
@@ -369,7 +369,7 @@ porque a ação é a de root.
   - O `fork/dev` tem 1 à frente: é o `16927be8`, o mesmo `HEAD` do `dev` daqui.
   - O `fork/theme-packs` tem 0 à frente.
   - **Conclusão:** o fork não traz código novo. Ele já É este histórico (autores no `master`:
-    AndreBFarias 1022 commits, vitoriamariadb 159, «[REDACTED]» 21).
+    AndreBFarias 1022 commits, [REDACTED] 159, «[REDACTED]» 21).
   - O que falta é: o `origin` receber o histórico; e o README e os créditos nomearem os dois.
 - **Cura na origem.**
   1. «Créditos» vira uma janela do próprio painel (o mesmo `<dialog>` da casa), lida de
@@ -422,7 +422,7 @@ a troca da receita local por um clone pinado.
 | o quê | onde | quem escreve |
 |---|---|---|
 | quais extensões ela quer | `meow.conf`, chave nova `EXTENSOES="now-playing leitura …"` (lista) | o painel, por `/api/definir`; o conf é a verdade das etapas |
-| o catálogo de fábrica | `assets/extensoes/catalogo.tsv` (id, URL `https://github.com/vitoriamariadb/meowsystem-<id>`, commit pinado) | o repositório |
+| o catálogo de fábrica | `assets/extensoes/catalogo.tsv` (id, URL `https://github.com/[REDACTED]/meowsystem-<id>`, commit pinado) | o repositório |
 | as que ela adicionou | `~/.config/meowsystem/extensoes.tsv` (id, URL, commit pinado, `origem=usuario`) | o servidor, no «Adicionar» |
 | o manifesto | `meowsystem-extensao.json` na raiz de cada repo: `id`, `app_id` (`io.github.meowsystem.*`), `binario`, `build` (`cargo build --release --locked`), `desktop` (`data/*.desktop.in`), `substitui` (lista de app ids) | o repositório da extensão |
 | fonte, alvo e carimbo | `$MEOW_ESTADO/extensoes/<id>/{src,target,carimbo}` | a etapa |
@@ -529,7 +529,7 @@ deixa a segunda passada sem `cargo`.
   aplicação silenciosa com desfazer. Isso é decisão nova, e não está escrita.
 - **Decisão 22** (`02-decisoes.md:30`): «O dev vai para o master do fork AndreBFarias/MeowSystem,
   e o README aponta para lá». O pedido de agora (fundir o fork, André coautor, applets em
-  `vitoriamariadb/…`) sugere que o repositório da casa é o `vitoriamariadb/MeowSystem`. O clone
+  `[REDACTED]/…`) sugere que o repositório da casa é o `[REDACTED]/MeowSystem`. O clone
   do README e o «Créditos» seguem a 22 até ela dizer outra coisa.
 - **Decisão 9** (`02-decisoes.md:17`): pack de terceiro não instala extensão do VS Code porque
   integridade não é confiança. O «Adicionar» de applet de terceiro (Q3-10) é o mesmo risco em
@@ -543,11 +543,11 @@ deixa a segunda passada sem `cargo`.
 
 1. **Extensões: porta própria ou seção do «Manter»?** Uma porta a mais no topo, ou um bloco
    dentro de Manter.
-2. **Adicionar applet de qualquer repositório, ou só de `github.com/vitoriamariadb/meowsystem-*`?**
+2. **Adicionar applet de qualquer repositório, ou só de `github.com/[REDACTED]/meowsystem-*`?**
    Abrir para qualquer URL é código arbitrário compilando na máquina dela.
-3. **Repositório da casa:** o README e o «Créditos» apontam para `vitoriamariadb/MeowSystem` ou
+3. **Repositório da casa:** o README e o «Créditos» apontam para `[REDACTED]/MeowSystem` ou
    para `AndreBFarias/MeowSystem` (decisão 22)? E quem empurra os 1022 commits para o `origin`?
 4. **`LICENSE` com titulares** «Vitória Maria, André Farias»? E com qual nome dela (o de commit
-   é «vitoriamariadb»)?
+   é «[REDACTED]»)?
 5. **«Cada controle aplica ao soltar»:** aceita que isso exige rodar uma etapa por vez (Q3-07 a),
    contra a regra do `install.sh` de não escolher etapa pela linha de comando?

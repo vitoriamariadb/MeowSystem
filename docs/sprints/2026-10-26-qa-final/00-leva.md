@@ -6,12 +6,12 @@ Nada aqui pede pergunta: tudo que faltava decidir está em `ANDAMENTO.md`. Se al
 escolha o caminho que respeita GSD.md, anote em `## Execução` no fim da sua sprint e siga.
 
 ## Onde trabalhar
-- Worktree `/home/vitoriamaria/Desenvolvimento/MeowSystem-pNNN`, branch `sprint/pNNN`, criada a partir
+- Worktree `~/Desenvolvimento/MeowSystem-pNNN`, branch `sprint/pNNN`, criada a partir
   do `dev` (o coordenador cria antes de você começar). Nunca o checkout principal.
 - Os relatórios citam `arquivo:linha` de antes do enxugamento B0 (que tirou todo comentário): as
   linhas mudaram. Ache pelo nome da função, do id ou do texto, nunca pelo número.
 - As fotos dos relatórios estão só no checkout principal:
-  `/home/vitoriamaria/Desenvolvimento/MeowSystem/docs/sprints/2026-10-26-qa-final/relatorios/fotos/`.
+  `~/Desenvolvimento/MeowSystem/docs/sprints/2026-10-26-qa-final/relatorios/fotos/`.
 - As imagens que a usuária mandou: `/tmp/claude-1000/-home-vitoriamaria-Desenvolvimento-MeowSystem/314702cb-6fd7-4227-9dcc-7970f525cc19/images/N.png`
   (podem ter sumido num reboot; os relatórios descrevem cada uma).
 
