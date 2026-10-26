@@ -1,16 +1,16 @@
 # Créditos
 
-O MeowSystem é uma casca. O que aparece na tela — a paleta, os glifos, as pastas,
-os cursores, as fontes, as imagens — quase tudo foi feito por outra pessoa, sob
-uma licença que permite isso. Esta página diz **quem**, **o quê** e **sob que
+O MeowSystem é de **Vitória Maria** ([vitoriamariadb](https://github.com/vitoriamariadb)) e
+**André Farias** ([AndreBFarias](https://github.com/AndreBFarias)). O que aparece na tela — a
+paleta, os glifos, as pastas, os cursores, as fontes, as imagens — quase tudo foi feito por outra
+pessoa, sob uma licença que permite isso. Esta página diz **quem**, **o quê** e **sob que
 licença**, com o link para o lugar de onde veio.
 
-A regra do projeto é antiga e não tem exceção: **nenhum acervo de terceiro entra
-sem licença registrada.** A auditoria fina de cada família mora ao lado do próprio
+**Nenhum acervo de terceiro entra sem licença registrada.** A auditoria fina de cada família mora ao lado do próprio
 acervo — [`packs/meowsystem/PROCEDENCIA.md`](../packs/meowsystem/PROCEDENCIA.md),
 [`packs/meowsystem/licencas/cursores.md`](../packs/meowsystem/licencas/cursores.md),
-[`docs/SONS.md`](../docs/SONS.md) e os `PROCEDENCIA.md` de
-`scripts/temas-de-apps/`. Esta página é o índice delas.
+[`docs/SONS.md`](../docs/SONS.md), os `PROCEDENCIA.md` de `scripts/temas-de-apps/` e o
+[`CREDITOS.md`](../packs/dracula/CREDITOS.md) do pack Dracula. Esta página é o índice delas.
 
 ---
 
@@ -40,8 +40,7 @@ licença.
 
 Os **52 desenhos autorais** de `packs/meowsystem/icones/apps/` e os **19 retoques à
 mão** (ali e em `biblioteca/`) são deste projeto, no dialeto
-do Arcticons mas sem copiar traço nenhum dele. A folha que descrevia o dialeto
-saiu do repositório em 23/10/2026; o git a guarda.
+do Arcticons mas sem copiar traço nenhum dele.
 
 ## Os papéis de parede
 
@@ -112,13 +111,11 @@ foram desenhados a partir de fotos deles ([`packs/meowsystem/mascote/`](../packs
 
 ## O que foi recusado, e por quê
 
-Registrado para a próxima pessoa não refazer a pesquisa:
-
 | candidato | por que ficou de fora |
 |---|---|
 | `Daveedmee/catppuccin-icons` | licença **não declarada**. Excluído pelo nome no `.gitignore`, com o motivo escrito ao lado da regra |
 | `cosmic-icons` (System76, CC BY-SA 4.0) | a silhueta é a mesma do `papirus-folders` em mauve; adotá-lo custaria um segundo dono de `scalable/places` para entregar o mesmo desenho |
-| sons do tema `freedesktop` | CC-BY-SA **3.0**, incompatível com a GPL-3.0 (só a 4.0 ganhou compatibilidade, em 2015) |
+| sons do tema `freedesktop` | CC-BY-SA **3.0**, incompatível com a GPL-3.0 (só a 4.0 é compatível) |
 | som do tema `Pop` | licença serviria; o som não — 0,35 s contra um debounce de 125 ms no `cosmic-osd` |
 
 ---
