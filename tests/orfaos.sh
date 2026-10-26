@@ -8,18 +8,11 @@ falhou() { printf 'FALHOU: %s\n' "$*" >&2; FALHAS=$((FALHAS + 1)); }
 passou() { printf 'ok: %s\n' "$*"; }
 
 ISENTOS=(
-  listar-apps.sh
-  coleta-meowsystem.sh
-  folha_conversor.py
-  folha_icones.py
-  folha_marcas.py
-  folha_proposta.py
   icones_orfaos.py
 )
 
 CONHECIDOS=(
   derivar_claro.py
-  folha_barra.py
 )
 
 na_lista() {
