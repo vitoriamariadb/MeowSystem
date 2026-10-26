@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# ponte-so-reserva.sh — o que a ponte põe em root vem só da reserva do install.
-#
-# O clone é gravável por quem usa. O wrapper e o hook do apt e a completion do
-# zsh viram root, e por isso só entram pela reserva que o install guardou com a
-# senha (0700 root, com o sha256 ao lado). Editar o repositório e chamar o verbo
-# sem senha não põe nada em root.
-#
-# Nada aqui roda como root. O sistema é uma pasta de brinquedo (`$SIS`), e a
-# ponte, a etapa do install.sh e o doctor rodam em cópias com os destinos
-# trocados. `sudo`, `visudo`, `systemctl` e `logger` são falsos; o `sudo` só
-# executa o que a cópia pediu, sem `-o root`, e nunca o sudo de verdade.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -29,7 +18,6 @@ mkdir -p "$SIS/usr/local/lib" "$SIS/usr/local/sbin" "$SIS/etc/sudoers.d" "$SIS/e
          "$CASA" "$FALSO"
 : > "$SUDO_LOG"; : > "$PONTE_LOG"
 
-# O clone de quem usa: só o que a etapa da ponte lê. É ele que o teste adultera.
 for f in scripts/ponte_root.sh scripts/reparar_ponte.sh scripts/meow-lancador-apt.sh \
          scripts/99-meow-lancador assets/ponte/meowsystem-ponte-reparo.service \
          assets/ponte/49-meowsystem-ponte-reparo.rules assets/zsh/_meow; do
@@ -38,7 +26,6 @@ done
 cp -a "$CLONE" "$T/clone.limpo"
 clone_limpo() { rm -rf "$CLONE"; cp -a "$T/clone.limpo" "$CLONE"; }
 
-# Os destinos de root, trocados pela pasta de brinquedo.
 trocar() {
   sed -e "s#/usr/local/lib/meowsystem#$SIS/usr/local/lib/meowsystem#g" \
       -e "s#/usr/local/sbin/meow-lancador-apt.sh#$WRAPPER#g" \
@@ -49,15 +36,11 @@ trocar() {
       -e "s#/etc/polkit-1#$SIS/etc/polkit-1#g"
 }
 
-# A ponte de brinquedo: a do repositório, com os destinos trocados, o PATH dos
-# falsos e sem `-o root -g root`. O resto é o código de verdade.
 PONTE_TOY="$T/ponte-brinquedo.sh"
 sed -e "s#^export PATH=.*#export PATH=\"$FALSO:/usr/bin:/bin\"#" -e 's/ -o root -g root//g' \
   "$RAIZ/scripts/ponte_root.sh" | trocar > "$PONTE_TOY"
 chmod 755 "$PONTE_TOY"
 
-# O sudo falso: a ponte instalada vira a de brinquedo (a regra a libera sem
-# senha); o resto roda como quem chamou, sem `-o`/`-g`, e fica no registro.
 cat > "$FALSO/sudo" <<FIM
 #!/bin/bash
 [ "\${1:-}" = -n ] && shift
@@ -86,8 +69,7 @@ for f in etapa_ponte_root etapa_lancador_apt; do
   sed -n "/^$f() {/,/^}/p" "$RAIZ/install.sh"
 done | trocar > "$ETAPA"
 
-# Uma etapa do install.sh, com o clone como repositório.
-etapa() {   # $1 = etapa_ponte_root | etapa_lancador_apt
+etapa() {
   env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" USER="$(id -un)" MEOW_RAIZ="$CLONE" \
          MEOW_PONTE="$BASE/ponte_root.sh" LANCADOR_SISTEMA=sim LIB="$RAIZ/lib/comum.sh" \
          ETAPA="$ETAPA" FUNCAO="$1" bash -c '
@@ -95,10 +77,8 @@ etapa() {   # $1 = etapa_ponte_root | etapa_lancador_apt
     . "$ETAPA"; "$FUNCAO"' 2>&1
 }
 
-# Um verbo da ponte instalada, como o painel e o doctor o chamam: sem senha.
 verbo() { env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" sudo -n "$BASE/ponte_root.sh" "$1" </dev/null 2>&1; }
 
-# O wrapper que o install preenche: o molde do clone com o clone, quem usa e a casa.
 preenchido() { sed -e "s|@ACERVO@|$CLONE|g" -e "s|@USUARIA@|$(id -un)|g" -e "s|@LAR@|$CASA|g" "$1"; }
 
 printf '\n--- 1. a reserva guarda tudo o que vira root, e os verbos copiam só dela ---\n'
@@ -122,7 +102,6 @@ rm -f "$PECAS"
 saida="$(etapa etapa_ponte_root)"; rc=$?
 confere "sem o sha256 das peças (install antigo), a etapa as guarda" '[ "$rc" = 1 ] && [ -f "$PECAS" ]' "$saida"
 
-# O repositório adulterado: o que quem usa pode editar sem senha.
 printf '\ntouch %s/pwned-wrapper\n' "$T" >> "$CLONE/scripts/meow-lancador-apt.sh"
 printf '\nDPkg::Post-Invoke { "touch %s/pwned-hook"; };\n' "$T" >> "$CLONE/scripts/99-meow-lancador"
 printf '\ntouch %s/pwned-completion\n' "$T" >> "$CLONE/assets/zsh/_meow"
@@ -135,7 +114,6 @@ confere "repositório adulterado: completion-instalar instala a da reserva" \
   '[ "$rc" = 0 ] && cmp -s "$RESERVA/_meow" "$COMPLETION" && ! grep -q pwned "$COMPLETION"' "$saida"
 clone_limpo
 
-# A reserva adulterada: o sha256 não confere, e nada se instala.
 rm -f "$WRAPPER" "$HOOK" "$COMPLETION"
 cp "$RESERVA/meow-lancador-apt.sh" "$T/wrapper.bom"; cp "$RESERVA/_meow" "$T/completion.boa"
 printf '\ntouch %s/pwned-reserva\n' "$T" >> "$RESERVA/meow-lancador-apt.sh"
@@ -154,7 +132,6 @@ saida="$(verbo completion-instalar)"; rc=$?
 confere "um nome a mais no sha256 das peças: sai 4 e nada se instala" '[ "$rc" = 4 ] && [ ! -e "$COMPLETION" ]' "$saida"
 cp -f "$T/pecas.boas" "$PECAS"
 
-# Install antigo: a reserva sem as peças. O verbo não cai no repositório.
 mv "$PECAS" "$T/pecas.guardadas"
 saida="$(verbo apt-hook-instalar)"; rc=$?
 confere "sem as peças na reserva: apt-hook-instalar sai 3 e não lê o repositório" \
@@ -175,7 +152,7 @@ DOCTOR="$T/doctor.sh"
 for f in _lancadorapt_igual_a_reserva chk_lancadorapt fix_lancadorapt; do
   sed -n "/^$f() {/,/^}/p" "$RAIZ/bin/meow"
 done | trocar > "$DOCTOR"
-doctor() {   # $1 = chk_lancadorapt | fix_lancadorapt
+doctor() {
   env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" RAIZ="$CLONE" MEOW_RAIZ="$CLONE" \
          MEOW_PONTE="$BASE/ponte_root.sh" LANCADOR_SISTEMA=sim LIB="$RAIZ/lib/comum.sh" \
          DOCTOR="$DOCTOR" FUNCAO="$1" bash -c '. "$LIB"; . "$DOCTOR"; "$FUNCAO"' 2>&1
@@ -233,18 +210,13 @@ mv "$T/pecas.guardadas" "$PECAS"
 clone_limpo
 
 printf '\n--- 3. a varredura: todo verbo que escreve em root, e de onde vem o que ele escreve ---\n'
-# A ponte que se varre (PONTE_VARRER troca, para conferir a de antes da P108).
 VARRER="${PONTE_VARRER:-$RAIZ/scripts/ponte_root.sh}"
-# O código sem comentário, com o verbo de cada linha na frente: `verbo<TAB>linha`.
 por_verbo() {
   sed 's/#.*$//' "$VARRER" | awk '
     /^[a-z][a-z-]*\)[ \t]*$/ { v = $0; sub(/\).*/, "", v); next }
     /^[ \t]*;;/ { v = ""; next }
     v != "" { print v "\t" $0 }'
 }
-# Os verbos que escrevem em destino de root, e a origem do que escrevem. Um verbo
-# novo que escreve tem de entrar aqui com a origem dele, e a origem não pode ser
-# o clone: ou é a reserva do install, ou é dado que não vira código de root.
 declare -A ORIGEM=(
   [desktop]="stdin: o .desktop que já existe, editado; dado de aplicativo, que roda como quem o abre"
   [greeter-aplicar]="stdin: um tar, extraído para o lar do cosmic-greeter, com o dono dele"
@@ -266,16 +238,10 @@ for v in apt-hook-instalar completion-instalar; do
   confere "$v copia da reserva, e não do perfil" \
     'grep -q "da_reserva" <<< "$bloco" && ! grep -q "PERFIL" <<< "$bloco"'
 done
-# Toda cópia para root parte de um temporário do próprio verbo, preenchido pelo
-# stdin, pela reserva ou pelo arquivo de root que ele edita: nunca de um caminho.
 copias="$(por_verbo | awk -F'\t' '$2 ~ /(^|[ \t])(install -m|cp -a) / && $2 !~ /"\$tmp[_a-z]*(\/\.)?" "/ { print $1 ": " $2 }')"
 confere "toda cópia para root parte de um temporário do verbo" '[ -z "$copias" ]' "$copias"
 
 printf '\n--- 4. o wrapper do apt roda o clone como quem usa, nunca como root ---\n'
-# O wrapper vem da reserva, mas os alvos dele (`ocultar_apps.sh` e
-# `nomes_apps.sh`) moram no clone, e o log e o estado, no lar. O apt o chama como
-# root. Aqui o `id` falso diz 0 até o `runuser` falso trocar de uid; o alvo do
-# clone grava o uid que vê. Nada roda como root de verdade.
 FALSO_W="$T/falso-wrapper"; CLONE_W="$T/clone-w"; CASA_W="$T/casa-w"; UIDS="$T/uids"; RUNUSER_LOG="$T/runuser.log"
 mkdir -p "$FALSO_W" "$CLONE_W/scripts" "$CASA_W/.local/state/meowsystem"
 cat > "$FALSO_W/id" <<FIM

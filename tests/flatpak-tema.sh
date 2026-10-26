@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# flatpak-tema.sh — os apps Flatpak vestem o tema do pack no ar, numa casa de
-# brinquedo.
-#
-# A casa tem um `flatpak` falso que só sabe `override --user` (grava o keyfile do
-# usuário e registra a chamada), um `gsettings` falso, temas de brinquedo e uma
-# cópia da ponte root com os destinos trocados. `sudo` só executa essa cópia.
-# O flatpak, o sudo e o /var/lib/flatpak de verdade nunca são tocados.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FT="$RAIZ/scripts/flatpak_tema.sh"
@@ -59,22 +52,19 @@ ordem = [g for g in ("Context", "Environment") if g in grupos] + [g for g in gru
 open(arq, "w").write("\n".join("[%s]\n%s\n" % (g, "\n".join("%s=%s" % (k, v) for k, v in grupos[g])) for g in ordem))
 FIM
 chmod 755 "$T/bin/gsettings" "$T/bin/flatpak"
-# sudo: só executa a ponte de brinquedo, e só com a ponte "ligada".
 cat > "$T/bin/sudo" <<FIM
 #!/bin/sh
 if [ "\$1" = "-n" ] && [ "\$2" = "$PONTE_DIR/ponte_root.sh" ] && [ -f "$T/ponte-ligada" ]; then shift; exec "\$@"; fi
 echo "sudo \$*" >> "$SUDO_LOG"; exit 1
 FIM
 chmod 755 "$T/bin/sudo"
-# A cópia da ponte: os destinos literais trocados pelos de brinquedo; o resto é o
-# código de verdade. Sem root: o dono é quem roda.
 sed -e "s#^FLATPAK_GLOBAL=.*#FLATPAK_GLOBAL=\"$GLOBAL\"#" -e "s#^USR_SHARE=.*#USR_SHARE=\"$SIS\"#" \
     -e "s#^PERFIL=.*#PERFIL=\"$PONTE_DIR/perfil\"#" -e 's#-o root -g root##' \
     -e 's#^anotar() {#anotar() { return 0#' "$RAIZ/scripts/ponte_root.sh" > "$PONTE_DIR/ponte_root.sh"
 chmod 755 "$PONTE_DIR/ponte_root.sh"
 printf 'lar=%s\n' "$CASA" > "$PONTE_DIR/perfil"
 
-rodar() { # $1.. = argumentos do flatpak_tema.sh
+rodar() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
       FLATPAK_USER_DIR="$CASA/.local/share/flatpak" FLATPAK_SYSTEM_DIR="$FSYS" FLATPAK_TEMA_SISTEMA="$SIS" \
       FLATPAK_LOG="$LOG" MEOW_PONTE="$PONTE_DIR/ponte_root.sh" CURSOR="${CURSOR_DO_PACK-Dracula-Cursor}" \
@@ -83,10 +73,8 @@ rodar() { # $1.. = argumentos do flatpak_tema.sh
 env_de() { awk -v k="$2" '/^\[/ { g = $0; next } g == "[Environment]" && index($0, k "=") == 1 { print substr($0, length(k) + 2) }' "$1"; }
 chamadas() { grep -c 'override --user' "$LOG"; }
 
-# O estado de antes: o usuário já tinha um GTK_THEME e duas pastas liberadas.
 printf '[Context]\nshared=ipc;\nfilesystems=!home;xdg-config/gtk-3.0:ro;\n\n[Environment]\nGTK_THEME=Velho\n' > "$USUARIO"
 cp "$USUARIO" "$T/usuario-original"
-# O global do sistema: dois temas que não existem e um que existe.
 printf '[Context]\nfilesystems=xdg-config/gtk-4.0;/usr/share/themes;\n\n[Environment]\nGTK_THEME=adw-gtk3-dark\nICON_THEME=Dracula-Icones\nXCURSOR_THEME=Dracula-Cursor\n' > "$GLOBAL"
 cp "$GLOBAL" "$T/global-original"
 
@@ -171,7 +159,6 @@ confere "sem override de antes, o reverter tira o arquivo" '[ ! -e "$USUARIO" ]'
 confere "o lib/desinstalar.sh chama o reverter" 'grep -qE "flatpak_tema\.sh\" reverter" "$RAIZ/lib/desinstalar.sh"'
 
 printf '\n8. sem o que vestir ou sem flatpak, nada a fazer\n'
-# Um PATH que tem tudo de /usr/bin menos o flatpak: o de verdade nunca roda aqui.
 mkdir -p "$T/sem-flatpak"
 for b in /usr/bin/*; do [ "${b##*/}" = flatpak ] || ln -s "$b" "$T/sem-flatpak/${b##*/}" 2>/dev/null; done
 saida="$(env -i PATH="$T/sem-flatpak" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 FLATPAK_USER_DIR="$CASA/.local/share/flatpak" bash "$FT" aplicar usuario)"; rc=$?

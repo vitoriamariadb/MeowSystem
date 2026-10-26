@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# tests/miudos-do-install.sh — os dois miúdos do install real de 17/10.
-#
-#   1. `meow compositor` que compilou e guardou o build sai 0: sucesso que
-#      escreveu é sucesso (o 1 virava «falhou» na tela de quem rodou).
-#   2. nenhuma linha do doctor sai sem texto: com o Dracula no ar, a camada
-#      Catppuccin de aplicativos pula calada (decisão 22), e a linha diz o estado.
-#
-# HOME, cache e fonte de brinquedo; dpkg-query, make, cargo e patch falsos (o
-# make só cria o binário dentro do brinquedo); sudo recusa. Nada vai à rede.
-#
-# 0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -47,9 +36,6 @@ else
   printf 'ok: compilou, guardou e saiu 0\n'
 fi
 
-# O doctor inteiro, só lendo, com o Dracula no ar: nenhuma linha da tabela sem
-# texto. `kill`, `pkill` e `killall` viram funções que recusam, como no
-# tests/doctor-so-le.sh: o sinal não sai da casa de brinquedo.
 cp "$RAIZ/meow.conf.exemplo" "$TMP/casa/.config/meow/meow.conf"
 sed -i 's/^PACK=.*/PACK="dracula"/; s/^FLAVOR=.*/FLAVOR="dracula"/' "$TMP/casa/.config/meow/meow.conf"
 kill() { [ "${1:-}" = "-0" ] && { builtin kill "$@"; return; }; return 1; }
@@ -59,8 +45,6 @@ export -f kill pkill killall
 saida="$(env -u DBUS_SESSION_BUS_ADDRESS PATH="$TMP/falso:$PATH" HOME="$TMP/casa" NO_COLOR=1 \
   MEOW_RAIZ="$RAIZ" MEOW_PONTE="$TMP/sem-ponte" bash "$RAIZ/bin/meow" doctor 2>&1)"
 vazias="$(printf '%s\n' "$saida" | grep -E '^  (ok|~~|--|!!|erro) +[a-z0-9_]+ *$')"
-# Here-string, e não pipe: com o pipefail, o `grep -q` que acha cedo fecha o
-# pipe e o printf sai 141 numa saída grande.
 if ! grep -qE '^  [^ ]+ +arcticons ' <<< "$saida"; then
   reclamar "o doctor não chegou à linha arcticons (o teste não prova nada)\n$(printf '%s\n' "$saida" | tail -5)"
 elif [ -n "$vazias" ]; then

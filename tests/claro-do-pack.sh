@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# claro-do-pack.sh — o claro do Dracula é o Alucard, na foto e em toda derivada de acento.
-#
-# Mexer na Dark da foto é outra decisão, e quem a tomar troca este número junto.
-#
-# COSMIC, casa, estado e os DOIS packs são de brinquedo: a derivada de acento
-# nasce dentro do pack no ar.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -24,11 +18,9 @@ cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
 CAT="$PACKS/meowsystem/temas/capturados"; DRA="$PACKS/dracula/temas/capturados"
 FOTO="$RAIZ/packs/dracula/temas/capturados/dracula-mauve"
 
-# COM `--ignored` NOS PACKS: a derivada se esconde do git sozinha (o
-# `.gitignore` dela), e um `status` comum não a veria nascer no clone.
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null; git -C "$RAIZ" status --porcelain --ignored -- packs 2>/dev/null)"
 
-conf() {   # conf <flavor> <acento> <pack> <modo>
+conf() {
   printf 'FLAVOR="%s"\nACCENT="%s"\nMODO="%s"\nPACK="%s"\nLOGO="coquinha"\n' "$1" "$2" "$4" "$3" > "$CONF"
 }
 amb() {
@@ -37,15 +29,13 @@ amb() {
     MEOW_PONTE=/caminho/inexistente LANG=C.UTF-8 NO_COLOR=1 "$@"
 }
 
-# As etapas do install.sh, pelo nome, num shell com a ponte do conf — o mesmo
-# arranjo do tests/variante.sh.
 ETAPAS="$T/etapas.sh"
 { sed -n '/^etapa_gerar() {$/,/^}$/p' "$RAIZ/install.sh"
   sed -n '/^etapa_tema() {$/,/^}$/p' "$RAIZ/install.sh"
   sed -n '/^etapa_modo() {$/,/^}$/p' "$RAIZ/install.sh"; } > "$ETAPAS"
 grep -q '^etapa_gerar() {' "$ETAPAS" && grep -q '^etapa_tema() {' "$ETAPAS" && grep -q '^etapa_modo() {' "$ETAPAS" \
   || { printf 'erro: não achei etapa_gerar/etapa_tema/etapa_modo no install.sh\n' >&2; exit 2; }
-etapa() {   # etapa <gerar|tema|modo> — devolve a saída; o código fica em $T/rc
+etapa() {
   amb bash -c '
     . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1
     set -a; . "$MEOW_CONF"; set +a
@@ -57,14 +47,12 @@ etapa() {   # etapa <gerar|tema|modo> — devolve a saída; o código fica em $T
   printf '%s' "$?" > "$T/rc"
 }
 rc() { cat "$T/rc"; }
-arvores_iguais() {   # arvores_iguais <captura> <Dark|Light>: a do COSMIC é a da captura, byte a byte
-  # Menos as `CHAVES_DELA` do aplicar_tema.sh (o vidro que a GUI dela escolhe e
-  # o do vidro.sh): elas só se escrevem onde faltam.
+arvores_iguais() {
   local x=(-x frosted -x alpha_map -x frosted_maximized_apps)
   diff -r "${x[@]}" "$1/com.system76.CosmicTheme.$2" "$COSMIC/com.system76.CosmicTheme.$2" >/dev/null \
     && diff -r "${x[@]}" "$1/com.system76.CosmicTheme.$2.Builder" "$COSMIC/com.system76.CosmicTheme.$2.Builder" >/dev/null
 }
-sem_latte() {   # sem_latte <dir>: os hex das duas árvores Light que são do Latte e não do alucard
+sem_latte() {
   python3 - "$1" "$PACKS" <<'PY'
 import json, re, sys
 from pathlib import Path
@@ -78,7 +66,6 @@ print(" ".join(sorted(vistos & (latte - alucard))))
 PY
 }
 
-# --- 1. a foto é a derivação de hoje, e o manifesto confere ----------------
 saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/dracula" MEOW_PACKS= \
   python3 "$RAIZ/scripts/derivar_flavor.py" --conferir dracula-mauve 2>&1)"; r=$?
 [ "$r" = "0" ] && [[ "$saida" == *"o claro já é o do alucard-mauve"* ]] \
@@ -98,7 +85,6 @@ n="$(grep -cE '  \./com\.system76\.CosmicTheme\.(Dark|Dark\.Builder|Mode)/' "$FO
   && ok "a Dark, a Dark.Builder e o Mode da foto são os de antes (109 arquivos, o mesmo sha256)" \
   || falha "a Dark da foto mudou ($n linhas, $dark)"
 
-# --- 3. FLAVOR=dracula, MODO=claro: a Light é o alucard ---------------------
 cp -a "$DRA/dracula-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
 cp -a "$CAT/latte-mauve"/com.system76.CosmicTheme.Light* "$COSMIC/"
 [ "$(cat "$COSMIC/com.system76.CosmicTheme.Light/v2/name")" = '"catppuccin-latte"' ] \
@@ -129,7 +115,6 @@ arvores_iguais "$DRA/dracula-mauve" Light \
   && ok "a Light do COSMIC é a da foto, byte a byte" \
   || falha "a Light do COSMIC não é a da foto"
 
-# --- 4. MODO=escuro: a Dark é a de hoje, byte a byte -----------------------
 conf dracula mauve dracula escuro
 saida_m="$(etapa modo)"
 [ "$(cat "$COSMIC/com.system76.CosmicTheme.Mode/v1/is_dark")" = "true" ] \
@@ -138,7 +123,6 @@ saida_m="$(etapa modo)"
   && ok "com MODO=escuro o is_dark é true, e a Dark e a Dark.Builder do COSMIC são as da foto, byte a byte" \
   || falha "a Dark do COSMIC não é a da foto com MODO=escuro" "$saida_m"
 
-# --- 5. o acento: o claro do dracula-pink é o alucard-pink ------------------
 conf dracula pink dracula claro
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
 saida_t="$(etapa tema)"; rc_t="$(rc)"
@@ -161,7 +145,6 @@ grep -qxF "claro: o do alucard-pink, derivado de latte-mauve (scripts/derivar_fl
   && grep -q "^origem: derivada de dracula-mauve" "$DRA/dracula-pink/captura.txt" \
   && ok "o captura.txt da derivada diz a base e de onde veio o claro" \
   || falha "o captura.txt do dracula-pink não diz de onde veio o claro" "$(cat "$DRA/dracula-pink/captura.txt")"
-#   A MESMA Light que o FLAVOR=alucard mostra: a regra do lado é uma só.
 saida="$(amb env MEOW_PACK_DIR="$PACKS/dracula" MEOW_PALETA="$PACKS/dracula/paleta.json" \
   python3 - "$RAIZ" "$DRA/dracula-pink" <<'PY' 2>&1
 import json, os, sys
@@ -186,8 +169,6 @@ PY
   && ok "a Light do dracula-pink é a do alucard-pink, byte a byte ($saida)" \
   || falha "a Light do dracula-pink não é a que o FLAVOR=alucard mostra" "$saida"
 
-# Escolher o pink de novo («Salvar e aplicar») passa pela etapa gerar, e ela
-# confere a derivada contra a conta e a refaz.
 cp -a "$CAT/latte-mauve"/com.system76.CosmicTheme.Light* "$DRA/dracula-pink/"
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
 [ "$rc_g" = "1" ] && [[ "$saida_g" == *"o claro é o do alucard-pink"* ]] \
@@ -195,7 +176,6 @@ saida_g="$(etapa gerar)"; rc_g="$(rc)"
   && ok "a derivada com o Latte no claro se refaz na etapa gerar" \
   || falha "a derivada velha não se refez (gerar=$rc_g)" "$saida_g"
 
-# --- 7. converge: a segunda passagem não escreve nada ----------------------
 etapa tema >/dev/null
 saida_g2="$(etapa gerar)"; rc_g2="$(rc)"
 saida_t2="$(etapa tema)"; rc_t2="$(rc)"
@@ -204,9 +184,6 @@ saida_t2="$(etapa tema)"; rc_t2="$(rc)"
   || falha "a segunda passagem ainda escreve (gerar=$rc_g2 tema=$rc_t2)" "$saida_g2
 $saida_t2"
 
-# --- 8. o Catppuccin não muda: o claro dele tem foto ------------------------
-# A regra vale quando o par do outro lado NUNCA foi fotografado. O latte tem
-# foto, e a derivada de acento do mocha continua levando a Light da base.
 saida="$(amb env MEOW_PACK_DIR="$PACKS/meowsystem" MEOW_PALETA="$PACKS/meowsystem/paleta.json" \
   python3 - "$RAIZ" <<'PY' 2>&1
 import json, os, sys
@@ -235,7 +212,6 @@ saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/meowsystem" MEOW_PACKS= \
   && ok "o derivar_flavor.py não mexe na foto mocha-pink, e diz por quê" \
   || falha "o derivar_flavor.py quis mexer numa foto do Catppuccin (rc=$r)" "$saida"
 
-# --- 9. o repositório não mudou --------------------------------------------
 [ "$(git -C "$RAIZ" status --porcelain 2>/dev/null; git -C "$RAIZ" status --porcelain --ignored -- packs 2>/dev/null)" = "$git_antes" ] \
   && ok "o repositório saiu como entrou" \
   || falha "o teste mexeu no repositório" "$(git -C "$RAIZ" status --porcelain)"

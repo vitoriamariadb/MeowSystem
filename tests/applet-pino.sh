@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# applet-pino.sh — o applet só recompila quando o libcosmic do painel diverge
-# do pino dele?
-# Nada de rede, de cargo de verdade, de sudo nem do HOME de verdade.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT

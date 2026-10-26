@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# O `afinar_conversor.py` é esse gerador — ele escolhe os botões do conversor
-# por busca, contra a faixa derivada dos 39 Arcticons desenhados à mão. O que
-# este teste prende não é o resultado da busca (esse muda quando o acervo muda,
-# e deve mudar): é o CONTRATO dela com o repositório.
-#
-#   3. RECEITA JÁ ESCRITA NÃO É SOBRESCRITA SEM `--refazer`. As três receitas do
-#      mapa (Brave, Foliate, FileRoller) são escolha dela na bancada. A busca
-#      DISCORDA de duas delas — e discordar é informação, não permissão.
-#
-#   0 = o contrato vale · 1 = quebrou · 2 = erro · 3 = falta dependência
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 AFINA="$RAIZ/scripts/afinar_conversor.py"
@@ -26,11 +16,8 @@ python3 -c 'import numpy' 2>/dev/null || { printf 'pulado: falta numpy\n'; exit 
 [ -f "/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg" ] \
   || { printf 'pulado: o Papirus não está nesta máquina\n'; exit 0; }
 
-# --------------------------------------------------------------- 2. não escreve
 antes="$(md5sum "$MAPA" | cut -d' ' -f1)"
 
-# A Calculadora e o FileRoller: uma é o caso da tranca, o outro é o caso da
-# receita escrita.
 python3 "$AFINA" --grade-teste --so org.gnome.Calculator --so org.gnome.FileRoller \
   --json >"$T/saida.json" 2>"$T/err"
 rc=$?
@@ -51,21 +38,18 @@ for x in d["linhas"]:
         break
 ' "$T/saida.json" "$1" "$2"; }
 
-# ------------------------------------------------------------- 1. a tranca
 forma="$(metrica org.gnome.Calculator forma)"
 if [ -n "$forma" ] && [ "$forma" -le 138 ]; then
   ok "Calculadora: a proposta fica a $forma px de 2304 do padrão (teto 138)"
 else
   falha "Calculadora: a proposta está a '${forma:-?}' px — a tranca de forma não mordeu"
 fi
-# E o desfecho concreto daquele caso: sem tranca a busca queria `--k 2`.
 receita="$(metrica org.gnome.Calculator receita)"
 case "$receita" in
   *"--k 2 "*) falha "Calculadora: a busca voltou a escolher --k 2, que é o nó" ;;
   *)          ok "Calculadora: a proposta não é o --k 2 que destruía o teclado" ;;
 esac
 
-# ------------------------------------------------- 3. o escrito não se apaga
 escrito="$(metrica org.gnome.FileRoller escrito)"
 [ -n "$escrito" ] \
   && ok "FileRoller: o afinador enxerga a receita escrita ('$escrito')" \
@@ -74,9 +58,6 @@ grep -q "^org.gnome.FileRoller:.*:--k 10 --funde 36 --tol 3.4$" "$MAPA" \
   && ok "FileRoller: a receita dela continua no mapa, intacta" \
   || falha "FileRoller: a receita dela saiu do mapa"
 
-# ------------------------------------- a proposta é do dialeto, sempre
-# Uma busca que devolvesse bandeira fora da forma canônica quebraria a cerca
-# `_RE_PARAMETROS_DESENHO` do app/servidor.py, e só apareceria na tela dela.
 for nome in org.gnome.Calculator org.gnome.FileRoller; do
   r="$(metrica "$nome" receita)"
   if printf '%s' "$r" | grep -qE '^--k [0-9]{1,2} --funde [0-9]{1,3} --tol [0-9]{1,2}(\.[0-9])?( --peso-fronteira [0-9]{1,3})?( --min-traco [0-9]{1,2}(\.[0-9])?)?$'; then

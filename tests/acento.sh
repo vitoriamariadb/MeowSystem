@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# acento.sh — escolher a cor de destaque e aplicar muda o COSMIC, sem passo à mão.
-#
-# O COSMIC, a casa, o estado e o PACK são de brinquedo: o `packs/dracula` vai
-# copiado para um `$MEOW_PACKS` temporário, porque a captura derivada nasce
-# dentro do pack no ar — e o teste confere, no fim, que o repositório não ganhou
-# nem perdeu um arquivo.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -20,20 +14,16 @@ CONF="$CASA/.config/meow/meow.conf"
 mkdir -p "$(dirname "$CONF")" "$COSMIC" "$PACKS" "$ESTADO"
 cp -a "$RAIZ/packs/dracula" "$PACKS/" || exit 2
 CAPS="$PACKS/dracula/temas/capturados"
-# A captura derivada mora DENTRO do pack, fora do git, e uma máquina em que a
-# pessoa já escolheu o rosa tem a `dracula-pink` ali.
 for cap in "$CAPS"/*/; do
   grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
 done
 
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null)"
 
-# O pack de brinquedo é um repositório: é assim que se vê que a captura
-# derivada, que nasce DENTRO dele, não aparece no `git status` de ninguém.
 git -C "$PACKS" init -q >/dev/null 2>&1 \
   || { printf 'erro: não consegui criar o repositório de brinquedo\n' >&2; exit 2; }
 
-conf() {   # conf <flavor> <acento> <pack>
+conf() {
   printf 'FLAVOR="%s"\nACCENT="%s"\nMODO="escuro"\nPACK="%s"\nLOGO="coquinha"\n' "$1" "$2" "$3" > "$CONF"
 }
 amb() {
@@ -42,7 +32,6 @@ amb() {
     LANG=C.UTF-8 NO_COLOR=1 "$@"
 }
 
-# As duas etapas do install.sh, pelo nome, num shell com a ponte do conf.
 ETAPAS="$T/etapas.sh"
 { sed -n '/^etapa_gerar() {$/,/^}$/p' "$RAIZ/install.sh"
   sed -n '/^etapa_tema() {$/,/^}$/p' "$RAIZ/install.sh"; } > "$ETAPAS"
@@ -52,10 +41,7 @@ ordem="$(grep -o 'etapa_gerar etapa_tema' "$RAIZ/install.sh" | head -n1)"
 [ -n "$ordem" ] && ok "no install.sh a etapa gerar vem logo antes da etapa tema" \
   || falha "a lista de etapas do install.sh não tem mais 'etapa_gerar etapa_tema' em sequência"
 
-# O `TEMA_NAO_APLICADO` é o recado da etapa `tema` para o fim do `main` do
-# install.sh (que não roda aqui): com ele preenchido, o instalador sai 1 e não
-# diz «Pronto». Ele fica em $T/nao_aplicado, para o passo 7 conferir.
-etapa() {   # etapa <gerar|tema> — devolve a saída; o código fica em $T/rc
+etapa() {
   amb bash -c '
     . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1
     set -a; . "$MEOW_CONF"; set +a
@@ -70,14 +56,13 @@ etapa() {   # etapa <gerar|tema> — devolve a saída; o código fica em $T/rc
 }
 rc() { cat "$T/rc"; }
 
-campo() {   # campo <arquivo> <nome>: o valor de "nome: ..." no primeiro nível
+campo() {
   sed -n "s/^    $2: \"\\(#[0-9A-F]*\\)\",\$/\\1/p" "$1" | head -n1
 }
-floats() {  # os três canais do `base:` de um arquivo da v1 (floats)
+floats() {
   awk '/^    base: \(/{f=1;next} f&&/red:/{r=$2} f&&/green:/{g=$2} f&&/blue:/{b=$2; print r g b; exit}' "$1"
 }
 
-# --- 1. o Dracula no ar, com o mauve aplicado: o ponto de partida ----------
 cp -a "$CAPS/dracula-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
 conf dracula pink dracula
 antes_v2="$(campo "$COSMIC/com.system76.CosmicTheme.Dark/v2/accent" base)"
@@ -86,7 +71,6 @@ antes_v1="$(floats "$COSMIC/com.system76.CosmicTheme.Dark/v1/accent")"
   && ok "antes: o COSMIC de brinquedo está no mauve do Dracula, e não há captura dracula-pink" \
   || falha "o ponto de partida não é o esperado (v2 accent=$antes_v2)"
 
-# --- 2. «Salvar e aplicar» com ACCENT=pink --------------------------------
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
 saida_t="$(etapa tema)"; rc_t="$(rc)"
 if [ "$rc_g" = "1" ] && [[ "$saida_g" == *"dracula-pink: derivada de dracula-mauve"* ]]; then
@@ -104,7 +88,6 @@ case "$saida_g$saida_t" in
   *) ok "nenhuma linha manda importar na GUI nem capturar à mão" ;;
 esac
 
-# --- 3. o COSMIC mudou onde o acento pinta ---------------------------------
 depois_v2="$(campo "$COSMIC/com.system76.CosmicTheme.Dark/v2/accent" base)"
 depois_v1="$(floats "$COSMIC/com.system76.CosmicTheme.Dark/v1/accent")"
 receita="$(cat "$COSMIC/com.system76.CosmicTheme.Dark.Builder/v2/accent")"
@@ -117,12 +100,10 @@ receita="$(cat "$COSMIC/com.system76.CosmicTheme.Dark.Builder/v2/accent")"
 [ "$receita" = 'Some("#FF79C6FF")' ] \
   && ok "a receita (Dark.Builder/v2/accent) diz o pink" \
   || falha "a receita não diz o pink: $receita"
-# O resto do que o acento pinta: o foco de todo componente e o botão de acento.
 focos="$(grep -h '^ *focus: "' "$COSMIC"/com.system76.CosmicTheme.Dark/v2/* | sed 's/^ *//' | sort -u)"
 [ "$focos" = 'focus: "#FF79C6FF",' ] \
   && ok "o foco de todos os componentes da Dark/v2 é o pink" \
   || falha "sobrou foco de outra cor na Dark/v2" "$focos"
-# E NADA que o acento não pinta: a receita da neutra, o vidro e a paleta ficam.
 iguais=1
 for rel in com.system76.CosmicTheme.Dark.Builder/v2/neutral_tint \
            com.system76.CosmicTheme.Dark.Builder/v2/frosted \
@@ -130,15 +111,11 @@ for rel in com.system76.CosmicTheme.Dark.Builder/v2/neutral_tint \
   cmp -s "$CAPS/dracula-mauve/$rel" "$COSMIC/$rel" || { iguais=0; falha "mudou o que o acento não pinta: $rel"; }
 done
 [ "$iguais" = "1" ] && ok "a neutra, o vidro e a paleta ficaram os da captura do mauve"
-# A LIGHT É A DO ALUCARD NO MESMO ACENTO Até aqui ela era a da captura do mauve,
-# copiada, e a do mauve era o Latte do Catppuccin. O tests/claro-do-pack.sh
-# confere a árvore inteira; aqui, o acento.
 claro="$(campo "$COSMIC/com.system76.CosmicTheme.Light/v2/accent" base)"
 [ "$claro" = "#ED77BBFF" ] \
   && ok "a Light/v2/accent é o pink do alucard ($claro), e não o mauve da captura da base" \
   || falha "a Light do dracula-pink não é a do alucard-pink: accent $claro"
 
-# --- 4. converge: a segunda passagem não escreve nada ----------------------
 saida_g2="$(etapa gerar)"; rc_g2="$(rc)"
 saida_t2="$(etapa tema)"; rc_t2="$(rc)"
 [ "$rc_g2" = "0" ] && [ "$rc_t2" = "0" ] \
@@ -146,12 +123,6 @@ saida_t2="$(etapa tema)"; rc_t2="$(rc)"
   || falha "a segunda passagem ainda escreve (gerar=$rc_g2 tema=$rc_t2)" "$saida_g2
 $saida_t2"
 
-# --- 4b. com a receita DELA diferente da captura, trocar o acento ainda chega
-# O COSMIC de brinquedo acima é cópia byte a byte da captura, e numa máquina
-# de verdade ele nunca é: com VIDRO_AO_MAXIMIZAR="sim" (o padrão do
-# meow.conf.exemplo) o `vidro.sh` grava `frosted_maximized_apps=true` onde o
-# dracula-mauve traz `false`, e o slider «Opacidade do vidro» dela move o
-# `alpha_map`.
 for f in "$COSMIC"/com.system76.CosmicTheme.*/v*/frosted_maximized_apps; do
   [ -f "$f" ] && printf 'true' > "$f"
 done
@@ -177,22 +148,14 @@ fi
   && ok "e o alpha_map dela e o frosted_maximized_apps do vidro.sh continuam os dela" \
   || falha "trocar o acento desfez o vidro dela"
 
-# A FRONTEIRA CONTINUA DE PÉ: com o MESMO tema, o que a GUI dela derivou do
-# slider vence a captura na manutenção. É o caso que motivou a cessão, e trocar
-# o acento não pode tê-lo reaberto.
 tb="$COSMIC/com.system76.CosmicTheme.Dark/v2/transparent_background"
 sed -i '0,/^    base: "#\([0-9A-F]\{6\}\)[0-9A-F]\{2\}"/s//    base: "#\171"/' "$tb"
 derivado="$(cat "$tb")"
 saida_t="$(etapa tema)"; rc_t="$(rc)"
-# O `cmp` contra a captura é o que impede esta prova de passar à toa: se o
-# `sed` acima não casar, não há derivação dela nenhuma a preservar.
 ! cmp -s "$tb" "$CAPS/dracula-green/com.system76.CosmicTheme.Dark/v2/transparent_background" \
   && [ "$rc_t" = "0" ] && [ "$(cat "$tb")" = "$derivado" ] \
   && ok "com o mesmo tema, o que a GUI dela derivou do vidro continua (a captura não o desfaz)" \
   || falha "a manutenção desfez o que a GUI dela derivou (rc=$rc_t)" "$saida_t"
-# Com o `alpha_map` de volta ao da captura, a mesma diferença na Dark/v2 é
-# defeito e se conserta, em vez de virar "a captura está velha: você mexeu em
-# Aparência".
 for f in "$COSMIC"/com.system76.CosmicTheme.Dark.Builder/v2/alpha_map \
          "$COSMIC"/com.system76.CosmicTheme.Dark/v2/alpha_map; do
   cp "$CAPS/dracula-green/${f#"$COSMIC"/}" "$f"
@@ -202,7 +165,6 @@ saida_t="$(etapa tema)"; rc_t="$(rc)"
   && ok "com só o frosted_maximized_apps do vidro.sh diferente, a Dark/v2 volta a ser a da captura" \
   || falha "o frosted_maximized_apps do vidro.sh foi tomado por vidro mexido na GUI (rc=$rc_t)" "$saida_t"
 
-# --- 5. a captura derivada é produto: o git não a vê -----------------------
 visto="$(git -C "$PACKS" status --porcelain --untracked-files=all -- dracula/temas/capturados 2>&1)"
 if [ -f "$CAPS/dracula-pink/.gitignore" ] && [[ "$visto" == *dracula-mauve* ]] \
    && [[ "$visto" != *dracula-pink* ]]; then
@@ -217,19 +179,12 @@ grep -q "^origem: derivada de dracula-mauve" "$CAPS/dracula-pink/captura.txt" \
   && ok "o captura.txt diz de qual captura ela saiu" \
   || falha "o captura.txt da derivada não diz a base" "$(cat "$CAPS/dracula-pink/captura.txt")"
 
-# --- 6. a GUARDA: uma captura que não se reproduz não serve de base --------
-#   O mocha-mauve desta árvore não fecha a conta com a receita que ele traz (o
-#   `accent_button.on` dele é de um COSMIC anterior); a base do mocha é o pink.
 saida="$(amb env MEOW_PACK_DIR="$RAIZ/packs/meowsystem" MEOW_PALETA="$RAIZ/packs/meowsystem/paleta.json" \
   python3 "$RAIZ/scripts/derivar_acento.py" --conferir mocha-green 2>&1)"; r=$?
 [ "$r" = "1" ] && [[ "$saida" == *"derivaria de mocha-pink"* ]] \
   && ok "o mocha deriva do mocha-pink, porque o mocha-mauve não se reproduz" \
   || falha "a escolha da base do mocha não passou pela guarda (rc=$r)" "$saida"
 
-# --- 7. o flavor sem base do mesmo lado não aplica, e vira pendência -------
-# O que não aplica agora é o flavor sem base NENHUMA do mesmo lado — e é esse o
-# caso que esta seção continua cobrando: um Catppuccin de brinquedo sem as duas
-# fotos escuras.
 cp -a "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
 rm -rf "$PACKS"/meowsystem/temas/capturados/mocha-*
 conf frappe pink meowsystem
@@ -252,9 +207,6 @@ grep -q "^tema-sem-captura	" "$ESTADO/pendencias.tsv" 2>/dev/null \
   && ok "e o recado some: o instalador volta a poder dizer «Pronto»" \
   || falha "o TEMA_NAO_APLICADO ficou com o tema aplicado" "$(cat "$T/nao_aplicado")"
 
-# --- 8. meow tema original recusa numa máquina que não é a dela ------------
-#   Num estado SEM backup: com o `-tema-PRIMEIRO-` que as etapas acima criaram,
-#   o `meow desfazer` devolveria o backup e nunca chegaria à guarda.
 ESTADO_LIMPO="$T/estado-limpo"; mkdir -p "$ESTADO_LIMPO"
 antes_md5="$(find "$COSMIC" -type f -exec md5sum {} + | sort | md5sum)"
 saida="$(amb env MEOW_ESTADO="$ESTADO_LIMPO" "$RAIZ/bin/meow" tema original 2>&1)"; r=$?
@@ -269,18 +221,15 @@ saida="$(amb env MEOW_ESTADO="$ESTADO_LIMPO" "$RAIZ/bin/meow" desfazer 2>&1)"; r
   && ok "e o meow desfazer continua recusando pela mesma guarda" \
   || falha "o meow desfazer perdeu a guarda (rc=$r)" "$saida"
 
-# A `origem:` da `original` não guarda caminho de máquina, e a guarda ainda
-# reconhece a máquina de onde a captura saiu.
 grep -q '^origem: /' "$RAIZ/assets/temas/capturados/original/captura.txt" \
   && falha "a captura 'original' guarda o caminho absoluto da máquina de onde saiu" \
   || ok "a captura 'original' não guarda caminho absoluto de máquina"
 GO="$T/guarda"; mkdir -p "$GO/assets/temas/capturados/original"
-# A origem como o capturar_tema.sh a escreve, com a função dele.
 origem_de() { bash -c "$(grep -m1 '^origem_da_maquina()' "$RAIZ/scripts/capturar_tema.sh")"'
   origem_da_maquina "$0"' "$1"; }
 printf 'captura: original\norigem: %s\n' "$(origem_de "$T/casa-dela/.config/cosmic")" \
   > "$GO/assets/temas/capturados/original/captura.txt"
-guarda() {   # guarda <COSMIC>: o rc da guarda_original do bin/meow
+guarda() {
   RAIZ="$GO" COSMIC="$1" NO_COLOR=1 bash -c '
     meow_erro() { :; }; meow_info() { :; }
     eval "$(sed -n "/^guarda_original() {\$/,/^}\$/p" "$0")"
@@ -292,7 +241,6 @@ guarda "$T/outra-casa/.config/cosmic"; g2=$?
   && ok "a guarda deixa passar na máquina de onde a captura saiu e recusa nas outras" \
   || falha "a guarda não lê a origem nova (mesma máquina rc=$g1, outra rc=$g2)"
 
-# --- 9. o repositório não mudou --------------------------------------------
 [ "$(git -C "$RAIZ" status --porcelain 2>/dev/null)" = "$git_antes" ] \
   && ok "o repositório saiu como entrou" \
   || falha "o teste mexeu no repositório" "$(git -C "$RAIZ" status --porcelain)"

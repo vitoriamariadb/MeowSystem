@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# PORTÁTIL: HOME, COSMIC e packs de brinquedo; bash e python3. 0 = passou · 1 =
-# falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ACHADOS=0
@@ -70,7 +68,7 @@ else
 fi
 
 printf '\n--- 4. LOGO_MODO vazio: o modo que vale chega à página ---\n'
-painel_logo() {  # <linhas do conf> — imprime o valendo_agora do LOGO_MODO
+painel_logo() {
   printf '%b' "$1" > "$T/logo.conf"
   env -i PATH="$T/falso:$PATH" HOME="$T/casa-logo" MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/logo.conf" \
     python3 - "$RAIZ/app" <<'PY' 2>&1
@@ -140,8 +138,6 @@ fi
 
 
 printf '\n--- 6. papéis de parede separados por pack (decisão de 23/10) ---\n'
-# `ativos/` com as duas coleções (o prefixo `tulip-` do Dracula, o `cat-` e a
-# curadoria do MeowSystem) e uma imagem que não é de pack nenhum.
 CP="$T/casa-pack"; BP="$CP/.local/share/backgrounds/meowsystem"
 mkdir -p "$BP/ativos" "$CP/.config/meow" "$CP/cosmic"
 cura="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" {print $1; exit}' "$RAIZ/packs/meowsystem/wallpapers/FONTES.tsv")"
@@ -213,8 +209,6 @@ env -i PATH="$GT/bin:$PATH" HOME="$GT/casa" USER=gata MEOW_RAIZ="$RAIZ" MEOW_PON
   || falha "o greeter.sh chamou sudo fora da ponte, ou não pulou (rc=$rg)" "$(cat "$GT/fora.log" "$GT/saida.log")"
 
 printf '\n--- 10. sem a ponte, nenhum sudo: o caminho vira pendência ---\n'
-# A senha é só do install (decisão 11): sem ponte, o .desktop do sistema, o banco
-# do lançador, o avatar e a tela de login ficam pendentes, sem `sudo`.
 SP="$T/sem-ponte"; mkdir -p "$SP/bin" "$SP/casa" "$SP/sistema" "$SP/greeter" "$SP/contas"
 cat > "$SP/bin/sudo" <<SUDO
 #!/bin/sh
@@ -249,7 +243,6 @@ grep -qx 'pode=1' "$SP/lib.log" && ! grep -qx 'escrever=0' "$SP/lib.log" && [ "$
        "$(cat "$SP/sudo.log" "$SP/lib.log"; tail -4 "$SP/greeter.log")"
 
 printf '\n--- 11. sem a ponte, o Icon= de sistema é pendência, e a saída não manda rodar sudo ---\n'
-# O tema de ícones de brinquedo faz o nome novo resolver também onde há `gi`.
 IA="$T/icon-abs"; mkdir -p "$IA/apps" "$IA/casa/.local/share/icons/Falso/scalable/apps"
 printf '[Icon Theme]\nName=Falso\nDirectories=scalable/apps\n[scalable/apps]\nSize=48\nType=Scalable\nMinSize=8\nMaxSize=512\n' \
   > "$IA/casa/.local/share/icons/Falso/index.theme"
@@ -271,7 +264,6 @@ chmod 755 "$IA/apps"
        "$(cat "$SP/sudo.log" "$IA/saida.log")"
 
 printf '\n--- 12. o avatar ilegível da tela de login não é trocado às cegas ---\n'
-# Sem ler o avatar atual não há como saber se ele é nosso: nada se escreve.
 AV="$T/av-ilegivel"; mkdir -p "$AV/bin" "$AV/casa" "$AV/contas"
 printf '<svg/>\n' > "$AV/contas/gata"; chmod 000 "$AV/contas/gata"
 cat > "$AV/bin/busctl" <<BUS

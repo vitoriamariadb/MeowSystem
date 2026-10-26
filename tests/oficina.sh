@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# Todo desenho de pack que veste um aplicativo DESTA máquina tem cartão na
-# oficina daquele aplicativo. O teto é zero.
-#
-# A oficina do Warehouse, que tem desenho feito à mão no pack, oferecia
-# converter e gerar em traço e dizia "já tem desenho convertido do projeto".
-#
-# Medido de novo, antes do conserto, pela MESMA porta que este teste usa: 18
-# desenhos casam um `Icon=` desta máquina (17 pelo nome do arquivo, e o
-# `guvcview.svg` pelo `apps.map`, que o põe na Câmera), e os 18 saíam sem
-# cartão.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -27,15 +17,12 @@ if not mod:
     print("FALHOU: o painel não carregou o scripts/pack.py", file=sys.stderr)
     sys.exit(1)
 
-# A oficina de verdade, sem requisição HTTP em volta: `__new__` pula o
-# construtor do BaseHTTPRequestHandler, que existe para ler um socket.
 m = servidor.Manipulador.__new__(servidor.Manipulador)
 resposta = {}
 m._json = lambda dados, codigo=200: resposta.update(dados=dados, codigo=codigo)
 servidor._converter_desenho = lambda *a, **k: ("", "", "conversão pulada no teste")
 
-# --- o que casa: nome do arquivo, ou o que o apps.map aponta para ele --------
-desenhos = {}     # caminho real do SVG -> nomes de ícone que ele veste
+desenhos = {}
 base_packs = os.path.join(raiz, "packs")
 for pid in sorted(os.listdir(base_packs)):
     dir_pack = os.path.join(base_packs, pid)
@@ -97,19 +84,6 @@ if sem_cartao:
     sys.exit(1)
 print("ok: todo desenho de pack que veste um aplicativo daqui aparece como cartão na oficina dele")
 
-# --- A OFICINA DE AUTORAL LÊ O QUE SALVA — 23/09/2026, revisão da P26 --------
-#   O modelo de pack do docs/PACKS.md declara só `"autorais": {"gerar": true}`,
-#   sem `desenhos`. Para esse pack o «Salvar no pack» gravava em
-#   `icones/autorais/` e o `pack.autorais()` não lia dali: a revisão salvou
-#   `foto` em red num pack assim, a resposta disse ok, e a lista seguinte e o
-#   SVG regerado continuaram em overlay0 — a torrada dizia «salvo no pack»
-#   sobre uma edição perdida. As perguntas vão à MESMA rota que a página chama,
-#   com um pack descartável no formato do modelo; o gerador escreve dentro dele
-#   e em nenhum outro lugar.
-#
-#   E o `na_tela` de um desenho que nenhum ícone instalado tem sai vazio: é o
-#   desenho declarado sem linha no `AUTORAL` do `completar_icones.sh`, que a
-#   torrada prometia pôr na tela.
 import json  # noqa: E402
 import shutil  # noqa: E402
 import tempfile  # noqa: E402
@@ -117,10 +91,6 @@ import tempfile  # noqa: E402
 tmp = tempfile.mkdtemp(prefix="oficina-autoral-")
 falhas = []
 try:
-    # O DESENHO HERDADO É DE UM PACK PAI DE BRINQUEDO — 15/10/2026, P82. Era o
-    #   `fogstripper` do Catppuccin, e ele saiu dos packs (projeto pessoal,
-    #   decisão 16). O caso continua o mesmo: o `terceiro` herda um desenho
-    #   declarado, e salvar o copia para ele.
     dir_pai = os.path.join(tmp, "pai")
     os.makedirs(os.path.join(dir_pai, "icones", "autorais"))
     shutil.copy(os.path.join(raiz, "packs", "dracula", "paleta.json"), dir_pai)
@@ -143,7 +113,6 @@ try:
         json.dump({"formato": 1, "id": "terceiro", "nome": "Terceiro", "heranca": "pai",
                    "paleta": {"arquivo": "paleta.json"},
                    "icones": {"autorais": {"gerar": True}}}, fh)
-    # Um triângulo: forma que nenhum tema instala, para o `na_tela` ter de ser vazio.
     with open(os.path.join(dir_aut, "meu-app.json"), "w", encoding="utf-8") as fh:
         json.dump({"papeis": {"fundo": {"escuro": "surface0", "claro": "surface0"}},
                    "svg": ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">',
@@ -169,8 +138,6 @@ try:
     if (antes.get("meu-app") or {}).get("pack") != "terceiro":
         falhas.append("meu-app.json está em icones/autorais/ e a lista não o mostra como do pack")
 
-    # meu-app é do próprio pack; o emprestado é herdado do pai, e salvar o
-    # copia — é o caso exato que a revisão reproduziu.
     for nome, papel in (("meu-app", "fundo"), ("emprestado", "foto")):
         papeis = dict((antes.get(nome) or {}).get("papeis") or {})
         if papel not in papeis:
@@ -189,8 +156,6 @@ try:
         if depois.get("pack") != "terceiro" or lido != "red":
             falhas.append("%s: salvo com %s em red, e a lista seguinte lê %s do pack %s"
                           % (nome, papel, lido, depois.get("pack")))
-        # A linha do SVG gerado que corresponde à lacuna: as linhas do `.json`
-        # e as do arquivo andam juntas, porque o gerador só as junta por \n.
         with open(os.path.join(dir_aut, nome + ".json"), encoding="utf-8") as fh:
             linhas = json.load(fh)["svg"]
         i = next(k for k, linha in enumerate(linhas) if "{%s}" % papel in linha)

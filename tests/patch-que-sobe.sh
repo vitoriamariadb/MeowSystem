@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-# patch-que-sobe.sh — um .patch que sobe de versão chega ao binário? (P100)
-#
-#   1. o `garantir_builds.sh` refaz o build cujo `estado` grava um marcador de
-#      versão diferente da que o .patch declara (a v2 dela: MENU-PATCH-2 e
-#      READING-MODE-2); o build com a versão certa, ou o .patch sem string
-#      declarada, segue valendo;
-#   2. o `compositor_patches.sh compilar` não toma a árvore do cache, patchada
-#      com a versão anterior, por "já aplicado": reextrai o fonte guardado,
-#      aplica a versão nova e o `estado` sai com ela.
-#
-# HOME, cache, guarda e fonte de brinquedo; dpkg-query, dpkg-source, make e
-# cargo falsos (o make copia os marcadores da árvore para um binário de
-# brinquedo); o `patch` é o de verdade; sudo, apt e rede recusam.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -34,7 +21,6 @@ case "\$*" in
 esac
 FIM
 printf '#!/bin/sh\nexit 0\n' > "$T/bin/cargo"
-# O fonte puro: o que o `dpkg-source -x` de verdade tiraria do .dsc guardado.
 cat > "$T/bin/dpkg-source" <<FIM
 #!/bin/sh
 echo "dpkg-source \$*" >> "$T/log"
@@ -51,7 +37,6 @@ chmod 755 "$T/bin/"*
 : > "$T/guarda/cosmic-comp_$VER.dsc"
 echo 'req t.patch MEOW-T' > "$T/patches/series"
 
-# O .patch na versão $1: acrescenta o marcador entre `um` e `dois`.
 fazer_patch() {
   cat > "$T/patches/t.patch" <<FIM
 --- a/src/a.rs

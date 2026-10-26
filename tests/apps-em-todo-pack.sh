@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# apps-em-todo-pack.sh — cada aplicativo veste os dois packs, cada um com as cores dele.
-#
-# Para cada app x pack, numa casa de brinquedo com o app "instalado": o pack
-# responde pelo próprio tema (não herdado), o aplicar escreve um tema com a cor
-# de fundo DAQUELE pack e nenhuma do outro, e a segunda passada fica quieta. A
-# ida e volta de pack troca o tema junto.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -13,7 +7,6 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 
 command -v python3 >/dev/null 2>&1 || { printf 'FALHOU: sem python3\n' >&2; exit 1; }
 
-# Os apps cujo tema é o modelo do motor que a paleta preenche.
 MODELOS=(kitty gnome-terminal telegram discord onlyoffice)
 PACKS=(meowsystem:mocha dracula:dracula)
 
@@ -25,7 +18,6 @@ for x in sudo pkexec su apt apt-get systemctl pkill; do
   printf '#!/bin/sh\necho "recusado: %s" >&2\nexit 1\n' "$x" > "$BIN/$x"; chmod +x "$BIN/$x"
 done
 falso pgrep 1; falso flatpak 0
-# O dconf de mentira: uma chave por linha no HOME de brinquedo (o mesmo do tests/temas-de-apps.sh).
 cat > "$BIN/dconf" <<'DCONF'
 #!/usr/bin/env python3
 import os, sys
@@ -69,11 +61,11 @@ else:
 DCONF
 chmod +x "$BIN/dconf"
 
-implantar() {  # <id> — o flatpak do usuário na forma de um de verdade
+implantar() {
   local a="$CASA/.local/share/flatpak/app/$1"
   mkdir -p "$a/x86_64/stable/0123abcd" && ln -sfn 0123abcd "$a/x86_64/stable/active" && ln -sfn x86_64/stable "$a/current"
 }
-semear() {  # <app> — a casa do zero, com o app instalado e sem tema
+semear() {
   rm -rf "$CASA" "$T/estado"; mkdir -p "$CASA/.config"
   rm -f "$BIN/kitty" "$BIN/gnome-terminal" "$BIN/spicetify"
   case "$1" in
@@ -91,8 +83,6 @@ semear() {  # <app> — a casa do zero, com o app instalado e sem tema
       mkdir -p "$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent"
       printf '[Preferences]\n' > "$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent/qBittorrent.conf" ;;
     spotify)
-      # O app com o corpo patchável, o spicetify que grava o config-xpui.ini, e o
-      # tema do meowsystem já baixado (aqui não há rede para baixá-lo).
       implantar com.spotify.Client
       mkdir -p "$CASA/.local/share/flatpak/app/com.spotify.Client/current/active/files/extra/share/spotify/Apps/xpui" \
                "$CASA/.config/spicetify/Themes/catppuccin"
@@ -110,7 +100,7 @@ SPI
       chmod +x "$BIN/spicetify" ;;
   esac
 }
-mod() {  # <app> <verbo> <pack> <flavor>
+mod() {
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" XDG_DATA_HOME="$CASA/.local/share" \
       MEOW_PACKS="$T/packs" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado" TMPDIR="$T" \
       PACK="$3" FLAVOR="$4" ACCENT=mauve NO_COLOR=1 \
@@ -118,11 +108,10 @@ mod() {  # <app> <verbo> <pack> <flavor>
                . "$MEOW_RAIZ/scripts/temas-de-apps/$0/manifesto.sh" || exit 2
                meow_app_$1' "$1" "$2" </dev/null 2>&1
 }
-fundo() {  # <pack> <flavor> — o hex do `base`, sem o #
+fundo() {
   python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["flavors"][sys.argv[2]]["base"].lstrip("#"))' \
     "$RAIZ/packs/$1/paleta.json" "$2"
 }
-# Os arquivos da casa com aquele hex (o estado do MeowSystem não conta: backup e log).
 com_cor() { grep -rIil -- "$1" "$CASA" 2>/dev/null | grep -v '/.local/state/' | wc -l; }
 mkdir -p "$T/packs"
 
@@ -146,7 +135,6 @@ for app in "${MODELOS[@]}"; do
     [ "$rc" = 0 ] && ok "$app/$p: a segunda passada fica quieta" \
       || falha "$app/$p: a segunda passada não ficou quieta (rc=$rc)" "$saida"
   done
-  # Ida e volta: o tema do pack troca junto com o pack, sem perguntar (é nosso).
   semear "$app"
   mod "$app" aplicar meowsystem mocha >/dev/null
   saida="$(mod "$app" aplicar dracula dracula)"; rc1=$?
@@ -160,11 +148,8 @@ for app in "${MODELOS[@]}"; do
   fi
 done
 
-# --- Spotify: o tema do spicetify desce do pack, sem rede -------------------
-# Sem o tema em ~/.config/spicetify/Themes, o pack que traz a arte a entrega da
-# própria pasta; o pack que a pina (`origem`) a baixa, e aqui não há rede.
 printf '#!/bin/sh\nexit 22\n' > "$BIN/curl"; chmod +x "$BIN/curl"
-spot() {  # <pack> <flavor> — chama o `_spot_tema_baixar` e imprime o rc no fim
+spot() {
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" XDG_DATA_HOME="$CASA/.local/share" \
       MEOW_PACKS="$T/packs" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$T/estado" TMPDIR="$T" \
       PACK="$1" FLAVOR="$2" ACCENT=mauve NO_COLOR=1 \
@@ -172,7 +157,7 @@ spot() {  # <pack> <flavor> — chama o `_spot_tema_baixar` e imprime o rc no fi
                . "$MEOW_RAIZ/scripts/temas-de-apps/spotify/manifesto.sh" || exit 2
                _spot_tema_baixar; printf "rc=%s\n" "$?"' </dev/null 2>&1
 }
-secao() {  # <color.ini> <seção> — as linhas da seção, sem o cabeçalho
+secao() {
   awk -v s="[$2]" '$0 == s { d = 1; next } /^\[/ { d = 0 } d' "$1" 2>/dev/null
 }
 for par in "${PACKS[@]}"; do
@@ -199,18 +184,15 @@ saida="$(spot dracula dracula)"
 printf '%s' "$saida" | grep -qx 'rc=0' && ok "spotify/dracula: a segunda passada fica quieta" \
   || falha "spotify/dracula: a segunda passada não ficou quieta" "$saida"
 
-# --- Ida e volta dos que trazem a arte pronta: qBittorrent e Spotify ---------
-#   O tema que o MeowSystem pôs para um pack é dele: a troca de pack o troca sem
-#   perguntar. O que ela pôs à mão continua sendo perguntado, e fica.
 QBC="$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent/qBittorrent.conf"
 SPI_INI="$CASA/.config/spicetify/config-xpui.ini"
-no_ar() {  # <app>
+no_ar() {
   case "$1" in
     qbittorrent) sed -n 's/^General\\CustomUIThemePath=.*\/themes\///p' "$QBC" 2>/dev/null ;;
     spotify) sed -n 's/^current_theme *= *//p' "$SPI_INI" 2>/dev/null ;;
   esac
 }
-quero() {  # <app> <pack> — o nome que aquele pack põe no ar
+quero() {
   case "$1" in
     qbittorrent) basename "$(python3 "$RAIZ/scripts/pack.py" app "$2" apps.qbittorrent.arquivo 2>/dev/null | sed -n 's/^valor=//p')" ;;
     spotify) python3 "$RAIZ/scripts/pack.py" app "$2" apps.spotify.spicetify_tema 2>/dev/null | sed -n 's/^valor=//p' ;;
@@ -244,7 +226,6 @@ for app in qbittorrent spotify; do
     || falha "$app: o tema dela foi trocado (rc=$rc, no ar: $(no_ar "$app"))" "$saida"
 done
 
-# --- Os que trazem a arte pronta: cada pack responde pelo próprio tema --------
 for trilha in qbittorrent.arquivo obsidian.esquema vscode.esquema heroic.esquema; do
   for par in "${PACKS[@]}"; do
     p="${par%%:*}"
@@ -254,7 +235,6 @@ for trilha in qbittorrent.arquivo obsidian.esquema vscode.esquema heroic.esquema
   done
 done
 
-# --- Ligado de fábrica: todo módulo tem o seu nome no APPS_ATIVOS do exemplo ---
 fabrica=",$(sed -n 's/^APPS_ATIVOS="\(.*\)"$/\1/p' "$RAIZ/meow.conf.exemplo" | tail -n 1 | tr -d ' '),"
 faltam=""
 for d in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do

@@ -1,36 +1,4 @@
 #!/usr/bin/env python3
-"""app-completo.py — o painel novo inteiro, porta por porta e controle por controle (P98).
-
-    tests/app-completo.py                   todas as páginas; é o que o gate roda
-    tests/app-completo.py --aba ajustes     só as páginas cujo endereço começa assim
-    tests/app-completo.py --fotos DIR       guarda a captura de cada página em DIR
-
-O pedido continua o da P46 («abrir cada aba como user. E vai aba a aba. Botão a
-botão... Importante ser via navegador tudo»), agora no painel de quatro portas
-da P98 (Tema, Criar tema, Ajustes, Cuidar).
-
-O QUE ELE FAZ
-  1. Sobe o painel numa CASA DE BRINQUEDO (`montar_casa`) e o abre no Chromium
-     do Playwright, sem janela.
-  2. Visita cada página clicando como uma pessoa: as portas da barra de cima, o
-     trilho de Ajustes, os passos de Criar tema. Abre o «Mais ajustes».
-  3. O CENSO: todo controle visível tem nome (`data-controle`). Controle sem nome
-     reprova. O nome vira molde (o que nasce de dado — um por pack, por programa,
-     por cor — vira `*`).
-  4. O INVENTÁRIO sai de `app/pagina/lugares.js` (cada chave e ação da página) e
-     dos moldes escritos aqui (`EXTRAS`). Controle na tela fora do inventário
-     reprova («sem teste»); chave ou ação da página sem controle reprova.
-  5. ACIONA cada molde uma vez, pelo papel que ele tem, e cobra um efeito que se
-     vê: a página mudou, a API respondeu, a caixa abriu, a casa mudou. Ação de
-     root sem a ponte tem de mostrar «Falta a ponte» com o «Conferir e
-     consertar» — nunca um campo de senha. Ação que pergunta é rodada em ensaio
-     («Ver sem mudar»).
-  6. Em toda página: nenhum erro de JavaScript ou de console, nenhuma resposta
-     4xx/5xx que o gesto não pediu, nenhum `undefined`, `NaN`, `[object` ou
-     `null` solto, nenhum campo de senha.
-
-  0 = passou · 1 = falhou · 2 = erro deste teste. Sem Playwright sai 1: é gate.
-"""
 import hashlib
 import json
 import os
@@ -49,7 +17,6 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _arg(nome):
-    """O valor de `--nome VALOR` na linha de comando, ou None."""
     if nome in sys.argv:
         i = sys.argv.index(nome)
         if i + 1 < len(sys.argv):
@@ -70,8 +37,6 @@ except ImportError:
     sys.exit(1)
 
 
-# O PAINEL REAL APLICA NA MÁQUINA — é a regra do projeto, e é por ela que quem
-# vai para a sandbox é o TESTE, e nunca o painel.
 BRINQUEDO = tempfile.mkdtemp(prefix="meow-completo-")
 CASA = os.path.join(BRINQUEDO, "casa")
 RAIZ_B = os.path.join(BRINQUEDO, "raiz")
@@ -81,14 +46,8 @@ CONF = os.path.join(CASA, ".config", "meow", "meow.conf")
 ESTADO = os.path.join(CASA, ".local", "state", "meowsystem")
 PAREDES = 6
 APPID = "1715980"
-# O PROGRAMA DE BRINQUEDO QUE O LANÇADOR ESCONDE: um id da lista de fábrica do
-# `LANCADOR_OCULTAR`, com um `.desktop` da casa que lhe dá outro nome — a
-# ficha tem de dizer o nome, e não o id.
 PROGRAMA = ("org.gnome.Evince", "Leitor de Brinquedo")
-# O NOME QUE SÓ O CACHE DA STEAM SABE: o da decisão sem manifesto, que a
-# linha das «Decisões já executadas» tem de mostrar.
 NOME_NA_STEAM = "Demo de Brinquedo"
-# A tag que a história de um pack traz e que tem de sair como TEXTO.
 HOSTIL = '<img src=x onerror="window.__meow_xss=1">'
 
 
@@ -101,7 +60,6 @@ def valor_de(chave, conf=CONF):
 
 
 def png_liso(caminho, rgb, larg=64, alt=40):
-    """Um PNG de uma cor só, escrito à mão (o mesmo dos outros dois testes)."""
     def pedaco(tipo, corpo):
         return (struct.pack(">I", len(corpo)) + tipo + corpo
                 + struct.pack(">I", zlib.crc32(tipo + corpo) & 0xFFFFFFFF))
@@ -114,7 +72,6 @@ def png_liso(caminho, rgb, larg=64, alt=40):
 
 
 def xcursor_liso(caminho, lado=24, argb=0xFFCDD6F4):
-    """Um XCursor de uma imagem só, no formato que o servidor decodifica."""
     pixels = bytes().join(struct.pack("<I", argb if x <= y else 0)
                           for y in range(lado) for x in range(lado))
     with open(caminho, "wb") as fh:
@@ -125,10 +82,6 @@ def xcursor_liso(caminho, lado=24, argb=0xFFCDD6F4):
 
 
 def appinfo_vdf(caminho, nomes):
-    """Um `appinfo.vdf` da Steam, versão 29, com `appinfo › common › name` de
-    cada appid de `nomes` — o molde que o `_nome_no_appinfo` do servidor lê
-    (P54). Só o que ele precisa: a tabela de nomes de chave no fim, e o resto
-    de cada entrada zerado."""
     chaves = ["appinfo", "common", "name"]
     entradas = b""
     for appid, nome in nomes.items():
@@ -145,22 +98,18 @@ def appinfo_vdf(caminho, nomes):
 
 
 def copiar_raiz():
-    """A árvore de trabalho, versionada e nova, numa pasta de brinquedo."""
     lista = subprocess.run(
         ["git", "-C", RAIZ, "ls-files", "-z", "--cached", "--others",
          "--exclude-standard"], capture_output=True, check=True).stdout
     for rel in sorted(set(filter(None, lista.decode().split("\0")))):
         origem, destino = os.path.join(RAIZ, rel), os.path.join(RAIZ_B, rel)
         if not os.path.lexists(origem):
-            continue           # apagado na árvore e ainda no índice
+            continue
         os.makedirs(os.path.dirname(destino), exist_ok=True)
         if os.path.islink(origem):
             os.symlink(os.readlink(origem), destino)
         else:
             shutil.copy2(origem, destino)
-    # O `git init` não é enfeite: o item «Créditos» do menu sai do `git remote`
-    # (`_repositorio_no_ar`). Sem ele a cópia desenharia um menu com um item a
-    # menos, e o link externo do menu ficaria sem teste.
     subprocess.run(["git", "init", "-q", RAIZ_B], check=True)
     remoto = subprocess.run(["git", "-C", RAIZ, "remote", "get-url", "origin"],
                             capture_output=True, text=True).stdout.strip()
@@ -169,14 +118,11 @@ def copiar_raiz():
                        check=True)
 
 
-# O falso que registra e recusa. O `$0` sai pelo `basename`, então o mesmo
-# corpo serve para todos.
 RECUSA_SH = """#!/bin/sh
 echo "$(basename "$0") $*" >> "$MEOW_COMPLETO_REGISTRO"
 exit 1
 """
 
-# O que responde pergunta e recusa o resto.
 RESPONDE_SH = """#!/bin/bash
 real=""
 IFS=: read -ra _dirs <<< "$PATH"
@@ -190,8 +136,6 @@ esac
 echo "%(nome)s $*" >> "$MEOW_COMPLETO_REGISTRO"
 exit 1
 """
-# O `git` fica — o servidor lê o `remote` dele para o «Créditos» —, menos os
-# verbos que vão à rede.
 GIT_SH = """#!/bin/bash
 case " $* " in
   *" clone "*|*" fetch "*|*" pull "*|*" push "*|*" ls-remote "*|*" submodule "*)
@@ -213,8 +157,6 @@ LEITURAS = {
     "busctl": '*" get-property "*|*" introspect "*|*" FindUserByName "*',
 }
 
-# O alvo é conferido pelo `HOME` do ambiente dele, que todo processo que o
-# painel sobe herda do brinquedo. `-0` e `-l` são pergunta, e seguem.
 FUNCOES_BASH = {
     "_meow_na_casa": r"""() {
   case "$1" in %*) return 0 ;; esac
@@ -245,7 +187,6 @@ def escrever_exec(caminho, corpo):
 
 
 def montar_casa():
-    """Semeia a casa e a raiz de brinquedo; devolve o ambiente do servidor."""
     copiar_raiz()
     os.makedirs(os.path.dirname(CONF))
     os.makedirs(ESTADO)
@@ -257,7 +198,6 @@ def montar_casa():
     xcursor_liso(os.path.join(ponteiro, "left_ptr"))
     tema = os.path.join(icones, valor_de("NOME_TEMA_ICONES"), "scalable", "apps")
     os.makedirs(tema)
-    # [P96, 23/10/2026: as pastas do pack são planas; a lista do traço diz quais são os glifos do Arcticons.]
     icones_base = os.path.join(RAIZ, "packs", "meowsystem", "icones")
     with open(os.path.join(icones_base, "arcticons.lista"), encoding="utf-8") as fh:
         lista = [l.strip() for l in fh if l.strip() and not l.startswith("#")]
@@ -267,17 +207,12 @@ def montar_casa():
             if os.path.isfile(origem):
                 shutil.copyfile(origem, os.path.join(tema, nome))
                 break
-    # O carrossel separa dia e noite pela luz de cada imagem, e só monta o
-    # grupo da HORA (`e_noite`) se ele tiver duas ou mais — senão tudo fica em
-    # `ativos/` e as abas Dia e Noite da galeria nascem vazias.
     ativos = os.path.join(valor_de("WALLPAPER_BASE").replace("$HOME", CASA), "ativos")
     os.makedirs(ativos)
     for i in range(PAREDES):
         png_liso(os.path.join(ativos, f"brinquedo-{i:02d}.png"),
                  (0x1E + 8 * i, 0x1E, 0x2E) if i % 2 else (0xEE, 0xEE - 8 * i, 0xE0))
 
-    # UMA PENDÊNCIA POR CONSERTO QUE O SERVIDOR CONHECE — o molde do
-    # `tests/app-acessibilidade.py`, lido do `ACAO_DA_PENDENCIA` da fonte.
     import ast
     with open(os.path.join(RAIZ, "app", "servidor.py"), encoding="utf-8") as fh:
         arvore = ast.parse(fh.read())
@@ -286,9 +221,6 @@ def montar_casa():
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "ACAO_DA_PENDENCIA" for a in no.targets)):
             pendencias = sorted(ast.literal_eval(no.value))
-    # O sufixo sai da fonte, e o app é o primeiro módulo que chama a leitura no
-    # caminho que escreve (`pergunte`) — é esse o módulo que registra a linha,
-    # e ele muda sem ninguém vir aqui.
     for no in arvore.body:
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "SUFIXO_TEMA_DE_TERCEIRO" for a in no.targets)):
@@ -306,9 +238,6 @@ def montar_casa():
             fh.write(f"{ident}\tteste\tPendência plantada pelo teste ({ident})"
                      f"\t./scripts/teste.sh {ident}\t2026-09-24T00:00:00-03:00\n")
 
-    # O `tests/pack.sh` confere o CÓDIGO (nada de `innerHTML`); aqui se confere
-    # o EFEITO, no navegador: a tag sai como texto, o `javascript:` não vira
-    # link, e o negrito vira negrito (ver `conferir_historia`).
     padrao = subprocess.run([sys.executable, os.path.join(RAIZ_B, "scripts", "pack.py"), "padrao"],
                             capture_output=True, text=True).stdout.strip()
     with open(os.path.join(padrao, "pack.json"), encoding="utf-8") as fh:
@@ -319,8 +248,6 @@ def montar_casa():
                      "Um " + HOSTIL + " no texto, um [link mau](javascript:window.__meow_xss=2)"
                      " e **negrito de brinquedo**.\n")
 
-    # UM JOGO DA STEAM, no molde do `tests/um-cartao-por-jogo.sh`: o manifesto
-    # diz que está instalado, e o `.desktop` da própria Steam o anuncia.
     steamapps = os.path.join(CASA, ".steam", "steam", "steamapps")
     os.makedirs(os.path.join(steamapps, "common", "JogoDeBrinquedo"))
     with open(os.path.join(steamapps, "common", "JogoDeBrinquedo", "jogo.bin"), "w") as fh:
@@ -342,16 +269,10 @@ def montar_casa():
         fh.write("[Desktop Entry]\nName=Jogo de Brinquedo\n"
                  f"Exec=steam steam://rungameid/{APPID}\nIcon=steam_icon_{APPID}\n"
                  "Terminal=false\nType=Application\nCategories=Game;\n")
-    # E A LOJA, QUE NÃO É JOGO: a Steam se declara `Game` e registra o
-    # esquema `steam://`. Ela vai para a aba Ícones como programa, e o
-    # `h_jogo` cobra que não apareça entre os jogos.
     with open(os.path.join(aplicativos, "steam.desktop"), "w", encoding="utf-8") as fh:
         fh.write("[Desktop Entry]\nName=Steam\nExec=steam %U\nIcon=steam\n"
                  "Terminal=false\nType=Application\nCategories=Network;FileTransfer;Game;\n"
                  "MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;\n")
-    # A DECISÃO SEM MANIFESTO GANHA NOME NO CACHE DA STEAM. As linhas do mapa
-    # da raiz de brinquedo cujo jogo não está aqui são as «Decisões já
-    # executadas»; o nome da primeira mora só no `appinfo.vdf`.
     with open(os.path.join(RAIZ_B, "assets", "apps", "jogos-fora.map"),
               encoding="utf-8") as fh:
         orfas = [l.split(":")[0].strip() for l in fh
@@ -360,15 +281,11 @@ def montar_casa():
     if orfas:
         appinfo_vdf(os.path.join(CASA, ".steam", "steam", "appcache", "appinfo.vdf"),
                     {orfas[0]: NOME_NA_STEAM})
-    # E O PROGRAMA QUE O LANÇADOR ESCONDE, com nome e ícone próprios: o
-    # `.desktop` da casa vence o do sistema, como no lançador.
     png_liso(os.path.join(hicolor, "leitor-de-brinquedo.png"), (0xCC, 0x88, 0x44))
     with open(os.path.join(aplicativos, PROGRAMA[0] + ".desktop"), "w",
               encoding="utf-8") as fh:
         fh.write(f"[Desktop Entry]\nName={PROGRAMA[1]}\nExec=true\n"
                  "Icon=leitor-de-brinquedo\nTerminal=false\nType=Application\n")
-    # O PROGRAMA DE QUE UM AJUSTE DEPENDE: a marca `[so-com-app …]` esconde
-    # o cartão numa máquina sem aquele programa.
     with open(CONF, encoding="utf-8") as fh:
         so_com = re.findall(r"\[so-com-app ([^\]\s]+)", fh.read())
     for ident in so_com:
@@ -385,9 +302,6 @@ def montar_casa():
             '        id: Some("%s"),\n        name: Some("%s"),\n    ),\n' % area
             for area in (("c0ffee", "Brinquedo"), ("decafe", "Quintal"))) + "]\n")
 
-    # UM AJUSTE MUDADO DE FÁBRICA: a Início lista o que ela mudou, uma ficha por
-    # chave, e numa casa nova a lista é vazia. Um texto livre, que não mexe em
-    # mais nada da casa.
     with open(CONF, encoding="utf-8") as fh:
         texto = fh.read()
     with open(CONF, "w", encoding="utf-8") as fh:
@@ -422,11 +336,6 @@ def montar_casa():
 
 
 def encerrar_a_casa():
-    """Todo processo que ainda carregue o ambiente da casa recebe TERM, e o
-    que resistir, KILL. O `app/run.sh` já derruba o servidor que subiu; este é
-    o cinto para o que um trabalho da janela tenha deixado em segundo plano —
-    um teste que sai deixando processo de pé na máquina de quem roda é o
-    contrário do que a casa de brinquedo promete."""
     import signal
     marca = ("MEOW_COMPLETO_CASA=" + CASA).encode()
     for tentativa in (signal.SIGTERM, signal.SIGKILL):
@@ -452,7 +361,6 @@ def registro():
 
 
 def sobe_servidor(ambiente):
-    """Sobe o painel da raiz de brinquedo; devolve (processo, url)."""
     proc = subprocess.Popen(
         [os.path.join(RAIZ_B, "app", "run.sh"), "--sem-abrir"],
         cwd=RAIZ_B, env=ambiente,
@@ -469,15 +377,12 @@ def sobe_servidor(ambiente):
             break
     return proc, url
 
-# A casa ANTES e DEPOIS de um gesto: caminho, tamanho e data de cada arquivo da
-# casa e da raiz de brinquedo.
 FORA_DO_RETRATO = re.compile(
     r"^(raiz/\.git/|casa/\.cache/|casa/\.local/state/meowsystem/(meow\.log|ultimo-|lock$))"
     r"|.*/__pycache__/")
 
 
 def retrato():
-    """{caminho relativo ao brinquedo: (tamanho, data)} da casa e da raiz."""
     fotos = {}
     for base in (CASA, RAIZ_B):
         for pasta, _, arquivos in os.walk(base):
@@ -501,16 +406,10 @@ def diferenca(antes, depois):
 
 
 
-# ===========================================================================
-# O PERCURSO DO PAINEL NOVO (P98)
-# ===========================================================================
 import fnmatch  # noqa: E402
 
-# O que a página tentou buscar fora de 127.0.0.1 — a rota do contexto recusa e
-# anota. É por aqui que o link externo prova para onde iria.
 PEDIDOS_DE_FORA = []
 
-# Todo controle visível: o nome estável é o `data-controle` que a página põe.
 CENSO_JS = r"""
 () => {
   const SEL = 'button, a[href], input, select, textarea, summary, [role=button], [role=switch],'
@@ -544,7 +443,6 @@ CENSO_JS = r"""
 }
 """
 
-# O retrato do que a tela mostra: muda quando o gesto teve efeito.
 ESTADO_JS = r"""
 () => JSON.stringify({
   hash: location.hash,
@@ -556,7 +454,6 @@ ESTADO_JS = r"""
 })
 """
 
-# Espera o DOM parar de mudar.
 ASSENTAR_JS = r"""
 ([quieto, teto]) => new Promise((pronto) => {
   let t = null;
@@ -584,8 +481,6 @@ TEXTO_RUIM_JS = r"""
 }
 """
 
-# O nome vira molde: o que nasce de dado (um por pack, por programa, por cor)
-# conta uma vez.
 def molde(nome):
     n = re.sub(r"=.*$", "=*", nome)
     n = re.sub(r"^pack:[^:]+:", "pack:*:", n)
@@ -593,17 +488,13 @@ def molde(nome):
     return n
 
 
-# O controle de uma chave que não se chama `chave:X`.
 CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "APPS_ATIVOS": "programa:"}
-# O controle de uma ação que não se chama `acao:X`, e a ação que só aparece com
-# dado da máquina (uma pendência, um jogo do Heroic, uma imagem na galeria).
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
     "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
     "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
     "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
 }
-# O que a página tem além das linhas de lugares.js, por página (glob no endereço).
 EXTRAS = {
     "tema": ["tema:saude", "tema:abrir", "tema:criar", "pack:*:*", "chave:ACCENT=*", "chave:MODO=*"],
     "criar/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
@@ -621,11 +512,9 @@ EXTRAS = {
 GLOBAIS = ["marca", "porta:*", "busca", "achado", "pendentes", "pendente:*", "desfazer", "ensaiar",
            "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*", "exportar:imagens",
            "mais:*", "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
-# Os que o percurso aciona no fim, num fluxo de quem usa (e não um a um).
 NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "busca", "achado", "pendentes", "pendente:*",
           "desfazer", "ensaiar", "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*",
           "mais:*", "exportar:imagens", "criar:voltar", "criar:proximo"]
-# Têm de ter sido acionados ao fim do percurso inteiro.
 OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "busca", "achado",
                 "pendentes", "pendente:*", "desfazer", "ensaiar", "aplicar", "menu", "menu:creditos",
                 "menu:pagina", "trabalho", "resultado:ok", "resultado:guardar", "resultado:parar",
@@ -644,15 +533,14 @@ def css_attr(valor):
 
 
 class Percurso:
-    """A visita: o que foi conferido, o que falhou e o que foi acionado."""
 
     def __init__(self, pag):
         self.pag = pag
         self.rota = "(abrindo)"
         self.falhas = []
         self.conferidas = 0
-        self.acionados = set()       # moldes acionados no percurso inteiro
-        self.vistos = set()          # moldes vistos em qualquer página
+        self.acionados = set()
+        self.vistos = set()
         self.posts = []
         self.esperadas = []
         self.pedidos_vivos = 0
@@ -664,7 +552,6 @@ class Percurso:
         pag.on("console", self._console)
         pag.on("pageerror", lambda e: self.falha(f"erro de JavaScript: {e}"))
 
-    # --- o placar ----------------------------------------------------------
     def falha(self, frase):
         self.falhas.append((self.rota, frase))
         print(f"  XX [{self.rota}] {frase}")
@@ -672,7 +559,7 @@ class Percurso:
             try:
                 os.makedirs(os.path.join(FOTOS, "falhas"), exist_ok=True)
                 self.pag.screenshot(path=os.path.join(FOTOS, "falhas", "%02d-%s.png" % (len(self.falhas), self.rota.replace("/", "-"))))
-            except Exception:  # noqa: BLE001 — a foto é para quem depura; a falha já foi anotada
+            except Exception:  # noqa: BLE001
                 pass
 
     def checa(self, cond, frase):
@@ -681,11 +568,8 @@ class Percurso:
             self.falha(frase)
         return bool(cond)
 
-    # --- a rede ------------------------------------------------------------
     @staticmethod
     def _conta(req):
-        # As miniaturas chegam aos poucos e não mudam o que o gesto fez: o
-        # `assentar` espera a API, não a centena de imagens da grade.
         return (req.url.startswith("http://127.0.0.1") and "/api/pulso" not in req.url
                 and not re.search(r"/(previa|pack-vitrine|gato\.svg|logo\.svg)\b", req.url))
 
@@ -727,7 +611,6 @@ class Percurso:
             return
         self.falha(f"erro no console: {msg.text[:160]}")
 
-    # --- a página ----------------------------------------------------------
     def js(self, codigo, arg=None):
         return self.pag.evaluate(codigo, arg)
 
@@ -781,13 +664,8 @@ class Percurso:
                 return True
             except Exception:
                 self.pag.wait_for_timeout(200)
-                # A janela de um trabalho que o gesto anterior abriu depois de a
-                # página assentar (máquina ocupada) cobre o botão: ela se resolve
-                # como as outras, e o clique tenta de novo.
                 if not nome.startswith(("resultado:", "pergunta:")) and self.aberto("resultado"):
                     self.limpar()
-                # O botão que some com o próprio clique (o Desfazer, que só
-                # existe com mudança esperando) já fez o que devia.
                 if nome in ("desfazer",) and self.achar(nome) is None:
                     self.acionados.add(molde(nome))
                     return True
@@ -800,7 +678,6 @@ class Percurso:
         return bool(self.js(f"() => document.getElementById('{ident}').open"))
 
     def ir(self, rota):
-        """Chega à página como quem clica: a porta, e o trilho ou o passo."""
         porta, _, sub = rota.partition("/")
         self.clicar("porta:" + porta)
         self.assentar()
@@ -809,9 +686,7 @@ class Percurso:
             self.assentar()
         self.checa(self.js("() => location.hash") == "#" + rota, f"o clique leva a #{rota}")
 
-    # --- os trabalhos ------------------------------------------------------
     def esperar_trabalho(self, teto=240, parar=False):
-        """Espera a janela do trabalho chegar ao fim; com `parar`, aperta Parar."""
         fim = time.time() + teto
         parou = False
         while time.time() < fim:
@@ -833,8 +708,6 @@ class Percurso:
         return estado
 
     def fechar_resultado(self):
-        """O «OK» fecha a janela. Com a máquina ocupada, a janela pode fechar
-        entre o «está aberta» e o clique: fechada é o que se queria, não falha."""
         for _vez in range(4):
             if not self.aberto("resultado"):
                 break
@@ -856,8 +729,6 @@ class Percurso:
             self.assentar()
 
     def limpar(self):
-        """Nenhuma caixa aberta antes do próximo gesto: um trabalho que um gesto
-        disparou depois de voltar (a oficina encadeia dois) é esperado e fechado."""
         for _vez in range(3):
             if self.aberto("pergunta"):
                 self.fechar_pergunta()
@@ -870,7 +741,6 @@ class Percurso:
             self.pag.wait_for_timeout(500)
 
     def depois_do_gesto(self, nome):
-        """O que o gesto abriu se resolve aqui: a pergunta, a janela do trabalho."""
         self.assentar(quieto=300)
         if self.aberto("pergunta"):
             titulo = self.js("() => document.getElementById('pergunta-titulo').textContent")
@@ -891,15 +761,12 @@ class Percurso:
             self.clicar("pergunta:sim")
             self.assentar()
         if self.aberto("resultado"):
-            # O instalador inteiro (o Aplicar, e o tema que veste na hora) é
-            # parado: o que se confere é que ele começou, e o Parar.
             longo = self.js("() => !!TRABALHO && TRABALHO.acao === 'instalar'")
             self.esperar_trabalho(parar=longo)
             self.fechar_resultado()
             return "trabalho"
         return ""
 
-    # --- os acionadores ------------------------------------------------------
     def arquivo_de_teste(self, tipo):
         import zipfile
         pasta = os.path.join(BRINQUEDO, "envios")
@@ -942,8 +809,6 @@ class Percurso:
         return None
 
     def escolher_arquivo(self, nome, caminho):
-        """O seletor de arquivo abre com o clique; com a página ocupada (a grade
-        de aplicativos repinta), o clique pode cair numa repintura: tenta de novo."""
         for vez in range(3):
             try:
                 with self.pag.expect_file_chooser(timeout=15000) as escolha:
@@ -987,7 +852,6 @@ class Percurso:
                 self.checa(fh.read(4) == bytes([0x28, 0xB5, 0x2F, 0xFD]), "o tema baixado é um .meowpack (zstd)")
 
     def h_abrir_tema(self, nome):
-        """Um CSV das 26 cores, pela porta «Abrir um tema»: vira um pack novo."""
         ordem = self.js("() => ESQUEMA.paleta.ordem")
         cores = self.js("() => ESQUEMA.paleta.flavors[flavorEmVigor()]")
         caminho = os.path.join(BRINQUEDO, "envios", "cores-de-brinquedo.csv")
@@ -1014,15 +878,11 @@ class Percurso:
         self.checa(self.js("() => MUDANCAS.size") == n0 + 1, "trazer ajustes vira uma mudança esperando o Aplicar")
 
     def h_guardar(self, nome):
-        # As cores que o percurso mexeu podem ter tirado o contraste (o botão se
-        # apaga com a dica); começar de um flavor de novo devolve as seis.
         if self.achar(nome) and self.achar(nome).get_attribute("aria-disabled") == "true":
             self.checa(self.achar(nome).get_attribute("data-dica"), "«Guardar» apagado diz o porquê")
             primeiro = self.js("() => document.querySelector('[data-controle^=\"criar:comeca=\"]').dataset.controle")
             self.clicar(primeiro)
             self.assentar()
-        # Começar do Dracula: é o pack que traz tema de sons, e os sons de aviso
-        # do passo Sons são os do tema de partida.
         if self.achar("criar:comeca=dracula:dracula"):
             self.clicar("criar:comeca=dracula:dracula")
             self.assentar()
@@ -1048,8 +908,6 @@ class Percurso:
                    "e o pack guardado valida no formato de três pastas: " + (ok.stdout + ok.stderr).strip()[-160:])
 
     def h_abas_de_icones(self):
-        """As abas Sistema e Biblioteca: cada uma mostra a grade, e o primeiro
-        ícone vai para o tema e volta; no fim, a aba dos aplicativos de novo."""
         pasta_pack = os.path.join(CASA, ".local", "share", "meowsystem", "packs", "tema-de-brinquedo", "icones")
         for aba in ("sistema", "biblioteca"):
             if not self.achar("icones:aba=" + aba):
@@ -1083,7 +941,6 @@ class Percurso:
         self.assentar()
 
     def h_trocar_som(self, nome):
-        """O «Trocar» de um som de aviso: um Ogg de brinquedo no lugar do som."""
         caminho = os.path.join(BRINQUEDO, "envios", "brinquedo-aviso.oga")
         os.makedirs(os.path.dirname(caminho), exist_ok=True)
         with open(caminho, "wb") as fh:
@@ -1098,10 +955,6 @@ class Percurso:
         self.checa(trocado, f"«Trocar» põe o som escolhido no lugar de «{evento}» no pack")
 
     def h_link_externo(self, nome):
-        """Não sai para a internet: o pedido de fora é recusado pela rota do
-        contexto, e o que se confere é que o clique abre uma aba NOVA no
-        endereço certo, sem levar esta página junto. Uma repintura do menu no
-        meio do gesto pede outro clique, como faria uma pessoa."""
         nova = None
         href = rel = ""
         n0 = len(PEDIDOS_DE_FORA)
@@ -1216,7 +1069,6 @@ class Percurso:
         if nome.startswith("icones:aba="):
             return self.h_abas_de_icones()
         if nome in ("criar:sino", "som:ouvir"):
-            # O sino toca no navegador: o que se confere é que tocar não quebra.
             n0 = len(self.falhas)
             self.clicar(nome)
             self.pag.wait_for_timeout(400)
@@ -1256,9 +1108,7 @@ class Percurso:
             return
         return self.h_clique(nome, item)
 
-    # --- uma página --------------------------------------------------------
     def esperado(self, rota):
-        """O que lugares.js põe nesta página: [(prefixo do controle, o quê)]."""
         porta, _, sub = rota.partition("/")
         lista = self.js("""([porta, sub]) => {
           const nome = porta === 'ajustes' ? (AJUSTES.find((p) => p.id === sub) || {}).nome
@@ -1335,8 +1185,6 @@ class Percurso:
             vivo = next((i for i in agora if i["nome"] == nome), None)
             if vivo is None:
                 continue
-            # No que nasce de dado (as cores, as variantes), o gesto vai num que
-            # ainda não está escolhido: clicar no escolhido não muda nada.
             if vivo["pressionado"] == "true" and ("=" in nome or nome.startswith("galeria:")):
                 familia = (lambda n: molde(n)) if "=" in nome else (lambda n: n.split(":")[0])
                 livre = next((i for i in agora if i["nome"] and familia(i["nome"]) == familia(nome)
@@ -1347,7 +1195,7 @@ class Percurso:
             t0 = time.time()
             try:
                 self.acionar(nome, vivo)
-            except Exception as e:  # noqa: BLE001 — o gesto que quebra é achado, e o percurso segue
+            except Exception as e:  # noqa: BLE001
                 self.falha(f"o gesto em «{nome}» quebrou: {type(e).__name__}: {str(e).splitlines()[0][:160]}")
                 self.fechar_pergunta()
                 self.fechar_resultado()
@@ -1362,11 +1210,9 @@ class Percurso:
             self.checa(self.js("() => MUDANCAS.size") == 0, "o Desfazer limpa o que a página deixou esperando")
         self.tempos[rota] = round(time.time() - inicio, 1)
 
-    # --- os fluxos do fim: a barra de cima e as caixas ---------------------
     def fluxos(self):
         self.rota = "barra de cima"
         self.ir("tema")
-        # a busca leva à linha
         campo = self.achar("busca")
         campo.click()
         self.acionados.add("busca")
@@ -1377,7 +1223,6 @@ class Percurso:
             self.assentar()
             self.checa(self.js("() => location.hash.startsWith('#ajustes/')"), "o achado leva à página de Ajustes")
             self.checa(self.pag.locator("#conteudo .chegou").count() == 1, "e acende a linha do ajuste")
-        # a lista do que espera, e o Desfazer
         self.ir("ajustes/painel")
         self.clicar("chave:RELOGIO_SEGUNDOS")
         self.assentar()
@@ -1390,7 +1235,6 @@ class Percurso:
         self.clicar("desfazer")
         self.assentar()
         self.checa(self.js("() => MUDANCAS.size") == 0, "o Desfazer tira as mudanças que esperavam")
-        # o ensaio, o rodar de verdade, a pastilha, o parar, o guardar e o registro
         self.clicar("chave:RELOGIO_SEGUNDOS")
         self.assentar()
         self.clicar("ensaiar")
@@ -1415,13 +1259,11 @@ class Percurso:
                 self.clicar("resultado:guardar")
                 self.assentar()
                 self.fechar_resultado()
-        # o Aplicar sem mudança aplica o que está salvo
         self.clicar("aplicar")
         self.assentar()
         if self.checa(self.aberto("resultado"), "«Aplicar» abre o trabalho"):
             self.esperar_trabalho(parar=True)
             self.fechar_resultado()
-        # a ponte: sem ela, o painel oferece o conserto, e o conserto roda
         self.ir("cuidar")
         acao = self.js("() => ['instalar', 'sistema_atualizar'].find((id) => ACAO.get(id) && !ESQUEMA.ponte) || ''")
         if acao:
@@ -1437,7 +1279,6 @@ class Percurso:
                 if self.checa(self.aberto("resultado"), "«Conferir e consertar» roda"):
                     self.esperar_trabalho(teto=300)
                     self.fechar_resultado()
-        # o menu: os créditos e a página num arquivo
         self.clicar("menu")
         self.assentar()
         self.h_link_externo("menu:creditos")
@@ -1447,7 +1288,6 @@ class Percurso:
         self.clicar("marca")
         self.assentar()
         self.checa(self.js("() => location.hash") == "#tema", "a marca leva ao Tema")
-        # Criar tema: Voltar e Próximo
         self.ir("criar/sons")
         passos = self.js("() => PASSOS.map((p) => '#criar/' + p.id)")
         antes = self.js("() => location.hash")

@@ -1,35 +1,4 @@
 #!/usr/bin/env python3
-"""tests/app-uso-real.py — o gate do que a pessoa VÊ no painel novo (P98).
-
-O `tests/app-completo.py` aperta todo controle e cobra que cada um faça alguma
-coisa. Este arquivo cobra a FORMA, com as regras que quem usa deu em 23/10:
-
-  1. TELA VAZIA NA PRIMEIRA CARGA: no `DOMContentLoaded` já há forma.
-  2. NENHUM TEXTO EXPLICATIVO: nenhum `<p>` visível no conteúdo; nome de opção,
-     de bloco e de botão em até três palavras; nenhum bloco de
-     texto corrido com mais de 48 caracteres fora de dica, de registro e de
-     valor de dado; e o teto antigo continua valendo para tudo (texto corrido
-     com mais de 140 caracteres na tela, nunca).
-  3. LETRA MAIÚSCULA NO COMEÇO de todo texto da tela e de toda dica (a lista do
-     que é minúsculo de fato é a `MINUSCULOS_DE_FATO` do app.js, e só ela).
-  4. A INTERFACE NÃO SE DESCREVE: sem `git clone`, licença, autoria, rodapé,
-     «Estados da tela», «O que veio de onde», «pode baixar», «pede senha»;
-     «Créditos» só no menu.
-  5. UMA GRADE SÓ: os filhos de cada grade da página batem nas linhas dela; os
-     botões de uma mesma fila têm a mesma altura, no máximo um é o principal e
-     as três famílias (cheio, contornado, só texto) nunca dividem a fila.
-  6. CONTROLE COBERTO: todo controle visível é o que está por cima no próprio
-     centro; e nada rola de lado (nem a 375 px).
-  7. PRÉVIA VAZIA: toda `.previa` tem desenho.
-  8. ERRO NO CONSOLE, em qualquer página.
-
-Com `--fotos DIR`, guarda cada página em 1829x1029 nos dois packs (MeowSystem e
-Dracula) — os prints da P98, fora do repositório.
-
-A casa é a do `tests/app-completo.py` (HOME temporário, falsos que recusam).
-
-  0 = passou · 1 = reprovou · 2 = erro deste teste
-"""
 import importlib.util
 import os
 import re
@@ -43,13 +12,11 @@ _argv, sys.argv = sys.argv, [os.path.join(AQUI, "app-completo.py")]
 _spec.loader.exec_module(casa)
 sys.argv = _argv
 
-from playwright.sync_api import sync_playwright  # noqa: E402  (o app-completo já conferiu)
+from playwright.sync_api import sync_playwright  # noqa: E402
 
 FOTOS = casa._arg("--fotos")
-# Mais que isto é parágrafo; e o nome de uma opção cabe muito antes.
 TETO_PARAGRAFO = 140
 TETO_FRASE = 48
-# As duas voltas, pelo id do pack: é o nome que vai nas reprovas.
 VOLTAS = (("meowsystem", "mocha", ""), ("dracula", "dracula", "-dracula"))
 
 OLHAR_JS = r"""
@@ -184,8 +151,6 @@ def olhar(pag, rota, reprovas, rotulo=""):
 
 
 def esperar(pag, ms=600):
-    """O pulso (/api/pulso) fica aberto: «networkidle» nunca chega. Espera o
-    esquema e o conteúdo, e um respiro para as listas que chegam depois."""
     pag.wait_for_function("() => typeof ESQUEMA !== 'undefined' && ESQUEMA"
                           " && !document.getElementById('conteudo').hasAttribute('aria-busy')", timeout=60000)
     pag.wait_for_timeout(ms)
