@@ -23,7 +23,7 @@ confere e conserta sozinho. Bash 4.3+ e Python 3 só com a biblioteca padrão.
 | `src/` | applets e o oráculo em Rust |
 | `systemd/` | unidades de usuário (doctor, vigias `.path`, sentinela) |
 | `tests/` | a suíte; `tests/todos.sh` roda tudo |
-| `docs/` | manual (`PACKS.md`, `FRONTEIRA.md`, `ESTADO-FINAL.md`, `MANUTENCAO.md`) |
+| `docs/` | manual (`PACKS.md`, `FRONTEIRA.md`, `ESTADO-FINAL.md`, `MANUTENCAO.md`) e o registro `DECISOES.md` |
 
 ## Rodar a suíte
 
@@ -44,9 +44,8 @@ Pulado não é verde. Toda afirmação precisa de prova rodada.
 
 - Leia [`GSD.md`](GSD.md): as regras, as decisões e as armadilhas, cada uma guardada por
   `tests/decisoes.sh`.
-- Decisões de quem usa: [`docs/sprints/2026-10-09-uso-real/02-decisoes.md`](docs/sprints/2026-10-09-uso-real/02-decisoes.md)
-  e [`docs/sprints/2026-10-15-fechamento/P82-abertos.md`](docs/sprints/2026-10-15-fechamento/P82-abertos.md).
-  Só se desfazem com sim explícito sobre o tema.
+- Decisões de quem usa: [`docs/DECISOES.md`](docs/DECISOES.md). Só se desfazem com sim explícito
+  sobre o tema.
 - O doctor corrige; nenhuma saída manda digitar. Interface mostra, não explica.
 - Pack é dado. A arte mora no pack.
 - Não rode `install.sh`, `meow compositor` nem `meow doctor --consertar` com o HOME real.
@@ -62,6 +61,6 @@ do código; o `scripts/higiene.sh` zera as linhas novas do commit e corrige núm
 
 ## Onde não ler por padrão
 
-- `docs/sprints/` e `docs/historico/`: registro de trabalho, longo. Leia só o arquivo citado.
-- `docs/SPRINTS.md`: o diário das sprints.
+- `docs/sprints/`: só a leva em curso; leia o arquivo citado. O registro antigo mora na branch
+  `arquivo`.
 - `packs/*/icones/` (milhares de SVG), `docs/capturas/`.
