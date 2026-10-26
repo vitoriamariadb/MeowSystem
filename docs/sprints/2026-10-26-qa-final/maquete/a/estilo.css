@@ -651,9 +651,6 @@ dialog.resultado { width: min(880px, calc(100vw - 32px)); }
   .busca.campo-aberto .abrir-busca { display: none; }
   .busca.campo-aberto > svg, .busca.campo-aberto > input, .busca.campo-aberto > kbd { display: block; }
 }
-@media (max-width: 1360px) {
-  .linha.dupla, .bloco > header.dupla { grid-template-columns: minmax(110px, 1fr) minmax(0, 220px) minmax(0, 220px); }
-}
 @media (max-width: 1180px) {
   .busca { display: block; }
   .topo { grid-template-columns: auto minmax(0, 1fr) auto auto auto; }
@@ -668,3 +665,26 @@ dialog.resultado { width: min(880px, calc(100vw - 32px)); }
   .oficina .palco { top: 116px; max-height: 38vh; background: var(--fundo); padding-bottom: var(--e-3); }
   .oficina .palco .previa { max-height: calc(38vh - var(--e-3)); width: auto; margin-inline: auto; }
 }
+.p-barra { padding-block: calc(.5cqi + var(--p-recheio-painel, 0cqi)); }
+.p-dock { padding-block: calc(.6cqi + var(--p-recheio-dock, 0cqi)); }
+.p-barra .musica > i { background: var(--p-musica-capa, linear-gradient(135deg, var(--p-pink), var(--p-peach))); }
+.p-barra .musica b, .p-barra .musica s { height: var(--p-musica-letra, calc(var(--s) * .26)); }
+.previa .p-ponteiro { position: absolute; left: 44%; top: 46%; width: 2.6cqi; height: 2.6cqi; fill: var(--p-ponteiro, var(--text)); stroke: var(--p-crust); stroke-width: 1.4; stroke-linejoin: round; filter: drop-shadow(0 .2cqi .4cqi color-mix(in oklab, var(--p-crust) 60%, transparent)); }
+.previa[data-tiling="sim"] .p-arq { left: 1.6%; top: 11%; width: 47.6%; height: 74%; }
+.previa[data-tiling="sim"] .p-term { right: 1.6%; top: 11%; width: 47.6%; height: 74%; }
+.previa[data-so-term="sim"] .p-arq { display: none; }
+.previa[data-so-term="sim"] .p-term { left: 12%; right: 12%; width: auto; top: 13%; height: 70%; }
+.previa[data-ff="nao"] .p-term .gato-ff { display: none; }
+.previa .parede ~ .p-barra { backdrop-filter: blur(.4cqi); }
+.secao[hidden] { display: none !important; }
+.lugar-letra { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 6px; background: var(--cartao-2); color: var(--tinta-2); font: 600 var(--t-xs) var(--f-corpo); }
+.liga-programas .programa > .fila { gap: var(--e-3); flex-wrap: nowrap; min-width: 0; }
+.liga-programas .programa img { width: 24px; height: 24px; flex: none; }
+.nova-ficha { position: relative; display: inline-flex; }
+.nova-ficha .sugestoes { position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; width: 300px; max-width: calc(100vw - 32px); }
+.jogo .capa .lugar { color: var(--tinta-3); }
+.jogo .capa .lugar svg.i { width: 28px; height: 28px; }
+.galeria figure { cursor: pointer; }
+.galeria figure .fila small { margin-left: auto; color: var(--tinta-3); font: var(--t-xs) var(--f-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.palco > .bloco .corpo { padding: var(--e-4) var(--e-5); }
+.escolha svg.ponteiro { width: 40px; height: 40px; }
