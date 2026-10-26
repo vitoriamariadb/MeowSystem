@@ -129,3 +129,100 @@ A prévia fixa: `main > .oficina` com `[.palco > .previa, .pilha]`. Sem prévia:
 </body>
 </html>
 ```
+
+## Páginas
+
+| arquivo | porta (`data-porta`) | o que tem |
+|---|---|---|
+| `tema.html` + `tema.js` | `tema` | os packs MeowSystem e Dracula com variantes, Cor de destaque, Claro ou escuro, «Criar o meu tema» |
+| `definir.html` + `definir.js` | `ajustes` | sete seções por `#hash`: `painel`, `janelas`, `papel`, `mascote`, `noite`, `terminal`, `programas` |
+| `manter.html` + `manter.js` | `cuidar` | estado, pendências, três cartões, Sozinho, Ícones da máquina, Construídos, Registro, perigo |
+| `extensoes.html` | `extensoes` | só a moldura (da maquete B) |
+| `demo.js` | todas | moldura: gravando, mudanças, desfazer, busca, diálogos, estados |
+| `prova.py` | — | a prova headless (abaixo) |
+
+## Estados de demonstração
+
+Na URL: `pagina.html#estado=<e>` ou, no Definir, `definir.html#painel&estado=<e>`. O `demo.js` põe
+`body[data-estado]` e liga `[data-so~=e]` e desliga `[data-nao~=e]`.
+
+| estado | o que muda |
+|---|---|
+| `normal` | o padrão |
+| `vazio` | Tema: «Nenhum tema pronto»; Manter: «Nada pendente»; Papel: galeria vazia; Programas: Jogos vazio |
+| `carregando` | esqueletos no lugar dos blocos (`.esqueleto`, `.esqueleto-grade`) |
+| `erro` | `#gravando[data-estado=erro]` e a torrada fixa «Sem servidor»; Manter: topo «Sem servidor» com «Tentar de novo»; trabalhos terminam em «Falhou» com o registro aberto |
+| `sem-ponte` | toda ação `[data-root]` e a chave do lançador abrem «Falta a ponte» → «Consertar a ponte»; Manter: topo «Falta a ponte», Ponte vermelha na faixa |
+
+## Elemento → classe → item do relatório → sprint
+
+| elemento | id / classe | item | sprint |
+|---|---|---|---|
+| gravar ao soltar, sem Aplicar nem Ver sem mudar | `#gravando`, `#conta`, `#ultimas .ultima`, `#desfazer` | Q2-04, Q2-05, Q2-06, Q2-07, Q1-14 | P109 |
+| rótulo com a coluna na lista de mudanças | `anotar()` em `demo.js`, `rotuloDe()` em `definir.js` | Q2-19 | P109 |
+| ação abre o diálogo de resultado | `[data-acao]` → `dialog#resultado` | Q3-07 | P109 |
+| modal «Instalar tudo» cabe e mostra os botões | `dialog.resultado`, `.registro pre` | Q3-01 | P110 |
+| abas horizontais fixas acima da prévia | `nav.abas-ajustes` (top 64) | Q2-08, Q2-09 | P110 |
+| prévia grande e fixa | `.oficina > .palco` (sticky, top 132), `.previa` | Q2-09 | P110 |
+| a prévia reage a cada controle | `.previa[data-*]`, `--p-*` (tabela abaixo) | Q2-01, Q2-02, Q2-03 | P110 |
+| linhas de duas colunas sem vazar | `.linha.dupla`, `@container` em `.oficina > .pilha` | Q2-10 | P110 |
+| um ↶ por coluna | `.ctl[data-coluna] > .padrao` | Q2-19 | P110 |
+| deslizante «Auto» vazio; margem desligada com a barra colada | `.faixa[data-vazio]`, `.ctl.desligado` | Q2-20 | P110 |
+| busca vira ícone em meia tela; «/» abre | `.busca .abrir-busca`, `.busca.campo-aberto` | Q2-11 | P110 |
+| Programas sem prévia, grade larga | `.oficina.sem-previa`, `.grade-cuidar` | Q2-12 | P110 |
+| cartões de Manter com o desenho ao lado | `.cartao-acao` | Q3-03 | P110 |
+| portas Tema · Personalizar · Definir · Manter · Extensões | `#portas` | Q1-12 | P111 |
+| Tema sem Ver, sem No ar agora, sem Mais ajustes; «Criar o meu tema» | `.pack`, `.variantes`, `.criar-meu` | Q1-11, Q1-16 | P111 |
+| Tema sem selects com valor falso | `.variantes button[aria-pressed]`, `.seg[data-chave=MODO]` | Q1-15 | P111 |
+| sem «Mais ajustes»: raros no fim; «Ver» no bloco Conferir | último `.bloco` de cada seção | Q2-13 | P111 |
+| itens de máquina dos ícones vão para Manter | bloco «Ícones da máquina» | Q1-09 | P111 |
+| Modo de leitura com prévia e régua | `.quente`, `.papel`, `.regua-noite` | Q2-17 | P111 |
+| Manter: só «Conferir» no topo | `.estado-maquina .fila` | Q3-04 | P111 |
+| Manter botão por botão | `.cartao-acao`, Sozinho, Registro, `.bloco.tracejado` | Q3-05 | P111 |
+| pendência com o nome do assunto | `.pendencias .linha` | Q3-06 | P111 |
+| Escondidos sugere programas e recusa texto solto | `.nova-ficha`, `.sugestoes`, `[aria-invalid]` | Q2-14 | P113 |
+| sem Baixar/Instalar que não cabem (Spotify, starship, coleção, menu) | Programas, Terminal | Q2-15, Q2-16 | P113 |
+| estado dos builds | bloco «Construídos» | Q2-18 | P114 |
+| porta Extensões | `extensoes.html` | Q3-10 | P114 |
+
+## Controle → prévia
+
+Cada linha é conferida pelo `prova.py` (a assinatura visual da prévia muda depois do gesto).
+
+| controle (`data-chave`) | na prévia |
+|---|---|
+| `FORMA_PAINEL_SOLTO`, `FORMA_DOCK_SOLTO` | `data-solto-painel`, `data-solto-dock`: barra/dock longe da borda; desliga a Distância |
+| `FORMA_PAINEL_ILHA`, `FORMA_DOCK_ILHA` | `data-ilha-*`: pastilha no meio em vez de borda a borda |
+| `FORMA_MARGEM_*` | `--p-margem-painel`, `--p-margem-dock` (px × 0,12 cqi) |
+| `FORMA_RAIO_*` | `--p-raio-*`: cantos |
+| `FORMA_ESPACO_*` | `--p-espaco-*`: espaço entre ícones |
+| `FORMA_RECHEIO_*` | `--p-recheio-*`: folga interna |
+| `VIDRO_OPACIDADE_*` | `--p-vidro-painel`, `--p-vidro-dock` (%) |
+| `FORMA_ALA_INICIAL_*`, `FORMA_CENTRO_*`, `FORMA_ALA_FINAL_*` | `--p-b-ini/centro/fim` e `--p-ala-ini`, `--p-centro`, `--p-ala-fim` (XS 2,6 · S 3,05 · M 3,5 · L 3,95 · XL 4,4 cqi) |
+| `RELOGIO_SEGUNDOS` | `data-segundos`: «:07» no relógio |
+| `MIDIA`, `MIDIA_CAPA`, `MIDIA_CONTROLES` | `data-musica`, `data-capa`, `data-tocar` |
+| `MIDIA_LARGURA`, `MIDIA_FONTE` | `--p-musica-largura`, `--p-musica-letra` |
+| `MIDIA_COR_TITULO`, `MIDIA_COR_ARTISTA`, `MIDIA_COR_ALBUM` | `--p-musica-titulo`, `--p-musica-artista`, `--p-musica-capa` |
+| `JANELAS_TILING` | `data-tiling`: janelas lado a lado |
+| `CURSOR` | `--p-ponteiro`: cor do ponteiro |
+| galeria do Papel de parede | `.parede[src]` |
+| `WALLPAPER_AJUSTE` | `.parede` com a classe do encaixe |
+| `LOGO`, `FASTFETCH_LOGO_MODO`, `FASTFETCH_LOGO_GATO` | `.p-dock .gato[src]`, `.gato-ff img[src]` |
+| `FASTFETCH_LOGO` | `data-ff`: desenho no terminal |
+| `LEITURA_TEMPERATURA` | `.quente` opacidade = min((6500 − K) / 6500 × 0,6; 0,45) |
+| `LEITURA_TEXTURA` | `.papel` opacidade |
+| horários de Mascote, Modo de leitura, Papel da noite | `.regua-noite` (faixas por hora) |
+| `TERMINAL_ESQUEMA`, `TERMINAL_CURSOR`, `PROMPT_STARSHIP` | `data-esquema`, `--p-cursor`, `data-prompt` |
+
+## Prova
+
+```bash
+~/.local/share/meowsystem/venv-testes/bin/python3 prova.py
+```
+
+Headless, `file://`, em 1920×1080, 1550×860, 1500×900 e 1280×800, nas três portas, nas sete seções
+do Definir e nos quatro estados. Confere: nenhum elemento mais largo que o pai nem com conteúdo
+vazando; `scrollWidth` do documento igual a `innerWidth`; depois de rolar até o fim, topo em 0, abas
+em 64 e palco em 116 ou mais e inteiro na tela; prévia com 900 px ou mais em 1920; a tabela acima; o
+modal «Instalar tudo» com todos os botões à vista; «Falta a ponte» e «Sem servidor». Capturas em
+`capturas/`, fora do git.
