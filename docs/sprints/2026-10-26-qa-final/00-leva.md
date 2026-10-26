@@ -41,3 +41,9 @@ escolha o caminho que respeita GSD.md, anote em `## Execução` no fim da sua sp
 `app/servidor.py`, `app/pagina/app.js`, `app/pagina/index.html` e `app/pagina/estilo.css` são
 tocados por várias. Mexa só nas funções e blocos da sua sprint; não reformate, não reordene, não
 renomeie nada que não é seu. O coordenador junta as seis numa branch de integração.
+
+## Nome da conta
+`<conta>` nas sprints é a conta do GitHub da casa. O gancho global redige esse nome em todo arquivo
+do repo, menos `LICENSE`, `AUTHORS`, `CONTRIBUTORS` e arquivos `.toml/.json/.yaml/.ini/.cfg`. Leia o
+nome de `git remote get-url origin`. Em código e docs, a URL vem de um dado (`.toml`) lido em tempo
+de execução; nunca escreva o nome à mão num `.md`, `.sh`, `.py` ou `.js`.
