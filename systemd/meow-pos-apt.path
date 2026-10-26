@@ -1,14 +1,3 @@
-# meow-pos-apt.path — o gatilho do pós-apt do COSMIC (P76).
-#
-# QUEM TOCA O ARQUIVO é a linha root do `scripts/99-meow-lancador`, a cada apt
-# (`DPkg::Post-Invoke`). É a única coisa que roda como root: todo o trabalho
-# — reconstruir o compositor, o menu do cosmic-files e o que mais o COSMIC novo
-# desfez — é do usuário, no `meow-pos-apt.service`, sem sudo.
-#
-# `PathChanged=` e não `PathModified=`: o `touch` fecha o arquivo uma vez por
-# apt, e é o fechamento que interessa. O arquivo pode não existir ainda (antes
-# do primeiro apt depois da instalação); o systemd vigia o diretório e arma
-# quando ele aparece.
 [Unit]
 Description=MeowSystem — refaz em escopo de usuário o que um apt do COSMIC desfez
 Documentation=file:%h/.local/state/meowsystem/pos-apt.log

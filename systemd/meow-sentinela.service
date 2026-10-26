@@ -1,7 +1,3 @@
-# meow-sentinela.service — a passagem da sentinela (scripts/sentinela.sh).
-#
-# Sai 1 quando há vermelho (o cartão «precisa de gente» foi posto) e 3 sem apt:
-# nenhum dos dois é falha da unidade.
 [Unit]
 Description=MeowSystem — sentinela do COSMIC antes do apt
 Documentation=file:%h/.local/state/meowsystem/sentinela.log

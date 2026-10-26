@@ -1,23 +1,9 @@
-# meow-pos-apt.service — o pós-apt do COSMIC (P76). Ver o `meow-pos-apt.path`
-# e o cabeçalho de `scripts/cosmic_pos_apt.sh`.
-#
-# SEM `flock` NO LOCK DO MEOW, ao contrário dos vigias: o passo final é o
-# `meow doctor --consertar`, que pega o mesmo lock, e um build de meia hora
-# segurando-o deixaria o doctor das 5h esperando. Cada passo de build já se
-# protege sozinho (artefato por versão, temporário e `mv`).
-#
-# Nice 19 e IO ocioso: compilar o compositor leva minutos e não pode tirar a
-# máquina dela do ar enquanto ela usa.
 [Unit]
 Description=MeowSystem — refaz em escopo de usuário o que um apt do COSMIC desfez
 Documentation=file:%h/.local/state/meowsystem/pos-apt.log
 ConditionPathExists=%h/.local/state/meowsystem/raiz
 
 [Service]
-# O `~/.cargo/bin` ENTRA NO PATH NA PRÓPRIA LINHA — P81, 15/10/2026. O PATH
-# do systemd do usuário não o tem (medido na P76), e é lá que o rustup põe o
-# `cargo` e o `just` que o build do 4d14528 pede (`just build-vendored`). O
-# `$PATH` sem chaves passa pelo systemd intacto e é o `sh` que o expande.
 Type=oneshot
 ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${AUTO_REPARO:-sim}" = "sim" ]'
 ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem

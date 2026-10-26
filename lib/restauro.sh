@@ -1,9 +1,3 @@
-# lib/restauro.sh — o estado de antes de cada escrita, para o Restaurar do painel.
-#
-# Com `MEOW_BACKUPS` apontando a pasta de uma execução (o painel cria uma por
-# ação que escreve), toda escrita e toda remoção guarda antes o arquivo como
-# estava, e `tocados.tsv` lista o que mudou. É isso que o `meow restaurar` repõe.
-# Só o primeiro estado de cada caminho vale: é o de antes da execução.
 meow_guardar_antes() {
   local alvo lista
   [ -n "${MEOW_BACKUPS:-}" ] || return 0
@@ -25,8 +19,6 @@ meow_guardar_antes() {
   return 0
 }
 
-# A pasta inteira, para quem a apaga ou a troca de uma vez (o tema de ícones
-# reconstruído, as árvores do desinstalar). O `meow restaurar` repõe a árvore.
 meow_guardar_pasta() {
   local alvo lista
   [ -n "${MEOW_BACKUPS:-}" ] || return 0

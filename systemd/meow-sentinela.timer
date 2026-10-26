@@ -1,8 +1,3 @@
-# meow-sentinela.timer — mede o COSMIC da fila do apt uma vez por dia (P86).
-#
-# Só lê (`apt list --upgradable`), então não precisa do horário das 5h do doctor.
-# `Persistent=true` cobre o PC desligado na hora; o atraso aleatório tira o
-# encontro marcado com o doctor e com o Ritual da Aurora.
 [Unit]
 Description=MeowSystem — mede o COSMIC da fila do apt antes de atualizar
 Documentation=file:%h/.local/state/meowsystem/sentinela.tsv

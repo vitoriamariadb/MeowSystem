@@ -1,68 +1,9 @@
-# Upstreams baixados (papirus-folders, o tarball da Nerd Font) moram em
-# ~/.cache/meowsystem, fora do repositório; o repo guarda o script que baixa.
 packs/meowsystem/wallpapers/baixados/
 
-# As fontes que ela solta em `assets/fontes/locais/` — o BINÁRIO fica de fora, o
-# LEIA-ME entra. Duas razões, e as duas valem sozinhas:
-#   · prática: é o mesmo motivo do upstream acima — binário de fonte não é o que
-#     este repositório tem a dizer; o que se versiona é a etapa que o instala;
-#   · de licença: fonte de terceiro vem com EULA própria (a `zrnic rg.otf` veio
-#     com o "Typodermic Desktop EULA 2026.pdf" no zip), e o repositório não é
-#     lugar de redistribuí-la.
-# Consequência assumida: numa máquina nova a fonte não volta sozinha — é preciso
-# soltar o arquivo no acervo de novo. Está escrito no LEIA-ME de lá.
-#
-# UMA PASTA SÓ, A DO LEITOR — decisão de 23/09/2026, feita na P40.
-#   Havia duas, nascidas no mesmo commit (3e29900, 01/09). O
-#   `scripts/instalar_fontes.sh` lê — e o `adicionar` dele, que o painel chama,
-#   escreve — `assets/fontes/locais/`; o `LEIA-ME.txt` versionado morava em
-#   `assets/fontes/fonts/locais/`. Em 21/09 esta regra foi corrigida
-#   para a pasta do LEIA-ME, porque `locais/` não existia no git — e com isso
-#   passou a cercar a pasta que ninguém lê e a deixar aberta a que o instalador
-#   lê: uma fonte solta onde ela é instalada ficava a um `git add -A` de entrar
-#   num commit, com a EULA junto. A decisão foi a pasta do leitor: o LEIA-ME foi
-#   para lá (`git mv`), `assets/fontes/fonts/` deixou de existir, e o
-#   `tests/git-limpo.sh` lê o `ACERVO_LOCAL` do instalador e confere, com
-#   `check-ignore`, que é ESSA a pasta cercada — as duas não voltam a se separar
-#   caladas.
-#
-#   Continua sendo por EXTENSÃO e não por diretório, ao contrário das regras de
-#   papel de parede lá embaixo, porque aqui a distinção é o ponto: o BINÁRIO
-#   fica de fora e o `LEIA-ME.txt` entra. O `.ttc` (várias faces num arquivo só)
-#   é fonte de terceiro do mesmo jeito e entra na cerca, ainda que o instalador
-#   hoje só instale `.otf` e `.ttf`; as maiúsculas porque o `adicionar` aceita
-#   `.OTF` e `.TTF` e grava o nome como veio.
-#
-# A CAIXA DA EXTENSÃO É QUALQUER UMA — 24/09/2026, sprint P45
-#   Eram seis linhas, a extensão toda minúscula ou toda maiúscula. Quem LÊ esta
-#   pasta é o `find -iname '*.otf'` do instalador, que não olha caixa, e o nome
-#   que vem de um zip é o que o autor da fonte escreveu: medido com
-#   `git check-ignore`, `.Otf`, `.oTF`, `.Ttf` e `.TtC` passavam pela cerca, e
-#   a fonte seria instalada e ficaria a um `git add -A` de entrar num commit,
-#   com a EULA junto. A classe de cada letra cobre as oito caixas de uma vez.
 assets/fontes/locais/*.[oO][tT][fF]
 assets/fontes/locais/*.[tT][tT][fF]
 assets/fontes/locais/*.[tT][tT][cC]
 
-# Imagens nunca vão para o git (o Andromeda ficou 18h com o auto-sync mudo por um
-# arquivo >100MB; aqui a regra é preventiva).
-#
-# É esta regra que mantém `packs/meowsystem/wallpapers/` fora do git. Foram 242 arquivos de
-# zhichaoh/catppuccin-wallpapers (193 MB, baixados em 05/08/2026); depois da
-# curadoria de 24/08/2026 são 54 — 11 daquele acervo e 43 buscadas na internet.
-# Eles ficam no disco, dentro do repositório, e o git não os enxerga. O que
-# reproduz a pasta é o `scripts/wallpaper.sh semear`, lendo o commit pinado
-# mais `packs/meowsystem/wallpapers/FONTES.tsv` e `packs/meowsystem/wallpapers/BANIDOS.txt.padrao` — que são texto
-# e VÃO para o git: sem eles a curadoria dela não sobrevive a uma reinstalação.
-# (O `.padrao` é a lista de FÁBRICA. A lista viva saiu do git em 21/09/2026 e
-# mora em `~/.local/state/meowsystem/`; o bloco lá embaixo conta por quê.)
-# Os ÍCONES (`assets/icones/catppuccin/`, 3.280 SVGs, 13 MB) VÃO para o git: são texto,
-# comprimem bem, e é o pack inteiro que ela escolheu usar.
-#
-# EM QUALQUER CAIXA — 24/10/2026, conferência da v2.0.0
-#   A foto de câmera vem `.JPG`, e o `wallpaper.sh` semeia as fotos do pack
-#   (P102) sem olhar caixa. Com a regra só minúscula, ela entrava num
-#   `git add -A`. A mesma classe por letra da cerca de fontes, acima.
 *.[jJ][pP][gG]
 *.[jJ][pP][eE][gG]
 *.[pP][nN][gG]
@@ -70,101 +11,28 @@ assets/fontes/locais/*.[tT][tT][cC]
 *.[mM][pP]4
 !docs/spec-visual/*.png
 
-# AS CAPTURAS DO README VÃO PARA O GIT — 06/09/2026
-#   A regra acima existe para não versionar 54 papéis de parede baixados; ela
-#   pegava junto as sete imagens que o README mostra na abertura. Com o
-#   repositório público isso não é uma nota de rodapé: o README abre com
-#   `<img src="docs/capturas/painel.png">`, e quem chegasse pelo GitHub veria
-#   sete retângulos quebrados — a primeira impressão do projeto.
-#   São 2,4 MB, uma vez, e são a única forma de mostrar o que ele faz sem a
-#   pessoa instalar.
 !docs/capturas/*.png
 !docs/capturas/*.jpg
 
-# A FOLHA DE ANTES-E-DEPOIS DOS RESGATADOS VAI PARA O GIT — 11/09/2026
-#   Mesma razão das capturas acima, e não uma exceção nova: ela é a única forma
-#   de responder "o redesenho ficou fiel?" sem o PNG de origem na mão. E o PNG
-#   de origem é exatamente o que não sobrevive — metade dos caminhos da coluna
-#   do meio de `apps-resgatados.map` é `/usr/share` ou `/opt`, que somem no
-#   próximo upgrade do pacote. Sem a folha versionada, daqui a seis meses não
-#   existe mais como comparar: o "antes" terá desaparecido da máquina.
-#   É UM arquivo, regenerável por `meow icones resgatados folha`, e é a prova do
-#   trabalho que o acervo ao lado dele representa.
 !assets/icones/resgatados-antes-e-depois.png
 
-# OS PNG FEITOS À MÃO DO PACK VÃO PARA O GIT — 09/10/2026, P73
-#   A decisão 2 daquele dia (docs/sprints/2026-10-09-uso-real/02-decisoes.md):
-#   os desenhos à mão em PNG entram no pack já, para nada sumir, e viram vetor
-#   num lote conferido por RMSE. São a arte, e não um papel de parede baixado:
-#   sem esta linha a regra `*.png` lá em cima os deixaria só no disco, que é
-#   exatamente onde eles estavam se perdendo desde 16/04.
-# [P88, decisão 14: o PNG feito à mão mora na `biblioteca/` das três pastas,
-#   em qualquer subpasta dela.]
 !packs/*/icones/biblioteca/*.png
 !packs/*/icones/biblioteca/**/*.png
 
-# Estado local da máquina: backups e log ficam fora, em ~/.local/state/meowsystem.
-# As CAPTURAS continuam versionadas — sao as que fazem o "3 cliques uma vez na vida"
-# continuarem valendo mesmo se esta maquina for reformatada. Sao texto pequeno.
-# Desde 22/09/2026 cada uma mora no PACK dono dela (`packs/<id>/temas/capturados/`);
-# o que ficou em `assets/temas/capturados/` e so a `original`, que nao e tema de
-# pack nenhum: e o molde do esquema v1 e o reset de fabrica desta maquina.
-
-# O PRODUTO GERADO SAI DO GIT — 22/09/2026
-#   Os sete `assets/temas/meowsystem-<flavor>-<accent>.ron` eram versionados, e
-#   sao SAIDA de `scripts/gerar_temas.py` (paleta do pack + cosmic-map.json).
-#   Versionar saida gerada e o que permite que o disco e a receita divirjam, e o
-#   `docs/SPRINTS.md` ja tinha nome para o defeito: "o doctor enxerga receita
-#   diferente de produto". Agora eles nascem em `$MEOW_ESTADO/temas/`, junto dos
-#   backups e do log, e o `meow doctor` confere receita contra produto NA
-#   MAQUINA em vez de confiar num arquivo commitado.
-#
-#   ESTA LINHA E O CINTO, e so isso: o caminho normal ja nao escreve aqui. Ela
-#   existe para quem rodar `gerar_temas.py --saida assets/temas` a mao — o mesmo
-#   papel que a linha do `target/` do applet de midia faz, tres blocos abaixo.
 assets/temas/*.ron
 
 *.tmp
 *.bak
 *.orig
 
-# Python
 __pycache__/
 *.pyc
 .venv/
 
-# A ÁRVORE DE BUILD DO APPLET DE MÍDIA — CINTO, NÃO SUSPENSÓRIO.
-# O suspensório é o `CARGO_TARGET_DIR` que o `scripts/midia_build.sh` aponta
-# para FORA do repositório (`~/.local/state/meowsystem/midia/target`), e é ele
-# que faz o caminho normal nunca escrever aqui. Esta linha existe para o outro
-# caminho: um `cargo build` rodado à mão dentro de `src/applets/now-playing/`
-# cria 1,5 GB dentro do disco Ápate sem pedir licença, e um `git add -A`
-# distraído leva junto. Medido em 24/08/2026: 1,5 GB de target/ para 22 MB de
-# binário.
 src/applets/now-playing/target/
 
-# E A DO APPLET DE LEITURA, PELO MESMO MOTIVO E COM O MESMO SUSPENSÓRIO.
-# O `scripts/leitura_build.sh` também aponta o `CARGO_TARGET_DIR` para fora do
-# repositório (`~/.local/state/meowsystem/leitura/target`); esta linha é o cinto.
-# Ela faltava, e a falta foi PAGA: em 31/08/2026 um `cargo check` rodado à mão
-# dentro de `src/applets/leitura/` criou 1,1 GB dentro do Ápate e o `git status`
-# já o listava como não rastreado. Uma linha de irmão que não foi copiada junto
-# com o irmão é a forma mais barata de descobrir isso do jeito caro.
 src/applets/leitura/target/
 
-# --- O ACERVO DE PAPÉIS DE PAREDE MORA AQUI DESDE 01/09/2026 ----------------
-# Ele veio de `~/.local/share/backgrounds/meowsystem/` (que virou symlink para
-# cá), por decisão dela: uma pasta só, visível onde ela trabalha.
-#
-# AS REGRAS ABAIXO SÃO POR DIRETÓRIO, E NÃO POR EXTENSÃO, DE PROPÓSITO. As
-# linhas `*.jpg`/`*.png` acima já cobririam quase tudo — mas "quase" é o que
-# custa caro: um `.gif`, um `.bmp`, um `.avif` ou uma anotação `.txt` largada
-# lá dentro entraria no git sem ninguém perceber, e o Andromeda já ficou 18 h
-# com o auto-sync mudo por UM arquivo grande demais.
-#
-# O que FICA versionado nesta pasta são as três receitas — `FONTES.tsv`,
-# `BANIDOS.txt.padrao` e `LICENSE` —, e é por isso que elas estão no mesmo nível
-# e não dentro de `ativos/`. São elas que reproduzem o acervo num disco novo.
 packs/meowsystem/wallpapers/ativos/
 packs/meowsystem/wallpapers/ativos-dia/
 packs/meowsystem/wallpapers/ativos-noite/
@@ -172,70 +40,13 @@ packs/meowsystem/wallpapers/banidos/
 packs/meowsystem/wallpapers/favoritos/
 packs/meowsystem/wallpapers/originais/
 
-# --- USAR O PROGRAMA NÃO PODE SUJAR O REPOSITÓRIO — 21/09/2026 --------------
-# `BANIDOS.txt` e `lado.tsv` eram VERSIONADOS aqui, e o painel os reescrevia
-# enquanto ela usava a interface. A prova ficou no `git status` daquele dia, no
-# clone dele: `+47` linhas em `BANIDOS.txt` e `-3` em `lado.tsv`, das 17h09 e
-# 17h10, de clicar em "Tirar" e em "Dia"/"Noite". Ninguém programou nada — usar
-# o produto era um commit pendente.
-#
-# E ISSO JÁ DOÍA EM DOIS USUÁRIOS REAIS: são três remotos entre as duas máquinas
-# (`origin`, `fork` e um caminho local), dois desktops, dois carrosséis. Cada
-# `git pull` entre eles era conflito de merge num arquivo que nenhum dos dois
-# editou de propósito. O `merge=ours` do `.gitattributes` prometia cobrir isso e
-# era INERTE em qualquer clone novo — a declaração estava lá, o driver não.
-#
-# A receita continua versionada, como `.padrao`; o que a pessoa escreve vive em
-# `~/.local/state/meowsystem/papeis-de-parede/`. O contrato está em
-# `meow_estado_com_padrao` (`lib/comum.sh`).
-#
-# ESTAS DUAS LINHAS SÃO O CINTO DO `git add -A` DISTRAÍDO, e só isso. Elas
-# impedem que o arquivo antigo volte ao índice; elas NÃO o seguram no disco.
-#
-# O QUE O `git pull` DA MIGRAÇÃO FAZ DE VERDADE — medido em 22/09/2026, em
-# clone de teste parado no commit anterior, porque a versão anterior deste
-# parágrafo prometia que "o arquivo antigo continua no disco depois do `git
-# pull`" e isso não se confirma em nenhum dos três caminhos:
-#
-#   · CURADORIA NÃO COMMITADA (é o caso dele, `+47` linhas): o merge RECUSA —
-#     "Your local changes to the following files would be overwritten by merge
-#     ... Aborting". É fail-safe, nada some calado, mas O PULL NÃO COMPLETA.
-#     É o item 3 do "o que pode dar errado" da sprint, e a resposta é esta:
-#     commitar ou descartar ANTES, e saber o que cada escolha custa.
-#   · COMMITADA ANTES: o merge acontece. `BANIDOS.txt` é detectado como rename
-#     (`R083` contra o commit anterior à migração) e o `ort` leva as linhas
-#     dela para DENTRO do
-#     `BANIDOS.txt.padrao` VERSIONADO — o arquivo antigo some do disco e a
-#     curadoria privada dela vira conteúdo rastreado, pronto para ser empurrado
-#     no próximo push. `lado.tsv` NÃO é detectado (o cabeçalho novo afoga as 6
-#     linhas de dado) e para em `CONFLICT (modify/delete)`, deixando o arquivo
-#     antigo no disco.
-#   · DESCARTADA ANTES: fast-forward, e o git APAGA os dois arquivos do disco.
-#     A semeadura cai no `.padrao`, que é o certo — e é o caminho em que as 47
-#     linhas dela somem. Por isso a ordem importa.
-#
-# O `merge.ours.driver` que o `install.sh` registra não muda nenhuma dessas
-# contas: o merge foi rodado com e sem ele e o resultado foi o mesmo, porque
-# rename/delete não passa por driver de merge. O porquê está no `install.sh`.
-#
-# ENTÃO O QUE PRESERVA A CURADORIA é a semeadura acontecer ANTES do pull —
-# `meow_estado_com_padrao` copia o arquivo antigo enquanto ele existe — ou o
-# `.padrao` já ter recebido as linhas pelo merge. As duas coisas estão escritas
-# em `lib/comum.sh`.
 packs/meowsystem/wallpapers/BANIDOS.txt
 packs/meowsystem/wallpapers/lado.tsv
 
-# Symlink local para diretrizes (não vai pro repo)
 CLAUDE.md
 
-# A bancada do resgate de ícones: os PNG extraídos, os SVG antes de passarem no
-# teste de fidelidade, e os renders de conferência. O que sobrevive à medição é
-# copiado para `packs/dracula/icones/apps/resgatados/` e commitado de lá — aqui fica o
-# rascunho, que é grande e não interessa a ninguém depois.
 .trabalho-icones/
 
-# --- anti-IA (anonimato local) ---
-# O AGENTS.md fica de fora desta lista: é o guia versionado do projeto.
 GEMINI.md
 COPILOT.md
 HANDOFF-PROMPT.md
@@ -251,11 +62,8 @@ STATE.md
 .continue/
 .github/copilot-instructions.md
 
-# --- anti-IA (anonimato local) ---
 .agente*
 
-# --- anti-IA (anonimato local) ---
 .agente*
 
-# --- anti-IA (anonimato local) ---
 .aider*

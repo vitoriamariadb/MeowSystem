@@ -1,28 +1,5 @@
 [Unit]
 Description=MeowSystem — vigia a geometria das barras e clampa o raio que não couber
-# POR QUE VIGIAR O DIRETÓRIO, E NÃO O ARQUIVO border_radius
-#   O que estoura o raio quase nunca é o raio. É a barra ENCOLHER: mudar `size`,
-#   `padding`, `size_center`, `size_wings` ou `plugins_wings` muda a altura, e um
-#   raio que era legal vira ilegal no frame seguinte, sem ninguém tocar nele.
-#   `PathChanged=` em DIRETÓRIO dispara nas três formas de escrever ali dentro
-#   (criar, reescrever, rename atômico) — medido nesta máquina com systemd 255 e
-#   registrado no cabeçalho de meow-fundo.path.
-#
-# O AVISO QUE PRECISA VIR JUNTO
-#   Um `.path` sobre a geometria SEM o registro do desejo dela seria só acelerar
-#   a destruição: de 6 horas (o timer do doctor) para 2 segundos. Por isso o
-#   `painel.sh conferir` guarda o valor que ela pediu em
-#   ~/.local/state/meowsystem/painel/raio_desejado.* ANTES de cortar, e o
-#   devolve sozinho no dia em que couber. Sem esse registro, esta unidade não
-#   deveria existir.
-#
-# O NAMESPACE, E NÃO SÓ O `v1` — 09/10/2026, P76
-#   O `v1` estava cravado aqui como nos escritores. Agora são dois vigias por
-#   barra: o diretório do NAMESPACE, que dispara quando o COSMIC cria um
-#   esquema novo (`v2` aparecendo ao lado do `v1`), e o do esquema de agora,
-#   que o `etapa_painel` do install.sh preenche com o maior `v*` do pacote
-#   (`meow_cosmic_v`) no lugar de `@V_PANEL@` e `@V_DOCK@`. Quando o pacote
-#   sobe de esquema, a próxima passagem do instalador reescreve esta unidade.
 PartOf=cosmic-session.target
 
 [Path]
