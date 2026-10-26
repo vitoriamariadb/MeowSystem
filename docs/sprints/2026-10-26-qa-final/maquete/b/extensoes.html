@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="pt-BR" data-estado="normal" data-aba="applets" data-pack="meowsystem" data-sabor="mocha">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeowSystem · Extensões</title>
+<link rel="icon" href="svg/meowsystem/logo.svg">
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="paleta.css">
+<link rel="stylesheet" href="estilo-b.css">
+<script src="maquete.js" defer></script>
+</head>
+<body data-porta="extensoes" data-estado="normal">
+<a class="pular" href="#principal">Pular para o conteúdo</a>
+<header class="topo" id="topo">
+  <a class="marca" href="../a/tema.html" data-controle="marca"><img src="svg/meowsystem/logo.svg" alt="" width="30" height="30"><span>MeowSystem</span></a>
+  <nav aria-label="Portas">
+    <ul class="portas" id="portas">
+      <li><a href="../a/tema.html" data-controle="porta:tema"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.7 5.7 0 0 0 22 9.7C22 5.4 17.5 2 12 2Z"/></svg><span>Tema</span></a></li>
+      <li><a href="personalizar.html" data-controle="porta:criar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Personalizar</span></a></li>
+      <li><a href="../a/definir.html" data-controle="porta:ajustes"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span>Definir</span></a></li>
+      <li><a href="../a/manter.html" data-controle="porta:cuidar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg><span>Manter</span></a></li>
+      <li><a href="extensoes.html" data-controle="porta:extensoes" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v4a2 2 0 1 0 4 0V3h2v6h-4a2 2 0 1 0 0 4h4v8h-8v-4a2 2 0 1 0-4 0v4H3v-8h4a2 2 0 1 0 0-4H3V3Z"/></svg><span>Extensões</span></a></li>
+    </ul>
+  </nav>
+  <div class="busca" id="caixa-busca" role="search">
+    <button type="button" class="bt leve so-icone abrir-busca" id="abrir-busca" aria-label="Procurar um ajuste" data-controle="busca"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="busca" type="search" placeholder="Procurar um ajuste" aria-label="Procurar um ajuste" autocomplete="off" aria-controls="achados">
+    <kbd>/</kbd>
+    <div class="achados" id="achados" role="listbox" aria-label="Achados"></div>
+  </div>
+  <div class="aplicar" id="aplicar" data-n="0">
+    <span class="gravando" id="gravando" role="status" data-estado="ok" aria-label="Gravado"><svg class="i so-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><svg class="i so-erro" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+    <button type="button" class="conta" id="conta" aria-expanded="false" aria-controls="ultimas" data-controle="mudancas">0 mudanças</button>
+    <button type="button" class="bt leve pequeno desfazer" id="desfazer" data-controle="descartar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Desfazer</button>
+    <div class="menu-corpo ultimas" id="ultimas" role="list" aria-label="Últimas mudanças" hidden>
+    </div>
+  </div>
+  <details class="menu" id="menu">
+    <summary class="bt leve pequeno so-icone" aria-label="Mais" data-controle="menu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></summary>
+    <div class="menu-corpo" id="menu-corpo">
+      <button type="button" data-controle="creditos"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/></svg>Créditos</button>
+      <button type="button" data-controle="exportar-pagina"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Esta tela num arquivo</button>
+    </div>
+  </details>
+</header>
+<nav class="abas-ajustes" id="abas" aria-label="Extensões">
+  <ul><li><a href="#applets" data-aba="applets" data-controle="aba:applets" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18"/></svg><span>Applets</span></a></li><li><a href="#builds" data-aba="builds" data-controle="aba:builds"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg><span>Builds</span></a></li></ul>
+  <div class="fila"><button class="bt principal pequeno" type="button" data-abre="adicionar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar repositório</button></div>
+</nav>
+<main id="principal" class="pagina">
+  <h1 class="sr">Extensões</h1>
+  <div class="oficina">
+    <div class="palco">
+      <figure class="previa" id="previa" data-solto-painel="sim" data-ilha-painel="nao" data-solto-dock="sim" data-ilha-dock="sim" data-segundos="nao" data-musica="sim" data-capa="sim" data-tocar="nao" role="img" aria-label="Prévia da área de trabalho">
+        <img class="parede so-meowsystem" id="parede-meowsystem" src="papel/cat-landscapes-Clearnight.jpg" alt="">
+        <img class="parede so-dracula" id="parede-dracula" src="svg/dracula/papel/vitral.svg" alt="">
+        <div class="p-barra"><div class="ws"><i></i><i></i><i></i></div><div class="meio"><div class="musica"><i></i><b></b><s></s></div></div><div class="bandeja"><span class="applets-mini" id="mini-applets"></span><i></i><i></i><span class="relogio">14:32<span class="seg-relogio">:07</span></span></div></div>
+        <div class="p-jan p-arq"><header><b></b><i></i></header><div class="corpo"><nav><i></i><i></i><i></i><i></i><i></i></nav><div class="pastas"><figure><img class="so-meowsystem" src="svg/meowsystem/pastas/folder-documents.svg" alt=""><img class="so-dracula" src="svg/dracula/pastas/folder-documents.svg" alt=""><i></i></figure><figure><img class="so-meowsystem" src="svg/meowsystem/pastas/folder-download.svg" alt=""><img class="so-dracula" src="svg/dracula/pastas/folder-download.svg" alt=""><i></i></figure><figure><img class="so-meowsystem" src="svg/meowsystem/pastas/folder-music.svg" alt=""><img class="so-dracula" src="svg/dracula/pastas/folder-music.svg" alt=""><i></i></figure><figure><img class="so-meowsystem" src="svg/meowsystem/pastas/folder-pictures.svg" alt=""><img class="so-dracula" src="svg/dracula/pastas/folder-pictures.svg" alt=""><i></i></figure><figure><img class="so-meowsystem" src="svg/meowsystem/pastas/folder-videos.svg" alt=""><img class="so-dracula" src="svg/dracula/pastas/folder-videos.svg" alt=""><i></i></figure><figure><img class="so-meowsystem" src="svg/meowsystem/pastas/folder-publicshare.svg" alt=""><img class="so-dracula" src="svg/dracula/pastas/folder-publicshare.svg" alt=""><i></i></figure><figure><img class="so-meowsystem" src="svg/meowsystem/pastas/folder-templates.svg" alt=""><img class="so-dracula" src="svg/dracula/pastas/folder-templates.svg" alt=""><i></i></figure><figure><img class="so-meowsystem" src="svg/meowsystem/tipos/pdf.svg" alt=""><img class="so-dracula" src="svg/dracula/pastas/user-home.svg" alt=""><i></i></figure></div></div></div>
+        <div class="p-jan p-term"><header><b></b><i></i></header><div class="corpo"><span class="pr"><b></b><b></b><b></b></span><span class="ln"><i class="ok"></i><i style="width: 14cqi"></i></span><span class="ln"><i style="width: 20cqi"></i></span><span class="ln"><i style="width: 9cqi"></i><span class="cursor"></span></span><span class="tira"><i style="background: var(--p-red)"></i><i style="background: var(--p-green)"></i><i style="background: var(--p-yellow)"></i><i style="background: var(--p-blue)"></i><i style="background: var(--p-pink)"></i><i style="background: var(--p-teal)"></i><i style="background: var(--p-peach)"></i><i style="background: var(--p-sky)"></i><i style="background: var(--p-acc)"></i></span></div></div>
+        <div class="p-dock"><div class="ala-ini"><img class="gato so-meowsystem" src="svg/meowsystem/mascote.svg" alt=""><img class="gato so-dracula" src="svg/dracula/mascote.svg" alt=""></div><div class="centro"><span class="app"><img class="so-meowsystem" src="svg/meowsystem/apps/arquivos.svg" alt=""><img class="so-dracula" src="svg/dracula/apps/arquivos.svg" alt=""></span><span class="app"><img class="so-meowsystem" src="svg/meowsystem/apps/firefox.svg" alt=""><img class="so-dracula" src="svg/dracula/apps/firefox.svg" alt=""></span><span class="app"><img class="so-meowsystem" src="svg/meowsystem/apps/terminal.svg" alt=""><img class="so-dracula" src="svg/dracula/apps/terminal.svg" alt=""></span><span class="app alvo-spotify"><img class="so-meowsystem" src="svg/meowsystem/apps/spotify.svg" alt=""><img class="so-dracula" src="svg/dracula/apps/spotify.svg" alt=""></span><span class="app"><img class="so-meowsystem" src="svg/meowsystem/apps/telegram.svg" alt=""><img class="so-dracula" src="svg/dracula/apps/telegram.svg" alt=""></span><span class="app"><img class="so-meowsystem" src="svg/meowsystem/apps/discord.svg" alt=""><img class="so-dracula" src="svg/dracula/apps/discord.svg" alt=""></span></div><div class="ala-fim"><i></i><i></i></div></div>
+      </figure>
+      <div class="barra-perto" aria-label="Barra de cima">
+        <div><span class="applet-na-barra" title="Áreas de trabalho · COSMIC"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></span></div>
+        <div><span class="relogio" title="Relógio · COSMIC">seg 26 out 19:24</span></div>
+        <div id="asa-direita"><span class="applet-na-barra" title="Now Playing · Diego M. Rivera"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></span><span class="applet-na-barra" title="Quick Settings · DrakRosmann" id="na-barra-qs"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></div>
+      </div>
+    </div>
+    <div class="pilha" id="miolo">
+      <section data-aba-corpo="applets" class="pilha">
+        <div class="bloco fora-vazio fora-carregando" id="pendencia"><ul class="linhas"><li class="linha"><span class="rot troca"><span class="lugar-applet"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><img src="svg/applets/ajustes-rapidos.svg" alt=""><span><b>Ajustes rápidos</b> no lugar de Quick Settings</span></span><span class="ctl"><button class="bt principal pequeno" type="button" data-trocar-qs><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>Trocar</button><button class="bt leve pequeno" type="button" data-manter>Manter</button></span></li></ul></div>
+        <div class="grade-extensoes fora-carregando">
+          <div class="fora-vazio" style="display: contents"><article class="bloco cartao-acao" data-applet="now-playing" data-nome="Tocando agora">
+          <div class="cartao-cabeca"><span class="icone"><img src="svg/applets/now-playing.svg" alt=""></span><div><h3>Tocando agora</h3><span class="versao" tabindex="0">0.3.0 · 11a2729<span class="dica-repo" role="tooltip"><span>https://github.com/vitoriamariadb/meowsystem-now-playing</span><span>commit 11a2729</span><span>26/10/2026</span></span></span></div></div>
+          <span class="estado-pilula fora-carregando" data-estado="neutro" data-pilula>Não instalada</span><span class="estado-pilula so-carregando" data-estado="correndo">Compilando</span>
+          <div class="fila"><button class="bt principal pequeno" type="button" data-instalar data-bt-estado="carregando"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Instalar</button></div>
+        </article><article class="bloco cartao-acao" data-applet="status-hub" data-nome="Bandeja">
+          <div class="cartao-cabeca"><span class="icone"><img src="svg/applets/bandeja.svg" alt=""></span><div><h3>Bandeja</h3><span class="versao" tabindex="0">1.6.0 · 533e6f8<span class="dica-repo" role="tooltip"><span>https://github.com/vitoriamariadb/meowsystem-status-hub</span><span>commit 533e6f8</span><span>26/10/2026</span></span></span></div></div>
+          <span class="fora-atualizacao"><span class="estado-pilula" data-estado="neutro" data-pilula>Instalada, fora da barra</span></span><span class="estado-pilula so-atualizacao" data-estado="ensaio">Atualização</span>
+          <div class="fila"><span class="fila so-atualizacao"><button class="bt principal pequeno" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Atualizar</button></span><span class="fila fora-atualizacao"><button class="bt pequeno" type="button" data-por><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18"/></svg>Pôr no painel</button><button class="bt leve pequeno so-icone" type="button" aria-label="Remover Bandeja" title="Remover"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></span></div>
+        </article><article class="bloco cartao-acao" data-applet="quick-settings" data-nome="Ajustes rápidos">
+          <div class="cartao-cabeca"><span class="icone"><img src="svg/applets/ajustes-rapidos.svg" alt=""></span><div><h3>Ajustes rápidos</h3><span class="versao" tabindex="0">0.1.0 · 73d29e9<span class="dica-repo" role="tooltip"><span>https://github.com/vitoriamariadb/meowsystem-quick-settings</span><span>commit 73d29e9</span><span>26/10/2026</span></span></span></div></div>
+          <span class="estado-pilula" data-estado="neutro" data-pilula>Instalada, fora da barra</span>
+          <div class="fila"><button class="bt pequeno" type="button" data-por><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18"/></svg>Pôr no painel</button><button class="bt leve pequeno so-icone" type="button" aria-label="Remover Ajustes rápidos" title="Remover"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
+        </article><article class="bloco cartao-acao" data-applet="leitura" data-nome="Modo de leitura">
+          <div class="cartao-cabeca"><span class="icone"><img src="svg/applets/leitura.svg" alt=""></span><div><h3>Modo de leitura</h3><span class="versao" tabindex="0">0.1.0 · 1b7f346<span class="dica-repo" role="tooltip"><span>https://github.com/vitoriamariadb/meowsystem-leitura</span><span>commit 1b7f346</span><span>26/10/2026</span></span></span></div></div>
+          <span class="estado-pilula" data-estado="neutro" data-pilula>Instalada, fora da barra</span>
+          <div class="fila"><button class="bt pequeno" type="button" data-por><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18"/></svg>Pôr no painel</button><button class="bt leve pequeno so-icone" type="button" aria-label="Remover Modo de leitura" title="Remover"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
+        </article><article class="bloco cartao-acao" data-applet="performance" data-nome="Modo performance">
+          <div class="cartao-cabeca"><span class="icone"><img src="svg/applets/performance.svg" alt=""></span><div><h3>Modo performance</h3><span class="versao" tabindex="0">0.1.0 · 990662d<span class="dica-repo" role="tooltip"><span>https://github.com/vitoriamariadb/meowsystem-performance</span><span>commit 990662d</span><span>26/10/2026</span></span></span></div></div>
+          <span class="fora-erro"><span class="estado-pilula" data-estado="neutro" data-pilula>Instalada, fora da barra</span></span><span class="estado-pilula so-erro" data-estado="erro">Falhou</span><details class="registro so-erro"><summary>Registro</summary><pre>cargo build --release --locked
+<span class="erro">error: failed to download `cosmic-config`</span>
+<span class="erro">sem rede</span></pre></details>
+          <div class="fila"><span class="fila fora-erro"><button class="bt pequeno" type="button" data-por><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18"/></svg>Pôr no painel</button><button class="bt leve pequeno so-icone" type="button" aria-label="Remover Modo performance" title="Remover"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></span><span class="fila so-erro"><button class="bt pequeno" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Tentar de novo</button></span></div>
+        </article></div>
+          <button class="cartao-novo" type="button" data-abre="adicionar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar</button>
+        </div>
+        <div class="vazio so-vazio"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h3.5v2.2a1.8 1.8 0 1 0 3.6 0V4H20v5h-2.2a1.8 1.8 0 1 0 0 3.6H20V20h-5v-2.2a1.8 1.8 0 1 0-3.6 0V20H4v-6h2.2a1.8 1.8 0 1 0 0-3.6H4V4Z"/></svg><p>Nenhuma extensão no catálogo</p></div>
+        <div class="grade-extensoes so-carregando"><span class="esqueleto" style="height: 196px"></span><span class="esqueleto" style="height: 196px"></span><span class="esqueleto" style="height: 196px"></span><span class="esqueleto" style="height: 196px"></span><span class="esqueleto" style="height: 196px"></span><span class="esqueleto" style="height: 196px"></span></div>
+      </section>
+      <section data-aba-corpo="builds" class="pilha" hidden>
+        <div class="bloco tracejado so-sem-ponte"><div class="aviso-linha"><span class="estado-pilula" data-estado="erro">Ponte fora</span><span>O compositor não instala</span><button class="bt principal pequeno" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Consertar a ponte</button></div></div>
+        <div class="bloco">
+          <header><h2>Builds</h2><button class="bt pequeno" type="button" data-bt-estado="carregando"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Refazer tudo</button></header>
+          <ul class="linhas"><li class="linha"><span class="rot"><span class="lugar-applet"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg></span><span class="duas"><b>Compositor</b><small>cosmic-comp 0.1~1792508925~24.04~8cb1802</small><small>5 remendos · feitos para 4d14528</small></span></span>
+              <span class="ctl"><span class="estado-pilula fora-carregando fora-erro fora-sem-ponte" data-estado="alerta">Pendente</span><span class="estado-pilula so-carregando" data-estado="correndo">Compilando</span><span class="estado-pilula so-erro" data-estado="erro">Falhou</span><span class="estado-pilula so-sem-ponte" data-estado="erro">Sem ponte</span><button class="bt pequeno" type="button" data-bt-estado="carregando"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Refazer</button></span></li>
+            <li class="linha"><span class="rot"><span class="lugar-applet"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span><span class="duas"><b>Menu do Arquivos</b><small>cosmic-files 1.11.0~1792510858~24.04~3cc4b80</small><small>papel de parede no menu · 25/10/2026</small></span></span>
+              <span class="ctl"><span class="estado-pilula" data-estado="ok">Em dia</span><button class="bt pequeno" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Refazer</button></span></li><li class="linha"><span class="rot"><img src="svg/applets/now-playing.svg" alt=""><span class="duas"><b>Tocando agora</b><small>0.3.0 · 11a2729 · fora do computador</small></span></span><span class="ctl"><span class="estado-pilula" data-estado="neutro">Não instalada</span><button class="bt pequeno" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Compilar</button></span></li><li class="linha"><span class="rot"><img src="svg/applets/bandeja.svg" alt=""><span class="duas"><b>Bandeja</b><small>1.6.0 · 533e6f8 · ~/.local</small></span></span><span class="ctl"><span class="estado-pilula" data-estado="ok">Em dia</span><button class="bt pequeno" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Refazer</button></span></li><li class="linha"><span class="rot"><img src="svg/applets/ajustes-rapidos.svg" alt=""><span class="duas"><b>Ajustes rápidos</b><small>0.1.0 · 73d29e9 · ~/.local</small></span></span><span class="ctl"><span class="estado-pilula" data-estado="ok">Em dia</span><button class="bt pequeno" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Refazer</button></span></li><li class="linha"><span class="rot"><img src="svg/applets/leitura.svg" alt=""><span class="duas"><b>Modo de leitura</b><small>0.1.0 · 1b7f346 · ~/.local</small></span></span><span class="ctl"><span class="estado-pilula" data-estado="ok">Em dia</span><button class="bt pequeno" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Refazer</button></span></li><li class="linha"><span class="rot"><img src="svg/applets/performance.svg" alt=""><span class="duas"><b>Modo performance</b><small>0.1.0 · 990662d · ~/.local</small></span></span><span class="ctl"><span class="estado-pilula" data-estado="ok">Em dia</span><button class="bt pequeno" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Refazer</button></span></li></ul>
+          <details class="registro so-carregando so-erro" open><summary>Registro</summary><pre>compositor · cosmic-comp 8cb1802
+<span class="ok">sem-workspace-vazio.patch</span>   ok
+<span class="ok">raio-clampado.patch</span>         ok
+<span class="mudou">menu-clique-curto.patch</span>     aplicando
+<span class="so-erro erro">modo-leitura.patch          não encaixa em 8cb1802</span></pre></details>
+        </div>
+        <div class="bloco"><header><h2>Remendos do compositor</h2></header><div class="corpo"><div class="fichas"><span class="ficha">Sem workspace vazio</span><span class="ficha">Raio no limite</span><span class="ficha">Clique curto no menu</span><span class="ficha">Modo de leitura</span><span class="ficha">Cache do desfoque</span></div></div></div>
+        <div class="bloco"><ul class="linhas"><li class="linha"><span class="rot">Refazer ao entrar na sessão</span><span class="ctl"><button class="chave" type="button" role="switch" aria-checked="true" aria-label="Refazer ao entrar na sessão"></button></span></li></ul></div>
+      </section>
+    </div>
+  </div>
+</main>
+<dialog id="adicionar" aria-labelledby="adicionar-t" data-passo="url">
+  <div class="dentro">
+    <h2 id="adicionar-t">Adicionar repositório</h2>
+    <label class="pilha" style="gap: var(--e-2)"><span>Endereço</span><input class="campo" id="repo-url" type="url" value="https://github.com/cosmic-utils/cosmic-ext-applet-now-playing" spellcheck="false"></label>
+    <p class="oficina-erro p-erro-url">Só endereço https</p>
+    <div class="ficha-repo p-ficha"><span class="lugar-applet"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></span><div><b>Now Playing</b><dl><dt>Repositório</dt><dd>cosmic-utils/cosmic-ext-applet-now-playing</dd><dt>Commit</dt><dd>66df229 · 01/09/2026</dd><dt>Substitui</dt><dd>nada</dd></dl></div></div>
+    <span class="selo p-ficha">baixa e compila</span>
+    <span class="estado-pilula p-compilando" data-estado="correndo">Compilando</span>
+    <span class="estado-pilula p-erro" data-estado="erro">Não compilou</span>
+    <span class="estado-pilula p-pronto" data-estado="ok">Instalada, fora da barra</span>
+    <details class="registro p-compilando p-erro" open><summary>Registro</summary><pre>git clone --depth 1 cosmic-ext-applet-now-playing @ 66df229
+<span class="ok">clonado</span>
+cargo build --release --locked
+   Compiling libcosmic v0.1.0
+<span class="p-erro erro">error: linker `cc` not found</span></pre></details>
+    <div class="acoes">
+      <button class="bt leve" type="button" data-fecha>Cancelar</button>
+      <button class="bt principal p-url" type="button" data-passo-ir="ficha">Ler</button>
+      <button class="bt principal p-ficha" type="button" data-passo-ir="compilando"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Instalar</button>
+      <button class="bt p-compilando" type="button" data-passo-ir="url">Parar</button>
+      <button class="bt principal p-erro" type="button" data-passo-ir="compilando"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/></svg>Tentar de novo</button>
+      <button class="bt principal p-pronto" type="button" data-fecha>OK</button>
+    </div>
+  </div>
+</dialog>
+<div id="torradas" class="torradas" aria-live="polite"></div>
+<div id="dica" class="dica" hidden></div>
+<dialog id="resultado" class="resultado" aria-labelledby="resultado-titulo">
+  <div class="dentro">
+    <header class="resultado-topo">
+      <h2 id="resultado-titulo">Instalar tudo</h2>
+      <div class="fila"><span class="estado-pilula" id="resultado-estado" data-estado="correndo">Rodando</span></div>
+    </header>
+    <details class="registro" id="registro">
+      <summary>Registro</summary>
+      <pre id="saida"></pre>
+    </details>
+    <div class="acoes">
+      <button type="button" class="bt perigo" id="parar" data-controle="parar">Parar</button>
+      <button type="button" class="bt" id="resultado-restaurar" data-controle="restaurar" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Restaurar</button>
+      <button type="button" class="bt" id="resultado-guardar" data-controle="guardar-log"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Guardar</button>
+      <button type="button" class="bt principal" id="resultado-ok" data-controle="resultado:ok">OK</button>
+    </div>
+  </div>
+</dialog>
+<dialog id="pergunta" aria-labelledby="pergunta-titulo">
+  <form class="dentro" method="dialog">
+    <h2 id="pergunta-titulo">Falta a ponte</h2>
+    <div id="pergunta-corpo" hidden></div>
+    <div class="acoes">
+      <button class="bt" value="nao" id="pergunta-nao">Cancelar</button>
+      <button class="bt principal" value="sim" id="pergunta-sim"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 18h20M4 18V9M20 18V9M4 9c4 4 12 4 16 0M9 13v5M15 13v5"/></svg>Consertar a ponte</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="creditos" aria-labelledby="creditos-t">
+  <div class="dentro">
+    <h2 id="creditos-t">MeowSystem</h2>
+    <ul class="creditos"><li><b>Vitória Maria</b><span>autora</span></li><li><b>André Farias</b><span>coautor</span></li></ul>
+    <a class="versao" href="https://github.com/vitoriamariadb/MeowSystem">https://github.com/vitoriamariadb/MeowSystem</a>
+    <ul class="creditos upstreams">
+      <li><b>Tocando agora</b><a class="versao" href="https://github.com/cosmic-utils/cosmic-ext-applet-now-playing">cosmic-utils/cosmic-ext-applet-now-playing</a></li>
+      <li><b>Bandeja</b><a class="versao" href="https://github.com/marcelogomes90/cosmic-ext-applet-status-hub">marcelogomes90/cosmic-ext-applet-status-hub</a></li>
+      <li><b>Ajustes rápidos</b><a class="versao" href="https://github.com/DrakRosmann/cosmic-ext-applet-quick-settings">DrakRosmann/cosmic-ext-applet-quick-settings</a></li>
+    </ul>
+    <div class="acoes"><button class="bt principal" type="button" data-fecha>OK</button></div>
+  </div>
+</dialog>
+<div class="maquete-ctl"><label for="m-estado">Maquete</label><select id="m-estado"><option value="normal">Normal</option><option value="vazio">Vazio</option><option value="carregando">Carregando</option><option value="erro">Erro</option><option value="sem-ponte">Sem ponte</option><option value="atualizacao">Atualização</option></select></div>
+<script src="demo.js"></script>
+</body>
+</html>

@@ -15,6 +15,23 @@ escolha o caminho que respeita GSD.md, anote em `## Execução` no fim da sua sp
 - As imagens que a usuária mandou: `/tmp/claude-1000/-home-vitoriamaria-Desenvolvimento-MeowSystem/314702cb-6fd7-4227-9dcc-7970f525cc19/images/N.png`
   (podem ter sumido num reboot; os relatórios descrevem cada uma).
 
+## A maquete manda (aprovada por quem usa em 26/10)
+A tela de cada sprint já está desenhada e aprovada em `maquete/`: `maquete/a/` (moldura, Tema,
+Definir, Manter) e `maquete/b/` (Personalizar, Extensões). Abra as páginas com `file://` e leia o
+`CONTRATO.md` de cada pasta. A sua sprint copia a marcação, as classes e o CSS da maquete para
+`app/pagina/` e liga o comportamento de verdade; não redesenha. Onde o relatório e a maquete
+divergem, vale a maquete. Onde a maquete não cobre, siga o estilo dela.
+- Não vai para o painel: o seletor `.maquete-ctl`, os estados por URL, `demo.js`, `maquete.js`, as
+  classes `.so-*`/`.fora-*` (no painel quem decide é o servidor), os jogos de exemplo de Programas, o
+  registro de compilação ilustrativo e as `variantes/spotify-*.svg` (o gerador real sai de `scripts/`).
+- CSS: a P110 traz `maquete/a/estilo.css` para `app/pagina/estilo.css` (a moldura e o Definir). As
+  outras não editam o miolo dele: cada uma põe o CSS das suas telas num arquivo próprio em
+  `app/pagina/` (P111 `manter.css` e `tema.css`, P112 `oficina.css`, P113 `sons.css`, P114
+  `extensoes.css`), tirado de `maquete/a/estilo.css` ou de `maquete/b/estilo-b.css`, e o liga com uma
+  linha `<link>` no `index.html`.
+- Prova extra: uma captura da sua tela no painel ao lado da mesma tela da maquete, nas larguras da
+  P110, guardadas em `capturas/pNNN/`.
+
 ## Regras
 - Zero comentário no código. O porquê mora no nome, no teste e na mensagem de commit.
 - Informação errada em doc se sobrescreve no lugar; não se acrescenta seção de histórico.

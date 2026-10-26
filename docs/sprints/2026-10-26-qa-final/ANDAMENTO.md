@@ -5,7 +5,7 @@
 - B0 etapa 1 entregue (8 commits, 281 arquivos sem comentário, impressão igual). Em voo: B0 etapa 2 (arquivar, `docs/DECISOES.md`, gancho do README). Ganchos se instalam DEPOIS do merge (o `.git` é comum às worktrees).
 - Em voo: maquete do painel (`maquete/BRIEF.md`), Opus A em `../MeowSystem-maquete-a` (`maquete/a`:
   moldura, Tema, Definir, Manter) e Opus B em `../MeowSystem-maquete-b` (`maquete/b`: Personalizar,
-  Extensões). Junta as duas, quem usa aprova, e as sprints P110-P114 passam a seguir a maquete.
+  Extensões). APROVADA por quem usa (26/10) e no dev; `00-leva.md` e cada sprint apontam para ela.
 - Depois: B0 etapas 2 e 3 → merge no dev → seis worktrees `../MeowSystem-p109..p114` → 6 Sonnet →
   `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev.
 

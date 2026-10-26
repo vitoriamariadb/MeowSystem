@@ -3,6 +3,9 @@
 Leia `00-leva.md`. Itens: `relatorios/qa-2.md` Q2-01, Q2-02, Q2-03, Q2-08, Q2-09, Q2-10, Q2-11, Q2-12,
 Q2-19, Q2-20; `relatorios/qa-3.md` Q3-01, Q3-03; `relatorios/qa-1.md` Q1-10.
 
+## Maquete
+`maquete/a/`: a moldura inteira, o Definir com as sete seções, a tabela controle → prévia do CONTRATO.md (é a sua tabela) e o modal do «Instalar tudo». O `estilo.css` da maquete vira o do painel.
+
 ## O que quem usa pediu
 A zona da prévia ganha destaque e fica fixa no layout junto com o menu de cima e o menu da seção. A
 tela fica mais larga e os itens do menu lateral viram uma barra horizontal ACIMA da prévia. A dock da
