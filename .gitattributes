@@ -1,32 +1,10 @@
 packs/meowsystem/wallpapers/BANIDOS.txt merge=ours
 
-# As capturas de tema são FOTOGRAFIA byte a byte do que o COSMIC escreve, e o
-# COSMIC escreve sem a newline final. O auto-fix de whitespace do pre-commit a
-# acrescentava; o gerar_tema_v1.py a tirava na passagem seguinte; o git acusava
-# as capturas modificadas sem um único valor trocado. Era o adb0f7f (11/08),
-# que isentava `state/tema/*` — e as capturas mudaram de casa duas vezes desde
-# então (assets/temas/capturados/, depois packs/<id>/temas/capturados/), sem
-# que a isenção fosse junto. Declarar aqui, no repositório, é o que viaja com
-# elas: o hook respeita `byte-exact` venha a captura de onde vier.
 assets/temas/capturados/** byte-exact
 packs/*/temas/capturados/** byte-exact
 
-# O `captura.txt` NÃO É FOTOGRAFIA — 23/09/2026, P30. Ele mora dentro da pasta
-# da captura, então os dois padrões acima o pegavam, mas quem o escreve é o
-# `capturar_tema.sh`, com `echo` (newline final e tudo), e não o COSMIC: o
-# motivo do `byte-exact` não vale para ele. E o atributo não é de graça — o hook
-# tira o arquivo marcado de TODAS as varreduras, não só da de whitespace. Um
-# metadado escrito por nós passa pelas mesmas que o resto do nosso texto.
 **/temas/capturados/*/captura.txt -byte-exact
 
-# OS TEMAS BINÁRIOS DE APLICATIVO — 09/10/2026, P74. O `.qbtheme` é um `.rcc` do
-# Qt, pinado pelo sha256 no pack.json, e o auto-fix de whitespace do pre-commit
-# acrescentou um `\n` ao `dracula.qbtheme` no primeiro commit (5.055 bytes
-# viraram 5.056, e o sha256 deixou de bater com o pino). Byte a byte, como as
-# capturas.
 packs/*/apps/*.qbtheme byte-exact
-# Os papéis de parede do pack (P74): SVG copiados do repositório de origem e
-# conferidos pelo sha256 do PROCEDENCIA.md — byte a byte pelo mesmo motivo.
 packs/*/wallpapers/** byte-exact
-# Os sons do pack (P74): `.oga` binários, conferidos pelo sha256 do PROCEDENCIA.md.
 packs/*/sons/** byte-exact

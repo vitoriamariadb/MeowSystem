@@ -1,14 +1,3 @@
-# meow-derivados.path — alterou um desenho de pack, o tema se atualiza sozinho
-# (P88, decisão 15: «SVG alterado numa das três, qualquer outro arquivo se auto
-# atualiza»).
-#
-# `@VIGIADOS@` VIRA UMA LINHA `PathModified=` POR PASTA, escrita pelo
-#   `scripts/vigia_derivados.sh`: a raiz e o `icones/` de cada pack de onde o
-#   tema deriva (o no ar, os herdados, o pack-base) e cada pasta dentro das três.
-#   O systemd não vigia subpasta sozinho, e glob não vale em `PathModified=`;
-#   trocar de pack reescreve a lista, porque o `install.sh` roda o vigia de novo.
-#   Como o `@ACERVO@` do `meow-assets.path`, este arquivo só vale substituído.
-
 [Unit]
 Description=MeowSystem — vigia os desenhos dos packs e refaz o que deriva deles
 Documentation=man:systemd.path(5)

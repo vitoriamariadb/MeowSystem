@@ -1,18 +1,5 @@
 [Unit]
 Description=MeowSystem — toca o som de notificação do tema de som do pack (o COSMIC não toca)
-# POR QUE ESTA UNIDADE EXISTE — 09/10/2026, P74 item 9 (T3)
-#   O pack Dracula traz um tema de som (25 efeitos, CC0), e ele ficou fora em
-#   16/09 porque o COSMIC só toca UM som de evento, o de volume: o
-#   `cosmic-notifications` não tem reprodutor nenhum (o cabeçalho do
-#   `scripts/som.sh` conta a medição). Esta unidade é o reprodutor que falta:
-#   o `som.sh vigiar` escuta as chamadas `Notify` do barramento da sessão e
-#   toca o som de notificação do tema instalado, com `pw-play`, do mesmo jeito
-#   que o `cosmic-osd` toca o de volume. Quem a instala, liga e tira é o
-#   `som.sh` (a etapa `som` do install.sh e o doctor), e só com um pack que
-#   traga tema de som e com `SOM="sim"`.
-#
-# SEM `flock`: ela fica de pé a sessão inteira, e o cadeado das outras
-# unidades seguraria o doctor das 5h.
 PartOf=cosmic-session.target
 After=cosmic-session.target
 StartLimitIntervalSec=300
