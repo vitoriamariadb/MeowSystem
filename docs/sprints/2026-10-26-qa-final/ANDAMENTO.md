@@ -10,7 +10,7 @@
   `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev.
 
 ## Respostas de quem usa (26/10)
-- Repos de applet: conta `<conta>`, nome `meowsystem-*`, pasta `~/Desenvolvimento/meowsystem-*`, app id `io.github.meowsystem.*`. Vão até o push. Compilam e instalam aqui (root por `sudo -A`, o askpass); não mexem na ordem do painel nem o reiniciam sozinhos.
+- Repos de applet: conta `vitoriamariadb`, nome `meowsystem-*`, pasta `~/Desenvolvimento/meowsystem-*`, app id `io.github.meowsystem.*`. Vão até o push. Compilam e instalam aqui (root por `sudo -A`, o askpass); não mexem na ordem do painel nem o reiniciam sozinhos.
 - Repos: now-playing (fork), status-hub (fork), quick-settings (fork), leitura (sai de `src/applets/leitura`), performance (nasce do `~/.config/zsh/scripts/nitro`).
   Divisão: Claude 1 mídia · Claude 2 status-hub + quick-settings · Claude 3 leitura + performance.
 - Aplicar: cada controle grava ao soltar; a barra de mudanças fica, só para desfazer.
@@ -41,7 +41,7 @@ Seção Extensões: mostra os applets, deixa o usuário adicionar repo (central 
 - Anotação para depois: `aurora-claude-workspace.sh run` adivinha o app id pelo binário; applet com app id diferente precisa de `AURORA_CLAUDE_APPID`.
 
 ## Respostas às perguntas dos relatórios (26/10)
-- Identidade: commits como Vitória (vitoriamaria.sds), André coautor. Casa: `<conta>/MeowSystem` (decisão 22 cai). README, Créditos e LICENSE com os dois nomes.
+- Identidade: commits como Vitória (vitoriamaria.sds), André coautor. Casa: `vitoriamariadb/MeowSystem` (decisão 22 cai). README, Créditos e LICENSE com os dois nomes.
 - Extensões: porta própria no topo (Tema · Personalizar · Definir · Manter · Extensões). Adicionar repo de qualquer URL, por gesto, SHA pinado, sem sudo.
 - «Gerador de build» = estado dos builds: ver e refazer compositor, menu do Arquivos e applets (mora em Extensões/Manter).
 - Sons do carregador e da bateria: troca em /usr/share/sounds/Pop pela ponte; o pós-apt repõe. Cada pack traz os seus sons (MeowSystem ganha os seus); `SOM_*` do meow.conf deixa de vencer o pack.
