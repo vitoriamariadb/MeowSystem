@@ -9,7 +9,7 @@ dele (base `circle` na frente, `main` atrás — decisão 1), separado do traço
 
 ## Decisões que valem (ANDAMENTO.md)
 - A decisão 3 do GSD («o seletor mostra o acervo de todos os packs») CAIU com o sim de 26/10: troque a
-  linha no GSD/registro e a prova em `tests/decisoes.sh` no mesmo commit do código que separa.
+  linha 3 do `docs/DECISOES.md` (e a 39, que se apoia nela) e a prova em `tests/decisoes.sh` no mesmo commit do código que separa.
 - A oficina do Personalizar grava no pack em edição; se esse pack é o que está no ar, aplica.
 
 ## Ordem

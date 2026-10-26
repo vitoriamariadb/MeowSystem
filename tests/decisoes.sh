@@ -6,8 +6,7 @@ falhas=0
 ok()    { printf '  ok    %s\n' "$*"; }
 falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 pula()  { printf '  pulado: %s\n' "$*"; }
-DEC="$RAIZ/docs/sprints/2026-10-09-uso-real/02-decisoes.md"
-P82="$RAIZ/docs/sprints/2026-10-15-fechamento/P82-abertos.md"
+DEC="$RAIZ/docs/DECISOES.md"
 REAL="${SUITE_CASA_REAL:-$HOME}"
 ETC_ENV="${DEC_ETC_ENVIRONMENT:-/etc/environment}"
 command -v python3 >/dev/null || { echo "pulado: sem python3"; exit 0; }
@@ -306,13 +305,13 @@ for n in com.beholder.app elden-ring-tracker protocolo-ouroboros; do
 done
 registro 17 'AGENTS.md' && ok "17: o AGENTS.md é exceção do sanitizador" || falha "a decisão 17 saiu do registro"
 r="$(resolvedor autorais 2>&1)"
-[ "$r" = "proibidos=" ] && ok "P82·16: hefesto e fogstripper fora dos autorais dos packs" || falha "projeto pessoal nos autorais: $r"
+[ "$r" = "proibidos=" ] && ok "29: hefesto e fogstripper fora dos autorais dos packs" || falha "29: projeto pessoal nos autorais: $r"
 c="$(grep -E '^LANCADOR_OCULTAR=' "$RAIZ/meow.conf.exemplo" | head -1)"
 grep -qiE 'google-chrome|steam|github-desktop' <<< "$c" \
-  && falha "P82·17: o lançador de fábrica volta a esconder Chrome, Steam ou github-desktop" \
-  || ok "P82·17: o lançador de fábrica não esconde Chrome, Steam nem github-desktop"
+  && falha "30: o lançador de fábrica volta a esconder Chrome, Steam ou github-desktop" \
+  || ok "30: o lançador de fábrica não esconde Chrome, Steam nem github-desktop"
 grep -qxF 'NOME_TEMA_ICONES="MeowSystem-Icons"' "$RAIZ/meow.conf.exemplo" \
-  && ok "P82·31: o tema instalado continua MeowSystem-Icons" || falha "P82·31: o nome do tema instalado mudou"
+  && ok "36: o tema instalado continua MeowSystem-Icons" || falha "36: o nome do tema instalado mudou"
 python3 - "$RAIZ/scripts/migrar_conf.py" <<'PY' && ok "ICONES_BASE: aposentada no migrar, sem linha ativa no exemplo" || falha "ICONES_BASE voltou: aposentada fora do migrar_conf.py ou com linha ativa no exemplo"
 import re, sys
 src = open(sys.argv[1], encoding="utf-8").read()
@@ -320,9 +319,9 @@ exemplo = open(sys.argv[1].replace("scripts/migrar_conf.py", "meow.conf.exemplo"
 sys.exit(0 if re.search(r'APOSENTADAS = \{[^}]*"ICONES_BASE"', src) and not re.search(r"(?m)^ICONES_BASE=", exemplo) else 1)
 PY
 if grep -rn 'sudo -l' "$RAIZ/bin/meow" | grep -q 'NOPASSWD'; then
-  falha "P82·48: o aviso do NOPASSWD volta a mandar rodar sudo -l"
+  falha "43: o aviso do NOPASSWD volta a mandar rodar sudo -l"
 else
-  ok "P82·48: o aviso do NOPASSWD diz o estado, sem receita"
+  ok "43: o aviso do NOPASSWD diz o estado, sem receita"
 fi
 
 echo "== os princípios, cada um com o teste que o cobra dentro do runner"
@@ -345,13 +344,12 @@ tem() { [ -f "$G" ] && grep -qF -- "$1" "$G"; }
   && ok "a regra do sim explícito está escrita" || falha "o GSD.md perdeu a regra do sim explícito"
 tem 'Zero comentário; o porquê mora no nome, no teste e no commit' \
   && ok "a regra do zero comentário está escrita" || falha "o GSD.md perdeu a regra do zero comentário"
-{ tem 'docs/sprints/2026-10-09-uso-real/02-decisoes.md' && tem 'P82-abertos.md'; } \
-  && ok "o GSD.md cita o caminho das duas listas de decisão" || falha "o GSD.md não cita os registros"
-faltam=""
-for n in 1 2 3 4 5 6 7 8 9 10 11 12; do
-  { [ -f "$G" ] && grep -qE "^\| $n \|" "$G"; } || faltam+=" $n"
-done
-[ -z "$faltam" ] && ok "as decisões 1 a 12 estão no GSD.md" || falha "decisões fora do GSD.md:$faltam"
+tem 'docs/DECISOES.md' && ok "o GSD.md cita o registro" || falha "o GSD.md não cita o docs/DECISOES.md"
+n="$(grep -cE '^\| [0-9]+ \|' "$DEC")"
+[ "$n" -ge 26 ] && [ "$(grep -oE '^\| [0-9]+ \|' "$DEC" | tr -dc '0-9\n' | paste -sd' ')" = "$(seq -s' ' 1 "$n")" ] \
+  && ok "o registro numera as $n decisões de 1 a $n, uma linha cada" || falha "o registro pulou ou repetiu número"
+velhos="$(grep -lE '02-decisoes\.md|P82-abertos\.md' "$RAIZ/AGENTS.md" "$G" "$RAIZ"/docs/*.md "$RAIZ"/docs/sprints/*/*.md "$RAIZ"/tests/* "$RAIZ"/packs/*/*.md 2>/dev/null | grep -v '/tests/decisoes\.sh$')"
+[ -z "$velhos" ] && ok "ninguém aponta para os registros antigos" || falha "ainda aponta para o registro antigo: $velhos"
 faltam=""
 for k in 'NOPASSWD' 'HOME temporário' 'troca palavras' '/tmp' 'Senha nunca'; do tem "$k" || faltam+=" «$k»"; done
 [ -z "$faltam" ] && ok "as armadilhas estão no GSD.md" || falha "o GSD.md perdeu a armadilha:$faltam"

@@ -111,7 +111,7 @@ Papirus, do pack, do motor e do tema — que só existiam em
 16/04/2026: nunca tiveram ligação no `mapping.json`, e a P36 trouxe só as
 ligações. Entraram **174** em `icones/biblioteca/`; o `calcdeirao.svg` ficou
 fora, porque é do projeto pessoal `Caldeirao` (a decisão 4 de
-`docs/sprints/2026-10-09-uso-real/02-decisoes.md`, pela regra de 23/09). Três
+`docs/DECISOES.md`, pela regra de 23/09). Três
 mudaram de nome, e a linha de cada um diz por quê: `arcade-antigo.svg` e
 `box-antigo.svg` (a biblioteca já tinha um `arcade.svg` e um `box.svg`,
 desenhos diferentes) e `045-computer-game.svg` (o espaço do nome de origem não

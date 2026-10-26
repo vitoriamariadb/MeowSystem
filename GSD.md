@@ -22,26 +22,7 @@ Todo agente lê este arquivo antes de tocar no repositório. Cada regra abaixo t
 
 ## 3. As decisões
 
-O registro é [`docs/sprints/2026-10-09-uso-real/02-decisoes.md`](docs/sprints/2026-10-09-uso-real/02-decisoes.md),
-decisões 1 a 17. As decisões 13 a 49 da leva H estão em
-[`docs/sprints/2026-10-15-fechamento/P82-abertos.md`](docs/sprints/2026-10-15-fechamento/P82-abertos.md)
-(a numeração colide com a de cima; cite o arquivo junto com o número).
-
-| # | vale |
-|---|---|
-| 1 | base de ícones do Dracula: `circle` na frente, `main` atrás |
-| 2 | PNG feito à mão vira vetor, medido por RMSE; o PNG sai só quando o vetor passa |
-| 3 | o seletor mostra o acervo de todos os packs, o pack no ar primeiro |
-| 4 | `calcdeirao` fica fora do pack; `jogos`, `rede` e `clima2` entram |
-| 5 | askpass ativo; a senha nunca é escrita em arquivo, commit ou documento |
-| 6 | GPU do compositor na RTX (`COSMIC_RENDER_DEVICE` no `/etc/environment`) |
-| 7 | «Consertar» do doctor baixa com o selo de rede, sem caixa de pergunta |
-| 8 | QA do painel só com HOME temporário |
-| 9 | só pack do repositório instala extensão do VS Code; pack importado pede o gesto |
-| 10 | «Restaurar ao padrão» grava o valor de fábrica e só aparece quando o valor difere |
-| 11 | a interface nunca pede senha: a senha é só do install, e o root passa pela ponte (revoga a caixa do sudo de uma linha, sim de 23/10). Ampliada em 24/10: o reparo da ponte também não pede, pela reserva de root e um oneshot que o polkit libera («Não quero recolocar senha direto») |
-| 12 | trocar de pack leva o ponteiro do pack |
-| 13 a 17 | tudo para o pack, três pastas por pack, derivados que se atualizam, achados da varredura, repositório enxuto: guardados no registro; o código entra com a P87, a P88 e a P89 |
+O registro é [`docs/DECISOES.md`](docs/DECISOES.md): uma linha por decisão que vale hoje.
 
 ## 4. Armadilhas
 

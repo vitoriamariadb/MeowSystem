@@ -20,9 +20,10 @@ briga com o sistema: escolhe junto com o COSMIC, nunca sobrescreve o que ele ger
 
 ## Decisões que valem (ANDAMENTO.md)
 - Porta própria. Adicionar repo de qualquer URL, por gesto, com SHA pinado, compilado sem sudo, em
-  `~/.local`. Os da casa instalam pelo doctor com selo de rede (decisão 7 da P82); os adicionados
-  por ela, só por gesto: escreva essa exceção no registro.
-- Repositório da casa: `vitoriamariadb/MeowSystem` (a decisão 22 cai: troque a linha).
+  `~/.local`. Os da casa instalam pelo doctor com selo de rede (decisão 7 de `docs/DECISOES.md`); os
+  adicionados por ela, só por gesto: escreva essa exceção no `docs/DECISOES.md`.
+- Repositório da casa: `vitoriamariadb/MeowSystem` (a decisão 22 cai: troque a linha 22 do
+  `docs/DECISOES.md`, a prova 22 do `tests/decisoes.sh` e o `repositorio` do `docs/readme.toml`).
 - A ordem dos applets no painel é de quem usa: a página instala e oferece «pôr no painel», nunca
   reordena sozinha.
 
