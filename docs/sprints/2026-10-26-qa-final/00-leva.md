@@ -43,7 +43,6 @@ tocados por várias. Mexa só nas funções e blocos da sua sprint; não reforma
 renomeie nada que não é seu. O coordenador junta as seis numa branch de integração.
 
 ## Nome da conta
-`<conta>` nas sprints é a conta do GitHub da casa. O gancho global redige esse nome em todo arquivo
-do repo, menos `LICENSE`, `AUTHORS`, `CONTRIBUTORS` e arquivos `.toml/.json/.yaml/.ini/.cfg`. Leia o
-nome de `git remote get-url origin`. Em código e docs, a URL vem de um dado (`.toml`) lido em tempo
-de execução; nunca escreva o nome à mão num `.md`, `.sh`, `.py` ou `.js`.
+A conta do GitHub da casa é `vitoriamariadb` (`git remote get-url origin`). O gancho global deixa o
+nome passar neste repositório; o e-mail continua redigido. Confira o diff de cada commit procurando
+`[REDACTED]`.
