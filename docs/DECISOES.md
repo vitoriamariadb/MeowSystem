@@ -51,3 +51,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 43 | O aviso do `NOPASSWD: ALL` diz o estado, sem receita; tirar o `NOPASSWD` é de quem usa | segurança da conta |
 | 44 | O Light do tema segue o COSMIC instalado | o oráculo mostra a diferença |
 | 45 | O README regera o que vem do código e as capturas do painel (headless, HOME temporário) no merge para o dev e no push, nunca em cada commit | sim de 26/10 |
+| 46 | As duas regras do «lado vestido» ficam: as duas passam pelo `derivar_flavor.par_do_outro_lado` no lado escuro, e o `tests/variante.sh` vigia | uma derivação só |
+| 47 | O filtro `awk` do `_dracula_pares_do_mapa` fica como está | três testes extraem a função verbatim |
+| 48 | Os leitores `${ICONES_BASE:-Papirus-Dark}` ficam | variável interna, o mesmo padrão em todo lugar; nenhum defeito medido |
+| 49 | Uma chave ausente no binário não impede o escritor; o pré-voo (`scripts/cosmic_prever.sh`) acusa a chave que some | o COSMIC ignora a chave que não conhece |

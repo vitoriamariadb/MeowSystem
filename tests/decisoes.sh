@@ -374,6 +374,8 @@ done
   || falha "21: falta dependência declarada:${faltam:- o PPA do fastfetch}"
 grep -q 'git clone https://github.com/AndreBFarias/MeowSystem.git' "$RAIZ/README.md" \
   && ok "22: o README manda baixar do fork" || falha "22: o README não aponta para AndreBFarias/MeowSystem"
+registro 22 'AndreBFarias/MeowSystem' && ok "22: o registro guarda o repositório da casa" \
+  || falha "a decisão 22 saiu do registro"
 python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["origens"]["wallpapers"].get("repo") else 1)' \
     "$RAIZ/packs/meowsystem/pack.json" 2>/dev/null && ! grep -q 'meow wallpaper semear  ' "$RAIZ/install.sh" \
   && ok "23: a origem dos papéis de parede é do pack, e o install não manda digitar" \
@@ -388,6 +390,18 @@ printf '%s\n' "$(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$RAIZ/packs/d
   || falha "25: o wallpaper.sh não separa a coleção do pack no ar"
 grep -q '"$MEOW_RAIZ/scripts/prompt.sh" instalar$' "$RAIZ/install.sh" \
   && ok "26: o starship desce com o install" || falha "26: a etapa do prompt não instala o starship"
+registro 46 'par_do_outro_lado' && grep -q '^def par_do_outro_lado' "$RAIZ/scripts/derivar_flavor.py" \
+  && grep -q 'par_do_outro_lado' "$RAIZ/tests/variante.sh" && grep -q '^  variante.sh$' "$RAIZ/tests/todos.sh" \
+  && ok "46: as duas regras do lado vestido passam pelo par_do_outro_lado, e o variante.sh vigia" \
+  || falha "46: o lado vestido saiu do registro, do derivar_flavor ou do variante.sh"
+n="$(grep -lF '/^_dracula_pares_do_mapa() {' "$RAIZ"/tests/* 2>/dev/null | grep -vc '/decisoes\.sh$')"
+registro 47 '_dracula_pares_do_mapa' && grep -q '^_dracula_pares_do_mapa() {$' "$RAIZ/scripts/icones_apps_dracula.sh" \
+  && [ "$n" -ge 3 ] && ok "47: o filtro do _dracula_pares_do_mapa fica, e $n testes o extraem verbatim" \
+  || falha "47: a função mudou de forma ou saiu do registro ($n testes a extraem)"
+registro 48 'ICONES_BASE:-Papirus-Dark' && grep -rqF 'ICONES_BASE:-Papirus-Dark' "$RAIZ/scripts" "$RAIZ/lib" \
+  && ok "48: os leitores do ICONES_BASE ficam com o mesmo padrão" || falha "48: a decisão saiu do registro"
+registro 49 'cosmic_prever.sh' && grep -q 'SUMIU do' "$RAIZ/scripts/cosmic_prever.sh" \
+  && ok "49: o pré-voo acusa a chave que some do binário" || falha "49: o pré-voo não acusa mais a chave que some"
 ! grep -qE '^opt[[:space:]]' "$RAIZ/patches/series" \
   && grep -q 'Uniform::new("leitura_atenuacao"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
   && ! grep -q 'Uniform::new("leitura_temp"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
