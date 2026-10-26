@@ -1,12 +1,6 @@
-/* app/pagina/paginas.js — as quatro portas: Tema, Criar tema, Ajustes, Cuidar.
- *
- * Cada página é montada da tabela de lugares (lugares.js) com os controles do
- * núcleo (app.js). Uma grade por página; nenhum parágrafo — o porquê mora na
- * dica de cada nome e de cada controle. */
 "use strict";
 
-/* --- a prévia de cada página --------------------------------------------- */
-let PROVISORIO = null;   // o valor sob o dedo enquanto um deslizante corre
+let PROVISORIO = null;
 function valeNaPrevia(chave) {
   if (PROVISORIO && PROVISORIO.chave === chave) return PROVISORIO.valor;
   return vale(chave);
@@ -54,7 +48,6 @@ function cabeca(titulo, direita = []) {
   ]);
 }
 
-/* --- o estado da máquina, num lugar só ------------------------------------- */
 function estadoDaMaquina() {
   const n = PENDENCIAS.length + PRECISA_DE_GENTE.length;
   if (!ESQUEMA.ponte) return { bom: false, titulo: "Falta a ponte", icone: "alerta" };
@@ -62,9 +55,6 @@ function estadoDaMaquina() {
   return { bom: true, titulo: "Tudo em ordem", icone: "certo" };
 }
 
-/* ========================================================================= */
-/* TEMA                                                                       */
-/* ========================================================================= */
 function coresDoFlavor(p, flavorId) {
   const f = (p.flavors || []).find((x) => x.id === flavorId);
   return (f && f.cores) || p.amostra || [];
@@ -79,7 +69,6 @@ function amostraDeVariante(cores) {
   return i;
 }
 
-/* Clicar no tema já veste a máquina: sem pergunta e sem «Aplicar» separado. */
 async function vestir(p, flavorId) {
   if (p.no_ar) {
     if (flavorId && flavorId !== flavorEmVigor()) await salvarEscolhas({ FLAVOR: flavorId });
@@ -180,7 +169,6 @@ function paginaTema() {
     c.style.gridColumn = "span 2";
     grade.append(c);
   }
-  /* O destaque e o claro ou escuro também vestem na hora: são do tema. */
   const ACCENT = CHAVE.get("ACCENT");
   const MODO = CHAVE.get("MODO");
   const imediato = (chave) => (v) => {
@@ -212,10 +200,6 @@ function paginaTema() {
   return [cabeca("Tema", [pilulaDeSaude(), botaoAbrirTema()]), grade];
 }
 
-/* ========================================================================= */
-/* CRIAR TEMA                                                                 */
-/* ========================================================================= */
-/* O rascunho mora neste navegador até virar pack (o «Guardar»). */
 const SEIS = [
   ["base", "Fundo"], ["mantle", "Barras"], ["text", "Texto"],
   ["mauve", "Destaque"], ["green", "Deu certo"], ["red", "Deu errado"],
@@ -231,9 +215,8 @@ function rascunho() {
   return RASCUNHO;
 }
 function guardarRascunho() {
-  try { localStorage.setItem("meow-criar", JSON.stringify(RASCUNHO)); } catch (e) { /* só não lembra */ }
+  try { localStorage.setItem("meow-criar", JSON.stringify(RASCUNHO)); } catch (e) { }
 }
-/* As 26 do rascunho: as do flavor de partida, com as seis trocadas por cima. */
 function vinteSeis() {
   const r = rascunho();
   const p = PACKS.find((x) => x.id === r.base.pack) || packNoAr() || PACKS[0] || { flavors: [] };
@@ -260,8 +243,6 @@ function idDoNome(nome) {
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "meu-tema";
 }
 
-/* Guardar: o motor que já existe (`meow pack importar` de um CSV) grava o pack
- * em três pastas em ~/.local/share/meowsystem/packs/. */
 async function guardarTema() {
   const r = rascunho();
   const id = idDoNome(r.nome);
@@ -280,7 +261,6 @@ async function guardarTema() {
   }
   r.pack = resp.id || id;
   guardarRascunho();
-  /* Os sons de aviso de partida são os do tema de onde o rascunho começou. */
   const sons = await api("/api/criar", { method: "POST",
     body: JSON.stringify({ id: r.pack, tipo: "sons", de: r.base.pack, levar: true }) });
   if (sons.erro) torrada(maiuscula(primeiraFrase(sons.erro)), "erro");
@@ -289,7 +269,6 @@ async function guardarTema() {
   render();
 }
 
-/* Exportar: mede antes; com imagens no pack, pergunta se elas vão junto. */
 async function exportarPack(id) {
   const rota = `/api/pack-exportar?id=${encodeURIComponent(id)}`;
   const m = await api(rota + "&medir=1");
@@ -311,7 +290,7 @@ async function exportarPack(id) {
   catch { faixaSemServidor(true); return; }
   if (!resposta.ok) {
     let erro = "";
-    try { erro = (await resposta.json()).erro || ""; } catch { /* não é JSON */ }
+    try { erro = (await resposta.json()).erro || ""; } catch { }
     torrada(erro || `HTTP ${resposta.status}`, "erro");
     return;
   }
@@ -322,7 +301,6 @@ async function exportarPack(id) {
   torrada(`${nome}: baixado`, "ok");
 }
 
-/* O sino: as duas notas do SOM_* tocadas no navegador. */
 function tocarSino() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -339,7 +317,7 @@ function tocarSino() {
       o.start();
       o.stop(ctx.currentTime + dur);
     }
-  } catch (e) { /* sem áudio no navegador */ }
+  } catch (e) { }
 }
 
 function passoCores() {
@@ -381,8 +359,6 @@ function passoCores() {
     bloco("Cores", [pocos, tira]),
   ];
 }
-/* As abas de Criar › Ícones: os aplicativos, e as pastas Sistema e Biblioteca,
- * cada ícone um botão de levar para o tema. Aba sem ícone nenhum não aparece. */
 let ABA_ICONES = "apps";
 let LIMITE_ICONES = 48;
 function gradeDeLevar(pasta, pack) {
@@ -426,7 +402,6 @@ function passoIcones() {
     maisAjustes("criar:icones", p.mais, [oficinaAutoral()].filter(Boolean)),
   ];
 }
-/* O que o pack do Criar tema já leva, lido do servidor (`/api/criar`). */
 let LEVA = null;
 async function carregarLeva(id) {
   LEVA = { id, carregando: true, fotos: [] };
@@ -434,7 +409,6 @@ async function carregarLeva(id) {
   LEVA = r.erro ? { id, fotos: [] } : { ...r, id };
   render();
 }
-/* O pack guardado em Cores, com o que ele leva; null enquanto não há pack. */
 function packDoRascunho() {
   const r = rascunho();
   const pack = (r.pack && PACKS.find((x) => x.id === r.pack)) || null;
@@ -457,8 +431,6 @@ function passoPapel() {
   return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria(leva)])],
     { direita: [botaoAcervo("parede", "Trazer imagens")] })];
 }
-/* Os sons de aviso: um por evento do tema de sons do pack, os do desenho
- * primeiro. O nome é o do evento quando ele não está aqui. */
 const NOMES_DE_SOM = {
   "message-new-instant": "Mensagem nova", complete: "Tarefa pronta", "device-added": "Pendrive entrou",
   "battery-low": "Bateria fraca", "screen-capture": "Captura de tela", "desktop-screen-lock": "Tela bloqueada",
@@ -554,7 +526,6 @@ function paginaCriar(sub) {
       [icone("voltar"), elemento("span", { texto: "Voltar" })]) : elemento("span"),
     elemento("div", { class: "fila" }, [
       sub === "cores" ? (() => {
-        /* O motor recusa texto sem contraste com o fundo: o botão já diz antes. */
         const m = vinteSeis();
         const pouco = contraste(m.text, m.base) < 4.5;
         return botao("Guardar", { class: "bt principal", controle: "criar:guardar", disabled: pouco,
@@ -582,10 +553,6 @@ function paginaCriar(sub) {
   ];
 }
 
-/* ========================================================================= */
-/* AJUSTES                                                                    */
-/* ========================================================================= */
-/* A régua do dia: a noite pintada sobre 24 h, uma fila por coisa que muda. */
 function reguaDaNoite() {
   const hora = (v) => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || "")); return m ? Number(m[1]) + Number(m[2]) / 60 : null; };
   const ini = hora(vale("NOITE_INICIO")) ?? 18, fim = hora(vale("NOITE_FIM")) ?? 7;
@@ -615,7 +582,6 @@ function reguaDaNoite() {
   return regua;
 }
 
-/* «Mesmo horário»: as áreas com horário próprio seguem a noite. */
 function linhaMesmoHorario() {
   const areas = ESQUEMA.horario_das_areas || [];
   if (!areas.length) return null;
@@ -636,7 +602,6 @@ function linhaMesmoHorario() {
   ])]);
 }
 
-/* Recebem o tema: um interruptor por programa. */
 function gradeDeProgramas() {
   const item = CHAVE.get("APPS_ATIVOS");
   if (!item) return null;
@@ -689,9 +654,6 @@ function paginaAjustes(sub) {
   ];
 }
 
-/* ========================================================================= */
-/* CUIDAR                                                                     */
-/* ========================================================================= */
 function faixaDoEstado() {
   const p = packNoAr();
   const itens = [
@@ -732,13 +694,11 @@ function linhaDePendencia(p) {
     elemento("div", { class: "ctl" }, botoes),
   ]);
 }
-/* O dia em que o item passou a esperar uma pessoa, curto (dd/mm). */
 function desdeCurto(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
   return String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
 }
-/* Precisa de gente: o nome na linha; o porquê e o desde quando, na dica. */
 function linhaDeGente(g) {
   const desde = desdeCurto(g.desde);
   const dica = [primeiraFrase(g.porque), desde ? `Desde ${desde}` : ""].filter(Boolean).join(" · ");
@@ -763,7 +723,6 @@ function cartaoDeCuidar(c) {
       botoes.push(botao(l.b, { class: "bt", icone: "subir", controle: "cuidar:importar", onclick: () => campo.click() }), campo);
     }
   }
-  /* A primeira de cada cartão é a ação dele; as outras, contornadas. */
   const primeiro = botoes.find((b) => b.classList && b.classList.contains("bt"));
   if (primeiro && !primeiro.classList.contains("perigo")) primeiro.classList.add("principal");
   return elemento("section", { class: "bloco cartao-acao terco", "data-bloco": c.titulo }, [

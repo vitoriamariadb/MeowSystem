@@ -1,18 +1,8 @@
-/* Mockup FINAL do painel MeowSystem (P97, 23/10/2026).
-   O que este arquivo faz, e só isso:
-   - monta a barra de cima, o rodapé, o trilho de Ajustes e os passos de Criar tema em toda página
-     (assim as 15 telas não repetem a mesma moldura à mão);
-   - desenha a prévia da mesa de trabalho a partir do pack no ar;
-   - lembra o tema escolhido neste navegador, para todas as telas se vestirem dele;
-   - dá vida mínima aos controles: contar mudanças, Aplicar, Desfazer, o "?", a senha, a saída de ação,
-     a busca, o sino e as cores do Criar tema.
-   Nada grava em lugar nenhum além do localStorage deste navegador. */
 (function () {
   "use strict";
   var raiz = document.documentElement;
   var corpo = document.body;
 
-  /* ── ícones da interface (traço, 24 px) ─────────────────────────────── */
   var P = {
     tema: '<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.7 5.7 0 0 0 22 9.7C22 5.4 17.5 2 12 2Z"/>',
     criar: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
@@ -51,15 +41,13 @@
   window.ic = ic;
   document.querySelectorAll("[data-ic]").forEach(function (el) { el.insertAdjacentHTML("afterbegin", ic(el.dataset.ic)); });
 
-  /* os ícones do pack MeowSystem (traço, na cor do destaque), lidos de packs/ pelo gerador */
   var MEOW = window.MEOW_ICONES || {};
 
-  /* ── o tema no ar, lembrado neste navegador ─────────────────────────── */
   var est = { tema: "mocha", destaque: "" };
-  try { var g = JSON.parse(localStorage.getItem("meow-final") || "{}"); if (g.tema) est.tema = g.tema; if (g.destaque) est.destaque = g.destaque; } catch (e) { /* sem armazenamento: começa do padrão */ }
+  try { var g = JSON.parse(localStorage.getItem("meow-final") || "{}"); if (g.tema) est.tema = g.tema; if (g.destaque) est.destaque = g.destaque; } catch (e) { }
   var forcado = new URLSearchParams(location.search).get("tema");
   if (forcado) est.tema = forcado;
-  function guardar() { try { localStorage.setItem("meow-final", JSON.stringify(est)); } catch (e) { /* só não lembra */ } }
+  function guardar() { try { localStorage.setItem("meow-final", JSON.stringify(est)); } catch (e) { } }
   function familia(t) { return (t === "dracula" || t === "alucard") ? "dracula" : "meow"; }
   function vestir() {
     raiz.dataset.tema = est.tema;
@@ -87,7 +75,6 @@
   }
   var NOMES = { mocha: "MeowSystem · Mocha", macchiato: "MeowSystem · Macchiato", frappe: "MeowSystem · Frappé", latte: "MeowSystem · Latte", dracula: "Dracula", alucard: "Dracula · Alucard" };
 
-  /* ── a moldura: barra de cima e rodapé ──────────────────────────────── */
   var PORTAS = [
     ["tema", "index.html", "Tema", "tema"],
     ["criar", "criar-cores.html", "Criar tema", "criar"],
@@ -114,7 +101,6 @@
       '<nav><a href="estados.html">Estados da tela</a><a href="index.html#creditos">Créditos</a><a href="../LEIA-ME.md">O que veio de onde</a></nav>';
   }
 
-  /* trilho de Ajustes */
   var SUBS = [
     ["painel", "ajustes-painel.html", "Painel e dock", "painel"],
     ["janelas", "ajustes-janelas.html", "Janelas e tela", "janelas"],
@@ -130,7 +116,6 @@
       return '<li><a href="' + s[1] + '"' + (corpo.dataset.sub === s[0] ? ' aria-current="page"' : "") + ">" + ic(s[3]) + s[2] + "</a></li>";
     }).join("") + "</ul>";
   }
-  /* passos de Criar tema */
   var PASSOS = [["cores", "criar-cores.html", "Cores"], ["icones", "criar-icones.html", "Ícones"], ["papel", "criar-papel.html", "Papel de parede"], ["sons", "criar-sons.html", "Sons"], ["publicar", "criar-publicar.html", "Mandar"]];
   var passos = document.getElementById("passos");
   if (passos) {
@@ -142,7 +127,6 @@
     }).join("");
   }
 
-  /* ── a prévia da mesa de trabalho ───────────────────────────────────── */
   var DRAC_DOCK = ["org.gnome.Nautilus", "firefox", "org.telegram.desktop", "discord", "spotify", "md.obsidian.Obsidian", "vscode", "photogimp", "whatsapp-linux-app"];
   var MEOW_DOCK = ["files", "firefox", "telegram", "discord", "spotify", "terminal"];
   var PASTAS = [["folder-documents", "Documentos"], ["folder-download", "Downloads"], ["folder-music", "Músicas"], ["folder-pictures", "Imagens"], ["folder-videos", "Vídeos"], ["user-desktop", "Área de trabalho"], ["folder", "Projetos"], ["user-home", "Pessoal"]];
@@ -180,7 +164,6 @@
   document.querySelectorAll(".previa").forEach(previa);
   window.previa = previa;
 
-  /* ── mudanças pendentes, Aplicar e Desfazer ─────────────────────────── */
   var caixa = document.getElementById("aplicar");
   var n = 0;
   function contar(d) {
@@ -214,7 +197,6 @@
     });
   }
 
-  /* ── controles ──────────────────────────────────────────────────────── */
   function pinta(r) {
     var p = (r.value - r.min) / (r.max - r.min) * 100;
     r.style.setProperty("--p", p + "%");
@@ -264,7 +246,7 @@
     var cp = t.closest("[data-copiar]");
     if (cp) {
       var txt = document.querySelector(cp.dataset.copiar).textContent;
-      try { navigator.clipboard.writeText(txt); } catch (e) { /* sem área de transferência */ }
+      try { navigator.clipboard.writeText(txt); } catch (e) { }
       var antes = cp.innerHTML; cp.dataset.estado = "feito"; cp.innerHTML = ic("certo") + "Copiado";
       setTimeout(function () { delete cp.dataset.estado; cp.innerHTML = antes; }, 1400);
       return;
@@ -272,10 +254,9 @@
     var sn = t.closest("[data-sino]");
     if (sn) { sino(sn.dataset.sino); return; }
     var so = t.closest("[data-som]");
-    if (so) { try { new Audio(so.dataset.som).play(); } catch (e) { /* sem áudio */ } return; }
+    if (so) { try { new Audio(so.dataset.som).play(); } catch (e) { } return; }
   });
 
-  /* o "?" — um balão só, reaproveitado */
   var balao = document.createElement("div");
   balao.className = "porque"; balao.setAttribute("role", "tooltip"); balao.id = "porque";
   corpo.appendChild(balao);
@@ -298,7 +279,6 @@
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && qAberto) { qAberto.setAttribute("aria-expanded", "false"); balao.classList.remove("aberto"); qAberto = null; } });
   window.addEventListener("scroll", function () { if (qAberto) { balao.classList.remove("aberto"); qAberto.setAttribute("aria-expanded", "false"); qAberto = null; } }, { passive: true });
 
-  /* ── senha e saída de ação ──────────────────────────────────────────── */
   corpo.insertAdjacentHTML("beforeend",
     '<dialog id="senha" aria-labelledby="senha-t"><form method="dialog" class="dentro">' +
     '<h2 id="senha-t">' + ic("senha") + '<span></span></h2><p class="calmo" id="senha-d"></p>' +
@@ -339,7 +319,6 @@
     });
   }
 
-  /* ── a busca: os ajustes têm nome de gente ──────────────────────────── */
   var INDICE = [
     ["Trocar de tema", "Tema", "index.html"], ["Cor de destaque", "Tema", "index.html"], ["Claro ou escuro", "Tema", "index.html"],
     ["Distância da borda", "Ajustes › Painel e dock", "ajustes-painel.html"], ["Cantos arredondados", "Ajustes › Painel e dock", "ajustes-painel.html"],
@@ -377,7 +356,6 @@
     if (corpo.dataset.buscaAberta) { busca.value = corpo.dataset.buscaAberta; setTimeout(procurar, 0); }
   }
 
-  /* ── o sino: os números do pack.json ────────────────────────────────── */
   function sino(spec) {
     var v = spec.split(",").map(parseFloat);
     try {
@@ -389,10 +367,9 @@
         g.gain.exponentialRampToValueAtTime(0.0001, A.currentTime + 4 / v[4] * 10);
         o.connect(g).connect(A.destination); o.start(); o.stop(A.currentTime + 1.2);
       });
-    } catch (e) { /* sem áudio */ }
+    } catch (e) { }
   }
 
-  /* ── Criar tema: seis cores, a prévia anda junto, o contraste é medido ── */
   function lum(hex) {
     var x = parseInt(hex.slice(1), 16), c = [(x >> 16) & 255, (x >> 8) & 255, x & 255].map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
     return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];

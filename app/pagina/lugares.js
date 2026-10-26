@@ -1,15 +1,3 @@
-/* app/pagina/lugares.js — onde cada chave do meow.conf e cada ação mora no painel.
- *
- * É DADO, e é a fonte da tabela de migração (tests/migracao-do-painel.py lê este
- * arquivo no node e gera docs/design/2026-10-23/migracao.md). Uma chave ou ação
- * do servidor sem lugar aqui reprova o teste: nada se perde.
- *
- * Linha:  { c: "CHAVE", r: "Rótulo" }              uma chave
- *         { c: ["CHAVE_PAINEL", "CHAVE_DOCK"], r }  duas colunas (Barra de cima | Dock)
- *         { a: "acao", r: "Rótulo", b: "Botão" }    uma ação
- *         { g: "gesto", r, b }                      um gesto da página (rota da API)
- *         { e: "especial", ... }                    um molde com dado (galeria, jogos…)
- * `sub: true` recua a linha (ela depende da de cima). */
 "use strict";
 
 const PORTAS = [
@@ -19,7 +7,6 @@ const PORTAS = [
   { id: "cuidar", nome: "Cuidar", icone: "cuidar" },
 ];
 
-/* Tema: os cartões dos packs, o destaque e o claro ou escuro. */
 const LUGAR_TEMA = {
   packs: [
     { c: "PACK", r: "Tema" },
@@ -40,7 +27,6 @@ const LUGAR_TEMA = {
   ],
 };
 
-/* Criar tema: cinco passos. */
 const PASSOS = [
   { id: "cores", nome: "Cores",
     linhas: [{ g: "tema-criar", r: "Guardar o tema", b: "Guardar" }] },
@@ -102,7 +88,6 @@ const PASSOS = [
     ] },
 ];
 
-/* Ajustes: sete páginas, cada uma com a prévia e as linhas. */
 const AJUSTES = [
   { id: "painel", nome: "Painel e dock", icone: "painel",
     cabeca: [{ a: "painel_reciclar", r: "Recarregar o painel", b: "Recarregar o painel" }],
@@ -297,7 +282,6 @@ const AJUSTES = [
     ] },
 ];
 
-/* Cuidar: o estado, as pendências, as três ações grandes, o que roda sozinho. */
 const LUGAR_CUIDAR = {
   estado: [
     { a: "doctor_consertar", r: "Conferir e consertar", b: "Conferir e consertar" },
@@ -350,7 +334,6 @@ const LUGAR_CUIDAR = {
   mais: [{ a: "restaurar", r: "Restaurar", b: "Restaurar" }],
 };
 
-/* A barra de cima (e o menu dela, com os créditos) e a janela do trabalho. */
 const LUGAR_TOPO = [
   { g: "salvar", r: "Aplicar" },
   { g: "descartar", r: "Desfazer" },
@@ -365,7 +348,6 @@ const LUGAR_JANELA = [
   { g: "ensaio-rodar", r: "Rodar de verdade" },
 ];
 
-/* A tabela inteira, plana: o que a migração e a busca leem. */
 function inventarioDoPainel() {
   const saida = [];
   const pus = (l, porta, pagina, bloco, mais) => {

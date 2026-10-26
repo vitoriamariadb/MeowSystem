@@ -8,7 +8,6 @@
 <script>try{var g=JSON.parse(localStorage.getItem("meow-final")||"{}");if(g.tema)document.documentElement.dataset.tema=g.tema;if(g.destaque)document.documentElement.dataset.destaque=g.destaque}catch(e){}</script>
 <link rel="stylesheet" href="estilo.css">
 <style>
-/* Tema: a porta da frente. Escolher o tema é a primeira coisa, e explica o MeowSystem sozinha. */
 .abre { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--e-6); flex-wrap: wrap; margin-bottom: var(--e-6); }
 .abre h1 { font-size: var(--t-display); letter-spacing: -.02em; line-height: 1.05; }
 .abre h1 b { color: var(--accent); font-weight: 600; }
@@ -182,7 +181,7 @@
     </div>
     <div class="bloco recomenda">
       <h2>Gostou? Mande para alguém. <span class="q" data-porque="São as linhas do README. Numa máquina recém-formatada, a primeira vez pergunta cinco coisas e instala as 63 etapas."></span></h2>
-<pre class="comando" id="cmd">git clone https://github.com/vitoriamariadb/MeowSystem.git
+<pre class="comando" id="cmd">git clone https://github.com/[REDACTED]/MeowSystem.git
 cd MeowSystem && ./install.sh --wizard</pre>
       <div class="fila">
         <button class="bt" type="button" data-copiar="#cmd" data-ic="copiar">Copiar</button>
