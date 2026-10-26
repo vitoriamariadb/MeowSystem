@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Catppuccin">
+  <style id="meow-papeis">.fundo{fill:#1E1E2E}.sujeito{fill:#CBA6F7}.traco-fundo{stroke:#1E1E2E}.traco-sujeito{stroke:#CBA6F7}.traco-tinta{stroke:#CDD6F4}</style>
+  <title>Catppuccin</title>
+  
+  <rect class="fundo" x="4" y="4" width="120" height="120" rx="28"/>
+  <path class="traco-sujeito" d="M88 62 H94 Q106 62 106 74 Q106 86 94 86 H86" fill="none" stroke-width="8" stroke-linecap="round"/>
+  <path class="sujeito" d="M26 50 L32 28 L48 44 H74 L90 28 L96 50 V78 Q96 102 72 102 H50 Q26 102 26 78 Z"/>
+  <circle class="fundo" cx="48" cy="68" r="5.5"/>
+  <circle class="fundo" cx="74" cy="68" r="5.5"/>
+  <path class="traco-fundo" d="M55 80 Q61 86 67 80" fill="none" stroke-width="4" stroke-linecap="round"/>
+  <path class="traco-tinta" d="M52 22 Q48 16 52 10 M70 22 Q66 16 70 10" fill="none" stroke-width="4" stroke-linecap="round"/>
+</svg>
