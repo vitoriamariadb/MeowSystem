@@ -2,7 +2,7 @@
 
 ## Agora
 - QA e os 5 repos de applet: entregues (ver «Entregue»).
-- Em voo: B0 etapa 1 (zerar comentários), `../MeowSystem-b0`, `limpeza/b0`.
+- B0 etapa 1 entregue (8 commits, 281 arquivos sem comentário, impressão igual). Em voo: B0 etapa 2 (arquivar, `docs/DECISOES.md`, gancho do README). Ganchos se instalam DEPOIS do merge (o `.git` é comum às worktrees).
 - Em voo: maquete do painel (`maquete/BRIEF.md`), Opus A em `../MeowSystem-maquete-a` (`maquete/a`:
   moldura, Tema, Definir, Manter) e Opus B em `../MeowSystem-maquete-b` (`maquete/b`: Personalizar,
   Extensões). Junta as duas, quem usa aprova, e as sprints P110-P114 passam a seguir a maquete.
