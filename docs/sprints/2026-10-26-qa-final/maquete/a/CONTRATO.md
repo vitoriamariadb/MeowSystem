@@ -137,7 +137,7 @@ A prévia fixa: `main > .oficina` com `[.palco > .previa, .pilha]`. Sem prévia:
 | `tema.html` + `tema.js` | `tema` | os packs MeowSystem e Dracula com variantes, Cor de destaque, Claro ou escuro, «Criar o meu tema» |
 | `definir.html` + `definir.js` | `ajustes` | sete seções por `#hash`: `painel`, `janelas`, `papel`, `mascote`, `noite`, `terminal`, `programas` |
 | `manter.html` + `manter.js` | `cuidar` | estado, pendências, três cartões, Sozinho, Ícones da máquina, Construídos, Registro, perigo |
-| `extensoes.html` | `extensoes` | só a moldura (da maquete B) |
+| `../b/extensoes.html` | `extensoes` | da maquete B |
 | `demo.js` | todas | moldura: gravando, mudanças, desfazer, busca, diálogos, estados |
 | `prova.py` | — | a prova headless (abaixo) |
 
@@ -183,7 +183,7 @@ Na URL: `pagina.html#estado=<e>` ou, no Definir, `definir.html#painel&estado=<e>
 | Escondidos sugere programas e recusa texto solto | `.nova-ficha`, `.sugestoes`, `[aria-invalid]` | Q2-14 | P113 |
 | sem Baixar/Instalar que não cabem (Spotify, starship, coleção, menu) | Programas, Terminal | Q2-15, Q2-16 | P113 |
 | estado dos builds | bloco «Construídos» | Q2-18 | P114 |
-| porta Extensões | `extensoes.html` | Q3-10 | P114 |
+| porta Extensões | `../b/extensoes.html` | Q3-10 | P114 |
 
 ## Controle → prévia
 

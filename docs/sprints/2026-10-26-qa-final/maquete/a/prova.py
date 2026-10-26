@@ -11,7 +11,7 @@ AQUI = pathlib.Path(__file__).resolve().parent
 CAP = AQUI / "capturas"
 LARGURAS = [(1920, 1080), (1550, 860), (1500, 900), (1280, 800)]
 SECOES = ["painel", "janelas", "papel", "mascote", "noite", "terminal", "programas"]
-PAGINAS = ["tema.html", "manter.html", "extensoes.html"] + [f"definir.html#{s}" for s in SECOES]
+PAGINAS = ["tema.html", "manter.html"] + [f"definir.html#{s}" for s in SECOES]
 ESTADOS = ["vazio", "carregando", "erro", "sem-ponte"]
 
 TRANSBORDO = """() => {
@@ -131,7 +131,7 @@ def main():
                 if prob: falhas.append(f"{w} {alvo}: " + "; ".join(prob))
                 else: ok += 1
                 pg.close()
-            for alvo in ["tema.html", "manter.html", "extensoes.html", "definir.html#painel", "definir.html#papel", "definir.html#programas"]:
+            for alvo in ["tema.html", "manter.html", "definir.html#painel", "definir.html#papel", "definir.html#programas"]:
                 for est in ESTADOS:
                     u = alvo + ("&" if "#" in alvo else "#") + "estado=" + est
                     pg, erros = abrir(b, w, h, u)
