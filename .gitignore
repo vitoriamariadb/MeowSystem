@@ -13,6 +13,7 @@ assets/fontes/locais/*.[tT][tT][cC]
 
 !docs/capturas/*.png
 !docs/capturas/*.jpg
+!docs/capturas/readme/*.png
 
 !assets/icones/resgatados-antes-e-depois.png
 

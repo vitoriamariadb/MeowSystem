@@ -1,0 +1,28 @@
+repositorio = "https://github.com/AndreBFarias/MeowSystem"
+casa = "https://github.com/vitoriamariadb/MeowSystem"
+
+comandos = [
+  "meow abrir",
+  "meow doctor",
+  "meow doctor --consertar",
+  "meow pack",
+  "meow pack info <id>",
+  "meow desfazer",
+  "meow log",
+]
+
+[portas.tema]
+pt = "um cartão por pack: logo, paleta, o que é próprio e o que herda. Vestir troca o pack."
+en = "one card per pack: logo, palette, what it brings and what it inherits. Vestir switches packs."
+
+[portas.criar]
+pt = "um pack seu, em passos: cores, ícones, papel de parede, sons, e baixar o tema."
+en = "your own pack, step by step: colors, icons, wallpaper, sounds, and download the theme."
+
+[portas.ajustes]
+pt = "painel e dock, janelas, papel de parede, mascote, dia e noite, terminal e programas."
+en = "panel and dock, windows, wallpaper, mascot, day and night, terminal and programs."
+
+[portas.cuidar]
+pt = "o doctor e o Consertar, as pendências, e os ajustes para levar a outra máquina."
+en = "the doctor and its fix button, pending items, and settings to carry to another machine."
