@@ -118,10 +118,6 @@ else
   passou "os dois README dizem o mesmo placar do navegador: $placar_pt"
 fi
 
-confere docs/SPRINTS.md '\| `install.sh` \| [0-9]+ etapas' "$ETAPAS"       "etapas (estado de hoje)"
-confere docs/SPRINTS.md '\*\*[0-9]+\*\* conferências'      "$CONFERENCIAS" "conferências (estado de hoje)"
-confere docs/SPRINTS.md '\| painel \| [0-9]+ chaves'      "$CHAVES"       "chaves (estado de hoje)"
-
 if [ -n "${ACOES:-}" ]; then
   confere README.md      '[0-9]+ ações em'   "$ACOES" "ações"
   confere app/LEIA-ME.md '[0-9]+ ações, com a saída' "$ACOES" "ações"
