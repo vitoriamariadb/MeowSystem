@@ -1,12 +1,16 @@
 # Leva QA final (26/10/2026) — andamento
 
 ## Agora
-- Em voo: 3 Opus de QA (relatórios em `relatorios/qa-1..3.md`) e 3 Opus nos repos de applets.
-- Fila: bloco B0 (`B0-enxugar-o-repo.md`, 3 Opus em sequência) começa quando o QA terminar (no máximo dois blocos ao mesmo tempo).
-- Depois: sprints P109+ escritas sobre o dev já enxuto, para 6 Sonnet + 2 Opus de conferência, numa leva só. Eu faço o merge de tudo no dev.
+- QA e os 5 repos de applet: entregues (ver «Entregue»).
+- Em voo: B0 etapa 1 (zerar comentários), `../MeowSystem-b0`, `limpeza/b0`.
+- Em voo: maquete do painel (`maquete/BRIEF.md`), Opus A em `../MeowSystem-maquete-a` (`maquete/a`:
+  moldura, Tema, Definir, Manter) e Opus B em `../MeowSystem-maquete-b` (`maquete/b`: Personalizar,
+  Extensões). Junta as duas, quem usa aprova, e as sprints P110-P114 passam a seguir a maquete.
+- Depois: B0 etapas 2 e 3 → merge no dev → seis worktrees `../MeowSystem-p109..p114` → 6 Sonnet →
+  `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev.
 
 ## Respostas de quem usa (26/10)
-- Repos de applet: conta `vitoriamariadb`, nome `meowsystem-*`, pasta `~/Desenvolvimento/meowsystem-*`, app id `io.github.meowsystem.*`. Vão até o push. Compilam e instalam aqui (root por `sudo -A`, o askpass); não mexem na ordem do painel nem o reiniciam sozinhos.
+- Repos de applet: conta `<conta>`, nome `meowsystem-*`, pasta `~/Desenvolvimento/meowsystem-*`, app id `io.github.meowsystem.*`. Vão até o push. Compilam e instalam aqui (root por `sudo -A`, o askpass); não mexem na ordem do painel nem o reiniciam sozinhos.
 - Repos: now-playing (fork), status-hub (fork), quick-settings (fork), leitura (sai de `src/applets/leitura`), performance (nasce do `~/.config/zsh/scripts/nitro`).
   Divisão: Claude 1 mídia · Claude 2 status-hub + quick-settings · Claude 3 leitura + performance.
 - Aplicar: cada controle grava ao soltar; a barra de mudanças fica, só para desfazer.
@@ -37,7 +41,7 @@ Seção Extensões: mostra os applets, deixa o usuário adicionar repo (central 
 - Anotação para depois: `aurora-claude-workspace.sh run` adivinha o app id pelo binário; applet com app id diferente precisa de `AURORA_CLAUDE_APPID`.
 
 ## Respostas às perguntas dos relatórios (26/10)
-- Identidade: commits como Vitória (vitoriamaria.sds), André coautor. Casa: `vitoriamariadb/MeowSystem` (decisão 22 cai). README, Créditos e LICENSE com os dois nomes.
+- Identidade: commits como Vitória (vitoriamaria.sds), André coautor. Casa: `<conta>/MeowSystem` (decisão 22 cai). README, Créditos e LICENSE com os dois nomes.
 - Extensões: porta própria no topo (Tema · Personalizar · Definir · Manter · Extensões). Adicionar repo de qualquer URL, por gesto, SHA pinado, sem sudo.
 - «Gerador de build» = estado dos builds: ver e refazer compositor, menu do Arquivos e applets (mora em Extensões/Manter).
 - Sons do carregador e da bateria: troca em /usr/share/sounds/Pop pela ponte; o pós-apt repõe. Cada pack traz os seus sons (MeowSystem ganha os seus); `SOM_*` do meow.conf deixa de vencer o pack.
