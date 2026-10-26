@@ -3,6 +3,9 @@
 Leia `00-leva.md`. Itens: `relatorios/qa-1.md` Q1-09, Q1-11, Q1-12, Q1-15, Q1-16, Q1-17;
 `relatorios/qa-2.md` Q2-13, Q2-17; `relatorios/qa-3.md` Q3-04, Q3-05, Q3-06.
 
+## Maquete
+`maquete/a/`: as portas e os nomes, o Tema (cartões de pack, variantes, «Criar o meu tema»), o Manter inteiro (cartões, Sozinho, Ícones da máquina, Construídos, Registro, perigo), a régua de Dia e noite com o Modo de leitura e os estados `sem-ponte`/`erro`.
+
 ## O que quem usa pediu
 - Portas: Tema · Personalizar (era Criar tema) · Definir (era Ajustes) · Manter (era Cuidar) ·
   Extensões (a porta nasce na P114; aqui só reserve o lugar no cabeçalho se a P114 ainda não existe —

@@ -3,6 +3,9 @@
 Leia `00-leva.md`. Itens do relatório: `relatorios/qa-2.md` Q2-04, Q2-05, Q2-06, Q2-07, Q2-21;
 `relatorios/qa-3.md` Q3-02, Q3-07; `relatorios/qa-1.md` Q1-14.
 
+## Maquete
+`maquete/a/`: a barra «N mudanças · Desfazer» e o indicador de gravando da moldura (`demo.js` mostra o comportamento esperado).
+
 ## O que quem usa pediu
 Mexer num controle aplica aquela coisa na hora, sem «Aplicar» e sem rodar o instalador inteiro. A barra
 de mudanças continua, só para desfazer. «Instalar tudo» deixa de sair 2.

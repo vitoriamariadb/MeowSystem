@@ -3,6 +3,9 @@
 Leia `00-leva.md`. Itens: `relatorios/qa-3.md` Q3-09, Q3-10; `relatorios/qa-2.md` Q2-18, Q2-22,
 Q2-23; `relatorios/qa-1.md` Q1-20.
 
+## Maquete
+`maquete/b/extensoes.html`: abas Applets e Builds, a faixa que copia a barra de cima, «Pôr no painel», a troca pendente (Trocar/Manter) e o diálogo «Adicionar repositório»; os Créditos do «…» em `maquete/b/personalizar.html?creditos=1`. O «Construídos» do Manter (maquete A) mostra o mesmo estado que a aba Builds.
+
 ## O que quem usa pediu
 Uma porta «Extensões» no topo (Tema · Personalizar · Definir · Manter · Extensões) que mostra os
 applets, instala, atualiza e remove, deixa adicionar o repositório de um applet (uma central de

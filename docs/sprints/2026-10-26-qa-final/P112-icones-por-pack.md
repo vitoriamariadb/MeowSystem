@@ -2,6 +2,9 @@
 
 Leia `00-leva.md`. Itens: `relatorios/qa-1.md` Q1-01, Q1-19, Q1-02, Q1-05, Q1-06, Q1-07, Q1-08.
 
+## Maquete
+`maquete/b/personalizar.html#icones`: abas Apps/Sistema/Biblioteca, a oficina com um «Usar» e os dois geradores (MeowSystem traço, Dracula círculo) trocando pelo pack em edição.
+
 ## O que quem usa pediu
 O ícone que ela desenha no Personalizar aparece no desktop, na dock e no lançador. Os ícones do pack
 Dracula não aparecem no pack MeowSystem e vice-versa. O Dracula ganha um gerador de ícones no estilo
