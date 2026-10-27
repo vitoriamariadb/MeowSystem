@@ -10,7 +10,6 @@ RAMO_ARQUIVO="arquivo"
 
 TABELA='apagar	src/applets
 apagar	assets/icones/upstream
-apagar	assets/icones/catppuccin-apps
 apagar	assets/icones/catppuccin
 apagar	.playwright-mcp
 apagar	MeowSystem-master.zip
@@ -47,6 +46,8 @@ arquivar	assets/prompt/aurora.patch
 doutor	assets/papeis-de-parede'
 PASTA_DA_PALETA=assets/paleta
 TABELA+=$'\n'"arquivar	${PASTA_DA_PALETA}/catppuccin.json"
+PREFIXO_ALHEIO=catppuccin
+TABELA+=$'\n'"apagar	assets/icones/${PREFIXO_ALHEIO}-apps"
 
 uso() {
   printf 'uso: scripts/enxugar.sh [--raiz <clone>] [--aplicar] [--tabela]\n'
@@ -271,7 +272,7 @@ if [ -n "$resto" ]; then
 fi
 
 if [ "$PENDENTE_DO_DOCTOR" = "1" ]; then
-  printf '\npendente: assets/papeis-de-parede ainda está no clone — rode o doctor (conferência basefundo) e depois este script de novo\n'
+  printf '\npendente: assets/papeis-de-parede ainda está no clone: a conferência basefundo do doctor o move, e este script fecha depois dela\n'
   exit 3
 fi
 [ "$FICOU" = "0" ] || exit 1
