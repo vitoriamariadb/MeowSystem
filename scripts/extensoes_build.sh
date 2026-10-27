@@ -549,6 +549,13 @@ _b_guardados() {
   return 1
 }
 
+_b_conf_quer() {
+  local chave="$P_CHAVE_DO_CONF" valor
+  [ -n "$chave" ] || return 0
+  valor="$(meow_conf_valor "$chave" 2>/dev/null)" || valor="${!chave:-sim}"
+  [ "$valor" != nao ]
+}
+
 _b_pronto() { case "$B_SITUACAO" in ok|desligado) return 0 ;; esac; return 1; }
 
 _b_estado() {
@@ -613,7 +620,8 @@ _b_aplicar() {
     if [ "${EXTENSOES_FUNDO:-0}" = 1 ] && [ "$B_CONSTRUINDO" = sim ]; then
       meow_info "$(_nome) $B_VERSAO: o build já corre em segundo plano"
     elif [ "${EXTENSOES_FUNDO:-0}" = 1 ]; then
-      "$GARANTIR" --fundo; rc=$?
+      if [ -n "$P_CHAVE_DO_CONF" ]; then env "$P_CHAVE_DO_CONF=sim" "$GARANTIR" --fundo; rc=$?
+      else "$GARANTIR" --fundo; rc=$?; fi
       [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
       mudou=1
     else
@@ -622,6 +630,11 @@ _b_aplicar() {
       _b_pronto || { meow_erro "$(_nome) $B_VERSAO não compilou — o de fábrica segue valendo"; return "$MEOW_ERRO"; }
       mudou=1
     fi
+  fi
+  if ! _b_conf_quer; then
+    meow_info "$(_nome) $B_VERSAO: build pronto, e o $P_CHAVE_DO_CONF do meow.conf diz nao — fica desligado"
+    [ "$mudou" = 1 ] && return "$MEOW_DIVERGENTE"
+    return "$MEOW_OK"
   fi
   _b_ligar; rc=$?
   case "$rc" in

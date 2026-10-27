@@ -71,12 +71,18 @@ _gb_files_quer() {
   [ "${q:-sim}" = "sim" ]
 }
 
+_gb_comp_quer() {
+  local q="${COMPOSITOR:-}"
+  [ -n "$q" ] || q="$(meow_conf_valor COMPOSITOR 2>/dev/null)" || q="sim"
+  [ "${q:-sim}" != "nao" ]
+}
+
 _gb_pendentes() {
   local p v
   while IFS=$'\t' read -r p v; do
     case "$p" in
       cosmic-files) _gb_files_quer && ! _gb_files_valido "$v" && printf '%s\t%s\n' "$p" "$v" ;;
-      cosmic-comp)  [ ! -e "$GB_CASA/$v/ruim" ] && ! _gb_comp_valido "$v" && ! _gb_comp_degrau4 "$v" \
+      cosmic-comp)  _gb_comp_quer && [ ! -e "$GB_CASA/$v/ruim" ] && ! _gb_comp_valido "$v" && ! _gb_comp_degrau4 "$v" \
                       && printf '%s\t%s\n' "$p" "$v" ;;
     esac
   done < <(_gb_instalados)
