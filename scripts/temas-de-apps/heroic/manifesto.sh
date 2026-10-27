@@ -20,7 +20,7 @@ _heroic_do_pack() {
     return 1
   fi
   if [ "$MEOW_APP_TEMA_PACK" != "$pack" ]; then
-    _HEROIC_MOTIVO="Heroic: sem tema neste pack ($nome) — o que a herança traz é o '${MEOW_APP_TEMA//<accent>/$_HEROIC_ACENTO}', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não veste outro"
+    _HEROIC_MOTIVO="Heroic: sem tema neste pack ($nome) — o que a herança traz é o '${MEOW_APP_TEMA//<accent>/$_HEROIC_ACENTO}', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não vale para outro"
     return 1
   fi
   case "$MEOW_APP_TEMA" in
@@ -297,7 +297,7 @@ meow_app_aplicar() {
     rc=$?
     [ "$rc" -ge 2 ] && return "$MEOW_ERRO"
     if [ "$rc" = "1" ]; then
-      meow_ok "Heroic vestido de $tema, o tema que o próprio Heroic traz — a janela mostra na próxima vez que abrir"
+      meow_ok "Heroic com o tema $tema, o tema que o próprio Heroic traz — a janela mostra na próxima vez que abrir"
       return "$MEOW_DIVERGENTE"
     fi
     meow_ok "Heroic já está no nosso tema"
@@ -331,7 +331,7 @@ meow_app_aplicar() {
   [ "$rc" -ge 2 ] && return "$MEOW_ERRO"
 
   if [ "$mudou" = "1" ]; then
-    meow_ok "Heroic vestido de $tema — a janela mostra na próxima vez que abrir"
+    meow_ok "Heroic com o tema $tema — a janela mostra na próxima vez que abrir"
     return "$MEOW_DIVERGENTE"
   fi
   meow_ok "Heroic já está no nosso tema"

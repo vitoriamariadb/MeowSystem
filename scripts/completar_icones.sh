@@ -159,7 +159,7 @@ for nome in "${RETIRADOS[@]}"; do
   fi
 done
 [ "$retirados" -gt 0 ] && ! meow_seco &&
-  meow_ok "$retirados desenho(s) autorais retirados — quem veste os oito agora é o Arcticons"
+  meow_ok "$retirados desenho(s) autorais retirados — quem aplica os oito agora é o Arcticons"
 
 for nome in fogstripper hefesto-dualsense4unix com.vitoriamaria.HefestoDualsense4Unix; do
   [ -f "$ALVO/$nome.svg" ] || continue

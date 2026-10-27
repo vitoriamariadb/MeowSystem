@@ -311,7 +311,7 @@ if [ -f "$alvo" ]; then
     meow_escrever "$DIR_BOTOES/$_b.svg" "$(cat "$alvo")" 644
     case $? in
       1) mudou=1; dock_mudou=1 ;;
-      2) meow_erro "não consegui vestir o botão do dock com $_b"; exit "$MEOW_ERRO" ;;
+      2) meow_erro "não consegui aplicar $_b no botão do dock"; exit "$MEOW_ERRO" ;;
     esac
   done
 fi
