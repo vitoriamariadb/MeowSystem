@@ -1267,22 +1267,22 @@ etapa_apps() {
   return $?
 }
 
-etapa_midia_build() {
-  passo "Applet de mídia (compilação)"
-  MIDIA_COMPILAR=1 MIDIA="${MIDIA:-}" \
-    "$MEOW_RAIZ/scripts/midia_build.sh"
+etapa_extensoes() {
+  passo "Extensões (applets da casa: compilação e sombra)"
+  EXTENSOES_COMPILAR=1 EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDIA:-}" \
+    LEITURA_APPLET="${LEITURA_APPLET:-}" \
+    "$MEOW_RAIZ/scripts/extensoes_build.sh" --todas --aplicar
   return $?
 }
 
-etapa_leitura_applet() {
-  passo "Applet do modo de leitura (compilação e sombra)"
-  LEITURA_COMPILAR=1 LEITURA_APPLET="${LEITURA_APPLET:-}" \
-    "$MEOW_RAIZ/scripts/leitura_build.sh"
+etapa_extensoes_tema() {
+  passo "Extensões (tema do pack)"
+  FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$MEOW_RAIZ/scripts/extensoes_tema.sh" --aplicar
   return $?
 }
 
 etapa_midia() {
-  passo "Applet de mídia (sombra e chaves)"
+  passo "Applet de mídia (chaves)"
   MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
     MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
     MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
@@ -1957,7 +1957,7 @@ main() {
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_ocultar_casa etapa_janela_dock
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_bloco_terminal etapa_files_menu etapa_cursor etapa_flatpak_tema etapa_escritorio etapa_apps
                 etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
-                etapa_midia_build etapa_midia etapa_leitura_applet etapa_lancador etapa_autostart etapa_autoreparo)
+                etapa_extensoes etapa_extensoes_tema etapa_midia etapa_lancador etapa_autostart etapa_autoreparo)
   TOTAL=${#etapas[@]}
 
   local teto=5

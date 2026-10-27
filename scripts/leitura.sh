@@ -26,7 +26,8 @@ LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.Cosmic
 LEITURA_APPLET_MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_center"
 
 LEITURA_ESTADO_BASE="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/$LEITURA_APPLET_ID/v1"
-[ -d "$LEITURA_ESTADO_BASE" ] || [ ! -d "${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/com.meowsystem.AppletLeitura/v1" ] || LEITURA_ESTADO_BASE="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/com.meowsystem.AppletLeitura/v1"
+LEITURA_ESTADO_ANTIGO="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/com.meowsystem.AppletLeitura"
+[ -d "$LEITURA_ESTADO_BASE" ] || [ ! -d "$LEITURA_ESTADO_ANTIGO/v1" ] || LEITURA_ESTADO_BASE="$LEITURA_ESTADO_ANTIGO/v1"
 LEITURA_K_ULT_T="$LEITURA_ESTADO_BASE/ultima_temperatura"
 LEITURA_K_ULT_X="$LEITURA_ESTADO_BASE/ultima_textura"
 
