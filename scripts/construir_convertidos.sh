@@ -24,7 +24,7 @@ declare -A CONHECIDO=()
 
 _ler_mapa() {
   local linha nome origem cor extra dono
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
     case "$linha" in '#!meow:usuario') dono=usuario; continue ;; esac
     case "$linha" in ''|'#'*) continue ;; esac
     IFS=':' read -r nome origem cor extra <<<"$linha"

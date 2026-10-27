@@ -28,7 +28,7 @@ declare -A ALIAS_OK=()
 
 _ler_mapa() {
   local linha nome glifo marca
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
     case "$linha" in ''|'#'*) continue ;; esac
     IFS=':' read -r nome glifo marca <<<"$linha"
     [ -n "$nome" ] && [ -n "$glifo" ] || continue

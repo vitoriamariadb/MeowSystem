@@ -79,6 +79,7 @@ PORTATIL=(
   criar-tema-leva.sh
   mesmo-horario.sh
   desbanir.sh
+  mapas-fim-de-linha.sh
 )
 
 MAQUINA=(
