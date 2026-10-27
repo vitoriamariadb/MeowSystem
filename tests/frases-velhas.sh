@@ -4,7 +4,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 command -v python3 >/dev/null 2>&1 || { printf 'FALHOU: sem python3\n' >&2; exit 2; }
 
-printf 'as frases velhas: sete classes, no repositório inteiro\n\n'
+printf 'as frases velhas: nove classes, no repositório inteiro\n\n'
 
 python3 - "$RAIZ" <<'PY'
 import os
@@ -316,6 +316,79 @@ else:
         else:
             print("  ok   classe 5 — a folha dos resgatados é de %s, e %d desenho(s) mudaram depois dela"
                   % (quando, len(mudaram)))
+
+import ast
+import glob
+
+VESTIR = re.compile(r"(?<![\w${])(?:re)?vest(?:ir|e|em|id[oa]s?|indo|iri?a\w*|ia|iam|imos)(?![\w=+])", I)
+MANDAR = re.compile(r"(?<![\w$])Mandar(?!\w)|\bpara\s+mandar\b")
+DIGITE = re.compile(r"\bdigite\b|\brode:?\s+[`'\"]?meow\b|\b(?:com|ou|é|use):\s+meow\s+\w+", I)
+ISENTAS = ("filtro_git.py", "$filtro", "filter.meow-obsidian", "# icones/apps.map",
+           "print('FABRICA')", "print('ESCRITO')")
+CITADA = re.compile(r"\"(?:[^\"\\\n]|\\.)*\"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\\n]|\\.)*`")
+SHELLS = ("install.sh", "bin/meow")
+
+
+def prosa_da_tela(texto):
+    return not texto.isupper() and (bool(re.search(r"\s", texto)) or texto[:1].isupper())
+
+
+def textos_da_tela(caminho):
+    with open(os.path.join(raiz, caminho), encoding="utf-8") as fh:
+        corpo = fh.read()
+    if caminho.endswith(".py"):
+        try:
+            arvore = ast.parse(corpo)
+        except SyntaxError:
+            return
+        soltas = {id(n.value) for n in ast.walk(arvore) if isinstance(n, ast.Expr)}
+        for no in ast.walk(arvore):
+            if isinstance(no, ast.Constant) and isinstance(no.value, str) and id(no) not in soltas:
+                if prosa_da_tela(no.value) and not any(i in no.value for i in ISENTAS):
+                    yield no.lineno, no.value
+        return
+    for n, linha in enumerate(corpo.splitlines(), 1):
+        if linha.lstrip().startswith("#") or any(i in linha for i in ISENTAS):
+            continue
+        for m in CITADA.finditer(linha):
+            if prosa_da_tela(m.group(0)[1:-1]):
+                yield n, m.group(0)
+
+
+def arquivos_de_tela():
+    nomes = subprocess.run(["git", "-C", raiz, "ls-files", "-z"], capture_output=True).stdout.decode().split("\0")
+    for nome in sorted(filter(None, nomes)):
+        if nome.startswith("app/pagina/") and nome.endswith(".js"):
+            yield nome, (VESTIR, MANDAR)
+        elif nome == "app/servidor.py" or (nome.startswith("scripts/") and nome.endswith(".py")):
+            yield nome, (VESTIR, MANDAR)
+        elif nome in SHELLS or nome.startswith("lib/") and nome.endswith(".sh") \
+                or nome.startswith("scripts/") and nome.endswith(".sh"):
+            yield nome, (VESTIR, MANDAR)
+
+
+velhas = []
+mandam = []
+for caminho, padroes in arquivos_de_tela():
+    if caminho == "scripts/temas-de-apps/obsidian/filtro_git.py":
+        continue
+    for n, texto in textos_da_tela(caminho):
+        if any(p.search(texto) for p in padroes):
+            velhas.append("%s:%d  %s" % (caminho, n, " ".join(texto.split())[:140]))
+        if caminho.startswith(("scripts/", "lib/")) and DIGITE.search(texto):
+            mandam.append("%s:%d  %s" % (caminho, n, " ".join(texto.split())[:140]))
+
+for num, nome, lista in ((8, "as formas de vestir e o rótulo «Mandar» no que a tela mostra", velhas),
+                         (9, "a saída dos scripts que manda digitar", mandam)):
+    if lista:
+        falhas += 1
+        print("  NÃO  classe %d — %s: %d frase(s)" % (num, nome, len(lista)), file=sys.stderr)
+        for item in lista[:12]:
+            print("         " + item, file=sys.stderr)
+        if len(lista) > 12:
+            print("         ... e mais %d" % (len(lista) - 12), file=sys.stderr)
+    else:
+        print("  ok   classe %d — %s: nenhuma" % (num, nome))
 
 sys.exit(3 if falhas else 0)
 PY
