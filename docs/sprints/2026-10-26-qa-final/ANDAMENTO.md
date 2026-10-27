@@ -3,6 +3,8 @@
 ## Agora
 - Entregues: QA, os 5 repos de applet, a maquete (aprovada), B0 inteiro (no dev em 15be6fdf; ganchos
   instalados: pre-commit no diretório comum, `ganchos.pre-push`/`ganchos.post-merge` por git config).
+- 27/10: o PC reiniciou no meio; os 6 foram retomados pelo próprio histórico (nada se perdeu: commits e
+  arquivos sujos nas worktrees). Chromium do Playwright agora em `~/.cache/ms-playwright` (o do scratchpad some no reboot).
 - Em voo: 6 Sonnet, um por sprint, em `../MeowSystem-p109..p114` (branches `sprint/p109..p114`, do dev 15be6fdf).
 - Depois: juntar as seis em `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev →
   remover as worktrees da leva (b0, maquete-a, maquete-b, p109..p114).
