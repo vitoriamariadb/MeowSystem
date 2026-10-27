@@ -6,6 +6,51 @@ falhas=0
 ok()    { printf '  ok    %s\n' "$*"; }
 falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 igual() { if [ "$2" = "$3" ]; then ok "$1"; else falha "$1 (esperado '$3', veio '$2')"; fi; }
+printf '\n0. o vigia das issues (vigias.tsv)\n'
+mkdir -p "$T/vbin" "$T/vcasa"
+cat > "$T/vbin/curl" <<FIM
+#!/bin/sh
+echo "curl \$*" >> "$T/curl.log"
+case "\$(cat "$T/rede")" in
+  fora) exit 7 ;;
+  *) printf '{"number": 2059, "state": "%s"}\n' "\$(cat "$T/rede")" ;;
+esac
+FIM
+chmod 755 "$T/vbin/curl"
+VE="$T/vcasa/.local/state/meowsystem"
+vigias() {
+  env -i PATH="$T/vbin:/usr/bin:/bin" HOME="$T/vcasa" MEOW_ESTADO="$VE" NO_COLOR=1 LANG=C.UTF-8 \
+    bash "$RAIZ/scripts/sentinela.sh" vigias 2>&1
+}
+linha_2059="$(grep -v '^#' "$RAIZ/assets/contratos/vigias.tsv" | awk -F'\t' '$2 == "2059"')"
+igual "o vigias.tsv tem a #2059 do cosmic-comp como leitura-nativa" "$(printf '%s' "$linha_2059" | cut -f1,3)" "$(printf 'pop-os/cosmic-comp\tleitura-nativa')"
+echo fora > "$T/rede"
+saida="$(vigias)"; rc=$?
+igual "rede fora: rc 3" "$rc" 3
+igual "e calado" "$saida" ""
+if [ -z "$(find "$T/vcasa" -type f 2>/dev/null)" ]; then ok "e nada é escrito"; else falha "a rede fora escreveu $(find "$T/vcasa" -type f)"; fi
+grep -q -- '--max-time' "$T/curl.log" && ok "o curl vai com tempo máximo" || falha "o curl vai sem --max-time"
+grep -q 'repos/pop-os/cosmic-comp/issues/2059' "$T/curl.log" && ok "e pergunta pela issue certa" || falha "o curl não perguntou pela #2059"
+echo closed > "$T/rede"
+saida="$(vigias)"; rc=$?
+linha="$(awk -F'\t' '$1 == "leitura-nativa"' "$VE/pendencias.tsv" 2>/dev/null)"
+if [ "$rc" = "0" ] && [ -n "$linha" ] && [ -z "$(printf '%s' "$linha" | cut -f4)" ] \
+   && [ "$(printf '%s' "$linha" | cut -f3)" = "$(printf '%s' "$linha_2059" | cut -f4)" ]; then
+  ok "issue fechada: a pendência leitura-nativa entra com a frase da decisão e sem comando"
+else
+  falha "a issue fechada não virou a pendência certa (rc=$rc)" "$saida $linha"
+fi
+antes="$(stat -c %Y.%s "$VE/pendencias.tsv" 2>/dev/null)"; sleep 1
+vigias >/dev/null
+igual "fechada de novo, o arquivo não muda" "$(stat -c %Y.%s "$VE/pendencias.tsv" 2>/dev/null)" "$antes"
+echo open > "$T/rede"
+vigias >/dev/null; rc=$?
+if [ "$rc" = "0" ] && ! grep -q '^leitura-nativa' "$VE/pendencias.tsv" 2>/dev/null; then
+  ok "issue aberta: a pendência sai"
+else
+  falha "issue aberta não resolveu a pendência (rc=$rc)"
+fi
+
 command -v dpkg-deb >/dev/null || { echo "sentinela: pulado — sem dpkg-deb"; exit 0; }
 
 mkdir -p "$T/bin" "$T/home" "$T/sistema/com.system76.CosmicComp/v1" "$T/patches"
@@ -60,7 +105,7 @@ sentinela() {
   env HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$E" MEOW_CONF="$T/nao-existe.conf" \
       SN_PREVER="$T/prever" SN_PREVER_ARGS="--debs $T/debs-$c --fontes $T/fonte-$c" \
       CV_CONTRATO="$T/contrato.tsv" CV_SERIE="$T/patches/series" CV_PATCHES="$T/patches" \
-      CV_SISTEMA="$T/sistema" CV_TRABALHO="$T/trabalho-$c" CV_GUARDA="$T/guarda-$c" CV_REDE=nao \
+      CV_SISTEMA="$T/sistema" CV_TRABALHO="$T/trabalho-$c" CV_GUARDA="$T/guarda-$c" CV_REDE=nao SN_VIGIAS="$T/sem-vigias.tsv" \
       "$@" "$RAIZ/scripts/sentinela.sh" >"$T/saida" 2>&1
 }
 contar() { [ -f "$2" ] || { echo 0; return 0; }; grep -c "$1" "$2" || true; }
