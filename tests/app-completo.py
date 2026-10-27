@@ -492,7 +492,7 @@ CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "APPS_ATIVOS": "program
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
     "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
-    "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
+    "vscode_instalar_extensao", "files_menu_build", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
     "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
 }
 EXTRAS = {
@@ -502,7 +502,7 @@ EXTRAS = {
     "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "desenho:*", "autoral:*", "acervo:icone",
                      "acervo:filtro", "icones:aba=*"],
     "criar/papel": ["galeria:*", "papel:*", "acervo:parede", "levar:foto"],
-    "criar/sons": ["criar:sino", "som:ouvir", "som:trocar"],
+    "criar/sons": ["criar:sino", "som:ouvir", "som:trocar", "som:ponte"],
     "criar/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],
     "ajustes/dia-e-noite": ["noite:mesmo-horario"],
@@ -1051,6 +1051,11 @@ class Percurso:
             return self.h_trocar_som(nome)
         if nome.startswith("icones:aba="):
             return self.h_abas_de_icones()
+        if nome == "som:ponte":
+            self.clicar(nome)
+            como = self.depois_do_gesto(nome)
+            self.checa(como == "ponte", f"«Consertar a ponte» abre a pergunta da ponte ({como!r})")
+            return
         if nome in ("criar:sino", "som:ouvir"):
             n0 = len(self.falhas)
             self.clicar(nome)

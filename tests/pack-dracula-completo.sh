@@ -254,9 +254,10 @@ tocou="$(cat "$CS/tocou.log" 2>/dev/null)"
 som meowsystem mocha aplicar; r4=$?
 if [ "$r1" = 1 ] && [ "$r2" = 0 ] && [ "$r3" = 0 ] && [ "$n_oga" = 25 ] && [ "$unidade_ok" = 1 ] \
    && [ "$(printf '%s\n' "$tocou" | grep -c .)" = 1 ] && [[ "$tocou" == *"/MeowSystem-Sons/stereo/notification/message-new-instant.oga" ]] \
-   && [ "$r4" = 1 ] && [ ! -e "$CS/.local/share/sounds/MeowSystem-Sons" ] && [ ! -e "$CS/.config/systemd/user/meow-som.service" ] \
+   && [ "$r4" = 1 ] && [ "$(find "$CS/.local/share/sounds/MeowSystem-Sons" -name '*.oga' 2>/dev/null | wc -l)" = 25 ] \
+   && cmp -s "$RAIZ/packs/meowsystem/sons/stereo/notification/message-new-instant.oga" "$CS/.local/share/sounds/MeowSystem-Sons/stereo/notification/message-new-instant.oga" \
    && [ ! -e "$CS/systemctl.log" ]; then
-  ok "o tema de som do Dracula (25 efeitos) entra com quem o toca nas notificações, cala no suppress-sound, e sai com o Catppuccin"
+  ok "o tema de som do Dracula (25 efeitos) entra com quem o toca nas notificações, cala no suppress-sound, e é trocado pelo do MeowSystem ao vestir o Catppuccin"
 else
   falha "o tema de som do pack ou o tocador das notificações" "rc $r1/$r2/$r3/$r4 oga=$n_oga unidade=$unidade_ok
 tocou: $tocou

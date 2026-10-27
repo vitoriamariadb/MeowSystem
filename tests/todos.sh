@@ -77,6 +77,8 @@ PORTATIL=(
   fotos-do-pack.sh
   perfil.sh
   apps-em-todo-pack.sh
+  pack-traz-o-que-usa.sh
+  sons-do-pack.sh
   ponte-reparo.sh
   ponte-so-reserva.sh
   criar-tema-leva.sh
@@ -100,6 +102,7 @@ MAQUINA=(
   app-completo.py
   app-uso-real.py
   app-texto-visivel.py
+  p113-navegador.py
   gate-link-externo.py
 )
 

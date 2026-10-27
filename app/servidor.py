@@ -1475,7 +1475,104 @@ def _ponteiro_do_pack():
         return None
 
 
+_SOM_TIMBRE_DE_FABRICA = {"SOM_FUNDAMENTAL": "880.0", "SOM_HARMONICO": "1320.0",
+                          "SOM_PESO_FUNDAMENTAL": "0.62", "SOM_PESO_HARMONICO": "0.28",
+                          "SOM_DECAIMENTO": "46.0"}
+_SOM_CARIMBO = os.path.join(ESTADO, "som-do-pack")
+
+
+@_uma_vez_por_leitura
+def _som_do_pack_ativo():
+    mod = modulo_pack()
+    if not mod:
+        return "", dict(_SOM_TIMBRE_DE_FABRICA)
+    try:
+        dir_pack = _pack_adotado() or mod.dir_padrao()
+        ident = os.path.basename(dir_pack.rstrip(os.sep))
+        return ident, dict(_SOM_TIMBRE_DE_FABRICA, **mod.timbre(ident))
+    except Exception:
+        return "", dict(_SOM_TIMBRE_DE_FABRICA)
+
+
+def _som_carimbo_ler(arquivo=None):
+    try:
+        with open(arquivo or _SOM_CARIMBO, "r", encoding="utf-8") as fh:
+            return fh.read().strip()
+    except OSError:
+        return ""
+
+
+def _som_ajuste_vale():
+    ident, _timbre = _som_do_pack_ativo()
+    return bool(ident) and _som_carimbo_ler() == ident
+
+
+def _som_carimbar(pares, pasta=None):
+    ident, _timbre = _som_do_pack_ativo()
+    if not ident or not any(c in _SOM_TIMBRE_DE_FABRICA for c, _v in pares):
+        return pares
+    arquivo = os.path.join(pasta, "som-do-pack") if pasta else _SOM_CARIMBO
+    if _som_carimbo_ler(arquivo) != ident:
+        escritas = {c for c, _v in pares}
+        brutos = valores_brutos()
+        pares = list(pares) + [(c, "") for c in _SOM_TIMBRE_DE_FABRICA
+                               if c not in escritas and brutos.get(c)]
+    return pares
+
+
+def _som_carimbo_gravar(pares, pasta=None):
+    ident, _timbre = _som_do_pack_ativo()
+    if not ident or not any(c in _SOM_TIMBRE_DE_FABRICA for c, _v in pares):
+        return
+    arquivo = os.path.join(pasta, "som-do-pack") if pasta else _SOM_CARIMBO
+    try:
+        os.makedirs(os.path.dirname(arquivo), exist_ok=True)
+        with open(arquivo, "w", encoding="utf-8") as fh:
+            fh.write(ident + "\n")
+    except OSError:
+        pass
+
+
+_RASCUNHO_ARQUIVO = os.path.join(ESTADO, "rascunho-do-tema.json")
+
+
+def _rascunho_ler():
+    try:
+        with open(_RASCUNHO_ARQUIVO, encoding="utf-8") as fh:
+            dados = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    return dados if isinstance(dados, dict) and isinstance(dados.get("base"), dict) else None
+
+
+def _rascunho_gravar(dados):
+    if dados is None:
+        try:
+            os.remove(_RASCUNHO_ARQUIVO)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            return False
+        return True
+    if not (isinstance(dados, dict) and isinstance(dados.get("base"), dict)):
+        return False
+    texto = json.dumps(dados, ensure_ascii=False)
+    if len(texto) > (256 << 10):
+        return False
+    try:
+        os.makedirs(ESTADO, exist_ok=True)
+        tmp = _RASCUNHO_ARQUIVO + ".parcial"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(texto)
+        os.replace(tmp, _RASCUNHO_ARQUIVO)
+    except OSError:
+        return False
+    return True
+
+
 def _padrao_do_pack(chave):
+    if chave in _SOM_TIMBRE_DE_FABRICA:
+        return _som_do_pack_ativo()[1][chave]
     if chave != "CURSOR":
         return None
     return (_ponteiro_do_pack() or {}).get("valor") or None
@@ -1977,6 +2074,9 @@ def _conf_de_ensaio(pares):
         if rc == 2:
             shutil.rmtree(pasta, ignore_errors=True)
             return (None, "%s: %s" % (chave, saida or "não consegui gravar no ensaio"))
+    if os.path.isfile(_SOM_CARIMBO):
+        shutil.copyfile(_SOM_CARIMBO, os.path.join(pasta, "som-do-pack"))
+    _som_carimbo_gravar(pares, pasta)
     return (pasta, None)
 
 
@@ -2404,16 +2504,6 @@ def _areas_ja_alfinetadas():
             "porque": "há área fixada nesta máquina"}
 
 
-def _starship_ja_instalado():
-    casa = os.path.expanduser("~")
-    for lugar in (shutil.which("starship"),
-                  os.path.join(casa, ".local", "bin", "starship"),
-                  os.path.join(casa, ".cargo", "bin", "starship")):
-        if lugar and os.path.isfile(lugar) and os.access(lugar, os.X_OK):
-            return {"porque": "o starship já está instalado"}
-    return None
-
-
 def indisponivel(acao_id):
     medir = ACOES[acao_id].get("indisponivel")
     return medir() if medir else None
@@ -2797,15 +2887,6 @@ ACOES = {
         "ajuda": "Volta para a pasta que gira e sai da lista de banidas — as "
                  "duas metades.",
     },
-    "wallpaper_semear": {
-        "rotulo": "Baixar a coleção",
-        "grupo": "Papel de parede",
-        "natureza": "baixar",
-        "argv": _meow("wallpaper", "semear"),
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "ajuda": "Reconstrói a coleção a partir da lista de fontes. Usa rede "
-                 "e pode demorar. As imagens que você tirou continuam fora.",
-    },
     "painel_estado": {
         "rotulo": "Painel agora",
         "grupo": "Painel e dock",
@@ -2831,16 +2912,6 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "O painel pisca uns 2 s. É o que faz um mascote novo "
                  "aparecer na hora.",
-    },
-    "prompt_instalar_starship": {
-        "rotulo": "Instalar o starship",
-        "grupo": "Terminal",
-        "natureza": "baixar",
-        "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "indisponivel": _starship_ja_instalado,
-        "ajuda": "Baixa o starship de starship.rs para ~/.local/bin, sem sudo. "
-                 "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
     },
     "leitura": {
         "rotulo": "Leitura agora",
@@ -2933,15 +3004,6 @@ ACOES = {
         "ajuda": "Instala no VS Code, da loja oficial e pelo id do botão, a extensão "
                  "que o pack importado pede. Extensão é código que roda a cada "
                  "abertura do editor.",
-    },
-    "spotify_baixar_tema": {
-        "rotulo": "Tema do Spotify",
-        "grupo": "Lançadores e jogos",
-        "natureza": "baixar",
-        "argv": _meow("apps", "aplicar", "spotify"),
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "ajuda": "Baixa o tema catppuccin do spicetify de um commit fixo do "
-                 "repositório público e veste o Spotify em seguida.",
     },
     "jogos": {
         "rotulo": "Conferir os jogos",
@@ -3797,13 +3859,12 @@ def escreve(acao):
 
 ACAO_DA_PENDENCIA = {
     "areas-sem-alfinete": "areas_alfinetar_primeira",
-    "starship-ausente": "prompt_instalar_starship",
-    "spicetify-tema-ausente": "spotify_baixar_tema",
     "files-menu-build": "files_menu_build",
     "instalar-com-root": "instalar",
     "flatpak-global-sistema": "instalar",
     "libreoffice-sistema": "instalar",
     "leitura-applet": "doctor_consertar",
+    "starship-ausente": "instalar",
 }
 
 NOME_DA_PENDENCIA = {
@@ -4176,7 +4237,7 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
             "precisa_confirmar": True,
             "acao": acao_id,
             "rotulo": acao["rotulo"],
-            "ajuda": _ajuda_do_pack(acao_id) or acao.get("ajuda", ""),
+            "ajuda": acao.get("ajuda", ""),
             "escreve": escreve(acao),
             "sudo": bool(acao.get("sudo")),
             "rede": bool(acao.get("rede")),
@@ -4338,29 +4399,6 @@ def _com_medidas(texto, medidas):
     n = (medidas or {}).get("conferencias")
     return texto.replace("{as_conferencias}",
                          "as %d conferências" % n if n else "as conferências")
-
-
-def _ajuda_do_pack(acao_id):
-    if acao_id != "spotify_baixar_tema":
-        return ""
-    mod = modulo_pack()
-    ref = _pack_no_ar()
-    if not mod or not ref:
-        return ""
-    try:
-        _q, tema = mod.tema_de_app("apps.spotify.spicetify_tema", ref=ref)
-        _q, repo = mod.tema_de_app("apps.spotify.origem.repo", ref=ref)
-        nome = mod.campo(ref, "nome") or ref
-    except Exception:
-        return ""
-    if not tema:
-        return ""
-    if repo:
-        return ("Baixa o tema «%s» do spicetify de um commit fixo de %s e veste "
-                "o Spotify em seguida." % (tema, repo))
-    return ("O pack «%s» pede o tema «%s» do spicetify e não diz de onde baixá-lo: "
-            "nada desce da internet, e o Spotify é vestido com o tema que já "
-            "estiver no spicetify." % (nome, tema))
 
 
 def _repositorio_no_ar():
@@ -4595,6 +4633,29 @@ class Manipulador(BaseHTTPRequestHandler):
                     return self._responder(fh.read(), tipo="audio/ogg")
             except OSError:
                 return self._recusar(404, "não achei")
+
+        if caminho == "/sino":
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
+            pares = []
+            esquema = {i["chave"]: i for i in ler_esquema()}
+            for chave in _SOM_TIMBRE_DE_FABRICA:
+                valor = consulta.get(chave, [""])[0]
+                if valor == "":
+                    continue
+                queixa = validar_valor(esquema[chave], valor) if chave in esquema else "fora do meow.conf.exemplo"
+                if queixa:
+                    return self._recusar(400, "%s: %s" % (chave, queixa))
+                pares.append("%s=%s" % (chave, valor))
+            with tempfile.TemporaryDirectory(prefix="meow-sino-") as pasta:
+                destino = os.path.join(pasta, "sino.wav")
+                feito = subprocess.run(
+                    ["bash", os.path.join(RAIZ, "scripts", "som.sh"), "gerar", destino, *pares],
+                    capture_output=True, timeout=20, env=_ambiente_do_painel())
+                if feito.returncode != 0 or not os.path.isfile(destino):
+                    return self._recusar(500, "não consegui gerar o sino")
+                with open(destino, "rb") as fh:
+                    return self._responder(fh.read(), tipo="audio/wav")
 
         if caminho == "/previa" and consulta.get("tipo", [""])[0] == "arquivo":
             if not self._token_confere(consulta):
@@ -6829,6 +6890,12 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/criar":
             return self._api_criar_ler(consulta)
 
+        if caminho == "/api/sons":
+            return self._api_sons(consulta)
+
+        if caminho == "/api/rascunho":
+            return self._json({"rascunho": _rascunho_ler()})
+
         if caminho == "/api/previas":
             dados = previas(consulta.get("tipo", [""])[0],
                             consulta.get("grupo", [""])[0] or None)
@@ -6899,6 +6966,22 @@ class Manipulador(BaseHTTPRequestHandler):
             with open(saida, "rb") as fh:
                 corpo = fh.read()
         return self._baixar(corpo, ident + ".meowpack", "application/zstd")
+
+    def _api_sons(self, consulta):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "scripts/pack.py não carregou"}, 500)
+        try:
+            with open(os.path.join(RAIZ, "assets", "sons", "eventos.json"), encoding="utf-8") as fh:
+                catalogo = json.load(fh)["eventos"]
+        except (OSError, ValueError, KeyError):
+            return self._json({"erro": "assets/sons/eventos.json não abriu"}, 500)
+        ident = consulta.get("id", [""])[0] or _pack_adotado()
+        dir_pack = mod.achar(ident) if ident in _packs_no_disco() else None
+        do_pack = {e for _c, e, _a in mod.sons_do_pack(dir_pack)} if dir_pack else set()
+        eventos = [dict(s, origem="pack" if s["evento"] in do_pack else "sistema")
+                   for s in catalogo]
+        return self._json({"pack": ident, "eventos": eventos})
 
     def _api_criar_ler(self, consulta):
         mod = modulo_pack()
@@ -7237,6 +7320,7 @@ class Manipulador(BaseHTTPRequestHandler):
             '<style id="folha-do-tema">\n%s\n</style>' % ler("tema.css"),
             '<style id="folha-do-manter">\n%s\n</style>' % ler("manter.css"),
             '<style id="folha-da-oficina">\n%s\n</style>' % ler("oficina.css"),
+            '<style id="folha-dos-sons">\n%s\n</style>' % ler("sons.css"),
             '<style id="folha-do-standalone">\n%s\n</style>' % ler("standalone.css"),
             "</head>",
             corpo,
@@ -7257,9 +7341,15 @@ class Manipulador(BaseHTTPRequestHandler):
         chaves = [i["chave"] for i in esquema]
         brutos = valores_brutos()
         efetivos = valores_efetivos(chaves)
+        som_vale = _som_ajuste_vale()
         for item in esquema:
             item["valor"] = brutos.get(item["chave"], "")
             item["efetivo"] = efetivos.get(item["chave"], "")
+            if item["chave"] in _SOM_TIMBRE_DE_FABRICA:
+                if not som_vale:
+                    item["valor"] = ""
+                if item["valor"] == "":
+                    item["efetivo"] = item.get("padrao_do_pack") or ""
             if item["chave"] in _LEITURA_NO_APPLET and item.get("valendo_agora") is not None:
                 item["valor_no_arquivo"] = item["valor"]
                 item["valor"] = item["valendo_agora"]
@@ -7313,7 +7403,7 @@ class Manipulador(BaseHTTPRequestHandler):
             "medidas": medidas,
             "acoes": [
                 dict({c: x for c, x in v.items() if not callable(x)}, id=k,
-                     ajuda=_com_medidas(_ajuda_do_pack(k) or v.get("ajuda", ""),
+                     ajuda=_com_medidas(v.get("ajuda", ""),
                                         medidas),
                      argv=None,
                      escreve=escreve(v),
@@ -7354,9 +7444,11 @@ class Manipulador(BaseHTTPRequestHandler):
             if soltas:
                 return self._json({"erro": soltas[0]["erro"], "chave": chave,
                                    "valor": valor, "recusadas": soltas}, 409)
-            pares = com_o_mesmo_horario([(chave, valor)])
+            pares = _som_carimbar(com_o_mesmo_horario([(chave, valor)]))
             feitos = definir_varias(pares)
             _chave, rc, saida = feitos[0]
+            if rc != 2:
+                _som_carimbo_gravar(pares)
             if len(pares) > 1:
                 _adotar_leitura([c for c, r, _s in feitos[1:] if r == 1])
             return self._json({"rc": rc, "saida": texto_na_tela(saida),
@@ -7382,7 +7474,7 @@ class Manipulador(BaseHTTPRequestHandler):
             soltas = pontas_da_noite_soltas(dict(pares))
             if soltas:
                 return self._json({"recusadas": soltas}, 409)
-            pares = com_o_mesmo_horario(pares)
+            pares = _som_carimbar(com_o_mesmo_horario(pares))
 
             if corpo.get("seco"):
                 pasta, queixa = _conf_de_ensaio(pares)
@@ -7413,6 +7505,7 @@ class Manipulador(BaseHTTPRequestHandler):
             if falhas:
                 return self._json({"gravadas": gravadas, "iguais": iguais, "falhas": falhas,
                                    "erro": "nem tudo foi gravado, e nada foi aplicado"}, 500)
+            _som_carimbo_gravar(pares)
 
             resposta = {"gravadas": gravadas, "iguais": iguais}
             leitura = [c for c, _v in pares if c in _LEITURA_NO_APPLET]
@@ -7471,6 +7564,10 @@ class Manipulador(BaseHTTPRequestHandler):
             if erro:
                 return self._json({"erro": erro}, 500)
             return self._json({"ok": True, "ligado": mesmo_horario_ligado(), "gravadas": gravadas})
+        if caminho == "/api/rascunho":
+            if not _rascunho_gravar(corpo.get("rascunho")):
+                return self._json({"erro": "rascunho que não serve"}, 400)
+            return self._json({"ok": True})
         if caminho == "/api/pack-importar":
             return self._api_pack_importar(corpo)
 

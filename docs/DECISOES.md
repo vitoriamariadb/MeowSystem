@@ -42,7 +42,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 34 | Noite com uma ponta só é recusada na gravação; o valor vazio chama «— não tocar —»; folga e encaixe sem áreas mostram ⊘ com o porquê na dica | um nome por valor |
 | 35 | Um `ICONES_DRACULA="nao"` escrito fica, sem migrar | é escolha |
 | 36 | O tema instalado continua `MeowSystem-Icons`; o exportado leva o nome do pack | é o nome que o COSMIC lê |
-| 37 | Sons só na notificação | ninguém pediu mais |
+| 37 | O pack traz os sons do sistema (`sons/`), e a página Sons lista cada um para ouvir e trocar; carregador e bateria vão para `/usr/share/sounds/Pop` pela ponte root, e o pós-apt os repõe; um `SOM_*` do `meow.conf` só vale para o pack em que ela o mexeu | pedido de 26/10 (QA final, Q1-04) |
 | 38 | Os gatos `coquinha` e `mimir` não se repintam; os 52 nomes do tema antigo sem desenho ficam fora; o índice do upstream fica como veio; o Discord escuro fica | é da arte, do upstream |
 | 39 | Desenhos de pasta e de mimetype ficam na biblioteca do pack a que pertencem | decisão 3 |
 | 40 | Nomes em inglês que vêm do `.desktop` do sistema ficam | é o nome do lançador |

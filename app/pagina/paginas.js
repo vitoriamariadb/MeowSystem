@@ -217,8 +217,23 @@ function rascunho() {
   }
   return RASCUNHO;
 }
+let RASCUNHO_RELOGIO = null;
 function guardarRascunho() {
   try { localStorage.setItem("meow-criar", JSON.stringify(RASCUNHO)); } catch (e) { }
+  clearTimeout(RASCUNHO_RELOGIO);
+  RASCUNHO_RELOGIO = setTimeout(enviarRascunho, 400);
+}
+function enviarRascunho() {
+  clearTimeout(RASCUNHO_RELOGIO);
+  if (!RASCUNHO) return Promise.resolve();
+  return api("/api/rascunho", { method: "POST", body: JSON.stringify({ rascunho: RASCUNHO }) });
+}
+async function lerRascunhoDoServidor() {
+  const r = await api("/api/rascunho");
+  if (r && r.rascunho && r.rascunho.base) {
+    RASCUNHO = r.rascunho;
+    try { localStorage.setItem("meow-criar", JSON.stringify(RASCUNHO)); } catch (e) { }
+  }
 }
 function vinteSeis() {
   const r = rascunho();
@@ -246,7 +261,17 @@ function idDoNome(nome) {
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "meu-tema";
 }
 
-async function guardarTema() {
+function assinaturaDoTema() {
+  const r = rascunho();
+  return JSON.stringify([r.nome, r.base, r.cores]);
+}
+async function garantirPack() {
+  const r = rascunho();
+  const em_dia = r.pack && r.assinatura === assinaturaDoTema() && PACKS.some((x) => x.id === r.pack);
+  if (!em_dia && !(await guardarTema(true))) return null;
+  return PACKS.find((x) => x.id === r.pack) || null;
+}
+async function guardarTema(silencioso = false) {
   const r = rascunho();
   const id = idDoNome(r.nome);
   const flavor = id.replace(/[^a-z0-9]/g, "") || "meu";
@@ -260,16 +285,18 @@ async function guardarTema() {
   if (b) delete b.dataset.estado;
   if (resp.erro || !resp.instalado) {
     torrada(/contraste/.test(resp.erro || "") ? "Pouco contraste entre texto e fundo" : primeiraFrase(resp.erro || "Não guardou"), "erro");
-    return;
+    return false;
   }
   r.pack = resp.id || id;
+  r.assinatura = assinaturaDoTema();
   guardarRascunho();
   const sons = await api("/api/criar", { method: "POST",
     body: JSON.stringify({ id: r.pack, tipo: "sons", de: r.base.pack, levar: true }) });
   if (sons.erro) torrada(maiuscula(primeiraFrase(sons.erro)), "erro");
-  torrada(`${r.nome}: guardado`, "ok");
+  if (!silencioso) torrada(`${r.nome}: guardado`, "ok");
   await recarregarPacks();
   render();
+  return true;
 }
 
 async function exportarPack(id) {
@@ -304,23 +331,17 @@ async function exportarPack(id) {
   torrada(`${nome}: baixado`, "ok");
 }
 
+const CHAVES_DO_SINO = ["SOM_FUNDAMENTAL", "SOM_HARMONICO", "SOM_PESO_FUNDAMENTAL", "SOM_PESO_HARMONICO", "SOM_DECAIMENTO"];
+let SINO_TOCANDO = null;
+function urlDoSino() {
+  const q = new URLSearchParams();
+  for (const c of CHAVES_DO_SINO) { const v = vale(c); if (v !== "") q.set(c, v); }
+  return "/sino?" + q.toString();
+}
 function tocarSino() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const f1 = Number(vale("SOM_FUNDAMENTAL")) || 784, f2 = Number(vale("SOM_HARMONICO")) || 1176;
-    const p1 = Number(vale("SOM_PESO_FUNDAMENTAL")) || 0.58, p2 = Number(vale("SOM_PESO_HARMONICO")) || 0.32;
-    const d = Number(vale("SOM_DECAIMENTO")) || 40;
-    const dur = Math.max(0.15, Math.min(2.5, 60 / d));
-    for (const [f, p] of [[f1, p1], [f2, p2]]) {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.frequency.value = f;
-      g.gain.setValueAtTime(p * 0.4, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
-      o.connect(g).connect(ctx.destination);
-      o.start();
-      o.stop(ctx.currentTime + dur);
-    }
-  } catch (e) { }
+  if (SINO_TOCANDO) SINO_TOCANDO.pause();
+  SINO_TOCANDO = new Audio(urlDoSino());
+  SINO_TOCANDO.play().catch(() => { });
 }
 
 function passoCores() {
@@ -462,19 +483,17 @@ function passoPapel() {
   return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria(leva)])],
     { direita: [botaoAcervo("parede", "Trazer imagens")] })];
 }
-const NOMES_DE_SOM = {
-  "message-new-instant": "Mensagem nova", complete: "Tarefa pronta", "device-added": "Pendrive entrou",
-  "battery-low": "Bateria fraca", "screen-capture": "Captura de tela", "desktop-screen-lock": "Tela bloqueada",
-  "message-new-email": "E-mail novo", message: "Mensagem", "device-removed": "Pendrive saiu",
-  "battery-caution": "Bateria baixa", "battery-full": "Bateria cheia", "power-plug": "Na tomada",
-  "power-unplug": "Fora da tomada", "power-unplug-battery-low": "Bateria acabando",
-  "alarm-clock-elapsed": "Despertador", "software-update-urgent": "Atualização urgente",
-  "system-ready": "Sistema pronto", "system-shutdown": "Desligando", "theme-demo": "Amostra do tema",
-  "window-attention-inactive": "Janela pedindo atenção", bell: "Sino", "camera-focus": "Foco da câmera",
-  "camera-shutter": "Foto tirada", "count-down": "Contagem",
-};
-const ORDEM_DE_SOM = Object.keys(NOMES_DE_SOM);
-function nomeDoSom(evento) { return NOMES_DE_SOM[evento] || maiuscula(evento.replace(/-/g, " ")); }
+let SONS = null;
+async function carregarSons(id) {
+  SONS = { id, carregando: true, eventos: [] };
+  const r = await api(`/api/sons?id=${encodeURIComponent(id)}`);
+  SONS = r.erro ? { id, eventos: [], erro: r.erro } : { ...r, id };
+  render();
+}
+function nomeDoSom(evento) {
+  const s = SONS && (SONS.eventos || []).find((x) => x.evento === evento);
+  return s ? s.nome : maiuscula(evento.replace(/-/g, " "));
+}
 let SOM_TOCANDO = null;
 function ouvirSom(pack, evento, b) {
   if (SOM_TOCANDO) SOM_TOCANDO.pause();
@@ -495,49 +514,119 @@ function trocarSom(evento) {
   });
   return campo;
 }
-function sonsDeAviso() {
+function envelopeDoSino() {
+  const f = Number(vale("SOM_DECAIMENTO")) || 46;
+  const pts = [];
+  for (let i = 0; i <= 60; i++) {
+    const s = i / 60;
+    const rampa = Math.min(1, s * 0.085 / 0.002, (1 - s) * 0.085 / 0.002);
+    pts.push(`${i ? "L" : "M"}${(4 + 292 * s).toFixed(1)} ${(60 - 52 * Math.exp(-s * 0.085 * f) * rampa).toFixed(1)}`);
+  }
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 300 64");
+  svg.setAttribute("class", "envelope");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = `<path class="eixo" d="M4 60H296"/><path data-envelope d="${pts.join(" ")}"/>`;
+  return svg;
+}
+function linhaDeSom(s, pack, podeTrocar) {
+  const semPonte = s.ponte && !ESQUEMA.ponte;
+  const tocar = elemento("button", { type: "button", class: "p", "aria-label": "Ouvir " + s.nome.toLowerCase(),
+    dica: s.origem === "pack" ? "Ouvir" : "O pack não traz este som", controle: "som:ouvir",
+    disabled: s.origem !== "pack" || !pack, "aria-disabled": s.origem !== "pack" || !pack ? "true" : null }, [icone("tocar")]);
+  if (pack) tocar.addEventListener("click", () => ouvirSom(pack.id, s.evento, tocar));
+  const campo = trocarSom(s.evento);
+  const origem = elemento("span", { class: "estado-pilula", "data-estado": s.origem === "pack" ? "ok" : "neutro",
+    "data-origem": s.origem, texto: s.origem === "pack" ? "Do pack" : "Do sistema" });
+  return elemento("li", { "data-som": s.evento, class: semPonte ? "sem-ponte" : null, "data-ponte": s.ponte ? "" : null }, [
+    tocar,
+    elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.quando })]),
+    elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem ponte" }) : null]),
+    botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
+      dica: podeTrocar ? "Um .oga no lugar deste" : "Guarde o tema em Cores",
+      disabled: !podeTrocar, "aria-disabled": podeTrocar ? null : "true", onclick: () => campo.click() }), campo,
+  ]);
+}
+function sonsDoSistema() {
   const pack = packDoRascunho();
-  const sons = pack && LEVA && !LEVA.carregando ? (LEVA.sons || []) : [];
-  if (!sons.length) return null;
-  const ordem = (e) => { const i = ORDEM_DE_SOM.indexOf(e); return i < 0 ? ORDEM_DE_SOM.length : i; };
-  const ul = elemento("ul", { class: "sons" });
-  for (const s of [...sons].sort((a, b) => ordem(a.evento) - ordem(b.evento))) {
-    const nome = nomeDoSom(s.evento);
-    const campo = trocarSom(s.evento);
-    const tocar = elemento("button", { type: "button", class: "p", "aria-label": "Ouvir " + nome.toLowerCase(),
-      dica: "Ouvir", controle: "som:ouvir" }, [icone("tocar")]);
-    tocar.addEventListener("click", () => ouvirSom(pack.id, s.evento, tocar));
-    ul.append(elemento("li", { "data-som": s.evento }, [
-      tocar, elemento("span", { texto: nome }),
-      botao("Trocar", { class: "bt pequeno", controle: "som:trocar", dica: "Um .oga no lugar deste",
-        onclick: () => campo.click() }), campo,
+  const id = pack ? pack.id : (packNoAr() || {}).id || "";
+  if (!SONS || SONS.id !== id) carregarSons(id);
+  const pronto = SONS && SONS.id === id && !SONS.carregando;
+  const leitura = packNoAr() && !pack ? packNoAr() : pack;
+  const podeTrocar = !!pack && !!LEVA && !LEVA.carregando;
+  if (!pronto) return [bloco("Toca no COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
+  if (SONS.erro) return [bloco("Toca no COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
+  const grupos = [["cosmic", "Toca no COSMIC"], ["apps", "Toca nos apps"]];
+  const saida = [];
+  if (!ESQUEMA.ponte) {
+    saida.push(elemento("section", { class: "bloco tracejado", "data-bloco": "ponte" }, [
+      elemento("div", { class: "aviso-linha" }, [
+        elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Ponte fora" }),
+        elemento("span", { texto: "Carregador e bateria tocam o som do Pop" }),
+        botao("Consertar a ponte", { class: "bt principal pequeno", icone: "refazer", controle: "som:ponte", onclick: semPonte }),
+      ]),
     ]));
   }
-  return bloco("Sons de aviso", [ul]);
+  for (const [g, titulo] of grupos) {
+    const ul = elemento("ul", { class: "sons com-origem" });
+    for (const s of SONS.eventos.filter((x) => x.grupo === g)) ul.append(linhaDeSom(s, leitura, podeTrocar));
+    saida.push(bloco(titulo, [ul]));
+  }
+  return saida;
 }
 function passoSons() {
   const p = PASSOS.find((x) => x.id === "sons");
+  const tocou = CHAVES_DO_SINO.some((c) => CHAVE.get(c) && CHAVE.get(c).valor);
   const sino = elemento("div", { class: "sino" }, [
     elemento("button", { type: "button", class: "tocar", "aria-label": "Tocar o sino", dica: "Tocar o sino",
       controle: "criar:sino", onclick: tocarSino }, [icone("tocar")]),
-    elemento("h2", { texto: "Sino do volume" }),
+    envelopeDoSino(),
+    elemento("span", { class: "estado-pilula", "data-estado": tocou ? "neutro" : "ok", "data-origem-sino": "",
+      texto: tocou ? "Trocado" : "Do pack" }),
   ]);
-  return [bloco(null, [sino, lista(p.linhas)]), sonsDeAviso()];
+  return [bloco("Sino do volume", [sino, lista(p.linhas)]), ...sonsDoSistema()];
+}
+function linhaDoResumo(rotulo, valor, miolo) {
+  return elemento("li", { class: "linha", "data-resumo": rotulo }, [
+    elemento("div", { class: "rot" }, [elemento("span", { texto: rotulo })]),
+    elemento("div", { class: "ctl" }, [miolo || null, elemento("span", { texto: valor })]),
+  ]);
+}
+function origemDaCategoria(base, nome) {
+  const c = ((base && base.categorias) || []).find((x) => x.categoria === nome);
+  if (!c) return "Do MeowSystem";
+  if (c.tipo === "próprio") return "Do " + base.nome;
+  if (c.tipo === "herdado") return "De " + maiuscula(c.de);
+  return "Do MeowSystem";
 }
 function passoMandar() {
   const r = rascunho();
-  const pack = r.pack && PACKS.find((x) => x.id === r.pack);
-  const sem = !pack;
-  return [bloco(pack ? pack.nome : r.nome, [
-    elemento("div", { class: "corpo fila" }, [
-      botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
-        disabled: sem, "aria-disabled": sem ? "true" : null, dica: sem ? "Guarde o tema em Cores" : "Um .meowpack para mandar",
-        onclick: () => exportarPack(r.pack) }),
-      botao("Vestir", { class: "bt", icone: "tema", controle: "criar:vestir",
-        disabled: sem, "aria-disabled": sem ? "true" : null, dica: sem ? "Guarde o tema em Cores" : null,
-        onclick: () => vestir(pack, null) }),
-    ]),
-  ])];
+  const base = PACKS.find((x) => x.id === r.base.pack) || packNoAr() || null;
+  const mapa = vinteSeis();
+  const mexidas = Object.keys(r.cores || {}).length;
+  const amostras = elemento("span", { class: "amostras" },
+    SEIS.map(([slot]) => elemento("i", { style: "--c:" + mapa[slot] })));
+  const resumo = elemento("ul", { class: "linhas resumo" }, [
+    linhaDoResumo("Cores", mexidas ? `${mexidas} mexida${mexidas > 1 ? "s" : ""}` : (base ? base.nome : ""), amostras),
+    linhaDoResumo("Ícones", origemDaCategoria(base, "ícones de aplicativo")),
+    linhaDoResumo("Pastas", origemDaCategoria(base, "pastas")),
+    linhaDoResumo("Papel de parede", origemDaCategoria(base, "papéis de parede")),
+    linhaDoResumo("Sons", origemDaCategoria(base, "som")),
+    linhaDoResumo("Temas de apps", origemDaCategoria(base, "temas de aplicativo")),
+    linhaDoResumo("Mascote", origemDaCategoria(base, "mascote")),
+  ]);
+  const m = vinteSeis();
+  const pouco = contraste(m.text, m.base) < 4.5;
+  const dica = pouco ? "Pouco contraste entre texto e fundo" : null;
+  const saidas = elemento("div", { class: "corpo fila" }, [
+    botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
+      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica: dica || "Um .meowpack para mandar",
+      onclick: async () => { const pack = await garantirPack(); if (pack) exportarPack(pack.id); } }),
+    botao("Vestir agora", { class: "bt", icone: "tema", controle: "criar:vestir",
+      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica,
+      onclick: async () => { const pack = await garantirPack(); if (pack) vestir(pack, null); } }),
+  ]);
+  return [bloco(r.nome, [resumo, saidas])];
 }
 
 function paginaCriar(sub) {

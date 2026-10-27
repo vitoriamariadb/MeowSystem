@@ -37,7 +37,7 @@ o dispositivo de render do compositor (decisão 6) e o askpass da sessão (decis
 | o quê | por quê | decisão |
 |---|---|---|
 | o tema instalado continua `MeowSystem-Icons`; só o exportado leva o nome do pack | é o nome que o COSMIC lê | 36 |
-| som só na notificação | ninguém pediu som de dispositivo, de bloqueio nem de captura | 37 |
+| o pack traz os sons do sistema; carregador e bateria pela ponte root | o COSMIC os toca de `/usr/share/sounds/Pop`, caminho cravado | 37 |
 | 52 nomes do tema Dracula antigo sem desenho | eram PNG ou projeto pessoal; caem no ícone do próprio programa | 38 |
 | projetos pessoais nos packs | o pack é produto público; o que é de uma máquina mora no conf dela | 4, 29 |
 | GNOME e KDE | o produto é o COSMIC | |

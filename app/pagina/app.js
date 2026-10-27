@@ -15,6 +15,8 @@ const IC = {
   mais: '<path d="M12 5v14M5 12h14"/>',
   certo: '<path d="M20 6 9 17l-5-5"/>',
   tocar: '<path d="M7 4v16l13-8Z"/>',
+  trocar: '<path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
+  refazer: '<path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/>',
   sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   lua: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
   painel: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 8h18M8 17h8"/>',
@@ -503,6 +505,12 @@ function controleImagem(item, aplica) {
   return caixa;
 }
 
+const LISTAS_DE_APPS = new Set(["LANCADOR_OCULTAR", "AUTOSTART_BLOQUEADOS"]);
+let APPS_DA_LISTA = null;
+function appsDaLista() {
+  if (!APPS_DA_LISTA) APPS_DA_LISTA = api("/api/apps").then((r) => (r && r.apps) || []);
+  return APPS_DA_LISTA;
+}
 function controleLista(item, aplica) {
   const sep = item.lista_pathsep ? ":" : ",";
   const itens = String(valorEmVigor(item) || "").split(sep).map((s) => s.trim()).filter(Boolean);
@@ -519,9 +527,29 @@ function controleLista(item, aplica) {
   }
   const nova = elemento("input", { type: "text", class: "campo ficha-nova", placeholder: "Acrescentar",
     "aria-label": "Acrescentar a " + (item.titulo || item.chave), controle: "chave:" + item.chave + ":nova" });
-  const acrescentar = () => {
-    const v = nova.value.trim();
+  const deApps = LISTAS_DE_APPS.has(item.chave);
+  if (deApps) {
+    const sugestoes = elemento("datalist", { id: "apps-" + item.chave });
+    nova.setAttribute("list", sugestoes.id);
+    nova.setAttribute("placeholder", "Procurar um programa");
+    appsDaLista().then((apps) => {
+      for (const a of apps) sugestoes.append(elemento("option", { value: a.id, label: a.nome }));
+    });
+    caixa.append(sugestoes);
+  }
+  const acrescentar = async () => {
+    let v = nova.value.trim();
     if (!v || itens.includes(v)) { nova.value = ""; return; }
+    if (deApps) {
+      const apps = await appsDaLista();
+      const solto = v.replace(/^-/, "");
+      const prefixo = v.startsWith("-") && item.chave === "LANCADOR_OCULTAR" ? "-" : "";
+      const certo = apps.find((a) => a.id === solto)
+        || apps.find((a) => a.nome.toLowerCase() === solto.toLowerCase());
+      if (!certo) { torrada("Não achei esse programa", "erro"); nova.value = ""; return; }
+      v = prefixo + certo.id;
+      if (itens.includes(v)) { nova.value = ""; return; }
+    }
     aplica([...itens, v].join(sep));
   };
   nova.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); acrescentar(); } });
@@ -807,8 +835,23 @@ async function semPonte() {
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
 }
 
+async function gravarSonsDaBarra() {
+  for (const chave of CHAVES_DO_SINO) {
+    if (!MUDANCAS.has(chave)) continue;
+    const valor = MUDANCAS.get(chave);
+    const r = await api("/api/definir", { method: "POST", body: JSON.stringify({ chave, valor }) });
+    if (r.erro) { torrada(r.erro, "erro"); return false; }
+    CHAVE.get(chave).valor = valor;
+    MUDANCAS.delete(chave);
+  }
+  guardarBandeja();
+  atualizarAplicar();
+  return true;
+}
+
 async function rodar(acao, argumento = "", opcoes = {}) {
   if (!acao) return null;
+  if (acao.id === "som_aplicar" && !(await gravarSonsDaBarra())) return null;
   if (TRABALHO && TRABALHO.timer) { torrada("Espere o trabalho terminar"); abrirJanela(); return null; }
   if (deRoot(acao) && !ESQUEMA.ponte) { await semPonte(); return null; }
   let seco = false;
@@ -1157,6 +1200,7 @@ async function iniciar() {
     $("#conteudo").replaceChildren(elemento("h1", { texto: maiuscula(ESQUEMA.erro) }));
     return;
   }
+  await lerRascunhoDoServidor();
   indexar();
   lerRestauros();
   lerClaro();

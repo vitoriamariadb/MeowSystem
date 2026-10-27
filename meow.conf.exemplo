@@ -2038,7 +2038,8 @@ LOG_NIVEL="info"                  # silencioso | info | debug
 #   O TIMBRE VEM DO PACK. Um theme pack pode declarar as próprias frequências
 #   (ver `docs/PACKS.md`, seção "O som"); o Dracula usa sol com a terça menor
 #   acima, e o embutido usa lá com a quinta justa. As chaves `SOM_*` no seu
-#   meow.conf vencem o pack, como qualquer outra.
+#   meow.conf valem só para o pack em que você mexeu nelas: trocou de pack, o
+#   timbre volta a ser o dele.
 #
 #   COM "nao" o arquivo é removido e o COSMIC volta ao som de fábrica —
 #   `~/.local/share/sounds/freedesktop/` sombreia UM arquivo do tema do sistema,
@@ -2052,8 +2053,8 @@ SOM="sim"
 # > A frequência da nota base, em Hz. Vazio usa a do theme pack.
 # [avancado] As CINCO chaves abaixo são o TIMBRE, e todas seguem a mesma regra: VAZIO
 # significa "use o que o theme pack declarar", e o pack embutido usa lá (880 Hz)
-# com a quinta justa acima (1320). Preencher aqui VENCE o pack — é o contrato de
-# precedência de todas as chaves (ver docs/PACKS.md, "Quem vence").
+# com a quinta justa acima (1320). Preencher aqui VENCE o pack em que você mexeu, e só nele
+# (o painel anota qual; trocou de pack, as cinco voltam ao timbre do novo).
 #
 #   ELAS EXISTEM NO PAINEL PORQUE O TESTE COBRA ISSO, e o teste tem razão: uma
 #   chave que um script lê do meow.conf e que o painel não oferece é um ajuste
