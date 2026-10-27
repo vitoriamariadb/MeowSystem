@@ -13,6 +13,12 @@ BASE="$HOME/.local/share/icons/$TEMA"
 
 declare -A TRACO=( ["22x22/status"]=4 ["scalable/status"]=2.5 )
 
+_pack_no_ar() {
+  local nome
+  nome="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null | sed -n 's/^nome=//p')" || nome=""
+  printf '%s' "${nome:-no ar}"
+}
+
 declare -A MAPA_LIDO=()
 declare -A ALIAS_OK=()
 
@@ -68,7 +74,7 @@ _sem_acervo() {
     fi
   done < <(_restos)
   if [ "$n" = 0 ]; then
-    meow_pula "o pack no ar não declara icones.sistema — nada a vestir"
+    meow_pula "o pack no ar não declara icones.sistema — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   meow_muda "ícones do sistema de outro pack: $n a remover"
@@ -132,7 +138,7 @@ _conferir() {
   done
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total ícone(s) do sistema já vestidos de Arcticons"
+    meow_ok "$total ícone(s) do sistema já com o Arcticons do pack $(_pack_no_ar)"
     return "$MEOW_OK"
   fi
   meow_muda "ícones do sistema: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
@@ -172,7 +178,7 @@ _aplicar() {
   done
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "ícones do sistema já vestidos de Arcticons"
+    meow_ok "ícones do sistema já com o Arcticons do pack $(_pack_no_ar)"
     return "$MEOW_OK"
   fi
   meow_info "ícones do sistema: $postos posto(s), $removidos removido(s)"

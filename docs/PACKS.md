@@ -734,6 +734,29 @@ Cada categoria declara os dois no `pack.json`, e nenhuma é obrigatória:
 }
 ```
 
+Os ícones de status do COSMIC (`sistema`, os 30 nomes de `sistema.map`) e os da
+bandeja (`bandeja`) são dois blocos com os mesmos campos:
+
+| campo | o que diz |
+|---|---|
+| `desenhos` | a pasta dos moldes, relativa ao pack (`icones/sistema/`) |
+| `mapa` | o arquivo `nome:glifo` que liga cada nome do sistema ao desenho |
+| `herda` | o pack de quem vêm `desenhos` e `mapa`, quando este não traz os seus |
+| `pintar` | o papel da paleta (`text`, por exemplo) com que o traço é pintado, no flavor do pack no ar |
+
+```json fragmento
+"icones": {
+  "sistema": { "desenhos": "icones/sistema/", "mapa": "icones/sistema.map" },
+  "bandeja": { "desenhos": "icones/sistema/", "mapa": "icones/bandeja.map" }
+}
+```
+
+O pack `dracula` declara `"sistema": { "herda": "meowsystem", "pintar": "text" }`: o
+molde é o do meowsystem e o traço sai na cor `text` do flavor dele. Pack sem o bloco
+(e sem `herda`) não ganha ícone de status: o doctor diz «o pack no ar não declara
+icones.sistema» e não escreve nada. Quando escreve, a linha diz de quem é o desenho:
+«ícones do sistema já com o Arcticons do pack Dracula».
+
 O `validar` cobra a existência de tudo o que estiver declarado. Um pack que
 promete um acervo e não entrega é recusado — pelo mesmo motivo que o `creditos`
 é cobrado: um validador que carimba a promessa vazia ensina a escrevê-la.
@@ -1312,7 +1335,7 @@ meow pack usar catppuccin latte   # com o flavor escolhido
 meow pack usar meu-tema --sem-aplicar
 ```
 
-O verbo é o mesmo que o botão **Vestir** da porta Tema do painel chama (decisão 33:
+O verbo é o mesmo que o botão **Aplicar tema** da porta Tema do painel chama (decisão 33:
 trocar de pack é um gesto só).
 
 **O que ele faz, nesta ordem:**
@@ -1355,7 +1378,7 @@ mostraria o pack que **já** está no ar, com cara de ensaio da troca.
 
 **Na tela**, a porta Tema abre com um cartão por pack instalado — o logo, a paleta
 embaixo, o que ele traz de próprio e o que herda de quem —, e o que está no ar
-tem o anel de acento. Com escolhas ainda não salvas na página, **Vestir**
+tem o anel de acento. Com escolhas ainda não salvas na página, **Aplicar tema**
 pergunta antes: elas foram feitas olhando o pack de agora, e são descartadas
 quando a troca de verdade começa — um «Ver sem mudar» não troca nada, e as
 deixa como estavam até o «Rodar de verdade» da janela de resultado. E o passo Ícones passa a falar com as palavras do pack no ar:
@@ -2404,7 +2427,7 @@ o `--seco`.
 
 ### No painel
 
-**Abrir um tema**, na porta Tema, e **Baixar o tema**, no passo Mandar do Personalizar,
+**Abrir um tema**, na porta Tema, e **Baixar o tema**, no passo Disponibilizar do Personalizar,
 chamam estas duas rotas:
 
 | rota | o que faz |
