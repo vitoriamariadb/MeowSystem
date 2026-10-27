@@ -43,9 +43,10 @@ arquivar	assets/gatos
 arquivar	assets/cursores
 arquivar	assets/temas-de-apps
 arquivar	assets/sons/CREDITOS.md
-arquivar	assets/paleta/catppuccin.json
 arquivar	assets/prompt/aurora.patch
 doutor	assets/papeis-de-parede'
+PASTA_DA_PALETA=assets/paleta
+TABELA+=$'\n'"arquivar	${PASTA_DA_PALETA}/catppuccin.json"
 
 uso() {
   printf 'uso: scripts/enxugar.sh [--raiz <clone>] [--aplicar] [--tabela]\n'
