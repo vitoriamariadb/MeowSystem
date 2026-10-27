@@ -224,6 +224,12 @@ def montar_casa():
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "ACAO_DA_PENDENCIA" for a in no.targets)):
             pendencias = sorted(ast.literal_eval(no.value))
+    pinos = os.path.join(RAIZ, "assets", "extensoes")
+    for arquivo in sorted(os.listdir(pinos)):
+        if arquivo.endswith(".pino"):
+            with open(os.path.join(pinos, arquivo), encoding="utf-8") as fh:
+                proprio = re.search(r'^PENDENCIA="([a-z0-9-]+)"', fh.read(), re.M)
+            pendencias.append(proprio.group(1) if proprio else "extensao-" + arquivo[:-len(".pino")])
     for no in arvore.body:
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "SUFIXO_TEMA_DE_TERCEIRO" for a in no.targets)):
@@ -495,8 +501,9 @@ CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "APPS_ATIVOS": "program
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
     "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
-    "vscode_instalar_extensao", "files_menu_build", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
+    "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
     "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
+    "extensao_refazer",
 }
 EXTRAS = {
     "tema": ["tema:saude", "tema:abrir", "tema:criar", "pack:*:*", "chave:ACCENT=*", "chave:MODO=*"],

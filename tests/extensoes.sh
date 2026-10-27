@@ -242,6 +242,15 @@ saida="$(EBX --todas --reverter)"; igual "--todas --reverter: mexeu" "$?" 1
 some "e o binário saiu" "$BIN"
 saida="$(EBX --todas --reverter)"; igual "e a segunda não tem o que tirar" "$?" 0
 
+echo "== PADRAO=sim: sem EXTENSOES, o pino entra no --todas sozinho"
+saida="$(EBX --todas --conferir)"; igual "sem PADRAO e sem EXTENSOES: nada pedido, rc 3" "$?" 3
+sed -i 's/^ORDEM=1$/ORDEM=1\nTIPO="applet"\nPADRAO="sim"\nCHAVE_DO_CONF="FAKE_APPLET"/' "$PINOS/fake.pino"
+saida="$(EBX --todas --conferir)"; igual "PADRAO=sim sem EXTENSOES: pedida e ausente, diverge" "$?" 1
+igual "o --queridas a lista" "$(EBX --queridas)" fake
+saida="$(EBX FAKE_APPLET=nao --todas --conferir)"; igual "a chave do conf em nao a tira" "$?" 3
+saida="$(EBX EXTENSOES=- --todas --conferir)"; igual "EXTENSOES=- vence o PADRAO" "$?" 3
+pino "$C1"
+
 echo "== o tema do pack: gerado, igual na segunda passada, e muda com o sabor"
 TH="$T/tema"; mkdir -p "$TH/.local/bin"
 printf '#!/bin/sh\n' > "$TH/.local/bin/meowsystem-status-hub"; chmod 755 "$TH/.local/bin/meowsystem-status-hub"
@@ -265,6 +274,12 @@ saida="$(TEMA FLAVOR=latte --conferir)"; igual "outro sabor: o conferir diverge"
 saida="$(TEMA FLAVOR=latte)"
 grep -qx 'tinta = #4c4f69' "$BANDEJA" && ok "e o aplicar traz a latte" || falha "latte: $(cat "$BANDEJA")"
 saida="$(TEMA --reverter)"; some "reverter tira o tema" "$BANDEJA"
+grep -q 'Bandeja\|AjustesRapidos' "$RAIZ/scripts/extensoes_tema.sh" && falha "o extensoes_tema.sh ainda nomeia um applet" || ok "o extensoes_tema.sh não nomeia applet: as chaves moram no pino"
+NP="$T/pinos-tema"; mkdir -p "$NP"
+printf 'ORDEM=1\nNOME="Novo"\nBIN="meowsystem-status-hub"\nTEMA="io.github.teste.Novo"\nTEMA_CHAVES="fundo:base/f0 realce:@acento"\n' > "$NP/novo.pino"
+saida="$(TEMA EXTENSOES_PINOS="$NP" FLAVOR=mocha)"; igual "um pino novo com TEMA_CHAVES ganha tema sem código" "$?" 1
+NOVO="$TH/.config/meowsystem/extensoes/io.github.teste.Novo/tema.conf"
+igual "com as chaves do pino, o sufixo e o acento" "$(cat "$NOVO" 2>/dev/null | paste -sd' ')" "fundo = #1e1e2ef0 realce = #cba6f7"
 
 [ "$falhas" = 0 ] && { echo "extensoes.sh: tudo verde"; exit 0; }
 echo "extensoes.sh: $falhas falha(s)"; exit 1

@@ -60,12 +60,10 @@ patches e o esquema de chaves vão entrar na versão nova. O build pergunta ao f
 
 ## Como voltar
 
-```sh
-meow compositor desativar
-```
-
-Este comando tira o shim, e o próximo login usa o compositor do pacote. Os builds ficam guardados,
-sem efeito. Para religar o shim: `meow compositor ativar`.
+Na página Extensões, aba Builds, **Remover** no cartão do Compositor tira o shim e grava
+`COMPOSITOR="nao"` no `meow.conf`; o próximo login usa o compositor do pacote. Os builds ficam
+guardados, sem efeito. **Instalar** no mesmo cartão religa o shim. Com `COMPOSITOR="sim"`, o install
+e o doctor ligam o shim sozinhos quando o build da casa está pronto.
 
 Para o menu da área de trabalho, ponha `FILES_MENU="nao"` no `meow.conf`. O doctor seguinte devolve o
 menu de fábrica.

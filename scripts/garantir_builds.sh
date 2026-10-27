@@ -7,6 +7,7 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 GB_COMPOSITOR="${GB_COMPOSITOR:-$MEOW_RAIZ/scripts/compositor_patches.sh}"
 GB_FILES="${GB_FILES:-$MEOW_RAIZ/scripts/files_menu.sh}"
+GB_EXTENSOES="${GB_EXTENSOES:-$MEOW_RAIZ/scripts/extensoes_build.sh}"
 GB_CASA="${GB_CASA:-${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}}"
 GB_FILES_GUARDA="${GB_FILES_GUARDA:-$MEOW_ESTADO/cosmic-files}"
 GB_MATRIZ="${GB_MATRIZ:-${CP_MATRIZ:-$MEOW_ESTADO/cosmic-comp/matriz.tsv}}"
@@ -70,12 +71,18 @@ _gb_files_quer() {
   [ "${q:-sim}" = "sim" ]
 }
 
+_gb_comp_quer() {
+  local q="${COMPOSITOR:-}"
+  [ -n "$q" ] || q="$(meow_conf_valor COMPOSITOR 2>/dev/null)" || q="sim"
+  [ "${q:-sim}" != "nao" ]
+}
+
 _gb_pendentes() {
   local p v
   while IFS=$'\t' read -r p v; do
     case "$p" in
       cosmic-files) _gb_files_quer && ! _gb_files_valido "$v" && printf '%s\t%s\n' "$p" "$v" ;;
-      cosmic-comp)  [ ! -e "$GB_CASA/$v/ruim" ] && ! _gb_comp_valido "$v" && ! _gb_comp_degrau4 "$v" \
+      cosmic-comp)  _gb_comp_quer && [ ! -e "$GB_CASA/$v/ruim" ] && ! _gb_comp_valido "$v" && ! _gb_comp_degrau4 "$v" \
                       && printf '%s\t%s\n' "$p" "$v" ;;
     esac
   done < <(_gb_instalados)
@@ -170,7 +177,9 @@ cmd_estado() {
   vf="$(_gb_instalados | awk -F'\t' '$1=="cosmic-files" {print $2}')"
   if [ -z "$vc" ]; then e_comp=ausente
   elif [ -e "$GB_CASA/$vc/ruim" ]; then e_comp=falhou
-  elif _gb_comp_valido "$vc"; then e_comp=ok
+  elif _gb_comp_valido "$vc"; then
+    e_comp=ok
+    [ "$("$GB_EXTENSOES" compositor --ativa 2>/dev/null)" = nao ] && e_comp=desligado
   elif _gb_comp_degrau4 "$vc"; then e_comp=nao-encaixa
   else e_comp=pendente; fi
   if [ -z "$vf" ]; then e_menu=ausente

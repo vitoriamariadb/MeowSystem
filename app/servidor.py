@@ -2434,7 +2434,8 @@ def _acento_da_pagina(flavor, valores):
 
 EXT_CASA = os.path.join(RAIZ, "assets", "extensoes")
 EXT_CHAVES = ("NOME", "DESCRICAO", "URL", "COMMIT", "VERSAO", "APP_ID", "BIN", "UPSTREAM",
-              "SUBSTITUI", "DATA", "ORDEM")
+              "SUBSTITUI", "DATA", "ORDEM", "TIPO", "PADRAO", "ATIVA", "PENDENCIA")
+EXT_TIPOS_DE_BUILD = ("compositor", "menu")
 RE_ID_EXT = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 EXT_GESTO = os.path.join(RAIZ, "scripts", "extensoes_gesto.sh")
 EXT_CONSTRUTOR = os.path.join(RAIZ, "scripts", "extensoes_build.sh")
@@ -2455,6 +2456,8 @@ def _ext_pino_ler(caminho):
                     dados[m.group(1)] = m.group(2) if m.group(2) is not None else m.group(3)
     except OSError:
         return None
+    if dados.get("TIPO") in EXT_TIPOS_DE_BUILD:
+        return dados if re.match(r"^[A-Za-z0-9._-]+$", dados.get("BIN", "")) else None
     return dados if re.match(r"^[0-9a-f]{7,40}$", dados.get("COMMIT", "")) else None
 
 
@@ -2536,10 +2539,10 @@ def _ext_registro(ident):
 def _ext_ocupado():
     with TRABALHO_TRAVA:
         atual = TRABALHO_ATUAL
-    if atual is None or not atual.vivo() or not str(atual.acao).startswith(("extensao_", "builds_", "build_", "files_menu_build")):
+    if atual is None or not atual.vivo() or not str(atual.acao).startswith(("extensao_", "builds_")):
         return None
-    return {"acao": atual.acao, "id": atual.argv[-1] if str(atual.acao).startswith("extensao_") else "",
-            "trabalho": atual.id}
+    com_id = str(atual.acao).startswith("extensao_") and len(atual.argv) > 2
+    return {"acao": atual.acao, "id": atual.argv[-1] if com_id else "", "trabalho": atual.id}
 
 
 def _ext_cartoes():
@@ -2552,16 +2555,20 @@ def _ext_cartoes():
             troca = ""
         commit = pino.get("COMMIT", "")
         data = pino.get("DATA", "") or (_ext_data_do_pino(ident) if casa else "")
+        tipo = pino.get("TIPO") or "applet"
         cartoes.append({
-            "id": ident, "casa": casa,
+            "id": ident, "casa": casa, "tipo": tipo,
             "nome": pino.get("NOME") or ident, "descricao": pino.get("DESCRICAO", ""),
-            "versao": pino.get("VERSAO", ""), "commit": commit[:7], "commit_inteiro": commit,
+            "versao": estado.get("versao") or pino.get("VERSAO", ""),
+            "commit": commit[:7], "commit_inteiro": commit,
             "url": re.sub(r"\.git$", "", pino.get("URL", "")), "upstream": pino.get("UPSTREAM", ""),
             "data": data, "app_id": pino.get("APP_ID", ""),
             "instalada": estado.get("instalada") == "sim",
             "em_dia": estado.get("em_dia") == "sim",
             "atualizacao": estado.get("atualizacao") == "sim",
             "na_barra": estado.get("na_barra") == "sim",
+            "ativa": estado.get("ativa") == "sim",
+            "situacao": estado.get("situacao", ""),
             "falhou": estado.get("falhou") == "sim",
             "troca": troca, "troca_nome": _ext_nome_do_antigo(troca) if troca else "",
             "commit_instalado": (estado.get("commit_instalado") or "")[:7],
@@ -2583,10 +2590,7 @@ def _ext_builds():
         pass
     entrar = valores_efetivos(["BUILDS_AO_ENTRAR"]).get("BUILDS_AO_ENTRAR") or "sim"
     return {
-        "compositor": {"versao": dados.get("compositor_versao", ""),
-                       "estado": dados.get("compositor_estado", "ausente"),
-                       "remendos": int(dados.get("remendos") or 0)},
-        "menu": {"versao": dados.get("menu_versao", ""), "estado": dados.get("menu_estado", "ausente")},
+        "remendos": int(dados.get("remendos") or 0),
         "construindo": dados.get("construindo") == "sim",
         "ao_entrar": entrar != "nao",
     }
@@ -3312,15 +3316,6 @@ ACOES = {
         "escreve": False, "sudo": False, "confirma": False,
         "ajuda": "Os dois itens de papel de parede no botão direito.",
     },
-    "files_menu_build": {
-        "rotulo": "Construir o menu",
-        "grupo": "Papel de parede",
-        "natureza": "baixar",
-        "argv": _meow("files-menu", "build"),
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "ajuda": "Compila a versão instalada do cosmic-files com os dois itens "
-                 "de papel de parede. Baixa o fonte e leva minutos.",
-    },
     "extensao_instalar": {
         "rotulo": "Instalar a extensão",
         "grupo": "Extensões",
@@ -3402,14 +3397,14 @@ ACOES = {
         "oculta": True,
         "ajuda": "Refaz o compositor, o menu do Arquivos e cada applet instalado.",
     },
-    "build_compositor": {
-        "rotulo": "Refazer o compositor",
+    "extensao_reiniciar_painel": {
+        "rotulo": "Reiniciar o painel",
         "grupo": "Extensões",
-        "natureza": "baixar",
-        "argv": _meow("compositor"),
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "natureza": "aplicar",
+        "argv": [EXT_GESTO, "reiniciar-painel"],
+        "escreve": True, "sudo": False, "confirma": False,
         "oculta": True,
-        "ajuda": "Baixa o fonte da versão instalada do cosmic-comp, aplica os remendos e compila.",
+        "ajuda": "Reabre o painel e a Dock desta sessão, para o applet trocado aparecer.",
     },
     "apps": {
         "rotulo": "Programas vestidos",
@@ -4315,33 +4310,38 @@ def escreve(acao):
 
 ACAO_DA_PENDENCIA = {
     "areas-sem-alfinete": "areas_alfinetar_primeira",
-    "files-menu-build": "files_menu_build",
     "instalar-com-root": "instalar",
     "aplicar-ajuste": "instalar",
     "flatpak-global-sistema": "instalar",
     "libreoffice-sistema": "instalar",
     "starship-ausente": "instalar",
-    "extensao-now-playing": "doctor_consertar",
-    "extensao-status-hub": "doctor_consertar",
-    "extensao-quick-settings": "doctor_consertar",
-    "extensao-leitura": "doctor_consertar",
-    "extensao-performance": "doctor_consertar",
 }
 
 NOME_DA_PENDENCIA = {
     "areas-sem-alfinete": "Áreas de trabalho",
     "starship-ausente": "Linha colorida",
-    "files-menu-build": "Menu do Arquivos",
     "instalar-com-root": "Ponte de root",
     "flatpak-global-sistema": "Flatpaks do sistema",
     "libreoffice-sistema": "LibreOffice do sistema",
     "aplicar-ajuste": "Ajuste pendente",
-    "extensao-now-playing": "Tocando agora",
-    "extensao-status-hub": "Bandeja",
-    "extensao-quick-settings": "Ajustes rápidos",
-    "extensao-leitura": "Applet de leitura",
-    "extensao-performance": "Performance",
 }
+
+BUILD_DA_PENDENCIA = {}
+
+
+def _pendencias_das_extensoes():
+    for ident, casa, pino in _ext_catalogo():
+        if casa:
+            chave = pino.get("PENDENCIA") or "extensao-" + ident
+            NOME_DA_PENDENCIA.setdefault(chave, pino.get("NOME") or ident)
+            if pino.get("TIPO") in EXT_TIPOS_DE_BUILD:
+                BUILD_DA_PENDENCIA.setdefault(chave, ident)
+                ACAO_DA_PENDENCIA.setdefault(chave, "extensao_refazer")
+            else:
+                ACAO_DA_PENDENCIA.setdefault(chave, "doctor_consertar")
+
+
+_pendencias_das_extensoes()
 
 RECUSA_DA_PENDENCIA = {
     "starship-ausente": [os.path.join(RAIZ, "scripts", "prompt.sh"),
@@ -4531,6 +4531,8 @@ def onde_na_tela(ident):
     pendencias = porta_das_pendencias()
     if not pendencias:
         return ""
+    if ident in BUILD_DA_PENDENCIA:
+        return "«Refazer», em %s" % pendencias
     if ident in ACAO_DA_PENDENCIA:
         return "«Resolver», em %s" % pendencias
     if _app_da_pendencia(ident):
@@ -4563,7 +4565,7 @@ def pendencias():
                 if len(campos) != 5 or not campos[0]:
                     continue
                 ident, etapa, frase, comando, quando = campos
-                acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
+                acao = ACAO_DA_PENDENCIA.get(ident, "") if comando and ident not in BUILD_DA_PENDENCIA else ""
                 if acao and (indisponivel(acao) or {}).get("feito"):
                     continue
                 app = _app_da_pendencia(ident) if comando else ""
@@ -4577,6 +4579,9 @@ def pendencias():
                                {"acao": dispensar, "rotulo": r_dispensar,
                                 "argumento": ""}]
                     nome = "Papel devolvido"
+                if ident in BUILD_DA_PENDENCIA and comando:
+                    escolha = [{"acao": "extensao_refazer", "argumento": BUILD_DA_PENDENCIA[ident],
+                                "rotulo": "Refazer"}]
                 if ident == PENDENCIA_EXTENSAO and comando:
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
