@@ -28,6 +28,8 @@ TESTE = os.path.join(casa.BRINQUEDO, "extensoes")
 ORIGENS = os.path.join(TESTE, "origens")
 GIT = ["git", "-c", "core.hooksPath=/dev/null", "-c", "user.email=t@t", "-c", "user.name=t"]
 PAINEL = os.path.join(casa.CASA, ".config", "cosmic", "com.system76.CosmicPanel.Panel", "v1")
+DOCK = os.path.join(casa.CASA, ".config", "cosmic", "com.system76.CosmicPanel.Dock", "v1")
+SHIM = os.path.join(casa.CASA, ".local", "bin", "cosmic-comp")
 APPLETS = {
     "casa-um": ("Casa Um", "io.github.teste.CasaUm", ""),
     "casa-dois": ("Casa Dois", "io.github.teste.CasaDois", "io.velho.Antigo"),
@@ -99,6 +101,26 @@ def montar():
         fh.write(f'[url "file://{vazio}"]\n\tinsteadOf = https://exemplo.test/dona/vazio\n')
     for ident in APPLETS:
         escrever_pino(ident, commits[ident])
+    for ident in ("compositor", "menu-arquivos"):
+        shutil.copyfile(os.path.join(casa.RAIZ, "assets", "extensoes", ident + ".pino"), os.path.join(pinos, ident + ".pino"))
+    garantir = os.path.join(TESTE, "garantir")
+    casa.escrever_exec(garantir,
+        '#!/bin/sh\n[ "$1" = estado ] || exit 0\n'
+        'if [ -f "$MEOW_TESTE_COMP" ]; then\n'
+        '  if grep -qs MEOW-COSMIC-COMP-SHIM "$HOME/.local/bin/cosmic-comp"; then e=ok; else e=desligado; fi\n'
+        'else e=pendente; fi\n'
+        'printf \'compositor_versao=0.1~t\\ncompositor_estado=%s\\nmenu_versao=1.0~t\\n'
+        'menu_estado=pendente\\nconstruindo=nao\\n\' "$e"\n')
+    compositor = os.path.join(TESTE, "compositor")
+    casa.escrever_exec(compositor,
+        '#!/bin/sh\necho "compositor $*" >> "$MEOW_TESTE_CARGO"\n'
+        'case "$1" in\n'
+        '  compilar) : > "$MEOW_TESTE_COMP"; exit 1 ;;\n'
+        '  ativar) grep -qs MEOW-COSMIC-COMP-SHIM "$HOME/.local/bin/cosmic-comp" && exit 0\n'
+        '    mkdir -p "$HOME/.local/bin"; printf \'#!/bin/sh\\nMEOW-COSMIC-COMP-SHIM-1\\n\' > "$HOME/.local/bin/cosmic-comp"; exit 1 ;;\n'
+        '  desativar) [ -e "$HOME/.local/bin/cosmic-comp" ] || exit 0; rm -f "$HOME/.local/bin/cosmic-comp"; exit 1 ;;\n'
+        'esac\nexit 0\n')
+    open(os.path.join(TESTE, "comp-pronto"), "w").close()
     falso = casa.FALSO
     os.remove(os.path.join(falso, "git"))
     cargo = os.path.join(falso, "cargo")
@@ -113,9 +135,15 @@ def montar():
     os.makedirs(PAINEL)
     with open(os.path.join(PAINEL, "plugins_wings"), "w", encoding="utf-8") as fh:
         fh.write('Some(([\n    "com.system76.CosmicAppletWorkspaces",\n], [\n    "io.velho.Antigo",\n'
-                 '    "io.outro.Velho",\n    "outro.Applet",\n]))')
+                 '    "outro.Applet",\n]))')
+    os.makedirs(DOCK)
+    with open(os.path.join(DOCK, "plugins_wings"), "w", encoding="utf-8") as fh:
+        fh.write('Some(([\n    "com.system76.CosmicAppList",\n], [\n    "io.outro.Velho",\n'
+                 '    "com.system76.CosmicAppletMinimize",\n]))')
     ambiente.update({"GIT_CONFIG_GLOBAL": gitconfig, "MEOW_TESTE_CARGO": os.path.join(TESTE, "cargo.log"),
-                     "MEOW_TESTE_FALHA": os.path.join(TESTE, "falha")})
+                     "MEOW_TESTE_FALHA": os.path.join(TESTE, "falha"),
+                     "MEOW_TESTE_COMP": os.path.join(TESTE, "comp-pronto"),
+                     "EXTENSOES_GARANTIR": garantir, "EXTENSOES_COMPOSITOR": compositor})
     return ambiente, commits
 
 
@@ -183,9 +211,22 @@ def conf(chave):
     return casa.valor_de(chave)
 
 
-def asas():
-    with open(os.path.join(PAINEL, "plugins_wings"), encoding="utf-8") as fh:
+def asas(pasta=PAINEL):
+    with open(os.path.join(pasta, "plugins_wings"), encoding="utf-8") as fh:
         return re.findall(r'"([^"]*)"', fh.read())
+
+
+def cartao_de_build(pag, ident):
+    return pag.locator(f'article[data-build="{ident}"]')
+
+
+def pilula_de_build(pag, ident):
+    return cartao_de_build(pag, ident).locator("[data-pilula]").inner_text().strip()
+
+
+def botoes_de_build(pag, ident):
+    return cartao_de_build(pag, ident).locator("button").evaluate_all(
+        "(l) => l.map((b) => (b.textContent.trim() || b.getAttribute('aria-label') || '') + (b.disabled ? ' (parado)' : ''))")
 
 
 def main():
@@ -211,7 +252,7 @@ def main():
             ir(pag, "extensoes")
             checa(pag.locator(".portas a", has_text="Extensões").count() == 1, "a porta Extensões está no cabeçalho")
             checa(pag.locator(".abas-ajustes a").all_inner_texts() == ["Applets", "Builds"], "as abas são Applets e Builds")
-            checa(pag.locator("article[data-applet]").count() == 3, "há um cartão por applet do catálogo")
+            checa(pag.locator("article[data-applet]").count() == 3, "há um cartão por applet do catálogo, e o compositor e o menu ficam nos Builds")
             checa(eventual(lambda: pilula(pag, "casa-um") == "Não instalada"), f"o applet de fora aparece «{pilula(pag, 'casa-um')}»")
             checa(botoes(pag, "casa-um") == ["Instalar"], f"e só oferece Instalar ({botoes(pag, 'casa-um')})")
             versao = cartao(pag, "casa-um").locator(".versao").text_content()
@@ -266,22 +307,22 @@ def main():
             cartao(pag, "casa-tres").get_by_role("button", name="Instalar").click()
             fim_do_trabalho(pag)
             checa(asas() == antes + ["io.github.teste.CasaUm"], "instalar não mexeu na barra")
-            eventual(lambda: pag.locator("#pendencia .linha").count() == 2)
-            linhas = pag.locator("#pendencia .linha").all_inner_texts()
+            eventual(lambda: pag.locator("#pendencia [data-troca]").count() == 2)
+            linhas = pag.locator("#pendencia [data-troca]").all_inner_texts()
             checa(len(linhas) == 2 and "Casa Dois" in linhas[0] and "Antigo" in linhas[0], f"a pendência diz quem entra no lugar de quem ({linhas[:1]})")
             foto("extensoes-troca")
             pag.locator('#pendencia [data-troca="casa-tres"] button', has_text="Manter").click()
-            pag.wait_for_function("() => document.querySelectorAll('#pendencia .linha').length === 1", timeout=10000)
+            pag.wait_for_function("() => document.querySelectorAll('#pendencia [data-troca]').length === 1", timeout=10000)
             checa(asas() == antes + ["io.github.teste.CasaUm"], "«Manter» não mexe na barra")
             pag.reload()
             esperar(pag, 800)
             ir(pag, "extensoes")
-            checa(pag.locator("#pendencia .linha").count() == 1, "e a dispensa vale depois de recarregar")
+            checa(pag.locator("#pendencia [data-troca]").count() == 1, "e a dispensa vale depois de recarregar")
             pag.locator('#pendencia [data-troca="casa-dois"] button', has_text="Trocar").click()
             fim_do_trabalho(pag)
             esperado = [a if a != "io.velho.Antigo" else "io.github.teste.CasaDois" for a in antes] + ["io.github.teste.CasaUm"]
             checa(asas() == esperado, f"«Trocar» põe o novo na posição do antigo ({asas()})")
-            checa(eventual(lambda: pag.locator("#pendencia").count() == 0), "e a pendência some")
+            checa(eventual(lambda: pag.locator("#pendencia [data-troca]").count() == 0), "e a pendência some")
 
             print("5. atualização: o pino novo vira o botão «Atualizar»")
             pasta = os.path.join(ORIGENS, "casa-um")
@@ -319,11 +360,92 @@ def main():
             estado = fim_do_trabalho(pag)
             checa(estado == "ok" and eventual(lambda: pilula(pag, "casa-tres") != "Falhou"), f"tentar de novo compila ({estado}, {pilula(pag, 'casa-tres')})")
 
-            print("7. Builds: compositor, menu do Arquivos e cada applet, com Refazer")
+            print("6b. Trocar na Dock: o antigo mora na Dock, o novo entra lá; e «Reiniciar o painel» aparece")
+            os.remove(os.path.join(casa.ESTADO, "extensoes", "mantem"))
+            painel_antes, dock_antes = asas(), asas(DOCK)
+            pag.reload()
+            esperar(pag, 800)
+            ir(pag, "extensoes")
+            checa(eventual(lambda: pag.locator('#pendencia [data-troca="casa-tres"]').count() == 1),
+                  "o applet velho só na Dock vira pendência de troca")
+            checa(pag.locator("#pendencia [data-controle='extensao:reiniciar-painel']").count() == 1,
+                  "o aviso do «Trocar» traz «Reiniciar o painel»")
+            pag.locator('#pendencia [data-troca="casa-tres"] button', has_text="Trocar").click()
+            fim_do_trabalho(pag)
+            esperado = [a if a != "io.outro.Velho" else "io.github.teste.CasaTres" for a in dock_antes]
+            checa(asas(DOCK) == esperado, f"«Trocar» põe o novo no lugar do antigo, na Dock ({asas(DOCK)})")
+            checa(asas() == painel_antes, "e o Panel fica como estava")
+            checa(eventual(lambda: pag.locator('#pendencia [data-troca]').count() == 0
+                           and pag.locator("#pendencia [data-controle='extensao:reiniciar-painel']").count() == 1),
+                  "a troca some e «Reiniciar o painel» fica, sem reiniciar sozinho")
+            foto("extensoes-reiniciar")
+            pag.locator("#pendencia [data-controle='extensao:reiniciar-painel']").click()
+            estado = fim_do_trabalho(pag)
+            checa(estado == "ok", f"«Reiniciar o painel» termina em ok ({estado})")
+            checa(eventual(lambda: pag.locator("#pendencia").count() == 0), "e o aviso some")
+
+            print("7. Builds: compositor e menu no mesmo cartão, e cada applet, com Refazer")
             ir(pag, "extensoes/builds")
+            checa(cartao_de_build(pag, "compositor").count() == 1 and cartao_de_build(pag, "menu-arquivos").count() == 1,
+                  "o compositor e o menu do Arquivos têm cartão")
+            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Pronto, desligado"),
+                  f"build pronto com o shim desligado: «{pilula_de_build(pag, 'compositor')}»")
+            checa(botoes_de_build(pag, "compositor") == ["Instalar", "Atualizar (parado)", "Refazer", "Remover Compositor (parado)"],
+                  f"o cartão do compositor tem os quatro botões ({botoes_de_build(pag, 'compositor')})")
+            checa("cosmic-comp 0.1~t" in cartao_de_build(pag, "compositor").inner_text()
+                  and re.search(r"\b\d+ remendos", cartao_de_build(pag, "compositor").inner_text()), "e diz a versão e os remendos")
+            checa(eventual(lambda: pilula_de_build(pag, "menu-arquivos") == "Não instalada"),
+                  f"o menu sem build: «{pilula_de_build(pag, 'menu-arquivos')}»")
+            foto("extensoes-builds-desligado")
+            cartao_de_build(pag, "compositor").get_by_role("button", name="Instalar").click()
+            estado = fim_do_trabalho(pag)
+            checa(estado == "ok" and os.path.isfile(SHIM), f"«Instalar» liga o shim ({estado})")
+            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Em dia"), f"e o cartão diz «{pilula_de_build(pag, 'compositor')}»")
+            checa(conf("COMPOSITOR") == "sim", f"o meow.conf diz COMPOSITOR=sim ({conf('COMPOSITOR')!r})")
+            cartao_de_build(pag, "compositor").get_by_role("button", name="Remover Compositor").click()
+            confirmar(pag)
+            estado = fim_do_trabalho(pag)
+            checa(estado == "ok" and not os.path.exists(SHIM), f"«Remover» desliga o shim ({estado})")
+            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Pronto, desligado"),
+                  f"e o build fica: «{pilula_de_build(pag, 'compositor')}»")
+            velho = os.path.join(casa.CASA, ".local", "libexec", "meow", "cosmic-comp", "0.0~velho")
+            os.makedirs(velho)
+            casa.escrever_exec(os.path.join(velho, "cosmic-comp"), "#!/bin/sh\n")
+            os.remove(os.path.join(TESTE, "comp-pronto"))
+            os.makedirs(os.path.dirname(SHIM), exist_ok=True)
+            with open(SHIM, "w", encoding="utf-8") as fh:
+                fh.write("#!/bin/sh\nMEOW-COSMIC-COMP-SHIM-1\n")
+            pag.evaluate("() => { EXT.quando = 0; render(); }")
+            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Atualização"),
+                  f"versão nova do pacote com o build velho guardado: «{pilula_de_build(pag, 'compositor')}»")
+            checa(botoes_de_build(pag, "compositor") == ["Instalar (parado)", "Atualizar", "Refazer", "Remover Compositor"],
+                  f"e oferece Atualizar e Remover, com o shim de pé ({botoes_de_build(pag, 'compositor')})")
+            shutil.rmtree(velho)
+            os.remove(SHIM)
+            open(os.path.join(TESTE, "comp-pronto"), "w").close()
+            pag.evaluate("() => { EXT.quando = 0; render(); }")
+            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Pronto, desligado"), "e volta a «Pronto, desligado»")
+            checa(cartao_de_build(pag, "compositor").locator("img").count() == 1
+                  and cartao_de_build(pag, "menu-arquivos").locator("img").count() == 1,
+                  "o compositor e o menu têm ícone próprio")
+            transbordas = []
+            for larg in (1500, 390):
+                pag.set_viewport_size({"width": larg, "height": 860})
+                esperar(pag)
+                transbordas.append(pag.evaluate("""() => {
+                  const v = document.querySelector('article[data-build="menu-arquivos"] .versao');
+                  v.textContent = 'cosmic-files 1.11.0~1792510858~24.04~3cc4b80';
+                  const card = v.closest('article');
+                  const borda = card.getBoundingClientRect().right - parseFloat(getComputedStyle(card).paddingRight);
+                  const texto = document.createRange();
+                  texto.selectNodeContents(v);
+                  return Math.round(texto.getBoundingClientRect().right - borda);
+                }"""))
+            pag.set_viewport_size({"width": 1550, "height": 860})
+            esperar(pag)
+            checa(max(transbordas) <= 0, f"a versão longa do pacote fica dentro do cartão, em 1500 e 390 px ({transbordas})")
             rotulos = pag.locator("[data-aba-corpo='builds'] .linha .rot b").all_inner_texts()
-            checa(rotulos[:2] == ["Compositor", "Menu do Arquivos"] and rotulos[2:] == ["Casa Um", "Casa Dois", "Casa Três"],
-                  f"as linhas dos builds ({rotulos})")
+            checa(rotulos == ["Casa Um", "Casa Dois", "Casa Três"], f"as linhas dos applets ({rotulos})")
             checa(pag.locator("[data-controle='build:tudo']").count() == 1, "«Refazer tudo» existe")
             antes_cargo = open(os.path.join(TESTE, "cargo.log"), encoding="utf-8").read().count("build")
             pag.locator("[data-controle='build:extensao:casa-um']").click()

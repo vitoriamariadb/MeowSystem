@@ -241,6 +241,54 @@ env -i PATH="$T/bin:/usr/bin:/bin" HOME="$C3" SHELL=/bin/bash MEOW_ESTADO="$C3/e
 confere "no PC sem Spellbook, o bloco vai ao .bashrc de sempre, sem vizinhos.conf" \
   'grep -q "^# >>> MeowSystem" "$C3/.bashrc" && [ ! -e "$C3/.config/meow/vizinhos.conf" ]'
 
+printf '\n8. o compositor da Aurora: só o bloco do --ensure e o do night-light saem, e só com o shim de pé\n'
+mkdir -p "$ZD/scripts"
+SH="$ZD/scripts/ritual-aurora-self-heal.sh"
+cat > "$SH" <<'FIM'
+#!/bin/bash
+SRC="$USER_HOME/.config/zsh/scripts"
+install_if_diff "$SRC/ritual-aurora-self-heal.sh"          /usr/local/sbin/ritual-aurora-self-heal.sh             755 none
+if [ -x /usr/local/sbin/aurora-other.sh ]; then
+  echo outro
+fi
+if [ -x /usr/local/sbin/aurora-cosmic-comp-ws.sh ]; then
+  env HOME="$USER_HOME" AURORA_USER="$USER_NAME" \
+    /usr/local/sbin/aurora-cosmic-comp-ws.sh --ensure 2>&1 || err "cosmic-comp-ws falhou"
+fi
+
+if [ -x /usr/local/bin/aurora-night-light.py ] && [ -f /usr/bin/cosmic-comp ]; then
+  nl_out="$(/usr/local/bin/aurora-night-light.py 2>&1)"; nl_rc=$?
+  case "$nl_rc" in
+    0) if echo "$nl_out" | grep -q aplicado; then
+         echo ok
+       fi ;;
+  esac
+fi
+echo depois
+FIM
+cp -a "$SH" "$T/self-heal-original.sh"
+saida="$(rodar --desativar aurora-compositor)"; rc=$?
+confere "sem o shim em ~/.local/bin, o requer impede o corte" \
+  '[ "$rc" = 0 ] && printf "%s" "$saida" | grep -q "espera" && cmp -s "$SH" "$T/self-heal-original.sh"'
+confere "o --listar diz que o compositor espera" 'rodar --listar | grep -q "^aurora-compositor	espera"'
+mkdir -p "$CASA/.local/bin"; cp "$RAIZ/scripts/compositor_shim.sh" "$CASA/.local/bin/cosmic-comp"
+rodar --desativar aurora-compositor >/dev/null; rc=$?
+confere "com o shim de pé, as quatro linhas do --ensure saem comentadas" \
+  '[ "$rc" = 1 ] && [ "$(grep -c "^#vizinhos:aurora-compositor# " "$SH")" = 4 ] && grep -q "^#vizinhos:aurora-compositor# fi$" "$SH"'
+confere "e só elas: o outro bloco, o night-light e o resto ficam" \
+  '[ "$(diff "$T/self-heal-original.sh" "$SH" | grep -c "^>")" = 4 ] && grep -q "^  echo outro" "$SH" && grep -q "^echo depois" "$SH"'
+rodar --desativar aurora-night-light >/dev/null; rc=$?
+confere "o night-light sai até o seu fi, com o case e o fi de dentro" \
+  '[ "$rc" = 1 ] && [ "$(grep -c "^#vizinhos:aurora-night-light# " "$SH")" = 8 ] && grep -q "^echo depois" "$SH"'
+confere "bash lê o self-heal sem erro" 'bash -n "$SH"'
+confere "o self-heal se reinstala do \$ZD/scripts, então o corte chega ao /usr/local/sbin" \
+  'grep -q "^install_if_diff \"\$SRC/ritual-aurora-self-heal.sh\" *  */usr/local/sbin/ritual-aurora-self-heal.sh" "$SH"'
+saida="$(rodar --desativar aurora-compositor)"; rc=$?
+confere "a segunda passada não escreve" '[ "$rc" = 0 ] && [ "$(grep -c "^#vizinhos:aurora-compositor# " "$SH")" = 4 ]'
+rodar --restaurar aurora-compositor >/dev/null
+rodar --restaurar aurora-night-light >/dev/null
+confere "--restaurar devolve o self-heal byte a byte" 'cmp -s "$SH" "$T/self-heal-original.sh"'
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'vizinhos: tudo verde\n'; exit 0; fi
 printf 'vizinhos: %s falha(s)\n' "$falhas"; exit 1

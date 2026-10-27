@@ -9,7 +9,7 @@
 [![license](https://img.shields.io/badge/license-GPL--3.0-CBA6F7?style=for-the-badge&labelColor=1E1E2E)](LICENSE)
 [![platform](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
-[![installer](https://img.shields.io/badge/installer-68%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![installer](https://img.shields.io/badge/installer-69%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 [![doctor](https://img.shields.io/badge/doctor-73%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 
 <img src="docs/capturas/desktop.jpg" width="920" alt="The desktop dressed by MeowSystem">
@@ -34,7 +34,7 @@ cd MeowSystem
 ./install.sh --wizard
 ```
 
-68 steps. `--wizard` asks the essential settings; `./install.sh --perfil <name>` installs with the
+69 steps. `--wizard` asks the essential settings; `./install.sh --perfil <name>` installs with the
 choices saved in `perfis/<name>/`. The sudo password is asked **once**, to register the root bridge;
 after that, no screen asks for a password. The installer downloads what Pop!_OS does not ship: the
 compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse first:
@@ -42,7 +42,7 @@ compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse 
 
 ## The panel
 
-`meow abrir`, or the MeowSystem icon in the launcher. 124 settings and 71 actions behind five doors (the panel speaks Portuguese):
+`meow abrir`, or the MeowSystem icon in the launcher. 125 settings and 70 actions behind five doors (the panel speaks Portuguese):
 
 <table>
 <tr>
