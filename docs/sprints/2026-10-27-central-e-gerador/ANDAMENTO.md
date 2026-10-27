@@ -28,12 +28,13 @@
 - INTEGRADO em `integracao/central-e-gerador` (worktree `~/Desenvolvimento/MeowSystem-integracao`): Painel (P115-P117,
   `relatorios/conferencia-painel.md`), Central (P120-P121, `relatorios/conferencia-central.md`) e Forks (P122,
   `relatorios/conferencia-forks.md`, merge c2187964; repos `vitoriamariadb/meowsystem-{eyedropper,clipboard,drives,
-  ascii-battery}` na main, nada instalado ainda).
+  ascii-battery}` na main, nada instalado ainda) e Pasta (P123, `relatorios/conferencia-pasta.md`, merge 39e3264c).
 - EM VOO, a partir da integração (ela pediu os blocos juntos, 27/10):
-  Aurora (`wf_32a9b69a-21d`, P124 → P125), Textos (`wf_af23fd58-b64`, P119 → P118), Pasta (`wf_064bfaa6-0dc`, P123).
+  Aurora (`wf_32a9b69a-21d`, P124 → P125) e Textos (`wf_af23fd58-b64`, P119 → P118).
   Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
-- Próximo passo: integrar cada um assim que voltar; o coordenador roda `scripts/enxugar.sh --aplicar` no checkout
-  principal depois que tudo chegar ao `dev`; por fim instalar do zero na máquina.
+- Próximo passo: integrar cada um assim que voltar. Fecho da pasta, no checkout dela, nesta ordem: `du -sh`; `meow doctor`
+  (ver `basefundo` e `estadovelho` acusarem); `meow doctor --consertar`; `scripts/enxugar.sh --raiz ~/Desenvolvimento/MeowSystem`
+  (lista); `--aplicar`; `du -sh`; depois um commit tira `scripts/enxugar.sh`, `tests/enxugar.sh` e as linhas deles; por fim instalar do zero na máquina.
 - 27/10 17:46: um teste da suíte (o desinstalar da casa de brinquedo) tirou o bloco do MeowSystem do `.zshrc` real, pelo
   `ZDOTDIR` herdado. Bloco devolvido às 17:56 (cópia em `~/.local/state/meowsystem/backups/zshrc-antes-2026-10-27-1756`);
   cura na integração (65d53c56, 8c946886). As suítes de Aurora, Textos e Pasta começaram antes da cura: depois de cada
