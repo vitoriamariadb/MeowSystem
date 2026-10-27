@@ -441,6 +441,14 @@ def main():
                   texto.selectNodeContents(v);
                   return Math.round(texto.getBoundingClientRect().right - borda);
                 }"""))
+            pag.set_viewport_size({"width": 390, "height": 860})
+            esperar(pag)
+            atras = pag.evaluate("""() => {
+              const a = document.querySelector('[data-controle="aba:builds"]').getBoundingClientRect();
+              const f = document.querySelector('#abas-fila').getBoundingClientRect();
+              return Math.round(a.right - f.left);
+            }""")
+            checa(atras <= 0, f"em 390 px a aba Builds inteira fica antes do botão Adicionar repositório ({atras})")
             pag.set_viewport_size({"width": 1550, "height": 860})
             esperar(pag)
             checa(max(transbordas) <= 0, f"a versão longa do pacote fica dentro do cartão, em 1500 e 390 px ({transbordas})")
