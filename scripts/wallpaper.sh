@@ -710,6 +710,11 @@ FIM
 
 VISTAS="$MEOW_ESTADO/wallpaper-vistas.txt"
 
+_gravar_vistas() {
+  printf '%s\n' "$@" | cmp -s - "$VISTAS" 2>/dev/null && return 0
+  printf '%s\n' "$@" > "$VISTAS" 2>/dev/null
+}
+
 reconciliar_sumicos() {
   local -a agora=() sumidas=()
   local nome n_antes n_agora
@@ -718,7 +723,7 @@ reconciliar_sumicos() {
   n_agora="${#agora[@]}"
 
   if [ ! -f "$VISTAS" ]; then
-    meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null
+    meow_seco || _gravar_vistas ${agora[@]+"${agora[@]}"}
     return 0
   fi
   n_antes="$(grep -c . "$VISTAS" 2>/dev/null)"; n_antes="${n_antes:-0}"
@@ -731,7 +736,7 @@ reconciliar_sumicos() {
 
   mapfile -t sumidas < <(LC_ALL=C comm -23 <(LC_ALL=C sort -u "$VISTAS") \
                                            <(printf '%s\n' ${agora[@]+"${agora[@]}"} | LC_ALL=C sort -u))
-  [ "${#sumidas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
+  [ "${#sumidas[@]}" = "0" ] && { meow_seco || _gravar_vistas ${agora[@]+"${agora[@]}"}; return 0; }
 
   if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
     meow_aviso "${#sumidas[@]} de $n_antes imagens sumiram de ativos/ de uma vez — não vou banir nada"
@@ -744,7 +749,7 @@ reconciliar_sumicos() {
     [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
     novas+=("$nome")
   done
-  [ "${#novas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
+  [ "${#novas[@]}" = "0" ] && { meow_seco || _gravar_vistas ${agora[@]+"${agora[@]}"}; return 0; }
 
   if meow_seco; then
     meow_muda "baniria ${#novas[@]} imagem(ns) apagada(s) à mão: ${novas[*]}"
@@ -761,7 +766,7 @@ reconciliar_sumicos() {
   meow_ok "${#novas[@]} imagem(ns) apagada(s) à mão entraram no BANIDOS.txt — o semear não as repõe"
   meow_info "  ${novas[*]}"
   meow_registrar "wallpaper.sh auto-banir: ${novas[*]}"
-  printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null
+  _gravar_vistas ${agora[@]+"${agora[@]}"}
   CUROU=1
   return 1
 }
@@ -1393,7 +1398,7 @@ cmd_semear_se_faltar() {
     return "$MEOW_DIVERGENTE"
   fi
   cmd_semear; rc=$?
-  mkdir -p "$MEOW_ESTADO" && printf '%s\n' "$origem" > "$marca"
+  [ "$(cat "$marca" 2>/dev/null)" = "$origem" ] || { mkdir -p "$MEOW_ESTADO" && printf '%s\n' "$origem" > "$marca"; }
   return "$rc"
 }
 

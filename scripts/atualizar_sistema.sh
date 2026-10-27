@@ -134,6 +134,7 @@ _as_guardar_debs() {
     if meow_seco; then
       meow_muda "guardaria ${arq##*/} em $AS_GUARDA_DEBS antes do clean"; n=$((n+1)); continue
     fi
+    meow_guardar_antes "$AS_GUARDA_DEBS/${arq##*/}"
     mkdir -p "$AS_GUARDA_DEBS" && cp -f "$arq" "$AS_GUARDA_DEBS/" \
       && { meow_muda "guardado ${arq##*/} — a volta para trás do $p"; n=$((n+1)); } \
       || meow_aviso "não consegui guardar ${arq##*/}"
@@ -150,7 +151,7 @@ _as_podar_debs() {
   for p in $(ls "$AS_GUARDA_DEBS" 2>/dev/null | sed -n 's/^\(cosmic-[^_]*\)_.*\.deb$/\1/p' | sort -u); do
     inst="$(dpkg-query -W -f='${Version}' "$p" 2>/dev/null)"
     ls "$AS_GUARDA_DEBS/${p}_"*.deb 2>/dev/null | grep -v -F "_${inst//:/%3a}_" | sort -V | head -n -1 |
-      while IFS= read -r d; do rm -f "$d" && meow_info "podado da guarda: ${d##*/}"; done
+      while IFS= read -r d; do meow_guardar_antes "$d"; rm -f "$d" && meow_info "podado da guarda: ${d##*/}"; done
   done
 }
 

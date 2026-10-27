@@ -1307,15 +1307,22 @@ etapa_autoreparo() {
   local origem="$MEOW_RAIZ/systemd"
   local destino="$HOME/.config/systemd/user"
   local estado="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
+  local unidades=(meow-doctor.service meow-doctor.timer) ligaveis=(meow-doctor.timer)
+  local vidro_unidades=(meow-vidro.service meow-vidro.path) quer_vidro=1
+  case "${VIDRO_AO_MAXIMIZAR:-sim}" in nao|não|false|0) quer_vidro=0 ;; esac
+  if [ "$quer_vidro" = "1" ]; then
+    unidades+=("${vidro_unidades[@]}"); ligaveis+=(meow-vidro.path)
+  fi
 
   if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
-    if [ -f "$destino/meow-doctor.timer" ]; then
+    if [ -f "$destino/meow-doctor.timer" ] || [ -f "$destino/meow-vidro.path" ]; then
       if meow_seco; then
         meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — removeria o auto-reparo (meow-doctor.timer)"
         return "$MEOW_DIVERGENTE"
       fi
-      systemctl --user disable --now meow-doctor.timer >/dev/null 2>&1
-      rm -f "$destino/meow-doctor.timer" "$destino/meow-doctor.service"
+      systemctl --user disable --now meow-doctor.timer meow-vidro.path >/dev/null 2>&1
+      rm -f "$destino/meow-doctor.timer" "$destino/meow-doctor.service" "${vidro_unidades[@]/#/$destino/}" \
+            "$destino"/*.wants/meow-vidro.path
       systemctl --user daemon-reload >/dev/null 2>&1
       meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" — auto-reparo desligado e removido (meow-doctor.timer)"
       return "$MEOW_DIVERGENTE"
@@ -1335,8 +1342,11 @@ etapa_autoreparo() {
     return "$MEOW_ERRO"
   fi
 
-  local mudou=0 u
-  for u in meow-doctor.service meow-doctor.timer; do
+  local mudou=0 u sobra_vidro=0
+  if [ "$quer_vidro" = "0" ] && { [ -f "$destino/meow-vidro.path" ] || [ -f "$destino/meow-vidro.service" ]; }; then
+    sobra_vidro=1
+  fi
+  for u in "${unidades[@]}"; do
     if [ ! -f "$origem/$u" ]; then
       meow_erro "falta $origem/$u — repositório incompleto"
       return "$MEOW_ERRO"
@@ -1350,27 +1360,38 @@ etapa_autoreparo() {
 
   if meow_seco; then
     local armaria=0
-    if [ "$(systemctl --user is-enabled meow-doctor.timer 2>/dev/null)" != "enabled" ] ||
-       [ "$(systemctl --user is-active  meow-doctor.timer 2>/dev/null)" != "active" ]; then
-      armaria=1
-    fi
+    for u in "${ligaveis[@]}"; do
+      if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+         [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+        armaria=1
+      fi
+    done
     [ "$mudou"   = "1" ] && meow_muda "instalaria/atualizaria as unidades do auto-reparo"
-    [ "$armaria" = "1" ] && meow_muda "ligaria o auto-reparo (meow-doctor.timer, todo dia às 5h)"
-    { [ "$mudou" = "1" ] || [ "$armaria" = "1" ]; } && return "$MEOW_DIVERGENTE"
+    [ "$armaria" = "1" ] && meow_muda "ligaria o auto-reparo (${ligaveis[*]})"
+    [ "$sobra_vidro" = "1" ] && meow_muda "VIDRO_AO_MAXIMIZAR=\"${VIDRO_AO_MAXIMIZAR:-}\" — removeria o vigia do vidro (meow-vidro.path)"
+    { [ "$mudou" = "1" ] || [ "$armaria" = "1" ] || [ "$sobra_vidro" = "1" ]; } && return "$MEOW_DIVERGENTE"
     meow_ok "auto-reparo já ligado (meow-doctor.timer, todo dia às 5h, com até 20min de folga)"
     return 0
   fi
 
-  [ "$mudou" = "1" ] && systemctl --user daemon-reload
-
-  if [ "$(systemctl --user is-enabled meow-doctor.timer 2>/dev/null)" != "enabled" ] ||
-     [ "$(systemctl --user is-active  meow-doctor.timer 2>/dev/null)" != "active" ]; then
-    if ! systemctl --user enable --now meow-doctor.timer >/dev/null 2>&1; then
-      meow_erro "não consegui ligar o meow-doctor.timer"
-      return "$MEOW_ERRO"
-    fi
+  if [ "$sobra_vidro" = "1" ]; then
+    systemctl --user disable --now meow-vidro.path >/dev/null 2>&1
+    rm -f "${vidro_unidades[@]/#/$destino/}" "$destino"/*.wants/meow-vidro.path
+    meow_muda "VIDRO_AO_MAXIMIZAR=\"${VIDRO_AO_MAXIMIZAR:-}\" — vigia do vidro desligado e removido"
     mudou=1
   fi
+  [ "$mudou" = "1" ] && systemctl --user daemon-reload
+
+  for u in "${ligaveis[@]}"; do
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      if ! systemctl --user enable --now "$u" >/dev/null 2>&1; then
+        meow_erro "não consegui ligar o $u"
+        return "$MEOW_ERRO"
+      fi
+      mudou=1
+    fi
+  done
 
   if [ ! -x "$HOME/.local/bin/meow" ]; then
     meow_aviso "o timer está ligado, mas ~/.local/bin/meow ainda não existe"

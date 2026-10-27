@@ -75,6 +75,7 @@ PORTATIL=(
   tres-pastas.sh
   migracao-do-painel.py
   vizinhos.sh
+  segunda-passada-sem-rede.sh
   lancador-do-meow.sh
   flatpak-tema.sh
   escritorio.sh
@@ -85,6 +86,8 @@ PORTATIL=(
   sons-do-pack.sh
   ponte-reparo.sh
   ponte-so-reserva.sh
+  ponte-cosmic-comp.sh
+  painel-fantasma.sh
   criar-tema-leva.sh
   mesmo-horario.sh
   desbanir.sh
