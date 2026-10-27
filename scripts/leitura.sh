@@ -450,7 +450,7 @@ cmd_estado() {
     if grep -aqs "$LEITURA_MARCADOR" "$LEITURA_COMP"; then
       meow_ok "$(_leitura_col "cosmic-comp no disco")sabe ler leitura_* ($LEITURA_MARCADOR presente)"
     else
-      meow_pula "$(_leitura_col "cosmic-comp no disco")NÃO sabe ler leitura_* — falta a etapa 1 (o patch do compositor: meow compositor)"
+      meow_pula "$(_leitura_col "cosmic-comp no disco")NÃO sabe ler leitura_* — falta a etapa 1 (o patch do compositor, que o doctor compila)"
     fi
   fi
   local pid=""

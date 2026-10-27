@@ -702,7 +702,8 @@ cmd_alfinetar_primeira() {
   meow_muda "primeiro alfinete criado: «$primeiro» em $saida"
   meow_pendencia_resolvida areas-sem-alfinete
   _areas_so_no_login
-  meow_info "depois do próximo login:  meow areas aplicar  escreve o resto da lista"
+  local onde; onde="$(meow_onde_no_painel areas_aplicar)"
+  meow_info "depois do próximo login, o resto da lista entra pelo painel: ${onde:-Definir, Áreas de trabalho}"
   return "$MEOW_DIVERGENTE"
 }
 

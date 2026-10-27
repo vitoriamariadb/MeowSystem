@@ -52,7 +52,7 @@ cmd_aplicar() {
     meow_muda "rodaria: apt update && apt full-upgrade"
     _as_tem topgrade && meow_muda "rodaria: topgrade"
     _as_tem cargo-install-update && meow_muda "rodaria: cargo install-update -a"
-    meow_muda "e depois: meow doctor, para ver o que a atualização desfez"
+    meow_muda "e depois conferiria com o doctor o que a atualização desfez"
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -61,7 +61,7 @@ cmd_aplicar() {
   meow_passo "1/4 Pacotes do sistema"
   if _as_tem apt && [ -x "$MEOW_RAIZ/scripts/cosmic_prever.sh" ]; then
     "$MEOW_RAIZ/scripts/cosmic_prever.sh" prever \
-      || meow_info "  o veredito do COSMIC tem vermelho — o upgrade segue; o detalhe fica em: meow cosmic ler"
+      || meow_info "  o veredito do COSMIC tem vermelho — o upgrade segue, e o doctor confere depois o que ele desfizer"
   fi
   if _as_tem apt; then
     local rc_ponte=0

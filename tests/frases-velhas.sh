@@ -322,7 +322,7 @@ import glob
 
 VESTIR = re.compile(r"(?<![\w${])(?:re)?vest(?:ir|e|em|id[oa]s?|indo|iri?a\w*|ia|iam|imos)(?![\w=+])", I)
 MANDAR = re.compile(r"(?<![\w$])Mandar(?!\w)|\bpara\s+mandar\b|\brecom\s+o\b")
-DIGITE = re.compile(r"\bdigite\b|\brode:?\s+[`'\"]?meow\b|\b(?:com|ou|é|use):\s+meow\s+\w+", I)
+DIGITE = re.compile(r"\b(?:digite|rode|execute|use)\b[^.;]{0,24}?[`'\"]?\bmeow\s+[a-z]|:\s+[`'\"]?meow\s+[a-z]", I)
 ISENTAS = ("filtro_git.py", "$filtro", "filter.meow-obsidian", "# icones/apps.map")
 CITADA = re.compile(r"\"(?:[^\"\\\n]|\\.)*\"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\\n]|\\.)*`")
 SHELLS = ("install.sh", "bin/meow")

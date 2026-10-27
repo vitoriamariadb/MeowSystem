@@ -3877,7 +3877,7 @@ def cmd_importar(caminho, opcoes):
                         f"    Importar por cima trocaria o que está lá sem perguntar, e um pack\n"
                         f"    com o mesmo nome noutra raiz esconderia um dos dois. Para trocar,\n"
                         f"    tire o que está lá primeiro."
-                        + (f"\n    Ele é seu: meow pack remover {ident}, ou o «Remover» do cartão."
+                        + ("\n    Ele é seu: tire-o com o «Remover» do cartão dele, em Tema."
                            if existe and os.path.dirname(existe) == raiz_da_pessoa() else "")
                         + ("\n    O id sai do nome do CSV: com outro nome, ele vira outro pack."
                            if de_csv else ""))
