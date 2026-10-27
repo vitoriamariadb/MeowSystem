@@ -303,6 +303,39 @@ volta aplicar
 [ -e "$V/.local/bin/cosmic-files" ] && falha "o conserto não tirou o nosso" || ok "o conserto tira o nosso"
 volta --conferir; igual "e a conferência seguinte fica em 0" "$?" 0
 
+echo
+echo "== 4. o doctor: build da casa pronto e shim desligado, com COMPOSITOR=sim, diverge e o conserto liga"
+doutor() {
+  env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY \
+    HOME="$T/home" PATH="$T/bin:$PATH" MEOW_RAIZ="$RAIZ" RAIZ="$RAIZ" NO_COLOR=1 \
+    MEOW_ESTADO="$ESTADO" MEOW_CONF="$T/home/.config/meow/meow.conf" \
+    GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" \
+    CP_REPO="$T/patches" CP_SERIE="$T/patches/series" COMPOSITOR="${2:-sim}" \
+    bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
+      eval "$(sed -n "/^_patches_shim_falta() {/,/^}/p;/^chk_patches() {/,/^}/p;/^fix_patches() /p" "$MEOW_RAIZ/bin/meow")"
+      "$1"' _ "$1" > "$T/saida" 2>&1 </dev/null
+}
+versoes cosmic-comp=0.1~a cosmic-files=1.10~a
+rm -f "$T/home/.local/bin/cosmic-comp"; : > "$T/log"
+doutor chk_patches; igual "build pronto, shim ausente: o doctor diverge" "$?" 1
+grep -q 'shim' "$T/saida" && ok "e diz que é o shim" || { falha "o doctor não falou do shim"; sed 's/^/        /' "$T/saida"; }
+doutor chk_patches nao
+grep -q 'shim em ~/.local/bin/cosmic-comp não está ligado' "$T/saida" \
+  && falha "COMPOSITOR=nao e o doctor ainda pede o shim" || ok "COMPOSITOR=nao: o doctor não pede o shim"
+doutor fix_patches; rc=$?
+grep -qs 'MEOW-COSMIC-COMP-SHIM-1' "$T/home/.local/bin/cosmic-comp" \
+  && ok "o conserto cria ~/.local/bin/cosmic-comp com MEOW-COSMIC-COMP-SHIM-1" \
+  || { falha "o conserto não criou o shim (rc=$rc)"; sed 's/^/        /' "$T/saida"; }
+igual "o conserto devolve 1" "$rc" 1
+igual "e não compilou nada" "$(linhas 'compilar\|build')" 0
+antes="$(foto)"
+doutor fix_patches; igual "a segunda passada do conserto devolve 0" "$?" 0
+igual "e não escreve nada" "$(foto)" "$antes"
+doutor chk_patches
+grep -q 'shim em ~/.local/bin/cosmic-comp não está ligado' "$T/saida" \
+  && falha "com o shim de pé o doctor ainda o pede" || ok "com o shim de pé o doctor não o pede mais"
+rm -f "$T/home/.local/bin/cosmic-comp"
+
 grep -v "^recusado: sudo -n -l$" "$T/recusados" 2>/dev/null | grep -q . && { falha "algo chamou um comando recusado:"; sed "s/^/        /" "$T/recusados"; }
 
 echo
