@@ -5,6 +5,7 @@ const PORTAS = [
   { id: "criar", nome: "Criar tema", icone: "criar" },
   { id: "ajustes", nome: "Ajustes", icone: "ajustes" },
   { id: "cuidar", nome: "Cuidar", icone: "cuidar" },
+  { id: "extensoes", nome: "Extensões", icone: "grade" },
 ];
 
 const LUGAR_TEMA = {
