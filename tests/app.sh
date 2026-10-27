@@ -507,6 +507,15 @@ if [n for n in nomes if n in rotulos_de_acao or not n]:
 sem_nome = sorted(set(servidor.ACAO_DA_PENDENCIA) - set(servidor.NOME_DA_PENDENCIA))
 if sem_nome or set(servidor.NOME_DA_PENDENCIA) - set(servidor.ACAO_DA_PENDENCIA):
     erros.append("12c: NOME_DA_PENDENCIA e ACAO_DA_PENDENCIA não têm as mesmas chaves: %r" % sem_nome)
+with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
+    fh.write("files-menu-build\tfiles_menu.sh\tParei de tentar sozinha\tmeow files-menu build"
+             "\t2026-10-27T00:00:00-03:00\n")
+menu = servidor.pendencias()
+if [(p["acao"], p["escolha"]) for p in menu] != [("", [{"acao": "extensao_refazer", "argumento": "menu-arquivos",
+                                                        "rotulo": "Refazer"}])]:
+    erros.append("a pendência do build do menu não se resolve com «Refazer» do pino: %r" % menu)
+if servidor.onde_na_tela("files-menu-build") != "«Refazer», em %s" % servidor.porta_das_pendencias():
+    erros.append("--onde do build do menu não cita o «Refazer»: %r" % servidor.onde_na_tela("files-menu-build"))
 os.remove(servidor.PENDENCIAS)
 if longos:
     erros.append("12c: nome ou botão com mais de três palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))

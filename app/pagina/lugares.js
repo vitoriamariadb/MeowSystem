@@ -268,6 +268,7 @@ const LUGAR_CUIDAR = {
     { a: "apps_tema_do_pack", r: "Tema de um programa", b: "Trocar" },
     { a: "apps_manter_o_meu", r: "Tema de um programa", b: "Manter" },
     { a: "vscode_instalar_extensao", r: "Extensão do VS Code", b: "Instalar" },
+    { a: "extensao_refazer", r: "Build da casa", b: "Refazer" },
   ],
   cartoes: [
     { id: "outro", titulo: "Outro computador", icone: "computador", linhas: [
