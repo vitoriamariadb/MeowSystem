@@ -89,6 +89,8 @@ PORTATIL=(
   mesmo-horario.sh
   desbanir.sh
   mapas-fim-de-linha.sh
+  wallpaper-base.sh
+  enxugar.sh
 )
 
 MAQUINA=(

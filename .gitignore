@@ -64,3 +64,8 @@ STATE.md
 .agente*
 
 .aider*
+
+/*.zip
+/.playwright-mcp/
+/src/applets/
+/assets/papeis-de-parede/

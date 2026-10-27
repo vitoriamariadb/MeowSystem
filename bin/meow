@@ -232,6 +232,48 @@ chk_wallpaper() {
   return "$rc"
 }
 
+chk_basefundo() {
+  WALLPAPER_BASE="${WALLPAPER_BASE:-}" "$RAIZ/scripts/wallpaper.sh" base --conferir 2>&1
+}
+
+fix_basefundo() {
+  WALLPAPER_BASE="${WALLPAPER_BASE:-}" "$RAIZ/scripts/wallpaper.sh" base 2>&1
+}
+
+_ESTADO_ANTIGO=(midia leitura)
+
+_estado_antigo_sobra() {
+  local d
+  for d in "${_ESTADO_ANTIGO[@]}"; do
+    [ -d "$MEOW_ESTADO/$d" ] && printf '%s\n' "$MEOW_ESTADO/$d"
+  done
+  return 0
+}
+
+chk_estadovelho() {
+  local sobra
+  sobra="$(_estado_antigo_sobra)"
+  if [ -n "$sobra" ]; then
+    printf '%s\n' "$sobra" | while IFS= read -r d; do
+      meow_muda "$d é árvore de build da era em que o applet morava aqui ($(du -sh -- "$d" 2>/dev/null | cut -f1)) — sai"
+    done
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_ok "o estado não guarda árvore de build antiga"
+  return "$MEOW_OK"
+}
+
+fix_estadovelho() {
+  local d
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    if meow_seco; then meow_muda "removeria $d/"; continue; fi
+    rm -rf -- "$d" || { meow_erro "não consegui remover $d"; return "$MEOW_ERRO"; }
+    meow_ok "removido $d/"
+  done < <(_estado_antigo_sobra)
+  return "$MEOW_DIVERGENTE"
+}
+
 _FUNDO_DIR="$HOME/.config/systemd/user"
 _FUNDO_UNIDADES=(meow-wallpaper.service meow-wallpaper.timer meow-fundo.path meow-ativos.path)
 _fundo_ligaveis() {
@@ -1381,7 +1423,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura extensoes extensoestema greeter cursor flatpaktema flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura extensoes extensoestema greeter cursor flatpaktema flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 if ! meow_ponte_viva; then
   SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal libreoffice "
@@ -1675,6 +1717,7 @@ cmd_doctor() {
       *)   falhou=1 ;;
     esac
     if [ "$nome" = "conf" ] && [ "$rc" = "1" ]; then recarregar_conf_migrado; fi
+    if [ "$nome" = "basefundo" ] && [ "$rc" = "1" ]; then recarregar_conf_migrado; rodar_checks; fi
     if [ "$nome" = "ponte" ] && [ "$rc" = "1" ] && meow_ponte_viva; then
       SEM_CONSERTO=" convertidos heroictema "
     fi

@@ -49,6 +49,34 @@ else
   versionados assets/icones/upstream | amostra
 fi
 
+sobras=""
+for caminho in src/applets assets/papeis-de-parede .playwright-mcp .trabalho-icones assets/icones/upstream; do
+  [ -e "$RAIZ/$caminho" ] && sobras+="$caminho"$'\n'
+done
+for zip in "$RAIZ"/*.zip; do
+  [ -e "$zip" ] && sobras+="$(basename "$zip")"$'\n'
+done
+if [ -z "$sobras" ]; then
+  ok "a pasta não guarda build de applet, acervo de papel de parede, captura de navegador nem zip na raiz"
+else
+  falha "sobra na pasta do repositório: applet vive em extensoes/<id>, papel de parede em ~/.local/share/backgrounds, o git já guarda o resto (scripts/enxugar.sh --aplicar)"
+  printf '%s' "$sobras" | amostra
+fi
+
+casa_de_ensaio="$(mktemp -d)"
+trap 'rm -rf "$casa_de_ensaio"' EXIT
+base_dentro="$(env -i PATH="$PATH" HOME="$casa_de_ensaio" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  WALLPAPER_BASE="$RAIZ/assets/papeis-de-parede" "$RAIZ/scripts/wallpaper.sh" base --conferir 2>&1)"; rc_dentro=$?
+env -i PATH="$PATH" HOME="$casa_de_ensaio" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  WALLPAPER_BASE="$casa_de_ensaio/.local/share/backgrounds/meowsystem" \
+  "$RAIZ/scripts/wallpaper.sh" base --conferir >/dev/null 2>&1; rc_fora=$?
+if [ "$rc_dentro" = "1" ] && [ "$rc_fora" = "0" ]; then
+  ok "o doctor diverge quando WALLPAPER_BASE mora dentro do repositório e passa quando mora fora"
+else
+  falha "a conferência da base do papel de parede não distingue dentro de fora (dentro=$rc_dentro fora=$rc_fora)"
+  printf '%s\n' "$base_dentro" | amostra
+fi
+
 achadas=0
 while IFS= read -r par; do
   [ -n "$par" ] || continue
