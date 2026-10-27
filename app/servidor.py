@@ -4315,6 +4315,7 @@ NOME_DA_PENDENCIA = {
     "instalar-com-root": "Ponte de root",
     "flatpak-global-sistema": "Flatpaks do sistema",
     "libreoffice-sistema": "LibreOffice do sistema",
+    "aplicar-ajuste": "Ajuste pendente",
     "extensao-now-playing": "Tocando agora",
     "extensao-status-hub": "Bandeja",
     "extensao-quick-settings": "Ajustes rápidos",
