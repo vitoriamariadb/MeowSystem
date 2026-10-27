@@ -136,14 +136,15 @@ else
 fi
 registro 6 '0x10de:0x25a2' && ok "o registro guarda o dispositivo e o aval" || falha "a decisão 6 saiu do registro"
 
-echo "== o shim do compositor ligado (ESTADO.md de 15/10)"
-if [ -d /usr/local/lib/aurora ]; then
-  [ -x "$REAL/.local/bin/cosmic-comp" ] && grep -q 'MEOW-COSMIC-COMP-SHIM-1' "$REAL/.local/bin/cosmic-comp" \
-    && ok "~/.local/bin/cosmic-comp é o shim do MeowSystem" \
-    || falha "o shim do compositor está desligado: o cosmic-comp do PATH não é o shim"
-else
-  pula "sem /usr/local/lib/aurora: esta não é a máquina de quem usa"
-fi
+echo "== o shim do compositor ligado (ESTADO.md de 15/10), no HOME de brinquedo"
+grep -q '^COMPOSITOR="sim"' "$RAIZ/meow.conf.exemplo" && grep -qE 'etapa_extensoes etapa_compositor ' "$RAIZ/install.sh" \
+  && ok "de fábrica COMPOSITOR=sim, e o install tem a etapa que liga o shim" \
+  || falha "o shim do compositor deixou de ser de fábrica: falta COMPOSITOR=\"sim\" ou a etapa_compositor"
+NO_COLOR=1 "$RAIZ/scripts/compositor_patches.sh" ativar >/dev/null 2>&1
+[ -x "$CASA/.local/bin/cosmic-comp" ] && grep -q 'MEOW-COSMIC-COMP-SHIM-1' "$CASA/.local/bin/cosmic-comp" \
+  && ok "ligar o compositor põe o shim do MeowSystem em ~/.local/bin/cosmic-comp" \
+  || falha "ligar o compositor não pôs o shim em ~/.local/bin/cosmic-comp"
+rm -f "$CASA/.local/bin/cosmic-comp"
 
 echo "== D7. o «Consertar» do doctor baixa com o selo, sem caixa de pergunta"
 r="$(python3 - "$RAIZ/app" <<'PY' 2>&1
