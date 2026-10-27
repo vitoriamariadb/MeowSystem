@@ -433,11 +433,15 @@ def _leitura_no_applet(chave):
     tipo, nome = onde
     if tipo == "estado":
         base = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
-        try:
-            with open(os.path.join(base, "cosmic", "com.meowsystem.AppletLeitura", "v1", nome),
-                      encoding="utf-8") as fh:
-                bruto = fh.read().strip()
-        except OSError:
+        bruto = None
+        for app_id in ("io.github.meowsystem.Leitura", "com.meowsystem.AppletLeitura"):
+            try:
+                with open(os.path.join(base, "cosmic", app_id, "v1", nome), encoding="utf-8") as fh:
+                    bruto = fh.read().strip()
+                break
+            except OSError:
+                continue
+        if bruto is None:
             return None
     else:
         bruto = (_cosmic_ler(nome) or "").strip().strip('"')
@@ -1009,6 +1013,45 @@ def _oficina_do_usuario(*partes):
     return os.path.join(xdg, "meowsystem", *partes)
 
 
+def _cores_da_consulta(valor):
+    if isinstance(valor, str):
+        try:
+            valor = json.loads(valor) if valor else None
+        except ValueError:
+            return None
+    if not isinstance(valor, dict):
+        return None
+    return {str(k): str(v) for k, v in valor.items()
+            if re.match(r"^[a-z0-9]{1,24}$", str(k)) and re.match(r"^#[0-9a-fA-F]{6}$", str(v))} or None
+
+
+_GERADOR_CIRCULO = None
+
+
+def _gerador_circulo():
+    global _GERADOR_CIRCULO
+    if _GERADOR_CIRCULO is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "meow_gerador_circulo", os.path.join(RAIZ, "scripts", "gerador_circulo.py"))
+        _GERADOR_CIRCULO = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_GERADOR_CIRCULO)
+    return _GERADOR_CIRCULO
+
+
+def _cadeia_do_pack(valor):
+    mod = modulo_pack()
+    ident = str(valor or "").strip()
+    if not mod or not re.match(r"^[a-z0-9-]{1,64}$", ident):
+        ident = _pack_adotado() or (mod.PACK_BASE if mod else "")
+    return (mod.cadeia_de_acervo(ident) if mod and ident else []), ident
+
+
+def _texto_de_mapa(linhas):
+    texto = "\n".join(linhas)
+    return texto if not texto or texto.endswith("\n") else texto + "\n"
+
+
 def _gravar_escolha(caminho, chave, linha, separador):
     try:
         with open(caminho, "r", encoding="utf-8") as fh:
@@ -1335,11 +1378,6 @@ def _gatos():
     return nomes
 
 
-def _capturas():
-    _ponte_em_dia()
-    return [n for n in _capturas_no_disco() if n != "original"]
-
-
 _APLICAM_CACHE = {}
 
 
@@ -1441,7 +1479,104 @@ def _ponteiro_do_pack():
         return None
 
 
+_SOM_TIMBRE_DE_FABRICA = {"SOM_FUNDAMENTAL": "880.0", "SOM_HARMONICO": "1320.0",
+                          "SOM_PESO_FUNDAMENTAL": "0.62", "SOM_PESO_HARMONICO": "0.28",
+                          "SOM_DECAIMENTO": "46.0"}
+_SOM_CARIMBO = os.path.join(ESTADO, "som-do-pack")
+
+
+@_uma_vez_por_leitura
+def _som_do_pack_ativo():
+    mod = modulo_pack()
+    if not mod:
+        return "", dict(_SOM_TIMBRE_DE_FABRICA)
+    try:
+        dir_pack = _pack_adotado() or mod.dir_padrao()
+        ident = os.path.basename(dir_pack.rstrip(os.sep))
+        return ident, dict(_SOM_TIMBRE_DE_FABRICA, **mod.timbre(ident))
+    except Exception:
+        return "", dict(_SOM_TIMBRE_DE_FABRICA)
+
+
+def _som_carimbo_ler(arquivo=None):
+    try:
+        with open(arquivo or _SOM_CARIMBO, "r", encoding="utf-8") as fh:
+            return fh.read().strip()
+    except OSError:
+        return ""
+
+
+def _som_ajuste_vale():
+    ident, _timbre = _som_do_pack_ativo()
+    return bool(ident) and _som_carimbo_ler() == ident
+
+
+def _som_carimbar(pares, pasta=None):
+    ident, _timbre = _som_do_pack_ativo()
+    if not ident or not any(c in _SOM_TIMBRE_DE_FABRICA for c, _v in pares):
+        return pares
+    arquivo = os.path.join(pasta, "som-do-pack") if pasta else _SOM_CARIMBO
+    if _som_carimbo_ler(arquivo) != ident:
+        escritas = {c for c, _v in pares}
+        brutos = valores_brutos()
+        pares = list(pares) + [(c, "") for c in _SOM_TIMBRE_DE_FABRICA
+                               if c not in escritas and brutos.get(c)]
+    return pares
+
+
+def _som_carimbo_gravar(pares, pasta=None):
+    ident, _timbre = _som_do_pack_ativo()
+    if not ident or not any(c in _SOM_TIMBRE_DE_FABRICA for c, _v in pares):
+        return
+    arquivo = os.path.join(pasta, "som-do-pack") if pasta else _SOM_CARIMBO
+    try:
+        os.makedirs(os.path.dirname(arquivo), exist_ok=True)
+        with open(arquivo, "w", encoding="utf-8") as fh:
+            fh.write(ident + "\n")
+    except OSError:
+        pass
+
+
+_RASCUNHO_ARQUIVO = os.path.join(ESTADO, "rascunho-do-tema.json")
+
+
+def _rascunho_ler():
+    try:
+        with open(_RASCUNHO_ARQUIVO, encoding="utf-8") as fh:
+            dados = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    return dados if isinstance(dados, dict) and isinstance(dados.get("base"), dict) else None
+
+
+def _rascunho_gravar(dados):
+    if dados is None:
+        try:
+            os.remove(_RASCUNHO_ARQUIVO)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            return False
+        return True
+    if not (isinstance(dados, dict) and isinstance(dados.get("base"), dict)):
+        return False
+    texto = json.dumps(dados, ensure_ascii=False)
+    if len(texto) > (256 << 10):
+        return False
+    try:
+        os.makedirs(ESTADO, exist_ok=True)
+        tmp = _RASCUNHO_ARQUIVO + ".parcial"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(texto)
+        os.replace(tmp, _RASCUNHO_ARQUIVO)
+    except OSError:
+        return False
+    return True
+
+
 def _padrao_do_pack(chave):
+    if chave in _SOM_TIMBRE_DE_FABRICA:
+        return _som_do_pack_ativo()[1][chave]
     if chave != "CURSOR":
         return None
     return (_ponteiro_do_pack() or {}).get("valor") or None
@@ -1718,7 +1853,7 @@ def teto_da_chave(chave):
 
 
 def validar_valor(item, valor):
-    if valor == "":
+    if valor == "" or valor == item["padrao"]:
         return None
 
     fechadas = _opcoes_fechadas(item["chave"], item["ajuda"], item["inline"],
@@ -1774,7 +1909,7 @@ PONTAS_DA_NOITE = ("NOITE_INICIO", "NOITE_FIM")
 HORARIO_DAS_AREAS = (
     ("Claro ou escuro", "MODO_AUTO_CLARO_ATE", "MODO_AUTO_CLARO_DE", "hora"),
     ("Papel de parede", "WALLPAPER_NOITE_INICIO", "WALLPAPER_NOITE_FIM", "hhmm"),
-    ("Tela quente", "LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "hhmm"),
+    ("Modo de leitura", "LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "hhmm"),
 )
 NOITE_DE_FABRICA = ("18:00", "07:00")
 
@@ -1931,6 +2066,131 @@ def definir(chave, valor):
     return (rc, saida)
 
 
+CHAVE_ETAPA = os.path.join(RAIZ, "assets", "contratos", "chave-etapa.tsv")
+PENDENCIA_APLICAR = "aplicar-ajuste"
+RE_NOME_DE_ETAPA = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+def _tabela_chave_etapa():
+    tabela = {}
+    try:
+        with open(CHAVE_ETAPA, "r", encoding="utf-8") as fh:
+            for linha in fh:
+                campos = linha.rstrip("\n").split("\t")
+                if len(campos) == 3 and campos[0]:
+                    tabela[campos[0]] = (campos[1], campos[2] == "sim")
+    except OSError:
+        pass
+    return tabela
+
+
+def plano_de_aplicacao(chaves):
+    tabela = _tabela_chave_etapa()
+    completo, root, etapas = False, False, []
+    for chave in chaves:
+        destino, de_root = tabela.get(chave, ("*", False))
+        root = root or (de_root and destino != "-")
+        if destino == "-":
+            continue
+        if destino == "*":
+            completo = True
+            continue
+        for nome in destino.split(","):
+            if RE_NOME_DE_ETAPA.match(nome) and nome not in etapas:
+                etapas.append(nome)
+    return {"completo": completo, "etapas": etapas, "root": root,
+            "nada": not completo and not etapas}
+
+
+def _pendencia_de_aplicar(frase):
+    try:
+        os.makedirs(ESTADO, exist_ok=True)
+        linhas = []
+        try:
+            with open(PENDENCIAS, "r", encoding="utf-8") as fh:
+                linhas = [l for l in fh if l.split("\t", 1)[0] != PENDENCIA_APLICAR]
+        except OSError:
+            pass
+        if frase:
+            linhas.append("%s\tpainel\t%s\t./install.sh\t%s\n" % (
+                PENDENCIA_APLICAR, frase.replace("\t", " ").replace("\n", " "),
+                time.strftime("%Y-%m-%dT%H:%M:%S%z")))
+        tmp = PENDENCIAS + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.writelines(linhas)
+        os.replace(tmp, PENDENCIAS)
+    except OSError:
+        pass
+
+
+_APLICAR = {"fila": [], "completo": False, "correndo": False, "falhou": False}
+_APLICAR_TRAVA = threading.Lock()
+
+
+def estado_do_aplicar():
+    with _APLICAR_TRAVA:
+        return {"correndo": _APLICAR["correndo"], "falhou": _APLICAR["falhou"]}
+
+
+def _aplicador():
+    while True:
+        with _APLICAR_TRAVA:
+            if not _APLICAR["fila"] and not _APLICAR["completo"]:
+                _APLICAR["correndo"] = False
+                return
+            completo, etapas = _APLICAR["completo"], list(_APLICAR["fila"])
+            _APLICAR["fila"], _APLICAR["completo"] = [], False
+        extra = [] if completo else ["--etapa", ",".join(etapas)]
+        trabalho, erro = None, None
+        for _tentativa in range(3600):
+            while _ESPERANDO_O_SLOT[0] > 0:
+                time.sleep(0.1)
+            trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra, por_dentro=True)
+            if trabalho is not None or "já há um trabalho" not in str(erro):
+                break
+            time.sleep(0.5)
+        if trabalho is None:
+            rc = None
+        else:
+            while trabalho.vivo():
+                time.sleep(0.3)
+            rc = trabalho.rc
+        bom = rc in (0, 1)
+        with _APLICAR_TRAVA:
+            _APLICAR["falhou"] = not bom
+        _pendencia_de_aplicar(
+            "" if bom else "Um ajuste foi gravado e não chegou a aplicar")
+
+
+def _esperar_aplicar_vivo(limite=300):
+    fim = time.time() + limite
+    while time.time() < fim:
+        atual = TRABALHO_ATUAL
+        if atual is None or atual.acao != "aplicar" or not atual.vivo():
+            return
+        time.sleep(0.3)
+
+
+def aplicar_depois_de_gravar(chaves):
+    plano = plano_de_aplicacao(chaves)
+    if plano["nada"]:
+        return {"aplicando": False}
+    if plano["root"] and not _ponte_viva():
+        _pendencia_de_aplicar("Um ajuste foi gravado e falta a ponte para aplicar")
+        return {"aplicando": False, "sem_ponte": True}
+    with _APLICAR_TRAVA:
+        if plano["completo"]:
+            _APLICAR["completo"] = True
+        for nome in plano["etapas"]:
+            if nome not in _APLICAR["fila"]:
+                _APLICAR["fila"].append(nome)
+        _APLICAR["falhou"] = False
+        if not _APLICAR["correndo"]:
+            _APLICAR["correndo"] = True
+            threading.Thread(target=_aplicador, daemon=True).start()
+    return {"aplicando": True}
+
+
 def _conf_de_ensaio(pares):
     fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
     try:
@@ -1943,6 +2203,9 @@ def _conf_de_ensaio(pares):
         if rc == 2:
             shutil.rmtree(pasta, ignore_errors=True)
             return (None, "%s: %s" % (chave, saida or "não consegui gravar no ensaio"))
+    if os.path.isfile(_SOM_CARIMBO):
+        shutil.copyfile(_SOM_CARIMBO, os.path.join(pasta, "som-do-pack"))
+    _som_carimbo_gravar(pares, pasta)
     return (pasta, None)
 
 
@@ -2149,10 +2412,213 @@ def _acento_da_pagina(flavor, valores):
     return _acento_na_tela(flavor) or "mauve"
 
 
+EXT_CASA = os.path.join(RAIZ, "assets", "extensoes")
+EXT_CHAVES = ("NOME", "DESCRICAO", "URL", "COMMIT", "VERSAO", "APP_ID", "BIN", "UPSTREAM",
+              "SUBSTITUI", "DATA", "ORDEM")
+RE_ID_EXT = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+EXT_GESTO = os.path.join(RAIZ, "scripts", "extensoes_gesto.sh")
+EXT_CONSTRUTOR = os.path.join(RAIZ, "scripts", "extensoes_build.sh")
+EXT_GARANTIR = os.path.join(RAIZ, "scripts", "garantir_builds.sh")
+
+
+def _ext_usuario():
+    return os.path.join(ESTADO, "extensoes", "usuario")
+
+
+def _ext_pino_ler(caminho):
+    dados = {}
+    try:
+        with open(caminho, encoding="utf-8") as fh:
+            for linha in fh:
+                m = re.match(r'^([A-Z_]+)=(?:"(.*)"|([0-9]*))\s*$', linha.rstrip("\n"))
+                if m and m.group(1) in EXT_CHAVES:
+                    dados[m.group(1)] = m.group(2) if m.group(2) is not None else m.group(3)
+    except OSError:
+        return None
+    return dados if re.match(r"^[0-9a-f]{7,40}$", dados.get("COMMIT", "")) else None
+
+
+def _ext_catalogo():
+    achados = []
+    for casa, pasta in ((True, EXT_CASA), (False, _ext_usuario())):
+        try:
+            nomes = sorted(os.listdir(pasta))
+        except OSError:
+            continue
+        for nome in nomes:
+            ident = nome[:-len(".pino")] if nome.endswith(".pino") else ""
+            if not RE_ID_EXT.match(ident):
+                continue
+            pino = _ext_pino_ler(os.path.join(pasta, nome))
+            if pino:
+                ordem = pino.get("ORDEM", "")
+                achados.append((0 if casa else 1, int(ordem) if ordem.isdigit() else 99, ident, casa, pino))
+    achados.sort(key=lambda t: t[:3])
+    return [(ident, casa, pino) for _g, _o, ident, casa, pino in achados]
+
+
+def _ext_ids(so_casa=None):
+    return [ident for ident, casa, _pino in _ext_catalogo() if so_casa is None or casa == so_casa]
+
+
+def _ext_estado(ident):
+    try:
+        proc = subprocess.run([EXT_CONSTRUTOR, ident, "--estado"], capture_output=True,
+                              timeout=20, env=_ambiente_do_painel(seco=False), cwd=RAIZ)
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    dados = {}
+    for linha in proc.stdout.decode("utf-8", "replace").splitlines():
+        chave, igual, valor = linha.partition("=")
+        if igual and re.match(r"^[a-z_]+$", chave):
+            dados[chave] = valor
+    return dados
+
+
+def _ext_nome_do_antigo(app_id):
+    ultimo = (app_id or "").split(".")[-1]
+    ultimo = re.sub(r"^(CosmicExtApplet|CosmicApplet|CosmicExt)", "", ultimo)
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", ultimo).strip() or app_id
+
+
+def _ext_data_do_pino(ident):
+    try:
+        proc = subprocess.run(
+            ["git", "-C", RAIZ, "log", "-1", "--format=%cd", "--date=format:%d/%m/%Y",
+             "--", "assets/extensoes/%s.pino" % ident],
+            capture_output=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return proc.stdout.decode("utf-8", "replace").strip() if proc.returncode == 0 else ""
+
+
+def _ext_mantidas():
+    try:
+        with open(os.path.join(ESTADO, "extensoes", "mantem"), encoding="utf-8") as fh:
+            return {l.strip() for l in fh if l.strip()}
+    except OSError:
+        return set()
+
+
+def _ext_registro(ident):
+    for nome in ("compilar.log", "clone.log"):
+        try:
+            with open(os.path.join(ESTADO, "extensoes", ident, nome), encoding="utf-8",
+                      errors="replace") as fh:
+                texto = fh.read()
+        except OSError:
+            continue
+        if texto.strip():
+            return texto_na_tela("\n".join(texto.splitlines()[-30:]))
+    return ""
+
+
+def _ext_ocupado():
+    with TRABALHO_TRAVA:
+        atual = TRABALHO_ATUAL
+    if atual is None or not atual.vivo() or not str(atual.acao).startswith(("extensao_", "builds_", "build_", "files_menu_build")):
+        return None
+    return {"acao": atual.acao, "id": atual.argv[-1] if str(atual.acao).startswith("extensao_") else "",
+            "trabalho": atual.id}
+
+
+def _ext_cartoes():
+    mantidas = _ext_mantidas()
+    cartoes = []
+    for ident, casa, pino in _ext_catalogo():
+        estado = _ext_estado(ident)
+        troca = estado.get("troca", "")
+        if ident in mantidas:
+            troca = ""
+        commit = pino.get("COMMIT", "")
+        data = pino.get("DATA", "") or (_ext_data_do_pino(ident) if casa else "")
+        cartoes.append({
+            "id": ident, "casa": casa,
+            "nome": pino.get("NOME") or ident, "descricao": pino.get("DESCRICAO", ""),
+            "versao": pino.get("VERSAO", ""), "commit": commit[:7], "commit_inteiro": commit,
+            "url": re.sub(r"\.git$", "", pino.get("URL", "")), "upstream": pino.get("UPSTREAM", ""),
+            "data": data, "app_id": pino.get("APP_ID", ""),
+            "instalada": estado.get("instalada") == "sim",
+            "em_dia": estado.get("em_dia") == "sim",
+            "atualizacao": estado.get("atualizacao") == "sim",
+            "na_barra": estado.get("na_barra") == "sim",
+            "falhou": estado.get("falhou") == "sim",
+            "troca": troca, "troca_nome": _ext_nome_do_antigo(troca) if troca else "",
+            "commit_instalado": (estado.get("commit_instalado") or "")[:7],
+            "registro": _ext_registro(ident) if estado.get("falhou") == "sim" else "",
+        })
+    return cartoes
+
+
+def _ext_builds():
+    dados = {}
+    try:
+        proc = subprocess.run([EXT_GARANTIR, "estado"], capture_output=True, timeout=20,
+                              env=_ambiente_do_painel(seco=False), cwd=RAIZ)
+        for linha in proc.stdout.decode("utf-8", "replace").splitlines():
+            chave, igual, valor = linha.partition("=")
+            if igual and re.match(r"^[a-z_]+$", chave):
+                dados[chave] = valor
+    except (OSError, subprocess.SubprocessError):
+        pass
+    entrar = valores_efetivos(["BUILDS_AO_ENTRAR"]).get("BUILDS_AO_ENTRAR") or "sim"
+    return {
+        "compositor": {"versao": dados.get("compositor_versao", ""),
+                       "estado": dados.get("compositor_estado", "ausente"),
+                       "remendos": int(dados.get("remendos") or 0)},
+        "menu": {"versao": dados.get("menu_versao", ""), "estado": dados.get("menu_estado", "ausente")},
+        "construindo": dados.get("construindo") == "sim",
+        "ao_entrar": entrar != "nao",
+    }
+
+
+def _ext_dados():
+    return {"extensoes": _ext_cartoes(), "builds": _ext_builds(), "ocupado": _ext_ocupado()}
+
+
+def _ext_gesto(*args, prazo=240):
+    try:
+        proc = subprocess.run([EXT_GESTO, *args], capture_output=True, timeout=prazo,
+                              env=_ambiente_do_painel(seco=False), cwd=RAIZ)
+    except (OSError, subprocess.SubprocessError) as erro:
+        return 2, str(erro)
+    return proc.returncode, proc.stdout.decode("utf-8", "replace") + proc.stderr.decode("utf-8", "replace")
+
+
+def _ext_queixa(saida):
+    for linha in saida.splitlines():
+        m = re.match(r"^\s*(?:erro|aviso)\s+(.*\S)", linha)
+        if m:
+            return texto_na_tela(m.group(1))
+    return "não consegui"
+
+
+def _ext_ler(url):
+    rc, saida = _ext_gesto("ler", url)
+    if rc != 0:
+        return {"erro": _ext_queixa(saida)}, 400
+    ficha = {}
+    for linha in saida.splitlines():
+        chave, igual, valor = linha.partition("=")
+        if igual and re.match(r"^[a-z_]+$", chave):
+            ficha[chave] = valor
+    ficha["substitui"] = _ext_nome_do_antigo(ficha["substitui"]) if ficha.get("substitui") else ""
+    return {"ficha": ficha}, 200
+
+
+def _ext_icone(ident):
+    if not RE_ID_EXT.match(ident or ""):
+        return None
+    caminho = os.path.join(EXT_CASA, "icones", ident + ".svg")
+    try:
+        with open(caminho, "rb") as fh:
+            return fh.read()
+    except OSError:
+        return None
+
+
 PROVEDORES = {
-    "capturas": _capturas,
     "gatos": _gatos,
-    "modos": lambda: ["claro", "escuro", "auto"],
     "temas_icones": _temas_de_icones,
     "cursores": _temas_de_cursor,
     "areas": _areas_alfinetadas,
@@ -2166,6 +2632,9 @@ PROVEDORES = {
     "fontes_revertidas": lambda: _fontes_revertidas(),
     "restauros": lambda: sorted(restauros()),
     "jogos_heroic": lambda: sorted(j["id"] for j in jogos_do_heroic()),
+    "extensoes_da_casa": lambda: _ext_ids(so_casa=True),
+    "extensoes_do_usuario": lambda: _ext_ids(so_casa=False),
+    "extensoes_todas": lambda: _ext_ids(),
 }
 
 
@@ -2372,16 +2841,6 @@ def _areas_ja_alfinetadas():
             "porque": "há área fixada nesta máquina"}
 
 
-def _starship_ja_instalado():
-    casa = os.path.expanduser("~")
-    for lugar in (shutil.which("starship"),
-                  os.path.join(casa, ".local", "bin", "starship"),
-                  os.path.join(casa, ".cargo", "bin", "starship")):
-        if lugar and os.path.isfile(lugar) and os.access(lugar, os.X_OK):
-            return {"porque": "o starship já está instalado"}
-    return None
-
-
 def indisponivel(acao_id):
     medir = ACOES[acao_id].get("indisponivel")
     return medir() if medir else None
@@ -2417,6 +2876,15 @@ ACOES = {
         "ajuda": "Passa {as_etapas}. Rodar de novo numa máquina já pronta "
                  "não escreve um byte.",
     },
+    "aplicar": {
+        "rotulo": "Aplicar ajuste",
+        "grupo": "Instalação",
+        "natureza": "aplicar",
+        "argv": [os.path.join(RAIZ, "install.sh")],
+        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
+        "interna": True,
+        "ajuda": "Roda só as etapas que a chave gravada governa.",
+    },
     "som_ouvir": {
         "rotulo": "Ouvir o som",
         "grupo": "Manutenção",
@@ -2449,21 +2917,13 @@ ACOES = {
                  "Não escreve nada.",
     },
     "doctor_consertar": {
-        "rotulo": "Conferir e consertar",
+        "rotulo": "Consertar",
         "grupo": "Instalação",
         "natureza": "consertar",
         "argv": _meow("doctor", "--consertar"),
         "escreve": True, "sudo": False, "confirma": False, "rede": True,
         "ajuda": "Confere e aplica só o que falhou — o mesmo que o "
                  "agendamento faz sozinho.",
-    },
-    "status": {
-        "rotulo": "No ar agora",
-        "grupo": "Instalação",
-        "natureza": "mostrar",
-        "argv": _meow("status"),
-        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
     },
     "desinstalar": {
         "rotulo": "Desinstalar o MeowSystem",
@@ -2515,34 +2975,6 @@ ACOES = {
         "escreve": True, "sudo": True, "confirma": True,
         "ajuda": "Pacotes órfãos e os pacotes que o apt já baixou. Diz quantos "
                  "megabytes saíram.",
-    },
-    "tema": {
-        "rotulo": "Temas prontos",
-        "grupo": "Cor e tela",
-        "natureza": "mostrar",
-        "argv": _meow("tema"),
-        "escreve": False, "sudo": False, "confirma": False,
-        "ajuda": "O tema que você escolheu, o que está mesmo aplicado, e os "
-                 "temas prontos que existem.",
-    },
-    "tema_aplicar": {
-        "rotulo": "Trocar de tema",
-        "grupo": "Cor e tela",
-        "natureza": "trocar",
-        "argv": _meow("tema", "@ARG@"), "arg": "capturas",
-        "tecnica": True,
-        "escreve": True, "sudo": False, "confirma": False,
-        "ajuda": "Aplica o tema escolhido, guardando o anterior antes.",
-    },
-    "tema_modo": {
-        "rotulo": "Trocar o modo",
-        "grupo": "Cor e tela",
-        "natureza": "trocar",
-        "argv": _meow("tema", "@ARG@"), "arg": "modos",
-        "tecnica": True,
-        "escreve": True, "sudo": False, "confirma": False,
-        "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
-                 "pisca a interface.",
     },
     "restaurar": {
         "rotulo": "Restaurar",
@@ -2801,15 +3233,6 @@ ACOES = {
         "ajuda": "Volta para a pasta que gira e sai da lista de banidas — as "
                  "duas metades.",
     },
-    "wallpaper_semear": {
-        "rotulo": "Baixar a coleção",
-        "grupo": "Papel de parede",
-        "natureza": "baixar",
-        "argv": _meow("wallpaper", "semear"),
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "ajuda": "Reconstrói a coleção a partir da lista de fontes. Usa rede "
-                 "e pode demorar. As imagens que você tirou continuam fora.",
-    },
     "painel_estado": {
         "rotulo": "Painel agora",
         "grupo": "Painel e dock",
@@ -2836,18 +3259,8 @@ ACOES = {
         "ajuda": "O painel pisca uns 2 s. É o que faz um mascote novo "
                  "aparecer na hora.",
     },
-    "prompt_instalar_starship": {
-        "rotulo": "Instalar o starship",
-        "grupo": "Terminal",
-        "natureza": "baixar",
-        "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "indisponivel": _starship_ja_instalado,
-        "ajuda": "Baixa o starship de starship.rs para ~/.local/bin, sem sudo. "
-                 "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
-    },
     "leitura": {
-        "rotulo": "Tela quente agora",
+        "rotulo": "Leitura agora",
         "grupo": "Modo de leitura",
         "natureza": "mostrar",
         "argv": _meow("leitura"),
@@ -2887,6 +3300,96 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "ajuda": "Compila a versão instalada do cosmic-files com os dois itens "
                  "de papel de parede. Baixa o fonte e leva minutos.",
+    },
+    "extensao_instalar": {
+        "rotulo": "Instalar a extensão",
+        "grupo": "Extensões",
+        "natureza": "baixar",
+        "argv": [EXT_GESTO, "instalar", "@ARG@"], "arg": "extensoes_da_casa",
+        "escreve": True, "sudo": False, "confirma": False, "rede": True,
+        "oculta": True,
+        "ajuda": "Compila o applet da casa no pino e o instala na sua casa. A configuração dele fica.",
+    },
+    "extensao_instalar_repo": {
+        "rotulo": "Instalar do repositório",
+        "grupo": "Extensões",
+        "natureza": "baixar",
+        "argv": [EXT_GESTO, "instalar", "@ARG@"], "arg": "extensoes_do_usuario",
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Baixa o repositório que você adicionou, compila e instala. Só roda por gesto seu.",
+    },
+    "extensao_atualizar": {
+        "rotulo": "Atualizar a extensão",
+        "grupo": "Extensões",
+        "natureza": "baixar",
+        "argv": [EXT_GESTO, "atualizar", "@ARG@"], "arg": "extensoes_da_casa",
+        "escreve": True, "sudo": False, "confirma": False, "rede": True,
+        "oculta": True,
+        "ajuda": "Compila o commit que o MeowSystem pinou para esta extensão.",
+    },
+    "extensao_atualizar_repo": {
+        "rotulo": "Atualizar do repositório",
+        "grupo": "Extensões",
+        "natureza": "baixar",
+        "argv": [EXT_GESTO, "atualizar", "@ARG@"], "arg": "extensoes_do_usuario",
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Lê o commit mais novo do repositório que você adicionou, compila e instala.",
+    },
+    "extensao_refazer": {
+        "rotulo": "Refazer a extensão",
+        "grupo": "Extensões",
+        "natureza": "baixar",
+        "argv": [EXT_GESTO, "refazer", "@ARG@"], "arg": "extensoes_todas",
+        "escreve": True, "sudo": False, "confirma": False, "rede": True,
+        "oculta": True,
+        "ajuda": "Compila de novo, ignorando o que já estava pronto.",
+    },
+    "extensao_remover": {
+        "rotulo": "Remover a extensão",
+        "grupo": "Extensões",
+        "natureza": "tirar",
+        "argv": [EXT_GESTO, "remover", "@ARG@"], "arg": "extensoes_todas",
+        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "oculta": True,
+        "ajuda": "Tira o binário, o atalho e a árvore de build. A configuração dela fica.",
+    },
+    "extensao_por_no_painel": {
+        "rotulo": "Pôr no painel",
+        "grupo": "Extensões",
+        "natureza": "aplicar",
+        "argv": [EXT_GESTO, "por", "@ARG@"], "arg": "extensoes_todas",
+        "escreve": True, "sudo": False, "confirma": False,
+        "oculta": True,
+        "ajuda": "Acrescenta o applet ao fim da barra de cima. A ordem dos outros não muda.",
+    },
+    "extensao_trocar": {
+        "rotulo": "Trocar pelo novo",
+        "grupo": "Extensões",
+        "natureza": "trocar",
+        "argv": [EXT_GESTO, "trocar", "@ARG@"], "arg": "extensoes_todas",
+        "escreve": True, "sudo": False, "confirma": False,
+        "oculta": True,
+        "ajuda": "Põe o applet novo na posição do antigo, na barra.",
+    },
+    "builds_refazer_tudo": {
+        "rotulo": "Refazer os builds",
+        "grupo": "Extensões",
+        "natureza": "baixar",
+        "argv": [EXT_GESTO, "refazer-tudo"],
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Refaz o compositor, o menu do Arquivos e cada applet instalado.",
+    },
+    "build_compositor": {
+        "rotulo": "Refazer o compositor",
+        "grupo": "Extensões",
+        "natureza": "baixar",
+        "argv": _meow("compositor"),
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Baixa o fonte da versão instalada do cosmic-comp, aplica os remendos e compila.",
     },
     "apps": {
         "rotulo": "Programas vestidos",
@@ -2937,15 +3440,6 @@ ACOES = {
         "ajuda": "Instala no VS Code, da loja oficial e pelo id do botão, a extensão "
                  "que o pack importado pede. Extensão é código que roda a cada "
                  "abertura do editor.",
-    },
-    "spotify_baixar_tema": {
-        "rotulo": "Tema do Spotify",
-        "grupo": "Lançadores e jogos",
-        "natureza": "baixar",
-        "argv": _meow("apps", "aplicar", "spotify"),
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "ajuda": "Baixa o tema catppuccin do spicetify de um commit fixo do "
-                 "repositório público e veste o Spotify em seguida.",
     },
     "jogos": {
         "rotulo": "Conferir os jogos",
@@ -3801,13 +4295,32 @@ def escreve(acao):
 
 ACAO_DA_PENDENCIA = {
     "areas-sem-alfinete": "areas_alfinetar_primeira",
-    "starship-ausente": "prompt_instalar_starship",
-    "spicetify-tema-ausente": "spotify_baixar_tema",
     "files-menu-build": "files_menu_build",
     "instalar-com-root": "instalar",
+    "aplicar-ajuste": "instalar",
     "flatpak-global-sistema": "instalar",
     "libreoffice-sistema": "instalar",
-    "leitura-applet": "doctor_consertar",
+    "starship-ausente": "instalar",
+    "extensao-now-playing": "doctor_consertar",
+    "extensao-status-hub": "doctor_consertar",
+    "extensao-quick-settings": "doctor_consertar",
+    "extensao-leitura": "doctor_consertar",
+    "extensao-performance": "doctor_consertar",
+}
+
+NOME_DA_PENDENCIA = {
+    "areas-sem-alfinete": "Áreas de trabalho",
+    "starship-ausente": "Linha colorida",
+    "files-menu-build": "Menu do Arquivos",
+    "instalar-com-root": "Ponte de root",
+    "flatpak-global-sistema": "Flatpaks do sistema",
+    "libreoffice-sistema": "LibreOffice do sistema",
+    "aplicar-ajuste": "Ajuste pendente",
+    "extensao-now-playing": "Tocando agora",
+    "extensao-status-hub": "Bandeja",
+    "extensao-quick-settings": "Ajustes rápidos",
+    "extensao-leitura": "Applet de leitura",
+    "extensao-performance": "Performance",
 }
 
 RECUSA_DA_PENDENCIA = {
@@ -3936,8 +4449,8 @@ def inventario_do_painel():
         return _LUGARES["tabela"]
     saida = []
 
-    def pus(l, porta, pagina, bloco, mais=False):
-        base = {"porta": porta, "pagina": pagina, "bloco": bloco, "mais": mais,
+    def pus(l, porta, pagina, bloco):
+        base = {"porta": porta, "pagina": pagina, "bloco": bloco,
                 "rotulo": l.get("r"), "botao": l.get("b")}
         for tipo, campo in (("chave", "c"), ("acao", "a"), ("gesto", "g")):
             if campo in l:
@@ -3951,35 +4464,33 @@ def inventario_do_painel():
     for b in tema["blocos"]:
         for l in b["linhas"]:
             pus(l, "tema", "Tema", b["titulo"])
-    for l in tema["mais"]:
-        pus(l, "tema", "Tema", "Mais ajustes", True)
     for p in c["PASSOS"]:
         for l in p["linhas"]:
-            pus(l, "criar", p["nome"], p["nome"])
-        for l in p.get("mais", []):
-            pus(l, "criar", p["nome"], "Mais ajustes", True)
+            pus(l, "criar", p["nome"], l.get("bloco") or p["nome"])
     for p in c["AJUSTES"]:
         for l in p.get("cabeca", []):
             pus(l, "ajustes", p["nome"], p["nome"])
         for b in p["blocos"]:
             for l in b["linhas"]:
                 pus(l, "ajustes", p["nome"], b["titulo"])
-        for l in p.get("mais", []):
-            pus(l, "ajustes", p["nome"], "Mais ajustes", True)
     for l in cuidar["estado"]:
-        pus(l, "cuidar", "Cuidar", "Estado")
+        pus(l, "cuidar", "Manter", "Estado")
     for l in cuidar["pendencias"]:
-        pus(l, "cuidar", "Cuidar", "Pendências")
+        pus(l, "cuidar", "Manter", "Pendências")
     for cartao in cuidar["cartoes"]:
         for l in cartao["linhas"]:
-            pus(l, "cuidar", "Cuidar", cartao["titulo"])
+            pus(l, "cuidar", "Manter", cartao["titulo"])
     for b in cuidar["blocos"]:
         for l in b["linhas"]:
-            pus(l, "cuidar", "Cuidar", b["titulo"])
+            pus(l, "cuidar", "Manter", b["titulo"])
+    for l in cuidar["maquina"]:
+        pus(l, "cuidar", "Manter", "Ícones da máquina")
     for l in cuidar["perigo"]:
-        pus(l, "cuidar", "Cuidar", "Zona de perigo")
-    for l in cuidar["mais"]:
-        pus(l, "cuidar", "Cuidar", "Mais ajustes", True)
+        pus(l, "cuidar", "Manter", "Zona de perigo")
+    for l in c["LUGAR_EXTENSOES"]["applets"]:
+        pus(l, "extensoes", "Applets", "Applets")
+    for l in c["LUGAR_EXTENSOES"]["builds"]:
+        pus(l, "extensoes", "Builds", "Builds")
     for l in c["LUGAR_TOPO"]:
         pus(l, "topo", "Barra de cima", "Barra de cima")
     for l in c["LUGAR_JANELA"]:
@@ -3991,8 +4502,6 @@ def inventario_do_painel():
 def _caminho_na_tela(l):
     porta = l["pagina"] if l["porta"] in ("topo", "janela") else nome_da_porta(l["porta"])
     base = porta if l["porta"] in ("tema", "cuidar", "topo", "janela") else "%s › %s" % (porta, l["pagina"])
-    if l["mais"]:
-        return base + " › Mais ajustes"
     if l["bloco"] and l["bloco"] not in (l["pagina"], base):
         return base + " › " + l["bloco"]
     return base
@@ -4052,6 +4561,8 @@ def pendencias():
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
                     nome = "Extensão do pack"
+                if not nome:
+                    nome = NOME_DA_PENDENCIA.get(ident, "")
                 if not nome and not acao:
                     nome = ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""), {}).get("rotulo", "")
                 rede = any(ACOES.get(a, {}).get("rede") for a in [acao] + [e["acao"] for e in escolha])
@@ -4158,8 +4669,30 @@ def _guardar_antes_py(pasta, caminho, conteudo):
         fh.write(linha)
 
 
+_ESPERANDO_O_SLOT = [0]
+_ESPERANDO_TRAVA = threading.Lock()
+
+
 def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
-            antes=None):
+            antes=None, extra_argv=None, por_dentro=False):
+    if ACOES.get(acao_id, {}).get("interna") and not por_dentro:
+        return (None, "«%s» só roda depois de gravar um ajuste" % ACOES[acao_id]["rotulo"])
+    if acao_id == "aplicar":
+        return _iniciar_agora(acao_id, argumento, confirmado, seco, pasta_de_ensaio,
+                              antes, extra_argv)
+    with _ESPERANDO_TRAVA:
+        _ESPERANDO_O_SLOT[0] += 1
+    try:
+        _esperar_aplicar_vivo()
+        return _iniciar_agora(acao_id, argumento, confirmado, seco, pasta_de_ensaio,
+                              antes, extra_argv)
+    finally:
+        with _ESPERANDO_TRAVA:
+            _ESPERANDO_O_SLOT[0] -= 1
+
+
+def _iniciar_agora(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
+                   antes=None, extra_argv=None):
     global TRABALHO_ATUAL
     acao = ACOES.get(acao_id)
     if acao is None:
@@ -4175,14 +4708,14 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
             "precisa_confirmar": True,
             "acao": acao_id,
             "rotulo": acao["rotulo"],
-            "ajuda": _ajuda_do_pack(acao_id) or acao.get("ajuda", ""),
+            "ajuda": acao.get("ajuda", ""),
             "escreve": escreve(acao),
             "sudo": bool(acao.get("sudo")),
             "rede": bool(acao.get("rede")),
             "destrutivo": bool(acao.get("destrutivo")),
         })
 
-    argv = list(acao["argv"])
+    argv = list(acao["argv"]) + list(extra_argv or [])
     amb_acao = dict(acao.get("ambiente", {}))
     if "@ARG@" in argv or "@ARG@" in amb_acao.values():
         permitidos = PROVEDORES[acao["arg"]]()
@@ -4337,29 +4870,6 @@ def _com_medidas(texto, medidas):
     n = (medidas or {}).get("conferencias")
     return texto.replace("{as_conferencias}",
                          "as %d conferências" % n if n else "as conferências")
-
-
-def _ajuda_do_pack(acao_id):
-    if acao_id != "spotify_baixar_tema":
-        return ""
-    mod = modulo_pack()
-    ref = _pack_no_ar()
-    if not mod or not ref:
-        return ""
-    try:
-        _q, tema = mod.tema_de_app("apps.spotify.spicetify_tema", ref=ref)
-        _q, repo = mod.tema_de_app("apps.spotify.origem.repo", ref=ref)
-        nome = mod.campo(ref, "nome") or ref
-    except Exception:
-        return ""
-    if not tema:
-        return ""
-    if repo:
-        return ("Baixa o tema «%s» do spicetify de um commit fixo de %s e veste "
-                "o Spotify em seguida." % (tema, repo))
-    return ("O pack «%s» pede o tema «%s» do spicetify e não diz de onde baixá-lo: "
-            "nada desce da internet, e o Spotify é vestido com o tema que já "
-            "estiver no spicetify." % (nome, tema))
 
 
 def _repositorio_no_ar():
@@ -4555,6 +5065,14 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._recusar(404, "a logo autoral não está no acervo")
             return self._responder(corpo, tipo=TIPOS[".svg"])
 
+        if caminho == "/extensao-icone":
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
+            corpo = _ext_icone(consulta.get("id", [""])[0])
+            if corpo is None:
+                return self._recusar(404, "não achei")
+            return self._responder(corpo, tipo=TIPOS[".svg"])
+
         if caminho == "/gato.svg":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
@@ -4594,6 +5112,29 @@ class Manipulador(BaseHTTPRequestHandler):
                     return self._responder(fh.read(), tipo="audio/ogg")
             except OSError:
                 return self._recusar(404, "não achei")
+
+        if caminho == "/sino":
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
+            pares = []
+            esquema = {i["chave"]: i for i in ler_esquema()}
+            for chave in _SOM_TIMBRE_DE_FABRICA:
+                valor = consulta.get(chave, [""])[0]
+                if valor == "":
+                    continue
+                queixa = validar_valor(esquema[chave], valor) if chave in esquema else "fora do meow.conf.exemplo"
+                if queixa:
+                    return self._recusar(400, "%s: %s" % (chave, queixa))
+                pares.append("%s=%s" % (chave, valor))
+            with tempfile.TemporaryDirectory(prefix="meow-sino-") as pasta:
+                destino = os.path.join(pasta, "sino.wav")
+                feito = subprocess.run(
+                    ["bash", os.path.join(RAIZ, "scripts", "som.sh"), "gerar", destino, *pares],
+                    capture_output=True, timeout=20, env=_ambiente_do_painel())
+                if feito.returncode != 0 or not os.path.isfile(destino):
+                    return self._recusar(500, "não consegui gerar o sino")
+                with open(destino, "rb") as fh:
+                    return self._responder(fh.read(), tipo="audio/wav")
 
         if caminho == "/previa" and consulta.get("tipo", [""])[0] == "arquivo":
             if not self._token_confere(consulta):
@@ -4940,11 +5481,11 @@ class Manipulador(BaseHTTPRequestHandler):
             pass
         return fora
 
-    def _desenhos_de_pack(self):
+    def _desenhos_de_pack(self, cadeia=None):
         mod = modulo_pack()
         if not mod:
             return {}
-        adotado = _pack_adotado()
+        adotado = cadeia[0] if cadeia else _pack_adotado()
         indice, vistos = {}, set()
         for base in mod.raizes():
             try:
@@ -4956,6 +5497,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
                     continue
                 vistos.add(pid)
+                if cadeia is not None and pid not in cadeia:
+                    continue
                 nome_pack = str(mod.campo(dir_pack, "nome", pid) or pid)
                 pares = []
                 desenhos = mod.campo(dir_pack, "icones.apps.desenhos")
@@ -5424,7 +5967,7 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._ensaio_dos_jogos("\n".join(novas))
         try:
             with open(MAPA_JOGOS, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(novas))
+                fh.write(_texto_de_mapa(novas))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa: %s" % e}, 500)
         return self._json({"ok": True, "appid": appid, "acao": "" if remover else acao,
@@ -5574,7 +6117,7 @@ class Manipulador(BaseHTTPRequestHandler):
             linhas.insert(len(linhas) - 1 if linhas and not linhas[-1] else len(linhas), linha)
         try:
             with open(pack["mapa"], "w", encoding="utf-8") as fh:
-                fh.write("\n".join(linhas))
+                fh.write(_texto_de_mapa(linhas))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa do pack: %s" % e}, 500)
         return self._json({"ok": True, "app": app, "pack": pack["id"],
@@ -5634,7 +6177,7 @@ class Manipulador(BaseHTTPRequestHandler):
             del linhas[numero - 1]
         try:
             with open(pack["mapa"], "w", encoding="utf-8") as fh:
-                fh.write("\n".join(linhas))
+                fh.write(_texto_de_mapa(linhas))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa do pack: %s" % e}, 500)
         fica = self._o_que_fica(app)
@@ -5707,7 +6250,7 @@ class Manipulador(BaseHTTPRequestHandler):
         return "".join(c for c in unicodedata.normalize("NFKD", str(texto or ""))
                        if not unicodedata.combining(c)).lower()
 
-    def _acervo_da_ficha(self):
+    def _acervo_da_ficha(self, alvo=None):
         grupos, itens = [], []
         mod = modulo_pack()
         if not mod:
@@ -5716,7 +6259,9 @@ class Manipulador(BaseHTTPRequestHandler):
         do_mapa = {os.path.normpath(d["caminho"]): d for d in desenhos}
         textos, rotulos, do_nome = self._textos_da_busca(mod)
         nomes_de_app = self._nomes_de_app()
-        for g in mod.acervos_de_icone(_pack_adotado()):
+        cadeia, ident = _cadeia_do_pack(alvo)
+        lista = mod.acervos_de_icone(ident, cadeia=cadeia)
+        for g in lista:
             arquivos = g.pop("arquivos")
             g["total"] = len(arquivos)
             grupos.append(g)
@@ -5863,7 +6408,7 @@ class Manipulador(BaseHTTPRequestHandler):
     def _api_glifos(self, consulta):
         busca = self._sem_acento((consulta.get("busca", [""])[0] or "").strip())
         app = (consulta.get("app", [""])[0] or "").strip()
-        grupos, itens = self._acervo_da_ficha()
+        grupos, itens = self._acervo_da_ficha(consulta.get("pack", [""])[0])
         palpites = self._palpites_do_app(app)
         achados = {}
         glifos = []
@@ -5895,11 +6440,11 @@ class Manipulador(BaseHTTPRequestHandler):
             return os.path.relpath(caminho, RAIZ)
         return caminho
 
-    def _item_da_ficha(self, arquivo):
+    def _item_da_ficha(self, arquivo, pack=None):
         if not arquivo or not isinstance(arquivo, str):
             return None
         alvo = os.path.normpath(arquivo if os.path.isabs(arquivo) else os.path.join(RAIZ, arquivo))
-        _grupos, itens = self._acervo_da_ficha()
+        _grupos, itens = self._acervo_da_ficha(pack)
         return next((it for it in itens if os.path.normpath(it["caminho"]) == alvo), None)
 
     def _minha_escolha(self, app):
@@ -5968,7 +6513,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         item = None
         if corpo.get("arquivo") and not remover:
-            item = self._item_da_ficha(str(corpo.get("arquivo")))
+            item = self._item_da_ficha(str(corpo.get("arquivo")), corpo.get("ficha"))
             if not item:
                 return self._json({"erro": "não achei o desenho '%s' na ficha"
                                            % corpo.get("arquivo")}, 404)
@@ -6122,6 +6667,41 @@ class Manipulador(BaseHTTPRequestHandler):
                 continue
         return ""
 
+    def _glifo_do_circulo(self, origem, da_capa):
+        argv, texto = _parametros_de(3 if da_capa else 2, 5 if da_capa else 6, False, 0, 0)
+        svg, _nota, erro = _converter_desenho(origem, argv, texto)
+        return svg, erro
+
+    def _cartoes_do_circulo(self, origem, capa):
+        gerador = _gerador_circulo()
+        cartoes = []
+        for pid, rotulo, ajustes in gerador.PRESETS:
+            arte = capa if pid == "capa" else origem
+            if not arte:
+                continue
+            glifo, erro = self._glifo_do_circulo(arte, pid == "capa")
+            cartao = {"id": pid, "rotulo": rotulo, "fonte": "capa" if pid == "capa" else "icone",
+                      "gerador": "circle", "disco": ajustes["disco"], "aro": ajustes["aro"],
+                      "tinta": ajustes["tinta"], "tamanho": ajustes["tamanho"]}
+            if erro:
+                cartao["erro"] = erro
+            else:
+                cartao["svg"] = gerador.gerar(glifo, pid)
+            cartoes.append(cartao)
+        return cartoes
+
+    def _desenho_guardado(self, destino, nome):
+        mod = modulo_pack()
+        destino = str(destino or "").strip()
+        if not mod or not destino:
+            return {"tem": False, "svg": "", "pack": destino}
+        try:
+            svg = mod.desenho_no_pack(destino, nome)
+        except mod.Recusa:
+            return {"tem": False, "svg": "", "pack": ""}
+        return {"tem": svg is not None, "svg": svg or "", "pack": destino,
+                "no_ar": destino == _pack_adotado()}
+
     def _salvo_do_app(self, nome):
         conv = os.path.join(ICONES_DO_MOTOR, "apps")
         for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
@@ -6271,7 +6851,11 @@ class Manipulador(BaseHTTPRequestHandler):
             capa = self._arte_da_capa(app)
             tem_cheia = _conversor_tem_cheia()
             tarefas = []
-            for pid, rotulo, det, sua, chei, fonte, frac, mini in PRESETS_DESENHO:
+            mod_pack = modulo_pack()
+            em_edicao = _cadeia_do_pack(corpo.get("pack"))[1]
+            gerador = mod_pack.gerador_de_icones(em_edicao) if mod_pack else "traco"
+            for pid, rotulo, det, sua, chei, fonte, frac, mini in (
+                    () if gerador == "circle" else PRESETS_DESENHO):
                 if chei and not tem_cheia:
                     continue
                 arte = capa if fonte == "capa" else origem
@@ -6303,10 +6887,13 @@ class Manipulador(BaseHTTPRequestHandler):
                             cartao["svg"] = svg
                             cartao["nota"] = nota
                         variacoes.append(cartao)
+            if gerador == "circle":
+                variacoes = self._cartoes_do_circulo(origem, capa)
             tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
             atual, nosso = self._icone_na_tela(
                 d, os.path.expanduser("~/.local/share/icons/%s" % tema))
-            do_pack = self._cartoes_do_pack(d, self._desenhos_de_pack(), atual, com_svg=True)
+            do_pack = self._cartoes_do_pack(
+                d, self._desenhos_de_pack(_cadeia_do_pack(corpo.get("pack"))[0]), atual, com_svg=True)
             traco = self._mapa_convertidos()
             arcticons = self._mapa_arcticons()
             vigor = self._quem_veste(atual, nosso, do_pack,
@@ -6317,12 +6904,29 @@ class Manipulador(BaseHTTPRequestHandler):
                 "original": ("/previa?tipo=arquivo&id=" + quote(origem, safe="")) if origem else "",
                 "capa": ("/previa?tipo=arquivo&id=" + quote(capa, safe="")) if capa else "",
                 "salvo": self._salvo_do_app(nome),
+                "no_pack": self._desenho_guardado(corpo.get("pack"), nome),
                 "pack": do_pack,
                 "em_vigor": vigor,
                 "variacoes": variacoes,
+                "gerador": gerador,
                 "vizinhos": self._vizinhos_do_dock(),
                 "editor": self._editor_de_svg(),
             })
+
+        if acao == "gerar":
+            origem = self._arte_da_capa(app) if str(corpo.get("preset")) == "capa" \
+                else self._arte_de_fabrica(next((x for x in self._desktops() if x["id"] == app), None) or {})
+            if not origem:
+                return self._json({"erro": "não achei a arte de que sai o glifo"}, 404)
+            glifo, erro = self._glifo_do_circulo(origem, str(corpo.get("preset")) == "capa")
+            if erro:
+                return self._json({"erro": erro}, 422)
+            gerador = _gerador_circulo()
+            aro = corpo.get("aro")
+            svg = gerador.gerar(glifo, str(corpo.get("preset") or "disco"),
+                                disco=corpo.get("disco"), aro=aro if isinstance(aro, bool) else None,
+                                tinta=corpo.get("tinta"), tamanho=corpo.get("tamanho"))
+            return self._json({"ok": True, "svg": svg})
 
         if acao == "vetorizar":
             d = next((x for x in self._desktops() if x["id"] == app), None)
@@ -6376,6 +6980,16 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"ok": True, "svg": svg, "origem": origem,
                                "nota": nota, "parametros": texto})
 
+        if acao == "desfazer-no-pack":
+            mod = modulo_pack()
+            try:
+                tirou = mod.tirar_desenho(str(corpo.get("pack") or "").strip(), nome)
+            except mod.Recusa as e:
+                return self._json({"erro": str(e)}, 400)
+            except OSError as e:
+                return self._json({"erro": "não consegui tirar o desenho do pack: %s" % e}, 500)
+            return self._json({"ok": True, "tirou": bool(tirou), "app": app, "nome": nome})
+
         if acao != "salvar":
             return self._json({"erro": "ação desconhecida: %s" % acao}, 400)
 
@@ -6384,6 +6998,9 @@ class Manipulador(BaseHTTPRequestHandler):
         cores = set((_paleta_dados().get("ordem") or []))
         if cores and cor not in cores:
             return self._json({"erro": "a cor tem de ser um nome da paleta"}, 400)
+        destino = str(corpo.get("pack") or "").strip()
+        if destino:
+            return self._salvar_no_pack(app, nome, destino, svg, cor, corpo)
         erro = self._conferir_dialeto(svg)
         if erro:
             return self._json({"erro": erro}, 400)
@@ -6426,6 +7043,26 @@ class Manipulador(BaseHTTPRequestHandler):
                            "modo": modo, "saiu_do_arcticons": saiu,
                            "tirou_retoque": tirou_retoque,
                            "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
+
+    def _salvar_no_pack(self, app, nome, destino, svg, cor, corpo):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "o painel não carregou o scripts/pack.py"}, 500)
+        flavors = _paleta_dados().get("flavors") or {}
+        flavor = str(mod.campo(destino, "paleta.flavor_padrao", "") or "")
+        tinta = (flavors.get(flavor) or next(iter(flavors.values()), {})).get(cor, "")
+        if tinta and "currentColor" in svg:
+            svg = svg.replace("currentColor", tinta)
+        try:
+            arquivo = mod.usar_desenho(destino, nome, svg, str(corpo.get("rotulo") or ""))
+        except mod.Recusa as e:
+            return self._json({"erro": str(e)}, 400)
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar o desenho no pack: %s" % e}, 500)
+        return self._json({"ok": True, "app": app, "nome": nome, "pack": destino,
+                           "arquivo": arquivo, "guardado": True,
+                           "no_ar": destino == _pack_adotado(),
+                           "depois": "vale depois de «%s»" % ACOES["icones_pack"]["rotulo"]})
 
     def _conferir_dialeto(self, svg):
         texto = (svg or "").strip()
@@ -6479,7 +7116,7 @@ class Manipulador(BaseHTTPRequestHandler):
         try:
             os.makedirs(os.path.dirname(caminho), exist_ok=True)
             with open(caminho, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(linhas))
+                fh.write(_texto_de_mapa(linhas))
         except OSError as e:
             return "não consegui gravar o mapa: %s" % e
         return ""
@@ -6711,6 +7348,9 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/esquema":
             return self._json(self._dados_esquema())
 
+        if caminho == "/api/extensoes":
+            return self._json(_ext_dados())
+
         if caminho == "/api/pendencias":
             return self._json({"pendencias": pendencias()})
 
@@ -6732,12 +7372,21 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/criar":
             return self._api_criar_ler(consulta)
 
+        if caminho == "/api/sons":
+            return self._api_sons(consulta)
+
+        if caminho == "/api/rascunho":
+            return self._json({"rascunho": _rascunho_ler()})
+
         if caminho == "/api/previas":
             dados = previas(consulta.get("tipo", [""])[0],
                             consulta.get("grupo", [""])[0] or None)
             if dados is None:
                 return self._json({"erro": "tipo de prévia desconhecido"}, 404)
             return self._json(dados)
+
+        if caminho == "/api/aplicando":
+            return self._json(estado_do_aplicar())
 
         if caminho == "/api/trabalho":
             ident = consulta.get("id", [""])[0]
@@ -6803,22 +7452,44 @@ class Manipulador(BaseHTTPRequestHandler):
                 corpo = fh.read()
         return self._baixar(corpo, ident + ".meowpack", "application/zstd")
 
+    def _api_sons(self, consulta):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "scripts/pack.py não carregou"}, 500)
+        try:
+            with open(os.path.join(RAIZ, "assets", "sons", "eventos.json"), encoding="utf-8") as fh:
+                catalogo = json.load(fh)["eventos"]
+        except (OSError, ValueError, KeyError):
+            return self._json({"erro": "assets/sons/eventos.json não abriu"}, 500)
+        ident = consulta.get("id", [""])[0] or _pack_adotado()
+        dir_pack = mod.achar(ident) if ident in _packs_no_disco() else None
+        do_pack = {e for _c, e, _a in mod.sons_do_pack(dir_pack)} if dir_pack else set()
+        eventos = [dict(s, origem="pack" if s["evento"] in do_pack else "sistema")
+                   for s in catalogo]
+        return self._json({"pack": ident, "eventos": eventos})
+
     def _api_criar_ler(self, consulta):
         mod = modulo_pack()
         if not mod:
             return self._json({"erro": "scripts/pack.py não carregou"}, 500)
         ident = consulta.get("id", [""])[0]
+        base = consulta.get("base", [""])[0]
+        cores = _cores_da_consulta(consulta.get("cores", [""])[0])
         icones = {}
         for pasta in mod.PASTAS_QUE_SE_LEVAM:
             icones[pasta] = []
             try:
-                oferta = mod.acervo_para_levar(ident or None, pasta)
+                oferta = mod.acervo_para_levar(ident or None, pasta, base, cores)
             except mod.Recusa:
                 oferta = []
-            for de, nome, arq, levado in oferta:
-                _ICONES_DECLARADOS.add(os.path.normpath(arq))
-                icones[pasta].append({"de": de, "nome": nome, "levado": levado,
-                                      "url": "/previa?tipo=arquivo&id=" + quote(arq, safe="")})
+            for i in oferta:
+                if i["svg"] is not None:
+                    url = "data:image/svg+xml;charset=utf-8," + quote(i["svg"], safe="")
+                else:
+                    _ICONES_DECLARADOS.add(os.path.normpath(i["arq"]))
+                    url = "/previa?tipo=arquivo&id=" + quote(i["arq"], safe="")
+                icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
+                                      "levado": i["levado"], "url": url})
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:
@@ -6857,11 +7528,12 @@ class Manipulador(BaseHTTPRequestHandler):
             elif tipo in mod.PASTAS_QUE_SE_LEVAM:
                 if levar:
                     de = str(corpo.get("de", ""))
-                    arq = next((a for p_, n, a, _l in mod.acervo_para_levar(ident, tipo)
-                                if p_ == de and n == nome), None)
-                    if not arq:
+                    achado = next((i for i in mod.acervo_para_levar(
+                        ident, tipo, "", _cores_da_consulta(corpo.get("cores")))
+                        if i["de"] == de and i["nome"] == nome), None)
+                    if not achado:
                         return self._json({"erro": "não achei esse ícone no pack «%s»" % de}, 404)
-                    feito = mod.levar_icone(ident, tipo, arq, nome)
+                    feito = mod.levar_icone(ident, tipo, achado["arq"], nome, achado["svg"])
                 else:
                     mod.tirar_icone(ident, tipo, nome)
                     feito = nome
@@ -6902,6 +7574,7 @@ class Manipulador(BaseHTTPRequestHandler):
         confirmado = corpo.get("confirmado") is True
         envio = os.path.basename(str(corpo.get("nome") or ""))
         de_csv = envio.lower().endswith(".csv")
+        nome_dado = mod.nome_digitado(corpo.get("nome_do_tema")) if de_csv else ""
         with tempfile.TemporaryDirectory(prefix="meow-importa-") as pasta:
             if de_csv:
                 try:
@@ -6920,14 +7593,15 @@ class Manipulador(BaseHTTPRequestHandler):
                 r = subprocess.run(_meow("pack", "importar", caminho),
                                    capture_output=True, text=True, timeout=120,
                                    stdin=subprocess.DEVNULL,
-                                   env=_ambiente_do_painel(seco=not confirmado))
+                                   env=dict(_ambiente_do_painel(seco=not confirmado),
+                                            MEOW_PACK_NOME=nome_dado))
             except (OSError, subprocess.SubprocessError) as erro:
                 return self._json({"erro": "não consegui rodar: %s" % erro}, 500)
             if r.returncode != 0:
                 texto = (r.stderr or "").strip() or (r.stdout or "").strip()
                 texto = texto.replace(caminho, envio or "o arquivo enviado")
                 return self._json({"erro": texto or "o importar falhou", "rc": r.returncode}, 400)
-            pack = mod.resumo_csv(caminho) if de_csv else mod.resumo_meowpack(caminho)
+            pack = mod.resumo_csv(caminho, nome_dado) if de_csv else mod.resumo_meowpack(caminho)
         nome = pack["nome"]
         if not confirmado:
             if de_csv:
@@ -7128,6 +7802,11 @@ class Manipulador(BaseHTTPRequestHandler):
             "<title>MeowSystem — página para redesenho</title>",
             '<style id="paleta-do-painel">\n%s\n</style>' % paleta,
             '<style id="folha-do-painel">\n%s\n</style>' % ler("estilo.css"),
+            '<style id="folha-do-tema">\n%s\n</style>' % ler("tema.css"),
+            '<style id="folha-do-manter">\n%s\n</style>' % ler("manter.css"),
+            '<style id="folha-da-oficina">\n%s\n</style>' % ler("oficina.css"),
+            '<style id="folha-dos-sons">\n%s\n</style>' % ler("sons.css"),
+            '<style id="folha-das-extensoes">\n%s\n</style>' % ler("extensoes.css"),
             '<style id="folha-do-standalone">\n%s\n</style>' % ler("standalone.css"),
             "</head>",
             corpo,
@@ -7148,9 +7827,15 @@ class Manipulador(BaseHTTPRequestHandler):
         chaves = [i["chave"] for i in esquema]
         brutos = valores_brutos()
         efetivos = valores_efetivos(chaves)
+        som_vale = _som_ajuste_vale()
         for item in esquema:
             item["valor"] = brutos.get(item["chave"], "")
             item["efetivo"] = efetivos.get(item["chave"], "")
+            if item["chave"] in _SOM_TIMBRE_DE_FABRICA:
+                if not som_vale:
+                    item["valor"] = ""
+                if item["valor"] == "":
+                    item["efetivo"] = item.get("padrao_do_pack") or ""
             if item["chave"] in _LEITURA_NO_APPLET and item.get("valendo_agora") is not None:
                 item["valor_no_arquivo"] = item["valor"]
                 item["valor"] = item["valendo_agora"]
@@ -7204,7 +7889,7 @@ class Manipulador(BaseHTTPRequestHandler):
             "medidas": medidas,
             "acoes": [
                 dict({c: x for c, x in v.items() if not callable(x)}, id=k,
-                     ajuda=_com_medidas(_ajuda_do_pack(k) or v.get("ajuda", ""),
+                     ajuda=_com_medidas(v.get("ajuda", ""),
                                         medidas),
                      argv=None,
                      escreve=escreve(v),
@@ -7216,7 +7901,7 @@ class Manipulador(BaseHTTPRequestHandler):
                      indisponivel=indisponivel(k),
                      opcoes=([] if v.get("oculta")
                              else PROVEDORES[v["arg"]]() if "arg" in v else []))
-                for k, v in ACOES.items()
+                for k, v in ACOES.items() if not v.get("interna")
             ],
             "ponte": _ponte_viva(),
             "mesmo_horario": mesmo_horario_ligado(),
@@ -7232,6 +7917,32 @@ class Manipulador(BaseHTTPRequestHandler):
         }
 
     def _api_post(self, caminho, corpo):
+        if caminho == "/api/extensao-ler":
+            dados, codigo = _ext_ler(str(corpo.get("url", "")).strip())
+            return self._json(dados, codigo)
+
+        if caminho == "/api/extensao-adicionar":
+            ident = str(corpo.get("id", ""))
+            if not RE_ID_EXT.match(ident):
+                return self._json({"erro": "nome de extensão inválido"}, 400)
+            rc, saida = _ext_gesto("adicionar", ident)
+            if rc != 0:
+                return self._json({"erro": _ext_queixa(saida)}, 400)
+            return self._json({"id": ident})
+
+        if caminho == "/api/extensao-manter":
+            ident = str(corpo.get("id", ""))
+            if ident not in _ext_ids():
+                return self._json({"erro": "extensão desconhecida"}, 400)
+            pasta = os.path.join(ESTADO, "extensoes")
+            try:
+                os.makedirs(pasta, exist_ok=True)
+                with open(os.path.join(pasta, "mantem"), "a", encoding="utf-8") as fh:
+                    fh.write(ident + "\n")
+            except OSError as erro:
+                return self._json({"erro": str(erro)}, 500)
+            return self._json({"id": ident})
+
         if caminho == "/api/definir":
             chave = str(corpo.get("chave", ""))
             valor = str(corpo.get("valor", ""))
@@ -7245,13 +7956,19 @@ class Manipulador(BaseHTTPRequestHandler):
             if soltas:
                 return self._json({"erro": soltas[0]["erro"], "chave": chave,
                                    "valor": valor, "recusadas": soltas}, 409)
-            pares = com_o_mesmo_horario([(chave, valor)])
+            pares = _som_carimbar(com_o_mesmo_horario([(chave, valor)]))
             feitos = definir_varias(pares)
             _chave, rc, saida = feitos[0]
+            if rc != 2:
+                _som_carimbo_gravar(pares)
             if len(pares) > 1:
                 _adotar_leitura([c for c, r, _s in feitos[1:] if r == 1])
-            return self._json({"rc": rc, "saida": texto_na_tela(saida),
-                               "chave": chave, "valor": valor})
+            resposta = {"rc": rc, "saida": texto_na_tela(saida),
+                        "chave": chave, "valor": valor}
+            gravadas = [c for c, r, _s in feitos if r == 1]
+            if gravadas:
+                resposta.update(aplicar_depois_de_gravar(gravadas))
+            return self._json(resposta)
 
         if caminho == "/api/salvar":
             mudancas = corpo.get("mudancas") or {}
@@ -7273,25 +7990,8 @@ class Manipulador(BaseHTTPRequestHandler):
             soltas = pontas_da_noite_soltas(dict(pares))
             if soltas:
                 return self._json({"recusadas": soltas}, 409)
-            pares = com_o_mesmo_horario(pares)
+            pares = _som_carimbar(com_o_mesmo_horario(pares))
 
-            if corpo.get("seco"):
-                pasta, queixa = _conf_de_ensaio(pares)
-                if queixa:
-                    return self._json({"erro": queixa}, 500)
-                trabalho, erro = iniciar("instalar", "", confirmado=True,
-                                         seco=True, pasta_de_ensaio=pasta)
-                if erro:
-                    shutil.rmtree(pasta, ignore_errors=True)
-                    return self._json(
-                        {"erro": erro["erro"] if isinstance(erro, dict) else erro}, 409)
-                return self._json({"trabalho": _trabalho_json(trabalho, "instalar", seco=True)})
-
-            try:
-                with open(CONF, "rb") as fh:
-                    conf_antes = fh.read()
-            except OSError:
-                conf_antes = None
             gravadas, iguais, falhas = [], [], []
             for chave, rc, saida in definir_varias(pares):
                 if rc == 0:
@@ -7302,8 +8002,13 @@ class Manipulador(BaseHTTPRequestHandler):
                     falhas.append({"chave": chave,
                                    "erro": texto_na_tela(saida) or "não consegui gravar"})
             if falhas:
-                return self._json({"gravadas": gravadas, "iguais": iguais, "falhas": falhas,
-                                   "erro": "nem tudo foi gravado, e nada foi aplicado"}, 500)
+                if gravadas:
+                    resposta_parcial = aplicar_depois_de_gravar(gravadas)
+                else:
+                    resposta_parcial = {}
+                return self._json(dict(resposta_parcial, gravadas=gravadas, iguais=iguais,
+                                       falhas=falhas, erro="nem tudo foi gravado"), 500)
+            _som_carimbo_gravar(pares)
 
             resposta = {"gravadas": gravadas, "iguais": iguais}
             leitura = [c for c, _v in pares if c in _LEITURA_NO_APPLET]
@@ -7318,13 +8023,14 @@ class Manipulador(BaseHTTPRequestHandler):
                             + feito.stderr.decode("utf-8", "replace")).strip()
                 except (OSError, subprocess.SubprocessError) as e:
                     resposta["aviso"] = "o controle do modo de leitura não foi atualizado: %s" % e
-            trabalho, erro = iniciar("instalar", "", confirmado=True,
-                                     antes={CONF: conf_antes} if gravadas else None)
-            if erro:
-                resposta["erro"] = erro["erro"] if isinstance(erro, dict) else erro
-                return self._json(resposta, 409)
-            resposta["trabalho"] = _trabalho_json(trabalho, "instalar")
+            if gravadas:
+                resposta.update(aplicar_depois_de_gravar(gravadas))
             return self._json(resposta)
+
+        if caminho in ("/api/acervo", "/api/app-icone", "/api/app-desenho",
+                       "/api/autorais", "/api/jogo-fora", "/api/rodar") or (
+                caminho == "/api/criar" and str(corpo.get("id", "")) == _pack_no_ar()):
+            _esperar_aplicar_vivo()
 
         if caminho == "/api/acervo":
             return self._api_acervo(corpo)
@@ -7362,6 +8068,10 @@ class Manipulador(BaseHTTPRequestHandler):
             if erro:
                 return self._json({"erro": erro}, 500)
             return self._json({"ok": True, "ligado": mesmo_horario_ligado(), "gravadas": gravadas})
+        if caminho == "/api/rascunho":
+            if not _rascunho_gravar(corpo.get("rascunho")):
+                return self._json({"erro": "rascunho que não serve"}, 400)
+            return self._json({"ok": True})
         if caminho == "/api/pack-importar":
             return self._api_pack_importar(corpo)
 

@@ -122,7 +122,7 @@ VERBOS
                                  vem do pack PADRÃO. Ver `montar_novo`.
     levar  <id> foto <arquivo>...
                                  copia a foto para `wallpapers/` do pack da
-                                 pessoa (o que o Criar tema leva). Ver `levar_foto`.
+                                 pessoa (o que o Personalizar leva). Ver `levar_foto`.
     levar  <id> sons <pack>      copia o tema de sons que <pack> alcança para
                                  `sons/`, e o `som.tema` aponta para ele.
     levar  <id> som <arquivo.oga> <evento>
@@ -132,8 +132,11 @@ VERBOS
     tirar  <id> foto <nome>...   tira a foto de `wallpapers/` do pack da pessoa.
     tirar  <id> sistema|biblioteca <nome>...
     acervo-para-levar <id> sistema|biblioteca
-                                 o que a aba do Criar tema oferece, uma linha
+                                 o que o Personalizar oferece, uma linha
                                  por ícone: `pack<TAB>nome<TAB>arquivo<TAB>sim|nao`.
+    usar-desenho <id> <nome> <arquivo.svg>
+                                 guarda o desenho do app em `icones/apps/` do pack seu.
+    tirar-desenho <id> <nome>
     exportar <id> [arquivo] [--sem-imagens] [--seco]
                                  o pack num `.meowpack` (um .tar.zst com um
                                  MANIFESTO de sha256). Recusa o que não valida,
@@ -244,6 +247,7 @@ CAMPOS_COM_LEITOR = {
     "fontes.proprio",
     "fontes.herda",
     "icones.mimetypes.flavor",
+    "icones.gerador",
     "icones.autorais.gerar",
     "origens.cursores.tema",
     "icones.base.origem.*",
@@ -2561,7 +2565,33 @@ def _arquivos_da_pasta(pasta, ext):
     return saida
 
 
-def acervos_de_icone(no_ar=""):
+GERADORES_DE_ICONE = ("traco", "circle")
+
+
+def gerador_de_icones(ref):
+    for ident in cadeia_de_acervo(ref):
+        valor = campo(ident, "icones.gerador")
+        if valor in GERADORES_DE_ICONE:
+            return valor
+    return "traco"
+
+
+def cadeia_de_acervo(ref):
+    saida, vistos, atual = [], set(), ref
+    do_projeto = os.path.join(RAIZ, "packs")
+    while atual and atual not in vistos:
+        vistos.add(atual)
+        dir_pack = achar(atual)
+        if not dir_pack:
+            break
+        saida.append(os.path.basename(dir_pack))
+        if os.path.dirname(dir_pack) == do_projeto:
+            break
+        atual = campo(dir_pack, "heranca")
+    return saida
+
+
+def acervos_de_icone(no_ar="", cadeia=None):
     grupos = []
 
     def grupo(gid, acervo, nome, pack, tipo, pasta, arquivos):
@@ -2581,6 +2611,8 @@ def acervos_de_icone(no_ar=""):
             if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
                 continue
             vistos.add(pid)
+            if cadeia is not None and pid not in cadeia:
+                continue
             nome_pack = str(campo(dir_pack, "nome", pid) or pid)
             aut = campo(dir_pack, "icones.autorais.desenhos") \
                 or padrao_do_formato(dir_pack, PASTA_AUTORAIS)
@@ -2609,6 +2641,9 @@ def acervos_de_icone(no_ar=""):
     enviados = pasta_de_enviados()
     grupo("casa:enviados", "Seus", "enviados", "", "desenho", enviados,
           _arquivos_da_pasta(enviados, ".svg"))
+    if cadeia is not None:
+        return sorted(grupos, key=lambda g: (not g["no_ar"], not g["pack"],
+                                             cadeia.index(g["pack"]) if g["pack"] in cadeia else 0))
     return sorted(grupos, key=lambda g: (not g["no_ar"], not g["pack"], g["pack"] == PACK_BASE))
 
 
@@ -3087,12 +3122,15 @@ def vocabulario(ref):
     return saida
 
 
-def cmd_som(ref):
+def timbre(ref):
     p, _, _ = validar(ref, silencioso=True)
     som = p.get("som") or {}
-    for chave, var in SOM_NO_CONF.items():
-        if chave in som:
-            print(f"{var}={som[chave]}")
+    return {var: str(som[chave]) for chave, var in SOM_NO_CONF.items() if chave in som}
+
+
+def cmd_som(ref):
+    for var, valor in timbre(ref).items():
+        print(f"{var}={valor}")
     return OK
 
 
@@ -3746,8 +3784,8 @@ def o_que_traz(p, dados, membros):
     }
 
 
-def resumo_csv(caminho):
-    arquivos, dados, reprovados = montar_novo(id_do_csv(caminho), caminho)
+def resumo_csv(caminho, nome_dado=""):
+    arquivos, dados, reprovados = montar_novo(id_do_csv(caminho), caminho, nome_dado)
     r = o_que_traz(json.loads(arquivos["pack.json"]), dados, arquivos)
     r["regua"] = reprovados
     return r
@@ -3803,7 +3841,7 @@ def cmd_importar(caminho, opcoes):
                         + ("\n    O id sai do nome do CSV: com outro nome, ele vira outro pack."
                            if de_csv else ""))
     if de_csv:
-        membros, paleta, reprovados = montar_novo(ident, caminho)
+        membros, paleta, reprovados = montar_novo(ident, caminho, os.environ.get("MEOW_PACK_NOME", ""))
         _noticiar_csv(caminho, paleta, reprovados, sys.stdout)
     p, dados, destino = _instalar_pack(membros, raiz_da_pessoa(), ident, seco)
     r = o_que_traz(p, dados, membros)
@@ -3954,7 +3992,12 @@ def cmd_novo(ident, opcoes):
     return OK
 
 
-def montar_novo(ident, csv=None):
+def nome_digitado(texto):
+    limpo = re.sub(r"[\x00-\x1f\x7f]", " ", str(texto or ""))
+    return re.sub(r"\s+", " ", limpo).strip()[:60]
+
+
+def montar_novo(ident, csv=None, nome_dado=""):
     import time
     nome = " ".join(parte.capitalize() for parte in ident.split("-"))
     if csv:
@@ -3965,6 +4008,7 @@ def montar_novo(ident, csv=None):
         solto = re.sub(r"[\s_-]+", " ", os.path.splitext(os.path.basename(csv))[0]).strip()
         if do_arquivo and solto:
             nome = solto[0].upper() + solto[1:]
+    nome = nome_digitado(nome_dado) or nome
     data = time.strftime("%d/%m/%Y")
     som, reprovados = {}, []
     if csv:
@@ -4126,7 +4170,7 @@ def pack_da_pessoa(ident):
     d = os.path.join(raiz_da_pessoa(), ident)
     _exigir(os.path.isfile(os.path.join(d, "pack.json")) and not os.path.islink(d),
             f"{ident!r} não é um pack seu: só os de {raiz_da_pessoa()} recebem o que o "
-            f"Criar tema leva")
+            f"Personalizar leva")
     return d
 
 
@@ -4325,27 +4369,55 @@ def _e_svg(dados):
     return b"<svg" in dados[:4096].lower() and not RE_SVG_ATIVO.search(dados)
 
 
-def _pastas_desenhadas(dir_pack):
+ROTULO_DE_PASTA_FD = {
+    "folder": "Pasta", "user-home": "Pasta pessoal", "user-desktop": "Área de trabalho",
+    "folder-documents": "Documentos", "folder-download": "Downloads", "folder-music": "Música",
+    "folder-pictures": "Imagens", "folder-videos": "Vídeos", "folder-publicshare": "Público",
+    "folder-templates": "Modelos",
+}
+
+
+def _pintar_molde(texto, cores):
+    if not cores:
+        return None
+    papeis = set(RE_VAR_CTP.findall(texto))
+    if any(p not in cores for p in papeis):
+        return None
+    return RE_VAR_CTP.sub(lambda m: cores[m.group(1)].lower(), texto)
+
+
+def pastas_do_pack(dir_pack, cores=None):
     decl, mapa = campo(dir_pack, "icones.pastas.desenhos"), campo(dir_pack, "icones.pastas.mapa")
-    molde = campo(dir_pack, "icones.mimetypes.desenhos")
     if not (isinstance(decl, str) and decl and isinstance(mapa, str) and mapa):
         return []
     try:
-        pasta, arq_mapa = _dentro(dir_pack, decl, "icones.pastas.desenhos"), _dentro(dir_pack, mapa, "icones.pastas.mapa")
-        if isinstance(molde, str) and molde and _dentro(dir_pack, molde, "molde") == pasta:
-            return []
-        linhas = list(ler_mapa(arq_mapa))
+        pasta = _dentro(dir_pack, decl, "icones.pastas.desenhos")
+        linhas = list(ler_mapa(_dentro(dir_pack, mapa, "icones.pastas.mapa")))
     except (Recusa, OSError, UnicodeDecodeError):
         return []
+    if cores is None:
+        cores = _cores_do_flavor(dir_pack, campo(dir_pack, "paleta.flavor_padrao", ""))
     saida = []
     for _num, nome, glifo in linhas:
         if not nome_de_destino(nome):
             continue
         for cand in (glifo, nome):
             cheio = os.path.join(pasta, cand + ".svg")
-            if nome_de_destino(cand) and os.path.isfile(cheio) and not os.path.islink(cheio):
-                saida.append((nome, cheio))
+            if not (nome_de_destino(cand) and os.path.isfile(cheio) and not os.path.islink(cheio)):
+                continue
+            try:
+                with open(cheio, encoding="utf-8") as fh:
+                    bruto = fh.read(TETO_SVG)
+            except (OSError, UnicodeDecodeError):
                 break
+            texto = None
+            if RE_VAR_CTP.search(bruto):
+                texto = _pintar_molde(bruto, cores)
+                if texto is None:
+                    break
+            saida.append({"nome": nome, "caminho": cheio, "svg": texto,
+                          "rotulo": ROTULO_DE_PASTA_FD.get(nome) or nome.replace("-", " ").capitalize()})
+            break
     return saida
 
 
@@ -4353,41 +4425,166 @@ def icones_do_pack(dir_pack, pasta):
     return sorted(os.path.basename(a) for a in _arquivos_da_pasta(os.path.join(dir_pack, "icones", pasta), ".svg"))
 
 
-def acervo_para_levar(ident, pasta):
-    _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
-    meus = set(icones_do_pack(pack_da_pessoa(ident), pasta)) if ident else set()
-    saida, vistos = [], {ident}
-    for base in raizes():
-        try:
-            ids = sorted(os.listdir(base))
-        except OSError:
-            continue
-        for pid in ids:
-            dir_pack = os.path.join(base, pid)
-            if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
-                continue
-            vistos.add(pid)
-            if pasta == "sistema":
-                itens = _pastas_desenhadas(dir_pack)
-            else:
-                try:
-                    itens = [(os.path.basename(a)[:-4], a) for a in
-                             _arquivos_da_pasta(_dentro(dir_pack, PASTA_BIBLIOTECA, "biblioteca"), ".svg")]
-                except Recusa:
-                    itens = []
-            saida += [(pid, nome, arq, nome + ".svg" in meus) for nome, arq in itens]
+def _rotulos_da_biblioteca(pasta):
+    try:
+        with open(os.path.join(pasta, "catalog.json"), encoding="utf-8") as fh:
+            catalogo = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    saida = {}
+    for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
+        desc = str(ficha.get("descricao") or "").strip() if isinstance(ficha, dict) else ""
+        if desc:
+            saida[str(arq)] = desc[:1].upper() + desc[1:]
     return saida
 
 
-def levar_icone(ident, pasta, caminho, nome=""):
+def _rotulo_do_nome(nome):
+    limpo = re.sub(r"[-_.]+", " ", re.sub(r"^\d+[-_.]+", "", nome)).strip() or nome
+    return limpo[:1].upper() + limpo[1:]
+
+
+def acervo_para_levar(ident, pasta, base="", cores=None):
+    _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
+    meus = set(icones_do_pack(pack_da_pessoa(ident), pasta)) if ident else set()
+    saida = []
+    for pid in cadeia_de_acervo(ident or base or PACK_BASE):
+        dir_pack = achar(pid)
+        if pid == ident or not dir_pack:
+            continue
+        if pasta == "sistema":
+            itens = [(d["nome"], d["caminho"], d["rotulo"], d["svg"]) for d in pastas_do_pack(dir_pack, cores)]
+        else:
+            try:
+                bib = _dentro(dir_pack, PASTA_BIBLIOTECA, "biblioteca")
+            except Recusa:
+                continue
+            rotulos = _rotulos_da_biblioteca(bib)
+            itens = [(os.path.basename(a)[:-4], a,
+                      rotulos.get(os.path.basename(a)) or _rotulo_do_nome(os.path.basename(a)[:-4]), None)
+                     for a in _arquivos_da_pasta(bib, ".svg")]
+        saida += [{"de": pid, "nome": nome, "rotulo": rotulo, "arq": arq, "svg": svg,
+                   "levado": nome + ".svg" in meus} for nome, arq, rotulo, svg in itens]
+    return saida
+
+
+def levar_icone(ident, pasta, caminho, nome="", texto=None):
     dir_pack = pack_da_pessoa(ident)
     _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
     nome = (nome or os.path.basename(caminho)).removesuffix(".svg")
     _exigir(RE_NOME_LEVADO.match(nome + ".svg") and nome_de_destino(nome),
             f"{nome!r}: nome de ícone que não serve")
-    dados = _ler_de_quem_usa(caminho, (".svg",), TETO_SVG, _e_svg, "um SVG sem script")
+    if texto is not None:
+        dados = texto.encode("utf-8")
+        _exigir(0 < len(dados) <= TETO_SVG and _e_svg(dados), f"{nome}: o conteúdo não é um SVG sem script")
+    else:
+        dados = _ler_de_quem_usa(caminho, (".svg",), TETO_SVG, _e_svg, "um SVG sem script")
     _gravar_no_pack(dir_pack, f"icones/{pasta}/{nome}.svg", dados)
     return nome + ".svg"
+
+
+RE_SVG_COM_ESTILO_VIVO = re.compile(rb"<script|javascript:|\son[a-z]+\s*=|<foreignObject|<image|<use|@import|url\(\s*['\"]?https?:", re.I)
+TETO_DESENHO_DE_APP = 60000
+
+
+def _desenho_de_app_valido(texto):
+    dados = (texto or "").encode("utf-8")
+    _exigir(0 < len(dados) <= TETO_DESENHO_DE_APP, "o desenho está vazio ou passa de 60 000 caracteres")
+    _exigir(texto.lstrip().startswith("<svg") and texto.rstrip().endswith("</svg>"),
+            "o texto tem de começar em <svg e terminar em </svg>")
+    _exigir('viewBox="0 0 48 48"' in texto, 'falta viewBox="0 0 48 48"')
+    _exigir(not RE_SVG_COM_ESTILO_VIVO.search(dados), "o desenho traz script, imagem ou endereço de fora")
+    try:
+        ET.fromstring(texto)
+    except ET.ParseError as e:
+        raise Recusa(f"o desenho não é XML: {e}") from None
+
+
+def _linhas_do_mapa_herdado(heranca):
+    mapa = acervo("icones.apps.mapa", ref=heranca) if heranca else None
+    if not mapa:
+        return []
+    dono, saida = _pack_de(mapa), []
+    for _num, nome, alvo in ler_mapa(mapa):
+        if not (alvo.startswith(MOTOR) or alvo.startswith(OUTRO_PACK)):
+            alvo = f"{OUTRO_PACK}{dono}:{alvo}"
+        saida.append(f"{nome} : {alvo}")
+    return saida
+
+
+def _mapa_de_apps_do_pack(dir_pack, ident):
+    declarado = campo(ident, "icones.apps.mapa")
+    if isinstance(declarado, str) and declarado:
+        return _dentro(dir_pack, declarado, "icones.apps.mapa"), False
+    return _dentro(dir_pack, "icones/apps.map", "icones/apps.map"), True
+
+
+def desenho_no_pack(ident, nome):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(nome_de_destino(nome), f"{nome!r}: nome de ícone que não serve")
+    alvo = os.path.join(dir_pack, "icones", "apps", nome + ".svg")
+    if not os.path.isfile(alvo) or os.path.islink(alvo):
+        return None
+    with open(alvo, encoding="utf-8") as fh:
+        return fh.read(TETO_DESENHO_DE_APP + 1)
+
+
+def usar_desenho(ident, nome, texto, rotulo=""):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(nome_de_destino(nome), f"{nome!r}: nome de ícone que não serve")
+    _desenho_de_app_valido(texto)
+    mapa, novo = _mapa_de_apps_do_pack(dir_pack, ident)
+    if novo:
+        linhas = _linhas_do_mapa_herdado(campo(ident, "heranca"))
+        cabeca = ["# icones/apps.map — que desenho de icones/apps/ veste cada aplicativo.",
+                  "# Formato: nome-de-icone-do-.desktop : arquivo (ou pack:<id>:arquivo, de um pack de que este herda)"]
+    else:
+        with open(mapa, encoding="utf-8") as fh:
+            linhas = fh.read().split("\n")
+        cabeca = []
+    marca = re.sub(r"[\x00-\x1f#;]+", " ", rotulo or nome).strip()
+    nova = f"{nome} : apps/{nome}.svg   # {marca} — escolhido no painel"
+    achou = False
+    for i, linha in enumerate(linhas):
+        util = linha.split("#", 1)[0]
+        if util.partition(":")[0].strip() == nome and ":" in util:
+            linhas[i], achou = nova, True
+            break
+    if not achou:
+        while linhas and not linhas[-1].strip():
+            linhas.pop()
+        linhas.append(nova)
+    _gravar_no_pack(dir_pack, f"icones/apps/{nome}.svg", (texto.rstrip("\n") + "\n").encode("utf-8"))
+    _gravar_no_pack(dir_pack, os.path.relpath(mapa, dir_pack), ("\n".join(cabeca + linhas) + "\n").encode("utf-8"))
+    if novo:
+        def declara(p):
+            apps = p.setdefault("icones", {}).setdefault("apps", {})
+            apps.setdefault("mapa", "icones/apps.map")
+            apps.setdefault("desenhos", "icones/apps/")
+            return True
+        _mudar_pack_json(dir_pack, declara)
+    return nome + ".svg"
+
+
+def tirar_desenho(ident, nome):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(nome_de_destino(nome), f"{nome!r}: nome de ícone que não serve")
+    mapa, novo = _mapa_de_apps_do_pack(dir_pack, ident)
+    tirou = False
+    alvo = os.path.join(dir_pack, "icones", "apps", nome + ".svg")
+    if os.path.isfile(alvo) and not os.path.islink(alvo):
+        os.remove(alvo)
+        tirou = True
+    if not novo and os.path.isfile(mapa):
+        with open(mapa, encoding="utf-8") as fh:
+            linhas = fh.read().split("\n")
+        resto = [l for l in linhas
+                 if not (l.split("#", 1)[0].partition(":")[0].strip() == nome
+                         and f"apps/{nome}.svg" in l and "escolhido no painel" in l)]
+        if resto != linhas:
+            _gravar_no_pack(dir_pack, os.path.relpath(mapa, dir_pack), ("\n".join(resto).rstrip("\n") + "\n").encode("utf-8"))
+            tirou = True
+    return tirou
 
 
 def tirar_icone(ident, pasta, nome):
@@ -4782,9 +4979,15 @@ def main(argv):
         if verbo == "novo" and len(argv) >= 3:
             return cmd_novo(argv[2], argv[3:])
         if verbo == "acervo-para-levar" and len(argv) == 4:
-            for pid, nome, arq, levado in acervo_para_levar(argv[2], argv[3]):
-                print(f"{pid}\t{nome}\t{arq}\t{'sim' if levado else 'nao'}")
+            for i in acervo_para_levar(argv[2], argv[3]):
+                print(f"{i['de']}\t{i['nome']}\t{i['arq']}\t{'sim' if i['levado'] else 'nao'}")
             return OK
+        if verbo == "usar-desenho" and len(argv) == 5:
+            with open(argv[4], encoding="utf-8") as fh:
+                print(usar_desenho(argv[2], argv[3], fh.read()))
+            return OK
+        if verbo == "tirar-desenho" and len(argv) == 4:
+            return OK if tirar_desenho(argv[2], argv[3]) else RECUSADO
         if verbo == "levar" and len(argv) >= 4:
             return cmd_levar(argv[2], argv[3], argv[4:])
         if verbo == "tirar" and len(argv) >= 4:

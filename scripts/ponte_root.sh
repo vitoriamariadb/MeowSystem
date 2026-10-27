@@ -78,6 +78,7 @@ POLKIT=/etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules
 FLATPAK_GLOBAL=/var/lib/flatpak/overrides/global
 LIBRE_REMOVIDOS=/var/lib/meowsystem/libreoffice-removidos
 USR_SHARE=/usr/share
+SONS_ORIGINAIS=/var/lib/meowsystem/sons
 
 morrer() { printf 'ponte_root: %s\n' "$1" >&2; exit "${2:-2}"; }
 
@@ -107,6 +108,22 @@ do_libreoffice() {
 libreoffice_instalados() {
   dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'libreoffice*' 2>/dev/null \
     | awk '$1 ~ /^.[ic]/ && $2 ~ /^libreoffice/ { print $2 }'
+}
+
+som_destino() {
+  case "$1" in
+    power-plug|power-unplug|battery-caution|complete) printf '%s' "$USR_SHARE/sounds/Pop/stereo/notification/$1.oga" ;;
+    power-unplug-battery-low|battery-low)             printf '%s' "$USR_SHARE/sounds/Pop/stereo/alert/$1.oga" ;;
+    dialog-warning)                                   printf '%s' "$USR_SHARE/sounds/freedesktop/stereo/dialog-warning.oga" ;;
+    *) return 1 ;;
+  esac
+}
+
+som_evento() {
+  local evento
+  IFS= read -r evento || morrer "stdin vazio"
+  som_destino "$evento" >/dev/null || morrer "evento fora da lista desta ponte: $evento"
+  printf '%s' "$evento"
 }
 
 da_reserva() {
@@ -278,6 +295,43 @@ libreoffice-devolver)
   rm -f "$LIBRE_REMOVIDOS"
   ;;
 
+som)
+  evento="$(som_evento)"
+  destino="$(som_destino "$evento")"
+  [ -f "$destino" ] && [ ! -L "$destino" ] || morrer "$destino não existe — esta ponte troca o som, não cria" 3
+  tmp="$(mktemp)"; tmp_o="$(mktemp)"; tmp_s="$(mktemp)"; trap 'rm -f "$tmp" "$tmp_o" "$tmp_s"' EXIT
+  head -c 1048577 > "$tmp"
+  [ -s "$tmp" ] && [ "$(stat -c %s "$tmp")" -le 1048576 ] || morrer "som vazio ou grande demais"
+  [ "$(head -c 4 "$tmp")" = "OggS" ] || morrer "isto não é um Ogg"
+  novo="$(sha256sum < "$tmp" | cut -d' ' -f1)"
+  atual="$(sha256sum < "$destino" | cut -d' ' -f1)"
+  [ "$atual" != "$novo" ] || exit 0
+  nosso="$(cat "$SONS_ORIGINAIS/$evento.sha256" 2>/dev/null || true)"
+  install -d -m 755 -o root -g root "$SONS_ORIGINAIS" || morrer "não consegui criar $SONS_ORIGINAIS"
+  if [ "$atual" != "$nosso" ]; then
+    cat "$destino" > "$tmp_o"
+    install -m 644 -o root -g root "$tmp_o" "$SONS_ORIGINAIS/$evento.original" || morrer "não consegui guardar o som de fábrica"
+  fi
+  install -m 644 -o root -g root "$tmp" "$destino" || morrer "não consegui escrever $destino"
+  printf '%s\n' "$novo" > "$tmp_s"
+  install -m 644 -o root -g root "$tmp_s" "$SONS_ORIGINAIS/$evento.sha256" || morrer "não consegui anotar o som"
+  anotar "som $evento"
+  ;;
+
+som-padrao)
+  evento="$(som_evento)"
+  destino="$(som_destino "$evento")"
+  original="$SONS_ORIGINAIS/$evento.original"
+  [ -f "$original" ] && [ ! -L "$original" ] || exit 0
+  [ -f "$destino" ] && [ ! -L "$destino" ] || morrer "$destino não existe" 3
+  tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+  cat "$original" > "$tmp"
+  [ "$(head -c 4 "$tmp")" = "OggS" ] || morrer "o som de fábrica guardado não confere"
+  install -m 644 -o root -g root "$tmp" "$destino" || morrer "não consegui escrever $destino"
+  rm -f "$original" "$SONS_ORIGINAIS/$evento.sha256"
+  anotar "som-padrao $evento"
+  ;;
+
 atualizar)
   export DEBIAN_FRONTEND=noninteractive
   anotar "atualizar"
@@ -351,6 +405,8 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE flatpak-global-limpar, \\
     $PONTE libreoffice-remover, \\
     $PONTE libreoffice-devolver, \\
+    $PONTE som, \\
+    $PONTE som-padrao, \\
     $PONTE atualizar, \\
     $PONTE pacotes, \\
     $PONTE limpar, \\
@@ -365,7 +421,8 @@ REGRA_FIM
   printf '\nverbos: desktop · desktop-banco · greeter-ver · greeter-aplicar ·\n'
   printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
   printf '        completion-remover · flatpak-global-limpar · libreoffice-remover ·\n'
-  printf '        libreoffice-devolver · atualizar · pacotes · limpar · estado ·\n'
+  printf '        libreoffice-devolver · som · som-padrao · atualizar · pacotes ·\n'
+  printf '        limpar · estado ·\n'
   printf '        regra-sudo\n'
   ;;
 

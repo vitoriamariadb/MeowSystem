@@ -202,7 +202,7 @@ declare -A CEDIDOS=()
 ler_cedidos() {
   local linha nome
   [ -f "$MAPA_PASTAS" ] || return 0
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
     case "$linha" in ''|'#'*) continue ;; esac
     nome="${linha%%:*}"
     [ -n "$nome" ] || continue

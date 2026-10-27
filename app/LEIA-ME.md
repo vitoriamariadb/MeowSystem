@@ -1,8 +1,8 @@
 # `app/`: o painel
 
 Uma página local que faz pela tela tudo o que se faz editando o `~/.config/meow/meow.conf` ou
-digitando `meow`. As 122 chaves, com o valor escolhido, o de fábrica e o porquê atrás do **?**; e
-67 ações, com a saída aparecendo ao vivo enquanto rodam.
+digitando `meow`. As 124 chaves, com o valor escolhido, o de fábrica e o porquê atrás do **?**; e
+71 ações, com a saída aparecendo ao vivo enquanto rodam.
 
 ```bash
 ./app/run.sh        # ou: meow abrir, ou o ícone MeowSystem no lançador
@@ -19,11 +19,12 @@ app/
   servidor.py     lê o conf, escreve pelo meow_conf_definir, roda as ações
   pagina/
     index.html    o esqueleto (nenhum nome de chave nele)
-    lugares.js    as quatro portas e o que cada uma mostra
+    lugares.js    as cinco portas e o que cada uma mostra
     app.js        monta a tela a partir do que o servidor derivou
-    paginas.js    Tema, Criar tema e Cuidar
+    paginas.js    Tema, Personalizar e Manter
     oficina.js    o seletor e a oficina de ícones
-    mesa.js       a prévia da área de trabalho no cartão do pack e em Criar tema
+    extensoes.js  a porta Extensões: applets, builds e Adicionar repositório
+    mesa.js       a prévia da área de trabalho no cartão do pack e em Personalizar
     estilo.css    o visual (nenhum hex nele)
     standalone.*  só existem dentro do HTML exportado
 ```
@@ -33,12 +34,13 @@ app/
 | porta | o que tem |
 |---|---|
 | **Tema** | um cartão por pack instalado: logo, paleta, o que é próprio e o que herda. **Vestir**, **Remover**, **Abrir um tema** (`.meowpack` ou `.csv` de cores) |
-| **Criar tema** | os passos Cores, Ícones, Papel de parede, Sons e Mandar (**Baixar o tema**) |
-| **Ajustes** | painel e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
-| **Cuidar** | o doctor e o **Consertar**, as pendências, **Guardar ajustes** e **Trazer ajustes** |
+| **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Mandar (**Baixar o tema**) |
+| **Definir** | painel e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
+| **Manter** | o doctor e o **Consertar**, as pendências, **Guardar ajustes** e **Trazer ajustes** |
+| **Extensões** | as abas **Applets** (um cartão por applet: Instalar, Pôr no painel, Remover) e **Builds** (compositor, menu do Arquivos e cada applet, com **Refazer**), e **Adicionar repositório** |
 
-A barra de cima tem **Aplicar**, **Desfazer**, **Ver sem mudar**, **Procurar um ajuste**,
-**Créditos** e **Esta tela num arquivo**.
+Cada controle grava ao soltar e aplica só o que a chave governa. A barra de cima tem a conta das
+últimas mudanças com **Desfazer**, **Procurar um ajuste**, **Créditos** e **Esta tela num arquivo**.
 
 ## O catálogo é derivado
 
@@ -51,13 +53,15 @@ no exemplo aparece na página sozinha. O `tests/app.sh` compara as duas leituras
 
 - **No `meow.conf`, só o `meow_conf_definir`** do `lib/comum.sh`, num bash só por lote. Uma
   segunda rotina de escrita na mesma chave é defeito.
-- **Aplicar** é uma rota só (`/api/salvar`): confere todas as escolhas, grava e começa o
-  `./install.sh`. Uma escolha recusada barra o lote inteiro, antes de qualquer escrita.
-- **Ver sem mudar** mostra um gesto antes de ele valer, numa janela de resultado com **Parar**,
+- **Gravar** é `/api/definir` (uma chave) ou `/api/salvar` (um lote): confere, grava e entrega à fila
+  de aplicação, que roda `./install.sh --etapa` só com as etapas que a tabela
+  `assets/contratos/chave-etapa.tsv` liga à chave. Uma escolha recusada barra o lote inteiro, antes
+  de qualquer escrita. Se a aplicação falha, vira pendência.
+- **Ver sem mudar** mostra uma ação antes de ela valer, numa janela de resultado com **Parar**,
   **Guardar** e **Rodar de verdade**. Não há interruptor global de ensaio; um `MEOW_DRY_RUN` herdado
   do terminal sai do ambiente de tudo que o painel roda.
 - **Restaurar** grava o valor de fábrica e só aparece quando o valor difere (decisão 10).
-- **Trazer ajustes não grava**: o arquivo vira escolha pendente, e quem escreve é o Aplicar.
+- **Trazer ajustes** grava o lote na hora e entra na barra para desfazer.
 - **Um trabalho por vez.** O `install.sh` e o `meow doctor --consertar` pegam o `flock` de
   `~/.local/state/meowsystem/lock`; o servidor recusa o segundo e diz qual está correndo. A saída
   fica no servidor: a página pode recarregar e voltar ao mesmo trabalho.

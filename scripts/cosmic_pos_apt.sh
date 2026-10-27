@@ -12,6 +12,7 @@ PA_DOCTOR="${PA_DOCTOR:-$MEOW_RAIZ/bin/meow}"
 PA_RUSTUP="${PA_RUSTUP:-rustup}"
 PA_ORACULO="${PA_ORACULO:-$MEOW_RAIZ/scripts/oraculo_tema.sh}"
 PA_CANDIDATO="${PA_CANDIDATO:-$MEOW_ESTADO/cosmic-candidato.tsv}"
+PA_SOM="${PA_SOM:-$MEOW_RAIZ/scripts/som.sh}"
 
 PA_CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
 case ":$PATH:" in
@@ -46,10 +47,17 @@ passo_cosmic_settings() {
   case $? in 0|1|3) return 0 ;; *) return 1 ;; esac
 }
 
+passo_sons() {
+  meow_seco && return 0
+  [ -x "$PA_SOM" ] && "$PA_SOM" aplicar >/dev/null 2>&1
+  return 0
+}
+
 cmd_rodar() {
   local p v antigo mudou=0 falhou=0
   local -A visto=() novo=()
   meow_tem dpkg-query || { meow_pula "sem dpkg nesta máquina"; return "$MEOW_SEM_DEPENDENCIA"; }
+  passo_sons
 
   if [ -f "$PA_VERSOES" ]; then
     while IFS=$'\t' read -r p v; do [ -n "$p" ] && visto["$p"]="$v"; done < "$PA_VERSOES"

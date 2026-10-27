@@ -6,7 +6,7 @@ After=graphical-session.target
 
 [Service]
 Type=oneshot
-ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${AUTO_REPARO:-sim}" = "sim" ]'
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${AUTO_REPARO:-sim}" = "sim" ] && [ "${BUILDS_AO_ENTRAR:-sim}" != "nao" ]'
 ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
 ExecStart=/bin/sh -c 'PATH="%h/.cargo/bin:$PATH"; export PATH; R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/garantir_builds.sh" ] || exit 3; exec "$R/scripts/garantir_builds.sh"'
 SuccessExitStatus=3

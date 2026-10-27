@@ -1267,22 +1267,22 @@ etapa_apps() {
   return $?
 }
 
-etapa_midia_build() {
-  passo "Applet de mídia (compilação)"
-  MIDIA_COMPILAR=1 MIDIA="${MIDIA:-}" \
-    "$MEOW_RAIZ/scripts/midia_build.sh"
+etapa_extensoes() {
+  passo "Extensões (applets da casa: compilação e sombra)"
+  EXTENSOES_COMPILAR=1 EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDIA:-}" \
+    LEITURA_APPLET="${LEITURA_APPLET:-}" \
+    "$MEOW_RAIZ/scripts/extensoes_build.sh" --todas --aplicar
   return $?
 }
 
-etapa_leitura_applet() {
-  passo "Applet do modo de leitura (compilação e sombra)"
-  LEITURA_COMPILAR=1 LEITURA_APPLET="${LEITURA_APPLET:-}" \
-    "$MEOW_RAIZ/scripts/leitura_build.sh"
+etapa_extensoes_tema() {
+  passo "Extensões (tema do pack)"
+  FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$MEOW_RAIZ/scripts/extensoes_tema.sh" --aplicar
   return $?
 }
 
 etapa_midia() {
-  passo "Applet de mídia (sombra e chaves)"
+  passo "Applet de mídia (chaves)"
   MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
     MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
     MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
@@ -1316,7 +1316,7 @@ etapa_autoreparo() {
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
     meow_aviso "não há systemd --user nesta sessão — o auto-reparo fica de fora"
-    meow_info "  o «Conferir e consertar» faz o mesmo quando quiser"
+    meow_info "  o «Consertar», no Manter, faz o mesmo quando quiser"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -1818,6 +1818,10 @@ install.sh — instala o MeowSystem inteiro.
   ./install.sh --uma-passagem
                             roda a fila UMA vez e para, mesmo que alguma etapa
                             dependa do resultado da anterior (depuração)
+  ./install.sh --etapa <nome>[,<nome>]
+                            roda só essas etapas (os nomes de `local etapas`, sem
+                            o prefixo etapa_); é o que o painel usa para aplicar
+                            uma chave que acabou de gravar
   ./install.sh --wizard     roda `meow configurar` antes (pergunta as chaves do
                             meow.conf, grava lá) e então instala como sempre
   ./install.sh --uninstall  tira o MeowSystem desta máquina
@@ -1832,8 +1836,8 @@ install.sh — instala o MeowSystem inteiro.
 O ensaio é sempre de uma passagem só: no seco nada é escrito, então a etapa que
 diverge hoje divergiria igual na passagem seguinte.
 
-As flags acima dizem COMO esta execução se comporta. QUAIS etapas rodam é
-decisão do meow.conf — nunca da linha de comando.
+Sem --etapa, quais etapas rodam é decisão do meow.conf. Com --etapa, só as
+nomeadas rodam, na ordem da fila, e a pendência de root não é reavaliada.
 
 FIM
 }
@@ -1889,11 +1893,13 @@ main() {
     return 2
   fi
 
-  local wizard=0 desinstalar=0 uma_passagem=0 perfil="" com_perfil=0
+  local wizard=0 desinstalar=0 uma_passagem=0 perfil="" com_perfil=0 so_etapas=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --wizard|-w) wizard=1 ;;
       --uma-passagem) uma_passagem=1 ;;
+      --etapa)     so_etapas="${2:-}"; [ $# -gt 0 ] && shift ;;
+      --etapa=*)   so_etapas="${1#--etapa=}" ;;
       --dry-run|--seco|-n)       MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
       --uninstall|--desinstalar) desinstalar=1 ;;
       --perfil)    com_perfil=1; perfil="${2:-}"; [ $# -gt 0 ] && shift ;;
@@ -1901,8 +1907,7 @@ main() {
       -h|--help)   uso; return 0 ;;
       "")          ;;
       *) meow_erro "opção desconhecida: $1"
-         meow_info "o que existe: --dry-run, --uma-passagem, --wizard, --perfil <nome>, --uninstall, --help."
-         meow_info "QUAIS etapas rodam é decisão do meow.conf, não da linha de comando."
+         meow_info "o que existe: --dry-run, --uma-passagem, --etapa <nome>, --wizard, --perfil <nome>, --uninstall, --help."
          return 2 ;;
     esac
     shift
@@ -1957,7 +1962,20 @@ main() {
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_ocultar_casa etapa_janela_dock
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_bloco_terminal etapa_files_menu etapa_cursor etapa_flatpak_tema etapa_escritorio etapa_apps
                 etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
-                etapa_midia_build etapa_midia etapa_leitura_applet etapa_lancador etapa_autostart etapa_autoreparo)
+                etapa_extensoes etapa_extensoes_tema etapa_midia etapa_lancador etapa_autostart etapa_autoreparo)
+  if [ -n "$so_etapas" ]; then
+    local pedida escolhida escolhidas=()
+    for pedida in ${so_etapas//,/ }; do
+      case " ${etapas[*]} " in
+        *" etapa_$pedida "*) ;;
+        *) meow_erro "etapa desconhecida: $pedida"; return 2 ;;
+      esac
+    done
+    for escolhida in "${etapas[@]}"; do
+      case ",${so_etapas// /}," in *",${escolhida#etapa_},"*) escolhidas+=("$escolhida") ;; esac
+    done
+    etapas=("${escolhidas[@]}")
+  fi
   TOTAL=${#etapas[@]}
 
   local teto=5
@@ -2008,7 +2026,9 @@ main() {
     [ ${#PULADOS[@]}  -gt 0 ] && meow_pula  "pulado: ${PULADOS[*]}"
     [ ${#FALHOS[@]}   -gt 0 ] && meow_erro  "falhou: ${FALHOS[*]}"
 
-    if [ ${#PULADOS[@]} -gt 0 ]; then
+    if [ -n "$so_etapas" ]; then
+      :
+    elif [ ${#PULADOS[@]} -gt 0 ]; then
       local p por_root=0 sem_captura="" de_root=""
       for p in "${PULADOS[@]}"; do
         case " ${PULADOS_OPTIN[*]:-} " in *" $p "*) continue ;; esac
@@ -2092,6 +2112,7 @@ main() {
     return 0
   fi
 
+  [ -z "$so_etapas" ] && meow_pendencia_resolvida aplicar-ajuste
   local plural="passagens"
   [ "$passagem" = "1" ] && plural="passagem"
   printf '\n  %sPronto.%s %d %s, %d etapas, nada mais a escrever.\n\n' \

@@ -108,6 +108,9 @@ def copiar_raiz():
         os.makedirs(os.path.dirname(destino), exist_ok=True)
         if os.path.islink(origem):
             os.symlink(os.readlink(origem), destino)
+        elif os.path.isdir(origem):
+            shutil.copytree(origem, destino, symlinks=True, dirs_exist_ok=True,
+                            ignore=shutil.ignore_patterns(".git"))
         else:
             shutil.copy2(origem, destino)
     subprocess.run(["git", "init", "-q", RAIZ_B], check=True)
@@ -492,33 +495,33 @@ CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "APPS_ATIVOS": "program
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
     "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
-    "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
+    "vscode_instalar_extensao", "files_menu_build", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
     "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
 }
 EXTRAS = {
     "tema": ["tema:saude", "tema:abrir", "tema:criar", "pack:*:*", "chave:ACCENT=*", "chave:MODO=*"],
     "criar/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
     "criar/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
-    "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "autoral:*", "acervo:icone",
-                     "icones:aba=*", "levar:*"],
+    "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "desenho:*", "autoral:*", "acervo:icone",
+                     "acervo:filtro", "icones:aba=*"],
     "criar/papel": ["galeria:*", "papel:*", "acervo:parede", "levar:foto"],
-    "criar/sons": ["criar:sino", "som:ouvir", "som:trocar"],
+    "criar/sons": ["criar:sino", "som:ouvir", "som:trocar", "som:ponte"],
     "criar/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],
     "ajustes/dia-e-noite": ["noite:mesmo-horario"],
-    "ajustes/programas": ["programa:*", "jogo:*", "icone:*", "oficina:*"],
+    "ajustes/programas": ["programa:*", "jogo:*", "icone:*", "oficina:*", "desenho:*"],
     "cuidar": ["estado:*", "cuidar:exportar", "cuidar:importar", "pendencia:*"],
 }
-GLOBAIS = ["marca", "porta:*", "busca", "achado", "pendentes", "pendente:*", "desfazer", "ensaiar",
-           "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*", "exportar:imagens",
-           "mais:*", "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
-NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "busca", "achado", "pendentes", "pendente:*",
-          "desfazer", "ensaiar", "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*",
-          "mais:*", "exportar:imagens", "criar:voltar", "criar:proximo"]
+GLOBAIS = ["marca", "porta:*", "busca", "achado", "mudancas", "desfazer-uma", "descartar",
+           "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*", "exportar:imagens",
+           "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
+NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "busca", "achado", "mudancas", "desfazer-uma",
+          "descartar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*",
+          "exportar:imagens", "criar:voltar", "criar:proximo"]
 OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "busca", "achado",
-                "pendentes", "pendente:*", "desfazer", "ensaiar", "aplicar", "menu", "menu:creditos",
+                "mudancas", "desfazer-uma", "descartar", "menu", "menu:creditos",
                 "menu:pagina", "trabalho", "resultado:ok", "resultado:guardar", "resultado:parar",
-                "resultado:registro", "resultado:de-verdade", "pergunta:nao", "pergunta:sim",
+                "resultado:registro", "pergunta:nao", "pergunta:sim",
                 "pergunta:ensaio", "criar:voltar", "criar:proximo"]
 
 ROTAS = ["tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
@@ -604,7 +607,11 @@ class Percurso:
             if st == resp.status and trecho in resp.url:
                 del self.esperadas[i]
                 return
-        self.falha(f"resposta {resp.status} que ninguém pediu: {resp.url.split('?')[0][-60:]}")
+        try:
+            corpo = resp.text()[:160]
+        except Exception:
+            corpo = ""
+        self.falha(f"resposta {resp.status} que ninguém pediu: {resp.url.split('?')[0][-60:]} {corpo} (depois de «{getattr(self, 'ultimo_clique', '')}»)")
 
     def _console(self, msg):
         if msg.type != "error" or "Failed to load resource" in msg.text:
@@ -652,6 +659,8 @@ class Percurso:
             self.pag.wait_for_timeout(150)
 
     def clicar(self, nome, so_livre=False):
+        if nome.startswith("acao:"):
+            self.esperar_gravacao()
         for _vez in range(4):
             el = self.esperar_nome(nome, teto=4.0)
             if so_livre:
@@ -660,13 +669,14 @@ class Percurso:
                 break
             try:
                 el.click(timeout=5000)
+                self.ultimo_clique = nome
                 self.acionados.add(molde(nome))
                 return True
             except Exception:
                 self.pag.wait_for_timeout(200)
                 if not nome.startswith(("resultado:", "pergunta:")) and self.aberto("resultado"):
                     self.limpar()
-                if nome in ("desfazer",) and self.achar(nome) is None:
+                if nome in ("descartar", "desfazer-uma") and self.achar(nome) is None:
                     self.acionados.add(molde(nome))
                     return True
         estado = self.js("() => ({ n: document.getElementById('aplicar').dataset.n, mudancas: MUDANCAS.size,"
@@ -685,6 +695,18 @@ class Percurso:
             self.clicar(("ajuste:" if porta == "ajustes" else "passo:") + sub)
             self.assentar()
         self.checa(self.js("() => location.hash") == "#" + rota, f"o clique leva a #{rota}")
+
+    def esperar_gravacao(self, teto=240):
+        self.pag.wait_for_timeout(200)
+        fim = time.time() + teto
+        while time.time() < fim:
+            ocupado = self.js("() => EM_VOO > 0 || ACOMPANHANDO || document.getElementById('gravando').dataset.estado === 'gravando'")
+            if not ocupado:
+                break
+            self.pag.wait_for_timeout(300)
+        else:
+            self.falha("a gravação passou do teto de %ds" % teto)
+        self.assentar(quieto=200)
 
     def esperar_trabalho(self, teto=240, parar=False):
         fim = time.time() + teto
@@ -756,6 +778,10 @@ class Percurso:
                     self.checa(self.js("() => !document.getElementById('faixa-ensaio').hidden"),
                                f"a janela do ensaio de «{nome}» diz que é ensaio")
                     self.esperar_trabalho()
+                    if nome == "acao:leitura_remover" and self.achar("resultado:de-verdade"):
+                        self.clicar("resultado:de-verdade")
+                        self.assentar()
+                        self.esperar_trabalho()
                     self.fechar_resultado()
                 return "ensaio"
             self.clicar("pergunta:sim")
@@ -872,10 +898,11 @@ class Percurso:
         atual = valor_de("RELOGIO_SEGUNDOS") or "nao"
         with open(caminho, "w", encoding="utf-8") as fh:
             fh.write('RELOGIO_SEGUNDOS="%s"\n' % ("sim" if atual != "sim" else "nao"))
-        n0 = self.js("() => MUDANCAS.size")
+        n0 = self.js("() => HISTORICO.length")
         self.escolher_arquivo(nome, caminho)
-        self.assentar(quieto=400)
-        self.checa(self.js("() => MUDANCAS.size") == n0 + 1, "trazer ajustes vira uma mudança esperando o Aplicar")
+        self.esperar_gravacao()
+        self.checa(self.js("() => HISTORICO.length") == n0 + 1, "trazer ajustes grava na hora e entra na barra")
+        self.checa(valor_de("RELOGIO_SEGUNDOS") == ("sim" if atual != "sim" else "nao"), "e o meow.conf muda sem Aplicar")
 
     def h_guardar(self, nome):
         if self.achar(nome) and self.achar(nome).get_attribute("aria-disabled") == "true":
@@ -908,35 +935,18 @@ class Percurso:
                    "e o pack guardado valida no formato de três pastas: " + (ok.stdout + ok.stderr).strip()[-160:])
 
     def h_abas_de_icones(self):
-        pasta_pack = os.path.join(CASA, ".local", "share", "meowsystem", "packs", "tema-de-brinquedo", "icones")
         for aba in ("sistema", "biblioteca"):
             if not self.achar("icones:aba=" + aba):
                 continue
             self.clicar("icones:aba=" + aba)
             self.acionados.add("icones:aba=*")
             self.assentar(quieto=400)
-            nome = "levar:" + aba
-            el = self.achar(nome)
-            if not self.checa(el, f"a aba {aba} mostra os ícones para levar"):
-                continue
-            if el.get_attribute("aria-disabled") == "true":
-                self.checa(el.get_attribute("data-dica"), f"«{nome}» apagado diz o porquê")
-            else:
-                antes = set(os.listdir(os.path.join(pasta_pack, aba))) if os.path.isdir(os.path.join(pasta_pack, aba)) else set()
-                self.clicar(nome)
-                self.assentar(quieto=400)
-                depois = set(os.listdir(os.path.join(pasta_pack, aba))) if os.path.isdir(os.path.join(pasta_pack, aba)) else set()
-                self.checa(depois != antes, f"«Levar para o tema» na aba {aba} muda icones/{aba}/ do pack")
-                self.clicar(nome)
-                self.assentar(quieto=400)
-            self.acionados.add(nome)
-            if self.achar("levar:mais"):
-                n0 = self.js("() => document.querySelectorAll('.grade-apps.levar .app').length")
-                self.clicar("levar:mais")
-                self.assentar()
-                self.checa(self.js("() => document.querySelectorAll('.grade-apps.levar .app').length") > n0,
-                           "«Mais ícones» mostra mais")
-                self.acionados.add("levar:mais")
+            seletor = f".grade-apps.pastas[data-acervo='{aba}'] .app"
+            n = self.js(f"() => document.querySelectorAll(\"{seletor}\").length")
+            self.checa(n > 0, f"a aba {aba} mostra os ícones do pack em edição ({n})")
+            self.checa(not self.achar("levar:" + aba), f"a aba {aba} só mostra: não tem botão de levar")
+            if self.achar("acervo:filtro"):
+                self.acionados.add("acervo:filtro")
         self.clicar("icones:aba=apps")
         self.assentar()
 
@@ -1068,6 +1078,11 @@ class Percurso:
             return self.h_trocar_som(nome)
         if nome.startswith("icones:aba="):
             return self.h_abas_de_icones()
+        if nome == "som:ponte":
+            self.clicar(nome)
+            como = self.depois_do_gesto(nome)
+            self.checa(como == "ponte", f"«Consertar a ponte» abre a pergunta da ponte ({como!r})")
+            return
         if nome in ("criar:sino", "som:ouvir"):
             n0 = len(self.falhas)
             self.clicar(nome)
@@ -1145,11 +1160,8 @@ class Percurso:
         self.rota = rota
         inicio = time.time()
         self.ir(rota)
-        for s in self.pag.locator("details.mais > summary").all():
-            if not s.evaluate("(x) => x.parentElement.open"):
-                nome = s.get_attribute("data-controle")
-                self.clicar(nome)
-                self.assentar()
+        self.checa(self.js("() => document.querySelectorAll('details.mais, [data-controle^=\"mais:\"]').length") == 0,
+                   "nenhuma dobra «Mais ajustes» na página")
         self.assentar(quieto=500, teto=15000)
         itens = self.censo()
         sem_nome = [i["html"] for i in itens if not i["nome"]]
@@ -1177,9 +1189,6 @@ class Percurso:
             self.limpar()
             if self.js("() => location.hash") != "#" + rota:
                 self.ir(rota)
-                for s in self.pag.locator("details.mais > summary").all():
-                    if not s.evaluate("(x) => x.parentElement.open"):
-                        s.click()
                 self.assentar()
             agora = self.censo()
             vivo = next((i for i in agora if i["nome"] == nome), None)
@@ -1204,10 +1213,10 @@ class Percurso:
                 print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
         self.limpar()
         self.assentar()
-        if self.js("() => MUDANCAS.size"):
-            self.clicar("desfazer")
-            self.assentar()
-            self.checa(self.js("() => MUDANCAS.size") == 0, "o Desfazer limpa o que a página deixou esperando")
+        if self.js("() => HISTORICO.length"):
+            self.clicar("descartar")
+            self.esperar_gravacao()
+            self.checa(self.js("() => HISTORICO.length") == 0, "o Desfazer limpa o que a página gravou")
         self.tempos[rota] = round(time.time() - inicio, 1)
 
     def fluxos(self):
@@ -1221,49 +1230,27 @@ class Percurso:
         if self.checa(self.achar("achado"), "a busca acha «vidro»"):
             self.clicar("achado")
             self.assentar()
-            self.checa(self.js("() => location.hash.startsWith('#ajustes/')"), "o achado leva à página de Ajustes")
+            self.checa(self.js("() => location.hash.startsWith('#ajustes/')"), "o achado leva à página do Definir")
             self.checa(self.pag.locator("#conteudo .chegou").count() == 1, "e acende a linha do ajuste")
         self.ir("ajustes/painel")
+        antes = valor_de("RELOGIO_SEGUNDOS") or "nao"
         self.clicar("chave:RELOGIO_SEGUNDOS")
+        self.esperar_gravacao()
+        self.checa(self.js("() => HISTORICO.length") == 1, "um clique num ajuste grava e entra na barra")
+        self.checa(valor_de("RELOGIO_SEGUNDOS") != antes, "o meow.conf muda sem Aplicar")
+        self.checa(self.pag.locator("#conta").inner_text() == "1 mudança", "a barra diz «1 mudança»")
+        self.clicar("mudancas")
         self.assentar()
-        self.checa(self.js("() => MUDANCAS.size") == 1, "um clique num ajuste vira uma mudança esperando")
-        self.clicar("pendentes")
-        self.assentar()
-        if self.checa(self.achar("pendente:RELOGIO_SEGUNDOS"), "a conta abre a lista do que espera"):
-            self.clicar("pendente:RELOGIO_SEGUNDOS")
-            self.assentar()
-        self.clicar("desfazer")
-        self.assentar()
-        self.checa(self.js("() => MUDANCAS.size") == 0, "o Desfazer tira as mudanças que esperavam")
+        if self.checa(self.achar("desfazer-uma"), "a conta abre a lista do que mudou"):
+            self.clicar("desfazer-uma")
+            self.esperar_gravacao()
+        self.checa(valor_de("RELOGIO_SEGUNDOS") == antes, "o Desfazer de uma mudança devolve o valor no meow.conf")
         self.clicar("chave:RELOGIO_SEGUNDOS")
-        self.assentar()
-        self.clicar("ensaiar")
-        self.assentar()
-        if self.checa(self.aberto("resultado"), "«Ver sem mudar» abre a janela do ensaio"):
-            self.checa(self.js("() => !document.getElementById('faixa-ensaio').hidden"), "e ela diz que é ensaio")
-            self.esperar_trabalho()
-            self.checa(valor_de("RELOGIO_SEGUNDOS") == "nao", "o ensaio não grava o meow.conf")
-            self.clicar("resultado:registro")
-            if self.checa(self.achar("resultado:de-verdade"), "depois do ensaio, «Rodar de verdade»"):
-                self.clicar("resultado:de-verdade")
-                self.assentar()
-                self.checa(self.aberto("resultado"), "«Rodar de verdade» abre o trabalho")
-                self.checa(valor_de("RELOGIO_SEGUNDOS") == "sim", "e grava o meow.conf")
-                if self.js("() => !!TRABALHO && !!TRABALHO.timer"):
-                    self.pag.keyboard.press("Escape")
-                    self.assentar()
-                    if self.checa(self.achar("trabalho"), "fechar a janela com o trabalho correndo deixa a pastilha"):
-                        self.clicar("trabalho")
-                        self.assentar()
-                self.esperar_trabalho(parar=True)
-                self.clicar("resultado:guardar")
-                self.assentar()
-                self.fechar_resultado()
-        self.clicar("aplicar")
-        self.assentar()
-        if self.checa(self.aberto("resultado"), "«Aplicar» abre o trabalho"):
-            self.esperar_trabalho(parar=True)
-            self.fechar_resultado()
+        self.esperar_gravacao()
+        self.clicar("descartar")
+        self.esperar_gravacao()
+        self.checa(self.js("() => HISTORICO.length") == 0, "o Desfazer da barra esvazia a lista")
+        self.checa(valor_de("RELOGIO_SEGUNDOS") == antes, "e devolve o valor no meow.conf")
         self.ir("cuidar")
         acao = self.js("() => ['instalar', 'sistema_atualizar'].find((id) => ACAO.get(id) && !ESQUEMA.ponte) || ''")
         if acao:
@@ -1272,16 +1259,32 @@ class Percurso:
             titulo = self.js("() => document.getElementById('pergunta-titulo').textContent")
             if self.checa(self.aberto("pergunta") and titulo == "Falta a ponte",
                           f"sem a ponte, «{acao}» mostra «Falta a ponte» ({titulo!r})"):
-                self.checa(self.js("() => document.getElementById('pergunta-sim').textContent") == "Conferir e consertar",
-                           "e o botão é «Conferir e consertar»")
+                self.checa(self.js("() => document.getElementById('pergunta-sim').textContent") == "Consertar a ponte",
+                           "e o botão é «Consertar a ponte»")
                 self.clicar("pergunta:sim")
                 self.assentar()
-                if self.checa(self.aberto("resultado"), "«Conferir e consertar» roda"):
-                    self.esperar_trabalho(teto=300)
+                if self.checa(self.aberto("resultado"), "«Consertar a ponte» roda"):
+                    if self.js("() => !!TRABALHO && !!TRABALHO.timer"):
+                        self.pag.keyboard.press("Escape")
+                        self.assentar()
+                        if self.checa(self.achar("trabalho"), "fechar a janela com o trabalho correndo deixa a pastilha"):
+                            self.clicar("trabalho")
+                            self.assentar()
+                    self.esperar_trabalho(teto=300, parar=True)
+                    if self.achar("resultado:registro"):
+                        self.clicar("resultado:registro")
+                    if self.achar("resultado:guardar"):
+                        self.clicar("resultado:guardar")
+                        self.assentar()
                     self.fechar_resultado()
         self.clicar("menu")
         self.assentar()
-        self.h_link_externo("menu:creditos")
+        self.clicar("menu:creditos")
+        self.assentar()
+        if self.checa(self.aberto("creditos"), "«Créditos» abre o diálogo do painel"):
+            self.h_link_externo("creditos:repositorio")
+            self.clicar("creditos:ok")
+            self.assentar()
         if not self.js("() => document.getElementById('menu').open"):
             self.clicar("menu")
         self.h_download("menu:pagina")

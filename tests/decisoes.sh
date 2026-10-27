@@ -29,7 +29,7 @@ import os, sys
 sys.path.insert(0, sys.argv[1])
 import pack
 caso = sys.argv[2]
-grupos = lambda no_ar="": pack.acervos_de_icone(no_ar)
+grupos = lambda no_ar="", cadeia=None: pack.acervos_de_icone(no_ar, cadeia)
 _tab = os.path.join(os.path.dirname(sys.argv[1]), "packs", "CAMINHOS-DE-ANTES.tsv")
 antes_png = [l.split("\t", 1)[0] for l in open(_tab, encoding="utf-8")] if os.path.exists(_tab) else []
 def stems(pid):
@@ -59,10 +59,9 @@ elif caso == "vetores":
     print("png_sem_vetor=" + ",".join(sem_vetor))
 elif caso == "seletor":
     for no_ar in ("dracula", "meowsystem"):
-        g = grupos(no_ar)
+        g = grupos(no_ar, pack.cadeia_de_acervo(no_ar))
         print("%s:packs=%s" % (no_ar, ",".join(sorted({x["pack"] for x in g if x["pack"]}))))
         print("%s:primeiro=%s:%s" % (no_ar, g[0]["pack"], g[0]["no_ar"]))
-        print("%s:motor=%s" % (no_ar, any(x["pack"] == "meowsystem" for x in g)))
 elif caso == "nomes":
     tem = stems("dracula")
     for n in sys.argv[3:]:
@@ -88,16 +87,18 @@ grep -q '^falta=' <<< "$r" && falha "vetor dos feitos à mão que sumiu do pack 
 [ "$(grep '^png_sem_vetor=' <<< "$r")" = "png_sem_vetor=" ] \
   && ok "nenhum PNG do pack ficou sem o vetor ao lado" || falha "PNG sem vetor: $(grep '^png_sem_vetor=' <<< "$r")"
 
-echo "== D3. o seletor mostra o acervo de todos os packs, o pack no ar primeiro"
+echo "== D3. o seletor mostra só o acervo do pack em edição"
 r="$(resolvedor seletor 2>&1)"
 bom=1
 for no_ar in dracula meowsystem; do
-  grep -qx "$no_ar:packs=dracula,meowsystem" <<< "$r" || bom=0
+  grep -qx "$no_ar:packs=$no_ar" <<< "$r" || bom=0
   grep -qx "$no_ar:primeiro=$no_ar:True" <<< "$r" || bom=0
-  grep -qx "$no_ar:motor=True" <<< "$r" || bom=0
 done
-[ "$bom" = 1 ] && ok "com qualquer pack no ar: os dois packs e o motor aparecem, o do ar na frente" \
-  || falha "o seletor não mostra todos os acervos: $r"
+[ "$bom" = 1 ] && ok "com um pack em edição: só o acervo dele aparece, e o do outro nunca" \
+  || falha "o seletor mistura acervos de packs: $r"
+registro 3 'só o acervo do pack em edição' && registro 3 '26/10' \
+  && ok "o registro diz «só o acervo do pack em edição», com o sim de 26/10" \
+  || falha "a decisão 3 do registro não cita o acervo do pack em edição e o sim de 26/10"
 
 echo "== D4. calcdeirao fica fora; jogos, rede e clima2 entram"
 r="$(resolvedor nomes jogos rede clima2 2>&1)"
@@ -230,6 +231,20 @@ JS
 else
   pula "sem node: a regra do botão não roda aqui"
 fi
+
+registro 10 'grava na hora' && registro 10 'sim de 26/10' && ok "10: o registro diz que o restaurar grava na hora, com o sim de 26/10" \
+  || falha "a decisão 10 não diz que grava na hora"
+
+echo "== D18. os ajustes gravam ao soltar; só as ações têm janela de resultado e ensaio"
+registro 18 'sim de 26/10' && registro 18 'a barra só desfaz' && ok "18: o registro diz o grava-ao-soltar, com o sim de 26/10" \
+  || falha "a decisão 18 não diz o grava-ao-soltar"
+if grep -q 'id="bt-aplicar"\|id="botao-ensaiar"' "$RAIZ/app/pagina/index.html"; then
+  falha "a barra de cima voltou a ter «Aplicar» ou «Ver sem mudar»"
+else
+  ok "a barra de cima não tem «Aplicar» nem «Ver sem mudar»"
+fi
+grep -q 'id="confirmar-ensaio"' "$RAIZ/app/pagina/index.html" \
+  && ok "o diálogo da ação continua com o «Ver sem mudar»" || falha "o diálogo da ação perdeu o «Ver sem mudar»"
 
 echo "== D11. a interface nunca pede senha (revoga a caixa do sudo de uma linha, sim de 23/10)"
 registro 11 'a interface nunca pede senha' && ok "11: o registro diz a revogação, com o sim" || falha "a decisão 11 não diz a revogação no registro"
@@ -372,9 +387,9 @@ done
 [ -z "$faltam" ] && grep -q 'ppa:zhangsongcui3371/fastfetch' "$RAIZ/install.sh" \
   && ok "21: o instalador declara o que os applets compilam e o PPA do fastfetch" \
   || falha "21: falta dependência declarada:${faltam:- o PPA do fastfetch}"
-grep -q 'git clone https://github.com/AndreBFarias/MeowSystem.git' "$RAIZ/README.md" \
-  && ok "22: o README manda baixar do fork" || falha "22: o README não aponta para AndreBFarias/MeowSystem"
-registro 22 'AndreBFarias/MeowSystem' && ok "22: o registro guarda o repositório da casa" \
+grep -q 'git clone https://github.com/vitoriamariadb/MeowSystem.git' "$RAIZ/README.md" \
+  && ok "22: o README manda baixar de vitoriamariadb/MeowSystem" || falha "22: o README não aponta para vitoriamariadb/MeowSystem"
+registro 22 'vitoriamariadb/MeowSystem' && ok "22: o registro guarda o repositório da casa" \
   || falha "a decisão 22 saiu do registro"
 python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["origens"]["wallpapers"].get("repo") else 1)' \
     "$RAIZ/packs/meowsystem/pack.json" 2>/dev/null && ! grep -q 'meow wallpaper semear  ' "$RAIZ/install.sh" \
@@ -402,6 +417,10 @@ registro 48 'ICONES_BASE:-Papirus-Dark' && grep -rqF 'ICONES_BASE:-Papirus-Dark'
   && ok "48: os leitores do ICONES_BASE ficam com o mesmo padrão" || falha "48: a decisão saiu do registro"
 registro 49 'cosmic_prever.sh' && grep -q 'SUMIU do' "$RAIZ/scripts/cosmic_prever.sh" \
   && ok "49: o pré-voo acusa a chave que some do binário" || falha "49: o pré-voo não acusa mais a chave que some"
+registro 37 'sons/' && grep -q 'som-padrao' "$RAIZ/scripts/ponte_root.sh" && grep -q 'passo_sons' "$RAIZ/scripts/cosmic_pos_apt.sh" \
+  && [ -f "$RAIZ/assets/sons/eventos.json" ] \
+  && ok "37: os sons do pack vão ao sistema pela ponte, o pós-apt os repõe e a página lista cada evento" \
+  || falha "37: a ponte, o pós-apt ou o catálogo de sons saiu"
 ! grep -qE '^opt[[:space:]]' "$RAIZ/patches/series" \
   && grep -q 'Uniform::new("leitura_atenuacao"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
   && ! grep -q 'Uniform::new("leitura_temp"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \

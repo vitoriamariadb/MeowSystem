@@ -150,6 +150,22 @@ DEVAGAR=1 rodar & p2=$!
 wait "$p1" "$p2"
 igual "um build do compositor" "$(linhas '^compositor compilar')" 1
 
+echo "-- estado: o que a página Extensões lê, sem compilar nem escrever"
+versoes cosmic-comp=0.1~z cosmic-files=1.10~z
+antes="$(foto)"; : > "$T/log"
+rodar estado
+depois="$(foto)"
+igual "o compositor sem build: pendente" "$(sed -n 's/^compositor_estado=//p' "$T/saida")" pendente
+igual "o menu sem build: pendente" "$(sed -n 's/^menu_estado=//p' "$T/saida")" pendente
+igual "a versão do compositor" "$(sed -n 's/^compositor_versao=//p' "$T/saida")" "0.1~z"
+igual "um remendo na série" "$(sed -n 's/^remendos=//p' "$T/saida")" 1
+mkdir -p "$CASA/0.1~z"; date -Is > "$CASA/0.1~z/ruim"
+rodar estado
+igual "o build posto de lado: falhou" "$(sed -n 's/^compositor_estado=//p' "$T/saida")" falhou
+rm -rf "$CASA/0.1~z"
+igual "estado não compilou nada" "$(grep -c . "$T/log")" 0
+igual "e não escreveu nada" "$depois" "$antes"
+
 echo
 echo "== 2. os três gatilhos chamam a mesma função"
 U="$RAIZ/systemd/meow-builds-login.service"

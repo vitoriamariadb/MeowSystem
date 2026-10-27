@@ -492,8 +492,13 @@ chk_midia() {
     "$RAIZ/scripts/midia.sh" --conferir 2>&1
 }
 
-chk_midiabin() {
-  MIDIA="${MIDIA:-}" "$RAIZ/scripts/midia_build.sh" --conferir 2>&1
+chk_extensoes() {
+  EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDIA:-}" LEITURA_APPLET="${LEITURA_APPLET:-}" \
+    "$RAIZ/scripts/extensoes_build.sh" --todas --conferir 2>&1
+}
+
+chk_extensoestema() {
+  FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/extensoes_tema.sh" --conferir 2>&1
 }
 
 chk_vidro() {
@@ -956,10 +961,6 @@ chk_leitura() {
   "$RAIZ/scripts/leitura.sh" conferir 2>&1
 }
 
-chk_leiturabin() {
-  "$RAIZ/scripts/leitura_build.sh" --conferir 2>&1
-}
-
 chk_autostart() {
   AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" "$RAIZ/scripts/autostart.sh" conferir 2>&1
 }
@@ -987,7 +988,7 @@ chk_autoreparo() {
   fi
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
-    echo "não há systemd --user nesta sessão — o conserto diário fica de fora; o «Conferir e consertar» faz o mesmo"
+    echo "não há systemd --user nesta sessão — o conserto diário fica de fora; o «Consertar», no Manter, faz o mesmo"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -1159,8 +1160,10 @@ fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
                     VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
                     "$RAIZ/scripts/vidro.sh" 2>&1; }
 fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
-fix_midiabin()   { MIDIA="${MIDIA:-}" MIDIA_COMPILAR=1 "$RAIZ/scripts/midia_build.sh" --aplicar 2>&1; }
-fix_leiturabin() { LEITURA_COMPILAR=1 "$RAIZ/scripts/leitura_build.sh" --aplicar 2>&1; }
+fix_extensoes()  { EXTENSOES_COMPILAR=1 EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDIA:-}" \
+                    LEITURA_APPLET="${LEITURA_APPLET:-}" \
+                    "$RAIZ/scripts/extensoes_build.sh" --todas --aplicar 2>&1; }
+fix_extensoestema() { FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/extensoes_tema.sh" --aplicar 2>&1; }
 fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; }
 
 fix_painel()    {
@@ -1370,7 +1373,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura leiturabin greeter cursor flatpaktema flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas wallpaper fundo onlyoffice libreoffice apps heroictema midiabin midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura extensoes extensoestema greeter cursor flatpaktema flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 if ! meow_ponte_viva; then
   SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal libreoffice "

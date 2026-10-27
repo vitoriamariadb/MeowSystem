@@ -36,8 +36,8 @@ chave	com.system76.CosmicPanel.Panel	anchor_gap	cosmic-panel	scripts/forma.sh
 chave	com.system76.CosmicPanel.Panel	border_radius	cosmic-panel	scripts/forma.sh
 chave	com.system76.CosmicPanel.Panel	expand_to_edges	cosmic-panel	scripts/forma.sh
 chave	com.system76.CosmicPanel.Panel	margin	cosmic-panel	scripts/forma.sh
-chave	com.system76.CosmicPanel.Panel	plugins_wings	cosmic-panel	scripts/leitura_build.sh
-chave	com.system76.CosmicPanel.Panel	plugins_center	cosmic-panel	scripts/leitura_build.sh
+chave	com.system76.CosmicPanel.Panel	plugins_wings	cosmic-panel	scripts/extensoes_build.sh
+chave	com.system76.CosmicPanel.Panel	plugins_center	cosmic-panel	scripts/extensoes_build.sh
 chave	com.system76.CosmicComp	autotile	cosmic-comp	scripts/janelas.sh
 chave	com.system76.CosmicComp	autotile_behavior	cosmic-comp	scripts/janelas.sh
 chave	com.system76.CosmicComp	pinned_workspaces	cosmic-comp	scripts/areas.sh

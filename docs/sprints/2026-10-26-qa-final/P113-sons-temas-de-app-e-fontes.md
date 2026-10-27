@@ -41,3 +41,26 @@ Pop!_OS/COSMIC (seção de sons do Q1-04); `relatorios/qa-2.md` Q2-14, Q2-15, Q2
 
 ## Fora desta sprint
 Ícones (P112), layout (P110).
+
+## Execução
+
+Branch `sprint/p113`, nove commits. Prova de navegador: `tests/p113-navegador.py` (headless, casa de
+brinquedo), capturas em `capturas/p113/`. A prova de cada item vem do teste que o guarda.
+
+| item | o que foi feito | prova |
+|---|---|---|
+| Q1-03 | a prévia do painel é `GET /sino`, que roda `som.sh gerar`, o mesmo gerador do `aplicar`; o «Regravar» grava primeiro o que está na barra | `p113-navegador.py`: os bytes do `/sino` são os do `audio-volume-change.oga` regravado, e seguem iguais depois de recarregar; `sons-do-pack.sh` |
+| Q1-04 | `packs/meowsystem/sons/` (Interface Sounds do Kenney, CC0); `assets/sons/eventos.json` dá nome, quando toca e grupo; `/api/sons` junta isso ao pack; a página Sons tem os dois blocos, ouvir, trocar, origem e o aviso de ponte; ponte root com `som` e `som-padrao`, pós-apt repondo; `SOM_*` do `meow.conf` só vale no pack em que ela o mexeu (`som-do-pack` no estado); decisão 37 reescrita | `sons-do-pack.sh` (ponte de brinquedo, nunca a real), `ponte-so-reserva.sh`, `pos-apt.sh`, `decisoes.sh` 37, `p113-navegador.py` (25 sons, 7 marcados sem ponte) |
+| Q2-15 | tema catppuccin do spicetify em `packs/meowsystem/temas-de-apps/spotify/`, aplicado pelo doctor; o botão «Baixar» saiu | `pack-traz-o-que-usa.sh` |
+| Q2-16 | fonte JetBrainsMono Nerd Font Mono no pack (instalador offline); saíram os botões de baixar o starship, a coleção de papéis e o menu do Arquivos; ficam «Trazer .zip/fonte» e o «Instalar» do VS Code (decisão 9) | `pack-traz-o-que-usa.sh`, `nada-manda-digitar.sh`, `p113-navegador.py` (nenhum Baixar, Instalar ou Construir fora o do tema, o do VS Code e o «Instalar tudo» da QA-3) |
+| Q2-14 | «Escondidos» e «Não abrem sozinhos» ganham a lista de `/api/apps` e recusam o que não existe | `p113-navegador.py` |
+| Q1-13, Q1-18 | Mandar mostra o resumo (cores, ícones, pastas, papel, sons, temas de apps, mascote) e as saídas sem guardar antes (guarda sozinho ao baixar ou vestir); o rascunho vai a `/api/rascunho` (`rascunho-do-tema.json` no estado) | `p113-navegador.py`: Mandar sem guardar, e o rascunho volta numa janela nova sem o `localStorage` |
+
+Baixado: a Interface Sounds do Kenney (CC0, sha256 em `packs/meowsystem/sons/PROCEDENCIA.md`), o tema
+catppuccin do spicetify e a JetBrainsMono Nerd Font (origem, licença e sha256 nos `PROCEDENCIA.md`
+do pack).
+
+Ficou de fora: o manifesto `evento → arquivo` é a própria árvore `sons/stereo/<contexto>/<evento>.oga`
+que o `pack.py` já valida, sem um arquivo a mais; a linha «Tela de entrada» do resumo do Mandar (o
+pack não tem categoria para ela); o «Registro» do Mandar (P111); «Não abrem sozinhos» sugere só o que
+o `/api/apps` lista, não o que só existe em `~/.config/autostart`.

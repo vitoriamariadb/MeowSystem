@@ -23,9 +23,8 @@ esac
 
 NERD_TAG="v3.5.0"
 NERD_ATIVO="JetBrainsMono.tar.xz"
-NERD_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/$NERD_TAG/$NERD_ATIVO"
+TAR="$RAIZ/packs/meowsystem/fontes/$NERD_ATIVO"
 NERD_TAR_SHA256="0227b220360a6f819b9ead92343e8112b34733054782561af50cfba1e8afab63"
-NERD_TAR_BYTES=6371912
 
 VARIANTE="JetBrainsMonoNerdFontMono"
 FAMILIA_MONO="JetBrainsMono Nerd Font Mono"
@@ -49,9 +48,6 @@ SOMAS=(
 "18f66e4a3105f31b9f1132e4ff0b879bae3faa0545c42108f7812b948f4ce2d9  JetBrainsMonoNerdFontMono-Thin.ttf"
 "2d0ebea8655d90546434441d09ed98843d98296aff76dcadb8936b7abc318e2c  JetBrainsMonoNerdFontMono-ThinItalic.ttf"
 )
-
-CACHE="$MEOW_CACHE/fontes"
-TAR="$CACHE/$NERD_ATIVO"
 
 FONTES_BASE="$HOME/.local/share/fonts"
 DESTINO="$FONTES_BASE/MeowSystem"
@@ -253,41 +249,20 @@ elif instalados_ok; then
   meow_ok "as ${#SOMAS[@]} faces já estão em $DESTINO e conferem no sha256"
   faces_ok=1
 elif meow_seco; then
-  meow_muda "baixaria $NERD_ATIVO ($NERD_TAG) e instalaria ${#SOMAS[@]} faces em $DESTINO"
+  meow_muda "instalaria ${#SOMAS[@]} faces de $NERD_ATIVO ($NERD_TAG), do pack, em $DESTINO"
   mudou=1
 else
-  if [ -f "$TAR" ] && echo "$NERD_TAR_SHA256  $TAR" | sha256sum --status -c - 2>/dev/null; then
-    meow_ok "$NERD_ATIVO já no cache e confere ($NERD_TAG)"
-  else
-    [ -f "$TAR" ] && meow_aviso "o $NERD_ATIVO do cache não confere no sha256 — baixando de novo"
-    mkdir -p "$CACHE" || { meow_erro "não consegui criar $CACHE"; exit "$MEOW_ERRO"; }
-    meow_info "baixando $NERD_URL"
-    tmp_tar="$(mktemp -p "$CACHE" ".baixando.XXXXXX")" || exit "$MEOW_ERRO"
-    if ! curl -fL --retry 3 --retry-delay 2 -o "$tmp_tar" "$NERD_URL"; then
-      rm -f "$tmp_tar"
-      meow_aviso "não consegui baixar $NERD_URL (sem rede?) — fica para o próximo ciclo"
-      meow_info "  nada foi instalado — o terminal continua com a fonte que já tinha"
-      exit "$MEOW_SEM_DEPENDENCIA"
-    fi
-    baixado="$(stat -c%s "$tmp_tar")"
-    if [ "$baixado" != "$NERD_TAR_BYTES" ]; then
-      meow_aviso "o download tem $baixado bytes, esperava $NERD_TAR_BYTES ($NERD_TAG)"
-      meow_info "  quase sempre é portal de rede ou proxy respondendo no lugar do GitHub"
-      meow_info "  nada foi instalado — o terminal continua com a fonte que já tinha"
-      rm -f "$tmp_tar"
-      exit "$MEOW_SEM_DEPENDENCIA"
-    fi
-    if ! echo "$NERD_TAR_SHA256  $tmp_tar" | sha256sum --status -c - 2>/dev/null; then
-      meow_erro "sha256 do $NERD_ATIVO não bate com o pinado ($NERD_TAG)"
-      meow_info "  esperado $NERD_TAR_SHA256"
-      meow_info "  obtido   $(sha256sum "$tmp_tar" | cut -d' ' -f1)"
-      rm -f "$tmp_tar"
-      exit "$MEOW_ERRO"
-    fi
-    chmod 644 "$tmp_tar"
-    mv -f "$tmp_tar" "$TAR" || { rm -f "$tmp_tar"; exit "$MEOW_ERRO"; }
-    meow_ok "$NERD_ATIVO baixado e verificado ($(stat -c%s "$TAR") bytes)"
+  if [ ! -f "$TAR" ]; then
+    meow_erro "o pack meowsystem não traz $NERD_ATIVO em $TAR"
+    exit "$MEOW_ERRO"
   fi
+  if ! echo "$NERD_TAR_SHA256  $TAR" | sha256sum --status -c - 2>/dev/null; then
+    meow_erro "sha256 do $NERD_ATIVO do pack não bate com o pinado ($NERD_TAG)"
+    meow_info "  esperado $NERD_TAR_SHA256"
+    meow_info "  obtido   $(sha256sum "$TAR" | cut -d' ' -f1)"
+    exit "$MEOW_ERRO"
+  fi
+  meow_ok "$NERD_ATIVO do pack confere ($NERD_TAG)"
 
   mkdir -p "$DESTINO" || { meow_erro "não consegui criar $DESTINO"; exit "$MEOW_ERRO"; }
   stage="$(mktemp -d -p "$FONTES_BASE" ".meow-fontes.XXXXXX")" || exit "$MEOW_ERRO"

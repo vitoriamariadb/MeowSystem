@@ -110,8 +110,11 @@ meow_desinstalar() {
     "$MEOW_RAIZ/scripts/lancador.sh" --reverter || true
   fi
 
-  if [ -x "$MEOW_RAIZ/scripts/leitura_build.sh" ]; then
-    "$MEOW_RAIZ/scripts/leitura_build.sh" --reverter || true
+  if [ -x "$MEOW_RAIZ/scripts/extensoes_tema.sh" ]; then
+    "$MEOW_RAIZ/scripts/extensoes_tema.sh" --reverter || true
+  fi
+  if [ -x "$MEOW_RAIZ/scripts/extensoes_build.sh" ]; then
+    EXTENSOES= "$MEOW_RAIZ/scripts/extensoes_build.sh" --todas --reverter || true
   fi
 
   if [ -x "$MEOW_RAIZ/scripts/atalho.sh" ]; then

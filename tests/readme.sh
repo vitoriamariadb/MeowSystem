@@ -11,7 +11,7 @@ command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; 
 saida="$(python3 scripts/readme.py texto --conferir 2>&1)"
 [ $? -eq 0 ] && ok "o README diz o que o código diz" || falha "o README está velho: rode scripts/readme.sh" "$saida"
 
-tag="$(git tag --list 'v[0-9]*' --sort=-v:refname 2>/dev/null | head -n1)"
+tag="$(git tag --list 'v[0-9]*' --merged HEAD --sort=-v:refname 2>/dev/null | head -n1)"
 if [ -n "$tag" ]; then
   grep -qF "vers%C3%A3o-$tag-" README.md && ok "README.md: o badge diz $tag" || falha "README.md: o badge da versão não diz $tag"
   grep -qF "version-$tag-" README.en.md && ok "README.en.md: o badge diz $tag" || falha "README.en.md: o badge da versão não diz $tag"
@@ -36,7 +36,7 @@ for f in README.md README.en.md; do
 done
 
 capturas="$(grep -oE 'docs/capturas/readme/[a-z-]+\.png' README.md | sort -u | wc -l)"
-[ "$capturas" -eq 4 ] && ok "as quatro portas aparecem em captura" || falha "o README mostra $capturas captura(s) das portas, e são quatro"
+[ "$capturas" -eq 5 ] && ok "as cinco portas aparecem em captura" || falha "o README mostra $capturas captura(s) das portas, e são cinco"
 
 if [ "$falhas" -gt 0 ]; then
   printf '\n%d falha(s) no README.\n' "$falhas" >&2

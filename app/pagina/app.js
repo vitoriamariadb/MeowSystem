@@ -15,6 +15,8 @@ const IC = {
   mais: '<path d="M12 5v14M5 12h14"/>',
   certo: '<path d="M20 6 9 17l-5-5"/>',
   tocar: '<path d="M7 4v16l13-8Z"/>',
+  trocar: '<path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
+  refazer: '<path d="M20 12a8 8 0 1 1-2.4-5.7L20 8.5"/><path d="M20 3.5v5h-5"/>',
   sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   lua: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
   painel: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 8h18M8 17h8"/>',
@@ -254,37 +256,149 @@ function packNoAr() {
 const ligado = (v) => ["sim", "1", "true"].includes(String(v || "").toLowerCase());
 
 const PAR_DA_NOITE = { NOITE_INICIO: "NOITE_FIM", NOITE_FIM: "NOITE_INICIO" };
-function completarParDaNoite(chave, valor) {
+const HORA_DA_PONTA = { NOITE_INICIO: "18:00", NOITE_FIM: "07:00" };
+function completarParDaNoite(lote, chave, valor) {
   const irma = PAR_DA_NOITE[chave];
   if (!irma || !/^\d{1,2}:\d{2}$/.test(String(valor))) return;
   const item = CHAVE.get(irma);
   if (!item || valorEmVigor(item) !== "") return;
   const hora = item.efetivo || item.valendo_agora || item.padrao;
-  if (/^\d{1,2}:\d{2}$/.test(String(hora || ""))) MUDANCAS.set(irma, hora);
+  lote[irma] = /^\d{1,2}:\d{2}$/.test(String(hora || "")) ? hora : HORA_DA_PONTA[irma];
 }
+
+const HISTORICO = [];
+const HISTORICO_MAX = 20;
+let EM_VOO = 0;
+let FILA_DE_GRAVACAO = Promise.resolve();
+let ACOMPANHANDO = false;
 
 function escolher(chave, valor) {
   const item = CHAVE.get(chave);
   if (!item) return false;
-  completarParDaNoite(chave, valor);
-  if (String(valor) === String(item.valor ?? "")) MUDANCAS.delete(chave);
-  else MUDANCAS.set(chave, String(valor));
-  guardarBandeja();
+  if (String(valor) === String(valorEmVigor(item))) return true;
+  const lote = { [chave]: String(valor) };
+  completarParDaNoite(lote, chave, valor);
+  gravarAgora(lote);
+  return true;
+}
+
+function chavesRecentes() {
+  return new Set([...MUDANCAS.keys(), ...(HISTORICO[0] ? HISTORICO[0].itens.map((it) => it.chave) : [])]);
+}
+
+function mostrarGravando(estado, frase = "") {
+  const g = $("#gravando");
+  if (!g) return;
+  g.dataset.estado = estado;
+  const texto = estado === "gravando" ? "Gravando" : estado === "erro" ? (frase || "Não aplicou") : "Gravado";
+  g.setAttribute("aria-label", texto);
+  g.dataset.dica = texto;
+}
+
+function rotuloDoHistorico(chave) {
+  const inv = inventarioDoPainel();
+  const l = inv.find((x) => x.tipo === "chave" && x.id === chave);
+  if (!l) return (CHAVE.get(chave) || {}).titulo || chave;
+  const irmas = inv.filter((x) => x.tipo === "chave" && x.rotulo === l.rotulo && x.pagina === l.pagina && x.bloco === l.bloco);
+  if (irmas.length !== 2) return l.rotulo;
+  return `${l.rotulo} (${irmas[0].id === chave ? "barra de cima" : "dock"})`;
+}
+function valorParaLer(v, item) {
+  return v === "" ? "Padrão" : rotuloDeValor(v, item);
+}
+
+function gravarAgora(lote, opc = {}) {
+  const chaves = Object.keys(lote).filter((c) => CHAVE.has(c));
+  if (!chaves.length) return Promise.resolve(false);
+  const antes = {};
+  for (const c of chaves) { antes[c] = String(CHAVE.get(c).valor ?? ""); MUDANCAS.set(c, String(lote[c])); }
+  EM_VOO++;
+  mostrarGravando("gravando");
+  render();
+  FILA_DE_GRAVACAO = FILA_DE_GRAVACAO.then(() => enviarLote(lote, antes, chaves, opc));
+  return FILA_DE_GRAVACAO;
+}
+
+async function enviarLote(lote, antes, chaves, opc) {
+  const so = chaves.length === 1;
+  const r = so
+    ? await api("/api/definir", { method: "POST", body: JSON.stringify({ chave: chaves[0], valor: String(lote[chaves[0]]) }) })
+    : await api("/api/salvar", { method: "POST", body: JSON.stringify({ mudancas: lote }) });
+  EM_VOO--;
+  for (const c of chaves) MUDANCAS.delete(c);
+  const certas = so ? (r.erro || r.rc === 2 ? [] : chaves)
+    : [...(r.gravadas || []), ...(r.iguais || [])].filter((c) => chaves.includes(c));
+  for (const c of certas) CHAVE.get(c).valor = String(lote[c]);
+  const queixas = [];
+  for (const rec of [...(r.recusadas || []), ...(r.falhas || [])]) queixas.push(`${nomeDeChave(rec.chave)}: ${rec.erro}`);
+  if (!queixas.length && (r.erro || r.rc === 2)) queixas.push(r.erro || r.saida || "Não gravou");
+  if (queixas.length) {
+    for (const q of queixas.slice(0, 3)) torrada(q, "erro");
+    mostrarGravando("erro", queixas[0]);
+    render();
+    return false;
+  }
+  const itens = chaves.filter((c) => String(antes[c]) !== String(lote[c]))
+    .map((c) => ({ chave: c, antes: antes[c], depois: String(lote[c]) }));
+  if (opc.historico !== false && itens.length) {
+    const p = itens[0];
+    HISTORICO.unshift({ itens, rotulo: rotuloDoHistorico(p.chave),
+      detalhe: `${valorParaLer(p.antes, CHAVE.get(p.chave))} → ${valorParaLer(p.depois, CHAVE.get(p.chave))}` });
+    HISTORICO.length = Math.min(HISTORICO.length, HISTORICO_MAX);
+  }
+  if (r.sem_ponte) {
+    torrada("Gravado; falta a ponte para aplicar", "erro");
+    mostrarGravando("erro", "Falta a ponte para aplicar");
+    await recarregarPendencias();
+  } else if (r.aplicando) {
+    mostrarGravando("gravando");
+    acompanharAplicacao();
+  } else if (!EM_VOO) {
+    mostrarGravando("ok");
+  }
   atualizarAplicar();
   render();
   return true;
 }
 
-function guardarBandeja() {
-  try { sessionStorage.setItem("meow-bandeja", JSON.stringify([...MUDANCAS])); } catch (e) { }
-}
-function restaurarBandeja() {
-  let lista = [];
-  try { lista = JSON.parse(sessionStorage.getItem("meow-bandeja") || "[]"); } catch (e) { lista = []; }
-  for (const [c, v] of lista) {
-    const item = CHAVE.get(c);
-    if (item && String(v) !== String(item.valor ?? "")) MUDANCAS.set(c, String(v));
+async function acompanharAplicacao() {
+  if (ACOMPANHANDO) return;
+  ACOMPANHANDO = true;
+  try {
+    for (let n = 0; n < 6000; n++) {
+      const r = await api("/api/aplicando");
+      if (r.erro) return;
+      if (!r.correndo) {
+        if (r.falhou) {
+          mostrarGravando("erro", "Não aplicou");
+          await recarregarPendencias();
+          render();
+        } else if (!EM_VOO) {
+          mostrarGravando("ok");
+          await recarregarEsquema();
+          render();
+        }
+        return;
+      }
+      await new Promise((ok) => setTimeout(ok, 600));
+    }
+  } finally {
+    ACOMPANHANDO = false;
   }
+}
+
+async function desfazerEntradas(entradas) {
+  if (!entradas.length) return;
+  const lote = {};
+  for (const e of entradas) for (const it of e.itens) lote[it.chave] = it.antes;
+  const certo = await gravarAgora(lote, { historico: false });
+  if (!certo) return;
+  for (const e of entradas) { const k = HISTORICO.indexOf(e); if (k >= 0) HISTORICO.splice(k, 1); }
+  atualizarAplicar();
+  render();
+}
+function desfazerTudo() {
+  desfazerEntradas(HISTORICO.slice());
 }
 
 function padraoDe(item) {
@@ -294,23 +408,27 @@ function padraoDe(item) {
 function temOQueRestaurar(item, valor) {
   return String(valor) !== String(padraoDe(item));
 }
-function botaoPadrao(item, aplica) {
+function botaoPadrao(item, aplica, coluna) {
   const fabrica = padraoDe(item);
+  const de = coluna ? ` (${coluna.toLowerCase()})` : "";
   return elemento("button", {
     type: "button", class: "padrao", controle: "padrao:" + item.chave,
-    "aria-label": "Voltar ao padrão",
-    dica: fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item),
+    "aria-label": "Voltar ao padrão" + de,
+    dica: (fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item)) + de,
     onclick: () => aplica(fabrica),
   }, [icone("desfazer")]);
 }
 
-function botaoAutomatico(item, valor, aplica) {
+function botaoAutomatico(item, valor, aplica, coluna) {
   if (!item.aceita_vazio || padraoDe(item) === "" || valor === "") return null;
+  const de = coluna ? ` (${coluna.toLowerCase()})` : "";
   return elemento("button", {
     type: "button", class: "padrao", controle: "automatico:" + item.chave,
-    "aria-label": "O sistema decide", dica: "O sistema decide", onclick: () => aplica(""),
+    "aria-label": "O sistema decide" + de, dica: "O sistema decide" + de, onclick: () => aplica(""),
   }, [icone("girar")]);
 }
+
+const TAMANHOS = { XS: "Muito pequeno", S: "Pequeno", M: "Médio", L: "Grande", XL: "Muito grande" };
 
 function controle(item) {
   const valor = valorEmVigor(item);
@@ -359,11 +477,14 @@ function controle(item) {
     }
     if (o.length <= 5) {
       const seg = elemento("div", { class: "seg", role: "group", "aria-label": item.titulo || nome });
-      const marcado = valor !== "" ? valor : (item.valendo_agora ?? "");
+      const caiu = valor !== "" && o.some((op) => String(op) === String(valor));
+      const marcado = caiu ? valor : (item.valendo_agora ?? item.efetivo ?? "");
+      const tamanhos = o.every((op) => TAMANHOS[op]);
       for (const op of o) {
         seg.append(elemento("button", {
           type: "button", "aria-pressed": String(String(op) === String(marcado)),
-          controle: "chave:" + nome + "=" + op, texto: rotuloDeValor(op, item), onclick: () => aplica(op),
+          controle: "chave:" + nome + "=" + op, texto: rotuloDeValor(op, item),
+          dica: tamanhos ? TAMANHOS[op] : rotuloDeValor(op, item), onclick: () => aplica(op),
         }));
       }
       return seg;
@@ -407,20 +528,24 @@ function controleFaixa(item, aplica) {
   const valor = valorEmVigor(item);
   const base = valor !== "" ? valor : (item.valendo_agora ?? item.vazio_vale ?? item.padrao ?? lo);
   const numero = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
+  const vazio = valor === "";
   const pct = (n) => `${((n - lo) / ((topo - lo) || 1)) * 100}%`;
   const slider = elemento("input", {
     type: "range", min: lo, max: topo, step: passo, value: String(numero),
     "aria-label": item.titulo || item.chave, controle: "chave:" + item.chave, dica: primeiraFrase(item.frase),
   });
   slider.style.setProperty("--p", pct(numero));
-  const saida = elemento("output", { texto: valor === "" ? "Auto" : String(numero) });
+  const saida = elemento("output", { texto: vazio ? "Auto" : String(numero) });
+  const caixa = elemento("div", { class: "faixa" }, [slider, saida]);
+  if (vazio) caixa.setAttribute("data-vazio", "");
   slider.addEventListener("input", () => {
+    caixa.removeAttribute("data-vazio");
     saida.textContent = slider.value;
     slider.style.setProperty("--p", pct(Number(slider.value)));
     repintarPrevia(item.chave, slider.value);
   });
   slider.addEventListener("change", () => aplica(slider.value));
-  return elemento("div", { class: "faixa" }, [slider, saida]);
+  return caixa;
 }
 
 function controleCor(item, aplica, grandes = false) {
@@ -492,6 +617,12 @@ function controleImagem(item, aplica) {
   return caixa;
 }
 
+const LISTAS_DE_APPS = new Set(["LANCADOR_OCULTAR", "AUTOSTART_BLOQUEADOS"]);
+let APPS_DA_LISTA = null;
+function appsDaLista() {
+  if (!APPS_DA_LISTA) APPS_DA_LISTA = api("/api/apps").then((r) => (r && r.apps) || []);
+  return APPS_DA_LISTA;
+}
 function controleLista(item, aplica) {
   const sep = item.lista_pathsep ? ":" : ",";
   const itens = String(valorEmVigor(item) || "").split(sep).map((s) => s.trim()).filter(Boolean);
@@ -508,9 +639,29 @@ function controleLista(item, aplica) {
   }
   const nova = elemento("input", { type: "text", class: "campo ficha-nova", placeholder: "Acrescentar",
     "aria-label": "Acrescentar a " + (item.titulo || item.chave), controle: "chave:" + item.chave + ":nova" });
-  const acrescentar = () => {
-    const v = nova.value.trim();
+  const deApps = LISTAS_DE_APPS.has(item.chave);
+  if (deApps) {
+    const sugestoes = elemento("datalist", { id: "apps-" + item.chave });
+    nova.setAttribute("list", sugestoes.id);
+    nova.setAttribute("placeholder", "Procurar um programa");
+    appsDaLista().then((apps) => {
+      for (const a of apps) sugestoes.append(elemento("option", { value: a.id, label: a.nome }));
+    });
+    caixa.append(sugestoes);
+  }
+  const acrescentar = async () => {
+    let v = nova.value.trim();
     if (!v || itens.includes(v)) { nova.value = ""; return; }
+    if (deApps) {
+      const apps = await appsDaLista();
+      const solto = v.replace(/^-/, "");
+      const prefixo = v.startsWith("-") && item.chave === "LANCADOR_OCULTAR" ? "-" : "";
+      const certo = apps.find((a) => a.id === solto)
+        || apps.find((a) => a.nome.toLowerCase() === solto.toLowerCase());
+      if (!certo) { torrada("Não achei esse programa", "erro"); nova.value = ""; return; }
+      v = prefixo + certo.id;
+      if (itens.includes(v)) { nova.value = ""; return; }
+    }
     aplica([...itens, v].join(sep));
   };
   nova.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); acrescentar(); } });
@@ -587,12 +738,20 @@ function controlePorArea(item, aplica) {
   return caixa;
 }
 
+const SOLTO_DE = { FORMA_MARGEM_PAINEL: ["FORMA_PAINEL_SOLTO", "o painel"], FORMA_MARGEM_DOCK: ["FORMA_DOCK_SOLTO", "a dock"] };
+
 function dominada(item) {
+  const solto = SOLTO_DE[item.chave];
+  if (solto && CHAVE.get(solto[0]) && String(vale(solto[0])) === "nao") {
+    return `A distância só vale com ${solto[1]} solto da borda.`;
+  }
   const d = item.dominada_por;
   if (!d) return null;
   if (!CHAVE.get(d.chave) || String(vale(d.chave)) !== String(d.valor)) return null;
   return maiuscula(d.porque || "");
 }
+
+const COLUNAS = ["Barra de cima", "Dock"];
 
 function linhaDeChave(l) {
   const chaves = [].concat(l.c);
@@ -600,25 +759,44 @@ function linhaDeChave(l) {
   if (!itens.length || itens.every((i) => i.sem_programa)) return null;
   const um = itens[0];
   const dupla = Array.isArray(l.c) && l.c.length === 2;
-  const mudou = chaves.some((c) => MUDANCAS.has(c));
-  const presa = dominada(um) || (ESQUEMA.mesmo_horario
+  const mudou = chaves.some((c) => MUDANCAS.has(c) || HISTORICO.some((e) => e.itens.some((it) => it.chave === c)));
+  const presa = (dupla ? (itens.every(dominada) ? dominada(um) : null) : dominada(um)) || (ESQUEMA.mesmo_horario
     && (ESQUEMA.horario_das_areas || []).some((a) => a.chaves.includes(um.chave)) ? "Segue o horário da noite" : null);
   const classe = "linha" + (dupla ? " dupla" : "") + (l.sub ? " sub" : "")
     + (mudou ? " mudou" : "") + (presa ? " dominada" : "") + (l.larga ? " larga" : "");
+  const frases = [...new Set(itens.map((i) => primeiraFrase(i.frase)).filter(Boolean))];
+  const junta = frases.map((f, i) => `${COLUNAS[i]}: ${f}`).join(" ");
   const rot = elemento("div", { class: "rot" }, [
-    elemento("span", { texto: l.r, dica: presa || primeiraFrase(um.frase) || null }),
+    elemento("span", { texto: l.r, dica: presa || (frases.length > 1 && dupla && junta.length <= 120
+      ? junta : frases[0]) || null }),
   ]);
-  for (const it of itens) {
-    const aplica = (v) => escolher(it.chave, v);
-    if (temOQueRestaurar(it, valorEmVigor(it))) rot.append(botaoPadrao(it, aplica));
-    const auto = botaoAutomatico(it, valorEmVigor(it), aplica);
-    if (auto) rot.append(auto);
+  if (!dupla) {
+    for (const it of itens) {
+      const aplica = (v) => escolher(it.chave, v);
+      if (temOQueRestaurar(it, valorEmVigor(it))) rot.append(botaoPadrao(it, aplica));
+      const auto = botaoAutomatico(it, valorEmVigor(it), aplica);
+      if (auto) rot.append(auto);
+    }
   }
   const li = elemento("li", { class: classe, "data-linha": chaves.join(" ") }, [rot]);
   if (dupla) {
     l.c.forEach((c, i) => {
       const it = CHAVE.get(c);
-      li.append(elemento("div", { class: "ctl", "data-col": i ? "Dock" : "Barra de cima" }, [it ? controle(it) : null]));
+      const coluna = COLUNAS[i];
+      const ctl = elemento("div", { class: "ctl", "data-coluna": coluna }, [it ? controle(it) : null]);
+      if (it) {
+        const presaDela = dominada(it);
+        if (presaDela) {
+          ctl.classList.add("desligado");
+          ctl.setAttribute("data-dica", presaDela);
+          for (const e of ctl.querySelectorAll("input, button, select")) e.disabled = true;
+        }
+        const aplica = (v) => escolher(it.chave, v);
+        if (temOQueRestaurar(it, valorEmVigor(it))) ctl.append(botaoPadrao(it, aplica, coluna));
+        const auto = botaoAutomatico(it, valorEmVigor(it), aplica, coluna);
+        if (auto) ctl.append(auto);
+      }
+      li.append(ctl);
     });
   } else {
     li.append(elemento("div", { class: "ctl" }, [controle(um)]));
@@ -697,17 +875,6 @@ function bloco(titulo, filhos, props = {}) {
     ...[].concat(filhos),
   ]);
 }
-const MAIS_ABERTO = new Set();
-function maisAjustes(chave, linhas, extra = []) {
-  const ul = lista(linhas);
-  if (!ul.children.length && !extra.length) return null;
-  const d = elemento("details", { class: "mais", "data-mais": chave }, [
-    elemento("summary", { texto: "Mais ajustes", controle: "mais:" + chave }), ul, ...extra]);
-  d.open = MAIS_ABERTO.has(chave);
-  d.addEventListener("toggle", () => { if (d.open) MAIS_ABERTO.add(chave); else MAIS_ABERTO.delete(chave); });
-  return d;
-}
-
 const ACERVO_ACEITA = {
   gato: ".svg,image/svg+xml", parede: "image/jpeg,image/png,image/webp", icone: ".svg,image/svg+xml",
   cursor: ".zip", fonte: ".zip,.ttf,.otf", "tema-icones": ".zip",
@@ -776,12 +943,18 @@ function lerRestauros() {
 const deRoot = (a) => !!(a && (a.sudo || a.pela_ponte));
 
 async function semPonte() {
-  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Conferir e consertar" });
+  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Consertar a ponte" });
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
+}
+
+async function esperarOSinoGravado() {
+  await FILA_DE_GRAVACAO;
+  return !CHAVES_DO_SINO.some((chave) => MUDANCAS.has(chave));
 }
 
 async function rodar(acao, argumento = "", opcoes = {}) {
   if (!acao) return null;
+  if (acao.id === "som_aplicar" && !(await esperarOSinoGravado())) return null;
   if (TRABALHO && TRABALHO.timer) { torrada("Espere o trabalho terminar"); abrirJanela(); return null; }
   if (deRoot(acao) && !ESQUEMA.ponte) { await semPonte(); return null; }
   let seco = false;
@@ -923,55 +1096,30 @@ function pastilhaDeTrabalho(mostrar) {
 }
 
 function atualizarAplicar() {
-  const n = MUDANCAS.size;
+  const n = HISTORICO.length;
   $("#aplicar").dataset.n = String(n);
   $("#conta").textContent = n === 1 ? "1 mudança" : `${n} mudanças`;
-}
-async function salvarEscolhas(mudancas = Object.fromEntries(MUDANCAS), depois = null, seco = false) {
-  if (TRABALHO && TRABALHO.timer) { torrada("Espere o trabalho terminar"); abrirJanela(); return; }
-  const b = $(seco ? "#botao-ensaiar" : "#bt-aplicar");
-  b.dataset.estado = "carregando";
-  const r = await api("/api/salvar", { method: "POST", body: JSON.stringify({ mudancas, seco }) });
-  delete b.dataset.estado;
-  if (seco) {
-    if (!r.trabalho) { torrada(r.erro || "Não ensaiou", "erro"); return; }
-    abrirResultado(r.trabalho, null, () => salvarEscolhas(mudancas, depois, false));
-    return;
-  }
-  if (r.recusadas && r.recusadas.length) {
-    for (const rec of r.recusadas.slice(0, 3)) torrada(`${nomeDeChave(rec.chave)}: ${rec.erro}`, "erro");
-    return;
-  }
-  if (!r.gravadas) { torrada(r.erro || "Não gravou", "erro"); return; }
-  for (const chave of [...r.gravadas, ...(r.iguais || [])]) {
-    const item = CHAVE.get(chave);
-    if (item && chave in mudancas) item.valor = mudancas[chave];
-    if (chave in mudancas) MUDANCAS.delete(chave);
-  }
-  for (const f of (r.falhas || []).slice(0, 3)) torrada(`${nomeDeChave(f.chave)}: ${f.erro}`, "erro");
-  guardarBandeja();
-  atualizarAplicar();
-  render();
-  if (!r.trabalho) { torrada(r.erro || "Gravado; aplica no próximo trabalho"); return; }
-  abrirResultado(r.trabalho, depois);
+  const caixa = $("#ultimas");
+  if (!n) { caixa.hidden = true; $("#conta").setAttribute("aria-expanded", "false"); }
+  caixa.replaceChildren(...HISTORICO.map((e) => elemento("div", { class: "ultima", role: "listitem" }, [
+    elemento("span", {}, [elemento("b", { texto: e.rotulo }), elemento("small", { texto: e.detalhe })]),
+    botao("Desfazer", { class: "bt leve pequeno", controle: "desfazer-uma", icone: "desfazer",
+      onclick: () => desfazerEntradas([e]) }),
+  ])));
 }
 function nomeDeChave(chave) {
   const l = inventarioDoPainel().find((x) => x.tipo === "chave" && x.id === chave);
   return l ? l.rotulo : ((CHAVE.get(chave) || {}).titulo || chave);
 }
-function listaDePendentes() {
-  const velha = document.getElementById("lista-pendentes");
-  if (velha) { velha.remove(); return; }
-  if (!MUDANCAS.size) return;
-  const caixa = elemento("div", { id: "lista-pendentes", class: "menu-corpo", role: "menu" });
-  for (const [chave] of MUDANCAS) {
-    const l = inventarioDoPainel().find((x) => x.tipo === "chave" && x.id === chave);
-    caixa.append(elemento("button", { type: "button", role: "menuitem", controle: "pendente:" + chave,
-      texto: l ? `${l.rotulo} · ${l.pagina}` : chave,
-      onclick: () => { caixa.remove(); if (l) irPara(l); } }));
-  }
-  $("#aplicar").style.position = "relative";
-  $("#aplicar").append(caixa);
+function fecharUltimas() {
+  $("#ultimas").hidden = true;
+  $("#conta").setAttribute("aria-expanded", "false");
+}
+function alternarUltimas() {
+  const caixa = $("#ultimas");
+  if (!HISTORICO.length) return;
+  caixa.hidden = !caixa.hidden;
+  $("#conta").setAttribute("aria-expanded", String(!caixa.hidden));
 }
 
 async function importarArquivo(arquivo) {
@@ -981,18 +1129,15 @@ async function importarArquivo(arquivo) {
   try { texto = await arquivo.text(); } catch { torrada("Não consegui ler o arquivo", "erro"); return; }
   const r = await api("/api/importar", { method: "POST", body: JSON.stringify({ texto }) });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  for (const m of r.mudam || []) MUDANCAS.set(m.chave, m.valor);
-  guardarBandeja();
-  atualizarAplicar();
-  render();
   const n = (r.mudam || []).length;
-  torrada(n === 1 ? "1 mudança esperando o Aplicar" : `${n} mudanças esperando o Aplicar`, n ? "ok" : "");
   for (const rec of (r.recusadas || []).slice(0, 3)) torrada(`${nomeDeChave(rec.chave)}: ${rec.erro}`, "erro");
+  if (n) await gravarAgora(Object.fromEntries(r.mudam.map((m) => [m.chave, m.valor])));
+  else torrada("Nada mudou");
 }
 
 function indiceDaBusca() {
-  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Cuidar"
-    : l.porta === "criar" ? "Criar tema · " + l.pagina : "Ajustes · " + l.pagina);
+  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Manter"
+    : l.porta === "criar" ? "Personalizar · " + l.pagina : "Definir · " + l.pagina);
   const visto = new Set();
   const saida = [];
   for (const l of inventarioDoPainel()) {
@@ -1040,13 +1185,17 @@ function ligarBusca() {
       campo.value = ""; procurar(); campo.blur();
     }
   });
+  const caixa = campo.parentElement;
+  const abrirCampo = () => { caixa.classList.add("campo-aberto"); campo.focus(); };
+  $("#abrir-busca").addEventListener("click", abrirCampo);
   campo.addEventListener("blur", () => setTimeout(() => {
-    if (!$("#achados").contains(document.activeElement)) $("#busca").parentElement.classList.remove("aberta");
+    if ($("#achados").contains(document.activeElement)) return;
+    caixa.classList.remove("aberta", "campo-aberto");
   }, 150));
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
       ev.preventDefault();
-      campo.focus();
+      abrirCampo();
     }
   });
 }
@@ -1060,7 +1209,6 @@ function reacenderChegada() {
 function irPara(l) {
   const sub = l.porta === "ajustes" ? (AJUSTES.find((p) => p.nome === l.pagina) || {}).id
     : l.porta === "criar" ? (PASSOS.find((p) => p.nome === l.pagina) || {}).id : "";
-  if (l.mais) MAIS_ABERTO.add(l.porta + ":" + (sub || l.porta));
   const hash = "#" + l.porta + (sub ? "/" + sub : "");
   if (location.hash !== hash) history.pushState(null, "", hash);
   ROTA = rotaDoHash();
@@ -1082,6 +1230,7 @@ function rotaDoHash() {
   if (!PORTAS.some((p) => p.id === porta)) return { porta: "tema", sub: "" };
   if (porta === "ajustes") return { porta, sub: AJUSTES.some((p) => p.id === sub) ? sub : AJUSTES[0].id };
   if (porta === "criar") return { porta, sub: PASSOS.some((p) => p.id === sub) ? sub : PASSOS[0].id };
+  if (porta === "extensoes") return { porta, sub: sub === "builds" ? "builds" : "applets" };
   return { porta, sub: "" };
 }
 function desenharPortas() {
@@ -1092,10 +1241,8 @@ function desenharPortas() {
 }
 function desenharMenu() {
   const itens = [];
-  if (ESQUEMA.repositorio) {
-    itens.push(elemento("a", { href: ESQUEMA.repositorio, target: "_blank", rel: "noopener", role: "menuitem",
-      controle: "menu:creditos", texto: "Créditos" }));
-  }
+  itens.push(elemento("button", { type: "button", role: "menuitem", controle: "menu:creditos", texto: "Créditos",
+    onclick: () => { $("#menu").open = false; abrirCreditos(); } }));
   itens.push(elemento("a", { href: "/api/exportar/pagina", download: true, role: "menuitem",
     controle: "menu:pagina", texto: "Esta tela num arquivo" }));
   $("#menu-corpo").replaceChildren(...itens);
@@ -1106,9 +1253,11 @@ function render() {
   const ativo = document.activeElement;
   const foco = ativo && ativo.dataset && $("#conteudo").contains(ativo) ? ativo.dataset.controle : null;
   desenharPortas();
+  $("#abas").hidden = ROTA.porta !== "ajustes" && ROTA.porta !== "extensoes";
   const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
-    : ROTA.porta === "cuidar" ? paginaCuidar() : paginaTema();
+    : ROTA.porta === "cuidar" ? paginaCuidar()
+    : ROTA.porta === "extensoes" ? paginaExtensoes(ROTA.sub) : paginaTema();
   $("#conteudo").replaceChildren(...[].concat(pagina).filter(Boolean));
   $("#conteudo").removeAttribute("aria-busy");
   reacenderChegada();
@@ -1126,36 +1275,26 @@ async function iniciar() {
     $("#conteudo").replaceChildren(elemento("h1", { texto: maiuscula(ESQUEMA.erro) }));
     return;
   }
+  await lerRascunhoDoServidor();
   indexar();
   lerRestauros();
   lerClaro();
-  restaurarBandeja();
   atualizarAplicar();
   ligarDicas();
   ligarBusca();
   desenharMenu();
   $(".pular").addEventListener("click", (ev) => { ev.preventDefault(); $("#principal").focus(); });
-  $("#desfazer").addEventListener("click", () => {
-    MUDANCAS.clear(); guardarBandeja(); atualizarAplicar(); render();
-  });
-  $("#bt-aplicar").addEventListener("click", () => salvarEscolhas());
-  $("#botao-ensaiar").addEventListener("click", () => salvarEscolhas(Object.fromEntries(MUDANCAS), null, true));
-  $("#conta").setAttribute("role", "button");
-  $("#conta").tabIndex = 0;
-  $("#conta").dataset.controle = "pendentes";
-  $("#conta").addEventListener("click", listaDePendentes);
-  $("#conta").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); listaDePendentes(); } });
+  $("#desfazer").addEventListener("click", desfazerTudo);
+  $("#conta").addEventListener("click", alternarUltimas);
   const menu = $("#menu");
   document.addEventListener("click", (e) => {
     if (menu.open && !menu.contains(e.target)) menu.open = false;
-    const lp = document.getElementById("lista-pendentes");
-    if (lp && !$("#aplicar").contains(e.target)) lp.remove();
+    if (!$("#aplicar").contains(e.target)) fecharUltimas();
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (menu.open) { menu.open = false; menu.querySelector("summary").focus(); }
-    const lp = document.getElementById("lista-pendentes");
-    if (lp) lp.remove();
+    fecharUltimas();
   });
   $("#resultado").addEventListener("close", () => { if (TRABALHO && TRABALHO.timer) pastilhaDeTrabalho(true); });
   $("#resultado-ok").addEventListener("click", () => $("#resultado").close());
@@ -1173,7 +1312,7 @@ async function iniciar() {
   $("#resultado-restaurar").addEventListener("click", () => {
     if (ULTIMO_TRABALHO && ULTIMO_TRABALHO.acao) restaurarAcao(ULTIMO_TRABALHO.acao);
   });
-  addEventListener("beforeunload", (ev) => { if (MUDANCAS.size >= 2) ev.preventDefault(); });
+  addEventListener("beforeunload", (ev) => { if (EM_VOO > 0) ev.preventDefault(); });
   ROTA = rotaDoHash();
   addEventListener("hashchange", () => { ROTA = rotaDoHash(); render(); scrollTo(0, 0); });
   addEventListener("popstate", () => { ROTA = rotaDoHash(); render(); });

@@ -91,8 +91,9 @@ _ap_conferir() {
       meow_aviso "$nome: segue o pino ${pino:0:7}$( [ -n "$painel" ] && ap_ja_falhou "$nome" "$painel" && printf ' (não compilou no %s do painel)' "${painel:0:7}")"
     fi
   done <<EOF
-leitura|$(ap_rev_do_lock "$MEOW_RAIZ/src/applets/leitura/Cargo.lock")
-midia|$(sed -n 's/^LIBCOSMIC="\(.*\)"/\1/p' "$MEOW_RAIZ/src/applets/now-playing/PINO" 2>/dev/null)
+$(for f in "${EXTENSOES_PINOS:-$MEOW_RAIZ/assets/extensoes}"/*.pino; do
+    [ -f "$f" ] && printf '%s|%s\n' "$(basename "$f" .pino)" "$(sed -n 's/^LIBCOSMIC="\(.*\)"/\1/p' "$f")"
+  done)
 EOF
   return "$MEOW_OK"
 }

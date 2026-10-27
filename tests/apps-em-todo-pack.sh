@@ -183,6 +183,17 @@ fi
 saida="$(spot dracula dracula)"
 printf '%s' "$saida" | grep -qx 'rc=0' && ok "spotify/dracula: a segunda passada fica quieta" \
   || falha "spotify/dracula: a segunda passada não ficou quieta" "$saida"
+rm -rf "$CASA/.config/spicetify/Themes"
+saida="$(spot meowsystem mocha)"
+CAT="$CASA/.config/spicetify/Themes/catppuccin"
+if printf '%s' "$saida" | grep -qx 'rc=1' \
+   && ( cd "$RAIZ/packs/meowsystem/temas-de-apps/spotify" && sha256sum --status -c SHA256SUMS ) \
+   && ( cd "$CASA/.config/spicetify/Themes" && sha256sum --status -c "$RAIZ/packs/meowsystem/temas-de-apps/spotify/SHA256SUMS" ) \
+   && [ -f "$CAT/theme.js" ] && [ -f "$CAT/user.css" ] && [ -d "$CAT/assets/mocha" ]; then
+  ok "spotify/meowsystem: sem rede, o catppuccin sai inteiro da pasta do pack"
+else
+  falha "spotify/meowsystem: o tema do spicetify não saiu do pack" "$saida"
+fi
 
 QBC="$CASA/.var/app/org.qbittorrent.qBittorrent/config/qBittorrent/qBittorrent.conf"
 SPI_INI="$CASA/.config/spicetify/config-xpui.ini"

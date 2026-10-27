@@ -2,9 +2,10 @@
 
 const PORTAS = [
   { id: "tema", nome: "Tema", icone: "tema" },
-  { id: "criar", nome: "Criar tema", icone: "criar" },
-  { id: "ajustes", nome: "Ajustes", icone: "ajustes" },
-  { id: "cuidar", nome: "Cuidar", icone: "cuidar" },
+  { id: "criar", nome: "Personalizar", icone: "criar" },
+  { id: "ajustes", nome: "Definir", icone: "ajustes" },
+  { id: "cuidar", nome: "Manter", icone: "cuidar" },
+  { id: "extensoes", nome: "Extensões", icone: "grade" },
 ];
 
 const LUGAR_TEMA = {
@@ -19,12 +20,6 @@ const LUGAR_TEMA = {
     { titulo: "Cor de destaque", linhas: [{ c: "ACCENT", r: "Cor de destaque" }] },
     { titulo: "Claro ou escuro", linhas: [{ c: "MODO", r: "Claro ou escuro" }] },
   ],
-  mais: [
-    { a: "tema_aplicar", r: "Tema pronto", b: "Trocar" },
-    { a: "tema_modo", r: "Modo agora", b: "Trocar" },
-    { a: "tema", r: "Temas prontos", b: "Ver" },
-    { a: "status", r: "No ar agora", b: "Ver" },
-  ],
 };
 
 const PASSOS = [
@@ -37,23 +32,12 @@ const PASSOS = [
       { g: "app-desenho", r: "Gerar ícone", b: "Usar" },
       { g: "glifos", r: "Desenhos do acervo" },
       { g: "acervo:icone", r: "Trazer .svg", b: "Trazer .svg" },
-      { c: "ICONES_PASTAS", r: "Cor das pastas" },
-    ],
-    mais: [
-      { c: "ICONES_FLAVOR", r: "Variante dos ícones" },
-      { c: "ICONES_DRACULA", r: "Desenhos do pack" },
-      { c: "ICONES_RESGATADOS", r: "Ícones resgatados" },
-      { c: "ICONES_COR_MARCA", r: "Cor da marca" },
-      { c: "PASTAS_XDG", r: "Pastas especiais" },
-      { c: "NOME_TEMA_ICONES", r: "Nome do tema" },
-      { c: "ICONES_LOGO_HEFESTO", r: "Logo do Hefesto" },
-      { e: "autorais", r: "Desenhos do pack" },
-      { g: "autorais", r: "Desenhos autorais", b: "Salvar" },
-      { g: "acervo:tema-icones", r: "Tema de ícones", b: "Trazer .zip" },
-      { a: "icones", r: "Tema instalado", b: "Ver" },
-      { a: "icones_reconstruir", r: "Reconstruir os ícones", b: "Reconstruir" },
-      { a: "icones_traco", r: "Desenhos em traço", b: "Aplicar" },
-      { a: "icones_pack", r: "Desenhos do pack", b: "Aplicar" },
+      { c: "ICONES_PASTAS", r: "Cor das pastas", bloco: "Pastas" },
+      { c: "PASTAS_XDG", r: "Pastas especiais", bloco: "Pastas" },
+      { c: "ICONES_FLAVOR", r: "Variante dos ícones", bloco: "Cores" },
+      { c: "ICONES_COR_MARCA", r: "Cor da marca", bloco: "Cores" },
+      { e: "autorais", r: "Desenhos do pack", bloco: "Desenhos do tema" },
+      { g: "autorais", r: "Desenhos autorais", b: "Salvar", bloco: "Desenhos do tema" },
     ] },
   { id: "papel", nome: "Papel de parede",
     linhas: [
@@ -74,12 +58,10 @@ const PASSOS = [
       { c: "SOM_FUNDAMENTAL", r: "Primeira nota" },
       { c: "SOM_HARMONICO", r: "Segunda nota" },
       { c: "SOM_DECAIMENTO", r: "Duração" },
-      { a: "som_ouvir", r: "Ouvir o instalado", b: "Ouvir" },
-      { a: "som_aplicar", r: "Regravar o som", b: "Regravar" },
-    ],
-    mais: [
       { c: "SOM_PESO_FUNDAMENTAL", r: "Peso da primeira" },
       { c: "SOM_PESO_HARMONICO", r: "Peso da segunda" },
+      { a: "som_ouvir", r: "Ouvir o instalado", b: "Ouvir" },
+      { a: "som_aplicar", r: "Regravar o som", b: "Regravar" },
     ] },
   { id: "mandar", nome: "Mandar",
     linhas: [
@@ -98,6 +80,7 @@ const AJUSTES = [
         { c: ["FORMA_MARGEM_PAINEL", "FORMA_MARGEM_DOCK"], r: "Distância da borda" },
         { c: ["FORMA_RAIO_PAINEL", "FORMA_RAIO_DOCK"], r: "Cantos" },
         { c: ["FORMA_ESPACO_PAINEL", "FORMA_ESPACO_DOCK"], r: "Espaço entre ícones" },
+        { c: ["FORMA_RECHEIO_PAINEL", "FORMA_RECHEIO_DOCK"], r: "Folga interna" },
         { c: ["VIDRO_OPACIDADE_PAINEL", "VIDRO_OPACIDADE_DOCK"], r: "Vidro" },
       ] },
       { titulo: "Tamanho dos ícones", colunas: ["Barra de cima", "Dock"], linhas: [
@@ -113,15 +96,14 @@ const AJUSTES = [
         { c: "MIDIA_COR_ARTISTA", r: "Cor da banda", sub: true },
         { c: "MIDIA_CAPA", r: "Capa do disco", sub: true },
         { c: "MIDIA_CONTROLES", r: "Tocar e pular", sub: true },
+        { c: "MIDIA_LARGURA", r: "Largura da música", sub: true },
+        { c: "MIDIA_FONTE", r: "Letra da música", sub: true },
+        { c: "MIDIA_COR_ALBUM", r: "Cor da capa", sub: true },
       ] },
-    ],
-    mais: [
-      { c: ["FORMA_RECHEIO_PAINEL", "FORMA_RECHEIO_DOCK"], r: "Folga interna" },
-      { c: "MIDIA_LARGURA", r: "Largura da música" },
-      { c: "MIDIA_FONTE", r: "Letra da música" },
-      { c: "MIDIA_COR_ALBUM", r: "Cor da capa" },
-      { a: "painel_estado", r: "Estado atual", b: "Ver" },
-      { a: "painel_teto", r: "Teto dos cantos", b: "Ver" },
+      { titulo: "Conferir", linhas: [
+        { a: "painel_estado", r: "Estado atual", b: "Ver" },
+        { a: "painel_teto", r: "Teto dos cantos", b: "Ver" },
+      ] },
     ] },
   { id: "janelas", nome: "Janelas e tela", icone: "janelas",
     blocos: [
@@ -132,21 +114,19 @@ const AJUSTES = [
       { titulo: "Tela", linhas: [
         { c: "ESCALA_TELA", r: "Tamanho de tudo" },
         { c: "CURSOR", r: "Ponteiro", larga: true },
+        { c: "CURSOR_VERSAO", r: "Versão do ponteiro", sub: true },
         { g: "acervo:cursor", r: "Trazer ponteiro", b: "Trazer .zip" },
       ] },
       { titulo: "Áreas de trabalho", linhas: [
         { c: "AREAS_NOMES", r: "Nomes", larga: true },
         { c: "AREAS_ENCAIXE", r: "Encaixe por área", larga: true },
+        { c: "AREAS_FOLGA", r: "Folga no nome" },
         { a: "areas_aplicar", r: "Gravar as áreas", b: "Gravar" },
         { a: "areas_alfinetar_primeira", r: "Primeira área", b: "Criar" },
         { a: "areas_desalfinetar", r: "Tirar uma área", b: "Tirar" },
         { a: "areas_reverter", r: "Áreas de antes", b: "Voltar" },
+        { a: "areas_ver", r: "Áreas agora", b: "Ver" },
       ] },
-    ],
-    mais: [
-      { c: "CURSOR_VERSAO", r: "Versão do ponteiro" },
-      { c: "AREAS_FOLGA", r: "Folga no nome" },
-      { a: "areas_ver", r: "Áreas agora", b: "Ver" },
     ] },
   { id: "papel", nome: "Papel de parede", icone: "imagem",
     cabeca: [{ a: "wallpaper_proximo", r: "Próxima imagem", b: "Próxima imagem" }],
@@ -154,27 +134,25 @@ const AJUSTES = [
       { titulo: "Imagens", linhas: [
         { a: "wallpaper_anterior", r: "Imagem anterior", b: "Anterior" },
         { a: "wallpaper_carrossel", r: "Voltar a girar", b: "Girar" },
-        { a: "wallpaper_semear", r: "Coleção do tema", b: "Baixar" },
+        { a: "wallpaper", r: "Carrossel agora", b: "Ver" },
+        { a: "wallpaper_aplicar", r: "Regras do carrossel", b: "Reaplicar" },
       ] },
       { titulo: "Troca", linhas: [
         { c: "WALLPAPER_INTERVALO", r: "A cada" },
         { c: "WALLPAPER_ORDEM", r: "Ordem" },
         { c: "WALLPAPER_AJUSTE", r: "Encaixe" },
         { c: "WALLPAPER_NOTIFICAR", r: "Avisar a troca" },
+        { c: "WALLPAPER_FIXO_TTL", r: "Escolhida dura" },
         { c: "FILES_MENU", r: "Botão direito" },
+        { c: "FILES_MENU_AUTOBUILD", r: "Menu se reconstrói", sub: true },
+        { a: "files_menu", r: "Menu agora", b: "Ver" },
       ] },
-    ],
-    mais: [
-      { c: "WALLPAPER_FIXO_TTL", r: "Escolhida dura" },
-      { c: "WALLPAPER_FONTES_PERMITIDAS", r: "Pastas suas" },
-      { c: "WALLPAPER_BASE", r: "Pasta do carrossel" },
-      { c: "FILES_MENU_AUTOBUILD", r: "Menu se reconstrói" },
-      { c: "WALLPAPER_DRACULA_REPO", r: "Acervo do Dracula" },
-      { c: "WALLPAPER_DRACULA_COMMIT", r: "Versão do acervo" },
-      { a: "wallpaper", r: "Carrossel agora", b: "Ver" },
-      { a: "wallpaper_aplicar", r: "Regras do carrossel", b: "Reaplicar" },
-      { a: "files_menu", r: "Menu agora", b: "Ver" },
-      { a: "files_menu_build", r: "Construir o menu", b: "Construir" },
+      { titulo: "Pastas", linhas: [
+        { c: "WALLPAPER_BASE", r: "Pasta do carrossel" },
+        { c: "WALLPAPER_FONTES_PERMITIDAS", r: "Pastas suas" },
+        { c: "WALLPAPER_DRACULA_REPO", r: "Acervo do Dracula" },
+        { c: "WALLPAPER_DRACULA_COMMIT", r: "Versão do acervo", sub: true },
+      ] },
     ] },
   { id: "mascote", nome: "Mascote", icone: "gato",
     blocos: [
@@ -187,7 +165,9 @@ const AJUSTES = [
         { c: "LOGO_INTERVALO", r: "Gira a cada", sub: true },
         { c: "LOGO_ROTACAO", r: "Girar sozinho", sub: true },
         { a: "logo_trocar", r: "Pôr agora", b: "Pôr" },
+        { c: "LOGO_RECICLAR", r: "Recarregar na virada", sub: true },
         { a: "logo_girar", r: "Próximo mascote", b: "Girar" },
+        { a: "logo_listar", r: "Mascote agora", b: "Ver" },
       ] },
       { titulo: "No terminal", linhas: [
         { c: "FASTFETCH_LOGO", r: "Ao abrir" },
@@ -196,19 +176,15 @@ const AJUSTES = [
         { c: "FASTFETCH_LOGO_DIA", r: "De dia", sub: true },
         { c: "FASTFETCH_LOGO_NOITE", r: "De noite", sub: true },
         { c: "FASTFETCH_LOGO_COLUNAS", r: "Tamanho", sub: true },
+        { c: "FASTFETCH_LOGO_LINHAS", r: "Altura do desenho", sub: true },
+        { c: "FASTFETCH_LOGO_QUEBRAS", r: "Linhas antes", sub: true },
+        { c: "FASTFETCH_LOGO_ALINHAR", r: "Texto ao lado", sub: true },
+        { c: "FASTFETCH_TITULO", r: "Linha de cima", sub: true },
+        { c: "FASTFETCH_LOGO_RECUO", r: "Espaço ao lado", sub: true },
+        { c: "FASTFETCH_LOGO_CELULA", r: "Proporção da letra", sub: true },
+        { c: "FASTFETCH_LOGO_BLOCOS", r: "Detalhe", sub: true },
+        { c: "FASTFETCH_LOGO_CONF", r: "Corrigir o Fastfetch", sub: true },
       ] },
-    ],
-    mais: [
-      { c: "LOGO_RECICLAR", r: "Recarregar na virada" },
-      { c: "FASTFETCH_LOGO_LINHAS", r: "Altura do desenho" },
-      { c: "FASTFETCH_LOGO_QUEBRAS", r: "Linhas antes" },
-      { c: "FASTFETCH_LOGO_ALINHAR", r: "Texto ao lado" },
-      { c: "FASTFETCH_TITULO", r: "Linha de cima" },
-      { c: "FASTFETCH_LOGO_RECUO", r: "Espaço ao lado" },
-      { c: "FASTFETCH_LOGO_CELULA", r: "Proporção da letra" },
-      { c: "FASTFETCH_LOGO_BLOCOS", r: "Detalhe" },
-      { c: "FASTFETCH_LOGO_CONF", r: "Corrigir o Fastfetch" },
-      { a: "logo_listar", r: "Mascote agora", b: "Ver" },
     ] },
   { id: "dia-e-noite", nome: "Dia e noite", icone: "lua",
     blocos: [
@@ -220,8 +196,8 @@ const AJUSTES = [
         { c: "MODO_AUTO_CLARO_ATE", r: "Escuro começa" },
         { c: "MODO_AUTO_CLARO_DE", r: "Escuro termina" },
       ] },
-      { titulo: "Tela quente", linhas: [
-        { c: "LEITURA_AGENDA", r: "Tela quente" },
+      { titulo: "Modo de leitura", leitura: true, linhas: [
+        { c: "LEITURA_AGENDA", r: "Ligar no horário" },
         { c: "LEITURA_TEMPERATURA", r: "Quão quente", sub: true },
         { c: "LEITURA_TEXTURA", r: "Textura de papel", sub: true },
         { c: "LEITURA_RAMPA_MIN", r: "Entrar devagar", sub: true },
@@ -230,6 +206,7 @@ const AJUSTES = [
         { c: "LEITURA_APPLET", r: "Botão na barra" },
         { a: "leitura_aplicar", r: "Esquentar agora", b: "Aplicar" },
         { a: "leitura_remover", r: "Desligar agora", b: "Desligar" },
+        { a: "leitura", r: "Leitura agora", b: "Ver" },
       ] },
       { titulo: "Papel da noite", linhas: [
         { c: "WALLPAPER_NOITE", r: "Imagens escuras" },
@@ -237,8 +214,7 @@ const AJUSTES = [
         { c: "WALLPAPER_NOITE_INICIO", r: "Começa", sub: true },
         { c: "WALLPAPER_NOITE_FIM", r: "Termina", sub: true },
       ] },
-    ],
-    mais: [{ a: "leitura", r: "Tela quente agora", b: "Ver" }] },
+    ] },
   { id: "terminal", nome: "Terminal", icone: "terminal",
     blocos: [
       { titulo: "Cores", linhas: [
@@ -247,10 +223,11 @@ const AJUSTES = [
       ] },
       { titulo: "Linha de comando", linhas: [
         { c: "PROMPT_STARSHIP", r: "Linha colorida" },
-        { a: "prompt_instalar_starship", r: "Starship", b: "Instalar" },
       ] },
-    ],
-    mais: [{ g: "acervo:fonte", r: "Fonte do terminal", b: "Trazer fonte" }] },
+      { titulo: "Fonte", linhas: [
+        { g: "acervo:fonte", r: "Fonte do terminal", b: "Trazer fonte" },
+      ] },
+    ] },
   { id: "programas", nome: "Programas", icone: "grade",
     blocos: [
       { titulo: "Recebem o tema", programas: true, linhas: [
@@ -262,7 +239,6 @@ const AJUSTES = [
         { c: "LANCADOR_SISTEMA", r: "Arrumar o lançador" },
         { c: "LANCADOR_OCULTAR", r: "Escondidos", larga: true },
         { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify" },
-        { a: "spotify_baixar_tema", r: "Tema do Spotify", b: "Baixar" },
       ] },
       { titulo: "Jogos", jogos: true, linhas: [
         { e: "jogos", r: "Jogos" },
@@ -271,20 +247,18 @@ const AJUSTES = [
         { a: "jogos_heroic_aplicar", r: "Jogos do Heroic", b: "Pôr" },
         { a: "jogos_heroic_por", r: "Pôr um jogo", b: "Pôr" },
         { a: "jogos_heroic_tirar", r: "Tirar um jogo", b: "Tirar" },
+        { a: "jogos", r: "Conferir jogos", b: "Ver" },
+        { a: "jogos_heroic", r: "Conferir Heroic", b: "Ver" },
       ] },
       { titulo: "Ao ligar", linhas: [
         { c: "AUTOSTART_BLOQUEADOS", r: "Não abrem sozinhos", larga: true },
       ] },
-    ],
-    mais: [
-      { a: "jogos", r: "Conferir jogos", b: "Ver" },
-      { a: "jogos_heroic", r: "Conferir Heroic", b: "Ver" },
     ] },
 ];
 
 const LUGAR_CUIDAR = {
   estado: [
-    { a: "doctor_consertar", r: "Conferir e consertar", b: "Conferir e consertar" },
+    { a: "doctor_consertar", r: "Consertar a ponte", b: "Consertar a ponte" },
     { a: "doctor", r: "Conferir", b: "Conferir" },
   ],
   pendencias: [
@@ -294,6 +268,7 @@ const LUGAR_CUIDAR = {
     { a: "apps_tema_do_pack", r: "Tema de um programa", b: "Trocar" },
     { a: "apps_manter_o_meu", r: "Tema de um programa", b: "Manter" },
     { a: "vscode_instalar_extensao", r: "Extensão do VS Code", b: "Instalar" },
+    { a: "files_menu_build", r: "Menu do Arquivos", b: "Refazer" },
   ],
   cartoes: [
     { id: "outro", titulo: "Outro computador", icone: "computador", linhas: [
@@ -327,17 +302,45 @@ const LUGAR_CUIDAR = {
       { a: "log", r: "Registro", b: "Ver" },
     ] },
   ],
+  maquina: [
+    { c: "NOME_TEMA_ICONES", r: "Nome do tema" },
+    { a: "icones", r: "Tema instalado", b: "Ver" },
+    { c: "ICONES_DRACULA", r: "Desenhos" },
+    { a: "icones_traco", r: "Desenhos em traço", b: "Aplicar" },
+    { a: "icones_pack", r: "Desenhos do pack", b: "Aplicar" },
+    { c: "ICONES_LOGO_HEFESTO", r: "Logo do Hefesto" },
+    { c: "ICONES_RESGATADOS", r: "Ícones resgatados" },
+    { g: "acervo:tema-icones", r: "Tema de ícones", b: "Trazer .zip" },
+    { a: "icones_reconstruir", r: "Reconstruir os ícones", b: "Reconstruir" },
+  ],
   perigo: [
+    { a: "restaurar", r: "Restaurar", b: "Restaurar" },
     { a: "desfazer", r: "Tema de antes", b: "Voltar" },
     { a: "desinstalar", r: "Desinstalar", b: "Desinstalar" },
   ],
-  mais: [{ a: "restaurar", r: "Restaurar", b: "Restaurar" }],
+};
+
+const LUGAR_EXTENSOES = {
+  applets: [
+    { a: "extensao_instalar", r: "Instalar" },
+    { a: "extensao_instalar_repo", r: "Instalar do repositório" },
+    { a: "extensao_atualizar", r: "Atualizar" },
+    { a: "extensao_atualizar_repo", r: "Atualizar do repositório" },
+    { a: "extensao_refazer", r: "Tentar de novo" },
+    { a: "extensao_remover", r: "Remover" },
+    { a: "extensao_por_no_painel", r: "Pôr no painel" },
+    { a: "extensao_trocar", r: "Trocar" },
+    { c: "EXTENSOES", r: "Extensões instaladas" },
+  ],
+  builds: [
+    { a: "builds_refazer_tudo", r: "Refazer tudo" },
+    { a: "build_compositor", r: "Compositor" },
+    { c: "BUILDS_AO_ENTRAR", r: "Refazer ao entrar na sessão" },
+  ],
 };
 
 const LUGAR_TOPO = [
-  { g: "salvar", r: "Aplicar" },
   { g: "descartar", r: "Desfazer" },
-  { g: "ensaio", r: "Ver sem mudar" },
   { g: "busca", r: "Procurar um ajuste" },
   { g: "creditos", r: "Créditos" },
   { g: "exportar-pagina", r: "Esta tela num arquivo" },
@@ -350,35 +353,34 @@ const LUGAR_JANELA = [
 
 function inventarioDoPainel() {
   const saida = [];
-  const pus = (l, porta, pagina, bloco, mais) => {
-    const base = { porta, pagina, bloco, mais: !!mais, rotulo: l.r };
+  const pus = (l, porta, pagina, bloco) => {
+    const base = { porta, pagina, bloco, rotulo: l.r };
     if (l.c) for (const c of [].concat(l.c)) saida.push({ ...base, tipo: "chave", id: c });
     else if (l.a) saida.push({ ...base, tipo: "acao", id: l.a });
     else if (l.g) saida.push({ ...base, tipo: "gesto", id: l.g });
   };
   for (const l of LUGAR_TEMA.packs) pus(l, "tema", "Tema", "Temas");
   for (const b of LUGAR_TEMA.blocos) for (const l of b.linhas) pus(l, "tema", "Tema", b.titulo);
-  for (const l of LUGAR_TEMA.mais) pus(l, "tema", "Tema", "Mais ajustes", true);
   for (const p of PASSOS) {
-    for (const l of p.linhas) pus(l, "criar", p.nome, p.nome);
-    for (const l of p.mais || []) pus(l, "criar", p.nome, "Mais ajustes", true);
+    for (const l of p.linhas) pus(l, "criar", p.nome, l.bloco || p.nome);
   }
   for (const p of AJUSTES) {
     for (const l of p.cabeca || []) pus(l, "ajustes", p.nome, p.nome);
     for (const b of p.blocos) for (const l of b.linhas) pus(l, "ajustes", p.nome, b.titulo);
-    for (const l of p.mais || []) pus(l, "ajustes", p.nome, "Mais ajustes", true);
   }
-  for (const l of LUGAR_CUIDAR.estado) pus(l, "cuidar", "Cuidar", "Estado");
-  for (const l of LUGAR_CUIDAR.pendencias) pus(l, "cuidar", "Cuidar", "Pendências");
-  for (const c of LUGAR_CUIDAR.cartoes) for (const l of c.linhas) pus(l, "cuidar", "Cuidar", c.titulo);
-  for (const b of LUGAR_CUIDAR.blocos) for (const l of b.linhas) pus(l, "cuidar", "Cuidar", b.titulo);
-  for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Cuidar", "Zona de perigo");
-  for (const l of LUGAR_CUIDAR.mais) pus(l, "cuidar", "Cuidar", "Mais ajustes", true);
+  for (const l of LUGAR_CUIDAR.estado) pus(l, "cuidar", "Manter", "Estado");
+  for (const l of LUGAR_CUIDAR.pendencias) pus(l, "cuidar", "Manter", "Pendências");
+  for (const c of LUGAR_CUIDAR.cartoes) for (const l of c.linhas) pus(l, "cuidar", "Manter", c.titulo);
+  for (const b of LUGAR_CUIDAR.blocos) for (const l of b.linhas) pus(l, "cuidar", "Manter", b.titulo);
+  for (const l of LUGAR_CUIDAR.maquina) pus(l, "cuidar", "Manter", "Ícones da máquina");
+  for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Manter", "Zona de perigo");
+  for (const l of LUGAR_EXTENSOES.applets) pus(l, "extensoes", "Applets", "Applets");
+  for (const l of LUGAR_EXTENSOES.builds) pus(l, "extensoes", "Builds", "Builds");
   for (const l of LUGAR_TOPO) pus(l, "topo", "Barra de cima", "Barra de cima");
   for (const l of LUGAR_JANELA) pus(l, "janela", "Janela do trabalho", "Janela do trabalho");
   return saida;
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_TOPO, LUGAR_JANELA, inventarioDoPainel };
+  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_EXTENSOES, LUGAR_TOPO, LUGAR_JANELA, inventarioDoPainel };
 }

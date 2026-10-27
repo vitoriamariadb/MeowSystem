@@ -92,15 +92,15 @@ def main():
                                  " return (p.flavors.find((f) => f.id !== flavorEmVigor()) || {}).id; }")
             n0 = len(posts)
             pag.locator(f'[data-controle="pack:{no_ar}:variante={outra}"]').click()
-            aberta = janela(pag)
+            pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)
             checa(not pag.evaluate("() => document.getElementById('pergunta').open"), "sem pergunta nenhuma")
-            salvar = [c for u, c in posts[n0:] if u == "salvar"]
-            checa(salvar and f'"FLAVOR": "{outra}"' in salvar[0].replace('":"', '": "'),
-                  f"o /api/salvar leva FLAVOR={outra} ({salvar[:1]})")
-            checa(aberta, "e a janela do trabalho abre")
+            definir = [c for u, c in posts[n0:] if u == "definir"]
+            checa(definir and f'"valor": "{outra}"' in definir[0].replace('":"', '": "') and "FLAVOR" in definir[0],
+                  f"o /api/definir leva FLAVOR={outra} ({definir[:1]})")
+            checa(not pag.evaluate("() => document.getElementById('resultado').open"), "e nenhuma janela de trabalho abre")
             foto(pag, "1-vestir")
-            parar_e_fechar(pag)
             checa(casa.valor_de("FLAVOR") == outra, f"o meow.conf diz FLAVOR={outra}")
+            checa(pag.evaluate("() => HISTORICO.length") == 1, "e a variante entra na barra para desfazer")
 
             print("2. o outro tema, sem a ponte")
             outro_pack = pag.evaluate("() => (PACKS.find((p) => !p.no_ar) || {}).id")
@@ -108,38 +108,40 @@ def main():
             pag.wait_for_timeout(500)
             titulo = pag.evaluate("() => document.getElementById('pergunta').open && document.getElementById('pergunta-titulo').textContent")
             checa(titulo == "Falta a ponte", f"vestir o {outro_pack} sem a ponte mostra «Falta a ponte» ({titulo!r})")
-            checa(pag.locator("#pergunta-sim").inner_text() == "Conferir e consertar", "com o «Conferir e consertar»")
+            checa(pag.locator("#pergunta-sim").inner_text() == "Consertar a ponte", "com o «Consertar a ponte»")
             checa(pag.locator("input[type=password]").count() == 0, "e nenhum campo de senha")
             foto(pag, "2-ponte")
             pag.locator("#pergunta-nao").click()
 
-            print("3. um ajuste, o Aplicar e o padrão")
+            print("3. um ajuste que grava ao soltar, a barra e o padrão")
             ir(pag, "ajustes/painel")
+            antes = casa.valor_de("FORMA_DOCK_SOLTO")
+            n_antes = pag.evaluate("() => HISTORICO.length")
             pag.locator('[data-controle="chave:FORMA_DOCK_SOLTO"]').click()
-            pag.wait_for_timeout(300)
-            checa(pag.locator("#conta").inner_text() == "1 mudança", f"a conta diz «1 mudança» ({pag.locator('#conta').inner_text()!r})")
+            pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)
+            depois = casa.valor_de("FORMA_DOCK_SOLTO")
+            checa(depois != antes and depois in ("sim", "nao"), f"o clique grava a chave sem Aplicar ({antes} -> {depois})")
+            checa(pag.locator("#conta").inner_text() == f"{n_antes + 1} mudanças", f"a conta diz «{n_antes + 1} mudanças» ({pag.locator('#conta').inner_text()!r})")
+            checa(pag.locator("#bt-aplicar").count() == 0 and pag.locator("#botao-ensaiar").count() == 0, "a barra não tem Aplicar nem Ver sem mudar")
             checa(pag.locator('.linha.mudou[data-linha~="FORMA_DOCK_SOLTO"]').count() == 1, "a linha se marca")
             checa(pag.locator("#conteudo .previa .p-dock.mudou-aqui").count() == 1, "e a dock da prévia ganha o tracejado")
             foto(pag, "3-mudanca")
-            antes = casa.valor_de("FORMA_DOCK_SOLTO")
-            pag.locator("#bt-aplicar").click()
-            janela(pag)
-            parar_e_fechar(pag)
-            depois = casa.valor_de("FORMA_DOCK_SOLTO")
-            checa(depois != antes and depois in ("sim", "nao"), f"o Aplicar grava a chave ({antes} -> {depois})")
             padrao = pag.locator('[data-controle="padrao:FORMA_DOCK_SOLTO"]')
             if checa(padrao.count() == 1, "fora do padrão, nasce o «Voltar ao padrão»"):
                 padrao.click()
-                pag.wait_for_timeout(300)
+                pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)
                 checa(pag.locator('[data-controle="padrao:FORMA_DOCK_SOLTO"]').count() == 0,
                       "e ele some quando a escolha volta ao de fábrica")
                 pag.locator("#desfazer").click()
 
-            print("4. o «Mais ajustes» nasce recolhido")
-            for sub in ("painel", "janelas", "papel", "mascote", "dia-e-noite", "terminal", "programas"):
-                ir(pag, "ajustes/" + sub)
-                checa(pag.evaluate("() => [...document.querySelectorAll('details.mais')].every((d) => !d.open)"),
-                      f"em {sub}")
+            print("4. nenhuma dobra: o que era «Mais ajustes» aparece direto")
+            for rota in ("tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
+                         "ajustes/painel", "ajustes/janelas", "ajustes/papel", "ajustes/mascote",
+                         "ajustes/dia-e-noite", "ajustes/terminal", "ajustes/programas", "cuidar"):
+                ir(pag, rota)
+                checa(pag.evaluate("() => document.querySelectorAll('details.mais').length") == 0
+                      and pag.evaluate("() => !/Mais ajustes/.test(document.getElementById('conteudo').innerText)"),
+                      f"sem dobra em {rota}")
 
             print("5. a busca")
             pag.keyboard.press("/")
@@ -152,7 +154,7 @@ def main():
             checa(pag.evaluate("() => location.hash") == "#ajustes/janelas", "e leva a Janelas e tela")
             checa(pag.locator('#conteudo .chegou[data-linha~="CURSOR"]').count() == 1, "acendendo a linha do ponteiro")
 
-            print("6. Criar tema")
+            print("6. Personalizar")
             ir(pag, "criar/cores")
             antes = pag.locator("#conteudo .poco code").first.inner_text()
             alvo = pag.locator('[data-controle^="criar:comeca="][aria-pressed="false"]').first
@@ -177,7 +179,7 @@ def main():
                     pag.locator("#pergunta-sim").click()
             checa(baixa.value.suggested_filename.endswith(".meowpack"), f"«Baixar o tema» baixa {baixa.value.suggested_filename}")
 
-            print("7. Cuidar: levar e trazer os ajustes")
+            print("7. Manter: levar e trazer os ajustes")
             ir(pag, "cuidar")
             with pag.expect_download(timeout=30000) as baixa:
                 pag.locator('[data-controle="cuidar:exportar"]').click()
@@ -190,12 +192,17 @@ def main():
                 pag.locator('[data-controle="cuidar:importar"]').click()
             escolha.value.set_files(caminho)
             pag.wait_for_timeout(800)
-            checa(pag.evaluate("() => MUDANCAS.get('LOG_NIVEL')") == "debug", "«Trazer ajustes» vira mudança esperando")
+            pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)
+            checa(casa.valor_de("LOG_NIVEL") == "debug", "«Trazer ajustes» grava na hora")
             pag.locator("#desfazer").click()
+            pag.wait_for_timeout(800)
+            pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)
 
             print("8. a dica")
             ir(pag, "cuidar")
             alvo = pag.locator('#conteudo .linha .rot span[data-dica]').first
+            alvo.scroll_into_view_if_needed()
+            pag.wait_for_timeout(300)
             alvo.hover()
             pag.wait_for_timeout(300)
             checa(pag.evaluate("() => document.getElementById('dica').hidden"), "a dica espera o mouse parar")
