@@ -207,7 +207,7 @@ cmd_extensao() {
     ''|*[!A-Za-z0-9._-]*) meow_pula "nenhum tema GTK no gsettings — sem extensão de tema a conferir"; return "$MEOW_OK" ;;
   esac
   ref="org.gtk.Gtk3theme.$tema"
-  if flatpak info "$ref" >/dev/null 2>&1; then
+  if meow_flatpak_ler info "$ref" >/dev/null 2>&1; then
     meow_ok "apps GTK3 do Flatpak têm a extensão $ref"
     return "$MEOW_OK"
   fi
@@ -394,7 +394,7 @@ _ft_runtime_minimo() {
 _ft_runtime_destino() {
   local v
   for v in $(_ft_runtimes_de valido); do
-    flatpak info "org.gnome.Platform//$v" >/dev/null 2>&1 && { printf '%s' "$v"; return 0; }
+    meow_flatpak_ler info "org.gnome.Platform//$v" >/dev/null 2>&1 && { printf '%s' "$v"; return 0; }
   done
   return 1
 }

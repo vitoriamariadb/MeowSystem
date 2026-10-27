@@ -1,12 +1,22 @@
 #!/usr/bin/env bash
 
+meow_flatpak_ler() {
+  local verbo="$1"
+  shift
+  if [ -d "$HOME/.local/share/flatpak/repo" ]; then
+    flatpak "$verbo" "$@"
+  else
+    flatpak "$verbo" --system "$@"
+  fi
+}
+
 meow_flatpak_apps() {
   meow_tem flatpak || return 0
-  flatpak list --app --columns=application 2>/dev/null | sed '/^[[:space:]]*$/d' | sort -u
+  meow_flatpak_ler list --app --columns=application 2>/dev/null | sed '/^[[:space:]]*$/d' | sort -u
 }
 
 meow_flatpak_pasta() {
-  flatpak info --show-location "$1" 2>/dev/null
+  meow_flatpak_ler info --show-location "$1" 2>/dev/null
 }
 
 _meow_flatpak_cache_libadwaita() { printf '%s/meowsystem/flatpak-libadwaita.tsv' "${XDG_CACHE_HOME:-$HOME/.cache}"; }
@@ -25,7 +35,7 @@ meow_flatpak_usa_libadwaita() {
   local id="$1" pasta commit cache dito veredito=nao
   pasta="$(meow_flatpak_pasta "$id")" || return 1
   [ -d "$pasta/files" ] || return 1
-  commit="$(flatpak info --show-commit "$id" 2>/dev/null)"
+  commit="$(meow_flatpak_ler info --show-commit "$id" 2>/dev/null)"
   cache="$(_meow_flatpak_cache_libadwaita)"
   if [ -n "$commit" ] && [ -f "$cache" ]; then
     dito="$(awk -F'\t' -v i="$id" -v c="$commit" '$1 == i && $2 == c { print $3; exit }' "$cache")"
@@ -47,7 +57,7 @@ meow_flatpak_apps_libadwaita() {
 
 meow_flatpak_runtime_gnome() {
   local versao
-  versao="$(flatpak info "$1" 2>/dev/null | sed -n 's|.*Runtime:[[:space:]]*org\.gnome\.Platform/[^/]*/||p' | head -n 1)"
+  versao="$(meow_flatpak_ler info "$1" 2>/dev/null | sed -n 's|.*Runtime:[[:space:]]*org\.gnome\.Platform/[^/]*/||p' | head -n 1)"
   case "$versao" in ''|*[!0-9]*) return 0 ;; esac
   printf '%s' "$versao"
 }
