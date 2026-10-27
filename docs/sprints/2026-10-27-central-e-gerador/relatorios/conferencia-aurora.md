@@ -67,3 +67,42 @@ pasta apagada.
 
 Nenhum teste chamou `sudo` para escrever: as 6 chamadas paradas são `sudo -n true` e `ponte_root.sh estado`. O
 `~/.config/zsh` dela tem os mesmos 7299 arquivos, com o mesmo tamanho e o mesmo mtime de antes da conferência.
+
+## Final
+Conferência final do bloco, em `82b31b3a`, com o `ZDOTDIR` tirado de cada rodada.
+
+### O que rodou
+- `./tests/todos.sh` em `f5942649`: 106 testes, 104 verdes, 0 pulados, 2 vermelhos, os dois aceitos
+  (`decisoes.sh` D6 e `restaurar.sh` `pack_usar`/`desinstalar`). O `app-completo.py`, o `app-uso-real.py` e o
+  `extensoes-pagina.py` estão entre os verdes. Nenhum `sudo` de escrita: só `sudo -n true` e `ponte_root.sh estado`.
+- Depois do conserto abaixo: `doctor-veredito`, `fzf-da-paleta`, `app`, `pack`, `pack-dracula-completo`,
+  `nada-manda-digitar`, `instalacao` e `convergencia`, com os falsos da suíte, todos verdes.
+- Install e três passadas do `doctor --consertar` numa casa de brinquedo sem rede e sem barramento, com o
+  `VERIFICAVEIS` inteiro. A segunda e a terceira passadas não escrevem nada na casa. A única mudança é o
+  `~/.cache/dconf/user`, que o cliente do dconf regrava quando falta o barramento; o MeowSystem não grava nele.
+- As cinco portas (Tema, Personalizar, Definir, Manter, Extensões, com as 16 rotas) no Playwright headless,
+  com os dois packs (`PACK`/`FLAVOR` meowsystem/mocha e dracula/dracula), em 1829 px e em 390 px. Não houve erro
+  na página, erro no console, resposta 4xx/5xx, imagem quebrada nem rolagem para o lado. «Cortar o repetido»
+  aparece embaixo de «Conferir todo dia» nos dois packs.
+- Retrato do `~/.config/zsh`, do `~/.local/state/meowsystem`, das unidades, do `~/.config/cosmic` e do self-heal,
+  tirado antes e depois de tudo. Só mudaram o perfil do navegador do painel dela (que estava aberto), o
+  `meow.log` (o `fastfetch_logo.sh aplicar` do terminal), o `wallpaper.log` do timer dela e o `painel.log` (ela
+  fechou o painel). Nenhum vazamento.
+
+### Achado e correção
+| # | achado | correção | commit | prova |
+|---|---|---|---|---|
+| 3 | Numa casa sem rede o install não fechava: o `curl` falhava, o `sh` do pipe lia a entrada vazia e saía 0, e a etapa dizia «starship instalado» e contava como mudança. Em cada passagem acontecia a mesma coisa, até o install parar com «as mesmas etapas escreveram em duas passagens seguidas: prompt». Isso já estava assim no `dev`. | o `cmd_instalar_starship` só conta a instalação quando o starship ficou | 82b31b3a | `tests/doctor-veredito.sh` seção 9: sem rede dá rc 2, sem binário e sem «instalado». Sem o conserto fica vermelho. O install da casa de brinquedo sem rede fecha na passagem 3, com o prompt em «falhou». |
+
+### Anotado, fora do bloco
+- As palavras «Vestir» e «Vestir agora» ainda aparecem no Tema, em Personalizar › Disponibilizar e em
+  Definir › Programas. São da P118 (bloco Textos) e entram no merge.
+- Sem rede, o `cursor.sh` imprime a receita com `curl`/`unzip` para fazer à mão. O `nada-manda-digitar.sh` não
+  pega isso. Já era assim antes do bloco.
+- Quando ela abre o terminal, o `fastfetch_logo.sh aplicar` grava no `meow.log` real. Não é teste, é o gancho
+  do terminal.
+- Sobrou uma `/tmp/meow-completo-*` das 20:08, sem processo vivo, que um dos testes de navegador da suíte deixou.
+  Ela foi apagada. Outras três, de outras rodadas (10:31 e 17:05), ficaram como estavam.
+- O `pinned_workspaces` dela tem duas áreas com nome, « Meow » (com a folga) e «OS». O `III` não está
+  alfinetado no disco e não está no `AREAS_NOMES`, então o `fix_areas` não o refaz. Com o conf de hoje, o
+  `areas.sh alfinetes` (só leitura) diz «de pé (Meow, OS)».
