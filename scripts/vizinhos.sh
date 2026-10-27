@@ -465,6 +465,15 @@ _catalogo() {
 
 _item() { _catalogo | awk -F'|' -v i="$1" '$1 == i'; }
 
+_requer_ok() {
+  local arq="${1%%:*}"
+  case "$arq" in
+    '$HOME/'*) arq="$HOME/${arq#\$HOME/}" ;;
+    *) arq="$MEOW_LIDO/$arq" ;;
+  esac
+  grep -qF -- "${1#*:}" "$arq" 2>/dev/null
+}
+
 _marca_saida() { printf '#vizinhos+:%s#' "$1"; }
 _marca_bloco() { printf '#vizinhos:%s# ' "$1"; }
 
@@ -489,7 +498,7 @@ cmd_listar() {
   while IFS='|' read -r item tipo arq ini fim req motivo; do
     if _desativado "$tipo" "$arq" "$item"; then est="desativado"
     elif [ ! -f "$arq" ]; then est="não existe nesta casa"
-    elif [ -n "$req" ] && ! grep -qF -- "${req#*:}" "$MEOW_LIDO/${req%%:*}" 2>/dev/null; then est="espera o MeowSystem instalado cuidar disto"
+    elif [ -n "$req" ] && ! _requer_ok "$req"; then est="espera o MeowSystem instalado cuidar disto"
     else est="ativo"
     fi
     printf '%s\t%s\t%s\n' "$item" "$est" "$(_curto "$arq")"
@@ -515,7 +524,7 @@ cmd_desativar() {
   [ -n "${item:-}" ] || { meow_erro "não conheço o item '$alvo'"; return "$MEOW_ERRO"; }
   if _desativado "$tipo" "$arq" "$item"; then meow_ok "$item já estava desativado"; return "$MEOW_OK"; fi
   if [ ! -f "$arq" ]; then meow_pula "$item: $(_curto "$arq") não existe nesta casa — nada a desativar"; return "$MEOW_OK"; fi
-  if [ -n "$req" ] && ! grep -qF -- "${req#*:}" "$MEOW_LIDO/${req%%:*}" 2>/dev/null; then
+  if [ -n "$req" ] && ! _requer_ok "$req"; then
     meow_pula "$item espera: o MeowSystem instalado ainda não cuida disto sozinho, e o de fora continua"
     return "$MEOW_OK"
   fi
