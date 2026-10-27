@@ -35,6 +35,12 @@ APPLETS = {
     "casa-dois": ("Casa Dois", "io.github.teste.CasaDois", "io.velho.Antigo"),
     "casa-tres": ("Casa Três", "io.github.teste.CasaTres", "io.outro.Velho"),
 }
+FORKS = {
+    "clipboard": "Área de transferência",
+    "eyedropper": "Conta-gotas",
+    "drives": "Discos",
+    "ascii-battery": "Bateria em ASCII",
+}
 
 
 def checa(cond, frase):
@@ -519,6 +525,24 @@ def main():
             foto("extensoes-creditos")
             pag.locator("[data-controle='creditos:ok']").click()
             pag.wait_for_function("() => !document.getElementById('creditos').open")
+
+            print("11. os quatro forks do catálogo: um cartão por fork, com nome e ícone")
+            pinos_reais = os.path.join(casa.RAIZ, "assets", "extensoes")
+            pinos_brinquedo = os.path.join(casa.RAIZ_B, "assets", "extensoes")
+            for ident in FORKS:
+                shutil.copyfile(os.path.join(pinos_reais, ident + ".pino"), os.path.join(pinos_brinquedo, ident + ".pino"))
+                shutil.copyfile(os.path.join(pinos_reais, "icones", ident + ".svg"), os.path.join(pinos_brinquedo, "icones", ident + ".svg"))
+            pag.goto(url)
+            esperar(pag, 800)
+            ir(pag, "extensoes")
+            for ident, nome in FORKS.items():
+                checa(eventual(lambda i=ident: cartao(pag, i).count() == 1), f"o cartão de {ident} aparece")
+                if cartao(pag, ident).count() == 1:
+                    checa(nome in cartao(pag, ident).locator("h3").inner_text(), f"{ident} leva o nome «{nome}»")
+                    checa(cartao(pag, ident).locator("img").first.evaluate("(i) => i.complete && i.naturalWidth > 0"),
+                          f"{ident} leva o ícone, carregado pelo servidor")
+                    checa(pilula(pag, ident) == "Não instalada", f"{ident} nasce «Não instalada» ({pilula(pag, ident)})")
+            foto("extensoes-forks")
 
             if FOTOS:
                 maquete = os.path.join(AQUI, "..", "docs", "sprints", "2026-10-26-qa-final", "maquete", "b", "extensoes.html")
