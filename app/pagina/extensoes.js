@@ -280,7 +280,7 @@ function abasDeExtensoes(sub) {
         [icone(a.icone), elemento("span", { texto: a.nome })]),
     ])));
     $("#abas-fila").replaceChildren(
-      botao("Adicionar repositório", { class: "bt principal pequeno", icone: "mais", controle: "extensao:abrir-adicionar",
+      botao("Adicionar repositório", { class: "bt principal pequeno adicionar-repo", icone: "mais", controle: "extensao:abrir-adicionar",
         "aria-label": "Adicionar repositório", dica: "Adicionar repositório", onclick: abrirAdicionar }));
   }
   for (const a of lista.querySelectorAll("a")) {
