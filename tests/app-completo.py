@@ -511,10 +511,10 @@ EXTRAS = {
 }
 GLOBAIS = ["marca", "porta:*", "busca", "achado", "pendentes", "pendente:*", "desfazer", "ensaiar",
            "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*", "exportar:imagens",
-           "mais:*", "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
+           "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
 NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "busca", "achado", "pendentes", "pendente:*",
           "desfazer", "ensaiar", "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*",
-          "mais:*", "exportar:imagens", "criar:voltar", "criar:proximo"]
+          "exportar:imagens", "criar:voltar", "criar:proximo"]
 OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "busca", "achado",
                 "pendentes", "pendente:*", "desfazer", "ensaiar", "aplicar", "menu", "menu:creditos",
                 "menu:pagina", "trabalho", "resultado:ok", "resultado:guardar", "resultado:parar",
@@ -1145,11 +1145,8 @@ class Percurso:
         self.rota = rota
         inicio = time.time()
         self.ir(rota)
-        for s in self.pag.locator("details.mais > summary").all():
-            if not s.evaluate("(x) => x.parentElement.open"):
-                nome = s.get_attribute("data-controle")
-                self.clicar(nome)
-                self.assentar()
+        self.checa(self.js("() => document.querySelectorAll('details.mais, [data-controle^=\"mais:\"]').length") == 0,
+                   "nenhuma dobra «Mais ajustes» na página")
         self.assentar(quieto=500, teto=15000)
         itens = self.censo()
         sem_nome = [i["html"] for i in itens if not i["nome"]]
@@ -1177,9 +1174,6 @@ class Percurso:
             self.limpar()
             if self.js("() => location.hash") != "#" + rota:
                 self.ir(rota)
-                for s in self.pag.locator("details.mais > summary").all():
-                    if not s.evaluate("(x) => x.parentElement.open"):
-                        s.click()
                 self.assentar()
             agora = self.censo()
             vivo = next((i for i in agora if i["nome"] == nome), None)

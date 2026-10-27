@@ -780,8 +780,10 @@ porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel 
                         "_", raiz], capture_output=True, text=True, env=dict(os.environ))
 if porta.stdout.strip() != quer:
     erros.append("13b: o meow_onde_no_painel de um cartão diz %r" % porta.stdout.strip())
-if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Definir › Papel de parede › Mais ajustes":
-    erros.append("13b: --onde de uma chave do «Mais ajustes» diz %r" % servidor.onde_na_tela("WALLPAPER_DRACULA_REPO"))
+if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Definir › Papel de parede › Pastas":
+    erros.append("13b: --onde de uma chave que era do «Mais ajustes» diz %r" % servidor.onde_na_tela("WALLPAPER_DRACULA_REPO"))
+if any("Mais ajustes" in (servidor.onde_na_tela(k) or "") for k in list(servidor.ACOES) + ["PACK", "CURSOR", "ICONES_FLAVOR"]):
+    erros.append("13b: ainda existe um --onde que manda para «Mais ajustes»")
 if servidor.onde_na_tela("inicio") != "em Manter":
     erros.append("13b: --onde inicio não diz onde as pendências moram: %r" % servidor.onde_na_tela("inicio"))
 velhas = [f for f in (servidor.onde_na_tela(k) for k in list(servidor.ACOES) + ["inicio", "PACK", "CURSOR"])

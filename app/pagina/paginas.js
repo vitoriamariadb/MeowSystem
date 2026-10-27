@@ -195,9 +195,7 @@ function paginaTema() {
     grade.append(b);
   }
   grade.append(elemento("a", { class: "criar-meu", href: "#criar/cores", controle: "tema:criar" },
-    [icone("mais"), elemento("span", { texto: "Criar o meu" })]));
-  const mais = maisAjustes("tema:tema", LUGAR_TEMA.mais);
-  if (mais) grade.append(mais);
+    [icone("mais"), elemento("span", { texto: "Criar o meu tema" })]));
   return [cabeca("Tema", [pilulaDeSaude(), botaoAbrirTema()]), grade];
 }
 
@@ -394,14 +392,16 @@ function passoIcones() {
     const nome = ABA_ICONES === "sistema" ? "Sistema" : "Biblioteca";
     return [cabeca, bloco(nome, [elemento("div", { class: "corpo" }, [gradeDeLevar(ABA_ICONES, pack)])])];
   }
-  const linhas = lista(p.linhas, (l) => l.g === "acervo:icone");
+  const doBloco = (nome) => lista(p.linhas.filter((l) => l.bloco === nome), (l) => l.g === "acervo:icone");
+  const autoral = oficinaAutoral();
   return [
     cabeca,
     bloco("Aplicativos", [elemento("div", { class: "corpo" }, [montarApps()])],
       { direita: [botaoAcervo("icone", "Trazer .svg")] }),
-    bloco("Pastas", [linhas]),
-    maisAjustes("criar:icones", p.mais, [oficinaAutoral()].filter(Boolean)),
-  ];
+    bloco("Pastas", [doBloco("Pastas")]),
+    bloco("Cores", [doBloco("Cores")]),
+    autoral ? bloco(null, [autoral]) : null,
+  ].filter(Boolean);
 }
 let LEVA = null;
 async function carregarLeva(id) {
@@ -492,7 +492,7 @@ function passoSons() {
       controle: "criar:sino", onclick: tocarSino }, [icone("tocar")]),
     elemento("h2", { texto: "Sino do volume" }),
   ]);
-  return [bloco(null, [sino, lista(p.linhas)]), sonsDeAviso(), maisAjustes("criar:sons", p.mais)];
+  return [bloco(null, [sino, lista(p.linhas)]), sonsDeAviso()];
 }
 function passoMandar() {
   const r = rascunho();
@@ -644,13 +644,12 @@ function paginaAjustes(sub) {
     if (b.noite) filhos.push(linhaMesmoHorario());
     blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas }));
   }
-  const mais = maisAjustes("ajustes:" + p.id, p.mais || []);
   return [
     cabeca(p.nome, direita),
     elemento("div", { class: "oficina" }, [
       elemento("nav", { "aria-label": "Definir" }, [trilho]),
       elemento("div", { class: "palco" }, [mesaDaPagina(p.id)]),
-      elemento("div", { class: "pilha" }, [...blocos, mais].filter(Boolean)),
+      elemento("div", { class: "pilha" }, blocos.filter(Boolean)),
     ]),
   ];
 }
@@ -751,16 +750,16 @@ function paginaCuidar() {
   const pend = elemento("ul", { class: "linhas pendencias" }, [
     ...PRECISA_DE_GENTE.map(linhaDeGente), ...PENDENCIAS.map(linhaDePendencia)]);
   const blocos = LUGAR_CUIDAR.blocos.map((b) => bloco(b.titulo, [lista(b.linhas)], { class: "metade" }));
+  const maquina = bloco("Ícones da máquina", [lista(LUGAR_CUIDAR.maquina)], { class: "metade" });
   const perigo = bloco(null, [lista(LUGAR_CUIDAR.perigo)], { class: "tracejado" });
-  const restaurar = LUGAR_CUIDAR.mais.filter((l) => l.a);
   return [
     elemento("div", { class: "grade-cuidar" }, [
       topo,
       pend.children.length ? bloco("Pendências", [pend], { class: "inteiro" }) : null,
       ...LUGAR_CUIDAR.cartoes.map(cartaoDeCuidar),
       blocos[0],
+      maquina,
       elemento("div", { class: "pilha metade" }, [blocos[1], perigo]),
-      (() => { const m = maisAjustes("cuidar:cuidar", restaurar); if (m) m.classList.add("inteiro"); return m; })(),
     ].filter(Boolean)),
   ];
 }

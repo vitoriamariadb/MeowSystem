@@ -135,11 +135,14 @@ def main():
                       "e ele some quando a escolha volta ao de fábrica")
                 pag.locator("#desfazer").click()
 
-            print("4. o «Mais ajustes» nasce recolhido")
-            for sub in ("painel", "janelas", "papel", "mascote", "dia-e-noite", "terminal", "programas"):
-                ir(pag, "ajustes/" + sub)
-                checa(pag.evaluate("() => [...document.querySelectorAll('details.mais')].every((d) => !d.open)"),
-                      f"em {sub}")
+            print("4. nenhuma dobra: o que era «Mais ajustes» aparece direto")
+            for rota in ("tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
+                         "ajustes/painel", "ajustes/janelas", "ajustes/papel", "ajustes/mascote",
+                         "ajustes/dia-e-noite", "ajustes/terminal", "ajustes/programas", "cuidar"):
+                ir(pag, rota)
+                checa(pag.evaluate("() => document.querySelectorAll('details.mais').length") == 0
+                      and pag.evaluate("() => !/Mais ajustes/.test(document.getElementById('conteudo').innerText)"),
+                      f"sem dobra em {rota}")
 
             print("5. a busca")
             pag.keyboard.press("/")

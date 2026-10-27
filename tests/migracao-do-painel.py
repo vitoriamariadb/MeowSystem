@@ -61,8 +61,6 @@ def onde(l):
         base = nomes[l["porta"]]
     else:
         base = "%s › %s" % (nomes[l["porta"]], l["pagina"])
-    if l["mais"]:
-        return base + " › Mais ajustes"
     if l["bloco"] and l["bloco"] not in (l["pagina"], base):
         return base + " › " + l["bloco"]
     return base
