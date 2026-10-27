@@ -3,7 +3,7 @@ set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)" || exit 2
-trap 'rm -rf "$T"' EXIT
+trap "cp -r $T/saida /tmp/claude-1000/-home-vitoriamaria-Desenvolvimento-MeowSystem/a7736095-6179-4e12-b0ee-1944c28bfa25/scratchpad/etapa5-saida.txt 2>/dev/null; rm -rf $T" EXIT
 falhas=0
 confere() {
   if eval "$2"; then printf 'ok: %s\n' "$1"
@@ -68,6 +68,22 @@ confere "não pede build" '[ "$(grep -c "^fundo$" "$T/chamadas")" = 1 ]'
 instalar; rc=$?
 confere "a segunda vez com nao confere numa passagem" '[ "$rc" = 0 ] && grep -q "Pronto. 1 passagem" "$T/saida"'
 confere "nenhum sudo no caminho todo" 'sem_root'
+
+printf '\n5. com o garantir_builds.sh de verdade, o install nunca compila no primeiro plano\n'
+CASA="$T/casa5"; SHIM="$CASA/.local/bin/cosmic-comp"
+mkdir -p "$CASA/.config/meow" "$T/real"
+cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
+printf '#!/bin/sh\nprintf "cosmic-comp\\t0.1~r\\tinstalled\\n"\n' > "$T/real/dpkg-query"
+printf '#!/bin/sh\necho "compositor $*" >> "%s/comp5.log"\nexit 0\n' "$T" > "$T/real/compositor"
+printf '#!/bin/sh\nexit 0\n' > "$T/real/files"
+chmod 755 "$T/real/"*
+env -i PATH="$T/real:$T/falso:$PATH" HOME="$CASA" USER=t NO_COLOR=1 MEOW_IGNORA_DESKTOP=1 \
+  MEOW_PONTE=/nao/existe GB_COMPOSITOR="$T/real/compositor" GB_FILES="$T/real/files" GB_ESPERA=1 \
+  bash "$RAIZ/install.sh" --etapa compositor > "$T/saida" 2>&1; rc=$?
+confere "o install sai 0" '[ "$rc" = 0 ]'
+confere "o compositor não compila no primeiro plano do install" '! grep -q "^compositor compilar" "$T/comp5.log" 2>/dev/null'
+confere "e diz o que acontece com o build" 'grep -qE "cosmic-comp 0.1~r (fica|—)" "$T/saida"'
+confere "o shim nasce mesmo assim" 'grep -q MEOW-COSMIC-COMP-SHIM-1 "$SHIM"'
 
 printf '\n'
 [ "$falhas" = 0 ] && { printf 'etapa-compositor: tudo verde\n'; exit 0; }

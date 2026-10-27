@@ -252,7 +252,7 @@ for u in meow-pos-apt.service meow-builds-login.service meow-doctor.service; do
   igual "$u acha o just e o cargo" "$achou" "$U2/.cargo/bin/just $U2/.cargo/bin/cargo "
 done
 
-echo "-- o doctor --consertar compila o compositor que falta (shim ligado, HOME de brinquedo)"
+echo "-- o doctor --consertar manda o compositor que falta para o segundo plano (shim ligado, HOME de brinquedo)"
 D="$T/doc"; mkdir -p "$D/.config/meow" "$D/.local/bin"
 cp "$RAIZ/meow.conf.exemplo" "$D/.config/meow/meow.conf"
 cp "$RAIZ/scripts/compositor_shim.sh" "$D/.local/bin/cosmic-comp"
@@ -274,6 +274,7 @@ doctor() {
     PATH="$T/bin:$PATH" HOME="$D" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
     XDG_CONFIG_HOME="$D/.config" XDG_STATE_HOME="$D/.local/state" \
     GB_COMPOSITOR="$T/compositor-doc" GB_FILES="$T/files" GB_FILES_GUARDA="$ESTADO/cosmic-files" \
+    GB_ESPERA=1 DBUS_SESSION_BUS_ADDRESS="${DOC_BUS:-}" PATH="${DOC_PATH:-}$T/bin:$PATH" \
     bash -c '
       source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow")
       source "$1"; shift
@@ -284,8 +285,24 @@ versoes cosmic-comp=0.1~g cosmic-files=1.10~b
 igual "sem build, a linha patches diverge (rc 1)" "$rc" 1
 grep -q 'ainda não tem build' "$T/doc.saida" && ok "e diz o estado" || { falha "a linha patches não disse o estado"; sed 's/^/        /' "$T/doc.saida"; }
 : > "$T/log"; doctor --consertar; rc=$?
-igual "o --consertar sai 1 (consertado)" "$rc" 1
-igual "um build do compositor, pelo conserto" "$(linhas '^compositor compilar')" 1
+igual "sem systemd --user, o --consertar não compila no primeiro plano" "$(linhas '^compositor compilar')" 0
+grep -q 'sem systemd --user nesta sessão, .*cosmic-comp 0.1~g fica sem build' "$T/doc.saida" \
+  && ok "e diz que fica sem build" || { falha "o --consertar sem systemd não disse o que acontece"; sed 's/^/        /' "$T/doc.saida"; }
+mkdir -p "$T/sdrun-doc"
+cat > "$T/sdrun-doc/systemd-run" <<FIM
+#!/bin/sh
+echo "systemd-run \$*" >> "$T/sdrun-doc.log"
+while [ "\$#" -gt 0 ] && [ "\${1%/garantir_builds.sh}" = "\$1" ]; do shift; done
+"\$@" >/dev/null 2>&1 &
+wait
+exit 0
+FIM
+chmod 755 "$T/sdrun-doc/systemd-run"
+: > "$T/log"; DOC_BUS=unix:path=/nao/existe DOC_PATH="$T/sdrun-doc:" doctor --consertar; rc=$?
+igual "com o systemd --user, o --consertar sai 1 (consertado)" "$rc" 1
+grep -q 'scripts/garantir_builds.sh rodar$' "$T/sdrun-doc.log" 2>/dev/null && ok "e o build foi por uma unidade passageira do systemd-run" \
+  || falha "o --consertar não usou o systemd-run"
+igual "um build do compositor, na unidade passageira" "$(linhas '^compositor compilar')" 1
 grep -q 'continua fora' "$T/doc.saida" && { falha "a linha patches ficou fora depois do conserto"; sed 's/^/        /' "$T/doc.saida"; }
 : > "$T/log"; doctor; rc=$?
 igual "o doctor seguinte não diverge (rc 0)" "$rc" 0
@@ -350,6 +367,74 @@ doutor chk_patches
 grep -q 'shim em ~/.local/bin/cosmic-comp não está ligado' "$T/saida" \
   && falha "com o shim de pé o doctor ainda o pede" || ok "com o shim de pé o doctor não o pede mais"
 rm -f "$T/home/.local/bin/cosmic-comp"
+
+echo "== 5. o --fundo nunca compila no primeiro plano"
+mkdir -p "$T/b5"
+printf '#!/bin/sh\necho "systemd-run $*" >> "%s/sdrun.log"\nexit 0\n' "$T" > "$T/b5/systemd-run"
+printf '#!/bin/sh\necho "systemctl $*" >> "%s/sctl.log"\n[ -f "%s/sctl-falha" ] && exit 1\nexit 0\n' "$T" "$T" > "$T/b5/systemctl"
+chmod 755 "$T/b5/"*
+fundo() {
+  env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY \
+    HOME="$T/home" PATH="$T/b5:$T/bin:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 GB_ESPERA=1 DBUS_SESSION_BUS_ADDRESS="${BUS5:-}" \
+    MEOW_ESTADO="$ESTADO" MEOW_CONF="$T/home/.config/meow/meow.conf" \
+    GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" \
+    CP_REPO="$T/patches" CP_SERIE="$T/patches/series" \
+    "$RAIZ/scripts/garantir_builds.sh" --fundo > "$T/saida" 2>&1
+}
+UNI5="$T/home/.config/systemd/user"
+CONF5="$T/home/.config/meow/meow.conf"
+limpo5() { : > "$T/log"; rm -f "$T/sdrun.log" "$T/sctl.log"; }
+mostra5() { falha "$1"; sed 's/^/        /' "$T/saida"; }
+versoes cosmic-comp=0.1~z
+mkdir -p "$UNI5"; rm -f "$CONF5" "$UNI5/meow-builds-login.service"
+
+BUS5=""; limpo5; fundo; rc=$?
+igual "sem a unidade do login, sem meow.conf e sem systemd --user: rc 3" "$rc" 3
+igual "e nada compila no primeiro plano" "$(linhas '^compositor compilar')" 0
+grep -q 'cosmic-comp 0.1~z fica sem build' "$T/saida" && grep -q 'sem a unidade meow-builds-login.service' "$T/saida" \
+  && ok "e diz que fica sem build, e por quê" || mostra5 "o --fundo sem nada não disse o que acontece"
+[ ! -e "$T/sdrun.log" ] && [ ! -e "$T/sctl.log" ] && ok "e não chama o systemd sem o barramento da sessão" || falha "chamou o systemd sem o barramento"
+
+BUS5="unix:path=$T/bus"; limpo5; fundo; rc=$?
+igual "do zero, sem a unidade do login: rc 1" "$rc" 1
+igual "e nada compila no primeiro plano" "$(linhas '^compositor compilar')" 0
+grep -q -- "--user --no-block .*Nice=19.*scripts/garantir_builds.sh rodar$" "$T/sdrun.log" 2>/dev/null \
+  && ok "o build vai para uma unidade passageira do systemd-run, em prioridade baixa" \
+  || { falha "o --fundo sem a unidade não usou o systemd-run"; sed 's/^/        /' "$T/sdrun.log" 2>/dev/null; }
+grep -q 'construindo em segundo plano: cosmic-comp 0.1~z' "$T/saida" && ok "e diz «construindo em segundo plano»" \
+  || mostra5 "o --fundo não disse o que está construindo"
+
+cp "$RAIZ/systemd/meow-builds-login.service" "$UNI5/"
+cp "$RAIZ/meow.conf.exemplo" "$CONF5"
+limpo5; fundo; rc=$?
+grep -qx 'systemctl --user start --no-block meow-builds-login.service' "$T/sctl.log" 2>/dev/null && [ ! -e "$T/sdrun.log" ] && [ "$rc" = 1 ] \
+  && ok "com a unidade do login e o meow.conf que deixa: é ela que constrói" || mostra5 "com a unidade do login, o --fundo não a chamou (rc=$rc)"
+igual "e nada compila no primeiro plano" "$(linhas '^compositor compilar')" 0
+
+BUS5=""; : > "$T/sctl-falha"; limpo5; fundo; rc=$?
+igual "a unidade de pé, mas sem systemd --user agora: rc 3" "$rc" 3
+grep -q 'sem systemd --user nesta sessão: cosmic-comp 0.1~z fica para o próximo login' "$T/saida" \
+  && ok "e diz que fica para o próximo login" || mostra5 "o --fundo sem systemd não disse que fica para o login"
+igual "e nada compila no primeiro plano" "$(linhas '^compositor compilar')" 0
+rm -f "$T/sctl-falha"; BUS5="unix:path=$T/bus"
+
+sed -i 's/^BUILDS_AO_ENTRAR=.*/BUILDS_AO_ENTRAR="nao"/' "$CONF5"
+limpo5; fundo; rc=$?
+[ ! -e "$T/sctl.log" ] && grep -q 'garantir_builds.sh rodar$' "$T/sdrun.log" 2>/dev/null && [ "$rc" = 1 ] \
+  && ok "BUILDS_AO_ENTRAR=\"nao\": o ExecCondition pularia, então a unidade não é chamada e o build vai pelo systemd-run" \
+  || mostra5 "com BUILDS_AO_ENTRAR=nao o --fundo chamou a unidade que pula (rc=$rc)"
+grep -q 'construindo em segundo plano: cosmic-comp 0.1~z .*não refaz sozinha (BUILDS_AO_ENTRAR="nao")' "$T/saida" \
+  && ok "e diz o que acontece: constrói agora, e a entrada na sessão não refaz" \
+  || mostra5 "o --fundo com BUILDS_AO_ENTRAR=nao não disse o que acontece"
+
+sed -i 's/^BUILDS_AO_ENTRAR=.*/BUILDS_AO_ENTRAR="sim"/; s/^AUTO_REPARO=.*/AUTO_REPARO="nao"/' "$CONF5"
+BUS5=""; limpo5; fundo; rc=$?
+igual "AUTO_REPARO=\"nao\" e sem systemd --user: rc 3" "$rc" 3
+grep -q 'a entrada na sessão não constrói (AUTO_REPARO="nao"): cosmic-comp 0.1~z fica sem build' "$T/saida" && [ ! -e "$T/sctl.log" ] \
+  && ok "e diz que fica sem build, sem chamar a unidade que pula" \
+  || mostra5 "o --fundo com AUTO_REPARO=nao não disse o que acontece"
+igual "e nada compila no primeiro plano" "$(linhas '^compositor compilar')" 0
+rm -f "$CONF5" "$UNI5/meow-builds-login.service"
 
 grep -v "^recusado: sudo -n -l$" "$T/recusados" 2>/dev/null | grep -q . && { falha "algo chamou um comando recusado:"; sed "s/^/        /" "$T/recusados"; }
 
