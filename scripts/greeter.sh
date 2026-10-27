@@ -145,18 +145,18 @@ if [ "${#pendentes[@]}" -eq 0 ]; then
 fi
 
 if meow_seco; then
-  meow_muda "vestiria a tela de login com '$ALVO' (${#pendentes[@]} arquivo(s))"
+  meow_muda "aplicaria o tema '$ALVO' na tela de login (${#pendentes[@]} arquivo(s))"
   exit "$MEOW_DIVERGENTE"
 fi
 
 if meow_ponte_viva; then
   if motivo="$( { tar -c -C "$CAPTURA" -f - "${pendentes[@]}" | meow_ponte greeter-aplicar >/dev/null; } 2>&1 )"; then
-    meow_muda "tela de login vestida com '$ALVO' (${#pendentes[@]} arquivo(s), pela ponte)"
+    meow_muda "tela de login com o tema '$ALVO' (${#pendentes[@]} arquivo(s), pela ponte)"
     meow_registrar "greeter.sh $ALVO ${#pendentes[@]} arquivo(s)"
     exit "$MEOW_DIVERGENTE"
   fi
   motivo="$(printf '%s' "$motivo" | sed 's/^ponte_root: //' | paste -sd';' - | sed 's/;/; /g')"
-  meow_aviso "a ponte recusou vestir a tela de login (${motivo:-ela não disse por quê})"
+  meow_aviso "a ponte recusou aplicar o tema na tela de login (${motivo:-ela não disse por quê})"
   exit "$MEOW_ERRO"
 fi
 

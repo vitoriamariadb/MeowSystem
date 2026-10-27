@@ -9,7 +9,7 @@ digitando `meow`. As 125 chaves, com o valor escolhido, o de fábrica e o porqu�
 ```
 
 `app/` e não `painel/` porque «painel» já é a barra de cima do COSMIC (`scripts/painel.sh`,
-`meow-painel.service`). `apps`, no plural, são os programas que o projeto veste; `app` é este.
+`meow-painel.service`). `apps`, no plural, são os programas que o projeto tematiza; `app` é este.
 
 ## O que tem dentro
 
@@ -33,8 +33,8 @@ app/
 
 | porta | o que tem |
 |---|---|
-| **Tema** | um cartão por pack instalado: logo, paleta, o que é próprio e o que herda. **Vestir**, **Remover**, **Abrir um tema** (`.meowpack` ou `.csv` de cores) |
-| **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Mandar (**Baixar o tema**) |
+| **Tema** | um cartão por pack instalado: logo, paleta, o que é próprio e o que herda. **Aplicar tema**, **Remover**, **Abrir um tema** (`.meowpack` ou `.csv` de cores) |
+| **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Disponibilizar (**Baixar o tema**) |
 | **Definir** | painel e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
 | **Manter** | o doctor e o **Consertar**, as pendências, **Guardar ajustes** e **Trazer ajustes** |
 | **Extensões** | as abas **Applets** (um cartão por applet: Instalar, Pôr no painel, Remover) e **Builds** (compositor, menu do Arquivos e cada applet, com **Refazer**), e **Adicionar repositório** |

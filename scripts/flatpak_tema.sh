@@ -20,7 +20,7 @@ case "$ACAO" in
   --conferir) ACAO="conferir" ;;
   -h|--help)
     printf 'uso: %s [aplicar|conferir] [usuario|global] | reverter\n\n' "$(basename "$0")"
-    printf '  aplicar   o override do Flatpak do usuário veste o tema do pack no ar\n'
+    printf '  aplicar   o override do Flatpak do usuário usa o tema do pack no ar\n'
     printf '  conferir  não escreve nada (0 igual · 1 divergente · 3 falta a ponte root)\n'
     printf '  reverter  devolve o override de antes\n\n'
     printf 'conf: CURSOR, NOME_TEMA_ICONES\n'
@@ -125,7 +125,7 @@ _ft_guardar_antes() {
 
 cmd_usuario() {
   local modo="$1" par args=() e vestido=""
-  meow_tem flatpak || { meow_pula "sem flatpak — nenhum app a vestir"; return "$MEOW_OK"; }
+  meow_tem flatpak || { meow_pula "sem flatpak — nenhum app a aplicar"; return "$MEOW_OK"; }
   _ft_querer
   if [ "${#DESEJO[@]}" -eq 0 ]; then
     meow_pula "nenhum tema do MeowSystem no disco ainda — o override do Flatpak fica como está"
@@ -134,7 +134,7 @@ cmd_usuario() {
   _ft_o_que_falta
   if [ "${#FALTA_ENV[@]}" -eq 0 ] && [ "${#FALTA_FS[@]}" -eq 0 ]; then
     for par in "${FT_CHAVES[@]}"; do [ -n "${DESEJO[$par]:-}" ] && vestido+="${vestido:+, }${DESEJO[$par]}"; done
-    meow_ok "apps Flatpak vestem $vestido"
+    meow_ok "apps Flatpak usam $vestido"
     return "$MEOW_OK"
   fi
   if [ "$modo" = "conferir" ] || meow_seco; then
@@ -154,7 +154,7 @@ cmd_usuario() {
     meow_erro "o override do Flatpak foi gravado e não confere: ${FALTA_ENV[*]} ${FALTA_FS[*]}"
     return "$MEOW_ERRO"
   fi
-  meow_muda "apps Flatpak vestem o tema do pack: ${args[*]#--}"
+  meow_muda "apps Flatpak usam o tema do pack: ${args[*]#--}"
   meow_registrar "flatpak_tema.sh override do usuário ${args[*]}"
   return "$MEOW_DIVERGENTE"
 }
@@ -175,7 +175,7 @@ _ft_global_velhos() {
 
 cmd_global() {
   local modo="$1" velhos
-  meow_tem flatpak || { meow_pula "sem flatpak — nenhum app a vestir"; return "$MEOW_OK"; }
+  meow_tem flatpak || { meow_pula "sem flatpak — nenhum app a aplicar"; return "$MEOW_OK"; }
   velhos="$(_ft_global_velhos)"
   if [ -z "$velhos" ]; then
     meow_pendencia_resolvida flatpak-global-sistema

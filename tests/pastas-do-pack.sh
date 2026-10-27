@@ -116,7 +116,7 @@ for d in "$RAIZ/packs/dracula/icones/sistema/"*.svg; do
   [ "$(cat "$d")" = "$(cat "$LUGAR/$(basename "$d")" 2>/dev/null)" ] && postos=$((postos + 1))
 done
 if [ "$postos" = "$N_PASTAS" ] && [ "$N_PASTAS" = 10 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
-   && [[ "$conferiu" == *"$N_PASTAS pasta(s) especiais já vestidas com os desenhos do pack Dracula"* ]] \
+   && [[ "$conferiu" == *"$N_PASTAS pasta(s) especiais já com os desenhos do pack Dracula"* ]] \
    && [[ "$aplicou$conferiu" != *Catppuccin* ]]; then
   ok "com PASTAS_XDG=\"sim\" as $N_PASTAS pastas especiais do Dracula chegam ao disco, e a frase diz o pack"
 else

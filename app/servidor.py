@@ -764,13 +764,13 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         ap = vocab.get("apps")
         if ap and ap["herdado"]:
             item["frase"] = ("Os desenhos de aplicativo que o pack «%s» herda do «%s», "
-                             "vestindo o lançador." % (nome_pack, ap["nome_de"]))
+                             "no lançador." % (nome_pack, ap["nome_de"]))
         elif ap:
-            item["frase"] = ("Os desenhos de aplicativo do pack «%s», vestindo o lançador."
+            item["frase"] = ("Os desenhos de aplicativo do pack «%s», no lançador."
                              % nome_pack)
         else:
             item["frase"] = ("O pack «%s» não traz desenhos de aplicativo: com ele no ar, "
-                             "este ajuste não tem o que vestir." % nome_pack)
+                             "este ajuste não tem o que aplicar." % nome_pack)
 
     item = por_chave.get("ICONES_PASTAS")
     if item:
@@ -3407,7 +3407,7 @@ ACOES = {
         "ajuda": "Reabre o painel e a Dock desta sessão, para o applet trocado aparecer.",
     },
     "apps": {
-        "rotulo": "Programas vestidos",
+        "rotulo": "Programas com tema",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
         "argv": _meow("apps"),
@@ -3415,7 +3415,7 @@ ACOES = {
         "ajuda": "Um por linha: se está instalado, e se o tema já foi aplicado.",
     },
     "apps_aplicar": {
-        "rotulo": "Vestir os programas",
+        "rotulo": "Aplicar nos programas",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": _meow("apps", "aplicar"),
@@ -4315,6 +4315,7 @@ ACAO_DA_PENDENCIA = {
     "flatpak-global-sistema": "instalar",
     "libreoffice-sistema": "instalar",
     "starship-ausente": "instalar",
+    "spicetify-tema-ausente": "apps_aplicar",
 }
 
 NOME_DA_PENDENCIA = {
@@ -4324,6 +4325,7 @@ NOME_DA_PENDENCIA = {
     "flatpak-global-sistema": "Flatpaks do sistema",
     "libreoffice-sistema": "LibreOffice do sistema",
     "aplicar-ajuste": "Ajuste pendente",
+    "spicetify-tema-ausente": "Tema do Spotify",
 }
 
 BUILD_DA_PENDENCIA = {}
@@ -7321,7 +7323,7 @@ class Manipulador(BaseHTTPRequestHandler):
             if vigor.get("tipo") != "conversao":
                 alternativas.append("a conversão em traço do projeto")
             alternativas.append("novas variações a partir do original")
-            return ("%s veste %s. %s na oficina «Gerar ícone», acima: %s."
+            return ("%s usa %s. %s na oficina «Gerar ícone», acima: %s."
                     % (rotulo, vigor["frase"],
                        "As alternativas estão" if len(alternativas) > 1 else "A alternativa está",
                        _enumerar(alternativas)))

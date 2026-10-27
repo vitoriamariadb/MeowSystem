@@ -949,7 +949,7 @@ etapa_cursor() {
 }
 
 etapa_flatpak_tema() {
-  passo "Flatpak veste o tema"
+  passo "Flatpak usa o tema"
   CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
     "$MEOW_RAIZ/scripts/flatpak_tema.sh" aplicar
   return $?
@@ -2051,7 +2051,7 @@ main() {
         "Etapas que precisavam de root e se pularam: $de_root" "./install.sh"
       case "$sem_captura" in
         deriva) meow_info "greeter: no ensaio a captura do tema ainda não foi escrita (a etapa tema a deriva antes da tela de login) — não é falta de root" ;;
-        falta)  meow_info "greeter: a tela de login veste o tema do COSMIC, e ele não tem captura — não é falta de root" ;;
+        falta)  meow_info "greeter: a tela de login usa o tema do COSMIC, e ele não tem captura — não é falta de root" ;;
       esac
       [ ${#PULADOS_OPTIN[@]} -gt 0 ] && \
         meow_info "${PULADOS_OPTIN[*]}: é opt-in, não é falta de root — LANCADOR_SISTEMA=\"sim\" no meow.conf liga"

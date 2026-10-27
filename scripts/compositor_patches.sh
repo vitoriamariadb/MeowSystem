@@ -821,7 +821,7 @@ cmd_desativar() {
 
 cmd_reverter() {
   if _cp_shim_ativo; then
-    meow_info "o compositor patchado entra pelo shim em $CP_SHIM; o caminho de volta é: meow compositor desativar"
+    meow_info "o compositor patchado entra pelo shim em $CP_SHIM; desligar o shim devolve o do pacote"
     meow_info "  sem o shim, o próximo login usa $CP_BIN, o do pacote"
   fi
   meow_info "o caminho de volta é reinstalar o PACOTE cosmic-comp pelo gerenciador de pacotes"

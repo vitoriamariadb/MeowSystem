@@ -645,35 +645,82 @@ function controleLista(item, aplica) {
         onclick: () => aplica(itens.filter((x) => x !== nome).join(sep)) }, [icone("fechar")]),
     ]));
   }
+  const deApps = LISTAS_DE_APPS.has(item.chave);
   const nova = elemento("input", { type: "text", class: "campo ficha-nova", placeholder: "Acrescentar",
     "aria-label": "Acrescentar a " + (item.titulo || item.chave), controle: "chave:" + item.chave + ":nova" });
-  const deApps = LISTAS_DE_APPS.has(item.chave);
-  if (deApps) {
-    const sugestoes = elemento("datalist", { id: "apps-" + item.chave });
-    nova.setAttribute("list", sugestoes.id);
-    nova.setAttribute("placeholder", "Procurar um programa");
-    appsDaLista().then((apps) => {
-      for (const a of apps) sugestoes.append(elemento("option", { value: a.id, label: a.nome }));
-    });
-    caixa.append(sugestoes);
-  }
-  const acrescentar = async () => {
-    let v = nova.value.trim();
+  const prefixoDe = (v) => (v.startsWith("-") && item.chave === "LANCADOR_OCULTAR" ? "-" : "");
+  const soltoDe = (v) => v.replace(/^-/, "");
+  const guardar = (v) => {
     if (!v || itens.includes(v)) { nova.value = ""; return; }
-    if (deApps) {
-      const apps = await appsDaLista();
-      const solto = v.replace(/^-/, "");
-      const prefixo = v.startsWith("-") && item.chave === "LANCADOR_OCULTAR" ? "-" : "";
-      const certo = apps.find((a) => a.id === solto)
-        || apps.find((a) => a.nome.toLowerCase() === solto.toLowerCase());
-      if (!certo) { torrada("Não achei esse programa", "erro"); nova.value = ""; return; }
-      v = prefixo + certo.id;
-      if (itens.includes(v)) { nova.value = ""; return; }
-    }
     aplica([...itens, v].join(sep));
   };
-  nova.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); acrescentar(); } });
-  nova.addEventListener("change", acrescentar);
+  if (deApps) {
+    const escondendo = item.chave === "LANCADOR_OCULTAR";
+    const rotuloDoCampo = escondendo ? "Esconder um programa" : "Impedir um programa";
+    const lista = elemento("div", { class: "sugestoes", role: "listbox", id: "sug-" + item.chave, hidden: "" });
+    nova.setAttribute("placeholder", rotuloDoCampo);
+    nova.setAttribute("aria-label", rotuloDoCampo);
+    nova.setAttribute("role", "combobox");
+    nova.setAttribute("aria-expanded", "false");
+    nova.setAttribute("aria-controls", lista.id);
+    nova.setAttribute("aria-autocomplete", "list");
+    nova.setAttribute("autocomplete", "off");
+    let apps = [];
+    let marcado = 0;
+    appsDaLista().then((r) => { apps = r; });
+    const opcoes = () => [...lista.querySelectorAll('[role="option"]')];
+    const marcar = (n) => {
+      marcado = n;
+      opcoes().forEach((o, j) => o.setAttribute("aria-selected", String(j === n)));
+    };
+    const fechar = () => { lista.hidden = true; nova.setAttribute("aria-expanded", "false"); };
+    const escolher = (id) => { nova.value = ""; fechar(); guardar(prefixoDe(nova.dataset.digitado || "") + id); };
+    const mostrar = () => {
+      const digitado = nova.value.trim();
+      nova.dataset.digitado = digitado;
+      nova.removeAttribute("aria-invalid");
+      const q = soltoDe(digitado).toLowerCase();
+      const ja = new Set(itens.map(soltoDe));
+      const achou = q ? apps.filter((a) => !ja.has(a.id)
+        && (a.id.toLowerCase().includes(q) || a.nome.toLowerCase().includes(q))).slice(0, 8) : [];
+      lista.replaceChildren(...achou.map((a, i) => {
+        const o = elemento("div", { role: "option", "aria-selected": String(i === 0), "data-id": a.id }, [
+          a.url ? elemento("img", { src: a.url, alt: "", loading: "lazy" })
+            : elemento("span", { class: "lugar-letra", "aria-hidden": "true", texto: (a.nome || a.id)[0] }),
+          a.nome,
+          elemento("small", { texto: a.id }),
+        ]);
+        o.addEventListener("mousedown", (ev) => { ev.preventDefault(); escolher(a.id); });
+        return o;
+      }));
+      marcado = 0;
+      lista.hidden = !achou.length;
+      nova.setAttribute("aria-expanded", String(!!achou.length));
+    };
+    nova.addEventListener("input", mostrar);
+    nova.addEventListener("blur", fechar);
+    nova.addEventListener("keydown", (ev) => {
+      const ops = opcoes();
+      if ((ev.key === "ArrowDown" || ev.key === "ArrowUp") && ops.length) {
+        ev.preventDefault();
+        marcar((marcado + (ev.key === "ArrowDown" ? 1 : -1) + ops.length) % ops.length);
+      } else if (ev.key === "Escape") {
+        fechar();
+      } else if (ev.key === "Enter") {
+        ev.preventDefault();
+        const digitado = nova.value.trim();
+        const solto = soltoDe(digitado);
+        const certo = ops[marcado] ? apps.find((a) => a.id === ops[marcado].dataset.id)
+          : apps.find((a) => a.id === solto || a.nome.toLowerCase() === solto.toLowerCase());
+        if (certo) { nova.dataset.digitado = digitado; escolher(certo.id); }
+        else if (digitado) { nova.setAttribute("aria-invalid", "true"); torrada("Não achei esse programa", "erro"); }
+      }
+    });
+    caixa.append(elemento("span", { class: "nova-ficha" }, [nova, lista]));
+    return caixa;
+  }
+  nova.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); guardar(nova.value.trim()); } });
+  nova.addEventListener("change", () => guardar(nova.value.trim()));
   caixa.append(nova);
   return caixa;
 }

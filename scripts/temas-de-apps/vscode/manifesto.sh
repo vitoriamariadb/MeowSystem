@@ -426,7 +426,7 @@ _meow_vscode_do_pack() {
     return
   fi
   if [ "$MEOW_APP_TEMA_PACK" != "$_MEOW_VSCODE_PACK" ]; then
-    meow_app_sem "VS Code: sem tema neste pack ($_MEOW_VSCODE_PACK_NOME) — o que a herança traz é o '$MEOW_APP_TEMA', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não veste outro"
+    meow_app_sem "VS Code: sem tema neste pack ($_MEOW_VSCODE_PACK_NOME) — o que a herança traz é o '$MEOW_APP_TEMA', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não vale para outro"
     return
   fi
   MEOW_VSCODE_TEMA="$MEOW_APP_TEMA"

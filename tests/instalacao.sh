@@ -208,7 +208,7 @@ etapa_greeter() { passo "tela de login falsa"; meow_aviso "não há captura"; re
 '
 if contem 'sudo -v && ./install.sh'; then
   falhou "login sem tema: o rodapé mandou ao sudo por um pulo que é de captura"
-elif ! contem 'greeter: a tela de login veste o tema do COSMIC, e ele não tem captura — não é falta de root'; then
+elif ! contem 'greeter: a tela de login usa o tema do COSMIC, e ele não tem captura — não é falta de root'; then
   falhou "login sem tema: o rodapé não disse que o pulo é da captura — saiu: $(printf '%s' "$SAIDA" | tail -4 | tr '\n' ' ')"
 else
   passou "tela de login sem tema: o rodapé diz que falta a captura, e não manda ao sudo"
