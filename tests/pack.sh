@@ -154,10 +154,10 @@ json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
 PY
 saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
 if [ "$rc" = "0" ] && [[ "$saida" == *campo_que_ninguem_le* ]] \
-   && [[ "$saida" != *icones.autorais.gerar* ]] && [[ "$saida" != *origens.cursores.tema* ]]; then
-  ok "o aviso não chama de morto icones.autorais.gerar nem origens.cursores.tema, que têm leitor"
+   && [[ "$saida" != *icones.autorais.gerar* ]] && [[ "$saida" == *origens.cursores.tema* ]]; then
+  ok "o aviso não chama de morto icones.autorais.gerar, que tem leitor, e chama origens.cursores.tema, que ninguém lê"
 else
-  falha "o aviso de campo morto acusou um campo que tem leitor (rc=$rc)" "$saida"
+  falha "o aviso de campo morto errou: acusou campo com leitor ou deixou passar o que ninguém lê (rc=$rc)" "$saida"
 fi
 python3 - "$PACK_DIR" <<'PY' || exit 2
 import json, os, sys
@@ -2723,6 +2723,20 @@ done
 [ -z "$divergem" ] \
   && ok "com o FLAVOR vazio o shell e o painel caem no flavor_padrao do pack ($ID e $padrao56), como a página" \
   || falha "com o FLAVOR vazio o shell ou o painel não caem no padrão do pack:$divergem"
+
+mkdir -p "$T/casa-b"
+saida="$(amb env HOME="$T/casa-b" PACK="$ID" FLAVOR="$ID" "$RAIZ/scripts/icones_bandeja.sh" --conferir 2>&1)"; rc=$?
+if [ "$rc" = "3" ] && [[ "$saida" == *"não declara icones.bandeja"* ]] && [[ "$saida" != *"packs/meowsystem"* ]]; then
+  ok "um pack de terceiro sem icones.bandeja faz o icones_bandeja.sh --conferir sair pulado, sem ler packs/meowsystem"
+else
+  falha "o icones_bandeja.sh leu o acervo do outro pack ou não pulou (rc=$rc)" "$saida"
+fi
+saida="$(amb env HOME="$T/casa-b" PACK="$ID" FLAVOR="$ID" "$RAIZ/scripts/icones_sistema.sh" --conferir 2>&1)"; rc=$?
+if [ "$rc" = "3" ] && [[ "$saida" == *"não declara icones.sistema"* ]]; then
+  ok "e o icones_sistema.sh, sem icones.sistema, também pula: a herança por heranca não traz o desenho do outro pack"
+else
+  falha "o icones_sistema.sh vestiu o pack de terceiro com o acervo do outro (rc=$rc)" "$saida"
+fi
 
 resultado="$(amb python3 - "$RAIZ" <<'PY'
 import hashlib, os, sys

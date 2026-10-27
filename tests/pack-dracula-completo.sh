@@ -512,6 +512,49 @@ else
   falha "sem a linha ICONES_DRACULA, os desenhos do pack não entram" "$(tail -3 <<< "$saida")"
 fi
 
+CS="$T/casa-status"; mkdir -p "$CS"
+ST="$CS/.local/share/icons/MeowSystem-Icons"
+status_com() {
+  local pack="$1" flavor="$2" script="$3" modo="$4"
+  env -i PATH="$FALSO:$PATH" HOME="$CS" MEOW_RAIZ="$RAIZ" NO_COLOR=1 PACK="$pack" FLAVOR="$flavor" \
+    "$RAIZ/scripts/$script" "$modo" >/dev/null 2>&1
+  return $?
+}
+status_com dracula dracula icones_sistema.sh --aplicar
+status_com dracula dracula icones_bandeja.sh --aplicar; rc_bandeja=$?
+shas_meow="$(cd "$RAIZ/packs/meowsystem/icones/sistema" && sha256sum ./*.svg | cut -d' ' -f1 | sort -u)"
+shas_status="$(sha256sum "$ST"/*/status/*.svg 2>/dev/null | cut -d' ' -f1 | sort -u)"
+n_status="$(printf '%s\n' "$shas_status" | grep -c .)"
+repetidos="$(comm -12 <(printf '%s\n' "$shas_meow") <(printf '%s\n' "$shas_status") | grep -c .)"
+if [ "$n_status" -gt 0 ] && [ "$repetidos" = 0 ] \
+   && ! grep -l currentColor "$ST"/*/status/*.svg >/dev/null 2>&1 \
+   && grep -q 'stroke="#f8f8f2"' "$ST/scalable/status/display-symbolic.svg"; then
+  ok "com o Dracula no ar, os ícones de status não trazem o traço do MeowSystem: vêm pintados com o texto do Dracula ($n_status)"
+else
+  falha "os ícones de status do Dracula repetem o desenho do MeowSystem ou ficaram sem pintura (iguais: $repetidos de $n_status)"
+fi
+[ "$rc_bandeja" = 3 ] \
+  && ok "o Dracula não declara icones.bandeja: a bandeja pula e não lê packs/meowsystem" \
+  || falha "a bandeja do Dracula não pulou (rc=$rc_bandeja)"
+status_com dracula dracula icones_sistema.sh --aplicar; rc2=$?
+[ "$rc2" = 0 ] \
+  && ok "a segunda passada dos ícones de status do Dracula não escreve nada" \
+  || falha "a segunda passada dos ícones de status do Dracula escreveu (rc=$rc2)"
+status_com meowsystem mocha icones_sistema.sh --aplicar
+status_com meowsystem mocha icones_sistema.sh --conferir; rc_mew=$?
+if [ "$rc_mew" = 0 ] && grep -q 'stroke="currentColor"' "$ST/scalable/status/display-symbolic.svg"; then
+  ok "com o MeowSystem no ar os ícones de status voltam ao traço dele, em currentColor, e conferem"
+else
+  falha "o MeowSystem no ar não confere os ícones de status depois do Dracula (rc=$rc_mew)"
+fi
+status_com dracula dracula icones_bandeja.sh --aplicar
+mkdir -p "$ST/20x20/status"
+printf '<svg xmlns="http://www.w3.org/2000/svg"/>' > "$ST/20x20/status/resto-de-outro-pack.svg"
+status_com dracula dracula icones_bandeja.sh --aplicar
+[ ! -e "$ST/20x20/status/resto-de-outro-pack.svg" ] \
+  && ok "o pack sem icones.bandeja tira da bandeja o que um pack anterior escreveu" \
+  || falha "o resto de bandeja de outro pack ficou"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"
