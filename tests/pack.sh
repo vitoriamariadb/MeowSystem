@@ -2724,6 +2724,36 @@ done
   && ok "com o FLAVOR vazio o shell e o painel caem no flavor_padrao do pack ($ID e $padrao56), como a página" \
   || falha "com o FLAVOR vazio o shell ou o painel não caem no padrão do pack:$divergem"
 
+resultado="$(amb python3 - "$RAIZ" <<'PY'
+import hashlib, os, sys
+raiz = sys.argv[1]
+sys.path.insert(0, os.path.join(raiz, "scripts"))
+import pack
+def conteudos(pack_id):
+    base = os.path.join(raiz, "packs", pack_id, "icones")
+    saida = set()
+    for pasta, _, arqs in os.walk(base):
+        for a in arqs:
+            if a.endswith(".svg"):
+                saida.add(open(os.path.join(pasta, a), encoding="utf-8", errors="replace").read())
+    return saida
+proprios = {"dracula": conteudos("dracula"), "meowsystem": conteudos("meowsystem")}
+problemas = []
+for ident, flavor in (("dracula", "dracula"), ("dracula", "alucard"), ("meowsystem", "mocha")):
+    previa = pack.previa_do_pack(ident, flavor)
+    outro = "meowsystem" if ident == "dracula" else "dracula"
+    if len(previa["dock"]) < 5 or not previa["pasta"]:
+        problemas.append(f"{ident}/{flavor}: prévia magra ({len(previa['dock'])} apps)")
+    for d in previa["dock"] + [{"app": "pasta", "svg": previa["pasta"]}]:
+        if d["svg"] in proprios[outro]:
+            problemas.append(f"{ident}/{flavor}: {d['app']} é arte do {outro}")
+print("; ".join(problemas) if problemas else "limpo")
+PY
+)"
+[ "$resultado" = "limpo" ] \
+  && ok "a prévia do pack só usa arte do próprio pack: o dock e a pasta do Dracula não trazem um traço do meowsystem, e vice-versa" \
+  || falha "a prévia do pack misturou arte de outro pack" "$resultado"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"

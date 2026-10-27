@@ -934,6 +934,56 @@ class Percurso:
         self.checa(ok.returncode == 0 and "formato 2" in ok.stdout + ok.stderr,
                    "e o pack guardado valida no formato de três pastas: " + (ok.stdout + ok.stderr).strip()[-160:])
 
+    def h_previa_do_pack(self):
+        r = self.js("""() => {
+            const saida = {};
+            for (const p of document.querySelectorAll("[data-controle^='pack:'][data-controle$=':previa']")) {
+                const id = p.dataset.controle.split(":")[1];
+                saida[id] = { arte: [...p.querySelectorAll(".p-dock img.arte-pack")].map((i) => i.src),
+                              pasta: [...p.querySelectorAll(".p-arq img.pasta-pack")].length,
+                              neutro: p.querySelectorAll(".p-dock svg.neutro").length };
+            }
+            return saida; }""")
+        self.checa(len(r) >= 2, f"a vitrine mostra a prévia de ao menos dois packs ({list(r)})")
+        for pid, d in r.items():
+            self.checa(len(d["arte"]) >= 3 and all(a.startswith("data:image/svg+xml") for a in d["arte"]),
+                       f"o dock da prévia do {pid} traz a arte do próprio pack ({len(d['arte'])})")
+            self.checa(d["neutro"] == 0 and d["pasta"] > 0, f"a prévia do {pid} não cai no traço neutro e traz a pasta do pack")
+        ids = sorted(r)
+        for a in ids:
+            for b in ids:
+                if a < b:
+                    self.checa(set(r[a]["arte"]) != set(r[b]["arte"]),
+                               f"o dock do {a} não repete a arte do {b}")
+
+    def h_biblioteca_legivel(self, seletor):
+        r = self.js("""(seletor) => {
+            const lum = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+                .map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+                return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+            const fundoDe = (el) => { for (let n = el; n; n = n.parentElement) {
+                const m = /rgba?\\((\\d+), *(\\d+), *(\\d+)(?:, *([\\d.]+))?/.exec(getComputedStyle(n).backgroundColor);
+                if (m && (m[4] === undefined || Number(m[4]) > 0.5)) return [m[1], m[2], m[3]].map((x) => Number(x).toString(16).padStart(2, "0")).join(""); }
+                return "000000"; };
+            const saida = { total: 0, cru: [], fracos: [], semData: [] };
+            for (const img of document.querySelectorAll(seletor + " img")) {
+                saida.total++;
+                const nome = (img.closest(".app") || {}).dataset ? img.closest(".app").dataset.nome : "?";
+                if (!img.src.startsWith("data:image/svg+xml")) { saida.semData.push(nome); continue; }
+                const texto = decodeURIComponent(img.src.split(",").slice(1).join(","));
+                if (/currentColor/.test(texto)) { saida.cru.push(nome); continue; }
+                const cores = [...texto.matchAll(/(?:fill|stroke)="#([0-9a-fA-F]{6})"/g)].map((m) => m[1]);
+                if (!cores.length) continue;
+                const f = lum("#" + fundoDe(img));
+                const melhor = Math.max(...cores.map((c) => { const l = lum("#" + c);
+                    return (Math.max(l, f) + 0.05) / (Math.min(l, f) + 0.05); }));
+                if (melhor < 3) saida.fracos.push(nome + ":" + melhor.toFixed(1));
+            }
+            return saida; }""", seletor)
+        self.checa(r["total"] > 0 and not r["semData"], f"a biblioteca desenha por data:image/svg+xml ({r['semData'][:3]})")
+        self.checa(not r["cru"], f"nenhum ícone da biblioteca fica com currentColor cru: {r['cru'][:3]}")
+        self.checa(not r["fracos"], f"o traço da biblioteca contrasta ao menos 3:1 com o fundo: {r['fracos'][:3]}")
+
     def h_abas_de_icones(self):
         for aba in ("sistema", "biblioteca"):
             if not self.achar("icones:aba=" + aba):
@@ -945,6 +995,8 @@ class Percurso:
             n = self.js(f"() => document.querySelectorAll(\"{seletor}\").length")
             self.checa(n > 0, f"a aba {aba} mostra os ícones do pack em edição ({n})")
             self.checa(not self.achar("levar:" + aba), f"a aba {aba} só mostra: não tem botão de levar")
+            if aba == "biblioteca":
+                self.h_biblioteca_legivel(seletor)
             if self.achar("acervo:filtro"):
                 self.acionados.add("acervo:filtro")
         self.clicar("icones:aba=apps")
@@ -1249,6 +1301,8 @@ class Percurso:
         self.checa(self.js("() => document.querySelectorAll('details.mais, [data-controle^=\"mais:\"]').length") == 0,
                    "nenhuma dobra «Mais ajustes» na página")
         self.assentar(quieto=500, teto=15000)
+        if rota == "tema":
+            self.h_previa_do_pack()
         itens = self.censo()
         sem_nome = [i["html"] for i in itens if not i["nome"]]
         self.checa(not sem_nome, f"todo controle tem nome (sem: {sem_nome[:3]})")
