@@ -6864,6 +6864,7 @@ class Manipulador(BaseHTTPRequestHandler):
                     if not nome or os.path.dirname(os.path.realpath(origem)) != pasta:
                         return self._json({"erro": "essa foto não está no carrossel"}, 404)
                     feito = mod.levar_foto(ident, origem)
+        nome_dado = mod.nome_digitado(corpo.get("nome_do_tema")) if de_csv else ""
                 else:
                     feito = mod.nome_da_foto(ident, nome)
                     mod.tirar_foto(ident, feito)
@@ -6933,14 +6934,15 @@ class Manipulador(BaseHTTPRequestHandler):
                 r = subprocess.run(_meow("pack", "importar", caminho),
                                    capture_output=True, text=True, timeout=120,
                                    stdin=subprocess.DEVNULL,
-                                   env=_ambiente_do_painel(seco=not confirmado))
+                                   env=dict(_ambiente_do_painel(seco=not confirmado),
+                                            MEOW_PACK_NOME=nome_dado))
             except (OSError, subprocess.SubprocessError) as erro:
                 return self._json({"erro": "não consegui rodar: %s" % erro}, 500)
             if r.returncode != 0:
                 texto = (r.stderr or "").strip() or (r.stdout or "").strip()
                 texto = texto.replace(caminho, envio or "o arquivo enviado")
                 return self._json({"erro": texto or "o importar falhou", "rc": r.returncode}, 400)
-            pack = mod.resumo_csv(caminho) if de_csv else mod.resumo_meowpack(caminho)
+            pack = mod.resumo_csv(caminho, nome_dado) if de_csv else mod.resumo_meowpack(caminho)
         nome = pack["nome"]
         if not confirmado:
             if de_csv:

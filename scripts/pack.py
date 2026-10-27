@@ -3746,8 +3746,8 @@ def o_que_traz(p, dados, membros):
     }
 
 
-def resumo_csv(caminho):
-    arquivos, dados, reprovados = montar_novo(id_do_csv(caminho), caminho)
+def resumo_csv(caminho, nome_dado=""):
+    arquivos, dados, reprovados = montar_novo(id_do_csv(caminho), caminho, nome_dado)
     r = o_que_traz(json.loads(arquivos["pack.json"]), dados, arquivos)
     r["regua"] = reprovados
     return r
@@ -3803,7 +3803,7 @@ def cmd_importar(caminho, opcoes):
                         + ("\n    O id sai do nome do CSV: com outro nome, ele vira outro pack."
                            if de_csv else ""))
     if de_csv:
-        membros, paleta, reprovados = montar_novo(ident, caminho)
+        membros, paleta, reprovados = montar_novo(ident, caminho, os.environ.get("MEOW_PACK_NOME", ""))
         _noticiar_csv(caminho, paleta, reprovados, sys.stdout)
     p, dados, destino = _instalar_pack(membros, raiz_da_pessoa(), ident, seco)
     r = o_que_traz(p, dados, membros)
@@ -3954,7 +3954,12 @@ def cmd_novo(ident, opcoes):
     return OK
 
 
-def montar_novo(ident, csv=None):
+def nome_digitado(texto):
+    limpo = re.sub(r"[\x00-\x1f\x7f]", " ", str(texto or ""))
+    return re.sub(r"\s+", " ", limpo).strip()[:60]
+
+
+def montar_novo(ident, csv=None, nome_dado=""):
     import time
     nome = " ".join(parte.capitalize() for parte in ident.split("-"))
     if csv:
@@ -3965,6 +3970,7 @@ def montar_novo(ident, csv=None):
         solto = re.sub(r"[\s_-]+", " ", os.path.splitext(os.path.basename(csv))[0]).strip()
         if do_arquivo and solto:
             nome = solto[0].upper() + solto[1:]
+    nome = nome_digitado(nome_dado) or nome
     data = time.strftime("%d/%m/%Y")
     som, reprovados = {}, []
     if csv:
