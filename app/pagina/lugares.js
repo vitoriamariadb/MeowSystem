@@ -335,6 +335,25 @@ const LUGAR_CUIDAR = {
   mais: [{ a: "restaurar", r: "Restaurar", b: "Restaurar" }],
 };
 
+const LUGAR_EXTENSOES = {
+  applets: [
+    { a: "extensao_instalar", r: "Instalar" },
+    { a: "extensao_instalar_repo", r: "Instalar do repositório" },
+    { a: "extensao_atualizar", r: "Atualizar" },
+    { a: "extensao_atualizar_repo", r: "Atualizar do repositório" },
+    { a: "extensao_refazer", r: "Tentar de novo" },
+    { a: "extensao_remover", r: "Remover" },
+    { a: "extensao_por_no_painel", r: "Pôr no painel" },
+    { a: "extensao_trocar", r: "Trocar" },
+    { c: "EXTENSOES", r: "Extensões instaladas" },
+  ],
+  builds: [
+    { a: "builds_refazer_tudo", r: "Refazer tudo" },
+    { a: "build_compositor", r: "Compositor" },
+    { c: "BUILDS_AO_ENTRAR", r: "Refazer ao entrar na sessão" },
+  ],
+};
+
 const LUGAR_TOPO = [
   { g: "salvar", r: "Aplicar" },
   { g: "descartar", r: "Desfazer" },
@@ -375,11 +394,13 @@ function inventarioDoPainel() {
   for (const b of LUGAR_CUIDAR.blocos) for (const l of b.linhas) pus(l, "cuidar", "Cuidar", b.titulo);
   for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Cuidar", "Zona de perigo");
   for (const l of LUGAR_CUIDAR.mais) pus(l, "cuidar", "Cuidar", "Mais ajustes", true);
+  for (const l of LUGAR_EXTENSOES.applets) pus(l, "extensoes", "Applets", "Applets");
+  for (const l of LUGAR_EXTENSOES.builds) pus(l, "extensoes", "Builds", "Builds");
   for (const l of LUGAR_TOPO) pus(l, "topo", "Barra de cima", "Barra de cima");
   for (const l of LUGAR_JANELA) pus(l, "janela", "Janela do trabalho", "Janela do trabalho");
   return saida;
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_TOPO, LUGAR_JANELA, inventarioDoPainel };
+  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_EXTENSOES, LUGAR_TOPO, LUGAR_JANELA, inventarioDoPainel };
 }
