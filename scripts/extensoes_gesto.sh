@@ -284,7 +284,10 @@ cmd_trocar() {
 }
 
 cmd_reiniciar_painel() {
-  MEOW_QUEM_RECICLA="extensoes reiniciar-painel" "$RAIZ/scripts/painel.sh" reciclar
+  local rc
+  MEOW_QUEM_RECICLA="extensoes reiniciar-painel" meow_tela_reler; rc=$?
+  case "$rc" in 3|4) return "$MEOW_OK" ;; esac
+  return "$rc"
 }
 
 main() {
