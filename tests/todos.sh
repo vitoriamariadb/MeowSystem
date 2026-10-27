@@ -38,6 +38,7 @@ PORTATIL=(
   acervo-da-ficha.sh
   acervo-do-pack-em-edicao.sh
   desenho-no-pack.sh
+  gerador-dracula.sh
   variante.sh
   claro-do-pack.sh
   notas-de-funcao.sh
