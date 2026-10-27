@@ -6,6 +6,9 @@
 - 27/10: o PC reiniciou no meio; os 6 foram retomados pelo próprio histórico (nada se perdeu: commits e
   arquivos sujos nas worktrees). Chromium do Playwright agora em `~/.cache/ms-playwright` (o do scratchpad some no reboot).
 - Em voo: 6 Sonnet, um por sprint, em `../MeowSystem-p109..p114` (branches `sprint/p109..p114`, do dev 15be6fdf).
+- Fechadas: P111 (85/88, vermelhos só os aceitos + README, que o merge regenera) e P110 (9 commits; `todos.sh`
+  limpo não rodou depois dos dois consertos finais, a integração roda). Para a conferência A: a P110 afrouxou o
+  `tests/app-uso-real.py` (ignora o que rola por baixo das abas fixas): conferir se não esconde cobertura real.
 - Depois: juntar as seis em `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev →
   remover as worktrees da leva (b0, maquete-a, maquete-b, p109..p114).
 
