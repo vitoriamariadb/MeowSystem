@@ -27,7 +27,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 19 | Cada pack tem o seu mascote em `packs/<id>/mascote/` (`mascote.dia`/`mascote.noite`): Coquinha e Mimir no `meowsystem`, os morcegos no `dracula` | pedido de 23/10 |
 | 20 | O MeowSystem escreve o bloco marcado do terminal no `.bashrc`/`.zshrc` e o tira ao desinstalar; o equivalente do Spellbook sai pelo `assets/contratos/vizinhos.tsv` | pedido de 23/10 |
 | 21 | O instalador baixa o que o Pop!_OS não traz: compilador e bibliotecas dos applets (`MEOW_DEPS_DOS_APPLETS`), fastfetch do PPA `zhangsongcui3371` | pedido de 23/10 |
-| 22 | O dev vai para o master do fork `AndreBFarias/MeowSystem`, e o README aponta para lá | pedido de 23/10 |
+| 22 | O dev vai para o master de `vitoriamariadb/MeowSystem`, e o README aponta para lá | sim de 26/10 (troca do fork de 23/10) |
 | 23 | O install semeia o papel de parede da origem que o `pack.json` declara (`origens.wallpapers`) | pedido de 23/10 |
 | 24 | Saem do dev (o git e a branch `arquivo` guardam): `docs/folhas/`, `docs/pesquisas/`, a etapa do `catppuccin-apps`, `docs/sprints/` antigas, `docs/historico/` e todo teste, script ou documento que nada alcança | pedidos de 23/10 e 26/10 |
 | 25 | Papéis de parede separados por pack: só a coleção do pack no ar gira; a imagem sem pack gira com qualquer um | pedido de 23/10 |
@@ -55,3 +55,4 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 47 | O filtro `awk` do `_dracula_pares_do_mapa` fica como está | três testes extraem a função verbatim |
 | 48 | Os leitores `${ICONES_BASE:-Papirus-Dark}` ficam | variável interna, o mesmo padrão em todo lugar; nenhum defeito medido |
 | 49 | Uma chave ausente no binário não impede o escritor; o pré-voo (`scripts/cosmic_prever.sh`) acusa a chave que some | o COSMIC ignora a chave que não conhece |
+| 50 | Os applets da casa (pinos em `assets/extensoes/`) compilam pelo doctor, com o selo «baixa da internet», sem pergunta (decisão 7); o repositório que o usuário adiciona na página Extensões só baixa e compila por gesto dele | pino é da casa, repositório de fora é código de terceiro (decisão 9) |

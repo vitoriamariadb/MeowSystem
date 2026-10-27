@@ -29,7 +29,7 @@ que um pack não declara ele herda, e `meow pack info` diz o que veio de onde.
 ## Instalar
 
 ```bash
-git clone https://github.com/AndreBFarias/MeowSystem.git
+git clone https://github.com/vitoriamariadb/MeowSystem.git
 cd MeowSystem
 ./install.sh --wizard
 ```
@@ -42,7 +42,7 @@ compilador e as bibliotecas dos applets, o `fastfetch` e o `starship`. Para ensa
 
 ## O painel
 
-`meow abrir`, ou o ícone MeowSystem no lançador. 124 ajustes e 77 ações em quatro portas:
+`meow abrir`, ou o ícone MeowSystem no lançador. 124 ajustes e 77 ações em cinco portas:
 
 <table>
 <tr>
@@ -52,6 +52,9 @@ compilador e as bibliotecas dos applets, o `fastfetch` e o `starship`. Para ensa
 <tr>
 <td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="A porta Ajustes do painel"><br><b>Ajustes</b>: painel e dock, janelas, papel de parede, mascote, dia e noite, terminal e programas.</td>
 <td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="A porta Cuidar do painel"><br><b>Cuidar</b>: o doctor e o Consertar, as pendências, e os ajustes para levar a outra máquina.</td>
+</tr>
+<tr>
+<td width="50%"><b>Extensões</b>: os applets da casa e os de quem usa: instalar, atualizar, pôr no painel, e os builds do compositor.</td>
 </tr>
 </table>
 
