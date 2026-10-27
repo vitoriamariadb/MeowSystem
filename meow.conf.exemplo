@@ -1926,6 +1926,15 @@ AUTO_REPARO="sim"                 # timer diário: meow doctor --consertar às 5
 # > Uma notificação só quando houver conserto.
 AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
 
+# @ Desligar nos vizinhos o que o MeowSystem já faz
+# > Quando outro projeto desta casa repete o que o MeowSystem faz, o conserto diário desliga a repetição lá, com cópia.
+# [avancado] Os trechos que saem estão em `assets/contratos/vizinhos.tsv` (hoje, o Ritual
+# da Aurora e o Dracula_OS-Theme). Cada um só sai quando o MeowSystem instalado já faz o
+# mesmo; sai comentado, com cópia de antes, e `scripts/vizinhos.sh --restaurar <item>` o
+# devolve. O que você devolveu não volta a sair. É a única escrita do MeowSystem na pasta
+# de outro projeto. "nao" = o doctor só confere e avisa.
+VIZINHOS_DESATIVAR="sim"          # sim | nao
+
 # @ Mascote novo entra na hora
 # > Sem esperar o relógio: solte o .svg na pasta e ele aparece.
 # O mascote solto em `packs/meowsystem/mascote/` entra NA HORA, sem esperar o relógio?
