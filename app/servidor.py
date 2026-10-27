@@ -8026,7 +8026,8 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json(resposta)
 
         if caminho in ("/api/acervo", "/api/app-icone", "/api/app-desenho",
-                       "/api/autorais", "/api/jogo-fora", "/api/rodar", "/api/criar"):
+                       "/api/autorais", "/api/jogo-fora", "/api/rodar") or (
+                caminho == "/api/criar" and str(corpo.get("id", "")) == _pack_no_ar()):
             _esperar_aplicar_vivo()
 
         if caminho == "/api/acervo":
