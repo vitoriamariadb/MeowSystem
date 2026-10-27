@@ -200,6 +200,21 @@ igual "remover compositor devolve 1" "$rc" 1
 [ -e "$T/home/.local/bin/cosmic-comp" ] && falha "remover deixou o shim" || ok "o shim saiu"
 [ -x "$CASA/0.1~a/cosmic-comp" ] && ok "e o build fica guardado" || falha "remover apagou o build"
 igual "o meow.conf diz COMPOSITOR=nao" "$(sed -n 's/^COMPOSITOR="\(.*\)".*/\1/p' "$T/home/.config/meow/meow.conf" | tail -1)" nao
+printf '#!/bin/sh\n[ "$1" = compilar ] && exec "%s/compositor" "$@"\nexec "%s/scripts/compositor_patches.sh" "$@"\n' "$T" "$RAIZ" > "$T/compositor-misto"
+chmod 755 "$T/compositor-misto"
+: > "$T/log"; EXTENSOES_COMPOSITOR="$T/compositor-misto" gesto refazer compositor
+igual "refazer com COMPOSITOR=nao compila" "$(linhas '^compositor compilar')" 1
+[ -e "$T/home/.local/bin/cosmic-comp" ] && falha "refazer com COMPOSITOR=nao ligou o shim" || ok "e não liga o shim"
+igual "o meow.conf segue COMPOSITOR=nao" "$(sed -n 's/^COMPOSITOR="\(.*\)".*/\1/p' "$T/home/.config/meow/meow.conf" | tail -1)" nao
+cp "$T/dpkg.tsv" "$T/dpkg.guardado"
+versoes cosmic-comp=0.1~nao cosmic-files=1.10~a
+: > "$T/log"; rodar
+igual "COMPOSITOR=nao: a versão nova do pacote não se compila" "$(linhas '^compositor compilar')" 0
+cp "$T/dpkg.guardado" "$T/dpkg.tsv"
+: > "$T/log"; gesto instalar compositor
+grep -qs 'MEOW-COSMIC-COMP-SHIM-1' "$T/home/.local/bin/cosmic-comp" \
+  && ok "instalar de novo liga o shim" || { falha "instalar depois do nao não ligou o shim"; sed 's/^/        /' "$T/saida"; }
+gesto remover compositor
 rm -f "$T/home/.config/meow/meow.conf"
 
 echo
