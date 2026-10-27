@@ -291,7 +291,9 @@ for par in eyedropper:meowsystem-eyedropper:io.github.meowsystem.Eyedropper:io.g
   grep -qx "troca=$velho" <<< "$saida" && ok "$id: a Dock cita $velho e o estado oferece a troca" || falha "$id: troca: $saida"
   rm -f "$FK/.local/bin/$bin" "$FK/.local/share/applications/$appid.desktop"
 done
-grep -qx 'MIGRA_ESTADO="io.github.cosmic_utils.cosmic-ext-applet-clipboard-manager"' "$RAIZ/assets/extensoes/clipboard.pino" && ok "o Clipboard migra o estado do id antigo" || falha "Clipboard sem MIGRA_ESTADO"
+[ "$(grep -hx 'MIGRA_ESTADO=""' "$RAIZ"/assets/extensoes/{eyedropper,clipboard,drives,ascii-battery}.pino | wc -l)" = 4 ] \
+  && ok "os quatro sem MIGRA_ESTADO: nenhum guarda estado em ~/.local/state/cosmic" \
+  || falha "um fork aponta MIGRA_ESTADO para um estado que o applet não lê"
 
 [ "$falhas" = 0 ] && { echo "extensoes.sh: tudo verde"; exit 0; }
 echo "extensoes.sh: $falhas falha(s)"; exit 1
