@@ -25,9 +25,9 @@
 - Achado: o shim do compositor do MeowSystem nunca foi ligado nesta máquina; quem valia era o binário
   da Aurora gravado por cima do de fábrica.
 - Levantamento feito (2 agentes): `relatorios/levantamento-*.md`, sprints P115 a P123, commit 58b531be no `dev`.
-- INTEGRADO: bloco Painel (P115, P116, P117) em `integracao/central-e-gerador` (merge 4d1b5977), worktree
-  `~/Desenvolvimento/MeowSystem-integracao`. Relatório: `relatorios/conferencia-painel.md`.
-- EM VOO: bloco Central (`wf_190a82c2-962`, P120 → P121) e bloco Forks (`wf_1c95b651-87e`, P122, a partir da integração).
+- INTEGRADO em `integracao/central-e-gerador` (worktree `~/Desenvolvimento/MeowSystem-integracao`): Painel (P115-P117,
+  `relatorios/conferencia-painel.md`) e Central (P120-P121, `relatorios/conferencia-central.md`).
+- EM VOO: Forks (`wf_1c95b651-87e`, P122) e Aurora (P124 → P125, a partir da integração).
 - Próximo passo: integrar Central e Forks; depois Textos (P119 → P118) e Aurora (P124 → P125); depois Pasta (P123);
   por fim instalar do zero na máquina.
 - Anotado para depois (vindo da conferência do Painel): `docs/PACKS.md` sem os campos `icones.sistema` e

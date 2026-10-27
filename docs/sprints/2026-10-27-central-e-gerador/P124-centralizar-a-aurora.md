@@ -127,6 +127,8 @@ classes B do levantamento e o mecanismo de que as classes A (P125) e a P121 prec
 - `tests/vizinhos.sh`.
 
 ## Item do coordenador (27/10)
+- O `requer` de `aurora-compositor` e `aurora-night-light` (P121) confere só que o shim existe; tem de conferir que o build da versão instalada vale (o shim usaria o build), senão depois de um apt upgrade ela entra sem modo de leitura nenhum.
+- Com os applets em `PADRAO=sim` e o cargo falhando, cada passada do doctor recompila todos e regrava `extensoes/<id>/falhou`: falha registrada espera gatilho novo (versão, pino, gesto), não recompila a cada passada (`relatorios/conferencia-central.md`, «Final»).
 - Numa casa sem rede o doctor regrava a cada passada as tentativas de compilar as extensões, o `pendencias.tsv` e a semeadura do papel de parede. Cura: a segunda passada do doctor não escreve nada, também sem rede; prova num HOME temporário sem rede (conferência final do Painel, `relatorios/conferencia-painel.md`, «Final»).
 
 ## Fora desta sprint
