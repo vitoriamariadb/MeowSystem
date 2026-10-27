@@ -3110,7 +3110,7 @@ ACOES = {
         "ajuda": "Compila o applet da casa no pino e o instala na sua casa. A configuração dele fica.",
     },
     "extensao_instalar_repo": {
-        "rotulo": "Instalar a extensão do repositório",
+        "rotulo": "Instalar do repositório",
         "grupo": "Extensões",
         "natureza": "baixar",
         "argv": [EXT_GESTO, "instalar", "@ARG@"], "arg": "extensoes_do_usuario",
@@ -3128,7 +3128,7 @@ ACOES = {
         "ajuda": "Compila o commit que o MeowSystem pinou para esta extensão.",
     },
     "extensao_atualizar_repo": {
-        "rotulo": "Atualizar a extensão do repositório",
+        "rotulo": "Atualizar do repositório",
         "grupo": "Extensões",
         "natureza": "baixar",
         "argv": [EXT_GESTO, "atualizar", "@ARG@"], "arg": "extensoes_do_usuario",
@@ -3164,7 +3164,7 @@ ACOES = {
         "ajuda": "Acrescenta o applet ao fim da barra de cima. A ordem dos outros não muda.",
     },
     "extensao_trocar": {
-        "rotulo": "Trocar pelo applet novo",
+        "rotulo": "Trocar pelo novo",
         "grupo": "Extensões",
         "natureza": "trocar",
         "argv": [EXT_GESTO, "trocar", "@ARG@"], "arg": "extensoes_todas",
