@@ -114,6 +114,16 @@ confere "o aplicar não falha, avisa da ponte e deixa o sistema como estava" \
   '[ "$rc3" -le 1 ] && grep -q "ponte" "$T/a3.txt" && diff -r "$T/sons-de-fabrica" "$SONS_SIS" >/dev/null' "rc=$rc3 $(cat "$T/a3.txt")"
 rm -f "$T/sem-ponte"
 
+printf '\n--- 6. o tema de som já no lugar não vira «Restaurar» ---\n'
+conf_do_som meowsystem mocha aplicar >/dev/null 2>&1
+rm -rf "$T/guardados"; mkdir -p "$T/guardados"
+som meowsystem mocha env MEOW_BACKUPS="$T/guardados" bash "$RAIZ/scripts/som.sh" aplicar >"$T/a6.txt" 2>&1; rc6=$?
+confere "a segunda passada sai conforme (rc 0)" '[ "$rc6" = 0 ]' "rc=$rc6 $(cat "$T/a6.txt")"
+confere "e não guarda nada para restaurar (tocados.tsv vazio ou ausente)" '[ ! -s "$T/guardados/tocados.tsv" ]' "$(cat "$T/guardados/tocados.tsv" 2>&1)"
+rm -rf "$CASA/.local/share/sounds/MeowSystem-Sons"
+som meowsystem mocha env MEOW_BACKUPS="$T/guardados" bash "$RAIZ/scripts/som.sh" aplicar >/dev/null 2>&1
+confere "com o tema de som faltando, a pasta é guardada" 'grep -q "MeowSystem-Sons" "$T/guardados/tocados.tsv"' "$(cat "$T/guardados/tocados.tsv" 2>&1)"
+
 printf '\n'
 [ "$falhas" = 0 ] && { echo "sons-do-pack: tudo certo"; exit 0; }
 echo "sons-do-pack: $falhas falha(s)"; exit 1
