@@ -297,24 +297,18 @@ if [ "$rc" = 3 ] && ! grep -qE '^[[:space:]]*!! ' <<< "$saida"; then
 else
   falha "sem starship, a linha prompt pesa no veredito (rc=$rc): $(grep -E '!!' <<< "$saida" | head -2 | tr '\n' ' ')"
 fi
-indisp() {
-  env -i PATH="$SEM_STARSHIP" HOME="$CASA_S" MEOW_RAIZ="$RAIZ" python3 -I - "$RAIZ/app" <<'PY' 2>&1
+mkdir -p "$CASA_S/.cargo/bin"; printf '#!/bin/sh\nexit 0\n' > "$CASA_S/.cargo/bin/starship"
+chmod 755 "$CASA_S/.cargo/bin/starship"
+acoes="$(env -i PATH="$SEM_STARSHIP" HOME="$CASA_S" MEOW_RAIZ="$RAIZ" python3 -I - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
 import servidor
-print("indisponivel=%s" % bool(servidor.indisponivel("prompt_instalar_starship")))
+print("tem=%s" % ("prompt_instalar_starship" in servidor.ACOES or "prompt_instalar_starship" in servidor.ACAO_DA_PENDENCIA.values()))
 PY
-}
-sem="$(indisp)"
-mkdir -p "$CASA_S/.cargo/bin"; printf '#!/bin/sh\nexit 0\n' > "$CASA_S/.cargo/bin/starship"
-chmod 755 "$CASA_S/.cargo/bin/starship"
-com="$(indisp)"
-if [ "$sem" = "indisponivel=False" ] && [ "$com" = "indisponivel=True" ]; then
-  ok "sem starship o «Instalar o starship» aparece; com ele em ~/.cargo/bin, vem indisponível"
-else
-  falha "o «Instalar o starship» não segue o starship instalado (sem: $sem · com: $com)"
-fi
-
+)"
+[ "$acoes" = "tem=False" ] \
+  && ok "o painel não oferece mais «Instalar o starship»: quem o instala é o install" \
+  || falha "o painel ainda oferece instalar o starship ($acoes)"
 
 printf '\n--- 9. o starship desce com o install (decisão de 23/10) ---\n'
 CASA_I="$TMP/casa-install"; mkdir -p "$CASA_I/.config/meow" "$TMP/curl-starship"

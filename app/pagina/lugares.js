@@ -154,7 +154,6 @@ const AJUSTES = [
       { titulo: "Imagens", linhas: [
         { a: "wallpaper_anterior", r: "Imagem anterior", b: "Anterior" },
         { a: "wallpaper_carrossel", r: "Voltar a girar", b: "Girar" },
-        { a: "wallpaper_semear", r: "Coleção do tema", b: "Baixar" },
       ] },
       { titulo: "Troca", linhas: [
         { c: "WALLPAPER_INTERVALO", r: "A cada" },
@@ -174,7 +173,6 @@ const AJUSTES = [
       { a: "wallpaper", r: "Carrossel agora", b: "Ver" },
       { a: "wallpaper_aplicar", r: "Regras do carrossel", b: "Reaplicar" },
       { a: "files_menu", r: "Menu agora", b: "Ver" },
-      { a: "files_menu_build", r: "Construir o menu", b: "Construir" },
     ] },
   { id: "mascote", nome: "Mascote", icone: "gato",
     blocos: [
@@ -247,7 +245,6 @@ const AJUSTES = [
       ] },
       { titulo: "Linha de comando", linhas: [
         { c: "PROMPT_STARSHIP", r: "Linha colorida" },
-        { a: "prompt_instalar_starship", r: "Starship", b: "Instalar" },
       ] },
     ],
     mais: [{ g: "acervo:fonte", r: "Fonte do terminal", b: "Trazer fonte" }] },
