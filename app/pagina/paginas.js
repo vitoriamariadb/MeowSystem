@@ -253,7 +253,7 @@ async function guardarTema() {
   const b = document.querySelector('[data-controle="criar:guardar"]');
   if (b) b.dataset.estado = "carregando";
   const resp = await api("/api/pack-importar", { method: "POST",
-    body: JSON.stringify({ nome: id + ".csv", conteudo, confirmado: true }) });
+    body: JSON.stringify({ nome: id + ".csv", nome_do_tema: r.nome, conteudo, confirmado: true }) });
   if (b) delete b.dataset.estado;
   if (resp.erro || !resp.instalado) {
     torrada(/contraste/.test(resp.erro || "") ? "Pouco contraste entre texto e fundo" : primeiraFrase(resp.erro || "Não guardou"), "erro");
