@@ -824,6 +824,15 @@ cmd_reverter() {
     meow_info "o compositor patchado entra pelo shim em $CP_SHIM; o caminho de volta é: meow compositor desativar"
     meow_info "  sem o shim, o próximo login usa $CP_BIN, o do pacote"
   fi
+  local pela_ponte
+  if meow_ponte_viva && pela_ponte="$(meow_ponte cosmic-comp-de-fabrica </dev/null 2>/dev/null)"; then
+    if [ "$pela_ponte" = reinstalado ]; then
+      meow_muda "$CP_BIN voltou ao binário do pacote cosmic-comp — vale no próximo login"
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_ok "$CP_BIN já é o binário do pacote cosmic-comp"
+    return "$MEOW_OK"
+  fi
   meow_info "o caminho de volta é reinstalar o PACOTE cosmic-comp pelo gerenciador de pacotes"
   meow_info "  ele devolve $CP_BIN ao binário de fábrica, sem nenhum patch da série"
   local ver=""
