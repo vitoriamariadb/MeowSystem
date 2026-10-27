@@ -44,7 +44,7 @@ def config():
 
 
 def versao():
-    for tag in git("tag", "--list", "v*", "--sort=-v:refname").splitlines():
+    for tag in git("tag", "--list", "v*", "--merged", "HEAD", "--sort=-v:refname").splitlines():
         if re.fullmatch(r"v\d+\.\d+\.\d+", tag):
             return tag
     return None

@@ -8,7 +8,7 @@
 
 [![license](https://img.shields.io/badge/license-GPL--3.0-CBA6F7?style=for-the-badge&labelColor=1E1E2E)](LICENSE)
 [![platform](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
-![version](https://img.shields.io/badge/version-v2.1.0-FAB387?style=for-the-badge&labelColor=1E1E2E)
+![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 [![installer](https://img.shields.io/badge/installer-68%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 [![doctor](https://img.shields.io/badge/doctor-73%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 
