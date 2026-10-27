@@ -51,3 +51,36 @@ página Extensões com HOME temporário; segunda passada do doctor não escreve 
 
 ## Fora desta sprint
 README (refeito pelo gancho do B0), renomes das outras portas (P111).
+
+## Execução
+
+Branch `sprint/p114`, 20 commits em português, por caminho.
+
+| item | prova |
+|---|---|
+| Q1-20 / Q2-22: o repo aninhado fica fora do `tests/app-completo.py` | `app-completo.py` verde |
+| Q2-23: `previas-*.js` | nada a fazer |
+| pino por applet e etapa de build genérica; `now-playing` e `leitura` saem do repo | `tests/extensoes.sh`, `extensoes-gesto.sh`, `garantir-builds.sh`, `midia.sh`, `leitura-fonte-unica.sh` verdes, com repositório git falso local e `cargo` falso |
+| tema de cada applet gerado pelo doctor a partir do pack | `tests/extensoes.sh`; a segunda passada do `--aplicar` não muda arquivo nenhum e não roda build |
+| Q3-10 / Q2-18: página Extensões (cartões, Builds, Adicionar repositório) | `tests/extensoes-pagina.py`, 58 conferências em Playwright com HOME temporário |
+| Q3-09: Créditos (diálogo, os dois autores, upstreams) | `extensoes-pagina.py` passo 10; `app-completo.py` abre o diálogo e o link; `LICENSE` e `docs/CREDITOS.md` com os dois nomes |
+| decisão 22 para `vitoriamariadb/MeowSystem` | `tests/decisoes.sh` (22 verde); `docs/readme.toml` e README regerados |
+| exceção do doctor com selo de rede para applet da casa | linha 50 de `docs/DECISOES.md` |
+
+Achados e correções no caminho: a troca só é oferecida com a extensão nova instalada; os gestos usam
+as naturezas que dizem ok no rc 1; os rótulos das ações cabem em três palavras; o interruptor «Refazer
+ao entrar na sessão» ignora a resposta velha de um `GET` em voo; `migracao-do-painel.py` ganhou os
+destinos das chaves e ações novas; `app-acessibilidade.py` conta cinco portas; `app-navegador.py` rola o
+alvo da dica antes do hover (a Cuidar ficou mais alta com as pendências dos applets).
+
+Capturas: `capturas/p114/` (1920x1080, 1550x860, 1500x900, 1280x800, ao lado da maquete). O
+`.gitignore` ignora PNG: ficam só na árvore.
+
+`./tests/todos.sh`: 90 testes; vermelhos que não são desta sprint: `readme.sh` (selo v2.1.0 contra a tag
+alcançável), `decisoes.sh` (GPU e shim do compositor da máquina) e `restaurar.sh` (`pack_usar` e
+`desinstalar`: arquivos do VS Code). Os que eram da sprint foram corrigidos e rodados de novo
+isoladamente (`app.sh`, `migracao-do-painel.py`, `app-acessibilidade.py`, `app-navegador.py`,
+`app-completo.py`).
+
+Fora: capturas do README (o gancho do merge refaz); a linha 50 do registro pode colidir de número com
+outra sprint na integração.

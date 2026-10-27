@@ -57,6 +57,8 @@ PORTATIL=(
   contrato-cosmic.sh
   oraculo-tema.sh
   applet-pino.sh
+  extensoes.sh
+  extensoes-gesto.sh
   escala-kdl.sh
   backoff-do-supervisor.sh
   pack-malicioso.sh
@@ -104,11 +106,13 @@ MAQUINA=(
   app-texto-visivel.py
   p113-navegador.py
   gate-link-externo.py
+  extensoes-pagina.py
 )
 
 SEM_PULO=(
   app-completo.py
   app-uso-real.py
+  extensoes-pagina.py
 )
 
 MODO="tudo"

@@ -1,4 +1,4 @@
-repositorio = "https://github.com/AndreBFarias/MeowSystem"
+repositorio = "https://github.com/vitoriamariadb/MeowSystem"
 casa = "https://github.com/vitoriamariadb/MeowSystem"
 
 comandos = [
@@ -26,3 +26,7 @@ en = "panel and dock, windows, wallpaper, mascot, day and night, terminal and pr
 [portas.cuidar]
 pt = "o doctor e o Consertar, as pendências, e os ajustes para levar a outra máquina."
 en = "the doctor and its fix button, pending items, and settings to carry to another machine."
+
+[portas.extensoes]
+pt = "os applets da casa e os de quem usa: instalar, atualizar, pôr no painel, e os builds do compositor."
+en = "the house applets and your own: install, update, put on the panel, and the compositor builds."

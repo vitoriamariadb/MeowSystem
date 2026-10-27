@@ -2,7 +2,7 @@
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 PAG="$RAIZ/app/pagina"
-ARQS=(lugares.js mesa.js oficina.js paginas.js app.js)
+ARQS=(lugares.js mesa.js oficina.js paginas.js extensoes.js app.js)
 for a in "${ARQS[@]}"; do [ -f "$PAG/$a" ] || { printf 'FALHOU: não achei app/pagina/%s\n' "$a" >&2; exit 2; }; done
 
 falhas=0

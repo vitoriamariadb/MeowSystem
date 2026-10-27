@@ -720,8 +720,8 @@ deste projeto. Estão aqui, e não no cabeçalho do arquivo que os descobriu, po
 de `.service` não é onde alguém procura.
 
 Máquina: `systemd 255 (255.4-1ubuntu8.15pop0~…~24.04)`; libcosmic no rev
-`1f6dc991eaa5115a09be2505cc8a323e5b2b0bff`, que é o pinado pelo `Cargo.lock` de
-`src/applets/leitura/`.
+`1f6dc991eaa5115a09be2505cc8a323e5b2b0bff`, que é o pinado pelo `Cargo.lock` do
+repositório do applet de leitura (`assets/extensoes/leitura.pino`).
 
 ### `Type=oneshot` NÃO herda o `DefaultTimeoutStartSec` — o padrão dele é `infinity`
 
