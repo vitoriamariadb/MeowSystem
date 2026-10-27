@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# lancador-do-meow.sh — o lançador inteiro é do MeowSystem, numa casa de brinquedo:
-# a janela que a dock não casa (a ponte de app_id), o lançador órfão e o
-# mimeinfo.cache velho, e o `ocultar` que alcança flatpak, /usr/local e o home.
-# Cada um: o conferir vê sem escrever, o aplicar cura, a segunda passada não
-# escreve, e o reverter devolve. `flatpak`, `sudo` e `update-desktop-database`
-# são falsos.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -26,14 +20,14 @@ printf '#!/bin/sh\nfor d; do :; done; printf "[MIME Cache]\\n" > "$d/mimeinfo.ca
   > "$T/bin/update-desktop-database"
 chmod 755 "$T/bin/flatpak" "$T/bin/update-desktop-database"
 
-rodar() { # um script do MeowSystem dentro da casa de brinquedo
+rodar() {
   local s="$1"; shift
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
       XDG_DATA_DIRS="$FLAT:$LOCAL:$T/sistema" MEOW_APLICATIVOS_SISTEMA="$SIS" \
       MEOW_APLICATIVOS_FLATPAK="$T/vazio" bash "$RAIZ/scripts/$s" "$@"
 }
 foto() { (cd "$T" && find casa flatpak local sistema -printf '%p %s %T@\n' | sort); }
-desktop() { # $1 arquivo · o resto: linhas do [Desktop Entry]
+desktop() {
   local a="$1"; shift
   { printf '[Desktop Entry]\n'; printf '%s\n' "$@"; } > "$a"
 }
@@ -134,7 +128,6 @@ _oc() { local m="$1"; shift
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
       XDG_DATA_DIRS="$FLAT:$LOCAL:$T/sistema" MEOW_APLICATIVOS_SISTEMA="$SIS" MEOW_APLICATIVOS_FLATPAK="$T/vazio" \
       LANCADOR_SISTEMA="${OC_LIGADO:-sim}" LANCADOR_OCULTAR="$LISTA" "$@" bash "$RAIZ/scripts/ocultar_casa.sh" "$m"; }
-# O pack no ar soma a lista dele; com `-nome` para cada um, a lista do teste é só a do teste.
 FORA="$(env -i PATH="/usr/bin:/bin" HOME="$CASA" bash "$RAIZ/scripts/ocultar_apps.sh" --lista 2>/dev/null | sed 's/^/-/' | paste -sd, -)"
 LISTA="$LISTA${FORA:+,$FORA}"
 antes="$(foto)"

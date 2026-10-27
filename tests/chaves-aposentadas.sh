@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# chaves-aposentadas.sh — a chave que saiu do meow.conf não volta.
-#
-#   1. Com a chave COMENTADA no conf e um exemplo VELHO que ainda a traz, o
-#      `migrar_conf.py` não a devolve.
-#   2. Com a linha ATIVA no conf, ele a tira, e só ela: o comentário em volta
-#      e as outras chaves ficam.
-#   3. A chave não está mais no `meow.conf.exemplo` de hoje.
-#   4. O `meow doctor --consertar` faz a mesma migração numa casa de
-#      brinquedo: o conf com a linha ativa sai dele sem ela, e o doctor seguinte
-#      não acusa mais o `conf`.
-#
-#   0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -84,12 +72,6 @@ else
 fi
 
 printf '\n--- 5. a passada que migra já não lê a aposentada ---\n'
-# Conferência da P75 (09/10/2026): o `fix_conf` roda num subshell, e a chave
-# que ele tirou do arquivo seguia no ambiente do doctor — a 1ª passada montava
-# `completar` e `pastas` pela `ICONES_BASE` velha e terminava vermelha. Aqui
-# um verificador de mentira só fica verde quando a aposentada saiu do
-# ambiente; ele não tem conserto que mude nada, então quem o põe no lugar é a
-# releitura do conf, na mesma passada.
 cp "$TMP/conf2" "$CASA/.config/meow/meow.conf"
 printf 'ICONES_BASE="MeowSystem-Icons-Base"\n' >> "$CASA/.config/meow/meow.conf"
 roda_x() {
@@ -109,12 +91,6 @@ else
 fi
 
 printf '\n--- 6. o bloco órfão da aposentada sai (P82, item 33) ---\n'
-# O conf desta casa guarda dois blocos «# @ Tema de onde herdar» sem chave
-# embaixo: o comentário que o exemplo trazia acima da `ICONES_BASE`, que ficou
-# quando a linha saiu. Aqui, os dois como estão lá: um cortado, com a nota que
-# quem usa escreveu colada no fim, e um inteiro, colado no cabeçalho do que o
-# install.sh acrescentou. O bloco sai; a nota escrita à mão fica; e a segunda
-# passada não escreve.
 cp "$RAIZ/meow.conf.exemplo" "$TMP/conf6"
 bloco="$(git -C "$RAIZ" show 18c1d88^:meow.conf.exemplo 2>/dev/null | sed -n '478,498p')"
 if [ "$(head -1 <<< "$bloco")" != "# @ Tema de onde herdar" ]; then

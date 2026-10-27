@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# sentinela.sh — o COSMIC da fila do apt é medido ANTES de quem usa atualizar? (P86)
-#
-# `scripts/sentinela.sh` com um `apt` falso (a fila vem de um arquivo) e dois
-# candidatos de brinquedo montados com `dpkg-deb -b`, como no cosmic-prever.sh:
-#   bom       a série entra limpa, as chaves estão, a ferramenta de build existe;
-#   quebrado  o patch obrigatório não entra mais e a ferramenta de build falta.
-# A prova: fila vazia não escreve cartão; o bom grava o estado e não pede gente;
-# o quebrado pede UM cartão com desde-quando e o porquê; o mesmo candidato de
-# novo não refaz nada (idempotente); a fila que esvazia tira o cartão.
-# HOME, estado e casa de brinquedo; nada de apt, rede, sudo nem cargo de verdade.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -18,9 +8,7 @@ falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 igual() { if [ "$2" = "$3" ]; then ok "$1"; else falha "$1 (esperado '$3', veio '$2')"; fi; }
 command -v dpkg-deb >/dev/null || { echo "sentinela: pulado — sem dpkg-deb"; exit 0; }
 
-# --- o chão de brinquedo -----------------------------------------------------
 mkdir -p "$T/bin" "$T/home" "$T/sistema/com.system76.CosmicComp/v1" "$T/patches"
-# O apt só lista; os três de build só precisam EXISTIR no PATH (a sonda não os roda).
 cat > "$T/bin/apt" <<FIM
 #!/bin/sh
 echo "apt \$*" >> "$T/apt.log"
@@ -42,7 +30,7 @@ cat > "$T/patches/brinquedo.patch" <<'FIM'
  }
 FIM
 
-montar() { # $1 nome $2 versão $3 corpo-do-main
+montar() {
   local d="$T/pkg-$1"
   mkdir -p "$d/DEBIAN" "$d/usr/bin" "$d/usr/share/cosmic/com.system76.CosmicComp/v1"
   printf 'Package: cosmic-comp\nVersion: %s\nArchitecture: all\nMaintainer: teste <t@t>\nDescription: brinquedo\n' "$2" > "$d/DEBIAN/control"
@@ -52,7 +40,6 @@ montar() { # $1 nome $2 versão $3 corpo-do-main
   local f="$T/fonte-$1/cosmic-comp-$2"
   mkdir -p "$f/src"
   printf '[package]\nname = "cosmic-comp"\nrust-version = "1.0"\n' > "$f/Cargo.toml"
-  # O fonte novo pede `just`: a receita `build-vendored` num justfile.
   [ "$1" = quebrado ] && printf 'build-vendored:\n\ttrue\n' > "$f/justfile"
   printf 'fn main() {\n    %s\n}\n' "$3" > "$f/src/main.rs"
   tar -cJf "$T/fonte-$1/cosmic-comp_$2.tar.xz" -C "$T/fonte-$1" "cosmic-comp-$2"
@@ -60,7 +47,6 @@ montar() { # $1 nome $2 versão $3 corpo-do-main
 montar bom      "1.0~bom"      'println!("oi");'    || { falha "não montei o .deb bom"; exit 1; }
 montar quebrado "1.0~quebrado" 'println!("mudou");' || { falha "não montei o .deb quebrado"; exit 1; }
 
-# O prever de verdade, por trás de um contador: quantas vezes ele rodou.
 cat > "$T/prever" <<FIM
 #!/bin/sh
 echo prever >> "$T/prever.log"
@@ -69,7 +55,7 @@ FIM
 chmod 755 "$T/prever"
 
 E="$T/home/.local/state/meowsystem"
-sentinela() { # $1 candidato (bom|quebrado) $2.. ambiente extra
+sentinela() {
   local c="$1"; shift
   env HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$E" MEOW_CONF="$T/nao-existe.conf" \
       SN_PREVER="$T/prever" SN_PREVER_ARGS="--debs $T/debs-$c --fontes $T/fonte-$c" \
@@ -130,7 +116,6 @@ igual "o cartão é byte a byte o mesmo" "$(cat "$E/precisa-de-gente.tsv")" "$c1
 igual "o sentinela.tsv não foi tocado" "$(stat -c %Y.%s "$E/sentinela.tsv")" "$s1"
 
 echo "== 6. o desde quando sobrevive a uma medida nova do mesmo problema"
-# Outra versão quebrada, mesmo motivo: o cartão é o mesmo, a data é a de antes.
 d1="$(printf '%s' "$c1" | cut -f3)"; sleep 1
 printf 'cosmic-comp/jammy 1.0~quebrado amd64 [upgradable from: 0.8]\ncosmic-files/jammy 1.0~quebrado amd64 [upgradable from: 0.8]\n' > "$T/fila.txt"
 sentinela quebrado CV_SEM=just; rc=$?
@@ -170,7 +155,6 @@ if [ -f "$S1" ] && grep -q '^Nice=19$' "$S1" && grep -q '^IOSchedulingClass=idle
 else
   falha "falta o meow-sentinela.service (Nice 19, IO ocioso, AUTO_REPARO, scripts/sentinela.sh)"
 fi
-# Depois do apt a fila muda: sem isto o cartão do candidato já instalado fica até o meio-dia.
 P1="$RAIZ/systemd/meow-sentinela.path"
 if [ -f "$P1" ] && grep -q '^PathChanged=/var/lib/meowsystem/apt-mudou$' "$P1" \
    && grep -q '^Unit=meow-sentinela.service$' "$P1" && grep -q '^WantedBy=default.target$' "$P1"; then

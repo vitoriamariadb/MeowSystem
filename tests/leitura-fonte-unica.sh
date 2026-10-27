@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# leitura-fonte-unica.sh — o modo de leitura tem UMA fonte de verdade. `sudo`
-# falso na frente do PATH: com `NOPASSWD`, o de verdade escreveria no sistema.
-# `env -i`, HOME temporário com o COSMIC dentro e um `sudo` falso no PATH.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -27,7 +24,6 @@ COMP="$CASA/.config/cosmic/com.system76.CosmicComp/v1"
 casa() { env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" LANG=C.UTF-8 MEOW_CONF="$CONF" \
            MEOW_ESTADO="$CASA/.local/state/meowsystem" "$@"; }
 
-# --- 1. o adotar escreve onde o applet guarda --------------------------------
 saida="$(casa "$RAIZ/bin/meow" leitura adotar LEITURA_TEMPERATURA LEITURA_HORARIO_INICIO LEITURA_AGENDA 2>&1)"; rc=$?
 lido() { tr -d '\n' < "$1" 2>/dev/null; }
 if [ "$rc" -le 1 ] && [ "$(lido "$ESTADO_APPLET/ultima_temperatura")" = "4200" ] \
@@ -48,8 +44,7 @@ else
         "ultima_temperatura=$(lido "$ESTADO_APPLET/ultima_temperatura") leitura_agenda=$(lido "$COMP/leitura_agenda")"
 fi
 
-# --- 2. o servidor lê os mesmos lugares ---------------------------------------
-printf '0' > "$COMP/leitura_temperatura"     # a tela de dia: desligada
+printf '0' > "$COMP/leitura_temperatura"
 saida="$(casa MEOW_RAIZ="$RAIZ" python3 - "$RAIZ" <<'PY' 2>&1
 import os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "app"))
@@ -66,7 +61,6 @@ PY
   && ok "o servidor lê o ponto do slider (e não a tela de dia), o horário e a agenda do applet" \
   || falha "o servidor não lê onde o applet guarda" "$saida"
 
-# --- 3. o «Salvar e aplicar» chama o adotar -----------------------------------
 if grep -q '_meow("leitura", "adotar"' "$RAIZ/app/servidor.py" \
    && grep -q 'adotar) shift; "$RAIZ/scripts/leitura.sh" adotar' "$RAIZ/bin/meow"; then
   ok "o «Salvar e aplicar» do painel passa as escolhas do modo de leitura ao applet"

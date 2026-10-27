@@ -1,23 +1,4 @@
 #!/usr/bin/env python3
-"""gate-link-externo.py — o «Créditos» do gate não depende da sorte. P79, 10/10/2026.
-
-O QUE ABRIU ISTO
-  A conferência da P77 anotou: o clique no «Créditos» do menu (`menu · link
-  externo`) estourou o tempo uma vez no gate completo e passou na corrida
-  seguinte. A causa: a marca `data-inventario` que o censo põe mora no
-  elemento, e uma repintura do menu entre o censo e o clique (a página relê o
-  que chega pela rede) a apaga — o `click` esperava um elemento que não existe
-  mais até o teto. O `clicar_nome` do gate já sabia disso e tentava de novo; o
-  `h_link_externo`, não.
-
-COMO SE MEDE
-  Uma página mínima com o menu (`#menu-corpo`, o do painel novo da P98) e o
-  link `menu:creditos`, que REPINTA o menu no primeiro `pointerover` do link — a
-  repintura chega exatamente entre achar o link e o clique. Roda o `h_link_externo` do próprio `tests/app-completo.py` contra
-  ela. Com o código de antes: «Locator.click: Timeout 30000ms exceeded».
-
-  0 = passou · 1 = falhou · 3 = pulado (sem Playwright)
-"""
 import importlib.util
 import os
 import sys
@@ -34,9 +15,6 @@ _argv, sys.argv = sys.argv, [os.path.join(AQUI, "app-completo.py")]
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 sys.argv = _argv
-# Só de carregar o `app-completo.py` nasce o `meow-completo-*` dele em /tmp (o
-# `mkdtemp` mora no topo do módulo), e quem apaga é o `finally` do `__main__`
-# de lá, que aqui não roda: cada rodada da suíte deixava uma pasta vazia.
 import atexit  # noqa: E402
 import shutil  # noqa: E402
 atexit.register(shutil.rmtree, gate.BRINQUEDO, True)
@@ -67,7 +45,7 @@ with sync_playwright() as pw:
     try:
         p.h_link_externo("menu:creditos")
         erro = None
-    except Exception as e:  # noqa: BLE001 — o defeito era justamente a exceção
+    except Exception as e:  # noqa: BLE001
         erro = "%s: %s" % (type(e).__name__, str(e).splitlines()[0])
     navegador.close()
 

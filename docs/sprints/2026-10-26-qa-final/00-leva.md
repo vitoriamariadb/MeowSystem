@@ -43,8 +43,8 @@ divergem, vale a maquete. Onde a maquete não cobre, siga o estilo dela.
 - Painel e testes só com HOME temporário (`tests/todos.sh`, `tests/app-completo.py`). Playwright só
   headless. Nunca rode install.sh, `meow compositor`, `meow doctor --consertar` com o HOME real.
   `sudo` escreve no sistema real: nunca chame.
-- Uma decisão registrada só muda junto com o código que a lê, no mesmo commit, citando o sim de
-  26/10 que está em `ANDAMENTO.md`.
+- Uma decisão registrada (`docs/DECISOES.md`) só muda junto com o código que a lê, no mesmo
+  commit, citando o sim de 26/10 que está em `ANDAMENTO.md`.
 - Commits pequenos em português, por caminho (nunca `git add -A`), sem linha de atribuição. O gancho
   global troca palavras: confira o diff de cada commit. Não faça merge nem push.
 

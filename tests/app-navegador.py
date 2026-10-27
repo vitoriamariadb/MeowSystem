@@ -1,29 +1,4 @@
 #!/usr/bin/env python3
-"""app-navegador.py — o painel novo usado como quem usa, num navegador de verdade (P98).
-
-    tests/app-navegador.py            roda tudo
-    tests/app-navegador.py --fotos D  roda e guarda as capturas em D
-
-O pedido de 01/09/2026 continua valendo («teste como user no navegador cada
-feature»), e o que se confere é a resposta CERTA, não só uma resposta:
-
-  1. Clicar numa variante do tema no ar veste na hora: sem pergunta, o
-     /api/salvar leva o FLAVOR, e a janela do trabalho abre.
-  2. Vestir o outro tema sem a ponte mostra «Falta a ponte» com o «Conferir e
-     consertar» — e nenhum campo de senha.
-  3. Um ajuste vira «1 mudança», a linha e a prévia se marcam, e o Aplicar grava
-     a chave no meow.conf; o «Voltar ao padrão» devolve o de fábrica.
-  4. O «Mais ajustes» nasce recolhido em toda página de Ajustes.
-  5. A busca acha um ajuste pelo nome e acende a linha dele.
-  6. Criar tema: começar de outro flavor troca as cores; «Guardar» grava o pack
-     de três pastas; «Baixar o tema» baixa o .meowpack.
-  7. Cuidar: «Guardar ajustes» baixa o .conf; «Trazer ajustes» vira mudança.
-  8. A dica aparece ao passar o mouse e ao focar, com maiúscula.
-
-A casa é a do `tests/app-completo.py` (HOME temporário, falsos que recusam).
-
-  0 = passou · 1 = falhou · 3 = pulado (sem Playwright)
-"""
 import importlib.util
 import os
 import re
@@ -76,7 +51,6 @@ def foto(pag, nome):
 
 
 def janela(pag, teto=60000):
-    """O /api/salvar grava e só então abre o trabalho: espera a janela."""
     try:
         pag.wait_for_function("() => document.getElementById('resultado').open", timeout=teto)
         return True

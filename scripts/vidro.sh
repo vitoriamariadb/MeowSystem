@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# vidro.sh — o vidro fosco do painel e do dock CONTINUA quando uma janela maximiza.
-#
-# O COSMIC tem um comportamento embutido: quando uma janela é maximizada, o
-# painel e o dock LARGAM o estilo translúcido e ficam opacos, encostados na
-# janela. A chave `keep_style_on_maximize` desliga esse comportamento — com
-# `true`, o vidro fosco fica igual, maximizado ou não.
-#
-# Ela tinha isso ligado e perdeu.
-#
-# SÃO DUAS CHAVES, NÃO UMA `CosmicPanel.Panel` (a barra de cima) e
-# `CosmicPanel.Dock` (a barra de baixo) são configurações INDEPENDENTES, cada
-# uma com sua própria chave.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -27,27 +15,8 @@ for _a in "$@"; do
 done
 unset _a
 
-# "sim" -> o vidro fica ao maximizar. "nao" -> volta o comportamento de fábrica.
 VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}"
 
-# Quanto da COR da barra entra na mistura com o que está atrás. 0 = só o fundo
-# desfocado; 1 = chapado, sem vidro nenhum.
-#
-# O alpha que a barra desenha não é esta chave sozinha.
-#
-#       alpha = opacity  x  alpha_map[frosted]      (SÓ SE frosted_panel)
-#
-# e `frosted`/`alpha_map` são exatamente os dois sliders de Aparência → Vidro
-# fosco ("Espessura do efeito fosco" e "Opacidade do vidro").
-#
-#         scripts/vidro.sh --conferir
-#
-#   "a opacidade de fundo da dock do painel precisam ser de acordo com o que eu
-#   setar aqui nas configs do próprio cosmic. isso pq agora tá completamente
-#   ilegível os icones e afins."
-# O slider «Opacidade do fundo» da GUI escreve esta mesma chave: o valor é dela, e
-# vazio é «não toca». O nosso é o `keep_style_on_maximize`, sem o qual o slider dela
-# não vale com janela maximizada.
 VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-${VIDRO_OPACIDADE:-}}"
 VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-${VIDRO_OPACIDADE:-}}"
 
@@ -58,9 +27,6 @@ case "$VIDRO_AO_MAXIMIZAR" in
      exit "$MEOW_ERRO" ;;
 esac
 
-# O RON quer o float com ponto decimal.
-#
-# A STRING VAZIA PASSA DE PROPÓSITO, e é ela que carrega o "não toque".
 normalizar_opacidade() {
   case "$2" in
     "")                  printf '' ;;
@@ -75,8 +41,6 @@ op_painel="$(normalizar_opacidade VIDRO_OPACIDADE_PAINEL "$VIDRO_OPACIDADE_PAINE
 op_dock="$(normalizar_opacidade VIDRO_OPACIDADE_DOCK "$VIDRO_OPACIDADE_DOCK")" \
   || exit "$MEOW_ERRO"
 
-# Uma frase só, usada nas mensagens e no --conferir, para que "não imposto" seja
-# dito com as mesmas palavras em todo lugar em que aparece.
 descrever_opacidade() {
   case "$1" in
     "") printf 'da GUI' ;;
@@ -88,19 +52,10 @@ BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}"
 BARRAS=(Panel Dock)
 
 _frosted_para_chave() {
-  # "VeryLow2" -> "very_low_2" ; "Low2" -> "low_2" ; "Medium" -> "medium"
   printf '%s' "$1" | sed -E 's/([a-z0-9])([A-Z])/\1_\2/g; s/([A-Za-z])([0-9])/\1_\2/g' \
     | tr 'A-Z' 'a-z'
 }
 
-# --- --conferir: a tabela que não envelhece ---------------------------------
-# O `alpha_map` é reescrito a cada reimportação do tema, então a única tabela
-# honesta é a que se calcula na hora.
-#
-# O upstream só multiplica por `alpha_map[frosted]` quando `frosted_panel` está
-# ligado:
-#
-#     if self.theme.cosmic().frosted_panel && self.blur_enabled { alpha *= ... }
 faixa_alpha() {
   local am="$BASE/com.system76.CosmicTheme.Dark/v2/alpha_map"
   [ -r "$am" ] || { meow_pula "alpha_map ausente — sem faixa a mostrar"; return 0; }
@@ -109,8 +64,6 @@ faixa_alpha() {
   hi="$(sed -nE 's/.*[^a-z_]extremely_low: *([0-9.]+).*/\1/p' "$am" | head -1)"
   [ -n "$lo" ] && [ -n "$hi" ] || { meow_pula "não consegui ler as pontas do alpha_map"; return 0; }
 
-  # Ausente = ligado: é o padrão do COSMIC, e supor "desligado" aqui faria a
-  # tabela prometer o dobro do que a barra desenha.
   fp="$(cat "$BASE/com.system76.CosmicTheme.Dark/v2/frosted_panel" 2>/dev/null)"
   [ -n "$fp" ] || fp="true"
 
@@ -129,8 +82,6 @@ faixa_alpha() {
   done
   printf '    (a faixa vem do alpha_map vivo: %s a %s)\n' "$lo" "$hi"
 
-  # O número que interessa é o que está gravado, venha da GUI ou de um valor
-  # imposto.
   frosted="$(cat "$BASE/com.system76.CosmicTheme.Dark/v2/frosted" 2>/dev/null)" || return 0
   [ -n "$frosted" ] || return 0
   chave="$(_frosted_para_chave "$frosted")"
@@ -143,7 +94,6 @@ faixa_alpha() {
   awk -v f="$fator" -v p="$disco_p" -v d="$disco_d" -v n="$frosted" \
     'BEGIN{printf "    hoje, com frosted=%s (%.5f) e o que está no disco: painel %.1f%%, dock %.1f%%\n", n, f, p*f*100, d*f*100}'
 
-  # A tabela acima diz onde ela está; ela não diz até ONDE dá para ir.
   awk -v f="$fator" -v n="$frosted" -v hi="$hi" \
     'BEGIN{printf "    o TETO com frosted=%s é %.0f%% (mesmo com opacity=1,00). Para subir o teto\n", n, f*100;
            printf "    é \"Espessura do efeito fosco\" em Aparência: no outro extremo o teto vira %.0f%%.\n", hi*100}'
@@ -151,10 +101,6 @@ faixa_alpha() {
   printf '    contra uma janela escura e salta contra o papel de parede — medido em 23/08.\n'
 }
 
-# --- o aviso que devolve a autoridade do slider -----------------------------
-#
-# Dizer isso é o que nos cabe — a opacidade continua sendo dela, e nós não a
-# escrevemos.
 avisar_slider_morto() {
   local barra dir v algum=0
   for barra in "${BARRAS[@]}"; do
@@ -178,9 +124,6 @@ if [ "$CONFERIR" = "1" ]; then
       "$(cat "$dir/opacity" 2>/dev/null || echo '?')" \
       "$(cat "$dir/keep_style_on_maximize" 2>/dev/null || echo '?')"
   done
-  # A JANELA, que é a outra metade da mesma chave. Sem esta linha o `--conferir`
-  # respondia só pela barra, e quem visse "ao maximizar true" com a janela ainda
-  # opaca não teria como saber onde olhar.
   for dir_tema in "$BASE"/com.system76.CosmicTheme.*/v*; do
     [ -d "$dir_tema" ] || continue
     [ -f "$dir_tema/frosted_maximized_apps" ] || continue
@@ -203,25 +146,16 @@ mudou=0
 escritos=0
 for barra in "${BARRAS[@]}"; do
   dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
-  # O diretório tem de existir: criá-lo do nada faria o COSMIC ver uma
-  # configuração de painel órfã, sem as outras chaves. Se ele não existe, o
-  # painel correspondente não está configurado nesta máquina — não é erro.
   [ -d "$dir" ] || { meow_pula "com.system76.CosmicPanel.$barra não está configurado aqui"; continue; }
 
   escritos=$((escritos + 1))
   case "$barra" in Panel) opacidade="$op_painel" ;; *) opacidade="$op_dock" ;; esac
 
-  # Não é só "o vidro continua bonito ao maximizar": enquanto ela estiver em
-  # `false`, o upstream força `opacity = 1.0` e a "Opacidade do fundo" que ELA
-  # escolher não desenha nada — medido, 0.19 e 0.95 saíram pixel-idênticos.
   meow_escrever "$dir/keep_style_on_maximize" "$desejado" 644
   case $? in
     1) mudou=1 ;;
     2) meow_erro "não consegui escrever $dir/keep_style_on_maximize"; exit "$MEOW_ERRO" ;;
   esac
-  # `opacity` SÓ SE FOR PEDIDA. Vazio é o padrão: esta chave é a que o slider
-  # "Opacidade do fundo" da GUI escreve, e escrevê-la em toda passagem desfazia
-  # a escolha dela um dia depois, calado (ver o cabeçalho).
   if [ -n "$opacidade" ]; then
     meow_escrever "$dir/opacity" "$opacidade" 644
     case $? in
@@ -231,14 +165,6 @@ for barra in "${BARRAS[@]}"; do
   fi
 done
 
-# A janela tem o problema equivalente, por outro mecanismo, e ficava de fora: um
-# produto não pede que a pessoa ligue a mesma coisa em dois lugares.
-#
-# O MECANISMO DA JANELA É OUTRO, e por isso o código também é.
-#
-# O COSMIC ganhou a chave nativa `frosted_maximized_apps` (cosmic-panel#457):
-# onde ela existe, ligá-la é a resposta certa e o assunto acaba aí — é
-# suportado, sobrevive a upgrade e não depende de nós.
 janela_nativa=0
 for dir_tema in "$BASE"/com.system76.CosmicTheme.*/v*; do
   [ -d "$dir_tema" ] || continue
@@ -253,8 +179,6 @@ for dir_tema in "$BASE"/com.system76.CosmicTheme.*/v*; do
 done
 
 if [ "$janela_nativa" -eq 0 ] && [ -f "$RAIZ/scripts/vidro_janela.py" ]; then
-  # Sem a chave nativa: o remendo. Ele descobre os pares (X, transparent_X) em
-  # disco e sincroniza o alpha, respeitando "Janelas" de Aparência.
   args_janela=()
   [ "$desejado" = "true" ] || args_janela=(--restaurar)
   if meow_seco; then
@@ -264,20 +188,10 @@ if [ "$janela_nativa" -eq 0 ] && [ -f "$RAIZ/scripts/vidro_janela.py" ]; then
   fi
 fi
 
-# Num HOME recém-criado ela pulava os dois painéis, um por linha, e logo abaixo
-# anunciava "o vidro já continua ao maximizar (painel e dock)" — sobre dois
-# painéis que não existem.
 if [ "$escritos" -eq 0 ]; then
   meow_pula "não há painel nem dock configurados — nada a ajustar"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
-
-# --- A RECEITA E O PRODUTO ESTÃO DE ACORDO? ---------------------------------
-#
-# Em Aparência ela escolhe `frosted` (um nome: Low2, High2...) e a GUI DERIVA a
-# cor com o alpha correspondente em `alpha_map`.
-#
-# Aqui só se COMPARA e se AVISA.
 
 conferir_receita() {
   local b="$BASE/com.system76.CosmicTheme.Dark.Builder/v2"
@@ -297,9 +211,6 @@ conferir_receita() {
 
   if [ "$esperado" != "$gravado" ]; then
     meow_aviso "o vidro na tela não é o que você escolheu: '$nome' pede alpha $esperado, está gravado $gravado"
-    # O aviso dizia "pede AA, está gravado D9" e parava aí. Dois bytes em hexa
-    # não contam história nenhuma, e a linha ficou meses na tela sem ninguém
-    # saber o que fazer com ela.
     local de_quem
     de_quem="$(python3 -I - "$b/alpha_map" "$gravado" <<'FIM' 2>/dev/null
 import re, sys
@@ -311,10 +222,6 @@ for chave, valor in re.findall(r"([a-z_0-9]+):\s*([0-9.]+)", texto):
 FIM
 )"
     [ -n "$de_quem" ] && meow_info "o alpha $gravado é o do nível '$de_quem' — a cor foi derivada com OUTRA escolha de vidro"
-    # Os dois vieram da mesma derivação velha da GUI, de quando a máquina ainda
-    # era mocha.
-    #
-    # Se é o que o nível pede, reaplicar resolve e é isso que se diz.
     local par="" cap="" alfa_cap=""
     if [ -n "${FLAVOR:-}" ] && [ -n "${ACCENT:-}" ]; then
       par="$FLAVOR-$ACCENT"
@@ -337,9 +244,6 @@ FIM
 op_msg="painel $(descrever_opacidade "$op_painel"), dock $(descrever_opacidade "$op_dock")"
 
 if [ "$mudou" = "0" ]; then
-  # A receita era conferida DEPOIS do "vidro já conforme", e a tabela do
-  # doctor, que mostra a primeira linha, dizia as duas coisas uma embaixo da
-  # outra: «vidro já conforme» e «o vidro na tela não é o que você escolheu».
   saida_receita="$(conferir_receita 2>&1)"; rc_receita=$?
   if [ "$rc_receita" != "0" ]; then
     printf '%s\n' "$saida_receita" | head -1
@@ -351,9 +255,6 @@ if [ "$mudou" = "0" ]; then
       meow_aviso "  maximizada — a barra fica chapada na cor do tema (medido em 23/08/2026)"
     fi
     printf '%s\n' "$saida_receita" | tail -n +2
-    # Sai 4, não 1: não há o que consertar — quem deriva é a GUI. Ver o
-    # cabeçalho de `conferir_receita` e o bloco do código 4 em
-    # scripts/aplicar_tema.sh.
     exit 4
   fi
   if [ "$desejado" = "true" ]; then

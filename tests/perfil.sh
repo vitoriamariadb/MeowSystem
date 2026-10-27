@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# perfil.sh — `./install.sh --perfil <nome>` copia `perfis/<nome>/` para
-# `~/.config/meow/` antes da fila, guarda o que havia, e sem a flag nada muda
-# (P102: um PC virgem recebe as escolhas de quem usa a partir do clone).
-#
-# HOME, estado e raiz de brinquedo; `curl`, `sudo` e `pkill` falsos que recusam.
-# Nada sai do `mktemp -d`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -23,10 +17,6 @@ done
 printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> "%s/rede.log"\nexit 7\n' "$T" > "$FALSO/curl"
 chmod 755 "$FALSO/curl"
 
-# --- install.sh --perfil <nome> --------------------------------------------
-# A raiz de brinquedo de tests/instalacao.sh: links para o repositório, uma
-# cópia do install.sh com a fila trocada por uma etapa que só diz o PACK, e uma
-# pasta `perfis/` própria (a do repositório, se houver, não entra).
 R="$T/raiz"; mkdir -p "$R/perfis/teste"
 for i in "$RAIZ"/*; do
   case "$(basename "$i")" in install.sh|perfis) continue ;; esac
@@ -101,15 +91,12 @@ for nome in inexistente ../teste ""; do
   fi
 done
 
-# A flag e a página de entrada não se separam caladas.
 for leia in README.md README.en.md; do
   grep -q './install.sh --perfil' "$RAIZ/$leia" \
     && ok "o $leia diz como instalar com um perfil" \
     || falha "o $leia não fala do ./install.sh --perfil"
 done
 
-# Os perfis do repositório: o mesmo install.sh os lê, e nada neles é da máquina
-# (caminho de casa, nome de tela, escala, GPU).
 for pf in "$RAIZ"/perfis/*/; do
   [ -f "$pf/meow.conf" ] || continue
   nome_pf="$(basename "$pf")"

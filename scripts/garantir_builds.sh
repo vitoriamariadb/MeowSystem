@@ -1,30 +1,15 @@
 #!/usr/bin/env bash
-# garantir_builds.sh — o compositor e o menu do cosmic-files têm build para a
-# versão que o apt instalou? Se não têm, compila; se têm, não faz nada.
-#
-#   ./garantir_builds.sh          compila o que falta, e só isso
-#   ./garantir_builds.sh --seco   diz o que compilaria, sem baixar nem escrever
-#   ./garantir_builds.sh --fundo  a mesma passagem em segundo plano (o conserto do doctor)
-#
-#   0 = tudo pronto (já estava, acabou de ficar, ou pulado por regra)
-#   1 = (só no --seco e no --fundo) havia o que compilar
-#   2 = um build falhou — o próximo gatilho tenta de novo · 3 = sem dpkg
-# O build marcado `ruim` (duas quedas, pela guarda do shim) não se refaz: o mesmo
-# fonte daria o mesmo binário e apagaria a guarda que tirou a sessão do laço.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# Sobrescrevíveis para o teste trocar um build de meia hora por um registro de
-# uma linha; nenhum vira chave do meow.conf.
 GB_COMPOSITOR="${GB_COMPOSITOR:-$MEOW_RAIZ/scripts/compositor_patches.sh}"
 GB_FILES="${GB_FILES:-$MEOW_RAIZ/scripts/files_menu.sh}"
 GB_CASA="${GB_CASA:-${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}}"
 GB_FILES_GUARDA="${GB_FILES_GUARDA:-$MEOW_ESTADO/cosmic-files}"
 GB_MATRIZ="${GB_MATRIZ:-${CP_MATRIZ:-$MEOW_ESTADO/cosmic-comp/matriz.tsv}}"
-# A série e os patches, os mesmos do `compositor_patches.sh`.
 GB_REPO="${CP_REPO:-$MEOW_RAIZ/patches}"
 GB_SERIE="${CP_SERIE:-$GB_REPO/series}"
 GB_TRAVA="${GB_TRAVA:-$MEOW_ESTADO/builds.lock}"
@@ -37,21 +22,16 @@ case ":$PATH:" in
   *) [ -d "$GB_CARGO_BIN" ] && PATH="$GB_CARGO_BIN:$PATH" && export PATH ;;
 esac
 
-# pacote<TAB>versão do cosmic-comp e do cosmic-files instalados.
 _gb_instalados() {
   dpkg-query -W -f='${Package}\t${Version}\t${db:Status-Status}\n' cosmic-files cosmic-comp 2>/dev/null |
     awk -F'\t' '($1=="cosmic-files" || $1=="cosmic-comp") && $3=="installed" && $2!="" {print $1"\t"$2}'
 }
 
-_gb_comp_valido() { # $1 versão
+_gb_comp_valido() {
   [ -x "$GB_CASA/$1/cosmic-comp" ] && grep -q '^req [^ ]* [^ ]* presente$' "$GB_CASA/$1/estado" 2>/dev/null \
     && ! _gb_comp_velho "$1"
 }
-# 0 = o `estado` do build grava, presente, outra versão do marcador que um
-# `.patch` da série declara: o patch subiu depois do build (a v2 dela, P100).
-# O build velho segue na sessão até o novo ficar pronto. O `ausente` não conta:
-# refazer daria o mesmo build.
-_gb_comp_velho() { # $1 versão
+_gb_comp_velho() {
   local c a b m
   while read -r c a b _; do
     case "$c" in req|opt) ;; *) continue ;; esac
@@ -62,20 +42,16 @@ _gb_comp_velho() { # $1 versão
   done < "$GB_SERIE"
   return 1
 }
-_gb_files_valido() { # $1 versão
+_gb_files_valido() {
   local b
   for b in cosmic-files cosmic-files-applet; do
     grep -a -q -- "$GB_FILES_MARCA" "$GB_FILES_GUARDA/$1/$b" 2>/dev/null || return 1
   done
 }
-# 0 = a matriz diz degrau 4 para a versão, e a série não mudou depois dela.
-_gb_comp_degrau4() { # $1 versão
+_gb_comp_degrau4() {
   awk -F'\t' -v v="$1" '$1==v && $3 ~ /:4( |$)/ {a=1} END {exit !a}' "$GB_MATRIZ" 2>/dev/null || return 1
   [ -z "$(find "$GB_REPO" "$GB_SERIE" -newer "$GB_MATRIZ" -print -quit 2>/dev/null)" ]
 }
-# O patch obrigatório que não entra pede uma pessoa (rebase em `patches/`): vira a
-# linha `patch-obrigatorio` do cartão «precisa de gente», com o desde-quando do
-# primeiro registro, e sai quando a versão tem build ou a série mudou.
 _gb_gente() {
   local vc linhas
   vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
@@ -88,14 +64,12 @@ _gb_gente() {
   fi
 }
 
-# A chave do ambiente vence (o doctor exporta o conf inteiro); sem ela, o conf.
 _gb_files_quer() {
   local q="${FILES_MENU:-}"
   [ -n "$q" ] || q="$(meow_conf_valor FILES_MENU 2>/dev/null)" || q="sim"
   [ "${q:-sim}" = "sim" ]
 }
 
-# Uma linha por build que falta: pacote<TAB>versão. O `ruim` não entra.
 _gb_pendentes() {
   local p v
   while IFS=$'\t' read -r p v; do
@@ -108,11 +82,9 @@ _gb_pendentes() {
   return 0
 }
 
-# 0 = alguma passagem segura o lock agora. Sem o arquivo não há passagem.
 gb_construindo() { [ -e "$GB_TRAVA" ] && ! flock -n "$GB_TRAVA" true 2>/dev/null; }
 
-# --- os dois builds: 0 = pronto ou pulado por regra · 2 = falhou ------------
-_gb_compilar_files() { # $1 versão
+_gb_compilar_files() {
   meow_info "cosmic-files $1: sem o menu desta versão — compilando"
   FILES_MENU=sim "$GB_FILES" build; local rc=$?
   _gb_files_valido "$1" && return 0
@@ -121,11 +93,8 @@ _gb_compilar_files() { # $1 versão
   return 2
 }
 
-_gb_compilar_comp() { # $1 versão
+_gb_compilar_comp() {
   meow_info "cosmic-comp $1: sem build desta versão — compilando"
-  # O degrau 4 é DESTA tentativa só se ela regravou a matriz (o `compilar`
-  # a toca a cada série pesada): uma linha velha com uma falha de rede antes
-  # da escada não pode virar «espera rebase».
   local t0; t0="$(date +%s)"
   "$GB_COMPOSITOR" compilar; local rc=$?
   _gb_comp_valido "$1" && return 0
@@ -162,12 +131,9 @@ cmd_rodar() {
   exec 9>>"$GB_TRAVA" || return "$MEOW_ERRO"
   gb_construindo && meow_info "outra passagem está compilando — espero ela acabar"
   flock 9
-  # Nice 19 e IO ocioso também fora do systemd (o doctor sem a unidade).
   renice -n 19 -p $$ >/dev/null 2>&1
   ionice -c 3 -p $$ >/dev/null 2>&1
 
-  # De novo, já com o lock: a passagem que esperou pode ter feito o trabalho.
-  # O menu vem antes: minutos, contra a meia hora do compositor.
   mapfile -t pend < <(_gb_pendentes)
   for p in "${pend[@]}"; do
     v="${p#*$'\t'}"
@@ -182,9 +148,6 @@ cmd_rodar() {
   return "$MEOW_OK"
 }
 
-# O CONSERTO DO DOCTOR NÃO ESPERA O BUILD: o `meow-doctor.service` tem 5 min
-# de prazo e segura o lock do meow, e o compositor leva até meia hora. Sem a
-# unidade, a passagem roda aqui mesmo.
 cmd_fundo() {
   local -a pend=()
   mapfile -t pend < <(_gb_pendentes)

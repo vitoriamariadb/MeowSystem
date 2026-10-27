@@ -1,20 +1,4 @@
 #!/usr/bin/env bash
-# icones_bandeja.sh — o Arcticons vestindo os ícones da BANDEJA da barra
-#                     (o `CosmicAppletStatusArea`).
-#
-# Isso vale para o ZapZap e para o qBittorrent, que mandam `IconPixmap`, e está
-# ERRADO COMO REGRA GERAL. Um item da bandeja publica no D-Bus
-# (`org.kde.StatusNotifierItem`) TRÊS coisas que decidem quem desenha:
-#
-#     IconPixmap      raster embutido na mensagem. Se vier, o tema não entra.
-#     IconThemePath   um diretório que o applet põe ANTES do tema. Se vier
-#                     preenchido, o arquivo de lá vence o nosso. E ele pode
-#                     simplesmente NÃO EXISTIR — ver a remedição abaixo.
-#     IconName        o nome. Com `IconPixmap` ausente e `IconThemePath` VAZIO,
-#                     quem resolve é o tema de ícones — e aí nós alcançamos.
-# O `hefesto-dualsense4unix-symbolic` é desenho dela e fica nos intocáveis. Dono
-# único de `20x20/status`. E nada reinicia o painel: derrubá-lo para adiantar um
-# ícone já a deixou sem painel e sem dock.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -26,21 +10,8 @@ MAPA="${MEOW_BANDEJA_MAPA:-$RAIZ/packs/meowsystem/icones/bandeja.map}"
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
-# O diretório de destino e a espessura do traço dele.
-#
-# O `stroke-width` é em unidades do `viewBox`, que no Arcticons é 48 — então 4 é
-# 8,33% da caixa, em qualquer tamanho de tela.
 declare -A TRACO=( ["20x20/status"]=4 )
 
-# Desenho DELA, autoral: não se toca, venha o que vier no mapa. Mesma disciplina
-# das listas do `icones_apps.sh` e do `icones_apps_arcticons.sh` — a guarda mora
-# no script, e não na memória de quem escreveu o mapa.
-#
-#   hefesto-dualsense4unix-symbolic         o aro aberto da logo com o martelo,
-#                                           DECISÃO 14 dela
-#   com.vitoriamaria.HefestoDualsense4Unix-symbolic
-#                                           o mesmo arquivo, com o id de flatpak
-#                                           (é o nome que o pacote .deb instala)
 INTOCAVEIS=(
   hefesto-dualsense4unix-symbolic
   com.vitoriamaria.HefestoDualsense4Unix-symbolic
@@ -52,12 +23,9 @@ intocavel() {
   return 1
 }
 
-declare -A MAPA_LIDO=()   # IconName do app -> glifo Arcticons
-declare -A ALIAS_OK=()    # glifo -> 1, quando a repetição é deliberada
+declare -A MAPA_LIDO=()
+declare -A ALIAS_OK=()
 
-# --- o mapa, lido uma vez ----------------------------------------------------
-# Três campos, separados por ':'. Nenhum nome de ícone tem ':', então é seguro.
-# O terceiro campo, quando é `alias`, autoriza a repetição de glifo.
 _ler_mapa() {
   local linha nome glifo marca
   while IFS= read -r linha; do
@@ -71,17 +39,9 @@ _ler_mapa() {
     MAPA_LIDO["$nome"]="$glifo"
     if [ "${marca:-}" = "alias" ]; then ALIAS_OK["$glifo"]=1; fi
   done < "$MAPA"
-  # `return 0` NÃO É DECORAÇÃO: um `while` devolve o status do último comando do
-  # corpo, e a última linha do mapa não é um alias — o teste devolveria 1 e, com
-  # `set -e`, o script morreria aqui, calado e com código 1. Foi exatamente o que
-  # aconteceu na primeira execução do `icones_sistema.sh`.
   return 0
 }
 
-# --- a asserção que ESTOURA em vez de deixar passar --------------------------
-# Dois itens da bandeja com o mesmo desenho é pior aqui que no lançador: eles
-# ficam LADO A LADO, sempre, na mesma barra de 20 px de altura. Sem `:alias`, o
-# script para (código 2) em vez de deixar dois nascerem gêmeos em silêncio.
 _conferir_gemeos() {
   local nome glifo erro=0
   declare -A visto=()
@@ -98,7 +58,6 @@ _conferir_gemeos() {
   return "$MEOW_OK"
 }
 
-# --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
     meow_pula "o acervo Arcticons não está em packs/meowsystem/icones/sistema — nada a vestir"
@@ -111,12 +70,6 @@ _pronto() {
   return "$MEOW_OK"
 }
 
-# --- a transformação ---------------------------------------------------------
-# Insere `stroke-width` em cada elemento de desenho. UM atributo por elemento:
-# duplicar invalida o XML e o rasterizador recusa o SVG inteiro, calado.
-# O `if` não é defensivo à toa: os 37 SVG do acervo de 05/08 NÃO declaram
-# `stroke-width`, mas a API do Iconify entrega alguns COM ele — conferido em
-# 08/08 nos candidatos baixados. Quem chegar depois pode não ser como os de hoje.
 _com_traco() {
   local arq="$1" largura="$2"
   if grep -q 'stroke-width' "$arq"; then
@@ -126,9 +79,6 @@ _com_traco() {
   fi
 }
 
-# --- o que deveria estar no disco --------------------------------------------
-# "dir<TAB>nome<TAB>glifo", só dos glifos que existem de fato. Um glifo faltando
-# é aviso, não erro: aquele ícone continua vindo de onde vinha.
 _desejado() {
   local nome glifo dir
   for dir in "${!TRACO[@]}"; do
@@ -150,10 +100,6 @@ _avisar_faltantes() {
   return 0
 }
 
-# "NADA A FAZER" TEM TRÊS CAUSAS, E DIZER A ERRADA MANDA PROCURAR NO LUGAR ERRADO
-#   mapa sem linha        a decisão está no `packs/meowsystem/icones/bandeja.map`
-#   linha sem glifo       o `_avisar_faltantes` já disse qual baixar
-#   tudo no lugar         é o caso feliz
 _frase_nada_a_fazer() {
   local total="$1"
   if [ "${#MAPA_LIDO[@]}" = 0 ]; then
@@ -165,11 +111,6 @@ _frase_nada_a_fazer() {
   fi
 }
 
-# O CRITÉRIO DO CONFERIR TEM DE SER O DO ESCRITOR
-#   `meow_escrever` grava com `printf '%s'`, que come o `\n` final. Um `cmp` byte
-#   a byte acusaria divergência eterna num arquivo perfeito — já custou um
-#   `--conferir` gritando 123 divergências num tema correto. Compara-se com
-#   `$(...)` porque é assim que se escreve.
 _conferir() {
   local dir nome glifo divergentes=0 ausentes=0 orfaos=0 total=0 arq alvo
   while IFS=$'\t' read -r dir nome glifo; do
@@ -215,9 +156,6 @@ _aplicar() {
     esac
   done < <(_desejado)
 
-  # Órfão: estava no mapa ontem, não está hoje. Removível porque o dono é único —
-  # `20x20/status` nasce aqui e nenhum outro script do projeto escreve nele (o
-  # `icones_sistema.sh` é dono de `22x22/status` e `scalable/status`).
   for dir in "${!TRACO[@]}"; do
     [ -d "$BASE/$dir" ] || continue
     for arq in "$BASE/$dir"/*.svg; do
@@ -240,8 +178,6 @@ _aplicar() {
     return "$MEOW_OK"
   fi
   meow_info "ícones da bandeja: $postos posto(s), $removidos removido(s)"
-  # A espera aqui é OUTRA, e dizer "próximo login" seria mentira: o item da
-  # bandeja nasce no start do aplicativo, não no start do COSMIC.
   meow_info "o ícone novo aparece quando O APLICATIVO reabrir (o item nasce no start dele)"
   return "$MEOW_DIVERGENTE"
 }

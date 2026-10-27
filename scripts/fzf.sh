@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# fzf.sh — as cores do fzf saem da paleta do pack no ar, e não de um hex cravado.
-#
-# É tema, e sai pelo mesmo arquivo: ele passa a exportar também
-# `MEOW_SGR_LARANJA`, o slot `peach` da paleta (o laranja dos dois packs) já no
-# formato de cor de 24 bits do terminal, e a linha de lá o usa.
-#
-# USO
-#   fzf.sh aplicar    escreve ~/.config/meowsystem/fzf.sh (idempotente)
-#   fzf.sh conferir   0 = conforme · 1 = divergente · 3 = a paleta não tem o flavor
-#   fzf.sh mostrar    imprime a linha que carrega o arquivo no shell
-#
-#   0 = certo · 1 = divergente (ou escrevi) · 2 = erro · 3 = falta dependência
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -18,8 +6,6 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 . "$MEOW_RAIZ/lib/comum.sh"
 
 FZF_ALVO="${FZF_ALVO:-${XDG_CONFIG_HOME:-$HOME/.config}/meowsystem/fzf.sh}"
-# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-# Era `${FLAVOR:-mocha}`, o padrão de um pack só.
 _FLAVOR="$(meow_flavor)"
 _ACCENT="${ACCENT:-mauve}"
 
@@ -36,12 +22,9 @@ case "$ACAO" in
     exit 0 ;;
   *) meow_erro "uso: fzf.sh [aplicar|conferir|mostrar]"; exit "$MEOW_ERRO" ;;
 esac
-# shellcheck disable=SC2034  # quem lê MEOW_SECO é o meow_seco() do comum.sh
+# shellcheck disable=SC2034
 [ "$ACAO" = "conferir" ] && MEOW_SECO=1
 
-# A linha do shell, escrita uma vez só: o `mostrar` e o `aplicar` a dizem pelo
-# mesmo texto, para o que a tela promete e o que se cola nunca divergirem. O
-# `$HOME` fica literal de propósito — é a linha que vai para o shell dela.
 _fzf_linha() {
   local rel="${FZF_ALVO#"$HOME"/}"
   [ "$rel" = "$FZF_ALVO" ] && { printf '[ -r "%s" ] && . "%s"' "$FZF_ALVO" "$FZF_ALVO"; return; }
@@ -57,9 +40,6 @@ cmd_mostrar() {
 }
 [ "$ACAO" = "mostrar" ] && { cmd_mostrar; exit $?; }
 
-# --- as cores, da paleta -----------------------------------------------------
-# A paleta vem da porta única (`meow_paleta`, lib/comum.sh): o pack no ar, ou o
-# padrão.
 PALETA="$(meow_paleta)"
 
 _fzf_cores() {
@@ -72,8 +52,7 @@ except Exception as e:
     print("não li a paleta: %s" % e, file=sys.stderr); sys.exit(2)
 cores = (d.get("flavors") or {}).get(flavor)
 if not isinstance(cores, dict):
-    sys.exit(3)          # quem diz isto na tela é o shell, com o nome da paleta
-# O papel de cada chave do fzf: ver o mapa no cabeçalho.
+    sys.exit(3)
 mapa = [("bg+", "surface1"), ("fg+", "text"), ("hl", acento), ("hl+", "pink"),
         ("pointer", "green"), ("marker", "green"), ("prompt", acento),
         ("header", "overlay0"), ("border", "overlay0")]
@@ -82,7 +61,7 @@ for chave, slot in mapa:
     v = cores.get(slot)
     if not (isinstance(v, str) and v.startswith("#")):
         if slot == acento:
-            sys.exit(3)  # ACCENT que a paleta não tem: escolha no conf, não defeito
+            sys.exit(3)
         print("falta o slot '%s' no flavor '%s'" % (slot, flavor), file=sys.stderr)
         sys.exit(2)
     partes.append("%s:%s" % (chave, v))
@@ -90,8 +69,6 @@ print("--color=" + ",".join(partes))
 PY
 }
 
-# O laranja (slot `peach`) como o terminal o pede: `38;2;R;G;B`. Vazio quando a
-# paleta não tem o slot — ver "E O LARANJA DOS RÓTULOS", no cabeçalho.
 _fzf_laranja() {
   python3 -I - "$PALETA" "$_FLAVOR" <<'PY'
 import json, re, sys
@@ -104,7 +81,7 @@ if isinstance(v, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", v):
 PY
 }
 
-_fzf_texto() {   # $1 = as opções de cor · $2 = o laranja em SGR (pode ser vazio)
+_fzf_texto() {
   cat <<FIM
 # Gerado pelo MeowSystem (scripts/fzf.sh) a partir da paleta do pack no ar:
 #   $(meow_paleta_nome) · flavor $_FLAVOR · acento $_ACCENT
@@ -142,7 +119,6 @@ if [ "$ACAO" = "conferir" ]; then
   exit "$MEOW_DIVERGENTE"
 fi
 
-# --- aplicar -------------------------------------------------------------------
 meow_escrever "$FZF_ALVO" "$TEXTO" 644; rc=$?
 case "$rc" in
   0) meow_ok "cores do fzf já são as de $_FLAVOR ($FZF_ALVO)"

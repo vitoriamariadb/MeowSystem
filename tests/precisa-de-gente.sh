@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# precisa-de-gente.sh — o que a máquina não conserta sozinha aparece num cartão
-# só, com desde quando, e some quando resolvido?
-#
-#   1. os dois verbos do `lib/comum.sh`: registrar é idempotente (o desde quando é do
-#      primeiro registro e a repetição não escreve nada), e resolver tira a linha;
-#   2. a fonte «patch obrigatório que não entra» (`garantir_builds.sh`, degrau 4):
-#      a linha nasce, a segunda passagem não escreve, e o rebase a tira;
-#   3. o servidor lê a lista (`precisa_de_gente()`), e a Início monta UM cartão
-#      com uma linha por item (o `app.js` no vm do node, sem navegador).
-# HOME, estado e casa de brinquedo; o compositor e o menu são registros de uma linha,
-# e apt, cargo, sudo e systemd recusam.
-#   0 = passou · 1 = falhou
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -24,7 +12,7 @@ E="$T/home/.local/state/meowsystem"; ARQ="$E/precisa-de-gente.tsv"
 for c in sudo pkexec apt apt-get systemctl systemd-run pkill killall notify-send cargo make; do
   printf '#!/bin/sh\nexit 1\n' > "$T/bin/$c"; chmod 755 "$T/bin/$c"
 done
-gente() { # $1.. o que rodar com a lib carregada
+gente() {
   env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY HOME="$T/home" PATH="$T/bin:$PATH" \
       MEOW_ESTADO="$E" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_CONF="$T/nao-existe.conf" \
       bash -c '. "$MEOW_RAIZ/lib/comum.sh"; "$@"' _ "$@"

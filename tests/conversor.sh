@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# A causa era o conversor emitir só polilinha: marching squares em lados de
-# pixel numa grade de 256, aparada por Douglas–Peucker. O DP escolhe QUAIS
-# degraus ficam; não desfaz nenhum.
-#
-#   2. `retas ≥ 1` no terminal. Ajustar Bézier em TUDO ondula os quatro lados
-#      retos da moldura, porque a cúbica compra a folga da tolerância onde ela é
-#      grátis para o erro e cara para o olho. Reta continua reta.
-#
-#   3. a mesma forma. Só a linha que desenha podia mudar; a quantização, o
-#      filtro de moda e o colapso de fitas não foram tocados de propósito,
-#      porque a forma foi aprovada na folha.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONV="$RAIZ/scripts/converter_icone.py"
@@ -23,13 +12,9 @@ for f in rsvg-convert compare python3; do
   command -v "$f" >/dev/null || { printf 'pulado: falta %s nesta máquina\n' "$f"; exit 0; }
 done
 
-# As duas origens são de procedências diferentes DE PROPÓSITO: o que decide a
-# conversão não é PNG contra SVG, é o desenho ser geométrico ou orgânico.
-#
-# O `[ -f ]` de cada laço já pula o que não existir.
 ORIGENS=(
-  "$RAIZ/packs/meowsystem/icones/apps/cosmic-edit-mocha.svg"          # autoral, já tem contorno (a fita colapsa)
-  "/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg"       # Papirus, orgânico, com gradiente e sombra
+  "$RAIZ/packs/meowsystem/icones/apps/cosmic-edit-mocha.svg"
+  "/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg"
 )
 
 for origem in "${ORIGENS[@]}"; do
@@ -49,9 +34,6 @@ for origem in "${ORIGENS[@]}"; do
   grep -q 'viewBox="0 0 48 48"' "$T/c.svg"  && ok "$nome: viewBox 48" || falha "$nome: viewBox errado"
   grep -q 'stroke="currentColor"' "$T/c.svg" && ok "$nome: a cor entra por currentColor" || falha "$nome: sem currentColor"
   grep -q 'fill="none"' "$T/c.svg"          && ok "$nome: fill none" || falha "$nome: sem fill=none"
-  # O `_vestido()` do icones_apps_arcticons.sh injeta a espessura procurando
-  # `<path ` COM ESPAÇO. Sem o espaço, o acervo convertido sai fino no meio dos
-  # Arcticons e ninguém descobre por que.
   grep -q '<path ' "$T/c.svg"               && ok "$nome: <path com espaço (o _vestido injeta)" || falha "$nome: <path sem espaço — o _vestido não vai injetar espessura"
   rsvg-convert -w 48 -h 48 "$T/c.svg" -o "$T/c.png" 2>/dev/null && ok "$nome: rasteriza" || falha "$nome: o rsvg recusou a saída"
 
@@ -59,8 +41,6 @@ for origem in "${ORIGENS[@]}"; do
   [ "$caidos" -le 2 ] && ok "$nome: $caidos trecho(s) caíram para polilinha" \
                       || falha "$nome: $caidos trechos caíram — o ajuste não converge"
 
-  # Ela NÃO economiza: cada cúbica escreve três pares de coordenadas e cada
-  # vértice de polilinha escreve um.
   pc=$(metrica "$T/c.json" pontos)
   pp=$(metrica "$T/p.json" pontos)
   [ "$pc" -le $(( pp * 4 )) ] && ok "$nome: $pc pontos contra $pp da polilinha (teto 4x)" \
@@ -68,9 +48,6 @@ for origem in "${ORIGENS[@]}"; do
 
   [ "$dur" -lt 1000 ] && ok "$nome: ${dur} ms" || falha "$nome: ${dur} ms — passou de 1 s"
 
-  # A MESMA FORMA: as duas saídas, a 48 px, diferem em menos de 138 px de 2304.
-  # O `-b` NÃO É ENFEITE, e sem ele esta linha não testa nada. Rasterizar sobre
-  # o mocha é o que faz a régua existir.
   rsvg-convert -w 48 -h 48 -b '#1e1e2e' "$T/c.svg" -o "$T/c48.png" 2>/dev/null
   rsvg-convert -w 48 -h 48 -b '#1e1e2e' "$T/p.svg" -o "$T/p48.png" 2>/dev/null
   dif=$(compare -metric AE -fuzz 8% "$T/c48.png" "$T/p48.png" null: 2>&1 | awk '{print int($1)}')
@@ -78,20 +55,13 @@ for origem in "${ORIGENS[@]}"; do
                              || falha "$nome: $dif px diferentes — a forma mudou, não só a linha"
 done
 
-# --------------------------------------------------------------------------
-# A RÉGUA DOS DOIS NÚMEROS — o `>_` do terminal e o `B` do btop
-# --------------------------------------------------------------------------
 TERM="$RAIZ/packs/meowsystem/icones/apps/cosmic-term-mocha.svg"
 if [ -f "$TERM" ]; then
   python3 "$CONV" "$TERM" "$T/t.svg" --json >"$T/t.json" 2>/dev/null
   cantos=$(metrica "$T/t.json" cantos)
   retas=$(metrica "$T/t.json" retas)
-  # O `>` tem quatro vértices de 90° na cadeia crua e o `_` tem as duas pontas
-  # retas. Se isto cair para 0, alguém voltou a alisar antes de procurar canto.
   [ "$cantos" -ge 2 ] && ok "terminal: $cantos cantos — o > mantém o bico" \
                       || falha "terminal: $cantos cantos — o > saiu redondo (alisaram antes de achar o canto?)"
-  # A moldura arredondada tem quatro lados retos. Zero retas = os lados viraram
-  # curva e vão ondular na lupa de 200 px.
   [ "$retas" -ge 1 ] && ok "terminal: $retas retas — os lados da moldura ficam retos" \
                      || falha "terminal: $retas retas — os lados retos viraram curva"
 else
@@ -102,27 +72,18 @@ BTOP="/usr/share/icons/Papirus/64x64/apps/btop.svg"
 if [ -f "$BTOP" ]; then
   python3 "$CONV" "$BTOP" "$T/b.svg" --json >"$T/b.json" 2>/dev/null
   bcantos=$(metrica "$T/b.json" cantos)
-  # Olhado a 400 px: o btop do Papirus é um "B" de blocos, arte de pixel —
-  # retângulos e ângulos retos, nenhuma curva. O piso fica em 8, longe do medido
-  # e longe de zero.
   [ "$bcantos" -ge 8 ] && ok "btop: $bcantos cantos — o B de blocos não arredondou" \
                        || falha "btop: $bcantos cantos — o B de blocos ganhou curva onde é ângulo reto"
 else
   printf 'pulado: %s não existe\n' "$BTOP"
 fi
 
-# --------------------------------------------------------------------------
-# `--cheia` — a variação, e ela só aparece quando é pedida
-# --------------------------------------------------------------------------
 GIMP="/usr/share/icons/Papirus/64x64/apps/org.gimp.GIMP.svg"
 if [ -f "$GIMP" ]; then
   python3 "$CONV" "$GIMP" "$T/f.svg" --cheia --json >"$T/f.json" 2>/dev/null
   python3 "$CONV" "$GIMP" "$T/s.svg" --json >/dev/null 2>&1
   nf=$(grep -o 'fill="currentColor"' "$T/f.svg" | wc -l)
   ns=$(grep -o 'fill="currentColor"' "$T/s.svg" | wc -l)
-  # Errado por medida: a classe escolhida pode ter vários pedaços soltos — no
-  # Wilber são os dois olhos, e cada pedaço é um subcaminho. Três `<path>`
-  # cheios é a resposta certa para UMA classe cheia.
   [ "$nf" -ge 1 ] && ok "--cheia: $nf subcaminho(s) cheios" || falha "--cheia: nenhum fill saiu"
   [ "$(metrica "$T/f.json" cheia)" = "True" ] && ok "--cheia: a métrica diz qual classe encheu" \
                                               || falha "--cheia: a métrica não registrou a área cheia"
@@ -130,8 +91,6 @@ if [ -f "$GIMP" ]; then
                   || falha "sem --cheia: saíram $ns fills — preenchimento é a exceção do dialeto"
 fi
 
-# `retoques/org.gimp.GIMP.svg` é uma conversão com UMA curva desenhada à mão
-# (a boca do Wilber).
 RET="$RAIZ/packs/meowsystem/icones/apps/org.gimp.GIMP.svg"
 if [ -f "$GIMP" ] && [ -f "$RET" ]; then
   python3 "$CONV" "$GIMP" "$T/poli.svg" --polilinha >/dev/null 2>&1
@@ -146,16 +105,6 @@ PY
   fi
 fi
 
-# O Brave falha com QUATRO classes porque uma das fronteiras dele vale 57,9 de
-# RGB — o vermelho contra o vermelho escuro do escudo — e mesmo assim custa uma
-# linha.
-#
-# AS DUAS ASSERÇÕES QUE VALEM MAIS, e são as duas metades do mesmo experimento:
-#
-#   1. DESLIGADO NÃO MUDA UM BYTE. A arte convertida que está na tela dela foi
-#      aprovada numa folha. Uma chave que mexesse no padrão
-#      trocaria arte aprovada em silêncio. `--peso-fronteira 0` tem de sair
-#      idêntico ao padrão, arquivo a arquivo.
 for origem in "${ORIGENS[@]}"; do
   [ -f "$origem" ] || continue
   nome="$(basename "$origem")"
@@ -164,24 +113,17 @@ for origem in "${ORIGENS[@]}"; do
   cmp -s "$T/z0.svg" "$T/z1.svg" \
     && ok "$nome: --peso-fronteira 0 é o padrão byte a byte" \
     || falha "$nome: --peso-fronteira 0 mudou a saída padrão"
-  # `peso` null e não `0`: "não pediram" é outra coisa de "pediram zero", e a
-  # folha decide por essa métrica se mostra a terceira coluna.
   [ "$(metrica "$T/z0.json" peso)" = "None" ] && ok "$nome: a métrica diz que a chave não foi pedida" \
     || falha "$nome: a métrica 'peso' não é null no padrão"
   [ "$(metrica "$T/z0.json" fundidas)" = "0" ] && ok "$nome: nenhuma fronteira fundida no padrão" \
     || falha "$nome: o padrão fundiu fronteira — a chave está ligada sozinha"
 done
 
-# Byte a byte, não "parecido": o limiar de 70 foi medido justamente para não
-# os alcançar, e qualquer mudança aqui é mudança de arte aprovada.
 TRAVA=(
-  "/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg"   # fiel, mín. 204,6
-  # Ele era o sentinela mais justo (78,4, rente ao limiar de 70), e o 1e85809
-  # o derrubou: o `argsort` estável escolhe outras cores nos empates, e com
-  # elas o `--peso-fronteira` passa a fundir uma fronteira dele.
-  "/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg"       # fiel, mín. 281,3
-  "$RAIZ/packs/meowsystem/icones/apps/cosmic-edit-mocha.svg"             # canário: a folha em branco
-  "$RAIZ/packs/meowsystem/icones/apps/cosmic-term-mocha.svg"             # canário: o quadrado
+  "/usr/share/icons/Papirus/64x64/apps/org.gnome.Calculator.svg"
+  "/usr/share/icons/Papirus/64x64/apps/org.videolan.VLC.svg"
+  "$RAIZ/packs/meowsystem/icones/apps/cosmic-edit-mocha.svg"
+  "$RAIZ/packs/meowsystem/icones/apps/cosmic-term-mocha.svg"
 )
 for origem in "${TRAVA[@]}"; do
   [ -f "$origem" ] || { printf 'pulado: %s não existe\n' "$origem"; continue; }
@@ -203,8 +145,6 @@ if [ -f "$BRAVE" ]; then
                  || falha "brave: nenhuma fronteira fundida — a chave não pegou o caso que a nomeou"
   [ "$b" -lt "$a" ] && ok "brave: $a traços -> $b com peso de fronteira" \
                     || falha "brave: $a -> $b — o emaranhado não encolheu"
-  # A saída ligada continua sendo o dialeto do acervo. Uma chave que quebrasse
-  # o `_conferir_dialeto()` do app/servidor.py só apareceria na tela dela.
   grep -q 'stroke-width' "$T/w1.svg" && falha "brave/peso: gravou stroke-width" \
                                      || ok "brave/peso: sem stroke-width"
   grep -q 'viewBox="0 0 48 48"' "$T/w1.svg" && ok "brave/peso: viewBox 48" \

@@ -1,21 +1,10 @@
 #!/usr/bin/env bash
-# icones_tray_steam.sh — o ícone da BANDEJA da Steam, e a única forma medida de
-#                        ele não voltar sozinho na próxima vez que ela abrir o
-#                        cliente.
-#
-# `grep -rn steam_tray ~/.config/zsh/scripts/` não devolve uma linha, e o
-# `meow.log` não tem nenhum registro com "steam". Quem desfez está escrito, com
-# o nome da função, no log do próprio cliente
-# (`~/.steam/debian-installation/logs/bootstrap_log.txt`):
-#
-# tamanho exato, `mtime` exato e `crc32` exato.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-# P96: o glifo mora numa das três pastas planas do pack-base (uma cópia só, onde caiu)
 GLIFO="${MEOW_TRAY_STEAM_GLIFO:-}"
 if [ -z "$GLIFO" ]; then
   for _p in sistema apps biblioteca; do
@@ -29,11 +18,6 @@ FABRICA="$RAIZ/assets/apps/tray-terceiros/steam_tray_mono.png.original"
 RELATIVO="public/steam_tray_mono.png"
 INVENTARIO="package/steam_client_ubuntu12.installed"
 
-# --- onde a Steam mora -------------------------------------------------------
-# `~/.steam/steam` é link para `debian-installation` nesta máquina, mas em outra
-# pode ser `~/.local/share/Steam` (instalação por tarball) — o `readlink -f` de
-# um link quebrado devolveria caminho que não existe, então o critério é o
-# arquivo estar lá, não o diretório existir.
 _raiz_steam() {
   local d
   for d in "$HOME/.steam/debian-installation" "$HOME/.steam/steam" \
@@ -43,13 +27,6 @@ _raiz_steam() {
   return 1
 }
 
-# --- o que a Steam espera ver ------------------------------------------------
-# Devolve "tam mtime crc". A fonte boa é o inventário do cliente, que traz os
-# três campos de uma vez.
-#
-# `assets/apps/tray-terceiros/steam_tray_mono.png.original` tem o CONTEÚDO de
-# fábrica mas foi copiado sem `-p`: o `mtime` dele é 2026-08-10 23:31:54, não
-# 2014-08-06 22:56:20.
 _esperado() {
   local raiz="$1" linha campos
   linha="$(grep -a -m1 "^$RELATIVO," "$raiz/$INVENTARIO" 2>/dev/null)"
@@ -74,14 +51,9 @@ PY
   return 1
 }
 
-# --- o desenho ---------------------------------------------------------------
-# Rasteriza a 48 px EM TEMPO DE DESENHO e monta o arquivo no tamanho e no CRC
-# que o inventário pede.
 _desenhar() {
   local destino="$1" tam="$2" crc="$3" svg rc
   svg="$(mktemp -t meow-steam-XXXXXX.svg)" || return 1
-  # UM `stroke-width` por elemento: duplicar invalida o XML e o rasterizador
-  # recusa o SVG inteiro, calado. Mesma transformação do `icones_bandeja.sh`.
   if grep -q 'stroke-width' "$GLIFO"; then
     sed -E 's/stroke-width="[^"]*"/stroke-width="'"$TRACO"'"/g; s/currentColor/'"$COR"'/g' "$GLIFO" > "$svg"
   else
@@ -103,9 +75,6 @@ if fim < 0:
     sys.exit('png sem IEND')
 cabeca, iend = base[:fim], base[fim:]
 
-# 12 = 4 do comprimento + 4 do tipo + 4 do CRC do chunk; 4 = os bytes do ajuste
-# de CRC, que vão DEPOIS do IEND (ver o cabeçalho: dentro do chunk eles se
-# cancelam contra o próprio CRC dele).
 nota = (b'MeowSystem: o glifo steam do Arcticons (CC BY-SA 4.0) no lugar do '
         b'icone de fabrica da bandeja. Este chunk existe so para o arquivo ter '
         b'o tamanho que package/steam_client_ubuntu12.installed espera. ')
@@ -117,8 +86,6 @@ corpo = b'meOw' + enchimento
 png = (cabeca + struct.pack('>I', len(enchimento)) + corpo
        + struct.pack('>I', zlib.crc32(corpo) & 0xffffffff) + iend)
 
-# crc32 é AFIM nos bits da mensagem: com 32 avaliações monta-se a matriz e uma
-# eliminação de Gauss sobre GF(2) devolve os 4 bytes exatos. Sem chute.
 def f(x): return zlib.crc32(png + struct.pack('>I', x)) & 0xffffffff
 c0 = f(0)
 pivos = {}
@@ -146,7 +113,6 @@ PY
   return "$rc"
 }
 
-# --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -f "$GLIFO" ]; then
     meow_pula "sem o glifo steam em packs/meowsystem/icones — nada a vestir"
@@ -167,9 +133,6 @@ _pronto() {
   return "$MEOW_OK"
 }
 
-# --- o desejado, calculado uma vez -------------------------------------------
-# O `trap` é o que garante a limpeza quando o script morre no meio — sem ele, um
-# Ctrl-C deixaria PNG de 5 KB em /tmp a cada tentativa.
 DESEJADO=""
 trap '[ -n "$DESEJADO" ] && rm -f "$DESEJADO" "$DESEJADO.cru"' EXIT
 _preparar() {
@@ -191,7 +154,7 @@ _preparar() {
   return "$MEOW_OK"
 }
 
-_igual() {   # 0 = o arquivo no disco já é o nosso
+_igual() {
   cmp -s "$RAIZ_STEAM/$RELATIVO" "$DESEJADO"
 }
 
@@ -220,12 +183,6 @@ _aplicar() {
   fi
   meow_destino_permitido "$alvo" || return "$MEOW_ERRO"
 
-  # DOIS backups, e cada um responde a uma pergunta diferente. O `.meow-original`
-  # ao lado é o botão de desfazer imediato ("renomeia de volta por cima") e só
-  # nasce uma vez, na primeira troca — depois dela o arquivo no disco já é nosso,
-  # e regravá-lo transformaria o backup numa cópia do nosso ícone. O
-  # `meow_backup_sistema` é a trilha datada em `~/.local/state/meowsystem/`, a
-  # mesma dos outros módulos.
   if [ ! -f "$alvo.meow-original" ]; then
     cp -a "$alvo" "$alvo.meow-original" || {
       meow_erro "não consegui guardar o original em $alvo.meow-original"
@@ -241,15 +198,11 @@ _aplicar() {
   tmp="$(mktemp -p "$(dirname "$alvo")" ".meow.XXXXXX")" || return "$MEOW_ERRO"
   cp -- "$DESEJADO" "$tmp" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   chmod "$modo" "$tmp"
-  # O `mtime` é o terceiro campo do inventário. Sem ele o arquivo bate em tamanho
-  # e em CRC e ainda assim destoa do que a Steam anotou.
   touch -d "@$MTIME_FABRICA" "$tmp" 2>/dev/null || true
   mv -f "$tmp" "$alvo" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   meow_manifesto_registrar "$alvo"
 
   meow_info "ícone da bandeja da Steam: vestido de Arcticons (traço $TRACO, $COR)"
-  # A espera é a mesma do `icones_bandeja.sh`, e por outro motivo ainda: o item
-  # nasce quando o APP abre, e este arquivo é lido pelo cliente no start.
   meow_info "o ícone novo aparece quando a Steam reabrir"
   return "$MEOW_DIVERGENTE"
 }

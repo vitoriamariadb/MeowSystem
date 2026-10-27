@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# vigia_flatpak.sh — liga (ou desliga) o gatilho que repõe o ícone da bandeja
-#                    depois de todo deploy de flatpak.
-#
-#   ./vigia_flatpak.sh              instala as unidades e liga o vigia
-#   ./vigia_flatpak.sh --conferir   não escreve; 1 se algo divergir
-#
-# POR QUE UM SCRIPT, E NÃO A LÓGICA DENTRO DO install.sh Porque o `meow doctor`
-# precisa da MESMA verificação e o `--consertar` do MESMO conserto. É o desenho
-# que o `vigia_assets.sh` já segue: o `install.sh` chama, o `bin/meow` chama com
-# `--conferir` e com `--aplicar`, e a regra mora num lugar só.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -41,7 +31,6 @@ _ligado() {
   [ "$(systemctl --user is-active  "$GATILHO" 2>/dev/null)" = "active" ]
 }
 
-# --- desligado: o que existe tem de SAIR -------------------------------------
 _desligar() {
   local u restos=0
   for u in "${UNIDADES[@]}"; do [ -f "$DESTINO/$u" ] && restos=$((restos + 1)); done
@@ -61,7 +50,6 @@ _desligar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- as dependências ---------------------------------------------------------
 _pronto() {
   local u
   for u in "${UNIDADES[@]}"; do
@@ -70,9 +58,6 @@ _pronto() {
       return "$MEOW_ERRO"
     fi
   done
-  # Sem flatpak não há evento nenhum a vigiar, e o `.changed` que a unidade
-  # espera nunca existiria. Numa máquina assim a etapa some do relatório, que é
-  # o comportamento certo para uma etapa opcional.
   if ! meow_tem flatpak; then
     meow_pula "sem flatpak nesta máquina — nada a vigiar"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -85,7 +70,6 @@ _pronto() {
   return "$MEOW_OK"
 }
 
-# --- conferir ----------------------------------------------------------------
 _conferir() {
   local u texto divergentes=0
   for u in "${UNIDADES[@]}"; do
@@ -112,7 +96,6 @@ _conferir() {
   return "$MEOW_OK"
 }
 
-# --- aplicar -----------------------------------------------------------------
 _aplicar() {
   local u texto mudou=0 estado="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 
@@ -132,16 +115,11 @@ _aplicar() {
 
   [ "$mudou" = 1 ] && systemctl --user daemon-reload
 
-  # Um estouro do StartLimit deixa a unidade em `failed`, e nesse estado o
-  # `enable --now` não a levanta. Limpar antes é o que faz o `--consertar` de
-  # fato consertar, em vez de dizer que consertou.
   if [ "$(systemctl --user is-failed "$GATILHO" 2>/dev/null)" = "failed" ]; then
     systemctl --user reset-failed "$GATILHO" meow-flatpak.service >/dev/null 2>&1
     mudou=1
   fi
 
-  # Ligar só quando precisa: um `enable --now` incondicional reescreveria o link
-  # em `default.target.wants` e reiniciaria o vigia a cada execução.
   if ! _ligado; then
     if ! systemctl --user enable --now "$GATILHO" >/dev/null 2>&1; then
       meow_erro "não consegui ligar o $GATILHO"
@@ -150,8 +128,6 @@ _aplicar() {
     mudou=1
   fi
 
-  # Aviso honesto, não falha: as unidades ficam instaladas e o vigia ligado, mas
-  # cada disparo será PULADO pelo `ConditionPathExists=` até o ponteiro existir.
   if [ ! -f "$estado/raiz" ]; then
     meow_aviso "o vigia está ligado, mas $estado/raiz ainda não existe"
     meow_info "  até ele aparecer, cada disparo é pulado (o journal diz o motivo)"

@@ -1,49 +1,9 @@
 #!/usr/bin/env bash
-# scripts/temas-de-apps/discord/manifesto.sh — o tema do pack no Discord.
-#
-# POR QUE ESTE MÓDULO NASCEU — 24/09/2026, sprint P42
-#   A P37 mediu o que o tema Dracula de antes aplicava e o MeowSystem nunca
-#   migrou, e o Discord estava na lista. A decisão de 23/09 foi "migrar para o
-#   pack": o CSS do tema Dracula do CtorW virou um MODELO em `packs/<pack>/apps/`
-#   (a chave `apps.discord.arquivo`), com os 40 hex trocados por papel da
-#   paleta, e quem põe a cor é o `scripts/temas-de-apps/modelo.py`. O slug
-#   `discord` já estava no `APPS_ATIVOS` de fábrica e caía no "não temos módulo
-#   para esse app ainda" do `aplicar_apps.sh`; agora tem.
-#
-# ESTE ARQUIVO É `source`, NÃO EXECUTADO. Nada de `exit`, nada de `set -e`.
-#
-# O CLIENTE OFICIAL NÃO CARREGA TEMA, E ISSO É A PRIMEIRA PENDÊNCIA
-#   Tema de Discord é CSS que um cliente MODIFICADO injeta: BetterDiscord,
-#   Vencord ou Vesktop, cada um com a sua pasta `themes/`. O Discord oficial,
-#   sozinho, não lê pasta nenhuma. Medido nesta máquina em 24/09/2026: o Discord
-#   é o flatpak oficial (`com.discordapp.Discord`, cliente 1.0.155) e nenhuma das
-#   pastas abaixo existe — então aqui o módulo sai pendente, com o motivo. O tema
-#   de antes fazia a mesma coisa e dizia "copie manualmente".
-#
-#   Ele só escreve em pasta que JÁ EXISTE: criar `BetterDiscord/themes/` numa
-#   máquina sem BetterDiscord seria pôr no disco um arquivo que nada lê e chamar
-#   isso de aplicado.
-#
-# LIGAR O TEMA NO VESKTOP E NO VENCORD É DAQUI — 09/10/2026, P74 item 9 (T6)
-#   Até aqui o módulo punha o arquivo e dizia «ligue em Configurações > Temas»:
-#   mexer no JSON do cliente seria o segundo dono no mesmo arquivo. Medido em
-#   09/10/2026 nesta máquina: o Vesktop instalado (pedido dela de 26/09, «para
-#   o Discord também vestir o Dracula»), o `.theme.css` na pasta, e o tema
-#   desligado — o pedido estava cumprido no disco e não na tela. A decisão
-#   dela vale sobre a do módulo: o tema é ligado aqui, pela MESMA porta da
-#   tela, a lista `enabledThemes` do `settings/settings.json` do Vencord (o
-#   Vesktop é o Vencord embrulhado, e guarda as configurações dele em
-#   `vesktop/settings/`). Só essa chave muda; as outras passam como estão,
-#   como no `appearance.json` do Obsidian. Com o cliente aberto, nada se
-#   escreve: ele guarda as configurações da memória a cada mudança e
-#   desfaria a nossa. O BetterDiscord liga tema por outro arquivo e pelo nome
-#   de dentro do CSS, e continua com o arquivo posto e o aviso.
 
 _DC_ARQ_NOME="MeowSystem.theme.css"
 _DC_MODELO_PY="$MEOW_RAIZ/scripts/temas-de-apps/modelo.py"
 _DC_CONF="${XDG_CONFIG_HOME:-$HOME/.config}"
 
-# As pastas `themes/` dos três clientes, nativos e flatpak. Só as que existem.
 _dc_pastas() {
   local d
   for d in \
@@ -66,30 +26,19 @@ _dc_marca() {
   sed -n 's|^ \* meowsystem-tema: \([^ ]*\).*$|\1|p' "$1" 2>/dev/null | head -n 1
 }
 
-# 0 = o programa está nesta máquina · 1 = não está. A regra de "instalado" que
-# a tabela do `meow apps` pergunta e o `detectar` abre com ela (24/09/2026, P49;
-# ver o quinto verbo no `rodar_modulo` do scripts/aplicar_apps.sh).
 meow_app_instalado() { _dc_instalado; }
 
-# O arquivo de configurações do Vencord que cuida desta pasta `themes/`, ou
-# vazio para o BetterDiscord (que liga tema por outro caminho).
 _dc_ajustes() {
   case "$1" in
     */Vencord/themes|*/vesktop/themes) printf '%s/settings/settings.json' "${1%/themes}" ;;
   esac
 }
 
-# O Vesktop do flatpak roda como `vesktop.bin` (o `startvesktop` do pacote faz
-# `zypak-wrapper /app/bin/vesktop/vesktop.bin`), e o `pgrep -x vesktop` não o
-# via: com ele aberto, a lista era escrita e se perdia na próxima gravação
-# dele. [Conferência da P74, 09/10/2026, medido no pacote instalado aqui.]
 _dc_aberto() {
   pgrep -x vesktop >/dev/null 2>&1 || pgrep -x vesktop.bin >/dev/null 2>&1 \
     || pgrep -x Discord >/dev/null 2>&1 || pgrep -x discord >/dev/null 2>&1
 }
 
-# conferir | ligar | desligar — o nosso tema na lista `enabledThemes`.
-# 0 = já está · 1 = divergente / escreveu · 2 = erro.
 _dc_lista() {
   local modo="$1" ajustes="$2"
   [ -n "$ajustes" ] || return "$MEOW_OK"
@@ -167,7 +116,6 @@ meow_app_conferir() {
       meow_muda "Discord: em $pasta está '$marca', e o de agora é '$_DC_QUERO' (ou o modelo mudou)"
       rc="$MEOW_DIVERGENTE"
     fi
-    # O tema nosso no disco tem de estar LIGADO no cliente (P74 item 9).
     if [ -n "$marca" ] && ! _dc_lista conferir "$(_dc_ajustes "$pasta")"; then
       meow_muda "Discord: o tema do pack está em $pasta, e desligado no cliente"
       rc="$MEOW_DIVERGENTE"
@@ -190,8 +138,6 @@ meow_app_aplicar() {
         meow_muda "Discord: em $pasta o tema do MeowSystem estava em '$marca' — passa a '$_DC_QUERO'"
       fi
     else
-      # Sem arquivo é "sem tema"; um arquivo com o NOSSO nome e sem a marca é de
-      # terceiro, e a regra é a de sempre: pergunta, ou deixa pendência.
       local no_ar=""
       [ -f "$arq" ] && no_ar="$arq"
       meow_app_tema_no_ar discord "$no_ar" "$_DC_QUERO" "$_DC_DE" pergunte
@@ -202,7 +148,6 @@ meow_app_aplicar() {
       1) mudou=1; meow_seco || meow_ok "Discord: tema do pack em $pasta" ;;
       2) meow_erro "Discord: falhou ao escrever $arq"; return "$MEOW_ERRO" ;;
     esac
-    # E LIGADO no cliente, pela lista dele (P74 item 9). Com ele aberto, espera.
     ajustes="$(_dc_ajustes "$pasta")"
     if [ -n "$ajustes" ] && ! _dc_lista conferir "$ajustes"; then
       if _dc_aberto; then
@@ -222,7 +167,6 @@ meow_app_aplicar() {
 
   if [ "$mudou" = 1 ]; then
     meow_seco && return "$MEOW_DIVERGENTE"
-    # Só o BetterDiscord ainda pede o clique (ver o cabeçalho).
     grep -q '/BetterDiscord/themes$' <<< "$_DC_PASTAS" \
       && meow_info "no BetterDiscord, ligue '$_DC_NOME' em Configurações > Temas (vale ao reabrir o Discord)"
     return "$MEOW_DIVERGENTE"
@@ -232,16 +176,12 @@ meow_app_aplicar() {
   return "$MEOW_OK"
 }
 
-# Tira o nosso arquivo de toda pasta `themes/` onde ele estiver com a marca. Não
-# depende do pack nem do cliente instalado: é a marca que diz de quem ele é.
 meow_app_reverter() {
   local pasta arq mudou=0
   while IFS= read -r pasta; do
     [ -n "$pasta" ] || continue
     arq="$pasta/$_DC_ARQ_NOME"
     [ -n "$(_dc_marca "$arq")" ] || continue
-    # Desligado na lista do cliente antes de o arquivo sair (P74 item 9): um
-    # nome ligado sem arquivo é lixo na configuração dela.
     _dc_lista desligar "$(_dc_ajustes "$pasta")" >/dev/null 2>&1
     if meow_seco; then
       meow_muda "Discord: tiraria $arq"

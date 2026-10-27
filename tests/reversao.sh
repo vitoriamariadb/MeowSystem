@@ -1,24 +1,14 @@
 #!/usr/bin/env bash
-# O `--uninstall` desfaz TODO módulo de aplicativo, e não só os que alguém
-# lembrou de cobrir.
-#
-# POR QUE `declare -F` NUM SUBSHELL, E NÃO UM `grep` `grep -q meow_app_reverter`
-# passaria com a palavra dentro de um comentário — e este projeto tem cabeçalhos
-# que citam os nomes das funções o tempo todo.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 falhou=0
 
-# --- 1. o desinstalador chama o runner --------------------------------------
 if ! grep -qE 'aplicar_apps\.sh" reverter' "$RAIZ/lib/desinstalar.sh"; then
   printf 'FALHOU: lib/desinstalar.sh não chama "aplicar_apps.sh reverter"\n' >&2
   printf '        os temas por aplicativo ficariam na máquina depois do --uninstall\n' >&2
   falhou=1
 fi
 
-# --- 2. todo módulo sabe desfazer -------------------------------------------
-# `MEOW_IGNORA_DESKTOP=1` e o `lib/comum.sh` antes: os módulos são escritos para
-# serem `source` DEPOIS dele (usam meow_ok, MEOW_OK, meow_seco).
 for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
   if ! (
@@ -36,16 +26,6 @@ for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
   fi
 done
 
-# --- 3. toda unidade está nas DUAS listas do desinstalador -------------------
-# A lista NOMEADA é a do `systemctl --user disable --now`, e é a que apodrece:
-# o `find -name 'meow-*' -delete` pega qualquer unidade nova de graça, então
-# esquecer a outra metade não dá erro nenhum — dá processo órfão.
-#
-# Comparo contra `systemd/`, que é a fonte: é de lá que o `install.sh` copia
-# para `~/.config/systemd/user`. Uma unidade que exista no repositório e não
-# esteja na lista é o defeito; o contrário (nome na lista sem arquivo) é
-# inofensivo, porque `disable` de unidade inexistente é justamente o estado que
-# se quer, e o `|| true` de lá já conta isso.
 nomeadas="$(sed -n '/systemctl --user disable --now/,/2>\/dev\/null/p' \
               "$RAIZ/lib/desinstalar.sh" \
             | grep -oE 'meow-[a-z-]+\.(path|service|timer)' | sort -u)"
@@ -64,14 +44,6 @@ else
   done
 fi
 
-# --- 4. o motivo da pendência viaja junto com o código 3 --------------------
-#
-# Este arquivo já é o teste do CONTRATO dos módulos de aplicativo — do verbo que
-# um módulo novo esquece de escrever.
-#
-# A ESTÁTICA pega o caminho que esta máquina não percorre hoje: num módulo
-# migrado, NENHUMA saída-3 do `detectar` pode escapar do `meow_app_sem` — é ele
-# que guarda o motivo, e sair por outra porta é sair mudo.
 migrados=0
 for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
@@ -96,10 +68,6 @@ for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
     falhou=1
   fi
 
-  # Este comentário dizia que `detectar` é leitura pura e que rodá-lo "não
-  # escreve um byte na máquina de ninguém".
-  #
-  # Só o efeito colateral se desvia.
   medida="$(
     set +u
     MEOW_ESTADO="$(mktemp -d -p "${TMPDIR:-/tmp}" .meow-reversao.XXXXXX)"
@@ -121,7 +89,6 @@ for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
   fi
 done
 
-# --- 5. "instalado" é uma regra só, e o `detectar` a chama -----------------
 instalados=0
 for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
   nome="$(basename "$(dirname "$mod")")"
@@ -157,7 +124,6 @@ for mod in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
   fi
 done
 
-# E A GUARDA MORDE.
 guarda="$(
   set +u
   NO_COLOR=1

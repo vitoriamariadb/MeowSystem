@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# midia.sh — põe o applet de mídia patchado no lugar do que veio do flatpak.
-#
-#   ./midia.sh --conferir   não escreve; 1 se algo divergir
-#   ./midia.sh              instala a sombra e as chaves
-#   ./midia.sh --reverter   tira tudo e devolve o applet do flatpak
-#
-# O cosmic-panel acha os applets pelo BASENAME do `.desktop`, varrendo os
-# diretórios do XDG na ordem padrão — e `$XDG_DATA_HOME` (aqui `~/.local/share`)
-# vem ANTES de todo `XDG_DATA_DIRS`, inclusive do
-# `~/.local/share/flatpak/exports/share` de onde sai o applet dela hoje.
-#
-# Sombra presente + binário ausente = NENHUM applet na dock.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -33,13 +21,7 @@ FONTE="${MIDIA_FONTE:-auto}"
 COR_TITULO="${MIDIA_COR_TITULO:-mauve}"
 COR_ARTISTA="${MIDIA_COR_ARTISTA:-green}"
 CONTROLES="${MIDIA_CONTROLES:-nao}"
-# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-# Era `${FLAVOR:-mocha}`, o padrão de um pack só.
 _FLAVOR="$(meow_flavor)"
-# A paleta vem da porta única (lib/comum.sh). Era
-# `assets/paleta/catppuccin.json` cravado — e um nome cravado aqui faz este
-# script continuar lendo o Catppuccin enquanto o resto do projeto já mudou de
-# paleta, sem dar erro.
 PALETA="$(meow_paleta)"
 
 CONFERIR=0; REVERTER=0
@@ -51,10 +33,6 @@ case "${1:-}" in
 esac
 meow_seco && [ "$REVERTER" = 0 ] && CONFERIR=1
 
-# --- o que queremos no disco -------------------------------------------------
-# O `.desktop` mantém o BASENAME e o `Icon=` do flatpak: o painel casa pelo
-# nome do arquivo, e o ícone continua resolvendo pelo export do flatpak, que
-# segue instalado.
 _texto_sombra() {
   cat <<EOF
 [Desktop Entry]
@@ -86,9 +64,6 @@ _controles_valido() { [ "$CONTROLES" = "sim" ] || [ "$CONTROLES" = "nao" ]; }
 
 _capa_valor() { [ "$CAPA" = "sim" ] && printf 'true' || printf 'false'; }
 
-# Quem traduz é AQUI, não o applet: a paleta é a do PACK ATIVO (`meow_paleta`),
-# e embutir uma cópia dela no Rust criaria a segunda verdade que discorda no
-# dia em que ela trocar de flavor — ou de pack.
 _cor_hex() {
   local nome="$1"
   [ "$nome" = "auto" ] && { printf 'auto'; return 0; }
@@ -107,7 +82,6 @@ print(v.lower())
 
 _cor_nome_valido() { [ -n "$(_cor_hex "$1")" ]; }
 
-# `auto` = a escala tipográfica do painel (a mesma do relógio). Número = px.
 _fonte_valida() {
   [ "$FONTE" = "auto" ] && return 0
   case "$FONTE" in
@@ -116,7 +90,6 @@ _fonte_valida() {
   [ "$FONTE" -ge 6 ] && [ "$FONTE" -le 48 ]
 }
 
-# nome-do-arquivo <TAB> conteúdo desejado
 _chaves() {
   printf '%s\t%s\n' panel-text-width   "$LARGURA"
   printf '%s\t%s\n' panel-color-style  "$COR"
@@ -136,9 +109,6 @@ _pronto() {
     meow_aviso "MIDIA_COR_ALBUM=\"$COR\" não existe (use traco ou chapado) — confira o meow.conf"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  # Sem esta porta, um valor estranho caía no `else` do `_capa_valor` e
-  # DESLIGAVA a capa em silêncio — a queixa dela voltaria por um erro de
-  # digitação, sem nada na tela dizendo por quê.
   if ! _capa_valida; then
     meow_aviso "MIDIA_CAPA=\"$CAPA\" não existe (use sim ou nao) — confira o meow.conf"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -163,7 +133,6 @@ _pronto() {
 }
 
 _conferir() {
-  # (1) O FAIL-SAFE vem primeiro, porque é o estado que deixa a dock vazia.
   if [ -f "$SOMBRA" ] && [ ! -x "$BINARIO" ]; then
     meow_muda "a sombra do applet existe e o binário não — a dock ficaria SEM applet nenhum"
     return "$MEOW_DIVERGENTE"
@@ -174,15 +143,11 @@ _conferir() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  # (2) A sombra, comparada por CONTEÚDO e não com `cmp`. O `meow_escrever`
-  # grava com `printf '%s'` e come o `\n` final: um `cmp` acusaria divergência
-  # para sempre num arquivo perfeito.
   if [ ! -f "$SOMBRA" ] || [ "$(_texto_sombra)" != "$(cat "$SOMBRA" 2>/dev/null)" ]; then
     meow_muda "a sombra do applet de mídia não está no lugar ($SOMBRA)"
     return "$MEOW_DIVERGENTE"
   fi
 
-  # (3) As chaves.
   local nome valor
   while IFS=$'\t' read -r nome valor; do
     [ -f "$CONFIG/$nome" ] || { meow_muda "falta a chave $nome do applet de mídia"; return "$MEOW_DIVERGENTE"; }
@@ -192,19 +157,11 @@ _conferir() {
     }
   done <<< "$(_chaves)"
 
-  # (4) A escolha dela sobre a cor, migrada uma vez do sandbox do flatpak.
   if [ -f "$SANDBOX/album-color-enabled" ] && [ ! -f "$CONFIG/album-color-enabled" ]; then
     meow_muda "a sua preferência de cor de álbum ainda está dentro do sandbox do flatpak"
     return "$MEOW_DIVERGENTE"
   fi
 
-  # (5) Aviso, nunca divergência — ver o cabeçalho.
-  # `-fx`, e NÃO `-x`. MEDIDO em 24/08/2026: `cosmic-ext-applet-now-playing` tem
-  # 29 caracteres e o `-x` compara com o `comm`, que o kernel corta em 15 — o
-  # pgrep até avisa ("vai resultar em zero correspondências"), mas para stderr,
-  # dentro de um `2>/dev/null`. O ramo inteiro era código morto: nunca casava,
-  # então nunca avisava. Um aviso que não dispara é pior que aviso nenhum,
-  # porque o silêncio dele é lido como "está tudo bem".
   if ! pgrep -f "$BINARIO" >/dev/null 2>&1 \
      && pgrep -fx cosmic-ext-applet-now-playing >/dev/null 2>&1; then
     meow_aviso "quem está rodando ainda é o applet do flatpak — o nosso sobe no próximo login"
@@ -214,11 +171,9 @@ _conferir() {
   return "$MEOW_OK"
 }
 
-# --- aplicação ---------------------------------------------------------------
 _aplicar() {
   local mudou=0 rc
 
-  # O FAIL-SAFE é a única coisa que roda mesmo sem binário, e ele REMOVE.
   if [ -f "$SOMBRA" ] && [ ! -x "$BINARIO" ]; then
     if meow_seco; then
       meow_muda "removeria a sombra órfã $SOMBRA (o binário sumiu)"
@@ -226,9 +181,6 @@ _aplicar() {
     fi
     rm -f "$SOMBRA"
     meow_aviso "a sombra estava órfã e foi removida — o applet do flatpak volta no próximo login"
-    # [16/10/2026, QA final da leva H: era a receita «MIDIA_COMPILAR=1 …/
-    #  midia_build.sh», com o caminho do clone, vista no painel. O conserto do
-    #  doctor compila o applet (a P76 tirou o `midiabin` do SEM_CONSERTO).]
     meow_info "  o nosso volta quando o conserto compilar o applet"
     return "$MEOW_DIVERGENTE"
   fi
@@ -238,9 +190,6 @@ _aplicar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  # A ORDEM IMPORTA: chaves e migração ANTES da sombra. Se a sombra entrasse
-  # primeiro e a escrita das chaves falhasse, o próximo login subiria o applet
-  # novo com os padrões de fábrica, e ela veria a mudança errada.
   local nome valor
   while IFS=$'\t' read -r nome valor; do
     meow_escrever "$CONFIG/$nome" "$valor" 644
@@ -284,10 +233,6 @@ _aplicar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- reversão ----------------------------------------------------------------
-# A ORDEM É A METADE DO VALOR: a sombra sai PRIMEIRO, para que o flatpak
-# reassuma o slot; só depois o binário. O contrário abriria a janela em que a
-# dock fica sem applet nenhum — o mesmo buraco que o fail-safe existe para tapar.
 _reverter() {
   local mexeu=0
   if meow_seco; then
@@ -303,8 +248,6 @@ _reverter() {
   [ -e "$BINARIO" ] && { rm -f "$BINARIO"; mexeu=1; }
   [ -d "$ESTADO" ] && { rm -rf "$ESTADO"; mexeu=1; }
   [ -d "$CACHE" ] && { rm -rf "$CACHE"; mexeu=1; }
-  # As chaves ficam: são preferência dela, e o applet do flatpak não as lê.
-  # Apagá-las faria uma reinstalação perder a largura e a cor que ela escolheu.
 
   if [ "$mexeu" = 0 ]; then
     meow_pula "não havia applet de mídia nosso para remover"
@@ -317,9 +260,6 @@ _reverter() {
 main() {
   [ "$REVERTER" = 1 ] && { _reverter; return $?; }
   if [ "$MIDIA" != "sim" ]; then
-    # Desligar tem de DESLIGAR. Deixar de instalar manteria de pé a sombra que
-    # uma execução anterior escreveu, e o sintoma seria "desliguei e continua",
-    # que é o pior de todos porque não há onde olhar.
     if [ -f "$SOMBRA" ] || [ -x "$BINARIO" ]; then
       meow_muda "MIDIA=\"$MIDIA\" no meow.conf, mas o applet nosso continua instalado"
       [ "$CONFERIR" = 1 ] && return "$MEOW_DIVERGENTE"

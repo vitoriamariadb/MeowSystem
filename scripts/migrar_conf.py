@@ -49,8 +49,6 @@ import re
 import sys
 from pathlib import Path
 
-# `NOME=` no começo da linha. Aceita `export`, que o shell permite e que um
-# arquivo editado à mão pode muito bem ter.
 CHAVE = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=")
 
 
@@ -58,27 +56,13 @@ def chaves_de(texto: str) -> set[str]:
     return {m.group(1) for l in texto.splitlines() if (m := CHAVE.match(l))}
 
 
-# `WALLPAPER_FONTES_DELA` era o nome de uma chave que a tela mostra («casa pelo
-# nome no arquivo»), herança de quando o projeto era de uma pessoa só.
-#
-# O painel (`app/servidor.py`) lê esta tabela daqui, por caminho — uma segunda
-# tabela lá seria a armadilha nº 3 deste repositório.
 RENOMEADAS = {"WALLPAPER_FONTES_DELA": "WALLPAPER_FONTES_PERMITIDAS"}
 
 
-# A decisão virou um COMENTÁRIO no meow.conf dela, e a chave continuou no
-# exemplo. Sete auto-reparos seguidos pularam as pastas.
-#
-# A cura é ter onde dizer "esta chave saiu": uma aposentada nunca é devolvida,
-# mesmo que um exemplo velho ainda a traga, e a linha ATIVA dela sai do
-# arquivo dela — é a única remoção deste script.
 APOSENTADAS = {
     "ICONES_BASE": "a base de ícones vem do pack, pinada, por decisão de 24/09/2026",
 }
 
-# A linha ativa saía (acima), e o comentário que o exemplo pôs em cima dela
-# ficava no arquivo dela sem chave embaixo: no desta casa, dois blocos «# @
-# Tema de onde herdar», um com a nota escrita à mão colada no fim.
 BLOCOS_APOSENTADOS = {
     "ICONES_BASE": """# @ Tema de onde herdar
 # > De qual tema instalado o nosso puxa o que ele mesmo não desenha.
@@ -104,21 +88,12 @@ BLOCOS_APOSENTADOS = {
 }
 
 
-# O primeiro vestia a máquina com o acervo do outro pack («123 tipos de arquivo
-# já vestidos de Catppuccin macchiato»); o segundo ficava para trás na troca de
-# pack.
-#
-# Fora da troca não há como saber se o ponteiro de outro pack é resto ou escolha
-# — os dois são o mesmo texto no arquivo —, e por isso o doctor não mexe nele.
 VESTIGIOS = ("ICONES_FLAVOR", "ICONES_PASTAS")
 _VALOR = r'("(?:[^"\\]|\\.)*"|\'[^\']*\'|[^\s#]*)'
-# O que vem do pack (ponteiro, mascote) só entra no meow.conf, que o bash lê com
-# `source`, se for nome: aspas, `$(` e crase seriam código.
 RE_NOME = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]*$")
 
 
 def _valor_cru(texto: str, chave: str) -> str | None:
-    """O valor da ÚLTIMA atribuição de `chave`, sem as aspas; None sem linha."""
     achado = None
     for m in re.finditer(r"(?m)^\s*(?:export\s+)?" + re.escape(chave) + "=" + _VALOR, texto):
         achado = m.group(1)
@@ -130,7 +105,6 @@ def _valor_cru(texto: str, chave: str) -> str | None:
 
 
 def _trocar_valor(texto: str, chave: str, valor: str) -> str:
-    """O valor da ÚLTIMA linha de `chave` trocado, com o comentário dela intacto."""
     linhas = list(re.finditer(r"(?m)^(\s*(?:export\s+)?" + re.escape(chave) + "=)" + _VALOR, texto))
     m = linhas[-1]
     return texto[:m.start(2)] + '"%s"' % valor + texto[m.end(2):]
@@ -150,7 +124,6 @@ def _pack():
 
 
 def vestigios(texto: str, exemplo: str, antes: tuple[str, str] | None = None) -> tuple[str, list[str]]:
-    """(texto, ["CHAVE (de -> para)"]) — os vestígios de pack devolvidos ao pack no ar."""
     pack_cru, flavor_cru = _valor_cru(texto, "PACK") or "", _valor_cru(texto, "FLAVOR") or ""
     accent = _valor_cru(texto, "ACCENT") or ""
     if "$" in pack_cru + flavor_cru + accent:
@@ -193,8 +166,6 @@ def vestigios(texto: str, exemplo: str, antes: tuple[str, str] | None = None) ->
     return texto, feitas
 
 
-# O mascote de fábrica do pack de antes vira o do pack novo, fase a fase; o que
-# ela escolheu fica. O `LOGO` é o do modo fixo.
 MASCOTE = (("LOGO", ("dia", "noite")), ("LOGO_DIA", ("dia",)), ("LOGO_NOITE", ("noite",)),
            ("FASTFETCH_LOGO_GATO", ("dia", "noite")))
 
@@ -220,7 +191,6 @@ def _mascote_junto(pack, texto, antes, ident, feitas):
 
 
 def aposentar(texto: str) -> tuple[str, list[str]]:
-    """(texto, [nomes]) — sem as linhas ativas das chaves aposentadas."""
     tiradas = []
     linhas = texto.splitlines(keepends=True)
     fica = []
@@ -235,11 +205,6 @@ def aposentar(texto: str) -> tuple[str, list[str]]:
 
 
 def tirar_blocos_orfaos(texto: str) -> tuple[str, list[str]]:
-    """(texto, [nomes]) — sem os blocos do exemplo que ficaram sem a aposentada.
-
-    O corte começa no `# @` do bloco e anda enquanto a linha é a mesma do
-    bloco antigo; só conta com o título e mais uma linha iguais. Uma linha em
-    branco que sobraria dobrada (antes e depois do corte) sai junto."""
     linhas = texto.split("\n")
     tirados = []
     for chave, bloco in BLOCOS_APOSENTADOS.items():
@@ -265,12 +230,6 @@ def tirar_blocos_orfaos(texto: str) -> tuple[str, list[str]]:
 
 
 def renomear(texto: str) -> tuple[str, list[str]]:
-    """(texto, ["ANTIGO -> NOVO"]) — o nome antigo trocado pelo novo, na linha.
-
-    Só quando o arquivo ainda NÃO tem o nome novo: com os dois presentes o novo
-    já vence (ver `RENOMEADAS`), e renomear o antigo daria duas linhas da mesma
-    chave, onde a última atribuição — talvez a velha — passaria a mandar.
-    """
     atuais = chaves_de(texto)
     feitas = []
     for antigo, novo in RENOMEADAS.items():
@@ -283,13 +242,6 @@ def renomear(texto: str) -> tuple[str, list[str]]:
 
 
 def blocos_faltando(exemplo: str, atuais: set[str]) -> list[tuple[str, str]]:
-    """Devolve [(nome, bloco)] das chaves do exemplo que faltam no arquivo dela.
-
-    O bloco é a chave mais o comentário colado acima dela. "Colado" importa: a
-    varredura para atrás só atravessa linhas que começam com `#`, e uma linha em
-    branco encerra o bloco. Sem isso, a primeira chave de uma seção arrastaria
-    junto o cabeçalho `# --- Aparência ---` da seção inteira.
-    """
     linhas = exemplo.splitlines()
     achados: list[tuple[str, str]] = []
     for i, linha in enumerate(linhas):
@@ -321,14 +273,11 @@ def main() -> int:
         print(f"ERRO: {args.exemplo} não existe", file=sys.stderr)
         return 2
     if not args.conf.is_file():
-        # Sem arquivo dela não há o que migrar: quem cria é o install.sh, e
-        # criar aqui também seria a mesma decisão em dois lugares.
         return 0
 
     exemplo = args.exemplo.read_text(encoding="utf-8")
     atual = args.conf.read_text(encoding="utf-8")
 
-    # O nome antigo vira o novo ANTES da conta do que falta — ver `RENOMEADAS`.
     if args.so_vestigios:
         aposentadas, renomeadas, faltando, orfaos = [], [], [], []
     else:
@@ -356,14 +305,9 @@ def main() -> int:
             print("comentário do exemplo sem a chave aposentada embaixo: " + ", ".join(orfaos))
         return 1
 
-    # Vão para o FIM, numa seção que se identifica. Tentar encaixar cada chave
-    # na seção "certa" exigiria casar os cabeçalhos do exemplo com os dela — e o
-    # arquivo dela pode ter sido reorganizado à mão.
     novo = atual
     if faltando:
         corpo = "\n\n".join(bloco for _, bloco in faltando)
-        # A frase do cabeçalho não pode mentir quando algo mudou acima: um nome
-        # trocado (`RENOMEADAS`) ou a linha de uma aposentada que saiu.
         acima = []
         if renomeadas:
             acima.append(f"só o NOME de {', '.join(renomeadas)} mudou, com o valor de antes")
@@ -383,8 +327,6 @@ def main() -> int:
             f"{corpo}\n"
         )
 
-    # Temporário no MESMO diretório: `replace` só é atômico dentro de um sistema
-    # de arquivos, e uma queda no meio deixaria ela sem configuração nenhuma.
     tmp = args.conf.with_suffix(args.conf.suffix + ".tmp")
     tmp.write_text(novo, encoding="utf-8")
     tmp.replace(args.conf)

@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-# tests/restaurar.sh — o «Restaurar» do painel, uma ação por vez.
-#
-# Para cada ação do painel que escreve: fotografa a casa de brinquedo, roda a
-# ação pelo `iniciar` do servidor (com o `MEOW_BACKUPS` da execução), roda o
-# «Restaurar» dela e fotografa de novo. A casa tem de voltar byte a byte ao que
-# era. Ação que não mudou nada não pode deixar «Restaurar»; ação que só lê não
-# pode ter um.
-#
-# Casa e árvore de brinquedo; sudo, pkexec, su, apt, apt-get, cargo, just,
-# make, rustup, curl, wget, pkill e systemctl de escrita recusam; sem barramento.
-#
-#   tests/restaurar.sh [acao ...]     só as ações dadas
-#
-# 0 = passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -39,7 +25,6 @@ echo "systemctl \$*" >> "$TMP/recusas.log"; exit 1
 FIM
 chmod 755 "$TMP/falso/systemctl"
 
-# A árvore copiada: um script que escreva no repositório escreve na cópia.
 git -C "$RAIZ" ls-files -z --cached --others --exclude-standard \
   | (cd "$RAIZ" && tar --null -T - -cf - 2>/dev/null) | tar -xf - -C "$TMP/raiz" || exit 2
 
@@ -64,9 +49,6 @@ sv = importlib.util.module_from_spec(spec)
 sys.argv = [sys.argv[0]]
 spec.loader.exec_module(sv)
 
-# O Restaurar devolve a máquina, e não a contabilidade do próprio motor: o
-# estado em ~/.local/state/meowsystem (registros, marcas de «antes», medidas,
-# temas gerados, árvores de build) fica fora da foto, como o cache.
 FORA = [sv.ESTADO, os.path.join(casa, ".cache")]
 
 

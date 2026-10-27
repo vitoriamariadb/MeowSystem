@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# arvore.sh — a fronteira entre o que o MeowSystem É e o que ele VESTE.
-#
-# A pergunta é "isto está VERSIONADO?", e só o `git ls-files` responde. Aqui a
-# ferramenta é a que sabe a resposta.
-#
-# 0 = passou · 1 = falhou · 2 = erro deste teste.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -18,8 +12,6 @@ git -C "$RAIZ" rev-parse --git-dir >/dev/null 2>&1 || {
 
 versionados() { git -C "$RAIZ" ls-files -- "$@"; }
 
-# Mostra no máximo cinco caminhos e diz quantos sobraram. Uma falha que despeja
-# trezentas linhas é uma falha que ninguém lê até o fim.
 amostra() {
   local n=0 linha
   while IFS= read -r linha; do
@@ -33,13 +25,6 @@ amostra() {
 
 printf 'a fronteira: assets/ é o motor, packs/ é o tema\n\n'
 
-# --- 1. NADA DE TEMA EM assets/temas/, MENOS A `original` -------------------
-#
-# Ela não é tema de pack nenhum: é o MOLDE do esquema v1 que o COSMIC de
-# 04/2026 escrevia — o `scripts/gerar_tema_v1.py` deriva dela chave por chave —
-# e é o reset de fábrica DESTA máquina.
-#
-# ENTÃO ESTE TESTE NÃO COBRA "assets/temas VAZIO".
 fora=$(versionados assets/temas | grep -v '^assets/temas/capturados/original/' || true)
 if [ -z "$fora" ]; then
   ok "assets/temas/ só tem a captura 'original' ($(versionados assets/temas | wc -l) arquivos, o molde do v1)"
@@ -48,14 +33,6 @@ else
   printf '%s\n' "$fora" | amostra
 fi
 
-# --- 2. NENHUM .ron VERSIONADO EM assets/ OU packs/ -------------------------
-#
-# O `.ron` é PRODUTO: entra a paleta do pack mais o `cosmic-map.json`, sai o
-# arquivo.
-#
-# `docs/` FICA DE FORA DA REGRA, E DE PROPÓSITO: o
-# `docs/historico/estilo-escuro-original.ron` é o `cosmic-dark` de fábrica,
-# guardado como REGISTRO do que havia antes deste projeto.
 rons=$(versionados 'assets/*.ron' 'packs/*.ron' || true)
 if [ -z "$rons" ]; then
   ok "nenhum .ron versionado em assets/ nem em packs/ — produto gerado mora em \$MEOW_ESTADO/temas/"
@@ -64,9 +41,6 @@ else
   printf '%s\n' "$rons" | amostra
 fi
 
-# --- 3. assets/icones/upstream/ SEM NADA NO GIT -----------------------------
-#
-# Não havia o que tirar.
 n_up=$(versionados assets/icones/upstream | wc -l)
 if [ "$n_up" = "0" ]; then
   ok "assets/icones/upstream/ tem 0 arquivos versionados — é acervo baixado, e o que se versiona é o script que baixa"
@@ -75,11 +49,6 @@ else
   versionados assets/icones/upstream | amostra
 fi
 
-# --- 4. TODA CAPTURA DE PACK ESTÁ ONDE O RESOLVEDOR A PROCURA ---------------
-#
-# O `docs/PACKS.md` publica o caminho
-# `packs/<id>/temas/capturados/<flavor>-<accent>/`, e é ele que o
-# `scripts/pack.py captura` procura.
 achadas=0
 while IFS= read -r par; do
   [ -n "$par" ] || continue
@@ -100,9 +69,6 @@ done < <(versionados 'packs/*/temas/capturados/*' \
   && ok "as $achadas capturas dos packs são exatamente as que o pack.py resolve" \
   || falha "nenhum pack traz captura — o docs/PACKS.md promete que eles podem"
 
-# --- 5. NENHUM ARQUIVO DE TEMA SOLTO EM assets/, POR NOME DE FLAVOR ---------
-#
-# A LISTA DE FLAVORS VEM DO DISCO, e não escrita aqui.
 flavors=$(python3 - "$RAIZ" <<'PY'
 import glob, json, os, sys
 raiz = sys.argv[1]
@@ -140,17 +106,10 @@ else
   fi
 fi
 
-# --- 6. O QUE O CREDITOS.md, O PACKS.md E O PROCEDENCIA.md APONTAM EXISTE ----
-#
-# A coluna «onde» do CREDITOS.md e a saída medida do `captura-destino` no
-# PACKS.md ficaram nas pastas de antes da P96 (`packs/catppuccin/`, as
-# subpastas `arcticons/` e `convertidos/`). Um caminho entre crases que começa
-# em `packs/` ou `assets/` ali é do git de hoje.
 sumidos=""
 while IFS= read -r c; do
   [ -n "$(versionados "$c")" ] || sumidos+="docs/CREDITOS.md: $c"$'\n'
 done < <(grep -oE '`(packs|assets)/[^`<>*{} :]+`' "$RAIZ/docs/CREDITOS.md" | tr -d '`' | sort -u)
-# A coluna «onde» da tabela de acervos do PROCEDENCIA.md do pack-base, idem.
 while IFS= read -r c; do
   [ -n "$(versionados "$c")" ] || sumidos+="packs/meowsystem/PROCEDENCIA.md: $c"$'\n'
 done < <(awk -F'|' '/^\| acervo \| onde /{t=1; next} t && !/^\|/{t=0} t{print $3}' \

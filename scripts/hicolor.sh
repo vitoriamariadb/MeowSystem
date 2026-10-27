@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-# hicolor.sh — o `index.theme` do hicolor DELA esconde metade dos próprios ícones.
-#
-# O `~/.local/share/icons/hicolor/index.theme` declarava QUATRO seções —
-# `48x48/apps`, `128x128/apps`, `256x256/apps`, `512x512/apps` — enquanto a
-# pasta tinha TREZE tamanhos no disco (16, 20, 22, 24, 32, 40, 48, 64, 96, 128,
-# 192, 256, 512) mais `scalable`.
-#
-#   Um ícone que só existe num tamanho não declarado é INVISÍVEL: o resolvedor
-#   não varre o disco, ele varre as seções do index.theme. E dois ícones de jogo
-#   caíam exatamente aí:
-#       steam_icon_2369580   só em 32x32   -> "Mad King Redemption.desktop"
-#       steam_icon_1657740   só em 32x32
-#   Junto com eles sumiam `shadps4-cosmic` (só em `scalable`) e os tamanhos
-#   pequenos de `fogstripper` e `hefesto-dualsense4unix`.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,9 +10,6 @@ INDEX="$BASE/index.theme"
 
 [ -d "$BASE" ] || { meow_pula "não há hicolor do usuário em $BASE — nada a fazer"; exit "$MEOW_OK"; }
 
-# freedesktop icon-theme spec §Context. O que não estiver aqui vira Applications,
-# que é o contexto mais permissivo — errar o Context não esconde o ícone, mas
-# omitir a seção esconde.
 contexto_de() {
   case "$1" in
     apps)       echo Applications ;;
@@ -44,8 +27,6 @@ contexto_de() {
   esac
 }
 
-# Varre <tamanho>/<contexto> e devolve só os pares que TÊM arquivo. Pasta vazia
-# vira seção morta: não quebra nada, mas mente sobre o que o tema oferece.
 pares_com_icone() {
   local d ctx
   for d in "$BASE"/*/; do
@@ -54,16 +35,12 @@ pares_com_icone() {
     for ctx in "$BASE/$d"/*/; do
       [ -d "$ctx" ] || continue
       ctx="${ctx%/}"; ctx="$(basename "$ctx")"
-      # `-print -quit` para na primeira: uma pasta com 400 ícones não precisa
-      # ser contada inteira só para responder "tem algum?".
       [ -n "$(find "$BASE/$d/$ctx" -maxdepth 1 -type f -print -quit 2>/dev/null)" ] || continue
       printf '%s/%s\n' "$d" "$ctx"
     done
   done | sort -u
 }
 
-# Ordena por tamanho crescente, com `scalable` por último. Não é cosmético: o
-# resolvedor do COSMIC percorre as seções NA ORDEM e a primeira que sirva ganha.
 ordenar() {
   while IFS= read -r p; do
     local dir="${p%%/*}"
@@ -83,9 +60,6 @@ fi
 
 gerar_index() {
   local p dir ctx tam
-  # `Hidden=true` é do spec: o hicolor é o fallback, não deve aparecer na lista de
-  # temas escolhíveis. O arquivo dela já tinha, e tirar isso o faria brotar nas
-  # Configurações como se fosse um tema de verdade.
   printf '[Icon Theme]\n'
   printf 'Name=Hicolor\n'
   printf 'Comment=Fallback Icon Theme\n'
@@ -96,8 +70,6 @@ gerar_index() {
     dir="${p%%/*}"; ctx="${p##*/}"
     printf '\n[%s]\n' "$p"
     if [ "$dir" = "scalable" ]; then
-      # Size é obrigatório MESMO em Scalable (é a regra do parse: seção sem Size
-      # corta a lista ali). 128 é o tamanho nominal; Min/Max é o alcance real.
       printf 'Size=128\n'
       printf 'MinSize=8\n'
       printf 'MaxSize=512\n'
@@ -113,9 +85,6 @@ gerar_index() {
 
 NOVO="$(gerar_index)"
 
-# Outros programas plantam ícone no hicolor da casa (a Steam, o Heroic, apps
-# do home) sem reindexar, e o GTK confia na cache velha. `-mindepth 1` porque o
-# próprio gtk-update-icon-cache mexe no mtime da raiz ao gravar.
 _hicolor_cache_velha() {
   [ -f "$BASE/icon-theme.cache" ] \
     && [ -n "$(find "$BASE" -mindepth 1 -newer "$BASE/icon-theme.cache" -print -quit 2>/dev/null)" ]
@@ -138,12 +107,8 @@ if [ -f "$INDEX" ] && [ "$NOVO" = "$(cat "$INDEX" 2>/dev/null)" ]; then
   exit "$MEOW_OK"
 fi
 
-# Quantas ficariam de fora do jeito que está — é este número que explica o
-# sintoma para quem ler o log daqui a seis meses.
 antes=0
 if [ -f "$INDEX" ]; then
-  # Sem `|| echo 0`: o `grep -c` já imprime 0 quando nada casa (e sai 1), e o
-  # `echo` somava outro 0 embaixo. O `:-0` cobre o arquivo ilegível.
   antes="$(grep -cE '^\[[^]]+/[^]]+\]' "$INDEX" 2>/dev/null)"; antes="${antes:-0}"
 fi
 
@@ -152,9 +117,6 @@ if meow_seco; then
   exit "$MEOW_DIVERGENTE"
 fi
 
-# BACKUP: este arquivo não é nosso. Mesmo padrão dos módulos de aplicativo —
-# pasta carimbada e `origens.txt` com o caminho absoluto, para o desfazer saber
-# de onde cada cópia veio.
 if [ -f "$INDEX" ]; then
   DIR_BK="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/backups/${MEOW_CARIMBO:-$(date +%Y-%m-%dT%H-%M-%S)}"
   mkdir -p "$DIR_BK"
@@ -165,9 +127,6 @@ fi
 meow_escrever "$INDEX" "$NOVO" 644
 case $? in 2) meow_erro "não consegui escrever $INDEX"; exit "$MEOW_ERRO" ;; esac
 
-# A cache tem a MESMA doença da cache do nosso tema (ver completar_icones.sh §3b):
-# se existe, o GTK confia nela e ignora o disco. Como acabamos de mudar quais
-# pastas contam, uma cache velha manteria o sintoma inteiro de pé.
 CACHE="$BASE/icon-theme.cache"
 if [ -f "$CACHE" ]; then
   if meow_tem gtk-update-icon-cache; then

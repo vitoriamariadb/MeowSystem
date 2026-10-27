@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
-# applet_pino.sh — os applets do meow seguem o libcosmic do PAINEL instalado.
-#
-# Os dois applets compilam contra o libcosmic 1f6dc99, pinado em agosto. O
-# painel que os carrega é compilado pelo Pop contra outro. O applet fala com o
-# painel pelo protocolo do libcosmic, e um pino que não anda é um applet que um
-# dia não sobe — e ninguém sabe por quê.
-#
-# O doctor das 5h, que roda sem rede às vezes, lê a guarda; sem guarda e sem
-# rede, o alvo é o pino.
 set -uo pipefail
 
 if [ -z "${MEOW_RAIZ:-}" ]; then
@@ -19,10 +10,7 @@ declare -F meow_ok >/dev/null 2>&1 || . "$MEOW_RAIZ/lib/comum.sh"
 AP_GUARDA="${AP_GUARDA:-$MEOW_ESTADO/painel-libcosmic.tsv}"
 AP_FALHAS="${AP_FALHAS:-$MEOW_ESTADO/applet-pino-falhas.tsv}"
 AP_BASE="${AP_BASE:-$MEOW_ESTADO/applet-pino-base.tsv}"
-# O `Cargo.lock` do painel, para o teste trocar a rede por um arquivo.
 AP_LOCK_PAINEL="${AP_LOCK_PAINEL:-}"
-# CONFERIR NÃO ESCREVE: o `--conferir` dos dois builds (a linha do doctor) põe 1
-# aqui, e a guarda da revisão e a base só se gravam numa passagem que aplica.
 AP_SO_LER="${AP_SO_LER:-0}"
 _ap_pode_gravar() { ! meow_seco && [ "$AP_SO_LER" != "1" ]; }
 
@@ -46,15 +34,11 @@ ap_rev_painel() {
   printf '%s' "$rev"
 }
 
-# 0 = o applet <nome> já falhou ao compilar na revisão <rev>.
 ap_ja_falhou() { awk -F'\t' -v n="$1" -v r="$2" '$1==n && $2==r {achou=1} END {exit !achou}' "$AP_FALHAS" 2>/dev/null; }
 
-# A base de um applet: "<painel><TAB><alvo>", ou vazio.
 _ap_base() { awk -F'\t' -v n="$1" '$1==n {b=$2"\t"$3} END {if (b!="") print b}' "$AP_BASE" 2>/dev/null; }
 
-# Grava a base de um applet (troca a linha dele). Chamado depois de um build que
-# deu certo, e na adoção da regra 3.
-ap_registrar() { # $1 nome $2 painel $3 alvo
+ap_registrar() {
   local tmp
   _ap_pode_gravar || return 0
   mkdir -p "${AP_BASE%/*}" || return 1
@@ -62,7 +46,7 @@ ap_registrar() { # $1 nome $2 painel $3 alvo
   { awk -F'\t' -v n="$1" '$1!=n' "$AP_BASE" 2>/dev/null; printf '%s\t%s\t%s\n' "$1" "$2" "$3"; } > "$tmp" && mv -f "$tmp" "$AP_BASE"
 }
 
-ap_alvo() { # $1 nome $2 rev do pino
+ap_alvo() {
   local painel base b_painel b_alvo
   painel="$(ap_rev_painel)" || { printf '%s' "$2"; return 0; }
   base="$(_ap_base "$1")"
@@ -80,15 +64,13 @@ ap_alvo() { # $1 nome $2 rev do pino
   fi
 }
 
-# Depois de um build que deu certo contra <alvo>: a base passa a ser o painel
-# de agora. Sem painel conhecido, nada a gravar.
-ap_compilou() { # $1 nome $2 alvo
+ap_compilou() {
   local painel
   painel="$(ap_rev_painel)" || return 0
   ap_registrar "$1" "$painel" "$2"
 }
 
-ap_falhou() { # $1 nome $2 rev
+ap_falhou() {
   _ap_pode_gravar || return 0
   ap_ja_falhou "$1" "$2" && return 0
   mkdir -p "${AP_FALHAS%/*}" && printf '%s\t%s\t%s\n' "$1" "$2" "$(date -Is)" >> "$AP_FALHAS"
@@ -115,7 +97,6 @@ EOF
   return "$MEOW_OK"
 }
 
-# Lido com `.`: só as funções.
 [ "${BASH_SOURCE[0]}" = "$0" ] || return 0
 
 case "${1:-conferir}" in

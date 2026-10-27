@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# higiene.sh — o gancho de commit do repositório, chamado pelo pre-commit global.
-#
-# 1. comentário de registro (id de sprint, data, conferência, nome de ferramenta
-#    de IA) sai das linhas que o commit toca; o porquê fica;
-# 2. número que o tests/numeros.sh sabe contar é corrigido e entra no commit;
-# 3. frase velha e caminho de máquina barram o commit (tests/frases-velhas.sh,
-#    tests/portabilidade.sh).
-#
-# Determinístico, sem rede. Os testes leem a árvore de trabalho, não o índice.
-# 0 = pode commitar · 1 = barrado.
 set -uo pipefail
 RAIZ="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$RAIZ" || exit 0
@@ -16,7 +6,6 @@ cd "$RAIZ" || exit 0
 mapfile -t STAGED < <(git diff --cached --name-only --diff-filter=ACM)
 [ "${#STAGED[@]}" -gt 0 ] || exit 0
 
-# Intervalos "ini-fim" das linhas novas de um arquivo no índice.
 intervalos() {
   git diff --cached -U0 -- "$1" | awk '
     /^@@/ { split($3, a, ","); ini = substr(a[1], 2) + 0; n = (a[2] == "" ? 1 : a[2] + 0)
@@ -24,18 +13,13 @@ intervalos() {
 }
 
 for f in "${STAGED[@]}"; do
-  case "$f" in
-    bin/*|lib/*|scripts/*|app/*|tests/*|src/*|install.sh) ;;
-    *) continue ;;
-  esac
   [ -f "$f" ] || continue
-  # Com mudança fora do índice, o `git add` levaria junto o que não foi pedido.
   git diff --quiet -- "$f" || continue
   faixa="$(intervalos "$f")"
   [ -n "$faixa" ] || continue
-  case "$(python3 scripts/comentarios.py enxugar --linhas "$faixa" "$f")" in
-    mudou*)    git add -- "$f"; printf 'higiene: comentário de registro reduzido em %s\n' "$f" ;;
-    recusado*) printf 'higiene: %s não foi enxugado (o código mudaria)\n' "$f" ;;
+  case "$(python3 scripts/comentarios.py zerar --linhas "$faixa" "$f")" in
+    mudou*)    git add -- "$f"; printf 'higiene: comentário tirado de %s\n' "$f" ;;
+    recusado*) printf 'higiene: %s ficou com comentário (o código mudaria)\n' "$f" ;;
   esac
 done
 

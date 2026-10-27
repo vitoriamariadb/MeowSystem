@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# cadeia-de-atualizacao.sh — os builds sobrevivem à cadeia inteira de
-# manutenção dela?
-#
-# O QUE ESTE TESTE SIMULA, PASSO A PASSO, num HOME de brinquedo Cada passo de
-# apt toca o carimbo do hook, e o `.path` acorda o pós-apt: aqui isso é chamar
-# o `scripts/cosmic_pos_apt.sh` depois do passo.
-#
-# Nada de sudo, systemd, rede nem cargo de verdade: os falsos recusam.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -22,7 +14,6 @@ for c in sudo pkexec apt systemctl systemd-run pkill killall notify-send rustup;
   chmod 755 "$T/bin/$c"
 done
 
-# --- os programas de fora, falsos --------------------------------------------
 cat > "$T/bin/dpkg-query" <<FIM
 #!/bin/sh
 fmt=""; pacotes=""
@@ -38,7 +29,6 @@ for p in \$pacotes; do
   esac
 done
 FIM
-# O apt-get só serve fonte, e só com a versão (`pacote=versão`).
 cat > "$T/bin/apt-get" <<FIM
 #!/bin/sh
 [ "\$1" = source ] || { echo "recusado: apt-get \$*" >> "$T/recusados"; exit 1; }
@@ -53,7 +43,6 @@ case "\$p" in
   *) exit 1 ;;
 esac
 FIM
-# O fonte de cada versão traz a receita que o arquivo `receita` diz.
 cat > "$T/bin/dpkg-source" <<FIM
 #!/bin/sh
 [ "\$1" = -x ] || exit 1
@@ -67,7 +56,6 @@ case "\$(cat "$T/receita")" in
         printf 'build-vendored *args: vendor-extract\n' > "\$d/cargo.just" ;;
 esac
 FIM
-# make, just e cargo: o binário é o fonte patchado (o marcador vai junto).
 for c in make just; do
   cat > "$T/bin/$c" <<FIM
 #!/bin/sh
@@ -88,7 +76,6 @@ esac
 FIM
 chmod 755 "$T/bin"/*
 
-# --- a série de brinquedo: um `req` que põe o marcador -----------------------
 mkdir -p "$T/pa/a/src" "$T/pa/b/src" "$T/patches"
 printf 'fn main() {}\n// MEOW-ALVO\n' > "$T/pa/a/src/main.rs"
 printf 'fn main() {}\n// MEOW-ALVO\n// MEOW-T-PATCH-1\n' > "$T/pa/b/src/main.rs"
@@ -96,8 +83,7 @@ printf 'fn main() {}\n// MEOW-ALVO\n// MEOW-T-PATCH-1\n' > "$T/pa/b/src/main.rs"
 printf 'req cosmic-comp-t.patch MEOW-T-PATCH\n' > "$T/serie"
 cp "$RAIZ/scripts/compositor_shim.sh" "$H/.local/bin/cosmic-comp"
 
-# --- a cadeia ----------------------------------------------------------------
-versoes() { # pares pacote=versão
+versoes() {
   : > "$T/dpkg.tsv"; local x
   for x in "$@"; do printf '%s\t%s\tinstalled\n' "${x%%=*}" "${x#*=}" >> "$T/dpkg.tsv"; done
 }
@@ -179,8 +165,6 @@ igual "o shim escolhe o build da D" "$(qual)" "$CASA/0.1~d/cosmic-comp"
 [ -x "$ESTADO/cosmic-files/1.10~d/cosmic-files-applet" ] && ok "e o menu da D" || falha "o login não fez o menu da D"
 
 echo "== a segunda passada de tudo não escreve nada"
-# A primeira, depois do login: o próximo apt (de outra coisa) acorda o
-# pós-apt, que vê a D pela primeira vez e só grava as versões.
 pos_apt; login; doctor5h
 antes="$(foto)"; : > "$T/build.log"; : > "$T/rede.log"
 pos_apt; login; doctor5h

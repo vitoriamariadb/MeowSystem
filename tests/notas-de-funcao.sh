@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# notas-de-funcao.sh — as notas de função que as revisões da leva D2 deixaram.
-# `sudo` falso na frente do PATH: com `NOPASSWD`, o de verdade escreveria no sistema.
-# Tudo de brinquedo, `env -i`, ponte apontando para o vazio e `sudo` falso; no fim
-# o teste confere que o repositório não mudou.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -22,9 +18,6 @@ CASA="$T/casa"; COSMIC="$T/cosmic"; PACKS="$T/packs"; ESTADO="$T/estado"
 CONF="$CASA/.config/meow/meow.conf"
 mkdir -p "$(dirname "$CONF")" "$COSMIC" "$PACKS" "$ESTADO"
 cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
-# As derivadas que esta máquina já tenha nos packs copiados saem: cada seção
-# parte das fotos, e o que ela precisar deriva de novo (a marca é a do
-# `captura.txt`, e não um nome).
 for cap in "$PACKS"/*/temas/capturados/*/; do
   grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
 done
@@ -32,7 +25,7 @@ CAT="$PACKS/meowsystem/temas/capturados"
 
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null; git -C "$RAIZ" status --porcelain --ignored -- packs 2>/dev/null)"
 
-conf() {   # conf <flavor> <acento> <pack> <modo>
+conf() {
   printf 'FLAVOR="%s"\nACCENT="%s"\nMODO="%s"\nPACK="%s"\nLOGO="coquinha"\n' "$1" "$2" "$4" "$3" > "$CONF"
 }
 amb() {
@@ -41,14 +34,13 @@ amb() {
     MEOW_PONTE=/caminho/inexistente LANG=C.UTF-8 NO_COLOR=1 "$@"
 }
 
-# As etapas do install.sh, pelo nome — o arranjo do tests/claro-do-pack.sh.
 ETAPAS="$T/etapas.sh"
 { sed -n '/^etapa_gerar() {$/,/^}$/p' "$RAIZ/install.sh"
   sed -n '/^etapa_tema() {$/,/^}$/p' "$RAIZ/install.sh"
   sed -n '/^etapa_modo() {$/,/^}$/p' "$RAIZ/install.sh"; } > "$ETAPAS"
 grep -q '^etapa_gerar() {' "$ETAPAS" && grep -q '^etapa_tema() {' "$ETAPAS" && grep -q '^etapa_modo() {' "$ETAPAS" \
   || { printf 'erro: não achei etapa_gerar/etapa_tema/etapa_modo no install.sh\n' >&2; exit 2; }
-etapa() {   # etapa <gerar|tema|modo> — devolve a saída; o código fica em $T/rc
+etapa() {
   amb bash -c '
     . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1
     set -a; . "$MEOW_CONF"; set +a
@@ -60,19 +52,17 @@ etapa() {   # etapa <gerar|tema|modo> — devolve a saída; o código fica em $T
   printf '%s' "$?" > "$T/rc"
 }
 rc() { cat "$T/rc"; }
-cor() {   # cor <pack> <flavor> <acento> — o hex da paleta do pack, em maiúsculas
+cor() {
   python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["flavors"][sys.argv[2]][sys.argv[3]].upper())' \
     "$PACKS/$1/paleta.json" "$2" "$3"
 }
-veste() {   # veste <Dark|Light> — nome, acento da receita e os focos da árvore do COSMIC
+veste() {
   printf '%s|%s|%s' "$(cat "$COSMIC/com.system76.CosmicTheme.$1/v2/name")" \
     "$(cat "$COSMIC/com.system76.CosmicTheme.$1.Builder/v2/accent")" \
     "$(grep -h '^ *focus: "' "$COSMIC"/com.system76.CosmicTheme."$1"/v2/* | sed 's/^ *//' | sort -u | tr '\n' ' ')"
 }
 
-# --- 1. o acento do lado do par ----------------------------------------------
 printf -- '--- 1. o acento do lado do par ---\n'
-#   O ponto de partida é o Catppuccin aplicado pela foto do latte-mauve.
 cp -a "$CAT/latte-mauve"/com.system76.CosmicTheme.* "$COSMIC/"
 azul="$(cor meowsystem mocha blue)"; verde="$(cor meowsystem latte green)"
 conf latte blue meowsystem escuro
@@ -108,7 +98,6 @@ etapa modo >/dev/null
 $saida_g
 $saida_t"
 
-# A FOTO mocha-pink NO CLARO
 rosa="$(cor meowsystem latte pink)"
 conf mocha pink meowsystem claro
 saida_g="$(etapa gerar)"; rc_g="$(rc)"
@@ -138,8 +127,6 @@ PY
   && ok "a Light da foto mocha-pink é a que o derivar_arvore dá no $rosa, byte a byte" \
   || falha "a Light da foto mocha-pink não é a conta do derivador" "$saida"
 
-#   Os 14 acentos, e a soma do que não muda. Sem escrever nada: o `plano` e o
-#   `_conteudo` do derivar_acento.py são o que a etapa gerar gravaria.
 saida="$(amb env MEOW_ESPERADA="$SOMA_MEDIDA" python3 - "$RAIZ" "$PACKS" <<'PY' 2>&1
 import hashlib, json, os, sys
 from pathlib import Path
@@ -154,7 +141,6 @@ for pack_id in ("dracula", "meowsystem"):
     import pack
     paleta = json.load(open(os.environ["MEOW_PALETA"]))
     for fl in paleta["flavors"]:
-        # O outro lado é o do FLAVOR, e não o da base: vale para a foto também.
         outro = "Dark" if fl in (paleta.get("claros") or []) else "Light"
         parceiro = df.par_do_outro_lado(fl, paleta)
         for ac in paleta["ordem_canonica"][:14]:
@@ -183,8 +169,6 @@ for pack_id in ("dracula", "meowsystem"):
                     lados += 1
             fora = ()
             if p["estado"] == "fotografia" or "conteudo" not in p:
-                # A derivada da P48 com o outro lado vindo da base (é o que a P66
-                # muda), e a foto (é o que a decisão sobre a mocha-pink pode mudar).
                 fora = (f"com.system76.CosmicTheme.{outro}/", f"com.system76.CosmicTheme.{outro}.Builder/",
                         "captura.txt")
             for rel in sorted(cont):
@@ -202,8 +186,6 @@ PY
   && ok "nos 84 pares, o lado do par — da derivada e da foto — veste o acento do par, e o resto é o de antes, byte a byte ($(printf '%s\n' "$saida" | head -1))" \
   || falha "o acento do lado do par, ou a soma do que não muda" "$saida"
 
-# O lado do par que não se deriva fica o da base, e a variante continua
-# aplicando.
 P1="$T/packs1"; mkdir -p "$P1"; cp -a "$RAIZ/packs/meowsystem" "$P1/" || exit 2
 for cap in "$P1"/*/temas/capturados/*/; do
   grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"
@@ -250,14 +232,12 @@ PY
   && ok "o lado do par que não se deriva fica o da base, a variante continua aplicando, e o captura.txt diz por quê" \
   || falha "o lado do par que não se deriva derrubou a variante, ou não diz por quê" "$saida"
 
-# --- 2. o desenho que saiu do mapa no ar sai do tema ------------------------
 printf -- '--- 2. o desenho que saiu do mapa no ar ---\n'
-#   Um pack próprio desta seção, para o mapa poder mudar.
 P2="$T/packs2"; mkdir -p "$P2"; cp -a "$RAIZ/packs/dracula" "$P2/" || exit 2
 MAPA2="$P2/dracula/icones/apps.map"
 ALVO="$CASA/.local/share/icons/MeowSystem-Icons/scalable/apps"; mkdir -p "$ALVO"
 REGISTRO="$ESTADO/icones-do-pack.tsv"
-dracula_sh() {   # dracula_sh <verbo> — o passo do pack, com o Dracula no ar e a camada ligada
+dracula_sh() {
   env -i PATH="$CAMINHO" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$ESTADO" MEOW_PACKS="$P2" \
     MEOW_CONF=/caminho/inexistente LANG=C.UTF-8 NO_COLOR=1 \
     PACK=dracula FLAVOR=dracula ACCENT=mauve ICONES_DRACULA=sim \
@@ -266,8 +246,6 @@ dracula_sh() {   # dracula_sh <verbo> — o passo do pack, com o Dracula no ar e
 arcade="$P2/dracula/icones/biblioteca/arcade.svg"
 painel="$P2/dracula/icones/apps/meowsystem-painel-dracula.svg"
 mesmo() { [ -f "$1" ] && [ -f "$2" ] && [ "$(cat "$1")" = "$(cat "$2")" ]; }
-# O outro dono: o `completar_icones.sh` põe o autoral do painel com os bytes do
-# desenho do pack, sem linha em mapa nenhum.
 cp "$painel" "$ALVO/com.meowsystem.Painel.svg"
 printf 'programa-de-brinquedo : biblioteca/arcade.svg   # escolhido no teste\n' >> "$MAPA2"
 saida="$(dracula_sh aplicar)"
@@ -297,7 +275,6 @@ saida="$(dracula_sh aplicar)"; saida_c="$(dracula_sh --conferir)"; r=$?
   || falha "um arquivo que o registro não anotou saiu, ou o --conferir não fechou (rc=$r)" "$saida
 $saida_c"
 
-# --- 3. o mapa do Dracula com o pack vazio ---------------------------------
 printf -- '--- 3. o mapa do Dracula com PACK vazio ---\n'
 printf 'PACK=""\nFLAVOR="alucard"\nACCENT="mauve"\nICONES_DRACULA="sim"\n' > "$T/alucard.conf"
 saida="$(env -i PATH="$CAMINHO" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_CONF="$T/alucard.conf" \
@@ -320,7 +297,6 @@ PY
   && ok "com PACK vazio e FLAVOR=alucard, o _mapa_dracula dá os nomes do mapa do pack adotado ($saida)" \
   || falha "o _mapa_dracula não dá o mapa do pack adotado" "$saida"
 
-# --- 4. o molde das pastas numa regra só -----------------------------------
 printf -- '--- 4. o molde do ICONES_PASTAS numa regra só ---\n'
 copias="$(grep -c 'cat--?\*)' "$RAIZ/bin/meow" "$RAIZ/app/servidor.py" "$RAIZ/lib/comum.sh" \
             "$RAIZ/scripts/construir_pastas.sh" | tr '\n' ' ')"
@@ -343,11 +319,10 @@ PY
   && ok "o painel completa o molde de fábrica com o FLAVOR vazio: $saida" \
   || falha "o painel deu ICONES_PASTAS='$saida', e o molde pede cat-dracula-mauve"
 
-# --- 5. o --conferir das pastas especiais não fala como quem faz -----------
 printf -- '--- 5. o --conferir das pastas especiais ---\n'
 LUGARES="$CASA/.local/share/icons/MeowSystem-Icons/scalable/places"; mkdir -p "$LUGARES"
 cp "$RAIZ/packs/dracula/icones/sistema/folder-documents.svg" "$LUGARES/"
-pastas() {   # pastas <verbo> — sem PASTAS_XDG, que é o desligado de fábrica
+pastas() {
   env -i PATH="$CAMINHO" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$ESTADO" \
     LANG=C.UTF-8 NO_COLOR=1 PACK=dracula FLAVOR=dracula \
     bash "$RAIZ/scripts/icones_pastas.sh" "$1" 2>&1
@@ -362,14 +337,11 @@ saida="$(pastas --aplicar)"; r=$?
   && ok "e o --aplicar diz «devolvendo» e devolve (rc=$r)" \
   || falha "o --aplicar das pastas não devolveu (rc=$r)" "$saida"
 
-# --- 6. a montagem numa função só ------------------------------------------
 printf -- '--- 6. a montagem do lado do par ---\n'
 grep -q 'conteudo = da.montar(cand, ' "$RAIZ/scripts/derivar_flavor.py" \
   && grep -q 'conteudo=montar(cand, lado\["arvore"\], lado\["conteudo"\])' "$RAIZ/scripts/derivar_acento.py" \
   && ok "os dois planos montam a captura pelo montar do derivar_acento.py (a soma da seção 1 é a prova de que ela é a mesma)" \
   || falha "a montagem do lado do par não é a função única nos dois derivadores"
-# O filtro do `montar` (o `FICHAS` do derivar_acento.py) tinha uma versão em
-# shell no laço do aplicar_tema.sh.
 R6="$T/raiz6"; P6="$T/packs6"; C6="$T/cosmic6"; E6="$T/estado6"
 mkdir -p "$R6" "$P6" "$C6" "$E6" "$T/tmp6"
 cp -a "$RAIZ/scripts" "$RAIZ/lib" "$R6/"; ln -s "$RAIZ/assets" "$R6/assets"
@@ -391,7 +363,6 @@ saida="$(env -i PATH="$CAMINHO" HOME="$CASA" MEOW_RAIZ="$R6" MEOW_ESTADO="$E6" M
   || falha "o aplicar_tema.sh não segue o FICHAS do derivar_acento.py (rc=$r)" "$saida
 $(ls -a "$C6")"
 
-# --- 7. o repositório não mudou --------------------------------------------
 [ "$(git -C "$RAIZ" status --porcelain 2>/dev/null; git -C "$RAIZ" status --porcelain --ignored -- packs 2>/dev/null)" = "$git_antes" ] \
   && ok "o repositório saiu como entrou" \
   || falha "o teste mexeu no repositório" "$(git -C "$RAIZ" status --porcelain)"

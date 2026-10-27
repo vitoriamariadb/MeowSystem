@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# vigia_heroic.sh — liga (ou desliga) o gatilho que acerta os atalhos de jogo do
-#                   Heroic sozinho, assim que a biblioteca dele muda.
-#
-#   ./vigia_heroic.sh              instala as unidades e liga o vigia
-#   ./vigia_heroic.sh --conferir   não escreve; 1 se algo divergir
-#
-# O `scripts/jogos_heroic.sh` já sabe escrever e limpar; o que faltava era
-# alguém CHAMÁ-LO na hora. Sem o gatilho, um jogo instalado às 3h da tarde só
-# apareceria no lançador na passagem seguinte do `meow doctor` — às 5h da manhã
-# do dia seguinte.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -41,7 +31,6 @@ _ligado() {
   [ "$(systemctl --user is-active  "$GATILHO" 2>/dev/null)" = "active" ]
 }
 
-# --- desligado: o que existe tem de SAIR -------------------------------------
 _desligar() {
   local u restos=0
   for u in "${UNIDADES[@]}"; do [ -f "$DESTINO/$u" ] && restos=$((restos + 1)); done
@@ -61,7 +50,6 @@ _desligar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- as dependências ---------------------------------------------------------
 _pronto() {
   local u
   for u in "${UNIDADES[@]}"; do
@@ -70,9 +58,6 @@ _pronto() {
       return "$MEOW_ERRO"
     fi
   done
-  # A pergunta é pela PASTA DE CONFIGURAÇÃO, e não pelo binário: é o mesmo
-  # critério do `jogos_heroic.sh`, que se pula sozinho quando ela não existe. Um
-  # Heroic instalado e nunca aberto não tem biblioteca a vigiar.
   if [ ! -d "$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic" ] &&
      [ ! -d "${XDG_CONFIG_HOME:-$HOME/.config}/heroic" ]; then
     meow_pula "Heroic não instalado (ou nunca aberto) — nada a vigiar"
@@ -86,7 +71,6 @@ _pronto() {
   return "$MEOW_OK"
 }
 
-# --- conferir ----------------------------------------------------------------
 _conferir() {
   local u texto divergentes=0
   for u in "${UNIDADES[@]}"; do
@@ -113,13 +97,9 @@ _conferir() {
   return "$MEOW_OK"
 }
 
-# --- aplicar -----------------------------------------------------------------
 _aplicar() {
   local u texto mudou=0 estado="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 
-  # O diretório do log tem de existir ANTES de a unidade subir: o
-  # `StandardOutput=append:` é montado antes de qualquer comando do serviço, e
-  # sem ele a unidade morre com `status=209/STDOUT`.
   if ! mkdir -p "$estado"; then
     meow_erro "não consegui criar $estado (é lá que fica o log do vigia)"
     return "$MEOW_ERRO"
@@ -136,9 +116,6 @@ _aplicar() {
 
   [ "$mudou" = 1 ] && systemctl --user daemon-reload
 
-  # Um estouro do StartLimit deixa a unidade em `failed`, e nesse estado o
-  # `enable --now` não a levanta. Limpar antes é o que faz o `--consertar` de
-  # fato consertar, em vez de dizer que consertou.
   if [ "$(systemctl --user is-failed "$GATILHO" 2>/dev/null)" = "failed" ]; then
     systemctl --user reset-failed "$GATILHO" meow-heroic.service >/dev/null 2>&1
     mudou=1

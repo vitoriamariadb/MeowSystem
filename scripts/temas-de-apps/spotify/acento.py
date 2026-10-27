@@ -53,7 +53,6 @@ import argparse
 import re
 import sys
 
-# `[mocha]` até a próxima `[secao]` ou o fim. re.M para `^` valer por linha.
 def _fatia_secao(texto: str, secao: str):
     ini = re.search(r'^\[' + re.escape(secao) + r'\]\s*$', texto, re.M)
     if not ini:
@@ -70,7 +69,6 @@ def _ler_chave(bloco: str, chave: str):
 
 
 def _escrever_chave(bloco: str, chave: str, valor: str):
-    # O `\g<2>`/`\g<3>` preserva o alinhamento em colunas do arquivo upstream.
     novo, n = re.subn(r'^(' + re.escape(chave) + r')(\s*)=(\s*)(\S+)[ \t]*$',
                       lambda m: f'{m.group(1)}{m.group(2)}={m.group(3)}{valor}',
                       bloco, count=1, flags=re.M)
@@ -98,10 +96,6 @@ def main() -> int:
     inicio, fim = faixa
     bloco = texto[inicio:fim]
 
-    # `none` é o valor que o próprio tema usa para "sem acento": nesse caso o
-    # desejado é o `text` de fábrica, que nós não sabemos mais qual era depois de
-    # já ter escrito por cima. Por isso `none` é recusado aqui, com o conserto
-    # dito na frase — não é caso de adivinhar.
     if a.acento == 'none':
         print("acento 'none' nao e suportado por este caminho: reinstale o tema "
               "para voltar ao color.ini de fabrica", file=sys.stderr)
@@ -135,8 +129,6 @@ def main() -> int:
         print('nada a fazer')
         return 0
 
-    # Temporário no MESMO diretório e `mv`: é a trava 2 do projeto. Um color.ini
-    # pela metade faria o `spicetify apply` seguinte escrever cor lixo no app.
     import os
     destino = a.color_ini
     tmp = destino + '.meow-parcial'

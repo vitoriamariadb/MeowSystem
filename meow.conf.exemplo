@@ -651,7 +651,7 @@ ICONES_FLAVOR="$FLAVOR"
 #   (hoje `sky` inteira) se reparte em verde, lavender, sapphire e blue, e some.
 #
 #   Por isso a folha visual existe e o código espera. Ligar sem a folha vista é
-#   exatamente o que `docs/SPRINTS.md` proíbe.
+#   pôr o código antes dela.
 #
 # O QUE MUDA DE FATO, se ligar (13 aplicativos; o resto não é tocado):
 #   WhatsApp  sky -> green      Steam     green -> sapphire

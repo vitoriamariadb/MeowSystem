@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# instalacao.sh — O LAÇO DAS PASSAGENS: ele fecha sozinho, e sabe parar.
-#
-# Com uma RAIZ DE BRINQUEDO: um diretório de links simbólicos para este
-# repositório mais uma CÓPIA do `install.sh` com a lista de etapas do `main`
-# trocada por etapas falsas — uma que escreve toda passagem, duas que se
-# revezam, uma que escreve só na primeira.
-#
-# Os links existem por causa do `MEOW_RAIZ`, que o `install.sh` deriva de onde
-# ELE está (`pwd -P` do próprio diretório): uma cópia solta em /tmp não acharia
-# o `lib/comum.sh`.
-#
-# HOME de brinquedo, `env -i`, sem COSMIC e sem sessão gráfica.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
@@ -22,9 +10,6 @@ passou() { printf 'ok: %s\n' "$*"; }
 SAIDA=""
 RC=0
 
-# Monta a raiz de brinquedo e roda o instalador dela.
-#   $1 = nome do cenário · $2 = lista de etapas falsas · $3 = corpo das funções
-#   $4... = o que for passado ao install.sh (por exemplo --uma-passagem)
 cenario() {
   local nome="$1" lista="$2" corpo="$3"; shift 3
   local raiz="$TMP/$nome/raiz" lar="$TMP/$nome/lar" i
@@ -35,7 +20,6 @@ cenario() {
   done
   printf '%s\n' "$corpo" > "$TMP/$nome/falsas.sh"
 
-  # A troca é cirúrgica: a lista do `main` e nada mais.
   awk -v lista="$lista" -v falsas="$TMP/$nome/falsas.sh" '
     /local etapas=\(/ && !trocou { print "  local etapas=(" lista ")"; trocou=1; pulando=1 }
     pulando { if ($0 ~ /\)[ \t]*$/) pulando=0; next }
@@ -44,10 +28,6 @@ cenario() {
   ' "$RAIZ/install.sh" > "$raiz/install.sh"
   chmod +x "$raiz/install.sh"
 
-  # `MEOW_PONTE` apontando para o vazio é a mesma linha do
-  # `tests/convergencia.sh`, pelo mesmo motivo: a raiz de brinquedo é feita de
-  # links para os scripts DE VERDADE, e o dia em que algo aqui chamar um deles
-  # por engano não pode ser o dia em que um teste mexe no /etc desta máquina.
   SAIDA="$(env -i PATH="$PATH" HOME="$lar" USER="${USER:-t}" \
     MEOW_IGNORA_DESKTOP=1 NO_COLOR=1 MEOW_PONTE=/nao/existe \
     bash "$raiz/install.sh" "$@" 2>&1)"
@@ -63,9 +43,6 @@ confere() {
   fi
 }
 
-# ---------------------------------------------------------------------------
-# 1. Máquina já pronta: uma passagem, e uma frase só
-# ---------------------------------------------------------------------------
 cenario pronta 'etapa_falsa_ok etapa_falsa_ok2' '
 etapa_falsa_ok()  { passo "etapa falsa que já está no lugar"; return 0; }
 etapa_falsa_ok2() { passo "outra que já está no lugar";       return 0; }
@@ -81,9 +58,6 @@ else
   passou "máquina pronta: uma passagem, e a tela diz 'Pronto. 1 passagem'"
 fi
 
-# 2. A cadeia: a etapa que só escreve na primeira passagem
-#
-# Aqui o instalador tem de fechar o laço sozinho, sem pedir nada a ninguém.
 cenario cadeia 'etapa_falsa_primeira etapa_falsa_quieta' '
 FALSA_PASSAGEM=0
 etapa_falsa_primeira() {
@@ -105,9 +79,6 @@ else
   passou "cadeia: duas passagens, sem pedir nada, e a tela numerou as duas"
 fi
 
-# ---------------------------------------------------------------------------
-# 3. A oscilação: as mesmas etapas escrevendo em duas passagens seguidas
-# ---------------------------------------------------------------------------
 cenario teimosa 'etapa_falsa_teimosa etapa_falsa_quieta' '
 etapa_falsa_teimosa() {
   passo "etapa falsa que escreve toda passagem"
@@ -131,10 +102,6 @@ else
   passou "oscilação: para na segunda passagem, nomeia a etapa e manda ao doctor"
 fi
 
-# 4. O teto: duas etapas que se revezam, e nunca repetem o conjunto
-#
-# O detector de oscilação não pega este caso de propósito (o conjunto muda a
-# cada passagem), e é exatamente para isto que o teto existe.
 cenario teto 'etapa_falsa_a etapa_falsa_b' '
 FALSA_P=1
 etapa_falsa_a() {
@@ -161,9 +128,6 @@ else
   passou "teto: cinco passagens, para, e diz quais etapas ainda escrevem"
 fi
 
-# 5. Oscilação E falha na mesma execução: a tela mostra as duas
-#
-# São dois defeitos diferentes, e quem tem os dois lê os dois.
 cenario teimosa_com_falha 'etapa_falsa_teimosa etapa_falsa_quebrada' '
 etapa_falsa_teimosa() {
   passo "etapa falsa que escreve toda passagem"
@@ -183,10 +147,6 @@ else
   passou "oscilação e falha juntas: a tela conta as duas histórias"
 fi
 
-# 6. --uma-passagem: o comportamento de antes, preservado
-#
-# É a flag do timer e da depuração. Ela não conserta nada: ela mostra a primeira
-# passagem sozinha, com o rodapé de sempre.
 cenario uma_passagem 'etapa_falsa_teimosa etapa_falsa_quieta' '
 etapa_falsa_teimosa() {
   passo "etapa falsa que escreve toda passagem"
@@ -207,7 +167,6 @@ else
   passou "--uma-passagem: uma passagem só, com o rodapé de antes"
 fi
 
-# num ensaio nada é aplicado, e nada mudou.
 cenario ensaio 'etapa_falsa_mudaria etapa_falsa_quieta' '
 etapa_falsa_mudaria() { passo "etapa falsa que mudaria"; meow_muda "mudaria"; return 1; }
 etapa_falsa_quieta() { passo "etapa falsa que nunca escreve"; return 0; }
@@ -220,13 +179,6 @@ else
   passou "ensaio: o rodapé diz o que mudaria, e não o que mudou"
 fi
 
-# 7. A conf que quebra depois de alguém já ter escrito: o teto NÃO fala
-#
-# Como o `etapa_backup_tema` ABRE a fila — ele guarda o COSMIC de antes antes de
-# qualquer etapa escrever —, quando a conf quebra já existe alguém em `mexeu:`,
-# e a tela dizia "5 passagens, e estas etapas ainda escrevem: backup_tema"
-# depois de UMA passagem: acusava de defeito de idempotência a etapa mais
-# inocente da lista e mandava ao `meow doctor` por um problema que não existe.
 cenario conf_quebrada 'etapa_falsa_escreve etapa_conf etapa_falsa_depois' '
 etapa_falsa_escreve() { passo "etapa falsa que abre a fila e escreve"; meow_muda "escrevi"; return 1; }
 etapa_conf() { passo "a conf de brinquedo, que não consegue escrever"; meow_erro "não consegui criar o meow.conf"; return 2; }
@@ -249,11 +201,6 @@ else
   passou "conf quebrada: para na conf, sai 2, e o teto não acusa ninguém"
 fi
 
-# 8. A tela de login sem tema não manda ao sudo
-#
-# Com FLAVOR=alucard a gaveta terminou em «algumas dessas precisavam de root:
-# sudo -v && ./install.sh», e o `greeter` tinha se pulado porque o tema não
-# tinha captura, antes de olhar o sudo.
 cenario login_sem_tema 'etapa_tema etapa_greeter' '
 LOG_NIVEL=info
 etapa_tema() { passo "tema falso sem captura"; TEMA_SEM_CAPTURA="falta"; return 3; }
@@ -293,6 +240,5 @@ else
   passou "tela de login no ensaio: o rodapé diz que a captura ainda não foi escrita, e não manda ao sudo"
 fi
 
-# ---------------------------------------------------------------------------
 [ "$FALHAS" = "0" ] || exit 1
 printf 'ok: o laço das passagens fecha sozinho, e as duas guardas disparam\n'

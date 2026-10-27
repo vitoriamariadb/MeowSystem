@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# UM JOGO INSTALADO NO HEROIC = UM CARTÃO NO LANÇADOR — e nada além disso.
-#
-# O território real é o lançador dela.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 H="$(mktemp -d)"; trap 'rm -rf "$H"' EXIT
@@ -10,12 +7,11 @@ APPS="$H/.local/share/applications"
 CONF="$H/.var/app/com.heroicgameslauncher.hgl/config/heroic"
 mkdir -p "$APPS" "$CONF/store_cache" "$CONF/legendaryConfig/legendary" "$CONF/icons"
 
-JOGO=63a665088eb1480298f1e57943b225d8       # instalado
-DLC=9596620d263b40c083ddf1f0c662c8ff        # instalado, e é DLC
-FORA=aaaa1111bbbb2222cccc3333dddd4444       # na biblioteca, não instalado
+JOGO=63a665088eb1480298f1e57943b225d8
+DLC=9596620d263b40c083ddf1f0c662c8ff
+FORA=aaaa1111bbbb2222cccc3333dddd4444
 ID="meow-heroic-legendary-$JOGO"
 
-# A biblioteca, no formato que o Heroic 2.22.1 grava.
 biblioteca() {
   local instalado="${1:-true}"
   cat > "$CONF/store_cache/legendary_library.json" <<JSON
@@ -48,7 +44,6 @@ biblioteca() {
 JSON
 }
 
-# O que o backend escreve ao instalar. Quando o jogo sai, some daqui.
 instalados() {
   local corpo="${1:-}"
   cat > "$CONF/legendaryConfig/legendary/installed.json" <<JSON
@@ -71,7 +66,6 @@ correr() {
 falhas=0
 reclamar() { printf 'FALHOU: %s\n' "$1" >&2; falhas=$((falhas + 1)); }
 
-# --- 1ª rodada: escreve o nosso -----------------------------------------------
 saida="$(correr)"; rc=$?
 [ "$rc" = "1" ] || reclamar "1ª rodada devolveu rc=$rc (esperado 1: mexeu)\n$saida"
 [ -f "$APPS/$ID.desktop" ] || reclamar "o cartão do jogo não foi escrito\n$saida"
@@ -84,14 +78,9 @@ grep -q "^Exec=xdg-open \"heroic://launch?appName=$JOGO&runner=legendary\"$" "$A
 [ -e "$APPS/meow-heroic-legendary-$FORA.desktop" ] \
   && reclamar "um jogo NÃO instalado ganhou cartão"
 
-# --- 2ª rodada: idempotência ---------------------------------------------------
 saida="$(correr)"; rc=$?
 [ "$rc" = "0" ] || reclamar "2ª rodada devolveu rc=$rc (esperado 0: convergiu)\n$saida"
 
-# --- o cartão do próprio Heroic, com nome livre -------------------------------
-# `shortcutFiles()` do `app.asar`: o arquivo se chama `<título>.desktop`. Nome
-# com espaço, apóstrofo e nenhum molde — é por isso que a limpeza pergunta pelo
-# conteúdo, e não pelo nome.
 RIVAL="$APPS/Marvel's Guardians of the Galaxy.desktop"
 cat > "$RIVAL" <<DESKTOP
 [Desktop Entry]
@@ -103,8 +92,6 @@ Icon=$CONF/icons/$JOGO.jpg
 Categories=Game;
 DESKTOP
 
-# E um cartão que aponta para OUTRO jogo do Heroic, que não temos. Ele fica:
-# tirá-lo deixaria esse jogo sem cartão nenhum no lançador.
 SEM_SUBSTITUTO="$APPS/jogo-que-nao-e-nosso.desktop"
 cat > "$SEM_SUBSTITUTO" <<DESKTOP
 [Desktop Entry]
@@ -125,7 +112,6 @@ fi
 saida="$(correr)"; rc=$?
 [ "$rc" = "0" ] || reclamar "não voltou a convergir depois de tirar o rival (rc=$rc)\n$saida"
 
-# --- o seco não escreve nem apaga ---------------------------------------------
 cat > "$RIVAL" <<DESKTOP
 [Desktop Entry]
 Name=Marvel's Guardians of the Galaxy
@@ -141,7 +127,6 @@ case "$saida" in
 esac
 rm -f "$RIVAL"
 
-# --- desinstalou: o cartão sai, e o ícone junto -------------------------------
 biblioteca false
 instalados ""
 saida="$(correr)"; rc=$?
@@ -151,8 +136,6 @@ if find "$H/.local/share/icons/hicolor" -name "$ID.png" 2>/dev/null | grep -q .;
   reclamar "sobrou ícone do jogo desinstalado no hicolor"
 fi
 
-# --- o interruptor do painel: fora do lançador e de volta ---------------------
-# O jogo continua instalado; tirar grava a lista e leva o cartão, pôr o devolve.
 biblioteca true
 instalados "
   \"$JOGO\": { \"app_name\": \"$JOGO\", \"title\": \"Marvel's Guardians of the Galaxy\", \"is_dlc\": false }"
@@ -169,8 +152,6 @@ MEOW_HEROIC_POR="$ID" correr >/dev/null 2>&1
 [ -f "$APPS/$ID.desktop" ] || reclamar "o interruptor ligado não devolveu o cartão"
 grep -qxF "$ID" "$H/.config/meow/jogos-heroic-fora.list" 2>/dev/null && reclamar "o jogo devolvido continua na lista"
 
-# --- biblioteca ilegível NÃO é biblioteca vazia -------------------------------
-# O caso que apagaria o lançador dela por causa de um arquivo pela metade.
 biblioteca true
 instalados "
   \"$JOGO\": { \"app_name\": \"$JOGO\", \"title\": \"Marvel's Guardians of the Galaxy\", \"is_dlc\": false }"

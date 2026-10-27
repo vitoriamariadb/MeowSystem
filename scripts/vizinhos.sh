@@ -27,8 +27,6 @@ APPS_CASA="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 CONTRATO="${VIZINHOS_CONTRATO:-$RAIZ/assets/contratos/vizinhos.tsv}"
 export LC_ALL=C
 
-# O ZDOTDIR da casa: o do ambiente, ou o que o ~/.zshenv exporta (é onde o zsh o
-# lê), ou a própria casa.
 _zdotdir() {
   local z=""
   if [ -n "${ZDOTDIR:-}" ]; then printf '%s' "$ZDOTDIR"; return 0; fi
@@ -39,15 +37,12 @@ _zdotdir() {
 ZD="$(_zdotdir)"
 REPOS="${VIZINHOS_REPOS:-$(awk -F'\t' '$1 == "repo" { printf "%s ", $2 }' "$CONTRATO" 2>/dev/null)}"
 
-# O MeowSystem que conta é o INSTALADO (o ponteiro da raiz); sem ele, este clone.
 MEOW_LIDO="$RAIZ"
 if [ -r "$ESTADO/raiz" ]; then
   _p="$(head -1 "$ESTADO/raiz" 2>/dev/null)"
   [ -n "$_p" ] && [ -f "$_p/bin/meow" ] && MEOW_LIDO="$_p"
 fi
 
-# --- os territórios do MeowSystem -------------------------------------------
-# nome<TAB>regex (ERE do awk). A ordem não importa: a saída é ordenada.
 TERRITORIOS="$(cat <<'FIM'
 cache do tema de ícones	gtk-update-icon-cache|icon-theme[.]cache
 tema de ícones	[.]local/share/icons|icon-theme|icon_theme|CosmicTk
@@ -71,10 +66,6 @@ FIM
 
 VERBO='gsettings[[:space:]]+set|dconf[[:space:]]+(write|load|reset)|sed[[:space:]]+(-[a-zA-Z]*i|--in-place)|>>?[[:space:]]*["'"'"'$~/]|(^|[^[:alnum:]_.-])(tee|cp|mv|install|ln|rm|rsync|touch|mkdir|chmod|unlink|truncate)[[:space:]]|gtk-update-icon-cache|update-desktop-database|fc-cache|write_text|write_bytes|shutil[.](copy|move|rmtree)|os[.](replace|rename|remove|unlink|chmod|symlink)|open[(][^)]*["'"'"'][wa]|pkill|killall|kill[[:space:]]|systemctl[[:space:]]+(--user[[:space:]]+)?(restart|stop|start|enable|disable|mask|kill)|spicetify[[:space:]]+(apply|config|backup|restore)'
 
-# Uma unidade por linha: chave<TAB>arquivo<TAB>início<TAB>fim (fim 0 = até o fim).
-# Devolve chave<TAB>território<TAB>morto, uma linha por acerto. Morto é o que
-# vem depois de uma desativação: o `#vizinhos+:` deste script, ou um
-# `return 0`/`exit 0` depois de um comentário DESATIVAD(O/A).
 _varrer() {
   awk -F'\t' -v terr="$TERRITORIOS" -v verbo="$VERBO" '
     BEGIN {
@@ -120,12 +111,10 @@ _varrer() {
     }'
 }
 
-_texto() { # é um script de texto que vale varrer?
+_texto() {
   local f="$1"
   [ -f "$f" ] && [ -r "$f" ] || return 1
   [ "$(stat -c %s "$f" 2>/dev/null || echo 0)" -le 1048576 ] || return 1
-  # O próprio MeowSystem, inclusive o que ele instala fora do clone, não é vizinho;
-  # e o que é de pacote (/usr fora do /usr/local) é do apt, não de vizinho.
   case "$f" in
     "$HOME"/*|/usr/local/*|/opt/*|/etc/*|"${VIZINHOS_ETC:-/etc}"/*) ;;
     *) return 1 ;;
@@ -141,17 +130,13 @@ _texto() { # é um script de texto que vale varrer?
   return 0
 }
 
-_curto() { # o caminho com ~ no lugar da casa, para a tabela sair igual em qualquer casa
+_curto() {
   local c="$1"
   case "$c" in "$HOME"/*) printf '~/%s' "${c#"$HOME"/}" ;; *) printf '%s' "$c" ;; esac
 }
 
-# Os arquivos que um texto chama: caminhos absolutos e nomes de script, estes
-# procurados ao lado de quem chama e nas pastas vizinhas (o `$AURORA_REPO/x.sh`).
-_refs() { # $1 arquivo de quem chama (pode ser vazio) · stdin o texto
+_refs() {
   local base="${1:-}" texto t f d
-  # Linha que copia ou compara um script não o roda: `install -m 755 x.sh /usr/local/bin`.
-  # E linha que só fala dele também não: `echo "rode ./install.sh"`.
   texto="$(grep -vE '(^|[^[:alnum:]_-])(cp|install|cmp|rsync|copia_se_diff|copia_user)[[:space:]]' \
            | grep -vE '(^|[^[:alnum:]_])(echo|printf|print|log|warn|err|erro|info|aviso|msg|die|fatal|_info|_ok|_warn|__ok|__warn|__item|meow_[a-z]+)([[:space:](]|$)')"
   {
@@ -164,7 +149,6 @@ _refs() { # $1 arquivo de quem chama (pode ser vazio) · stdin o texto
         done
     if [ -n "$base" ]; then
       d="$(dirname "$base")"
-      # As pastas vizinhas só contam dentro do mesmo repositório (a raiz dele tem .git).
       local irmas=""
       [ -e "$(dirname "$d")/.git" ] && irmas="$(dirname "$d")"
       printf '%s\n' "$texto" | grep -oE '[A-Za-z0-9_.-]+\.(sh|py|zsh)' 2>/dev/null | sort -u \
@@ -184,15 +168,14 @@ FILA=()
 
 _peso() { case "$1" in ativo) echo 3 ;; 'à mão') echo 2 ;; *) echo 1 ;; esac; }
 
-_marcar() { # $1 chave · $2 arquivo · $3 ini · $4 fim · $5 gatilho · $6 estado
+_marcar() {
   local k="$1"
   UNID[$k]="$2"$'\t'"$3"$'\t'"$4"
   case ";${GAT[$k]:-};" in *";$5;"*) ;; *) GAT[$k]="${GAT[$k]:+${GAT[$k]};}$5" ;; esac
   if [ -z "${EST[$k]:-}" ] || [ "$(_peso "$6")" -gt "$(_peso "${EST[$k]}")" ]; then EST[$k]="$6"; fi
 }
 
-# Um script alcançado por um gatilho, e o que ele chama, até três degraus.
-_seguir() { # $1 arquivo · $2 gatilho · $3 estado · $4 degrau
+_seguir() {
   local f="$1" g="$2" e="$3" n="${4:-1}" r
   case "$f" in "$ZD"/functions/*|"$ZD"/aliases.zsh) return 0 ;; esac
   local visto="${UNID[$f]:-}"
@@ -204,7 +187,7 @@ _seguir() { # $1 arquivo · $2 gatilho · $3 estado · $4 degrau
   done < <(grep -vE '^[[:space:]]*(#|//)' "$f" | _refs "$f")
 }
 
-_ativa_usuario() { # $1 unidade: ela, ou o timer/path de mesmo nome, ligada num .wants?
+_ativa_usuario() {
   local u="$1" b="${1%.*}" w
   for w in "$HOME/.config/systemd/user"/*.wants/"$u" "$HOME/.config/systemd/user"/*.wants/"$b".timer \
            "$HOME/.config/systemd/user"/*.wants/"$b".path; do
@@ -259,7 +242,6 @@ _gatilhos_automaticos() {
     g="login (autostart $(basename "$f"))"
     while IFS= read -r r; do [ -n "$r" ] && _seguir "$r" "$g" "ativo"; done < <(printf '%s\n' "$cmd" | _refs "")
   done
-  # Os atalhos de teclado do COSMIC: cada Spawn("...") roda quando a tecla é apertada.
   for f in "$(meow_cosmic_dir)/com.system76.CosmicSettings.Shortcuts"/v*/custom; do
     [ -f "$f" ] || continue
     cmd="$(grep -oE 'Spawn\("[^"]+"\)' "$f" | sed -E 's/^Spawn\("//; s/"\)$//')"
@@ -274,7 +256,6 @@ _gatilhos_automaticos() {
   while IFS= read -r r; do [ -n "$r" ] && _seguir "$r" "cron" "ativo"; done < <(printf '%s\n' "$cmd" | _refs "")
 }
 
-# As funções de shell: cada uma é um escritor, com início e fim no arquivo.
 _funcoes() {
   local f
   [ -d "$ZD" ] || return 0
@@ -292,9 +273,7 @@ _funcoes() {
   done
 }
 
-# As arestas de chamada, numa passada: quem<TAB>chamada. `quem` é a função, o
-# alias (`alias:nome`) ou o login do shell (`@login`).
-_arestas() { # $1 arquivo com as funções (nome, arquivo, início, fim) · $2.. os rcs
+_arestas() {
   local funcs="$1"; shift
   RCS_LISTA="$(printf '%s\n' "$@")" awk -F'\t' '
     BEGIN { n = split(ENVIRON["RCS_LISTA"], r, "\n"); for (i = 1; i <= n; i++) if (r[i] != "") ehrc[r[i]] = 1 }
@@ -341,7 +320,6 @@ _gatilhos_do_shell() {
     case "$quem" in @login) ;; *) CHAMADO_POR[$alvo]="${CHAMADO_POR[$alvo]:-} ${quem#alias:}" ;; esac
   done < <(_arestas "$tmpf" "${RCS[@]}")
   rm -f "$tmpf"
-  # O que o login do shell roda: as funções que o rc chama, de degrau em degrau.
   for alvo in ${CHAMA[@login]:-}; do LOGIN+=("$alvo"); done
   while [ "${#LOGIN[@]}" -gt 0 ]; do
     nome="${LOGIN[0]}"; LOGIN=("${LOGIN[@]:1}")
@@ -362,8 +340,6 @@ _gatilhos_do_shell() {
   done
 }
 
-# Os repositórios vizinhos: o que não foi alcançado por gatilho roda à mão. Quem
-# chama quem dentro do repositório sai de uma passada de grep por repositório.
 _repos() {
   local padrao d f real via
   declare -A VIA=()
@@ -393,14 +369,13 @@ _repos() {
   done
 }
 
-_meow_escreve() { # os territórios em que o MeowSystem instalado escreve
+_meow_escreve() {
   local f
   for f in "$MEOW_LIDO/bin/meow" "$MEOW_LIDO/install.sh" "$MEOW_LIDO"/lib/*.sh "$MEOW_LIDO"/scripts/*.sh "$MEOW_LIDO"/scripts/*.py; do
     [ -f "$f" ] && printf 'meow\t%s\t1\t0\n' "$f"
   done | _varrer | cut -f2 | sort -u
 }
 
-# A tabela inteira, sem cabeçalho: território, escritor, gatilho, estado, meow.
 _linhas() {
   local k
   _gatilhos_automaticos
@@ -473,8 +448,6 @@ cmd_conferir() {
   return 4
 }
 
-# --- o que o --desativar conhece: as linhas `item` do contrato ---------------
-# Saem com `|` entre as colunas, e não tab: o `read` juntaria as colunas vazias.
 _catalogo() {
   [ -r "$CONTRATO" ] || return 0
   awk -F'\t' -v desenv="$DESENV" -v zd="$ZD" -v apps="$APPS_CASA" '
@@ -495,17 +468,15 @@ _item() { _catalogo | awk -F'|' -v i="$1" '$1 == i'; }
 _marca_saida() { printf '#vizinhos+:%s#' "$1"; }
 _marca_bloco() { printf '#vizinhos:%s# ' "$1"; }
 
-# A última linha do registro para o item: ação<TAB>cópia.
 _ultimo() {
   [ -r "$REGISTRO" ] || return 0
   awk -F'\t' -v i="$1" 'NR > 1 && $2 == i { a = $6; c = $5 } END { if (a != "") print a "\t" c }' "$REGISTRO"
 }
 
-_desativado() { # $1 tipo · $2 arquivo · $3 item
+_desativado() {
   case "$1" in
     saida) grep -qF -- "$(_marca_saida "$3")" "$2" 2>/dev/null ;;
     bloco) grep -qF -- "$(_marca_bloco "$3")" "$2" 2>/dev/null ;;
-    # Movido: o arquivo saiu do lugar e a cópia do registro está de pé.
     mover) local u; u="$(_ultimo "$3")"
            [ ! -e "$2" ] && [ "${u%%$'\t'*}" = "desativado" ] && [ -e "${u#*$'\t'}" ] ;;
     *) return 1 ;;
@@ -525,13 +496,13 @@ cmd_listar() {
   done < <(_catalogo)
 }
 
-_registrar() { # item tipo arquivo cópia ação
+_registrar() {
   mkdir -p "$ESTADO" || return 1
   [ -f "$REGISTRO" ] || printf 'data\titem\ttipo\tarquivo\tcopia\tacao\n' > "$REGISTRO"
   printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$2" "$3" "$4" "$5" >> "$REGISTRO"
 }
 
-_guardar() { # $1 item · $2 arquivo -> imprime o caminho da cópia
+_guardar() {
   local dest
   dest="$COPIAS/$1/$(date +%Y%m%d-%H%M%S)"
   mkdir -p "$dest" && cp -a -- "$2" "$dest/" && printf '%s/%s' "$dest" "$(basename "$2")"
@@ -562,7 +533,6 @@ cmd_desativar() {
   case "$tipo" in
     saida)
       nome="$(basename "$arq")"; marca="$(_marca_saida "$item")"
-      # Pelo ambiente, e não por `-v`: o awk trocaria o `\\n` do printf por uma quebra de linha.
       LINHA="printf '%s\\n' \"$nome: $motivo\"; exit 0  $marca" \
         awk 'BEGIN { l = ENVIRON["LINHA"] } NR == 1 && /^#!/ { print; print l; next } NR == 1 { print l } { print }' "$arq" > "$tmp" ;;
     bloco)
@@ -614,7 +584,6 @@ cmd_restaurar() {
   local alvo="${1:-}" item pior=0 rc
   [ -n "$alvo" ] || { meow_erro "qual item? (ou: todos)"; return "$MEOW_ERRO"; }
   if [ "$alvo" != "todos" ]; then _restaurar_um "$alvo"; return $?; fi
-  # Todos os que o registro diz desativados por último, na ordem inversa.
   [ -r "$REGISTRO" ] || { meow_ok "nada foi desativado nesta casa"; return "$MEOW_OK"; }
   while IFS= read -r item; do
     _restaurar_um "$item"; rc=$?

@@ -1,52 +1,23 @@
 #!/usr/bin/env bash
-# spicetify_setup.sh — põe o BINÁRIO do spicetify nesta máquina, e só isso.
-#
-# A decisão dela,: "tudo que for relacionado a tema é para ser do MeowSystem". O
-# `spicetify-setup.sh` estava do lado errado — no Spellbook, que é o repositório
-# da máquina dela —, e era a peça que faltava para a pendência do Spotify ter
-# conserto.
-#
-#     "O BINÁRIO continua sem botão. (...) o script que resolveria direito —
-#      spicetify-setup.sh, 277 linhas — mora naquele outro repositório, que
-#      quem clonar ESTE não terá."
-#
-# É este arquivo, e ele é o comando que a pendência publica.
-#
-#   NÃO VEIO  5. instalar o Marketplace por `curl | sh` do `main`
-#       O manifesto já o instala, pinado por TAG DE RELEASE
-#       (`_spot_mp_instalar`, `_SPOT_MP_RELEASES`), e só quando
-#       `_spot_mp_quer` diz que ela o quer.
-# Sem `spicetify backup` (fotografaria o tema aplicado como se fosse o de fábrica),
-# sem o instalador oficial (mexeria no `.zshrc` da Aurora e instalaria o Marketplace
-# sem pedir) e sem sudo: tudo mora em `~/.spicetify`.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# Pinar é a mesma regra do tema catppuccin (commit) e do Marketplace (tag): um
-# `latest` faz o mesmo comando instalar coisas diferentes em dias diferentes, e
-# aí não há o que conferir.
 SPICE_VERSAO="${SPICE_VERSAO:-2.45.1}"
 SPICE_DIR="${SPICE_DIR:-$HOME/.spicetify}"
 SPICE_BIN="$SPICE_DIR/spicetify"
 SPICE_RELEASES="${SPICE_RELEASES:-https://github.com/spicetify/cli/releases/download}"
 
-# O prefs do Spotify flatpak. É o único caminho coberto, e pelo mesmo motivo do
-# manifesto: o Spotify desta casa é flatpak de usuário.
 SPICE_PREFS_FLATPAK="${SPICE_PREFS_FLATPAK:-$HOME/.var/app/com.spotify.Client/config/spotify/prefs}"
 
-# --- o binário --------------------------------------------------------------
 _spice_achar() {
   [ -x "$SPICE_BIN" ] && { printf '%s' "$SPICE_BIN"; return 0; }
   command -v spicetify 2>/dev/null && return 0
   return 1
 }
 
-# `uname -m` -> o nome que o release usa. Só os dois que existem em release
-# linux do spicetify; o resto sai como vazio e vira uma recusa explicada, em
-# vez de um download 404 com cara de erro de rede.
 _spice_arquitetura() {
   case "$(uname -m)" in
     x86_64|amd64)  printf 'amd64' ;;
@@ -94,9 +65,6 @@ cmd_instalar() {
     return "$MEOW_OK"
   fi
 
-  # O `mktemp -d` e o `trap`: o tarball não fica no disco depois. Um `.tar.gz`
-  # de 11 MB esquecido em /tmp é o tipo de sujeira que ninguém liga a este
-  # script seis meses depois.
   local tmp
   tmp="$(mktemp -d)" || { meow_erro "não consegui criar diretório temporário"; return "$MEOW_ERRO"; }
   trap 'rm -rf "$tmp"' RETURN
@@ -120,22 +88,11 @@ cmd_instalar() {
   fi
 
   meow_ok "spicetify $("$SPICE_BIN" --version 2>/dev/null) instalado em $SPICE_DIR"
-  # A frase existe para que ninguém saia procurando a linha de PATH que o
-  # instalador oficial escreveria — ver o bloco do cabeçalho.
   meow_info "nenhum arquivo de shell foi tocado: quem acha o binário é o próprio módulo do Spotify"
   cmd_prefs
   return "$MEOW_OK"
 }
 
-# --- o prefs_path -----------------------------------------------------------
-#
-# O spicetify precisa saber onde está o `prefs` do Spotify, e no flatpak ele
-# não está no lugar que o padrão do spicetify supõe. Sem esta linha o
-# `spicetify apply` reclama de um caminho que não existe.
-#
-# O QUE NÃO VEIO JUNTO: o script de lá, quando não achava o `prefs`, ABRIA O
-# SPOTIFY em segundo plano, esperava até 30 segundos em laço e matava o
-# processo.
 cmd_prefs() {
   local cli
   cli="$(_spice_achar)" || { meow_pula "sem spicetify instalado — nada a configurar"; return "$MEOW_SEM_DEPENDENCIA"; }

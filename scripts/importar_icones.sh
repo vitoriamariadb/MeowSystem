@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# importar_icones.sh — recebe as escolhas feitas na página de curadoria.
-#
-# O navegador não entrega o caminho do arquivo que ela arrastou — por projeto,
-# não por descuido: uma página web não pode ler `~/...`. O que ela entrega é o
-# CONTEÚDO.
-#
-# Instalar direto no tema resolveria HOJE e quebraria na próxima rodada do
-# `install.sh`, que reconstrói o tema a partir de `assets/icones/`.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -39,12 +31,6 @@ PACOTE="$1"
 [ -f "$PACOTE" ] || { meow_erro "não achei '$PACOTE'"; exit "$MEOW_ERRO"; }
 meow_tem python3 || { meow_erro "falta python3 — é ele que decodifica o base64"; exit "$MEOW_SEM_DEPENDENCIA"; }
 
-# Decodificar base64 em shell é possível e é uma péssima ideia: o `base64 -d` de
-# uma linha de 300 KB vinda de JSON exige recortar o campo com `sed`, e qualquer
-# aspa dentro de um SVG derruba o recorte.
-#
-# O tamanho do PNG sai do cabeçalho IHDR (bytes 16..24), não do ImageMagick: é
-# uma dependência a menos para uma leitura de oito bytes.
 TMP="$(mktemp -d)" || { meow_erro "não consegui criar diretório temporário"; exit "$MEOW_ERRO"; }
 trap 'rm -rf "$TMP"' EXIT
 
@@ -85,8 +71,6 @@ for item in escolhas:
     if not chave:
         print(f'PULA\t{nome}\tsem icon_key', file=sys.stderr)
         continue
-    # Uma chave repetida significaria dois arquivos disputando o mesmo destino;
-    # a última escolha da página é a que vale, mas o aviso tem que aparecer.
     if chave in vistos:
         print(f'PULA\t{nome}\tchave {chave} repetida no arquivo', file=sys.stderr)
         continue
@@ -139,8 +123,6 @@ while IFS=$'\t' read -r chave ext subdir origem nome; do
   guardado="$ACERVO/$chave.$ext"
   destino="$TEMA_DIR/$subdir/$chave.$ext"
 
-  # A comparação é por conteúdo — a regra 5 do contrato. Reimportar o mesmo
-  # arquivo duas vezes tem que dizer "já estava certo", não "atualizei".
   igual_acervo=0
   [ -f "$guardado" ] && cmp -s "$origem" "$guardado" && igual_acervo=1
   igual_destino=0
@@ -165,8 +147,6 @@ while IFS=$'\t' read -r chave ext subdir origem nome; do
     continue
   fi
 
-  # `install -m` em vez de `cp`: o modo fica explícito e não herda o 600 que o
-  # mktemp deixou no temporário — um ícone 600 some para todo o resto do sistema.
   if ! install -m 644 "$origem" "$guardado" 2>/dev/null; then
     meow_erro "não consegui guardar $chave.$ext no acervo"
     falhou=1
@@ -178,8 +158,6 @@ while IFS=$'\t' read -r chave ext subdir origem nome; do
     continue
   fi
 
-  # Um ícone escolhido pode estar substituindo outro que o `icones_apps.sh`
-  # instalou com OUTRA extensão.
   outra="png"; [ "$ext" = "png" ] && outra="svg"
   while IFS= read -r velho; do
     [ -f "$velho" ] || continue
@@ -191,9 +169,6 @@ while IFS=$'\t' read -r chave ext subdir origem nome; do
   REGISTRO+=("$chave	$ext	$subdir")
 done < "$LISTA"
 
-# Sem ele, `assets/icones/curadoria/` seria um monte de arquivo solto sem dono,
-# e o `install.sh` não teria como saber que aquilo tem precedência sobre o
-# acervo automático.
 if [ "${#REGISTRO[@]}" -gt 0 ] && ! meow_seco; then
   conteudo="# curadoria.map — ícones que ela escolheu à mão na página de curadoria.
 # Têm precedência sobre o que o icones_apps.sh instala: rodam depois.
@@ -203,8 +178,6 @@ $(printf '%s\n' "${REGISTRO[@]}" | sort -u)"
   [ $? = "$MEOW_DIVERGENTE" ] && meow_muda "curadoria.map atualizado (${#REGISTRO[@]} entradas)"
 fi
 
-# O cache só é reconstruído quando existe index.theme: sem ele o
-# gtk-update-icon-cache falha com uma mensagem que assusta e não significa nada.
 if [ "$mudou" = 1 ] && ! meow_seco; then
   if [ -f "$TEMA_DIR/index.theme" ] && meow_tem gtk-update-icon-cache; then
     gtk-update-icon-cache -f -t -q "$TEMA_DIR" 2>/dev/null \

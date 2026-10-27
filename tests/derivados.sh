@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# derivados.sh — alterou o desenho, o resto se atualiza sozinho (P88, decisão 15).
-#
-# O QUE ELE VIGIA, numa cópia da árvore e numa casa de brinquedo:
-#   · um SVG do pack editado chega ao tema instalado em até N segundos, com a
-#     cache do tema refeita;
-#   · salvar duas vezes o mesmo conteúdo não escreve nada (nem o tema, nem a
-#     tabela, nem uma passada no registro);
-#   · uma rajada de 20 salvamentos vira UMA passada, com o último conteúdo;
-#   · o desenho apagado leva junto a cópia dele no tema;
-#   · o doctor (`--conferir`) vê o que o vigia perdeu, e só lê;
-#   · a unidade `.path` vigia cada pasta das três, e não outra coisa.
-# Cópia da árvore, HOME temporário, sem barramento e falsos que recusam escrita.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -45,8 +33,6 @@ passadas() { grep -c ' passada ' "$REGISTRO" 2>/dev/null || true; }
 mesmo() { [ -f "$1" ] && [ -f "$2" ] && [ "$(cat "$1")" = "$(cat "$2")" ]; }
 TEM_CACHE=0; command -v gtk-update-icon-cache >/dev/null 2>&1 && TEM_CACHE=1
 
-# O tema como o instalador o deixa: a camada do Dracula posta, a cache feita e a
-# tabela registrada.
 mkdir -p "$TEMA/scalable/apps"
 printf '[Icon Theme]\nName=MeowSystem-Icons\nInherits=hicolor\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=128\nType=Scalable\nMinSize=8\nMaxSize=512\nContext=Applications\n' \
   > "$TEMA/index.theme"
@@ -60,7 +46,6 @@ saida="$(amb bash "$R/scripts/derivados.sh" --conferir 2>&1)"; rc=$?
   && ok "registrada a tabela, o doctor vê os derivados em dia" \
   || falha "logo depois de registrar, o --conferir acusa diferença (rc=$rc)" "$saida"
 
-# --- 1. editou, o tema muda em até 60 s, e a cache junto -----------------------
 printf '<!-- editado pelo teste -->\n' >> "$F"
 cache_antes="$(stat -c %Y.%N "$TEMA/icon-theme.cache" 2>/dev/null)"
 sleep 1.1
@@ -83,7 +68,6 @@ amb bash "$R/scripts/derivados.sh" --conferir >/dev/null 2>&1 \
   && ok "depois da passada, a tabela é a do disco" \
   || falha "depois da passada, o --conferir ainda acusa diferença"
 
-# --- 2. o mesmo conteúdo duas vezes não escreve nada --------------------------
 antes="$(stat -c %Y.%N "$NO_TEMA" "$TABELA" "$TEMA/icon-theme.cache" 2>/dev/null)"
 cp "$F" "$F.tmp" && mv -f "$F.tmp" "$F"; touch "$F"
 sleep 1.1
@@ -93,7 +77,6 @@ depois="$(stat -c %Y.%N "$NO_TEMA" "$TABELA" "$TEMA/icon-theme.cache" 2>/dev/nul
   && ok "salvar de novo o mesmo conteúdo não escreve nada: nem o tema, nem a tabela, nem a cache" \
   || falha "o mesmo conteúdo escreveu alguma coisa (rc=$rc, $(passadas) passada(s))" "$saida"
 
-# --- 3. a rajada de 20 vira uma passada ---------------------------------------
 ( for i in $(seq 1 20); do printf '<!-- rajada %s -->\n' "$i" >> "$F"; sleep 0.05; done ) &
 saida="$(ESPERA=0.8 amb bash "$R/scripts/derivados.sh" --aplicar 2>&1)"; rc=$?
 wait
@@ -101,7 +84,6 @@ wait
   && ok "vinte salvamentos seguidos viraram uma passada só, com o último conteúdo no tema" \
   || falha "a rajada não virou uma passada com o último conteúdo (rc=$rc, $(passadas) passada(s))" "$saida"
 
-# --- 4. o doctor vê o que o vigia perdeu, e só lê --------------------------------
 printf '<!-- com o PC desligado -->\n' >> "$F"
 antes="$(stat -c %Y.%N "$NO_TEMA" "$TABELA" 2>/dev/null)"
 saida="$(amb bash "$R/scripts/derivados.sh" --conferir 2>&1)"; rc=$?
@@ -117,7 +99,6 @@ mesmo "$F" "$NO_TEMA" \
   && ok "o conserto do doctor (--aplicar) refaz o que faltava" \
   || falha "o conserto não pôs o desenho no tema"
 
-# --- 5. o desenho apagado leva a cópia dele ----------------------------------
 rm -f "$F"
 saida="$(amb bash "$R/scripts/derivados.sh" --aplicar 2>&1)"; rc=$?
 [ "$rc" = "1" ] && [ ! -e "$NO_TEMA" ] \
@@ -126,16 +107,13 @@ saida="$(amb bash "$R/scripts/derivados.sh" --aplicar 2>&1)"; rc=$?
 amb bash "$R/scripts/derivados.sh" --conferir >/dev/null 2>&1 \
   && ok "e a tabela esqueceu a fonte que saiu" \
   || falha "a tabela ainda conta a fonte que saiu"
-# O traço de 48 px cede ao desenho do pack (decisão 16, 7): sem o desenho, volta.
 rm -f "$R/packs/dracula/icones/apps/google-chrome.svg"
 saida="$(amb bash "$R/scripts/derivados.sh" --aplicar 2>&1)"; rc=$?
 [ "$rc" = "1" ] && [ -f "$TEMA/48x48/apps/google-chrome.svg" ] \
   && ok "o desenho do pack apagado devolve o traço a 48 px" \
   || falha "o desenho do pack saiu e o traço não voltou a 48 px (rc=$rc)" "$saida"
 
-# --- 6. o que a unidade .path vigia -------------------------------------------
 pastas="$(amb bash "$R/scripts/derivados.sh" --pastas 2>/dev/null)"
-# [P96, 23/10/2026: as três pastas são planas, e o Catppuccin mora no meowsystem.]
 esperadas="$R/packs/dracula/icones/apps
 $R/packs/dracula/icones/sistema
 $R/packs/dracula/icones/biblioteca
@@ -161,17 +139,12 @@ if command -v systemd-analyze >/dev/null 2>&1; then
 else
   printf 'pulado: sem systemd-analyze, a unidade gerada não se confere\n'
 fi
-# O --conferir do vigia (a linha do doctor) só lê: diz o que instalaria, ou
-# que não há systemd --user, e não deixa unidade nenhuma na casa.
 saida="$(amb bash "$R/scripts/vigia_derivados.sh" --conferir 2>&1)"; rc=$?
 { [ "$rc" = "1" ] && [[ "$saida" == *"a instalar"* ]] || [ "$rc" = "3" ]; } \
   && [ ! -e "$CASA/.config/systemd/user/meow-derivados.path" ] \
   && ok "o --conferir do vigia diz o que falta e não escreve unidade nenhuma" \
   || falha "o --conferir do vigia escreveu, ou não disse o que falta (rc=$rc)" "$saida"
 
-# --- 7. o molde do tipo de arquivo: editou no pack, o tema pinta de novo — P96 ---
-#   Desde 23/10/2026 o pack guarda UM molde (`var(--vscode-ctp-<papel>)`) e a instalação o
-#   pinta com a paleta do pack no ar. Quem usa edita o molde; o vigia refaz o pintado e o tema.
 MOLDE="$R/packs/meowsystem/icones/sistema/json.svg"
 NO_TEMA_MT="$TEMA/scalable/mimetypes/application-json.svg"
 amb bash "$R/scripts/icones_mimetypes.sh" --aplicar >/dev/null 2>&1

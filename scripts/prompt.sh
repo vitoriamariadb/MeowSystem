@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# prompt.sh — o prompt do zsh, e a única etapa deste projeto que termina com um
-# comando na mão DELA em vez de um arquivo no disco.
-#
-# O prompt do zsh mora em `~/.config/zsh/env.zsh`, que é o repositório do Ritual
-# da Aurora — com auto-commit a cada 10 minutos.
-#
-# Só que a configuração do starship NÃO mora lá.
-#
-#     NOSSO   ~/.config/starship.toml   -> este script instala e confere
-#     DELA    ~/.config/zsh/env.zsh     -> sai como `assets/prompt/aurora.patch`
-#
-# Isso não é meio-trabalho: é a única divisão que não mente.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -20,20 +8,10 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}"
 PROMPT_FONTE="$MEOW_RAIZ/assets/prompt/starship.toml"
 PROMPT_ALVO="${PROMPT_ALVO:-$HOME/.config/starship.toml}"
-# O `PROMPT_ZDOT`, o `PROMPT_ENV` e o `PROMPT_PATCH` saíram: eram o `env.zsh` do
-# Spellbook e o patch para ele.
 
-# A linha de instalação do starship, escrita uma vez só.
-#
-# O `--yes` entrou junto e é obrigatório: quem chama pelo painel não tem
-# terminal, e um instalador que pergunta pendura o trabalho para sempre.
 PROMPT_INSTALAR='curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"'
 PROMPT_INSTALAR_ALT='cargo install starship --locked'
 
-# --- as quatro perguntas, cada uma respondida por medição -------------------
-
-# As duas pontas chamam esta mesma função; o que mudava era o PATH de quem
-# chamava. A mesma pergunta, duas respostas.
 _prompt_onde_starship() {
   local lugar
   for lugar in "$(command -v starship 2>/dev/null)" \
@@ -44,15 +22,9 @@ _prompt_onde_starship() {
 }
 _prompt_tem_starship() { _prompt_onde_starship >/dev/null; }
 
-# As três perguntas ao `env.zsh` (o `starship init`, o `ZSH_THEME` e o
-# `FZF_DEFAULT_OPTS`) saíram daqui — ver o cabeçalho.
-
-# `meow_escrever` grava com `printf '%s'` e come o `\n` final do arquivo.
 _PROMPT_PACK="$(meow_pack_dir)"
 [ -n "$_PROMPT_PACK" ] || _PROMPT_PACK="$(meow_pack_padrao_dir 2>/dev/null || true)"
 _PROMPT_PACK="$(basename "${_PROMPT_PACK:-meowsystem}")"
-# O pack padrão (P96) é o Catppuccin dentro do meowsystem: a paleta do starship continua com o
-# nome da família, `catppuccin_<flavor>`, que é o do preset de `assets/prompt/starship.toml`.
 [ "$_PROMPT_PACK" = "meowsystem" ] && _PROMPT_PACK="catppuccin"
 
 _prompt_desejado() {
@@ -65,12 +37,6 @@ with open(paleta, encoding="utf-8") as fh:
     dados = json.load(fh)
 cores = dados["flavors"][flavor]
 nome = re.sub(r"[^a-z0-9_]", "_", f"{pack}_{flavor}".lower())
-# A PALETA É DADO NÃO CONFIÁVEL, E O DESTINO É CÓDIGO — conferência da P74
-#   (alerta de segurança de 09/10/2026). O `validar` confere o hex dos 26
-#   slots e mais nada: um pack importado pode pôr na `ordem_canonica` um slot a
-#   mais cujo valor fecha a aspa e abre um `[custom.x]` com `command = ...` —
-#   e o starship roda esse comando a cada prompt. Só entra linha cujo nome é
-#   uma palavra simples e cujo valor é `#RRGGBB`.
 hexa = re.compile(r"^#[0-9A-Fa-f]{6}$")
 bloco = f"[palettes.{nome}]\n" + "".join(
     f'{s} = "{cores[s].lower()}"\n' for s in (dados.get("ordem_canonica") or list(cores))
@@ -88,50 +54,24 @@ _prompt_toml_confere() {
   [ "$(_prompt_desejado)" = "$(cat "$PROMPT_ALVO")" ]
 }
 
-# O `_prompt_avisar_trava` saiu com o `env.zsh`,: ele perguntava se o
-# `~/.config/zsh` estava no `vizinhos.conf`, que é a mesma adivinhação de
-# vizinho que o `bin/meow` e o `install.sh` deixaram de fazer no mesmo dia.
-
-# Sem este arquivo, um "não quero" viraria a mesma pergunta amanhã, e a
-# pendência que volta todo dia é a notificação que a pessoa aprende a ignorar.
-#
-# Mora no estado, e não no meow.conf, porque não é ajuste: é a resposta a uma
-# pergunta.
 PROMPT_RECUSA="$MEOW_ESTADO/starship-recusado"
 
 _prompt_dizer_falta_starship() {
   if [ -f "$PROMPT_RECUSA" ]; then
-    # Nem pendência: ela já respondeu. O `meow_info` fica porque o código de
-    # saída (3) precisa de um porquê na tela, e este é o porquê.
     meow_pula "o starship não está instalado, e você disse que não o quer"
     meow_info "  apague $PROMPT_RECUSA para reabrir a pergunta"
     return 0
   fi
-  # Eram dois `meow_aviso`, e o `!!` pesa no veredito do doctor
-  # (`pulado_com_aviso`): com o PROMPT_STARSHIP de fábrica, a falta de um
-  # opcional deixava o auto-reparo vermelho todo dia.
   meow_pula "o starship não está instalado — ele é opcional, e não vem no apt do Pop!_OS"
-  # A RECEITA SAIU DA TELA E VIROU O VERBO ABAIXO. Ela continua existindo, em
-  # `$PROMPT_INSTALAR`, mas agora como algo que este script EXECUTA — e não
-  # como um parágrafo que manda a pessoa executar.
   MEOW_PENDENCIA_ROTINA=1 meow_pendencia_acionavel starship-ausente \
     "O prompt do terminal precisa do starship, e ele não vem no apt do Pop!_OS" \
     "./scripts/prompt.sh instalar-starship"
 }
 
-# O zsh vem primeiro porque é o shell que este projeto conhece; o bash,
-# porque é o padrão do Pop!_OS.
 _prompt_dizer_ligacao() {
   meow_info "o terminal liga o starship pelo bloco do MeowSystem (scripts/terminal_bloco.sh)"
 }
 
-# --- conferir ---------------------------------------------------------------
-#
-# 0 tudo no lugar · 1 o NOSSO arquivo divergiu (e o doctor conserta) · 3 falta o
-# starship, ou a etapa está desligada (nada a fazer).
-#
-# O 4 era "o nosso lado está certo e o `env.zsh` não foi patcheado", e existia
-# para impedir o ping-pong de um conserto que não alcança a linha do outro lado.
 cmd_conferir() {
   if [ "$PROMPT_STARSHIP" != "sim" ]; then
     meow_pula "prompt desligado no meow.conf (PROMPT_STARSHIP=\"$PROMPT_STARSHIP\")"
@@ -158,8 +98,6 @@ cmd_conferir() {
   return "$MEOW_OK"
 }
 
-# --- aplicar ----------------------------------------------------------------
-# ESCREVE UM ARQUIVO SÓ, E ELE É NOSSO. A linha do shell sai como texto na tela.
 cmd_aplicar() {
   if [ "$PROMPT_STARSHIP" != "sim" ]; then
     meow_pula "prompt desligado no meow.conf (PROMPT_STARSHIP=\"$PROMPT_STARSHIP\")"
@@ -167,9 +105,6 @@ cmd_aplicar() {
   fi
   [ -f "$PROMPT_FONTE" ] || { meow_erro "falta $PROMPT_FONTE"; return "$MEOW_ERRO"; }
 
-  # Sem o starship, escrever a configuração dele seria plantar um arquivo que
-  # nada lê — e presumir uma instalação que é decisão dela. O 3 é honesto: a
-  # etapa se pula, e o `install.sh` a mostra em "pulado" em vez de "mexeu".
   if ! _prompt_tem_starship; then
     _prompt_dizer_falta_starship
     meow_info "o preset entra assim que o starship estiver instalado"
@@ -187,16 +122,12 @@ cmd_aplicar() {
         fi ;;
   esac
 
-  # A linha do shell só é dita quando o arquivo acabou de mudar: é a hora em
-  # que alguém está olhando para o prompt. Repeti-la a cada passagem do timer
-  # seria o aviso que se aprende a ignorar.
   [ "$rc" = "$MEOW_DIVERGENTE" ] && ! meow_seco && _prompt_dizer_ligacao
 
   meow_registrar "prompt.sh aplicar rc=$rc"
   return "$rc"
 }
 
-# --- mostrar ----------------------------------------------------------------
 cmd_mostrar() {
   meow_titulo "O que liga o starship"
   printf '\n'
@@ -205,12 +136,8 @@ cmd_mostrar() {
   return "$MEOW_OK"
 }
 
-# --- remover ----------------------------------------------------------------
-# Não é o inverso do `aplicar`, e o aviso é a parte que importa: ver o cabeçalho.
 cmd_remover() {
   if [ ! -f "$PROMPT_ALVO" ]; then meow_pula "nada a remover"; return "$MEOW_OK"; fi
-  # Sem ler o shell de ninguém não dá para saber se a linha do starship ainda
-  # está lá — então o aviso sai sempre, que é o lado seguro de errar.
   meow_aviso "se o seu shell ainda inicia o starship, tirar este arquivo não devolve"
   meow_aviso "  o prompt antigo — devolve o prompt PADRÃO do starship. Tire a linha antes."
   meow_seco && { meow_muda "removeria $PROMPT_ALVO"; return "$MEOW_DIVERGENTE"; }
@@ -221,15 +148,6 @@ cmd_remover() {
 }
 
 
-# --- instalar-starship ------------------------------------------------------
-#
-# Esta função é a receita que o `_prompt_dizer_falta_starship` imprimia, virada
-# ato.
-#
-# BAIXA DA INTERNET, e isso é dito antes de baixar.
-#
-# SEM SUDO, E ISSO É O DESENHO: o instalador oficial aceita `--bin-dir`, e
-# `~/.local/bin` é da pessoa.
 cmd_instalar_starship() {
   if _prompt_tem_starship; then
     meow_ok "o starship já está instalado ($(_prompt_onde_starship))"
@@ -245,10 +163,6 @@ cmd_instalar_starship() {
   fi
 
   mkdir -p "$HOME/.local/bin" 2>/dev/null || true
-  # `sh -c` SOBRE UMA CONSTANTE DESTE ARQUIVO, e não sobre entrada de ninguém:
-  # é o que permite a linha existir uma vez só, dez linhas acima, em vez de uma
-  # cópia aqui e outra na frase da tela — que foi como as receitas deste projeto
-  # envelheceram até agora.
   if ! sh -c "$PROMPT_INSTALAR"; then
     meow_erro "o instalador do starship falhou (sem rede?)"
     meow_info "a alternativa, pelo cargo: $PROMPT_INSTALAR_ALT"
@@ -261,9 +175,6 @@ cmd_instalar_starship() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- instalar ----------------------------------------------------------------
-# A etapa do install: o starship desce com ele, como o fastfetch, salvo a recusa
-# gravada; depois, o preset.
 cmd_instalar() {
   if [ "$PROMPT_STARSHIP" = "sim" ] && ! _prompt_tem_starship && [ ! -f "$PROMPT_RECUSA" ]; then
     cmd_instalar_starship
@@ -272,8 +183,6 @@ cmd_instalar() {
   cmd_aplicar
 }
 
-# --- nao-quero-starship -----------------------------------------------------
-# A OUTRA RESPOSTA, e ela precisa existir para a pergunta ser uma pergunta.
 cmd_recusar_starship() {
   meow_seco && { meow_muda "gravaria a recusa em $PROMPT_RECUSA"; return "$MEOW_DIVERGENTE"; }
   mkdir -p "$MEOW_ESTADO" 2>/dev/null || true
@@ -298,10 +207,6 @@ case "${1:-aplicar}" in
   remover)          cmd_remover ;;
   instalar-starship)  cmd_instalar_starship ;;
   nao-quero-starship) cmd_recusar_starship ;;
-  # Existe para o pré-voo do `install.sh` perguntar AQUI: com o `meow_tem`
-  # dele, que só olha o PATH de agora, eram três donos do «tem starship», e
-  # numa passagem com o PATH do systemd o pré-voo dizia «sem starship» na mesma
-  # rodada em que esta etapa dizia «conforme».
   onde-starship)      _prompt_onde_starship ;;
   *) meow_erro "uso: prompt.sh {aplicar|instalar|conferir|mostrar|remover|instalar-starship|nao-quero-starship|onde-starship}"; exit "$MEOW_ERRO" ;;
 esac

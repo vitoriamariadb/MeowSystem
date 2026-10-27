@@ -1,21 +1,4 @@
 #!/usr/bin/env bash
-# terminal.sh — a paleta ANSI do `cosmic-term`, que era a única peça da tela
-# dela que continuava de fábrica.
-#
-# VS Code, Obsidian, btop, bat, qBittorrent e Spotify já estão vestidos.
-#
-# A ARMADILHA QUE DECIDE O DESENHO: O ARQUIVO DE IMPORTAÇÃO NÃO É O ARQUIVO DE
-# CONFIGURAÇÃO.
-#
-# O README do port oficial (`catppuccin/cosmic-desktop`, pasta
-# `assets/temas/cosmic-term/`) manda importar pela GUI — View → Color schemes… →
-# Import — e os quatro `.ron` de lá são UM `ColorScheme` solto:
-#
-#       (
-#           name: "Catppuccin Mocha",
-#           foreground: "#cdd6f4",
-#
-#       )
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,15 +6,9 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 
 DIR="${TERMINAL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicTerm/$(meow_cosmic_v com.system76.CosmicTerm)}"
-# A paleta vem da porta única (lib/comum.sh). Era
-# `assets/paleta/catppuccin.json` cravado — e um nome cravado aqui faz este
-# script continuar lendo o Catppuccin enquanto o resto do projeto já mudou de
-# paleta, sem dar erro.
 PALETA="$(meow_paleta)"
 
 ESQUEMA="${TERMINAL_ESQUEMA:-sim}"
-# Vazio, vale o flavor padrão do pack no ar: o `meow_flavor` (lib/comum.sh).
-# Era `${FLAVOR:-mocha}`, o padrão de um pack só.
 _FLAVOR="$(meow_flavor)"
 _ACCENT="${ACCENT:-mauve}"
 _CURSOR="${TERMINAL_CURSOR:-accent}"
@@ -51,15 +28,10 @@ case "${1:-}" in
   *) meow_erro "opção desconhecida: '$1' — use aplicar, conferir ou remover"
      exit "$MEOW_ERRO" ;;
 esac
-# O `--conferir` do projeto é o seco visto de fora. Atribuir aqui funciona
-# porque o `source` do comum.sh já passou (ver o cabeçalho de MEOW_SECO lá).
-# shellcheck disable=SC2034  # quem lê MEOW_SECO é o meow_seco() do comum.sh
+# shellcheck disable=SC2034
 [ "$ACAO" = "conferir" ] && MEOW_SECO=1
 meow_seco && [ "$ACAO" = "aplicar" ] && ACAO="conferir"
 
-# --- os nomes, e por que eles são a chave de tudo ---------------------------
-# O nome é a IDENTIDADE da nossa entrada dentro do mapa (é por ele que o
-# `remover` acha o que apagar) E é o valor que vai para `syntax_theme_*`.
 NOMES_ESQUEMA="$(python3 -I -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -77,12 +49,6 @@ _nome_esquema() {
   printf '%s' "$linha"
 }
 
-# Tudo o que este módulo pode ter escrito algum dia, em qualquer flavor. Sai da
-# MESMA paleta pelo mesmo motivo: um nome que só o `remover` conhece é lixo que
-# ninguém apaga.
-#
-# A frase de cima dizia "em qualquer flavor" e a conta lia só a paleta do pack
-# ATIVO.
 NOSSOS_NOMES="$(python3 -I -c '
 import json, os, sys
 sys.path.insert(0, sys.argv[1])
@@ -112,14 +78,6 @@ except Exception:
 print(",".join(nomes))
 ' "$RAIZ/scripts" "$PALETA" 2>/dev/null)"
 
-# O slot escuro segue o FLAVOR; o claro sai da PALETA, não de um nome cravado.
-#
-# ERA `FLAVOR_CLARO="latte"`, E ISSO QUEBRAVA TODO PACK QUE NÃO FOSSE O
-# CATPPUCCIN O comentário anterior dizia, com todas as letras, "o claro é sempre
-# o Latte, porque o Catppuccin tem um flavor claro só".
-#
-# A mesma lição que o bloco acima já contava sobre `NOMES_ESQUEMA`: uma lista de
-# nomes chumbada custa exatamente o dia em que entra o quinto nome.
 _FLAVOR_CLARO_PALETA="$(python3 -I -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -128,9 +86,6 @@ print(claros[0] if claros else "")
 ' "$PALETA" 2>/dev/null)"
 FLAVOR_CLARO="${_FLAVOR_CLARO_PALETA:-latte}"
 
-# E o escuro: se o FLAVOR escolhido for o claro, o par escuro é o primeiro
-# flavor que NÃO está em `claros`. Antes isto era `latte) FLAVOR_ESCURO="mocha"`,
-# com os dois nomes do Catppuccin escritos no código.
 _FLAVOR_ESCURO_PALETA="$(python3 -I -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -143,15 +98,6 @@ case "$_FLAVOR" in
   *)               FLAVOR_ESCURO="$_FLAVOR" ;;
 esac
 
-# --- o ajudante em python ---------------------------------------------------
-# Bash não lê RON, e um `sed` sobre um mapa aninhado com strings dentro é o
-# jeito mais rápido de picotar um arquivo dela. O python entra em três modos:
-#
-#   gerar <flavor> <nome> <cursor_hex|-->   imprime a entrada pronta
-#   por   <arquivo> <nome>                  põe/substitui a nossa (ENTRADA=...)
-#   tirar <arquivo>                         tira as nossas (NOSSOS=...)
-# O parser devolve cru o que não é nosso; o que ele não entende vira erro, e ninguém
-# escreve. O `background` nunca entra (o fundo é o do tema dela, com a opacidade).
 _py() {
   PALETA="$PALETA" python3 -I - "$@" <<'PY'
 import json, os, re, sys
@@ -160,18 +106,13 @@ modo = sys.argv[1]
 
 
 def esc(s):
-    # RON aceita as mesmas fugas de string do JSON; ensure_ascii=False mantém
-    # o "é" de Frappé como UTF-8, que é como o port oficial o escreve.
     return json.dumps(s, ensure_ascii=False)
 
 
-# ---------------------------------------------------------------- gerar
 def gerar(flavor, nome, cursor_hex):
     pal = json.load(open(os.environ["PALETA"]))
     claros = set(pal.get("claros", ["latte"]))
     try:
-        # MAIÚSCULA, E ISSO NÃO É ESTILO — ver o bloco "O HEX É MAIÚSCULO"
-        # no cabeçalho deste arquivo.
         p = {k: v.upper() for k, v in pal["flavors"][flavor].items()}
     except KeyError:
         sys.stderr.write("flavor desconhecido na paleta: %s\n" % flavor)
@@ -186,8 +127,6 @@ def gerar(flavor, nome, cursor_hex):
 
     cursor = cursor_hex if cursor_hex != "--" else p["rosewater"]
 
-    # magenta = pink e cyan = teal. Não é engano: é o que o port oficial faz,
-    # e foi conferido contra os quatro arquivos dele.
     meio = [p["red"], p["green"], p["yellow"], p["blue"], p["pink"], p["teal"]]
     normal = [n_black] + meio + [n_white]
     bright = [b_black] + meio + [b_white]
@@ -200,8 +139,6 @@ def gerar(flavor, nome, cursor_hex):
         L.append("%s)," % (" " * ind))
         return L
 
-    # A ORDEM DOS CAMPOS É A DA DECLARAÇÃO DO STRUCT em src/config.rs, e
-    # `background` não entra — ver o cabeçalho deste arquivo.
     L = ["("]
     L.append("        name: %s," % esc(nome))
     L.append('        foreground: "%s",' % p["text"])
@@ -210,12 +147,11 @@ def gerar(flavor, nome, cursor_hex):
     L.append('        dim_foreground: "%s",' % p["overlay0"])
     L += ansi("normal", normal, 8)
     L += ansi("bright", bright, 8)
-    L += ansi("dim", normal, 8)          # o port repete o normal no dim
+    L += ansi("dim", normal, 8)
     L.append("    )")
     sys.stdout.write("\n".join(L))
 
 
-# ---------------------------------------------------------------- ler o mapa
 class Erro(Exception):
     pass
 
@@ -251,14 +187,14 @@ def ler_mapa(txt):
                 continue
             if c in ")]}":
                 if prof == 0:
-                    return i          # escalar solto: acabou no fecha do mapa
+                    return i
                 prof -= 1
                 i += 1
                 if prof == 0:
                     return i
                 continue
             if prof == 0 and c == ",":
-                return i              # escalar solto
+                return i
             i += 1
         raise Erro("valor sem fechamento")
 
@@ -322,7 +258,6 @@ def emitir(itens):
     sys.stdout.write("\n".join(L))
 
 
-# ---------------------------------------------------------------- por / tirar
 if modo == "gerar":
     gerar(sys.argv[2], sys.argv[3], sys.argv[4])
 elif modo == "por":
@@ -334,10 +269,6 @@ elif modo == "por":
             it[1] = entrada
             break
     else:
-        # O MESMO CRITÉRIO DA GUI: `last_key_value().map(|(id,_)| id+1)`, com
-        # `unwrap_or_default()` = 0 no mapa vazio. Assim a nossa entrada nunca
-        # cai em cima de uma dela, e a próxima importação pela GUI continua
-        # ganhando um id livre.
         prox = max((c for c, _ in itens), default=-1) + 1
         itens.append([prox, entrada])
     emitir(itens)
@@ -351,9 +282,6 @@ else:
 PY
 }
 
-# --- o hex do accent --------------------------------------------------------
-# A tradução nome-da-paleta -> hex mora aqui pelo mesmo motivo do `midia.sh`:
-# a paleta é do MeowSystem, e uma segunda cópia dos hex é uma segunda verdade.
 _hex_accent() {
   python3 -I -c '
 import json, sys
@@ -368,7 +296,6 @@ print(v.upper())
 ' "$PALETA" "$1" "$_ACCENT" 2>/dev/null
 }
 
-# --- pré-requisitos ---------------------------------------------------------
 _pronto() {
   if ! meow_tem cosmic-term; then
     meow_pula "cosmic-term não está instalado — nada a vestir"
@@ -397,11 +324,6 @@ _pronto() {
   return "$MEOW_OK"
 }
 
-# --- escrever um arquivo do cosmic-config -----------------------------------
-# O `meow_backup_sistema` guarda em
-# `~/.local/state/meowsystem/backups/<carimbo>-sistema/<caminho absoluto>`, uma
-# vez por passagem (o `MEOW_CARIMBO` é exportado pelo comum.sh), e não faz nada
-# quando o arquivo ainda não existe.
 _gravar() {
   local arq="$1" conteudo="$2"
   if [ -f "$arq" ] && ! meow_seco && [ "$conteudo" != "$(cat "$arq" 2>/dev/null)" ]; then
@@ -413,8 +335,6 @@ _gravar() {
   meow_escrever "$arq" "$conteudo" 644
 }
 
-# Apaga uma chave = volta ao `Default` do cosmic-term. O arquivo vai para o
-# backup antes, para que `meow desfazer` tenha de onde tirá-lo.
 _apagar() {
   local arq="$1"
   [ -f "$arq" ] || return "$MEOW_OK"
@@ -427,16 +347,11 @@ _apagar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- um slot (escuro ou claro) ----------------------------------------------
-# $1 = dark|light   $2 = flavor
 _slot_por() {
   local tipo="$1" flavor="$2"
   local mapa="$DIR/color_schemes_$tipo" sel="$DIR/syntax_theme_$tipo"
   local nome entrada desejado hex rc mudou=0
 
-  # Esta linha devolvia 2 sem imprimir uma palavra, e o `meow doctor`
-  # mostrava `erro terminal` com a mensagem VAZIA — não havia como saber o
-  # que faltava sem rodar o script com `bash -x`.
   if ! nome="$(_nome_esquema "$flavor")"; then
     meow_erro "a paleta não nomeia o flavor '$flavor' (esquema $tipo do terminal)"
     meow_info "  quem declara é a chave \"nomes\" da paleta: $(basename "$PALETA")"
@@ -463,8 +378,6 @@ _slot_por() {
     2) meow_erro "não consegui escrever $mapa"; return "$MEOW_ERRO" ;;
   esac
 
-  # O `syntax_theme_*` é exatamente o que o seletor de Ajustes → Cores do
-  # cosmic-term escreve.
   local atual=""
   if [ -f "$sel" ]; then
     atual="$(cat "$sel" 2>/dev/null)"
@@ -512,8 +425,6 @@ _slot_tirar() {
     esac
   fi
 
-  # A seleção só volta ao de fábrica se ainda estiver apontando para um nome
-  # NOSSO.
   if [ -f "$sel" ]; then
     atual="$(cat "$sel" 2>/dev/null)"
     atual="${atual#\"}"; atual="${atual%\"}"
@@ -533,7 +444,6 @@ _slot_tirar() {
   return "$MEOW_OK"
 }
 
-# Algum esquema NOSSO (de qualquer pack) em algum dos dois mapas? 0 = sim.
 _tem_nosso() {
   local arq n
   for arq in "$DIR/color_schemes_dark" "$DIR/color_schemes_light"; do
@@ -545,7 +455,6 @@ _tem_nosso() {
   return 1
 }
 
-# --- as ações ---------------------------------------------------------------
 _aplicar() {
   local rc mudou=0
   _slot_por dark  "$FLAVOR_ESCURO"; rc=$?; [ "$rc" = 2 ] && return "$MEOW_ERRO"; [ "$rc" = 1 ] && mudou=1
@@ -586,18 +495,9 @@ _remover() {
 main() {
   _pronto || return $?
 
-  # `remover` pedido na mão vem ANTES da chave do conf: quem digitou "remover"
-  # não quer ouvir sobre o TERMINAL_ESQUEMA, quer o terminal de volta.
   [ "$ACAO" = "remover" ] && { _remover; return $?; }
 
   if [ "$ESQUEMA" != "sim" ]; then
-    # Desligar tem de DESLIGAR — a mesma lição do `midia.sh`. Deixar de
-    # aplicar manteria de pé o que uma passagem anterior escreveu, e o sintoma
-    # seria "desliguei e continua", que é o pior porque não há onde olhar.
-    # A PALAVRA "Catppuccin" ERA A RÉGUA, E ELA SÓ VIA UM PACK — P51. Com o
-    # Dracula no ar o mapa não a tem, e `TERMINAL_ESQUEMA="nao"` deixava o
-    # terminal vestido. A régua é a mesma do `remover`: algum nome nosso dentro
-    # de um dos mapas.
     if _tem_nosso; then
       meow_muda "TERMINAL_ESQUEMA=\"$ESQUEMA\" no meow.conf, mas o esquema nosso continua instalado"
       [ "$ACAO" = "conferir" ] && return "$MEOW_DIVERGENTE"
@@ -607,7 +507,7 @@ main() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  _aplicar   # `conferir` é `aplicar` em seco — o MEOW_SECO faz a diferença
+  _aplicar
 }
 
 main "$@"

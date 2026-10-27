@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# backoff-do-supervisor.sh — a espera do cosmic-session é medida, ou dita não
-# medida, e nunca confundida com "nunca falhou".
-#
-# Um `journalctl` falso devolve três journals: o formato de hoje, um formato
-# que mudou (o painel reiniciou e a frase do `sleeping for … ms` sumiu) e um
-# boot sem reinício nenhum.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -12,7 +6,7 @@ mkdir -p "$T/bin"
 printf '#!/bin/sh\ncat "%s/journal"\n' "$T" > "$T/bin/journalctl"; chmod 755 "$T/bin/journalctl"
 falhas=0
 medir() { PATH="$T/bin:$PATH" HOME="$T" bash -c ". '$RAIZ/lib/comum.sh'; . '$RAIZ/lib/painel.sh'; meow_painel_espera_supervisor"; }
-caso() { # $1 descrição $2 esperado
+caso() {
   local veio; veio="$(medir)"
   if [ "$veio" = "$2" ]; then printf '  ok    %s\n' "$1"; else printf '  FALHA %s (esperado %s, veio %s)\n' "$1" "${2:-<nada>}" "${veio:-<nada>}"; falhas=$((falhas+1)); fi
 }
@@ -34,8 +28,6 @@ caso "formato que mudou: nao-medida" nao-medida
 printf 'out 10 09:00:00 nitro-5 cosmic-session[4525]: launch_pad started\n' > "$T/journal"
 caso "boot sem reinício: nada" ""
 
-# Com o meow-painel.service parado e a espera não medida, o `painel.sh
-# reciclar` mandava digitar o `systemctl --user start` e saía 2.
 cat > "$T/journal" <<'FIM'
 out 10 09:00:00 nitro-5 cosmic-session[4525]: backoff 4096 ms, then respawn cosmic-panel
 out 10 09:00:04 nitro-5 cosmic-session[4525]: Restarted cosmic-panel (attempt 3)

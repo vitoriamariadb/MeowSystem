@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
-# criar-tema-leva.sh — o que o «Criar tema» leva para dentro do pack que ele
-# grava: as fotos (para `wallpapers/`), os sons (para `sons/`) e os ícones de
-# sistema e da biblioteca (para `icones/sistema/` e `icones/biblioteca/`). Vestir o pack
-# põe essas fotos na rotação, sem rede, e instala o tema de sons dele. E o
-# painel (HOME de brinquedo, PID próprio) lista os sons de aviso e toca a prévia. O que vem de quem usa é validado antes de entrar: arquivo
-# comum, conteúdo que é o que diz ser, e nome que vira arquivo do lado de cá.
-#
-# HOME, packs e estado de brinquedo; `curl`, `sudo`, `pkexec` e `pkill` falsos
-# que recusam. Nada sai do `mktemp -d`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -34,7 +25,6 @@ casa() {
 pack() { casa python3 "$RAIZ/scripts/pack.py" "$@"; }
 png() { printf '\x89PNG\r\n\x1a\n%s\n' "$2" > "$1"; }
 
-# O pack que o «Guardar» do Criar tema grava: um CSV de cores, pela mesma porta.
 python3 - "$T/meu-tema.csv" "$RAIZ/packs/meowsystem/paleta.json" <<'PY'
 import json, sys
 p = json.load(open(sys.argv[2], encoding="utf-8"))
@@ -46,7 +36,6 @@ PY
 pack importar "$T/meu-tema.csv" >/dev/null 2>&1 || { falha "o CSV de brinquedo não virou pack"; exit 1; }
 DIR="$CASA/.local/share/meowsystem/packs/meu-tema"
 
-# --- 1. as fotos --------------------------------------------------------------
 AT="$CASA/.local/share/backgrounds/meowsystem/ativos"; mkdir -p "$AT" "$T/fora"
 png "$AT/cat-noite.png" "do pack meowsystem"
 png "$AT/minha foto.png" "de quem usa"
@@ -75,8 +64,6 @@ else
   falha "o pack aceitou o que não é foto, ou um link (rc=$rf/$rl)" "$(ls -1A "$DIR/wallpapers")"
 fi
 
-# Nome que, limpo, perderia a extensão: a foto entraria no pack sem ela, e nem a
-# rotação nem a lista do pack a veriam.
 png "$T/fora/-.png" "so hifen"; png "$T/fora/.png" "so extensao"
 pack levar meu-tema foto "$T/fora/-.png" >/dev/null 2>&1; rh=$?
 pack levar meu-tema foto "$T/fora/.png" >/dev/null 2>&1; rp=$?
@@ -92,7 +79,6 @@ v="$(pack validar meu-tema 2>&1)" \
   && ok "o pack com as fotos continua validando" \
   || falha "o pack com as fotos não valida" "$v"
 
-# Vestir: o que o install roda para o papel de parede, com o pack no ar.
 vestir() { casa PACK=meu-tema FLAVOR=meutema bash "$RAIZ/scripts/wallpaper.sh" "$@"; }
 vestir semear-se-faltar >/dev/null 2>&1
 vestir aplicar >"$T/aplicar.log" 2>&1
@@ -121,7 +107,6 @@ pack levar meowsystem foto "$AT/outra.png" >/dev/null 2>&1; rm_=$?
   && ok "o pack que vem com o MeowSystem não recebe nada" \
   || falha "o levar escreveu num pack do repositório (rc=$rm_)"
 
-# --- 2. os sons ----------------------------------------------------------------
 oga() { printf 'OggS%s\n' "$2" > "$1"; }
 SONS="$DIR/sons"
 s="$(pack levar meu-tema sons dracula 2>&1)"; rs=$?
@@ -160,7 +145,6 @@ v="$(pack validar meu-tema 2>&1)" \
   && ok "o pack com os sons continua validando" \
   || falha "o pack com os sons não valida" "$v"
 
-# Vestir: a etapa de som do install, com o pack no ar.
 casa PACK=meu-tema FLAVOR=meutema SOM=sim bash "$RAIZ/scripts/som.sh" aplicar >"$T/som.log" 2>&1
 NO_AR="$CASA/.local/share/sounds/MeowSystem-Sons"
 if diff -r "$SONS" "$NO_AR" >/dev/null 2>&1; then
@@ -170,7 +154,6 @@ else
 $(cat "$T/som.log")"
 fi
 
-# --- 4. os ícones de sistema e da biblioteca ---------------------------------------
 DRA="$RAIZ/packs/dracula/icones"
 oferta="$(pack acervo-para-levar meu-tema sistema 2>&1)"
 if printf '%s\n' "$oferta" | grep -q "^dracula	folder-documents	$DRA/sistema/folder-documents.svg	nao$" \
@@ -201,11 +184,9 @@ if [ "$r1$r2$r3" = 111 ] && [ "$r4" != 0 ] && [ ! -e "$DIR/icones/biblioteca/mau
 else
   falha "o pack aceitou um ícone que devia recusar ($r1 $r2 $r3 $r4)"
 fi
-# Vestido o pack, a pasta levada é a que o tema de ícones veste; as outras seguem a herança.
 casa PACK=meu-tema FLAVOR=meutema PASTAS_XDG=sim ICONES_TEMA=Tema-Leva \
   bash "$RAIZ/scripts/icones_pastas.sh" --aplicar >"$T/pastas.log" 2>&1
 LUGARES="$CASA/.local/share/icons/Tema-Leva/scalable/places"
-# (O tema guarda o desenho sem a quebra de linha do fim: compara-se o texto.)
 if [ "$(cat "$DRA/sistema/folder-documents.svg")" = "$(cat "$LUGARES/folder-documents.svg" 2>/dev/null)" ] \
    && [ -f "$LUGARES/folder-music.svg" ] \
    && [ "$(cat "$DRA/sistema/folder-music.svg")" != "$(cat "$LUGARES/folder-music.svg")" ]; then
@@ -220,7 +201,6 @@ s="$(pack tirar meu-tema biblioteca "$BIB" 2>&1)"; rt=$?
 v="$(pack validar meu-tema 2>&1)" && ok "o pack com os ícones continua validando" \
   || falha "o pack com os ícones não valida" "$v"
 
-# --- 3. os sons de aviso no painel ------------------------------------------------
 mkdir -p "$CASA/.config/meow"; cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
 ( exec env -i PATH="$FALSO:$PATH" HOME="$CASA" USER="${USER:-t}" LANG=C.UTF-8 MEOW_RAIZ="$RAIZ" \
     MEOW_ESTADO="$T/estado" MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE=/nao/existe \
@@ -271,7 +251,6 @@ cod, _, r = pedir("/api/criar", {"id": "meu-tema", "tipo": "som", "nome": "compl
                                  "arquivo": "x.oga", "conteudo": base64.b64encode(b"nao e ogg").decode()})
 if cod != 400:
     falhas.append(f"o painel aceitou um som que não é Ogg ({cod})")
-# O nome do arquivo vem da página: `..` não pode virar caminho do lado de cá.
 for arquivo in ("..", ".", "../../x.oga"):
     cod, _, r = pedir("/api/criar", {"id": "meu-tema", "tipo": "som", "nome": "complete", "levar": True,
                                      "arquivo": arquivo, "conteudo": base64.b64encode(b"OggS de quem usa").decode()})

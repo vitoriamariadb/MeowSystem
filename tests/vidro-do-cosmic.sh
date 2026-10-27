@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# vidro-do-cosmic.sh — o vidro que o tema grava é o do alpha_map que o COSMIC tem.
-#
-# Os catorze campos do vidro da seção 1 são os que a GUI desta máquina
-# (cosmic-settings 1.7.0) gravou 22:35:41, quando o slider gravou este mapa, com
-# esta mesma receita — estão no backup do `aplicar_tema.sh` 16:51, que preserva
-# o mtime —, e são também o que o `ThemeBuilder:build()` do libcosmic escreve no
-# oráculo de bancada.
-#
-# O MAPA ENTRA ESCRITO AQUI, E NÃO LIDO DO ~/.config/cosmic Este teste é
-# portátil: o mapa vai literal, como o COSMIC o grava.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -25,7 +15,6 @@ cp -a "$RAIZ/packs/dracula" "$RAIZ/packs/meowsystem" "$PACKS/" || exit 2
 CAP="$PACKS/dracula/temas/capturados/dracula-mauve"
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null)"
 
-# O `alpha_map` que o slider gravou, byte a byte.
 MAPA_NOVO='(
     extremely_low: 0.78,
     extremely_low_2: 0.75692,
@@ -43,7 +32,7 @@ MAPA_NOVO='(
     extremely_high_2: 0.48000002,
 )'
 
-amb() {   # amb <cosmic> <pack> <comando...>
+amb() {
   local cosmic="$1" pack="$2"; shift 2
   env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$ESTADO" \
     MEOW_COSMIC_DIR="$cosmic" MEOW_PACK_DIR="$PACKS/$pack" TMPDIR="$TMPV" \
@@ -54,7 +43,7 @@ vidro() {
   amb "$1" dracula env FLAVOR=dracula ACCENT=mauve bash "$RAIZ/scripts/vidro.sh" >/dev/null 2>&1
   amb "$1" dracula env FLAVOR=dracula ACCENT=mauve bash "$RAIZ/scripts/vidro.sh" 2>&1
 }
-valor() {  # valor <arquivo> <caminho>: a cor de um campo, pelo parser RON do projeto
+valor() {
   python3 - "$RAIZ" "$1" "$2" <<'FIM'
 import sys
 sys.path.insert(0, sys.argv[1] + "/scripts")
@@ -62,7 +51,7 @@ import gerar_tema_v1 as v1
 print(v1.achatar(v1.parse(open(sys.argv[2], encoding="utf-8").read())).get(sys.argv[3], ("", ""))[1])
 FIM
 }
-mapa_novo_em() {   # os quatro alpha_map de um COSMIC de brinquedo viram o
+mapa_novo_em() {
   local c="$1" arv
   for arv in Dark.Builder Dark Light.Builder Light; do
     mkdir -p "$c/com.system76.CosmicTheme.$arv/v2"
@@ -70,7 +59,6 @@ mapa_novo_em() {   # os quatro alpha_map de um COSMIC de brinquedo viram o
   done
 }
 
-# --- 1. o estado desta máquina: a foto aplicada, o mapa ------------
 C1="$T/cosmic1"; mkdir -p "$C1"
 cp -a "$CAP"/com.system76.CosmicTheme.* "$C1/"
 mapa_novo_em "$C1"
@@ -88,7 +76,6 @@ saida="$(aplicar "$C1" dracula-mauve --respeitar-gui --conferir)"; rc=$?
   && ok "o --conferir deixou de dizer «já aplicado» com o vidro errado ($saida)" \
   || falha "o --conferir ainda confere a foto com o vidro de outro mapa (rc=$rc)" "$saida"
 
-# O caminho do «Salvar e aplicar»: a etapa tema do install.sh chama assim.
 saida="$(aplicar "$C1" dracula-mauve --respeitar-gui)"; rc=$?
 if [ "$rc" = "0" ] && [[ "$saida" == *"vidro: Dark 'VeryHigh2' = alpha 86 do alpha_map deste COSMIC (a captura trazia AA)"* ]] \
    && [[ "$saida" == *"0 preservados da sua GUI"* ]]; then
@@ -120,22 +107,6 @@ done <<< "$esperados"
   && ok "Dark/v2: os 14 campos do vidro são os que a GUI derivou com este mapa em 17/09 (base #383A4C86)" \
   || falha "o vidro da Dark/v2 não é o que a GUI derivou com este mapa" "$errados"
 
-# A Light muda de vidro na mesma aplicação, e o teste não olhava para ela
-# (revisão da P58, 25/09/2026). Aqui a GUI não serve de referência: em 17/09
-# ela gravou o mapa nas duas árvores e rederivou só a Dark. Os campos abaixo
-# são os que o `build()` do libcosmic escreve no oráculo de bancada com a
-# receita Light da captura e este mapa.
-# REFEITOS NA P63 (25/09/2026), quando a Light da captura deixou de ser o Latte
-# (VeryHigh2, 49 para 86) e passou a ser a derivada do alucard, com o nível do
-# latte-mauve de onde ela sai: `VeryLow2`, D9 para B5. Com B5 o texto sobe de
-# degrau — o `get_text()` anda mais quanto mais translúcido o fundo, a seção 3
-# conta —, e não só nos três `transparent_*`: o `on`, o `divider` e o
-# `on_disabled` do background, do primary, do secondary, do button e do
-# list_button andam junto (o #020210 da captura vira #090B1F). São 48 campos, e
-# a lista abaixo é a INTEIRA: os valores são os do oráculo, com a receita nova e
-# este mapa, e das 288 cores da Light/v2 a aplicação dá as 288 dele, menos o
-# alpha da Aurora no `base:` do `secondary` (ver o aplicar_tema.sh), que não
-# muda aqui.
 esperados_claro="transparent_background base #CECFDCB5
 transparent_background component.base #ECEDFAB5
 transparent_background component.hover #E6E7F2BD
@@ -184,9 +155,6 @@ button on_disabled #090B1FA6
 list_button on #090B1FFF
 list_button divider #090B1F33
 list_button on_disabled #090B1FA6"
-# Campo a campo, a Light/v2 aplicada contra a da captura: o que mudou tem de ser
-# exatamente a lista, com o valor dela; e a Light/v1 é o RGB da v2 nova, pela
-# mesma função do gerar_tema_v1.py, com o alpha do molde.
 errados="$(python3 - "$RAIZ" "$CAP" "$C1" "$esperados_claro" <<'FIM'
 import sys
 from pathlib import Path
@@ -230,10 +198,6 @@ FIM
   && ok "Light/v2: os transparent_* saem do D9 da captura para B5, o texto sobe de degrau, e os 48 campos que mudam são os do build() (base #CECFDCB5); a v1 acompanha" \
   || falha "o vidro da Light/v2 não é o que o build() dá com este mapa" "$errados"
 
-# Fora do vidro, nada: todo o resto é a foto, byte a byte (as chaves dela e
-# o que o vidro.sh escreve são dela e ficam). A Light/v2 e a Light/v1 saem
-# desta conta desde a P63: o degrau do texto delas é vidro, e a conferência
-# campo a campo, logo acima, é que diz o que nelas podia mudar.
 fora=""
 while IFS= read -r -d '' a; do
   rel="${a#"$CAP"/}"
@@ -264,9 +228,6 @@ fi
   && ok "e o alpha_map continua o do COSMIC instalado (é dela, não se sobrescreve)" \
   || falha "aplicar o tema sobrescreveu o alpha_map instalado"
 
-# --- 2. com o mapa da captura, os bytes de hoje ------------------------------
-#   Máquina nova (COSMIC vazio): a captura grava o mapa dela, e o vidro dela é
-#   o certo. É a cópia byte a byte de sempre, e a saída não ganha linha.
 C2="$T/cosmic2"; mkdir -p "$C2"
 saida="$(aplicar "$C2" dracula-mauve)"; rc=$?
 difere=""
@@ -280,16 +241,10 @@ if [ "$rc" = "0" ] && [ -z "$difere" ] && [[ "$saida" != *"vidro:"* ]]; then
 else
   falha "com o mapa da captura, os bytes não são os de hoje (rc=$rc)" "$difere$saida"
 fi
-#   E o COSMIC que já tem a foto com o mapa dela confere de primeira.
 saida="$(aplicar "$C2" dracula-mauve --conferir)"; rc=$?
 [ "$rc" = "0" ] && [[ "$saida" == "tema 'dracula-mauve' já aplicado (189 arquivos conferem)" ]] \
   && ok "com o mapa da captura, a foto confere de primeira: $saida" \
   || falha "com o mapa da captura, a foto deixou de conferir (rc=$rc)" "$saida"
-#   E um COSMIC POVOADO com o mapa da captura, que a seção só via vazio
-#   (revisão da P58, 25/09/2026). Outro tema aplicado — o mocha-pink, cujo
-#   `frosted` é outro — e as chaves dela iguais às da captura (o mapa, o nível,
-#   o vidro ao maximizar, o modo): não há vidro a derivar, e a troca é a cópia
-#   de sempre, árvore por árvore, sem linha de vidro.
 C5="$T/cosmic5"; mkdir -p "$C5"
 cp -a "$PACKS/meowsystem/temas/capturados/mocha-pink"/com.system76.CosmicTheme.* "$C5/"
 while IFS= read -r -d '' a; do
@@ -308,12 +263,6 @@ else
   falha "com o mapa da captura num COSMIC povoado, as árvores não são as da captura (rc=$rc)" "$difere$saida"
 fi
 
-# --- 3. o texto que muda de degrau --------------------------------------------
-#   O `get_text()` do libcosmic anda mais degraus quanto mais translúcido o
-#   fundo. O `mocha-pink` foi fotografado em `VeryLow2` (alpha D9); com o nível
-#   `VeryHigh2` do mapa novo o texto do background sobe de #F6F8FF para
-#   #FFFFFF — e a v1, que é o RGB da v2, acompanha. Trocar só dois dígitos de
-#   alpha deixaria o texto no degrau de outro vidro.
 C3="$T/cosmic3"; mkdir -p "$C3"
 mapa_novo_em "$C3"
 for arv in Dark Light; do printf 'VeryHigh2' > "$C3/com.system76.CosmicTheme.$arv.Builder/v2/frosted"; done
@@ -327,11 +276,6 @@ else
   falha "o texto do mocha-pink não seguiu o vidro (rc=$rc, on=$on, tb=$tb, v1 red=$v1_on)" "$saida"
 fi
 
-# --- 4. a captura cujo vidro não fecha: fica como está, e o doctor não manda reaplicar
-#   Um `transparent_background` com um alpha que o `build()` não escreveria
-#   (AB) é um campo que outra coisa gravou. A guarda recusa a árvore, a captura
-#   vai como está, e o `vidro.sh` para de oferecer o `meow tema` como conserto:
-#   aplicada aqui, ela grava AB de novo.
 sed -i '0,/^    base: "#383A4CAA"/s//    base: "#383A4CAB"/' \
   "$CAP/com.system76.CosmicTheme.Dark/v2/transparent_background"
 C4="$T/cosmic4"; mkdir -p "$C4"
@@ -349,11 +293,6 @@ else
 $saida"
 fi
 
-# --- 4b. o porquê chega à tela: em português, e também no seco ----------------
-#   Achados da revisão da P58 (25/09/2026). O seco é `--conferir` por dentro, e
-#   a frase do vidro sumia dele: a tela dizia «mudaria …/transparent_*» sem o
-#   motivo. E um nível do `alpha_map` que não é número punha na tela o erro do
-#   Python em inglês. (A captura voltou a ser a do repositório, com o AA.)
 cp "$RAIZ/packs/dracula/temas/capturados/dracula-mauve/com.system76.CosmicTheme.Dark/v2/transparent_background" \
   "$CAP/com.system76.CosmicTheme.Dark/v2/transparent_background"
 C6="$T/cosmic6"; mkdir -p "$C6"
@@ -381,10 +320,6 @@ if [ "$rc" = "0" ] \
 else
   falha "o alpha_map malformado não chegou à tela como devia (rc=$rc)" "$saida"
 fi
-# E O NaN, QUE O `float()` ACEITA — 25/09/2026, P64 (nota 5(ii) da revisão da
-#   P58). «NaN» passava pela guarda do `abc` como número e estourava no
-#   `para_hex`: a tela mostrava «cannot convert float NaN to integer», o erro do
-#   Python em inglês. A frase tem de ser a mesma do `abc`, e a Dark, a da captura.
 C8="$T/cosmic8"; mkdir -p "$C8"
 cp -a "$CAP"/com.system76.CosmicTheme.* "$C8/"
 mapa_novo_em "$C8"
@@ -399,14 +334,6 @@ else
   falha "o NaN no alpha_map não chegou à tela como os outros valores inválidos (rc=$rc)" "$saida"
 fi
 
-# --- 4b. o ensaio não escreve o remendo da janela -----------------------------
-# 10/10/2026, conferência da P77. O `meow status` e o doctor rodam o vidro.sh
-# com `MEOW_DRY_RUN=1` (`chk_vidro`), e num tema SEM a chave nativa
-# `frosted_maximized_apps` o remendo (`vidro_janela.py`) reescrevia o alpha de
-# `background` e `primary` assim mesmo — o gate completo do painel viu o «O que
-# está no ar agora» mudar 4 arquivos da casa. No ensaio ele só confere.
-# O remendo acha o tema em `~/.config/cosmic` (não lê o MEOW_COSMIC_DIR), então
-# a cópia mora no `.config` de uma casa própria, e o HOME aponta para ela.
 C9="$T/casa9/.config/cosmic"
 mkdir -p "$C9/com.system76.CosmicPanel.Panel/v1"
 cp -a "$CAP"/com.system76.CosmicTheme.* "$C9/"
@@ -428,7 +355,6 @@ else
     "$(diff <(printf '%s\n' "$antes9") <(printf '%s\n' "$depois9")) $saida"
 fi
 
-# --- 5. nada fica para trás ----------------------------------------------------
 sobra="$(find "$TMPV" -mindepth 1 -maxdepth 1 2>/dev/null)"
 [ -z "$sobra" ] \
   && ok "a cópia de trabalho do vidro some com o script (TMPDIR vazio)" \

@@ -1,20 +1,7 @@
 #!/usr/bin/env bash
-# terminal_bloco.sh — o bloco do MeowSystem no arquivo de início do terminal.
-#
-#   terminal_bloco.sh [aplicar]   escreve ~/.config/meowsystem/terminal.sh e o bloco
-#   terminal_bloco.sh --conferir  diz o que mudaria, sem escrever
-#   terminal_bloco.sh remover     tira o bloco (o desinstalador chama)
-#
-# O bloco é uma linha que carrega ~/.config/meowsystem/terminal.sh: o prompt
-# (starship), as cores do fzf, o mascote do fastfetch e a completion do `meow`.
-# Ele mora entre duas marcas, e só o que está entre elas é do MeowSystem. Um
-# arquivo de terminal que outro projeto guarda (vizinhos.conf) não é escrito, salvo
-# o .zshrc do ZDOTDIR: a pasta segue do vizinho, e o vizinhos.conf ganha a
-# exceção `!` daquele arquivo (decisão de 23/10).
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-# O seco vale antes do lib/comum.sh, que o lê ao carregar.
 [ "${1:-}" = "--conferir" ] && { MEOW_DRY_RUN=1; export MEOW_DRY_RUN; }
 . "$MEOW_RAIZ/lib/comum.sh"
 
@@ -33,7 +20,6 @@ BLOCO="$MARCA_INICIO
 "'[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/meowsystem/terminal.sh" ] && . "${XDG_CONFIG_HOME:-$HOME/.config}/meowsystem/terminal.sh"'"
 $MARCA_FIM"
 
-# O ZDOTDIR que o zsh desta casa usa, lido do ~/.zshenv como o vizinhos.sh lê.
 _zdotdir() {
   local z=""
   if [ -n "${ZDOTDIR:-}" ]; then printf '%s' "$ZDOTDIR"; return 0; fi
@@ -42,7 +28,6 @@ _zdotdir() {
   printf '%s' "${z:-$HOME}"
 }
 
-# Os arquivos de início que existem, e o do shell de login mesmo que ainda não exista.
 _alvos() {
   local z; z="$(_zdotdir)/.zshrc"
   { [ -f "$HOME/.bashrc" ] || [ "${SHELL##*/}" = "bash" ]; } && printf '%s\n' "$HOME/.bashrc"
@@ -86,8 +71,6 @@ fi
 SH
 }
 
-# O arquivo sem o bloco (as marcas e o que há entre elas). As linhas em branco
-# do fim caem na substituição de comando de quem chama.
 _sem_bloco() {
   awk -v i="$MARCA_INICIO" -v f="$MARCA_FIM" '
     $0 == i { dentro = 1; next }
@@ -113,15 +96,12 @@ if [ "$ACAO" = "remover" ]; then
   exit "$rc"
 fi
 
-# O .zshrc do ZDOTDIR que o vizinhos.conf guarda (o do Spellbook) recebe o bloco:
-# a exceção daquele arquivo vai para o vizinhos.conf, e o resto da pasta segue dele.
 _excecao_do_zshrc() {
   local z linha
   z="$(_zdotdir)/.zshrc"
   [ -f "$MEOW_VIZINHOS" ] || return 0
   meow_destino_permitido "$z" 2>/dev/null && return 0
   case "$(readlink -m -- "$z")" in /usr/*) return 0 ;; esac
-  # O arquivo guardado por nome, e não pela pasta, é escolha de quem escreveu.
   for linha in ${MEOW_PROIBIDOS_LOCAIS[@]+"${MEOW_PROIBIDOS_LOCAIS[@]}"}; do
     [ "$(readlink -m -- "$z")" = "$linha" ] && return 0
   done

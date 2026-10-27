@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# jogos_heroic.sh — um .desktop por jogo INSTALADO no Heroic, no lançador dela.
-#
-#   ./jogos_heroic.sh              escreve, limpa e converge
-#   ./jogos_heroic.sh --conferir   não escreve nem apaga; 1 se algo divergir
-#   ./jogos_heroic.sh --listar     os jogos instalados, um por linha: id, título,
-#                                  arte e se está no lançador (sim|nao); só lê
-#
-# Ligar as duas chaves DELE seria o contorno óbvio e é o errado: o Heroic só
-# escreve o atalho no momento da instalação (`addShortcuts` é chamado no fim do
-# download), então os jogos JÁ instalados continuariam de fora, e o arquivo
-# ficaria sem dono conhecido — sem a nossa marca, sem escada de ícone e sem
-# limpeza quando o jogo sair.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -18,18 +6,12 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 # shellcheck source=../lib/icones.sh
 . "$RAIZ/lib/icones.sh"
-# O encurtamento do rótulo: as chaves do `assets/apps/apps-nomes.map` para os
-# jogos daqui são `heroic-<runner>-<app_name>`, o mesmo id do arquivo sem o
-# prefixo `meow-`.
 . "$RAIZ/scripts/nomes_apps.sh"
 
 APPS="$HOME/.local/share/applications"
 HICOLOR="$HOME/.local/share/icons/hicolor"
 ICONE_PADRAO="com.heroicgameslauncher.hgl"
 
-# --- o mesmo verbo dos outros módulos, e a mesma armadilha do seco ------------
-# `MEOW_SECO` é congelado no `source` do comum.sh: o `--conferir` o liga aqui, direto,
-# ou apagaria arquivo dizendo que era conferência.
 LISTAR=0
 case "${1:-}" in
   --conferir) MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
@@ -38,11 +20,9 @@ case "${1:-}" in
   *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar|--listar]"; exit "$MEOW_ERRO" ;;
 esac
 
-# Os jogos que ela tirou do lançador pelo interruptor do painel: um id por linha.
 HEROIC_FORA="${MEOW_HEROIC_FORA:-$HOME/.config/meow/jogos-heroic-fora.list}"
 heroic_fora() { [ -f "$HEROIC_FORA" ] && grep -qxF -- "$1" "$HEROIC_FORA"; }
 
-# O interruptor do painel: tira ou devolve um id na lista, antes da passada.
 _heroic_lista_trocar() {
   local tirar="${MEOW_HEROIC_TIRAR:-}" por="${MEOW_HEROIC_POR:-}" atual novo
   [ -n "$tirar$por" ] || return 0
@@ -58,9 +38,6 @@ meow_tem python3 || {
   exit "$MEOW_SEM_DEPENDENCIA"
 }
 
-# --- ONDE O HEROIC GUARDA A CONFIGURAÇÃO -------------------------------------
-# Flatpak primeiro porque é o desta máquina (`flatpak list` -> Heroic v2.22.1,
-# instalação `user`).
 heroic_conf() {
   local c
   for c in "${HEROIC_CONF:-}" \
@@ -76,14 +53,6 @@ CONF="$(heroic_conf)" || {
   exit "$MEOW_OK"
 }
 
-# --- O MOTOR: a biblioteca do Heroic, em linhas ------------------------------
-# Devolve uma linha por jogo instalado, com TAB entre os campos:
-#
-#     <runner> <app_name> <título> <caminho da arte, ou vazio>
-#
-# É Python porque a entrada é JSON aninhado — e a mesma razão do `_areas_motor`
-# do `areas.sh`: montar isto com `grep` e `sed` é escrever um leitor de JSON
-# errado.
 _heroic_motor() {
   python3 -I - "$CONF" <<'PY'
 import hashlib
@@ -103,12 +72,6 @@ def carrega(*partes):
         return None
 
 
-# A LISTA DE JOGOS DENTRO DO CACHE MUDA DE NOME CONFORME O RUNNER
-#   `legendary_library.json` guarda em `library`, `gog_library.json` em `games`,
-#   e o `nile_library.json` desta máquina é um `{}` seco. Cravar a chave certa
-#   para cada um é combinar com uma versão do Heroic; procurar a primeira lista
-#   de objetos que tenha `app_name` responde a mesma pergunta e sobrevive à
-#   próxima renomeação.
 def lista_de_jogos(dado):
     if isinstance(dado, list):
         candidatos = [dado]
@@ -122,14 +85,6 @@ def lista_de_jogos(dado):
     return []
 
 
-# O QUE O BACKEND DIZ QUE ESTÁ NO DISCO
-#   Três formatos, um por runner, todos medidos em 10/09/2026:
-#     legendary -> {"<app_name>": {...}}          (dicionário)
-#     gog       -> {"installed": [{"appName": ...}]}
-#     nile      -> [{"id": ...}]
-#   `None` (e não conjunto vazio) quando o arquivo não existe ou não abre: é o
-#   que faz o cache valer sozinho, em vez de esvaziar o lançador por causa de um
-#   arquivo que mudou de forma.
 def ids_instalados(dado):
     if dado is None:
         return None
@@ -177,8 +132,6 @@ for runner, cache, instalado in RUNNERS:
             continue
         jogos.append((g.get("runner") or runner, g))
 
-# Os `sideload`: jogo que ela mesma apontou para o Heroic. Não têm backend nem
-# `installed.json` — a biblioteca é a única fonte, e é ela que manda.
 lado = carrega("sideload_apps", "library.json")
 if lado is not None:
     achou_biblioteca = True
@@ -188,10 +141,8 @@ if lado is not None:
         jogos.append((g.get("runner") or "sideload", g))
 
 if not achou_biblioteca:
-    # Nenhuma biblioteca legível. Não é "zero jogos": é "não sei".
     sys.exit(2)
 
-# --- a arte, só do que já está no disco --------------------------------------
 SUFIXOS = ("?h=400&resize=1&w=300", "", "?h=800&resize=1&w=600")
 
 
@@ -229,16 +180,11 @@ for runner, g in jogos:
         continue
     vistos.add((runner, app))
     titulo = (g.get("title") or app).strip()
-    # TAB e quebra de linha viram espaço: a saída é lida campo a campo por TAB.
     limpo = " ".join(titulo.split())
     sys.stdout.write("\t".join((runner, app, limpo, arte(runner, g))) + "\n")
 PY
 }
 
-# --- o id do arquivo ---------------------------------------------------------
-# O `app_name` do Epic é um hash, o do GOG um número e o do sideload um uuid —
-# mas o do sideload é escolhido pelo Heroic a partir do nome que ELA digitou,
-# então pode trazer qualquer coisa.
 id_do_jogo() {
   local runner="$1" app="$2"
   printf 'meow-heroic-%s-%s' "$(printf '%s' "$runner" | tr -c 'A-Za-z0-9._-' '_')" \
@@ -255,7 +201,6 @@ loja_do_runner() {
   esac
 }
 
-# 0 = já está certo · 1 = não deu (sem convert, sem arte) · 2 = mudou / mudaria.
 plantar_icone() {
   local id="$1" fonte="$2" destino dir tmp px lado mudou_algum=0
   meow_tem convert || return 1
@@ -269,12 +214,7 @@ plantar_icone() {
     mkdir -p "$dir" || return 1
     lado=$(( px * 96 / 100 ))
     [ "$lado" -lt 1 ] && lado=1
-    # O temporário nasce DENTRO do destino: `mv` entre sistemas de arquivos
-    # diferentes não é atômico (trava 2 do lib/comum.sh).
     tmp="$(mktemp -p "$dir" ".meow.XXXXXX.png")" || return 1
-    # `[0]` porque a fonte pode ser um `.ico` com várias resoluções dentro: sem
-    # o índice, o `convert` escreveria um PNG por quadro e o `mv` seguinte não
-    # acharia o arquivo que pediu.
     if ! convert "${fonte}[0]" -resize "${lado}x${lado}" -background none -gravity center \
           -extent "${px}x${px}" \
           -strip -define png:exclude-chunk=tIME,tEXt,zTXt "$tmp" 2>/dev/null; then
@@ -296,13 +236,10 @@ EOF_ESCADA
   return 0
 }
 
-# --- 1. os jogos, da biblioteca do Heroic para o lançador --------------------
-
 [ "$LISTAR" = "1" ] || _heroic_lista_trocar
 
 biblioteca="$(_heroic_motor)"; rc_motor=$?
 if [ "$rc_motor" = "2" ]; then
-  # Não conseguimos LER a biblioteca.
   meow_aviso "não consegui ler a biblioteca do Heroic em $CONF — nada escrito, limpeza adiada"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
@@ -324,7 +261,6 @@ fi
 while IFS=$'\t' read -r runner app titulo arte; do
   [ -n "$runner" ] && [ -n "$app" ] || continue
   id="$(id_do_jogo "$runner" "$app")"
-  # Fora do lançador a pedido: não entra em `vivos`, e a limpeza tira o cartão.
   heroic_fora "$id" && continue
   jogos=$((jogos + 1))
   vivos="$vivos$id"$'\n'
@@ -367,11 +303,6 @@ done <<EOF_BIBLIOTECA
 $biblioteca
 EOF_BIBLIOTECA
 
-# --- 2. limpeza: o que existe no destino e não deveria mais existir -----------
-# Só apaga com PROVA DE AUTORIA: a marca `X-MeowSystem=jogo-heroic` no corpo, ou
-# — para o cartão que não é nosso — o `appName` do `Exec` casando com um jogo
-# para o qual ACABAMOS de escrever o substituto.
-
 removidos=0; duplicatas=0; degraus_removidos=0
 
 for f in "$APPS"/meow-heroic-*.desktop; do
@@ -382,21 +313,16 @@ for f in "$APPS"/meow-heroic-*.desktop; do
   if meow_seco; then
     meow_muda "removeria o atalho de um jogo que saiu do Heroic ($orfao)"
   else
-    # Remove de TODO degrau — inclusive dos que saíram da escada quando a escala
-    # da tela mudou; por isso o glob, e não a lista.
     for g in "$f" "$HICOLOR"/*/apps/"$orfao".png; do [ -e "$g" ] && meow_guardar_antes "$g"; done
     rm -f "$f" "$HICOLOR"/*/apps/"$orfao".png
   fi
   mudou=1; removidos=$((removidos + 1))
 done
 
-# DEGRAU ÓRFÃO: o jogo continua, mas o degrau saiu da escada (a escala da tela
-# mudou). O critério é a escada VIVA, e ela tem de ser a MESMA função que planta
-# — duas listas aqui seriam dois donos com outra roupa.
 escada_viva="$(meow_icones_escada)"
 for f in "$HICOLOR"/*/apps/meow-heroic-*.png; do
   [ -e "$f" ] || continue
-  degrau="$(basename "$(dirname "$(dirname "$f")")")"   # "256x256"
+  degrau="$(basename "$(dirname "$(dirname "$f")")")"
   degrau="${degrau%%x*}"
   case "$degrau" in ''|*[!0-9]*) continue ;; esac
   printf '%s' "$escada_viva" | grep -qx "$degrau" && continue
@@ -410,9 +336,6 @@ for f in "$HICOLOR"/*/apps/meow-heroic-*.png; do
   mudou=1; degraus_removidos=$((degraus_removidos + 1))
 done
 
-# --- O CARTÃO QUE O PRÓPRIO HEROIC ESCREVE -----------------------------------
-# Ele nasce com o NOME DO JOGO no arquivo (`sanitize(title) + ".desktop"`), sem
-# prefixo nem sufixo: `Marvel's Guardians of the Galaxy.desktop`.
 bkp="$MEOW_ESTADO/backups/$MEOW_CARIMBO-duplicatas"
 for f in "$APPS"/*.desktop; do
   [ -e "$f" ] || continue
@@ -423,10 +346,7 @@ for f in "$APPS"/*.desktop; do
     | grep -oE 'appName=[A-Za-z0-9._-]+|heroic://launch/[A-Za-z0-9._-]+' \
     | sed -E 's#^appName=##; s#^heroic://launch/##' | sort -u)"
   [ -n "$apps_rivais" ] || continue
-  # Dois jogos no mesmo `Exec=` não é atalho de UM jogo — é um script dela.
   [ "$(printf '%s\n' "$apps_rivais" | wc -l)" = "1" ] || continue
-  # O runner do rival pode não estar escrito no URI (forma antiga), então o
-  # substituto é procurado por `app_name` em qualquer runner de `vivos`.
   alvo="$(printf '%s' "$vivos" | grep -E -- "-$(printf '%s' "$apps_rivais" | sed 's/[][\.*^$/]/\\&/g')\$" | head -1)"
   [ -n "$alvo" ] || continue
   [ "$f" = "$APPS/$alvo.desktop" ] && continue
@@ -443,8 +363,6 @@ for f in "$APPS"/*.desktop; do
   fi
   mudou=1; duplicatas=$((duplicatas + 1))
 done
-
-# --- 3. o veredito ------------------------------------------------------------
 
 _notas_finais() {
   [ "$sem_arte" -gt 0 ] &&
@@ -468,18 +386,10 @@ if meow_seco; then
   exit "$MEOW_DIVERGENTE"
 fi
 
-# `update-desktop-database` é índice de MIME, não a lista do lançador. Só o
-# diretório do USUÁRIO.
 meow_tem update-desktop-database && update-desktop-database "$APPS" 2>/dev/null || true
 
-# A capa está no hicolor, e o GTK não a vê enquanto a cache da raiz for mais
-# nova que ela (o cabeçalho de `meow_hicolor_reindexar` traz a medição). O
-# COSMIC enxerga sem isto; o painel DELA, que resolve ícone por PyGObject, não.
 meow_hicolor_reindexar
 
-# O `cosmic-app-library` e o `cosmic-launcher` resolvem os `.desktop` no
-# arranque e guardam: sem chacoalhá-los, o arquivo está no disco e o cartão não
-# está na tela.
 meow_lancador_reler
 
 [ "$escritos" -gt 0 ] && meow_ok "$escritos jogo(s) do Heroic no lançador (capa do jogo, como os da Steam)"

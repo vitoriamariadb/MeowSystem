@@ -1,22 +1,4 @@
 #!/usr/bin/env bash
-# wallpaper.sh — o carrossel de papéis de parede, na rotação NATIVA do COSMIC.
-#
-# A rotação sempre funcionou — o motivo de não girar nesta máquina é que o
-# `source` aponta para um ARQUIVO ÚNICO. Em teste de controle com um arquivo só,
-# o timer disparava e redesenhava a mesma imagem.
-#
-# Um timer `systemd --user` faria o mesmo com um processo a mais, uma unit a
-# mais e um modo de falha a mais.
-#
-#   1. A lista de imagens é FOTOGRAFADA quando a configuração é carregada. Um arquivo
-#      novo largado no diretório NÃO entra na rotação, apesar de o log dizer
-#      "watching source" — passou cinco rotações inteiras sem ser aberto. Por isso
-#      `adicionar` força a releitura no fim, com o `forcar_releitura` abaixo.
-#
-# --- DIA E NOITE: POR QUE UMA PASTA A MAIS, E NÃO UM FILTRO ------------------
-# `banidos/` recebe por `mv`, nunca apaga. Escrever a configuração reinicia a
-# rotação, e conteúdo idêntico não relê nada. Sem medir luz, a rotação volta a
-# `ativos/`: um papel claro é gosto; tela preta é defeito.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -27,27 +9,16 @@ BASE="${WALLPAPER_BASE:-$HOME/.local/share/backgrounds/meowsystem}"
 ATIVOS="$BASE/ativos"
 NOITE_DIR="$BASE/ativos-noite"
 DIA_DIR="$BASE/ativos-dia"
-# A coleção do pack no ar, quando `ativos/` tem papel de outro pack (links duros).
 PACK_ATIVOS="$BASE/ativos-pack"
 BG="$(meow_cosmic_dir)/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)"
 ORDEM="${WALLPAPER_ORDEM:-aleatoria}"
 INTERVALO="${WALLPAPER_INTERVALO:-5m}"
 
-# A pasta que o `source:` vai apontar nesta rodada. Nasce em `ativos/` — que é o
-# comportamento de antes e o de sempre com a noite desligada — e só muda dentro
-# de `resolver_rotacao`.
 ROTACAO="$ATIVOS"
 GRUPO=""
 NOITE_N=0
 DIA_N=0
 
-# As quatro chaves da noite nasceram DEPOIS daquelas listas, e mudá-las é mudar
-# `install.sh`, `bin/meow` e a unit — três arquivos, de três donos diferentes,
-# para uma chave só.
-#
-# A leitura do arquivo é a mesma regra do wizard (`wiz_linha_da_chave` em
-# bin/meow) e a mesma que a `fontes_no_conf` usava sozinha: vale a ÚLTIMA
-# atribuição, que é a que o `.` do shell obedece.
 conf_bruto() {
   local chave="$1" linha resto
   [ -f "$MEOW_CONF_ARQUIVO" ] || return 0
@@ -62,8 +33,6 @@ conf_bruto() {
   esac
 }
 
-# ambiente > meow.conf > padrão. `${!chave-}` é expansão indireta do bash: a
-# chave chega como NOME, não como valor, para a precedência caber numa linha.
 valor_da_chave() {
   local chave="$1" padrao="$2" v
   v="${!chave-}"
@@ -73,11 +42,6 @@ valor_da_chave() {
   printf '%s' "$padrao"
 }
 
-# "Sim " -> sim · "NÃO" -> nao · qualquer outra coisa -> o padrão, com aviso.
-#
-# É a mesma forma do `modo_de_ajuste` lá em cima, e a escolha de cair no PADRÃO
-# (e não no contrário) é deliberada: um valor que o script não entende não pode
-# virar a decisão oposta à que ela escreveu.
 sim_ou_nao() {
   local v="$1" chave="$2" padrao="$3"
   v="${v#"${v%%[![:space:]]*}"}"
@@ -91,32 +55,13 @@ sim_ou_nao() {
   printf '%s' "$padrao"
 }
 
-# --- AS QUATRO CHAVES DA NOITE ----------------------------------------------
-# Desligar é uma linha (`WALLPAPER_NOITE="nao"`), e desligar DESLIGA: a rotação
-# volta para `ativos/` e as duas pastas derivadas somem do disco no mesmo
-# comando.
 NOITE="$(sim_ou_nao "$(valor_da_chave WALLPAPER_NOITE sim)" WALLPAPER_NOITE sim)"
 NOITE_INICIO="$(valor_da_chave WALLPAPER_NOITE_INICIO 18:00)"
 NOITE_FIM="$(valor_da_chave WALLPAPER_NOITE_FIM 07:00)"
 LIMIAR_LUZ="$(valor_da_chave WALLPAPER_LIMIAR_LUZ 0.37)"
 
-# O cache das medições. É ESTADO, não configuração: dá para apagar sem perder
-# nada além dos segundos de remedir. Fica fora do acervo de propósito — arquivo
-# de texto dentro de `ativos/` seria uma imagem quebrada na rotação dela.
 LUZ_TSV="$MEOW_ESTADO/wallpaper-luz.tsv"
 
-# --- COMO A IMAGEM OCUPA A TELA ----------------------------------------------
-# A captura mostrava duas tarjas pretas, uma de cada lado — a imagem cabia
-# inteira no meio e sobrava tela.
-#
-# A causa estava AQUI, e o comentário que existia neste arquivo mentia: dizia
-# que `scaling_mode` "é escolha dela e é preservada", mas a `config_desejada`
-# gravava `Fit((0.0, 0.0, 0.0))` cravado no texto, toda vez, por cima do que ela
-# tivesse escolhido na GUI.
-#
-#   preencher -> `Zoom`   a imagem cobre a tela inteira; o que não couber, corta
-#   caber     -> `Fit`    a imagem inteira aparece; o que sobrar vira tarja
-#   esticar   -> `Stretch` a imagem deforma até caber (nunca é o que se quer)
 AJUSTE="${WALLPAPER_AJUSTE:-preencher}"
 
 modo_de_ajuste() {
@@ -130,22 +75,11 @@ modo_de_ajuste() {
   esac
 }
 
-# --- A ALLOWLIST: A ESCOLHA DELA PASSOU A SER DITA, NÃO ADIVINHADA -----------
-# Caminhos absolutos separados por `:` (convenção do $PATH), cada um valendo
-# para ele mesmo e para tudo abaixo dele.
-#
-# LER DO AMBIENTE É O QUE TORNA ISTO REAL NO RELÓGIO DE 15 MINUTOS: o
-# `meow-wallpaper.service` sourceia o meow.conf e exporta as chaves de wallpaper
-# uma a uma.
 FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}"
 
 fonte_autorizada() {
   local fonte="$1" texto="${2-$FONTES_PERMITIDAS}" p
   [ -n "$fonte" ] && [ -n "$texto" ] || return 1
-  # Array, e não `for p in $texto` com IFS=: — a expansão sem aspas também faz
-  # *globbing*, e um caminho com `*` ou `[` no nome (a pasta dela tem emoji e
-  # espaço; `[` não seria surpresa) viraria outra coisa no meio do caminho,
-  # calado.
   local -a lista=()
   IFS=: read -r -a lista <<< "$texto"
   for p in ${lista[@]+"${lista[@]}"}; do
@@ -155,7 +89,6 @@ fonte_autorizada() {
   return 1
 }
 
-# "30s" / "5m" / "2h" -> segundos. O COSMIC quer segundos e nada mais.
 segundos_de() {
   local v="$1" n u
   n="${v%[smh]}"; u="${v#$n}"
@@ -164,12 +97,10 @@ segundos_de() {
     s) echo "$n" ;;
     m) echo $((n * 60)) ;;
     h) echo $((n * 3600)) ;;
-    *) echo "$n" ;;   # sem sufixo já é segundos
+    *) echo "$n" ;;
   esac
 }
 
-# Só existem dois valores no binário: Alphanumeric e Random. Não há ordenação por
-# data nem manual — se a ordem importar, prefixe os arquivos com 01-, 02-.
 metodo_de() {
   case "${1:-aleatoria}" in
     alfabetica|alphanumeric) echo Alphanumeric ;;
@@ -182,16 +113,6 @@ config_desejada() {
   freq="$(segundos_de "$INTERVALO")"
   metodo="$(metodo_de "$ORDEM")"
   ajuste="$(modo_de_ajuste "$AJUSTE")"
-  # `filter_by_theme: false` de propósito: com `true` o COSMIC filtra as imagens
-  # pelo claro/escuro do tema e pode acabar sem nenhuma candidata no diretório —
-  # tela preta sem explicação. O carrossel é dela, não do tema.
-  #
-  # `filter_method: Lanczos` é o único campo aqui que continua cravado, e é de
-  # propósito: é o reamostrador que não serrilha ao reduzir, a mesma lição que a
-  # geração dos ícones pagou em 08/08 (512→48 em tempo de desenho).
-  # `$ROTACAO` e não `$ATIVOS`: com a noite ligada esta é a ÚNICA linha que muda
-  # entre um grupo e outro, e é por isso que a virada custa uma reescrita de
-  # configuração e nada mais.
   cat <<FIM
 (
     output: "all",
@@ -205,29 +126,6 @@ config_desejada() {
 FIM
 }
 
-# --- FORÇAR A RELEITURA, QUANDO ESCREVER O MESMO NÃO BASTA (25/08/2026) ------
-#
-# Só existe por causa da armadilha 3 do cabeçalho: o `cosmic-bg` ignora uma
-# escrita cujo conteúdo não mudou, e a configuração não contém a lista de
-# imagens — só o caminho da pasta. Quem acrescenta ou tira um arquivo DENTRO da
-# pasta produz exatamente esse caso: o que o script quer gravar é byte a byte o
-# que já está lá, e a lista fotografada no carregamento continua valendo.
-#
-# O truque é escrever DUAS vezes: a primeira com o `rotation_frequency` trocado
-# por um valor que ninguém usa, a segunda com o conteúdo verdadeiro. Os dois
-# conteúdos diferem entre si e do que estava no disco, então as duas escritas
-# são reais e o `cosmic-bg` relê. O estado final é o certo — a passagem pelo
-# valor falso dura o tempo de um `printf`.
-#
-# O PREÇO ESTÁ NA ARMADILHA 2, E QUEM CHAMA PRECISA QUERER PAGAR: releitura não
-# avança, REINICIA. O diretório é revarrido, a rotação volta ao começo e o timer
-# zera. Isso é aceitável num comando que a pessoa digitou (`adicionar`, `banir`)
-# — ela acabou de mexer no acervo e espera ver o efeito. É INACEITÁVEL no
-# `aplicar` do relógio de 15 minutos, que rodaria isto sozinho e reiniciaria a
-# rotação quatro vezes por hora, para sempre. Por isso a função é chamada só
-# pelos comandos de mão, nunca pelo caminho do timer.
-#
-# Em seco não escreve nada: só diz o que faria.
 forcar_releitura() {
   local alvos=() alvo conteudo
   mapfile -t alvos < <(ls -1 "$BG" 2>/dev/null | grep -E '^(all|output\.)' )
@@ -241,9 +139,6 @@ forcar_releitura() {
   for alvo in "${alvos[@]}"; do
     [ -f "$BG/$alvo" ] || continue
     conteudo="$(cat "$BG/$alvo")"
-    # 1 é frequência que nenhum caminho deste script produz (os valores vêm de
-    # WALLPAPER_INTERVALO, mínimo 30s) — some no instante seguinte, mas mesmo
-    # que a máquina morra aqui o carrossel só ficaria rápido, nunca parado.
     printf '%s' "${conteudo/rotation_frequency: /rotation_frequency: 1, x_meow_reler: }" > "$BG/$alvo"
     printf '%s' "$conteudo" > "$BG/$alvo"
   done
@@ -261,15 +156,6 @@ criar_pastas() {
   return 0
 }
 
-# Semear a partir das imagens que ela JÁ tem. Não baixamos nada da internet sem
-# ela pedir: o carrossel tem de funcionar no primeiro `install.sh`, offline.
-#
-# SÓ NA PRIMEIRA VEZ, e isso não é detalhe. A versão anterior semeava a cada
-# `aplicar` — e como `banir` chama `aplicar` no fim (para forçar a releitura da
-# lista), banir uma imagem da pasta dela a copiava DE VOLTA no mesmo comando.
-# Ela bania, o script dizia "banida", e a imagem continuava lá. Agora a semeadura
-# só acontece quando `ativos/` está vazio, ou seja, na primeira instalação:
-# depois disso quem manda no conteúdo da pasta é ela.
 semear_das_dela() {
   local origem="$HOME/Imagens/Parede_papel"
   [ -d "$origem" ] || return 0
@@ -279,11 +165,6 @@ semear_das_dela() {
     local nome_dela; nome_dela="$(basename "$img")"
     local destino="$ATIVOS/$nome_dela"
     [ -e "$destino" ] && continue
-    # ESTA PORTA TAMBÉM REPUNHA O QUE ELA TIROU
-    #   O `semear` da coleção já consulta o banimento; esta cópia da pasta
-    #   pessoal dela não consultava nada. Uma imagem banida daqui voltava
-    #   sozinha na primeira vez que `ativos/` esvaziasse. Medido em 24/08/2026:
-    #   era o caso de uma imagem que ela já tinha banido antes desta sessão.
     esta_banida "$nome_dela" && continue
     meow_seco || { meow_guardar_antes "$destino"; cp -n "$img" "$destino" 2>/dev/null; } || continue
     n=$((n + 1))
@@ -300,18 +181,8 @@ semear_das_dela() {
 }
 
 quantas() { find "$ATIVOS" -maxdepth 1 -type f 2>/dev/null | wc -l; }
-# As pastas derivadas são feitas de link — `-type f` sozinho contaria zero se um
-# dia a queda para simbólico tiver acontecido.
 quantas_em() { find "$1" -maxdepth 1 \( -type f -o -type l \) 2>/dev/null | wc -l; }
 
-# =============================================================================
-# DIA E NOITE — a medição, a classificação e as duas pastas derivadas
-# O porquê inteiro está no cabeçalho, em "DIA E NOITE". Aqui fica o como.
-# =============================================================================
-
-# `magick` no ImageMagick 7, `convert` no 6 (é o que esta máquina tem).
-# Resolvido uma vez; vazio quer dizer "não dá para medir", e quem chama trata
-# isso voltando para `ativos/` em vez de falhar.
 IM=""
 tem_imagemagick() {
   [ -n "$IM" ] && return 0
@@ -322,18 +193,6 @@ tem_imagemagick() {
   return 0
 }
 
-# A luminância perceptual de UM arquivo, em 0-1.
-#
-# `-define jpeg:size=` NÃO É OTIMIZAÇÃO PREMATURA: isto roda no relógio de 15
-# minutos. Medir os 54 papéis em tamanho cheio custa ~10 s de CPU; com a dica,
-# que faz o libjpeg decodificar já reduzido no próprio DCT, custa ~4 s. E a
-# perda de exatidão foi medida nos 54: 0,0005 no pior caso, três ordens de
-# grandeza abaixo do limiar — reduzir é tirar média, que é o que se está
-# calculando de qualquer jeito.
-#
-# `[0]` seleciona o primeiro quadro. Sem ele, um GIF ou um PNG animado
-# entregariam N imagens e o `%[fx:mean]` sairia repetido, N linhas, e o valor
-# viraria lixo silencioso.
 luz_de() {
   local arq="$1" v
   v="$("$IM" -quiet -define jpeg:size=256x256 "${arq}[0]" -resize 128x128 \
@@ -342,14 +201,6 @@ luz_de() {
   printf '%s' "$v"
 }
 
-# "0.3605" -> 3605, para comparar sem `awk`.
-#
-# Comparar float em bash sai por `awk`, e seriam 54 processos por rodada, quatro
-# vezes por hora, só para dizer qual de dois números é maior. Aqui é texto puro:
-# parte inteira × 10000 mais quatro casas truncadas.
-#
-# `10#` em toda ponta porque `08` e `09` são octal INVÁLIDO para o bash, e por
-# aqui passam a hora `08:00` e a luminância `0.0812`.
 milesimos_de() {
   local v="$1" i f
   case "$v" in *e*|*E*) v="$(printf '%.6f' "$v" 2>/dev/null)" || v=0 ;; esac
@@ -363,27 +214,8 @@ milesimos_de() {
   echo $(( 10#$i * 10000 + 10#$f ))
 }
 
-# nome do arquivo -> luminância. Preenchido por `medir_acervo`.
 declare -A LUZ=()
 
-# Mede `ativos/` inteiro, reaproveitando o que já foi medido.
-#
-# O CACHE É POR (TAMANHO, MTIME), E NÃO POR NOME. Um arquivo trocado por outro
-# com o mesmo nome — que é exatamente o que `adicionar` e `semear` fazem quando
-# uma imagem é substituída — muda pelo menos um dos dois, e é remedido. Só o
-# nome seria memória que envelhece calada.
-#
-# O ARQUIVO NÃO PASSA PELO `meow_escrever`, DE PROPÓSITO. Ele é ESTADO derivado,
-# não configuração: apagá-lo custa os segundos de remedir e nada mais. Pelo
-# `meow_escrever` ele entraria no manifesto (e o `--uninstall` passaria a
-# removê-lo como se fosse config dela) e, pior, imprimiria `~~ mudaria …` no
-# modo seco — o que faria o `meow doctor` acusar divergência a cada rodada por
-# causa de um cache. É a mesma decisão, e pelo mesmo motivo, que o cabeçalho de
-# `limpar_estado_morto` já registra: aquilo também não conta como divergência.
-#
-# NO SECO, MEDE MAS NÃO GRAVA. Medir é leitura; gravar é escrita, e `--conferir`
-# promete não escrever. O preço é um `meow doctor` de 4 s a mais numa máquina em
-# que o `aplicar` nunca rodou — e some sozinho no primeiro `aplicar` de verdade.
 medir_acervo() {
   LUZ=()
   local TAB=$'\t' NL=$'\n'
@@ -402,8 +234,6 @@ medir_acervo() {
   for arq in "$ATIVOS"/*; do
     [ -f "$arq" ] || continue
     base="${arq##*/}"
-    # O cache é um TSV. Um nome com tab ou quebra de linha o corromperia na
-    # gravação, e o defeito só apareceria na leitura seguinte, em outro arquivo.
     case "$base" in
       *"$TAB"*|*"$NL"*)
         meow_aviso "'$base' tem tab ou quebra de linha no nome — fica fora da separação claro/escuro"
@@ -427,8 +257,6 @@ medir_acervo() {
     if tem_imagemagick; then
       meow_aviso "$falhas imagem(ns) não puderam ser medidas — ficam fora da separação claro/escuro"
     else
-      # Sem a receita do `apt` desde a P75 (09/10/2026): o ImageMagick é do
-      # `etapa_pacotes`, e quem o instala é o `pacotes` do doctor, pela ponte.
       meow_aviso "sem ImageMagick não dá para separar claro de escuro ($falhas imagem(ns))"
     fi
   fi
@@ -456,7 +284,6 @@ medir_acervo() {
   return 0
 }
 
-# "18:00" -> 1080. Falha (1) em qualquer coisa que não seja HH:MM.
 minutos_de_hora() {
   local v="$1" h m
   case "$v" in
@@ -468,16 +295,6 @@ minutos_de_hora() {
   echo $(( 10#$h * 60 + 10#$m ))
 }
 
-# "é noite agora?" — 0 = sim.
-#
-# A JANELA ATRAVESSA A MEIA-NOITE, E ESSE É O CASO NORMAL AQUI: o padrão é
-# 18:00-07:00, ou seja `início > fim`. Nesse formato a noite é "depois do início
-# OU antes do fim"; "entre os dois" não existiria e a janela seria vazia.
-#
-# `início == fim` é o caso sem resposta óbvia, e fica valendo NOITE O DIA
-# INTEIRO. A outra leitura — janela vazia — transformaria dois valores iguais
-# numa chave que não faz nada e não avisa, que é o defeito que este projeto mais
-# documenta ter cometido (a `LOG_NIVEL` inerte, as `WALLPAPER_SEMENTES`).
 e_noite() {
   local ini fim agora
   ini="$(minutos_de_hora "$NOITE_INICIO")" || {
@@ -495,15 +312,6 @@ e_noite() {
   fi
 }
 
-# Monta UMA pasta derivada: um link duro por nome da lista, e nada além disso
-# dentro dela.
-#
-# O QUE ELA APAGA, E O QUE NUNCA APAGA. Só mexe em `$NOITE_DIR` e `$DIA_DIR` —
-# nomes CRAVADOS neste arquivo, não deduzidos de nada, e que ninguém mais
-# escreve. Lá dentro some o que saiu da lista e o que deixou de apontar para o
-# arquivo de `ativos/`; o `-ef` compara device e inode, não nome, então uma
-# imagem substituída em `ativos/` é relinkada em vez de ficar velha para sempre.
-# Não entra em subdiretório e não toca em `ativos/` nunca.
 montar_derivada() {
   local dir="$1"; shift
   local -A quer=()
@@ -524,20 +332,11 @@ montar_derivada() {
     [ -e "$dir/$base" ] && continue
     meow_guardar_antes "$dir/$base"
     ln -f -- "$ATIVOS/$base" "$dir/$base" 2>/dev/null && continue
-    # Outro sistema de arquivos, ou um `ln` que recusou. O simbólico é pior (o
-    # cabeçalho diz por quê) mas é melhor que a pasta ficar sem a imagem.
     ln -sfn -- "$ATIVOS/$base" "$dir/$base" 2>/dev/null || return 1
   done
   return 0
 }
 
-# DESLIGAR TEM DE DESLIGAR: com `WALLPAPER_NOITE="nao"` as duas pastas somem do
-# disco, e não ficam ali paradas parecendo que o recurso continua ligado.
-#
-# É CHAMADA DEPOIS DE ESCREVER A CONFIGURAÇÃO, e a ordem não é detalhe: apagar
-# antes deixaria o `cosmic-bg` apontando para uma pasta que não existe mais.
-# O `rmdir` só remove diretório vazio — se sobrou alguma coisa que não era nossa,
-# ele recusa e a gente diz, em vez de forçar.
 soltar_derivadas() {
   local dir vistas=0
   for dir in "$NOITE_DIR" "$DIA_DIR"; do
@@ -547,15 +346,11 @@ soltar_derivadas() {
     find "$dir" -maxdepth 1 \( -type f -o -type l \) -delete 2>/dev/null
     rmdir "$dir" 2>/dev/null || meow_aviso "$dir/ não ficou vazio — deixei como estava"
   done
-  [ "$vistas" = "1" ] || return 1     # 1 = não havia nada a soltar
+  [ "$vistas" = "1" ] || return 1
   meow_seco || meow_info "a noite está desligada: as pastas derivadas saíram e a rotação é ativos/"
   return 0
 }
 
-# --- PAPÉIS DE PAREDE SEPARADOS POR PACK -------------------------------------
-# Só a coleção do pack no ar gira; trocar de pack troca a coleção (decisão de
-# 23/10). A coleção de OUTRO pack é a que o prefixo ou a curadoria dele nomeia
-# (`pack.py colecoes-alheias`); a imagem que não é de pack nenhum gira sempre.
 declare -A ALHEIA_NOME=()
 ALHEIOS_PREFIXOS=()
 _ALHEIAS_LIDAS=0
@@ -581,9 +376,6 @@ e_alheia() {
   return 1
 }
 
-# Define ROTACAO_BASE: `ativos/` quando tudo nela é do pack no ar (ou de pack
-# nenhum), senão `ativos-pack/` só com a coleção dele. Com menos de duas imagens
-# na coleção, gira `ativos/` inteira: carrossel vazio é tela preta.
 ROTACAO_BASE="$ATIVOS"
 COLECAO=()
 PACK_MUDOU=0
@@ -605,7 +397,6 @@ base_da_rotacao() {
     fi
     return 0
   fi
-  # A mesma pasta com outra coleção (troca de pack): o cosmic-bg tem de reler.
   antes="$(ls -1A "$PACK_ATIVOS" 2>/dev/null | LC_ALL=C sort)"
   if [ -d "$PACK_ATIVOS" ] && [ "$antes" != "$(printf '%s\n' "${COLECAO[@]}" | LC_ALL=C sort)" ]; then
     PACK_MUDOU=1
@@ -625,79 +416,11 @@ base_da_rotacao() {
   return 0
 }
 
-# =============================================================================
-# O REGISTRO DE LADO — A ESCOLHA DELA VENCE A MEDIÇÃO (06/09/2026)
-# =============================================================================
-# O PEDIDO, COM A GALERIA NA FRENTE
-#   *"quando eu colocar o mouse em cima da imagem temos que ter as opções de Dia
-#   e a opção Noite, não apenas a Tirar"*.
-#
-# O QUE FALTAVA, MEDIDO
-#   Até 06/09/2026 o `_resolver_grupo` separava `ativos-dia/` de `ativos-noite/`
-#   SÓ pela luminância: `medir_acervo` mede, `milesimos_de` compara, `LIMIAR_LUZ`
-#   corta. Não existia porta nenhuma para discordar da medição. As duas saídas
-#   que sobravam eram ruins do mesmo jeito: banir a imagem inteira (perder a
-#   imagem para consertar o horário dela) ou mexer no limiar, que é GLOBAL e
-#   move dezenas de outras imagens junto para corrigir uma.
-#
-#   E a medição erra de um jeito que número nenhum resolve, porque o que ela não
-#   mede é o gosto: uma foto clara que ela quer de madrugada, um gráfico escuro
-#   que ela quer de dia. O cabeçalho deste arquivo defende o limiar 0,37 com o
-#   histograma dos 54 papéis de 25/08 — e continua valendo. O que ele nunca pôde
-#   dizer é onde ela discorda.
-#
-# O DESENHO: DECISÃO ESCRITA VENCE HEURÍSTICA
-#   É o mesmo padrão que o resto do projeto já usa: a automação age por decisão
-#   escrita, e a medição só opina quando ninguém decidiu. Por isso o registro
-#   guarda SÓ a discordância — ausente quer dizer "a medição decide". Nos 46
-#   papéis desta máquina isso é a diferença entre um arquivo de 46 linhas que
-#   envelhece a cada reencode e um de duas ou três que ela abre e entende.
-#
-# `auto` NÃO É UM VALOR, É A AUSÊNCIA DA LINHA
-#   Escrever a palavra "auto" criaria três estados ("dia", "noite", "auto") onde
-#   existem dois mais o padrão, e o registro passaria a crescer com linhas que
-#   não decidem nada — exatamente o lixo silencioso que a poda mais abaixo
-#   existe para evitar.
-#
-# POR QUE ELE MORA AO LADO DO `BANIDOS.txt`, E NÃO NO ESTADO
-#   O `wallpaper-luz.tsv` fica em `$MEOW_ESTADO` porque é CACHE: apagar custa os
-#   segundos de remedir e nada mais. Este aqui é RECEITA, como o `BANIDOS.txt` e
-#   o `FONTES.tsv` — é uma escolha dela que nenhuma máquina refaz sozinha, e as
-#   imagens não vão para o git. Some daqui e a decisão morre com a formatação.
-#
-# ELE CONTINUA SENDO RECEITA, E MESMO ASSIM SAIU DO GIT — 21/09/2026
-#   O parágrafo acima defende que a escolha dela precisa sobreviver a uma
-#   reformatação, e continua inteiro. O que ele não previu é que o arquivo é
-#   ESCRITO ENQUANTO ELA USA O PROGRAMA: no clone dele, os cliques em
-#   "Dia"/"Noite" das 17h10 de 21/09 deixaram `-3` linhas de diff pendente. Com
-#   dois usuários reais e três remotos entre eles, receita versionada que o
-#   próprio programa reescreve é conflito de merge a cada `git pull`.
-#
-#   A receita agora é o `lado.tsv.padrao`, versionado e que ninguém escreve; a
-#   escolha viva mora em `$MEOW_ESTADO`. Continua sendo texto pequeno e continua
-#   sobrevivendo à formatação — pelo `.padrao` para quem clona, e pelos backups
-#   de `$MEOW_ESTADO` para quem já usa. O contrato está em
-#   `meow_estado_com_padrao` (`lib/comum.sh`).
-# [P82, 15/10/2026 (item 34): o `estado` só lê, e não semeia — ver o
-#   `meow_estado_com_padrao`. Fica valendo para o BANIDOS.txt, lá embaixo.]
 case "${1:-aplicar}" in estado) MEOW_ESTADO_SO_LE=1 ;; esac
 LADO_TSV="${WALLPAPER_LADO:-$(meow_estado_com_padrao papeis-de-parede lado.tsv)}"
 
-# nome do arquivo -> dia|noite. Só quem discorda da medição; preenchido por
-# `ler_lado`, e vazio quer dizer "ninguém discordou de nada".
 declare -A LADO=()
 
-# `|| [ -n "$nome" ]` NO `read` PORQUE A ÚLTIMA LINHA JÁ SUMIU AQUI ANTES
-#   É a armadilha 1 que o `semear_da_curadoria` documenta ter pago em 24/08/2026:
-#   o `read` devolve status != 0 na última linha quando o arquivo não termina em
-#   newline — as variáveis são preenchidas, mas o laço encerra ANTES do corpo. O
-#   `gravar_lado` sempre fecha com newline, mas este arquivo é feito para ela
-#   abrir e editar à mão, e um editor que não fecha a última linha faria a última
-#   escolha dela sumir sem aviso.
-#
-# LINHA ESTRANHA NÃO VIRA ESCOLHA. Um valor que não seja `dia` nem `noite` é
-# ignorado e contado — cair no silêncio faria uma linha malformada valer como
-# "auto" sem ninguém saber, e ela procuraria o defeito na medição.
 ler_lado() {
   LADO=()
   [ -f "$LADO_TSV" ] || return 0
@@ -714,24 +437,6 @@ ler_lado() {
   return 0
 }
 
-# Escreve o mapa `LADO` inteiro, ordenado por nome, de uma vez.
-#
-# ATÔMICO, COMO O RESTO DO SCRIPT: arquivo temporário ao lado e `mv`. Quem
-# estiver lendo o registro no meio da escrita lê o antigo inteiro, nunca meio
-# arquivo — e é o mesmo `.atomicwrite.meow.XXXXXX` que o `cmd_desbanir` usa para
-# reescrever o `BANIDOS.txt`, pelo mesmo motivo.
-#
-# ORDENADO POR `LC_ALL=C sort`, E NÃO PELA ORDEM DO MAPA: a ordem de iteração de
-# um array associativo do bash é a da tabela de espalhamento, isto é, arbitrária
-# e instável entre execuções. Sem a ordenação, gravar a MESMA escolha duas vezes
-# produziria dois arquivos diferentes — e num arquivo versionado isso é um diff
-# fantasma a cada passagem.
-#
-# MAPA VAZIO APAGA O ARQUIVO, e isto é o `auto` levado às últimas consequências:
-# "nenhuma discordância" e "arquivo ausente" têm de ser o mesmo estado, senão
-# sobra um arquivo de duas linhas de cabeçalho dizendo que existe uma escolha
-# onde não existe nenhuma. Este projeto tem histórico documentado de pasta
-# fantasma; arquivo fantasma é a mesma doença com outro nome.
 gravar_lado() {
   local TAB=$'\t' NL=$'\n' dir tmp conteudo base
 
@@ -760,11 +465,6 @@ gravar_lado() {
   return 1
 }
 
-# Tira do mapa a linha de UM nome. Existe como função porque `unset "LADO[$n]"`
-# é armadilha: o bash expande o subscrito de novo dentro do `unset`, e um nome de
-# arquivo com `[` ou `]` — que a pasta dela pode ter, ela já tem emoji e espaço —
-# apagaria outra chave ou nenhuma, calado. Reconstruir o mapa custa um laço e não
-# depende de como o nome é escrito.
 _lado_esquecer() {
   local alvo="$1" base
   local -A resto=()
@@ -778,24 +478,6 @@ _lado_esquecer() {
   return 0
 }
 
-# A HIGIENE: UM REGISTRO QUE SÓ CRESCE VIRA LIXO SILENCIOSO
-#   Uma imagem banida (`cmd_banir` a move para `banidos/`) ou apagada à mão sai
-#   de `ativos/` e nunca mais volta sozinha. A linha dela, se ficasse, seria uma
-#   escolha sobre uma imagem que não existe — e o arquivo cresceria para sempre
-#   com nomes que ninguém reconhece mais. Este projeto já pagou por lixo assim
-#   em outra pasta; o conserto é podar na mesma passagem em que o sumiço é visto.
-#
-# É CHAMADA DEPOIS DA GUARDA DE "MENOS DE DUAS IMAGENS" DO `cmd_aplicar`, e a
-# ordem é a proteção: `ativos/` vazio (disco desmontado, home ainda não montado
-# no boot) NUNCA chega até aqui, então a poda nunca confunde acervo ausente com
-# curadoria. É o mesmo cuidado das quatro guardas do `reconciliar_sumicos`,
-# aproveitando a que já existe em vez de escrever a quinta.
-#
-# CONTA COMO DIVERGÊNCIA (devolve 1), ao contrário do `limpar_estado_morto`: uma
-# linha morta é uma sobra REAL num arquivo versionado, que não volta ao lugar
-# sozinha. Se não contasse, o `--conferir` imprimiria "~~ tiraria …" e devolveria
-# 0 — e o auto-reparo nunca passaria ali. Converge na primeira passagem de
-# verdade: podado uma vez, o nome não volta.
 podar_lado() {
   ler_lado
   [ "${#LADO[@]}" -gt 0 ] || return 0
@@ -826,44 +508,10 @@ podar_lado() {
   return 1
 }
 
-# Decide para qual pasta o `source:` aponta nesta rodada, e deixa o disco pronto
-# para isso. DEVOLVE SEMPRE 0: dia e noite é melhoria, e nenhuma falha dela pode
-# derrubar o carrossel. O pior caso é voltar para `ativos/` com um aviso.
-#
-# AS DUAS DERIVADAS SÃO MONTADAS JUNTAS, e não só a da vez. Custam link duro,
-# isto é, zero disco — e assim a virada das 18:00 é a reescrita de UMA linha de
-# configuração, sem criação de pasta no minuto em que ela está olhando a tela.
-# A FIXAÇÃO ENTRA POR CIMA, DEPOIS DE O GRUPO ESTAR RESOLVIDO — e é por isso que
-# há um invólucro em vez de um `if` no meio do miolo.
-#
-#   1. O grupo precisa ser resolvido de qualquer jeito: as pastas `ativos-dia/`
-#      e `ativos-noite/` são montadas lá dentro, e o `proximo` precisa da lista
-#      do grupo para saber quem vem depois. Pular o miolo quando há fixação
-#      deixaria as derivadas envelhecendo enquanto ela navega.
-#   2. O miolo tem cinco `return 0` diferentes (acervo vazio, grupo pequeno,
-#      falha de montagem…). Enfiar a fixação em cada um seria cinco cópias da
-#      mesma regra — o defeito que este projeto mais persegue.
-#
-# QUEM SOLTA A FIXAÇÃO VENCIDA É AQUI, e só fora do seco: o `--conferir` precisa
-# poder dizer "soltaria" sem soltar.
 resolver_rotacao() {
   _resolver_grupo || return $?
   local fixo
 
-  # CURADORIA SOLTA A FIXAÇÃO — 01/09/2026, e este é o pedido dela em uma linha:
-  # "preciso que vc melhore o projeto nesse sentido", depois de mover oito
-  # papéis de parede para `banidos/` e não ver nada mudar na tela.
-  #
-  # O QUE ACONTECEU, MEDIDO: mover funcionou (saíram de `ativos/` e dos grupos
-  # em segundos), mas a tela estava com a imagem FIXADA pelo "avançar papel de
-  # parede" do menu da área de trabalho, que fixa por `WALLPAPER_FIXO_TTL`
-  # (30 min). Fixação é para segurar uma escolha dela — mas ela ACABOU de fazer
-  # outra escolha, e a mais recente vence. Sem isto, o recurso parece quebrado
-  # exatamente no momento em que ela está usando o outro recurso.
-  #
-  # Só quando algo foi de fato banido nesta rodada (`CUROU`), não a cada
-  # passagem: soltar a fixação em toda reafirmação do carrossel jogaria fora a
-  # escolha dela do nada, que é o defeito oposto e pior.
   if [ "${CUROU:-0}" = "1" ] && [ -f "$FIXADO" ]; then
     if meow_seco; then
       meow_muda "soltaria a fixação — você acabou de banir papel de parede"
@@ -890,7 +538,7 @@ _resolver_grupo() {
   base_da_rotacao
   ROTACAO="$ROTACAO_BASE"; GRUPO=""; NOITE_N=0; DIA_N=0
 
-  [ "$NOITE" = "sim" ] || return 0   # o `sim_ou_nao` já avisou de valor estranho
+  [ "$NOITE" = "sim" ] || return 0
 
   local lim; lim="$(milesimos_de "$LIMIAR_LUZ")"
   if [ "$lim" -le 0 ] || [ "$lim" -ge 10000 ]; then
@@ -904,27 +552,11 @@ _resolver_grupo() {
     return 0
   fi
 
-  # A ESCOLHA ESCRITA É CONSULTADA ANTES DE A LUMINÂNCIA SER COMPARADA. A ordem é
-  # o recurso inteiro: escolha dela > medição. Tudo o que vem DEPOIS continua
-  # igual — o aviso de "o grupo de X ficou com N imagem(ns)" e a queda para
-  # `ativos/` valem sobre o resultado JÁ com as escolhas aplicadas, senão uma
-  # escolha dela poderia esvaziar um grupo sem que ninguém avisasse.
   ler_lado
 
   local -a escuros=() claros=()
   local base por_escolha=0
 
-  # O UNIVERSO É O QUE FOI MEDIDO, MAIS O QUE ELA ESCOLHEU E NÃO PÔDE SER MEDIDO
-  #   `medir_acervo` deixa de fora a imagem que o ImageMagick recusou (um arquivo
-  #   truncado, um formato que ele não abre). Sem esta união, uma escolha escrita
-  #   sobre uma dessas seria ignorada em silêncio — e o único caso em que a
-  #   decisão dela é a ÚNICA informação disponível é justamente esse.
-  #
-  #   A união NÃO substitui a guarda de "nenhum papel medido" logo acima, e isso
-  #   é deliberado: sem ImageMagick nenhum, `LUZ` fica vazio e a rotação volta
-  #   inteira para `ativos/` como sempre voltou. Montar os grupos só com as duas
-  #   ou três escolhas escritas tiraria as outras 44 imagens da rotação dela para
-  #   obedecer a uma preferência — o oposto do que ela pediu.
   local -A universo=() da_colecao=()
   for base in ${COLECAO[@]+"${COLECAO[@]}"}; do da_colecao["$base"]=1; done
   for base in "${!LUZ[@]}"; do
@@ -935,7 +567,7 @@ _resolver_grupo() {
     for base in "${!LADO[@]}"; do
       [ -n "${universo[$base]:-}" ] && continue
       [ "${#COLECAO[@]}" -gt 0 ] && [ -z "${da_colecao[$base]:-}" ] && continue
-      [ -f "$ATIVOS/$base" ] || continue    # linha morta; a poda tira na passagem certa
+      [ -f "$ATIVOS/$base" ] || continue
       universo["$base"]=1
     done
   fi
@@ -945,9 +577,6 @@ _resolver_grupo() {
       noite) escuros+=("$base"); por_escolha=$((por_escolha + 1)); continue ;;
       dia)   claros+=("$base");  por_escolha=$((por_escolha + 1)); continue ;;
     esac
-    # `:-` porque o universo pode conter um nome que só veio do registro; esse
-    # nome sempre sai por um dos dois `continue` acima, e o valor de reserva
-    # existe para o `set -u` do topo do arquivo, não para ser usado.
     if [ "$(milesimos_de "${LUZ[$base]:-}")" -lt "$lim" ]
       then escuros+=("$base")
       else claros+=("$base")
@@ -965,9 +594,6 @@ _resolver_grupo() {
     GRUPO="dia";   dir="$DIA_DIR";   lista=(${claros[@]+"${claros[@]}"})
   fi
 
-  # Menos de duas imagens não é carrossel — é a mesma regra que o `cmd_aplicar`
-  # aplica ao acervo inteiro, aqui aplicada ao grupo. Acontece se ela banir os
-  # escuros todos, ou se o limiar for empurrado para uma ponta.
   if [ "${#lista[@]}" -lt 2 ]; then
     meow_aviso "o grupo de $GRUPO ficou com ${#lista[@]} imagem(ns) (limiar $LIMIAR_LUZ) — a rotação fica em ativos/"
     GRUPO=""
@@ -975,9 +601,6 @@ _resolver_grupo() {
   fi
 
   if meow_seco; then
-    # AS DUAS, e não só a da vez: o `aplicar` monta as duas juntas, e um seco que
-    # anunciasse uma pasta e criasse duas seria a mesma mentira de tempo verbal
-    # que este arquivo já documenta ter cometido três vezes.
     [ -d "$NOITE_DIR" ] || meow_muda "criaria $NOITE_DIR/ com $NOITE_N link(s) duro(s) para ativos/"
     [ -d "$DIA_DIR" ]   || meow_muda "criaria $DIA_DIR/ com $DIA_N link(s) duro(s) para ativos/"
     ROTACAO="$dir"
@@ -994,12 +617,6 @@ _resolver_grupo() {
   return 0
 }
 
-# A pasta é nossa? Vale para as três: o acervo e as duas derivadas dele.
-#
-# ISTO É METADE DO PRIMEIRO DOS QUATRO CASOS DA FRONTEIRA, e existe como função
-# porque agora são três caminhos e não um. Uma saída apontando para
-# `ativos-dia/` às 23h não é reversão nem escolha dela: é a nossa própria pasta,
-# do grupo errado, e o conserto é escrever a certa sem aviso nenhum.
 fonte_nossa() {
   case "$1" in
     "$ATIVOS"|"$ATIVOS"/*|"$NOITE_DIR"|"$NOITE_DIR"/*|"$DIA_DIR"|"$DIA_DIR"/*|"$PACK_ATIVOS"|"$PACK_ATIVOS"/*) return 0 ;;
@@ -1007,64 +624,13 @@ fonte_nossa() {
   return 1
 }
 
-# ============================================================================
-# AVANÇAR E VOLTAR O PAPEL DE PAREDE (01/09/2026)
-# ============================================================================
-# O PEDIDO DELA: "adicionar no botão direito do mouse, no menu de contexto
-# quando eu o aperto na área de trabalho, a opção de avançar wallpaper e voltar
-# wallpaper".
-#
-# O CABEÇALHO DESTE ARQUIVO DIZIA "NÃO EXISTE GATILHO DE PRÓXIMO", E CONTINUA
-# CERTO SOBRE O `cosmic-bg`
-#   Ele não fala D-Bus: não tem nome no barramento, não tem conexão, e o binário
-#   não contém string de D-Bus nenhuma (medido em 04/08/2026). Os fds dele são
-#   dois sockets Wayland e um inotify. Não há como pedir "próximo" a ele.
-#
-# O QUE MUDOU FOI A DESCOBERTA DA ÂNCORA, e ela estava neste mesmo arquivo, 80
-# linhas abaixo, sendo usada para outra coisa:
-#   `~/.local/state/cosmic/com.system76.CosmicBackground/v1/wallpapers` guarda a
-#   imagem que está EM CADA SAÍDA, escrita pelo próprio cosmic-bg:
-#       [ ("DP-1", Path("…/ativos-dia/meow-lofi-lofi-j38rp5.jpg")), ]
-#   Com isso "próximo" deixa de ser adivinhação: sabe-se onde a rotação está, e
-#   dá para escolher quem vem depois na lista ordenada do grupo.
-#
-# COMO SE MOSTRA UMA IMAGEM ESCOLHIDA: `source: Path(<arquivo>)`
-#   O `config_desejada` já escreve `Path("$ROTACAO")`, e o RON aceita arquivo
-#   tanto quanto diretório. Então FIXAR é só trocar o valor de `$ROTACAO` — não
-#   há um segundo formato de configuração, nem um segundo caminho de escrita, e
-#   toda a fronteira de quatro casos do `cmd_aplicar` continua valendo.
-#
-# O PREÇO, DITO EM VOZ ALTA: COM UMA IMAGEM SÓ, NÃO HÁ ROTAÇÃO
-#   Enquanto a fixação vale, o carrossel está parado. Isso é inevitável — o
-#   `cosmic-bg` gira o que estiver na PASTA, e uma pasta não tem "posição
-#   atual" que se possa empurrar. Fingir o contrário seria pior.
-#
-# ENTÃO A FIXAÇÃO EXPIRA, e é isso que a torna aceitável
-#   `WALLPAPER_FIXO_TTL` (padrão 30m) é quanto tempo a escolha dela dura. Quem
-#   devolve o carrossel é o `meow-wallpaper.timer`, que já roda a cada 15 min
-#   chamando o `aplicar` — nenhuma unidade nova, nenhum relógio novo. Com `0` a
-#   fixação é para sempre, e aí quem a solta é `meow wallpaper carrossel`.
-#
-#   O TTL é o que separa este recurso de uma armadilha: sem ele, um clique
-#   distraído em "avançar" deixaria o carrossel morto por dias, e o sintoma
-#   ("o papel de parede parou de girar") não apontaria para o clique.
 FIXO_TTL="${WALLPAPER_FIXO_TTL:-30m}"
 FIXADO="$MEOW_ESTADO/wallpaper-fixado"
-# "Houve curadoria nesta rodada?" — escrita pelas duas reconciliações, lida pelo
-# `resolver_rotacao`. Variável e não arquivo: o efeito é desta passagem só.
 CUROU=0
 
-# `<caminho><TAB><epoch>` — o caminho para saber o que mostrar, o carimbo para
-# saber quando soltar. Duas coisas num arquivo só porque elas nascem e morrem
-# juntas: um carimbo sem caminho não diz nada, e um caminho sem carimbo nunca
-# expira.
 gravar_fixo() { printf '%s\t%s\n' "$1" "$(date +%s)" > "$FIXADO" 2>/dev/null; }
 soltar_fixo() { rm -f "$FIXADO" 2>/dev/null; return 0; }
 
-# Imprime o caminho fixado se ele ainda vale; falha (1) se não há fixação, se o
-# arquivo sumiu do acervo, ou se o prazo passou. NUNCA apaga nada: quem apaga é
-# `resolver_rotacao`, para que o `--conferir` (que roda em seco) possa dizer
-# "soltaria a fixação" sem soltá-la.
 fixo_valido() {
   local linha caminho quando ttl agora
   [ -f "$FIXADO" ] || return 1
@@ -1073,9 +639,6 @@ fixo_valido() {
   [ -n "$caminho" ] && [ -f "$caminho" ] || return 1
   case "$quando" in ''|*[!0-9]*) return 1 ;; esac
   ttl="$(segundos_de "$FIXO_TTL")"
-  # `0` (ou qualquer coisa que vire 0) = para sempre. É o mesmo idioma de
-  # `LEITURA_RAMPA_MIN=0` e do `rotation_frequency` do COSMIC: zero desliga o
-  # relógio, não zera o prazo.
   if [ "$ttl" -gt 0 ]; then
     agora="$(date +%s)"
     [ "$((agora - quando))" -lt "$ttl" ] || return 1
@@ -1083,16 +646,7 @@ fixo_valido() {
   printf '%s' "$caminho"
 }
 
-# A imagem que o cosmic-bg está mostrando AGORA, lida do estado dele. Só devolve
-# caminho que seja NOSSO — uma entrada apontando para `/usr/share/backgrounds`
-# (a saída de fábrica, ou um monitor que a fronteira ainda não consertou) não
-# serve de âncora para "próximo".
-#
-# LÊ TODAS AS SAÍDAS E FICA COM A PRIMEIRA NOSSA. Com dois monitores mostrando
-# imagens diferentes, "próximo" passa a ser relativo ao primeiro — e não há
-# resposta melhor: o `source` é um só por saída, mas o comando é um só.
 imagem_atual() {
-  # [P82: o estado do cosmic-bg usa o mesmo número de esquema do pacote.]
   local estado
   estado="$HOME/.local/state/cosmic/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)/wallpapers"
   local p
@@ -1104,76 +658,25 @@ imagem_atual() {
   return 1
 }
 
-# As imagens do grupo da vez, em ordem ESTÁVEL (`LC_ALL=C sort`), uma por linha.
-#
-# A ORDEM É ALFABÉTICA MESMO COM `WALLPAPER_ORDEM="aleatoria"`, e isso é de
-# propósito: "aleatória" descreve como o `cosmic-bg` SORTEIA a próxima; aqui é
-# preciso uma sequência que seja a MESMA nas duas direções, senão "avançar" e
-# "voltar" não se desfariam. Uma lista sorteada faria "voltar" cair em qualquer
-# lugar — e o botão prometeria desfazer sem desfazer.
 lista_do_grupo() {
   local dir="$1"
   find "$dir" -maxdepth 1 \( -type f -o -type l \) 2>/dev/null | LC_ALL=C sort
 }
 
-# --- o estado com caminho fantasma, que suja o journal a cada 5 minutos -------
-# `~/.local/state/cosmic/.../v1/wallpapers` é a memória do COSMIC de qual imagem
-# estava em cada saída. Não é configuração: é estado, escrito por ele.
-#
-# O PROBLEMA MEDIDO (2026-08-04, 23:40 em diante)
-#   O arquivo guardava três entradas, e DUAS apontavam para arquivo que não existe
-#   mais — uma imagem banida da pasta `ativos/` e uma pasta `meowsystem-teste/`
-#   apagada há tempo. O `cosmic-greeter` lê este estado e cospe no journal, a cada
-#   cinco minutos, para sempre:
-#       failed to read wallpaper ".../meowsystem-teste/c-rosa.png": NotFound
-#   Não é fatal — mas é a tela de bloqueio dela tentando desenhar um arquivo
-#   fantasma, e é ruído que esconde erro de verdade no journal.
-#
-# SÓ REMOVE O QUE NÃO EXISTE, E NADA MAIS
-#   Uma entrada com arquivo presente fica intocada, mesmo apontando para fora da
-#   pasta do carrossel: pode ser escolha dela para uma saída específica.
-#
-# E SÓ VALE NO PRÓXIMO LOGIN — medido, não suposto (2026-08-05)
-#   Limpamos a entrada morta, e dois segundos depois ela estava de volta no
-#   arquivo. O `cosmic-bg` não relê este estado: ele carrega a lista na MEMÓRIA
-#   no início da sessão e reescreve o arquivo INTEIRO a cada troca de imagem —
-#   a cada 5 minutos, aqui. Ou seja, enquanto a sessão viver, a entrada fantasma
-#   volta; no próximo login ele lê o arquivo já limpo e ela some de vez.
-#
-#   Por isso o chamador NÃO conta esta limpeza como divergência. Se contasse, o
-#   `meow doctor` acusaria diferença a cada rodada para sempre, e o auto-reparo
-#   "consertaria" de hora em hora algo que o COSMIC desfaz em cinco minutos —
-#   o mesmo ping-pong que o projeto já teve com a Aurora e resolveu cedendo.
-# [P82: o mesmo número de esquema do pacote, e não um v1 cravado.]
 ESTADO_BG="$HOME/.local/state/cosmic/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)/wallpapers"
 
 limpar_estado_morto() {
   [ -f "$ESTADO_BG" ] || return 1
 
-  # SÓ QUANDO NÃO HÁ DONO VIVO — o cabeçalho acima já explica o porquê, e agora
-  # o código respeita o que ele diz. Medido em 10/08/2026: `stat` deste arquivo
-  # deu 16:33 e depois 16:38:12 — cinco minutos exatos, batendo com o
-  # `rotation_frequency: 300` de `output.DP-1`. O `cosmic-bg` reescreve o
-  # arquivo INTEIRO nesse ritmo, a partir da lista que carregou na memória.
-  # Gravar por cima enquanto ele vive é apostar contra o dono do arquivo: ou a
-  # nossa escrita some no próximo tique, ou ela apaga a rotação em curso. E
-  # como a limpeza só vale no login seguinte de qualquer jeito, esperar não
-  # custa nada — o ganho de escrever agora é zero.
   if pgrep -x cosmic-bg >/dev/null 2>&1; then
     meow_debug "cosmic-bg de pé — a limpeza do estado fica para uma sessão em que ele não esteja"
     return 1
   fi
 
   local novo mortas saida
-  # UMA LEITURA SÓ, E NÃO DUAS. Antes eram duas invocações separadas de
-  # `python3` que reabriam o arquivo em momentos diferentes; com o `cosmic-bg`
-  # reescrevendo no meio, a contagem da segunda podia discordar do conteúdo que
-  # a primeira produziu — e a frase do `meow_info` mentiria sobre o que foi
-  # feito. A primeira linha da saída é a contagem, o resto é o conteúdo novo.
   saida="$(python3 -I - "$ESTADO_BG" <<'FIM' 2>/dev/null
 import os, re, sys
 texto = open(sys.argv[1], encoding="utf-8").read()
-# ("DP-1", Path("/caminho")),  — uma entrada por linha, é o formato que ele grava.
 padrao = re.compile(r'^\s*\(\s*"[^"]*"\s*,\s*Path\("([^"]*)"\)\s*\)\s*,?\s*$')
 guardar, mortas = [], 0
 for linha in texto.splitlines():
@@ -1183,18 +686,12 @@ for linha in texto.splitlines():
         continue
     guardar.append(linha)
 if not mortas:
-    sys.exit(1)          # nada a fazer: o chamador trata como "já limpo"
+    sys.exit(1)
 print(mortas)
 print("\n".join(guardar))
 FIM
 )" || return 1
   mortas="${saida%%$'\n'*}"
-  # `$( )` come as newlines do fim: se sobrasse conteúdo NENHUM depois da poda,
-  # a saída seria só a contagem, sem newline alguma — e `${saida#*$'\n'}`, que
-  # devolve a string intacta quando não acha o padrão, entregaria o número como
-  # se fosse o arquivo novo. Não deve acontecer (o arquivo tem os parênteses de
-  # abertura e fecho, que não casam com o padrão de entrada), mas o custo de
-  # não escrever lixo no estado do COSMIC é uma linha.
   case "$saida" in
     *$'\n'*) novo="${saida#*$'\n'}" ;;
     *)       novo="" ;;
@@ -1211,47 +708,6 @@ FIM
   esac
 }
 
-# ============================================================================
-# APAGAR À MÃO PASSA A SER BANIR (01/09/2026)
-# ============================================================================
-# O QUE ELA DESCOBRIU, E TINHA RAZÃO
-#   Ela apagou papéis de parede feios e nada aconteceu — porque apagou da pasta
-#   ERRADA (`packs/meowsystem/wallpapers/`, que era 145 MB de cópia inerte que
-#   nenhum script lia; as imagens saíram do repositório no mesmo dia). Mas ao
-#   perguntar "essa pasta então não é usada?" ela expôs um buraco de verdade no
-#   lado CERTO:
-#
-#     `meow wallpaper banir X`  -> move para banidos/ E grava no BANIDOS.txt.
-#                                  PERMANENTE.
-#     apagar X à mão de ativos/ -> sai da rotação agora, e o `semear` traz de
-#                                  volta na próxima vez. TEMPORÁRIO, sem avisar.
-#
-#   Duas ações que parecem a mesma coisa e não são. E o README promete o
-#   contrário desde sempre: *"a pasta é a configuração: soltou o arquivo,
-#   entrou; apagou, saiu"* — verdade para `packs/meowsystem/mascote/`, mentira aqui.
-#
-# O QUE ESTA FUNÇÃO FAZ
-#   Guarda a lista de nomes que estavam em `ativos/` na passagem anterior. Na
-#   seguinte, o que sumiu entra no `BANIDOS.txt` sozinho. A decisão dela virou
-#   uma linha: *"sempre que apagar o script se auto corrige"*.
-#
-# AS QUATRO GUARDAS — sem elas isto apaga o acervo dela algum dia
-#   1. PRIMEIRA PASSAGEM NÃO BANE NADA. Sem lista anterior não há "sumiu": só
-#      se grava o retrato e volta. Senão, a primeira execução numa máquina nova
-#      baniria o acervo inteiro.
-#   2. PASTA VAZIA NÃO BANE NADA. `ativos/` vazio é disco desmontado, `mv`
-#      interrompido, home ainda não montado no boot — nunca "ela apagou 54
-#      imagens". Avisa e NÃO atualiza o retrato, para o próximo ciclo reconhecer
-#      o estado bom.
-#   3. SUMIÇO EM MASSA NÃO BANE NADA. Mais da metade fora de uma vez é evento,
-#      não curadoria. Mesmo tratamento: avisa e segura o retrato.
-#   4. QUEM JÁ ESTÁ BANIDO NÃO É BANIDO DE NOVO. O `cmd_banir` também faz o
-#      arquivo sumir de `ativos/`; sem este teste ele apareceria aqui como
-#      "sumiço" e a lista ganharia linha duplicada a cada banimento.
-#
-# EM SECO NÃO ESCREVE NADA, e é por isso que o retrato só é gravado no fim: um
-# `--conferir` que atualizasse a lista faria o sumiço ser esquecido sem nunca
-# ter sido banido.
 VISTAS="$MEOW_ESTADO/wallpaper-vistas.txt"
 
 reconciliar_sumicos() {
@@ -1263,34 +719,16 @@ reconciliar_sumicos() {
 
   if [ ! -f "$VISTAS" ]; then
     meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null
-    return 0                                   # guarda 1
+    return 0
   fi
-  n_antes="$(grep -c . "$VISTAS" 2>/dev/null)"; n_antes="${n_antes:-0}"   # `|| echo 0` somava um 0 ao 0 do grep
+  n_antes="$(grep -c . "$VISTAS" 2>/dev/null)"; n_antes="${n_antes:-0}"
 
   if [ "$n_agora" = "0" ] && [ "$n_antes" -gt 0 ]; then
     meow_aviso "ativos/ está VAZIO e tinha $n_antes imagem(ns) — não vou banir nada"
     meow_info  "  isso é disco desmontado ou home ainda não montado, não curadoria"
-    return 0                                   # guarda 2
+    return 0
   fi
 
-  # OS DOIS LADOS DO `comm` PRECISAM ESTAR ORDENADOS — 15/09/2026
-  #   Só o primeiro estava. O `comm` avisa no stderr ("o arquivo 2 não está
-  #   ordenado") e SEGUE, devolvendo uma diferença errada — e o que sai daqui é
-  #   a lista do que vai ser BANIDO. As três guardas em volta existem para não
-  #   banir por engano; não adianta nenhuma delas se a conta que as alimenta
-  #   está torta.
-  #
-  #   Ficou escondido enquanto todo nome vinha com o mesmo punhado de prefixos
-  #   (`cat-`, `meow-`, `wp`): o `ls` já os devolvia em ordem, e a comparação
-  #   acertava por acaso. A semente do Dracula introduziu `drac-`, que cai entre
-  #   `cat-` e `meow-`, e a ordem acidental acabou — foi assim que apareceu.
-  #   E o `LC_ALL=C` vale para o `comm` TAMBÉM, não só para os dois `sort`.
-  #   Ordenar em C e comparar na locale da sessão deixa a validação de ordem do
-  #   comm a cargo de uma collation diferente da que produziu a ordem. Depois da
-  #   primeira correção o aviso não sumiu, só trocou de lado ("arquivo 2" virou
-  #   "arquivo 1"); com o comm em C ele parou. Não fui atrás de qual par de
-  #   nomes as duas collations classificam ao contrário — o que está medido é
-  #   que alinhar as três pontas no mesmo C resolve, e é barato manter assim.
   mapfile -t sumidas < <(LC_ALL=C comm -23 <(LC_ALL=C sort -u "$VISTAS") \
                                            <(printf '%s\n' ${agora[@]+"${agora[@]}"} | LC_ALL=C sort -u))
   [ "${#sumidas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
@@ -1298,29 +736,9 @@ reconciliar_sumicos() {
   if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
     meow_aviso "${#sumidas[@]} de $n_antes imagens sumiram de ativos/ de uma vez — não vou banir nada"
     meow_info  "  se foi você, bana uma a uma: meow wallpaper banir <nome>"
-    return 0                                   # guarda 3
+    return 0
   fi
 
-  # GUARDA 4 — SÓ O TEXTO CONTA AQUI, E ISSO É UM CONSERTO DE 01/09/2026
-  #   Ela moveu 8 imagens de `ativos/` para `banidos/` pelo gerenciador de
-  #   arquivos, às 20:58. O vigia acordou, os grupos de dia e de noite foram
-  #   refeitos, e o carrossel parou de mostrá-las — tudo certo na tela. Mas o
-  #   `BANIDOS.txt` continuou o de 17:57: NENHUM dos 8 nomes entrou.
-  #
-  #   A causa era esta linha chamando `esta_banida`, que responde 0 tanto para
-  #   "está no BANIDOS.txt" quanto para "existe um arquivo com esse nome em
-  #   `banidos/`". Movendo o arquivo, a segunda metade passa a valer ANTES de a
-  #   primeira ser escrita: cada nome era pulado como se já estivesse
-  #   registrado, e o retrato era atualizado por cima.
-  #
-  #   POR QUE ISSO IMPORTA, JÁ QUE NA TELA FUNCIONOU: as imagens não vão para o
-  #   git — só as receitas vão. Numa máquina reformatada, `banidos/` nasce
-  #   VAZIA, e aí o único que sabe o que ela recusou é o `BANIDOS.txt`. Sem o
-  #   nome lá, o `semear` repõe a imagem que ela tirou. É o mesmo buraco que o
-  #   auto-banir veio tapar em 01/09, na variante "mover" em vez de "apagar" —
-  #   e ele passou despercebido porque as duas ações parecem a mesma.
-  #
-  #   Então: a guarda contra escrever duas vezes é o TEXTO, e só ele.
   local -a novas=()
   for nome in "${sumidas[@]}"; do
     [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
@@ -1348,27 +766,6 @@ reconciliar_sumicos() {
   return 1
 }
 
-# ============================================================================
-# ARRASTAR PARA `banidos/` É BANIR — 01/09/2026
-# ============================================================================
-# Pergunta dela, com a coisa já feita: "remover os papeis de parede de ativos
-# automaticamente corrige os papeis de parede disponivel? pq movi pra pasta dos
-# que eu não quero mas não vi mudando isso."
-#
-# Ela tinha movido 8 imagens de `ativos/` para `banidos/` pelo gerenciador de
-# arquivos. Medido no mesmo minuto: na TELA funcionou (o vigia acordou, os
-# grupos de dia e noite foram refeitos, o carrossel parou de sorteá-las), mas o
-# `BANIDOS.txt` continuou o de três horas antes — nenhum dos 8 nomes registrado.
-# A causa está comentada na guarda 4 do `reconciliar_sumicos`.
-#
-# ISTO AQUI É A OUTRA METADE, e vale para o passado também: qualquer arquivo que
-# esteja em `banidos/` e não esteja no `BANIDOS.txt` é uma recusa dela que o
-# repositório não sabe repetir. Na primeira passagem depois deste conserto eram
-# 121 — anos de curadoria que uma máquina reformatada teria desfeito, porque as
-# imagens não vão para o git e `banidos/` nasceria vazia lá.
-#
-# É a mesma regra do resto do projeto: a PASTA é a interface, e o texto é a
-# receita. Ela arrasta; nós registramos.
 reconciliar_banidos_pasta() {
   [ -d "$BASE/banidos" ] || return 0
   local -a novas=()
@@ -1376,21 +773,7 @@ reconciliar_banidos_pasta() {
   while IFS= read -r nome; do
     [ -n "$nome" ] || continue
     [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
-    # A que também está em `ativos/` foi devolvida (o `desbanir` copia e deixa o
-    # arquivo morto em `banidos/`): registrá-la desfaria a devolução.
     [ -e "$ATIVOS/$nome" ] && continue
-    # NOME COM EMOJI NAO ENTRA NO TEXTO — e isto e uma regra do repositorio, nao
-    # capricho: o ADR-011 dela proibe emoji nos arquivos versionados, e o
-    # `universal-sanitizer.py` do pre-commit REMOVE o caractere em vez de
-    # recusar o commit. Medido em 01/09/2026, ao commitar: a linha
-    # "Cyberpunk Neon Cat Wallpaper _ Synthwave Vibe <mascote><coracao>.jpeg" virou
-    # a mesma frase SEM os dois emojis — e um nome sem os emojis nao casa com
-    # arquivo nenhum, entao a linha deixava de banir o que dizia banir, calada.
-    #
-    # Registrar aqui criaria ping-pong: nos escrevemos, o hook apaga o emoji, e
-    # na rodada seguinte o nome "falta" de novo. Fica de fora, e a protecao
-    # daquela imagem continua sendo a PASTA `banidos/` — que e onde ela ja
-    # estava. O aviso sai uma vez por rodada, para ninguem procurar o defeito.
     if printf '%s' "$nome" | grep -qP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE0F}]' 2>/dev/null; then
       meow_debug "banidos: '$nome' tem emoji no nome e nao entra no BANIDOS.txt (ADR-011)"
       continue
@@ -1420,106 +803,30 @@ reconciliar_banidos_pasta() {
 
 cmd_aplicar() {
   criar_pastas || { meow_erro "não consegui criar as pastas"; return "$MEOW_ERRO"; }
-  # ANTES do `semear_das_dela`, e a ordem não é detalhe: aquele copia imagens
-  # das pastas dela para `ativos/`. Rodar depois faria uma imagem recém-copiada
-  # contar como "nova" no retrato e — pior — uma que ela apagou de `ativos/` mas
-  # que ainda existe na pasta de origem voltaria ANTES de ser reconhecida como
-  # sumida, e o banimento nunca aconteceria.
   reconciliar_sumicos
-  # DEPOIS do `reconciliar_sumicos` e ANTES do `semear_das_dela`: o primeiro é
-  # quem transforma "sumiu de ativos/" em linha de texto; este varre a pasta
-  # inteira e pega o que chegou lá por qualquer outro caminho (o gerenciador de
-  # arquivos dela, um `mv` no terminal, uma versão anterior deste script). E
-  # tem de vir antes de semear, senão a imagem volta para `ativos/` na mesma
-  # rodada em que seria registrada.
   reconciliar_banidos_pasta
   semear_das_dela
 
   local n; n="$(quantas)"
   if [ "$n" -lt 2 ]; then
-    # [P82, 15/10/2026: era aviso com «adicione com: meow wallpaper adicionar»;
-    #   a galeria do painel já tem o «Adicionar», e menos de duas imagens é
-    #   uma rotina pulada, não um defeito.]
     meow_pula "só $n imagem(ns) em $ATIVOS — o carrossel precisa de 2 ou mais"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
   local mudou=0
 
-  # A PODA DO REGISTRO DE LADO VEM AQUI, e o lugar é a proteção: o `return` de
-  # "menos de duas imagens", logo acima, já garantiu que `ativos/` não está vazio
-  # nem inacessível. Uma imagem banida neste mesmo comando (o `cmd_banir` chama
-  # este `aplicar` no fim) já saiu de `ativos/` quando a poda passa, então a linha
-  # dela cai na MESMA passagem em que o banimento acontece — que é o contrato.
-  #
-  # ANTES do `resolver_rotacao`, para que o grupo seja montado a partir do
-  # registro já limpo em vez de um com nome morto dentro.
-  podar_lado || mudou=1     # 1 = podou (ou podaria, em seco): é divergência
+  podar_lado || mudou=1
 
-  # DIA E NOITE VÊM ANTES DA CONFIGURAÇÃO, porque é isto que decide o `source:`.
-  # Não devolve erro nunca: se a separação não der certo, `$ROTACAO` continua
-  # valendo `ativos/` e o carrossel gira como girava antes de 25/08/2026.
   resolver_rotacao
 
   local desejada; desejada="$(config_desejada)"
 
-  # `same-on-all` PASSOU A SER NOSSO EM 08/08/2026 — E É ELA QUE DECIDE TUDO
-  #   O comentário que estava aqui dizia "`all` é o que vale (same-on-all está
-  #   ligado)". Era falso desde 06/08 15:48:02, e o preço apareceu na tela dela:
-  #   com `same-on-all: false`, quem manda é o `output.<saída>`, e o `all` — o
-  #   arquivo que este script escreve e que o `estado` lia — fica INERTE.
-  #
-  #   Medido em 08/08, no estado vivo do cosmic-bg: a TV dela girava as imagens
-  #   da NASA de `/usr/share/backgrounds` de 5 em 5 minutos, em ordem alfabética,
-  #   enquanto o `all` apontava para o acervo dela e o `estado` respondia
-  #   "carrossel ATIVO". Duas escritas soltas no `output.DP-1` em 48 h, e o
-  #   conserto só passava às 5h — uma delas ficou 38 h no ar.
-  #
-  #   ESTE SCRIPT NÃO ESCREVE `same-on-all`, E ISSO FOI MEDIDO, NÃO SUPOSTO.
-  #   A saída óbvia parecia ser gravar `true` e deixar só o `all` mandar. Foi
-  #   tentado em 08/08/2026 e o TESTE REFUTOU: com `same-on-all` valendo `true`
-  #   no disco, um `output.DP-1` apontando para `/usr/share/backgrounds` levou a
-  #   tela de volta para as imagens da NASA em menos de 20 s. O `cosmic-bg`
-  #   continuou obedecendo o arquivo da saída.
-  #
-  #   Duas leituras sobram, e nenhuma está provada: ou a chave é lida uma vez, no
-  #   início da sessão (ele subiu às 00:02 lendo `false`), ou ela não governa
-  #   precedência nenhuma. Separar as duas exige medir depois de um login novo —
-  #   até lá, escrever a chave seria impor um valor da GUI dela apostando num
-  #   efeito que ninguém demonstrou.
-  #
-  #   O que continua valendo é o de sempre: escrever TODO `output.*` que existe,
-  #   porque é neles que o cosmic-bg obedece — provado pelo mesmo teste.
-  #
-  # A LISTA DE SAÍDAS SAI DO DISCO, NÃO DE UMA LISTA CRAVADA — e isto custou a
-  # tela dela ficar PRETA. A versão anterior tratava `DP-1` e `HDMI-A-1` porque
-  # eram as duas saídas conhecidas em 04/08/2026. O problema não é a saída que
-  # desaparece (essa é ignorada de graça): é a que APARECE. Quando o COSMIC cria
-  # um `output.<nome>` novo — monitor novo, TV ligada na outra entrada, nome que
-  # mudou de `DP-1` para `DP-2` depois de um reboot — o arquivo não estava na
-  # lista, ninguém escrevia nele, e aquela tela caía no papel de parede de
-  # fábrica sem nenhum aviso.
-  #
-  # Agora vale o que existe: `all` sempre, mais TODO `output.*` já presente no
-  # diretório, mais toda saída nomeada em `backgrounds` (a lista viva do COSMIC),
-  # mesmo que o arquivo dela ainda não exista. É essa última que cobre o monitor
-  # recém-chegado.
   local -a alvos=(all)
   local f
   for f in "$BG"/output.*; do
     [ -f "$f" ] || continue
     alvos+=("$(basename "$f")")
   done
-  # `backgrounds` é um array RON de nomes de saída, um por linha:
-  #     [
-  #         "DP-1",
-  #     ]
-  # O padrão ancora no COMEÇO da linha de propósito. Sem a âncora, o `grep -o`
-  # trata a aspa de FECHAMENTO como abertura da próxima ocorrência e devolve a
-  # vírgula e o colchete como se fossem nomes de saída — o teste em seco chegou a
-  # anunciar que criaria um arquivo chamado `output.,`.
-  # Um nome só entra se ainda não estiver na lista: senão a mesma saída seria
-  # escrita duas vezes.
   if [ -f "$BG/backgrounds" ]; then
     while IFS= read -r saida; do
       [ -n "$saida" ] || continue
@@ -1528,44 +835,6 @@ cmd_aplicar() {
     done < <(grep -oP '^\s*"\K[^"]+' "$BG/backgrounds" 2>/dev/null)
   fi
 
-  # A FRONTEIRA: QUATRO CASOS, E O QUARTO NASCEU DE UM DEFEITO MEDIDO
-  #   Medido em 07/08 e 08/08/2026: algum processo do COSMIC reescreveu o
-  #   `output.DP-1` apontando para `/usr/share/backgrounds` — a pasta de fábrica
-  #   —, com TODOS os campos no default do construtor (`Zoom`, `Alphanumeric`,
-  #   `rotation_frequency: 300`). Quem mexe num controle da GUI não produz isso:
-  #   carrega os valores anteriores. É reset programático, não escolha.
-  #
-  #   Reverter tudo cegamente seria o defeito que o `aplicar_tema.sh` já
-  #   documenta ter custado caro (§ "os dois slideres de vidro fosco são dela"):
-  #   fotografar uma preferência e passar a impô-la todo dia. Então a regra é a
-  #   mesma daquele arquivo, aplicada por saída:
-  #
-  #     aponta para o nosso acervo        -> confere, nada a fazer
-  #     aponta para a pasta de FÁBRICA    -> é o reset; conserta (código 1)
-  #     aponta para a FONTES_PERMITIDAS   -> é ela; não se toca (código 4)
-  #     aponta para QUALQUER outro lugar  -> é reversão; conserta (código 1)
-  #
-  #   O TERCEIRO CASO ERA "QUALQUER OUTRO LUGAR" ATÉ 11/08/2026, E ISSO CUSTOU O
-  #   CARROSSEL INTEIRO. Nesta máquina o `output.DP-1` voltou a apontar para
-  #   `~/Imagens/Parede_papel/Cyberpunk Neon Cat…jpeg` — a pasta onde o papel de
-  #   parede dela morava ANTES do MeowSystem. Não é `/usr/share/backgrounds`,
-  #   então caía no "é ela" e o script se calava: o `meow-wallpaper.timer` rodou
-  #   a cada 15 minutos devolvendo `status=4`, e o carrossel nunca voltou. A
-  #   frase dela foi "o papel de parede voltou a ser o antigo também. novamente"
-  #   — ou seja, ela não tinha escolhido nada.
-  #
-  #   A fronteira sabia distinguir fábrica de não-fábrica; não sabia distinguir
-  #   "escolha dela de agora" de "onde o wallpaper dela estava antes". E não há
-  #   como ler essa diferença do disco: o COSMIC grava o MESMO arquivo nos dois
-  #   casos, e não existe carimbo de quem escreveu. Então a decisão passou a ser
-  #   DITA uma vez, em vez de adivinhada toda vez — é a
-  #   `WALLPAPER_FONTES_PERMITIDAS`, preenchida por
-  #   `meow wallpaper permitir <caminho>`.
-  #
-  #   O que este script NÃO faz: adivinhar. Quando conserta, ele diz no log qual
-  #   caminho substituiu e imprime o comando exato que o autoriza. Se a reversão
-  #   era escolha dela, ela desfaz com uma linha — e o timer nunca mais mexe
-  #   naquele caminho.
   local FABRICA="/usr/share/backgrounds"
   local alvo escolha_dela=0 fonte_atual
   for alvo in "${alvos[@]}"; do
@@ -1575,27 +844,14 @@ cmd_aplicar() {
     if [ -f "$BG/$alvo" ]; then
       fonte_atual="$(grep -oP 'source: Path\("\K[^"]+' "$BG/$alvo" 2>/dev/null)"
       case "$fonte_atual" in
-        # É nosso (ou ilegível): segue. As duas pastas derivadas entram aqui
-        # desde 25/08/2026 — uma saída apontando para `ativos-dia/` às 23h não é
-        # reversão nem escolha dela, é a nossa própria pasta do grupo errado, e
-        # o conserto é escrever a certa sem aviso nenhum. Ver `fonte_nossa`.
         "$ATIVOS"|"$ATIVOS"/*|"$NOITE_DIR"|"$NOITE_DIR"/*|"$DIA_DIR"|"$DIA_DIR"/*|"$PACK_ATIVOS"|"$PACK_ATIVOS"/*|"") ;;
-        "$FABRICA"|"$FABRICA"/*) ;;                   # reset de fábrica: conserta
+        "$FABRICA"|"$FABRICA"/*) ;;
         *)
           if fonte_autorizada "$fonte_atual"; then
             meow_pula "$alvo aponta para $fonte_atual — está na WALLPAPER_FONTES_PERMITIDAS, não mexo"
             escolha_dela=1
             continue
           fi
-          # Reversão. Dizer QUAL caminho saiu é o que impede este conserto de
-          # ser mágico: sem o caminho no log, um papel de parede que ela tinha
-          # posto de propósito sumiria sem deixar como voltar.
-          # [O «AUTORIZE» VIROU BOTÃO — 10/10/2026, P80 (item 8). Eram duas
-          #   linhas mandando digitar `meow wallpaper permitir "<caminho>"`.
-          #   Agora é a pendência `wallpaper-fonte-revertida`, e a Início a
-          #   desenha com o botão «Manter», que roda o mesmo
-          #   `permitir` com este caminho (o servidor o tira do comando da
-          #   linha). O aviso continua dizendo qual caminho saiu.]
           meow_pendencia_acionavel wallpaper-fonte-revertida \
             "$alvo apontava para $fonte_atual — isso não é o carrossel; devolvendo" \
             "meow wallpaper permitir $fonte_atual"
@@ -1607,25 +863,11 @@ cmd_aplicar() {
     case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao escrever $alvo"; return "$MEOW_ERRO" ;; esac
   done
 
-  # DESLIGAR TEM DE DESLIGAR, E A ORDEM É O CUIDADO: as pastas derivadas só saem
-  # DEPOIS de a configuração acima já ter voltado para `ativos/`. Apagar antes
-  # deixaria o `cosmic-bg` apontando para uma pasta que não existe mais.
-  #
-  # Conta como divergência (ao contrário da limpeza logo abaixo) porque é uma
-  # sobra REAL no disco dela, que não volta sozinha: sem isto, `--conferir`
-  # imprimiria "removeria …" e devolveria 0, e o auto-reparo nunca passaria ali.
   [ "$NOITE" = "sim" ] || { soltar_derivadas && mudou=1; }
   if [ "$PACK_MUDOU" = 1 ]; then mudou=1; forcar_releitura; fi
 
-  # A limpeza do estado NÃO conta como divergência — ver o cabeçalho de
-  # `limpar_estado_morto`. Contá-la faria o `meow doctor` acusar diferença a cada
-  # rodada, para sempre, porque o cosmic-bg reescreve o arquivo a cada troca de
-  # imagem (5 min) a partir da lista que ele carregou na MEMÓRIA no início da
-  # sessão. É o mesmo ping-pong que o projeto já evitou com a Aurora.
   limpar_estado_morto || true
 
-  # O QUE ELA LÊ NO FIM TEM DE DIZER QUANTAS ESTÃO DE FATO GIRANDO. Com a noite
-  # ligada, "54 imagens" seria mentira: giram 32 ou 22, conforme a hora.
   [ "${#COLECAO[@]}" -gt 0 ] && n="${#COLECAO[@]}"
   local resumo="$n imagens"
   if [ -n "$GRUPO" ]; then
@@ -1635,9 +877,6 @@ cmd_aplicar() {
   fi
 
   if [ "$mudou" = "0" ]; then
-    # 4 = divergente POR ESCOLHA DELA. Sai do laço de conserto sem sair do
-    # relatório, e o `meow-doctor.service` não notifica — senão ela receberia
-    # "o auto-reparo consertou" toda madrugada por uma pasta que ela escolheu.
     if [ "$escolha_dela" = "1" ]; then
       meow_info "o carrossel está no lugar; a saída acima é escolha sua"
       return 4
@@ -1658,12 +897,6 @@ cmd_estado() {
   echo "intervalo: $INTERVALO ($(segundos_de "$INTERVALO")s)"
   echo "ordem:     $ORDEM ($(metodo_de "$ORDEM"))"
 
-  # DIA E NOITE, LIDOS DO DISCO. Este comando é DIAGNÓSTICO: não mede imagem,
-  # não cria pasta e não escreve nada — o `bin/meow` o chama em seco para montar
-  # o painel do `meow estado`, e um diagnóstico que gasta 4 s de ImageMagick, ou
-  # que cria pasta para poder responder, é um diagnóstico que muda o que mede.
-  # Por isso a contagem sai dos links que EXISTEM, e não de uma classificação
-  # recalculada aqui.
   case "$NOITE" in
     sim)
       local agora escuras claras
@@ -1672,32 +905,8 @@ cmd_estado() {
       else                         agora="DIA";   alvo="$DIA_DIR"; fi
       echo "noite:     ligada, das $NOITE_INICIO às $NOITE_FIM — agora é $agora"
 
-      # QUANTAS ESTÃO EM CADA LADO POR ESCOLHA, E QUANTAS POR MEDIÇÃO. Sem esta
-      # conta a linha do limiar convida ao erro que a escolha escrita veio
-      # resolver: ela olharia "25 escuras | 21 claras", acharia que o número
-      # 0,37 respondeu por todas, e passaria a mexer no limiar para consertar
-      # uma imagem que já está onde ela mandou. E é uma conta BARATA — ler um
-      # arquivo de texto de duas ou três linhas —, o que importa porque este
-      # comando é diagnóstico e não pode medir imagem (ver o comentário acima).
-      #
-      # A contagem por escolha só vale para quem ainda está em `ativos/`: uma
-      # linha morta seria contada como escolha em vigor até a próxima poda.
-      #
-      # "por medição" é subtração, e não uma classificação refeita aqui, pelo
-      # mesmo motivo de sempre: recalcular custaria os 4 s de ImageMagick que
-      # este comando promete não gastar. O piso em zero cobre o instante em que
-      # as pastas derivadas estão mais velhas que o registro (uma escolha nova,
-      # antes do primeiro `aplicar`) — melhor um zero do que um número negativo.
       ler_lado
       local esc_dia=0 esc_noite=0 nome_l por_medicao
-      # `"${!LADO[@]}"` DIRETO, e não o `${arr[@]+"${arr[@]}"}` que este arquivo
-      # usa com array indexado: com o `!` na frente aquele contorno não é a
-      # expansão das CHAVES, é expansão INDIRETA — o bash tenta usar o valor
-      # como nome de variável e morre com "nome de variável inválido". Medido
-      # aqui em 06/09/2026, e o defeito era mudo: o erro ia para a saída de erro,
-      # que o `bin/meow` descarta ao montar o painel do `meow estado`, e a conta
-      # simplesmente dava zero. A guarda de tamanho faz o mesmo serviço sem
-      # depender de bash 4.4 para expandir array associativo vazio sob `set -u`.
       if [ "${#LADO[@]}" -gt 0 ]; then
         for nome_l in "${!LADO[@]}"; do
           [ -f "$ATIVOS/$nome_l" ] || continue
@@ -1720,12 +929,6 @@ cmd_estado() {
     *)
       echo "noite:     desligada (WALLPAPER_NOITE=\"$NOITE\") — a rotação é o acervo inteiro" ;;
   esac
-  # CONFERE O ARQUIVO QUE MANDA, NÃO O `all` — ignorar isto já fez este comando
-  # MENTIR. Em 08/08/2026 ele respondia "carrossel ATIVO" lendo o `all` enquanto
-  # a tela dela exibia o papel de parede de fábrica: `same-on-all` era `false`,
-  # e quem valia era o `output.DP-1`. O projeto agora é dono da chave e a escreve
-  # como `true`, mas o diagnóstico continua perguntando ao disco quem manda —
-  # senão volta a mentir no dia em que alguma coisa a mudar de novo.
   local mesma; mesma="$(cat "$BG/same-on-all" 2>/dev/null)"
   local -a mandam=()
   if [ "$mesma" = "false" ]; then
@@ -1738,47 +941,14 @@ cmd_estado() {
   for arq in "${mandam[@]}"; do
     [ -f "$arq" ] || continue
     fonte="$(grep -oP 'source: Path\("\K[^"]+' "$arq" 2>/dev/null)"
-    # `$alvo` e não `$ATIVOS`: com a noite ligada, "no lugar certo" é a pasta do
-    # grupo desta hora. Comparar com `ativos/` faria este comando gritar duas
-    # vezes por dia, para sempre, sobre uma configuração que está correta.
     [ "$fonte" = "$alvo" ] && continue
     echo "estado:    $(basename "$arq") aponta para outro lugar ($fonte)"
     fora=1
   done
   [ "$fora" = "0" ] && echo "estado:    carrossel ATIVO"
-  # A imagem exata que está na tela não é observável: o cosmic-bg não fala D-Bus
-  # e não grava o índice em lugar nenhum. Dizer "não sei" é melhor que inventar.
   echo "atual:     (o cosmic-bg não expõe qual imagem está em exibição)"
 }
 
-# --- permitir: a única forma de a escolha dela virar regra -------------------
-# O VALOR VEM DO ARQUIVO, NÃO DO AMBIENTE, E ISSO NÃO É PREFERÊNCIA
-#   O `FONTES_PERMITIDAS` lá de cima chega pelo ambiente, e chega VAZIO quando alguém
-#   roda `./scripts/wallpaper.sh permitir …` na mão, sem passar pela CLI. Se a
-#   gravação usasse aquilo como base, o segundo `permitir` apagaria o primeiro —
-#   uma autorização anterior dela sumindo em silêncio, que é o pior defeito
-#   possível num comando cujo propósito é justamente respeitar a escolha dela.
-#   Aqui a lista de partida é lida do meow.conf, pela MESMA regra do wizard
-#   (`wiz_linha_da_chave`/`wiz_valor_da_linha` em bin/meow): vale a ÚLTIMA
-#   atribuição, que é a que o `.` do shell obedece.
-#
-# E O VALOR VOLTA CRU, COM O `$HOME` QUE ELA TIVER ESCRITO
-#   `WALLPAPER_BASE="$HOME/..."` é o estilo deste arquivo. Gravar a expansão
-#   congelaria o caminho; então o que sai daqui é o texto como está, com o novo
-#   caminho anexado. A expansão só acontece na hora de comparar.
-#
-# O CORPO DISTO VIROU `conf_bruto`, LÁ EM CIMA, em 25/08/2026 — as chaves da
-# noite precisavam da mesma leitura, e chave de configuração com duas rotinas de
-# leitura é a receita de as duas discordarem no dia em que uma for corrigida (é
-# a mesma frase que o `lib/comum.sh` escreveu ao trazer a `meow_conf_definir`
-# para cá, pelo mesmo motivo). O que estava documentado acima continua valendo
-# palavra por palavra; só o endereço mudou.
-#
-# O NOME ANTIGO SÓ VALE SEM O NOVO NO ARQUIVO — 24/09/2026, P52. É a regra do
-# `FONTES_PERMITIDAS` lá de cima, lida do arquivo em vez do ambiente: sem ela, o
-# primeiro `permitir` de quem ainda tem a linha velha partiria de uma lista
-# vazia e apagaria as autorizações de antes — o defeito que este bloco inteiro
-# existe para não ter.
 fontes_no_conf() {
   if grep -qE -- "^[[:space:]]*(export[[:space:]]+)?WALLPAPER_FONTES_PERMITIDAS=" \
        "$MEOW_CONF_ARQUIVO" 2>/dev/null; then
@@ -1788,12 +958,6 @@ fontes_no_conf() {
   fi
 }
 
-# O «DEIXAR ASSIM» DO PAPEL DE PAREDE DEVOLVIDO — 15/10/2026, P82 (item 3;
-#   decisão 13). A pendência `wallpaper-fonte-revertida` só saía pelo
-#   `permitir`, que AUTORIZA a imagem. Quando a devolução estava certa, o cartão
-#   ficava na Início até alguém autorizar a imagem errada para tirá-lo. Este
-#   verbo é a outra resposta: a devolução fica, o cartão sai, e o meow.conf não
-#   é tocado.
 cmd_dispensar() {
   if meow_seco; then
     meow_muda "tiraria da Início o aviso do papel de parede devolvido (o meow.conf fica como está)"
@@ -1811,27 +975,13 @@ cmd_permitir() {
     meow_info "o caminho é o que aparece no aviso \"apontava para …\""
     return "$MEOW_ERRO"; }
 
-  # ABSOLUTO E NORMALIZADO: é com o `source: Path(...)` do COSMIC que este valor
-  # vai ser comparado, e lá o caminho é SEMPRE absoluto. Gravar `../Imagens`
-  # produziria uma entrada que nunca casa com nada — uma autorização que não
-  # autoriza, sem nada acusando.
-  # `-m` e não `-e`: a pasta pode não existir hoje (um disco desmontado, uma
-  # pasta que ela ainda vai criar), e recusar por isso seria recusar a intenção.
   caminho="$(readlink -m -- "$caminho")"
 
-  # O meow.conf é SOURCEADO pelo shell. Um `$` ou uma crase no valor deixariam
-  # de ser texto e virariam código no próximo `carregar_conf`; um `#` viraria
-  # comentário e comeria o resto da linha; uma aspa dupla fecharia a string. O
-  # wizard recusa `#` e `"` pelo mesmo motivo — aqui a lista é maior porque este
-  # valor é um caminho, e caminho aceita caractere que resposta de wizard não.
   if [ "${caminho//[\"\$\`\\#]/}" != "$caminho" ]; then
     meow_erro "não gravo caminho com \" \$ \` \\ ou # — o meow.conf é lido pelo shell"
     return "$MEOW_ERRO"
   fi
 
-  # A CONFERÊNCIA VEM ANTES DO AVISO DE "não existe": um caminho já coberto por
-  # uma pasta autorizada não precisa existir para nada, e avisar sobre ele seria
-  # alarme falso num comando que não vai escrever coisa nenhuma.
   local bruto expandido
   bruto="$(fontes_no_conf)"
   expandido="${bruto//\$\{HOME\}/$HOME}"; expandido="${expandido//\$HOME/$HOME}"
@@ -1857,7 +1007,6 @@ cmd_permitir() {
        meow_ok "autorizado: $caminho"
        meow_info "o carrossel não mexe mais em saída que aponte para lá"
        meow_registrar "wallpaper permitir: $caminho"
-       # A pendência do «Manter» acabou: a imagem é dela.
        meow_pendencia_resolvida wallpaper-fonte-revertida
        return "$MEOW_DIVERGENTE" ;;
     *) meow_erro "não consegui gravar $MEOW_CONF_ARQUIVO"
@@ -1865,36 +1014,21 @@ cmd_permitir() {
   esac
 }
 
-# Mover, nunca apagar: uma imagem banida pode ser recuperada de banidos/.
 cmd_banir() {
   local img="$1"
   [ -f "$img" ] || { meow_erro "não achei $img"; return "$MEOW_ERRO"; }
   local nome; nome="$(basename "$img")"
-  # O SECO NÃO BANE — E ATÉ 24/08/2026 BANIA
-  #   O `mv` abaixo nunca consultou `meow_seco`: `MEOW_DRY_RUN=1 meow wallpaper
-  #   banir <img>`, que a pessoa roda esperando uma PRÉVIA, tirava a imagem de
-  #   `ativos/` de verdade. A auditoria daquele dia mediu o defeito (antigo, não
-  #   regressão) ao conferir a linha nova que grava a lista logo abaixo — que
-  #   repetia o mesmo descuido. A guarda vale para os dois.
   if meow_seco; then
     meow_muda "baniria $nome (iria para banidos/ e entraria em $(basename "$BANIDOS_TXT"))"
     return "$MEOW_DIVERGENTE"
   fi
   criar_pastas
-  # `mv -n` recusa sobrescrever — e uma imagem JÁ banida antes deixaria o arquivo
-  # parado em ativos/, com o script dizendo "banida". Se a cópia em banidos/ já
-  # existe e é idêntica, o banimento anterior valeu: basta tirar daqui.
   meow_guardar_antes "$img"; meow_guardar_antes "$BASE/banidos/$nome"
   if [ -e "$BASE/banidos/$nome" ] && cmp -s "$img" "$BASE/banidos/$nome"; then
     rm -f "$img"
   else
     mv -f "$img" "$BASE/banidos/" || return "$MEOW_ERRO"
   fi
-  # A LISTA, NÃO SÓ A PASTA: sem ela o banimento morre com esta máquina.
-  # E A LISTA PRECISA NASCER SOZINHA: a primeira escrita disto exigia que o
-  # arquivo JÁ existisse (`[ -f ] && grep ...`), então numa árvore recém-clonada
-  # — exatamente o caso que esta lista existe para resolver — o `banir` pulava
-  # calado e o `meow_ok` mentia dizendo que tinha registrado.
   local pasta_lista; pasta_lista="$(dirname "$BANIDOS_TXT")"
   if [ -d "$pasta_lista" ]; then
     [ -f "$BANIDOS_TXT" ] || printf '%s\n' \
@@ -1906,28 +1040,11 @@ cmd_banir() {
     meow_aviso "não achei $pasta_lista — o banimento de $nome vale só nesta máquina"
   fi
   meow_ok "banida: $nome — está em banidos/, não foi apagada"
-  # O `aplicar` primeiro: com a noite ligada é ele quem tira o link duro da
-  # pasta derivada, e o comentário que estava nesta linha ("força a releitura da
-  # lista") descrevia uma coisa que ele NÃO faz — a configuração não contém a
-  # lista, então escrever o mesmo texto é no-op e o cosmic-bg continuava com a
-  # imagem banida na lista fotografada, tentando abrir um arquivo que saiu da
-  # pasta. Quem força de verdade é o `forcar_releitura`, logo abaixo.
   cmd_aplicar >/dev/null
   forcar_releitura
   return "$MEOW_DIVERGENTE"
 }
 
-# O SECO AQUI VAZAVA, E FOI O TESTE DO CONSERTO IRMÃO QUE PEGOU (25/08/2026)
-#   `MEOW_DRY_RUN=1 wallpaper.sh adicionar foto.png` COPIAVA a foto. O `cp` não
-#   passava por `meow_escrever` (que respeita o seco por dentro) nem consultava
-#   `meow_seco`, então o único comando deste script que traz arquivo de fora era
-#   também o único em que "mostrar o que faria" fazia.
-#
-#   O estrago não é grande — copiar imagem para `ativos/` é reversível com um
-#   `banir` —, mas o contrato é: `--dry-run` não escreve. Um seco que escreve é
-#   pior que não ter seco, porque a pessoa confia nele para auditar antes.
-#
-#   Não é regressão: está assim desde `527b36d`.
 _adicionar_uma() {
   local img="$1"
   if meow_seco; then
@@ -1935,45 +1052,16 @@ _adicionar_uma() {
     meow_muda "copiaria $(basename "$img") para ativos/"
     return 0
   fi
-  # A EXISTÊNCIA SE TESTA ANTES, PORQUE O `cp -n` NÃO CONTA A HISTÓRIA
-  #   `cp -n` devolve **0** quando o destino já existe: ele não é erro, ele
-  #   simplesmente não copia. Confiar no status dele fazia o `n` contar uma
-  #   imagem que não entrou — e o `adicionar` de uma foto repetida ia até o
-  #   `forcar_releitura` e REINICIAVA a rotação dela sem ter acrescentado nada.
-  #   Foi o teste do terceiro cenário que pegou; o primeiro conserto tinha
-  #   trocado um defeito calado por outro.
   [ -e "$ATIVOS/$(basename "$img")" ] && return 1
   meow_guardar_antes "$ATIVOS/$(basename "$img")"
   cp -n "$img" "$ATIVOS/" 2>/dev/null || return 1
   return 0
 }
 
-# O INVERSO DO `banir`, QUE NÃO EXISTIA — 01/09/2026
-#
-# POR QUE ELE FALTAVA, E POR QUE ISSO PESAVA
-#   `cmd_banir` faz DUAS coisas: move a imagem para `banidos/` E grava o nome no
-#   `BANIDOS.txt`, que é o que impede o `semear` de repô-la. Desfazer isso à mão
-#   exigia saber das duas — e `adicionar banidos/<img>` sozinho não desfaz: a
-#   imagem volta para `ativos/` e o nome CONTINUA na lista de recusadas. O
-#   resultado é um estado que se contradiz: a foto girando no carrossel e o
-#   arquivo do repositório dizendo que ela foi recusada. No próximo `semear`
-#   numa máquina limpa, a recusa venceria de novo, sem ninguém entender por quê.
-#
-#   Ficou de fora até hoje porque banir era o gesto natural (apagar de `ativos/`,
-#   que o vigia percebe em ~4 s) e desbanir não tinha gesto nenhum: era mexer
-#   num arquivo de texto. Com a galeria de miniaturas da página, desbanir passou
-#   a ser um clique — e um clique precisa de um comando que faça a coisa
-#   INTEIRA, não metade dela.
-#
-# SÃO 255 IMAGENS EM `banidos/` NESTA MÁQUINA, e nenhuma foi apagada: o banir
-# move, nunca remove. É por isso que desbanir é possível de verdade e não uma
-# promessa — o arquivo está lá.
 cmd_desbanir() {
   local nome; nome="$(basename "${1:-}")"
   [ -n "$nome" ] || { meow_erro "uso: wallpaper.sh desbanir <nome-do-arquivo>"; return "$MEOW_ERRO"; }
   local origem="$BASE/banidos/$nome"
-  # A foto da curadoria de fábrica (`BANIDOS.txt.padrao`) está na lista sem
-  # nunca ter passado por `banidos/`: com ela em `ativos/`, basta tirar a linha.
   if [ ! -f "$origem" ] && [ ! -e "$ATIVOS/$nome" ]; then
     meow_erro "não achei $nome em banidos/"
     meow_info "  o nome é o do ARQUIVO, sem caminho — veja: ls \"$BASE/banidos\""
@@ -1997,18 +1085,10 @@ cmd_desbanir() {
   fi
 
   criar_pastas
-  # `cp` e não `mv`: a cópia em `banidos/` fica como estava. Banir de novo é um
-  # comando, e é bom que ele não dependa de o arquivo ter sobrevivido a esta ida
-  # e volta — a pasta `banidos/` é o arquivo morto, e arquivo morto não se
-  # esvazia por causa de uma mudança de ideia.
   if [ "$em_ativos" = "0" ]; then
     cp -n "$origem" "$ATIVOS/" 2>/dev/null || { meow_erro "não consegui copiar $nome"; return "$MEOW_ERRO"; }
   fi
 
-  # A SEGUNDA METADE, que é a que faltava em qualquer contorno manual.
-  # `grep -vxF` compara a LINHA INTEIRA e literalmente: nome de arquivo é texto
-  # cheio de `.`, `+` e `[`, e num grep de expressão regular `cat-lofi.jpg`
-  # casaria com `catXlofiXjpg`. É o mesmo cuidado do `meow_manifesto_registrar`.
   if [ "$na_lista" = "1" ]; then
     local tmp; tmp="$(mktemp -p "$(dirname "$BANIDOS_TXT")" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
     grep -vxF -- "$nome" "$BANIDOS_TXT" > "$tmp" 2>/dev/null
@@ -2017,46 +1097,11 @@ cmd_desbanir() {
   fi
 
   meow_ok "devolvida: $nome — está em ativos/ e saiu da lista de recusadas"
-  # A MESMA ORDEM DO `banir` e do `adicionar`, e pelo mesmo motivo medido: o
-  # `aplicar` põe a imagem na pasta derivada do grupo certo (a noite está
-  # ligada), e só depois o `forcar_releitura` faz o cosmic-bg reler — sozinho o
-  # `aplicar` escreve conteúdo idêntico e é ignorado.
   cmd_aplicar >/dev/null
   forcar_releitura
   return "$MEOW_DIVERGENTE"
 }
 
-# --- lado: a porta para discordar da medição --------------------------------
-# O porquê inteiro está em "O REGISTRO DE LADO", lá em cima, junto do `ler_lado`.
-# Aqui fica o comando, e as três decisões que ele carrega.
-#
-# 1. A REFERÊNCIA É RESOLVIDA COMO A DO `banir`, E PELO MESMO CUIDADO MEDIDO
-#    O `cmd_banir` recebe um CAMINHO de arquivo (`[ -f "$img" ]`), e o
-#    `app/servidor.py` documenta por que ele manda o caminho canônico, o de
-#    `ativos/`: `ativos-dia/` e `ativos-noite/` são LINK DURO do mesmo inode, e
-#    banir pelo link move só o link e deixa a imagem girando — um banimento pela
-#    metade, e mudo. Aqui o registro é por NOME (como o `BANIDOS.txt`), então o
-#    link não estraga a chave; mas a CONFERÊNCIA de existência tem de ser feita
-#    em `ativos/` de qualquer jeito, senão daria para escrever uma escolha sobre
-#    um link que sobrou de uma passagem antiga, ou sobre uma imagem que já foi
-#    banida. Por isso o caminho serve para achar o nome, e o nome é conferido
-#    contra o acervo — e só contra ele.
-#
-# 2. `auto` APAGA A LINHA, NUNCA ESCREVE A PALAVRA. Ausente é o padrão.
-#
-# 3. O `aplicar` VEM NO FIM, COMO NO `banir` E NO `desbanir`
-#    Sem ele o comando escreveria a escolha e não moveria imagem nenhuma: quem
-#    monta `ativos-dia/` e `ativos-noite/` é o `resolver_rotacao`, dentro do
-#    `aplicar`. Ela clicaria em "Noite" e não veria nada acontecer até o tique
-#    seguinte do relógio de 15 minutos — o defeito exato que este arquivo já
-#    documenta ter cometido com a fixação em 01/09/2026 ("o recurso parece
-#    quebrado justamente no momento em que ela está usando o outro recurso").
-#    E o `forcar_releitura` depois, pelo motivo da armadilha 3 do cabeçalho: a
-#    imagem SAIU da pasta que o cosmic-bg fotografou, e sem a releitura ele
-#    continuaria tentando abrir um arquivo que não está mais lá.
-#
-#    Só quando algo mudou de verdade. Uma reafirmação (`0`) não paga o preço da
-#    armadilha 2 — releitura não avança, REINICIA a rotação.
 cmd_lado() {
   local ref="${1:-}" escolha="${2:-}"
   if [ -z "$ref" ] || [ -z "$escolha" ]; then
@@ -2072,12 +1117,6 @@ cmd_lado() {
        return "$MEOW_ERRO" ;;
   esac
 
-  # A PENEIRA, ANTES DE O NOME DE FORA VIRAR CAMINHO OU LINHA DE ARQUIVO.
-  # O `basename` derruba o `../..` de qualquer profundidade; o `.`/`..` que
-  # sobra do `basename` de um diretório é recusado à mão; e tab ou quebra de
-  # linha no nome corromperiam o TSV na gravação, com o defeito aparecendo só na
-  # leitura seguinte, em OUTRO arquivo — é o mesmo cuidado que o `medir_acervo`
-  # já toma com o cache de luminância, e a mesma recusa.
   local nome TAB=$'\t' NL=$'\n'
   nome="$(basename -- "$ref")"
   case "$nome" in
@@ -2130,13 +1169,6 @@ cmd_lado() {
     meow_ok "$nome fica no grupo de $escolha — escolha sua, a medição não decide mais por ela"
   fi
 
-  # A ESCOLHA É GRAVADA, MAS COM A NOITE DESLIGADA ELA NÃO FAZ NADA — E ISSO
-  # PRECISA SER DITO. Com `WALLPAPER_NOITE="nao"` as duas pastas derivadas somem
-  # do disco e a rotação é o acervo inteiro: não existe "grupo de dia" para a
-  # imagem ir. Guardar a escolha em silêncio faria o comando parecer obedecer e
-  # não obedecer — o defeito que este arquivo mais documenta ter cometido (a
-  # `LOG_NIVEL` inerte, as `WALLPAPER_SEMENTES`). O registro continua sendo
-  # escrito de propósito: a escolha vale no dia em que ela religar a noite.
   [ "$NOITE" = "sim" ] || \
     meow_aviso "a noite está desligada (WALLPAPER_NOITE=\"$NOITE\") — a escolha fica guardada e só separa alguma coisa quando você religar"
 
@@ -2160,77 +1192,16 @@ cmd_adicionar() {
     meow_erro "não achei $alvo"; return "$MEOW_ERRO"
   fi
   if [ "$n" = "0" ]; then
-    # `cp -n` não sobrescreve, então zero quer dizer "já estavam todas lá". Sem
-    # esta saída antecipada o comando reiniciaria a rotação dela para não ter
-    # acrescentado nada — barulho puro.
     meow_pula "nenhuma imagem nova (as que você passou já estavam em ativos/)"
     return "$MEOW_OK"
   fi
   meow_ok "$n imagem(ns) adicionada(s)"
-  # `cmd_aplicar` primeiro, porque com a noite ligada é ele quem põe a imagem
-  # nova na pasta derivada do grupo certo — sem isso ela entraria em `ativos/` e
-  # ficaria de fora da rotação que está no ar.
   cmd_aplicar >/dev/null
-  # E o `forcar_releitura` DEPOIS, porque o `aplicar` sozinho não basta: a
-  # configuração não contém a lista de imagens, então ele escreve conteúdo
-  # idêntico e o cosmic-bg ignora. Ver a armadilha 1 no cabeçalho — esta era a
-  # contradição que o próprio cabeçalho carregava desde que foi escrito.
   forcar_releitura
   return "$MEOW_DIVERGENTE"
 }
 
-# --- semear: a coleção da comunidade, conforme o flavor ---------------------
-# POR QUE NÃO CLONAR O REPOSITÓRIO
-#   `zhichaoh/catppuccin-wallpapers` tem 371 MB e 242 imagens; o
-#   `orangci/walls-catppuccin-mocha` tem 795 MB. Baixar tudo para usar uma dúzia
-#   é desperdício de banda e de disco. Aqui se lê a árvore do commit PINADO pela
-#   API e se baixam só os arquivos escolhidos, por URL crua.
-#
-# COMMIT PINADO, NUNCA `main`
-#   Um upstream que muda sozinho transforma "rodei o instalador" em "rodei num
-#   dia em que o repositório estava de um jeito".
-#
-# AS IMAGENS NÃO ENTRAM NO GIT
-#   O repositório guarda esta receita. As fotos ficam só na máquina.
-# A SEMENTE ACOMPANHA O FLAVOR — 15/09/2026
-#   Até aqui a semente era uma só, do Catppuccin, e o acervo não tinha como
-#   acompanhar a variante escolhida: pedir `FLAVOR="dracula"` pintava a interface
-#   inteira de Dracula e deixava o papel de parede em Catppuccin.
-#
-#   O default agora sai do FLAVOR. Quem não mexe em nada continua com a semente
-#   de sempre, porque todo flavor que não tem receita própria cai no `*`.
-#
-#   O commit segue PINADO por semente, pelo motivo do bloco acima: um upstream
-#   que muda sozinho transforma "rodei o instalador" em "rodei num dia em que o
-#   repositório estava de um jeito".
-#
-#   `WALLPAPER_SEMENTE_REPO` continua vencendo por cima, para teste e para quem
-#   quiser um acervo que não é de nenhum dos dois. Passar só o repo sem o commit
-#   é erro honesto: sem pino não há receita, e o script para e diz isso.
-#
-# QUEM ESCOLHE É O PACK DONO DO FLAVOR, E NÃO O NOME DELE — 24/09/2026, P40
-#   Era `case "${FLAVOR:-mocha}" in dracula)`: o nome do flavor decidia, e a
-#   lista tinha um nome só. O `alucard`, o claro do próprio Dracula que a P31
-#   pôs na «Variante do tema», caía no `*` e semeava o acervo do Catppuccin —
-#   medido em seco, `FLAVOR=alucard` pedia a árvore de
-#   `zhichaoh/catppuccin-wallpapers`. Pôr `alucard` ao lado do `dracula` seria a
-#   lista ganhar mais um nome, até o próximo flavor que alguém esquecer.
-#
-#   A pergunta agora é DE QUEM é o flavor, e quem responde é o disco: o
-#   `meow_pack_dir` (lib/comum.sh) pergunta ao `adocao` do scripts/pack.py, que
-#   acha o pack cuja paleta declara o flavor — a mesma regra que escolhe a
-#   paleta e os ícones, então o papel de parede e a tela não têm como discordar.
-#   Vazio é o padrão, e o padrão cai no `*`, como o `mocha` caía. O preço é o
-#   fork de python que o `meow_pack_dir` já cobra (~45 ms, medido na P35), uma
-#   vez por execução deste script.
-#
-#   O `dracula)` que sobra é o id do PACK, e continua escrito porque as chaves
-#   do conf que ele lê levam o nome do pack (`WALLPAPER_DRACULA_*`).
 _semente_do_flavor() {
-  # A ORIGEM É DO PACK: `origens.wallpapers` no pack.json do pack no ar (ou da
-  # herança) diz de onde a coleção desce — a pasta `desenhos` do próprio pack ou
-  # um `repo` com `commit` pinado — e a `curadoria` dele. O repositório no conf
-  # (`<repo_do_conf>`, `<commit_do_conf>`) continua vencendo: é escolha de quem o pôs lá.
   local linhas chave valor repo="" commit="" desenhos="" prefixo="" ignorar="" curadoria="" fotos=""
   local repo_conf="" commit_conf=""
   _PACK_NO_AR="$(meow_pack_dir)"
@@ -2240,7 +1211,6 @@ _semente_do_flavor() {
       repo) repo="$valor" ;; commit) commit="$valor" ;; desenhos) desenhos="$valor" ;;
       prefixo) prefixo="$valor" ;; ignorar) ignorar="$valor" ;; curadoria) curadoria="$valor" ;;
       fotos) fotos="$valor" ;;
-      # Expansão indireta só com nome de chave da lista: `a[$(cmd)]` rodaria comando.
       repo_do_conf)   [[ "$valor" =~ ^WALLPAPER_[A-Z0-9_]*_REPO$ ]] && repo_conf="${!valor:-}" ;;
       commit_do_conf) [[ "$valor" =~ ^WALLPAPER_[A-Z0-9_]*_COMMIT$ ]] && commit_conf="${!valor:-}" ;;
     esac
@@ -2248,7 +1218,6 @@ _semente_do_flavor() {
   SEMENTE_PREFIXO_PADRAO="${prefixo:-cat}"
   SEMENTE_IGNORAR_PADRAO=""
   SEMENTE_CURADORIA_PADRAO="$curadoria"
-  # O cinto do pack.py: as fotos só valem na pasta `wallpapers` de um pack, sem link no caminho.
   if [ -n "$fotos" ]; then
     local real pai
     real="$(realpath -e -- "$fotos" 2>/dev/null)" || real=""
@@ -2285,42 +1254,12 @@ _semente_do_flavor
 
 SEMENTE_REPO="${WALLPAPER_SEMENTE_REPO:-$SEMENTE_REPO_PADRAO}"
 SEMENTE_COMMIT="${WALLPAPER_SEMENTE_COMMIT:-$SEMENTE_COMMIT_PADRAO}"
-# Pastas do repositório que NÃO são papel de parede, separadas por espaço.
 SEMENTE_IGNORAR="${WALLPAPER_SEMENTE_IGNORAR:-$SEMENTE_IGNORAR_PADRAO}"
-# As fotos prontas do pack (`fotos=`, P102) vencem a origem; a semente apontada
-# à mão (`WALLPAPER_SEMENTE_REPO`) vence as fotos.
 SEMENTE_FOTOS="$SEMENTE_FOTOS_PADRAO"
 [ -n "${WALLPAPER_SEMENTE_REPO:-}" ] && SEMENTE_FOTOS=""
-# O prefixo do nome do arquivo no acervo. Era `cat-` cravado no `cmd_semear`, o
-# que deixava toda imagem do Dracula chamada `cat-...` — e o nome do arquivo é a
-# única pista de origem que sobra depois que a imagem está na pasta.
 SEMENTE_PREFIXO="${WALLPAPER_SEMENTE_PREFIXO:-$SEMENTE_PREFIXO_PADRAO}"
-# 0 = TODAS as imagens do repositorio. Um numero baixa so uma amostra, uma de
-# cada categoria por rodizio (util para testar sem gastar banda).
 SEMENTE_QUANTAS="${WALLPAPER_SEMENTE_QUANTAS:-0}"
 
-# --- o "não quero" dela também precisa ser receita ---------------------------
-# `banidos/` guarda os ARQUIVOS recusados, e isso resolve esta máquina. Não
-# resolve a PRÓXIMA: numa instalação nova, `banidos/` nasce vazio, e o `semear`
-# baixaria de volta as 231 imagens que ela tirou em 24/08/2026, uma por uma.
-#
-# `BANIDOS.txt` é a lista de nomes recusados — texto, pequeno. É o par do
-# `FONTES.tsv` abaixo: um diz o que ela quer, o outro diz o que ela não quer, e
-# juntos os dois reproduzem a escolha dela em qualquer máquina.
-#
-# O QUE VAI PARA O GIT É O `.padrao`, E NÃO ESTE ARQUIVO — 21/09/2026
-#   Ele era versionado em `packs/meowsystem/wallpapers/BANIDOS.txt`, e este script
-#   acrescentava linha nele a cada "Tirar". Medido no clone dele naquele dia:
-#   `+47` linhas de diff pendente às 17h09, ninguém tendo programado nada — e,
-#   entre os dois usuários reais, conflito de merge a cada `git pull` num
-#   arquivo que nenhum dos dois editou de propósito.
-#
-#   A lista de FÁBRICA continua no git, como `BANIDOS.txt.padrao`, e é ela que
-#   impede o `semear` de baixar de volta as 231 imagens que ela tirou em
-#   24/08/2026 numa instalação nova. O que ESTE script escreve é a cópia em
-#   `$MEOW_ESTADO`, semeada daquela uma única vez — e semeada do arquivo velho,
-#   se ele ainda estiver no clone, para não apagar a curadoria de quem já usava.
-#   O contrato está em `meow_estado_com_padrao` (`lib/comum.sh`).
 BANIDOS_TXT="${WALLPAPER_BANIDOS:-$(meow_estado_com_padrao papeis-de-parede BANIDOS.txt)}"
 
 esta_banida() {
@@ -2330,39 +1269,12 @@ esta_banida() {
   return 1
 }
 
-# --- a curadoria dela: escolhida a mão, reproduzível pela receita -------------
-# A coleção Catppuccin acima é acervo de TERCEIRO, e o que o reproduz é o commit
-# pinado. Este bloco é o acervo DELA: o que sobreviveu à curadoria de 24/08/2026
-# e o que buscamos na internet naquele dia, imagem por imagem.
-#
-# Mesma regra do resto do repositório: a imagem não vai para o git, a RECEITA
-# vai. `packs/meowsystem/wallpapers/FONTES.tsv` é a receita — uma linha por imagem, com a URL de
-# onde ela veio. Sem este arquivo, uma máquina reformatada voltaria só com o que
-# sobrou da coleção de terceiro e NENHUMA das escolhas dela; sem o `BANIDOS.txt`
-# do bloco acima, voltaria com as 242 do upstream inteiras. Os dois juntos são a
-# curadoria — um diz o que ela quer, o outro o que ela não quer.
 FONTES_TSV="${WALLPAPER_FONTES:-$SEMENTE_CURADORIA_PADRAO}"
 CURADORIA_N=0
 
 semear_da_curadoria() {
   CURADORIA_N=0
   [ -f "$FONTES_TSV" ] || return 0
-  # POR QUE O AWK FILTRA ANTES, EM VEZ DE CONFIAR NO `read`
-  #   Duas armadilhas medidas em 24/08/2026, na auditoria desta própria função:
-  #   1. `read` devolve status != 0 na ÚLTIMA linha quando o arquivo não termina
-  #      em newline — as variáveis são preenchidas, mas o laço encerra ANTES de
-  #      rodar o corpo. A última imagem da receita sumia sem um aviso. (O laço
-  #      irmão, logo acima, usa here-string e por isso nunca teve o problema.)
-  #   2. `IFS=$'\t'` NÃO isola campo vazio: tab é "IFS whitespace" no bash, e
-  #      dois tabs seguidos colapsam num só. Uma linha com a URL em branco
-  #      entregava a RESOLUÇÃO dentro de `$url`, e o script tentava baixar
-  #      "1920x1080" — falhando com "não baixaram, rode de novo", que manda
-  #      consertar rede quando o defeito está no dado.
-  #   O awk conta campo de verdade (NF), exige que a URL PAREÇA uma URL, e o
-  #   here-string abaixo garante o newline final.
-  # A curadoria pode vir de um pack de terceiro: o nome é só de arquivo, com
-  # caracteres estritos, e a URL só https. O awk imprime só os dois campos que
-  # validou, separados por \x1f, que o `read` não colapsa como colapsa o tab.
   local validas descartadas
   validas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && NF >= 3 && $3 ~ /^https:\/\// && $1 ~ /^[A-Za-z0-9][A-Za-z0-9._+-]*$/ && $1 !~ /\.\./ {print $1 "\037" $3}' "$FONTES_TSV")"
   descartadas="$(awk -F'\t' '$1 !~ /^#/ && $1 != "arquivo" && $1 != "" && !(NF >= 3 && $3 ~ /^https:\/\// && $1 ~ /^[A-Za-z0-9][A-Za-z0-9._+-]*$/ && $1 !~ /\.\./) {n++} END {print n+0}' "$FONTES_TSV")"
@@ -2377,7 +1289,7 @@ semear_da_curadoria() {
     local destino="$ATIVOS/$nome"
     [ "$(realpath -m -- "$destino")" = "$(realpath -m -- "$ATIVOS")/$nome" ] || continue
     [ -e "$destino" ] && continue
-    esta_banida "$nome" && continue   # o que ela tirou, fica tirado
+    esta_banida "$nome" && continue
     if meow_seco; then
       meow_muda "baixaria $nome (curadoria)"; CURADORIA_N=$((CURADORIA_N + 1)); continue
     fi
@@ -2392,15 +1304,6 @@ semear_da_curadoria() {
   return 0
 }
 
-# Copia as imagens de uma pasta para `ativos/`, com as mesmas regras do ramo que
-# baixa: pula o que já está lá, respeita `banidos/` e obedece ao modo seco.
-#
-# O FORMATO É CONFERIDO AQUI, E ISSO NÃO É ZELO
-#   O `cosmic-bg` lê avif, gif, jpeg, png, tiff e webp — conferido no binário.
-#   SVG não está na lista. Copiar um `.svg` para `ativos/` não dá erro nenhum: a
-#   imagem simplesmente não aparece, e o carrossel pula um lugar vazio sem dizer
-#   por quê. Como a pasta mais provável é a de um gerador que exporta SVG por
-#   padrão, o aviso sai por extensão ignorada, uma vez, com o número.
 _semear_de_pasta() {
   local origem="${1/#\~/$HOME}"
   if [ ! -d "$origem" ]; then
@@ -2412,30 +1315,22 @@ _semear_de_pasta() {
   while IFS= read -r arq; do
     [ -n "$arq" ] || continue
     rel="${arq#"$origem"/}"
-    # O SVG ENTRA RASTERIZADO EM 4K — 09/10/2026, P74 item 9 (T7). O
-    # `cosmic-bg` não lê vetor; o `rsvg-convert` (pré-requisito do instalador,
-    # o `librsvg2-bin`) o desenha em 3840x2160, e o arquivo no acervo é o PNG,
-    # com o nome do SVG. Sem ele, o SVG continua sendo o ignorado de antes.
     vetor=0
     case "${rel##*.}" in
       png|PNG|jpg|JPG|jpeg|JPEG|webp|WEBP|avif|AVIF|gif|GIF|tif|tiff|TIF|TIFF) ;;
       svg|SVG) if meow_tem rsvg-convert; then vetor=1; else svg_sem=$((svg_sem + 1)); continue; fi ;;
-      # O LICENSE de um acervo (o do pack, ao lado dos SVG) não é imagem.
       LICENSE|md|txt) continue ;;
       *) ignorados=$((ignorados + 1)); continue ;;
     esac
     nome="${SEMENTE_PREFIXO}-${rel//\//-}"
     [ "$vetor" = 1 ] && nome="${nome%.*}.png"
     destino="$ATIVOS/$nome"
-    # O desenho do pack mudou depois da cópia: refaz (decisão 15, o derivado segue a fonte).
     [ -e "$destino" ] && [ ! "$arq" -nt "$destino" ] && continue
     esta_banida "$nome" && continue
     if meow_seco; then
       if [ "$vetor" = 1 ]; then meow_muda "rasterizaria $nome em 4K"; else meow_muda "copiaria $nome"; fi
       n=$((n + 1)); continue
     fi
-    # Temporário no MESMO diretório e rename depois, pelo motivo do ramo que
-    # baixa: uma imagem pela metade entra na rotação e aparece cortada.
     local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
     if [ "$vetor" = 1 ]; then
       if rsvg-convert -w 3840 -h 2160 -f png -o "$tmp" -- "$arq" 2>/dev/null && [ -s "$tmp" ]; then
@@ -2457,8 +1352,6 @@ _semear_de_pasta() {
   if [ "$ignorados" -gt 0 ]; then
     meow_info "$ignorados arquivo(s) de formato que o cosmic-bg não lê foram ignorados"
   fi
-  # Sem o rasterizador o SVG não vira PNG, e isso é falta de pacote, que o
-  # instalador põe (o `librsvg2-bin`, na etapa de pacotes).
   if [ "$svg_sem" -gt 0 ]; then
     meow_aviso "$svg_sem SVG ficaram de fora: sem o rsvg-convert não há como rasterizá-los"
   fi
@@ -2485,10 +1378,6 @@ _semear_de_pasta() {
   return "$MEOW_OK"
 }
 
-# O acervo sem nenhuma imagem do pack no ar (casa nova, ou troca de pack) se
-# semeia da origem dele (precisa de rede). Uma tentativa por origem (a marca
-# guarda qual); com menos de duas imagens tenta sempre. Quem chama é o install
-# e o conserto do doctor, não o relógio do carrossel.
 cmd_semear_se_faltar() {
   local n marca="$MEOW_ESTADO/wallpaper-semeado" rc origem="${SEMENTE_FOTOS:-$SEMENTE_REPO}"
   [ -n "$origem" ] || return "$MEOW_OK"
@@ -2508,12 +1397,6 @@ cmd_semear_se_faltar() {
   return "$rc"
 }
 
-# AS FOTOS PRONTAS DO PACK — 24/10/2026, P102
-#   O pack que traz as imagens soltas em `wallpapers/`, com o nome que terão no
-#   acervo, semeia delas: num PC virgem a coleção sobe do clone, sem rede. A
-#   origem declarada (repo, desenhos, curadoria) fica como procedência e não é
-#   lida. Mesmas regras do ramo que baixa: só arquivo comum (link não), nome de
-#   caracteres estritos, temporário e rename, e o que ela recusou fica fora.
 _semear_fotos() {
   local origem="$1" n=0 arq nome destino tmp
   while IFS= read -r -d '' arq; do
@@ -2557,19 +1440,6 @@ cmd_semear() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  # UMA PASTA TAMBÉM É SEMENTE — 15/09/2026
-  #   Nem toda origem é um repositório público que o `raw.githubusercontent.com`
-  #   entrega. O gerador de papéis de parede da casa (tulip-orchid) tropeça em
-  #   três coisas de uma vez: o repositório é privado, as imagens não existem
-  #   como arquivo lá dentro (são desenhadas em tempo de execução a partir de
-  #   `scenes.ts`) e o formato que ele exporta por padrão é SVG — que o
-  #   `cosmic-bg` não lê. O binário aceita avif, gif, jpeg, png, tiff e webp;
-  #   SVG não está na lista, e por isso não adianta baixar vetor.
-  #
-  #   O caminho que funciona hoje: exportar PNG do gerador para uma pasta e
-  #   apontar a semente para ela. `WALLPAPER_SEMENTE_REPO` com `/`, `~` ou `./`
-  #   no começo é tratado como diretório, e aí não há rede nem commit pinado —
-  #   o pino não faz sentido para uma pasta que é do dono.
   if _semente_e_pasta "$SEMENTE_REPO"; then
     _semear_de_pasta "$SEMENTE_REPO"
     return $?
@@ -2583,8 +1453,6 @@ cmd_semear() {
     return "$MEOW_SEM_DEPENDENCIA"
   }
 
-  # Escolhe espalhando pelas categorias, em vez de pegar as N primeiras (que
-  # seriam todas da mesma pasta e pareceriam a mesma imagem repetida).
   local escolhidas
   escolhidas="$(printf '%s' "$lista" | python3 -I -c "
 import json, sys
@@ -2616,43 +1484,18 @@ while len(saida) < limite:
 print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
 ")" || { meow_aviso "resposta do GitHub inesperada — semeadura pulada"; return "$MEOW_SEM_DEPENDENCIA"; }
 
-  # DUAS COLUNAS: a URL vai escapada, o nome de arquivo vai cru.
-  #   Sem isso, toda imagem cujo nome tem espaço falhava calada — curl com espaço
-  #   na URL devolve 000, e o ramo de erro apagava o temporário sem dizer nada.
-  #   Medido em 05/08/2026: três imagens de waves/ ficaram de fora da máquina dela
-  #   desde a primeira semeadura, com o script relatando sucesso. 239 de 242.
-  #   (E o comentário mora AQUI, não dentro do bloco Python acima: aquilo é uma
-  #   string entre aspas duplas do bash, então um crase ali vira substituição de
-  #   comando. Foi o que aconteceu na primeira tentativa desta correção.)
-
   [ -n "$escolhidas" ] || { meow_aviso "nenhuma imagem encontrada"; return "$MEOW_SEM_DEPENDENCIA"; }
 
   local n=0 falhas=0 base="https://raw.githubusercontent.com/$SEMENTE_REPO/$SEMENTE_COMMIT"
   while IFS=$'\t' read -r caminho caminho_url; do
     [ -n "$caminho" ] || continue
-    # Prefixo com a categoria: o nome vira legível e a ordem alfanumérica agrupa.
-    # O prefixo é o da SEMENTE, não `cat-` cravado: com duas origens possíveis,
-    # o nome do arquivo é a única pista de procedência que sobra no acervo.
     local nome="${SEMENTE_PREFIXO}-${caminho//\//-}"
     local destino="$ATIVOS/$nome"
     [ -e "$destino" ] && continue
-    # O BANIMENTO PRECISA SOBREVIVER A UM `semear` — E NÃO SOBREVIVIA
-    #   Medido em 24/08/2026, curando o acervo com ela: `semear` repõe tudo que
-    #   não estiver em `ativos/`, e a única coisa que ele consultava era
-    #   `ativos/`. Uma imagem que ela tirou está, por definição, fora de
-    #   `ativos/` — então toda escolha dela era desfeita pela próxima
-    #   semeadura, calada, com o script relatando sucesso. Naquele dia foram
-    #   231 imagens banidas; sem esta linha, um `meow wallpaper aplicar` que
-    #   caísse no semear traria as 231 de volta para a tela dela.
-    #
-    #   `banidos/` é a memória do que ela NÃO quer. Consultá-la aqui é o que
-    #   transforma "banir" em decisão, não em adiamento.
     esta_banida "$nome" && continue
     if meow_seco; then
       meow_muda "baixaria $nome"; n=$((n+1)); continue
     fi
-    # Baixa para temporário no MESMO diretório e só então renomeia: uma imagem
-    # pela metade entraria na rotação e apareceria cortada na tela dela.
     local tmp; tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")"
     if curl -sSL --max-time 60 -o "$tmp" "$base/$caminho_url" 2>/dev/null && [ -s "$tmp" ]; then
       meow_guardar_antes "$destino"; mv -f "$tmp" "$destino"; n=$((n+1))
@@ -2661,15 +1504,10 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
     fi
   done <<< "$escolhidas"
 
-  # Falha de download não pode continuar sendo invisível: era o que escondia as
-  # três imagens de nome com espaço.
   [ "$falhas" -gt 0 ] && meow_aviso "$falhas imagem(ns) não baixaram — a próxima passada tenta de novo"
 
   semear_da_curadoria
   if [ "$CURADORIA_N" -gt 0 ]; then
-    # O TEMPO VERBAL DE NOVO: no seco NADA foi baixado. Dizer "reproduzidas", no
-    # passado, é a mesma mentira que este arquivo já documenta duas linhas abaixo
-    # — e que a auditoria de 24/08/2026 pegou nesta função, recém-escrita.
     if meow_seco; then
       meow_muda "reproduziria $CURADORIA_N imagem(ns) da curadoria (packs/meowsystem/wallpapers/FONTES.tsv)"
     else
@@ -2682,42 +1520,20 @@ print('\n'.join(p + '\t' + quote(p, safe='/') for p in saida))
     meow_ok "coleção da semente já semeada (${SEMENTE_REPO})"
     return "$MEOW_OK"
   fi
-  # No seco NADA foi baixado — dizer "baixadas", no passado, é a mesma mentira
-  # que o modo seco já cometeu duas vezes neste projeto (a semeadura das imagens
-  # dela e o log do install.sh). O tempo verbal aqui é a diferença entre um
-  # relatório e uma promessa.
   if meow_seco; then
     meow_muda "baixaria $n imagem(ns) da semente (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
     return "$MEOW_DIVERGENTE"
   fi
   meow_ok "$n imagem(ns) da semente baixadas (${SEMENTE_REPO}@${SEMENTE_COMMIT:0:8})"
-  meow_seco || cmd_aplicar >/dev/null   # a lista é fotografada no load: precisa reescrever
+  meow_seco || cmd_aplicar >/dev/null
   return "$MEOW_DIVERGENTE"
 }
 
-# --- avançar / voltar --------------------------------------------------------
-# `$1` = +1 ou -1. Devolve 1 (mudou) porque é o código de "estava diferente e eu
-# escrevi" deste projeto — e é o que o `bin/meow` já sabe interpretar.
-#
-# POR QUE O GRUPO, E NÃO O ACERVO INTEIRO
-#   Avançar tem de andar pela mesma lista que o carrossel gira. Se a noite está
-#   ligada, o carrossel gira `ativos-noite/`; oferecer, no "próximo", uma imagem
-#   clara que o grupo da noite exclui seria o botão desfazendo a curadoria de
-#   dia/noite a cada clique.
-#
-# QUANDO NÃO SE SABE ONDE ESTAMOS, COMEÇA DO COMEÇO. `imagem_atual` falha se o
-# estado do cosmic-bg ainda não tem entrada nossa (sessão recém-aberta, monitor
-# novo). Aí `avançar` mostra a primeira e `voltar` mostra a última — que é o que
-# um carrossel faz quando se entra nele pela borda.
 cmd_passo() {
   local delta="$1" dir lista n atual i alvo
   criar_pastas || { meow_erro "não consegui criar as pastas"; return "$MEOW_ERRO"; }
   resolver_rotacao
 
-  # Com fixação valendo, `$ROTACAO` é um ARQUIVO; a lista tem de vir da pasta do
-  # grupo, não dele. `_resolver_grupo` já deixou `$GRUPO` em "dia"/"noite" antes
-  # de o invólucro sobrescrever — mas ele o troca por "fixado", então a pasta se
-  # redescobre aqui pelo mesmo teste de sempre.
   if   [ -d "$NOITE_DIR" ] && [ "$GRUPO" != "dia" ] && e_noite; then dir="$NOITE_DIR"
   elif [ -d "$DIA_DIR" ]   && ! e_noite;                        then dir="$DIA_DIR"
   else dir="$ROTACAO_BASE"; fi
@@ -2730,10 +1546,6 @@ cmd_passo() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  # A âncora é o BASENAME, não o caminho: o estado do cosmic-bg pode apontar
-  # para `ativos-dia/x.jpg` enquanto a lista da vez é de `ativos-noite/` (a
-  # virada aconteceu entre uma coisa e outra). Comparar caminho inteiro perderia
-  # a posição e voltaria sempre para a primeira imagem na hora da virada.
   atual="$(imagem_atual || true)"
   i=-1
   if [ -n "$atual" ]; then
@@ -2746,8 +1558,6 @@ cmd_passo() {
     [ "$delta" -gt 0 ] && i=-1 || i=0
   fi
 
-  # `% n` em bash pode devolver negativo; o `+ n` antes do segundo `%` é o que
-  # faz `voltar` na primeira imagem cair na última em vez de virar índice -1.
   alvo=$(( ( (i + delta) % n + n ) % n ))
 
   if meow_seco; then
@@ -2756,14 +1566,9 @@ cmd_passo() {
   fi
 
   gravar_fixo "${lista[$alvo]}"
-  # `cmd_aplicar` é quem escreve a configuração, e ele relê a fixação por
-  # `resolver_rotacao`. Nada aqui escreve em `$BG` — um segundo escritor daquela
-  # configuração é o defeito que o `cmd_aplicar` inteiro existe para evitar.
   cmd_aplicar >/dev/null || true
   meow_ok "papel de parede: $(basename "${lista[$alvo]}")  [$((alvo + 1))/$n · grupo $(basename "$dir")]"
   if [ "$(segundos_de "$FIXO_TTL")" -gt 0 ]; then
-    # [16/10/2026, QA final da leva H: o parêntese era «ou agora, com 'meow
-    #  wallpaper carrossel'»; no painel o gesto é o «Voltar a girar».]
     meow_info "  o carrossel volta em $FIXO_TTL, ou antes, no «Voltar a girar»"
   else
     meow_info "  fixado até você soltar, no «Voltar a girar»"
@@ -2771,13 +1576,6 @@ cmd_passo() {
   return "$MEOW_DIVERGENTE"
 }
 
-# "QUERO ESTA, AGORA" — 07/09/2026
-# A conferência de tarefas mediu o buraco: a jornada "fixar UMA imagem para
-# sempre" não tinha verbo — a ficha da imagem oferecia Dia, Noite e Tirar, e a
-# busca por "fixar" devolvia um mascote. Toda a maquinaria já existia (o menu do
-# botão direito fixa a PRÓXIMA via `gravar_fixo`); o que faltava era poder
-# apontar QUAL. A duração é a mesma regra de sempre: `WALLPAPER_FIXO_TTL`
-# manda, e com 0 a fixação dura até `meow wallpaper carrossel`.
 cmd_usar() {
   local img="$1"
   [ -f "$img" ] || { meow_erro "não achei $img"; return "$MEOW_ERRO"; }
@@ -2787,13 +1585,9 @@ cmd_usar() {
   fi
   criar_pastas || { meow_erro "não consegui criar as pastas"; return "$MEOW_ERRO"; }
   gravar_fixo "$img"
-  # `cmd_aplicar` é quem escreve a configuração — mesma regra do `cmd_passo`:
-  # um segundo escritor de `$BG` é o defeito que ele existe para evitar.
   cmd_aplicar >/dev/null || true
   meow_ok "papel de parede: $(basename "$img")"
   if [ "$(segundos_de "$FIXO_TTL")" -gt 0 ]; then
-    # [16/10/2026, QA final da leva H: o parêntese era «ou agora, com 'meow
-    #  wallpaper carrossel'»; no painel o gesto é o «Voltar a girar».]
     meow_info "  o carrossel volta em $FIXO_TTL, ou antes, no «Voltar a girar»"
   else
     meow_info "  fixado até você soltar, no «Voltar a girar»"
@@ -2813,13 +1607,6 @@ cmd_carrossel() {
   return "$MEOW_DIVERGENTE"
 }
 
-# FAVORITAR — 10/10/2026, P79 (QA de uso real da P77)
-#   A galeria tinha a aba «Favoritos» (a pasta `favoritos/` do topo deste
-#   arquivo: «guardadas por escolha dela») e nenhuma imagem oferecia o gesto: o
-#   menu da imagem era Usar, Dia, Noite, Tirar. Favoritar guarda uma CÓPIA da
-#   imagem de `ativos/` em `favoritos/` — a imagem segue girando, e a cópia
-#   sobrevive a um `banir` ou a uma semeadura nova. Desfavoritar tira só a
-#   cópia, pelo nome do arquivo, sem caminho (como o `desbanir`).
 cmd_favoritar() {
   local img="${1:-}" nome
   [ -f "$img" ] || { meow_erro "não achei ${img:-a imagem}"; return "$MEOW_ERRO"; }
@@ -2863,13 +1650,6 @@ case "${1:-aplicar}" in
   proximo|próximo|avançar|avancar)  cmd_passo 1 ;;
   anterior|voltar)                  cmd_passo -1 ;;
   carrossel|soltar)                 cmd_carrossel ;;
-  # `--conferir` é a letra que TODO script deste projeto usa para auditar, e
-  # este era o único que não a tinha: `docs/SPRINTS.md` mandava conferir o
-  # carrossel com `./scripts/wallpaper.sh --conferir`, e o que acontecia era o
-  # ramo de uso lá embaixo, com código 2 — a documentação apontando para um
-  # comando inexistente desde que foi escrita. Aqui ela vira o que sempre
-  # significou: o `aplicar` em seco, que não escreve e devolve 1 quando há o que
-  # consertar.
   --conferir|conferir) MEOW_SECO=1; cmd_aplicar ;;
   estado)    cmd_estado ;;
   semear)    cmd_semear ;;
@@ -2879,11 +1659,6 @@ case "${1:-aplicar}" in
   adicionar) shift; cmd_adicionar "${1:-}" ;;
   permitir)  shift; cmd_permitir "${1:-}" ;;
   dispensar) cmd_dispensar ;;
-  # O ÚNICO SUBCOMANDO DESTE ARQUIVO COM DOIS ARGUMENTOS, e isso importa para
-  # quem for ligá-lo à CLI: o `cmd_wallpaper` do `bin/meow` encaminha UM só
-  # (`"$acao" ${1:+"$1"}`), então `meow wallpaper lado <img> noite` chegaria aqui
-  # sem o lado. Enquanto aquela linha não passar os dois, o caminho que funciona
-  # é chamar este script direto.
   lado)      shift; cmd_lado "${1:-}" "${2:-}" ;;
   usar)      shift; cmd_usar "${1:-}" ;;
   favoritar)    shift; cmd_favoritar "${1:-}" ;;

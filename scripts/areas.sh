@@ -1,65 +1,31 @@
 #!/usr/bin/env bash
-# areas.sh — as ÁREAS DE TRABALHO do COSMIC: o nome de cada uma, a ordem em que
-# nascem e se as janelas se encaixam sozinhas dentro delas.
-#
-# Um workspace do COSMIC só tem nome se estiver ALFINETADO (pinned).
-#
-# Ele renomeia, reordena, liga o encaixe e ACRESCENTA.
-#
-# O `cosmic-comp` lê o `pinned_workspaces` UMA vez, ao iniciar.
-#
-# Todo caminho de escrita deste arquivo termina dizendo isso em voz alta.
-#
-# No `cosmic-comp` (`src/shell/mod.rs`, `add_output`) os alfinetados são criados
-# PRIMEIRO, na ordem do arquivo, e só depois os dinâmicos entram.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# 4 = pendência que não é nossa para consertar.
 AREAS_PENDENCIA=4
 
-# --- as chaves do meow.conf -------------------------------------------------
-# VAZIO = NÃO TOCA, nos três casos, e pelo mesmo motivo das `VIDRO_OPACIDADE_*`
-# e do `JANELAS_TILING`: a área de trabalho é dela, existe antes deste projeto,
-# e o padrão de fábrica de um projeto público não pode renomear os workspaces
-# de quem acabou de instalar.
 AREAS_NOMES="${AREAS_NOMES:-}"
 AREAS_FOLGA="${AREAS_FOLGA:-}"
 AREAS_ENCAIXE="${AREAS_ENCAIXE:-}"
-# Lida só para saber se o `janelas.sh` vai achatar o que gravarmos por área.
-# Nunca escrita daqui.
 JANELAS_TILING="${JANELAS_TILING:-}"
 
 AREAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/$(meow_cosmic_v com.system76.CosmicComp)"
 AREAS_ALVO="$AREAS_BASE/pinned_workspaces"
 AREAS_BINARIO="/usr/bin/cosmic-comp"
 
-# O estado de ANTES da nossa primeira escrita — é o que o `reverter` devolve.
 AREAS_ANTES="$MEOW_ESTADO/areas"
 BACKUPS_MANTIDOS="${BACKUPS_MANTIDOS:-10}"
 
-# O espaço-figura (U+2007) dá folga ao nome da área sem trocar a palavra: o
-# problema é o desenho da pastilha. Espaço comum morreria em qualquer `trim()`;
-# o U+2007 tem largura de dígito e não quebra linha.
-#
-# O `cosmic-applet-workspaces` (`src/components/app.rs:190-205`) desenha cada
-# área como `column!(row!(texto, espaço), espaço_horizontal(quadrado))`: a
-# pastilha é do tamanho do TEXTO, com um piso de um quadrado da barra.
-AREAS_FIGURA=$'\u2007'   # U+2007 FIGURE SPACE, escrito por escape: um byte
-                         # invisível no fonte seria a próxima armadilha, não o conserto.
+AREAS_FIGURA=$'\u2007'
 
-# --- as duas dependências ---------------------------------------------------
-# 3 e não 1: sem cosmic-comp não há divergência, há ausência de assunto.
 _areas_dependencia() {
   if [ ! -x "$AREAS_BINARIO" ] && [ ! -d "$AREAS_BASE" ]; then
     meow_pula "cosmic-comp não encontrado — nada a fazer com as áreas de trabalho"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  # O RON é lido e montado em Python (ver `_areas_motor`). Sem ele o script não
-  # tem como sequer LER a lista, então nem o `estado` funciona pela metade.
   if ! meow_tem python3; then
     meow_pula "sem python3 — não consigo ler o RON do pinned_workspaces"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -67,11 +33,6 @@ _areas_dependencia() {
   return "$MEOW_OK"
 }
 
-# --- O MOTOR DE RON, E POR QUE ELE É PYTHON DENTRO DE UM SCRIPT DE SHELL -----
-# O `pinned_workspaces` não é um arquivo de linhas: é uma árvore com parênteses
-# aninhados, strings com escape e literais de caractere (`'G'`, do EDID).
-#
-# O motor aqui NÃO ESCREVE NADA.
 _areas_motor() {
   python3 -I - "$@" <<'PY'
 import glob
@@ -79,11 +40,6 @@ import random
 import re
 import sys
 
-# ---------------------------------------------------------------------------
-# A VARREDURA. Ela existe para que os intervalos saiam CERTOS mesmo com
-# parêntese dentro de string e com o literal de caractere do EDID ('G').
-# Um `text.find(")")` acharia o fecha-parêntese de dentro de um nome.
-# ---------------------------------------------------------------------------
 ABRE = {"(": ")", "[": "]"}
 
 
@@ -208,14 +164,6 @@ def campos(texto, m, ini, fim):
         saida["output_span"] = (ini + abre, ini + fecha_out + 1)
         local = local[:abre] + " " * (fecha_out + 1 - abre) + local[fecha_out + 1 :]
 
-    # A BUSCA ACONTECE NA MÁSCARA E A LEITURA NO TEXTO CRU, E CONFUNDIR OS DOIS
-    # FOI O PRIMEIRO DEFEITO DESTE ARQUIVO — medido em 06/09/2026, com o
-    # `estado` imprimindo `id=true` e nome vazio para as duas áreas.
-    #   A máscara existe para que um parêntese DENTRO de um nome não seja
-    #   confundido com o fecha-parêntese do registro; para isso ela troca o
-    #   conteúdo de toda string por espaços. Ou seja: procurar `Some("c0ffee")`
-    #   nela nunca acha o `c0ffee` — lá está escrito `Some(        )`.
-    #   A máscara diz ONDE o valor começa e acaba; o valor em si sai do bruto.
     def acha(chave, campo):
         r = re.search(chave + r"\s*:\s*", local)
         if not r:
@@ -240,8 +188,6 @@ def campos(texto, m, ini, fim):
                 return
             fim_v, valor = p + t.end(), bruto[p : p + t.end()]
         saida[campo] = valor
-        # O intervalo é o do VALOR (o `Some(...)`, o `None` ou o booleano), e
-        # não o da chave: é só ele que a substituição troca.
         saida[campo + "_span"] = (ini + p, ini + fim_v)
 
     acha("tiling_enabled", "tiling")
@@ -262,8 +208,6 @@ def ler(caminho):
                 "a área %d tem tabulação ou quebra de linha no nome; "
                 "não mexo neste arquivo sem estragá-lo" % i
             )
-        # O último campo é o nome de propósito: ele é o único que pode conter
-        # qualquer coisa, e assim quem lê no shell corta em dois separadores.
         print(
             "%d\t%s\t%s\t%s"
             % (i, c["id"] or "", c["tiling"], nome)
@@ -303,11 +247,6 @@ def montar(caminho, encaixes, nomes):
     if not nomes:
         raise ValueError("lista vazia: um arquivo sem alfinete nenhum destrói as áreas")
 
-    # --- o caminho sem mudança de estrutura: substituição de intervalo -------
-    # Mesma quantidade de registros e mesma ordem, então o texto novo nasce do
-    # ORIGINAL, trocando só os intervalos que mudam, do fim para o começo (para
-    # que um deslocamento não invalide o próximo). É o que faz "nada a fazer"
-    # ser byte-idêntico em vez de empatar por sorte na reserialização.
     if len(nomes) == len(achadas):
         trocas = []
         for i, (_, _, c) in enumerate(achadas):
@@ -320,10 +259,6 @@ def montar(caminho, encaixes, nomes):
         sys.stdout.write(texto)
         return
 
-    # --- o caminho com áreas NOVAS ------------------------------------------
-    # O bloco `output:` da nova é HERDADO em bytes de uma que já existe. Nunca
-    # inventado: o EDID amarra a área ao monitor, e um EDID de mentira põe a
-    # área numa saída que não está ligada.
     herdado = next((c["output"] for _, _, c in achadas if c["output"]), None)
     if herdado is None:
         raise ValueError(
@@ -378,29 +313,6 @@ def tirar(caminho, indice):
     sys.stdout.write(cabeca + emenda.join(crus) + rabo)
 
 
-# ---------------------------------------------------------------------------
-# O PRIMEIRO ALFINETE, NUMA MAQUINA QUE NÃO TEM NENHUM — 22/09/2026
-#
-# Ate hoje este arquivo recusava criar o `pinned_workspaces` do zero, e a razao
-# escrita no `cmd_aplicar` era honesta: "criar do zero exigiria inventar um
-# bloco `output:` com EDID, e um EDID inventado poe a area num monitor que não
-# existe". O que mudou não foi a razao — foi a medicao. O EDID NÃO PRECISA SER
-# INVENTADO: ele esta no disco, em /sys/class/drm/<card>-<conector>/edid, e o
-# próprio compositor o le dali.
-#
-# O ALGORITMO E O DO COMPOSITOR, NÃO UM PARECIDO. Conferido linha a linha em
-# 22/09/2026 contra as duas pontas que ele atravessa:
-#   libdisplay-info 0.1.1, edid.c:82-122   (`parse_vendor_product`)
-#   libdisplay-info-rs, edid.rs:179-189    (`#[optional(0)]` -> None)
-# Sao os campos exatos do `EdidProduct` de cosmic-comp-config/src/lib.rs:15-22,
-# na ordem em que o RON os serializa. Errar um deles não da erro: da uma area
-# que o compositor nunca casa com o monitor, e ninguem descobre por que.
-#
-# E O QUE ACONTECE SE ERRAR, MEDIDO NO FONTE (src/shell/mod.rs:905-918): na
-# PRIMEIRA saida que entra, o compositor cria TODA area alfinetada do conf,
-# case o OutputMatch ou não. Numa maquina de um monitor so, o alfinete nasce de
-# qualquer jeito. O EDID certo e o que faz a area voltar para o monitor CERTO
-# quando ha dois — e e por isso que ele e medido em vez de omitido.
 def edid_do_conector(nome):
     """O EdidProduct do conector, em RON, ou None se não houver EDID no disco."""
     achados = glob.glob("/sys/class/drm/*-%s/edid" % nome)
@@ -411,7 +323,6 @@ def edid_do_conector(nome):
             dados = fh.read()
     except OSError:
         return None
-    # Menos que um bloco base não e EDID: monitor desligado devolve zero byte.
     if len(dados) < 128 or dados[:8] != b"\x00\xff\xff\xff\xff\xff\xff\x00":
         return None
 
@@ -423,15 +334,14 @@ def edid_do_conector(nome):
     serie = (dados[0x0C] | (dados[0x0D] << 8)
              | (dados[0x0E] << 16) | (dados[0x0F] << 24))
     semana, ano_cru, revisao = dados[0x10], dados[0x11], dados[0x13]
-    # edid.c:104 — o ano so vale se o byte passar de 0x10 ou a revisao for < 4.
     ano = ano_cru + 1990 if (ano_cru >= 0x10 or revisao < 4) else 0
     semana_fab, ano_fab, ano_modelo = 0, 0, 0
     if semana == 0xFF:
-        ano_modelo = ano                      # o 0xFF e a bandeira de "ano do modelo"
+        ano_modelo = ano
     else:
         ano_fab = ano
         if 0 < semana <= 54:
-            semana_fab = semana               # acima de 54 e semana inválida: fica 0
+            semana_fab = semana
 
     def opcional(v):
         return "None" if v == 0 else "Some(%d)" % v
@@ -476,14 +386,12 @@ try:
     if verbo == "ler":
         ler(sys.argv[2])
     elif verbo == "montar":
-        # argv: montar <arquivo> <encaixes-csv> <nome0> <nome1> ...
         encaixes_csv = sys.argv[3]
         alvos = sys.argv[4:]
         lista = encaixes_csv.split(",") if encaixes_csv else []
         lista += [""] * (len(alvos) - len(lista))
         montar(sys.argv[2], lista, alvos)
     elif verbo == "primeira":
-        # argv: primeira <conector> <encaixe> <nome>
         primeira(sys.argv[2], sys.argv[3], sys.argv[4])
     elif verbo == "tirar":
         tirar(sys.argv[2], int(sys.argv[3]))
@@ -495,12 +403,6 @@ except (ValueError, OSError, IndexError) as erro:
 PY
 }
 
-# --- a peneira do nome ------------------------------------------------------
-# Aspas, contrabarra, parênteses e quebra de linha destruiriam o RON; `#` não
-# destrói o RON mas destrói a LINHA do meow.conf, que é partida no primeiro
-# `#` para preservar o comentário (`meow_conf_texto_definir`, lib/comum.sh).
-#
-# Dizer qual caractere não cabe é o que permite escolher outro nome.
 _areas_nome_seguro() {
   local nome="$1"
   case "$nome" in
@@ -514,8 +416,6 @@ _areas_nome_seguro() {
   return 0
 }
 
-# `a, b , c` -> uma por linha, aparadas. Sem `eval` e sem IFS global: o `read -d`
-# corta no separador e o resto é poda de espaço em bash puro.
 _areas_partir() {
   local texto="$1" item
   while IFS= read -r -d ',' item || [ -n "$item" ]; do
@@ -525,10 +425,6 @@ _areas_partir() {
   done < <(printf '%s,' "$texto")
 }
 
-# `$( )` come TODA quebra de linha do fim.
-#
-# O `meow_escrever` compara com `$(cat "$destino")` e sofre do mesmo corte,
-# então ele nunca reconhece "igual" quando o conteúdo termina em quebra.
 AREAS_TEXTO=""
 
 _areas_ler_arquivo() {
@@ -543,11 +439,6 @@ _areas_montar_texto() {
   return "$rc"
 }
 
-# `${arr[*]}` com `IFS=', '` junta pelo PRIMEIRO caractere do IFS e mais nada —
-# saía `Meow ,OS`. Uma linha de laço diz o que se quis dizer.
-#
-# A folga é dita por extenso no `estado`, que é onde ela é informação; numa
-# frase de confirmação ela é só ruído.
 _areas_juntar() {
   local sep="" x
   for x in "$@"; do printf '%s%s' "$sep" "$(_areas_sem_folga "$x")"; sep=", "; done
@@ -561,12 +452,11 @@ _areas_bool() {
   esac
 }
 
-# --- a leitura do disco, em três arrays paralelos ---------------------------
 AREAS_ID=(); AREAS_TILING=(); AREAS_NOME=()
 
 _areas_ler() {
   AREAS_ID=(); AREAS_TILING=(); AREAS_NOME=()
-  [ -f "$AREAS_ALVO" ] || return "$MEOW_OK"   # sem arquivo, zero áreas
+  [ -f "$AREAS_ALVO" ] || return "$MEOW_OK"
   local erro
   erro="$(_areas_motor ler "$AREAS_ALVO" 2>&1 >/dev/null)"
   if [ -n "$erro" ]; then
@@ -579,7 +469,6 @@ _areas_ler() {
   return "$MEOW_OK"
 }
 
-# O nome sem a folga invisível — é por ele que a comparação com o conf acontece.
 _areas_sem_folga() {
   local n="$1"
   while [ "${n#"$AREAS_FIGURA"}" != "$n" ]; do n="${n#"$AREAS_FIGURA"}"; done
@@ -587,21 +476,6 @@ _areas_sem_folga() {
   printf '%s' "$n"
 }
 
-# --- a guarda do vizinho: SAIU --------------------------
-# Aqui moravam três caminhos do Ritual da Aurora (o script no Spellbook, a cópia
-# em ~/.local/bin e a sentinela `.aurora-workspaces-off`) e as quatro funções
-# que os liam: `_areas_vizinho_armado`, `_areas_assumir_posse`,
-# `_areas_vizinho_manda` e `_areas_dizer_bloqueadas`.
-
-# --- backup, e ele é a diferença entre ter e não ter área de trabalho -------
-# Duas cópias, com propósitos diferentes:
-#   `.antes`   o estado de ANTES da nossa PRIMEIRA escrita — é o que o
-#              `reverter` devolve, e ele nunca é sobrescrito depois de existir.
-#   `backups/` uma cópia por passagem que escreve, no mesmo idioma do resto do
-#              projeto (`$MEOW_ESTADO/backups/<carimbo>-areas/`), podada por
-#              `BACKUPS_MANTIDOS`.
-# PREGUIÇOSO: nada nasce numa passagem que não vai escrever. Sem isso o doctor
-# diário criaria uma pasta por dia sem nunca ter mudado um byte.
 _areas_guardar() {
   meow_seco && return 0
   [ -f "$AREAS_ALVO" ] || return 0
@@ -632,9 +506,6 @@ Ou, pelo projeto:  ./scripts/areas.sh reverter
 Em qualquer um dos dois, o COSMIC só relê no PRÓXIMO INÍCIO DE SESSÃO.
 FIM
 
-  # Retenção: as N mais recentes DESTE módulo. O glob leva o sufixo `-areas`
-  # justamente para não alcançar o backup de outro módulo — foi assim que um
-  # glob largo de `aplicar_tema.sh` chegou a apagar a pasta de um vizinho.
   local -a antigas=() velho
   for velho in "$MEOW_ESTADO"/backups/*-areas; do
     [ -d "$velho" ] && antigas+=("$velho")
@@ -647,9 +518,6 @@ FIM
   return 0
 }
 
-# A recusa que nunca pode falhar: um arquivo sem alfinete nenhum destrói as duas
-# áreas dela no próximo login, e o estrago só aparece lá — depois de o motivo já
-# ter sido esquecido.
 _areas_recusar_vazio() {
   local texto="$1"
   case "$texto" in
@@ -666,9 +534,6 @@ _areas_so_no_login() {
   meow_info "vez, ao iniciar. Nada muda na barra agora, e isso não é defeito."
 }
 
-# ============================================================================
-# estado
-# ============================================================================
 _areas_col() { printf '%-14s' "$1"; }
 
 cmd_estado() {
@@ -685,8 +550,6 @@ cmd_estado() {
   meow_info "áreas alfinetadas, na ordem em que nascem:"
   for i in "${!AREAS_NOME[@]}"; do
     nu="$(_areas_sem_folga "${AREAS_NOME[$i]}")"
-    # Sempre "nosso": a coluna ficou para a linha não mudar de forma para quem
-    # já a lê, e o outro valor saiu com a guarda do vizinho.
     dono="nosso"
     printf '  %s%2d.%s %s  id=%-8s encaixe=%-5s (%s)%s\n' \
       "$C_MAUVE" "$((i + 1))" "$C_ZERO" "$(_areas_col "$nu")" \
@@ -694,9 +557,6 @@ cmd_estado() {
       "$([ "$nu" != "${AREAS_NOME[$i]}" ] && printf '  [com folga invisível]')"
   done
 
-  # A linha pronta para colar. Sem ela, a única forma de a página oferecer "usar
-  # os nomes de agora" seria remontar a lista do outro lado — uma segunda
-  # verdade sobre a mesma coisa.
   local nomes="" folgas="" sep=""
   for i in "${!AREAS_NOME[@]}"; do
     nu="$(_areas_sem_folga "${AREAS_NOME[$i]}")"
@@ -712,10 +572,6 @@ cmd_estado() {
   return "$MEOW_OK"
 }
 
-# o cálculo que `aplicar` e `conferir` dividem
-#
-# Preenche AREAS_ALVO_NOME / AREAS_ALVO_ENCAIXE a partir do conf e devolve o
-# que sobrou para escrever.
 AREAS_ALVO_NOME=(); AREAS_ALVO_ENCAIXE=()
 
 _areas_planejar() {
@@ -736,9 +592,6 @@ _areas_planejar() {
     return "$MEOW_ERRO"
   fi
 
-  # O ENCAIXE: ou uma resposta para todas, ou uma por área. Qualquer outra
-  # contagem é engano de digitação, e adivinhar qual área ela quis é o tipo de
-  # esperteza que escreve na área errada.
   if [ "${#encaixes[@]}" -gt 0 ] && [ "${#encaixes[@]}" -ne 1 ] \
      && [ "${#encaixes[@]}" -ne "${#pedidos[@]}" ]; then
     meow_erro "AREAS_ENCAIXE tem ${#encaixes[@]} resposta(s) para ${#pedidos[@]} área(s)"
@@ -748,7 +601,6 @@ _areas_planejar() {
 
   local pendencia="$MEOW_OK" uniforme=1 primeiro=""
   for i in "${!pedidos[@]}"; do
-    # a folga invisível, se esta área estiver na lista
     n="${pedidos[$i]}"
     for b in ${folgas[@]+"${folgas[@]}"}; do
       [ "$b" = "$n" ] && { n="$AREAS_FIGURA$n$AREAS_FIGURA"; break; }
@@ -769,9 +621,6 @@ _areas_planejar() {
     AREAS_ALVO_ENCAIXE+=("$e")
   done
 
-  # O OUTRO VIZINHO, o `janelas.sh`, que é deste projeto. Ver o cabeçalho: ele
-  # achata `tiling_enabled` em TODAS as entradas de uma vez, a partir do
-  # `JANELAS_TILING`, e o doctor o chama todo dia.
   if [ -n "$primeiro" ] && [ -n "$JANELAS_TILING" ]; then
     local jt; jt="$(_areas_bool "$JANELAS_TILING")" || jt=""
     if [ "$uniforme" = "0" ] || { [ -n "$jt" ] && [ "$jt" != "$primeiro" ]; }; then
@@ -780,8 +629,6 @@ _areas_planejar() {
       meow_aviso "'meow doctor' o chama todo dia — o que eu gravar por área ele achata."
       meow_aviso "esvazie JANELAS_TILING no meow.conf para o encaixe ser por área."
       meow_aviso "não gravei o encaixe: gravar e ver voltar amanhã é pior que não gravar."
-      # O campo sai do plano. Os NOMES continuam valendo — eles não são disputa
-      # de ninguém aqui dentro.
       for i in "${!AREAS_ALVO_ENCAIXE[@]}"; do AREAS_ALVO_ENCAIXE[i]=""; done
       pendencia="$AREAS_PENDENCIA"
     fi
@@ -789,16 +636,6 @@ _areas_planejar() {
   return "$pendencia"
 }
 
-# Esta era a primeira da lista:
-#
-#     "alfinete uma área pelo COSMIC (visão geral, botão direito) e rode de novo"
-#
-# Para um designer leigo isso não é cortesia, é o programa desistindo — e o pior
-# é que o conserto era conhecido.
-#
-# A primeira é a difícil: sem nenhuma, não há bloco `output:` de onde herdar.
-#
-# Se já houver área alfinetada, ele diz e sai em 0.
 _areas_saida_em_uso() {
   meow_tem cosmic-randr || return 1
   cosmic-randr list 2>/dev/null \
@@ -822,9 +659,6 @@ cmd_alfinetar_primeira() {
     return "$MEOW_OK"
   fi
 
-  # O NOME DA ÁREA É DELA, E VEM DO CONF. Sem `AREAS_NOMES` este verbo não tem
-  # o que escrever — e inventar "Área 1" seria plantar na barra dela um nome
-  # que ninguém pediu, no arquivo que o COSMIC não deixa renomear sem login.
   local primeiro
   primeiro="$(_areas_partir "$AREAS_NOMES" | head -1)"
   if [ -z "$primeiro" ]; then
@@ -843,9 +677,6 @@ cmd_alfinetar_primeira() {
     return "$MEOW_ERRO"
   fi
 
-  # O encaixe é o da PRIMEIRA da lista, quando ela diz; vazio vira `false`, que
-  # é o padrão do COSMIC. O `janelas.sh` continua sendo o outro dono deste
-  # campo (docs/FRONTEIRA.md) — aqui ele só nasce, não é reforçado.
   local encaixe=""
   if [ -n "$AREAS_ENCAIXE" ]; then
     encaixe="$(_areas_bool "$(_areas_partir "$AREAS_ENCAIXE" | head -1)")" || encaixe=""
@@ -874,9 +705,6 @@ cmd_alfinetar_primeira() {
   return "$MEOW_DIVERGENTE"
 }
 
-# ============================================================================
-# aplicar
-# ============================================================================
 cmd_aplicar() {
   if [ -z "$AREAS_NOMES" ] && [ -z "$AREAS_ENCAIXE" ]; then
     meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"
@@ -888,9 +716,6 @@ cmd_aplicar() {
   _areas_ler || return $?
 
   if [ ! -f "$AREAS_ALVO" ] || [ "${#AREAS_NOME[@]}" -eq 0 ]; then
-    # O `aplicar` continua sem criar o arquivo do zero, e isso é de propósito:
-    # ele herda o bloco `output:` de uma área que já existe, e sem nenhuma não
-    # há de onde herdar.
     if [ -z "$(_areas_partir "$AREAS_NOMES" | head -1)" ]; then
       meow_pendencia_acionavel areas-sem-alfinete \
         "Nenhuma área de trabalho está fixada, e o nome da primeira é escolha sua: escreva-o em AREAS_NOMES (no painel ou no meow.conf) e eu crio a área" \
@@ -903,10 +728,6 @@ cmd_aplicar() {
     return "$AREAS_PENDENCIA"
   fi
 
-  # Quem registra é obrigado a apagar (lib/comum.sh), e faltando isto quem
-  # alfinetasse pelo COSMIC — que é exatamente o que a frase velha mandava
-  # fazer — ficaria com a linha na Home para sempre: só o «Resolver» a
-  # apagava, e ele respondia "já há N área(s) alfinetada(s)".
   meow_pendencia_resolvida areas-sem-alfinete
 
   local rc_plano; _areas_planejar; rc_plano=$?
@@ -916,8 +737,6 @@ cmd_aplicar() {
   for e in ${AREAS_ALVO_ENCAIXE[@]+"${AREAS_ALVO_ENCAIXE[@]}"}; do
     encaixes_csv="$encaixes_csv$sep$e"; sep=","
   done
-  # `AREAS_ALVO_ENCAIXE` pode ter itens vazios, que o laço acima come. A lista
-  # é reconstruída por índice para que o CSV tenha exatamente um campo por área.
   encaixes_csv=""; sep=""
   local i
   for i in "${!AREAS_ALVO_NOME[@]}"; do
@@ -935,9 +754,6 @@ cmd_aplicar() {
   novo="$AREAS_TEXTO"
   _areas_recusar_vazio "$novo" || return "$MEOW_ERRO"
 
-  # A comparação é byte a byte, com a quebra final incluída dos dois lados —
-  # ver `_areas_ler_arquivo`. É ela que faz "nada a fazer" ser 0 de verdade, e
-  # não uma reescrita do mesmo conteúdo devolvendo 1.
   _areas_ler_arquivo "$AREAS_ALVO"
   if [ "$novo" = "$AREAS_TEXTO" ]; then
     meow_ok "as áreas de trabalho já estavam assim ($(_areas_juntar "${AREAS_ALVO_NOME[@]}"))"
@@ -962,9 +778,6 @@ cmd_aplicar() {
   return "$rc"
 }
 
-# ============================================================================
-# conferir — lê e diz, nunca escreve
-# ============================================================================
 cmd_conferir() {
   if [ -z "$AREAS_NOMES" ] && [ -z "$AREAS_ENCAIXE" ]; then
     meow_pula "AREAS_NOMES vazio — nada a conferir (as áreas são suas)"
@@ -1001,9 +814,6 @@ cmd_conferir() {
   return "$MEOW_DIVERGENTE"
 }
 
-# ============================================================================
-# reverter
-# ============================================================================
 cmd_reverter() {
   _areas_dependencia || return $?
   local guardado="$AREAS_ANTES/pinned_workspaces.antes"
@@ -1028,16 +838,10 @@ cmd_reverter() {
                 || { meow_muda "áreas de trabalho devolvidas ao estado de antes"; _areas_so_no_login; } ;;
     *) meow_ok "as áreas já estavam como antes da nossa primeira escrita" ;;
   esac
-  # O `.antes` NÃO é apagado: ele é o único registro do que havia antes deste
-  # projeto encostar no arquivo, e uma segunda passagem de `aplicar` depois de um
-  # `reverter` precisa dele intacto para poder voltar de novo.
   meow_registrar "areas.sh reverter rc=$rc"
   return "$rc"
 }
 
-# Ver o fato 1 do cabeçalho: isto APAGA uma área de trabalho. Por isso mora
-# fora do `aplicar`, exige `MEOW_SIM=1` (o mesmo pedágio do `meow desfazer`) e
-# imprime o que se perde ANTES de perguntar.
 cmd_desalfinetar() {
   local alvo="${1:-}"
   [ -n "$alvo" ] || { meow_erro "uso: areas.sh desalfinetar <nome>"; return "$MEOW_ERRO"; }

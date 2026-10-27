@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
-# garantir-builds.sh — o compositor e o menu do cosmic-files têm build para a
-# versão instalada, sempre, e a segunda passagem não escreve nada?
-#
-#   1. a função: compila o que falta, e só isso; o shim desligado não impede;
-#      o `ruim` não se refaz; FILES_MENU="nao" não compila o menu; o `req` que
-#      não entra (degrau 4) é regra e sai 0, a falha de verdade sai 2; o seco
-#      não compila; duas passagens juntas compilam uma vez (flock); e a
-#      segunda passagem não escreve um byte.
-# Nada de apt, cargo, sudo, systemd nem rede: os falsos do PATH recusam.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -17,14 +8,11 @@ falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 igual() { if [ "$2" = "$3" ]; then ok "$1"; else falha "$1 (esperado '$3', veio '$2')"; fi; }
 
 mkdir -p "$T/bin" "$T/home/.local/bin" "$T/home/.config/meow" "$T/patches"
-# A série de brinquedo: o degrau 4 pergunta se ela mudou depois da matriz.
 echo 'req t.patch MEOW-T' > "$T/patches/series"
 for c in sudo pkexec apt apt-get systemctl systemd-run pkill killall notify-send cargo make; do
   printf '#!/bin/sh\necho "recusado: %s $*" >> "%s/recusados"\nexit 1\n' "$c" "$T" > "$T/bin/$c"
   chmod 755 "$T/bin/$c"
 done
-# O dpkg-query falso responde às duas perguntas do projeto: a lista com
-# `${Package}` (pacote, versão, status) e a versão nua de um pacote.
 cat > "$T/bin/dpkg-query" <<FIM
 #!/bin/sh
 fmt=""; pacotes=""
@@ -41,15 +29,12 @@ for p in \$pacotes; do
 done
 FIM
 chmod 755 "$T/bin/dpkg-query"
-versoes() { # pares pacote=versão
+versoes() {
   : > "$T/dpkg.tsv"; local x
   for x in "$@"; do printf '%s\t%s\tinstalled\n' "${x%%=*}" "${x#*=}" >> "$T/dpkg.tsv"; done
 }
 CASA="$T/home/.local/libexec/meow/cosmic-comp"
 ESTADO="$T/home/.local/state/meowsystem"
-# O compositor falso: deixa o binário e o `estado` com o `req` presente, como
-# o `compilar` de verdade. `comp-req-falha` simula o degrau 4 (grava a matriz
-# e sai 2); `comp-falha`, um erro de verdade.
 cat > "$T/compositor" <<FIM
 #!/bin/sh
 echo "compositor \$*" >> "$T/log"
@@ -132,15 +117,11 @@ versoes cosmic-comp=0.1~d cosmic-files=1.10~b
 touch "$T/comp-req-falha"
 : > "$T/log"; rodar; igual "rc 0" "$?" 0
 [ -e "$CASA/0.1~d/cosmic-comp" ] && falha "apareceu build do compositor" || ok "nada foi trocado: o shim segue no de fábrica"
-# O mesmo fonte com a mesma série recusa o mesmo `req`; sem esta regra,
-# cada login, cada apt e cada doctor das 5h refazia a tentativa e escrevia
-# (o `alvos.novo` e o meow.log, medidos com os scripts de verdade).
 antes="$(foto)"
 : > "$T/log"; rodar; igual "2ª passagem no degrau 4: rc 0" "$?" 0
 igual "2ª passagem no degrau 4: nenhuma tentativa" "$(linhas '^compositor compilar')" 0
 igual "2ª passagem no degrau 4: nenhum byte" "$(foto)" "$antes"
 grep -q 'degrau 4' "$T/saida" && ok "e diz o estado (degrau 4)" || falha "a 2ª passagem no degrau 4 não disse o estado"
-# A série muda (o rebase chega com um git pull): a mesma versão tenta de novo.
 rm -f "$T/comp-req-falha"
 sleep 0.05; touch "$T/patches/series"
 : > "$T/log"; rodar; igual "a série mudou: rc 0" "$?" 0
@@ -182,7 +163,6 @@ grep -q 'PA_BUILDS:-$MEOW_RAIZ/scripts/garantir_builds.sh' "$RAIZ/scripts/cosmic
   && ok "o pós-apt: chama a função" || falha "o pós-apt não chama a função"
 grep -qE '^fix_patches\(\) *\{ *"\$RAIZ/scripts/garantir_builds.sh" --fundo' "$RAIZ/bin/meow" \
   && ok "o doctor: o fix_patches dispara a função" || falha "o doctor não tem o fix_patches da função"
-# A etapa do instalador habilita o login sem `--now` (um oneshot de meia hora).
 etapa="$(sed -n '/^etapa_vigia_apt()/,/^}/p' "$RAIZ/install.sh")"
 if grep -q 'meow-builds-login.service' <<< "$etapa" && grep -q 'systemctl --user enable "$u"' <<< "$etapa"; then
   ok "o instalador põe e habilita o login, sem --now"
@@ -193,10 +173,6 @@ grep -q 'meow-builds-login.service' "$RAIZ/lib/desinstalar.sh" \
   && ok "o desinstalador o desliga" || falha "o desinstalador não desliga o meow-builds-login.service"
 
 echo "-- as três unidades, com o PATH que o systemd dá, acham o just e o cargo do ~/.cargo/bin"
-# Medido na P76: o PATH do systemd do usuário começa em ~/.local/bin e segue
-# pelo do sistema, sem o ~/.cargo/bin, onde o rustup põe o cargo e o just. A
-# linha ExecStart de cada unidade roda aqui como o systemd a rodaria (o %h
-# trocado pelo HOME de brinquedo), com sondas no lugar dos scripts.
 U2="$T/unid"; mkdir -p "$U2/.cargo/bin" "$U2/.local/bin" "$U2/.local/state/meowsystem" "$U2/raiz/scripts"
 for c in just cargo; do printf '#!/bin/sh\n' > "$U2/.cargo/bin/$c"; chmod 755 "$U2/.cargo/bin/$c"; done
 for sonda in "$U2/raiz/scripts/cosmic_pos_apt.sh" "$U2/raiz/scripts/garantir_builds.sh" "$U2/.local/bin/meow"; do
@@ -210,8 +186,6 @@ for u in meow-pos-apt.service meow-builds-login.service meow-doctor.service; do
 done
 
 echo "-- o doctor --consertar compila o compositor que falta (shim ligado, HOME de brinquedo)"
-# O cmd_doctor do bin/meow com só a linha `patches`, como no
-# tests/doctor-veredito.sh: o bin/meow é lido sem a última linha (o despacho).
 D="$T/doc"; mkdir -p "$D/.config/meow" "$D/.local/bin"
 cp "$RAIZ/meow.conf.exemplo" "$D/.config/meow/meow.conf"
 cp "$RAIZ/scripts/compositor_shim.sh" "$D/.local/bin/cosmic-comp"
@@ -248,8 +222,6 @@ igual "um build do compositor, pelo conserto" "$(linhas '^compositor compilar')"
 grep -q 'continua fora' "$T/doc.saida" && { falha "a linha patches ficou fora depois do conserto"; sed 's/^/        /' "$T/doc.saida"; }
 : > "$T/log"; doctor; rc=$?
 igual "o doctor seguinte não diverge (rc 0)" "$rc" 0
-# Com uma sessão no ar (esta máquina), ela roda o de fábrica: o estado é
-# «build pronto, vale no próximo login». Sem sessão, o marcador no disco.
 if grep -qE 'patches +(build pronto, vale no próximo login|1 marcador de pé)' "$T/doc.saida"; then
   ok "a linha patches diz o estado: $(grep -oE 'build pronto, vale no próximo login|1 marcador de pé[^;]*' "$T/doc.saida" | head -1)"
 else
@@ -258,11 +230,6 @@ fi
 igual "e não compila de novo" "$(grep -c . "$T/log")" 0
 
 echo "-- o shim desligado (meow compositor desativar) com o .estado antigo de /var/lib"
-# Conferência da P81. Esta máquina tem o `patches.estado` da era do /usr/bin
-# (24/09, versão velha). Com o shim desligado o doctor o lia, dizia «o
-# conserto recompila» e o conserto não convergia nunca: o build vai para a
-# casa do shim, e a sessão sem shim usa o /usr/bin. Desligar o shim é gesto
-# dela — o caminho de volta do docs/MANUTENCAO.md —, e a linha é escolha (4).
 rm -f "$D/.local/bin/cosmic-comp"
 printf '#!/bin/sh\n' > "$T/fabrica"; chmod 755 "$T/fabrica"
 printf 'versao=0.1~velha\ngravado=2026-09-24T04:07:05-03:00\nreq AURORA-X t.patch presente\n' > "$T/estado-velho"
@@ -276,9 +243,6 @@ grep -q 'continua fora' "$T/doc.saida" && { falha "a linha patches ficou fora de
 
 echo
 echo "== 3. o caminho de volta do docs/MANUTENCAO.md"
-# FILES_MENU="nao" com o nosso binário no ~/.local/bin: a conferência diverge
-# (1), para o doctor seguinte devolver o menu de fábrica. Saía 0 dizendo
-# «removeria», e o doctor nunca chamava o conserto.
 V="$T/volta"; mkdir -p "$V/.local/bin"; echo nosso > "$V/.local/bin/cosmic-files"
 volta() { env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY \
   HOME="$V" PATH="$T/bin:$PATH" NO_COLOR=1 FILES_MENU=nao "$RAIZ/scripts/files_menu.sh" "$@" >/dev/null 2>&1; }

@@ -1,23 +1,13 @@
 #!/usr/bin/env bash
-# cosmic-prever.sh — o pré-voo do COSMIC candidato distingue o bom do quebrado?
-# Tudo em diretórios de brinquedo: nada de apt, rede, sudo nem HOME de verdade.
-# Tudo de brinquedo: nada de apt, rede, sudo nem HOME de verdade.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
-# O rustup de verdade, lido ANTES de o HOME virar brinquedo: a sonda pergunta
-# ao rustc de dentro da árvore, e o rustup acha os toolchains pelo RUSTUP_HOME.
 RH="${RUSTUP_HOME:-$HOME/.rustup}"; CH="${CARGO_HOME:-$HOME/.cargo}"
-# A SUÍTE RODA COM HOME DE BRINQUEDO: aí o `$HOME/.rustup` não existe, o proxy
-# `rustc` do PATH não acha toolchain nenhum, e o teste acusava "o toolchain não
-# saiu vermelho" sem a sonda ter errado.
 if [ ! -d "$RH/toolchains" ]; then
   _lar="$(getent passwd "$(id -un)" | cut -d: -f6)"
   [ -d "$_lar/.rustup/toolchains" ] && { RH="$_lar/.rustup"; CH="$_lar/.cargo"; }
 fi
 falhas=0
-# A sonda de ferramenta só pergunta se `just`, `make` e `cargo` existem: três
-# falsos no PATH deixam o veredito do bom igual em qualquer máquina.
 mkdir -p "$T/ferramentas"
 for _c in just make cargo; do printf '#!/bin/sh\nexit 1\n' > "$T/ferramentas/$_c"; chmod 755 "$T/ferramentas/$_c"; done
 PATH="$T/ferramentas:$PATH"
@@ -25,10 +15,8 @@ ok()    { printf '  ok    %s\n' "$*"; }
 falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 command -v dpkg-deb >/dev/null || { echo "cosmic-prever: pulado — sem dpkg-deb"; exit 0; }
 
-# O sistema de hoje: o namespace do compositor em v1.
 mkdir -p "$T/sistema/com.system76.CosmicComp/v1"
 
-# O contrato e a série de brinquedo.
 printf 'chave\tcom.system76.CosmicComp\tautotile\tcosmic-comp\tscripts/janelas.sh\n'  > "$T/contrato.tsv"
 printf 'chave\tcom.system76.CosmicComp\tpinned_workspaces\tcosmic-comp\tscripts/areas.sh\n' >> "$T/contrato.tsv"
 printf 'chave\tcom.system76.CosmicComp\tleitura_temperatura\tcosmic-comp\tpatch:x.patch\n' >> "$T/contrato.tsv"
@@ -44,7 +32,7 @@ cat > "$T/patches/brinquedo.patch" <<'FIM'
  }
 FIM
 
-montar() { # $1 nome $2 versão $3 v-do-esquema $4 chaves-no-binário $5 corpo-do-main $6 rust-version
+montar() {
   local d="$T/pkg-$1"
   mkdir -p "$d/DEBIAN" "$d/usr/bin" "$d/usr/share/cosmic/com.system76.CosmicComp/$3"
   printf 'Package: cosmic-comp\nVersion: %s\nArchitecture: all\nMaintainer: teste <t@t>\nDescription: brinquedo\n' "$2" > "$d/DEBIAN/control"
@@ -65,7 +53,7 @@ montar() { # $1 nome $2 versão $3 v-do-esquema $4 chaves-no-binário $5 corpo-d
 montar bom      "1.0~bom"      v1 "autotile pinned_workspaces" 'println!("oi");'       "1.0"   || { falha "não montei o .deb bom"; exit 1; }
 montar quebrado "1.0~quebrado" v3 "autotile"                   'println!("mudou");'    "999.0" || { falha "não montei o .deb quebrado"; exit 1; }
 
-prever() { # $1 nome
+prever() {
   HOME="$T/home-$1" MEOW_ESTADO="$T/home-$1/estado" CV_CONTRATO="$T/contrato.tsv" \
   CV_SERIE="$T/patches/series" CV_PATCHES="$T/patches" CV_SISTEMA="$T/sistema" \
   CV_SAIDA="$T/saida-$1.tsv" CV_TRABALHO="$T/trabalho-$1" CV_GUARDA="$T/guarda-$1" \
@@ -102,8 +90,6 @@ else
   falha "o fonte não foi aberto"
 fi
 
-# --- o completar_icones.sh lê a lista do `meow cosmic icones` ---
-# O verbo dizia «sem desenho: com.system76.CosmicViewer», e ninguém completava.
 RA="$T/raiz-apps"; CI="$T/casa-completar"; FB="$T/falso-dpkg"
 mkdir -p "$RA/usr/share/applications" "$RA/usr/share/icons/hicolor/scalable/apps" "$FB" \
          "$CI/.local/share/icons/MeowSystem-Icons/scalable/apps"

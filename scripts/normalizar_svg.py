@@ -1,37 +1,20 @@
 #!/usr/bin/env python3
-# normalizar_svg.py — o desenho dela sai do editor e CHEGA na tela.
-#
-#   normalizar_svg.py packs/meowsystem/mascote/            conserta o que dá, avisa o resto
-#   normalizar_svg.py --conferir packs/meowsystem/mascote/ não escreve; 1 se algo divergir
-#   normalizar_svg.py --silencioso ...        só o código de saída
-#
-# Uma transformação em torno de uma origem `o` é a mesma coisa que compor três:
-# ir até a origem, transformar, voltar.
-#
-# `E` é uma matriz comum, que os dois renderizadores entendem desde sempre.
-#
-# Não é `sed` porque `transform-origin: 50% 50%` com `transform-box: fill-box`
-# depende da CAIXA DA PEÇA: 50% de quê?
 import math
 import re
 import sys
 
-# Uma tag de abertura: `<`, nome, atributos (aspas simples ou duplas, que podem
-# conter `>` dentro — daí a alternância explícita em vez de `[^>]*`), e o fecho.
 _TAG = re.compile(
-    r"</([A-Za-z_][\w.:-]*)\s*>"                                   # 1: fecho
-    r"|<([A-Za-z_][\w.:-]*)((?:[^>\"']|\"[^\"]*\"|'[^']*')*?)(/?)>"  # 2,3,4: abertura
+    r"</([A-Za-z_][\w.:-]*)\s*>"
+    r"|<([A-Za-z_][\w.:-]*)((?:[^>\"']|\"[^\"]*\"|'[^']*')*?)(/?)>"
 )
 _ATRIBUTO = re.compile(r"([\w.:-]+)\s*=\s*(\"[^\"]*\"|'[^']*')")
 
 
 def _atributos(bruto):
-    """Os atributos de uma tag, na ordem em que aparecem."""
     return {m.group(1): m.group(2)[1:-1] for m in _ATRIBUTO.finditer(bruto)}
 
 
 def _declaracoes(style):
-    """`a: 1; b: 2` -> [('a', '1'), ('b', '2')], preservando a ordem."""
     saida = []
     for pedaco in style.split(";"):
         if ":" not in pedaco:
@@ -43,9 +26,6 @@ def _declaracoes(style):
     return saida
 
 
-# ---------------------------------------------------------------------------
-# 2. MATRIZES — (a, b, c, d, e, f), a mesma ordem do atributo `transform`
-# ---------------------------------------------------------------------------
 IDENTIDADE = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
 
 
@@ -71,8 +51,6 @@ _FUNCAO = re.compile(r"([a-zA-Z]+)\s*\(([^)]*)\)")
 
 
 def ler_transform(texto):
-    """`rotate(9) translate(3 4)` -> matriz única. None se houver função
-    desconhecida — melhor devolver nada do que devolver errado."""
     if not texto or not texto.strip():
         return IDENTIDADE
     m = IDENTIDADE
@@ -90,7 +68,7 @@ def ler_transform(texto):
         elif nome == "rotate":
             r = math.radians(n[0])
             giro = (math.cos(r), math.sin(r), -math.sin(r), math.cos(r), 0, 0)
-            if len(n) == 3:  # rotate(a cx cy) = translate·rotate·translate⁻¹
+            if len(n) == 3:
                 giro = multiplicar((1, 0, 0, 1, n[1], n[2]), giro)
                 giro = multiplicar(giro, (1, 0, 0, 1, -n[1], -n[2]))
             passo = giro
@@ -104,9 +82,6 @@ def ler_transform(texto):
 
 
 def escrever_matriz(m):
-    # Seis casas bastam para 1024 px de viewBox (erro < 1e-3 px) e mantêm a
-    # linha legível no `git diff`. O `.rstrip` tira o zero à toa: `-0.990268`
-    # e não `-0.990268000000`.
     def n(v):
         s = f"{v:.6f}".rstrip("0").rstrip(".")
         return "0" if s in ("", "-0") else s
@@ -114,9 +89,6 @@ def escrever_matriz(m):
     return "matrix(" + ", ".join(n(v) for v in m) + ")"
 
 
-# ---------------------------------------------------------------------------
-# 3. A CAIXA DA PEÇA — necessária para `transform-box: fill-box` e para o aviso
-# ---------------------------------------------------------------------------
 class _BBox:
     def __init__(self):
         self.x0 = self.y0 = float("inf")
@@ -133,21 +105,10 @@ class _BBox:
         return self.x0 > self.x1
 
     def centro(self, px, py):
-        """A origem pedida em porcentagem, resolvida contra esta caixa."""
         return (self.x0 + (self.x1 - self.x0) * px, self.y0 + (self.y1 - self.y0) * py)
 
 
 def _extremos_bezier(p0, p1, p2, p3=None):
-    """Os pontos extremos de uma curva, analiticamente. Quadrática quando p3 é
-    None. Amostrar seria mais curto e erraria o topo do arco por até meio pixel
-    — e é justamente o topo que decide onde cai o `50%` de um dente.
-
-    Devolve PONTOS INTEIROS, avaliando os dois eixos no `t` do extremo. A
-    primeira versão daqui devolvia `(v, v)` — o valor do eixo repetido — e a
-    caixa saía com o x de um extremo casado com o y de outro: a bbox do dente
-    do Mimir veio `y0=407` (o x!) e o centro caiu 100 px acima do certo. Pego
-    porque o teste comparava a origem calculada com a que o Boxy tinha escrito
-    à mão no arquivo da Coquinha: 511.7 contra 419.2."""
     def ponto(t):
         u = 1 - t
         if p3 is None:
@@ -188,12 +149,10 @@ _COMANDO = re.compile(r"([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)")
 
 
 def bbox_de_path(d):
-    """A caixa de um `d=`. None quando aparece comando que não sabemos medir —
-    devolver None faz o chamador AVISAR em vez de chutar uma origem errada."""
     caixa = _BBox()
     x = y = 0.0
     inicio = (0.0, 0.0)
-    ctrl = None  # o refletido de S/T
+    ctrl = None
     for cmd, resto in _COMANDO.findall(d):
         n = [float(v) for v in _NUM.findall(resto)]
         rel = cmd.islower()
@@ -223,7 +182,7 @@ def bbox_de_path(d):
                 x, y = nx, ny
                 i += 2
                 if c == "M":
-                    c = "l" if rel else "L"  # M seguido de pares = lineto
+                    c = "l" if rel else "L"
                     c = c.upper()
             elif c in ("H", "V"):
                 v = n[i]
@@ -261,8 +220,6 @@ def bbox_de_path(d):
                 ctrl, (x, y) = p[0], p[1]
                 i += 4
             elif c == "A":
-                # O arco entra pelos EXTREMOS, e a caixa fica subestimada quando
-                # ele passa de um quadrante.
                 nx, ny = n[i + 5], n[i + 6]
                 if rel:
                     nx, ny = x + nx, y + ny
@@ -278,7 +235,6 @@ def bbox_de_path(d):
 
 
 def bbox_de_forma(tag, at):
-    """A caixa das formas primitivas — o Boxy também emite rect e ellipse."""
     def f(nome, padrao=0.0):
         try:
             return float(re.sub(r"[a-z%]+$", "", at.get(nome, "")) or padrao)
@@ -308,15 +264,10 @@ def bbox_de_forma(tag, at):
     return None if caixa.vazia else caixa
 
 
-# ---------------------------------------------------------------------------
-# 4. A ORIGEM PEDIDA NO CSS
-# ---------------------------------------------------------------------------
 _PALAVRAS = {"left": 0.0, "top": 0.0, "center": 0.5, "right": 1.0, "bottom": 1.0}
 
 
 def ler_origem(valor, caixa):
-    """`50% 50%`, `419.161px 646.272px`, `center`… -> (x, y) no espaço da peça.
-    None quando falta a caixa para resolver a porcentagem."""
     partes = valor.split()
     if not partes:
         return None
@@ -344,18 +295,14 @@ def ler_origem(valor, caixa):
     return tuple(saida)
 
 
-# ---------------------------------------------------------------------------
-# 5. A PASSAGEM PELO ARQUIVO
-# ---------------------------------------------------------------------------
 class Resultado:
     def __init__(self):
-        self.consertos = []   # frases do que foi (ou seria) mudado
-        self.avisos = []      # o que não dá para consertar sozinho
+        self.consertos = []
+        self.avisos = []
         self.erro = None
 
 
 def normalizar_texto(texto, nome="<svg>"):
-    """Devolve (texto novo, Resultado). Não toca em disco."""
     r = Resultado()
     viewbox = None
     m = re.search(r'viewBox\s*=\s*"([^"]*)"', texto)
@@ -364,14 +311,11 @@ def normalizar_texto(texto, nome="<svg>"):
         if len(n) == 4:
             viewbox = n
 
-    # A PILHA DE MATRIZES DOS ANCESTRAIS, para o aviso de "caiu fora da tela".
-    # Ela precisa DESEMPILHAR nos `</g>`, e isso não é detalhe: os mascotes abrem
-    # com `<g transform="translate(-1124)">` (o arco-íris do fundo).
     saida = []
     pos = 0
     pilha = [IDENTIDADE]
     for tag in _TAG.finditer(texto):
-        if tag.group(1):  # </tag>
+        if tag.group(1):
             if tag.group(1) in ("g", "svg", "a", "switch") and len(pilha) > 1:
                 pilha.pop()
             continue
@@ -383,7 +327,6 @@ def normalizar_texto(texto, nome="<svg>"):
         proprio = ler_transform(at.get("transform", ""))
         novo_bruto = bruto
 
-        # --- o conserto: transform-origin / transform-box -------------------
         style = at.get("style", "")
         if "transform-origin" in style or "transform-box" in style:
             decls = _declaracoes(style)
@@ -401,9 +344,6 @@ def normalizar_texto(texto, nome="<svg>"):
                 else:
                     restantes.append((chave, valor))
 
-            # O `transform` pode estar no style (o Boxy às vezes o põe lá). Vale
-            # o mesmo tratamento, e sai do style: como ATRIBUTO ele é SVG 1.1, e
-            # aí não há renderizador que discuta.
             base = proprio
             if transform_no_style is not None:
                 lido = ler_transform(transform_no_style)
@@ -452,7 +392,6 @@ def normalizar_texto(texto, nome="<svg>"):
                         f"(origem {ox:.3f} {oy:.3f})"
                     )
 
-        # --- o aviso genérico: a peça cai fora da tela? ---------------------
         acumulada = multiplicar(pilha[-1], proprio if proprio else IDENTIDADE)
         if viewbox and nome_tag in ("path", "rect", "circle", "ellipse", "polygon", "polyline"):
             caixa = bbox_de_forma(nome_tag, at)
@@ -485,7 +424,6 @@ def normalizar_texto(texto, nome="<svg>"):
 
 
 def _trocar_atributo(bruto, nome, valor, depois_de=None):
-    """Troca (ou acrescenta) um atributo, mexendo só nele."""
     padrao = re.compile(r"(\s)" + re.escape(nome) + r"\s*=\s*(\"[^\"]*\"|'[^']*')")
     if padrao.search(bruto):
         if valor == "":
@@ -510,9 +448,6 @@ def normalizar_arquivo(caminho, escrever=True):
         return r
     novo, r = normalizar_texto(texto, caminho)
     if novo != texto and escrever:
-        # Escrita atômica, mesma disciplina do `meow_escrever`: um leitor (o
-        # próprio vigia, que acorda com a escrita) nunca pega o arquivo pela
-        # metade.
         tmp = caminho + ".meow-tmp"
         with open(tmp, "w", encoding="utf-8") as fh:
             fh.write(novo)
@@ -521,9 +456,6 @@ def normalizar_arquivo(caminho, escrever=True):
     return r
 
 
-# ---------------------------------------------------------------------------
-# 6. LINHA DE COMANDO
-# ---------------------------------------------------------------------------
 def main(argv):
     conferir = "--conferir" in argv
     silencioso = "--silencioso" in argv

@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""lancador_orfaos.py — os lançadores do home cujo programa não existe mais. Só lê.
-
-Imprime `caminho<TAB>nome<TAB>alvo`, um por linha. Quem move é o `lancador.sh`.
-
-Na dúvida o lançador é vivo: esconder um app que existe custa mais que mostrar um
-que morreu, e quem decide aqui move arquivo.
-"""
 from __future__ import annotations
 
 import os
@@ -16,14 +9,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Embrulham o comando real: o alvo é o que vem depois deles.
 WRAPPERS = {"env", "nice", "systemd-run", "gtk-launch", "dbus-run-session",
             "setsid", "nohup", "ionice", "pkexec"}
-# Atravessam para outro sistema de arquivos: o alvo depois deles não existe no
-# host, e quem responde pelo lançador é o próprio wrapper.
 NAMESPACE = {"distrobox-enter", "toolbox", "flatpak-spawn", "podman", "docker",
              "lxc", "ssh", "chroot"}
-# `sh -c "cd x && ..."` guarda o comando numa string de shell: não se julga.
 SHELL = {"sh", "bash", "zsh", "fish", "dash"}
 RE_APPID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+){2,}$")
 
@@ -57,7 +46,6 @@ _FLATPAK_LIDO = False
 
 
 def flatpak_instalado(appid: str) -> bool:
-    """Sem resposta do flatpak é «não sei», e quem não sabe não condena."""
     global _FLATPAK, _FLATPAK_LIDO
     if not _FLATPAK_LIDO:
         _FLATPAK_LIDO = True
@@ -80,18 +68,15 @@ def alvo_existe(c: dict[str, str]) -> bool:
     if tryexec:
         if existe(tryexec):
             return True
-        # O distrobox escreve TryExec com argumentos, fora da especificação.
         partes = tryexec.split()
         return len(partes) > 1 and existe(partes[0])
     linha = c.get("Exec", "")
     if not linha:
         return True
-    # As aspas do Exec seguem as do shell: `"/opt/Meu App/run"` é um caminho só.
     try:
         toks = [t for t in shlex.split(linha) if not t.startswith("%")]
     except ValueError:
         return True
-    # Quem manda é sempre o primeiro comando da linha; o `--` só se lê depois dele.
     while toks:
         cabeca = Path(toks[0].strip("\"'")).name
         if cabeca == "flatpak":
@@ -116,7 +101,6 @@ def alvo_existe(c: dict[str, str]) -> bool:
 
 
 def nosso(arq: Path, c: dict[str, str]) -> bool:
-    """O que o MeowSystem escreve é julgado pelo passo que o escreve."""
     try:
         texto = arq.read_text(encoding="utf-8", errors="replace")
     except OSError:

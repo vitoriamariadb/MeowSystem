@@ -1,30 +1,9 @@
 #!/usr/bin/env bash
-#   ./scripts/auditar_icones.sh            tabela colorida + o que falta
-#   ./scripts/auditar_icones.sh --lista    acrescenta app por app
-#   ./scripts/auditar_icones.sh --ocultos  inclui os .desktop que ela não vê
-#   ./scripts/auditar_icones.sh --tema X   simula OUTRO tema sem selecioná-lo
-#   ./scripts/auditar_icones.sh --json     saída para máquina
-#
-#   0 = todo mundo pareado · 1 = algum app sem ícone · 2 = erro · 3 = falta dependência
-#
-# Consequência boa: a idempotência é de graça — rodar duas vezes dá saída byte a
-# byte idêntica, porque não existe segunda escrita.
-#
-#       Cosmic  ->  hicolor  ->  gnome  ->  Yaru
-#
-#   - `Size=`, `MinSize=`, `MaxSize=` e `Type=` só ORDENAM os subdiretórios
-#     (`closest_match_size`), nunca excluem nenhum. Não perca tempo afinando-os.
 set -uo pipefail
 
-# O `--json` tem de silenciar a cor ANTES de o comum.sh decidir se colore: ele
-# olha $NO_COLOR uma vez, no `source`. Espremer isto para depois exigiria zerar as
-# variáveis na mão, e alguma escaparia.
-# shellcheck disable=SC2034  # quem lê $NO_COLOR é o lib/comum.sh, no `source` abaixo
+# shellcheck disable=SC2034
 case " $* " in *" --json "*) NO_COLOR=1 ;; esac
 
-# `dirname` é comando EXTERNO, e usá-lo aqui fazia o script morrer com código 1
-# — "divergente, consertei" — quando o problema era não conseguir nem se
-# carregar.
 _meow_dir="${BASH_SOURCE[0]}"
 case "$_meow_dir" in */*) _meow_dir="${_meow_dir%/*}" ;; *) _meow_dir="." ;; esac
 RAIZ="$(cd "$_meow_dir/.." && pwd)"
@@ -57,9 +36,6 @@ while [ $# -gt 0 ]; do
     --lista)   LISTA=1 ;;
     --ocultos) OCULTOS=1 ;;
     --tema)    TEMA_FORCADO="${2:-}"
-               # Recusar valor com `-` na frente não é preciosismo: `--tema --json`
-               # engolia o `--json` como NOME DE TEMA e auditava um tema chamado
-               # "--json", em modo humano, sem reclamar de nada.
                case "$TEMA_FORCADO" in
                  ""|-*) meow_erro "--tema exige um nome de tema"; exit "$MEOW_ERRO" ;;
                esac
@@ -82,33 +58,21 @@ DADOS_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 DADOS_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 AMBIENTE="${XDG_CURRENT_DESKTOP:-COSMIC}"
 
-# O valor é RON: uma string entre aspas, sem newline no fim. `tr -d` em vez de
-# `sed` porque o arquivo pode legitimamente não ter quebra de linha nenhuma.
 TK="$(meow_cosmic_dir)/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme"
 if [ -n "$TEMA_FORCADO" ]; then
   TEMA="$TEMA_FORCADO"; FONTE_TEMA="--tema (simulação)"
 elif [ -r "$TK" ]; then
   TEMA="$(tr -d '"\n' < "$TK")"; FONTE_TEMA="$TK"
 else
-  # Sem a chave, o COSMIC usa o tema dele. Não é erro nem falta de dependência:
-  # é uma máquina que nunca teve o tema trocado. Auditar contra "Cosmic" é a
-  # resposta honesta para o que ela veria na tela agora.
   TEMA="Cosmic"; FONTE_TEMA="(chave ausente — padrão do COSMIC)"
 fi
 [ -n "$TEMA" ] || { meow_erro "o tema de ícones selecionado está vazio em $TK"; exit "$MEOW_ERRO"; }
 
-# 2. AS BASES DE ÍCONE, NA ORDEM DO paths.rs::icon_theme_base_paths
-#
-# cada $XDG_DATA_DIRS/{icons,pixmaps} -> $XDG_DATA_HOME/{icons,pixmaps} ->
-# $HOME/.icons
 BASES=()
 IFS=':' read -r -a _dd <<<"$DADOS_DIRS"
 for d in "${_dd[@]}"; do [ -n "$d" ] && BASES+=("$d/icons" "$d/pixmaps"); done
 BASES+=("$DADOS_HOME/icons" "$DADOS_HOME/pixmaps" "$HOME/.icons")
 
-# Rótulo CURTO de um diretório. A tabela alinha por largura de coluna: um caminho
-# absoluto inteiro no rótulo (acontece com $XDG_DATA_DIRS fora do comum) esticaria
-# a coluna e quebraria o desenho. Caminho desconhecido vira "…/penúltimo/último".
 _curto_caminho() {
   local p="${1/#$HOME/\~}" pai
   if [ "${#p}" -gt 20 ]; then pai="${p%/*}"; printf '…/%s/%s' "${pai##*/}" "${p##*/}"
@@ -116,7 +80,7 @@ _curto_caminho() {
 }
 
 _rotulo_base() {
-  # shellcheck disable=SC2088  # o "~/.icons" é RÓTULO de tabela, não caminho a expandir
+  # shellcheck disable=SC2088
   case "$1" in
     "$DADOS_HOME/icons")     printf 'usuário' ;;
     "$DADOS_HOME/pixmaps")   printf 'pixmaps do usuário' ;;
@@ -129,14 +93,7 @@ _rotulo_base() {
   esac
 }
 
-# ==============================================================================
-# 3. A CADEIA DE HERANÇA — DOIS NÍVEIS E QUATRO IMPLÍCITOS, NADA MAIS
-# ==============================================================================
-# tema selecionado -> `Inherits=` DIRETO dele (sem hicolor) -> Cosmic -> hicolor
-# -> gnome -> Yaru. Sem recursão: os avós NÃO são consultados pelo COSMIC (veja o
-# bloco no cabeçalho — foi por descer até o avô `Pop` que uma versão anterior deu
-# `repoman` como pareado, mentindo).
-_indice_de() {   # primeiro index.theme do tema, em qualquer base
+_indice_de() {
   local tema="$1" b
   for b in "${BASES[@]}"; do
     [ -f "$b/$tema/index.theme" ] && { printf '%s' "$b/$tema/index.theme"; return 0; }
@@ -144,7 +101,7 @@ _indice_de() {   # primeiro index.theme do tema, em qualquer base
   return 1
 }
 
-_herda() {       # Inherits= do index.theme, um por linha
+_herda() {
   local idx="$1"
   awk -F= '
     /^\[Icon Theme\]/ { g=1; next }
@@ -158,49 +115,34 @@ _herda() {       # Inherits= do index.theme, um por linha
 
 declare -A JA_NA_CADEIA=()
 CADEIA=()
-_por_na_cadeia() {   # acrescenta um tema, se ele existir em alguma base
+_por_na_cadeia() {
   local tema="$1"
   [ -n "${JA_NA_CADEIA[$tema]:-}" ] && return 0
-  _indice_de "$tema" >/dev/null || return 0   # citado mas não instalado: ignora
+  _indice_de "$tema" >/dev/null || return 0
   JA_NA_CADEIA[$tema]=1
   CADEIA+=("$tema")
 }
 
-# `THEMES.get(tema).or_else(hicolor)`: tema selecionado que não existe em disco não
-# é erro — o COSMIC troca a raiz da busca pelo hicolor e segue com os implícitos.
 RAIZ_TEMA="$TEMA"
 _indice_de "$TEMA" >/dev/null || RAIZ_TEMA="hicolor"
 _por_na_cadeia "$RAIZ_TEMA"
 
-# O `Inherits=` é lido de TODAS as bases que tenham esse tema, não só da primeira:
-# a crate percorre a lista inteira de cópias do tema procurando quem responda.
 for b in "${BASES[@]}"; do
   [ -f "$b/$RAIZ_TEMA/index.theme" ] || continue
   while IFS= read -r pai; do
-    [ "$pai" = "hicolor" ] && continue   # descartado no parse; entra na posição fixa
+    [ "$pai" = "hicolor" ] && continue
     _por_na_cadeia "$pai"
   done < <(_herda "$b/$RAIZ_TEMA/index.theme")
 done
 
 for t in Cosmic hicolor gnome Yaru; do _por_na_cadeia "$t"; done
 
-# Sem isto a auditoria diria "sem ícone" para meio mundo sem explicar a causa comum
-# a todos — que é um `icon_theme` com nome errado. Vai para o STDERR inteiro: o
-# `meow_info` escreve no stdout, e uma linha dessas no meio do `--json` produzia um
-# documento que nenhum parser aceita (medido: `json.load` estourava no caractere 2).
 if [ "$RAIZ_TEMA" != "$TEMA" ]; then
   meow_aviso "o tema '$TEMA' não está instalado em nenhuma base de ícones"
   meow_info "a busca cai direto no hicolor — é por isso que os ícones somem" >&2
 fi
 
-# ==============================================================================
-# 4. OS PARES (tema, base) NA ORDEM REAL DE CONSULTA
-# ==============================================================================
-# Nome do tema é o laço externo; a base é o interno. Um par só existe se tiver
-# index.theme ALI: um diretório de tema sem index.theme não é tema, e um mesmo
-# nome em duas bases tem seções de tamanho diferentes (o `hicolor` do usuário e o do
-# sistema divergem nesta máquina — é a armadilha do cabeçalho).
-PARES=()   # "tema\tbase\trotulo\tindex.theme"
+PARES=()
 for tema in "${CADEIA[@]}"; do
   for b in "${BASES[@]}"; do
     [ -f "$b/$tema/index.theme" ] || continue
@@ -210,14 +152,6 @@ for tema in "${CADEIA[@]}"; do
 done
 [ ${#PARES[@]} -gt 0 ] || { meow_erro "nenhum tema de ícones instalado (nem '$TEMA' nem hicolor)"; exit "$MEOW_SEM_DEPENDENCIA"; }
 
-# Subdiretórios que o COSMIC realmente enxerga, um por linha.
-#
-# NÃO é a chave `Directories=` — essa a crate nunca lê. O que vale é a SEÇÃO:
-# `parse.rs::get_all_directories` percorre os `[...]` do index.theme e aceita cada
-# um que declare `Size=`. E ele PARA no primeiro que não declare (o `size.take()?`
-# encerra o iterador inteiro, não pula a seção) — por isso o `exit` aqui, e não um
-# `next`. Divergem em 3 dos 22 index.theme instalados aqui; ler a chave errada dá
-# tanto falso "existe" quanto falso "não existe".
 _secoes_com_size() {
   awk '
     /^[ \t]*\[/ {
@@ -231,12 +165,6 @@ _secoes_com_size() {
     END { if (sec != "" && sec != "Icon Theme" && tem) print sec }' "$1"
 }
 
-# ==============================================================================
-# 5. QUAIS .desktop CONTAM
-# ==============================================================================
-# Precedência XDG de verdade: $XDG_DATA_HOME primeiro, $XDG_DATA_DIRS depois, na
-# ordem. Mesmo nome de arquivo = mesmo app; o primeiro a aparecer ganha e os
-# outros nem são lidos (8 nomes duplicados nesta máquina).
 ORIGENS=("$DADOS_HOME/applications")
 for d in "${_dd[@]}"; do [ -n "$d" ] && ORIGENS+=("$d/applications"); done
 
@@ -251,9 +179,6 @@ _rotulo_origem() {
   esac
 }
 
-# Lê só o grupo [Desktop Entry]. Ler o arquivo inteiro pegaria o `Icon=` das
-# [Desktop Action ...] (o Chrome tem três) e auditaria um ícone que não é o do app.
-# `Name[pt_BR]` na frente do `Name` porque a tabela é para ela ler.
 _ler_desktop() {
   awk -v amb="$AMBIENTE" '
     BEGIN { FS = "\n" }
@@ -280,7 +205,7 @@ _ler_desktop() {
 
 declare -A JA_VISTO=()
 TOTAL=0; VISIVEIS=0
-: > "$TMP/apps"          # id \t rotulo-origem \t nome \t icone
+: > "$TMP/apps"
 for dir in "${ORIGENS[@]}"; do
   [ -d "$dir" ] || continue
   rot="$(_rotulo_origem "$dir")"
@@ -302,18 +227,6 @@ if [ "$VISIVEIS" -eq 0 ]; then
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
-# ==============================================================================
-# 6. RESOLVER OS ÍCONES — UMA PASSADA SÓ
-# ==============================================================================
-# A tentação é testar `[ -f ]` para cada (nome × tema × base × subdiretório ×
-# extensão). Nesta máquina isso dá ~700 mil testes só para o `hicolor`, que
-# declara 649 subdiretórios. Em vez disso varremos os diretórios UMA vez, em
-# ordem de prioridade, e deixamos o awk casar com o conjunto de nomes desejados.
-# Custo: ~26 mil linhas, uma fração de segundo.
-#
-# `rank` = posição do par × 10 + peso da extensão (svg 0, png 1, xpm 2). Como a
-# extensão é o laço externo DENTRO do tema, o `.svg` de 22x22 vence o `.png` de
-# 512x512 do mesmo tema — e é isso que o rank codifica.
 awk -F'\t' '{ i = $4
               if (i == "" || substr(i,1,1) == "/" || index(i,"/") > 0) next
               sub(/\.(png|svg|xpm)$/, "", i)
@@ -328,13 +241,6 @@ _stream() {
       [ -d "$base/$tema/$sub" ] && alvos+=("$base/$tema/$sub")
     done < <(_secoes_com_size "$idx")
     if [ ${#alvos[@]} -gt 0 ]; then
-      # `-H` NÃO É ENFEITE. MEDIDO nesta máquina, e caro de descobrir:
-      # o Papirus-Dark quase não tem diretório de verdade — `128x128` é link para
-      # `../Papirus/128x128`, e `128x128/apps` é link também. O `find` padrão (-P)
-      # não segue nem o CAMINHO INICIAL quando ele próprio é um link: começar em
-      # `Papirus-Dark/128x128/apps` devolve ZERO arquivo, calado. Com `-H` só o
-      # ponto de partida é seguido — que é exatamente o que queremos, sem sair
-      # descendo por links de dentro do tema.
       find -H "${alvos[@]}" -maxdepth 1 \( -type f -o -type l \) -printf '%f\t%p\n' 2>/dev/null \
         | awk -F'\t' -v br="$((i * 10))" -v rot="$rotulo" 'BEGIN { OFS = "\t" }
             {
@@ -348,14 +254,6 @@ _stream() {
     fi
     i=$((i + 1))
   done
-  # O ÚLTIMO RECURSO: `<base>/<nome>.<ext>` solto na raiz da base, depois de TODO
-  # tema (lib.rs 351-374). São todas as bases, não só o `/usr/share/pixmaps`: nesta
-  # máquina há `~/.local/share/pixmaps/hefesto-dualsense4unix.png` e dois .png na
-  # raiz de `/usr/share/icons`, e o COSMIC acha os três.
-  #
-  # Aqui a EXTENSÃO é o laço EXTERNO e a base o interno — o inverso da busca por
-  # tema. Por isso o rank multiplica a extensão pelo número de bases: assim um
-  # `.svg` na última base vence um `.png` na primeira, que é o que o código faz.
   j=0; nb=${#BASES[@]}
   for b in "${BASES[@]}"; do
     if [ -d "$b" ]; then
@@ -385,20 +283,16 @@ _stream | awk -F'\t' -v quero="$TMP/desejados" 'BEGIN {
 declare -A DE_TEMA=() DE_CAMINHO=()
 while IFS=$'\t' read -r n t c; do DE_TEMA[$n]="$t"; DE_CAMINHO[$n]="$c"; done < "$TMP/resolvidos"
 
-# ==============================================================================
-# 7. VEREDITO POR APP
-# ==============================================================================
 declare -A CONTA=()
 ORDEM_TEMAS=()
 COM=0; SEM=0
-: > "$TMP/faltantes"     # id \t nome \t icone \t origem
-: > "$TMP/pareados"      # id \t nome \t icone \t origem \t tema \t caminho
+: > "$TMP/faltantes"
+: > "$TMP/pareados"
 while IFS=$'\t' read -r id origem nome icone; do
   tema=""; caminho=""
   if [ -z "$icone" ]; then
-    tema=""                                    # .desktop sem Icon= — nada a parear
+    tema=""
   elif [ "${icone:0:1}" = "/" ] || [ "${icone#*/}" != "$icone" ]; then
-    # Caminho e não nome. O COSMIC carrega o arquivo direto, sem passar por tema.
     if [ -f "$icone" ]; then tema="caminho absoluto"; caminho="$icone"; fi
   else
     chave="${icone%.png}"; chave="${chave%.svg}"; chave="${chave%.xpm}"
@@ -416,16 +310,6 @@ while IFS=$'\t' read -r id origem nome icone; do
   fi
 done < "$TMP/apps"
 
-# ==============================================================================
-# 8. POR QUE FALTOU — o diagnóstico que transforma a lista em ação
-# ==============================================================================
-# Só roda se algo faltou, porque varre TODAS as bases de ícone (~150 mil arquivos
-# em /usr/share/icons). Três respostas possíveis, e cada uma pede uma ação
-# diferente — é justamente isso que uma lista de nomes secos não dá:
-#   a) o arquivo existe num tema DA CADEIA, mas num subdiretório sem seção
-#      `[sub]` com `Size=`  -> o COSMIC ignora; corrigir o index.theme.
-#   b) existe num tema FORA da cadeia -> acrescentar o tema ao `Inherits=`.
-#   c) não existe em lugar nenhum     -> falta baixar mesmo.
 declare -A MOTIVO=()
 if [ "$SEM" -gt 0 ]; then
   cut -f3 "$TMP/faltantes" \
@@ -435,11 +319,6 @@ if [ "$SEM" -gt 0 ]; then
   RAIZES=()
   for b in "${BASES[@]}"; do [ -d "$b" ] && RAIZES+=("$b"); done
   if [ -s "$TMP/faltam_nomes" ] && [ ${#RAIZES[@]} -gt 0 ]; then
-    # `-L` aqui, e não `-H`: esta varredura ANDA pela árvore inteira, e a árvore
-    # dos temas Papirus é feita de links (os 81 mil arquivos do Papirus aparecem
-    # no Papirus-Dark por link de diretório). Sem `-L` o diagnóstico diria "não
-    # existe em nenhum tema" para ícone que existe — o pior conselho possível.
-    # Custo medido: ~1,5 milhão de caminhos, ~0,9 s. Só roda quando algo faltou.
     find -L "${RAIZES[@]}" -mindepth 3 \( -type f -o -type l \) \
          \( -name '*.svg' -o -name '*.png' -o -name '*.xpm' \) -printf '%p\n' 2>/dev/null \
       | awk -v quero="$TMP/faltam_nomes" '
@@ -451,7 +330,6 @@ if [ "$SEM" -gt 0 ]; then
   fi
 
   while IFS=$'\t' read -r nome caminho; do
-    # tema = componente logo depois da base; resto = subdiretório declarado ou não
     achou_base=""
     for b in "${BASES[@]}"; do
       case "$caminho" in "$b"/*) achou_base="$b"; break ;; esac
@@ -476,16 +354,10 @@ _motivo_de() {
   printf '%s' "${MOTIVO[$chave]:-não existe em nenhum tema instalado — falta baixar}"
 }
 
-# ==============================================================================
-# 9. SAÍDA
-# ==============================================================================
 _esc() { local s="${1//\\/\\\\}"; printf '%s' "${s//\"/\\\"}"; }
 
 if [ "$JSON" = "1" ]; then
   printf '{\n'
-  # Chave de MÁQUINA, sem acento de propósito: quem lê isto é `jq`/`json.load`, e
-  # nome de campo com acento vira dor de cabeça em todo consumidor. O validador de
-  # acentuação do repo reclamaria, daí o noqa.
   printf '  "versao": 1,\n'   # noqa: acentuacao
   printf '  "data": "%s",\n' "$(date -Iseconds)"
   printf '  "tema_selecionado": "%s",\n' "$(_esc "$TEMA")"
@@ -525,15 +397,7 @@ if [ "$JSON" = "1" ]; then
   exit "$MEOW_OK"
 fi
 
-# A régua tem exatamente a mesma largura da que o `meow_passo` desenha (52), para
-# o bloco fechar alinhado com o título. A barra é dimensionada para caber nesse
-# mesmo bloco — barra que estoura a régua faz a tabela parecer quebrada.
 LARGURA_BLOCO=52
-# Repetição em bash puro, sem `seq`. Não é purismo: o `seq` era a única dependência
-# do script que NÃO estava na verificação lá de cima, e sem ele a tabela saía com a
-# régua de um traço só — errada, mas com código de saída 0, que é o pior jeito de
-# falhar. `${s// /$c}` troca cada espaço pelo caractere; `${#t}` e o `%*s` contam em
-# CARACTERES no bash, então isto continua certo com o `─` e o `█`, que são multibyte.
 _repetir() {
   local n="$1" c="$2" s
   [ "$n" -le 0 ] && return 0
@@ -542,13 +406,6 @@ _repetir() {
 }
 _regua() { printf '  %s%s%s\n' "$C_DIM" "$(_repetir "$LARGURA_BLOCO" '─')" "$C_ZERO"; }
 
-# O printf do BASH conta BYTES em `%-20s` e `%.20s` — não caracteres. MEDIDO aqui:
-# "hicolor (usuário)" tem 17 caracteres e 18 bytes, e sai da coluna com um espaço a
-# menos que "hicolor (sistema)", que tem os mesmos 17 caracteres. (O printf do zsh
-# acerta, o que torna a armadilha pior: testar o trecho no terminal dela "funciona"
-# e o script continua torto.) Por isso NENHUMA coluna aqui usa largura de printf:
-# `_encurtar` corta por caractere e o preenchimento vai como `%*s` de espaços, com
-# a conta feita em `${#texto}`, que o bash calcula em caracteres.
 _encurtar() {
   local t="$1" m="$2"
   if [ "${#t}" -le "$m" ]; then printf '%s' "$t"; else printf '%s…' "${t:0:$((m - 1))}"; fi
@@ -574,9 +431,6 @@ else
          "$C_DIM" "$C_ZERO" "$VISIVEIS" "$C_DIM" "$TOTAL" "$OCULTADOS" "$C_ZERO"
 fi
 
-# --- de onde veio cada ícone ---------------------------------------------------
-# Ordenado pela contagem, com barra proporcional: a leitura que ela quer é "o
-# tema do MeowSystem está entregando quanto?", e isso é uma comparação visual.
 meow_passo "De onde veio cada ícone"
 MAIOR=1
 for t in "${ORDEM_TEMAS[@]}"; do [ "${CONTA[$t]}" -gt "$MAIOR" ] && MAIOR="${CONTA[$t]}"; done
@@ -587,8 +441,8 @@ BARRA_MAX=$(( LARGURA_BLOCO - LARG - 8 )); [ "$BARRA_MAX" -lt 6 ] && BARRA_MAX=6
 while IFS=$'\t' read -r n t; do
   barra=$(( n * BARRA_MAX / MAIOR )); [ "$barra" -lt 1 ] && barra=1
   case "$t" in
-    "$TEMA"*)              cor="$C_MAUVE" ;;   # o nosso tema, em destaque
-    hicolor*|solto*)       cor="$C_AMARELO" ;; # fim da fila: funciona, mas não é tema
+    "$TEMA"*)              cor="$C_MAUVE" ;;
+    hicolor*|solto*)       cor="$C_AMARELO" ;;
     *)                     cor="$C_AZUL" ;;
   esac
   rot="$(_encurtar "$t" "$LARG")"
@@ -603,7 +457,6 @@ printf '  %s%s%s%*s  %s%4s%s  %sde %s   (%s%%)%s\n' \
   "$COR_TOTAL" "pareados" "$C_ZERO" "$(_sobra "$LARG" pareados)" '' \
   "$COR_TOTAL" "$COM" "$C_ZERO" "$C_DIM" "$VISIVEIS" "$PCT" "$C_ZERO"
 
-# --- app por app (opcional) ----------------------------------------------------
 if [ "$LISTA" = "1" ]; then
   meow_passo "Aplicativo por aplicativo"
   while IFS=$'\t' read -r id nome icone origem tema caminho; do
@@ -621,7 +474,6 @@ if [ "$LISTA" = "1" ]; then
   done < <(sort -t$'\t' -k5,5 -k2,2 "$TMP/pareados")
 fi
 
-# --- o que exige ação ----------------------------------------------------------
 printf '\n'
 if [ "$SEM" -eq 0 ]; then
   printf '  %sTudo pareado.%s Nenhum app visível ficou sem ícone — nada a fazer.\n\n' \
@@ -631,9 +483,6 @@ if [ "$SEM" -eq 0 ]; then
 fi
 
 meow_passo "Sem ícone ($SEM) — só estes exigem ação"
-# No modo --ocultos a lista enche de `.desktop` que existem SÓ para esconder um app
-# (um `[Desktop Entry]` com `Hidden=true` e mais nada — é assim que o UXTerm, o
-# qt5ct e o Vim somem do menu dela). Não declarar Icon= ali é o certo, não um furo.
 [ "$OCULTOS" = "1" ] && printf '  %scom --ocultos, "sem Icon=" costuma ser um .desktop que só serve para esconder um app%s\n\n' \
   "$C_DIM" "$C_ZERO"
 while IFS=$'\t' read -r id nome icone origem; do

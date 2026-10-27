@@ -1,11 +1,5 @@
-/* app/pagina/oficina.js — os moldes que nascem de dado: os aplicativos e o ícone
- * de cada um (com a oficina que gera o desenho), os desenhos autorais do pack,
- * os papéis de parede e os jogos. Usa o núcleo (app.js), que carrega depois. */
 "use strict";
 
-/* ========================================================================= */
-/* APLICATIVOS E ÍCONES                                                       */
-/* ========================================================================= */
 let APPS = null;
 let APPS_BUSCA = "";
 let APP_ABERTO = null;
@@ -26,7 +20,6 @@ async function carregarGlifos(termo, app) {
              aviso: r.aviso || "", escolha: r.escolha || null, minha: r.minha || null, veste: r.veste || null };
   render();
 }
-/* A origem do ícone vira um ponto de cor no canto, e a palavra mora na dica. */
 function origemDoApp(a) {
   if (a.escolhido) return ["escolha", "Escolhido por você"];
   if (a.dracula) return ["pack", "Desenho do pack"];
@@ -69,7 +62,6 @@ async function depoisDoIcone(app, acao, recarregar) {
   await recarregar();
 }
 
-/* O ícone de um aplicativo: os desenhos do acervo, a cor do traço e a oficina. */
 function escolhaDeIcone(app, recarregar) {
   const painel = elemento("div", { class: "escolha-icone", "data-escolha-icone": app.id });
   let cor = (app.traco && app.traco.cor) || (app.mapa && app.mapa.cor) || "mauve";
@@ -178,7 +170,6 @@ function escolhaDeIcone(app, recarregar) {
   return painel;
 }
 
-/* --- a oficina: gerar o ícone em traço a partir do original ---------------- */
 function oficinaZerada(id) {
   return { app: id, aberta: false, carregou: false, ocupada: false, erro: "", cor: "",
     original: "", variacoes: [], vizinhos: [], salvo: null, pack: [], arte: false,
@@ -189,8 +180,6 @@ function oficinaZerada(id) {
 let OFICINA = oficinaZerada(null);
 let redesenharOficina = () => {};
 
-/* O SVG vira nó para a lupa e para os cartões; o texto é do servidor, que o
- * normaliza, e passa pelo DOMParser (nada de string em innerHTML). */
 function desenhar(texto, px, cor, opcoes = {}) {
   let doc;
   try { doc = new DOMParser().parseFromString(String(texto || "").trim(), "image/svg+xml"); } catch (e) { return null; }
@@ -408,7 +397,6 @@ function oficinaDeDesenho(app, relerLista) {
   return caixa;
 }
 
-/* --- os desenhos autorais do pack: cada papel do desenho ganha uma cor ------ */
 let AUTORAL = { carregou: false, ocupada: false, erro: "", nomePack: "", desenhos: [], cores: [],
                 nome: null, papeis: null, herdadoDe: "", previas: [], temporizador: null };
 async function carregarAutoral() {
@@ -488,9 +476,6 @@ function oficinaAutoral() {
   return caixa;
 }
 
-/* ========================================================================= */
-/* PAPÉIS DE PAREDE                                                           */
-/* ========================================================================= */
 const GRUPOS_PAREDE = [
   { id: "ativos", rotulo: "No carrossel" }, { id: "noite", rotulo: "Noite" }, { id: "dia", rotulo: "Dia" },
   { id: "favoritos", rotulo: "Favoritas" }, { id: "banidos", rotulo: "Fora" },
@@ -504,8 +489,6 @@ async function rodarNaGaleria(id, argumento) {
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirResultado(r);
 }
-/* `leva`: o Criar tema passa {no(nome), levar(nome, sim), sem} — a foto ganha o
- * botão de levar para o pack; `sem` é o porquê de ele estar apagado. */
 function montarGaleria(leva = null) {
   const abas = elemento("div", { class: "seg", role: "group", "aria-label": "Grupo" });
   for (const g of GRUPOS_PAREDE) {
@@ -552,9 +535,6 @@ function montarGaleria(leva = null) {
   return elemento("div", { class: "pilha", style: "gap:16px" }, filhos);
 }
 
-/* ========================================================================= */
-/* JOGOS                                                                      */
-/* ========================================================================= */
 let JOGOS = null;
 let JOGO_ABERTO = null;
 async function carregarJogos() {
