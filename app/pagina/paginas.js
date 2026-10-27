@@ -17,21 +17,26 @@ function paredeDaPrevia() {
 }
 const REGIAO = [
   [/^(FORMA_.*PAINEL|VIDRO_OPACIDADE_PAINEL|VIDRO_AO_MAXIMIZAR|MIDIA|RELOGIO)/, "painel"],
-  [/^(FORMA_.*DOCK|VIDRO_OPACIDADE_DOCK|LOGO)/, "dock"],
+  [/^(FORMA_.*DOCK|VIDRO_OPACIDADE_DOCK|LOGO$)/, "dock"],
   [/^(TERMINAL_|PROMPT_|FASTFETCH_)/, "term"],
-  [/^(ICONES_|PASTAS_)/, "arq"],
+  [/^(ICONES_|PASTAS_|JANELAS_TILING)/, "arq"],
 ];
 function mesaDaPagina(pagina = "") {
   const marca = new Set();
   for (const c of MUDANCAS.keys()) for (const [re, r] of REGIAO) if (re.test(c)) marca.add(r);
   const gato = ESQUEMA.gato_no_dock || vale("LOGO");
-  const ff = (pagina === "mascote" || pagina === "terminal") && ligado(valeNaPrevia("FASTFETCH_LOGO"))
+  const doTerminal = pagina === "mascote" || pagina === "terminal";
+  const ff = doTerminal && ligado(valeNaPrevia("FASTFETCH_LOGO"))
     ? urlDoGato(valeNaPrevia("FASTFETCH_LOGO_GATO") || gato) : null;
+  const leitura = pagina === "dia-e-noite";
   return MESA.mesa({
-    val: valeNaPrevia, marca, gato: urlDoGato(gato), ff, parede: paredeDaPrevia(),
+    val: valeNaPrevia, marca, gato: urlDoGato(gato), ff, ffPagina: doTerminal, parede: paredeDaPrevia(),
     ajuste: valeNaPrevia("WALLPAPER_AJUSTE"),
-    quente: pagina === "dia-e-noite" && ligado(valeNaPrevia("LEITURA_AGENDA")) ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
-    rotulo: "Prévia",
+    solo: pagina === "terminal" ? "term" : "",
+    ponteiro: pagina === "janelas",
+    quente: leitura ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
+    textura: leitura ? valeNaPrevia("LEITURA_TEXTURA") : null,
+    rotulo: "Prévia da área de trabalho",
   });
 }
 function repintarPrevia(chave, valor) {
