@@ -100,3 +100,12 @@ Não fechou:
   bloco com ela presente.
 - O corte de verdade no `$ZD` dela (`vizinhos.sh --desativar aurora-compositor aurora-night-light`)
   não roda daqui: muda o HOME real. Vale depois do login com o shim ligado.
+
+Suíte inteira (`./tests/todos.sh`, 103 testes): 99 verdes e 4 vermelhos. Dois eram deste bloco e
+foram curados depois, com o teste rodado de novo e verde: `reler-uma-vez.sh` (o «Reiniciar o painel»
+da P120 chamava o `painel.sh reciclar` por fora do `meow_tela_reler`) e `migracao-do-painel.py` (a
+chave `COMPOSITOR` sem lugar no `lugares.js`; mora na aba Builds). Ficam os aceitos: `decisoes.sh`
+(só a GPU, D6) e `restaurar.sh` (`pack_usar`, `desinstalar`), e um novo no `restaurar.sh`,
+`sistema_limpar`, que é da máquina: o teste lê o `/var/cache/apt/archives` de verdade, e o
+`cosmic-comp_0.1~1792508925…deb` que está lá faz o `_as_guardar_debs` copiar um arquivo para a casa
+de brinquedo sem deixar «Restaurar». O `atualizar_sistema.sh` não foi tocado neste bloco.
