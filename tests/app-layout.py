@@ -100,6 +100,64 @@ def foto(pag, nome):
         pag.screenshot(path=os.path.join(FOTOS, nome + ".png"))
 
 
+ASSINATURA = """
+() => { const p = document.querySelector('.oficina .palco .previa'); if (!p) return null;
+  return { attrs: Object.entries(p.dataset).sort().map(([k, v]) => k + '=' + v).join(';'), estilo: p.getAttribute('style') || '',
+           html: p.innerHTML.length, quente: (p.querySelector('.quente') || {style: {}}).style.opacity || '',
+           papel: (p.querySelector('.papel') || {style: {}}).style.opacity || '',
+           gato: (p.querySelector('.p-dock .gato') || {}).src || '', parede: (p.querySelector('.parede') || {}).className || '',
+           ff: (p.querySelector('.gato-ff img') || {}).src || '' }; }
+"""
+
+TABELA = [
+    ("painel", "FORMA_DOCK_SOLTO", "alternar", "attrs"),
+    ("painel", "FORMA_PAINEL_SOLTO", "alternar", "attrs"),
+    ("painel", "FORMA_PAINEL_ILHA", "alternar", "attrs"),
+    ("painel", "FORMA_DOCK_ILHA", "alternar", "attrs"),
+    ("painel", "RELOGIO_SEGUNDOS", "alternar", "attrs"),
+    ("painel", "MIDIA", "alternar", "attrs"),
+    ("painel", "MIDIA_CAPA", "alternar", "attrs"),
+    ("painel", "MIDIA_CONTROLES", "alternar", "attrs"),
+    ("painel", "FORMA_MARGEM_PAINEL", "faixa", "estilo"),
+    ("painel", "FORMA_RAIO_PAINEL", "faixa", "estilo"),
+    ("painel", "FORMA_RAIO_DOCK", "faixa", "estilo"),
+    ("painel", "FORMA_ESPACO_PAINEL", "faixa", "estilo"),
+    ("painel", "FORMA_ESPACO_DOCK", "faixa", "estilo"),
+    ("painel", "VIDRO_OPACIDADE_PAINEL", "faixa", "estilo"),
+    ("painel", "VIDRO_OPACIDADE_DOCK", "faixa", "estilo"),
+    ("painel", "FORMA_CENTRO_DOCK", "seg", "estilo"),
+    ("painel", "FORMA_ALA_INICIAL_DOCK", "seg", "estilo"),
+    ("painel", "FORMA_ALA_FINAL_DOCK", "seg", "estilo"),
+    ("painel", "FORMA_CENTRO_PAINEL", "seg", "estilo"),
+    ("painel", "MIDIA_COR_TITULO", "cor", "estilo"),
+    ("painel", "MIDIA_COR_ARTISTA", "cor", "estilo"),
+    ("janelas", "JANELAS_TILING", "alternar", "attrs"),
+    ("janelas", "CURSOR", "escolha", "estilo"),
+    ("mascote", "LOGO", "escolha", "gato"),
+    ("mascote", "FASTFETCH_LOGO", "alternar", "attrs"),
+    ("dia-e-noite", "LEITURA_TEMPERATURA", "faixa", "quente"),
+    ("dia-e-noite", "LEITURA_TEXTURA", "faixa", "papel"),
+    ("terminal", "TERMINAL_ESQUEMA", "alternar", "attrs"),
+    ("terminal", "PROMPT_STARSHIP", "alternar", "attrs"),
+]
+
+GESTO = """
+([chave, tipo]) => {
+  const q = (s) => document.querySelector(s);
+  if (tipo === 'alternar') { const b = q(`[data-controle="chave:${chave}"]`); if (!b) return 'sem controle'; b.click(); return 'ok'; }
+  if (tipo === 'faixa') {
+    const r = q(`input[data-controle="chave:${chave}"]`); if (!r) return 'sem controle';
+    const alvo = Number(r.value) === Number(r.max) ? Number(r.min) : Number(r.max);
+    r.value = String(alvo); r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); return 'ok';
+  }
+  const bs = [...document.querySelectorAll(`[data-controle^="chave:${chave}="]`)];
+  if (!bs.length) return 'sem controle';
+  const outro = bs.find((b) => b.getAttribute('aria-pressed') !== 'true' && !b.classList.contains('trazer'));
+  if (!outro) return 'sem outra opcao'; outro.click(); return 'ok';
+}
+"""
+
+
 def main():
     ambiente = casa.montar_casa()
     proc, url = casa.sobe_servidor(ambiente)
@@ -143,6 +201,43 @@ def main():
                     larg = pag.evaluate(POSICOES)["previa"]["w"]
                     checa(larg >= 900, f"em 1920 a prévia tem {larg:.0f} px (>= 900)")
                 contexto.close()
+            contexto = nav.new_context(viewport={"width": 1920, "height": 1080})
+            pag = contexto.new_page()
+            pag.on("pageerror", lambda e: erros.append(str(e)))
+            pag.goto(url)
+            esperar(pag, 800)
+            print("== a tabela controle -> prévia")
+            for secao, chave, tipo, campo in TABELA:
+                ir(pag, "ajustes/" + secao)
+                pag.evaluate("() => { for (const d of document.querySelectorAll('details.mais')) d.open = true; }")
+                antes = pag.evaluate(ASSINATURA)
+                r = pag.evaluate(GESTO, [chave, tipo])
+                pag.wait_for_timeout(250)
+                depois = pag.evaluate(ASSINATURA)
+                checa(r == "ok" and antes and depois and antes[campo] != depois[campo],
+                      f"{secao} / {chave} ({tipo}) muda a prévia: {r} [{campo}: {(antes or {}).get(campo)!r} -> {(depois or {}).get(campo)!r}]"[:240])
+                pag.evaluate("() => document.getElementById('desfazer') && document.getElementById('desfazer').click()")
+                pag.wait_for_timeout(150)
+
+            print("== um ↶ por coluna, a margem desligada e o deslizante vazio")
+            ir(pag, "ajustes/painel")
+            pag.evaluate(GESTO, ["FORMA_DOCK_SOLTO", "alternar"])
+            pag.wait_for_timeout(250)
+            info = pag.evaluate("""() => {
+              const q = (s) => document.querySelector(s);
+              const p = q('[data-controle="padrao:FORMA_DOCK_SOLTO"]');
+              const m = q('input[data-controle="chave:FORMA_MARGEM_DOCK"]');
+              const mp = q('input[data-controle="chave:FORMA_MARGEM_PAINEL"]');
+              return { padrao: !!(p && p.closest('.ctl')), coluna: p && p.closest('.ctl').dataset.coluna,
+                       noRotulo: !!document.querySelector('.linha.dupla .rot .padrao'),
+                       margemDock: m && m.disabled, margemPainel: mp && mp.disabled,
+                       vazio: !!document.querySelector('.faixa[data-vazio]'),
+                       segSemDica: [...document.querySelectorAll('.seg button')].filter((b) => !b.dataset.dica).length };
+            }""")
+            checa(info["padrao"] and info["coluna"] == "Dock" and not info["noRotulo"], f"o ↶ mora na célula da coluna ({info})")
+            checa(info["margemDock"] is True and info["margemPainel"] is False, f"com a dock colada, só a distância dela se desliga ({info})")
+            checa(info["vazio"], "o deslizante sem valor mostra o trilho tracejado")
+            checa(info["segSemDica"] == 0, "todo botão XS…XL tem dica")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:
