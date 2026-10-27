@@ -449,6 +449,13 @@ def main():
               return Math.round(a.right - f.left);
             }""")
             checa(atras <= 0, f"em 390 px a aba Builds inteira fica antes do botão Adicionar repositório ({atras})")
+            aqui = pag.evaluate("() => location.hash.slice(1)")
+            ir(pag, "ajustes/painel")
+            vazios = pag.evaluate("""() => [...document.querySelectorAll('#abas-fila button')]
+              .filter((b) => !b.innerText.trim() && !b.getAttribute('aria-label')).map((b) => b.dataset.controle)""")
+            checa(pag.locator("#abas-fila button").count() > 0 and not vazios,
+                  f"em 390 px o botão do topo de Definir › Painel e dock segue com o nome ({vazios})")
+            ir(pag, aqui)
             pag.set_viewport_size({"width": 1550, "height": 860})
             esperar(pag)
             checa(max(transbordas) <= 0, f"a versão longa do pacote fica dentro do cartão, em 1500 e 390 px ({transbordas})")
