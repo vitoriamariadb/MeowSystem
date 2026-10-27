@@ -47,7 +47,7 @@ Tema, `29c238f9` tema.css e manter.css, e o teste do nome digitado em `tests/pac
 | Q1-15, Q1-16 | saíram as ações `status`, `tema`, `tema_aplicar`, `tema_modo` e os provedores que mostravam select com valor falso ou mandavam digitar; `tests/app.sh` e a migração fecham com 63 ações |
 | Q1-17 | o botão diz exatamente «Criar o meu tema»; o nome digitado vai em `nome_do_tema` e `tests/pack.sh` prova `"nome": "QA Um"` no `pack.json` |
 | Q3-04 | no topo do Manter só «Conferir»; sem a ponte aparece «Consertar a ponte» antes dele; com a ponte, nenhum `doctor_consertar` no topo |
-| Q3-05 | o resultado do Conferir oferece `resultado:consertar` quando o rc é 1 (`tests/app-completo.py`) |
+| Q3-05 | o resultado do Conferir oferece `resultado:consertar` quando o rc é 1 (`app.js`, guardado por `tests/app.sh` 9f) |
 | Q3-06 | `NOME_DA_PENDENCIA`: as oito pendências do brinquedo saem com nome de assunto, distintas, até três palavras (`tests/app.sh` 12c) |
 | Q2-17 | bloco «Modo de leitura» em Dia e noite, com régua própria e prévia que esquenta e ganha textura de papel mesmo com a agenda desligada (`.quente` com opacidade 0,28); a busca por «leitura» acha 2 opções |
 
