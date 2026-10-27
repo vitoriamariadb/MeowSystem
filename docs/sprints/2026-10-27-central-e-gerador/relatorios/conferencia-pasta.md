@@ -33,4 +33,16 @@ não houve tela a comparar com as fotos ou a maquete.
 
 ## Suíte
 
-Ver o fim deste relatório.
+`./tests/todos.sh` na árvore `MeowSystem-pasta`, em 09426913: 105 testes, 103 verdes, 0 pulados, 2 vermelhos, os
+dois já conhecidos e nenhum novo. `decisoes.sh`: só a GPU do compositor fora da RTX (aceito até a P121).
+`restaurar.sh`: `pack_usar` e `desinstalar` (VS Code, aceitos) e `sistema_limpar` (o `.deb` do cosmic-comp em
+`~/.local/share/meowsystem/debs`), que o `ANDAMENTO.md` já registra como vermelho no `dev` e manda para a P125.
+
+## Para o fecho (coordenador)
+
+1. `du -sh ~/Desenvolvimento/MeowSystem` antes.
+2. `meow doctor` (sem consertar): `basefundo` acusa a base no repo e `estadovelho` acusa `midia/` e `leitura/`;
+   depois `meow doctor --consertar`.
+3. `scripts/enxugar.sh --raiz ~/Desenvolvimento/MeowSystem` (lista), depois com `--aplicar`; `du -sh` depois.
+4. Num commit, `scripts/enxugar.sh` e `tests/enxugar.sh` saem do repo (script de uma vez, P123 cura 2) e a linha
+   do `tests/todos.sh` e a frase do `tests/arvore.sh` que o citam se ajustam.
