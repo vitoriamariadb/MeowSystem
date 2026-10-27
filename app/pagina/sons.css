@@ -1,0 +1,13 @@
+.sino { grid-template-columns: auto minmax(0, 1fr) auto; }
+.envelope { width: 100%; height: 64px; color: var(--accent); }
+.envelope path { fill: none; stroke: currentColor; stroke-width: 1.6; }
+.envelope .eixo { stroke: var(--linha-forte); stroke-width: 1; }
+.sons.com-origem li { grid-template-columns: auto minmax(0, 1fr) auto auto; min-height: 60px; }
+.sons li > span.som-nome { display: grid; white-space: normal; }
+.sons li > span.som-nome small { color: var(--tinta-3); font-size: var(--t-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sons li.sem-ponte > span.som-nome, .sons li.sem-ponte > button.p { opacity: .5; }
+.sons button.p:disabled { opacity: .4; cursor: not-allowed; }
+.aviso-linha { display: flex; align-items: center; justify-content: space-between; gap: var(--e-4); flex-wrap: wrap; padding: var(--e-4) var(--e-6); }
+.aviso-linha .estado-pilula { background: var(--cartao-2); }
+.estado-pilula[data-estado="neutro"]::before { background: var(--linha-forte); }
+.esqueleto.fio { height: 44px; margin: var(--e-3) var(--e-6); }
