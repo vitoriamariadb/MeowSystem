@@ -585,6 +585,25 @@ def _packs_removiveis():
             if (_remocao_do_cartao(mod, i, conf) or {}).get("pode")]
 
 
+def _url_de_svg(texto):
+    return "data:image/svg+xml;charset=utf-8," + quote(texto, safe="")
+
+
+def _previa_para_a_tela(previa):
+    return {"dock": [{"app": d["app"], "url": _url_de_svg(d["svg"])} for d in previa["dock"]],
+            "pasta": _url_de_svg(previa["pasta"]) if previa["pasta"] else ""}
+
+
+def _previas_do_pack(mod, ident, flavors):
+    saida = {}
+    for flavor, cores in flavors.items():
+        try:
+            saida[flavor] = _previa_para_a_tela(mod.previa_do_pack(ident, flavor, cores))
+        except Exception:
+            saida[flavor] = {"dock": [], "pasta": ""}
+    return saida
+
+
 def packs_com_vitrine():
     mod = modulo_pack()
     if not mod:
@@ -636,6 +655,7 @@ def packs_com_vitrine():
             "claros_derivados": [{"flavor": c, "de": e}
                                  for c, e in mod.claros_derivados(dados).items()],
             "amostra": [cores[s] for s in mod.SLOTS if s in cores],
+            "previa": _previas_do_pack(mod, ident, dados["flavors"]),
             "problemas": problemas,
             "no_ar": ident == no_ar,
             "valido": True,
@@ -7475,6 +7495,13 @@ class Manipulador(BaseHTTPRequestHandler):
         ident = consulta.get("id", [""])[0]
         base = consulta.get("base", [""])[0]
         cores = _cores_da_consulta(consulta.get("cores", [""])[0])
+        if consulta.get("previa"):
+            dono = ident or base or mod.PACK_BASE
+            flavor = consulta.get("flavor", [""])[0]
+            try:
+                return self._json({"previa": _previa_para_a_tela(mod.previa_do_pack(dono, flavor, cores))})
+            except mod.Recusa as e:
+                return self._json({"erro": texto_na_tela(str(e))}, 404)
         icones = {}
         for pasta in mod.PASTAS_QUE_SE_LEVAM:
             icones[pasta] = []
@@ -7483,8 +7510,9 @@ class Manipulador(BaseHTTPRequestHandler):
             except mod.Recusa:
                 oferta = []
             for i in oferta:
-                if i["svg"] is not None:
-                    url = "data:image/svg+xml;charset=utf-8," + quote(i["svg"], safe="")
+                pintado = i["previa"] if i.get("previa") is not None else i["svg"]
+                if pintado is not None:
+                    url = _url_de_svg(pintado)
                 else:
                     _ICONES_DECLARADOS.add(os.path.normpath(i["arq"]))
                     url = "/previa?tipo=arquivo&id=" + quote(i["arq"], safe="")
