@@ -17,6 +17,12 @@
   P110 contra a da P112: «Usar» no rodapé e fora da grade), `app-completo.py` (`criar/sons`: «pergunta» e
   «resultado» abertos juntos), `extensoes-pagina.py` (espera `.abas-ajustes`, que a P110 tornou global).
   `readme.sh` se regenera no merge. P109 ainda na suíte final; entra antes dos conferentes.
+- 27/10 ~04h: P109 entrou; as seis em `integracao/qa-final` (63ee3497), suíte 93/102. Em voo: 2 Opus,
+  A em `../MeowSystem-conf-a` (`conferencia/a`: app.sh 12c `aplicar-ajuste`, chave-etapa, app-navegador
+  download, restaurar 4 em vez de 2, app-uso-real) e B em `../MeowSystem-conf-b` (`conferencia/b`:
+  `gravarSonsDaBarra` no modelo da P109, ficha do ícone P110×P112, abas de Extensões, «cinco portas»).
+  Próximo: juntar A e B na integração, `scripts/readme.sh`, suíte, merge no dev, remover worktrees
+  (b0, maquete-a, maquete-b, p109..p114, integracao, conf-a, conf-b), desligar.
 - Depois: juntar as seis em `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev →
   remover as worktrees da leva (b0, maquete-a, maquete-b, p109..p114).
 - Pedido de quem usa (27/10): ao fim de TUDO (merge no dev e worktrees removidas), desligar o PC sem
