@@ -604,7 +604,11 @@ class Percurso:
             if st == resp.status and trecho in resp.url:
                 del self.esperadas[i]
                 return
-        self.falha(f"resposta {resp.status} que ninguém pediu: {resp.url.split('?')[0][-60:]}")
+        try:
+            corpo = resp.text()[:160]
+        except Exception:
+            corpo = ""
+        self.falha(f"resposta {resp.status} que ninguém pediu: {resp.url.split('?')[0][-60:]} {corpo} (depois de «{getattr(self, 'ultimo_clique', '')}»)")
 
     def _console(self, msg):
         if msg.type != "error" or "Failed to load resource" in msg.text:
@@ -660,6 +664,7 @@ class Percurso:
                 break
             try:
                 el.click(timeout=5000)
+                self.ultimo_clique = nome
                 self.acionados.add(molde(nome))
                 return True
             except Exception:
@@ -1272,7 +1277,18 @@ class Percurso:
                 self.clicar("pergunta:sim")
                 self.assentar()
                 if self.checa(self.aberto("resultado"), "«Conferir e consertar» roda"):
-                    self.esperar_trabalho(teto=300)
+                    if self.js("() => !!TRABALHO && !!TRABALHO.timer"):
+                        self.pag.keyboard.press("Escape")
+                        self.assentar()
+                        if self.checa(self.achar("trabalho"), "fechar a janela com o trabalho correndo deixa a pastilha"):
+                            self.clicar("trabalho")
+                            self.assentar()
+                    self.esperar_trabalho(teto=300, parar=True)
+                    if self.achar("resultado:registro"):
+                        self.clicar("resultado:registro")
+                    if self.achar("resultado:guardar"):
+                        self.clicar("resultado:guardar")
+                        self.assentar()
                     self.fechar_resultado()
         self.clicar("menu")
         self.assentar()
