@@ -1040,13 +1040,17 @@ function ligarBusca() {
       campo.value = ""; procurar(); campo.blur();
     }
   });
+  const caixa = campo.parentElement;
+  const abrirCampo = () => { caixa.classList.add("campo-aberto"); campo.focus(); };
+  $("#abrir-busca").addEventListener("click", abrirCampo);
   campo.addEventListener("blur", () => setTimeout(() => {
-    if (!$("#achados").contains(document.activeElement)) $("#busca").parentElement.classList.remove("aberta");
+    if ($("#achados").contains(document.activeElement)) return;
+    caixa.classList.remove("aberta", "campo-aberto");
   }, 150));
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
       ev.preventDefault();
-      campo.focus();
+      abrirCampo();
     }
   });
 }
@@ -1106,6 +1110,7 @@ function render() {
   const ativo = document.activeElement;
   const foco = ativo && ativo.dataset && $("#conteudo").contains(ativo) ? ativo.dataset.controle : null;
   desenharPortas();
+  $("#abas").hidden = ROTA.porta !== "ajustes";
   const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
     : ROTA.porta === "cuidar" ? paginaCuidar() : paginaTema();

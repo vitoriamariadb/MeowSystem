@@ -620,17 +620,28 @@ function gradeDeProgramas() {
   return grade;
 }
 
+function desenharAbas(p, direita) {
+  const lista = $("#abas-lista");
+  if (lista.children.length !== AJUSTES.length) {
+    lista.replaceChildren(...AJUSTES.map((x) => elemento("li", {}, [
+      elemento("a", { href: "#ajustes/" + x.id, controle: "ajuste:" + x.id },
+        [icone(x.icone), elemento("span", { texto: x.nome })]),
+    ])));
+  }
+  for (const a of lista.querySelectorAll("a")) {
+    if (a.dataset.controle === "ajuste:" + p.id) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  }
+  $("#abas-fila").replaceChildren(...direita);
+}
+
 function paginaAjustes(sub) {
   const p = AJUSTES.find((x) => x.id === sub) || AJUSTES[0];
-  const trilho = elemento("ul", { class: "trilho" }, AJUSTES.map((x) => elemento("li", {}, [
-    elemento("a", { href: "#ajustes/" + x.id, controle: "ajuste:" + x.id, "aria-current": x.id === p.id ? "page" : null },
-      [icone(x.icone), elemento("span", { texto: x.nome })]),
-  ])));
   const direita = (p.cabeca || []).map((l) => {
     const a = ACAO.get(l.a);
-    return a ? controleDeAcao(a, l.b, "")[0] : null;
+    return a ? controleDeAcao(a, l.b, "pequeno")[0] : null;
   }).filter(Boolean);
-  for (const b of direita) b.classList.add("principal");
+  desenharAbas(p, direita);
   const blocos = [];
   for (const b of p.blocos) {
     const sobra = (l) => l.e || (l.g && !l.g.startsWith("acervo:")) || l.g === "acervo:gato" || l.g === "acervo:cursor"
@@ -641,16 +652,17 @@ function paginaAjustes(sub) {
     if (b.jogos) filhos.push(montarJogos());
     filhos.push(lista(b.linhas, sobra));
     if (b.noite) filhos.push(linhaMesmoHorario());
-    blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas }));
+    blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas, class: b.programas || b.jogos ? "inteiro" : "" }));
   }
   const mais = maisAjustes("ajustes:" + p.id, p.mais || []);
+  const semPrevia = p.id === "programas";
+  if (mais && semPrevia) mais.classList.add("inteiro");
   return [
-    cabeca(p.nome, direita),
-    elemento("div", { class: "oficina" }, [
-      elemento("nav", { "aria-label": "Ajustes" }, [trilho]),
-      elemento("div", { class: "palco" }, [mesaDaPagina(p.id)]),
+    elemento("h1", { class: "sr", texto: p.nome }),
+    elemento("div", { class: "oficina" + (semPrevia ? " sem-previa" : "") }, [
+      semPrevia ? null : elemento("div", { class: "palco" }, [mesaDaPagina(p.id)]),
       elemento("div", { class: "pilha" }, [...blocos, mais].filter(Boolean)),
-    ]),
+    ].filter(Boolean)),
   ];
 }
 
