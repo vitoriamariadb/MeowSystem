@@ -61,6 +61,11 @@ Item 5 do `ANDAMENTO.md` (foto 3) e o rabo da leva QA final (`docs/sprints/2026-
 `patches/cosmic-comp-modo-leitura.patch`, `scripts/oraculo_tema.py`, `docs/capturas/` (as três),
 `tests/app-completo.py`, `tests/sons-do-pack.sh`, `tests/decisoes.sh`.
 
+## Item do coordenador (27/10)
+- `scripts/painel.sh` (perto da função `reciclar`, ~linha 144) imprime para digitar «meow painel reciclar». Regra:
+  nenhuma saída manda digitar. Cura: a saída diz o que acontece e o doctor (ou o botão «Reiniciar o painel» da P120)
+  faz; prova em `tests/frases-velhas.sh` (nenhum «digite»/«rode `meow`» nas saídas de `scripts/`).
+
 ## Fora desta sprint
 - A P123 leva `docs/pesquisas/` para a branch `arquivo`. Se ela entrar antes, a citação do item 4 passa a ser `arquivo:docs/pesquisas/<arquivo>`, e a regra do `decisoes.sh` aceita as duas formas. A cópia local de `docs/pesquisas/` não tem os dois arquivos de `2026-10-09`; eles só existem em `1b15ccb1^`.
 - O comentário `# POR QUE ESTE ARQUIVO EXISTE` do `cosmic.tsv` contraria a regra de zero comentário. Quem resolve é o `scripts/higiene.sh`, não esta sprint.

@@ -24,7 +24,9 @@
   «Trocar» da página Extensões.
 - Achado: o shim do compositor do MeowSystem nunca foi ligado nesta máquina; quem valia era o binário
   da Aurora gravado por cima do de fábrica.
-- Próximo passo: levantamento (workflow de 2 agentes) → sprints P115+ nesta pasta → blocos.
+- Levantamento feito (2 agentes): `relatorios/levantamento-*.md`, sprints P115 a P123, commit 58b531be no `dev`.
+- EM VOO (27/10): rodada 1, blocos Painel (`wf_553927b1-b92`) e Central (`wf_190a82c2-962`), 3 agentes cada.
+- Próximo passo: integrar cada bloco em `integracao/central-e-gerador` quando o conferente final voltar; depois a rodada 2.
 
 ## Pedido de quem usa (27/10), lista fechada desta leva
 Fotos em `fotos/1.png` a `fotos/5.png`.
@@ -65,6 +67,14 @@ Fotos em `fotos/1.png` a `fotos/5.png`.
   cuida (A); não cobre → molde do MeowSystem pintado com a paleta Dracula (B). O agente decide pela medida.
 - Botão do cartão do Tema e do Personalizar: «Aplicar tema» nos dois (P118).
 - `.git/hooks`: apagar as 13 cópias `.bak-*` e `.antes-*`, ficam os `.sample` (P119).
+- Luz noturna = Modo de leitura (pergunta dela, 27/10): uma só, a do applet `meowsystem-leitura` + o patch
+  `cosmic-comp-modo-leitura.patch` (temperatura, agendamento, textura). A da Aurora (`aurora-night-light.py`,
+  shader injetado no binário) sai inteira. Anotado para depois: o vigia da issue pop-os/cosmic-comp#2059
+  (`aurora-cosmic-nightlight-watch.sh`) passa ao MeowSystem, para o Modo de leitura trocar pelo nativo quando sair.
+- Centralizar a Aurora (pedido dela, 27/10): «migrar pro meowsystem e desabilitar onde mais tiver, pensando numa
+  solução que possa ser usada em outros pcs». O que é desktop COSMIC genérico sai da Aurora e vira do MeowSystem
+  (desligado na Aurora por item do `vizinhos.tsv`); o pessoal da máquina fica. Levantamento em voo (1 agente) →
+  `relatorios/levantamento-aurora.md` e P124; implementa numa rodada depois da Central (mexe no `vizinhos.tsv`).
 - Compositor e luz noturna: do MeowSystem (sim dela). P121 corta da Aurora o bloco do `--ensure` e, quando o
   modo de leitura da casa estiver no ar, a injeção do `aurora-night-light.py` (segundo item de vizinho).
 - Applets que o doctor instala sozinho: os cinco da casa e os quatro forks, `PADRAO=sim`, com o selo de rede da
@@ -77,6 +87,17 @@ Fotos em `fotos/1.png` a `fotos/5.png`.
 - Limpeza da pasta (P123): o sim é meu. Cache e build vão embora; registro vai para a branch `arquivo`; o que é
   dela (imagens) só se move.
 
+- Aurora (levantamento-aurora.md, 27/10), decidido pelo coordenador:
+  - D11: quem corta é o doctor (`fix_vizinhos`, P124), chave `VIZINHOS_DESATIVAR` para desligar; item que ela
+    restaurar não volta a ser cortado. Sem isso nenhum item do `vizinhos.tsv`, nem o da P121, vale.
+  - D1 alfinetes: A (P125), o doctor confere e refaz o alfinete. O coordenador atualiza o CLAUDE.md global depois.
+  - D2 clipboard: A, a poda vai para o fork `meowsystem-clipboard` (P122); o corte na Aurora entra na P125.
+  - D3 applet da bandeja inserido pelo script do qBittorrent: cortar na P125 (depois da P120).
+  - D10 o resto da instalação do compositor na Aurora (self-heal ~1331-1411, install ~1915-1916): P125 assume.
+  - D4 a D9: ficam na Aurora (C). O handler de MIME da Aurora reescreve 49 vezes (`eog`, `thunderbird` ausentes):
+    defeito da Aurora, anotado para ela, fora deste repo.
+  - `scripts/painel.sh` manda digitar «meow painel reciclar»: entra na P119 (nenhuma saída manda digitar).
+
 ## Blocos
 | rodada | bloco | sprints | worktree / branch | agentes |
 |---|---|---|---|---|
@@ -84,7 +105,9 @@ Fotos em `fotos/1.png` a `fotos/5.png`.
 | 1 | Central | P120 → P121 | `~/Desenvolvimento/MeowSystem-central`, `bloco/central` | implementa (Opus high), confere e corrige (Opus high), final (Opus high) |
 | 2 | Forks | P122 | `~/Desenvolvimento/MeowSystem-forks`, `bloco/forks` | implementa, confere |
 | 2 | Textos | P119 → P118 | `~/Desenvolvimento/MeowSystem-textos`, `bloco/textos` | implementa, confere, final |
-| 3 | Pasta e máquina | P123, depois instalar do zero na máquina | checkout principal | script + confere |
+| 3 | Aurora | P124 → P125 | `~/Desenvolvimento/MeowSystem-aurora`, `bloco/aurora` | implementa, confere, final |
+| 3 | Pasta | P123 | `~/Desenvolvimento/MeowSystem-pasta`, `bloco/pasta` | script + confere |
+| 4 | Máquina | instalar do zero pelo MeowSystem, na máquina dela | checkout principal | coordenador |
 Os dois blocos da rodada 1 só dividem `app/servidor.py`, em funções diferentes (P116 `_cartoes_de_pack`; P120 o
 bloco `EXT_*` e as tabelas de pendência). P119 mexe nas mesmas tabelas da P120, por isso vai na rodada 2.
 Integração por bloco em `integracao/central-e-gerador`; o `dev` só recebe no fim.
