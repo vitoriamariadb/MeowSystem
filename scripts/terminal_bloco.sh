@@ -22,7 +22,9 @@ $MARCA_FIM"
 
 _zdotdir() {
   local z=""
-  if [ -n "${ZDOTDIR:-}" ]; then printf '%s' "$ZDOTDIR"; return 0; fi
+  if [ -n "${ZDOTDIR:-}" ]; then
+    case "$(readlink -m -- "$ZDOTDIR")/" in "$(readlink -m -- "$HOME")"/*) printf '%s' "$ZDOTDIR"; return 0 ;; esac
+  fi
   [ -r "$HOME/.zshenv" ] && z="$(sed -n -E 's/^[[:space:]]*(export[[:space:]]+)?ZDOTDIR=["'"'"']?([^"'"'"' ]*).*/\2/p' "$HOME/.zshenv" | head -1)"
   z="${z//\$HOME/$HOME}"; z="${z//\$\{HOME\}/$HOME}"; z="${z/#\~/$HOME}"
   printf '%s' "${z:-$HOME}"
