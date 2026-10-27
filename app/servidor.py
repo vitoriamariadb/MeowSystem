@@ -2938,15 +2938,6 @@ ACOES = {
                  "que o pack importado pede. Extensão é código que roda a cada "
                  "abertura do editor.",
     },
-    "spotify_baixar_tema": {
-        "rotulo": "Tema do Spotify",
-        "grupo": "Lançadores e jogos",
-        "natureza": "baixar",
-        "argv": _meow("apps", "aplicar", "spotify"),
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "ajuda": "Baixa o tema catppuccin do spicetify de um commit fixo do "
-                 "repositório público e veste o Spotify em seguida.",
-    },
     "jogos": {
         "rotulo": "Conferir os jogos",
         "grupo": "Lançadores e jogos",
@@ -3802,7 +3793,6 @@ def escreve(acao):
 ACAO_DA_PENDENCIA = {
     "areas-sem-alfinete": "areas_alfinetar_primeira",
     "starship-ausente": "prompt_instalar_starship",
-    "spicetify-tema-ausente": "spotify_baixar_tema",
     "files-menu-build": "files_menu_build",
     "instalar-com-root": "instalar",
     "flatpak-global-sistema": "instalar",
@@ -4175,7 +4165,7 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
             "precisa_confirmar": True,
             "acao": acao_id,
             "rotulo": acao["rotulo"],
-            "ajuda": _ajuda_do_pack(acao_id) or acao.get("ajuda", ""),
+            "ajuda": acao.get("ajuda", ""),
             "escreve": escreve(acao),
             "sudo": bool(acao.get("sudo")),
             "rede": bool(acao.get("rede")),
@@ -4337,29 +4327,6 @@ def _com_medidas(texto, medidas):
     n = (medidas or {}).get("conferencias")
     return texto.replace("{as_conferencias}",
                          "as %d conferências" % n if n else "as conferências")
-
-
-def _ajuda_do_pack(acao_id):
-    if acao_id != "spotify_baixar_tema":
-        return ""
-    mod = modulo_pack()
-    ref = _pack_no_ar()
-    if not mod or not ref:
-        return ""
-    try:
-        _q, tema = mod.tema_de_app("apps.spotify.spicetify_tema", ref=ref)
-        _q, repo = mod.tema_de_app("apps.spotify.origem.repo", ref=ref)
-        nome = mod.campo(ref, "nome") or ref
-    except Exception:
-        return ""
-    if not tema:
-        return ""
-    if repo:
-        return ("Baixa o tema «%s» do spicetify de um commit fixo de %s e veste "
-                "o Spotify em seguida." % (tema, repo))
-    return ("O pack «%s» pede o tema «%s» do spicetify e não diz de onde baixá-lo: "
-            "nada desce da internet, e o Spotify é vestido com o tema que já "
-            "estiver no spicetify." % (nome, tema))
 
 
 def _repositorio_no_ar():
@@ -7204,7 +7171,7 @@ class Manipulador(BaseHTTPRequestHandler):
             "medidas": medidas,
             "acoes": [
                 dict({c: x for c, x in v.items() if not callable(x)}, id=k,
-                     ajuda=_com_medidas(_ajuda_do_pack(k) or v.get("ajuda", ""),
+                     ajuda=_com_medidas(v.get("ajuda", ""),
                                         medidas),
                      argv=None,
                      escreve=escreve(v),

@@ -53,13 +53,9 @@
       "_nota_esquema": "No tema catppuccin do spicetify a seção do color.ini chama-se como o flavor (mocha, latte...), então o marcador basta. É o mesmo `<flavor>` que o `cosmic.nome_da_paleta` já usa, e de propósito: um segundo dialeto de marcador no formato seria mais uma coisa para quem escreve um pack decorar.",
       "acento_no_color_ini": true,
       "_nota_acento": "true porque este tema nomeia as 26 cores da paleta como CHAVES do color.ini — é o que permite ao `acento.py` escrever o acento da casa (mauve) por cima do `text` e do `button-active` da seção. Um tema que não faça isso declara false, ou nada: o Sleek do pack Dracula, por exemplo, define a seção [Dracula] com vinte e duas chaves e nenhuma chamada `mauve`, e insistir ali só daria erro.",
-      "origem": {
-        "tipo": "github-arvore",
-        "repo": "catppuccin/spicetify",
-        "commit": "1ec645c4cf7f42f9792b9eeb1bb7930f94593277",
-        "pasta": "catppuccin",
-        "_nota": "PINADO POR COMMIT, e não por tag, porque a tag não existe: medido em 22/09/2026, `/repos/catppuccin/spicetify/tags` devolve lista vazia e `/releases/latest` devolve 404. Pinar 'por tag' ali seria cair no ramo `main`. O caminho estava cravado no `spotify/manifesto.sh` até esta sprint; ele saiu de lá porque um módulo que sabe de cor o endereço de UM tema é um aplicador daquele tema, não um aplicador do pack."
-      }
+      "arquivo": "temas-de-apps/spotify/catppuccin/color.ini",
+      "sha256": "9145743f76f81d95125df3aa65b16ab8e3f50d16c09608010b302b1834dbfeb9",
+      "_nota_sem_origem": "A arte mora no pack: `arquivo` é o color.ini do tema catppuccin do spicetify, e o módulo copia a pasta inteira dele (color.ini, user.css, theme.js, assets e a licença MIT) para `~/.config/spicetify/Themes/` quando o tema não está lá. Nada desce da internet. A procedência, o commit e os sha256 estão no PROCEDENCIA.md, seção do tema do Spotify."
     },
     "qbittorrent": {
       "arquivo": "temas-de-apps/qbittorrent/catppuccin-mocha.qbtheme",
