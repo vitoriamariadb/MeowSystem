@@ -36,6 +36,7 @@ PORTATIL=(
   vidro-do-cosmic.sh
   seletor-do-pack.sh
   acervo-da-ficha.sh
+  acervo-do-pack-em-edicao.sh
   variante.sh
   claro-do-pack.sh
   notas-de-funcao.sh

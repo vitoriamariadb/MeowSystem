@@ -8,7 +8,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 |---|---|---|
 | 1 | Base de ícones do Dracula: **As duas**, `circle` na frente e `main` atrás | «todos os drácula feitos» |
 | 2 | PNG feito à mão vira vetor validado por RMSE; o PNG sai só quando o vetor passa | «pedimos pro agente criar e validamos» |
-| 3 | O seletor mostra o acervo de todos os packs, uma pasta por acervo, o pack no ar primeiro | «acessar todas as imagens disponíveis» |
+| 3 | O seletor, a aba Sistema e a Biblioteca mostram só o acervo do pack em edição (e dos que ele herda, até o primeiro pack do projeto); ícone de um pack nunca aparece no outro | sim de 26/10: «o que eu falei hoje sobrescreve» |
 | 4 | `calcdeirao` fica fora do pack; `jogos`, `rede` e `clima2` entram | projeto pessoal fora do pack (23/09) |
 | 5 | Askpass da Aurora ativo (600, só do usuário); a senha nunca vai para arquivo, commit ou documento | «askpass ativa» (15/10) |
 | 6 | GPU do compositor na RTX: `COSMIC_RENDER_DEVICE="0x10de:0x25a2"` no `/etc/environment`; o `aurora-gpu-compositor` (Spellbook-OS) devolve a linha se ela sumir | «tudo nvidia de fato» (17/09), «sim por favor» (15/10) |
@@ -44,7 +44,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 36 | O tema instalado continua `MeowSystem-Icons`; o exportado leva o nome do pack | é o nome que o COSMIC lê |
 | 37 | Sons só na notificação | ninguém pediu mais |
 | 38 | Os gatos `coquinha` e `mimir` não se repintam; os 52 nomes do tema antigo sem desenho ficam fora; o índice do upstream fica como veio; o Discord escuro fica | é da arte, do upstream |
-| 39 | Desenhos de pasta e de mimetype ficam na biblioteca | decisão 3 |
+| 39 | Desenhos de pasta e de mimetype ficam na biblioteca do pack a que pertencem | decisão 3 |
 | 40 | Nomes em inglês que vêm do `.desktop` do sistema ficam | é o nome do lançador |
 | 41 | Alvo de pack que sai da raiz recusa o pack inteiro; nome torto é pulado e contado | sair da raiz é fuga |
 | 42 | O `pack.py sincronizar` fica no verbo manual, com a guarda de mesma extensão | só compara arte com arte |
