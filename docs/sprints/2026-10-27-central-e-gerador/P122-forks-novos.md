@@ -61,24 +61,25 @@ da casa acrescentados.
 
 | fork | app id | commit pinado | libcosmic do pino | build do painel (`430f3d48`) |
 |---|---|---|---|---|
-| `meowsystem-eyedropper` | `io.github.meowsystem.Eyedropper` | `b60f4781e0c4c5b3ca56f0d109f98f033a4bc6af` | `c44dbe79` | compila |
-| `meowsystem-clipboard` | `io.github.meowsystem.Clipboard` | `d504976ed59f20950ade22231eb3677421828e6a` | `dc1cf9f0` | não compila (`scroller_width`), cai no pino com `--locked` |
-| `meowsystem-drives` | `io.github.meowsystem.Drives` | `099d4a940608710186ebbea27f1d7f095e122a13` | `dc1cf9f0` | compila |
-| `meowsystem-ascii-battery` | `io.github.meowsystem.AsciiBattery` | `59d2538500b4e4b9f4ee10ec4d557decd2dd9ad6` | `c003a58f` | compila |
+| `meowsystem-eyedropper` | `io.github.meowsystem.Eyedropper` | `41492b12c2fef917f86a71ff66a26366baac794e` | `c44dbe79` | compila |
+| `meowsystem-clipboard` | `io.github.meowsystem.Clipboard` | `41592eecd9692bb16207c6808d453ad5ce5450a8` | `dc1cf9f0` | não compila (`scroller_width`), cai no pino com `--locked` |
+| `meowsystem-drives` | `io.github.meowsystem.Drives` | `e41bad1b505f8b7a7c1dd16a1274fb20ed4f291b` | `dc1cf9f0` | compila |
+| `meowsystem-ascii-battery` | `io.github.meowsystem.AsciiBattery` | `ec8bc6e971e201a3f057a0b4c07e6bcc73b009b8` | `c003a58f` | compila |
 
 Nos quatro: `cargo build --release --locked` e `cargo test` verdes (o Clipboard com os testes da poda e da
-migração, os outros com os do `tema.rs`).
+migração, os outros com os do `tema.rs`); nos quatro, um teste lê do HOME o `tema.conf` que o MeowSystem escreve, pelo app id.
 
 ### Itens da cura
 
 1. Fork, nomes e tema: feito nos quatro. O Clipboard tem ainda a poda do histórico que o
    `aurora-clipboard` faz (1000 entradas, teto de 1 GB de imagem, favoritos intocados, na abertura e
    a cada hora, sob o lock) e copia o histórico do applet antigo na primeira subida, sem pisar em
-   banco que já existe.
-2. Pinos, em três commits: `6924d937` os quatro pinos e os ícones de cartão, `f002b960`
+   banco que já existe. O banco novo mora em `~/.cache/meowsystem-clipboard/`. A captura do README saiu do git-lfs:
+   com o `filter.lfs.required` da máquina e sem o `git-lfs`, o `git clone` do build parava no checkout.
+2. Pinos, em três commits: `6924d837` os quatro pinos e os ícones de cartão, `f002b960`
    as linhas dos upstreams em `docs/CREDITOS.md`, `454b3a17` as provas. `PADRAO=sim`,
-   `SUBSTITUI` com o app id de hoje, `MIGRA_ESTADO` com o id antigo nos três que têm estado em
-   `~/.local/state/cosmic/` (Eyedropper, Clipboard, Drives), `TEMA_CHAVES` com as sete chaves do contrato; a
+   `SUBSTITUI` com o app id de hoje, `MIGRA_ESTADO` vazio nos quatro (nenhum guarda estado em
+   `~/.local/state/cosmic/`, só config), `TEMA_CHAVES` com as sete chaves do contrato; a
    Bateria em ASCII leva `tinta:@acento`, os outros `tinta:text`.
 
 ### Provas rodadas
@@ -101,8 +102,9 @@ migração, os outros com os do `tema.rs`).
 - **O `extensoes_tema.sh` do `dev` só sabe montar o tema da Bandeja e dos Ajustes rápidos.** Com um dos
   quatro instalados, ele avisaria «não montei o tema» até a P120 chegar; a versão da `bloco/central` monta a partir de
   `TEMA_CHAVES`. Nenhum dos quatro está instalado na máquina.
-- **O `MIGRA_ESTADO` só copia `~/.local/state/cosmic/<id>/v1`.** O histórico em sqlite do Clipboard
-  não passa por ele: é o próprio applet que o copia (`src/db/migra.rs`). A configuração JSON da Bateria em ASCII
+- **O `MIGRA_ESTADO` só copia `~/.local/state/cosmic/<id>/v1`, e nenhum dos quatro usa essa pasta.** O
+  histórico em sqlite do Clipboard é o próprio applet que copia (`src/db/migra.rs`). A config em
+  `~/.config/cosmic/<id antigo>/` não migra: na máquina dela só tem o padrão. A configuração JSON da Bateria em ASCII
   (`~/.config/<app id>/config.json`) não migra: o padrão vale.
 - **O `persist` do Clipboard** (o `wl-clip-persist` do Aurora, que mantém o conteúdo depois que o
   app de origem fecha) não foi portado. Fica para um bloco próprio.
