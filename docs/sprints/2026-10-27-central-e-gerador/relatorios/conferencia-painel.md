@@ -41,3 +41,51 @@ Branch `bloco/painel`, os 11 commits de `aa02c0f8` a `ed56086c`, contra `dev` (`
 - `restaurar.sh`: aceito para `pack_usar` e `desinstalar` (arquivos do VS Code). O `sistema_limpar` (o `.deb` do
   `cosmic-comp` em `~/.local/share/meowsystem/debs`) também fica vermelho em `dev` (`58b531be`), medido na mesma
   máquina: não é deste bloco.
+
+## Final
+Regressão no todo, em `08c98dbf` (o bloco inteiro mais a correção abaixo).
+
+### O que rodei
+- `./tests/todos.sh` e `tests/app-completo.py` (o placar fica em «Placar final», abaixo).
+- A segunda passada do doctor numa casa temporária, com os dois packs (`PACK=meowsystem FLAVOR=mocha` e
+  `PACK=dracula FLAVOR=dracula`). Os passos: `install.sh`, a primeira passada de `meow doctor --consertar`, um
+  retrato da casa, a segunda passada e outro retrato. `sudo`, `pkexec`, `curl`, `cargo` e o `systemctl` de escrita
+  recusam. Fiz a mesma coisa no `dev` (`58b531be`) para comparar.
+  - A segunda passada não escreve nada nos ícones, no status, na bandeja nem no tema. Ela só regrava o que falha
+    por causa da casa sem rede: `extensoes/{leitura,now-playing}/{compilar.log,falhou,src/.git/index}`, porque o
+    cargo recusa, e o `pendencias.tsv`. No MeowSystem também regrava `wallpaper-semeado` e `wallpaper-vistas.txt`,
+    porque não há rede para baixar papel de parede. No Dracula, o `code` do VS Code deixa um `~/.config/Code/logs/*/cli.log`
+    a cada passada.
+  - O `dev` regrava exatamente os mesmos arquivos, nos dois packs. Nada disso é do bloco.
+  - No Dracula, o doctor diz `sistema: 54 ícone(s)`, `bandeja`, `traysteam` e `trayzapzap` saem «não declara
+    icones.bandeja», e não há nada de `packs/meowsystem` na bandeja.
+- Percorri headless as cinco portas, com 16 rotas, nos dois packs, em 1829 px e em 390 px. Procurei erro de
+  JavaScript, resposta HTTP de 400 para cima, imagem quebrada, `undefined`/`NaN` na tela e rolagem horizontal. Deu
+  zero em tudo, e nenhum sinal saiu da casa. No Dracula, também a aba Biblioteca: 477 ícones, todos carregam
+  (são `loading=lazy`, e a captura de página inteira mostra os de baixo vazios porque ainda não carregaram) e nenhum
+  fica com `currentColor` cru.
+
+### Achado e correção
+| achado | correção | commit | prova |
+|---|---|---|---|
+| A prévia do Personalizar (`previaDoRascunho` → `/api/criar?previa=1`) manda o flavor do rascunho. Com um flavor que não é do pack, por exemplo o `meow.conf` com `PACK="dracula"` e `FLAVOR="mocha"`, ou com o flavor vazio, o `previa_do_pack` não achava o autoral `cosmic-files-<flavor>` e `cosmic-term-<flavor>` do Dracula. O dock do Personalizar caía para 4 de arte e 2 em traço neutro, enquanto o cartão do Tema mostrava 6. | `_desenho_do_app` procura o autoral no flavor pedido e depois no `paleta.flavor_padrao` do pack dono do desenho | `08c98dbf` | `tests/pack.sh` com os casos `("dracula", "mocha")` e `("dracula", "")`. Com o `pack.py` antigo dá «dracula/mocha: prévia magra (4 apps); dracula/: prévia magra (4 apps)», rc 1. Com o novo dá verde, rc 0. |
+
+### Anotado para depois (fora do bloco)
+- A prévia do Personalizar com base Dracula não muda de cor quando se troca uma cor do rascunho. É de propósito: a arte
+  do Dracula vai como está (P116). Só a base MeowSystem, de traço, segue as cores.
+- A linha do doctor `sistema: … já vestidos de Arcticons` aparece igual no Dracula, onde o desenho é o molde
+  pintado com o texto dele. O texto vai para a P118, junto com o «Vestir» que ainda está no Tema, no Mandar e em
+  Programas.
+- A casa sem rede faz o doctor regravar os mesmos arquivos de estado a cada passada: as tentativas de compilar as
+  extensões, o `pendencias.tsv` e a semeadura do papel de parede. Já era assim no `dev`.
+
+### Placar final
+`./tests/todos.sh` em `08c98dbf`: 102 testes, 99 verdes, 0 pulados, 3 vermelhos.
+- `decisoes.sh` e `restaurar.sh`: os aceitos. O `decisoes.sh` falha pela GPU e pelo shim. O `restaurar.sh` falha em
+  `pack_usar`, `desinstalar` e `sistema_limpar`, e o `sistema_limpar` já falha no `dev`.
+- `app-layout.py`: 2 de 193 vermelhos (`o ↶ mora na célula da coluna` e `com a dock colada`). Rodei a suíte ao mesmo
+  tempo que quatro passadas do doctor e dois passeios de navegador. Sozinho, ele dá 193 de 193 verdes duas vezes
+  seguidas, com o mesmo isolamento do `todos.sh`. É oscilação por carga, não regressão. O bloco não mexe no ↶ nem
+  na dock.
+- O `tests/app-completo.py` passa tanto dentro da suíte (804 s) quanto sozinho. O `pack.sh` foi rodado de novo depois
+  da correção e está verde.
