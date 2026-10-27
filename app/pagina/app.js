@@ -494,6 +494,12 @@ function controleImagem(item, aplica) {
   return caixa;
 }
 
+const LISTAS_DE_APPS = new Set(["LANCADOR_OCULTAR", "AUTOSTART_BLOQUEADOS"]);
+let APPS_DA_LISTA = null;
+function appsDaLista() {
+  if (!APPS_DA_LISTA) APPS_DA_LISTA = api("/api/apps").then((r) => (r && r.apps) || []);
+  return APPS_DA_LISTA;
+}
 function controleLista(item, aplica) {
   const sep = item.lista_pathsep ? ":" : ",";
   const itens = String(valorEmVigor(item) || "").split(sep).map((s) => s.trim()).filter(Boolean);
@@ -510,9 +516,29 @@ function controleLista(item, aplica) {
   }
   const nova = elemento("input", { type: "text", class: "campo ficha-nova", placeholder: "Acrescentar",
     "aria-label": "Acrescentar a " + (item.titulo || item.chave), controle: "chave:" + item.chave + ":nova" });
-  const acrescentar = () => {
-    const v = nova.value.trim();
+  const deApps = LISTAS_DE_APPS.has(item.chave);
+  if (deApps) {
+    const sugestoes = elemento("datalist", { id: "apps-" + item.chave });
+    nova.setAttribute("list", sugestoes.id);
+    nova.setAttribute("placeholder", "Procurar um programa");
+    appsDaLista().then((apps) => {
+      for (const a of apps) sugestoes.append(elemento("option", { value: a.id, label: a.nome }));
+    });
+    caixa.append(sugestoes);
+  }
+  const acrescentar = async () => {
+    let v = nova.value.trim();
     if (!v || itens.includes(v)) { nova.value = ""; return; }
+    if (deApps) {
+      const apps = await appsDaLista();
+      const solto = v.replace(/^-/, "");
+      const prefixo = v.startsWith("-") && item.chave === "LANCADOR_OCULTAR" ? "-" : "";
+      const certo = apps.find((a) => a.id === solto)
+        || apps.find((a) => a.nome.toLowerCase() === solto.toLowerCase());
+      if (!certo) { torrada("Não achei esse programa", "erro"); nova.value = ""; return; }
+      v = prefixo + certo.id;
+      if (itens.includes(v)) { nova.value = ""; return; }
+    }
     aplica([...itens, v].join(sep));
   };
   nova.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); acrescentar(); } });
