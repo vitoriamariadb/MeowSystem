@@ -62,3 +62,41 @@ Item 13 do pedido. Depende da P120 (verbo `instalar compositor`). Leia
 ## Fora desta sprint
 O cartão e o método (P120), os forks (P122), apagar `~/Desenvolvimento/cosmic-comp-patch` (P123),
 mexer no `aurora-cosmic-comp-ws.sh` em si.
+
+## Execução
+Feita em 27/10/2026, na `bloco/central`.
+
+- `vizinhos.tsv`: dois itens. `aurora-compositor` (o bloco do `--ensure`, quatro linhas) e
+  `aurora-night-light` (o bloco do `aurora-night-light.py`, até o `fi` da coluna 0). Medido: o modo
+  de leitura da casa cobre o night-light (`req cosmic-comp-modo-leitura.patch AURORA-READING-MODE` na
+  série, `scripts/leitura.sh` escreve `leitura_temperatura`/`leitura_textura`), então ele sai junto.
+  Os dois `requer` o shim: `$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1`; o
+  `vizinhos.sh` passou a ler um `requer` com `$HOME/` na casa (`_requer_ok`).
+- Ensaio numa cópia do self-heal real (no scratchpad, nunca no `$ZD`): 19 linhas comentadas (4 + 15),
+  `bash -n` limpo, nada mais muda.
+- `install.sh`: `etapa_compositor` depois de `etapa_extensoes`; com `COMPOSITOR="nao"` tira o shim.
+  Chave `COMPOSITOR="sim"` no `meow.conf.exemplo` e no `chave-etapa.tsv`.
+- `extensoes_build.sh`: em fundo, o build que já corre não é pedido de novo nem conta como mudança
+  (sem isso o install fazia cinco passagens enquanto o build rodava).
+- `bin/meow`: `chk_patches` diverge com build pronto, shim fora e `COMPOSITOR=sim`; `fix_patches`
+  segue disparando o `garantir_builds.sh --fundo` e depois liga o shim.
+- `docs/MANUTENCAO.md`: o caminho de volta é o cartão do Compositor na aba Builds, sem comando.
+- `tests/decisoes.sh`: o shim é provado no HOME de brinquedo; a GPU (D6) segue vermelha, é da máquina.
+
+Provas, verdes: `tests/vizinhos.sh` (seção 8: sem shim o `requer` segura; com shim só os dois blocos
+saem; segunda passada não escreve; `--restaurar` devolve byte a byte; o `install_if_diff` do
+self-heal está na cópia), `tests/garantir-builds.sh` (seção 4: diverge, o conserto cria o shim com
+`MEOW-COSMIC-COMP-SHIM-1`, sem compilar; segunda passada 0 e sem escrita), `tests/etapa-compositor.sh`
+(novo, no `PORTATIL`: etapa na lista, em fundo, um build só, shim criado, segunda vez numa passagem
+sem escrita, `COMPOSITOR=nao` tira, sem sudo além da sondagem `sudo -n true` do próprio install),
+`tests/chave-etapa.sh`, `tests/miudos-do-install.sh`, `tests/instalacao.sh`, `tests/seco.sh`,
+`tests/convergencia.sh`.
+
+Não fechou:
+- Cura 4, a volta do `/usr/bin/cosmic-comp` de fábrica pela ponte de root: a ponte
+  (`scripts/ponte_root.sh`) tem verbos fixos e nenhum reinstala o pacote; um verbo novo pede a regra
+  do sudoers reinstalada pelo `install.sh`, com a senha. O shim já não depende do `/usr/bin`
+  remendado (roda o build da casa e só cai no `/usr/bin` se o build falha), então fica para um
+  bloco com ela presente.
+- O corte de verdade no `$ZD` dela (`vizinhos.sh --desativar aurora-compositor aurora-night-light`)
+  não roda daqui: muda o HOME real. Vale depois do login com o shim ligado.
