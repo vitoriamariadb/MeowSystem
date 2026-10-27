@@ -12,7 +12,7 @@ const LUGAR_TEMA = {
   packs: [
     { c: "PACK", r: "Tema" },
     { c: "FLAVOR", r: "Variante" },
-    { a: "pack_usar", r: "Vestir", b: "Vestir" },
+    { a: "pack_usar", r: "Aplicar tema", b: "Aplicar tema" },
     { a: "pack_remover", r: "Remover", b: "Remover" },
     { g: "pack-importar", r: "Abrir um tema", b: "Abrir um tema" },
   ],
@@ -63,10 +63,10 @@ const PASSOS = [
       { a: "som_ouvir", r: "Ouvir o instalado", b: "Ouvir" },
       { a: "som_aplicar", r: "Regravar o som", b: "Regravar" },
     ] },
-  { id: "mandar", nome: "Mandar",
+  { id: "mandar", nome: "Disponibilizar",
     linhas: [
       { g: "pack-exportar", r: "Baixar o tema", b: "Baixar o tema" },
-      { a: "pack_usar", r: "Vestir", b: "Vestir" },
+      { a: "pack_usar", r: "Aplicar tema", b: "Aplicar tema" },
     ] },
 ];
 
@@ -232,7 +232,7 @@ const AJUSTES = [
     blocos: [
       { titulo: "Recebem o tema", programas: true, linhas: [
         { c: "APPS_ATIVOS", r: "Programas" },
-        { a: "apps_aplicar", r: "Vestir agora", b: "Vestir" },
+        { a: "apps_aplicar", r: "Aplicar agora", b: "Aplicar" },
         { a: "apps", r: "Conferir", b: "Conferir" },
       ] },
       { titulo: "Lançador", linhas: [

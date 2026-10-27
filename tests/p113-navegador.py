@@ -113,10 +113,10 @@ def mandar_e_rascunho(pag, nav, url):
     ir(pag, "criar/mandar")
     foto(pag, "mandar.png")
     linhas = pag.eval_on_selector_all("[data-resumo]", "(xs) => xs.map((x) => x.dataset.resumo)")
-    prova(linhas[:3] == ["Cores", "Ícones", "Pastas"] and len(linhas) == 7, "Mandar mostra o resumo do tema sem ele ter sido guardado: %s" % linhas)
+    prova(linhas[:3] == ["Cores", "Ícones", "Pastas"] and len(linhas) == 7, "Disponibilizar mostra o resumo do tema sem ele ter sido guardado: %s" % linhas)
     prova(pag.evaluate("() => !rascunho().pack"), "o tema ainda não foi guardado")
     prova(pag.locator("[data-controle='criar:baixar']").is_enabled() and pag.locator("[data-controle='criar:vestir']").is_enabled(),
-          "as saídas (Baixar o tema, Vestir agora) já valem")
+          "as saídas (Baixar o tema, Aplicar tema) já valem")
     with pag.expect_response(lambda r: "/api/rascunho" in r.url and r.request.method == "POST"):
         pag.evaluate("() => guardarRascunho()")
     pag.click("[data-controle='criar:baixar']")
