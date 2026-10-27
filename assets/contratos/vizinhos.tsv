@@ -71,7 +71,7 @@ item	aurora-menu-cache	bloco	$ZD/aurora/aurora-menu-doctor.py	    cache = meu / 
 
 # O ativar do install.sh do Dracula: o cursor é do MeowSystem; o resto é chave do GNOME.
 item	dracula-ativar-gsettings	bloco	$DESENV/Dracula_OS-Theme/install.sh	if [[ $ATIVAR -eq 1 && "$MODO" == "user" ]]; then	^fi$	-	o cursor é do MeowSystem, e as chaves de tema do GNOME não valem no COSMIC
-item	nitrokit-unificador-temas	saida	$DESENV/NitroKit/src/unificador_temas_dracula.sh	-	-	scripts/flatpak_tema.sh:flatpak override --user	o ícone, o cursor e o GTK dos apps Flatpak são do MeowSystem (flatpak_tema.sh, conferido pelo meow doctor)
+item	nitrokit-unificador-temas	saida	$DESENV/NitroKit/src/unificador_temas_dracula.sh	-	-	scripts/flatpak_tema.sh:flatpak override --user	o ícone, o cursor e o tema dos apps Flatpak são do MeowSystem (flatpak_tema.sh, conferido pelo meow doctor)
 item	nitrokit-ritual-harmonia	saida	$DESENV/NitroKit/src/ritual_de_harmonia.sh	-	-	scripts/flatpak_tema.sh:flatpak override --user	o override do Flatpak, o ícone e o cursor são do MeowSystem (flatpak_tema.sh e cursor.sh); o resto é do tempo do GNOME e não roda no COSMIC
 
 # O compositor e o modo de leitura são do MeowSystem: o shim em ~/.local/bin roda o build da casa,
