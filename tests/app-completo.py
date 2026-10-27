@@ -1221,7 +1221,7 @@ class Percurso:
         if self.checa(self.achar("achado"), "a busca acha «vidro»"):
             self.clicar("achado")
             self.assentar()
-            self.checa(self.js("() => location.hash.startsWith('#ajustes/')"), "o achado leva à página de Ajustes")
+            self.checa(self.js("() => location.hash.startsWith('#ajustes/')"), "o achado leva à página do Definir")
             self.checa(self.pag.locator("#conteudo .chegou").count() == 1, "e acende a linha do ajuste")
         self.ir("ajustes/painel")
         self.clicar("chave:RELOGIO_SEGUNDOS")

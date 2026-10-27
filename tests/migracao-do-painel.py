@@ -196,7 +196,7 @@ def gerar():
             falhas.append("a pendência desenha «%s» para %s, e o lugares.js diz «%s»"
                           % (rotulo, acao, botao_de.get(acao)))
     quer = {"doctor_consertar": "«Conferir e consertar», em Cuidar Nova › Estado",
-            "LANCADOR_SISTEMA": "«Arrumar o lançador», em Ajustes Nova › Programas › Lançador",
+            "LANCADOR_SISTEMA": "«Arrumar o lançador», em Definir Nova › Programas › Lançador",
             "inicio": "em Cuidar Nova", "areas-sem-alfinete": "«Resolver», em Cuidar Nova"}
     if srv["renomeado"] != quer:
         falhas.append("o --onde não lê o nome das portas do lugares.js (segunda tabela no servidor): %r"
