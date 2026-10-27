@@ -146,7 +146,6 @@ const AJUSTES = [
         { c: "FILES_MENU", r: "Botão direito" },
         { c: "FILES_MENU_AUTOBUILD", r: "Menu se reconstrói", sub: true },
         { a: "files_menu", r: "Menu agora", b: "Ver" },
-        { a: "files_menu_build", r: "Construir o menu", b: "Construir" },
       ] },
       { titulo: "Pastas", linhas: [
         { c: "WALLPAPER_BASE", r: "Pasta do carrossel" },
