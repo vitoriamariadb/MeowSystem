@@ -84,10 +84,18 @@ def lancador(pag):
     ir(pag, "ajustes/programas")
     campo = pag.locator("[data-controle='chave:LANCADOR_OCULTAR:nova']")
     campo.scroll_into_view_if_needed()
-    prova(campo.get_attribute("list") == "apps-LANCADOR_OCULTAR", "o campo de «Escondidos» ganha a lista de programas")
-    pag.wait_for_function("() => document.querySelectorAll('#apps-LANCADOR_OCULTAR option').length > 0", timeout=60000)
-    ids = pag.eval_on_selector_all("#apps-LANCADOR_OCULTAR option", "(xs) => xs.map((x) => x.value)")
-    prova(len(ids) > 0, "a lista sugere os programas de /api/apps (%d)" % len(ids))
+    prova(campo.get_attribute("role") == "combobox", "o campo de «Escondidos» é uma busca de programas")
+    ids = []
+    for letra in "aeio":
+        campo.fill(letra)
+        try:
+            pag.wait_for_selector(".nova-ficha .sugestoes [role='option']", timeout=60000)
+        except Exception:
+            continue
+        ids = pag.eval_on_selector_all(".nova-ficha .sugestoes [role='option']", "(xs) => xs.map((x) => x.dataset.id)")
+        if ids:
+            break
+    prova(len(ids) > 0, "a busca sugere os programas de /api/apps (%d)" % len(ids))
     foto(pag, "lancador-escondidos.png")
     antes = pag.eval_on_selector_all("[data-linha='LANCADOR_OCULTAR'] .ficha", "(xs) => xs.length")
     campo.fill("programa-que-nao-existe")
