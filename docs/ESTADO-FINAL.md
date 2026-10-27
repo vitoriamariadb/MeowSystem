@@ -10,7 +10,7 @@ se mantém. As decisões de quem usa estão em [`DECISOES.md`](DECISOES.md).
 | **Instalador** | `./install.sh` veste a máquina inteira e converge: a segunda passada não escreve nada. Guarda cópia antes de escrever e recusa caminho que não conhece. `--wizard` pergunta as chaves essenciais, `--perfil <nome>` instala com um perfil, `MEOW_DRY_RUN=1` ensaia | [README](../README.md) |
 | **Theme packs** | cores, ícones, base de ícones, ponteiro, som, papéis de parede, mascote, temas de dentro dos programas e o que se esconde do lançador vêm do pack, que é dado e nunca código. `meowsystem` (o padrão, Catppuccin) e `dracula` (com o claro Alucard) vêm com o projeto | [PACKS](PACKS.md) |
 | **Segurança de pack** | todo caminho cai dentro do pack; link para fora e script são recusados; desenho de pack chega ao painel numa caixa de areia; extensão do VS Code de pack importado só se instala por gesto | [PACKS, «O que um pack não pode fazer»](PACKS.md#o-que-um-pack-não-pode-fazer) |
-| **Painel** | `meow abrir`: quatro portas, **Tema**, **Criar tema**, **Ajustes** e **Cuidar**. A interface mostra em vez de explicar; o porquê mora atrás do **?**. A barra de cima tem **Aplicar**, **Desfazer** e **Ver sem mudar**; a ação que escreve tem **Restaurar** ao lado; o resultado abre numa janela com **Parar** e **Guardar**; o que baixa da internet leva o selo | [app/LEIA-ME](../app/LEIA-ME.md) |
+| **Painel** | `meow abrir`: cinco portas, **Tema**, **Personalizar**, **Definir**, **Manter** e **Extensões**. A interface mostra em vez de explicar; o porquê mora atrás do **?**. A barra de cima tem **Aplicar**, **Desfazer** e **Ver sem mudar**; a ação que escreve tem **Restaurar** ao lado; o resultado abre numa janela com **Parar** e **Guardar**; o que baixa da internet leva o selo | [app/LEIA-ME](../app/LEIA-ME.md) |
 | **Doctor** | `meow doctor` confere sem escrever; `meow doctor --consertar` conserta o que estiver fora, sem mandar ninguém digitar. Roda sozinho às 5h, e o **Consertar** do painel é o mesmo gesto | [README](../README.md) |
 | **Ponte root** | a senha do sudo uma vez, no instalador; depois, um conjunto fechado de verbos roda sem senha e sem terminal | [FRONTEIRA](FRONTEIRA.md) |
 | **COSMIC vivo** | o compositor com a série de `patches/` e o menu do `cosmic-files` são builds da casa, refeitos sozinhos quando o apt traz versão nova; o shim escolhe a cada sessão entre o build e o de fábrica | [MANUTENCAO](MANUTENCAO.md), [COSMIC-THEMING](COSMIC-THEMING.md) |
@@ -37,7 +37,7 @@ o dispositivo de render do compositor (decisão 6) e o askpass da sessão (decis
 | o quê | por quê | decisão |
 |---|---|---|
 | o tema instalado continua `MeowSystem-Icons`; só o exportado leva o nome do pack | é o nome que o COSMIC lê | 36 |
-| som só na notificação | ninguém pediu som de dispositivo, de bloqueio nem de captura | 37 |
+| o pack traz os sons do sistema; carregador e bateria pela ponte root | o COSMIC os toca de `/usr/share/sounds/Pop`, caminho cravado | 37 |
 | 52 nomes do tema Dracula antigo sem desenho | eram PNG ou projeto pessoal; caem no ícone do próprio programa | 38 |
 | projetos pessoais nos packs | o pack é produto público; o que é de uma máquina mora no conf dela | 4, 29 |
 | GNOME e KDE | o produto é o COSMIC | |
@@ -61,7 +61,7 @@ o dispositivo de render do compositor (decisão 6) e o askpass da sessão (decis
 `AUTO_REPARO="nao"` no `meow.conf` desliga o doctor das 5h, a sentinela, o pós-apt e o build do
 login.
 
-O que só uma pessoa faz aparece na porta **Cuidar**, uma linha por pendência, e a linha sai
+O que só uma pessoa faz aparece na porta **Manter**, uma linha por pendência, e a linha sai
 sozinha quando a causa some: o COSMIC da fila que não recebe a série, e o patch obrigatório que
 precisa de rebase em `patches/`. Até lá a sessão segue no compositor de fábrica.
 

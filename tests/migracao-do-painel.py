@@ -11,9 +11,7 @@ import tempfile
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 GESTOS_DE_ANTES = [
-    ("POST /api/salvar", "Topo: Salvar e aplicar", "salvar"),
     ("Descartar (só na página)", "Topo: Descartar", "descartar"),
-    ("POST /api/salvar e /api/rodar com seco", "Topo e caixa de confirmar: Ver sem mudar", "ensaio"),
     ("Busca (só na página)", "Topo: Buscar um ajuste ou uma ação", "busca"),
     ("GET /api/exportar/conf", "Topo: Exportar › Meus ajustes", "exportar-conf"),
     ("GET /api/exportar/pagina", "Topo: Exportar › Esta tela num arquivo", "exportar-pagina"),
@@ -61,8 +59,6 @@ def onde(l):
         base = nomes[l["porta"]]
     else:
         base = "%s › %s" % (nomes[l["porta"]], l["pagina"])
-    if l["mais"]:
-        return base + " › Mais ajustes"
     if l["bloco"] and l["bloco"] not in (l["pagina"], base):
         return base + " › " + l["bloco"]
     return base
@@ -94,7 +90,7 @@ def servidor():
             "renomeado = {i: s.onde_na_tela(i) for i in ('doctor_consertar', 'LANCADOR_SISTEMA', 'inicio',\n"
             "  'areas-sem-alfinete')}\n"
             "print(json.dumps({'chaves': [[i['chave'], i.get('secao') or '', i.get('titulo') or ''] for i in e],\n"
-            "  'acoes': [[k, v.get('grupo') or '', v.get('rotulo') or ''] for k, v in s.ACOES.items()],\n"
+            "  'acoes': [[k, v.get('grupo') or '', v.get('rotulo') or ''] for k, v in s.ACOES.items() if not v.get('interna')],\n"
             "  'onde': onde, 'pendencias': pend, 'renomeado': renomeado,\n"
             "  'escolhas': list(s.ESCOLHA_PAREDE) + list(s.ESCOLHA_TEMA_DE_TERCEIRO),\n"
             "  'inventario': srv_inv}))\n")
@@ -195,9 +191,9 @@ def gerar():
         if botao_de.get(acao) != rotulo:
             falhas.append("a pendência desenha «%s» para %s, e o lugares.js diz «%s»"
                           % (rotulo, acao, botao_de.get(acao)))
-    quer = {"doctor_consertar": "«Conferir e consertar», em Cuidar Nova › Estado",
-            "LANCADOR_SISTEMA": "«Arrumar o lançador», em Ajustes Nova › Programas › Lançador",
-            "inicio": "em Cuidar Nova", "areas-sem-alfinete": "«Resolver», em Cuidar Nova"}
+    quer = {"doctor_consertar": "«Consertar a ponte», em Manter Nova › Estado",
+            "LANCADOR_SISTEMA": "«Arrumar o lançador», em Definir Nova › Programas › Lançador",
+            "inicio": "em Manter Nova", "areas-sem-alfinete": "«Resolver», em Manter Nova"}
     if srv["renomeado"] != quer:
         falhas.append("o --onde não lê o nome das portas do lugares.js (segunda tabela no servidor): %r"
                       % srv["renomeado"])

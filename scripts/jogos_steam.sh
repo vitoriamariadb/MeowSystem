@@ -138,7 +138,7 @@ algum_icone_da_steam() {
 }
 
 plantar_icone() {
-  local id="$1" fonte destino dir tmp px lado mudou_algum=0
+  local id="$1" fonte destino dir tmp pouso px lado mudou_algum=0
   meow_tem convert || return 1
   fonte="$(arte_do_jogo "$id")" || return 1
 
@@ -147,10 +147,9 @@ plantar_icone() {
     destino="$HICOLOR/${px}x${px}/apps/meow-steam-$id.png"
     meow_destino_permitido "$destino" || return 1
     dir="$(dirname "$destino")"
-    mkdir -p "$dir" || return 1
     lado=$(( px * 96 / 100 ))
     [ "$lado" -lt 1 ] && lado=1
-    tmp="$(mktemp -p "$dir" ".meow.XXXXXX.png")" || return 1
+    tmp="$(mktemp "${TMPDIR:-/tmp}/meow-icone.XXXXXX.png")" || return 1
     if ! convert "$fonte" -resize "${lado}x${lado}" -background none -gravity center \
           -extent "${px}x${px}" \
           -strip -define png:exclude-chunk=tIME,tEXt,zTXt "$tmp" 2>/dev/null; then
@@ -160,8 +159,11 @@ plantar_icone() {
       rm -f "$tmp"; continue
     fi
     if meow_seco; then rm -f "$tmp"; mudou_algum=1; continue; fi
-    chmod 644 "$tmp"
-    mv -f "$tmp" "$destino" || { rm -f "$tmp"; return 1; }
+    mkdir -p "$dir" || { rm -f "$tmp"; return 1; }
+    pouso="$(mktemp -p "$dir" ".meow.XXXXXX.png")" || { rm -f "$tmp"; return 1; }
+    install -m644 "$tmp" "$pouso" || { rm -f "$tmp" "$pouso"; return 1; }
+    rm -f "$tmp"
+    mv -f "$pouso" "$destino" || { rm -f "$pouso"; return 1; }
     mudou_algum=1
   done <<EOF_ESCADA
 $(meow_icones_escada)

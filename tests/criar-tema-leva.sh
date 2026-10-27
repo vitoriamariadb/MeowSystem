@@ -155,10 +155,11 @@ $(cat "$T/som.log")"
 fi
 
 DRA="$RAIZ/packs/dracula/icones"
+sed -i 's/"heranca": "[a-z0-9-]*"/"heranca": "dracula"/' "$DIR/pack.json"
 oferta="$(pack acervo-para-levar meu-tema sistema 2>&1)"
 if printf '%s\n' "$oferta" | grep -q "^dracula	folder-documents	$DRA/sistema/folder-documents.svg	nao$" \
    && ! printf '%s\n' "$oferta" | grep -q "^meowsystem	"; then
-  ok "a aba Sistema oferece as pastas desenhadas dos packs (o molde que se pinta fica de fora)"
+  ok "a aba Sistema oferece só as pastas do pack de que o tema herda (o Dracula), e não as do MeowSystem"
 else
   falha "a oferta da aba Sistema não é a esperada" "$(printf '%s\n' "$oferta" | head -5)"
 fi
@@ -184,6 +185,7 @@ if [ "$r1$r2$r3" = 111 ] && [ "$r4" != 0 ] && [ ! -e "$DIR/icones/biblioteca/mau
 else
   falha "o pack aceitou um ícone que devia recusar ($r1 $r2 $r3 $r4)"
 fi
+sed -i 's/"heranca": "dracula"/"heranca": "meowsystem"/' "$DIR/pack.json"
 casa PACK=meu-tema FLAVOR=meutema PASTAS_XDG=sim ICONES_TEMA=Tema-Leva \
   bash "$RAIZ/scripts/icones_pastas.sh" --aplicar >"$T/pastas.log" 2>&1
 LUGARES="$CASA/.local/share/icons/Tema-Leva/scalable/places"
@@ -238,7 +240,7 @@ if "audio-volume-change" in eventos:
 cod, tipo, dados = pedir("/som?pack=meu-tema&evento=message-new-instant")
 if cod != 200 or not tipo.startswith("audio/ogg") or dados != open(meu, "rb").read():
     falhas.append(f"a prévia do som não é o arquivo do pack ({cod} {tipo})")
-for rota in ("/som?pack=meu-tema&evento=../pack", "/som?pack=meowsystem&evento=complete",
+for rota in ("/som?pack=meu-tema&evento=../pack", "/som?pack=meowsystem&evento=nao-existe",
              "/som?pack=..&evento=complete"):
     if pedir(rota)[0] != 404:
         falhas.append(f"{rota} não respondeu 404")

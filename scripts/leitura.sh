@@ -19,13 +19,15 @@ LEITURA_K_AGENDA="$LEITURA_BASE/leitura_agenda"
 LEITURA_K_INI="$LEITURA_BASE/leitura_hora_inicio"
 LEITURA_K_FIM="$LEITURA_BASE/leitura_hora_fim"
 
-LEITURA_APPLET_ID="com.meowsystem.AppletLeitura"
-LEITURA_APPLET_BIN="$HOME/.local/bin/meow-applet-leitura"
+LEITURA_APPLET_ID="io.github.meowsystem.Leitura"
+LEITURA_APPLET_BIN="$HOME/.local/bin/meowsystem-leitura"
 LEITURA_APPLET_SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$LEITURA_APPLET_ID.desktop"
 LEITURA_APPLET_ASA="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_wings"
 LEITURA_APPLET_MEIO="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicPanel.Panel/$(meow_cosmic_v com.system76.CosmicPanel.Panel)/plugins_center"
 
 LEITURA_ESTADO_BASE="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/$LEITURA_APPLET_ID/v1"
+LEITURA_ESTADO_ANTIGO="${XDG_STATE_HOME:-$HOME/.local/state}/cosmic/com.meowsystem.AppletLeitura"
+[ -d "$LEITURA_ESTADO_BASE" ] || [ ! -d "$LEITURA_ESTADO_ANTIGO/v1" ] || LEITURA_ESTADO_BASE="$LEITURA_ESTADO_ANTIGO/v1"
 LEITURA_K_ULT_T="$LEITURA_ESTADO_BASE/ultima_temperatura"
 LEITURA_K_ULT_X="$LEITURA_ESTADO_BASE/ultima_textura"
 

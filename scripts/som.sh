@@ -15,11 +15,24 @@ SOM_SISTEMA="/usr/share/sounds/$SOM_TEMA/stereo/audio-volume-change.oga"
 SOM_DURACAO="${SOM_DURACAO:-0.085}"
 SOM_GANHO="${SOM_GANHO:-0.18}"
 
+SOM_CARIMBO="$MEOW_ESTADO/som-do-pack"
+SOM_TIMBRE_CHAVES="SOM_FUNDAMENTAL SOM_HARMONICO SOM_PESO_FUNDAMENTAL SOM_PESO_HARMONICO SOM_DECAIMENTO"
+
+_som_pack_ref() {
+  local dir
+  dir="$(meow_pack_dir)"
+  [ -n "$dir" ] || dir="$(meow_pack_padrao_dir 2>/dev/null || true)"
+  printf '%s' "$dir"
+}
+
 _som_do_pack() {
   local dir linha var val
-  dir="$(meow_pack_dir)" || return 0
+  dir="$(_som_pack_ref)"
   [ -n "$dir" ] || return 0
   [ -f "$dir/pack.json" ] || return 0
+  if [ "$(cat "$SOM_CARIMBO" 2>/dev/null)" != "$(basename "$dir")" ]; then
+    for var in $SOM_TIMBRE_CHAVES; do unset "$var"; done
+  fi
   while IFS= read -r linha; do
     case "$linha" in
       SOM_*=*)
@@ -32,8 +45,7 @@ _som_do_pack() {
 }
 _som_do_pack
 
-_som_ref="$(meow_pack_dir)"
-[ -n "$_som_ref" ] || _som_ref="$(meow_pack_padrao_dir 2>/dev/null || true)"
+_som_ref="$(_som_pack_ref)"
 SOM_TEMA_PACK="$(python3 "$MEOW_RAIZ/scripts/pack.py" acervo "$_som_ref" som.tema 2>/dev/null)" || SOM_TEMA_PACK=""
 SOM_TEMA_PACK="${SOM_TEMA_PACK%/}"
 unset _som_ref
@@ -55,8 +67,6 @@ _som_gerar() {
 import math, struct, sys, wave
 
 destino, dur, ganho = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
-# O timbre vem do pack ativo, com os valores de sempre como default —
-# ver o bloco "O TIMBRE" em scripts/som.sh e a seção "som" em docs/PACKS.md.
 fund, harm = float(sys.argv[4]), float(sys.argv[5])
 peso_f, peso_h, decaimento = float(sys.argv[6]), float(sys.argv[7]), float(sys.argv[8])
 taxa = 48000
@@ -240,6 +250,65 @@ _som_unidade() {
   esac
 }
 
+MEOW_SONS_SISTEMA="${MEOW_SONS_SISTEMA:-/usr/share/sounds}"
+MEOW_SONS_ORIGINAIS="${MEOW_SONS_ORIGINAIS:-/var/lib/meowsystem/sons}"
+SOM_DA_PONTE="power-plug:notification power-unplug:notification power-unplug-battery-low:alert battery-caution:notification battery-low:alert complete:notification dialog-warning:alert"
+
+_som_ponte_alvo() {
+  case "$1" in
+    dialog-warning) printf '%s' "$MEOW_SONS_SISTEMA/freedesktop/stereo/dialog-warning.oga" ;;
+    power-unplug-battery-low|battery-low) printf '%s' "$MEOW_SONS_SISTEMA/Pop/stereo/alert/$1.oga" ;;
+    *) printf '%s' "$MEOW_SONS_SISTEMA/Pop/stereo/notification/$1.oga" ;;
+  esac
+}
+
+_som_ponte_pendentes() {
+  local par ev ctx fonte alvo base="$SOM_TEMA_DIR"
+  meow_seco && base="$SOM_TEMA_PACK"
+  for par in $SOM_DA_PONTE; do
+    ev="${par%%:*}"; ctx="${par##*:}"
+    fonte="$base/stereo/$ctx/$ev.oga"
+    alvo="$(_som_ponte_alvo "$ev")"
+    if [ -n "$SOM_TEMA_PACK" ] && [ -f "$fonte" ]; then
+      [ -f "$alvo" ] && cmp -s "$fonte" "$alvo" || printf 'som %s\n' "$ev"
+    elif [ -f "$MEOW_SONS_ORIGINAIS/$ev.original" ]; then
+      printf 'padrao %s\n' "$ev"
+    fi
+  done
+}
+
+_som_ponte() {
+  local modo="$1" pendentes linha verbo ev ctx par rc=0
+  pendentes="$(_som_ponte_pendentes)"
+  [ -n "$pendentes" ] || return "$MEOW_OK"
+  if [ "$modo" = "conferir" ]; then
+    meow_ponte_viva || { meow_aviso "o carregador e a bateria ainda tocam os sons do Pop: a ponte não está viva"; return "$MEOW_OK"; }
+    return "$MEOW_DIVERGENTE"
+  fi
+  if meow_seco; then
+    meow_muda "poria $(printf '%s\n' "$pendentes" | wc -l) som(ns) do pack no lugar dos do Pop, pela ponte"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if ! meow_ponte_viva; then
+    meow_aviso "o carregador e a bateria ainda tocam os sons do Pop: a ponte não está viva"
+    return "$MEOW_OK"
+  fi
+  while read -r verbo ev; do
+    [ -n "$ev" ] || continue
+    if [ "$verbo" = "som" ]; then
+      for par in $SOM_DA_PONTE; do [ "${par%%:*}" = "$ev" ] && ctx="${par##*:}"; done
+      { printf '%s\n' "$ev"; cat "$SOM_TEMA_DIR/stereo/$ctx/$ev.oga"; } | meow_ponte som 2>/dev/null || rc=1
+    else
+      printf '%s\n' "$ev" | meow_ponte som-padrao 2>/dev/null || rc=1
+    fi
+  done <<< "$pendentes"
+  if [ "$rc" = 1 ]; then
+    meow_aviso "a ponte instalada não troca os sons do Pop ainda: o próximo «Instalar tudo» a atualiza"
+    return "$MEOW_OK"
+  fi
+  return "$MEOW_DIVERGENTE"
+}
+
 _som_tema_e_unidade() {
   local rc_t rc_u
   if [ -n "$SOM_TEMA_PACK" ] && [ -f "$SOM_TEMA_PACK/index.theme" ]; then
@@ -281,6 +350,12 @@ cmd_aplicar() {
     fi
   fi
 
+  local rcp; _som_ponte aplicar; rcp=$?
+  if [ "$rcp" = "$MEOW_DIVERGENTE" ]; then
+    rc="$MEOW_DIVERGENTE"
+    meow_seco || meow_muda "sons do carregador e da bateria no lugar dos do Pop"
+  fi
+
   if [ "$rcv" = "$MEOW_DIVERGENTE" ] && meow_seco; then
     meow_muda "instalaria o som de volume do MeowSystem em $SOM_ALVO"
   elif [ "$rcv" = "$MEOW_DIVERGENTE" ]; then
@@ -307,6 +382,10 @@ cmd_conferir() {
   fi
   if ! _som_tema_e_unidade conferir; then
     meow_muda "o tema de som do pack, ou quem o toca nas notificações, não está como o pack pede"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if ! _som_ponte conferir; then
+    meow_muda "o carregador ou a bateria tocam um som que não é o do pack"
     return "$MEOW_DIVERGENTE"
   fi
   if [ ! -f "$SOM_ALVO" ]; then
@@ -360,10 +439,29 @@ cmd_ouvir() {
   pw-play --volume 0.5 --media-role Notification "$alvo" || return "$MEOW_ERRO"
 }
 
+cmd_gerar() {
+  local destino="${1:-}" par chave valor
+  [ -n "$destino" ] || { meow_erro "uso: som.sh gerar <arquivo> [SOM_CHAVE=número ...]"; return "$MEOW_ERRO"; }
+  shift
+  for par in "$@"; do
+    chave="${par%%=*}"; valor="${par#*=}"
+    case " $SOM_TIMBRE_CHAVES " in *" $chave "*) ;; *) meow_erro "$chave não é do timbre do sino"; return "$MEOW_ERRO" ;; esac
+    case "$valor" in ''|*[!0-9.eE+-]*) meow_erro "$chave: «$valor» não é um número"; return "$MEOW_ERRO" ;; esac
+    printf -v "$chave" '%s' "$valor"
+  done
+  _som_gerar "$destino" || { meow_erro "falha ao sintetizar o sino"; return "$MEOW_ERRO"; }
+}
+
+cmd_timbre() {
+  printf 'SOM_FUNDAMENTAL=%s\nSOM_HARMONICO=%s\nSOM_PESO_FUNDAMENTAL=%s\nSOM_PESO_HARMONICO=%s\nSOM_DECAIMENTO=%s\n' \
+    "$SOM_FUNDAMENTAL" "$SOM_HARMONICO" "$SOM_PESO_FUNDAMENTAL" "$SOM_PESO_HARMONICO" "$SOM_DECAIMENTO"
+}
+
 cmd_remover() {
-  local rct=0
+  local rct=0 SOM_TEMA_PACK=""
   _som_unidade tirar >/dev/null; [ $? = "$MEOW_DIVERGENTE" ] && rct=1
   _som_tema tirar >/dev/null; [ $? = "$MEOW_DIVERGENTE" ] && rct=1
+  _som_ponte aplicar >/dev/null; [ $? = "$MEOW_DIVERGENTE" ] && rct=1
   if [ ! -f "$SOM_ALVO" ]; then
     [ "$rct" = 1 ] && { meow_muda "tema de som do pack e o tocador das notificações tirados"; return "$MEOW_DIVERGENTE"; }
     meow_pula "nada a remover"; return "$MEOW_OK"
@@ -426,6 +524,8 @@ case "${1:-aplicar}" in
   conferir) cmd_conferir ;;
   estado)   cmd_estado ;;
   ouvir)    cmd_ouvir ;;
+  gerar)    shift; cmd_gerar "$@" ;;
+  timbre)   cmd_timbre ;;
   remover)  cmd_remover ;;
-  *) meow_erro "uso: som.sh {aplicar|conferir|estado|ouvir|remover|vigiar}"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: som.sh {aplicar|conferir|estado|ouvir|gerar|timbre|remover|vigiar}"; exit "$MEOW_ERRO" ;;
 esac

@@ -72,16 +72,13 @@ def main():
             for rota in casa.ROTAS:
                 pag.evaluate(f"() => {{ location.hash = '#{rota}'; }}")
                 esperar(pag)
-                for s in pag.locator("details.mais > summary").all():
-                    if not s.evaluate("(x) => x.parentElement.open"):
-                        s.click()
                 pag.wait_for_timeout(300)
                 for tipo, frase in pag.evaluate(MEDIR_JS):
                     reprovas.append((rota, tipo, frase))
 
             pag.evaluate("() => { location.hash = '#tema'; }")
             esperar(pag)
-            pag.mouse.click(5, 900)
+            pag.mouse.click(5, 5)
             pag.keyboard.press("Home")
             pag.evaluate("() => document.activeElement && document.activeElement.blur()")
             portas = set()
@@ -94,11 +91,11 @@ def main():
                 if foco["nome"].startswith("porta:"):
                     portas.add(foco["nome"])
                     anel = anel and foco["anel"]
-            if len(portas) != 4:
-                reprovas.append(("teclado", "tab", f"o Tab não chega às quatro portas ({sorted(portas)})"))
+            if len(portas) != 5:
+                reprovas.append(("teclado", "tab", f"o Tab não chega às cinco portas ({sorted(portas)})"))
             if not anel:
                 reprovas.append(("teclado", "foco", "a porta focada pelo teclado não desenha o anel"))
-            pag.mouse.click(5, 900)
+            pag.mouse.click(5, 5)
             pag.keyboard.press("/")
             if pag.evaluate("() => document.activeElement.id") != "busca":
                 reprovas.append(("teclado", "busca", "a tecla / não leva à busca"))

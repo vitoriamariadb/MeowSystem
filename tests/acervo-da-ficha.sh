@@ -46,9 +46,9 @@ def checa(cond, frase, detalhe=""):
     return cond
 
 
-def glifos(busca="", app=""):
+def glifos(busca="", app="", pack="dracula"):
     resposta.clear()
-    m._api_glifos({"busca": [busca], "app": [app]})
+    m._api_glifos({"busca": [busca], "app": [app], "pack": [pack]})
     return resposta.get("dados") or {}
 
 
@@ -62,8 +62,13 @@ def caminho_de(item):
 
 
 vazia = glifos("", "firefox")
-grupos = vazia.get("grupos") or []
-itens = vazia.get("glifos") or []
+vazia_m = glifos("", "firefox", "meowsystem")
+grupos_d = vazia.get("grupos") or []
+itens_d = vazia.get("glifos") or []
+grupos_m = vazia_m.get("grupos") or []
+itens_m = vazia_m.get("glifos") or []
+grupos = grupos_d + [g for g in grupos_m if g["id"] not in {x["id"] for x in grupos_d}]
+itens = itens_d + [i for i in itens_m if i["grupo"] not in {g["id"] for g in grupos_d}]
 
 por_pasta = {}
 for it in itens:
@@ -133,16 +138,19 @@ checa("packs/dracula/icones/biblioteca/alien.svg" in achados,
 achados2 = {os.path.relpath(caminho_de(it), raiz) for it in glifos("alienigena").get("glifos", [])}
 checa(achados2 == achados, "e «alienigena», sem acento, acha o mesmo")
 
-checa(vazia.get("limitado") is False and len(itens) == sum(soma.values()) and len(itens) > 120,
-      "a ficha aberta sem busca traz %d desenhos, sem corte" % len(itens))
-sugeridos = [it["glifo"] for it in itens if it.get("sugerido")]
-checa("net.waterfox.waterfox" in sugeridos and len(sugeridos) < len(itens),
+checa(vazia.get("limitado") is False and len(itens_d) == sum(g["total"] for g in grupos_d) and len(itens_d) > 120,
+      "a ficha aberta sem busca traz %d desenhos, sem corte" % len(itens_d))
+sugeridos = [it["glifo"] for it in itens_d if it.get("sugerido")]
+checa("net.waterfox.waterfox" in sugeridos and len(sugeridos) < len(itens_d),
       "o nome do app acende os sugeridos (%d) sem filtrar o resto" % len(sugeridos), repr(sugeridos[:8]))
-ordem = [g["id"] for g in grupos]
+ordem = [g["id"] for g in grupos_d]
+ordem_m = [g["id"] for g in grupos_m]
 checa(ordem and ordem[0].startswith("pack:dracula:")
-      and any(g.startswith("pack:meowsystem:") for g in ordem),
-      "o pack no ar vem primeiro, e os outros packs e o motor vêm depois, cada um na sua pasta",
-      repr(ordem))
+      and not any(g.startswith("pack:meowsystem:") for g in ordem),
+      "com o Dracula em edição só as pastas do Dracula aparecem, nenhuma do MeowSystem", repr(ordem))
+checa(ordem_m and ordem_m[0].startswith("pack:meowsystem:")
+      and not any(g.startswith("pack:dracula:") for g in ordem_m),
+      "com o MeowSystem em edição só as pastas dele aparecem, nenhuma do Dracula", repr(ordem_m))
 
 import re  # noqa: E402
 de_sistema = sorted({it["grupo"] for it in itens if "/icones/sistema/" in caminho_de(it)})
@@ -150,13 +158,13 @@ checa(not de_sistema, "nenhuma pasta de sistema/ na ficha", repr(de_sistema))
 fora_das_duas = [g["id"] for g in grupos if g["pack"] and ":autorais:" not in g["id"]
                  and not re.match(r"^pack:[a-z0-9-]+:(apps|biblioteca)(/[^:]+)?(:png)?$", g["id"])]
 checa(not fora_das_duas, "todo grupo de pack é apps/ ou biblioteca/, ou os autorais", repr(fora_das_duas))
-base = {g["id"]: g["tipo"] for g in grupos if g["pack"] == "meowsystem"}
+base = {g["id"]: g["tipo"] for g in grupos_m if g["pack"] == "meowsystem"}
 checa(base and base.get("pack:meowsystem:apps") == "traco",
       "o acervo do pack-base aparece como traço", repr(base))
 
 for pasta_rel in ("apps", "biblioteca"):
     pasta_p96 = os.path.join(raiz, "packs", "dracula", "icones", pasta_rel)
-    gp = next((g for g in grupos if g["id"] == "pack:dracula:" + pasta_rel), None)
+    gp = next((g for g in grupos_d if g["id"] == "pack:dracula:" + pasta_rel), None)
     flavors = ("dracula", "alucard")
     esperado = len([a for a in os.listdir(pasta_p96) if a.endswith(".svg")
                     and not (pasta_rel == "apps" and a[:-4].endswith(tuple("-" + f for f in flavors)))])
@@ -175,8 +183,7 @@ for rel, rotulo in esperados.items():
     it = por_arquivo.get(rel) or {}
     checa(it.get("rotulo") == rotulo, "%s ganha o rótulo «%s»" % (os.path.basename(rel), rotulo),
           "veio %r" % it.get("rotulo"))
-traco = [it for rel, it in por_arquivo.items()
-         if it["tipo"] == "traco" and it["glifo"] == "firefox"]
+traco = [it for it in itens_m if it["tipo"] == "traco" and it["glifo"] == "firefox"]
 checa(traco and all(it.get("rotulo") == "Firefox" for it in traco),
       "o traço «firefox» ganha o nome do .desktop que o veste (Firefox)",
       repr([it.get("rotulo") for it in traco]))
@@ -250,5 +257,5 @@ if falhas:
     for linha in falhas:
         print("    " + linha, file=sys.stderr)
     sys.exit(1)
-print("ok: a ficha oferece o acervo inteiro, uma pasta por acervo, e a busca acha pelo nome e pelo sentido")
+print("ok: a ficha oferece o acervo do pack em edição, uma pasta por acervo, e a busca acha pelo nome e pelo sentido")
 PY

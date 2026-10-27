@@ -1,0 +1,40 @@
+.sub-abas { display: flex; align-items: center; justify-content: space-between; gap: var(--e-3); flex-wrap: wrap; }
+.sub-abas .editando { margin-left: auto; color: var(--tinta-3); font-size: var(--t-xs); }
+.grade-apps.pastas .app { cursor: default; }
+.grade-apps.pastas .vazio-acervo { grid-column: 1 / -1; color: var(--tinta-3); font-size: var(--t-sm); }
+.grade-apps.pastas .app .nome { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.desenho { display: grid; border: 1px solid var(--accent-linha); border-radius: var(--raio-lg); background: var(--cartao); min-width: 0; padding: 0; gap: 0; }
+.desenho > header { display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap; min-height: 64px; padding: var(--e-3) var(--e-5); border-bottom: 1px solid var(--linha); }
+.desenho > header > img { width: 36px; height: 36px; }
+.desenho > header h2 { margin-right: auto; }
+.desenho-gerar { display: contents; }
+.desenho.na-janela { grid-template-rows: auto minmax(0, 1fr) auto; max-height: max(420px, calc(100vh - var(--desenho-acima, 300px))); }
+.desenho.na-janela .desenho-corpo { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.desenho.na-janela .desenho-olho { top: 0; }
+.desenho-corpo { display: grid; grid-template-columns: minmax(200px, 300px) minmax(0, 1fr); gap: var(--e-6); padding: var(--e-5); align-items: start; }
+.desenho-corpo.unico { grid-template-columns: minmax(0, 1fr); }
+.desenho-olho { display: grid; gap: var(--e-3); position: sticky; top: 148px; }
+.desenho .oficina-lupa { width: 100%; height: auto; aspect-ratio: 1; }
+.desenho .oficina-lupa img, .desenho .oficina-lupa svg { width: 72%; height: 72%; }
+.desenho .oficina-dock { width: 100%; justify-content: center; }
+.desenho-mao { display: grid; gap: var(--e-5); align-content: start; min-width: 0; }
+.desenho-mao > section { display: grid; gap: var(--e-3); min-width: 0; }
+.desenho-mao h3 { color: var(--tinta-2); font-size: var(--t-sm); }
+.desenho .oficina-folha { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+.desenho .oficina-cartao { cursor: pointer; }
+.desenho .oficina-cartao img, .desenho .oficina-cartao svg, .desenho .oficina-cartao .oficina-lugar { width: 56px; height: 56px; }
+.desenho .oficina-cartao .oficina-lugar { border: 1.5px dashed var(--linha-forte); background: none; }
+.desenho .oficina-regua { grid-template-columns: 120px minmax(0, 1fr) 52px; }
+.desenho .oficina-regua output { font: 500 var(--t-xs) var(--f-mono); text-align: right; }
+.desenho .oficina-regua > .cores { grid-column: 2 / -1; }
+.desenho .oficina-regua > .chave { justify-self: start; }
+.desenho-pe { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; justify-content: flex-end; gap: var(--e-3); flex-wrap: wrap; padding: var(--e-3) var(--e-5); border-top: 1px solid var(--linha); background: var(--cartao); border-radius: 0 0 var(--raio-lg) var(--raio-lg); }
+.desenho-pe .oficina-erro { margin-right: auto; font-weight: 500; }
+.desenho-pe .estado-pilula { margin-right: auto; background: var(--fundo); }
+.desenho-pe [hidden] { display: none; }
+.desenho .grade-glifos { max-height: 420px; overflow: auto; }
+@media (max-width: 1360px) {
+  .desenho-corpo { grid-template-columns: minmax(0, 1fr); }
+  .desenho-olho { position: static; grid-template-columns: 180px minmax(0, 1fr); align-items: start; }
+  .desenho-olho .oficina-dock { flex-direction: column; width: auto; }
+}

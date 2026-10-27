@@ -5,13 +5,11 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-APP_ID="com.github.DiegoMMR.CosmicExtAppletNowPlaying"
-BINARIO="$HOME/.local/bin/meow-applet-now-playing"
+APP_ID="io.github.meowsystem.NowPlaying"
+BINARIO="$HOME/.local/bin/meowsystem-now-playing"
 SOMBRA="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$APP_ID.desktop"
-CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic-ext-applet-now-playing"
-SANDBOX="$HOME/.var/app/$APP_ID/config/cosmic-ext-applet-now-playing"
-ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/midia"
-CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/cosmic-ext-applet-now-playing"
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/$APP_ID/v1"
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem-now-playing"
 
 MIDIA="${MIDIA:-sim}"
 LARGURA="${MIDIA_LARGURA:-440}"
@@ -32,23 +30,6 @@ case "${1:-}" in
   *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar|--reverter]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && [ "$REVERTER" = 0 ] && CONFERIR=1
-
-_texto_sombra() {
-  cat <<EOF
-[Desktop Entry]
-Name=Now Playing
-Exec=$BINARIO
-Terminal=false
-Type=Application
-StartupNotify=true
-Icon=$APP_ID
-Categories=AudioVideo;Utility;
-Keywords=Music;Media;Now Playing;
-NoDisplay=true
-X-CosmicApplet=true
-X-CosmicHoverPopup=Auto
-EOF
-}
 
 _largura_valida() {
   case "$LARGURA" in
@@ -90,14 +71,22 @@ _fonte_valida() {
   [ "$FONTE" -ge 6 ] && [ "$FONTE" -le 48 ]
 }
 
+_fonte_valor() { [ "$FONTE" = "auto" ] && printf '0' || printf '%s' "$FONTE"; }
+
+_texto_cor() {
+  local hex; hex="$(_cor_hex "$1")"
+  [ "$hex" = auto ] && hex=""
+  printf '"%s"' "$hex"
+}
+
 _chaves() {
-  printf '%s\t%s\n' panel-text-width   "$LARGURA"
-  printf '%s\t%s\n' panel-color-style  "$COR"
-  printf '%s\t%s\n' album-art-remote   "$(_capa_valor)"
-  printf '%s\t%s\n' panel-font-size    "$FONTE"
-  printf '%s\t%s\n' panel-title-color  "$(_cor_hex "$COR_TITULO")"
-  printf '%s\t%s\n' panel-artist-color "$(_cor_hex "$COR_ARTISTA")"
-  printf '%s\t%s\n' panel-controls     "$([ "$CONTROLES" = "sim" ] && printf true || printf false)"
+  printf '%s\t%s\n' panel_text_width   "$LARGURA"
+  printf '%s\t%s\n' panel_color_style  "\"$COR\""
+  printf '%s\t%s\n' album_art_remote   "$(_capa_valor)"
+  printf '%s\t%s\n' panel_font_size    "$(_fonte_valor)"
+  printf '%s\t%s\n' title_color        "$(_texto_cor "$COR_TITULO")"
+  printf '%s\t%s\n' artist_color       "$(_texto_cor "$COR_ARTISTA")"
+  printf '%s\t%s\n' panel_controls     "$([ "$CONTROLES" = "sim" ] && printf true || printf false)"
 }
 
 _pronto() {
@@ -133,19 +122,9 @@ _pronto() {
 }
 
 _conferir() {
-  if [ -f "$SOMBRA" ] && [ ! -x "$BINARIO" ]; then
-    meow_muda "a sombra do applet existe e o binário não — a dock ficaria SEM applet nenhum"
-    return "$MEOW_DIVERGENTE"
-  fi
-
   if [ ! -x "$BINARIO" ]; then
-    meow_pula "o applet de mídia ainda não foi compilado — nada a instalar ainda"
+    meow_pula "o applet de mídia ainda não foi instalado — nada a configurar ainda"
     return "$MEOW_SEM_DEPENDENCIA"
-  fi
-
-  if [ ! -f "$SOMBRA" ] || [ "$(_texto_sombra)" != "$(cat "$SOMBRA" 2>/dev/null)" ]; then
-    meow_muda "a sombra do applet de mídia não está no lugar ($SOMBRA)"
-    return "$MEOW_DIVERGENTE"
   fi
 
   local nome valor
@@ -157,16 +136,6 @@ _conferir() {
     }
   done <<< "$(_chaves)"
 
-  if [ -f "$SANDBOX/album-color-enabled" ] && [ ! -f "$CONFIG/album-color-enabled" ]; then
-    meow_muda "a sua preferência de cor de álbum ainda está dentro do sandbox do flatpak"
-    return "$MEOW_DIVERGENTE"
-  fi
-
-  if ! pgrep -f "$BINARIO" >/dev/null 2>&1 \
-     && pgrep -fx cosmic-ext-applet-now-playing >/dev/null 2>&1; then
-    meow_aviso "quem está rodando ainda é o applet do flatpak — o nosso sobe no próximo login"
-  fi
-
   meow_ok "applet de mídia no lugar (largura $LARGURA, fonte $FONTE, cor $COR, título $COR_TITULO, artista $COR_ARTISTA)"
   return "$MEOW_OK"
 }
@@ -174,19 +143,8 @@ _conferir() {
 _aplicar() {
   local mudou=0 rc
 
-  if [ -f "$SOMBRA" ] && [ ! -x "$BINARIO" ]; then
-    if meow_seco; then
-      meow_muda "removeria a sombra órfã $SOMBRA (o binário sumiu)"
-      return "$MEOW_DIVERGENTE"
-    fi
-    rm -f "$SOMBRA"
-    meow_aviso "a sombra estava órfã e foi removida — o applet do flatpak volta no próximo login"
-    meow_info "  o nosso volta quando o conserto compilar o applet"
-    return "$MEOW_DIVERGENTE"
-  fi
-
   if [ ! -x "$BINARIO" ]; then
-    meow_pula "o applet de mídia ainda não foi compilado — nada a instalar"
+    meow_pula "o applet de mídia ainda não foi instalado — nada a configurar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -200,21 +158,6 @@ _aplicar() {
     esac
   done <<< "$(_chaves)"
 
-  if [ -f "$SANDBOX/album-color-enabled" ] && [ ! -f "$CONFIG/album-color-enabled" ]; then
-    meow_escrever "$CONFIG/album-color-enabled" "$(cat "$SANDBOX/album-color-enabled")" 644
-    case $? in
-      1) mudou=1; meow_seco || meow_info "a sua preferência de cor de álbum veio do sandbox do flatpak" ;;
-      2) meow_erro "não consegui migrar album-color-enabled"; return "$MEOW_ERRO" ;;
-    esac
-  fi
-
-  meow_escrever "$SOMBRA" "$(_texto_sombra)" 644
-  rc=$?
-  case $rc in
-    1) mudou=1 ;;
-    2) meow_erro "não consegui escrever $SOMBRA"; return "$MEOW_ERRO" ;;
-  esac
-
   if meow_seco; then
     [ "$mudou" = 1 ] && return "$MEOW_DIVERGENTE"
     meow_ok "applet de mídia já estava no lugar"
@@ -226,9 +169,9 @@ _aplicar() {
     return "$MEOW_OK"
   fi
   if [ "$CONTROLES" = "sim" ]; then
-    meow_ok "applet de mídia instalado: capa, nome e ⏮⏸⏭ na barra (vale no próximo login)"
+    meow_ok "applet de mídia configurado: capa, nome e ⏮⏸⏭ na barra"
   else
-    meow_ok "applet de mídia instalado: capa e nome na barra; os ⏮⏸⏭ são os do applet de Som"
+    meow_ok "applet de mídia configurado: capa e nome na barra; os ⏮⏸⏭ são os do applet de Som"
   fi
   return "$MEOW_DIVERGENTE"
 }
@@ -236,36 +179,30 @@ _aplicar() {
 _reverter() {
   local mexeu=0
   if meow_seco; then
-    [ -f "$SOMBRA" ]  && { meow_muda "removeria a sombra $SOMBRA"; mexeu=1; }
-    [ -e "$BINARIO" ] && { meow_muda "removeria o binário $BINARIO"; mexeu=1; }
-    [ -d "$ESTADO" ]  && { meow_muda "removeria a árvore de build $ESTADO"; mexeu=1; }
+    [ -d "$CONFIG" ] && { meow_muda "removeria as chaves $CONFIG"; mexeu=1; }
+    [ -d "$CACHE" ]  && { meow_muda "removeria o cache $CACHE"; mexeu=1; }
     [ "$mexeu" = 1 ] && return "$MEOW_DIVERGENTE"
-    meow_pula "não há applet de mídia nosso para remover"
+    meow_pula "não há configuração de mídia nossa para remover"
     return "$MEOW_OK"
   fi
 
-  [ -f "$SOMBRA" ] && { rm -f "$SOMBRA"; mexeu=1; }
-  [ -e "$BINARIO" ] && { rm -f "$BINARIO"; mexeu=1; }
-  [ -d "$ESTADO" ] && { rm -rf "$ESTADO"; mexeu=1; }
+  [ -d "$CONFIG" ] && { rm -rf "$CONFIG"; mexeu=1; }
   [ -d "$CACHE" ] && { rm -rf "$CACHE"; mexeu=1; }
+  "$RAIZ/scripts/extensoes_build.sh" now-playing --reverter >/dev/null 2>&1
+  [ $? = 1 ] && mexeu=1
 
   if [ "$mexeu" = 0 ]; then
     meow_pula "não havia applet de mídia nosso para remover"
     return "$MEOW_OK"
   fi
-  meow_ok "applet de mídia removido — o do flatpak volta no próximo login"
+  meow_ok "applet de mídia removido"
   return "$MEOW_DIVERGENTE"
 }
 
 main() {
   [ "$REVERTER" = 1 ] && { _reverter; return $?; }
   if [ "$MIDIA" != "sim" ]; then
-    if [ -f "$SOMBRA" ] || [ -x "$BINARIO" ]; then
-      meow_muda "MIDIA=\"$MIDIA\" no meow.conf, mas o applet nosso continua instalado"
-      [ "$CONFERIR" = 1 ] && return "$MEOW_DIVERGENTE"
-      _reverter; return $?
-    fi
-    meow_pula "MIDIA=\"$MIDIA\" no meow.conf — o applet de mídia fica com o do flatpak"
+    meow_pula "MIDIA=\"$MIDIA\" no meow.conf — o applet de mídia fica sem as chaves do MeowSystem"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   _pronto || return $?

@@ -172,7 +172,7 @@ falhou = 0
 for corpo in ({"app": "um-navegador", "arquivo": "packs/dracula/icones/biblioteca/alien.svg"},
               {"app": "um-chat", "arquivo": "packs/dracula/icones/apps/steam.svg"},
               {"app": "um-editor", "arquivo": "packs/meowsystem/icones/apps/firefox.svg",
-               "glifo": "firefox", "cor": "mauve"}):
+               "glifo": "firefox", "cor": "mauve", "ficha": "meowsystem"}):
     r.clear()
     m._api_app_icone(corpo)
     if r.get("c") != 200:

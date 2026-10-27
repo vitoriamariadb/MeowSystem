@@ -24,6 +24,7 @@ PORTATIL=(
   reversao.sh
   seco.sh
   convergencia.sh
+  chave-etapa.sh
   instalacao.sh
   midia.sh
   jogos-heroic.sh
@@ -36,6 +37,9 @@ PORTATIL=(
   vidro-do-cosmic.sh
   seletor-do-pack.sh
   acervo-da-ficha.sh
+  acervo-do-pack-em-edicao.sh
+  desenho-no-pack.sh
+  gerador-dracula.sh
   variante.sh
   claro-do-pack.sh
   notas-de-funcao.sh
@@ -54,6 +58,8 @@ PORTATIL=(
   contrato-cosmic.sh
   oraculo-tema.sh
   applet-pino.sh
+  extensoes.sh
+  extensoes-gesto.sh
   escala-kdl.sh
   backoff-do-supervisor.sh
   pack-malicioso.sh
@@ -74,11 +80,14 @@ PORTATIL=(
   fotos-do-pack.sh
   perfil.sh
   apps-em-todo-pack.sh
+  pack-traz-o-que-usa.sh
+  sons-do-pack.sh
   ponte-reparo.sh
   ponte-so-reserva.sh
   criar-tema-leva.sh
   mesmo-horario.sh
   desbanir.sh
+  mapas-fim-de-linha.sh
 )
 
 MAQUINA=(
@@ -86,20 +95,26 @@ MAQUINA=(
   afinador.sh
   previa-cerca.sh
   app-navegador.py
+  grava-ao-soltar.py
   app-acessibilidade.py
+  app-layout.py
   oficina.sh
+  icones-por-pack.py
   pastas-do-pack.sh
   restos-do-painel.sh
   folha-dos-resgatados.sh
   app-completo.py
   app-uso-real.py
   app-texto-visivel.py
+  p113-navegador.py
   gate-link-externo.py
+  extensoes-pagina.py
 )
 
 SEM_PULO=(
   app-completo.py
   app-uso-real.py
+  extensoes-pagina.py
 )
 
 MODO="tudo"

@@ -35,15 +35,15 @@ a máquina gerou.
 | `CosmicPanel.{Panel,Dock}/v1/keep_style_on_maximize` | **Meow** (a GUI não tem controle) |
 | `CosmicPanel.{Panel,Dock}/v1/opacity` | **quem usa**, pela GUI |
 | escala das saídas | **quem usa**; o `install.sh` aplica `ESCALA_TELA` só quando pedido |
-| `CosmicPanel.*/v1/plugins_{wings,center}` | **quem usa**; o `midia.sh` e o `leitura_build.sh` só avisam quando falta a linha |
+| `CosmicPanel.*/v1/plugins_{wings,center}` | **quem usa**; o `extensoes_build.sh` só avisa quando falta a linha |
 | ciclo de vida do `cosmic-panel` e o painel vivo que não desenha (`lib/painel.sh`) | **Meow** (`meow-painel.service`) |
 | `CosmicTk/v1/icon_theme`, `~/.local/share/icons/MeowSystem-Icons`, `hicolor/index.theme` | **Meow** |
 | `/usr/share/icons/hicolor/.../CosmicAppLibrary.svg`, `~/.config/cosmic/logos/` | **Meow** |
-| `~/.local/share/applications/` (lançador, sombras dos applets de mídia e de leitura) | **Meow**; `NoDisplay`, nunca `Hidden=true`, para não matar o handler de MIME |
+| `~/.local/share/applications/` (lançador, sombras dos applets da casa, uma por extensão) | **Meow**; `NoDisplay`, nunca `Hidden=true`, para não matar o handler de MIME |
 | `/usr/share/applications/*` (`NoDisplay`, nome curto) | **Meow**, pela ponte root |
 | `/usr/local/share/applications/{google-chrome,steam}.desktop` (wrappers de `Exec=`) | **Aurora** |
-| `~/.local/bin/meow-applet-*`, `~/.local/state/meowsystem/{midia,leitura}/` | **Meow** |
-| `~/.config/cosmic-ext-applet-now-playing/{panel-text-width,panel-color-style,album-art-remote}` | **Meow** |
+| `~/.local/bin/meowsystem-*`, `~/.local/state/meowsystem/extensoes/` | **Meow** |
+| `~/.config/cosmic/io.github.meowsystem.NowPlaying/v1/*`, `~/.config/meowsystem/extensoes/*/tema.conf` | **Meow** |
 | `album-color-enabled` do applet de mídia, `ultima_{temperatura,textura}` do applet de leitura | **quem usa** |
 | `CosmicComp/v1/leitura_{temperatura,textura}` | **Meow** escreve o degrau da hora; **quem usa** escreve à mão pelo applet |
 | `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | **quem usa**; o Meow lê e obedece |
@@ -98,7 +98,7 @@ decisão humana, a mensagem diz **a decisão**, nunca a receita.
 
 Baixar de repositório público, pinado, é «faz». Em código: `meow_pendencia_acionavel <id>
 "<frase>" "<comando>"` e `meow_pendencia_resolvida <id>`, no `lib/comum.sh`, escrevem
-`$MEOW_ESTADO/pendencias.tsv`; o painel lê por `/api/pendencias` e desenha na porta Cuidar. O botão
+`$MEOW_ESTADO/pendencias.tsv`; o painel lê por `/api/pendencias` e desenha na porta Manter. O botão
 só aparece quando a linha tem comando **e** o id está em `ACAO_DA_PENDENCIA`.
 
 ## O contrato das etapas

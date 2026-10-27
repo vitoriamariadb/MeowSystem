@@ -60,7 +60,7 @@ COR_POR_CATEGORIA=0
 
 _ler_mapa() {
   local linha nome glifo cor marca
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
     case "$linha" in
       '#!cor-por-categoria') COR_POR_CATEGORIA=1; continue ;;
       ''|'#'*) continue ;;
@@ -90,7 +90,7 @@ _ler_mapa() {
 _ler_mapa_convertidos() {
   local linha nome origem cor
   [ -f "$MAPA_CONV" ] || return 0
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
     case "$linha" in
       '#!cor-por-categoria') COR_POR_CATEGORIA=1; continue ;;
       ''|'#'*) continue ;;
@@ -111,7 +111,7 @@ _ler_mapa_convertidos() {
     COR["$nome"]="$cor"
   done < "$MAPA_CONV"
   [ -f "$MAPA_CONV_USUARIO" ] || return 0
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
     case "$linha" in ''|'#'*) continue ;; esac
     IFS=':' read -r nome origem cor _ <<<"$linha"
     [ -n "$nome" ] && [ -n "$origem" ] && [ -n "$cor" ] || continue
@@ -131,7 +131,7 @@ _ceder_ao_pack() {
   declare -A do_usuario=()
   for m in "$MAPA_USUARIO" "$MAPA_CONV_USUARIO"; do
     [ -f "$m" ] || continue
-    while IFS=':' read -r nome _; do
+    while IFS=':' read -r nome _ || [ -n "$nome" ]; do
       case "$nome" in ''|'#'*) continue ;; esac
       do_usuario["$nome"]=1
     done < "$m"
@@ -160,7 +160,7 @@ _ler_mapa_marca() {
     return 0
   fi
   COR_MARCA_LIGADA=1
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
     case "$linha" in
       '#!cor-por-categoria') COR_POR_CATEGORIA=1; continue ;;
       ''|'#'*) continue ;;
@@ -233,7 +233,7 @@ _conferir_gemeos() {
   done
 
   if [ -f "$MAPA_PNG" ]; then
-    while IFS= read -r linha; do
+    while IFS= read -r linha || [ -n "$linha" ]; do
       case "$linha" in ''|'#'*) continue ;; esac
       outro="${linha%%:*}"
       if [ -n "${COR[$outro]:-}" ]; then

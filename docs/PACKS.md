@@ -950,7 +950,7 @@ python3 scripts/pack.py construir dracula     # gera meu-app-dracula.svg e -aluc
 > `completar_icones.sh`. O desenho novo **nasce** no pack; pô-lo na tela de um
 > aplicativo ainda pede uma linha naquela tabela.
 
-**No painel**, o passo «Ícones» de Criar tema termina na seção **Desenhos autorais do pack**: o
+**No painel**, o passo «Ícones» do Personalizar termina na seção **Desenhos autorais do pack**: o
 desenho, os papéis dele com a cor em cada flavor, e a prévia — cada flavor sobre
 quatro fundos da paleta dele (`crust`, `base`, `overlay0`, `text`). Escolher
 uma cor repinta a prévia; só **Salvar no pack** grava, no pack que está no ar, e
@@ -959,10 +959,10 @@ tema: se algum ícone instalado tem a forma dele, a próxima passagem dos ícone
 troca; se nenhum tem (o desenho sem linha no `AUTORAL`), ela diz que o pack
 mudou e a tela não.
 
-### O seletor de ícone: o acervo inteiro, em pastas
+### O seletor de ícone: o acervo do pack em edição, em pastas
 
-No passo «Ícones», cada programa abre a ficha dele, e a ficha oferece **todos** os
-desenhos que existem, de todos os packs no disco, em pastas (decisão 3):
+No passo «Ícones», cada programa abre a ficha dele, e a ficha oferece os desenhos do
+**pack em edição** e dos que ele herda, parando no primeiro pack do projeto (decisão 3):
 
 | pasta | de onde |
 |---|---|
@@ -1268,7 +1268,7 @@ A terceira é a que torna visível ao programa o que a pessoa já fez à mão: u
 hora. Então ela só acontece quando há alguém: as duas pontas precisam ser
 terminal, e mesmo assim a espera tem teto de 30 segundos. Fora da tela o caso
 vira **pendência acionável** (`<app>-tema-de-terceiro`), o arquivo dele fica
-intocado, e a linha espera na porta Cuidar.
+intocado, e a linha espera na porta Manter.
 
 Sobrescrever calado o tema que alguém escolheu à mão não conserta a divergência:
 apaga a pessoa do processo.
@@ -1554,8 +1554,8 @@ SOM_FUNDAMENTAL=784 SOM_HARMONICO=932.3 SOM_DECAIMENTO=38 \
 
 No painel: **Manutenção → Som de evento**, com o botão «Ouvir».
 
-E lembre da precedência: um `SOM_*` no `meow.conf` da máquina vence o do pack,
-como qualquer outra chave.
+E lembre da precedência: um `SOM_*` que ela mexeu vale só para o pack em que o mexeu
+(o `som-do-pack` no estado guarda qual); noutro pack, vence o `som` do pack.
 
 ## A base de ícones
 
@@ -2248,7 +2248,7 @@ $ meow pack novo meu-tema
 | o que entra | de onde |
 |---|---|
 | `paleta.json` | a paleta que vale **agora** — o arquivo inteiro, cada flavor com as 26 cores. O `flavor_padrao` é o flavor em uso. Inteiro, e não só o flavor em uso, porque o claro é o par dele: sem ele, o modo claro cairia no pack anterior |
-| `som` no `pack.json` | o timbre do pack no ar, com os `SOM_*` do `meow.conf` por cima — o que se ouve. Ele é copiado porque o `som` não é herdado |
+| `som` no `pack.json` | o timbre do pack no ar, com os `SOM_*` que ela mexeu por cima, só no pack em que os mexeu — o que se ouve. Ele é copiado porque o `som` não é herdado |
 | `logo.svg` | gerado: a inicial do nome sobre o `base` (ver [O logo do pack](#o-logo-do-pack)) |
 | `CREDITOS.md` | escrito pelo verbo, dizendo de que pack tudo veio |
 | `heranca` | o pack no ar, **por id**. Ícones, capturas do tema, temas de aplicativo, ponteiro: tudo o que não está declarado vem dele. Nenhum caminho absoluto, e nenhuma segunda cópia do mesmo acervo para defasar calada |
@@ -2404,7 +2404,7 @@ o `--seco`.
 
 ### No painel
 
-**Abrir um tema**, na porta Tema, e **Baixar o tema**, no passo Mandar de Criar tema,
+**Abrir um tema**, na porta Tema, e **Baixar o tema**, no passo Mandar do Personalizar,
 chamam estas duas rotas:
 
 | rota | o que faz |

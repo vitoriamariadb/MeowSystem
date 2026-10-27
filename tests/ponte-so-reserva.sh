@@ -224,6 +224,8 @@ declare -A ORIGEM=(
   [completion-instalar]="a reserva: a completion, com o sha256"
   [flatpak-global-limpar]="o próprio override global, menos as linhas de tema perdido"
   [libreoffice-remover]="a lista do dpkg, gravada em /var/lib/meowsystem"
+  [som]="stdin: um Ogg de até 1 MB, só para um dos sete eventos da lista, com o de fábrica guardado em /var/lib/meowsystem"
+  [som-padrao]="o de fábrica que o verbo som guardou, devolvido ao lugar"
 )
 escrevem="$(por_verbo | awk -F'\t' '$2 ~ /(^|[ \t])(install -m|cp -a|mv -f|tee|dd) / { print $1 }' | sort -u | tr '\n' ' ')"
 esperados="$(printf '%s\n' "${!ORIGEM[@]}" | sort | tr '\n' ' ')"

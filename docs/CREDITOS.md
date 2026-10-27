@@ -99,6 +99,19 @@ commit ou o release **pinado** para o acervo não mudar debaixo de ninguém:
 | [starship](https://starship.rs) | o prompt do terminal (ISC) |
 | [fastfetch](https://github.com/fastfetch-cli/fastfetch) | o cartão de sistema (MIT) |
 
+## Os applets
+
+Os cinco applets da casa moram em repositórios próprios, fixados em `assets/extensoes/`, e a
+página Extensões do painel os baixa e compila. Três vêm de um projeto de outra pessoa:
+
+| applet | upstream |
+|---|---|
+| Tocando agora | [cosmic-utils/cosmic-ext-applet-now-playing](https://github.com/cosmic-utils/cosmic-ext-applet-now-playing) |
+| Bandeja | [marcelogomes90/cosmic-ext-applet-status-hub](https://github.com/marcelogomes90/cosmic-ext-applet-status-hub) |
+| Ajustes rápidos | [DrakRosmann/cosmic-ext-applet-quick-settings](https://github.com/DrakRosmann/cosmic-ext-applet-quick-settings) |
+
+O Modo de leitura e o Modo performance são de **Vitória Maria** e **André Farias**.
+
 ## O que é deste projeto
 
 O código (`install.sh`, `bin/meow`, `lib/`, `scripts/`, `app/`), os **52** desenhos
