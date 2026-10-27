@@ -2243,6 +2243,13 @@ def _paleta_dados():
     return _PALETA_CACHE
 
 
+def _tinta_do_traco():
+    flavors = _paleta_dados().get("flavors") or {}
+    flav = flavors.get(_flavor_do_conf(valores_efetivos(["PACK", "FLAVOR"]))) or next(iter(flavors.values()), {})
+    cor = str(flav.get("text") or "")
+    return cor if re.fullmatch(r"#[0-9A-Fa-f]{6}", cor) else "#CDD6F4"
+
+
 def logo_do_painel(flavor, accent):
     dados = _paleta_dados()
     flavors = dados.get("flavors", {})
@@ -5197,6 +5204,9 @@ class Manipulador(BaseHTTPRequestHandler):
                          ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext_arq]
             if ext_arq != ".svg" and comeca_como_svg(dados_arq):
                 tipo_mime = "image/svg+xml"
+            if (consulta.get("tinta", [""])[0] == "texto" and tipo_mime == "image/svg+xml"
+                    and b"currentColor" in dados_arq):
+                dados_arq = dados_arq.replace(b"currentColor", _tinta_do_traco().encode())
             return self._responder(dados_arq, tipo=tipo_mime)
 
         if caminho == "/previa":

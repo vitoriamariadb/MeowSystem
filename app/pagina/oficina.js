@@ -85,7 +85,7 @@ function escolhaDeIcone(app, recarregar) {
     "aria-pressed": String(chaveDe(g) === GLIFOS.escolhido), "aria-disabled": travaDe(g) ? "true" : null,
     dica: travaDe(g) ? maiuscula(travaDe(g)) : maiuscula(g.glifo),
     onclick: () => { if (travaDe(g)) return; GLIFOS.escolhido = chaveDe(g); render(); },
-  }, [elemento("img", { src: g.url, alt: "", loading: "lazy" }), elemento("span", { texto: maiuscula(g.rotulo || g.glifo) })]);
+  }, [elemento("img", { src: g.url + "&tinta=texto", alt: "", loading: "lazy" }), elemento("span", { texto: maiuscula(g.rotulo || g.glifo) })]);
   const sugeridos = itens.filter((g) => g.sugerido);
   const pasta = (id, nome, filhos, aberta) => {
     const d = elemento("details", { class: "pasta-acervo" }, [
