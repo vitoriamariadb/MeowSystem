@@ -120,7 +120,7 @@ PY
   && ok "precisa_de_gente() devolve id, nome, desde e porquê, na ordem" || falha "o servidor leu errado: $r"
 grep -q '"/api/precisa-de-gente"' "$RAIZ/app/servidor.py" && ok "a rota /api/precisa-de-gente existe" || falha "falta a rota /api/precisa-de-gente"
 
-echo "== 4. o Cuidar põe uma linha por item, o porquê e o desde quando na dica"
+echo "== 4. o Manter põe uma linha por item, o porquê e o desde quando na dica"
 if command -v node >/dev/null; then
   r="$(node - "$RAIZ/app/pagina" "$ARQ" <<'JS' 2>&1
 const fs = require("fs"), vm = require("vm"), path = require("path");
@@ -158,9 +158,9 @@ JS
     || falha "a linha de quem precisa de gente saiu diferente: $r"
   grep -q 'PRECISA_DE_GENTE.map(linhaDeGente)' "$RAIZ/app/pagina/paginas.js" \
     && grep -q 'pend.children.length ? bloco("Pendências"' "$RAIZ/app/pagina/paginas.js" \
-    && ok "o Cuidar desenha o bloco só quando há o que esperar" || falha "o bloco de pendências do Cuidar mudou"
+    && ok "o Manter desenha o bloco só quando há o que esperar" || falha "o bloco de pendências do Manter mudou"
 else
-  printf '  pulado: sem node, a linha do Cuidar não roda aqui\n'
+  printf '  pulado: sem node, a linha do Manter não roda aqui\n'
 fi
 
 echo

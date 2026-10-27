@@ -1316,7 +1316,7 @@ etapa_autoreparo() {
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
     meow_aviso "não há systemd --user nesta sessão — o auto-reparo fica de fora"
-    meow_info "  o «Conferir e consertar» faz o mesmo quando quiser"
+    meow_info "  o «Consertar», no Manter, faz o mesmo quando quiser"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 

@@ -461,7 +461,7 @@ if not erros:
                 erros.append("o ensaio de %s diz %r — num ensaio nada foi feito" % (ident, frase))
                 break
 
-esperado = "«Conferir e consertar», em Cuidar › Estado"
+esperado = "«Consertar a ponte», em Manter › Estado"
 if servidor.onde_na_tela("doctor_consertar") != esperado:
     erros.append("--onde doctor_consertar diz %r, e não %r"
                  % (servidor.onde_na_tela("doctor_consertar"), esperado))
@@ -489,6 +489,8 @@ with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
     fh.write("%s\tvscode\tExtensão\tmeow apps aplicar vscode\t2026-10-23T00:00:00-03:00\n"
              % servidor.PENDENCIA_EXTENSAO)
     fh.write("files-menu-build\tfiles_menu.sh\tO menu compila\t\t2026-10-23T00:00:00-03:00\n")
+    for _id in ("instalar-com-root", "flatpak-global-sistema", "libreoffice-sistema", "leitura-applet"):
+        fh.write("%s\tinstall.sh\tFalta algo\tmeow instalar\t2026-10-23T00:00:00-03:00\n" % _id)
     fh.write("%s%s\tlib\tTema de fora\tmeow apps aplicar %s\t2026-10-23T00:00:00-03:00\n"
              % (com_modulo, servidor.SUFIXO_TEMA_DE_TERCEIRO, com_modulo))
 for p in servidor.pendencias():
@@ -496,6 +498,17 @@ for p in servidor.pendencias():
         longos.append("pendência %s: %r" % (p["id"], p["nome"]))
     longos += ["botão de %s: %r" % (p["id"], e["rotulo"]) for e in p["escolha"]
                if not curto(e["rotulo"]) and not e["rotulo"].startswith("Instalar ")]
+visto = [p for p in servidor.pendencias() if p["id"] in servidor.ACAO_DA_PENDENCIA]
+nomes = [p["nome"] for p in visto]
+if len(nomes) != len(set(nomes)) or len(visto) < 5:
+    erros.append("12c: as pendências com ação têm nomes repetidos (ou sumiram): %r" % nomes)
+rotulos_de_acao = {a["rotulo"] for a in servidor.ACOES.values()}
+if [n for n in nomes if n in rotulos_de_acao or not n]:
+    erros.append("12c: pendência com o nome do botão da ação, e não o do assunto: %r"
+                 % [n for n in nomes if n in rotulos_de_acao or not n])
+sem_nome = sorted(set(servidor.ACAO_DA_PENDENCIA) - set(servidor.NOME_DA_PENDENCIA))
+if sem_nome or set(servidor.NOME_DA_PENDENCIA) - set(servidor.ACAO_DA_PENDENCIA):
+    erros.append("12c: NOME_DA_PENDENCIA e ACAO_DA_PENDENCIA não têm as mesmas chaves: %r" % sem_nome)
 os.remove(servidor.PENDENCIAS)
 if longos:
     erros.append("12c: nome ou botão com mais de três palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
@@ -759,7 +772,7 @@ if editor != {"tem": True, "nome": "Editor de vetores"}:
     erros.append("13a: o botão do editor de SVG diz %r, e a grade diria «Editor de vetores»"
                  % (editor,))
 
-quer = "«Arrumar o lançador», em Ajustes › Programas › Lançador"
+quer = "«Arrumar o lançador», em Definir › Programas › Lançador"
 if servidor.onde_na_tela("LANCADOR_SISTEMA") != quer:
     erros.append("13b: --onde LANCADOR_SISTEMA diz %r, e a linha é %s"
                  % (servidor.onde_na_tela("LANCADOR_SISTEMA"), quer))
@@ -767,9 +780,11 @@ porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel 
                         "_", raiz], capture_output=True, text=True, env=dict(os.environ))
 if porta.stdout.strip() != quer:
     erros.append("13b: o meow_onde_no_painel de um cartão diz %r" % porta.stdout.strip())
-if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Ajustes › Papel de parede › Mais ajustes":
-    erros.append("13b: --onde de uma chave do «Mais ajustes» diz %r" % servidor.onde_na_tela("WALLPAPER_DRACULA_REPO"))
-if servidor.onde_na_tela("inicio") != "em Cuidar":
+if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Definir › Papel de parede › Pastas":
+    erros.append("13b: --onde de uma chave que era do «Mais ajustes» diz %r" % servidor.onde_na_tela("WALLPAPER_DRACULA_REPO"))
+if any("Mais ajustes" in (servidor.onde_na_tela(k) or "") for k in list(servidor.ACOES) + ["PACK", "CURSOR", "ICONES_FLAVOR"]):
+    erros.append("13b: ainda existe um --onde que manda para «Mais ajustes»")
+if servidor.onde_na_tela("inicio") != "em Manter":
     erros.append("13b: --onde inicio não diz onde as pendências moram: %r" % servidor.onde_na_tela("inicio"))
 velhas = [f for f in (servidor.onde_na_tela(k) for k in list(servidor.ACOES) + ["inicio", "PACK", "CURSOR"])
           if "na aba" in f]

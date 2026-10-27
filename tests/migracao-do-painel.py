@@ -61,8 +61,6 @@ def onde(l):
         base = nomes[l["porta"]]
     else:
         base = "%s › %s" % (nomes[l["porta"]], l["pagina"])
-    if l["mais"]:
-        return base + " › Mais ajustes"
     if l["bloco"] and l["bloco"] not in (l["pagina"], base):
         return base + " › " + l["bloco"]
     return base
@@ -195,9 +193,9 @@ def gerar():
         if botao_de.get(acao) != rotulo:
             falhas.append("a pendência desenha «%s» para %s, e o lugares.js diz «%s»"
                           % (rotulo, acao, botao_de.get(acao)))
-    quer = {"doctor_consertar": "«Conferir e consertar», em Cuidar Nova › Estado",
-            "LANCADOR_SISTEMA": "«Arrumar o lançador», em Ajustes Nova › Programas › Lançador",
-            "inicio": "em Cuidar Nova", "areas-sem-alfinete": "«Resolver», em Cuidar Nova"}
+    quer = {"doctor_consertar": "«Consertar a ponte», em Manter Nova › Estado",
+            "LANCADOR_SISTEMA": "«Arrumar o lançador», em Definir Nova › Programas › Lançador",
+            "inicio": "em Manter Nova", "areas-sem-alfinete": "«Resolver», em Manter Nova"}
     if srv["renomeado"] != quer:
         falhas.append("o --onde não lê o nome das portas do lugares.js (segunda tabela no servidor): %r"
                       % srv["renomeado"])

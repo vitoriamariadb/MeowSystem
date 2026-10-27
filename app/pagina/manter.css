@@ -1,0 +1,6 @@
+.cartao-acao { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: var(--e-4); row-gap: var(--e-3); }
+.cartao-acao .icone { grid-row: 1 / span 2; }
+.cartao-acao > h2, .cartao-acao > .fila { grid-column: 2; }
+.estado-pilula[data-estado="alerta"]::before { background: var(--alerta); }
+.pendencias .rot svg.i { color: var(--alerta); flex: none; }
+.grade-cuidar > .bloco > .linhas .linha .rot small { color: var(--tinta-3); font-size: var(--t-sm); margin-left: var(--e-2); white-space: nowrap; }

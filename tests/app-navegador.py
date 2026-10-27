@@ -108,7 +108,7 @@ def main():
             pag.wait_for_timeout(500)
             titulo = pag.evaluate("() => document.getElementById('pergunta').open && document.getElementById('pergunta-titulo').textContent")
             checa(titulo == "Falta a ponte", f"vestir o {outro_pack} sem a ponte mostra «Falta a ponte» ({titulo!r})")
-            checa(pag.locator("#pergunta-sim").inner_text() == "Conferir e consertar", "com o «Conferir e consertar»")
+            checa(pag.locator("#pergunta-sim").inner_text() == "Consertar a ponte", "com o «Consertar a ponte»")
             checa(pag.locator("input[type=password]").count() == 0, "e nenhum campo de senha")
             foto(pag, "2-ponte")
             pag.locator("#pergunta-nao").click()
@@ -135,11 +135,14 @@ def main():
                       "e ele some quando a escolha volta ao de fábrica")
                 pag.locator("#desfazer").click()
 
-            print("4. o «Mais ajustes» nasce recolhido")
-            for sub in ("painel", "janelas", "papel", "mascote", "dia-e-noite", "terminal", "programas"):
-                ir(pag, "ajustes/" + sub)
-                checa(pag.evaluate("() => [...document.querySelectorAll('details.mais')].every((d) => !d.open)"),
-                      f"em {sub}")
+            print("4. nenhuma dobra: o que era «Mais ajustes» aparece direto")
+            for rota in ("tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
+                         "ajustes/painel", "ajustes/janelas", "ajustes/papel", "ajustes/mascote",
+                         "ajustes/dia-e-noite", "ajustes/terminal", "ajustes/programas", "cuidar"):
+                ir(pag, rota)
+                checa(pag.evaluate("() => document.querySelectorAll('details.mais').length") == 0
+                      and pag.evaluate("() => !/Mais ajustes/.test(document.getElementById('conteudo').innerText)"),
+                      f"sem dobra em {rota}")
 
             print("5. a busca")
             pag.keyboard.press("/")
@@ -152,7 +155,7 @@ def main():
             checa(pag.evaluate("() => location.hash") == "#ajustes/janelas", "e leva a Janelas e tela")
             checa(pag.locator('#conteudo .chegou[data-linha~="CURSOR"]').count() == 1, "acendendo a linha do ponteiro")
 
-            print("6. Criar tema")
+            print("6. Personalizar")
             ir(pag, "criar/cores")
             antes = pag.locator("#conteudo .poco code").first.inner_text()
             alvo = pag.locator('[data-controle^="criar:comeca="][aria-pressed="false"]').first
@@ -177,7 +180,7 @@ def main():
                     pag.locator("#pergunta-sim").click()
             checa(baixa.value.suggested_filename.endswith(".meowpack"), f"«Baixar o tema» baixa {baixa.value.suggested_filename}")
 
-            print("7. Cuidar: levar e trazer os ajustes")
+            print("7. Manter: levar e trazer os ajustes")
             ir(pag, "cuidar")
             with pag.expect_download(timeout=30000) as baixa:
                 pag.locator('[data-controle="cuidar:exportar"]').click()
