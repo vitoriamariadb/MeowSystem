@@ -759,7 +759,7 @@ if editor != {"tem": True, "nome": "Editor de vetores"}:
     erros.append("13a: o botão do editor de SVG diz %r, e a grade diria «Editor de vetores»"
                  % (editor,))
 
-quer = "«Arrumar o lançador», em Ajustes › Programas › Lançador"
+quer = "«Arrumar o lançador», em Definir › Programas › Lançador"
 if servidor.onde_na_tela("LANCADOR_SISTEMA") != quer:
     erros.append("13b: --onde LANCADOR_SISTEMA diz %r, e a linha é %s"
                  % (servidor.onde_na_tela("LANCADOR_SISTEMA"), quer))
@@ -767,7 +767,7 @@ porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel 
                         "_", raiz], capture_output=True, text=True, env=dict(os.environ))
 if porta.stdout.strip() != quer:
     erros.append("13b: o meow_onde_no_painel de um cartão diz %r" % porta.stdout.strip())
-if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Ajustes › Papel de parede › Mais ajustes":
+if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Definir › Papel de parede › Mais ajustes":
     erros.append("13b: --onde de uma chave do «Mais ajustes» diz %r" % servidor.onde_na_tela("WALLPAPER_DRACULA_REPO"))
 if servidor.onde_na_tela("inicio") != "em Cuidar":
     erros.append("13b: --onde inicio não diz onde as pendências moram: %r" % servidor.onde_na_tela("inicio"))

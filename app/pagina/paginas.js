@@ -647,7 +647,7 @@ function paginaAjustes(sub) {
   return [
     cabeca(p.nome, direita),
     elemento("div", { class: "oficina" }, [
-      elemento("nav", { "aria-label": "Ajustes" }, [trilho]),
+      elemento("nav", { "aria-label": "Definir" }, [trilho]),
       elemento("div", { class: "palco" }, [mesaDaPagina(p.id)]),
       elemento("div", { class: "pilha" }, [...blocos, mais].filter(Boolean)),
     ]),
