@@ -716,3 +716,17 @@ dialog.resultado { width: min(880px, calc(100vw - 32px)); }
 }
 .p-dock .centro .app { width: var(--p-centro, 3.5cqi); height: var(--p-centro, 3.5cqi); }
 .p-dock .centro .app svg { width: 78%; height: 78%; }
+.escolha-icone { grid-column: auto; gap: 0; padding: 0; max-height: calc(100vh - 132px); overflow: auto; }
+.ficha-cabeca { display: flex; align-items: center; justify-content: space-between; gap: var(--e-4); padding: var(--e-4) var(--e-5); border-bottom: 1px solid var(--linha); }
+.ficha-cabeca h3 { font-size: var(--t-lg); }
+.ficha-corpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--e-6); padding: var(--e-5); align-items: start; }
+.ficha-seletor { display: grid; gap: var(--e-3); min-width: 0; }
+.escolha-icone .tira-glifos { max-height: none; overflow: visible; }
+.escolha-icone .oficina-desenho { border: 0; border-radius: 0; min-width: 0; }
+.escolha-icone .oficina-desenho .dentro-oficina { padding: 0; }
+.escolha-icone .oficina-par { grid-template-columns: minmax(0, 1fr); }
+.escolha-icone .oficina-lupa { width: 100%; max-width: 220px; height: auto; aspect-ratio: 1; }
+.ficha-rodape { position: sticky; bottom: 0; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--e-2); padding: var(--e-3) var(--e-5); border-top: 1px solid var(--linha); background: var(--cartao); }
+@media (max-width: 1000px) {
+  .ficha-corpo { grid-template-columns: minmax(0, 1fr); }
+}

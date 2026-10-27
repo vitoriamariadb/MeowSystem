@@ -253,6 +253,32 @@ def main():
                 pag.wait_for_timeout(200)
                 foto(pag, f"{w}x{h}-cartoes")
 
+            print("== a ficha do ícone, uma caixa e um «Usar»")
+            for (w, h) in [(1920, 1080), (1550, 860), (1280, 800)]:
+                pag.set_viewport_size({"width": w, "height": h})
+                ir(pag, "criar/icones")
+                pag.wait_for_function("() => document.querySelector('[data-controle=\"app\"]')", timeout=30000)
+                pag.evaluate("() => { APP_ABERTO = null; render(); }")
+                pag.wait_for_timeout(500)
+                pag.locator('[data-controle="app"]').nth(2).click()
+                pag.wait_for_selector(".escolha-icone", timeout=15000)
+                pag.wait_for_timeout(800)
+                if pag.locator('[data-controle="oficina:abrir"]').count():
+                    pag.locator('[data-controle="oficina:abrir"]').click()
+                pag.wait_for_timeout(1500)
+                info = pag.evaluate("""() => {
+                  const f = document.querySelector('.escolha-icone'); const r = f.getBoundingClientRect();
+                  const vis = (e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
+                  return { usar: [...document.querySelectorAll('[data-controle$="usar"]')].filter(vis).length,
+                           dentroDaGrade: document.querySelectorAll('.grade-apps .oficina-desenho, .grade-apps .escolha-icone').length,
+                           altura: r.height, janela: innerHeight, largura: document.documentElement.scrollWidth,
+                           caixas: [...f.querySelectorAll('.oficina-desenho')].filter((e) => getComputedStyle(e).borderTopWidth !== '0px').length,
+                           rodape: !!f.querySelector('.ficha-rodape [data-controle="icone:usar"]') };
+                }""")
+                checa(info["usar"] == 1 and info["dentroDaGrade"] == 0 and info["altura"] <= info["janela"] and info["largura"] == w
+                      and info["caixas"] == 0 and info["rodape"], f"{w}x{h}: um só «Usar», ficha fora da grade e dentro da janela ({info})")
+                foto(pag, f"{w}x{h}-ficha-icone")
+
             print("== o diálogo do Instalar tudo")
             for (w, h) in LARGURAS:
                 pag.set_viewport_size({"width": w, "height": h})
