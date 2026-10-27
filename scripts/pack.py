@@ -169,12 +169,12 @@ VERBOS
                                  raízes como qualquer outro. É o que o shell
                                  pergunta em vez de cravar o nome dele.
     adocao  <PACK> <FLAVOR>      o pack que um meow.conf com esses dois valores
-                                 veste — a regra única do `meow_pack_dir` e do
+                                 usa — a regra única do `meow_pack_dir` e do
                                  painel. Imprime, para o shell ler com `sed`:
-                                     pack=<o id que veste, o padrão incluído>
+                                     pack=<o id que usa, o padrão incluído>
                                      dir=<o diretório; vazio = ninguém escolheu>
                                      recusado=<o id que não validou, ou vazio>
-                                     nome=<o nome de tela do pack que veste>
+                                     nome=<o nome de tela do pack que usa>
                                      flavor_padrao=<o flavor dele quando o
                                        FLAVOR do conf está vazio>
                                  Ver `adocao`.
@@ -247,9 +247,9 @@ CAMPOS_COM_LEITOR = {
     "fontes.proprio",
     "fontes.herda",
     "icones.mimetypes.flavor",
+    "icones.sistema.pintar",
     "icones.gerador",
     "icones.autorais.gerar",
-    "origens.cursores.tema",
     "icones.base.origem.*",
     "origens.cursores.origem.*",
     "icones.base.por_tras",
@@ -998,6 +998,40 @@ def _dir_capturas(ref, dir_pack):
     except Recusa as e:
         print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
         return None
+
+
+BLOCOS_DE_STATUS = ("sistema", "bandeja")
+
+
+def icones_de_status(ref, bloco, flavor=""):
+    if bloco not in BLOCOS_DE_STATUS:
+        raise Recusa(f"bloco de status {bloco!r} desconhecido")
+    ref = _ref_ativa(ref)
+    vistos, r = set(), ref
+    while r and r not in vistos:
+        vistos.add(r)
+        dir_pack = achar(r)
+        if not dir_pack:
+            break
+        desenhos = campo(r, f"icones.{bloco}.desenhos")
+        mapa = campo(r, f"icones.{bloco}.mapa")
+        if isinstance(desenhos, str) and isinstance(mapa, str):
+            pasta = _dentro(dir_pack, desenhos, f"icones.{bloco}.desenhos")
+            arq = _dentro(dir_pack, mapa, f"icones.{bloco}.mapa")
+            if not (os.path.isdir(pasta) and os.path.isfile(arq)):
+                raise Recusa(f"icones.{bloco}: {desenhos!r} ou {mapa!r} não existe no pack {r!r}")
+            cor = ""
+            pintar = campo(ref, f"icones.{bloco}.pintar")
+            if pintar:
+                if pintar not in SLOTS:
+                    raise Recusa(f"icones.{bloco}.pintar: {pintar!r} não é um papel da paleta")
+                cores = _cores_do_flavor(ref, flavor) if flavor else None
+                if not cores or pintar not in cores:
+                    raise Recusa(f"icones.{bloco}.pintar: a paleta {flavor!r} não tem {pintar!r}")
+                cor = cores[pintar].lower()
+            return {"desenhos": pasta.rstrip(os.sep), "mapa": arq, "cor": cor}
+        r = campo(r, f"icones.{bloco}.herda")
+    raise Recusa(f"o pack {ref!r} não declara icones.{bloco}")
 
 
 def _ref_ativa(ref):
@@ -2142,13 +2176,20 @@ def validar(ref, silencioso=False):
                         ("pastas", ("mapa", "desenhos")),
                         ("mimetypes", ("mapa", "desenhos")),
                         ("autorais", ("mapa", "desenhos")),
-                        ("resgatados", ("mapa", "desenhos"))):
+                        ("resgatados", ("mapa", "desenhos")),
+                        ("sistema", ("mapa", "desenhos")),
+                        ("bandeja", ("mapa", "desenhos"))):
         bloco = ic.get(cat) or {}
         for chave in chaves:
             if bloco.get(chave):
                 alvo = _dentro(dir_pack, bloco[chave], f"icones.{cat}.{chave}")
                 _exigir(os.path.exists(alvo),
                         f"icones.{cat}.{chave}: {bloco[chave]!r} não existe no pack")
+    for cat in BLOCOS_DE_STATUS:
+        bloco = ic.get(cat) or {}
+        pintar = bloco.get("pintar")
+        _exigir(pintar is None or pintar in SLOTS,
+                f"icones.{cat}.pintar: {pintar!r} não é um papel da paleta ({', '.join(SLOTS)})")
     oc = (p.get("lancador") or {}).get("ocultar") if isinstance(p.get("lancador"), dict) else None
     if p.get("lancador") is not None:
         _exigir(isinstance(p.get("lancador"), dict) and isinstance(oc, list)
@@ -2471,7 +2512,7 @@ def _validar_base(p, dir_pack, silencioso):
     _exigir(p["papel"] == PAPEL_BASE,
             f"pack.json: papel {p['papel']!r} — o único que existe é {PAPEL_BASE!r}")
     _exigir(not silencioso,
-            f"{p['id']!r} é o pack-base: todo pack herda dele, e ele não se veste sozinho")
+            f"{p['id']!r} é o pack-base: todo pack herda dele, e ele não se aplica sozinho")
     for chave in ("paleta", "heranca"):
         _exigir(chave not in p,
                 f"pack.json: o pack-base não tem {chave!r} — ele é a última camada")
@@ -3836,7 +3877,7 @@ def cmd_importar(caminho, opcoes):
                         f"    Importar por cima trocaria o que está lá sem perguntar, e um pack\n"
                         f"    com o mesmo nome noutra raiz esconderia um dos dois. Para trocar,\n"
                         f"    tire o que está lá primeiro."
-                        + (f"\n    Ele é seu: meow pack remover {ident}, ou o «Remover» do cartão."
+                        + ("\n    Ele é seu: tire-o com o «Remover» do cartão dele, em Tema."
                            if existe and os.path.dirname(existe) == raiz_da_pessoa() else "")
                         + ("\n    O id sai do nome do CSV: com outro nome, ele vira outro pack."
                            if de_csv else ""))
@@ -3851,7 +3892,7 @@ def cmd_importar(caminho, opcoes):
     else:
         print(f"  ok   instalado em {destino}")
     print("  --   nada foi aplicado: importar é ganhar uma opção, não trocar de tema.")
-    print(f"       Para vestir: PACK=\"{ident}\" e FLAVOR=\"{r['flavor_padrao']}\" no meow.conf.")
+    print(f"       Para aplicar: PACK=\"{ident}\" e FLAVOR=\"{r['flavor_padrao']}\" no meow.conf.")
     return OK
 
 
@@ -4444,6 +4485,20 @@ def _rotulo_do_nome(nome):
     return limpo[:1].upper() + limpo[1:]
 
 
+def _ler_svg(caminho):
+    try:
+        with open(caminho, encoding="utf-8") as fh:
+            return fh.read(TETO_SVG)
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+
+def _com_a_tinta(texto, tinta):
+    if not (tinta and texto and "currentColor" in texto):
+        return None
+    return texto.replace("currentColor", tinta.lower())
+
+
 def acervo_para_levar(ident, pasta, base="", cores=None):
     _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
     meus = set(icones_do_pack(pack_da_pessoa(ident), pasta)) if ident else set()
@@ -4453,19 +4508,135 @@ def acervo_para_levar(ident, pasta, base="", cores=None):
         if pid == ident or not dir_pack:
             continue
         if pasta == "sistema":
-            itens = [(d["nome"], d["caminho"], d["rotulo"], d["svg"]) for d in pastas_do_pack(dir_pack, cores)]
+            itens = [(d["nome"], d["caminho"], d["rotulo"], d["svg"], d["svg"]) for d in pastas_do_pack(dir_pack, cores)]
         else:
             try:
                 bib = _dentro(dir_pack, PASTA_BIBLIOTECA, "biblioteca")
             except Recusa:
                 continue
             rotulos = _rotulos_da_biblioteca(bib)
+            tinta = (cores or _cores_do_flavor(dir_pack, campo(dir_pack, "paleta.flavor_padrao", "")) or {}).get("text")
             itens = [(os.path.basename(a)[:-4], a,
-                      rotulos.get(os.path.basename(a)) or _rotulo_do_nome(os.path.basename(a)[:-4]), None)
+                      rotulos.get(os.path.basename(a)) or _rotulo_do_nome(os.path.basename(a)[:-4]), None,
+                      _com_a_tinta(_ler_svg(a), tinta))
                      for a in _arquivos_da_pasta(bib, ".svg")]
-        saida += [{"de": pid, "nome": nome, "rotulo": rotulo, "arq": arq, "svg": svg,
-                   "levado": nome + ".svg" in meus} for nome, arq, rotulo, svg in itens]
+        saida += [{"de": pid, "nome": nome, "rotulo": rotulo, "arq": arq, "svg": svg, "previa": previa,
+                   "levado": nome + ".svg" in meus} for nome, arq, rotulo, svg, previa in itens]
     return saida
+
+
+LARGURA_DO_TRACO = "1.25"
+DOCK_DA_PREVIA = (
+    ("files", ("com.system76.CosmicFiles", "cosmic-files"), "cosmic-files"),
+    ("firefox", ("firefox", "org.mozilla.firefox"), ""),
+    ("telegram", ("org.telegram.desktop", "telegram"), ""),
+    ("discord", ("com.discordapp.Discord", "discord"), ""),
+    ("spotify", ("com.spotify.Client", "spotify"), ""),
+    ("terminal", ("com.system76.CosmicTerm", "cosmic-term"), "cosmic-term"),
+)
+PASTAS_DA_PREVIA = ("folder", "user-home", "folder-documents")
+MAPAS_DE_TRACO = ("apps-arcticons.map", "apps-convertidos.map")
+
+
+def _tracejar(texto, largura, tinta):
+    if "stroke-width" in texto:
+        texto = re.sub(r'stroke-width="[^"]*"', f'stroke-width="{largura}"', texto)
+    else:
+        texto = re.sub(r"<(circle|rect|line|polyline|polygon|path|ellipse) ",
+                       lambda m: f'<{m.group(1)} stroke-width="{largura}" ', texto)
+    return texto.replace("currentColor", tinta.lower())
+
+
+def _linhas_de_traco(dir_pack):
+    saida = {}
+    for nome_mapa in MAPAS_DE_TRACO:
+        caminho = os.path.join(dir_pack, "icones", nome_mapa)
+        if not os.path.isfile(caminho):
+            continue
+        with open(caminho, encoding="utf-8") as fh:
+            for linha in fh:
+                if linha.lstrip().startswith("#"):
+                    continue
+                campos = [c.strip() for c in linha.rstrip("\n").split(":")]
+                if len(campos) >= 3 and campos[0] and campos[1] and campos[2]:
+                    saida.setdefault(campos[0], (nome_mapa, campos[1], campos[2]))
+    return saida
+
+
+def _mapa_declarado(dir_pack, pid):
+    saida = {}
+    for categoria in ("icones.apps.mapa", "icones.resgatados.mapa"):
+        declarado = campo(pid, categoria)
+        if not (isinstance(declarado, str) and declarado):
+            continue
+        try:
+            caminho = _dentro(dir_pack, declarado, categoria)
+            for _num, nome, alvo in ler_mapa(caminho):
+                saida.setdefault(nome, alvo)
+        except (Recusa, OSError, UnicodeDecodeError):
+            continue
+    return saida
+
+
+def _desenho_do_app(dir_pack, pid, apelidos, autoral, flavor, cores):
+    icones = os.path.join(dir_pack, "icones")
+    declarado, traco = _mapa_declarado(dir_pack, pid), _linhas_de_traco(dir_pack)
+    for nome in apelidos:
+        if nome in declarado:
+            try:
+                arq = resolver_alvo(declarado[nome], icones)
+            except Recusa:
+                continue
+            texto = _ler_svg(arq) if os.path.isfile(arq) and not os.path.islink(arq) else ""
+            if _e_svg(texto.encode("utf-8")):
+                return texto
+        if nome in traco:
+            mapa, glifo, cor = traco[nome]
+            if cor not in cores or not nome_de_destino(nome):
+                continue
+            if mapa == "apps-convertidos.map":
+                achados = [os.path.join(icones, "apps", nome + ".svg")]
+            elif nome_de_destino(glifo):
+                achados = [os.path.join(icones, "apps", glifo + ".svg"),
+                           os.path.join(icones, "biblioteca", glifo + ".svg")]
+            else:
+                continue
+            for arq in achados:
+                texto = _ler_svg(arq) if os.path.isfile(arq) and not os.path.islink(arq) else ""
+                if _e_svg(texto.encode("utf-8")):
+                    return _tracejar(texto, LARGURA_DO_TRACO, cores[cor])
+    padrao = campo(pid, "paleta.flavor_padrao", "")
+    candidatos = [f"{autoral}-{f}" for f in dict.fromkeys((flavor, padrao)) if f] if autoral else []
+    candidatos += [n for n in apelidos if nome_de_destino(n)]
+    for miolo in candidatos:
+        arq = os.path.join(icones, "apps", miolo + ".svg")
+        texto = _ler_svg(arq) if os.path.isfile(arq) and not os.path.islink(arq) else ""
+        if _e_svg(texto.encode("utf-8")) and "currentColor" not in texto:
+            return texto
+    return None
+
+
+def previa_do_pack(ident, flavor, cores=None):
+    cores = cores or _cores_do_flavor(ident, flavor) or {}
+    dock, pasta = [], None
+    cadeia = cadeia_de_acervo(ident)
+    for slot, apelidos, autoral in DOCK_DA_PREVIA:
+        for pid in cadeia:
+            dir_pack = achar(pid)
+            texto = _desenho_do_app(dir_pack, pid, apelidos, autoral, flavor, cores) if dir_pack else None
+            if texto:
+                dock.append({"app": slot, "svg": texto})
+                break
+    for pid in cadeia:
+        dir_pack = achar(pid)
+        if not dir_pack:
+            continue
+        itens = {d["nome"]: d for d in pastas_do_pack(dir_pack, cores)}
+        escolhida = next((itens[n] for n in PASTAS_DA_PREVIA if n in itens), None)
+        if escolhida:
+            pasta = escolhida["svg"] if escolhida["svg"] is not None else _ler_svg(escolhida["caminho"])
+            break
+    return {"dock": dock, "pasta": pasta or None}
 
 
 def levar_icone(ident, pasta, caminho, nome="", texto=None):
@@ -4969,6 +5140,10 @@ def main(argv):
             if not achado:
                 return RECUSADO
             print(achado)
+            return OK
+        if verbo == "icones-de-status" and len(argv) in (4, 5):
+            achado = icones_de_status(argv[2] or None, argv[3], argv[4] if len(argv) == 5 else "")
+            print(f"{achado['desenhos']}\t{achado['mapa']}\t{achado['cor']}")
             return OK
         if verbo == "pintados" and len(argv) in (4, 5):
             temporario = len(argv) == 5 and argv[4] == "--temporario"

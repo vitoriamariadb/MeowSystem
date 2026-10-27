@@ -102,6 +102,37 @@ meow_painel_achar_display() {
   return 1
 }
 
+MEOW_PAINEL_JANELA_STARTUP="${MEOW_PAINEL_JANELA_STARTUP:-300}"
+
+meow_painel_sinal_notificacoes_sem_conexao() {
+  journalctl --user -b --no-pager _PID="$1" 2>/dev/null \
+    | grep -qE "Can't start notifications applet without a connection|Failed to connect to the notifications daemon"
+}
+
+meow_painel_sinal_applet_de_notificacoes_ausente() {
+  local vida="$1"
+  [ "$vida" -le "$MEOW_PAINEL_JANELA_STARTUP" ] || return 1
+  grep -qs "CosmicAppletNotifications" \
+    "$MEOW_PAINEL_BASE"/com.system76.CosmicPanel.Panel/v*/plugins_center \
+    "$MEOW_PAINEL_BASE"/com.system76.CosmicPanel.Panel/v*/plugins_wings \
+    "$MEOW_PAINEL_BASE"/com.system76.CosmicPanel.Dock/v*/plugins_center \
+    "$MEOW_PAINEL_BASE"/com.system76.CosmicPanel.Dock/v*/plugins_wings || return 1
+  ! pgrep -f '^(/[^ ]*/)?cosmic-applet-notifications( |$)' >/dev/null 2>&1
+}
+
+meow_painel_sinal_render_no_pid() {
+  journalctl --user -b --no-pager _PID="$1" 2>/dev/null \
+    | grep -qiE 'failed to render|erroneous egl|protocol error|error 1 on object'
+}
+
+meow_painel_sinal_protocolo_na_sessao() {
+  local vida="$1" desde
+  desde="$(date -d "@$(( $(date +%s) - vida ))" '+%Y-%m-%d %H:%M:%S' 2>/dev/null)"
+  [ -n "$desde" ] || desde="$vida seconds ago"
+  journalctl --user -b --since "$desde" --no-pager 2>/dev/null \
+    | grep -qaE 'tried to grab after being mapped|xdg_(popup|surface|toplevel)#[0-9]+: error [0-9]+|wl_(surface|display)#[0-9]+: error [0-9]+'
+}
+
 meow_painel_fantasma() {
   local pid vida
   pid="$(pgrep -x cosmic-panel 2>/dev/null | head -1)"
@@ -111,9 +142,10 @@ meow_painel_fantasma() {
   case "$vida" in ''|*[!0-9]*) return 1 ;; esac
   [ "$vida" -ge 20 ] || return 1
 
-  journalctl --user -b --no-pager _PID="$pid" 2>/dev/null \
-    | grep -qiE 'failed to render|erroneous egl|protocol error|error 1 on object' \
-    && return 0
+  meow_painel_sinal_notificacoes_sem_conexao "$pid" && return 0
+  meow_painel_sinal_applet_de_notificacoes_ausente "$vida" && return 0
+  meow_painel_sinal_render_no_pid "$pid" && return 0
+  meow_painel_sinal_protocolo_na_sessao "$vida" && return 0
   return 1
 }
 

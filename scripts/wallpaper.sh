@@ -416,7 +416,7 @@ base_da_rotacao() {
   return 0
 }
 
-case "${1:-aplicar}" in estado) MEOW_ESTADO_SO_LE=1 ;; esac
+case "${1:-aplicar}" in estado|base) MEOW_ESTADO_SO_LE=1 ;; esac
 LADO_TSV="${WALLPAPER_LADO:-$(meow_estado_com_padrao papeis-de-parede lado.tsv)}"
 
 declare -A LADO=()
@@ -710,6 +710,11 @@ FIM
 
 VISTAS="$MEOW_ESTADO/wallpaper-vistas.txt"
 
+_gravar_vistas() {
+  printf '%s\n' "$@" | cmp -s - "$VISTAS" 2>/dev/null && return 0
+  printf '%s\n' "$@" > "$VISTAS" 2>/dev/null
+}
+
 reconciliar_sumicos() {
   local -a agora=() sumidas=()
   local nome n_antes n_agora
@@ -718,7 +723,7 @@ reconciliar_sumicos() {
   n_agora="${#agora[@]}"
 
   if [ ! -f "$VISTAS" ]; then
-    meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null
+    meow_seco || _gravar_vistas ${agora[@]+"${agora[@]}"}
     return 0
   fi
   n_antes="$(grep -c . "$VISTAS" 2>/dev/null)"; n_antes="${n_antes:-0}"
@@ -731,11 +736,11 @@ reconciliar_sumicos() {
 
   mapfile -t sumidas < <(LC_ALL=C comm -23 <(LC_ALL=C sort -u "$VISTAS") \
                                            <(printf '%s\n' ${agora[@]+"${agora[@]}"} | LC_ALL=C sort -u))
-  [ "${#sumidas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
+  [ "${#sumidas[@]}" = "0" ] && { meow_seco || _gravar_vistas ${agora[@]+"${agora[@]}"}; return 0; }
 
   if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
     meow_aviso "${#sumidas[@]} de $n_antes imagens sumiram de ativos/ de uma vez — não vou banir nada"
-    meow_info  "  se foi você, bana uma a uma: meow wallpaper banir <nome>"
+    meow_info  "  se foi você, tire uma a uma pelo «Tirar do carrossel», em Personalizar › Papel de parede"
     return 0
   fi
 
@@ -744,7 +749,7 @@ reconciliar_sumicos() {
     [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
     novas+=("$nome")
   done
-  [ "${#novas[@]}" = "0" ] && { meow_seco || printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null; return 0; }
+  [ "${#novas[@]}" = "0" ] && { meow_seco || _gravar_vistas ${agora[@]+"${agora[@]}"}; return 0; }
 
   if meow_seco; then
     meow_muda "baniria ${#novas[@]} imagem(ns) apagada(s) à mão: ${novas[*]}"
@@ -761,7 +766,7 @@ reconciliar_sumicos() {
   meow_ok "${#novas[@]} imagem(ns) apagada(s) à mão entraram no BANIDOS.txt — o semear não as repõe"
   meow_info "  ${novas[*]}"
   meow_registrar "wallpaper.sh auto-banir: ${novas[*]}"
-  printf '%s\n' ${agora[@]+"${agora[@]}"} > "$VISTAS" 2>/dev/null
+  _gravar_vistas ${agora[@]+"${agora[@]}"}
   CUROU=1
   return 1
 }
@@ -1129,7 +1134,7 @@ cmd_lado() {
   if [ ! -f "$ATIVOS/$nome" ]; then
     meow_erro "não achei $nome em ativos/"
     if [ -f "$BASE/banidos/$nome" ]; then
-      meow_info "  ela está em banidos/ — devolva antes: meow wallpaper desbanir \"$nome\""
+      meow_info "  ela está em banidos/ — o «Devolver» do grupo «Fora», em Personalizar › Papel de parede, a traz de volta"
     else
       meow_info "  o lado se escolhe para imagem do acervo — veja: ls \"$ATIVOS\""
     fi
@@ -1393,7 +1398,7 @@ cmd_semear_se_faltar() {
     return "$MEOW_DIVERGENTE"
   fi
   cmd_semear; rc=$?
-  mkdir -p "$MEOW_ESTADO" && printf '%s\n' "$origem" > "$marca"
+  [ "$(cat "$marca" 2>/dev/null)" = "$origem" ] || { mkdir -p "$MEOW_ESTADO" && printf '%s\n' "$origem" > "$marca"; }
   return "$rc"
 }
 
@@ -1645,6 +1650,104 @@ cmd_desfavoritar() {
   return "$MEOW_DIVERGENTE"
 }
 
+BASE_FORA_DO_REPO="$HOME/.local/share/backgrounds/meowsystem"
+
+dentro_de() {
+  local pai_id dir
+  pai_id="$(stat -c '%d:%i' -- "$2" 2>/dev/null)" || return 1
+  dir="$(readlink -m -- "$1")"
+  while [ -n "$dir" ] && [ "$dir" != "/" ]; do
+    [ -e "$dir" ] && [ "$(stat -c '%d:%i' -- "$dir")" = "$pai_id" ] && return 0
+    dir="$(dirname -- "$dir")"
+  done
+  return 1
+}
+
+arquivos_da_base() {
+  find "$1" \( -type f -o -type l \) -printf '%P\n' 2>/dev/null | LC_ALL=C sort
+}
+
+primeiro_que_nao_chegou() {
+  local origem="$1" destino="$2" rel
+  while IFS= read -r rel; do
+    [ -n "$rel" ] || continue
+    if [ -L "$origem/$rel" ]; then
+      [ "$(readlink -- "$origem/$rel")" = "$(readlink -- "$destino/$rel" 2>/dev/null)" ] && continue
+    else
+      cmp -s -- "$origem/$rel" "$destino/$rel" && continue
+    fi
+    printf '%s' "$rel"; return 0
+  done < <(arquivos_da_base "$origem")
+  return 1
+}
+
+apontar_fundo_para() {
+  local novo="$1"; shift
+  local arq texto antes o
+  for arq in "$BG"/all "$BG"/output.*; do
+    [ -f "$arq" ] || continue
+    texto="$(cat "$arq")"; antes="$texto"
+    for o in "$@"; do
+      texto="${texto//"Path(\"$o\")"/"Path(\"$novo\")"}"
+      texto="${texto//"Path(\"$o/"/"Path(\"$novo/"}"
+    done
+    [ "$texto" = "$antes" ] && continue
+    meow_escrever "$arq" "$texto" 644
+    case $? in 2) meow_erro "falhou ao reescrever $(basename "$arq")"; return "$MEOW_ERRO" ;; esac
+  done
+  return 0
+}
+
+cmd_base() {
+  local velho_real novo="$BASE_FORA_DO_REPO" n_antes faltou rel
+  if ! dentro_de "$BASE" "$RAIZ"; then
+    meow_ok "a base do papel de parede ($BASE) mora fora do repositório"
+    return "$MEOW_OK"
+  fi
+  velho_real="$(readlink -m -- "$BASE")"
+  if [ -d "$velho_real" ]; then
+    rel="${velho_real#"$(readlink -m -- "$RAIZ")"/}"
+    if [ "$rel" != "$velho_real" ] && [ -n "$(git -C "$RAIZ" ls-files -- "$rel" 2>/dev/null | head -n1)" ]; then
+      meow_erro "há arquivo versionado em $rel — o doctor não move o que o git guarda"
+      return "$MEOW_ERRO"
+    fi
+  fi
+  n_antes=0
+  [ -d "$velho_real" ] && n_antes="$(arquivos_da_base "$velho_real" | grep -c .)"
+  if meow_seco; then
+    meow_muda "a base do papel de parede ($BASE) mora dentro do repositório — moveria as $n_antes imagens para $novo e apontaria o WALLPAPER_BASE e o fundo para lá"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if [ -L "$novo" ] && dentro_de "$novo" "$RAIZ"; then
+    rm -f -- "$novo" || return "$MEOW_ERRO"
+  fi
+  mkdir -p -- "$(dirname -- "$novo")" || return "$MEOW_ERRO"
+  if [ -d "$velho_real" ]; then
+    if [ ! -e "$novo" ]; then
+      mv -- "$velho_real" "$novo" || { meow_erro "não consegui mover $velho_real para $novo"; return "$MEOW_ERRO"; }
+    else
+      cp -a --no-clobber -- "$velho_real"/. "$novo"/ || { meow_erro "não consegui copiar $velho_real para $novo"; return "$MEOW_ERRO"; }
+      faltou="$(primeiro_que_nao_chegou "$velho_real" "$novo")"
+      if [ -n "$faltou" ]; then
+        meow_erro "$faltou não chegou igual em $novo — a origem fica intacta"
+        return "$MEOW_ERRO"
+      fi
+      rm -rf -- "$velho_real" || return "$MEOW_ERRO"
+    fi
+  else
+    mkdir -p -- "$novo" || return "$MEOW_ERRO"
+  fi
+
+  if [ -n "$(conf_bruto WALLPAPER_BASE)" ]; then
+    meow_conf_definir WALLPAPER_BASE "$novo"
+    case $? in 2) meow_erro "não consegui reescrever o WALLPAPER_BASE no meow.conf"; return "$MEOW_ERRO" ;; esac
+  fi
+  apontar_fundo_para "$novo" "$BASE" "$velho_real" "$RAIZ/assets/papeis-de-parede" || return "$MEOW_ERRO"
+  meow_ok "as $n_antes imagens moraram em $novo; o WALLPAPER_BASE e o fundo apontam para lá"
+  return "$MEOW_DIVERGENTE"
+}
+
 case "${1:-aplicar}" in
   aplicar)   cmd_aplicar ;;
   proximo|próximo|avançar|avancar)  cmd_passo 1 ;;
@@ -1654,6 +1757,7 @@ case "${1:-aplicar}" in
   estado)    cmd_estado ;;
   semear)    cmd_semear ;;
   semear-se-faltar) cmd_semear_se_faltar ;;
+  base)      [ "${2:-}" = "--conferir" ] && MEOW_SECO=1; cmd_base ;;
   banir)     shift; cmd_banir "${1:-}" ;;
   desbanir)  shift; cmd_desbanir "${1:-}" ;;
   adicionar) shift; cmd_adicionar "${1:-}" ;;
@@ -1663,5 +1767,5 @@ case "${1:-aplicar}" in
   usar)      shift; cmd_usar "${1:-}" ;;
   favoritar)    shift; cmd_favoritar "${1:-}" ;;
   desfavoritar) shift; cmd_desfavoritar "${1:-}" ;;
-  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|usar <img>|carrossel|--conferir|estado|semear|adicionar <alvo>|banir <img>|desbanir <nome>|favoritar <img>|desfavoritar <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
+  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|usar <img>|carrossel|--conferir|estado|semear|base [--conferir]|adicionar <alvo>|banir <img>|desbanir <nome>|favoritar <img>|desfavoritar <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
 esac

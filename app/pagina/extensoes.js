@@ -1,6 +1,6 @@
 "use strict";
 
-const EXT = { dados: null, quando: 0, pedindo: false, religar: null, mudou: 0 };
+const EXT = { dados: null, quando: 0, pedindo: false, religar: null, mudou: 0, trocou: false };
 const REPOSITORIO_DA_CASA = "https://github.com/vitoriamariadb/MeowSystem";
 const AUTORES = [
   { nome: "Vitória Maria", papel: "autora" },
@@ -65,6 +65,9 @@ function gestoDeExtensao(acaoId, e, verbo) {
   return rodar(ACAO.get(acaoId), e.id, { verbo, depois: depoisDoGesto });
 }
 const idDaAcao = (e, casa, repo) => (e.casa ? casa : repo);
+const tipoDe = (e) => e.tipo || "applet";
+const ehApplet = (e) => tipoDe(e) === "applet";
+const BINARIO_DO_TIPO = { compositor: "cosmic-comp", menu: "cosmic-files" };
 
 function botoesDoCartao(e, parado) {
   const b = (texto, props, acao) => botao(texto, { class: "bt pequeno" + (props.principal ? " principal" : ""),
@@ -108,6 +111,44 @@ function cartaoDeExtensao(e, ocupado) {
   ]);
 }
 
+function pilulaDoBuildDaCasa(e, ocupado, construindo) {
+  if ((ocupado && ocupado.id === e.id) || (construindo && !e.instalada)) return ["correndo", "Compilando"];
+  if (e.falhou) return ["erro", "Falhou"];
+  if (e.situacao === "nao-encaixa") return ["erro", "Não encaixa"];
+  if (e.atualizacao) return ["ensaio", "Atualização"];
+  if (!e.instalada) return ["neutro", "Não instalada"];
+  return e.ativa ? ["ok", "Em dia"] : ["neutro", "Pronto, desligado"];
+}
+
+function botoesDoBuildDaCasa(e, parado) {
+  const b = (texto, icone, verbo, acao, livre, principal) => botao(texto, {
+    class: "bt pequeno" + (principal ? " principal" : ""), icone, disabled: parado || !livre,
+    controle: "extensao:" + verbo + ":" + e.id, onclick: () => gestoDeExtensao(acao, e, texto) });
+  const ligar = !e.atualizacao && (!e.instalada || !e.ativa);
+  return [
+    b("Instalar", "baixar", "instalar", "extensao_instalar", ligar, ligar),
+    b("Atualizar", "subir", "atualizar", "extensao_atualizar", e.atualizacao, e.atualizacao),
+    b("Refazer", "girar", "refazer", "extensao_refazer", true, false),
+    botao("", { class: "bt leve pequeno so-icone", icone: "lixo", disabled: parado || !e.ativa,
+      "aria-label": "Remover " + e.nome, dica: "Remover", controle: "extensao:remover:" + e.id,
+      onclick: () => gestoDeExtensao("extensao_remover", e, "Remover") }),
+  ];
+}
+
+function cartaoDoBuildDaCasa(e, ocupado, construindo, remendos) {
+  const [estado, texto] = pilulaDoBuildDaCasa(e, ocupado, construindo);
+  const detalhes = [e.versao ? (BINARIO_DO_TIPO[tipoDe(e)] || e.id) + " " + e.versao : "",
+    tipoDe(e) === "compositor" && remendos ? remendos + " remendos" : ""].filter(Boolean).join(" · ");
+  return elemento("article", { class: "bloco cartao-acao", "data-build": e.id, "data-nome": e.nome }, [
+    elemento("div", { class: "cartao-cabeca" }, [
+      elemento("span", { class: "icone" }, [iconeDaExtensao(e)]),
+      elemento("div", {}, [elemento("h3", { texto: e.nome }), elemento("span", { class: "versao", texto: detalhes })]),
+    ]),
+    elemento("span", { class: "estado-pilula", "data-estado": estado, "data-pilula": true, texto }),
+    elemento("div", { class: "fila" }, botoesDoBuildDaCasa(e, !!ocupado || !!construindo)),
+  ]);
+}
+
 function linhasDoRegistro(texto) {
   return String(texto || "").split("\n").map((l) =>
     elemento("span", { class: classeDaLinha(l) || null, texto: l + "\n" }));
@@ -123,7 +164,7 @@ function pendenciaDeTroca(e, parado) {
     ]),
     elemento("span", { class: "ctl" }, [
       botao("Trocar", { class: "bt principal pequeno", icone: "certo", disabled: parado, controle: "extensao:trocar:" + e.id,
-        onclick: () => gestoDeExtensao("extensao_trocar", e, "Trocar") }),
+        onclick: () => { EXT.trocou = true; return gestoDeExtensao("extensao_trocar", e, "Trocar"); } }),
       botao("Manter", { class: "bt leve pequeno", disabled: parado, controle: "extensao:manter:" + e.id,
         onclick: async () => {
           const r = await api("/api/extensao-manter", { method: "POST", body: JSON.stringify({ id: e.id }) });
@@ -158,11 +199,6 @@ function previaDeExtensoes(lista) {
   return [previa, barra];
 }
 
-const ESTADO_DE_BUILD = {
-  ok: ["ok", "Em dia"], pendente: ["alerta", "Pendente"], falhou: ["erro", "Falhou"],
-  "nao-encaixa": ["erro", "Não encaixa"], desligado: ["neutro", "Desligado"], ausente: ["neutro", "Ausente"],
-};
-
 function linhaDeBuild({ rotulo, imagem, detalhes, estado, texto, botaoRefazer }) {
   return elemento("li", { class: "linha" }, [
     elemento("span", { class: "rot" }, [
@@ -181,25 +217,9 @@ function blocoDeBuilds(dados) {
   const b = dados.builds || {};
   const ocupado = dados.ocupado;
   const parado = !!ocupado || !!b.construindo;
-  const compilando = (acao) => !!(ocupado && ocupado.acao === acao);
-  const comp = b.compositor || { estado: "ausente", versao: "", remendos: 0 };
-  const menu = b.menu || { estado: "ausente", versao: "" };
-  const [ec, tc] = compilando("build_compositor") ? ["correndo", "Compilando"] : ESTADO_DE_BUILD[comp.estado] || ["neutro", comp.estado];
-  const [em, tm] = compilando("files_menu_build") ? ["correndo", "Compilando"] : ESTADO_DE_BUILD[menu.estado] || ["neutro", menu.estado];
-  const refaz = (acao, controle, texto = "Refazer") => botao(texto, { class: "bt pequeno", icone: "girar", disabled: parado,
-    controle, onclick: () => { EXT.quando = 0; rodar(ACAO.get(acao), "", { verbo: texto, depois: depoisDoGesto }); } });
+  const daCasa = (dados.extensoes || []).filter((e) => !ehApplet(e));
   const linhas = [
-    linhaDeBuild({
-      rotulo: "Compositor", estado: ec, texto: tc,
-      detalhes: [comp.versao ? "cosmic-comp " + comp.versao : "", comp.remendos ? comp.remendos + " remendos" : ""],
-      botaoRefazer: refaz("build_compositor", "build:compositor"),
-    }),
-    linhaDeBuild({
-      rotulo: "Menu do Arquivos", estado: em, texto: tm,
-      detalhes: [menu.versao ? "cosmic-files " + menu.versao : ""],
-      botaoRefazer: refaz("files_menu_build", "build:menu"),
-    }),
-    ...(dados.extensoes || []).map((e) => {
+    ...(dados.extensoes || []).filter(ehApplet).map((e) => {
       const [es, te] = pilulaDeBuild(e, ocupado);
       const onde = e.instalada ? "~/.local" : "fora do computador";
       return linhaDeBuild({
@@ -216,6 +236,8 @@ function blocoDeBuilds(dados) {
       botao("Refazer tudo", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "build:tudo",
         onclick: () => { EXT.quando = 0; rodar(ACAO.get("builds_refazer_tudo"), "", { verbo: "Refazer tudo",
           depois: depoisDoGesto }); } })]),
+    daCasa.length ? elemento("div", { class: "grade-extensoes grade-builds" },
+      daCasa.map((e) => cartaoDoBuildDaCasa(e, ocupado, b.construindo, b.remendos))) : null,
     elemento("ul", { class: "linhas" }, linhas),
     ...falhas.map((e) => elemento("details", { class: "registro", open: true }, [
       elemento("summary", { texto: "Registro de " + e.nome }), elemento("pre", {}, linhasDoRegistro(e.registro))])),
@@ -258,8 +280,8 @@ function abasDeExtensoes(sub) {
         [icone(a.icone), elemento("span", { texto: a.nome })]),
     ])));
     $("#abas-fila").replaceChildren(
-      botao("Adicionar repositório", { class: "bt principal pequeno", icone: "mais", controle: "extensao:abrir-adicionar",
-        onclick: abrirAdicionar }));
+      botao("Adicionar repositório", { class: "bt principal pequeno adicionar-repo", icone: "mais", controle: "extensao:abrir-adicionar",
+        "aria-label": "Adicionar repositório", dica: "Adicionar repositório", onclick: abrirAdicionar }));
   }
   for (const a of lista.querySelectorAll("a")) {
     if (a.dataset.aba === sub) a.setAttribute("aria-current", "page");
@@ -268,8 +290,20 @@ function abasDeExtensoes(sub) {
   return null;
 }
 
+function linhaDeReiniciar(parado) {
+  return elemento("li", { class: "linha", "data-reiniciar": true }, [
+    elemento("span", { class: "rot troca" }, [elemento("span", { class: "lugar-applet" }, [icone("girar")]),
+      elemento("b", { texto: "Painel" })]),
+    elemento("span", { class: "ctl" }, [
+      botao("Reiniciar o painel", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "extensao:reiniciar-painel",
+        onclick: () => { EXT.quando = 0; return rodar(ACAO.get("extensao_reiniciar_painel"), "", { verbo: "Reiniciar o painel",
+          depois: () => { EXT.trocou = false; depoisDoGesto(); } }); } }),
+    ]),
+  ]);
+}
+
 function corpoDeApplets(dados) {
-  const lista = dados.extensoes || [];
+  const lista = (dados.extensoes || []).filter(ehApplet);
   const parado = !!dados.ocupado;
   const trocas = lista.filter((e) => e.troca);
   const grade = elemento("div", { class: "grade-extensoes" }, [
@@ -277,8 +311,8 @@ function corpoDeApplets(dados) {
     botao("Adicionar", { class: "cartao-novo", icone: "mais", controle: "extensao:novo", onclick: abrirAdicionar }),
   ]);
   return [
-    trocas.length ? elemento("div", { class: "bloco", id: "pendencia" }, [
-      elemento("ul", { class: "linhas" }, trocas.map((e) => pendenciaDeTroca(e, parado)))]) : null,
+    trocas.length || EXT.trocou ? elemento("div", { class: "bloco", id: "pendencia" }, [
+      elemento("ul", { class: "linhas" }, [...trocas.map((e) => pendenciaDeTroca(e, parado)), linhaDeReiniciar(parado)])]) : null,
     lista.length ? grade : elemento("div", { class: "vazio" }, [icone("grade"), elemento("p", { texto: "Nenhuma extensão no catálogo" }),
       botao("Adicionar repositório", { class: "bt principal", icone: "mais", controle: "extensao:vazio-adicionar", onclick: abrirAdicionar })]),
   ];
@@ -300,7 +334,7 @@ function paginaExtensoes(sub) {
     abasDeExtensoes(aba),
     elemento("h1", { class: "sr", texto: "Extensões" }),
     elemento("div", { class: "oficina extensoes" }, [
-      elemento("div", { class: "palco" }, previaDeExtensoes(dados.extensoes || [])),
+      elemento("div", { class: "palco" }, previaDeExtensoes((dados.extensoes || []).filter(ehApplet))),
       elemento("div", { class: "pilha", id: "miolo" }, [elemento("section", { class: "pilha", "data-aba-corpo": aba }, corpo.filter(Boolean))]),
     ]),
   ];

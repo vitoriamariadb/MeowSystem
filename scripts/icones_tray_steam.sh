@@ -6,9 +6,10 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/lib/comum.sh"
 
 GLIFO="${MEOW_TRAY_STEAM_GLIFO:-}"
-if [ -z "$GLIFO" ]; then
+if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
+  IFS=$'\t' read -r _desenhos _ _ <<<"$_achado"
   for _p in sistema apps biblioteca; do
-    GLIFO="$RAIZ/packs/meowsystem/icones/$_p/steam.svg"; [ -f "$GLIFO" ] && break
+    GLIFO="$(dirname "$_desenhos")/$_p/steam.svg"; [ -f "$GLIFO" ] && break
   done
 fi
 TRACO="${MEOW_TRAY_STEAM_TRACO:-4}"
@@ -113,13 +114,42 @@ PY
   return "$rc"
 }
 
+_nosso() {
+  local alvo="$1" sha
+  sha="$(awk -F'\t' -v a="$alvo" '$1 == a { s = $3 } END { print s }' "$MEOW_MANIFESTO" 2>/dev/null)"
+  [ -n "$sha" ] && [ "$sha" != "-" ] && [ "$sha" = "$(sha256sum -- "$alvo" 2>/dev/null | cut -d' ' -f1)" ]
+}
+
+_sem_glifo() {
+  local modo="$1" raiz alvo tmp
+  raiz="$(_raiz_steam)" || {
+    meow_pula "o pack no ar não declara icones.bandeja e a Steam não está aqui — nada a aplicar"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+  alvo="$raiz/$RELATIVO"
+  if [ ! -f "$alvo.meow-original" ] || ! _nosso "$alvo"; then
+    meow_pula "o pack no ar não declara icones.bandeja — o ícone da bandeja da Steam não é nosso, fica como está"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if [ "$modo" = --conferir ] || meow_seco; then
+    meow_muda "devolveria o ícone da bandeja da Steam de fábrica (o pack no ar não traz ícones de bandeja)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_destino_permitido "$alvo" || return "$MEOW_ERRO"
+  tmp="$(mktemp -p "$(dirname "$alvo")" ".meow.XXXXXX")" || return "$MEOW_ERRO"
+  cp -a -- "$alvo.meow-original" "$tmp" && mv -f "$tmp" "$alvo" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  awk -F'\t' -v a="$alvo" '$1 != a' "$MEOW_MANIFESTO" > "$MEOW_MANIFESTO.tmp" && mv -f "$MEOW_MANIFESTO.tmp" "$MEOW_MANIFESTO"
+  meow_muda "ícone da bandeja da Steam devolvido ao de fábrica (o pack no ar não traz ícones de bandeja)"
+  return "$MEOW_DIVERGENTE"
+}
+
 _pronto() {
   if [ ! -f "$GLIFO" ]; then
-    meow_pula "sem o glifo steam em packs/meowsystem/icones — nada a vestir"
+    meow_pula "sem o glifo steam no pack no ar — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   RAIZ_STEAM="$(_raiz_steam)" || {
-    meow_pula "a Steam não está instalada (sem $RELATIVO) — nada a vestir"
+    meow_pula "a Steam não está instalada (sem $RELATIVO) — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   }
   meow_tem rsvg-convert || {
@@ -160,7 +190,7 @@ _igual() {
 
 _conferir() {
   if _igual; then
-    meow_ok "o ícone da bandeja da Steam está vestido de Arcticons"
+    meow_ok "o ícone da bandeja da Steam está com o Arcticons"
     return "$MEOW_OK"
   fi
   if cmp -s "$RAIZ_STEAM/$RELATIVO" "$FABRICA" 2>/dev/null; then
@@ -174,7 +204,7 @@ _conferir() {
 _aplicar() {
   local alvo="$RAIZ_STEAM/$RELATIVO" tmp modo
   if _igual; then
-    meow_ok "o ícone da bandeja da Steam está vestido de Arcticons"
+    meow_ok "o ícone da bandeja da Steam está com o Arcticons"
     return "$MEOW_OK"
   fi
   if meow_seco; then
@@ -202,17 +232,18 @@ _aplicar() {
   mv -f "$tmp" "$alvo" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   meow_manifesto_registrar "$alvo"
 
-  meow_info "ícone da bandeja da Steam: vestido de Arcticons (traço $TRACO, $COR)"
+  meow_info "ícone da bandeja da Steam: com o Arcticons (traço $TRACO, $COR)"
   meow_info "o ícone novo aparece quando a Steam reabrir"
   return "$MEOW_DIVERGENTE"
 }
 
 main() {
-  _pronto || return $?
   case "${1:-}" in
     --conferir|''|--aplicar) ;;
     *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; return "$MEOW_ERRO" ;;
   esac
+  [ -n "$GLIFO" ] || { _sem_glifo "${1:-}"; return $?; }
+  _pronto || return $?
   _preparar || return $?
   case "${1:-}" in
     --conferir) _conferir ;;

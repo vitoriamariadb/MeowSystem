@@ -123,7 +123,7 @@ _meow_obsidian_do_pack() {
     return
   fi
   if [ "$MEOW_APP_TEMA_PACK" != "$_OBS_PACK" ]; then
-    meow_app_sem "obsidian: sem tema neste pack ($_OBS_PACK_NOME) — o que a herança traz é o '$MEOW_APP_TEMA', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não veste outro"
+    meow_app_sem "obsidian: sem tema neste pack ($_OBS_PACK_NOME) — o que a herança traz é o '$MEOW_APP_TEMA', do pack $MEOW_APP_TEMA_PACK, e o tema de um pack não vale para outro"
     return
   fi
   case "$MEOW_APP_TEMA" in

@@ -16,6 +16,8 @@ SN_PREVER="${SN_PREVER:-$MEOW_RAIZ/scripts/cosmic_prever.sh}"
 SN_VEREDITO="${CV_SAIDA:-$MEOW_ESTADO/cosmic-candidato.tsv}"
 SN_ID="sentinela-cosmic"
 SN_NOME="O COSMIC da fila não entra"
+SN_VIGIAS="${SN_VIGIAS:-$MEOW_RAIZ/assets/contratos/vigias.tsv}"
+SN_API="${SN_API:-https://api.github.com/repos}"
 
 _sn_fila() {
   apt list --upgradable 2>/dev/null | sed -n 's#^\(cosmic-[^/]*\)/[^ ]* \([^ ]*\) .*#\1=\2#p' | sort
@@ -51,6 +53,27 @@ _sn_gravar() {
     printf 'candidato\t%s\t%s\n' "$1" "$(printf '%s' "$2" | tr '\n' ' ' | sed 's/ $//')"
     printf 'resultado\t%s\n' "$3"
     if [ -n "$4" ]; then grep -v '^#' "$4"; fi; } > "$tmp" && mv -f "$tmp" "$SN_SAIDA"
+}
+
+_sn_estado_da_issue() {
+  curl -fsSL --max-time 20 "$SN_API/$1/issues/$2" 2>/dev/null \
+    | python3 -I -c 'import json, sys; print(json.load(sys.stdin).get("state", ""))' 2>/dev/null
+}
+
+cmd_vigias() {
+  local repo num id frase estado rc="$MEOW_OK"
+  [ -r "$SN_VIGIAS" ] || return "$MEOW_OK"
+  meow_tem curl || return "$MEOW_SEM_DEPENDENCIA"
+  while IFS=$'\t' read -r repo num id frase; do
+    case "$repo" in \#*|"") continue ;; esac
+    estado="$(_sn_estado_da_issue "$repo" "$num")"
+    case "$estado" in
+      closed) meow_pendencia_acionavel "$id" "$frase" "" ;;
+      open)   meow_pendencia_resolvida "$id" ;;
+      *)      rc="$MEOW_SEM_DEPENDENCIA" ;;
+    esac
+  done < "$SN_VIGIAS"
+  return "$rc"
 }
 
 cmd_rodar() {
@@ -103,7 +126,8 @@ cmd_rodar() {
 }
 
 case "${1:-rodar}" in
-  rodar) cmd_rodar ;;
-  ler)   cmd_ler ;;
-  *) meow_erro "uso: sentinela.sh [rodar|ler]"; exit "$MEOW_ERRO" ;;
+  rodar)  cmd_vigias; cmd_rodar ;;
+  vigias) cmd_vigias ;;
+  ler)    cmd_ler ;;
+  *) meow_erro "uso: sentinela.sh [rodar|vigias|ler]"; exit "$MEOW_ERRO" ;;
 esac

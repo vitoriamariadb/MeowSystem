@@ -224,6 +224,12 @@ def montar_casa():
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "ACAO_DA_PENDENCIA" for a in no.targets)):
             pendencias = sorted(ast.literal_eval(no.value))
+    pinos = os.path.join(RAIZ, "assets", "extensoes")
+    for arquivo in sorted(os.listdir(pinos)):
+        if arquivo.endswith(".pino"):
+            with open(os.path.join(pinos, arquivo), encoding="utf-8") as fh:
+                proprio = re.search(r'^PENDENCIA="([a-z0-9-]+)"', fh.read(), re.M)
+            pendencias.append(proprio.group(1) if proprio else "extensao-" + arquivo[:-len(".pino")])
     for no in arvore.body:
         if (isinstance(no, ast.Assign)
                 and any(getattr(a, "id", "") == "SUFIXO_TEMA_DE_TERCEIRO" for a in no.targets)):
@@ -495,8 +501,9 @@ CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "APPS_ATIVOS": "program
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
     "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
-    "vscode_instalar_extensao", "files_menu_build", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
+    "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
     "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
+    "extensao_refazer",
 }
 EXTRAS = {
     "tema": ["tema:saude", "tema:abrir", "tema:criar", "pack:*:*", "chave:ACCENT=*", "chave:MODO=*"],
@@ -934,6 +941,68 @@ class Percurso:
         self.checa(ok.returncode == 0 and "formato 2" in ok.stdout + ok.stderr,
                    "e o pack guardado valida no formato de três pastas: " + (ok.stdout + ok.stderr).strip()[-160:])
 
+    def h_previa_do_pack(self):
+        r = self.js("""() => {
+            const saida = {};
+            for (const p of document.querySelectorAll("[data-controle^='pack:'][data-controle$=':previa']")) {
+                const id = p.dataset.controle.split(":")[1];
+                saida[id] = { arte: [...p.querySelectorAll(".p-dock img.arte-pack")].map((i) => i.src),
+                              pasta: [...p.querySelectorAll(".p-arq img.pasta-pack")].length,
+                              pasta_cheia: [...p.querySelectorAll(".p-arq img.pasta-pack")].slice(0, 1).some((i) => {
+                                  const t = decodeURIComponent(i.src.split(",").slice(1).join(","));
+                                  return /fill="#[0-9a-fA-F]{3,8}"|fill:#[0-9a-fA-F]{3,8}/.test(t) && !/stroke="#|stroke:#/.test(t); }),
+                              neutro: p.querySelectorAll(".p-dock svg.neutro").length };
+            }
+            return saida; }""")
+        self.checa(len(r) >= 2, f"a vitrine mostra a prévia de ao menos dois packs ({list(r)})")
+        for pid, d in r.items():
+            self.checa(len(d["arte"]) >= 3 and all(a.startswith("data:image/svg+xml") for a in d["arte"]),
+                       f"o dock da prévia do {pid} traz a arte do próprio pack ({len(d['arte'])})")
+            self.checa(d["neutro"] == 0 and d["pasta"] > 0, f"a prévia do {pid} não cai no traço neutro e traz a pasta do pack")
+        ids = sorted(r)
+        for a in ids:
+            for b in ids:
+                if a < b:
+                    iguais = set(r[a]["arte"]) & set(r[b]["arte"])
+                    self.checa(len(iguais) <= 1, f"o dock do {a} difere do {b} em ao menos 5 de 6 ({len(iguais)} iguais)")
+        meio = self.js("""() => { const m = MESA.mesa({ previa: { dock: [{ app: "files",
+                url: "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E" }], pasta: "" } });
+            return [m.querySelectorAll(".p-dock .centro .app").length, m.querySelectorAll(".p-dock img.arte-pack").length,
+                    m.querySelectorAll(".p-dock svg.neutro").length]; }""")
+        self.checa(meio == [6, 1, 5], f"o pack que traz só parte do dock mostra o resto em traço neutro, sem sumir com o app ({meio})")
+        if "dracula" in r and "meowsystem" in r:
+            self.checa(r["dracula"]["pasta_cheia"] and not r["meowsystem"]["pasta_cheia"],
+                       f"a pasta do Dracula é cheia e a do MeowSystem é contorno "
+                       f"({r['dracula']['pasta_cheia']}, {r['meowsystem']['pasta_cheia']})")
+
+    def h_biblioteca_legivel(self, seletor):
+        r = self.js("""(seletor) => {
+            const lum = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+                .map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+                return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+            const fundoDe = (el) => { for (let n = el; n; n = n.parentElement) {
+                const m = /rgba?\\((\\d+), *(\\d+), *(\\d+)(?:, *([\\d.]+))?/.exec(getComputedStyle(n).backgroundColor);
+                if (m && (m[4] === undefined || Number(m[4]) > 0.5)) return [m[1], m[2], m[3]].map((x) => Number(x).toString(16).padStart(2, "0")).join(""); }
+                return "000000"; };
+            const saida = { total: 0, cru: [], fracos: [], semData: [] };
+            for (const img of document.querySelectorAll(seletor + " img")) {
+                saida.total++;
+                const nome = (img.closest(".app") || {}).dataset ? img.closest(".app").dataset.nome : "?";
+                if (!img.src.startsWith("data:image/svg+xml")) { saida.semData.push(nome); continue; }
+                const texto = decodeURIComponent(img.src.split(",").slice(1).join(","));
+                if (/currentColor/.test(texto)) { saida.cru.push(nome); continue; }
+                const cores = [...texto.matchAll(/(?:fill|stroke)="#([0-9a-fA-F]{6})"/g)].map((m) => m[1]);
+                if (!cores.length) continue;
+                const f = lum("#" + fundoDe(img));
+                const melhor = Math.max(...cores.map((c) => { const l = lum("#" + c);
+                    return (Math.max(l, f) + 0.05) / (Math.min(l, f) + 0.05); }));
+                if (melhor < 3) saida.fracos.push(nome + ":" + melhor.toFixed(1));
+            }
+            return saida; }""", seletor)
+        self.checa(r["total"] > 0 and not r["semData"], f"a biblioteca desenha por data:image/svg+xml ({r['semData'][:3]})")
+        self.checa(not r["cru"], f"nenhum ícone da biblioteca fica com currentColor cru: {r['cru'][:3]}")
+        self.checa(not r["fracos"], f"o traço da biblioteca contrasta ao menos 3:1 com o fundo: {r['fracos'][:3]}")
+
     def h_abas_de_icones(self):
         for aba in ("sistema", "biblioteca"):
             if not self.achar("icones:aba=" + aba):
@@ -945,10 +1014,28 @@ class Percurso:
             n = self.js(f"() => document.querySelectorAll(\"{seletor}\").length")
             self.checa(n > 0, f"a aba {aba} mostra os ícones do pack em edição ({n})")
             self.checa(not self.achar("levar:" + aba), f"a aba {aba} só mostra: não tem botão de levar")
+            if aba == "biblioteca":
+                self.h_biblioteca_legivel(seletor)
             if self.achar("acervo:filtro"):
                 self.acionados.add("acervo:filtro")
         self.clicar("icones:aba=apps")
         self.assentar()
+        self.h_previa_do_rascunho()
+
+    def h_previa_do_rascunho(self):
+        marca = "#fe0102"
+        self.js("""(marca) => { const r = rascunho(); r.cores = { ...(r.cores || {}), peach: marca, lavender: marca }; render(); }""", marca)
+        try:
+            self.pag.wait_for_function("""(marca) => [...document.querySelectorAll('.palco .p-dock img.arte-pack')]
+                .some((i) => decodeURIComponent(i.src).includes(marca))""", arg=marca, timeout=15000)
+            pintou = True
+        except Exception:  # noqa: BLE001
+            pintou = False
+        self.checa(pintou, "a prévia do Personalizar pinta o dock com as cores do rascunho, pelo /api/criar?previa=1")
+        neutros = self.js("() => document.querySelectorAll('.palco .p-dock svg.neutro').length")
+        self.checa(neutros == 0, f"a prévia do Personalizar não cai no traço neutro ({neutros})")
+        self.js("""(marca) => { const r = rascunho(); for (const k of ['peach', 'lavender']) if (r.cores[k] === marca) delete r.cores[k]; render(); }""", marca)
+        self.assentar(quieto=400)
 
     def h_trocar_som(self, nome):
         caminho = os.path.join(BRINQUEDO, "envios", "brinquedo-aviso.oga")
@@ -1123,6 +1210,156 @@ class Percurso:
             return
         return self.h_clique(nome, item)
 
+    def abrir_ficha_em_gerar(self):
+        self.ir("criar/icones")
+        self.assentar(quieto=400)
+        if self.achar("icones:aba=apps"):
+            self.clicar("icones:aba=apps")
+            self.assentar(quieto=400)
+        if self.achar("desenho:volta"):
+            self.clicar("desenho:volta")
+            self.assentar(quieto=400)
+        botao = self.pag.locator("button.app[data-app]").first
+        botao.click()
+        self.pag.wait_for_selector(".desenho .oficina-cartao", timeout=60000)
+        self.pag.wait_for_function("() => !document.querySelector('.desenho-olho .bt[data-estado=\"carregando\"]')", timeout=60000)
+        self.assentar(quieto=600)
+        if self.achar("desenho:fonte=gerar") and self.js("() => DESENHO_FONTE") != "gerar":
+            self.clicar("desenho:fonte=gerar")
+            self.assentar(quieto=600)
+
+    def preenchimento_certo(self, ident):
+        return self.js("""(id) => {
+            const r = document.getElementById(id);
+            if (!r) return null;
+            const esperado = ((Number(r.value) - Number(r.min)) / ((Number(r.max) - Number(r.min)) || 1)) * 100;
+            const lido = parseFloat(r.style.getPropertyValue('--p'));
+            return Math.abs(esperado - lido) < 0.01 ? true : `${id}: --p=${r.style.getPropertyValue('--p')} esperado=${esperado}%`;
+        }""", ident)
+
+    def h_busca_de_programas(self):
+        self.ir("ajustes/programas")
+        self.assentar(quieto=400)
+        self.checa(self.js("() => document.querySelectorAll('datalist').length") == 0,
+                   "a página não tem datalist (a busca de programas é a nossa)")
+        for chave in ("LANCADOR_OCULTAR", "AUTOSTART_BLOQUEADOS"):
+            campo = self.achar(f"chave:{chave}:nova")
+            if not self.checa(campo, f"o campo de programas de {chave} existe"):
+                continue
+            largura = campo.evaluate("(c) => c.getBoundingClientRect().width")
+            self.checa(largura >= 300, f"o campo de {chave} tem pelo menos 300 px ({round(largura)})")
+            self.checa(campo.get_attribute("role") == "combobox", f"o campo de {chave} é um combobox")
+        campo = self.achar("chave:AUTOSTART_BLOQUEADOS:nova")
+        if not campo:
+            return
+        fichas = self.js("() => document.querySelectorAll('.ficha[role=listitem]').length")
+        campo.click()
+        campo.fill("brinq")
+        self.pag.wait_for_selector('.nova-ficha .sugestoes [role="option"]', timeout=10000)
+        nomes = self.js("() => [...document.querySelectorAll('.nova-ficha .sugestoes [role=option]')].map((o) => o.childNodes[1].textContent)")
+        self.checa(PROGRAMA[1] in nomes, f"digitar «brinq» mostra «{PROGRAMA[1]}» ({nomes})")
+        self.checa(self.js("() => document.querySelectorAll('.nova-ficha .sugestoes [role=option]').length") <= 8,
+                   "a lista mostra no máximo 8 opções")
+        campo.press("ArrowDown")
+        campo.press("ArrowUp")
+        campo.press("Enter")
+        self.esperar_gravacao()
+        self.assentar(quieto=400)
+        self.checa(PROGRAMA[0] in (valor_de("AUTOSTART_BLOQUEADOS") or ""),
+                   f"Enter cria a ficha {PROGRAMA[0]} no meow.conf ({valor_de('AUTOSTART_BLOQUEADOS')!r})")
+        self.checa(self.js("() => document.querySelectorAll('.ficha[role=listitem]').length") == fichas + 1,
+                   "a ficha do programa aparece na tela")
+        self.acionados.add("chave:*:nova")
+
+    def h_rotulos_de_aplicar(self, rota):
+        self.ir(rota)
+        self.assentar(quieto=400)
+        texto = self.js("() => document.querySelector('main').innerText")
+        self.checa(not re.search(r"\b[Vv]est(?:ir|e|em|ido|ida|idos|idas|indo)\b|\bMandar\b", texto),
+                   f"{rota}: a tela não mostra vestir nem Mandar")
+        if rota == "tema":
+            rotulos = self.js("() => [...document.querySelectorAll('[data-controle$=\":vestir\"]')].map((b) => b.textContent.trim())")
+            self.checa(rotulos and all(r == "Aplicar tema" for r in rotulos),
+                       f"o botão do cartão do Tema diz «Aplicar tema» ({rotulos})")
+        else:
+            aba = self.js("() => (document.querySelector('[data-controle=\"passo:mandar\"]') || {}).textContent")
+            self.checa((aba or "").endswith("Disponibilizar"), f"a última aba do Personalizar diz «Disponibilizar» ({aba!r})")
+            botao = self.js("() => (document.querySelector('[data-controle=\"criar:vestir\"]') || {}).textContent")
+            self.checa((botao or "").strip() == "Aplicar tema", f"o botão do Personalizar diz «Aplicar tema» ({botao!r})")
+
+    def h_pendencia_do_spotify(self):
+        self.ir("cuidar")
+        self.assentar(quieto=400)
+        linha = self.pag.locator('[data-linha="pendencia:spicetify-tema-ausente"]')
+        if not self.checa(linha.count() == 1, "a pendência «spicetify-tema-ausente» aparece em Manter"):
+            return
+        self.checa(linha.locator(".rot span").first.inner_text().strip() == "Tema do Spotify",
+                   "o cartão tem o nome «Tema do Spotify»")
+        botao = linha.locator('[data-controle="pendencia:resolver"]')
+        if self.checa(botao.count() == 1, "o cartão tem o botão «Resolver»"):
+            rotulo = self.js("() => (ACAO.get('apps_aplicar') || {}).rotulo")
+            self.checa(botao.get_attribute("aria-description") == rotulo,
+                       f"o «Resolver» roda a ação apps_aplicar ({rotulo!r})")
+
+    def h_gerador_da_ficha(self):
+        self.abrir_ficha_em_gerar()
+        gerador = self.js("() => OFICINA.gerador")
+        reguas = ["r-detalhe", "r-suavidade", "r-fracas", "r-minimo"] if gerador == "traco" else ["r-glifo"]
+        for ident in reguas:
+            self.checa(self.preenchimento_certo(ident) is True,
+                       f"a régua {ident} abre com o trilho até o valor ({self.preenchimento_certo(ident)})")
+        for ident in reguas:
+            antes = self.js("(id) => Number(document.getElementById(id).value)", ident)
+            loc = self.pag.locator("#" + ident)
+            loc.focus()
+            minimo = self.js("(id) => Number(document.getElementById(id).min)", ident)
+            tecla = "ArrowLeft" if antes - minimo >= 4 else "ArrowRight"
+            for _ in range(4):
+                self.pag.keyboard.press(tecla)
+            depois = self.js("(id) => Number(document.getElementById(id).value)", ident)
+            self.checa(depois != antes, f"4 setas movem a régua {ident} ({antes} -> {depois})")
+            self.checa(self.preenchimento_certo(ident) is True,
+                       f"a régua {ident} acompanha o valor depois de 4 setas ({self.preenchimento_certo(ident)})")
+            self.assentar(quieto=700)
+            self.checa(self.preenchimento_certo(ident) is True,
+                       f"a régua {ident} continua certa quando a oficina se redesenha ({self.preenchimento_certo(ident)})")
+        if gerador != "traco":
+            return
+        cartoes = self.pag.locator('.desenho [data-gerador="traco"] [data-controle="oficina:variacao"]:not([disabled])')
+        if cartoes.count() < 3:
+            return
+        distintos = []
+        for i in range(cartoes.count()):
+            cartoes.nth(i).click()
+            self.assentar(quieto=300)
+            svg = self.js("() => OFICINA.svg")
+            if svg not in [d[1] for d in distintos]:
+                distintos.append((i, svg))
+        if len(distintos) < 3:
+            self.falha(f"a ficha de teste tem só {len(distintos)} traços diferentes para provar o desfazer")
+            return
+        (ia, a), (ib, b), (ic, c) = distintos[:3]
+        cartoes.nth(ia).click()
+        self.assentar(quieto=300)
+        cartoes.nth(ib).click()
+        self.assentar(quieto=300)
+        cartoes.nth(ic).click()
+        self.assentar(quieto=300)
+        self.clicar("oficina:desfazer")
+        self.checa(self.js("() => OFICINA.svg") == b, "Desfazer depois de trocar o traço volta ao traço de antes")
+        self.clicar("oficina:desfazer")
+        self.checa(self.js("() => OFICINA.svg") == a, "e o histórico sobrevive à troca: desfazer de novo volta ao anterior")
+        self.clicar("oficina:refazer")
+        self.checa(self.js("() => OFICINA.svg") == b, "Refazer devolve o passo desfeito")
+        self.clicar("oficina:desfazer")
+        cartoes.nth(ic).click()
+        self.assentar(quieto=300)
+        self.checa(self.js("() => OFICINA.refazer.length") == 0, "um passo novo zera o Refazer")
+        self.clicar("oficina:desfazer")
+        self.checa(self.js("() => OFICINA.svg") == a, "desfazer, trocar o traço e voltar restaura o passo anterior")
+        self.clicar("desenho:volta")
+        self.assentar(quieto=400)
+
     def esperado(self, rota):
         porta, _, sub = rota.partition("/")
         lista = self.js("""([porta, sub]) => {
@@ -1163,6 +1400,8 @@ class Percurso:
         self.checa(self.js("() => document.querySelectorAll('details.mais, [data-controle^=\"mais:\"]').length") == 0,
                    "nenhuma dobra «Mais ajustes» na página")
         self.assentar(quieto=500, teto=15000)
+        if rota == "tema":
+            self.h_previa_do_pack()
         itens = self.censo()
         sem_nome = [i["html"] for i in itens if not i["nome"]]
         self.checa(not sem_nome, f"todo controle tem nome (sem: {sem_nome[:3]})")
@@ -1213,6 +1452,26 @@ class Percurso:
                 print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
         self.limpar()
         self.assentar()
+        if rota in ("tema", "criar/mandar"):
+            try:
+                self.h_rotulos_de_aplicar(rota)
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"os rótulos de aplicar quebraram: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
+        if rota == "cuidar":
+            try:
+                self.h_pendencia_do_spotify()
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"a pendência do Spotify quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
+        if rota == "ajustes/programas":
+            try:
+                self.h_busca_de_programas()
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"a busca de programas quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
+        if rota == "criar/icones":
+            try:
+                self.h_gerador_da_ficha()
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"o gerador da ficha quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
         if self.js("() => HISTORICO.length"):
             self.clicar("descartar")
             self.esperar_gravacao()

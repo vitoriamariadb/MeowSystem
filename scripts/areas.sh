@@ -296,6 +296,54 @@ def montar(caminho, encaixes, nomes):
     sys.stdout.write(cabeca + emenda.join(crus) + rabo)
 
 
+def refazer(caminho, encaixes, nomes):
+    """O texto com os alfinetes que caíram de volta; os de pé ficam como estão."""
+    texto = open(caminho, encoding="utf-8").read()
+    _, _, achadas = entradas(texto)
+    if not achadas:
+        raise ValueError("nenhuma área alfinetada de onde herdar o monitor")
+    herdado = next((c["output"] for _, _, c in achadas if c["output"]), None)
+    if herdado is None:
+        raise ValueError(
+            "nenhuma área existente tem bloco `output:` de onde herdar o monitor; "
+            "não vou inventar um EDID"
+        )
+
+    def chave(nome):
+        return (nome or "").strip("\u2007")
+
+    de_pe = {}
+    for entrada in achadas:
+        de_pe.setdefault(chave(entrada[2]["nome"]), entrada)
+    if all(chave(n) in de_pe for n in nomes):
+        sys.stdout.write(texto)
+        return
+
+    usados = {c["id"] for _, _, c in achadas if c["id"]}
+    crus, ficaram = [], set()
+    for i, nome in enumerate(nomes):
+        entrada = de_pe.get(chave(nome))
+        if entrada is not None:
+            ini, fim, _ = entrada
+            crus.append(texto[ini : fim + 1])
+            ficaram.add(ini)
+            continue
+        novo_id = id_novo(usados)
+        usados.add(novo_id)
+        crus.append(NOVA % (herdado, encaixes[i] or "false", novo_id, escapa(nome)))
+    for ini, fim, _ in achadas:
+        if ini not in ficaram:
+            crus.append(texto[ini : fim + 1])
+
+    ini0, _, _ = achadas[0]
+    cabeca = texto[:ini0]
+    rabo = texto[achadas[-1][1] + 1 :]
+    emenda = ",\n    "
+    if len(achadas) > 1:
+        emenda = texto[achadas[0][1] + 1 : achadas[1][0]]
+    sys.stdout.write(cabeca + emenda.join(crus) + rabo)
+
+
 def tirar(caminho, indice):
     texto = open(caminho, encoding="utf-8").read()
     _, _, achadas = entradas(texto)
@@ -391,6 +439,12 @@ try:
         lista = encaixes_csv.split(",") if encaixes_csv else []
         lista += [""] * (len(alvos) - len(lista))
         montar(sys.argv[2], lista, alvos)
+    elif verbo == "refazer":
+        encaixes_csv = sys.argv[3]
+        alvos = sys.argv[4:]
+        lista = encaixes_csv.split(",") if encaixes_csv else []
+        lista += [""] * (len(alvos) - len(lista))
+        refazer(sys.argv[2], lista, alvos)
     elif verbo == "primeira":
         primeira(sys.argv[2], sys.argv[3], sys.argv[4])
     elif verbo == "tirar":
@@ -654,7 +708,8 @@ cmd_alfinetar_primeira() {
   _areas_ler || return $?
   if [ "${#AREAS_NOME[@]}" -gt 0 ]; then
     meow_ok "já há ${#AREAS_NOME[@]} área(s) alfinetada(s) — nada a criar"
-    meow_info "para nomeá-las como o meow.conf pede:  meow areas aplicar"
+    local onde; onde="$(meow_onde_no_painel areas_aplicar)"
+    meow_info "os nomes do meow.conf entram pelo painel: ${onde:-Definir, Áreas de trabalho}"
     meow_pendencia_resolvida areas-sem-alfinete
     return "$MEOW_OK"
   fi
@@ -701,7 +756,8 @@ cmd_alfinetar_primeira() {
   meow_muda "primeiro alfinete criado: «$primeiro» em $saida"
   meow_pendencia_resolvida areas-sem-alfinete
   _areas_so_no_login
-  meow_info "depois do próximo login:  meow areas aplicar  escreve o resto da lista"
+  local onde; onde="$(meow_onde_no_painel areas_aplicar)"
+  meow_info "depois do próximo login, o resto da lista entra pelo painel: ${onde:-Definir, Áreas de trabalho}"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -814,6 +870,81 @@ cmd_conferir() {
   return "$MEOW_DIVERGENTE"
 }
 
+_areas_caidos() {
+  local n d achou
+  AREAS_CAIDOS=()
+  while IFS= read -r n; do
+    achou=0
+    for d in ${AREAS_NOME[@]+"${AREAS_NOME[@]}"}; do
+      [ "$(_areas_sem_folga "$d")" = "$n" ] && { achou=1; break; }
+    done
+    [ "$achou" = "1" ] || AREAS_CAIDOS+=("$n")
+  done < <(_areas_partir "$AREAS_NOMES")
+}
+
+cmd_alfinetes() {
+  [ -n "$AREAS_NOMES" ] || { meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"; return "$MEOW_OK"; }
+  _areas_dependencia || return $?
+  _areas_ler || return $?
+  _areas_caidos
+  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ]; then
+    meow_ok "os alfinetes das áreas estão de pé ($(_areas_juntar "${AREAS_NOME[@]}"))"
+    return "$MEOW_OK"
+  fi
+  local n
+  for n in "${AREAS_CAIDOS[@]}"; do meow_muda "o alfinete da área «$n» caiu"; done
+  return "$MEOW_DIVERGENTE"
+}
+
+cmd_refazer_alfinetes() {
+  [ -n "$AREAS_NOMES" ] || { meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"; return "$MEOW_OK"; }
+  _areas_dependencia || return $?
+  _areas_ler || return $?
+  if [ "${#AREAS_NOME[@]}" -eq 0 ]; then
+    meow_seco && { meow_muda "refaria os alfinetes: $(_areas_partir "$AREAS_NOMES" | paste -sd, | sed 's/,/, /g')"; return "$MEOW_DIVERGENTE"; }
+    cmd_alfinetar_primeira >/dev/null || return "$MEOW_ERRO"
+    _areas_ler || return $?
+  fi
+  _areas_caidos
+  [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && { meow_ok "os alfinetes das áreas estão de pé"; return "$MEOW_OK"; }
+
+  local -a nomes=() folgas=() encaixes=()
+  local n b e csv="" sep=""
+  while IFS= read -r n; do folgas+=("$n"); done < <(_areas_partir "$AREAS_FOLGA")
+  while IFS= read -r n; do encaixes+=("$n"); done < <(_areas_partir "$AREAS_ENCAIXE")
+  while IFS= read -r n; do
+    _areas_nome_seguro "$n" || return "$MEOW_ERRO"
+    for b in ${folgas[@]+"${folgas[@]}"}; do
+      [ "$b" = "$n" ] && { n="$AREAS_FIGURA$n$AREAS_FIGURA"; break; }
+    done
+    nomes+=("$n")
+    e=""
+    if [ "${#encaixes[@]}" -eq 1 ]; then e="${encaixes[0]}"
+    elif [ "${#encaixes[@]}" -ge "${#nomes[@]}" ]; then e="${encaixes[$(( ${#nomes[@]} - 1 ))]}"; fi
+    [ -n "$e" ] && { e="$(_areas_bool "$e")" || e=""; }
+    csv="$csv$sep$e"; sep=","
+  done < <(_areas_partir "$AREAS_NOMES")
+
+  local erro
+  erro="$(_areas_motor refazer "$AREAS_ALVO" "$csv" "${nomes[@]}" 2>&1 >/dev/null)"
+  [ -n "$erro" ] && { meow_erro "não consegui refazer os alfinetes: $erro"; return "$MEOW_ERRO"; }
+  _areas_montar_texto refazer "$AREAS_ALVO" "$csv" "${nomes[@]}"
+  local novo="$AREAS_TEXTO"
+  _areas_recusar_vazio "$novo" || return "$MEOW_ERRO"
+
+  if meow_seco; then
+    meow_muda "refaria o alfinete de: $(printf '%s, ' "${AREAS_CAIDOS[@]}" | sed 's/, $//')"
+    return "$MEOW_DIVERGENTE"
+  fi
+  _areas_guardar || return "$MEOW_ERRO"
+  meow_escrever "$AREAS_ALVO" "$novo" 644
+  case $? in "$MEOW_ERRO") meow_erro "não consegui gravar $AREAS_ALVO"; return "$MEOW_ERRO" ;; esac
+  meow_muda "alfinete refeito: $(printf '%s, ' "${AREAS_CAIDOS[@]}" | sed 's/, $//')"
+  _areas_so_no_login
+  meow_registrar "areas.sh refazer-alfinetes caidos=${#AREAS_CAIDOS[@]}"
+  return "$MEOW_DIVERGENTE"
+}
+
 cmd_reverter() {
   _areas_dependencia || return $?
   local guardado="$AREAS_ANTES/pinned_workspaces.antes"
@@ -898,8 +1029,10 @@ case "${1:-estado}" in
   conferir)      cmd_conferir ;;
   aplicar)       cmd_aplicar ;;
   alfinetar-primeira) cmd_alfinetar_primeira ;;
+  alfinetes)     cmd_alfinetes ;;
+  refazer-alfinetes) cmd_refazer_alfinetes ;;
   reverter)      cmd_reverter ;;
   desalfinetar)  shift; cmd_desalfinetar "${1:-}" ;;
-  *) meow_erro "uso: areas.sh {estado|conferir|aplicar|alfinetar-primeira|reverter|desalfinetar <nome>}"
+  *) meow_erro "uso: areas.sh {estado|conferir|aplicar|alfinetar-primeira|alfinetes|refazer-alfinetes|reverter|desalfinetar <nome>}"
      exit "$MEOW_ERRO" ;;
 esac

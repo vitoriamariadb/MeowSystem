@@ -7,9 +7,10 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 APP_ID="${MEOW_TRAY_ZAPZAP_APP:-com.rtosta.zapzap}"
 GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-}"
-if [ -z "$GLIFO" ]; then
+if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
+  IFS=$'\t' read -r _desenhos _ _ <<<"$_achado"
   for _p in sistema apps biblioteca; do
-    GLIFO="$RAIZ/packs/meowsystem/icones/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break
+    GLIFO="$(dirname "$_desenhos")/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break
   done
 fi
 TRACO="${MEOW_TRAY_ZAPZAP_TRACO:-4}"
@@ -51,7 +52,7 @@ _com_traco() {
 
 _pronto() {
   if [ ! -f "$GLIFO" ]; then
-    meow_pula "não existe $GLIFO — nada a vestir"
+    meow_pula "não existe $GLIFO — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! meow_tem flatpak; then
@@ -59,7 +60,7 @@ _pronto() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! meow_flatpak_tem "$APP_ID"; then
-    meow_pula "$APP_ID não está instalado — nada a vestir"
+    meow_pula "$APP_ID não está instalado — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"
@@ -127,7 +128,7 @@ except SyntaxError as e:
     print('ERRO'); print('o resultado nao compila (%s) — nada foi escrito' % e); sys.exit(0)
 
 if not escrever:
-    print('FABRICA'); print('o bloco _SYMBOLIC e o de fabrica e da para vestir'); sys.exit(0)
+    print('FABRICA'); print('o bloco _SYMBOLIC e o de fabrica e da para aplicar'); sys.exit(0)
 
 if guarda:
     try:
@@ -155,7 +156,7 @@ if os.path.isdir(py):
             try: os.remove(os.path.join(py, n))
             except OSError: pass
 
-print('ESCRITO'); print('bloco _SYMBOLIC vestido e hardlink do OSTree quebrado')
+print('ESCRITO'); print('bloco _SYMBOLIC aplicado e hardlink do OSTree quebrado')
 PY
 }
 
@@ -178,7 +179,7 @@ _conferir() {
 
   case "$veredito" in
     VESTIDO)
-      meow_ok "o ícone da bandeja do ZapZap segue vestido de Arcticons"
+      meow_ok "o ícone da bandeja do ZapZap segue com o Arcticons"
       return "$MEOW_OK" ;;
     FABRICA)
       meow_muda "o ícone da bandeja do ZapZap voltou ao de fábrica — um flatpak update o desfez"
@@ -205,19 +206,19 @@ _aplicar() {
 
   case "$veredito" in
     VESTIDO)
-      meow_ok "o ícone da bandeja do ZapZap já estava vestido"
+      meow_ok "o ícone da bandeja do ZapZap já estava aplicado"
       return "$MEOW_OK" ;;
     ESCRITO)
-      meow_muda "ícone da bandeja do ZapZap revestido de Arcticons"
+      meow_muda "ícone da bandeja do ZapZap refeito com o Arcticons"
       meow_info "  o desenho novo aparece quando o ZapZap for fechado e aberto de novo"
       return "$MEOW_DIVERGENTE" ;;
     DESCONHECIDO)
       meow_aviso "o tray_icon.py do ZapZap mudou de forma: $motivo"
-      meow_info "  nada foi escrito — é código Python, e vestir às cegas quebraria o app"
+      meow_info "  nada foi escrito — é código Python, e aplicar às cegas quebraria o app"
       meow_info "  compare com assets/apps/tray-terceiros/zapzap-tray_icon.py.original"
       return "$MEOW_SEM_DEPENDENCIA" ;;
     *)
-      meow_erro "${motivo:-não consegui vestir $alvo}"
+      meow_erro "${motivo:-não consegui aplicar o tema em $alvo}"
       return "$MEOW_ERRO" ;;
   esac
 }
@@ -250,6 +251,21 @@ _desfazer() {
   return "$MEOW_DIVERGENTE"
 }
 
+_sem_glifo() {
+  if ! meow_tem flatpak || ! meow_flatpak_tem "$APP_ID"; then
+    meow_pula "o pack no ar não declara icones.bandeja e o ZapZap não está aqui — nada a aplicar"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if [ "$MODO" = conferir ]; then
+    MEOW_SECO=1 _desfazer
+    return $?
+  fi
+  _desfazer
+}
+
+if [ -z "$GLIFO" ]; then
+  _sem_glifo; exit $?
+fi
 _pronto; rc=$?
 [ "$rc" = "$MEOW_OK" ] || exit "$rc"
 

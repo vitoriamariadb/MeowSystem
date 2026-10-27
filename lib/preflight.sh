@@ -26,7 +26,7 @@ meow_preflight() {
         meow_aviso "MEOW_IGNORA_DESKTOP=1 — seguindo sem COSMIC"
         avisos=$((avisos+1))
       else
-        meow_erro "isto veste o COSMIC, e o COSMIC não está rodando aqui"
+        meow_erro "isto arruma o COSMIC, e o COSMIC não está rodando aqui"
         meow_info "  num GNOME/KDE o resultado é ~/.config/cosmic/ que ninguém lê,"
         meow_info "  mais timers do systemd e um tema de ícones sem quem o peça."
         meow_info "  para instalar mesmo assim (ex.: pelo TTY, antes do 1º login):"
@@ -94,12 +94,12 @@ meow_preflight() {
     "flatpak|extra|flatpak|o applet de mídia e a vigia dos flatpaks"
     "fastfetch|extra|fastfetch|o mascote no lugar do logo, no terminal"
     "fzf|extra|fzf|a busca do Ritual no terminal"
-    "btop|extra|btop|monitor vestido pelo tema"
-    "batcat|extra|bat|o cat colorido vestido pelo tema"
+    "btop|extra|btop|monitor com o tema"
+    "batcat|extra|bat|o cat colorido com o tema"
     "pw-play|extra|pipewire-bin|o som de fim de instalação"
     "starship|extra|-|o prompt do terminal (a etapa do prompt o instala)"
     "cosmic-randr|extra|-|as telas e a escala (vem com o COSMIC)"
-    "cosmic-term|extra|-|o terminal que este projeto veste (vem com o COSMIC)"
+    "cosmic-term|extra|-|o terminal que este projeto arruma (vem com o COSMIC)"
   )
   local linha cmd nivel pacote para
   local faltam_apt="" n_faltam=0
@@ -204,7 +204,7 @@ meow_precisa_root() {
     [ "${LANCADOR_SISTEMA:-nao}" = "sim" ] && \
       motivos+=("marcar .desktop em /usr/share/applications (esconder/renomear)")
     [ -d /var/lib/cosmic-greeter ] && \
-      motivos+=("vestir a tela de login em /var/lib/cosmic-greeter")
+      motivos+=("aplicar o tema na tela de login em /var/lib/cosmic-greeter")
   fi
 
   [ ${#motivos[@]} -eq 0 ] && return 0

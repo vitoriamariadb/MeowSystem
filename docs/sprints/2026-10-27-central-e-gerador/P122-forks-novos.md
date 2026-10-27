@@ -50,3 +50,74 @@ linhas dos upstreams novos), as quatro pastas `~/Desenvolvimento/meowsystem-*` n
 ## Fora desta sprint
 O método e a página (P120), o item de vizinho do `aurora-clipboard` (anotado), mudar o
 comportamento dos applets além do tema e dos nomes.
+
+## Execução
+
+Os quatro repositórios foram criados como fork na conta `vitoriamariadb`, com push no `main`
+(o padrão do GitHub era `master` no Clipboard; saiu). Binário `meowsystem-<nome>`, `.desktop`,
+ícone e metainfo pelo app id, `tema.conf` lido ao subir e a cada abertura do popup, `INTEGRACAO.md`,
+`just install-user` e `just uninstall-user`, licença e autoria do upstream intactas e os dois autores
+da casa acrescentados.
+
+| fork | app id | commit pinado | libcosmic do pino | build do painel (`430f3d48`) |
+|---|---|---|---|---|
+| `meowsystem-eyedropper` | `io.github.meowsystem.Eyedropper` | `41492b12c2fef917f86a71ff66a26366baac794e` | `c44dbe79` | compila |
+| `meowsystem-clipboard` | `io.github.meowsystem.Clipboard` | `41592eecd9692bb16207c6808d453ad5ce5450a8` | `dc1cf9f0` | não compila (`scroller_width`), cai no pino com `--locked` |
+| `meowsystem-drives` | `io.github.meowsystem.Drives` | `e41bad1b505f8b7a7c1dd16a1274fb20ed4f291b` | `dc1cf9f0` | compila |
+| `meowsystem-ascii-battery` | `io.github.meowsystem.AsciiBattery` | `ec8bc6e971e201a3f057a0b4c07e6bcc73b009b8` | `c003a58f` | compila |
+
+Nos quatro: `cargo build --release --locked` e `cargo test` verdes (o Clipboard com os testes da poda e da
+migração, os outros com os do `tema.rs`); nos quatro, um teste lê do HOME o `tema.conf` que o MeowSystem escreve, pelo app id.
+
+### Itens da cura
+
+1. Fork, nomes e tema: feito nos quatro. O Clipboard tem ainda a poda do histórico que o
+   `aurora-clipboard` faz (1000 entradas, teto de 1 GB de imagem, favoritos intocados, na abertura e
+   a cada hora, sob o lock) e copia o histórico do applet antigo na primeira subida, sem pisar em
+   banco que já existe. O banco novo mora em `~/.cache/meowsystem-clipboard/`. A captura do README saiu do git-lfs:
+   com o `filter.lfs.required` da máquina e sem o `git-lfs`, o `git clone` do build parava no checkout.
+2. Pinos, em três commits: `6924d837` os quatro pinos e os ícones de cartão, `f002b960`
+   as linhas dos upstreams em `docs/CREDITOS.md`, `454b3a17` as provas. `PADRAO=sim`,
+   `SUBSTITUI` com o app id de hoje, `MIGRA_ESTADO` vazio nos quatro (nenhum guarda estado em
+   `~/.local/state/cosmic/`, só config), `TEMA_CHAVES` com as sete chaves do contrato; a
+   Bateria em ASCII leva `tinta:@acento`, os outros `tinta:text`.
+
+### Provas rodadas
+
+- `tests/extensoes.sh`: verde, com a seção nova dos quatro forks (pino do tipo applet e ligado por
+  padrão, app id, binário, `SUBSTITUI`, `TEMA`, `TEMA_CHAVES`, ícone presente, `--estado` com
+  `troca=<app id de hoje>` quando a Dock de brinquedo o cita).
+- `tests/extensoes-pagina.py` (headless): 77 conferências, as 16 novas são os quatro cartões, cada um
+  com nome, ícone carregado pelo servidor e «Não instalada».
+- `applet-pino.sh`, `extensoes-gesto.sh`, `restos-do-painel.sh`, `nada-manda-digitar.sh`: verdes.
+- `tests/decisoes.sh`: as duas falhas (GPU do compositor e shim) são do estado da máquina e
+  aparecem igual sem os commits deste bloco.
+
+### O que ficou de fora, e por quê
+
+- **O formato do pino da P120 não existe no `dev`.** Os pinos têm `TIPO`, `PADRAO`, `CHAVE_DO_CONF`,
+  `ATIVA` e `TEMA_CHAVES`, que o `extensoes_build.sh` do `dev` ignora (chave desconhecida é pulada) e o da
+  `bloco/central` lê. Por isso as provas aqui mostram o que o `dev` enxerga (validação, `--estado`,
+  cartões). A leitura de `TEMA_CHAVES` e a lista dos nove na página sobem com o merge da P120.
+- **O `extensoes_tema.sh` do `dev` só sabe montar o tema da Bandeja e dos Ajustes rápidos.** Com um dos
+  quatro instalados, ele avisaria «não montei o tema» até a P120 chegar; a versão da `bloco/central` monta a partir de
+  `TEMA_CHAVES`. Nenhum dos quatro está instalado na máquina.
+- **O `MIGRA_ESTADO` só copia `~/.local/state/cosmic/<id>/v1`, e nenhum dos quatro usa essa pasta.** O
+  histórico em sqlite do Clipboard é o próprio applet que copia (`src/db/migra.rs`). A config em
+  `~/.config/cosmic/<id antigo>/` não migra: na máquina dela só tem o padrão. A configuração JSON da Bateria em ASCII
+  (`~/.config/<app id>/config.json`) não migra: o padrão vale.
+- **O `persist` do Clipboard** (o `wl-clip-persist` do Aurora, que mantém o conteúdo depois que o
+  app de origem fecha) não foi portado. Fica para um bloco próprio.
+- **O corte do `aurora-clipboard`** (tirar a poda do script quando o applet novo estiver instalado) é a
+  vizinhança anotada na P125; o script do Aurora não foi tocado.
+- **Os limites do Clipboard** (`maximum_entries_number` 500 e vida de 30 dias, do upstream) ficaram
+  como estão; vale o mais estrito entre eles e a poda.
+- **Nenhum popup foi aberto**: não se instalou applet na máquina. A prova visual é a conferência dela.
+
+### Para ela conferir com a mão
+
+1. Instalar um fork pela página Extensões e pôr no painel: o popup e o botão com as cores do pack.
+2. Trocar o pack (ou o sabor): as cores do popup mudam na próxima abertura.
+3. Na troca do applet antigo, a Dock passa de `io.github.cosmic_utils.cosmic-ext-applet-clipboard-manager`
+   (e dos outros três ids) para o novo; a ordem dos applets é dela.
+4. No Clipboard: o histórico antigo aparece na primeira abertura, e o que passa de 1000 entradas some na hora seguinte.

@@ -65,8 +65,9 @@ mapa_novo_em "$C1"
 
 saida="$(vidro "$C1")"; rc=$?
 if [ "$rc" = "4" ] && [[ "$saida" == *"'VeryHigh2' pede alpha 86, está gravado AA"* ]] \
-   && [[ "$saida" == *"aplicada aqui, grava o alpha 86 deste nível:  meow tema dracula-mauve"* ]]; then
-  ok "antes: o vidro.sh vê AA com o nível pedindo 86, e o conselho é o que resolve"
+   && [[ "$saida" == *"a captura 'dracula-mauve', aplicada aqui, grava o alpha 86 deste nível"* ]] \
+   && [[ "$saida" != *"meow tema"* ]]; then
+  ok "antes: o vidro.sh vê AA com o nível pedindo 86, e diz a captura que grava o certo, sem comando"
 else
   falha "o vidro.sh não descreveu o estado de partida (rc=$rc)" "$saida"
 fi
@@ -354,6 +355,135 @@ else
   falha "o ensaio do vidro.sh escreveu no tema, ou calou a divergência da janela" \
     "$(diff <(printf '%s\n' "$antes9") <(printf '%s\n' "$depois9")) $saida"
 fi
+
+V="$T/vigia"
+mkdir -p "$V/bin" "$V/run/systemd"
+cat > "$V/bin/systemctl" <<FIM
+#!/bin/sh
+echo "systemctl \$*" >> "$V/systemctl.log"
+case "\$*" in
+  *is-enabled*|*is-active*) u="\$(echo "\$*" | awk '{print \$NF}')"
+    grep -q "enable --now.* \$u" "$V/systemctl.log" 2>/dev/null || exit 1
+    case "\$*" in *is-enabled*) echo enabled ;; *) echo active ;; esac ;;
+esac
+exit 0
+FIM
+cat > "$V/bin/id" <<FIM
+#!/bin/sh
+[ "\$1" = "-u" ] && { echo "../..$V/run"; exit 0; }
+exec /usr/bin/id "\$@"
+FIM
+chmod 755 "$V/bin/systemctl" "$V/bin/id"
+nova_casa() {
+  VC="$V/casa$1"; VU="$VC/.config/systemd/user"
+  mkdir -p "$VU" "$VC/.config/meow" "$VC/.local/state/meowsystem"
+  : > "$V/systemctl.log"
+}
+doutor_vidro() {
+  local quer="$1"; shift
+  env -i PATH="$V/bin:/usr/bin:/bin" HOME="$VC" NO_COLOR=1 MEOW_RAIZ="$RAIZ" LANG=C.UTF-8 \
+    MEOW_ESTADO="$VC/.local/state/meowsystem" AUTO_REPARO=sim VIDRO_AO_MAXIMIZAR="$quer" \
+    bash -c 'source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow"); "$@"' _ "$@" 2>&1
+}
+{ sed -n '/^etapa_autoreparo() {$/,/^}$/p' "$RAIZ/install.sh"
+  sed -n '/^meow_unidade_sobrou() {$/,/^}$/p' "$RAIZ/install.sh"; } > "$V/etapa.sh"
+etapa_vidro_install() {
+  env -i PATH="$V/bin:/usr/bin:/bin" HOME="$VC" NO_COLOR=1 MEOW_RAIZ="$RAIZ" LANG=C.UTF-8 \
+    MEOW_ESTADO="$VC/.local/state/meowsystem" AUTO_REPARO=sim VIDRO_AO_MAXIMIZAR="$1" \
+    bash -c 'source "$MEOW_RAIZ/lib/comum.sh"; passo() { :; }; source "$0"; etapa_autoreparo' "$V/etapa.sh" 2>&1
+}
+seis_path() {
+  grep -cE '^PathChanged=%h/\.config/cosmic/com\.system76\.CosmicTheme\.(Dark|Light)/v2/(background|transparent_background|frosted_windows)$' "$VU/meow-vidro.path" 2>/dev/null
+}
+retrato_vu() { (cd "$VU" && find . -type f -printf '%p %T@\n' | sort); }
+
+nova_casa 1
+saida="$(doutor_vidro sim fix_autoreparo)"; rc=$?
+if [ "$rc" = "1" ] && [ "$(seis_path)" = "6" ] && [ -f "$VU/meow-vidro.service" ] \
+   && grep -q 'enable --now meow-vidro.path' "$V/systemctl.log"; then
+  ok "o conserto do auto-reparo instala o meow-vidro.path com os seis PathChanged do tema e o arma"
+else
+  falha "o meow-vidro.path não foi instalado com os seis PathChanged (rc=$rc)" "$saida"
+fi
+saida="$(doutor_vidro sim chk_autoreparo)"; rc=$?
+[ "$rc" = "0" ] && ok "e o doctor confere o vigia do vidro como em ordem" || falha "o chk_autoreparo diverge depois do conserto (rc=$rc)" "$saida"
+antes_vu="$(retrato_vu)"
+doutor_vidro sim fix_autoreparo >/dev/null
+[ "$antes_vu" = "$(retrato_vu)" ] && ok "o segundo conserto não reescreve as unidades" || falha "o segundo conserto reescreveu unidade"
+saida="$(doutor_vidro nao chk_autoreparo)"; rc=$?
+if [ "$rc" = "1" ] && [[ "$saida" == *"o meow-vidro.path continua"* ]]; then
+  doutor_vidro nao fix_autoreparo >/dev/null
+  if [ ! -e "$VU/meow-vidro.path" ] && [ ! -e "$VU/meow-vidro.service" ] && [ -f "$VU/meow-doctor.timer" ] \
+     && grep -q 'disable --now meow-vidro.path' "$V/systemctl.log"; then
+    ok "VIDRO_AO_MAXIMIZAR=\"nao\": o doctor desliga e tira o vigia do vidro, e o do doctor fica"
+  else
+    falha "com VIDRO_AO_MAXIMIZAR=nao o vigia do vidro ficou" "$(ls -la "$VU")"
+  fi
+else
+  falha "com VIDRO_AO_MAXIMIZAR=nao o doctor não viu o vigia que sobrou (rc=$rc)" "$saida"
+fi
+nova_casa 2
+doutor_vidro nao fix_autoreparo >/dev/null
+[ ! -e "$VU/meow-vidro.path" ] && [ ! -e "$VU/meow-vidro.service" ] && ! grep -q vidro "$V/systemctl.log" \
+  && ok "VIDRO_AO_MAXIMIZAR=\"nao\" numa casa nova: nada do vidro é instalado" \
+  || falha "VIDRO_AO_MAXIMIZAR=nao instalou o vigia do vidro"
+
+nova_casa 3
+saida="$(etapa_vidro_install sim)"; rc=$?
+if [ "$rc" = "1" ] && [ "$(seis_path)" = "6" ] && grep -q 'enable --now meow-vidro.path' "$V/systemctl.log"; then
+  ok "o install.sh instala e arma o mesmo meow-vidro.path"
+else
+  falha "o install.sh não instalou o meow-vidro.path (rc=$rc)" "$saida"
+fi
+antes_vu="$(retrato_vu)"
+saida="$(etapa_vidro_install sim)"; rc=$?
+[ "$rc" = "0" ] && [ "$antes_vu" = "$(retrato_vu)" ] && ok "e a segunda passada do install.sh não escreve" \
+  || falha "a segunda passada do install.sh escreveu (rc=$rc)" "$saida"
+saida="$(etapa_vidro_install nao)"; rc=$?
+[ "$rc" = "1" ] && [ ! -e "$VU/meow-vidro.path" ] && [ -f "$VU/meow-doctor.timer" ] \
+  && ok "e com VIDRO_AO_MAXIMIZAR=\"nao\" o install.sh tira o vigia do vidro" \
+  || falha "o install.sh deixou o vigia do vidro com VIDRO_AO_MAXIMIZAR=nao (rc=$rc)" "$saida"
+nova_casa 4
+etapa_vidro_install nao >/dev/null
+[ ! -e "$VU/meow-vidro.path" ] && ok "VIDRO_AO_MAXIMIZAR=\"nao\": o install.sh numa casa nova não instala o vigia" \
+  || falha "o install.sh instalou o vigia com VIDRO_AO_MAXIMIZAR=nao"
+
+nova_casa 5
+VCC="$VC/.config/cosmic"
+mkdir -p "$VCC/com.system76.CosmicPanel.Panel/v1"
+cp -a "$CAP"/com.system76.CosmicTheme.* "$VCC/"
+find "$VCC" -name frosted_maximized_apps -delete
+python3 - "$VCC/com.system76.CosmicTheme.Dark/v2" <<'PY'
+import re, sys
+for nome, alfa in (("transparent_background", "B5"), ("background", "7C")):
+    f = sys.argv[1] + "/" + nome
+    t = open(f, encoding="utf-8").read()
+    open(f, "w", encoding="utf-8").write(re.sub(
+        r'base: "#([0-9A-Fa-f]{6})([0-9A-Fa-f]{2})?"', r'base: "#\g<1>' + alfa + '"', t, count=1))
+PY
+printf '%s' "$RAIZ" > "$VC/.local/state/meowsystem/raiz"
+sed 's/^VIDRO_AO_MAXIMIZAR=.*/VIDRO_AO_MAXIMIZAR="sim"/' "$RAIZ/meow.conf.exemplo" > "$VC/.config/meow/meow.conf"
+linha_da_unidade() { sed -n "s/^$1=//p" "$RAIZ/systemd/meow-vidro.service" | sed "s|%h|$VC|g"; }
+servico() {
+  env -i PATH="/usr/bin:/bin" HOME="$VC" LANG=C.UTF-8 NO_COLOR=1 \
+    sh -c "$(linha_da_unidade ExecCondition | sed "s|^/bin/sh -c '||; s|'\$||")" || return 9
+  env -i PATH="/usr/bin:/bin" HOME="$VC" LANG=C.UTF-8 NO_COLOR=1 sh -c "$(linha_da_unidade ExecStart)" 2>&1
+}
+alfa_dark() {
+  grep -oE 'base: "#[0-9A-Fa-f]{8}"' "$VCC/com.system76.CosmicTheme.Dark/v2/background" | head -1 | cut -c15-16
+}
+saida="$(servico)"; rc=$?
+[ "$(alfa_dark)" = "B5" ] && ok "com o alpha derrubado para 7C, uma passada do meow-vidro.service devolve B5" \
+  || falha "o serviço não devolveu o vidro (alpha $(alfa_dark), rc=$rc)" "$saida"
+antes_t="$(cd "$VCC" && find . -type f -printf '%p %T@\n' | sort)"
+saida="$(servico)"; rc=$?
+[ "$antes_t" = "$(cd "$VCC" && find . -type f -printf '%p %T@\n' | sort)" ] \
+  && ok "e a segunda passada não muda mtime nenhum: o .path não se realimenta" \
+  || falha "a segunda passada do serviço reescreveu o tema" "$saida"
+sed -i 's/^VIDRO_AO_MAXIMIZAR=.*/VIDRO_AO_MAXIMIZAR="nao"/' "$VC/.config/meow/meow.conf"
+servico >/dev/null; rc=$?
+[ "$rc" = "9" ] && ok "com VIDRO_AO_MAXIMIZAR=\"nao\" o ExecCondition pula o serviço" \
+  || falha "o ExecCondition deixou o serviço rodar com VIDRO_AO_MAXIMIZAR=nao (rc=$rc)"
 
 sobra="$(find "$TMPV" -mindepth 1 -maxdepth 1 2>/dev/null)"
 [ -z "$sobra" ] \

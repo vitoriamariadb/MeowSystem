@@ -223,7 +223,7 @@ _zz_css_aplicar() {
     esac
   fi
   [ "$mudou" = 1 ] || return "$MEOW_OK"
-  meow_seco || meow_ok "ZapZap: o WhatsApp veste o tema do pack (do pack $_ZZ_CSS_DE) — $_ZZ_CSS_QUERO (vale quando o ZapZap reabrir)"
+  meow_seco || meow_ok "ZapZap: o WhatsApp usa o tema do pack (do pack $_ZZ_CSS_DE) — $_ZZ_CSS_QUERO (vale quando o ZapZap reabrir)"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -273,7 +273,7 @@ meow_app_aplicar() {
       mudou=1
     elif meow_destino_permitido "$icone" && rm -f "$icone"; then
       mudou=1
-      meow_info "balão verde retirado de scalable/apps — quem veste é o apps-arcticons.map"
+      meow_info "balão verde retirado de scalable/apps — quem aplica é o apps-arcticons.map"
     else
       meow_aviso "não consegui remover $icone — o balão cheio continua vencendo"
     fi
@@ -368,7 +368,7 @@ meow_app_reverter() {
   meow_tem update-desktop-database && \
     update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 
-  meow_info "o ícone da bandeja segue vestido na FONTE do app (tray_icon.py do flatpak)"
+  meow_info "o ícone da bandeja segue aplicado na FONTE do app (tray_icon.py do flatpak)"
   meow_info "  para devolver aquele: flatpak update com.rtosta.zapzap — ver packs/meowsystem/icones/bandeja.map"
   meow_info "tire 'zapzap' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
   return "$MEOW_DIVERGENTE"

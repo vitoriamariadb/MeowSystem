@@ -211,6 +211,14 @@ meow_pack_padrao_dir() {
   printf '%s' "$MEOW_PACK_PADRAO_DIR"
 }
 
+meow_icones_de_status() {
+  local bloco="$1" ref flavor
+  ref="$(meow_pack_dir)"
+  [ -n "$ref" ] || ref="$(meow_pack_padrao_dir || true)"
+  flavor="$(python3 "$MEOW_RAIZ/scripts/pack.py" flavor-icones "$ref" 2>/dev/null)" || flavor=""
+  python3 "$MEOW_RAIZ/scripts/pack.py" icones-de-status "$ref" "$bloco" "$flavor" 2>/dev/null
+}
+
 meow_pack_dir() {
   local PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" saida recusado
   [ -n "$PACK$FLAVOR" ] || return 0
@@ -657,6 +665,7 @@ _meow_pendencia_tirar() {
   local id="$1" arq
   arq="$(_meow_pendencias_arquivo)"
   [ -f "$arq" ] || return 0
+  awk -F'\t' -v a="$id" '$1 == a { achou = 1 } END { exit !achou }' "$arq" 2>/dev/null || return 0
   awk -F'\t' -v a="$id" '$1 != a' "$arq" > "$arq.tmp" 2>/dev/null \
     && mv -f "$arq.tmp" "$arq" 2>/dev/null
   rm -f "$arq.tmp" 2>/dev/null
@@ -685,9 +694,12 @@ meow_pendencia_acionavel() {
 
   meow_seco && return 0
   mkdir -p "$MEOW_ESTADO" || return 0
-  _meow_pendencia_tirar "$id"
   frase="${frase//$'\t'/ }"; frase="${frase//$'\n'/ }"
   comando="${comando//$'\t'/ }"; comando="${comando//$'\n'/ }"
+  awk -F'\t' -v a="$id" -v e="$etapa" -v f="$frase" -v c="$comando" \
+    '$1 == a && $2 == e && $3 == f && $4 == c { achou = 1 } END { exit !achou }' \
+    "$(_meow_pendencias_arquivo)" 2>/dev/null && return 0
+  _meow_pendencia_tirar "$id"
   printf '%s\t%s\t%s\t%s\t%s\n' \
     "$id" "$etapa" "$frase" "$comando" "$(date -Iseconds)" >> "$(_meow_pendencias_arquivo)"
   return 0

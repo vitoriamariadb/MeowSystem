@@ -339,6 +339,17 @@ n="$(grep -c . "$TMP/curl-starship.log")"
 saida="$(instalar)"; rc=$?
 [ "$rc" = 0 ] && [ "$(grep -c . "$TMP/curl-starship.log")" = "$n" ] \
   && ok "a segunda passada não baixa nem escreve" || falha "a segunda passada baixou ou escreveu (rc=$rc)"
+CASA_SR="$TMP/casa-sem-rede"; mkdir -p "$CASA_SR/.config/meow" "$TMP/curl-sem-rede"
+cp "$RAIZ/meow.conf.exemplo" "$CASA_SR/.config/meow/meow.conf"
+printf '#!/bin/sh\necho "curl: (6) Could not resolve host" >&2\nexit 6\n' > "$TMP/curl-sem-rede/curl"
+chmod 755 "$TMP/curl-sem-rede/curl"
+saida="$(env -i PATH="$TMP/curl-sem-rede:$FALSO:$SEM_STARSHIP" HOME="$CASA_SR" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+           PROMPT_STARSHIP=sim "$RAIZ/scripts/prompt.sh" instalar 2>&1)"; rc=$?
+if [ "$rc" = 2 ] && [ ! -e "$CASA_SR/.local/bin/starship" ] && ! grep -q 'starship instalado' <<< "$saida"; then
+  ok "sem rede, o install diz que o starship não veio e não conta como mudança"
+else
+  falha "sem rede, o install disse que instalou o starship (rc=$rc): $(grep -m1 starship <<< "$saida")"
+fi
 grep -q '"$MEOW_RAIZ/scripts/prompt.sh" instalar$' "$RAIZ/install.sh" \
   && ok "a etapa do prompt do install chama o instalar" || falha "a etapa do prompt do install não instala o starship"
 printf '\n'

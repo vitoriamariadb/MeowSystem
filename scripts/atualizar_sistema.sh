@@ -52,7 +52,7 @@ cmd_aplicar() {
     meow_muda "rodaria: apt update && apt full-upgrade"
     _as_tem topgrade && meow_muda "rodaria: topgrade"
     _as_tem cargo-install-update && meow_muda "rodaria: cargo install-update -a"
-    meow_muda "e depois: meow doctor, para ver o que a atualização desfez"
+    meow_muda "e depois conferiria com o doctor o que a atualização desfez"
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -61,7 +61,7 @@ cmd_aplicar() {
   meow_passo "1/4 Pacotes do sistema"
   if _as_tem apt && [ -x "$MEOW_RAIZ/scripts/cosmic_prever.sh" ]; then
     "$MEOW_RAIZ/scripts/cosmic_prever.sh" prever \
-      || meow_info "  o veredito do COSMIC tem vermelho — o upgrade segue; o detalhe fica em: meow cosmic ler"
+      || meow_info "  o veredito do COSMIC tem vermelho — o upgrade segue, e o doctor confere depois o que ele desfizer"
   fi
   if _as_tem apt; then
     local rc_ponte=0
@@ -110,9 +110,8 @@ cmd_aplicar() {
   case "$rcd" in
     0) meow_ok "a atualização não desfez nada — o MeowSystem sobreviveu inteiro" ;;
     *) meow_muda "há etapa fora do lugar depois da atualização"
-       meow_info "  conserte com:  meow doctor --consertar"
        local onde; onde="$(meow_onde_no_painel doctor_consertar)"
-       [ -n "$onde" ] && meow_info "  (ou, no painel, $onde)"
+       meow_info "  o doctor refaz o que ficou fora do lugar na próxima passada${onde:+; no painel, $onde}"
        rc="$MEOW_DIVERGENTE" ;;
   esac
 
@@ -135,6 +134,7 @@ _as_guardar_debs() {
     if meow_seco; then
       meow_muda "guardaria ${arq##*/} em $AS_GUARDA_DEBS antes do clean"; n=$((n+1)); continue
     fi
+    meow_guardar_antes "$AS_GUARDA_DEBS/${arq##*/}"
     mkdir -p "$AS_GUARDA_DEBS" && cp -f "$arq" "$AS_GUARDA_DEBS/" \
       && { meow_muda "guardado ${arq##*/} — a volta para trás do $p"; n=$((n+1)); } \
       || meow_aviso "não consegui guardar ${arq##*/}"
@@ -151,7 +151,7 @@ _as_podar_debs() {
   for p in $(ls "$AS_GUARDA_DEBS" 2>/dev/null | sed -n 's/^\(cosmic-[^_]*\)_.*\.deb$/\1/p' | sort -u); do
     inst="$(dpkg-query -W -f='${Version}' "$p" 2>/dev/null)"
     ls "$AS_GUARDA_DEBS/${p}_"*.deb 2>/dev/null | grep -v -F "_${inst//:/%3a}_" | sort -V | head -n -1 |
-      while IFS= read -r d; do rm -f "$d" && meow_info "podado da guarda: ${d##*/}"; done
+      while IFS= read -r d; do meow_guardar_antes "$d"; rm -f "$d" && meow_info "podado da guarda: ${d##*/}"; done
   done
 }
 

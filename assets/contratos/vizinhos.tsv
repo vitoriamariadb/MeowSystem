@@ -8,13 +8,23 @@
 # FORMATO: colunas separadas por TAB; `#` comenta; `-` é coluna vazia.
 #   repo  <padrão de pasta dentro da pasta dos projetos>   varrido à mão pelo --inventario
 #   item  <nome> <tipo> <arquivo> <início> <fim> <requer> <motivo>
-#     saida  põe `exit 0`, com o motivo na tela, logo abaixo do shebang
-#     bloco  comenta as linhas de <início> (texto literal) até a primeira <fim> (regex) depois dele
-#     mover  tira o arquivo do lugar para a cópia datada; o --restaurar o põe de volta
+#     saida   põe `exit 0`, com o motivo na tela, logo abaixo do shebang
+#     bloco   comenta as linhas de <início> (texto literal, uma vez só no arquivo) até a primeira
+#             <fim> (regex) depois dele; <fim> `-` comenta só a linha do <início>. O arquivo
+#             cortado passa `bash -n` (.sh) ou `zsh -n` (.zsh), senão nada muda
+#     mover   tira o arquivo do lugar para a cópia datada; o --restaurar o põe de volta
+#     unidade <arquivo> é o .timer ou o .path; <início> é o item de bloco que tira a instalação
+#             dela, e <fim> é a cópia que roda, onde a marca daquele item precisa ter chegado.
+#             Aí `systemctl --user disable --now`, e a unidade e o .service vão para a cópia datada
 #     requer <arquivo do MeowSystem>:<texto> que o MeowSystem INSTALADO precisa ter para o
-#            item poder sair; `-` = o instalado de hoje já cuida sozinho
-#   `$DESENV` (a pasta dos projetos), `$ZD` (o ZDOTDIR) e `$APPS` (o applications/ do
-#   home) no começo de <arquivo> são trocados; nada mais é expandido, e o motivo não leva aspas nem `$`.
+#            item poder sair; `$HOME/<caminho>:<texto>` lê um arquivo da casa (o shim do
+#            compositor); `build:` na frente exige também que o shim rode o build da casa da
+#            versão instalada; `-` = o instalado de hoje já cuida sozinho
+#   `$DESENV` (a pasta dos projetos), `$ZD` (o ZDOTDIR), `$APPS` (o applications/ do home),
+#   `$UNI` (o systemd/user do home) e `$SBIN` (o /usr/local/sbin) no começo de <arquivo>, e
+#   no <fim> da unidade, são trocados; nada mais é expandido, e o motivo não leva aspas nem `$`.
+#   O meow doctor desliga sozinho, na ordem deste arquivo, todo item pronto que ela não devolveu
+#   (VIZINHOS_DESATIVAR no meow.conf).
 
 repo	Dracula_*
 repo	NitroKit
@@ -33,7 +43,7 @@ item	caches-icones-casa	bloco	$ZD/functions/sistema.zsh	for tema_dir in "$HOME/.
 # prompt, as cores do fzf e o mascote do fastfetch; o equivalente do Spellbook sai.
 item	spellbook-terminal-fastfetch	bloco	$ZD/env.zsh	    if command -v fastfetch >/dev/null 2>&1; then	^    fi$	scripts/terminal_bloco.sh:# >>> MeowSystem	o mascote do fastfetch ao abrir o terminal é do bloco do MeowSystem
 item	spellbook-terminal-starship	bloco	$ZD/env.zsh	if command -v starship >/dev/null 2>&1; then	^fi$	scripts/terminal_bloco.sh:# >>> MeowSystem	o prompt do starship é ligado pelo bloco do MeowSystem
-item	spellbook-terminal-fzf	bloco	$ZD/env.zsh	# A paleta do fzf, para TODO fzf	^\[ -r "\$HOME/\.config/meowsystem/fzf\.sh" \] && \. 	scripts/terminal_bloco.sh:# >>> MeowSystem	as cores do fzf são carregadas pelo bloco do MeowSystem
+item	spellbook-terminal-fzf	bloco	$ZD/env.zsh	# A paleta do fzf, para TODO fzf	^export FZF_DEFAULT_OPTS=	scripts/terminal_bloco.sh:# >>> MeowSystem	as cores do fzf são carregadas pelo bloco do MeowSystem
 
 # As cópias que o aplicar_overrides.sh do Dracula_OS-Theme pôs no lançador do home.
 # O mnemo e o Ubuntu ficam fora: lá a cópia é o único lançador do app, e tirá-la
@@ -72,3 +82,35 @@ item	aurora-menu-cache	bloco	$ZD/aurora/aurora-menu-doctor.py	    cache = meu / 
 item	dracula-ativar-gsettings	bloco	$DESENV/Dracula_OS-Theme/install.sh	if [[ $ATIVAR -eq 1 && "$MODO" == "user" ]]; then	^fi$	-	o cursor é do MeowSystem, e as chaves de tema do GNOME não valem no COSMIC
 item	nitrokit-unificador-temas	saida	$DESENV/NitroKit/src/unificador_temas_dracula.sh	-	-	scripts/flatpak_tema.sh:flatpak override --user	o ícone, o cursor e o GTK dos apps Flatpak são do MeowSystem (flatpak_tema.sh, conferido pelo meow doctor)
 item	nitrokit-ritual-harmonia	saida	$DESENV/NitroKit/src/ritual_de_harmonia.sh	-	-	scripts/flatpak_tema.sh:flatpak override --user	o override do Flatpak, o ícone e o cursor são do MeowSystem (flatpak_tema.sh e cursor.sh); o resto é do tempo do GNOME e não roda no COSMIC
+
+# O compositor e o modo de leitura são do MeowSystem: o shim em ~/.local/bin roda o build da casa,
+# e o remendo do modo de leitura vem nele. O self-heal se reinstala do $ZD/scripts no ciclo seguinte.
+item	aurora-compositor	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	if [ -x /usr/local/sbin/aurora-cosmic-comp-ws.sh ]; then	^fi$	build:$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1	o compositor é do MeowSystem (shim em ~/.local/bin)
+item	aurora-night-light	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	if [ -x /usr/local/bin/aurora-night-light.py ] && [ -f /usr/bin/cosmic-comp ]; then	^fi$	build:$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1	o modo de leitura é do compositor da casa (cosmic-comp-modo-leitura.patch e o applet Modo de leitura)
+item	aurora-compositor-instalar	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	install_if_diff "$SRC/aurora-cosmic-comp-ws.sh"	^done$	build:$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1	o build do compositor é do MeowSystem (scripts/compositor_patches.sh e o shim em ~/.local/bin)
+item	aurora-compositor-serie	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	if [ -d "$PATCHES/patches.d" ]; then	^fi$	build:$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1	a série de patches do compositor mora em patches/ do MeowSystem
+item	aurora-night-light-instalar	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	install_if_diff "$SRC/aurora-night-light.py"	-	build:$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1	o modo de leitura é do compositor da casa (cosmic-comp-modo-leitura.patch e o applet Modo de leitura)
+item	aurora-compositor-passo	bloco	$ZD/install.sh	        _step_cosmic_comp_ws	-	build:$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1	o build do compositor é do MeowSystem (scripts/compositor_patches.sh e o shim em ~/.local/bin)
+item	aurora-night-light-passo	bloco	$ZD/install.sh	        _step_night_light	-	build:$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1	o modo de leitura é do compositor da casa (cosmic-comp-modo-leitura.patch e o applet Modo de leitura)
+
+item	aurora-fastfetch-link	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	if [ "$(readlink "$USER_HOME/.config/fastfetch" 2>/dev/null)"	^fi$	scripts/fastfetch_logo.sh:_ffl_assumir_diretorio	o ~/.config/fastfetch é uma pasta do MeowSystem (fastfetch_logo.sh, conferido pelo meow doctor)
+item	aurora-fastfetch-passo	bloco	$ZD/install.sh	_run ln -sfn "$ZDOTDIR_TARGET/fastfetch" "$HOME/.config/fastfetch"	-	scripts/fastfetch_logo.sh:_ffl_assumir_diretorio	o ~/.config/fastfetch é uma pasta do MeowSystem (fastfetch_logo.sh, conferido pelo meow doctor)
+item	aurora-completion-meow	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	MEOW_RAIZ_PTR="$USER_HOME/.local/state/meowsystem/raiz"	^unset MEOW_RAIZ_PTR MEOW_RAIZ$	install.sh:COMPLETIONS_SISTEMA	a completion do meow é instalada pelo install.sh do MeowSystem (COMPLETIONS_SISTEMA, pela ponte root)
+item	aurora-icone-applib	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	APPLIB_ICONE=/usr/share/icons/hicolor/scalable/apps/com.system76.CosmicAppLibrary.svg	^fi$	-	o ícone da biblioteca de apps vem do tema de ícones do MeowSystem
+item	aurora-stubs-ocultar	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	for _id in vim debian-xterm debian-uxterm qt5ct qt6ct; do	^unset _id _f$	scripts/ocultar_apps.sh:NoDisplay	os lançadores escondidos são do MeowSystem (ocultar_apps.sh, com NoDisplay)
+item	aurora-gato-pop	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	GATO_POP="$USER_HOME/.config/cosmic/logos/gato-pop.svg"	^  unset GATO_POP$	-	os logos em ~/.config/cosmic/logos são do MeowSystem (assets/gatos)
+item	aurora-spicetify-instalar	saida	$ZD/scripts/spicetify-setup.sh	-	-	scripts/spicetify_setup.sh:cmd_instalar	o Spicetify e o tema do Spotify são do MeowSystem (spicetify_setup.sh); as extensões seguem no spicetify_reparar
+
+item	aurora-painel-fantasma-instalar	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	install_user_if_diff "$SRC/aurora-painel-fantasma.sh"	aurora-painel-fantasma[.]timer	lib/painel.sh:meow_painel_sinal_applet_de_notificacoes_ausente	o painel fantasma é reciclado pelo meow-painel.service (lib/painel.sh, os quatro sinais)
+item	aurora-painel-fantasma-ligar	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	O VIGIA DO PAINEL VOLTA ARMADO	enable --now aurora-painel-fantasma[.]timer	lib/painel.sh:meow_painel_sinal_applet_de_notificacoes_ausente	o painel fantasma é reciclado pelo meow-painel.service (lib/painel.sh, os quatro sinais)
+item	aurora-painel-fantasma-passo	bloco	$ZD/install.sh	        _step_painel_fantasma	-	lib/painel.sh:meow_painel_sinal_applet_de_notificacoes_ausente	o painel fantasma é reciclado pelo meow-painel.service (lib/painel.sh, os quatro sinais)
+item	aurora-painel-fantasma-unidade	unidade	$UNI/aurora-painel-fantasma.timer	aurora-painel-fantasma-instalar	$SBIN/ritual-aurora-self-heal.sh	lib/painel.sh:meow_painel_sinal_applet_de_notificacoes_ausente	o painel fantasma é reciclado pelo meow-painel.service (lib/painel.sh, os quatro sinais)
+item	aurora-vidro-instalar	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	# v3.41: vidro fosco também na janela maximizada.	aurora-vidro-maximizado[.]path	systemd/meow-vidro.path:PathChanged	o vidro da janela maximizada volta pelo meow-vidro.path quando a Aparência regrava o tema
+item	aurora-vidro-reconciliar	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	# v3.41: vigia do tema (reaplica o vidro fosco	aurora-vidro-maximizado[.]py falhou	systemd/meow-vidro.path:PathChanged	o vidro da janela maximizada volta pelo meow-vidro.path quando a Aparência regrava o tema
+item	aurora-vidro-passo	bloco	$ZD/install.sh	        _step_vidro_fosco	-	systemd/meow-vidro.path:PathChanged	o vidro da janela maximizada volta pelo meow-vidro.path quando a Aparência regrava o tema
+item	aurora-vidro-unidade	unidade	$UNI/aurora-vidro-maximizado.path	aurora-vidro-instalar	$SBIN/ritual-aurora-self-heal.sh	systemd/meow-vidro.path:PathChanged	o vidro da janela maximizada volta pelo meow-vidro.path quando a Aparência regrava o tema
+item	aurora-leitura-vigia-instalar	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	# v3.30: vigia diário da issue cosmic-comp#2059	aurora-cosmic-nightlight-watch[.]timer	scripts/sentinela.sh:vigias.tsv	a issue da luz noturna do COSMIC é vigiada pela sentinela do MeowSystem (vigias.tsv), que deixa a decisão nas pendências
+item	aurora-leitura-vigia-unidade	unidade	$UNI/aurora-cosmic-nightlight-watch.timer	aurora-leitura-vigia-instalar	$SBIN/ritual-aurora-self-heal.sh	scripts/sentinela.sh:vigias.tsv	a issue da luz noturna do COSMIC é vigiada pela sentinela do MeowSystem (vigias.tsv), que deixa a decisão nas pendências
+item	aurora-alfinetes	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	install_user_if_diff "$SRC/aurora-cosmic-workspaces.py"	aurora-cosmic-workspaces[.]py falhou	bin/meow:chk_areas	o alfinete que cai volta pelo meow doctor (chk_areas e fix_areas, pelo AREAS_NOMES)
+item	aurora-alfinetes-passo	bloco	$ZD/install.sh	        _step_workspaces_alfinetados	-	bin/meow:chk_areas	o alfinete que cai volta pelo meow doctor (chk_areas e fix_areas, pelo AREAS_NOMES)
+item	aurora-qbittorrent-wings	bloco	$ZD/scripts/aurora-qbittorrent-config.sh	WINGS="$CFG/com.system76.CosmicPanel.Panel/v1/plugins_wings"	^fi$	scripts/extensoes_gesto.sh:cmd_por	a lista de applets da barra é de quem usa; o applet entra pela Central do MeowSystem

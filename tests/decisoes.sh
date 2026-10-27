@@ -136,14 +136,15 @@ else
 fi
 registro 6 '0x10de:0x25a2' && ok "o registro guarda o dispositivo e o aval" || falha "a decisão 6 saiu do registro"
 
-echo "== o shim do compositor ligado (ESTADO.md de 15/10)"
-if [ -d /usr/local/lib/aurora ]; then
-  [ -x "$REAL/.local/bin/cosmic-comp" ] && grep -q 'MEOW-COSMIC-COMP-SHIM-1' "$REAL/.local/bin/cosmic-comp" \
-    && ok "~/.local/bin/cosmic-comp é o shim do MeowSystem" \
-    || falha "o shim do compositor está desligado: o cosmic-comp do PATH não é o shim"
-else
-  pula "sem /usr/local/lib/aurora: esta não é a máquina de quem usa"
-fi
+echo "== o shim do compositor ligado (ESTADO.md de 15/10), no HOME de brinquedo"
+grep -q '^COMPOSITOR="sim"' "$RAIZ/meow.conf.exemplo" && grep -qE 'etapa_extensoes etapa_compositor ' "$RAIZ/install.sh" \
+  && ok "de fábrica COMPOSITOR=sim, e o install tem a etapa que liga o shim" \
+  || falha "o shim do compositor deixou de ser de fábrica: falta COMPOSITOR=\"sim\" ou a etapa_compositor"
+NO_COLOR=1 "$RAIZ/scripts/compositor_patches.sh" ativar >/dev/null 2>&1
+[ -x "$CASA/.local/bin/cosmic-comp" ] && grep -q 'MEOW-COSMIC-COMP-SHIM-1' "$CASA/.local/bin/cosmic-comp" \
+  && ok "ligar o compositor põe o shim do MeowSystem em ~/.local/bin/cosmic-comp" \
+  || falha "ligar o compositor não pôs o shim em ~/.local/bin/cosmic-comp"
+rm -f "$CASA/.local/bin/cosmic-comp"
 
 echo "== D7. o «Consertar» do doctor baixa com o selo, sem caixa de pergunta"
 r="$(python3 - "$RAIZ/app" <<'PY' 2>&1
@@ -399,6 +400,11 @@ python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["or
   && ! grep -rqs 'catppuccin-apps' "$RAIZ/install.sh" "$RAIZ/bin/meow" "$RAIZ/scripts" \
   && ok "24: as folhas, a pesquisa bruta e a etapa morta saíram" \
   || falha "24: voltou folha, pesquisa bruta ou a etapa do catppuccin-apps"
+citas="$(git -C "$RAIZ" grep -nE 'docs/pesquisas/[0-9A-Za-z]' -- . ':!docs/sprints' ':!tests/decisoes.sh' 2>/dev/null \
+  | grep -vE '(git show [0-9a-f^]+|arquivo):docs/pesquisas/' || true)"
+[ -z "$citas" ] \
+  && ok "24: nenhum arquivo cita docs/pesquisas/ sem o git show da ponta antiga" \
+  || falha "24: cita docs/pesquisas/ sem o git show 1b15ccb1^: $(printf '%s\n' "$citas" | head -2)"
 printf '%s\n' "$(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$RAIZ/packs/dracula")" | grep -qx "prefixo	cat" \
   && grep -q 'PACK_ATIVOS=' "$RAIZ/scripts/wallpaper.sh" \
   && ok "25: o papel de parede de outro pack não gira (o Catppuccin é alheio com o Dracula no ar)" \
