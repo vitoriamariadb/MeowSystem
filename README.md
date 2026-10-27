@@ -10,7 +10,7 @@
 [![plataforma](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
 ![versão](https://img.shields.io/badge/vers%C3%A3o-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 [![instalador](https://img.shields.io/badge/instalador-69%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-73%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![doctor](https://img.shields.io/badge/doctor-74%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 
 <img src="docs/capturas/desktop.jpg" width="920" alt="A área de trabalho vestida pelo MeowSystem">
 
@@ -69,7 +69,7 @@ O formato está em [`docs/PACKS.md`](docs/PACKS.md).
 
 ## Manter
 
-`meow doctor` faz 73 conferências sem escrever nada; `meow doctor --consertar` conserta o que
+`meow doctor` faz 74 conferências sem escrever nada; `meow doctor --consertar` conserta o que
 estiver fora, sem mandar ninguém digitar. Ele roda sozinho às 5h, e o **Consertar** da porta
 Cuidar é o mesmo gesto.
 
