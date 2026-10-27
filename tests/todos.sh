@@ -54,6 +54,7 @@ PORTATIL=(
   contrato-cosmic.sh
   oraculo-tema.sh
   applet-pino.sh
+  extensoes.sh
   escala-kdl.sh
   backoff-do-supervisor.sh
   pack-malicioso.sh
