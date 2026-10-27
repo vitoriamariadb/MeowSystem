@@ -21,7 +21,7 @@ meow_desinstalar() {
       meow-pos-apt.path meow-pos-apt.service meow-builds-login.service \
       meow-sentinela.timer meow-sentinela.service meow-sentinela.path \
       meow-painel.service meow-painel-raio.path meow-painel-raio.service \
-      meow-som.service 2>/dev/null || true
+      meow-som.service meow-vidro.path meow-vidro.service 2>/dev/null || true
     while IFS= read -r -d '' u; do meow_guardar_antes "$u"; done < <(
       find "$HOME/.config/systemd/user" -maxdepth 2 -name 'meow-*' \
         \( -name '*.service' -o -name '*.timer' -o -name '*.path' \) -print0 2>/dev/null)
