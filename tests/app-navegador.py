@@ -108,7 +108,7 @@ def main():
             pag.wait_for_timeout(500)
             titulo = pag.evaluate("() => document.getElementById('pergunta').open && document.getElementById('pergunta-titulo').textContent")
             checa(titulo == "Falta a ponte", f"vestir o {outro_pack} sem a ponte mostra «Falta a ponte» ({titulo!r})")
-            checa(pag.locator("#pergunta-sim").inner_text() == "Conferir e consertar", "com o «Conferir e consertar»")
+            checa(pag.locator("#pergunta-sim").inner_text() == "Consertar a ponte", "com o «Consertar a ponte»")
             checa(pag.locator("input[type=password]").count() == 0, "e nenhum campo de senha")
             foto(pag, "2-ponte")
             pag.locator("#pergunta-nao").click()

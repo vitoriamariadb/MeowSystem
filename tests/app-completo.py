@@ -1272,11 +1272,11 @@ class Percurso:
             titulo = self.js("() => document.getElementById('pergunta-titulo').textContent")
             if self.checa(self.aberto("pergunta") and titulo == "Falta a ponte",
                           f"sem a ponte, «{acao}» mostra «Falta a ponte» ({titulo!r})"):
-                self.checa(self.js("() => document.getElementById('pergunta-sim').textContent") == "Conferir e consertar",
-                           "e o botão é «Conferir e consertar»")
+                self.checa(self.js("() => document.getElementById('pergunta-sim').textContent") == "Consertar a ponte",
+                           "e o botão é «Consertar a ponte»")
                 self.clicar("pergunta:sim")
                 self.assentar()
-                if self.checa(self.aberto("resultado"), "«Conferir e consertar» roda"):
+                if self.checa(self.aberto("resultado"), "«Consertar a ponte» roda"):
                     self.esperar_trabalho(teto=300)
                     self.fechar_resultado()
         self.clicar("menu")

@@ -734,7 +734,7 @@ function cartaoDeCuidar(c) {
 
 function paginaCuidar() {
   const e = estadoDaMaquina();
-  const estado = LUGAR_CUIDAR.estado.map((l) => {
+  const estado = LUGAR_CUIDAR.estado.filter((l) => l.a !== "doctor_consertar" || !ESQUEMA.ponte).map((l) => {
     const a = ACAO.get(l.a);
     return a ? controleDeAcao(a, l.b, "")[0] : null;
   }).filter(Boolean);

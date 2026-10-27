@@ -776,7 +776,7 @@ function lerRestauros() {
 const deRoot = (a) => !!(a && (a.sudo || a.pela_ponte));
 
 async function semPonte() {
-  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Conferir e consertar" });
+  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Consertar a ponte" });
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
 }
 
