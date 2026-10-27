@@ -46,3 +46,12 @@ Itens 7, 8 e 9 do `ANDAMENTO.md` (fotos 4 e 5). Relatório: `relatorios/levantam
 ## Fora desta sprint
 - Zoom com grade e keyline, controle de espessura do traço, consistência em lote entre apps, exportar o SVG, e as mesmas réguas no gerador circle: ver «Anotado para depois» no relatório.
 - Vocabulário (P118).
+
+## Execução
+- **Moldura** (`aa02c0f8`). `rasterizar()` ganhou `margem` e `toca_borda()`: só a imagem que tem alfa ≥ 128 na borda é rasterizada de novo com 6 px transparentes, e `emitir()` desconta a margem para o contorno cair no viewBox de 48 sem encolher. A imagem que já respira não muda um byte (a prova `--polilinha` do GIMP e a `--peso-fronteira 0` seguem verdes). `segmentos()` perdeu a `moldura()` fixa: ela só roda para a classe de fundo (`aparar_borda`), porque a classe de fundo é a única que ainda encosta na borda da imagem depois da margem.
+  - Prova: `tests/conversor.sh`, 3 casos novos (quadrado `rx=10` de borda a borda sai com 1 `path` fechado, `Z`, de 0 a 48, 4 retas; PNG opaco de 256 px sai com 1 contorno fechado, e não mais vazio). Os 3 ficam vermelhos no conversor antigo. Casos antigos (terminal, btop, GIMP, trava) verdes.
+  - À mão: o Cherry Studio (512 px) saía com 6 traços, 3 retos, cantos soltos; agora sai com 3 traços, o primeiro é o contorno externo fechado.
+  - Decisão do coordenador: moldura sempre fechada, sem botão com/sem.
+- **Régua** (`b024236c`). `pctDaFaixa()` e `ligarPreenchimento()` em `app.js` são o único lugar que grava `--p`; `controleFaixa()`, as quatro `regua()` e o `r-glifo` do gerador circle usam. Prova: `tests/app-completo.py --aba criar/icones` (`h_gerador_da_ficha`) mede `--p` contra `(valor-min)/(max-min)` ao abrir, depois de 4 setas e depois da oficina se redesenhar; contra o código antigo o teste dá 20 achados. O `r-glifo` do Dracula entrou em `tests/icones-por-pack.py`.
+- **Desfazer e Refazer** (`b024236c`). `novoPasso()` empilha o SVG atual (sem repetir o topo, teto de 60) e zera a pilha de refazer; `escolherCartao()`, `reguar()` e `regerar()` deixaram de zerar o histórico. Botão «Refazer» (`oficina:refazer`) ao lado de «Desfazer edição». Prova: no mesmo `h_gerador_da_ficha`, três traços diferentes: desfazer volta ao traço de antes, desfazer de novo volta ao anterior, refazer devolve, desfazer-trocar-desfazer restaura, e um passo novo zera o Refazer.
+- Fora: nada do que a sprint listou como «fora». As ferramentas de borda (zoom com grade, espessura, lote, exportar) seguem anotadas no relatório.
