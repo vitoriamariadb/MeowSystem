@@ -1931,6 +1931,120 @@ def definir(chave, valor):
     return (rc, saida)
 
 
+CHAVE_ETAPA = os.path.join(RAIZ, "assets", "contratos", "chave-etapa.tsv")
+PENDENCIA_APLICAR = "aplicar-ajuste"
+RE_NOME_DE_ETAPA = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+def _tabela_chave_etapa():
+    tabela = {}
+    try:
+        with open(CHAVE_ETAPA, "r", encoding="utf-8") as fh:
+            for linha in fh:
+                campos = linha.rstrip("\n").split("\t")
+                if len(campos) == 3 and campos[0]:
+                    tabela[campos[0]] = (campos[1], campos[2] == "sim")
+    except OSError:
+        pass
+    return tabela
+
+
+def plano_de_aplicacao(chaves):
+    tabela = _tabela_chave_etapa()
+    completo, root, etapas = False, False, []
+    for chave in chaves:
+        destino, de_root = tabela.get(chave, ("*", False))
+        root = root or (de_root and destino != "-")
+        if destino == "-":
+            continue
+        if destino == "*":
+            completo = True
+            continue
+        for nome in destino.split(","):
+            if RE_NOME_DE_ETAPA.match(nome) and nome not in etapas:
+                etapas.append(nome)
+    return {"completo": completo, "etapas": etapas, "root": root,
+            "nada": not completo and not etapas}
+
+
+def _pendencia_de_aplicar(frase):
+    try:
+        os.makedirs(ESTADO, exist_ok=True)
+        linhas = []
+        try:
+            with open(PENDENCIAS, "r", encoding="utf-8") as fh:
+                linhas = [l for l in fh if l.split("\t", 1)[0] != PENDENCIA_APLICAR]
+        except OSError:
+            pass
+        if frase:
+            linhas.append("%s\tpainel\t%s\t./install.sh\t%s\n" % (
+                PENDENCIA_APLICAR, frase.replace("\t", " ").replace("\n", " "),
+                time.strftime("%Y-%m-%dT%H:%M:%S%z")))
+        tmp = PENDENCIAS + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.writelines(linhas)
+        os.replace(tmp, PENDENCIAS)
+    except OSError:
+        pass
+
+
+_APLICAR = {"fila": [], "completo": False, "correndo": False, "falhou": False}
+_APLICAR_TRAVA = threading.Lock()
+
+
+def estado_do_aplicar():
+    with _APLICAR_TRAVA:
+        return {"correndo": _APLICAR["correndo"], "falhou": _APLICAR["falhou"]}
+
+
+def _aplicador():
+    while True:
+        with _APLICAR_TRAVA:
+            if not _APLICAR["fila"] and not _APLICAR["completo"]:
+                _APLICAR["correndo"] = False
+                return
+            completo, etapas = _APLICAR["completo"], list(_APLICAR["fila"])
+            _APLICAR["fila"], _APLICAR["completo"] = [], False
+        extra = [] if completo else ["--etapa", ",".join(etapas)]
+        trabalho, erro = None, None
+        for _tentativa in range(3600):
+            trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra)
+            if trabalho is not None or "já há um trabalho" not in str(erro):
+                break
+            time.sleep(0.5)
+        if trabalho is None:
+            rc = None
+        else:
+            while trabalho.vivo():
+                time.sleep(0.3)
+            rc = trabalho.rc
+        bom = rc in (0, 1)
+        with _APLICAR_TRAVA:
+            _APLICAR["falhou"] = not bom
+        _pendencia_de_aplicar(
+            "" if bom else "Um ajuste foi gravado e não chegou a aplicar")
+
+
+def aplicar_depois_de_gravar(chaves):
+    plano = plano_de_aplicacao(chaves)
+    if plano["nada"]:
+        return {"aplicando": False}
+    if plano["root"] and not _ponte_viva():
+        _pendencia_de_aplicar("Um ajuste foi gravado e falta a ponte para aplicar")
+        return {"aplicando": False, "sem_ponte": True}
+    with _APLICAR_TRAVA:
+        if plano["completo"]:
+            _APLICAR["completo"] = True
+        for nome in plano["etapas"]:
+            if nome not in _APLICAR["fila"]:
+                _APLICAR["fila"].append(nome)
+        _APLICAR["falhou"] = False
+        if not _APLICAR["correndo"]:
+            _APLICAR["correndo"] = True
+            threading.Thread(target=_aplicador, daemon=True).start()
+    return {"aplicando": True}
+
+
 def _conf_de_ensaio(pares):
     fonte = CONF if os.path.isfile(CONF) else CONF_PADRAO
     try:
@@ -2416,6 +2530,14 @@ ACOES = {
         "escreve": True, "sudo": True, "confirma": True, "rede": True,
         "ajuda": "Passa {as_etapas}. Rodar de novo numa máquina já pronta "
                  "não escreve um byte.",
+    },
+    "aplicar": {
+        "rotulo": "Aplicar ajuste",
+        "grupo": "Instalação",
+        "natureza": "aplicar",
+        "argv": [os.path.join(RAIZ, "install.sh")],
+        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Roda só as etapas que a chave gravada governa.",
     },
     "som_ouvir": {
         "rotulo": "Ouvir o som",
@@ -3805,6 +3927,7 @@ ACAO_DA_PENDENCIA = {
     "spicetify-tema-ausente": "spotify_baixar_tema",
     "files-menu-build": "files_menu_build",
     "instalar-com-root": "instalar",
+    "aplicar-ajuste": "instalar",
     "flatpak-global-sistema": "instalar",
     "libreoffice-sistema": "instalar",
     "leitura-applet": "doctor_consertar",
@@ -4159,7 +4282,7 @@ def _guardar_antes_py(pasta, caminho, conteudo):
 
 
 def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
-            antes=None):
+            antes=None, extra_argv=None):
     global TRABALHO_ATUAL
     acao = ACOES.get(acao_id)
     if acao is None:
@@ -4182,7 +4305,7 @@ def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=No
             "destrutivo": bool(acao.get("destrutivo")),
         })
 
-    argv = list(acao["argv"])
+    argv = list(acao["argv"]) + list(extra_argv or [])
     amb_acao = dict(acao.get("ambiente", {}))
     if "@ARG@" in argv or "@ARG@" in amb_acao.values():
         permitidos = PROVEDORES[acao["arg"]]()
@@ -6739,6 +6862,9 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": "tipo de prévia desconhecido"}, 404)
             return self._json(dados)
 
+        if caminho == "/api/aplicando":
+            return self._json(estado_do_aplicar())
+
         if caminho == "/api/trabalho":
             ident = consulta.get("id", [""])[0]
             desde = consulta.get("desde", ["0"])[0]
@@ -7250,8 +7376,12 @@ class Manipulador(BaseHTTPRequestHandler):
             _chave, rc, saida = feitos[0]
             if len(pares) > 1:
                 _adotar_leitura([c for c, r, _s in feitos[1:] if r == 1])
-            return self._json({"rc": rc, "saida": texto_na_tela(saida),
-                               "chave": chave, "valor": valor})
+            resposta = {"rc": rc, "saida": texto_na_tela(saida),
+                        "chave": chave, "valor": valor}
+            gravadas = [c for c, r, _s in feitos if r == 1]
+            if gravadas:
+                resposta.update(aplicar_depois_de_gravar(gravadas))
+            return self._json(resposta)
 
         if caminho == "/api/salvar":
             mudancas = corpo.get("mudancas") or {}
@@ -7275,23 +7405,6 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"recusadas": soltas}, 409)
             pares = com_o_mesmo_horario(pares)
 
-            if corpo.get("seco"):
-                pasta, queixa = _conf_de_ensaio(pares)
-                if queixa:
-                    return self._json({"erro": queixa}, 500)
-                trabalho, erro = iniciar("instalar", "", confirmado=True,
-                                         seco=True, pasta_de_ensaio=pasta)
-                if erro:
-                    shutil.rmtree(pasta, ignore_errors=True)
-                    return self._json(
-                        {"erro": erro["erro"] if isinstance(erro, dict) else erro}, 409)
-                return self._json({"trabalho": _trabalho_json(trabalho, "instalar", seco=True)})
-
-            try:
-                with open(CONF, "rb") as fh:
-                    conf_antes = fh.read()
-            except OSError:
-                conf_antes = None
             gravadas, iguais, falhas = [], [], []
             for chave, rc, saida in definir_varias(pares):
                 if rc == 0:
@@ -7302,8 +7415,12 @@ class Manipulador(BaseHTTPRequestHandler):
                     falhas.append({"chave": chave,
                                    "erro": texto_na_tela(saida) or "não consegui gravar"})
             if falhas:
-                return self._json({"gravadas": gravadas, "iguais": iguais, "falhas": falhas,
-                                   "erro": "nem tudo foi gravado, e nada foi aplicado"}, 500)
+                if gravadas:
+                    resposta_parcial = aplicar_depois_de_gravar(gravadas)
+                else:
+                    resposta_parcial = {}
+                return self._json(dict(resposta_parcial, gravadas=gravadas, iguais=iguais,
+                                       falhas=falhas, erro="nem tudo foi gravado"), 500)
 
             resposta = {"gravadas": gravadas, "iguais": iguais}
             leitura = [c for c, _v in pares if c in _LEITURA_NO_APPLET]
@@ -7318,12 +7435,8 @@ class Manipulador(BaseHTTPRequestHandler):
                             + feito.stderr.decode("utf-8", "replace")).strip()
                 except (OSError, subprocess.SubprocessError) as e:
                     resposta["aviso"] = "o controle do modo de leitura não foi atualizado: %s" % e
-            trabalho, erro = iniciar("instalar", "", confirmado=True,
-                                     antes={CONF: conf_antes} if gravadas else None)
-            if erro:
-                resposta["erro"] = erro["erro"] if isinstance(erro, dict) else erro
-                return self._json(resposta, 409)
-            resposta["trabalho"] = _trabalho_json(trabalho, "instalar")
+            if gravadas:
+                resposta.update(aplicar_depois_de_gravar(gravadas))
             return self._json(resposta)
 
         if caminho == "/api/acervo":
