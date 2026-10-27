@@ -36,6 +36,9 @@ PORTATIL=(
   vidro-do-cosmic.sh
   seletor-do-pack.sh
   acervo-da-ficha.sh
+  acervo-do-pack-em-edicao.sh
+  desenho-no-pack.sh
+  gerador-dracula.sh
   variante.sh
   claro-do-pack.sh
   notas-de-funcao.sh
@@ -79,6 +82,7 @@ PORTATIL=(
   criar-tema-leva.sh
   mesmo-horario.sh
   desbanir.sh
+  mapas-fim-de-linha.sh
 )
 
 MAQUINA=(
@@ -89,6 +93,7 @@ MAQUINA=(
   app-acessibilidade.py
   app-layout.py
   oficina.sh
+  icones-por-pack.py
   pastas-do-pack.sh
   restos-do-painel.sh
   folha-dos-resgatados.sh

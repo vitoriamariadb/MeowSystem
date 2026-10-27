@@ -959,10 +959,10 @@ tema: se algum ícone instalado tem a forma dele, a próxima passagem dos ícone
 troca; se nenhum tem (o desenho sem linha no `AUTORAL`), ela diz que o pack
 mudou e a tela não.
 
-### O seletor de ícone: o acervo inteiro, em pastas
+### O seletor de ícone: o acervo do pack em edição, em pastas
 
-No passo «Ícones», cada programa abre a ficha dele, e a ficha oferece **todos** os
-desenhos que existem, de todos os packs no disco, em pastas (decisão 3):
+No passo «Ícones», cada programa abre a ficha dele, e a ficha oferece os desenhos do
+**pack em edição** e dos que ele herda, parando no primeiro pack do projeto (decisão 3):
 
 | pasta | de onde |
 |---|---|

@@ -363,38 +363,64 @@ function passoCores() {
   ];
 }
 let ABA_ICONES = "apps";
-let LIMITE_ICONES = 48;
-function gradeDeLevar(pasta, pack) {
-  const itens = (LEVA && !LEVA.carregando && LEVA[pasta]) || [];
-  const sem = pack ? "" : "Guarde o tema em Cores";
-  const grade = elemento("div", { class: "grade-apps levar", "aria-busy": LEVA && !LEVA.carregando ? null : "true" });
-  for (const i of itens.slice(0, LIMITE_ICONES)) {
-    grade.append(elemento("button", {
-      type: "button", class: "app", controle: "levar:" + pasta, "aria-pressed": String(!!i.levado),
-      disabled: !!sem, "aria-disabled": sem ? "true" : null,
-      dica: sem || `${i.levado ? "Tirar do tema" : "Levar para o tema"} · ${maiuscula(i.de)}`,
-      onclick: () => levarParaOTema(pasta, i.nome, !i.levado, { de: i.de }),
-    }, [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.nome })]));
+let ACERVO = null;
+let BUSCA_ACERVO = "";
+function packEmEdicao() {
+  if (ROTA.porta !== "criar") return "";
+  const r = rascunho();
+  return r.pack || (r.base && r.base.pack) || "";
+}
+function chaveDoAcervo() {
+  const r = rascunho();
+  return JSON.stringify([r.pack || "", r.base.pack, vinteSeis()]);
+}
+async function carregarAcervo() {
+  const chave = chaveDoAcervo();
+  const r0 = rascunho();
+  ACERVO = { chave, carregando: true, sistema: [], biblioteca: [] };
+  const consulta = `id=${encodeURIComponent(r0.pack || "")}&base=${encodeURIComponent(r0.base.pack)}`
+    + `&cores=${encodeURIComponent(JSON.stringify(vinteSeis()))}`;
+  const r = await api(`/api/criar?${consulta}`);
+  if (!ACERVO || ACERVO.chave !== chave) return;
+  ACERVO = r.erro ? { chave, sistema: [], biblioteca: [] } : { chave, sistema: r.sistema || [], biblioteca: r.biblioteca || [] };
+  render();
+}
+function gradeDoAcervo(pasta) {
+  if (!ACERVO || ACERVO.chave !== chaveDoAcervo()) carregarAcervo();
+  const pronto = ACERVO && !ACERVO.carregando;
+  const termo = semAcento(BUSCA_ACERVO.trim());
+  const itens = (pronto ? ACERVO[pasta] : []).filter((i) => !termo || semAcento(i.rotulo || i.nome).includes(termo));
+  const grade = elemento("div", { class: "grade-apps pastas so-" + packEmEdicao(), "aria-busy": pronto ? null : "true",
+    "data-acervo": pasta });
+  for (const i of itens) {
+    grade.append(elemento("div", { class: "app", "data-nome": i.nome }, [
+      elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })]));
   }
-  const filhos = [grade];
-  if (itens.length > LIMITE_ICONES) {
-    filhos.push(botao("Mais ícones", { class: "bt", controle: "levar:mais", onclick: () => { LIMITE_ICONES += 96; render(); } }));
+  if (pronto && !itens.length) {
+    grade.append(elemento("span", { class: "vazio-acervo", texto: BUSCA_ACERVO ? "Nada com esse nome" : "O pack não traz ícones aqui" }));
   }
-  return elemento("div", { class: "pilha", style: "gap:16px" }, filhos);
+  return grade;
 }
 function passoIcones() {
   const p = PASSOS.find((x) => x.id === "icones");
-  const pack = packDoRascunho();
-  const abas = [["apps", "Aplicativos"], ["sistema", "Sistema"], ["biblioteca", "Biblioteca"]]
-    .filter(([id]) => id === "apps" || !LEVA || LEVA.carregando || (LEVA[id] || []).length);
-  if (!abas.some(([id]) => id === ABA_ICONES)) ABA_ICONES = "apps";
-  const seg = elemento("div", { class: "seg", role: "group", "aria-label": "Pasta de ícones" },
+  const abas = [["apps", "Apps"], ["sistema", "Sistema"], ["biblioteca", "Biblioteca"]];
+  const seg = elemento("div", { class: "seg", role: "group", "aria-label": "Que ícones" },
     abas.map(([id, nome]) => elemento("button", { type: "button", "aria-pressed": String(id === ABA_ICONES),
-      controle: "icones:aba=" + id, onclick: () => { ABA_ICONES = id; LIMITE_ICONES = 48; render(); } }, [nome])));
-  const cabeca = elemento("div", { class: "fila abas-icones" }, [seg]);
-  if (ABA_ICONES !== "apps") {
-    const nome = ABA_ICONES === "sistema" ? "Sistema" : "Biblioteca";
-    return [cabeca, bloco(nome, [elemento("div", { class: "corpo" }, [gradeDeLevar(ABA_ICONES, pack)])])];
+      "data-sub": id, controle: "icones:aba=" + id,
+      onclick: () => { ABA_ICONES = id; BUSCA_ACERVO = ""; render(); } }, [nome])));
+  const filtro = elemento("input", { type: "search", class: "campo", value: BUSCA_ACERVO, placeholder: "Filtrar",
+    "aria-label": "Filtrar ícones", controle: "acervo:filtro" });
+  filtro.addEventListener("input", () => { BUSCA_ACERVO = filtro.value; render(); });
+  const editando = rascunho().pack ? (PACKS.find((x) => x.id === rascunho().pack) || {}).nome || rascunho().pack
+    : (PACKS.find((x) => x.id === rascunho().base.pack) || {}).nome || rascunho().base.pack;
+  const cabeca = elemento("div", { class: "sub-abas" }, [seg,
+    ABA_ICONES === "apps" ? null : filtro,
+    elemento("span", { class: "editando", "data-editando": packEmEdicao(), texto: "Editando " + editando })]);
+  if (ABA_ICONES === "sistema") {
+    return [cabeca, bloco("Pastas e tipos", [elemento("div", { class: "corpo" }, [gradeDoAcervo("sistema")])])];
+  }
+  if (ABA_ICONES === "biblioteca") {
+    return [cabeca, bloco("Biblioteca", [elemento("div", { class: "corpo" }, [gradeDoAcervo("biblioteca")])])];
   }
   const doBloco = (nome) => lista(p.linhas.filter((l) => l.bloco === nome), (l) => l.g === "acervo:icone");
   const autoral = oficinaAutoral();
