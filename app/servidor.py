@@ -1009,6 +1009,11 @@ def _oficina_do_usuario(*partes):
     return os.path.join(xdg, "meowsystem", *partes)
 
 
+def _texto_de_mapa(linhas):
+    texto = "\n".join(linhas)
+    return texto if not texto or texto.endswith("\n") else texto + "\n"
+
+
 def _gravar_escolha(caminho, chave, linha, separador):
     try:
         with open(caminho, "r", encoding="utf-8") as fh:
@@ -5424,7 +5429,7 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._ensaio_dos_jogos("\n".join(novas))
         try:
             with open(MAPA_JOGOS, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(novas))
+                fh.write(_texto_de_mapa(novas))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa: %s" % e}, 500)
         return self._json({"ok": True, "appid": appid, "acao": "" if remover else acao,
@@ -5574,7 +5579,7 @@ class Manipulador(BaseHTTPRequestHandler):
             linhas.insert(len(linhas) - 1 if linhas and not linhas[-1] else len(linhas), linha)
         try:
             with open(pack["mapa"], "w", encoding="utf-8") as fh:
-                fh.write("\n".join(linhas))
+                fh.write(_texto_de_mapa(linhas))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa do pack: %s" % e}, 500)
         return self._json({"ok": True, "app": app, "pack": pack["id"],
@@ -5634,7 +5639,7 @@ class Manipulador(BaseHTTPRequestHandler):
             del linhas[numero - 1]
         try:
             with open(pack["mapa"], "w", encoding="utf-8") as fh:
-                fh.write("\n".join(linhas))
+                fh.write(_texto_de_mapa(linhas))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa do pack: %s" % e}, 500)
         fica = self._o_que_fica(app)
@@ -6479,7 +6484,7 @@ class Manipulador(BaseHTTPRequestHandler):
         try:
             os.makedirs(os.path.dirname(caminho), exist_ok=True)
             with open(caminho, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(linhas))
+                fh.write(_texto_de_mapa(linhas))
         except OSError as e:
             return "não consegui gravar o mapa: %s" % e
         return ""

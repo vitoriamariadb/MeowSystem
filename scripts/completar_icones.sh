@@ -47,7 +47,7 @@ declare -A APELIDO=(
 MAPA_HICOLOR="$RAIZ/packs/meowsystem/icones/apps-hicolor.map"
 declare -A DO_HICOLOR=()
 if [ -f "$MAPA_HICOLOR" ]; then
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
     case "$linha" in ''|'#'*) continue ;; esac
     chave="${linha%%:*}"; caminho="${linha#*:}"
     [ -n "$chave" ] && [ -n "$caminho" ] || continue

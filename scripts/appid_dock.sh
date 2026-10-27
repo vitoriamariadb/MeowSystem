@@ -27,7 +27,7 @@ _arquivo_de() {
 
 _ler_mapa() {
   local linha id alvo marca
-  while IFS= read -r linha; do
+  while IFS= read -r linha || [ -n "$linha" ]; do
     case "$linha" in ''|'#'*) continue ;; esac
     IFS=':' read -r id alvo marca <<<"$linha"
     [ -n "$id" ] && [ -n "$alvo" ] || continue
