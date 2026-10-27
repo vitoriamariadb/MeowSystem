@@ -268,7 +268,6 @@ const LUGAR_CUIDAR = {
     { a: "apps_tema_do_pack", r: "Tema de um programa", b: "Trocar" },
     { a: "apps_manter_o_meu", r: "Tema de um programa", b: "Manter" },
     { a: "vscode_instalar_extensao", r: "Extensão do VS Code", b: "Instalar" },
-    { a: "files_menu_build", r: "Menu do Arquivos", b: "Refazer" },
   ],
   cartoes: [
     { id: "outro", titulo: "Outro computador", icone: "computador", linhas: [
@@ -330,11 +329,11 @@ const LUGAR_EXTENSOES = {
     { a: "extensao_remover", r: "Remover" },
     { a: "extensao_por_no_painel", r: "Pôr no painel" },
     { a: "extensao_trocar", r: "Trocar" },
+    { a: "extensao_reiniciar_painel", r: "Reiniciar o painel" },
     { c: "EXTENSOES", r: "Extensões instaladas" },
   ],
   builds: [
     { a: "builds_refazer_tudo", r: "Refazer tudo" },
-    { a: "build_compositor", r: "Compositor" },
     { c: "BUILDS_AO_ENTRAR", r: "Refazer ao entrar na sessão" },
   ],
 };
