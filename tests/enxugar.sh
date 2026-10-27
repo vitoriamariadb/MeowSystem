@@ -85,6 +85,18 @@ caminhos_do() {
   done < "$TABELA"
 }
 
+printf '\n--- 0. o que é dela só se move: imagem solta e os originais dos ícones vão para a branch ---\n'
+imagem_apagada="$(awk -F'\t' '$1 == "apagar" && tolower($2) ~ /\.(png|jpe?g|webp|gif|svg)$/ { print $2 }' "$TABELA")"
+originais="$(awk -F'\t' '$2 == ".trabalho-icones" { print $1 }' "$TABELA")"
+dela_apagado="$(awk -F'\t' '$1 == "apagar" && ($2 ~ /^packs(\/|$)/ || $2 == "assets/apps/jogos-fora.map") { print $2 }' "$TABELA")"
+if [ -z "$imagem_apagada" ] && [ "$originais" = arquivar ] && [ -z "$dela_apagado" ]; then
+  ok "nenhuma imagem solta, nada de packs/ nem o jogos-fora.map vai para apagar; os PNG desenhados à mão vão para a branch"
+else
+  falha "a tabela apaga o que é dela" "imagem: ${imagem_apagada:-nenhuma}
+.trabalho-icones: ${originais:-fora da tabela}
+packs/jogos-fora: ${dela_apagado:-nenhum}"
+fi
+
 printf '\n--- 1. sem --aplicar só mostra: lista e tamanho, nada escrito ---\n'
 A="$T/a"; monta "$A"
 ARQ0="$(git -C "$A" rev-parse arquivo)"; HEAD0="$(git -C "$A" rev-parse HEAD)"
@@ -191,6 +203,49 @@ if [ "$rc" = 1 ] && [ "$registro_ficou" = 1 ] && [ "$cache_saiu" = 1 ] \
   ok "sem onde guardar o registro nada de registro é apagado; o cache saiu e o script falha (rc=$rc)"
 else
   falha "a falha do worktree apagou registro ou não avisou (rc=$rc, registro_ficou=$registro_ficou, cache_saiu=$cache_saiu)" "$saida"
+fi
+
+printf '\n--- 4b. arquivo que não chega igual à branch: nada de registro é apagado ---\n'
+D="$T/d"; monta "$D"
+rm -rf "$D/assets/papeis-de-parede"
+printf '*.txt filter=muda\n' > "$T/atributos"
+git -C "$D" config core.attributesFile "$T/atributos"
+git -C "$D" config filter.muda.clean "sed s/um/UM/"
+ARQ_D0="$(git -C "$D" rev-parse arquivo)"
+saida="$(enxugar "$D" --aplicar)"; rc=$?
+registro_ficou=1
+while IFS= read -r c; do [ -e "$D/$c" ] || registro_ficou=0; done < <(caminhos_do arquivar)
+if [ "$rc" = 1 ] && [ "$registro_ficou" = 1 ] && [ "$(git -C "$D" rev-parse arquivo)" = "$ARQ_D0" ] \
+   && grep -q 'não chegou igual' <<< "$saida"; then
+  ok "o conteúdo é conferido arquivo a arquivo contra o que a branch recebeu: diferente, nada sai e não há commit (rc=1)"
+else
+  falha "um arquivo mudado no caminho passou pela conferência (rc=$rc, registro_ficou=$registro_ficou)" "$saida"
+fi
+git -C "$D" config --unset core.attributesFile
+git -C "$D" config --remove-section filter.muda
+
+printf '\n--- 4c. segunda leva: o que já está na branch sai sem commit novo, e a lista do LEIA-ME só cresce ---\n'
+saida="$(enxugar "$D" --aplicar)"; rc=$?
+ARQ_D1="$(git -C "$D" rev-parse arquivo)"
+git -C "$D" show "arquivo:levas/2026-10-27-pasta-local/docs/folhas/um.txt" > /dev/null 2>&1 || falha "a primeira leva não arquivou docs/folhas" "$saida"
+mkdir -p "$D/docs/folhas"
+git -C "$D" show "arquivo:levas/2026-10-27-pasta-local/docs/folhas/um.txt" > "$D/docs/folhas/um.txt"
+saida2="$(enxugar "$D" --aplicar)"; rc2=$?
+printf 'outra captura\n' > "$D/aba7.png"
+saida3="$(enxugar "$D" --aplicar)"; rc3=$?
+ARQ_D3="$(git -C "$D" rev-parse arquivo)"
+leia="$(git -C "$D" show "arquivo:levas/2026-10-27-pasta-local/LEIA-ME.md" 2>/dev/null)"
+faltou_na_lista=""
+while IFS= read -r c; do grep -qxF -- "- \`$c\`" <<< "$leia" || faltou_na_lista+="$c "; done < <(caminhos_do arquivar)
+if [ "$rc" = 0 ] && [ "$rc2" = 0 ] && [ "$rc3" = 0 ] && [ ! -e "$D/docs/folhas" ] && [ ! -e "$D/aba7.png" ] \
+   && [ "$(git -C "$D" rev-list --count "$ARQ_D1..$ARQ_D3")" = 1 ] && [ -z "$faltou_na_lista" ] \
+   && [ "$(git -C "$D" show "arquivo:levas/2026-10-27-pasta-local/aba7.png")" = "outra captura" ] \
+   && git -C "$D" cat-file -e "arquivo:levas/2026-10-27-pasta-local/docs/pesquisas/sub/imagem.png" 2>/dev/null \
+   && git -C "$D" cat-file -e "arquivo:levas/2026-10-27-pasta-local/Imagem colada.png" 2>/dev/null; then
+  ok "repetido igual: sai sem commit; novo: um commit, e o LEIA-ME guarda os caminhos das duas levas"
+else
+  falha "a segunda leva perdeu a lista ou fez commit à toa (rc=$rc/$rc2/$rc3, commits=$(git -C "$D" rev-list --count "$ARQ_D1..$ARQ_D3"), faltou: ${faltou_na_lista:-nada})" "$saida2
+$saida3"
 fi
 
 printf '\n--- 5. recusas ---\n'

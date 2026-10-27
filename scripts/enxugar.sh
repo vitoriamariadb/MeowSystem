@@ -13,16 +13,16 @@ apagar	assets/icones/upstream
 apagar	assets/icones/catppuccin
 apagar	.playwright-mcp
 apagar	MeowSystem-master.zip
-apagar	.trabalho-icones
 apagar	assets/fontes/upstream
 apagar	assets/fontes/fonts
 apagar	app/pagina/previas-sistema.js
 apagar	app/pagina/previas-tela.js
 apagar	scripts/icones_apps.sh
 apagar	vizinhos.conf.exemplo
-apagar	docs/capturas/spotify.jpg
-apagar	aba7.png
-apagar	Imagem colada.png
+arquivar	.trabalho-icones
+arquivar	docs/capturas/spotify.jpg
+arquivar	aba7.png
+arquivar	Imagem colada.png
 arquivar	docs/folhas
 arquivar	docs/pesquisas
 arquivar	docs/sprints/2026-10-26-qa-final/capturas
@@ -182,7 +182,7 @@ fi
 ANTES_TOTAL="$(du -sb --apparent-size -- "$ALVO" 2>/dev/null | cut -f1)"
 
 arquivar_no_ramo() {
-  local wt caminho n_esperado n_indice
+  local wt caminho
   local -a caminhos=("$@")
   [ "${#caminhos[@]}" -gt 0 ] || return 0
   wt="$(mktemp -d)" || return 1
@@ -200,25 +200,39 @@ arquivar_no_ramo() {
     done
   fi
   if [ "$ok" = "1" ]; then
-    {
-      printf '# Sobras da pasta local, 27/10/2026\n\n'
-      printf 'Tiradas do clone por `scripts/enxugar.sh` (P123 da leva central e gerador). Cada caminho abaixo mora aqui\n'
-      printf 'com o mesmo nome relativo ao clone.\n\n'
-      for caminho in "${caminhos[@]}"; do printf -- '- `%s`\n' "$caminho"; done
-    } > "$wt/$DESTINO_NO_ARQUIVO/LEIA-ME.md"
-    git -C "$wt" add -f -- "$DESTINO_NO_ARQUIVO" || ok=0
+    local leia="$wt/$DESTINO_NO_ARQUIVO/LEIA-ME.md" item
+    git -C "$wt" show "HEAD:$DESTINO_NO_ARQUIVO/LEIA-ME.md" > "$leia" 2>/dev/null || rm -f -- "$leia"
+    if [ ! -f "$leia" ]; then
+      {
+        printf '# Sobras da pasta local, 27/10/2026\n\n'
+        printf 'Tiradas do clone por `scripts/enxugar.sh` (P123 da leva central e gerador). Cada caminho abaixo mora aqui\n'
+        printf 'com o mesmo nome relativo ao clone.\n\n'
+      } > "$leia"
+    fi
+    for caminho in "${caminhos[@]}"; do
+      item="$(printf -- '- `%s`' "$caminho")"
+      grep -qxF -- "$item" "$leia" || printf '%s\n' "$item" >> "$leia"
+    done
+    git -C "$wt" add -f --ignore-removal -- "$DESTINO_NO_ARQUIVO" || ok=0
   fi
   if [ "$ok" = "1" ]; then
+    local -A no_indice=()
+    local linha arq h_local
+    while IFS= read -r -d '' linha; do
+      arq="${linha#*$'\t'}"; linha="${linha%%$'\t'*}"; linha="${linha#* }"
+      no_indice["${arq#"$DESTINO_NO_ARQUIVO"/}"]="${linha%% *}"
+    done < <(git -C "$wt" --literal-pathspecs ls-files -s -z -- "$DESTINO_NO_ARQUIVO")
     for caminho in "${caminhos[@]}"; do
-      n_esperado="$(cd "$ALVO" && find "$caminho" -type f -not -path '*/__pycache__/*' -not -name '*.pyc' | grep -c . || true)"
-      n_indice="$(git -C "$wt" diff --cached --name-only -- "$DESTINO_NO_ARQUIVO/$caminho" | grep -c . || true)"
-      if [ "$n_esperado" != "$n_indice" ]; then
-        printf 'erro: %s tem %s arquivo(s) e a branch recebeu %s — nada será apagado\n' "$caminho" "$n_esperado" "$n_indice" >&2
-        ok=0; break
-      fi
+      while IFS= read -r -d '' arq; do
+        h_local="$(git -C "$ALVO" hash-object --no-filters -- "$arq")"
+        if [ -z "$h_local" ] || [ "${no_indice[$arq]:-}" != "$h_local" ]; then
+          printf 'erro: %s não chegou igual à branch %s — nada será apagado\n' "$arq" "$RAMO_ARQUIVO" >&2
+          ok=0; break 2
+        fi
+      done < <(cd "$ALVO" && find "$caminho" \( -type f -o -type l \) -not -path '*/__pycache__/*' -not -name '*.pyc' -print0)
     done
   fi
-  if [ "$ok" = "1" ]; then
+  if [ "$ok" = "1" ] && ! git -C "$wt" diff --cached --quiet; then
     git -C "$wt" -c core.hooksPath=/dev/null commit -q \
       -m "docs(arquivo): as sobras da pasta local de 27/10/2026, tiradas do clone pela P123" \
       -m "Registro e arte antiga que nenhuma etapa lê mais; o caminho original de cada uma está em $DESTINO_NO_ARQUIVO/LEIA-ME.md." \
