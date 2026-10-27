@@ -2025,6 +2025,15 @@ def _aplicador():
             "" if bom else "Um ajuste foi gravado e não chegou a aplicar")
 
 
+def _esperar_aplicar_vivo(limite=300):
+    fim = time.time() + limite
+    while time.time() < fim:
+        atual = TRABALHO_ATUAL
+        if atual is None or atual.acao != "aplicar" or not atual.vivo():
+            return
+        time.sleep(0.3)
+
+
 def aplicar_depois_de_gravar(chaves):
     plano = plano_de_aplicacao(chaves)
     if plano["nada"]:
@@ -7439,6 +7448,10 @@ class Manipulador(BaseHTTPRequestHandler):
             if gravadas:
                 resposta.update(aplicar_depois_de_gravar(gravadas))
             return self._json(resposta)
+
+        if caminho in ("/api/acervo", "/api/app-icone", "/api/app-desenho",
+                       "/api/autorais", "/api/jogo-fora", "/api/rodar", "/api/criar"):
+            _esperar_aplicar_vivo()
 
         if caminho == "/api/acervo":
             return self._api_acervo(corpo)
