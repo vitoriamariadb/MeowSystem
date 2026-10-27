@@ -135,3 +135,34 @@ aplicativo» do `packs/dracula/PROCEDENCIA.md`.
 | telegram | `scripts/temas-de-apps/telegram/telegram.modelo.tdesktop-theme` | `dracula/telegram` v0.1.3 | MIT |
 | discord | `scripts/temas-de-apps/discord/discord.modelo.theme.css` | o Dracula do CtorW para Vesktop e Vencord, sobre o `midnight` do refact0r | MIT |
 | onlyoffice | `scripts/temas-de-apps/onlyoffice/onlyoffice.modelo.json` | os nomes das chaves de um tema de interface do OnlyOffice (todo valor é papel) | ver a nota do `packs/dracula/PROCEDENCIA.md` |
+
+## O tema do Spotify (spicetify)
+
+A pasta `spotify/catppuccin/` é a pasta `catppuccin/` do repositório do tema, copiada sem mudança
+(sem os `src/` e o `app.scss`, que só servem para recompilar). O módulo
+`scripts/temas-de-apps/spotify/manifesto.sh` a copia para `~/.config/spicetify/Themes/` quando o
+tema não está lá; nada desce da internet.
+
+| campo | valor |
+|---|---|
+| origem | <https://github.com/catppuccin/spicetify> |
+| commit pinado | `1ec645c4cf7f42f9792b9eeb1bb7930f94593277` |
+| tarball | `https://github.com/catppuccin/spicetify/archive/1ec645c4cf7f42f9792b9eeb1bb7930f94593277.tar.gz` |
+| sha256 do tarball | `b97c087e4631f9a605bfa9f7326ea24eb63dee32d7c2cbf3beed706c2f774948` |
+| licença | MIT (Catppuccin), `spotify/catppuccin/LICENSE` |
+| baixado em | 2026-10-26 |
+| sha256 do `color.ini` guardado | `9145743f76f81d95125df3aa65b16ab8e3f50d16c09608010b302b1834dbfeb9` |
+
+O sha256 de cada um dos 64 arquivos está em `spotify/SHA256SUMS` (`cd spotify && sha256sum -c SHA256SUMS`).
+O repositório não tem tag nem release, por isso o pino é o commit.
+
+Três arquivos de texto foram guardados com o ajuste que o gancho de commit faz em todo texto, e só
+com ele (o desenho e o efeito são os mesmos):
+
+| arquivo | o que mudou | sha256 do upstream |
+|---|---|---|
+| `color.ini` | tirado o espaço no fim da linha `surface1` | `f5c2b6a46e9b463020f8b36a21517ce6ade9e89230850f24944076e586576e07` |
+| `LICENSE` | acrescentada a quebra de linha final | `9df242fd9ee91e5ef30acce92d6cadfe5472abcf3404c4abdc3ab8026b53965f` |
+| `theme.js` | cinco linhas só de comentário `//` a menos | `cac51cc1236b37b0d100ae41c9279aa6fbf2b00aa332067854d72ef37bea151c` |
+
+Os outros 61 arquivos (imagens, `user.css`) são byte a byte os do commit.

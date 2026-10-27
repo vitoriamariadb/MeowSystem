@@ -262,7 +262,6 @@ const AJUSTES = [
         { c: "LANCADOR_SISTEMA", r: "Arrumar o lançador" },
         { c: "LANCADOR_OCULTAR", r: "Escondidos", larga: true },
         { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify" },
-        { a: "spotify_baixar_tema", r: "Tema do Spotify", b: "Baixar" },
       ] },
       { titulo: "Jogos", jogos: true, linhas: [
         { e: "jogos", r: "Jogos" },
