@@ -4,7 +4,7 @@ const PORTAS = [
   { id: "tema", nome: "Tema", icone: "tema" },
   { id: "criar", nome: "Personalizar", icone: "criar" },
   { id: "ajustes", nome: "Definir", icone: "ajustes" },
-  { id: "cuidar", nome: "Cuidar", icone: "cuidar" },
+  { id: "cuidar", nome: "Manter", icone: "cuidar" },
 ];
 
 const LUGAR_TEMA = {
@@ -368,12 +368,12 @@ function inventarioDoPainel() {
     for (const b of p.blocos) for (const l of b.linhas) pus(l, "ajustes", p.nome, b.titulo);
     for (const l of p.mais || []) pus(l, "ajustes", p.nome, "Mais ajustes", true);
   }
-  for (const l of LUGAR_CUIDAR.estado) pus(l, "cuidar", "Cuidar", "Estado");
-  for (const l of LUGAR_CUIDAR.pendencias) pus(l, "cuidar", "Cuidar", "Pendências");
-  for (const c of LUGAR_CUIDAR.cartoes) for (const l of c.linhas) pus(l, "cuidar", "Cuidar", c.titulo);
-  for (const b of LUGAR_CUIDAR.blocos) for (const l of b.linhas) pus(l, "cuidar", "Cuidar", b.titulo);
-  for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Cuidar", "Zona de perigo");
-  for (const l of LUGAR_CUIDAR.mais) pus(l, "cuidar", "Cuidar", "Mais ajustes", true);
+  for (const l of LUGAR_CUIDAR.estado) pus(l, "cuidar", "Manter", "Estado");
+  for (const l of LUGAR_CUIDAR.pendencias) pus(l, "cuidar", "Manter", "Pendências");
+  for (const c of LUGAR_CUIDAR.cartoes) for (const l of c.linhas) pus(l, "cuidar", "Manter", c.titulo);
+  for (const b of LUGAR_CUIDAR.blocos) for (const l of b.linhas) pus(l, "cuidar", "Manter", b.titulo);
+  for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Manter", "Zona de perigo");
+  for (const l of LUGAR_CUIDAR.mais) pus(l, "cuidar", "Manter", "Mais ajustes", true);
   for (const l of LUGAR_TOPO) pus(l, "topo", "Barra de cima", "Barra de cima");
   for (const l of LUGAR_JANELA) pus(l, "janela", "Janela do trabalho", "Janela do trabalho");
   return saida;

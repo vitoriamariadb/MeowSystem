@@ -1268,7 +1268,7 @@ A terceira é a que torna visível ao programa o que a pessoa já fez à mão: u
 hora. Então ela só acontece quando há alguém: as duas pontas precisam ser
 terminal, e mesmo assim a espera tem teto de 30 segundos. Fora da tela o caso
 vira **pendência acionável** (`<app>-tema-de-terceiro`), o arquivo dele fica
-intocado, e a linha espera na porta Cuidar.
+intocado, e a linha espera na porta Manter.
 
 Sobrescrever calado o tema que alguém escolheu à mão não conserta a divergência:
 apaga a pessoa do processo.

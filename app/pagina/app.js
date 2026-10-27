@@ -991,7 +991,7 @@ async function importarArquivo(arquivo) {
 }
 
 function indiceDaBusca() {
-  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Cuidar"
+  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Manter"
     : l.porta === "criar" ? "Personalizar · " + l.pagina : "Definir · " + l.pagina);
   const visto = new Set();
   const saida = [];

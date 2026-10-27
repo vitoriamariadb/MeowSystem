@@ -3967,19 +3967,19 @@ def inventario_do_painel():
         for l in p.get("mais", []):
             pus(l, "ajustes", p["nome"], "Mais ajustes", True)
     for l in cuidar["estado"]:
-        pus(l, "cuidar", "Cuidar", "Estado")
+        pus(l, "cuidar", "Manter", "Estado")
     for l in cuidar["pendencias"]:
-        pus(l, "cuidar", "Cuidar", "Pendências")
+        pus(l, "cuidar", "Manter", "Pendências")
     for cartao in cuidar["cartoes"]:
         for l in cartao["linhas"]:
-            pus(l, "cuidar", "Cuidar", cartao["titulo"])
+            pus(l, "cuidar", "Manter", cartao["titulo"])
     for b in cuidar["blocos"]:
         for l in b["linhas"]:
-            pus(l, "cuidar", "Cuidar", b["titulo"])
+            pus(l, "cuidar", "Manter", b["titulo"])
     for l in cuidar["perigo"]:
-        pus(l, "cuidar", "Cuidar", "Zona de perigo")
+        pus(l, "cuidar", "Manter", "Zona de perigo")
     for l in cuidar["mais"]:
-        pus(l, "cuidar", "Cuidar", "Mais ajustes", True)
+        pus(l, "cuidar", "Manter", "Mais ajustes", True)
     for l in c["LUGAR_TOPO"]:
         pus(l, "topo", "Barra de cima", "Barra de cima")
     for l in c["LUGAR_JANELA"]:
