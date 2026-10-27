@@ -42,3 +42,40 @@ Branch `bloco/textos`, worktree `~/Desenvolvimento/MeowSystem-textos`. Conferido
   lugar, porque a primeira conferência vai com `2>/dev/null`. Só um pack com link mostra isso.
 - **README.** `README.md:7,15` ainda diz «O COSMIC vestido inteiro» e «vestida pelo MeowSystem». É a frase de
   apresentação do projeto, fora da lista da P118.
+
+## Final
+
+Regressão no todo, sobre o `f3e04ed0`. Nenhuma regressão achada, nenhum commit de código.
+
+### O que rodei
+- `./tests/todos.sh`: 103 testes, 101 verdes, 0 pulados, 2 vermelhos, os dois aceitos: `decisoes.sh` (a GPU do
+  compositor fora da RTX) e `restaurar.sh` (`pack_usar`, `desinstalar` e o `sistema_limpar` da P125).
+  `app-completo.py` verde dentro dela (827 s). Os falsos recusaram 6 chamadas de sudo e 13 escritas de busctl.
+- A segunda passada do doctor numa casa temporária, com os dois packs (`meowsystem`/`mocha` e
+  `dracula`/`dracula`): `install.sh`, a primeira passada de `meow doctor --consertar`, um retrato da casa, a segunda
+  passada e outro retrato. `sudo`, `pkexec`, `curl`, `cargo` e o `systemctl` de escrita recusam.
+  - A segunda passada não escreve nada nos ícones, no status, na bandeja, no tema nem no som. Não sai `tocados.tsv`
+    nem cópia de restauro do som.
+  - Ela só regrava o que já se sabia, por causa da casa sem rede: `extensoes/<applet>/{compilar.log,falhou,src/.git/index}`
+    dos cinco applets da casa, porque o cargo recusa. No MeowSystem regrava também `wallpaper-semeado` e
+    `wallpaper-vistas.txt`. No Dracula regrava o `pendencias.tsv` e o `~/.config/Code/logs/*/cli.log`. A conferência
+    final da Central mediu a mesma coisa, e nada disso é deste bloco.
+  - No Dracula, o doctor diz «54 ícone(s) do sistema já com o Arcticons do pack Dracula». A bandeja, o `traysteam` e o
+    `trayzapzap` dizem «não declara icones.bandeja — nada a aplicar».
+- Percorri headless as cinco portas, com 16 rotas, nos dois packs, em 1829 px e em 390 px. Procurei:
+  - erro de JavaScript, resposta HTTP de 400 para cima, imagem quebrada, `undefined`/`NaN` na tela e rolagem
+    horizontal;
+  - forma de *vestir*, «Mandar» ou «recom o» no texto, no `title`, no `aria-label` e no `placeholder`;
+  - frase que manda digitar «meow <verbo>»;
+  - botão visível sem nome.
+
+  Deu zero em tudo, e nenhum sinal saiu da casa. A única marca foi o «Créditos» do menu «…» fechado, que tem
+  texto e só não aparece enquanto o menu está fechado.
+
+### Anotado, para o próximo bloco
+- **`scripts/cursor.sh:188-191`** manda digitar quando falta rede: «para fazer à mão, quando houver rede:» e, logo
+  abaixo, o `curl`, o `unzip` e o `cursor.sh aplicar`. Já era assim antes do bloco, e a classe 9 não pega porque não é
+  `meow <verbo>`. A frase certa é que o doctor tenta de novo na próxima passada com rede. Entra junto da sprint
+  própria das saídas que citam comando (lista acima).
+- **Capturas do README.** Não precisa ninguém rodar nada à mão: o `post-merge` no `dev` (`scripts/ganchos.sh`) roda o
+  `scripts/readme.sh --commit`, que refaz `docs/capturas/readme/tema.png` no merge.
