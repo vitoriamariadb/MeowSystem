@@ -109,7 +109,7 @@ def main():
                     f"Sistema (Dracula): só as pastas do pack Dracula ({len(sis_dra)})")
             aba(pag, "biblioteca")
             bib_dra = fontes_do_acervo(pag, "biblioteca")
-            confere(len(bib_dra) > 0 and all("dracula" in decodificado(a["src"]) for a in bib_dra),
+            confere(len(bib_dra) > 0 and all("dracula" in decodificado(a["src"]) or a["src"].startswith("data:image/svg+xml") for a in bib_dra),
                     f"Biblioteca (Dracula): só o acervo do pack Dracula ({len(bib_dra)})")
             confere({a["src"] for a in bib_dra}.isdisjoint({a["src"] for a in bib_mew}), "a Biblioteca do Dracula não mistura a do MeowSystem")
 
@@ -123,6 +123,9 @@ def main():
             confere(any("<circle" in s for s in svgs), "Dracula: há cartão com disco (circle)")
             confere(pag.locator('.desenho .so-meowsystem [data-controle="oficina:detalhe"]').count() == 0, "Dracula: o ajuste do traço não aparece")
             confere(pag.locator("#r-glifo").count() == 1, "Dracula: o ajuste do tamanho do glifo aparece")
+            confere(pag.evaluate("() => { const r = document.getElementById('r-glifo');"
+                                 " return Math.abs(parseFloat(r.style.getPropertyValue('--p')) - (r.value - r.min) / (r.max - r.min) * 100) < 0.01; }"),
+                    "Dracula: o trilho do glifo vai até o valor")
 
             if FOTOS:
                 os.makedirs(FOTOS, exist_ok=True)

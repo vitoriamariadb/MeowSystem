@@ -1,1 +1,6 @@
 .previa .papel { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(45deg, color-mix(in oklab, var(--crust) 30%, transparent) 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, color-mix(in oklab, var(--text) 10%, transparent) 0 1px, transparent 1px 5px); mix-blend-mode: overlay; }
+.p-dock .app img.arte-pack { width: 3.6cqi; height: 3.6cqi; object-fit: contain; }
+.p-dock .centro .app img.arte-pack { width: 78%; height: 78%; }
+.p-dock .app svg.neutro { color: var(--p-sub); }
+.p-arq figure img.pasta-pack { width: 5.2cqi; height: 5.2cqi; object-fit: contain; }
+.p-arq figure svg.pasta-neutra { color: var(--p-sub); }

@@ -521,6 +521,16 @@ function controle(item) {
   return campo;
 }
 
+function pctDaFaixa(valor, min, max) {
+  return `${((Number(valor) - Number(min)) / ((Number(max) - Number(min)) || 1)) * 100}%`;
+}
+
+function ligarPreenchimento(slider) {
+  const pintar = () => slider.style.setProperty("--p", pctDaFaixa(slider.value, slider.min, slider.max));
+  pintar();
+  slider.addEventListener("input", pintar);
+}
+
 function controleFaixa(item, aplica) {
   const [lo, hi, passo] = item.faixa;
   const teto = item.teto && item.teto.trava ? Number(item.teto.valor) : null;
@@ -529,19 +539,17 @@ function controleFaixa(item, aplica) {
   const base = valor !== "" ? valor : (item.valendo_agora ?? item.vazio_vale ?? item.padrao ?? lo);
   const numero = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
   const vazio = valor === "";
-  const pct = (n) => `${((n - lo) / ((topo - lo) || 1)) * 100}%`;
   const slider = elemento("input", {
     type: "range", min: lo, max: topo, step: passo, value: String(numero),
     "aria-label": item.titulo || item.chave, controle: "chave:" + item.chave, dica: primeiraFrase(item.frase),
   });
-  slider.style.setProperty("--p", pct(numero));
+  ligarPreenchimento(slider);
   const saida = elemento("output", { texto: vazio ? "Auto" : String(numero) });
   const caixa = elemento("div", { class: "faixa" }, [slider, saida]);
   if (vazio) caixa.setAttribute("data-vazio", "");
   slider.addEventListener("input", () => {
     caixa.removeAttribute("data-vazio");
     saida.textContent = slider.value;
-    slider.style.setProperty("--p", pct(Number(slider.value)));
     repintarPrevia(item.chave, slider.value);
   });
   slider.addEventListener("change", () => aplica(slider.value));

@@ -7,9 +7,10 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 APP_ID="${MEOW_TRAY_ZAPZAP_APP:-com.rtosta.zapzap}"
 GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-}"
-if [ -z "$GLIFO" ]; then
+if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
+  IFS=$'\t' read -r _desenhos _ _ <<<"$_achado"
   for _p in sistema apps biblioteca; do
-    GLIFO="$RAIZ/packs/meowsystem/icones/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break
+    GLIFO="$(dirname "$_desenhos")/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break
   done
 fi
 TRACO="${MEOW_TRAY_ZAPZAP_TRACO:-4}"
@@ -250,6 +251,21 @@ _desfazer() {
   return "$MEOW_DIVERGENTE"
 }
 
+_sem_glifo() {
+  if ! meow_tem flatpak || ! meow_flatpak_tem "$APP_ID"; then
+    meow_pula "o pack no ar não declara icones.bandeja e o ZapZap não está aqui — nada a vestir"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if [ "$MODO" = conferir ]; then
+    MEOW_SECO=1 _desfazer
+    return $?
+  fi
+  _desfazer
+}
+
+if [ -z "$GLIFO" ]; then
+  _sem_glifo; exit $?
+fi
 _pronto; rc=$?
 [ "$rc" = "$MEOW_OK" ] || exit "$rc"
 
