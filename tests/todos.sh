@@ -75,6 +75,7 @@ PORTATIL=(
   tres-pastas.sh
   migracao-do-painel.py
   vizinhos.sh
+  segunda-passada-sem-rede.sh
   lancador-do-meow.sh
   flatpak-tema.sh
   escritorio.sh
