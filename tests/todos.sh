@@ -67,6 +67,7 @@ PORTATIL=(
   nada-manda-digitar.sh
   achados-tecnicos.sh
   miudos-do-install.sh
+  etapa-compositor.sh
   restaurar.sh
   trabalho-vivo.sh
   reler-uma-vez.sh
@@ -74,6 +75,7 @@ PORTATIL=(
   tres-pastas.sh
   migracao-do-painel.py
   vizinhos.sh
+  segunda-passada-sem-rede.sh
   lancador-do-meow.sh
   flatpak-tema.sh
   escritorio.sh
@@ -84,10 +86,14 @@ PORTATIL=(
   sons-do-pack.sh
   ponte-reparo.sh
   ponte-so-reserva.sh
+  ponte-cosmic-comp.sh
+  painel-fantasma.sh
   criar-tema-leva.sh
   mesmo-horario.sh
   desbanir.sh
   mapas-fim-de-linha.sh
+  wallpaper-base.sh
+  enxugar.sh
 )
 
 MAQUINA=(
@@ -232,7 +238,7 @@ unset DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR WAYLAND_DISPLAY DISPLAY
 [ -d "$CASA_REAL/.pyenv" ] && export PYENV_ROOT="${PYENV_ROOT:-$CASA_REAL/.pyenv}"
 export PYTHONUSERBASE="${PYTHONUSERBASE:-$CASA_REAL/.local}"
 export PATH="$SUITE_TMP/falso:$PATH" HOME="$SUITE_TMP/casa"
-unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME MEOW_CONF MEOW_ESTADO
+unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME MEOW_CONF MEOW_ESTADO ZDOTDIR
 printf 'casa de brinquedo da suíte: %s (sudo, pkexec e su recusam e registram)\n' "$HOME"
 printf 'sem barramento da sessão; pkill, killall, notify-send, systemd-run, loginctl, apt, apt-get e xdg-open recusam; systemctl, gsettings, dconf e busctl só leem\n\n'
 

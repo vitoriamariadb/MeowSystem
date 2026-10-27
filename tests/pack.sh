@@ -154,16 +154,42 @@ json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
 PY
 saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
 if [ "$rc" = "0" ] && [[ "$saida" == *campo_que_ninguem_le* ]] \
-   && [[ "$saida" != *icones.autorais.gerar* ]] && [[ "$saida" != *origens.cursores.tema* ]]; then
-  ok "o aviso não chama de morto icones.autorais.gerar nem origens.cursores.tema, que têm leitor"
+   && [[ "$saida" != *icones.autorais.gerar* ]] && [[ "$saida" == *origens.cursores.tema* ]]; then
+  ok "o aviso não chama de morto icones.autorais.gerar, que tem leitor, e chama origens.cursores.tema, que ninguém lê"
 else
-  falha "o aviso de campo morto acusou um campo que tem leitor (rc=$rc)" "$saida"
+  falha "o aviso de campo morto errou: acusou campo com leitor ou deixou passar o que ninguém lê (rc=$rc)" "$saida"
 fi
 python3 - "$PACK_DIR" <<'PY' || exit 2
 import json, os, sys
 alvo = os.path.join(sys.argv[1], "pack.json")
 p = json.load(open(alvo))
 p.pop("icones"); p.pop("origens")
+json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
+PY
+
+for torto in 'sistema:{"herda": "meowsystem", "pintar": "cor-que-nao-existe"}' \
+             'bandeja:{"desenhos": "icones/sistema/", "mapa": "icones/bandeja-que-falta.map"}'; do
+  python3 - "$PACK_DIR" "$torto" <<'PY' || exit 2
+import json, os, sys
+alvo = os.path.join(sys.argv[1], "pack.json")
+bloco, _, valor = sys.argv[2].partition(":")
+p = json.load(open(alvo))
+p["icones"] = {bloco: json.loads(valor)}
+json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
+PY
+  saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
+  campo="icones.${torto%%:*}"
+  if [ "$rc" != "0" ] && [[ "$saida" == *"$campo"* ]]; then
+    ok "o validar recusa $campo torto e diz qual campo"
+  else
+    falha "o validar deixou passar $campo torto (rc=$rc)" "$saida"
+  fi
+done
+python3 - "$PACK_DIR" <<'PY' || exit 2
+import json, os, sys
+alvo = os.path.join(sys.argv[1], "pack.json")
+p = json.load(open(alvo))
+p.pop("icones")
 json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
 PY
 
@@ -1459,7 +1485,7 @@ fi
   || falha "o importar do .csv mexeu no meow.conf, ou calou o claro derivado" "$importou"
 saida="$(viaja "$RAIZ/bin/meow" pack importar "$T/Minha Tinta.csv" 2>&1)"; rc=$?
 [ "$rc" = "1" ] && [[ "$saida" == *"já existe"*"com outro nome, ele vira outro pack"* ]] \
-  && [[ "$saida" == *"meow pack remover minha-tinta"* ]] \
+  && [[ "$saida" == *"«Remover» do cartão dele, em Tema"* ]] && [[ "$saida" != *"meow pack remover"* ]] \
   && ok "o mesmo .csv de novo é recusado, dizendo que o nome do arquivo faz o id e como tirar o de lá" \
   || falha "o .csv importado duas vezes não foi recusado como devia (rc=$rc)" "$saida"
 
@@ -2723,6 +2749,50 @@ done
 [ -z "$divergem" ] \
   && ok "com o FLAVOR vazio o shell e o painel caem no flavor_padrao do pack ($ID e $padrao56), como a página" \
   || falha "com o FLAVOR vazio o shell ou o painel não caem no padrão do pack:$divergem"
+
+mkdir -p "$T/casa-b"
+saida="$(amb env HOME="$T/casa-b" PACK="$ID" FLAVOR="$ID" "$RAIZ/scripts/icones_bandeja.sh" --conferir 2>&1)"; rc=$?
+if [ "$rc" = "3" ] && [[ "$saida" == *"não declara icones.bandeja"* ]] && [[ "$saida" != *"packs/meowsystem"* ]]; then
+  ok "um pack de terceiro sem icones.bandeja faz o icones_bandeja.sh --conferir sair pulado, sem ler packs/meowsystem"
+else
+  falha "o icones_bandeja.sh leu o acervo do outro pack ou não pulou (rc=$rc)" "$saida"
+fi
+saida="$(amb env HOME="$T/casa-b" PACK="$ID" FLAVOR="$ID" "$RAIZ/scripts/icones_sistema.sh" --conferir 2>&1)"; rc=$?
+if [ "$rc" = "3" ] && [[ "$saida" == *"não declara icones.sistema"* ]]; then
+  ok "e o icones_sistema.sh, sem icones.sistema, também pula: a herança por heranca não traz o desenho do outro pack"
+else
+  falha "o icones_sistema.sh vestiu o pack de terceiro com o acervo do outro (rc=$rc)" "$saida"
+fi
+
+resultado="$(amb python3 - "$RAIZ" <<'PY'
+import hashlib, os, sys
+raiz = sys.argv[1]
+sys.path.insert(0, os.path.join(raiz, "scripts"))
+import pack
+def conteudos(pack_id):
+    base = os.path.join(raiz, "packs", pack_id, "icones")
+    saida = set()
+    for pasta, _, arqs in os.walk(base):
+        for a in arqs:
+            if a.endswith(".svg"):
+                saida.add(open(os.path.join(pasta, a), encoding="utf-8", errors="replace").read())
+    return saida
+proprios = {"dracula": conteudos("dracula"), "meowsystem": conteudos("meowsystem")}
+problemas = []
+for ident, flavor in (("dracula", "dracula"), ("dracula", "alucard"), ("dracula", "mocha"), ("dracula", ""), ("meowsystem", "mocha")):
+    previa = pack.previa_do_pack(ident, flavor)
+    outro = "meowsystem" if ident == "dracula" else "dracula"
+    if len(previa["dock"]) < 5 or not previa["pasta"]:
+        problemas.append(f"{ident}/{flavor}: prévia magra ({len(previa['dock'])} apps)")
+    for d in previa["dock"] + [{"app": "pasta", "svg": previa["pasta"]}]:
+        if d["svg"] in proprios[outro]:
+            problemas.append(f"{ident}/{flavor}: {d['app']} é arte do {outro}")
+print("; ".join(problemas) if problemas else "limpo")
+PY
+)"
+[ "$resultado" = "limpo" ] \
+  && ok "a prévia do pack só usa arte do próprio pack: o dock e a pasta do Dracula não trazem um traço do meowsystem, e vice-versa, nem quando o flavor pedido não é do pack" \
+  || falha "a prévia do pack misturou arte de outro pack" "$resultado"
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then

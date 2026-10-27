@@ -174,9 +174,15 @@ _som_tema() {
     return "$MEOW_DIVERGENTE"
   fi
   [ "$modo" = "conferir" ] || meow_seco || meow_destino_permitido "$SOM_TEMA_DIR" || return "$MEOW_ERRO"
-  [ "$modo" = "conferir" ] || meow_guardar_pasta "$SOM_TEMA_DIR"
-  MEOW_PY_SECO="$( { [ "$modo" = "conferir" ] || meow_seco; } && echo 1 || echo 0)" \
-  python3 -I - "$SOM_TEMA_PACK" "$SOM_TEMA_DIR" <<'PY'
+  if [ "$modo" != "conferir" ] && ! meow_seco; then
+    _som_tema_py 1 2>/dev/null && return "$MEOW_OK"
+    meow_guardar_pasta "$SOM_TEMA_DIR"
+  fi
+  _som_tema_py "$( { [ "$modo" = "conferir" ] || meow_seco; } && echo 1 || echo 0)"
+}
+
+_som_tema_py() {
+  MEOW_PY_SECO="$1" python3 -I - "$SOM_TEMA_PACK" "$SOM_TEMA_DIR" <<'PY'
 import filecmp, os, shutil, sys
 origem, destino = sys.argv[1], sys.argv[2]
 so_ler = os.environ.get("MEOW_PY_SECO") == "1"

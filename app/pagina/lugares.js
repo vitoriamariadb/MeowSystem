@@ -12,7 +12,7 @@ const LUGAR_TEMA = {
   packs: [
     { c: "PACK", r: "Tema" },
     { c: "FLAVOR", r: "Variante" },
-    { a: "pack_usar", r: "Vestir", b: "Vestir" },
+    { a: "pack_usar", r: "Aplicar tema", b: "Aplicar tema" },
     { a: "pack_remover", r: "Remover", b: "Remover" },
     { g: "pack-importar", r: "Abrir um tema", b: "Abrir um tema" },
   ],
@@ -63,10 +63,10 @@ const PASSOS = [
       { a: "som_ouvir", r: "Ouvir o instalado", b: "Ouvir" },
       { a: "som_aplicar", r: "Regravar o som", b: "Regravar" },
     ] },
-  { id: "mandar", nome: "Mandar",
+  { id: "mandar", nome: "Disponibilizar",
     linhas: [
       { g: "pack-exportar", r: "Baixar o tema", b: "Baixar o tema" },
-      { a: "pack_usar", r: "Vestir", b: "Vestir" },
+      { a: "pack_usar", r: "Aplicar tema", b: "Aplicar tema" },
     ] },
 ];
 
@@ -232,7 +232,7 @@ const AJUSTES = [
     blocos: [
       { titulo: "Recebem o tema", programas: true, linhas: [
         { c: "APPS_ATIVOS", r: "Programas" },
-        { a: "apps_aplicar", r: "Vestir agora", b: "Vestir" },
+        { a: "apps_aplicar", r: "Aplicar agora", b: "Aplicar" },
         { a: "apps", r: "Conferir", b: "Conferir" },
       ] },
       { titulo: "Lançador", linhas: [
@@ -268,7 +268,7 @@ const LUGAR_CUIDAR = {
     { a: "apps_tema_do_pack", r: "Tema de um programa", b: "Trocar" },
     { a: "apps_manter_o_meu", r: "Tema de um programa", b: "Manter" },
     { a: "vscode_instalar_extensao", r: "Extensão do VS Code", b: "Instalar" },
-    { a: "files_menu_build", r: "Menu do Arquivos", b: "Refazer" },
+    { a: "extensao_refazer", r: "Build da casa", b: "Refazer" },
   ],
   cartoes: [
     { id: "outro", titulo: "Outro computador", icone: "computador", linhas: [
@@ -288,6 +288,7 @@ const LUGAR_CUIDAR = {
     { titulo: "Sozinho", linhas: [
       { c: "AUTO_REPARO", r: "Conferir todo dia" },
       { c: "AUTO_REPARO_NOTIFICAR", r: "Avisar o conserto", sub: true },
+      { c: "VIZINHOS_DESATIVAR", r: "Cortar o repetido", sub: true },
       { c: "ASSETS_VIGIA", r: "Mascote novo entra" },
       { c: "ASSETS_VIGIA_NOTIFICAR", r: "Avisar o mascote", sub: true },
       { c: "FLATPAK_VIGIA", r: "Ícones após atualizar" },
@@ -330,12 +331,13 @@ const LUGAR_EXTENSOES = {
     { a: "extensao_remover", r: "Remover" },
     { a: "extensao_por_no_painel", r: "Pôr no painel" },
     { a: "extensao_trocar", r: "Trocar" },
+    { a: "extensao_reiniciar_painel", r: "Reiniciar o painel" },
     { c: "EXTENSOES", r: "Extensões instaladas" },
   ],
   builds: [
     { a: "builds_refazer_tudo", r: "Refazer tudo" },
-    { a: "build_compositor", r: "Compositor" },
     { c: "BUILDS_AO_ENTRAR", r: "Refazer ao entrar na sessão" },
+    { c: "COMPOSITOR", r: "Compositor" },
   ],
 };
 

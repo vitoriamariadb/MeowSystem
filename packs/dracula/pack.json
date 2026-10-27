@@ -68,6 +68,11 @@
       "recolorir": false,
       "_nota_mapa": "O mapa é do pack desde 09/10/2026 (P74 item 6, I7): as sete pastas especiais de 15/09 mais `folder`, `user-home` e `user-desktop`, desenhadas no mesmo dia na mesma silhueta. O porquê está no cabeçalho do `icones/pastas.map`."
     },
+    "sistema": {
+      "herda": "meowsystem",
+      "pintar": "text",
+      "_nota": "Os 30 ícones do próprio COSMIC (sistema.map) vêm do molde do pack meowsystem, com o traço pintado na cor `text` do flavor deste pack. A base pinada (`icones.base`) não os cobre: medido em 27/10/2026, 19 dos 30 nomes do mapa não existem nos dois pacotes dela."
+    },
     "mimetypes": {
       "herda": "meowsystem",
       "_nota": "Os 656 tipos de arquivo vêm do molde do pack meowsystem, pintados na instalação com a paleta deste pack (P96, 23/10/2026). Até aqui eram dois diretórios pintados à mão, um por flavor."
@@ -100,7 +105,6 @@
   },
   "origens": {
     "cursores": {
-      "tema": "catppuccin-mocha-light",
       "origem": {
         "nome": "Dracula-Cursor",
         "url": "https://github.com/dracula/gtk/releases/download/v4.0.0/Dracula-cursors.tar.xz",

@@ -5,12 +5,19 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ORIGEM="$RAIZ/packs/meowsystem/icones/sistema"
-MAPA="$RAIZ/packs/meowsystem/icones/sistema.map"
+ORIGEM=""
+MAPA=""
+COR=""
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
 declare -A TRACO=( ["22x22/status"]=4 ["scalable/status"]=2.5 )
+
+_pack_no_ar() {
+  local nome
+  nome="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null | sed -n 's/^nome=//p')" || nome=""
+  printf '%s' "${nome:-no ar}"
+}
 
 declare -A MAPA_LIDO=()
 declare -A ALIAS_OK=()
@@ -43,14 +50,45 @@ _conferir_gemeos() {
   return "$MEOW_OK"
 }
 
-_pronto() {
-  if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Arcticons não está em packs/meowsystem/icones/sistema — nada a vestir"
+_restos() {
+  local dir arq
+  for dir in "${!TRACO[@]}"; do
+    [ -d "$BASE/$dir" ] || continue
+    for arq in "$BASE/$dir"/*.svg; do
+      [ -e "$arq" ] && printf '%s\n' "$arq"
+    done
+  done
+  return 0
+}
+
+_sem_acervo() {
+  local modo="$1" arq n=0
+  while IFS= read -r arq; do
+    n=$((n + 1))
+    [ "$modo" = --conferir ] && continue
+    if meow_seco; then
+      meow_muda "removeria $arq (o pack no ar não traz ícones do sistema)"
+    else
+      meow_destino_permitido "$arq" || return "$MEOW_ERRO"
+      rm -f "$arq"
+    fi
+  done < <(_restos)
+  if [ "$n" = 0 ]; then
+    meow_pula "o pack no ar não declara icones.sistema — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-  if [ ! -f "$MAPA" ]; then
-    meow_pula "sem packs/meowsystem/icones/sistema.map — nada a vestir"
-    return "$MEOW_SEM_DEPENDENCIA"
+  meow_muda "ícones do sistema de outro pack: $n a remover"
+  return "$MEOW_DIVERGENTE"
+}
+
+_pronto() {
+  local achado
+  if ! achado="$(meow_icones_de_status sistema)"; then
+    return 1
+  fi
+  IFS=$'\t' read -r ORIGEM MAPA COR <<<"$achado"
+  if [ ! -d "$ORIGEM" ] || [ ! -f "$MAPA" ]; then
+    return 1
   fi
   return "$MEOW_OK"
 }
@@ -61,7 +99,11 @@ _com_traco() {
     sed -E 's/stroke-width="[^"]*"/stroke-width="'"$largura"'"/g' "$arq"
   else
     sed -E 's/<(circle|rect|line|polyline|polygon|path|ellipse) /<\1 stroke-width="'"$largura"'" /g' "$arq"
-  fi
+  fi | _com_cor
+}
+
+_com_cor() {
+  if [ -n "$COR" ]; then sed -E 's/currentColor/'"$COR"'/g'; else cat; fi
 }
 
 _desejado() {
@@ -96,7 +138,7 @@ _conferir() {
   done
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total ícone(s) do sistema já vestidos de Arcticons"
+    meow_ok "$total ícone(s) do sistema já com o Arcticons do pack $(_pack_no_ar)"
     return "$MEOW_OK"
   fi
   meow_muda "ícones do sistema: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
@@ -136,7 +178,7 @@ _aplicar() {
   done
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "ícones do sistema já vestidos de Arcticons"
+    meow_ok "ícones do sistema já com o Arcticons do pack $(_pack_no_ar)"
     return "$MEOW_OK"
   fi
   meow_info "ícones do sistema: $postos posto(s), $removidos removido(s)"
@@ -145,7 +187,11 @@ _aplicar() {
 }
 
 main() {
-  _pronto || return $?
+  case "${1:-}" in
+    --conferir|''|--aplicar) ;;
+    *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; return "$MEOW_ERRO" ;;
+  esac
+  _pronto || { _sem_acervo "${1:-}"; return $?; }
   _ler_mapa
   _conferir_gemeos || return $?
   case "${1:-}" in

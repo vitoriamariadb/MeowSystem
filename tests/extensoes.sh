@@ -242,6 +242,15 @@ saida="$(EBX --todas --reverter)"; igual "--todas --reverter: mexeu" "$?" 1
 some "e o binário saiu" "$BIN"
 saida="$(EBX --todas --reverter)"; igual "e a segunda não tem o que tirar" "$?" 0
 
+echo "== PADRAO=sim: sem EXTENSOES, o pino entra no --todas sozinho"
+saida="$(EBX --todas --conferir)"; igual "sem PADRAO e sem EXTENSOES: nada pedido, rc 3" "$?" 3
+sed -i 's/^ORDEM=1$/ORDEM=1\nTIPO="applet"\nPADRAO="sim"\nCHAVE_DO_CONF="FAKE_APPLET"/' "$PINOS/fake.pino"
+saida="$(EBX --todas --conferir)"; igual "PADRAO=sim sem EXTENSOES: pedida e ausente, diverge" "$?" 1
+igual "o --queridas a lista" "$(EBX --queridas)" fake
+saida="$(EBX FAKE_APPLET=nao --todas --conferir)"; igual "a chave do conf em nao a tira" "$?" 3
+saida="$(EBX EXTENSOES=- --todas --conferir)"; igual "EXTENSOES=- vence o PADRAO" "$?" 3
+pino "$C1"
+
 echo "== o tema do pack: gerado, igual na segunda passada, e muda com o sabor"
 TH="$T/tema"; mkdir -p "$TH/.local/bin"
 printf '#!/bin/sh\n' > "$TH/.local/bin/meowsystem-status-hub"; chmod 755 "$TH/.local/bin/meowsystem-status-hub"
@@ -265,6 +274,41 @@ saida="$(TEMA FLAVOR=latte --conferir)"; igual "outro sabor: o conferir diverge"
 saida="$(TEMA FLAVOR=latte)"
 grep -qx 'tinta = #4c4f69' "$BANDEJA" && ok "e o aplicar traz a latte" || falha "latte: $(cat "$BANDEJA")"
 saida="$(TEMA --reverter)"; some "reverter tira o tema" "$BANDEJA"
+grep -q 'Bandeja\|AjustesRapidos' "$RAIZ/scripts/extensoes_tema.sh" && falha "o extensoes_tema.sh ainda nomeia um applet" || ok "o extensoes_tema.sh não nomeia applet: as chaves moram no pino"
+NP="$T/pinos-tema"; mkdir -p "$NP"
+printf 'ORDEM=1\nNOME="Novo"\nBIN="meowsystem-status-hub"\nTEMA="io.github.teste.Novo"\nTEMA_CHAVES="fundo:base/f0 realce:@acento"\n' > "$NP/novo.pino"
+saida="$(TEMA EXTENSOES_PINOS="$NP" FLAVOR=mocha)"; igual "um pino novo com TEMA_CHAVES ganha tema sem código" "$?" 1
+NOVO="$TH/.config/meowsystem/extensoes/io.github.teste.Novo/tema.conf"
+igual "com as chaves do pino, o sufixo e o acento" "$(cat "$NOVO" 2>/dev/null | paste -sd' ')" "fundo = #1e1e2ef0 realce = #cba6f7"
+
+echo "== os quatro forks: pino válido e a troca do app id de hoje"
+FK="$T/forks"; mkdir -p "$FK/.local/bin" "$FK/.local/share/applications" "$FK/.config/cosmic/com.system76.CosmicPanel.Dock/v1"
+ESTADO_FORK() { env -i PATH="$PATH" HOME="$FK" NO_COLOR=1 USER=t XDG_DATA_HOME="$FK/.local/share" XDG_CONFIG_HOME="$FK/.config" \
+  MEOW_ESTADO="$FK/.local/state/meowsystem" EXTENSOES_PINOS="$RAIZ/assets/extensoes" AP_LOCK_PAINEL="$T/painel.lock" \
+  bash "$RAIZ/scripts/extensoes_build.sh" "$1" --estado 2>&1; }
+for par in eyedropper:meowsystem-eyedropper:io.github.meowsystem.Eyedropper:io.github.nalladev.CosmicExtAppletEyedropper \
+           clipboard:meowsystem-clipboard:io.github.meowsystem.Clipboard:io.github.cosmic_utils.cosmic-ext-applet-clipboard-manager \
+           drives:meowsystem-drives:io.github.meowsystem.Drives:dev.cappsy.CosmicExtAppletDrives \
+           ascii-battery:meowsystem-ascii-battery:io.github.meowsystem.AsciiBattery:com.github.pewmoe.cosmic-ext-ASCII-dot-battery; do
+  IFS=: read -r id bin appid velho <<< "$par"
+  pino="$RAIZ/assets/extensoes/$id.pino"
+  existe "$id: o pino existe" "$pino"
+  grep -qx 'PADRAO="sim"' "$pino" && grep -qx 'TIPO="applet"' "$pino" && ok "$id: applet, ligado por padrão" || falha "$id: TIPO/PADRAO"
+  grep -qx "APP_ID=\"$appid\"" "$pino" && grep -qx "BIN=\"$bin\"" "$pino" && grep -qx "SUBSTITUI=\"$velho\"" "$pino" && ok "$id: app id, binário e o id de hoje" || falha "$id: APP_ID/BIN/SUBSTITUI"
+  grep -qx "TEMA=\"$appid\"" "$pino" && grep -q '^TEMA_CHAVES="acento:@acento ' "$pino" && ok "$id: tema e chaves" || falha "$id: TEMA/TEMA_CHAVES"
+  existe "$id: o ícone do cartão" "$RAIZ/assets/extensoes/icones/$id.svg"
+  saida="$(ESTADO_FORK "$id")"; igual "$id: o pino passa na validação" "$?" 0
+  grep -qx "casa=1" <<< "$saida" && grep -qx "instalada=nao" <<< "$saida" && grep -qx "troca=" <<< "$saida" && ok "$id: sem binário, nada a trocar" || falha "$id: estado sem instalar: $saida"
+  printf '#!/bin/sh\n' > "$FK/.local/bin/$bin"; chmod 755 "$FK/.local/bin/$bin"
+  printf '[Desktop Entry]\nExec=%s/.local/bin/%s\n' "$FK" "$bin" > "$FK/.local/share/applications/$appid.desktop"
+  printf 'Some(([\n    "%s",\n], []))' "$velho" > "$FK/.config/cosmic/com.system76.CosmicPanel.Dock/v1/plugins_wings"
+  saida="$(ESTADO_FORK "$id")"
+  grep -qx "troca=$velho" <<< "$saida" && ok "$id: a Dock cita $velho e o estado oferece a troca" || falha "$id: troca: $saida"
+  rm -f "$FK/.local/bin/$bin" "$FK/.local/share/applications/$appid.desktop"
+done
+[ "$(grep -hx 'MIGRA_ESTADO=""' "$RAIZ"/assets/extensoes/{eyedropper,clipboard,drives,ascii-battery}.pino | wc -l)" = 4 ] \
+  && ok "os quatro sem MIGRA_ESTADO: nenhum guarda estado em ~/.local/state/cosmic" \
+  || falha "um fork aponta MIGRA_ESTADO para um estado que o applet não lê"
 
 [ "$falhas" = 0 ] && { echo "extensoes.sh: tudo verde"; exit 0; }
 echo "extensoes.sh: $falhas falha(s)"; exit 1

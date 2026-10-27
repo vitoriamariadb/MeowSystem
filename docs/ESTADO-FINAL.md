@@ -74,7 +74,7 @@ precisa de rebase em `patches/`. Até lá a sessão segue no compositor de fábr
 | o compositor de fábrica no próximo login | `meow compositor desativar` (religar: `meow compositor ativar`) |
 | o menu de fábrica do `cosmic-files` | `FILES_MENU="nao"` no `meow.conf` |
 | sem ponte root | `PONTE_ROOT="nao"` no `meow.conf` |
-| outro pack | `meow pack usar <id>`, ou **Vestir** na porta Tema |
+| outro pack | `meow pack usar <id>`, ou **Aplicar tema** na porta Tema |
 | um pack importado fora | `meow pack remover <id>` |
 | um ajuste ao valor de fábrica | **Restaurar**, no cartão dele |
 | uma decisão de quem usa | troque a linha em [`DECISOES.md`](DECISOES.md) e o código que a lê, no mesmo commit, citando o sim |

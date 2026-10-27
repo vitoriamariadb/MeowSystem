@@ -44,6 +44,53 @@ chmod 755 "$T/bin/cosmic-randr"
 AREAS_NOMES="Uma" PATH="$T/bin:$PATH" "$RAIZ/scripts/areas.sh" alfinetar-primeira >/dev/null 2>&1
 [ -f "$C/com.system76.CosmicComp/v2/pinned_workspaces" ] && ok "areas.sh: pinned_workspaces no v2" \
   || falha "areas.sh não gravou no v2"
+echo "== o alfinete que cai volta pelo doctor"
+PW="$C/com.system76.CosmicComp/v2/pinned_workspaces"
+doutor_areas() {
+  env -i PATH="$T/bin:/usr/bin:/bin" HOME="$HOME" NO_COLOR=1 LANG=C.UTF-8 MEOW_RAIZ="$RAIZ" \
+    MEOW_COSMIC_SISTEMA="$T/sistema" MEOW_ESTADO="$T/estado-areas" MEOW_DRY_RUN="${SECO:-0}" \
+    AREAS_NOMES="$1" AREAS_FOLGA="${2:-}" AREAS_ENCAIXE="" \
+    bash -c 'source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow"); "$@"' _ "${@:3}" 2>&1
+}
+saida="$(doutor_areas "Uma, Duas, Tres" "Duas" chk_areas)"; rc=$?
+[ "$rc" = 1 ] && [[ "$saida" == *"«Duas» caiu"* ]] && [[ "$saida" == *"«Tres» caiu"* ]] \
+  && ok "chk_areas: as áreas do AREAS_NOMES sem alfinete divergem, uma por uma" || falha "chk_areas não viu o alfinete caído (rc=$rc): $saida"
+antes="$(stat -c %Y.%s "$PW"; md5sum < "$PW")"
+SECO=1 doutor_areas "Uma, Duas, Tres" "Duas" fix_areas >/dev/null; rc=$?
+[ "$rc" = 1 ] && [ "$antes" = "$(stat -c %Y.%s "$PW"; md5sum < "$PW")" ] \
+  && ok "no ensaio o conserto diz o que faria e não escreve" || falha "o ensaio do fix_areas escreveu (rc=$rc)"
+doutor_areas "Uma, Tres" "" fix_areas >/dev/null
+python3 -I - "$PW" <<'PY' || falha "o arquivo com Uma e Tres não ficou como esperado"
+import re, sys
+t = open(sys.argv[1], encoding="utf-8").read()
+assert re.findall(r'name: Some\("([^"]*)"\)', t) == ["Uma", "Tres"], t
+PY
+uma_tres="$(cat "$PW")"
+saida="$(doutor_areas "Uma, Duas, Tres" "Duas" fix_areas)"; rc=$?
+nomes="$(python3 -I -c 'import re,sys; print("|".join(re.findall(r"name: Some\(\"([^\"]*)\"\)", open(sys.argv[1],encoding="utf-8").read())))' "$PW")"
+[ "$rc" = 1 ] && [ "$nomes" = $'Uma| Duas |Tres' ] \
+  && ok "fix_areas refaz o alfinete que caiu no lugar dele, com a folga que o AREAS_FOLGA pede" \
+  || falha "fix_areas não refez Duas no meio (rc=$rc, nomes=$nomes): $saida"
+python3 -I - "$PW" "$uma_tres" <<'PY' && ok "e os alfinetes que estavam de pé ficam byte a byte" || falha "o conserto mexeu num alfinete de pé"
+import re, sys
+novo, velho = open(sys.argv[1], encoding="utf-8").read(), sys.argv[2]
+blocos = lambda t: re.findall(r'\(\s*output:.*?name: Some\("[^"]*"\),\s*\)', t, re.S)
+v, n = blocos(velho), blocos(novo)
+assert len(v) == 2 and len(n) == 3 and n[0] == v[0] and n[2] == v[1], (v, n)
+assert re.search(r'id: Some\("[0-9a-f]{6}"\)', n[1]) and n[1].count("eDP-1") == 1, n[1]
+PY
+saida="$(doutor_areas "Uma, Duas, Tres" "Duas" chk_areas)"; rc=$?
+[ "$rc" = 0 ] && ok "depois do conserto o chk_areas fica em ordem, e a folga não conta como nome diferente" \
+  || falha "chk_areas diverge depois do conserto (rc=$rc): $saida"
+antes="$(stat -c %Y.%s "$PW"; md5sum < "$PW")"
+doutor_areas "Uma, Duas, Tres" "Duas" fix_areas >/dev/null; rc=$?
+[ "$rc" = 0 ] && [ "$antes" = "$(stat -c %Y.%s "$PW"; md5sum < "$PW")" ] \
+  && ok "a segunda passada do conserto não escreve" || falha "a segunda passada do fix_areas escreveu (rc=$rc)"
+doutor_areas "Uma" "" fix_areas >/dev/null
+[ "$antes" = "$(stat -c %Y.%s "$PW"; md5sum < "$PW")" ] \
+  && ok "um AREAS_NOMES mais curto que o disco não tira alfinete nenhum" || falha "o conserto tirou alfinete"
+saida="$(doutor_areas "" "" chk_areas)"; rc=$?
+[ "$rc" = 0 ] && ok "AREAS_NOMES vazio: as áreas são dela, o doctor não confere" || falha "AREAS_NOMES vazio divergiu (rc=$rc)"
 WP="$HOME/.local/share/backgrounds/meowsystem/ativos"; mkdir -p "$WP"
 python3 -I - "$WP" <<'PY'
 import struct, sys, zlib

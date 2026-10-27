@@ -12,8 +12,8 @@ comandos = [
 ]
 
 [portas.tema]
-pt = "um cartão por pack: logo, paleta, o que é próprio e o que herda. Vestir troca o pack."
-en = "one card per pack: logo, palette, what it brings and what it inherits. Vestir switches packs."
+pt = "um cartão por pack: logo, paleta, o que é próprio e o que herda. Aplicar tema troca o pack."
+en = "one card per pack: logo, palette, what it brings and what it inherits. Aplicar tema switches packs."
 
 [portas.criar]
 pt = "um pack seu, em passos: cores, ícones, papel de parede, sons, e baixar o tema."

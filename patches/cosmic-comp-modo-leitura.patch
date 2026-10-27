@@ -45,7 +45,7 @@
 #   `glLinkProgram`. Rodado sobre este shader: 6/6.
 #
 #   O procedimento de volta, em 6 passos, está na PRIMEIRA seção de
-#   `docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md` no repo do Meow.
+#   `git show 1b15ccb1^:docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md` no repo do Meow.
 #   Ele é para ser lido ANTES, e guardado FORA desta máquina.
 #
 # ============================================================================
@@ -114,8 +114,8 @@
 # ============================================================================
 # PROCEDÊNCIA
 # ============================================================================
-#   Escrito em 30/08/2026 (etapa 1 de docs/pesquisas/2026-08-29-modo-leitura-e-
-#   botoes.md). Diff contra cosmic-comp 0.1~1787767625~24.04~5c93094 com o
+#   Escrito em 30/08/2026 (etapa 1 de `git show 1b15ccb1^:docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md`).
+#   Diff contra cosmic-comp 0.1~1787767625~24.04~5c93094 com o
 #   `cosmic-comp-sem-workspace-vazio.patch` e o `cosmic-comp-raio-clampado.patch`
 #   já aplicados — os três são disjuntos por hunk, e este aplica igual numa
 #   árvore de fábrica.

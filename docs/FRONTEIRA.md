@@ -21,6 +21,9 @@ ele, as linhas «Aurora» da tabela não têm outro dono além do COSMIC.
   linha.
 - **O vizinho confere, não conserta.** O self-heal roda `meow doctor` (só lê) e imprime uma linha
   de resumo; o `--consertar` decide sobre gosto e não cabe num self-heal de hora em hora.
+- **O MeowSystem desliga no vizinho o que já faz**, só pelo `scripts/vizinhos.sh`, só nas linhas
+  marcadas do `assets/contratos/vizinhos.tsv` e com cópia de antes. É a única escrita dele na
+  árvore de outro projeto, e `VIZINHOS_DESATIVAR="nao"` no `meow.conf` a desliga.
 
 A outra fronteira, de dentro do repositório, mora em [`PACKS.md`](PACKS.md#a-fronteira-assets-contra-packs):
 `assets/` é o que o MeowSystem é, `packs/` é o que ele veste, `~/.local/state/meowsystem/` é o que

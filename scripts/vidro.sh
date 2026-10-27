@@ -230,7 +230,7 @@ FIM
     [ -n "$cap" ] && alfa_cap="$(MEOW_COSMIC_DIR="$BASE" \
       python3 "$RAIZ/scripts/derivar_vidro.py" "$cap" --alfa 2>/dev/null)"
     if [ -n "$alfa_cap" ] && [ "$alfa_cap" = "$esperado" ]; then
-      meow_info "a captura '$par', aplicada aqui, grava o alpha $esperado deste nível:  meow tema $par"
+      meow_info "a captura '$par', aplicada aqui, grava o alpha $esperado deste nível"
     else
       [ -n "$alfa_cap" ] \
         && meow_info "reaplicar a captura '$par' não resolve: aplicada aqui, ela grava alpha $alfa_cap"

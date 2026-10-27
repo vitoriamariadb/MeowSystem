@@ -101,14 +101,18 @@ commit ou o release **pinado** para o acervo não mudar debaixo de ninguém:
 
 ## Os applets
 
-Os cinco applets da casa moram em repositórios próprios, fixados em `assets/extensoes/`, e a
-página Extensões do painel os baixa e compila. Três vêm de um projeto de outra pessoa:
+Os nove applets da casa moram em repositórios próprios, fixados em `assets/extensoes/`, e a
+página Extensões do painel os baixa e compila. Sete vêm de um projeto de outra pessoa, e a licença de cada um segue a do original:
 
 | applet | upstream |
 |---|---|
 | Tocando agora | [cosmic-utils/cosmic-ext-applet-now-playing](https://github.com/cosmic-utils/cosmic-ext-applet-now-playing) |
 | Bandeja | [marcelogomes90/cosmic-ext-applet-status-hub](https://github.com/marcelogomes90/cosmic-ext-applet-status-hub) |
 | Ajustes rápidos | [DrakRosmann/cosmic-ext-applet-quick-settings](https://github.com/DrakRosmann/cosmic-ext-applet-quick-settings) |
+| Conta-gotas | [nalladev/cosmic-ext-applet-eyedropper](https://github.com/nalladev/cosmic-ext-applet-eyedropper) (MPL-2.0) |
+| Área de transferência | [cosmic-utils/clipboard-manager](https://github.com/cosmic-utils/clipboard-manager) (GPL-3.0) |
+| Discos | [cosmic-utils/cosmic-ext-applet-drives](https://github.com/cosmic-utils/cosmic-ext-applet-drives) (GPL-3.0-only) |
+| Bateria em ASCII | [pewmoe/Cosmic-Desktop-ASCII-Battery-Applet](https://github.com/pewmoe/Cosmic-Desktop-ASCII-Battery-Applet) (MPL-2.0) |
 
 O Modo de leitura e o Modo performance são de **Vitória Maria** e **André Farias**.
 

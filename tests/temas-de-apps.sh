@@ -643,7 +643,7 @@ ficou="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/penden
 [ "$rc0" = 3 ] && [[ "$aberto" == *"UseCustomUITheme=false"* ]] \
   && [ "$rc1" = 1 ] && [ "$escrito_ok" = 1 ] && [ -z "$tinha" ] && [ "$rc1b" = 0 ] \
   && [ "$rc2" = 3 ] && [ -z "$ficou" ] \
-  && [ "$(cat "$QB/qBittorrent.conf")" = "$antes" ] && printf '%s' "$saida" | grep -q 'já está vestido' \
+  && [ "$(cat "$QB/qBittorrent.conf")" = "$antes" ] && printf '%s' "$saida" | grep -q 'já está com o tema' \
   && ok "qbittorrent: sem o Aurora o conf é escrito aqui (com o app fechado, só as duas chaves), a 2ª passada é 0, e o vestido por ela fica" \
   || falha "qbittorrent: o escritor próprio do conf (aberto: rc=$rc0, sem tema: rc=$rc1 escrito=$escrito_ok, 2ª: rc=$rc1b, vestido: rc=$rc2)" \
            "$saida
@@ -658,19 +658,19 @@ saida="$(env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
            FLATPAK_SYSTEM_DIR="$T/flatpak-sistema" FLATPAK_CONFIG_DIR="$T/flatpak-etc" \
            "$RAIZ/bin/meow" apps </dev/null 2>&1)"
 faltam=""
-printf '%s\n' "$saida" | grep -qE '^  qbittorrent +sim +não veste +qbittorrent$' \
+printf '%s\n' "$saida" | grep -qE '^  qbittorrent +sim +não aplica +qbittorrent$' \
   && printf '%s\n' "$saida" | grep -A1 -E '^  qbittorrent ' | tail -n 1 \
        | grep -qE "^ {21}qBittorrent: .*'$CASA/\.themes/dela\.qbtheme', que não veio daqui" \
-  || faltam+=" o qBittorrent vestido por ela não saiu «não veste» com o motivo embaixo;"
-printf '%s\n' "$saida" | grep -qE '^  discord +sim +não veste +discord$' \
+  || faltam+=" o qBittorrent vestido por ela não saiu «não aplica» com o motivo embaixo;"
+printf '%s\n' "$saida" | grep -qE '^  discord +sim +não aplica +discord$' \
   && printf '%s\n' "$saida" | grep -A1 -E '^  discord ' | tail -n 1 | grep -qE '^ {21}Discord: .*cliente modificado' \
-  || faltam+=" o Discord não saiu «não veste» com o motivo do detectar embaixo;"
-[ "$(printf '%s\n' "$saida" | grep -cE '^  [a-z-]+ +sim +não veste ')" \
+  || faltam+=" o Discord não saiu «não aplica» com o motivo do detectar embaixo;"
+[ "$(printf '%s\n' "$saida" | grep -cE '^  [a-z-]+ +sim +não aplica ')" \
   = "$(printf '%s\n' "$saida" | grep -cE '^ {21}[^ ]')" ] \
-  || faltam+=" há «não veste» sem a linha do motivo;"
+  || faltam+=" há «não aplica» sem a linha do motivo;"
 [ -z "$faltam" ] \
-  && ok "meow apps: «não veste» só com o motivo embaixo — o qBittorrent vestido por ela diz o tema que está nele, o Discord diz o cliente que falta" \
-  || falha "meow apps: a tabela diz «não veste» sem motivo, ou perde o motivo guardado:$faltam" "$saida"
+  && ok "meow apps: «não aplica» só com o motivo embaixo — o qBittorrent vestido por ela diz o tema que está nele, o Discord diz o cliente que falta" \
+  || falha "meow apps: a tabela diz «não aplica» sem motivo, ou perde o motivo guardado:$faltam" "$saida"
 mv "$T/vencord-de-lado" "$CASA/.config/Vencord"
 rm -rf "$CASA/.var/app/org.qbittorrent.qBittorrent" "$BIN/flatpak" \
        "$CASA/.local/share/flatpak/app/org.qbittorrent.qBittorrent"
@@ -1257,9 +1257,9 @@ saida="$(env -i PATH="$BIN10:$PATH" HOME="$CASA10" XDG_CONFIG_HOME="$CASA10/.con
            XDG_DATA_HOME="$CASA10/.local/share" MEOW_PACKS="$PACKS10" MEOW_RAIZ="$RAIZ" \
            MEOW_ESTADO="$T10/estado" MEOW_CONF="$T10/meow.conf" TMPDIR="$T10/tmp" NO_COLOR=1 \
            "$RAIZ/bin/meow" apps </dev/null 2>&1)"
-[ "$(printf '%s\n' "$saida" | grep -cE '^  [a-z-]+ +sim +não veste +[a-z]')" = 3 ] \
+[ "$(printf '%s\n' "$saida" | grep -cE '^  [a-z-]+ +sim +não aplica +[a-z]')" = 3 ] \
   && [ "$(printf '%s\n' "$saida" | grep -c 'sem tema neste pack (Sem Apps)')" = 3 ] \
-  || faltam+=" a tabela do meow apps não disse «não veste» e o motivo nos três ($saida);"
+  || faltam+=" a tabela do meow apps não disse «não aplica» e o motivo nos três ($saida);"
 [ "$(impressao10)" = "$antes" ] || faltam+=" a tabela mudou a casa;"
 [ -z "$faltam" ] \
   && ok "P55: pack sem tema para o app não aplica o de outro pack — diz «sem tema neste pack», no módulo e no meow apps, e não escreve" \
@@ -1284,7 +1284,7 @@ saida="$(chk10 catppuccin mocha)"; rc=$?
 [ "$rc" = 0 ] && [ "$saida" = "o Heroic abre o tema pelo nome do arquivo — o módulo grava com o .css, e está certo" ] \
   || faltam+=" com o Catppuccin a frase mudou (rc=$rc: $saida);"
 saida="$(chk10 dracula dracula)"; rc=$?
-[ "$rc" = 0 ] && [ -n "$esq10" ] && printf '%s' "$saida" | grep -qF "o pack no ar ($nome10) veste o '$esq10'" \
+[ "$rc" = 0 ] && [ -n "$esq10" ] && printf '%s' "$saida" | grep -qF "o pack no ar ($nome10) usa o '$esq10'" \
   && ! printf '%s' "$saida" | grep -qF '.css' \
   || faltam+=" com o Dracula a frase não diz o tema que ele traz (rc=$rc: $saida);"
 saida="$(chk10 sem-apps dracula)"; rc=$?

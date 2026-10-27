@@ -21,6 +21,10 @@ const REGIAO = [
   [/^(TERMINAL_|PROMPT_|FASTFETCH_)/, "term"],
   [/^(ICONES_|PASTAS_|JANELAS_TILING)/, "arq"],
 ];
+function previaDoPack(p, flavor) {
+  const todas = (p && p.previa) || {};
+  return todas[flavor] || todas[Object.keys(todas)[0]] || null;
+}
 function mesaDaPagina(pagina = "") {
   const marca = new Set();
   for (const c of chavesRecentes()) for (const [re, r] of REGIAO) if (re.test(c)) marca.add(r);
@@ -32,6 +36,7 @@ function mesaDaPagina(pagina = "") {
   return MESA.mesa({
     val: valeNaPrevia, marca, gato: urlDoGato(gato), ff, ffPagina: doTerminal, parede: paredeDaPrevia(),
     ajuste: valeNaPrevia("WALLPAPER_AJUSTE"),
+    previa: previaDoPack(packNoAr(), flavorEmVigor()),
     solo: pagina === "terminal" ? "term" : "",
     ponteiro: pagina === "janelas",
     quente: leitura ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
@@ -94,6 +99,7 @@ function cartaoDePack(p) {
   const previa = MESA.mesa({
     cores: MESA.estiloDeCores(coresDoFlavor(p, flavor), ordem, p.no_ar ? vale("ACCENT") : "mauve"),
     gato: p.no_ar || !p.mascote ? urlDoGato(ESQUEMA.gato_no_dock || vale("LOGO")) : p.mascote,
+    previa: previaDoPack(p, flavor),
     rotulo: "Prévia do " + p.nome,
     sem: new Set(p.no_ar ? [] : ["musica"]),
   });
@@ -104,7 +110,7 @@ function cartaoDePack(p) {
   if (p.no_ar) {
     direita.push(elemento("span", { class: "estado-no-ar", role: "img", "aria-label": "No ar", dica: "No ar" }, [icone("certo")]));
   } else {
-    direita.push(botao("Vestir", { class: "bt principal", controle: "pack:" + p.id + ":vestir",
+    direita.push(botao("Aplicar tema", { class: "bt principal", controle: "pack:" + p.id + ":vestir",
       dica: primeiraFrase((ACAO.get("pack_usar") || {}).ajuda), onclick: () => vestir(p, flavor) }));
   }
   if (p.remover && !p.remover.motivo) {
@@ -409,6 +415,32 @@ async function carregarAcervo() {
   ACERVO = r.erro ? { chave, sistema: [], biblioteca: [] } : { chave, sistema: r.sistema || [], biblioteca: r.biblioteca || [] };
   render();
 }
+let PREVIA_DO_RASCUNHO = null;
+let PREVIA_RELOGIO = null;
+function chaveDaPrevia() {
+  const r = rascunho();
+  return JSON.stringify([r.pack || "", r.base.pack, r.base.flavor || "", vinteSeis()]);
+}
+async function carregarPreviaDoRascunho(chave) {
+  const r0 = rascunho();
+  const consulta = `previa=1&id=${encodeURIComponent(r0.pack || "")}&base=${encodeURIComponent(r0.base.pack)}`
+    + `&flavor=${encodeURIComponent(r0.base.flavor || "")}&cores=${encodeURIComponent(JSON.stringify(vinteSeis()))}`;
+  const r = await api(`/api/criar?${consulta}`);
+  if (!PREVIA_DO_RASCUNHO || PREVIA_DO_RASCUNHO.chave !== chave) return;
+  PREVIA_DO_RASCUNHO = { chave, previa: r.erro ? null : r.previa || null };
+  if (ROTA.porta === "criar") render();
+}
+function previaDoRascunho() {
+  const chave = chaveDaPrevia();
+  if (!PREVIA_DO_RASCUNHO || PREVIA_DO_RASCUNHO.chave !== chave) {
+    PREVIA_DO_RASCUNHO = { chave, previa: null };
+    clearTimeout(PREVIA_RELOGIO);
+    PREVIA_RELOGIO = setTimeout(() => carregarPreviaDoRascunho(chave), 250);
+  }
+  if (PREVIA_DO_RASCUNHO.previa) return PREVIA_DO_RASCUNHO.previa;
+  const r = rascunho();
+  return previaDoPack(PACKS.find((x) => x.id === (r.pack || r.base.pack)) || PACKS.find((x) => x.id === r.base.pack) || packNoAr(), r.base.flavor);
+}
 function gradeDoAcervo(pasta) {
   if (!ACERVO || ACERVO.chave !== chaveDoAcervo()) carregarAcervo();
   const pronto = ACERVO && !ACERVO.carregando;
@@ -636,9 +668,9 @@ function passoMandar() {
   const dica = pouco ? "Pouco contraste entre texto e fundo" : null;
   const saidas = elemento("div", { class: "corpo fila" }, [
     botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
-      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica: dica || "Um .meowpack para mandar",
+      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica: dica || "Um .meowpack para outra máquina",
       onclick: async () => { const pack = await garantirPack(); if (pack) exportarPack(pack.id); } }),
-    botao("Vestir agora", { class: "bt", icone: "tema", controle: "criar:vestir",
+    botao("Aplicar tema", { class: "bt", icone: "tema", controle: "criar:vestir",
       disabled: pouco, "aria-disabled": pouco ? "true" : null, dica,
       onclick: async () => { const pack = await garantirPack(); if (pack) vestir(pack, null); } }),
   ]);
@@ -677,6 +709,7 @@ function paginaCriar(sub) {
   const previa = MESA.mesa({
     cores: MESA.estiloDeCores(ordem.map((n) => mapa[n]), ordem, "mauve"),
     gato: urlDoGato(ESQUEMA.gato_no_dock || vale("LOGO")), parede: sub === "papel" ? paredeDaPrevia() : "",
+    previa: previaDoRascunho(),
     rotulo: "Prévia do tema",
   });
   return [

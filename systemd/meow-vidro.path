@@ -1,0 +1,14 @@
+[Unit]
+Description=MeowSystem — vigia o tema do COSMIC e devolve o vidro da janela maximizada que a Aparência tira
+
+[Path]
+PathChanged=%h/.config/cosmic/com.system76.CosmicTheme.Dark/v2/background
+PathChanged=%h/.config/cosmic/com.system76.CosmicTheme.Dark/v2/transparent_background
+PathChanged=%h/.config/cosmic/com.system76.CosmicTheme.Dark/v2/frosted_windows
+PathChanged=%h/.config/cosmic/com.system76.CosmicTheme.Light/v2/background
+PathChanged=%h/.config/cosmic/com.system76.CosmicTheme.Light/v2/transparent_background
+PathChanged=%h/.config/cosmic/com.system76.CosmicTheme.Light/v2/frosted_windows
+Unit=meow-vidro.service
+
+[Install]
+WantedBy=default.target

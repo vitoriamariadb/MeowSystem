@@ -47,3 +47,40 @@ um teste novo `tests/wallpaper-base.sh`, `.gitignore`. Os caminhos não rastread
 ## Fora desta sprint
 Redesenhar a curadoria dos papéis de parede, `assets/apps/jogos-fora.map` (decisão dela), o gerador
 de ícone, qualquer coisa em `packs/`.
+
+## Execução
+Bloco pasta, branch `bloco/pasta`, feito na árvore `MeowSystem-pasta`; o checkout principal não foi tocado.
+
+- Conserto na origem: `meow doctor` ganhou `basefundo` (a base dos papéis de parede dentro do repositório
+  sai para `~/.local/share/backgrounds/meowsystem`, sem perder imagem, reescrevendo o `WALLPAPER_BASE` e
+  os `Path(...)` do CosmicBackground; o caso dela, symlink e caminho via `/mnt/Apate`, é reconhecido pelo
+  inode) e `estadovelho` (apaga `midia/` e `leitura/` do estado; `extensoes/`, `leitura.log` e backups ficam).
+  A função mora em `scripts/wallpaper.sh base [--conferir]`. Commit 659507f5.
+- Regra na árvore: `tests/arvore.sh` acusa `src/applets`, `assets/papeis-de-parede`, `.playwright-mcp`,
+  `.trabalho-icones`, `assets/icones/upstream` e zip na raiz; `.gitignore` cobre os quatro primeiros. Commit eaccd6a2.
+- `scripts/enxugar.sh`: lista fechada (seção 5 do levantamento, remedida com `git status --porcelain --ignored`),
+  sem `--aplicar` só lista com tamanho e contagem, sem pergunta interativa. Mapa igual ao do pack é apagado; mapa
+  que difere ou não tem par vai para a branch. O registro vai para `arquivo` em UM commit por `git worktree`
+  (`levas/2026-10-27-pasta-local/`, com `LEIA-ME.md` que só ganha linha), com o blob de cada arquivo conferido
+  contra o índice da branch antes de apagar; o `git add` não registra remoção, e repetição igual sai sem commit.
+  Se a branch não abre ou um arquivo não chega igual, nada de registro é apagado. Arquivo que o git rastreia nunca
+  é tocado. Imagem dela só se move: `Imagem colada.png`, `aba7.png`, `docs/capturas/spotify.jpg` e
+  `.trabalho-icones` (os PNG que ela desenhou à mão, sem cópia em lugar nenhum do repo) vão para a branch. Sai com
+  3 enquanto `assets/papeis-de-parede` ainda existe (quem move é o doctor). Commits 965a541d e ba773264
+  (conferência, `relatorios/conferencia-pasta.md`).
+- Provas: `tests/wallpaper-base.sh` (HOME e repo de brinquedo: move 13 imagens byte a byte, configs reescritas,
+  conflito recusado com a origem intacta, segunda passada sem escrita, `cmd_doctor` inteiro, e o caminho que chega
+  por um atalho de fora do repo, como o dela) e `tests/enxugar.sh` (cópia de amostra da árvore: nenhuma imagem solta
+  nem `packs/` na lista de apagar, ensaio não escreve, `--aplicar` arquiva byte a byte e apaga, branch do checkout
+  intacta, repetição não muda nada, falha do worktree ou arquivo que não chega igual preserva o registro, segunda
+  leva não tira da branch o que a primeira guardou).
+- Medido hoje na pasta dela (só leitura): 1,8 GB a apagar (`src/applets` 1,5 GB) e 79,8 MB para a branch `arquivo`;
+  os 319 MB do acervo de papéis de parede saem pelo doctor, não pelo script. Ensaio do `--aplicar` num clone com as
+  sobras de verdade dela: 1550 arquivos na branch, todos iguais byte a byte, um commit, `dev` intacto.
+- Ficou de fora: `assets/apps/jogos-fora.map` (decisão dela); `cosmic-comp-patch` (3,3 GB) só sai depois da P121;
+  `assets/icones/overrides` é pasta vazia que o git não rastreia, não entrou na lista; as capturas e fotos do
+  qa-final (39 MB) vão para a branch em vez de serem apagadas, podem ser fotos dela. O script é de uma vez: depois
+  do `--aplicar` na pasta dela, `scripts/enxugar.sh` e `tests/enxugar.sh` saem do repo num commit (a regra da
+  `tests/arvore.sh` fica).
+- Ordem do fecho (coordenador): `meow doctor --consertar` (basefundo), depois `scripts/enxugar.sh --raiz
+  ~/Desenvolvimento/MeowSystem` para conferir a lista, depois com `--aplicar`, e o `du -sh` antes e depois.

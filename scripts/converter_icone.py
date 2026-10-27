@@ -15,25 +15,39 @@ RES = 256
 ESCALA = 48.0 / RES
 
 
-def rasterizar(caminho: str, res: int = RES) -> np.ndarray:
+MARGEM = 6
+
+
+def rasterizar(caminho: str, res: int = RES, margem: int = 0) -> np.ndarray:
     ext = os.path.splitext(caminho)[1].lower()
+    miolo = res - 2 * margem
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
         png = tmp.name
     try:
         if ext == ".svg":
             subprocess.run(
-                ["rsvg-convert", "-w", str(res), "-h", str(res), caminho, "-o", png],
+                ["rsvg-convert", "-w", str(miolo), "-h", str(miolo), caminho, "-o", png],
                 check=True, capture_output=True)
         else:
             subprocess.run(
                 ["convert", caminho, "-background", "none", "-filter", "Lanczos",
-                 "-resize", f"{res}x{res}!", png],
+                 "-resize", f"{miolo}x{miolo}!", png],
+                check=True, capture_output=True)
+        if margem:
+            subprocess.run(
+                ["convert", png, "-background", "none", "-gravity", "center",
+                 "-extent", f"{res}x{res}", png],
                 check=True, capture_output=True)
         cru = subprocess.run(["convert", png, "-depth", "8", "RGBA:-"],
                              check=True, capture_output=True).stdout
         return np.frombuffer(cru, np.uint8).reshape(res, res, 4).copy()
     finally:
         os.unlink(png)
+
+
+def toca_borda(rgba: np.ndarray) -> bool:
+    a = rgba[..., 3] >= 128
+    return bool(a[0].any() or a[-1].any() or a[:, 0].any() or a[:, -1].any())
 
 
 def _luma(rgb: np.ndarray) -> np.ndarray:
@@ -318,7 +332,7 @@ def colapsar_fitas(rot: np.ndarray, n: int, limiar48: float, res: int,
     return saida, fitas
 
 
-def segmentos(mask: np.ndarray):
+def segmentos(mask: np.ndarray, aparar_borda: bool = False):
     h, w = mask.shape
     m = np.zeros((h + 2, w + 2), bool)
     m[1:-1, 1:-1] = mask
@@ -340,7 +354,7 @@ def segmentos(mask: np.ndarray):
             cand.append(((x + 1, y + 1), (x, y + 1)))
         if not m[y, x - 1]:
             cand.append(((x, y + 1), (x, y)))
-        segs.extend(s for s in cand if not moldura(*s))
+        segs.extend(s for s in cand if not (aparar_borda and moldura(*s)))
     return segs
 
 
@@ -627,19 +641,19 @@ def area_cheia(rot: np.ndarray, n: int):
     return rot == cand
 
 
-def emitir(linhas, esc: float) -> str:
+def emitir(linhas, esc: float, desloca: float = 0.0) -> str:
     partes = []
     for fechar, trechos, cheia in linhas:
         primeiro = trechos[0][1][0]
         primeiro = primeiro[0] if trechos[0][0] == "C" else primeiro
-        d = [f"M{primeiro[0] * esc:.2f} {primeiro[1] * esc:.2f}"]
+        d = [f"M{(primeiro[0] - desloca) * esc:.2f} {(primeiro[1] - desloca) * esc:.2f}"]
         for tipo, dados in trechos:
             if tipo == "C":
                 for c in dados:
-                    d.append("C" + " ".join(f"{q[0] * esc:.2f} {q[1] * esc:.2f}"
+                    d.append("C" + " ".join(f"{(q[0] - desloca) * esc:.2f} {(q[1] - desloca) * esc:.2f}"
                                             for q in c[1:]))
             else:
-                pares = " ".join(f"{q[0] * esc:.2f} {q[1] * esc:.2f}" for q in dados[1:])
+                pares = " ".join(f"{(q[0] - desloca) * esc:.2f} {(q[1] - desloca) * esc:.2f}" for q in dados[1:])
                 if pares:
                     d.append(pares if len(d) == 1 else "L" + pares)
         if fechar:
@@ -655,13 +669,22 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
     if tol is None:
         tol = TOL_CURVAS if curvas else TOL_POLILINHA
     rgba = rasterizar(entrada, res)
+    margem = 0
+    if toca_borda(rgba):
+        margem = MARGEM
+        rgba = rasterizar(entrada, res, margem)
     rot, cores = quantizar(rgba, k, funde)
     n = int(rot.max()) + 1
     rot = moda2d(rot, moda, n)
     rot, fitas = colapsar_fitas(rot, n, fita, res, envolve)
     rot, fundidas = fundir_fracas(rot, cores, n, peso)
 
-    esc = 48.0 / (res + 2)
+    if margem:
+        esc = 48.0 / (res - 2 * margem)
+        desloca = margem + 1
+    else:
+        esc = 48.0 / (res + 2)
+        desloca = 0
     tol_dp = TOL_POLILINHA if curvas else tol
 
     linhas, caidos, ncantos, ncurvas, nretas = [], 0, 0, 0, 0
@@ -727,7 +750,7 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
         if not m.any():
             continue
         segs = []
-        for a, b in segmentos(m):
+        for a, b in segmentos(m, aparar_borda=(c == 0)):
             chave = (a, b) if a <= b else (b, a)
             if chave in vistas:
                 continue
@@ -746,7 +769,7 @@ def converter(entrada, k=6, moda=3, funde=46.0, tol=None, min_traco=3.2,
             if t:
                 linhas.append(t)
 
-    corpo = emitir(linhas, esc)
+    corpo = emitir(linhas, esc, desloca)
     metricas = {
         "modo": "curvas" if curvas else "polilinha",
         "classes": n,

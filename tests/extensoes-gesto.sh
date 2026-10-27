@@ -104,6 +104,42 @@ saida="$(G trocar novo)"
 igual "senão o novo ocupa a posição do antigo" "$(grep -o '"[^"]*"' "$PAINEL/plugins_wings" | paste -sd' ')" '"com.system76.CosmicAppletWorkspaces" "io.github.teste.Novo" "outro.Applet"'
 igual "o centro não mudou" "$(cat "$PAINEL/plugins_center")" "$(printf 'Some([\n    "com.system76.CosmicAppletTime",\n])')"
 
+echo "== a Dock: trocar troca onde o antigo mora, e por sem troca vai ao Panel"
+DOCK="$H/.config/cosmic/com.system76.CosmicPanel.Dock/v1"
+mkdir -p "$DOCK"
+printf 'Some(([\n    "com.system76.CosmicAppletWorkspaces",\n], [\n    "outro.Applet",\n]))' > "$PAINEL/plugins_wings"
+printf 'Some(([\n    "com.system76.CosmicAppList",\n], [\n    "io.velho.Antigo",\n    "com.system76.CosmicAppletMinimize",\n]))' > "$DOCK/plugins_wings"
+painel_antes="$(md5sum < "$PAINEL/plugins_wings")"
+saida="$(G trocar novo)"; rc=$?
+igual "trocar com o antigo só na Dock devolve 1" "$rc" 1
+igual "o novo ocupa a posição do antigo na Dock" "$(grep -o '"[^"]*"' "$DOCK/plugins_wings" | paste -sd' ')" '"com.system76.CosmicAppList" "io.github.teste.Novo" "com.system76.CosmicAppletMinimize"'
+igual "o Panel não mudou" "$(md5sum < "$PAINEL/plugins_wings")" "$painel_antes"
+dock_antes="$(md5sum < "$DOCK/plugins_wings")"
+saida="$(G trocar novo)"; rc=$?
+igual "a segunda passada do trocar devolve 0" "$rc" 0
+igual "e não escreve na Dock" "$(md5sum < "$DOCK/plugins_wings")" "$dock_antes"
+printf 'Some(([\n    "com.system76.CosmicAppList",\n], [\n    "com.system76.CosmicAppletMinimize",\n]))' > "$DOCK/plugins_wings"
+dock_antes="$(md5sum < "$DOCK/plugins_wings")"
+saida="$(G por novo)"; rc=$?
+igual "por sem troca devolve 1" "$rc" 1
+igual "e escreve no fim do Panel" "$(grep -o '"[^"]*"' "$PAINEL/plugins_wings" | tail -1)" '"io.github.teste.Novo"'
+igual "a Dock não mudou" "$(md5sum < "$DOCK/plugins_wings")" "$dock_antes"
+painel_antes="$(md5sum < "$PAINEL/plugins_wings")"
+saida="$(G por novo)"; rc=$?
+igual "a segunda passada do por devolve 0" "$rc" 0
+igual "e não escreve no Panel" "$(md5sum < "$PAINEL/plugins_wings")" "$painel_antes"
+printf 'Some(([\n    "com.system76.CosmicAppletWorkspaces",\n], [\n    "outro.Applet",\n]))' > "$PAINEL/plugins_wings"
+printf 'Some(([\n    "com.system76.CosmicAppList",\n], [\n    "io.velho.Antigo",\n]))' > "$DOCK/plugins_wings"
+saida="$(G por novo)"; rc=$?
+igual "por com o antigo na Dock devolve 1" "$rc" 1
+igual "e escreve na Dock, onde o antigo mora" "$(grep -o '"[^"]*"' "$DOCK/plugins_wings" | tail -1)" '"io.github.teste.Novo"'
+igual "e o Panel fica como estava" "$(grep -o '"[^"]*"' "$PAINEL/plugins_wings" | paste -sd' ')" '"com.system76.CosmicAppletWorkspaces" "outro.Applet"'
+rm -rf "$H/.config/cosmic/com.system76.CosmicPanel.Dock"
+
+echo "== reiniciar-painel: só o painel desta casa, e aqui não há nenhum de pé"
+saida="$(G reiniciar-painel)"; rc=$?
+igual "reiniciar-painel devolve 0 sem painel desta casa" "$rc" 0
+
 echo "== atualizar: o commit novo vira o pino e é compilado"
 (cd "$ORIGEM" && printf 'x' > data/mais && git add -A && git -c core.hooksPath=/dev/null commit -q -m dois)
 C2="$(git -C "$ORIGEM" rev-parse HEAD)"
@@ -128,7 +164,7 @@ some "o pino saiu" "$USUARIO/novo.pino"
 echo "== extensão da casa: instalar e remover escrevem o EXTENSOES"
 mkdir -p "$T/casa-pinos"
 cat > "$T/casa-pinos/fake.pino" <<FIM2
-ORDEM=1
+ORDEM=3
 NOME="Fake"
 URL="https://exemplo.test/dona/cosmic-ext-applet-novo"
 COMMIT="$C2"
@@ -138,6 +174,22 @@ BIN="meowsystem-teste"
 DESKTOP="data/io.github.teste.Novo.desktop.in"
 ICONES="data/io.github.teste.Novo.svg:scalable/apps"
 FIM2
+ordem=0
+for par in now-playing:MIDIA leitura:LEITURA_APPLET; do
+  ordem=$((ordem + 1))
+  cat > "$T/casa-pinos/${par%%:*}.pino" <<FIM2
+ORDEM=$ordem
+TIPO="applet"
+PADRAO="sim"
+CHAVE_DO_CONF="${par#*:}"
+NOME="${par%%:*}"
+URL="https://exemplo.test/dona/${par%%:*}"
+COMMIT="$C2"
+APP_ID="io.github.teste.${par#*:}"
+BIN="meowsystem-${par%%:*}"
+DESKTOP="data/x.desktop"
+FIM2
+done
 PINOS_USADOS="$T/casa-pinos"
 saida="$(G instalar fake)"; rc=$?
 igual "instalar da casa devolve 1" "$rc" 1

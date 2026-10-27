@@ -163,7 +163,7 @@ cmd_instalar_starship() {
   fi
 
   mkdir -p "$HOME/.local/bin" 2>/dev/null || true
-  if ! sh -c "$PROMPT_INSTALAR"; then
+  if ! sh -c "$PROMPT_INSTALAR" || ! _prompt_tem_starship; then
     meow_erro "o instalador do starship falhou (sem rede?)"
     meow_info "a alternativa, pelo cargo: $PROMPT_INSTALAR_ALT"
     return "$MEOW_ERRO"
