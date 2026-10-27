@@ -281,5 +281,34 @@ saida="$(TEMA EXTENSOES_PINOS="$NP" FLAVOR=mocha)"; igual "um pino novo com TEMA
 NOVO="$TH/.config/meowsystem/extensoes/io.github.teste.Novo/tema.conf"
 igual "com as chaves do pino, o sufixo e o acento" "$(cat "$NOVO" 2>/dev/null | paste -sd' ')" "fundo = #1e1e2ef0 realce = #cba6f7"
 
+echo "== os quatro forks: pino válido e a troca do app id de hoje"
+FK="$T/forks"; mkdir -p "$FK/.local/bin" "$FK/.local/share/applications" "$FK/.config/cosmic/com.system76.CosmicPanel.Dock/v1"
+ESTADO_FORK() { env -i PATH="$PATH" HOME="$FK" NO_COLOR=1 USER=t XDG_DATA_HOME="$FK/.local/share" XDG_CONFIG_HOME="$FK/.config" \
+  MEOW_ESTADO="$FK/.local/state/meowsystem" EXTENSOES_PINOS="$RAIZ/assets/extensoes" AP_LOCK_PAINEL="$T/painel.lock" \
+  bash "$RAIZ/scripts/extensoes_build.sh" "$1" --estado 2>&1; }
+for par in eyedropper:meowsystem-eyedropper:io.github.meowsystem.Eyedropper:io.github.nalladev.CosmicExtAppletEyedropper \
+           clipboard:meowsystem-clipboard:io.github.meowsystem.Clipboard:io.github.cosmic_utils.cosmic-ext-applet-clipboard-manager \
+           drives:meowsystem-drives:io.github.meowsystem.Drives:dev.cappsy.CosmicExtAppletDrives \
+           ascii-battery:meowsystem-ascii-battery:io.github.meowsystem.AsciiBattery:com.github.pewmoe.cosmic-ext-ASCII-dot-battery; do
+  IFS=: read -r id bin appid velho <<< "$par"
+  pino="$RAIZ/assets/extensoes/$id.pino"
+  existe "$id: o pino existe" "$pino"
+  grep -qx 'PADRAO="sim"' "$pino" && grep -qx 'TIPO="applet"' "$pino" && ok "$id: applet, ligado por padrão" || falha "$id: TIPO/PADRAO"
+  grep -qx "APP_ID=\"$appid\"" "$pino" && grep -qx "BIN=\"$bin\"" "$pino" && grep -qx "SUBSTITUI=\"$velho\"" "$pino" && ok "$id: app id, binário e o id de hoje" || falha "$id: APP_ID/BIN/SUBSTITUI"
+  grep -qx "TEMA=\"$appid\"" "$pino" && grep -q '^TEMA_CHAVES="acento:@acento ' "$pino" && ok "$id: tema e chaves" || falha "$id: TEMA/TEMA_CHAVES"
+  existe "$id: o ícone do cartão" "$RAIZ/assets/extensoes/icones/$id.svg"
+  saida="$(ESTADO_FORK "$id")"; igual "$id: o pino passa na validação" "$?" 0
+  grep -qx "casa=1" <<< "$saida" && grep -qx "instalada=nao" <<< "$saida" && grep -qx "troca=" <<< "$saida" && ok "$id: sem binário, nada a trocar" || falha "$id: estado sem instalar: $saida"
+  printf '#!/bin/sh\n' > "$FK/.local/bin/$bin"; chmod 755 "$FK/.local/bin/$bin"
+  printf '[Desktop Entry]\nExec=%s/.local/bin/%s\n' "$FK" "$bin" > "$FK/.local/share/applications/$appid.desktop"
+  printf 'Some(([\n    "%s",\n], []))' "$velho" > "$FK/.config/cosmic/com.system76.CosmicPanel.Dock/v1/plugins_wings"
+  saida="$(ESTADO_FORK "$id")"
+  grep -qx "troca=$velho" <<< "$saida" && ok "$id: a Dock cita $velho e o estado oferece a troca" || falha "$id: troca: $saida"
+  rm -f "$FK/.local/bin/$bin" "$FK/.local/share/applications/$appid.desktop"
+done
+[ "$(grep -hx 'MIGRA_ESTADO=""' "$RAIZ"/assets/extensoes/{eyedropper,clipboard,drives,ascii-battery}.pino | wc -l)" = 4 ] \
+  && ok "os quatro sem MIGRA_ESTADO: nenhum guarda estado em ~/.local/state/cosmic" \
+  || falha "um fork aponta MIGRA_ESTADO para um estado que o applet não lê"
+
 [ "$falhas" = 0 ] && { echo "extensoes.sh: tudo verde"; exit 0; }
 echo "extensoes.sh: $falhas falha(s)"; exit 1
