@@ -76,7 +76,7 @@ cp -a "$ZD/functions/sistema.zsh" "$T/sistema-original.zsh"
 rodar() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$ETC" \
       VIZINHOS_DESENV="$DESENV" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
-      bash "$V" "$@"
+      VIZINHOS_SBIN="$T/real-sbin" bash "$V" "$@"
 }
 
 printf '\n1. o inventário\n'
@@ -304,21 +304,40 @@ doutor() {
   local f="$1"; shift
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$ETC" \
       VIZINHOS_DESENV="$DESENV" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
-      MEOW_RAIZ="$RAIZ" XDG_CONFIG_HOME="$CASA/.config" XDG_STATE_HOME="$CASA/.local/state" "$@" \
+      MEOW_RAIZ="$RAIZ" XDG_CONFIG_HOME="$CASA/.config" XDG_STATE_HOME="$CASA/.local/state" \
+      VIZINHOS_SBIN="$T/real-sbin" "$@" \
       bash -c 'source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow"); "$0"' "$f" 2>&1
 }
 retrato() { (cd "$1" && find . -path ./.local/state -prune -o -printf '%p %s %T@\n' | sort); }
 
 printf '\n9. as cópias reais da Aurora: o doctor corta o que está pronto, uma vez só\n'
 REAL="${SUITE_CASA_REAL:-$HOME}/.config/zsh"
-if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" ] && [ -f "$REAL/env.zsh" ]; then
+if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" ] && [ -f "$REAL/env.zsh" ] \
+   && [ -f "$REAL/scripts/aurora-qbittorrent-config.sh" ]; then
   CASA="$T/real"; ZD="$CASA/.config/zsh"; ESTADO="$CASA/.local/state/meowsystem"
-  mkdir -p "$ZD/scripts" "$ZD/functions" "$ESTADO"
-  cp "$REAL/scripts/ritual-aurora-self-heal.sh" "$REAL/scripts/spicetify-setup.sh" "$ZD/scripts/"
+  UD="$CASA/.config/systemd/user"
+  mkdir -p "$ZD/scripts" "$ZD/functions" "$ESTADO" "$T/real-sbin" "$UD/timers.target.wants" "$UD/default.target.wants"
+  cp "$REAL/scripts/ritual-aurora-self-heal.sh" "$REAL/scripts/spicetify-setup.sh" "$REAL/scripts/aurora-qbittorrent-config.sh" "$ZD/scripts/"
+  cp "$REAL/scripts/ritual-aurora-self-heal.sh" "$T/real-sbin/"
+  UNIDADES="aurora-painel-fantasma.timer aurora-vidro-maximizado.path aurora-cosmic-nightlight-watch.timer"
+  for u in $UNIDADES; do
+    case "$u" in
+      *.timer) printf '[Timer]\nOnCalendar=daily\n' > "$UD/$u"; ln -s "../$u" "$UD/timers.target.wants/$u" ;;
+      *.path)  printf '[Path]\nPathChanged=%%h/x\n' > "$UD/$u"; ln -s "../$u" "$UD/default.target.wants/$u" ;;
+    esac
+    printf '[Service]\nExecStart=/bin/true\n' > "$UD/${u%.*}.service"
+  done
+  cp -a "$UD" "$T/real-uni-original"
+  printf '#!/bin/sh\necho "systemctl $*" >> "%s/systemctl-real.log"\nexit 0\n' "$T" > "$T/bin/systemctl"; chmod 755 "$T/bin/systemctl"
   cp "$REAL/install.sh" "$REAL/env.zsh" "$ZD/"
   cp "$REAL/functions/sistema.zsh" "$ZD/functions/"
   cp -a "$ZD" "$T/real-original"
   NOVOS="aurora-fastfetch-link aurora-fastfetch-passo aurora-completion-meow aurora-icone-applib aurora-stubs-ocultar aurora-gato-pop aurora-spicetify-instalar"
+  NOVOS="$NOVOS aurora-painel-fantasma-instalar aurora-painel-fantasma-ligar aurora-painel-fantasma-passo"
+  NOVOS="$NOVOS aurora-vidro-instalar aurora-vidro-reconciliar aurora-vidro-passo aurora-leitura-vigia-instalar"
+  NOVOS="$NOVOS aurora-alfinetes aurora-alfinetes-passo aurora-qbittorrent-wings"
+  UNIDADE_ITENS="aurora-painel-fantasma-unidade aurora-vidro-unidade aurora-leitura-vigia-unidade"
+  COMPOSITOR="aurora-compositor aurora-night-light aurora-compositor-instalar aurora-compositor-serie aurora-night-light-instalar aurora-compositor-passo aurora-night-light-passo"
   ANTIGOS="caches-icones-casa spellbook-terminal-fastfetch spellbook-terminal-starship spellbook-terminal-fzf"
 
   antes="$(retrato "$CASA")"
@@ -340,11 +359,17 @@ if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" 
       *) grep -rqF "#vizinhos:$i# " "$ZD" || { todos=0; printf '       não cortou %s\n' "$i"; } ;;
     esac
   done
-  confere "os sete itens novos e os quatro antigos cortam nas cópias reais" '[ "$todos" = 1 ]'
-  confere "o compositor e o night-light esperam o build, sem corte" \
-    '! grep -qF "#vizinhos:aurora-compositor# " "$ZD/scripts/ritual-aurora-self-heal.sh" && ! grep -qF "#vizinhos:aurora-night-light# " "$ZD/scripts/ritual-aurora-self-heal.sh"'
+  confere "os $(printf '%s\n' $NOVOS | grep -c .) itens novos e os quatro antigos cortam nas cópias reais" '[ "$todos" = 1 ]'
+  esperam=1
+  for i in $COMPOSITOR; do grep -rqF "#vizinhos:$i# " "$ZD" && { esperam=0; printf '       cortou %s sem o build\n' "$i"; }; done
+  confere "os sete trechos do compositor e do night-light esperam o build, sem corte" '[ "$esperam" = 1 ]'
+  confere "as três unidades esperam a Aurora ler o corte" \
+    '[ ! -e "$T/systemctl-real.log" ] && for u in $UNIDADES; do [ -f "$UD/$u" ] || exit 1; done'
   confere "o self-heal cortado passa bash -n" 'bash -n "$ZD/scripts/ritual-aurora-self-heal.sh"'
   confere "o install.sh cortado passa bash -n" 'bash -n "$ZD/install.sh"'
+  confere "o script do qBittorrent cortado passa bash -n" 'bash -n "$ZD/scripts/aurora-qbittorrent-config.sh"'
+  confere "o vigia do painel sai inteiro do self-heal: nenhuma linha viva cita o aurora-painel-fantasma" \
+    '! grep -v "^#vizinhos:" "$ZD/scripts/ritual-aurora-self-heal.sh" | grep -qE "aurora-painel-fantasma[.](timer|sh)"'
   if command -v zsh >/dev/null 2>&1; then
     confere "o env.zsh cortado passa zsh -n" 'zsh -n "$ZD/env.zsh"'
     confere "o sistema.zsh cortado passa zsh -n" 'zsh -n "$ZD/functions/sistema.zsh"'
@@ -363,6 +388,24 @@ if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" 
   doutor fix_vizinhos >/dev/null
   confere "nem com o fix rodado de novo" '[ "$depois" = "$(retrato "$CASA")" ]'
 
+  cp "$ZD/scripts/ritual-aurora-self-heal.sh" "$T/real-sbin/ritual-aurora-self-heal.sh"
+  doutor fix_vizinhos >/dev/null
+  movidas=1
+  for i in $UNIDADE_ITENS; do
+    case "$i" in
+      aurora-painel-fantasma-unidade) u=aurora-painel-fantasma.timer ;;
+      aurora-vidro-unidade) u=aurora-vidro-maximizado.path ;;
+      aurora-leitura-vigia-unidade) u=aurora-cosmic-nightlight-watch.timer ;;
+    esac
+    { [ ! -e "$UD/$u" ] && [ ! -e "$UD/${u%.*}.service" ] && [ ! -L "$UD/timers.target.wants/$u" ] && [ ! -L "$UD/default.target.wants/$u" ] \
+      && ls "$ESTADO/vizinhos/$i"/*/"$u" "$ESTADO/vizinhos/$i"/*/"${u%.*}.service" >/dev/null 2>&1 \
+      && grep -qx "systemctl --user disable --now $u" "$T/systemctl-real.log"; } || { movidas=0; printf '       %s ficou\n' "$u"; }
+  done
+  confere "com o self-heal instalado já cortado, as três unidades saem desligadas, com o .service e o link" '[ "$movidas" = 1 ]'
+  depois="$(retrato "$CASA")"; : > "$T/systemctl-real.log"
+  doutor fix_vizinhos >/dev/null
+  confere "e a passada seguinte não chama o systemd nem escreve" '[ ! -s "$T/systemctl-real.log" ] && [ "$depois" = "$(retrato "$CASA")" ]'
+
   rodar --restaurar aurora-gato-pop >/dev/null
   confere "o --restaurar devolve o trecho do gato" '! grep -qF "#vizinhos:aurora-gato-pop# " "$ZD/scripts/ritual-aurora-self-heal.sh"'
   doutor chk_vizinhos >/dev/null; rc=$?
@@ -372,8 +415,11 @@ if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" 
   confere "o --listar diz que foi ela" 'rodar --listar | grep -q "^aurora-gato-pop	ativo, devolvido por você"'
   rodar --desativar aurora-gato-pop >/dev/null
   confere "o --desativar dito à mão ainda corta" 'grep -qF "#vizinhos:aurora-gato-pop# " "$ZD/scripts/ritual-aurora-self-heal.sh"'
-  for i in $NOVOS $ANTIGOS; do rodar --restaurar "$i" >/dev/null; done
+  for i in $NOVOS $ANTIGOS $UNIDADE_ITENS; do rodar --restaurar "$i" >/dev/null; done
   confere "restaurados todos, as cópias voltam byte a byte" 'diff -r "$T/real-original" "$ZD" >/dev/null'
+  confere "e as três unidades e os .service voltam byte a byte, religadas" \
+    'for u in $UNIDADES; do cmp -s "$UD/$u" "$T/real-uni-original/$u" && cmp -s "$UD/${u%.*}.service" "$T/real-uni-original/${u%.*}.service" && grep -qx "systemctl --user enable --now $u" "$T/systemctl-real.log" || exit 1; done'
+  rm -f "$T/bin/systemctl"
 else
   printf '  info  sem o ~/.config/zsh da Aurora nesta máquina: as cópias reais ficam para a máquina dela; os blocos 10 a 14 cobrem o corte com arquivos de brinquedo\n'
 fi
