@@ -92,6 +92,7 @@ MAQUINA=(
   app-navegador.py
   app-acessibilidade.py
   oficina.sh
+  icones-por-pack.py
   pastas-do-pack.sh
   restos-do-painel.sh
   folha-dos-resgatados.sh

@@ -499,14 +499,14 @@ EXTRAS = {
     "tema": ["tema:saude", "tema:abrir", "tema:criar", "pack:*:*", "chave:ACCENT=*", "chave:MODO=*"],
     "criar/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
     "criar/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
-    "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "autoral:*", "acervo:icone",
-                     "icones:aba=*", "levar:*"],
+    "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "desenho:*", "autoral:*", "acervo:icone",
+                     "acervo:filtro", "icones:aba=*"],
     "criar/papel": ["galeria:*", "papel:*", "acervo:parede", "levar:foto"],
     "criar/sons": ["criar:sino", "som:ouvir", "som:trocar"],
     "criar/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],
     "ajustes/dia-e-noite": ["noite:mesmo-horario"],
-    "ajustes/programas": ["programa:*", "jogo:*", "icone:*", "oficina:*"],
+    "ajustes/programas": ["programa:*", "jogo:*", "icone:*", "oficina:*", "desenho:*"],
     "cuidar": ["estado:*", "cuidar:exportar", "cuidar:importar", "pendencia:*"],
 }
 GLOBAIS = ["marca", "porta:*", "busca", "achado", "pendentes", "pendente:*", "desfazer", "ensaiar",
@@ -908,35 +908,18 @@ class Percurso:
                    "e o pack guardado valida no formato de três pastas: " + (ok.stdout + ok.stderr).strip()[-160:])
 
     def h_abas_de_icones(self):
-        pasta_pack = os.path.join(CASA, ".local", "share", "meowsystem", "packs", "tema-de-brinquedo", "icones")
         for aba in ("sistema", "biblioteca"):
             if not self.achar("icones:aba=" + aba):
                 continue
             self.clicar("icones:aba=" + aba)
             self.acionados.add("icones:aba=*")
             self.assentar(quieto=400)
-            nome = "levar:" + aba
-            el = self.achar(nome)
-            if not self.checa(el, f"a aba {aba} mostra os ícones para levar"):
-                continue
-            if el.get_attribute("aria-disabled") == "true":
-                self.checa(el.get_attribute("data-dica"), f"«{nome}» apagado diz o porquê")
-            else:
-                antes = set(os.listdir(os.path.join(pasta_pack, aba))) if os.path.isdir(os.path.join(pasta_pack, aba)) else set()
-                self.clicar(nome)
-                self.assentar(quieto=400)
-                depois = set(os.listdir(os.path.join(pasta_pack, aba))) if os.path.isdir(os.path.join(pasta_pack, aba)) else set()
-                self.checa(depois != antes, f"«Levar para o tema» na aba {aba} muda icones/{aba}/ do pack")
-                self.clicar(nome)
-                self.assentar(quieto=400)
-            self.acionados.add(nome)
-            if self.achar("levar:mais"):
-                n0 = self.js("() => document.querySelectorAll('.grade-apps.levar .app').length")
-                self.clicar("levar:mais")
-                self.assentar()
-                self.checa(self.js("() => document.querySelectorAll('.grade-apps.levar .app').length") > n0,
-                           "«Mais ícones» mostra mais")
-                self.acionados.add("levar:mais")
+            seletor = f".grade-apps.pastas[data-acervo='{aba}'] .app"
+            n = self.js(f"() => document.querySelectorAll(\"{seletor}\").length")
+            self.checa(n > 0, f"a aba {aba} mostra os ícones do pack em edição ({n})")
+            self.checa(not self.achar("levar:" + aba), f"a aba {aba} só mostra: não tem botão de levar")
+            if self.achar("acervo:filtro"):
+                self.acionados.add("acervo:filtro")
         self.clicar("icones:aba=apps")
         self.assentar()
 
