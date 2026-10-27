@@ -335,6 +335,7 @@ const LUGAR_EXTENSOES = {
   builds: [
     { a: "builds_refazer_tudo", r: "Refazer tudo" },
     { c: "BUILDS_AO_ENTRAR", r: "Refazer ao entrar na sessão" },
+    { c: "COMPOSITOR", r: "Compositor" },
   ],
 };
 
