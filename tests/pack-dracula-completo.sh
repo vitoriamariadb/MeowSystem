@@ -554,6 +554,26 @@ status_com dracula dracula icones_bandeja.sh --aplicar
 [ ! -e "$ST/20x20/status/resto-de-outro-pack.svg" ] \
   && ok "o pack sem icones.bandeja tira da bandeja o que um pack anterior escreveu" \
   || falha "o resto de bandeja de outro pack ficou"
+SS="$CS/.steam/steam/public"; mkdir -p "$SS" "$CS/.local/state/meowsystem"
+printf 'fabrica' > "$SS/steam_tray_mono.png.meow-original"
+printf 'de-outro' > "$SS/steam_tray_mono.png"
+status_com dracula dracula icones_tray_steam.sh --aplicar; rc_alheio=$?
+[ "$rc_alheio" = 3 ] && [ "$(cat "$SS/steam_tray_mono.png")" = de-outro ] \
+  && ok "sem icones.bandeja, o ícone da Steam que não é nosso fica como está" \
+  || falha "sem icones.bandeja, o ícone alheio da Steam foi mexido (rc=$rc_alheio)"
+printf 'nosso' > "$SS/steam_tray_mono.png"
+printf '%s\t2026-10-27\t%s\n' "$(readlink -f "$SS/steam_tray_mono.png")" \
+  "$(sha256sum "$SS/steam_tray_mono.png" | cut -d' ' -f1)" > "$CS/.local/state/meowsystem/manifesto.tsv"
+status_com dracula dracula icones_tray_steam.sh --conferir; rc_c=$?
+status_com dracula dracula icones_tray_steam.sh --aplicar; rc_a=$?
+status_com dracula dracula icones_tray_steam.sh --aplicar; rc_a2=$?
+if [ "$rc_c" = 1 ] && [ "$rc_a" = 1 ] && [ "$rc_a2" = 3 ] \
+   && [ "$(cat "$SS/steam_tray_mono.png")" = fabrica ] \
+   && ! grep -q steam_tray_mono "$CS/.local/state/meowsystem/manifesto.tsv"; then
+  ok "sem icones.bandeja, o ícone nosso da Steam volta ao de fábrica e sai do manifesto, e a segunda passada não escreve"
+else
+  falha "o ícone nosso da Steam não voltou ao de fábrica (conferir=$rc_c aplicar=$rc_a segunda=$rc_a2)" "$(cat "$SS/steam_tray_mono.png")"
+fi
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
