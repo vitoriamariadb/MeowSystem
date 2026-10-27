@@ -23,7 +23,7 @@ FIM
 cat > "$T/bin/flatpak" <<'FIM'
 #!/usr/bin/env python3
 import os, sys
-args = sys.argv[1:]
+args = [a for a in sys.argv[1:] if a != "--system"]
 open(os.environ["FLATPAK_LOG"], "a").write(" ".join(args) + "\n")
 fake = os.environ.get("FLATPAK_FAKE", "")
 def ler(nome):
