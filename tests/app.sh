@@ -199,20 +199,18 @@ else:
     print("ok: o ensaio é pedido por gesto, e não guardado num interruptor")
 
 _pecas = [("o botão do diálogo", "confirmar-ensaio", _js),
-          ("o botão da barra do alto", "botao-ensaiar", _js),
           ("a faixa da gaveta", "faixa-ensaio", _js),
           ("o «Rodar de verdade» pós-ensaio", "ensaio-rodar", _js),
           ("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
           ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py),
-          ("o seco no /api/rodar", 'corpo.get("seco")', _py),
-          ("o seco no /api/salvar", 'corpo.get("seco")', _py)]
+          ("o seco no /api/rodar", 'corpo.get("seco")', _py)]
 _faltam = ["%s (%s)" % (nome, marca) for nome, marca, onde in _pecas if marca not in onde]
 if _faltam:
     print("FALHOU: o ensaio da sprint P8 sumiu da tela: %s" % ", ".join(_faltam),
           file=sys.stderr)
     falhou = 1
 else:
-    print("ok: o «Ver sem mudar» está no diálogo, na barra e na janela de resultado")
+    print("ok: o «Ver sem mudar» está no diálogo da ação e na janela de resultado")
 
 import hashlib as _hl
 import shutil as _sh
@@ -251,7 +249,7 @@ else:
     print("ok: o ensaio lê as escolhas numa cópia e não toca no meow.conf dela")
 
 import inspect as _inspect9
-_ini9 = _inspect9.getsource(servidor.iniciar)
+_ini9 = _inspect9.getsource(servidor._iniciar_agora)
 _falta9 = [v for v in ("MEOW_ICONES_ESCOLHAS", "MEOW_ICONES_TRACO") if v not in _ini9]
 if _falta9:
     print("FALHOU: o ensaio do «Salvar e aplicar» não leva os mapas de ícone dela: "
@@ -301,7 +299,7 @@ for _k, _v in (("ICONES_COR_MARCA", "sim"), ("FLAVOR", "latte"), ("ICONES_PASTAS
         _erros10.append("%s saiu %r, e não %r" % (_k, _exp.get(_k), _v))
 if _exp_quebrado is not None:
     _erros10.append("um conf com erro de sintaxe virou ambiente em vez de recusa")
-_ini = _inspect.getsource(servidor.iniciar)
+_ini = _inspect.getsource(servidor._iniciar_agora)
 if "conf_exportada(" not in _ini or "ambiente.update(conf)" not in _ini:
     _erros10.append("o iniciar não põe a conf no ambiente do trabalho")
 _m = servidor.Manipulador.__new__(servidor.Manipulador)
@@ -669,6 +667,9 @@ for estado, recusa in ((dict(Dock=0, compositor="sem", experimental=False), True
     teto = servidor.teto_da_chave("FORMA_RAIO_DOCK")
     if not teto or not teto["motivo"] or teto["trava"] != recusa:
         erros.append("com %r, o cartão não diz o teto e o porquê: %r" % (estado, teto))
+variante = next(i for i in servidor.ler_esquema() if i["chave"] == "ICONES_FLAVOR")
+if servidor.validar_valor(variante, variante["padrao"]):
+    erros.append("o padrão de ICONES_FLAVOR foi recusado, e o Desfazer não consegue devolvê-lo")
 
 if erros:
     print("FALHOU: " + "; ".join(erros), file=sys.stderr)

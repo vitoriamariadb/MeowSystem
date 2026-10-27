@@ -107,6 +107,24 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .aplicar[data-n="0"] .conta { display: none; }
 .aplicar[data-n="0"] .desfazer { display: none; }
 .aplicar .bt { height: 34px; }
+.gravando { display: inline-grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 50%; color: var(--ok); }
+.gravando svg.i { width: 16px; height: 16px; stroke-width: 2.4; }
+.gravando .so-erro, .gravando[data-estado="erro"] .so-ok, .gravando[data-estado="gravando"] svg { display: none; }
+.gravando[data-estado="erro"] { color: var(--perigo); background: var(--perigo-suave); }
+.gravando[data-estado="erro"] .so-erro { display: block; }
+.gravando[data-estado="gravando"]::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--tinta-3); border-right-color: transparent; animation: gira 800ms linear infinite; }
+.aplicar { position: relative; }
+.aplicar button.conta { height: 34px; border: 0; border-radius: var(--raio-pilula); background: none; cursor: pointer; }
+.aplicar button.conta:hover, .aplicar button.conta[aria-expanded="true"] { background: var(--cartao-2); }
+.aplicar[data-n="0"] .gravando { display: inline-grid; }
+.ultimas { width: min(420px, calc(100vw - 32px)); max-height: min(520px, 70vh); overflow: auto; }
+.ultimas[hidden] { display: none !important; }
+.ultima { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--e-3); min-height: 52px; padding: var(--e-1) var(--e-1) var(--e-1) var(--e-3); border-radius: var(--raio-sm); }
+.ultima:hover { background: var(--accent-suave); }
+.ultima > span { display: grid; gap: 2px; min-width: 0; }
+.ultima b { font-weight: 500; overflow-wrap: anywhere; }
+.ultima small { color: var(--tinta-3); font: var(--t-xs) var(--f-mono); overflow-wrap: anywhere; }
+.menu-corpo .ultima button { height: var(--h-pequeno); }
 
 .menu { position: relative; }
 .menu > summary { list-style: none; }

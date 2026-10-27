@@ -340,9 +340,7 @@ const LUGAR_EXTENSOES = {
 };
 
 const LUGAR_TOPO = [
-  { g: "salvar", r: "Aplicar" },
   { g: "descartar", r: "Desfazer" },
-  { g: "ensaio", r: "Ver sem mudar" },
   { g: "busca", r: "Procurar um ajuste" },
   { g: "creditos", r: "Créditos" },
   { g: "exportar-pagina", r: "Esta tela num arquivo" },

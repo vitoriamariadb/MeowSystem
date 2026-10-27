@@ -23,7 +23,7 @@ const REGIAO = [
 ];
 function mesaDaPagina(pagina = "") {
   const marca = new Set();
-  for (const c of MUDANCAS.keys()) for (const [re, r] of REGIAO) if (re.test(c)) marca.add(r);
+  for (const c of chavesRecentes()) for (const [re, r] of REGIAO) if (re.test(c)) marca.add(r);
   const gato = ESQUEMA.gato_no_dock || vale("LOGO");
   const doTerminal = pagina === "mascote" || pagina === "terminal";
   const ff = doTerminal && ligado(valeNaPrevia("FASTFETCH_LOGO"))
@@ -76,14 +76,14 @@ function amostraDeVariante(cores) {
 
 async function vestir(p, flavorId) {
   if (p.no_ar) {
-    if (flavorId && flavorId !== flavorEmVigor()) await salvarEscolhas({ FLAVOR: flavorId });
+    if (flavorId && flavorId !== flavorEmVigor()) await gravarAgora({ FLAVOR: flavorId });
     return;
   }
   await rodar(ACAO.get("pack_usar"), p.id, {
     semPerguntar: true,
     depois: () => {
       const f = CHAVE.get("FLAVOR");
-      if (flavorId && f && flavorId !== (f.valor || "")) salvarEscolhas({ FLAVOR: flavorId });
+      if (flavorId && f && flavorId !== (f.valor || "")) gravarAgora({ FLAVOR: flavorId });
     },
   });
 }
@@ -177,9 +177,7 @@ function paginaTema() {
   const ACCENT = CHAVE.get("ACCENT");
   const MODO = CHAVE.get("MODO");
   const imediato = (chave) => (v) => {
-    if (String(v) === String(CHAVE.get(chave).valor || "")) return;
-    MUDANCAS.delete(chave);
-    salvarEscolhas({ [chave]: v });
+    escolher(chave, v);
   };
   if (ACCENT) {
     const b = bloco("Cor de destaque", [elemento("div", { class: "corpo" }, [controleCor(ACCENT, imediato("ACCENT"), true)])]);

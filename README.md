@@ -42,7 +42,7 @@ compilador e as bibliotecas dos applets, o `fastfetch` e o `starship`. Para ensa
 
 ## O painel
 
-`meow abrir`, ou o ícone MeowSystem no lançador. 124 ajustes e 70 ações em quatro portas:
+`meow abrir`, ou o ícone MeowSystem no lançador. 124 ajustes e 71 ações em quatro portas:
 
 <table>
 <tr>
