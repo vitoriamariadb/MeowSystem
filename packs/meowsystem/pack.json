@@ -114,5 +114,13 @@
       "curadoria": "wallpapers/FONTES.tsv",
       "_nota": "O instalador semeia sozinho: a coleção pinada do repo e a curadoria (uma linha por imagem, com a URL). As imagens não vão para o git; a receita vai."
     }
+  },
+  "som": {
+    "fundamental": 880.0,
+    "harmonico": 1320.0,
+    "peso_fundamental": 0.62,
+    "peso_harmonico": 0.28,
+    "decaimento": 46.0,
+    "tema": "sons/"
   }
 }
