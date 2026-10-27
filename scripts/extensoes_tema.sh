@@ -39,26 +39,23 @@ sys.exit(1)
 }
 
 _tema_do() {
-  local tema="$1" texto base s0 s1 acento verde pessego
-  texto="$(_cor text)" && base="$(_cor base)" && s0="$(_cor surface0)" && s1="$(_cor surface1)" || return 1
-  acento="$(_cor "$_acento" mauve)" || return 1
-  case "$tema" in
-    io.github.meowsystem.Bandeja)
-      printf 'tinta = %s\nfundo = %sf0\nborda = %s\ntexto = %s\ndestaque = %s\nacento = %s\n' \
-        "$texto" "$base" "$s1" "$texto" "$s0" "$acento" ;;
-    io.github.meowsystem.AjustesRapidos)
-      verde="$(_cor green)" && pessego="$(_cor peach)" || return 1
-      printf 'acento = %s\ndestaque = %s\nfundo = %s\nborda = %s\ntexto = %s\nbloco = %s\ntinta = %s\ncamera = %s\nmicrofone = %s\n' \
-        "$acento" "$base" "$base" "$s1" "$texto" "$s0" "$texto" "$verde" "$pessego" ;;
-    *) return 2 ;;
-  esac
+  local par chave cor sufixo valor
+  for par in $1; do
+    chave="${par%%:*}"; cor="${par#*:}"; sufixo=""
+    case "$cor" in */*) sufixo="${cor#*/}"; cor="${cor%%/*}" ;; esac
+    if [ "$cor" = @acento ]; then valor="$(_cor "$_acento" mauve)" || return 1
+    else valor="$(_cor "$cor")" || return 1; fi
+    printf '%s = %s%s\n' "$chave" "$valor" "$sufixo"
+  done
 }
 
 _temas_da_casa() {
-  local f
+  local f tema chaves
   for f in "$PINOS"/*.pino; do
     [ -f "$f" ] || continue
-    sed -n 's/^TEMA="\(.*\)"/\1/p' "$f" | head -1
+    tema="$(sed -n 's/^TEMA="\(.*\)"/\1/p' "$f" | head -1)"
+    chaves="$(sed -n 's/^TEMA_CHAVES="\(.*\)"/\1/p' "$f" | head -1)"
+    [ -n "$tema" ] && [ -n "$chaves" ] && printf '%s\t%s\n' "$tema" "$chaves"
   done
 }
 
@@ -73,8 +70,8 @@ _instalado() {
 }
 
 main() {
-  local tema destino texto rc geral="$MEOW_OK" visto=0
-  while IFS= read -r tema; do
+  local tema chaves destino texto rc geral="$MEOW_OK" visto=0
+  while IFS=$'\t' read -r tema chaves; do
     [ -n "$tema" ] || continue
     destino="$RAIZ_TEMAS/$tema/tema.conf"
     if [ "$REVERTER" = 1 ]; then
@@ -87,7 +84,7 @@ main() {
     fi
     _instalado "$tema" || continue
     visto=1
-    texto="$(_tema_do "$tema")"; rc=$?
+    texto="$(_tema_do "$chaves")"; rc=$?
     if [ "$rc" != 0 ]; then
       meow_aviso "não montei o tema de $tema: a paleta de $_flavor não tem as cores que ele pede"
       geral="$MEOW_SEM_DEPENDENCIA"; continue
