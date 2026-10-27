@@ -73,6 +73,7 @@ saida="$(G adicionar novo)"; rc=$?
 igual "adicionar devolve 0" "$rc" 0
 existe "o pino do usuário existe" "$USUARIO/novo.pino"
 igual "e diz o app id" "$(sed -n 's/^APP_ID="\(.*\)"/\1/p' "$USUARIO/novo.pino")" io.github.teste.Novo
+igual "e a data do commit" "$(sed -n 's/^DATA="\(.*\)"/\1/p' "$USUARIO/novo.pino")" "$(git -C "$ORIGEM" log -1 --format=%cd --date=format:%d/%m/%Y)"
 igual "e o ícone" "$(sed -n 's/^ICONES="\(.*\)"/\1/p' "$USUARIO/novo.pino")" "data/io.github.teste.Novo.svg:scalable/apps"
 
 echo "== instalar um repo do usuário: compila, não mexe no EXTENSOES"
@@ -109,6 +110,14 @@ C2="$(git -C "$ORIGEM" rev-parse HEAD)"
 saida="$(G atualizar novo)"; rc=$?
 igual "atualizar devolve 1" "$rc" 1
 igual "o pino anda para o commit novo" "$(sed -n 's/^COMMIT="\(.*\)"/\1/p' "$USUARIO/novo.pino")" "$C2"
+
+echo "== refazer: sem o carimbo, o cargo roda de novo"
+antes="$(grep -c '^cargo build' "$T/cargo.log")"
+saida="$(G refazer novo)"; rc=$?
+igual "refazer devolve 1" "$rc" 1
+igual "e o cargo rodou uma vez a mais" "$(grep -c '^cargo build' "$T/cargo.log")" "$((antes + 1))"
+saida="$(G refazer nao-existe)"; rc=$?
+igual "um id desconhecido é recusado" "$rc" 2
 
 echo "== remover um repo do usuário: some o binário e o pino"
 saida="$(G remover novo)"; rc=$?
