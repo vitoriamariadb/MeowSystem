@@ -98,7 +98,7 @@ decisão humana, a mensagem diz **a decisão**, nunca a receita.
 
 Baixar de repositório público, pinado, é «faz». Em código: `meow_pendencia_acionavel <id>
 "<frase>" "<comando>"` e `meow_pendencia_resolvida <id>`, no `lib/comum.sh`, escrevem
-`$MEOW_ESTADO/pendencias.tsv`; o painel lê por `/api/pendencias` e desenha na porta Cuidar. O botão
+`$MEOW_ESTADO/pendencias.tsv`; o painel lê por `/api/pendencias` e desenha na porta Manter. O botão
 só aparece quando a linha tem comando **e** o id está em `ACAO_DA_PENDENCIA`.
 
 ## O contrato das etapas

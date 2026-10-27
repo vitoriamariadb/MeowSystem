@@ -35,7 +35,7 @@ app/
 | **Tema** | um cartão por pack instalado: logo, paleta, o que é próprio e o que herda. **Vestir**, **Remover**, **Abrir um tema** (`.meowpack` ou `.csv` de cores) |
 | **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Mandar (**Baixar o tema**) |
 | **Definir** | painel e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
-| **Cuidar** | o doctor e o **Consertar**, as pendências, **Guardar ajustes** e **Trazer ajustes** |
+| **Manter** | o doctor e o **Consertar**, as pendências, **Guardar ajustes** e **Trazer ajustes** |
 
 A barra de cima tem **Aplicar**, **Desfazer**, **Ver sem mudar**, **Procurar um ajuste**,
 **Créditos** e **Esta tela num arquivo**.

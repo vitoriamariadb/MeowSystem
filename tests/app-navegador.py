@@ -177,7 +177,7 @@ def main():
                     pag.locator("#pergunta-sim").click()
             checa(baixa.value.suggested_filename.endswith(".meowpack"), f"«Baixar o tema» baixa {baixa.value.suggested_filename}")
 
-            print("7. Cuidar: levar e trazer os ajustes")
+            print("7. Manter: levar e trazer os ajustes")
             ir(pag, "cuidar")
             with pag.expect_download(timeout=30000) as baixa:
                 pag.locator('[data-controle="cuidar:exportar"]').click()

@@ -96,7 +96,7 @@
     const rotas = [["#tema", "Tema"],
       ...PASSOS.map((p) => ["#criar/" + p.id, "Personalizar · " + p.nome]),
       ...AJUSTES.map((p) => ["#ajustes/" + p.id, "Definir · " + p.nome]),
-      ["#cuidar", "Cuidar"]];
+      ["#cuidar", "Manter"]];
     for (const [hash, nome] of rotas) {
       location.hash = hash;
       await new Promise((r) => setTimeout(r, 60));
