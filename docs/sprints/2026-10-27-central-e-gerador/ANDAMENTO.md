@@ -28,9 +28,12 @@
 - INTEGRADO em `integracao/central-e-gerador` (worktree `~/Desenvolvimento/MeowSystem-integracao`): Painel (P115-P117,
   `relatorios/conferencia-painel.md`), Central (P120-P121, `relatorios/conferencia-central.md`) e Forks (P122,
   `relatorios/conferencia-forks.md`, merge c2187964; repos `vitoriamariadb/meowsystem-{eyedropper,clipboard,drives,
-  ascii-battery}` na main, nada instalado ainda) e Pasta (P123, `relatorios/conferencia-pasta.md`, merge 39e3264c).
+  ascii-battery}` na main, nada instalado ainda) Pasta (P123, `relatorios/conferencia-pasta.md`, merge 39e3264c) e Textos (P118-P119,
+  `relatorios/conferencia-textos.md`, merge 50f259de; as 15 cópias mortas de `.git/hooks` foram para
+  `~/.local/state/meowsystem/backups/git-hooks-mortos-2026-10-27`).
 - EM VOO, a partir da integração (ela pediu os blocos juntos, 27/10):
-  Aurora (`wf_32a9b69a-21d`, P124 → P125) e Textos (`wf_af23fd58-b64`, P119 → P118).
+  Aurora (`wf_32a9b69a-21d`, P124 → P125).
+  Flatpak (P127 → P128 → P129) e, depois dele, Modificações (P130): ver «Blocos», rodada 5.
   Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
 - Próximo passo: integrar cada um assim que voltar. Fecho da pasta, no checkout dela, nesta ordem: `du -sh`; `meow doctor`
   (ver `basefundo` e `estadovelho` acusarem); `meow doctor --consertar`; `scripts/enxugar.sh --raiz ~/Desenvolvimento/MeowSystem`
@@ -39,7 +42,18 @@
   `ZDOTDIR` herdado. Bloco devolvido às 17:56 (cópia em `~/.local/state/meowsystem/backups/zshrc-antes-2026-10-27-1756`);
   cura na integração (65d53c56, 8c946886). As suítes de Aurora, Textos e Pasta começaram antes da cura: depois de cada
   uma voltar, conferir `tail -3 ~/.config/zsh/.zshrc` e rodar `scripts/terminal_bloco.sh aplicar` se faltar.
+- Modificações (27/10, trazido do Nitro): as sprints P127 a P130 entraram nesta leva por pedido dela («aí pra executar
+  dispara um workflow no mesmo estilo do nosso»). A auditoria está em `relatorios/auditoria-tema-por-app.md` e o
+  contorno que roda no Nitro em `relatorios/contorno-local.md`; a pasta `modificacoes/` da raiz saiu. Decidido por
+  quem usa no Nitro e mantido: P127 opção b; um tema para cada app (P129); a Modificações é uma porta nova ao lado da
+  Extensões, a Programas fica no Definir, o Terminal vira cartão, e todo tema de programa («Recebem o tema» e a Loja do
+  Spotify) sai da Programas para a Modificações (P130). Decidido pelo coordenador: a Modificações mostra só os apps
+  instalados; `/usr/share/themes` também sai do override global (o Flatpak recusa montar `/usr`); a issue no Clapper
+  pedindo o runtime novo fica para ela decidir.
 - Anotado para depois (27/10): P126, o Vencord no Discord oficial pelo meow (hoje injetado à mão pelo coordenador).
+- Anotado para depois (vindo do bloco Textos): saídas que ainda citam comando sem mandar digitar (`cursor.sh:188-191` e `:390`,
+  `construir_icones.sh:182`, `forma.sh:94,129`, `janelas.sh:182`, `relogio.sh:105`, `pack.py`) viram uma sprint própria;
+  depois do merge no `dev`, confirmar o commit «docs(readme): regerado do código» (a captura `tema.png` ainda diz «Vestir»).
 - Anotado para depois (vindo da conferência do Painel): `docs/PACKS.md` sem os campos `icones.sistema` e
   `icones.bandeja` (entra na P118); `restaurar.sh sistema_limpar` vermelho já no `dev` (o `.deb` do cosmic-comp em
   `~/.local/share/meowsystem/debs` muda sem «Restaurar»; entra na P125, junto do resto do compositor); numa casa sem
@@ -127,6 +141,8 @@ Fotos em `fotos/1.png` a `fotos/5.png`.
 | 2 | Textos | P119 → P118 | `~/Desenvolvimento/MeowSystem-textos`, `bloco/textos` | implementa, confere, final |
 | 3 | Aurora | P124 → P125 | `~/Desenvolvimento/MeowSystem-aurora`, `bloco/aurora` | implementa, confere, final |
 | 3 | Pasta | P123 | `~/Desenvolvimento/MeowSystem-pasta`, `bloco/pasta` | script + confere |
+| 5 | Flatpak | P127 → P128 → P129 | `~/Desenvolvimento/MeowSystem-flatpak`, `bloco/flatpak` | implementa (Sonnet high), confere e corrige (Opus high), final (Opus high) |
+| 5b | Modificações | P130, depois que o Flatpak integrar | `~/Desenvolvimento/MeowSystem-modificacoes`, `bloco/modificacoes` | implementa (Opus high), confere e corrige (Opus high), final (Opus high) |
 | 4 | Máquina | instalar do zero pelo MeowSystem, na máquina dela | checkout principal | coordenador |
 Os dois blocos da rodada 1 só dividem `app/servidor.py`, em funções diferentes (P116 `_cartoes_de_pack`; P120 o
 bloco `EXT_*` e as tabelas de pendência). P119 mexe nas mesmas tabelas da P120, por isso vai na rodada 2.
