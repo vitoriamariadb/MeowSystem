@@ -36,7 +36,7 @@ for f in README.md README.en.md; do
 done
 
 capturas="$(grep -oE 'docs/capturas/readme/[a-z-]+\.png' README.md | sort -u | wc -l)"
-[ "$capturas" -eq 4 ] && ok "as quatro portas aparecem em captura" || falha "o README mostra $capturas captura(s) das portas, e são quatro"
+[ "$capturas" -eq 5 ] && ok "as cinco portas aparecem em captura" || falha "o README mostra $capturas captura(s) das portas, e são cinco"
 
 if [ "$falhas" -gt 0 ]; then
   printf '\n%d falha(s) no README.\n' "$falhas" >&2
