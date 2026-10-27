@@ -1478,6 +1478,15 @@ PY
   && ok "o nome do pack de CSV sai do arquivo como foi escrito («Minha Tinta», «Tinta de teste»)" \
   || falha "o nome do pack de CSV não é o do arquivo" "Minha Tinta.csv -> $nome_csv; tinta de teste.csv -> $nome_minusculo"
 
+cp "$T/cores.csv" "$T/qa-um.csv"
+viaja env MEOW_PACK_NOME="QA Um" "$RAIZ/bin/meow" pack importar "$T/qa-um.csv" >/dev/null 2>&1
+nome_digitado="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["nome"])' \
+  "$DA_PESSOA/qa-um/pack.json" 2>&1)"
+[ "$nome_digitado" = "QA Um" ] \
+  && ok "o nome digitado no painel vai para o pack.json do CSV importado" \
+  || falha "o nome digitado não chegou ao pack.json (veio «$nome_digitado»)"
+rm -rf "${DA_PESSOA:?}/qa-um"
+
 printf 'FLAVOR="tinta"\nACCENT="mauve"\nMODO="escuro"\nPACK="minha-tinta"\n' > "$T/remover.conf"
 remover() { viaja env MEOW_CONF="$T/remover.conf" "$RAIZ/bin/meow" pack remover "$@" 2>&1; }
 faltam=""
