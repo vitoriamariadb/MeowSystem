@@ -40,7 +40,7 @@ window.MESA = (function () {
   function dockDaPrevia(previa) {
     const doPack = previa && Array.isArray(previa.dock) ? previa.dock : [];
     const feitos = new Map(doPack.map((d) => [d.app, d.url]));
-    return Object.keys(ICONES).filter((nome) => doPack.length === 0 || feitos.has(nome)).map((nome) =>
+    return Object.keys(ICONES).map((nome) =>
       no("span", "app", [feitos.has(nome) ? desenho(feitos.get(nome), "arte-pack") : svg("0 0 48 48", ICONES[nome], "neutro")]));
   }
   const varias = (n, classe) => Array.from({ length: n }, () => no("i", classe));
