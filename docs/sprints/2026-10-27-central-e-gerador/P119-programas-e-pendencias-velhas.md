@@ -62,6 +62,8 @@ Item 5 do `ANDAMENTO.md` (foto 3) e o rabo da leva QA final (`docs/sprints/2026-
 `tests/app-completo.py`, `tests/sons-do-pack.sh`, `tests/decisoes.sh`.
 
 ## Item do coordenador (27/10)
+- `scripts/compositor_patches.sh` `cmd_reverter` imprime um comando para digitar: mesma regra e mesma prova do item do `painel.sh`.
+- Em 390 px a aba «Builds» da página Extensões perde o rótulo atrás do «Adicionar repositório».
 - `scripts/painel.sh` (perto da função `reciclar`, ~linha 144) imprime para digitar «meow painel reciclar». Regra:
   nenhuma saída manda digitar. Cura: a saída diz o que acontece e o doctor (ou o botão «Reiniciar o painel» da P120)
   faz; prova em `tests/frases-velhas.sh` (nenhum «digite»/«rode `meow`» nas saídas de `scripts/`).
