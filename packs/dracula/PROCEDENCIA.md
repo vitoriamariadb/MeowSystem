@@ -104,7 +104,7 @@ contra a origem naquele dia, e nascem com a coluna `lido de` vazia. A tabela
 ficou com 367 linhas.
 
 **O resto de `current/` e os PNG feitos à mão entraram em 09/10/2026 (P73).**
-A auditoria daquele dia (`docs/pesquisas/2026-10-09-paridade-de-icones.md`,
+A auditoria daquele dia (`git show 1b15ccb1^:docs/pesquisas/2026-10-09-paridade-de-icones.md`,
 seção 3) mediu 175 desenhos Drácula próprios — sha256 fora do upstream, do
 Papirus, do pack, do motor e do tema — que só existiam em
 `Dracula_OS-Theme/src/icons/current/scalable/apps/`, fora da tela desde
