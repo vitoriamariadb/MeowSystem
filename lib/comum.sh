@@ -481,6 +481,8 @@ meow_mesmo_conteudo() {
 
 # shellcheck source=restauro.sh
 . "$(dirname "${BASH_SOURCE[0]}")/restauro.sh"
+# shellcheck source=flatpak.sh
+. "$(dirname "${BASH_SOURCE[0]}")/flatpak.sh"
 
 meow_escrever() {
   local destino="$1" conteudo="$2" modo="${3:-644}" tmp dir

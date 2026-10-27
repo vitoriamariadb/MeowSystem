@@ -10,7 +10,7 @@
 [![platform](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
 [![installer](https://img.shields.io/badge/installer-69%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-75%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![doctor](https://img.shields.io/badge/doctor-78%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 
 <img src="docs/capturas/desktop.jpg" width="920" alt="The desktop dressed by MeowSystem">
 
@@ -69,7 +69,7 @@ The format is in [`docs/PACKS.md`](docs/PACKS.md) (Portuguese).
 
 ## Keeping it right
 
-`meow doctor` runs 75 checks without writing anything; `meow doctor --consertar` fixes what is out
+`meow doctor` runs 78 checks without writing anything; `meow doctor --consertar` fixes what is out
 of place, without asking anyone to type. It runs on its own at 5 a.m., and the **Consertar** button
 in the Cuidar door is the same gesture.
 
