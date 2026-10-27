@@ -5,8 +5,8 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
 
-ORIGEM="${MEOW_BANDEJA_ORIGEM:-$RAIZ/packs/meowsystem/icones/sistema}"
-MAPA="${MEOW_BANDEJA_MAPA:-$RAIZ/packs/meowsystem/icones/bandeja.map}"
+ORIGEM="${MEOW_BANDEJA_ORIGEM:-}"
+MAPA="${MEOW_BANDEJA_MAPA:-}"
 TEMA="${ICONES_TEMA:-${NOME_TEMA_ICONES:-MeowSystem-Icons}}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
@@ -58,15 +58,45 @@ _conferir_gemeos() {
   return "$MEOW_OK"
 }
 
+_restos() {
+  local dir arq
+  for dir in "${!TRACO[@]}"; do
+    [ -d "$BASE/$dir" ] || continue
+    for arq in "$BASE/$dir"/*.svg; do
+      [ -e "$arq" ] || continue
+      intocavel "$(basename "$arq" .svg)" || printf '%s\n' "$arq"
+    done
+  done
+  return 0
+}
+
+_sem_acervo() {
+  local modo="$1" arq n=0
+  while IFS= read -r arq; do
+    n=$((n + 1))
+    [ "$modo" = --conferir ] && continue
+    if meow_seco; then
+      meow_muda "removeria $arq (o pack no ar não traz ícones de bandeja)"
+    else
+      meow_destino_permitido "$arq" || return "$MEOW_ERRO"
+      rm -f "$arq"
+    fi
+  done < <(_restos)
+  if [ "$n" = 0 ]; then
+    meow_pula "o pack no ar não declara icones.bandeja — nada a vestir"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  meow_muda "ícones de bandeja de outro pack: $n a remover"
+  return "$MEOW_DIVERGENTE"
+}
+
 _pronto() {
-  if [ ! -d "$ORIGEM" ]; then
-    meow_pula "o acervo Arcticons não está em packs/meowsystem/icones/sistema — nada a vestir"
-    return "$MEOW_SEM_DEPENDENCIA"
+  local achado
+  if [ -z "$ORIGEM" ] || [ -z "$MAPA" ]; then
+    achado="$(meow_icones_de_status bandeja)" || return 1
+    IFS=$'\t' read -r ORIGEM MAPA _ <<<"$achado"
   fi
-  if [ ! -f "$MAPA" ]; then
-    meow_pula "sem packs/meowsystem/icones/bandeja.map — nada a vestir"
-    return "$MEOW_SEM_DEPENDENCIA"
-  fi
+  [ -d "$ORIGEM" ] && [ -f "$MAPA" ] || return 1
   return "$MEOW_OK"
 }
 
@@ -94,8 +124,8 @@ _avisar_faltantes() {
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
     [ -f "$ORIGEM/$glifo.svg" ] && continue
-    meow_aviso "o glifo '$glifo' não está em packs/meowsystem/icones/sistema — '$nome' fica como está"
-    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o packs/meowsystem/icones/sistema/$glifo.svg"
+    meow_aviso "o glifo '$glifo' não está em $ORIGEM — '$nome' fica como está"
+    meow_info "  baixe com: curl -s https://api.iconify.design/arcticons/$glifo.svg -o $ORIGEM/$glifo.svg"
   done
   return 0
 }
@@ -103,9 +133,9 @@ _avisar_faltantes() {
 _frase_nada_a_fazer() {
   local total="$1"
   if [ "${#MAPA_LIDO[@]}" = 0 ]; then
-    printf 'a bandeja não tem alvo hoje (0 linha ativa no mapa) — ver packs/meowsystem/icones/bandeja.map'
+    printf 'a bandeja não tem alvo hoje (0 linha ativa no mapa) — ver %s' "$MAPA"
   elif [ "$total" = 0 ]; then
-    printf '%s linha(s) no mapa e nenhum glifo em packs/meowsystem/icones/sistema — nada a vestir' "${#MAPA_LIDO[@]}"
+    printf '%s linha(s) no mapa e nenhum glifo em %s — nada a vestir' "${#MAPA_LIDO[@]}" "$ORIGEM"
   else
     printf '%s ícone(s) da bandeja já vestidos de Arcticons' "$total"
   fi
@@ -183,7 +213,11 @@ _aplicar() {
 }
 
 main() {
-  _pronto || return $?
+  case "${1:-}" in
+    --conferir|''|--aplicar) ;;
+    *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; return "$MEOW_ERRO" ;;
+  esac
+  _pronto || { _sem_acervo "${1:-}"; return $?; }
   _ler_mapa
   _conferir_gemeos || return $?
   _avisar_faltantes

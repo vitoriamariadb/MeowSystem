@@ -934,6 +934,68 @@ class Percurso:
         self.checa(ok.returncode == 0 and "formato 2" in ok.stdout + ok.stderr,
                    "e o pack guardado valida no formato de três pastas: " + (ok.stdout + ok.stderr).strip()[-160:])
 
+    def h_previa_do_pack(self):
+        r = self.js("""() => {
+            const saida = {};
+            for (const p of document.querySelectorAll("[data-controle^='pack:'][data-controle$=':previa']")) {
+                const id = p.dataset.controle.split(":")[1];
+                saida[id] = { arte: [...p.querySelectorAll(".p-dock img.arte-pack")].map((i) => i.src),
+                              pasta: [...p.querySelectorAll(".p-arq img.pasta-pack")].length,
+                              pasta_cheia: [...p.querySelectorAll(".p-arq img.pasta-pack")].slice(0, 1).some((i) => {
+                                  const t = decodeURIComponent(i.src.split(",").slice(1).join(","));
+                                  return /fill="#[0-9a-fA-F]{3,8}"|fill:#[0-9a-fA-F]{3,8}/.test(t) && !/stroke="#|stroke:#/.test(t); }),
+                              neutro: p.querySelectorAll(".p-dock svg.neutro").length };
+            }
+            return saida; }""")
+        self.checa(len(r) >= 2, f"a vitrine mostra a prévia de ao menos dois packs ({list(r)})")
+        for pid, d in r.items():
+            self.checa(len(d["arte"]) >= 3 and all(a.startswith("data:image/svg+xml") for a in d["arte"]),
+                       f"o dock da prévia do {pid} traz a arte do próprio pack ({len(d['arte'])})")
+            self.checa(d["neutro"] == 0 and d["pasta"] > 0, f"a prévia do {pid} não cai no traço neutro e traz a pasta do pack")
+        ids = sorted(r)
+        for a in ids:
+            for b in ids:
+                if a < b:
+                    iguais = set(r[a]["arte"]) & set(r[b]["arte"])
+                    self.checa(len(iguais) <= 1, f"o dock do {a} difere do {b} em ao menos 5 de 6 ({len(iguais)} iguais)")
+        meio = self.js("""() => { const m = MESA.mesa({ previa: { dock: [{ app: "files",
+                url: "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E" }], pasta: "" } });
+            return [m.querySelectorAll(".p-dock .centro .app").length, m.querySelectorAll(".p-dock img.arte-pack").length,
+                    m.querySelectorAll(".p-dock svg.neutro").length]; }""")
+        self.checa(meio == [6, 1, 5], f"o pack que traz só parte do dock mostra o resto em traço neutro, sem sumir com o app ({meio})")
+        if "dracula" in r and "meowsystem" in r:
+            self.checa(r["dracula"]["pasta_cheia"] and not r["meowsystem"]["pasta_cheia"],
+                       f"a pasta do Dracula é cheia e a do MeowSystem é contorno "
+                       f"({r['dracula']['pasta_cheia']}, {r['meowsystem']['pasta_cheia']})")
+
+    def h_biblioteca_legivel(self, seletor):
+        r = self.js("""(seletor) => {
+            const lum = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+                .map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+                return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+            const fundoDe = (el) => { for (let n = el; n; n = n.parentElement) {
+                const m = /rgba?\\((\\d+), *(\\d+), *(\\d+)(?:, *([\\d.]+))?/.exec(getComputedStyle(n).backgroundColor);
+                if (m && (m[4] === undefined || Number(m[4]) > 0.5)) return [m[1], m[2], m[3]].map((x) => Number(x).toString(16).padStart(2, "0")).join(""); }
+                return "000000"; };
+            const saida = { total: 0, cru: [], fracos: [], semData: [] };
+            for (const img of document.querySelectorAll(seletor + " img")) {
+                saida.total++;
+                const nome = (img.closest(".app") || {}).dataset ? img.closest(".app").dataset.nome : "?";
+                if (!img.src.startsWith("data:image/svg+xml")) { saida.semData.push(nome); continue; }
+                const texto = decodeURIComponent(img.src.split(",").slice(1).join(","));
+                if (/currentColor/.test(texto)) { saida.cru.push(nome); continue; }
+                const cores = [...texto.matchAll(/(?:fill|stroke)="#([0-9a-fA-F]{6})"/g)].map((m) => m[1]);
+                if (!cores.length) continue;
+                const f = lum("#" + fundoDe(img));
+                const melhor = Math.max(...cores.map((c) => { const l = lum("#" + c);
+                    return (Math.max(l, f) + 0.05) / (Math.min(l, f) + 0.05); }));
+                if (melhor < 3) saida.fracos.push(nome + ":" + melhor.toFixed(1));
+            }
+            return saida; }""", seletor)
+        self.checa(r["total"] > 0 and not r["semData"], f"a biblioteca desenha por data:image/svg+xml ({r['semData'][:3]})")
+        self.checa(not r["cru"], f"nenhum ícone da biblioteca fica com currentColor cru: {r['cru'][:3]}")
+        self.checa(not r["fracos"], f"o traço da biblioteca contrasta ao menos 3:1 com o fundo: {r['fracos'][:3]}")
+
     def h_abas_de_icones(self):
         for aba in ("sistema", "biblioteca"):
             if not self.achar("icones:aba=" + aba):
@@ -945,10 +1007,28 @@ class Percurso:
             n = self.js(f"() => document.querySelectorAll(\"{seletor}\").length")
             self.checa(n > 0, f"a aba {aba} mostra os ícones do pack em edição ({n})")
             self.checa(not self.achar("levar:" + aba), f"a aba {aba} só mostra: não tem botão de levar")
+            if aba == "biblioteca":
+                self.h_biblioteca_legivel(seletor)
             if self.achar("acervo:filtro"):
                 self.acionados.add("acervo:filtro")
         self.clicar("icones:aba=apps")
         self.assentar()
+        self.h_previa_do_rascunho()
+
+    def h_previa_do_rascunho(self):
+        marca = "#fe0102"
+        self.js("""(marca) => { const r = rascunho(); r.cores = { ...(r.cores || {}), peach: marca, lavender: marca }; render(); }""", marca)
+        try:
+            self.pag.wait_for_function("""(marca) => [...document.querySelectorAll('.palco .p-dock img.arte-pack')]
+                .some((i) => decodeURIComponent(i.src).includes(marca))""", arg=marca, timeout=15000)
+            pintou = True
+        except Exception:  # noqa: BLE001
+            pintou = False
+        self.checa(pintou, "a prévia do Personalizar pinta o dock com as cores do rascunho, pelo /api/criar?previa=1")
+        neutros = self.js("() => document.querySelectorAll('.palco .p-dock svg.neutro').length")
+        self.checa(neutros == 0, f"a prévia do Personalizar não cai no traço neutro ({neutros})")
+        self.js("""(marca) => { const r = rascunho(); for (const k of ['peach', 'lavender']) if (r.cores[k] === marca) delete r.cores[k]; render(); }""", marca)
+        self.assentar(quieto=400)
 
     def h_trocar_som(self, nome):
         caminho = os.path.join(BRINQUEDO, "envios", "brinquedo-aviso.oga")
@@ -1123,6 +1203,92 @@ class Percurso:
             return
         return self.h_clique(nome, item)
 
+    def abrir_ficha_em_gerar(self):
+        self.ir("criar/icones")
+        self.assentar(quieto=400)
+        if self.achar("icones:aba=apps"):
+            self.clicar("icones:aba=apps")
+            self.assentar(quieto=400)
+        if self.achar("desenho:volta"):
+            self.clicar("desenho:volta")
+            self.assentar(quieto=400)
+        botao = self.pag.locator("button.app[data-app]").first
+        botao.click()
+        self.pag.wait_for_selector(".desenho .oficina-cartao", timeout=60000)
+        self.pag.wait_for_function("() => !document.querySelector('.desenho-olho .bt[data-estado=\"carregando\"]')", timeout=60000)
+        self.assentar(quieto=600)
+        if self.achar("desenho:fonte=gerar") and self.js("() => DESENHO_FONTE") != "gerar":
+            self.clicar("desenho:fonte=gerar")
+            self.assentar(quieto=600)
+
+    def preenchimento_certo(self, ident):
+        return self.js("""(id) => {
+            const r = document.getElementById(id);
+            if (!r) return null;
+            const esperado = ((Number(r.value) - Number(r.min)) / ((Number(r.max) - Number(r.min)) || 1)) * 100;
+            const lido = parseFloat(r.style.getPropertyValue('--p'));
+            return Math.abs(esperado - lido) < 0.01 ? true : `${id}: --p=${r.style.getPropertyValue('--p')} esperado=${esperado}%`;
+        }""", ident)
+
+    def h_gerador_da_ficha(self):
+        self.abrir_ficha_em_gerar()
+        gerador = self.js("() => OFICINA.gerador")
+        reguas = ["r-detalhe", "r-suavidade", "r-fracas", "r-minimo"] if gerador == "traco" else ["r-glifo"]
+        for ident in reguas:
+            self.checa(self.preenchimento_certo(ident) is True,
+                       f"a régua {ident} abre com o trilho até o valor ({self.preenchimento_certo(ident)})")
+        for ident in reguas:
+            antes = self.js("(id) => Number(document.getElementById(id).value)", ident)
+            loc = self.pag.locator("#" + ident)
+            loc.focus()
+            minimo = self.js("(id) => Number(document.getElementById(id).min)", ident)
+            tecla = "ArrowLeft" if antes - minimo >= 4 else "ArrowRight"
+            for _ in range(4):
+                self.pag.keyboard.press(tecla)
+            depois = self.js("(id) => Number(document.getElementById(id).value)", ident)
+            self.checa(depois != antes, f"4 setas movem a régua {ident} ({antes} -> {depois})")
+            self.checa(self.preenchimento_certo(ident) is True,
+                       f"a régua {ident} acompanha o valor depois de 4 setas ({self.preenchimento_certo(ident)})")
+            self.assentar(quieto=700)
+            self.checa(self.preenchimento_certo(ident) is True,
+                       f"a régua {ident} continua certa quando a oficina se redesenha ({self.preenchimento_certo(ident)})")
+        if gerador != "traco":
+            return
+        cartoes = self.pag.locator('.desenho [data-gerador="traco"] [data-controle="oficina:variacao"]:not([disabled])')
+        if cartoes.count() < 3:
+            return
+        distintos = []
+        for i in range(cartoes.count()):
+            cartoes.nth(i).click()
+            self.assentar(quieto=300)
+            svg = self.js("() => OFICINA.svg")
+            if svg not in [d[1] for d in distintos]:
+                distintos.append((i, svg))
+        if len(distintos) < 3:
+            self.falha(f"a ficha de teste tem só {len(distintos)} traços diferentes para provar o desfazer")
+            return
+        (ia, a), (ib, b), (ic, c) = distintos[:3]
+        cartoes.nth(ia).click()
+        self.assentar(quieto=300)
+        cartoes.nth(ib).click()
+        self.assentar(quieto=300)
+        cartoes.nth(ic).click()
+        self.assentar(quieto=300)
+        self.clicar("oficina:desfazer")
+        self.checa(self.js("() => OFICINA.svg") == b, "Desfazer depois de trocar o traço volta ao traço de antes")
+        self.clicar("oficina:desfazer")
+        self.checa(self.js("() => OFICINA.svg") == a, "e o histórico sobrevive à troca: desfazer de novo volta ao anterior")
+        self.clicar("oficina:refazer")
+        self.checa(self.js("() => OFICINA.svg") == b, "Refazer devolve o passo desfeito")
+        self.clicar("oficina:desfazer")
+        cartoes.nth(ic).click()
+        self.assentar(quieto=300)
+        self.checa(self.js("() => OFICINA.refazer.length") == 0, "um passo novo zera o Refazer")
+        self.clicar("oficina:desfazer")
+        self.checa(self.js("() => OFICINA.svg") == a, "desfazer, trocar o traço e voltar restaura o passo anterior")
+        self.clicar("desenho:volta")
+        self.assentar(quieto=400)
+
     def esperado(self, rota):
         porta, _, sub = rota.partition("/")
         lista = self.js("""([porta, sub]) => {
@@ -1163,6 +1329,8 @@ class Percurso:
         self.checa(self.js("() => document.querySelectorAll('details.mais, [data-controle^=\"mais:\"]').length") == 0,
                    "nenhuma dobra «Mais ajustes» na página")
         self.assentar(quieto=500, teto=15000)
+        if rota == "tema":
+            self.h_previa_do_pack()
         itens = self.censo()
         sem_nome = [i["html"] for i in itens if not i["nome"]]
         self.checa(not sem_nome, f"todo controle tem nome (sem: {sem_nome[:3]})")
@@ -1213,6 +1381,11 @@ class Percurso:
                 print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
         self.limpar()
         self.assentar()
+        if rota == "criar/icones":
+            try:
+                self.h_gerador_da_ficha()
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"o gerador da ficha quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
         if self.js("() => HISTORICO.length"):
             self.clicar("descartar")
             self.esperar_gravacao()

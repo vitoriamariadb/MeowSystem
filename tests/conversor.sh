@@ -153,4 +153,29 @@ if [ -f "$BRAVE" ]; then
                                || falha "brave/peso: <path sem espaço"
 fi
 
+cat >"$T/borda.svg" <<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><rect width="48" height="48" rx="10" fill="#e8763a"/></svg>
+SVG
+python3 "$CONV" "$T/borda.svg" "$T/borda.out.svg" --json >"$T/borda.json" 2>/dev/null
+if python3 - "$T/borda.out.svg" <<'PY'
+import re, sys
+ds = re.findall(r'<path[^>]* d="([^"]*)"', open(sys.argv[1], encoding='utf-8').read())
+if len(ds) != 1 or not ds[0].rstrip().endswith("Z") or ds[0].count("M") != 1:
+    sys.exit(1)
+n = [float(v) for v in re.findall(r'-?\d+\.\d+', ds[0])]
+xs, ys = n[0::2], n[1::2]
+sys.exit(0 if min(xs) < 0.5 and max(xs) > 47.5 and min(ys) < 0.5 and max(ys) > 47.5 else 1)
+PY
+then ok "moldura: o quadrado arredondado que encosta nas quatro bordas sai como 1 contorno fechado"
+else falha "moldura: o quadrado arredondado que encosta nas bordas não fechou em 1 contorno"
+fi
+[ "$(metrica "$T/borda.json" retas)" -ge 4 ] && ok "moldura: os quatro lados ficam retos" \
+  || falha "moldura: os lados da moldura não saíram retos"
+
+convert -size 256x256 xc:'#e8763a' "$T/opaco.png" 2>/dev/null
+python3 "$CONV" "$T/opaco.png" "$T/opaco.svg" --json >"$T/opaco.json" 2>/dev/null
+[ "$(metrica "$T/opaco.json" linhas)" = "1" ] && grep -q 'Z"/>' "$T/opaco.svg" \
+  && ok "moldura: o PNG opaco de ponta a ponta sai com 1 contorno fechado" \
+  || falha "moldura: o PNG opaco de ponta a ponta saiu vazio ou aberto"
+
 exit "$falhas"
