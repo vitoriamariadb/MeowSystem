@@ -13,7 +13,7 @@ CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
 CONSTRUTOR="$RAIZ/scripts/extensoes_build.sh"
 
 uso() {
-  meow_erro "uso: $(basename "$0") ler <url> | adicionar <id> | instalar <id> | atualizar <id> | remover <id> | por <id> | trocar <id>"
+  meow_erro "uso: $(basename "$0") ler <url> | adicionar <id> | instalar <id> | atualizar <id> | refazer <id> | refazer-tudo | remover <id> | por <id> | trocar <id>"
   exit "$MEOW_ERRO"
 }
 
@@ -89,8 +89,8 @@ cmd_ler() {
     icones="${icones:+$icones }$f:scalable/apps"
   done < <(find "$tmp/r" -maxdepth 4 -name "$app_id*.svg" -not -path '*/target/*' -not -path '*/.git/*' | sort)
   mkdir -p "$RASCUNHOS" "$PINOS_USUARIO" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
-  printf 'ORDEM=99\nNOME="%s"\nDESCRICAO=""\nURL="%s"\nCOMMIT="%s"\nVERSAO="%s"\nLIBCOSMIC=""\nAPP_ID="%s"\nBIN="%s"\nDESKTOP="%s"\nICONES="%s"\nSUBSTITUI=""\nLEGADO=""\nMIGRA_ESTADO=""\nTEMA=""\nUPSTREAM="%s"\n' \
-    "$nome" "$url" "$commit" "${versao:-0}" "$app_id" "$bin" "$desktop" "$icones" "${url%.git}" > "$RASCUNHOS/$id.pino"
+  printf 'ORDEM=99\nNOME="%s"\nDESCRICAO=""\nURL="%s"\nCOMMIT="%s"\nVERSAO="%s"\nLIBCOSMIC=""\nAPP_ID="%s"\nBIN="%s"\nDESKTOP="%s"\nICONES="%s"\nSUBSTITUI=""\nLEGADO=""\nMIGRA_ESTADO=""\nTEMA=""\nUPSTREAM="%s"\nDATA="%s"\n' \
+    "$nome" "$url" "$commit" "${versao:-0}" "$app_id" "$bin" "$desktop" "$icones" "${url%.git}" "$data" > "$RASCUNHOS/$id.pino"
   rm -rf "$tmp"
   printf 'id=%s\nnome=%s\nrepo=%s\nurl=%s\ncommit=%s\ndata=%s\nversao=%s\nsubstitui=\n' \
     "$id" "$nome" "$repo" "$url" "$commit" "$data" "${versao:-0}"
@@ -127,6 +127,36 @@ cmd_atualizar() {
   else
     EXTENSOES_COMPILAR=1 "$CONSTRUTOR" "$id" --atualizar
   fi
+}
+
+cmd_refazer() {
+  local id="${1:-}"
+  _id_valido "$id" || uso
+  _da_casa "$id" || _do_usuario "$id" || { meow_erro "não conheço a extensão $id"; return "$MEOW_ERRO"; }
+  rm -f "$BASE/$id/carimbo"
+  EXTENSOES_COMPILAR=1 "$CONSTRUTOR" "$id" --aplicar
+}
+
+_ids_instalados() {
+  local f id
+  for f in "$PINOS_CASA"/*.pino "$PINOS_USUARIO"/*.pino; do
+    [ -f "$f" ] || continue
+    id="$(basename "$f" .pino)"
+    "$CONSTRUTOR" "$id" --estado 2>/dev/null | grep -qx 'instalada=sim' && printf '%s\n' "$id"
+  done
+}
+
+cmd_refazer_tudo() {
+  local rc geral="$MEOW_OK" id
+  "$RAIZ/bin/meow" compositor; rc=$?
+  case "$rc" in 0|1|3) ;; *) geral="$MEOW_ERRO" ;; esac
+  "$RAIZ/bin/meow" files-menu build; rc=$?
+  case "$rc" in 0|1|3) ;; *) geral="$MEOW_ERRO" ;; esac
+  for id in $(_ids_instalados); do
+    cmd_refazer "$id"; rc=$?
+    case "$rc" in 0|1|3) ;; *) geral="$MEOW_ERRO" ;; esac
+  done
+  return "$geral"
 }
 
 cmd_remover() {
@@ -217,6 +247,8 @@ main() {
     adicionar) cmd_adicionar "$@" ;;
     instalar) cmd_instalar "$@" ;;
     atualizar) cmd_atualizar "$@" ;;
+    refazer) cmd_refazer "$@" ;;
+    refazer-tudo) cmd_refazer_tudo ;;
     remover) cmd_remover "$@" ;;
     por) cmd_por "$@" ;;
     trocar) cmd_trocar "$@" ;;
