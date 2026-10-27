@@ -1123,6 +1123,92 @@ class Percurso:
             return
         return self.h_clique(nome, item)
 
+    def abrir_ficha_em_gerar(self):
+        self.ir("criar/icones")
+        self.assentar(quieto=400)
+        if self.achar("icones:aba=apps"):
+            self.clicar("icones:aba=apps")
+            self.assentar(quieto=400)
+        if self.achar("desenho:volta"):
+            self.clicar("desenho:volta")
+            self.assentar(quieto=400)
+        botao = self.pag.locator("button.app[data-app]").first
+        botao.click()
+        self.pag.wait_for_selector(".desenho .oficina-cartao", timeout=60000)
+        self.pag.wait_for_function("() => !document.querySelector('.desenho-olho .bt[data-estado=\"carregando\"]')", timeout=60000)
+        self.assentar(quieto=600)
+        if self.achar("desenho:fonte=gerar") and self.js("() => DESENHO_FONTE") != "gerar":
+            self.clicar("desenho:fonte=gerar")
+            self.assentar(quieto=600)
+
+    def preenchimento_certo(self, ident):
+        return self.js("""(id) => {
+            const r = document.getElementById(id);
+            if (!r) return null;
+            const esperado = ((Number(r.value) - Number(r.min)) / ((Number(r.max) - Number(r.min)) || 1)) * 100;
+            const lido = parseFloat(r.style.getPropertyValue('--p'));
+            return Math.abs(esperado - lido) < 0.01 ? true : `${id}: --p=${r.style.getPropertyValue('--p')} esperado=${esperado}%`;
+        }""", ident)
+
+    def h_gerador_da_ficha(self):
+        self.abrir_ficha_em_gerar()
+        gerador = self.js("() => OFICINA.gerador")
+        reguas = ["r-detalhe", "r-suavidade", "r-fracas", "r-minimo"] if gerador == "traco" else ["r-glifo"]
+        for ident in reguas:
+            self.checa(self.preenchimento_certo(ident) is True,
+                       f"a régua {ident} abre com o trilho até o valor ({self.preenchimento_certo(ident)})")
+        for ident in reguas:
+            antes = self.js("(id) => Number(document.getElementById(id).value)", ident)
+            loc = self.pag.locator("#" + ident)
+            loc.focus()
+            minimo = self.js("(id) => Number(document.getElementById(id).min)", ident)
+            tecla = "ArrowLeft" if antes - minimo >= 4 else "ArrowRight"
+            for _ in range(4):
+                self.pag.keyboard.press(tecla)
+            depois = self.js("(id) => Number(document.getElementById(id).value)", ident)
+            self.checa(depois != antes, f"4 setas movem a régua {ident} ({antes} -> {depois})")
+            self.checa(self.preenchimento_certo(ident) is True,
+                       f"a régua {ident} acompanha o valor depois de 4 setas ({self.preenchimento_certo(ident)})")
+            self.assentar(quieto=700)
+            self.checa(self.preenchimento_certo(ident) is True,
+                       f"a régua {ident} continua certa quando a oficina se redesenha ({self.preenchimento_certo(ident)})")
+        if gerador != "traco":
+            return
+        cartoes = self.pag.locator('.desenho [data-gerador="traco"] [data-controle="oficina:variacao"]:not([disabled])')
+        if cartoes.count() < 3:
+            return
+        distintos = []
+        for i in range(cartoes.count()):
+            cartoes.nth(i).click()
+            self.assentar(quieto=300)
+            svg = self.js("() => OFICINA.svg")
+            if svg not in [d[1] for d in distintos]:
+                distintos.append((i, svg))
+        if len(distintos) < 3:
+            self.falha(f"a ficha de teste tem só {len(distintos)} traços diferentes para provar o desfazer")
+            return
+        (ia, a), (ib, b), (ic, c) = distintos[:3]
+        cartoes.nth(ia).click()
+        self.assentar(quieto=300)
+        cartoes.nth(ib).click()
+        self.assentar(quieto=300)
+        cartoes.nth(ic).click()
+        self.assentar(quieto=300)
+        self.clicar("oficina:desfazer")
+        self.checa(self.js("() => OFICINA.svg") == b, "Desfazer depois de trocar o traço volta ao traço de antes")
+        self.clicar("oficina:desfazer")
+        self.checa(self.js("() => OFICINA.svg") == a, "e o histórico sobrevive à troca: desfazer de novo volta ao anterior")
+        self.clicar("oficina:refazer")
+        self.checa(self.js("() => OFICINA.svg") == b, "Refazer devolve o passo desfeito")
+        self.clicar("oficina:desfazer")
+        cartoes.nth(ic).click()
+        self.assentar(quieto=300)
+        self.checa(self.js("() => OFICINA.refazer.length") == 0, "um passo novo zera o Refazer")
+        self.clicar("oficina:desfazer")
+        self.checa(self.js("() => OFICINA.svg") == a, "desfazer, trocar o traço e voltar restaura o passo anterior")
+        self.clicar("desenho:volta")
+        self.assentar(quieto=400)
+
     def esperado(self, rota):
         porta, _, sub = rota.partition("/")
         lista = self.js("""([porta, sub]) => {
@@ -1213,6 +1299,11 @@ class Percurso:
                 print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
         self.limpar()
         self.assentar()
+        if rota == "criar/icones":
+            try:
+                self.h_gerador_da_ficha()
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"o gerador da ficha quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
         if self.js("() => HISTORICO.length"):
             self.clicar("descartar")
             self.esperar_gravacao()

@@ -123,6 +123,9 @@ def main():
             confere(any("<circle" in s for s in svgs), "Dracula: há cartão com disco (circle)")
             confere(pag.locator('.desenho .so-meowsystem [data-controle="oficina:detalhe"]').count() == 0, "Dracula: o ajuste do traço não aparece")
             confere(pag.locator("#r-glifo").count() == 1, "Dracula: o ajuste do tamanho do glifo aparece")
+            confere(pag.evaluate("() => { const r = document.getElementById('r-glifo');"
+                                 " return Math.abs(parseFloat(r.style.getPropertyValue('--p')) - (r.value - r.min) / (r.max - r.min) * 100) < 0.01; }"),
+                    "Dracula: o trilho do glifo vai até o valor")
 
             if FOTOS:
                 os.makedirs(FOTOS, exist_ok=True)
