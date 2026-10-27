@@ -26,8 +26,10 @@
   da Aurora gravado por cima do de fábrica.
 - Levantamento feito (2 agentes): `relatorios/levantamento-*.md`, sprints P115 a P123, commit 58b531be no `dev`.
 - INTEGRADO em `integracao/central-e-gerador` (worktree `~/Desenvolvimento/MeowSystem-integracao`): Painel (P115-P117,
-  `relatorios/conferencia-painel.md`) e Central (P120-P121, `relatorios/conferencia-central.md`).
-- EM VOO, os quatro a partir da integração (ela pediu os quatro juntos, 27/10): Forks (`wf_1c95b651-87e`, P122),
+  `relatorios/conferencia-painel.md`), Central (P120-P121, `relatorios/conferencia-central.md`) e Forks (P122,
+  `relatorios/conferencia-forks.md`, merge c2187964; repos `vitoriamariadb/meowsystem-{eyedropper,clipboard,drives,
+  ascii-battery}` na main, nada instalado ainda).
+- EM VOO, a partir da integração (ela pediu os blocos juntos, 27/10):
   Aurora (`wf_32a9b69a-21d`, P124 → P125), Textos (`wf_af23fd58-b64`, P119 → P118), Pasta (`wf_064bfaa6-0dc`, P123).
   Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
 - Próximo passo: integrar cada um assim que voltar; o coordenador roda `scripts/enxugar.sh --aplicar` no checkout
@@ -89,6 +91,8 @@ Fotos em `fotos/1.png` a `fotos/5.png`.
   modo de leitura da casa estiver no ar, a injeção do `aurora-night-light.py` (segundo item de vizinho).
 - Applets que o doctor instala sozinho: os cinco da casa e os quatro forks, `PADRAO=sim`, com o selo de rede da
   decisão 50.
+- Forks (conferência, 27/10): app id da bateria `io.github.meowsystem.AsciiBattery` fica; ordem dos cartões 6 a 9 fica.
+  O wl-clip-persist e o corte da poda no `aurora-clipboard` são da P125.
 - Papéis de parede: `assets/papeis-de-parede` vai inteiro para `~/.local/share/backgrounds/meowsystem`, o doctor
   aponta o fundo para lá; nenhuma imagem é apagada (P123).
 - Painel depois do «Trocar»: botão «Reiniciar o painel» no aviso; nunca reinicia sozinho.
