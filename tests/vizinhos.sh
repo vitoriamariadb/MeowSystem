@@ -240,6 +240,13 @@ env -i PATH="$T/bin:/usr/bin:/bin" HOME="$C3" SHELL=/bin/bash MEOW_ESTADO="$C3/e
   bash "$RAIZ/scripts/terminal_bloco.sh" >/dev/null 2>&1
 confere "no PC sem Spellbook, o bloco vai ao .bashrc de sempre, sem vizinhos.conf" \
   'grep -q "^# >>> MeowSystem" "$C3/.bashrc" && [ ! -e "$C3/.config/meow/vizinhos.conf" ]'
+C4="$T/casa4"; Z4="$T/zdotdir-de-fora"; mkdir -p "$C4" "$Z4"
+printf 'alias x=y\n# >>> MeowSystem — o meow põe e tira este bloco >>>\n. x\n# <<< MeowSystem <<<\n' > "$Z4/.zshrc"
+cp "$Z4/.zshrc" "$T/zshrc-de-fora"
+env -i PATH="$T/bin:/usr/bin:/bin" HOME="$C4" ZDOTDIR="$Z4" SHELL=/bin/zsh MEOW_ESTADO="$C4/estado" NO_COLOR=1 \
+  bash "$RAIZ/scripts/terminal_bloco.sh" remover >/dev/null 2>&1
+confere "um ZDOTDIR herdado de fora do HOME não é alvo: o .zshrc de outra casa fica como estava" \
+  'cmp -s "$Z4/.zshrc" "$T/zshrc-de-fora"'
 
 printf '\n8. o compositor da Aurora: só o bloco do --ensure e o do night-light saem, e só com o shim de pé\n'
 mkdir -p "$ZD/scripts"
