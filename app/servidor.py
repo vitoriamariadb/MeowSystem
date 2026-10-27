@@ -2537,6 +2537,7 @@ ACOES = {
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "install.sh")],
         "escreve": False, "sudo": False, "confirma": False, "oculta": True,
+        "interna": True,
         "ajuda": "Roda só as etapas que a chave gravada governa.",
     },
     "som_ouvir": {
@@ -7342,7 +7343,7 @@ class Manipulador(BaseHTTPRequestHandler):
                      indisponivel=indisponivel(k),
                      opcoes=([] if v.get("oculta")
                              else PROVEDORES[v["arg"]]() if "arg" in v else []))
-                for k, v in ACOES.items()
+                for k, v in ACOES.items() if not v.get("interna")
             ],
             "ponte": _ponte_viva(),
             "mesmo_horario": mesmo_horario_ligado(),
