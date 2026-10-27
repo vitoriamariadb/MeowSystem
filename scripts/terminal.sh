@@ -298,7 +298,7 @@ print(v.upper())
 
 _pronto() {
   if ! meow_tem cosmic-term; then
-    meow_pula "cosmic-term não está instalado — nada a vestir"
+    meow_pula "cosmic-term não está instalado — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! meow_tem python3; then
@@ -355,7 +355,7 @@ _slot_por() {
   if ! nome="$(_nome_esquema "$flavor")"; then
     meow_erro "a paleta não nomeia o flavor '$flavor' (esquema $tipo do terminal)"
     meow_info "  quem declara é a chave \"nomes\" da paleta: $(basename "$PALETA")"
-    [ "$tipo" = "light" ] && meow_info "  e o flavor claro sai de \"claros\" — um pack sem flavor claro não veste o modo claro"
+    [ "$tipo" = "light" ] && meow_info "  e o flavor claro sai de \"claros\" — um pack sem flavor claro não usa o modo claro"
     return "$MEOW_ERRO"
   fi
 
@@ -472,7 +472,7 @@ _aplicar() {
     return "$MEOW_DIVERGENTE"
   fi
   meow_registrar "terminal esquema=$FLAVOR_ESCURO/$FLAVOR_CLARO cursor=$_CURSOR"
-  meow_ok "terminal vestido: $(_nome_esquema "$FLAVOR_ESCURO") no escuro, $(_nome_esquema "$FLAVOR_CLARO") no claro ($qual)"
+  meow_ok "terminal com o tema: $(_nome_esquema "$FLAVOR_ESCURO") no escuro, $(_nome_esquema "$FLAVOR_CLARO") no claro ($qual)"
   meow_info "vale nas janelas já abertas — o cosmic-term vigia este diretório por inotify"
   return "$MEOW_DIVERGENTE"
 }

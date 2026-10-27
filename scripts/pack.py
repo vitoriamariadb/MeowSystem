@@ -169,12 +169,12 @@ VERBOS
                                  raízes como qualquer outro. É o que o shell
                                  pergunta em vez de cravar o nome dele.
     adocao  <PACK> <FLAVOR>      o pack que um meow.conf com esses dois valores
-                                 veste — a regra única do `meow_pack_dir` e do
+                                 usa — a regra única do `meow_pack_dir` e do
                                  painel. Imprime, para o shell ler com `sed`:
-                                     pack=<o id que veste, o padrão incluído>
+                                     pack=<o id que usa, o padrão incluído>
                                      dir=<o diretório; vazio = ninguém escolheu>
                                      recusado=<o id que não validou, ou vazio>
-                                     nome=<o nome de tela do pack que veste>
+                                     nome=<o nome de tela do pack que usa>
                                      flavor_padrao=<o flavor dele quando o
                                        FLAVOR do conf está vazio>
                                  Ver `adocao`.
@@ -2512,7 +2512,7 @@ def _validar_base(p, dir_pack, silencioso):
     _exigir(p["papel"] == PAPEL_BASE,
             f"pack.json: papel {p['papel']!r} — o único que existe é {PAPEL_BASE!r}")
     _exigir(not silencioso,
-            f"{p['id']!r} é o pack-base: todo pack herda dele, e ele não se veste sozinho")
+            f"{p['id']!r} é o pack-base: todo pack herda dele, e ele não se aplica sozinho")
     for chave in ("paleta", "heranca"):
         _exigir(chave not in p,
                 f"pack.json: o pack-base não tem {chave!r} — ele é a última camada")
@@ -3892,7 +3892,7 @@ def cmd_importar(caminho, opcoes):
     else:
         print(f"  ok   instalado em {destino}")
     print("  --   nada foi aplicado: importar é ganhar uma opção, não trocar de tema.")
-    print(f"       Para vestir: PACK=\"{ident}\" e FLAVOR=\"{r['flavor_padrao']}\" no meow.conf.")
+    print(f"       Para aplicar: PACK=\"{ident}\" e FLAVOR=\"{r['flavor_padrao']}\" no meow.conf.")
     return OK
 
 

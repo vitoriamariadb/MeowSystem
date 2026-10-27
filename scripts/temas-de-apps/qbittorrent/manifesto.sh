@@ -39,7 +39,7 @@ _meow_qbt_receita() {
   [ "$MEOW_QBT_JA_AVISOU" = "1" ] && return 0
   MEOW_QBT_JA_AVISOU=1
   meow_pendencia_acionavel qbittorrent-tema-fora-da-lista \
-    "O qBittorrent é configurado por outro projeto seu, cuja lista de temas é fechada — enquanto o tema '$MEOW_QBT_NOME_AURORA' não estiver na lista dele, não há como eu vestir o app" \
+    "O qBittorrent é configurado por outro projeto seu, cuja lista de temas é fechada — enquanto o tema '$MEOW_QBT_NOME_AURORA' não estiver na lista dele, não há como eu aplicar o tema no app" \
     ""
   return 0
 }
@@ -120,7 +120,7 @@ _meow_qbt_dizer_o_ar() {
   no_ar="$(_meow_qbt_no_ar)"
   [ -n "$no_ar" ] || return 0
   [ "$no_ar" = "$(_meow_qbt_alvo)" ] && return 0
-  meow_pula "qBittorrent: já está vestido com '$no_ar', que não veio daqui — o tema do pack não é escrito por cima"
+  meow_pula "qBittorrent: já está com o tema '$no_ar', que não veio daqui — o tema do pack não é escrito por cima"
   return 0
 }
 

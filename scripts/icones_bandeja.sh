@@ -83,7 +83,7 @@ _sem_acervo() {
     fi
   done < <(_restos)
   if [ "$n" = 0 ]; then
-    meow_pula "o pack no ar não declara icones.bandeja — nada a vestir"
+    meow_pula "o pack no ar não declara icones.bandeja — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   meow_muda "ícones de bandeja de outro pack: $n a remover"
@@ -135,9 +135,9 @@ _frase_nada_a_fazer() {
   if [ "${#MAPA_LIDO[@]}" = 0 ]; then
     printf 'a bandeja não tem alvo hoje (0 linha ativa no mapa) — ver %s' "$MAPA"
   elif [ "$total" = 0 ]; then
-    printf '%s linha(s) no mapa e nenhum glifo em %s — nada a vestir' "${#MAPA_LIDO[@]}" "$ORIGEM"
+    printf '%s linha(s) no mapa e nenhum glifo em %s — nada a aplicar' "${#MAPA_LIDO[@]}" "$ORIGEM"
   else
-    printf '%s ícone(s) da bandeja já vestidos de Arcticons' "$total"
+    printf '%s ícone(s) da bandeja já com o Arcticons' "$total"
   fi
 }
 

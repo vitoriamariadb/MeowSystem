@@ -28,7 +28,7 @@ if [ -n "$_pack_ref" ] && [ -d "$_pack_ref/icones/sistema" ] && [ ! -L "$_pack_r
   _molde_real="$( [ -n "$_molde" ] && cd "$_molde" 2>/dev/null && pwd -P)" || _molde_real=""
   [ "$_levadas" != "$_decl_real" ] && [ "$_levadas" != "$_molde_real" ] && LEVADAS="$_levadas"
 fi
-VESTIDAS="de Catppuccin $FLAVOR_ICONES"; DE_QUEM="flavor $FLAVOR_ICONES"
+VESTIDAS="com o Catppuccin $FLAVOR_ICONES"; DE_QUEM="flavor $FLAVOR_ICONES"
 if [ -n "$ORIGEM" ] && [ "$ORIGEM" = "$_pastas_do_pack" ]; then
   _nome_pack="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null \
                 | sed -n 's/^nome=//p')" || _nome_pack=""
@@ -59,11 +59,11 @@ _ler_mapa() {
 
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "não há acervo de pasta para o flavor '$FLAVOR_ICONES' — nada a vestir"
+    meow_pula "não há acervo de pasta para o flavor '$FLAVOR_ICONES' — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem packs/meowsystem/icones/pastas.map — nada a vestir"
+    meow_pula "sem packs/meowsystem/icones/pastas.map — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"
@@ -113,7 +113,7 @@ _conferir() {
   fi
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total pasta(s) especiais já vestidas $VESTIDAS"
+    meow_ok "$total pasta(s) especiais já $VESTIDAS"
     return "$MEOW_OK"
   fi
   meow_muda "pastas especiais: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
@@ -152,7 +152,7 @@ _aplicar() {
   fi
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "pastas especiais já vestidas $VESTIDAS"
+    meow_ok "pastas especiais já $VESTIDAS"
     return "$MEOW_OK"
   fi
   if meow_seco; then
