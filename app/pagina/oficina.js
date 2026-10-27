@@ -51,7 +51,6 @@ function montarApps() {
       elemento("span", { class: "nome", texto: maiuscula(a.nome) }),
       elemento("span", { class: "marca-origem", "data-origem": origem, "aria-hidden": "true" }),
     ]));
-    if (APP_ABERTO === a.id) grade.append(escolhaDeIcone(a, carregarApps));
   }
   return elemento("div", { class: "pilha", style: "gap:16px" }, [filtro, grade]);
 }
@@ -104,21 +103,23 @@ function escolhaDeIcone(app, recarregar) {
   }
 
   const g = escolhido();
+  let repintar = () => {};
   const cores = elemento("div", { class: "cores pequenas", role: "group", "aria-label": "Cor do traço" });
   const flav = (ESQUEMA.paleta.flavors || {})[flavorEmVigor()] || {};
   for (const nome of ESQUEMA.paleta.ordem || []) {
     if (!flav[nome]) continue;
     const b = elemento("button", { type: "button", "aria-pressed": String(nome === cor), "aria-label": nomeDaCor(nome),
       controle: "icone:cor", dica: nomeDaCor(nome),
-      onclick: () => { cor = nome; for (const x of cores.children) x.setAttribute("aria-pressed", String(x === b)); } });
+      onclick: () => { cor = nome; for (const x of cores.children) x.setAttribute("aria-pressed", String(x === b)); repintar(); } });
     b.style.setProperty("--c", flav[nome]);
     cores.append(b);
   }
   cores.hidden = !(g && g.tipo === "traco");
 
   const botoes = [];
+  let usar = null;
   if (itens.some((x) => !travaDe(x))) {
-    botoes.push(botao("Usar", { class: "bt pequeno principal", controle: "icone:usar", onclick: async () => {
+    usar = botao("Usar", { class: "bt principal", controle: "icone:usar", onclick: async () => {
       const x = escolhido();
       if (!x) { torrada("Escolha um desenho", "erro"); return; }
       const corpo = x.tipo !== "traco" ? { app: app.id, arquivo: x.arquivo }
@@ -128,7 +129,7 @@ function escolhaDeIcone(app, recarregar) {
       torrada(`${maiuscula(app.nome)}: ${x.glifo}`, "ok");
       if (x.tipo === "traco" && r.tirou_escolha) { await rodarAcao("icones_traco"); await fimDoTrabalho(); }
       await depoisDoIcone(app, x.tipo === "traco" ? "icones_traco" : "icones_pack", recarregar);
-    } }));
+    } });
   }
   const minha = GLIFOS.app === app.id ? GLIFOS.minha : null;
   if (app.mapa && app.mapa.meu) {
@@ -174,8 +175,24 @@ function escolhaDeIcone(app, recarregar) {
         onclick: () => { DESENHO_FONTE = id; render(); } }, [nome]))),
   ]);
   if (DESENHO_FONTE === "acervo") {
-    painel.append(cabecalho, elemento("div", { class: "desenho-corpo unico" }, [elemento("div", { class: "desenho-mao", "data-fonte-corpo": "acervo" }, [
-      elemento("div", { class: "fila", style: "justify-content:flex-end" }, [busca]), tira, cores, elemento("div", { class: "fila" }, botoes)])]));
+    const visto = g ? g.url : app.url;
+    const lupa = elemento("div", { class: "oficina-lupa" });
+    const dock = elemento("div", { class: "oficina-dock", role: "img", "aria-label": "Na dock" });
+    const pintarVisto = (fazer) => {
+      lupa.replaceChildren(fazer(200));
+      dock.replaceChildren(...[48, 32, 22].map(fazer));
+    };
+    if (visto) pintarVisto((px) => elemento("img", { src: visto, alt: "", width: String(px), height: String(px) }));
+    if (g && g.tipo === "traco") {
+      const texto = fetch(g.url).then((r) => (r.ok ? r.text() : "")).catch(() => "");
+      repintar = () => texto.then((t) => { if (t && desenhar(t, 22, cor)) pintarVisto((px) => desenhar(t, px, cor)); });
+      repintar();
+    }
+    const olho = elemento("div", { class: "desenho-olho" }, [lupa, dock]);
+    painel.append(cabecalho,
+      elemento("div", { class: "desenho-corpo" }, [olho, elemento("div", { class: "desenho-mao", "data-fonte-corpo": "acervo" }, [
+        elemento("div", { class: "fila", style: "justify-content:flex-end" }, [busca]), tira, cores])]),
+      elemento("footer", { class: "desenho-pe" }, [...botoes, usar]));
   } else {
     painel.append(cabecalho, oficinaDeDesenho(app, recarregar));
   }
