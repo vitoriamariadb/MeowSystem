@@ -995,6 +995,11 @@ chk_janelas() {
     "$RAIZ/scripts/janelas.sh" conferir 2>&1
 }
 
+chk_areas() {
+  AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
+    "$RAIZ/scripts/areas.sh" alfinetes 2>&1
+}
+
 _patches_shim_falta() {
   [ "${COMPOSITOR:-sim}" != nao ] || return 1
   "$RAIZ/scripts/garantir_builds.sh" estado 2>/dev/null | grep -qx 'compositor_estado=desligado'
@@ -1019,17 +1024,45 @@ chk_bloco() { "$RAIZ/scripts/terminal_bloco.sh" --conferir 2>&1; }
 fix_bloco() { "$RAIZ/scripts/terminal_bloco.sh" aplicar 2>&1; }
 
 chk_vizinhos() {
-  local rc
+  local rc saida
+  if [ "${VIZINHOS_DESATIVAR:-sim}" = "sim" ]; then
+    saida="$("$RAIZ/scripts/vizinhos.sh" --prontos 2>&1)"; rc=$?
+    [ "$rc" = "1" ] && { printf '%s\n' "$saida"; return "$MEOW_DIVERGENTE"; }
+  fi
   "$RAIZ/scripts/vizinhos.sh" --conferir 2>&1; rc=$?
   case "$rc" in 0|4) return "$rc" ;; *) return 3 ;; esac
 }
 
+fix_vizinhos() {
+  if meow_seco; then
+    "$RAIZ/scripts/vizinhos.sh" --prontos 2>&1
+    meow_muda "desligaria nos vizinhos os trechos acima, com cópia de antes"
+    return "$MEOW_DIVERGENTE"
+  fi
+  VIZINHOS_DESATIVAR="${VIZINHOS_DESATIVAR:-sim}" "$RAIZ/scripts/vizinhos.sh" --desativar-prontos 2>&1
+}
+
+
+_autoreparo_unidades() {
+  printf '%s\n' meow-doctor.service meow-doctor.timer
+  case "${VIDRO_AO_MAXIMIZAR:-sim}" in nao|não|false|0) ;; *) printf '%s\n' meow-vidro.service meow-vidro.path ;; esac
+}
+
+_autoreparo_ligaveis() {
+  printf '%s\n' meow-doctor.timer
+  case "${VIDRO_AO_MAXIMIZAR:-sim}" in nao|não|false|0) ;; *) printf '%s\n' meow-vidro.path ;; esac
+}
+
+_autoreparo_sobra_vidro() {
+  case "${VIDRO_AO_MAXIMIZAR:-sim}" in nao|não|false|0) ;; *) return 1 ;; esac
+  [ -f "$HOME/.config/systemd/user/meow-vidro.path" ] || [ -f "$HOME/.config/systemd/user/meow-vidro.service" ]
+}
 
 chk_autoreparo() {
-  local destino="$HOME/.config/systemd/user" u faltam=() difere=()
+  local destino="$HOME/.config/systemd/user" u faltam=() difere=() desarmados=()
 
   if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
-    if [ -f "$destino/meow-doctor.timer" ] || [ -f "$destino/meow-doctor.service" ]; then
+    if [ -f "$destino/meow-doctor.timer" ] || [ -f "$destino/meow-doctor.service" ] || [ -f "$destino/meow-vidro.path" ]; then
       echo "AUTO_REPARO=\"${AUTO_REPARO:-}\" no meow.conf, mas o meow-doctor continua em $destino"
       return "$MEOW_DIVERGENTE"
     fi
@@ -1042,20 +1075,29 @@ chk_autoreparo() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  for u in meow-doctor.service meow-doctor.timer; do
+  for u in $(_autoreparo_unidades); do
     [ -f "$RAIZ/systemd/$u" ] || { echo "falta $RAIZ/systemd/$u — repositório incompleto"; return "$MEOW_ERRO"; }
     if [ ! -f "$destino/$u" ]; then faltam+=("$u"); continue; fi
     meow_mesmo_conteudo "$RAIZ/systemd/$u" "$destino/$u" || difere+=("$u")
   done
 
-  local armado=1
-  [ "$(systemctl --user is-enabled meow-doctor.timer 2>/dev/null)" = "enabled" ] || armado=0
-  [ "$(systemctl --user is-active  meow-doctor.timer 2>/dev/null)" = "active"  ] || armado=0
+  for u in $(_autoreparo_ligaveis); do
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      desarmados+=("$u")
+    fi
+  done
 
-  if [ "${#faltam[@]}" -gt 0 ] || [ "${#difere[@]}" -gt 0 ] || [ "$armado" = "0" ]; then
+  if [ "${#faltam[@]}" -gt 0 ] || [ "${#difere[@]}" -gt 0 ] || [ "${#desarmados[@]}" -gt 0 ] || _autoreparo_sobra_vidro; then
     [ "${#faltam[@]}" -gt 0 ] && echo "não estão instaladas: ${faltam[*]}"
     [ "${#difere[@]}" -gt 0 ] && echo "diferentes das do repositório: ${difere[*]}"
-    [ "$armado" = "0" ] && echo "o meow-doctor.timer não está armado — o reparo das 5h não dispara"
+    for u in "${desarmados[@]}"; do
+      case "$u" in
+        meow-doctor.timer) echo "o meow-doctor.timer não está armado — o reparo das 5h não dispara" ;;
+        meow-vidro.path)   echo "o meow-vidro.path não está armado — o vidro da janela maximizada só volta às 5h" ;;
+      esac
+    done
+    _autoreparo_sobra_vidro && echo "VIDRO_AO_MAXIMIZAR=\"${VIDRO_AO_MAXIMIZAR:-}\", mas o meow-vidro.path continua em $destino"
     return "$MEOW_DIVERGENTE"
   fi
   echo "auto-reparo ligado (meow-doctor.timer, todo dia às 5h, com até 20min de folga)"
@@ -1339,6 +1381,8 @@ fix_relogio()   { RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" \
                     "$RAIZ/scripts/relogio.sh" aplicar 2>&1; }
 fix_janelas()   { JANELAS_TILING="${JANELAS_TILING:-}" JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}" \
                   "$RAIZ/scripts/janelas.sh" aplicar 2>&1; }
+fix_areas()     { AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
+                  "$RAIZ/scripts/areas.sh" refazer-alfinetes 2>&1; }
 fix_leitura()   { "$RAIZ/scripts/leitura.sh" aplicar 2>&1; }
 fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
                     "$RAIZ/scripts/autostart.sh" aplicar 2>&1; }
@@ -1408,22 +1452,29 @@ fix_autoreparo() {
     return "$MEOW_DIVERGENTE"
   fi
   mkdir -p "$destino" "$MEOW_ESTADO" || { meow_erro "não consegui criar $destino"; return "$MEOW_ERRO"; }
-  for u in meow-doctor.service meow-doctor.timer; do
+  for u in $(_autoreparo_unidades); do
     [ -f "$RAIZ/systemd/$u" ] || { meow_erro "falta systemd/$u — repositório incompleto"; return "$MEOW_ERRO"; }
     meow_escrever "$destino/$u" "$(cat "$RAIZ/systemd/$u")" 644
     rc=$?
     [ "$rc" -ge 2 ] && { meow_erro "não consegui instalar $u"; return "$MEOW_ERRO"; }
   done
-  systemctl --user daemon-reload >/dev/null 2>&1
-  if ! systemctl --user enable --now meow-doctor.timer >/dev/null 2>&1; then
-    meow_erro "não consegui armar o meow-doctor.timer"
-    return "$MEOW_ERRO"
+  if _autoreparo_sobra_vidro; then
+    systemctl --user disable --now meow-vidro.path >/dev/null 2>&1
+    rm -f "$destino/meow-vidro.path" "$destino/meow-vidro.service" "$destino"/*.wants/meow-vidro.path
+    meow_muda "VIDRO_AO_MAXIMIZAR=\"${VIDRO_AO_MAXIMIZAR:-}\" — vigia do vidro desligado e removido"
   fi
+  systemctl --user daemon-reload >/dev/null 2>&1
+  for u in $(_autoreparo_ligaveis); do
+    if ! systemctl --user enable --now "$u" >/dev/null 2>&1; then
+      meow_erro "não consegui armar o $u"
+      return "$MEOW_ERRO"
+    fi
+  done
   meow_ok "auto-reparo ligado (meow-doctor.timer, todo dia às 5h, com até 20min de folga)"
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas patches relogio leitura extensoes extensoestema greeter cursor flatpaktema flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema greeter cursor flatpaktema flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 if ! meow_ponte_viva; then
   SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal libreoffice "

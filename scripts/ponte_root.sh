@@ -79,6 +79,8 @@ FLATPAK_GLOBAL=/var/lib/flatpak/overrides/global
 LIBRE_REMOVIDOS=/var/lib/meowsystem/libreoffice-removidos
 USR_SHARE=/usr/share
 SONS_ORIGINAIS=/var/lib/meowsystem/sons
+COSMIC_COMP=/usr/bin/cosmic-comp
+DPKG_INFO=/var/lib/dpkg/info
 
 morrer() { printf 'ponte_root: %s\n' "$1" >&2; exit "${2:-2}"; }
 
@@ -355,6 +357,18 @@ pacotes)
   apt-get install -y --no-install-recommends "${pedidos[@]}" || exit 2
   ;;
 
+cosmic-comp-de-fabrica)
+  [ "$(dpkg-query -W -f='${db:Status-Status}' cosmic-comp 2>/dev/null)" = installed ] || morrer "o cosmic-comp não está instalado" 3
+  soma="$(awk '$2 == "usr/bin/cosmic-comp" { print $1 }' "$DPKG_INFO/cosmic-comp.md5sums" 2>/dev/null || true)"
+  [ "${#soma}" = 32 ] || morrer "o dpkg não tem a soma de $COSMIC_COMP" 4
+  [ "$(md5sum < "$COSMIC_COMP" 2>/dev/null | cut -d' ' -f1)" = "$soma" ] && exit 0
+  export DEBIAN_FRONTEND=noninteractive
+  anotar "cosmic-comp-de-fabrica"
+  apt-get install -y --reinstall cosmic-comp >&2 || exit 2
+  [ "$(md5sum < "$COSMIC_COMP" | cut -d' ' -f1)" = "$soma" ] || morrer "o $COSMIC_COMP ainda não bate com o pacote depois de reinstalar"
+  printf 'reinstalado\n'
+  ;;
+
 limpar)
   export DEBIAN_FRONTEND=noninteractive
   anotar "limpar"
@@ -410,6 +424,7 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE atualizar, \\
     $PONTE pacotes, \\
     $PONTE limpar, \\
+    $PONTE cosmic-comp-de-fabrica, \\
     $PONTE estado
 
 $quem ALL=(root) NOPASSWD: MEOWSYSTEM_PONTE
@@ -422,7 +437,7 @@ REGRA_FIM
   printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
   printf '        completion-remover · flatpak-global-limpar · libreoffice-remover ·\n'
   printf '        libreoffice-devolver · som · som-padrao · atualizar · pacotes ·\n'
-  printf '        limpar · estado ·\n'
+  printf '        limpar · cosmic-comp-de-fabrica · estado ·\n'
   printf '        regra-sudo\n'
   ;;
 

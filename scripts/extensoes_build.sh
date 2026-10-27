@@ -30,7 +30,7 @@ CASA_COMP="${GB_CASA:-${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}}"
 GUARDA_MENU="${GB_FILES_GUARDA:-$MEOW_ESTADO/cosmic-files}"
 TRAVA_BUILDS="${GB_TRAVA:-$MEOW_ESTADO/builds.lock}"
 
-ID=""; CASA=0
+ID=""; CASA=0; PASSADA=0
 ESTADO=""; ARVORE=""; ALVO=""; CARIMBO=""; BINARIO=""; SOMBRA=""
 
 _sha() { sha256sum -- "$1" 2>/dev/null | cut -d' ' -f1; }
@@ -195,6 +195,17 @@ _carimbo_vivo() {
   fi
 }
 
+_tentativa() {
+  printf 'commit %s\nicones %s\nrustc %s\nlibcosmic %s\n' \
+    "$P_COMMIT" "$(_sha_icones)" "$(_rustc_versao)" "$(_alvo_rev || true)"
+}
+
+_marcar_falha() { _tentativa > "$ESTADO/falhou"; }
+
+_falha_repetiria() {
+  [ "$PASSADA" = 1 ] && [ -f "$ESTADO/falhou" ] && [ "$(cat "$ESTADO/falhou" 2>/dev/null)" = "$(_tentativa)" ]
+}
+
 _carimbo_bate() {
   [ -f "$CARIMBO" ] || return 1
   local campo vivo gravado
@@ -279,7 +290,9 @@ _arvore_no_pino() {
   if [ ! -d "$ARVORE/.git" ]; then
     rm -rf "$ARVORE"
     mkdir -p "$(dirname "$ARVORE")" || return "$MEOW_ERRO"
-    git clone -q "$P_URL" "$ARVORE" 2>"$ESTADO/clone.log" || {
+    local erro_clone
+    erro_clone="$(git clone -q "$P_URL" "$ARVORE" 2>&1)" || {
+      [ "$(cat "$ESTADO/clone.log" 2>/dev/null)" = "$erro_clone" ] || printf '%s\n' "$erro_clone" > "$ESTADO/clone.log"
       meow_aviso "não consegui clonar $P_URL (sem rede?) — fica para o próximo ciclo"
       return "$MEOW_SEM_DEPENDENCIA"
     }
@@ -394,6 +407,12 @@ _aplicar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
+  if _falha_repetiria; then
+    meow_aviso "$(_nome) não compilou com este mesmo pino: tenta de novo quando o pino, o rust ou o painel mudarem, ou quando você pedir na página Extensões"
+    meow_info "  o registro da última tentativa está em $ESTADO/compilar.log"
+    return "$MEOW_ERRO"
+  fi
+
   if ! meow_garantir_cargo; then
     meow_pula "sem cargo, e o rust não pôde ser instalado agora — $(_nome) fica de fora"
     meow_pendencia_acionavel "$id_pend" \
@@ -407,7 +426,7 @@ _aplicar() {
 
   _arvore_no_pino
   case $? in
-    2) : > "$ESTADO/falhou"; return "$MEOW_ERRO" ;;
+    2) _marcar_falha; return "$MEOW_ERRO" ;;
     3) return "$MEOW_SEM_DEPENDENCIA" ;;
   esac
 
@@ -432,7 +451,7 @@ _aplicar() {
     : > "$log"
     if ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
           --manifest-path "$ARVORE/Cargo.toml" >>"$log" 2>&1; then
-      : > "$ESTADO/falhou"
+      _marcar_falha
       meow_erro "o cargo falhou — $(meow_motivo_do_cargo "$log")"
       meow_info "  o registro está em $log"
       meow_info "  o binário anterior, se houver, segue instalado e funcionando; nada foi trocado"
@@ -441,7 +460,7 @@ _aplicar() {
   fi
 
   local recem="$ALVO/release/$P_BIN"
-  [ -x "$recem" ] || { : > "$ESTADO/falhou"; meow_erro "o cargo terminou e não deixou binário em $recem"; return "$MEOW_ERRO"; }
+  [ -x "$recem" ] || { _marcar_falha; meow_erro "o cargo terminou e não deixou binário em $recem"; return "$MEOW_ERRO"; }
 
   _instalar_binario "$recem" || { meow_erro "não consegui instalar $BINARIO"; return "$MEOW_ERRO"; }
   _instalar_arquivos || return "$MEOW_ERRO"
@@ -623,7 +642,7 @@ _b_aplicar() {
       if [ -n "$P_CHAVE_DO_CONF" ]; then env "$P_CHAVE_DO_CONF=sim" "$GARANTIR" --fundo; rc=$?
       else "$GARANTIR" --fundo; rc=$?; fi
       [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
-      mudou=1
+      [ "$rc" = "$MEOW_SEM_DEPENDENCIA" ] || mudou=1
     else
       _b_compilar; rc=$?
       _b_campos "$(_b_prefixo)"
@@ -757,6 +776,7 @@ main() {
     case "$flag" in --conferir) modo=conferir ;; --aplicar) modo=aplicar ;; --reverter) modo=reverter ;; *) uso ;; esac
     meow_seco && [ "$modo" != reverter ] && modo=conferir
     [ "$modo" = conferir ] && AP_SO_LER=1
+    PASSADA=1
     _todas "$modo"
     return $?
   fi
