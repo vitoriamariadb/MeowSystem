@@ -331,6 +331,7 @@ if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" 
   printf '#!/bin/sh\necho "systemctl $*" >> "%s/systemctl-real.log"\nexit 0\n' "$T" > "$T/bin/systemctl"; chmod 755 "$T/bin/systemctl"
   cp "$REAL/install.sh" "$REAL/env.zsh" "$ZD/"
   cp "$REAL/functions/sistema.zsh" "$ZD/functions/"
+  find "$ZD" "$T/real-sbin" -type f -exec sed -i -e '/#vizinhos+:[a-z0-9-]*#/d' -e 's/^#vizinhos:[a-z0-9-]*# //' {} +
   cp -a "$ZD" "$T/real-original"
   NOVOS="aurora-fastfetch-link aurora-fastfetch-passo aurora-completion-meow aurora-icone-applib aurora-stubs-ocultar aurora-gato-pop aurora-spicetify-instalar"
   NOVOS="$NOVOS aurora-painel-fantasma-instalar aurora-painel-fantasma-ligar aurora-painel-fantasma-passo"
