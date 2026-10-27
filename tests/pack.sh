@@ -167,6 +167,32 @@ p.pop("icones"); p.pop("origens")
 json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
 PY
 
+for torto in 'sistema:{"herda": "meowsystem", "pintar": "cor-que-nao-existe"}' \
+             'bandeja:{"desenhos": "icones/sistema/", "mapa": "icones/bandeja-que-falta.map"}'; do
+  python3 - "$PACK_DIR" "$torto" <<'PY' || exit 2
+import json, os, sys
+alvo = os.path.join(sys.argv[1], "pack.json")
+bloco, _, valor = sys.argv[2].partition(":")
+p = json.load(open(alvo))
+p["icones"] = {bloco: json.loads(valor)}
+json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
+PY
+  saida="$(amb python3 "$RAIZ/scripts/pack.py" validar "$ID" 2>&1)"; rc=$?
+  campo="icones.${torto%%:*}"
+  if [ "$rc" != "0" ] && [[ "$saida" == *"$campo"* ]]; then
+    ok "o validar recusa $campo torto e diz qual campo"
+  else
+    falha "o validar deixou passar $campo torto (rc=$rc)" "$saida"
+  fi
+done
+python3 - "$PACK_DIR" <<'PY' || exit 2
+import json, os, sys
+alvo = os.path.join(sys.argv[1], "pack.json")
+p = json.load(open(alvo))
+p.pop("icones")
+json.dump(p, open(alvo, "w"), indent=2, ensure_ascii=False)
+PY
+
 amb python3 "$RAIZ/scripts/pack.py" caminho "$ID" id >/dev/null 2>&1 \
   && ok "o verbo 'caminho' ainda responde como sonda de existência" \
   || falha "o verbo 'caminho' parou de servir de sonda — o lib/comum.sh deixa de ver o pack, calado"
