@@ -96,6 +96,7 @@ MAQUINA=(
   app-completo.py
   app-uso-real.py
   app-texto-visivel.py
+  p113-navegador.py
   gate-link-externo.py
 )
 

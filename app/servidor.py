@@ -1499,6 +1499,43 @@ def _som_carimbo_gravar(pares, pasta=None):
         pass
 
 
+_RASCUNHO_ARQUIVO = os.path.join(ESTADO, "rascunho-do-tema.json")
+
+
+def _rascunho_ler():
+    try:
+        with open(_RASCUNHO_ARQUIVO, encoding="utf-8") as fh:
+            dados = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    return dados if isinstance(dados, dict) and isinstance(dados.get("base"), dict) else None
+
+
+def _rascunho_gravar(dados):
+    if dados is None:
+        try:
+            os.remove(_RASCUNHO_ARQUIVO)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            return False
+        return True
+    if not (isinstance(dados, dict) and isinstance(dados.get("base"), dict)):
+        return False
+    texto = json.dumps(dados, ensure_ascii=False)
+    if len(texto) > (256 << 10):
+        return False
+    try:
+        os.makedirs(ESTADO, exist_ok=True)
+        tmp = _RASCUNHO_ARQUIVO + ".parcial"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(texto)
+        os.replace(tmp, _RASCUNHO_ARQUIVO)
+    except OSError:
+        return False
+    return True
+
+
 def _padrao_do_pack(chave):
     if chave in _SOM_TIMBRE_DE_FABRICA:
         return _som_do_pack_ativo()[1][chave]
@@ -6759,6 +6796,9 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/sons":
             return self._api_sons(consulta)
 
+        if caminho == "/api/rascunho":
+            return self._json({"rascunho": _rascunho_ler()})
+
         if caminho == "/api/previas":
             dados = previas(consulta.get("tipo", [""])[0],
                             consulta.get("grupo", [""])[0] or None)
@@ -7415,6 +7455,10 @@ class Manipulador(BaseHTTPRequestHandler):
             if erro:
                 return self._json({"erro": erro}, 500)
             return self._json({"ok": True, "ligado": mesmo_horario_ligado(), "gravadas": gravadas})
+        if caminho == "/api/rascunho":
+            if not _rascunho_gravar(corpo.get("rascunho")):
+                return self._json({"erro": "rascunho que não serve"}, 400)
+            return self._json({"ok": True})
         if caminho == "/api/pack-importar":
             return self._api_pack_importar(corpo)
 

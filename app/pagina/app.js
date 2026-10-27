@@ -1169,6 +1169,7 @@ async function iniciar() {
     $("#conteudo").replaceChildren(elemento("h1", { texto: maiuscula(ESQUEMA.erro) }));
     return;
   }
+  await lerRascunhoDoServidor();
   indexar();
   lerRestauros();
   lerClaro();

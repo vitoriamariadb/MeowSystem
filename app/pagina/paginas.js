@@ -214,8 +214,23 @@ function rascunho() {
   }
   return RASCUNHO;
 }
+let RASCUNHO_RELOGIO = null;
 function guardarRascunho() {
   try { localStorage.setItem("meow-criar", JSON.stringify(RASCUNHO)); } catch (e) { }
+  clearTimeout(RASCUNHO_RELOGIO);
+  RASCUNHO_RELOGIO = setTimeout(enviarRascunho, 400);
+}
+function enviarRascunho() {
+  clearTimeout(RASCUNHO_RELOGIO);
+  if (!RASCUNHO) return Promise.resolve();
+  return api("/api/rascunho", { method: "POST", body: JSON.stringify({ rascunho: RASCUNHO }) });
+}
+async function lerRascunhoDoServidor() {
+  const r = await api("/api/rascunho");
+  if (r && r.rascunho && r.rascunho.base) {
+    RASCUNHO = r.rascunho;
+    try { localStorage.setItem("meow-criar", JSON.stringify(RASCUNHO)); } catch (e) { }
+  }
 }
 function vinteSeis() {
   const r = rascunho();
@@ -243,7 +258,17 @@ function idDoNome(nome) {
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "meu-tema";
 }
 
-async function guardarTema() {
+function assinaturaDoTema() {
+  const r = rascunho();
+  return JSON.stringify([r.nome, r.base, r.cores]);
+}
+async function garantirPack() {
+  const r = rascunho();
+  const em_dia = r.pack && r.assinatura === assinaturaDoTema() && PACKS.some((x) => x.id === r.pack);
+  if (!em_dia && !(await guardarTema(true))) return null;
+  return PACKS.find((x) => x.id === r.pack) || null;
+}
+async function guardarTema(silencioso = false) {
   const r = rascunho();
   const id = idDoNome(r.nome);
   const flavor = id.replace(/[^a-z0-9]/g, "") || "meu";
@@ -257,16 +282,18 @@ async function guardarTema() {
   if (b) delete b.dataset.estado;
   if (resp.erro || !resp.instalado) {
     torrada(/contraste/.test(resp.erro || "") ? "Pouco contraste entre texto e fundo" : primeiraFrase(resp.erro || "Não guardou"), "erro");
-    return;
+    return false;
   }
   r.pack = resp.id || id;
+  r.assinatura = assinaturaDoTema();
   guardarRascunho();
   const sons = await api("/api/criar", { method: "POST",
     body: JSON.stringify({ id: r.pack, tipo: "sons", de: r.base.pack, levar: true }) });
   if (sons.erro) torrada(maiuscula(primeiraFrase(sons.erro)), "erro");
-  torrada(`${r.nome}: guardado`, "ok");
+  if (!silencioso) torrada(`${r.nome}: guardado`, "ok");
   await recarregarPacks();
   render();
+  return true;
 }
 
 async function exportarPack(id) {
@@ -528,20 +555,47 @@ function passoSons() {
   ]);
   return [bloco("Sino do volume", [sino, lista(p.linhas)]), ...sonsDoSistema(), maisAjustes("criar:sons", p.mais)];
 }
+function linhaDoResumo(rotulo, valor, miolo) {
+  return elemento("li", { class: "linha", "data-resumo": rotulo }, [
+    elemento("div", { class: "rot" }, [elemento("span", { texto: rotulo })]),
+    elemento("div", { class: "ctl" }, [miolo || null, elemento("span", { texto: valor })]),
+  ]);
+}
+function origemDaCategoria(base, nome) {
+  const c = ((base && base.categorias) || []).find((x) => x.categoria === nome);
+  if (!c) return "Do MeowSystem";
+  if (c.tipo === "próprio") return "Do " + base.nome;
+  if (c.tipo === "herdado") return "De " + maiuscula(c.de);
+  return "Do MeowSystem";
+}
 function passoMandar() {
   const r = rascunho();
-  const pack = r.pack && PACKS.find((x) => x.id === r.pack);
-  const sem = !pack;
-  return [bloco(pack ? pack.nome : r.nome, [
-    elemento("div", { class: "corpo fila" }, [
-      botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
-        disabled: sem, "aria-disabled": sem ? "true" : null, dica: sem ? "Guarde o tema em Cores" : "Um .meowpack para mandar",
-        onclick: () => exportarPack(r.pack) }),
-      botao("Vestir", { class: "bt", icone: "tema", controle: "criar:vestir",
-        disabled: sem, "aria-disabled": sem ? "true" : null, dica: sem ? "Guarde o tema em Cores" : null,
-        onclick: () => vestir(pack, null) }),
-    ]),
-  ])];
+  const base = PACKS.find((x) => x.id === r.base.pack) || packNoAr() || null;
+  const mapa = vinteSeis();
+  const mexidas = Object.keys(r.cores || {}).length;
+  const amostras = elemento("span", { class: "amostras" },
+    SEIS.map(([slot]) => elemento("i", { style: "--c:" + mapa[slot] })));
+  const resumo = elemento("ul", { class: "linhas resumo" }, [
+    linhaDoResumo("Cores", mexidas ? `${mexidas} mexida${mexidas > 1 ? "s" : ""}` : (base ? base.nome : ""), amostras),
+    linhaDoResumo("Ícones", origemDaCategoria(base, "ícones de aplicativo")),
+    linhaDoResumo("Pastas", origemDaCategoria(base, "pastas")),
+    linhaDoResumo("Papel de parede", origemDaCategoria(base, "papéis de parede")),
+    linhaDoResumo("Sons", origemDaCategoria(base, "som")),
+    linhaDoResumo("Temas de apps", origemDaCategoria(base, "temas de aplicativo")),
+    linhaDoResumo("Mascote", origemDaCategoria(base, "mascote")),
+  ]);
+  const m = vinteSeis();
+  const pouco = contraste(m.text, m.base) < 4.5;
+  const dica = pouco ? "Pouco contraste entre texto e fundo" : null;
+  const saidas = elemento("div", { class: "corpo fila" }, [
+    botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
+      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica: dica || "Um .meowpack para mandar",
+      onclick: async () => { const pack = await garantirPack(); if (pack) exportarPack(pack.id); } }),
+    botao("Vestir agora", { class: "bt", icone: "tema", controle: "criar:vestir",
+      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica,
+      onclick: async () => { const pack = await garantirPack(); if (pack) vestir(pack, null); } }),
+  ]);
+  return [bloco(r.nome, [resumo, saidas])];
 }
 
 function paginaCriar(sub) {
