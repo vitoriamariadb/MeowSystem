@@ -1,32 +1,19 @@
 # Leva QA final (26/10/2026) — andamento
 
 ## Agora
-- Entregues: QA, os 5 repos de applet, a maquete (aprovada), B0 inteiro (no dev em 15be6fdf; ganchos
-  instalados: pre-commit no diretório comum, `ganchos.pre-push`/`ganchos.post-merge` por git config).
-- 27/10: o PC reiniciou no meio; os 6 foram retomados pelo próprio histórico (nada se perdeu: commits e
-  arquivos sujos nas worktrees). Chromium do Playwright agora em `~/.cache/ms-playwright` (o do scratchpad some no reboot).
-- Em voo: 6 Sonnet, um por sprint, em `../MeowSystem-p109..p114` (branches `sprint/p109..p114`, do dev 15be6fdf).
-- Fechadas: P111 (85/88, vermelhos só os aceitos + README, que o merge regenera) e P110 (9 commits; `todos.sh`
-  limpo não rodou depois dos dois consertos finais, a integração roda). Para a conferência A: a P110 afrouxou o
-  `tests/app-uso-real.py` (ignora o que rola por baixo das abas fixas): conferir se não esconde cobertura real.
-- 27/10 ~03h: P110–P114 fechadas e juntas em `integracao/qa-final` (worktree `../MeowSystem-integracao`). Conflitos
-  resolvidos pelo coordenador: a ficha de desenho do `oficina.js` ficou a da P112 (a da maquete); os `<link>`
-  e os `<style>` do standalone somam os cinco CSS; portas com os nomes da P111 + Extensões da P114;
-  pendência `leitura-applet` virou `extensao-leitura`. Suíte da integração: 92/100. Consertados depois:
-  `app.sh` 12c e `p113-navegador.py`. Vermelhos que ficam para a conferência: `app-layout.py` (a ficha da
-  P110 contra a da P112: «Usar» no rodapé e fora da grade), `app-completo.py` (`criar/sons`: «pergunta» e
-  «resultado» abertos juntos), `extensoes-pagina.py` (espera `.abas-ajustes`, que a P110 tornou global).
-  `readme.sh` se regenera no merge. P109 ainda na suíte final; entra antes dos conferentes.
-- 27/10 ~04h: P109 entrou; as seis em `integracao/qa-final` (63ee3497), suíte 93/102. Em voo: 2 Opus,
-  A em `../MeowSystem-conf-a` (`conferencia/a`: app.sh 12c `aplicar-ajuste`, chave-etapa, app-navegador
-  download, restaurar 4 em vez de 2, app-uso-real) e B em `../MeowSystem-conf-b` (`conferencia/b`:
-  `gravarSonsDaBarra` no modelo da P109, ficha do ícone P110×P112, abas de Extensões, «cinco portas»).
-  Próximo: juntar A e B na integração, `scripts/readme.sh`, suíte, merge no dev, remover worktrees
-  (b0, maquete-a, maquete-b, p109..p114, integracao, conf-a, conf-b), desligar.
-- Depois: juntar as seis em `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev →
-  remover as worktrees da leva (b0, maquete-a, maquete-b, p109..p114).
-- Pedido de quem usa (27/10): ao fim de TUDO (merge no dev e worktrees removidas), desligar o PC sem
-  perguntar: `sudo -A systemctl poweroff -i` (askpass; ignora apps abertos).
+- **LEVA FECHADA em 27/10 ~06h.** As seis sprints e as duas conferências no dev (merge d1866882). Suíte
+  100/102: vermelhos só os aceitos (`decisoes.sh`: GPU e shim do compositor; `restaurar.sh`: `pack_usar` e
+  `desinstalar`, arquivos do VS Code). README regerado com as cinco portas. Worktrees da leva removidas.
+- Relatórios: `relatorios/conferencia-a.md` e `relatorios/conferencia-b.md` (o que conferir com a mão).
+- Anotado para a próxima leva (fora do escopo desta):
+  - a pendência `spicetify-tema-ausente` aparece no Manter sem nome e sem «Resolver» (a P113 tirou o download);
+  - a prévia desenha as pastas do Dracula iguais às do MeowSystem (`mesa.js`);
+  - em «Do acervo», os glifos ficam escuros sobre fundo escuro;
+  - «Regravar o som» deixa um «Restaurar» vazio quando nada muda;
+  - referências a `docs/pesquisas` quebradas desde a P96; stubs velhos em `.git/hooks`; imagens sem
+    referência (`desktop-claro.png`, `fastfetch.png`, `lancador.jpg`).
+- Na máquina de verdade, depois do próximo `meow instalar`: pôr Bandeja, Ajustes rápidos, Leitura e
+  Performance no painel; ele pede a senha uma vez e reconstrói os applets.
 
 ## Respostas de quem usa (26/10)
 - Repos de applet: conta `vitoriamariadb`, nome `meowsystem-*`, pasta `~/Desenvolvimento/meowsystem-*`, app id `io.github.meowsystem.*`. Vão até o push. Compilam e instalam aqui (root por `sudo -A`, o askpass); não mexem na ordem do painel nem o reiniciam sozinhos.
