@@ -36,3 +36,21 @@ Tudo está em `relatorios/auditoria-tema-por-app.md` (medido no Nitro). Em resum
 - Na máquina dela: print headless não pega app Flatpak, então o print de cada app fica na lista do que ela confere
   com a mão; o teste mede o CSS escrito. Print de cada app com a cor do acento conferida no pixel, nos dois packs.
 - `tests/todos.sh` verde duas vezes.
+
+## Execução
+
+Feito em 27/10, quatro módulos novos em `scripts/temas-de-apps/`, no formato dos que já existiam, mais o motor `lib/tema_arquivo.sh` (marca `meowsystem-tema:` nas cinco primeiras linhas, estado ausente/alheio/igual/diferente, editor de INI para as chaves de seleção).
+
+- **libadwaita:** `~/.var/app/<id>/config/gtk-4.0/gtk.css` para cada app que a detecção da P127 achar (`meow_flatpak_apps_libadwaita`), sem lista de nomes. O modelo `libadwaita.modelo.css` preenche as variáveis do libadwaita (acento, janela, vista, cabeçalho, barra lateral, cartão, popover, erro, sucesso, aviso, sombras); o ajuste fino mora em `libadwaita/ajustes/<app-id>.modelo.css` e é anexado só àquele app (o Clapper ganha `.initialstate`). `gtk.css` sem a marca é dela: não é sobrescrito nem apagado, o módulo avisa (3).
+- **Krita:** esquema `MeowSystem.colors` gerado da paleta (forma `{{papel:csv}}` nova no `modelo.py`) em `~/.var/app/org.kde.krita/data/krita/color-schemes/` e em `~/.local/share/krita/color-schemes/` quando há Krita nativo, mais `[theme] Theme=MeowSystem` no `kritarc`. `Theme=` que ela escolheu à mão fica como está (3).
+- **OBS:** em vez do `.obt` do texto da sprint, o certo é uma variante `.ovt` que estende o Yami (`obs.modelo.ovt`, id `com.obsproject.Yami.MeowSystem`); `dark` vem do tipo do flavor. Vai em `themes/MeowSystem.ovt` e `user.ini` ganha `[Appearance] Theme=`.
+- **Waterfox:** `chrome/userChrome.css` em cada perfil do `profiles.ini` (nativo e Flatpak) e a linha `toolkit.legacyUserProfileCustomizations.stylesheets` no `user.js`, marcada para o reverter tirar só ela. Sem `profiles.ini` o módulo se pula (3).
+- **Qt, medido:** o `~/.config/kdeglobals` desta máquina está vazio (só os cabeçalhos das seções), então ele não leva cor nenhuma ao qBittorrent, ZapZap e Krita; o `.colors` próprio é justificado.
+- **Ghostwriter: não feito.** Não está instalado aqui e o formato do esquema dele não foi medido; escrever sem medir seria a promessa vazia que o `validar` avisa. Fica anotado como pendência com a medida a fazer no Nitro (`~/.var/app/*/` do Ghostwriter e o arquivo de tema que ele lê).
+- Os dois packs (meowsystem e dracula) ganharam `apps.libadwaita|krita|obs|waterfox` (blocos sem `arquivo`: o modelo é do motor). `tests/temas-de-apps.sh` ganhou o teto 0 dos quatro. `libadwaita` e `waterfox` entraram no `APPS_ATIVOS` de fábrica do `meow.conf.exemplo` (`obs` e `krita` já estavam); o `meow.conf` dela não muda sozinho.
+- Doctor: o par `chk_apps`/`fix_apps` já roda o `aplicar_apps.sh` sobre o `APPS_ATIVOS`, então os quatro entram nele. O desinstalador chama `aplicar_apps.sh reverter`, que desfaz os quatro (provado no driver numa casa de brinquedo).
+- Correção achada no caminho: a leitura do Flatpak (`list`, `info`) criava `~/.local/share/flatpak/repo` numa casa de brinquedo e fazia `seco.sh` e `doctor-so-le.sh` ficarem vermelhos; `meow_flatpak_ler` usa `--system` quando o repositório do usuário não existe.
+
+Provas: `tests/temas-por-app.sh` (novo, no `todos.sh` como portátil), nos dois packs: o conferir acusa antes, o ensaio seco não escreve, o aplicar veste a cor do pack (hex ou rgb do `base`) e nenhuma do outro, a segunda passada não escreve, ida e volta de pack troca a cor, o reverter tira o que pôs e o segundo fica quieto; mais o `gtk.css` alheio intacto, a seleção de tema dela intacta no Krita, `dark` true/false no OBS, o `user.js` preservado no Waterfox e o módulo pulando (3) sem o programa. `tests/temas-de-apps.sh` verde.
+
+Fica para a mão dela: print de cada app com a cor do acento conferida no pixel, nos dois packs (Gradia, Upscaler, Calculadora, Krita, OBS; Clapper e Waterfox no Nitro); as chaves de seleção do Krita (`[theme] Theme`) e do OBS (`[Appearance] Theme`, id da variante) foram escritas pelo que os dois programas documentam e não medidas num app aberto; o perfil do Waterfox Flatpak idem.
