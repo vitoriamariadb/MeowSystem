@@ -1,0 +1,17 @@
+[Sound Theme]
+Name=MeowSystem
+Comment=Tema de som suave do MeowSystem, a partir dos Interface Sounds do Kenney
+Inherits=freedesktop
+Directories=stereo/alert stereo/action stereo/notification
+
+[stereo/alert]
+Context=Alert
+OutputProfile=stereo
+
+[stereo/action]
+Context=Action
+OutputProfile=stereo
+
+[stereo/notification]
+Context=Notification
+OutputProfile=stereo
