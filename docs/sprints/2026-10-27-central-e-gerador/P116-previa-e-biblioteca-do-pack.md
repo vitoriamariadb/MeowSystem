@@ -44,3 +44,16 @@ Playwright headless numa casa de teste (`tests/app-completo.py`, HOME temporári
 ## Fora desta sprint
 - A aba «Do acervo» da ficha (oficina) também mostra glifos crus. Ela já pinta a lupa; os cartões entram junto só se o caminho for o mesmo `acervo_para_levar`. Senão, vai para depois.
 - Ícones da bandeja e do sistema do Dracula: P117.
+
+## Execução
+- **`previa_do_pack(ident, flavor, cores)`** (`ad3421db`, `scripts/pack.py`). Para cada um dos seis apps do dock e para a pasta, percorre `cadeia_de_acervo(ident)` e usa o mapa do próprio pack: o `apps.map` e o `apps-resgatados.map` do Dracula (arte como está), os mapas de traço do MeowSystem (glifo do Arcticons ou convertido, pintado com a cor do mapa na paleta do flavor, traço 1,25), e o autoral `<nome>-<flavor>.svg`. O app que o pack não traz fica de fora; a arte de outro pack nunca entra. A pasta sai do `pastas_do_pack` (`folder`, depois `user-home`).
+  - Medido: MeowSystem mocha tem os 6 apps e Dracula (dracula e alucard) também, cada um com arte diferente da do outro.
+- **Biblioteca** (`ad3421db`). `acervo_para_levar()` entrega `previa` com o `currentColor` trocado pelo `text` do flavor, e `svg` continua `None` para o «levar» copiar o arquivo original. O `_api_criar_ler()` serve `data:image/svg+xml` quando há `previa`.
+- **Servidor** (`ad3421db`). `packs_com_vitrine()` manda `previa` por flavor em cada cartão (`dock` e `pasta` como `data:`); `/api/criar` aceita `previa=1` para o pack em edição.
+- **Mesa** (`41a580e0`). `mesa.js` desenha `<img>` com o dock e a pasta do pack; sem previa, cai no traço neutro (`--p-sub`), nunca no ícone de outro pack. `cartaoDePack`, `mesaDaPagina` e `paginaCriar` passam `previa`. CSS novo em `tema.css`.
+- **Provas** (`66c93a58`).
+  - `app-completo.py --aba tema`: os dois cartões trazem ao menos 3 `img.arte-pack` em `data:image/svg+xml`, sem traço neutro e com a pasta do pack, e o conjunto de `src` de um não repete o do outro. Com o `mesa.js` antigo o teste dá 5 achados.
+  - `app-completo.py --aba criar/icones`: na aba Biblioteca todo `img` é `data:image/svg+xml`, nenhum fica com `currentColor` e o traço contrasta 3:1 com o fundo do cartão.
+  - `pack.sh`: a prévia do Dracula (dracula e alucard) e do MeowSystem não traz SVG idêntico a nenhum arquivo do outro pack.
+  - `icones-por-pack.py`: a conferência «só o acervo do pack Dracula» aceita agora o `data:` dos 15 ícones pintados.
+- Fora: a aba «Do acervo» da ficha segue como estava (não passa pelo mesmo caminho).

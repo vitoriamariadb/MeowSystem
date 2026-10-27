@@ -109,7 +109,7 @@ def main():
                     f"Sistema (Dracula): só as pastas do pack Dracula ({len(sis_dra)})")
             aba(pag, "biblioteca")
             bib_dra = fontes_do_acervo(pag, "biblioteca")
-            confere(len(bib_dra) > 0 and all("dracula" in decodificado(a["src"]) for a in bib_dra),
+            confere(len(bib_dra) > 0 and all("dracula" in decodificado(a["src"]) or a["src"].startswith("data:image/svg+xml") for a in bib_dra),
                     f"Biblioteca (Dracula): só o acervo do pack Dracula ({len(bib_dra)})")
             confere({a["src"] for a in bib_dra}.isdisjoint({a["src"] for a in bib_mew}), "a Biblioteca do Dracula não mistura a do MeowSystem")
 
