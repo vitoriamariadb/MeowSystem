@@ -67,6 +67,7 @@ PORTATIL=(
   nada-manda-digitar.sh
   achados-tecnicos.sh
   miudos-do-install.sh
+  etapa-compositor.sh
   restaurar.sh
   trabalho-vivo.sh
   reler-uma-vez.sh

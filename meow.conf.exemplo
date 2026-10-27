@@ -1488,10 +1488,17 @@ LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
 LEITURA_APPLET="sim"              # sim | nao
 
 # EXTENSÕES DA CASA QUE O INSTALL COMPILA, pelo id: now-playing, status-hub,
-#   quick-settings, leitura, performance. Vazio segue MIDIA e LEITURA_APPLET
-#   acima; "-" não quer nenhuma; uma lista (separada por vírgula) manda sozinha.
+#   quick-settings, leitura, performance. Vazio quer as cinco, menos a que
+#   MIDIA ou LEITURA_APPLET acima dizem "nao"; "-" não quer nenhuma; uma lista
+#   (separada por vírgula) manda sozinha.
 #   A página Extensões escreve esta chave quando você instala ou remove um applet.
 EXTENSOES=""
+
+# O COMPOSITOR DA CASA: o cosmic-comp com os remendos (patches/series), ligado
+#   pelo shim em ~/.local/bin/cosmic-comp. "sim" compila em segundo plano e liga
+#   o shim; "nao" tira o shim e a sessão volta ao /usr/bin/cosmic-comp.
+#   A página Extensões (aba Builds) escreve esta chave.
+COMPOSITOR="sim"                   # sim | nao
 
 # REFAZER OS BUILDS AO ENTRAR NA SESSÃO: o compositor e o menu do Arquivos, quando a
 #   versão instalada muda. A página Extensões (Builds) liga e desliga esta chave.

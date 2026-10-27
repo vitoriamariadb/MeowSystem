@@ -9,7 +9,7 @@
 [![licença](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-CBA6F7?style=for-the-badge&labelColor=1E1E2E)](LICENSE)
 [![plataforma](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
 ![versão](https://img.shields.io/badge/vers%C3%A3o-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
-[![instalador](https://img.shields.io/badge/instalador-68%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![instalador](https://img.shields.io/badge/instalador-69%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
 [![doctor](https://img.shields.io/badge/doctor-73%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 
 <img src="docs/capturas/desktop.jpg" width="920" alt="A área de trabalho vestida pelo MeowSystem">
@@ -34,7 +34,7 @@ cd MeowSystem
 ./install.sh --wizard
 ```
 
-São 68 etapas. O `--wizard` pergunta as chaves essenciais; `./install.sh --perfil <nome>` instala
+São 69 etapas. O `--wizard` pergunta as chaves essenciais; `./install.sh --perfil <nome>` instala
 com as escolhas guardadas em `perfis/<nome>/`. A senha do sudo é pedida **uma vez**, para registrar
 a ponte root; depois, nenhuma tela pede senha. O instalador baixa o que o Pop!_OS não traz: o
 compilador e as bibliotecas dos applets, o `fastfetch` e o `starship`. Para ensaiar antes:
@@ -42,7 +42,7 @@ compilador e as bibliotecas dos applets, o `fastfetch` e o `starship`. Para ensa
 
 ## O painel
 
-`meow abrir`, ou o ícone MeowSystem no lançador. 124 ajustes e 70 ações em cinco portas:
+`meow abrir`, ou o ícone MeowSystem no lançador. 125 ajustes e 70 ações em cinco portas:
 
 <table>
 <tr>
