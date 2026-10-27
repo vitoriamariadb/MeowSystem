@@ -11,6 +11,8 @@
   `tests/app-uso-real.py` (ignora o que rola por baixo das abas fixas): conferir se não esconde cobertura real.
 - Depois: juntar as seis em `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev →
   remover as worktrees da leva (b0, maquete-a, maquete-b, p109..p114).
+- Pedido de quem usa (27/10): ao fim de TUDO (merge no dev e worktrees removidas), desligar o PC sem
+  perguntar: `sudo -A systemctl poweroff -i` (askpass; ignora apps abertos).
 
 ## Respostas de quem usa (26/10)
 - Repos de applet: conta `vitoriamariadb`, nome `meowsystem-*`, pasta `~/Desenvolvimento/meowsystem-*`, app id `io.github.meowsystem.*`. Vão até o push. Compilam e instalam aqui (root por `sudo -A`, o askpass); não mexem na ordem do painel nem o reiniciam sozinhos.
