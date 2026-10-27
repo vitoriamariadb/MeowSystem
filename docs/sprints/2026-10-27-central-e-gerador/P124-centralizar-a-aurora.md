@@ -138,3 +138,43 @@ classes B do levantamento e o mecanismo de que as classes A (P125) e a P121 prec
 - Mexer em qualquer script da Aurora fora das linhas marcadas.
 - Apagar arquivo da Aurora.
 - O `~/.claude/CLAUDE.md` dela.
+
+## Execução
+Bloco «aurora», árvore `MeowSystem-aurora`, branch `bloco/aurora`.
+
+### Commits
+- `5701e821` `scripts/vizinhos.sh`: `--prontos`, `--desativar-prontos`, `fim -` de uma linha, âncora
+  única, `bash -n`/`zsh -n` antes do `mv`, tipo `unidade` com a expansão `$UNI` (e `$SBIN`, que o
+  teste aponta para uma cópia).
+- `428e5d14` `vizinhos.tsv`: os sete itens. O `requer` do `aurora-compositor` e do
+  `aurora-night-light` passou a `build:` (o shim de pé **e** o build da versão instalada valendo).
+- `1d04155f` `chk_vizinhos`/`fix_vizinhos` e `VIZINHOS_DESATIVAR` no `meow.conf.exemplo` e no painel
+  (`lugares.js`). O gancho do commit acertou a contagem no README, no README.en e no `app/LEIA-ME.md`.
+- `669fae20` `fastfetch_logo.sh`: `_ffl_assumir_diretorio` apaga o link aninhado; o `cmd_conferir`
+  ganhou a mesma conferência, para o doctor ver o link.
+- `cba8a85e` `docs/FRONTEIRA.md`: a linha da regra.
+- `4c0795de` `tests/vizinhos.sh`.
+- Itens do coordenador: `53fa1155` (falha gravada espera gatilho novo), `d7a5fc0d` (pendência igual
+  não regrava), `eeeabcea` (semeadura do papel de parede só quando muda), `19c2f807`
+  (`tests/segunda-passada-sem-rede.sh`, novo).
+- Achados da suíte no caminho: `cd28a58d` (o desinstalador desliga `meow-vidro.*`) e `646ea0a1`
+  (`VIZINHOS_DESATIVAR` na `chave-etapa.tsv`).
+
+### Provas rodadas
+- `tests/vizinhos.sh` verde: gatilho e segunda passada, item restaurado fica, a chave, a linha
+  byte a byte, âncora repetida, sintaxe, `unidade` (espera, `disable --now`, volta com `enable --now`),
+  os itens novos e antigos nas cópias reais, fastfetch. Sem a cura ficou vermelho.
+- `tests/segunda-passada-sem-rede.sh` verde: a segunda e a terceira passadas do doctor sem rede não
+  compilam e não escrevem nada.
+- `tests/decisoes.sh`: só o vermelho aceito (GPU D6).
+
+### O que mudou de lugar
+- A D10 (os itens do compositor e do night-light que dependem do shim) foi para a P125, no
+  `d3e28257`.
+- O bloco 9 do `tests/vizinhos.sh` corta as cópias do `~/.config/zsh` real: na máquina sem a Aurora
+  ele pula esse bloco (pulado não é verde: lá a prova é a dos blocos 1 a 8).
+
+### Conferir com a mão
+- O doctor das 5h (ou Manter) corta; o log do self-heal não diz mais «criando symlink
+  ~/.config/fastfetch»; um terminal novo abre com um fastfetch e um prompt.
+- `scripts/vizinhos.sh --listar` mostra só o que é da Aurora pela FRONTEIRA.
