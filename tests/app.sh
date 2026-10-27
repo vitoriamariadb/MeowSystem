@@ -199,20 +199,18 @@ else:
     print("ok: o ensaio é pedido por gesto, e não guardado num interruptor")
 
 _pecas = [("o botão do diálogo", "confirmar-ensaio", _js),
-          ("o botão da barra do alto", "botao-ensaiar", _js),
           ("a faixa da gaveta", "faixa-ensaio", _js),
           ("o «Rodar de verdade» pós-ensaio", "ensaio-rodar", _js),
           ("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
           ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py),
-          ("o seco no /api/rodar", 'corpo.get("seco")', _py),
-          ("o seco no /api/salvar", 'corpo.get("seco")', _py)]
+          ("o seco no /api/rodar", 'corpo.get("seco")', _py)]
 _faltam = ["%s (%s)" % (nome, marca) for nome, marca, onde in _pecas if marca not in onde]
 if _faltam:
     print("FALHOU: o ensaio da sprint P8 sumiu da tela: %s" % ", ".join(_faltam),
           file=sys.stderr)
     falhou = 1
 else:
-    print("ok: o «Ver sem mudar» está no diálogo, na barra e na janela de resultado")
+    print("ok: o «Ver sem mudar» está no diálogo da ação e na janela de resultado")
 
 import hashlib as _hl
 import shutil as _sh

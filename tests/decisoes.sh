@@ -231,6 +231,20 @@ else
   pula "sem node: a regra do botão não roda aqui"
 fi
 
+registro 10 'grava na hora' && registro 10 'sim de 26/10' && ok "10: o registro diz que o restaurar grava na hora, com o sim de 26/10" \
+  || falha "a decisão 10 não diz que grava na hora"
+
+echo "== D18. os ajustes gravam ao soltar; só as ações têm janela de resultado e ensaio"
+registro 18 'sim de 26/10' && registro 18 'a barra só desfaz' && ok "18: o registro diz o grava-ao-soltar, com o sim de 26/10" \
+  || falha "a decisão 18 não diz o grava-ao-soltar"
+if grep -q 'id="bt-aplicar"\|id="botao-ensaiar"' "$RAIZ/app/pagina/index.html"; then
+  falha "a barra de cima voltou a ter «Aplicar» ou «Ver sem mudar»"
+else
+  ok "a barra de cima não tem «Aplicar» nem «Ver sem mudar»"
+fi
+grep -q 'id="confirmar-ensaio"' "$RAIZ/app/pagina/index.html" \
+  && ok "o diálogo da ação continua com o «Ver sem mudar»" || falha "o diálogo da ação perdeu o «Ver sem mudar»"
+
 echo "== D11. a interface nunca pede senha (revoga a caixa do sudo de uma linha, sim de 23/10)"
 registro 11 'a interface nunca pede senha' && ok "11: o registro diz a revogação, com o sim" || falha "a decisão 11 não diz a revogação no registro"
 r="$(python3 - "$RAIZ/app/pagina" <<'PY' 2>&1
