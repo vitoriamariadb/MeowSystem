@@ -415,6 +415,32 @@ async function carregarAcervo() {
   ACERVO = r.erro ? { chave, sistema: [], biblioteca: [] } : { chave, sistema: r.sistema || [], biblioteca: r.biblioteca || [] };
   render();
 }
+let PREVIA_DO_RASCUNHO = null;
+let PREVIA_RELOGIO = null;
+function chaveDaPrevia() {
+  const r = rascunho();
+  return JSON.stringify([r.pack || "", r.base.pack, r.base.flavor || "", vinteSeis()]);
+}
+async function carregarPreviaDoRascunho(chave) {
+  const r0 = rascunho();
+  const consulta = `previa=1&id=${encodeURIComponent(r0.pack || "")}&base=${encodeURIComponent(r0.base.pack)}`
+    + `&flavor=${encodeURIComponent(r0.base.flavor || "")}&cores=${encodeURIComponent(JSON.stringify(vinteSeis()))}`;
+  const r = await api(`/api/criar?${consulta}`);
+  if (!PREVIA_DO_RASCUNHO || PREVIA_DO_RASCUNHO.chave !== chave) return;
+  PREVIA_DO_RASCUNHO = { chave, previa: r.erro ? null : r.previa || null };
+  if (ROTA.porta === "criar") render();
+}
+function previaDoRascunho() {
+  const chave = chaveDaPrevia();
+  if (!PREVIA_DO_RASCUNHO || PREVIA_DO_RASCUNHO.chave !== chave) {
+    PREVIA_DO_RASCUNHO = { chave, previa: null };
+    clearTimeout(PREVIA_RELOGIO);
+    PREVIA_RELOGIO = setTimeout(() => carregarPreviaDoRascunho(chave), 250);
+  }
+  if (PREVIA_DO_RASCUNHO.previa) return PREVIA_DO_RASCUNHO.previa;
+  const r = rascunho();
+  return previaDoPack(PACKS.find((x) => x.id === (r.pack || r.base.pack)) || PACKS.find((x) => x.id === r.base.pack) || packNoAr(), r.base.flavor);
+}
 function gradeDoAcervo(pasta) {
   if (!ACERVO || ACERVO.chave !== chaveDoAcervo()) carregarAcervo();
   const pronto = ACERVO && !ACERVO.carregando;
@@ -683,7 +709,7 @@ function paginaCriar(sub) {
   const previa = MESA.mesa({
     cores: MESA.estiloDeCores(ordem.map((n) => mapa[n]), ordem, "mauve"),
     gato: urlDoGato(ESQUEMA.gato_no_dock || vale("LOGO")), parede: sub === "papel" ? paredeDaPrevia() : "",
-    previa: previaDoPack(PACKS.find((x) => x.id === rascunho().base.pack) || packNoAr(), rascunho().base.flavor),
+    previa: previaDoRascunho(),
     rotulo: "Prévia do tema",
   });
   return [
