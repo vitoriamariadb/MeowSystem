@@ -1009,6 +1009,26 @@ def _oficina_do_usuario(*partes):
     return os.path.join(xdg, "meowsystem", *partes)
 
 
+def _cores_da_consulta(valor):
+    if isinstance(valor, str):
+        try:
+            valor = json.loads(valor) if valor else None
+        except ValueError:
+            return None
+    if not isinstance(valor, dict):
+        return None
+    return {str(k): str(v) for k, v in valor.items()
+            if re.match(r"^[a-z0-9]{1,24}$", str(k)) and re.match(r"^#[0-9a-fA-F]{6}$", str(v))} or None
+
+
+def _cadeia_do_pack(valor):
+    mod = modulo_pack()
+    ident = str(valor or "").strip()
+    if not mod or not re.match(r"^[a-z0-9-]{1,64}$", ident):
+        ident = _pack_adotado() or (mod.PACK_BASE if mod else "")
+    return (mod.cadeia_de_acervo(ident) if mod and ident else []), ident
+
+
 def _texto_de_mapa(linhas):
     texto = "\n".join(linhas)
     return texto if not texto or texto.endswith("\n") else texto + "\n"
@@ -4945,11 +4965,11 @@ class Manipulador(BaseHTTPRequestHandler):
             pass
         return fora
 
-    def _desenhos_de_pack(self):
+    def _desenhos_de_pack(self, cadeia=None):
         mod = modulo_pack()
         if not mod:
             return {}
-        adotado = _pack_adotado()
+        adotado = cadeia[0] if cadeia else _pack_adotado()
         indice, vistos = {}, set()
         for base in mod.raizes():
             try:
@@ -4961,6 +4981,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
                     continue
                 vistos.add(pid)
+                if cadeia is not None and pid not in cadeia:
+                    continue
                 nome_pack = str(mod.campo(dir_pack, "nome", pid) or pid)
                 pares = []
                 desenhos = mod.campo(dir_pack, "icones.apps.desenhos")
@@ -5712,7 +5734,7 @@ class Manipulador(BaseHTTPRequestHandler):
         return "".join(c for c in unicodedata.normalize("NFKD", str(texto or ""))
                        if not unicodedata.combining(c)).lower()
 
-    def _acervo_da_ficha(self):
+    def _acervo_da_ficha(self, alvo=None):
         grupos, itens = [], []
         mod = modulo_pack()
         if not mod:
@@ -5721,7 +5743,9 @@ class Manipulador(BaseHTTPRequestHandler):
         do_mapa = {os.path.normpath(d["caminho"]): d for d in desenhos}
         textos, rotulos, do_nome = self._textos_da_busca(mod)
         nomes_de_app = self._nomes_de_app()
-        for g in mod.acervos_de_icone(_pack_adotado()):
+        cadeia, ident = _cadeia_do_pack(alvo)
+        lista = mod.acervos_de_icone(ident, cadeia=cadeia)
+        for g in lista:
             arquivos = g.pop("arquivos")
             g["total"] = len(arquivos)
             grupos.append(g)
@@ -5868,7 +5892,7 @@ class Manipulador(BaseHTTPRequestHandler):
     def _api_glifos(self, consulta):
         busca = self._sem_acento((consulta.get("busca", [""])[0] or "").strip())
         app = (consulta.get("app", [""])[0] or "").strip()
-        grupos, itens = self._acervo_da_ficha()
+        grupos, itens = self._acervo_da_ficha(consulta.get("pack", [""])[0])
         palpites = self._palpites_do_app(app)
         achados = {}
         glifos = []
@@ -5900,11 +5924,11 @@ class Manipulador(BaseHTTPRequestHandler):
             return os.path.relpath(caminho, RAIZ)
         return caminho
 
-    def _item_da_ficha(self, arquivo):
+    def _item_da_ficha(self, arquivo, pack=None):
         if not arquivo or not isinstance(arquivo, str):
             return None
         alvo = os.path.normpath(arquivo if os.path.isabs(arquivo) else os.path.join(RAIZ, arquivo))
-        _grupos, itens = self._acervo_da_ficha()
+        _grupos, itens = self._acervo_da_ficha(pack)
         return next((it for it in itens if os.path.normpath(it["caminho"]) == alvo), None)
 
     def _minha_escolha(self, app):
@@ -5973,7 +5997,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         item = None
         if corpo.get("arquivo") and not remover:
-            item = self._item_da_ficha(str(corpo.get("arquivo")))
+            item = self._item_da_ficha(str(corpo.get("arquivo")), corpo.get("ficha"))
             if not item:
                 return self._json({"erro": "não achei o desenho '%s' na ficha"
                                            % corpo.get("arquivo")}, 404)
@@ -6311,7 +6335,8 @@ class Manipulador(BaseHTTPRequestHandler):
             tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
             atual, nosso = self._icone_na_tela(
                 d, os.path.expanduser("~/.local/share/icons/%s" % tema))
-            do_pack = self._cartoes_do_pack(d, self._desenhos_de_pack(), atual, com_svg=True)
+            do_pack = self._cartoes_do_pack(
+                d, self._desenhos_de_pack(_cadeia_do_pack(corpo.get("pack"))[0]), atual, com_svg=True)
             traco = self._mapa_convertidos()
             arcticons = self._mapa_arcticons()
             vigor = self._quem_veste(atual, nosso, do_pack,
@@ -6813,17 +6838,23 @@ class Manipulador(BaseHTTPRequestHandler):
         if not mod:
             return self._json({"erro": "scripts/pack.py não carregou"}, 500)
         ident = consulta.get("id", [""])[0]
+        base = consulta.get("base", [""])[0]
+        cores = _cores_da_consulta(consulta.get("cores", [""])[0])
         icones = {}
         for pasta in mod.PASTAS_QUE_SE_LEVAM:
             icones[pasta] = []
             try:
-                oferta = mod.acervo_para_levar(ident or None, pasta)
+                oferta = mod.acervo_para_levar(ident or None, pasta, base, cores)
             except mod.Recusa:
                 oferta = []
-            for de, nome, arq, levado in oferta:
-                _ICONES_DECLARADOS.add(os.path.normpath(arq))
-                icones[pasta].append({"de": de, "nome": nome, "levado": levado,
-                                      "url": "/previa?tipo=arquivo&id=" + quote(arq, safe="")})
+            for i in oferta:
+                if i["svg"] is not None:
+                    url = "data:image/svg+xml;charset=utf-8," + quote(i["svg"], safe="")
+                else:
+                    _ICONES_DECLARADOS.add(os.path.normpath(i["arq"]))
+                    url = "/previa?tipo=arquivo&id=" + quote(i["arq"], safe="")
+                icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
+                                      "levado": i["levado"], "url": url})
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:
@@ -6862,11 +6893,12 @@ class Manipulador(BaseHTTPRequestHandler):
             elif tipo in mod.PASTAS_QUE_SE_LEVAM:
                 if levar:
                     de = str(corpo.get("de", ""))
-                    arq = next((a for p_, n, a, _l in mod.acervo_para_levar(ident, tipo)
-                                if p_ == de and n == nome), None)
-                    if not arq:
+                    achado = next((i for i in mod.acervo_para_levar(
+                        ident, tipo, "", _cores_da_consulta(corpo.get("cores")))
+                        if i["de"] == de and i["nome"] == nome), None)
+                    if not achado:
                         return self._json({"erro": "não achei esse ícone no pack «%s»" % de}, 404)
-                    feito = mod.levar_icone(ident, tipo, arq, nome)
+                    feito = mod.levar_icone(ident, tipo, achado["arq"], nome, achado["svg"])
                 else:
                     mod.tirar_icone(ident, tipo, nome)
                     feito = nome

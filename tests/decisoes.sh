@@ -29,7 +29,7 @@ import os, sys
 sys.path.insert(0, sys.argv[1])
 import pack
 caso = sys.argv[2]
-grupos = lambda no_ar="": pack.acervos_de_icone(no_ar)
+grupos = lambda no_ar="", cadeia=None: pack.acervos_de_icone(no_ar, cadeia)
 _tab = os.path.join(os.path.dirname(sys.argv[1]), "packs", "CAMINHOS-DE-ANTES.tsv")
 antes_png = [l.split("\t", 1)[0] for l in open(_tab, encoding="utf-8")] if os.path.exists(_tab) else []
 def stems(pid):
@@ -59,10 +59,9 @@ elif caso == "vetores":
     print("png_sem_vetor=" + ",".join(sem_vetor))
 elif caso == "seletor":
     for no_ar in ("dracula", "meowsystem"):
-        g = grupos(no_ar)
+        g = grupos(no_ar, pack.cadeia_de_acervo(no_ar))
         print("%s:packs=%s" % (no_ar, ",".join(sorted({x["pack"] for x in g if x["pack"]}))))
         print("%s:primeiro=%s:%s" % (no_ar, g[0]["pack"], g[0]["no_ar"]))
-        print("%s:motor=%s" % (no_ar, any(x["pack"] == "meowsystem" for x in g)))
 elif caso == "nomes":
     tem = stems("dracula")
     for n in sys.argv[3:]:
@@ -88,16 +87,18 @@ grep -q '^falta=' <<< "$r" && falha "vetor dos feitos à mão que sumiu do pack 
 [ "$(grep '^png_sem_vetor=' <<< "$r")" = "png_sem_vetor=" ] \
   && ok "nenhum PNG do pack ficou sem o vetor ao lado" || falha "PNG sem vetor: $(grep '^png_sem_vetor=' <<< "$r")"
 
-echo "== D3. o seletor mostra o acervo de todos os packs, o pack no ar primeiro"
+echo "== D3. o seletor mostra só o acervo do pack em edição"
 r="$(resolvedor seletor 2>&1)"
 bom=1
 for no_ar in dracula meowsystem; do
-  grep -qx "$no_ar:packs=dracula,meowsystem" <<< "$r" || bom=0
+  grep -qx "$no_ar:packs=$no_ar" <<< "$r" || bom=0
   grep -qx "$no_ar:primeiro=$no_ar:True" <<< "$r" || bom=0
-  grep -qx "$no_ar:motor=True" <<< "$r" || bom=0
 done
-[ "$bom" = 1 ] && ok "com qualquer pack no ar: os dois packs e o motor aparecem, o do ar na frente" \
-  || falha "o seletor não mostra todos os acervos: $r"
+[ "$bom" = 1 ] && ok "com um pack em edição: só o acervo dele aparece, e o do outro nunca" \
+  || falha "o seletor mistura acervos de packs: $r"
+registro 3 'só o acervo do pack em edição' && registro 3 '26/10' \
+  && ok "o registro diz «só o acervo do pack em edição», com o sim de 26/10" \
+  || falha "a decisão 3 do registro não cita o acervo do pack em edição e o sim de 26/10"
 
 echo "== D4. calcdeirao fica fora; jogos, rede e clima2 entram"
 r="$(resolvedor nomes jogos rede clima2 2>&1)"
