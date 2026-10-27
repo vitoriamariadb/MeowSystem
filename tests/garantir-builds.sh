@@ -166,6 +166,42 @@ rm -rf "$CASA/0.1~z"
 igual "estado não compilou nada" "$(grep -c . "$T/log")" 0
 igual "e não escreveu nada" "$depois" "$antes"
 
+echo "-- o build pronto com o shim desligado: desligado, e não «Em dia»"
+versoes cosmic-comp=0.1~a cosmic-files=1.10~a
+rm -f "$T/home/.local/bin/cosmic-comp"
+rodar estado
+igual "build pronto, shim ausente: desligado" "$(sed -n 's/^compositor_estado=//p' "$T/saida")" desligado
+cp "$RAIZ/scripts/compositor_shim.sh" "$T/home/.local/bin/cosmic-comp"
+rodar estado
+igual "build pronto, shim ligado: ok" "$(sed -n 's/^compositor_estado=//p' "$T/saida")" ok
+rm -f "$T/home/.local/bin/cosmic-comp"
+
+echo "-- o pino do compositor: instalar liga o shim, remover o tira (HOME de brinquedo)"
+gesto() {
+  env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY \
+    HOME="$T/home" PATH="$T/bin:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+    MEOW_ESTADO="$ESTADO" MEOW_CONF="$T/home/.config/meow/meow.conf" \
+    GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" \
+    CP_REPO="$T/patches" CP_SERIE="$T/patches/series" \
+    "$RAIZ/scripts/extensoes_gesto.sh" "$@" > "$T/saida" 2>&1
+}
+: > "$T/log"; gesto instalar compositor; rc=$?
+igual "instalar compositor com o build pronto devolve 1" "$rc" 1
+grep -qs 'MEOW-COSMIC-COMP-SHIM-1' "$T/home/.local/bin/cosmic-comp" \
+  && ok "o shim está em ~/.local/bin/cosmic-comp" || { falha "instalar não criou o shim"; sed 's/^/        /' "$T/saida"; }
+igual "e não compilou nada" "$(linhas '^compositor compilar')" 0
+igual "o meow.conf diz COMPOSITOR=sim" "$(sed -n 's/^COMPOSITOR="\(.*\)".*/\1/p' "$T/home/.config/meow/meow.conf" | tail -1)" sim
+antes="$(foto)"
+gesto instalar compositor; rc=$?
+igual "a segunda passada devolve 0" "$rc" 0
+igual "e não escreve nada" "$(foto)" "$antes"
+gesto remover compositor; rc=$?
+igual "remover compositor devolve 1" "$rc" 1
+[ -e "$T/home/.local/bin/cosmic-comp" ] && falha "remover deixou o shim" || ok "o shim saiu"
+[ -x "$CASA/0.1~a/cosmic-comp" ] && ok "e o build fica guardado" || falha "remover apagou o build"
+igual "o meow.conf diz COMPOSITOR=nao" "$(sed -n 's/^COMPOSITOR="\(.*\)".*/\1/p' "$T/home/.config/meow/meow.conf" | tail -1)" nao
+rm -f "$T/home/.config/meow/meow.conf"
+
 echo
 echo "== 2. os três gatilhos chamam a mesma função"
 U="$RAIZ/systemd/meow-builds-login.service"
