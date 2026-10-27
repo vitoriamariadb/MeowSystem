@@ -372,9 +372,9 @@ done
 [ -z "$faltam" ] && grep -q 'ppa:zhangsongcui3371/fastfetch' "$RAIZ/install.sh" \
   && ok "21: o instalador declara o que os applets compilam e o PPA do fastfetch" \
   || falha "21: falta dependência declarada:${faltam:- o PPA do fastfetch}"
-grep -q 'git clone https://github.com/AndreBFarias/MeowSystem.git' "$RAIZ/README.md" \
-  && ok "22: o README manda baixar do fork" || falha "22: o README não aponta para AndreBFarias/MeowSystem"
-registro 22 'AndreBFarias/MeowSystem' && ok "22: o registro guarda o repositório da casa" \
+grep -q 'git clone https://github.com/vitoriamariadb/MeowSystem.git' "$RAIZ/README.md" \
+  && ok "22: o README manda baixar de vitoriamariadb/MeowSystem" || falha "22: o README não aponta para vitoriamariadb/MeowSystem"
+registro 22 'vitoriamariadb/MeowSystem' && ok "22: o registro guarda o repositório da casa" \
   || falha "a decisão 22 saiu do registro"
 python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["origens"]["wallpapers"].get("repo") else 1)' \
     "$RAIZ/packs/meowsystem/pack.json" 2>/dev/null && ! grep -q 'meow wallpaper semear  ' "$RAIZ/install.sh" \
