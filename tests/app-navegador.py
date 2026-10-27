@@ -152,7 +152,7 @@ def main():
             checa(pag.evaluate("() => location.hash") == "#ajustes/janelas", "e leva a Janelas e tela")
             checa(pag.locator('#conteudo .chegou[data-linha~="CURSOR"]').count() == 1, "acendendo a linha do ponteiro")
 
-            print("6. Criar tema")
+            print("6. Personalizar")
             ir(pag, "criar/cores")
             antes = pag.locator("#conteudo .poco code").first.inner_text()
             alvo = pag.locator('[data-controle^="criar:comeca="][aria-pressed="false"]').first

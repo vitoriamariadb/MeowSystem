@@ -94,7 +94,7 @@
     pilha.replaceChildren();
     const antes = location.hash;
     const rotas = [["#tema", "Tema"],
-      ...PASSOS.map((p) => ["#criar/" + p.id, "Criar tema · " + p.nome]),
+      ...PASSOS.map((p) => ["#criar/" + p.id, "Personalizar · " + p.nome]),
       ...AJUSTES.map((p) => ["#ajustes/" + p.id, "Ajustes · " + p.nome]),
       ["#cuidar", "Cuidar"]];
     for (const [hash, nome] of rotas) {

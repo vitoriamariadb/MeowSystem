@@ -950,7 +950,7 @@ python3 scripts/pack.py construir dracula     # gera meu-app-dracula.svg e -aluc
 > `completar_icones.sh`. O desenho novo **nasce** no pack; pô-lo na tela de um
 > aplicativo ainda pede uma linha naquela tabela.
 
-**No painel**, o passo «Ícones» de Criar tema termina na seção **Desenhos autorais do pack**: o
+**No painel**, o passo «Ícones» do Personalizar termina na seção **Desenhos autorais do pack**: o
 desenho, os papéis dele com a cor em cada flavor, e a prévia — cada flavor sobre
 quatro fundos da paleta dele (`crust`, `base`, `overlay0`, `text`). Escolher
 uma cor repinta a prévia; só **Salvar no pack** grava, no pack que está no ar, e
@@ -2404,7 +2404,7 @@ o `--seco`.
 
 ### No painel
 
-**Abrir um tema**, na porta Tema, e **Baixar o tema**, no passo Mandar de Criar tema,
+**Abrir um tema**, na porta Tema, e **Baixar o tema**, no passo Mandar do Personalizar,
 chamam estas duas rotas:
 
 | rota | o que faz |
