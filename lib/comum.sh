@@ -211,6 +211,14 @@ meow_pack_padrao_dir() {
   printf '%s' "$MEOW_PACK_PADRAO_DIR"
 }
 
+meow_icones_de_status() {
+  local bloco="$1" ref flavor
+  ref="$(meow_pack_dir)"
+  [ -n "$ref" ] || ref="$(meow_pack_padrao_dir || true)"
+  flavor="$(python3 "$MEOW_RAIZ/scripts/pack.py" flavor-icones "$ref" 2>/dev/null)" || flavor=""
+  python3 "$MEOW_RAIZ/scripts/pack.py" icones-de-status "$ref" "$bloco" "$flavor" 2>/dev/null
+}
+
 meow_pack_dir() {
   local PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" saida recusado
   [ -n "$PACK$FLAVOR" ] || return 0

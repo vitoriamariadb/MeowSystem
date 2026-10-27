@@ -247,9 +247,9 @@ CAMPOS_COM_LEITOR = {
     "fontes.proprio",
     "fontes.herda",
     "icones.mimetypes.flavor",
+    "icones.sistema.pintar",
     "icones.gerador",
     "icones.autorais.gerar",
-    "origens.cursores.tema",
     "icones.base.origem.*",
     "origens.cursores.origem.*",
     "icones.base.por_tras",
@@ -998,6 +998,40 @@ def _dir_capturas(ref, dir_pack):
     except Recusa as e:
         print(f"  aviso {e} — esta camada foi ignorada", file=sys.stderr)
         return None
+
+
+BLOCOS_DE_STATUS = ("sistema", "bandeja")
+
+
+def icones_de_status(ref, bloco, flavor=""):
+    if bloco not in BLOCOS_DE_STATUS:
+        raise Recusa(f"bloco de status {bloco!r} desconhecido")
+    ref = _ref_ativa(ref)
+    vistos, r = set(), ref
+    while r and r not in vistos:
+        vistos.add(r)
+        dir_pack = achar(r)
+        if not dir_pack:
+            break
+        desenhos = campo(r, f"icones.{bloco}.desenhos")
+        mapa = campo(r, f"icones.{bloco}.mapa")
+        if isinstance(desenhos, str) and isinstance(mapa, str):
+            pasta = _dentro(dir_pack, desenhos, f"icones.{bloco}.desenhos")
+            arq = _dentro(dir_pack, mapa, f"icones.{bloco}.mapa")
+            if not (os.path.isdir(pasta) and os.path.isfile(arq)):
+                raise Recusa(f"icones.{bloco}: {desenhos!r} ou {mapa!r} não existe no pack {r!r}")
+            cor = ""
+            pintar = campo(ref, f"icones.{bloco}.pintar")
+            if pintar:
+                if pintar not in SLOTS:
+                    raise Recusa(f"icones.{bloco}.pintar: {pintar!r} não é um papel da paleta")
+                cores = _cores_do_flavor(ref, flavor) if flavor else None
+                if not cores or pintar not in cores:
+                    raise Recusa(f"icones.{bloco}.pintar: a paleta {flavor!r} não tem {pintar!r}")
+                cor = cores[pintar].lower()
+            return {"desenhos": pasta.rstrip(os.sep), "mapa": arq, "cor": cor}
+        r = campo(r, f"icones.{bloco}.herda")
+    raise Recusa(f"o pack {ref!r} não declara icones.{bloco}")
 
 
 def _ref_ativa(ref):
@@ -5098,6 +5132,10 @@ def main(argv):
             if not achado:
                 return RECUSADO
             print(achado)
+            return OK
+        if verbo == "icones-de-status" and len(argv) in (4, 5):
+            achado = icones_de_status(argv[2] or None, argv[3], argv[4] if len(argv) == 5 else "")
+            print(f"{achado['desenhos']}\t{achado['mapa']}\t{achado['cor']}")
             return OK
         if verbo == "pintados" and len(argv) in (4, 5):
             temporario = len(argv) == 5 and argv[4] == "--temporario"
