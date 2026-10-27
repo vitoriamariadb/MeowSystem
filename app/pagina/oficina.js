@@ -199,8 +199,8 @@ function escolhaDeIcone(app, recarregar) {
   return painel;
 }
 
-function oficinaZerada(id) {
-  return { app: id, aberta: false, carregou: false, ocupada: false, erro: "", cor: "",
+function oficinaZerada(id, packBase = "") {
+  return { app: id, pack_base: packBase, aberta: false, carregou: false, ocupada: false, erro: "", cor: "",
     original: "", variacoes: [], vizinhos: [], salvo: null, pack: [], arte: false,
     escolhida: null, escolhidaAntes: null, base: "", svg: "", parametros: "", fonte: "icone",
     detalhe: 6, suavidade: 2, cheia: false, fracas: 0, minimo: 0, historico: [], temporizador: null,
@@ -260,7 +260,11 @@ async function espiarEditor(pedido) {
 }
 
 function oficinaDeDesenho(app, relerLista) {
-  if (OFICINA.app !== app.id) { pararVigiaEditor(); OFICINA = oficinaZerada(app.id); }
+  const packBase = ROTA.porta === "criar" ? (rascunho().base || {}).pack || "" : "";
+  if (OFICINA.app !== app.id || OFICINA.pack_base !== packBase) {
+    pararVigiaEditor();
+    OFICINA = oficinaZerada(app.id, packBase);
+  }
   if (!OFICINA.cor) OFICINA.cor = (app.traco && app.traco.cor) || (app.mapa && app.mapa.cor) || "mauve";
   const raiz = elemento("div", { class: "desenho-gerar" });
   const usar = botao("Usar", { class: "bt principal", id: "d-usar", controle: "oficina:usar" });

@@ -64,7 +64,6 @@ def abrir_um_app(pag):
     if pag.locator(".desenho").count():
         pag.locator('[data-controle="desenho:volta"]').click()
         pag.wait_for_timeout(400)
-        pag.evaluate("() => { OFICINA.carregou = false; OFICINA.ocupada = false; }")
     botao = pag.locator("button.app[data-app]").first
     app = botao.get_attribute("data-app")
     botao.click()
