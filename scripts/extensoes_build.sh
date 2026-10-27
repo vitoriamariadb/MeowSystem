@@ -19,7 +19,16 @@ ESTADO_COSMIC="$HOME/.local/state/cosmic"
 
 . "$RAIZ/scripts/applet_pino.sh"
 
-PINO_CHAVES=" ORDEM NOME DESCRICAO URL COMMIT VERSAO LIBCOSMIC APP_ID BIN DESKTOP ICONES SUBSTITUI LEGADO MIGRA_ESTADO TEMA UPSTREAM "
+PINO_CHAVES=" ORDEM TIPO PADRAO CHAVE_DO_CONF ATIVA NOME DESCRICAO URL COMMIT VERSAO LIBCOSMIC APP_ID BIN DESKTOP ICONES SUBSTITUI LEGADO MIGRA_ESTADO TEMA TEMA_CHAVES PENDENCIA UPSTREAM "
+GARANTIR="${EXTENSOES_GARANTIR:-$RAIZ/scripts/garantir_builds.sh}"
+COMPOSITOR_PATCHES="${EXTENSOES_COMPOSITOR:-$RAIZ/scripts/compositor_patches.sh}"
+FILES_MENU_SH="${EXTENSOES_FILES_MENU:-$RAIZ/scripts/files_menu.sh}"
+SHIM="${CP_SHIM:-$HOME/.local/bin/cosmic-comp}"
+SHIM_MARCA="MEOW-COSMIC-COMP-SHIM"
+MENU_MARCA="MEOW-FILES-WALLPAPER-PATCH-1"
+CASA_COMP="${GB_CASA:-${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}}"
+GUARDA_MENU="${GB_FILES_GUARDA:-$MEOW_ESTADO/cosmic-files}"
+TRAVA_BUILDS="${GB_TRAVA:-$MEOW_ESTADO/builds.lock}"
 
 ID=""; CASA=0
 ESTADO=""; ARVORE=""; ALVO=""; CARIMBO=""; BINARIO=""; SOMBRA=""
@@ -48,6 +57,15 @@ _pino_ler() {
 
 _pino_valido() {
   local alvo restante par
+  case "${P_TIPO:-applet}" in applet|compositor|menu) ;; *) return 1 ;; esac
+  case "${P_PADRAO:-nao}" in sim|nao) ;; *) return 1 ;; esac
+  [ -z "$P_CHAVE_DO_CONF" ] || [[ "$P_CHAVE_DO_CONF" =~ ^[A-Z][A-Z0-9_]*$ ]] || return 1
+  [ -z "$P_PENDENCIA" ] || [[ "$P_PENDENCIA" =~ ^[a-z0-9][a-z0-9-]*$ ]] || return 1
+  for par in $P_TEMA_CHAVES; do [[ "$par" =~ ^[a-z_]+:(@acento|[a-z0-9]+)(/[0-9a-f]{2})?$ ]] || return 1; done
+  if [ "${P_TIPO:-applet}" != applet ]; then
+    [[ "$P_BIN" =~ ^[A-Za-z0-9._-]+$ ]] || return 1
+    return 0
+  fi
   [[ "$P_COMMIT" =~ ^[0-9a-f]{7,40}$ ]] || return 1
   [[ "$P_APP_ID" =~ ^[A-Za-z0-9._-]+$ ]] || return 1
   [[ "$P_BIN" =~ ^[A-Za-z0-9._-]+$ ]] || return 1
@@ -107,6 +125,8 @@ _carregar() {
 
 _nome() { printf '%s' "${P_NOME:-$ID}"; }
 
+_tipo() { printf '%s' "${P_TIPO:-applet}"; }
+
 _alvo_rev() { [ -n "$P_LIBCOSMIC" ] && ap_alvo "$ID" "$P_LIBCOSMIC"; }
 
 _painel_dir() { printf '%s/cosmic/com.system76.CosmicPanel.Panel/%s' "$CONFIG" "$(meow_cosmic_v com.system76.CosmicPanel.Panel)"; }
@@ -122,14 +142,15 @@ _painel_cita() {
 }
 
 _quer() {
-  local lista="${EXTENSOES:-}" id="$1"
+  local lista="${EXTENSOES:-}" id="$1" chave valor
   lista="${lista//,/ }"
   if [ -z "$lista" ]; then
-    case "$id" in
-      now-playing) [ "${MIDIA:-sim}" = sim ] ;;
-      leitura)     [ "${LEITURA_APPLET:-sim}" = sim ] ;;
-      *) return 1 ;;
-    esac
+    [ "${P_PADRAO:-nao}" = sim ] || return 1
+    chave="$P_CHAVE_DO_CONF"
+    [ -n "$chave" ] || return 0
+    valor="${!chave:-}"
+    [ -n "$valor" ] || valor="$(meow_conf_valor "$chave" 2>/dev/null)" || valor=sim
+    [ "$valor" != nao ]
     return
   fi
   case " $lista " in *" $id "*) return 0 ;; esac
@@ -490,9 +511,130 @@ _estado() {
     done
   fi
   [ -f "$ESTADO/falhou" ] && falhou=sim
-  printf 'id=%s\ncasa=%s\ninstalada=%s\nem_dia=%s\natualizacao=%s\nna_barra=%s\ntroca=%s\nfalhou=%s\ncommit_instalado=%s\n' \
-    "$ID" "$CASA" "$instalada" "$em_dia" "$atualizacao" "$na_barra" "$troca" "$falhou" "$gravado"
+  _estado_sai "$instalada" "$em_dia" "$atualizacao" "$na_barra" "$na_barra" "$troca" "$falhou" "$gravado" "$P_VERSAO" ""
+}
+
+_estado_sai() {
+  printf 'id=%s\ncasa=%s\ntipo=%s\ninstalada=%s\nem_dia=%s\natualizacao=%s\nna_barra=%s\nativa=%s\ntroca=%s\nfalhou=%s\ncommit_instalado=%s\nversao=%s\nsituacao=%s\n' \
+    "$ID" "$CASA" "$(_tipo)" "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}"
   return "$MEOW_OK"
+}
+
+_ativa() {
+  case "$(_tipo)" in
+    compositor) grep -qs -- "$SHIM_MARCA" "$SHIM" ;;
+    menu) grep -a -qs -- "$MENU_MARCA" "$BINDIR/$P_BIN" && grep -a -qs -- "$MENU_MARCA" "$BINDIR/$P_BIN-applet" ;;
+    *) _painel_cita "$P_APP_ID" ;;
+  esac
+}
+
+_b_campos() {
+  local prefixo="$1" saida
+  if [ "$(_tipo)" = menu ]; then saida="$(FILES_MENU=sim "$GARANTIR" estado 2>/dev/null)"
+  else saida="$("$GARANTIR" estado 2>/dev/null)"; fi
+  B_VERSAO="$(printf '%s\n' "$saida" | sed -n "s/^${prefixo}_versao=//p" | head -1)"
+  B_SITUACAO="$(printf '%s\n' "$saida" | sed -n "s/^${prefixo}_estado=//p" | head -1)"
+  B_CONSTRUINDO="$(printf '%s\n' "$saida" | sed -n 's/^construindo=//p' | head -1)"
+}
+
+_b_prefixo() { [ "$(_tipo)" = menu ] && printf menu || printf compositor; }
+
+_b_guardados() {
+  local d
+  if [ "$(_tipo)" = menu ]; then
+    for d in "$GUARDA_MENU"/*/; do [ -d "$d" ] && [ "$(basename "$d")" != "$1" ] && return 0; done
+  else
+    for d in "$CASA_COMP"/*/; do [ -x "$d/cosmic-comp" ] && [ "$(basename "$d")" != "$1" ] && return 0; done
+  fi
+  return 1
+}
+
+_b_pronto() { case "$B_SITUACAO" in ok|desligado) return 0 ;; esac; return 1; }
+
+_b_estado() {
+  local instalada=nao atualizacao=nao falhou=nao ativa=nao
+  _b_campos "$(_b_prefixo)"
+  _b_pronto && instalada=sim
+  [ "$B_SITUACAO" = pendente ] && [ -n "$B_VERSAO" ] && _b_guardados "$B_VERSAO" && atualizacao=sim
+  [ "$B_SITUACAO" = falhou ] && falhou=sim
+  _ativa && ativa=sim
+  _estado_sai "$instalada" "$instalada" "$atualizacao" nao "$ativa" "" "$falhou" \
+    "$([ "$instalada" = sim ] && printf '%s' "$B_VERSAO")" "$B_VERSAO" "$B_SITUACAO"
+}
+
+_b_conferir() {
+  _b_campos "$(_b_prefixo)"
+  if ! _b_pronto; then
+    meow_muda "$(_nome) sem build para a versão instalada (${B_VERSAO:-sem pacote})"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if ! _ativa; then
+    meow_muda "$(_nome) tem build pronto e está desligado"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_ok "$(_nome) ${B_VERSAO} é o da casa"
+  return "$MEOW_OK"
+}
+
+_b_compilar() {
+  local rc
+  if [ "$(_tipo)" = menu ]; then
+    FILES_MENU=sim "$FILES_MENU_SH" build; rc=$?
+    return "$rc"
+  fi
+  mkdir -p "${TRAVA_BUILDS%/*}" || return "$MEOW_ERRO"
+  (
+    exec 9>>"$TRAVA_BUILDS" || exit "$MEOW_ERRO"
+    flock 9
+    "$COMPOSITOR_PATCHES" compilar
+  )
+}
+
+_b_ligar() {
+  local rc
+  if [ "$(_tipo)" = menu ]; then
+    FILES_MENU=sim "$FILES_MENU_SH" aplicar; rc=$?
+  else
+    "$COMPOSITOR_PATCHES" ativar; rc=$?
+  fi
+  [ "$rc" = 4 ] && rc="$MEOW_SEM_DEPENDENCIA"
+  return "$rc"
+}
+
+_b_aplicar() {
+  local rc mudou=0
+  _b_campos "$(_b_prefixo)"
+  [ -n "$B_VERSAO" ] || { meow_pula "$(_nome): o pacote $P_BIN não está instalado"; return "$MEOW_SEM_DEPENDENCIA"; }
+  if [ "${EXTENSOES_REFAZER:-0}" = 1 ] || ! _b_pronto; then
+    if [ "$COMPILAR" != 1 ]; then
+      meow_pula "$(_nome) $B_VERSAO ainda sem build da casa"
+      return "$MEOW_SEM_DEPENDENCIA"
+    fi
+    if [ "${EXTENSOES_FUNDO:-0}" = 1 ]; then
+      "$GARANTIR" --fundo; rc=$?
+      [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+    else
+      _b_compilar; rc=$?
+      _b_campos "$(_b_prefixo)"
+      _b_pronto || { meow_erro "$(_nome) $B_VERSAO não compilou — o de fábrica segue valendo"; return "$MEOW_ERRO"; }
+    fi
+    mudou=1
+  fi
+  _b_ligar; rc=$?
+  case "$rc" in
+    0) [ "$mudou" = 1 ] && return "$MEOW_DIVERGENTE"; return "$MEOW_OK" ;;
+    *) return "$rc" ;;
+  esac
+}
+
+_b_reverter() {
+  local rc
+  if [ "$(_tipo)" = menu ]; then
+    "$FILES_MENU_SH" remover; rc=$?
+  else
+    "$COMPOSITOR_PATCHES" desativar; rc=$?
+  fi
+  return "$rc"
 }
 
 _atualizar() {
@@ -509,7 +651,18 @@ _atualizar() {
 
 _um() {
   local modo="$1"
+  if [ "$(_tipo)" != applet ]; then
+    case "$modo" in
+      estado) _b_estado ;;
+      reverter) _b_reverter ;;
+      conferir) _b_conferir ;;
+      aplicar|atualizar) _b_aplicar ;;
+      ativa) _ativa && echo sim || echo nao ;;
+    esac
+    return
+  fi
   case "$modo" in
+    ativa) _ativa && echo sim || echo nao ;;
     estado)   _estado ;;
     reverter) _reverter ;;
     atualizar) _atualizar ;;
@@ -532,6 +685,7 @@ _todas_reverter() {
   local id f rc geral="$MEOW_OK"
   for id in $(_ids_da_casa) $(for f in "$PINOS_USUARIO"/*.pino; do [ -f "$f" ] && basename "$f" .pino; done); do
     _carregar "$id" || continue
+    [ "$(_tipo)" = applet ] || continue
     _reverter; rc=$?
     geral="$(_pior "$geral" "$rc")"
   done
@@ -543,6 +697,7 @@ _todas() {
   [ "$modo" = reverter ] && { _todas_reverter; return $?; }
   for id in $(_ids_da_casa); do
     _carregar "$id" || { geral="$(_pior "$geral" "$MEOW_ERRO")"; continue; }
+    [ "$(_tipo)" = applet ] || continue
     if _quer "$id"; then
       querido=1
       _um "$modo"; rc=$?
@@ -566,11 +721,21 @@ _todas() {
   return "$geral"
 }
 
-uso() { meow_erro "uso: $(basename "$0") <id> [--conferir|--aplicar|--reverter|--estado|--atualizar]  |  --todas [--conferir|--aplicar|--reverter]"; exit "$MEOW_ERRO"; }
+uso() { meow_erro "uso: $(basename "$0") <id> [--conferir|--aplicar|--reverter|--estado|--atualizar|--ativa]  |  --todas [--conferir|--aplicar|--reverter]  |  --queridas"; exit "$MEOW_ERRO"; }
+
+_queridas() {
+  local id
+  for id in $(_ids_da_casa); do
+    _carregar "$id" || continue
+    [ "$(_tipo)" = applet ] && _quer "$id" && printf '%s\n' "$id"
+  done
+  return "$MEOW_OK"
+}
 
 main() {
   local alvo="${1:-}" modo="aplicar" flag
   [ -n "$alvo" ] || uso
+  [ "$alvo" = --queridas ] && { _queridas; return $?; }
   if [ "$alvo" = --todas ]; then
     flag="${2:---aplicar}"
     case "$flag" in --conferir) modo=conferir ;; --aplicar) modo=aplicar ;; --reverter) modo=reverter ;; *) uso ;; esac
@@ -586,10 +751,11 @@ main() {
     --reverter) modo=reverter ;;
     --estado) modo=estado ;;
     --atualizar) modo=atualizar ;;
+    --ativa) modo=ativa ;;
     *) uso ;;
   esac
-  meow_seco && [ "$modo" != reverter ] && [ "$modo" != estado ] && modo=conferir
-  { [ "$modo" = conferir ] || [ "$modo" = estado ]; } && AP_SO_LER=1
+  meow_seco && [ "$modo" != reverter ] && [ "$modo" != estado ] && [ "$modo" != ativa ] && modo=conferir
+  { [ "$modo" = conferir ] || [ "$modo" = estado ] || [ "$modo" = ativa ]; } && AP_SO_LER=1
   _carregar "$alvo" || return $?
   _um "$modo"
 }
