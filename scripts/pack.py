@@ -2176,13 +2176,20 @@ def validar(ref, silencioso=False):
                         ("pastas", ("mapa", "desenhos")),
                         ("mimetypes", ("mapa", "desenhos")),
                         ("autorais", ("mapa", "desenhos")),
-                        ("resgatados", ("mapa", "desenhos"))):
+                        ("resgatados", ("mapa", "desenhos")),
+                        ("sistema", ("mapa", "desenhos")),
+                        ("bandeja", ("mapa", "desenhos"))):
         bloco = ic.get(cat) or {}
         for chave in chaves:
             if bloco.get(chave):
                 alvo = _dentro(dir_pack, bloco[chave], f"icones.{cat}.{chave}")
                 _exigir(os.path.exists(alvo),
                         f"icones.{cat}.{chave}: {bloco[chave]!r} não existe no pack")
+    for cat in BLOCOS_DE_STATUS:
+        bloco = ic.get(cat) or {}
+        pintar = bloco.get("pintar")
+        _exigir(pintar is None or pintar in SLOTS,
+                f"icones.{cat}.pintar: {pintar!r} não é um papel da paleta ({', '.join(SLOTS)})")
     oc = (p.get("lancador") or {}).get("ocultar") if isinstance(p.get("lancador"), dict) else None
     if p.get("lancador") is not None:
         _exigir(isinstance(p.get("lancador"), dict) and isinstance(oc, list)
