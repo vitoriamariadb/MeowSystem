@@ -791,6 +791,8 @@ etapa_ponte_root() {
       meow_info "esta é a única senha do MeowSystem: ela instala o braço root e"
       meow_info "  a regra que dispensa a senha daqui em diante."
       sudo -v || { meow_aviso "sem sudo — a ponte fica de fora, e o resto vai"; return "$MEOW_SEM_DEPENDENCIA"; }
+    elif [ -x "${SUDO_ASKPASS:-}" ]; then
+      sudo -A -v || { meow_aviso "a caixa de senha não liberou o sudo — a ponte fica de fora, e o resto vai"; return "$MEOW_SEM_DEPENDENCIA"; }
     else
       meow_aviso "sem terminal para pedir a senha — a ponte fica de fora"
       meow_info "  ela entra na próxima instalação que puder pedir a senha"
