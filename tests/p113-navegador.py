@@ -80,6 +80,79 @@ def sons(pag, url):
     return q, corpo_previa
 
 
+def lancador(pag):
+    ir(pag, "ajustes/programas")
+    campo = pag.locator("[data-controle='chave:LANCADOR_OCULTAR:nova']")
+    campo.scroll_into_view_if_needed()
+    prova(campo.get_attribute("list") == "apps-LANCADOR_OCULTAR", "o campo de «Escondidos» ganha a lista de programas")
+    pag.wait_for_function("() => document.querySelectorAll('#apps-LANCADOR_OCULTAR option').length > 0", timeout=60000)
+    ids = pag.eval_on_selector_all("#apps-LANCADOR_OCULTAR option", "(xs) => xs.map((x) => x.value)")
+    prova(len(ids) > 0, "a lista sugere os programas de /api/apps (%d)" % len(ids))
+    foto(pag, "lancador-escondidos.png")
+    antes = pag.eval_on_selector_all("[data-linha='LANCADOR_OCULTAR'] .ficha", "(xs) => xs.length")
+    campo.fill("programa-que-nao-existe")
+    campo.press("Enter")
+    pag.wait_for_timeout(800)
+    depois = pag.eval_on_selector_all("[data-linha='LANCADOR_OCULTAR'] .ficha", "(xs) => xs.length")
+    prova(antes == depois and not pag.evaluate("() => MUDANCAS.has('LANCADOR_OCULTAR')"), "um programa que não existe é recusado")
+    novo = next((i for i in ids if i not in pag.evaluate("() => vale('LANCADOR_OCULTAR')").split(",")), None)
+    if novo:
+        pag.locator("[data-controle='chave:LANCADOR_OCULTAR:nova']").fill(novo)
+        pag.locator("[data-controle='chave:LANCADOR_OCULTAR:nova']").press("Enter")
+        pag.wait_for_timeout(800)
+        prova(novo in pag.evaluate("() => vale('LANCADOR_OCULTAR')").split(","), "um programa que existe entra na lista (%s)" % novo)
+    foto(pag, "lancador-depois.png")
+
+
+def mandar_e_rascunho(pag, nav, url):
+    ir(pag, "criar/cores")
+    pag.fill("input.nome-tema", "Meu Gato")
+    pag.press("input.nome-tema", "Enter")
+    pag.wait_for_timeout(600)
+    pag.evaluate("() => { rascunho().cores = { base: '#101820' }; guardarRascunho(); }")
+    ir(pag, "criar/mandar")
+    foto(pag, "mandar.png")
+    linhas = pag.eval_on_selector_all("[data-resumo]", "(xs) => xs.map((x) => x.dataset.resumo)")
+    prova(linhas[:3] == ["Cores", "Ícones", "Pastas"] and len(linhas) == 7, "Mandar mostra o resumo do tema sem ele ter sido guardado: %s" % linhas)
+    prova(pag.evaluate("() => !rascunho().pack"), "o tema ainda não foi guardado")
+    prova(pag.locator("[data-controle='criar:baixar']").is_enabled() and pag.locator("[data-controle='criar:vestir']").is_enabled(),
+          "as saídas (Baixar o tema, Vestir agora) já valem")
+    with pag.expect_response(lambda r: "/api/rascunho" in r.url and r.request.method == "POST"):
+        pag.evaluate("() => guardarRascunho()")
+    pag.click("[data-controle='criar:baixar']")
+    pag.wait_for_function("() => !!rascunho().pack", timeout=60000)
+    pag.wait_for_timeout(1500)
+    prova(pag.evaluate("() => PACKS.some((p) => p.id === rascunho().pack)"), "«Baixar o tema» guardou o tema sozinho, sem o botão Guardar")
+    pag.keyboard.press("Escape")
+    pag.wait_for_timeout(500)
+    pag.evaluate("() => enviarRascunho()")
+    pag.wait_for_timeout(800)
+    ctx = nav.new_context(viewport={"width": 1829, "height": 1029})
+    outra = ctx.new_page()
+    outra.goto(url)
+    ir(outra, "criar/cores")
+    nome = outra.evaluate("() => rascunho().nome")
+    cores = outra.evaluate("() => rascunho().cores")
+    prova(nome == "Meu Gato" and cores.get("base") == "#101820",
+          "numa janela nova, sem o localStorage da outra, o rascunho volta do servidor (%s %s)" % (nome, cores))
+    foto(outra, "rascunho-outra-janela.png")
+    ctx.close()
+
+
+def sem_baixar(pag):
+    import re
+    achados = []
+    for rota in casa.ROTAS:
+        ir(pag, rota)
+        for rotulo in pag.eval_on_selector_all(
+                "#conteudo button, #conteudo a.bt",
+                "(xs) => xs.filter((x) => !['acao:instalar', 'acao:vscode_instalar_extensao'].includes(x.dataset.controle))"
+                ".map((x) => x.textContent.trim())"):
+            if re.match(r"^(Baixar|Instalar|Construir)\b", rotulo) and rotulo != "Baixar o tema":
+                achados.append((rota, rotulo))
+    prova(not achados, "nenhum botão de baixar, instalar ou construir fora o do tema (%s)" % achados)
+
+
 def main():
     ambiente = casa.montar_casa()
     proc, url = casa.sobe_servidor(ambiente)
@@ -92,6 +165,9 @@ def main():
             pag = nav.new_page(viewport={"width": 1829, "height": 1029})
             pag.goto(url)
             sons(pag, url)
+            lancador(pag)
+            mandar_e_rascunho(pag, nav, url)
+            sem_baixar(pag)
             nav.close()
     finally:
         proc.terminate()

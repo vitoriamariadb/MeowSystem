@@ -11,3 +11,6 @@
 .aviso-linha .estado-pilula { background: var(--cartao-2); }
 .estado-pilula[data-estado="neutro"]::before { background: var(--linha-forte); }
 .esqueleto.fio { height: 44px; margin: var(--e-3) var(--e-6); }
+.amostras { display: flex; gap: 4px; }
+.amostras i { width: 22px; height: 22px; border-radius: 6px; background: var(--c); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--text) 18%, transparent); }
+.resumo .ctl { display: flex; align-items: center; gap: var(--e-3); }
