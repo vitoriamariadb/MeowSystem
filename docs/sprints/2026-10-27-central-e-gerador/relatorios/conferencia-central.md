@@ -66,3 +66,50 @@ maquete `2026-10-26-qa-final/maquete/b/` e com as capturas do levantamento.
 `./tests/todos.sh` na worktree, depois das correções: 103 testes, 100 verdes, 0 pulados, 3 vermelhos.
 `decisoes.sh` (só a GPU, D6) e `restaurar.sh` (`pack_usar`, `desinstalar`, `sistema_limpar`) são os aceitos.
 O terceiro, `app-completo.py`, era o 4b: corrigido e verde rodado sozinho.
+
+## Final
+
+Conferência final do bloco, sobre o `c1fc49ea`: a suíte inteira, o `app-completo.py`, o install e duas
+passadas do doctor num HOME temporário com os dois packs, e as cinco portas headless (Tema, Personalizar,
+Definir, Manter, Extensões; todas as subpáginas; 1500 e 390 px; MeowSystem e Dracula).
+
+### Corrigido
+
+| achado | correção | commit | prova |
+|---|---|---|---|
+| No cartão do Menu do Arquivos a versão do pacote (`1.11.0~1792510858~24.04~3cc4b80`, sem ponto de quebra) passava da borda do cartão: 29 px em 1500, 12 px em 390. | `extensoes.css`: `.grade-builds .versao` em bloco, com `overflow-wrap: anywhere`. | `8188a4d8` | `tests/extensoes-pagina.py`: a versão longa fica dentro do cartão em 1500 e 390 px. Sem a cura, `XX … ([29, 12])`; com ela, `[-7, -2]`, 83 conferências verdes. |
+
+### Medido e certo
+
+- Passeio headless: nenhum erro de JavaScript, nenhuma resposta 4xx/5xx, nenhuma rolagem horizontal, nenhuma
+  imagem quebrada, nenhum `undefined`/`NaN` na tela, nas 16 rotas × 2 larguras × 2 packs.
+- Doctor no HOME temporário, depois do install, com `EXTENSOES="-"`: a segunda passada do `--consertar` só
+  escreve o `lock`, o `meow.log` e o cache do `dconf` (o `dconf read`); nenhum arquivo da casa. Os itens que
+  seguem divergentes são os que o HOME de brinquedo recusa (systemctl, flatpak, sudo, gsettings de escrita).
+  Igual nos dois packs.
+- Manter: as pendências «Compositor» e «Menu do Arquivos» mostram só «Refazer»; as dos applets, «Resolver».
+
+### Anotado, para o próximo bloco
+
+- **Do zero numa máquina sem a unidade `meow-builds-login.service`**, a `etapa_compositor` vem antes da
+  `etapa_autoreparo`, que é quem copia a unidade. O `garantir_builds.sh --fundo` não acha a unidade e cai no
+  `cmd_rodar`: baixa e compila o cosmic-comp e o cosmic-files **em primeiro plano**, dentro da primeira
+  passada do install, e tenta de novo na passada seguinte se falhar. Medido no HOME temporário (o log do install
+  mostra «sem build desta versão — compilando» na passada 1 e na 2). Na máquina dela a unidade existe desde 25/10,
+  então a rodada 3 não esbarra nisto; um computador novo, sim. O `etapa-compositor.sh` não pega porque troca o
+  `garantir` por um falso. Cura provável: o `cmd_fundo` sem unidade roda por `systemd-run --user` (ou a etapa vai
+  para depois do `autoreparo`), com teste que usa o `garantir_builds.sh` real.
+- Com os cinco applets em `PADRAO=sim` e o cargo falhando, cada passada do doctor recompila os cinco e regrava
+  `extensoes/<id>/falhou`. É o comportamento de antes, mas agora vale para cinco, não para dois.
+- Fora do bloco, visto no passeio: «Vestir» e «Vestir agora» no Tema, no Disponibilizar e em Programas (P118);
+  a prévia do Tema com os mesmos ícones nos dois packs (P116); em 390 px a aba «Builds» perde o rótulo atrás do
+  «Adicionar repositório» (já era assim no `dev`).
+
+### Suíte
+
+`./tests/todos.sh` sobre o `8188a4d8`: 103 testes, 99 verdes, 0 pulados, 4 vermelhos. `decisoes.sh` (só a
+GPU, D6) e `restaurar.sh` (`pack_usar`, `desinstalar`, `sistema_limpar`) são os aceitos. `app-layout.py` (o ↶
+da coluna Dock não achado) e `app-completo.py` (`ajustes/mascote` passou do teto de 240 s) vermelharam com a
+máquina carregada pelos passeios desta conferência rodando ao lado; rodados sozinhos, verdes: `app-layout.py`
+193 conferências, `app-completo.py` rc 0 (o mascote em 128 s). Nenhum teste chamou sudo além do `sudo -n true`
+e da sondagem da ponte.
