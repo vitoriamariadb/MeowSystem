@@ -3103,7 +3103,7 @@ ACOES = {
     "extensao_instalar": {
         "rotulo": "Instalar a extensão",
         "grupo": "Extensões",
-        "natureza": "instalar",
+        "natureza": "baixar",
         "argv": [EXT_GESTO, "instalar", "@ARG@"], "arg": "extensoes_da_casa",
         "escreve": True, "sudo": False, "confirma": False, "rede": True,
         "oculta": True,
@@ -3112,7 +3112,7 @@ ACOES = {
     "extensao_instalar_repo": {
         "rotulo": "Instalar a extensão do repositório",
         "grupo": "Extensões",
-        "natureza": "instalar",
+        "natureza": "baixar",
         "argv": [EXT_GESTO, "instalar", "@ARG@"], "arg": "extensoes_do_usuario",
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "oculta": True,
@@ -3121,7 +3121,7 @@ ACOES = {
     "extensao_atualizar": {
         "rotulo": "Atualizar a extensão",
         "grupo": "Extensões",
-        "natureza": "instalar",
+        "natureza": "baixar",
         "argv": [EXT_GESTO, "atualizar", "@ARG@"], "arg": "extensoes_da_casa",
         "escreve": True, "sudo": False, "confirma": False, "rede": True,
         "oculta": True,
@@ -3130,7 +3130,7 @@ ACOES = {
     "extensao_atualizar_repo": {
         "rotulo": "Atualizar a extensão do repositório",
         "grupo": "Extensões",
-        "natureza": "instalar",
+        "natureza": "baixar",
         "argv": [EXT_GESTO, "atualizar", "@ARG@"], "arg": "extensoes_do_usuario",
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "oculta": True,
@@ -3139,7 +3139,7 @@ ACOES = {
     "extensao_refazer": {
         "rotulo": "Refazer a extensão",
         "grupo": "Extensões",
-        "natureza": "instalar",
+        "natureza": "baixar",
         "argv": [EXT_GESTO, "refazer", "@ARG@"], "arg": "extensoes_todas",
         "escreve": True, "sudo": False, "confirma": False, "rede": True,
         "oculta": True,
@@ -3157,7 +3157,7 @@ ACOES = {
     "extensao_por_no_painel": {
         "rotulo": "Pôr no painel",
         "grupo": "Extensões",
-        "natureza": "instalar",
+        "natureza": "aplicar",
         "argv": [EXT_GESTO, "por", "@ARG@"], "arg": "extensoes_todas",
         "escreve": True, "sudo": False, "confirma": False,
         "oculta": True,
@@ -3166,7 +3166,7 @@ ACOES = {
     "extensao_trocar": {
         "rotulo": "Trocar pelo applet novo",
         "grupo": "Extensões",
-        "natureza": "instalar",
+        "natureza": "trocar",
         "argv": [EXT_GESTO, "trocar", "@ARG@"], "arg": "extensoes_todas",
         "escreve": True, "sudo": False, "confirma": False,
         "oculta": True,
@@ -3175,7 +3175,7 @@ ACOES = {
     "builds_refazer_tudo": {
         "rotulo": "Refazer os builds",
         "grupo": "Extensões",
-        "natureza": "instalar",
+        "natureza": "baixar",
         "argv": [EXT_GESTO, "refazer-tudo"],
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "oculta": True,
@@ -3184,7 +3184,7 @@ ACOES = {
     "build_compositor": {
         "rotulo": "Refazer o compositor",
         "grupo": "Extensões",
-        "natureza": "instalar",
+        "natureza": "baixar",
         "argv": _meow("compositor"),
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "oculta": True,
@@ -7445,6 +7445,7 @@ class Manipulador(BaseHTTPRequestHandler):
             "<title>MeowSystem — página para redesenho</title>",
             '<style id="paleta-do-painel">\n%s\n</style>' % paleta,
             '<style id="folha-do-painel">\n%s\n</style>' % ler("estilo.css"),
+            '<style id="folha-das-extensoes">\n%s\n</style>' % ler("extensoes.css"),
             '<style id="folha-do-standalone">\n%s\n</style>' % ler("standalone.css"),
             "</head>",
             corpo,
