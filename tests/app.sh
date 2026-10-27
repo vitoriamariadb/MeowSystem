@@ -249,7 +249,7 @@ else:
     print("ok: o ensaio lê as escolhas numa cópia e não toca no meow.conf dela")
 
 import inspect as _inspect9
-_ini9 = _inspect9.getsource(servidor.iniciar)
+_ini9 = _inspect9.getsource(servidor._iniciar_agora)
 _falta9 = [v for v in ("MEOW_ICONES_ESCOLHAS", "MEOW_ICONES_TRACO") if v not in _ini9]
 if _falta9:
     print("FALHOU: o ensaio do «Salvar e aplicar» não leva os mapas de ícone dela: "
@@ -299,7 +299,7 @@ for _k, _v in (("ICONES_COR_MARCA", "sim"), ("FLAVOR", "latte"), ("ICONES_PASTAS
         _erros10.append("%s saiu %r, e não %r" % (_k, _exp.get(_k), _v))
 if _exp_quebrado is not None:
     _erros10.append("um conf com erro de sintaxe virou ambiente em vez de recusa")
-_ini = _inspect.getsource(servidor.iniciar)
+_ini = _inspect.getsource(servidor._iniciar_agora)
 if "conf_exportada(" not in _ini or "ambiente.update(conf)" not in _ini:
     _erros10.append("o iniciar não põe a conf no ambiente do trabalho")
 _m = servidor.Manipulador.__new__(servidor.Manipulador)
