@@ -128,6 +128,9 @@ que o MeowSystem ainda não faz inteiro.
   `tests/vizinhos.sh` e, com a D1, `tests/contrato-cosmic.sh`.
 
 ## Item do coordenador (27/10)
+- Instalar do zero em outro PC: `etapa_compositor` roda antes de `etapa_autoreparo`, que copia `meow-builds-login.service`; sem a unidade, `garantir_builds.sh --fundo` compila cosmic-comp e cosmic-files em primeiro plano dentro do install. Cura: o fundo nunca vira primeiro plano (systemd-run --user, ou a etapa depois do autoreparo), com teste que use o `garantir_builds.sh` real.
+- `garantir_builds.sh --fundo` diz «construindo» quando o `ExecCondition` da unidade pula (`BUILDS_AO_ENTRAR=nao` ou `AUTO_REPARO` diferente de sim): diz o que acontece.
+- Cura 4 da P121 que não fechou: devolver `/usr/bin/cosmic-comp` ao de fábrica (verbo novo na `scripts/ponte_root.sh`, `apt-get install --reinstall cosmic-comp`). Hoje já está de fábrica (o coordenador reinstalou por `sudo -A` e pôs o artefato da Aurora em quarentena); o verbo é para outro PC e para depois de um upgrade.
 - `tests/restaurar.sh` ação `sistema_limpar` vermelha já no `dev`: o `.deb` do cosmic-comp em `~/.local/share/meowsystem/debs` muda e não deixa «Restaurar» (`scripts/atualizar_sistema.sh limpar`). Cura junto do resto do compositor: a ação guarda o restauro ou não toca no `.deb` em uso; o `restaurar.sh` sai verde nessa ação.
 
 ## Fora desta sprint
