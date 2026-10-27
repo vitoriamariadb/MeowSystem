@@ -94,8 +94,8 @@ def main():
                 if foco["nome"].startswith("porta:"):
                     portas.add(foco["nome"])
                     anel = anel and foco["anel"]
-            if len(portas) != 4:
-                reprovas.append(("teclado", "tab", f"o Tab não chega às quatro portas ({sorted(portas)})"))
+            if len(portas) != 5:
+                reprovas.append(("teclado", "tab", f"o Tab não chega às cinco portas ({sorted(portas)})"))
             if not anel:
                 reprovas.append(("teclado", "foco", "a porta focada pelo teclado não desenha o anel"))
             pag.mouse.click(5, 900)
