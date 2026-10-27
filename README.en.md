@@ -42,7 +42,7 @@ compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse 
 
 ## The panel
 
-`meow abrir`, or the MeowSystem icon in the launcher. 124 settings and 71 actions behind five doors (the panel speaks Portuguese):
+`meow abrir`, or the MeowSystem icon in the launcher. 124 settings and 70 actions behind five doors (the panel speaks Portuguese):
 
 <table>
 <tr>
