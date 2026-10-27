@@ -484,9 +484,11 @@ _estado() {
     [ "$gravado" != "$P_COMMIT" ] && atualizacao=sim
   fi
   _painel_cita "$P_APP_ID" && na_barra=sim
-  for id in $P_SUBSTITUI; do
-    _painel_cita "$id" && { troca="$id"; break; }
-  done
+  if [ "$instalada" = sim ]; then
+    for id in $P_SUBSTITUI; do
+      _painel_cita "$id" && { troca="$id"; break; }
+    done
+  fi
   [ -f "$ESTADO/falhou" ] && falhou=sim
   printf 'id=%s\ncasa=%s\ninstalada=%s\nem_dia=%s\natualizacao=%s\nna_barra=%s\ntroca=%s\nfalhou=%s\ncommit_instalado=%s\n' \
     "$ID" "$CASA" "$instalada" "$em_dia" "$atualizacao" "$na_barra" "$troca" "$falhou" "$gravado"
