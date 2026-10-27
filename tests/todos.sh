@@ -87,6 +87,7 @@ MAQUINA=(
   afinador.sh
   previa-cerca.sh
   app-navegador.py
+  grava-ao-soltar.py
   app-acessibilidade.py
   oficina.sh
   pastas-do-pack.sh
