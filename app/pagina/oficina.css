@@ -7,7 +7,10 @@
 .desenho > header { display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap; min-height: 64px; padding: var(--e-3) var(--e-5); border-bottom: 1px solid var(--linha); }
 .desenho > header > img { width: 36px; height: 36px; }
 .desenho > header h2 { margin-right: auto; }
-.desenho-gerar { display: grid; min-width: 0; }
+.desenho-gerar { display: contents; }
+.desenho.na-janela { grid-template-rows: auto minmax(0, 1fr) auto; max-height: max(420px, calc(100vh - var(--desenho-acima, 300px))); }
+.desenho.na-janela .desenho-corpo { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.desenho.na-janela .desenho-olho { top: 0; }
 .desenho-corpo { display: grid; grid-template-columns: minmax(200px, 300px) minmax(0, 1fr); gap: var(--e-6); padding: var(--e-5); align-items: start; }
 .desenho-corpo.unico { grid-template-columns: minmax(0, 1fr); }
 .desenho-olho { display: grid; gap: var(--e-3); position: sticky; top: 148px; }
@@ -30,7 +33,7 @@
 .desenho-pe .estado-pilula { margin-right: auto; background: var(--fundo); }
 .desenho-pe [hidden] { display: none; }
 .desenho .grade-glifos { max-height: 420px; overflow: auto; }
-@media (max-width: 900px) {
+@media (max-width: 1360px) {
   .desenho-corpo { grid-template-columns: minmax(0, 1fr); }
   .desenho-olho { position: static; grid-template-columns: 180px minmax(0, 1fr); align-items: start; }
   .desenho-olho .oficina-dock { flex-direction: column; width: auto; }

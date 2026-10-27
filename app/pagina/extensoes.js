@@ -250,16 +250,22 @@ function chaveDeBuilds(dados) {
 }
 
 function abasDeExtensoes(sub) {
-  return elemento("nav", { class: "abas-ajustes", id: "abas", "aria-label": "Extensões" }, [
-    elemento("ul", {}, ABAS_EXT.map((a) => elemento("li", {}, [
-      elemento("a", { href: "#extensoes/" + a.id, "data-aba": a.id, controle: "aba:" + a.id,
-        "aria-current": sub === a.id ? "page" : null }, [icone(a.icone), elemento("span", { texto: a.nome })]),
-    ]))),
-    elemento("div", { class: "fila" }, [
+  $("#abas").setAttribute("aria-label", "Extensões");
+  const lista = $("#abas-lista");
+  if (!lista.querySelector('[data-controle^="aba:"]')) {
+    lista.replaceChildren(...ABAS_EXT.map((a) => elemento("li", {}, [
+      elemento("a", { href: "#extensoes/" + a.id, "data-aba": a.id, controle: "aba:" + a.id },
+        [icone(a.icone), elemento("span", { texto: a.nome })]),
+    ])));
+    $("#abas-fila").replaceChildren(
       botao("Adicionar repositório", { class: "bt principal pequeno", icone: "mais", controle: "extensao:abrir-adicionar",
-        onclick: abrirAdicionar }),
-    ]),
-  ]);
+        onclick: abrirAdicionar }));
+  }
+  for (const a of lista.querySelectorAll("a")) {
+    if (a.dataset.aba === sub) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  }
+  return null;
 }
 
 function corpoDeApplets(dados) {

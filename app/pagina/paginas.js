@@ -425,6 +425,17 @@ function gradeDoAcervo(pasta) {
   }
   return grade;
 }
+let DESENHO_ACIMA = "";
+function fichaNaJanela(ficha) {
+  ficha.classList.add("na-janela");
+  if (DESENHO_ACIMA) ficha.style.setProperty("--desenho-acima", DESENHO_ACIMA);
+  requestAnimationFrame(() => {
+    if (!ficha.isConnected) return;
+    DESENHO_ACIMA = Math.ceil(ficha.getBoundingClientRect().top + scrollY + 16) + "px";
+    ficha.style.setProperty("--desenho-acima", DESENHO_ACIMA);
+  });
+  return ficha;
+}
 function passoIcones() {
   const p = PASSOS.find((x) => x.id === "icones");
   const abas = [["apps", "Apps"], ["sistema", "Sistema"], ["biblioteca", "Biblioteca"]];
@@ -446,6 +457,8 @@ function passoIcones() {
   if (ABA_ICONES === "biblioteca") {
     return [cabeca, bloco("Biblioteca", [elemento("div", { class: "corpo" }, [gradeDoAcervo("biblioteca")])])];
   }
+  const aberto = APP_ABERTO && APPS && !APPS.carregando && (APPS.apps || []).find((a) => a.id === APP_ABERTO);
+  if (aberto) return [cabeca, fichaNaJanela(escolhaDeIcone(aberto, carregarApps))];
   const doBloco = (nome) => lista(p.linhas.filter((l) => l.bloco === nome), (l) => l.g === "acervo:icone");
   const autoral = oficinaAutoral();
   return [
@@ -745,7 +758,8 @@ function gradeDeProgramas() {
 
 function desenharAbas(p, direita) {
   const lista = $("#abas-lista");
-  if (lista.children.length !== AJUSTES.length) {
+  $("#abas").setAttribute("aria-label", "Definir");
+  if (lista.children.length !== AJUSTES.length || !lista.querySelector('[data-controle^="ajuste:"]')) {
     lista.replaceChildren(...AJUSTES.map((x) => elemento("li", {}, [
       elemento("a", { href: "#ajustes/" + x.id, controle: "ajuste:" + x.id },
         [icone(x.icone), elemento("span", { texto: x.nome })]),
