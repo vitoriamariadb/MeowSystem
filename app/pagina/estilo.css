@@ -591,6 +591,7 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
 .abas-ajustes a[aria-current="page"] { color: var(--tinta); border-bottom-color: var(--accent); }
 .abas-ajustes a[aria-current="page"] svg { color: var(--accent); }
 .abas-ajustes > .fila { flex: none; flex-wrap: nowrap; }
+@media (max-width: 560px) { .abas-ajustes > .fila .bt span { display: none; } }
 .oficina { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--e-8); }
 .oficina .palco { position: sticky; top: 132px; z-index: 5; }
 .oficina > .pilha { container-type: inline-size; }
