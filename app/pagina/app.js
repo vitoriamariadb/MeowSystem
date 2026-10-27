@@ -947,23 +947,14 @@ async function semPonte() {
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
 }
 
-async function gravarSonsDaBarra() {
-  for (const chave of CHAVES_DO_SINO) {
-    if (!MUDANCAS.has(chave)) continue;
-    const valor = MUDANCAS.get(chave);
-    const r = await api("/api/definir", { method: "POST", body: JSON.stringify({ chave, valor }) });
-    if (r.erro) { torrada(r.erro, "erro"); return false; }
-    CHAVE.get(chave).valor = valor;
-    MUDANCAS.delete(chave);
-  }
-  guardarBandeja();
-  atualizarAplicar();
-  return true;
+async function esperarOSinoGravado() {
+  await FILA_DE_GRAVACAO;
+  return !CHAVES_DO_SINO.some((chave) => MUDANCAS.has(chave));
 }
 
 async function rodar(acao, argumento = "", opcoes = {}) {
   if (!acao) return null;
-  if (acao.id === "som_aplicar" && !(await gravarSonsDaBarra())) return null;
+  if (acao.id === "som_aplicar" && !(await esperarOSinoGravado())) return null;
   if (TRABALHO && TRABALHO.timer) { torrada("Espere o trabalho terminar"); abrirJanela(); return null; }
   if (deRoot(acao) && !ESQUEMA.ponte) { await semPonte(); return null; }
   let seco = false;
@@ -1262,7 +1253,7 @@ function render() {
   const ativo = document.activeElement;
   const foco = ativo && ativo.dataset && $("#conteudo").contains(ativo) ? ativo.dataset.controle : null;
   desenharPortas();
-  $("#abas").hidden = ROTA.porta !== "ajustes";
+  $("#abas").hidden = ROTA.porta !== "ajustes" && ROTA.porta !== "extensoes";
   const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
     : ROTA.porta === "cuidar" ? paginaCuidar()

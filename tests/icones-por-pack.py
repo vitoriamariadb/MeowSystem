@@ -64,13 +64,14 @@ def abrir_um_app(pag):
     if pag.locator(".desenho").count():
         pag.locator('[data-controle="desenho:volta"]').click()
         pag.wait_for_timeout(400)
-        pag.evaluate("() => { OFICINA.carregou = false; OFICINA.ocupada = false; }")
     botao = pag.locator("button.app[data-app]").first
+    app = botao.get_attribute("data-app")
     botao.click()
     pag.wait_for_selector(".desenho .oficina-cartao", timeout=60000)
     pag.wait_for_function("() => !document.querySelector('.desenho-olho .bt[data-estado=\"carregando\"]')", timeout=60000)
     pag.wait_for_timeout(800)
-    return botao.get_attribute("data-app")
+    confere(pag.locator(".grade-apps").count() == 0, "a ficha do ícone abre no lugar da grade")
+    return app
 
 
 def main():

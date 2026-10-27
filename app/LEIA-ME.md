@@ -19,10 +19,11 @@ app/
   servidor.py     lê o conf, escreve pelo meow_conf_definir, roda as ações
   pagina/
     index.html    o esqueleto (nenhum nome de chave nele)
-    lugares.js    as quatro portas e o que cada uma mostra
+    lugares.js    as cinco portas e o que cada uma mostra
     app.js        monta a tela a partir do que o servidor derivou
     paginas.js    Tema, Personalizar e Manter
     oficina.js    o seletor e a oficina de ícones
+    extensoes.js  a porta Extensões: applets, builds e Adicionar repositório
     mesa.js       a prévia da área de trabalho no cartão do pack e em Personalizar
     estilo.css    o visual (nenhum hex nele)
     standalone.*  só existem dentro do HTML exportado
@@ -36,6 +37,7 @@ app/
 | **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Mandar (**Baixar o tema**) |
 | **Definir** | painel e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
 | **Manter** | o doctor e o **Consertar**, as pendências, **Guardar ajustes** e **Trazer ajustes** |
+| **Extensões** | as abas **Applets** (um cartão por applet: Instalar, Pôr no painel, Remover) e **Builds** (compositor, menu do Arquivos e cada applet, com **Refazer**), e **Adicionar repositório** |
 
 Cada controle grava ao soltar e aplica só o que a chave governa. A barra de cima tem a conta das
 últimas mudanças com **Desfazer**, **Procurar um ajuste**, **Créditos** e **Esta tela num arquivo**.
