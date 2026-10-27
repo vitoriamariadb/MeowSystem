@@ -12,7 +12,8 @@
 #     bloco  comenta as linhas de <início> (texto literal) até a primeira <fim> (regex) depois dele
 #     mover  tira o arquivo do lugar para a cópia datada; o --restaurar o põe de volta
 #     requer <arquivo do MeowSystem>:<texto> que o MeowSystem INSTALADO precisa ter para o
-#            item poder sair; `-` = o instalado de hoje já cuida sozinho
+#            item poder sair; `$HOME/<caminho>:<texto>` lê um arquivo da casa (o shim do
+#            compositor); `-` = o instalado de hoje já cuida sozinho
 #   `$DESENV` (a pasta dos projetos), `$ZD` (o ZDOTDIR) e `$APPS` (o applications/ do
 #   home) no começo de <arquivo> são trocados; nada mais é expandido, e o motivo não leva aspas nem `$`.
 
@@ -72,3 +73,8 @@ item	aurora-menu-cache	bloco	$ZD/aurora/aurora-menu-doctor.py	    cache = meu / 
 item	dracula-ativar-gsettings	bloco	$DESENV/Dracula_OS-Theme/install.sh	if [[ $ATIVAR -eq 1 && "$MODO" == "user" ]]; then	^fi$	-	o cursor é do MeowSystem, e as chaves de tema do GNOME não valem no COSMIC
 item	nitrokit-unificador-temas	saida	$DESENV/NitroKit/src/unificador_temas_dracula.sh	-	-	scripts/flatpak_tema.sh:flatpak override --user	o ícone, o cursor e o GTK dos apps Flatpak são do MeowSystem (flatpak_tema.sh, conferido pelo meow doctor)
 item	nitrokit-ritual-harmonia	saida	$DESENV/NitroKit/src/ritual_de_harmonia.sh	-	-	scripts/flatpak_tema.sh:flatpak override --user	o override do Flatpak, o ícone e o cursor são do MeowSystem (flatpak_tema.sh e cursor.sh); o resto é do tempo do GNOME e não roda no COSMIC
+
+# O compositor e o modo de leitura são do MeowSystem: o shim em ~/.local/bin roda o build da casa,
+# e o remendo do modo de leitura vem nele. O self-heal se reinstala do $ZD/scripts no ciclo seguinte.
+item	aurora-compositor	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	if [ -x /usr/local/sbin/aurora-cosmic-comp-ws.sh ]; then	^fi$	$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1	o compositor é do MeowSystem (shim em ~/.local/bin)
+item	aurora-night-light	bloco	$ZD/scripts/ritual-aurora-self-heal.sh	if [ -x /usr/local/bin/aurora-night-light.py ] && [ -f /usr/bin/cosmic-comp ]; then	^fi$	$HOME/.local/bin/cosmic-comp:MEOW-COSMIC-COMP-SHIM-1	o modo de leitura é do compositor da casa (cosmic-comp-modo-leitura.patch e o applet Modo de leitura)
