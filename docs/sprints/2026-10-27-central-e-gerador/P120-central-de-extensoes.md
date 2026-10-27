@@ -65,3 +65,34 @@ e as duas tabelas de pendência), `app/pagina/extensoes.js`, `app/pagina/extenso
 ## Fora desta sprint
 O install e o vizinho da Aurora (P121), os forks (P122), a limpeza da pasta (P123), o gerador de
 ícone. `compositor_patches.sh` e `files_menu.sh` só são chamados, não reescritos.
+
+## Execução
+Feita em 27/10/2026, na `bloco/central`.
+
+- Pino: `TIPO`, `PADRAO`, `CHAVE`, `TEMA`, `TEMA_CHAVES` nos cinco da casa (todos `PADRAO=sim`) e
+  dois pinos novos, `compositor.pino` e `menu-arquivos.pino` (`TIPO=compositor|menu`, `BIN`, sem
+  `COMMIT`). Duas chaves a mais que a sprint: `CHAVE_DO_CONF` (a chave antiga que ainda diz «nao»:
+  `MIDIA`, `LEITURA_APPLET`, `COMPOSITOR`, `FILES_MENU`) e `PENDENCIA` (o id antigo da pendência,
+  para o painel não perder o que já estava aberto).
+- `extensoes_build.sh`: `--todas` lê o `PADRAO` do pino; `EXTENSOES` vazio quer as cinco menos a que
+  a chave antiga recusa; `-` não quer nenhuma. Builds (`compositor`, `menu`) passam pelo
+  `garantir_builds.sh` e pelo builder do tipo; `--ativa` nunca chama o `garantir` (sem laço).
+- `garantir_builds.sh`: build pronto com o shim fora dá `desligado`, não `ok`.
+- `extensoes_gesto.sh`: `trocar` e `por` acham o applet no Panel **ou** na Dock; `instalar`/`remover`
+  servem os builds (o `instalar compositor` liga o shim, que cai no `/usr/bin` enquanto não há
+  build válido); `reiniciar-painel` só por gesto.
+- `extensoes_tema.sh`: sem `case`, lê `TEMA`/`TEMA_CHAVES` do pino.
+- `app/servidor.py`: cada cartão tem `tipo`, `ativa`, `situacao`; saem `build_compositor` e
+  `files_menu_build`; entra `extensao_reiniciar_painel`; a pendência de cada extensão nasce do pino
+  e se resolve pelo `doctor_consertar`.
+- `app/pagina/extensoes.js`: a aba Builds abre com os cartões da casa (Instalar, Atualizar, Refazer,
+  Remover; pílula «Pronto, desligado»); o aviso do Trocar ganha «Reiniciar o painel», que some depois
+  de rodar.
+
+Provas, verdes: `tests/extensoes.sh`, `tests/extensoes-gesto.sh`, `tests/garantir-builds.sh`,
+`tests/extensoes-pagina.py` (Panel e Dock, os quatro botões, «Pronto, desligado», Trocar na Dock,
+Reiniciar o painel), e de vizinhança `tests/app.sh`, `tests/app-completo.py`,
+`tests/doctor-veredito.sh`, `tests/nada-manda-digitar.sh`, `tests/applet-pino.sh`.
+
+Fica de fora: o `extensoes-pagina.py` confere a contagem de remendos por regex, porque o servidor
+pergunta ao `garantir_builds.sh` de verdade pela série.
