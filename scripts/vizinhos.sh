@@ -5,7 +5,9 @@
 #   ./vizinhos.sh --conferir          a linha do doctor: duplicata automática não revisada sai 4
 #   ./vizinhos.sh --revisado          guarda as duplicatas automáticas de hoje como revisadas
 #   ./vizinhos.sh --listar            os itens que o --desativar conhece, e o estado de cada um
+#   ./vizinhos.sh --prontos           os itens que o MeowSystem instalado já substitui: sai 1 se há algum
 #   ./vizinhos.sh --desativar <item>  cópia datada, a desativação e a linha no registro
+#   ./vizinhos.sh --desativar-prontos todos os prontos, na ordem do contrato (VIZINHOS_DESATIVAR="sim")
 #   ./vizinhos.sh --restaurar <item>|todos
 #
 # O inventário só lê: sem rede, sem sudo, e a saída sai ordenada (duas rodadas
@@ -24,6 +26,8 @@ COPIAS="$ESTADO/vizinhos"
 ETC="${VIZINHOS_ETC:-/etc}"
 DESENV="${VIZINHOS_DESENV:-$HOME/Desenvolvimento}"
 APPS_CASA="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+UNI="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+SBIN="${VIZINHOS_SBIN:-/usr/local/sbin}"
 CONTRATO="${VIZINHOS_CONTRATO:-$RAIZ/assets/contratos/vizinhos.tsv}"
 export LC_ALL=C
 
@@ -450,15 +454,23 @@ cmd_conferir() {
 
 _catalogo() {
   [ -r "$CONTRATO" ] || return 0
-  awk -F'\t' -v desenv="$DESENV" -v zd="$ZD" -v apps="$APPS_CASA" '
+  awk -F'\t' -v desenv="$DESENV" -v zd="$ZD" -v apps="$APPS_CASA" -v uni="$UNI" -v sbin="$SBIN" '
+    function expandir(c) {
+      if (index(c, "$DESENV/") == 1) return desenv substr(c, 8)
+      if (index(c, "$ZD/") == 1) return zd substr(c, 4)
+      if (index(c, "$APPS/") == 1) return apps substr(c, 6)
+      if (index(c, "$UNI/") == 1) return uni substr(c, 5)
+      if (index(c, "$SBIN/") == 1) return sbin substr(c, 6)
+      return c
+    }
     $1 != "item" { next }
     {
-      arq = $4
-      if (index(arq, "$DESENV/") == 1) arq = desenv substr(arq, 8)
-      else if (index(arq, "$ZD/") == 1) arq = zd substr(arq, 4)
-      else if (index(arq, "$APPS/") == 1) arq = apps substr(arq, 6)
-      linha = $2 "|" $3 "|" arq
-      for (i = 5; i <= 8; i++) linha = linha "|" ($i == "-" ? "" : $i)
+      linha = $2 "|" $3 "|" expandir($4)
+      for (i = 5; i <= 8; i++) {
+        v = ($i == "-" ? "" : $i)
+        if (i == 6 && $3 == "unidade") v = expandir(v)
+        linha = linha "|" v
+      }
       print linha
     }' "$CONTRATO"
 }
@@ -466,12 +478,22 @@ _catalogo() {
 _item() { _catalogo | awk -F'|' -v i="$1" '$1 == i'; }
 
 _requer_ok() {
-  local arq="${1%%:*}"
+  local req="$1" so_build=0 arq
+  case "$req" in build:*) so_build=1; req="${req#build:}" ;; esac
+  arq="${req%%:*}"
   case "$arq" in
     '$HOME/'*) arq="$HOME/${arq#\$HOME/}" ;;
     *) arq="$MEOW_LIDO/$arq" ;;
   esac
-  grep -qF -- "${1#*:}" "$arq" 2>/dev/null
+  grep -qF -- "${req#*:}" "$arq" 2>/dev/null || return 1
+  [ "$so_build" = 1 ] || return 0
+  _shim_usa_build "$arq"
+}
+
+_shim_usa_build() {
+  local fabrica="${MEOW_SHIM_FABRICA:-/usr/bin/cosmic-comp}" usa
+  usa="$(MEOW_SHIM_SO_DIZER=1 bash "$1" 2>/dev/null)"
+  [ -n "$usa" ] && [ "$usa" != "$fabrica" ] && [ -x "$usa" ]
 }
 
 _marca_saida() { printf '#vizinhos+:%s#' "$1"; }
@@ -486,29 +508,151 @@ _desativado() {
   case "$1" in
     saida) grep -qF -- "$(_marca_saida "$3")" "$2" 2>/dev/null ;;
     bloco) grep -qF -- "$(_marca_bloco "$3")" "$2" 2>/dev/null ;;
-    mover) local u; u="$(_ultimo "$3")"
+    mover|unidade) local u; u="$(_ultimo "$3")"
            [ ! -e "$2" ] && [ "${u%%$'\t'*}" = "desativado" ] && [ -e "${u#*$'\t'}" ] ;;
     *) return 1 ;;
   esac
 }
 
+_estado() {
+  local item="$1" tipo="$2" arq="$3" ini="$4" fim="$5" req="$6" n u
+  if _desativado "$tipo" "$arq" "$item"; then echo desativado; return 0; fi
+  [ -f "$arq" ] || { echo ausente; return 0; }
+  if [ -n "$req" ] && ! _requer_ok "$req"; then echo espera; return 0; fi
+  u="$(_ultimo "$item")"
+  [ "${u%%$'\t'*}" = "restaurado" ] && { echo restaurado; return 0; }
+  case "$tipo" in
+    bloco)
+      n="$(grep -cF -- "$ini" "$arq" 2>/dev/null)"
+      [ "${n:-0}" = 0 ] && { echo mudou; return 0; }
+      [ "$n" -gt 1 ] && { echo repetido; return 0; } ;;
+    unidade)
+      grep -qF -- "$(_marca_bloco "$ini")" "$fim" 2>/dev/null || { echo esperando; return 0; } ;;
+  esac
+  echo pronto
+}
+
+_estado_dito() {
+  case "$1" in
+    desativado) echo "desativado" ;;
+    ausente)    echo "não existe nesta casa" ;;
+    espera)     echo "espera o MeowSystem instalado cuidar disto" ;;
+    restaurado) echo "ativo, devolvido por você" ;;
+    mudou)      echo "o trecho não está mais lá" ;;
+    repetido)   echo "o trecho não é único" ;;
+    esperando)  echo "esperando a Aurora ler o corte" ;;
+    *)          echo "ativo" ;;
+  esac
+}
+
 cmd_listar() {
-  local item tipo arq ini fim req motivo est
+  local item tipo arq ini fim req motivo
   printf 'item\testado\tarquivo\n'
   while IFS='|' read -r item tipo arq ini fim req motivo; do
-    if _desativado "$tipo" "$arq" "$item"; then est="desativado"
-    elif [ ! -f "$arq" ]; then est="não existe nesta casa"
-    elif [ -n "$req" ] && ! _requer_ok "$req"; then est="espera o MeowSystem instalado cuidar disto"
-    else est="ativo"
-    fi
-    printf '%s\t%s\t%s\n' "$item" "$est" "$(_curto "$arq")"
+    printf '%s\t%s\t%s\n' "$item" "$(_estado_dito "$(_estado "$item" "$tipo" "$arq" "$ini" "$fim" "$req")")" "$(_curto "$arq")"
   done < <(_catalogo)
+}
+
+cmd_prontos() {
+  local item tipo arq ini fim req motivo est prontos=()
+  while IFS='|' read -r item tipo arq ini fim req motivo; do
+    est="$(_estado "$item" "$tipo" "$arq" "$ini" "$fim" "$req")"
+    case "$est" in
+      pronto) prontos+=("$item") ;;
+      esperando|mudou|repetido) meow_info "  $item: $(_estado_dito "$est")" ;;
+    esac
+  done < <(_catalogo)
+  if [ "${#prontos[@]}" -eq 0 ]; then
+    meow_ok "nenhum vizinho repete o que o MeowSystem instalado já faz"
+    return "$MEOW_OK"
+  fi
+  meow_muda "${#prontos[@]} trecho(s) de vizinho repetem o que o MeowSystem instalado já faz: $(printf '%s\n' "${prontos[@]}" | paste -sd, - | sed 's/,/, /g')"
+  return "$MEOW_DIVERGENTE"
+}
+
+cmd_desativar_prontos() {
+  local item tipo arq ini fim req motivo est rc pior=0
+  if [ "${VIZINHOS_DESATIVAR:-sim}" != "sim" ]; then
+    meow_pula "VIZINHOS_DESATIVAR=\"${VIZINHOS_DESATIVAR:-}\" — o MeowSystem não desliga nada nos vizinhos"
+    return "$MEOW_OK"
+  fi
+  while IFS='|' read -r item tipo arq ini fim req motivo; do
+    est="$(_estado "$item" "$tipo" "$arq" "$ini" "$fim" "$req")"
+    case "$est" in
+      pronto) cmd_desativar "$item"; rc=$? ;;
+      esperando) meow_info "$item: $(_estado_dito "$est")"; continue ;;
+      *) continue ;;
+    esac
+    [ "$rc" -gt "$pior" ] && pior="$rc"
+  done < <(_catalogo)
+  return "$pior"
+}
+
+_sintaxe_ok() {
+  case "$2" in
+    *.sh)  bash -n "$1" 2>/dev/null ;;
+    *.zsh) command -v zsh >/dev/null 2>&1 || return 0; zsh -n "$1" 2>/dev/null ;;
+    *) return 0 ;;
+  esac
+}
+
+_wants_da_unidade() {
+  local w
+  for w in "$UNI"/*.wants/"$1"; do [ -L "$w" ] && printf '%s\n' "$w"; done
+}
+
+_desativar_unidade() {
+  local item="$1" arq="$2" ini="$3" fim="$4" nome copia svc w
+  nome="$(basename "$arq")"; svc="${arq%.*}.service"
+  if ! grep -qF -- "$(_marca_bloco "$ini")" "$fim" 2>/dev/null; then
+    meow_info "$item: esperando a Aurora ler o corte ($(_curto "$fim"))"
+    return "$MEOW_OK"
+  fi
+  systemctl --user disable --now "$nome" >/dev/null 2>&1
+  copia="$COPIAS/$item/$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$copia" && mv -- "$arq" "$copia/" || { meow_erro "não consegui mover $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; }
+  [ -f "$svc" ] && mv -- "$svc" "$copia/"
+  while IFS= read -r w; do rm -f -- "$w"; done < <(_wants_da_unidade "$nome")
+  systemctl --user daemon-reload >/dev/null 2>&1
+  _registrar "$item" "unidade" "$arq" "$copia" "desativado"
+  meow_muda "$item: $nome desligada e guardada em $(_curto "$copia")"
+  return "$MEOW_DIVERGENTE"
+}
+
+_restaurar_unidade() {
+  local item="$1" arq="$2" u copia f
+  u="$(_ultimo "$item")"
+  [ "${u%%$'\t'*}" = "desativado" ] || { meow_ok "$item já estava ativo"; return "$MEOW_OK"; }
+  copia="${u#*$'\t'}"
+  if [ -e "$arq" ]; then
+    meow_aviso "$item: $(_curto "$arq") voltou a existir — a cópia fica em $(_curto "$copia")"
+    return "$MEOW_OK"
+  fi
+  mkdir -p "$(dirname "$arq")" || return "$MEOW_ERRO"
+  for f in "$copia"/*; do
+    [ -e "$f" ] || continue
+    mv -- "$f" "$(dirname "$arq")/" || { meow_erro "não consegui devolver $(basename "$f")"; return "$MEOW_ERRO"; }
+  done
+  systemctl --user daemon-reload >/dev/null 2>&1
+  systemctl --user enable --now "$(basename "$arq")" >/dev/null 2>&1 \
+    || meow_aviso "$item: $(basename "$arq") voltou ao lugar, e o systemd não a religou agora"
+  _registrar "$item" "unidade" "$arq" "" "restaurado"
+  meow_muda "$item restaurado em $(_curto "$arq")"
+  return "$MEOW_DIVERGENTE"
 }
 
 _registrar() {
   mkdir -p "$ESTADO" || return 1
   [ -f "$REGISTRO" ] || printf 'data\titem\ttipo\tarquivo\tcopia\tacao\n' > "$REGISTRO"
   printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$2" "$3" "$4" "$5" >> "$REGISTRO"
+}
+
+_largar_copia() {
+  local dir
+  dir="$(dirname "$1")"
+  rm -rf -- "$dir"
+  rmdir -- "$(dirname "$dir")" 2>/dev/null
+  return 0
 }
 
 _guardar() {
@@ -527,6 +671,12 @@ cmd_desativar() {
   if [ -n "$req" ] && ! _requer_ok "$req"; then
     meow_pula "$item espera: o MeowSystem instalado ainda não cuida disto sozinho, e o de fora continua"
     return "$MEOW_OK"
+  fi
+  if [ "$tipo" = "unidade" ]; then _desativar_unidade "$item" "$arq" "$ini" "$fim"; return $?; fi
+  if [ "$tipo" = "bloco" ]; then
+    local vezes; vezes="$(grep -cF -- "$ini" "$arq" 2>/dev/null)"
+    [ "${vezes:-0}" = 0 ] && { meow_erro "$item: o trecho não está mais em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; }
+    [ "$vezes" -gt 1 ] && { meow_erro "$item: o trecho não é único em $(_curto "$arq") ($vezes vezes) — nada foi mudado"; return "$MEOW_ERRO"; }
   fi
   if [ "$tipo" = "mover" ]; then
     copia="$COPIAS/$item/$(date +%Y%m%d-%H%M%S)"
@@ -548,10 +698,17 @@ cmd_desativar() {
       marca="$(_marca_bloco "$item")"
       INI="$ini" FIM_RE="$fim" M="$marca" awk 'BEGIN { ini = ENVIRON["INI"]; fim = ENVIRON["FIM_RE"]; m = ENVIRON["M"] }
         !dentro && !feito && index($0, ini) { dentro = 1 }
-        dentro { print m $0; if ($0 ~ fim && !index($0, ini)) { dentro = 0; feito = 1 }; next }
-        { print }' "$arq" > "$tmp"
-      if ! grep -qF -- "$marca" "$tmp"; then rm -f "$tmp"; meow_erro "$item: o trecho não está mais em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; fi ;;
+        dentro { print m $0; if (fim == "" || ($0 ~ fim && !index($0, ini))) { dentro = 0; feito = 1 }; next }
+        { print }
+        END { if (dentro) exit 3 }' "$arq" > "$tmp"
+      if [ $? = 3 ]; then rm -f "$tmp"; _largar_copia "$copia"; meow_erro "$item: o fim do trecho não aparece em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; fi
+      if ! grep -qF -- "$marca" "$tmp"; then rm -f "$tmp"; _largar_copia "$copia"; meow_erro "$item: o trecho não está mais em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; fi ;;
   esac
+  if ! _sintaxe_ok "$tmp" "$arq"; then
+    rm -f "$tmp"; _largar_copia "$copia"
+    meow_erro "$item: o corte quebraria a leitura de $(_curto "$arq") — nada foi mudado"
+    return "$MEOW_ERRO"
+  fi
   chmod --reference="$arq" "$tmp" 2>/dev/null
   mv -f "$tmp" "$arq" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   _registrar "$item" "$tipo" "$arq" "$copia" "desativado"
@@ -563,6 +720,7 @@ _restaurar_um() {
   local alvo="$1" item tipo arq ini fim req motivo tmp marca
   IFS='|' read -r item tipo arq ini fim req motivo < <(_item "$alvo")
   [ -n "${item:-}" ] || { meow_erro "não conheço o item '$alvo'"; return "$MEOW_ERRO"; }
+  if [ "$tipo" = "unidade" ]; then _restaurar_unidade "$item" "$arq"; return $?; fi
   if [ "$tipo" = "mover" ]; then
     local u; u="$(_ultimo "$item")"
     [ "${u%%$'\t'*}" = "desativado" ] || { meow_ok "$item já estava ativo"; return "$MEOW_OK"; }
@@ -607,10 +765,12 @@ case "${1:-}" in
   --conferir)   cmd_conferir ;;
   --revisado)   cmd_revisado ;;
   --listar)     cmd_listar ;;
+  --prontos)    cmd_prontos ;;
   --desativar)  cmd_desativar "${2:-}" ;;
+  --desativar-prontos) cmd_desativar_prontos ;;
   --restaurar)  cmd_restaurar "${2:-}" ;;
   -h|--help|'')
-    sed -n '2,13p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     [ -n "${1:-}" ] || exit "$MEOW_ERRO" ;;
   *) meow_erro "opção desconhecida: $1"; exit "$MEOW_ERRO" ;;
 esac
