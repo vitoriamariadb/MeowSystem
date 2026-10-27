@@ -428,6 +428,22 @@ def main():
             checa(cartao_de_build(pag, "compositor").locator("img").count() == 1
                   and cartao_de_build(pag, "menu-arquivos").locator("img").count() == 1,
                   "o compositor e o menu têm ícone próprio")
+            transbordas = []
+            for larg in (1500, 390):
+                pag.set_viewport_size({"width": larg, "height": 860})
+                esperar(pag)
+                transbordas.append(pag.evaluate("""() => {
+                  const v = document.querySelector('article[data-build="menu-arquivos"] .versao');
+                  v.textContent = 'cosmic-files 1.11.0~1792510858~24.04~3cc4b80';
+                  const card = v.closest('article');
+                  const borda = card.getBoundingClientRect().right - parseFloat(getComputedStyle(card).paddingRight);
+                  const texto = document.createRange();
+                  texto.selectNodeContents(v);
+                  return Math.round(texto.getBoundingClientRect().right - borda);
+                }"""))
+            pag.set_viewport_size({"width": 1550, "height": 860})
+            esperar(pag)
+            checa(max(transbordas) <= 0, f"a versão longa do pacote fica dentro do cartão, em 1500 e 390 px ({transbordas})")
             rotulos = pag.locator("[data-aba-corpo='builds'] .linha .rot b").all_inner_texts()
             checa(rotulos == ["Casa Um", "Casa Dois", "Casa Três"], f"as linhas dos applets ({rotulos})")
             checa(pag.locator("[data-controle='build:tudo']").count() == 1, "«Refazer tudo» existe")
