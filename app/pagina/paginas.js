@@ -753,7 +753,8 @@ function gradeDeProgramas() {
 
 function desenharAbas(p, direita) {
   const lista = $("#abas-lista");
-  if (lista.children.length !== AJUSTES.length) {
+  $("#abas").setAttribute("aria-label", "Definir");
+  if (lista.children.length !== AJUSTES.length || !lista.querySelector('[data-controle^="ajuste:"]')) {
     lista.replaceChildren(...AJUSTES.map((x) => elemento("li", {}, [
       elemento("a", { href: "#ajustes/" + x.id, controle: "ajuste:" + x.id },
         [icone(x.icone), elemento("span", { texto: x.nome })]),

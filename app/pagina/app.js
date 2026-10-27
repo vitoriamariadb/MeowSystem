@@ -1253,7 +1253,7 @@ function render() {
   const ativo = document.activeElement;
   const foco = ativo && ativo.dataset && $("#conteudo").contains(ativo) ? ativo.dataset.controle : null;
   desenharPortas();
-  $("#abas").hidden = ROTA.porta !== "ajustes";
+  $("#abas").hidden = ROTA.porta !== "ajustes" && ROTA.porta !== "extensoes";
   const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
     : ROTA.porta === "cuidar" ? paginaCuidar()
