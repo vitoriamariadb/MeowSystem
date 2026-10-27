@@ -31,7 +31,7 @@ chmod 755 "$FALSO/sudo"
 som() {
   local pack="$1" flavor="$2"; shift 2
   env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR HOME="$CASA" PATH="$FALSO:$PATH" MEOW_ESTADO="$ESTADO" \
-      MEOW_CONF="$T/nao-existe.conf" MEOW_PONTE="$PONTE" SOM_SONS_SISTEMA="$SONS_SIS" SOM_ORIGINAIS="$ORIG" \
+      MEOW_CONF="$T/nao-existe.conf" MEOW_PONTE="$PONTE" MEOW_SONS_SISTEMA="$SONS_SIS" MEOW_SONS_ORIGINAIS="$ORIG" \
       PACK="$pack" FLAVOR="$flavor" SOM=sim "$@"
 }
 conf_do_som() { som "$1" "$2" bash "$RAIZ/scripts/som.sh" "${@:3}"; }

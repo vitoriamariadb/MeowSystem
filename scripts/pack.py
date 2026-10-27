@@ -3087,12 +3087,15 @@ def vocabulario(ref):
     return saida
 
 
-def cmd_som(ref):
+def timbre(ref):
     p, _, _ = validar(ref, silencioso=True)
     som = p.get("som") or {}
-    for chave, var in SOM_NO_CONF.items():
-        if chave in som:
-            print(f"{var}={som[chave]}")
+    return {var: str(som[chave]) for chave, var in SOM_NO_CONF.items() if chave in som}
+
+
+def cmd_som(ref):
+    for var, valor in timbre(ref).items():
+        print(f"{var}={valor}")
     return OK
 
 

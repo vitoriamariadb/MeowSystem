@@ -250,15 +250,15 @@ _som_unidade() {
   esac
 }
 
-SOM_SONS_SISTEMA="${SOM_SONS_SISTEMA:-/usr/share/sounds}"
-SOM_ORIGINAIS="${SOM_ORIGINAIS:-/var/lib/meowsystem/sons}"
+MEOW_SONS_SISTEMA="${MEOW_SONS_SISTEMA:-/usr/share/sounds}"
+MEOW_SONS_ORIGINAIS="${MEOW_SONS_ORIGINAIS:-/var/lib/meowsystem/sons}"
 SOM_DA_PONTE="power-plug:notification power-unplug:notification power-unplug-battery-low:alert battery-caution:notification battery-low:alert complete:notification dialog-warning:alert"
 
 _som_ponte_alvo() {
   case "$1" in
-    dialog-warning) printf '%s' "$SOM_SONS_SISTEMA/freedesktop/stereo/dialog-warning.oga" ;;
-    power-unplug-battery-low|battery-low) printf '%s' "$SOM_SONS_SISTEMA/Pop/stereo/alert/$1.oga" ;;
-    *) printf '%s' "$SOM_SONS_SISTEMA/Pop/stereo/notification/$1.oga" ;;
+    dialog-warning) printf '%s' "$MEOW_SONS_SISTEMA/freedesktop/stereo/dialog-warning.oga" ;;
+    power-unplug-battery-low|battery-low) printf '%s' "$MEOW_SONS_SISTEMA/Pop/stereo/alert/$1.oga" ;;
+    *) printf '%s' "$MEOW_SONS_SISTEMA/Pop/stereo/notification/$1.oga" ;;
   esac
 }
 
@@ -271,7 +271,7 @@ _som_ponte_pendentes() {
     alvo="$(_som_ponte_alvo "$ev")"
     if [ -n "$SOM_TEMA_PACK" ] && [ -f "$fonte" ]; then
       [ -f "$alvo" ] && cmp -s "$fonte" "$alvo" || printf 'som %s\n' "$ev"
-    elif [ -f "$SOM_ORIGINAIS/$ev.original" ]; then
+    elif [ -f "$MEOW_SONS_ORIGINAIS/$ev.original" ]; then
       printf 'padrao %s\n' "$ev"
     fi
   done
