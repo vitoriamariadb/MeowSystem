@@ -127,6 +127,9 @@ que o MeowSystem ainda não faz inteiro.
 - `tests/painel-fantasma.sh` (novo), `tests/vidro-do-cosmic.sh`, `tests/sentinela.sh`,
   `tests/vizinhos.sh` e, com a D1, `tests/contrato-cosmic.sh`.
 
+## Item do coordenador (27/10)
+- `tests/restaurar.sh` ação `sistema_limpar` vermelha já no `dev`: o `.deb` do cosmic-comp em `~/.local/share/meowsystem/debs` muda e não deixa «Restaurar» (`scripts/atualizar_sistema.sh limpar`). Cura junto do resto do compositor: a ação guarda o restauro ou não toca no `.deb` em uso; o `restaurar.sh` sai verde nessa ação.
+
 ## Fora desta sprint
 - O mecanismo do vizinho (P124).
 - A cadeia do clipboard (depois da P122).

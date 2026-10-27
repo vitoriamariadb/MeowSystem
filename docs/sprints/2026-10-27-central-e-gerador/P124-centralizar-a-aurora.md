@@ -126,6 +126,9 @@ classes B do levantamento e o mecanismo de que as classes A (P125) e a P121 prec
 - `docs/FRONTEIRA.md`: uma linha;
 - `tests/vizinhos.sh`.
 
+## Item do coordenador (27/10)
+- Numa casa sem rede o doctor regrava a cada passada as tentativas de compilar as extensões, o `pendencias.tsv` e a semeadura do papel de parede. Cura: a segunda passada do doctor não escreve nada, também sem rede; prova num HOME temporário sem rede (conferência final do Painel, `relatorios/conferencia-painel.md`, «Final»).
+
 ## Fora desta sprint
 - As migrações A (P125): painel fantasma, vidro maximizado e o vigia da #2059.
 - Os alfinetes (D1, P125 se o coordenador aceitar).
