@@ -55,6 +55,13 @@ Capturas do painel ao lado da maquete em `capturas/p111/` (ignorado pelo git, po
 1550x860, 1500x900 e 1280x800: Tema, Manter e Dia e noite. Sem transbordo horizontal e sem erro de JS nas
 doze. O painel bate com a maquete nos blocos e nos textos.
 
+`./tests/todos.sh` (HEAD f21ea08a, depois do reinício da máquina): 88 testes, 85 verdes, 0 pulados, 3 vermelhos.
+`decisoes.sh` e `restaurar.sh` são os vermelhos aceitos da leva. O terceiro é `readme.sh`: o README e o
+README.en.md ainda dizem Criar tema, Ajustes e Cuidar e 67 ações (agora são 63), e o badge da versão não
+alcança a tag; a leva manda regenerar o README no merge, então ele fica para lá (`scripts/readme.sh` conserta).
+`app-navegador.py`, `app-acessibilidade.py`, `app-completo.py`, `app-uso-real.py`, `app-texto-visivel.py`,
+`migracao-do-painel.py`, `pack.sh` e `app.sh` passaram.
+
 Decisões desta sprint:
 - «Abrir um tema» e a pílula de saúde ficam na aba Tema: a maquete os mantém.
 - O bloco «Construídos» fica para a P114, que mexe nos applets.
