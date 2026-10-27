@@ -2779,7 +2779,7 @@ def conteudos(pack_id):
     return saida
 proprios = {"dracula": conteudos("dracula"), "meowsystem": conteudos("meowsystem")}
 problemas = []
-for ident, flavor in (("dracula", "dracula"), ("dracula", "alucard"), ("meowsystem", "mocha")):
+for ident, flavor in (("dracula", "dracula"), ("dracula", "alucard"), ("dracula", "mocha"), ("dracula", ""), ("meowsystem", "mocha")):
     previa = pack.previa_do_pack(ident, flavor)
     outro = "meowsystem" if ident == "dracula" else "dracula"
     if len(previa["dock"]) < 5 or not previa["pasta"]:
@@ -2791,7 +2791,7 @@ print("; ".join(problemas) if problemas else "limpo")
 PY
 )"
 [ "$resultado" = "limpo" ] \
-  && ok "a prévia do pack só usa arte do próprio pack: o dock e a pasta do Dracula não trazem um traço do meowsystem, e vice-versa" \
+  && ok "a prévia do pack só usa arte do próprio pack: o dock e a pasta do Dracula não trazem um traço do meowsystem, e vice-versa, nem quando o flavor pedido não é do pack" \
   || falha "a prévia do pack misturou arte de outro pack" "$resultado"
 
 printf '\n'
