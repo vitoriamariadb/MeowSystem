@@ -15,7 +15,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 7 | O «Consertar» do doctor baixa com o selo «baixa da internet», sem caixa de pergunta; a pergunta fica só para o que baixa e é opcional | «O doctor não tem que avisar nada. Tem que corrigir.» (09/10) |
 | 8 | QA do painel só com HOME temporário; o `run.sh --sem-abrir` recusa o HOME da conta sem `MEOW_QA_HOME_REAL=1` | o painel escreve no sistema real |
 | 9 | Só pack do repositório instala extensão do VS Code; pack importado mostra o pedido e instala só por gesto | pack é dado, nunca código |
-| 10 | «Restaurar ao padrão» grava o valor de fábrica (`item.padrao`) e só aparece quando o valor difere; «Não tocar» é outro gesto | «Restaurar ao Padrão e Aplicar» (21/09) |
+| 10 | «Restaurar ao padrão» grava na hora o valor de fábrica (`item.padrao`) e só aparece quando o valor difere; «Não tocar» é outro gesto | «Restaurar ao Padrão e Aplicar» (21/09); grava na hora: sim de 26/10 |
 | 11 | Revoga a caixa do sudo: a interface nunca pede senha; a senha é só do install, o root passa pela ponte, e o reparo da ponte também não pede (reserva de root e um oneshot que o polkit libera para a sessão local) | «a interface não pode pedir senha» (23/10); «Não quero recolocar senha direto» (24/10) |
 | 12 | Trocar de pack leva o ponteiro do pack; o download aparece com o selo, sem pergunta | «o pack decide, o usuário pode fixar» |
 | 13 | Tudo entra no pack: os nossos e os de terceiros com licença conhecida (linha no PROCEDENCIA). Uma versão por ícone, a escolhida em 23/10. Os projetos pessoais entram no Dracula | «Joga tudo pro pack» (15/10); sim de 23/10 |
@@ -23,7 +23,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 15 | Alterar um desenho do pack: tudo que deriva dele se atualiza sozinho (tema instalado, PNG por tamanho, cache, lançador, seletor), só o que mudou | «se auto atualiza» (15/10) |
 | 16 | Os achados da varredura de 15/10: os desenhos Dracula do motor moram em `packs/dracula`; o Citrix veste o Ubuntu-selfservice (sim explícito de 23/10); as ligações perdidas voltam ao `apps.map`; desenho do pack vence o traço Arcticons em todo tamanho | «Joga tudo pro pack» (15/10) |
 | 17 | Repositório enxuto e legível para IA: `AGENTS.md` versionado (exceção do sanitizador), zero comentário em código, um gancho de commit mantém isso | «AGENTS.md são exceção» (15/10); sim de 26/10 |
-| 18 | Ações do painel: Executar e Restaurar; o resultado abre numa janela com OK, Guardar e Restaurar; «Ver sem mudar» no lugar de «Ver o que faria»; sem comando cru na tela | prints de 16/10 |
+| 18 | Ações do painel (botões de Manter e Extensões): Executar e Restaurar; o resultado abre numa janela com OK, Guardar e Restaurar; «Ver sem mudar» no lugar de «Ver o que faria» fica no diálogo da ação, e os controles de ajuste não têm «Aplicar» nem «Ver sem mudar»: cada um grava ao soltar e a barra só desfaz; sem comando cru na tela | prints de 16/10; ajustes gravam ao soltar: sim de 26/10 |
 | 19 | Cada pack tem o seu mascote em `packs/<id>/mascote/` (`mascote.dia`/`mascote.noite`): Coquinha e Mimir no `meowsystem`, os morcegos no `dracula` | pedido de 23/10 |
 | 20 | O MeowSystem escreve o bloco marcado do terminal no `.bashrc`/`.zshrc` e o tira ao desinstalar; o equivalente do Spellbook sai pelo `assets/contratos/vizinhos.tsv` | pedido de 23/10 |
 | 21 | O instalador baixa o que o Pop!_OS não traz: compilador e bibliotecas dos applets (`MEOW_DEPS_DOS_APPLETS`), fastfetch do PPA `zhangsongcui3371` | pedido de 23/10 |

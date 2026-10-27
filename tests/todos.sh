@@ -24,6 +24,7 @@ PORTATIL=(
   reversao.sh
   seco.sh
   convergencia.sh
+  chave-etapa.sh
   instalacao.sh
   midia.sh
   jogos-heroic.sh
@@ -94,6 +95,7 @@ MAQUINA=(
   afinador.sh
   previa-cerca.sh
   app-navegador.py
+  grava-ao-soltar.py
   app-acessibilidade.py
   app-layout.py
   oficina.sh
