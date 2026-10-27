@@ -27,9 +27,11 @@
 - Levantamento feito (2 agentes): `relatorios/levantamento-*.md`, sprints P115 a P123, commit 58b531be no `dev`.
 - INTEGRADO em `integracao/central-e-gerador` (worktree `~/Desenvolvimento/MeowSystem-integracao`): Painel (P115-P117,
   `relatorios/conferencia-painel.md`) e Central (P120-P121, `relatorios/conferencia-central.md`).
-- EM VOO: Forks (`wf_1c95b651-87e`, P122) e Aurora (P124 → P125, a partir da integração).
-- Próximo passo: integrar Central e Forks; depois Textos (P119 → P118) e Aurora (P124 → P125); depois Pasta (P123);
-  por fim instalar do zero na máquina.
+- EM VOO, os quatro a partir da integração (ela pediu os quatro juntos, 27/10): Forks (`wf_1c95b651-87e`, P122),
+  Aurora (`wf_32a9b69a-21d`, P124 → P125), Textos (`wf_af23fd58-b64`, P119 → P118), Pasta (`wf_064bfaa6-0dc`, P123).
+  Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
+- Próximo passo: integrar cada um assim que voltar; o coordenador roda `scripts/enxugar.sh --aplicar` no checkout
+  principal depois que tudo chegar ao `dev`; por fim instalar do zero na máquina.
 - Anotado para depois (vindo da conferência do Painel): `docs/PACKS.md` sem os campos `icones.sistema` e
   `icones.bandeja` (entra na P118); `restaurar.sh sistema_limpar` vermelho já no `dev` (o `.deb` do cosmic-comp em
   `~/.local/share/meowsystem/debs` muda sem «Restaurar»; entra na P125, junto do resto do compositor); numa casa sem
