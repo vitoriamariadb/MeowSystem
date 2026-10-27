@@ -103,7 +103,7 @@ const js = (codigo) => vm.runInContext(codigo, ctx);
 
 const chamadas = { api: [], torradas: [], acoes: [], releituras: 0 };
 let respostas = () => ({});
-js("render = () => {}; oficinaDeDesenho = () => document.createElement('details');");
+js("render = () => {}; oficinaDeDesenho = () => document.createElement('details'); DESENHO_FONTE = 'acervo';");
 ctx.__api = async (rota, opcoes = {}) => {
   chamadas.api.push({ rota, corpo: opcoes.body ? JSON.parse(opcoes.body) : null });
   return respostas(rota, opcoes);

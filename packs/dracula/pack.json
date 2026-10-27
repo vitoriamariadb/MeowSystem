@@ -49,6 +49,7 @@
     "_nota": "mapa null = usa assets/paleta/cosmic-map.json inteiro. Só palette.name muda: o molde crava 'catppuccin-<flavor>' (cosmic-map.json:4), o que faria este tema aparecer como 'catppuccin-dracula' na GUI."
   },
   "icones": {
+    "gerador": "circle",
     "apps": {
       "mapa": "icones/apps.map",
       "desenhos": "icones/apps/",

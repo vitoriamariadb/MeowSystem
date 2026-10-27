@@ -23,6 +23,7 @@ m._json = lambda dados, codigo=200: resposta.update(dados=dados, codigo=codigo)
 servidor._converter_desenho = lambda *a, **k: ("", "", "conversão pulada no teste")
 
 desenhos = {}
+dono = {}
 base_packs = os.path.join(raiz, "packs")
 for pid in sorted(os.listdir(base_packs)):
     dir_pack = os.path.join(base_packs, pid)
@@ -36,6 +37,7 @@ for pid in sorted(os.listdir(base_packs)):
         continue
     for arq in sorted(os.listdir(dir_apps)):
         if arq.endswith(".svg"):
+            dono[os.path.realpath(os.path.join(dir_apps, arq))] = pid
             desenhos[os.path.realpath(os.path.join(dir_apps, arq))] = {arq[:-4]}
     mapa = mod.campo(dir_pack, "icones.apps.mapa")
     if not isinstance(mapa, str):
@@ -67,7 +69,7 @@ for svg, nomes in sorted(desenhos.items()):
     faltou = []
     for d in apps:
         resposta.clear()
-        m._api_app_desenho({"app": d["id"], "acao": "variacoes"})
+        m._api_app_desenho({"app": d["id"], "acao": "variacoes", "pack": dono[svg]})
         cartoes = (resposta.get("dados") or {}).get("pack") or []
         if not any(os.path.realpath(c.get("arquivo") or "") == svg for c in cartoes):
             faltou.append(d["id"])

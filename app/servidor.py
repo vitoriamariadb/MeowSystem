@@ -1009,6 +1009,45 @@ def _oficina_do_usuario(*partes):
     return os.path.join(xdg, "meowsystem", *partes)
 
 
+def _cores_da_consulta(valor):
+    if isinstance(valor, str):
+        try:
+            valor = json.loads(valor) if valor else None
+        except ValueError:
+            return None
+    if not isinstance(valor, dict):
+        return None
+    return {str(k): str(v) for k, v in valor.items()
+            if re.match(r"^[a-z0-9]{1,24}$", str(k)) and re.match(r"^#[0-9a-fA-F]{6}$", str(v))} or None
+
+
+_GERADOR_CIRCULO = None
+
+
+def _gerador_circulo():
+    global _GERADOR_CIRCULO
+    if _GERADOR_CIRCULO is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "meow_gerador_circulo", os.path.join(RAIZ, "scripts", "gerador_circulo.py"))
+        _GERADOR_CIRCULO = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_GERADOR_CIRCULO)
+    return _GERADOR_CIRCULO
+
+
+def _cadeia_do_pack(valor):
+    mod = modulo_pack()
+    ident = str(valor or "").strip()
+    if not mod or not re.match(r"^[a-z0-9-]{1,64}$", ident):
+        ident = _pack_adotado() or (mod.PACK_BASE if mod else "")
+    return (mod.cadeia_de_acervo(ident) if mod and ident else []), ident
+
+
+def _texto_de_mapa(linhas):
+    texto = "\n".join(linhas)
+    return texto if not texto or texto.endswith("\n") else texto + "\n"
+
+
 def _gravar_escolha(caminho, chave, linha, separador):
     try:
         with open(caminho, "r", encoding="utf-8") as fh:
@@ -4902,11 +4941,11 @@ class Manipulador(BaseHTTPRequestHandler):
             pass
         return fora
 
-    def _desenhos_de_pack(self):
+    def _desenhos_de_pack(self, cadeia=None):
         mod = modulo_pack()
         if not mod:
             return {}
-        adotado = _pack_adotado()
+        adotado = cadeia[0] if cadeia else _pack_adotado()
         indice, vistos = {}, set()
         for base in mod.raizes():
             try:
@@ -4918,6 +4957,8 @@ class Manipulador(BaseHTTPRequestHandler):
                 if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
                     continue
                 vistos.add(pid)
+                if cadeia is not None and pid not in cadeia:
+                    continue
                 nome_pack = str(mod.campo(dir_pack, "nome", pid) or pid)
                 pares = []
                 desenhos = mod.campo(dir_pack, "icones.apps.desenhos")
@@ -5386,7 +5427,7 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._ensaio_dos_jogos("\n".join(novas))
         try:
             with open(MAPA_JOGOS, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(novas))
+                fh.write(_texto_de_mapa(novas))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa: %s" % e}, 500)
         return self._json({"ok": True, "appid": appid, "acao": "" if remover else acao,
@@ -5536,7 +5577,7 @@ class Manipulador(BaseHTTPRequestHandler):
             linhas.insert(len(linhas) - 1 if linhas and not linhas[-1] else len(linhas), linha)
         try:
             with open(pack["mapa"], "w", encoding="utf-8") as fh:
-                fh.write("\n".join(linhas))
+                fh.write(_texto_de_mapa(linhas))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa do pack: %s" % e}, 500)
         return self._json({"ok": True, "app": app, "pack": pack["id"],
@@ -5596,7 +5637,7 @@ class Manipulador(BaseHTTPRequestHandler):
             del linhas[numero - 1]
         try:
             with open(pack["mapa"], "w", encoding="utf-8") as fh:
-                fh.write("\n".join(linhas))
+                fh.write(_texto_de_mapa(linhas))
         except OSError as e:
             return self._json({"erro": "não consegui gravar o mapa do pack: %s" % e}, 500)
         fica = self._o_que_fica(app)
@@ -5669,7 +5710,7 @@ class Manipulador(BaseHTTPRequestHandler):
         return "".join(c for c in unicodedata.normalize("NFKD", str(texto or ""))
                        if not unicodedata.combining(c)).lower()
 
-    def _acervo_da_ficha(self):
+    def _acervo_da_ficha(self, alvo=None):
         grupos, itens = [], []
         mod = modulo_pack()
         if not mod:
@@ -5678,7 +5719,9 @@ class Manipulador(BaseHTTPRequestHandler):
         do_mapa = {os.path.normpath(d["caminho"]): d for d in desenhos}
         textos, rotulos, do_nome = self._textos_da_busca(mod)
         nomes_de_app = self._nomes_de_app()
-        for g in mod.acervos_de_icone(_pack_adotado()):
+        cadeia, ident = _cadeia_do_pack(alvo)
+        lista = mod.acervos_de_icone(ident, cadeia=cadeia)
+        for g in lista:
             arquivos = g.pop("arquivos")
             g["total"] = len(arquivos)
             grupos.append(g)
@@ -5825,7 +5868,7 @@ class Manipulador(BaseHTTPRequestHandler):
     def _api_glifos(self, consulta):
         busca = self._sem_acento((consulta.get("busca", [""])[0] or "").strip())
         app = (consulta.get("app", [""])[0] or "").strip()
-        grupos, itens = self._acervo_da_ficha()
+        grupos, itens = self._acervo_da_ficha(consulta.get("pack", [""])[0])
         palpites = self._palpites_do_app(app)
         achados = {}
         glifos = []
@@ -5857,11 +5900,11 @@ class Manipulador(BaseHTTPRequestHandler):
             return os.path.relpath(caminho, RAIZ)
         return caminho
 
-    def _item_da_ficha(self, arquivo):
+    def _item_da_ficha(self, arquivo, pack=None):
         if not arquivo or not isinstance(arquivo, str):
             return None
         alvo = os.path.normpath(arquivo if os.path.isabs(arquivo) else os.path.join(RAIZ, arquivo))
-        _grupos, itens = self._acervo_da_ficha()
+        _grupos, itens = self._acervo_da_ficha(pack)
         return next((it for it in itens if os.path.normpath(it["caminho"]) == alvo), None)
 
     def _minha_escolha(self, app):
@@ -5930,7 +5973,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         item = None
         if corpo.get("arquivo") and not remover:
-            item = self._item_da_ficha(str(corpo.get("arquivo")))
+            item = self._item_da_ficha(str(corpo.get("arquivo")), corpo.get("ficha"))
             if not item:
                 return self._json({"erro": "não achei o desenho '%s' na ficha"
                                            % corpo.get("arquivo")}, 404)
@@ -6084,6 +6127,41 @@ class Manipulador(BaseHTTPRequestHandler):
                 continue
         return ""
 
+    def _glifo_do_circulo(self, origem, da_capa):
+        argv, texto = _parametros_de(3 if da_capa else 2, 5 if da_capa else 6, False, 0, 0)
+        svg, _nota, erro = _converter_desenho(origem, argv, texto)
+        return svg, erro
+
+    def _cartoes_do_circulo(self, origem, capa):
+        gerador = _gerador_circulo()
+        cartoes = []
+        for pid, rotulo, ajustes in gerador.PRESETS:
+            arte = capa if pid == "capa" else origem
+            if not arte:
+                continue
+            glifo, erro = self._glifo_do_circulo(arte, pid == "capa")
+            cartao = {"id": pid, "rotulo": rotulo, "fonte": "capa" if pid == "capa" else "icone",
+                      "gerador": "circle", "disco": ajustes["disco"], "aro": ajustes["aro"],
+                      "tinta": ajustes["tinta"], "tamanho": ajustes["tamanho"]}
+            if erro:
+                cartao["erro"] = erro
+            else:
+                cartao["svg"] = gerador.gerar(glifo, pid)
+            cartoes.append(cartao)
+        return cartoes
+
+    def _desenho_guardado(self, destino, nome):
+        mod = modulo_pack()
+        destino = str(destino or "").strip()
+        if not mod or not destino:
+            return {"tem": False, "svg": "", "pack": destino}
+        try:
+            svg = mod.desenho_no_pack(destino, nome)
+        except mod.Recusa:
+            return {"tem": False, "svg": "", "pack": ""}
+        return {"tem": svg is not None, "svg": svg or "", "pack": destino,
+                "no_ar": destino == _pack_adotado()}
+
     def _salvo_do_app(self, nome):
         conv = os.path.join(ICONES_DO_MOTOR, "apps")
         for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
@@ -6233,7 +6311,11 @@ class Manipulador(BaseHTTPRequestHandler):
             capa = self._arte_da_capa(app)
             tem_cheia = _conversor_tem_cheia()
             tarefas = []
-            for pid, rotulo, det, sua, chei, fonte, frac, mini in PRESETS_DESENHO:
+            mod_pack = modulo_pack()
+            em_edicao = _cadeia_do_pack(corpo.get("pack"))[1]
+            gerador = mod_pack.gerador_de_icones(em_edicao) if mod_pack else "traco"
+            for pid, rotulo, det, sua, chei, fonte, frac, mini in (
+                    () if gerador == "circle" else PRESETS_DESENHO):
                 if chei and not tem_cheia:
                     continue
                 arte = capa if fonte == "capa" else origem
@@ -6265,10 +6347,13 @@ class Manipulador(BaseHTTPRequestHandler):
                             cartao["svg"] = svg
                             cartao["nota"] = nota
                         variacoes.append(cartao)
+            if gerador == "circle":
+                variacoes = self._cartoes_do_circulo(origem, capa)
             tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
             atual, nosso = self._icone_na_tela(
                 d, os.path.expanduser("~/.local/share/icons/%s" % tema))
-            do_pack = self._cartoes_do_pack(d, self._desenhos_de_pack(), atual, com_svg=True)
+            do_pack = self._cartoes_do_pack(
+                d, self._desenhos_de_pack(_cadeia_do_pack(corpo.get("pack"))[0]), atual, com_svg=True)
             traco = self._mapa_convertidos()
             arcticons = self._mapa_arcticons()
             vigor = self._quem_veste(atual, nosso, do_pack,
@@ -6279,12 +6364,29 @@ class Manipulador(BaseHTTPRequestHandler):
                 "original": ("/previa?tipo=arquivo&id=" + quote(origem, safe="")) if origem else "",
                 "capa": ("/previa?tipo=arquivo&id=" + quote(capa, safe="")) if capa else "",
                 "salvo": self._salvo_do_app(nome),
+                "no_pack": self._desenho_guardado(corpo.get("pack"), nome),
                 "pack": do_pack,
                 "em_vigor": vigor,
                 "variacoes": variacoes,
+                "gerador": gerador,
                 "vizinhos": self._vizinhos_do_dock(),
                 "editor": self._editor_de_svg(),
             })
+
+        if acao == "gerar":
+            origem = self._arte_da_capa(app) if str(corpo.get("preset")) == "capa" \
+                else self._arte_de_fabrica(next((x for x in self._desktops() if x["id"] == app), None) or {})
+            if not origem:
+                return self._json({"erro": "não achei a arte de que sai o glifo"}, 404)
+            glifo, erro = self._glifo_do_circulo(origem, str(corpo.get("preset")) == "capa")
+            if erro:
+                return self._json({"erro": erro}, 422)
+            gerador = _gerador_circulo()
+            aro = corpo.get("aro")
+            svg = gerador.gerar(glifo, str(corpo.get("preset") or "disco"),
+                                disco=corpo.get("disco"), aro=aro if isinstance(aro, bool) else None,
+                                tinta=corpo.get("tinta"), tamanho=corpo.get("tamanho"))
+            return self._json({"ok": True, "svg": svg})
 
         if acao == "vetorizar":
             d = next((x for x in self._desktops() if x["id"] == app), None)
@@ -6338,6 +6440,16 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"ok": True, "svg": svg, "origem": origem,
                                "nota": nota, "parametros": texto})
 
+        if acao == "desfazer-no-pack":
+            mod = modulo_pack()
+            try:
+                tirou = mod.tirar_desenho(str(corpo.get("pack") or "").strip(), nome)
+            except mod.Recusa as e:
+                return self._json({"erro": str(e)}, 400)
+            except OSError as e:
+                return self._json({"erro": "não consegui tirar o desenho do pack: %s" % e}, 500)
+            return self._json({"ok": True, "tirou": bool(tirou), "app": app, "nome": nome})
+
         if acao != "salvar":
             return self._json({"erro": "ação desconhecida: %s" % acao}, 400)
 
@@ -6346,6 +6458,9 @@ class Manipulador(BaseHTTPRequestHandler):
         cores = set((_paleta_dados().get("ordem") or []))
         if cores and cor not in cores:
             return self._json({"erro": "a cor tem de ser um nome da paleta"}, 400)
+        destino = str(corpo.get("pack") or "").strip()
+        if destino:
+            return self._salvar_no_pack(app, nome, destino, svg, cor, corpo)
         erro = self._conferir_dialeto(svg)
         if erro:
             return self._json({"erro": erro}, 400)
@@ -6388,6 +6503,26 @@ class Manipulador(BaseHTTPRequestHandler):
                            "modo": modo, "saiu_do_arcticons": saiu,
                            "tirou_retoque": tirou_retoque,
                            "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
+
+    def _salvar_no_pack(self, app, nome, destino, svg, cor, corpo):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "o painel não carregou o scripts/pack.py"}, 500)
+        flavors = _paleta_dados().get("flavors") or {}
+        flavor = str(mod.campo(destino, "paleta.flavor_padrao", "") or "")
+        tinta = (flavors.get(flavor) or next(iter(flavors.values()), {})).get(cor, "")
+        if tinta and "currentColor" in svg:
+            svg = svg.replace("currentColor", tinta)
+        try:
+            arquivo = mod.usar_desenho(destino, nome, svg, str(corpo.get("rotulo") or ""))
+        except mod.Recusa as e:
+            return self._json({"erro": str(e)}, 400)
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar o desenho no pack: %s" % e}, 500)
+        return self._json({"ok": True, "app": app, "nome": nome, "pack": destino,
+                           "arquivo": arquivo, "guardado": True,
+                           "no_ar": destino == _pack_adotado(),
+                           "depois": "vale depois de «%s»" % ACOES["icones_pack"]["rotulo"]})
 
     def _conferir_dialeto(self, svg):
         texto = (svg or "").strip()
@@ -6441,7 +6576,7 @@ class Manipulador(BaseHTTPRequestHandler):
         try:
             os.makedirs(os.path.dirname(caminho), exist_ok=True)
             with open(caminho, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(linhas))
+                fh.write(_texto_de_mapa(linhas))
         except OSError as e:
             return "não consegui gravar o mapa: %s" % e
         return ""
@@ -6770,17 +6905,23 @@ class Manipulador(BaseHTTPRequestHandler):
         if not mod:
             return self._json({"erro": "scripts/pack.py não carregou"}, 500)
         ident = consulta.get("id", [""])[0]
+        base = consulta.get("base", [""])[0]
+        cores = _cores_da_consulta(consulta.get("cores", [""])[0])
         icones = {}
         for pasta in mod.PASTAS_QUE_SE_LEVAM:
             icones[pasta] = []
             try:
-                oferta = mod.acervo_para_levar(ident or None, pasta)
+                oferta = mod.acervo_para_levar(ident or None, pasta, base, cores)
             except mod.Recusa:
                 oferta = []
-            for de, nome, arq, levado in oferta:
-                _ICONES_DECLARADOS.add(os.path.normpath(arq))
-                icones[pasta].append({"de": de, "nome": nome, "levado": levado,
-                                      "url": "/previa?tipo=arquivo&id=" + quote(arq, safe="")})
+            for i in oferta:
+                if i["svg"] is not None:
+                    url = "data:image/svg+xml;charset=utf-8," + quote(i["svg"], safe="")
+                else:
+                    _ICONES_DECLARADOS.add(os.path.normpath(i["arq"]))
+                    url = "/previa?tipo=arquivo&id=" + quote(i["arq"], safe="")
+                icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
+                                      "levado": i["levado"], "url": url})
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:
@@ -6819,11 +6960,12 @@ class Manipulador(BaseHTTPRequestHandler):
             elif tipo in mod.PASTAS_QUE_SE_LEVAM:
                 if levar:
                     de = str(corpo.get("de", ""))
-                    arq = next((a for p_, n, a, _l in mod.acervo_para_levar(ident, tipo)
-                                if p_ == de and n == nome), None)
-                    if not arq:
+                    achado = next((i for i in mod.acervo_para_levar(
+                        ident, tipo, "", _cores_da_consulta(corpo.get("cores")))
+                        if i["de"] == de and i["nome"] == nome), None)
+                    if not achado:
                         return self._json({"erro": "não achei esse ícone no pack «%s»" % de}, 404)
-                    feito = mod.levar_icone(ident, tipo, arq, nome)
+                    feito = mod.levar_icone(ident, tipo, achado["arq"], nome, achado["svg"])
                 else:
                     mod.tirar_icone(ident, tipo, nome)
                     feito = nome
@@ -7094,6 +7236,7 @@ class Manipulador(BaseHTTPRequestHandler):
             '<style id="folha-do-painel">\n%s\n</style>' % ler("estilo.css"),
             '<style id="folha-do-tema">\n%s\n</style>' % ler("tema.css"),
             '<style id="folha-do-manter">\n%s\n</style>' % ler("manter.css"),
+            '<style id="folha-da-oficina">\n%s\n</style>' % ler("oficina.css"),
             '<style id="folha-do-standalone">\n%s\n</style>' % ler("standalone.css"),
             "</head>",
             corpo,

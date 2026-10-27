@@ -2,6 +2,7 @@
 
 let APPS = null;
 let APPS_BUSCA = "";
+let DESENHO_FONTE = "gerar";
 let APP_ABERTO = null;
 let GLIFOS = { termo: null, itens: [], carregando: false };
 const PASTAS_ABERTAS = new Map();
@@ -14,7 +15,7 @@ async function carregarApps() {
 }
 async function carregarGlifos(termo, app) {
   GLIFOS = { termo, app, itens: [], carregando: true };
-  const r = await api(`/api/glifos?busca=${encodeURIComponent(termo || "")}&app=${encodeURIComponent(app || "")}`);
+  const r = await api(`/api/glifos?busca=${encodeURIComponent(termo || "")}&app=${encodeURIComponent(app || "")}&pack=${encodeURIComponent(packEmEdicao())}`);
   if (GLIFOS.termo !== termo || GLIFOS.app !== app) return;
   GLIFOS = { termo, app, itens: r.glifos || [], grupos: r.grupos || [], carregando: false,
              aviso: r.aviso || "", escolha: r.escolha || null, minha: r.minha || null, veste: r.veste || null };
@@ -35,7 +36,6 @@ function montarApps() {
   filtro.addEventListener("input", () => { APPS_BUSCA = filtro.value; render(); });
   const termo = semAcento(APPS_BUSCA.trim());
   const grade = elemento("div", { class: "grade-apps" });
-  let ficha = null;
   for (const a of APPS.apps || []) {
     if (termo && !semAcento(a.nome).includes(termo) && !semAcento(a.id).includes(termo)) continue;
     const [origem, dica] = origemDoApp(a);
@@ -43,22 +43,17 @@ function montarApps() {
       type: "button", class: "app", "data-app": a.id, controle: "app", "aria-expanded": String(APP_ABERTO === a.id),
       dica, onclick: () => {
         APP_ABERTO = APP_ABERTO === a.id ? null : a.id;
-        USO_FICHA = "glifo";
         if (APP_ABERTO) carregarGlifos("", a.id);
         render();
-        if (APP_ABERTO) requestAnimationFrame(() => {
-          const f = document.querySelector(".escolha-icone");
-          if (f) f.scrollIntoView({ block: "nearest" });
-        });
       },
     }, [
       a.url ? elemento("img", { src: a.url, alt: "", loading: "lazy" }) : elemento("span", { class: "lugar" }),
       elemento("span", { class: "nome", texto: maiuscula(a.nome) }),
       elemento("span", { class: "marca-origem", "data-origem": origem, "aria-hidden": "true" }),
     ]));
-    if (APP_ABERTO === a.id) ficha = escolhaDeIcone(a, carregarApps);
+    if (APP_ABERTO === a.id) grade.append(escolhaDeIcone(a, carregarApps));
   }
-  return elemento("div", { class: "pilha", style: "gap:16px" }, [filtro, ficha, grade]);
+  return elemento("div", { class: "pilha", style: "gap:16px" }, [filtro, grade]);
 }
 
 async function depoisDoIcone(app, acao, recarregar) {
@@ -68,10 +63,8 @@ async function depoisDoIcone(app, acao, recarregar) {
   await recarregar();
 }
 
-let USO_FICHA = "glifo";
-
 function escolhaDeIcone(app, recarregar) {
-  const painel = elemento("div", { class: "escolha-icone", "data-escolha-icone": app.id });
+  const painel = elemento("div", { class: "escolha-icone desenho", id: "desenho", "data-escolha-icone": app.id, "data-app": app.id });
   let cor = (app.traco && app.traco.cor) || (app.mapa && app.mapa.cor) || "mauve";
   const chaveDe = (g) => `${g.grupo}|${g.glifo}`;
   const travaDe = (g) => g.trava || (g.tipo === "traco" ? app.trava : app.trava_pack) || "";
@@ -92,7 +85,7 @@ function escolhaDeIcone(app, recarregar) {
     type: "button", class: travaDe(g) ? "travado" : null, controle: travaDe(g) ? "icone:travado" : "icone:desenho",
     "aria-pressed": String(chaveDe(g) === GLIFOS.escolhido), "aria-disabled": travaDe(g) ? "true" : null,
     dica: travaDe(g) ? maiuscula(travaDe(g)) : maiuscula(g.glifo),
-    onclick: () => { if (travaDe(g)) return; GLIFOS.escolhido = chaveDe(g); USO_FICHA = "glifo"; render(); },
+    onclick: () => { if (travaDe(g)) return; GLIFOS.escolhido = chaveDe(g); render(); },
   }, [elemento("img", { src: g.url, alt: "", loading: "lazy" }), elemento("span", { texto: maiuscula(g.rotulo || g.glifo) })]);
   const sugeridos = itens.filter((g) => g.sugerido);
   const pasta = (id, nome, filhos, aberta) => {
@@ -124,11 +117,8 @@ function escolhaDeIcone(app, recarregar) {
   cores.hidden = !(g && g.tipo === "traco");
 
   const botoes = [];
-  const oficina = oficinaDeDesenho(app, recarregar);
-  const geradoPronto = () => !!String(OFICINA.svg || "").trim() && !OFICINA.ocupada && !OFICINA.arte;
-  const usarBotao = botao("Usar", { class: "bt principal", controle: "icone:usar", onclick: async () => {
-    if (USO_FICHA === "oficina") { await OFICINA.usar(); return; }
-    {
+  if (itens.some((x) => !travaDe(x))) {
+    botoes.push(botao("Usar", { class: "bt pequeno principal", controle: "icone:usar", onclick: async () => {
       const x = escolhido();
       if (!x) { torrada("Escolha um desenho", "erro"); return; }
       const corpo = x.tipo !== "traco" ? { app: app.id, arquivo: x.arquivo }
@@ -138,12 +128,8 @@ function escolhaDeIcone(app, recarregar) {
       torrada(`${maiuscula(app.nome)}: ${x.glifo}`, "ok");
       if (x.tipo === "traco" && r.tirou_escolha) { await rodarAcao("icones_traco"); await fimDoTrabalho(); }
       await depoisDoIcone(app, x.tipo === "traco" ? "icones_traco" : "icones_pack", recarregar);
-    }
-  } });
-  const sincronizarUsar = () => { usarBotao.disabled = USO_FICHA === "oficina" ? !geradoPronto() : !escolhido(); };
-  OFICINA.aoMudar = sincronizarUsar;
-  sincronizarUsar();
-  if (itens.some((x) => !travaDe(x)) || (OFICINA.aberta && geradoPronto())) botoes.push(usarBotao);
+    } }));
+  }
   const minha = GLIFOS.app === app.id ? GLIFOS.minha : null;
   if (app.mapa && app.mapa.meu) {
     botoes.push(botao("Desfazer", { class: "bt pequeno", controle: "icone:desfazer-traco", dica: "Volta ao traço de antes",
@@ -179,13 +165,20 @@ function escolhaDeIcone(app, recarregar) {
         await depoisDoIcone(app, "icones_pack", recarregar);
       } }));
   }
-  painel.append(
-    elemento("div", { class: "ficha-cabeca" }, [elemento("h3", { texto: maiuscula(app.nome) }), busca]),
-    elemento("div", { class: "ficha-corpo" }, [
-      elemento("div", { class: "ficha-seletor" }, [tira, cores]),
-      oficina,
-    ]),
-    elemento("div", { class: "ficha-rodape" }, botoes));
+  const cabecalho = elemento("header", {}, [
+    botao("Apps", { class: "bt leve pequeno", controle: "desenho:volta", icone: "voltar", onclick: () => { APP_ABERTO = null; render(); } }),
+    app.url ? elemento("img", { src: app.url, alt: "" }) : null,
+    elemento("h2", { texto: maiuscula(app.nome) }),
+    elemento("div", { class: "seg mini", role: "group", "aria-label": "De onde vem" }, [["gerar", "Gerar"], ["acervo", "Do acervo"]].map(([id, nome]) =>
+      elemento("button", { type: "button", "aria-pressed": String(DESENHO_FONTE === id), "data-fonte": id, controle: "desenho:fonte=" + id,
+        onclick: () => { DESENHO_FONTE = id; render(); } }, [nome]))),
+  ]);
+  if (DESENHO_FONTE === "acervo") {
+    painel.append(cabecalho, elemento("div", { class: "desenho-corpo unico" }, [elemento("div", { class: "desenho-mao", "data-fonte-corpo": "acervo" }, [
+      elemento("div", { class: "fila", style: "justify-content:flex-end" }, [busca]), tira, cores, elemento("div", { class: "fila" }, botoes)])]));
+  } else {
+    painel.append(cabecalho, oficinaDeDesenho(app, recarregar));
+  }
   return painel;
 }
 
@@ -194,7 +187,8 @@ function oficinaZerada(id) {
     original: "", variacoes: [], vizinhos: [], salvo: null, pack: [], arte: false,
     escolhida: null, escolhidaAntes: null, base: "", svg: "", parametros: "", fonte: "icone",
     detalhe: 6, suavidade: 2, cheia: false, fracas: 0, minimo: 0, historico: [], temporizador: null,
-    editor: null, editorMtime: 0, editorRelogio: null };
+    editor: null, editorMtime: 0, editorRelogio: null, gerador: "traco", noPack: null, dopack: false,
+    circulo: null, erroPe: "" };
 }
 let OFICINA = oficinaZerada(null);
 let redesenharOficina = () => {};
@@ -224,7 +218,6 @@ function tirarTraco(i) {
   const doc = new DOMParser().parseFromString(OFICINA.svg, "image/svg+xml");
   const caminhos = doc.querySelectorAll("path");
   if (!caminhos[i]) return;
-  USO_FICHA = "oficina";
   OFICINA.historico.push(OFICINA.svg);
   caminhos[i].remove();
   OFICINA.svg = new XMLSerializer().serializeToString(doc);
@@ -240,7 +233,6 @@ async function espiarEditor(pedido) {
     body: JSON.stringify({ app: OFICINA.app, acao: "editor-ler", mtime: OFICINA.editorMtime }) });
   if (r.erro) { pararVigiaEditor(); if (pedido) torrada(r.erro, "erro"); return; }
   if (!r.tem || !r.mudou) { if (pedido) torrada("Nada novo no editor"); return; }
-  USO_FICHA = "oficina";
   OFICINA.historico.push(OFICINA.svg);
   OFICINA.editorMtime = r.mtime;
   OFICINA.svg = r.svg || "";
@@ -253,68 +245,124 @@ async function espiarEditor(pedido) {
 function oficinaDeDesenho(app, relerLista) {
   if (OFICINA.app !== app.id) { pararVigiaEditor(); OFICINA = oficinaZerada(app.id); }
   if (!OFICINA.cor) OFICINA.cor = (app.traco && app.traco.cor) || (app.mapa && app.mapa.cor) || "mauve";
-  const caixa = elemento("div", { class: "oficina-desenho" });
-  const abrir = botao("Gerar ícone", { class: "bt", controle: "oficina:abrir", onclick: () => {
-    OFICINA.aberta = true;
-    if (!OFICINA.carregou && !OFICINA.ocupada) carregar();
-    montar();
-  } });
-  const gerado = () => { USO_FICHA = "oficina"; if (OFICINA.aoMudar) OFICINA.aoMudar(); };
+  const raiz = elemento("div", { class: "desenho-gerar" });
+  const usar = botao("Usar", { class: "bt principal", id: "d-usar", controle: "oficina:usar" });
+  const desfazerPack = botao("Desfazer", { class: "bt leve", id: "d-desfazer", controle: "oficina:desfazer-pack", icone: "voltar" });
+  const guardado = elemento("span", { class: "estado-pilula", "data-estado": "ok", id: "d-salvo", texto: "Guardado no pack" });
+  const erroPe = elemento("span", { class: "oficina-erro" });
+  const pe = elemento("footer", { class: "desenho-pe" }, [erroPe, guardado, desfazerPack, usar]);
   const folha = elemento("div", { class: "oficina-folha", role: "group", "aria-label": "Variações" });
   const dock = elemento("div", { class: "oficina-dock", "aria-label": "Na dock", role: "img" });
   const lupa = elemento("div", { class: "oficina-lupa" });
   const area = elemento("textarea", { class: "campo", rows: "8", spellcheck: "false", "aria-label": "SVG", controle: "oficina:svg" });
   area.value = OFICINA.svg;
-  area.addEventListener("input", () => { gerado(); OFICINA.historico.push(OFICINA.svg); OFICINA.svg = area.value; OFICINA.escolhida = "editado"; pintarLupa(); pintarDock(); });
-  const regua = (nome, rotulo) => {
-    const r = elemento("input", { type: "range", min: "0", max: "10", step: "1", value: String(OFICINA[nome]),
-      "aria-label": rotulo, controle: "oficina:" + nome });
-    r.addEventListener("input", () => { OFICINA[nome] = Number(r.value); reguar(); });
-    return elemento("label", { class: "oficina-regua" }, [elemento("span", { texto: rotulo }), r]);
+  area.addEventListener("input", () => { OFICINA.historico.push(OFICINA.svg); OFICINA.svg = area.value; OFICINA.escolhida = "editado"; pintarLupa(); pintarDock(); });
+  const secaoVariacoes = elemento("section", { "data-gerador": "" });
+  const secaoPartida = elemento("section", {}, [elemento("h3", { texto: "Partida" })]);
+  const partida = elemento("div", { class: "oficina-folha" });
+  secaoPartida.append(partida);
+  const ajuste = elemento("section", {});
+  const regua = (nome, rotulo, min = 0, max = 10, formato = (v) => String(v)) => {
+    const r = elemento("input", { type: "range", min: String(min), max: String(max), step: "1", value: String(OFICINA[nome]),
+      "aria-label": rotulo, controle: "oficina:" + nome, id: "r-" + nome });
+    const saida = elemento("output", { texto: formato(OFICINA[nome]) });
+    r.addEventListener("input", () => { OFICINA[nome] = Number(r.value); saida.textContent = formato(OFICINA[nome]); reguar(); });
+    return elemento("label", { class: "oficina-regua" }, [elemento("span", { texto: rotulo }), r, saida]);
   };
-  const cores = elemento("div", { class: "cores pequenas", role: "group", "aria-label": "Cor" });
-  const flav = (ESQUEMA.paleta.flavors || {})[flavorEmVigor()] || {};
-  for (const nome of ESQUEMA.paleta.ordem || []) {
-    if (!flav[nome]) continue;
-    const b = elemento("button", { type: "button", "aria-pressed": String(nome === OFICINA.cor), "aria-label": nomeDaCor(nome),
-      controle: "oficina:cor", dica: nomeDaCor(nome),
-      onclick: () => { OFICINA.cor = nome; for (const x of cores.children) x.setAttribute("aria-pressed", String(x === b)); pintarTudo(); } });
-    b.style.setProperty("--c", flav[nome]);
-    cores.append(b);
-  }
-  const desfazer = botao("Desfazer", { class: "bt pequeno", controle: "oficina:desfazer", onclick: () => {
+  const paleta = (rotulo, chave, atual, aoEscolher, roles = null) => {
+    const grupo = elemento("div", { class: "cores pequenas", role: "group", "aria-label": rotulo });
+    const flav = (ESQUEMA.paleta.flavors || {})[flavorEmVigor()] || {};
+    for (const nome of roles || ESQUEMA.paleta.ordem || []) {
+      if (!flav[nome]) continue;
+      const hex = String(flav[nome]).toUpperCase();
+      const b = elemento("button", { type: "button", "aria-pressed": String(atual === nome || atual === hex), "aria-label": nomeDaCor(nome),
+        controle: "oficina:" + chave, dica: nomeDaCor(nome),
+        onclick: () => { aoEscolher(nome, hex); for (const x of grupo.children) x.setAttribute("aria-pressed", String(x === b)); } });
+      b.style.setProperty("--c", flav[nome]);
+      grupo.append(b);
+    }
+    return elemento("div", { class: "oficina-regua" }, [elemento("span", { texto: rotulo }), grupo]);
+  };
+  const desfazer = botao("Desfazer edição", { class: "bt leve pequeno", controle: "oficina:desfazer", onclick: () => {
     if (!OFICINA.historico.length) return;
     OFICINA.svg = OFICINA.historico.pop();
     pintarTudo();
   } });
   const editor = elemento("div", { class: "fila" });
-  const lado = elemento("div", { class: "oficina-lado" }, [regua("detalhe", "Detalhe"), regua("suavidade", "Suavidade"),
-    regua("fracas", "Linhas fracas"), regua("minimo", "Traço mínimo"), cores, elemento("div", { class: "fila" }, [desfazer])]);
-  const edicao = elemento("details", {}, [elemento("summary", { texto: "Editar o SVG", controle: "oficina:editar" }), editor, area]);
-  const dentro = elemento("div", { class: "dentro-oficina" }, [folha, dock, elemento("div", { class: "oficina-par" }, [lupa, lado]), edicao]);
-  function montar() { caixa.replaceChildren(OFICINA.aberta ? dentro : abrir); }
-  montar();
+  const edicao = elemento("section", {}, [elemento("h3", { texto: "SVG" }), editor, desfazer, area]);
+  const mao = elemento("div", { class: "desenho-mao", "data-fonte-corpo": "gerar" }, [secaoPartida, secaoVariacoes, ajuste, edicao]);
+  const olho = elemento("div", { class: "desenho-olho" }, [lupa, dock]);
+  raiz.append(elemento("div", { class: "desenho-corpo" }, [olho, mao]), pe);
 
+  function pintarAjuste() {
+    ajuste.replaceChildren();
+    if (OFICINA.gerador === "circle") {
+      ajuste.className = "so-dracula";
+      const c = OFICINA.circulo || {};
+      const chave = elemento("button", { class: "chave", type: "button", role: "switch", "aria-checked": String(!!c.aro),
+        "aria-label": "Aro", controle: "oficina:aro", onclick: () => {
+          OFICINA.circulo = { ...OFICINA.circulo, aro: !(OFICINA.circulo && OFICINA.circulo.aro) };
+          chave.setAttribute("aria-checked", String(OFICINA.circulo.aro));
+          regerar();
+        } });
+      const tamanho = elemento("input", { type: "range", min: "50", max: "100", step: "1", id: "r-glifo",
+        value: String(c.tamanho || 62), "aria-label": "Tamanho do glifo", controle: "oficina:glifo" });
+      const saida = elemento("output", { texto: `${c.tamanho || 62} %` });
+      tamanho.addEventListener("input", () => {
+        OFICINA.circulo = { ...OFICINA.circulo, tamanho: Number(tamanho.value) };
+        saida.textContent = `${tamanho.value} %`;
+        regerar();
+      });
+      ajuste.append(elemento("h3", { texto: "Ajuste" }),
+        paleta("Disco", "disco", String(c.disco || "").toUpperCase(), (_n, hex) => { OFICINA.circulo = { ...OFICINA.circulo, disco: hex }; regerar(); },
+          ["surface0", "surface1", "surface2", "base", "mantle", "crust", "mauve", "pink"]),
+        elemento("div", { class: "oficina-regua" }, [elemento("span", { texto: "Aro" }), chave]),
+        paleta("Glifo", "tinta", String(c.tinta || "").toUpperCase(), (_n, hex) => { OFICINA.circulo = { ...OFICINA.circulo, tinta: hex }; regerar(); },
+          ["green", "yellow", "pink", "teal", "sky", "mauve", "peach", "text"]),
+        elemento("label", { class: "oficina-regua" }, [elemento("span", { texto: "Tamanho do glifo" }), tamanho, saida]));
+      return;
+    }
+    ajuste.className = "so-meowsystem";
+    ajuste.append(elemento("h3", { texto: "Ajuste" }), regua("detalhe", "Detalhe"), regua("suavidade", "Suavidade"),
+      regua("fracas", "Linhas fracas"), regua("minimo", "Traço mínimo"),
+      paleta("Cor do traço", "cor", OFICINA.cor, (nome) => { OFICINA.cor = nome; pintarTudo(); }));
+  }
+  function cartaoDe(v, fig, aoClicar) {
+    return elemento("button", { type: "button", class: "oficina-cartao", controle: "oficina:variacao", "data-src": v.id,
+      "data-salvo": v.id === "guardado" || v.id === "salvo" ? "" : null,
+      "aria-pressed": String(OFICINA.escolhida === v.id), disabled: !!v.erro, dica: v.erro ? maiuscula(v.erro) : null,
+      onclick: aoClicar }, [fig || elemento("span", { class: "oficina-lugar" }), elemento("span", { texto: maiuscula(v.rotulo) })]);
+  }
   function pintarFolha() {
-    folha.replaceChildren();
+    partida.replaceChildren();
+    secaoVariacoes.replaceChildren();
     if (OFICINA.original) {
-      folha.append(elemento("figure", { class: "oficina-cartao", style: "margin:0" }, [
-        elemento("img", { src: OFICINA.original, alt: "", width: "72", height: "72" }), elemento("figcaption", { texto: "Original" })]));
+      partida.append(elemento("button", { type: "button", class: "oficina-cartao", controle: "oficina:original", "data-src": "original",
+        "aria-pressed": "false", onclick: () => { if (!OFICINA.ocupada) { OFICINA.fonte = "icone"; reguar(); } } }, [
+        elemento("img", { src: OFICINA.original, alt: "", width: "56", height: "56" }), elemento("span", { texto: "Original" })]));
     }
-    const cartoes = [
-      ...OFICINA.pack.map((p) => ({ id: "pack:" + p.pack, rotulo: "Do tema", svg: p.svg, arte: true })),
+    const nossos = [
+      ...(OFICINA.noPack && OFICINA.noPack.tem ? [{ id: "guardado", rotulo: "Guardado", svg: OFICINA.noPack.svg, arte: true }] : []),
+      ...OFICINA.pack.map((p) => ({ id: "pack:" + p.pack, rotulo: "Do pack", svg: p.svg, arte: true, dopack: true })),
       ...(OFICINA.salvo && OFICINA.salvo.tem ? [{ id: "salvo", rotulo: "Salvo", svg: OFICINA.salvo.svg }] : []),
-      ...OFICINA.variacoes,
     ];
-    if (!cartoes.length && OFICINA.ocupada) {
-      for (let i = 0; i < 4; i++) folha.append(elemento("span", { class: "oficina-cartao" }, [elemento("span", { class: "oficina-lugar" })]));
+    for (const v of nossos) {
+      const fig = v.arte ? desenharArte(v.svg, 56) : desenhar(v.svg, 56, OFICINA.cor);
+      partida.append(cartaoDe(v, fig, () => escolherCartao(v)));
     }
-    for (const v of cartoes) {
-      const fig = v.erro ? null : v.arte ? desenharArte(v.svg, 72) : desenhar(v.svg, 72, OFICINA.cor);
-      folha.append(elemento("button", { type: "button", class: "oficina-cartao", controle: "oficina:variacao",
-        "aria-pressed": String(OFICINA.escolhida === v.id), disabled: !!v.erro, dica: v.erro ? maiuscula(v.erro) : null,
-        onclick: () => { gerado(); escolherCartao(v); } }, [fig || elemento("span", { class: "oficina-lugar" }), elemento("span", { texto: maiuscula(v.rotulo) })]));
+    const circulo = OFICINA.gerador === "circle";
+    secaoVariacoes.className = circulo ? "so-dracula" : "so-meowsystem";
+    secaoVariacoes.dataset.gerador = OFICINA.gerador;
+    const titulo = elemento("h3", { texto: circulo ? "Disco e glifo" : "Traço" });
+    const grade = elemento("div", { class: "oficina-folha" });
+    if (!OFICINA.variacoes.length && OFICINA.ocupada) {
+      for (let i = 0; i < 4; i++) grade.append(elemento("span", { class: "oficina-cartao" }, [elemento("span", { class: "oficina-lugar" })]));
     }
+    for (const v of OFICINA.variacoes) {
+      const fig = v.erro ? null : circulo ? desenharArte(v.svg, 56) : desenhar(v.svg, 56, OFICINA.cor);
+      grade.append(cartaoDe(v, fig, () => escolherCartao(v)));
+    }
+    secaoVariacoes.append(titulo, grade);
   }
   function pintarDock() {
     dock.replaceChildren();
@@ -337,58 +385,81 @@ function oficinaDeDesenho(app, relerLista) {
     editor.replaceChildren();
     if (!OFICINA.editor || !OFICINA.editor.tem) return;
     editor.append(
-      botao(OFICINA.editor.nome ? `Abrir no ${OFICINA.editor.nome}` : "Abrir no editor", { class: "bt pequeno",
-        controle: "oficina:editor", disabled: !String(OFICINA.svg || "").trim() || OFICINA.arte, onclick: abrirNoEditor }),
-      botao("Reler", { class: "bt pequeno", controle: "oficina:reler", onclick: () => espiarEditor(true) }));
+      botao(OFICINA.editor.nome ? `Abrir no ${OFICINA.editor.nome}` : "Abrir no editor", { class: "bt leve pequeno",
+        controle: "oficina:editor", disabled: !String(OFICINA.svg || "").trim() || OFICINA.dopack, onclick: abrirNoEditor }),
+      botao("Reler", { class: "bt leve pequeno", controle: "oficina:reler", icone: "girar", onclick: () => espiarEditor(true) }));
+  }
+  function pintarPe() {
+    const tem = !!(OFICINA.noPack && OFICINA.noPack.tem);
+    guardado.hidden = !tem;
+    desfazerPack.hidden = !tem;
+    erroPe.textContent = OFICINA.erroPe || "";
   }
   function pintarTudo() {
-    pintarFolha(); pintarDock(); pintarLupa(); pintarEditor();
+    pintarFolha(); pintarAjuste(); pintarDock(); pintarLupa(); pintarEditor(); pintarPe();
+    usar.disabled = !String(OFICINA.svg || "").trim() || OFICINA.ocupada || OFICINA.dopack;
     desfazer.disabled = !OFICINA.historico.length;
     if (area.value !== OFICINA.svg) area.value = OFICINA.svg;
-    if (OFICINA.aoMudar) OFICINA.aoMudar();
   }
   redesenharOficina = pintarTudo;
 
   function escolherCartao(c) {
     if (!c || c.erro) return;
     OFICINA.escolhida = c.id;
-    OFICINA.arte = !!c.arte;
+    OFICINA.arte = !!c.arte || c.gerador === "circle";
+    OFICINA.dopack = !!c.dopack;
     OFICINA.base = OFICINA.svg = c.svg || "";
     OFICINA.parametros = c.parametros || "";
     OFICINA.fonte = c.fonte || "icone";
+    if (c.gerador === "circle") OFICINA.circulo = { preset: c.id, disco: c.disco, aro: !!c.aro, tinta: c.tinta, tamanho: c.tamanho };
     for (const k of ["detalhe", "suavidade"]) if (c[k] != null) OFICINA[k] = c[k];
     OFICINA.fracas = c.fracas || 0;
     OFICINA.minimo = c.minimo || 0;
     OFICINA.cheia = !!c.cheia;
     OFICINA.historico = [];
-    pintarTudo();
+    OFICINA.erroPe = "";
+    redesenharOficina();
   }
   async function carregar() {
-    OFICINA.ocupada = true; pintarTudo();
-    const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({ app: OFICINA.app, acao: "variacoes" }) });
+    OFICINA.ocupada = true; redesenharOficina();
+    const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({ app: OFICINA.app, acao: "variacoes",
+      pack: packEmEdicao() }) });
     OFICINA.ocupada = false;
     OFICINA.carregou = true;
-    if (r.erro) { OFICINA.erro = r.erro; pintarTudo(); return; }
+    if (r.erro) { OFICINA.erro = r.erro; redesenharOficina(); return; }
     Object.assign(OFICINA, { original: r.original || "", variacoes: r.variacoes || [], vizinhos: r.vizinhos || [],
-      salvo: r.salvo || null, pack: r.pack || [], editor: r.editor || null });
-    const inicial = OFICINA.pack.length ? { id: "pack:" + OFICINA.pack[0].pack, svg: OFICINA.pack[0].svg, arte: true }
+      salvo: r.salvo || null, pack: r.pack || [], editor: r.editor || null, gerador: r.gerador || "traco",
+      noPack: r.no_pack || null });
+    const inicial = OFICINA.noPack && OFICINA.noPack.tem ? { id: "guardado", svg: OFICINA.noPack.svg, arte: true }
       : OFICINA.salvo && OFICINA.salvo.tem ? { id: "salvo", svg: OFICINA.salvo.svg }
+      : OFICINA.pack.length ? { id: "pack:" + OFICINA.pack[0].pack, svg: OFICINA.pack[0].svg, arte: true, dopack: true }
       : OFICINA.variacoes.find((v) => !v.erro);
-    if (inicial) escolherCartao(inicial); else pintarTudo();
+    if (inicial) escolherCartao(inicial); else redesenharOficina();
+  }
+  function regerar() {
+    clearTimeout(OFICINA.temporizador);
+    OFICINA.temporizador = setTimeout(async () => {
+      const c = OFICINA.circulo || {};
+      const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({ app: OFICINA.app, acao: "gerar",
+        preset: c.preset || "disco", disco: c.disco, aro: !!c.aro, tinta: c.tinta, tamanho: c.tamanho }) });
+      if (r.erro) { OFICINA.erro = r.erro; redesenharOficina(); return; }
+      OFICINA.erro = "";
+      Object.assign(OFICINA, { base: r.svg, svg: r.svg, arte: true, dopack: false, historico: [], escolhida: "editado" });
+      redesenharOficina();
+    }, 200);
   }
   function reguar() {
     clearTimeout(OFICINA.temporizador);
     OFICINA.temporizador = setTimeout(async () => {
-      gerado();
-      OFICINA.ocupada = true; pintarLupa();
+      OFICINA.ocupada = true; redesenharOficina();
       const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({
         app: OFICINA.app, acao: "vetorizar", fonte: OFICINA.fonte, detalhe: OFICINA.detalhe,
         suavidade: OFICINA.suavidade, cheia: OFICINA.cheia, fracas: OFICINA.fracas, minimo: OFICINA.minimo }) });
       OFICINA.ocupada = false;
-      if (r.erro) { OFICINA.erro = r.erro; pintarTudo(); return; }
-      Object.assign(OFICINA, { base: r.svg || "", svg: r.svg || "", arte: false, parametros: r.parametros || "",
+      if (r.erro) { OFICINA.erro = r.erro; redesenharOficina(); return; }
+      Object.assign(OFICINA, { base: r.svg || "", svg: r.svg || "", arte: false, dopack: false, parametros: r.parametros || "",
         historico: [], escolhida: "editado" });
-      pintarTudo();
+      redesenharOficina();
     }, 250);
   }
   async function abrirNoEditor() {
@@ -399,23 +470,41 @@ function oficinaDeDesenho(app, relerLista) {
     pararVigiaEditor();
     let espiadas = 0;
     OFICINA.editorRelogio = setInterval(() => {
-      if (!document.querySelector(".oficina-desenho") || ++espiadas > 450) { pararVigiaEditor(); return; }
+      if (!document.querySelector(".desenho-gerar") || ++espiadas > 450) { pararVigiaEditor(); return; }
       espiarEditor(false);
     }, 2000);
   }
-  OFICINA.usar = async () => {
+  usar.addEventListener("click", async (e) => {
+    e.preventDefault(); e.stopPropagation();
+    OFICINA.erroPe = "";
+    let destino = rascunho().pack;
+    if (!destino) { await guardarTema(); destino = rascunho().pack; }
+    if (!destino) { OFICINA.erroPe = "Não guardou o tema"; pintarPe(); return; }
     const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({
-      app: OFICINA.app, acao: "salvar", svg: OFICINA.svg, cor: OFICINA.cor, fonte: OFICINA.fonte, parametros: OFICINA.parametros }) });
-    if (r.erro) { OFICINA.erro = r.erro; torrada(r.erro, "erro"); pintarLupa(); return; }
-    torrada(`${maiuscula(app.nome)}: desenho salvo`, "ok");
-    await rodarAcao("icones_traco");
+      app: OFICINA.app, acao: "salvar", svg: OFICINA.svg, cor: OFICINA.cor, fonte: OFICINA.fonte,
+      parametros: OFICINA.parametros, pack: destino, rotulo: app.nome }) });
+    if (r.erro) { OFICINA.erro = ""; OFICINA.erroPe = "Não gravou no pack"; torrada(r.erro, "erro"); pintarPe(); return; }
+    OFICINA.noPack = { tem: true, svg: OFICINA.svg, pack: destino };
+    OFICINA.escolhida = "guardado";
+    redesenharOficina();
+    torrada(`${maiuscula(app.nome)}: guardado no pack`, "ok");
+    if (r.no_ar) { await rodarAcao("icones_pack"); await fimDoTrabalho(); }
     OFICINA.carregou = false;
-    await fimDoTrabalho();
-    await relerLista();
-  };
-  pintarTudo();
-  if (OFICINA.aberta && !OFICINA.carregou && !OFICINA.ocupada) carregar();
-  return caixa;
+  });
+  desfazerPack.addEventListener("click", async () => {
+    const destino = rascunho().pack;
+    const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({ app: OFICINA.app, acao: "desfazer-no-pack", pack: destino }) });
+    if (r.erro) { torrada(r.erro, "erro"); return; }
+    OFICINA.noPack = { tem: false, svg: "", pack: destino };
+    OFICINA.escolhida = null;
+    redesenharOficina();
+    torrada(`${maiuscula(app.nome)}: tirado do pack`, "ok");
+    if (destino === ((packNoAr() || {}).id)) { await rodarAcao("icones_pack"); await fimDoTrabalho(); }
+    OFICINA.carregou = false;
+  });
+  redesenharOficina();
+  if (!OFICINA.carregou && !OFICINA.ocupada) carregar();
+  return raiz;
 }
 
 let AUTORAL = { carregou: false, ocupada: false, erro: "", nomePack: "", desenhos: [], cores: [],

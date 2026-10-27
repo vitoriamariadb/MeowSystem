@@ -31,3 +31,20 @@ dele (base `circle` na frente, `main` atrás — decisão 1), separado do traço
 
 ## Fora desta sprint
 Layout da oficina (P110), Mandar e rascunho (P113).
+
+## Execução
+
+| item | commit | prova |
+|---|---|---|
+| Q1-01, Q1-19 | `e47dbe8c` | `tests/mapas-fim-de-linha.sh`: mapa sem `\n` final é lido até a última linha e todo mapa gravado termina em `\n` |
+| Q1-05, Q1-06, Q1-07 (servidor) | `df2dc0db` | `tests/acervo-do-pack-em-edicao.sh`, `tests/seletor-do-pack.sh`, `tests/acervo-da-ficha.sh`, `tests/decisoes.sh` (decisão 3 trocada no mesmo commit) |
+| Q1-02 (servidor) | `2b7b90fa` | `tests/desenho-no-pack.sh`: «Usar» grava em `icones/apps/`, o `.meowpack` exportado leva o arquivo, desfazer o tira |
+| Q1-08 (servidor) | `552845cd` | `tests/gerador-dracula.sh`: círculo, anel e glifo cheio com a paleta Dracula; o MeowSystem segue no traço |
+| Q1-05/06/07/02/08 (tela) | commit da tela | `tests/icones-por-pack.py` (Playwright): Sistema e Biblioteca só do pack em edição, pastas «Documentos», «Downloads»…, sem botão de levar, cartões de círculo no Dracula e de traço no MeowSystem, «Usar» guarda o tema e grava o SVG no pack, «Desfazer» o tira; `tests/app-completo.py` cobre os controles novos |
+
+Capturas do painel ao lado da maquete em 1920×1080, 1550×860, 1500×900 e 1280×800: `capturas/p112/`.
+
+Ficou de fora:
+- O bloco «Tipos de arquivo» da maquete: nenhum item da sprint o pede.
+- Os controles de ajuste do traço seguem em 0 a 10 (o servidor já os lia assim), e não 0 a 1 como a maquete desenha.
+- O glifo do Dracula é a silhueta da saída do conversor; ícone de app sem imagem de origem recebe só o disco.
