@@ -24,6 +24,7 @@ PORTATIL=(
   reversao.sh
   seco.sh
   convergencia.sh
+  chave-etapa.sh
   instalacao.sh
   midia.sh
   jogos-heroic.sh
