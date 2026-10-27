@@ -4605,7 +4605,8 @@ def _desenho_do_app(dir_pack, pid, apelidos, autoral, flavor, cores):
                 texto = _ler_svg(arq) if os.path.isfile(arq) and not os.path.islink(arq) else ""
                 if _e_svg(texto.encode("utf-8")):
                     return _tracejar(texto, LARGURA_DO_TRACO, cores[cor])
-    candidatos = [f"{autoral}-{flavor}"] if autoral else []
+    padrao = campo(pid, "paleta.flavor_padrao", "")
+    candidatos = [f"{autoral}-{f}" for f in dict.fromkeys((flavor, padrao)) if f] if autoral else []
     candidatos += [n for n in apelidos if nome_de_destino(n)]
     for miolo in candidatos:
         arq = os.path.join(icones, "apps", miolo + ".svg")
