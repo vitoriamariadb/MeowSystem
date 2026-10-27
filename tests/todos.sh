@@ -87,6 +87,7 @@ MAQUINA=(
   previa-cerca.sh
   app-navegador.py
   app-acessibilidade.py
+  app-layout.py
   oficina.sh
   pastas-do-pack.sh
   restos-do-painel.sh
