@@ -714,3 +714,5 @@ dialog.resultado { width: min(880px, calc(100vw - 32px)); }
 @media (max-width: 1000px) {
   .oficina.sem-previa > .pilha { grid-template-columns: minmax(0, 1fr); }
 }
+.p-dock .centro .app { width: var(--p-centro, 3.5cqi); height: var(--p-centro, 3.5cqi); }
+.p-dock .centro .app svg { width: 78%; height: 78%; }
