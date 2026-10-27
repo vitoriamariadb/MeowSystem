@@ -941,6 +941,9 @@ class Percurso:
                 const id = p.dataset.controle.split(":")[1];
                 saida[id] = { arte: [...p.querySelectorAll(".p-dock img.arte-pack")].map((i) => i.src),
                               pasta: [...p.querySelectorAll(".p-arq img.pasta-pack")].length,
+                              pasta_cheia: [...p.querySelectorAll(".p-arq img.pasta-pack")].slice(0, 1).some((i) => {
+                                  const t = decodeURIComponent(i.src.split(",").slice(1).join(","));
+                                  return /fill="#[0-9a-fA-F]{3,8}"|fill:#[0-9a-fA-F]{3,8}/.test(t) && !/stroke="#|stroke:#/.test(t); }),
                               neutro: p.querySelectorAll(".p-dock svg.neutro").length };
             }
             return saida; }""")
@@ -953,8 +956,17 @@ class Percurso:
         for a in ids:
             for b in ids:
                 if a < b:
-                    self.checa(set(r[a]["arte"]) != set(r[b]["arte"]),
-                               f"o dock do {a} não repete a arte do {b}")
+                    iguais = set(r[a]["arte"]) & set(r[b]["arte"])
+                    self.checa(len(iguais) <= 1, f"o dock do {a} difere do {b} em ao menos 5 de 6 ({len(iguais)} iguais)")
+        meio = self.js("""() => { const m = MESA.mesa({ previa: { dock: [{ app: "files",
+                url: "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E" }], pasta: "" } });
+            return [m.querySelectorAll(".p-dock .centro .app").length, m.querySelectorAll(".p-dock img.arte-pack").length,
+                    m.querySelectorAll(".p-dock svg.neutro").length]; }""")
+        self.checa(meio == [6, 1, 5], f"o pack que traz só parte do dock mostra o resto em traço neutro, sem sumir com o app ({meio})")
+        if "dracula" in r and "meowsystem" in r:
+            self.checa(r["dracula"]["pasta_cheia"] and not r["meowsystem"]["pasta_cheia"],
+                       f"a pasta do Dracula é cheia e a do MeowSystem é contorno "
+                       f"({r['dracula']['pasta_cheia']}, {r['meowsystem']['pasta_cheia']})")
 
     def h_biblioteca_legivel(self, seletor):
         r = self.js("""(seletor) => {
@@ -1001,6 +1013,22 @@ class Percurso:
                 self.acionados.add("acervo:filtro")
         self.clicar("icones:aba=apps")
         self.assentar()
+        self.h_previa_do_rascunho()
+
+    def h_previa_do_rascunho(self):
+        marca = "#fe0102"
+        self.js("""(marca) => { const r = rascunho(); r.cores = { ...(r.cores || {}), peach: marca, lavender: marca }; render(); }""", marca)
+        try:
+            self.pag.wait_for_function("""(marca) => [...document.querySelectorAll('.palco .p-dock img.arte-pack')]
+                .some((i) => decodeURIComponent(i.src).includes(marca))""", arg=marca, timeout=15000)
+            pintou = True
+        except Exception:  # noqa: BLE001
+            pintou = False
+        self.checa(pintou, "a prévia do Personalizar pinta o dock com as cores do rascunho, pelo /api/criar?previa=1")
+        neutros = self.js("() => document.querySelectorAll('.palco .p-dock svg.neutro').length")
+        self.checa(neutros == 0, f"a prévia do Personalizar não cai no traço neutro ({neutros})")
+        self.js("""(marca) => { const r = rascunho(); for (const k of ['peach', 'lavender']) if (r.cores[k] === marca) delete r.cores[k]; render(); }""", marca)
+        self.assentar(quieto=400)
 
     def h_trocar_som(self, nome):
         caminho = os.path.join(BRINQUEDO, "envios", "brinquedo-aviso.oga")
