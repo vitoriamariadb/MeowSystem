@@ -2153,6 +2153,211 @@ def _acento_da_pagina(flavor, valores):
     return _acento_na_tela(flavor) or "mauve"
 
 
+EXT_CASA = os.path.join(RAIZ, "assets", "extensoes")
+EXT_CHAVES = ("NOME", "DESCRICAO", "URL", "COMMIT", "VERSAO", "APP_ID", "BIN", "UPSTREAM",
+              "SUBSTITUI", "DATA", "ORDEM")
+RE_ID_EXT = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+EXT_GESTO = os.path.join(RAIZ, "scripts", "extensoes_gesto.sh")
+EXT_CONSTRUTOR = os.path.join(RAIZ, "scripts", "extensoes_build.sh")
+EXT_GARANTIR = os.path.join(RAIZ, "scripts", "garantir_builds.sh")
+
+
+def _ext_usuario():
+    return os.path.join(ESTADO, "extensoes", "usuario")
+
+
+def _ext_pino_ler(caminho):
+    dados = {}
+    try:
+        with open(caminho, encoding="utf-8") as fh:
+            for linha in fh:
+                m = re.match(r'^([A-Z_]+)=(?:"(.*)"|([0-9]*))\s*$', linha.rstrip("\n"))
+                if m and m.group(1) in EXT_CHAVES:
+                    dados[m.group(1)] = m.group(2) if m.group(2) is not None else m.group(3)
+    except OSError:
+        return None
+    return dados if re.match(r"^[0-9a-f]{7,40}$", dados.get("COMMIT", "")) else None
+
+
+def _ext_catalogo():
+    achados = []
+    for casa, pasta in ((True, EXT_CASA), (False, _ext_usuario())):
+        try:
+            nomes = sorted(os.listdir(pasta))
+        except OSError:
+            continue
+        for nome in nomes:
+            ident = nome[:-len(".pino")] if nome.endswith(".pino") else ""
+            if not RE_ID_EXT.match(ident):
+                continue
+            pino = _ext_pino_ler(os.path.join(pasta, nome))
+            if pino:
+                ordem = pino.get("ORDEM", "")
+                achados.append((0 if casa else 1, int(ordem) if ordem.isdigit() else 99, ident, casa, pino))
+    achados.sort(key=lambda t: t[:3])
+    return [(ident, casa, pino) for _g, _o, ident, casa, pino in achados]
+
+
+def _ext_ids(so_casa=None):
+    return [ident for ident, casa, _pino in _ext_catalogo() if so_casa is None or casa == so_casa]
+
+
+def _ext_estado(ident):
+    try:
+        proc = subprocess.run([EXT_CONSTRUTOR, ident, "--estado"], capture_output=True,
+                              timeout=20, env=_ambiente_do_painel(seco=False), cwd=RAIZ)
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    dados = {}
+    for linha in proc.stdout.decode("utf-8", "replace").splitlines():
+        chave, igual, valor = linha.partition("=")
+        if igual and re.match(r"^[a-z_]+$", chave):
+            dados[chave] = valor
+    return dados
+
+
+def _ext_nome_do_antigo(app_id):
+    ultimo = (app_id or "").split(".")[-1]
+    ultimo = re.sub(r"^(CosmicExtApplet|CosmicApplet|CosmicExt)", "", ultimo)
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", ultimo).strip() or app_id
+
+
+def _ext_data_do_pino(ident):
+    try:
+        proc = subprocess.run(
+            ["git", "-C", RAIZ, "log", "-1", "--format=%cd", "--date=format:%d/%m/%Y",
+             "--", "assets/extensoes/%s.pino" % ident],
+            capture_output=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return proc.stdout.decode("utf-8", "replace").strip() if proc.returncode == 0 else ""
+
+
+def _ext_mantidas():
+    try:
+        with open(os.path.join(ESTADO, "extensoes", "mantem"), encoding="utf-8") as fh:
+            return {l.strip() for l in fh if l.strip()}
+    except OSError:
+        return set()
+
+
+def _ext_registro(ident):
+    for nome in ("compilar.log", "clone.log"):
+        try:
+            with open(os.path.join(ESTADO, "extensoes", ident, nome), encoding="utf-8",
+                      errors="replace") as fh:
+                texto = fh.read()
+        except OSError:
+            continue
+        if texto.strip():
+            return texto_na_tela("\n".join(texto.splitlines()[-30:]))
+    return ""
+
+
+def _ext_ocupado():
+    with TRABALHO_TRAVA:
+        atual = TRABALHO_ATUAL
+    if atual is None or not atual.vivo() or not str(atual.acao).startswith(("extensao_", "builds_", "build_", "files_menu_build")):
+        return None
+    return {"acao": atual.acao, "id": atual.argv[-1] if str(atual.acao).startswith("extensao_") else "",
+            "trabalho": atual.id}
+
+
+def _ext_cartoes():
+    mantidas = _ext_mantidas()
+    cartoes = []
+    for ident, casa, pino in _ext_catalogo():
+        estado = _ext_estado(ident)
+        troca = estado.get("troca", "")
+        if ident in mantidas:
+            troca = ""
+        commit = pino.get("COMMIT", "")
+        data = pino.get("DATA", "") or (_ext_data_do_pino(ident) if casa else "")
+        cartoes.append({
+            "id": ident, "casa": casa,
+            "nome": pino.get("NOME") or ident, "descricao": pino.get("DESCRICAO", ""),
+            "versao": pino.get("VERSAO", ""), "commit": commit[:7], "commit_inteiro": commit,
+            "url": re.sub(r"\.git$", "", pino.get("URL", "")), "upstream": pino.get("UPSTREAM", ""),
+            "data": data, "app_id": pino.get("APP_ID", ""),
+            "instalada": estado.get("instalada") == "sim",
+            "em_dia": estado.get("em_dia") == "sim",
+            "atualizacao": estado.get("atualizacao") == "sim",
+            "na_barra": estado.get("na_barra") == "sim",
+            "falhou": estado.get("falhou") == "sim",
+            "troca": troca, "troca_nome": _ext_nome_do_antigo(troca) if troca else "",
+            "commit_instalado": (estado.get("commit_instalado") or "")[:7],
+            "registro": _ext_registro(ident) if estado.get("falhou") == "sim" else "",
+        })
+    return cartoes
+
+
+def _ext_builds():
+    dados = {}
+    try:
+        proc = subprocess.run([EXT_GARANTIR, "estado"], capture_output=True, timeout=20,
+                              env=_ambiente_do_painel(seco=False), cwd=RAIZ)
+        for linha in proc.stdout.decode("utf-8", "replace").splitlines():
+            chave, igual, valor = linha.partition("=")
+            if igual and re.match(r"^[a-z_]+$", chave):
+                dados[chave] = valor
+    except (OSError, subprocess.SubprocessError):
+        pass
+    entrar = valores_efetivos(["BUILDS_AO_ENTRAR"]).get("BUILDS_AO_ENTRAR") or "sim"
+    return {
+        "compositor": {"versao": dados.get("compositor_versao", ""),
+                       "estado": dados.get("compositor_estado", "ausente"),
+                       "remendos": int(dados.get("remendos") or 0)},
+        "menu": {"versao": dados.get("menu_versao", ""), "estado": dados.get("menu_estado", "ausente")},
+        "construindo": dados.get("construindo") == "sim",
+        "ao_entrar": entrar != "nao",
+    }
+
+
+def _ext_dados():
+    return {"extensoes": _ext_cartoes(), "builds": _ext_builds(), "ocupado": _ext_ocupado()}
+
+
+def _ext_gesto(*args, prazo=240):
+    try:
+        proc = subprocess.run([EXT_GESTO, *args], capture_output=True, timeout=prazo,
+                              env=_ambiente_do_painel(seco=False), cwd=RAIZ)
+    except (OSError, subprocess.SubprocessError) as erro:
+        return 2, str(erro)
+    return proc.returncode, proc.stdout.decode("utf-8", "replace") + proc.stderr.decode("utf-8", "replace")
+
+
+def _ext_queixa(saida):
+    for linha in saida.splitlines():
+        m = re.match(r"^\s*(?:erro|aviso)\s+(.*\S)", linha)
+        if m:
+            return texto_na_tela(m.group(1))
+    return "não consegui"
+
+
+def _ext_ler(url):
+    rc, saida = _ext_gesto("ler", url)
+    if rc != 0:
+        return {"erro": _ext_queixa(saida)}, 400
+    ficha = {}
+    for linha in saida.splitlines():
+        chave, igual, valor = linha.partition("=")
+        if igual and re.match(r"^[a-z_]+$", chave):
+            ficha[chave] = valor
+    ficha["substitui"] = _ext_nome_do_antigo(ficha["substitui"]) if ficha.get("substitui") else ""
+    return {"ficha": ficha}, 200
+
+
+def _ext_icone(ident):
+    if not RE_ID_EXT.match(ident or ""):
+        return None
+    caminho = os.path.join(EXT_CASA, "icones", ident + ".svg")
+    try:
+        with open(caminho, "rb") as fh:
+            return fh.read()
+    except OSError:
+        return None
+
+
 PROVEDORES = {
     "capturas": _capturas,
     "gatos": _gatos,
@@ -2170,6 +2375,9 @@ PROVEDORES = {
     "fontes_revertidas": lambda: _fontes_revertidas(),
     "restauros": lambda: sorted(restauros()),
     "jogos_heroic": lambda: sorted(j["id"] for j in jogos_do_heroic()),
+    "extensoes_da_casa": lambda: _ext_ids(so_casa=True),
+    "extensoes_do_usuario": lambda: _ext_ids(so_casa=False),
+    "extensoes_todas": lambda: _ext_ids(),
 }
 
 
@@ -2891,6 +3099,96 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": True, "rede": True,
         "ajuda": "Compila a versão instalada do cosmic-files com os dois itens "
                  "de papel de parede. Baixa o fonte e leva minutos.",
+    },
+    "extensao_instalar": {
+        "rotulo": "Instalar a extensão",
+        "grupo": "Extensões",
+        "natureza": "instalar",
+        "argv": [EXT_GESTO, "instalar", "@ARG@"], "arg": "extensoes_da_casa",
+        "escreve": True, "sudo": False, "confirma": False, "rede": True,
+        "oculta": True,
+        "ajuda": "Compila o applet da casa no pino e o instala na sua casa. A configuração dele fica.",
+    },
+    "extensao_instalar_repo": {
+        "rotulo": "Instalar a extensão do repositório",
+        "grupo": "Extensões",
+        "natureza": "instalar",
+        "argv": [EXT_GESTO, "instalar", "@ARG@"], "arg": "extensoes_do_usuario",
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Baixa o repositório que você adicionou, compila e instala. Só roda por gesto seu.",
+    },
+    "extensao_atualizar": {
+        "rotulo": "Atualizar a extensão",
+        "grupo": "Extensões",
+        "natureza": "instalar",
+        "argv": [EXT_GESTO, "atualizar", "@ARG@"], "arg": "extensoes_da_casa",
+        "escreve": True, "sudo": False, "confirma": False, "rede": True,
+        "oculta": True,
+        "ajuda": "Compila o commit que o MeowSystem pinou para esta extensão.",
+    },
+    "extensao_atualizar_repo": {
+        "rotulo": "Atualizar a extensão do repositório",
+        "grupo": "Extensões",
+        "natureza": "instalar",
+        "argv": [EXT_GESTO, "atualizar", "@ARG@"], "arg": "extensoes_do_usuario",
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Lê o commit mais novo do repositório que você adicionou, compila e instala.",
+    },
+    "extensao_refazer": {
+        "rotulo": "Refazer a extensão",
+        "grupo": "Extensões",
+        "natureza": "instalar",
+        "argv": [EXT_GESTO, "refazer", "@ARG@"], "arg": "extensoes_todas",
+        "escreve": True, "sudo": False, "confirma": False, "rede": True,
+        "oculta": True,
+        "ajuda": "Compila de novo, ignorando o que já estava pronto.",
+    },
+    "extensao_remover": {
+        "rotulo": "Remover a extensão",
+        "grupo": "Extensões",
+        "natureza": "tirar",
+        "argv": [EXT_GESTO, "remover", "@ARG@"], "arg": "extensoes_todas",
+        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
+        "oculta": True,
+        "ajuda": "Tira o binário, o atalho e a árvore de build. A configuração dela fica.",
+    },
+    "extensao_por_no_painel": {
+        "rotulo": "Pôr no painel",
+        "grupo": "Extensões",
+        "natureza": "instalar",
+        "argv": [EXT_GESTO, "por", "@ARG@"], "arg": "extensoes_todas",
+        "escreve": True, "sudo": False, "confirma": False,
+        "oculta": True,
+        "ajuda": "Acrescenta o applet ao fim da barra de cima. A ordem dos outros não muda.",
+    },
+    "extensao_trocar": {
+        "rotulo": "Trocar pelo applet novo",
+        "grupo": "Extensões",
+        "natureza": "instalar",
+        "argv": [EXT_GESTO, "trocar", "@ARG@"], "arg": "extensoes_todas",
+        "escreve": True, "sudo": False, "confirma": False,
+        "oculta": True,
+        "ajuda": "Põe o applet novo na posição do antigo, na barra.",
+    },
+    "builds_refazer_tudo": {
+        "rotulo": "Refazer os builds",
+        "grupo": "Extensões",
+        "natureza": "instalar",
+        "argv": [EXT_GESTO, "refazer-tudo"],
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Refaz o compositor, o menu do Arquivos e cada applet instalado.",
+    },
+    "build_compositor": {
+        "rotulo": "Refazer o compositor",
+        "grupo": "Extensões",
+        "natureza": "instalar",
+        "argv": _meow("compositor"),
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "ajuda": "Baixa o fonte da versão instalada do cosmic-comp, aplica os remendos e compila.",
     },
     "apps": {
         "rotulo": "Programas vestidos",
@@ -4561,6 +4859,14 @@ class Manipulador(BaseHTTPRequestHandler):
             corpo = self._logo_do_painel()
             if corpo is None:
                 return self._recusar(404, "a logo autoral não está no acervo")
+            return self._responder(corpo, tipo=TIPOS[".svg"])
+
+        if caminho == "/extensao-icone":
+            if not self._token_confere(consulta):
+                return self._recusar(403, "token de sessão ausente ou errado")
+            corpo = _ext_icone(consulta.get("id", [""])[0])
+            if corpo is None:
+                return self._recusar(404, "não achei")
             return self._responder(corpo, tipo=TIPOS[".svg"])
 
         if caminho == "/gato.svg":
@@ -6719,6 +7025,9 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/esquema":
             return self._json(self._dados_esquema())
 
+        if caminho == "/api/extensoes":
+            return self._json(_ext_dados())
+
         if caminho == "/api/pendencias":
             return self._json({"pendencias": pendencias()})
 
@@ -7240,6 +7549,32 @@ class Manipulador(BaseHTTPRequestHandler):
         }
 
     def _api_post(self, caminho, corpo):
+        if caminho == "/api/extensao-ler":
+            dados, codigo = _ext_ler(str(corpo.get("url", "")).strip())
+            return self._json(dados, codigo)
+
+        if caminho == "/api/extensao-adicionar":
+            ident = str(corpo.get("id", ""))
+            if not RE_ID_EXT.match(ident):
+                return self._json({"erro": "nome de extensão inválido"}, 400)
+            rc, saida = _ext_gesto("adicionar", ident)
+            if rc != 0:
+                return self._json({"erro": _ext_queixa(saida)}, 400)
+            return self._json({"id": ident})
+
+        if caminho == "/api/extensao-manter":
+            ident = str(corpo.get("id", ""))
+            if ident not in _ext_ids():
+                return self._json({"erro": "extensão desconhecida"}, 400)
+            pasta = os.path.join(ESTADO, "extensoes")
+            try:
+                os.makedirs(pasta, exist_ok=True)
+                with open(os.path.join(pasta, "mantem"), "a", encoding="utf-8") as fh:
+                    fh.write(ident + "\n")
+            except OSError as erro:
+                return self._json({"erro": str(erro)}, 500)
+            return self._json({"id": ident})
+
         if caminho == "/api/definir":
             chave = str(corpo.get("chave", ""))
             valor = str(corpo.get("valor", ""))
