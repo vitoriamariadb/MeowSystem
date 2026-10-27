@@ -9,6 +9,14 @@
 - Fechadas: P111 (85/88, vermelhos só os aceitos + README, que o merge regenera) e P110 (9 commits; `todos.sh`
   limpo não rodou depois dos dois consertos finais, a integração roda). Para a conferência A: a P110 afrouxou o
   `tests/app-uso-real.py` (ignora o que rola por baixo das abas fixas): conferir se não esconde cobertura real.
+- 27/10 ~03h: P110–P114 fechadas e juntas em `integracao/qa-final` (worktree `../MeowSystem-integracao`). Conflitos
+  resolvidos pelo coordenador: a ficha de desenho do `oficina.js` ficou a da P112 (a da maquete); os `<link>`
+  e os `<style>` do standalone somam os cinco CSS; portas com os nomes da P111 + Extensões da P114;
+  pendência `leitura-applet` virou `extensao-leitura`. Suíte da integração: 92/100. Consertados depois:
+  `app.sh` 12c e `p113-navegador.py`. Vermelhos que ficam para a conferência: `app-layout.py` (a ficha da
+  P110 contra a da P112: «Usar» no rodapé e fora da grade), `app-completo.py` (`criar/sons`: «pergunta» e
+  «resultado» abertos juntos), `extensoes-pagina.py` (espera `.abas-ajustes`, que a P110 tornou global).
+  `readme.sh` se regenera no merge. P109 ainda na suíte final; entra antes dos conferentes.
 - Depois: juntar as seis em `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev →
   remover as worktrees da leva (b0, maquete-a, maquete-b, p109..p114).
 - Pedido de quem usa (27/10): ao fim de TUDO (merge no dev e worktrees removidas), desligar o PC sem
