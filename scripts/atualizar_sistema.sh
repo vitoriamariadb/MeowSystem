@@ -110,9 +110,8 @@ cmd_aplicar() {
   case "$rcd" in
     0) meow_ok "a atualização não desfez nada — o MeowSystem sobreviveu inteiro" ;;
     *) meow_muda "há etapa fora do lugar depois da atualização"
-       meow_info "  conserte com:  meow doctor --consertar"
        local onde; onde="$(meow_onde_no_painel doctor_consertar)"
-       [ -n "$onde" ] && meow_info "  (ou, no painel, $onde)"
+       meow_info "  o doctor refaz o que ficou fora do lugar na próxima passada${onde:+; no painel, $onde}"
        rc="$MEOW_DIVERGENTE" ;;
   esac
 

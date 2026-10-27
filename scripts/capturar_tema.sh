@@ -42,7 +42,7 @@ fi
 DESTINO="$(python3 "$RAIZ/scripts/pack.py" captura-destino "$NOME" 2>/dev/null)" || DESTINO=""
 if [ -z "$DESTINO" ]; then
   echo "ERRO: não sei onde gravar a captura '$NOME' — o pack ativo não resolve." >&2
-  echo "      confira com: meow pack listar" >&2
+  echo "      os packs instalados aparecem no painel, em Tema" >&2
   exit 3
 fi
 
