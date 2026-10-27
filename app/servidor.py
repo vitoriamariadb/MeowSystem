@@ -7092,6 +7092,8 @@ class Manipulador(BaseHTTPRequestHandler):
             "exportado_em": time.strftime("%d/%m/%Y às %H:%M"),
             "maquina": {"flavor": flavor, "accent": valores.get("ACCENT") or "mauve",
                         "modo": valores.get("MODO") or ""},
+            '<style id="folha-do-tema">\n%s\n</style>' % ler("tema.css"),
+            '<style id="folha-do-manter">\n%s\n</style>' % ler("manter.css"),
             "amostra": {"imagens": len(imagens), "bytes": gasto},
         }
         outras = []

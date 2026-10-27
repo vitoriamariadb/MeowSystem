@@ -1,0 +1,1 @@
+.previa .papel { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(45deg, color-mix(in oklab, var(--crust) 30%, transparent) 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, color-mix(in oklab, var(--text) 10%, transparent) 0 1px, transparent 1px 5px); mix-blend-mode: overlay; }
