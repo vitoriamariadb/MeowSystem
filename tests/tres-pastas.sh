@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# tres-pastas.sh — o formato de pack com três pastas de ícone (P88, decisão 14).
-#
-# NADA SAI DA CASA DE BRINQUEDO: HOME, XDG e MEOW_PACKS temporários, sem
-# barramento da sessão, e falsos que recusam escrita na frente do PATH.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -25,9 +21,6 @@ amb() {
 }
 pack_py() { amb python3 "$RAIZ/scripts/pack.py" "$@"; }
 
-# --- 1. os três packs do repositório ----------------------------------------
-# [P96, 23/10/2026: dois packs, `meowsystem` (o padrão, com o Catppuccin dentro) e `dracula`; as
-#  três pastas são planas.]
 for id in meowsystem dracula; do
   saida="$(pack_py validar "$id" 2>&1)"; rc=$?
   dirs="$(find "$RAIZ/packs/$id/icones" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | paste -sd,)"
@@ -47,8 +40,6 @@ sobra="$(git -C "$RAIZ" ls-files assets/icones 2>/dev/null | grep '\.svg$' | gre
   && ok "assets/icones/ não guarda mais desenho do motor (só a prévia das folhas e os originais de fábrica)" \
   || falha "sobrou desenho do motor em assets/icones/" "$(head <<<"$sobra")"
 
-# O PACK PADRÃO SE VESTE (P96): ele é o meowsystem, com a paleta do Catppuccin, e o nome de antes
-#   ainda o acha — um conf ou uma herança escritos antes de 23/10 não perdem o pack.
 saida="$(pack_py caminho meowsystem id 2>&1)"; rc=$?
 [ "$rc" = "0" ] && ok "a porta do motor aceita o meowsystem, que é o pack padrão" \
   || falha "o pack padrão não passa pela porta do motor (rc=$rc)" "$saida"
@@ -87,18 +78,11 @@ saida="$(pack_py caminho quarta id 2>&1)"; rc=$?
   || falha "a quarta pasta tirou o pack do motor (rc=$rc)" "$saida"
 rm -rf "$T/packs/quarta"
 
-# --- 4. o .meowpack de antes chega no formato novo ---------------------------
-#   O pack de antes é o Dracula de antes da P88: as pastas `autorais/`,
-#   `mimetypes/`, `pastas/` e `feitos-a-mao/` soltas em icones/, e formato 1.
-#   O `.meowpack` é zstd; sem ele, esta sonda é dita pulada, como no
-#   tests/pack-malicioso.sh.
 if ! command -v zstd >/dev/null 2>&1; then
   printf 'pulado: sem zstd, a sonda do .meowpack de formato 1\n'
 else
 V="$T/velhos"; mkdir -p "$V"
 cp -r "$RAIZ/packs/dracula" "$V/velho"
-# O pack de antes (formato 1): os autorais em icones/autorais/, as pastas em icones/pastas/ e um
-# feito à mão em icones/feitos-a-mao/ — montado a partir do de hoje, que é plano.
 ( cd "$V/velho/icones" && mkdir -p autorais pastas feitos-a-mao \
   && for f in apps/*-dracula.svg apps/*-alucard.svg; do mv "$f" autorais/; done \
   && mv sistema/*.svg pastas/ && mv biblioteca/alien.svg feitos-a-mao/ && rmdir sistema )
@@ -154,7 +138,6 @@ saida="$(pack_py sincronizar velho 2>&1)"; rc=$?
   || falha "o PROCEDENCIA.md do convertido ficou com o caminho de antes" "$(printf '%s\n' "$saida" | grep 'não existe' | head -3)"
 fi
 
-# --- 5. o caminho de antes, no estado de quem usa ---------------------------
 for par in "assets/icones/resgatados/luna.svg:packs/dracula/icones/apps/luna.svg" \
            "assets/icones/arcticons-apps/firefox.svg:packs/meowsystem/icones/apps/firefox.svg" \
            "packs/dracula/icones/feitos-a-mao/opera.svg:$(awk -F'\t' '$1 == "packs/dracula/icones/biblioteca/feitos-a-mao/opera.svg" {print $2}' "$RAIZ/packs/CAMINHOS-DE-ANTES.tsv")" \
@@ -171,7 +154,6 @@ saida="$(amb env MEOW_ICONES_ESCOLHAS="$T/escolhas.map" python3 "$RAIZ/scripts/p
   && ok "a escolha do painel gravada com o caminho de antes continua valendo" \
   || falha "a escolha do painel com o caminho de antes foi perdida" "$saida"
 
-# --- 6. os futuros: o `novo` e o exemplo do docs/ ---------------------------
 saida="$(pack_py novo futuro 2>&1)"; rc=$?
 dirs="$(find "$T/packs/futuro/icones" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort | paste -sd,)"
 [ "$rc" = "0" ] && [ "$dirs" = "apps,biblioteca,sistema" ] && grep -q '"formato": 2' "$T/packs/futuro/pack.json" \
@@ -185,13 +167,9 @@ dirs="$(find "$T/packs/pack-minimo/icones" -mindepth 1 -maxdepth 1 -type d -prin
   && ok "o pack mínimo do docs/ valida, com um desenho em cada uma das três pastas" \
   || falha "o pack mínimo do docs/ não valida (rc=$rc)" "$saida"
 
-# --- 7. o desenho do pack vence o traço em todo tamanho (decisão 16, 7) ------
-#   Dezessete nomes estão no mapa do Dracula e num mapa de traço do pack-base.
-#   Com o Dracula no ar, o tema tem o desenho do pack em `scalable/apps` e
-#   nenhum traço em `48x48/apps` para eles; o traço que quem usa escolheu fica.
 C7="$T/casa7"; TEMA7="$C7/.local/share/icons/MeowSystem-Icons"
 mkdir -p "$TEMA7/scalable/apps" "$C7/.config/meow"
-icones7() {   # icones7 <pack> <flavor> [traço de quem usa]
+icones7() {
   env -i PATH="$FALSO:$PATH" HOME="$C7" USER="${USER:-t}" LANG=C.UTF-8 NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
     XDG_DATA_HOME="$T/xdg7" MEOW_ESTADO="$C7/estado" PACK="$1" FLAVOR="$2" ICONES_DRACULA="${DRAC7:-sim}" \
     NOME_TEMA_ICONES=MeowSystem-Icons ICONES_TEMA=MeowSystem-Icons \
@@ -214,7 +192,6 @@ icones7 dracula dracula "$C7/traco.map"
 [ -f "$TEMA7/48x48/apps/org.kde.krita.svg" ] && [ ! -e "$TEMA7/48x48/apps/com.spotify.Client.svg" ] \
   && ok "o traço que quem usa escolheu fica, e só ele" \
   || falha "a escolha de traço de quem usa não ficou, ou levou outros junto"
-# A camada do Dracula desligada tira o desenho do scalable: o traço tem de voltar.
 DRAC7=nao icones7 dracula dracula
 [ -f "$TEMA7/48x48/apps/steam.svg" ] && [ -f "$TEMA7/48x48/apps/org.kde.krita.svg" ] \
   && [ ! -e "$TEMA7/scalable/apps/steam.svg" ] \
@@ -225,10 +202,6 @@ icones7 meowsystem mocha
   && ok "com o Catppuccin no ar (sem desenho de pack para eles), o traço volta" \
   || falha "sem desenho de pack, o traço não voltou"
 
-# --- 8. o mapa dos resgatados é dado de pack (a regra da P78) ---------------
-#   Desde a P88 o mapa e a pasta dos resgatados vêm do pack, que pode ser de
-#   terceiro: um nome com `../` não escreve fora do tema, e um desenho que é
-#   link para fora não é lido.
 cp -r "$RAIZ/packs/dracula" "$T/packs/malresg"
 python3 - "$T/packs/malresg/pack.json" <<'PY'
 import json, sys
@@ -254,8 +227,6 @@ else
   falha "o mapa dos resgatados alcançou fora do pack (vazou=$vazou, fontes=$fontes)" "$saida"
 fi
 
-# A `apps/` plana do MeowSystem guarda o convertido junto do traço e dos autorais: o conferir dos
-# convertidos não conta os outros como órfãos (o container de 23/10 dizia «52 a remover»).
 mkdir -p "$T/casa-conv"
 saida="$(env -i PATH="$PATH" HOME="$T/casa-conv" NO_COLOR=1 bash "$RAIZ/scripts/construir_convertidos.sh" --conferir 2>&1)"
 if [[ "$saida" == *"convertido(s) em dia"* ]] && [[ "$saida" != *"a remover"* ]]; then

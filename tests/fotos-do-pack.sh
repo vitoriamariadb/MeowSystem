@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# fotos-do-pack.sh — as fotos que um pack traz em `wallpapers/` entram no
-# acervo SEM REDE, com o nome que têm, e a origem do pack (repo, curadoria) não
-# é lida (P102: um PC virgem põe a coleção no ar a partir do clone).
-#
-# Pack, HOME e estado de brinquedo; `curl`, `sudo` e `pkill` falsos que
-# recusam (o `curl` anota quem o chamou). Nada sai do `mktemp -d`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -23,7 +17,6 @@ done
 printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> "%s/rede.log"\nexit 7\n' "$T" > "$FALSO/curl"
 chmod 755 "$FALSO/curl"
 
-# --- as fotos do pack, sem rede --------------------------------------------
 PACKS="$T/packs"; mkdir -p "$PACKS"
 cp -r "$RAIZ/docs/pack-minimo" "$PACKS/fotos"
 python3 - "$PACKS/fotos/pack.json" <<'PY'
@@ -80,7 +73,6 @@ else
   falha "a segunda semeadura das fotos escreveu ou foi à rede (rc=$rc2)" "$s2"
 fi
 
-# Sem fotos no pack, a origem dele continua sendo o caminho (aqui, a rede falsa).
 mkdir -p "$PACKS/sem" && cp -r "$PACKS/fotos/." "$PACKS/sem/" && rm -rf "$PACKS/sem/wallpapers"
 python3 - "$PACKS/sem/pack.json" <<'PY'
 import json, sys

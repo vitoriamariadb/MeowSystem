@@ -1,28 +1,5 @@
 name: testes
 
-# A SUÍTE PASSA A SER PERGUNTADA POR ALGUÉM QUE NÃO ESQUECE.
-#
-# Até 21/09/2026 o único workflow do repositório era o `anonymity-check.yml`,
-# que confere identidade de commit. Nada executava `tests/`. O custo disso está
-# medido: o `tests/numeros.sh` ficou três dias em `rc=1` apontando 14 números
-# errados, e o `README.md` foi editado no dia seguinte sem que ninguém notasse.
-#
-# POR QUE SÓ O SUBCONJUNTO PORTÁTIL
-#   Metade da suíte só responde a verdade na máquina dela: precisa do Papirus
-#   instalado, do `rsvg-convert`, do Playwright com Chromium, ou de subir o
-#   painel. Num runner do GitHub esses quatro sairiam "pulado" — e um placar
-#   cheio de pulado com cara de verde é pior que não ter CI nenhum. O
-#   `tests/todos.sh` separa os dois conjuntos, e a tela dele sempre diz qual
-#   rodou. Os quatro de máquina continuam sendo `./tests/todos.sh --maquina`,
-#   na bancada, antes de fechar sprint.
-#
-# O `MEOW_IGNORA_DESKTOP=1` NÃO ESTÁ AQUI DE PROPÓSITO
-#   O pré-voo do instalador recusa máquina sem COSMIC, então ele é obrigatório
-#   — mas quem tem de defini-lo é cada teste, e não este arquivo: todos eles
-#   chamam o instalador debaixo de `env -i`, que apaga o ambiente inteiro antes
-#   da chamada. Uma variável posta aqui não chegaria lá, e a linha daria a falsa
-#   impressão de que o assunto está resolvido no lugar errado.
-
 on:
   push:
     branches: [master, dev]
@@ -35,20 +12,12 @@ permissions:
 jobs:
   suite-portatil:
     runs-on: ubuntu-latest
-    # O `convergencia.sh` roda o instalador três vezes num HOME de brinquedo e
-    # leva ~55s sozinho. O teto existe para o job morrer falando, e não pendurar.
     timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Dependência do tests/estilo.sh
-        # Sem `numpy` o `estilo.sh` sai 0 dizendo "pulado: falta numpy". O
-        # runner conta isso como pulado e não como verde — mas o certo é ele
-        # rodar de verdade: a régua da caneta é derivada do acervo que está
-        # versionado aqui, então ela é a mesma no CI e na bancada dela.
-        # O projeto continua sendo "python3 só stdlib" para quem INSTALA; este
-        # apt é do runner de teste, e não entra em máquina de usuária nenhuma.
         run: sudo apt-get update && sudo apt-get install -y python3-numpy
 
       - name: Rodar a suíte portátil

@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# baixar_upstream.sh — traz o que vem de terceiros, sempre em commit PINADO.
-#
-# Um upstream que muda sozinho transforma "rodei o instalador" em "rodei o
-# instalador num dia em que o repositório estava de um jeito". O
-# `catppuccin/papirus-folders` está parado há dois anos e não tem UMA tag — só
-# dá para prender pelo SHA.
-#
-# Nada disto é versionado (ver .gitignore): são megabytes reproduzíveis.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,7 +7,6 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 DESTINO="$MEOW_CACHE/upstream"
 
-# repositório                                   pasta            commit pinado
 FONTES=(
   "https://github.com/catppuccin/papirus-folders.git|papirus-folders|f83671d17ea67e335b34f8028a7e6d78bca735d7"
 )
@@ -45,20 +36,6 @@ for linha in "${FONTES[@]}"; do
   fi
 
   rm -rf "$alvo"
-  # --depth grande o bastante para alcançar o commit pinado sem baixar a
-  # história inteira. Se o commit for antigo demais, o fetch explícito resolve.
-  # SEM REDE É FALTA DE DEPENDÊNCIA, NÃO ERRO — 21/09/2026
-  #   Esta linha devolvia 2 e o instalador imprimia "falhou: upstream" numa
-  #   máquina que só estava offline. As outras etapas que baixam coisa já
-  #   tratavam o mesmo caso como 3: `midia_build.sh:144-146` ("não consegui
-  #   clonar $URL (sem rede?) — fica para o próximo ciclo") e `cursor.sh:376-384`
-  #   ("nada foi instalado — o cursor continua exatamente como estava"). Dois
-  #   comportamentos para a mesma causa faziam a primeira instalação de quem não
-  #   tem rede terminar em vermelho com `return 2`, quando o certo é terminar em
-  #   0 com a etapa em "pulados".
-  #   O `checkout` logo abaixo CONTINUA em 2, de propósito: ali o clone já veio,
-  #   então não é a rede — é o commit pinado que não existe mais, e isso é
-  #   problema do repositório, não da máquina de quem instala.
   if ! git clone -q --depth 50 "$url" "$alvo" 2>/dev/null; then
     meow_aviso "não consegui clonar $url (sem rede?) — fica para o próximo ciclo"
     meow_info "  as pastas coloridas do Papirus ficam como estão até haver rede"

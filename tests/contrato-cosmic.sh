@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# contrato-cosmic.sh — os escritores seguem o esquema do pacote? HOME
-# e COSMIC de brinquedo; nada de sudo nem de sessão.
-# HOME e COSMIC de brinquedo; nada de sudo nem de sessão.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -41,9 +38,6 @@ grep -q '0.8' "$C/com.system76.CosmicPanel.Panel/v2/opacity" && ok "vidro.sh: op
 FORMA_RAIO_PAINEL=8 FORMA_MARGEM_PAINEL=4 "$RAIZ/scripts/forma.sh" aplicar >/dev/null 2>&1
 [ -f "$C/com.system76.CosmicPanel.Panel/v2/expand_to_edges" ] && ok "forma.sh: expand_to_edges no v2" || falha "forma.sh não gravou no v2"
 
-# OS OUTROS TRÊS. O contrato cobria 5 dos 8 escritores: faltavam o
-# `areas.sh`, o `wallpaper.sh` e a fronteira do `aplicar_tema.sh`. E o
-# `janelas.sh estado` lia o `gaps` do `v1` cravado.
 mkdir -p "$T/bin"
 printf '#!/bin/sh\nprintf "eDP-1 (enabled)\\n  Xwayland primary: true\\n"\n' > "$T/bin/cosmic-randr"
 chmod 755 "$T/bin/cosmic-randr"
@@ -81,13 +75,11 @@ mortas="$(find "$C" -mindepth 2 -maxdepth 2 -type d -name v1 | grep -v 'CosmicTh
 [ -z "$mortas" ] && ok "nenhuma pasta v1 nasceu" || falha "pasta v1 nasceu: $mortas"
 
 echo "== o pré-voo da instalação: a lista inteira, contra o contrato"
-preflight_esquema() { # $@ = os v* do tema no COSMIC de brinquedo
+preflight_esquema() {
   local d="$T/pf-$$-$RANDOM/.config/cosmic/com.system76.CosmicTheme.Dark" x
   for x in "$@"; do mkdir -p "$d/$x"; done
   HOME="${d%/.config/*}" bash -c "MEOW_RAIZ='$RAIZ'; . '$RAIZ/lib/comum.sh'; . '$RAIZ/lib/preflight.sh'; meow_preflight" 2>&1 | grep 'esquema de tema'
 }
-# Saída numa variável antes do `grep -q`: com `pipefail`, o `grep -q` que
-# acha e sai cedo devolve SIGPIPE a quem escreve, e o pipe inteiro "falha".
 s="$(preflight_esquema v1 v2)";    [[ "$s" == *'cobrem v1 v2'* ]]   && ok "v1 v2: verde" || falha "v1 v2 não saiu verde: $s"
 s="$(preflight_esquema v1)";       [[ "$s" == *'anterior ao v2'* ]] && ok "v1: conhecido" || falha "v1 não saiu conhecido: $s"
 s="$(preflight_esquema v1 v2 v3)"; [[ "$s" == *desconhecido* ]]     && ok "v1 v2 v3: aviso (o furo fechou)" || falha "v1 v2 v3 ainda passa: $s"

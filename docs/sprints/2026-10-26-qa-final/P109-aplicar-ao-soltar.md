@@ -16,8 +16,7 @@ de mudanças continua, só para desfazer. «Instalar tudo» deixa de sair 2.
   `install.sh` de não escolher etapa: sobrescreva essa regra no lugar.
 - Chave sem aplicador próprio: grava e roda o instalador em segundo plano, sem janela; o resultado
   vira pendência se falhar.
-- Decisões 10 e 18 de `docs/sprints/2026-10-09-uso-real/02-decisoes.md` (ou do registro enxuto que o
-  B0 criou): o «Aplicar» e o «Ver sem mudar» saem dos ajustes; «Restaurar ao padrão» grava na hora;
+- Decisões 10 e 18 de `docs/DECISOES.md`: o «Aplicar» e o «Ver sem mudar» saem dos ajustes; «Restaurar ao padrão» grava na hora;
   para AÇÕES (botões de Manter e Extensões) a janela de resultado continua. Troque as linhas e os
   testes no mesmo commit, citando o sim de 26/10.
 

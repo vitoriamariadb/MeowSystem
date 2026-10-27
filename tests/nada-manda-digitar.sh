@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-# nada-manda-digitar.sh — saída do MeowSystem não manda a pessoa digitar o
-# conserto.
-#
-#   1. Nenhuma mensagem (`meow_info`, `meow_pula`, `meow_aviso`, `meow_muda`,
-#      `meow_ok`, `meow_erro`) de `scripts/`, `lib/`, `bin/meow` ou do
-#      `install.sh` carrega as quatro receitas.
-#   1c. Nem o terminal: nenhuma saída diz «rode …» (P90, item 10).
-#   2. As pendências novas têm botão no painel: `instalar-com-root` roda o
-#      «Instalar tudo», e `leitura-applet` o «Consertar o que estiver fora».
-#   3. Os dois scripts de ícone relêem a tela pela porta única, e não dizem
-#      `pkill`.
-#   5 a 7. A linha «resolve:» de uma pendência diz o botão, e
-#      não o comando; o papel de parede devolvido vira pendência com o botão
-#      que autoriza aquela imagem; e sem cargo o conserto instala o rust.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ACHADOS=0
@@ -30,8 +16,6 @@ else
 fi
 
 printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
-# Isenta, pelo nome: a linha de uso de um verbo (`uso: meow …`, que responde a
-# quem já está digitando).
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
 FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com '|acrescente .*à mão|tire a linha à mão|faça uma vez, à mão)"
 achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
@@ -42,9 +26,6 @@ else
   falha "mensagens que ainda mandam digitar" "$achados"
 fi
 
-# E o applet de mídia, sem cargo, vai buscar o rust pela mesma regra do de
-# leitura (`meow_garantir_cargo`), em vez de pular dizendo «instale com
-# rustup». Um `curl` falso anota e recusa: a rede não sai do teste.
 CASA1B="$(mktemp -d)" || exit 2
 mkdir -p "$CASA1B/falso"
 for c in sudo pkexec su pkill killall notify-send systemd-run loginctl apt apt-get; do
@@ -64,9 +45,6 @@ fi
 rm -rf "$CASA1B"
 
 printf '\n--- 1c. o terminal também não manda rodar (P90, item 10) ---\n'
-#   Nenhuma linha de código fora de comentário diz «rode …» a quem lê: a
-#   mensagem diz o que foi feito, o estado, ou o botão que faz. A linha de uso
-#   de um verbo (`uso: …`) responde a quem já está digitando, e fica.
 achados="$(cd "$RAIZ" && grep -nE '\b[Rr]ode(-o)?\b' scripts/*.sh scripts/*.py lib/*.sh bin/meow install.sh app/run.sh \
              scripts/temas-de-apps/*/manifesto.sh 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' \
              | grep -vE 'uso: ')"
@@ -105,15 +83,13 @@ else
 fi
 
 printf '\n--- 4. a pendência do applet nasce sem compilar e sai sem applet pedido ---\n'
-#   [Conferência da P79: com `LEITURA_APPLET="nao"` a pendência de uma passagem
-#    anterior ficava na Início para sempre, pedindo um applet que ninguém quer.]
 CASA="$(mktemp -d)" || exit 2
 trap 'rm -rf "$CASA"' EXIT
 FALSO="$CASA/falso"; mkdir -p "$FALSO"
 for c in sudo pkexec su pkill killall notify-send systemd-run loginctl apt apt-get cargo; do
   printf '#!/bin/sh\nexit 1\n' > "$FALSO/$c"; chmod 755 "$FALSO/$c"
 done
-applet() {  # <sim|nao>
+applet() {
   env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LEITURA_APPLET="$1" \
     "$RAIZ/scripts/leitura_build.sh" --aplicar > /dev/null 2>&1
 }
@@ -125,9 +101,6 @@ if grep -qx 'leitura-applet' <<< "$com" && ! grep -qx 'leitura-applet' <<< "$sem
 else
   falha "a pendência do applet não nasce ou não sai" "com: $com / sem: $sem"
 fi
-
-# --- P80, item 8: os três que sobraram da P79 -----------------------------------
-#   (docs/sprints/2026-10-09-uso-real/04-integracao-onda-2.md, «Aberto», item 3)
 
 printf '\n--- 5. a pendência aponta o botão que resolve, e não o comando ---\n'
 saida="$(env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
@@ -165,9 +138,6 @@ else
 fi
 
 printf '\n--- 6b. «Deixar assim» tira o cartão sem autorizar a imagem (P82, item 3; decisão 13) ---\n'
-#   [15/10/2026: a pendência só saía pelo «Era escolha minha», que autoriza a
-#    imagem. Se a devolução estava certa, o cartão ficava na Início até alguém
-#    autorizar a imagem errada para tirá-lo.]
 mkdir -p "$CASA/.config/meow"; cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
 antes_conf="$(sha256sum < "$CASA/.config/meow/meow.conf")"
 pendencia_e_botao() {
@@ -199,8 +169,6 @@ printf '\n--- 7. sem cargo, o conserto instala o rust (e não manda instalar) --
 achados="$(grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*instale com rustup' "$RAIZ/scripts/leitura_build.sh")"
 [ -z "$achados" ] && ok "o leitura_build.sh não manda «instale com rustup»" \
   || falha "o leitura_build.sh manda instalar o rust à mão" "$achados"
-# Os falsos de cima, menos o `cargo` (é a falta dele que este caso monta), e um
-# `curl` que anota e recusa: a rede não sai do teste.
 SEM_CARGO="$CASA/sem-cargo"; mkdir -p "$SEM_CARGO"
 cp -a "$FALSO"/. "$SEM_CARGO"/ && rm -f "$SEM_CARGO/cargo"
 REDE="$CASA/rede.log"; : > "$REDE"
@@ -218,14 +186,6 @@ else
 fi
 
 printf '\n--- 8. as linhas dos builds dizem o estado, sem comando (P81) ---\n'
-#   [15/10/2026: a linha `patches` do doctor listava «meow compositor --seco»,
-#    «meow compositor ativar»…; a última linha do log do pós-apt real era «ou
-#    agora, com: meow painel reciclar»; o applet de mídia e o de leitura,
-#    quando o cargo falhava, mandavam colar a linha do cargo. Quem conserta é
-#    o `--consertar` (a função única dos builds); a linha diz o estado.]
-#   Só os verbos que o doctor e os gatilhos rodam: o `conferir` e o
-#   `compilar` do compositor. O `reverter`, o `validar` e o `aplicar` são
-#   verbos de quem digita, e nomear o vizinho ali é a resposta pedida.
 RECEITA='(meow compositor|meow painel reciclar|rode:|veja o motivo|CARGO_TARGET_DIR=|MIDIA_COMPILAR=1|instale com rustup)'
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|_cp_diz [a-z]+) '
 achados="$(

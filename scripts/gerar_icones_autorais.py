@@ -1,104 +1,4 @@
 #!/usr/bin/env python3
-"""Desenha os ícones autorais do pack, a partir da paleta dele, por papel.
-
-DE ONDE VEM CADA DESENHO — 23/09/2026, sprint P26
-    Duas fontes, e as duas nascem por papel:
-
-    · as DECLARAÇÕES do pack — cada `icones/autorais/<nome>.json` é um desenho
-      (papéis e o SVG com lacunas `{papel}`), lido e conferido pelo
-      `scripts/pack.py`, que é o único que entende o formato de pack. O pack
-      alcança as dele e as que herda: o Dracula gera o FogStripper e o Hefesto
-      a partir das declarações do Catppuccin, na paleta do Dracula;
-    · os nove desenhos de `DESENHOS`, abaixo — o painel do MeowSystem e os oito
-      `com.system76.Cosmic*` —, que continuam funções aqui.
-
-    ATÉ ESTA DATA O CABEÇALHO DIZIA "os ícones dos DOIS aplicativos da Vitória:
-    FogStripper, Hefesto", e o problema estava na frase: um gerador bom, que
-    servia dois aplicativos NOMEADOS NO PYTHON. Um terceiro não entrava sem
-    editar código. Os dois saíram daqui e viraram os dois primeiros `.json` de
-    `packs/catppuccin/icones/autorais/` — e a história de cada desenho foi
-    junto, nos campos `_nota` do arquivo dele: por que o FogStripper é um
-    quadro meio foto, meio xadrez; por que o Hefesto é um controle e não a
-    bigorna; e as razões de contraste do touchpad, que abrem o parágrafo sobre
-    flavor claro logo abaixo. NENHUM BYTE DOS SVG GERADOS MUDOU: o `--conferir`
-    passou nos 44 do Catppuccin e nos 22 do Dracula antes e depois.
-
-    Um nome nas duas fontes é recusa, e alta: dois desenhos para o mesmo
-    arquivo de saída seria o último a escrever vencendo calado.
-
-O DESENHO NASCE DA PALETA — NENHUM HEX É DIGITADO AQUI
-    Mesma regra e mesmo motivo do `gerar_gato.py`: SVG escrito à mão sai fora da
-    paleta sem ninguém notar. Cada forma declara um PAPEL (`sujeito`, `tinta`,
-    `xadrez_a`...) e o papel resolve para um nome Catppuccin. Ou o nome existe na
-    paleta, ou o script morre alto.
-
-OS PAPÉIS SÃO SENSÍVEIS A FLAVOR CLARO, E ISSO NÃO É DETALHE
-    No Mocha `text` é claro e `crust` é quase preto; no Latte os dois se
-    invertem. Descrever o desenho por papel faz o Latte se resolver sozinho — o
-    corpo do controle continua contrastando com o fundo do lançador nos dois.
-    O `touchpad` do Hefesto foi o único que NÃO se resolveu sozinho, e o
-    motivo vale nos DOIS extremos: o accent fica quase invisível contra o
-    `corpo`. As razões de contraste WCAG que mediram isso (1,47 no Latte, 1,40
-    no Mocha, contra o mínimo de 3,0) e o contorno de `tinta` que resolveu os
-    dois flavors de uma vez moram desde 23/09/2026 no `_nota_touchpad` de
-    `packs/catppuccin/icones/autorais/hefesto.json`, ao lado do desenho que
-    elas explicam. A cor que o script usa vem da paleta do PACK ATIVO, e não
-    de um caminho escrito aqui.
-
-OS OITO APLICATIVOS DO PRÓPRIO SISTEMA
-    Arquivos, Terminal, Loja, Configurações, Editor, Monitor, Reprodutor e
-    Captura — os `com.system76.Cosmic*`. Eles eram os únicos aplicativos que ela
-    abre todo dia ainda vestidos de fábrica: os SVGs de `/usr/share/icons/hicolor`
-    são teal e azul-marinho do Pop!_OS (`#00717C`, `#102A4C`, `#49BAC8`), cores
-    que não existem em Catppuccin nenhum. No lançador dela isso lia como um bloco
-    estrangeiro no meio do resto.
-
-    CADA UM TEM SUA COR, E ISSO É DELIBERADO
-    A tentação é pintar os oito no accent dela e chamar de coeso. A 48px o
-    resultado é o oposto: oito manchas mauve do mesmo tamanho, e achar o Terminal
-    vira leitura de legenda. A cor é o que o olho usa para pré-selecionar antes
-    de ler a forma. Então cada um leva uma cor Catppuccin própria, escolhida pela
-    convenção do ramo (terminal verde, mídia rosa, alerta/medição vermelho), e a
-    coesão vem de três outras coisas: a mesma paleta, o mesmo peso de traço
-    (~3px a 48px) e a mesma regra de silhueta cheia sem gradiente.
-
-    A ÚNICA EXCEÇÃO É O GESTOR DE ARQUIVOS, que usa o ACCENT — porque as pastas
-    dentro dele já são `cat-<flavor>-<accent>`, e um ícone azul abrindo uma
-    janela de pastas na cor do acento seria a única incoerência visível do
-    conjunto.
-
-    NENHUM DELES USA GRADIENTE, e o original usava. `linearGradient` a 48px não
-    aparece como volume: aparece como sujeira de compressão. As formas aqui são
-    chapadas, que é como o Papirus (a base de ícones desta máquina) desenha —
-    o conjunto novo tinha de conviver com 27 ícones dele na mesma tela.
-
-    TODOS LEVAM CONTORNO, E ISSO FOI UM ERRO CORRIGIDO NA TELA DELA
-    A primeira versão confiou na cor sozinha. Funcionou enquanto o dock era
-    quase opaco; quando ele foi para `opacity 0.05`, o fundo dos ícones virou o
-    PAPEL DE PAREDE — que gira num carrossel e naquele dia era lilás claro. O
-    Gestor de Arquivos sumiu por completo: medido na captura dela, a pasta mauve
-    era `srgb(203,166,247)` e o dock atrás `srgb(196,159,215)`. Sete pontos de
-    diferença em dois canais.
-
-    Contraste WCAG contra aquele fundo, calculado da própria paleta (mínimo
-    legível para forma grande = 3,0):
-
-        mauve 1,11 · red 1,02 · sapphire 1,20 · lavender 1,26
-        player/pink 1,48 · green 1,52 · teal 1,52 · yellow 1,78
-
-    Os OITO reprovam, e não é coincidência: os accents do Mocha são claros por
-    construção, feitos para viver sobre fundo escuro. Sobre um papel de parede
-    claro não existe accent que se salve. Os dois que ainda liam — Terminal e
-    Monitor — liam pela MOLDURA escura, não pela cor.
-
-    Então a moldura virou regra: todo ícone carrega um contorno de `tinta`
-    (`crust` no escuro, `base` no claro), e é ele que faz a silhueta existir
-    contra qualquer fundo. Os números fecham nos dois flavors — mauve x crust
-    dá 9,23 no Mocha, e mauve x base dá 4,09 no Latte, onde o mauve é escuro e
-    quem clareia é o contorno. A lição já estava escrita no touchpad do
-    Hefesto (hoje no `hefesto.json` do pack); ela só não tinha sido aplicada
-    onde o fundo é variável.
-"""
 from __future__ import annotations
 
 import argparse
@@ -109,85 +9,40 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 RAIZ = Path(__file__).resolve().parent.parent
-# A ordem de precedência inteira mora em `pack.paleta_do_pack_ativo()`.
-import pack  # noqa: E402  — vizinho de arquivo, e o RAIZ acima precede
+import pack  # noqa: E402
 
 PALETA = Path(pack.paleta_do_pack_ativo())
 
-# A paleta já vinha do pack ativo desde a linha acima; só o destino é que
-# continuava cravado, e por isso o Dracula regerava os desenhos dele dentro do
-# acervo do vizinho.
-#
-# O laço lá embaixo sempre soube gerá-los — ele varre `paleta["flavors"]`, e a
-# paleta do Dracula declara os dois — mas ninguém rodava o gerador com a paleta
-# do Dracula porque o destino era o mesmo monte para todo mundo.
 DESTINO = Path(pack.dir_acervo("icones.autorais.desenhos",
                                padrao="icones/apps/"))
 
-# Papel -> (nome Catppuccin em flavor escuro, nome em flavor claro).
-#
-# `foto`, `sol`, `xadrez_a`, `xadrez_b`, `corpo`, `tinta` e `touchpad` eram de
-# dois desenhos só, e foram com eles para o `papeis` de cada `.json` em
-# `packs/catppuccin/icones/autorais/`, com os mesmos nomes de cor.
 PAPEIS = {
-    # Os oito do sistema
-    "vazio":    ("crust", "base"),          # a tela do terminal e do monitor
-    "borda":    ("surface1", "overlay0"),   # contorno que separa do fundo
-    "trilho":   ("surface2", "surface2"),   # o sulco dos deslizadores
-    # O CONTORNO NÃO É O MESMO QUE `tinta`, e a diferença é o Latte. `tinta`
-    # inverte (crust/base) porque no Hefesto ela é a MARCA impressa no corpo do
-    # controle, e ali inverter é certo.
-    "contorno": ("crust", "text"),          # a silhueta, contra qualquer fundo
-    # A FOLHA NÃO INVERTE, e essa foi a única coisa que o Latte reprovou. Uma
-    # FOLHA, não: no Latte ela virava #4C4F69 e o ícone lia como quadro-negro,
-    # não como documento.
-    "folha":    ("text", "base"),           # a página do editor
+    "vazio":    ("crust", "base"),
+    "borda":    ("surface1", "overlay0"),
+    "trilho":   ("surface2", "surface2"),
+    "contorno": ("crust", "text"),
+    "folha":    ("text", "base"),
 }
-# `sujeito` usa o ACCENT do tema — vem por parâmetro. Numa declaração, o mesmo
-# acento entra pelo marcador `<accent>` no papel.
 
-# Cor de identidade de cada aplicativo do sistema. `__ACCENT__` é o accent dela.
-# Ver o cabeçalho: a cor é o que separa oito ícones do mesmo tamanho a 48px.
 IDENTIDADE = {
-    "cosmic-files":      "__ACCENT__",  # casa com as pastas cat-<flavor>-<accent>
-    "cosmic-term":       "green",       # a convenção de terminal, em todo tema
-    "cosmic-store":      "sapphire",    # loja: azul, e o único azul do conjunto
-    "cosmic-settings":   "lavender",    # vizinho do accent sem competir com ele
-    "cosmic-edit":       "yellow",      # texto/edição, como o lápis do Papirus
-    "cosmic-monitor":    "red",         # medição e alerta
-    "cosmic-player":     "pink",        # mídia
-    "cosmic-screenshot": "teal",        # captura: o verde-água que sobrou livre
+    "cosmic-files":      "__ACCENT__",
+    "cosmic-term":       "green",
+    "cosmic-store":      "sapphire",
+    "cosmic-settings":   "lavender",
+    "cosmic-edit":       "yellow",
+    "cosmic-monitor":    "red",
+    "cosmic-player":     "pink",
+    "cosmic-screenshot": "teal",
 }
 
 
-# Eles são os dois primeiros desenhos DECLARADOS:
-# `packs/catppuccin/icones/autorais/{fogstripper,hefesto}.json`, cada um com a
-# docstring que tinha aqui transformada em `_nota`.
-
-
-# --- os oito do sistema ------------------------------------------------------
-# Todos partilham o mesmo esqueleto: `viewBox` de 48, formas chapadas, traço de
-# ~3px onde há traço, e a cor de identidade em `c['marca']`.
 
 def _moldura(c: dict) -> str:
-    """A tela retangular do Terminal e do Monitor.
-
-    Os dois são "uma superfície escura com conteúdo em cima", e desenhar a mesma
-    moldura nos dois é o que os faz parecer irmãos no lançador. O contorno em
-    `borda` existe pelo Latte: lá o `vazio` é quase branco e, sem ele, a moldura
-    desapareceria contra o fundo claro do lançador.
-    """
     return (f'<rect x="3.5" y="8.5" width="41" height="31" rx="4.5" '
             f'fill="{c["vazio"]}" stroke="{c["contorno"]}" stroke-width="2"/>')
 
 
 def cosmic_files(c: dict) -> str:
-    """Pasta. A silhueta mais reconhecível que existe — não há o que inventar.
-
-    A aba é uma forma só com o corpo (um `path`, não dois `rect` empilhados):
-    empilhados, a junção aparece como um degrau de meio pixel a 48px, e o degrau
-    lê como defeito de renderização.
-    """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Gestor de Arquivos">
   <title>{c['titulo']}</title>
   <path d="M7 10 h9.8 c1.3 0 2.5 0.6 3.2 1.7 L21.6 14.4 H41 c2.5 0 4.5 2 4.5 4.5 v14.8 c0 2.5 -2 4.5 -4.5 4.5 H7 c-2.5 0 -4.5 -2 -4.5 -4.5 V14.5 c0 -2.5 2 -4.5 4.5 -4.5 z"
@@ -197,11 +52,6 @@ def cosmic_files(c: dict) -> str:
 
 
 def cosmic_term(c: dict) -> str:
-    """Terminal: o prompt `>` e o cursor. Sem barra de título.
-
-    A barra de título estava na primeira versão e saiu: a 48px ela come 6px de
-    altura útil e o `>` fica pequeno demais para ser lido como prompt.
-    """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Terminal">
   <title>{c['titulo']}</title>
   {_moldura(c)}
@@ -213,12 +63,6 @@ def cosmic_term(c: dict) -> str:
 
 
 def cosmic_store(c: dict) -> str:
-    """Loja: sacola de compras. A alça é traço, o corpo é cheio.
-
-    Um ícone de "caixa/pacote" foi testado antes e confunde com o Warehouse
-    (gerenciador de Flatpak) que ela tem instalado — dois ícones de caixa no
-    mesmo lançador é pior que um ícone menos original.
-    """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Loja de Aplicativos">
   <title>{c['titulo']}</title>
   <path d="M17.6 19.5 v-4.8 c0 -3.5 2.9 -6.4 6.4 -6.4 c3.5 0 6.4 2.9 6.4 6.4 v4.8"
@@ -232,13 +76,6 @@ def cosmic_store(c: dict) -> str:
 
 
 def cosmic_settings(c: dict) -> str:
-    """Configurações: três deslizadores.
-
-    A engrenagem é o desenho óbvio e foi descartada: a 48px os dentes viram
-    serrilha, e o COSMIC já usa engrenagem no applet de energia — repetir a forma
-    faria dois "botões de sistema" idênticos na mesma barra. Deslizador diz
-    "ajustar", que é o que ela faz aqui, e sobrevive ao tamanho.
-    """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Configurações">
   <title>{c['titulo']}</title>
   <g fill="{c['trilho']}" stroke="{c['contorno']}" stroke-width="1.6">
@@ -256,12 +93,6 @@ def cosmic_settings(c: dict) -> str:
 
 
 def cosmic_edit(c: dict) -> str:
-    """Editor de Texto: folha com o canto dobrado e três linhas escritas.
-
-    O canto dobrado é o que impede a folha de ler como "retângulo branco". As
-    linhas são três, não cinco: a 48px, cinco linhas de 2px com 2px de respiro
-    viram um bloco cinza chapado.
-    """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Editor de Texto">
   <title>{c['titulo']}</title>
   <path d="M11 5.3 h16.1 L39.2 17.4 V39.7 c0 2.2 -1.8 4 -4 4 H11 c-2.2 0 -4 -1.8 -4 -4 V9.3 c0 -2.2 1.8 -4 4 -4 z"
@@ -277,12 +108,6 @@ def cosmic_edit(c: dict) -> str:
 
 
 def cosmic_monitor(c: dict) -> str:
-    """Monitor do Sistema: a linha de um gráfico dentro da mesma moldura do Terminal.
-
-    O pico fica em x=30 e não no centro de propósito: uma linha simétrica lê como
-    ornamento, uma assimétrica lê como MEDIÇÃO. É a mesma razão pela qual todo
-    gráfico de verdade tem o pico fora do meio.
-    """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Monitor do Sistema">
   <title>{c['titulo']}</title>
   {_moldura(c)}
@@ -293,11 +118,6 @@ def cosmic_monitor(c: dict) -> str:
 
 
 def cosmic_player(c: dict) -> str:
-    """Reprodutor: o triângulo de play, vazado num disco cheio.
-
-    Vazado, e não um triângulo solto: o triângulo sozinho tem área pequena e some
-    entre ícones cheios. O disco dá a mancha de cor que o olho acha primeiro.
-    """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Reprodutor de Mídia">
   <title>{c['titulo']}</title>
   <circle cx="24" cy="24" r="19" fill="{c['marca']}" stroke="{c['contorno']}" stroke-width="2"/>
@@ -307,11 +127,6 @@ def cosmic_player(c: dict) -> str:
 
 
 def cosmic_screenshot(c: dict) -> str:
-    """Captura de Tela: os quatro cantos do enquadramento e a lente no meio.
-
-    Os cantos são quatro traços separados, não um retângulo tracejado: tracejado
-    a 48px vira pontilhado irregular, porque o traço não fecha nas quinas.
-    """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Captura de Tela">
   <title>{c['titulo']}</title>
   <g fill="none" stroke="{c['contorno']}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
@@ -332,36 +147,6 @@ def cosmic_screenshot(c: dict) -> str:
 
 
 def meowsystem_painel(c: dict) -> str:
-    """O painel do MeowSystem: uma cabeça de mascote, e ela é DE TRAÇO.
-
-    O ÚNICO DESENHO DESTE ARQUIVO QUE NÃO É CHAPADO, E O MOTIVO É A FOLHA DELA
-        Em 11/08/2026 ela definiu o estilo do projeto olhando o lançador — traço
-        de linha fino, `fill:none`, `stroke` pastel — e o desenho cheio deste
-        gerador é o que ficou FORA do padrão, não dentro. Um ícone novo escrito
-        hoje não tem por que repetir o estilo que ela já reprovou; ele nasce no
-        traço que os vizinhos dele usam.
-
-        Não é conversão retroativa: os outros dez continuam como estão, cada um
-        com a sua história. Este é novo, e novo se escreve no padrão de agora.
-
-    A CABEÇA VEM DAS ORELHAS PARA BAIXO, NUM CAMINHO SÓ
-        Três desenhos foram rasterizados a 48px e olhados lado a lado com o
-        Terminal e os Arquivos que já moram na dock dela (02/09/2026):
-          · elipse com as orelhas soltas por cima — as pontas encostam na elipse
-            e o cruzamento vira um nó de dois traços no mesmo pixel;
-          · a cabeça contínua, orelha-testa-orelha, e a mandíbula fechando por
-            baixo — lê como mascote à primeira vista, e é esta;
-          · a mesma com um deslizador atravessando o queixo, para dizer
-            "configurar" — a 48px o deslizador cortava o rosto e o ícone deixava
-            de ler como qualquer uma das duas coisas.
-
-        A palavra "MeowSystem" fica ao lado do ícone no lançador e na dock: o
-        desenho não precisa dizer "configuração" também.
-
-    O ACCENT É A COR, COMO NOS ARQUIVOS
-        Este é o aplicativo do PRÓPRIO tema — a cor dele é a cor que ela
-        escolheu, e muda junto quando ela troca o `ACCENT`.
-    """
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="MeowSystem">
   <title>{c['titulo']}</title>
   <g fill="none" stroke="{c['sujeito']}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
@@ -414,8 +199,6 @@ def main() -> int:
     if not args.conferir:
         args.saida.mkdir(parents=True, exist_ok=True)
 
-    # Era `Catppuccin <Flavor>` cravado nas duas fontes, do tempo em que o
-    # gerador só pintava o Catppuccin.
     ref = pack._ref_ativa(None)
     nome_do_pack = str(pack.campo(ref, "nome") or os.path.basename(str(ref).rstrip("/")))
 
@@ -432,13 +215,8 @@ def main() -> int:
         c = {papel: cores[nomes[1 if claro else 0]] for papel, nomes in PAPEIS.items()}
         c["sujeito"] = cores[args.accent]
 
-        # As duas fontes numa fila só, e a fila devolve o TEXTO: daqui para baixo
-        # o laço não sabe — nem precisa saber — se o desenho veio de uma função
-        # ou de um `.json`. O `titulo` é do gerador nas duas.
         def fila():
             for nome, desenha in DESENHOS.items():
-                # A cor de identidade dos oito do sistema. Quem não está na
-                # tabela (o painel) não usa `marca` e não precisa de entrada.
                 identidade = IDENTIDADE.get(nome)
                 if identidade is not None:
                     c["marca"] = cores[args.accent if identidade == "__ACCENT__" else identidade]
@@ -463,9 +241,6 @@ def main() -> int:
                 print(f"  {estado:11s} {destino.name}")
                 continue
 
-            # Temporário no MESMO diretório do destino: `replace` só é atômico
-            # dentro de um sistema de arquivos, e o repo mora no Ápate enquanto
-            # /tmp costuma ser outro.
             tmp = destino.with_suffix(".svg.tmp")
             tmp.write_text(conteudo)
             tmp.replace(destino)

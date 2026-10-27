@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-# icones_sistema.sh — o Arcticons vestindo os ícones do PRÓPRIO COSMIC.
-#
-# Tipo tudo tudo mesmo", e logo depois "inclusive os icons do sistema".
-#
-#   1. A COR DO ARQUIVO É JOGADA FORA. O toolkit não ajusta a cor do symbolic:
-#      ele descarta o arquivo inteiro e repinta com UMA cor, preservando só o
-#      alpha. Prova: o `cosmic-applet-bluetooth-disabled-symbolic` tem #232323 e
-#      #808080 gravados, e sai #FFFFFF puro no painel dela. Dois tons viraram um.
-#      Consequência: NÃO pintamos nada aqui. Seria trabalho apagado. O único eixo
-#      que sobrevive é o DESENHO.
-#
-#   3. O TRAÇO DO PACK SOME A 22 px. O Arcticons desenha num viewBox 48x48 e não
-#      declara `stroke-width`; o padrão SVG é 1, que a 22px vira 0,46px de tela.
-#      Dobrar resolve, e é um atributo só.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,24 +10,11 @@ MAPA="$RAIZ/packs/meowsystem/icones/sistema.map"
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
-# Os dois tamanhos, e a espessura de traço de cada um. Foi a escolha dela ao ver
-# a folha: "depende do tamanho" — fino onde o ícone respira, dobrado onde ele
-# tem 22px para existir.
-#
-# Varrido o resolvedor real (`Gtk.IconTheme.lookup_icon`) sobre o tema dela, com
-# `preferences-appearance-symbolic`:
-#
-#     20 -> scalable/status     23 -> scalable/status     40 -> scalable/status
-#     21 -> scalable/status     24 -> scalable/status     48 -> scalable/status
-#     22 -> 22x22/status   <- o ÚNICO
 declare -A TRACO=( ["22x22/status"]=4 ["scalable/status"]=2.5 )
 
-declare -A MAPA_LIDO=()   # nome COSMIC -> glifo Arcticons
-declare -A ALIAS_OK=()    # glifo -> 1, quando a repetição é deliberada
+declare -A MAPA_LIDO=()
+declare -A ALIAS_OK=()
 
-# --- o mapa, lido uma vez ----------------------------------------------------
-# Três campos, separados por ':'. Nenhum nome de ícone tem ':', então é seguro.
-# O terceiro campo, quando é `alias`, autoriza a repetição de glifo.
 _ler_mapa() {
   local linha nome glifo marca
   while IFS= read -r linha; do
@@ -51,18 +24,9 @@ _ler_mapa() {
     MAPA_LIDO["$nome"]="$glifo"
     if [ "${marca:-}" = "alias" ]; then ALIAS_OK["$glifo"]=1; fi
   done < "$MAPA"
-  # `return 0` NÃO É DECORAÇÃO: um `while` devolve o status do último comando do
-  # corpo, e a última linha do mapa não é um alias — o teste devolveria 1 e, com
-  # `set -e`, o script morreria aqui, calado e com código 1. Foi exatamente o que
-  # aconteceu na primeira execução deste arquivo.
   return 0
 }
 
-# --- a asserção que ESTOURA em vez de deixar passar --------------------------
-# O SPRINTS.md pede isto por causa de um caso real que já está no disco: com
-# `--accent green`, `cosmic-files` e `cosmic-term` nasceram gêmeos em silêncio.
-# Aqui o risco é o mesmo, trocando cor por desenho: dois alvos apontando para o
-# mesmo glifo sem que ninguém tenha decidido isso.
 _conferir_gemeos() {
   local nome glifo erro=0
   declare -A visto=()
@@ -79,7 +43,6 @@ _conferir_gemeos() {
   return "$MEOW_OK"
 }
 
-# --- dependências ------------------------------------------------------------
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
     meow_pula "o acervo Arcticons não está em packs/meowsystem/icones/sistema — nada a vestir"
@@ -92,11 +55,6 @@ _pronto() {
   return "$MEOW_OK"
 }
 
-# --- a transformação ---------------------------------------------------------
-# Insere `stroke-width` em cada elemento de desenho. UM atributo por elemento:
-# duplicar invalida o XML e o rasterizador recusa o SVG inteiro, calado.
-# Os SVG do pack são uniformes (medido nos 37: viewBox 0 0 48 48,
-# stroke="currentColor", nenhum com stroke-width), por isso o sed basta.
 _com_traco() {
   local arq="$1" largura="$2"
   if grep -q 'stroke-width' "$arq"; then
@@ -106,9 +64,6 @@ _com_traco() {
   fi
 }
 
-# --- o que deveria estar no disco --------------------------------------------
-# "dir<TAB>nome<TAB>glifo", só dos glifos que existem de fato. Um glifo faltando
-# é aviso, não erro: aquele ícone continua vindo do Papirus, como sempre veio.
 _desejado() {
   local nome glifo dir
   for dir in "${!TRACO[@]}"; do
@@ -119,11 +74,6 @@ _desejado() {
   done
 }
 
-# O CRITÉRIO DO CONFERIR TEM DE SER O DO ESCRITOR
-#   `meow_escrever` grava com `printf '%s'`, que come o `\n` final. Um `cmp` byte
-#   a byte acusaria divergência eterna num arquivo perfeito — já custou um
-#   `--conferir` gritando 123 divergências num tema correto. Compara-se com
-#   `$(...)` porque é assim que se escreve.
 _conferir() {
   local dir nome glifo divergentes=0 ausentes=0 orfaos=0 total=0 arq alvo
   while IFS=$'\t' read -r dir nome glifo; do
@@ -168,7 +118,6 @@ _aplicar() {
     esac
   done < <(_desejado)
 
-  # Órfão: estava no mapa ontem, não está hoje. Removível porque o dono é único.
   for dir in "${!TRACO[@]}"; do
     [ -d "$BASE/$dir" ] || continue
     for arq in "$BASE/$dir"/*.svg; do

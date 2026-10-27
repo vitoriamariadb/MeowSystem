@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# oraculo-tema.sh — a cópia em Python da derivação do tema contra o `build()` de
-# verdade do libcosmic.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CAP="$RAIZ/packs/dracula/temas/capturados/dracula-mauve"

@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# seletor-do-pack.sh — os desenhos do pack no ar na ficha de ícone, e onde a
-# escolha de um deles mora.
-#
-# «Nosso pack de 300 icons aparece pro user pra que ele possa escolher um deles
-# pra substituir algum atual?»
-#
-# AS PERGUNTAS VÃO ÀS ROTAS DE VERDADE, no molde do tests/oficina.sh: o
-# `Manipulador` sem socket, com o `_json` capturado.
-#
-# O REPOSITÓRIO TAMBÉM É DE BRINQUEDO: a escolha é gravada no mapa do pack, que
-# mora dentro da raiz.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -23,30 +12,22 @@ mkdir -p "$T/raiz" "$CASA/.config/meow" "$CASA/.local/share/applications" \
          "$CASA/.local/state/meowsystem" \
          "$CASA/.local/share/icons/MeowSystem-Icons/scalable/apps" || exit 2
 
-# A árvore de trabalho, versionada e nova. O `--ignore-failed-read` é para o
-# arquivo apagado na árvore e ainda no índice, que não tem o que copiar.
 ( cd "$RAIZ" && git ls-files -z --cached --others --exclude-standard \
     | tar --null --ignore-failed-read -T - -cf - 2>/dev/null ) \
   | tar -C "$T/raiz" -xf - || { printf 'FALHOU: não consegui copiar a árvore\n' >&2; exit 2; }
 
-# O meow.conf de brinquedo: o de fábrica, com o Dracula no ar e a camada dos
-# desenhos de aplicativo ligada — a última atribuição vence, como no `.`.
 cp "$T/raiz/meow.conf.exemplo" "$CASA/.config/meow/meow.conf" || exit 2
 printf '\nPACK="dracula"\nFLAVOR="dracula"\nICONES_DRACULA="sim"\n' >> "$CASA/.config/meow/meow.conf"
 
-# Três programas: um que o mapa do Dracula já veste (o nome é o `Icon=`), um
-# que ele não conhece, e o «Arquivos», cujo ícone é de outro dono.
-desktop() {   # desktop <arquivo> <Name> <Icon>
+desktop() {
   printf '[Desktop Entry]\nName=%s\nExec=true\nIcon=%s\nTerminal=false\nType=Application\n' \
     "$2" "$3" > "$CASA/.local/share/applications/$1.desktop"
 }
 desktop google-chrome "Chrome de Brinquedo" google-chrome
 desktop programa-de-brinquedo "Programa de Brinquedo" programa-de-brinquedo
 desktop com.system76.CosmicFiles "Arquivos de Brinquedo" com.system76.CosmicFiles
-# E um com a trava do TRAÇO: a Calculadora tem desenho convertido no
-# `apps-convertidos.map`, e nenhum outro dono do `scalable/apps`.
 desktop org.gnome.Calculator "Calculadora de Brinquedo" org.gnome.Calculator
-jogo() {   # jogo <arquivo> <Name> <Icon>
+jogo() {
   printf '[Desktop Entry]\nName=%s\nExec=true\nIcon=%s\nTerminal=false\nType=Application\nCategories=Game;\n' \
     "$2" "$3" > "$CASA/.local/share/applications/$1.desktop"
 }
@@ -131,8 +112,6 @@ def conf_com(**chaves):
 
 
 def texto(caminho):
-    # `rstrip` porque o `meow_escrever` normaliza a quebra do fim — é a régua
-    # do `_dracula_remover` e do tests/fonte-unica.sh.
     try:
         with open(caminho, encoding="utf-8") as fh:
             return fh.read().rstrip("\n")
@@ -192,7 +171,6 @@ def arvore(caminho):
     return soma.hexdigest()
 
 
-# --- 1. o que a busca oferece com o Dracula no ar ---------------------------
 r = glifos("alien")
 do_pack = [g for g in r.get("glifos", []) if g.get("pack")]
 print("  «alien»: %d opção(ões) — %s" % (len(r.get("glifos", [])), ", ".join(
@@ -217,7 +195,6 @@ checa({"pack:dracula:apps", "pack:meowsystem:apps"} <= grupos,
       "«chrome» oferece o google-chrome do Dracula e o do Arcticons, cada um na sua pasta",
       repr(sorted(grupos)))
 
-# SEM TETO (P73): a busca vazia traz tudo, e cada pasta diz o total dela.
 vazia = glifos("")
 por_grupo = {}
 for g in vazia.get("glifos", []):
@@ -228,8 +205,6 @@ checa(not vazia.get("limitado") and vazia.get("grupos")
       "a busca vazia traz o acervo inteiro, sem teto: cada pasta com o total que ela diz",
       repr({gr["id"]: (por_grupo.get(gr["id"], 0), gr["total"]) for gr in vazia.get("grupos", [])}))
 
-# --- 2. todos os acervos, o pack no ar primeiro (P73, decisão 3) ------------
-# [Até a P73 este bloco cobrava o contrário: nenhum grupo de pack fora do ar.]
 ordem = [gr["id"] for gr in vazia.get("grupos", [])]
 do_ar = [i for i, gid in enumerate(ordem) if gid.startswith("pack:dracula:")]
 de_fora = [i for i, gid in enumerate(ordem) if gid.startswith("pack:meowsystem:")]
@@ -237,15 +212,11 @@ checa(do_ar and de_fora and max(do_ar) < min(de_fora),
       "com o Dracula no ar, o pack padrão aparece na pasta dele, depois das do Dracula", repr(ordem))
 checa({"pack:dracula:autorais:dracula", "pack:dracula:autorais:alucard"} <= set(ordem),
       "os autorais do pack vêm nos dois flavors, cada um na sua pasta", repr(ordem))
-# Só o que é do mapa do pack no ar traz `pack`/`desenho` (o «Levar para o pack»).
 checa(all(g["grupo"].startswith("pack:dracula:") for g in vazia["glifos"] if g.get("pack")),
       "só o desenho do pack no ar pode ser levado ao mapa dele")
 
-# --- 3. escolher o alien grava a linha, e o passo o põe no tema ---------------
 with open(mapa, encoding="utf-8") as fh:
     antes = fh.read().split("\n")
-# O «USAR ESTE ÍCONE» NÃO TOCA O MAPA (P73, I3): a escolha vai para o estado de
-# quem usa, e o passo do pack a põe no tema.
 codigo, dados = usar("google-chrome", "packs/dracula/icones/biblioteca/alien.svg")
 with open(mapa, encoding="utf-8") as fh:
     checa(codigo == 200 and fh.read().split("\n") == antes,
@@ -261,7 +232,6 @@ checa(rc in (0, 1) and texto(os.path.join(tema, "google-chrome.svg")) == texto(a
 r = chamar(m._api_glifos, {"busca": [""], "app": ["google-chrome"]})[1]
 checa((r.get("minha") or {}).get("desenho") == "biblioteca/alien.svg",
       "a ficha diz a escolha de quem usa, e que ela pode ser levada ao pack", repr(r.get("minha")))
-# O «LEVAR PARA O PACK» é o gesto que grava no mapa: o mesmo POST da P60.
 codigo, dados = escolher("google-chrome", "biblioteca/alien.svg")
 checa(codigo == 200 and dados.get("ok") and dados.get("nome_pack") == "Dracula",
       "o «Levar para o pack» com o alien grava a escolha no pack Dracula", repr(dados))
@@ -270,7 +240,6 @@ with open(escolhas, encoding="utf-8") as fh:
 with open(mapa, encoding="utf-8") as fh:
     depois = fh.read().split("\n")
 mudou = [i for i, (a, b) in enumerate(zip(antes, depois)) if a != b]
-# P64: a linha diz também a que ela trocou, inteira — é o que o desfazer devolve.
 checa(len(antes) == len(depois) and len(mudou) == 1
       and depois[mudou[0]] == ("google-chrome : biblioteca/alien.svg   # Chrome de Brinquedo — "
                                "escolhido no painel; antes: " + antes[mudou[0]])
@@ -294,7 +263,6 @@ checa(rc in (0, 1) and texto(os.path.join(tema, "google-chrome.svg")) == texto(a
 rc, saida = conferir()
 checa(rc == 0, "depois dela o --conferir do passo sai 0 — nada a mudar (rc=%s)" % rc, saida[-600:])
 
-# --- 4. as recusas ------------------------------------------------------------
 codigo, dados = escolher("google-chrome", "biblioteca/alien.svg", pack="catppuccin")
 checa(codigo == 409, "gravar no mapa de um pack fora do ar é recusado (%s)" % codigo, repr(dados))
 for forjado in ("../../../etc/passwd", "biblioteca/sem-desenho.svg", "icones/biblioteca/alien.svg"):
@@ -307,9 +275,6 @@ apps = {a["id"]: a for a in servidor.Manipulador._dados_apps(m, {}).get("apps", 
 checa((apps.get("com.system76.CosmicFiles") or {}).get("trava_pack")
       and (apps.get("google-chrome") or {}).get("trava_pack") is None,
       "a grade diz a trava do pack no «Arquivos», e não no Chrome")
-# A GRADE DE JOGOS ABRE A MESMA FICHA, E A TELA E A RECUSA DIZEM A MESMA FRASE.
-# O campo tem de vir nos dois jogos: ausente, a ficha lê "sem trava" e oferece
-# o pack. Com a camada ligada, para o POST chegar à trava do app.
 jogos = {a["id"]: a for a in servidor.Manipulador._dados_jogos(m, {}).get("apps", [])}
 por_caminho = jogos.get("jogo-de-brinquedo") or {}
 codigo, dados = escolher("jogo-de-brinquedo", "biblioteca/alien.svg")
@@ -336,7 +301,6 @@ checa(codigo == 409 and dados.get("erro") == r.get("aviso"),
       "e levar para o pack com ela desligada é recusado com a mesma frase (%s)" % codigo)
 conf_com(ICONES_DRACULA="sim")
 
-# --- 5. trocar para o Catppuccin não carrega a escolha ------------------------
 catppuccin = os.path.join(raiz, "packs", "catppuccin")
 antes_c = arvore(catppuccin)
 conf_com(PACK="meowsystem", FLAVOR="mocha")
@@ -352,12 +316,6 @@ checa(r.get("grupos") and r["grupos"][0]["id"].startswith("pack:meowsystem:"),
 codigo, dados = escolher("google-chrome", "biblioteca/alien.svg")
 checa(codigo == 409, "uma página de antes da troca não grava no mapa do Dracula (%s)" % codigo)
 rc, saida = passo_do_pack()
-# O QUE FICA É SÓ DO RESGATE. Os dois nomes que o Dracula disputa com o
-# `apps-resgatados.map` (P43) voltam a ser do resgate com o Catppuccin no ar, e
-# quem os devolve é o `icones_resgatados.sh`, que a instalação roda antes deste
-# passo — o bloco 10 do tests/fonte-unica.sh cobra essa volta. Aqui se cobra que
-# o passo do pack não os leve junto, e que depois do resgate não sobre desenho
-# nenhum do Dracula.
 do_resgate = {n for n, _f, camada in servidor.modulo_pack().fontes("catppuccin")
               if camada == "resgatados"}
 sobra = sorted(os.listdir(tema))
@@ -386,9 +344,6 @@ rc, saida = passo_do_pack()
 checa(texto(os.path.join(tema, "google-chrome.svg")) == texto(alien),
       "de volta ao Dracula, a escolha volta com ele: ela mora no pack (rc=%s)" % rc)
 
-# --- 6. desfazer a escolha, e o ícone que fica — P64 ---------------------------
-# Aqui o mapa do Dracula tem as duas escolhas da seção 3: a do Chrome, que
-# trocou a linha dele, e a do programa, que o pack não conhecia.
 def glifos_de(app, busca="chrome"):
     return chamar(m._api_glifos, {"busca": [busca], "app": [app]})[1]
 
@@ -412,12 +367,6 @@ checa((glifos_de("programa-de-brinquedo").get("escolha") or {}).get("antes", "?"
       and glifos_de("com.system76.CosmicFiles").get("escolha") is None,
       "a do programa novo não trocou desenho nenhum, e o «Arquivos» não tem escolha")
 
-# O CHROME ESTÁ NOS DOIS MAPAS: tirar o traço deixa o desenho do pack na tela,
-# e a torrada dizia «voltou para o ícone de fábrica».
-# [P73: o «Desfazer a escolha no traço» só tira a linha de QUEM USA — a do
-# `apps-arcticons.map` do projeto é curadoria, e não sai por clique. O Chrome
-# de brinquedo não tem escolha de traço: nada sai, e a resposta continua
-# dizendo o que fica na tela, que é o ponto da P64.]
 traco_projeto = os.path.join(raiz, "packs", "meowsystem", "icones", "apps-arcticons.map")
 antes_traco = texto(traco_projeto)
 codigo, dados = chamar(m._api_app_icone, {"app": "google-chrome", "remover": True})
@@ -432,11 +381,6 @@ codigo, dados = desfazer("google-chrome")
 checa(codigo == 200 and dados.get("removido")
       and (dados.get("fica") or {}).get("frase") == "o desenho «google-chrome» do pack «Dracula»",
       "desfazer a escolha do Chrome devolve o desenho que o pack dava, e o diz", repr(dados))
-# O arcade do programa está no tema desde a seção 5 (a volta ao Dracula o repôs).
-# Desfeita a escolha, o nome sai do mapa no ar — e o passo do pack o tira do
-# tema, pelo registro do que ele pôs lá (P66, 25/09/2026). Até a P66 a resposta
-# dizia `sobra` («continua no tema»), e este bloco era o defeito conhecido que o
-# `_dracula_sobras` não tirava: ele só olhava os mapas dos packs fora do ar.
 codigo, dados = desfazer("programa-de-brinquedo")
 fica = dados.get("fica") or {}
 checa(codigo == 200 and dados.get("removido") and fica.get("tipo") == "fabrica",
@@ -464,17 +408,12 @@ checa(codigo == 200 and dados.get("removido") is False and mapa_agora() == antes
 codigo, dados = desfazer("google-chrome", pack="catppuccin")
 checa(codigo == 409, "desfazer no mapa de um pack fora do ar é recusado (%s)" % codigo, repr(dados))
 
-# ESCOLHER DUAS VEZES: o desfazer volta ao desenho do PACK, e não ao da
-# primeira escolha — a linha trocada viaja de uma escolha para a outra.
 escolher("google-chrome", "biblioteca/alien.svg")
 codigo, dados = escolher("google-chrome", "biblioteca/arcade.svg")
 desfazer("google-chrome")
 checa(codigo == 200 and mapa_agora() == antes,
       "duas escolhas seguidas e um desfazer: o mapa volta ao do pack, byte a byte")
 
-# A TRAVA DO TRAÇO NÃO É A DO PACK. A Calculadora tem desenho convertido — o
-# glifo do Arcticons não vale nela —, e o desenho do pack vai para o
-# `scalable/apps`, que vence o traço. A ficha oferece o pack, e o POST aceita.
 apps = {a["id"]: a for a in servidor.Manipulador._dados_apps(m, {}).get("apps", [])}
 calc = apps.get("org.gnome.Calculator") or {}
 codigo, dados = escolher("org.gnome.Calculator", "biblioteca/alien.svg")
@@ -484,12 +423,6 @@ checa(calc.get("trava") and calc.get("trava_pack") is None and codigo == 200,
 desfazer("org.gnome.Calculator")
 checa(mapa_agora() == antes, "e o desfazer dela devolve o mapa do pack")
 
-# O INTOCÁVEL E A CURADORIA TRAVAM O PACK — revisão da P64. Dos três casos da
-# trava do traço, só o convertido mora no `48x48/apps`. O intocável é pedido
-# dela, e a arte da curadoria mora no mesmo `scalable/apps` do pack; o
-# `icones_apps_dracula.sh` não cede a nenhum dos dois, e a linha no mapa poria
-# o desenho do pack por cima. A grade manda a frase na `trava_pack` (é ela que
-# esconde a busca na ficha), e o POST a devolve no 409, sem tocar no mapa.
 jogos = {a["id"]: a for a in servidor.Manipulador._dados_jogos(m, {}).get("apps", [])}
 apps = {a["id"]: a for a in servidor.Manipulador._dados_apps(m, {}).get("apps", [])}
 for app, grade, caso in (("meow-steam-12345", jogos, "o jogo da Steam, intocável"),
@@ -502,10 +435,6 @@ for app, grade, caso in (("meow-steam-12345", jogos, "o jogo da Steam, intocáve
           "sem mexer no mapa (%s)" % (caso, codigo),
           repr((a.get("trava"), a.get("trava_pack"), codigo, dados)))
 
-# O TRAÇO ESCOLHIDO DEPOIS DE UM DESENHO É O QUE FICA — conferência da P73. A
-# escolha de desenho vai para o `scalable/apps`, que vence o `48x48/apps` do
-# traço: com as duas linhas no estado de quem usa, o «Usar este ícone» do traço
-# respondia ok e a tela continuava com o desenho. A última escolha vale.
 codigo, dados = usar("programa-de-brinquedo", "packs/dracula/icones/biblioteca/alien.svg")
 rc, saida = passo_do_pack()
 checa(codigo == 200 and texto(os.path.join(tema, "programa-de-brinquedo.svg")) == texto(alien),

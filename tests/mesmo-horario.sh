@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# mesmo-horario.sh — o «Mesmo horário» de Ajustes › Dia e noite: ligado, as
-# áreas que têm horário próprio (claro ou escuro, papel de parede, tela quente)
-# gravam o horário da noite no meow.conf, e mexer na noite as leva junto;
-# desligado, cada área volta ao horário que tinha.
-#
-# O painel sobe num HOME de brinquedo, com PID próprio; `sudo`, `pkexec` e
-# `pkill` falsos que recusam. Nada sai do `mktemp -d`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0

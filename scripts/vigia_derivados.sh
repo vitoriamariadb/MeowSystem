@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
-# vigia_derivados.sh — põe de pé o vigia dos desenhos dos packs (P88, decisão 15).
-#
-# Instala o `meow-derivados.path` com uma linha `PathModified=` por pasta que o
-# `derivados.sh --pastas` lista, e o `meow-derivados.service` irmão, e liga o
-# par.
-#
-# --conferir (o doctor) só lê: a unidade como seria escrita, contra o disco.
-#
-# CÓDIGOS: 0 em dia · 1 mudou (ou mudaria) · 2 erro · 3 sem systemd --user.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -31,11 +22,8 @@ _texto_de() {
   local u="$1" texto linhas
   texto="$(cat "$ORIGEM/$u" 2>/dev/null)" || return 1
   if [ "$u" = "$GATILHO" ]; then
-    # `%` numa unidade é especificador do systemd: a pasta de um pack que o
-    # tenha no nome entra como `%%`, senão a linha vigia outro caminho, ou some.
     linhas="$("$RAIZ/scripts/derivados.sh" --pastas | sed -e 's/%/%%/g' -e 's/^/PathModified=/')"
     [ -n "$linhas" ] || return 1
-    # Só a linha que é o marcador inteiro: o comentário que o cita fica comentário.
     texto="$(awk -v linhas="$linhas" '$0 == "@VIGIADOS@" { print linhas; next } { print }' <<<"$texto")"
   fi
   printf '%s' "$texto"

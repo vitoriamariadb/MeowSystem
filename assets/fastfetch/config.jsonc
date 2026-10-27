@@ -1,15 +1,13 @@
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
 
-  // Logo do mascote. `type: "file"` processa os $1/$2/$3 do meow.txt como cores.
-  // Se o terminal imprimir "$1" literal, troque para "file-raw" e cole ANSI no .txt.
   "logo": {
     "type": "file",
     "source": "~/.config/fastfetch/meow.txt",
     "color": {
-      "1": "magenta",   // mauve  #CBA6F7
-      "2": "cyan",      // sky    #89DCEB  (olhos)
-      "3": "red"        // pink   #F5C2E7  (focinho)
+      "1": "magenta",
+      "2": "cyan",
+      "3": "red"
     },
     "padding": { "top": 1, "left": 2, "right": 3 }
   },
@@ -31,45 +29,6 @@
     { "type": "de",        "key": "Ambiente" },
     { "type": "wm",        "key": "WM" },
 
-    // AS DUAS LINHAS QUE VIERAM DO SPELLBOOK — 22/09/2026, sprint P29
-    //   Havia duas configurações do mesmo programa: esta e a de
-    //   `~/.config/zsh/fastfetch/config.jsonc`. Duas configurações do mesmo
-    //   programa É o defeito, não o conteúdo de nenhuma delas — e a P29
-    //   comparou as duas linha a linha para separar o que é TEMA (fica aqui)
-    //   do que é MÁQUINA (fica com o Spellbook, que é o repositório dela).
-    //
-    //   O QUE ERA TEMA E FALTAVA AQUI: `wmtheme` e `font`. As duas respondem
-    //   "com que cara o sistema está", que é a pergunta inteira deste projeto,
-    //   e nenhuma das duas estava nesta lista. O `theme` já vinha; o `wmtheme`
-    //   é o irmão dele que olha a decoração de janela, e num COSMIC patchado os
-    //   dois podem divergir — que é justamente a hora de querer ver os dois.
-    //   O `font` é a fonte do SISTEMA, e não se confunde com o `terminalfont`
-    //   logo abaixo: este projeto instala fontes (`instalar_fontes.sh`) e não
-    //   mostrava nenhuma delas nesta tela.
-    //
-    //   MEDIDO NESTA MÁQUINA EM 22/09/2026, para ninguém ler silêncio como
-    //   defeito: com fastfetch 2.68.1, o `wmtheme` responde
-    //   `catppuccin-mocha - #CBA6F7 (Dark)`, e o `font` NÃO imprime linha
-    //   nenhuma — some da saída, sem erro e com rc=0. O `terminalfont` que já
-    //   estava aqui antes desta sprint faz exatamente o mesmo. Os dois
-    //   dependem de configuração de fonte GTK/Qt que este COSMIC não expõe
-    //   hoje; ficam declarados porque a pergunta é legítima e a resposta
-    //   aparece sozinha no dia em que houver uma.
-    //
-    //   O QUE NÃO VEIO, E É A METADE QUE IMPORTA: nada do resto. `battery`,
-    //   `host` (o modelo do notebook), o módulo `command` com `nvidia-smi`, o
-    //   `Spellbook-OS` lendo o `$XDG_RUNTIME_DIR`, o `Andromeda-OS` procurando
-    //   um `sshfs` em `/proc/mounts`, o `title` com `{full-user-name}` — tudo
-    //   isso é a MÁQUINA dela, é exclusivo daquele PC e continua lá. Trazer
-    //   qualquer um faria este repositório voltar a saber coisas sobre um
-    //   computador que não é o de quem o clonou.
-    //
-    //   FICOU DE FORA, MAS COM NOME, PARA NÃO SE PERDER: o
-    //   `"folders": "/"` do módulo `disk` de lá. O comentário dele registra que
-    //   sem isso o módulo faz `statfs` em TODOS os mounts, e um `sshfs` com o
-    //   host offline congela o fastfetch — e o boot do terminal junto — em
-    //   estado D. É uma medição cara e é verdadeira, mas não é tema: é higiene
-    //   de máquina com `sshfs`. Quem for mexer no `disk` daqui que a leia antes.
     { "type": "wmtheme",   "key": "Tema WM" },
     { "type": "theme",     "key": "Tema" },
     { "type": "icons",     "key": "Ícones" },

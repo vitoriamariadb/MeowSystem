@@ -1,44 +1,55 @@
 #!/usr/bin/env python3
-"""Comentários do código: a impressão sem eles e o enxugamento deles.
+"""Comentários do código: a impressão sem eles e o corte deles.
 
 Uso:
-  comentarios.py impressao ARQUIVO...         sha256 do código sem comentários, um por linha
-  comentarios.py mostrar ARQUIVO              o código sem comentários, para diff
-  comentarios.py enxugar [--teto] [--linhas A-B,...] ARQUIVO...
+  comentarios.py impressao ARQUIVO...              sha256 do código sem comentários, um por linha
+  comentarios.py mostrar ARQUIVO                   o código sem comentários, para diff
+  comentarios.py zerar [--linhas A-B,...] ARQUIVO...
+  comentarios.py conferir ARQUIVO...               lista quem ainda tem comentário, sem gravar
 
-enxugar tira de cada comentário o que é registro e não porquê: id de sprint,
-data, conferência, achado, nome de ferramenta de IA. Com --teto, o bloco longo
-fica nas primeiras frases que cabem em três linhas (seis no cabeçalho do
-arquivo). Com --linhas, só mexe nos blocos que tocam esses intervalos. Nunca
-grava um arquivo cuja impressão mude: o código fica idêntico ou o arquivo fica
-como estava. Docstring de Python é código (o __doc__ vira ajuda) e não é tocada.
+zerar tira todo comentário. Ficam o shebang, a licença (SPDX, Copyright), as
+diretivas (shellcheck, noqa, type:, eslint, coding, compdef, OVERRIDE), a
+marca que o código procura no arquivo (MEOW-...-N), o comentário condicional
+do HTML, o cabeçalho que o script imprime de si com
+sed -n 'A,Bp' "$0" e a docstring de módulo que o código lê por __doc__.
+O modelo (*.modelo.*) é dado: o comentário dele vai para o app.
+Com --linhas, só corta o que toca esses intervalos. Nunca grava um arquivo
+cuja impressão mude: o código fica idêntico ou o arquivo fica como estava.
 """
+import ast
 import hashlib
 import io
 import re
+import shutil
+import subprocess
 import sys
-import textwrap
 import tokenize
-import ast
 import warnings
 from pathlib import Path
 
 
-# ---------------------------------------------------------------------------
-# linguagem
-# ---------------------------------------------------------------------------
 def linguagem_de(nome, texto):
     p = Path(nome)
     ext = p.suffix
     tabela = {".sh": "bash", ".bash": "bash", ".zsh": "bash", ".py": "python",
-              ".js": "js", ".mjs": "js", ".css": "css", ".rs": "rust",
+              ".js": "js", ".mjs": "js", ".rules": "js", ".jsonc": "js",
+              ".css": "css", ".rs": "rust",
               ".html": "html", ".htm": "html", ".toml": "toml",
+              ".service": "unidade", ".path": "unidade", ".timer": "unidade",
+              ".socket": "unidade", ".target": "unidade",
+              ".yml": "yaml", ".yaml": "yaml",
               ".patch": "patch", ".diff": "patch"}
+    if ".modelo." in p.name:
+        return "inteiro"
+    if p.name in (".gitignore", ".gitattributes"):
+        return "inicio"
     if ext in tabela:
         return tabela[ext]
     if p.name in ("series", "versao"):
         return "cerquilha"
     primeira = texto.split("\n", 1)[0]
+    if primeira.startswith("#compdef"):
+        return "bash"
     if primeira.startswith("#!"):
         if "python" in primeira:
             return "python"
@@ -47,16 +58,14 @@ def linguagem_de(nome, texto):
     return "inteiro"
 
 
-# ---------------------------------------------------------------------------
-# onde estão os comentários: lista de (início, fim, marcador) em offsets
-# ---------------------------------------------------------------------------
 HEREDOC = re.compile(r"<<(-?)\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
 DELIMITA = set(" \t;&|()<>")
+PYTHON_NA_LINHA = re.compile(r"(?:^|[\s;&|(`])(?:\S*/)?python3?(?:\s|$)")
 
 
 def spans_bash(texto):
     spans = []
-    pilha = [["c", 0]]       # código ("c", parênteses abertos), "'", '"', "$'", "`"
+    pilha = [["c", 0]]
     pendentes = []
     linhas = texto.split("\n")
     base = 0
@@ -104,22 +113,33 @@ def spans_bash(texto):
                 topo[1] -= 1
                 if topo[1] == 0:
                     pilha.pop()
-            elif c == "<" and linha.startswith("<<", j) and not linha.startswith("<<<", j):
+            elif c == "<" and linha.startswith("<<<", j):
+                j += 3
+                continue
+            elif c == "<" and linha.startswith("<<", j):
                 m = HEREDOC.match(linha, j)
                 if m:
-                    pendentes.append((m.group(1) == "-", m.group(2) or m.group(3) or m.group(4)))
+                    citado = m.group(2) is not None or m.group(3) is not None
+                    py = citado and m.group(1) != "-" and bool(PYTHON_NA_LINHA.search(linha[:j]))
+                    pendentes.append((m.group(1) == "-", m.group(2) or m.group(3) or m.group(4), py))
                     j = m.end()
                     continue
             j += 1
-        for traco, palavra in pendentes:
+        for traco, palavra, py in pendentes:
+            corpo_ini = base
             while i < len(linhas):
                 corpo = linhas[i]
+                if (corpo.lstrip("\t") if traco else corpo) == palavra:
+                    if py:
+                        spans.extend((corpo_ini + a, corpo_ini + b, m)
+                                     for a, b, m in spans_python(texto[corpo_ini:base]))
+                    base += len(corpo) + 1
+                    i += 1
+                    break
                 base += len(corpo) + 1
                 i += 1
-                if (corpo.lstrip("\t") if traco else corpo) == palavra:
-                    break
         pendentes = []
-    return spans
+    return sorted(spans)
 
 
 def spans_python(texto):
@@ -143,16 +163,16 @@ PALAVRA_ANTES_DE_REGEX = {"return", "typeof", "case", "do", "else", "in", "of", 
                           "delete", "void", "throw", "yield", "await", "instanceof"}
 
 
-def spans_c(texto, linguagem):
+def spans_c(texto, linguagem, ini=0, fim=None):
     spans = []
-    i, n = 0, len(texto)
+    i, n = ini, len(texto) if fim is None else fim
     pilha = []
-    ultimo = ""             # último trecho de código significativo, para decidir regex
+    ultimo = ""
     while i < n:
         c = texto[i]
         d = texto[i + 1] if i + 1 < n else ""
         if c == "/" and d == "/" and linguagem != "css":
-            j = texto.find("\n", i)
+            j = texto.find("\n", i, n)
             j = n if j < 0 else j
             marca = "//"
             if linguagem == "rust" and texto.startswith(("///", "//!"), i):
@@ -177,8 +197,8 @@ def spans_c(texto, linguagem):
         if linguagem == "rust" and c in "rb" and re.match(r"(?:br|r)#*\"", texto[i:i + 40]) \
                 and (i == 0 or not (texto[i - 1].isalnum() or texto[i - 1] == "_")):
             m = re.match(r"(?:br|r)(#*)\"", texto[i:])
-            fim = texto.find('"' + m.group(1), i + m.end())
-            i = n if fim < 0 else fim + 1 + len(m.group(1))
+            f = texto.find('"' + m.group(1), i + m.end())
+            i = n if f < 0 else f + 1 + len(m.group(1))
             ultimo = "a"
             continue
         if linguagem == "rust" and c == "'":
@@ -265,37 +285,193 @@ def spans_cerquilha(texto):
     return spans
 
 
-def spans_toml(texto):
+def spans_inicio(texto):
     spans, base = [], 0
     for l in texto.split("\n"):
-        aspas = None
-        for k, c in enumerate(l):
-            if aspas:
-                if c == aspas:
-                    aspas = None
-            elif c in "\"'":
-                aspas = c
-            elif c == "#":
-                spans.append((base + k, base + len(l), "#"))
-                break
+        if l.startswith("#"):
+            spans.append((base, base + len(l), "#"))
         base += len(l) + 1
     return spans
 
 
+def spans_unidade(texto):
+    spans, base, continua = [], 0, False
+    for l in texto.split("\n"):
+        s = l.lstrip()
+        if not continua and s[:1] in ("#", ";"):
+            spans.append((base + len(l) - len(s), base + len(l), s[0]))
+        else:
+            continua = l.rstrip().endswith("\\")
+        base += len(l) + 1
+    return spans
+
+
+def spans_yaml(texto):
+    spans, base, bloco = [], 0, None
+    for l in texto.split("\n"):
+        s = l.lstrip()
+        recuo = len(l) - len(s)
+        if bloco is not None and (not s or recuo > bloco):
+            base += len(l) + 1
+            continue
+        bloco = None
+        if s.startswith("#"):
+            spans.append((base + recuo, base + len(l), "#"))
+        elif re.search(r"(?:^|:|-)\s*[|>][-+0-9]*\s*$", s):
+            bloco = recuo
+        base += len(l) + 1
+    return spans
+
+
+def spans_toml(texto):
+    spans, i, n, aspas = [], 0, len(texto), None
+    while i < n:
+        c = texto[i]
+        if aspas:
+            if c == "\\" and aspas in ('"', '"""'):
+                i += 2
+                continue
+            if texto.startswith(aspas, i):
+                i += len(aspas)
+                aspas = None
+                continue
+            i += 1
+            continue
+        if c in "\"'":
+            aspas = c * 3 if texto.startswith(c * 3, i) else c
+            i += len(aspas)
+            continue
+        if c == "#":
+            j = texto.find("\n", i)
+            j = n if j < 0 else j
+            spans.append((i, j, "#"))
+            i = j
+            continue
+        i += 1
+    return spans
+
+
 def spans_html(texto):
-    return [(m.start(), m.end(), "<!--") for m in re.finditer(r"<!--.*?-->", texto, flags=re.S)]
+    spans = []
+    i = 0
+    abre = re.compile(r"<!--|<(script|style)\b[^>]*>", re.I)
+    while True:
+        m = abre.search(texto, i)
+        if not m:
+            break
+        if m.group(0) == "<!--":
+            f = texto.find("-->", m.end())
+            f = len(texto) if f < 0 else f + 3
+            spans.append((m.start(), f, "<!--"))
+            i = f
+            continue
+        tag = m.group(1).lower()
+        f = re.compile(rf"</{tag}\s*>", re.I).search(texto, m.end())
+        f = len(texto) if not f else f.start()
+        spans.extend(spans_c(texto, "js" if tag == "script" else "css", m.end(), f))
+        i = f
+    return spans
 
 
 def spans_de(linguagem, texto):
     return {"bash": spans_bash, "python": spans_python, "cerquilha": spans_cerquilha,
+            "inicio": spans_inicio, "unidade": spans_unidade, "yaml": spans_yaml,
             "toml": spans_toml, "html": spans_html,
             "js": lambda t: spans_c(t, "js"), "css": lambda t: spans_c(t, "css"),
             "rust": lambda t: spans_c(t, "rust")}.get(linguagem, lambda t: [])(texto)
 
 
-# ---------------------------------------------------------------------------
-# impressão
-# ---------------------------------------------------------------------------
+DIRETIVA = re.compile(r"^\s*(?:shellcheck\s|(?i:noqa)\b|type:\s|pylint:|-\*-|fmt:\s|pragma:?\s|eslint|@ts-|"
+                      r"vim?:|ex:|SPDX-|[Cc]opyright\b|©|\([Cc]\)\s+\d{4}|prettier-ignore|istanbul\s|jshint\b|jscs:|"
+                      r"@license\b|@preserve\b|compdef\b|autoload\b|OVERRIDE\b|coding[:=]|MEOW(?:-[A-Z0-9]+)+-\d+\b)")
+DIRETIVA_BLOCO_JS = re.compile(r"^\s*(?:global|exported)\s+\w")
+
+
+def miolo(texto, a, b, marca):
+    corpo = texto[a:b]
+    if marca == "/*":
+        return corpo[2:-2].lstrip("*!")
+    if marca == "<!--":
+        return corpo[4:-3]
+    return corpo[len(marca):]
+
+
+def linhas_de_ajuda(texto):
+    saida = set()
+    for m in re.finditer(r"sed -n '(\d+),(\d+)p' \"\$(?:0|\{BASH_SOURCE\[0\]\})\"", texto):
+        saida.update(range(int(m.group(1)) - 1, int(m.group(2))))
+    return saida
+
+
+def mantem(ling, texto, a, b, marca, ajuda, linha):
+    m = miolo(texto, a, b, marca)
+    if DIRETIVA.match(m):
+        return True
+    if marca == "/*" and DIRETIVA_BLOCO_JS.match(m):
+        return True
+    if marca == "<!--" and (m.startswith("[if") or m.startswith("<![endif]") or m.endswith("<![endif]")):
+        return True
+    if ling == "bash" and linha in ajuda:
+        return True
+    return False
+
+
+CURTA = re.compile(r"^#\s*(?:shellcheck(?:\s+\w+=\S+)+|noqa(?::\s*\w+(?:\s*,\s*\w+)*)?|OVERRIDE|MEOW(?:-[A-Z0-9]+)+-\d+\b)")
+
+
+def diretiva_curta(comentario):
+    m = CURTA.match(comentario)
+    return m.group(0) if m else None
+
+
+def doc_usada(arvore):
+    modulo = any(isinstance(n, ast.Name) and n.id == "__doc__" for n in ast.walk(arvore))
+    nomes = {n.value.id for n in ast.walk(arvore)
+             if isinstance(n, ast.Attribute) and n.attr == "__doc__" and isinstance(n.value, ast.Name)}
+    return modulo, nomes
+
+
+def e_texto_solto(st):
+    return isinstance(st, ast.Expr) and isinstance(st.value, ast.Constant) and isinstance(st.value.value, str)
+
+
+CAMPOS = ("body", "orelse", "finalbody")
+
+
+def textos_soltos(arvore):
+    modulo, nomes = doc_usada(arvore)
+    saida = []
+    for no in ast.walk(arvore):
+        for campo in CAMPOS:
+            lista = getattr(no, campo, None)
+            if not isinstance(lista, list) or not lista or not isinstance(lista[0], ast.stmt):
+                continue
+            fica_doc = (isinstance(no, ast.Module) and modulo) or \
+                (isinstance(no, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and no.name in nomes)
+            sai = [k for k, st in enumerate(lista)
+                   if e_texto_solto(st) and not (k == 0 and campo == "body" and fica_doc)]
+            if sai:
+                saida.append((lista, sai))
+    return saida
+
+
+def ast_sem_textos_soltos(texto):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        arvore = ast.parse(texto)
+    for lista, sai in textos_soltos(arvore):
+        resto = [st for k, st in enumerate(lista) if k not in sai]
+        lista[:] = resto or [ast.Pass()]
+    return ast.dump(arvore, include_attributes=False)
+
+
+def fim_do_corte(texto, a, b):
+    if a == 0 or texto[a - 1] in " \t\n":
+        while b < len(texto) and texto[b] in " \t":
+            b += 1
+    return b
+
+
 def linhas_limpas(texto):
     return "\n".join(l.rstrip() for l in texto.split("\n") if l.strip()) + "\n"
 
@@ -304,22 +480,39 @@ def codigo(nome, texto):
     ling = linguagem_de(nome, texto)
     if ling == "python":
         try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                return ast.dump(ast.parse(texto), include_attributes=False) + "\n"
+            return ast_sem_textos_soltos(texto) + "\n"
         except SyntaxError:
             return texto
-    if ling == "patch":
-        return texto
-    if ling == "inteiro":
+    if ling in ("patch", "inteiro"):
         return texto
     partes, ult = [], 0
     for a, b, _ in spans_de(ling, texto):
+        b = fim_do_corte(texto, a, b)
         partes.append(texto[ult:a])
         partes.append("\n" * texto.count("\n", a, b))
         ult = b
     partes.append(texto[ult:])
     return linhas_limpas("".join(partes))
+
+
+def canonico_bash(texto, zsh=False):
+    exe = shutil.which("zsh" if zsh else "bash")
+    if not exe:
+        return None
+    if zsh:
+        prog = "__meow_f() {\n" + texto + "\n}\nfunctions __meow_f\n"
+        cmd = [exe, "-f", "-s"]
+    else:
+        prog = "shopt -s extglob\n__meow_f() {\n" + texto + "\n}\ndeclare -f __meow_f\n"
+        cmd = [exe, "--norc", "--noprofile", "-s"]
+    try:
+        r = subprocess.run(cmd, input=prog.encode("utf-8"), capture_output=True, timeout=60,
+                           env={"PATH": "/nonexistent", "LC_ALL": "C.UTF-8"})
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if r.returncode != 0 or not r.stdout:
+        return None
+    return codigo("x.sh", r.stdout.decode("utf-8", "surrogateescape"))
 
 
 def impressao(nome):
@@ -330,484 +523,144 @@ def impressao(nome):
     return hashlib.sha256(codigo(nome, texto).encode("utf-8")).hexdigest(), linguagem_de(nome, texto)
 
 
-# ---------------------------------------------------------------------------
-# o que é registro e não porquê
-# ---------------------------------------------------------------------------
-DATA = r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b"
-SPRINT = r"\bP\d{1,3}[a-z]?\b"
-ROTULO = rf"(?:{SPRINT}|{DATA}|\bsprints?\s+\S+|\bitem\s+\d+|\bachados?\s+(?:n[ºo]\s*)?\d+(?:\s*(?:,|e)\s*\d+)*|\bleva\s+[A-Z]\b)"
-# a classe de um caractere em cada nome deixa a lista passar pelo sanitizador do gancho global
-IA = r"\b(?:cl[a]ude|anthr[o]pic|chatg[p]t|open[a]i|cop[i]lot|gem[i]ni|gpt-\d\w*)\b"
-MARCAS = [
-    SPRINT, r"\bsprints?\b", IA,
-    r"\bconfer[êe]ncia", r"\bconferente", r"\bimplementador", r"\bauditoria",
-    r"\bachados?\b", r"\brelat[óo]rio d[aeo]s?\b", r"\brevis[ãa]o d[ao]s?\b",
-    r"\bmedid[oa]s?\s+(?:em|no|na|nest[ae]|dest[ae]|hoje|ontem|antes|depois)\b", r"\bmedido:", r"\bmedi(?:mos|u)\b",
-    r"\bquem usa\b", r"\bpedido dela\b", r"\b(?:ela|ele) (?:pediu|disse|reclamou|escolheu|decidiu)\b",
-    r"\b(?:nesta|naquela|desta|daquela|outra|[úu]ltima|pr[óo]xima) sess[ãa]o\b",
-    r"\b(?:pego|pega|descobert[oa]|percebid[oa])\s+(?:ao|na|no|em|por|pela|pelo)\b",
-    r"\bhoje\b.*\b(?:mediu|medido|vi|vimos)\b",
-]
-MARCA = re.compile("|".join(MARCAS), re.I)
-DATA_RE = re.compile(DATA)
+def coluna(linha, bytes_):
+    return len(linha.encode("utf-8")[:bytes_].decode("utf-8", "ignore"))
 
 
-def tem_data(texto):
-    for m in DATA_RE.finditer(texto):
-        partes = [int(x) for x in m.group(0).split("/")]
-        if 1 <= partes[0] <= 31 and 1 <= partes[1] <= 12:
-            return True
-    return False
-
-
-def e_registro(texto):
-    return bool(MARCA.search(texto)) or tem_data(texto)
-
-
-FRAGMENTOS = [
-    # (24/09/2026, sprint P39), [P68, 25/09/2026: ...], (achado 25)
-    re.compile(rf"\s*\((?:[^()]{{0,240}}?)(?:{ROTULO})(?:[^()]{{0,240}}?)\)", re.I),
-    re.compile(rf"\s*\[(?:[^\[\]]{{0,400}}?)(?:{ROTULO})(?:[^\[\]]{{0,400}}?)\]", re.I),
-    # P99 — 15/10/2026: no começo
-    re.compile(rf"^\s*(?:{ROTULO}\s*[,;—–-]?\s*)*{ROTULO}\s*[:—–-]+\s*", re.I),
-    # — 24/09/2026, P51 antes de pontuação ou no fim
-    re.compile(rf"\s*[—–]\s*(?:{ROTULO}[\s,;]*)+(?=[:.;]|$)", re.I),
-    # em 22/09/2026, desde 01/09
-    re.compile(rf"\s+(?:em|desde|até|no dia|de)\s+{DATA}", re.I),
-]
-
-
-def arruma(frase):
-    frase = re.sub(r"\s+([,.;:!?])", r"\1", frase)
-    frase = re.sub(r"([,;:])\1+", r"\1", frase)
-    return re.sub(r"\s{2,}", " ", frase).strip()
-
-
-def sem_fragmentos(frase):
-    for f in FRAGMENTOS:
-        frase = f.sub("", frase)
-    frase = re.sub(r"\s+([,.;:!?])", r"\1", frase)
-    frase = re.sub(r"([,;:])\1+", r"\1", frase)
-    frase = re.sub(r"^[\s,;:—–-]+", "", frase)
-    frase = re.sub(r"\s{2,}", " ", frase).strip()
-    if frase and frase[0].islower() and frase != frase.lower():
-        pass
-    return frase
-
-
-DIRETIVA = re.compile(r"^\s*(?:shellcheck|noqa|type:|pylint|-\*-|fmt:|pragma|eslint|@ts-|vim:|"
-                      r"SPDX|Copyright|prettier|istanbul|jshint|global\b|exported\b)", re.I)
-BANNER = re.compile(r"^\s*(?:-{2,}|={2,}|[─━]{2,})\s+\S.*")
-DECORACAO = re.compile(r"^[\s\-=*#~_─━│┃┄┈·•.]*$")
-
-
-CONECTIVO = re.compile(r"\b(?:DE|DA|DO|DAS|DOS|E|O|A|OS|AS|QUE|EM|NO|NA|POR|PARA|COM|UM|UMA|SE|É|SEM)\s*$")
-
-
-def e_titulo(linha):
-    """Linha em maiúsculas que abre uma seção (não a que começa uma frase longa)."""
-    s = re.sub(r"`[^`]*`|\([^)]*\)", "", linha).strip()
-    letras = [c for c in s if c.isalpha()]
-    return len(letras) >= 4 and sum(c.isupper() for c in letras) / len(letras) >= 0.8 \
-        and not CONECTIVO.search(s)
-
-
-def abre_secao(textos, k):
-    """O título de verdade é seguido de linha vazia, decoração, fim ou corpo mais recuado."""
-    if k + 1 >= len(textos):
-        return True
-    prox = textos[k + 1]
-    if not prox.strip() or DECORACAO.match(prox):
-        return True
-    recuo = lambda l: len(l) - len(l.lstrip())
-    return recuo(prox) > recuo(textos[k])
-
-
-def linha_estruturada(linha):
-    corpo = linha.strip()
-    return bool(re.match(r"^([-*•]\s|\d+[.)]\s|[a-z][).]\s|\$\s|>\s)", corpo)) or "   " in corpo \
-        or corpo.count("|") >= 2
-
-
-HISTORIA = re.compile(
-    r"\b(?:antig[oa]s?|deixou de|deixaram de|passou a|passaram a|voltou|voltaram|at[ée] hoje|"
-    r"o sintoma|medi[çc][ãa]o|a valida[çc][ãa]o|visto no|vista no|primeira vers[ãa]o|vers[ãa]o anterior|"
-    r"por acaso|queixa|pediu|pedido|pedia|dela:|ela via|ela disse|ela v[êe]|ela quer|ela pede|"
-    r"nasceu|foi assim|aconteceu|estava errad|errava|consertad|corrigid|regress[ãa]o)", re.I)
-TITULO_HISTORIA = re.compile(
-    r"DEFEITO|NASCEU|HIST[ÓO]RIA|MEDIDO|MEDI[ÇC][ÃA]O|VALIDOU|ACHAD|CONFER|O QUE MUDOU|VOLTOU|"
-    r"SAIU|CORRIGID|REGRESS|CASO REAL|SINTOMA|ESTAVA|ERA ASSIM|ANTES D|DESCOBERT|COMO SE CHEGOU|"
-    r"O QUE (?:SE )?TENTOU|TENTATIVA|PEDIDO|QUEIXA|EM \d")
-CONTINUACAO = re.compile(r"^(?:E|Mas|Então|Por isso|Assim|Daí|Também|Ou seja)\b")
-
-
-def citacao(t):
-    return any(x in t for x in ('*"', '"*', "*«", "»*"))
-
-
-FRASE = re.compile(r"(?<=[.!?…»”])\s+(?=[A-ZÀ-ÝÇ«\"“`*(\[¿¡]|[0-9])")
-
-
-def frases(paragrafo):
-    return [f for f in FRASE.split(paragrafo) if f.strip()]
-
-
-class Bloco:
-    def __init__(self, linhas_texto, a, b, indent, marca, estilo):
-        self.textos = linhas_texto   # o texto de cada linha, sem marcador
-        self.a, self.b = a, b        # linhas do arquivo (0-based, inclusivo)
-        self.indent = indent
-        self.marca = marca
-        self.estilo = estilo         # "linha" ou "bloco"
-
-
-NOME_E_PROPOSITO = re.compile(r"^[\w./-]+\.(?:sh|py|js|css|rs|toml|html)\s+[—–-]\s")
-
-
-def unidades(textos):
-    """O bloco em unidades: título, frase de prosa, parágrafo estruturado (tabela,
-    lista, exemplo), diretiva, decoração e linha vazia, na ordem do original."""
-    saida = []
-    paragrafo = []
-    cheias = [t for t in textos if t.strip()]
-    base = min((len(t) - len(t.lstrip()) for t in cheias), default=0)
-    if textos and NOME_E_PROPOSITO.match(textos[0]) and (len(textos) == 1 or not textos[1].strip()):
-        saida.append(("fixa", textos[0]))
-        textos = textos[1:]
-
-    def fecha():
-        if not paragrafo:
-            return
-        cabeca = len(paragrafo[0]) - len(paragrafo[0].lstrip())
-        exemplo = cabeca > base and not any(l.rstrip().endswith((".", ":", ";", ",")) for l in paragrafo)
-        if exemplo or any(linha_estruturada(l) or len(l) - len(l.lstrip()) > cabeca + 2 for l in paragrafo):
-            saida.append(("bloco", list(paragrafo)))
-        else:
-            texto = " ".join(l.strip() for l in paragrafo)
-            limpo = texto
-            for f in FRAGMENTOS[:2]:
-                limpo = f.sub("", limpo)
-            if limpo != texto:
-                limpo = arruma(limpo)
-            for f in frases(limpo):
-                saida.append(("frase", f))
-        paragrafo.clear()
-    for k, t in enumerate(textos):
-        if not t.strip():
-            fecha()
-            saida.append(("vazia", ""))
-        elif DIRETIVA.match(t) or BANNER.match(t):
-            fecha()
-            saida.append(("fixa", t))
-        elif DECORACAO.match(t):
-            fecha()
-            saida.append(("decoracao", t))
-        elif not paragrafo and e_titulo(t) and abre_secao(textos, k):
-            saida.append(("titulo", t))
-        else:
-            paragrafo.append(t)
-    fecha()
-    return saida
-
-
-def secoes(itens):
-    """Corta a lista de unidades nos títulos: [(título ou None, [unidades])]."""
-    saida = [[None, []]]
-    for tp, t in itens:
-        if tp == "titulo":
-            saida.append([t, []])
-        else:
-            saida[-1][1].append(("vazia", "") if tp == "decoracao" else (tp, t))
-    return [(a, b) for a, b in saida if a is not None or b]
-
-
-def limpa_registro(tp, t):
-    """Tira o registro de uma unidade; devolve a unidade nova ou None."""
-    if tp == "frase" or tp == "titulo":
-        if not e_registro(t):
-            return t
-        recuo = t[:len(t) - len(t.lstrip())]
-        novo = sem_fragmentos(t.strip())
-        if not re.search(r"\w", novo):
-            return None
-        return recuo + novo if not e_registro(novo) else None
-    if tp == "fixa" and BANNER.match(t) and e_registro(t):
-        recuo = t[:len(t) - len(t.lstrip())]
-        m = re.match(r"^(\s*(?:-{2,}|={2,}|[─━]{2,})\s+)(.*?)(\s*[-=─━]*)$", t)
-        miolo = sem_fragmentos(m.group(2)) if m else ""
-        if not re.search(r"\w", miolo) or e_registro(miolo):
-            return None
-        return m.group(1) + miolo + (" " + m.group(3).strip() if m.group(3).strip() else "")
-    if tp == "bloco":
-        if not any(e_registro(l) for l in t):
-            return t
-        novas = []
-        for l in t:
-            if e_registro(l):
-                recuo = l[:len(l) - len(l.lstrip())]
-                l = recuo + sem_fragmentos(l.strip())
-                if e_registro(l) or not re.search(r"\w", l):
-                    return None
-            novas.append(l)
-        return novas
-    return t
-
-
-def paragrafos(corpo):
-    atual = []
-    for u in corpo:
-        if u[0] == "vazia":
-            if atual:
-                yield atual
-            atual = []
-        else:
-            atual.append(u)
-    if atual:
-        yield atual
-
-
-def ruim(t):
-    return bool(HISTORIA.search(t)) or citacao(t)
-
-
-def teto_do_bloco(limpas, teto, largura):
-    """O primeiro parágrafo útil fica com até `teto` linhas; cada parágrafo útil
-    seguinte, com a primeira frase; o bloco inteiro, com até 2 × `teto`."""
-    total, usado, guardadas = 2 * teto, 0, []
-    for titulo, corpo in secoes(limpas):
-        if titulo is not None and TITULO_HISTORIA.search(titulo):
-            continue
-        for par in paragrafos(corpo):
-            frs = [t for tp, t in par if tp == "frase"]
-            if frs and sum(map(ruim, frs)) * 2 > len(frs):
-                continue
-            tem_prosa = any(not e_titulo(t) for t in frs)
-            itens, no_par = [], 0
-            primeiro = not any(tp == "frase" for tp, _ in guardadas)
-            for tp, t in par:
-                if tp == "frase":
-                    if ruim(t) or (tem_prosa and e_titulo(t)) or (no_par == 0 and CONTINUACAO.match(t)) \
-                            or len(t.split()) < 4:
-                        continue
-                    custo = max(1, -(-len(t) // largura))
-                    if no_par and (not primeiro or no_par + custo > teto):
-                        break
-                    if usado and usado + custo > total:
-                        break
-                    itens.append((tp, t))
-                    no_par += custo
-                    usado += custo
-                elif tp == "bloco":
-                    if len(t) <= 12 and not any(map(ruim, t)) and usado + len(t) <= total + 4:
-                        itens.append((tp, t))
-                        usado += len(t)
-                elif tp == "fixa":
-                    itens.append((tp, t))
-            if itens:
-                if guardadas:
-                    guardadas.append(("vazia", ""))
-                guardadas.extend(itens)
-    if not guardadas:
-        titulos = [sem_fragmentos(t.strip()) for t, _ in secoes(limpas)
-                   if t is not None and not TITULO_HISTORIA.search(t)]
-        guardadas = [("frase", t) for t in titulos[:1] if re.search(r"\w", t)]
-    return guardadas
-
-
-def reduzir(bloco, teto, largura):
-    """Devolve a lista nova de textos do bloco, ou None quando nada muda."""
-    us = unidades(bloco.textos)
-    limpas = []
-    for tp, t in us:
-        novo = limpa_registro(tp, t)
-        if novo is not None:
-            limpas.append((tp, novo))
-    if teto and len(bloco.textos) > teto:
-        limpas = teto_do_bloco(limpas, teto, largura)
-    # remonta: prosa seguida vira parágrafo reembrulhado; o resto fica como era
-    textos, prosa = [], []
-
-    def fecha():
-        if prosa:
-            textos.extend(textwrap.wrap(" ".join(prosa), largura, break_long_words=False,
-                                        break_on_hyphens=False) or [""])
-            prosa.clear()
-    for tp, t in limpas:
-        if tp == "frase":
-            prosa.append(t)
-        elif tp == "vazia":
-            fecha()
-            if textos and textos[-1] != "":
-                textos.append("")
-        elif tp == "bloco":
-            fecha()
-            textos.extend(t)
-        else:
-            fecha()
-            textos.append(t)
-    fecha()
-    while textos and textos[-1] == "":
-        textos.pop()
-    while textos and textos[0] == "":
-        textos.pop(0)
-    orig = list(bloco.textos)
-    while orig and orig[-1] == "":
-        orig.pop()
-    if [l.strip() for l in textos if l.strip()] == [l.strip() for l in orig if l.strip()] \
-            or " ".join(" ".join(textos).split()) == " ".join(" ".join(orig).split()):
-        return None
-    return textos
-
-
-def blocos_do_arquivo(texto, spans):
-    """Agrupa os comentários de linha inteira em blocos; o resto é comentário em fim de linha."""
+def zerar_texto(nome, texto, intervalos=None):
+    ling = linguagem_de(nome, texto)
+    if ling in ("inteiro", "patch"):
+        return texto, None
     linhas = texto.split("\n")
-    inicio_linha = [0]
+    inicio = [0]
     for l in linhas:
-        inicio_linha.append(inicio_linha[-1] + len(l) + 1)
+        inicio.append(inicio[-1] + len(l) + 1)
 
     def linha_de(off):
         lo, hi = 0, len(linhas)
         while lo < hi:
             m = (lo + hi) // 2
-            if inicio_linha[m + 1] <= off:
+            if inicio[m + 1] <= off:
                 lo = m + 1
             else:
                 hi = m
         return lo
-    blocos, inline = [], []
-    atual = None
-    for a, b, marca in spans:
-        la, lb = linha_de(a), linha_de(max(a, b - 1))
-        col = a - inicio_linha[la]
-        antes = linhas[la][:col]
-        depois = linhas[lb][b - inicio_linha[lb]:]
-        inteira = not antes.strip() and not depois.strip()
-        if not inteira:
-            if la == lb:
-                inline.append((la, col, b - inicio_linha[la], marca))
-            atual = None
-            continue
-        if marca == "/*":
-            corpo = texto[a + 2:b - 2]
-            abre = "/**" if texto.startswith("/**", a) and not texto.startswith("/**/", a) else "/*"
-            if abre == "/**":
-                corpo = corpo[1:]
-            ls = corpo.split("\n")
-            ts = []
-            for k, l in enumerate(ls):
-                s = l
-                if k > 0:
-                    s = re.sub(r"^\s*\*? ?", "", l) if re.match(r"^\s*\*", l) else l.strip()
-                else:
-                    s = l[1:] if l.startswith(" ") else l
-                ts.append(s.rstrip())
-            while ts and not ts[-1].strip():
-                ts.pop()
-            blocos.append(Bloco(ts, la, lb, antes, abre, "bloco"))
-            atual = None
-            continue
-        txt = linhas[la][col + len(marca):]
-        txt = txt[1:] if txt.startswith(" ") else txt
-        if atual and atual.estilo == "linha" and atual.marca == marca and atual.indent == antes \
-                and atual.b == la - 1 and not DIRETIVA.match(txt):
-            atual.textos.append(txt.rstrip())
-            atual.b = la
-        else:
-            atual = Bloco([txt.rstrip()], la, la, antes, marca, "linha")
-            blocos.append(atual)
-            if DIRETIVA.match(txt):
-                atual = None
-    return blocos, inline, linhas
-
-
-def renderiza(bloco, textos):
-    if not textos:
-        return []
-    if bloco.estilo == "linha":
-        return [bloco.indent + bloco.marca + ((" " + t) if t else "") for t in textos]
-    if len(textos) == 1:
-        return [f"{bloco.indent}{bloco.marca} {textos[0]} */"]
-    saida = [f"{bloco.indent}{bloco.marca} {textos[0]}".rstrip()]
-    for t in textos[1:]:
-        saida.append(f"{bloco.indent} * {t}".rstrip() if t else f"{bloco.indent} *")
-    saida[-1] += " */"
-    return saida
-
-
-def enxugar_texto(nome, texto, teto=False, intervalos=None):
-    ling = linguagem_de(nome, texto)
-    if ling in ("inteiro", "patch", "html"):
-        return texto
-    if ling == "bash" and re.search(r"sed -n '[\d,]+p' \"\$0\"", texto):
-        return texto
-    spans = spans_de(ling, texto)
-    blocos, inline, linhas = blocos_do_arquivo(texto, spans)
 
     def toca(a, b):
         return intervalos is None or any(a <= y and x <= b for x, y in intervalos)
-    troca = {}
-    primeiro = blocos[0].a if blocos else -1
-    cab = primeiro >= 0 and all(not l.strip() or l.startswith("#!") for l in linhas[:primeiro])
-    for bl in blocos:
-        if not toca(bl.a + 1, bl.b + 1):
+    ajuda = linhas_de_ajuda(texto) if ling == "bash" else set()
+    cortes = []
+    for a, b, marca in spans_de(ling, texto):
+        la, lb = linha_de(a), linha_de(max(a, b - 1))
+        if not toca(la + 1, lb + 1):
             continue
-        prosa = [len(l) for l, t in zip(linhas[bl.a:bl.b + 1], bl.textos) if t.strip() and not linha_estruturada(t)]
-        largura = max(50, min(80, max(prosa, default=80)) - len(bl.indent) - len(bl.marca) - 1)
-        lim = (4 if (cab and bl.a == primeiro) else 3) if teto else 0
-        novos = reduzir(bl, lim, largura)
-        if novos is not None:
-            troca[bl.a] = (bl.b, renderiza(bl, novos))
-    for la, ca, cb, marca in inline:
-        if not toca(la + 1, la + 1) or la in troca:
+        if mantem(ling, texto, a, b, marca, ajuda, la):
+            curto = diretiva_curta(texto[a:b]) if la not in ajuda else None
+            if curto and curto != texto[a:b]:
+                cortes.append((a, b, curto))
             continue
-        linha = linhas[la]
-        com = linha[ca:cb]
-        if marca == "/*":
-            miolo = com[2:-2].strip()
+        antes = texto[inicio[la]:a]
+        depois = texto[b:inicio[lb + 1] - 1] if lb + 1 < len(inicio) else texto[b:]
+        if antes.strip() and depois.strip() and not antes[-1:].isspace() and not depois[:1].isspace():
+            return texto, f"linha {la + 1}: o comentário cola dois pedaços de código"
+        cortes.append((a, fim_do_corte(texto, a, b), ""))
+    if ling == "python":
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                arvore = ast.parse(texto)
+        except SyntaxError as e:
+            return texto, f"não compila: {e.msg}"
+        for lista, sai in textos_soltos(arvore):
+            sobra = len(sai) == len(lista)
+            for k in sai:
+                st = lista[k]
+                la, lb = st.lineno - 1, st.end_lineno - 1
+                if not toca(la + 1, lb + 1):
+                    sobra = False
+                    continue
+                ca, cb = coluna(linhas[la], st.col_offset), coluna(linhas[lb], st.end_col_offset)
+                antes = linhas[la][:ca]
+                depois = linhas[lb][cb:]
+                if antes.strip() or (depois.strip() and not depois.strip().startswith("#")):
+                    return texto, f"linha {la + 1}: a docstring divide a linha com código"
+                a = inicio[la] + ca
+                b = inicio[lb] + cb
+                troca = "pass" if sobra and k == sai[0] else ""
+                cortes.append((a, b, troca))
+    if not cortes:
+        return texto, None
+    cortes.sort()
+    MARCA = "\x00"
+    partes, ult = [], 0
+    for a, b, troca in cortes:
+        if a < ult:
+            continue
+        partes.append(texto[ult:a])
+        partes.append((troca or MARCA) + ("\n" + MARCA) * texto.count("\n", a, b))
+        ult = b
+    partes.append(texto[ult:])
+    meio = "".join(partes).split("\n")
+    saida = []
+    for l in meio:
+        if MARCA in l:
+            limpa = l.replace(MARCA, "")
+            if not limpa.strip():
+                saida.append(None)
+            else:
+                saida.append(limpa.rstrip() if l.rstrip().endswith(MARCA) else limpa)
         else:
-            miolo = com[len(marca):].strip()
-        if not miolo or DIRETIVA.match(miolo) or not e_registro(miolo):
+            saida.append(l)
+    final = []
+    k = 0
+    while k < len(saida):
+        if saida[k] is not None:
+            final.append(saida[k])
+            k += 1
             continue
-        novo = sem_fragmentos(miolo)
-        if novo and e_registro(novo):
-            novo = ""
-        if novo:
-            nc = f"/* {novo} */" if marca == "/*" else f"{marca} {novo}"
-            nova = linha[:ca] + nc + linha[cb:]
-        else:
-            nova = (linha[:ca].rstrip() + linha[cb:]).rstrip() if not linha[cb:].strip() \
-                else linha[:ca] + linha[cb:].lstrip()
-        troca[la] = (la, [nova])
-    if not troca:
-        return texto
-    saida, k = [], 0
-    while k < len(linhas):
-        if k in troca:
-            fim, novas = troca[k]
-            saida.extend(novas)
-            k = fim + 1
-            if not novas and saida and not saida[-1].strip() and k < len(linhas) and not linhas[k].strip():
-                k += 1
-            continue
-        saida.append(linhas[k])
-        k += 1
-    return "\n".join(saida)
+        while k < len(saida) and saida[k] is None:
+            k += 1
+        seguinte_vazia = k < len(saida) and saida[k] is not None and not saida[k].strip()
+        anterior_vazia = bool(final) and not final[-1].strip()
+        if seguinte_vazia and (anterior_vazia or not final):
+            k += 1
+        elif anterior_vazia and k >= len(saida):
+            final.pop()
+    return "\n".join(final), None
 
 
-def enxugar(nome, teto=False, intervalos=None):
-    """Grava o arquivo enxuto se a impressão não mudar. Devolve 'mudou', 'igual' ou 'recusado'."""
+FORA = re.compile(r"(?:^|/)(?:patches|upstream|vendor|Sleek)/|^packs/[^/]+/icones/|^docs/(?:sprints|historico)/|"
+                  r"\.(?:patch|diff|svg|original)$|(?:^|/)(?:LICEN[CS]E|License)|(?:^|/)Cargo\.lock$")
+GERADO = re.compile(r"\b(?:[Gg]erado|GERADO|@generated)\b|[Nn]ão edite")
+
+
+def fora_do_corte(nome, texto):
+    return bool(FORA.search(nome)) or bool(GERADO.search("\n".join(texto.split("\n", 3)[:3])))
+
+
+def zerar(nome, intervalos=None, gravar=True):
     p = Path(nome)
     try:
         texto = p.read_text(encoding="utf-8")
     except (UnicodeDecodeError, IsADirectoryError, FileNotFoundError):
         return "igual"
-    novo = enxugar_texto(nome, texto, teto, intervalos)
+    if fora_do_corte(nome, texto):
+        return "igual"
+    novo, motivo = zerar_texto(nome, texto, intervalos)
+    if motivo:
+        return f"recusado: {motivo}"
     if novo == texto:
         return "igual"
     if codigo(nome, novo) != codigo(nome, texto):
-        return "recusado"
-    p.write_text(novo, encoding="utf-8")
+        return "recusado: a impressão mudaria"
+    ling = linguagem_de(nome, texto)
+    if ling == "bash":
+        zsh = texto.startswith("#compdef") or nome.endswith(".zsh") or texto.split("\n", 1)[0].endswith("zsh")
+        antes = canonico_bash(texto, zsh)
+        if antes is not None and canonico_bash(novo, zsh) != antes:
+            return "recusado: o shell relê o código diferente"
+    if gravar:
+        p.write_text(novo, encoding="utf-8")
     return "mudou"
 
 
@@ -825,23 +678,21 @@ def main(args):
         for nome in resto:
             sys.stdout.write(codigo(nome, Path(nome).read_text(encoding="utf-8")))
         return 0
-    if verbo == "enxugar":
-        teto, intervalos = False, None
-        while resto and resto[0].startswith("--"):
-            if resto[0] == "--teto":
-                teto = True
-                resto = resto[1:]
-            elif resto[0] == "--linhas":
-                intervalos = [tuple(int(x) for x in r.split("-")) for r in resto[1].split(",") if r]
-                resto = resto[2:]
-            else:
-                break
+    if verbo in ("zerar", "conferir"):
+        intervalos = None
+        if resto[:1] == ["--linhas"]:
+            intervalos = [tuple(int(x) for x in r.split("-")) for r in resto[1].split(",") if r]
+            resto = resto[2:]
         rc = 0
         for nome in resto:
-            r = enxugar(nome, teto, intervalos)
-            if r != "igual":
-                print(f"{r}  {nome}")
-            if r == "recusado":
+            r = zerar(nome, intervalos, verbo == "zerar")
+            if r == "igual":
+                continue
+            estado = r.split(":")[0]
+            if verbo == "conferir" and estado == "mudou":
+                estado = "comentario"
+            print(f"{estado}  {nome}{r[len(r.split(':')[0]):]}")
+            if verbo == "conferir" or estado == "recusado":
                 rc = 1
         return rc
     print(__doc__.strip(), file=sys.stderr)

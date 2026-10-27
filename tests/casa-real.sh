@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# casa-real.sh — a casa fica coerente com o pack no ar. P79, item 4, 10/10/2026.
-#
-# PORTÁTIL: HOME, COSMIC e packs de brinquedo; sudo, pkill e afins falsos. 0 =
-# passou · 1 = falhou · 2 = erro deste teste
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -20,8 +16,7 @@ for c in sudo pkexec su pkill killall notify-send systemd-run loginctl apt apt-g
   printf '#!/bin/sh\nexit 1\n' > "$FALSO/$c"; chmod 755 "$FALSO/$c"
 done
 
-# Um conf de fábrica com as chaves trocadas (a última atribuição vence, como no `.`).
-conf_com() {  # <arquivo> CHAVE=valor...
+conf_com() {
   local arq="$1"; shift
   cp "$EXEMPLO" "$arq"
   python3 - "$arq" "$@" <<'PY'
@@ -73,7 +68,7 @@ fi
 printf '\n--- 2. o doctor acusa e o --consertar corrige ---\n'
 CASA="$TMP/casa"; mkdir -p "$CASA/.config/meow"
 conf_com "$CASA/.config/meow/meow.conf" 'PACK="dracula"' 'FLAVOR="dracula"' 'ICONES_FLAVOR="macchiato"' 'ICONES_PASTAS="cat-dracula-${ACCENT}"'
-doctor() {  # <casa> <verificadores> [--consertar]
+doctor() {
   local casa="$1" vs="$2"; shift 2
   env -i PATH="$FALSO:$PATH" HOME="$casa" MEOW_RAIZ="$RAIZ" NO_COLOR=1 VS="$vs" \
     XDG_CONFIG_HOME="$casa/.config" XDG_STATE_HOME="$casa/.local/state" \
@@ -93,7 +88,7 @@ $(cat "$TMP/s3")"
 fi
 
 printf '\n--- 3. a troca de pack leva o ponteiro e as pastas do pack de antes ---\n'
-troca() {  # <casa> <pack> [VAR=valor ...]
+troca() {
   local casa="$1" alvo="$2"; shift 2
   env -i PATH="$FALSO:$PATH" HOME="$casa" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
     XDG_CONFIG_HOME="$casa/.config" XDG_STATE_HOME="$casa/.local/state" "$@" \
@@ -131,10 +126,7 @@ if [ "$rc" = 0 ] && [ "$(linha_de "$C3" CURSOR)" = 'CURSOR="Bibata-Modern-Ice"' 
 else
   falha "a troca levou o ponteiro que quem usa fixou (rc=$rc)" "$(linha_de "$C3" CURSOR)"
 fi
-# [Conferência da P79: o «Restaurar ao padrão» do ponteiro grava o de fábrica
-#  (decisão 10), e o de fábrica do ponteiro é o que o pack no ar escolhe — a
-#  mesma régua da troca, acima. O painel manda esse valor em `padrao_do_pack`.]
-padrao_do_ponteiro() {  # <conf>
+padrao_do_ponteiro() {
   env -i PATH="$FALSO:$PATH" HOME="$CASA3" MEOW_RAIZ="$RAIZ" MEOW_CONF="$1" python3 - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
@@ -153,11 +145,6 @@ else
 fi
 
 printf '\n--- 3b. a troca parada no meio não deixa pasta para trás ---\n'
-#   [QA final da leva H, 16/10/2026: a suíte deixava uma `/tmp/tmp.*` vazia por
-#    rodada. Era o `meow pack usar` que o gate para pelo «Parar» (SIGTERM no
-#    grupo): a cópia do conf nasce num `mktemp -d`, e o `rm -rf` dela só roda
-#    no fim. Aqui a troca de ensaio é parada em três momentos, com o TMPDIR
-#    numa pasta só dela, e nada pode sobrar lá.]
 SOBRA="$TMP/tmpdir"; mkdir -p "$SOBRA"
 CASA3B="$TMP/casa3b"; mkdir -p "$CASA3B/.config/meow"
 conf_com "$CASA3B/.config/meow/meow.conf" 'PACK="dracula"' 'FLAVOR="dracula"'
@@ -183,7 +170,7 @@ BG="$CASA4/.config/cosmic/com.system76.CosmicBackground/v1"
 mkdir -p "$CASA4/.config/meow" "$B/ativos" "$BG" "$TMP/fora/imagens"
 conf_com "$CASA4/.config/meow/meow.conf" 'WALLPAPER_NOITE="nao"'
 for i in 1 2 3; do printf 'P3\n1 1\n255\n%d 0 0\n' "$((i * 60))" > "$B/ativos/p$i.ppm"; done
-fundo() {  # <pasta>
+fundo() {
   printf '(\n    output: "all",\n    source: Path("%s"),\n    filter_by_theme: false,\n    rotation_frequency: 300,\n    filter_method: Lanczos,\n    scaling_mode: Zoom,\n    sampling_method: Random,\n)' "$1" > "$BG/all"
 }
 for pasta in "$TMP/fora/imagens" "$B/ativos-noite"; do
@@ -204,13 +191,12 @@ done
 
 
 printf '\n--- 5. instalar com PACK=dracula já no conf leva o ponteiro (decisão 12) ---\n'
-# Um install.sh só com a etapa da configuração, numa raiz de links para o resto.
 RZ="$TMP/raiz-conf"; mkdir -p "$RZ"
 for i in "$RAIZ"/*; do [ "$(basename "$i")" = install.sh ] || ln -s "$i" "$RZ/"; done
 awk '/local etapas=\(/ && !t { print "  local etapas=(etapa_conf)"; t=1; p=1 }
      p { if ($0 ~ /\)[ \t]*$/) p=0; next } { print }' "$RAIZ/install.sh" > "$RZ/install.sh"
 chmod +x "$RZ/install.sh"
-inst() {  # <casa> [VAR=valor ...]
+inst() {
   local casa="$1"; shift
   env -i PATH="$FALSO:$PATH" HOME="$casa" USER="${USER:-t}" MEOW_IGNORA_DESKTOP=1 NO_COLOR=1 \
     MEOW_PONTE=/nao/existe "$@" bash "$RZ/install.sh" --uma-passagem 2>&1

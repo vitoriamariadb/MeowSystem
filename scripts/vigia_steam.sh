@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# vigia_steam.sh — liga (ou desliga) o gatilho que tira do lançador o atalho do
-#                  jogo que a Steam desinstalou.
-#
-#   ./vigia_steam.sh              instala as unidades e liga o vigia
-#   ./vigia_steam.sh --conferir   não escreve; 1 se algo divergir
-#
-# A limpeza de órfãos do `jogos_steam.sh` já existia e funcionava — o que
-# faltava era alguém CHAMAR o script depois de uma desinstalação. Sem isto, o
-# cartão de um jogo removido às 3h da tarde ficava até a passagem do `meow
-# doctor`, às 5h da manhã seguinte.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -41,7 +31,6 @@ _ligado() {
   [ "$(systemctl --user is-active  "$GATILHO" 2>/dev/null)" = "active" ]
 }
 
-# --- desligado: o que existe tem de SAIR -------------------------------------
 _desligar() {
   local u restos=0
   for u in "${UNIDADES[@]}"; do [ -f "$DESTINO/$u" ] && restos=$((restos + 1)); done
@@ -61,7 +50,6 @@ _desligar() {
   return "$MEOW_DIVERGENTE"
 }
 
-# --- as dependências ---------------------------------------------------------
 _pronto() {
   local u
   for u in "${UNIDADES[@]}"; do
@@ -70,8 +58,6 @@ _pronto() {
       return "$MEOW_ERRO"
     fi
   done
-  # Sem a pasta da Steam não há evento a vigiar — e a etapa some do relatório,
-  # que é o certo para uma etapa que depende de um programa opcional.
   if [ ! -d "$HOME/.steam/steam/steamapps" ] && [ ! -d "$HOME/.steam/debian-installation/steamapps" ]; then
     meow_pula "Steam não instalada — nada a vigiar"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -84,7 +70,6 @@ _pronto() {
   return "$MEOW_OK"
 }
 
-# --- conferir ----------------------------------------------------------------
 _conferir() {
   local u texto divergentes=0
   for u in "${UNIDADES[@]}"; do
@@ -111,13 +96,9 @@ _conferir() {
   return "$MEOW_OK"
 }
 
-# --- aplicar -----------------------------------------------------------------
 _aplicar() {
   local u texto mudou=0 estado="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 
-  # O diretório do log tem de existir ANTES de a unidade subir: o
-  # `StandardOutput=append:` é montado antes de qualquer comando do serviço, e
-  # sem ele a unidade morre com `status=209/STDOUT`.
   if ! mkdir -p "$estado"; then
     meow_erro "não consegui criar $estado (é lá que fica o log do vigia)"
     return "$MEOW_ERRO"
@@ -134,9 +115,6 @@ _aplicar() {
 
   [ "$mudou" = 1 ] && systemctl --user daemon-reload
 
-  # Um estouro do StartLimit deixa a unidade em `failed`, e nesse estado o
-  # `enable --now` não a levanta. Limpar antes é o que faz o `--consertar` de
-  # fato consertar, em vez de dizer que consertou.
   if [ "$(systemctl --user is-failed "$GATILHO" 2>/dev/null)" = "failed" ]; then
     systemctl --user reset-failed "$GATILHO" meow-steam.service >/dev/null 2>&1
     mudou=1

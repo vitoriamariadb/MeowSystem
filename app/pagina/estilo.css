@@ -1,13 +1,3 @@
-/* Hallmark · macrostructure: Workbench (app shell) · tone: utilitário caloroso · anchor hue: o destaque do pack no ar
- * theme: studied-DNA (fonte: docs/design/2026-10-23/final, a paleta vem de /paleta.css) · nav: barra de portas
- * Hallmark · pre-emit critique: P4 H5 E4 S5 R5 V4
- *
- * app/pagina/estilo.css — o painel novo (P98), desenhado pelo mockup final da P97.
- * Nenhuma cor mora aqui: as 26 vêm de /paleta.css (o pack no ar, no flavor do
- * meow.conf) e o --accent também. Uma grade por página; os botões de uma fila têm
- * a mesma altura e a mesma família. */
-
-/* ── 1. papéis: o que a interface usa ───────────────────────────────────── */
 :root {
   --fundo: var(--base);
   --barra: var(--mantle);
@@ -46,10 +36,8 @@
   --ease-in: cubic-bezier(.5, 0, .9, .4);
   --dur-rapida: 120ms; --dur-media: 220ms;
 
-  /* a altura das famílias de controle: uma fila só usa uma */
   --h-bt: 40px; --h-pequeno: 32px;
 }
-/* Nas variantes claras o texto sobre o destaque vira claro e o cartão clareia. */
 html[data-claro] {
   --sobre-accent: var(--base);
   --sombra: color-mix(in oklab, var(--overlay2) 30%, transparent);
@@ -57,7 +45,6 @@ html[data-claro] {
   --cartao: color-mix(in oklab, var(--mantle) 50%, var(--base));
 }
 
-/* ── 2. base ────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { overflow-x: clip; }
 body {
@@ -81,7 +68,6 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .pular { position: absolute; left: -999px; top: 8px; z-index: 50; padding: var(--e-2) var(--e-4); background: var(--accent); color: var(--sobre-accent); border-radius: var(--raio-sm); }
 .pular:focus { left: 8px; }
 
-/* ── 3. barra de cima ───────────────────────────────────────────────────── */
 .topo {
   position: sticky; top: 0; z-index: 20; height: 64px;
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: var(--e-4);
@@ -129,7 +115,6 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .menu-corpo a, .menu-corpo button { display: flex; align-items: center; gap: var(--e-3); height: var(--h-bt); padding: 0 var(--e-3); border: 0; border-radius: var(--raio-sm); background: none; text-decoration: none; text-align: left; white-space: nowrap; }
 .menu-corpo a:hover, .menu-corpo button:hover { background: var(--accent-suave); }
 
-/* ── 4. botões: oito estados, duas famílias de altura ────────────────────── */
 .bt {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--e-2);
   height: var(--h-bt); padding: 0 var(--e-5); border-radius: var(--raio-pilula); white-space: nowrap;
@@ -156,12 +141,10 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .bt.so-icone.pequeno { width: var(--h-pequeno); }
 @keyframes gira { to { transform: rotate(360deg); } }
 
-/* «Voltar ao padrão»: um ícone ao lado do nome, só quando o valor difere */
 .padrao { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--tinta-3); }
 .padrao:hover { color: var(--accent); background: var(--accent-suave); }
 .padrao svg.i { width: 15px; height: 15px; }
 
-/* ── 5. controles ──────────────────────────────────────────────────────── */
 .chave { position: relative; width: 46px; height: 26px; flex: none; padding: 0; border-radius: var(--raio-pilula); border: 1px solid var(--linha-forte); background: var(--cartao-2); transition: background-color var(--dur-rapida) var(--ease-out); }
 .chave::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--tinta-3); transition: transform var(--dur-media) var(--ease-out); }
 .chave[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
@@ -202,7 +185,6 @@ select.campo { padding-right: var(--e-8); }
 .cores.grandes button { width: 34px; height: 34px; }
 .cores.pequenas button { width: 24px; height: 24px; }
 
-/* fichas: as listas do meow.conf (programas escondidos, bloqueados…) */
 .fichas { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; }
 .ficha { display: inline-flex; align-items: center; gap: var(--e-2); height: var(--h-pequeno); padding: 0 6px 0 var(--e-3); border-radius: var(--raio-pilula); background: var(--cartao-2); font-size: var(--t-sm); }
 .ficha img { width: 16px; height: 16px; }
@@ -210,7 +192,6 @@ select.campo { padding-right: var(--e-8); }
 .ficha button:hover { color: var(--perigo); background: var(--perigo-suave); }
 .ficha-nova { height: var(--h-pequeno); width: 160px; border-radius: var(--raio-pilula); }
 
-/* ── 6. superfícies ─────────────────────────────────────────────────────── */
 .pagina { padding: var(--e-8) var(--e-14) var(--e-12); max-width: 1760px; margin: 0 auto; }
 .cabeca { display: flex; align-items: center; justify-content: space-between; gap: var(--e-6); min-height: var(--h-bt); margin-bottom: var(--e-6); flex-wrap: wrap; }
 .cabeca .fila { margin-left: auto; }
@@ -242,7 +223,6 @@ select.campo { padding-right: var(--e-8); }
 .linha.larga { grid-template-columns: minmax(0, 1fr); }
 .linha.larga .ctl { justify-content: flex-start; }
 
-/* «Mais ajustes»: recolhido no fim da página */
 .mais { border: 1px solid var(--linha); border-radius: var(--raio-lg); background: var(--cartao); }
 .mais > summary { display: flex; align-items: center; gap: var(--e-2); min-height: 56px; padding: 0 var(--e-6); cursor: pointer; font-weight: 600; list-style: none; color: var(--tinta-2); }
 .mais > summary::-webkit-details-marker { display: none; }
@@ -254,9 +234,6 @@ select.campo { padding-right: var(--e-8); }
 .fila { display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap; }
 .pilha { display: grid; gap: var(--e-6); align-content: start; min-width: 0; }
 
-/* ── 7. a prévia: a mesa de trabalho em miniatura ─────────────────────────
- * Usa só as variáveis de cor dentro dela (--p-*), para um cartão de pack
- * mostrar as cores DELE. Nenhuma palavra: barras no lugar de texto. */
 .previa {
   --p-acc: var(--accent); --p-base: var(--base); --p-mantle: var(--mantle); --p-crust: var(--crust);
   --p-text: var(--text); --p-sub: var(--subtext0); --p-s0: var(--surface0); --p-s1: var(--surface1);
@@ -325,7 +302,6 @@ select.campo { padding-right: var(--e-8); }
 .previa .mudou-aqui { outline: 2px dashed var(--p-acc); outline-offset: .8cqi; }
 .previa .quente { position: absolute; inset: 0; background: var(--peach); mix-blend-mode: multiply; pointer-events: none; }
 
-/* ── 8. Ajustes e Criar: trilho, palco e controles na mesma grade ────────── */
 .oficina { display: grid; grid-template-columns: 210px minmax(0, .92fr) minmax(0, 1.08fr); gap: var(--e-8); align-items: start; }
 .oficina.sem-trilho { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .oficina .palco { position: sticky; top: 96px; min-width: 0; display: grid; gap: var(--e-4); }
@@ -343,7 +319,6 @@ select.campo { padding-right: var(--e-8); }
 .passos a[aria-current="step"] b { background: var(--accent); color: var(--sobre-accent); }
 .seguir { display: flex; justify-content: space-between; align-items: center; gap: var(--e-3); }
 
-/* escolhas com imagem: mascote, ponteiro, papel */
 .escolhas { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: var(--e-3); width: 100%; }
 .escolha { display: grid; justify-items: center; align-content: start; gap: var(--e-2); padding: var(--e-3); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); color: var(--tinta-2); font-weight: 500; font-size: var(--t-sm); min-height: 128px; }
 .escolha:hover { border-color: var(--accent-linha); color: var(--tinta); }
@@ -354,7 +329,6 @@ select.campo { padding-right: var(--e-8); }
 .escolha.trazer svg.i { width: 24px; height: 24px; }
 .escolha svg.ponteiro { width: 48px; height: 48px; margin: 12px; }
 
-/* ── 9. Tema ────────────────────────────────────────────────────────────── */
 .grade-tema { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e-6); }
 .pack { display: grid; grid-template-rows: auto 1fr; border-radius: var(--raio-xl); background: var(--cartao); border: 1px solid var(--linha); overflow: hidden; min-width: 0; }
 .pack:hover { border-color: var(--accent-linha); }
@@ -383,7 +357,6 @@ select.campo { padding-right: var(--e-8); }
 .saude.alerta svg.i { color: var(--alerta); }
 .saude:hover { border-color: var(--ok); }
 
-/* ── 10. Criar tema ─────────────────────────────────────────────────────── */
 .nome-tema { font: 600 var(--t-2xl)/1.15 var(--f-corpo); color: var(--tinta); background: transparent; border: 1px solid transparent; border-radius: var(--raio-md); padding: 2px var(--e-2); margin-left: calc(-1 * var(--e-2)); width: min(520px, 100%); }
 .nome-tema:hover { border-color: var(--linha); }
 .nome-tema:focus-visible { outline: none; border-color: var(--accent); background: var(--fundo); }
@@ -413,7 +386,6 @@ select.campo { padding-right: var(--e-8); }
 .sino .tocar { width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--accent); color: var(--sobre-accent); display: grid; place-items: center; }
 .sino .tocar svg.i { width: 26px; height: 26px; fill: currentColor; }
 
-/* aplicativos, desenhos e a oficina de ícone */
 .grade-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--e-2); }
 .grade-apps .app { position: relative; display: grid; justify-items: center; align-content: start; gap: 6px; padding: var(--e-3) var(--e-1) var(--e-2); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); font-size: var(--t-xs); color: var(--tinta-2); text-align: center; min-height: 92px; }
 .grade-apps .app:hover { border-color: var(--accent-linha); color: var(--tinta); }
@@ -455,7 +427,6 @@ select.campo { padding-right: var(--e-8); }
 .autoral-previas { display: grid; gap: var(--e-2); }
 .autoral-previas .fila span { display: grid; place-items: center; width: 64px; height: 64px; border-radius: var(--raio-sm); background: var(--f); }
 
-/* papéis de parede */
 .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--e-3); }
 .galeria figure { margin: 0; display: grid; gap: var(--e-2); padding: 6px; border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); min-width: 0; }
 .galeria figure img, .galeria figure .lugar { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--raio-sm); background: var(--cartao-2); }
@@ -464,7 +435,6 @@ select.campo { padding-right: var(--e-8); }
 .galeria .estrela[aria-pressed="true"] { color: var(--yellow); }
 .galeria .levar[aria-pressed="true"] { background: var(--accent-suave); border-color: var(--accent); color: var(--accent); }
 
-/* programas e jogos */
 .liga-programas { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--e-3); padding: var(--e-5) var(--e-6); }
 .liga-programas .programa { display: flex; align-items: center; justify-content: space-between; gap: var(--e-3); height: 52px; padding: 0 var(--e-3) 0 var(--e-4); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); font-weight: 600; min-width: 0; }
 .liga-programas .programa span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -477,7 +447,6 @@ select.campo { padding-right: var(--e-8); }
 .jogo.fora { opacity: .6; }
 .escolha-jogo { grid-column: 1 / -1; }
 
-/* áreas de trabalho */
 .areas { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; }
 .area { display: inline-flex; align-items: center; gap: var(--e-2); height: var(--h-pequeno); padding: 0 var(--e-1) 0 var(--e-2); border-radius: var(--raio-pilula); border: 1px dashed var(--linha-forte); }
 .area b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--cartao-2); font-size: var(--t-xs); }
@@ -485,7 +454,6 @@ select.campo { padding-right: var(--e-8); }
 .area input:focus-visible { outline: none; }
 .area:focus-within { border-color: var(--accent); border-style: solid; }
 
-/* ── 11. Cuidar ─────────────────────────────────────────────────────────── */
 .grade-cuidar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--e-6); }
 .grade-cuidar > .inteiro { grid-column: 1 / -1; }
 .grade-cuidar > .terco { grid-column: span 2; }
@@ -509,7 +477,6 @@ select.campo { padding-right: var(--e-8); }
 .cartao-acao .fila { align-self: end; }
 .pendencias { list-style: none; margin: 0; padding: 0; }
 
-/* ── 12. caixas sobre a tela ─────────────────────────────────────────────── */
 dialog { border: 1px solid var(--linha-forte); border-radius: var(--raio-xl); background: var(--cartao-2); color: var(--tinta); padding: 0; width: min(560px, calc(100vw - 32px)); box-shadow: 0 24px 64px var(--sombra); }
 dialog::backdrop { background: var(--veu); }
 dialog .dentro { padding: var(--e-6); display: grid; gap: var(--e-4); }
@@ -534,16 +501,13 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
 .torrada.ok { border-color: var(--ok); }
 .torrada.erro { border-color: var(--perigo); }
 
-/* a dica: o porquê, ao passar o mouse ou ao focar */
 .dica { position: fixed; z-index: 60; max-width: 320px; padding: var(--e-2) var(--e-3); background: var(--cartao-2); border: 1px solid var(--linha-forte); border-radius: var(--raio-md); color: var(--tinta-2); font-size: var(--t-sm); line-height: 1.45; box-shadow: 0 12px 32px var(--sombra); pointer-events: none; }
 
-/* o esqueleto da primeira pintura: forma, nenhuma palavra */
 .esqueleto { display: block; border-radius: var(--raio-md); background: var(--cartao); }
 .esqueleto-titulo { width: 220px; height: 36px; margin-bottom: var(--e-6); }
 .esqueleto-grade { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-6); }
 .esqueleto-grade .esqueleto { height: 360px; border-radius: var(--raio-xl); }
 
-/* ── 13. janelas estreitas ───────────────────────────────────────────────── */
 @media (max-width: 1360px) {
   .busca { width: 220px; }
   .bloco > header.dupla, .linha.dupla { grid-template-columns: minmax(120px, 1fr) 200px 200px; }
@@ -589,7 +553,6 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
   *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
 }
 
-/* os sons de aviso do Criar tema */
 .sons { list-style: none; margin: 0; padding: 0; }
 .sons li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--e-3); min-height: 48px; padding: 0 var(--e-5); border-top: 1px solid var(--linha); }
 .sons li:first-child { border-top: 0; }
@@ -598,7 +561,6 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
 .sons button.p:hover, .sons button.p[data-tocando] { border-color: var(--accent); color: var(--accent); }
 .sons button.p svg { width: 14px; height: 14px; fill: currentColor; }
 
-/* as abas Sistema e Biblioteca de Criar › Ícones: levar para o tema */
 .grade-apps.levar .app[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-suave); color: var(--tinta); box-shadow: inset 0 0 0 1px var(--accent); }
 .grade-apps.levar .app .nome { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .grade-apps.levar .app:disabled { cursor: not-allowed; opacity: .7; }

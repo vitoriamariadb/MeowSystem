@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# oraculo_tema.sh — a derivação do tema do COSMIC INSTALADO, e não a de agosto.
-#
-# Os `scripts/derivar_*.py` copiam o `ThemeBuilder::build()` do libcosmic da
-# revisão c003a58. Três revisões do libcosmic leem o mesmo tema ao mesmo tempo,
-# e a do cosmic-settings 1.10 (5a8bd94) já muda uma cor.
-#
-# QUANDO SE COMPILA, e por que quase nunca O contrato (`assets/contratos/cosmic.tsv`,
-# linhas `tema`) guarda o hash dos três arquivos da derivação na revisão que o
-# Python copia.
-#
-# d77e99f contra o Python: 254 campos, zero diferença, nas duas árvores.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -28,8 +17,7 @@ _ot_revisao() {
   meow_libcosmic_de cosmic-settings "$v"
 }
 
-# 0 = os três arquivos da derivação, na revisão dada, são os do contrato.
-_ot_mesma_derivacao() { # $1 revisão
+_ot_mesma_derivacao() {
   local tipo arq hash ref quem atual
   while IFS=$'\t' read -r tipo arq hash ref quem; do
     [ "$tipo" = "tema" ] || continue
@@ -86,8 +74,6 @@ cmd_caminho() {
   printf '%s\n' "$bin"
 }
 
-# Uma captura (o diretório com as árvores `*.Builder/v2`) contra o oráculo, nas
-# duas árvores. Sem captura dada, as fotografias de todos os packs daqui.
 cmd_conferir() {
   local rev bin cap arvore l tmp saida rc=0 n=0
   rev="$(_ot_revisao)" || { meow_pula "sem a revisão do libcosmic instalado (sem rede?) — nada a conferir"; return "$MEOW_SEM_DEPENDENCIA"; }

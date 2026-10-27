@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# pastas-do-pack.sh — as pastas vestem a paleta do pack no ar (P56, 24/09/2026).
-#
-# O script lê o Papirus-Dark por `/usr/share/icons/<base>` e o papirus-folders
-# que o `scripts/baixar_upstream.sh` baixa (ou o que `MEOW_CAT_FOLDERS` aponta).
-# As guardas (4) usam um upstream de brinquedo e param antes do Papirus; sem os
-# dois de verdade, o resto sai "pulado", com o motivo.
-#
-# NADA SAI DA CASA DE BRINQUEDO: `env -i` com HOME temporário, e um `sudo` falso
-# na frente do PATH — o script não chama sudo, e o falso existe para que ele
-# nunca passe a chamar calado numa máquina com `NOPASSWD`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -23,15 +13,11 @@ FALSO="$T/falso"; mkdir -p "$FALSO"
 printf '#!/bin/sh\nprintf "sudo: recusado pelo tests/pastas-do-pack.sh\\n" >&2\nexit 1\n' > "$FALSO/sudo"
 chmod 755 "$FALSO/sudo"
 UP="${MEOW_CAT_FOLDERS:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem/upstream/papirus-folders}"
-# O upstream mora no cache de quem usa, fora do repositório; numa casa de
-# brinquedo ele desce para a pasta do teste, pelo mesmo script do instalador.
 if [ -z "${MEOW_CAT_FOLDERS:-}" ] && [ ! -d "$UP/src" ]; then
   env -i PATH="$PATH" HOME="$T" MEOW_CACHE="$T/cache" NO_COLOR=1 bash "$RAIZ/scripts/baixar_upstream.sh" >/dev/null 2>&1
   UP="$T/cache/upstream/papirus-folders"
 fi
 
-# pastas <casa> <PACK> <FLAVOR> <ACCENT> [VAR=valor ...] — a etapa das pastas
-# como o `install.sh` a chama, e as variáveis a mais por último, que vencem.
 pastas() {
   local casa="$1" pack="$2" flavor="$3" acento="$4"; shift 4
   mkdir -p "$casa"
@@ -41,17 +27,14 @@ pastas() {
     "$@" bash "$RAIZ/scripts/construir_pastas.sh" 2>&1
 }
 
-# --- 4. as guardas, com um upstream de brinquedo ---------------------------
-# Um `folder-cat-mocha-mauve` de quatro cores, como o de verdade, e duas
-# versões tortas dele.
-brinquedo() {   # $1 = o diretório · $2..$5 = os quatro hex do desenho
+brinquedo() {
   local d="$1/src/64x64/places" n; mkdir -p "$d"
   for n in folder-cat-mocha-mauve folder-cat-mocha-mauve-documents; do
     printf '<svg><path style="fill:%s"/><path style="fill:%s"/><path style="fill:%s"/><path style="fill:%s"/></svg>\n' \
       "$2" "$3" "$4" "$5" > "$d/$n.svg"
   done
 }
-guarda() {   # $1 = o upstream de brinquedo
+guarda() {
   env -i PATH="$FALSO:$PATH" HOME="$T/casa-guarda" USER="${USER:-t}" NO_COLOR=1 \
     MEOW_RAIZ="$RAIZ" MEOW_CAT_FOLDERS="$1" PACK=dracula FLAVOR=dracula ACCENT=mauve \
     ICONES_BASE=Tema-Ausente ICONES_PASTAS=cat-dracula-mauve NOME_TEMA_ICONES=MeowSystem-Icons \
@@ -78,10 +61,6 @@ saida="$(guarda "$T/up-torto")"
   && ok "as guardas não deixaram nada na casa" \
   || falha "as guardas escreveram na casa de brinquedo" "$(find "$T/casa-guarda" | head)"
 
-# --- 9. o corpo das pastas especiais do Dracula é da paleta dele ------------
-# As sete desenham a pasta em dois tons, as costas e a frente — os dois
-# primeiros `<path>` de cada uma, a mesma silhueta nas sete —, e eles eram
-# #433F4D e #534B62, fora da paleta do Dracula.
 achado="$(python3 - "$RAIZ/packs/dracula" "$RAIZ/packs/dracula/icones/apps/org.gnome.Nautilus.svg" <<'PY'
 import glob, json, os, re, sys
 pack, resgate = sys.argv[1], sys.argv[2]
@@ -89,9 +68,6 @@ with open(os.path.join(pack, "paleta.json"), encoding="utf-8") as fh:
     dra = json.load(fh)["flavors"]["dracula"]
 quer = [dra["surface0"].upper(), dra["surface1"].upper()]
 erros, vistos = [], 0
-# [P96, 23/10/2026: o `folder.svg` e o Nautilus são a arte do manuais-final, que quem usa mandou
-#  vestir como veio («eles corrigem tudo»): o corpo deles é o que ela desenhou, e a régua da paleta
-#  vale para as outras oito.]
 DO_MANUAIS = {"folder.svg", "org.gnome.Nautilus.svg"}
 for svg in sorted(glob.glob(os.path.join(pack, "icones", "sistema", "*.svg"))) + [resgate]:
     vistos += 1
@@ -100,17 +76,12 @@ for svg in sorted(glob.glob(os.path.join(pack, "icones", "sistema", "*.svg"))) +
         continue
     with open(svg, encoding="utf-8") as fh:
         texto = fh.read()
-    # O `fill` dos dois primeiros `<path>`, na ordem do arquivo. Por texto, e
-    # não por um parser de XML: é arte versionada deste repositório, e o que
-    # se pergunta é o atributo de dois elementos.
     corpo = [f.upper() for f in re.findall(r'<path\b[^>]*?\bfill="([^"]*)"', texto)][:2]
     if corpo != quer:
         erros.append("%s: o corpo é %s, e a paleta pede %s" % (nome, corpo, quer))
     velhos = {h.upper() for h in re.findall(r"#[0-9A-Fa-f]{6}", texto)} & {"#433F4D", "#534B62"}
     if velhos:
         erros.append("%s: ainda tem %s" % (nome, sorted(velhos)))
-# Dez desde a P74 (09/10/2026): as sete de 15/09 mais `folder`, `user-home` e
-# `user-desktop`, na mesma silhueta; e o resgate do Nautilus.
 if vistos != 11:
     erros.append("eram dez desenhos em icones/pastas/ e o resgate, e são %d" % vistos)
 with open(os.path.join(pack, "PROCEDENCIA.md"), encoding="utf-8") as fh:
@@ -127,10 +98,7 @@ PY
   && ok "o corpo das sete pastas especiais do Dracula e do resgate do Nautilus é o surface0 e o surface1 da paleta dele (${achado#OK }), e o PROCEDENCIA.md conta o que mudou" \
   || falha "o corpo das pastas especiais do Dracula, ou do resgate, está fora da paleta dele, ou a procedência não conta" "$achado"
 
-# --- 7. as sete pastas especiais do Dracula chegam ao disco ----------------
-# O `icones_pastas.sh` não precisa do Papirus: ele copia os desenhos do pack
-# para `scalable/places`.
-xdg() {   # $1 = a casa · $2 = PACK · $3 = FLAVOR · $4 = o modo
+xdg() {
   env -i PATH="$FALSO:$PATH" HOME="$1" USER="${USER:-t}" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
     PACK="$2" FLAVOR="$3" ACCENT=mauve PASTAS_XDG=sim ICONES_FLAVOR=macchiato \
     ICONES_TEMA=MeowSystem-Icons bash "$RAIZ/scripts/icones_pastas.sh" "$4" 2>&1
@@ -157,18 +125,12 @@ else
 $conferiu"
 fi
 
-# --- 7b. desligadas, elas seguem a cor das outras ---
-# As frases diziam «devolvendo as pastas especiais ao mauve» e «as pastas
-# seguem mauve», o acento de uma casa, com qualquer pack.
-desligar() {   # $1 = a casa · [VAR=valor ...], que vencem
+desligar() {
   local casa="$1"; shift
   env -i PATH="$FALSO:$PATH" HOME="$casa" USER="${USER:-t}" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
     PACK=dracula FLAVOR=dracula ACCENT=mauve PASTAS_XDG=nao ICONES_FLAVOR=macchiato \
     ICONES_TEMA=MeowSystem-Icons "$@" bash "$RAIZ/scripts/icones_pastas.sh" --aplicar 2>&1
 }
-# O seco dizia «removeria» arquivo por arquivo e fechava com «0 posto(s), 7
-# removido(s)», no passado, com os sete ainda no disco; e abria com
-# «devolvendo».
 ensaio="$(desligar "$T/casa-xdg" MEOW_DRY_RUN=1)"; rc=$?
 if [ "$(find "$LUGAR" -name '*.svg' 2>/dev/null | wc -l)" = "$N_PASTAS" ] && [ "$rc" = 1 ] \
    && [[ "$ensaio" == *"removeria"* ]] && [[ "$ensaio" == *"pastas especiais: poria 0, removeria $N_PASTAS"* ]] \
@@ -190,9 +152,6 @@ else
 $de_novo"
 fi
 
-# --- 10. os comentários dizem a regra, e não o mauve ------
-# As frases velhas são procuradas no texto dos comentários com as quebras de
-# linha desfeitas, porque cada uma atravessa duas linhas.
 achado="$(python3 - "$RAIZ" <<'PY'
 import os, re, sys
 raiz = sys.argv[1]
@@ -219,7 +178,6 @@ PY
   && ok "os comentários das pastas especiais dizem a cor das outras pastas, e não o mauve de uma casa" \
   || falha "há comentário das pastas especiais que ainda diz o mauve, ou o pastel, como regra" "$achado"
 
-# --- o resto pede o Papirus e o papirus-folders de verdade -----------------
 if [ ! -d /usr/share/icons/Papirus-Dark ]; then
   printf 'pulado: sem o Papirus-Dark em /usr/share/icons — as pastas partem dele\n'
   exit $(( falhas > 0 ))
@@ -230,7 +188,6 @@ if [ ! -f "$UP/src/64x64/places/folder-cat-mocha-mauve-documents.svg" ]; then
   exit $(( falhas > 0 ))
 fi
 
-# --- 1. com o Catppuccin no ar, os bytes são os do upstream ----------------
 CASA_CAT="$T/casa-catppuccin"
 saida="$(pastas "$CASA_CAT" "" mocha mauve)"; rc=$?
 TEMA_CAT="$CASA_CAT/.local/share/icons/MeowSystem-Icons"
@@ -253,9 +210,6 @@ else
   fi
 fi
 
-# --- 8. a lixeira de cada flavor do Catppuccin --------------------------------
-# O `recolorir_lixeiras` pinta os dois cinzas da lixeira do Papirus com os dois
-# tons da pasta vizinha que não são o papel dela — e pulava só o papel do Mocha.
 for fl in latte frappe macchiato; do
   pastas "$T/casa-lixeira-$fl" "" "$fl" mauve >/dev/null
 done
@@ -302,7 +256,6 @@ PY
   && ok "a lixeira de cada flavor do Catppuccin é a sombra e o acento dele (${achado#OK }), e a do Mocha, a de antes" \
   || falha "a lixeira de algum flavor do Catppuccin tomou o papel ou o símbolo da pasta por tom" "$achado"
 
-# --- 2. com o Dracula no ar, as pastas vestem a paleta dele ----------------
 CASA_DRA="$T/casa-dracula"
 saida="$(pastas "$CASA_DRA" dracula dracula mauve)"; rc=$?
 TEMA_DRA="$CASA_DRA/.local/share/icons/MeowSystem-Icons"
@@ -326,15 +279,12 @@ def paleta(pack):
 
 
 cat, dra = paleta("meowsystem"), paleta("dracula")["dracula"]
-# Os hex do Catppuccin: os 26 slots dos quatro flavors e as 56 sombras do
-# upstream, lidas do disco (o hex de cada combinação que não é slot dela).
 proibidos = {h.upper() for f in cat.values() for h in f.values()}
 fonte = os.path.join(up, "src", "64x64", "places")
 for nome in os.listdir(fonte):
     m = re.fullmatch(r"folder-cat-([a-z]+)-([a-z]+)\.svg", nome)
     if m and m.group(1) in cat:
         proibidos |= hexes(os.path.join(fonte, nome)) - {h.upper() for h in cat[m.group(1)].values()}
-# A sombra esperada: o acento do Dracula com o deslocamento da do Mocha.
 sombra_up = hexes(os.path.join(fonte, "folder-cat-mocha-mauve.svg")) \
     - {h.upper() for h in cat["mocha"].values()}
 if len(sombra_up) != 1:
@@ -374,7 +324,6 @@ PY
   fi
 fi
 
-# --- 3. a segunda passagem não escreve, e o seco não cria nada -------------
 saida="$(pastas "$CASA_DRA" dracula dracula mauve)"; rc=$?
 [ "$rc" = "0" ] && [[ "$saida" == *"já no lugar"* ]] \
   && ok "a segunda passagem com o Dracula no ar não escreve nada (rc=0)" \
@@ -385,11 +334,6 @@ criados="$(find "$T/casa-seca" -mindepth 1 | wc -l)"
   && ok "o seco numa casa vazia diz que mudaria e não cria nada (rc=1)" \
   || falha "o seco escreveu na casa, ou não acusou a divergência (rc=$rc, $criados entradas)" "$saida"
 
-# --- 5. o claro sai do claro -------------------------------------------------
-# O Alucard no ar: a variante sai do `cat-latte-mauve`, e cada hex dela é o
-# slot do Alucard que o latte do upstream usa naquela posição — o papel no
-# `surface0`, o símbolo no `text` — e a sombra, o acento dele com o
-# deslocamento que o latte mostra.
 CASA_ALU="$T/casa-alucard"
 saida="$(pastas "$CASA_ALU" dracula alucard mauve)"; rc=$?
 TEMA_ALU="$CASA_ALU/.local/share/icons/MeowSystem-Icons"
@@ -445,8 +389,6 @@ PY
   fi
 fi
 
-# Derivando tudo do Mocha, os 14 do latte saíam diferentes nos cinco
-# tamanhos.
 sed -n '/^_derivar_py() {/,/^}/p' "$RAIZ/scripts/construir_pastas.sh" > "$T/derivar.sh"
 # shellcheck source=/dev/null
 . "$T/derivar.sh"
@@ -490,10 +432,6 @@ ${achado}
 origens:$origens"
 fi
 
-# --- 6. o molde com o FLAVOR vazio veste a variante do tema ----------------
-#   `cat-${FLAVOR}-${ACCENT}` expandido com `FLAVOR=""` chega como `cat--mauve`.
-#   A base de ícones aponta para um tema que não existe, como nas guardas: o que
-#   se confere é a variante que a derivação escolhe, e nada é escrito.
 saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-molde" USER="${USER:-t}" NO_COLOR=1 \
   MEOW_RAIZ="$RAIZ" MEOW_CAT_FOLDERS="$UP" PACK=dracula FLAVOR=dracula ACCENT=mauve \
   ICONES_BASE=Tema-Ausente ICONES_PASTAS=cat--mauve NOME_TEMA_ICONES=MeowSystem-Icons \
@@ -503,21 +441,12 @@ saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-molde" USER="${USER:-t}" NO_CO
   && ok "o molde com o FLAVOR vazio (cat--mauve) veste a variante do tema, e não a do Mocha" \
   || falha "o molde com o FLAVOR vazio caiu no Mocha, ou escreveu na casa" "$saida"
 
-# --- 11. a base do pack escolhida pelo nome não pula as pastas (P74 item 1) ---
-#   O conf desta máquina diz `ICONES_BASE="MeowSystem-Icons-Base"`, a base do
-#   pack, que mora em `~/.local/share/icons`. O script montava
-#   `/usr/share/icons/$ICONES_BASE` e dizia «não está instalado — pastas
-#   coloridas puladas» (I1/I2). Pela regra do `_base_escolhida`, esse nome cede,
-#   e as pastas copiam do Papirus-Dark. O completar, o outro leitor da chave,
-#   vai junto.
 if [ -d /usr/share/icons/Papirus-Dark ] && [ -d "$UP/src" ]; then
   saida="$(pastas "$T/casa-base-do-pack" dracula dracula mauve ICONES_BASE=MeowSystem-Icons-Base)"
   [[ "$saida" != *"não está instalado"* ]] \
     && [ -L "$T/casa-base-do-pack/.local/share/icons/MeowSystem-Icons/48x48/places/folder.svg" ] \
     && ok "ICONES_BASE=MeowSystem-Icons-Base: as pastas coloridas entram (a base do pack cede ao Papirus-Dark)" \
     || falha "com a base do pack escolhida pelo nome as pastas se pularam" "$saida"
-  # O completar só escreve num tema que já tem índice (quem o escreve é o
-  # `construir_icones.sh`, que aqui não roda): um índice mínimo basta.
   printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n' \
     > "$T/casa-base-do-pack/.local/share/icons/MeowSystem-Icons/index.theme"
   saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-base-do-pack" USER="${USER:-t}" NO_COLOR=1 \

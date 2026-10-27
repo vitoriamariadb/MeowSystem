@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-# midia_build.sh — compila o applet de mídia patchado e o instala em ~/.local/bin.
-#
-#   ./midia_build.sh --conferir            não escreve; 1 se o binário divergir da receita
-#   MIDIA_COMPILAR=1 ./midia_build.sh      compila e instala
-#
-# POR QUE ESTE SCRIPT EXISTE SEPARADO DO `midia.sh` Porque ele é a ÚNICA porta
-# do projeto que compila, e compilar é a única coisa que o `meow doctor` das
-# 05:00 não pode fazer.
-#
-# `MIDIA_COMPILAR=1` é obrigatório para compilar.
-#
-# Quatro campos: sha256 do patch, COMMIT do PINO, sha256 do binário instalado e
-# a versão do rustc.
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -27,16 +14,11 @@ ARVORE="$ESTADO/src"
 ALVO="$ESTADO/target"
 CARIMBO="$ESTADO/carimbo"
 
-# O binário tem NOME PRÓPRIO, e não é enfeite.
 BINARIO="$HOME/.local/bin/meow-applet-now-playing"
 
 MIDIA="${MIDIA:-sim}"
 COMPILAR="${MIDIA_COMPILAR:-0}"
 
-# A mesma regra do `leitura_build.sh`, que mora no `scripts/applet_pino.sh`:
-# o applet compila contra o libcosmic do cosmic-panel instalado (`cargo
-# update --precise` na árvore, que é um clone nosso), e volta ao `Cargo.lock`
-# do upstream — o pino do PINO — se não compilar ali.
 . "$RAIZ/scripts/applet_pino.sh"
 _alvo_rev() { ap_alvo midia "${LIBCOSMIC:-}"; }
 
@@ -47,13 +29,10 @@ case "${1:-}" in
   *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; exit "$MEOW_ERRO" ;;
 esac
 meow_seco && CONFERIR=1
-# conferir é só leitura também para a regra do pino (`applet_pino.sh`).
 [ "$CONFERIR" = 1 ] && AP_SO_LER=1
 
 _sha() { sha256sum -- "$1" 2>/dev/null | cut -d' ' -f1; }
 
-# Vazio no seco e quando o rustc não existe — ver o cabeçalho. Campo vazio não
-# entra na comparação, em vez de fingir divergência.
 _rustc_versao() {
   meow_seco && return 0
   meow_tem rustc || return 0
@@ -74,9 +53,6 @@ _carimbo_vivo() {
   [ -z "${LIBCOSMIC:-}" ] || [ "$alvo" = "$LIBCOSMIC" ] || printf 'libcosmic %s\n' "$alvo"
 }
 
-# Compara campo a campo. Campo VIVO vazio é pulado (é o caso do rustc no seco);
-# campo GRAVADO ausente conta como divergência, porque carimbo incompleto é
-# carimbo de uma versão anterior deste script.
 _carimbo_bate() {
   [ -f "$CARIMBO" ] || return 1
   local campo vivo gravado
@@ -110,9 +86,6 @@ _conferir() {
   return "$MEOW_OK"
 }
 
-# A ÁRVORE: clonar quando falta, e RECOLOCAR no pino quando existe. O critério é
-# o SHA, não a existência do diretório — uma árvore parada num commit velho
-# compila sem erro e entrega o applet errado, que é pior que não compilar.
 _arvore_no_pino() {
   if [ ! -d "$ARVORE/.git" ]; then
     rm -rf "$ARVORE"
@@ -124,10 +97,6 @@ _arvore_no_pino() {
   fi
 
   if [ "$(git -C "$ARVORE" rev-parse HEAD 2>/dev/null)" != "$COMMIT" ]; then
-    # `--depth 50` é barato e cobre o caso normal. Quando o pino envelhece para
-    # FORA da janela, o clone raso não tem o objeto e o checkout falha por um
-    # motivo que não é erro de ninguém — daí o resgate. Mesmo critério do
-    # scripts/baixar_upstream.sh.
     git -C "$ARVORE" checkout -q "$COMMIT" 2>/dev/null || {
       git -C "$ARVORE" fetch -q --unshallow 2>/dev/null || git -C "$ARVORE" fetch -q --all 2>/dev/null
       git -C "$ARVORE" checkout -q "$COMMIT" 2>/dev/null || {
@@ -140,25 +109,13 @@ _arvore_no_pino() {
 }
 
 _aplicar() {
-  # Conferir ANTES: é o que garante que a segunda passagem não chama o cargo.
   _conferir >/dev/null 2>&1 && { _conferir; return $?; }
 
   if [ "$COMPILAR" != "1" ]; then
-    # [P81, 15/10/2026: «rode: MIDIA_COMPILAR=1 …» era a tela mandando
-    #   digitar, e «compilar não é do doctor» deixou de ser verdade na P76:
-    #   quem compila é o conserto do doctor (`fix_midiabin`) e o instalador.]
     meow_pula "o applet de mídia ainda não foi compilado — o conserto do doctor e o instalador compilam"
-    # 3, e NÃO 1. No contrato deste projeto 1 é "divergia e FOI CONSERTADO", e
-    # aqui nada foi consertado — a permissão de compilar é que falta. Com 1, o
-    # resumo do install.sh diria `mexeu: midia_build` em toda execução sem um
-    # byte ter sido escrito, que é a mentira de relatório que o `concluir()`
-    # existe para não deixar acontecer. Com 3 isto cai em "pulados", que é a
-    # verdade: a etapa não rodou porque falta algo que não é dela resolver.
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  # O rust se instala pela mesma regra do applet de leitura (P82, item 1); se
-  # não instalar (sem rede, ensaio), o `pula` de baixo diz o estado.
   meow_garantir_cargo || true
   if ! meow_tem cargo; then
     meow_pula "sem cargo nesta máquina — o applet de mídia fica de fora"
@@ -174,9 +131,6 @@ _aplicar() {
     3) return "$MEOW_SEM_DEPENDENCIA" ;;
   esac
 
-  # O reset é OBRIGATÓRIO: sem ele, a segunda compilação com o patch alterado
-  # aplicaria a diferença por cima de uma árvore já patchada — e o resultado é
-  # indefinido, não um erro.
   git -C "$ARVORE" checkout -q -- . || { meow_erro "não consegui limpar a árvore"; return "$MEOW_ERRO"; }
   if ! git -C "$ARVORE" apply "$PATCH"; then
     meow_erro "o patch não aplica em $COMMIT — o upstream mexeu nos arquivos que tocamos"
@@ -199,8 +153,6 @@ _aplicar() {
       meow_aviso "o applet de mídia não compila no libcosmic ${alvo_rev:0:7} do painel — volta ao pino ${LIBCOSMIC:0:7}"
     fi
   fi
-  # [P81: o motivo ia para o vazio e a tela dava a linha do cargo para colar;
-  #   agora fica num registro, e a tela diz onde.]
   if [ "$compilou" = 0 ] && ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
         --manifest-path "$ARVORE/Cargo.toml" >"$ESTADO/compilar.log" 2>&1; then
     meow_erro "o cargo falhou — $(meow_motivo_do_cargo "$ESTADO/compilar.log")"
@@ -215,12 +167,8 @@ _aplicar() {
   install -Dm0755 "$recem" "$BINARIO" || { meow_erro "não consegui instalar $BINARIO"; return "$MEOW_ERRO"; }
   strip "$BINARIO" 2>/dev/null
 
-  # O `install -D` não passa por `meow_escrever`, então o manifesto (que é quem
-  # o `--uninstall` lê) precisa ser alimentado à mão. Sem esta linha o binário
-  # sobreviveria a uma desinstalação do MeowSystem.
   meow_manifesto_registrar "$BINARIO"
 
-  # A BASE ANTES DO CARIMBO: o carimbo pergunta o alvo, e o alvo lê a base.
   if [ "$compilou" = 1 ]; then ap_compilou midia "$alvo_rev"; else ap_compilou midia "${LIBCOSMIC:-}"; fi
   _carimbo_vivo > "$CARIMBO" || { meow_erro "não consegui gravar o carimbo"; return "$MEOW_ERRO"; }
   meow_ok "applet de mídia compilado e instalado ($(_sha "$BINARIO" | cut -c1-8))"
@@ -229,9 +177,6 @@ _aplicar() {
 
 main() {
   if [ "$MIDIA" != "sim" ]; then
-    # Desligar é trabalho do `midia.sh --reverter`, que remove na ORDEM certa
-    # (sombra antes do binário). Dois donos para a mesma remoção é como se cria
-    # o estado em que a sombra fica sem binário — que deixa a dock com um buraco.
     meow_pula "MIDIA=\"$MIDIA\" no meow.conf — o applet de mídia não é compilado"
     return "$MEOW_SEM_DEPENDENCIA"
   fi

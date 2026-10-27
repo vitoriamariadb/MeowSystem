@@ -1,26 +1,3 @@
-# meow-builds-login.service — o build do compositor e o do menu do
-# cosmic-files para a versão instalada, uma vez por login (P81).
-#
-# POR QUE NO LOGIN (medido em 15/10/2026)
-#   O `meow-pos-apt.path` é unidade de usuário: um apt feito com ela
-#   deslogada, ou por TTY, toca o carimbo e nenhum vigia está de pé para ver.
-#   O login é a primeira hora em que o build volta a valer para alguma coisa
-#   (o shim escolhe o compositor ao subir a sessão), então é a hora de
-#   conferir. Quem compara a versão instalada com o artefato é a função
-#   única, `scripts/garantir_builds.sh`: nada faltando, ela sai sem escrever.
-#
-# `graphical-session.target`, E NÃO `default.target`: esta máquina tem
-#   `Linger=yes`, e o gerenciador de usuário sobe no boot, sem ninguém logado.
-#   O alvo gráfico sobe com a sessão do COSMIC, uma vez por login (medido:
-#   `graphical-session.target` ativo junto do `cosmic-session.target`).
-#
-# É TAMBÉM O SEGUNDO PLANO DO DOCTOR: o `fix_patches` a inicia com
-#   `--no-block` (ver o `--fundo` do script), porque o `meow-doctor.service`
-#   tem 5 min de prazo e o compositor leva até meia hora.
-#
-# Nice 19 e IO ocioso: compilar o compositor leva minutos e não pode tirar a
-# máquina dela do ar enquanto ela usa. Sem `flock` aqui: a trava é do script,
-# para valer igual nos três gatilhos.
 [Unit]
 Description=MeowSystem — o build do compositor e do menu do cosmic-files para a versão instalada
 Documentation=file:%h/.local/state/meowsystem/builds.log
@@ -28,10 +5,6 @@ ConditionPathExists=%h/.local/state/meowsystem/raiz
 After=graphical-session.target
 
 [Service]
-# O `~/.cargo/bin` ENTRA NO PATH NA PRÓPRIA LINHA — P81, 15/10/2026. O PATH
-# do systemd do usuário não o tem (medido na P76), e é lá que o rustup põe o
-# `cargo` e o `just` que o build do 4d14528 pede (`just build-vendored`). O
-# `$PATH` sem chaves passa pelo systemd intacto e é o `sh` que o expande.
 Type=oneshot
 ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${AUTO_REPARO:-sim}" = "sim" ]'
 ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem

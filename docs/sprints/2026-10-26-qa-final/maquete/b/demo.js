@@ -140,7 +140,7 @@ const LOG_INSTALAR = [
   "~~  papel de parede: carrossel a cada 30 min",
   "ok  login: cosmic-greeter vestido",
   "ok  hicolor: nada a mudar",
-  "ok  " + "/home/vitoriamaria/.local/share/meowsystem/estado/".repeat(4) + "icones-resgatados.tsv",
+  "ok  " + "~/.local/share/meowsystem/estado/".repeat(6) + "icones-resgatados.tsv",
   "erro  " + "x".repeat(200),
   "ok  temas de apps: 23 de 27",
 ];

@@ -1,16 +1,3 @@
-/* app/pagina/standalone.css — o pouco que a página exportada acrescenta.
- *
- * São três coisas: a barra que diz o que aquele arquivo é, o modo "todas as
- * abas empilhadas", e o ajuste do cabeçalho fixo para caber a barra em cima
- * dele.
- *
- * NENHUM HEX AQUI TAMBÉM — a regra do projeto não muda por o arquivo ser
- * temporário.
- *
- * ELE FICA NUMA FOLHA SEPARADA DE PROPÓSITO: quem for redesenhar mexe no
- * `<style id="folha-do-painel">`, que é o `estilo.css` de verdade e o único que
- * volta para o repositório. */
-
 .aviso-standalone {
   position: sticky;
   top: 0;
@@ -36,8 +23,6 @@
   min-width: 0;
 }
 
-/* A pilha nasce escondida: ela só é montada quando o botão pede, e montar 24
- * abas custa 24 renderizações. */
 #pilha {
   display: none;
 }
@@ -61,8 +46,6 @@ body.empilhado #pilha {
   border-bottom: 0;
 }
 
-/* O título de cada aba na pilha. Ele não existe no painel — lá o nome da seção
- * está no menu, e o menu está sempre visível. */
 .pilha-aba > h2 {
   position: sticky;
   top: 0;

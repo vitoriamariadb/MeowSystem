@@ -1,6 +1,3 @@
-// /etc/polkit-1/rules.d/49-meowsystem-ponte-reparo.rules — instalada pelo install.sh.
-// Quem está na sessão local ativa dá `start` no reparo da ponte sem senha. Só o
-// `start`, só esta unidade: o reparo não recebe nada de quem o dispara.
 polkit.addRule(function (action, subject) {
   if (action.id == "org.freedesktop.systemd1.manage-units" &&
       action.lookup("unit") == "meowsystem-ponte-reparo.service" &&

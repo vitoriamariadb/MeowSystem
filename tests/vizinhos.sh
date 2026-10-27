@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# vizinhos.sh — o inventário de quem mais escreve onde o MeowSystem escreve, e o
-# desligar com volta, numa casa de brinquedo.
-#
-# A casa tem um zsh com função que roda no login, uma unidade do systemd ligada,
-# um gancho do apt, um repositório "Dracula_OS-Theme" de brinquedo e um script
-# com o aviso de desativado. `curl`, `wget` e `sudo` falsos registram e recusam.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 V="$RAIZ/scripts/vizinhos.sh"
@@ -12,7 +6,6 @@ T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 falhas=0
 ok()    { printf '  ok    %s\n' "$1"; }
 falha() { printf '  FALHA %s\n' "$1"; falhas=$((falhas + 1)); }
-# Sem pipefail na conferência: o `grep -q` fecha o cano no primeiro acerto.
 confere() { if (set +o pipefail; eval "$2"); then ok "$1"; else falha "$1"; fi; }
 
 CASA="$T/casa"; ETC="$T/etc"; ZD="$CASA/.config/zsh"; DESENV="$CASA/Desenvolvimento"
@@ -23,9 +16,6 @@ for c in curl wget sudo; do
   printf '#!/bin/sh\necho "%s $*" >> "%s/rede.log"\nexit 1\n' "$c" "$T" > "$T/bin/$c"; chmod 755 "$T/bin/$c"
 done
 
-# O zsh: o .zshrc chama uma função que chama outra, e esta roda um script que
-# escreve no lançador. Uma função à mão refaz a cache dos ícones da casa, e outra
-# tem o aviso de desativado acima do return.
 cat > "$ZD/.zshrc" <<'FIM'
 # comentário que fala de install.sh e não chama nada
 cura_no_login
@@ -60,22 +50,18 @@ cat > "$ZD/aurora/menu-doctor.sh" <<'FIM'
 dst="$HOME/.local/share/applications/x.desktop"
 printf 'StartupWMClass=y\n' > "$dst"
 FIM
-# A unidade do usuário, ligada, que escreve o cursor.
 cat > "$ZD/aurora/cursor.sh" <<'FIM'
 #!/bin/sh
 gsettings set org.gnome.desktop.interface cursor-theme Outro
 FIM
 printf '[Service]\nExecStart=%%h/.config/zsh/aurora/cursor.sh\n' > "$CASA/.config/systemd/user/vizinho-cursor.service"
 ln -s ../vizinho-cursor.service "$CASA/.config/systemd/user/default.target.wants/vizinho-cursor.service"
-# Uma unidade desligada não é "ativa".
 printf '[Service]\nExecStart=%%h/.config/zsh/aurora/cursor.sh\n' > "$CASA/.config/systemd/user/desligada.service"
-# O gancho do apt que refaz o papel de parede.
 cat > "$ZD/aurora/fundo.sh" <<'FIM'
 #!/bin/sh
 cp /tmp/x.png "$HOME/.local/share/backgrounds/x.png"
 FIM
 printf 'DPkg::Post-Invoke { "%s/.config/zsh/aurora/fundo.sh || true"; };\n' "$CASA" > "$ETC/apt/apt.conf.d/99-vizinho"
-# O repositório de brinquedo, que roda à mão.
 cat > "$DESENV/Dracula_OS-Theme/scripts/reparar_hicolor_index.sh" <<'FIM'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -87,7 +73,7 @@ chmod 755 "$ZD"/aurora/*.sh "$DESENV/Dracula_OS-Theme/scripts/reparar_hicolor_in
 cp -a "$DESENV/Dracula_OS-Theme/scripts/reparar_hicolor_index.sh" "$T/hicolor-original.sh"
 cp -a "$ZD/functions/sistema.zsh" "$T/sistema-original.zsh"
 
-rodar() { # o vizinhos.sh dentro da casa de brinquedo
+rodar() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$ETC" \
       VIZINHOS_DESENV="$DESENV" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
       bash "$V" "$@"
@@ -120,7 +106,6 @@ confere "a função com o aviso de desativado sai desativada" \
 confere "comentário do .zshrc não vira chamada" '! linha "install.sh" | grep -q .'
 confere "o rodapé conta as escritas" 'printf "%s\n" "$inv1" | tail -1 | grep -q "^# escritas: [0-9]"'
 confere "nenhum caminho da casa de brinquedo cravado na tabela" '! printf "%s\n" "$inv1" | grep -qF "$CASA"'
-# Sem ZDOTDIR no ambiente (o timer do doctor), ele vem do ~/.zshenv, como o zsh faz.
 printf 'export ZDOTDIR="$HOME/.config/zsh"\n' > "$CASA/.zshenv"
 inv3="$(env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" VIZINHOS_ETC="$ETC" VIZINHOS_DESENV="$DESENV" \
         VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 bash "$V" --inventario)"
@@ -215,7 +200,7 @@ printf '<svg/>' > "$H/48x48/apps/a.svg"
 printf '#!/bin/sh\nfor a; do d="$a"; done; : > "$d/icon-theme.cache"; echo "$*" >> "%s/gtk.log"\n' "$T" > "$T/bin/gtk-update-icon-cache"
 chmod 755 "$T/bin/gtk-update-icon-cache"
 hc() { env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 "$@" bash "$RAIZ/scripts/hicolor.sh"; }
-hc >/dev/null 2>&1   # escreve o índice
+hc >/dev/null 2>&1
 : > "$H/icon-theme.cache"; touch -d '2 days ago' "$H/icon-theme.cache"; touch "$H/48x48/apps/a.svg"
 : > "$T/gtk.log"
 saida="$(hc MEOW_DRY_RUN=1 2>&1)"; rc=$?

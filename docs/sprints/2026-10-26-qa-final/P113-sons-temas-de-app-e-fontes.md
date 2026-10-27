@@ -20,7 +20,8 @@ Pop!_OS/COSMIC (seção de sons do Q1-04); `relatorios/qa-2.md` Q2-14, Q2-15, Q2
   combinem com o tema, registre em PROCEDENCIA.md). `SOM_*` do meow.conf deixa de vencer o pack
   (vira ajuste por cima, só se ela mexer).
 - Sons do carregador e da bateria: o COSMIC lê `/usr/share/sounds/Pop` cravado; troque pela ponte
-  root (nunca sudo direto) e o vigia pós-apt repõe.
+  root (nunca sudo direto) e o vigia pós-apt repõe. A decisão 37 («sons só na notificação») cai:
+  troque a linha no mesmo commit.
 - Fonte do terminal vendorada no pack (JetBrainsMono Nerd Font Mono), sem seletor novo; o install
   para de baixar.
 - O «Instalar» da extensão do VS Code de pack importado FICA (decisão 9).
@@ -33,7 +34,7 @@ Pop!_OS/COSMIC (seção de sons do Q1-04); `relatorios/qa-2.md` Q2-14, Q2-15, Q2
 3. Q2-15: tema do Spotify dentro de `packs/meowsystem/temas-de-apps/` (como o Dracula já faz),
    aplicado pelo doctor; some o botão.
 4. Q2-16: cada ponto da lista vira dado do pack ou some; o starship sai da interface (decisão 26
-   já o põe no install; a 14 da P82 fica velha: sobrescreva).
+   de `docs/DECISOES.md` já o põe no install; tire dela a metade do doctor).
 5. Q2-14: «Escondidos» com sugestão dos apps de `/api/apps` ao digitar; só aceita app que existe.
 6. Q1-13 e Q1-18: Mandar mostra o resumo do tema e as saídas desde o primeiro passo; o rascunho
    mora no servidor, não só no navegador.

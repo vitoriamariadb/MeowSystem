@@ -1,21 +1,10 @@
-/* app/pagina/app.js — o núcleo do painel: estado, servidor, controles, trabalhos.
- *
- * As páginas moram em paginas.js; os moldes que nascem de dado (aplicativos,
- * oficina de ícone, papéis, jogos) em oficina.js; a prévia em mesa.js; onde cada
- * chave e ação mora, em lugares.js. Este arquivo carrega por último e liga tudo.
- *
- * Regras da tela (P98): nenhuma frase explicativa — o porquê vira dica ao passar
- * o mouse e ao focar; todo texto começa com maiúscula; nenhuma caixa de senha (o
- * que é de root passa pela ponte; sem ela, o painel oferece o conserto). */
 "use strict";
 
 const TOKEN = document.body.dataset.token;
-/* Fora da barra de endereço no primeiro instante; o hash (a página) fica. */
 if (location.search) history.replaceState(null, "", location.pathname + location.hash);
 
 const $ = (sel, raiz = document) => raiz.querySelector(sel);
 
-/* --- ícones da interface (traço, 24 px) ----------------------------------- */
 const IC = {
   tema: '<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.7 5.7 0 0 0 22 9.7C22 5.4 17.5 2 12 2Z"/>',
   criar: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
@@ -59,19 +48,16 @@ function icone(nome, classe = "i") {
   return el;
 }
 
-/* --- texto ---------------------------------------------------------------- */
 function maiuscula(txt) {
   if (txt == null) return "";
   const t = String(txt).trimStart();
   return t.charAt(0).toLocaleUpperCase("pt-BR") + t.slice(1);
 }
-/* O porquê de um ajuste, curto: a primeira frase, com maiúscula. */
 function primeiraFrase(txt) {
   const t = String(txt || "").replace(/\s+/g, " ").trim();
   if (!t) return "";
   const m = /^(.{12,}?[.!?])(\s|$)/.exec(t);
   let f = m ? m[1] : t;
-  /* A dica é curta: passando de 110, corta na palavra. */
   if (f.length > 110) f = f.slice(0, 110).replace(/[\s,;:—-]+\S*$/, "") + "…";
   return maiuscula(f);
 }
@@ -90,8 +76,6 @@ const ROTULO_DE_VALOR = {
   "30s": "30 s", "5m": "5 min", "2h": "2 h", "6h": "6 h", "12h": "12 h", "1d": "1 dia", "7d": "7 dias",
   "1.0": "100%", "1.25": "125%", "1.5": "150%", "2.0": "200%",
 };
-/* Nome de programa que é minúsculo de fato fica como é (a lista do teste de
- * maiúsculas é esta mesma). */
 const MINUSCULOS_DE_FATO = ["zsh", "fzf", "bat", "btop", "fastfetch", "qt5ct", "qBittorrent"];
 
 function rotuloDeValor(v, item) {
@@ -106,9 +90,6 @@ function nomeDaCor(slot) {
   return maiuscula((f && f.nomes_de_cor && f.nomes_de_cor[slot]) || slot);
 }
 
-/* --- o construtor de nós -------------------------------------------------- */
-/* `dica` vira o balão de passar o mouse e de focar (e a descrição acessível);
- * `controle` é o nome estável do controle (o censo do app-completo o lê). */
 function elemento(tag, props = {}, filhos = []) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props || {})) {
@@ -130,7 +111,6 @@ function botao(texto, props = {}, extra = []) {
     nomeIcone ? icone(nomeIcone) : null, texto ? elemento("span", { texto }) : null, ...extra]);
 }
 
-/* --- a dica: 800 ms com o mouse, na hora com o teclado ---------------------- */
 let DICA_ALVO = null;
 let DICA_RELOGIO = null;
 function esconderDica() {
@@ -170,7 +150,6 @@ function ligarDicas() {
   addEventListener("scroll", esconderDica, true);
 }
 
-/* --- torradas ------------------------------------------------------------- */
 function torrada(texto, classe = "") {
   texto = maiuscula(texto);
   for (const viva of $("#torradas").children) {
@@ -178,11 +157,9 @@ function torrada(texto, classe = "") {
   }
   const el = elemento("div", { class: "torrada " + classe, texto, role: classe === "erro" ? "alert" : null });
   $("#torradas").append(el);
-  /* A torrada não segura clique (pointer-events: none): ela some sozinha. */
   el._t = setTimeout(() => el.remove(), classe === "erro" ? 7000 : 3000);
 }
 
-/* --- o servidor ----------------------------------------------------------- */
 async function api(rota, opcoes = {}) {
   let resposta;
   try {
@@ -212,7 +189,6 @@ function faixaSemServidor(mostrar) {
   document.body.append(faixa);
 }
 
-/* --- estado --------------------------------------------------------------- */
 let ESQUEMA = null;
 const CHAVE = new Map();
 const ACAO = new Map();
@@ -261,7 +237,6 @@ async function carregarPrevias(tipo, grupo = "", tentativa = 0) {
 function valorEmVigor(item) {
   return MUDANCAS.has(item.chave) ? MUDANCAS.get(item.chave) : (item.valor ?? "");
 }
-/* O valor que vale para desenhar: o escolhido, o do disco, o efetivo, o padrão. */
 function vale(chave) {
   const item = CHAVE.get(chave);
   if (!item) return "";
@@ -278,7 +253,6 @@ function packNoAr() {
 }
 const ligado = (v) => ["sim", "1", "true"].includes(String(v || "").toLowerCase());
 
-/* As NOITE_* só valem em par: escolher uma completa a outra com a hora herdada. */
 const PAR_DA_NOITE = { NOITE_INICIO: "NOITE_FIM", NOITE_FIM: "NOITE_INICIO" };
 function completarParDaNoite(chave, valor) {
   const irma = PAR_DA_NOITE[chave];
@@ -301,9 +275,8 @@ function escolher(chave, valor) {
   return true;
 }
 
-/* As escolhas que esperam sobrevivem ao F5 desta aba. */
 function guardarBandeja() {
-  try { sessionStorage.setItem("meow-bandeja", JSON.stringify([...MUDANCAS])); } catch (e) { /* só não lembra */ }
+  try { sessionStorage.setItem("meow-bandeja", JSON.stringify([...MUDANCAS])); } catch (e) { }
 }
 function restaurarBandeja() {
   let lista = [];
@@ -314,8 +287,6 @@ function restaurarBandeja() {
   }
 }
 
-/* --- «Voltar ao padrão» (decisão 10): grava o de fábrica, e só aparece quando
- *     o valor difere dele. ------------------------------------------------- */
 function padraoDe(item) {
   if (item.padrao_do_pack != null) return String(item.padrao_do_pack);
   return item.padrao == null ? "" : String(item.padrao);
@@ -333,8 +304,6 @@ function botaoPadrao(item, aplica) {
   }, [icone("desfazer")]);
 }
 
-/* «Deixar o sistema decidir» é outro gesto, com outro ícone: grava o vazio, e
- * só existe onde a chave aceita vazio e o de fábrica não é o vazio. */
 function botaoAutomatico(item, valor, aplica) {
   if (!item.aceita_vazio || padraoDe(item) === "" || valor === "") return null;
   return elemento("button", {
@@ -343,7 +312,6 @@ function botaoAutomatico(item, valor, aplica) {
   }, [icone("girar")]);
 }
 
-/* --- os controles, um por tipo de chave ------------------------------------ */
 function controle(item) {
   const valor = valorEmVigor(item);
   const aplica = (v) => escolher(item.chave, v);
@@ -455,7 +423,6 @@ function controleFaixa(item, aplica) {
   return elemento("div", { class: "faixa" }, [slider, saida]);
 }
 
-/* A cor de uma chave: as bolinhas da paleta. */
 function controleCor(item, aplica, grandes = false) {
   const cores = ((ESQUEMA.paleta.flavors || {})[flavorEmVigor()]) || {};
   const nomes = item.opcoes && item.opcoes.length ? item.opcoes
@@ -476,7 +443,6 @@ function controleCor(item, aplica, grandes = false) {
   return caixa;
 }
 
-/* As pastas: a variante (segue o tema ou uma fixa) e a cor. */
 function controlePastas(item, aplica) {
   const molde = item.molde_pastas;
   const m = /^cat-(.+)-([^-]+)$/.exec(valorEmVigor(item) || item.padrao || "");
@@ -501,7 +467,6 @@ function controlePastas(item, aplica) {
   return elemento("div", { class: "fila" }, [sel, caixa]);
 }
 
-/* Mascote e ponteiro: escolhas com o desenho. */
 function controleImagem(item, aplica) {
   const tipo = item.previa === "gato" ? "gato" : "cursor";
   const lista = previasDe(tipo);
@@ -527,7 +492,6 @@ function controleImagem(item, aplica) {
   return caixa;
 }
 
-/* As listas do meow.conf: uma ficha por item, × tira, o campo acrescenta. */
 function controleLista(item, aplica) {
   const sep = item.lista_pathsep ? ":" : ",";
   const itens = String(valorEmVigor(item) || "").split(sep).map((s) => s.trim()).filter(Boolean);
@@ -566,8 +530,6 @@ function nomeDePrograma(id) {
   return NOME_DE_PROGRAMA[id] || maiuscula(String(id).replace(/[-_.]/g, " "));
 }
 
-/* As áreas de trabalho: uma pílula por área; renomear, Alt+setas trocam a ordem,
- * esvaziar tira, o campo do fim acrescenta. */
 function controleAreas(item, aplica) {
   const proprio = String(valorEmVigor(item) || "");
   const nomes = (proprio || String(item.valendo_agora || "")).split(",").map((x) => x.trim()).filter(Boolean);
@@ -595,7 +557,6 @@ function controleAreas(item, aplica) {
   return caixa;
 }
 
-/* Folga e encaixe, por área: um interruptor por nome. */
 function controlePorArea(item, aplica) {
   const nomes = String(vale("AREAS_NOMES") || "").split(",").map((x) => x.trim()).filter(Boolean);
   const caixa = elemento("div", { class: "areas", role: "group", "aria-label": item.titulo || item.chave });
@@ -626,7 +587,6 @@ function controlePorArea(item, aplica) {
   return caixa;
 }
 
-/* --- as linhas ------------------------------------------------------------ */
 function dominada(item) {
   const d = item.dominada_por;
   if (!d) return null;
@@ -634,7 +594,6 @@ function dominada(item) {
   return maiuscula(d.porque || "");
 }
 
-/* Uma linha de ajuste: o nome à esquerda, o controle à direita. */
 function linhaDeChave(l) {
   const chaves = [].concat(l.c);
   const itens = chaves.map((c) => CHAVE.get(c)).filter(Boolean);
@@ -667,7 +626,6 @@ function linhaDeChave(l) {
   return li;
 }
 
-/* O motivo de uma ação não ter efeito agora, curto. */
 function motivoIndisponivel(acao) {
   const m = acao.indisponivel;
   if (!m) return "";
@@ -679,7 +637,6 @@ function motivoIndisponivel(acao) {
   return "Sem efeito agora";
 }
 
-/* O botão de uma ação; com lista, o seletor vem junto. */
 function controleDeAcao(acao, texto, classe = "pequeno") {
   const partes = [];
   let escolha = null;
@@ -710,8 +667,6 @@ function linhaDeAcao(l) {
     elemento("div", { class: "ctl" }, controleDeAcao(acao, l.b)),
   ]);
 }
-/* Uma linha qualquer da tabela de lugares. Os moldes (`e`) e os gestos (`g`) são
- * desenhados pela página que os tem; aqui só os que cabem numa linha. */
 function linha(l) {
   if (l.c) return linhaDeChave(l);
   if (l.a) return linhaDeAcao(l);
@@ -742,7 +697,6 @@ function bloco(titulo, filhos, props = {}) {
     ...[].concat(filhos),
   ]);
 }
-/* «Mais ajustes»: recolhido no fim de cada página, e lembra se estava aberto. */
 const MAIS_ABERTO = new Set();
 function maisAjustes(chave, linhas, extra = []) {
   const ul = lista(linhas);
@@ -754,7 +708,6 @@ function maisAjustes(chave, linhas, extra = []) {
   return d;
 }
 
-/* --- o acervo: trazer um arquivo para dentro ------------------------------- */
 const ACERVO_ACEITA = {
   gato: ".svg,image/svg+xml", parede: "image/jpeg,image/png,image/webp", icone: ".svg,image/svg+xml",
   cursor: ".zip", fonte: ".zip,.ttf,.otf", "tema-icones": ".zip",
@@ -797,9 +750,6 @@ function botaoAcervo(tipo, texto, comoEscolha = false) {
   return elemento("span", { style: "display:contents" }, [b, campo]);
 }
 
-/* --- perguntas ------------------------------------------------------------ */
-/* Uma pergunta só, curta: título e dois botões. O botão de dizer sim repete o
- * verbo da ação (nunca «Continuar»). Nunca pede senha. */
 function perguntar({ titulo, ok = "OK", perigo = false, corpo = null, ensaio = false }) {
   const d = $("#pergunta");
   $("#pergunta-titulo").textContent = maiuscula(titulo);
@@ -816,7 +766,6 @@ function perguntar({ titulo, ok = "OK", perigo = false, corpo = null, ensaio = f
   });
 }
 
-/* --- trabalhos ------------------------------------------------------------ */
 let TRABALHO = null;
 let ULTIMO_TRABALHO = null;
 const RESTAUROS = new Set();
@@ -826,8 +775,6 @@ function lerRestauros() {
 }
 const deRoot = (a) => !!(a && (a.sudo || a.pela_ponte));
 
-/* A ponte: sem ela, a ação de root não roda — o painel oferece o conserto, e
- * nunca uma caixa de senha. */
 async function semPonte() {
   const ok = await perguntar({ titulo: "Falta a ponte", ok: "Conferir e consertar" });
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
@@ -861,7 +808,6 @@ async function restaurarAcao(id) {
   abrirResultado(r);
   if (TRABALHO) TRABALHO.restaura = id;
 }
-/* Espera o trabalho de agora acabar (a oficina encadeia dois). */
 function fimDoTrabalho() {
   return new Promise((ok) => {
     const ver = () => (TRABALHO && TRABALHO.timer ? setTimeout(ver, 300) : ok());
@@ -879,7 +825,6 @@ function marcarEstado(estado, texto) {
   el.dataset.estado = estado;
   el.textContent = maiuscula(texto);
 }
-/* `deVerdade`: depois de um ensaio («Ver sem mudar»), o botão que roda de verdade. */
 function abrirResultado(trabalho, depois = null, deVerdade = null) {
   if (TRABALHO && TRABALHO.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve, rotulo: maiuscula(trabalho.rotulo),
@@ -948,7 +893,6 @@ async function puxar() {
   if (t.escreve && !t.seco) await depoisDeEscrever();
   if (t.depois && (r.rc === 0 || r.rc === 1)) t.depois();
 }
-/* Depois de um trabalho que escreve, o painel relê tudo e se veste de novo. */
 async function depoisDeEscrever() {
   for (const k of [...PREVIAS.keys()]) if (/^(icone|parede|gato)\//.test(k)) PREVIAS.delete(k);
   APPS = null;
@@ -978,7 +922,6 @@ function pastilhaDeTrabalho(mostrar) {
   $("#aplicar").before(p);
 }
 
-/* --- Aplicar e Desfazer --------------------------------------------------- */
 function atualizarAplicar() {
   const n = MUDANCAS.size;
   $("#aplicar").dataset.n = String(n);
@@ -990,7 +933,6 @@ async function salvarEscolhas(mudancas = Object.fromEntries(MUDANCAS), depois = 
   b.dataset.estado = "carregando";
   const r = await api("/api/salvar", { method: "POST", body: JSON.stringify({ mudancas, seco }) });
   delete b.dataset.estado;
-  /* O ensaio sai por aqui: nada foi gravado, e o trabalho só mostra. */
   if (seco) {
     if (!r.trabalho) { torrada(r.erro || "Não ensaiou", "erro"); return; }
     abrirResultado(r.trabalho, null, () => salvarEscolhas(mudancas, depois, false));
@@ -1032,7 +974,6 @@ function listaDePendentes() {
   $("#aplicar").append(caixa);
 }
 
-/* --- importar ------------------------------------------------------------- */
 async function importarArquivo(arquivo) {
   if (!arquivo) return;
   if (arquivo.size > 512 * 1024) { torrada("Arquivo grande demais", "erro"); return; }
@@ -1049,7 +990,6 @@ async function importarArquivo(arquivo) {
   for (const rec of (r.recusadas || []).slice(0, 3)) torrada(`${nomeDeChave(rec.chave)}: ${rec.erro}`, "erro");
 }
 
-/* --- a busca -------------------------------------------------------------- */
 function indiceDaBusca() {
   const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Cuidar"
     : l.porta === "criar" ? "Criar tema · " + l.pagina : "Ajustes · " + l.pagina);
@@ -1110,8 +1050,6 @@ function ligarBusca() {
     }
   });
 }
-/* A linha a que a busca levou fica acesa um instante, mesmo se a página se
- * repintar (as listas chegam da rede logo depois). */
 let CHEGADA = null;
 function reacenderChegada() {
   if (!CHEGADA || Date.now() > CHEGADA.ate) { CHEGADA = null; return; }
@@ -1119,8 +1057,6 @@ function reacenderChegada() {
     .find((el) => el.dataset.linha.split(" ").includes(CHEGADA.id));
   if (alvo) alvo.classList.add("chegou");
 }
-/* Ir até a linha de um ajuste: abre a página, abre o «Mais ajustes» se for lá, e
- * acende a linha. */
 function irPara(l) {
   const sub = l.porta === "ajustes" ? (AJUSTES.find((p) => p.nome === l.pagina) || {}).id
     : l.porta === "criar" ? (PASSOS.find((p) => p.nome === l.pagina) || {}).id : "";
@@ -1141,7 +1077,6 @@ function irPara(l) {
   });
 }
 
-/* --- a rota --------------------------------------------------------------- */
 function rotaDoHash() {
   const [porta, sub] = decodeURIComponent(location.hash.replace(/^#/, "")).split("/");
   if (!PORTAS.some((p) => p.id === porta)) return { porta: "tema", sub: "" };
@@ -1166,8 +1101,6 @@ function desenharMenu() {
   $("#menu-corpo").replaceChildren(...itens);
 }
 
-/* --- a pintura ------------------------------------------------------------ */
-/* Repinta a página inteira e devolve o foco ao controle de mesmo nome. */
 function render() {
   if (!ESQUEMA || ESQUEMA.erro) return;
   const ativo = document.activeElement;
@@ -1186,7 +1119,6 @@ function render() {
   }
 }
 
-/* --- a partida ------------------------------------------------------------ */
 async function iniciar() {
   const [esquema] = await Promise.all([api("/api/esquema"), recarregarPendencias(), recarregarPacks()]);
   ESQUEMA = esquema;
@@ -1202,7 +1134,6 @@ async function iniciar() {
   ligarDicas();
   ligarBusca();
   desenharMenu();
-  /* O «Pular para o conteúdo» só leva o foco: o endereço é a página aberta. */
   $(".pular").addEventListener("click", (ev) => { ev.preventDefault(); $("#principal").focus(); });
   $("#desfazer").addEventListener("click", () => {
     MUDANCAS.clear(); guardarBandeja(); atualizarAplicar(); render();
@@ -1249,10 +1180,9 @@ async function iniciar() {
   render();
 }
 
-/* O painel morre com a janela que o abriu: o pulso mantém o servidor de pé. */
 try {
   const pulso = new EventSource("/api/pulso");
   pulso.onerror = () => {};
-} catch (e) { /* sem EventSource: o servidor vive até o tempo dele */ }
+} catch (e) { }
 
 iniciar();

@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# escritorio.sh — o OnlyOffice no lugar do LibreOffice, numa casa de brinquedo.
-#
-# A casa tem `flatpak`, `dpkg-query` e `apt-get` falsos (o estado do dpkg é um
-# arquivo de texto), um `sudo` que só executa a cópia da ponte root com o PATH
-# solto, e nenhum apt, dpkg ou flatpak de verdade é tocado.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ES="$RAIZ/scripts/escritorio.sh"
@@ -18,9 +13,6 @@ PONTE_DIR="$T/ponte"; DPKG="$T/dpkg"; APT_LOG="$T/apt.log"; FLATPAK_LOG="$T/flat
 OO="$FLATPAK/app/org.onlyoffice.desktopeditors"
 mkdir -p "$T/bin" "$CASA" "$ESTADO" "$PONTE_DIR" "$T/etc-flatpak" "$T/sistema-flatpak"
 : > "$APT_LOG"; : > "$FLATPAK_LOG"; : > "$SUDO_LOG"
-# Quatro do LibreOffice (um só com a configuração que sobrou), um que já saiu, a
-# ponte UNO (depende do libreoffice-core e sai com ele, como no apt de verdade) e
-# um vizinho. Na casa, o atalho com NoDisplay que outro programa pôs.
 printf '%s\n' 'ii  libreoffice-core' 'ii  libreoffice-writer' 'rc  libreoffice-calc' 'un  libreoffice-velho' 'ii  python3-uno' 'ii  vim' > "$DPKG"
 cp "$DPKG" "$T/dpkg-original"
 ATALHO="$CASA/.local/share/applications/libreoffice-startcenter.desktop"
@@ -70,20 +62,19 @@ if [ "\$1" = "-n" ] && [ "\$2" = "$PONTE_DIR/ponte_root.sh" ] && [ -f "$T/ponte-
 echo "sudo \$*" >> "$SUDO_LOG"; exit 1
 FIM
 chmod 755 "$T/bin/"*
-# A cópia da ponte: o PATH solto, sem dono root, sem logger; o resto é o código de verdade.
 sed -e 's#^export PATH=.*#:#' -e 's#-o root -g root##' -e 's#^anotar() {#anotar() { return 0#' \
     -e "s#^PERFIL=.*#PERFIL=\"$PONTE_DIR/perfil\"#" -e "s#^LIBRE_REMOVIDOS=.*#LIBRE_REMOVIDOS=\"$PONTE_DIR/var/removidos\"#" \
     "$RAIZ/scripts/ponte_root.sh" > "$PONTE_DIR/ponte_root.sh"
 chmod 755 "$PONTE_DIR/ponte_root.sh"
 printf 'lar=%s\n' "$CASA" > "$PONTE_DIR/perfil"
 
-rodar() { # $1.. = argumentos do escritorio.sh
+rodar() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
       FLATPAK_USER_DIR="$FLATPAK" FLATPAK_SYSTEM_DIR="$T/sistema-flatpak" FLATPAK_CONFIG_DIR="$T/etc-flatpak" \
       FLATPAK_LOG="$FLATPAK_LOG" FLATPAK_FALHA="$T/flatpak-falha" DPKG_FALSO="$DPKG" APT_LOG="$APT_LOG" \
       APT_DEPENDENTE="$T/dependente" MEOW_PONTE="$PONTE_DIR/ponte_root.sh" bash "$ES" "$@"
 }
-ponte() { # $1 verbo · stdin
+ponte() {
   env -i PATH="$T/bin:/usr/bin:/bin" DPKG_FALSO="$DPKG" APT_LOG="$APT_LOG" APT_DEPENDENTE="$T/dependente" \
       APT_SEM="${APT_SEM:-}" APT_VERBO="${APT_VERBO:-}" \
       bash "$PONTE_DIR/ponte_root.sh" "$1"

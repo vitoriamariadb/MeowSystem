@@ -1,6 +1,6 @@
 # Pack mínimo
 
-O exemplo do formato de pack com três pastas de ícone (P88, decisão 14).
+O exemplo do formato de pack com três pastas de ícone (decisão 14).
 
 ```
 pack-minimo/

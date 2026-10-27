@@ -1,20 +1,4 @@
 #!/usr/bin/env bash
-# atualizar_sistema.sh — atualiza a máquina inteira e prova que o MeowSystem
-# sobreviveu.
-#
-# Ela já tem o comando, e ele é uma linha só:
-#
-#     sudo apt update && sudo apt full-upgrade -y && topgrade -y \
-#       && sudo apt autoclean -y && sudo apt autoremove -y \
-#       && cargo install cargo-update --force && limpar_cache \
-#       && cargo-install-update-config
-#
-# O que falta nessa linha é a SEGUNDA METADE do problema.
-#
-# USO
-#   atualizar_sistema.sh ver        o que mudaria. Não escreve, não pede senha.
-#   atualizar_sistema.sh aplicar    atualiza e confere o MeowSystem depois.
-#   atualizar_sistema.sh limpar     autoclean, autoremove e cache do apt.
 
 set -uo pipefail
 
@@ -22,21 +6,16 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# `--force-confold` mantém o arquivo que está no disco quando o pacote traz
-# um novo; `--force-confdef` só aceita o padrão quando NÃO há versão dela.
 APT_OPCOES=(-y -o Dpkg::Options::=--force-confold -o Dpkg::Options::=--force-confdef)
 
 _as_tem() { command -v "$1" >/dev/null 2>&1; }
 
-# --- o que mudaria ----------------------------------------------------------
 cmd_ver() {
   local n=0
   meow_titulo "O que a atualização mudaria"
 
   meow_passo "1/3 Pacotes do sistema"
   if _as_tem apt; then
-    # `apt update` escreve na lista do apt, que é cache, não configuração — mas
-    # ele pede senha, e `ver` promete não pedir. Então lê o que já está lido.
     local lista
     lista="$(apt list --upgradable 2>/dev/null | tail -n +2)"
     if [ -n "$lista" ]; then
@@ -65,7 +44,6 @@ cmd_ver() {
   return "$MEOW_OK"
 }
 
-# --- a atualização ----------------------------------------------------------
 cmd_aplicar() {
   local rc="$MEOW_OK"
 
@@ -86,14 +64,11 @@ cmd_aplicar() {
       || meow_info "  o veredito do COSMIC tem vermelho — o upgrade segue; o detalhe fica em: meow cosmic ler"
   fi
   if _as_tem apt; then
-    # É o que faz o botão "Atualizar a máquina inteira" do painel funcionar: ele
-    # roda sem terminal, e um prompt de senha ali nunca chegava a lugar nenhum.
     local rc_ponte=0
     meow_ponte atualizar || rc_ponte=$?
     if [ "$rc_ponte" = "0" ]; then
-      : # feito pela ponte
+      :
     elif [ "$rc_ponte" = "127" ]; then
-      # Sem ponte: o caminho de sempre, que pede senha no terminal.
       sudo apt update || { meow_erro "apt update falhou"; return "$MEOW_ERRO"; }
       sudo apt full-upgrade "${APT_OPCOES[@]}" \
         || { meow_erro "apt full-upgrade falhou — a máquina não ficou pela metade,"
@@ -112,8 +87,6 @@ cmd_aplicar() {
 
   meow_passo "2/4 O resto (flatpak, cargo, pnpm…)"
   if _as_tem topgrade; then
-    # O topgrade já pula o que não existe e já sabe do apt; aqui ele entra pelo
-    # resto. `--no-retry` porque um passo que falha duas vezes falha as duas.
     topgrade -y --no-retry --disable system || meow_aviso "topgrade terminou com pendência — a saída acima diz qual"
     rc="$MEOW_DIVERGENTE"
   else
@@ -127,7 +100,6 @@ cmd_aplicar() {
     meow_pula "cargo-install-update não está instalado"
   fi
 
-  # --- E AQUI COMEÇA A PARTE QUE SÓ ESTE PROJETO FAZ ------------------------
   meow_passo "4/4 O que a atualização desfez"
   meow_info "cada troca de pacote pode ter desfeito uma etapa nossa: o tema, os"
   meow_info "  ícones, o applet da barra, o mascote do terminal. O doctor diz quais."
@@ -139,8 +111,6 @@ cmd_aplicar() {
     0) meow_ok "a atualização não desfez nada — o MeowSystem sobreviveu inteiro" ;;
     *) meow_muda "há etapa fora do lugar depois da atualização"
        meow_info "  conserte com:  meow doctor --consertar"
-       # Esta linha dizia «pelo painel, em "Instalar e conferir"», a aba que
-       # se chama «Instalação».
        local onde; onde="$(meow_onde_no_painel doctor_consertar)"
        [ -n "$onde" ] && meow_info "  (ou, no painel, $onde)"
        rc="$MEOW_DIVERGENTE" ;;
@@ -150,18 +120,12 @@ cmd_aplicar() {
   return "$rc"
 }
 
-# --- a limpeza --------------------------------------------------------------
-#
-# O repositório do Pop serve UMA versão por pacote. Antes do clean, o `.deb` da
-# versão INSTALADA de cada `cosmic-*` é copiado para a guarda do usuário — sem
-# sudo: o cache do apt é legível por todos.
 AS_ARQUIVOS="${AS_ARQUIVOS:-/var/cache/apt/archives}"
 AS_GUARDA_DEBS="${AS_GUARDA_DEBS:-${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/debs}"
 
 _as_guardar_debs() {
   local p v arq n=0
   while IFS=$'\t' read -r p v; do
-    # No nome do `.deb` o `:` do epoch vira `%3a`.
     arq="$(ls "$AS_ARQUIVOS/${p}_${v//:/%3a}_"*.deb 2>/dev/null | head -1)"
     [ -n "$arq" ] || continue
     if [ -f "$AS_GUARDA_DEBS/${arq##*/}" ]; then
@@ -181,7 +145,6 @@ _as_guardar_debs() {
   return "$MEOW_OK"
 }
 
-# Por pacote: fica o da versão instalada e o mais novo dos outros.
 _as_podar_debs() {
   local p inst d
   [ -d "$AS_GUARDA_DEBS" ] || return 0

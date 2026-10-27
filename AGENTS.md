@@ -23,7 +23,7 @@ confere e conserta sozinho. Bash 4.3+ e Python 3 só com a biblioteca padrão.
 | `src/` | applets e o oráculo em Rust |
 | `systemd/` | unidades de usuário (doctor, vigias `.path`, sentinela) |
 | `tests/` | a suíte; `tests/todos.sh` roda tudo |
-| `docs/` | manual (`PACKS.md`, `FRONTEIRA.md`, `ESTADO-FINAL.md`, `MANUTENCAO.md`) |
+| `docs/` | manual (`PACKS.md`, `FRONTEIRA.md`, `ESTADO-FINAL.md`, `MANUTENCAO.md`) e o registro `DECISOES.md` |
 
 ## Rodar a suíte
 
@@ -44,9 +44,8 @@ Pulado não é verde. Toda afirmação precisa de prova rodada.
 
 - Leia [`GSD.md`](GSD.md): as regras, as decisões e as armadilhas, cada uma guardada por
   `tests/decisoes.sh`.
-- Decisões de quem usa: [`docs/sprints/2026-10-09-uso-real/02-decisoes.md`](docs/sprints/2026-10-09-uso-real/02-decisoes.md)
-  e [`docs/sprints/2026-10-15-fechamento/P82-abertos.md`](docs/sprints/2026-10-15-fechamento/P82-abertos.md).
-  Só se desfazem com sim explícito sobre o tema.
+- Decisões de quem usa: [`docs/DECISOES.md`](docs/DECISOES.md). Só se desfazem com sim explícito
+  sobre o tema.
 - O doctor corrige; nenhuma saída manda digitar. Interface mostra, não explica.
 - Pack é dado. A arte mora no pack.
 - Não rode `install.sh`, `meow compositor` nem `meow doctor --consertar` com o HOME real.
@@ -55,13 +54,13 @@ Pulado não é verde. Toda afirmação precisa de prova rodada.
 
 ## Comentários
 
-Comentário diz o porquê técnico em até três linhas. História, datas e ids de sprint moram no git
-e em `docs/sprints/`. O `scripts/higiene.sh` roda no commit: tira comentário de registro e
-corrige número que os testes sabem. `scripts/comentarios.py impressao` prova que mexer em
-comentário não mexeu em código.
+Zero comentário; o porquê mora no nome, no teste e no commit; informação errada se sobrescreve
+no lugar, nunca se acrescenta. Ficam só shebang, licença, diretiva (`shellcheck`, `noqa`) e a
+ajuda que o programa imprime de si. `scripts/comentarios.py zerar` corta sem mudar a `impressao`
+do código; o `scripts/higiene.sh` zera as linhas novas do commit e corrige número que os testes sabem.
 
 ## Onde não ler por padrão
 
-- `docs/sprints/` e `docs/historico/`: registro de trabalho, longo. Leia só o arquivo citado.
-- `docs/SPRINTS.md`: o diário das sprints.
+- `docs/sprints/`: só a leva em curso; leia o arquivo citado. O registro antigo mora na branch
+  `arquivo`.
 - `packs/*/icones/` (milhares de SVG), `docs/capturas/`.

@@ -1,22 +1,7 @@
 #!/usr/bin/env bash
-# O painel e o wizard leem o MESMO meow.conf.exemplo — e têm de concordar.
-#
-# O catálogo de chaves do painel (`app/servidor.py`, em Python) é uma tradução
-# das regras do `wiz_ler_esquema` do `bin/meow` (em bash).
-#
-# Aqui a duplicação é inevitável (o navegador não roda bash, e reescrever o
-# wizard em Python seria trocar um problema por outro).
-#
-#   1. a LISTA de chaves — mesmos nomes, mesma quantidade, mesma ordem;
-#   2. o VALOR PADRÃO de cada uma, como está escrito no exemplo;
-#   3. as OPÇÕES de cada chave (`a | b | c`), que é a regra mais fácil de
-#      divergir — o bash descarta a linha inteira se um token não parecer valor,
-#      e o Python tem de fazer o mesmo.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
-# NADA FICA EM /tmp. O bloco 10 fazia um `mkdtemp()` (o `bom.conf` e o
-# `quebrado.conf`) sem apagar, e cada rodada da suíte deixava uma pasta.
 _TMP_DO_TESTE="$(mktemp -d)" || exit 2
 trap 'rm -rf "$_TMP_DO_TESTE"' EXIT
 trap 'exit 130' INT
@@ -27,12 +12,9 @@ falhas=0
 
 command -v python3 >/dev/null || { printf 'pulado: sem python3\n'; exit 0; }
 
-# --- 1. o painel compila e o esquema sai de pé ------------------------------
 python3 -m py_compile "$RAIZ/app/servidor.py" || {
   printf 'FALHOU: app/servidor.py não compila\n' >&2; exit 1; }
 
-# --- 2. a leitura do bash, extraída do próprio bin/meow ---------------------
-# Sourcear o `bin/meow` inteiro rodaria o `despachar` no fim.
 esquema_bash="$(
   MEOW_RAIZ="$RAIZ" bash -c '
     set -uo pipefail
@@ -66,7 +48,6 @@ esquema_bash="$(
   '
 )" || { printf 'FALHOU: não consegui rodar a leitura do bin/meow\n' >&2; exit 1; }
 
-# --- 3. a leitura do Python -------------------------------------------------
 esquema_py="$(
   MEOW_RAIZ="$RAIZ" python3 - "$RAIZ" <<'PY'
 import sys, os
@@ -74,26 +55,19 @@ raiz = sys.argv[1]
 sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor
 for i in servidor.ler_esquema():
-    # O LOGO e os mascotes saem do DISCO nos dois lados; comparar a lista deles aqui
-    # testaria o acervo de `packs/meowsystem/mascote/`, não a leitura do exemplo.
     if i["chave"] in ("LOGO", "LOGO_DIA", "LOGO_NOITE", "FASTFETCH_LOGO_GATO"):
         opc = ""
     else:
-        # `_opcoes` é a regra compartilhada com o `wiz_opcoes`; `i["opcoes"]` é a
-        # lista que a PÁGINA desenha, já com os dois ajustes de apresentação.
-        # É a primeira que tem de bater com o bash.
         bruto = servidor._opcoes(i["chave"], i["ajuda"], i["inline"])
         opc = ",".join(o for o in bruto if o != "vazio")
     print("%s\t%s\t%s" % (i["chave"], i["padrao"], opc))
 PY
 )" || { printf 'FALHOU: não consegui rodar a leitura do app/servidor.py\n' >&2; exit 1; }
 
-# O mesmo recorte do lado do bash, pelo mesmo motivo.
 esquema_bash="$(printf '%s\n' "$esquema_bash" | awk -F'\t' -v OFS='\t' '
   $1=="LOGO"||$1=="LOGO_DIA"||$1=="LOGO_NOITE"||$1=="FASTFETCH_LOGO_GATO" {$3=""}
   {print}')"
 
-# --- 4. o veredito ----------------------------------------------------------
 if [ "$esquema_bash" != "$esquema_py" ]; then
   printf 'FALHOU: o wizard (bash) e o painel (python) leem o meow.conf.exemplo diferente.\n\n' >&2
   diff <(printf '%s\n' "$esquema_bash") <(printf '%s\n' "$esquema_py") \
@@ -104,11 +78,6 @@ else
   printf 'ok: as %s chaves leem igual no bin/meow e no app/servidor.py\n' "$n"
 fi
 
-# --- 5 e 6. as duas regras que valem para o CÓDIGO, não para o comentário ---
-#
-# Um teste que proíbe explicar a própria regra faria este repositório, que é
-# escrito em prosa comentada, perder a prosa. Então os comentários saem antes da
-# varredura.
 python3 - "$RAIZ" <<'PY' || falhas=$((falhas+1))
 import re, sys, os
 raiz = sys.argv[1]
@@ -124,10 +93,6 @@ if hex_achados:
 else:
     print("ok: estilo.css não tem um hex fora de comentário — a cor vem de /paleta.css")
 
-# A inferência de `sim | nao` só pode acontecer onde o próprio arquivo já diz
-# `sim` ou `nao` no valor de fábrica. Se um dia ela escorregar para uma chave de
-# texto livre, a página passaria a oferecer dois botões que gravariam lixo — e
-# nada na tela acusaria, porque dois botões parecem certos.
 sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor
 escorregou = [
@@ -144,55 +109,19 @@ else:
     n = sum(1 for i in servidor.ler_esquema() if i["opcoes"] == ["sim", "nao"])
     print("ok: as %d chaves com dois botões sim/nao têm padrão `sim` ou `nao`" % n)
 
-# --- 7. O PAINEL CONFIGURA TUDO QUE O INSTALADOR LÊ -------------------------
-#   Pedido dela em 06/09/2026: *"a ideia é o html personalizar tudo, configurar
-#   as variáveis que são lidas no install — temos que garantir isso"*.
-#
-#   O catálogo é DERIVADO dos comentários do `meow.conf.exemplo`, e o risco
-#   disso é o oposto do de uma lista escrita à mão: uma chave que um script
-#   passa a ler e o exemplo não cataloga nasce INVISÍVEL no painel. Ninguém
-#   descobre — o script tem um padrão e funciona, e ela nunca vê o controle.
-#   Foi assim que `FASTFETCH_LOGO_CELULA` e `FASTFETCH_LOGO_BLOCOS` passaram
-#   semanas sendo lidas sem cartão.
-#
-#   O SINAL É O IDIOMA, e não uma lista: toda etapa lê a configuração dela
-#   escrevendo `VAR="${VAR:-padrão}"`. Variável local de shell nunca se escreve
-#   assim, porque não vem de fora.
 import re as _re, subprocess as _sp
 
 _IDIOMA = _re.compile(r'^\s*([A-Z][A-Z0-9_]{2,})="\$\{\1:[-=]', _re.M)
-# Sobrescritas de CAMINHO para teste e constantes MEDIDAS não são ajuste dela.
-# Cada uma tem o porquê no cabeçalho do próprio script — o `SOM_GANHO` diz
-# "calibrado, não é gosto"; o `GREETER_HOME` é `/var/lib` com outro nome para o
-# teste poder rodar sem root.
 _NAO_E_AJUSTE = {
-    "APROXIMOU",        # contador interno do icones_apps.sh
-    "FORMA_COMP_BIN",   # caminho do binário do compositor, para teste
-    "FZF_ALVO",         # ~/.config/meowsystem/fzf.sh, para teste (P44)
-    "GREETER_HOME",     # /var/lib/cosmic-greeter, para teste
-    "PROMPT_ALVO",      # ~/.config/starship.toml, para teste
-    "SOM_DURACAO",      # 85 ms: o debounce medido do osd, não gosto
-    "SOM_GANHO",        # calibrado com volumedetect para casar o de fábrica
-    "VIDRO_OPACIDADE",  # atalho LEGADO das duas VIDRO_OPACIDADE_*, que o
-                        # painel oferece separadas — duas portas para o mesmo
-                        # valor seriam duas respostas para a mesma pergunta
+    "APROXIMOU",
+    "FORMA_COMP_BIN",
+    "FZF_ALVO",
+    "GREETER_HOME",
+    "PROMPT_ALVO",
+    "SOM_DURACAO",
+    "SOM_GANHO",
+    "VIDRO_OPACIDADE",
 }
-# SPICE_ entrou em 22/09/2026, com a P29, e é da mesma família de FFL_ e CP_:
-# são as variáveis internas do scripts/spicetify_setup.sh, trazido do
-# Spellbook-OS. As quatro que o teste apontou — SPICE_VERSAO (2.45.1),
-# SPICE_DIR (~/.spicetify), SPICE_RELEASES (a URL do GitHub) e
-# SPICE_PREFS_FLATPAK (o prefs dentro do ~/.var/app) — são endereço e versão de
-# um programa de terceiro, com padrão embutido e override só para teste.
-# Nenhuma delas é escolha de tema, e pô-las na tela seria oferecer à pessoa uma
-# pergunta que ela não tem como responder.
-# CV_, PA_, AP_, AS_ e OT_ entraram em 09/10/2026, com a P76, e são da mesma
-# família do CP_: caminhos e comandos sobrescrevíveis para teste do pré-voo do
-# COSMIC (cosmic_prever.sh), do pós-apt (cosmic_pos_apt.sh), do pino dos
-# applets (applet_pino.sh), da guarda do `.deb` (atualizar_sistema.sh) e do
-# oráculo do tema (oraculo_tema.sh). Nenhuma é escolha de tema.
-# GB_ entrou em 15/10/2026, com a P81: os caminhos e comandos do
-# garantir_builds.sh, sobrescrevíveis para teste, da mesma família.
-# SN_ entrou com a P86: o pré-voo e o estado da sentinela do apt, idem.
 _INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|GB_|SN_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
 
 _catalogo = {i["chave"] for i in servidor.ler_esquema()}
@@ -210,13 +139,6 @@ for _f in _sp.run(["git", "ls-files"], cwd=raiz, capture_output=True,
         if not _INTERNAS.match(_k) and _k not in _NAO_E_AJUSTE:
             _lidas.setdefault(_k, set()).add(_f)
 
-# A CHAVE APOSENTADA NÃO TEM CARTÃO DE PROPÓSITO — P75, 09/10/2026. A
-#   `ICONES_BASE` saiu do exemplo por decisão (24/09, «Tirar a linha do conf»),
-#   e o `migrar_conf.py` tira a linha ativa de todo meow.conf (`APOSENTADAS`).
-#   Os leitores que ainda escrevem `${ICONES_BASE:-…}` só enxergam o padrão
-#   depois disso; trocá-los pela pergunta ao pack é a P74, item 1. A lista vem
-#   de lá, por caminho, como o servidor lê o `RENOMEADAS`: uma segunda lista
-#   aqui envelheceria. E vale o inverso: aposentada com cartão é falha.
 import importlib.util as _ilu
 _spec = _ilu.spec_from_file_location("meow_migrar_conf", os.path.join(raiz, "scripts", "migrar_conf.py"))
 _migrar = _ilu.module_from_spec(_spec); _spec.loader.exec_module(_migrar)
@@ -236,14 +158,6 @@ else:
     print("ok: as %d chaves que os scripts leem do conf têm cartão no painel"
           % len(_lidas))
 
-# --- 8. O QUE O PAINEL LÊ DA MÁQUINA É O QUE OS SCRIPTS GRAVAM — 13/09/2026 --
-#   `NA_MAQUINA` (servidor.py) é a leitura inversa dos scripts: o deslizante diz
-#   "como está: 24" lendo o arquivo em que o `forma.sh` grava o raio. A tabela
-#   não sai do `meow.conf.exemplo` — o exemplo diz o que a chave faz, não onde
-#   o COSMIC a guarda —, e o dia em que um script passar a gravar outro arquivo
-#   a tela continuaria mostrando um número: o velho, com a mesma confiança.
-#   Então: toda chave da tabela existe no catálogo, e o arquivo que ela lê é
-#   citado no CÓDIGO de algum script, junto do programa do COSMIC que o guarda.
 _sh_codigo = {}
 for _f in _sp.run(["git", "ls-files", "scripts"], cwd=raiz, capture_output=True,
                   text=True).stdout.split():
@@ -252,7 +166,7 @@ for _f in _sp.run(["git", "ls-files", "scripts"], cwd=raiz, capture_output=True,
         _sh_codigo[_f] = "\n".join(l for l in _txt.splitlines() if not l.lstrip().startswith("#"))
 _sem_escritor = []
 for _k, (_arq, _traduz) in sorted(servidor.NA_MAQUINA.items()):
-    _programa = _arq.split("/")[0].split(".")[2]           # CosmicPanel, CosmicComp…
+    _programa = _arq.split("/")[0].split(".")[2]
     _nome = os.path.basename(_arq)
     if not any(_programa in _t and _nome in _t for _t in _sh_codigo.values()):
         _sem_escritor.append("%s (%s)" % (_k, _arq))
@@ -265,40 +179,12 @@ else:
     print("ok: as %d chaves que o painel lê da máquina saem de arquivos que os scripts gravam"
           % len(servidor.NA_MAQUINA))
 
-# --- 9. O PAINEL NÃO TEM INTERRUPTOR DE ENSAIO -------------------------------
-#   NASCEU EM 13/09/2026 DIZENDO OUTRA COISA, E A SPRINT P8 A REESCREVEU EM
-#   22/09. A trava de 13/09 era "nenhum pedido da página leva `seco`, nenhuma
-#   rota o lê, nenhum ambiente liga `MEOW_DRY_RUN`" — a leitura larga de
-#   *"eu tinha pedido pra tirar o app do modo sandbox"*. A outra metade da
-#   mesma queixa dela é *"nada da interface é aplicado em sandbox; tudo é
-#   aplicado na máquina da pessoa"*, e o meio que faltava entre os dois
-#   extremos é o que a P8 entregou: um botão «Ver sem mudar» por gesto.
-#
-#   O QUE ELA PEDIU PARA TIRAR CONTINUA PROIBIDO, e é isso que esta trava
-#   guarda agora — o INTERRUPTOR. Um estado guardado que fazia todo clique
-#   seguinte fingir, até alguém desligá-lo; era ele que produzia "nada tá
-#   aplicando de verdade", porque a tela mentia em silêncio sobre o gesto
-#   seguinte, e o seguinte. A diferença entre os dois desenhos é exatamente
-#   ESTA: um botão não guarda nada entre um clique e o outro.
-#
-#   Então a pergunta que este bloco faz mudou de "o ensaio existe?" para "o
-#   ensaio é pedido, ou é lembrado?". Uma trava que só dissesse "não pode
-#   existir" seria uma trava contra a decisão de hoje, e não contra o defeito.
 _js = re.sub(r"/\*.*?\*/", "", open(os.path.join(raiz, "app/pagina/app.js"),
                                     encoding="utf-8").read(), flags=re.S)
 _js = "\n".join(l for l in _js.splitlines() if not l.lstrip().startswith("//"))
-#   9a. NADA DE SECO GUARDADO NA PÁGINA. A chave `meow-seco` do `sessionStorage`
-#       era o interruptor; qualquer armazenamento na mesma linha de um `seco` é
-#       a mesma ideia voltando com outro nome.
 _guardado = re.findall(r"meow-seco", _js)
 _guardado += [l.strip() for l in _js.splitlines()
               if re.search(r"(session|local)Storage", l) and re.search(r"\bseco\b", l)]
-#   9b. NO SERVIDOR, `MEOW_DRY_RUN` SÓ PODE SER LIGADO EM UM LUGAR, e esse lugar
-#       é o `_ambiente_do_painel`, atrás do parâmetro `seco`. Duas ligações
-#       querem dizer dois donos do modo — e o segundo é sempre o que alguém
-#       esquece de consultar. A conta é de ATRIBUIÇÕES, e não do nome: o nome
-#       aparece no `pop` que arranca a herança do terminal, que é o oposto disto
-#       e tem de continuar existindo.
 _py = "\n".join(l for l in open(os.path.join(raiz, "app/servidor.py"), encoding="utf-8")
                 .read().splitlines() if not l.lstrip().startswith("#"))
 _ligam = re.findall(r"""\[["']MEOW_DRY_RUN["']\]\s*=""", _py)
@@ -312,21 +198,10 @@ if _guardado or len(_ligam) != 1 or "_ambiente_do_painel(seco=False)" not in _py
 else:
     print("ok: o ensaio é pedido por gesto, e não guardado num interruptor")
 
-#   9c. E O ENSAIO PRECISA CONTINUAR EXISTINDO. Esta metade é nova em 22/09 e é
-#       a que a P8 realmente comprou: sem ela, um refactor que apagasse o botão
-#       deixaria a suíte verde — que é como o ensaio sumiu da tela da primeira
-#       vez, sem nenhum teste dizendo nada. As três peças da sprint, pelo nome
-#       que elas têm no código.
 _pecas = [("o botão do diálogo", "confirmar-ensaio", _js),
           ("o botão da barra do alto", "botao-ensaiar", _js),
           ("a faixa da gaveta", "faixa-ensaio", _js),
           ("o «Rodar de verdade» pós-ensaio", "ensaio-rodar", _js),
-          #   A cópia descartável do meow.conf é a peça que faz o ensaio do
-          #   «Salvar e aplicar» responder sobre AS ESCOLHAS. A primeira versão
-          #   desta sprint as mandava por ambiente e o `install.sh` as engolia
-          #   no `set -a; . "$fonte"` — ensaio do conf antigo, aprovado como se
-          #   fosse o novo. Se alguém voltar ao ambiente, esta linha fica
-          #   vermelha antes de a pessoa descobrir sozinha.
           ("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
           ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py),
           ("o seco no /api/rodar", 'corpo.get("seco")', _py),
@@ -339,13 +214,6 @@ if _faltam:
 else:
     print("ok: o «Ver sem mudar» está no diálogo, na barra e na janela de resultado")
 
-#   9d. E O ENSAIO TEM DE RESPONDER SOBRE AS ESCOLHAS, SEM TOCAR NO ARQUIVO
-#       DELA. As duas metades da mesma pergunta, e a checagem de texto acima não
-#       alcança nenhuma: um `_conf_de_ensaio` que copiasse e esquecesse de
-#       gravar passaria por ela. A escolha entra na CÓPIA (é o que o
-#       `install.sh` vai sourcear), o sha256 do arquivo dela não se move, e a
-#       `conf_exportada` da cópia devolve o valor NOVO — que é de onde sai a
-#       ponte da paleta do trabalho.
 import hashlib as _hl
 import shutil as _sh
 import tempfile as _tf9
@@ -355,9 +223,6 @@ _sh.copyfile(os.path.join(raiz, "meow.conf.exemplo"), _dela)
 _antes9 = _hl.sha256(open(_dela, "rb").read()).hexdigest()
 _conf_dela9 = servidor.CONF
 _erros9 = []
-#       A ausência da função já é gritada pelo 9c acima; aqui ela vira um pulo
-#       em vez de um traceback, senão um único refactor derruba o resto do
-#       arquivo e esconde as travas que vêm depois.
 _faz_ensaio = getattr(servidor, "_conf_de_ensaio", None)
 if _faz_ensaio is None:
     _pasta9, _queixa9 = None, "o _conf_de_ensaio não existe (ver a trava acima)"
@@ -385,11 +250,6 @@ if _erros9:
 else:
     print("ok: o ensaio lê as escolhas numa cópia e não toca no meow.conf dela")
 
-#   9e. E OS MAPAS DE ÍCONE DELA VÃO JUNTO COM A CÓPIA — QA da P77, 10/10/2026.
-#       O `pack.py` e o `icones_apps_arcticons.sh` acham o `icones-escolhidos.map`
-#       e o `icones-traco.map` pela pasta do `MEOW_CONF`; no ensaio ela é a da
-#       cópia, sem mapa, e o «Ver sem mudar» anunciava apagar o ícone que o
-#       «Usar este ícone» acabara de pôr. O `iniciar` passa os dois endereços.
 import inspect as _inspect9
 _ini9 = _inspect9.getsource(servidor.iniciar)
 _falta9 = [v for v in ("MEOW_ICONES_ESCOLHAS", "MEOW_ICONES_TRACO") if v not in _ini9]
@@ -400,10 +260,6 @@ if _falta9:
 else:
     print("ok: o ensaio lê os mapas de ícone de quem usa, e não os da pasta da cópia")
 
-#   9f. O «HÁ DIVERGÊNCIAS» TRAZ O BOTÃO DO CONSERTO — QA da P77, 10/10/2026.
-#       O doctor termina em «rode: meow doctor --consertar»; a gaveta oferece o
-#       botão da ação que conserta. Toda `conserta_com` aponta uma ação que
-#       existe e escreve, o trabalho a leva para a página, e a página a usa.
 _erros9f = []
 for _id9f, _a9f in servidor.ACOES.items():
     _alvo9f = _a9f.get("conserta_com")
@@ -421,14 +277,6 @@ if _erros9f:
 else:
     print("ok: o «há divergências» do conferir oferece o botão do conserto na gaveta")
 
-# --- 10. O TRABALHO LEVA A CONF, E O ÍCONE QUE NÃO VALE NÃO É OFERECIDO — 13/09 --
-#   Medido pela interface: «Usar este ícone» rodou o `icones_apps_arcticons.sh`
-#   com o ambiente do servidor e nada mais. Sem `ICONES_COR_MARCA`, doze ícones
-#   da máquina dela voltaram à cor de categoria. E no Hefesto, que o script pula
-#   por ser intocável, a tela disse que valeu e a dock ficou igual.
-#   Então: a conf exportada é a do `set -a` (com expansão e com os padrões do
-#   `carregar_conf`), um conf quebrado não vira "tudo no padrão", o `iniciar` a
-#   usa, e as três travas do script chegam ao servidor.
 import inspect as _inspect
 import tempfile as _tf
 _d = _tf.mkdtemp()
@@ -454,10 +302,6 @@ for _k, _v in (("ICONES_COR_MARCA", "sim"), ("FLAVOR", "latte"), ("ICONES_PASTAS
 if _exp_quebrado is not None:
     _erros10.append("um conf com erro de sintaxe virou ambiente em vez de recusa")
 _ini = _inspect.getsource(servidor.iniciar)
-# `conf_exportada(` e não `conf_exportada()`: desde 22/09 ela recebe a fonte, que
-# no ensaio é a CÓPIA com as escolhas dentro — e tem de ser o MESMO arquivo que o
-# `install.sh` vai sourcear, senão a ponte resolve a paleta por um FLAVOR e o
-# instalador lê outro.
 if "conf_exportada(" not in _ini or "ambiente.update(conf)" not in _ini:
     _erros10.append("o iniciar não põe a conf no ambiente do trabalho")
 _m = servidor.Manipulador.__new__(servidor.Manipulador)
@@ -486,7 +330,6 @@ else:
 sys.exit(falhou)
 PY
 
-# --- 11. O COMANDO DA TELA COLA, E O QUE SE EXPORTA NÃO LEVA NOME --
 _tmp11="$(mktemp -d)"
 HOME="$_tmp11/casa" MEOW_CONF="$_tmp11/casa/.config/meow/meow.conf" MEOW_RAIZ="$RAIZ" \
   python3 - "$RAIZ" <<'PY' || falhas=$((falhas+1))
@@ -508,7 +351,6 @@ if base_velha not in exemplo:
     sys.exit(1)
 fora = os.path.join(os.path.dirname(casa), "disco", sentinela, "wallpapers")
 os.makedirs(os.path.join(fora, "ativos"))
-# Um PNG de 1x1: o acervo só lista arquivo com extensão de imagem.
 with open(os.path.join(fora, "ativos", "gato.png"), "wb") as fh:
     fh.write(bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
                            "1f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4"
@@ -557,7 +399,6 @@ print("ok: o comando da gaveta cola com a casa entre aspas, e a página exportad
 PY
 rm -rf "$_tmp11"
 
-# --- 12. O RÓTULO DIZ O QUE A AÇÃO FEZ ----------------
 _tmp12="$(mktemp -d)"
 HOME="$_tmp12/casa" MEOW_CONF="$_tmp12/casa/.config/meow/meow.conf" \
 MEOW_ESTADO="$_tmp12/casa/.local/state/meowsystem" \
@@ -592,7 +433,6 @@ import servidor
 
 erros = []
 
-# 12a. as naturezas
 classes = {"ok", "correndo", "pula", "erro"}
 for ident, acao in servidor.ACOES.items():
     nat = acao.get("natureza")
@@ -621,7 +461,6 @@ if not erros:
                 erros.append("o ensaio de %s diz %r — num ensaio nada foi feito" % (ident, frase))
                 break
 
-# 12b. o nome que um script cita sai da tabela da página (app/pagina/lugares.js)
 esperado = "«Conferir e consertar», em Cuidar › Estado"
 if servidor.onde_na_tela("doctor_consertar") != esperado:
     erros.append("--onde doctor_consertar diz %r, e não %r"
@@ -631,8 +470,6 @@ if servidor.onde_na_tela("areas-sem-alfinete") != "«Resolver», em %s" % servid
 oculta = next(k for k, a in servidor.ACOES.items() if a.get("oculta"))
 if servidor.onde_na_tela(oculta) or servidor.onde_na_tela("nao-existe"):
     erros.append("--onde cita um botão que não tem cartão (%s) ou que não existe" % oculta)
-# A pendência do tema de terceiro (P62): os DOIS botões que a lista desenha
-# para ela, lidos da tabela da escolha — de um app com módulo, e de nenhum outro.
 modulos = os.path.join(raiz, "scripts", "temas-de-apps")
 com_modulo = next(n for n in sorted(os.listdir(modulos))
                   if os.path.isfile(os.path.join(modulos, n, "manifesto.sh")))
@@ -641,7 +478,6 @@ if not all("«%s»" % r in onde for _a, r in servidor.ESCOLHA_TEMA_DE_TERCEIRO) 
         or not onde.endswith("em %s" % servidor.porta_das_pendencias()):
     erros.append("--onde da pendência de tema de terceiro de %s não cita os botões da lista: %r"
                  % (com_modulo, onde))
-# 12c. nome e botão que o servidor manda à tela: até três palavras, maiúscula no começo
 def curto(t):
     return bool(t) and len(t.split()) <= 3 and t[0].isupper()
 longos = ["%s: %r" % (k, a["rotulo"]) for k, a in servidor.ACOES.items() if not curto(a["rotulo"])]
@@ -669,9 +505,6 @@ porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel 
                         "_", raiz], capture_output=True, text=True, env=dict(os.environ))
 if porta.stdout.strip() != esperado:
     erros.append("o meow_onde_no_painel do lib/comum.sh diz %r" % porta.stdout.strip())
-# `--onde` com o número errado de argumentos não sobe o painel (revisão da
-# P50: caía no `main()`). O `timeout` é a rede: se subir, morre aqui, na casa
-# de brinquedo, e o teste diz.
 for extra in ([], ["doctor", "instalar"]):
     try:
         r = subprocess.run([sys.executable, os.path.join(raiz, "app", "servidor.py"), "--onde"]
@@ -696,7 +529,6 @@ for rel in ("scripts", "bin", "lib", "install.sh"):
             if "Instalar e conferir" in l or "«Resolver» no painel" in l:
                 erros.append("nome de tela escrito à mão em %s:%d" % (os.path.relpath(arq, raiz), n))
 
-# 12c. o botão sem efeito se apaga
 conf_com(LOGO_MODO="hora")
 trocar, girar = servidor.indisponivel("logo_trocar"), servidor.indisponivel("logo_girar")
 if trocar != {"chave": "LOGO_MODO", "vale": "hora", "pede": "fixo"}:
@@ -711,28 +543,12 @@ if trabalho is not None or not erro:
 conf_com(LOGO_MODO="fixo")
 if servidor.indisponivel("logo_trocar") or not servidor.indisponivel("logo_girar"):
     erros.append("com o mascote fixo, o «Pôr» tem de acender e o «Passar ao próximo» não")
-# NA ROTAÇÃO O «PÔR» TAMBÉM SE APAGA — revisão da P50. Lá o `logo.sh` guarda o
-# mascote do acervo que já está no ar, e o `LOGO` é só o ponto de partida.
 conf_com(LOGO_MODO="", LOGO_ROTACAO="sim")
 trocar, girar = servidor.indisponivel("logo_trocar"), servidor.indisponivel("logo_girar")
 if trocar != {"chave": "LOGO_MODO", "vale": "rotacao", "pede": "fixo"} or girar:
     erros.append("LOGO_ROTACAO=sim sem LOGO_MODO é o modo que gira (a regra do logo.sh): "
                  "o «Pôr» se apaga pedindo fixo, e o «Passar ao próximo» acende — "
                  "deu %r e %r" % (trocar, girar))
-# ACESO É TER EFEITO, E NÃO SÓ `indisponivel() is None` — revisão da P50.
-#   A primeira versão desta seção cobrava só que o botão acendia no `fixo`, e
-#   o `logo.sh` desse modo guardava o mascote que já estava no ar: o motivo
-#   mandava a pessoa a um modo em que o botão continuava sem efeito. Aqui se
-#   faz o caminho que o cartão ensina, na casa de brinquedo: o relógio põe o
-#   mimir, a pessoa passa a «Fixo», e o «Pôr» roda o comando dele com a
-#   Coquinha. Sem reciclar o painel (`LOGO_RECICLAR="nao"`), e com um
-#   `notify-send` falso: a notificação do `meow logo` iria para a sessão de
-#   quem roda o teste.
-#   O APPLET DE LOGO INSTALADO, desde a P57, é o `.desktop` com
-# `X-CosmicApplet=true` que o COSMIC acha (o `_applet_de_logo` do logo.sh), e
-# não a pasta de configuração, que sobra quando ele sai: com só a pasta, esta
-# casa não simulava applet nenhum (revisão da P57). As pastas de aplicativos
-# são só as da casa, para um applet instalado em quem roda o teste não entrar.
 applet = os.path.join(cosmic, "dev.cappsy.CosmicExtAppletLogoMenu", "v1")
 os.makedirs(applet)
 aplicativos = os.path.join(casa, ".local", "share", "applications")
@@ -782,13 +598,7 @@ else:
 conf_com()
 if (servidor.indisponivel("areas_aplicar") or {}).get("antes") != "areas_alfinetar_primeira":
     erros.append("sem área fixada, «Gravar as áreas» não manda antes a «Criar a primeira área»")
-# O `.png` que é SVG (QA de uso real da P80) sai como SVG, e o leitor do
-# começo do arquivo não volta atrás: 4 KB hostis respondem em menos de 50 ms
-# (o alerta de ReDoS da revisão de segurança da P80).
-# [P84, 15/10/2026: o `obsidian.png` saiu do pack, trocado pelo vetor dele. Os
-#   bytes de um SVG de verdade continuam sendo o caso, agora os do `obsidian.svg`.]
 import time as _t
-# [P96, 23/10/2026: a biblioteca é plana e uma versão por ícone; o logo do pack é o SVG estável.]
 svg_png = open(os.path.join(raiz, "packs", "dracula", "logo.svg"), "rb").read()
 casos = ((svg_png, True), (b"\x89PNG\r\n\x1a\n", False),
          (b'\xef\xbb\xbf<?xml version="1.0"?>\n<!-- a -->\n<!DOCTYPE svg>\n<svg xmlns="x"/>', True),
@@ -798,8 +608,6 @@ for dados, quer in casos:
     deu = servidor.comeca_como_svg(dados)
     if deu != quer or _t.monotonic() - t0 > 0.05:
         erros.append("comeca_como_svg(%r…) deu %s em %.0f ms" % (dados[:24], deu, (_t.monotonic() - t0) * 1000))
-# O espelho (QA de uso real da P80): sem área, «Criar a primeira área» acende;
-# com área fixada, ela se apaga e aponta «Gravar as áreas».
 if servidor.indisponivel("areas_alfinetar_primeira"):
     erros.append("sem área fixada, «Criar a primeira área» nasceu apagada")
 pinos = os.path.join(cosmic, "com.system76.CosmicComp", "v1")
@@ -812,8 +620,6 @@ if servidor.indisponivel("areas_aplicar"):
     erros.append("com uma área fixada, «Gravar as áreas» continua apagado")
 if (servidor.indisponivel("areas_alfinetar_primeira") or {}).get("feito") != "areas_aplicar":
     erros.append("com uma área fixada, «Criar a primeira área» segue acesa, e só podia não fazer nada")
-# E a pendência velha da falta de área some da lista (o «Resolver» dela só
-# ouviria a recusa); a outra pendência, de conserto que ainda vale, fica.
 os.makedirs(os.path.dirname(servidor.PENDENCIAS), exist_ok=True)
 with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
     fh.write("areas-sem-alfinete\tareas\tSem área fixada\tmeow areas alfinetar-primeira\t2026-10-10T00:00:00-03:00\n"
@@ -825,7 +631,6 @@ if "starship-ausente" not in vistas:
     erros.append("a pendência que ainda vale sumiu junto: %r" % vistas)
 os.remove(servidor.PENDENCIAS)
 
-# 12d. o teto do raio
 dock = os.path.join(cosmic, "com.system76.CosmicPanel.Dock", "v1")
 os.makedirs(dock)
 for nome, valor in (("size", "L"), ("padding", "4")):
@@ -860,7 +665,6 @@ print("ok: cada ação declara a natureza e o fim diz o que ela fez; o nome de t
 PY
 rm -rf "$_tmp12"
 
-# --- 13. AS REGRAS QUE AINDA MENTIAM -----------------
 _tmp13="$(mktemp -d)"
 HOME="$_tmp13/casa" MEOW_CONF="$_tmp13/casa/.config/meow/meow.conf" \
 MEOW_ESTADO="$_tmp13/casa/.local/state/meowsystem" \
@@ -908,12 +712,6 @@ def desktop(ident, corpo):
         fh.write("[Desktop Entry]\nType=Application\nExec=true\n" + corpo)
 
 
-# 13a. o nome da ficha
-#   Três programas: um com as duas traduções (e uma ação com nome próprio, que
-#   não pode vazar para o do programa), um só com a do português de Portugal, e
-#   um sem nenhuma. A regra é a da especificação: `lang_PAÍS@MOD`, `lang_PAÍS`,
-#   `lang@MOD`, `lang`, e o `Name=` por último; a cadeia é a do `LANGUAGE` e
-#   depois a do primeiro de `LC_ALL`, `LC_MESSAGES` e `LANG`.
 desktop("com.exemplo.Ajustes", "Name=Settings\nName[pt]=Definições\nName[pt_BR]=Configurações\n"
         "\n[Desktop Action nova]\nName=New window\nName[pt_BR]=Outra janela\n")
 desktop("com.exemplo.Camara", "Name=Camera\nName[pt]=Câmara\n")
@@ -937,15 +735,8 @@ for amb, quer in ((dict(LANG="pt_BR.UTF-8"), ["Configurações", "Câmara", "Fon
                                    "com.exemplo.Fontes")]
     if tem != quer:
         erros.append("13a: com %s as fichas dizem %s, e o lançador diria %s" % (amb, tem, quer))
-# E a ficha de «Quais programas o lançador esconde» (P54) diz o mesmo nome: um
-# id da lista de fábrica, com o `.desktop` da casa vencendo o do sistema.
 desktop("nm-connection-editor", "Name=Advanced Network Configuration\n"
         "Name[pt_BR]=Configuração avançada de rede\n")
-# E O BOTÃO «Abrir no …» DA OFICINA TAMBÉM — revisão da P57. Ele tinha um
-# leitor próprio do `Name=` cru e, na mesma tela da grade, era quem misturava o
-# nome traduzido de um aplicativo com o original de outro. O editor que o
-# `xdg-mime` aponta é um de brinquedo, e o `xdg-open` falso é só para haver
-# com que abrir.
 bin_editor = os.path.join(os.path.dirname(casa), "bin-editor")
 os.makedirs(bin_editor)
 for prog, corpo in (("xdg-mime", "echo com.exemplo.Editor.desktop"), ("xdg-open", "exit 0")):
@@ -968,7 +759,6 @@ if editor != {"tem": True, "nome": "Editor de vetores"}:
     erros.append("13a: o botão do editor de SVG diz %r, e a grade diria «Editor de vetores»"
                  % (editor,))
 
-# 13b. o --onde e as frases do install.sh: o cartão é a linha da página
 quer = "«Arrumar o lançador», em Ajustes › Programas › Lançador"
 if servidor.onde_na_tela("LANCADOR_SISTEMA") != quer:
     erros.append("13b: --onde LANCADOR_SISTEMA diz %r, e a linha é %s"
@@ -985,10 +775,6 @@ velhas = [f for f in (servidor.onde_na_tela(k) for k in list(servidor.ACOES) + [
           if "na aba" in f]
 if velhas:
     erros.append("13b: o --onde ainda fala de aba: %r" % velhas[:3])
-# O NOME DE TELA NUMA FRASE DO install.sh, DERIVADO E NÃO LISTADO: todo título
-# de cartão e rótulo de ação citado entre aspas numa linha que fala do painel,
-# e todo nome de aba depois da palavra «aba». O `passo "Ícones resgatados do
-# PNG"` não conta: é o nome da etapa, e a linha não fala do painel.
 esquema = servidor.ler_esquema()
 nomes = ({i["titulo"] for i in esquema if i.get("titulo")}
          | {a["rotulo"] for a in servidor.ACOES.values() if not a.get("oculta")})
@@ -1010,15 +796,12 @@ for ident in ("LANCADOR_SISTEMA", "inicio", "desfazer"):
     if "meow_onde_no_painel %s" % ident not in instalador:
         erros.append("13b: o install.sh não pergunta ao --onde onde fica %s" % ident)
 
-# 13c. o logo.sh
 logo_sh = os.path.join(raiz, "scripts", "logo.sh")
 falso = os.path.join(os.path.dirname(casa), "falso")
 os.makedirs(falso)
 with open(os.path.join(falso, "notify-send"), "w", encoding="utf-8") as fh:
     fh.write("#!/bin/sh\nexit 1\n")
 os.chmod(os.path.join(falso, "notify-send"), 0o755)
-# As pastas de aplicativos são só as da casa (revisão da P57): a «máquina sem
-# applet» logo abaixo não pode depender de quem roda o teste não ter um.
 ambiente = dict(os.environ, PATH=falso + os.pathsep + os.environ.get("PATH", ""), NO_COLOR="1",
                 XDG_DATA_HOME=os.path.join(casa, ".local", "share"),
                 XDG_DATA_DIRS=os.path.join(casa, "sem-pastas-do-sistema"))
@@ -1054,9 +837,6 @@ def ler(caminho):
         return None
 
 
-# A MÁQUINA SEM APPLET, COM A SOBRA DE UM: a pasta de configuração do
-# `co.uk.cappsy`, apontando para uma imagem que não é do acervo — o retrato
-# desta máquina em 24/09/2026, onde nenhum applet de logo está instalado.
 sobra = os.path.join(cosmic, "co.uk.cappsy.CosmicAppletLogoMenu", "v1", "custom_logo_path")
 os.makedirs(os.path.dirname(sobra))
 de_outro = '"%s"' % os.path.join(logos, "de-outro.png")
@@ -1072,9 +852,6 @@ if "mimir" not in aviso:
     erros.append("13c: o aviso do LOGO fora do acervo não diz o mascote que ficou: %r" % aviso)
 if ler(sobra) != de_outro:
     erros.append("13c: o logo.sh escreveu na configuração de um applet que não está instalado")
-# O APPLET INSTALADO é o que o COSMIC acha como applet: um `.desktop` com
-# `X-CosmicApplet=true`. É a pasta DELE que recebe o mascote, e a sobra do outro
-# nome, sem nada instalado, fica como está.
 desktop("co.uk.cappsy.CosmicAppletLogoMenu", "Name=Logo Menu\nNoDisplay=true\nX-CosmicApplet=true\n")
 dev = os.path.join(cosmic, "dev.cappsy.CosmicExtAppletLogoMenu", "v1")
 os.makedirs(dev)
@@ -1084,10 +861,6 @@ if ler(sobra) != '"%s"' % os.path.join(logos, "meow-coquinha.svg"):
                  % ler(sobra))
 if os.path.exists(os.path.join(dev, "custom_logo_path")):
     erros.append("13c: o logo.sh escreveu na pasta do dev.cappsy, que não está instalado")
-# E QUEM MOSTRA A CHAVE PERGUNTA AO `logo.sh` — revisão da P57. O `meow logo`
-# e o `meow status` liam a do `dev.cappsy` pelo nome. Com o co.uk.cappsy
-# instalado e o mascote na chave dele, e uma chave velha sobrando na pasta do
-# dev.cappsy, o «arquivo» do `meow logo` é a do instalado.
 with open(os.path.join(dev, "custom_logo_path"), "w", encoding="utf-8") as fh:
     fh.write('"%s"' % os.path.join(logos, "de-outro.svg"))
 r = subprocess.run([os.path.join(raiz, "bin", "meow"), "logo"], capture_output=True, text=True,
@@ -1095,19 +868,12 @@ r = subprocess.run([os.path.join(raiz, "bin", "meow"), "logo"], capture_output=T
 linha = next((l for l in r.stdout.splitlines() if "arquivo" in l), "")
 if "meow-coquinha.svg" not in linha:
     erros.append("13c: o «arquivo» do `meow logo` não é a chave do applet instalado: %r" % linha)
-# O MASCOTE DO TERMINAL VAI JUNTO NO MODO FIXO: com `FASTFETCH_LOGO_MODO=espelho`
-# (o de fábrica) ele é o seguinte do acervo depois do que está no dock. A
-# conversão para o terminal precisa do rsvg-convert e do ImageMagick.
 if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
-    # A ORDEM É A DO `_ffl_o_outro`: o `sort` em C do nome COM o `.svg` — o
-    # `-` vem antes do `.`, e o `morcego.svg` fica depois dos outros dois
-    # morcegos (revisão da P57; sem a extensão ele vinha antes).
     def _mascotes_de(pack):
         return [n[:-len(".svg")] for n in sorted(
             os.path.basename(p) for p in glob.glob(os.path.join(raiz, "packs", pack, "mascote", "*.svg"))
             if not p.endswith("-symbolic.svg"))]
     nomes_gatos = _mascotes_de("meowsystem")
-    # Os três morcegos (com quebra de linha no fim) são do pack Dracula.
     morcegos = _mascotes_de("dracula")
     espelho = nomes_gatos[(nomes_gatos.index("coquinha") + 1) % len(nomes_gatos)]
     carimbo = (ler(os.path.join(casa, ".local", "share", "meowsystem", "fastfetch", ".gato-atual"))
@@ -1115,13 +881,6 @@ if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
     if no_dock() != "coquinha" or carimbo != espelho:
         erros.append("13c: no modo fixo, o dock foi para %s e o terminal ficou com %r — o "
                      "espelho pede %s" % (no_dock(), carimbo, espelho))
-    # E COM UM MASCOTE CUJO SVG TERMINA EM QUEBRA DE LINHA — revisão da P57. O
-    # botão do dock é a cópia que o `logo.sh` grava, sem a quebra do fim, e o
-    # espelho que comparava o botão com o `.svg` cru não achava mascote nenhum no
-    # dock: caía na fase. Os três morcegos do acervo são assim, e a coquinha
-    # de cima não é. O mascote sai do acervo, e não de um nome escrito aqui; o
-    # `LOGO_DIA` e o `LOGO_NOITE` são ele mesmo, para que cair na fase dê o
-    # mascote do dock no terminal a qualquer hora.
     com_quebra = []
     for n in morcegos:
         with open(os.path.join(raiz, "packs", "dracula", "mascote", n + ".svg"), "rb") as fh:
@@ -1138,12 +897,6 @@ if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
                          "ficou com %r — o espelho pede %s" % (no_dock(), carimbo, espelho))
     else:
         print("pulado: 13c, o mascote cujo SVG termina em quebra de linha — nenhum no acervo")
-    # E NO MODO HORA, O OUTRO DO PAR — 25/09/2026, decisão depois da P57. Com o
-    # dock no `LOGO_DIA` ou no `LOGO_NOITE`, o terminal mostra o outro mascote do
-    # par, e não o seguinte do acervo. O par sai do acervo, escolhido para que
-    # o seguinte do mascote da noite NÃO seja o do dia: senão as duas regras dariam
-    # o mesmo mascote e o teste não separaria uma da outra. A noite é o dia inteiro
-    # (início igual ao fim); o dia é uma janela de noite que começa daqui a 2 h.
     if len(morcegos) >= 3:
         import datetime
         dia, noite = morcegos[0], morcegos[1]
@@ -1159,9 +912,6 @@ if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
             if no_dock() != no_dock_esperado or carimbo != no_terminal:
                 erros.append("13c: no modo hora, de %s, o dock ficou com %s e o terminal com %r "
                              "— o outro do par é %s" % (fase, no_dock(), carimbo, no_terminal))
-            # E O RETRATO DA INÍCIO DIZ O MASCOTE DO DOCK, e não a `LOGO` (25/09/2026,
-            # validação final: «Logo Coquinha» com o morcego-noite no dock). O
-            # servidor é importado num processo à parte, com esta casa e este conf.
             r = subprocess.run([sys.executable, "-c",
                                 "import sys; sys.path.insert(0, sys.argv[1]); import servidor; "
                                 "print(servidor._gato_no_dock())",
@@ -1178,13 +928,6 @@ if all(shutil.which(p) for p in ("rsvg-convert", "convert")):
 else:
     print("pulado: 13c, o mascote do terminal — falta rsvg-convert ou o convert do ImageMagick")
 
-# 13d. uma leitura do esquema mede cada fato uma vez
-#   Medido em 24/09/2026, numa casa de brinquedo: 2,2 s por leitura, e 69
-#   chaves perguntavam de novo quais ponteiros estão instalados, cada uma
-#   refazendo a adoção do pack (a validação inteira do pack) e rodando o bash
-#   que lê o meow.conf. A mesma pergunta, com a mesma resposta, dentro de uma
-#   leitura só. A régua é o que se repete: a adoção com os mesmos argumentos, e
-#   o mesmo comando de subprocesso.
 mod = servidor.modulo_pack()
 feitas = collections.Counter()
 adocao, rodar = mod.adocao, servidor.subprocess.run
@@ -1219,13 +962,6 @@ nome = ((ficha.get("programas") or {}).get("nm-connection-editor") or {}).get("n
 if nome != "Configuração avançada de rede":
     erros.append("13a: a ficha de «Quais programas o lançador esconde» diz %r" % nome)
 
-# 13e. a torrada do «Adicionar» não leva a casa nem o clone — revisão da P57
-#   O gate reprovou a aba Terminal nesta sprint: a torrada do «Adicionar fonte»
-#   mostra as três últimas linhas do `meow fontes adicionar`, e a última diz
-#   «o acervo é <clone>/assets/fontes/locais». O vazamento é antigo; com o
-#   esquema lento a torrada morria antes da conta do fim da aba. O comando
-#   aqui é de mentira — um `subprocess.run` que devolve a saída de lá —, para o
-#   teste não gravar fonte no acervo do clone de verdade.
 class Rodado:
     returncode = 1
     stdout = ("  ~~   'brinquedo.ttf' instalada\n  >> copiada de %s/Downloads/brinquedo.ttf\n"
@@ -1256,10 +992,6 @@ print("ok: a ficha diz o nome do lançador, o --onde cobre cartão e aba, o logo
 PY
 rm -rf "$_tmp13"
 
-# --- 13b. A TRAVA DO PACK CABE NO BALÃO --------------------------
-# A frase do porquê de um desenho do pack não valer num app (a `trava_pack`) vai
-# para o balão do desenho, e passava do teto de 80 do balão: saía cortada (a 375
-# px e em qualquer largura).
 _trava="$(env -i PATH="$PATH" HOME="$(mktemp -d)" python3 -I - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
@@ -1286,10 +1018,6 @@ else
   falhas=$((falhas+1))
 fi
 
-# --- 14. O LANÇADOR DE FÁBRICA NÃO ESCONDE APP DE QUEM USA — P82, item 11 ------
-#   O `LANCADOR_OCULTAR` do exemplo escondia o `google-chrome`, o `steam` e o
-#   `github-desktop`: duplicatas desta máquina, e não programas de sistema
-#   (decisão 17). O conf dela já os tem e não muda.
 _lo="$(sed -n 's/^LANCADOR_OCULTAR="\(.*\)"$/\1/p' "$RAIZ/meow.conf.exemplo" | tr ',' '\n')"
 _errados="$(grep -xE 'google-chrome|steam|github-desktop' <<< "$_lo")"
 if [ -z "$_errados" ] && [ -n "$_lo" ]; then
@@ -1299,11 +1027,6 @@ else
   falhas=$((falhas+1))
 fi
 
-# --- 15. A NOITE NÃO GRAVA COM UMA PONTA SÓ — P82, item 27 (decisão 26) -------
-#   O `meow_noite_janela` pede `NOITE_INICIO` e `NOITE_FIM` juntas, e o arquivo
-#   aceitava uma só. O `/api/definir` e o `/api/salvar` recusam com 409 o pedido
-#   que deixaria a ponta solta; as duas, nenhuma, ou a que completa a do disco
-#   passam. O `definir` e o resto do salvar não rodam aqui: a recusa vem antes.
 _tmp15="$(mktemp -d)"
 _noite="$(env -i PATH="$PATH" HOME="$_tmp15" MEOW_CONF="$_tmp15/meow.conf" python3 -I - "$RAIZ/app" <<'PY' 2>&1
 import json, sys
@@ -1348,11 +1071,6 @@ else
   falhas=$((falhas+1))
 fi
 
-# --- 16. TODA CHAVE NUMÉRICA DECLARA A FAIXA — P82, item 31 --------------------
-#   Uma chave que é número e não declara faixa vira campo de texto livre, e o
-#   painel aceita «abc» nela (era o «Quantos backups guardar»). Numérica é a
-#   chave cujo valor de fábrica é um número, ou cujo leitor nos scripts cai num
-#   número (`${CHAVE:-440}`). A conta das que ficam sem faixa tem de dar 0.
 _tmp16="$(mktemp -d)"
 _sem_faixa="$(cd "$RAIZ" && env -i PATH="$PATH" HOME="$_tmp16" python3 -I - "$RAIZ/app" <<'PY' 2>&1
 import re, subprocess, sys

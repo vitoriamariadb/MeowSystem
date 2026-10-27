@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# git-limpo.sh — usar o programa não pode sujar o repositório.
-#
-# O acervo de papel de parede, o HOME e o diretório de estado são TODOS de
-# brinquedo, criados em `mktemp -d` e apagados no fim. O que é de verdade é o
-# REPOSITÓRIO — tem de ser, porque é justamente nele que a sujeira apareceria.
-#
-# A comparação é por DELTA e não por "o git status está vazio": na bancada dela
-# quase sempre há trabalho em curso, e um teste que só passa com a árvore limpa
-# é um teste que ninguém consegue rodar.
-#
-# 0 = passou · 1 = falhou · 2 = erro deste teste.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -21,9 +10,6 @@ command -v git >/dev/null 2>&1 || { printf 'pulado: sem git\n'; exit 0; }
 git -C "$RAIZ" rev-parse --git-dir >/dev/null 2>&1 || {
   printf 'pulado: %s não é um clone git\n' "$RAIZ"; exit 0; }
 
-# O `-uno` DEIXA O NÃO RASTREADO DE FORA, e de propósito: a pasta de trabalho
-# dela tem rascunho, e um arquivo novo que o teste não criou não é sujeira
-# NOSSA.
 estado_git() { git -C "$RAIZ" status --porcelain -uno | LC_ALL=C sort; }
 
 TMP="$(mktemp -d)" || { printf 'erro: mktemp\n' >&2; exit 2; }
@@ -35,15 +21,11 @@ printf '\n--- 1/4 uma ação de curadoria não pode mudar o git status ---\n'
 ANTES="$TMP/antes"; DEPOIS="$TMP/depois"
 estado_git > "$ANTES"
 
-# O acervo de brinquedo. Duas imagens porque são dois gestos diferentes: uma
-# para banir (que sai de `ativos/`) e outra para escolher o lado (que precisa
-# CONTINUAR em `ativos/` para o comando aceitar).
 ACERVO="$TMP/acervo"
 mkdir -p "$ACERVO/ativos" || exit 2
 printf 'não e uma imagem de verdade, e não precisa ser\n' > "$ACERVO/ativos/teste-banir.jpg"
 printf 'não e uma imagem de verdade, e não precisa ser\n' > "$ACERVO/ativos/teste-lado.jpg"
 
-# `env -i` não: o script precisa de PATH e de um bash utilizável.
 rodar_curadoria() {
   HOME="$TMP/home" \
   XDG_STATE_HOME="$TMP/home/.local/state" \
@@ -54,8 +36,6 @@ rodar_curadoria() {
 }
 mkdir -p "$TMP/home" || exit 2
 
-# O `estado` (o «O carrossel agora» do painel) criava a pasta de estado e
-# copiava as sementes na primeira leitura.
 rodar_curadoria estado >"$TMP/log-estado" 2>&1
 if [ ! -e "$TMP/estado/papeis-de-parede" ]; then
   ok "o «estado» não cria nem semeia \$MEOW_ESTADO/papeis-de-parede"
@@ -73,10 +53,6 @@ fi
 rodar_curadoria banir "$ACERVO/ativos/teste-banir.jpg" >"$TMP/log-banir" 2>&1
 rodar_curadoria lado  "teste-lado.jpg" noite           >"$TMP/log-lado"  2>&1
 
-# A PROVA POSITIVA VEM ANTES DA NEGATIVA, e sem ela este teste seria uma
-# fraude cara: um `wallpaper.sh` que saísse com erro na primeira linha também
-# deixaria o `git status` intacto, e o teste diria verde para um programa que
-# não faz nada.
 BANIDOS_ESTADO="$TMP/estado/papeis-de-parede/BANIDOS.txt"
 LADO_ESTADO="$TMP/estado/papeis-de-parede/lado.tsv"
 
@@ -94,9 +70,6 @@ else
   printf '       log: %s\n' "$(tail -3 "$TMP/log-lado" 2>/dev/null | tr '\n' ' ')" >&2
 fi
 
-# A SEMENTE TAMBÉM É COBRADA: sem ela o arquivo de estado nasceria só com a
-# linha que o teste acabou de acrescentar, e a curadoria de fábrica — as 231
-# imagens que ela tirou — voltaria no primeiro `semear` de uma máquina nova.
 if [ -f "$BANIDOS_ESTADO" ] && grep -qxF 'cat-dithered-barn.png' "$BANIDOS_ESTADO"; then
   ok "o estado foi semeado do BANIDOS.txt.padrao versionado"
 else
@@ -115,9 +88,6 @@ fi
 
 printf '\n--- 2/4 os dois arquivos de curadoria fora do índice ---\n'
 
-# DOIS, E NÃO CINCO: este título dizia "os cinco arquivos" e conferia dois. O
-# adiamento está declarado na mensagem do commit, e o bloco de PENDENTE lá
-# embaixo o conta na tela toda vez, para a suíte nunca dizer mais do que mede.
 for alvo in packs/meowsystem/wallpapers/BANIDOS.txt packs/meowsystem/wallpapers/lado.tsv; do
   if git -C "$RAIZ" ls-files --error-unmatch "$alvo" >/dev/null 2>&1; then
     falha "$alvo ainda está no índice do git"
@@ -138,10 +108,6 @@ done
 
 printf '\n--- 3/4 o .gitignore barra o que ele promete barrar ---\n'
 
-# CONFERIDO COM A FERRAMENTA, E NÃO POR LEITURA — e a diferenca custou caro.
-# Eram duas pastas, e este teste registrava a divergência em vez de medi-la.
-#
-# A decisão ficou com `assets/fontes/locais/`, a do leitor.
 ACERVO_FONTES="$(sed -n 's|^ACERVO_LOCAL="\$RAIZ/\(.*\)"$|\1|p' "$RAIZ/scripts/instalar_fontes.sh")"
 if [ -z "$ACERVO_FONTES" ]; then
   falha "não achei o ACERVO_LOCAL no scripts/instalar_fontes.sh — a pasta de fontes não foi conferida"
@@ -155,9 +121,6 @@ else
     fi
   done
 
-  # O LEIA-ME TEM DE CONTINUAR ENTRANDO: a regra é por EXTENSÃO, e não por
-  # diretório, exatamente para isso. Um `assets/fontes/locais/*` barraria as
-  # fontes e quebraria a outra metade da decisão, calado.
   if git -C "$RAIZ" check-ignore -q "$ACERVO_FONTES/LEIA-ME.txt"; then
     falha "o LEIA-ME do acervo de fontes ficou de fora do git — a regra pegou demais"
   elif ! git -C "$RAIZ" ls-files --error-unmatch "$ACERVO_FONTES/LEIA-ME.txt" >/dev/null 2>&1; then
@@ -167,15 +130,10 @@ else
   fi
 fi
 
-# AS FOTOS DO PACK, EM QUALQUER CAIXA — 24/10/2026, conferência da v2.0.0
-#   Desde a P102 a pasta `wallpapers/` de cada pack é onde as fotos moram, e o
-#   `wallpaper.sh` semeia `.JPG` como semeia `.jpg`. A cerca de imagem era só
-#   minúscula: a foto de câmera, que vem `.JPG`, entrava num `git add -A`.
 for pk in "$RAIZ"/packs/*/; do
   pk="$(basename "$pk")"
   for foto in teste.png teste.PNG teste.Jpg teste.JPEG teste.WebP; do
     alvo="packs/$pk/wallpapers/$foto"
-    # O `-q`, e não o `-v`: o `-v` sai 0 também quando quem casa é um `!`.
     if git -C "$RAIZ" check-ignore -q "$alvo"; then
       ok "$alvo barrado"
     else
@@ -239,12 +197,8 @@ for arq in icones-escolhidos.map icones-traco.map; do
     || falha "~/.config/meow/$arq não recebeu a escolha"
 done
 
-# A oficina gravava `retoques/<app>.svg`, o construído e a linha
-# `<app>:mao:<cor>` dentro do clone (`assets/icones/`): usar o produto virava
-# arquivo por commitar (decisão 15).
 printf '\n--- 3c o «Usar» da oficina não muda o git status ---\n'
 CASA_O="$TMP/casa-oficina"; ANTES_O="$TMP/antes-o"; DEPOIS_O="$TMP/depois-o"
-# Com os não rastreados: o retoque nasce como arquivo novo.
 estado_com_novos() { git -C "$RAIZ" status --porcelain --untracked-files=all | LC_ALL=C sort; }
 mkdir -p "$CASA_O/.config/meow" "$CASA_O/.local/share/applications"
 cp "$RAIZ/meow.conf.exemplo" "$CASA_O/.config/meow/meow.conf"
@@ -300,31 +254,19 @@ else
   falha "o construir_convertidos.sh não leu o mapa de quem usa, ou escreveu no clone"
   diff "$ANTES_O" "$DEPOIS_O" | sed 's/^/        /' >&2
 fi
-# O que a versão de antes gravava no clone volta ao que era (o teste não deixa resto).
 git -C "$RAIZ" checkout -q -- packs/meowsystem/icones/apps-convertidos.map 2>/dev/null
 rm -f "$RAIZ/packs/meowsystem/icones/apps/um-desenho.svg" "$RAIZ/packs/meowsystem/icones/apps/um-desenho.svg"
 
-# As seções 1 a 3 exercitam UM caminho de escrita: o `wallpaper.sh`. O
-# `tests/seletor-do-pack.sh` cobra essa mesma rota, mas numa CÓPIA da árvore —
-# e a cópia nunca vê o `git status` daqui.
-#
-# A régua é o `git status` do repositório inteiro, versionado E não rastreado,
-# antes e depois.
 printf '\n--- 4/4 o painel em uso não suja o repositório inteiro ---\n'
 if ! command -v python3 >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
   printf '  --   sem python3 ou curl — o painel não foi exercitado\n'
 else
-  # Só a linha do `git status` não vê um arquivo que JÁ estava sujo e o
-  # painel sujou de novo: ` M packs/dracula/icones/apps.map` antes e depois
-  # é a mesma linha.
   estado_todo() {
     git -C "$RAIZ" status --porcelain -unormal | LC_ALL=C sort | while IFS= read -r l; do
       printf '%s\t%s\n' "$l" "$(git -C "$RAIZ" hash-object -- "${l:3}" 2>/dev/null || printf 'sem-hash')"
     done
   }
   estado_todo > "$TMP/antes-painel"
-  # O conteúdo de quem já estava sujo fica guardado, para a devolução abaixo
-  # repor o arquivo dela como estava — e não o do HEAD, que apagaria o trabalho.
   while IFS=$'\t' read -r linha _; do
     [ -f "$RAIZ/${linha:3}" ] || continue
     mkdir -p "$TMP/guarda/$(dirname "${linha:3}")" && cp -p -- "$RAIZ/${linha:3}" "$TMP/guarda/${linha:3}"
@@ -356,12 +298,7 @@ else
                 -H 'Content-Type: application/json' --data "$2" "$P_BASE$1"; }
     desenho="$(cd "$RAIZ/packs/dracula/icones" && ls apps/*.svg 2>/dev/null | head -1)"
     c1="$(poste /api/definir '{"chave":"LOGO_INTERVALO","valor":"7d"}')"
-    # Depois dela, esse corpo é o do «Levar para o pack», o gesto explícito que
-    # grava no `apps.map` versionado DE PROPÓSITO, e a seção passava a cobrar do
-    # painel o contrário do que ele promete.
     c2="$(poste /api/app-icone "{\"app\":\"org.meow.GitLimpo\",\"arquivo\":\"packs/dracula/icones/$desenho\"}")"
-    # A prova positiva, como na seção 1: os gestos chegaram ao servidor e
-    # foram aceitos. Um painel que recusasse tudo deixaria o git limpo também.
     if [ "$c1" = "200" ] && grep -q '^LOGO_INTERVALO="7d"' "$P_CASA/.config/meow/meow.conf"; then
       ok "o painel gravou a chave na casa de brinquedo"
     else
@@ -380,8 +317,6 @@ else
   else
     falha "o painel em uso MUDOU o git status do repositório:"
     grep '^[-+][^-+]' "$TMP/diff-painel" | sed 's/^/       /' >&2
-    # A devolução: só o que nasceu do teste (ver o bloco acima). O que já
-    # aparecia no status de antes volta ao conteúdo guardado lá em cima.
     while IFS=$'\t' read -r linha _; do
       cam="${linha:3}"
       if cut -f1 "$TMP/antes-painel" | cut -c4- | grep -qxF -- "$cam"; then
@@ -400,10 +335,6 @@ else
   fi
 fi
 
-# Enquanto isso for verdade, um veredito final dizendo "usar o programa não suja
-# o repositório" seria mentira da suíte inteira: o botão de tirar jogo do
-# carrossel (`servidor.py`, `MAPA_JOGOS`) e o de adicionar mascote escrevem dentro
-# do clone AGORA.
 printf '\n--- pendente: o que a P21 promete e esta passagem não entregou ---\n'
 PENDENTES=0
 for alvo in assets/apps/jogos-fora.map packs/meowsystem/mascote/; do

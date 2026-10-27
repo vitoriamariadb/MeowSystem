@@ -1,39 +1,18 @@
 #!/usr/bin/env bash
-# relogio.sh — os SEGUNDOS do relógio da topbar, e nada além disso.
-#
-# O relógio é o único elemento da tela dela que se move sozinho. Um dígito que
-# pisca 86.400 vezes é a quarta.
-#
-# O que justifica o arquivo não é o tamanho da mudança (é UMA palavra num
-# arquivo de 4 bytes).
-#
-# A resposta é SOZINHO, e em menos de dois segundos:
-#
-#      02:11:13  `show_seconds` = true   -> a topbar mostrava "25 de ago., 02:11:13"
-#      02:11:37  gravado `false`         -> 6 s depois a topbar mostrava "25 de ago., 02:11"
-#      02:13:06  gravado `true` de volta -> 2 s depois a topbar mostrava "02:13:08"
-# Não reinicia o painel (derrubaria topbar e dock juntas), o `remover` escreve `true`
-# em vez de apagar, e `plugins_wings` é da Aurora: este arquivo não o abre.
 set -uo pipefail
 
 MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck source=../lib/comum.sh
 . "$MEOW_RAIZ/lib/comum.sh"
 
-# VAZIO = NÃO TOCA. É o contrato inteiro deste arquivo; ver o cabeçalho.
 RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}"
 
 RELOGIO_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicAppletTime/$(meow_cosmic_v com.system76.CosmicAppletTime)"
 RELOGIO_ALVO="$RELOGIO_BASE/show_seconds"
 RELOGIO_BINARIO="/usr/bin/cosmic-applet-time"
 
-# O valor que havia antes da PRIMEIRA gravação nossa. Sem isto, `remover` teria
-# de adivinhar — e adivinhar aqui é escolher por ela numa chave que é dela.
 RELOGIO_ANTES="$MEOW_ESTADO/relogio/show_seconds.antes"
 
-# O RON destas chaves é booleano nu, sem aspas e sem `\n`. Normalizar aqui evita
-# gravar um valor que o COSMIC descarta calado — o mesmo cuidado que o forma.sh
-# toma com os inteiros da geometria.
 _relogio_bool() {
   case "$1" in
     sim|true|1)        printf 'true' ;;
@@ -42,8 +21,6 @@ _relogio_bool() {
   esac
 }
 
-# 3 e não 1: sem o applet instalado não há divergência, há ausência de assunto.
-# É a diferença que deixa o auto-reparo ficar quieto em vez de gritar todo dia.
 _relogio_dependencia() {
   if [ ! -x "$RELOGIO_BINARIO" ] && [ ! -d "$RELOGIO_BASE" ]; then
     meow_pula "cosmic-applet-time não encontrado — nada a fazer com o relógio"
@@ -56,9 +33,6 @@ _relogio_no_disco() {
   [ -f "$RELOGIO_ALVO" ] && cat "$RELOGIO_ALVO" 2>/dev/null || printf ''
 }
 
-# Guarda o valor de antes UMA vez, na primeira gravação. Chamar de novo não
-# sobrescreve: senão o segundo `aplicar` gravaria o nosso próprio valor como se
-# fosse o dela, e o `remover` devolveria o que nós mesmos pusemos.
 _relogio_lembrar_antes() {
   meow_seco && return 0
   [ -f "$RELOGIO_ANTES" ] && return 0
@@ -126,8 +100,6 @@ cmd_conferir() {
     return "$MEOW_OK"
   fi
   meow_muda "relógio divergente: disco='${atual:-<ausente>}', conf pede '$valor'"
-  # Esta linha é o pedágio de mexer numa chave que tem botão na GUI: sem ela, um
-  # dia ela mudaria pelo botão, o doctor desfaria às 5h e nada diria por quê.
   meow_aviso "o relógio tem controle na GUI (Ajustes → Data e hora)."
   meow_aviso "se foi VOCÊ quem mudou, esvazie RELOGIO_SEGUNDOS no meow.conf —"
   meow_aviso "senão o 'meow doctor --consertar' devolve o valor daqui todo dia."
@@ -136,9 +108,6 @@ cmd_conferir() {
 
 _relogio_col() { printf '%-24s' "$1"; }
 
-# Read-only de propósito: diz o que a topbar está desenhando AGORA, incluindo as
-# duas chaves que este script não escreve. É o comando para responder "por que a
-# data ainda aparece?" sem ninguém abrir o binário de novo.
 cmd_estado() {
   _relogio_dependencia || return $?
   local k v
@@ -163,9 +132,6 @@ cmd_estado() {
 
 cmd_remover() {
   _relogio_dependencia || return $?
-  # O padrão é `true`: foi o que estava no disco, antes de este arquivo existir,
-  # e é o que a tela mostra quando o arquivo some (medição 3 do cabeçalho). Se
-  # houver registro do valor de antes, ele vence o padrão.
   local devolver="true"
   if [ -f "$RELOGIO_ANTES" ]; then
     local guardado; guardado="$(cat "$RELOGIO_ANTES" 2>/dev/null)"

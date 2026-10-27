@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# decisoes.sh — uma decisão, um teste: desfazer uma decisão de quem usa deixa a suíte vermelha. (P86)
-#
-# O caso prova o comportamento quando dá para provar aqui, e o registro quando o
-# código ainda não existe.
-#
-# Fora dela (sem `/usr/local/lib/aurora`) cada um sai «pulado» na própria linha;
-# nunca lê o conteúdo da senha, só o modo do arquivo.
-# Tudo numa casa de brinquedo, com falsos que recusam; nada de sudo, apt nem rede.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -14,11 +6,9 @@ falhas=0
 ok()    { printf '  ok    %s\n' "$*"; }
 falha() { printf '  FALHA %s\n' "$*"; falhas=$((falhas+1)); }
 pula()  { printf '  pulado: %s\n' "$*"; }
-DEC="$RAIZ/docs/sprints/2026-10-09-uso-real/02-decisoes.md"
-P82="$RAIZ/docs/sprints/2026-10-15-fechamento/P82-abertos.md"
-# A casa de verdade só é LIDA (o runner a deixa dita); o HOME deste teste é de brinquedo.
+DEC="$RAIZ/docs/DECISOES.md"
 REAL="${SUITE_CASA_REAL:-$HOME}"
-ETC_ENV="${DEC_ETC_ENVIRONMENT:-/etc/environment}"   # só a prova de mutação troca isto
+ETC_ENV="${DEC_ETC_ENVIRONMENT:-/etc/environment}"
 command -v python3 >/dev/null || { echo "pulado: sem python3"; exit 0; }
 
 CASA="$T/casa"; FALSO="$T/falso"
@@ -30,12 +20,10 @@ export HOME="$CASA" PATH="$FALSO:$PATH"
 unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME MEOW_CONF MEOW_ESTADO \
       DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR WAYLAND_DISPLAY
 
-# O registro tem a linha da decisão N, com a frase que a identifica.
-registro() { # $1 N · $2 frase
+registro() {
   grep -E "^\| $1 \|" "$DEC" | grep -qF -- "$2"
 }
 
-# Perguntas ao resolvedor de ícones, uma por chamada: imprime o que o caso conta.
 resolvedor() { python3 - "$RAIZ/scripts" "$@" <<'PY'
 import os, sys
 sys.path.insert(0, sys.argv[1])
@@ -52,9 +40,6 @@ if caso == "base":
     print("atras=%s" % (len(b.get("por_tras", [])) == 1 and "de2a8edd" in b["por_tras"][0]["url"]))
 elif caso == "vetores":
     tem = stems("dracula")
-    # P96 (23/10/2026): uma versão por ícone. O vetor feito à mão que quem usa trocou por outra
-    # versão (a do manuais-final) saiu POR ESCOLHA, e a tabela de antes diz isso; sumir sem linha
-    # na tabela é o que esta conta caça.
     antes = {}
     tab = os.path.join(os.path.dirname(sys.argv[1]), "packs", "CAMINHOS-DE-ANTES.tsv")
     if os.path.exists(tab):
@@ -69,8 +54,6 @@ elif caso == "vetores":
                        if g["pack"] == "dracula" and g["tipo"] == "png"
                        for a in g["arquivos"]
                        if os.path.splitext(os.path.basename(a))[0] + ".svg" not in tem
-                       # o PNG que quem usa escolheu guardar (projeto dela, versão) não é feito à mão à espera
-                       # do vetor: a origem dele está na tabela de antes (P96)
                        and not any(k.endswith("/" + os.path.basename(a)) and ("/projetos/" in k or "/versoes/" in k)
                                    for k in antes_png))
     print("png_sem_vetor=" + ",".join(sem_vetor))
@@ -79,7 +62,6 @@ elif caso == "seletor":
         g = grupos(no_ar)
         print("%s:packs=%s" % (no_ar, ",".join(sorted({x["pack"] for x in g if x["pack"]}))))
         print("%s:primeiro=%s:%s" % (no_ar, g[0]["pack"], g[0]["no_ar"]))
-        # o acervo do motor é o pack-base meowsystem (decisão 14 do 02-decisoes.md)
         print("%s:motor=%s" % (no_ar, any(x["pack"] == "meowsystem" for x in g)))
 elif caso == "nomes":
     tem = stems("dracula")
@@ -131,7 +113,6 @@ if [ -d /usr/local/lib/aurora ]; then
   [ -x "$A" ] && grep -qx "SUDO_ASKPASS=$A" "$ETC_ENV" \
     && ok "o askpass da Aurora é executável e está no /etc/environment" \
     || falha "o askpass não está ativo (executável em $A e SUDO_ASKPASS no /etc/environment)"
-  # Só o modo e o tamanho: o conteúdo nunca é lido.
   [ "$(stat -c %a "$S" 2>/dev/null)" = "600" ] && [ -s "$S" ] \
     && ok "o arquivo do askpass é 600 e não está vazio" || falha "o arquivo do askpass não é 600 ou está vazio"
 else
@@ -198,7 +179,7 @@ printf '{"formato": 1, "id": "noite", "nome": "Noite", "heranca": "catppuccin",
  "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}, "vitrine": {"capa": "logo.svg"},
  "apps": {"vscode": {"esquema": "Noite Escura", "origem": {"extensao": "noite.tema-noite",
    "url": "https://exemplo.invalid/noite.vsix", "sha256": "%s"}}}}\n' "$(printf 'x' | sha256sum | cut -d' ' -f1)" > "$P9/noite/pack.json"
-extensoes() { # $1 PACK
+extensoes() {
   printf 'PACK="%s"\nFLAVOR="dracula"\n' "$1" > "$T/ext.conf"
   env -i PATH="$PATH" HOME="$CASA" XDG_DATA_HOME="$CASA/.local/share" MEOW_PACKS="$P9" \
       MEOW_ESTADO="$T/estado9" MEOW_CONF="$T/ext.conf" python3 - "$RAIZ/app" <<'PY' 2>&1
@@ -256,7 +237,7 @@ r="$(python3 - "$RAIZ/app/pagina" <<'PY' 2>&1
 import glob, os, re, sys
 texto = "\n".join(open(f, encoding="utf-8").read() for f in sorted(glob.glob(os.path.join(sys.argv[1], "*")))
                   if f.endswith((".js", ".html")))
-texto = re.sub(r"/\*.*?\*/|<!--.*?-->", "", texto, flags=re.S)   # o comentário pode falar da regra
+texto = re.sub(r"/\*.*?\*/|<!--.*?-->", "", texto, flags=re.S)
 print("campo_de_senha=%s" % bool(re.search(r"""type[=:]\s*["']password""", texto)))
 print("pkexec=%s" % ("pkexec" in texto))
 print("selo_pede_senha=%s" % bool(re.search(r"pede senha", texto, re.I)))
@@ -271,8 +252,6 @@ PY
   && ok "nenhum campo de senha, pkexec ou selo «pede senha»; sem a ponte, o painel oferece o conserto" \
   || falha "a interface voltou a pedir senha: $r"
 
-# A extensão de 24/10: o reparo da ponte também não pede senha. O polkit libera só
-# o `start` do reparo, e o conserto do doctor o dispara sem pkexec nem `sudo -v`.
 reparo="$(sed -n '/^fix_ponte() {/,/^}/p' "$RAIZ/bin/meow")"
 { registro 11 'Não quero recolocar senha direto' \
   && grep -qF 'action.lookup("verb") == "start"' "$RAIZ/assets/ponte/49-meowsystem-ponte-reparo.rules" \
@@ -281,7 +260,7 @@ reparo="$(sed -n '/^fix_ponte() {/,/^}/p' "$RAIZ/bin/meow")"
   || falha "11: o registro não diz a extensão, ou o reparo da ponte pede senha"
 
 echo "== D12. trocar de pack leva o ponteiro do pack"
-conf() { # $1 arquivo; $2.. CHAVE=valor
+conf() {
   local arq="$1"; shift
   cp "$RAIZ/meow.conf.exemplo" "$arq"
   python3 - "$arq" "$@" <<'PY'
@@ -308,7 +287,6 @@ registro 13 'Joga tudo pro pack' && registro 13 'Tudo entra no pack' && ok "13: 
 registro 14 'Três pastas por pack' && ok "14: três pastas por pack" || falha "a decisão 14 saiu do registro"
 registro 15 'se atualiza sozinho' && ok "15: o derivado se atualiza sozinho" || falha "a decisão 15 saiu do registro"
 registro 16 'Os achados da varredura' && ok "16: os achados da varredura" || falha "a decisão 16 saiu do registro"
-# P96 (23/10/2026): as linhas trocadas com o sim de quem usa, e o código que as lê
 registro 13 'Os projetos pessoais entram no Dracula' && registro 13 'Uma versão por ícone' \
   && ok "13: uma versão por ícone, e os projetos pessoais entram no Dracula (sim de 23/10)" \
   || falha "a decisão 13 não diz a troca de 23/10"
@@ -327,13 +305,13 @@ for n in com.beholder.app elden-ring-tracker protocolo-ouroboros; do
 done
 registro 17 'AGENTS.md' && ok "17: o AGENTS.md é exceção do sanitizador" || falha "a decisão 17 saiu do registro"
 r="$(resolvedor autorais 2>&1)"
-[ "$r" = "proibidos=" ] && ok "P82·16: hefesto e fogstripper fora dos autorais dos packs" || falha "projeto pessoal nos autorais: $r"
+[ "$r" = "proibidos=" ] && ok "29: hefesto e fogstripper fora dos autorais dos packs" || falha "29: projeto pessoal nos autorais: $r"
 c="$(grep -E '^LANCADOR_OCULTAR=' "$RAIZ/meow.conf.exemplo" | head -1)"
 grep -qiE 'google-chrome|steam|github-desktop' <<< "$c" \
-  && falha "P82·17: o lançador de fábrica volta a esconder Chrome, Steam ou github-desktop" \
-  || ok "P82·17: o lançador de fábrica não esconde Chrome, Steam nem github-desktop"
+  && falha "30: o lançador de fábrica volta a esconder Chrome, Steam ou github-desktop" \
+  || ok "30: o lançador de fábrica não esconde Chrome, Steam nem github-desktop"
 grep -qxF 'NOME_TEMA_ICONES="MeowSystem-Icons"' "$RAIZ/meow.conf.exemplo" \
-  && ok "P82·31: o tema instalado continua MeowSystem-Icons" || falha "P82·31: o nome do tema instalado mudou"
+  && ok "36: o tema instalado continua MeowSystem-Icons" || falha "36: o nome do tema instalado mudou"
 python3 - "$RAIZ/scripts/migrar_conf.py" <<'PY' && ok "ICONES_BASE: aposentada no migrar, sem linha ativa no exemplo" || falha "ICONES_BASE voltou: aposentada fora do migrar_conf.py ou com linha ativa no exemplo"
 import re, sys
 src = open(sys.argv[1], encoding="utf-8").read()
@@ -341,20 +319,22 @@ exemplo = open(sys.argv[1].replace("scripts/migrar_conf.py", "meow.conf.exemplo"
 sys.exit(0 if re.search(r'APOSENTADAS = \{[^}]*"ICONES_BASE"', src) and not re.search(r"(?m)^ICONES_BASE=", exemplo) else 1)
 PY
 if grep -rn 'sudo -l' "$RAIZ/bin/meow" | grep -q 'NOPASSWD'; then
-  falha "P82·48: o aviso do NOPASSWD volta a mandar rodar sudo -l"
+  falha "43: o aviso do NOPASSWD volta a mandar rodar sudo -l"
 else
-  ok "P82·48: o aviso do NOPASSWD diz o estado, sem receita"
+  ok "43: o aviso do NOPASSWD diz o estado, sem receita"
 fi
 
 echo "== os princípios, cada um com o teste que o cobra dentro do runner"
 for t in nada-manda-digitar.sh pack-malicioso.sh convergencia.sh doctor-so-le.sh; do
-  { [ -x "$RAIZ/tests/$t" ] && grep -qE "^  $t " "$RAIZ/tests/todos.sh"; } \
+  { [ -x "$RAIZ/tests/$t" ] && grep -qE "^  $t( |$)" "$RAIZ/tests/todos.sh"; } \
     && ok "$t existe e está no runner" || falha "$t saiu do runner (princípio sem prova)"
 done
 { grep -qE '^  app-uso-real.py$' "$RAIZ/tests/todos.sh" && grep -q 'texto corrido com' "$RAIZ/tests/app-uso-real.py" \
   && grep -qE '140' "$RAIZ/tests/app-uso-real.py"; } \
   && ok "nenhuma frase longa na tela: o gate app-uso-real.py é obrigatório (teto de 140)" \
   || falha "o gate de frase longa saiu do runner ou perdeu o teto"
+r="$(cd "$RAIZ" && git ls-files -z | xargs -0 python3 scripts/comentarios.py conferir 2>&1)" \
+  && ok "zero comentário no código versionado" || falha "voltou comentário: $(head -n3 <<< "$r" | tr '\n' ' ')"
 
 echo "== o GSD.md carrega as regras e cita as decisões"
 G="$RAIZ/GSD.md"
@@ -362,18 +342,18 @@ tem() { [ -f "$G" ] && grep -qF -- "$1" "$G"; }
 [ -f "$G" ] && ok "GSD.md na raiz" || falha "falta o GSD.md na raiz"
 { tem 'Decisão de quem usa só se desfaz com sim explícito sobre aquele tema' && tem 'Frase genérica não autoriza'; } \
   && ok "a regra do sim explícito está escrita" || falha "o GSD.md perdeu a regra do sim explícito"
-{ tem 'docs/sprints/2026-10-09-uso-real/02-decisoes.md' && tem 'P82-abertos.md'; } \
-  && ok "o GSD.md cita o caminho das duas listas de decisão" || falha "o GSD.md não cita os registros"
-faltam=""
-for n in 1 2 3 4 5 6 7 8 9 10 11 12; do
-  { [ -f "$G" ] && grep -qE "^\| $n \|" "$G"; } || faltam+=" $n"
-done
-[ -z "$faltam" ] && ok "as decisões 1 a 12 estão no GSD.md" || falha "decisões fora do GSD.md:$faltam"
+tem 'Zero comentário; o porquê mora no nome, no teste e no commit' \
+  && ok "a regra do zero comentário está escrita" || falha "o GSD.md perdeu a regra do zero comentário"
+tem 'docs/DECISOES.md' && ok "o GSD.md cita o registro" || falha "o GSD.md não cita o docs/DECISOES.md"
+n="$(grep -cE '^\| [0-9]+ \|' "$DEC")"
+[ "$n" -ge 26 ] && [ "$(grep -oE '^\| [0-9]+ \|' "$DEC" | tr -dc '0-9\n' | paste -sd' ')" = "$(seq -s' ' 1 "$n")" ] \
+  && ok "o registro numera as $n decisões de 1 a $n, uma linha cada" || falha "o registro pulou ou repetiu número"
+velhos="$(grep -lE '02-decisoes\.md|P82-abertos\.md' "$RAIZ/AGENTS.md" "$G" "$RAIZ"/docs/*.md "$RAIZ"/docs/sprints/*/*.md "$RAIZ"/tests/* "$RAIZ"/packs/*/*.md 2>/dev/null | grep -v '/tests/decisoes\.sh$')"
+[ -z "$velhos" ] && ok "ninguém aponta para os registros antigos" || falha "ainda aponta para o registro antigo: $velhos"
 faltam=""
 for k in 'NOPASSWD' 'HOME temporário' 'troca palavras' '/tmp' 'Senha nunca'; do tem "$k" || faltam+=" «$k»"; done
 [ -z "$faltam" ] && ok "as armadilhas estão no GSD.md" || falha "o GSD.md perdeu a armadilha:$faltam"
 
-# --- decisões 19 a 24 de 02-decisoes.md (23/10, P96) --------------------------
 [ -f "$RAIZ/packs/meowsystem/mascote/coquinha.svg" ] && [ -f "$RAIZ/packs/meowsystem/mascote/mimir.svg" ] \
   && [ "$(ls "$RAIZ"/packs/dracula/mascote/morcego*.svg 2>/dev/null | wc -l)" = 3 ] && ! ls -d "$RAIZ"/assets/gat[o]s >/dev/null 2>&1 \
   && [ "$(python3 "$RAIZ/scripts/pack.py" mascote-padrao dracula dia)" = morcego-dia ] \
@@ -394,6 +374,8 @@ done
   || falha "21: falta dependência declarada:${faltam:- o PPA do fastfetch}"
 grep -q 'git clone https://github.com/AndreBFarias/MeowSystem.git' "$RAIZ/README.md" \
   && ok "22: o README manda baixar do fork" || falha "22: o README não aponta para AndreBFarias/MeowSystem"
+registro 22 'AndreBFarias/MeowSystem' && ok "22: o registro guarda o repositório da casa" \
+  || falha "a decisão 22 saiu do registro"
 python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["origens"]["wallpapers"].get("repo") else 1)' \
     "$RAIZ/packs/meowsystem/pack.json" 2>/dev/null && ! grep -q 'meow wallpaper semear  ' "$RAIZ/install.sh" \
   && ok "23: a origem dos papéis de parede é do pack, e o install não manda digitar" \
@@ -408,6 +390,18 @@ printf '%s\n' "$(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$RAIZ/packs/d
   || falha "25: o wallpaper.sh não separa a coleção do pack no ar"
 grep -q '"$MEOW_RAIZ/scripts/prompt.sh" instalar$' "$RAIZ/install.sh" \
   && ok "26: o starship desce com o install" || falha "26: a etapa do prompt não instala o starship"
+registro 46 'par_do_outro_lado' && grep -q '^def par_do_outro_lado' "$RAIZ/scripts/derivar_flavor.py" \
+  && grep -q 'par_do_outro_lado' "$RAIZ/tests/variante.sh" && grep -q '^  variante.sh$' "$RAIZ/tests/todos.sh" \
+  && ok "46: as duas regras do lado vestido passam pelo par_do_outro_lado, e o variante.sh vigia" \
+  || falha "46: o lado vestido saiu do registro, do derivar_flavor ou do variante.sh"
+n="$(grep -lF '/^_dracula_pares_do_mapa() {' "$RAIZ"/tests/* 2>/dev/null | grep -vc '/decisoes\.sh$')"
+registro 47 '_dracula_pares_do_mapa' && grep -q '^_dracula_pares_do_mapa() {$' "$RAIZ/scripts/icones_apps_dracula.sh" \
+  && [ "$n" -ge 3 ] && ok "47: o filtro do _dracula_pares_do_mapa fica, e $n testes o extraem verbatim" \
+  || falha "47: a função mudou de forma ou saiu do registro ($n testes a extraem)"
+registro 48 'ICONES_BASE:-Papirus-Dark' && grep -rqF 'ICONES_BASE:-Papirus-Dark' "$RAIZ/scripts" "$RAIZ/lib" \
+  && ok "48: os leitores do ICONES_BASE ficam com o mesmo padrão" || falha "48: a decisão saiu do registro"
+registro 49 'cosmic_prever.sh' && grep -q 'SUMIU do' "$RAIZ/scripts/cosmic_prever.sh" \
+  && ok "49: o pré-voo acusa a chave que some do binário" || falha "49: o pré-voo não acusa mais a chave que some"
 ! grep -qE '^opt[[:space:]]' "$RAIZ/patches/series" \
   && grep -q 'Uniform::new("leitura_atenuacao"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
   && ! grep -q 'Uniform::new("leitura_temp"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \

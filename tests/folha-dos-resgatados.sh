@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# folha-dos-resgatados.sh — `meow icones resgatados folha` não perde o que a folha tem.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0
@@ -14,9 +13,7 @@ T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
 git_antes="$(git -C "$RAIZ" status --porcelain 2>/dev/null)"
 
-# Uma raiz de brinquedo por cenário: o script acha o acervo e o mapa pela raiz
-# dele, e não por variável.
-raiz() {   # raiz <dir> — o script, o lib/ e um acervo com os SVG de três pares
+raiz() {
   mkdir -p "$1/scripts" "$1/packs/dracula/icones/apps/resgatados"
   cp "$RAIZ/scripts/resgatados_folha.sh" "$1/scripts/"
   cp -a "$RAIZ/lib" "$1/"
@@ -24,22 +21,22 @@ raiz() {   # raiz <dir> — o script, o lib/ e um acervo com os SVG de três par
     cp "$RAIZ/packs/dracula/icones/apps/$n.svg" "$1/packs/dracula/icones/apps/" || exit 2
   done
 }
-mapa() {   # mapa <dir> <nome>... — o mapa com os pares nesta ordem, PNG em $T/png
+mapa() {
   local d="$1"; shift
   { printf '# mapa de brinquedo\n'
     for n in "$@"; do printf '%s : %s/png/%s.png : dela\n' "$n" "$T" "$n"; done
   } > "$d/packs/dracula/icones/apps-resgatados.map"
 }
-png() {   # png <nome> <cor> — o PNG de origem de brinquedo
+png() {
   convert -size 64x64 "xc:$2" -fill white -draw 'circle 32,32 32,12' "$T/png/$1.png" || exit 2
 }
-folha() {   # folha <dir> <saída> — roda o script; a tela fica em $T/tela, o código em $T/rc
+folha() {
   env -i PATH="$PATH" HOME="$T/casa" LANG=C.UTF-8 NO_COLOR=1 \
     bash "$1/scripts/resgatados_folha.sh" "$2" > "$T/tela" 2>&1
   printf '%s' "$?" > "$T/rc"
 }
 rc() { cat "$T/rc"; }
-iguais() {   # iguais <a> <b> — o mesmo tamanho e os mesmos pixels
+iguais() {
   [ "$(compare -metric AE "$1" "$2" null: 2>&1)" = "0" ]
 }
 
@@ -48,14 +45,12 @@ png luna "#FF5555"; png sigilo "#50FA7B"; png pdfforge "#8BE9FD"
 R="$T/raiz"; raiz "$R"; mapa "$R" luna sigilo pdfforge
 F="$T/folha.png"
 
-# --- 1. com os três PNG, a folha nasce --------------------------------------
 folha "$R" "$F"
 [ "$(rc)" = "0" ] && [ -f "$F" ] \
   && ok "com os três PNG no disco, a folha nasce" \
   || { falha "a folha de brinquedo não nasceu (rc=$(rc))" "$(cat "$T/tela")"; exit 2; }
 cp "$F" "$T/completa.png"
 
-# --- 2. sem dois PNG, a folha continua a mesma ------------------------------
 mkdir -p "$T/png-fora"; mv "$T/png/luna.png" "$T/png/pdfforge.png" "$T/png-fora/"
 folha "$R" "$F"
 if [ "$(rc)" = "0" ] && cmp -s "$F" "$T/completa.png" && grep -q 'a folha já é esta' "$T/tela"; then
@@ -66,10 +61,8 @@ else
   cp "$T/completa.png" "$F"
 fi
 
-# --- 3. o desenho de um par sem PNG muda: a direita anda, a esquerda fica ---
 cp "$RAIZ/packs/dracula/icones/apps/extase-em-4r73.svg" "$R/packs/dracula/icones/apps/luna.svg"
 folha "$R" "$F"
-#   A régua: a folha que o script monta com os PNG no disco e o desenho novo.
 R2="$T/raiz2"; raiz "$R2"; mapa "$R2" luna sigilo pdfforge
 cp "$R/packs/dracula/icones/apps/luna.svg" "$R2/packs/dracula/icones/apps/"
 cp "$T/png-fora/"*.png "$T/png/"
@@ -82,7 +75,6 @@ else
         "$(cat "$T/tela")"
 fi
 
-# --- 4. a folha muda de forma com PNG faltando: não escreve, e diz ----------
 cp "$F" "$T/antes-da-ordem.png"
 mapa "$R" pdfforge sigilo luna
 folha "$R" "$F"
@@ -92,14 +84,12 @@ folha "$R" "$F"
   || falha "o script refez uma folha que ele não sabia costurar (rc=$(rc))" "$(cat "$T/tela")"
 mapa "$R" luna sigilo pdfforge
 
-# --- 5. sem folha no caminho, a moldura vazia vale --------------------------
 folha "$R" "$T/nova.png"
 [ "$(rc)" = "0" ] && [ -f "$T/nova.png" ] && ! iguais "$T/nova.png" "$T/regua.png" \
   && grep -q '2 sem o PNG de origem (o caminho' "$T/tela" \
   && ok "sem folha no caminho, a folha nasce com a moldura vazia dos dois pares sem PNG" \
   || falha "sem folha no caminho, o script não fez a folha com as molduras vazias (rc=$(rc))" "$(cat "$T/tela")"
 
-# --- 6. o repositório não mudou ---------------------------------------------
 [ "$(git -C "$RAIZ" status --porcelain 2>/dev/null)" = "$git_antes" ] \
   && ok "o repositório saiu como entrou" \
   || falha "o teste mexeu no repositório" "$(git -C "$RAIZ" status --porcelain)"

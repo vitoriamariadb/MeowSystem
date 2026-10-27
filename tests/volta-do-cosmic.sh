@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# volta-do-cosmic.sh — o caminho de volta do COSMIC sobrevive à limpeza? (P76)
-#
-# Duas guardas da tarefa 5 (`docs/pesquisas/2026-10-09-cosmic-vivo.md` §3 e §4.7):
-#   1. o `atualizar_sistema.sh limpar` guarda o `.deb` da versão INSTALADA de
-#      cada `cosmic-*` antes do `apt clean` — no seco ele diz qual guardaria; no
-#      de verdade copia, e a segunda passagem não copia de novo; da guarda sai
-#      só o que não é nem o instalado nem o mais novo dos outros;
-#   2. o `compositor_patches.sh guardar` leva o fonte do `~/.cache` para
-#      `~/.local/share/meowsystem/fontes/`, sem apagar a origem, e é
-#      idempotente.
-# `dpkg-query`, `apt` e `sudo` falsos (o `sudo` só registra), HOME e cache do
-# apt de brinquedo, `MEOW_PONTE` apontando para o vazio. Nada escreve fora daqui.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
@@ -33,7 +21,7 @@ printf '#!/bin/sh\nexit 0\n' > "$T/bin/apt"
 chmod 755 "$T/bin/"*
 : > "$T/arquivos/cosmic-comp_0.1~b_amd64.deb"
 : > "$T/arquivos/cosmic-files_1.9~a_amd64.deb"
-: > "$T/arquivos/cosmic-panel_1.9~a_amd64.deb"   # não instalado: não se guarda
+: > "$T/arquivos/cosmic-panel_1.9~a_amd64.deb"
 
 limpar() {
   HOME="$T/lar" PATH="$T/bin:$PATH" MEOW_PONTE=/nao/existe MEOW_ESTADO="$T/lar/estado" \
@@ -75,9 +63,6 @@ guardar; igual "de verdade: guardou (1)" "$?" 1
 guardar; igual "segunda vez: nada a fazer (0)" "$?" 0
 
 echo "== a árvore pela metade no cache não trava o fonte guardado (conferência da P76)"
-# O `dpkg-source -x` recusa extrair num alvo que existe. Uma extração
-# interrompida deixava `cosmic-comp-<versão>/` sem `Cargo.toml`, e todo build
-# seguinte daquela versão parava em "o fonte não se extraiu".
 if command -v dpkg-source >/dev/null 2>&1; then
   P="$T/pacote/cosmic-comp-1.0"; mkdir -p "$P/debian/source" "$P/src"
   printf 'cosmic-comp (1.0) noble; urgency=low\n\n  * x\n\n -- t <t@t>  Fri, 09 Oct 2026 00:00:00 +0000\n' > "$P/debian/changelog"

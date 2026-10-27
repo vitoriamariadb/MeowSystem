@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# desbanir.sh — o `wallpaper.sh desbanir <nome>` nos três lugares em que a foto
-# pode estar: em `banidos/` (volta para `ativos/` e sai da lista), só na lista
-# com a foto já em `ativos/` (a curadoria de fábrica: só sai a linha) e em lugar
-# nenhum (recusa, e nada muda).
-#
-# HOME, estado e lista de brinquedo; `sudo`, `pkexec` e `pkill` falsos que
-# recusam. Nada sai do `mktemp -d`.
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 falhas=0

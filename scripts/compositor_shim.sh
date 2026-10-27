@@ -1,16 +1,5 @@
 #!/usr/bin/env bash
-# MEOW-COSMIC-COMP-SHIM-1 compositor_shim.sh — o `cosmic-comp` que a SESSÃO
-# dela encontra pelo PATH.
-#
-# Instalado (pelo `meow compositor ativar`) como `~/.local/bin/cosmic-comp`.
-#
-# O build patchado morava em `/usr/bin/cosmic-comp`.
-#
-# A GUARDA DE QUEDA, e por que ninguém fica preso fora da sessão Cada início
-# pelo build soma 1 em `quedas`.
-#
-# NADA DE `$MEOW_RAIZ` AQUI DENTRO, de propósito: o repositório pode morar num
-# disco que ainda não montou quando a sessão sobe.
+# MEOW-COSMIC-COMP-SHIM-1
 
 fabrica="${MEOW_SHIM_FABRICA:-/usr/bin/cosmic-comp}"
 casa="${MEOW_SHIM_CASA:-$HOME/.local/libexec/meow/cosmic-comp}"
@@ -40,9 +29,6 @@ if [ "$usar_build" = "1" ]; then
     exec "$fabrica" "$@"
   fi
   printf '%s\n' "$((n + 1))" > "$dir/quedas" 2>/dev/null
-  # O VIGIA É `sh`, E NÃO UM SUBSHELL DESTE BASH: um subshell herdaria o nome
-  # `cosmic-comp` deste script, e todo `pgrep -x cosmic-comp` do projeto
-  # passaria a achar dois compositores por 30 s.
   (
     for fd in /proc/"$BASHPID"/fd/*; do
       fd="${fd##*/}"
