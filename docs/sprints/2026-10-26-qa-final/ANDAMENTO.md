@@ -1,16 +1,11 @@
 # Leva QA final (26/10/2026) — andamento
 
 ## Agora
-- QA e os 5 repos de applet: entregues (ver «Entregue»).
-- B0 etapas 1 e 2 entregues (comentários zerados; `arquivo` com o velho; `docs/DECISOES.md`; README
-  regerado por `scripts/readme.sh`). Em voo: B0 etapa 3 (confere e corrige). Depois do merge:
-  `bash scripts/ganchos.sh instalar` (pre-commit no diretório comum; pre-push e post-merge por
-  `git config ganchos.*`, que os ganchos globais já leem desde 26/10).
-- Em voo: maquete do painel (`maquete/BRIEF.md`), Opus A em `../MeowSystem-maquete-a` (`maquete/a`:
-  moldura, Tema, Definir, Manter) e Opus B em `../MeowSystem-maquete-b` (`maquete/b`: Personalizar,
-  Extensões). APROVADA por quem usa (26/10) e no dev; `00-leva.md` e cada sprint apontam para ela.
-- Depois: B0 etapas 2 e 3 → merge no dev → seis worktrees `../MeowSystem-p109..p114` → 6 Sonnet →
-  `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev.
+- Entregues: QA, os 5 repos de applet, a maquete (aprovada), B0 inteiro (no dev em 15be6fdf; ganchos
+  instalados: pre-commit no diretório comum, `ganchos.pre-push`/`ganchos.post-merge` por git config).
+- Em voo: 6 Sonnet, um por sprint, em `../MeowSystem-p109..p114` (branches `sprint/p109..p114`, do dev 15be6fdf).
+- Depois: juntar as seis em `integracao/qa-final` → 2 Opus (`03-conferencia.md`) → merge no dev →
+  remover as worktrees da leva (b0, maquete-a, maquete-b, p109..p114).
 
 ## Respostas de quem usa (26/10)
 - Repos de applet: conta `vitoriamariadb`, nome `meowsystem-*`, pasta `~/Desenvolvimento/meowsystem-*`, app id `io.github.meowsystem.*`. Vão até o push. Compilam e instalam aqui (root por `sudo -A`, o askpass); não mexem na ordem do painel nem o reiniciam sozinhos.
