@@ -1271,6 +1271,22 @@ class Percurso:
                    "a ficha do programa aparece na tela")
         self.acionados.add("chave:*:nova")
 
+    def h_rotulos_de_aplicar(self, rota):
+        self.ir(rota)
+        self.assentar(quieto=400)
+        texto = self.js("() => document.querySelector('main').innerText")
+        self.checa(not re.search(r"\b[Vv]est(?:ir|e|em|ido|ida|idos|idas|indo)\b|\bMandar\b", texto),
+                   f"{rota}: a tela não mostra vestir nem Mandar")
+        if rota == "tema":
+            rotulos = self.js("() => [...document.querySelectorAll('[data-controle$=\":vestir\"]')].map((b) => b.textContent.trim())")
+            self.checa(rotulos and all(r == "Aplicar tema" for r in rotulos),
+                       f"o botão do cartão do Tema diz «Aplicar tema» ({rotulos})")
+        else:
+            aba = self.js("() => (document.querySelector('[data-controle=\"passo:mandar\"]') || {}).textContent")
+            self.checa((aba or "").endswith("Disponibilizar"), f"a última aba do Personalizar diz «Disponibilizar» ({aba!r})")
+            botao = self.js("() => (document.querySelector('[data-controle=\"criar:vestir\"]') || {}).textContent")
+            self.checa((botao or "").strip() == "Aplicar tema", f"o botão do Personalizar diz «Aplicar tema» ({botao!r})")
+
     def h_pendencia_do_spotify(self):
         self.ir("cuidar")
         self.assentar(quieto=400)
@@ -1436,6 +1452,11 @@ class Percurso:
                 print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
         self.limpar()
         self.assentar()
+        if rota in ("tema", "criar/mandar"):
+            try:
+                self.h_rotulos_de_aplicar(rota)
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"os rótulos de aplicar quebraram: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
         if rota == "cuidar":
             try:
                 self.h_pendencia_do_spotify()
