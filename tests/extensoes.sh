@@ -237,6 +237,10 @@ saida="$(EBX EXTENSOES=fake EXTENSOES_COMPILAR=1 --todas --aplicar)"; igual "apl
 existe "binário pelo --todas" "$BIN"
 saida="$(EBX EXTENSOES=- --todas --conferir)"; igual "instalada e fora da lista: diverge" "$?" 1
 saida="$(EBX EXTENSOES=- --todas --aplicar)"; some "fora da lista, o --aplicar remove" "$BIN"
+saida="$(EBX EXTENSOES=fake EXTENSOES_COMPILAR=1 --todas --aplicar)"
+saida="$(EBX --todas --reverter)"; igual "--todas --reverter: mexeu" "$?" 1
+some "e o binário saiu" "$BIN"
+saida="$(EBX --todas --reverter)"; igual "e a segunda não tem o que tirar" "$?" 0
 
 echo "== o tema do pack: gerado, igual na segunda passada, e muda com o sabor"
 TH="$T/tema"; mkdir -p "$TH/.local/bin"

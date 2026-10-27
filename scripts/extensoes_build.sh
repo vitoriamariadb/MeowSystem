@@ -526,8 +526,19 @@ _pior() {
   printf '%s' "$atual"
 }
 
+_todas_reverter() {
+  local id f rc geral="$MEOW_OK"
+  for id in $(_ids_da_casa) $(for f in "$PINOS_USUARIO"/*.pino; do [ -f "$f" ] && basename "$f" .pino; done); do
+    _carregar "$id" || continue
+    _reverter; rc=$?
+    geral="$(_pior "$geral" "$rc")"
+  done
+  return "$geral"
+}
+
 _todas() {
   local modo="$1" id rc geral="$MEOW_OK" querido=0
+  [ "$modo" = reverter ] && { _todas_reverter; return $?; }
   for id in $(_ids_da_casa); do
     _carregar "$id" || { geral="$(_pior "$geral" "$MEOW_ERRO")"; continue; }
     if _quer "$id"; then
@@ -541,6 +552,7 @@ _todas() {
         _reverter; rc=$?
       fi
     else
+      meow_seco || [ "$modo" = conferir ] || meow_pendencia_resolvida "extensao-$ID"
       continue
     fi
     geral="$(_pior "$geral" "$rc")"
@@ -552,15 +564,15 @@ _todas() {
   return "$geral"
 }
 
-uso() { meow_erro "uso: $(basename "$0") <id> [--conferir|--aplicar|--reverter|--estado|--atualizar]  |  --todas [--conferir|--aplicar]"; exit "$MEOW_ERRO"; }
+uso() { meow_erro "uso: $(basename "$0") <id> [--conferir|--aplicar|--reverter|--estado|--atualizar]  |  --todas [--conferir|--aplicar|--reverter]"; exit "$MEOW_ERRO"; }
 
 main() {
   local alvo="${1:-}" modo="aplicar" flag
   [ -n "$alvo" ] || uso
   if [ "$alvo" = --todas ]; then
     flag="${2:---aplicar}"
-    case "$flag" in --conferir) modo=conferir ;; --aplicar) modo=aplicar ;; *) uso ;; esac
-    meow_seco && modo=conferir
+    case "$flag" in --conferir) modo=conferir ;; --aplicar) modo=aplicar ;; --reverter) modo=reverter ;; *) uso ;; esac
+    meow_seco && [ "$modo" != reverter ] && modo=conferir
     [ "$modo" = conferir ] && AP_SO_LER=1
     _todas "$modo"
     return $?
