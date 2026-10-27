@@ -247,6 +247,7 @@ CAMPOS_COM_LEITOR = {
     "fontes.proprio",
     "fontes.herda",
     "icones.mimetypes.flavor",
+    "icones.gerador",
     "icones.autorais.gerar",
     "origens.cursores.tema",
     "icones.base.origem.*",
@@ -2562,6 +2563,17 @@ def _arquivos_da_pasta(pasta, ext):
             continue
         saida.append(cheio)
     return saida
+
+
+GERADORES_DE_ICONE = ("traco", "circle")
+
+
+def gerador_de_icones(ref):
+    for ident in cadeia_de_acervo(ref):
+        valor = campo(ident, "icones.gerador")
+        if valor in GERADORES_DE_ICONE:
+            return valor
+    return "traco"
 
 
 def cadeia_de_acervo(ref):

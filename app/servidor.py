@@ -1021,6 +1021,20 @@ def _cores_da_consulta(valor):
             if re.match(r"^[a-z0-9]{1,24}$", str(k)) and re.match(r"^#[0-9a-fA-F]{6}$", str(v))} or None
 
 
+_GERADOR_CIRCULO = None
+
+
+def _gerador_circulo():
+    global _GERADOR_CIRCULO
+    if _GERADOR_CIRCULO is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "meow_gerador_circulo", os.path.join(RAIZ, "scripts", "gerador_circulo.py"))
+        _GERADOR_CIRCULO = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_GERADOR_CIRCULO)
+    return _GERADOR_CIRCULO
+
+
 def _cadeia_do_pack(valor):
     mod = modulo_pack()
     ident = str(valor or "").strip()
@@ -6151,6 +6165,29 @@ class Manipulador(BaseHTTPRequestHandler):
                 continue
         return ""
 
+    def _glifo_do_circulo(self, origem, da_capa):
+        argv, texto = _parametros_de(3 if da_capa else 2, 5 if da_capa else 6, False, 0, 0)
+        svg, _nota, erro = _converter_desenho(origem, argv, texto)
+        return svg, erro
+
+    def _cartoes_do_circulo(self, origem, capa):
+        gerador = _gerador_circulo()
+        cartoes = []
+        for pid, rotulo, ajustes in gerador.PRESETS:
+            arte = capa if pid == "capa" else origem
+            if not arte:
+                continue
+            glifo, erro = self._glifo_do_circulo(arte, pid == "capa")
+            cartao = {"id": pid, "rotulo": rotulo, "fonte": "capa" if pid == "capa" else "icone",
+                      "gerador": "circle", "disco": ajustes["disco"], "aro": ajustes["aro"],
+                      "tinta": ajustes["tinta"], "tamanho": ajustes["tamanho"]}
+            if erro:
+                cartao["erro"] = erro
+            else:
+                cartao["svg"] = gerador.gerar(glifo, pid)
+            cartoes.append(cartao)
+        return cartoes
+
     def _desenho_guardado(self, destino, nome):
         mod = modulo_pack()
         destino = str(destino or "").strip()
@@ -6312,7 +6349,11 @@ class Manipulador(BaseHTTPRequestHandler):
             capa = self._arte_da_capa(app)
             tem_cheia = _conversor_tem_cheia()
             tarefas = []
-            for pid, rotulo, det, sua, chei, fonte, frac, mini in PRESETS_DESENHO:
+            mod_pack = modulo_pack()
+            em_edicao = _cadeia_do_pack(corpo.get("pack"))[1]
+            gerador = mod_pack.gerador_de_icones(em_edicao) if mod_pack else "traco"
+            for pid, rotulo, det, sua, chei, fonte, frac, mini in (
+                    () if gerador == "circle" else PRESETS_DESENHO):
                 if chei and not tem_cheia:
                     continue
                 arte = capa if fonte == "capa" else origem
@@ -6344,6 +6385,8 @@ class Manipulador(BaseHTTPRequestHandler):
                             cartao["svg"] = svg
                             cartao["nota"] = nota
                         variacoes.append(cartao)
+            if gerador == "circle":
+                variacoes = self._cartoes_do_circulo(origem, capa)
             tema = os.environ.get("NOME_TEMA_ICONES") or "MeowSystem-Icons"
             atual, nosso = self._icone_na_tela(
                 d, os.path.expanduser("~/.local/share/icons/%s" % tema))
@@ -6363,9 +6406,25 @@ class Manipulador(BaseHTTPRequestHandler):
                 "pack": do_pack,
                 "em_vigor": vigor,
                 "variacoes": variacoes,
+                "gerador": gerador,
                 "vizinhos": self._vizinhos_do_dock(),
                 "editor": self._editor_de_svg(),
             })
+
+        if acao == "gerar":
+            origem = self._arte_da_capa(app) if str(corpo.get("preset")) == "capa" \
+                else self._arte_de_fabrica(next((x for x in self._desktops() if x["id"] == app), None) or {})
+            if not origem:
+                return self._json({"erro": "não achei a arte de que sai o glifo"}, 404)
+            glifo, erro = self._glifo_do_circulo(origem, str(corpo.get("preset")) == "capa")
+            if erro:
+                return self._json({"erro": erro}, 422)
+            gerador = _gerador_circulo()
+            aro = corpo.get("aro")
+            svg = gerador.gerar(glifo, str(corpo.get("preset") or "disco"),
+                                disco=corpo.get("disco"), aro=aro if isinstance(aro, bool) else None,
+                                tinta=corpo.get("tinta"), tamanho=corpo.get("tamanho"))
+            return self._json({"ok": True, "svg": svg})
 
         if acao == "vetorizar":
             d = next((x for x in self._desktops() if x["id"] == app), None)

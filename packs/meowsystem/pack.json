@@ -29,6 +29,7 @@
     "_nota": "mapa null = usa assets/paleta/cosmic-map.json inteiro, que é do MOTOR e continua em assets/. O `nome_da_paleta` repete o que o molde já crava (cosmic-map.json:4) e por isso não muda um byte dos .ron — mas repetir aqui é o que impede o pack padrão de depender de um default escondido no núcleo. Quem lê é scripts/gerar_temas.py."
   },
   "icones": {
+    "gerador": "traco",
     "apps": {
       "recolorir": true
     },
