@@ -26,11 +26,10 @@
     <div class="achados" id="achados" role="listbox" aria-label="Achados"></div>
   </div>
   <div class="aplicar" id="aplicar" data-n="0">
-    <span class="conta" id="conta" role="status"></span>
-    <button class="bt leve pequeno desfazer" id="desfazer" type="button" data-controle="desfazer">Desfazer</button>
-    <button class="bt leve pequeno desfazer" id="botao-ensaiar" type="button" data-controle="ensaiar"
-            data-dica="Mostra o que mudaria, sem gravar nada">Ver sem mudar</button>
-    <button class="bt principal pequeno" id="bt-aplicar" type="button" data-controle="aplicar">Aplicar</button>
+    <span class="gravando" id="gravando" role="status" data-estado="ok" aria-label="Gravado"><svg class="i so-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><svg class="i so-erro" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+    <button type="button" class="conta" id="conta" aria-expanded="false" aria-controls="ultimas" data-controle="mudancas"></button>
+    <button type="button" class="bt leve pequeno desfazer" id="desfazer" data-controle="descartar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Desfazer</button>
+    <div class="menu-corpo ultimas" id="ultimas" role="list" aria-label="Últimas mudanças" hidden></div>
   </div>
   <details class="menu" id="menu">
     <summary class="bt leve pequeno so-icone" aria-label="Mais" data-controle="menu" data-dica="Mais">

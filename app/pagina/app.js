@@ -254,37 +254,148 @@ function packNoAr() {
 const ligado = (v) => ["sim", "1", "true"].includes(String(v || "").toLowerCase());
 
 const PAR_DA_NOITE = { NOITE_INICIO: "NOITE_FIM", NOITE_FIM: "NOITE_INICIO" };
-function completarParDaNoite(chave, valor) {
+function completarParDaNoite(lote, chave, valor) {
   const irma = PAR_DA_NOITE[chave];
   if (!irma || !/^\d{1,2}:\d{2}$/.test(String(valor))) return;
   const item = CHAVE.get(irma);
   if (!item || valorEmVigor(item) !== "") return;
   const hora = item.efetivo || item.valendo_agora || item.padrao;
-  if (/^\d{1,2}:\d{2}$/.test(String(hora || ""))) MUDANCAS.set(irma, hora);
+  if (/^\d{1,2}:\d{2}$/.test(String(hora || ""))) lote[irma] = hora;
 }
+
+const HISTORICO = [];
+const HISTORICO_MAX = 20;
+let EM_VOO = 0;
+let FILA_DE_GRAVACAO = Promise.resolve();
+let ACOMPANHANDO = false;
 
 function escolher(chave, valor) {
   const item = CHAVE.get(chave);
   if (!item) return false;
-  completarParDaNoite(chave, valor);
-  if (String(valor) === String(item.valor ?? "")) MUDANCAS.delete(chave);
-  else MUDANCAS.set(chave, String(valor));
-  guardarBandeja();
+  if (String(valor) === String(valorEmVigor(item))) return true;
+  const lote = { [chave]: String(valor) };
+  completarParDaNoite(lote, chave, valor);
+  gravarAgora(lote);
+  return true;
+}
+
+function chavesRecentes() {
+  return new Set([...MUDANCAS.keys(), ...(HISTORICO[0] ? HISTORICO[0].itens.map((it) => it.chave) : [])]);
+}
+
+function mostrarGravando(estado, frase = "") {
+  const g = $("#gravando");
+  if (!g) return;
+  g.dataset.estado = estado;
+  const texto = estado === "gravando" ? "Gravando" : estado === "erro" ? (frase || "Não aplicou") : "Gravado";
+  g.setAttribute("aria-label", texto);
+  g.dataset.dica = texto;
+}
+
+function rotuloDoHistorico(chave) {
+  const inv = inventarioDoPainel();
+  const l = inv.find((x) => x.tipo === "chave" && x.id === chave);
+  if (!l) return (CHAVE.get(chave) || {}).titulo || chave;
+  const irmas = inv.filter((x) => x.tipo === "chave" && x.rotulo === l.rotulo && x.pagina === l.pagina && x.bloco === l.bloco);
+  if (irmas.length !== 2) return l.rotulo;
+  return `${l.rotulo} (${irmas[0].id === chave ? "barra de cima" : "dock"})`;
+}
+function valorParaLer(v, item) {
+  return v === "" ? "Padrão" : rotuloDeValor(v, item);
+}
+
+function gravarAgora(lote, opc = {}) {
+  const chaves = Object.keys(lote).filter((c) => CHAVE.has(c));
+  if (!chaves.length) return Promise.resolve(false);
+  const antes = {};
+  for (const c of chaves) { antes[c] = String(CHAVE.get(c).valor ?? ""); MUDANCAS.set(c, String(lote[c])); }
+  EM_VOO++;
+  mostrarGravando("gravando");
+  render();
+  FILA_DE_GRAVACAO = FILA_DE_GRAVACAO.then(() => enviarLote(lote, antes, chaves, opc));
+  return FILA_DE_GRAVACAO;
+}
+
+async function enviarLote(lote, antes, chaves, opc) {
+  const so = chaves.length === 1;
+  const r = so
+    ? await api("/api/definir", { method: "POST", body: JSON.stringify({ chave: chaves[0], valor: String(lote[chaves[0]]) }) })
+    : await api("/api/salvar", { method: "POST", body: JSON.stringify({ mudancas: lote }) });
+  EM_VOO--;
+  for (const c of chaves) MUDANCAS.delete(c);
+  const certas = so ? (r.erro || r.rc === 2 ? [] : chaves)
+    : [...(r.gravadas || []), ...(r.iguais || [])].filter((c) => chaves.includes(c));
+  for (const c of certas) CHAVE.get(c).valor = String(lote[c]);
+  const queixas = [];
+  for (const rec of [...(r.recusadas || []), ...(r.falhas || [])]) queixas.push(`${nomeDeChave(rec.chave)}: ${rec.erro}`);
+  if (!queixas.length && (r.erro || r.rc === 2)) queixas.push(r.erro || r.saida || "Não gravou");
+  if (queixas.length) {
+    for (const q of queixas.slice(0, 3)) torrada(q, "erro");
+    mostrarGravando("erro", queixas[0]);
+    render();
+    return false;
+  }
+  const itens = chaves.filter((c) => String(antes[c]) !== String(lote[c]))
+    .map((c) => ({ chave: c, antes: antes[c], depois: String(lote[c]) }));
+  if (opc.historico !== false && itens.length) {
+    const p = itens[0];
+    HISTORICO.unshift({ itens, rotulo: rotuloDoHistorico(p.chave),
+      detalhe: `${valorParaLer(p.antes, CHAVE.get(p.chave))} → ${valorParaLer(p.depois, CHAVE.get(p.chave))}` });
+    HISTORICO.length = Math.min(HISTORICO.length, HISTORICO_MAX);
+  }
+  if (r.sem_ponte) {
+    torrada("Gravado; falta a ponte para aplicar", "erro");
+    mostrarGravando("erro", "Falta a ponte para aplicar");
+    await recarregarPendencias();
+  } else if (r.aplicando) {
+    mostrarGravando("gravando");
+    acompanharAplicacao();
+  } else if (!EM_VOO) {
+    mostrarGravando("ok");
+  }
   atualizarAplicar();
   render();
   return true;
 }
 
-function guardarBandeja() {
-  try { sessionStorage.setItem("meow-bandeja", JSON.stringify([...MUDANCAS])); } catch (e) { }
-}
-function restaurarBandeja() {
-  let lista = [];
-  try { lista = JSON.parse(sessionStorage.getItem("meow-bandeja") || "[]"); } catch (e) { lista = []; }
-  for (const [c, v] of lista) {
-    const item = CHAVE.get(c);
-    if (item && String(v) !== String(item.valor ?? "")) MUDANCAS.set(c, String(v));
+async function acompanharAplicacao() {
+  if (ACOMPANHANDO) return;
+  ACOMPANHANDO = true;
+  try {
+    for (let n = 0; n < 6000; n++) {
+      const r = await api("/api/aplicando");
+      if (r.erro) return;
+      if (!r.correndo) {
+        if (r.falhou) {
+          mostrarGravando("erro", "Não aplicou");
+          await recarregarPendencias();
+          render();
+        } else if (!EM_VOO) {
+          mostrarGravando("ok");
+          await recarregarEsquema();
+          render();
+        }
+        return;
+      }
+      await new Promise((ok) => setTimeout(ok, 600));
+    }
+  } finally {
+    ACOMPANHANDO = false;
   }
+}
+
+async function desfazerEntradas(entradas) {
+  if (!entradas.length) return;
+  const lote = {};
+  for (const e of entradas) for (const it of e.itens) lote[it.chave] = it.antes;
+  const certo = await gravarAgora(lote, { historico: false });
+  if (!certo) return;
+  for (const e of entradas) { const k = HISTORICO.indexOf(e); if (k >= 0) HISTORICO.splice(k, 1); }
+  atualizarAplicar();
+  render();
+}
+function desfazerTudo() {
+  desfazerEntradas(HISTORICO.slice());
 }
 
 function padraoDe(item) {
@@ -600,7 +711,7 @@ function linhaDeChave(l) {
   if (!itens.length || itens.every((i) => i.sem_programa)) return null;
   const um = itens[0];
   const dupla = Array.isArray(l.c) && l.c.length === 2;
-  const mudou = chaves.some((c) => MUDANCAS.has(c));
+  const mudou = chaves.some((c) => MUDANCAS.has(c) || HISTORICO.some((e) => e.itens.some((it) => it.chave === c)));
   const presa = dominada(um) || (ESQUEMA.mesmo_horario
     && (ESQUEMA.horario_das_areas || []).some((a) => a.chaves.includes(um.chave)) ? "Segue o horário da noite" : null);
   const classe = "linha" + (dupla ? " dupla" : "") + (l.sub ? " sub" : "")
@@ -923,55 +1034,30 @@ function pastilhaDeTrabalho(mostrar) {
 }
 
 function atualizarAplicar() {
-  const n = MUDANCAS.size;
+  const n = HISTORICO.length;
   $("#aplicar").dataset.n = String(n);
   $("#conta").textContent = n === 1 ? "1 mudança" : `${n} mudanças`;
-}
-async function salvarEscolhas(mudancas = Object.fromEntries(MUDANCAS), depois = null, seco = false) {
-  if (TRABALHO && TRABALHO.timer) { torrada("Espere o trabalho terminar"); abrirJanela(); return; }
-  const b = $(seco ? "#botao-ensaiar" : "#bt-aplicar");
-  b.dataset.estado = "carregando";
-  const r = await api("/api/salvar", { method: "POST", body: JSON.stringify({ mudancas, seco }) });
-  delete b.dataset.estado;
-  if (seco) {
-    if (!r.trabalho) { torrada(r.erro || "Não ensaiou", "erro"); return; }
-    abrirResultado(r.trabalho, null, () => salvarEscolhas(mudancas, depois, false));
-    return;
-  }
-  if (r.recusadas && r.recusadas.length) {
-    for (const rec of r.recusadas.slice(0, 3)) torrada(`${nomeDeChave(rec.chave)}: ${rec.erro}`, "erro");
-    return;
-  }
-  if (!r.gravadas) { torrada(r.erro || "Não gravou", "erro"); return; }
-  for (const chave of [...r.gravadas, ...(r.iguais || [])]) {
-    const item = CHAVE.get(chave);
-    if (item && chave in mudancas) item.valor = mudancas[chave];
-    if (chave in mudancas) MUDANCAS.delete(chave);
-  }
-  for (const f of (r.falhas || []).slice(0, 3)) torrada(`${nomeDeChave(f.chave)}: ${f.erro}`, "erro");
-  guardarBandeja();
-  atualizarAplicar();
-  render();
-  if (!r.trabalho) { torrada(r.erro || "Gravado; aplica no próximo trabalho"); return; }
-  abrirResultado(r.trabalho, depois);
+  const caixa = $("#ultimas");
+  if (!n) { caixa.hidden = true; $("#conta").setAttribute("aria-expanded", "false"); }
+  caixa.replaceChildren(...HISTORICO.map((e) => elemento("div", { class: "ultima", role: "listitem" }, [
+    elemento("span", {}, [elemento("b", { texto: e.rotulo }), elemento("small", { texto: e.detalhe })]),
+    botao("Desfazer", { class: "bt leve pequeno", controle: "desfazer-uma", icone: "desfazer",
+      onclick: () => desfazerEntradas([e]) }),
+  ])));
 }
 function nomeDeChave(chave) {
   const l = inventarioDoPainel().find((x) => x.tipo === "chave" && x.id === chave);
   return l ? l.rotulo : ((CHAVE.get(chave) || {}).titulo || chave);
 }
-function listaDePendentes() {
-  const velha = document.getElementById("lista-pendentes");
-  if (velha) { velha.remove(); return; }
-  if (!MUDANCAS.size) return;
-  const caixa = elemento("div", { id: "lista-pendentes", class: "menu-corpo", role: "menu" });
-  for (const [chave] of MUDANCAS) {
-    const l = inventarioDoPainel().find((x) => x.tipo === "chave" && x.id === chave);
-    caixa.append(elemento("button", { type: "button", role: "menuitem", controle: "pendente:" + chave,
-      texto: l ? `${l.rotulo} · ${l.pagina}` : chave,
-      onclick: () => { caixa.remove(); if (l) irPara(l); } }));
-  }
-  $("#aplicar").style.position = "relative";
-  $("#aplicar").append(caixa);
+function fecharUltimas() {
+  $("#ultimas").hidden = true;
+  $("#conta").setAttribute("aria-expanded", "false");
+}
+function alternarUltimas() {
+  const caixa = $("#ultimas");
+  if (!HISTORICO.length) return;
+  caixa.hidden = !caixa.hidden;
+  $("#conta").setAttribute("aria-expanded", String(!caixa.hidden));
 }
 
 async function importarArquivo(arquivo) {
@@ -981,13 +1067,10 @@ async function importarArquivo(arquivo) {
   try { texto = await arquivo.text(); } catch { torrada("Não consegui ler o arquivo", "erro"); return; }
   const r = await api("/api/importar", { method: "POST", body: JSON.stringify({ texto }) });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  for (const m of r.mudam || []) MUDANCAS.set(m.chave, m.valor);
-  guardarBandeja();
-  atualizarAplicar();
-  render();
   const n = (r.mudam || []).length;
-  torrada(n === 1 ? "1 mudança esperando o Aplicar" : `${n} mudanças esperando o Aplicar`, n ? "ok" : "");
   for (const rec of (r.recusadas || []).slice(0, 3)) torrada(`${nomeDeChave(rec.chave)}: ${rec.erro}`, "erro");
+  if (n) await gravarAgora(Object.fromEntries(r.mudam.map((m) => [m.chave, m.valor])));
+  else torrada("Nada mudou");
 }
 
 function indiceDaBusca() {
@@ -1129,33 +1212,22 @@ async function iniciar() {
   indexar();
   lerRestauros();
   lerClaro();
-  restaurarBandeja();
   atualizarAplicar();
   ligarDicas();
   ligarBusca();
   desenharMenu();
   $(".pular").addEventListener("click", (ev) => { ev.preventDefault(); $("#principal").focus(); });
-  $("#desfazer").addEventListener("click", () => {
-    MUDANCAS.clear(); guardarBandeja(); atualizarAplicar(); render();
-  });
-  $("#bt-aplicar").addEventListener("click", () => salvarEscolhas());
-  $("#botao-ensaiar").addEventListener("click", () => salvarEscolhas(Object.fromEntries(MUDANCAS), null, true));
-  $("#conta").setAttribute("role", "button");
-  $("#conta").tabIndex = 0;
-  $("#conta").dataset.controle = "pendentes";
-  $("#conta").addEventListener("click", listaDePendentes);
-  $("#conta").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); listaDePendentes(); } });
+  $("#desfazer").addEventListener("click", desfazerTudo);
+  $("#conta").addEventListener("click", alternarUltimas);
   const menu = $("#menu");
   document.addEventListener("click", (e) => {
     if (menu.open && !menu.contains(e.target)) menu.open = false;
-    const lp = document.getElementById("lista-pendentes");
-    if (lp && !$("#aplicar").contains(e.target)) lp.remove();
+    if (!$("#aplicar").contains(e.target)) fecharUltimas();
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (menu.open) { menu.open = false; menu.querySelector("summary").focus(); }
-    const lp = document.getElementById("lista-pendentes");
-    if (lp) lp.remove();
+    fecharUltimas();
   });
   $("#resultado").addEventListener("close", () => { if (TRABALHO && TRABALHO.timer) pastilhaDeTrabalho(true); });
   $("#resultado-ok").addEventListener("click", () => $("#resultado").close());
@@ -1173,7 +1245,7 @@ async function iniciar() {
   $("#resultado-restaurar").addEventListener("click", () => {
     if (ULTIMO_TRABALHO && ULTIMO_TRABALHO.acao) restaurarAcao(ULTIMO_TRABALHO.acao);
   });
-  addEventListener("beforeunload", (ev) => { if (MUDANCAS.size >= 2) ev.preventDefault(); });
+  addEventListener("beforeunload", (ev) => { if (EM_VOO > 0) ev.preventDefault(); });
   ROTA = rotaDoHash();
   addEventListener("hashchange", () => { ROTA = rotaDoHash(); render(); scrollTo(0, 0); });
   addEventListener("popstate", () => { ROTA = rotaDoHash(); render(); });
