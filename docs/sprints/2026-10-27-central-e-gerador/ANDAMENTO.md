@@ -34,6 +34,10 @@
   Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
 - Próximo passo: integrar cada um assim que voltar; o coordenador roda `scripts/enxugar.sh --aplicar` no checkout
   principal depois que tudo chegar ao `dev`; por fim instalar do zero na máquina.
+- 27/10 17:46: um teste da suíte (o desinstalar da casa de brinquedo) tirou o bloco do MeowSystem do `.zshrc` real, pelo
+  `ZDOTDIR` herdado. Bloco devolvido às 17:56 (cópia em `~/.local/state/meowsystem/backups/zshrc-antes-2026-10-27-1756`);
+  cura na integração (65d53c56, 8c946886). As suítes de Aurora, Textos e Pasta começaram antes da cura: depois de cada
+  uma voltar, conferir `tail -3 ~/.config/zsh/.zshrc` e rodar `scripts/terminal_bloco.sh aplicar` se faltar.
 - Anotado para depois (27/10): P126, o Vencord no Discord oficial pelo meow (hoje injetado à mão pelo coordenador).
 - Anotado para depois (vindo da conferência do Painel): `docs/PACKS.md` sem os campos `icones.sistema` e
   `icones.bandeja` (entra na P118); `restaurar.sh sistema_limpar` vermelho já no `dev` (o `.deb` do cosmic-comp em
