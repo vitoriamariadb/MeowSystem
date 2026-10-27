@@ -9,6 +9,7 @@
 
 .grade-extensoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--e-4); }
 .grade-extensoes .cartao-acao { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; gap: var(--e-3); padding: var(--e-5); }
+.grade-extensoes .cartao-acao .icone, .grade-extensoes .cartao-acao > .fila { grid-row: auto; grid-column: auto; }
 .cartao-acao .icone img { width: 30px; height: 30px; }
 .cartao-cabeca { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: var(--e-3); align-items: center; }
 .cartao-cabeca h3 { font-size: var(--t-md); }
