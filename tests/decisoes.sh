@@ -400,6 +400,11 @@ python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["or
   && ! grep -rqs 'catppuccin-apps' "$RAIZ/install.sh" "$RAIZ/bin/meow" "$RAIZ/scripts" \
   && ok "24: as folhas, a pesquisa bruta e a etapa morta saíram" \
   || falha "24: voltou folha, pesquisa bruta ou a etapa do catppuccin-apps"
+citas="$(git -C "$RAIZ" grep -nE 'docs/pesquisas/[0-9A-Za-z]' -- . ':!docs/sprints' ':!tests/decisoes.sh' 2>/dev/null \
+  | grep -vE '(git show [0-9a-f^]+|arquivo):docs/pesquisas/' || true)"
+[ -z "$citas" ] \
+  && ok "24: nenhum arquivo cita docs/pesquisas/ sem o git show da ponta antiga" \
+  || falha "24: cita docs/pesquisas/ sem o git show 1b15ccb1^: $(printf '%s\n' "$citas" | head -2)"
 printf '%s\n' "$(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$RAIZ/packs/dracula")" | grep -qx "prefixo	cat" \
   && grep -q 'PACK_ATIVOS=' "$RAIZ/scripts/wallpaper.sh" \
   && ok "25: o papel de parede de outro pack não gira (o Catppuccin é alheio com o Dracula no ar)" \
