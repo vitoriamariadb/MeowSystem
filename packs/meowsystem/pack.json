@@ -44,6 +44,14 @@
     "pastas": {
       "desenhos": "icones/sistema/",
       "mapa": "icones/pastas.map"
+    },
+    "sistema": {
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/sistema.map"
+    },
+    "bandeja": {
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/bandeja.map"
     }
   },
   "apps": {
