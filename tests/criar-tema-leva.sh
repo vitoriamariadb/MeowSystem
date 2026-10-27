@@ -238,7 +238,7 @@ if "audio-volume-change" in eventos:
 cod, tipo, dados = pedir("/som?pack=meu-tema&evento=message-new-instant")
 if cod != 200 or not tipo.startswith("audio/ogg") or dados != open(meu, "rb").read():
     falhas.append(f"a prévia do som não é o arquivo do pack ({cod} {tipo})")
-for rota in ("/som?pack=meu-tema&evento=../pack", "/som?pack=meowsystem&evento=complete",
+for rota in ("/som?pack=meu-tema&evento=../pack", "/som?pack=meowsystem&evento=nao-existe",
              "/som?pack=..&evento=complete"):
     if pedir(rota)[0] != 404:
         falhas.append(f"{rota} não respondeu 404")

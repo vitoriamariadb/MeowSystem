@@ -1554,8 +1554,8 @@ SOM_FUNDAMENTAL=784 SOM_HARMONICO=932.3 SOM_DECAIMENTO=38 \
 
 No painel: **Manutenção → Som de evento**, com o botão «Ouvir».
 
-E lembre da precedência: um `SOM_*` no `meow.conf` da máquina vence o do pack,
-como qualquer outra chave.
+E lembre da precedência: um `SOM_*` que ela mexeu vale só para o pack em que o mexeu
+(o `som-do-pack` no estado guarda qual); noutro pack, vence o `som` do pack.
 
 ## A base de ícones
 
@@ -2248,7 +2248,7 @@ $ meow pack novo meu-tema
 | o que entra | de onde |
 |---|---|
 | `paleta.json` | a paleta que vale **agora** — o arquivo inteiro, cada flavor com as 26 cores. O `flavor_padrao` é o flavor em uso. Inteiro, e não só o flavor em uso, porque o claro é o par dele: sem ele, o modo claro cairia no pack anterior |
-| `som` no `pack.json` | o timbre do pack no ar, com os `SOM_*` do `meow.conf` por cima — o que se ouve. Ele é copiado porque o `som` não é herdado |
+| `som` no `pack.json` | o timbre do pack no ar, com os `SOM_*` que ela mexeu por cima, só no pack em que os mexeu — o que se ouve. Ele é copiado porque o `som` não é herdado |
 | `logo.svg` | gerado: a inicial do nome sobre o `base` (ver [O logo do pack](#o-logo-do-pack)) |
 | `CREDITOS.md` | escrito pelo verbo, dizendo de que pack tudo veio |
 | `heranca` | o pack no ar, **por id**. Ícones, capturas do tema, temas de aplicativo, ponteiro: tudo o que não está declarado vem dele. Nenhum caminho absoluto, e nenhuma segunda cópia do mesmo acervo para defasar calada |

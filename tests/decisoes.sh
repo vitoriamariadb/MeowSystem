@@ -402,6 +402,10 @@ registro 48 'ICONES_BASE:-Papirus-Dark' && grep -rqF 'ICONES_BASE:-Papirus-Dark'
   && ok "48: os leitores do ICONES_BASE ficam com o mesmo padrão" || falha "48: a decisão saiu do registro"
 registro 49 'cosmic_prever.sh' && grep -q 'SUMIU do' "$RAIZ/scripts/cosmic_prever.sh" \
   && ok "49: o pré-voo acusa a chave que some do binário" || falha "49: o pré-voo não acusa mais a chave que some"
+registro 37 'sons/' && grep -q 'som-padrao' "$RAIZ/scripts/ponte_root.sh" && grep -q 'passo_sons' "$RAIZ/scripts/cosmic_pos_apt.sh" \
+  && [ -f "$RAIZ/assets/sons/eventos.json" ] \
+  && ok "37: os sons do pack vão ao sistema pela ponte, o pós-apt os repõe e a página lista cada evento" \
+  || falha "37: a ponte, o pós-apt ou o catálogo de sons saiu"
 ! grep -qE '^opt[[:space:]]' "$RAIZ/patches/series" \
   && grep -q 'Uniform::new("leitura_atenuacao"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
   && ! grep -q 'Uniform::new("leitura_temp"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
