@@ -49,7 +49,7 @@ VIDRO_AO_MAXIMIZAR	vidro	nao
 VIDRO_OPACIDADE_PAINEL	vidro	nao
 VIDRO_OPACIDADE_DOCK	vidro	nao
 RELOGIO_SEGUNDOS	relogio	nao
-MIDIA	midia_build,midia	nao
+MIDIA	extensoes,midia	nao
 MIDIA_LARGURA	midia	nao
 MIDIA_COR_ALBUM	midia	nao
 MIDIA_CAPA	midia	nao
@@ -80,7 +80,9 @@ LEITURA_HORARIO_FIM	leitura	nao
 LEITURA_TEMPERATURA	leitura	nao
 LEITURA_TEXTURA	leitura	nao
 LEITURA_RAMPA_MIN	leitura	nao
-LEITURA_APPLET	leitura_applet,leitura	nao
+LEITURA_APPLET	extensoes,leitura	nao
+EXTENSOES	extensoes,extensoes_tema	nao
+BUILDS_AO_ENTRAR	-	nao
 TERMINAL_ESQUEMA	terminal	nao
 TERMINAL_CURSOR	terminal	nao
 PROMPT_STARSHIP	prompt	nao
