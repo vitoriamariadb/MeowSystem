@@ -2,7 +2,7 @@
 
 const PORTAS = [
   { id: "tema", nome: "Tema", icone: "tema" },
-  { id: "criar", nome: "Criar tema", icone: "criar" },
+  { id: "criar", nome: "Personalizar", icone: "criar" },
   { id: "ajustes", nome: "Ajustes", icone: "ajustes" },
   { id: "cuidar", nome: "Cuidar", icone: "cuidar" },
 ];

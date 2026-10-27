@@ -21,9 +21,9 @@ app/
     index.html    o esqueleto (nenhum nome de chave nele)
     lugares.js    as quatro portas e o que cada uma mostra
     app.js        monta a tela a partir do que o servidor derivou
-    paginas.js    Tema, Criar tema e Cuidar
+    paginas.js    Tema, Personalizar e Manter
     oficina.js    o seletor e a oficina de ícones
-    mesa.js       a prévia da área de trabalho no cartão do pack e em Criar tema
+    mesa.js       a prévia da área de trabalho no cartão do pack e em Personalizar
     estilo.css    o visual (nenhum hex nele)
     standalone.*  só existem dentro do HTML exportado
 ```
@@ -33,7 +33,7 @@ app/
 | porta | o que tem |
 |---|---|
 | **Tema** | um cartão por pack instalado: logo, paleta, o que é próprio e o que herda. **Vestir**, **Remover**, **Abrir um tema** (`.meowpack` ou `.csv` de cores) |
-| **Criar tema** | os passos Cores, Ícones, Papel de parede, Sons e Mandar (**Baixar o tema**) |
+| **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Mandar (**Baixar o tema**) |
 | **Ajustes** | painel e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
 | **Cuidar** | o doctor e o **Consertar**, as pendências, **Guardar ajustes** e **Trazer ajustes** |
 

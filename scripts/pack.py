@@ -122,7 +122,7 @@ VERBOS
                                  vem do pack PADRÃO. Ver `montar_novo`.
     levar  <id> foto <arquivo>...
                                  copia a foto para `wallpapers/` do pack da
-                                 pessoa (o que o Criar tema leva). Ver `levar_foto`.
+                                 pessoa (o que o Personalizar leva). Ver `levar_foto`.
     levar  <id> sons <pack>      copia o tema de sons que <pack> alcança para
                                  `sons/`, e o `som.tema` aponta para ele.
     levar  <id> som <arquivo.oga> <evento>
@@ -132,7 +132,7 @@ VERBOS
     tirar  <id> foto <nome>...   tira a foto de `wallpapers/` do pack da pessoa.
     tirar  <id> sistema|biblioteca <nome>...
     acervo-para-levar <id> sistema|biblioteca
-                                 o que a aba do Criar tema oferece, uma linha
+                                 o que o Personalizar oferece, uma linha
                                  por ícone: `pack<TAB>nome<TAB>arquivo<TAB>sim|nao`.
     exportar <id> [arquivo] [--sem-imagens] [--seco]
                                  o pack num `.meowpack` (um .tar.zst com um
@@ -4126,7 +4126,7 @@ def pack_da_pessoa(ident):
     d = os.path.join(raiz_da_pessoa(), ident)
     _exigir(os.path.isfile(os.path.join(d, "pack.json")) and not os.path.islink(d),
             f"{ident!r} não é um pack seu: só os de {raiz_da_pessoa()} recebem o que o "
-            f"Criar tema leva")
+            f"Personalizar leva")
     return d
 
 
