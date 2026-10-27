@@ -3407,7 +3407,7 @@ ACOES = {
         "ajuda": "Reabre o painel e a Dock desta sessão, para o applet trocado aparecer.",
     },
     "apps": {
-        "rotulo": "Programas com o tema",
+        "rotulo": "Programas com tema",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
         "argv": _meow("apps"),
