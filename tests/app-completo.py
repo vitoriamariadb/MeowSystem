@@ -503,6 +503,7 @@ ACAO_COM_DADO = {
     "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
     "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
     "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
+    "extensao_refazer",
 }
 EXTRAS = {
     "tema": ["tema:saude", "tema:abrir", "tema:criar", "pack:*:*", "chave:ACCENT=*", "chave:MODO=*"],
