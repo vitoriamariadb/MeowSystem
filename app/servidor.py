@@ -3767,6 +3767,17 @@ def _guardar_restauro(acao_id, pasta):
 
 
 def _esquecer_restauro(acao_id, pasta):
+NOME_DA_PENDENCIA = {
+    "areas-sem-alfinete": "Áreas de trabalho",
+    "starship-ausente": "Linha colorida",
+    "spicetify-tema-ausente": "Tema do Spotify",
+    "files-menu-build": "Menu do Arquivos",
+    "instalar-com-root": "Ponte de root",
+    "flatpak-global-sistema": "Flatpaks do sistema",
+    "libreoffice-sistema": "LibreOffice do sistema",
+    "leitura-applet": "Applet de leitura",
+}
+
     with _RESTAUROS_TRAVA:
         dados = restauros()
         if dados.get(acao_id) == pasta:
@@ -4001,6 +4012,8 @@ def _caminho_na_tela(l):
 def onde_na_tela(ident):
     pendencias = porta_das_pendencias()
     if not pendencias:
+                if not nome:
+                    nome = NOME_DA_PENDENCIA.get(ident, "")
         return ""
     if ident in ACAO_DA_PENDENCIA:
         return "«Resolver», em %s" % pendencias
