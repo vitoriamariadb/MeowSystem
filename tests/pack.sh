@@ -1023,7 +1023,7 @@ done
 for palavra in '"&medir=1"' '"&imagens=nao"' "resposta.ok" "perguntar("; do
   [[ "$exporta" == *"$palavra"* ]] || faltam+=" exportarPack:'$palavra'"
 done
-[[ "$packs" == *"exportarPack(r.pack)"* && "$packs" != *'href: `/api/pack-exportar'* ]] \
+[[ "$packs" == *"exportarPack(pack.id)"* && "$packs" != *'href: `/api/pack-exportar'* ]] \
   || faltam+=" passoMandar: o exportar voltou a ser um link"
 [ -z "$faltam" ] \
   && ok "a página manda confirmado, desenha o pack, só diz 'entrou' com instalado, e pergunta antes de baixar" \
