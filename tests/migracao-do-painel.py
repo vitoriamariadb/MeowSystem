@@ -195,7 +195,7 @@ def gerar():
         if botao_de.get(acao) != rotulo:
             falhas.append("a pendência desenha «%s» para %s, e o lugares.js diz «%s»"
                           % (rotulo, acao, botao_de.get(acao)))
-    quer = {"doctor_consertar": "«Conferir e consertar», em Manter Nova › Estado",
+    quer = {"doctor_consertar": "«Consertar a ponte», em Manter Nova › Estado",
             "LANCADOR_SISTEMA": "«Arrumar o lançador», em Definir Nova › Programas › Lançador",
             "inicio": "em Manter Nova", "areas-sem-alfinete": "«Resolver», em Manter Nova"}
     if srv["renomeado"] != quer:

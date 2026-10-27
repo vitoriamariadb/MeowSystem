@@ -284,7 +284,7 @@ const AJUSTES = [
 
 const LUGAR_CUIDAR = {
   estado: [
-    { a: "doctor_consertar", r: "Conferir e consertar", b: "Conferir e consertar" },
+    { a: "doctor_consertar", r: "Consertar a ponte", b: "Consertar a ponte" },
     { a: "doctor", r: "Conferir", b: "Conferir" },
   ],
   pendencias: [

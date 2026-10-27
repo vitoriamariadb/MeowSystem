@@ -2449,7 +2449,7 @@ ACOES = {
                  "Não escreve nada.",
     },
     "doctor_consertar": {
-        "rotulo": "Conferir e consertar",
+        "rotulo": "Consertar",
         "grupo": "Instalação",
         "natureza": "consertar",
         "argv": _meow("doctor", "--consertar"),

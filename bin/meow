@@ -987,7 +987,7 @@ chk_autoreparo() {
   fi
 
   if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
-    echo "não há systemd --user nesta sessão — o conserto diário fica de fora; o «Conferir e consertar» faz o mesmo"
+    echo "não há systemd --user nesta sessão — o conserto diário fica de fora; o «Consertar», no Manter, faz o mesmo"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
