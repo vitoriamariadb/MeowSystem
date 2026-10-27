@@ -238,6 +238,42 @@ def main():
             checa(info["margemDock"] is True and info["margemPainel"] is False, f"com a dock colada, só a distância dela se desliga ({info})")
             checa(info["vazio"], "o deslizante sem valor mostra o trilho tracejado")
             checa(info["segSemDica"] == 0, "todo botão XS…XL tem dica")
+            print("== Manter: cartões com o desenho ao lado")
+            for (w, h) in [(1920, 1080), (1280, 800)]:
+                pag.set_viewport_size({"width": w, "height": h})
+                ir(pag, "cuidar")
+                cartoes = pag.evaluate("""() => [...document.querySelectorAll('.cartao-acao')].map((c) => {
+                  const r = (e) => e && e.getBoundingClientRect();
+                  const cr = r(c), ic = r(c.querySelector('.icone, svg')), t = r(c.querySelector('h2')), f = r(c.querySelector('.fila'));
+                  return { n: c.querySelector('h2') && c.querySelector('h2').textContent, ladoAlado: !!(ic && t && ic.right <= t.left + 1),
+                           dentro: !!(f && f.right <= cr.right + 1 && f.left >= cr.left - 1 && t.right <= cr.right + 1) };
+                })""")
+                checa(len(cartoes) >= 3 and all(c["ladoAlado"] and c["dentro"] for c in cartoes), f"{w}: três cartões, desenho à esquerda e botões dentro ({cartoes})")
+                pag.evaluate("() => document.querySelector('.cartao-acao').scrollIntoView({ block: 'center' })")
+                pag.wait_for_timeout(200)
+                foto(pag, f"{w}x{h}-cartoes")
+
+            print("== o diálogo do Instalar tudo")
+            for (w, h) in LARGURAS:
+                pag.set_viewport_size({"width": w, "height": h})
+                ir(pag, "cuidar")
+                info = pag.evaluate("""() => {
+                  const d = document.getElementById('resultado');
+                  document.getElementById('resultado-titulo').textContent = 'Instalar tudo';
+                  document.getElementById('saida').textContent = ('x'.repeat(400) + '\\n' + 'linha curta\\n').repeat(40);
+                  document.getElementById('registro').open = true;
+                  if (!d.open) d.showModal();
+                  const r = d.getBoundingClientRect();
+                  const ok = document.getElementById('resultado-ok').getBoundingClientRect();
+                  const pr = document.getElementById('parar').getBoundingClientRect();
+                  const out = { l: r.left, r: r.right, t: r.top, b: r.bottom, okb: ok.bottom, okr: ok.right, okvis: ok.width > 0,
+                                parar: pr.width > 0, doc: document.documentElement.scrollWidth, pre: document.getElementById('saida').scrollWidth > document.getElementById('saida').clientWidth + 1 };
+                  return out;
+                }""")
+                cabe = info["l"] >= 0 and info["r"] <= w and info["t"] >= 0 and info["b"] <= h and info["okb"] <= h and info["okr"] <= w
+                checa(cabe and info["okvis"] and info["parar"] and info["doc"] == w and not info["pre"], f"{w}x{h}: o diálogo cabe, com os botões à vista e sem barra para o lado ({info})")
+                foto(pag, f"{w}x{h}-dialogo")
+                pag.evaluate("() => document.getElementById('resultado').close()")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:
