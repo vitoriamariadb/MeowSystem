@@ -159,6 +159,9 @@ Bloco «aurora», árvore `MeowSystem-aurora`, branch `bloco/aurora`.
   (`tests/segunda-passada-sem-rede.sh`, novo).
 - Achados da suíte no caminho: `cd28a58d` (o desinstalador desliga `meow-vidro.*`) e `646ea0a1`
   (`VIZINHOS_DESATIVAR` na `chave-etapa.tsv`).
+- Achados do `todos.sh` final: `db6016fa` (a linha do painel cabe em três palavras: «Cortar o
+  repetido») e `6e92af63` (o bloco 9 tira as marcas das cópias antes de começar: a casa dela já
+  estava cortada às 15:58, e o bloco ficava vermelho).
 
 ### Provas rodadas
 - `tests/vizinhos.sh` verde: gatilho e segunda passada, item restaurado fica, a chave, a linha
