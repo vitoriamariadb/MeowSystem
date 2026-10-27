@@ -25,8 +25,16 @@
 - Achado: o shim do compositor do MeowSystem nunca foi ligado nesta máquina; quem valia era o binário
   da Aurora gravado por cima do de fábrica.
 - Levantamento feito (2 agentes): `relatorios/levantamento-*.md`, sprints P115 a P123, commit 58b531be no `dev`.
-- EM VOO (27/10): rodada 1, blocos Painel (`wf_553927b1-b92`) e Central (`wf_190a82c2-962`), 3 agentes cada.
-- Próximo passo: integrar cada bloco em `integracao/central-e-gerador` quando o conferente final voltar; depois a rodada 2.
+- INTEGRADO: bloco Painel (P115, P116, P117) em `integracao/central-e-gerador` (merge 4d1b5977), worktree
+  `~/Desenvolvimento/MeowSystem-integracao`. Relatório: `relatorios/conferencia-painel.md`.
+- EM VOO: bloco Central (`wf_190a82c2-962`, P120 → P121) e bloco Forks (`wf_1c95b651-87e`, P122, a partir da integração).
+- Próximo passo: integrar Central e Forks; depois Textos (P119 → P118) e Aurora (P124 → P125); depois Pasta (P123);
+  por fim instalar do zero na máquina.
+- Anotado para depois (vindo da conferência do Painel): `docs/PACKS.md` sem os campos `icones.sistema` e
+  `icones.bandeja` (entra na P118); `restaurar.sh sistema_limpar` vermelho já no `dev` (o `.deb` do cosmic-comp em
+  `~/.local/share/meowsystem/debs` muda sem «Restaurar»; entra na P125, junto do resto do compositor); numa casa sem
+  rede o doctor regrava a cada passada as tentativas de compilar, o `pendencias.tsv` e a semeadura do papel de parede
+  (quebra a segunda passada sem escrita; entra na P124, que mexe no doctor).
 
 ## Pedido de quem usa (27/10), lista fechada desta leva
 Fotos em `fotos/1.png` a `fotos/5.png`.

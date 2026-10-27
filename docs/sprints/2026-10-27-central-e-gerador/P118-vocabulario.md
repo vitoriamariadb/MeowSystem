@@ -72,6 +72,9 @@ que barre a palavra no que a tela mostra.
 - Scripts (os da §5 do relatório): `install.sh`, `scripts/*.sh`, `scripts/temas-de-apps/*/manifesto.sh`, `scripts/pack.py`, `bin/meow`, `lib/preflight.sh`.
 - Testes: `tests/frases-velhas.sh` e os quatro testes citados.
 
+## Item do coordenador (27/10)
+- `docs/PACKS.md` descreve os campos novos da P117, `icones.sistema` e `icones.bandeja` (herda, pintar, desenhos, mapa), e a linha do doctor «sistema: … já vestidos de Arcticons» diz o pack no ar.
+
 ## Fora desta sprint
 - Fica como está:
   - identificadores internos: `vestir()`, `_quem_veste`, `_o_que_veste`, `meow_flavor_vestido`, `_vestido`, o `filtro_git.py vestir` (protocolo do filtro git do Obsidian);
