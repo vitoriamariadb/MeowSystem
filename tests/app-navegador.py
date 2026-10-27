@@ -196,6 +196,8 @@ def main():
             print("8. a dica")
             ir(pag, "cuidar")
             alvo = pag.locator('#conteudo .linha .rot span[data-dica]').first
+            alvo.scroll_into_view_if_needed()
+            pag.wait_for_timeout(300)
             alvo.hover()
             pag.wait_for_timeout(300)
             checa(pag.evaluate("() => document.getElementById('dica').hidden"), "a dica espera o mouse parar")
