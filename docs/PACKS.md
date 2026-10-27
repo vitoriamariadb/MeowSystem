@@ -753,8 +753,8 @@ bandeja (`bandeja`) são dois blocos com os mesmos campos:
 
 O pack `dracula` declara `"sistema": { "herda": "meowsystem", "pintar": "text" }`: o
 molde é o do meowsystem e o traço sai na cor `text` do flavor dele. Pack sem o bloco
-(e sem `herda`) não ganha ícone de status: o doctor diz «o pack no ar não declara
-icones.sistema» e não escreve nada. Quando escreve, a linha diz de quem é o desenho:
+(e sem `herda`) não ganha ícone de status: o doctor tira os que outro pack deixou e
+diz «o pack no ar não declara icones.sistema». Com o bloco, a linha diz o pack no ar:
 «ícones do sistema já com o Arcticons do pack Dracula».
 
 O `validar` cobra a existência de tudo o que estiver declarado. Um pack que
