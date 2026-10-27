@@ -42,19 +42,19 @@ compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse 
 
 ## The panel
 
-`meow abrir`, or the MeowSystem icon in the launcher. 124 settings and 77 actions behind five doors (the panel speaks Portuguese):
+`meow abrir`, or the MeowSystem icon in the launcher. 124 settings and 71 actions behind five doors (the panel speaks Portuguese):
 
 <table>
 <tr>
 <td width="50%"><img src="docs/capturas/readme/tema.png" alt="The Tema door of the panel"><br><b>Tema</b>: one card per pack: logo, palette, what it brings and what it inherits. Vestir switches packs.</td>
-<td width="50%"><img src="docs/capturas/readme/criar.png" alt="The Criar tema door of the panel"><br><b>Criar tema</b>: your own pack, step by step: colors, icons, wallpaper, sounds, and download the theme.</td>
+<td width="50%"><img src="docs/capturas/readme/criar.png" alt="The Personalizar door of the panel"><br><b>Personalizar</b>: your own pack, step by step: colors, icons, wallpaper, sounds, and download the theme.</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="The Ajustes door of the panel"><br><b>Ajustes</b>: panel and dock, windows, wallpaper, mascot, day and night, terminal and programs.</td>
-<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="The Cuidar door of the panel"><br><b>Cuidar</b>: the doctor and its fix button, pending items, and settings to carry to another machine.</td>
+<td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="The Definir door of the panel"><br><b>Definir</b>: panel and dock, windows, wallpaper, mascot, day and night, terminal and programs.</td>
+<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="The Manter door of the panel"><br><b>Manter</b>: the doctor and its fix button, pending items, and settings to carry to another machine.</td>
 </tr>
 <tr>
-<td width="50%"><b>Extensões</b>: the house applets and your own: install, update, put on the panel, and the compositor builds.</td>
+<td width="50%"><img src="docs/capturas/readme/extensoes.png" alt="The Extensões door of the panel"><br><b>Extensões</b>: the house applets and your own: install, update, put on the panel, and the compositor builds.</td>
 </tr>
 </table>
 

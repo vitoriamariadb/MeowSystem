@@ -42,19 +42,19 @@ compilador e as bibliotecas dos applets, o `fastfetch` e o `starship`. Para ensa
 
 ## O painel
 
-`meow abrir`, ou o ícone MeowSystem no lançador. 124 ajustes e 71 ações em quatro portas:
+`meow abrir`, ou o ícone MeowSystem no lançador. 124 ajustes e 71 ações em cinco portas:
 
 <table>
 <tr>
 <td width="50%"><img src="docs/capturas/readme/tema.png" alt="A porta Tema do painel"><br><b>Tema</b>: um cartão por pack: logo, paleta, o que é próprio e o que herda. Vestir troca o pack.</td>
-<td width="50%"><img src="docs/capturas/readme/criar.png" alt="A porta Criar tema do painel"><br><b>Criar tema</b>: um pack seu, em passos: cores, ícones, papel de parede, sons, e baixar o tema.</td>
+<td width="50%"><img src="docs/capturas/readme/criar.png" alt="A porta Personalizar do painel"><br><b>Personalizar</b>: um pack seu, em passos: cores, ícones, papel de parede, sons, e baixar o tema.</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="A porta Ajustes do painel"><br><b>Ajustes</b>: painel e dock, janelas, papel de parede, mascote, dia e noite, terminal e programas.</td>
-<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="A porta Cuidar do painel"><br><b>Cuidar</b>: o doctor e o Consertar, as pendências, e os ajustes para levar a outra máquina.</td>
+<td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="A porta Definir do painel"><br><b>Definir</b>: painel e dock, janelas, papel de parede, mascote, dia e noite, terminal e programas.</td>
+<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="A porta Manter do painel"><br><b>Manter</b>: o doctor e o Consertar, as pendências, e os ajustes para levar a outra máquina.</td>
 </tr>
 <tr>
-<td width="50%"><b>Extensões</b>: os applets da casa e os de quem usa: instalar, atualizar, pôr no painel, e os builds do compositor.</td>
+<td width="50%"><img src="docs/capturas/readme/extensoes.png" alt="A porta Extensões do painel"><br><b>Extensões</b>: os applets da casa e os de quem usa: instalar, atualizar, pôr no painel, e os builds do compositor.</td>
 </tr>
 </table>
 
