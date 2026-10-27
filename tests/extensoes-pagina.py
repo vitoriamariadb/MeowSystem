@@ -223,6 +223,18 @@ def main():
                   "o ícone do applet carrega pelo servidor")
             checa(pag.locator(".cartao-novo").count() == 1 and pag.locator(".abas-ajustes [data-controle='extensao:abrir-adicionar']").count() == 1,
                   "e há dois caminhos para «Adicionar repositório»")
+            forma = pag.evaluate("""() => [...document.querySelectorAll('article[data-applet]')].map((c) => {
+              const h = c.querySelector('h3');
+              return [getComputedStyle(c).gridTemplateColumns.split(' ').length, h.getBoundingClientRect().height <= parseFloat(getComputedStyle(h).lineHeight) * 1.5];
+            })""")
+            checa(forma and all(colunas == 1 and uma_linha for colunas, uma_linha in forma),
+                  f"cada cartão é uma coluna e o nome cabe numa linha ({forma})")
+            checa(pag.locator(".abas-ajustes").count() == 1 and pag.locator("#conteudo .abas-ajustes").count() == 0,
+                  "as abas moram na barra de cima, uma só")
+            ir(pag, "ajustes/painel")
+            checa(pag.locator(".abas-ajustes [data-controle^='ajuste:']").count() >= 7 and pag.locator(".abas-ajustes [data-aba]").count() == 0,
+                  "e Definir volta com as suas abas")
+            ir(pag, "extensoes")
             checa(pag.locator("#conteudo .previa").count() == 1 and pag.locator(".barra-perto").count() == 1,
                   "a prévia e a barra de cima estão ao lado")
             foto("extensoes-normal")
