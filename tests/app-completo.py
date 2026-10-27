@@ -108,6 +108,9 @@ def copiar_raiz():
         os.makedirs(os.path.dirname(destino), exist_ok=True)
         if os.path.islink(origem):
             os.symlink(os.readlink(origem), destino)
+        elif os.path.isdir(origem):
+            shutil.copytree(origem, destino, symlinks=True, dirs_exist_ok=True,
+                            ignore=shutil.ignore_patterns(".git"))
         else:
             shutil.copy2(origem, destino)
     subprocess.run(["git", "init", "-q", RAIZ_B], check=True)
@@ -1263,7 +1266,12 @@ class Percurso:
                     self.fechar_resultado()
         self.clicar("menu")
         self.assentar()
-        self.h_link_externo("menu:creditos")
+        self.clicar("menu:creditos")
+        self.assentar()
+        if self.checa(self.aberto("creditos"), "«Créditos» abre o diálogo do painel"):
+            self.h_link_externo("creditos:repositorio")
+            self.clicar("creditos:ok")
+            self.assentar()
         if not self.js("() => document.getElementById('menu').open"):
             self.clicar("menu")
         self.h_download("menu:pagina")

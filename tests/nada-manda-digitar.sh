@@ -7,10 +7,10 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 command -v python3 >/dev/null 2>&1 || { printf 'pulado: sem python3\n'; exit 0; }
 
 printf '\n--- 1. nenhuma mensagem com receita de terminal ---\n'
-achados="$(cd "$RAIZ" && grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*(pkill -[xf] |sudo -v|LEITURA_COMPILAR=1|meow files-menu build)' \
+achados="$(cd "$RAIZ" && grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*(pkill -[xf] |sudo -v|EXTENSOES_COMPILAR=1|meow files-menu build)' \
              scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null)"
 if [ -z "$achados" ]; then
-  ok "nenhuma mensagem manda digitar pkill, sudo -v, LEITURA_COMPILAR=1 ou meow files-menu build"
+  ok "nenhuma mensagem manda digitar pkill, sudo -v, EXTENSOES_COMPILAR=1 ou meow files-menu build"
 else
   falha "mensagens que mandam digitar o conserto" "$achados"
 fi
@@ -34,7 +34,7 @@ done
 printf '#!/bin/sh\necho "curl $*" >> "%s/rede.log"\nexit 1\n' "$CASA1B" > "$CASA1B/falso/curl"
 chmod 755 "$CASA1B/falso/curl"
 env -i PATH="$CASA1B/falso:/usr/bin:/bin" HOME="$CASA1B" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
-  MIDIA_COMPILAR=1 "$RAIZ/scripts/midia_build.sh" --aplicar >/dev/null 2>&1
+  EXTENSOES_COMPILAR=1 "$RAIZ/scripts/extensoes_build.sh" now-playing --aplicar >/dev/null 2>&1
 if PATH=/usr/bin:/bin command -v cargo >/dev/null 2>&1; then
   printf '  --   o /usr/bin desta máquina tem cargo: o caso «sem cargo» não se monta aqui\n'
 elif grep -q 'rustup' "$CASA1B/rede.log" 2>/dev/null; then
@@ -60,13 +60,13 @@ saida="$(env -i PATH="$PATH" HOME="$CASA2" python3 - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
 import servidor
-for p in ("instalar-com-root", "leitura-applet"):
+for p in ("instalar-com-root", "extensao-leitura"):
     print("%s=%s" % (p, servidor.ACAO_DA_PENDENCIA.get(p, "")))
 PY
 )"
 rm -rf "$CASA2"
-if grep -qx 'instalar-com-root=instalar' <<< "$saida" && grep -qx 'leitura-applet=doctor_consertar' <<< "$saida"; then
-  ok "instalar-com-root -> «Instalar tudo», leitura-applet -> «Consertar o que estiver fora»"
+if grep -qx 'instalar-com-root=instalar' <<< "$saida" && grep -qx 'extensao-leitura=doctor_consertar' <<< "$saida"; then
+  ok "instalar-com-root -> «Instalar tudo», extensao-leitura -> «Consertar o que estiver fora»"
 else
   falha "as pendências novas não têm botão no painel" "$saida"
 fi
@@ -91,13 +91,13 @@ for c in sudo pkexec su pkill killall notify-send systemd-run loginctl apt apt-g
 done
 applet() {
   env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LEITURA_APPLET="$1" \
-    "$RAIZ/scripts/leitura_build.sh" --aplicar > /dev/null 2>&1
+    "$RAIZ/scripts/extensoes_build.sh" --todas --aplicar > /dev/null 2>&1
 }
 TSV="$CASA/.local/state/meowsystem/pendencias.tsv"
 applet sim; com="$(cut -f1 "$TSV" 2>/dev/null)"
 applet nao; sem="$(cut -f1 "$TSV" 2>/dev/null)"
-if grep -qx 'leitura-applet' <<< "$com" && ! grep -qx 'leitura-applet' <<< "$sem"; then
-  ok "sem compilar, a pendência leitura-applet nasce; com LEITURA_APPLET=nao, ela sai"
+if grep -qx 'extensao-leitura' <<< "$com" && ! grep -qx 'extensao-leitura' <<< "$sem"; then
+  ok "sem compilar, a pendência extensao-leitura nasce; com LEITURA_APPLET=nao, ela sai"
 else
   falha "a pendência do applet não nasce ou não sai" "com: $com / sem: $sem"
 fi
@@ -166,19 +166,19 @@ else
 fi
 
 printf '\n--- 7. sem cargo, o conserto instala o rust (e não manda instalar) ---\n'
-achados="$(grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*instale com rustup' "$RAIZ/scripts/leitura_build.sh")"
-[ -z "$achados" ] && ok "o leitura_build.sh não manda «instale com rustup»" \
-  || falha "o leitura_build.sh manda instalar o rust à mão" "$achados"
+achados="$(grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*instale com rustup' "$RAIZ/scripts/extensoes_build.sh")"
+[ -z "$achados" ] && ok "o extensoes_build.sh não manda «instale com rustup»" \
+  || falha "o extensoes_build.sh manda instalar o rust à mão" "$achados"
 SEM_CARGO="$CASA/sem-cargo"; mkdir -p "$SEM_CARGO"
 cp -a "$FALSO"/. "$SEM_CARGO"/ && rm -f "$SEM_CARGO/cargo"
 REDE="$CASA/rede.log"; : > "$REDE"
 printf '#!/bin/sh\necho "curl $*" >> "%s"\nexit 1\n' "$REDE" > "$SEM_CARGO/curl"; chmod 755 "$SEM_CARGO/curl"
 rm -f "$TSV"
 saida="$(env -i PATH="$SEM_CARGO:/usr/bin:/bin" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LEITURA_APPLET=sim \
-  LEITURA_COMPILAR=1 "$RAIZ/scripts/leitura_build.sh" --aplicar 2>&1)"
+  EXTENSOES_COMPILAR=1 "$RAIZ/scripts/extensoes_build.sh" leitura --aplicar 2>&1)"
 if PATH=/usr/bin:/bin command -v cargo >/dev/null 2>&1; then
   printf '  --   o /usr/bin desta máquina tem cargo: o caso «sem cargo» não se monta aqui\n'
-elif grep -q 'rustup' "$REDE" && grep -qx 'leitura-applet' <<< "$(cut -f1 "$TSV" 2>/dev/null)"; then
+elif grep -q 'rustup' "$REDE" && grep -qx 'extensao-leitura' <<< "$(cut -f1 "$TSV" 2>/dev/null)"; then
   ok "sem cargo, o conserto vai buscar o rust pelo rustup; sem rede, a pendência do botão fica"
 else
   falha "sem cargo, o conserto não tentou instalar o rust, ou não deixou a pendência" \
@@ -186,13 +186,13 @@ else
 fi
 
 printf '\n--- 8. as linhas dos builds dizem o estado, sem comando (P81) ---\n'
-RECEITA='(meow compositor|meow painel reciclar|rode:|veja o motivo|CARGO_TARGET_DIR=|MIDIA_COMPILAR=1|instale com rustup)'
+RECEITA='(meow compositor|meow painel reciclar|rode:|veja o motivo|CARGO_TARGET_DIR=|EXTENSOES_COMPILAR=1|instale com rustup)'
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|_cp_diz [a-z]+) '
 achados="$(
   for f in cmd_conferir cmd_compilar; do
     sed -n "/^$f()/,/^}/p" "$RAIZ/scripts/compositor_patches.sh" | grep -E "$MSG.*$RECEITA" | sed "s/^/compositor_patches.sh $f: /"
   done
-  cd "$RAIZ" && grep -nE "$MSG.*$RECEITA" scripts/files_menu.sh scripts/midia_build.sh scripts/leitura_build.sh \
+  cd "$RAIZ" && grep -nE "$MSG.*$RECEITA" scripts/files_menu.sh scripts/extensoes_build.sh scripts/extensoes_tema.sh \
     scripts/garantir_builds.sh scripts/cosmic_pos_apt.sh 2>/dev/null)"
 [ -z "$achados" ] && ok "o conferir e o compilar do compositor, o menu, os dois applets e os gatilhos não mandam digitar" \
   || falha "linhas dos builds que mandam digitar" "$achados"

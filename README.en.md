@@ -29,7 +29,7 @@ What a pack does not declare it inherits, and `meow pack info` tells you where e
 ## Install
 
 ```bash
-git clone https://github.com/AndreBFarias/MeowSystem.git
+git clone https://github.com/vitoriamariadb/MeowSystem.git
 cd MeowSystem
 ./install.sh --wizard
 ```
@@ -42,7 +42,7 @@ compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse 
 
 ## The panel
 
-`meow abrir`, or the MeowSystem icon in the launcher. 122 settings and 67 actions behind four doors (the panel speaks Portuguese):
+`meow abrir`, or the MeowSystem icon in the launcher. 124 settings and 77 actions behind five doors (the panel speaks Portuguese):
 
 <table>
 <tr>
@@ -52,6 +52,9 @@ compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse 
 <tr>
 <td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="The Ajustes door of the panel"><br><b>Ajustes</b>: panel and dock, windows, wallpaper, mascot, day and night, terminal and programs.</td>
 <td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="The Cuidar door of the panel"><br><b>Cuidar</b>: the doctor and its fix button, pending items, and settings to carry to another machine.</td>
+</tr>
+<tr>
+<td width="50%"><b>Extensões</b>: the house applets and your own: install, update, put on the panel, and the compositor builds.</td>
 </tr>
 </table>
 
