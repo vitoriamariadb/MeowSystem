@@ -141,7 +141,7 @@ estado() {
   nossos="$(meow_painel_nossos | tr '\n' ' ' || true)"
   printf 'painel      : do supervisor=%s  nossos=%s\n' "${sup:-<nenhum>}" "${nossos:-<nenhum>}"
   if meow_painel_fantasma; then
-    printf 'desenhando  : NÃO — painel vivo sem desenhar (fantasma). O laço recicla; ou: meow painel reciclar\n'
+    printf 'desenhando  : NÃO — painel vivo sem desenhar (fantasma). O laço o recicla sozinho\n'
   else
     printf 'desenhando  : sim\n'
   fi
