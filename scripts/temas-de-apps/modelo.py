@@ -3,7 +3,7 @@ import json
 import re
 import sys
 
-MARCA = re.compile(r"\{\{([a-z0-9_]+)(?::([0-9a-fA-F]{2}|rgb))?\}\}")
+MARCA = re.compile(r"\{\{([a-z0-9_]+)(?::([0-9a-fA-F]{2}|rgb|csv))?\}\}")
 RESTO = re.compile(r"\{\{[^{}]*\}\}")
 
 
@@ -56,6 +56,8 @@ def main(argv):
             return hexa
         if forma == "rgb":
             return ", ".join(str(int(hexa[i:i + 2], 16)) for i in (1, 3, 5))
+        if forma == "csv":
+            return ",".join(str(int(hexa[i:i + 2], 16)) for i in (1, 3, 5))
         return hexa + forma
 
     saida = MARCA.sub(trocar, texto)
