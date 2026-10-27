@@ -4306,14 +4306,19 @@ NOME_DA_PENDENCIA = {
     "aplicar-ajuste": "Ajuste pendente",
 }
 
+BUILD_DA_PENDENCIA = {}
 
 
 def _pendencias_das_extensoes():
     for ident, casa, pino in _ext_catalogo():
         if casa:
             chave = pino.get("PENDENCIA") or "extensao-" + ident
-            ACAO_DA_PENDENCIA.setdefault(chave, "doctor_consertar")
             NOME_DA_PENDENCIA.setdefault(chave, pino.get("NOME") or ident)
+            if pino.get("TIPO") in EXT_TIPOS_DE_BUILD:
+                BUILD_DA_PENDENCIA.setdefault(chave, ident)
+                ACAO_DA_PENDENCIA.setdefault(chave, "extensao_refazer")
+            else:
+                ACAO_DA_PENDENCIA.setdefault(chave, "doctor_consertar")
 
 
 _pendencias_das_extensoes()
@@ -4506,6 +4511,8 @@ def onde_na_tela(ident):
     pendencias = porta_das_pendencias()
     if not pendencias:
         return ""
+    if ident in BUILD_DA_PENDENCIA:
+        return "«Refazer», em %s" % pendencias
     if ident in ACAO_DA_PENDENCIA:
         return "«Resolver», em %s" % pendencias
     if _app_da_pendencia(ident):
@@ -4538,7 +4545,7 @@ def pendencias():
                 if len(campos) != 5 or not campos[0]:
                     continue
                 ident, etapa, frase, comando, quando = campos
-                acao = ACAO_DA_PENDENCIA.get(ident, "") if comando else ""
+                acao = ACAO_DA_PENDENCIA.get(ident, "") if comando and ident not in BUILD_DA_PENDENCIA else ""
                 if acao and (indisponivel(acao) or {}).get("feito"):
                     continue
                 app = _app_da_pendencia(ident) if comando else ""
@@ -4552,6 +4559,9 @@ def pendencias():
                                {"acao": dispensar, "rotulo": r_dispensar,
                                 "argumento": ""}]
                     nome = "Papel devolvido"
+                if ident in BUILD_DA_PENDENCIA and comando:
+                    escolha = [{"acao": "extensao_refazer", "argumento": BUILD_DA_PENDENCIA[ident],
+                                "rotulo": "Refazer"}]
                 if ident == PENDENCIA_EXTENSAO and comando:
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
