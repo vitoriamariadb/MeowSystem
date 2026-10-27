@@ -263,13 +263,18 @@ function assinaturaDoTema() {
   const r = rascunho();
   return JSON.stringify([r.nome, r.base, r.cores]);
 }
+let GUARDANDO_TEMA = null;
 async function garantirPack() {
   const r = rascunho();
   const em_dia = r.pack && r.assinatura === assinaturaDoTema() && PACKS.some((x) => x.id === r.pack);
   if (!em_dia && !(await guardarTema(true))) return null;
   return PACKS.find((x) => x.id === r.pack) || null;
 }
-async function guardarTema(silencioso = false) {
+function guardarTema(silencioso = false) {
+  if (!GUARDANDO_TEMA) GUARDANDO_TEMA = guardarTemaAgora(silencioso).finally(() => { GUARDANDO_TEMA = null; });
+  return GUARDANDO_TEMA;
+}
+async function guardarTemaAgora(silencioso) {
   const r = rascunho();
   const id = idDoNome(r.nome);
   const flavor = id.replace(/[^a-z0-9]/g, "") || "meu";
