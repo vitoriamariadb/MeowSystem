@@ -201,6 +201,33 @@ $saida_c
 $saida_d"
 fi
 
+printf '\n--- 8. o caminho chega por um atalho de fora do repo (o atalho de disco dela) ---\n'
+monta oito
+ATALHO="$T/apate-oito"; ln -s "$C" "$ATALHO"
+VIA="$ATALHO/repo/assets/papeis-de-parede"
+sed -i "s#^WALLPAPER_BASE=.*#WALLPAPER_BASE=\"$VIA\"#" "$CASA/.config/meow/meow.conf"
+for cfg in all output.DP-1 output.HDMI-A-1; do sed -i "s#$ANT#$VIA#" "$BG/$cfg"; done
+rm -f "$NOVO"; ln -s "$VIA" "$NOVO"
+N_ANTES="$(find "$ANT" -type f | wc -l)"
+BASE_ENV="$VIA"
+doctor_fn chk_basefundo >/dev/null; rc_chk=$?
+doctor_fn fix_basefundo > "$T/fix8.log"; rc=$?
+WP_CONF="$(sed -n 's/^WALLPAPER_BASE="\(.*\)"/\1/p' "$CASA/.config/meow/meow.conf" | tail -n1)"
+bons=0
+for cfg in all output.DP-1 output.HDMI-A-1; do
+  grep -qF "source: Path(\"$NOVO/ativos-dia\")" "$BG/$cfg" && ! grep -qF "apate-oito" "$BG/$cfg" && bons=$((bons + 1))
+done
+BASE_ENV="$NOVO"
+doctor_fn chk_basefundo >/dev/null; rc_de_novo=$?
+if [ "$rc_chk" = 1 ] && [ "$rc" = 1 ] && [ ! -e "$ANT" ] && [ -d "$NOVO" ] && [ ! -L "$NOVO" ] \
+   && [ "$WP_CONF" = "$NOVO" ] && [ "$bons" = 3 ] && [ "$(find "$NOVO" -type f | wc -l)" = "$N_ANTES" ] \
+   && [ "$rc_de_novo" = 0 ]; then
+  ok "base, atalho do padrão e as três configs pelo caminho de fora: tudo volta para $NOVO, com as $N_ANTES imagens"
+else
+  falha "o caminho pelo atalho de fora não foi resolvido (chk=$rc_chk fix=$rc configs=$bons conf=$WP_CONF de-novo=$rc_de_novo)" "$(cat "$T/fix8.log")"
+fi
+unset BASE_ENV
+
 printf '\n'
 if [ "$ACHADOS" = 0 ]; then
   printf 'ok: a base do papel de parede e o estado antigo saem do repo e do estado, sem perder imagem\n'
