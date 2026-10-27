@@ -321,10 +321,9 @@ import ast
 import glob
 
 VESTIR = re.compile(r"(?<![\w${])(?:re)?vest(?:ir|e|em|id[oa]s?|indo|iri?a\w*|ia|iam|imos)(?![\w=+])", I)
-MANDAR = re.compile(r"(?<![\w$])Mandar(?!\w)|\bpara\s+mandar\b")
+MANDAR = re.compile(r"(?<![\w$])Mandar(?!\w)|\bpara\s+mandar\b|\brecom\s+o\b")
 DIGITE = re.compile(r"\bdigite\b|\brode:?\s+[`'\"]?meow\b|\b(?:com|ou|é|use):\s+meow\s+\w+", I)
-ISENTAS = ("filtro_git.py", "$filtro", "filter.meow-obsidian", "# icones/apps.map",
-           "print('FABRICA')", "print('ESCRITO')")
+ISENTAS = ("filtro_git.py", "$filtro", "filter.meow-obsidian", "# icones/apps.map")
 CITADA = re.compile(r"\"(?:[^\"\\\n]|\\.)*\"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\\n]|\\.)*`")
 SHELLS = ("install.sh", "bin/meow")
 
@@ -378,7 +377,7 @@ for caminho, padroes in arquivos_de_tela():
         if caminho.startswith(("scripts/", "lib/")) and DIGITE.search(texto):
             mandam.append("%s:%d  %s" % (caminho, n, " ".join(texto.split())[:140]))
 
-for num, nome, lista in ((8, "as formas de vestir e o rótulo «Mandar» no que a tela mostra", velhas),
+for num, nome, lista in ((8, "as formas de vestir, o rótulo «Mandar» e a troca colada a «re» no que a tela mostra", velhas),
                          (9, "a saída dos scripts que manda digitar", mandam)):
     if lista:
         falhas += 1

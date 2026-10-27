@@ -128,7 +128,7 @@ except SyntaxError as e:
     print('ERRO'); print('o resultado nao compila (%s) — nada foi escrito' % e); sys.exit(0)
 
 if not escrever:
-    print('FABRICA'); print('o bloco _SYMBOLIC e o de fabrica e da para vestir'); sys.exit(0)
+    print('FABRICA'); print('o bloco _SYMBOLIC e o de fabrica e da para aplicar'); sys.exit(0)
 
 if guarda:
     try:
@@ -156,7 +156,7 @@ if os.path.isdir(py):
             try: os.remove(os.path.join(py, n))
             except OSError: pass
 
-print('ESCRITO'); print('bloco _SYMBOLIC vestido e hardlink do OSTree quebrado')
+print('ESCRITO'); print('bloco _SYMBOLIC aplicado e hardlink do OSTree quebrado')
 PY
 }
 
@@ -209,7 +209,7 @@ _aplicar() {
       meow_ok "o ícone da bandeja do ZapZap já estava aplicado"
       return "$MEOW_OK" ;;
     ESCRITO)
-      meow_muda "ícone da bandeja do ZapZap recom o Arcticons"
+      meow_muda "ícone da bandeja do ZapZap refeito com o Arcticons"
       meow_info "  o desenho novo aparece quando o ZapZap for fechado e aberto de novo"
       return "$MEOW_DIVERGENTE" ;;
     DESCONHECIDO)
