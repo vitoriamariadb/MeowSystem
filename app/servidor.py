@@ -4286,6 +4286,10 @@ def inventario_do_painel():
         pus(l, "cuidar", "Cuidar", "Zona de perigo")
     for l in cuidar["mais"]:
         pus(l, "cuidar", "Cuidar", "Mais ajustes", True)
+    for l in c["LUGAR_EXTENSOES"]["applets"]:
+        pus(l, "extensoes", "Applets", "Applets")
+    for l in c["LUGAR_EXTENSOES"]["builds"]:
+        pus(l, "extensoes", "Builds", "Builds")
     for l in c["LUGAR_TOPO"]:
         pus(l, "topo", "Barra de cima", "Barra de cima")
     for l in c["LUGAR_JANELA"]:
