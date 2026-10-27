@@ -610,15 +610,18 @@ _b_aplicar() {
       meow_pula "$(_nome) $B_VERSAO ainda sem build da casa"
       return "$MEOW_SEM_DEPENDENCIA"
     fi
-    if [ "${EXTENSOES_FUNDO:-0}" = 1 ]; then
+    if [ "${EXTENSOES_FUNDO:-0}" = 1 ] && [ "$B_CONSTRUINDO" = sim ]; then
+      meow_info "$(_nome) $B_VERSAO: o build já corre em segundo plano"
+    elif [ "${EXTENSOES_FUNDO:-0}" = 1 ]; then
       "$GARANTIR" --fundo; rc=$?
       [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+      mudou=1
     else
       _b_compilar; rc=$?
       _b_campos "$(_b_prefixo)"
       _b_pronto || { meow_erro "$(_nome) $B_VERSAO não compilou — o de fábrica segue valendo"; return "$MEOW_ERRO"; }
+      mudou=1
     fi
-    mudou=1
   fi
   _b_ligar; rc=$?
   case "$rc" in
