@@ -1284,7 +1284,12 @@ class Percurso:
                     self.fechar_resultado()
         self.clicar("menu")
         self.assentar()
-        self.h_link_externo("menu:creditos")
+        self.clicar("menu:creditos")
+        self.assentar()
+        if self.checa(self.aberto("creditos"), "«Créditos» abre o diálogo do painel"):
+            self.h_link_externo("creditos:repositorio")
+            self.clicar("creditos:ok")
+            self.assentar()
         if not self.js("() => document.getElementById('menu').open"):
             self.clicar("menu")
         self.h_download("menu:pagina")

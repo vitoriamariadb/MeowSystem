@@ -97,11 +97,13 @@ MAQUINA=(
   app-uso-real.py
   app-texto-visivel.py
   gate-link-externo.py
+  extensoes-pagina.py
 )
 
 SEM_PULO=(
   app-completo.py
   app-uso-real.py
+  extensoes-pagina.py
 )
 
 MODO="tudo"
