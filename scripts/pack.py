@@ -134,6 +134,9 @@ VERBOS
     acervo-para-levar <id> sistema|biblioteca
                                  o que a aba do Criar tema oferece, uma linha
                                  por ícone: `pack<TAB>nome<TAB>arquivo<TAB>sim|nao`.
+    usar-desenho <id> <nome> <arquivo.svg>
+                                 guarda o desenho do app em `icones/apps/` do pack seu.
+    tirar-desenho <id> <nome>
     exportar <id> [arquivo] [--sem-imagens] [--seco]
                                  o pack num `.meowpack` (um .tar.zst com um
                                  MANIFESTO de sha256). Recusa o que não valida,
@@ -4459,6 +4462,110 @@ def levar_icone(ident, pasta, caminho, nome="", texto=None):
     return nome + ".svg"
 
 
+RE_SVG_COM_ESTILO_VIVO = re.compile(rb"<script|javascript:|\son[a-z]+\s*=|<foreignObject|<image|<use|@import|url\(\s*['\"]?https?:", re.I)
+TETO_DESENHO_DE_APP = 60000
+
+
+def _desenho_de_app_valido(texto):
+    dados = (texto or "").encode("utf-8")
+    _exigir(0 < len(dados) <= TETO_DESENHO_DE_APP, "o desenho está vazio ou passa de 60 000 caracteres")
+    _exigir(texto.lstrip().startswith("<svg") and texto.rstrip().endswith("</svg>"),
+            "o texto tem de começar em <svg e terminar em </svg>")
+    _exigir('viewBox="0 0 48 48"' in texto, 'falta viewBox="0 0 48 48"')
+    _exigir(not RE_SVG_COM_ESTILO_VIVO.search(dados), "o desenho traz script, imagem ou endereço de fora")
+    try:
+        ET.fromstring(texto)
+    except ET.ParseError as e:
+        raise Recusa(f"o desenho não é XML: {e}") from None
+
+
+def _linhas_do_mapa_herdado(heranca):
+    mapa = acervo("icones.apps.mapa", ref=heranca) if heranca else None
+    if not mapa:
+        return []
+    dono, saida = _pack_de(mapa), []
+    for _num, nome, alvo in ler_mapa(mapa):
+        if not (alvo.startswith(MOTOR) or alvo.startswith(OUTRO_PACK)):
+            alvo = f"{OUTRO_PACK}{dono}:{alvo}"
+        saida.append(f"{nome} : {alvo}")
+    return saida
+
+
+def _mapa_de_apps_do_pack(dir_pack, ident):
+    declarado = campo(ident, "icones.apps.mapa")
+    if isinstance(declarado, str) and declarado:
+        return _dentro(dir_pack, declarado, "icones.apps.mapa"), False
+    return _dentro(dir_pack, "icones/apps.map", "icones/apps.map"), True
+
+
+def desenho_no_pack(ident, nome):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(nome_de_destino(nome), f"{nome!r}: nome de ícone que não serve")
+    alvo = os.path.join(dir_pack, "icones", "apps", nome + ".svg")
+    if not os.path.isfile(alvo) or os.path.islink(alvo):
+        return None
+    with open(alvo, encoding="utf-8") as fh:
+        return fh.read(TETO_DESENHO_DE_APP + 1)
+
+
+def usar_desenho(ident, nome, texto, rotulo=""):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(nome_de_destino(nome), f"{nome!r}: nome de ícone que não serve")
+    _desenho_de_app_valido(texto)
+    mapa, novo = _mapa_de_apps_do_pack(dir_pack, ident)
+    if novo:
+        linhas = _linhas_do_mapa_herdado(campo(ident, "heranca"))
+        cabeca = ["# icones/apps.map — que desenho de icones/apps/ veste cada aplicativo.",
+                  "# Formato: nome-de-icone-do-.desktop : arquivo (ou pack:<id>:arquivo, de um pack de que este herda)"]
+    else:
+        with open(mapa, encoding="utf-8") as fh:
+            linhas = fh.read().split("\n")
+        cabeca = []
+    marca = re.sub(r"[\x00-\x1f#;]+", " ", rotulo or nome).strip()
+    nova = f"{nome} : apps/{nome}.svg   # {marca} — escolhido no painel"
+    achou = False
+    for i, linha in enumerate(linhas):
+        util = linha.split("#", 1)[0]
+        if util.partition(":")[0].strip() == nome and ":" in util:
+            linhas[i], achou = nova, True
+            break
+    if not achou:
+        while linhas and not linhas[-1].strip():
+            linhas.pop()
+        linhas.append(nova)
+    _gravar_no_pack(dir_pack, f"icones/apps/{nome}.svg", (texto.rstrip("\n") + "\n").encode("utf-8"))
+    _gravar_no_pack(dir_pack, os.path.relpath(mapa, dir_pack), ("\n".join(cabeca + linhas) + "\n").encode("utf-8"))
+    if novo:
+        def declara(p):
+            apps = p.setdefault("icones", {}).setdefault("apps", {})
+            apps.setdefault("mapa", "icones/apps.map")
+            apps.setdefault("desenhos", "icones/apps/")
+            return True
+        _mudar_pack_json(dir_pack, declara)
+    return nome + ".svg"
+
+
+def tirar_desenho(ident, nome):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(nome_de_destino(nome), f"{nome!r}: nome de ícone que não serve")
+    mapa, novo = _mapa_de_apps_do_pack(dir_pack, ident)
+    tirou = False
+    alvo = os.path.join(dir_pack, "icones", "apps", nome + ".svg")
+    if os.path.isfile(alvo) and not os.path.islink(alvo):
+        os.remove(alvo)
+        tirou = True
+    if not novo and os.path.isfile(mapa):
+        with open(mapa, encoding="utf-8") as fh:
+            linhas = fh.read().split("\n")
+        resto = [l for l in linhas
+                 if not (l.split("#", 1)[0].partition(":")[0].strip() == nome
+                         and f"apps/{nome}.svg" in l and "escolhido no painel" in l)]
+        if resto != linhas:
+            _gravar_no_pack(dir_pack, os.path.relpath(mapa, dir_pack), ("\n".join(resto).rstrip("\n") + "\n").encode("utf-8"))
+            tirou = True
+    return tirou
+
+
 def tirar_icone(ident, pasta, nome):
     dir_pack = pack_da_pessoa(ident)
     _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
@@ -4854,6 +4961,12 @@ def main(argv):
             for i in acervo_para_levar(argv[2], argv[3]):
                 print(f"{i['de']}\t{i['nome']}\t{i['arq']}\t{'sim' if i['levado'] else 'nao'}")
             return OK
+        if verbo == "usar-desenho" and len(argv) == 5:
+            with open(argv[4], encoding="utf-8") as fh:
+                print(usar_desenho(argv[2], argv[3], fh.read()))
+            return OK
+        if verbo == "tirar-desenho" and len(argv) == 4:
+            return OK if tirar_desenho(argv[2], argv[3]) else RECUSADO
         if verbo == "levar" and len(argv) >= 4:
             return cmd_levar(argv[2], argv[3], argv[4:])
         if verbo == "tirar" and len(argv) >= 4:
