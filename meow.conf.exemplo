@@ -1493,6 +1493,10 @@ LEITURA_APPLET="sim"              # sim | nao
 #   A página Extensões escreve esta chave quando você instala ou remove um applet.
 EXTENSOES=""
 
+# REFAZER OS BUILDS AO ENTRAR NA SESSÃO: o compositor e o menu do Arquivos, quando a
+#   versão instalada muda. A página Extensões (Builds) liga e desliga esta chave.
+BUILDS_AO_ENTRAR="sim"            # sim | nao
+
 # --- Terminal ---------------------------------------------------------------
 
 # @ Paleta do terminal

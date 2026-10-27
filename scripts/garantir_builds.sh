@@ -164,9 +164,29 @@ cmd_fundo() {
   return "$MEOW_DIVERGENTE"
 }
 
+cmd_estado() {
+  local vc vf e_comp e_menu remendos
+  vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
+  vf="$(_gb_instalados | awk -F'\t' '$1=="cosmic-files" {print $2}')"
+  if [ -z "$vc" ]; then e_comp=ausente
+  elif [ -e "$GB_CASA/$vc/ruim" ]; then e_comp=falhou
+  elif _gb_comp_valido "$vc"; then e_comp=ok
+  elif _gb_comp_degrau4 "$vc"; then e_comp=nao-encaixa
+  else e_comp=pendente; fi
+  if [ -z "$vf" ]; then e_menu=ausente
+  elif ! _gb_files_quer; then e_menu=desligado
+  elif _gb_files_valido "$vf"; then e_menu=ok
+  else e_menu=pendente; fi
+  remendos="$(awk '$1=="req" || $1=="opt" {n++} END {print n+0}' "$GB_SERIE" 2>/dev/null)"
+  printf 'compositor_versao=%s\ncompositor_estado=%s\nremendos=%s\nmenu_versao=%s\nmenu_estado=%s\nconstruindo=%s\n' \
+    "$vc" "$e_comp" "$remendos" "$vf" "$e_menu" "$(gb_construindo && echo sim || echo nao)"
+  return "$MEOW_OK"
+}
+
 case "${1:-}" in
+  estado)   cmd_estado ;;
   ""|rodar) cmd_rodar ;;
   --seco)   MEOW_SECO=1; cmd_rodar ;;
   --fundo)  cmd_fundo ;;
-  *) meow_erro "uso: garantir_builds.sh [--seco|--fundo]"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: garantir_builds.sh [estado|--seco|--fundo]"; exit "$MEOW_ERRO" ;;
 esac
