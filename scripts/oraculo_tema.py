@@ -12,7 +12,7 @@ e comparado em hex, que é a grafia em que o COSMIC escreve no disco.
 
 Sai 0 quando as duas derivações dão o mesmo tema; 1 com a lista do que
 diverge, um campo por linha; 2 em erro. É o teste lado a lado que a pesquisa
-pede (`docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.5): divergência vira aviso,
+pede (`git show 1b15ccb1^:docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.5): divergência vira aviso,
 e é ela que decide se a cópia em Python ainda é a derivação do COSMIC
 instalado.
 """

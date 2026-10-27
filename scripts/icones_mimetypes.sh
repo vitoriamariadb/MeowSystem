@@ -46,11 +46,11 @@ _ler_mapa() {
 
 _pronto() {
   if [ ! -d "$ORIGEM" ]; then
-    meow_pula "não há acervo de mimetype para o flavor '$FLAVOR_ICONES' — nada a vestir"
+    meow_pula "não há acervo de mimetype para o flavor '$FLAVOR_ICONES' — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "o pack não traz mapa de mimetype (icones.mimetypes.mapa) — nada a vestir"
+    meow_pula "o pack não traz mapa de mimetype (icones.mimetypes.mapa) — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   return "$MEOW_OK"
@@ -87,7 +87,7 @@ _conferir() {
   fi
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total tipos de arquivo já vestidos de $DONO_ACERVO $FLAVOR_ICONES"
+    meow_ok "$total tipos de arquivo já com o $DONO_ACERVO $FLAVOR_ICONES"
     return "$MEOW_OK"
   fi
   meow_muda "tipos de arquivo: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
@@ -126,7 +126,7 @@ _aplicar() {
   fi
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "tipos de arquivo já vestidos de $DONO_ACERVO $FLAVOR_ICONES"
+    meow_ok "tipos de arquivo já com o $DONO_ACERVO $FLAVOR_ICONES"
     return "$MEOW_OK"
   fi
   meow_info "tipos de arquivo: $postos posto(s), $removidos removido(s) — flavor $FLAVOR_ICONES"

@@ -84,10 +84,18 @@ def lancador(pag):
     ir(pag, "ajustes/programas")
     campo = pag.locator("[data-controle='chave:LANCADOR_OCULTAR:nova']")
     campo.scroll_into_view_if_needed()
-    prova(campo.get_attribute("list") == "apps-LANCADOR_OCULTAR", "o campo de «Escondidos» ganha a lista de programas")
-    pag.wait_for_function("() => document.querySelectorAll('#apps-LANCADOR_OCULTAR option').length > 0", timeout=60000)
-    ids = pag.eval_on_selector_all("#apps-LANCADOR_OCULTAR option", "(xs) => xs.map((x) => x.value)")
-    prova(len(ids) > 0, "a lista sugere os programas de /api/apps (%d)" % len(ids))
+    prova(campo.get_attribute("role") == "combobox", "o campo de «Escondidos» é uma busca de programas")
+    ids = []
+    for letra in "aeio":
+        campo.fill(letra)
+        try:
+            pag.wait_for_selector(".nova-ficha .sugestoes [role='option']", timeout=60000)
+        except Exception:
+            continue
+        ids = pag.eval_on_selector_all(".nova-ficha .sugestoes [role='option']", "(xs) => xs.map((x) => x.dataset.id)")
+        if ids:
+            break
+    prova(len(ids) > 0, "a busca sugere os programas de /api/apps (%d)" % len(ids))
     foto(pag, "lancador-escondidos.png")
     antes = pag.eval_on_selector_all("[data-linha='LANCADOR_OCULTAR'] .ficha", "(xs) => xs.length")
     campo.fill("programa-que-nao-existe")
@@ -113,10 +121,10 @@ def mandar_e_rascunho(pag, nav, url):
     ir(pag, "criar/mandar")
     foto(pag, "mandar.png")
     linhas = pag.eval_on_selector_all("[data-resumo]", "(xs) => xs.map((x) => x.dataset.resumo)")
-    prova(linhas[:3] == ["Cores", "Ícones", "Pastas"] and len(linhas) == 7, "Mandar mostra o resumo do tema sem ele ter sido guardado: %s" % linhas)
+    prova(linhas[:3] == ["Cores", "Ícones", "Pastas"] and len(linhas) == 7, "Disponibilizar mostra o resumo do tema sem ele ter sido guardado: %s" % linhas)
     prova(pag.evaluate("() => !rascunho().pack"), "o tema ainda não foi guardado")
     prova(pag.locator("[data-controle='criar:baixar']").is_enabled() and pag.locator("[data-controle='criar:vestir']").is_enabled(),
-          "as saídas (Baixar o tema, Vestir agora) já valem")
+          "as saídas (Baixar o tema, Aplicar tema) já valem")
     with pag.expect_response(lambda r: "/api/rascunho" in r.url and r.request.method == "POST"):
         pag.evaluate("() => guardarRascunho()")
     pag.click("[data-controle='criar:baixar']")

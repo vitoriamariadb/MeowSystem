@@ -82,3 +82,4 @@ dialog .pilha-campo { display: grid; gap: var(--e-2); }
   .oficina.extensoes .palco { top: 116px; max-height: 38vh; background: var(--fundo); padding-bottom: var(--e-3); }
   .oficina.extensoes .palco .previa { max-height: calc(38vh - var(--e-3)); width: auto; margin-inline: auto; }
 }
+@media (max-width: 560px) { #abas-fila .adicionar-repo span { display: none; } }

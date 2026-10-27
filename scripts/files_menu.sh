@@ -56,7 +56,7 @@ cmd_aplicar() {
     return "$MEOW_OK"; }
 
   ver="$(versao_do_pacote)"
-  [ -n "$ver" ] || { meow_pula "o cosmic-files não está instalado por pacote — nada a vestir"; return "$MEOW_SEM_DEPENDENCIA"; }
+  [ -n "$ver" ] || { meow_pula "o cosmic-files não está instalado por pacote — nada a aplicar"; return "$MEOW_SEM_DEPENDENCIA"; }
   dir="$(artefato_de "$ver")"
 
   if [ ! -d "$dir" ]; then
@@ -94,7 +94,7 @@ cmd_aplicar() {
 
   if meow_seco && [ "$mudou" = "1" ]; then return "$MEOW_DIVERGENTE"; fi
   if [ "$mudou" = "1" ]; then
-    meow_ok "menu de contexto vestido: avançar e voltar papel de parede ($ver)"
+    meow_ok "menu de contexto pronto: avançar e voltar papel de parede ($ver)"
     meow_info "  vale nas janelas novas; a área de trabalho no próximo login"
     return "$MEOW_DIVERGENTE"
   fi

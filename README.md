@@ -46,7 +46,7 @@ compilador e as bibliotecas dos applets, o `fastfetch` e o `starship`. Para ensa
 
 <table>
 <tr>
-<td width="50%"><img src="docs/capturas/readme/tema.png" alt="A porta Tema do painel"><br><b>Tema</b>: um cartão por pack: logo, paleta, o que é próprio e o que herda. Vestir troca o pack.</td>
+<td width="50%"><img src="docs/capturas/readme/tema.png" alt="A porta Tema do painel"><br><b>Tema</b>: um cartão por pack: logo, paleta, o que é próprio e o que herda. Aplicar tema troca o pack.</td>
 <td width="50%"><img src="docs/capturas/readme/criar.png" alt="A porta Personalizar do painel"><br><b>Personalizar</b>: um pack seu, em passos: cores, ícones, papel de parede, sons, e baixar o tema.</td>
 </tr>
 <tr>

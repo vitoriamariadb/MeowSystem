@@ -1,6 +1,6 @@
 # assets/contratos/cosmic.tsv — o que o MeowSystem espera de cada versão do COSMIC.
 #
-# POR QUE ESTE ARQUIVO EXISTE (P76, `docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.4)
+# POR QUE ESTE ARQUIVO EXISTE (P76, `git show 1b15ccb1^:docs/pesquisas/2026-10-09-cosmic-vivo.md` §4.4)
 #   O contrato era lembrado, não medido: o `v1` estava escrito à mão em cada
 #   escritor, o nome de cada chave só existia no código que a grava, e a
 #   derivação do tema copiava uma revisão do libcosmic sem que nada a

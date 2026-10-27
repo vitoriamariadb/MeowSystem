@@ -735,7 +735,7 @@ reconciliar_sumicos() {
 
   if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
     meow_aviso "${#sumidas[@]} de $n_antes imagens sumiram de ativos/ de uma vez — não vou banir nada"
-    meow_info  "  se foi você, bana uma a uma: meow wallpaper banir <nome>"
+    meow_info  "  se foi você, tire uma a uma pelo «Tirar do carrossel», em Personalizar › Papel de parede"
     return 0
   fi
 
@@ -1129,7 +1129,7 @@ cmd_lado() {
   if [ ! -f "$ATIVOS/$nome" ]; then
     meow_erro "não achei $nome em ativos/"
     if [ -f "$BASE/banidos/$nome" ]; then
-      meow_info "  ela está em banidos/ — devolva antes: meow wallpaper desbanir \"$nome\""
+      meow_info "  ela está em banidos/ — o «Devolver» do grupo «Fora», em Personalizar › Papel de parede, a traz de volta"
     else
       meow_info "  o lado se escolhe para imagem do acervo — veja: ls \"$ATIVOS\""
     fi

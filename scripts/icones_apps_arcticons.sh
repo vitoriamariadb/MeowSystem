@@ -254,11 +254,11 @@ _pronto() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$MAPA" ]; then
-    meow_pula "sem packs/meowsystem/icones/apps-arcticons.map — nada a vestir"
+    meow_pula "sem packs/meowsystem/icones/apps-arcticons.map — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -f "$PALETA" ]; then
-    meow_pula "sem $(meow_paleta_nome) — sem fonte de cor, nada a vestir"
+    meow_pula "sem $(meow_paleta_nome) — sem fonte de cor, nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if ! meow_tem python3; then
@@ -326,7 +326,7 @@ _conferir() {
   done
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total aplicativo(s) já vestidos em traço ($FLAVOR)"
+    meow_ok "$total aplicativo(s) já com o traço ($FLAVOR)"
     return "$MEOW_OK"
   fi
   meow_muda "aplicativos em traço: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
@@ -367,7 +367,7 @@ _aplicar() {
   done
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "aplicativos já vestidos em traço ($FLAVOR)"
+    meow_ok "aplicativos já com o traço ($FLAVOR)"
     return "$MEOW_OK"
   fi
   meow_info "aplicativos em traço: $postos posto(s), $removidos removido(s) — $FLAVOR"

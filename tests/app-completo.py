@@ -1237,6 +1237,70 @@ class Percurso:
             return Math.abs(esperado - lido) < 0.01 ? true : `${id}: --p=${r.style.getPropertyValue('--p')} esperado=${esperado}%`;
         }""", ident)
 
+    def h_busca_de_programas(self):
+        self.ir("ajustes/programas")
+        self.assentar(quieto=400)
+        self.checa(self.js("() => document.querySelectorAll('datalist').length") == 0,
+                   "a página não tem datalist (a busca de programas é a nossa)")
+        for chave in ("LANCADOR_OCULTAR", "AUTOSTART_BLOQUEADOS"):
+            campo = self.achar(f"chave:{chave}:nova")
+            if not self.checa(campo, f"o campo de programas de {chave} existe"):
+                continue
+            largura = campo.evaluate("(c) => c.getBoundingClientRect().width")
+            self.checa(largura >= 300, f"o campo de {chave} tem pelo menos 300 px ({round(largura)})")
+            self.checa(campo.get_attribute("role") == "combobox", f"o campo de {chave} é um combobox")
+        campo = self.achar("chave:AUTOSTART_BLOQUEADOS:nova")
+        if not campo:
+            return
+        fichas = self.js("() => document.querySelectorAll('.ficha[role=listitem]').length")
+        campo.click()
+        campo.fill("brinq")
+        self.pag.wait_for_selector('.nova-ficha .sugestoes [role="option"]', timeout=10000)
+        nomes = self.js("() => [...document.querySelectorAll('.nova-ficha .sugestoes [role=option]')].map((o) => o.childNodes[1].textContent)")
+        self.checa(PROGRAMA[1] in nomes, f"digitar «brinq» mostra «{PROGRAMA[1]}» ({nomes})")
+        self.checa(self.js("() => document.querySelectorAll('.nova-ficha .sugestoes [role=option]').length") <= 8,
+                   "a lista mostra no máximo 8 opções")
+        campo.press("ArrowDown")
+        campo.press("ArrowUp")
+        campo.press("Enter")
+        self.esperar_gravacao()
+        self.assentar(quieto=400)
+        self.checa(PROGRAMA[0] in (valor_de("AUTOSTART_BLOQUEADOS") or ""),
+                   f"Enter cria a ficha {PROGRAMA[0]} no meow.conf ({valor_de('AUTOSTART_BLOQUEADOS')!r})")
+        self.checa(self.js("() => document.querySelectorAll('.ficha[role=listitem]').length") == fichas + 1,
+                   "a ficha do programa aparece na tela")
+        self.acionados.add("chave:*:nova")
+
+    def h_rotulos_de_aplicar(self, rota):
+        self.ir(rota)
+        self.assentar(quieto=400)
+        texto = self.js("() => document.querySelector('main').innerText")
+        self.checa(not re.search(r"\b[Vv]est(?:ir|e|em|ido|ida|idos|idas|indo)\b|\bMandar\b", texto),
+                   f"{rota}: a tela não mostra vestir nem Mandar")
+        if rota == "tema":
+            rotulos = self.js("() => [...document.querySelectorAll('[data-controle$=\":vestir\"]')].map((b) => b.textContent.trim())")
+            self.checa(rotulos and all(r == "Aplicar tema" for r in rotulos),
+                       f"o botão do cartão do Tema diz «Aplicar tema» ({rotulos})")
+        else:
+            aba = self.js("() => (document.querySelector('[data-controle=\"passo:mandar\"]') || {}).textContent")
+            self.checa((aba or "").endswith("Disponibilizar"), f"a última aba do Personalizar diz «Disponibilizar» ({aba!r})")
+            botao = self.js("() => (document.querySelector('[data-controle=\"criar:vestir\"]') || {}).textContent")
+            self.checa((botao or "").strip() == "Aplicar tema", f"o botão do Personalizar diz «Aplicar tema» ({botao!r})")
+
+    def h_pendencia_do_spotify(self):
+        self.ir("cuidar")
+        self.assentar(quieto=400)
+        linha = self.pag.locator('[data-linha="pendencia:spicetify-tema-ausente"]')
+        if not self.checa(linha.count() == 1, "a pendência «spicetify-tema-ausente» aparece em Manter"):
+            return
+        self.checa(linha.locator(".rot span").first.inner_text().strip() == "Tema do Spotify",
+                   "o cartão tem o nome «Tema do Spotify»")
+        botao = linha.locator('[data-controle="pendencia:resolver"]')
+        if self.checa(botao.count() == 1, "o cartão tem o botão «Resolver»"):
+            rotulo = self.js("() => (ACAO.get('apps_aplicar') || {}).rotulo")
+            self.checa(botao.get_attribute("aria-description") == rotulo,
+                       f"o «Resolver» roda a ação apps_aplicar ({rotulo!r})")
+
     def h_gerador_da_ficha(self):
         self.abrir_ficha_em_gerar()
         gerador = self.js("() => OFICINA.gerador")
@@ -1388,6 +1452,21 @@ class Percurso:
                 print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
         self.limpar()
         self.assentar()
+        if rota in ("tema", "criar/mandar"):
+            try:
+                self.h_rotulos_de_aplicar(rota)
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"os rótulos de aplicar quebraram: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
+        if rota == "cuidar":
+            try:
+                self.h_pendencia_do_spotify()
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"a pendência do Spotify quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
+        if rota == "ajustes/programas":
+            try:
+                self.h_busca_de_programas()
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"a busca de programas quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
         if rota == "criar/icones":
             try:
                 self.h_gerador_da_ficha()

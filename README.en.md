@@ -46,7 +46,7 @@ compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse 
 
 <table>
 <tr>
-<td width="50%"><img src="docs/capturas/readme/tema.png" alt="The Tema door of the panel"><br><b>Tema</b>: one card per pack: logo, palette, what it brings and what it inherits. Vestir switches packs.</td>
+<td width="50%"><img src="docs/capturas/readme/tema.png" alt="The Tema door of the panel"><br><b>Tema</b>: one card per pack: logo, palette, what it brings and what it inherits. Aplicar tema switches packs.</td>
 <td width="50%"><img src="docs/capturas/readme/criar.png" alt="The Personalizar door of the panel"><br><b>Personalizar</b>: your own pack, step by step: colors, icons, wallpaper, sounds, and download the theme.</td>
 </tr>
 <tr>

@@ -110,7 +110,7 @@ function cartaoDePack(p) {
   if (p.no_ar) {
     direita.push(elemento("span", { class: "estado-no-ar", role: "img", "aria-label": "No ar", dica: "No ar" }, [icone("certo")]));
   } else {
-    direita.push(botao("Vestir", { class: "bt principal", controle: "pack:" + p.id + ":vestir",
+    direita.push(botao("Aplicar tema", { class: "bt principal", controle: "pack:" + p.id + ":vestir",
       dica: primeiraFrase((ACAO.get("pack_usar") || {}).ajuda), onclick: () => vestir(p, flavor) }));
   }
   if (p.remover && !p.remover.motivo) {
@@ -668,9 +668,9 @@ function passoMandar() {
   const dica = pouco ? "Pouco contraste entre texto e fundo" : null;
   const saidas = elemento("div", { class: "corpo fila" }, [
     botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
-      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica: dica || "Um .meowpack para mandar",
+      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica: dica || "Um .meowpack para outra máquina",
       onclick: async () => { const pack = await garantirPack(); if (pack) exportarPack(pack.id); } }),
-    botao("Vestir agora", { class: "bt", icone: "tema", controle: "criar:vestir",
+    botao("Aplicar tema", { class: "bt", icone: "tema", controle: "criar:vestir",
       disabled: pouco, "aria-disabled": pouco ? "true" : null, dica,
       onclick: async () => { const pack = await garantirPack(); if (pack) vestir(pack, null); } }),
   ]);

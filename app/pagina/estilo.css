@@ -208,7 +208,7 @@ select.campo { padding-right: var(--e-8); }
 .ficha img { width: 16px; height: 16px; }
 .ficha button { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--tinta-3); }
 .ficha button:hover { color: var(--perigo); background: var(--perigo-suave); }
-.ficha-nova { height: var(--h-pequeno); width: 160px; border-radius: var(--raio-pilula); }
+.ficha-nova { height: var(--h-pequeno); border-radius: var(--raio-pilula); }
 
 .pagina { padding: var(--e-8) var(--e-14) var(--e-12); max-width: 1760px; margin: 0 auto; }
 .cabeca { display: flex; align-items: center; justify-content: space-between; gap: var(--e-6); min-height: var(--h-bt); margin-bottom: var(--e-6); flex-wrap: wrap; }
@@ -710,7 +710,8 @@ dialog.resultado { width: min(880px, calc(100vw - 32px)); }
 .liga-programas .programa > .fila { gap: var(--e-3); flex-wrap: nowrap; min-width: 0; }
 .liga-programas .programa img { width: 24px; height: 24px; flex: none; }
 .nova-ficha { position: relative; display: inline-flex; }
-.nova-ficha .sugestoes { position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; width: 300px; max-width: calc(100vw - 32px); }
+.nova-ficha .ficha-nova { width: min(360px, calc(100vw - 64px)); }
+.nova-ficha .sugestoes { position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; width: 100%; }
 .jogo .capa .lugar { color: var(--tinta-3); }
 .jogo .capa .lugar svg.i { width: 28px; height: 28px; }
 .galeria figure { cursor: pointer; }

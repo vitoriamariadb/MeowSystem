@@ -37,7 +37,7 @@ que barre a palavra no que a tela mostra.
    | Personalizar, passo | «Mandar» | «Disponibilizar» |
    | `apps_aplicar` em Definir → Programas | «Vestir agora» / «Vestir» | «Aplicar agora» / «Aplicar» |
    | rótulo de `apps_aplicar` | «Vestir os programas» | «Aplicar nos programas» |
-   | rótulo de `apps` | «Programas vestidos» | «Programas com o tema» |
+   | rótulo de `apps` | «Programas vestidos» | «Programas com tema» |
    | dica | «Um .meowpack para mandar» | «Um .meowpack para outra máquina» |
    | frases do `ICONES_DRACULA` | «vestindo o lançador» | «no lançador» |
    | frases do `ICONES_DRACULA` | «não tem o que vestir» | «não tem o que aplicar» |
@@ -82,3 +82,10 @@ que barre a palavra no que a tela mostra.
   - a rota `#criar/mandar`;
   - as frases de `ok`/`falha` dos testes, que não chegam à tela.
 - Os manuais (`docs/PACKS.md:1315,1358,2407` e `docs/ESTADO-FINAL.md:77`) citam o rótulo «Vestir» e entram só se o `tests/decisoes.sh` cobrar.
+
+## Execução
+- **Painel** (`2f11fdf5`, `8e15cb80`). «Vestir» do cartão do Tema e «Vestir agora» do Personalizar viram «Aplicar tema»; o passo «Mandar» vira «Disponibilizar»; `apps_aplicar` diz «Aplicar nos programas», `apps` diz «Programas com tema» (a regra 12c do `app.sh` não deixa passar de três palavras), e as frases do `ICONES_DRACULA` e do `servidor.py` perdem *vestir*. Os `data-controle` (`pack:<id>:vestir`, `criar:vestir`) e a rota `#criar/mandar` ficam. `--aba tema` e `--aba criar/mandar` verdes, com os rótulos novos (a primeira falhou uma vez só pelo teto de 240 s com a máquina em carga 29, e passou sozinha, 244 s).
+- **Scripts, instalador e CLI** (`9933afd4`). 54 chamadas `meow_*` e os `printf` trocam «vestido de», «nada a vestir», «veste», «vestem» pelas formas da tabela; `install.sh:952` e `:2044`, `bin/meow` e `lib/preflight.sh` entram. Os quatro testes da sprint conferem o texto novo: `pastas-do-pack.sh`, `temas-de-apps.sh`, `instalacao.sh` e `p113-navegador.py`, todos verdes. A coluna «não aplica» da tabela do `meow apps` cabe nos 10 caracteres de `pad`.
+- **Guarda** (`b4f7e7d3`). Classe 8 do `tests/frases-velhas.sh`: as formas de *vestir* (sem *vestígio*) e «Mandar» só no que a tela mostra, ou seja, strings de `app/pagina/*.js`, `rotulo`/`ajuda`/`frase` do `servidor.py` e chamadas `meow_*`. Verde; com `botao("Vestir agora", {})` plantado em `paginas.js` o teste sai 1, e sai 0 sem a planta.
+- **Docs** (`309ee614`, `eb5340c8`). `docs/readme.toml` (o `readme.py texto` regerou os dois README e o `--conferir` fecha), `app/LEIA-ME.md`, `docs/ESTADO-FINAL.md` e `docs/PACKS.md` (:1315, :1358, :2407) trocam o rótulo. Item do coordenador: o `PACKS.md` descreve `icones.sistema` e `icones.bandeja` (desenhos, mapa, herda, pintar), e a linha do doctor passou a dizer «já com o Arcticons do pack X» (`scripts/icones_sistema.sh`).
+- **Não feito:** refazer as capturas do README (`tema.png`): não foram refeitas aqui, e a imagem do README ainda mostra «Vestir» até alguém rodar `scripts/readme.py capturas`.
